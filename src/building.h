@@ -1,0 +1,75 @@
+/* building.h */
+
+#ifndef _BUILDING_H
+#define _BUILDING_H
+
+#include <stdint.h>
+
+#include "map.h"
+
+
+#define BUILDING_INDEX(ptr)  ((int)((ptr) - globals.buildings))
+
+#define BUILDING_PLAYER(building)  ((int)((building)->bld & 3))
+#define BUILDING_TYPE(building)  ((building_type_t)(((building)->bld >> 2) & 0x1f))
+#define BUILDING_IS_DONE(building)  (!(((building)->bld >> 7) & 1))
+#define BUILDING_IS_BURNING(building)  ((int)(((building)->serf >> 5) & 1))
+
+
+typedef enum {
+	BUILDING_NONE = 0,
+	BUILDING_FISHER,
+	BUILDING_LUMBERJACK,
+	BUILDING_BOATBUILDER,
+	BUILDING_STONECUTTER,
+	BUILDING_STONEMINE,
+	BUILDING_COALMINE,
+	BUILDING_IRONMINE,
+	BUILDING_GOLDMINE,
+	BUILDING_FORESTER,
+	BUILDING_STOCK,
+	BUILDING_HUT,
+	BUILDING_FARM,
+	BUILDING_BUTCHER,
+	BUILDING_PIGFARM,
+	BUILDING_MILL,
+	BUILDING_BAKER,
+	BUILDING_SAWMILL,
+	BUILDING_STEELSMELTER,
+	BUILDING_TOOLMAKER,
+	BUILDING_WEAPONSMITH,
+	BUILDING_TOWER,
+	BUILDING_FORTRESS,
+	BUILDING_GOLDSMELTER,
+	BUILDING_CASTLE
+} building_type_t;
+
+
+typedef struct building building_t;
+
+struct building {
+	map_pos_t pos;
+	int bld;
+	int serf;
+	int flg_index;
+	int stock1;
+	int stock2;
+	int serf_index; /* Also used for burning building counter. */
+	int progress;
+	union {
+		struct inventory *inventory;
+		struct flag *flag;
+		uint16_t anim; /* Used for burning building. */
+		struct {
+			uint16_t level;
+			uint8_t planks_needed;
+			uint8_t stone_needed;
+		} s;
+	} u;
+};
+
+
+int building_get_score_from_type(building_type_t type);
+
+
+#endif /* ! _BUILDING_H */
