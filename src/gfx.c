@@ -23,7 +23,16 @@
 #include "gfx.h"
 #include "data.h"
 
+/* There are different types of sprites:
+   - Non-packed, rectangular sprites: These are simple called sprites here.
+   - Transparent sprites, "transp": These are e.g. buldings/serfs.
+   The transparent regions are RLE encoded.
+   - Bitmap sprites: Conceptually these contain either 0 or 1 at each pixel.
+   This is used to either modify the alpha level of another sprite (shadows)
+   or mask parts of other sprites completely (mask sprites).
+*/
 
+/* These entries follow the 8 byte header of the data file. */
 typedef struct {
 	uint32_t size;
 	uint32_t offset;
@@ -35,6 +44,8 @@ static size_t sprites_size;
 static unsigned int entry_count;
 
 
+/* Load data file at path and let the global variable sprites refer to the memory
+   with the data file content. */
 int
 gfx_load_file(const char *path)
 {
@@ -112,6 +123,7 @@ gfx_load_file(const char *path)
 	return 0;
 }
 
+/* Free the loaded data file. */
 void
 gfx_unload()
 {
@@ -122,6 +134,9 @@ gfx_unload()
 #endif
 }
 
+/* Return a pointer to the data object at index.
+   If size is non-NULL it will be set to the size of the data object.
+   (There's no guarantee that size is correct!). */
 void *
 gfx_get_data_object(int index, size_t *size)
 {
@@ -138,6 +153,7 @@ gfx_get_data_object(int index, size_t *size)
 	return &bytes[offset];
 }
 
+/* Draw a character at x, y in the dest frame. */
 static void
 gfx_draw_char_sprite(int x, int y, unsigned int c, int color, int shadow, frame_t *dest)
 {
@@ -189,6 +205,7 @@ gfx_draw_char_sprite(int x, int y, unsigned int c, int color, int shadow, frame_
 			       x, y, 0, 0, color, dest);
 }
 
+/* Draw the string str at x, y in the dest frame. */
 void
 gfx_draw_string(int x, int y, int color, int shadow, frame_t *dest, const char *str)
 {
@@ -202,6 +219,7 @@ gfx_draw_string(int x, int y, int color, int shadow, frame_t *dest, const char *
 	}
 }
 
+/* Draw the number n at x, y in the dest frame. */
 void
 gfx_draw_number(int x, int y, int color, int shadow, frame_t *dest, int n)
 {
@@ -225,6 +243,8 @@ gfx_draw_number(int x, int y, int color, int shadow, frame_t *dest, int n)
 	}
 }
 
+/* Draw the opaque sprite with data file index of
+   sprite at x, y in dest frame. */
 void
 gfx_draw_sprite(int x, int y, int sprite, frame_t *dest)
 {
@@ -232,6 +252,8 @@ gfx_draw_sprite(int x, int y, int sprite, frame_t *dest)
 	if (spr != NULL) sdl_draw_sprite(spr, x, y, dest);
 }
 
+/* Draw the transparent sprite with data file index of
+   sprite at x, y in dest frame.*/
 void
 gfx_draw_transp_sprite(int x, int y, int sprite, frame_t *dest)
 {
@@ -239,12 +261,14 @@ gfx_draw_transp_sprite(int x, int y, int sprite, frame_t *dest)
 	if (spr != NULL) sdl_draw_transp_sprite(spr, x, y, 0, 0, 0, dest);
 }
 
+/* Fill a rectangle with color at x, y in the dest frame. */
 void
 gfx_fill_rect(int x, int y, int width, int height, int color, frame_t *dest)
 {
 	sdl_fill_rect(x, y, width, height, color, dest);
 }
 
+/* Perform various fixups of the data file entries. */
 void
 gfx_data_fixup()
 {
@@ -276,6 +300,7 @@ gfx_data_fixup()
 	}
 }
 
+/* Select the color palette that is location at the given data file index. */
 void
 gfx_set_palette(int palette)
 {
@@ -283,6 +308,7 @@ gfx_set_palette(int palette)
 	sdl_set_palette(pal);
 }
 
+/* Unpack the uncompressed data of a transparent sprite. */
 void
 gfx_unpack_transparent_sprite(void *dest, const void *src, size_t destlen, int offset)
 {
@@ -308,6 +334,7 @@ gfx_unpack_transparent_sprite(void *dest, const void *src, size_t destlen, int o
 	}
 }
 
+/* Unpack the uncompressed data of a bitmap sprite. */
 static void
 gfx_unpack_bitmap_sprite(void *dest, const void *src, size_t destlen, int value)
 {
@@ -327,12 +354,14 @@ gfx_unpack_bitmap_sprite(void *dest, const void *src, size_t destlen, int value)
 	}
 }
 
+/* Unpack the uncompressed data of an overlay sprite. */
 void
 gfx_unpack_overlay_sprite(void *dest, const void *src, size_t destlen)
 {
 	gfx_unpack_bitmap_sprite(dest, src, destlen, 0x80);
 }
 
+/* Unpack the uncompressed data of a mask sprite. */
 void
 gfx_unpack_mask_sprite(void *dest, const void *src, size_t destlen)
 {

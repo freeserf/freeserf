@@ -24,6 +24,8 @@
 #include "misc.h"
 #include "debug.h"
 
+/* TODO This file is one big of mess of all the things that should really
+   be separated out into smaller files.  */
 
 #define DEFAULT_SCREEN_WIDTH  800
 #define DEFAULT_SCREEN_HEIGHT 600
@@ -44,11 +46,14 @@ static frame_t svga_normal_frame;
 
 static frame_t popup_box_left_frame;
 
+/* Viewport holds the state of the main map window
+   (e.g. size and current map location). */
 static viewport_t viewport;
 
 static char *game_file = NULL;
 
 
+/* Might be useful for testing. */
 static int
 wait_for_lmb_or_timeout()
 {
@@ -77,6 +82,7 @@ write_and_swap()
 	sdl_swap_buffers();
 }
 
+/* Draw very specific things to specific frames. Not generally useful. */
 static void
 draw_white_black_string(int x, int y, const char *str)
 {
@@ -103,6 +109,7 @@ draw_credits_bg_and_logo()
 	gfx_draw_sprite(144, 56, DATA_BLUE_BYTE, &lowres_full_frame);
 }
 
+/* Draw the credits texts. */
 static void
 draw_programming_credits()
 {
@@ -176,6 +183,8 @@ draw_testing_credits()
 	draw_white_black_string(20, 154, "MICHAEL PASSMANN");
 }
 
+/* Cycle through the credits texts.
+   This is not done as part of the main loop thus the calls to write_and_swap(). */
 static void
 draw_credits()
 {
@@ -223,6 +232,8 @@ draw_credits()
 	}
 }
 
+/* Facilitates quick lookup of offsets following a spiral pattern in the map data.
+   The columns following the second are filled out by setup_spiral_pattern(). */
 static int spiral_pattern[] = {
 	0, 0,
 	1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
@@ -276,6 +287,7 @@ static int spiral_pattern[] = {
 	24, 16, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
 };
 
+/* Initialize the global spiral_pattern. */
 static void
 setup_spiral_pattern()
 {
@@ -301,6 +313,7 @@ setup_spiral_pattern()
 	}
 }
 
+/* Draw the frames around the viewport. */
 static void
 draw_upper_frame()
 {
@@ -337,6 +350,7 @@ draw_upper_frame()
 	}
 }
 
+/* Draw the frame around the popup box. */
 static void
 draw_popup_box_frame()
 {
@@ -357,6 +371,7 @@ draw_game_and_popup_frame()
 	draw_popup_box_frame();
 }
 
+/* Draw the frame around action buttons. */
 static void
 draw_bottom_frame()
 {
@@ -442,6 +457,8 @@ draw_bottom_frame()
 
 static void sdl_audio_play_sound(int index);
 
+/* Play audio... not really, doesn't work.
+   Print which audio file should be played. */
 static void
 enqueue_sfx_clip(sfx_t sfx)
 {
@@ -468,6 +485,7 @@ enqueue_sfx_clip(sfx_t sfx)
 	/*sdl_audio_play_sound(sfx);*/
 }
 
+/* Draw notification icon in action panel. */
 static void
 draw_message_notify(player_t *player)
 {
@@ -476,6 +494,7 @@ draw_message_notify(player_t *player)
 			player->bottom_panel_y + 4, DATA_FRAME_BOTTOM_NOTIFY, &svga_full_frame);
 }
 
+/* Remove drawn notification icon in action panel. */
 static void
 draw_message_no_notify(player_t *player)
 {
@@ -484,6 +503,7 @@ draw_message_no_notify(player_t *player)
 			player->bottom_panel_y + 4, DATA_FRAME_BOTTOM_NO_NOTIFY, &svga_full_frame);
 }
 
+/* Draw return arrow icon in action panel. */
 static void
 draw_return_arrow(player_t *player)
 {
@@ -491,6 +511,7 @@ draw_return_arrow(player_t *player)
 			player->bottom_panel_y + 28, DATA_FRAME_BOTTOM_ARROW, &svga_full_frame);
 }
 
+/* Remove drawn return arrow icon in action panel. */
 static void
 draw_no_return_arrow(player_t *player)
 {
@@ -498,6 +519,7 @@ draw_no_return_arrow(player_t *player)
 			player->bottom_panel_y + 28, DATA_FRAME_BOTTOM_NO_ARROW, &svga_full_frame);
 }
 
+/* Draw buttons in action panel. */
 static void
 draw_player_panel_btns(player_t *player)
 {
@@ -621,18 +643,21 @@ draw_panel_buttons()
 	draw_player_panel_btns(globals.player[1]);
 }
 
+/* Draw icon in a popup frame. */
 static void
 draw_popup_icon(int x, int y, int sprite, frame_t *frame)
 {
 	gfx_draw_sprite(8*x+8, y+9, DATA_ICON_BASE + sprite, frame);
 }
 
+/* Draw building in a popup frame. */
 static void
 draw_popup_building(int x, int y, int sprite, frame_t *frame)
 {
 	gfx_draw_transp_sprite(8*x+8, y+9, DATA_MAP_OBJECT_BASE + sprite, frame);
 }
 
+/* Fill the background of a popup frame. */
 static void
 draw_box_background(int sprite, frame_t *frame)
 {
@@ -643,12 +668,15 @@ draw_box_background(int sprite, frame_t *frame)
 	}
 }
 
+/* Draw a green string in a popup frame. */
 static void
 draw_green_string(int x, int y, frame_t *frame, const char *str)
 {
 	gfx_draw_string(8*x+8, y+9, 31, 0, frame, str);
 }
 
+/* Draw a green number in a popup frame.
+   n must be non-negative. If > 999 simply draw ">999" (three characters). */
 static void
 draw_green_number(int x, int y, frame_t *frame, int n)
 {
@@ -680,12 +708,15 @@ draw_green_number(int x, int y, frame_t *frame, int n)
 	}
 }
 
+/* Draw a green number in a popup frame.
+   No limits on n. */
 static void
 draw_green_large_number(int x, int y, frame_t *frame, int n)
 {
 	gfx_draw_number(8*x+8, 9+y, 31, 0, frame, n);
 }
 
+/* Get the sprite number for a face. */
 static int
 get_player_face_sprite(int face)
 {
@@ -693,6 +724,7 @@ get_player_face_sprite(int face)
 	return 0x119; /* sprite_face_none */
 }
 
+/* Draw player face in popup frame. */
 static void
 draw_player_face(int x, int y, int player, frame_t *frame)
 {
@@ -704,6 +736,7 @@ draw_player_face(int x, int y, int player, frame_t *frame)
 	draw_popup_icon(x, y, get_player_face_sprite(globals.pl_init[player].face), frame);
 }
 
+/* Draw a layout of buildings in a popup box. */
 static void
 draw_custom_bld_box(const int sprites[], frame_t *frame)
 {
@@ -715,6 +748,7 @@ draw_custom_bld_box(const int sprites[], frame_t *frame)
 	}
 }
 
+/* Draw a layout of icons in a popup box. */
 static void
 draw_custom_icon_box(const int sprites[], frame_t *frame)
 {
@@ -724,6 +758,7 @@ draw_custom_icon_box(const int sprites[], frame_t *frame)
 	}
 }
 
+/* Generate an estimate of the amount of resources in the ground at map pos.*/
 static void
 get_resource_estimate(map_pos_t pos, int weight, player_t *player)
 {
@@ -752,6 +787,7 @@ get_resource_estimate(map_pos_t pos, int weight, player_t *player)
 	}
 }
 
+/* Pause the game by setting game speed to zero. */
 static void
 game_pause()
 {
@@ -760,6 +796,7 @@ game_pause()
 	printf("Game speed: %u\n", globals.game_speed >> 16);
 }
 
+/* Unpause the game by restoring game speed. */
 static void
 game_unpause()
 {
@@ -769,6 +806,8 @@ game_unpause()
 
 #define GROUND_ANALYSIS_RADIUS  25
 
+/* Prepare a ground analysis for player.
+   The cursor position is the center of the analysis. */
 static void
 prepare_ground_analysis(player_t *player)
 {
@@ -836,6 +875,7 @@ prepare_ground_analysis(player_t *player)
 	player->sett->analysis_stone = min(player->sett->analysis_stone, 999);
 }
 
+/* Translate resource amount to text. */
 static const char *
 prepare_res_amount_text(int amount)
 {
@@ -851,6 +891,7 @@ prepare_res_amount_text(int amount)
 	return "Perfect";
 }
 
+/* Draw map popup box. */
 static void
 draw_map_box(player_t *player)
 {
@@ -864,6 +905,7 @@ draw_map_overlay_box(player_t *player)
 	/* TODO ... */
 }
 
+/* Draw building mine popup box. */
 static void
 draw_mine_building_box(player_t *player)
 {
@@ -884,6 +926,7 @@ draw_mine_building_box(player_t *player)
 	draw_custom_bld_box(layout, player->popup_frame);
 }
 
+/* Draw .. popup box... */
 static void
 draw_basic_building_box(player_t *player, int flip)
 {
@@ -955,6 +998,7 @@ draw_adv_2_building_box(player_t *player)
 	draw_popup_icon(0, 128, 0x3d, player->popup_frame);
 }
 
+/* Draw generic popup box of resources. */
 static void
 draw_resources_box(player_t *player, const int resources[])
 {
@@ -1023,6 +1067,7 @@ draw_resources_box(player_t *player, const int resources[])
 	draw_green_number(13, 116, player->popup_frame, resources[RESOURCE_BREAD]);
 }
 
+/* Draw generic popup box of serfs. */
 static void
 draw_serfs_box(player_t *player, const int serfs[], int total)
 {
@@ -1354,6 +1399,7 @@ draw_sett_select_box(player_t *player)
 	draw_custom_icon_box(layout, player->popup_frame);
 }
 
+/* Draw slide bar in a popup box. */
 static void
 draw_slide_bar(int x, int y, int value, frame_t *frame)
 {
@@ -1546,6 +1592,7 @@ draw_sett_4_box(player_t *player)
 	draw_slide_bar(4, 132, player->sett->tool_prio[2], player->popup_frame); /* rod */
 }
 
+/* Draw generic popup box of resource stairs. */
 static void
 draw_popup_resource_stairs(int order[], frame_t *frame)
 {
@@ -2121,6 +2168,7 @@ draw_sett_6_box(player_t *player)
 	draw_popup_icon(6, 120, 33+player->sett->current_sett_6_item, player->popup_frame);
 }
 
+/* Draw .. message popup box. */
 static void
 draw_under_attack_message_box(player_t *player, int opponent)
 {
@@ -2314,6 +2362,8 @@ draw_call_to_stock_message_box(player_t *player, int param)
 	draw_popup_building(4, 50, map_building_sprite[BUILDING_STOCK], player->popup_frame);
 }
 
+/* Dispatch to one of the message box functions above.
+   Note: message box is a specific type of popup box. */
 static void
 draw_message_box(player_t *player)
 {
@@ -2509,6 +2559,7 @@ draw_demolish_box(player_t *player)
 	draw_green_string(0, 86, player->popup_frame, "      sure");
 }
 
+/* Dispatch to one of the popup box functions above. */
 static void
 draw_popup_box(player_t *player)
 {
@@ -2702,6 +2753,8 @@ draw_screen_background()
 }
 
 
+/* Part of the initialization of the original game, but important things
+   have moved to other places. Not generally useful. */
 static void
 show_intro_screens()
 {
@@ -2730,6 +2783,7 @@ show_intro_screens()
 	/* TODO ... */
 }
 
+/* Initialize game speed. */
 static void
 start_game_tick()
 {
@@ -2737,6 +2791,7 @@ start_game_tick()
 	update_from_cb = 1;
 }
 
+/* Initialize player objects. */
 static void
 init_player_structs(player_t *p[])
 {
@@ -2795,6 +2850,8 @@ init_player_structs(player_t *p[])
 	/* TODO */
 }
 
+/* Initialize players with lowres screen.
+   Not useful: Lowres frames are not used anymore. */
 static void
 init_players_lowres(player_t *p[])
 {
@@ -2833,6 +2890,7 @@ init_players_lowres(player_t *p[])
 	p[0]->frame = &lowres_normal_frame;
 }
 
+/* Initialize player viewport. */
 static void
 init_players_svga(player_t *p[])
 {
@@ -2909,6 +2967,7 @@ init_players()
 	}
 }
 
+/* Part of initialization procedure. */
 static void
 switch_to_pregame_video_mode()
 {
