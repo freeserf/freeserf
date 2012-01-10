@@ -99,6 +99,8 @@ const map_space_t map_space_from_obj[] = {
 };
 
 
+/* Return a random map position.
+   Returned as map_pos_t and also as col and row if not NULL. */
 static map_pos_t
 get_rnd_map_coord(int *col, int *row)
 {
@@ -319,6 +321,7 @@ clamp_map_heights()
 	}
 }
 
+/* Output raw map data object to filename. */
 static void
 dump_map_mem2(const char *filename, size_t size)
 {
@@ -610,6 +613,7 @@ map_heights_rescale()
 	}
 }
 
+/* Debug function: print heights */
 static void
 print_map_heights()
 {
@@ -627,6 +631,7 @@ print_map_heights()
 	}
 }
 
+/* Debug function: print types */
 static void
 print_map_types()
 {
@@ -644,6 +649,7 @@ print_map_types()
 	}
 }
 
+/* Debug function: check that heights are within limits. */
 static void
 check_map_heights(int max_delta, int min_height)
 {
@@ -726,6 +732,7 @@ init_map_types4()
 	init_map_types_shared_sub(5, 3, 4);
 }
 
+/* Use spiral pattern to lookup a new position based on col, row. */
 static map_pos_t
 lookup_pattern(int col, int row, int index)
 {
@@ -771,6 +778,7 @@ init_map_desert_sub2(map_pos_t pos)
 	return 0;
 }
 
+/* Create deserts on the map. */
 static void
 init_map_desert()
 {
@@ -831,6 +839,7 @@ init_map_desert_2()
 	init_map_types_shared_sub(5, 8, 7);
 }
 
+/* Put crosses on top of mountains. */
 static void
 init_map_crosses()
 {
@@ -885,6 +894,7 @@ init_map_objects_shared_sub1(map_pos_t pos, int min, int max)
 	return 0;
 }
 
+/* Get a random position in the spiral pattern based at col, row. */
 static map_pos_t
 lookup_rnd_pattern(int col, int row, int mask)
 {
@@ -1069,6 +1079,7 @@ init_map_resources_shared(int num_clusters, int res_type, int min, int max)
 	}
 }
 
+/* Initialize resources in the ground. */
 static void
 init_map_resources_1()
 {
@@ -1207,6 +1218,7 @@ init_map_sub()
 	/* draw_progress_bar(1); */
 }
 
+/* Mark tiles that are to have waves painted. */
 static void
 init_map_waves()
 {
@@ -1221,6 +1233,7 @@ init_map_waves()
 	}
 }
 
+/* Initialize global count of gold deposits. */
 static void
 init_map_ground_gold_deposit()
 {
@@ -1238,6 +1251,7 @@ init_map_ground_gold_deposit()
 	globals.map_gold_deposit = total_gold;
 }
 
+/* Initialize minimap data. */
 static void
 init_minimap()
 {
@@ -1298,6 +1312,7 @@ init_minimap()
 	} while (row);
 }
 
+/* Clear map data. */
 static void
 reset_mem_map2()
 {
@@ -1402,6 +1417,7 @@ map_init()
 	/* globals.svga |= BIT(5); */
 }
 
+/* Change the height of a map position. */
 void
 map_set_height(map_pos_t pos, int height)
 {
@@ -1412,6 +1428,7 @@ map_set_height(map_pos_t pos, int height)
 	viewport_redraw_map_pos(pos);
 }
 
+/* Change the object at a map position. */
 void
 map_set_object(map_pos_t pos, map_obj_t obj)
 {
@@ -1421,6 +1438,7 @@ map_set_object(map_pos_t pos, map_obj_t obj)
 	/* TODO Mark dirty in viewport. */
 }
 
+/* Remove resources from the ground at a map position. */
 void
 map_remove_ground_deposit(map_pos_t pos, int amount)
 {
@@ -1433,6 +1451,7 @@ map_remove_ground_deposit(map_pos_t pos, int amount)
 	}
 }
 
+/* Remove fish at a map position (must be water). */
 void
 map_remove_fish(map_pos_t pos, int amount)
 {
@@ -1440,6 +1459,7 @@ map_remove_fish(map_pos_t pos, int amount)
 	map_data[pos].u.s.resource -= amount;
 }
 
+/* Set the index of the serf occupying map position. */
 void
 map_set_serf_index(map_pos_t pos, int index)
 {
@@ -1541,6 +1561,7 @@ map_update_hidden(map_pos_t pos)
 	}
 }
 
+/* Update map data as part of the game progression. */
 void
 map_update()
 {
