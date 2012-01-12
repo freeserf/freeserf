@@ -1194,52 +1194,61 @@ static void
 draw_stat_bld_1_box(player_t *player)
 {
 	draw_box_background(129, player->popup_frame);
+	/* TODO */
 }
 
 static void
 draw_stat_bld_2_box(player_t *player)
 {
 	draw_box_background(129, player->popup_frame);
+	/* TODO */
 }
 
 static void
 draw_stat_bld_3_box(player_t *player)
 {
 	draw_box_background(129, player->popup_frame);
+	/* TODO */
 }
 
 static void
 draw_stat_bld_4_box(player_t *player)
 {
 	draw_box_background(129, player->popup_frame);
+	/* TODO */
 }
 
 static void
 draw_stat_8_box(player_t *player)
 {
+	/* TODO */
 }
 
 static void
 draw_stat_7_box(player_t *player)
 {
+	/* TODO */
 }
 
 static void
 draw_stat_1_box(player_t *player)
 {
 	draw_box_background(129, player->popup_frame);
+	/* TODO */
 }
 
 static void
 draw_stat_2_box(player_t *player)
 {
 	draw_box_background(129, player->popup_frame);
+	/* TODO */
 }
 
 static void
 draw_stat_6_box(player_t *player)
 {
 	draw_box_background(129, player->popup_frame);
+	/* TODO */
 }
 
 static void
@@ -2739,6 +2748,7 @@ redraw_player_popups()
 	}
 }
 
+/* Unused. */
 static void
 draw_screen_background()
 {
@@ -3001,6 +3011,7 @@ handle_map_drag(player_t *player)
 	return 0;
 }
 
+/* Initialize spiral_pos_pattern from spiral_pattern. */
 static void
 init_spiral_pos_pattern()
 {
@@ -3015,6 +3026,8 @@ init_spiral_pos_pattern()
 	}
 }
 
+/* Allocate and initialize a new flag_t object.
+   Return -1 if no more flags can be allocated, otherwise 0. */
 static int
 create_new_flag(flag_t **flag, int *index)
 {
@@ -3056,6 +3069,7 @@ create_new_flag(flag_t **flag, int *index)
 	return -1;
 }
 
+/* Return flag_t object with index. */
 flag_t *
 get_flag(int index)
 {
@@ -3064,6 +3078,7 @@ get_flag(int index)
 	return &globals.flgs[index];
 }
 
+/* Deallocate flag_t object. */
 void
 free_flag(int index)
 {
@@ -3079,6 +3094,8 @@ free_flag(int index)
 	}
 }
 
+/* Allocate and initialize a new building_t object.
+   Return -1 if no more buildings can be allocated, otherwise 0. */
 static int
 create_new_building(building_t **building, int *index)
 {
@@ -3114,6 +3131,7 @@ create_new_building(building_t **building, int *index)
 	return -1;
 }
 
+/* Return building_t object with index. */
 building_t *
 get_building(int index)
 {
@@ -3122,6 +3140,7 @@ get_building(int index)
 	return &globals.buildings[index];
 }
 
+/* Deallocate building_t object. */
 void
 free_building(int index)
 {
@@ -3137,6 +3156,8 @@ free_building(int index)
 	}
 }
 
+/* Allocate and initialize a new inventory_t object.
+   Return -1 if no more inventories can be allocated, otherwise 0. */
 static int
 create_new_inventory(inventory_t **inventory, int *index)
 {
@@ -3170,6 +3191,7 @@ create_new_inventory(inventory_t **inventory, int *index)
 	return -1;
 }
 
+/* Return inventory_t object with index. */
 inventory_t *
 get_inventory(int index)
 {
@@ -3178,6 +3200,7 @@ get_inventory(int index)
 	return &globals.inventories[index];
 }
 
+/* Deallocate inventory_t object. */
 void
 free_inventory(int index)
 {
@@ -3193,6 +3216,8 @@ free_inventory(int index)
 	}
 }
 
+/* Allocate and initialize a new serf_t object.
+   Return -1 if no more serfs can be allocated, otherwise 0. */
 static int
 create_new_serf(serf_t **serf, int *index)
 {
@@ -3222,6 +3247,7 @@ create_new_serf(serf_t **serf, int *index)
 	return -1;
 }
 
+/* Return serf_t object with index. */
 serf_t *
 get_serf(int index)
 {
@@ -3230,6 +3256,7 @@ get_serf(int index)
 	return &globals.serfs[index];
 }
 
+/* Deallocate and serf_t object. */
 void
 free_serf(int index)
 {
@@ -3247,6 +3274,7 @@ free_serf(int index)
 	globals.map_max_serfs_left += 1;
 }
 
+/* Reset various global map/game state. */
 static void
 reset_game_objs()
 {
@@ -3290,6 +3318,7 @@ reset_game_objs()
 	building->bld = 0;
 }
 
+/* Initialize map constants for the given map size (map_cols, map_rows). */
 static void
 init_map_vars()
 {
@@ -3341,6 +3370,7 @@ init_map_vars()
 	/* TODO ... */
 }
 
+/* Initialize AI parameters. */
 static void
 init_ai_values(player_sett_t *sett, int face)
 {
@@ -3359,6 +3389,7 @@ init_ai_values(player_sett_t *sett, int face)
 	sett->ai_value_5 = ai_values_5[face-1];
 }
 
+/* Set defaults for food distribution priorities. */
 static void
 set_food_prio_defaults(player_sett_t *sett)
 {
@@ -3368,6 +3399,7 @@ set_food_prio_defaults(player_sett_t *sett)
 	sett->food_goldmine = 65500;
 }
 
+/* Set defaults for tree and steel distribution priorities. */
 static void
 set_tree_steel_prio_defaults(player_sett_t *sett)
 {
@@ -3379,6 +3411,7 @@ set_tree_steel_prio_defaults(player_sett_t *sett)
 	sett->steel_weapon = 65500;
 }
 
+/* Set defaults for coal and wheat distribution priorities. */
 static void
 set_coal_wheat_prio_defaults(player_sett_t *sett)
 {
@@ -3390,6 +3423,7 @@ set_coal_wheat_prio_defaults(player_sett_t *sett)
 	sett->wheat_mill = 32750;
 }
 
+/* Set defaults for tool production priorities. */
 static void
 set_tool_prio_defaults(player_sett_t *sett)
 {
@@ -3404,6 +3438,7 @@ set_tool_prio_defaults(player_sett_t *sett)
 	sett->tool_prio[8] = 6550; /* PINCER */
 }
 
+/* Set defaults for flag priorities. */
 static void
 set_flag_prio_defaults(player_sett_t *sett)
 {
@@ -3439,6 +3474,7 @@ set_flag_prio_defaults(player_sett_t *sett)
 	sett->flag_prio[RESOURCE_PLANK] = 26;
 }
 
+/* Set defaults for inventory priorities. */
 static void
 set_inventory_prio_defaults(player_sett_t *sett)
 {
@@ -3474,6 +3510,7 @@ set_inventory_prio_defaults(player_sett_t *sett)
 	sett->inventory_prio[RESOURCE_GOLDBAR] = 26;
 }
 
+/* Initialize player_sett_t objects. */
 static void
 reset_player_settings()
 {
@@ -3560,6 +3597,7 @@ reset_player_settings()
 	}
 }
 
+/* Initialize global stuff. */
 static void
 init_player_settings()
 {
@@ -3567,6 +3605,7 @@ init_player_settings()
 	/* TODO ... */
 }
 
+/* Initialize global counters for game updates. */
 static void
 init_game_globals()
 {
@@ -3577,6 +3616,9 @@ init_game_globals()
 	globals.anim_diff = 0;
 }
 
+/* Update global anim counters based on game_tick.
+   Note: anim counters control the rate of updates in 
+   the rest of the game objects (_not_ just gfx animations). */
 static void
 anim_update_and_more()
 {
@@ -3666,6 +3708,7 @@ update_player_input_click(player_t *player, int x, int y, int lmb, int rmb, int 
 	else player->click &= ~BIT(3);
 }
 
+/* Determine what buildings can possibly be built at map_pos[0]. */
 static void
 determine_possible_building(const player_sett_t *sett, map_pos_t map_pos[], int hills,
 			    panel_btn_t *panel_btn, int *build_flags, int *height_after_level)
@@ -3773,6 +3816,7 @@ determine_map_cursor_type_sub(int type)
 	return BIT(1);
 }
 
+/* Initialize an array of map_pos_t following a spiral pattern based in init_pos. */
 static void
 populate_circular_map_pos_array(map_pos_t map_pos[], map_pos_t init_pos, int size)
 {
@@ -3781,6 +3825,7 @@ populate_circular_map_pos_array(map_pos_t map_pos[], map_pos_t init_pos, int siz
 	}
 }
 
+/* Return the cursor type and various related values of a map_pos_t. */
 static void
 get_map_cursor_type(const player_sett_t *sett, map_pos_t pos, panel_btn_t *panel_btn,
 		    int *build_flags, int *cursor_type, int *height_after_level)
@@ -3965,6 +4010,8 @@ get_map_cursor_type(const player_sett_t *sett, map_pos_t pos, panel_btn_t *panel
 	}
 }
 
+/* Update the player_t object with the information returned
+   in get_map_cursor_type(). */
 static void
 determine_map_cursor_type(player_t *player)
 {
@@ -3981,6 +4028,9 @@ determine_map_cursor_type(player_t *player)
 			    &player->sett->building_height_after_level);
 }
 
+/* Update the player_t object with the information returned
+   in get_map_cursor_type(). This is sets the appropriate values
+   when the player interface is in road construction mode. */
 static void
 determine_map_cursor_type_road(player_t *player)
 {
@@ -4036,6 +4086,7 @@ determine_map_cursor_type_road(player_t *player)
 	player->field_D0 = bits;
 }
 
+/* Set the appropriate sprites for the panel buttons and the map cursor. */
 static void
 update_panel_btns_and_map_cursor(player_t *player)
 {
@@ -4142,6 +4193,7 @@ update_panel_btns_and_map_cursor(player_t *player)
 	}
 }
 
+/* Close the popup box for player. */
 static void
 close_box(player_t *player)
 {
@@ -4154,6 +4206,7 @@ close_box(player_t *player)
 	player->click |= BIT(2);
 }
 
+/* Calculate the flag state of military buildings (distance to enemy). */
 void
 calculate_military_flag_state(building_t *building)
 {
@@ -4192,6 +4245,7 @@ break_loops:
 	building->serf = (building->serf & 0xfc) | f;
 }
 
+/* Update land ownership around col,row. */
 void
 update_land_ownership(int col, int row)
 {
@@ -4349,6 +4403,7 @@ update_land_ownership(int col, int row)
 	}
 }
 
+/* Start road construction mode for player interface. */
 static void
 build_road_begin(player_t *player)
 {
@@ -4373,6 +4428,7 @@ build_road_begin(player_t *player)
 	player->road_length = 0;
 }
 
+/* End road construction mode for player interface. */
 static void
 build_road_end(player_t *player)
 {
@@ -4412,6 +4468,8 @@ build_road_end(player_t *player)
 	/* TODO set_map_redraw(); */
 }
 
+/* Get road length category value for real length.
+   Determines number of serfs servicing the path segment.(?) */
 static int
 get_road_length_value(int length)
 {
@@ -4425,6 +4483,7 @@ get_road_length_value(int length)
 	return 0;
 }
 
+/* Connect a road under construction to an existing flag. */
 static int
 build_road_connect_flag(player_t *player, map_1_t *map, map_pos_t clk_pos, dir_t out_dir)
 {
@@ -4571,6 +4630,7 @@ flag_cancel_transported_stock(flag_t *flag, int res)
 	}
 }
 
+/* Find a transporter at pos and change it to state. */
 static int
 change_transporter_state_at_pos(map_pos_t pos, serf_state_t state)
 {
@@ -4763,6 +4823,7 @@ restore_path_serf_info(flag_t *flag, dir_t dir, serf_path_info_t *data)
 	}
 }
 
+/* Build flag on existing path. Path must be split in two segments. */
 static void
 build_flag_split_path(map_pos_t pos)
 {
@@ -4857,6 +4918,7 @@ build_flag_split_path(map_pos_t pos)
 	restore_path_serf_info(flag, path_2_dir, &path_2_data);
 }
 
+/* Build new flag. */
 static void
 build_flag(player_t *player)
 {
@@ -4896,6 +4958,7 @@ build_flag(player_t *player)
 	}
 }
 
+/* Build a new building. The type is stored in globals.building_type. */
 static void
 build_building(player_t *player, map_obj_t obj_type)
 {
@@ -5005,6 +5068,7 @@ build_building(player_t *player, map_obj_t obj_type)
 	}
 }
 
+/* Build a mine. */
 static void
 build_mine_building(player_t *player)
 {
@@ -5032,6 +5096,7 @@ build_mine_building(player_t *player)
 	}
 }
 
+/* Build a basic building. */
 static void
 build_basic_building(player_t *player)
 {
@@ -5059,6 +5124,7 @@ build_basic_building(player_t *player)
 	}
 }
 
+/* Build advanced building. */
 static void
 build_advanced_building(player_t *player)
 {
@@ -5086,6 +5152,8 @@ build_advanced_building(player_t *player)
 	}	
 }
 
+/* Spawn new serf. Returns 0 on success.
+   The serf_t object and inventory are returned if non-NULL. */
 static int
 spawn_serf(player_sett_t *sett, serf_t **serf, inventory_t **inventory, int want_knight)
 {
@@ -5143,6 +5211,7 @@ spawn_serf(player_sett_t *sett, serf_t **serf, inventory_t **inventory, int want
 	return 0;
 }
 
+/* Create the initial serfs that occupies the castle. */
 static void
 create_initial_castle_serfs(player_sett_t *sett)
 {
@@ -5303,6 +5372,7 @@ create_initial_castle_serfs(player_sett_t *sett)
 	}
 }
 
+/* Build castle. */
 static void
 build_castle(player_t *player)
 {
@@ -5556,6 +5626,7 @@ flag_reset_transport(flag_t *flag)
 	}
 }
 
+/* Demolish building at pos. */
 static void
 building_demolish(map_pos_t pos)
 {
@@ -5776,6 +5847,7 @@ do_demolish(player_t *player)
 	}
 }
 
+/* Handle a click on the panel buttons. */
 static void
 handle_panel_btn_click(player_t *player, int btn)
 {
@@ -5958,6 +6030,7 @@ handle_panel_btn_click(player_t *player, int btn)
 	}
 }
 
+/* Not used any more (?). */
 int
 init_flag_search()
 {
@@ -6072,6 +6145,7 @@ send_serf_to_flag_search_cb(flag_t *flag, send_serf_to_flag_data_t *data)
 	return 0;
 }
 
+/* Dispatch serf from (nearest?) inventory to flag. */
 static int
 send_serf_to_flag(flag_t *dest, building_t *building, int dest_index,
 		  int type, resource_type_t res1, resource_type_t res2)
@@ -6154,6 +6228,7 @@ send_serf_to_flag(flag_t *dest, building_t *building, int dest_index,
 	return -1;
 }
 
+/* Dispatch serf to building. */
 static int
 send_serf_to_building(building_t *building, int type, resource_type_t res1, resource_type_t res2)
 {
@@ -6161,6 +6236,7 @@ send_serf_to_building(building_t *building, int type, resource_type_t res1, reso
 	return send_serf_to_flag(dest, building, building->flg_index, type, res1, res2);
 }
 
+/* Dispatch geologist to flag. */
 static int
 send_geologist(flag_t *dest, int dest_index)
 {
@@ -6183,6 +6259,7 @@ handle_send_geologist(player_t *player)
 	}
 }
 
+/* Generic handler for clicks in popup boxes. */
 static int
 handle_clickmap(player_t *player, int x, int y, const int clkmap[])
 {
@@ -6731,6 +6808,7 @@ handle_message_icon_click(player_t *player)
 	player->sett->msg_queue_type[i-1] = 0;
 }
 
+/* Handle player click in the bottom panel. */
 static void
 handle_bottom_panel_click(player_t *player, int x, int y)
 {
@@ -6833,6 +6911,7 @@ handle_bottom_panel_click(player_t *player, int x, int y)
 	}
 }
 
+/* Handle click in the main viewport. */
 static void
 handle_map_click(player_t *player, int x, int y)
 {
@@ -7046,6 +7125,7 @@ handle_player_click(player_t *player)
 	}
 }
 
+/* Handle player click and update buttons/cursors/sprites. */
 static void
 handle_player_click_and_update(player_t *player)
 {
@@ -7135,6 +7215,7 @@ check_win_and_flags_buildings()
 	}
 }
 
+/* Update game_tick. */
 static void
 update_game()
 {
@@ -7146,6 +7227,7 @@ update_game()
 	/* TODO pcm sounds ... */
 }
 
+/* Update player game state as part of the game progression. */
 static void
 update_player_sett(player_sett_t *sett)
 {
@@ -7553,6 +7635,7 @@ find_nearest_inventory_search_cb(flag_t *flag, flag_t **dest)
 	return 0;
 }
 
+/* Return the flag index of the inventory nearest to flag. */
 static int
 find_nearest_inventory(flag_t *flag)
 {
@@ -7625,6 +7708,7 @@ update_flags_search2_cb(flag_t *flag, update_flags_search2_t *data)
 	return 0;
 }
 
+/* Update flags as part of the game progression. */
 static void
 update_flags()
 {
@@ -7844,6 +7928,7 @@ update_flags()
 	}
 }
 
+/* Update castle as part of the game progression. */
 static void
 update_building_castle(building_t *building)
 {
@@ -7882,6 +7967,7 @@ update_building_castle(building_t *building)
 	/* TODO */
 }
 
+/* Update unfinished building as part of the game progression. */
 static void
 update_unfinished_building(building_t *building)
 {
@@ -7940,6 +8026,7 @@ update_unfinished_building(building_t *building)
 		flag->stock2_prio = 0;
 	}
 }
+
 static void
 update_unfinished_adv_building(building_t *building)
 {
@@ -7970,6 +8057,7 @@ update_unfinished_adv_building(building_t *building)
 	}
 }
 
+/* Enqueue a new notification message for player. */
 void
 create_notification_message(int type, map_pos_t pos, int player)
 {
@@ -8590,6 +8678,7 @@ handle_building_update(building_t *building)
 	}
 }
 
+/* Update buildings as part of the game progression. */
 static void
 update_buildings()
 {
@@ -8615,6 +8704,7 @@ update_buildings()
 	}
 }
 
+/* Update serfs as part of the game progression. */
 void
 update_serfs()
 {
@@ -8630,6 +8720,7 @@ update_serfs()
 	}
 }
 
+/* Load global state from save game. */
 static int
 load_v0_globals_state(FILE *f)
 {
@@ -8775,6 +8866,7 @@ load_v0_globals_state(FILE *f)
 	return 0;
 }
 
+/* Load player state from save game. */
 static int
 load_v0_player_sett_state(FILE *f)
 {
@@ -8892,6 +8984,7 @@ load_v0_player_sett_state(FILE *f)
 	return 0;
 }
 
+/* Load map state from save game. */
 static int
 load_v0_map_state(FILE *f)
 {
@@ -8937,6 +9030,7 @@ load_v0_map_state(FILE *f)
 	return 0;
 }
 
+/* Load serf state from save game. */
 static int
 load_v0_serf_state(FILE *f)
 {
@@ -9130,6 +9224,7 @@ load_v0_serf_state(FILE *f)
 	return 0;
 }
 
+/* Load flag state from save game. */
 static int
 load_v0_flag_state(FILE *f)
 {
@@ -9213,6 +9308,7 @@ load_v0_flag_state(FILE *f)
 	return 0;
 }
 
+/* Load building state from save game. */
 static int
 load_v0_building_state(FILE *f)
 {
@@ -9276,6 +9372,7 @@ load_v0_building_state(FILE *f)
 	return 0;
 }
 
+/* Load inventory state from save game. */
 static int
 load_v0_inventory_state(FILE *f)
 {
@@ -9335,6 +9432,7 @@ load_v0_inventory_state(FILE *f)
 	return 0;
 }
 
+/* Load a save game. */
 static int
 load_v0_state(FILE *f)
 {
@@ -9366,9 +9464,11 @@ load_v0_state(FILE *f)
 	return 0;
 }
 
+/* Initialize map parameters from mission number. */
 static int
 load_map_spec()
 {
+	/* Only the three first are available for now. */
 	const map_spec_t mission[] = {
 		{
 			/* Mission 1: START */
@@ -9459,6 +9559,7 @@ load_map_spec()
 	return map_size;
 }
 
+/* Initialize various things before game starts. */
 static void
 start_game()
 {
@@ -9717,6 +9818,7 @@ game_loop()
 	}
 }
 
+/* Initialization before game starts. */
 static void
 pregame_continue()
 {
@@ -9846,6 +9948,7 @@ pregame_init()
 	pregame_continue();
 }
 
+/* Memory allocation before game starts. */
 static void
 hand_out_memory_2()
 {
@@ -10023,6 +10126,7 @@ audio_request_data_cb(void *user, uint8_t *stream, int len)
 
 audio_clip_t audio_clip;
 
+/* Initialize audio (toy implementation). */
 static int
 sdl_audio_init()
 {

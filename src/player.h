@@ -10,6 +10,9 @@
 #include "gfx.h"
 
 
+/* player_sett_t object.
+   Actually holds the game state of a player.
+   This is the same for both human and AI players. */
 typedef struct {
 	/* pl_sett_pre */
 	int tool_prio[9];
@@ -118,6 +121,9 @@ typedef struct {
 	/* ... */
 } player_sett_t;
 
+/* player_t object.
+   Actually represents the interface to the human player.
+   Note: there is no player_t object for AI players for this reason. */
 typedef struct {
 	int flags;
 	int click;
@@ -190,6 +196,7 @@ typedef struct {
 	/* D2 */
 	uint16_t last_anim;
 	/* 1B4 */
+	/* Determines what sfx should be played. */
 	int water_in_view;
 	int trees_in_view;
 	/* 1C0 */
