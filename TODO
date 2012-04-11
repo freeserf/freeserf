@@ -1,0 +1,17 @@
+TODO
+====
+
+freeserf 0.1 release
+--------------------
+
+* Port the missing essential features:
+** Dialog boxes
+** Serf states
+
+
+Later
+-----
+
+* Sound/music
+* Implement AI
+* Multiplayer networking 
