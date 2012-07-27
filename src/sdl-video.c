@@ -64,7 +64,7 @@ sdl_init()
 
 	/* Display program name and version in caption */
 	char caption[64];
-	snprintf(caption, 64, "freeserf %s", VCS_VERSION);
+	snprintf(caption, 64, "freeserf %s", FREESERF_VERSION);
 	SDL_WM_SetCaption(caption, caption);
 
 	/* Exit on signals */
