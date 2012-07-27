@@ -3,10 +3,13 @@
 #ifndef _MAP_H
 #define _MAP_H
 
+
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
 
+/* Macros for moving a map_pos_t around in the map. */
 #define MAP_MOVE(pos,dir)  (((pos)+globals.map_dirs[(dir)]) & globals.map_index_mask)
 
 #define MAP_MOVE_RIGHT(pos)  MAP_MOVE((pos), DIR_RIGHT)
@@ -27,9 +30,12 @@
 	(((pos) >> globals.map_row_shift) & globals.map_row_mask)
 
 #define MAP_2_DATA(map)  ((map_2_t *)((map) + globals.map_data_offset))
+
+/* Translate col, row coordinate to map_pos_t value. */
 #define MAP_POS(x,y)  (((y)<<globals.map_row_shift) | (x))
 
 
+/* Extractors for map data. */
 #define MAP_HAS_FLAG(pos)  ((int)((globals.map_mem2_ptr[(pos)].flags >> 7) & 1))
 #define MAP_WATER_1(pos)  ((int)((globals.map_mem2_ptr[(pos)].flags >> 6) & 1))
 #define MAP_PATHS(pos)  ((int)(globals.map_mem2_ptr[(pos)].flags & 0x3f))
@@ -203,10 +209,16 @@ typedef struct {
 	uint16_t serf_index;
 } map_2_t;
 
+
+/* map_pos_t is a compact composition of col and row values that
+   uniquely identifies a vertex in the map space. It is also used
+   directly as index to map data arrays. */
 typedef int map_pos_t;
 
 
+/* Mapping from map_obj_t to map_space_t. */
 extern const map_space_t map_space_from_obj[128];
+
 
 void map_set_height(map_pos_t pos, int height);
 void map_set_object(map_pos_t pos, map_obj_t obj);

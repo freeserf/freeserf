@@ -1,5 +1,24 @@
 /* map.c */
 
+/* Map generator and map update functions.
+   Basically the map is constructed from a regular, square grid, with
+   rows and columns, except that the grid is actually sheared like this:
+   http://mathworld.wolfram.com/Polyrhomb.html
+   This is the foundational 2D grid for the map, where each vertex can be
+   identified by an integer col and row (commonly encoded as map_pos_t).
+
+   Each tile has the shape of a rhombus:
+      A ______ B
+       /\    /
+      /  \  /
+   C /____\/ D
+
+   but is actually composed of two triangles called "up" (a,c,d) and
+   "down" (a,b,d). A serf can move on the perimeter of any of these
+   triangles. Each vertex has various properties associated with it,
+   among others a height value which means that the 3D landscape is
+   defined by these points in (col, row, height)-space. */
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
