@@ -1473,11 +1473,11 @@ draw_sett_2_box(player_t *player)
 	draw_custom_bld_box(bld_layout, player->popup_frame);
 	draw_custom_icon_box(layout, player->popup_frame);
 
-	draw_slide_bar(0, 26, player->sett->tree_building, player->popup_frame);
-	draw_slide_bar(0, 36, player->sett->tree_boat, player->popup_frame);
-	draw_slide_bar(8, 44, player->sett->tree_tool, player->popup_frame);
-	draw_slide_bar(8, 103, player->sett->steel_tool, player->popup_frame);
-	draw_slide_bar(0, 130, player->sett->steel_weapon, player->popup_frame);
+	draw_slide_bar(0, 26, player->sett->planks_construction, player->popup_frame);
+	draw_slide_bar(0, 36, player->sett->planks_boatbuilder, player->popup_frame);
+	draw_slide_bar(8, 44, player->sett->planks_toolmaker, player->popup_frame);
+	draw_slide_bar(8, 103, player->sett->steel_toolmaker, player->popup_frame);
+	draw_slide_bar(0, 130, player->sett->steel_weaponsmith, player->popup_frame);
 }
 
 static void
@@ -1506,7 +1506,7 @@ draw_sett_3_box(player_t *player)
 
 	draw_slide_bar(0, 39, player->sett->coal_steelsmelter, player->popup_frame);
 	draw_slide_bar(8, 39, player->sett->coal_goldsmelter, player->popup_frame);
-	draw_slide_bar(4, 47, player->sett->coal_weapon, player->popup_frame);
+	draw_slide_bar(4, 47, player->sett->coal_weaponsmith, player->popup_frame);
 	draw_slide_bar(0, 92, player->sett->wheat_pigfarm, player->popup_frame);
 	draw_slide_bar(8, 118, player->sett->wheat_mill, player->popup_frame);
 }
@@ -2177,6 +2177,59 @@ draw_sett_6_box(player_t *player)
 	draw_popup_icon(6, 120, 33+player->sett->current_sett_6_item, player->popup_frame);
 }
 
+static void
+draw_bld_1_box(player_t *player)
+{
+	const int layout[] = {
+		0xc0, 0, 5, /* stock */
+		0xab, 2, 77, /* hut */
+		0x9e, 8, 7, /* tower */
+		0x98, 6, 69, /* fortress */
+		-1
+	};
+
+	draw_box_background(313, player->popup_frame);
+
+	draw_popup_building(4, 112, 0x80 + 4*player->sett->player_num, player->popup_frame);
+	draw_custom_bld_box(layout, player->popup_frame);
+
+	draw_popup_icon(0, 128, 0x3d, player->popup_frame); /* flipbox */
+	draw_popup_icon(14, 128, 0x3c, player->popup_frame); /* exit */
+}
+
+static void
+draw_bld_2_box(player_t *player)
+{
+	draw_box_background(313, player->popup_frame);
+
+	/* TODO */
+
+	draw_popup_icon(0, 128, 0x3d, player->popup_frame); /* flipbox */
+	draw_popup_icon(14, 128, 0x3c, player->popup_frame); /* exit */
+}
+
+static void
+draw_bld_3_box(player_t *player)
+{
+	draw_box_background(313, player->popup_frame);
+
+	/* TODO */
+
+	draw_popup_icon(0, 128, 0x3d, player->popup_frame); /* flipbox */
+	draw_popup_icon(14, 128, 0x3c, player->popup_frame); /* exit */
+}
+
+static void
+draw_bld_4_box(player_t *player)
+{
+	draw_box_background(313, player->popup_frame);
+
+	/* TODO */
+
+	draw_popup_icon(0, 128, 0x3d, player->popup_frame); /* flipbox */
+	draw_popup_icon(14, 128, 0x3c, player->popup_frame); /* exit */
+}
+
 /* Draw .. message popup box. */
 static void
 draw_under_attack_message_box(player_t *player, int opponent)
@@ -2721,7 +2774,18 @@ draw_popup_box(player_t *player)
 	case BOX_SETT_6:
 		draw_sett_6_box(player);
 		break;
-		/* TODO ... */
+	case BOX_BLD_1:
+		draw_bld_1_box(player);
+		break;
+	case BOX_BLD_2:
+		draw_bld_2_box(player);
+		break;
+	case BOX_BLD_3:
+		draw_bld_3_box(player);
+		break;
+	case BOX_BLD_4:
+		draw_bld_4_box(player);
+		break;
 	case BOX_MESSAGE:
 		draw_message_box(player);
 		break;
@@ -3389,127 +3453,6 @@ init_ai_values(player_sett_t *sett, int face)
 	sett->ai_value_5 = ai_values_5[face-1];
 }
 
-/* Set defaults for food distribution priorities. */
-static void
-set_food_prio_defaults(player_sett_t *sett)
-{
-	sett->food_stonemine = 13100;
-	sett->food_coalmine = 45850;
-	sett->food_ironmine = 45850;
-	sett->food_goldmine = 65500;
-}
-
-/* Set defaults for tree and steel distribution priorities. */
-static void
-set_tree_steel_prio_defaults(player_sett_t *sett)
-{
-	sett->tree_building = 65500;
-	sett->tree_boat = 3275;
-	sett->tree_tool = 19650;
-
-	sett->steel_tool = 45850;
-	sett->steel_weapon = 65500;
-}
-
-/* Set defaults for coal and wheat distribution priorities. */
-static void
-set_coal_wheat_prio_defaults(player_sett_t *sett)
-{
-	sett->coal_steelsmelter = 32750;
-	sett->coal_goldsmelter = 65500;
-	sett->coal_weapon = 52400;
-
-	sett->wheat_pigfarm = 65500;
-	sett->wheat_mill = 32750;
-}
-
-/* Set defaults for tool production priorities. */
-static void
-set_tool_prio_defaults(player_sett_t *sett)
-{
-	sett->tool_prio[0] = 9825; /* SHOVEL */
-	sett->tool_prio[1] = 65500; /* HAMMER */
-	sett->tool_prio[2] = 13100; /* ROD */
-	sett->tool_prio[3] = 6550; /* CLEAVER */
-	sett->tool_prio[4] = 13100; /* SCYTHE */
-	sett->tool_prio[5] = 26200; /* AXE */
-	sett->tool_prio[6] = 32750; /* SAW */
-	sett->tool_prio[7] = 45850; /* PICK */
-	sett->tool_prio[8] = 6550; /* PINCER */
-}
-
-/* Set defaults for flag priorities. */
-static void
-set_flag_prio_defaults(player_sett_t *sett)
-{
-	sett->flag_prio[RESOURCE_GOLDORE] = 1;
-	sett->flag_prio[RESOURCE_GOLDBAR] = 2;
-	sett->flag_prio[RESOURCE_WHEAT] = 3;
-	sett->flag_prio[RESOURCE_FLOUR] = 4;
-	sett->flag_prio[RESOURCE_PIG] = 5;
-
-	sett->flag_prio[RESOURCE_BOAT] = 6;
-	sett->flag_prio[RESOURCE_PINCER] = 7;
-	sett->flag_prio[RESOURCE_SCYTHE] = 8;
-	sett->flag_prio[RESOURCE_ROD] = 9;
-	sett->flag_prio[RESOURCE_CLEAVER] = 10;
-
-	sett->flag_prio[RESOURCE_SAW] = 11;
-	sett->flag_prio[RESOURCE_AXE] = 12;
-	sett->flag_prio[RESOURCE_PICK] = 13;
-	sett->flag_prio[RESOURCE_SHOVEL] = 14;
-	sett->flag_prio[RESOURCE_HAMMER] = 15;
-
-	sett->flag_prio[RESOURCE_SHIELD] = 16;
-	sett->flag_prio[RESOURCE_SWORD] = 17;
-	sett->flag_prio[RESOURCE_BREAD] = 18;
-	sett->flag_prio[RESOURCE_MEAT] = 19;
-	sett->flag_prio[RESOURCE_FISH] = 20;
-
-	sett->flag_prio[RESOURCE_IRONORE] = 21;
-	sett->flag_prio[RESOURCE_LUMBER] = 22;
-	sett->flag_prio[RESOURCE_COAL] = 23;
-	sett->flag_prio[RESOURCE_STEEL] = 24;
-	sett->flag_prio[RESOURCE_STONE] = 25;
-	sett->flag_prio[RESOURCE_PLANK] = 26;
-}
-
-/* Set defaults for inventory priorities. */
-static void
-set_inventory_prio_defaults(player_sett_t *sett)
-{
-	sett->inventory_prio[RESOURCE_WHEAT] = 1;
-	sett->inventory_prio[RESOURCE_FLOUR] = 2;
-	sett->inventory_prio[RESOURCE_PIG] = 3;
-	sett->inventory_prio[RESOURCE_BREAD] = 4;
-	sett->inventory_prio[RESOURCE_FISH] = 5;
-
-	sett->inventory_prio[RESOURCE_MEAT] = 6;
-	sett->inventory_prio[RESOURCE_LUMBER] = 7;
-	sett->inventory_prio[RESOURCE_PLANK] = 8;
-	sett->inventory_prio[RESOURCE_BOAT] = 9;
-	sett->inventory_prio[RESOURCE_STONE] = 10;
-
-	sett->inventory_prio[RESOURCE_COAL] = 11;
-	sett->inventory_prio[RESOURCE_IRONORE] = 12;
-	sett->inventory_prio[RESOURCE_STEEL] = 13;
-	sett->inventory_prio[RESOURCE_SHOVEL] = 14;
-	sett->inventory_prio[RESOURCE_HAMMER] = 15;
-
-	sett->inventory_prio[RESOURCE_ROD] = 16;
-	sett->inventory_prio[RESOURCE_CLEAVER] = 17;
-	sett->inventory_prio[RESOURCE_SCYTHE] = 18;
-	sett->inventory_prio[RESOURCE_AXE] = 19;
-	sett->inventory_prio[RESOURCE_SAW] = 20;
-
-	sett->inventory_prio[RESOURCE_PICK] = 21;
-	sett->inventory_prio[RESOURCE_PINCER] = 22;
-	sett->inventory_prio[RESOURCE_SHIELD] = 23;
-	sett->inventory_prio[RESOURCE_SWORD] = 24;
-	sett->inventory_prio[RESOURCE_GOLDORE] = 25;
-	sett->inventory_prio[RESOURCE_GOLDBAR] = 26;
-}
-
 /* Initialize player_sett_t objects. */
 static void
 reset_player_settings()
@@ -3561,12 +3504,15 @@ reset_player_settings()
 			sett->knight_occupation[2] = 0x32;
 			sett->knight_occupation[3] = 0x43;
 
-			set_food_prio_defaults(sett);
-			set_tree_steel_prio_defaults(sett);
-			set_coal_wheat_prio_defaults(sett);
-			set_tool_prio_defaults(sett);
-			set_flag_prio_defaults(sett);
-			set_inventory_prio_defaults(sett);
+			player_sett_reset_food_priority(sett);
+			player_sett_reset_planks_priority(sett);
+			player_sett_reset_steel_priority(sett);
+			player_sett_reset_coal_priority(sett);
+			player_sett_reset_wheat_priority(sett);
+			player_sett_reset_tool_priority(sett);
+
+			player_sett_reset_flag_priority(sett);
+			player_sett_reset_inventory_priority(sett);
 
 			/* TODO ... */
 			sett->timers_count = 0;
@@ -6259,6 +6205,12 @@ handle_send_geologist(player_t *player)
 	}
 }
 
+/* Get the resulting value from a click on a slider bar. */
+static int
+get_slider_click_value(int x) {
+	return 1310 * clamp(0, x - 7, 50);
+}
+
 /* Generic handler for clicks in popup boxes. */
 static int
 handle_clickmap(player_t *player, int x, int y, const int clkmap[])
@@ -6428,7 +6380,86 @@ handle_clickmap(player_t *player, int x, int y, const int clkmap[])
 			case ACTION_SHOW_SETT_SELECT_FILE:
 				player->box = BOX_SETT_SELECT;
 				break;
+			case ACTION_SETT_1_ADJUST_STONEMINE:
+				player->box = BOX_SETT_1;
+				player->sett->food_stonemine = get_slider_click_value(x - clkmap[1]);
+				break;
+			case ACTION_SETT_1_ADJUST_COALMINE:
+				player->box = BOX_SETT_1;
+				player->sett->food_coalmine = get_slider_click_value(x - clkmap[1]);
+				break;
+			case ACTION_SETT_1_ADJUST_IRONMINE:
+				player->box = BOX_SETT_1;
+				player->sett->food_ironmine = get_slider_click_value(x - clkmap[1]);
+				break;
+			case ACTION_SETT_1_ADJUST_GOLDMINE:
+				player->box = BOX_SETT_1;
+				player->sett->food_goldmine = get_slider_click_value(x - clkmap[1]);
+				break;
+			case ACTION_SETT_2_ADJUST_CONSTRUCTION:
+				player->box = BOX_SETT_2;
+				player->sett->planks_construction = get_slider_click_value(x - clkmap[1]);
+				break;
+			case ACTION_SETT_2_ADJUST_BOATBUILDER:
+				player->box = BOX_SETT_2;
+				player->sett->planks_boatbuilder = get_slider_click_value(x - clkmap[1]);
+				break;
+			case ACTION_SETT_2_ADJUST_TOOLMAKER_PLANKS:
+				player->box = BOX_SETT_2;
+				player->sett->planks_toolmaker = get_slider_click_value(x - clkmap[1]);
+				break;
+			case ACTION_SETT_2_ADJUST_TOOLMAKER_STEEL:
+				player->box = BOX_SETT_2;
+				player->sett->steel_toolmaker = get_slider_click_value(x - clkmap[1]);
+				break;
+			case ACTION_SETT_2_ADJUST_WEAPONSMITH:
+				player->box = BOX_SETT_2;
+				player->sett->steel_weaponsmith = get_slider_click_value(x - clkmap[1]);
+				break;
+			case ACTION_SETT_3_ADJUST_STEELSMELTER:
+				player->box = BOX_SETT_3;
+				player->sett->coal_steelsmelter = get_slider_click_value(x - clkmap[1]);
+				break;
+			case ACTION_SETT_3_ADJUST_GOLDSMELTER:
+				player->box = BOX_SETT_3;
+				player->sett->coal_goldsmelter = get_slider_click_value(x - clkmap[1]);
+				break;
+			case ACTION_SETT_3_ADJUST_WEAPONSMITH:
+				player->box = BOX_SETT_3;
+				player->sett->coal_weaponsmith = get_slider_click_value(x - clkmap[1]);
+				break;
+			case ACTION_SETT_3_ADJUST_PIGFARM:
+				player->box = BOX_SETT_3;
+				player->sett->wheat_pigfarm = get_slider_click_value(x - clkmap[1]);
+				break;
+			case ACTION_SETT_3_ADJUST_MILL:
+				player->box = BOX_SETT_3;
+				player->sett->wheat_mill = get_slider_click_value(x - clkmap[1]);
+				break;
 				/* TODO */
+			case ACTION_DEFAULT_SETT_1:
+				player->box = BOX_SETT_1;
+				player_sett_reset_food_priority(player->sett);
+				break;
+			case ACTION_DEFAULT_SETT_2:
+				player->box = BOX_SETT_2;
+				player_sett_reset_planks_priority(player->sett);
+				player_sett_reset_steel_priority(player->sett);
+				break;
+			case ACTION_DEFAULT_SETT_5_6:
+				player->box = player->clkmap;
+				switch (player->clkmap) {
+				case BOX_SETT_5:
+					player_sett_reset_flag_priority(player->sett);
+					break;
+				case BOX_SETT_6:
+					player_sett_reset_inventory_priority(player->sett);
+					break;
+				default:
+					NOT_REACHED();
+					break;
+				}
+				break;
 			case ACTION_BUILD_STOCK:
 				globals.building_type = BUILDING_STOCK;
 				build_advanced_building(player);
@@ -6453,12 +6484,22 @@ handle_clickmap(player_t *player, int x, int y, const int clkmap[])
 				player->box = BOX_SETT_6;
 				break;
 				/* TODO ... */
+			case ACTION_DEFAULT_SETT_3:
+				player->box = BOX_SETT_3;
+				player_sett_reset_coal_priority(player->sett);
+				player_sett_reset_wheat_priority(player->sett);
+				break;
+				/* TODO ... */
 			case ACTION_CLOSE_MESSAGE:
 				if ((player->message_box & 0x1f) == 16) {
 					/* TODO */
 				} else {
 					close_box(player);
 				}
+				break;
+			case ACTION_DEFAULT_SETT_4:
+				player->box = BOX_SETT_4;
+				player_sett_reset_tool_priority(player->sett);
 				break;
 				/* TODO */
 			case ACTION_CLOSE_GROUND_ANALYSIS:
@@ -6613,6 +6654,56 @@ handle_sett_select_clk(player_t *player, int x, int y)
 }
 
 static void
+handle_sett_1_click(player_t *player, int x, int y)
+{
+	const int clkmap[] = {
+		ACTION_SETT_1_ADJUST_STONEMINE, 32, 95, 22, 27,
+		ACTION_SETT_1_ADJUST_COALMINE, 0, 63, 42, 47,
+		ACTION_SETT_1_ADJUST_IRONMINE, 64, 127, 115, 120,
+		ACTION_SETT_1_ADJUST_GOLDMINE, 32, 95, 134, 139,
+
+		ACTION_SHOW_SETT_SELECT, 112, 127, 128, 143,
+		ACTION_DEFAULT_SETT_1, 8, 23, 8, 23,
+		-1
+	};
+	handle_clickmap(player, x, y, clkmap);
+}
+
+static void
+handle_sett_2_click(player_t *player, int x, int y)
+{
+	const int clkmap[] = {
+		ACTION_SETT_2_ADJUST_CONSTRUCTION, 0, 63, 27, 32,
+		ACTION_SETT_2_ADJUST_BOATBUILDER, 0, 63, 37, 42,
+		ACTION_SETT_2_ADJUST_TOOLMAKER_PLANKS, 64, 127, 45, 50,
+		ACTION_SETT_2_ADJUST_TOOLMAKER_STEEL, 64, 127, 104, 109,
+		ACTION_SETT_2_ADJUST_WEAPONSMITH, 0, 63, 131, 136,
+
+		ACTION_SHOW_SETT_SELECT, 112, 127, 128, 143,
+		ACTION_DEFAULT_SETT_2, 104, 119, 8, 23,
+		-1
+	};
+	handle_clickmap(player, x, y, clkmap);
+}
+
+static void
+handle_sett_3_click(player_t *player, int x, int y)
+{
+	const int clkmap[] = {
+		ACTION_SETT_3_ADJUST_STEELSMELTER, 0, 63, 40, 45,
+		ACTION_SETT_3_ADJUST_GOLDSMELTER, 64, 127, 40, 45,
+		ACTION_SETT_3_ADJUST_WEAPONSMITH, 32, 95, 48, 53,
+		ACTION_SETT_3_ADJUST_PIGFARM, 0, 63, 93, 98,
+		ACTION_SETT_3_ADJUST_MILL, 64, 127, 119, 124,
+
+		ACTION_SHOW_SETT_SELECT, 112, 127, 128, 143,
+		ACTION_DEFAULT_SETT_3, 8, 23, 60, 75,
+		-1
+	};
+	handle_clickmap(player, x, y, clkmap);
+}
+
+static void
 handle_castle_res_clk(player_t *player, int x, int y)
 {
 	const int clkmap[] = {
@@ -6727,6 +6818,15 @@ handle_popup_click(player_t *player, int x, int y)
 	case BOX_SETT_SELECT:
 	case BOX_SETT_SELECT_FILE:
 		handle_sett_select_clk(player, x, y);
+		break;
+	case BOX_SETT_1:
+		handle_sett_1_click(player, x, y);
+		break;
+	case BOX_SETT_2:
+		handle_sett_2_click(player, x, y);
+		break;
+	case BOX_SETT_3:
+		handle_sett_3_click(player, x, y);
 		break;
 		/* TODO */
 	case BOX_CASTLE_RES:
@@ -8002,7 +8102,7 @@ update_unfinished_building(building_t *building)
 
 	int total_planks = ((building->stock1 >> 4) & 0xf) + (building->stock1 & 0xf);
 	if (total_planks < 8 && total_planks != building->u.s.planks_needed) {
-		int planks_prio = sett->tree_building >> (8 + total_planks);
+		int planks_prio = sett->planks_construction >> (8 + total_planks);
 		if (!BIT_TEST(building->serf, 6)) planks_prio >>= 2;
 		flag->stock1_prio = planks_prio & ~BIT(0);
 	} else {
@@ -8105,7 +8205,7 @@ handle_building_update(building_t *building)
 				player_sett_t *sett = globals.player_sett[BUILDING_PLAYER(building)];
 				int total_tree = ((building->stock1 >> 4) & 0xf) + (building->stock1 & 0xf);
 				if (total_tree < 8 && 1/*!BIT_TEST(sett->field_163, 1)*/) {
-					building->u.flag->stock1_prio = sett->tree_boat >> (8 + total_tree);
+					building->u.flag->stock1_prio = sett->planks_boatbuilder >> (8 + total_tree);
 				} else {
 					building->u.flag->stock1_prio = 0;
 				}
@@ -8423,7 +8523,7 @@ handle_building_update(building_t *building)
 				player_sett_t *sett = globals.player_sett[BUILDING_PLAYER(building)];
 				int total_tree = ((building->stock1 >> 4) & 0xf) + (building->stock1 & 0xf);
 				if (total_tree < 8 && 1/*!BIT_TEST(sett->field_163, 1)*/) {
-					building->u.flag->stock1_prio = sett->tree_tool >> (8 + total_tree);
+					building->u.flag->stock1_prio = sett->planks_toolmaker >> (8 + total_tree);
 				} else {
 					building->u.flag->stock1_prio = 0;
 				}
@@ -8431,7 +8531,7 @@ handle_building_update(building_t *building)
 				/* Request more steel. */
 				int total_steel = ((building->stock2 >> 4) & 0xf) + (building->stock2 & 0xf);
 				if (total_steel < 8) {
-					building->u.flag->stock2_prio = sett->steel_tool >> (8 + total_steel);
+					building->u.flag->stock2_prio = sett->steel_toolmaker >> (8 + total_steel);
 				} else {
 					building->u.flag->stock2_prio = 0;
 				}
@@ -8448,7 +8548,7 @@ handle_building_update(building_t *building)
 				player_sett_t *sett = globals.player_sett[BUILDING_PLAYER(building)];
 				int total_coal = ((building->stock1 >> 4) & 0xf) + (building->stock1 & 0xf);
 				if (total_coal < 8) {
-					building->u.flag->stock1_prio = sett->coal_weapon >> (8 + total_coal);
+					building->u.flag->stock1_prio = sett->coal_weaponsmith >> (8 + total_coal);
 				} else {
 					building->u.flag->stock1_prio = 0;
 				}
@@ -8456,7 +8556,7 @@ handle_building_update(building_t *building)
 				/* Request more steel. */
 				int total_steel = ((building->stock2 >> 4) & 0xf) + (building->stock2 & 0xf);
 				if (total_steel < 8) {
-					building->u.flag->stock2_prio = sett->steel_weapon >> (8 + total_steel);
+					building->u.flag->stock2_prio = sett->steel_weaponsmith >> (8 + total_steel);
 				} else {
 					building->u.flag->stock2_prio = 0;
 				}
@@ -8960,16 +9060,16 @@ load_v0_player_sett_state(FILE *f)
 		sett->food_ironmine = *(uint16_t *)&data[452];
 		sett->food_goldmine = *(uint16_t *)&data[454];
 
-		sett->tree_building = *(uint16_t *)&data[456];
-		sett->tree_boat = *(uint16_t *)&data[458];
-		sett->tree_tool = *(uint16_t *)&data[460];
+		sett->planks_construction = *(uint16_t *)&data[456];
+		sett->planks_boatbuilder = *(uint16_t *)&data[458];
+		sett->planks_toolmaker = *(uint16_t *)&data[460];
 
-		sett->steel_tool = *(uint16_t *)&data[462];
-		sett->steel_weapon = *(uint16_t *)&data[464];
+		sett->steel_toolmaker = *(uint16_t *)&data[462];
+		sett->steel_weaponsmith = *(uint16_t *)&data[464];
 
 		sett->coal_steelsmelter = *(uint16_t *)&data[466];
 		sett->coal_goldsmelter = *(uint16_t *)&data[468];
-		sett->coal_weapon = *(uint16_t *)&data[470];
+		sett->coal_weaponsmith = *(uint16_t *)&data[470];
 
 		sett->wheat_pigfarm = *(uint16_t *)&data[472];
 		sett->wheat_mill = *(uint16_t *)&data[474];

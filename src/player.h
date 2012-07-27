@@ -7,6 +7,7 @@
 #include <stdlib.h>
 #include <stdint.h>
 
+#include "freeserf.h"
 #include "gfx.h"
 
 
@@ -68,15 +69,15 @@ typedef struct {
 	int food_coalmine;
 	int food_ironmine;
 	int food_goldmine;
-	int tree_building; /* Tree delivery priority of tree. */
-	int tree_boat;
-	int tree_tool;
-	int steel_tool;
+	int planks_construction; /* Planks delivery priority. */
+	int planks_boatbuilder;
+	int planks_toolmaker;
+	int steel_toolmaker;
 	/* 150 */
-	int steel_weapon;
+	int steel_weaponsmith;
 	int coal_steelsmelter;
 	int coal_goldsmelter;
-	int coal_weapon;
+	int coal_weaponsmith;
 	int wheat_pigfarm;
 	int wheat_mill;
 	int current_sett_6_item;
@@ -208,5 +209,17 @@ typedef struct {
 	int timer_icon_x;
 	/* ... */
 } player_t;
+
+
+void player_sett_reset_food_priority(player_sett_t *sett);
+void player_sett_reset_planks_priority(player_sett_t *sett);
+void player_sett_reset_steel_priority(player_sett_t *sett);
+void player_sett_reset_coal_priority(player_sett_t *sett);
+void player_sett_reset_wheat_priority(player_sett_t *sett);
+void player_sett_reset_tool_priority(player_sett_t *sett);
+
+void player_sett_reset_flag_priority(player_sett_t *sett);
+void player_sett_reset_inventory_priority(player_sett_t *sett);
+
 
 #endif /* ! _PLAYER_H */
