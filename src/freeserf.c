@@ -6207,8 +6207,24 @@ handle_send_geologist(player_t *player)
 
 /* Get the resulting value from a click on a slider bar. */
 static int
-get_slider_click_value(int x) {
+get_slider_click_value(int x)
+{
 	return 1310 * clamp(0, x - 7, 50);
+}
+
+static void
+knight_occupation_adjust(player_t *player, int index, int adjust_max, int delta)
+{
+	int max = (player->sett->knight_occupation[index] >> 4) & 0xf;
+	int min = player->sett->knight_occupation[index] & 0xf;
+
+	if (adjust_max) {
+		max = clamp(min, max + delta, 4);
+	} else {
+		min = clamp(0, min + delta, max);
+	}
+
+	player->sett->knight_occupation[index] = (max << 4) | min;
 }
 
 /* Generic handler for clicks in popup boxes. */
@@ -6435,6 +6451,70 @@ handle_clickmap(player_t *player, int x, int y, const int clkmap[])
 			case ACTION_SETT_3_ADJUST_MILL:
 				player->box = BOX_SETT_3;
 				player->sett->wheat_mill = get_slider_click_value(x - clkmap[1]);
+				break;
+			case ACTION_KNIGHT_LEVEL_CLOSEST_MIN_DEC:
+				knight_occupation_adjust(player, 3, 0, -1);
+				player->box = BOX_KNIGHT_LEVEL;
+				break;
+			case ACTION_KNIGHT_LEVEL_CLOSEST_MIN_INC:
+				knight_occupation_adjust(player, 3, 0, 1);
+				player->box = BOX_KNIGHT_LEVEL;
+				break;
+			case ACTION_KNIGHT_LEVEL_CLOSEST_MAX_DEC:
+				knight_occupation_adjust(player, 3, 1, -1);
+				player->box = BOX_KNIGHT_LEVEL;
+				break;
+			case ACTION_KNIGHT_LEVEL_CLOSEST_MAX_INC:
+				knight_occupation_adjust(player, 3, 1, 1);
+				player->box = BOX_KNIGHT_LEVEL;
+				break;
+			case ACTION_KNIGHT_LEVEL_CLOSE_MIN_DEC:
+				knight_occupation_adjust(player, 2, 0, -1);
+				player->box = BOX_KNIGHT_LEVEL;
+				break;
+			case ACTION_KNIGHT_LEVEL_CLOSE_MIN_INC:
+				knight_occupation_adjust(player, 2, 0, 1);
+				player->box = BOX_KNIGHT_LEVEL;
+				break;
+			case ACTION_KNIGHT_LEVEL_CLOSE_MAX_DEC:
+				knight_occupation_adjust(player, 2, 1, -1);
+				player->box = BOX_KNIGHT_LEVEL;
+				break;
+			case ACTION_KNIGHT_LEVEL_CLOSE_MAX_INC:
+				knight_occupation_adjust(player, 2, 1, 1);
+				player->box = BOX_KNIGHT_LEVEL;
+				break;
+			case ACTION_KNIGHT_LEVEL_FAR_MIN_DEC:
+				knight_occupation_adjust(player, 1, 0, -1);
+				player->box = BOX_KNIGHT_LEVEL;
+				break;
+			case ACTION_KNIGHT_LEVEL_FAR_MIN_INC:
+				knight_occupation_adjust(player, 1, 0, 1);
+				player->box = BOX_KNIGHT_LEVEL;
+				break;
+			case ACTION_KNIGHT_LEVEL_FAR_MAX_DEC:
+				knight_occupation_adjust(player, 1, 1, -1);
+				player->box = BOX_KNIGHT_LEVEL;
+				break;
+			case ACTION_KNIGHT_LEVEL_FAR_MAX_INC:
+				knight_occupation_adjust(player, 1, 1, 1);
+				player->box = BOX_KNIGHT_LEVEL;
+				break;
+			case ACTION_KNIGHT_LEVEL_FARTHEST_MIN_DEC:
+				knight_occupation_adjust(player, 0, 0, -1);
+				player->box = BOX_KNIGHT_LEVEL;
+				break;
+			case ACTION_KNIGHT_LEVEL_FARTHEST_MIN_INC:
+				knight_occupation_adjust(player, 0, 0, 1);
+				player->box = BOX_KNIGHT_LEVEL;
+				break;
+			case ACTION_KNIGHT_LEVEL_FARTHEST_MAX_DEC:
+				knight_occupation_adjust(player, 0, 1, -1);
+				player->box = BOX_KNIGHT_LEVEL;
+				break;
+			case ACTION_KNIGHT_LEVEL_FARTHEST_MAX_INC:
+				knight_occupation_adjust(player, 0, 1, 1);
+				player->box = BOX_KNIGHT_LEVEL;
 				break;
 				/* TODO */
 			case ACTION_DEFAULT_SETT_1:
@@ -6704,6 +6784,43 @@ handle_sett_3_click(player_t *player, int x, int y)
 }
 
 static void
+handle_knight_level_click(player_t *player, int x, int y)
+{
+	const int clkmap[] = {
+		ACTION_KNIGHT_LEVEL_CLOSEST_MIN_DEC, 32, 47, 2, 17,
+		ACTION_KNIGHT_LEVEL_CLOSEST_MIN_INC, 48, 63, 2, 17,
+		ACTION_KNIGHT_LEVEL_CLOSEST_MAX_DEC, 32, 47, 18, 33,
+		ACTION_KNIGHT_LEVEL_CLOSEST_MAX_INC, 48, 63, 18, 33,
+		ACTION_KNIGHT_LEVEL_CLOSE_MIN_DEC, 32, 47, 36, 51,
+		ACTION_KNIGHT_LEVEL_CLOSE_MIN_INC, 48, 63, 36, 51,
+		ACTION_KNIGHT_LEVEL_CLOSE_MAX_DEC, 32, 47, 52, 67,
+		ACTION_KNIGHT_LEVEL_CLOSE_MAX_INC, 48, 63, 52, 67,
+		ACTION_KNIGHT_LEVEL_FAR_MIN_DEC, 32, 47, 70, 85,
+		ACTION_KNIGHT_LEVEL_FAR_MIN_INC, 48, 63, 70, 85,
+		ACTION_KNIGHT_LEVEL_FAR_MAX_DEC, 32, 47, 86, 101,
+		ACTION_KNIGHT_LEVEL_FAR_MAX_INC, 48, 63, 86, 101,
+		ACTION_KNIGHT_LEVEL_FARTHEST_MIN_DEC, 32, 47, 104, 119,
+		ACTION_KNIGHT_LEVEL_FARTHEST_MIN_INC, 48, 63, 104, 119,
+		ACTION_KNIGHT_LEVEL_FARTHEST_MAX_DEC, 32, 47, 120, 135,
+		ACTION_KNIGHT_LEVEL_FARTHEST_MAX_INC, 48, 63, 120, 135,
+
+		ACTION_SHOW_SETT_SELECT, 112, 127, 128, 143,
+		-1
+	};
+	handle_clickmap(player, x, y, clkmap);
+}
+
+static void
+handle_sett_4_click(player_t *player, int x, int y)
+{
+}
+
+static void
+handle_sett_5_click(player_t *player, int x, int y)
+{
+}
+
+static void
 handle_castle_res_clk(player_t *player, int x, int y)
 {
 	const int clkmap[] = {
@@ -6827,6 +6944,15 @@ handle_popup_click(player_t *player, int x, int y)
 		break;
 	case BOX_SETT_3:
 		handle_sett_3_click(player, x, y);
+		break;
+	case BOX_KNIGHT_LEVEL:
+		handle_knight_level_click(player, x, y);
+		break;
+	case BOX_SETT_4:
+		handle_sett_4_click(player, x, y);
+		break;
+	case BOX_SETT_5:
+		handle_sett_5_click(player, x, y);
 		break;
 		/* TODO */
 	case BOX_CASTLE_RES:
