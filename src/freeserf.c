@@ -3514,6 +3514,9 @@ reset_player_settings()
 			player_sett_reset_flag_priority(sett);
 			player_sett_reset_inventory_priority(sett);
 
+			sett->current_sett_5_item = 8;
+			sett->current_sett_6_item = 15;
+
 			/* TODO ... */
 			sett->timers_count = 0;
 
@@ -6227,6 +6230,62 @@ knight_occupation_adjust(player_t *player, int index, int adjust_max, int delta)
 	player->sett->knight_occupation[index] = (max << 4) | min;
 }
 
+static void
+activate_sett_5_6_item(player_t *player, int index)
+{
+	if (player->clkmap == BOX_SETT_5) {
+		int i;
+		for (i = 0; i < 26; i++) {
+			if (player->sett->flag_prio[i] == index) break;
+		}
+		player->sett->current_sett_5_item = i+1;
+	} else {
+		int i;
+		for (i = 0; i < 26; i++) {
+			if (player->sett->inventory_prio[i] == index) break;
+		}
+		player->sett->current_sett_6_item = i+1;
+	}
+	player->box = player->clkmap;
+}
+
+static void
+move_sett_5_6_item(player_t *player, int up, int to_end)
+{
+	int *prio = NULL;
+	int cur = -1;
+
+	if (player->clkmap == BOX_SETT_5) {
+		prio = player->sett->flag_prio;
+		cur = player->sett->current_sett_5_item-1;
+	} else {
+		prio = player->sett->inventory_prio;
+		cur = player->sett->current_sett_6_item-1;
+	}
+
+	int cur_value = prio[cur];
+	int next_value = -1;
+	if (up) {
+		if (to_end) next_value = 26;
+		else next_value = cur_value + 1;
+	} else {
+		if (to_end) next_value = 1;
+		else next_value = cur_value - 1;
+	}
+
+	if (next_value >= 1 && next_value < 27) {
+		int delta = next_value > cur_value ? -1 : 1;
+		int min = next_value > cur_value ? cur_value+1 : next_value;
+		int max = next_value > cur_value ? next_value : cur_value-1;
+		for (int i = 0; i < 26; i++) {
+			if (prio[i] >= min && prio[i] <= max) prio[i] += delta;
+		}
+		prio[cur] = next_value;
+	}
+
+	player->box = player->clkmap;
+}
+
 /* Generic handler for clicks in popup boxes. */
 static int
 handle_clickmap(player_t *player, int x, int y, const int clkmap[])
@@ -6515,6 +6574,82 @@ handle_clickmap(player_t *player, int x, int y, const int clkmap[])
 			case ACTION_KNIGHT_LEVEL_FARTHEST_MAX_INC:
 				knight_occupation_adjust(player, 0, 1, 1);
 				player->box = BOX_KNIGHT_LEVEL;
+				break;
+			case ACTION_SETT_4_ADJUST_SHOVEL:
+				player->box = BOX_SETT_4;
+				player->sett->tool_prio[0] = get_slider_click_value(x - clkmap[1]);
+				break;
+			case ACTION_SETT_4_ADJUST_HAMMER:
+				player->box = BOX_SETT_4;
+				player->sett->tool_prio[1] = get_slider_click_value(x - clkmap[1]);
+				break;
+			case ACTION_SETT_4_ADJUST_AXE:
+				player->box = BOX_SETT_4;
+				player->sett->tool_prio[5] = get_slider_click_value(x - clkmap[1]);
+				break;
+			case ACTION_SETT_4_ADJUST_SAW:
+				player->box = BOX_SETT_4;
+				player->sett->tool_prio[6] = get_slider_click_value(x - clkmap[1]);
+				break;
+			case ACTION_SETT_4_ADJUST_SCYTHE:
+				player->box = BOX_SETT_4;
+				player->sett->tool_prio[4] = get_slider_click_value(x - clkmap[1]);
+				break;
+			case ACTION_SETT_4_ADJUST_PICK:
+				player->box = BOX_SETT_4;
+				player->sett->tool_prio[7] = get_slider_click_value(x - clkmap[1]);
+				break;
+			case ACTION_SETT_4_ADJUST_PINCER:
+				player->box = BOX_SETT_4;
+				player->sett->tool_prio[8] = get_slider_click_value(x - clkmap[1]);
+				break;
+			case ACTION_SETT_4_ADJUST_CLEAVER:
+				player->box = BOX_SETT_4;
+				player->sett->tool_prio[3] = get_slider_click_value(x - clkmap[1]);
+				break;
+			case ACTION_SETT_4_ADJUST_ROD:
+				player->box = BOX_SETT_4;
+				player->sett->tool_prio[2] = get_slider_click_value(x - clkmap[1]);
+				break;
+			case ACTION_SETT_5_6_ITEM_1:
+			case ACTION_SETT_5_6_ITEM_2:
+			case ACTION_SETT_5_6_ITEM_3:
+			case ACTION_SETT_5_6_ITEM_4:
+			case ACTION_SETT_5_6_ITEM_5:
+			case ACTION_SETT_5_6_ITEM_6:
+			case ACTION_SETT_5_6_ITEM_7:
+			case ACTION_SETT_5_6_ITEM_8:
+			case ACTION_SETT_5_6_ITEM_9:
+			case ACTION_SETT_5_6_ITEM_10:
+			case ACTION_SETT_5_6_ITEM_11:
+			case ACTION_SETT_5_6_ITEM_12:
+			case ACTION_SETT_5_6_ITEM_13:
+			case ACTION_SETT_5_6_ITEM_14:
+			case ACTION_SETT_5_6_ITEM_15:
+			case ACTION_SETT_5_6_ITEM_16:
+			case ACTION_SETT_5_6_ITEM_17:
+			case ACTION_SETT_5_6_ITEM_18:
+			case ACTION_SETT_5_6_ITEM_19:
+			case ACTION_SETT_5_6_ITEM_20:
+			case ACTION_SETT_5_6_ITEM_21:
+			case ACTION_SETT_5_6_ITEM_22:
+			case ACTION_SETT_5_6_ITEM_23:
+			case ACTION_SETT_5_6_ITEM_24:
+			case ACTION_SETT_5_6_ITEM_25:
+			case ACTION_SETT_5_6_ITEM_26:
+				activate_sett_5_6_item(player, 26-(action-ACTION_SETT_5_6_ITEM_1));
+				break;
+			case ACTION_SETT_5_6_TOP:
+				move_sett_5_6_item(player, 1, 1);
+				break;
+			case ACTION_SETT_5_6_UP:
+				move_sett_5_6_item(player, 1, 0);
+				break;
+			case ACTION_SETT_5_6_DOWN:
+				move_sett_5_6_item(player, 0, 0);
+				break;
+			case ACTION_SETT_5_6_BOTTOM:
+				move_sett_5_6_item(player, 0, 1);
 				break;
 				/* TODO */
 			case ACTION_DEFAULT_SETT_1:
@@ -6813,11 +6948,65 @@ handle_knight_level_click(player_t *player, int x, int y)
 static void
 handle_sett_4_click(player_t *player, int x, int y)
 {
+	const int clkmap[] = {
+		ACTION_SETT_4_ADJUST_SHOVEL, 32, 95, 4, 11,
+		ACTION_SETT_4_ADJUST_HAMMER, 32, 95, 20, 27,
+		ACTION_SETT_4_ADJUST_AXE, 32, 95, 36, 43,
+		ACTION_SETT_4_ADJUST_SAW, 32, 95, 52, 59,
+		ACTION_SETT_4_ADJUST_SCYTHE, 32, 95, 68, 75,
+		ACTION_SETT_4_ADJUST_PICK, 32, 95, 84, 91,
+		ACTION_SETT_4_ADJUST_PINCER, 32, 95, 100, 107,
+		ACTION_SETT_4_ADJUST_CLEAVER, 32, 95, 116, 123,
+		ACTION_SETT_4_ADJUST_ROD, 32, 95, 132, 139,
+
+		ACTION_SHOW_SETT_SELECT, 112, 127, 128, 143,
+		ACTION_DEFAULT_SETT_4, 104, 119, 8, 23,
+		-1
+	};
+	handle_clickmap(player, x, y, clkmap);
 }
 
 static void
-handle_sett_5_click(player_t *player, int x, int y)
+handle_sett_5_6_click(player_t *player, int x, int y)
 {
+	const int clkmap[] = {
+		ACTION_SETT_5_6_ITEM_1, 40, 55, 4, 19,
+		ACTION_SETT_5_6_ITEM_2, 56, 71, 6, 21,
+		ACTION_SETT_5_6_ITEM_3, 72, 87, 8, 23,
+		ACTION_SETT_5_6_ITEM_4, 88, 103, 10, 25,
+		ACTION_SETT_5_6_ITEM_5, 104, 119, 12, 27,
+		ACTION_SETT_5_6_ITEM_6, 104, 119, 28, 43,
+		ACTION_SETT_5_6_ITEM_7, 88, 103, 30, 45,
+		ACTION_SETT_5_6_ITEM_8, 72, 87, 32, 47,
+		ACTION_SETT_5_6_ITEM_9, 56, 71, 34, 49,
+		ACTION_SETT_5_6_ITEM_10, 40, 55, 36, 51,
+		ACTION_SETT_5_6_ITEM_11, 24, 39, 38, 53,
+		ACTION_SETT_5_6_ITEM_12, 8, 23, 40, 55,
+		ACTION_SETT_5_6_ITEM_13, 8, 23, 56, 71,
+		ACTION_SETT_5_6_ITEM_14, 24, 39, 58, 73,
+		ACTION_SETT_5_6_ITEM_15, 40, 55, 60, 75,
+		ACTION_SETT_5_6_ITEM_16, 56, 71, 62, 77,
+		ACTION_SETT_5_6_ITEM_17, 72, 87, 64, 79,
+		ACTION_SETT_5_6_ITEM_18, 88, 103, 66, 81,
+		ACTION_SETT_5_6_ITEM_19, 104, 119, 68, 83,
+		ACTION_SETT_5_6_ITEM_20, 104, 119, 84, 99,
+		ACTION_SETT_5_6_ITEM_21, 88, 103, 86, 101,
+		ACTION_SETT_5_6_ITEM_22, 72, 87, 88, 103,
+		ACTION_SETT_5_6_ITEM_23, 56, 71, 90, 105,
+		ACTION_SETT_5_6_ITEM_24, 40, 55, 92, 107,
+		ACTION_SETT_5_6_ITEM_25, 24, 39, 94, 109,
+		ACTION_SETT_5_6_ITEM_26, 8, 23, 96, 111,
+
+		ACTION_SETT_5_6_TOP, 8, 23, 120, 135,
+		ACTION_SETT_5_6_UP, 24, 39, 120, 135,
+		ACTION_SETT_5_6_DOWN, 72, 87, 120, 135,
+		ACTION_SETT_5_6_BOTTOM, 88, 103, 120, 135,
+
+		ACTION_SHOW_SETT_SELECT, 112, 127, 128, 143,
+		ACTION_DEFAULT_SETT_5_6, 8, 23, 4, 19,
+		-1
+	};
+	handle_clickmap(player, x, y, clkmap);
 }
 
 static void
@@ -6952,7 +7141,7 @@ handle_popup_click(player_t *player, int x, int y)
 		handle_sett_4_click(player, x, y);
 		break;
 	case BOX_SETT_5:
-		handle_sett_5_click(player, x, y);
+		handle_sett_5_6_click(player, x, y);
 		break;
 		/* TODO */
 	case BOX_CASTLE_RES:
@@ -6975,6 +7164,10 @@ handle_popup_click(player_t *player, int x, int y)
 		break;
 	case BOX_RESDIR:
 		handle_resdir_clk(player, x, y);
+		break;
+		/* TODO ... */
+	case BOX_SETT_6:
+		handle_sett_5_6_click(player, x, y);
 		break;
 		/* TODO ... */
 	case BOX_MESSAGE:
