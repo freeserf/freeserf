@@ -2135,7 +2135,7 @@ draw_sett_8_box(player_t *player)
 	draw_green_number(6, 119, player->popup_frame, sett->castle_knights_wanted);
 	draw_green_number(6, 129, player->popup_frame, sett->castle_knights);
 
-	if (BIT_TEST(sett->flags, 1)) { /* Send strongest */
+	if (!BIT_TEST(sett->flags, 1)) { /* Send weakest */
 		draw_popup_icon(6, 84, 288, player->popup_frame); /* checkbox */
 	} else {
 		draw_popup_icon(6, 100, 288, player->popup_frame); /* checkbox */
@@ -6286,6 +6286,52 @@ move_sett_5_6_item(player_t *player, int up, int to_end)
 	player->box = player->clkmap;
 }
 
+static int
+promote_serfs_to_knights(player_sett_t *sett, int number)
+{
+	int promoted = 0;
+
+	for (int i = 1; i < globals.max_ever_serf_index && number > 0; i++) {
+		if (BIT_TEST(globals.serfs_bitmap[i>>3], 7-(i&7))) {
+			serf_t *serf = get_serf(i);
+			if (serf->state == SERF_STATE_IDLE_IN_STOCK &&
+			    SERF_PLAYER(serf) == sett->player_num &&
+			    SERF_TYPE(serf) == SERF_GENERIC) {
+				inventory_t *inv = get_inventory(serf->s.idle_in_stock.inv_index);
+				if (inv->resources[RESOURCE_SWORD] > 0 &&
+				    inv->resources[RESOURCE_SHIELD] > 0) {
+					inv->resources[RESOURCE_SWORD] -= 1;
+					inv->resources[RESOURCE_SHIELD] -= 1;
+					inv->spawn_priority -= 1;
+					inv->serfs[SERF_GENERIC] = 0;
+
+					serf->type = (SERF_KNIGHT_0 << 2) | (serf->type & 3);
+
+					sett->serf_count[SERF_GENERIC] -= 1;
+					sett->serf_count[SERF_KNIGHT_0] += 1;
+					sett->total_military_score += 1;
+
+					promoted += 1;
+					number -= 1;
+				}
+			}
+		}
+	}
+
+	return promoted;		
+}
+
+static void
+sett_8_train(player_t *player, int number)
+{
+	int r = promote_serfs_to_knights(player->sett, number);
+
+	if (r == 0) enqueue_sfx_clip(SFX_NOT_ACCEPTED);
+	else enqueue_sfx_clip(SFX_ACCEPTED);
+
+	player->box = player->clkmap;
+}
+
 /* Generic handler for clicks in popup boxes. */
 static int
 handle_clickmap(player_t *player, int x, int y, const int clkmap[])
@@ -6652,6 +6698,12 @@ handle_clickmap(player_t *player, int x, int y, const int clkmap[])
 				move_sett_5_6_item(player, 0, 1);
 				break;
 				/* TODO */
+			case ACTION_SETT_8_CYCLE:
+				player->sett->flags |= BIT(2) | BIT(4);
+				player->sett->field_170 = 1200;
+				enqueue_sfx_clip(SFX_ACCEPTED);
+				break;
+				/* TODO */
 			case ACTION_DEFAULT_SETT_1:
 				player->box = BOX_SETT_1;
 				player_sett_reset_food_priority(player->sett);
@@ -6698,11 +6750,36 @@ handle_clickmap(player_t *player, int x, int y, const int clkmap[])
 			case ACTION_SHOW_SETT_6:
 				player->box = BOX_SETT_6;
 				break;
-				/* TODO ... */
+			case ACTION_SETT_8_ADJUST_RATE:
+				player->sett->serf_to_knight_rate = get_slider_click_value(x - clkmap[1]);
+				player->box = player->clkmap;
+				break;
+			case ACTION_SETT_8_TRAIN_1:
+				sett_8_train(player, 1);
+				break;
+			case ACTION_SETT_8_TRAIN_5:
+				sett_8_train(player, 5);
+				break;
+			case ACTION_SETT_8_TRAIN_20:
+				sett_8_train(player, 20);
+				break;
+			case ACTION_SETT_8_TRAIN_100:
+				sett_8_train(player, 100);
+				break;
 			case ACTION_DEFAULT_SETT_3:
 				player->box = BOX_SETT_3;
 				player_sett_reset_coal_priority(player->sett);
 				player_sett_reset_wheat_priority(player->sett);
+				break;
+			case ACTION_SETT_8_SET_COMBAT_MODE_WEAK:
+				player->sett->flags &= ~BIT(1);
+				player->box = player->clkmap;
+				enqueue_sfx_clip(SFX_ACCEPTED);
+				break;
+			case ACTION_SETT_8_SET_COMBAT_MODE_STRONG:
+				player->sett->flags |= BIT(1);
+				player->box = player->clkmap;
+				enqueue_sfx_clip(SFX_ACCEPTED);
 				break;
 				/* TODO ... */
 			case ACTION_CLOSE_MESSAGE:
@@ -6720,7 +6797,16 @@ handle_clickmap(player_t *player, int x, int y, const int clkmap[])
 			case ACTION_CLOSE_GROUND_ANALYSIS:
 				close_box(player);
 				break;
-				/* TODO ... */
+				/* TODO */
+			case ACTION_SETT_8_CASTLE_DEF_DEC:
+				player->sett->castle_knights_wanted = max(1, player->sett->castle_knights_wanted-1);
+				player->box = player->clkmap;
+				break;
+			case ACTION_SETT_8_CASTLE_DEF_INC:
+				player->sett->castle_knights_wanted = min(player->sett->castle_knights_wanted+1, 99);
+				player->box = player->clkmap;
+				break;
+				/* TODO */
 			case ACTION_DEMOLISH:
 				do_demolish(player);
 				close_box(player);
@@ -7074,6 +7160,31 @@ handle_resdir_clk(player_t *player, int x, int y)
 }
 
 static void
+handle_sett_8_click(player_t *player, int x, int y)
+{
+	const int clkmap[] = {
+		ACTION_SETT_8_ADJUST_RATE, 32, 95, 12, 19,
+
+		ACTION_SETT_8_TRAIN_1, 16, 31, 28, 43,
+		ACTION_SETT_8_TRAIN_5, 32, 47, 28, 43,
+		ACTION_SETT_8_TRAIN_20, 16, 31, 44, 59,
+		ACTION_SETT_8_TRAIN_100, 32, 47, 44, 59,
+
+		ACTION_SETT_8_SET_COMBAT_MODE_WEAK, 48, 63, 84, 99,
+		ACTION_SETT_8_SET_COMBAT_MODE_STRONG, 48, 63, 100, 115,
+
+		ACTION_SETT_8_CYCLE, 80, 111, 84, 115,
+
+		ACTION_SETT_8_CASTLE_DEF_DEC, 24, 39, 120, 135,
+		ACTION_SETT_8_CASTLE_DEF_INC, 72, 87, 120, 135,
+
+		ACTION_SHOW_SETT_SELECT, 112, 127, 128, 143,
+		-1
+	};
+	handle_clickmap(player, x, y, clkmap);
+}
+
+static void
 handle_message_clk(player_t *player, int x, int y)
 {
 	const int clkmap[] = {
@@ -7165,7 +7276,9 @@ handle_popup_click(player_t *player, int x, int y)
 	case BOX_RESDIR:
 		handle_resdir_clk(player, x, y);
 		break;
-		/* TODO ... */
+	case BOX_SETT_8:
+		handle_sett_8_click(player, x, y);
+		break;
 	case BOX_SETT_6:
 		handle_sett_5_6_click(player, x, y);
 		break;
