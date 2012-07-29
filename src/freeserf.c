@@ -716,6 +716,13 @@ draw_green_large_number(int x, int y, frame_t *frame, int n)
 	gfx_draw_number(8*x+8, 9+y, 31, 0, frame, n);
 }
 
+/* Draw small green number. */
+static void
+draw_additional_number(int x, int y, frame_t *frame, int n)
+{
+	if (n > 0) draw_popup_icon(x, y, 240 + min(n, 10), frame);
+}
+
 /* Get the sprite number for a face. */
 static int
 get_player_face_sprite(int face)
@@ -1187,35 +1194,159 @@ draw_stat_4_box(player_t *player)
 
 	draw_resources_box(player, resources);
 
-	/* TODO Draw exit button */
+	draw_popup_icon(14, 128, 60, player->popup_frame); /* exit */
 }
 
 static void
 draw_stat_bld_1_box(player_t *player)
 {
+	const int bld_layout[] = {
+		192, 0, 5,
+		171, 2, 77,
+		158, 8, 7,
+		152, 6, 69,
+		-1
+	};
+
 	draw_box_background(129, player->popup_frame);
-	/* TODO */
+
+	draw_custom_bld_box(bld_layout, player->popup_frame);
+
+	draw_green_number(2, 105, player->popup_frame, player->sett->completed_building_count[BUILDING_HUT]);
+	draw_additional_number(3, 105, player->popup_frame, player->sett->incomplete_building_count[BUILDING_HUT]);
+
+	draw_green_number(10, 53, player->popup_frame, player->sett->completed_building_count[BUILDING_TOWER]);
+	draw_additional_number(11, 53, player->popup_frame, player->sett->incomplete_building_count[BUILDING_TOWER]);
+
+	draw_green_number(9, 130, player->popup_frame, player->sett->completed_building_count[BUILDING_FORTRESS]);
+	draw_additional_number(10, 130, player->popup_frame, player->sett->incomplete_building_count[BUILDING_FORTRESS]);
+
+	draw_green_number(4, 61, player->popup_frame, player->sett->completed_building_count[BUILDING_STOCK]);
+	draw_additional_number(5, 61, player->popup_frame, player->sett->incomplete_building_count[BUILDING_STOCK]);
+
+	draw_popup_icon(0, 128, 61, player->popup_frame); /* flip */
+	draw_popup_icon(14, 128, 60, player->popup_frame); /* exit */
 }
 
 static void
 draw_stat_bld_2_box(player_t *player)
 {
+	const int bld_layout[] = {
+		153, 0, 4,
+		160, 8, 6,
+		157, 0, 68,
+		169, 8, 65,
+		174, 12, 57,
+		170, 4, 105,
+		168, 8, 107,
+		-1
+	};
+
 	draw_box_background(129, player->popup_frame);
-	/* TODO */
+
+	draw_custom_bld_box(bld_layout, player->popup_frame);
+
+	draw_green_number(3, 54, player->popup_frame, player->sett->completed_building_count[BUILDING_TOOLMAKER]);
+	draw_additional_number(4, 54, player->popup_frame, player->sett->incomplete_building_count[BUILDING_TOOLMAKER]);
+
+	draw_green_number(10, 48, player->popup_frame, player->sett->completed_building_count[BUILDING_SAWMILL]);
+	draw_additional_number(11, 48, player->popup_frame, player->sett->incomplete_building_count[BUILDING_SAWMILL]);
+
+	draw_green_number(3, 95, player->popup_frame, player->sett->completed_building_count[BUILDING_WEAPONSMITH]);
+	draw_additional_number(4, 95, player->popup_frame, player->sett->incomplete_building_count[BUILDING_WEAPONSMITH]);
+
+	draw_green_number(8, 95, player->popup_frame, player->sett->completed_building_count[BUILDING_STONECUTTER]);
+	draw_additional_number(9, 95, player->popup_frame, player->sett->incomplete_building_count[BUILDING_STONECUTTER]);
+
+	draw_green_number(12, 95, player->popup_frame, player->sett->completed_building_count[BUILDING_BOATBUILDER]);
+	draw_additional_number(13, 95, player->popup_frame, player->sett->incomplete_building_count[BUILDING_BOATBUILDER]);
+
+	draw_green_number(5, 132, player->popup_frame, player->sett->completed_building_count[BUILDING_FORESTER]);
+	draw_additional_number(6, 132, player->popup_frame, player->sett->incomplete_building_count[BUILDING_FORESTER]);
+
+	draw_green_number(9, 132, player->popup_frame, player->sett->completed_building_count[BUILDING_LUMBERJACK]);
+	draw_additional_number(10, 132, player->popup_frame, player->sett->incomplete_building_count[BUILDING_LUMBERJACK]);
+
+	draw_popup_icon(0, 128, 61, player->popup_frame); /* flip */
+	draw_popup_icon(14, 128, 60, player->popup_frame); /* exit */
 }
 
 static void
 draw_stat_bld_3_box(player_t *player)
 {
+	const int bld_layout[] = {
+		155, 0, 2,
+		154, 8, 3,
+		167, 0, 61,
+		156, 8, 60,
+		188, 4, 75,
+		162, 8, 100,
+		-1
+	};
+
 	draw_box_background(129, player->popup_frame);
-	/* TODO */
+
+	draw_custom_bld_box(bld_layout, player->popup_frame);
+
+	draw_green_number(3, 48, player->popup_frame, player->sett->completed_building_count[BUILDING_PIGFARM]);
+	draw_additional_number(4, 48, player->popup_frame, player->sett->incomplete_building_count[BUILDING_PIGFARM]);
+
+	draw_green_number(11, 48, player->popup_frame, player->sett->completed_building_count[BUILDING_FARM]);
+	draw_additional_number(12, 48, player->popup_frame, player->sett->incomplete_building_count[BUILDING_FARM]);
+
+	draw_green_number(0, 92, player->popup_frame, player->sett->completed_building_count[BUILDING_FISHER]);
+	draw_additional_number(1, 92, player->popup_frame, player->sett->incomplete_building_count[BUILDING_FISHER]);
+
+	draw_green_number(11, 87, player->popup_frame, player->sett->completed_building_count[BUILDING_BUTCHER]);
+	draw_additional_number(12, 87, player->popup_frame, player->sett->incomplete_building_count[BUILDING_BUTCHER]);
+
+	draw_green_number(5, 134, player->popup_frame, player->sett->completed_building_count[BUILDING_MILL]);
+	draw_additional_number(6, 134, player->popup_frame, player->sett->incomplete_building_count[BUILDING_MILL]);
+
+	draw_green_number(10, 134, player->popup_frame, player->sett->completed_building_count[BUILDING_BAKER]);
+	draw_additional_number(11, 134, player->popup_frame, player->sett->incomplete_building_count[BUILDING_BAKER]);
+
+	draw_popup_icon(0, 128, 61, player->popup_frame); /* flip */
+	draw_popup_icon(14, 128, 60, player->popup_frame); /* exit */
 }
 
 static void
 draw_stat_bld_4_box(player_t *player)
 {
+	const int bld_layout[] = {
+		163, 0, 4,
+		164, 4, 4,
+		165, 8, 4,
+		166, 12, 4,
+		161, 2, 90,
+		159, 8, 90,
+		-1
+	};
+
 	draw_box_background(129, player->popup_frame);
-	/* TODO */
+
+	draw_custom_bld_box(bld_layout, player->popup_frame);
+
+	draw_green_number(0, 71, player->popup_frame, player->sett->completed_building_count[BUILDING_STONEMINE]);
+	draw_additional_number(1, 71, player->popup_frame, player->sett->incomplete_building_count[BUILDING_STONEMINE]);
+
+	draw_green_number(4, 71, player->popup_frame, player->sett->completed_building_count[BUILDING_COALMINE]);
+	draw_additional_number(5, 71, player->popup_frame, player->sett->incomplete_building_count[BUILDING_COALMINE]);
+
+	draw_green_number(8, 71, player->popup_frame, player->sett->completed_building_count[BUILDING_IRONMINE]);
+	draw_additional_number(9, 71, player->popup_frame, player->sett->incomplete_building_count[BUILDING_IRONMINE]);
+
+	draw_green_number(12, 71, player->popup_frame, player->sett->completed_building_count[BUILDING_GOLDMINE]);
+	draw_additional_number(13, 71, player->popup_frame, player->sett->incomplete_building_count[BUILDING_GOLDMINE]);
+
+	draw_green_number(4, 130, player->popup_frame, player->sett->completed_building_count[BUILDING_STEELSMELTER]);
+	draw_additional_number(5, 130, player->popup_frame, player->sett->incomplete_building_count[BUILDING_STEELSMELTER]);
+
+	draw_green_number(9, 130, player->popup_frame, player->sett->completed_building_count[BUILDING_GOLDSMELTER]);
+	draw_additional_number(10, 130, player->popup_frame, player->sett->incomplete_building_count[BUILDING_GOLDSMELTER]);
+
+	draw_popup_icon(0, 128, 61, player->popup_frame); /* flip */
+	draw_popup_icon(14, 128, 60, player->popup_frame); /* exit */
 }
 
 static void
@@ -1233,14 +1364,122 @@ draw_stat_7_box(player_t *player)
 static void
 draw_stat_1_box(player_t *player)
 {
+	const int layout[] = {
+		0x18, 0, 0, /* baker */
+		0xb4, 0, 16,
+		0xb3, 0, 24,
+		0xb2, 0, 32,
+		0xb3, 0, 40,
+		0xb2, 0, 48,
+		0xb3, 0, 56,
+		0xb2, 0, 64,
+		0xb3, 0, 72,
+		0xb2, 0, 80,
+		0xb3, 0, 88,
+		0xd4, 0, 96,
+		0xb1, 0, 112,
+		0x13, 0, 120, /* fisher */
+		0x15, 2, 48, /* butcher */
+		0xb4, 2, 64,
+		0xb3, 2, 72,
+		0xd4, 2, 80,
+		0xa4, 2, 96,
+		0xa4, 2, 112,
+		0xae, 4, 4,
+		0xae, 4, 36,
+		0xa6, 4, 80,
+		0xa6, 4, 96,
+		0xa6, 4, 112,
+		0x26, 6, 0, /* flour */
+		0x23, 6, 32, /* pig */
+		0xb5, 6, 64,
+		0x24, 6, 76, /* meat */
+		0x27, 6, 92, /* bread */
+		0x22, 6, 108, /* fish */
+		0xb6, 6, 124,
+		0x17, 8, 0, /* miller */
+		0x14, 8, 32, /* pigfarmer */
+		0xa6, 8, 64,
+		0xab, 8, 88,
+		0xab, 8, 104,
+		0xa6, 8, 128,
+		0xba, 12, 8,
+		0x11, 12, 56, /* miner */
+		0x11, 12, 80, /* miner */
+		0x11, 12, 104, /* miner */
+		0x11, 12, 128, /* miner */
+		0x16, 14, 0, /* farmer */
+		0x25, 14, 16, /* wheat */
+		0x2f, 14, 56, /* goldore */
+		0x2e, 14, 80, /* coal */
+		0x2c, 14, 104, /* ironore */
+		0x2b, 14, 128, /* stone */
+		-1
+	};
+
 	draw_box_background(129, player->popup_frame);
+
+	draw_custom_icon_box(layout, player->popup_frame);
+
 	/* TODO */
 }
 
 static void
 draw_stat_2_box(player_t *player)
 {
+	const int layout[] = {
+		0x11, 0, 0, /* miner */
+		0x11, 0, 24, /* miner */
+		0x11, 0, 56, /* miner */
+		0xd, 0, 80, /* lumberjack */
+		0x11, 0, 104, /* miner */
+		0xf, 0, 128, /* stonecutter */
+		0x2f, 2, 0, /* goldore */
+		0x2e, 2, 24, /* coal */
+		0xb0, 2, 40,
+		0x2c, 2, 56, /* ironore */
+		0x28, 2, 80, /* lumber */
+		0x2b, 2, 104, /* stone */
+		0x2b, 2, 128, /* stone */
+		0xaa, 4, 4,
+		0xab, 4, 24,
+		0xad, 4, 32,
+		0xa8, 4, 40,
+		0xac, 4, 60,
+		0xaa, 4, 84,
+		0xbb, 4, 108,
+		0xa4, 6, 32,
+		0xe, 6, 96, /* sawmiller */
+		0xa5, 6, 132,
+		0x30, 8, 0, /* gold */
+		0x12, 8, 16, /* smelter */
+		0xa4, 8, 32,
+		0x2d, 8, 40, /* steel */
+		0x12, 8, 56, /* smelter */
+		0xb8, 8, 80,
+		0x29, 8, 96, /* planks */
+		0xaf, 8, 112,
+		0xa5, 8, 132,
+		0xaa, 10, 4,
+		0xb9, 10, 24,
+		0xab, 10, 40,
+		0xb7, 10, 48,
+		0xa6, 10, 80,
+		0xa9, 10, 96,
+		0xa6, 10, 112,
+		0xa7, 10, 132,
+		0x21, 14, 0, /* knight 4 */
+		0x1b, 14, 28, /* weaponsmith */
+		0x1a, 14, 64, /* toolmaker */
+		0x19, 14, 92, /* boatbuilder */
+		0xc, 14, 120, /* builder */
+		-1
+	};
+
 	draw_box_background(129, player->popup_frame);
+
+	draw_custom_icon_box(layout, player->popup_frame);
+
 	/* TODO */
 }
 
@@ -1248,7 +1487,15 @@ static void
 draw_stat_6_box(player_t *player)
 {
 	draw_box_background(129, player->popup_frame);
-	/* TODO */
+
+	int total = 0;
+	for (int i = 0; i < 27; i++) {
+		if (i != SERF_4) total += player->sett->serf_count[i];
+	}
+
+	draw_serfs_box(player, player->sett->serf_count, total);
+
+	draw_popup_icon(14, 128, 60, player->popup_frame); /* exit */
 }
 
 static void
@@ -1280,9 +1527,10 @@ draw_stat_3_box(player_t *player)
 		}
 	}
 
-	draw_serfs_box(player, serfs, 0);
+	/* TODO draw meters */
+	draw_serfs_box(player, serfs, -1);
 
-	/* TODO Draw exit button */
+	draw_popup_icon(14, 128, 60, player->popup_frame); /* exit */
 }
 
 static void
@@ -4972,7 +5220,7 @@ build_building(player_t *player, map_obj_t obj_type)
 	map_pos_t pos = MAP_POS(player->sett->map_cursor_col, player->sett->map_cursor_row);
 	bld->u.s.level = player->sett->building_height_after_level;
 	bld->pos = pos;
-	player->sett->incomplete_building_count[bld_type-1] += 1;
+	player->sett->incomplete_building_count[bld_type] += 1;
 	bld->bld = BIT(7) | (bld_type << 2) | player->sett->player_num; /* bit 7: Unfinished building */
 	bld->progress = 0;
 	if (obj_type == 2) bld->progress = 1;
@@ -6454,7 +6702,7 @@ handle_clickmap(player_t *player, int x, int y, const int clkmap[])
 			case ACTION_SHOW_STAT_8:
 				player->box = BOX_STAT_8;
 				break;
-			case ACTION_SHOW_STAT_5:
+			case ACTION_SHOW_STAT_BLD:
 				player->box = BOX_STAT_BLD_1;
 				break;
 			case ACTION_SHOW_STAT_6:
@@ -6473,7 +6721,9 @@ handle_clickmap(player_t *player, int x, int y, const int clkmap[])
 			case ACTION_SHOW_STAT_SELECT_FILE:
 				player->box = BOX_STAT_SELECT;
 				break;
-				/* TODO */
+			case ACTION_STAT_BLD_FLIP:
+				player->box = (player->clkmap + 1 <= BOX_STAT_BLD_4) ? (player->clkmap + 1) : BOX_STAT_BLD_1;
+				break;
 			case ACTION_CLOSE_BOX:
 			case ACTION_CLOSE_SETT_BOX:
 				close_box(player);
@@ -6909,12 +7159,43 @@ handle_stat_select_click(player_t *player, int x, int y)
 		ACTION_SHOW_STAT_2, 48, 79, 12, 43,
 		ACTION_SHOW_STAT_3, 88, 119, 12, 43,
 		ACTION_SHOW_STAT_4, 8, 39, 56, 87,
-		ACTION_SHOW_STAT_5, 48, 79, 56, 87,
+		ACTION_SHOW_STAT_BLD, 48, 79, 56, 87,
 		ACTION_SHOW_STAT_6, 88, 119, 56, 87,
 		ACTION_SHOW_STAT_7, 8, 39, 100, 131,
 		ACTION_SHOW_STAT_8, 48, 79, 100, 131,
 		ACTION_CLOSE_BOX, 112, 127, 128, 143,
 		ACTION_SHOW_SETT_SELECT_FILE, 96, 111, 104, 119,
+		-1
+	};
+	handle_clickmap(player, x, y, clkmap);
+}
+
+static void
+handle_stat_3_4_6_click(player_t *player, int x, int y)
+{
+	const int clkmap[] = {
+		ACTION_SHOW_STAT_SELECT, 0, 127, 0, 143,
+		-1
+	};
+	handle_clickmap(player, x, y, clkmap);
+}
+
+static void
+handle_stat_bld_click(player_t *player, int x, int y)
+{
+	const int clkmap[] = {
+		ACTION_SHOW_STAT_SELECT, 112, 127, 128, 143,
+		ACTION_STAT_BLD_FLIP, 0, 15, 128, 143,
+		-1
+	};
+	handle_clickmap(player, x, y, clkmap);
+}
+
+static void
+handle_stat_1_2_click(player_t *player, int x, int y)
+{
+	const int clkmap[] = {
+		ACTION_SHOW_STAT_SELECT, 0, 127, 0, 143,
 		-1
 	};
 	handle_clickmap(player, x, y, clkmap);
@@ -7227,7 +7508,22 @@ handle_popup_click(player_t *player, int x, int y)
 	case BOX_STAT_SELECT:
 		handle_stat_select_click(player, x, y);
 		break;
-		/* TODO ... */
+	case BOX_STAT_4:
+	case BOX_STAT_6:
+	case BOX_STAT_3:
+		handle_stat_3_4_6_click(player, x, y);
+		break;
+	case BOX_STAT_BLD_1:
+	case BOX_STAT_BLD_2:
+	case BOX_STAT_BLD_3:
+	case BOX_STAT_BLD_4:
+		handle_stat_bld_click(player, x, y);
+		break;
+	case BOX_STAT_1:
+	case BOX_STAT_2:
+		handle_stat_1_2_click(player, x, y);
+		break;
+		/* TODO */
 	case BOX_GROUND_ANALYSIS:
 		handle_ground_analysis_clk(player, x, y);
 		break;
