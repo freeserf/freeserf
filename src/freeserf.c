@@ -668,6 +668,13 @@ draw_box_background(int sprite, frame_t *frame)
 	}
 }
 
+/* Fill one row of a popup frame. */
+static void
+draw_box_row(int sprite, int y, frame_t *frame)
+{
+	for (int x = 0; x < 16; x += 2) draw_popup_icon(x, y, sprite, frame);
+}
+
 /* Draw a green string in a popup frame. */
 static void
 draw_green_string(int x, int y, frame_t *frame, const char *str)
@@ -1358,7 +1365,135 @@ draw_stat_8_box(player_t *player)
 static void
 draw_stat_7_box(player_t *player)
 {
-	/* TODO */
+	const int layout[] = {
+		0x81, 6, 80,
+		0x81, 8, 80,
+		0x81, 6, 96,
+		0x81, 8, 96,
+
+		0x59, 0, 64,
+		0x5a, 14, 0,
+
+		0x28, 0, 75, /* lumber */
+		0x29, 2, 75, /* plank */
+		0x2b, 4, 75, /* stone */
+		0x2e, 0, 91, /* coal */
+		0x2c, 2, 91, /* ironore */
+		0x2f, 4, 91, /* goldore */
+		0x2a, 0, 107, /* boat */
+		0x2d, 2, 107, /* iron */
+		0x30, 4, 107, /* goldbar */
+		0x3a, 7, 83, /* sword */
+		0x3b, 7, 99, /* shield */
+		0x31, 10, 75, /* shovel */
+		0x32, 12, 75, /* hammer */
+		0x36, 14, 75, /* axe */
+		0x37, 10, 91, /* saw */
+		0x38, 12, 91, /* pick */
+		0x35, 14, 91, /* scythe */
+		0x34, 10, 107, /* cleaver */
+		0x39, 12, 107, /* pincer */
+		0x33, 14, 107, /* rod */
+		0x22, 1, 125, /* fish */
+		0x23, 3, 125, /* pig */
+		0x24, 5, 125, /* meat */
+		0x25, 7, 125, /* wheat */
+		0x26, 9, 125, /* flour */
+		0x27, 11, 125, /* bread */
+
+		0x3c, 14, 128, /* exitbox */
+		-1
+	};
+
+	draw_box_row(129, 64, player->popup_frame);
+	draw_box_row(129, 112, player->popup_frame);
+	draw_box_row(129, 128, player->popup_frame);
+
+	draw_custom_icon_box(layout, player->popup_frame);
+
+	int item = player->current_stat_7_item-1;
+
+	/* Draw background of chart */
+	for (int y = 0; y < 64; y += 16) {
+		for (int x = 0; x < 14; x += 2) {
+			draw_popup_icon(x, y, 138 + item, player->popup_frame);
+		}
+	}
+
+	const int sample_weights[] = { 4, 6, 8, 9, 10, 9, 8, 6, 4 };
+
+	/* Create array of historical counts */
+	int historical_data[112];
+	int max_val = 0;
+	int index = globals.history_index;
+
+	for (int i = 0; i < 112; i++) {
+		historical_data[i] = 0;
+		int j = index;
+		for (int k = 0; k < 9; k++) {
+			historical_data[i] += sample_weights[k]*player->sett->resource_count_history[item][j];
+			j = j > 0 ? j-1 : 119;
+		}
+
+		if (historical_data[i] > max_val) {
+			max_val = historical_data[i];
+		}
+
+		index = index > 0 ? index-1 : 119;
+	}
+
+	const int axis_icons_1[] = { 110, 109, 108, 107 };
+	const int axis_icons_2[] = { 112, 111, 110, 108 };
+	const int axis_icons_3[] = { 114, 113, 112, 110 };
+	const int axis_icons_4[] = { 117, 116, 114, 112 };
+	const int axis_icons_5[] = { 120, 119, 118, 115 };
+	const int axis_icons_6[] = { 122, 121, 120, 118 };
+	const int axis_icons_7[] = { 125, 124, 122, 120 };
+	const int axis_icons_8[] = { 128, 127, 126, 123 };
+
+	const int *axis_icons = NULL;
+	int multiplier = 0;
+
+	/* TODO chart background pattern */
+
+	if (max_val <= 64) {
+		axis_icons = axis_icons_1;
+		multiplier = 0x8000;
+	} else if (max_val <= 128) {
+		axis_icons = axis_icons_2;
+		multiplier = 0x4000;
+	} else if (max_val <= 256) {
+		axis_icons = axis_icons_3;
+		multiplier = 0x2000;
+	} else if (max_val <= 512) {
+		axis_icons = axis_icons_4;
+		multiplier = 0x1000;
+	} else if (max_val <= 1280) {
+		axis_icons = axis_icons_5;
+		multiplier = 0x666;
+	} else if (max_val <= 2560) {
+		axis_icons = axis_icons_6;
+		multiplier = 0x333;
+	} else if (max_val <= 5120) {
+		axis_icons = axis_icons_7;
+		multiplier = 0x199;
+	} else {
+		axis_icons = axis_icons_8;
+		multiplier = 0xa3;
+	}
+
+	/* Draw axis icons */
+	for (int i = 0; i < 4; i++) {
+		draw_popup_icon(14, i*16, axis_icons[i], player->popup_frame);
+	}
+
+	/* Draw chart */
+	for (int i = 0; i < 112; i++) {
+		int value = min((historical_data[i]*multiplier) >> 16, 64);
+		if (value > 0) {
+			gfx_fill_rect(119 - i, 73 - value, 1, value, 72, player->popup_frame);
+		}
+	}
 }
 
 static void
@@ -3155,6 +3290,8 @@ init_player_structs(player_t *p[])
 
 	p[0]->sett = globals.player_sett[0];
 	/*p[0]->map_serf_rows = globals.map_serf_rows_left; OBSOLETE */
+	p[0]->current_stat_7_item = 7;
+	p[0]->box = 0;
 
 	/* TODO ... */
 
@@ -3784,8 +3921,17 @@ reset_player_settings()
 			}
 
 			sett->reproduction_counter = sett->reproduction_reset;
-
 			/* TODO ... */
+			for (int i = 0; i < 26; i++) sett->resource_count[i] = 0;
+			for (int i = 0; i < 24; i++) {
+				sett->completed_building_count[i] = 0;
+				sett->incomplete_building_count[i] = 0;
+			}
+
+			for (int i = 0; i < 26; i++) {
+				for (int j = 0; j < 120; j++) sett->resource_count_history[i][j] = 0;
+			}
+			for (int i = 0; i < 27; i++) sett->serf_count[i] = 0;
 		}
 	}
 
@@ -3807,10 +3953,14 @@ static void
 init_game_globals()
 {
 	/* TODO ... */
+	globals.history_index = 0;
 	globals.game_tick = 0;
 	globals.anim = 0;
 	/* TODO ... */
+	globals.game_stats_counter = 0;
+	globals.history_counter = 0;
 	globals.anim_diff = 0;
+	/* TODO */
 }
 
 /* Update global anim counters based on game_tick.
@@ -6729,6 +6879,36 @@ handle_clickmap(player_t *player, int x, int y, const int clkmap[])
 				close_box(player);
 				break;
 				/* TODO ... */
+			case ACTION_STAT_7_SELECT_FISH:
+			case ACTION_STAT_7_SELECT_PIG:
+			case ACTION_STAT_7_SELECT_MEAT:
+			case ACTION_STAT_7_SELECT_WHEAT:
+			case ACTION_STAT_7_SELECT_FLOUR:
+			case ACTION_STAT_7_SELECT_BREAD:
+			case ACTION_STAT_7_SELECT_LUMBER:
+			case ACTION_STAT_7_SELECT_PLANK:
+			case ACTION_STAT_7_SELECT_BOAT:
+			case ACTION_STAT_7_SELECT_STONE:
+			case ACTION_STAT_7_SELECT_IRONORE:
+			case ACTION_STAT_7_SELECT_STEEL:
+			case ACTION_STAT_7_SELECT_COAL:
+			case ACTION_STAT_7_SELECT_GOLDORE:
+			case ACTION_STAT_7_SELECT_GOLDBAR:
+			case ACTION_STAT_7_SELECT_SHOVEL:
+			case ACTION_STAT_7_SELECT_HAMMER:
+			case ACTION_STAT_7_SELECT_ROD:
+			case ACTION_STAT_7_SELECT_CLEAVER:
+			case ACTION_STAT_7_SELECT_SCYTHE:
+			case ACTION_STAT_7_SELECT_AXE:
+			case ACTION_STAT_7_SELECT_SAW:
+			case ACTION_STAT_7_SELECT_PICK:
+			case ACTION_STAT_7_SELECT_PINCER:
+			case ACTION_STAT_7_SELECT_SWORD:
+			case ACTION_STAT_7_SELECT_SHIELD:
+				player->current_stat_7_item = action - ACTION_STAT_7_SELECT_FISH + 1;
+				player->box = player->clkmap;
+				break;
+				/* TODO */
 			case ACTION_SHOW_SETT_1:
 				player->box = BOX_SETT_1;
 				break;
@@ -7192,6 +7372,52 @@ handle_stat_bld_click(player_t *player, int x, int y)
 }
 
 static void
+handle_stat_8_click(player_t *player, int x, int y)
+{
+	/* TODO */
+}
+
+static void
+handle_stat_7_click(player_t *player, int x, int y)
+{
+	const int clkmap[] = {
+		ACTION_STAT_7_SELECT_LUMBER, 0, 15, 75, 90,
+		ACTION_STAT_7_SELECT_PLANK, 16, 31, 75, 90,
+		ACTION_STAT_7_SELECT_STONE, 32, 47, 75, 90,
+		ACTION_STAT_7_SELECT_COAL, 0, 15, 91, 106,
+		ACTION_STAT_7_SELECT_IRONORE, 16, 31, 91, 106,
+		ACTION_STAT_7_SELECT_GOLDORE, 32, 47, 91, 106,
+		ACTION_STAT_7_SELECT_BOAT, 0, 15, 107, 122,
+		ACTION_STAT_7_SELECT_STEEL, 16, 31, 107, 122,
+		ACTION_STAT_7_SELECT_GOLDBAR, 32, 47, 107, 122,
+
+		ACTION_STAT_7_SELECT_SWORD, 56, 71, 83, 98,
+		ACTION_STAT_7_SELECT_SHIELD, 56, 71, 99, 114,
+
+		ACTION_STAT_7_SELECT_SHOVEL, 80, 95, 75, 90,
+		ACTION_STAT_7_SELECT_HAMMER, 96, 111, 75, 90,
+		ACTION_STAT_7_SELECT_AXE, 112, 127, 75, 90,
+		ACTION_STAT_7_SELECT_SAW, 80, 95, 91, 106,
+		ACTION_STAT_7_SELECT_PICK, 96, 111, 91, 106,
+		ACTION_STAT_7_SELECT_SCYTHE, 112, 127, 91, 106,
+		ACTION_STAT_7_SELECT_CLEAVER, 80, 95, 107, 122,
+		ACTION_STAT_7_SELECT_PINCER, 96, 111, 107, 122,
+		ACTION_STAT_7_SELECT_ROD, 112, 127, 107, 122,
+
+		ACTION_STAT_7_SELECT_FISH, 8, 23, 125, 140,
+		ACTION_STAT_7_SELECT_PIG, 24, 39, 125, 140,
+		ACTION_STAT_7_SELECT_MEAT, 40, 55, 125, 140,
+		ACTION_STAT_7_SELECT_WHEAT, 56, 71, 125, 140,
+		ACTION_STAT_7_SELECT_FLOUR, 72, 87, 125, 140,
+		ACTION_STAT_7_SELECT_BREAD, 88, 103, 125, 140,
+
+		ACTION_SHOW_STAT_SELECT, 112, 127, 128, 143,
+		-1
+	};
+	handle_clickmap(player, x, y, clkmap);
+}
+
+static void
 handle_stat_1_2_click(player_t *player, int x, int y)
 {
 	const int clkmap[] = {
@@ -7518,6 +7744,12 @@ handle_popup_click(player_t *player, int x, int y)
 	case BOX_STAT_BLD_3:
 	case BOX_STAT_BLD_4:
 		handle_stat_bld_click(player, x, y);
+		break;
+	case BOX_STAT_8:
+		handle_stat_8_click(player, x, y);
+		break;
+	case BOX_STAT_7:
+		handle_stat_7_click(player, x, y);
 		break;
 	case BOX_STAT_1:
 	case BOX_STAT_2:
@@ -9548,6 +9780,31 @@ update_serfs()
 	}
 }
 
+/* Update statistics of the game. */
+void
+update_game_stats()
+{
+	if (globals.anim - globals.game_stats_counter >= 1500) {
+		globals.game_stats_counter += 1500;
+		/* TODO */
+	}
+
+	if (globals.anim - globals.history_counter >= 6000) {
+		globals.history_counter += 6000;
+		globals.history_index = globals.history_index+1 < 120 ? globals.history_index+1 : 0;
+
+		int index = globals.history_index;
+
+		for (int res = 0; res < 26; res++) {
+			for (int i = 0; i < 4; i++) {
+				player_sett_t *sett = globals.player_sett[i];
+				sett->resource_count_history[res][index] = sett->resource_count[res];
+				sett->resource_count[res] = 0;
+			}
+		}
+	}
+}
+
 /* Load global state from save game. */
 static int
 load_v0_globals_state(FILE *f)
@@ -10426,7 +10683,7 @@ game_loop_iter()
 	update_buildings();
 	update_serfs();
 	/*update_visible_serfs(); OBSOLETE */
-	/* sub_1C0FC(); */
+	update_game_stats();
 
 	/* TODO ... */
 
@@ -11001,6 +11258,7 @@ sdl_audio_play_sound(int index)
 	" -f\t\tFullscreen mode (CTRL-q to exit)\n"		\
 	" -g DATA-FILE\tUse specified data file\n"		\
 	" -h\t\tShow this help text\n"				\
+	" -l FILE\tLoad saved game\n"				\
 	" -m MAP\t\tSelect world map (1-3)\n"			\
 	" -p\t\tPreserve map bugs of the original game\n"	\
 	" -r RES\t\tSet display resolution (e.g. 800x600)\n"	\

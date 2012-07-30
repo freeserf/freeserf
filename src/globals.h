@@ -90,7 +90,9 @@ typedef struct {
 	uint32_t game_tick;  /* Overflow might be important */
 	uint16_t anim;  /* Overflow might be important */
 	uint16_t old_anim;
-	/* 212 */
+	/* 20E */
+	uint16_t game_stats_counter;
+	uint16_t history_counter;
 	uint16_t rnd_1;
 	uint16_t rnd_2;
 	uint16_t rnd_3;
@@ -151,6 +153,8 @@ typedef struct {
 	/* 2F8 */
 	map_1_t *map_mem2;
 	uint8_t *map_mem5;
+	/* 32E */
+	int history_index;
 	/* 340 */
 	uint16_t field_340;
 	uint16_t field_342;
