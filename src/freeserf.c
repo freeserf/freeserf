@@ -3076,6 +3076,17 @@ draw_building_stock_box(player_t *player)
 }
 
 static void
+draw_player_faces_box(player_t *player)
+{
+	draw_box_background(129, player->popup_frame);
+
+	draw_player_face(2, 4, 0, player->popup_frame);
+	draw_player_face(10, 4, 1, player->popup_frame);
+	draw_player_face(2, 76, 2, player->popup_frame);
+	draw_player_face(10, 76, 3, player->popup_frame);
+}
+
+static void
 draw_demolish_box(player_t *player)
 {
 	draw_box_background(314, player->popup_frame);
@@ -3260,7 +3271,9 @@ draw_popup_box(player_t *player)
 	case BOX_BLD_STOCK:
 		draw_building_stock_box(player);
 		break;
-		/* TODO ... */
+	case BOX_PLAYER_FACES:
+		draw_player_faces_box(player);
+		break;
 	case BOX_DEMOLISH:
 		draw_demolish_box(player);
 		break;
@@ -7846,6 +7859,16 @@ handle_message_clk(player_t *player, int x, int y)
 }
 
 static void
+handle_player_faces_click(player_t *player, int x, int y)
+{
+	const int clkmap[] = {
+		ACTION_SHOW_STAT_8, 0, 127, 0, 143,
+		-1
+	};
+	handle_clickmap(player, x, y, clkmap);
+}
+
+static void
 handle_box_demolish_clk(player_t *player, int x, int y)
 {
 	const int clkmap[] = {
@@ -7961,7 +7984,9 @@ handle_popup_click(player_t *player, int x, int y)
 	case BOX_BLD_STOCK:
 		handle_box_close_clk(player, x, y);
 		break;
-		/* TODO ...*/
+	case BOX_PLAYER_FACES:
+		handle_player_faces_click(player, x, y);
+		break;
 	case BOX_DEMOLISH:
 		handle_box_demolish_clk(player, x, y);
 		break;
