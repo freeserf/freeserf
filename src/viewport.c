@@ -2022,7 +2022,7 @@ draw_serf_row(map_pos_t pos, int y_base, int cols, int x_base, frame_t *frame)
 	};
 
 	for (int i = 0; i < cols; i++, x_base += MAP_TILE_WIDTH, pos = MAP_MOVE_RIGHT(pos)) {
-#ifndef NDEBUG
+#if 0
 		/* Draw serf marker */
 		if (MAP_SERF_INDEX(pos) != 0) {
 			gfx_fill_rect(x_base - 2, y_base - 4*MAP_HEIGHT(pos) - 2, 4, 4, 0x40, frame);

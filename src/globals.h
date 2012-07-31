@@ -41,6 +41,8 @@ typedef struct {
 	uint16_t map_size;
 	/* 58 */
 	uint16_t map_62_5_times_regions;
+	/* 5E */
+	int winning_player;
 	/* 60 */
 	uint16_t map_move_left_2;
 	/* 64 */
@@ -153,8 +155,11 @@ typedef struct {
 	/* 2F8 */
 	map_1_t *map_mem2;
 	uint8_t *map_mem5;
+	/* 320 */
+	int player_history_index[4];
+	int player_history_counter[3];
 	/* 32E */
-	int history_index;
+	int resource_history_index;
 	/* 340 */
 	uint16_t field_340;
 	uint16_t field_342;
@@ -167,6 +172,8 @@ typedef struct {
 	int map_preserve_bugs; /* ADDITION */
 	/* 37C */
 	uint8_t split;
+	/* 380 */
+	int player_score_leader;
 	/* 3D8 */
 	uint8_t cfg_left;
 	uint8_t cfg_right;

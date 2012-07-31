@@ -1357,9 +1357,94 @@ draw_stat_bld_4_box(player_t *player)
 }
 
 static void
+draw_player_stat_chart(const int *data, int index, int color, frame_t *frame)
+{
+	int prev_value = data[index];
+	index = index > 0 ? index-1 : 111;
+
+	for (int i = 0; i < 112; i++) {
+		int value = data[index];
+		index = index > 0 ? index-1 : 111;
+
+		/* TODO There are glitches in drawing these charts. */
+
+		if (value > prev_value) {
+			int diff = value - prev_value;
+			int h = diff/2;
+			gfx_fill_rect(119 - i, 108 - h - prev_value, 1, h, color, frame);
+			diff -= h;
+			gfx_fill_rect(118 - i, 108 - prev_value, 1, diff, color, frame);
+		} else {
+			int diff = prev_value - value;
+			int h = diff/2;
+			gfx_fill_rect(119 - i, 108 - prev_value, 1, h, color, frame);
+			diff -= h;
+			gfx_fill_rect(118 - i, 108 - diff - prev_value, 1, diff, color, frame);
+		}
+
+		prev_value = value;
+	}
+}
+
+static void
 draw_stat_8_box(player_t *player)
 {
-	/* TODO */
+	const int layout[] = {
+		0x58, 14, 0,
+		0x59, 0, 100,
+		0x41, 8, 112,
+		0x42, 10, 112,
+		0x43, 8, 128,
+		0x44, 10, 128,
+		0x45, 2, 112,
+		0x40, 4, 112,
+		0x3e, 2, 128,
+		0x3f, 4, 128,
+		0x133, 14, 112,
+
+		0x3c, 14, 128, /* exit */
+		-1
+	};
+
+	int mode = player->current_stat_8_mode;
+	int aspect = (mode >> 2) & 3;
+	int scale = mode & 3;
+
+	/* Draw background */
+	draw_box_row(132+aspect, 0, player->popup_frame);
+	draw_box_row(132+aspect, 16, player->popup_frame);
+	draw_box_row(132+aspect, 32, player->popup_frame);
+	draw_box_row(132+aspect, 48, player->popup_frame);
+	draw_box_row(132+aspect, 64, player->popup_frame);
+	draw_box_row(132+aspect, 80, player->popup_frame);
+	draw_box_row(132+aspect, 96, player->popup_frame);
+
+	draw_box_row(136, 108, player->popup_frame);
+	draw_box_row(129, 116, player->popup_frame);
+	draw_box_row(137, 132, player->popup_frame);
+
+	draw_custom_icon_box(layout, player->popup_frame);
+
+	/* Draw checkmarks to indicate current settings. */
+	draw_popup_icon(!BIT_TEST(aspect, 0) ? 1 : 6,
+			!BIT_TEST(aspect, 1) ? 116 : 132,
+			106, player->popup_frame); /* checkmark */
+
+	draw_popup_icon(!BIT_TEST(scale, 0) ? 7 : 12,
+			!BIT_TEST(scale, 1) ? 116 : 132,
+			106, player->popup_frame); /* checkmark */
+
+	/* Correct numbers on time scale. */
+	draw_popup_icon(2, 103, 94 + 3*scale + 0, player->popup_frame);
+	draw_popup_icon(6, 103, 94 + 3*scale + 1, player->popup_frame);
+	draw_popup_icon(10, 103, 94 + 3*scale + 2, player->popup_frame);
+
+	/* Draw chart */
+	int index = globals.player_history_index[scale];
+	draw_player_stat_chart(globals.player_sett[3]->player_stat_history[mode], index, 76, player->popup_frame);
+	draw_player_stat_chart(globals.player_sett[2]->player_stat_history[mode], index, 68, player->popup_frame);
+	draw_player_stat_chart(globals.player_sett[1]->player_stat_history[mode], index, 72, player->popup_frame);
+	draw_player_stat_chart(globals.player_sett[0]->player_stat_history[mode], index, 64, player->popup_frame);
 }
 
 static void
@@ -1425,7 +1510,7 @@ draw_stat_7_box(player_t *player)
 	/* Create array of historical counts */
 	int historical_data[112];
 	int max_val = 0;
-	int index = globals.history_index;
+	int index = globals.resource_history_index;
 
 	for (int i = 0; i < 112; i++) {
 		historical_data[i] = 0;
@@ -3290,6 +3375,7 @@ init_player_structs(player_t *p[])
 
 	p[0]->sett = globals.player_sett[0];
 	/*p[0]->map_serf_rows = globals.map_serf_rows_left; OBSOLETE */
+	p[0]->current_stat_8_mode = 0;
 	p[0]->current_stat_7_item = 7;
 	p[0]->box = 0;
 
@@ -3842,8 +3928,11 @@ init_ai_values(player_sett_t *sett, int face)
 static void
 reset_player_settings()
 {
+	globals.winning_player = -1;	
 	/* TODO ... */
 	globals.field_286 = 33;
+
+	/* TODO */
 
 	for (int i = 0; i < 4; i++) {
 		player_sett_t *sett = globals.player_sett[i];
@@ -3928,9 +4017,16 @@ reset_player_settings()
 				sett->incomplete_building_count[i] = 0;
 			}
 
+			/* TODO */
+
+			for (int i = 0; i < 16; i++) {
+				for (int j = 0; j < 112; j++) sett->player_stat_history[i][j] = 0;
+			}
+
 			for (int i = 0; i < 26; i++) {
 				for (int j = 0; j < 120; j++) sett->resource_count_history[i][j] = 0;
 			}
+
 			for (int i = 0; i < 27; i++) sett->serf_count[i] = 0;
 		}
 	}
@@ -3952,8 +4048,10 @@ init_player_settings()
 static void
 init_game_globals()
 {
-	/* TODO ... */
-	globals.history_index = 0;
+	memset(globals.player_history_index, '\0', sizeof(globals.player_history_index));
+	memset(globals.player_history_counter, '\0', sizeof(globals.player_history_counter));
+
+	globals.resource_history_index = 0;
 	globals.game_tick = 0;
 	globals.anim = 0;
 	/* TODO ... */
@@ -6876,9 +6974,41 @@ handle_clickmap(player_t *player, int x, int y, const int clkmap[])
 				break;
 			case ACTION_CLOSE_BOX:
 			case ACTION_CLOSE_SETT_BOX:
+			case ACTION_CLOSE_GROUND_ANALYSIS:
 				close_box(player);
 				break;
-				/* TODO ... */
+			case ACTION_SETT_8_SET_ASPECT_ALL:
+				player->current_stat_8_mode = (0 << 2) | (player->current_stat_8_mode & 3);
+				player->box = player->clkmap;
+				break;
+			case ACTION_SETT_8_SET_ASPECT_LAND:
+				player->current_stat_8_mode = (1 << 2) | (player->current_stat_8_mode & 3);
+				player->box = player->clkmap;
+				break;
+			case ACTION_SETT_8_SET_ASPECT_BUILDINGS:
+				player->current_stat_8_mode = (2 << 2) | (player->current_stat_8_mode & 3);
+				player->box = player->clkmap;
+				break;
+			case ACTION_SETT_8_SET_ASPECT_MILITARY:
+				player->current_stat_8_mode = (3 << 2) | (player->current_stat_8_mode & 3);
+				player->box = player->clkmap;
+				break;
+			case ACTION_SETT_8_SET_SCALE_30_MIN:
+				player->current_stat_8_mode = (player->current_stat_8_mode & 0xc) | 0;
+				player->box = player->clkmap;
+				break;
+			case ACTION_SETT_8_SET_SCALE_60_MIN:
+				player->current_stat_8_mode = (player->current_stat_8_mode & 0xc) | 1;
+				player->box = player->clkmap;
+				break;
+			case ACTION_SETT_8_SET_SCALE_600_MIN:
+				player->current_stat_8_mode = (player->current_stat_8_mode & 0xc) | 2;
+				player->box = player->clkmap;
+				break;
+			case ACTION_SETT_8_SET_SCALE_3000_MIN:
+				player->current_stat_8_mode = (player->current_stat_8_mode & 0xc) | 3;
+				player->box = player->clkmap;
+				break;
 			case ACTION_STAT_7_SELECT_FISH:
 			case ACTION_STAT_7_SELECT_PIG:
 			case ACTION_STAT_7_SELECT_MEAT:
@@ -7223,9 +7353,8 @@ handle_clickmap(player_t *player, int x, int y, const int clkmap[])
 				player->box = BOX_SETT_4;
 				player_sett_reset_tool_priority(player->sett);
 				break;
-				/* TODO */
-			case ACTION_CLOSE_GROUND_ANALYSIS:
-				close_box(player);
+			case ACTION_SHOW_PLAYER_FACES:
+				player->box = BOX_PLAYER_FACES;
 				break;
 				/* TODO */
 			case ACTION_SETT_8_CASTLE_DEF_DEC:
@@ -7374,7 +7503,22 @@ handle_stat_bld_click(player_t *player, int x, int y)
 static void
 handle_stat_8_click(player_t *player, int x, int y)
 {
-	/* TODO */
+	const int clkmap[] = {
+		ACTION_SETT_8_SET_ASPECT_ALL, 16, 31, 112, 127,
+		ACTION_SETT_8_SET_ASPECT_LAND, 32, 47, 112, 127,
+		ACTION_SETT_8_SET_ASPECT_BUILDINGS, 16, 31, 128, 143,
+		ACTION_SETT_8_SET_ASPECT_MILITARY, 32, 47, 128, 143,
+
+		ACTION_SETT_8_SET_SCALE_30_MIN, 64, 79, 112, 127,
+		ACTION_SETT_8_SET_SCALE_60_MIN, 80, 95, 112, 127,
+		ACTION_SETT_8_SET_SCALE_600_MIN, 64, 79, 128, 143,
+		ACTION_SETT_8_SET_SCALE_3000_MIN, 80, 95, 128, 143,
+
+		ACTION_SHOW_PLAYER_FACES, 112, 127, 112, 125,
+		ACTION_SHOW_STAT_SELECT, 112, 127, 128, 143,
+		-1
+	};
+	handle_clickmap(player, x, y, clkmap);
 }
 
 static void
@@ -9780,20 +9924,136 @@ update_serfs()
 	}
 }
 
+/* Update historical player statistics for one measure. */
+static void
+record_player_history(player_sett_t *sett[], int pl_count, int max_level, int aspect,
+		      const int history_index[], const int values[])
+{
+	int total = 0;
+	for (int i = 0; i < pl_count; i++) total += values[i];
+	total = max(1, total);
+
+	for (int i = 0; i < max_level+1; i++) {
+		int mode = (aspect << 2) | i;
+		int index = history_index[i];
+		for (int j = 0; j < pl_count; j++) {
+			sett[j]->player_stat_history[mode][index] = (100*values[j])/total;
+		}
+	}
+}
+
+/* Calculate whether one player has enough advantage to be
+   considered a clear winner regarding one aspect.
+   Return -1 if there is no clear winner. */
+static int
+calculate_clear_winner(int pl_count, const int values[])
+{
+	int total = 0;
+	for (int i = 0; i < pl_count; i++) total += values[i];
+	total = max(1, total);
+
+	for (int i = 0; i < pl_count; i++) {
+		if ((100*values[i])/total >= 75) return i;
+	}
+
+	return -1;
+}
+
+/* Calculate condensed score from military score and knight morale. */
+static int
+calculate_military_score(int military, int morale)
+{
+	return (2048 + (morale >> 1)) * (military >> 6);
+}
+
 /* Update statistics of the game. */
-void
+static void
 update_game_stats()
 {
 	if (globals.anim - globals.game_stats_counter >= 1500) {
 		globals.game_stats_counter += 1500;
-		/* TODO */
+		globals.player_score_leader = 0;
+
+		int update_level = 0;
+
+		/* Update first level index */
+		globals.player_history_index[0] =
+			globals.player_history_index[0]+1 < 112 ?
+			globals.player_history_index[0]+1 : 0;
+
+		globals.player_history_counter[0] -= 1;
+		if (globals.player_history_counter[0] < 0) {
+			update_level = 1;
+			globals.player_history_counter[0] = 3;
+
+			/* Update second level index */
+			globals.player_history_index[1] =
+				globals.player_history_index[1]+1 < 112 ?
+				globals.player_history_index[1]+1 : 0;
+
+			globals.player_history_counter[1] -= 1;
+			if (globals.player_history_counter[1] < 0) {
+				update_level = 2;
+				globals.player_history_counter[1] = 4;
+
+				/* Update third level index */
+				globals.player_history_index[2] =
+					globals.player_history_index[2]+1 < 112 ?
+					globals.player_history_index[2]+1 : 0;
+
+				globals.player_history_counter[2] -= 1;
+				if (globals.player_history_counter[2] < 0) {
+					update_level = 3;
+
+					globals.player_history_counter[2] = 4;
+
+					/* Update fourth level index */
+					globals.player_history_index[3] =
+						globals.player_history_index[3]+1 < 112 ?
+						globals.player_history_index[3]+1 : 0;
+				}
+			}
+		}
+
+		int values[4];
+
+		/* Store land area stats in history. */
+		for (int i = 0; i < 4; i++) values[i] = globals.player_sett[i]->total_land_area;
+		record_player_history(globals.player_sett, 4, update_level, 1,
+				      globals.player_history_index, values);
+		globals.player_score_leader |= BIT(calculate_clear_winner(4, values));
+
+		/* Store building stats in history. */
+		for (int i = 0; i < 4; i++) values[i] = globals.player_sett[i]->total_building_score;
+		record_player_history(globals.player_sett, 4, update_level, 2,
+				      globals.player_history_index, values);
+
+		/* Store military stats in history. */
+		for (int i = 0; i < 4; i++) {
+			values[i] = calculate_military_score(globals.player_sett[i]->total_military_score,
+							     globals.player_sett[i]->knight_morale);
+		}
+		record_player_history(globals.player_sett, 4, update_level, 3,
+				      globals.player_history_index, values);
+		globals.player_score_leader |= BIT(calculate_clear_winner(4, values)) << 4;
+
+		/* Store condensed score of all aspects in history. */
+		for (int i = 0; i < 4; i++) {
+			int mil_score = calculate_military_score(globals.player_sett[i]->total_military_score,
+								 globals.player_sett[i]->knight_morale);
+			values[i] = globals.player_sett[i]->total_building_score +
+				((globals.player_sett[i]->total_land_area + mil_score) >> 4);
+		}
+		record_player_history(globals.player_sett, 4, update_level, 0,
+				      globals.player_history_index, values);
+
+		/* TODO Determine winner based on globals.player_score_leader */
 	}
 
 	if (globals.anim - globals.history_counter >= 6000) {
 		globals.history_counter += 6000;
-		globals.history_index = globals.history_index+1 < 120 ? globals.history_index+1 : 0;
 
-		int index = globals.history_index;
+		int index = globals.resource_history_index;
 
 		for (int res = 0; res < 26; res++) {
 			for (int i = 0; i < 4; i++) {
@@ -9802,6 +10062,8 @@ update_game_stats()
 				sett->resource_count[res] = 0;
 			}
 		}
+
+		globals.resource_history_index = index+1 < 120 ? index+1 : 0;
 	}
 }
 
@@ -10700,7 +10962,7 @@ game_loop_iter()
 	if (redraw_landscape) {
 		player_t *player = globals.player[0];
 
-#ifndef NDEBUG
+#if 0
 		/* Clear screen helps debugging */
 		gfx_fill_rect(0, 0, sdl_frame_get_width(player->frame),
 			      sdl_frame_get_height(player->frame),

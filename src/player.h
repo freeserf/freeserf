@@ -110,7 +110,8 @@ typedef struct {
 	int ai_value_5;
 	/* 1AE */
 	int ai_intelligence;
-	/* 11C4 */
+	/* AC4 */
+	int player_stat_history[16][112];
 	int resource_count_history[26][120];
 	/* 1E34 ? */
 	int msg_queue_type[64];
@@ -198,7 +199,7 @@ typedef struct {
 	int field_D0;
 	/* D2 */
 	uint16_t last_anim;
-	/* D6 */
+	int current_stat_8_mode;
 	int current_stat_7_item;
 	/* 1B4 */
 	/* Determines what sfx should be played. */
