@@ -22,6 +22,7 @@
 #include "sdl-video.h"
 #include "gfx.h"
 #include "data.h"
+#include "log.h"
 
 /* There are different types of sprites:
    - Non-packed, rectangular sprites: These are simple called sprites here.
@@ -50,7 +51,7 @@ int
 gfx_load_file(const char *path)
 {
 	int r;
-	
+
 #ifdef HAVE_MMAP
 	int fd = open(path, O_RDWR);
 	if (fd < 0) return -1;
@@ -110,9 +111,9 @@ gfx_load_file(const char *path)
 			if (entries[i].offset == 0) continue;
 			int length = i - run_start;
 			if (length > 1) {
-				printf("empty: %i-%i\n", run_start, i-1);
+				LOGD("empty: %i-%i", run_start, i-1);
 			}
-			else printf("empty: %i\n", i-1);
+			else LOGD("empty: %i", i-1);
 			run_start = 0;
 		} else if (entries[i].offset == 0) {
 			run_start = i;
