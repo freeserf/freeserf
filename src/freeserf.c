@@ -6278,6 +6278,16 @@ building_demolish(map_pos_t pos)
 	}
 }
 
+/* Demolish road at position. */
+static void
+road_demolish(map_pos_t pos)
+{
+	globals.player[0]->flags |= BIT(4);
+	globals.player[1]->flags |= BIT(4);
+
+	/* TODO */
+}
+
 static void
 do_demolish(player_t *player)
 {
@@ -6458,8 +6468,23 @@ handle_panel_btn_click(player_t *player, int btn)
 			}
 			break;
 		case PANEL_BTN_DESTROY_ROAD:
-			/* TODO */
-			printf("destroy road\n");
+			if (BIT_TEST(player->click, 3)) { /* Special click */
+				/* TODO */
+			} else {
+				player->flags &= ~BIT(6);
+				determine_map_cursor_type(player);
+				if (player->sett->map_cursor_type == 4) {
+					enqueue_sfx_clip(SFX_ACCEPTED);
+					player->click |= BIT(2);
+
+					map_pos_t cursor_pos = MAP_POS(player->sett->map_cursor_col,
+								       player->sett->map_cursor_row);
+					road_demolish(cursor_pos);
+				} else {
+					enqueue_sfx_clip(SFX_NOT_ACCEPTED);
+					update_panel_btns_and_map_cursor(player);
+				}
+			}
 			break;
 		case PANEL_BTN_GROUND_ANALYSIS:
 		case PANEL_BTN_GROUND_ANALYSIS_STARRED:
