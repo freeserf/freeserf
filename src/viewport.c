@@ -138,7 +138,7 @@ draw_up_tile_col(map_pos_t pos, int x_base, int y_base, int max_y, frame_t *fram
 	while (1) {
 		/* move down */
 		pos = MAP_MOVE_DOWN(pos);
-	
+
 		left = MAP_HEIGHT(pos);
 		right = MAP_HEIGHT(MAP_MOVE_RIGHT(pos));
 
@@ -148,7 +148,7 @@ draw_up_tile_col(map_pos_t pos, int x_base, int y_base, int max_y, frame_t *fram
 		if (y_base + MAP_TILE_HEIGHT - 4*t >= 0) break;
 
 		y_base += MAP_TILE_HEIGHT;
-		
+
 		/* move down right */
 		pos = MAP_MOVE_DOWN_RIGHT(pos);
 
@@ -208,7 +208,7 @@ draw_down_tile_col(map_pos_t pos, int x_base, int y_base, int max_y, frame_t *fr
 
 		/* move down */
 		pos = MAP_MOVE_DOWN(pos);
-	
+
 		left = MAP_HEIGHT(pos);
 		right = MAP_HEIGHT(MAP_MOVE_RIGHT(pos));
 
@@ -296,7 +296,7 @@ draw_landscape(viewport_t *viewport, frame_t *frame)
 		/* Draw a border around the tile for debug. */
 		sdl_fill_rect(0, 0, map_width, 2, 76, &landscape_frame);
 		sdl_fill_rect(0, 0, 2, map_height, 76, &landscape_frame);
-		sdl_fill_rect(map_height-2, 0, map_width, 2, 76, &landscape_frame);
+		sdl_fill_rect(0, map_height-2, map_width, 2, 76, &landscape_frame);
 		sdl_fill_rect(map_width-2, 0, 2, map_height, 76, &landscape_frame);
 #endif
 
@@ -765,7 +765,7 @@ static void
 draw_serf(int x, int y, int color, int head, int body, frame_t *frame)
 {
 	int c = 4*color + 64;
-		
+
 	sprite_t *s_arms = gfx_get_data_object(DATA_SERF_ARMS_BASE + body, NULL);
 	sprite_t *s_torso = gfx_get_data_object(DATA_SERF_TORSO_BASE + body, NULL);
 
@@ -1055,7 +1055,7 @@ draw_burning_building(building_t *building, int x, int y, frame_t *frame)
 	const int building_anim_offset_from_type[] = {
 		0, 10, 26, 39, 49, 62, 78, 97, 97, 116,
 		129, 157, 167, 198, 211, 236, 255, 277, 305, 324,
-		349, 362, 381, 418, 446 
+		349, 362, 381, 418, 446
 	};
 
 	const int building_burn_animation[] = {
@@ -1476,7 +1476,7 @@ draw_row_serf(int x, int y, int shadow, int color, int body, frame_t *frame)
 		base += index2[lo];
 		head += index2[lo+1];
 	}
-			
+
 	draw_serf(x, y, color, head, base, frame);
 }
 
@@ -1980,7 +1980,7 @@ serf_get_body(serf_t *serf)
 }
 
 /* Draw one row of serfs. The serfs are composed of two or three transparent
-   sprites (arm, torso, possibly head). A shadow is also drawn if appropriate. 
+   sprites (arm, torso, possibly head). A shadow is also drawn if appropriate.
    Note that idle serfs do not have a serf_t object so they are drawn seperately
    from active serfs. */
 static void

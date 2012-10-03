@@ -23,6 +23,7 @@
 #include "sdl-video.h"
 #include "misc.h"
 #include "debug.h"
+#include "log.h"
 
 /* TODO This file is one big of mess of all the things that should really
    be separated out into smaller files.  */
@@ -63,8 +64,7 @@ wait_for_lmb_or_timeout()
 		int r = SDL_PeepEvents(&event, 1, SDL_GETEVENT,
 				       SDL_EVENTMASK(SDL_MOUSEBUTTONDOWN));
 		if (r < 0) {
-			fprintf(stderr, "PeepEvents error: %s.\n",
-				SDL_GetError());
+			LOGE("PeepEvents error: %s.", SDL_GetError());
 			exit(EXIT_FAILURE);
 		} else if (r > 0) {
 			return 1;
@@ -292,11 +292,11 @@ static void
 setup_spiral_pattern()
 {
 	static const int spiral_matrix[] = {
-		1,  0,  0,  1, 
+		1,  0,  0,  1,
 		1,  1, -1,  0,
 		0,  1, -1, -1,
 		-1,  0,  0, -1,
-		-1, -1,  1,  0, 
+		-1, -1,  1,  0,
 		0, -1,  1,  1
 	};
 
@@ -464,22 +464,22 @@ enqueue_sfx_clip(sfx_t sfx)
 {
 	switch (sfx) {
 	case SFX_MESSAGE:
-		printf("SOUND: MESSAGE\n");
+		LOGI("SOUND: MESSAGE");
 		break;
 	case SFX_NOT_ACCEPTED:
-		printf("SOUND: NOT ACCEPTED\n");
+		LOGI("SOUND: NOT ACCEPTED");
 		break;
 	case SFX_ACCEPTED:
-		printf("SOUND: ACCEPTED\n");
+		LOGI("SOUND: ACCEPTED");
 		break;
 	case SFX_CLICK:
-		printf("SOUND: CLICK\n");
+		LOGI("SOUND: CLICK");
 		break;
 	case SFX_AHHH:
-		printf("SOUND: AHHH\n");
+		LOGI("SOUND: AHHH");
 		break;
 	default:
-		printf("SOUND: OTHER (%i)\n", sfx);
+		LOGI("SOUND: OTHER (%i)", sfx);
 		break;
 	}
 	/*sdl_audio_play_sound(sfx);*/
@@ -807,7 +807,7 @@ game_pause()
 {
 	globals.game_speed_save = globals.game_speed;
 	globals.game_speed = 0;
-	printf("Game speed: %u\n", globals.game_speed >> 16);
+	LOGI("Game speed: %u", globals.game_speed >> 16);
 }
 
 /* Unpause the game by restoring game speed. */
@@ -815,7 +815,7 @@ static void
 game_unpause()
 {
 	globals.game_speed = globals.game_speed_save;
-	printf("Game speed: %u\n", globals.game_speed >> 16);
+	LOGI("Game speed: %u", globals.game_speed >> 16);
 }
 
 #define GROUND_ANALYSIS_RADIUS  25
@@ -3334,7 +3334,7 @@ show_intro_screens()
 	/* get time (?) */
 
 	gfx_set_palette(DATA_PALETTE_GAME);
-	
+
 	/* TODO ... */
 }
 
@@ -3873,7 +3873,7 @@ init_map_vars()
 	/* globals.split |= BIT(3); */
 
 	if (globals.map_cols < 64 || globals.map_rows < 64) {
-		/* globals.split &= ~BIT(3); */		
+		/* globals.split &= ~BIT(3); */
 	}
 
 	globals.map_col_pairs = globals.map_cols >> 1;
@@ -3941,7 +3941,7 @@ init_ai_values(player_sett_t *sett, int face)
 static void
 reset_player_settings()
 {
-	globals.winning_player = -1;	
+	globals.winning_player = -1;
 	/* TODO ... */
 	globals.field_286 = 33;
 
@@ -3965,7 +3965,7 @@ reset_player_settings()
 			/* sett->field_163 = 0; */
 			sett->build = 0;
 			/*sett->field_163 |= BIT(0);*/
-			
+
 			sett->map_cursor_col = 0;
 			sett->map_cursor_row = 0;
 			sett->map_cursor_type = 0;
@@ -4075,7 +4075,7 @@ init_game_globals()
 }
 
 /* Update global anim counters based on game_tick.
-   Note: anim counters control the rate of updates in 
+   Note: anim counters control the rate of updates in
    the rest of the game objects (_not_ just gfx animations). */
 static void
 anim_update_and_more()
@@ -4514,7 +4514,7 @@ determine_map_cursor_type_road(player_t *player)
 					   MAP_PATHS(map_pos[1+i]) == 0) {
 					int h_diff = MAP_HEIGHT(map_pos[1+i]) - h;
 					sprite = 39 + h_diff; /* height indicators */
-					bits |= BIT(i);					
+					bits |= BIT(i);
 				} else {
 					panel_btn_t panel_btn;
 					int build_flags, cursor_type, height_after_level;
@@ -4595,7 +4595,7 @@ update_panel_btns_and_map_cursor(player_t *player)
 				case 5:
 					if (player->sett->panel_btn_type < PANEL_BTN_BUILD_MINE) {
 						/* TODO */
-						printf("cursor type: unhandled 5 case\n");
+						LOGD("cursor type: unhandled 5 case\n");
 					} else {
 						player->panel_btns[0] = player->sett->panel_btn_type;
 						player->panel_btns[1] = PANEL_BTN_DESTROY_INACTIVE;
@@ -5400,7 +5400,7 @@ build_flag(player_t *player)
 	if (r < 0) return;
 
 	flag->path_con = player->sett->player_num << 6;
-	
+
 	map_pos_t map_cursor_pos = MAP_POS(player->sett->map_cursor_col, player->sett->map_cursor_row);
 	map_1_t *map = globals.map_mem2_ptr;
 	map_2_t *map_data = MAP_2_DATA(map);
@@ -5607,7 +5607,7 @@ build_advanced_building(player_t *player)
 		} else {
 			build_building(player, MAP_OBJ_LARGE_BUILDING);
 		}
-	}	
+	}
 }
 
 /* Spawn new serf. Returns 0 on success.
@@ -6123,7 +6123,7 @@ building_demolish(map_pos_t pos)
 		update_land_ownership(MAP_COORD_ARGS(building->pos));
 	}
 
-	if (BUILDING_IS_DONE(building) && 
+	if (BUILDING_IS_DONE(building) &&
 	    (BUILDING_TYPE(building) == BUILDING_CASTLE ||
 	     BUILDING_TYPE(building) == BUILDING_STOCK)) {
 		/* Cancel resources in the out queue and remove gold
@@ -6324,7 +6324,7 @@ handle_panel_btn_click(player_t *player, int btn)
 		case PANEL_BTN_MAP_STARRED:
 			enqueue_sfx_clip(SFX_CLICK);
 			/* TODO */
-			printf("map\n");
+			LOGD("map");
 			break;
 		case PANEL_BTN_SETT:
 		case PANEL_BTN_SETT_STARRED:
@@ -6494,7 +6494,7 @@ handle_panel_btn_click(player_t *player, int btn)
 			} else {
 				if (BIT_TEST(globals.split, 6)) { /* Coop mode */
 					/* TODO */
-				}				
+				}
 				player->flags &= ~BIT(6);
 				player->click |= BIT(6);
 				player->panel_btns[0] = PANEL_BTN_BUILD_INACTIVE;
@@ -6508,7 +6508,7 @@ handle_panel_btn_click(player_t *player, int btn)
 			break;
 		case PANEL_BTN_BUILD_INACTIVE:
 			/* TODO */
-			printf("build inactive\n");
+			LOGD("build inactive");
 			break;
 	}
 }
@@ -6852,7 +6852,7 @@ promote_serfs_to_knights(player_sett_t *sett, int number)
 		}
 	}
 
-	return promoted;		
+	return promoted;
 }
 
 static void
@@ -7409,7 +7409,7 @@ handle_clickmap(player_t *player, int x, int y, const int clkmap[])
 				close_box(player);
 				break;
 			default:
-				printf("unhandled action %i\n", action);
+				LOGW("unhandled action %i", action);
 				break;
 			}
 			return 0;
@@ -8016,7 +8016,7 @@ handle_popup_click(player_t *player, int x, int y)
 		handle_box_demolish_clk(player, x, y);
 		break;
 	default:
-		printf("unhandled box: %i\n", player->clkmap);
+		LOGW("unhandled box: %i", player->clkmap);
 		break;
 	}
 }
@@ -8402,7 +8402,7 @@ handle_player_click_and_update(player_t *player)
 
 		/* Extracted from a small function 42059 */
 		if (!BIT_TEST(player->click, 7)) { /* Not building road */
-			determine_map_cursor_type(player);		
+			determine_map_cursor_type(player);
 		} else { /* Building road */
 			determine_map_cursor_type_road(player);
 		}
@@ -8709,7 +8709,7 @@ update_ai_and_more()
 
 						for (int i = 0; i < n; i++) {
 							if (max_prio[i] > 0) {
-								printf(" dest for inventory %i found\n", i);
+								LOGD(" dest for inventory %i found", i);
 								building_t *dest_bld = flags[i]->other_endpoint.b[DIR_UP_LEFT];
 								inventory_t *src_inv = invs[i];
 								if (arr[0] == 66) {
@@ -8739,11 +8739,11 @@ update_ai_and_more()
 								/* Put resource in out queue */
 								src_inv->resources[res] -= 1;
 								if (src_inv->out_queue[0] == -1) {
-									printf(" added resource %i to front of queue\n", res);
+									LOGD(" added resource %i to front of queue", res);
 									src_inv->out_queue[0] = res;
 									src_inv->out_dest[0] = dest_bld->flg_index;
 								} else {
-									printf(" added resource %i next in queue\n", res);
+									LOGD(" added resource %i next in queue", res);
 									src_inv->out_queue[1] = res;
 									src_inv->out_dest[1] = dest_bld->flg_index;
 								}
@@ -8912,20 +8912,20 @@ update_flags_search_cb(flag_t *flag, update_flags_search_data_t *data)
 {
 	flag_t *src = data->src;
 	if (flag == data->dest) {
-		printf("update flags: dest found: %i\n", flag->search_dir);
+		LOGD("update flags: dest found: %i", flag->search_dir);
 
 		if (flag->search_dir != 6) {
 			int other_dir = src->other_end_dir[flag->search_dir];
 			if (!BIT_TEST(other_dir, 7)) {
 				src->other_end_dir[flag->search_dir] = BIT(7) | (src->other_end_dir[flag->search_dir] & 0x78) | data->res;
-				printf("update flags: item %i is requesting fetch\n", data->res);				
+				LOGD("update flags: item %i is requesting fetch", data->res);
 			} else {
 				player_sett_t *sett = globals.player_sett[(flag->path_con >> 6) & 3];
 				int prio_old = sett->flag_prio[(src->res_waiting[other_dir & 7] & 0x1f)-1];
 				int prio_new = sett->flag_prio[(src->res_waiting[data->res] & 0x1f)-1];
 				if (prio_new > prio_old) {
 					src->other_end_dir[flag->search_dir] = (src->other_end_dir[flag->search_dir] & 0xf8) | data->res;
-					printf("update flags: item %i has priority now\n", data->res);
+					LOGD("update flags: item %i has priority now", data->res);
 				}
 				src->res_waiting[data->res] = ((flag->search_dir + 1) << 5) | (src->res_waiting[data->res] & 0x1f);
 			}
@@ -9075,7 +9075,7 @@ update_flags()
 												    (flag_search_func *)update_flags_search_cb,
 												    1, &data);
 									if (r < 0 || data.dest->search_dir == 6) {
-										printf("update flags: unable to deliver.\n");
+										LOGD("update flags: unable to deliver.");
 										flag_cancel_transported_stock(data.dest, flag->res_waiting[slot] & 0x1f);
 										flag->res_dest[slot] = 0;
 										flag->endpoint |= BIT(7);
@@ -9099,7 +9099,7 @@ update_flags()
 											    (flag_search_func *)update_flags_search2_cb,
 											    1, &data);
 									if (data.flag != NULL) {
-										printf("dest for flag %u res %i found: flag %u\n",
+										LOGD("dest for flag %u res %i found: flag %u",
 										       FLAG_INDEX(flag), slot, FLAG_INDEX(data.flag));
 										building_t *dest_bld = data.flag->other_endpoint.b[DIR_UP_LEFT];
 										int prio = (arr2[2*res+1] == 66) ? data.flag->stock1_prio :
@@ -9295,7 +9295,7 @@ update_unfinished_adv_building(building_t *building)
 			BIT_TEST(building->serf, 7)) {
 		return;
 	}
-	
+
 	/* TODO */
 
 	if (!BIT_TEST(building->serf, 2)) {
@@ -9553,7 +9553,7 @@ handle_building_update(building_t *building)
 				} else {
 					building->u.flag->stock2_prio = 0;
 				}
-			}			
+			}
 			break;
 		}
 		case BUILDING_FARM:
@@ -9785,7 +9785,7 @@ handle_building_update(building_t *building)
 				} else {
 					building->u.flag->stock2_prio = 0;
 				}
-			}			
+			}
 			break;
 		}
 		case BUILDING_FORTRESS:
@@ -9858,7 +9858,7 @@ handle_building_update(building_t *building)
 				} else {
 					building->u.flag->stock2_prio = 0;
 				}
-			}			
+			}
 			break;
 		}
 		case BUILDING_GOLDSMELTER:
@@ -10468,7 +10468,7 @@ load_v0_serf_state(FILE *f)
 		serf->anim = *(uint16_t *)&serf_data[8];
 		serf->state = serf_data[10];
 
-		printf("load serf %i: %s\n", i, serf_get_state_name(serf->state));
+		LOGD("load serf %i: %s", i, serf_get_state_name(serf->state));
 
 		switch (serf->state) {
 		case SERF_STATE_IDLE_IN_STOCK:
@@ -10872,7 +10872,7 @@ load_map_spec()
 			.rnd_1 = 0x6d6f,
 			.rnd_2 = 0xf7f0,
 			.rnd_3 = 0xc8d4,
-			
+
 			.pl_0_supplies = 35,
 			.pl_0_reproduction = 30,
 
@@ -11146,16 +11146,16 @@ game_loop()
 				case SDLK_PLUS:
 				case SDLK_KP_PLUS:
 					if (globals.game_speed < 0xffff0000) globals.game_speed += 0x10000;
-					printf("Game speed: %u\n", globals.game_speed >> 16);
+					LOGI("Game speed: %u", globals.game_speed >> 16);
 					break;
 				case SDLK_MINUS:
 				case SDLK_KP_MINUS:
 					if (globals.game_speed >= 0x10000) globals.game_speed -= 0x10000;
-					printf("Game speed: %u\n", globals.game_speed >> 16);
+					LOGI("Game speed: %u", globals.game_speed >> 16);
 					break;
 				case SDLK_0:
 					globals.game_speed = 0x20000;
-					printf("Game speed: %u\n", globals.game_speed >> 16);
+					LOGI("Game speed: %u", globals.game_speed >> 16);
 					break;
 				case SDLK_p:
 					if (globals.game_speed == 0) game_unpause();
@@ -11247,13 +11247,13 @@ pregame_continue()
 	if (game_file != NULL) {
 		FILE *f = fopen(game_file, "rb");
 		if (f == NULL) {
-			fprintf(stderr, "Unable to open save game file: `%s'.", game_file);
+			LOGE("Unable to open save game file: `%s'.", game_file);
 			exit(EXIT_FAILURE);
 		}
 
 		int r = load_v0_state(f);
 		if (r < 0) {
-			fprintf(stderr, "Unable to load save game.\n");
+			LOGE("Unable to load save game.");
 			exit(EXIT_FAILURE);
 		}
 	}
@@ -11264,10 +11264,11 @@ pregame_continue()
 		map_2_t *map_data = MAP_2_DATA(map);
 		for (int j = 0; j < globals.map_cols; j++) {
 			map_pos_t pos = MAP_POS(j, i);
-			printf("% 3i, % 3i:  ", j, i);
-			printf("%02x %02x %02x %02x    ", map[pos].flags, map[pos].height, map[pos].type, map[pos].obj);
-			printf("%04x %04x  ", map_data[pos].u.index, map_data[pos].serf_index);
-			printf("H(%i)\n", map[pos].height & 0x1f);
+			LOGD("% 3i, % 3i:  %02x %02x %02x %02x    %04x %04x  H(%i)",
+			    j, i,
+			    map[pos].flags, map[pos].height, map[pos].type, map[pos].obj,
+			    map_data[pos].u.index, map_data[pos].serf_index,
+			    map[pos].height & 0x1f);
 
 			const char *name_from_dir[] = { "right", "down right", "down" };
 
@@ -11275,7 +11276,7 @@ pregame_continue()
 				map_pos_t other_pos = MAP_MOVE(pos, d);
 				int h_diff = MAP_HEIGHT(pos) - MAP_HEIGHT(other_pos);
 				if (h_diff < -4 || h_diff > 4) {
-					printf("h_diff fail: %s, (%i, %i, %i) -> (%i, %i, %i)\n",
+					LOGD("h_diff fail: %s, (%i, %i, %i) -> (%i, %i, %i)",
 					       name_from_dir[d],
 					       MAP_COORD_ARGS(pos), MAP_HEIGHT(pos),
 					       MAP_COORD_ARGS(other_pos), MAP_HEIGHT(other_pos));
@@ -11322,7 +11323,7 @@ pregame_init()
 	/* TODO unknown function ... */
 
 	/* mouse setup */
-	
+
 	setup_spiral_pattern();
 
 	/* sound and joystick setup */
@@ -11350,13 +11351,13 @@ static void
 hand_out_memory_2()
 {
 	/* TODO ... */
-	
+
 	/* hand out memory */
 
 	/* Player structs */
 	globals.player[0] = malloc(sizeof(player_t));
 	if (globals.player[0] == NULL) abort();
-	
+
 	globals.player[1] = malloc(sizeof(player_t));
 	if (globals.player[1] == NULL) abort();
 
@@ -11542,7 +11543,7 @@ sdl_audio_init()
 
 	int r = SDL_OpenAudio(&desired, NULL);
 	if (r < 0) {
-		fprintf(stderr, "Could not open audio device: %s\n", SDL_GetError());
+		LOGE("Could not open audio device: %s\n", SDL_GetError());
 		return -1;
 	}
 
@@ -11605,7 +11606,7 @@ main(int argc, char *argv[])
 			strcpy(data_file, optarg);
 			break;
 		case 'h':
-			printf(HELP, argv[0]);
+			LOGI(HELP, argv[0]);
 			exit(EXIT_SUCCESS);
 			break;
 		case 'l':
@@ -11622,7 +11623,7 @@ main(int argc, char *argv[])
 		case 'r':
 		{
 			char *hstr = strchr(optarg, 'x');
-			if (hstr == NULL) printf(USAGE, argv[0]);
+			if (hstr == NULL) LOGI(USAGE, argv[0]);
 			screen_width = atoi(optarg);
 			screen_height = atoi(hstr+1);
 		}
@@ -11631,7 +11632,7 @@ main(int argc, char *argv[])
 			map_generator = atoi(optarg);
 			break;
 		default:
-			printf(USAGE, argv[0]);
+			LOGE(USAGE, argv[0]);
 			exit(EXIT_FAILURE);
 			break;
 		}
@@ -11644,19 +11645,19 @@ main(int argc, char *argv[])
 		strcpy(data_file, "SPAE.PA");
 	}
 
-	fprintf(stderr, "Loading game data from `%s'...\n", data_file);
+	LOGE("Loading game data from `%s'...", data_file);
 
 	r = gfx_load_file(data_file);
 	if (r < 0) {
-		perror("gfx_load_file");
+		LOGE("Could not load game data.");
 		exit(EXIT_FAILURE);
 	}
 
 	free(data_file);
 
 	gfx_data_fixup();
-	
-	fprintf(stderr, "SDL init...\n");
+
+	LOGE("SDL init...");
 
 	r = sdl_init();
 	if (r < 0) exit(EXIT_FAILURE);
@@ -11664,7 +11665,7 @@ main(int argc, char *argv[])
 	/*gfx_set_palette(DATA_PALETTE_INTRO);*/
 	gfx_set_palette(DATA_PALETTE_GAME);
 
-	fprintf(stderr, "SDL resolution %ix%i...\n", screen_width, screen_height);
+	LOGE("SDL resolution %ix%i...\n", screen_width, screen_height);
 
 	r = sdl_set_resolution(screen_width, screen_height, fullscreen);
 	if (r < 0) exit(EXIT_FAILURE);
@@ -11682,6 +11683,6 @@ main(int argc, char *argv[])
 	/* Clean up */
 	sdl_deinit();
 	gfx_unload();
-	
+
 	return EXIT_SUCCESS;
 }
