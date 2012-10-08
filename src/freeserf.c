@@ -6339,6 +6339,106 @@ remove_road_backrefs(map_pos_t pos)
 	return 0;
 }
 
+static int
+path_serf_idle_to_wait_state(map_pos_t pos)
+{
+	/* Look through serf array for the corresponding serf. */
+	for (int i = 1; i < globals.max_ever_serf_index; i++) {
+		if (BIT_TEST(globals.serfs_bitmap[i>>3], 7-(i&7))) {
+			serf_t *serf = get_serf(i);
+			if (serf->pos == pos &&
+			    (serf->state == SERF_STATE_IDLE_ON_PATH ||
+			     serf->state == SERF_STATE_WAIT_IDLE_ON_PATH ||
+			     serf->state == SERF_STATE_WAKE_AT_FLAG ||
+			     serf->state == SERF_STATE_WAKE_ON_PATH)) {
+				serf_log_state_change(serf, SERF_STATE_WAKE_AT_FLAG);
+				serf->state = SERF_STATE_WAKE_AT_FLAG;
+				return 0;
+			}
+		}
+	}
+
+	return -1;
+}
+
+static void
+lose_transported_resource(resource_type_t res, uint dest)
+{
+	static const int stock_type[] = {
+		0, 0, 0, 0, 0, 0,
+		1, 0, -1, 1, 1, 1,
+		0, 1, 1, -1, -1, -1,
+		-1, -1, -1, -1, -1, -1,
+		-1, -1, -1
+	};
+
+	if (res == RESOURCE_GOLDORE ||
+	    res == RESOURCE_GOLDBAR) {
+		globals.map_gold_deposit -= 1;
+	}
+
+	if (stock_type[res] >= 0 && dest != 0) {
+		flag_t *flag = get_flag(dest);
+		building_t *building = flag->other_endpoint.b[DIR_UP_LEFT];
+		if (!(BUILDING_IS_DONE(building) &&
+		      (BUILDING_TYPE(building) == BUILDING_CASTLE ||
+		       BUILDING_TYPE(building) == BUILDING_STOCK))) {
+			if (stock_type[res] == 0) building->stock1 -= 1;
+			else building->stock2 -= 1;
+		}
+	}
+}
+
+
+/* ADDITION: Removed precondition that serf is in state walking or transporting. */
+static void
+mark_serf_as_lost(serf_t *serf)
+{
+	if (serf->state == SERF_STATE_WALKING) {
+		if (serf->s.walking.res >= 0) {
+			if (serf->s.walking.res != 6) {
+				dir_t dir = serf->s.walking.res;
+				flag_t *flag = get_flag(serf->s.walking.dest);
+				flag->length[dir] &= ~BIT(7);
+
+				dir_t other_dir = (flag->other_end_dir[dir] >> 3) & 7;
+				flag->other_endpoint.f[dir]->length[other_dir] &= ~BIT(7);
+			}
+		} else if (serf->s.walking.res == -1) {
+			flag_t *flag = get_flag(serf->s.walking.dest);
+			building_t *building = flag->other_endpoint.b[DIR_UP_LEFT];
+
+			if (BIT_TEST(building->serf, 7)) {
+				building->serf &= ~BIT(7);
+			} else if (building->stock1 != 0xff) {
+				building->stock1 -= 1;
+				if (building->stock1 < 0) building->stock1 = 0xff; /* Should probably just be a signed int. */
+			}
+		}
+
+		serf_log_state_change(serf, SERF_STATE_LOST);
+		serf->state = SERF_STATE_LOST;
+		serf->s.lost.field_B = 0;
+	} else if (serf->state == SERF_STATE_TRANSPORTING ||
+		   serf->state == SERF_STATE_DELIVERING) {
+		if (serf->s.walking.res != 0) {
+			int res = serf->s.walking.res-1;
+			int dest = serf->s.walking.dest;
+
+			lose_transported_resource(res, dest);
+		}
+
+		if (serf->type != SERF_SAILOR) {
+			serf_log_state_change(serf, SERF_STATE_LOST);
+			serf->state = SERF_STATE_LOST;
+			serf->s.lost.field_B = 0;
+		} else {
+			serf_log_state_change(serf, SERF_STATE_26);
+			serf->state = SERF_STATE_26;
+		}
+	}
+}
+
 static void
 remove_road_forwards(map_pos_t pos, dir_t dir)
 {
@@ -6346,11 +6446,82 @@ remove_road_forwards(map_pos_t pos, dir_t dir)
 
 	while (1) {
 		if (MAP_IDLE_SERF(pos)) {
-			/* TODO */
+			path_serf_idle_to_wait_state(pos);
 		}
 
 		if (MAP_SERF_INDEX(pos) != 0) {
-			/* TODO */
+			serf_t *serf = get_serf(MAP_SERF_INDEX(pos));
+			if (!MAP_HAS_FLAG(pos)) {
+				mark_serf_as_lost(serf);
+			} else {
+				/* Handle serf close to flag, where
+				   it should only be lost if walking
+				   in the wrong direction. */
+				int d = serf->s.walking.dir;
+				if (d < 0) d += 6;
+				if (d == DIR_REVERSE(dir)) {
+					mark_serf_as_lost(serf);
+				}
+			}
+		}
+
+		if (MAP_HAS_FLAG(pos)) {
+			flag_t *flag = get_flag(MAP_OBJ_INDEX(pos));
+			dir_t rev_dir = DIR_REVERSE(dir);
+
+			flag->path_con &= ~BIT(rev_dir);
+			flag->transporter &= ~BIT(rev_dir);
+			flag->endpoint &= ~BIT(rev_dir);
+
+			if (BIT_TEST(flag->length[rev_dir], 7)) {
+				flag->length[rev_dir] &= ~BIT(7);
+
+				for (int i = 1; i < globals.max_ever_serf_index; i++) {
+					if (BIT_TEST(globals.serfs_bitmap[i>>3], 7-(i&7))) {
+						int dest = MAP_OBJ_INDEX(pos);
+						serf_t *serf = get_serf(i);
+
+						switch (serf->state) {
+						case SERF_STATE_WALKING:
+							if (serf->s.walking.dest == dest &&
+							    serf->s.walking.res == rev_dir) {
+								serf->s.walking.res = 0xfe;
+								serf->s.walking.dest = 0;
+							}
+							break;
+						case SERF_STATE_READY_TO_LEAVE_INVENTORY:
+							if (serf->s.ready_to_leave_inventory.dest == dest &&
+							    serf->s.ready_to_leave_inventory.mode == rev_dir) {
+								serf->s.ready_to_leave_inventory.dest = 0xfe;
+								serf->s.ready_to_leave_inventory.dest = 0;
+							}
+							break;
+						case SERF_STATE_LEAVING_BUILDING:
+						case SERF_STATE_READY_TO_LEAVE:
+							if (serf->s.leaving_building.dest == dest &&
+							    serf->s.leaving_building.field_B == rev_dir &&
+							    serf->s.leaving_building.next_state == SERF_STATE_WALKING) {
+								serf->s.leaving_building.field_B = 0xfe;
+								serf->s.leaving_building.dest = 0;
+							}
+							break;
+						}
+					}
+				}
+			}
+
+			flag->other_end_dir[rev_dir] &= 0x78;
+
+			/* Mark resource path for recalculation if they would
+			   have followed the removed path. */
+			for (int i = 0; i < 8; i++) {
+				if (flag->res_waiting[i] != 0 &&
+				    (flag->res_waiting[i] >> 5) == rev_dir+1) {
+					flag->res_waiting[i] &= 0x1f;
+					flag->endpoint |= BIT(7);
+				}
+			}
+			break;
 		}
 
 		/* Clear forward reference. */
@@ -6367,11 +6538,6 @@ remove_road_forwards(map_pos_t pos, dir_t dir)
 				dir = d;
 				break;
 			}
-		}
-
-		if (MAP_HAS_FLAG(pos)) {
-			/* TODO */
-			break;
 		}
 	}
 }
