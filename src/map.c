@@ -340,26 +340,6 @@ clamp_map_heights()
 	}
 }
 
-/* Output raw map data object to filename. */
-static void
-dump_map_mem2(const char *filename, size_t size)
-{
-	FILE *f = fopen(filename, "wb");
-	if (f == NULL) {
-		perror("fopen");
-		return;
-	}
-
-	size_t w = fwrite(globals.map_mem2_ptr, sizeof(uint8_t), size, f);
-	if (w < size) {
-		perror("fwrite");
-		fclose(f);
-		return;
-	}
-
-	fclose(f);
-}
-
 static int
 map_expand_level_area(map_1_t *map, map_pos_t pos, int limit, int r)
 {
@@ -460,8 +440,6 @@ map_init_sea_level()
 			}
 		}
 	}
-
-	dump_map_mem2("memdump/memdump-035-freeserf_mid_heights_4.bin", 0x8000);
 
 	/* Map positions are marked in the previous loop.
 	   0: Above water level.
@@ -1152,13 +1130,9 @@ init_map_sub()
 
 	/* draw_progress_bar(2); */
 
-	dump_map_mem2("memdump/memdump-090-freeserf_pre_types4.bin", 0x8000);
-
 	init_map_types4();
 
 	/* draw_progress_bar(1); */
-
-	dump_map_mem2("memdump/memdump-100-freeserf_pre_desert_1.bin", 0x8000);
 
 	init_map_desert();
 
@@ -1168,27 +1142,19 @@ init_map_sub()
 
 	/* draw_progress_bar(3); */
 
-	dump_map_mem2("memdump/memdump-110-freeserf_pre_crosses.bin", 0x8000);
-
 	init_map_crosses();
 
 	/* draw_progress_bar(1); */
-
-	dump_map_mem2("memdump/memdump-120-freeserf_pre_trees_1.bin", 0x8000);
 
 	init_map_trees_1();
 	init_map_trees_2();
 
 	/* draw_progress_bar(1); */
 
-	dump_map_mem2("memdump/memdump-130-freeserf_pre_trees_3.bin", 0x8000);
-
 	init_map_trees_3();
 	init_map_trees_4();
 
 	/* draw_progress_bar(1); */
-
-	dump_map_mem2("memdump/memdump-140-freeserf_pre_stone_1.bin", 0x8000);
 
 	init_map_stone_1();
 	init_map_stone_2();
@@ -1210,8 +1176,6 @@ init_map_sub()
 
 	/* draw_progress_bar(1); */
 
-	dump_map_mem2("memdump/memdump-150-freeserf_pre_resources_1.bin", 0x8000);
-
 	init_map_resources_1();
 
 	/* draw_progress_bar(1); */
@@ -1220,8 +1184,6 @@ init_map_sub()
 
 	/* draw_progress_bar(1); */
 
-	dump_map_mem2("memdump/memdump-155-freeserf_pre_resources_3.bin", 0x8000);
-
 	init_map_resources_3();
 
 	/* draw_progress_bar(1); */
@@ -1229,8 +1191,6 @@ init_map_sub()
 	init_map_resources_4();
 
 	/* draw_progress_bar(1); */
-
-	dump_map_mem2("memdump/memdump-160-freeserf_pre_clean_up.bin", 0x8000);
 
 	init_map_clean_up();
 
@@ -1355,14 +1315,10 @@ map_init()
 	/* draw_progress_bar(1); */
 
 	reset_mem_map2();
-	/*printf("map reset:\n");
-	check_map_heights(0, 0);*/
 
 	/* draw_progress_bar(1); */
 
 	init_map_heights_squares();
-	dump_map_mem2("memdump/memdump-010-freeserf_pre_heights_2.bin", 0x8000);
-
 	switch (globals.map_generator) {
 	case 0:
 		init_map_heights_midpoints(); /* Midpoint displacement algorithm */
@@ -1374,58 +1330,33 @@ map_init()
 
 	/* draw_progress_bar(3); */
 
-	dump_map_mem2("memdump/memdump-020-freeserf_pre_heights_3.bin", 0x8000);
-
 	clamp_map_heights();
-	/*printf("heights 3:\n");
-	check_map_heights(32, 0);*/
 
 	/* draw_progress_bar(4); */
 
-	dump_map_mem2("memdump/memdump-030-freeserf_pre_heights_4.bin", 0x8000);
-
 	map_init_sea_level();
-	/*printf("heights 4:\n");
-	check_map_heights(32, globals.map_water_level-1);*/
 
 	/* draw_progress_bar(3); */
 
-	dump_map_mem2("memdump/memdump-040-freeserf_pre_heights_5.bin", 0x8000);
-
 	map_heights_rebase();
-	/*printf("heights 5:\n");
-	check_map_heights(32, 0);*/
 
 	/* draw_progress_bar(1); */
-
-	dump_map_mem2("memdump/memdump-050-freeserf_pre_types_1.bin", 0x8000);
 
 	init_map_types();
 
 	/* draw_progress_bar(1); */
 
-	dump_map_mem2("memdump/memdump-060-freeserf_pre_types_2.bin", 0x8000);
-
 	init_map_types_2();
 
 	/* draw_progress_bar(5); */
 
-	dump_map_mem2("memdump/memdump-070-freeserf_pre_heights_6.bin", 0x8000);
-
 	map_heights_rescale();
-	/*printf("heights 6:\n");
-	check_map_heights(4, 0);*/
 
 	/* draw_progress_bar(1); */
 
-	dump_map_mem2("memdump/memdump-080-freeserf_pre_sub.bin", 0x8000);
-
 	init_map_sub();
-	dump_map_mem2("memdump/memdump-170-freeserf_pre_waves.bin", 0x8000);
 	init_map_waves();
 	init_map_ground_gold_deposit();
-
-	dump_map_mem2("memdump/memdump-180-freeserf_post.bin", 0x8000);
 
 	/* draw_progress_bar(1); */
 
