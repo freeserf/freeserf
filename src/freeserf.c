@@ -6278,6 +6278,104 @@ building_demolish(map_pos_t pos)
 	}
 }
 
+static int
+remove_road_backref_until_flag(map_pos_t pos, dir_t dir)
+{
+	map_1_t *map = globals.map_mem2_ptr;
+
+	while (1) {
+		pos = MAP_MOVE(pos, dir);
+
+		/* Clear backreference */
+		map[pos].flags &= ~BIT(DIR_REVERSE(dir));
+
+		if (MAP_OBJ(pos) == MAP_OBJ_FLAG) break;
+
+		/* Find next direction of path. */
+		dir = -1;
+		for (dir_t d = DIR_RIGHT; d <= DIR_UP; d++) {
+			if (BIT_TEST(MAP_PATHS(pos), d)) {
+				dir = d;
+				break;
+			}
+		}
+
+		if (dir == -1) return -1;
+	}
+
+	return 0;
+}
+
+static int
+remove_road_backrefs(map_pos_t pos)
+{
+	if (MAP_PATHS(pos) == 0) return -1;
+
+	/* Find directions of path segments to be split. */
+	dir_t path_1_dir = -1;
+	for (dir_t d = DIR_RIGHT; d <= DIR_UP; d++) {
+		if (BIT_TEST(MAP_PATHS(pos), d)) {
+			path_1_dir = d;
+			break;
+		}
+	}
+
+	dir_t path_2_dir = -1;
+	for (dir_t d = path_1_dir+1; d <= DIR_UP; d++) {
+		if (BIT_TEST(MAP_PATHS(pos), d)) {
+			path_2_dir = d;
+			break;
+		}
+	}
+
+	if (path_1_dir == -1 || path_2_dir == -1) return -1;
+
+	int r = remove_road_backref_until_flag(pos, path_1_dir);
+	if (r < 0) return -1;
+
+	r = remove_road_backref_until_flag(pos, path_2_dir);
+	if (r < 0) return -1;
+
+	return 0;
+}
+
+static void
+remove_road_forwards(map_pos_t pos, dir_t dir)
+{
+	map_1_t *map = globals.map_mem2_ptr;
+
+	while (1) {
+		if (MAP_IDLE_SERF(pos)) {
+			/* TODO */
+		}
+
+		if (MAP_SERF_INDEX(pos) != 0) {
+			/* TODO */
+		}
+
+		/* Clear forward reference. */
+		map[pos].flags &= ~BIT(dir);
+		pos = MAP_MOVE(pos, dir);
+
+		/* Clear backreference. */
+		map[pos].flags &= ~BIT(DIR_REVERSE(dir));
+
+		/* Find next direction of path. */
+		dir = -1;
+		for (dir_t d = DIR_RIGHT; d <= DIR_UP; d++) {
+			if (BIT_TEST(MAP_PATHS(pos), d)) {
+				dir = d;
+				break;
+			}
+		}
+
+		if (MAP_HAS_FLAG(pos)) {
+			/* TODO */
+			break;
+		}
+	}
+}
+
 /* Demolish road at position. */
 static void
 road_demolish(map_pos_t pos)
@@ -6285,7 +6383,37 @@ road_demolish(map_pos_t pos)
 	globals.player[0]->flags |= BIT(4);
 	globals.player[1]->flags |= BIT(4);
 
-	/* TODO */
+	int r = remove_road_backrefs(pos);
+	if (r < 0) {
+		/* TODO */
+	}
+
+	/* Find directions of path segments to be split. */
+	dir_t path_1_dir = -1;
+	for (dir_t d = DIR_RIGHT; d <= DIR_UP; d++) {
+		if (BIT_TEST(MAP_PATHS(pos), d)) {
+			path_1_dir = d;
+			break;
+		}
+	}
+
+	dir_t path_2_dir = -1;
+	for (dir_t d = path_1_dir+1; d <= DIR_UP; d++) {
+		if (BIT_TEST(MAP_PATHS(pos), d)) {
+			path_2_dir = d;
+			break;
+		}
+	}
+
+	/* If last segment direction is UP LEFT it could
+	   be to a building and the real path is at UP. */
+	if (path_2_dir == DIR_UP_LEFT &&
+	    BIT_TEST(MAP_PATHS(pos), DIR_UP)) {
+		path_2_dir = DIR_UP;
+	}
+
+	remove_road_forwards(pos, path_1_dir);
+	remove_road_forwards(pos, path_2_dir);
 }
 
 static void
