@@ -9,6 +9,7 @@
 
 #include "map.h"
 #include "misc.h"
+#include "log.h"
 
 #define SERF_INDEX(ptr)    ((int)((ptr) - globals.serfs))
 
@@ -17,9 +18,9 @@
 
 
 #define serf_log_state_change(serf, new_state)	\
-	printf("serf %i: state %s -> %s (%s:%i)\n", SERF_INDEX(serf), \
-	       serf_get_state_name((serf)->state), \
-	       serf_get_state_name((new_state)), __FUNCTION__, __LINE__)
+	LOGD("serf %i: state %s -> %s (%s:%i)", SERF_INDEX(serf), \
+	     serf_get_state_name((serf)->state),			\
+	     serf_get_state_name((new_state)), __FUNCTION__, __LINE__)
 
 
 typedef enum {
