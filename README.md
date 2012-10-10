@@ -3,11 +3,11 @@ Freeserf
 
 Compile
 -------
-Run `./bootstrap`, `./configure` then `make`.
+After first checkout run `./bootstrap`, `./configure` then `make`. After making changes to the code just run `make` to rebuild.
 
 
 Try it
--------
+------
 Copy the data file (`SPAE.PA`) to the same directory as the program.
 
 Keyboard controls:
@@ -17,4 +17,13 @@ Keyboard controls:
 * 0: Reset game speed.
 * p: Pause game.
 
-Run `freeserf -h` for info on command line options.
+
+Save games
+----------
+To load a save game file from the original game:
+
+`$ freeserf -l SAVE0.DS`
+
+The game is paused after loading so press `p` to start the game. Saving the same in freeserf is not possible yet.
+
+Run `freeserf -h` for more info on command line options.

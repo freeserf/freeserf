@@ -32,6 +32,9 @@
 #define DEFAULT_SCREEN_HEIGHT 600
 
 
+#define DEFAULT_GAME_SPEED 0x20000
+
+
 static unsigned int tick;
 static int update_from_cb;
 
@@ -3342,7 +3345,7 @@ show_intro_screens()
 static void
 start_game_tick()
 {
-	globals.game_speed = 0x20000;
+	globals.game_speed = DEFAULT_GAME_SPEED;
 	update_from_cb = 1;
 }
 
@@ -11164,6 +11167,7 @@ load_v0_state(FILE *f)
 	if (r < 0) return -1;
 
 	globals.game_speed = 0;
+	globals.game_speed_save = DEFAULT_GAME_SPEED;
 
 	return 0;
 }
