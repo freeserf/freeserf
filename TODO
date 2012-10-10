@@ -15,6 +15,10 @@ Missing states mostly related to battle.
 ### Remove building
 After demolishing a building resources scheduled for the building are not cancelled.
 
+### Graphics
+Waves are not masked properly.
+Setting map size larger than 5 results in graphics glitches.
+
 
 Later
 -----
