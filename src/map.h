@@ -37,7 +37,7 @@
 
 /* Extractors for map data. */
 #define MAP_HAS_FLAG(pos)  ((int)((globals.map_mem2_ptr[(pos)].flags >> 7) & 1))
-#define MAP_WATER_1(pos)  ((int)((globals.map_mem2_ptr[(pos)].flags >> 6) & 1))
+#define MAP_WATER_1(pos)  ((int)((globals.map_mem2_ptr[(pos)].flags >> 6) & 1)) /* Meaning: Occupied? */
 #define MAP_PATHS(pos)  ((int)(globals.map_mem2_ptr[(pos)].flags & 0x3f))
 
 #define MAP_HAS_OWNER(pos)  ((int)((globals.map_mem2_ptr[(pos)].height >> 7) & 1))

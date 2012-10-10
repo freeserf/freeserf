@@ -10230,6 +10230,9 @@ handle_building_update(building_t *building)
 static void
 update_buildings()
 {
+	map_1_t *map = globals.map_mem2_ptr;
+	map_2_t *map_data = MAP_2_DATA(globals.map_mem2_ptr);
+
 	if (globals.next_index >= 32) return;
 
 	int index = globals.next_index << 5;
@@ -10242,8 +10245,18 @@ update_buildings()
 				if (building->serf_index >= delta) {
 					building->serf_index -= delta;
 				} else {
-					/* TODO */
-					building->serf_index = 0;
+					/* 2355E */
+					map_pos_t pos = building->pos;
+					int p = building->u.s.planks_needed;
+
+					map[pos].flags &= ~BIT(6);
+					map[pos].obj &= 0x80;
+					map_data[pos].u.index = 0;
+					free_building(i);
+
+					if ((p & 0x1f) != 0) {
+						/* TODO */
+					}
 				}
 			} else {
 				handle_building_update(building);

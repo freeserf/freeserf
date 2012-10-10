@@ -13,7 +13,7 @@ Some statistics boxes still missing some features.
 Missing states mostly related to battle.
 
 ### Remove building
-After demolishing a building it is not removed properly.
+After demolishing a building resources scheduled for the building are not cancelled.
 
 
 Later
