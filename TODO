@@ -4,9 +4,16 @@ TODO
 freeserf 0.1 release
 --------------------
 
-* Port the missing essential features:
-** Dialog boxes
-** Serf states
+Port the missing essential features:
+
+### Dialog boxes
+Some statistics boxes still missing some features.
+
+### Serf states
+Missing states mostly related to battle.
+
+### Remove building
+After demolishing a building it is not removed properly.
 
 
 Later
