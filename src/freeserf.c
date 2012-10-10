@@ -40,10 +40,6 @@ static int update_from_cb;
 
 static int redraw_landscape;
 
-static frame_t lowres_full_frame;
-static frame_t game_area_lowres_frame;
-static frame_t lowres_normal_frame;
-
 static frame_t svga_full_frame;
 static frame_t game_area_svga_frame;
 static frame_t svga_normal_frame;
@@ -57,183 +53,6 @@ static viewport_t viewport;
 static char *game_file = NULL;
 
 
-/* Might be useful for testing. */
-static int
-wait_for_lmb_or_timeout()
-{
-	for (int i = 0; i < 214; i++) {
-		SDL_Event event;
-		SDL_PumpEvents();
-		int r = SDL_PeepEvents(&event, 1, SDL_GETEVENT,
-				       SDL_EVENTMASK(SDL_MOUSEBUTTONDOWN));
-		if (r < 0) {
-			LOGE("PeepEvents error: %s.", SDL_GetError());
-			exit(EXIT_FAILURE);
-		} else if (r > 0) {
-			return 1;
-		}
-
-		SDL_Delay(20);
-	}
-
-	return 0;
-}
-
-static void
-write_and_swap()
-{
-	sdl_swap_buffers();
-}
-
-/* Draw very specific things to specific frames. Not generally useful. */
-static void
-draw_white_black_string(int x, int y, const char *str)
-{
-	gfx_draw_string(8*x+16, y+32, 47, 1, &lowres_full_frame, str);
-}
-
-static void
-draw_icon_in_lowres(int x, int y, int sprite)
-{
-	gfx_draw_sprite(8*x+16, y+8, 0x366 + sprite, &lowres_full_frame);
-}
-
-static void
-draw_credits_bg()
-{
-	gfx_draw_sprite(16, 8, DATA_CREDITS_BG, &lowres_full_frame);
-}
-
-static void
-draw_credits_bg_and_logo()
-{
-	draw_credits_bg();
-
-	gfx_draw_sprite(144, 56, DATA_BLUE_BYTE, &lowres_full_frame);
-}
-
-/* Draw the credits texts. */
-static void
-draw_programming_credits()
-{
-	draw_credits_bg();
-	draw_white_black_string(4, 10, "PROGRAMMING AND IDEA:");
-	draw_white_black_string(4, 19, "VOLKER WERTICH");
-	draw_white_black_string(4, 28, "ALEXANDER JORIAS");
-	draw_white_black_string(4, 37, "INGO FRICK");
-}
-
-static void
-draw_graphics_credits()
-{
-	draw_credits_bg();
-	draw_white_black_string(20, 20, "GRAPHICS:");
-	draw_white_black_string(20, 29, "CHRISTOPH WERNER");
-}
-
-static void
-draw_music_credits()
-{
-	draw_credits_bg();
-	draw_white_black_string(4, 30, "MUSIC AND");
-	draw_white_black_string(4, 39, "SOUNDEFFECTS:");
-	draw_white_black_string(4, 48, "HAIKO RUTTMANN");
-}
-
-static void
-draw_amiga_music_credits()
-{
-	draw_credits_bg();
-	draw_white_black_string(20, 50, "ONGAME-MUSIC AMIGA:");
-	draw_white_black_string(20, 59, "MARKUS KLUDZUWEIT:");
-}
-
-static void
-draw_producer_credits()
-{
-	draw_credits_bg();
-	draw_white_black_string(4, 60, "PRODUCER:");
-	draw_white_black_string(4, 69, "THOMAS HERTZLER");
-}
-
-static void
-draw_manual_credits()
-{
-	draw_credits_bg();
-	draw_white_black_string(20, 80, "MANUAL:");
-	draw_white_black_string(20, 89, "VOLKER WERTICH AND");
-	draw_white_black_string(20, 98, "STEFAN PIASECKI");
-}
-
-static void
-draw_intro_credits()
-{
-	draw_credits_bg();
-	draw_white_black_string(4, 90, "INTRO:");
-	draw_white_black_string(4, 99, "INGO FRICK");
-}
-
-static void
-draw_testing_credits()
-{
-	draw_credits_bg();
-	draw_white_black_string(20, 100, "GAME TESTING:");
-	draw_white_black_string(20, 109, "MATTHIAS BEST");
-	draw_white_black_string(20, 118, "FRANK GRIMM");
-	draw_white_black_string(20, 127, "RALF SCHITTKOWSKI");
-	draw_white_black_string(20, 136, "ALEXANDER SPERLING");
-	draw_white_black_string(20, 145, "BIRGIT KRAUSE");
-	draw_white_black_string(20, 154, "MICHAEL PASSMANN");
-}
-
-/* Cycle through the credits texts.
-   This is not done as part of the main loop thus the calls to write_and_swap(). */
-static void
-draw_credits()
-{
-	while (1) {
-		draw_credits_bg_and_logo();
-		write_and_swap();
-		if (wait_for_lmb_or_timeout()) break;
-
-		draw_programming_credits();
-		write_and_swap();
-		if (wait_for_lmb_or_timeout()) break;
-
-		draw_graphics_credits();
-		write_and_swap();
-		if (wait_for_lmb_or_timeout()) break;
-
-		draw_music_credits();
-		write_and_swap();
-		if (wait_for_lmb_or_timeout()) break;
-
-		draw_amiga_music_credits();
-		write_and_swap();
-		if (wait_for_lmb_or_timeout()) break;
-
-		draw_producer_credits();
-		write_and_swap();
-		if (wait_for_lmb_or_timeout()) break;
-
-		draw_manual_credits();
-		write_and_swap();
-		if (wait_for_lmb_or_timeout()) break;
-
-		draw_intro_credits();
-		write_and_swap();
-		if (wait_for_lmb_or_timeout()) break;
-
-		draw_testing_credits();
-		write_and_swap();
-		if (wait_for_lmb_or_timeout()) break;
-		if (wait_for_lmb_or_timeout()) break;
-
-		draw_credits_bg();
-		write_and_swap();
-		if (wait_for_lmb_or_timeout()) break;
-	}
-}
 
 /* Facilitates quick lookup of offsets following a spiral pattern in the map data.
    The columns following the second are filled out by setup_spiral_pattern(). */
@@ -316,43 +135,6 @@ setup_spiral_pattern()
 	}
 }
 
-/* Draw the frames around the viewport. */
-static void
-draw_upper_frame()
-{
-	if (BIT_TEST(globals.svga, 7)) {
-		gfx_draw_sprite(0, 240, DATA_FRAME_TOP_BASE+0, &svga_full_frame);
-		gfx_draw_sprite(0, 120, DATA_FRAME_TOP_BASE+0, &svga_full_frame);
-		gfx_draw_sprite(0, 0, DATA_FRAME_TOP_BASE+0, &svga_full_frame);
-		gfx_draw_sprite(624, 240, DATA_FRAME_TOP_BASE+1, &svga_full_frame);
-		gfx_draw_sprite(624, 120, DATA_FRAME_TOP_BASE+1, &svga_full_frame);
-		gfx_draw_sprite(624, 0, DATA_FRAME_TOP_BASE+1, &svga_full_frame);
-		gfx_draw_sprite(304, 0, DATA_FRAME_TOP_BASE+2, &svga_full_frame);
-		gfx_draw_sprite(16, 0, DATA_FRAME_TOP_BASE+2, &svga_full_frame);
-		gfx_draw_sprite(320, 440, DATA_FRAME_TOP_BASE+2, &svga_full_frame);
-		gfx_draw_sprite(0, 440, DATA_FRAME_TOP_BASE+2, &svga_full_frame);
-
-		if (/* split screen */ 0) {
-			/* TODO ... */
-		} else {
-			gfx_draw_sprite(0, 440, DATA_FRAME_SPLIT_SVGA_BASE+0, &svga_full_frame);
-			gfx_draw_sprite(24, 440, DATA_FRAME_SPLIT_SVGA_BASE+1, &svga_full_frame);
-			gfx_draw_sprite(120, 440, DATA_FRAME_SPLIT_SVGA_BASE+2, &svga_full_frame);
-			gfx_draw_sprite(496, 440, DATA_FRAME_SPLIT_SVGA_BASE+0, &svga_full_frame);
-			gfx_draw_sprite(520, 440, DATA_FRAME_SPLIT_SVGA_BASE+1, &svga_full_frame);
-			gfx_draw_sprite(616, 440, DATA_FRAME_SPLIT_SVGA_BASE+2, &svga_full_frame);
-		}
-	} else {
-		gfx_draw_sprite(0, 0, DATA_FRAME_TOP_BASE+0, &lowres_full_frame);
-		gfx_draw_sprite(336, 0, DATA_FRAME_TOP_BASE+1, &lowres_full_frame);
-		gfx_draw_sprite(16, 0, DATA_FRAME_TOP_BASE+2, &lowres_full_frame);
-
-		if (/*split_screen*/ 0) {
-			gfx_draw_sprite(160, 8, DATA_FRAME_TOP_BASE+3, &lowres_full_frame);
-		}
-	}
-}
-
 /* Draw the frame around the popup box. */
 static void
 draw_popup_box_frame()
@@ -407,32 +189,6 @@ draw_bottom_frame()
 		DATA_FRAME_BOTTOM_SHIELD, 312, 0,
 		-1
 	};
-
-#if 0
-	const int bottom_lowres_layout[] = {
-		0x6fa, 0, 200,
-		0x6f4, 40, 200,
-		0x708, 48, 200,
-		0x6fb, 64, 200,
-		0x6fc, 64, 236,
-		0x709, 96, 200,
-		0x6fd, 112, 200,
-		0x6fe, 112, 236,
-		0x70a, 144, 200,
-		0x6ff, 160, 200,
-		0x700, 160, 236,
-		0x70b, 192, 200,
-		0x701, 208, 200,
-		0x702, 208, 236,
-		0x70c, 240, 200,
-		0x703, 256, 200,
-		0x704, 256, 236,
-		0x70d, 288, 200,
-		0x6f5, 304, 200,
-		0x6fa, 312, 200,
-		-1
-	};
-#endif
 
 	/* TODO request full buffer swap */
 
@@ -632,8 +388,11 @@ draw_player_panel_btns(player_t *player)
 		int sprite = DATA_FRAME_BUTTON_BASE + new;
 
 		frame_t *frame;
-		if (BIT_TEST(globals.svga, 7)) frame = &svga_full_frame;
-		else frame = &lowres_full_frame;
+		if (1/*BIT_TEST(globals.svga, 7)*/) {
+			frame = &svga_full_frame;
+		} else {
+			/*frame = &lowres_full_frame;*/
+		}
 
 		gfx_draw_sprite(x, y, sprite, frame);
 	}
@@ -3296,51 +3055,6 @@ redraw_player_popups()
 	}
 }
 
-/* Unused. */
-static void
-draw_screen_background()
-{
-	int sprite = 0x123;
-
-	for (int y = 0; y < 192; y += 8) {
-		for (int x = 0; x < 40; x += 5) {
-			/* draw_icon_in_lowres(x, y, sprite++); */
-			if (sprite > 0x126) sprite = 0x122;
-		}
-	}
-}
-
-
-/* Part of the initialization of the original game, but important things
-   have moved to other places. Not generally useful. */
-static void
-show_intro_screens()
-{
-	if (/* xmidi_enabled */ 0) {
-		/* void *xmi = gfx_get_data_object(DATA_GAME_XMI, NULL); */
-		/* play xmi ... */
-		/* set volume */
-	}
-
-	/* endianess convert spae obj 2 */
-
-	draw_credits();
-
-	SDL_Delay(400);
-
-	draw_screen_background();
-
-	/* draw_manual_symbols(); */
-
-	/* draw strings */
-
-	/* get time (?) */
-
-	gfx_set_palette(DATA_PALETTE_GAME);
-
-	/* TODO ... */
-}
-
 /* Initialize game speed. */
 static void
 start_game_tick()
@@ -3409,46 +3123,6 @@ init_player_structs(player_t *p[])
 
 	/* Player 2 */
 	/* TODO */
-}
-
-/* Initialize players with lowres screen.
-   Not useful: Lowres frames are not used anymore. */
-static void
-init_players_lowres(player_t *p[])
-{
-	globals.frame = &game_area_lowres_frame;
-
-	p[0]->pointer_x_max = 344;
-	p[0]->pointer_y_max = 232;
-	p[0]->pointer_x_off = 0;
-
-	p[0]->game_area_cols = 20;
-	p[0]->game_area_rows = 16;
-	p[0]->bottom_panel_y = 200;
-
-	p[0]->frame_width = 320;
-	p[0]->frame_height = 192;
-
-	p[0]->col_offset = 9;
-	p[0]->row_offset = 8;
-	p[0]->map_min_x = 0;
-	p[0]->map_max_y = 230;
-
-	p[0]->panel_btns_x = 64;
-	p[0]->panel_btns_first_x = 64;
-	p[0]->panel_btns_dist = 48;
-	p[0]->msg_icon_x = 40;
-	p[0]->timer_icon_x = 304;
-
-	p[0]->popup_x = 112;
-	p[0]->popup_y = 33;
-
-	p[0]->map_x_off = 160;
-	p[0]->map_y_off = 156;
-	p[0]->map_cursor_col_max = 40;
-	p[0]->map_cursor_col_off = 20;
-
-	p[0]->frame = &lowres_normal_frame;
 }
 
 /* Initialize player viewport. */
@@ -3523,8 +3197,11 @@ init_players()
 	if (/* split mode */ 0) {
 	} else {
 		globals.player[1]->flags |= 1;
-		if (BIT_TEST(globals.svga, 7)) init_players_svga(globals.player);
-		else init_players_lowres(globals.player);
+		if (BIT_TEST(globals.svga, 7)) {
+			init_players_svga(globals.player);
+		} else {
+			/*init_players_lowres(globals.player);*/
+		}
 	}
 }
 
@@ -11367,7 +11044,7 @@ game_loop_iter()
 	gfx_draw_number(80, 340, 47, 1, sdl_get_screen_frame(), MAP_OBJ(cursor_pos));
 #endif
 
-	write_and_swap();
+	sdl_swap_buffers();
 }
 
 
@@ -11766,8 +11443,10 @@ hand_out_memory_2()
 
 	frame_t *screen = sdl_get_screen_frame();
 
+	/*
 	sdl_frame_init(&lowres_full_frame, 0, 0, 352, 240, screen);
 	sdl_frame_init(&lowres_normal_frame, 16, 8, 320, 192, screen);
+	*/
 
 	/* TODO ...*/
 
@@ -11778,7 +11457,7 @@ hand_out_memory_2()
 
 	/* TODO ... */
 
-	sdl_frame_init(&game_area_lowres_frame, 0, 0, 352, 192, screen);
+	/*sdl_frame_init(&game_area_lowres_frame, 0, 0, 352, 192, screen);*/
 	sdl_frame_init(&game_area_svga_frame, 0, 0, sdl_frame_get_width(screen),
 		       sdl_frame_get_height(screen), screen);
 

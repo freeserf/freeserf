@@ -610,67 +610,6 @@ map_heights_rescale()
 	}
 }
 
-/* Debug function: print heights */
-static void
-print_map_heights()
-{
-	map_1_t *map = globals.map_mem2_ptr;
-	map_pos_t pos = MAP_POS(0, 0);
-
-	for (int y = 0; y < globals.map_rows; y++) {
-		if (y % 2 == 0) printf("  ");
-		for (int x = 0; x < globals.map_cols; x++) {
-			printf("%02u  ", map[pos].height);
-			pos = MAP_MOVE_RIGHT(pos);
-		}
-		printf("\n");
-		pos = MAP_MOVE_DOWN_RIGHT(pos);
-	}
-}
-
-/* Debug function: print types */
-static void
-print_map_types()
-{
-	map_1_t *map = globals.map_mem2_ptr;
-	map_pos_t pos = MAP_POS(0, 0);
-
-	for (int y = 0; y < globals.map_rows; y++) {
-		if (y % 2 == 0) printf("  ");
-		for (int x = 0; x < globals.map_cols; x++) {
-			printf("%02x  ", map[pos].type);
-			pos = MAP_MOVE_RIGHT(pos);
-		}
-		printf("\n");
-		pos = MAP_MOVE_DOWN_RIGHT(pos);
-	}
-}
-
-/* Debug function: check that heights are within limits. */
-static void
-check_map_heights(int max_delta, int min_height)
-{
-	map_1_t *map = globals.map_mem2_ptr;
-	map_pos_t pos = MAP_POS(0, 0);
-
-	for (int y = 0; y < globals.map_rows; y++) {
-		if (y % 2 == 0) printf(" ");
-		for (int x = 0; x < globals.map_cols; x++) {
-			int h = map[pos].height;
-			int h1 = map[MAP_MOVE_RIGHT(pos)].height;
-			int h2 = map[MAP_MOVE_DOWN_RIGHT(pos)].height;
-			int h3 = map[MAP_MOVE_DOWN(pos)].height;
-
-			if (abs(h-h1) <= max_delta && abs(h-h2) <= max_delta && abs(h-h3) <= max_delta && h >= min_height) printf(". ");
-			else printf("X ");
-
-			pos = MAP_MOVE_RIGHT(pos);
-		}
-		printf("\n");
-		pos = MAP_MOVE_DOWN_RIGHT(pos);
-	}
-}
-
 static void
 init_map_types_shared_sub(int old, int seed, int new)
 {
