@@ -1,0 +1,37 @@
+# Object files
+*.o
+
+# Libraries
+*.lib
+*.a
+
+# Shared objects (inc. Windows DLLs)
+*.dll
+*.so
+*.so.*
+*.dylib
+
+# Executables
+*.exe
+*.out
+*.app
+
+# freeserf specific
+.DS_Store
+.deps
+Makefile
+Makefile.in
+*.PA
+aclocal.m4
+autom4te.cache
+config.h
+config.h.in
+config.log
+config.status
+configure
+depcomp
+freeserf
+install-sh
+missing
+src/version_vcs.h
+stamp-h1
