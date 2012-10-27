@@ -473,26 +473,26 @@ create_masked_surface(const sprite_t *sprite, const sprite_t *mask)
 		copy_dest += s;
 	}
 
-  /* Mask */
-  void *m_data = (uint8_t *)mask + sizeof(sprite_t);
+	/* Mask */
+	void *m_data = (uint8_t *)mask + sizeof(sprite_t);
 
-  /* Unpack mask */
-  size_t unpack_size = m_width * m_height;
-  uint8_t *m_unpack = calloc(unpack_size, sizeof(uint8_t));
-  if (m_unpack == NULL) abort();
+	/* Unpack mask */
+	size_t unpack_size = m_width * m_height;
+	uint8_t *m_unpack = calloc(unpack_size, sizeof(uint8_t));
+	if (m_unpack == NULL) abort();
 
-  gfx_unpack_mask_sprite(m_unpack, m_data, unpack_size);
+	gfx_unpack_mask_sprite(m_unpack, m_data, unpack_size);
 
-  /* Fill alpha value from mask data */
-  for (int y = 0; y < m_height; y++) {
-    for (int x = 0; x < m_width; x++) {
-      if( !m_unpack[y*m_width+x] ) {
-        *(s_copy + y * m_width + x) = 0;
-      }
-    }
-  }
+	/* Fill alpha value from mask data */
+	for (int y = 0; y < m_height; y++) {
+		for (int x = 0; x < m_width; x++) {
+			if( !m_unpack[y*m_width+x] ) {
+				*(s_copy + y * m_width + x) = 0;
+			}
+		}
+	}
 
-  free(m_unpack);
+	free(m_unpack);
 
 	/* Create sprite surface */
 	SDL_Surface *surf8 =
@@ -518,15 +518,15 @@ create_masked_surface(const sprite_t *sprite, const sprite_t *mask)
 		exit(EXIT_FAILURE);
 	}
 
-  /* Convert sprite to screen format */
-  SDL_Surface *surf = SDL_DisplayFormatAlpha(surf8);
-  if (surf == NULL) {
-    LOGE("Unable to convert sprite surface: %s.",
-      SDL_GetError());
-    exit(EXIT_FAILURE);
-  }
+	/* Convert sprite to screen format */
+	SDL_Surface *surf = SDL_DisplayFormatAlpha(surf8);
+	if (surf == NULL) {
+		LOGE("Unable to convert sprite surface: %s.",
+		     SDL_GetError());
+		exit(EXIT_FAILURE);
+	}
 
-  SDL_FreeSurface(surf8);
+	SDL_FreeSurface(surf8);
 
 	return surf;
 }
