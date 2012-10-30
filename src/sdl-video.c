@@ -176,31 +176,17 @@ add_cached_surface(list_t *cache, const sprite_t *sprite, const sprite_t *mask, 
 	list_prepend(cache, (list_elm_t *)cs);
 }
 
-
 static SDL_Surface *
-create_transp_surface(const sprite_t *sprite, int offset)
-{
+create_surface_from_data(void *data, int width, int height, int transparent) {
 	int r;
-
-	void *data = (uint8_t *)sprite + sizeof(sprite_t);
-
-	size_t width = le16toh(sprite->w);
-	size_t height = le16toh(sprite->h);
-
-	/* Unpack */
-	size_t unpack_size = width * height;
-	uint8_t *unpack = calloc(unpack_size, sizeof(uint8_t));
-	if (unpack == NULL) abort();
-
-	gfx_unpack_transparent_sprite(unpack, data, unpack_size, offset);
 
 	/* Create sprite surface */
 	SDL_Surface *surf8 =
-		SDL_CreateRGBSurfaceFrom(unpack, width, height, 8,
-					 width*sizeof(uint8_t), 0, 0, 0, 0);
+	SDL_CreateRGBSurfaceFrom(data, (int)width, (int)height, 8,
+				 (int)(width*sizeof(uint8_t)), 0, 0, 0, 0);
 	if (surf8 == NULL) {
 		LOGE("Unable to create sprite surface: %s.",
-			SDL_GetError());
+		     SDL_GetError());
 		exit(EXIT_FAILURE);
 	}
 
@@ -211,22 +197,52 @@ create_transp_surface(const sprite_t *sprite, int offset)
 		exit(EXIT_FAILURE);
 	}
 
-	/* Set color key */
-	r = SDL_SetColorKey(surf8, SDL_SRCCOLORKEY | SDL_RLEACCEL, 0);
-	if (r < 0) {
-		LOGE("Unable to set color key for sprite.");
-		exit(EXIT_FAILURE);
+	/* Covert to screen format */
+	SDL_Surface *surf = NULL;
+
+	if (transparent) {
+		/* Set color key */
+		r = SDL_SetColorKey(surf8, SDL_SRCCOLORKEY | SDL_RLEACCEL, 0);
+		if (r < 0) {
+			LOGE("Unable to set color key for sprite.");
+			exit(EXIT_FAILURE);
+		}
+
+		surf = SDL_DisplayFormatAlpha(surf8);
+	}
+	else {
+		surf = SDL_DisplayFormat(surf8);
 	}
 
-	/* Covert to screen format */
-	SDL_Surface *surf = SDL_DisplayFormatAlpha(surf8);
 	if (surf == NULL) {
 		LOGE("Unable to convert sprite surface: %s.",
-			SDL_GetError());
+		     SDL_GetError());
 		exit(EXIT_FAILURE);
 	}
-
+	
 	SDL_FreeSurface(surf8);
+	
+	return surf;
+}
+
+static SDL_Surface *
+create_transp_surface(const sprite_t *sprite, int offset)
+{
+	void *data = (uint8_t *)sprite + sizeof(sprite_t);
+
+	int width = le16toh(sprite->w);
+	int height = le16toh(sprite->h);
+
+	/* Unpack */
+	size_t unpack_size = width * height;
+	uint8_t *unpack = calloc(unpack_size, sizeof(uint8_t));
+	if (unpack == NULL) abort();
+
+	gfx_unpack_transparent_sprite(unpack, data, unpack_size, offset);
+
+	SDL_Surface *surf = create_surface_from_data(unpack, width, height, 1);
+
+	free(unpack);
 
 	return surf;
 }
@@ -308,41 +324,12 @@ sdl_draw_waves_sprite(const sprite_t *sprite, int x, int y, frame_t *dest)
 static SDL_Surface *
 create_sprite_surface(const sprite_t *sprite)
 {
-	int r;
-
 	void *data = (uint8_t *)sprite + sizeof(sprite_t);
 
-	size_t width = le16toh(sprite->w);
-	size_t height = le16toh(sprite->h);
-
-	/* Create sprite surface from data */
-	SDL_Surface *surf8 =
-		SDL_CreateRGBSurfaceFrom(data, width, height, 8,
-					 width*sizeof(uint8_t), 0, 0, 0, 0);
-	if (surf8 == NULL) {
-		LOGE("Unable to create sprite surface: %s.",
-			SDL_GetError());
-		exit(EXIT_FAILURE);
-	}
-
-	/* Set sprite palette */
-	r = SDL_SetPalette(surf8, SDL_LOGPAL | SDL_PHYSPAL, pal_colors, 0, 256);
-	if (r == 0) {
-		LOGE("Unable to set palette for sprite.");
-		exit(EXIT_FAILURE);
-	}
-
-	/* Convert sprite to screen format */
-	SDL_Surface *surf = SDL_DisplayFormat(surf8);
-	if (surf == NULL) {
-		LOGE("Unable to convert sprite surface: %s.",
-			SDL_GetError());
-		exit(EXIT_FAILURE);
-	}
-
-	SDL_FreeSurface(surf8);
-
-	return surf;
+	int width = le16toh(sprite->w);
+	int height = le16toh(sprite->h);
+	
+	return create_surface_from_data(data, width, height, 0);
 }
 
 void
@@ -392,7 +379,7 @@ create_overlay_surface(const sprite_t *sprite)
 	gfx_unpack_overlay_sprite(unpack, data, unpack_size);
 
 	/* Create sprite surface */
-	SDL_Surface *surf = sdl_create_surface(width, height);
+	SDL_Surface *surf = sdl_create_surface((int)width, (int)height);
 	r = SDL_LockSurface(surf);
 	if (r < 0) {
 		LOGE("Unable to lock sprite.");
@@ -451,8 +438,6 @@ sdl_draw_overlay_sprite(const sprite_t *sprite, int x, int y, int y_off, frame_t
 static SDL_Surface *
 create_masked_surface(const sprite_t *sprite, const sprite_t *mask)
 {
-	int r;
-
 	size_t m_width = le16toh(mask->w);
 	size_t m_height = le16toh(mask->h);
 
@@ -494,39 +479,9 @@ create_masked_surface(const sprite_t *sprite, const sprite_t *mask)
 
 	free(m_unpack);
 
-	/* Create sprite surface */
-	SDL_Surface *surf8 =
-		SDL_CreateRGBSurfaceFrom(s_copy, m_width, m_height, 8,
-				m_width*sizeof(uint8_t), 0, 0, 0, 0);
-	if (surf8 == NULL) {
-		LOGE("Unable to create sprite surface: %s.",
-			SDL_GetError());
-		exit(EXIT_FAILURE);
-	}
+	SDL_Surface *surf = create_surface_from_data( s_copy, (int)m_width, (int)m_height, 1);
 
-	/* Set sprite palette */
-	r = SDL_SetPalette(surf8, SDL_LOGPAL | SDL_PHYSPAL, pal_colors, 0, 256);
-	if (r == 0) {
-		LOGE("Unable to set palette for sprite.");
-		exit(EXIT_FAILURE);
-	}
-
-	/* Set color key */
-	r = SDL_SetColorKey(surf8, SDL_SRCCOLORKEY | SDL_RLEACCEL, 0);
-	if (r < 0) {
-		LOGE("Unable to set color key for sprite.");
-		exit(EXIT_FAILURE);
-	}
-
-	/* Convert sprite to screen format */
-	SDL_Surface *surf = SDL_DisplayFormatAlpha(surf8);
-	if (surf == NULL) {
-		LOGE("Unable to convert sprite surface: %s.",
-		     SDL_GetError());
-		exit(EXIT_FAILURE);
-	}
-
-	SDL_FreeSurface(surf8);
+	free(s_copy);
 
 	return surf;
 }

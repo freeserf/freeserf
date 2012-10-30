@@ -24,6 +24,7 @@
 #include "misc.h"
 #include "debug.h"
 #include "log.h"
+#include "audio.h"
 
 /* TODO This file is one big of mess of all the things that should really
    be separated out into smaller files.  */
@@ -212,36 +213,6 @@ draw_bottom_frame()
 		gfx_draw_sprite(globals.player[0]->bottom_panel_x + layout[i+1],
 				globals.player[0]->bottom_panel_y + layout[i+2], layout[i], frame);
 	}
-}
-
-static void sdl_audio_play_sound(int index);
-
-/* Play audio... not really, doesn't work.
-   Print which audio file should be played. */
-static void
-enqueue_sfx_clip(sfx_t sfx)
-{
-	switch (sfx) {
-	case SFX_MESSAGE:
-		LOGI("SOUND: MESSAGE");
-		break;
-	case SFX_NOT_ACCEPTED:
-		LOGI("SOUND: NOT ACCEPTED");
-		break;
-	case SFX_ACCEPTED:
-		LOGI("SOUND: ACCEPTED");
-		break;
-	case SFX_CLICK:
-		LOGI("SOUND: CLICK");
-		break;
-	case SFX_AHHH:
-		LOGI("SOUND: AHHH");
-		break;
-	default:
-		LOGI("SOUND: OTHER (%i)", sfx);
-		break;
-	}
-	/*sdl_audio_play_sound(sfx);*/
 }
 
 /* Draw notification icon in action panel. */
@@ -11489,68 +11460,6 @@ deep_tree()
 	if (globals.map_mem5 == NULL) abort();
 
 	hand_out_memory_2();
-}
-
-
-typedef struct {
-	void *data;
-	size_t size;
-	size_t played;
-} audio_clip_t;
-
-static void
-audio_request_data_cb(void *user, uint8_t *stream, int len)
-{
-	audio_clip_t *clip = user;
-	size_t left = clip->size - clip->played;
-
-	memset(stream, '\0', len);
-
-	if (left > 0) {
-		memcpy(stream, ((uint8_t *)clip->data) + clip->played, min(left, len));
-		clip->played += min(left, len);
-	}
-}
-
-audio_clip_t audio_clip;
-
-/* Initialize audio (toy implementation). */
-static int
-sdl_audio_init()
-{
-	audio_clip.data = NULL;
-	audio_clip.size = 0;
-	audio_clip.played = 0;
-
-	SDL_AudioSpec desired = {
-		.freq = 8000,
-		.format = AUDIO_S8,
-		.channels = 1,
-		.samples = 256,
-		.userdata = &audio_clip,
-		.callback = audio_request_data_cb
-	};
-
-	int r = SDL_OpenAudio(&desired, NULL);
-	if (r < 0) {
-		LOGE("Could not open audio device: %s\n", SDL_GetError());
-		return -1;
-	}
-
-	SDL_PauseAudio(0);
-
-	return 0;
-}
-
-static void
-sdl_audio_play_sound(int index)
-{
-	SDL_LockAudio();
-
-	audio_clip.data = gfx_get_data_object(DATA_SFX_BASE + index, &audio_clip.size);
-	audio_clip.played = 0;
-
-	SDL_UnlockAudio();
 }
 
 
