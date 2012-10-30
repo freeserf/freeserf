@@ -17,6 +17,8 @@ Keyboard controls:
 * 0: Reset game speed.
 * p: Pause game.
 
+Because of a bug in SDL the game may hang when playing sound effects if you are using pulseaudio. This can be worked around by selecting a different SDL audio driver (e.g. SDL_AUDIODRIVER=alsa).
+
 
 Save games
 ----------
