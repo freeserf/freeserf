@@ -31,19 +31,6 @@ typedef enum {
 	DIR_DOWN_LEFT
 } dir_t;
 
-typedef enum {
-	SFX_MESSAGE = 1,
-	SFX_ACCEPTED,
-	SFX_NOT_ACCEPTED = 4,
-	SFX_UNDO = 6,
-	SFX_CLICK = 8,
-	SFX_JUMP = 48,
-	SFX_BIRD_CHIRP_0 = 70,
-	SFX_BIRD_CHIRP_1 = 74,
-	SFX_AHHH = 76,
-	SFX_BIRD_CHIRP_2 = 78,
-	SFX_BIRD_CHIRP_3 = 82
-} sfx_t;
 
 typedef enum {
 	PANEL_BTN_BUILD_INACTIVE = 0,
