@@ -14,6 +14,7 @@
 #include "globals.h"
 #include "misc.h"
 #include "debug.h"
+#include "audio.h"
 
 
 #define MAP_TILE_TEXTURES  33
@@ -903,7 +904,7 @@ draw_unharmed_building(building_t *building, int x, int y, frame_t *frame)
 				draw_game_sprite(x-6, y-39, 153, frame);
 				if ((((globals.anim + ((uint8_t *)&building->pos)[1]) >> 3) & 7) == 0 &&
 				    get_rnd() < 40000) {
-					/* sub_4692C(SFX_38); */
+					enqueue_sfx_clip(SFX_ELEVATOR);
 				}
 			}
 			draw_shadow_and_building_sprite(x, y, map_building_sprite[type], frame);
@@ -920,7 +921,7 @@ draw_unharmed_building(building_t *building, int x, int y, frame_t *frame)
 			draw_shadow_and_building_sprite(x, y, map_building_sprite[type], frame);
 			if (building->stock2 > 0) {
 				if ((get_rnd() & 0x7f) < building->stock2) {
-					/* sub_4692C(SFX_60); */
+					enqueue_sfx_clip(SFX_PIG_OINK);
 				}
 
 				if (building->stock2 >= 6) {
@@ -968,7 +969,7 @@ draw_unharmed_building(building_t *building, int x, int y, frame_t *frame)
 					building->serf &= ~BIT(3);
 				} else if (!BIT_TEST(building->serf, 3)) {
 					building->serf |= BIT(3);
-					/* sfx 0x42 */
+					enqueue_sfx_clip(43); // ?????
 				}
 				draw_shadow_and_building_sprite(x, y, map_building_sprite[type] +
 								((globals.anim >> 4) & 3), frame);
@@ -1027,7 +1028,7 @@ draw_unharmed_building(building_t *building, int x, int y, frame_t *frame)
 				int i = (globals.anim >> 3) & 7;
 				if (i == 0 || (i == 7 && !BIT_TEST(building->serf, 3))) {
 					building->serf |= BIT(3);
-					/* sub_4692C(SFX_62); */
+					enqueue_sfx_clip(SFX_GOLD_BOILS);
 				} else if (i != 7) {
 					building->serf &= ~BIT(3);
 				}
@@ -1265,7 +1266,7 @@ draw_burning_building(building_t *building, int x, int y, frame_t *frame)
 	if (((building->serf_index >> 3) & 3) == 3 &&
 	    !BIT_TEST(building->serf, 3)) {
 		building->serf |= BIT(3);
-		/* sub_4692C(SFX_84); */
+		enqueue_sfx_clip(SFX_BURNING);
 	} else {
 		building->serf &= ~BIT(3);
 	}
@@ -1550,7 +1551,7 @@ serf_get_body(serf_t *serf)
 		} else if (t == 0x83 || t == 0x84) {
 			if (t == 0x83 || !BIT_TEST(serf->type, 7)) {
 				serf->type |= BIT(7);
-				/*sub_4693A();*/ /* sfx 50 */
+				enqueue_sfx_clip(SFX_DIGGING);
 			}
 			t += 0x380;
 		} else {
@@ -1564,7 +1565,7 @@ serf_get_body(serf_t *serf)
 		} else if ((t & 7) == 4 || (t & 7) == 5) {
 			if ((t & 7) == 4 || !BIT_TEST(serf->type, 7)) {
 				serf->type |= BIT(7);
-				/*sub_4693A();*/ /* sfx 40 */
+				enqueue_sfx_clip(SFX_HAMMER_BLOW);
 			}
 			t += 0x580;
 		} else {
@@ -1611,12 +1612,12 @@ serf_get_body(serf_t *serf)
 		} else if ((t == 0x86 && !BIT_TEST(serf->type, 7)) ||
 			   t == 0x85) {
 			serf->type |= BIT(7);
-			/*sub_4693A();*/ /* sfx 32 */
+			enqueue_sfx_clip(SFX_AX_BLOW);
 			/* TODO Dangerous reference to unknown state vars.
 			   It is probably free walking. */
 			if (serf->s.free_walking.neg_dist2 == 0 &&
 			    serf->counter < 64) {
-				/*sub_4693A();*/ /* sfx 34 */
+				enqueue_sfx_clip(SFX_TREE_FALL);
 			}
 			t += 0xe80;
 		} else if (t != 0x86) {
@@ -1638,7 +1639,7 @@ serf_get_body(serf_t *serf)
 			    (!BIT_TEST(serf->type, 7) && (t == 0xb7 || t == 0xbf ||
 							  t == 0xc7 || t == 0xcf))) {
 				serf->type |= BIT(7);
-				/*sub_4693A();*/ /* sfx 43 */
+				enqueue_sfx_clip(SFX_SAWING);
 			} else if (t != 0xb7 && t != 0xbf && t != 0xc7 && t != 0xcf) {
 				serf->type &= ~BIT(7);
 			}
@@ -1658,7 +1659,7 @@ serf_get_body(serf_t *serf)
 			}
 		} else if (t == 0x85 || (t == 0x86 && !BIT_TEST(serf->type, 7))) {
 			serf->type |= BIT(7);
-			/*sub_4693A();*/ /* sfx 28 */
+			enqueue_sfx_clip(SFX_PICK_BLOW);
 			t += 0x1280;
 		} else if (t != 0x86) {
 			serf->type &= ~BIT(7);
@@ -1736,7 +1737,7 @@ serf_get_body(serf_t *serf)
 			}
 		} else {
 			if (t != 0x80 && t != 0x87 && t != 0x88 && t != 0x8f) {
-				/*sub_4693A(SFX_54);*/
+				enqueue_sfx_clip(SFX_FISHING_ROD_REEL);
 			}
 
 			/* TODO no check for state */
@@ -1772,7 +1773,7 @@ serf_get_body(serf_t *serf)
 			if ((t == 0xb2 || t == 0xba || t == 0xc2 || t == 0xca) &&
 			    !BIT_TEST(serf->type, 7)) {
 				serf->type |= BIT(7);
-				/* sub_4693A(SFX_44); */
+				enqueue_sfx_clip(SFX_BACKSWORD_BLOW);
 			} else if (t != 0xb2 && t != 0xba && t != 0xc2 && t != 0xca) {
 				serf->type  &= ~BIT(7);
 			}
@@ -1794,7 +1795,7 @@ serf_get_body(serf_t *serf)
 				t += 0x3d80;
 			} else if (t == 0x83 || (t == 0x84 && !BIT_TEST(serf->type, 7))) {
 				serf->type |= BIT(7);
-				/* sub_4693A(SFX_52); */
+				enqueue_sfx_clip(SFX_MOWING);
 				t += 0x3e80;
 			} else if (t != 0x83 && t != 0x84) {
 				serf->type &= ~BIT(7);
