@@ -15,24 +15,24 @@ typedef enum {
 	SFX_UNKNOWN_03 = 18,
 	SFX_UNKNOWN_04 = 22,
 	SFX_UNKNOWN_05 = 26,
-	SFX_UNKNOWN_06 = 28,
+	SFX_PICK_BLOW = 28,
 	SFX_UNKNOWN_07 = 30,
-	SFX_UNKNOWN_08 = 32,
-	SFX_UNKNOWN_09 = 34,
+	SFX_AX_BLOW = 32,
+	SFX_TREE_FALL = 34,
 	SFX_UNKNOWN_10 = 36,
-	SFX_UNKNOWN_11 = 38,
-	SFX_UNKNOWN_12 = 40,
-	SFX_UNKNOWN_13 = 42,
+	SFX_ELEVATOR = 38,
+	SFX_HAMMER_BLOW = 40,
+	SFX_SAWING = 42, // wrong! it's not a rustle :) sawing SFX_MILL_RUSTLE
 	SFX_UNKNOWN_14 = 43,
-	SFX_UNKNOWN_15 = 44,
+	SFX_BACKSWORD_BLOW = 44,
 	SFX_UNKNOWN_16 = 46,
 	SFX_UNKNOWN_17 = 48,
-	SFX_UNKNOWN_18 = 50,
-	SFX_UNKNOWN_19 = 52,
-	SFX_UNKNOWN_20 = 54,
+	SFX_DIGGING = 50,
+	SFX_MOWING = 52,
+	SFX_FISHING_ROD_REEL = 54,
 	SFX_UNKNOWN_21 = 58,
-	SFX_UNKNOWN_22 = 60,
-	SFX_UNKNOWN_23 = 62,
+	SFX_PIG_OINK = 60,
+	SFX_GOLD_BOILS = 62,
 	SFX_UNKNOWN_24 = 64,
 	SFX_UNKNOWN_25 = 66,
 	SFX_UNKNOWN_26 = 69,
@@ -41,17 +41,26 @@ typedef enum {
 	SFX_AHHH = 76,
 	SFX_BIRD_CHIRP_2 = 78,
 	SFX_BIRD_CHIRP_3 = 82,
-	SFX_UNKNOWN_27 = 84,
+	SFX_BURNING = 84,
 	SFX_UNKNOWN_28 = 86,
 	SFX_UNKNOWN_29 = 88,
-	SFX_UNKNOWN_30 = 90,
-	SFX_UNKNOWN_31 = 91,
-//	SFX_UNKNOWN_32 = 92, // Is it MIDI or PCM ?
-//	SFX_UNKNOWN_33 = 94, // Is it MIDI or PCM ?
 } sfx_t;
 
-/* Play audio. */
+typedef enum {
+	MIDI_TRACK_0 = 0,
+	MIDI_TRACK_1 = 1,
+	MIDI_TRACK_2 = 2,
+	MIDI_TRACK_3 = 4,
+} midi_t;
+
+
+/* Play sound. */
 void
 enqueue_sfx_clip(sfx_t sfx);
+
+/* Play music. */
+void
+midi_play_track(midi_t midi);
+
 
 #endif /* ! _AUDIO_H */

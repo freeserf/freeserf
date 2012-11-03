@@ -21,8 +21,8 @@ freeserf_SOURCES = \
 	src/freeserf_endian.h \
 	src/version.c src/version.h src/version_git.h
 
-AM_CFLAGS = $(SDL_CFLAGS) -I$(top_builddir)/src
-freeserf_LDADD = $(SDL_LIBS) $(SDL_CFLAGS) -lm
+AM_CFLAGS = $(SDL_CFLAGS) $(SDL_mixer_CFLAGS) -I$(top_builddir)/src
+freeserf_LDADD = $(SDL_LIBS) $(SDL_mixer_LIBS) $(SDL_CFLAGS) -lm
 
 VCS_VERSION_FILE = src/version_vcs.h
 
