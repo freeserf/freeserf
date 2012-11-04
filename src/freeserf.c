@@ -11121,6 +11121,13 @@ game_loop()
 					else game_pause();
 					break;
 
+					/* Audio */
+				case SDLK_s:
+					sfx_enable(!sfx_is_enabled());
+					break;
+				case SDLK_m:
+					midi_enable(!midi_is_enabled());
+					break;
 					/* Misc */
 				case SDLK_g:
 					viewport.layers ^= VIEWPORT_LAYER_GRID;
@@ -11561,6 +11568,9 @@ main(int argc, char *argv[])
 	r = sdl_init();
 	if (r < 0) exit(EXIT_FAILURE);
 
+	// ToDo: move to right place
+	midi_start_play_randomly();
+	
 	/*gfx_set_palette(DATA_PALETTE_INTRO);*/
 	gfx_set_palette(DATA_PALETTE_GAME);
 

@@ -10,6 +10,8 @@
 #include "SDL.h"
 #include "SDL_mixer.h"
 
+#include <time.h>
+
 /* Play sound. */
 
 typedef struct {
@@ -20,8 +22,15 @@ typedef struct {
 
 static list_t sfx_clips_to_play;
 static int initialized = 0;
+static int sfx_enabled = 1;
+static int midi_enabled = 1;
 
-static void
+static
+void
+midi_track_finished();
+
+static
+void
 sfx_init()
 {
 	list_init(&sfx_clips_to_play);
@@ -31,6 +40,8 @@ sfx_init()
 		LOGE("Could not open audio device: %s\n", Mix_GetError());
 		return;
 	}
+	
+	Mix_HookMusicFinished(midi_track_finished);
 
 	initialized = 1;
 }
@@ -44,6 +55,10 @@ list_less_func_sfx(const list_elm_t *e1, const list_elm_t *e2)
 void
 enqueue_sfx_clip(sfx_t sfx)
 {
+	if (0 == sfx_enabled) {
+		return;
+	}
+
 	if (0 == initialized) {
 		sfx_init();
 		if (0 == initialized) {
@@ -78,6 +93,18 @@ enqueue_sfx_clip(sfx_t sfx)
 		LOGE("Could not play SFX clip: %s\n", Mix_GetError());
 		return;
 	}
+}
+
+void
+sfx_enable(int enable)
+{
+	sfx_enabled = enable;
+}
+
+int
+sfx_is_enabled()
+{
+	return sfx_enabled;
 }
 
 /* Play music. */
@@ -371,6 +398,10 @@ midi_produce(midi_file_t *midi, size_t *size)
 void
 midi_play_track(midi_t midi)
 {
+	if (0 == midi_enabled) {
+		return;
+	}
+
 	if (0 == initialized) {
 		sfx_init();
 		if (0 == initialized) {
@@ -393,10 +424,6 @@ midi_play_track(midi_t midi)
 	xmi_process_subchunks(data, (int)size, &midi_file);
 	data = midi_produce(&midi_file, &size);
 
-	FILE *file = fopen("/Users/digger/temp/track.mid", "wb");
-	fwrite(data, 1, size, file);
-	fclose(file);
-	
 	SDL_RWops *rw = SDL_RWFromMem(data, (int)size);
 	Mix_Music *music = Mix_LoadMUS_RW(rw);
 	if (NULL == music) {
@@ -409,4 +436,41 @@ midi_play_track(midi_t midi)
 	}
 
 	return;
+}
+
+void
+midi_enable(int enable)
+{
+	midi_enabled = enable;
+	if (0 != enable) {
+		midi_start_play_randomly();
+	}
+	else {
+		Mix_HaltMusic();
+	}
+}
+
+int
+midi_is_enabled()
+{
+	return midi_enabled;
+}
+
+void
+midi_start_play_randomly()
+{
+	srand((unsigned int)time(NULL));
+	int track = rand() % 5;
+	track = (track == 5) ? 3 : track;
+
+	midi_play_track(track);
+}
+
+static
+void
+midi_track_finished()
+{
+	if (midi_enabled) {
+		midi_start_play_randomly();
+	}
 }
