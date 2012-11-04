@@ -325,22 +325,22 @@ midi_grow(midi_file_t *midi, Uint8 **current)
 #define WRITE_BE32(X) {Uint32 val = X; val = htobe32(val); WRITE_DATA(val);}
 #define WRITE_LE32(X) {Uint32 val = X; val = htole32(val); WRITE_DATA(val);}
 #define WRITE_BE16(X) {Uint16 val = X; val = htobe16(val); WRITE_DATA(val);}
-#define WRITE_BE8(X) {if(midi->size <= (current-midi->data) + sizeof(X)) midi_grow(midi,&current); *current = (Uint8)X; current++;}
+#define WRITE_BYTE(X) {if(midi->size <= (current-midi->data) + sizeof(X)) midi_grow(midi,&current); *current = (Uint8)X; current++;}
 
 Uint32
-midi_writeVariableSize(midi_file_t *midi, Uint8 *current, Uint64 val)
+midi_writeVariableSize(midi_file_t *midi, Uint8 **current, Uint64 val)
 {
 	Uint32 count = 1;
 	Uint32 buf = val & 0x7F;
 	for (; val >>= 7; ++count) {
 		buf = (buf << 8) | 0x80 | (val & 0x7F);
 	}
-	if (midi->size <= (current-midi->data) + count) {
-		midi_grow(midi,&current);	
+	if (midi->size <= (*current-midi->data) + count) {
+		midi_grow(midi,current);	
 	}
 	for (int i = 0; i < count; ++i) {
-		*current = (Uint8)(buf & 0xFF);
-		current++;
+		**current = (Uint8)(buf & 0xFF);
+		(*current)++;
 		buf >>= 8;
 	}
   return count;
@@ -362,10 +362,10 @@ midi_produce(midi_file_t *midi, size_t *size)
 	// First track
 	WRITE_BE32(0x4D54726B);		// 'MTrk'
 	Uint64 size_pos = current - midi->data;
-	WRITE_BE32(0);						// Size reserved
-	WRITE_BE8(0);						// Time
-	WRITE_BE8(0xFF);				// Type
-	WRITE_BE8(0x51);				// Extended type
+	WRITE_BE32(0);					// Size reserved
+	WRITE_BYTE(0);					// Time
+	WRITE_BYTE(0xFF);				// Type
+	WRITE_BYTE(0x51);				// Extended type
 	WRITE_BE32(midi->tempo); *(current-4) = 3; // Tempo length and value
 
 	list_elm_t *elm;
@@ -374,19 +374,19 @@ midi_produce(midi_file_t *midi, size_t *size)
 	list_foreach(&midi->nodes, elm) {
 		i++;
 		midi_node_t *node = (midi_node_t*)elm;
-		current += midi_writeVariableSize(midi, current, node->time - time);
+		midi_writeVariableSize(midi, &current, node->time - time);
 		time = node->time;
-		WRITE_BE8(node->type);
-		WRITE_BE8(node->data1);
+		WRITE_BYTE(node->type);
+		WRITE_BYTE(node->data1);
 		if (((node->type & 0xF0) != 0xC0) && ((node->type & 0xF0) != 0xD0)){
-			WRITE_BE8(node->data2);
+			WRITE_BYTE(node->data2);
 		}
 	}
 
-	WRITE_BE8(0);						// Time
-	WRITE_BE8(0xFF);				// Type
-	WRITE_BE8(0x2F);				// Extended type
-	WRITE_BE8(0x00);				// Length
+	WRITE_BYTE(0);					// Time
+	WRITE_BYTE(0xFF);				// Type
+	WRITE_BYTE(0x2F);				// Extended type
+	WRITE_BYTE(0x00);				// Length
 	*size = (Uint32)(current - midi->data);
 	Uint32 data_size = (Uint32)(*size - size_pos - 4);
 	current = midi->data + size_pos;
