@@ -12,6 +12,7 @@ AC_PROG_CC_C99
 
 # Checks for libraries.
 AM_PATH_SDL
+PKG_CHECK_MODULES([SDL_mixer], [SDL_mixer])
 
 # Checks for header files.
 AC_HEADER_ASSERT
