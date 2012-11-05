@@ -54,25 +54,17 @@ typedef enum {
 } midi_t;
 
 /* Common audio. */
-void
-audio_cleanup();
+void audio_cleanup();
 
 /* Play sound. */
-void
-enqueue_sfx_clip(sfx_t sfx);
-void
-sfx_enable(int enable);
-int
-sfx_is_enabled();
+void enqueue_sfx_clip(sfx_t sfx);
+void sfx_enable(int enable);
+int sfx_is_enabled();
 
 /* Play music. */
-void
-midi_play_track(midi_t midi);
-void
-midi_start_play_randomly();
-void
-midi_enable(int enable);
-int
-midi_is_enabled();
+void midi_play_track(midi_t midi);
+void midi_start_play_randomly();
+void midi_enable(int enable);
+int midi_is_enabled();
 
 #endif /* ! _AUDIO_H */

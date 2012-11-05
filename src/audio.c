@@ -25,12 +25,10 @@ static int initialized = 0;
 static int sfx_enabled = 1;
 static int midi_enabled = 1;
 
-static
-void
+static void
 midi_track_finished();
 
-static
-void
+static void
 sfx_init()
 {
 	list_init(&sfx_clips_to_play);
@@ -138,8 +136,7 @@ static chunk_info_t xmi_processors[] = {
 	{ 0x45564E54, xmi_process_EVNT   },	// 'EVNT'
 } ;
 
-static
-int
+static int
 xmi_process_multi(char *data, int length, midi_file_t *midi)
 {
 	int size = be32toh(*(int*)data);
@@ -148,8 +145,7 @@ xmi_process_multi(char *data, int length, midi_file_t *midi)
 	return 4+size;
 }
 
-static
-int
+static int
 xmi_process_single(char *data, int length, midi_file_t *midi)
 {
 	int size = 0;
@@ -175,8 +171,7 @@ xmi_process_single(char *data, int length, midi_file_t *midi)
 	return size+4;
 }
 
-static
-int
+static int
 xmi_process_subchunks(char *data, int length, midi_file_t *midi)
 {
 	int balance = length;
@@ -190,17 +185,15 @@ xmi_process_subchunks(char *data, int length, midi_file_t *midi)
 	return length;
 }
 
-static
-int
+static int
 xmi_process_INFO(char *data, int length, midi_file_t *midi)
 {
 	return 6;
 }
 
-#define ReadData(X) {X = *data; data += sizeof(X); balance -= sizeof(X); };
+#define READ_DATA(X) {X = *data; data += sizeof(X); balance -= sizeof(X); };
 
-static
-int
+static int
 xmi_process_TIMB(char *data, int length, midi_file_t *midi)
 {
 	Uint32 size = *(Uint32*)data;
@@ -222,19 +215,18 @@ list_less_func_midi_node(const list_elm_t *e1, const list_elm_t *e2)
 	return ((midi_node_t*)e1)->time < ((midi_node_t*)e2)->time;
 }
 
-static
-int
+static int
 xmi_process_EVNT(char *data, int length, midi_file_t *midi)
 {
 	int balance = length;
 	Uint64 time = 0;
 
 	Uint32 unknown = 0;
-	ReadData(unknown);
+	READ_DATA(unknown);
 	
 	while (balance) {
 		Uint8 type = 0;
-		ReadData(type);
+		READ_DATA(type);
 		
 		if (type & 0x80) {
 			midi_node_t *node = malloc(sizeof(midi_node_t));
@@ -246,14 +238,14 @@ xmi_process_EVNT(char *data, int length, midi_file_t *midi)
 				case 0xA0:
 				case 0xB0:
 				case 0xE0: {
-					ReadData(node->data1);
-					ReadData(node->data2);
+					READ_DATA(node->data1);
+					READ_DATA(node->data2);
 					if (0x90 == (type & 0xF0)) {
 						Uint8 data1 = node->data1;
 						list_insert_sorted(&midi->nodes, (list_elm_t*)node, list_less_func_midi_node);
 						node = malloc(sizeof(midi_node_t));
 						node->type = type;
-						ReadData(type);
+						READ_DATA(type);
 						node->time = type + time;
 						node->data1 = data1;
 						node->data2 = 0;
@@ -262,7 +254,7 @@ xmi_process_EVNT(char *data, int length, midi_file_t *midi)
 				}
 				case 0xC0:
 				case 0xD0: {
-					ReadData(node->data1);
+					READ_DATA(node->data1);
 					node->data2 = 0;
 					break;
 				}
@@ -271,14 +263,14 @@ xmi_process_EVNT(char *data, int length, midi_file_t *midi)
 					node = NULL;
 					if (0xFF == type) {
 						Uint8 length = 0;
-						ReadData(type);
-						ReadData(length);
+						READ_DATA(type);
+						READ_DATA(length);
 						if (0x51 == type) {
 							Uint32 tempo = 0;
 							for (int i = 0; i < length; i++) {
 								tempo = tempo << 8;
 								Uint8 byte = 0;
-								ReadData(byte);
+								READ_DATA(byte);
 								tempo |= byte;
 							}
 							if (0 == midi->tempo) {
@@ -306,8 +298,7 @@ xmi_process_EVNT(char *data, int length, midi_file_t *midi)
 	return length;
 }
 
-static
-void
+static void
 midi_grow(midi_file_t *midi, Uint8 **current)
 {
 	Uint8 *data = malloc(midi->size + 1024);
@@ -327,8 +318,8 @@ midi_grow(midi_file_t *midi, Uint8 **current)
 #define WRITE_BE16(X) {Uint16 val = X; val = htobe16(val); WRITE_DATA(val);}
 #define WRITE_BYTE(X) {if(midi->size <= (current-midi->data) + sizeof(X)) midi_grow(midi,&current); *current = (Uint8)X; current++;}
 
-Uint32
-midi_writeVariableSize(midi_file_t *midi, Uint8 **current, Uint64 val)
+static Uint32
+midi_write_variable_size(midi_file_t *midi, Uint8 **current, Uint64 val)
 {
 	Uint32 count = 1;
 	Uint32 buf = val & 0x7F;
@@ -346,8 +337,7 @@ midi_writeVariableSize(midi_file_t *midi, Uint8 **current, Uint64 val)
   return count;
 }
 
-static
-void*
+static void*
 midi_produce(midi_file_t *midi, size_t *size)
 {
 	Uint8 *current = midi->data;
@@ -374,7 +364,7 @@ midi_produce(midi_file_t *midi, size_t *size)
 	list_foreach(&midi->nodes, elm) {
 		i++;
 		midi_node_t *node = (midi_node_t*)elm;
-		midi_writeVariableSize(midi, &current, node->time - time);
+		midi_write_variable_size(midi, &current, node->time - time);
 		time = node->time;
 		WRITE_BYTE(node->type);
 		WRITE_BYTE(node->data1);
@@ -466,8 +456,7 @@ midi_start_play_randomly()
 	midi_play_track(track);
 }
 
-static
-void
+static void
 midi_track_finished()
 {
 	if (midi_enabled) {
