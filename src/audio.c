@@ -207,12 +207,25 @@ typedef struct {
 	Uint8  type;
 	Uint8  data1;
 	Uint8  data2;
+	char*  buffer;
 } midi_node_t;
 
 int
 list_less_func_midi_node(const list_elm_t *e1, const list_elm_t *e2)
 {
-	return ((midi_node_t*)e1)->time < ((midi_node_t*)e2)->time;
+	Uint64 time_left = ((midi_node_t*)e1)->time;
+	Uint64 time_right = ((midi_node_t*)e2)->time;
+	if (time_left < time_right) {
+		return 1;
+	}
+	if (time_left == time_right) {
+		if (((midi_node_t*)e1)->type != ((midi_node_t*)e2)->type) {
+			if (((midi_node_t*)e1)->type == 0xFF) {
+				return 1;
+			}
+		}
+	}
+	return 0;
 }
 
 static int
@@ -232,6 +245,7 @@ xmi_process_EVNT(char *data, int length, midi_file_t *midi)
 			midi_node_t *node = malloc(sizeof(midi_node_t));
 			node->time = time;
 			node->type = type;
+			node->buffer = NULL;
 			switch (type & 0xF0) {
 				case 0x80:
 				case 0x90:
@@ -259,15 +273,14 @@ xmi_process_EVNT(char *data, int length, midi_file_t *midi)
 					break;
 				}
 				case 0xF0: {
-					free(node);
-					node = NULL;
 					if (0xFF == type) {
-						Uint8 length = 0;
-						READ_DATA(type);
-						READ_DATA(length);
-						if (0x51 == type) {
+						READ_DATA(node->data1);
+						READ_DATA(node->data2);
+						node->buffer = data;
+						if (0x51 == node->data1) {
+							node->buffer = data;
 							Uint32 tempo = 0;
-							for (int i = 0; i < length; i++) {
+							for (int i = 0; i < node->data2; i++) {
 								tempo = tempo << 8;
 								Uint8 byte = 0;
 								READ_DATA(byte);
@@ -278,17 +291,15 @@ xmi_process_EVNT(char *data, int length, midi_file_t *midi)
 							}
 						}
 						else {
-							data += length;
-							balance -= length;
-							LOGW("Ignored extended node 0x%X", type);
+							data += node->data2;
+							balance -= node->data2;
 						}
 					}
 					break;
 				}
 			}
-			if (NULL != node) {
-				list_insert_sorted(&midi->nodes, (list_elm_t*)node, list_less_func_midi_node);
-			}
+
+			list_insert_sorted(&midi->nodes, (list_elm_t*)node, list_less_func_midi_node);
 		}
 		else {
 			time += type;
@@ -353,10 +364,6 @@ midi_produce(midi_file_t *midi, size_t *size)
 	WRITE_BE32(0x4D54726B);		// 'MTrk'
 	Uint64 size_pos = current - midi->data;
 	WRITE_BE32(0);					// Size reserved
-	WRITE_BYTE(0);					// Time
-	WRITE_BYTE(0xFF);				// Type
-	WRITE_BYTE(0x51);				// Extended type
-	WRITE_BE32(midi->tempo); *(current-4) = 3; // Tempo length and value
 
 	list_elm_t *elm;
 	Uint64 time = 0;
@@ -368,15 +375,20 @@ midi_produce(midi_file_t *midi, size_t *size)
 		time = node->time;
 		WRITE_BYTE(node->type);
 		WRITE_BYTE(node->data1);
-		if (((node->type & 0xF0) != 0xC0) && ((node->type & 0xF0) != 0xD0)){
+		if (((node->type & 0xF0) != 0xC0) && ((node->type & 0xF0) != 0xD0)) {
 			WRITE_BYTE(node->data2);
+			if (node->type == 0xFF) {
+				if (node->data2 > 0) {
+					if(midi->size <= (current-midi->data) + node->data2) {
+						midi_grow(midi,&current);
+					}
+					memcpy(current, node->buffer, node->data2);
+					current += node->data2;
+				}
+			}
 		}
 	}
 
-	WRITE_BYTE(0);					// Time
-	WRITE_BYTE(0xFF);				// Type
-	WRITE_BYTE(0x2F);				// Extended type
-	WRITE_BYTE(0x00);				// Length
 	*size = (Uint32)(current - midi->data);
 	Uint32 data_size = (Uint32)(*size - size_pos - 4);
 	current = midi->data + size_pos;
@@ -450,8 +462,8 @@ void
 midi_start_play_randomly()
 {
 	srand((unsigned int)time(NULL));
-	int track = rand() % 5;
-	track = (track == 5) ? 3 : track;
+	int track = rand() % 3;
+	track = (track == 3) ? 4 : track;
 
 	midi_play_track(track);
 }
