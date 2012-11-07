@@ -11590,6 +11590,7 @@ main(int argc, char *argv[])
 	deep_tree();
 
 	/* Clean up */
+	audio_cleanup();
 	sdl_deinit();
 	gfx_unload();
 

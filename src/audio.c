@@ -17,10 +17,17 @@
 typedef struct {
 	list_elm_t elm;
 	int num;
-	Mix_Chunk chunk;
+	Mix_Chunk *chunk;
 } audio_clip_t;
 
+typedef struct {
+	list_elm_t elm;
+	int num;
+	Mix_Music *music;
+} track_t;
+
 static list_t sfx_clips_to_play;
+static list_t midi_tracks;
 static int initialized = 0;
 static int sfx_enabled = 1;
 static int midi_enabled = 1;
@@ -32,8 +39,9 @@ static void
 sfx_init()
 {
 	list_init(&sfx_clips_to_play);
+	list_init(&midi_tracks);
 
-	int r = Mix_OpenAudio(8000, AUDIO_U8, 1, 4096);
+	int r = Mix_OpenAudio(8000, AUDIO_U8, 2, 512);
 	if (r < 0) {
 		LOGE("Could not open audio device: %s\n", Mix_GetError());
 		return;
@@ -44,10 +52,65 @@ sfx_init()
 	initialized = 1;
 }
 
+void
+audio_cleanup()
+{
+	while (!list_is_empty(&sfx_clips_to_play)) {
+		list_elm_t *elm = list_remove_head(&sfx_clips_to_play);
+		audio_clip_t *audio_clip = (audio_clip_t*)elm;
+		Mix_FreeChunk(audio_clip->chunk);
+		free(elm);
+	}
+
+	while (!list_is_empty(&midi_tracks)) {
+		list_elm_t *elm = list_remove_head(&midi_tracks);
+		track_t *track = (track_t*)elm;
+		Mix_FreeMusic(track->music);
+		free(elm);
+	}
+}
+
 int
 list_less_func_sfx(const list_elm_t *e1, const list_elm_t *e2)
 {
 	return ((audio_clip_t*)e1)->num < ((audio_clip_t*)e2)->num;
+}
+
+#define WRITE_DATA_WG(X) {memcpy(current, &X, sizeof(X)); current+=sizeof(X);};
+#define WRITE_BE32_WG(X) {Uint32 val = X; val = htobe32(val); WRITE_DATA_WG(val);}
+#define WRITE_LE32_WG(X) {Uint32 val = X; val = htole32(val); WRITE_DATA_WG(val);}
+#define WRITE_BE16_WG(X) {Uint16 val = X; val = htobe16(val); WRITE_DATA_WG(val);}
+#define WRITE_LE16_WG(X) {Uint16 val = X; val = htole16(val); WRITE_DATA_WG(val);}
+#define WRITE_BYTE_WG(X) {*current = (Uint8)X; current++;}
+
+static char *
+sfx_produce_wav(char* data, Uint32 size)
+{
+	char *result = malloc(44 + size);
+	char *current = result;
+
+	// WAVE header
+	WRITE_BE32_WG(0x52494646);	// 'RIFF'
+	WRITE_BE32_WG(36 + size);		// Chunks size
+	WRITE_BE32_WG(0x57415645);	// 'WAVE'
+
+	// Subchunk #1
+	WRITE_BE32_WG(0x666d7420);	// 'fmt '
+	WRITE_LE32_WG(16);					// Subchunk size
+	WRITE_LE16_WG(1);						// Format = PCM
+	WRITE_LE16_WG(1);						// Chanels count
+	WRITE_LE32_WG(8000);				// Rate
+	WRITE_LE32_WG(8000);				// Byte rate
+	WRITE_LE16_WG(1);						// Black align
+	WRITE_LE16_WG(8);						// Bits per sample
+
+	// Subchunk #2
+	WRITE_BE32_WG(0x64617461);	// 'data'
+	WRITE_LE32_WG(size);				// Data size
+	memcpy(current, data, size);
+	current = result + 4;
+
+	return result;
 }
 
 void
@@ -78,15 +141,21 @@ enqueue_sfx_clip(sfx_t sfx)
 		audio_clip->num = sfx;
 
 		size_t size = 0;
-		audio_clip->chunk.abuf = gfx_get_data_object(DATA_SFX_BASE + sfx, &size);
-		audio_clip->chunk.alen = (int)size;
-		audio_clip->chunk.allocated = 0;
-		audio_clip->chunk.volume = 128;
+		char *data = gfx_get_data_object(DATA_SFX_BASE + sfx, &size);
 
 		list_insert_sorted(&sfx_clips_to_play, (list_elm_t*)audio_clip, list_less_func_sfx);
+		char *wav = sfx_produce_wav(data, (int)size);
+
+		SDL_RWops *rw = SDL_RWFromMem(wav, (int)size + 44);
+		audio_clip->chunk = Mix_LoadWAV_RW(rw, 0);
+		if(!audio_clip->chunk) {
+			LOGE("Mix_LoadWAV_RW: %s\n", Mix_GetError());
+			// handle error
+		}
+		free(wav);
 	}
 
-	int r = Mix_PlayChannel(-1, &(audio_clip->chunk), 0);
+	int r = Mix_PlayChannel(-1, audio_clip->chunk, 0);
 	if (r < 0) {
 		LOGE("Could not play SFX clip: %s\n", Mix_GetError());
 		return;
@@ -365,12 +434,11 @@ midi_produce(midi_file_t *midi, size_t *size)
 	Uint64 size_pos = current - midi->data;
 	WRITE_BE32(0);					// Size reserved
 
-	list_elm_t *elm;
 	Uint64 time = 0;
 	int i = 0;
-	list_foreach(&midi->nodes, elm) {
+	while (!list_is_empty(&midi->nodes)) {
 		i++;
-		midi_node_t *node = (midi_node_t*)elm;
+		midi_node_t *node = (midi_node_t*)list_remove_head(&midi->nodes);
 		midi_write_variable_size(midi, &current, node->time - time);
 		time = node->time;
 		WRITE_BYTE(node->type);
@@ -387,6 +455,7 @@ midi_produce(midi_file_t *midi, size_t *size)
 				}
 			}
 		}
+		free(node);
 	}
 
 	*size = (Uint32)(current - midi->data);
@@ -411,27 +480,45 @@ midi_play_track(midi_t midi)
 		}
 	}
 
-	size_t size = 0;
-	char *data = gfx_get_data_object(DATA_MUSIC_GAME + midi, &size);
-	if (NULL == data) {
-		return;
+	track_t *track = NULL;
+	list_elm_t *elm;
+	list_foreach(&midi_tracks, elm) {
+		if (midi == ((track_t*)elm)->num) {
+			track = (track_t*)elm;
+		}
+	}
+	
+	if (NULL == track) {
+		track = (track_t*)malloc(sizeof(track_t));
+		track->num = midi;
+
+		size_t size = 0;
+		char *data = gfx_get_data_object(DATA_MUSIC_GAME + midi, &size);
+		if (NULL == data) {
+			free(track);
+			return;
+		}
+		
+		midi_file_t midi_file;
+		list_init(&midi_file.nodes);
+		midi_file.tempo = 0;
+		midi_file.data = NULL;
+		midi_file.size = 0;
+		
+		xmi_process_subchunks(data, (int)size, &midi_file);
+		data = midi_produce(&midi_file, &size);
+		
+		SDL_RWops *rw = SDL_RWFromMem(data, (int)size);
+		track->music = Mix_LoadMUS_RW(rw);
+		if (NULL == track->music) {
+			free(track);
+			return;
+		}
+
+		list_append(&midi_tracks, (list_elm_t*)track);
 	}
 
-	midi_file_t midi_file;
-	list_init(&midi_file.nodes);
-	midi_file.tempo = 0;
-	midi_file.data = NULL;
-	midi_file.size = 0;
-
-	xmi_process_subchunks(data, (int)size, &midi_file);
-	data = midi_produce(&midi_file, &size);
-
-	SDL_RWops *rw = SDL_RWFromMem(data, (int)size);
-	Mix_Music *music = Mix_LoadMUS_RW(rw);
-	if (NULL == music) {
-		return;
-	}
-	int r = Mix_PlayMusic(music, 0);
+	int r = Mix_PlayMusic(track->music, 0);
 	if (r < 0) {
 		LOGE("Could not play MIDI track: %s\n", Mix_GetError());
 		return;
