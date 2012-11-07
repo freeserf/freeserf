@@ -70,7 +70,7 @@ audio_cleanup()
 	}
 }
 
-int
+static int
 list_less_func_sfx(const list_elm_t *e1, const list_elm_t *e2)
 {
 	return ((audio_clip_t*)e1)->num < ((audio_clip_t*)e2)->num;
@@ -281,7 +281,7 @@ typedef struct {
 	char*  buffer;
 } midi_node_t;
 
-int
+static int
 list_less_func_midi_node(const list_elm_t *e1, const list_elm_t *e2)
 {
 	uint64_t time_left = ((midi_node_t*)e1)->time;
