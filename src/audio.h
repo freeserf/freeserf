@@ -22,7 +22,7 @@ typedef enum {
 	SFX_UNKNOWN_10 = 36,
 	SFX_ELEVATOR = 38,
 	SFX_HAMMER_BLOW = 40,
-	SFX_SAWING = 42, // wrong! it's not a rustle :) sawing SFX_MILL_RUSTLE
+	SFX_SAWING = 42, /* wrong! it's not a rustle :) sawing SFX_MILL_RUSTLE */
 	SFX_UNKNOWN_14 = 43,
 	SFX_BACKSWORD_BLOW = 44,
 	SFX_UNKNOWN_16 = 46,
