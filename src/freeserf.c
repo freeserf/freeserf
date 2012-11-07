@@ -25,6 +25,7 @@
 #include "debug.h"
 #include "log.h"
 #include "audio.h"
+#include "version.h"
 
 /* TODO This file is one big of mess of all the things that should really
    be separated out into smaller files.  */
@@ -11496,6 +11497,8 @@ main(int argc, char *argv[])
 	int game_map = 1;
 	int map_generator = 0;
 	int preserve_map_bugs = 0;
+
+	LOGI("freeserf %s", FREESERF_VERSION);
 
 	int opt;
 	while (1) {
