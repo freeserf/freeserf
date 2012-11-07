@@ -11571,9 +11571,9 @@ main(int argc, char *argv[])
 	r = sdl_init();
 	if (r < 0) exit(EXIT_FAILURE);
 
-	// ToDo: move to right place
-	midi_start_play_randomly();
-	
+	/* TODO move to right place */
+	midi_play_track(MIDI_TRACK_0);
+
 	/*gfx_set_palette(DATA_PALETTE_INTRO);*/
 	gfx_set_palette(DATA_PALETTE_GAME);
 
@@ -11587,8 +11587,6 @@ main(int argc, char *argv[])
 	globals.mission_level = game_map - 1; /* set game map */
 	globals.map_generator = map_generator;
 	globals.map_preserve_bugs = preserve_map_bugs;
-
-	/*sdl_audio_init();*/
 
 	deep_tree();
 

@@ -63,7 +63,6 @@ int sfx_is_enabled();
 
 /* Play music. */
 void midi_play_track(midi_t midi);
-void midi_start_play_randomly();
 void midi_enable(int enable);
 int midi_is_enabled();
 

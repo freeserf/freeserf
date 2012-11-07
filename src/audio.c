@@ -31,6 +31,7 @@ static list_t midi_tracks;
 static int initialized = 0;
 static int sfx_enabled = 1;
 static int midi_enabled = 1;
+static midi_t current_track = -1;
 
 static void
 midi_track_finished();
@@ -490,6 +491,8 @@ midi_play_track(midi_t midi)
 		}
 	}
 	
+	current_track = midi;
+
 	if (NULL == track) {
 		track = (track_t*)malloc(sizeof(track_t));
 		track->num = midi;
@@ -534,9 +537,10 @@ midi_enable(int enable)
 {
 	midi_enabled = enable;
 	if (0 != enable) {
-		midi_start_play_randomly();
-	}
-	else {
+		if (current_track != -1) {
+			midi_play_track(current_track);
+		}
+	} else {
 		Mix_HaltMusic();
 	}
 }
@@ -547,20 +551,10 @@ midi_is_enabled()
 	return midi_enabled;
 }
 
-void
-midi_start_play_randomly()
-{
-	srand((unsigned int)time(NULL));
-	int track = rand() % 3;
-	track = (track == 3) ? 4 : track;
-
-	midi_play_track(track);
-}
-
 static void
 midi_track_finished()
 {
 	if (midi_enabled) {
-		midi_start_play_randomly();
+		midi_play_track(current_track);
 	}
 }
