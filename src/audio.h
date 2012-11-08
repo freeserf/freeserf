@@ -22,7 +22,7 @@ typedef enum {
 	SFX_UNKNOWN_10 = 36,
 	SFX_ELEVATOR = 38,
 	SFX_HAMMER_BLOW = 40,
-	SFX_SAWING = 42, // wrong! it's not a rustle :) sawing SFX_MILL_RUSTLE
+	SFX_SAWING = 42, /* wrong! it's not a rustle :) sawing SFX_MILL_RUSTLE */
 	SFX_UNKNOWN_14 = 43,
 	SFX_BACKSWORD_BLOW = 44,
 	SFX_UNKNOWN_16 = 46,
@@ -57,13 +57,12 @@ typedef enum {
 void audio_cleanup();
 
 /* Play sound. */
-void enqueue_sfx_clip(sfx_t sfx);
+void sfx_play_clip(sfx_t sfx);
 void sfx_enable(int enable);
 int sfx_is_enabled();
 
 /* Play music. */
 void midi_play_track(midi_t midi);
-void midi_start_play_randomly();
 void midi_enable(int enable);
 int midi_is_enabled();
 

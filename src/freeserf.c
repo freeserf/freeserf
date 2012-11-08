@@ -285,7 +285,7 @@ draw_player_panel_btns(player_t *player)
 				while (player->sett->msg_queue_type[0] != 0) {
 					int type = player->sett->msg_queue_type[0] & 0x1f;
 					if (BIT_TEST(player->config, msg_category[type])) {
-						enqueue_sfx_clip(SFX_MESSAGE);
+						sfx_play_clip(SFX_MESSAGE);
 						if (!BIT_TEST(player->msg_flags, 0)) {
 							player->msg_flags |= BIT(0);
 							draw_message_notify(player);
@@ -5081,7 +5081,7 @@ build_building(player_t *player, map_obj_t obj_type)
 
 	building_type_t bld_type = globals.building_type;
 
-	enqueue_sfx_clip(SFX_ACCEPTED);
+	sfx_play_clip(SFX_ACCEPTED);
 	player->click |= BIT(2);
 
 	if (bld_type == BUILDING_STOCK) {
@@ -5188,7 +5188,7 @@ build_mine_building(player_t *player)
 		if (player->sett->panel_btn_type == PANEL_BTN_BUILD_MINE &&
 		    BIT_TEST(player->click, 3)) { /* Special click */
 			close_box(player);
-			enqueue_sfx_clip(SFX_ACCEPTED);
+			sfx_play_clip(SFX_ACCEPTED);
 			/* sub_58DA8(player->sett->map_cursor_col, player->sett->map_cursor_row); */
 			/* sub_41D58(); */
 		}
@@ -5198,7 +5198,7 @@ build_mine_building(player_t *player)
 		    (player->sett->map_cursor_type != 7 &&
 		     player->sett->map_cursor_type != 6 &&
 		     player->sett->map_cursor_type != 5)) {
-			enqueue_sfx_clip(SFX_NOT_ACCEPTED);
+			sfx_play_clip(SFX_NOT_ACCEPTED);
 			update_panel_btns_and_map_cursor(player);
 		} else {
 			build_building(player, MAP_OBJ_SMALL_BUILDING);
@@ -5216,7 +5216,7 @@ build_basic_building(player_t *player)
 		if (player->sett->panel_btn_type >= PANEL_BTN_BUILD_SMALL &&
 		    BIT_TEST(player->click, 3)) { /* Special click */
 			close_box(player);
-			enqueue_sfx_clip(SFX_ACCEPTED);
+			sfx_play_clip(SFX_ACCEPTED);
 			/* sub_58DA8(player->sett->map_cursor_col, player->sett->map_cursor_row); */
 			/* sub_41D58(); */
 		}
@@ -5226,7 +5226,7 @@ build_basic_building(player_t *player)
 		    (player->sett->map_cursor_type != 7 &&
 		     player->sett->map_cursor_type != 6 &&
 		     player->sett->map_cursor_type != 5)) {
-			enqueue_sfx_clip(SFX_NOT_ACCEPTED);
+			sfx_play_clip(SFX_NOT_ACCEPTED);
 			update_panel_btns_and_map_cursor(player);
 		} else {
 			build_building(player, MAP_OBJ_SMALL_BUILDING);
@@ -5244,7 +5244,7 @@ build_advanced_building(player_t *player)
 		if (player->sett->panel_btn_type >= PANEL_BTN_BUILD_LARGE &&
 		    BIT_TEST(player->click, 3)) { /* Special click */
 			close_box(player);
-			enqueue_sfx_clip(SFX_ACCEPTED);
+			sfx_play_clip(SFX_ACCEPTED);
 			/* sub_58DA8(player->sett->map_cursor_col, player->sett->map_cursor_row); */
 			/* sub_41D58(); */
 		}
@@ -5254,7 +5254,7 @@ build_advanced_building(player_t *player)
 		    (player->sett->map_cursor_type != 7 &&
 		     player->sett->map_cursor_type != 6 &&
 		     player->sett->map_cursor_type != 5)) {
-			enqueue_sfx_clip(SFX_NOT_ACCEPTED);
+			sfx_play_clip(SFX_NOT_ACCEPTED);
 			update_panel_btns_and_map_cursor(player);
 		} else {
 			build_building(player, MAP_OBJ_LARGE_BUILDING);
@@ -5490,13 +5490,13 @@ build_castle(player_t *player)
 
 	if (player->sett->panel_btn_type != PANEL_BTN_BUILD_CASTLE ||
 	    player->sett->map_cursor_type != 7) {
-		enqueue_sfx_clip(SFX_NOT_ACCEPTED);
+		sfx_play_clip(SFX_NOT_ACCEPTED);
 		update_panel_btns_and_map_cursor(player);
 		return;
 	}
 
 	player->flags &= ~BIT(6);
-	enqueue_sfx_clip(SFX_ACCEPTED);
+	sfx_play_clip(SFX_ACCEPTED);
 	if (BIT_TEST(globals.split, 6)) {
 		/* Coop mode */
 	} else {
@@ -6252,11 +6252,11 @@ do_demolish(player_t *player)
 			/* TODO */
 		}
 
-		enqueue_sfx_clip(SFX_AHHH);
+		sfx_play_clip(SFX_AHHH);
 		player->click |= BIT(2);
 		building_demolish(cursor_pos);
 	} else {
-		enqueue_sfx_clip(SFX_NOT_ACCEPTED);
+		sfx_play_clip(SFX_NOT_ACCEPTED);
 		update_panel_btns_and_map_cursor(player);
 	}
 }
@@ -6268,13 +6268,13 @@ handle_panel_btn_click(player_t *player, int btn)
 	switch (player->panel_btns[btn]) {
 		case PANEL_BTN_MAP:
 		case PANEL_BTN_MAP_STARRED:
-			enqueue_sfx_clip(SFX_CLICK);
+			sfx_play_clip(SFX_CLICK);
 			/* TODO */
 			LOGD("map");
 			break;
 		case PANEL_BTN_SETT:
 		case PANEL_BTN_SETT_STARRED:
-			enqueue_sfx_clip(SFX_CLICK);
+			sfx_play_clip(SFX_CLICK);
 			if (BIT_TEST(player->click, 6)) { /* Popup open */
 				close_box(player);
 			} else {
@@ -6295,7 +6295,7 @@ handle_panel_btn_click(player_t *player, int btn)
 			break;
 		case PANEL_BTN_STATS:
 		case PANEL_BTN_STATS_STARRED:
-			enqueue_sfx_clip(SFX_CLICK);
+			sfx_play_clip(SFX_CLICK);
 			if (BIT_TEST(player->click, 6)) { /* Popup open */
 				close_box(player);
 			} else {
@@ -6315,7 +6315,7 @@ handle_panel_btn_click(player_t *player, int btn)
 			if (BIT_TEST(player->click, 3)) { /* Special click */
 				/* TODO */
 			} else {
-				enqueue_sfx_clip(SFX_CLICK);
+				sfx_play_clip(SFX_CLICK);
 				if (BIT_TEST(player->click, 6)) { /* Popup open (Building road) */
 					build_road_end(player);
 				} else {
@@ -6327,7 +6327,7 @@ handle_panel_btn_click(player_t *player, int btn)
 			if (BIT_TEST(player->click, 3)) { /* Special click */
 				/* TODO */
 			} else {
-				enqueue_sfx_clip(SFX_CLICK);
+				sfx_play_clip(SFX_CLICK);
 				build_flag(player);
 			}
 			break;
@@ -6336,7 +6336,7 @@ handle_panel_btn_click(player_t *player, int btn)
 			if (BIT_TEST(player->click, 3)) { /* Special click */
 				/* TODO */
 			} else {
-				enqueue_sfx_clip(SFX_CLICK);
+				sfx_play_clip(SFX_CLICK);
 				if (BIT_TEST(player->click, 6)) { /* Popup open */
 					close_box(player);
 				} else {
@@ -6356,7 +6356,7 @@ handle_panel_btn_click(player_t *player, int btn)
 			if (BIT_TEST(player->click, 3)) { /* Special click */
 				/* TODO */
 			} else {
-				enqueue_sfx_clip(SFX_CLICK);
+				sfx_play_clip(SFX_CLICK);
 				if (BIT_TEST(player->click, 6)) { /* Popup open */
 					close_box(player);
 				} else {
@@ -6376,7 +6376,7 @@ handle_panel_btn_click(player_t *player, int btn)
 			if (BIT_TEST(player->click, 3)) { /* Special click */
 				/* TODO */
 			} else {
-				enqueue_sfx_clip(SFX_CLICK);
+				sfx_play_clip(SFX_CLICK);
 				if (BIT_TEST(player->click, 6)) { /* Popup open */
 					close_box(player);
 				} else {
@@ -6420,21 +6420,21 @@ handle_panel_btn_click(player_t *player, int btn)
 				player->flags &= ~BIT(6);
 				determine_map_cursor_type(player);
 				if (player->sett->map_cursor_type == 4) {
-					enqueue_sfx_clip(SFX_ACCEPTED);
+					sfx_play_clip(SFX_ACCEPTED);
 					player->click |= BIT(2);
 
 					map_pos_t cursor_pos = MAP_POS(player->sett->map_cursor_col,
 								       player->sett->map_cursor_row);
 					road_demolish(cursor_pos);
 				} else {
-					enqueue_sfx_clip(SFX_NOT_ACCEPTED);
+					sfx_play_clip(SFX_NOT_ACCEPTED);
 					update_panel_btns_and_map_cursor(player);
 				}
 			}
 			break;
 		case PANEL_BTN_GROUND_ANALYSIS:
 		case PANEL_BTN_GROUND_ANALYSIS_STARRED:
-			enqueue_sfx_clip(SFX_CLICK);
+			sfx_play_clip(SFX_CLICK);
 			if (BIT_TEST(player->click, 6)) { /* Popup open */
 				close_box(player);
 			} else {
@@ -6681,9 +6681,9 @@ handle_send_geologist(player_t *player)
 	flag_t *flag = get_flag(flag_index);
 	int r = send_geologist(flag, flag_index);
 	if (r < 0) {
-		enqueue_sfx_clip(SFX_NOT_ACCEPTED);
+		sfx_play_clip(SFX_NOT_ACCEPTED);
 	} else {
-		enqueue_sfx_clip(SFX_ACCEPTED);
+		sfx_play_clip(SFX_ACCEPTED);
 		close_box(player);
 	}
 }
@@ -6806,8 +6806,8 @@ sett_8_train(player_t *player, int number)
 {
 	int r = promote_serfs_to_knights(player->sett, number);
 
-	if (r == 0) enqueue_sfx_clip(SFX_NOT_ACCEPTED);
-	else enqueue_sfx_clip(SFX_ACCEPTED);
+	if (r == 0) sfx_play_clip(SFX_NOT_ACCEPTED);
+	else sfx_play_clip(SFX_ACCEPTED);
 
 	player->box = player->clkmap;
 }
@@ -6819,7 +6819,7 @@ handle_clickmap(player_t *player, int x, int y, const int clkmap[])
 	while (clkmap[0] > 0) {
 		if (clkmap[1] <= x && x <= clkmap[2] &&
 		    clkmap[3] <= y && y <= clkmap[4]) {
-			enqueue_sfx_clip(SFX_CLICK);
+			sfx_play_clip(SFX_CLICK);
 
 			action_t action = clkmap[0];
 			switch (action) {
@@ -7245,7 +7245,7 @@ handle_clickmap(player_t *player, int x, int y, const int clkmap[])
 			case ACTION_SETT_8_CYCLE:
 				player->sett->flags |= BIT(2) | BIT(4);
 				player->sett->field_170 = 1200;
-				enqueue_sfx_clip(SFX_ACCEPTED);
+				sfx_play_clip(SFX_ACCEPTED);
 				break;
 				/* TODO */
 			case ACTION_DEFAULT_SETT_1:
@@ -7318,12 +7318,12 @@ handle_clickmap(player_t *player, int x, int y, const int clkmap[])
 			case ACTION_SETT_8_SET_COMBAT_MODE_WEAK:
 				player->sett->flags &= ~BIT(1);
 				player->box = player->clkmap;
-				enqueue_sfx_clip(SFX_ACCEPTED);
+				sfx_play_clip(SFX_ACCEPTED);
 				break;
 			case ACTION_SETT_8_SET_COMBAT_MODE_STRONG:
 				player->sett->flags |= BIT(1);
 				player->box = player->clkmap;
-				enqueue_sfx_clip(SFX_ACCEPTED);
+				sfx_play_clip(SFX_ACCEPTED);
 				break;
 				/* TODO ... */
 			case ACTION_CLOSE_MESSAGE:
@@ -8037,7 +8037,7 @@ handle_bottom_panel_click(player_t *player, int x, int y)
 				if ((BIT_TEST(globals.split, 6) && /* Coop mode */
 				     BIT_TEST(player->click, 0)) ||
 				    player->sett->timers_count >= 64) {
-					enqueue_sfx_clip(SFX_NOT_ACCEPTED);
+					sfx_play_clip(SFX_NOT_ACCEPTED);
 					return;
 				}
 
@@ -8060,7 +8060,7 @@ handle_bottom_panel_click(player_t *player, int x, int y)
 					/* TODO */
 				}
 
-				enqueue_sfx_clip(SFX_ACCEPTED);
+				sfx_play_clip(SFX_ACCEPTED);
 			}
 		}
 	} else {
@@ -8070,14 +8070,14 @@ handle_bottom_panel_click(player_t *player, int x, int y)
 				/* Message icon */
 				if (!BIT_TEST(player->msg_flags, 0) || /* No message */
 				    BIT_TEST(player->click, 7)) { /* Building road */
-					enqueue_sfx_clip(SFX_CLICK);
+					sfx_play_clip(SFX_CLICK);
 				} else if (player->clkmap == BOX_LOAD_ARCHIVE ||
 					   player->clkmap == BOX_LOAD_SAVE ||
 					   player->clkmap == BOX_DISK_MSG ||
 					   player->clkmap == BOX_QUIT_CONFIRM ||
 					   player->clkmap == BOX_NO_SAVE_QUIT_CONFIRM ||
 					   player->clkmap == BOX_OPTIONS) {
-					enqueue_sfx_clip(SFX_NOT_ACCEPTED);
+					sfx_play_clip(SFX_NOT_ACCEPTED);
 				} else {
 					player->flags &= ~BIT(6);
 					if (!BIT_TEST(player->msg_flags, 3)) {
@@ -8091,7 +8091,7 @@ handle_bottom_panel_click(player_t *player, int x, int y)
 					handle_message_icon_click(player);
 					player->msg_flags |= BIT(1);
 					player->return_timeout = 2000;
-					enqueue_sfx_clip(SFX_CLICK);
+					sfx_play_clip(SFX_CLICK);
 				}
 			} else if (y >= 28) {
 				/* Return arrow */
@@ -8104,7 +8104,7 @@ handle_bottom_panel_click(player_t *player, int x, int y)
 								 player->return_row_game_area);
 
 					if (player->clkmap == BOX_MESSAGE) close_box(player);
-					enqueue_sfx_clip(SFX_CLICK);
+					sfx_play_clip(SFX_CLICK);
 				}
 			}
 		}
@@ -8157,7 +8157,7 @@ handle_map_click(player_t *player, int x, int y)
 								/* 3AC0A */
 								int r = build_road_connect_flag(player, map, clk_pos, dir_rev);
 								if (r < 0) {
-									enqueue_sfx_clip(SFX_NOT_ACCEPTED);
+									sfx_play_clip(SFX_NOT_ACCEPTED);
 								} else {
 									player->sett->map_cursor_col = clk_col;
 									player->sett->map_cursor_row = clk_row;
@@ -8165,14 +8165,14 @@ handle_map_click(player_t *player, int x, int y)
 									map[clk_pos].flags |= BIT(dir_rev);
 									player->road_length = 0;
 									/* redraw map cursor */
-									enqueue_sfx_clip(SFX_ACCEPTED);
+									sfx_play_clip(SFX_ACCEPTED);
 								}
 								build_road_end(player);
 							} else {
 								player->road_length += 1;
 								map[pos].flags |= BIT(dir);
 								map[clk_pos].flags |= BIT(dir_rev);
-								enqueue_sfx_clip(SFX_CLICK);
+								sfx_play_clip(SFX_CLICK);
 
 								/* loc_3AD32 */
 								player->sett->map_cursor_col = clk_col;
@@ -8191,7 +8191,7 @@ handle_map_click(player_t *player, int x, int y)
 							/* 3AC0A */
 							int r = build_road_connect_flag(player, map, clk_pos, dir_rev);
 							if (r < 0) {
-								enqueue_sfx_clip(SFX_NOT_ACCEPTED);
+								sfx_play_clip(SFX_NOT_ACCEPTED);
 							} else {
 								player->sett->map_cursor_col = clk_col;
 								player->sett->map_cursor_row = clk_row;
@@ -8199,7 +8199,7 @@ handle_map_click(player_t *player, int x, int y)
 								map[clk_pos].flags |= BIT(dir_rev);
 								player->road_length = 0;
 								/* redraw map cursor */
-								enqueue_sfx_clip(SFX_ACCEPTED);
+								sfx_play_clip(SFX_ACCEPTED);
 							}
 							build_road_end(player);
 						} else { /* No flag at dest */
@@ -8207,7 +8207,7 @@ handle_map_click(player_t *player, int x, int y)
 								/* TODO ... */
 							} else {
 								player->click |= BIT(2);
-								enqueue_sfx_clip(SFX_NOT_ACCEPTED);
+								sfx_play_clip(SFX_NOT_ACCEPTED);
 							}
 						}
 					}
@@ -8215,7 +8215,7 @@ handle_map_click(player_t *player, int x, int y)
 					player->road_length -= 1;
 					map[pos].flags &= ~BIT(dir);
 					map[clk_pos].flags &= ~BIT(dir_rev);
-					enqueue_sfx_clip(SFX_CLICK);
+					sfx_play_clip(SFX_CLICK);
 
 					/* loc_3AD32 */
 					player->sett->map_cursor_col = clk_col;
@@ -8230,7 +8230,7 @@ handle_map_click(player_t *player, int x, int y)
 				}
 			} else {
 				player->click |= BIT(2);
-				enqueue_sfx_clip(SFX_NOT_ACCEPTED);
+				sfx_play_clip(SFX_NOT_ACCEPTED);
 			}
 		} else if (BIT_TEST(player->config, 2)) { /* Fast building */
 			/* TODO ... */
@@ -11571,9 +11571,9 @@ main(int argc, char *argv[])
 	r = sdl_init();
 	if (r < 0) exit(EXIT_FAILURE);
 
-	// ToDo: move to right place
-	midi_start_play_randomly();
-	
+	/* TODO move to right place */
+	midi_play_track(MIDI_TRACK_0);
+
 	/*gfx_set_palette(DATA_PALETTE_INTRO);*/
 	gfx_set_palette(DATA_PALETTE_GAME);
 
@@ -11588,11 +11588,10 @@ main(int argc, char *argv[])
 	globals.map_generator = map_generator;
 	globals.map_preserve_bugs = preserve_map_bugs;
 
-	/*sdl_audio_init();*/
-
 	deep_tree();
 
 	/* Clean up */
+	audio_cleanup();
 	sdl_deinit();
 	gfx_unload();
 
