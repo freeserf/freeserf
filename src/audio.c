@@ -148,7 +148,7 @@ sfx_play_clip(sfx_t sfx)
 		SDL_RWops *rw = SDL_RWFromMem(wav, (int)size + 44);
 		audio_clip->chunk = Mix_LoadWAV_RW(rw, 0);
 		free(wav);
-		if(!audio_clip->chunk) {
+		if (!audio_clip->chunk) {
 			LOGE("Mix_LoadWAV_RW: %s\n", Mix_GetError());
 			free(audio_clip);
 			return;
@@ -205,7 +205,7 @@ static chunk_info_t xmi_processors[] = {
 	{ 0x584D4944, xmi_process_single },	/* 'XMID' */
 	{ 0x54494D42, xmi_process_TIMB   },	/* 'TIMB' */
 	{ 0x45564E54, xmi_process_EVNT   },	/* 'EVNT' */
-} ;
+};
 
 static int
 xmi_process_multi(char *data, int length, midi_file_t *midi)
@@ -262,8 +262,6 @@ xmi_process_INFO(char *data, int length, midi_file_t *midi)
 	return 6;
 }
 
-#define READ_DATA(X) {X = *data; data += sizeof(X); balance -= sizeof(X); };
-
 static int
 xmi_process_TIMB(char *data, int length, midi_file_t *midi)
 {
@@ -302,6 +300,8 @@ list_less_func_midi_node(const list_elm_t *e1, const list_elm_t *e2)
 static int
 xmi_process_EVNT(char *data, int length, midi_file_t *midi)
 {
+#define READ_DATA(X) {X = *data; data += sizeof(X); balance -= sizeof(X); };
+
 	int balance = length;
 	Uint64 time = 0;
 
@@ -317,62 +317,58 @@ xmi_process_EVNT(char *data, int length, midi_file_t *midi)
 			node->time = time;
 			node->type = type;
 			node->buffer = NULL;
+
 			switch (type & 0xF0) {
-				case 0x80:
-				case 0x90:
-				case 0xA0:
-				case 0xB0:
-				case 0xE0: {
+			case 0x80:
+			case 0x90:
+			case 0xA0:
+			case 0xB0:
+			case 0xE0:
+				READ_DATA(node->data1);
+				READ_DATA(node->data2);
+				if (0x90 == (type & 0xF0)) {
+					uint8_t data1 = node->data1;
+					list_insert_sorted(&midi->nodes, (list_elm_t*)node, list_less_func_midi_node);
+					node = malloc(sizeof(midi_node_t));
+					node->type = type;
+					READ_DATA(type);
+					node->time = type + time;
+					node->data1 = data1;
+					node->data2 = 0;
+				}
+				break;
+			case 0xC0:
+			case 0xD0:
+				READ_DATA(node->data1);
+				node->data2 = 0;
+				break;
+			case 0xF0:
+				if (0xFF == type) {
 					READ_DATA(node->data1);
 					READ_DATA(node->data2);
-					if (0x90 == (type & 0xF0)) {
-						uint8_t data1 = node->data1;
-						list_insert_sorted(&midi->nodes, (list_elm_t*)node, list_less_func_midi_node);
-						node = malloc(sizeof(midi_node_t));
-						node->type = type;
-						READ_DATA(type);
-						node->time = type + time;
-						node->data1 = data1;
-						node->data2 = 0;
-					}
-					break;
-				}
-				case 0xC0:
-				case 0xD0: {
-					READ_DATA(node->data1);
-					node->data2 = 0;
-					break;
-				}
-				case 0xF0: {
-					if (0xFF == type) {
-						READ_DATA(node->data1);
-						READ_DATA(node->data2);
+					node->buffer = data;
+					if (0x51 == node->data1) {
 						node->buffer = data;
-						if (0x51 == node->data1) {
-							node->buffer = data;
-							uint32_t tempo = 0;
-							for (int i = 0; i < node->data2; i++) {
-								tempo = tempo << 8;
-								uint8_t byte = 0;
-								READ_DATA(byte);
-								tempo |= byte;
-							}
-							if (0 == midi->tempo) {
-								midi->tempo = tempo;
-							}
+						uint32_t tempo = 0;
+						for (int i = 0; i < node->data2; i++) {
+							tempo = tempo << 8;
+							uint8_t byte = 0;
+							READ_DATA(byte);
+							tempo |= byte;
 						}
-						else {
-							data += node->data2;
-							balance -= node->data2;
+						if (0 == midi->tempo) {
+							midi->tempo = tempo;
 						}
+					} else {
+						data += node->data2;
+						balance -= node->data2;
 					}
-					break;
 				}
+				break;
 			}
 
 			list_insert_sorted(&midi->nodes, (list_elm_t*)node, list_less_func_midi_node);
-		}
-		else {
+		} else {
 			time += type;
 		}
 	}
@@ -394,12 +390,6 @@ midi_grow(midi_file_t *midi, uint8_t **current)
 	midi->size += 1024;
 }
 
-#define WRITE_DATA(X) {if(midi->size <= (current-midi->data) + sizeof(X)) midi_grow(midi,&current); memcpy(current, &X, sizeof(X)); current+=sizeof(X);};
-#define WRITE_BE32(X) {uint32_t val = X; val = htobe32(val); WRITE_DATA(val);}
-#define WRITE_LE32(X) {uint32_t val = X; val = htole32(val); WRITE_DATA(val);}
-#define WRITE_BE16(X) {uint16_t val = X; val = htobe16(val); WRITE_DATA(val);}
-#define WRITE_BYTE(X) {if(midi->size <= (current-midi->data) + sizeof(X)) midi_grow(midi,&current); *current = (uint8_t)X; current++;}
-
 static uint32_t
 midi_write_variable_size(midi_file_t *midi, uint8_t **current, Uint64 val)
 {
@@ -416,12 +406,19 @@ midi_write_variable_size(midi_file_t *midi, uint8_t **current, Uint64 val)
 		(*current)++;
 		buf >>= 8;
 	}
-  return count;
+
+	return count;
 }
 
 static void*
 midi_produce(midi_file_t *midi, size_t *size)
 {
+#define WRITE_DATA(X) {if (midi->size <= (current-midi->data) + sizeof(X)) midi_grow(midi,&current); memcpy(current, &X, sizeof(X)); current+=sizeof(X);};
+#define WRITE_BE32(X) {uint32_t val = X; val = htobe32(val); WRITE_DATA(val);}
+#define WRITE_LE32(X) {uint32_t val = X; val = htole32(val); WRITE_DATA(val);}
+#define WRITE_BE16(X) {uint16_t val = X; val = htobe16(val); WRITE_DATA(val);}
+#define WRITE_BYTE(X) {if (midi->size <= (current-midi->data) + sizeof(X)) midi_grow(midi,&current); *current = (uint8_t)X; current++;}
+
 	uint8_t *current = midi->data;
 
 	/* Header */
@@ -449,7 +446,7 @@ midi_produce(midi_file_t *midi, size_t *size)
 			WRITE_BYTE(node->data2);
 			if (node->type == 0xFF) {
 				if (node->data2 > 0) {
-					if(midi->size <= (current-midi->data) + node->data2) {
+					if (midi->size <= (current-midi->data) + node->data2) {
 						midi_grow(midi,&current);
 					}
 					memcpy(current, node->buffer, node->data2);
