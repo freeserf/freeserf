@@ -57,7 +57,7 @@ typedef enum {
 void audio_cleanup();
 
 /* Play sound. */
-void enqueue_sfx_clip(sfx_t sfx);
+void sfx_play_clip(sfx_t sfx);
 void sfx_enable(int enable);
 int sfx_is_enabled();
 

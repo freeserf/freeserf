@@ -115,7 +115,7 @@ sfx_produce_wav(char* data, uint32_t size)
 }
 
 void
-enqueue_sfx_clip(sfx_t sfx)
+sfx_play_clip(sfx_t sfx)
 {
 	if (0 == sfx_enabled) {
 		return;
