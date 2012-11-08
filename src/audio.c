@@ -36,7 +36,7 @@ static midi_t current_track = -1;
 static void
 midi_track_finished();
 
-static void
+static int
 sfx_init()
 {
 	list_init(&sfx_clips_to_play);
@@ -45,12 +45,13 @@ sfx_init()
 	int r = Mix_OpenAudio(8000, AUDIO_U8, 2, 512);
 	if (r < 0) {
 		LOGE("Could not open audio device: %s\n", Mix_GetError());
-		return;
+		return -1;
 	}
 	
 	Mix_HookMusicFinished(midi_track_finished);
 
 	initialized = 1;
+	return 0;
 }
 
 void
@@ -122,10 +123,8 @@ sfx_play_clip(sfx_t sfx)
 	}
 
 	if (0 == initialized) {
-		sfx_init();
-		if (0 == initialized) {
-			return;
-		}
+		int r = sfx_init();
+		if (r < 0) return;
 	}
 
 	audio_clip_t *audio_clip = NULL;
