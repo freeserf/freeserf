@@ -2012,6 +2012,10 @@ build_building(player_t *player, map_obj_t obj_type)
 	if (player->sett->map_cursor_type == 6) {
 		build_flag_split_path(MAP_MOVE_DOWN_RIGHT(pos));
 	}
+
+	/* Move cursor to flag. */
+	player->sett->map_cursor_col = (player->sett->map_cursor_col + 1) & globals.map_col_mask;
+	player->sett->map_cursor_row = (player->sett->map_cursor_row + 1) & globals.map_row_mask;
 }
 
 /* Build a mine. */
