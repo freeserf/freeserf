@@ -241,9 +241,9 @@ xmi_process_single(char *data, int length, midi_file_t *midi)
 {
 	int size = 0;
 	int name = be32toh(*(int*)data);
-	char string[5] = {0};
-	*((uint32_t*)string) = htobe32(name);
-	LOGV("audio", "Processing XMI chunk: %s", string);
+	uint32_t string = htobe32(name);
+
+	LOGV("audio", "Processing XMI chunk: %.4s", (char *)&string);
 
 	data += 4;
 	int processed = 0;
