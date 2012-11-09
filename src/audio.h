@@ -55,6 +55,10 @@ typedef enum {
 
 /* Common audio. */
 void audio_cleanup();
+int audio_volume();
+void audio_set_volume(int volume);
+void audio_volume_up();
+void audio_volume_down();
 
 /* Play sound. */
 void sfx_play_clip(sfx_t sfx);
