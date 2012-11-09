@@ -1120,7 +1120,7 @@ update_panel_btns_and_map_cursor(player_t *player)
 				case 5:
 					if (player->sett->panel_btn_type < PANEL_BTN_BUILD_MINE) {
 						/* TODO */
-						LOGD(NULL, "cursor type: unhandled 5 case.");
+						LOGD("gui", "cursor type: unhandled 5 case.");
 					} else {
 						player->panel_btns[0] = player->sett->panel_btn_type;
 						player->panel_btns[1] = PANEL_BTN_DESTROY_INACTIVE;
@@ -3951,7 +3951,7 @@ handle_clickmap(player_t *player, int x, int y, const int clkmap[])
 				close_box(player);
 				break;
 			default:
-				LOGW(NULL, "unhandled action %i", action);
+				LOGW("gui", "unhandled action %i", action);
 				break;
 			}
 			return 0;
@@ -4558,7 +4558,7 @@ handle_popup_click(player_t *player, int x, int y)
 		handle_box_demolish_clk(player, x, y);
 		break;
 	default:
-		LOGW(NULL, "unhandled box: %i", player->clkmap);
+		LOGD("gui", "unhandled box: %i", player->clkmap);
 		break;
 	}
 }
@@ -5280,16 +5280,16 @@ game_loop()
 				case SDLK_PLUS:
 				case SDLK_KP_PLUS:
 					if (globals.game_speed < 0xffff0000) globals.game_speed += 0x10000;
-					LOGI(NULL, "Game speed: %u", globals.game_speed >> 16);
+					LOGI("main", "Game speed: %u", globals.game_speed >> 16);
 					break;
 				case SDLK_MINUS:
 				case SDLK_KP_MINUS:
 					if (globals.game_speed >= 0x10000) globals.game_speed -= 0x10000;
-					LOGI(NULL, "Game speed: %u", globals.game_speed >> 16);
+					LOGI("main", "Game speed: %u", globals.game_speed >> 16);
 					break;
 				case SDLK_0:
 					globals.game_speed = 0x20000;
-					LOGI(NULL, "Game speed: %u", globals.game_speed >> 16);
+					LOGI("main", "Game speed: %u", globals.game_speed >> 16);
 					break;
 				case SDLK_p:
 					if (globals.game_speed == 0) game_pause(0);
