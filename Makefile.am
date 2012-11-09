@@ -5,12 +5,14 @@ bin_PROGRAMS = freeserf
 freeserf_SOURCES = \
 	src/freeserf.c src/freeserf.h \
 	src/globals.h \
+	src/game.c src/game.h \
 	src/serf.c src/serf.h \
 	src/flag.c src/flag.h \
 	src/building.c src/building.h \
 	src/random.c src/random.h \
 	src/gfx.c src/gfx.h \
 	src/viewport.c src/viewport.h \
+	src/gui.c src/gui.h \
 	src/map.c src/map.h \
 	src/player.c src/player.h \
 	src/sdl-video.c src/sdl-video.h \
