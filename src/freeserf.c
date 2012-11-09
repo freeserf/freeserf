@@ -3838,6 +3838,13 @@ handle_clickmap(player_t *player, int x, int y, const int clkmap[])
 				move_sett_5_6_item(player, 0, 1);
 				break;
 				/* TODO */
+			case ACTION_SHOW_OPTIONS:
+				player->click &= ~BIT(6);
+				player->panel_btns[3] = PANEL_BTN_STATS_INACTIVE;
+				player->panel_btns[4] = PANEL_BTN_SETT_INACTIVE;
+				player->box = BOX_OPTIONS;
+				break;
+				/* TODO */
 			case ACTION_SETT_8_CYCLE:
 				player->sett->flags |= BIT(2) | BIT(4);
 				player->sett->field_170 = 1200;
@@ -3937,6 +3944,10 @@ handle_clickmap(player_t *player, int x, int y, const int clkmap[])
 				player->box = BOX_PLAYER_FACES;
 				break;
 				/* TODO */
+			case ACTION_CLOSE_OPTIONS:
+				close_box(player);
+				break;
+				/* TODO */
 			case ACTION_SETT_8_CASTLE_DEF_DEC:
 				player->sett->castle_knights_wanted = max(1, player->sett->castle_knights_wanted-1);
 				player->box = player->clkmap;
@@ -3945,7 +3956,22 @@ handle_clickmap(player_t *player, int x, int y, const int clkmap[])
 				player->sett->castle_knights_wanted = min(player->sett->castle_knights_wanted+1, 99);
 				player->box = player->clkmap;
 				break;
+			case ACTION_OPTIONS_MUSIC:
+				midi_enable(!midi_is_enabled());
+				sfx_play_clip(SFX_CLICK);
+				break;
+			case ACTION_OPTIONS_SVGA:
 				/* TODO */
+				sfx_play_clip(SFX_CLICK);
+				break;
+			case ACTION_OPTIONS_VOLUME_MINUS:
+				audio_volume_down();
+				sfx_play_clip(SFX_CLICK);
+				break;
+			case ACTION_OPTIONS_VOLUME_PLUS:
+				audio_volume_up();
+				sfx_play_clip(SFX_CLICK);
+				break;
 			case ACTION_DEMOLISH:
 				do_demolish(player);
 				close_box(player);
@@ -3967,6 +3993,29 @@ handle_box_close_clk(player_t *player, int x, int y)
 {
 	const int clkmap[] = {
 		ACTION_CLOSE_BOX, 112, 127, 128, 143
+		-1
+	};
+	handle_clickmap(player, x, y, clkmap);
+}
+
+static void
+handle_box_options_clk(player_t *player, int x, int y)
+{
+	const int clkmap[] = {
+		ACTION_CLOSE_OPTIONS, 56, 71, 0, 15,
+		ACTION_OPTIONS_PATHWAY_SCROLLING_1, 0, 15, 28, 43,
+		ACTION_OPTIONS_FAST_MAP_CLICK_1, 0, 15, 48, 63,
+		ACTION_OPTIONS_FAST_BUILDING_1, 0, 15, 68, 83,
+		ACTION_OPTIONS_PATHWAY_SCROLLING_2, 112, 127, 28, 43,
+		ACTION_OPTIONS_FAST_MAP_CLICK_2, 112, 127, 48, 63,
+		ACTION_OPTIONS_FAST_BUILDING_2, 112, 127, 68, 83,
+		ACTION_OPTIONS_MESSAGE_COUNT_1, 0, 8, 88, 95,
+		ACTION_OPTIONS_MESSAGE_COUNT_2, 120, 127, 88, 95,
+		ACTION_OPTIONS_MUSIC, 0, 15, 106, 121,
+		ACTION_OPTIONS_SVGA, 112, 127, 106, 121,
+		ACTION_OPTIONS_VOLUME_MINUS, 96, 111, 126, 141,
+		ACTION_OPTIONS_VOLUME_PLUS, 112, 127, 126, 141,
+		ACTION_OPTIONS_RIGHT_SIDE, 88, 127, 0, 15,
 		-1
 	};
 	handle_clickmap(player, x, y, clkmap);
@@ -4515,6 +4564,10 @@ handle_popup_click(player_t *player, int x, int y)
 		break;
 	case BOX_SETT_5:
 		handle_sett_5_6_click(player, x, y);
+		break;
+		/* TODO */
+	case BOX_OPTIONS:
+		handle_box_options_clk(player, x, y);
 		break;
 		/* TODO */
 	case BOX_CASTLE_RES:
