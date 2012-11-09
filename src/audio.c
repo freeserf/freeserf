@@ -87,6 +87,36 @@ audio_cleanup()
 	Mix_Quit();
 }
 
+int
+audio_volume()
+{
+	return (int)((float)Mix_Volume(-1, -1) / (float)MIX_MAX_VOLUME * 99.f + 0.5f );
+}
+
+void
+audio_set_volume(int volume)
+{
+	volume = (int)((float)volume / 99.f * (float)MIX_MAX_VOLUME + 0.5f);
+	Mix_Volume(-1, volume);
+	Mix_VolumeMusic(volume);
+}
+
+void
+audio_volume_up()
+{
+	int volume = audio_volume();
+	volume++;
+	audio_set_volume(volume);
+}
+
+void
+audio_volume_down()
+{
+	int volume = audio_volume();
+	volume--;
+	audio_set_volume(volume);
+}
+
 static int
 list_less_func_sfx(const list_elm_t *e1, const list_elm_t *e2)
 {

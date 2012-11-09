@@ -1664,7 +1664,20 @@ draw_options_box(player_t *player)
 	draw_popup_icon(14, 48, BIT_TEST(globals.cfg_right, 1) ? 288 : 220, player->popup_frame);
 	draw_popup_icon(14, 68, BIT_TEST(globals.cfg_right, 2) ? 288 : 220, player->popup_frame);
 
-	/* TODO ... */
+	draw_green_string(2, 110, player->popup_frame, "Music");
+	draw_green_string(7, 105, player->popup_frame, "  SVGA"); /* TODO replace with fullscreen? */
+	draw_green_string(7, 114, player->popup_frame, "  mode"); /* TODO replace with fullscreen? */
+	draw_green_string(0, 125, player->popup_frame, ""); /* What is it? Look on Amiga?. */
+	draw_green_string(0, 134, player->popup_frame, " Volume:");
+
+	draw_popup_icon(0, 106, midi_is_enabled() ? 288 : 220, player->popup_frame); /* Music */
+	draw_popup_icon(14, 106, 288, player->popup_frame); /* SVGA */ /* TODO replace with fullscreen? */
+	draw_popup_icon(12, 126, 220, player->popup_frame); /* Volude minus */
+	draw_popup_icon(14, 126, 221, player->popup_frame); /* Volude plus */
+
+	char volume[4] = {0};
+	sprintf(volume, "%d", audio_volume());
+	draw_green_string(9, 134, player->popup_frame, volume);
 }
 
 static void
