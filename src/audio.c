@@ -37,17 +37,29 @@ static void
 midi_track_finished();
 
 static int
-sfx_init()
+audio_init()
 {
 	list_init(&sfx_clips_to_play);
 	list_init(&midi_tracks);
+	
+	int r = Mix_Init(0);
+	if (r != 0) {
+		LOGE("Could not init SDL_mixer: %s\n", Mix_GetError());
+		return -1;
+	}	
 
-	int r = Mix_OpenAudio(8000, AUDIO_U8, 2, 512);
+	r = Mix_OpenAudio(8000, MIX_DEFAULT_FORMAT, MIX_DEFAULT_CHANNELS, 512);
 	if (r < 0) {
 		LOGE("Could not open audio device: %s\n", Mix_GetError());
 		return -1;
 	}
 	
+	r = Mix_AllocateChannels(16);
+	if (r != 16) {
+		LOGE("Failed to allocate channels: %s\n", Mix_GetError());
+		return -1;
+	}
+
 	Mix_HookMusicFinished(midi_track_finished);
 
 	initialized = 1;
@@ -70,6 +82,9 @@ audio_cleanup()
 		Mix_FreeMusic(track->music);
 		free(elm);
 	}
+	
+	Mix_CloseAudio();
+	Mix_Quit();
 }
 
 static int
@@ -110,6 +125,11 @@ sfx_produce_wav(char* data, uint32_t size)
 	WRITE_BE32_WG(0x64617461);	/* 'data' */
 	WRITE_LE32_WG(size);				/* Data size */
 	memcpy(current, data, size);
+	for (int i = 0; i < size; i++) {
+		int val = *(current + i);
+		val = val + 0x80 - 0x20;
+		*(current + i) = val;
+	}
 	current = result + 4;
 
 	return result;
@@ -123,7 +143,7 @@ sfx_play_clip(sfx_t sfx)
 	}
 
 	if (0 == initialized) {
-		int r = sfx_init();
+		int r = audio_init();
 		if (r < 0) return;
 	}
 
@@ -259,14 +279,37 @@ xmi_process_subchunks(char *data, int length, midi_file_t *midi)
 static int
 xmi_process_INFO(char *data, int length, midi_file_t *midi)
 {
-	return 6;
+	uint32_t size = *(uint32_t*)data;
+	data += 4;
+	size = be32toh(size);
+	if (size != 2) {
+		LOGW("\tInconsistent INFO block.");
+	}
+	else {
+		uint16_t track_count = *(uint16_t*)data;
+		LOGI("\tXMI contains %d track(s)", track_count);
+	}
+	return size + 4;
 }
 
 static int
 xmi_process_TIMB(char *data, int length, midi_file_t *midi)
 {
 	uint32_t size = *(uint32_t*)data;
+	data += 4;
 	size = be32toh(size);
+	uint16_t count = *(uint16_t*)data;
+	data += 2;
+	if (count*2 + 2 != size) {
+		LOGW("\tInconsistent TIMB block.");
+	}
+	else {
+		for (int i = 0; i < count; i++) {
+			uint8_t num = *data++;
+			uint8_t bank = *data++;
+			LOGI("\tTIMB entry %02d: %d, %d", i, (int)num, (int)bank);
+		}
+	}
 	return size + 4;
 }
 
@@ -473,7 +516,7 @@ midi_play_track(midi_t midi)
 	}
 
 	if (0 == initialized) {
-		sfx_init();
+		audio_init();
 		if (0 == initialized) {
 			return;
 		}
