@@ -243,7 +243,7 @@ serf_change_direction(serf_t *serf, int dir, int alt_end)
 	serf->counter += counter_from_animation[animation];
 	if (alt_end && serf->counter < 0) {
 		if (MAP_HAS_FLAG(new_pos)) serf->counter = 0;
-		else printf("unhandled jump to 31B82\n");
+		else LOGD("unhandled jump to 31B82\n");
 	}
 	serf->animation = animation;
 }
@@ -342,7 +342,7 @@ handle_serf_walking_state_search_cb(flag_t *flag, serf_t *serf)
 {
 	flag_t *dest = game_get_flag(serf->s.walking.dest);
 	if (flag == dest) {
-		printf(" dest found: %i\n", dest->search_dir);
+		LOGD(" dest found: %i\n", dest->search_dir);
 		serf_change_direction(serf, dest->search_dir, 0);
 		return 1;
 	}
@@ -1152,7 +1152,7 @@ handle_serf_leaving_building_state(serf_t *serf)
 			serf->s.free_walking.neg_dist2 = neg_dist2;
 			serf->s.free_walking.flags = 0;
 		} else {
-			printf("unhandled next state when leaving building\n");
+			LOGD("unhandled next state when leaving building\n");
 		}
 	}
 }
@@ -1221,7 +1221,7 @@ handle_serf_digging_state(serf_t *serf)
 	while (serf->counter < 0) {
 		serf->s.digging.substate -= 1;
 		if (serf->s.digging.substate < 0) {
-			printf("substate -1: wait for serf\n");
+			LOGV("substate -1: wait for serf\n");
 			int d = serf->s.digging.dig_pos;
 			dir_t dir = (d == 0) ? DIR_UP : 6-d;
 			map_pos_t new_pos = MAP_MOVE(serf->pos, dir);
@@ -1246,7 +1246,7 @@ handle_serf_digging_state(serf_t *serf)
 			/* 34CD6: Change height, head back to center */
 			int h = MAP_HEIGHT(serf->pos);
 			h += (serf->s.digging.h_index & 1) ? -1 : 1;
-			printf("substate 1: change height %s\n", (serf->s.digging.h_index & 1) ? "down" : "up");
+			LOGV("substate 1: change height %s\n", (serf->s.digging.h_index & 1) ? "down" : "up");
 			map_set_height(serf->pos, h);
 
 			if (serf->s.digging.dig_pos == 0) {
@@ -1256,13 +1256,13 @@ handle_serf_digging_state(serf_t *serf)
 				serf_start_walking(serf, dir, 32);
 			}
 		} else if (serf->s.digging.substate > 1) {
-			printf("substate 2: dig\n");
+			LOGV("substate 2: dig\n");
 			/* 34E89 */
 			serf->animation = 88 - (serf->s.digging.h_index & 1);
 			serf->counter += 383;
 		} else {
 			/* 34CDC: Looking for a place to dig */
-			printf("substate 0: looking for place to dig %i, %i\n",
+			LOGV("substate 0: looking for place to dig %i, %i\n",
 			       serf->s.digging.dig_pos, serf->s.digging.h_index);
 			do {
 				int h = h_diff[serf->s.digging.h_index] + serf->s.digging.target_h;
@@ -1284,7 +1284,7 @@ handle_serf_digging_state(serf_t *serf)
 							serf->s.digging.dig_pos -= 1;
 							continue;
 						}
-						printf("  found at: %i\n", serf->s.digging.dig_pos);
+						LOGV("  found at: %i\n", serf->s.digging.dig_pos);
 						/* Digging spot found */
 						if (MAP_SERF_INDEX(new_pos) != 0) {
 							/* Occupied by other serf, wait */
@@ -1647,7 +1647,7 @@ handle_serf_ready_to_leave_inventory_state(serf_t *serf)
 
 	serf_state_t next_state = SERF_STATE_WALKING;
 	if (serf->s.ready_to_leave_inventory.mode == -3) next_state = SERF_STATE_73;
-	printf("serf %i: next state is %s\n", SERF_INDEX(serf), serf_state_name[next_state]);
+	LOGV("serf %i: next state is %s\n", SERF_INDEX(serf), serf_state_name[next_state]);
 
 	map_set_serf_index(serf->pos, 0);
 	map_set_serf_index(MAP_MOVE_DOWN_RIGHT(serf->pos), SERF_INDEX(serf));
@@ -2150,7 +2150,7 @@ handle_serf_free_walking_state(serf_t *serf)
 								/* TODO Remove other serf from path - really necessary? */
 							}
 							/* sub_5AE56(); */
-							printf("free walking: unhandled sub_5AE56() call.\n");
+							LOGD("free walking: unhandled sub_5AE56() call.\n");
 						}
 					}
 				}
@@ -2187,9 +2187,9 @@ handle_serf_free_walking_state(serf_t *serf)
 		int dy = ((dir < 3) ? 1 : -1)*((dir % 3) > 0);
 
 #if 0
-		printf("free walking: dest %i, %i, move %i, %i\n",
-		       serf->s.free_walking.dist1,
-		       serf->s.free_walking.dist2, dx, dy);
+		LOGV("free walking: dest %i, %i, move %i, %i\n",
+		     serf->s.free_walking.dist1,
+		     serf->s.free_walking.dist2, dx, dy);
 #endif
 
 		serf->s.free_walking.dist1 -= dx;
@@ -2244,9 +2244,9 @@ handle_serf_free_walking_state(serf_t *serf)
 			int dx = ((dir < 3) ? 1 : -1)*((dir % 3) < 2);
 			int dy = ((dir < 3) ? 1 : -1)*((dir % 3) > 0);
 
-			printf("free walking (switch): dest %i, %i, move %i, %i\n",
-			       serf->s.free_walking.dist1,
-			       serf->s.free_walking.dist2, dx, dy);
+			LOGV("free walking (switch): dest %i, %i, move %i, %i\n",
+			     serf->s.free_walking.dist1,
+			     serf->s.free_walking.dist2, dx, dy);
 
 			serf->s.free_walking.dist1 -= dx;
 			serf->s.free_walking.dist2 -= dy;
@@ -2331,9 +2331,9 @@ handle_serf_planning_logging_state(serf_t *serf)
 			serf->s.leaving_building.dest2 = -globals.spiral_pattern[2*index] + 1;
 			serf->s.leaving_building.dir = -globals.spiral_pattern[2*index+1] + 1;
 			serf->s.leaving_building.next_state = SERF_STATE_FREE_WALKING;
-			printf("planning logging: tree found, dist %i, %i\n",
-			       serf->s.leaving_building.field_B,
-			       serf->s.leaving_building.dest);
+			LOGV("planning logging: tree found, dist %i, %i\n",
+			     serf->s.leaving_building.field_B,
+			     serf->s.leaving_building.dest);
 			return;
 		}
 
@@ -2365,9 +2365,9 @@ handle_serf_planning_planting_state(serf_t *serf)
 			serf->s.leaving_building.dest2 = -globals.spiral_pattern[2*index] + 1;
 			serf->s.leaving_building.dir = -globals.spiral_pattern[2*index+1] + 1;
 			serf->s.leaving_building.next_state = SERF_STATE_FREE_WALKING;
-			printf("planning planting: free space found, dist %i, %i\n",
-			       serf->s.leaving_building.field_B,
-			       serf->s.leaving_building.dest);
+			LOGV("planning planting: free space found, dist %i, %i\n",
+			     serf->s.leaving_building.field_B,
+			     serf->s.leaving_building.dest);
 			return;
 		}
 
@@ -2428,9 +2428,9 @@ handle_serf_planning_stonecutting(serf_t *serf)
 			serf->s.leaving_building.dest2 = -globals.spiral_pattern[2*index] + 1;
 			serf->s.leaving_building.dir = -globals.spiral_pattern[2*index+1] + 1;
 			serf->s.leaving_building.next_state = SERF_STATE_FREE_WALKING/*SERF_STATE_22*/;
-			printf("planning stonecutting: stone found, dist %i, %i\n",
-			       serf->s.leaving_building.field_B,
-			       serf->s.leaving_building.dest);
+			LOGV("planning stonecutting: stone found, dist %i, %i\n",
+			     serf->s.leaving_building.field_B,
+			     serf->s.leaving_building.dest);
 			return;
 		}
 
@@ -2583,7 +2583,7 @@ handle_serf_mining_state(serf_t *serf)
 	while (serf->counter < 0) {
 		building_t *building = game_get_building(MAP_OBJ_INDEX(serf->pos));
 
-		printf("mining substate: %i\n", serf->s.mining.substate);
+		LOGV("mining substate: %i\n", serf->s.mining.substate);
 		switch (serf->s.mining.substate) {
 		case 0:
 		{
@@ -2793,9 +2793,9 @@ handle_serf_planning_fishing_state(serf_t *serf)
 			serf->s.leaving_building.dest2 = -globals.spiral_pattern[2*index] + 1;
 			serf->s.leaving_building.dir = -globals.spiral_pattern[2*index+1] + 1;
 			serf->s.leaving_building.next_state = SERF_STATE_FREE_WALKING;
-			printf("planning fishing: lake found, dist %i, %i\n",
-			       serf->s.leaving_building.field_B,
-			       serf->s.leaving_building.dest);
+			LOGV("planning fishing: lake found, dist %i, %i\n",
+			     serf->s.leaving_building.field_B,
+			     serf->s.leaving_building.dest);
 			return;
 		}
 
@@ -2895,9 +2895,9 @@ handle_serf_planning_farming_state(serf_t *serf)
 			serf->s.leaving_building.dest2 = -globals.spiral_pattern[2*index] + 1;
 			serf->s.leaving_building.dir = -globals.spiral_pattern[2*index+1] + 1;
 			serf->s.leaving_building.next_state = SERF_STATE_FREE_WALKING;
-			printf("planning farming: field spot found, dist %i, %i\n",
-			       serf->s.leaving_building.field_B,
-			       serf->s.leaving_building.dest);
+			LOGV("planning farming: field spot found, dist %i, %i\n",
+			     serf->s.leaving_building.field_B,
+			     serf->s.leaving_building.dest);
 			return;
 		}
 
@@ -3345,9 +3345,9 @@ handle_serf_looking_for_geo_spot_state(serf_t *serf)
 				serf->s.free_walking.neg_dist2 = -globals.spiral_pattern[2*index+1];
 				serf->s.free_walking.flags = 0;
 				serf->anim = globals.anim;
-				printf("looking for geo spot: found, dist %i, %i\n",
-				       serf->s.free_walking.dist1,
-				       serf->s.free_walking.dist2);
+				LOGV("looking for geo spot: found, dist %i, %i\n",
+				     serf->s.free_walking.dist1,
+				     serf->s.free_walking.dist2);
 				return;
 			}
 		} else if (obj >= MAP_OBJ_SIGN_LARGE_GOLD &&
