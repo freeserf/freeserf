@@ -19,6 +19,7 @@ freeserf_SOURCES = \
 	src/audio.c src/audio.h \
 	src/savegame.c src/savegame.h \
 	src/list.c src/list.h \
+	src/log.c src/log.h \
 	src/misc.h \
 	src/debug.h \
 	src/freeserf_endian.h \

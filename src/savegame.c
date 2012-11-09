@@ -358,7 +358,7 @@ load_v0_serf_state(FILE *f)
 		serf->anim = *(uint16_t *)&serf_data[8];
 		serf->state = serf_data[10];
 
-		LOGD("load serf %i: %s", i, serf_get_state_name(serf->state));
+		LOGV("savegame", "load serf %i: %s", i, serf_get_state_name(serf->state));
 
 		switch (serf->state) {
 		case SERF_STATE_IDLE_IN_STOCK:

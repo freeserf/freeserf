@@ -58,7 +58,7 @@ sdl_init()
 {
 	/* Initialize defaults and Video subsystem */
 	if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO) < 0) {
-		LOGE("Unable to initialize SDL: %s.", SDL_GetError());
+		LOGE("sdl-video", "Unable to initialize SDL: %s.", SDL_GetError());
 		return -1;
 	}
 
@@ -93,7 +93,7 @@ sdl_set_resolution(int width, int height, int fullscreen)
 
 	screen.surf = SDL_SetVideoMode(width, height, 32, flags);
 	if (screen.surf == NULL) {
-		LOGE("Unable to set video mode: %s.", SDL_GetError());
+		LOGE("sdl-video", "Unable to set video mode: %s.", SDL_GetError());
 		return -1;
 	}
 
@@ -108,7 +108,7 @@ sdl_create_surface(int width, int height)
 	SDL_Surface *surf = SDL_CreateRGBSurface(SDL_SRCALPHA,
 						 width, height, 32, RMASK, GMASK, BMASK, AMASK);
 	if (surf == NULL) {
-		LOGE("Unable to create SDL surface: %s.", SDL_GetError());
+		LOGE("sdl-video", "Unable to create SDL surface: %s.", SDL_GetError());
 		exit(EXIT_FAILURE);
 	}
 
@@ -185,7 +185,7 @@ create_surface_from_data(void *data, int width, int height, int transparent) {
 	SDL_CreateRGBSurfaceFrom(data, (int)width, (int)height, 8,
 				 (int)(width*sizeof(uint8_t)), 0, 0, 0, 0);
 	if (surf8 == NULL) {
-		LOGE("Unable to create sprite surface: %s.",
+		LOGE("sdl-video", "Unable to create sprite surface: %s.",
 		     SDL_GetError());
 		exit(EXIT_FAILURE);
 	}
@@ -193,7 +193,7 @@ create_surface_from_data(void *data, int width, int height, int transparent) {
 	/* Set sprite palette */
 	r = SDL_SetPalette(surf8, SDL_LOGPAL | SDL_PHYSPAL, pal_colors, 0, 256);
 	if (r == 0) {
-		LOGE("Unable to set palette for sprite.");
+		LOGE("sdl-video", "Unable to set palette for sprite.");
 		exit(EXIT_FAILURE);
 	}
 
@@ -204,7 +204,7 @@ create_surface_from_data(void *data, int width, int height, int transparent) {
 		/* Set color key */
 		r = SDL_SetColorKey(surf8, SDL_SRCCOLORKEY | SDL_RLEACCEL, 0);
 		if (r < 0) {
-			LOGE("Unable to set color key for sprite.");
+			LOGE("sdl-video", "Unable to set color key for sprite.");
 			exit(EXIT_FAILURE);
 		}
 
@@ -215,7 +215,7 @@ create_surface_from_data(void *data, int width, int height, int transparent) {
 	}
 
 	if (surf == NULL) {
-		LOGE("Unable to convert sprite surface: %s.",
+		LOGE("sdl-video", "Unable to convert sprite surface: %s.",
 		     SDL_GetError());
 		exit(EXIT_FAILURE);
 	}
@@ -276,7 +276,7 @@ sdl_draw_transp_sprite(const sprite_t *sprite, int x, int y, int use_off, int y_
 	/* Blit sprite */
 	r = SDL_BlitSurface(surf, &src_rect, dest->surf, &dest_rect);
 	if (r < 0) {
-		LOGE("BlitSurface error: %s.", SDL_GetError());
+		LOGE("sdl-video", "BlitSurface error: %s.", SDL_GetError());
 	}
 
 #if 0
@@ -312,7 +312,7 @@ sdl_draw_waves_sprite(const sprite_t *sprite, int x, int y, frame_t *dest)
 	/* Blit sprite */
 	r = SDL_BlitSurface(surf, NULL, dest->surf, &dest_rect);
 	if (r < 0) {
-		LOGE("BlitSurface error: %s.", SDL_GetError());
+		LOGE("sdl-video", "BlitSurface error: %s.", SDL_GetError());
 	}
 
 #if 0
@@ -349,7 +349,7 @@ sdl_draw_sprite(const sprite_t *sprite, int x, int y, frame_t *dest)
 	/* Blit sprite */
 	r = SDL_BlitSurface(surf, NULL, dest->surf, &dest_rect);
 	if (r < 0) {
-		LOGE("BlitSurface error: %s.", SDL_GetError());
+		LOGE("sdl-video", "BlitSurface error: %s.", SDL_GetError());
 	}
 
 	/* Clean up */
@@ -382,7 +382,7 @@ create_overlay_surface(const sprite_t *sprite)
 	SDL_Surface *surf = sdl_create_surface((int)width, (int)height);
 	r = SDL_LockSurface(surf);
 	if (r < 0) {
-		LOGE("Unable to lock sprite.");
+		LOGE("sdl-video", "Unable to lock sprite.");
 		exit(EXIT_FAILURE);
 	}
 
@@ -426,7 +426,7 @@ sdl_draw_overlay_sprite(const sprite_t *sprite, int x, int y, int y_off, frame_t
 	/* Blit sprite */
 	r = SDL_BlitSurface(surf, &src_rect, dest->surf, &dest_rect);
 	if (r < 0) {
-		LOGE("BlitSurface error: %s.", SDL_GetError());
+		LOGE("sdl-video", "BlitSurface error: %s.", SDL_GetError());
 	}
 
 #if 0
@@ -515,7 +515,7 @@ sdl_draw_masked_sprite(const sprite_t *sprite, int x, int y, const sprite_t *mas
 	/* Blit to dest */
 	r = SDL_BlitSurface(surf, &src_rect, dest->surf, &dest_rect);
 	if (r < 0) {
-		LOGE("BlitSurface error: %s", SDL_GetError());
+		LOGE("sdl-video", "BlitSurface error: %s", SDL_GetError());
 	}
 
 	return surface;
@@ -533,7 +533,7 @@ sdl_draw_frame(int dx, int dy, frame_t *dest, int sx, int sy, frame_t *src, int 
 
 	r = SDL_BlitSurface(src->surf, &src_rect, dest->surf, &dest_rect);
 	if (r < 0) {
-		LOGE("BlitSurface error: %s", SDL_GetError());
+		LOGE("sdl-video", "BlitSurface error: %s", SDL_GetError());
 	}
 }
 
@@ -560,7 +560,7 @@ sdl_fill_rect(int x, int y, int width, int height, int color, frame_t *dest)
 	int r = SDL_FillRect(dest->surf, &rect, SDL_MapRGBA(dest->surf->format,
 			pal_colors[color].r, pal_colors[color].g, pal_colors[color].b, 0xff));
 	if (r < 0) {
-		LOGE("FillRect error: %s.", SDL_GetError());
+		LOGE("sdl-video", "FillRect error: %s.", SDL_GetError());
 	}
 }
 

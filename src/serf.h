@@ -18,7 +18,7 @@
 
 
 #define serf_log_state_change(serf, new_state)	\
-	LOGD("serf %i: state %s -> %s (%s:%i)", SERF_INDEX(serf), \
+	LOGV("serf", "serf %i: state %s -> %s (%s:%i)", SERF_INDEX(serf), \
 	     serf_get_state_name((serf)->state),			\
 	     serf_get_state_name((new_state)), __FUNCTION__, __LINE__)
 

@@ -44,19 +44,19 @@ audio_init()
 	
 	int r = Mix_Init(0);
 	if (r != 0) {
-		LOGE("Could not init SDL_mixer: %s\n", Mix_GetError());
+		LOGE("audio", "Could not init SDL_mixer: %s.", Mix_GetError());
 		return -1;
 	}	
 
 	r = Mix_OpenAudio(8000, MIX_DEFAULT_FORMAT, MIX_DEFAULT_CHANNELS, 512);
 	if (r < 0) {
-		LOGE("Could not open audio device: %s\n", Mix_GetError());
+		LOGE("audio", "Could not open audio device: %s.", Mix_GetError());
 		return -1;
 	}
 	
 	r = Mix_AllocateChannels(16);
 	if (r != 16) {
-		LOGE("Failed to allocate channels: %s\n", Mix_GetError());
+		LOGE("audio", "Failed to allocate channels: %s.", Mix_GetError());
 		return -1;
 	}
 
@@ -169,7 +169,7 @@ sfx_play_clip(sfx_t sfx)
 		audio_clip->chunk = Mix_LoadWAV_RW(rw, 0);
 		free(wav);
 		if (!audio_clip->chunk) {
-			LOGE("Mix_LoadWAV_RW: %s\n", Mix_GetError());
+			LOGE("audio", "Mix_LoadWAV_RW: %s.", Mix_GetError());
 			free(audio_clip);
 			return;
 		}
@@ -179,7 +179,7 @@ sfx_play_clip(sfx_t sfx)
 
 	int r = Mix_PlayChannel(-1, audio_clip->chunk, 0);
 	if (r < 0) {
-		LOGE("Could not play SFX clip: %s\n", Mix_GetError());
+		LOGE("audio", "Could not play SFX clip: %s.", Mix_GetError());
 		return;
 	}
 }
@@ -243,7 +243,7 @@ xmi_process_single(char *data, int length, midi_file_t *midi)
 	int name = be32toh(*(int*)data);
 	char string[5] = {0};
 	*((uint32_t*)string) = htobe32(name);
-	LOGI("Processing XMI chunk: %s", string);
+	LOGV("audio", "Processing XMI chunk: %s", string);
 
 	data += 4;
 	int processed = 0;
@@ -257,7 +257,7 @@ xmi_process_single(char *data, int length, midi_file_t *midi)
 		}
 	}
 	if (0 == processed) {
-		LOGW("Unknown XMI chunk: %s (0x%X)", string, name);
+		LOGD("audio", "Unknown XMI chunk: %s (0x%X)", string, name);
 	}
 	return size+4;
 }
@@ -283,11 +283,10 @@ xmi_process_INFO(char *data, int length, midi_file_t *midi)
 	data += 4;
 	size = be32toh(size);
 	if (size != 2) {
-		LOGW("\tInconsistent INFO block.");
-	}
-	else {
+		LOGD("audio", "\tInconsistent INFO block.");
+	} else {
 		uint16_t track_count = *(uint16_t*)data;
-		LOGI("\tXMI contains %d track(s)", track_count);
+		LOGV("audio", "\tXMI contains %d track(s)", track_count);
 	}
 	return size + 4;
 }
@@ -301,13 +300,12 @@ xmi_process_TIMB(char *data, int length, midi_file_t *midi)
 	uint16_t count = *(uint16_t*)data;
 	data += 2;
 	if (count*2 + 2 != size) {
-		LOGW("\tInconsistent TIMB block.");
-	}
-	else {
+		LOGD("audio", "\tInconsistent TIMB block.");
+	} else {
 		for (int i = 0; i < count; i++) {
 			uint8_t num = *data++;
 			uint8_t bank = *data++;
-			LOGI("\tTIMB entry %02d: %d, %d", i, (int)num, (int)bank);
+			LOGV("audio", "\tTIMB entry %02d: %d, %d", i, (int)num, (int)bank);
 		}
 	}
 	return size + 4;
@@ -564,7 +562,7 @@ midi_play_track(midi_t midi)
 
 	int r = Mix_PlayMusic(track->music, 0);
 	if (r < 0) {
-		LOGE("Could not play MIDI track: %s\n", Mix_GetError());
+		LOGW("audio", "Could not play MIDI track: %s\n", Mix_GetError());
 		return;
 	}
 

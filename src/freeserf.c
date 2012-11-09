@@ -1,5 +1,9 @@
 /* freeserf.c */
 
+#ifdef HAVE_CONFIG_H
+# include <config.h>
+#endif
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
@@ -11,7 +15,6 @@
 #include "freeserf.h"
 #include "freeserf_endian.h"
 #include "globals.h"
-#include "random.h"
 #include "serf.h"
 #include "flag.h"
 #include "building.h"
@@ -35,6 +38,14 @@
 
 #define DEFAULT_SCREEN_WIDTH  800
 #define DEFAULT_SCREEN_HEIGHT 600
+
+#ifndef DEFAULT_LOG_LEVEL
+# ifndef NDEBUG
+#  define DEFAULT_LOG_LEVEL  LOG_LEVEL_DEBUG
+# else
+#  define DEFAULT_LOG_LEVEL  LOG_LEVEL_INFO
+# endif
+#endif
 
 
 static unsigned int tick;
@@ -1109,7 +1120,7 @@ update_panel_btns_and_map_cursor(player_t *player)
 				case 5:
 					if (player->sett->panel_btn_type < PANEL_BTN_BUILD_MINE) {
 						/* TODO */
-						LOGD("cursor type: unhandled 5 case\n");
+						LOGD(NULL, "cursor type: unhandled 5 case.");
 					} else {
 						player->panel_btns[0] = player->sett->panel_btn_type;
 						player->panel_btns[1] = PANEL_BTN_DESTROY_INACTIVE;
@@ -3051,7 +3062,6 @@ handle_panel_btn_click(player_t *player, int btn)
 		case PANEL_BTN_MAP_STARRED:
 			sfx_play_clip(SFX_CLICK);
 			/* TODO */
-			LOGD("map");
 			break;
 		case PANEL_BTN_SETT:
 		case PANEL_BTN_SETT_STARRED:
@@ -3235,7 +3245,6 @@ handle_panel_btn_click(player_t *player, int btn)
 			break;
 		case PANEL_BTN_BUILD_INACTIVE:
 			/* TODO */
-			LOGD("build inactive");
 			break;
 	}
 }
@@ -3942,7 +3951,7 @@ handle_clickmap(player_t *player, int x, int y, const int clkmap[])
 				close_box(player);
 				break;
 			default:
-				LOGW("unhandled action %i", action);
+				LOGW(NULL, "unhandled action %i", action);
 				break;
 			}
 			return 0;
@@ -4549,7 +4558,7 @@ handle_popup_click(player_t *player, int x, int y)
 		handle_box_demolish_clk(player, x, y);
 		break;
 	default:
-		LOGW("unhandled box: %i", player->clkmap);
+		LOGW(NULL, "unhandled box: %i", player->clkmap);
 		break;
 	}
 }
@@ -5271,16 +5280,16 @@ game_loop()
 				case SDLK_PLUS:
 				case SDLK_KP_PLUS:
 					if (globals.game_speed < 0xffff0000) globals.game_speed += 0x10000;
-					LOGI("Game speed: %u", globals.game_speed >> 16);
+					LOGI(NULL, "Game speed: %u", globals.game_speed >> 16);
 					break;
 				case SDLK_MINUS:
 				case SDLK_KP_MINUS:
 					if (globals.game_speed >= 0x10000) globals.game_speed -= 0x10000;
-					LOGI("Game speed: %u", globals.game_speed >> 16);
+					LOGI(NULL, "Game speed: %u", globals.game_speed >> 16);
 					break;
 				case SDLK_0:
 					globals.game_speed = 0x20000;
-					LOGI("Game speed: %u", globals.game_speed >> 16);
+					LOGI(NULL, "Game speed: %u", globals.game_speed >> 16);
 					break;
 				case SDLK_p:
 					if (globals.game_speed == 0) game_pause(0);
@@ -5389,13 +5398,13 @@ pregame_continue()
 	if (game_file != NULL) {
 		FILE *f = fopen(game_file, "rb");
 		if (f == NULL) {
-			LOGE("Unable to open save game file: `%s'.", game_file);
+			LOGE("main", "Unable to open save game file: `%s'.", game_file);
 			exit(EXIT_FAILURE);
 		}
 
 		int r = load_v0_state(f);
 		if (r < 0) {
-			LOGE("Unable to load save game.");
+			LOGE("main", "Unable to load save game.");
 			exit(EXIT_FAILURE);
 		}
 	}
@@ -5406,7 +5415,7 @@ pregame_continue()
 		map_2_t *map_data = MAP_2_DATA(map);
 		for (int j = 0; j < globals.map_cols; j++) {
 			map_pos_t pos = MAP_POS(j, i);
-			LOGD("% 3i, % 3i:  %02x %02x %02x %02x    %04x %04x  H(%i)",
+			LOGD(NULL, "% 3i, % 3i:  %02x %02x %02x %02x    %04x %04x  H(%i)",
 			    j, i,
 			    map[pos].flags, map[pos].height, map[pos].type, map[pos].obj,
 			    map_data[pos].u.index, map_data[pos].serf_index,
@@ -5418,7 +5427,7 @@ pregame_continue()
 				map_pos_t other_pos = MAP_MOVE(pos, d);
 				int h_diff = MAP_HEIGHT(pos) - MAP_HEIGHT(other_pos);
 				if (h_diff < -4 || h_diff > 4) {
-					LOGD("h_diff fail: %s, (%i, %i, %i) -> (%i, %i, %i)",
+					LOGD(NULL, "h_diff fail: %s, (%i, %i, %i) -> (%i, %i, %i)",
 					       name_from_dir[d],
 					       MAP_COORD_ARGS(pos), MAP_HEIGHT(pos),
 					       MAP_COORD_ARGS(other_pos), MAP_HEIGHT(other_pos));
@@ -5649,6 +5658,7 @@ deep_tree()
 	"Usage: %s [-g DATA-FILE]\n"
 #define HELP							\
 	USAGE							\
+	" -d NUM\t\tSet debug output level\n"				\
 	" -f\t\tFullscreen mode (CTRL-q to exit)\n"		\
 	" -g DATA-FILE\tUse specified data file\n"		\
 	" -h\t\tShow this help text\n"				\
@@ -5672,14 +5682,22 @@ main(int argc, char *argv[])
 	int map_generator = 0;
 	int preserve_map_bugs = 0;
 
-	LOGI("freeserf %s", FREESERF_VERSION);
+	int log_level = DEFAULT_LOG_LEVEL;
 
 	int opt;
 	while (1) {
-		opt = getopt(argc, argv, "fg:hl:m:pr:t:");
+		opt = getopt(argc, argv, "d:fg:hl:m:pr:t:");
 		if (opt < 0) break;
 
 		switch (opt) {
+		case 'd':
+		{
+			int d = atoi(optarg);
+			if (d >= 0 && d < LOG_LEVEL_MAX) {
+				log_level = d;
+			}
+		}
+			break;
 		case 'f':
 			fullscreen = 1;
 			break;
@@ -5689,7 +5707,7 @@ main(int argc, char *argv[])
 			strcpy(data_file, optarg);
 			break;
 		case 'h':
-			LOGI(HELP, argv[0]);
+			fprintf(stdout, HELP, argv[0]);
 			exit(EXIT_SUCCESS);
 			break;
 		case 'l':
@@ -5706,7 +5724,7 @@ main(int argc, char *argv[])
 		case 'r':
 		{
 			char *hstr = strchr(optarg, 'x');
-			if (hstr == NULL) LOGI(USAGE, argv[0]);
+			if (hstr == NULL) fprintf(stdout, argv[0]);
 			screen_width = atoi(optarg);
 			screen_height = atoi(hstr+1);
 		}
@@ -5715,11 +5733,17 @@ main(int argc, char *argv[])
 			map_generator = atoi(optarg);
 			break;
 		default:
-			LOGE(USAGE, argv[0]);
+			fprintf(stderr, argv[0]);
 			exit(EXIT_FAILURE);
 			break;
 		}
 	}
+
+	/* Set up logging */
+	log_set_file(stdout);
+	log_set_level(log_level);
+
+	LOGI("main", "freeserf %s", FREESERF_VERSION);
 
 	/* Use default data file if none was specified. */
 	if (data_file == NULL) {
@@ -5728,11 +5752,11 @@ main(int argc, char *argv[])
 		strcpy(data_file, "SPAE.PA");
 	}
 
-	LOGE("Loading game data from `%s'...", data_file);
+	LOGI("main", "Loading game data from `%s'...", data_file);
 
 	r = gfx_load_file(data_file);
 	if (r < 0) {
-		LOGE("Could not load game data.");
+		LOGE("main", "Could not load game data.");
 		exit(EXIT_FAILURE);
 	}
 
@@ -5740,7 +5764,7 @@ main(int argc, char *argv[])
 
 	gfx_data_fixup();
 
-	LOGE("SDL init...");
+	LOGI("main", "SDL init...");
 
 	r = sdl_init();
 	if (r < 0) exit(EXIT_FAILURE);
@@ -5751,7 +5775,7 @@ main(int argc, char *argv[])
 	/*gfx_set_palette(DATA_PALETTE_INTRO);*/
 	gfx_set_palette(DATA_PALETTE_GAME);
 
-	LOGE("SDL resolution %ix%i...\n", screen_width, screen_height);
+	LOGI("main", "SDL resolution %ix%i...", screen_width, screen_height);
 
 	r = sdl_set_resolution(screen_width, screen_height, fullscreen);
 	if (r < 0) exit(EXIT_FAILURE);
@@ -5763,6 +5787,8 @@ main(int argc, char *argv[])
 	globals.map_preserve_bugs = preserve_map_bugs;
 
 	deep_tree();
+
+	LOGI("main", "Cleaning up...");
 
 	/* Clean up */
 	audio_cleanup();

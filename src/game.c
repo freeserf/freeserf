@@ -575,7 +575,7 @@ update_ai_and_more()
 
 						for (int i = 0; i < n; i++) {
 							if (max_prio[i] > 0) {
-								LOGD(" dest for inventory %i found", i);
+								LOGV("game", " dest for inventory %i found", i);
 								building_t *dest_bld = flags[i]->other_endpoint.b[DIR_UP_LEFT];
 								inventory_t *src_inv = invs[i];
 								if (arr[0] == 66) {
@@ -605,11 +605,11 @@ update_ai_and_more()
 								/* Put resource in out queue */
 								src_inv->resources[res] -= 1;
 								if (src_inv->out_queue[0] == -1) {
-									LOGD(" added resource %i to front of queue", res);
+									LOGV("game", " added resource %i to front of queue", res);
 									src_inv->out_queue[0] = res;
 									src_inv->out_dest[0] = dest_bld->flg_index;
 								} else {
-									LOGD(" added resource %i next in queue", res);
+									LOGV("game", " added resource %i next in queue", res);
 									src_inv->out_queue[1] = res;
 									src_inv->out_dest[1] = dest_bld->flg_index;
 								}
@@ -778,20 +778,20 @@ update_flags_search_cb(flag_t *flag, update_flags_search_data_t *data)
 {
 	flag_t *src = data->src;
 	if (flag == data->dest) {
-		LOGD("update flags: dest found: %i", flag->search_dir);
+		LOGV("game", "update flags: dest found: %i", flag->search_dir);
 
 		if (flag->search_dir != 6) {
 			int other_dir = src->other_end_dir[flag->search_dir];
 			if (!BIT_TEST(other_dir, 7)) {
 				src->other_end_dir[flag->search_dir] = BIT(7) | (src->other_end_dir[flag->search_dir] & 0x78) | data->res;
-				LOGD("update flags: item %i is requesting fetch", data->res);
+				LOGV("game", "update flags: item %i is requesting fetch", data->res);
 			} else {
 				player_sett_t *sett = globals.player_sett[(flag->path_con >> 6) & 3];
 				int prio_old = sett->flag_prio[(src->res_waiting[other_dir & 7] & 0x1f)-1];
 				int prio_new = sett->flag_prio[(src->res_waiting[data->res] & 0x1f)-1];
 				if (prio_new > prio_old) {
 					src->other_end_dir[flag->search_dir] = (src->other_end_dir[flag->search_dir] & 0xf8) | data->res;
-					LOGD("update flags: item %i has priority now", data->res);
+					LOGV("game", "update flags: item %i has priority now", data->res);
 				}
 				src->res_waiting[data->res] = ((flag->search_dir + 1) << 5) | (src->res_waiting[data->res] & 0x1f);
 			}
@@ -941,7 +941,7 @@ update_flags()
 												    (flag_search_func *)update_flags_search_cb,
 												    1, &data);
 									if (r < 0 || data.dest->search_dir == 6) {
-										LOGD("update flags: unable to deliver.");
+										LOGD("game", "update flags: unable to deliver.");
 										flag_cancel_transported_stock(data.dest, flag->res_waiting[slot] & 0x1f);
 										flag->res_dest[slot] = 0;
 										flag->endpoint |= BIT(7);
@@ -965,8 +965,8 @@ update_flags()
 											    (flag_search_func *)update_flags_search2_cb,
 											    1, &data);
 									if (data.flag != NULL) {
-										LOGD("dest for flag %u res %i found: flag %u",
-										       FLAG_INDEX(flag), slot, FLAG_INDEX(data.flag));
+										LOGV("game", "dest for flag %u res %i found: flag %u",
+										     FLAG_INDEX(flag), slot, FLAG_INDEX(data.flag));
 										building_t *dest_bld = data.flag->other_endpoint.b[DIR_UP_LEFT];
 										int prio = (arr2[2*res+1] == 66) ? data.flag->stock1_prio :
 											data.flag->stock2_prio;
@@ -2199,7 +2199,7 @@ game_pause(int enable)
 		globals.game_speed = globals.game_speed_save;
 	}
 
-	LOGI("Game speed: %u", globals.game_speed >> 16);
+	LOGI("game", "Game speed: %u", globals.game_speed >> 16);
 }
 
 /* Generate an estimate of the amount of resources in the ground at map pos.*/
