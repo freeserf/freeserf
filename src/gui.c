@@ -121,8 +121,8 @@ draw_player_panel_btns(player_t *player)
 				if (player->sett->timers[i].timeout < 0) {
 					/* Timer has expired. */
 					/* TODO box (+ pos) timer */
-					create_notification_message(5, player->sett->timers[i].pos,
-								    player->sett->player_num);
+					player_add_notification(player->sett, 5,
+								player->sett->timers[i].pos);
 
 					/* Delete timer from list. */
 					player->sett->timers_count -= 1;
@@ -649,7 +649,7 @@ draw_stat_4_box(player_t *player)
 	/* Sum up resources of all inventories. */
 	for (int i = 0; i < globals.max_ever_inventory_index; i++) {
 		if (BIT_TEST(globals.inventories_bitmap[i>>3], 7-(i&7))) {
-			inventory_t *inventory = get_inventory(i);
+			inventory_t *inventory = game_get_inventory(i);
 			if (inventory->player_num == player->sett->player_num) {
 				for (int j = 0; j < 26; j++) {
 					resources[j] += inventory->resources[j];
@@ -1192,7 +1192,7 @@ draw_stat_3_box(player_t *player)
 	/* Sum up all existing serfs. */
 	for (int i = 1; i < globals.max_ever_serf_index; i++) {
 		if (BIT_TEST(globals.serfs_bitmap[i>>3], 7-(i&7))) {
-			serf_t *serf = get_serf(i);
+			serf_t *serf = game_get_serf(i);
 			if (SERF_PLAYER(serf) == player->sett->player_num &&
 			    serf->state == SERF_STATE_IDLE_IN_STOCK) {
 				serfs[SERF_TYPE(serf)] += 1;
@@ -1203,7 +1203,7 @@ draw_stat_3_box(player_t *player)
 	/* Sum up potential serfs of all inventories. */
 	for (int i = 0; i < globals.max_ever_inventory_index; i++) {
 		if (BIT_TEST(globals.inventories_bitmap[i>>3], 7-(i&7))) {
-			inventory_t *inventory = get_inventory(i);
+			inventory_t *inventory = game_get_inventory(i);
 			if (inventory->player_num == player->sett->player_num) {
 				/* TODO */
 			}
@@ -1261,7 +1261,7 @@ draw_start_attack_box(player_t *player)
 				    building_layout[i], player->popup_frame);
 	}
 
-	building_t *building = get_building(player->sett->building_attacked);
+	building_t *building = game_get_building(player->sett->building_attacked);
 	int y = 0;
 
 	switch (BUILDING_TYPE(building)) {
@@ -1294,7 +1294,7 @@ draw_ground_analysis_box(player_t *player)
 
 	draw_box_background(0x81, player->popup_frame);
 	draw_custom_icon_box(layout, player->popup_frame);
-	prepare_ground_analysis(player);
+	game_prepare_ground_analysis(player);
 	draw_green_string(0, 30, player->popup_frame, "GROUND-ANALYSIS:");
 
 	/* Gold */
@@ -1681,7 +1681,7 @@ draw_castle_res_box(player_t *player)
 
 	if (player->sett->index == 0) return;/*close_box();*/
 
-	building_t *building = get_building(player->sett->index);
+	building_t *building = game_get_building(player->sett->index);
 	if (BIT_TEST(building->serf, 5)) return;/*close_box();*/ /* Building is burning */
 
 	inventory_t *inventory = building->u.inventory;
@@ -1703,7 +1703,7 @@ draw_mine_output_box(player_t *player)
 
 	if (player->sett->index == 0) return;/*close_box();*/
 
-	building_t *building = get_building(player->sett->index);
+	building_t *building = game_get_building(player->sett->index);
 	/* if (BIT_TEST(building->serf, 5)) close_box();*/ /* Building is burning */
 	building_type_t type = BUILDING_TYPE(building);
 
@@ -1766,7 +1766,7 @@ draw_ordered_building_box(player_t *player)
 
 	if (player->sett->index == 0) return;/*close_box();*/
 
-	building_t *building = get_building(player->sett->index);
+	building_t *building = game_get_building(player->sett->index);
 	/* if (BIT_TEST(building->serf, 5)) close_box();*/ /* Building is burning */
 	building_type_t type = BUILDING_TYPE(building);
 
@@ -1795,7 +1795,7 @@ draw_defenders_box(player_t *player)
 
 	if (player->sett->index == 0) return;/*close_box();*/
 
-	building_t *building = get_building(player->sett->index);
+	building_t *building = game_get_building(player->sett->index);
 	if (BUILDING_IS_BURNING(building)) return;/*close_box();*/ /* Building is burning */
 
 	if (!BIT_TEST(globals.split, 5) && /* Demo mode */
@@ -1842,7 +1842,7 @@ draw_defenders_box(player_t *player)
 	/* Draw knights */
 	int next_knight = building->serf_index;
 	for (int i = 0; next_knight != 0; i++) {
-		serf_t *serf = get_serf(next_knight);
+		serf_t *serf = game_get_serf(next_knight);
 		draw_popup_icon(3 + 4*(i%4), 72 + 14*(i/4), 7 + SERF_TYPE(serf), player->popup_frame);
 		next_knight = serf->s.defending.next_knight;
 	}
@@ -1873,7 +1873,7 @@ draw_transport_info_box(player_t *player)
 
 	if (player->sett->index == 0) return;/*close_box();*/
 
-	flag_t *flag = get_flag(player->sett->index);
+	flag_t *flag = game_get_flag(player->sett->index);
 
 #if 1
 	/* Draw viewport of flag */
@@ -1937,7 +1937,7 @@ draw_castle_serf_box(player_t *player)
 
 	if (player->sett->index == 0) return;/*close_box();*/
 
-	building_t *building = get_building(player->sett->index);
+	building_t *building = game_get_building(player->sett->index);
 	if (BIT_TEST(building->serf, 5)) return;/*close_box();*/ /* Building is burning */
 
 	building_type_t type = BUILDING_TYPE(building);
@@ -1947,9 +1947,9 @@ draw_castle_serf_box(player_t *player)
 
 	for (int i = 1; i < globals.max_ever_serf_index; i++) {
 		if (BIT_TEST(globals.serfs_bitmap[i/8], 7-(i&7))) {
-			serf_t *serf = get_serf(i);
+			serf_t *serf = game_get_serf(i);
 			if (serf->state == SERF_STATE_IDLE_IN_STOCK &&
-			    inventory == get_inventory(serf->s.idle_in_stock.inv_index)) {
+			    inventory == game_get_inventory(serf->s.idle_in_stock.inv_index)) {
 				serfs[SERF_TYPE(serf)] += 1;
 			}
 		}
@@ -1989,7 +1989,7 @@ draw_resdir_box(player_t *player)
 
 	if (player->sett->index == 0) return;/*close_box();*/
 
-	building_t *building = get_building(player->sett->index);
+	building_t *building = game_get_building(player->sett->index);
 	if (BIT_TEST(building->serf, 5)) return;/*close_box();*/ /* Building is burning */
 
 	building_type_t type = BUILDING_TYPE(building);
@@ -1998,8 +1998,8 @@ draw_resdir_box(player_t *player)
 		draw_custom_icon_box(knights_layout, player->popup_frame);
 
 		/* Follow linked list of knights on duty */
-		for (int index = building->serf_index; index != 0; index = get_serf(index)->s.defending.next_knight) {
-			serf_t *serf = get_serf(index);
+		for (int index = building->serf_index; index != 0; index = game_get_serf(index)->s.defending.next_knight) {
+			serf_t *serf = game_get_serf(index);
 			serf_type_t serf_type = SERF_TYPE(serf);
 			if (serf_type >= SERF_KNIGHT_0 && serf_type <= SERF_KNIGHT_4) {
 				knights[serf_type-SERF_KNIGHT_0] += 1;
@@ -2075,7 +2075,7 @@ draw_sett_8_box(player_t *player)
 	int convertible_to_knights = 0;
 	for (int i = 0; i < globals.max_ever_inventory_index; i++) {
 		if (BIT_TEST(globals.inventories_bitmap[i>>3], 7-(i&7))) {
-			inventory_t *inv = get_inventory(i);
+			inventory_t *inv = game_get_inventory(i);
 			if (inv->player_num == sett->player_num) {
 				int c = min(inv->resources[RESOURCE_SWORD],
 					    inv->resources[RESOURCE_SHIELD]);
@@ -2436,7 +2436,7 @@ draw_building_stock_box(player_t *player)
 
 	if (player->sett->index == 0) return;/*close_box();*/
 
-	building_t *building = get_building(player->sett->index);
+	building_t *building = game_get_building(player->sett->index);
 	if (BIT_TEST(building->serf, 5)) return;/*close_box();*/ /* Building is burning */
 
 	int sprite1 = -1;

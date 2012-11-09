@@ -586,7 +586,7 @@ load_v0_flag_state(FILE *f)
 		for (int x = 0; x < globals.map_cols; x++) {
 			map_pos_t pos = MAP_POS(x, y);
 			if (MAP_OBJ(pos) == MAP_OBJ_FLAG) {
-				flag_t *flag = get_flag(MAP_OBJ_INDEX(pos));
+				flag_t *flag = game_get_flag(MAP_OBJ_INDEX(pos));
 				flag->pos = pos;
 			}
 		}

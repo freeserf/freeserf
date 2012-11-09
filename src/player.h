@@ -8,6 +8,7 @@
 #include <stdint.h>
 
 #include "freeserf.h"
+#include "map.h"
 #include "gfx.h"
 
 
@@ -215,6 +216,8 @@ typedef struct {
 	/* ... */
 } player_t;
 
+
+void player_add_notification(player_sett_t *sett, int type, map_pos_t pos);
 
 void player_sett_reset_food_priority(player_sett_t *sett);
 void player_sett_reset_planks_priority(player_sett_t *sett);

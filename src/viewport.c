@@ -12,6 +12,7 @@
 #include "random.h"
 #include "sdl-video.h"
 #include "globals.h"
+#include "game.h"
 #include "misc.h"
 #include "debug.h"
 #include "audio.h"
@@ -903,7 +904,7 @@ draw_unharmed_building(building_t *building, int x, int y, frame_t *frame)
 			if (BIT_TEST(building->serf, 3)) { /* Draw elevator down */
 				draw_game_sprite(x-6, y-39, 153, frame);
 				if ((((globals.anim + ((uint8_t *)&building->pos)[1]) >> 3) & 7) == 0 &&
-				    get_rnd() < 40000) {
+				    random_int() < 40000) {
 					sfx_play_clip(SFX_ELEVATOR);
 				}
 			}
@@ -920,7 +921,7 @@ draw_unharmed_building(building_t *building, int x, int y, frame_t *frame)
 		case BUILDING_PIGFARM:
 			draw_shadow_and_building_sprite(x, y, map_building_sprite[type], frame);
 			if (building->stock2 > 0) {
-				if ((get_rnd() & 0x7f) < building->stock2) {
+				if ((random_int() & 0x7f) < building->stock2) {
 					sfx_play_clip(SFX_PIG_OINK);
 				}
 
@@ -1299,7 +1300,7 @@ draw_burning_building(building_t *building, int x, int y, frame_t *frame)
 static void
 draw_building(map_pos_t pos, int x, int y, frame_t *frame)
 {
-	building_t *building = get_building(MAP_OBJ_INDEX(pos));
+	building_t *building = game_get_building(MAP_OBJ_INDEX(pos));
 
 	if (BIT_TEST(building->serf, 5)) { /* check whether building is burning */
 		draw_burning_building(building, x, y, frame);
@@ -1318,7 +1319,7 @@ draw_water_waves(map_pos_t pos, int x, int y, frame_t *frame)
 static void
 draw_flag_and_res(map_pos_t pos, int x, int y, frame_t *frame)
 {
-	flag_t *flag = get_flag(MAP_OBJ_INDEX(pos));
+	flag_t *flag = game_get_flag(MAP_OBJ_INDEX(pos));
 
 	if (flag->res_waiting[0] != 0) draw_game_sprite(x+6, y-4, flag->res_waiting[0] & 0x1f, frame);
 	if (flag->res_waiting[1] != 0) draw_game_sprite(x+10, y-2, flag->res_waiting[1] & 0x1f, frame);
@@ -2032,7 +2033,7 @@ draw_serf_row(map_pos_t pos, int y_base, int cols, int x_base, frame_t *frame)
 
 		/* Active serf */
 		if (MAP_SERF_INDEX(pos) != 0) {
-			serf_t *serf = get_serf(MAP_SERF_INDEX(pos));
+			serf_t *serf = game_get_serf(MAP_SERF_INDEX(pos));
 
 			uint8_t *tbl_ptr = ((uint8_t *)globals.serf_animation_table) +
 				globals.serf_animation_table[serf->animation] +

@@ -51,5 +51,6 @@ int flag_search_execute(flag_search_t *search, flag_search_func *callback, int t
 int flag_search_single(flag_t *src, flag_search_func *callback, int transporter, void *data);
 
 void flag_prioritize_pickup(flag_t *flag, dir_t dir, const int flag_prio[]);
+void flag_cancel_transported_stock(flag_t *flag, int res);
 
 #endif /* ! _FLAG_H */

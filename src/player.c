@@ -8,6 +8,20 @@
 #include "player.h"
 
 
+/* Enqueue a new notification message for player. */
+void
+player_add_notification(player_sett_t *sett, int type, map_pos_t pos)
+{
+	sett->flags |= BIT(3); /* Message in queue. */
+	for (int i = 0; i < 64; i++) {
+		if (sett->msg_queue_type[i] == 0) {
+			sett->msg_queue_type[i] = type;
+			sett->msg_queue_pos[i] = pos;
+			break;
+		}
+	}
+}
+
 /* Set defaults for food distribution priorities. */
 void
 player_sett_reset_food_priority(player_sett_t *sett)

@@ -123,8 +123,8 @@ const map_space_t map_space_from_obj[] = {
 static map_pos_t
 get_rnd_map_coord(int *col, int *row)
 {
-	int c = get_rnd() & globals.map_col_mask;
-	int r = get_rnd() & globals.map_row_mask;
+	int c = random_int() & globals.map_col_mask;
+	int r = random_int() & globals.map_row_mask;
 
 	if (col != NULL) *col = c;
 	if (row != NULL) *row = r;
@@ -140,7 +140,7 @@ init_map_heights_squares()
 
 	for (int y = 0; y < globals.map_rows; y += 16) {
 		for (int x = 0; x < globals.map_cols; x += 16) {
-			int rnd = get_rnd() & 0xff;
+			int rnd = random_int() & 0xff;
 			map[MAP_POS(x,y)].height = min(rnd, 250);
 		}
 	}
@@ -149,7 +149,7 @@ init_map_heights_squares()
 static int
 calc_height_displacement(int avg, int base, int offset)
 {
-	int r = get_rnd();
+	int r = random_int();
 	int h = ((r * base) >> 16) - offset + avg;
 
 	return max(0,min(h,250));
@@ -177,7 +177,7 @@ init_map_heights_midpoints()
 	   spikyness will result in smooth mountains and sharp valleys.
 	*/
 
-	int rnd = get_rnd();
+	int rnd = random_int();
 	int r1 = 0x80 + (rnd & 0x7f);
 	int r2 = (r1 * TERRAIN_SPIKYNESS) >> 16;
 
@@ -237,7 +237,7 @@ init_map_heights_diamond_square()
 	   spikyness will result in smooth mountains and sharp valleys.
 	*/
 
-	int rnd = get_rnd();
+	int rnd = random_int();
 	int r1 = 0x80 + (rnd & 0x7f);
 	int r2 = (r1 * TERRAIN_SPIKYNESS) >> 16;
 
@@ -460,7 +460,7 @@ map_init_sea_level()
 				case 253:
 					map[pos].height = globals.map_water_level - 1;
 					map[pos].flags |= BIT(6);
-					map_data[pos].u.s.resource = get_rnd() & 7; /* Fish (?) */
+					map_data[pos].u.s.resource = random_int() & 7; /* Fish (?) */
 					break;
 			}
 		}
@@ -834,7 +834,7 @@ init_map_objects_shared_sub1(map_pos_t pos, int min, int max)
 static map_pos_t
 lookup_rnd_pattern(int col, int row, int mask)
 {
-	int index = (get_rnd() & mask) * 2;
+	int index = (random_int() & mask) * 2;
 	int c = (col + globals.spiral_pattern[index]) & globals.map_col_mask;
 	int r = (row + globals.spiral_pattern[index+1]) & globals.map_row_mask;
 	return MAP_POS(c, r);
@@ -856,7 +856,7 @@ init_map_objects_shared(int num_clusters, int objs_in_cluster, int pos_mask,
 					map_pos_t pos = lookup_rnd_pattern(col, row, pos_mask);
 					int r = init_map_objects_shared_sub1(pos, type_min, type_max);
 					if (r == 0 && MAP_OBJ(pos) == MAP_OBJ_NONE) {
-						map[pos].obj = (get_rnd() & obj_mask) + obj_base;
+						map[pos].obj = (random_int() & obj_mask) + obj_base;
 					}
 				}
 				break;
@@ -987,7 +987,7 @@ init_map_resources_shared(int num_clusters, int res_type, int min, int max)
 			if (map_data[pos].u.s.field_1 == 0 &&
 			    init_map_objects_shared_sub1(pos, min, max) == 0) {
 				int index = 0;
-				int amount = 8 + (get_rnd() & 0xc);
+				int amount = 8 + (random_int() & 0xc);
 				init_map_resources_shared_sub(map_data, 1, col, row, &index, amount, res_type);
 				amount -= 4;
 				if (amount == 0) break;
@@ -1247,8 +1247,8 @@ map_init()
 	globals.rnd_2 = globals.init_map_rnd_2;
 	globals.rnd_3 = globals.init_map_rnd_3;
 
-	get_rnd();
-	get_rnd();
+	random_int();
+	random_int();
 	/* progress_reset(); */
 
 	/* draw_progress_bar(1); */
@@ -1366,7 +1366,7 @@ map_update_public(map_pos_t pos)
 	int r;
 	switch (MAP_OBJ(pos)) {
 	case MAP_OBJ_STUB:
-		if ((get_rnd() & 3) == 0) map_set_object(pos, MAP_OBJ_NONE);
+		if ((random_int() & 3) == 0) map_set_object(pos, MAP_OBJ_NONE);
 		break;
 	case MAP_OBJ_FELLED_PINE_0: case MAP_OBJ_FELLED_PINE_1:
 	case MAP_OBJ_FELLED_PINE_2: case MAP_OBJ_FELLED_PINE_3:
@@ -1377,11 +1377,11 @@ map_update_public(map_pos_t pos)
 		map_set_object(pos, MAP_OBJ_STUB);
 		break;
 	case MAP_OBJ_NEW_PINE:
-		r = get_rnd();
+		r = random_int();
 		if ((r & 0x300) == 0) map_set_object(pos, MAP_OBJ_PINE_0 + (r & 7));
 		break;
 	case MAP_OBJ_NEW_TREE:
-		r = get_rnd();
+		r = random_int();
 		if ((r & 0x300) == 0) map_set_object(pos, MAP_OBJ_TREE_0 + (r & 7));
 		break;
 	case MAP_OBJ_SEEDS_0: case MAP_OBJ_SEEDS_1:
@@ -1424,7 +1424,7 @@ map_update_hidden(map_pos_t pos)
 	/* Update fish resources in water */
 	if (MAP_WATER_2(pos) && MAP_WATER_1(pos)) {
 		if (map_data[pos].u.s.resource) {
-			int r = get_rnd();
+			int r = random_int();
 
 			if (map_data[pos].u.s.resource < 10 && (r & 0x3f00)) {
 				/* Spawn more fish. */

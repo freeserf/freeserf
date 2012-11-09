@@ -8,7 +8,7 @@
 
 
 uint16_t
-get_rnd()
+random_int()
 {
 	uint16_t r = (globals.rnd_1 + globals.rnd_2) ^ globals.rnd_3;
 	globals.rnd_3 += globals.rnd_2;
@@ -19,4 +19,3 @@ get_rnd()
 
 	return r;
 }
-
