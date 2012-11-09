@@ -90,13 +90,13 @@ audio_cleanup()
 int
 audio_volume()
 {
-	return (int)((float)Mix_Volume(-1, -1) / (float)MIX_MAX_VOLUME * 99.f );
+	return (int)((float)Mix_Volume(-1, -1) / (float)MIX_MAX_VOLUME * 99.f + 0.5f );
 }
 
 void
 audio_set_volume(int volume)
 {
-	volume = (int)((float)volume / 99.f * (float)MIX_MAX_VOLUME);
+	volume = (int)((float)volume / 99.f * (float)MIX_MAX_VOLUME + 0.5f);
 	Mix_Volume(-1, volume);
 	Mix_VolumeMusic(volume);
 }
