@@ -24,6 +24,7 @@
 #include <stdint.h>
 
 #include "map.h"
+#include "viewport.h"
 #include "random.h"
 #include "globals.h"
 #include "misc.h"
