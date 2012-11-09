@@ -8241,7 +8241,17 @@ game_loop()
 				case SDLK_m:
 					midi_enable(!midi_is_enabled());
 					break;
+
 					/* Misc */
+				case SDLK_ESCAPE:
+					if (BIT_TEST(globals.player[0]->click, 7)) { /* Building road */
+						build_road_end(globals.player[0]);
+					} else if (globals.player[0]->clkmap != 0) {
+						close_box(globals.player[0]);
+					}
+					break;
+
+					/* Debug */
 				case SDLK_g:
 					viewport.layers ^= VIEWPORT_LAYER_GRID;
 					break;
