@@ -1650,9 +1650,29 @@ draw_options_box(player_t *player)
 	draw_green_string(2, 68, player->popup_frame, "    Fast");
 	draw_green_string(2, 77, player->popup_frame, "  building");
 
-	draw_green_string(0, 88, player->popup_frame, "    Messages");
-
-	/* TODO messages options */
+	char *messages = strdup("    Messages    ");
+	messages[0] = '3';
+	if (!BIT_TEST(globals.cfg_left,3)) {
+		messages[0] = '2';
+		if (!BIT_TEST(globals.cfg_left,4)) {
+			messages[0] = '1';
+			if (!BIT_TEST(globals.cfg_left,5)) {
+				messages[0] = '0';
+			}
+		}
+	}
+	messages[15] = '3';
+	if (!BIT_TEST(globals.cfg_right,3)) {
+		messages[15] = '2';
+		if (!BIT_TEST(globals.cfg_right,4)) {
+			messages[15] = '1';
+			if (!BIT_TEST(globals.cfg_right,5)) {
+				messages[15] = '0';
+			}
+		}
+	}
+	draw_green_string(0, 88, player->popup_frame, messages);
+	free(messages);
 
 	draw_popup_icon(7, 0, 60, player->popup_frame); /* exit */
 
