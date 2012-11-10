@@ -3975,20 +3975,13 @@ handle_clickmap(player_t *player, int x, int y, const int clkmap[])
 				if (BIT_TEST(globals.cfg_left,3)) {
 					BIT_INVERT(globals.cfg_left, 3);
 					globals.cfg_left |= BIT(4);
-				}
-				else {
-					if (BIT_TEST(globals.cfg_left,4)) {
-						BIT_INVERT(globals.cfg_left, 4);
-						globals.cfg_left |= BIT(5);
-					}
-					else {
-						if (BIT_TEST(globals.cfg_left,5)) {
-							BIT_INVERT(globals.cfg_left, 5);
-						}
-						else {
-							globals.cfg_left |= BIT(3) | BIT(4) | BIT(5);
-						}
-					}
+				} else if (BIT_TEST(globals.cfg_left,4)) {
+					BIT_INVERT(globals.cfg_left, 4);
+					globals.cfg_left |= BIT(5);
+				} else if (BIT_TEST(globals.cfg_left,5)) {
+					BIT_INVERT(globals.cfg_left, 5);
+				} else {
+					globals.cfg_left |= BIT(3) | BIT(4) | BIT(5);
 				}
 				sfx_play_clip(SFX_CLICK);
 				break;
@@ -3997,20 +3990,13 @@ handle_clickmap(player_t *player, int x, int y, const int clkmap[])
 				if (BIT_TEST(globals.cfg_right,3)) {
 					BIT_INVERT(globals.cfg_right, 3);
 					globals.cfg_left |= BIT(4);
-				}
-				else {
-					if (BIT_TEST(globals.cfg_right,4)) {
-						BIT_INVERT(globals.cfg_right, 4);
-						globals.cfg_left |= BIT(5);
-					}
-					else {
-						if (BIT_TEST(globals.cfg_right,5)) {
-							BIT_INVERT(globals.cfg_right, 5);
-						}
-						else {
-							globals.cfg_right |= BIT(3) | BIT(4) | BIT(5);
-						}
-					}
+				} else if (BIT_TEST(globals.cfg_right,4)) {
+					BIT_INVERT(globals.cfg_right, 4);
+					globals.cfg_left |= BIT(5);
+				} else if (BIT_TEST(globals.cfg_right,5)) {
+					BIT_INVERT(globals.cfg_right, 5);
+				} else {
+					globals.cfg_right |= BIT(3) | BIT(4) | BIT(5);
 				}
 				sfx_play_clip(SFX_CLICK);
 				break;
