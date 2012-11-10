@@ -655,9 +655,25 @@ update_player_input_drag(player_t *player, int x, int y, int lmb, int rmb)
 	} else {
 		player->click &= ~BIT(3); /* reset right click pending */
 
-		if (x != player->pointer_x || y != player->pointer_y) {
-			player->pointer_x = min(max(0, x), player->pointer_x_max);
-			player->pointer_y = min(max(0, y), player->pointer_y_max);
+		int popup_x = player->pointer_x - player->popup_x + 8;
+		int popup_y = player->pointer_y - player->popup_y + 8;
+
+		/* Drag popup box. */
+		if (lmb && !BIT_TEST(player->click, 1) && /* Popup box open for input */
+		    popup_x >= 0 && popup_x < 144 &&
+		    popup_y >= 0 && popup_y < 160) {
+			if (x != player->pointer_x || y != player->pointer_y) {
+				player->pointer_x = min(max(0, x), player->pointer_x_max);
+				player->pointer_y = min(max(0, y), player->pointer_y_max);
+				player->popup_x = player->pointer_x - popup_x + 8;
+				player->popup_y = player->pointer_y - popup_y + 8;
+			}
+		} else {
+			/* Move pointer normally. */
+			if (x != player->pointer_x || y != player->pointer_y) {
+				player->pointer_x = min(max(0, x), player->pointer_x_max);
+				player->pointer_y = min(max(0, y), player->pointer_y_max);
+			}
 		}
 	}
 
