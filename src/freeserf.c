@@ -3948,52 +3948,51 @@ handle_clickmap(player_t *player, int x, int y, const int clkmap[])
 				close_box(player);
 				break;
 			case ACTION_OPTIONS_PATHWAY_SCROLLING_1:
-				BIT_INVERT(globals.cfg_left,0);
+				BIT_INVERT(globals.cfg_left, 0);
 				sfx_play_clip(SFX_CLICK);
 				break;
 			case ACTION_OPTIONS_PATHWAY_SCROLLING_2:
-				BIT_INVERT(globals.cfg_right,0);
+				BIT_INVERT(globals.cfg_right, 0);
 				sfx_play_clip(SFX_CLICK);
 				break;
 			case ACTION_OPTIONS_FAST_MAP_CLICK_1:
-				BIT_INVERT(globals.cfg_left,1);
+				BIT_INVERT(globals.cfg_left, 1);
 				sfx_play_clip(SFX_CLICK);
 				break;
 			case ACTION_OPTIONS_FAST_MAP_CLICK_2:
-				BIT_INVERT(globals.cfg_right,1);
+				BIT_INVERT(globals.cfg_right, 1);
 				sfx_play_clip(SFX_CLICK);
 				break;
 			case ACTION_OPTIONS_FAST_BUILDING_1:
-				BIT_INVERT(globals.cfg_left,2);
+				BIT_INVERT(globals.cfg_left, 2);
 				sfx_play_clip(SFX_CLICK);
 				break;
 			case ACTION_OPTIONS_FAST_BUILDING_2:
-				BIT_INVERT(globals.cfg_right,2);
+				BIT_INVERT(globals.cfg_right, 2);
 				sfx_play_clip(SFX_CLICK);
 				break;
-			case ACTION_OPTIONS_MESSAGE_COUNT_1: {
-				if (BIT_TEST(globals.cfg_left,3)) {
+			case ACTION_OPTIONS_MESSAGE_COUNT_1:
+				if (BIT_TEST(globals.cfg_left, 3)) {
 					BIT_INVERT(globals.cfg_left, 3);
 					globals.cfg_left |= BIT(4);
-				} else if (BIT_TEST(globals.cfg_left,4)) {
+				} else if (BIT_TEST(globals.cfg_left, 4)) {
 					BIT_INVERT(globals.cfg_left, 4);
 					globals.cfg_left |= BIT(5);
-				} else if (BIT_TEST(globals.cfg_left,5)) {
+				} else if (BIT_TEST(globals.cfg_left, 5)) {
 					BIT_INVERT(globals.cfg_left, 5);
 				} else {
 					globals.cfg_left |= BIT(3) | BIT(4) | BIT(5);
 				}
 				sfx_play_clip(SFX_CLICK);
 				break;
-			}
 			case ACTION_OPTIONS_MESSAGE_COUNT_2:
-				if (BIT_TEST(globals.cfg_right,3)) {
+				if (BIT_TEST(globals.cfg_right, 3)) {
 					BIT_INVERT(globals.cfg_right, 3);
 					globals.cfg_left |= BIT(4);
-				} else if (BIT_TEST(globals.cfg_right,4)) {
+				} else if (BIT_TEST(globals.cfg_right, 4)) {
 					BIT_INVERT(globals.cfg_right, 4);
 					globals.cfg_left |= BIT(5);
-				} else if (BIT_TEST(globals.cfg_right,5)) {
+				} else if (BIT_TEST(globals.cfg_right, 5)) {
 					BIT_INVERT(globals.cfg_right, 5);
 				} else {
 					globals.cfg_right |= BIT(3) | BIT(4) | BIT(5);
