@@ -13,6 +13,8 @@ freeserf_SOURCES = \
 	src/gfx.c src/gfx.h \
 	src/viewport.c src/viewport.h \
 	src/gui.c src/gui.h \
+	src/popup.c src/popup.h \
+	src/panel.c src/panel.h \
 	src/map.c src/map.h \
 	src/player.c src/player.h \
 	src/sdl-video.c src/sdl-video.h \

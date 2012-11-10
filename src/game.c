@@ -2299,3 +2299,620 @@ game_prepare_ground_analysis(player_t *player)
 	player->sett->analysis_stone >>= 4;
 	player->sett->analysis_stone = min(player->sett->analysis_stone, 999);
 }
+
+/* Get road length category value for real length.
+   Determines number of serfs servicing the path segment.(?) */
+int
+game_get_road_length_value(int length)
+{
+	if (length >= 24) return 7 << 4;
+	else if (length >= 18) return 6 << 4;
+	else if (length >= 13) return 5 << 4;
+	else if (length >= 10) return 4 << 4;
+	else if (length >= 7) return 3 << 4;
+	else if (length >= 6) return 2 << 4;
+	else if (length >= 4) return 1 << 4;
+	return 0;
+}
+
+static void
+flag_reset_transport(flag_t *flag)
+{
+	/* Clear destination for any serf with resources for this flag. */
+	for (int i = 1; i < globals.max_ever_serf_index; i++) {
+		if (BIT_TEST(globals.serfs_bitmap[i>>3], 7-(i&7))) {
+			serf_t *serf = game_get_serf(i);
+
+			if (serf->state == SERF_STATE_WALKING &&
+			    serf->s.walking.dest == FLAG_INDEX(flag) &&
+			    serf->s.walking.res < 0) {
+				serf->s.walking.res = -2;
+				serf->s.walking.dest = 0;
+			} else if (serf->state == SERF_STATE_READY_TO_LEAVE_INVENTORY &&
+				   serf->s.ready_to_leave_inventory.dest == FLAG_INDEX(flag) &&
+				   serf->s.ready_to_leave_inventory.mode < 0) {
+				serf->s.ready_to_leave_inventory.mode = -2;
+				serf->s.ready_to_leave_inventory.dest = 0;
+			} else if ((serf->state == SERF_STATE_LEAVING_BUILDING ||
+				    serf->state == SERF_STATE_READY_TO_LEAVE) &&
+				   serf->s.leaving_building.next_state == SERF_STATE_WALKING &&
+				   serf->s.leaving_building.dest == FLAG_INDEX(flag) &&
+				   serf->s.leaving_building.field_B < 0) {
+				serf->s.leaving_building.field_B = -2;
+				serf->s.leaving_building.dest = 0;
+			} else if (serf->state == SERF_STATE_TRANSPORTING &&
+				   serf->s.walking.dest == FLAG_INDEX(flag)) {
+				serf->s.walking.dest = 0;
+			} else if (serf->state == SERF_STATE_MOVE_RESOURCE_OUT &&
+				   serf->s.move_resource_out.next_state == SERF_STATE_DROP_RESOURCE_OUT &&
+				   serf->s.move_resource_out.res_dest == FLAG_INDEX(flag)) {
+				serf->s.move_resource_out.res_dest = 0;
+			} else if (serf->state == SERF_STATE_DROP_RESOURCE_OUT &&
+				   serf->s.move_resource_out.res_dest == FLAG_INDEX(flag)) {
+				serf->s.move_resource_out.res_dest = 0;
+			} else if (serf->state == SERF_STATE_LEAVING_BUILDING &&
+				   serf->s.leaving_building.next_state == SERF_STATE_DROP_RESOURCE_OUT &&
+				   serf->s.leaving_building.dest == FLAG_INDEX(flag)) {
+				serf->s.leaving_building.dest = 0;
+			}
+		}
+	}
+
+	/* Flag. */
+	for (int i = 1; i < globals.max_ever_flag_index; i++) {
+		if (BIT_TEST(globals.flg_bitmap[i>>3], 7-(i&7))) {
+			flag_t *flag = game_get_flag(i);
+
+			for (int i = 0; i < 8; i++) {
+				if (flag->res_waiting[i] != 0 &&
+				    flag->res_dest[i] == FLAG_INDEX(flag)) {
+					flag->res_dest[i] = 0;
+					flag->endpoint |= BIT(7);
+
+					if (((flag->res_waiting[i] >> 5) & 3) != 0) {
+						dir_t dir = ((flag->res_waiting[i] >> 5) & 3)-1;
+						player_sett_t *sett = globals.player_sett[FLAG_PLAYER(flag)];
+						flag_prioritize_pickup(flag, dir, sett->flag_prio);
+					}
+				}
+			}
+		}
+	}
+
+	/* Inventories. */
+	for (int i = 0; i < globals.max_ever_inventory_index; i++) {
+		if (BIT_TEST(globals.inventories_bitmap[i>>3], 7-(i&7))) {
+			inventory_t *inventory = game_get_inventory(i);
+			if (inventory->out_dest[1] == FLAG_INDEX(flag)) {
+				inventory->out_queue[1] = 0;
+			}
+			if (inventory->out_dest[0] == FLAG_INDEX(flag)) {
+				inventory->out_queue[0] = inventory->out_queue[1];
+				inventory->out_dest[0] = inventory->out_dest[1];
+				inventory->out_queue[1] = 0;
+			}
+		}
+	}
+}
+
+static void
+building_remove_pl_sett_refs(building_t *building)
+{
+	for (int i = 0; i < 4; i++) {
+		if (globals.player_sett[i]->index == BUILDING_INDEX(building)) {
+			globals.player_sett[i]->index = 0;
+		}
+	}
+
+	player_sett_t *sett = globals.player_sett[BUILDING_PLAYER(building)];
+
+	if (sett->sawmill_index == BUILDING_INDEX(building)) {
+		sett->sawmill_index = 0;
+	}
+
+	if (sett->stonecutter_index == BUILDING_INDEX(building)) {
+		sett->stonecutter_index = 0;
+	}
+
+	if (sett->lumberjack_index == BUILDING_INDEX(building)) {
+		sett->lumberjack_index = 0;
+	}
+}
+
+static int
+remove_road_backref_until_flag(map_pos_t pos, dir_t dir)
+{
+	map_1_t *map = globals.map_mem2_ptr;
+
+	while (1) {
+		pos = MAP_MOVE(pos, dir);
+
+		/* Clear backreference */
+		map[pos].flags &= ~BIT(DIR_REVERSE(dir));
+
+		if (MAP_OBJ(pos) == MAP_OBJ_FLAG) break;
+
+		/* Find next direction of path. */
+		dir = -1;
+		for (dir_t d = DIR_RIGHT; d <= DIR_UP; d++) {
+			if (BIT_TEST(MAP_PATHS(pos), d)) {
+				dir = d;
+				break;
+			}
+		}
+
+		if (dir == -1) return -1;
+	}
+
+	return 0;
+}
+
+static int
+remove_road_backrefs(map_pos_t pos)
+{
+	if (MAP_PATHS(pos) == 0) return -1;
+
+	/* Find directions of path segments to be split. */
+	dir_t path_1_dir = -1;
+	for (dir_t d = DIR_RIGHT; d <= DIR_UP; d++) {
+		if (BIT_TEST(MAP_PATHS(pos), d)) {
+			path_1_dir = d;
+			break;
+		}
+	}
+
+	dir_t path_2_dir = -1;
+	for (dir_t d = path_1_dir+1; d <= DIR_UP; d++) {
+		if (BIT_TEST(MAP_PATHS(pos), d)) {
+			path_2_dir = d;
+			break;
+		}
+	}
+
+	if (path_1_dir == -1 || path_2_dir == -1) return -1;
+
+	int r = remove_road_backref_until_flag(pos, path_1_dir);
+	if (r < 0) return -1;
+
+	r = remove_road_backref_until_flag(pos, path_2_dir);
+	if (r < 0) return -1;
+
+	return 0;
+}
+
+static int
+path_serf_idle_to_wait_state(map_pos_t pos)
+{
+	/* Look through serf array for the corresponding serf. */
+	for (int i = 1; i < globals.max_ever_serf_index; i++) {
+		if (BIT_TEST(globals.serfs_bitmap[i>>3], 7-(i&7))) {
+			serf_t *serf = game_get_serf(i);
+			if (serf->pos == pos &&
+			    (serf->state == SERF_STATE_IDLE_ON_PATH ||
+			     serf->state == SERF_STATE_WAIT_IDLE_ON_PATH ||
+			     serf->state == SERF_STATE_WAKE_AT_FLAG ||
+			     serf->state == SERF_STATE_WAKE_ON_PATH)) {
+				serf_log_state_change(serf, SERF_STATE_WAKE_AT_FLAG);
+				serf->state = SERF_STATE_WAKE_AT_FLAG;
+				return 0;
+			}
+		}
+	}
+
+	return -1;
+}
+
+static void
+lose_transported_resource(resource_type_t res, uint dest)
+{
+	static const int stock_type[] = {
+		0, 0, 0, 0, 0, 0,
+		1, 0, -1, 1, 1, 1,
+		0, 1, 1, -1, -1, -1,
+		-1, -1, -1, -1, -1, -1,
+		-1, -1, -1
+	};
+
+	if (res == RESOURCE_GOLDORE ||
+	    res == RESOURCE_GOLDBAR) {
+		globals.map_gold_deposit -= 1;
+	}
+
+	if (stock_type[res] >= 0 && dest != 0) {
+		flag_t *flag = game_get_flag(dest);
+		building_t *building = flag->other_endpoint.b[DIR_UP_LEFT];
+		if (!(BUILDING_IS_DONE(building) &&
+		      (BUILDING_TYPE(building) == BUILDING_CASTLE ||
+		       BUILDING_TYPE(building) == BUILDING_STOCK))) {
+			if (stock_type[res] == 0) building->stock1 -= 1;
+			else building->stock2 -= 1;
+		}
+	}
+}
+
+
+/* ADDITION: Removed precondition that serf is in state walking or transporting. */
+static void
+mark_serf_as_lost(serf_t *serf)
+{
+	if (serf->state == SERF_STATE_WALKING) {
+		if (serf->s.walking.res >= 0) {
+			if (serf->s.walking.res != 6) {
+				dir_t dir = serf->s.walking.res;
+				flag_t *flag = game_get_flag(serf->s.walking.dest);
+				flag->length[dir] &= ~BIT(7);
+
+				dir_t other_dir = (flag->other_end_dir[dir] >> 3) & 7;
+				flag->other_endpoint.f[dir]->length[other_dir] &= ~BIT(7);
+			}
+		} else if (serf->s.walking.res == -1) {
+			flag_t *flag = game_get_flag(serf->s.walking.dest);
+			building_t *building = flag->other_endpoint.b[DIR_UP_LEFT];
+
+			if (BIT_TEST(building->serf, 7)) {
+				building->serf &= ~BIT(7);
+			} else if (building->stock1 != 0xff) {
+				building->stock1 -= 1;
+				if (building->stock1 < 0) building->stock1 = 0xff; /* Should probably just be a signed int. */
+			}
+		}
+
+		serf_log_state_change(serf, SERF_STATE_LOST);
+		serf->state = SERF_STATE_LOST;
+		serf->s.lost.field_B = 0;
+	} else if (serf->state == SERF_STATE_TRANSPORTING ||
+		   serf->state == SERF_STATE_DELIVERING) {
+		if (serf->s.walking.res != 0) {
+			int res = serf->s.walking.res-1;
+			int dest = serf->s.walking.dest;
+
+			lose_transported_resource(res, dest);
+		}
+
+		if (serf->type != SERF_SAILOR) {
+			serf_log_state_change(serf, SERF_STATE_LOST);
+			serf->state = SERF_STATE_LOST;
+			serf->s.lost.field_B = 0;
+		} else {
+			serf_log_state_change(serf, SERF_STATE_26);
+			serf->state = SERF_STATE_26;
+		}
+	}
+}
+
+static void
+remove_road_forwards(map_pos_t pos, dir_t dir)
+{
+	map_1_t *map = globals.map_mem2_ptr;
+
+	while (1) {
+		if (MAP_IDLE_SERF(pos)) {
+			path_serf_idle_to_wait_state(pos);
+		}
+
+		if (MAP_SERF_INDEX(pos) != 0) {
+			serf_t *serf = game_get_serf(MAP_SERF_INDEX(pos));
+			if (!MAP_HAS_FLAG(pos)) {
+				mark_serf_as_lost(serf);
+			} else {
+				/* Handle serf close to flag, where
+				   it should only be lost if walking
+				   in the wrong direction. */
+				int d = serf->s.walking.dir;
+				if (d < 0) d += 6;
+				if (d == DIR_REVERSE(dir)) {
+					mark_serf_as_lost(serf);
+				}
+			}
+		}
+
+		if (MAP_HAS_FLAG(pos)) {
+			flag_t *flag = game_get_flag(MAP_OBJ_INDEX(pos));
+			dir_t rev_dir = DIR_REVERSE(dir);
+
+			flag->path_con &= ~BIT(rev_dir);
+			flag->transporter &= ~BIT(rev_dir);
+			flag->endpoint &= ~BIT(rev_dir);
+
+			if (BIT_TEST(flag->length[rev_dir], 7)) {
+				flag->length[rev_dir] &= ~BIT(7);
+
+				for (int i = 1; i < globals.max_ever_serf_index; i++) {
+					if (BIT_TEST(globals.serfs_bitmap[i>>3], 7-(i&7))) {
+						int dest = MAP_OBJ_INDEX(pos);
+						serf_t *serf = game_get_serf(i);
+
+						switch (serf->state) {
+						case SERF_STATE_WALKING:
+							if (serf->s.walking.dest == dest &&
+							    serf->s.walking.res == rev_dir) {
+								serf->s.walking.res = 0xfe;
+								serf->s.walking.dest = 0;
+							}
+							break;
+						case SERF_STATE_READY_TO_LEAVE_INVENTORY:
+							if (serf->s.ready_to_leave_inventory.dest == dest &&
+							    serf->s.ready_to_leave_inventory.mode == rev_dir) {
+								serf->s.ready_to_leave_inventory.dest = 0xfe;
+								serf->s.ready_to_leave_inventory.dest = 0;
+							}
+							break;
+						case SERF_STATE_LEAVING_BUILDING:
+						case SERF_STATE_READY_TO_LEAVE:
+							if (serf->s.leaving_building.dest == dest &&
+							    serf->s.leaving_building.field_B == rev_dir &&
+							    serf->s.leaving_building.next_state == SERF_STATE_WALKING) {
+								serf->s.leaving_building.field_B = 0xfe;
+								serf->s.leaving_building.dest = 0;
+							}
+							break;
+						}
+					}
+				}
+			}
+
+			flag->other_end_dir[rev_dir] &= 0x78;
+
+			/* Mark resource path for recalculation if they would
+			   have followed the removed path. */
+			for (int i = 0; i < 8; i++) {
+				if (flag->res_waiting[i] != 0 &&
+				    (flag->res_waiting[i] >> 5) == rev_dir+1) {
+					flag->res_waiting[i] &= 0x1f;
+					flag->endpoint |= BIT(7);
+				}
+			}
+			break;
+		}
+
+		/* Clear forward reference. */
+		map[pos].flags &= ~BIT(dir);
+		pos = MAP_MOVE(pos, dir);
+
+		/* Clear backreference. */
+		map[pos].flags &= ~BIT(DIR_REVERSE(dir));
+
+		/* Find next direction of path. */
+		dir = -1;
+		for (dir_t d = DIR_RIGHT; d <= DIR_UP; d++) {
+			if (BIT_TEST(MAP_PATHS(pos), d)) {
+				dir = d;
+				break;
+			}
+		}
+	}
+}
+
+/* Demolish road at position. */
+void
+game_demolish_road(map_pos_t pos)
+{
+	globals.player[0]->flags |= BIT(4);
+	globals.player[1]->flags |= BIT(4);
+
+	int r = remove_road_backrefs(pos);
+	if (r < 0) {
+		/* TODO */
+	}
+
+	/* Find directions of path segments to be split. */
+	dir_t path_1_dir = -1;
+	for (dir_t d = DIR_RIGHT; d <= DIR_UP; d++) {
+		if (BIT_TEST(MAP_PATHS(pos), d)) {
+			path_1_dir = d;
+			break;
+		}
+	}
+
+	dir_t path_2_dir = -1;
+	for (dir_t d = path_1_dir+1; d <= DIR_UP; d++) {
+		if (BIT_TEST(MAP_PATHS(pos), d)) {
+			path_2_dir = d;
+			break;
+		}
+	}
+
+	/* If last segment direction is UP LEFT it could
+	   be to a building and the real path is at UP. */
+	if (path_2_dir == DIR_UP_LEFT &&
+	    BIT_TEST(MAP_PATHS(pos), DIR_UP)) {
+		path_2_dir = DIR_UP;
+	}
+
+	remove_road_forwards(pos, path_1_dir);
+	remove_road_forwards(pos, path_2_dir);
+}
+
+/* Demolish building at pos. */
+void
+game_demolish_building(map_pos_t pos)
+{
+	/* request redraw at pos */
+
+	building_t *building = game_get_building(MAP_OBJ_INDEX(pos));
+	building_remove_pl_sett_refs(building);
+
+	player_sett_t *sett = globals.player_sett[BUILDING_PLAYER(building)];
+	map_1_t *map = globals.map_mem2_ptr;
+
+	if (BIT_TEST(building->serf, 5)) return; /* Already burning */
+
+	building->serf |= BIT(5);
+
+	/* Remove path to building. */
+	map[pos].flags &= ~BIT(1);
+	map[MAP_MOVE_DOWN_RIGHT(pos)].flags &= ~BIT(4);
+
+	/* Remove lost gold stock from total count. */
+	if (BUILDING_IS_DONE(building) &&
+	    (BUILDING_TYPE(building) == BUILDING_HUT ||
+	     BUILDING_TYPE(building) == BUILDING_TOWER ||
+	     BUILDING_TYPE(building) == BUILDING_FORTRESS ||
+	     BUILDING_TYPE(building) == BUILDING_GOLDSMELTER)) {
+		int gold_stock = (building->stock2 >> 4) & 0xf;
+		globals.map_gold_deposit -= gold_stock;
+	}
+
+	/* Update land owner ship if the building is military. */
+	if (BUILDING_IS_DONE(building) &&
+	    (BUILDING_TYPE(building) == BUILDING_HUT ||
+	     BUILDING_TYPE(building) == BUILDING_TOWER ||
+	     BUILDING_TYPE(building) == BUILDING_FORTRESS ||
+	     BUILDING_TYPE(building) == BUILDING_CASTLE)) {
+		update_land_ownership(MAP_COORD_ARGS(building->pos));
+	}
+
+	if (BUILDING_IS_DONE(building) &&
+	    (BUILDING_TYPE(building) == BUILDING_CASTLE ||
+	     BUILDING_TYPE(building) == BUILDING_STOCK)) {
+		/* Cancel resources in the out queue and remove gold
+		   from map total. */
+		if (BIT_TEST(building->serf, 4)) {
+			inventory_t *inventory = building->u.inventory;
+
+			for (int i = 0; i < 2 && inventory->out_queue[i] != 0; i++) {
+				int res = inventory->out_queue[i] - 1;
+				int dest = inventory->out_dest[i];
+
+				/* Remove gold from total count. */
+				if (res == RESOURCE_GOLDBAR ||
+				    res == RESOURCE_GOLDORE) {
+					globals.map_gold_deposit -= 1;
+				}
+
+				flag_cancel_transported_stock(game_get_flag(dest), res+1);
+			}
+
+			globals.map_gold_deposit -= inventory->resources[RESOURCE_GOLDBAR];
+			globals.map_gold_deposit -= inventory->resources[RESOURCE_GOLDORE];
+		}
+
+		/* Let some serfs escape while the building is burning. */
+		int escaping_serfs = 0;
+		for (int i = 1; i < globals.max_ever_serf_index; i++) {
+			if (BIT_TEST(globals.serfs_bitmap[i>>3], 7-(i&7))) {
+				serf_t *serf = game_get_serf(i);
+
+				if (serf->pos == building->pos &&
+				    (serf->state == SERF_STATE_IDLE_IN_STOCK ||
+				     serf->state == SERF_STATE_READY_TO_LEAVE_INVENTORY)) {
+					if (escaping_serfs < 12) {
+						/* Serf is escaping. */
+						escaping_serfs += 1;
+						serf->state = SERF_STATE_ESCAPE_BUILDING;
+					} else {
+						/* Kill this serf. */
+						if (SERF_TYPE(serf) >= SERF_KNIGHT_0 &&
+						    SERF_TYPE(serf) <= SERF_KNIGHT_4) {
+							int score = 1 << (SERF_TYPE(serf)-SERF_KNIGHT_0);
+							sett->total_military_score -= score;
+						}
+						sett->serf_count[SERF_TYPE(serf)] -= 1;
+						game_free_serf(SERF_INDEX(serf));
+					}
+				}
+			}
+		}
+	} else {
+		building->serf &= ~BIT(4);
+	}
+
+	/* Remove stock from building. */
+	building->stock1 = 0;
+	building->stock2 = 0;
+
+	building->serf &= ~BIT(3);
+
+	int serf_index = building->serf_index;
+	building->serf_index = 2047;
+	building->u.anim = globals.anim;
+
+	/* Update player sett fields. */
+	if (BUILDING_IS_DONE(building)) {
+		sett->total_building_score -= building_get_score_from_type(BUILDING_TYPE(building));
+
+		if (BUILDING_TYPE(building) != BUILDING_CASTLE) {
+			sett->completed_building_count[BUILDING_TYPE(building)] -= 1;
+		}
+	} else {
+		sett->incomplete_building_count[BUILDING_TYPE(building)] -= 1;
+	}
+
+	if (BIT_TEST(building->serf, 6)) {
+		building->serf &= ~BIT(6);
+
+		if (BUILDING_IS_DONE(building) &&
+		    BUILDING_TYPE(building) == BUILDING_CASTLE) {
+			sett->build &= ~BIT(3);
+			/* sett->field_15E -= 1; */
+
+			building->serf_index = 8191;
+
+			if (sett->serf_index != 0) {
+				serf_t *serf = game_get_serf(sett->serf_index);
+				serf->type = (0x83 & serf->type) | SERF_TRANSPORTER;
+				serf->counter = 0;
+
+				if (MAP_SERF_INDEX(serf->pos) == SERF_INDEX(serf)) {
+					serf_log_state_change(serf, SERF_STATE_LOST);
+					serf->state = SERF_STATE_LOST;
+					serf->s.lost.field_B = 0;
+				} else {
+					serf_log_state_change(serf, SERF_STATE_ESCAPE_BUILDING);
+					serf->state = SERF_STATE_ESCAPE_BUILDING;
+				}
+			}
+		}
+
+		if (BUILDING_IS_DONE(building) &&
+		    (BUILDING_TYPE(building) == BUILDING_HUT ||
+		     BUILDING_TYPE(building) == BUILDING_TOWER ||
+		     BUILDING_TYPE(building) == BUILDING_FORTRESS ||
+		     BUILDING_TYPE(building) == BUILDING_CASTLE)) {
+			while (serf_index != 0) {
+				serf_t *serf = game_get_serf(serf_index);
+				serf_index = serf->s.defending.next_knight;
+
+				if (MAP_SERF_INDEX(serf->pos) == SERF_INDEX(serf)) {
+					serf_log_state_change(serf, SERF_STATE_LOST);
+					serf->state = SERF_STATE_LOST;
+					serf->s.lost.field_B = 0;
+				} else {
+					serf_log_state_change(serf, SERF_STATE_ESCAPE_BUILDING);
+					serf->state = SERF_STATE_ESCAPE_BUILDING;
+				}
+			}
+		} else {
+			serf_t *serf = game_get_serf(serf_index);
+			if (SERF_TYPE(serf) == SERF_4) {
+				serf->type = (0x83 & serf->type) | SERF_TRANSPORTER;
+			}
+
+			serf->counter = 0;
+
+			if (MAP_SERF_INDEX(serf->pos) == SERF_INDEX(serf)) {
+				serf_log_state_change(serf, SERF_STATE_LOST);
+				serf->state = SERF_STATE_LOST;
+				serf->s.lost.field_B = 0;
+			} else {
+				serf_log_state_change(serf, SERF_STATE_ESCAPE_BUILDING);
+				serf->state = SERF_STATE_ESCAPE_BUILDING;
+			}
+		}
+	}
+
+	/* Flag. */
+	flag_t *flag = game_get_flag(building->flg_index);
+	flag->other_endpoint.b[DIR_UP_LEFT] = NULL;
+	flag->endpoint &= ~BIT(6);
+
+	flag->bld_flags = 0;
+	flag->bld2_flags = 0;
+
+	flag_reset_transport(flag);
+
+	if (MAP_PATHS(MAP_MOVE_DOWN_RIGHT(pos)) == 0 &&
+	    MAP_OBJ(MAP_MOVE_DOWN_RIGHT(pos)) == MAP_OBJ_FLAG) {
+		/* TODO */
+	}
+}

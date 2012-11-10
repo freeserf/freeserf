@@ -252,6 +252,9 @@ sdl_draw_transp_sprite(const sprite_t *sprite, int x, int y, int use_off, int y_
 {
 	int r;
 
+	x += dest->clip.x;
+	y += dest->clip.y;
+
 	if (use_off) {
 		x += le16toh(sprite->x);
 		y += le16toh(sprite->y);
@@ -290,8 +293,8 @@ sdl_draw_waves_sprite(const sprite_t *sprite, int x, int y, frame_t *dest)
 {
 	int r;
 
-	x += le16toh(sprite->x);
-	y += le16toh(sprite->y);
+	x += le16toh(sprite->x) + dest->clip.x;
+	y += le16toh(sprite->y) + dest->clip.y;
 
 	surface_t *surface = get_cached_surface(&transp_sprite_cache, sprite, NULL, 0);
 	if (surface == NULL) {
@@ -337,8 +340,8 @@ sdl_draw_sprite(const sprite_t *sprite, int x, int y, frame_t *dest)
 {
 	int r;
 
-	x += le16toh(sprite->x);
-	y += le16toh(sprite->y);
+	x += le16toh(sprite->x) + dest->clip.x;
+	y += le16toh(sprite->y) + dest->clip.y;
 
 	SDL_Surface *surf = create_sprite_surface(sprite); /* Not cached */
 
@@ -405,8 +408,8 @@ sdl_draw_overlay_sprite(const sprite_t *sprite, int x, int y, int y_off, frame_t
 {
 	int r;
 
-	x += le16toh(sprite->x);
-	y += le16toh(sprite->y);
+	x += le16toh(sprite->x) + dest->clip.x;
+	y += le16toh(sprite->y) + dest->clip.y;
 
 	surface_t *surface = get_cached_surface(&overlay_sprite_cache, sprite, NULL, 0);
 	if (surface == NULL) {
@@ -491,8 +494,8 @@ sdl_draw_masked_sprite(const sprite_t *sprite, int x, int y, const sprite_t *mas
 {
 	int r;
 
-	x += le16toh(mask->x);
-	y += le16toh(mask->y);
+	x += le16toh(mask->x) + dest->clip.x;
+	y += le16toh(mask->y) + dest->clip.y;
 
 	if (surface == NULL) {
 		surface = get_cached_surface(&masked_sprite_cache, sprite, mask, 0);
@@ -524,14 +527,15 @@ sdl_draw_masked_sprite(const sprite_t *sprite, int x, int y, const sprite_t *mas
 void
 sdl_draw_frame(int dx, int dy, frame_t *dest, int sx, int sy, frame_t *src, int w, int h)
 {
-	int r;
+	int x = dx + dest->clip.x;
+	int y = dy + dest->clip.y;
 
-	SDL_Rect dest_rect = { dx, dy, 0, 0 };
+	SDL_Rect dest_rect = { x, y, 0, 0 };
 	SDL_Rect src_rect = { sx, sy, w, h };
 
 	SDL_SetClipRect(dest->surf, &dest->clip);
 
-	r = SDL_BlitSurface(src->surf, &src_rect, dest->surf, &dest_rect);
+	int r = SDL_BlitSurface(src->surf, &src_rect, dest->surf, &dest_rect);
 	if (r < 0) {
 		LOGE("sdl-video", "BlitSurface error: %s", SDL_GetError());
 	}
@@ -541,6 +545,9 @@ void
 sdl_draw_rect(int x, int y, int width, int height, int color, frame_t *dest)
 {
 	SDL_SetClipRect(dest->surf, &dest->clip);
+
+	x += dest->clip.x;
+	y += dest->clip.y;
 
 	/* Draw rectangle. */
 	sdl_fill_rect(x, y, width, 1, color, dest);
@@ -552,7 +559,11 @@ sdl_draw_rect(int x, int y, int width, int height, int color, frame_t *dest)
 void
 sdl_fill_rect(int x, int y, int width, int height, int color, frame_t *dest)
 {
-	SDL_Rect rect = { x, y, width, height };
+	SDL_Rect rect = {
+		x + dest->clip.x,
+		y + dest->clip.y,
+		width, height
+	};
 
 	SDL_SetClipRect(dest->surf, &dest->clip);
 
