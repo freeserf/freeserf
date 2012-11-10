@@ -5,6 +5,7 @@
 
 #define BIT(n)          (1 << (n))
 #define BIT_TEST(x, n)  ((x) & BIT(n))
+#define BIT_INVERT(x, n) ((x) ^= 1 << n)
 
 #define max(x,y)      (((x) > (y)) ? (x) : (y))
 #define min(x,y)      (((x) < (y)) ? (x) : (y))
