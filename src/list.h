@@ -32,6 +32,11 @@
        (elm)->next != NULL; \
        (elm) = (elm)->next)
 
+#define list_foreach_reverse(list,elm)  \
+  for ((elm) = (list)->tail; \
+       (elm)->prev != NULL; \
+       (elm) = (elm)->prev)
+
 #define list_foreach_safe(list,elm,tmpelm)  \
   for ((elm) = (list)->head, (tmpelm) = (elm)->next; \
        (tmpelm) != NULL; \
