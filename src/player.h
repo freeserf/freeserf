@@ -217,6 +217,27 @@ typedef struct {
 } player_t;
 
 
+void player_open_popup(player_t *player, int box);
+void player_close_popup(player_t *player);
+
+void player_determine_map_cursor_type(player_t *player);
+void player_determine_map_cursor_type_road(player_t *player);
+void player_update_interface(player_t *player);
+
+void player_build_road_begin(player_t *player);
+void player_build_road_end(player_t *player);
+int player_build_road_connect_flag(player_t *player, map_1_t *map,
+				   map_pos_t clk_pos, dir_t out_dir);
+
+void player_demolish_object(player_t *player);
+
+void player_build_flag(player_t *player);
+void player_build_mine_building(player_t *player);
+void player_build_basic_building(player_t *player);
+void player_build_advanced_building(player_t *player);
+void player_build_castle(player_t *player);
+
+
 void player_add_notification(player_sett_t *sett, int type, map_pos_t pos);
 
 void player_sett_reset_food_priority(player_sett_t *sett);
@@ -228,6 +249,11 @@ void player_sett_reset_tool_priority(player_sett_t *sett);
 
 void player_sett_reset_flag_priority(player_sett_t *sett);
 void player_sett_reset_inventory_priority(player_sett_t *sett);
+
+void player_change_knight_occupation(player_sett_t *sett, int index,
+				     int adjust_max, int delta);
+
+int player_promote_serfs_to_knights(player_sett_t *sett, int number);
 
 
 #endif /* ! _PLAYER_H */

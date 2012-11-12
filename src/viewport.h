@@ -6,6 +6,7 @@
 #include "freeserf.h"
 #include "player.h"
 #include "gfx.h"
+#include "gui.h"
 #include "map.h"
 
 
@@ -21,14 +22,16 @@ typedef enum {
 } viewport_layer_t;
 
 typedef struct {
+	gui_object_t obj;
 	int x, y;
-	int width, height;
 	int offset_x, offset_y;
 	viewport_layer_t layers;
+	player_t *player;
 } viewport_t;
 
 
-void viewport_draw(viewport_t *viewport, frame_t *frame);
+void viewport_init(viewport_t *viewport, player_t *player);
+
 void viewport_move_to_map_pos(viewport_t *viewport, int col, int row);
 void viewport_move_by_pixels(viewport_t *viewport, int x, int y);
 void viewport_get_current_map_pos(viewport_t *viewport, int *col, int *row);

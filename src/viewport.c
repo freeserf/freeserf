@@ -22,7 +22,7 @@
 #define MAP_TILE_MASKS     81
 
 
-#define VIEWPORT_COLS(viewport)  (2*((viewport)->width / MAP_TILE_WIDTH) + 1)
+#define VIEWPORT_COLS(viewport)  (2*((viewport)->obj.width / MAP_TILE_WIDTH) + 1)
 
 
 /* Cache all combinations of textures and masks, and both up tiles and down tiles. */
@@ -309,14 +309,14 @@ draw_landscape(viewport_t *viewport, frame_t *frame)
 	int my = viewport->offset_y;
 
 	int y = 0, x_base = 0;
-	while (y < viewport->height) {
+	while (y < viewport->obj.height) {
 		int x = 0;
-		while (x < viewport->width) {
+		while (x < viewport->obj.width) {
 			sdl_draw_frame(viewport->x + x, viewport->y + y, frame,
 				       (mx + x_base + x) % map_width,
 				       (my + y) % map_height,
 				       &landscape_frame,
-				       viewport->width - x, viewport->height - y);
+				       viewport->obj.width - x, viewport->obj.height - y);
 			x += map_width - ((mx + x_base + x) % map_width);
 		}
 
@@ -739,20 +739,20 @@ draw_paths_and_borders(viewport_t *viewport, frame_t *frame)
 	int cols = VIEWPORT_COLS(viewport) + 1;
 	int col = 0;
 	while (1) {
-		draw_paths_and_borders_sub1(viewport->x + x, viewport->y + y + MAP_TILE_HEIGHT, viewport->height, pos, frame);
+		draw_paths_and_borders_sub1(viewport->x + x, viewport->y + y + MAP_TILE_HEIGHT, viewport->obj.height, pos, frame);
 		col += 1;
 		if (col >= cols) break;
 
 		x += MAP_TILE_WIDTH/2;
-		draw_paths_and_borders_sub2(viewport->x + x, viewport->y + y, viewport->height, pos, frame);
-		draw_paths_and_borders_sub3(viewport->x + x, viewport->y + y + 2*MAP_TILE_HEIGHT, viewport->height, pos, frame);
+		draw_paths_and_borders_sub2(viewport->x + x, viewport->y + y, viewport->obj.height, pos, frame);
+		draw_paths_and_borders_sub3(viewport->x + x, viewport->y + y + 2*MAP_TILE_HEIGHT, viewport->obj.height, pos, frame);
 
 		col += 1;
 		if (col >= cols) break;
 
 		pos = MAP_MOVE_RIGHT(pos);
 		x += MAP_TILE_WIDTH/2;
-		draw_paths_and_borders_sub4(viewport->x + x, viewport->y + y, viewport->height, pos, frame);
+		draw_paths_and_borders_sub4(viewport->x + x, viewport->y + y, viewport->obj.height, pos, frame);
 	}
 }
 
@@ -2092,7 +2092,7 @@ draw_game_objects(viewport_t *viewport, int layers, frame_t *frame)
 		if (draw_serfs) draw_serf_row(pos, viewport->y + y, short_row_len, viewport->x + x, frame);
 
 		y += MAP_TILE_HEIGHT;
-		if (y - 3*MAP_TILE_HEIGHT >= viewport->height) break;
+		if (y - 3*MAP_TILE_HEIGHT >= viewport->obj.height) break;
 
 		pos = MAP_MOVE_DOWN(pos);
 
@@ -2101,7 +2101,7 @@ draw_game_objects(viewport_t *viewport, int layers, frame_t *frame)
 		if (draw_serfs) draw_serf_row(pos, viewport->y + y, long_row_len, viewport->x + x - 16, frame);
 
 		y += MAP_TILE_HEIGHT;
-		if (y - 3*MAP_TILE_HEIGHT >= viewport->height) break;
+		if (y - 3*MAP_TILE_HEIGHT >= viewport->obj.height) break;
 
 		pos = MAP_MOVE_DOWN_RIGHT(pos);
 	}
@@ -2138,10 +2138,10 @@ draw_base_grid_overlay(viewport_t *viewport, int color, frame_t *frame)
 	int y_base = -viewport->offset_y % 20;
 
 	int row = 0;
-	for (int y = y_base; y < viewport->height; y += MAP_TILE_HEIGHT, row++) {
-		sdl_fill_rect(viewport->x, viewport->y + y, viewport->width, 1, color, frame);
+	for (int y = y_base; y < viewport->obj.height; y += MAP_TILE_HEIGHT, row++) {
+		sdl_fill_rect(viewport->x, viewport->y + y, viewport->obj.width, 1, color, frame);
 		for (int x = x_base + ((row % 2 == 0) ? 0 : -MAP_TILE_WIDTH/2);
-		     x < viewport->width; x += MAP_TILE_WIDTH) {
+		     x < viewport->obj.width; x += MAP_TILE_WIDTH) {
 			sdl_fill_rect(viewport->x + x, viewport->y + y - 2, 1, 5, color, frame);
 		}
 	}
@@ -2157,7 +2157,7 @@ draw_height_grid_overlay(viewport_t *viewport, int color, frame_t *frame)
 	int row_0 = (viewport->offset_y/MAP_TILE_HEIGHT) & globals.map_row_mask;
 	map_pos_t base_pos = MAP_POS(col_0, row_0);
 
-	for (int x_base = x_off; x_base < viewport->width + MAP_TILE_WIDTH; x_base += MAP_TILE_WIDTH) {
+	for (int x_base = x_off; x_base < viewport->obj.width + MAP_TILE_WIDTH; x_base += MAP_TILE_WIDTH) {
 		map_pos_t pos = base_pos;
 		int y_base = y_off;
 		int row = 0;
@@ -2168,7 +2168,7 @@ draw_height_grid_overlay(viewport_t *viewport, int color, frame_t *frame)
 			else x = x_base - MAP_TILE_WIDTH/2;
 
 			int y = y_base - 4*MAP_HEIGHT(pos);
-			if (y >= viewport->height) break;
+			if (y >= viewport->obj.height) break;
 
 			/* Draw cross. */
 			if (pos != MAP_POS(0, 0)) {
@@ -2190,7 +2190,7 @@ draw_height_grid_overlay(viewport_t *viewport, int color, frame_t *frame)
 	}
 }
 
-void
+static void
 viewport_draw(viewport_t *viewport, frame_t *frame)
 {
 	viewport_layer_t layers = viewport->layers;
@@ -2202,6 +2202,253 @@ viewport_draw(viewport_t *viewport, frame_t *frame)
 	if (layers & VIEWPORT_LAYER_PATHS) draw_paths_and_borders(viewport, frame);
 	draw_game_objects(viewport, layers, frame);
 	if (layers & VIEWPORT_LAYER_CURSOR) draw_map_cursor(viewport, globals.player[0], frame);
+}
+
+static int
+viewport_handle_event_click(viewport_t *viewport, int x, int y, gui_event_button_t button)
+{
+	if (button != GUI_EVENT_BUTTON_LEFT) return 0;
+
+	gui_object_set_redraw((gui_object_t *)viewport);
+
+	player_t *player = viewport->player;
+
+	map_pos_t clk_pos = viewport_map_pos_from_screen_pix(viewport, x, y);
+	int clk_col = clk_pos & globals.map_col_mask;
+	int clk_row = (clk_pos >> globals.map_row_shift) & globals.map_col_mask;
+
+	if (BIT_TEST(player->click, 7)) { /* Building road */
+		int y = (clk_col - player->sett->map_cursor_col + 1) & globals.map_col_mask;
+		int x = (clk_row - player->sett->map_cursor_row + 1) & globals.map_row_mask;
+		dir_t dir = -1;
+
+		if (y == 0) {
+			if (x == 1) dir = DIR_LEFT;
+			else if (x == 0) dir = DIR_UP_LEFT;
+			else return 0;
+		} else if (y == 1) {
+			if (x == 2) dir = DIR_DOWN;
+			else if (x == 0) dir = DIR_UP;
+			else return 0;
+		} else if (y == 2) {
+			if (x == 1) dir = DIR_RIGHT;
+			else if (x == 2) dir = DIR_DOWN_RIGHT;
+			else return 0;
+		} else {
+			return 0;
+		}
+
+		if (BIT_TEST(player->field_D0, dir)) {
+			map_pos_t pos = MAP_POS(player->sett->map_cursor_col, player->sett->map_cursor_row);
+			map_1_t *map = globals.map_mem2_ptr;
+			dir_t dir_rev = DIR_REVERSE(dir);
+
+			if (!BIT_TEST(MAP_PATHS(pos), dir)) { /* No existing path: Create path */
+				if (MAP_PATHS(clk_pos) == 0) { /* No paths at destination */
+					if (BIT_TEST(player->click, 3)) { /* Special click */
+						/* TODO ... */
+					} else {
+						/* loc_3ABF0 */
+						if (MAP_OBJ(clk_pos) == MAP_OBJ_FLAG) { /* Existing flag */
+							/* 3AC0A */
+							int r = player_build_road_connect_flag(player, map, clk_pos, dir_rev);
+							if (r < 0) {
+								sfx_play_clip(SFX_NOT_ACCEPTED);
+							} else {
+								player->sett->map_cursor_col = clk_col;
+								player->sett->map_cursor_row = clk_row;
+								map[pos].flags |= BIT(dir);
+								map[clk_pos].flags |= BIT(dir_rev);
+								player->road_length = 0;
+								/* redraw map cursor */
+								sfx_play_clip(SFX_ACCEPTED);
+							}
+							player_build_road_end(player);
+						} else {
+							player->road_length += 1;
+							map[pos].flags |= BIT(dir);
+							map[clk_pos].flags |= BIT(dir_rev);
+							sfx_play_clip(SFX_CLICK);
+
+							/* loc_3AD32 */
+							player->sett->map_cursor_col = clk_col;
+							player->sett->map_cursor_row = clk_row;
+
+							if (BIT_TEST(player->config, 0)) { /* Pathway scrolling */
+								/* TODO */
+							}
+
+							/*sub_4737E(player->sett->map_cursor_col, player->sett->map_cursor_row);*/
+							player->click |= BIT(2);
+						}
+					}
+				} else { /* Dest has existing paths */
+					if ((map[clk_pos].obj & 0x7f) == 1) { /* Flag at dest */
+						/* 3AC0A */
+						int r = player_build_road_connect_flag(player, map, clk_pos, dir_rev);
+						if (r < 0) {
+							sfx_play_clip(SFX_NOT_ACCEPTED);
+						} else {
+							player->sett->map_cursor_col = clk_col;
+							player->sett->map_cursor_row = clk_row;
+							map[pos].flags |= BIT(dir);
+							map[clk_pos].flags |= BIT(dir_rev);
+							player->road_length = 0;
+							/* redraw map cursor */
+							sfx_play_clip(SFX_ACCEPTED);
+						}
+						player_build_road_end(player);
+					} else { /* No flag at dest */
+						if (BIT_TEST(player->click, 3)) { /* Special click */
+							/* TODO ... */
+						} else {
+							player->click |= BIT(2);
+							sfx_play_clip(SFX_NOT_ACCEPTED);
+						}
+					}
+				}
+			} else { /* Existing path: Delete path */
+				player->road_length -= 1;
+				map[pos].flags &= ~BIT(dir);
+				map[clk_pos].flags &= ~BIT(dir_rev);
+				sfx_play_clip(SFX_CLICK);
+
+				/* loc_3AD32 */
+				player->sett->map_cursor_col = clk_col;
+				player->sett->map_cursor_row = clk_row;
+
+				if (BIT_TEST(player->config, 0)) { /* Pathway scrolling */
+					/* TODO */
+				}
+
+				/*sub_4737E(player->sett->map_cursor_col, player->sett->map_cursor_row);*/
+				player->click |= BIT(2);
+			}
+		} else {
+			player->click |= BIT(2);
+			sfx_play_clip(SFX_NOT_ACCEPTED);
+		}
+	} else if (BIT_TEST(player->config, 2)) { /* Fast building */
+		/* TODO ... */
+	} else {
+		/* 39F5C */
+		player->sett->map_cursor_col = clk_col;
+		player->sett->map_cursor_row = clk_row;
+
+		player->click |= BIT(2);
+
+		if (BIT_TEST(player->click, 3)) { /* Special click */
+			/* 39FCB */
+			if (MAP_OBJ(clk_pos) == MAP_OBJ_NONE ||
+			    MAP_OBJ(clk_pos) > MAP_OBJ_CASTLE) {
+				return 0;
+			}
+
+			if (MAP_OBJ(clk_pos) == MAP_OBJ_FLAG) {
+				if (BIT_TEST(globals.split, 5) || /* Demo mode */
+				    MAP_OWNER(clk_pos) == player->sett->player_num) {
+					player_open_popup(player, BOX_TRANSPORT_INFO);
+				}
+			} else { /* Building */
+				if (BIT_TEST(globals.split, 5) || /* Demo mode */
+				    MAP_OWNER(clk_pos) == player->sett->player_num) {
+					building_t *building = game_get_building(MAP_OBJ_INDEX(clk_pos));
+					if (BIT_TEST(building->bld, 7)) {
+						player_open_popup(player, BOX_ORDERED_BLD);
+					} else if (BUILDING_TYPE(building) == BUILDING_CASTLE) {
+						player_open_popup(player, BOX_CASTLE_RES);
+					} else if (BUILDING_TYPE(building) == BUILDING_STOCK) {
+						if (!BIT_TEST(building->serf, 4)) return 0;
+						player_open_popup(player, BOX_CASTLE_RES);
+					} else if (BUILDING_TYPE(building) == BUILDING_HUT ||
+						   BUILDING_TYPE(building) == BUILDING_TOWER ||
+						   BUILDING_TYPE(building) == BUILDING_FORTRESS) {
+						player_open_popup(player, BOX_DEFENDERS);
+					} else if (BUILDING_TYPE(building) == BUILDING_STONEMINE ||
+						   BUILDING_TYPE(building) == BUILDING_COALMINE ||
+						   BUILDING_TYPE(building) == BUILDING_IRONMINE ||
+						   BUILDING_TYPE(building) == BUILDING_GOLDMINE) {
+						player_open_popup(player, BOX_MINE_OUTPUT);
+					} else {
+						player_open_popup(player, BOX_BLD_STOCK);
+					}
+				} else {
+					/* TODO */
+				}
+			}
+
+			/* 3A1C7 */
+			if (BIT_TEST(globals.split, 5)) { /* Demo mode */
+				/* TODO .. */
+			} else {
+				player->sett->index = MAP_OBJ_INDEX(clk_pos);
+			}
+
+			player->panel_btns[0] = PANEL_BTN_BUILD_INACTIVE;
+			player->panel_btns[1] = PANEL_BTN_DESTROY_INACTIVE;
+			player->panel_btns[2] = PANEL_BTN_MAP_INACTIVE;
+			player->panel_btns[3] = PANEL_BTN_STATS_INACTIVE;
+			player->panel_btns[4] = PANEL_BTN_SETT_INACTIVE;
+			player->click &= ~BIT(2);
+			player->click &= ~BIT(1);
+		} else {
+			/* TODO ... */
+		}
+	}
+
+	return 0;
+}
+
+static int
+viewport_handle_drag(viewport_t *viewport, int x, int y,
+		     gui_event_button_t button)
+{
+	if (button == GUI_EVENT_BUTTON_RIGHT) {
+		int dx = x - viewport->player->pointer_x;
+		int dy = y - viewport->player->pointer_y;
+		if (dx != 0 || dy != 0) {
+			/* TODO drag accelerates in linux(?) */
+			viewport_move_by_pixels(viewport, dx, dy);
+			SDL_WarpMouse(viewport->player->pointer_x,
+				      viewport->player->pointer_y);
+		}
+	}
+
+	return 0;
+}
+
+static int
+viewport_handle_event(viewport_t *viewport, const gui_event_t *event)
+{
+	int x = event->x;
+	int y = event->y;
+
+	switch (event->type) {
+	case GUI_EVENT_TYPE_CLICK:
+		return viewport_handle_event_click(viewport, x, y,
+						   event->button);
+	case GUI_EVENT_TYPE_DRAG_MOVE:
+		return viewport_handle_drag(viewport, x, y,
+					    event->button);
+	default:
+		break;
+	}
+
+	return 0;
+}
+
+void
+viewport_init(viewport_t *viewport, player_t *player)
+{
+	gui_object_init((gui_object_t *)viewport);
+	viewport->obj.draw = (gui_draw_func *)viewport_draw;
+	viewport->obj.handle_event = (gui_handle_event_func *)viewport_handle_event;
+
+	viewport->x = 0;
+	viewport->y = 0;
+
+	viewport->player = player;
+	viewport->layers = VIEWPORT_LAYER_ALL;
 }
 
 /* Space transformations. */
@@ -2331,8 +2578,8 @@ viewport_get_current_map_pos(viewport_t *viewport, int *col, int *row)
 {
 	map_pos_t pos =
 		viewport_map_pos_from_screen_pix(viewport,
-						 viewport->width/2,
-						 viewport->height/2);
+						 viewport->obj.width/2,
+						 viewport->obj.height/2);
 	*col = pos & globals.map_col_mask;
 	*row = (pos >> globals.map_row_shift) & globals.map_row_mask;
 }
@@ -2349,8 +2596,8 @@ viewport_move_to_map_pos(viewport_t *viewport, int col, int row)
 	int map_height = globals.map_rows*MAP_TILE_HEIGHT;
 
 	/* Center screen. */
-	mx -= viewport->width/2;
-	my -= viewport->height/2;
+	mx -= viewport->obj.width/2;
+	my -= viewport->obj.height/2;
 
 	if (my < 0) {
 		mx += map_width/2;
@@ -2362,6 +2609,8 @@ viewport_move_to_map_pos(viewport_t *viewport, int col, int row)
 
 	viewport->offset_x = mx;
 	viewport->offset_y = my;
+
+	gui_object_set_redraw((gui_object_t *)viewport);
 }
 
 void
@@ -2383,4 +2632,6 @@ viewport_move_by_pixels(viewport_t *viewport, int x, int y)
 
 	if (viewport->offset_x >= width) viewport->offset_x -= width;
 	else if (viewport->offset_x < 0) viewport->offset_x += width;
+
+	gui_object_set_redraw((gui_object_t *)viewport);
 }
