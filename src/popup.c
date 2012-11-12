@@ -232,7 +232,7 @@ draw_minimap_ownership(player_t *player, int scale, int density, frame_t *frame)
 	for (int y = 0; y < globals.map_rows; y += 1 + 2-scale) {
 		for (int x = 0; x < globals.map_cols; x += 1 + 2-scale) {
 			int pos = MAP_POS(x,y);
-			if(MAP_HAS_OWNER(pos)) {
+			if (MAP_HAS_OWNER(pos)) {
 				int color = player_colors[MAP_OWNER(pos)];
 				draw_minimap_point(player, x, y, color, scale, density, frame);
 			}
@@ -246,7 +246,7 @@ draw_minimap_roads(player_t *player, int scale, frame_t *frame)
 	for (int y = 0; y < globals.map_rows; y++) {
 		for (int x = 0; x < globals.map_cols; x++) {
 			int pos = MAP_POS(x,y);
-			if(MAP_PATHS(pos)) {
+			if (MAP_PATHS(pos)) {
 				draw_minimap_point(player, x, y, 1, scale, scale, frame);
 			}
 		}
@@ -272,7 +272,7 @@ draw_minimap_buildings(player_t *player, int scale, frame_t *frame)
 		for (int x = 0; x < globals.map_cols; x++) {
 			int pos = MAP_POS(x,y);
 			int obj = MAP_OBJ(pos);
-			if(obj > MAP_OBJ_FLAG && obj <= MAP_OBJ_CASTLE) {
+			if (obj > MAP_OBJ_FLAG && obj <= MAP_OBJ_CASTLE) {
 				int color = player_colors[MAP_OWNER(pos)];
 				if (player->minimap_advanced > 0) {
 					building_t *bld = game_get_building(MAP_OBJ_INDEX(pos));
@@ -299,7 +299,7 @@ draw_minimap_traffic(player_t *player, int scale, frame_t *frame)
 	for (int y = 0; y < globals.map_rows; y++) {
 		for (int x = 0; x < globals.map_cols; x++) {
 			int pos = MAP_POS(x,y);
-			if(MAP_IDLE_SERF(pos)) {
+			if (MAP_IDLE_SERF(pos)) {
 				int color = player_colors[MAP_OWNER(pos)];
 				draw_minimap_point(player, x, y, color, scale, scale, frame);
 			}
@@ -338,8 +338,7 @@ draw_minimap(player_t *player, frame_t *frame)
 	sdl_fill_rect(8, 9, 128, 128, 1, frame);
 	if (BIT_TEST(player->minimap_flags, 1)) {
 		draw_minimap_ownership(player, scale, 2, frame);
-	}
-	else {
+	} else {
 		draw_minimap_map(player, scale, frame);
 		if (BIT_TEST(player->minimap_flags, 0)) {
 			draw_minimap_ownership(player, scale, 1, frame);
@@ -2907,6 +2906,7 @@ handle_clickmap(player_t *player, int x, int y, const int clkmap[])
 			action_t action = clkmap[0];
 			switch (action) {
 			case ACTION_MINIMAP_CLICK:
+				/* TODO */
 				player_close_popup(player);
 				break;
 			case ACTION_MINIMAP_MODE: {
@@ -2929,8 +2929,7 @@ handle_clickmap(player_t *player, int x, int y, const int clkmap[])
 					} else {
 						player->box = BOX_BLD_1;
 					}
-				}
-				else {
+				} else {
 					if (player->minimap_advanced >= 0) {
 						player->minimap_advanced = -1;
 						player->minimap_flags |= BIT(3);
@@ -4125,7 +4124,7 @@ handle_minimap_clk(player_t *player, int x, int y)
 }
 
 static void
-hahdle_box_bld_1(player_t *player, int x, int y)
+handle_box_bld_1(player_t *player, int x, int y)
 {
 	const int clkmap[] = {
 		ACTION_MINIMAP_BLD_1, 0, 63, 0, 50,
@@ -4142,7 +4141,7 @@ hahdle_box_bld_1(player_t *player, int x, int y)
 }
 
 static void
-hahdle_box_bld_2(player_t *player, int x, int y)
+handle_box_bld_2(player_t *player, int x, int y)
 {
 	const int clkmap[] = {
 		ACTION_MINIMAP_BLD_5, 0, 63, 0, 55,
@@ -4161,7 +4160,7 @@ hahdle_box_bld_2(player_t *player, int x, int y)
 }
 
 static void
-hahdle_box_bld_3(player_t *player, int x, int y)
+handle_box_bld_3(player_t *player, int x, int y)
 {
 	const int clkmap[] = {
 		ACTION_MINIMAP_BLD_12, 0, 63, 0, 47,
@@ -4179,7 +4178,7 @@ hahdle_box_bld_3(player_t *player, int x, int y)
 }
 
 static void
-hahdle_box_bld_4(player_t *player, int x, int y)
+handle_box_bld_4(player_t *player, int x, int y)
 {
 	const int clkmap[] = {
 		ACTION_MINIMAP_BLD_18, 0, 31, 0, 63,
@@ -4307,16 +4306,16 @@ popup_box_handle_event_click(popup_box_t *popup, int x, int y)
 		handle_sett_5_6_click(player, x, y);
 		break;
 	case BOX_BLD_1:
-		hahdle_box_bld_1(player, x, y);
+		handle_box_bld_1(player, x, y);
 		break;
 	case BOX_BLD_2:
-		hahdle_box_bld_2(player, x, y);
+		handle_box_bld_2(player, x, y);
 		break;
 	case BOX_BLD_3:
-		hahdle_box_bld_3(player, x, y);
+		handle_box_bld_3(player, x, y);
 		break;
 	case BOX_BLD_4:
-		hahdle_box_bld_4(player, x, y);
+		handle_box_bld_4(player, x, y);
 		break;
 	case BOX_MESSAGE:
 		handle_message_clk(player, x, y);
