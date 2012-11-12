@@ -56,7 +56,7 @@ typedef struct {
 	int reproduction_reset;
 	int serf_to_knight_rate;
 	uint16_t serf_to_knight_counter; /* Overflow is important */
-	int field_128;
+	int attacking_building_count;
 	int attacking_knights[4];
 	int total_attacking_knights;
 	int building_attacked;
@@ -254,6 +254,7 @@ void player_change_knight_occupation(player_sett_t *sett, int index,
 				     int adjust_max, int delta);
 
 int player_promote_serfs_to_knights(player_sett_t *sett, int number);
+int player_knights_available_for_attack(player_sett_t *sett, map_pos_t pos);
 
 
 #endif /* ! _PLAYER_H */

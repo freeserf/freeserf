@@ -229,7 +229,7 @@ load_v0_player_sett_state(FILE *f)
 		sett->serf_to_knight_rate = *(uint16_t *)&data[420];
 		sett->serf_to_knight_counter = *(uint16_t *)&data[422];
 
-		sett->field_128 = *(uint16_t *)&data[424];
+		sett->attacking_building_count = *(uint16_t *)&data[424];
 		for (int j = 0; j < 4; j++) {
 			sett->attacking_knights[j] = *(uint16_t *)&data[426+2*j];
 		}

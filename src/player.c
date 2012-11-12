@@ -1767,3 +1767,94 @@ player_promote_serfs_to_knights(player_sett_t *sett, int number)
 
 	return promoted;
 }
+
+static int
+available_knights_at_pos(player_sett_t *sett, map_pos_t pos, int index, int dist)
+{
+	const int min_level_hut[] = { 1, 1, 2, 2, 3 };
+	const int min_level_tower[] = { 1, 2, 3, 4, 6 };
+	const int min_level_fortress[] = { 1, 3, 6, 9, 12 };
+
+	if (MAP_OWNER(pos) != sett->player_num || MAP_WATER_2(pos) ||
+	    MAP_OBJ(pos) < MAP_OBJ_SMALL_BUILDING ||
+	    MAP_OBJ(pos) > MAP_OBJ_CASTLE) {
+		return index;
+	}
+
+	int bld_index = MAP_OBJ_INDEX(pos);
+	for (int i = 0; i < index; i++) {
+		if (sett->attacking_buildings[i] == bld_index) {
+			return index;
+		}
+	}
+
+	building_t *building = game_get_building(bld_index);
+	if (!BUILDING_IS_DONE(building) ||
+	    BUILDING_IS_BURNING(building)) {
+		return index;
+	}
+
+	const int *min_level = NULL;
+	switch (BUILDING_TYPE(building)) {
+	case BUILDING_HUT: min_level = min_level_hut; break;
+	case BUILDING_TOWER: min_level = min_level_tower; break;
+	case BUILDING_FORTRESS: min_level = min_level_fortress; break;
+	default: return index; break;
+	}
+
+	if (index >= 64) return index;
+
+	sett->attacking_buildings[index] = bld_index;
+
+	int state = building->serf & 3;
+	int knights_present = (building->stock1 >> 4) & 0xf;
+	int to_send = knights_present - min_level[sett->knight_occupation[state] & 0xf];
+
+	if (to_send > 0) sett->attacking_knights[dist] += to_send;
+
+	return index;
+}
+
+int
+player_knights_available_for_attack(player_sett_t *sett, map_pos_t pos)
+{
+	int index = 0;
+
+	/* Iterate each shell around the position.*/
+	for (int i = 0; i < 32; i++) {
+		pos = MAP_MOVE_RIGHT(pos);
+		for (int j = 0; j < i+1; j++) {
+			index = available_knights_at_pos(sett, pos, index, i >> 3);
+			pos = MAP_MOVE_DOWN(pos);
+		}
+		for (int j = 0; j < i+1; j++) {
+			index = available_knights_at_pos(sett, pos, index, i >> 3);
+			pos = MAP_MOVE_LEFT(pos);
+		}
+		for (int j = 0; j < i+1; j++) {
+			index = available_knights_at_pos(sett, pos, index, i >> 3);
+			pos = MAP_MOVE_UP_LEFT(pos);
+		}
+		for (int j = 0; j < i+1; j++) {
+			index = available_knights_at_pos(sett, pos, index, i >> 3);
+			pos = MAP_MOVE_UP(pos);
+		}
+		for (int j = 0; j < i+1; j++) {
+			index = available_knights_at_pos(sett, pos, index, i >> 3);
+			pos = MAP_MOVE_RIGHT(pos);
+		}
+		for (int j = 0; j < i+1; j++) {
+			index = available_knights_at_pos(sett, pos, index, i >> 3);
+			pos = MAP_MOVE_DOWN_RIGHT(pos);
+		}
+	}
+
+	sett->total_attacking_knights = 0;
+	for (int i = 0; i < 4; i++) {
+		sett->total_attacking_knights +=
+			sett->attacking_knights[i];
+	}
+
+	sett->attacking_building_count = index;
+	return index;
+}

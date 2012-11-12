@@ -2338,14 +2338,12 @@ viewport_handle_event_click(viewport_t *viewport, int x, int y, gui_event_button
 		panel_bar_t *panel = gui_get_panel_bar();
 		panel_bar_activate_button(panel, 0);
 	} else {
-		/* 39F5C */
 		player->sett->map_cursor_col = clk_col;
 		player->sett->map_cursor_row = clk_row;
 
 		player->click |= BIT(2);
 
 		if (BIT_TEST(player->click, 3)) { /* Special click */
-			/* 39FCB */
 			if (MAP_OBJ(clk_pos) == MAP_OBJ_NONE ||
 			    MAP_OBJ(clk_pos) > MAP_OBJ_CASTLE) {
 				return 0;
@@ -2356,11 +2354,14 @@ viewport_handle_event_click(viewport_t *viewport, int x, int y, gui_event_button
 				    MAP_OWNER(clk_pos) == player->sett->player_num) {
 					player_open_popup(player, BOX_TRANSPORT_INFO);
 				}
+
+				player->sett->index = MAP_OBJ_INDEX(clk_pos);
+				player->click &= ~BIT(2);
 			} else { /* Building */
 				if (BIT_TEST(globals.split, 5) || /* Demo mode */
 				    MAP_OWNER(clk_pos) == player->sett->player_num) {
 					building_t *building = game_get_building(MAP_OBJ_INDEX(clk_pos));
-					if (BIT_TEST(building->bld, 7)) {
+					if (!BUILDING_IS_DONE(building)) {
 						player_open_popup(player, BOX_ORDERED_BLD);
 					} else if (BUILDING_TYPE(building) == BUILDING_CASTLE) {
 						player_open_popup(player, BOX_CASTLE_RES);
@@ -2379,16 +2380,64 @@ viewport_handle_event_click(viewport_t *viewport, int x, int y, gui_event_button
 					} else {
 						player_open_popup(player, BOX_BLD_STOCK);
 					}
-				} else {
-					/* TODO */
-				}
-			}
 
-			/* 3A1C7 */
-			if (BIT_TEST(globals.split, 5)) { /* Demo mode */
-				/* TODO .. */
-			} else {
-				player->sett->index = MAP_OBJ_INDEX(clk_pos);
+					player->sett->index = MAP_OBJ_INDEX(clk_pos);
+					player->click &= ~BIT(2);
+				} else if (BIT_TEST(globals.split, 5)) { /* Demo mode*/
+					return 0;
+				} else { /* Foreign building */
+					/* TODO handle coop mode*/
+					building_t *building = game_get_building(MAP_OBJ_INDEX(clk_pos));
+					player->sett->building_attacked = BUILDING_INDEX(building);
+
+					if (BUILDING_IS_DONE(building) &&
+					    (BUILDING_TYPE(building) == BUILDING_HUT ||
+					     BUILDING_TYPE(building) == BUILDING_TOWER ||
+					     BUILDING_TYPE(building) == BUILDING_FORTRESS ||
+					     BUILDING_TYPE(building) == BUILDING_CASTLE)) {
+						if (!BIT_TEST(building->serf, 4) ||
+						    (building->serf & 3) != 3) {
+							/* It is not allowed to attack
+							   if currently not occupied or
+							   is too far from the border. */
+							sfx_play_clip(SFX_NOT_ACCEPTED);
+							return 0;
+						}
+
+						const map_pos_t *p = globals.spiral_pos_pattern + 7;
+						int found = 0;
+						for (int i = 257; i >= 0; i--) {
+							map_pos_t pos = (building->pos + p[257-i]) & globals.map_index_mask;
+							if (MAP_HAS_OWNER(pos) &&
+							    MAP_OWNER(pos) == player->sett->player_num) {
+								found = 1;
+								break;
+							}
+						}
+
+						if (!found) {
+							sfx_play_clip(SFX_NOT_ACCEPTED);
+							return 0;
+						}
+
+						/* Action accepted */
+						sfx_play_clip(SFX_CLICK);
+
+						int max_knights = 0;
+						switch (BUILDING_TYPE(building)) {
+						case BUILDING_HUT: max_knights = 3; break;
+						case BUILDING_TOWER: max_knights = 6; break;
+						case BUILDING_FORTRESS: max_knights = 12; break;
+						case BUILDING_CASTLE: max_knights = 20; break;
+						default: NOT_REACHED(); break;
+						}
+
+						int knights = player_knights_available_for_attack(player->sett,
+												  building->pos);
+						player->sett->knights_attacking = min(knights, max_knights);
+						player_open_popup(player, BOX_START_ATTACK);
+					}
+				}
 			}
 
 			player->panel_btns[0] = PANEL_BTN_BUILD_INACTIVE;
@@ -2396,11 +2445,9 @@ viewport_handle_event_click(viewport_t *viewport, int x, int y, gui_event_button
 			player->panel_btns[2] = PANEL_BTN_MAP_INACTIVE;
 			player->panel_btns[3] = PANEL_BTN_STATS_INACTIVE;
 			player->panel_btns[4] = PANEL_BTN_SETT_INACTIVE;
-			player->click &= ~BIT(2);
 			player->click &= ~BIT(1);
 		} else {
 			sfx_play_clip(SFX_CLICK);
-			/* TODO ... */
 		}
 	}
 
