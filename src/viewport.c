@@ -2399,6 +2399,7 @@ viewport_handle_event_click(viewport_t *viewport, int x, int y, gui_event_button
 			player->click &= ~BIT(2);
 			player->click &= ~BIT(1);
 		} else {
+			sfx_play_clip(SFX_CLICK);
 			/* TODO ... */
 		}
 	}
