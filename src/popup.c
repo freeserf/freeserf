@@ -3205,6 +3205,8 @@ handle_clickmap(player_t *player, int x, int y, const int clkmap[])
 				/* TODO */
 			case ACTION_CLOSE_OPTIONS:
 				player_close_popup(player);
+				globals.player[0]->config = globals.cfg_left;
+				globals.player[1]->config = globals.cfg_right;
 				break;
 			case ACTION_OPTIONS_PATHWAY_SCROLLING_1:
 				BIT_INVERT(globals.cfg_left, 0);
