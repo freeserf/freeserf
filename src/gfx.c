@@ -111,9 +111,9 @@ gfx_load_file(const char *path)
 			if (entries[i].offset == 0) continue;
 			int length = i - run_start;
 			if (length > 1) {
-				LOGD("empty: %i-%i", run_start, i-1);
+				LOGD("gfx", "empty: %i-%i", run_start, i-1);
 			}
-			else LOGD("empty: %i", i-1);
+			else LOGD("gfx", "empty: %i", i-1);
 			run_start = 0;
 		} else if (entries[i].offset == 0) {
 			run_start = i;
