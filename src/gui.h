@@ -56,13 +56,6 @@ struct gui_container {
 	gui_set_redraw_child_func *set_redraw_child;
 };
 
-typedef struct {
-	gui_container_t cont;
-	gui_object_t *top;
-	int redraw_top;
-	list_t floats;
-} interface_t;
-
 
 int gui_get_slider_click_value(int x);
 
@@ -77,10 +70,5 @@ void gui_object_set_redraw(gui_object_t *obj);
 void gui_container_init(gui_container_t *cont);
 void gui_container_set_redraw_child(gui_container_t *cont,
 				    gui_object_t *child);
-
-void interface_init(interface_t *interface);
-void interface_set_top(interface_t *interface, gui_object_t *obj);
-void interface_add_float(interface_t *interface, gui_object_t *obj,
-			 int x, int y, int width, int height);
 
 #endif /* !_GUI_H */

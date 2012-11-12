@@ -12,6 +12,7 @@ freeserf_SOURCES = \
 	src/random.c src/random.h \
 	src/gfx.c src/gfx.h \
 	src/viewport.c src/viewport.h \
+	src/interface.c src/interface.h \
 	src/gui.c src/gui.h \
 	src/popup.c src/popup.h \
 	src/panel.c src/panel.h \

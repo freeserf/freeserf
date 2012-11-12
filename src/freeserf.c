@@ -25,6 +25,7 @@
 #include "popup.h"
 #include "panel.h"
 #include "viewport.h"
+#include "interface.h"
 #include "gfx.h"
 #include "data.h"
 #include "sdl-video.h"
@@ -156,6 +157,12 @@ viewport_t *
 gui_get_top_viewport()
 {
 	return &viewport;
+}
+
+panel_bar_t *
+gui_get_panel_bar()
+{
+	return &panel;
 }
 
 void
