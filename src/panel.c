@@ -222,7 +222,29 @@ handle_panel_button_click(player_t *player, int btn)
 		case PANEL_BTN_MAP:
 		case PANEL_BTN_MAP_STARRED:
 			sfx_play_clip(SFX_CLICK);
-			/* TODO */
+			if (BIT_TEST(player->click, 6)) {
+				player_close_popup(player);
+			} else {
+				player->flags &= ~BIT(6);
+				if (BIT_TEST(player->click, 3)) {
+					/* TODO */
+				}
+				else {
+					player->flags &= ~BIT(6);
+					player->click |= BIT(6);
+					player->panel_btns[0] = PANEL_BTN_BUILD_INACTIVE;
+					player->panel_btns[1] = PANEL_BTN_DESTROY_INACTIVE;
+					player->panel_btns[2] = PANEL_BTN_MAP_STARRED;
+					player->panel_btns[3] = PANEL_BTN_STATS_INACTIVE;
+					player->panel_btns[4] = PANEL_BTN_SETT_INACTIVE;
+					player->click &= ~BIT(1);
+					player->minimap_advanced = -1;
+					player->minimap_flags = 8;
+					player->minimap_col = 0;
+					player->minimap_row = 0;
+					player_open_popup(player, BOX_MAP);
+				}
+			}
 			break;
 		case PANEL_BTN_SETT:
 		case PANEL_BTN_SETT_STARRED:
