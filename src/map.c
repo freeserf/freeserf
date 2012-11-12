@@ -1190,45 +1190,27 @@ init_minimap()
 		11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11
 	};
 
+	globals.minimap = malloc(globals.map_rows * globals.map_cols);
 	map_1_t *map = globals.map_mem2_ptr;
-	uint8_t *minimap = globals.map_mem5_ptr;
+	uint8_t *minimap = globals.minimap;
 
-	int row = 0;
-	do {
-		int col = 0;
-		do {
-			for (int edi8 = 0; edi8 < 16; edi8++) {
-				for (int ediC = 0; ediC < 2; ediC++) {
-					for (int edi10 = 0; edi10 < 8; edi10++) {
-						uint32_t edi1C_1 = row << globals.map_row_shift;
-						uint32_t edi18 = ((row >> 1) + col) & globals.map_col_mask;
-						edi1C_1 = (edi1C_1 + edi18) << 2;
+	for (int y = 0; y < globals.map_rows; y++) {
+		for (int x = 0; x < globals.map_cols; x++) {
+			int pos = y * globals.map_col_size + x;
+			uint32_t edi14 = w_arr[map[pos].type >> 4];
 
-						uint32_t edi14 = w_arr[map[edi1C_1].type >> 4];
+			pos = MAP_MOVE_RIGHT(pos);
+			uint32_t edi18 = map[pos].height & 0x1f;
+		
+			pos = MAP_MOVE_DOWN_LEFT(pos);
+			int32_t edi1C_2 = map[pos].height & 0x1f;
+		
+			edi1C_2 = edi1C_2 - edi18 + 8;
+			edi14 += edi1C_2;
 
-						edi1C_1 = MAP_MOVE_RIGHT(edi1C_1);
-						edi18 = map[edi1C_1].height & 0x1f;
-
-						edi1C_1 = MAP_MOVE_DOWN_LEFT(edi1C_1);
-						int32_t edi1C_2 = map[edi1C_1].height & 0x1f;
-
-						edi1C_2 = edi1C_2 - edi18 + 8;
-						edi14 += edi1C_2;
-
-						minimap[0] = b_arr[edi14];
-						minimap = &minimap[1];
-
-						col += 1;
-					}
-				}
-				row += 1;
-			        col -= 16;
-			}
-			row -= 16;
-			col = (col + 16) & globals.map_col_mask;
-		} while (col);
-		row = (row + 16) & globals.map_row_mask;
-	} while (row);
+			*(minimap++) = b_arr[edi14];
+		}
+	}
 }
 
 /* Clear map data. */

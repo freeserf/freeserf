@@ -1643,7 +1643,6 @@ hand_out_memory_2()
 	/* TODO ... */
 
 	globals.map_mem2_ptr = globals.map_mem2;
-	globals.map_mem5_ptr = globals.map_mem5;
 
 	int max_map_size = /*(globals.map & 0xf) + 2*/10;
 	globals.max_serf_cnt = (0x1f84 * (1 << max_map_size) - 4) / 0x81;
@@ -1724,9 +1723,6 @@ deep_tree()
 	if (globals.map_mem2 == NULL) abort();
 
 	/* TODO ... */
-
-	globals.map_mem5 = malloc(0xa98 * (1 << /*max_map_size+2(?)*/10));
-	if (globals.map_mem5 == NULL) abort();
 
 	hand_out_memory_2();
 }

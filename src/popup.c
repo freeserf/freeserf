@@ -169,17 +169,214 @@ prepare_res_amount_text(int amount)
 }
 
 /* Draw map popup box. */
+
+#define MINIMAP_WIDTH (128)
+#define MINIMAP_HEIGHT (128)
+
+static void
+draw_minimap_icons(player_t *player, frame_t *frame)
+{
+	draw_popup_icon(0, 128, player->minimap_flags & 3, frame); /* Mode */
+	draw_popup_icon(4, 128, BIT_TEST(player->minimap_flags, 2) ? 3 : 4, frame); /* Roads */
+	if (player->minimap_advanced >= 0) {
+		draw_popup_icon(8, 128, player->minimap_advanced == 0 ? 306 : 305, frame); /* Unknown mode */
+	}
+	else {
+		draw_popup_icon(8, 128, BIT_TEST(player->minimap_flags, 3) ? 5 : 6, frame); /* Buildings */
+	}
+	draw_popup_icon(12, 128, BIT_TEST(player->minimap_flags, 4) ? 7 : 8, frame); /* Grid */
+	draw_popup_icon(14, 128, BIT_TEST(player->minimap_flags, 5) ? 91 : 92, frame); /* Scale */
+}
+
+static void
+draw_minimap_point(player_t *player, int x, int y, uint8_t color, int scale, int density, frame_t *frame)
+{
+	int mm_y = y * scale + MINIMAP_HEIGHT/2 + player->minimap_row * scale - globals.map_rows * scale * 2;
+	mm_y = mm_y % (globals.map_rows * scale * 2);
+	
+	while (mm_y < MINIMAP_HEIGHT) {
+		if (mm_y >= 0) {
+			int mm_x = (x-y/2) * scale + MINIMAP_WIDTH/2 + player->minimap_col * scale;
+			mm_x = mm_x % (globals.map_cols * scale);
+			while (mm_x < MINIMAP_WIDTH) {
+				if (mm_x >= 0) {
+					sdl_fill_rect(mm_x + 8, mm_y + 9, density, density, color, frame);
+				}
+				mm_x += globals.map_cols * scale;
+			}
+		}
+		x += globals.map_cols/2;
+		mm_y += globals.map_rows * scale;
+	}
+}
+
+static void
+draw_minimap_map(player_t *player, int scale, frame_t *frame)
+{
+	uint8_t *minimap = globals.minimap;
+	for (int y = 0; y < globals.map_rows; y++) {
+		for (int x = 0; x < globals.map_cols; x++) {
+			uint8_t color = *(minimap++);
+			draw_minimap_point(player, x, y, color, scale, scale, frame);
+		}
+	}
+}
+
+static void
+draw_minimap_ownership(player_t *player, int scale, int density, frame_t *frame)
+{
+	const int player_colors[] = {
+		64, 72, 68, 76
+	};
+	
+	for (int y = 0; y < globals.map_rows; y += 1 + 2-scale) {
+		for (int x = 0; x < globals.map_cols; x += 1 + 2-scale) {
+			int pos = MAP_POS(x,y);
+			if(MAP_HAS_OWNER(pos)) {
+				int color = player_colors[MAP_OWNER(pos)];
+				draw_minimap_point(player, x, y, color, scale, density, frame);
+			}
+		}
+	}
+}
+
+static void
+draw_minimap_roads(player_t *player, int scale, frame_t *frame)
+{
+	for (int y = 0; y < globals.map_rows; y++) {
+		for (int x = 0; x < globals.map_cols; x++) {
+			int pos = MAP_POS(x,y);
+			if(MAP_PATHS(pos)) {
+				draw_minimap_point(player, x, y, 1, scale, scale, frame);
+			}
+		}
+	}
+}
+
+static void
+draw_minimap_buildings(player_t *player, int scale, frame_t *frame)
+{
+	const int player_colors[] = {
+		64, 72, 68, 76
+	};
+	
+	const int building_remap[] = {
+		BUILDING_CASTLE,
+		BUILDING_STOCK, BUILDING_TOWER, BUILDING_HUT, BUILDING_FORTRESS,
+		BUILDING_TOOLMAKER, BUILDING_SAWMILL, BUILDING_WEAPONSMITH, BUILDING_STONECUTTER, BUILDING_BOATBUILDER, BUILDING_FORESTER, BUILDING_LUMBERJACK,
+		BUILDING_PIGFARM, BUILDING_FARM, BUILDING_FISHER, BUILDING_MILL, BUILDING_BUTCHER, BUILDING_BAKER,
+		BUILDING_STONEMINE, BUILDING_COALMINE, BUILDING_IRONMINE, BUILDING_GOLDMINE, BUILDING_STEELSMELTER, BUILDING_GOLDSMELTER
+	};
+	
+	for (int y = 0; y < globals.map_rows; y++) {
+		for (int x = 0; x < globals.map_cols; x++) {
+			int pos = MAP_POS(x,y);
+			int obj = MAP_OBJ(pos);
+			if(obj > MAP_OBJ_FLAG && obj <= MAP_OBJ_CASTLE) {
+				int color = player_colors[MAP_OWNER(pos)];
+				if (player->minimap_advanced > 0) {
+					building_t *bld = game_get_building(MAP_OBJ_INDEX(pos));
+					if (bld) {
+						if (BUILDING_TYPE(bld) == building_remap[player->minimap_advanced]) {
+							draw_minimap_point(player, x, y, color, scale, scale, frame);
+						}
+					}
+				} else {
+					draw_minimap_point(player, x, y, color, scale, scale, frame);
+				}
+			}
+		}
+	}
+}
+
+static void
+draw_minimap_traffic(player_t *player, int scale, frame_t *frame)
+{
+	const int player_colors[] = {
+		64, 72, 68, 76
+	};
+	
+	for (int y = 0; y < globals.map_rows; y++) {
+		for (int x = 0; x < globals.map_cols; x++) {
+			int pos = MAP_POS(x,y);
+			if(MAP_IDLE_SERF(pos)) {
+				int color = player_colors[MAP_OWNER(pos)];
+				draw_minimap_point(player, x, y, color, scale, scale, frame);
+			}
+		}
+	}
+}
+
+static void
+draw_minimap_grid(player_t *player, int scale, frame_t *frame)
+{
+	for (int y = 0; y < globals.map_rows * scale; y += 2) {
+		draw_minimap_point(player, 0, y, 47, scale, 1, frame);
+		draw_minimap_point(player, 0, y+1, 1, scale, 1, frame);
+	}
+	
+	for (int x = 0; x < globals.map_cols * scale; x += 2) {
+		draw_minimap_point(player, x, 0, 47, scale, 1, frame);
+		draw_minimap_point(player, x+1, 0, 1, scale, 1, frame);
+	}
+}
+
+static void
+draw_minimap_rect(player_t *player, int scale, frame_t *frame)
+{
+	void *sprite = gfx_get_data_object(354, NULL);
+	int y = MINIMAP_HEIGHT/2 + player->minimap_row * scale;
+	int x = MINIMAP_WIDTH/2 + player->minimap_col * scale;
+	sdl_draw_transp_sprite(sprite, x+8, y+9, 1, 0, 0, frame);
+}
+
+static void
+draw_minimap(player_t *player, frame_t *frame)
+{
+	int scale = BIT_TEST(player->minimap_flags, 5) ? 2 : 1;
+	
+	sdl_fill_rect(8, 9, 128, 128, 1, frame);
+	if (BIT_TEST(player->minimap_flags, 1)) {
+		draw_minimap_ownership(player, scale, 2, frame);
+	}
+	else {
+		draw_minimap_map(player, scale, frame);
+		if (BIT_TEST(player->minimap_flags, 0)) {
+			draw_minimap_ownership(player, scale, 1, frame);
+		}
+	}
+	
+	if (BIT_TEST(player->minimap_flags, 2)) {
+		draw_minimap_roads(player, scale, frame);
+	}
+	
+	if (BIT_TEST(player->minimap_flags, 3)) {
+		draw_minimap_buildings(player, scale, frame);
+	}
+	
+	if (BIT_TEST(player->minimap_flags, 4)) {
+		draw_minimap_grid(player, scale, frame);
+	}
+	
+	if (player->minimap_advanced) {
+		draw_minimap_traffic(player, scale, frame);
+	}
+	
+	draw_minimap_rect(player, scale, frame);
+}
+
 static void
 draw_map_box(popup_box_t *popup, frame_t *frame)
 {
 	popup->player->clkmap = BOX_MAP_OVERLAY;
-	/* TODO ... */
+	draw_minimap(popup->player, frame);
+	draw_minimap_icons(popup->player, frame);
 }
 
 static void
 draw_map_overlay_box(popup_box_t *popup, frame_t *frame)
 {
-	/* TODO ... */
+	draw_minimap(popup->player, frame);
 }
 
 /* Draw building mine popup box. */
@@ -1968,9 +2165,20 @@ draw_bld_1_box(popup_box_t *popup, frame_t *frame)
 static void
 draw_bld_2_box(popup_box_t *popup, frame_t *frame)
 {
+	const int layout[] = {
+		153, 0, 4,
+		160, 8, 6,
+		157, 0, 68,
+		169, 8, 65,
+		174, 12, 57,
+		170, 4, 105,
+		168, 8, 107,
+		-1
+	};
+	
 	draw_box_background(313, frame);
 
-	/* TODO */
+	draw_custom_bld_box(layout, frame);
 
 	draw_popup_icon(0, 128, 0x3d, frame); /* flipbox */
 	draw_popup_icon(14, 128, 0x3c, frame); /* exit */
@@ -1979,9 +2187,19 @@ draw_bld_2_box(popup_box_t *popup, frame_t *frame)
 static void
 draw_bld_3_box(popup_box_t *popup, frame_t *frame)
 {
+	const int layout[] = {
+		155, 0, 2,
+		154, 8, 3,
+		167, 0, 61,
+		156, 8, 60,
+		188, 4, 75,
+		162, 8, 100,
+		-1
+	};
+
 	draw_box_background(313, frame);
 
-	/* TODO */
+	draw_custom_bld_box(layout, frame);
 
 	draw_popup_icon(0, 128, 0x3d, frame); /* flipbox */
 	draw_popup_icon(14, 128, 0x3c, frame); /* exit */
@@ -1990,9 +2208,19 @@ draw_bld_3_box(popup_box_t *popup, frame_t *frame)
 static void
 draw_bld_4_box(popup_box_t *popup, frame_t *frame)
 {
+	const int layout[] = {
+		163, 0, 4,
+		164, 4, 4,
+		165, 8, 4,
+		166, 12, 4,
+		161, 2, 90,
+		159, 8, 90,
+		-1
+	};
+
 	draw_box_background(313, frame);
 
-	/* TODO */
+	draw_custom_bld_box(layout, frame);
 
 	draw_popup_icon(0, 128, 0x3d, frame); /* flipbox */
 	draw_popup_icon(14, 128, 0x3c, frame); /* exit */
@@ -2671,13 +2899,51 @@ sett_8_train(player_t *player, int number)
 static int
 handle_clickmap(player_t *player, int x, int y, const int clkmap[])
 {
-	while (clkmap[0] > 0) {
+	while (clkmap[0] >= 0) {
 		if (clkmap[1] <= x && x <= clkmap[2] &&
 		    clkmap[3] <= y && y <= clkmap[4]) {
 			sfx_play_clip(SFX_CLICK);
 
 			action_t action = clkmap[0];
 			switch (action) {
+			case ACTION_MINIMAP_CLICK:
+				player_close_popup(player);
+				break;
+			case ACTION_MINIMAP_MODE: {
+				int mode = (player->minimap_flags & 3) + 1;
+				player->minimap_flags &= ~3;
+				if (mode != 3) {
+					player->minimap_flags |= mode;
+				}
+				player->box = BOX_MAP;
+				break;
+			}
+			case ACTION_MINIMAP_ROADS:
+				BIT_INVERT(player->minimap_flags, 2);
+				player->box = BOX_MAP;
+				break;
+			case ACTION_MINIMAP_BUILDINGS:
+				if (BIT_TEST(player->click,3)) {
+					if (player->minimap_advanced >= 0) {
+						player->minimap_advanced = -1;
+					} else {
+						player->box = BOX_BLD_1;
+					}
+				}
+				else {
+					if (player->minimap_advanced >= 0) {
+						player->minimap_advanced = -1;
+						player->minimap_flags |= BIT(3);
+					} else {
+						BIT_INVERT(player->minimap_flags, 3);
+					}
+					player->box = BOX_MAP;
+				}
+				break;
+			case ACTION_MINIMAP_GRID:
+				BIT_INVERT(player->minimap_flags, 4);
+				player->box = BOX_MAP;
+				break;
 			case ACTION_BUILD_STONEMINE:
 				globals.building_type = BUILDING_STONEMINE;
 				player_build_mine_building(player);
@@ -3188,6 +3454,46 @@ handle_clickmap(player_t *player, int x, int y, const int clkmap[])
 				sfx_play_clip(SFX_ACCEPTED);
 				break;
 				/* TODO ... */
+			case ACTION_MINIMAP_BLD_1:
+			case ACTION_MINIMAP_BLD_2:
+			case ACTION_MINIMAP_BLD_3:
+			case ACTION_MINIMAP_BLD_4:
+			case ACTION_MINIMAP_BLD_5:
+			case ACTION_MINIMAP_BLD_6:
+			case ACTION_MINIMAP_BLD_7:
+			case ACTION_MINIMAP_BLD_8:
+			case ACTION_MINIMAP_BLD_9:
+			case ACTION_MINIMAP_BLD_10:
+			case ACTION_MINIMAP_BLD_11:
+			case ACTION_MINIMAP_BLD_12:
+			case ACTION_MINIMAP_BLD_13:
+			case ACTION_MINIMAP_BLD_14:
+			case ACTION_MINIMAP_BLD_15:
+			case ACTION_MINIMAP_BLD_16:
+			case ACTION_MINIMAP_BLD_17:
+			case ACTION_MINIMAP_BLD_18:
+			case ACTION_MINIMAP_BLD_19:
+			case ACTION_MINIMAP_BLD_20:
+			case ACTION_MINIMAP_BLD_21:
+			case ACTION_MINIMAP_BLD_22:
+			case ACTION_MINIMAP_BLD_23:
+				player->minimap_advanced = action - ACTION_MINIMAP_BLD_1 + 1;
+				player->minimap_flags |= BIT(3);
+				player->box = BOX_MAP;
+				break;
+			case ACTION_MINIMAP_BLD_FLAG:
+				player->minimap_advanced = 0;
+				player->box = BOX_MAP;
+				break;
+			case ACTION_MINIMAP_BLD_NEXT:
+				player->box = player->clkmap + 1;
+				if (player->box > BOX_BLD_4) {
+					player->box = BOX_BLD_1;
+				}
+				break;
+			case ACTION_MINIMAP_BLD_EXIT:
+				player->box = BOX_MAP;
+				break;
 			case ACTION_CLOSE_MESSAGE:
 				if ((player->message_box & 0x1f) == 16) {
 					/* TODO */
@@ -3202,33 +3508,31 @@ handle_clickmap(player_t *player, int x, int y, const int clkmap[])
 			case ACTION_SHOW_PLAYER_FACES:
 				player_open_popup(player, BOX_PLAYER_FACES);
 				break;
+			case ACTION_MINIMAP_SCALE:
+				BIT_INVERT(player->minimap_flags, 5);
+				player->box = BOX_MAP;
+				break;
 				/* TODO */
 			case ACTION_CLOSE_OPTIONS:
 				player_close_popup(player);
 				break;
 			case ACTION_OPTIONS_PATHWAY_SCROLLING_1:
 				BIT_INVERT(globals.cfg_left, 0);
-				sfx_play_clip(SFX_CLICK);
 				break;
 			case ACTION_OPTIONS_PATHWAY_SCROLLING_2:
 				BIT_INVERT(globals.cfg_right, 0);
-				sfx_play_clip(SFX_CLICK);
 				break;
 			case ACTION_OPTIONS_FAST_MAP_CLICK_1:
 				BIT_INVERT(globals.cfg_left, 1);
-				sfx_play_clip(SFX_CLICK);
 				break;
 			case ACTION_OPTIONS_FAST_MAP_CLICK_2:
 				BIT_INVERT(globals.cfg_right, 1);
-				sfx_play_clip(SFX_CLICK);
 				break;
 			case ACTION_OPTIONS_FAST_BUILDING_1:
 				BIT_INVERT(globals.cfg_left, 2);
-				sfx_play_clip(SFX_CLICK);
 				break;
 			case ACTION_OPTIONS_FAST_BUILDING_2:
 				BIT_INVERT(globals.cfg_right, 2);
-				sfx_play_clip(SFX_CLICK);
 				break;
 			case ACTION_OPTIONS_MESSAGE_COUNT_1:
 				if (BIT_TEST(globals.cfg_left, 3)) {
@@ -3242,7 +3546,6 @@ handle_clickmap(player_t *player, int x, int y, const int clkmap[])
 				} else {
 					globals.cfg_left |= BIT(3) | BIT(4) | BIT(5);
 				}
-				sfx_play_clip(SFX_CLICK);
 				break;
 			case ACTION_OPTIONS_MESSAGE_COUNT_2:
 				if (BIT_TEST(globals.cfg_right, 3)) {
@@ -3256,7 +3559,6 @@ handle_clickmap(player_t *player, int x, int y, const int clkmap[])
 				} else {
 					globals.cfg_right |= BIT(3) | BIT(4) | BIT(5);
 				}
-				sfx_play_clip(SFX_CLICK);
 				break;
 				/* TODO */
 			case ACTION_SETT_8_CASTLE_DEF_DEC:
@@ -3806,6 +4108,94 @@ handle_box_demolish_clk(player_t *player, int x, int y)
 	handle_clickmap(player, x, y, clkmap);
 }
 
+static void
+handle_minimap_clk(player_t *player, int x, int y)
+{
+	const int clkmap[] = {
+		ACTION_MINIMAP_CLICK, 0, 127, 0, 127,
+		ACTION_MINIMAP_MODE, 0, 31, 128, 143,
+		ACTION_MINIMAP_ROADS, 32, 63, 128, 143,
+		ACTION_MINIMAP_BUILDINGS, 64, 95, 128, 143,
+		ACTION_MINIMAP_GRID, 96, 111, 128, 143,
+		ACTION_MINIMAP_SCALE, 112, 127, 128, 143,
+		-1
+	};
+
+	handle_clickmap(player, x, y, clkmap);
+}
+
+static void
+hahdle_box_bld_1(player_t *player, int x, int y)
+{
+	const int clkmap[] = {
+		ACTION_MINIMAP_BLD_1, 0, 63, 0, 50,
+		ACTION_MINIMAP_BLD_2, 64, 111, 0, 50,
+		ACTION_MINIMAP_BLD_3, 16, 47, 64, 95,
+		ACTION_MINIMAP_BLD_4, 48, 111, 60, 130,
+		ACTION_MINIMAP_BLD_FLAG, 25, 40, 110, 143,
+		ACTION_MINIMAP_BLD_NEXT, 0, 15, 128, 143,
+		ACTION_MINIMAP_BLD_EXIT, 112, 127, 128, 143,
+		-1
+	};
+	
+	handle_clickmap(player, x, y, clkmap);
+}
+
+static void
+hahdle_box_bld_2(player_t *player, int x, int y)
+{
+	const int clkmap[] = {
+		ACTION_MINIMAP_BLD_5, 0, 63, 0, 55,
+		ACTION_MINIMAP_BLD_6, 64, 95, 0, 50,
+		ACTION_MINIMAP_BLD_7, 0, 63, 64, 95,
+		ACTION_MINIMAP_BLD_8, 64, 95, 64, 95,
+		ACTION_MINIMAP_BLD_9, 96, 127, 60, 95,
+		ACTION_MINIMAP_BLD_10, 32, 63, 104, 139,
+		ACTION_MINIMAP_BLD_11, 64, 95, 104, 139,
+		ACTION_MINIMAP_BLD_NEXT, 0, 15, 128, 143,
+		ACTION_MINIMAP_BLD_EXIT, 112, 127, 128, 143,
+		-1
+	};
+	
+	handle_clickmap(player, x, y, clkmap);
+}
+
+static void
+hahdle_box_bld_3(player_t *player, int x, int y)
+{
+	const int clkmap[] = {
+		ACTION_MINIMAP_BLD_12, 0, 63, 0, 47,
+		ACTION_MINIMAP_BLD_13, 64, 127, 0, 47,
+		ACTION_MINIMAP_BLD_14, 0, 31, 56, 89,
+		ACTION_MINIMAP_BLD_15, 32, 63, 86, 139,
+		ACTION_MINIMAP_BLD_16, 64, 127, 56, 89,
+		ACTION_MINIMAP_BLD_17, 64, 111, 100, 139,
+		ACTION_MINIMAP_BLD_NEXT, 0, 15, 128, 143,
+		ACTION_MINIMAP_BLD_EXIT, 112, 127, 128, 143,
+		-1
+	};
+	
+	handle_clickmap(player, x, y, clkmap);
+}
+
+static void
+hahdle_box_bld_4(player_t *player, int x, int y)
+{
+	const int clkmap[] = {
+		ACTION_MINIMAP_BLD_18, 0, 31, 0, 63,
+		ACTION_MINIMAP_BLD_19, 32, 63, 0, 63,
+		ACTION_MINIMAP_BLD_20, 61, 95, 0, 63,
+		ACTION_MINIMAP_BLD_21, 96, 127, 0, 63,
+		ACTION_MINIMAP_BLD_22, 16, 63, 95, 135,
+		ACTION_MINIMAP_BLD_23, 64, 111, 95, 135,
+		ACTION_MINIMAP_BLD_NEXT, 0, 15, 128, 143,
+		ACTION_MINIMAP_BLD_EXIT, 112, 127, 128, 143,
+		-1
+	};
+	
+	handle_clickmap(player, x, y, clkmap);
+}
+
 static int
 popup_box_handle_event_click(popup_box_t *popup, int x, int y)
 {
@@ -3814,6 +4204,10 @@ popup_box_handle_event_click(popup_box_t *popup, int x, int y)
 	y -= 8;
 
 	switch (player->clkmap) {
+	case BOX_MAP:
+	case BOX_MAP_OVERLAY:
+		handle_minimap_clk(player, x, y);
+		break;
 	case BOX_MINE_BUILDING:
 		handle_mine_building_clk(player, x, y);
 		break;
@@ -3912,7 +4306,18 @@ popup_box_handle_event_click(popup_box_t *popup, int x, int y)
 	case BOX_SETT_6:
 		handle_sett_5_6_click(player, x, y);
 		break;
-		/* TODO ... */
+	case BOX_BLD_1:
+		hahdle_box_bld_1(player, x, y);
+		break;
+	case BOX_BLD_2:
+		hahdle_box_bld_2(player, x, y);
+		break;
+	case BOX_BLD_3:
+		hahdle_box_bld_3(player, x, y);
+		break;
+	case BOX_BLD_4:
+		hahdle_box_bld_4(player, x, y);
+		break;
 	case BOX_MESSAGE:
 		handle_message_clk(player, x, y);
 		break;
@@ -3934,16 +4339,39 @@ popup_box_handle_event_click(popup_box_t *popup, int x, int y)
 }
 
 static int
+popup_handle_drag(popup_box_t *popup, int x, int y,
+									gui_event_button_t button)
+{
+	if (button == GUI_EVENT_BUTTON_RIGHT &&
+			(popup->player->clkmap == BOX_MAP ||
+			 popup->player->clkmap == BOX_MAP_OVERLAY)) {
+		popup->player->minimap_col += x;
+		popup->player->minimap_row += y;
+	}
+
+	return 0;
+}
+
+static int
 popup_box_handle_event(popup_box_t *popup, const gui_event_t *event)
 {
 	int x = event->x;
 	int y = event->y;
+
+	int dx = x - popup->pointer_x;
+	int dy = y - popup->pointer_y;
+	
+	popup->pointer_x = x;
+	popup->pointer_y = y;
 
 	switch (event->type) {
 	case GUI_EVENT_TYPE_CLICK:
 		if (event->button == GUI_EVENT_BUTTON_LEFT) {
 			return popup_box_handle_event_click(popup, x, y);
 		}
+	case GUI_EVENT_TYPE_DRAG_MOVE:
+		return popup_handle_drag(popup, dx, dy,
+																	event->button);
 	default:
 		break;
 	}
