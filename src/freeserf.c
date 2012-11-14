@@ -1805,7 +1805,7 @@ main(int argc, char *argv[])
 		case 'r':
 		{
 			char *hstr = strchr(optarg, 'x');
-			if (hstr == NULL) fprintf(stdout, argv[0]);
+			if (hstr == NULL) fprintf(stdout, USAGE, argv[0]);
 			screen_width = atoi(optarg);
 			screen_height = atoi(hstr+1);
 		}
@@ -1814,7 +1814,7 @@ main(int argc, char *argv[])
 			map_generator = atoi(optarg);
 			break;
 		default:
-			fprintf(stderr, argv[0]);
+			fprintf(stderr, USAGE, argv[0]);
 			exit(EXIT_FAILURE);
 			break;
 		}

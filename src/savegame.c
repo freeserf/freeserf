@@ -14,7 +14,7 @@ load_v0_globals_state(FILE *f)
 	uint8_t *data = malloc(210);
 	if (data == NULL) return -1;
 
-	int rd = fread(data, sizeof(uint8_t), 210, f);
+	size_t rd = fread(data, sizeof(uint8_t), 210, f);
 	if (rd < 210) {
 		free(data);
 		return -1;
@@ -161,7 +161,7 @@ load_v0_player_sett_state(FILE *f)
 	if (data == NULL) return -1;
 
 	for (int i = 0; i < 4; i++) {
-		int rd = fread(data, sizeof(uint8_t), 8628, f);
+		size_t rd = fread(data, sizeof(uint8_t), 8628, f);
 		if (rd < 8628) {
 			free(data);
 			return -1;
@@ -278,7 +278,7 @@ load_v0_map_state(FILE *f)
 	uint8_t *data = malloc(8*globals.map_elms);
 	if (data == NULL) return -1;
 
-	int rd = fread(data, sizeof(uint8_t), 8*globals.map_elms, f);
+	size_t rd = fread(data, sizeof(uint8_t), 8*globals.map_elms, f);
 	if (rd < 8*globals.map_elms) {
 		free(data);
 		return -1;
@@ -326,7 +326,7 @@ load_v0_serf_state(FILE *f)
 	uint8_t *bitmap = malloc(bitmap_size);
 	if (bitmap == NULL) return -1;
 
-	int rd = fread(bitmap, sizeof(uint8_t), bitmap_size, f);
+	size_t rd = fread(bitmap, sizeof(uint8_t), bitmap_size, f);
 	if (rd < bitmap_size) {
 		free(bitmap);
 		return -1;
@@ -520,7 +520,7 @@ load_v0_flag_state(FILE *f)
 	uint8_t *flag_bitmap = malloc(bitmap_size);
 	if (flag_bitmap == NULL) return -1;
 
-	int rd = fread(flag_bitmap, sizeof(uint8_t), bitmap_size, f);
+	size_t rd = fread(flag_bitmap, sizeof(uint8_t), bitmap_size, f);
 	if (rd < bitmap_size) {
 		free(flag_bitmap);
 		return -1;
@@ -604,7 +604,7 @@ load_v0_building_state(FILE *f)
 	uint8_t *bitmap = malloc(bitmap_size);
 	if (bitmap == NULL) return -1;
 
-	int rd = fread(bitmap, sizeof(uint8_t), bitmap_size, f);
+	size_t rd = fread(bitmap, sizeof(uint8_t), bitmap_size, f);
 	if (rd < bitmap_size) {
 		free(bitmap);
 		return -1;
@@ -668,7 +668,7 @@ load_v0_inventory_state(FILE *f)
 	uint8_t *bitmap = malloc(bitmap_size);
 	if (bitmap == NULL) return -1;
 
-	int rd = fread(bitmap, sizeof(uint8_t), bitmap_size, f);
+	size_t rd = fread(bitmap, sizeof(uint8_t), bitmap_size, f);
 	if (rd < bitmap_size) {
 		free(bitmap);
 		return -1;

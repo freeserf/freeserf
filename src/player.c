@@ -789,7 +789,7 @@ fill_path_serf_info(map_pos_t pos, dir_t dir, serf_path_info_t *data)
 		serf_t *serf = game_get_serf(MAP_SERF_INDEX(pos));
 		if (serf->state == SERF_STATE_TRANSPORTING &&
 		    serf->s.walking.wait_counter != -1) {
-			dir_t d = serf->s.walking.dir;
+			int d = serf->s.walking.dir;
 			if (d < 0) d += 6;
 
 			if (dir == d) {
@@ -840,7 +840,7 @@ fill_path_serf_info(map_pos_t pos, dir_t dir, serf_path_info_t *data)
 		if ((serf->state == SERF_STATE_TRANSPORTING &&
 		     serf->s.walking.wait_counter != -1) ||
 		    serf->state == SERF_STATE_DELIVERING) {
-			dir_t d = serf->s.walking.dir;
+			int d = serf->s.walking.dir;
 			if (d < 0) d += 6;
 
 			if (d == DIR_REVERSE(dir)) {

@@ -3944,10 +3944,8 @@ update_serf(serf_t *serf)
 	case SERF_STATE_DEFENDING_CASTLE: /* 75 */
 		handle_serf_defending_castle_state(serf);
 		break;
-/*
 	default:
-		break;
-*/
+		LOGD("serf", "Serf state %d isn't processed", serf->state);
 	}
 }
 

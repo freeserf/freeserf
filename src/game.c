@@ -2646,6 +2646,8 @@ remove_road_forwards(map_pos_t pos, dir_t dir)
 								serf->s.leaving_building.dest = 0;
 							}
 							break;
+						default:
+							LOGD("game", "Serf state %d isn't processed", serf->state);
 						}
 					}
 				}
