@@ -1869,5 +1869,103 @@ player_knights_available_for_attack(player_sett_t *sett, map_pos_t pos)
 void
 player_start_attack(player_sett_t *sett)
 {
-	/* TODO */
+	const int min_level_hut[] = { 1, 1, 2, 2, 3 };
+	const int min_level_tower[] = { 1, 2, 3, 4, 6 };
+	const int min_level_fortress[] = { 1, 3, 6, 9, 12 };
+
+	building_t *target = game_get_building(sett->building_attacked);
+	if (!BUILDING_IS_DONE(target) ||
+	    (BUILDING_TYPE(target) != BUILDING_HUT &&
+	     BUILDING_TYPE(target) != BUILDING_TOWER &&
+	     BUILDING_TYPE(target) != BUILDING_FORTRESS &&
+	     BUILDING_TYPE(target) != BUILDING_CASTLE) ||
+	    !BIT_TEST(target->serf, 4) ||
+	    (target->serf & 3) != 3) {
+		return;
+	}
+
+	for (int i = 0; i < sett->attacking_building_count; i++) {
+		/* TODO building index may not be valid any more(?). */
+		building_t *b = game_get_building(sett->attacking_buildings[i]);
+		if (BUILDING_IS_BURNING(b) ||
+		    MAP_OWNER(b->pos) != sett->player_num) {
+			continue;
+		}
+
+		map_pos_t flag_pos = MAP_MOVE_DOWN_RIGHT(b->pos);
+		if (MAP_SERF_INDEX(flag_pos) != 0) {
+			/* Check if building is under siege. */
+			serf_t *s = game_get_serf(MAP_SERF_INDEX(flag_pos));
+			if (SERF_PLAYER(s) != sett->player_num) continue;
+		}
+
+		const int *min_level = NULL;
+		switch (BUILDING_TYPE(b)) {
+		case BUILDING_HUT: min_level = min_level_hut; break;
+		case BUILDING_TOWER: min_level = min_level_tower; break;
+		case BUILDING_FORTRESS: min_level = min_level_fortress; break;
+		default: continue; break;
+		}
+
+		int state = b->serf & 3;
+		int knights_present = (b->stock1 >> 4) & 0xf;
+		int to_send = knights_present - min_level[sett->knight_occupation[state] & 0xf];
+
+		for (int j = 0; j < to_send; j++) {
+			/* Find most approriate knight to send according to player settings. */
+			int best_type = BIT_TEST(sett->flags, 1) ? SERF_KNIGHT_0 : SERF_KNIGHT_4;
+			int best_index = -1;
+
+			int knight_index = b->serf_index;
+			while (knight_index != 0) {
+				serf_t *knight = game_get_serf(knight_index);
+				if (BIT_TEST(sett->flags, 1)) {
+					if (SERF_TYPE(knight) >= best_type) {
+						best_index = knight_index;
+						best_type = SERF_TYPE(knight);
+					}
+				} else {
+					if (SERF_TYPE(knight) <= best_type) {
+						best_index = knight_index;
+						best_type = SERF_TYPE(knight);
+					}
+				}
+
+				knight_index = knight->s.defending.next_knight;
+			}
+
+			/* Unlink knight from list. */
+			int *def_index = &b->serf_index;
+			serf_t *def_serf = game_get_serf(*def_index);
+			while (*def_index != best_index) {
+				def_index = &def_serf->s.defending.next_knight;
+				def_serf = game_get_serf(*def_index);
+			}
+			*def_index = def_serf->s.defending.next_knight;
+			b->stock1 -= 0x10;
+
+			target->progress |= BIT(0);
+
+			/* Calculate distance to target. */
+			int dist_col = ((target->pos & globals.map_col_mask) -
+					(def_serf->pos & globals.map_col_mask)) & globals.map_col_mask;
+			if (dist_col >= globals.map_col_pairs) dist_col -= globals.map_cols;
+
+			int dist_row = (((target->pos >> globals.map_row_shift) & globals.map_col_mask) -
+					((def_serf->pos >> globals.map_row_shift) & globals.map_row_mask)) & globals.map_row_mask;
+			if (dist_row >= globals.map_row_pairs) dist_row -= globals.map_rows;
+
+			/* Send this serf off to fight. */
+			serf_log_state_change(def_serf, SERF_STATE_KNIGHT_LEAVE_FOR_WALK_TO_FIGHT);
+			def_serf->state = SERF_STATE_KNIGHT_LEAVE_FOR_WALK_TO_FIGHT;
+			def_serf->s.leave_for_walk_to_fight.dist_col = dist_col;
+			def_serf->s.leave_for_walk_to_fight.dist_row = dist_row;
+			def_serf->s.leave_for_walk_to_fight.field_D = 0;
+			def_serf->s.leave_for_walk_to_fight.field_E = 0;
+			def_serf->s.leave_for_walk_to_fight.next_state = SERF_STATE_53;
+
+			sett->knights_attacking -= 1;
+			if (sett->knights_attacking == 0) return;
+		}
+	}
 }

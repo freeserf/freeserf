@@ -119,7 +119,7 @@ typedef enum {
 	SERF_STATE_62,
 	SERF_STATE_63,
 	SERF_STATE_64,
-	SERF_STATE_65, /* 65 */
+	SERF_STATE_KNIGHT_LEAVE_FOR_WALK_TO_FIGHT, /* 65 */
 	SERF_STATE_IDLE_ON_PATH,
 	SERF_STATE_WAIT_IDLE_ON_PATH,
 	SERF_STATE_WAKE_AT_FLAG,
@@ -283,6 +283,14 @@ typedef struct {
 			int field_C; /* C */
 			int def_index; /* E */
 		} attacking;
+
+		struct {
+			int dist_col; /* B */
+			int dist_row; /* C */
+			int field_D; /* D */
+			int field_E; /* E */
+			serf_state_t next_state; /* F */
+		} leave_for_walk_to_fight;
 
 		/* States: idle_on_path, wait_idle_on_path,
 		   wake_at_flag, wake_on_path. */
