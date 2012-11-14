@@ -1283,6 +1283,12 @@ draw_start_attack_box(popup_box_t *popup, frame_t *frame)
 			    frame);
 	draw_custom_icon_box(icon_layout, frame);
 
+	/* Draw number of knight at each distance. */
+	for (int i = 0; i < 4; i++) {
+		draw_green_number(1+4*i, 96, frame,
+				  popup->player->sett->attacking_knights[i]);
+	}
+
 	draw_start_attack_redraw_box(popup, frame);
 }
 
@@ -3153,6 +3159,27 @@ handle_clickmap(player_t *player, int x, int y, const int clkmap[])
 				player->current_stat_7_item = action - ACTION_STAT_7_SELECT_FISH + 1;
 				player_open_popup(player, player->clkmap);
 				break;
+			case ACTION_ATTACKING_KNIGHTS_DEC:
+				player->sett->knights_attacking = max(player->sett->knights_attacking-1, 0);
+				break;
+			case ACTION_ATTACKING_KNIGHTS_INC:
+				player->sett->knights_attacking = min(player->sett->knights_attacking+1,
+								      min(player->sett->total_attacking_knights, 100));
+				break;
+			case ACTION_START_ATTACK:
+				if (player->sett->knights_attacking > 0) {
+					if (player->sett->attacking_building_count > 0) {
+						sfx_play_clip(SFX_ACCEPTED);
+						player_start_attack(player->sett);
+					}
+					player_close_popup(player);
+				} else {
+					sfx_play_clip(SFX_NOT_ACCEPTED);
+				}
+				break;
+			case ACTION_CLOSE_ATTACK_BOX:
+				player_close_popup(player);
+				break;
 				/* TODO */
 			case ACTION_SHOW_SETT_1:
 				player_open_popup(player, BOX_SETT_1);
@@ -3462,6 +3489,28 @@ handle_clickmap(player_t *player, int x, int y, const int clkmap[])
 				player->sett->flags |= BIT(1);
 				player_open_popup(player, player->clkmap);
 				sfx_play_clip(SFX_ACCEPTED);
+				break;
+			case ACTION_ATTACKING_SELECT_ALL_1:
+				player->sett->knights_attacking =
+					player->sett->attacking_knights[0];
+				break;
+			case ACTION_ATTACKING_SELECT_ALL_2:
+				player->sett->knights_attacking =
+					player->sett->attacking_knights[0] +
+					player->sett->attacking_knights[1];
+				break;
+			case ACTION_ATTACKING_SELECT_ALL_3:
+				player->sett->knights_attacking =
+					player->sett->attacking_knights[0] +
+					player->sett->attacking_knights[1] +
+					player->sett->attacking_knights[2];
+				break;
+			case ACTION_ATTACKING_SELECT_ALL_4:
+				player->sett->knights_attacking =
+					player->sett->attacking_knights[0] +
+					player->sett->attacking_knights[1] +
+					player->sett->attacking_knights[2] +
+					player->sett->attacking_knights[3];
 				break;
 				/* TODO ... */
 			case ACTION_MINIMAP_BLD_1:
@@ -3820,6 +3869,23 @@ handle_stat_1_2_click(player_t *player, int x, int y)
 {
 	const int clkmap[] = {
 		ACTION_SHOW_STAT_SELECT, 0, 127, 0, 143,
+		-1
+	};
+	handle_clickmap(player, x, y, clkmap);
+}
+
+static void
+handle_start_attack_click(player_t *player, int x, int y)
+{
+	const int clkmap[] = {
+		ACTION_ATTACKING_KNIGHTS_DEC, 32, 47, 112, 127,
+		ACTION_ATTACKING_KNIGHTS_INC, 80, 95, 112, 127,
+		ACTION_START_ATTACK, 0, 31, 128, 143,
+		ACTION_CLOSE_ATTACK_BOX, 112, 127, 128, 143,
+		ACTION_ATTACKING_SELECT_ALL_1, 8, 23, 80, 103,
+		ACTION_ATTACKING_SELECT_ALL_2, 40, 55, 80, 103,
+		ACTION_ATTACKING_SELECT_ALL_3, 72, 87, 80, 103,
+		ACTION_ATTACKING_SELECT_ALL_4, 104, 119, 80, 103,
 		-1
 	};
 	handle_clickmap(player, x, y, clkmap);
@@ -4258,6 +4324,10 @@ popup_box_handle_event_click(popup_box_t *popup, int x, int y)
 	case BOX_STAT_1:
 	case BOX_STAT_2:
 		handle_stat_1_2_click(player, x, y);
+		break;
+	case BOX_START_ATTACK:
+	case BOX_START_ATTACK_REDRAW:
+		handle_start_attack_click(player, x, y);
 		break;
 		/* TODO */
 	case BOX_GROUND_ANALYSIS:

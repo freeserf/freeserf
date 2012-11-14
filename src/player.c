@@ -1862,3 +1862,9 @@ player_knights_available_for_attack(player_sett_t *sett, map_pos_t pos)
 
 	return sett->total_attacking_knights;
 }
+
+void
+player_start_attack(player_sett_t *sett)
+{
+	/* TODO */
+}

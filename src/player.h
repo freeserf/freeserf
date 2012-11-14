@@ -260,6 +260,7 @@ void player_change_knight_occupation(player_sett_t *sett, int index,
 
 int player_promote_serfs_to_knights(player_sett_t *sett, int number);
 int player_knights_available_for_attack(player_sett_t *sett, map_pos_t pos);
+void player_start_attack(player_sett_t *sett);
 
 
 #endif /* ! _PLAYER_H */
