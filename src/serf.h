@@ -107,7 +107,7 @@ typedef enum {
 	SERF_STATE_KNIGHT_ATTACKING_VICTORY, /* 50 */
 	SERF_STATE_KNIGHT_ATTACKING_DEFEAT,
 	SERF_STATE_KNIGHT_OCCUPY_ENEMY_BUILDING,
-	SERF_STATE_53,
+	SERF_STATE_KNIGHT_FREE_WALKING,
 	SERF_STATE_54,
 	SERF_STATE_55, /* 55 */
 	SERF_STATE_56,
@@ -210,7 +210,8 @@ typedef struct {
 
 		/* States: free_walking, logging,
 		   planting, stonecutting, fishing,
-		   farming, sampling_geo_spot */
+		   farming, sampling_geo_spot,
+		   knight_free_walking */
 		struct {
 			int dist1; /* B */
 			int dist2; /* C */

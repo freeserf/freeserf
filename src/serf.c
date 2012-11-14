@@ -92,6 +92,8 @@ static const char *serf_state_name[] = {
 	[SERF_STATE_KNIGHT_ATTACKING_VICTORY] = "KNIGHT ATTACKING VICTORY",
 	[SERF_STATE_KNIGHT_ATTACKING_DEFEAT] = "KNIGHT ATTACKING DEFEAT",
 	[SERF_STATE_KNIGHT_OCCUPY_ENEMY_BUILDING] = "KNIGHT OCCUPY ENEMY BUILDING",
+	[SERF_STATE_KNIGHT_FREE_WALKING] = "KNIGHT FREE WALKING",
+	[SERF_STATE_KNIGHT_LEAVE_FOR_WALK_TO_FIGHT] = "KNIGHT LEAVE FOR WALK TO FIGHT",
 	[SERF_STATE_IDLE_ON_PATH] = "IDLE ON PATH",
 	[SERF_STATE_WAIT_IDLE_ON_PATH] = "WAIT IDLE ON PATH",
 	[SERF_STATE_WAKE_AT_FLAG] = "WAKE AT FLAG",
@@ -1141,7 +1143,8 @@ handle_serf_leaving_building_state(serf_t *serf)
 			uint res_dest = serf->s.leaving_building.dest;
 			serf->s.move_resource_out.res = res;
 			serf->s.move_resource_out.res_dest = res_dest;
-		} else if (serf->state == SERF_STATE_FREE_WALKING) {
+		} else if (serf->state == SERF_STATE_FREE_WALKING ||
+			   serf->state == SERF_STATE_KNIGHT_FREE_WALKING) {
 			int dist1 = serf->s.leaving_building.field_B;
 			int dist2 = serf->s.leaving_building.dest;
 			int neg_dist1 = serf->s.leaving_building.dest2;
@@ -1708,6 +1711,7 @@ handle_serf_free_walking_state_dest_reached(serf_t *serf)
 			serf_log_state_change(serf, SERF_STATE_READY_TO_ENTER);
 			serf->state = SERF_STATE_READY_TO_ENTER;
 			serf->s.ready_to_enter.field_B = 0;
+			serf->counter = 0;
 		} else {
 			serf->s.free_walking.dist1 = serf->s.free_walking.neg_dist1;
 			serf->s.free_walking.dist2 = serf->s.free_walking.neg_dist2;
@@ -1741,6 +1745,7 @@ handle_serf_free_walking_state_dest_reached(serf_t *serf)
 			serf_log_state_change(serf, SERF_STATE_READY_TO_ENTER);
 			serf->state = SERF_STATE_READY_TO_ENTER;
 			serf->s.ready_to_enter.field_B = 0;
+			serf->counter = 0;
 		} else {
 			serf->s.free_walking.dist1 = serf->s.free_walking.neg_dist1;
 			serf->s.free_walking.dist2 = serf->s.free_walking.neg_dist2;
@@ -1773,6 +1778,7 @@ handle_serf_free_walking_state_dest_reached(serf_t *serf)
 			serf_log_state_change(serf, SERF_STATE_READY_TO_ENTER);
 			serf->state = SERF_STATE_READY_TO_ENTER;
 			serf->s.ready_to_enter.field_B = 0;
+			serf->counter = 0;
 		} else {
 			serf->s.free_walking.dist1 = serf->s.free_walking.neg_dist1;
 			serf->s.free_walking.dist2 = serf->s.free_walking.neg_dist2;
@@ -1802,6 +1808,7 @@ handle_serf_free_walking_state_dest_reached(serf_t *serf)
 			serf_log_state_change(serf, SERF_STATE_READY_TO_ENTER);
 			serf->state = SERF_STATE_READY_TO_ENTER;
 			serf->s.ready_to_enter.field_B = 0;
+			serf->counter = 0;
 		} else {
 			serf->s.free_walking.dist1 = serf->s.free_walking.neg_dist1;
 			serf->s.free_walking.dist2 = serf->s.free_walking.neg_dist2;
@@ -1845,6 +1852,7 @@ handle_serf_free_walking_state_dest_reached(serf_t *serf)
 			serf_log_state_change(serf, SERF_STATE_READY_TO_ENTER);
 			serf->state = SERF_STATE_READY_TO_ENTER;
 			serf->s.ready_to_enter.field_B = 0;
+			serf->counter = 0;
 		} else {
 			serf->s.free_walking.dist1 = serf->s.free_walking.neg_dist1;
 			serf->s.free_walking.dist2 = serf->s.free_walking.neg_dist2;
@@ -1912,6 +1920,13 @@ handle_serf_free_walking_state_dest_reached(serf_t *serf)
 	case SERF_KNIGHT_2:
 	case SERF_KNIGHT_3:
 	case SERF_KNIGHT_4:
+		if (serf->s.free_walking.neg_dist1 == -128) {
+			goto other_type;
+		} else {
+			serf_log_state_change(serf, SERF_STATE_KNIGHT_OCCUPY_ENEMY_BUILDING);
+			serf->state = SERF_STATE_KNIGHT_OCCUPY_ENEMY_BUILDING;
+			serf->counter = 0;
+		}
 		break;
 	default:
 	other_type:
@@ -1935,7 +1950,7 @@ handle_serf_free_walking_state_dest_reached(serf_t *serf)
 }
 
 static void
-handle_serf_free_walking_state(serf_t *serf)
+handle_free_walking_common(serf_t *serf)
 {
 	const int dir_from_offset[] = {
 		DIR_UP_LEFT, DIR_UP, -1,
@@ -1972,160 +1987,38 @@ handle_serf_free_walking_state(serf_t *serf)
 		DIR_UP, DIR_RIGHT, DIR_UP_LEFT, DIR_DOWN_RIGHT, DIR_LEFT, DIR_DOWN, -1, -1
 	};
 
-	uint16_t delta = globals.anim - serf->anim;
-	serf->anim = globals.anim;
-	serf->counter -= delta;
+	int dir = -1;
+	map_pos_t new_pos = 0;
 
-	while (serf->counter < 0) {
-	        int dir = -1;
-		map_pos_t new_pos = 0;
+	if (BIT_TEST(serf->s.free_walking.flags, 3) &&
+	    (serf->s.free_walking.flags & 7) == 0) {
+		handle_serf_free_walking_state_dest_reached(serf);
+		return;
+	} else if ((serf->s.free_walking.flags & 7) != 0) {
+		int flags = serf->s.free_walking.flags & 7;
+		if (BIT_TEST(serf->s.free_walking.flags, 3)) flags += 5;
+		else flags -= 1;
 
-		if (BIT_TEST(serf->s.free_walking.flags, 3) &&
-		    (serf->s.free_walking.flags & 7) == 0) {
-			handle_serf_free_walking_state_dest_reached(serf);
-			return;
-		} else if ((serf->s.free_walking.flags & 7) != 0) {
-			int flags = serf->s.free_walking.flags & 7;
-			if (BIT_TEST(serf->s.free_walking.flags, 3)) flags += 5;
-			else flags -= 1;
-
-			int d1 = serf->s.free_walking.dist1;
-			int d2 = serf->s.free_walking.dist2;
-
-			/* Check if dest is only one step away. */
-			if (abs(d1) <= 1 && abs(d2) <= 1 &&
-			    dir_from_offset[(d1+1) + 3*(d2+1)] > -1) {
-				/* Convert offset in two dimensions to
-				   direction variable. */
-				dir_t dir = dir_from_offset[(d1+1) + 3*(d2+1)];
-
-				if (MAP_OCCUPIED(MAP_MOVE(serf->pos, dir))) {
-					if (serf->state != SERF_STATE_53 &&
-					    serf->s.free_walking.neg_dist1 != -128) {
-						serf->s.free_walking.dist1 += serf->s.free_walking.neg_dist1;
-						serf->s.free_walking.dist2 += serf->s.free_walking.neg_dist2;
-						serf->s.free_walking.neg_dist1 = 0;
-						serf->s.free_walking.neg_dist2 = 0;
-						serf->s.free_walking.flags = 0;
-						serf->animation = 82;
-						serf->counter = counter_from_animation[serf->animation];
-					} else {
-						serf_log_state_change(serf, SERF_STATE_LOST);
-						serf->state = SERF_STATE_LOST;
-						serf->s.lost.field_B = 0;
-						serf->counter = 0;
-					}
-					return;
-				}
-
-				if (serf->state == SERF_STATE_53 &&
-				    serf->s.free_walking.neg_dist1 != -128 &&
-				    MAP_SERF_INDEX(MAP_MOVE(serf->pos, dir)) != 0) {
-					serf->s.free_walking.flags = 0;
-					serf->animation = 82;
-					serf->counter = counter_from_animation[serf->animation];
-					return;
-				}
-			}
-
-			const int *a0 = &dir_arr[8*flags];
-			int d = -1;
-			for (int i = 0; i < 6; i++) {
-				new_pos = MAP_MOVE(serf->pos, a0[i]);
-				if (!MAP_OCCUPIED(new_pos) &&
-				    MAP_SERF_INDEX(new_pos) == 0) {
-					dir = a0[i];
-					d = 5 - i;
-					break;
-				}
-			}
-
-			if (d > -1) {
-				d -= 3;
-				serf->s.free_walking.flags -= (d << 4);
-				if (d > 0 && serf->s.free_walking.flags < 0) {
-					/* TODO Sometimes the direction chosen here
-					   seems weird. */
-					serf->s.free_walking.flags = 0;
-					goto switch_on_dir;
-				} else if (d < 0 && serf->s.free_walking.flags > 255) { /* overflow byte */
-					serf->s.free_walking.flags = 0;
-					goto next_handler;
-				}
-
-				serf->s.free_walking.flags = (serf->s.free_walking.flags & 0xf8) | (dir+1);
-				goto switch_on_dir;
-			} else {
-				serf->s.free_walking.flags &= 0xf0;
-				goto switch_with_other;
-			}
-		}
-
-	next_handler:;
-		int offset = 12;
 		int d1 = serf->s.free_walking.dist1;
 		int d2 = serf->s.free_walking.dist2;
-		if (d1 < 0) {
-			d1 = -d1;
-			if (d2 < 0) {
-				d2 = -d2;
-				if (d2 < d1) {
-					offset += 2;
-					d2 *= 2;
-					if (d2 < d1) offset += 1;
-				} else {
-					d1 *= 2;
-					if (d2 < d1) offset += 1;
-				}
-			} else {
-				offset += 4;
-				if (d2 >= d1) offset += 1;
-			}
-		} else {
-			offset += 6;
-			if (d2 < 0) {
-				d2 = -d2;
-				offset += 4;
-				if (d2 >= d1) offset += 1;
-			} else {
-				if (d2 < d1) {
-					offset += 2;
-					d2 *= 2;
-					if (d2 < d1) offset += 1;
-				} else {
-					d1 *= 2;
-					if (d2 < d1) offset += 1;
-				}
-			}
-		}
-
-		const int *a0 = &dir_arr[8*offset];
-		dir = a0[0];
-		new_pos = MAP_MOVE(serf->pos, dir);
-		if (!MAP_OCCUPIED(new_pos) &&
-		    MAP_SERF_INDEX(new_pos) == 0) {
-			goto switch_on_dir;
-		}
-
-		d1 = serf->s.free_walking.dist1;
-		d2 = serf->s.free_walking.dist2;
 
 		/* Check if dest is only one step away. */
 		if (abs(d1) <= 1 && abs(d2) <= 1 &&
 		    dir_from_offset[(d1+1) + 3*(d2+1)] > -1) {
 			/* Convert offset in two dimensions to
 			   direction variable. */
-			dir_t d = dir_from_offset[(d1+1) + 3*(d2+1)];
-			new_pos = MAP_MOVE(serf->pos, d);
+			dir_t dir = dir_from_offset[(d1+1) + 3*(d2+1)];
 
-			if (MAP_OCCUPIED(new_pos)) {
-				if (serf->state != SERF_STATE_53 &&
+			if (MAP_OCCUPIED(MAP_MOVE(serf->pos, dir))) {
+				if (serf->state != SERF_STATE_KNIGHT_FREE_WALKING &&
 				    serf->s.free_walking.neg_dist1 != -128) {
 					serf->s.free_walking.dist1 += serf->s.free_walking.neg_dist1;
 					serf->s.free_walking.dist2 += serf->s.free_walking.neg_dist2;
 					serf->s.free_walking.neg_dist1 = 0;
 					serf->s.free_walking.neg_dist2 = 0;
 					serf->s.free_walking.flags = 0;
+					serf->animation = 82;
+					serf->counter = counter_from_animation[serf->animation];
 				} else {
 					serf_log_state_change(serf, SERF_STATE_LOST);
 					serf->state = SERF_STATE_LOST;
@@ -2135,145 +2028,273 @@ handle_serf_free_walking_state(serf_t *serf)
 				return;
 			}
 
-			if (serf->state == SERF_STATE_53 &&
+			if (serf->state == SERF_STATE_KNIGHT_FREE_WALKING &&
 			    serf->s.free_walking.neg_dist1 != -128 &&
-			    MAP_SERF_INDEX(new_pos) != 0) {
-				serf_t *other_serf = game_get_serf(MAP_SERF_INDEX(new_pos));
-				if (other_serf->state == SERF_STATE_WALKING ||
-				    other_serf->state == SERF_STATE_TRANSPORTING) {
-					serf->s.free_walking.neg_dist2 += 1;
-					if (serf->s.free_walking.neg_dist2 >= 10) {
-						serf->s.free_walking.neg_dist2 = 0;
-						if (MAP_HAS_FLAG(new_pos)) {
-							if (other_serf->state == SERF_STATE_TRANSPORTING &&
-							    other_serf->s.walking.wait_counter >= 0) {
-								/* TODO Remove other serf from path - really necessary? */
-							}
-							/* sub_5AE56(); */
-							LOGD("serf", "free walking: unhandled sub_5AE56() call.");
-						}
-					}
-				}
-
+			    MAP_SERF_INDEX(MAP_MOVE(serf->pos, dir)) != 0) {
+				serf->s.free_walking.flags = 0;
 				serf->animation = 82;
 				serf->counter = counter_from_animation[serf->animation];
+				return;
 			}
 		}
 
-		/* Look for another direction to go in. */
-		int i0 = -1;
-		for (int i = 0; i < 5; i++) {
-			dir = a0[1+i];
-			new_pos = MAP_MOVE(serf->pos, dir);
+		const int *a0 = &dir_arr[8*flags];
+		int d = -1;
+		for (int i = 0; i < 6; i++) {
+			new_pos = MAP_MOVE(serf->pos, a0[i]);
 			if (!MAP_OCCUPIED(new_pos) &&
 			    MAP_SERF_INDEX(new_pos) == 0) {
-				i0 = 4-i;
+				dir = a0[i];
+				d = 5 - i;
 				break;
 			}
 		}
 
-		if (i0 > -1) {
-			int d0 = dir + 1;
-			if (BIT_TEST(offset ^ i0, 0)) d0 += 8; /* ? */
-			serf->s.free_walking.flags = (((6 - i0) & ~1) << 3) | d0;
+		if (d > -1) {
+			d -= 3;
+			serf->s.free_walking.flags -= (d << 4);
+			if (d > 0 && serf->s.free_walking.flags < 0) {
+				/* TODO Sometimes the direction chosen here
+				   seems weird. */
+				serf->s.free_walking.flags = 0;
+				goto switch_on_dir;
+			} else if (d < 0 && serf->s.free_walking.flags > 255) { /* overflow byte */
+				serf->s.free_walking.flags = 0;
+				goto next_handler;
+			}
+
+			serf->s.free_walking.flags = (serf->s.free_walking.flags & 0xf8) | (dir+1);
+			goto switch_on_dir;
 		} else {
+			serf->s.free_walking.flags &= 0xf0;
 			goto switch_with_other;
 		}
+	}
 
-	switch_on_dir:;
-		/* A suitable direction has been found; walk. */
-		assert(dir > -1);
+next_handler:;
+	int offset = 12;
+	int d1 = serf->s.free_walking.dist1;
+	int d2 = serf->s.free_walking.dist2;
+	if (d1 < 0) {
+		d1 = -d1;
+		if (d2 < 0) {
+			d2 = -d2;
+			if (d2 < d1) {
+				offset += 2;
+				d2 *= 2;
+				if (d2 < d1) offset += 1;
+			} else {
+				d1 *= 2;
+				if (d2 < d1) offset += 1;
+			}
+		} else {
+			offset += 4;
+			if (d2 >= d1) offset += 1;
+		}
+	} else {
+		offset += 6;
+		if (d2 < 0) {
+			d2 = -d2;
+			offset += 4;
+			if (d2 >= d1) offset += 1;
+		} else {
+			if (d2 < d1) {
+				offset += 2;
+				d2 *= 2;
+				if (d2 < d1) offset += 1;
+			} else {
+				d1 *= 2;
+				if (d2 < d1) offset += 1;
+			}
+		}
+	}
+
+	const int *a0 = &dir_arr[8*offset];
+	dir = a0[0];
+	new_pos = MAP_MOVE(serf->pos, dir);
+	if (!MAP_OCCUPIED(new_pos) &&
+	    MAP_SERF_INDEX(new_pos) == 0) {
+		goto switch_on_dir;
+	}
+
+	d1 = serf->s.free_walking.dist1;
+	d2 = serf->s.free_walking.dist2;
+
+	/* Check if dest is only one step away. */
+	if (abs(d1) <= 1 && abs(d2) <= 1 &&
+	    dir_from_offset[(d1+1) + 3*(d2+1)] > -1) {
+		/* Convert offset in two dimensions to
+		   direction variable. */
+		dir_t d = dir_from_offset[(d1+1) + 3*(d2+1)];
+		new_pos = MAP_MOVE(serf->pos, d);
+
+		if (MAP_OCCUPIED(new_pos)) {
+			if (serf->state != SERF_STATE_KNIGHT_FREE_WALKING &&
+			    serf->s.free_walking.neg_dist1 != -128) {
+				serf->s.free_walking.dist1 += serf->s.free_walking.neg_dist1;
+				serf->s.free_walking.dist2 += serf->s.free_walking.neg_dist2;
+				serf->s.free_walking.neg_dist1 = 0;
+				serf->s.free_walking.neg_dist2 = 0;
+				serf->s.free_walking.flags = 0;
+			} else {
+				serf_log_state_change(serf, SERF_STATE_LOST);
+				serf->state = SERF_STATE_LOST;
+				serf->s.lost.field_B = 0;
+				serf->counter = 0;
+			}
+			return;
+		}
+
+		if (serf->state == SERF_STATE_KNIGHT_FREE_WALKING &&
+		    serf->s.free_walking.neg_dist1 != -128 &&
+		    MAP_SERF_INDEX(new_pos) != 0) {
+			serf_t *other_serf = game_get_serf(MAP_SERF_INDEX(new_pos));
+			if (other_serf->state == SERF_STATE_WALKING ||
+			    other_serf->state == SERF_STATE_TRANSPORTING) {
+				serf->s.free_walking.neg_dist2 += 1;
+				if (serf->s.free_walking.neg_dist2 >= 10) {
+					serf->s.free_walking.neg_dist2 = 0;
+					if (MAP_HAS_FLAG(new_pos)) {
+						if (other_serf->state == SERF_STATE_TRANSPORTING &&
+						    other_serf->s.walking.wait_counter >= 0) {
+							/* TODO Remove other serf from path - really necessary? */
+						}
+						/* sub_5AE56(); */
+						LOGD("serf", "free walking: unhandled sub_5AE56() call.");
+					}
+				}
+			}
+
+			serf->animation = 82;
+			serf->counter = counter_from_animation[serf->animation];
+		}
+	}
+
+	/* Look for another direction to go in. */
+	int i0 = -1;
+	for (int i = 0; i < 5; i++) {
+		dir = a0[1+i];
+		new_pos = MAP_MOVE(serf->pos, dir);
+		if (!MAP_OCCUPIED(new_pos) &&
+		    MAP_SERF_INDEX(new_pos) == 0) {
+			i0 = 4-i;
+			break;
+		}
+	}
+
+	if (i0 > -1) {
+		int d0 = dir + 1;
+		if (BIT_TEST(offset ^ i0, 0)) d0 += 8; /* ? */
+		serf->s.free_walking.flags = (((6 - i0) & ~1) << 3) | d0;
+	} else {
+		goto switch_with_other;
+	}
+
+switch_on_dir:;
+	/* A suitable direction has been found; walk. */
+	assert(dir > -1);
+	int dx = ((dir < 3) ? 1 : -1)*((dir % 3) < 2);
+	int dy = ((dir < 3) ? 1 : -1)*((dir % 3) > 0);
+
+#if 0
+	LOGV("serf", "free walking: dest %i, %i, move %i, %i.",
+	     serf->s.free_walking.dist1,
+	     serf->s.free_walking.dist2, dx, dy);
+#endif
+
+	serf->s.free_walking.dist1 -= dx;
+	serf->s.free_walking.dist2 -= dy;
+
+	serf_start_walking(serf, dir, 32);
+
+	if (serf->s.free_walking.dist1 == 0 &&
+	    serf->s.free_walking.dist2 == 0) {
+		serf->s.free_walking.flags = BIT(3);
+	}
+	return;
+
+switch_with_other:;
+	/* No free position can be found. Switch with
+	   other serf. */
+	dir = -1;
+	serf_t *other_serf = NULL;
+	for (int i = 0; i < 6; i++) {
+		new_pos = MAP_MOVE(serf->pos, i);
+		if (MAP_SERF_INDEX(new_pos) != 0) {
+			other_serf = game_get_serf(MAP_SERF_INDEX(new_pos));
+
+			if ((other_serf->state == SERF_STATE_WALKING ||
+			     other_serf->state == SERF_STATE_TRANSPORTING) &&
+			    other_serf->s.walking.dir == DIR_REVERSE(i)-6) {
+				/* Move other walking serf in opposite direction. */
+				other_serf->s.walking.dir = i;
+				dir = i;
+				break;
+			} else if ((other_serf->state == SERF_STATE_FREE_WALKING ||
+				    other_serf->state == SERF_STATE_KNIGHT_FREE_WALKING ||
+				    other_serf->state == SERF_STATE_22) &&
+				   other_serf->animation == 82) {
+				/* Move other free walking serf in opposite direction. */
+				int dx = ((dir < 3) ? 1 : -1)*((dir % 3) < 2);
+				int dy = ((dir < 3) ? 1 : -1)*((dir % 3) > 0);
+				other_serf->s.free_walking.dist1 += dx;
+				other_serf->s.free_walking.dist2 += dy;
+
+				if (other_serf->s.free_walking.dist1 == 0 &&
+				    other_serf->s.free_walking.dist2 == 0) {
+					other_serf->s.free_walking.flags = BIT(3);
+				}
+				dir = i;
+				break;
+			}
+		}
+	}
+
+	if (dir > -1) {
 		int dx = ((dir < 3) ? 1 : -1)*((dir % 3) < 2);
 		int dy = ((dir < 3) ? 1 : -1)*((dir % 3) > 0);
 
-#if 0
-		LOGV("serf", "free walking: dest %i, %i, move %i, %i.",
+		LOGV("serf", "free walking (switch): dest %i, %i, move %i, %i.",
 		     serf->s.free_walking.dist1,
 		     serf->s.free_walking.dist2, dx, dy);
-#endif
 
 		serf->s.free_walking.dist1 -= dx;
 		serf->s.free_walking.dist2 -= dy;
-
-		serf_start_walking(serf, dir, 32);
 
 		if (serf->s.free_walking.dist1 == 0 &&
 		    serf->s.free_walking.dist2 == 0) {
 			serf->s.free_walking.flags = BIT(3);
 		}
-		continue;
 
-	switch_with_other:;
-		/* No free position can be found. Switch with
-		   other serf. */
-		dir = -1;
-		serf_t *other_serf = NULL;
-		for (int i = 0; i < 6; i++) {
-			new_pos = MAP_MOVE(serf->pos, i);
-			if (MAP_SERF_INDEX(new_pos) != 0) {
-				other_serf = game_get_serf(MAP_SERF_INDEX(new_pos));
+		/* Switch with other serf. */
+		map_set_serf_index(serf->pos, SERF_INDEX(other_serf));
+		map_set_serf_index(new_pos, SERF_INDEX(serf));
 
-				if ((other_serf->state == SERF_STATE_WALKING ||
-				     other_serf->state == SERF_STATE_TRANSPORTING) &&
-				    other_serf->s.walking.dir == DIR_REVERSE(i)-6) {
-					/* Move other walking serf in opposite direction. */
-					other_serf->s.walking.dir = i;
-					dir = i;
-					break;
-				} else if ((other_serf->state == SERF_STATE_FREE_WALKING ||
-					    other_serf->state == SERF_STATE_53 ||
-					    other_serf->state == SERF_STATE_22) &&
-					   other_serf->animation == 82) {
-					/* Move other free walking serf in opposite direction. */
-					int dx = ((dir < 3) ? 1 : -1)*((dir % 3) < 2);
-					int dy = ((dir < 3) ? 1 : -1)*((dir % 3) > 0);
-					other_serf->s.free_walking.dist1 += dx;
-					other_serf->s.free_walking.dist2 += dy;
+		other_serf->animation = get_walking_animation(MAP_HEIGHT(serf->pos) - MAP_HEIGHT(other_serf->pos),
+							      6+DIR_REVERSE(dir));
+		serf->animation = get_walking_animation(MAP_HEIGHT(new_pos) - MAP_HEIGHT(serf->pos), 6+dir);
 
-					if (other_serf->s.free_walking.dist1 == 0 &&
-					    other_serf->s.free_walking.dist2 == 0) {
-						other_serf->s.free_walking.flags = BIT(3);
-					}
-					dir = i;
-					break;
-				}
-			}
-		}
+		other_serf->counter = counter_from_animation[other_serf->animation];
+		serf->counter = counter_from_animation[serf->animation];
 
-		if (dir > -1) {
-			int dx = ((dir < 3) ? 1 : -1)*((dir % 3) < 2);
-			int dy = ((dir < 3) ? 1 : -1)*((dir % 3) > 0);
+		other_serf->pos = serf->pos;
+		serf->pos = new_pos;
+	} else {
+		serf->animation = 82;
+		serf->counter = counter_from_animation[serf->animation];
+	}
+}
 
-			LOGV("serf", "free walking (switch): dest %i, %i, move %i, %i.",
-			     serf->s.free_walking.dist1,
-			     serf->s.free_walking.dist2, dx, dy);
+static void
+handle_serf_free_walking_state(serf_t *serf)
+{
 
-			serf->s.free_walking.dist1 -= dx;
-			serf->s.free_walking.dist2 -= dy;
+	uint16_t delta = globals.anim - serf->anim;
+	serf->anim = globals.anim;
+	serf->counter -= delta;
 
-			if (serf->s.free_walking.dist1 == 0 &&
-			    serf->s.free_walking.dist2 == 0) {
-				serf->s.free_walking.flags = BIT(3);
-			}
-
-			/* Switch with other serf. */
-			map_set_serf_index(serf->pos, SERF_INDEX(other_serf));
-			map_set_serf_index(new_pos, SERF_INDEX(serf));
-
-			other_serf->animation = get_walking_animation(MAP_HEIGHT(serf->pos) - MAP_HEIGHT(other_serf->pos),
-								      6+DIR_REVERSE(dir));
-			serf->animation = get_walking_animation(MAP_HEIGHT(new_pos) - MAP_HEIGHT(serf->pos), 6+dir);
-
-			other_serf->counter = counter_from_animation[other_serf->animation];
-			serf->counter = counter_from_animation[serf->animation];
-
-			other_serf->pos = serf->pos;
-			serf->pos = new_pos;
-		} else {
-			serf->animation = 82;
-			serf->counter = counter_from_animation[serf->animation];
-		}
-		return;
+	while (serf->counter < 0) {
+		handle_free_walking_common(serf);
 	}
 }
 
@@ -2536,8 +2557,8 @@ handle_serf_lost_state(serf_t *serf)
 				    MAP_HAS_OWNER(dest) && MAP_OWNER(dest) == SERF_PLAYER(serf)) {
 					if (SERF_TYPE(serf) >= SERF_KNIGHT_0 &&
 					    SERF_TYPE(serf) <= SERF_KNIGHT_4) {
-						serf_log_state_change(serf, SERF_STATE_53);
-						serf->state = SERF_STATE_53;
+						serf_log_state_change(serf, SERF_STATE_KNIGHT_FREE_WALKING);
+						serf->state = SERF_STATE_KNIGHT_FREE_WALKING;
 					} else {
 						serf_log_state_change(serf, SERF_STATE_FREE_WALKING);
 						serf->state = SERF_STATE_FREE_WALKING;
@@ -3596,6 +3617,154 @@ handle_serf_knight_attacking_defeat_state(serf_t *serf)
 }
 
 static void
+handle_state_knight_free_walking(serf_t *serf)
+{
+	uint16_t delta = globals.anim - serf->anim;
+	serf->anim = globals.anim;
+	serf->counter -= delta;
+
+	while (serf->counter < 0) {
+		/* Check for enemy knights nearby. */
+		for (dir_t d = DIR_RIGHT; d <= DIR_UP; d++) {
+			map_pos_t pos = MAP_MOVE(serf->pos, d);
+
+			if (MAP_SERF_INDEX(pos) != 0) {
+				serf_t *other = game_get_serf(MAP_SERF_INDEX(pos));
+				if (SERF_PLAYER(serf) != SERF_PLAYER(other)) {
+					if (other->state == SERF_STATE_KNIGHT_FREE_WALKING) {
+						pos = MAP_MOVE_LEFT(pos);
+						if (!MAP_OCCUPIED(pos)) {
+							serf_log_state_change(serf, SERF_STATE_54);
+							serf->state = SERF_STATE_54;
+							/* TODO copy some state from other serf. */
+							/* serf->s.field_E = other->s.field_B; */
+							/* serf->s.field_F = other->s.field_C; */
+							/* serf->s.field_D = 1; */
+							serf->animation = 99;
+							serf->counter = 255;
+
+							serf_log_state_change(other, SERF_STATE_55);
+							other->state = SERF_STATE_55;
+							/* TODO set some state */
+							/* other->s.field_D = d; */
+							/* other->s.field_E = SERF_INDEX(serf); */
+							return;
+						}
+					} else if (other->state == SERF_STATE_WALKING &&
+						   SERF_TYPE(other) >= SERF_KNIGHT_0 &&
+						   SERF_TYPE(other) <= SERF_KNIGHT_4) {
+						pos = MAP_MOVE_LEFT(pos);
+						if (!MAP_OCCUPIED(pos)) {
+							serf_log_state_change(serf, SERF_STATE_54);
+							serf->state = SERF_STATE_54;
+							/* TODO set some state */
+							/* serf->s.field_D = 0; */
+							serf->animation = 99;
+							serf->counter = 255;
+
+							flag_t *dest = game_get_flag(other->s.walking.dest);
+							building_t *building = dest->other_endpoint.b[DIR_UP_LEFT];
+							building->stock1 -= 1;
+
+							serf_log_state_change(other, SERF_STATE_55);
+							other->state = SERF_STATE_55;
+							/* TODO set some state */
+							/* other->s.field_D = d; */
+							/* other->s.field_E = SERF_INDEX(serf); */
+							return;
+						}
+					}
+				}
+			}
+		}
+
+		handle_free_walking_common(serf);
+	}
+}
+
+static void
+handle_serf_state_knight_leave_for_walk_to_fight(serf_t *serf)
+{
+	if (MAP_SERF_INDEX(serf->pos) != SERF_INDEX(serf) &&
+	    MAP_SERF_INDEX(serf->pos) != 0) {
+		serf->animation = 82;
+		serf->counter = 0;
+		return;
+	}
+
+	building_t *building = game_get_building(MAP_OBJ_INDEX(serf->pos));
+	map_pos_t new_pos = MAP_MOVE_DOWN_RIGHT(serf->pos);
+
+	if (MAP_SERF_INDEX(new_pos) == 0) {
+		map_set_serf_index(serf->pos, 0);
+		map_set_serf_index(new_pos, SERF_INDEX(serf));
+		serf->pos = new_pos;
+
+		int slope = 31 - road_bld_slope_arr[(building->bld >> 2) & 0x3f];
+		serf->animation = get_walking_animation(MAP_HEIGHT(new_pos) - MAP_HEIGHT(serf->pos), DIR_DOWN_RIGHT);
+		serf->counter = (slope * counter_from_animation[serf->animation]) >> 5;
+		serf->anim = globals.anim;
+
+		/* For clean state change, save the values first. */
+		/* TODO maybe knight_leave_for_walk_to_fight can
+		   share leaving_building state vars. */
+		int dist_col = serf->s.leave_for_walk_to_fight.dist_col;
+		int dist_row = serf->s.leave_for_walk_to_fight.dist_row;
+		int field_D = serf->s.leave_for_walk_to_fight.field_D;
+		int field_E = serf->s.leave_for_walk_to_fight.field_E;
+		serf_state_t next_state = serf->s.leave_for_walk_to_fight.next_state;
+
+		serf_log_state_change(serf, SERF_STATE_LEAVING_BUILDING);
+		serf->state = SERF_STATE_LEAVING_BUILDING;
+		/* TODO names for leaving_building vars make no sense here. */
+		serf->s.leaving_building.field_B = dist_col;
+		serf->s.leaving_building.dest = dist_row;
+		serf->s.leaving_building.dest2 = field_D;
+		serf->s.leaving_building.dir = field_E;
+		serf->s.leaving_building.next_state = next_state;
+	} else {
+		serf_t *other = game_get_serf(MAP_SERF_INDEX(new_pos));
+		if (SERF_PLAYER(serf) == SERF_PLAYER(other)) {
+			serf->animation = 82;
+			serf->counter = 0;
+		} else {
+			/* Go back to defending the building. */
+			int max_capacity = -1;
+			switch (BUILDING_TYPE(building)) {
+			case BUILDING_HUT:
+				serf_log_state_change(serf, SERF_STATE_DEFENDING_HUT);
+				serf->state = SERF_STATE_DEFENDING_HUT;
+				max_capacity = 3;
+				break;
+			case BUILDING_TOWER:
+				serf_log_state_change(serf, SERF_STATE_DEFENDING_TOWER);
+				serf->state = SERF_STATE_DEFENDING_TOWER;
+				max_capacity = 6;
+				break;
+			case BUILDING_FORTRESS:
+				serf_log_state_change(serf, SERF_STATE_DEFENDING_FORTRESS);
+				serf->state = SERF_STATE_DEFENDING_FORTRESS;
+				max_capacity = 12;
+				break;
+			default:
+				NOT_REACHED();
+				break;
+			}
+
+			int total_knights = (building->stock1 & 0xf) + ((building->stock1 >> 4) & 0xf);
+			if (total_knights < max_capacity) {
+				building->stock1 += 0x10;
+				serf->s.defending.next_knight = building->serf_index;
+				building->serf_index = SERF_INDEX(serf);
+			} else {
+				serf->animation = 82;
+				serf->counter = 0;
+			}
+		}
+	}
+}
+
+static void
 handle_serf_idle_on_path_state(serf_t *serf)
 {
 	map_2_t *map_data = MAP_2_DATA(globals.map_mem2_ptr);
@@ -3916,6 +4085,12 @@ update_serf(serf_t *serf)
 		break;
 	case SERF_STATE_KNIGHT_OCCUPY_ENEMY_BUILDING:
 		/* TODO */
+		break;
+	case SERF_STATE_KNIGHT_FREE_WALKING:
+		handle_state_knight_free_walking(serf);
+		break;
+	case SERF_STATE_KNIGHT_LEAVE_FOR_WALK_TO_FIGHT:
+		handle_serf_state_knight_leave_for_walk_to_fight(serf);
 		break;
 	case SERF_STATE_IDLE_ON_PATH:
 		handle_serf_idle_on_path_state(serf);

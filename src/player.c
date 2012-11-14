@@ -1962,7 +1962,7 @@ player_start_attack(player_sett_t *sett)
 			def_serf->s.leave_for_walk_to_fight.dist_row = dist_row;
 			def_serf->s.leave_for_walk_to_fight.field_D = 0;
 			def_serf->s.leave_for_walk_to_fight.field_E = 0;
-			def_serf->s.leave_for_walk_to_fight.next_state = SERF_STATE_53;
+			def_serf->s.leave_for_walk_to_fight.next_state = SERF_STATE_KNIGHT_FREE_WALKING;
 
 			sett->knights_attacking -= 1;
 			if (sett->knights_attacking == 0) return;
