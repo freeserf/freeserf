@@ -3946,6 +3946,7 @@ update_serf(serf_t *serf)
 		break;
 	default:
 		LOGD("serf", "Serf state %d isn't processed", serf->state);
+		serf->state = SERF_STATE_NULL;
 	}
 }
 
