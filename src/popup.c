@@ -191,8 +191,9 @@ draw_minimap_icons(player_t *player, frame_t *frame)
 static void
 draw_minimap_point(player_t *player, int x, int y, uint8_t color, int scale, int density, frame_t *frame)
 {
-	int mm_y = y * scale + MINIMAP_HEIGHT/2 + player->minimap_row * scale - globals.map_rows * scale * 2;
-	mm_y = mm_y % (globals.map_rows * scale * 2);
+	int mm_y = y * scale + MINIMAP_HEIGHT/2 + player->minimap_row * scale;
+	x -= (globals.map_rows/2) * (int)(mm_y / (globals.map_rows * scale));
+	mm_y = mm_y % (globals.map_rows * scale);
 	
 	while (mm_y < MINIMAP_HEIGHT) {
 		if (mm_y >= 0) {
@@ -205,7 +206,7 @@ draw_minimap_point(player_t *player, int x, int y, uint8_t color, int scale, int
 				mm_x += globals.map_cols * scale;
 			}
 		}
-		x += globals.map_cols/2;
+		x += globals.map_rows/2;
 		mm_y += globals.map_rows * scale;
 	}
 }
