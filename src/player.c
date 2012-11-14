@@ -1812,12 +1812,15 @@ available_knights_at_pos(player_sett_t *sett, map_pos_t pos, int index, int dist
 
 	if (to_send > 0) sett->attacking_knights[dist] += to_send;
 
-	return index;
+	return index + 1;
 }
 
 int
 player_knights_available_for_attack(player_sett_t *sett, map_pos_t pos)
 {
+	/* Reset counters. */
+	for (int i = 0; i < 4; i++) sett->attacking_knights[i] = 0;
+
 	int index = 0;
 
 	/* Iterate each shell around the position.*/
@@ -1849,12 +1852,13 @@ player_knights_available_for_attack(player_sett_t *sett, map_pos_t pos)
 		}
 	}
 
+	sett->attacking_building_count = index;
+
 	sett->total_attacking_knights = 0;
 	for (int i = 0; i < 4; i++) {
 		sett->total_attacking_knights +=
 			sett->attacking_knights[i];
 	}
 
-	sett->attacking_building_count = index;
-	return index;
+	return sett->total_attacking_knights;
 }
