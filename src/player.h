@@ -148,6 +148,8 @@ typedef struct {
 	frame_t *frame;
 	/* 20 */
 	int game_area_cols;
+	/* 2E */
+	int minimap_advanced;
 	/* 30 */
 	int bottom_panel_x; /* ADDITION */
 	int bottom_panel_y;
@@ -177,6 +179,8 @@ typedef struct {
 	/* 70 */
 	box_t box;
 	box_t clkmap;
+	int minimap_row;
+	int minimap_col;
 	/* 78 */
 	int popup_x;
 	int popup_y;
@@ -198,6 +202,7 @@ typedef struct {
 	sprite_loc_t map_cursor_sprites[7];
 	int road_length;
 	int field_D0;
+	uint8_t minimap_flags;
 	/* D2 */
 	uint16_t last_anim;
 	int current_stat_8_mode;

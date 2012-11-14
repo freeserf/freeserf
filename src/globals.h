@@ -52,7 +52,7 @@ typedef struct {
 	/* 80 */
 	int *spiral_pattern;
 	/*void *player_map_rows[2];*/ /* OBSOLETE */
-	uint8_t *map_mem5_ptr;
+	uint8_t *minimap;
 	/* 90 */
 	/*int **map_serf_rows_left;*/ /* OBSOLETE */
 	/*int **map_serf_rows_right;*/ /* OBSOLETE */
@@ -154,7 +154,7 @@ typedef struct {
 	int16_t update_map_16_loop;
 	/* 2F8 */
 	map_1_t *map_mem2;
-	uint8_t *map_mem5;
+	/*uint8_t *map_mem5;*/
 	/* 320 */
 	int player_history_index[4];
 	int player_history_counter[3];
