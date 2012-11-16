@@ -1999,7 +1999,7 @@ handle_serf_free_walking_state(serf_t *serf)
 				   direction variable. */
 				dir_t dir = dir_from_offset[(d1+1) + 3*(d2+1)];
 
-				if (MAP_WATER_1(MAP_MOVE(serf->pos, dir))) { /* Occupied space */
+				if (MAP_OCCUPIED(MAP_MOVE(serf->pos, dir))) {
 					if (serf->state != SERF_STATE_53 &&
 					    serf->s.free_walking.neg_dist1 != -128) {
 						serf->s.free_walking.dist1 += serf->s.free_walking.neg_dist1;
@@ -2032,7 +2032,7 @@ handle_serf_free_walking_state(serf_t *serf)
 			int d = -1;
 			for (int i = 0; i < 6; i++) {
 				new_pos = MAP_MOVE(serf->pos, a0[i]);
-				if (!MAP_WATER_1(new_pos) &&
+				if (!MAP_OCCUPIED(new_pos) &&
 				    MAP_SERF_INDEX(new_pos) == 0) {
 					dir = a0[i];
 					d = 5 - i;
@@ -2102,7 +2102,7 @@ handle_serf_free_walking_state(serf_t *serf)
 		const int *a0 = &dir_arr[8*offset];
 		dir = a0[0];
 		new_pos = MAP_MOVE(serf->pos, dir);
-		if (!MAP_WATER_1(new_pos) &&
+		if (!MAP_OCCUPIED(new_pos) &&
 		    MAP_SERF_INDEX(new_pos) == 0) {
 			goto switch_on_dir;
 		}
@@ -2118,7 +2118,7 @@ handle_serf_free_walking_state(serf_t *serf)
 			dir_t d = dir_from_offset[(d1+1) + 3*(d2+1)];
 			new_pos = MAP_MOVE(serf->pos, d);
 
-			if (MAP_WATER_1(new_pos)) {
+			if (MAP_OCCUPIED(new_pos)) {
 				if (serf->state != SERF_STATE_53 &&
 				    serf->s.free_walking.neg_dist1 != -128) {
 					serf->s.free_walking.dist1 += serf->s.free_walking.neg_dist1;
@@ -2165,7 +2165,7 @@ handle_serf_free_walking_state(serf_t *serf)
 		for (int i = 0; i < 5; i++) {
 			dir = a0[1+i];
 			new_pos = MAP_MOVE(serf->pos, dir);
-			if (!MAP_WATER_1(new_pos) &&
+			if (!MAP_OCCUPIED(new_pos) &&
 			    MAP_SERF_INDEX(new_pos) == 0) {
 				i0 = 4-i;
 				break;
@@ -2352,7 +2352,7 @@ handle_serf_planning_planting_state(serf_t *serf)
 		int index = (random_int() & 0x7f) + 1;
 		map_pos_t pos = (serf->pos + globals.spiral_pos_pattern[index]) & globals.map_index_mask;
 		if (MAP_PATHS(pos) == 0 &&
-		    !MAP_WATER_1(pos) &&
+		    !MAP_OCCUPIED(pos) &&
 		    MAP_OBJ(pos) == MAP_OBJ_NONE &&
 		    MAP_TYPE_UP(pos) == 5 &&
 		    MAP_TYPE_DOWN(pos) == 5 &&
@@ -2420,7 +2420,7 @@ handle_serf_planning_stonecutting(serf_t *serf)
 		int obj = MAP_OBJ(MAP_MOVE_UP_LEFT(pos));
 		if (obj >= MAP_OBJ_STONE_0 &&
 		    obj <= MAP_OBJ_STONE_7 &&
-		    !MAP_WATER_1(pos)) {
+		    !MAP_OCCUPIED(pos)) {
 			serf_log_state_change(serf, SERF_STATE_READY_TO_LEAVE);
 			serf->state = SERF_STATE_READY_TO_LEAVE;
 			serf->s.leaving_building.field_B = globals.spiral_pattern[2*index] - 1;
@@ -2831,10 +2831,10 @@ handle_serf_fishing_state(serf_t *serf)
 
 		dir_t dir = -1;
 		if (serf->animation == 131) {
-			if (MAP_WATER_1(MAP_MOVE_LEFT(serf->pos))) dir = DIR_LEFT;
+			if (MAP_OCCUPIED(MAP_MOVE_LEFT(serf->pos))) dir = DIR_LEFT;
 			else dir = DIR_DOWN;
 		} else {
-			if (MAP_WATER_1(MAP_MOVE_RIGHT(serf->pos))) dir = DIR_RIGHT;
+			if (MAP_OCCUPIED(MAP_MOVE_RIGHT(serf->pos))) dir = DIR_RIGHT;
 			else dir = DIR_DOWN_RIGHT;
 		}
 

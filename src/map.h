@@ -37,7 +37,7 @@
 
 /* Extractors for map data. */
 #define MAP_HAS_FLAG(pos)  ((int)((globals.map_mem2_ptr[(pos)].flags >> 7) & 1))
-#define MAP_WATER_1(pos)  ((int)((globals.map_mem2_ptr[(pos)].flags >> 6) & 1)) /* Meaning: Occupied? */
+#define MAP_OCCUPIED(pos)  ((int)((globals.map_mem2_ptr[(pos)].flags >> 6) & 1))
 #define MAP_PATHS(pos)  ((int)(globals.map_mem2_ptr[(pos)].flags & 0x3f))
 
 #define MAP_HAS_OWNER(pos)  ((int)((globals.map_mem2_ptr[(pos)].height >> 7) & 1))
@@ -48,7 +48,7 @@
 #define MAP_TYPE_DOWN(pos)  ((int)(globals.map_mem2_ptr[(pos)].type & 0xf))
 
 #define MAP_OBJ(pos)  ((map_obj_t)(globals.map_mem2_ptr[(pos)].obj & 0x7f))
-#define MAP_WATER_2(pos)  ((int)((globals.map_mem2_ptr[(pos)].obj >> 7) & 1))
+#define MAP_WATER(pos)  ((int)((globals.map_mem2_ptr[(pos)].obj >> 7) & 1))
 
 #define MAP_OBJ_INDEX(pos)  ((int)(MAP_2_DATA(globals.map_mem2_ptr)[(pos)].u.index))
 #define MAP_IDLE_SERF(pos)  ((int)((MAP_2_DATA(globals.map_mem2_ptr)[(pos)].u.s.field_1 >> 7) & 1))

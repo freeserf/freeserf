@@ -1775,7 +1775,7 @@ available_knights_at_pos(player_sett_t *sett, map_pos_t pos, int index, int dist
 	const int min_level_tower[] = { 1, 2, 3, 4, 6 };
 	const int min_level_fortress[] = { 1, 3, 6, 9, 12 };
 
-	if (MAP_OWNER(pos) != sett->player_num || MAP_WATER_2(pos) ||
+	if (MAP_OWNER(pos) != sett->player_num || MAP_WATER(pos) ||
 	    MAP_OBJ(pos) < MAP_OBJ_SMALL_BUILDING ||
 	    MAP_OBJ(pos) > MAP_OBJ_CASTLE) {
 		return index;

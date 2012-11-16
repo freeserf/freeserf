@@ -1342,7 +1342,7 @@ static void
 draw_map_objects_row(map_pos_t pos, int y_base, int cols, int x_base, frame_t *frame)
 {
 	for (int i = 0; i < cols; i++, x_base += MAP_TILE_WIDTH, pos = MAP_MOVE_RIGHT(pos)) {
-		if (MAP_WATER_2(pos)) {
+		if (MAP_WATER(pos)) {
 			/*player->water_in_view += 1;*/
 			draw_water_waves(pos, x_base, y_base, frame);
 		}
@@ -2051,7 +2051,7 @@ draw_serf_row(map_pos_t pos, int y_base, int cols, int x_base, frame_t *frame)
 		/* Idle serf */
 		if (MAP_IDLE_SERF(pos)) {
 			int x, y, body;
-			if (MAP_WATER_1(pos)) { /* Sailor */
+			if (MAP_WATER(pos)) { /* Sailor */
 				x = x_base;
 				y = y_base - 4*MAP_HEIGHT(pos);
 				body = 0x203;

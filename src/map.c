@@ -1405,7 +1405,7 @@ map_update_hidden(map_pos_t pos)
 	map_2_t *map_data = MAP_2_DATA(globals.map_mem2_ptr);
 
 	/* Update fish resources in water */
-	if (MAP_WATER_2(pos) && MAP_WATER_1(pos)) {
+	if (MAP_WATER(pos) && MAP_OCCUPIED(pos)) {
 		if (map_data[pos].u.s.resource) {
 			int r = random_int();
 
@@ -1424,7 +1424,7 @@ map_update_hidden(map_pos_t pos)
 			default: NOT_REACHED(); break;
 			}
 
-			if (MAP_WATER_1(adj_pos)) {
+			if (MAP_WATER(adj_pos)) {
 				/* Migrate a fish to adjacent water space. */
 				map_data[pos].u.s.resource -= 1;
 				map_data[adj_pos].u.s.resource += 1;
