@@ -1976,8 +1976,6 @@ serf_get_body(serf_t *serf)
 				}
 			}
 
-			/* TODO */
-
 			t += 0x7cd0 + 0x200*k;
 		} else {
 			t += 0x7d90 + 0x200*k;
@@ -2045,6 +2043,14 @@ draw_serf_row(map_pos_t pos, int y_base, int cols, int x_base, frame_t *frame)
 		0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
 	};
 
+	const int arr_4[] = {
+		9, 5, 10, 7, 10, 2, 8, 6,
+		11, 8, 9, 6, 9, 8, 0, 0,
+		0, 0, 0, 0, 5, 5, 4, 7,
+		4, 2, 7, 5, 3, 8, 5, 6,
+		5, 8, 0, 0, 0, 0, 0, 0
+	};
+
 	for (int i = 0; i < cols; i++, x_base += MAP_TILE_WIDTH, pos = MAP_MOVE_RIGHT(pos)) {
 #if 0
 		/* Draw serf marker */
@@ -2066,6 +2072,59 @@ draw_serf_row(map_pos_t pos, int y_base, int cols, int x_base, frame_t *frame)
 			int body = serf_get_body(serf);
 
 			if (body > -1) draw_row_serf(x, y, 1, SERF_PLAYER(serf), body, frame);
+
+			/* Draw additional serf */
+			if (serf->state == SERF_STATE_KNIGHT_ENGAGING_BUILDING ||
+			    serf->state == SERF_STATE_KNIGHT_PREPARE_ATTACKING ||
+			    serf->state == SERF_STATE_KNIGHT_ATTACKING) {
+				int index = serf->s.attacking.def_index;
+				if (index != 0) {
+					serf_t *def_serf = game_get_serf(index);
+
+					uint8_t *tbl_ptr = ((uint8_t *)globals.serf_animation_table) +
+						globals.serf_animation_table[def_serf->animation] +
+						3*(def_serf->counter >> 3);
+
+					int x = x_base + ((int8_t *)tbl_ptr)[1];
+					int y = y_base - 4*MAP_HEIGHT(pos) + ((int8_t *)tbl_ptr)[2];
+					int body = serf_get_body(def_serf);
+
+					if (body > -1) {
+						draw_row_serf(x, y, 1, SERF_PLAYER(def_serf),
+							      body, frame);
+					}
+				}
+			}
+
+			/* Draw extra objects for fight */
+			if (SERF_TYPE(serf) >= SERF_KNIGHT_0 &&
+			    SERF_TYPE(serf) <= SERF_KNIGHT_4 &&
+			    tbl_ptr[0] >= 0x80 && tbl_ptr[0] < 0xc0) {
+				/* TODO what state are we in? Access to state vars. */
+				int index = serf->s.attacking.def_index;
+				if (index != 0) {
+					serf_t *def_serf = game_get_serf(index);
+
+					if (serf->animation >= 146 &&
+					    serf->animation < 156) {
+						if ((serf->s.attacking.field_D == 0 ||
+						     serf->s.attacking.field_D == 4) &&
+						    serf->counter < 32) {
+							int anim = -1;
+							if (serf->s.attacking.field_D == 0) {
+								anim = serf->animation - 147;
+							} else {
+								anim = def_serf->animation - 147;
+							}
+
+							int sprite = 198 + ((serf->counter >> 3) ^ 3);
+							draw_game_sprite(x + arr_4[2*anim],
+									 y - arr_4[2*anim+1],
+									 sprite, frame);
+						}
+					}
+				}
+			}
 		}
 
 		/* Idle serf */

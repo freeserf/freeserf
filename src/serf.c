@@ -353,13 +353,17 @@ handle_serf_walking_state_search_cb(flag_t *flag, serf_t *serf)
 }
 
 static void
-serf_start_walking(serf_t *serf, dir_t dir, int slope)
+serf_start_walking(serf_t *serf, dir_t dir, int slope, int change_pos)
 {
 	map_pos_t new_pos = MAP_MOVE(serf->pos, dir);
-	map_set_serf_index(serf->pos, 0);
-	map_set_serf_index(new_pos, SERF_INDEX(serf));
 	serf->animation = get_walking_animation(MAP_HEIGHT(new_pos) - MAP_HEIGHT(serf->pos), dir);
 	serf->counter += (slope * counter_from_animation[serf->animation]) >> 5;
+
+	if (change_pos) {
+		map_set_serf_index(serf->pos, 0);
+		map_set_serf_index(new_pos, SERF_INDEX(serf));
+	}
+
 	serf->pos = new_pos;
 }
 
@@ -380,7 +384,7 @@ handle_serf_walking_state_dest_reached(serf_t *serf)
 			serf->state = SERF_STATE_READY_TO_ENTER;
 		} else {
 			serf->counter = 0;
-			serf_start_walking(serf, DIR_UP_LEFT, 32);
+			serf_start_walking(serf, DIR_UP_LEFT, 32, 1);
 			serf->anim = globals.anim;
 			serf_log_state_change(serf, SERF_STATE_ENTERING_BUILDING);
 			serf->state = SERF_STATE_ENTERING_BUILDING;
@@ -1154,6 +1158,8 @@ handle_serf_leaving_building_state(serf_t *serf)
 			serf->s.free_walking.neg_dist1 = neg_dist1;
 			serf->s.free_walking.neg_dist2 = neg_dist2;
 			serf->s.free_walking.flags = 0;
+		} else if (serf->state == SERF_STATE_KNIGHT_PREPARE_DEFENDING) {
+			/* No state. */
 		} else {
 			LOGD("serf", "unhandled next state when leaving building.");
 		}
@@ -1172,7 +1178,7 @@ handle_serf_ready_to_enter_state(serf_t *serf)
 	}
 
 	serf->counter = 0;
-	serf_start_walking(serf, DIR_UP_LEFT, 32);
+	serf_start_walking(serf, DIR_UP_LEFT, 32, 1);
 	serf->anim = globals.anim;
 
 	building_t *building = game_get_building(MAP_OBJ_INDEX(new_pos));
@@ -1202,7 +1208,7 @@ handle_serf_ready_to_leave_state(serf_t *serf)
 	building_t *building = game_get_building(MAP_OBJ_INDEX(serf->pos));
 	int slope = 31 - road_bld_slope_arr[(building->bld >> 2) & 0x3f];
 	serf->counter = 0;
-	serf_start_walking(serf, DIR_DOWN_RIGHT, slope);
+	serf_start_walking(serf, DIR_DOWN_RIGHT, slope, 1);
 	serf->anim = globals.anim;
 
 	serf_log_state_change(serf, SERF_STATE_LEAVING_BUILDING);
@@ -1256,7 +1262,7 @@ handle_serf_digging_state(serf_t *serf)
 				serf->s.digging.substate = 1;
 			} else {
 				dir_t dir = DIR_REVERSE(6-serf->s.digging.dig_pos);
-				serf_start_walking(serf, dir, 32);
+				serf_start_walking(serf, dir, 32, 1);
 			}
 		} else if (serf->s.digging.substate > 1) {
 			LOGV("serf", "substate 2: dig.");
@@ -1298,7 +1304,7 @@ handle_serf_digging_state(serf_t *serf)
 						}
 
 						/* Go to dig there */
-						serf_start_walking(serf, dir, 32);
+						serf_start_walking(serf, dir, 32, 1);
 						serf->s.digging.substate = 3;
 					}
 					break;
@@ -1514,7 +1520,7 @@ handle_serf_move_resource_out_state(serf_t *serf)
 	building_t *building = game_get_building(MAP_OBJ_INDEX(serf->pos));
 	int slope = 31 - road_bld_slope_arr[(building->bld >> 2) & 0x3f];
 	serf->counter = 0;
-	serf_start_walking(serf, DIR_DOWN_RIGHT, slope);
+	serf_start_walking(serf, DIR_DOWN_RIGHT, slope, 1);
 	serf->anim = globals.anim;
 
 	uint res = serf->s.move_resource_out.res;
@@ -1658,7 +1664,7 @@ handle_serf_ready_to_leave_inventory_state(serf_t *serf)
 	building_t *building = game_get_building(MAP_OBJ_INDEX(serf->pos));
 	int slope = 31 - road_bld_slope_arr[(building->bld >> 2) & 0x3f];
 	serf->counter = 0;
-	serf_start_walking(serf, DIR_DOWN_RIGHT, slope);
+	serf_start_walking(serf, DIR_DOWN_RIGHT, slope, 1);
 	serf->anim = globals.anim;
 
 	int mode = serf->s.ready_to_leave_inventory.mode;
@@ -1756,7 +1762,7 @@ handle_serf_free_walking_state_dest_reached(serf_t *serf)
 			    obj >= MAP_OBJ_STONE_0 &&
 			    obj <= MAP_OBJ_STONE_7) {
 				serf->counter = 0;
-				serf_start_walking(serf, DIR_UP_LEFT, 32);
+				serf_start_walking(serf, DIR_UP_LEFT, 32, 1);
 
 				serf_log_state_change(serf, SERF_STATE_STONECUTTING);
 				serf->state = SERF_STATE_STONECUTTING;
@@ -2205,7 +2211,7 @@ switch_on_dir:;
 	serf->s.free_walking.dist1 -= dx;
 	serf->s.free_walking.dist2 -= dy;
 
-	serf_start_walking(serf, dir, 32);
+	serf_start_walking(serf, dir, 32, 1);
 
 	if (serf->s.free_walking.dist1 == 0 &&
 	    serf->s.free_walking.dist2 == 0) {
@@ -2497,7 +2503,7 @@ handle_serf_stonecutting_state(serf_t *serf)
 		else map_set_object(serf->pos, MAP_OBJ_NONE, -1);
 
 		serf->counter = 0;
-		serf_start_walking(serf, DIR_DOWN_RIGHT, 24);
+		serf_start_walking(serf, DIR_DOWN_RIGHT, 24, 1);
 		serf->anim = globals.anim;
 
 		serf->s.free_walking.neg_dist1 = 2;
@@ -3453,7 +3459,7 @@ handle_serf_knight_engaging_building_state(serf_t *serf)
 
 	if (serf->counter < 0) {
 		map_obj_t obj = MAP_OBJ(MAP_MOVE_UP_LEFT(serf->pos));
-		if (obj >= MAP_OBJ_SMALL_BUILDING ||
+		if (obj >= MAP_OBJ_SMALL_BUILDING &&
 		    obj <= MAP_OBJ_CASTLE) {
 			building_t *building = game_get_building(MAP_OBJ_INDEX(MAP_MOVE_UP_LEFT(serf->pos)));
 			if (BUILDING_IS_DONE(building) &&
@@ -3495,6 +3501,7 @@ handle_serf_knight_engaging_building_state(serf_t *serf)
 				serf_log_state_change(def_serf, SERF_STATE_KNIGHT_LEAVE_FOR_FIGHT);
 				def_serf->state = SERF_STATE_KNIGHT_LEAVE_FOR_FIGHT;
 				def_serf->s.leaving_building.next_state = SERF_STATE_KNIGHT_PREPARE_DEFENDING;
+				def_serf->counter = 0;
 				return;
 			}
 		}
@@ -3550,11 +3557,13 @@ handle_serf_knight_prepare_attacking(serf_t *serf)
 			value = def_exp_factor;
 			type = SERF_TYPE(def_serf);
 			serf->s.attacking.field_C = 1;
+			LOGD("serf", "Fight: %i vs %i. Attacker winning.", morale, def_morale);
 		} else {
 			player = SERF_PLAYER(serf);
 			value = exp_factor;
 			type = SERF_TYPE(serf);
 			serf->s.attacking.field_C = 0;
+			LOGD("serf", "Fight: %i vs %i. Defender winning.", morale, def_morale);
 		}
 
 		globals.player_sett[player]->total_military_score -= value;
@@ -3571,7 +3580,7 @@ handle_serf_knight_leave_for_fight_state(serf_t *serf)
 		building_t *building = game_get_building(MAP_OBJ_INDEX(serf->pos));
 		int slope = road_bld_slope_arr[(building->bld >> 2) & 0x3f];
 		serf->counter = 0;
-		serf_start_walking(serf, DIR_DOWN_RIGHT, slope);
+		serf_start_walking(serf, DIR_DOWN_RIGHT, slope, 0);
 		serf->anim = globals.anim;
 
 		serf_log_state_change(serf, SERF_STATE_LEAVING_BUILDING);
@@ -3584,6 +3593,105 @@ handle_serf_knight_prepare_defending_state(serf_t *serf)
 {
 	serf->counter = 0;
 	serf->animation = 84;
+}
+
+static void
+handle_knight_attacking(serf_t *serf)
+{
+	const int moves[] =  {
+		1, 2, 4, 2, 0, 2, 4, 2, 1, 0, 2, 2, 3, 0, 0, -1,
+		3, 2, 2, 3, 0, 4, 1, 3, 2, 4, 2, 2, 3, 0, 0, -1,
+		2, 1, 4, 3, 2, 2, 2, 3, 0, 3, 1, 2, 0, 2, 0, -1,
+		2, 1, 3, 2, 4, 2, 3, 0, 0, 4, 2, 0, 2, 1, 0, -1,
+		3, 1, 0, 2, 2, 1, 0, 2, 4, 2, 2, 3, 0, 0, -1,
+		0, 3, 1, 2, 3, 4, 2, 1, 2, 0, 2, 4, 0, 2, 0, -1,
+		0, 2, 1, 2, 4, 2, 3, 0, 2, 4, 3, 2, 0, 0, -1,
+		0, 0, 1, 4, 3, 2, 2, 1, 2, 0, 0, 4, 3, 0, -1
+	};
+
+	const int fight_anim[] = {
+		24, 35, 41, 56, 67, 72, 83, 89, 100, 121, 0, 0, 0, 0, 0, 0,
+		26, 40, 42, 57, 73, 74, 88, 104, 106, 120, 122, 0, 0, 0, 0, 0,
+		17, 18, 23, 33, 34, 38, 39, 98, 102, 103, 113, 114, 118, 119, 0, 0,
+		130, 133, 134, 135, 147, 148, 161, 162, 164, 166, 167, 0, 0, 0, 0, 0,
+		50, 52, 53, 70, 129, 131, 132, 146, 149, 151, 0, 0, 0, 0, 0, 0
+	};
+
+	const int fight_anim_max[] = { 10, 11, 14, 11, 10 };
+
+	serf_t *def_serf = game_get_serf(serf->s.attacking.def_index);
+
+	uint16_t delta = globals.anim - serf->anim;
+	serf->anim = globals.anim;
+	def_serf->anim = globals.anim;
+	serf->counter -= delta;
+	def_serf->counter = serf->counter;
+
+	while (serf->counter < 0) {
+		int move = moves[serf->s.attacking.field_B];
+		if (move < 0) {
+			if (serf->s.attacking.field_C == 0) {
+				/* Defender won. */
+				if (serf->state == SERF_STATE_60) {
+					/* TODO */
+				} else {
+					/* Defender returns to building. */
+					def_serf->anim = globals.anim;
+					def_serf->counter = 0;
+					serf_log_state_change(def_serf, SERF_STATE_ENTERING_BUILDING);
+					def_serf->state = SERF_STATE_ENTERING_BUILDING;
+
+					serf_start_walking(def_serf, DIR_UP_LEFT, 32, 0);
+					map_set_serf_index(def_serf->pos, SERF_INDEX(def_serf));
+
+					building_t *building = game_get_building(MAP_OBJ_INDEX(def_serf->pos));
+					int slope = road_bld_slope_arr[(building->bld >> 2) & 0x3f];
+					def_serf->s.entering_building.slope_len = (slope * def_serf->counter) >> 5;
+					def_serf->s.entering_building.field_B = -1;
+
+					/* Attacker dies. */
+					serf_log_state_change(serf, SERF_STATE_KNIGHT_ATTACKING_DEFEAT);
+					serf->state = SERF_STATE_KNIGHT_ATTACKING_DEFEAT;
+					serf->animation = 152 + SERF_TYPE(serf);
+					serf->counter = 255;
+					serf->type = (serf->type & 0x80) | (27 << 2) | SERF_PLAYER(serf);
+				}
+			} else {
+				/* Attacker won. */
+				if (serf->state == SERF_STATE_60) {
+					/* TODO */
+				} else {
+					/* Defender dies. */
+					def_serf->anim = globals.anim;
+					def_serf->animation = 147 + SERF_TYPE(serf);
+					def_serf->counter = 255;
+					def_serf->type = (def_serf->type & 0x80) | (27 << 2) | SERF_PLAYER(def_serf);
+
+					/* Attacker */
+					serf_log_state_change(serf, SERF_STATE_KNIGHT_ATTACKING_VICTORY);
+					serf->state = SERF_STATE_KNIGHT_ATTACKING_VICTORY;
+					serf->animation = 168;
+					serf->counter = 0;
+
+					building_t *building = game_get_building(MAP_OBJ_INDEX(def_serf->pos));
+					if (building->stock1 != 0xff) building->stock1 -= 1;
+				}
+			}
+		} else {
+			/* Go to next move in fight sequence. */
+			serf->s.attacking.field_B += 1;
+			if (serf->s.attacking.field_C == 0) move = 4 - move;
+			serf->s.attacking.field_D = move;
+
+			int off = (random_int() * fight_anim_max[move]) >> 16;
+			int a = fight_anim[move*16 + off];
+
+			serf->animation = 146 + ((a >> 4) & 0xf);
+			def_serf->animation = 156 + (a & 0xf);
+			serf->counter = 72 + (random_int() & 0x18);
+			def_serf->counter = serf->counter;
+		}
+	}
 }
 
 static void
@@ -3616,6 +3724,45 @@ handle_serf_knight_attacking_defeat_state(serf_t *serf)
 	if (serf->counter < 0) {
 		map_set_serf_index(serf->pos, 0);
 		game_free_serf(SERF_INDEX(serf));
+	}
+}
+
+static void
+handle_knight_occupy_enemy_building(serf_t *serf)
+{
+	uint16_t delta = globals.anim - serf->anim;
+	serf->anim = globals.anim;
+	serf->counter -= delta;
+
+	while (serf->counter < 0) {
+		map_pos_t pos = MAP_MOVE_UP_LEFT(serf->pos);
+		if (MAP_OBJ(pos) >= MAP_OBJ_SMALL_BUILDING &&
+		    MAP_OBJ(pos) <= MAP_OBJ_CASTLE) {
+			building_t *building = game_get_building(MAP_OBJ_INDEX(pos));
+			if (!BUILDING_IS_BURNING(building) &&
+			    (BUILDING_TYPE(building) == BUILDING_HUT ||
+			     BUILDING_TYPE(building) == BUILDING_TOWER ||
+			     BUILDING_TYPE(building) == BUILDING_FORTRESS ||
+			     BUILDING_TYPE(building) == BUILDING_CASTLE)) {
+				if (BUILDING_PLAYER(building) == SERF_PLAYER(serf)) {
+					/* TODO enter building if there is space. */
+				} else if (building->serf_index == 0) {
+					/* TODO take the building. */
+				} else {
+					serf_log_state_change(serf, SERF_STATE_KNIGHT_ENGAGING_BUILDING);
+					serf->state = SERF_STATE_KNIGHT_ENGAGING_BUILDING;
+					serf->animation = 167;
+					serf->counter = 191;
+					continue;
+				}
+			}
+		}
+
+		/* Something is wrong. */
+		serf_log_state_change(serf, SERF_STATE_LOST);
+		serf->state = SERF_STATE_LOST;
+		serf->s.lost.field_B = 0;
+		serf->counter = 0;
 	}
 }
 
@@ -4076,9 +4223,10 @@ update_serf(serf_t *serf)
 		handle_serf_knight_prepare_defending_state(serf);
 		break;
 	case SERF_STATE_KNIGHT_ATTACKING:
-		/* TODO */
+		handle_knight_attacking(serf);
 		break;
 	case SERF_STATE_KNIGHT_DEFENDING:
+		/* The actual fight update is handled for the attacking knight. */
 		break;
 	case SERF_STATE_KNIGHT_ATTACKING_VICTORY: /* 50 */
 		handle_serf_knight_attacking_victory_state(serf);
@@ -4087,7 +4235,7 @@ update_serf(serf_t *serf)
 		handle_serf_knight_attacking_defeat_state(serf);
 		break;
 	case SERF_STATE_KNIGHT_OCCUPY_ENEMY_BUILDING:
-		/* TODO */
+		handle_knight_occupy_enemy_building(serf);
 		break;
 	case SERF_STATE_KNIGHT_FREE_WALKING:
 		handle_state_knight_free_walking(serf);
