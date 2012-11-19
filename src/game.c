@@ -2361,18 +2361,18 @@ flag_reset_transport(flag_t *flag)
 	/* Flag. */
 	for (int i = 1; i < globals.max_ever_flag_index; i++) {
 		if (BIT_TEST(globals.flg_bitmap[i>>3], 7-(i&7))) {
-			flag_t *flag = game_get_flag(i);
+			flag_t *other = game_get_flag(i);
 
-			for (int i = 0; i < 8; i++) {
-				if (flag->res_waiting[i] != 0 &&
-				    flag->res_dest[i] == FLAG_INDEX(flag)) {
-					flag->res_dest[i] = 0;
-					flag->endpoint |= BIT(7);
+			for (int slot = 0; slot < 8; slot++) {
+				if (other->res_waiting[slot] != 0 &&
+				    other->res_dest[slot] == FLAG_INDEX(flag)) {
+					other->res_dest[slot] = 0;
+					other->endpoint |= BIT(7);
 
-					if (((flag->res_waiting[i] >> 5) & 3) != 0) {
-						dir_t dir = ((flag->res_waiting[i] >> 5) & 3)-1;
-						player_sett_t *sett = globals.player_sett[FLAG_PLAYER(flag)];
-						flag_prioritize_pickup(flag, dir, sett->flag_prio);
+					if (((other->res_waiting[slot] >> 5) & 3) != 0) {
+						dir_t dir = ((other->res_waiting[slot] >> 5) & 3)-1;
+						player_sett_t *sett = globals.player_sett[FLAG_PLAYER(other)];
+						flag_prioritize_pickup(other, dir, sett->flag_prio);
 					}
 				}
 			}
@@ -2384,12 +2384,12 @@ flag_reset_transport(flag_t *flag)
 		if (BIT_TEST(globals.inventories_bitmap[i>>3], 7-(i&7))) {
 			inventory_t *inventory = game_get_inventory(i);
 			if (inventory->out_dest[1] == FLAG_INDEX(flag)) {
-				inventory->out_queue[1] = 0;
+				inventory->out_queue[1] = -1;
 			}
 			if (inventory->out_dest[0] == FLAG_INDEX(flag)) {
 				inventory->out_queue[0] = inventory->out_queue[1];
 				inventory->out_dest[0] = inventory->out_dest[1];
-				inventory->out_queue[1] = 0;
+				inventory->out_queue[1] = -1;
 			}
 		}
 	}
@@ -2861,8 +2861,8 @@ game_demolish_building(map_pos_t pos)
 		if (BIT_TEST(building->serf, 4)) {
 			inventory_t *inventory = building->u.inventory;
 
-			for (int i = 0; i < 2 && inventory->out_queue[i] != 0; i++) {
-				int res = inventory->out_queue[i] - 1;
+			for (int i = 0; i < 2 && inventory->out_queue[i] != -1; i++) {
+				resource_type_t res = inventory->out_queue[i];
 				int dest = inventory->out_dest[i];
 
 				/* Remove gold from total count. */

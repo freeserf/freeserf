@@ -703,7 +703,7 @@ load_v0_inventory_state(FILE *f)
 		}
 
 		for (int j = 0; j < 2; j++) {
-			inventory->out_queue[j] = inventory_data[58+j];
+			inventory->out_queue[j] = inventory_data[58+j]-1;
 			inventory->out_dest[j] = *(uint16_t *)&inventory_data[60+2*j];
 		}
 
