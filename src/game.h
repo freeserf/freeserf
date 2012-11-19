@@ -41,4 +41,7 @@ void game_demolish_road(map_pos_t pos);
 void game_demolish_flag(map_pos_t pos);
 void game_demolish_building(map_pos_t pos);
 
+void game_calculate_military_flag_state(building_t *building);
+void game_update_land_ownership(int col, int row);
+
 #endif /* !_GAME_H */

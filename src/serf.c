@@ -1106,7 +1106,7 @@ handle_serf_entering_building_state(serf_t *serf)
 						flag->stock2_prio = 0;
 
 						/* TODO Save total land amount and building count for each player. */
-						update_land_ownership(MAP_COORD_ARGS(building->pos));
+						game_update_land_ownership(MAP_COORD_ARGS(building->pos));
 						/* TODO Create notifications if land amount or building count changed. */
 					}
 				}
@@ -1370,7 +1370,7 @@ handle_serf_building_state(serf_t *serf)
 				case BUILDING_HUT:
 				case BUILDING_TOWER:
 				case BUILDING_FORTRESS:
-					calculate_military_flag_state(building);
+					game_calculate_military_flag_state(building);
 					break;
 				default:
 					break;

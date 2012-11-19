@@ -7,6 +7,7 @@
 #include <stdlib.h>
 #include <assert.h>
 
+#include "game.h"
 #include "map.h"
 #include "player.h"
 #include "globals.h"
@@ -2850,7 +2851,7 @@ game_demolish_building(map_pos_t pos)
 	     BUILDING_TYPE(building) == BUILDING_TOWER ||
 	     BUILDING_TYPE(building) == BUILDING_FORTRESS ||
 	     BUILDING_TYPE(building) == BUILDING_CASTLE)) {
-		update_land_ownership(MAP_COORD_ARGS(building->pos));
+		game_update_land_ownership(MAP_COORD_ARGS(building->pos));
 	}
 
 	if (BUILDING_IS_DONE(building) &&
@@ -3005,5 +3006,228 @@ game_demolish_building(map_pos_t pos)
 	if (MAP_PATHS(MAP_MOVE_DOWN_RIGHT(pos)) == 0 &&
 	    MAP_OBJ(MAP_MOVE_DOWN_RIGHT(pos)) == MAP_OBJ_FLAG) {
 		/* TODO */
+	}
+}
+
+/* Calculate the flag state of military buildings (distance to enemy). */
+void
+game_calculate_military_flag_state(building_t *building)
+{
+	const int border_check_offsets[] = {
+		31,  32,  33,  34,  35,  36,  37,  38,  39,  40,  41,  42,
+		100, 101, 102, 103, 104, 105, 106, 107, 108,
+		259, 260, 261, 262, 263, 264,
+		241, 242, 243, 244, 245, 246,
+		217, 218, 219, 220, 221, 222, 223, 224, 225, 226, 227, 228,
+		247, 248, 249, 250, 251, 252,
+		-1,
+
+		265, 266, 267, 268, 269, 270, 271, 272, 273, 274, 275, 276,
+		-1,
+
+		277, 278, 279, 280, 281, 282, 283, 284, 285, 286, 287, 288,
+		289, 290, 291, 292, 293, 294,
+		-1
+	};
+
+	int f, k;
+	for (f = 3, k = 0; f > 0; f--) {
+		int offset;
+		while ((offset = border_check_offsets[k++]) >= 0) {
+			map_pos_t check_pos =
+				(building->pos + globals.spiral_pos_pattern[offset]) &
+				globals.map_index_mask;
+			if (MAP_HAS_OWNER(check_pos) &&
+			    MAP_OWNER(check_pos) != BUILDING_PLAYER(building)) {
+				goto break_loops;
+			}
+		}
+	}
+
+break_loops:
+	building->serf = (building->serf & 0xfc) | f;
+}
+
+/* Map pos is lost to the owner, demolish everything. */
+static void
+game_surrender_land(map_pos_t pos)
+{
+	/* Remove building. */
+	if (MAP_OBJ(pos) >= MAP_OBJ_SMALL_BUILDING &&
+	    MAP_OBJ(pos) <= MAP_OBJ_CASTLE) {
+		game_demolish_building(pos);
+	}
+
+	/* Remove roads. */
+	if (!MAP_HAS_FLAG(pos) &&
+	    MAP_PATHS(pos) != 0) {
+		game_demolish_road(pos);
+	}
+
+	/* TODO */
+
+	/* Remove flag. */
+	if (MAP_OBJ(pos) == MAP_OBJ_FLAG) {
+		game_demolish_flag(pos);
+	}
+}
+
+/* Update land ownership around col,row. */
+void
+game_update_land_ownership(int col, int row)
+{
+	/* Currently the below algorithm will only work when
+	   both influence_radius and calculate_radius are 8. */
+	const int influence_radius = 8;
+	const int influence_diameter = 1 + 2*influence_radius;
+
+	int calculate_radius = influence_radius;
+	int calculate_diameter = 1 + 2*calculate_radius;
+
+	int *temp_arr = calloc(4*calculate_diameter*calculate_diameter, sizeof(int));
+	if (temp_arr == NULL) abort();
+
+	const int military_influence[] = {
+		0, 1, 2, 4, 7, 12, 18, 29, -1, -1,	/* hut */
+		0, 3, 5, 8, 11, 15, 22, 30, -1, -1,	/* tower */
+		0, 6, 10, 14, 19, 23, 27, 31, -1, -1	/* fortress */
+	};
+
+	const int map_closeness[] = {
+		1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0,
+		1, 2, 2, 2, 2, 2, 2, 2, 2, 1, 0, 0, 0, 0, 0, 0, 0,
+		1, 2, 3, 3, 3, 3, 3, 3, 3, 2, 1, 0, 0, 0, 0, 0, 0,
+		1, 2, 3, 4, 4, 4, 4, 4, 4, 3, 2, 1, 0, 0, 0, 0, 0,
+		1, 2, 3, 4, 5, 5, 5, 5, 5, 4, 3, 2, 1, 0, 0, 0, 0,
+		1, 2, 3, 4, 5, 6, 6, 6, 6, 5, 4, 3, 2, 1, 0, 0, 0,
+		1, 2, 3, 4, 5, 6, 7, 7, 7, 6, 5, 4, 3, 2, 1, 0, 0,
+		1, 2, 3, 4, 5, 6, 7, 8, 8, 7, 6, 5, 4, 3, 2, 1, 0,
+		1, 2, 3, 4, 5, 6, 7, 8, 9, 8, 7, 6, 5, 4, 3, 2, 1,
+		0, 1, 2, 3, 4, 5, 6, 7, 8, 8, 7, 6, 5, 4, 3, 2, 1,
+		0, 0, 1, 2, 3, 4, 5, 6, 7, 7, 7, 6, 5, 4, 3, 2, 1,
+		0, 0, 0, 1, 2, 3, 4, 5, 6, 6, 6, 6, 5, 4, 3, 2, 1,
+		0, 0, 0, 0, 1, 2, 3, 4, 5, 5, 5, 5, 5, 4, 3, 2, 1,
+		0, 0, 0, 0, 0, 1, 2, 3, 4, 4, 4, 4, 4, 4, 3, 2, 1,
+		0, 0, 0, 0, 0, 0, 1, 2, 3, 3, 3, 3, 3, 3, 3, 2, 1,
+		0, 0, 0, 0, 0, 0, 0, 1, 2, 2, 2, 2, 2, 2, 2, 2, 1,
+		0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1
+	};
+
+	/* Find influence from buildings in 33*33 square
+	   around the center. */
+	for (int i = -(influence_radius+calculate_radius);
+	     i <= influence_radius+calculate_radius; i++) {
+		for (int j = -(influence_radius+calculate_radius);
+		     j <= influence_radius+calculate_radius; j++) {
+			int c = (col + j) & globals.map_col_mask;
+			int r = (row + i) & globals.map_row_mask;
+
+			map_pos_t pos = MAP_POS(c, r);
+
+			if (MAP_OBJ(pos) >= MAP_OBJ_SMALL_BUILDING &&
+			    MAP_OBJ(pos) <= MAP_OBJ_CASTLE &&
+			    BIT_TEST(MAP_PATHS(pos), DIR_DOWN_RIGHT)) { /* TODO Why wouldn't this be set? */
+				building_t *building = game_get_building(MAP_OBJ_INDEX(pos));
+				int mil_type = -1;
+
+				if (BUILDING_TYPE(building) == BUILDING_CASTLE) {
+					/* Castle has military influence even when not done. */
+					mil_type = 2;
+				} else if (BUILDING_IS_DONE(building) &&
+					   BIT_TEST(building->serf, 4)) { /* Working */
+					switch (BUILDING_TYPE(building)) {
+					case BUILDING_HUT: mil_type = 0; break;
+					case BUILDING_TOWER: mil_type = 1; break;
+					case BUILDING_FORTRESS: mil_type = 2; break;
+					default: break;
+					}
+				}
+
+				if (mil_type >= 0 &&
+				    !BUILDING_IS_BURNING(building)) {
+					const int *influence = military_influence + 10*mil_type;
+					const int *closeness = map_closeness +
+						influence_diameter*max(-i, 0) + max(-j, 0);
+					int *arr = temp_arr +
+						(BUILDING_PLAYER(building) * calculate_diameter*calculate_diameter) +
+						calculate_diameter*max(i, 0) + max(j, 0);
+
+					for (int k = 0; k < influence_diameter - abs(i); k++) {
+						for (int l = 0; l < influence_diameter - abs(j); l++) {
+							int inf = influence[*closeness];
+							if (inf < 0) *arr = 128;
+							else if (*arr < 128) *arr = min(*arr + inf, 127);
+
+							closeness += 1;
+							arr += 1;
+						}
+						closeness += abs(j);
+						arr += abs(j);
+					}
+				}
+			}
+		}
+	}
+
+	map_1_t *map = globals.map_mem2_ptr;
+
+	/* Update owner of 17*17 square. */
+	for (int i = -calculate_radius; i <= calculate_radius; i++) {
+		for (int j = -calculate_radius; j <= calculate_radius; j++) {
+			int max_val = 0;
+			int player = -1;
+			for (int p = 0; p < 4; p++) {
+				int *arr = temp_arr +
+					p*calculate_diameter*calculate_diameter +
+					calculate_diameter*(i+calculate_radius) + (j+calculate_radius);
+				if (*arr > max_val) {
+					max_val = *arr;
+					player = p;
+				}
+			}
+
+			int c = (col + j) & globals.map_col_mask;
+			int r = (row + i) & globals.map_row_mask;
+			map_pos_t pos = MAP_POS(c, r);
+
+			if (player >= 0) {
+				if (MAP_HAS_OWNER(pos) &&
+				    MAP_OWNER(pos) != player) {
+					int old_player = MAP_OWNER(pos);
+					globals.player_sett[old_player]->total_land_area -= 1;
+					game_surrender_land(pos);
+				}
+
+				globals.player_sett[player]->total_land_area += 1;
+				map[pos].height = (1 << 7) | (player << 5) | MAP_HEIGHT(pos);
+			} else {
+				map[pos].height = (0 << 7) | (0 << 5) | MAP_HEIGHT(pos);
+			}
+		}
+	}
+
+	free(temp_arr);
+
+	/* Update military building flag state. */
+	for (int i = -25; i <= 25; i++) {
+		for (int j = -25; j <= 25; j++) {
+			int c = (col + i) & globals.map_col_mask;
+			int r = (row + j) & globals.map_row_mask;
+
+			map_pos_t pos = MAP_POS(c, r);
+
+			if (MAP_OBJ(pos) >= MAP_OBJ_SMALL_BUILDING &&
+			    MAP_OBJ(pos) <= MAP_OBJ_CASTLE &&
+			    BIT_TEST(MAP_PATHS(pos), DIR_DOWN_RIGHT)) {
+				building_t *building = game_get_building(MAP_OBJ_INDEX(pos));
+				if ((BUILDING_IS_DONE(building) &&
+				     (BUILDING_TYPE(building) == BUILDING_HUT ||
+				      BUILDING_TYPE(building) == BUILDING_TOWER ||
+				      BUILDING_TYPE(building) == BUILDING_FORTRESS)) ||
+				    BUILDING_TYPE(building) == BUILDING_CASTLE) {
+					game_calculate_military_flag_state(building);
+				}
+			}
+		}
 	}
 }

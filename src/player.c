@@ -1566,12 +1566,12 @@ player_build_castle(player_t *player)
 		map_set_height(MAP_MOVE(map_cursor_pos, d), h);
 	}
 
-	update_land_ownership(player->sett->map_cursor_col, player->sett->map_cursor_row);
+	game_update_land_ownership(player->sett->map_cursor_col, player->sett->map_cursor_row);
 	create_initial_castle_serfs(player->sett);
 
 	player->sett->last_anim = globals.anim;
 
-	calculate_military_flag_state(castle);
+	game_calculate_military_flag_state(castle);
 }
 
 

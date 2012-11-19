@@ -464,7 +464,4 @@ void free_serf(int index);
 
 void create_notification_message(int type, map_pos_t pos, int player);
 
-void calculate_military_flag_state(building_t *building);
-void update_land_ownership(int col, int row);
-
 #endif /* ! _FREESERF_H */
