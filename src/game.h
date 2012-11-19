@@ -38,6 +38,7 @@ int game_send_geologist(flag_t *dest, int dest_index);
 int game_get_road_length_value(int length);
 
 void game_demolish_road(map_pos_t pos);
+void game_demolish_flag(map_pos_t pos);
 void game_demolish_building(map_pos_t pos);
 
 #endif /* !_GAME_H */

@@ -712,10 +712,13 @@ player_demolish_object(player_t *player)
 {
 	player_determine_map_cursor_type(player);
 
+	map_pos_t cursor_pos = MAP_POS(player->sett->map_cursor_col, player->sett->map_cursor_row);
+
 	if (player->sett->map_cursor_type == 2) {
-		/* TODO */
+		sfx_play_clip(SFX_CLICK);
+		player->click |= BIT(2);
+		game_demolish_flag(cursor_pos);
 	} else if (player->sett->map_cursor_type == 3) {
-		map_pos_t cursor_pos = MAP_POS(player->sett->map_cursor_col, player->sett->map_cursor_row);
 		building_t *building = game_get_building(MAP_OBJ_INDEX(cursor_pos));
 
 		if (BUILDING_IS_DONE(building) &&

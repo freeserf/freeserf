@@ -2725,6 +2725,95 @@ game_demolish_road(map_pos_t pos)
 	remove_road_forwards(pos, path_2_dir);
 }
 
+static void
+flag_remove_player_refs(flag_t *flag)
+{
+	for (int i = 0; i < 4; i++) {
+		if (globals.player_sett[i]->index == FLAG_INDEX(flag)) {
+			globals.player_sett[i]->index = 0;
+		}
+	}
+}
+
+/* Demolish flag at pos. */
+void
+game_demolish_flag(map_pos_t pos)
+{
+	/* Handle any serf at pos. */
+	if (MAP_SERF_INDEX(pos) != 0) {
+		serf_t *serf = game_get_serf(MAP_SERF_INDEX(pos));
+		switch (serf->state) {
+		case SERF_STATE_READY_TO_LEAVE:
+		case SERF_STATE_LEAVING_BUILDING:
+			serf->s.leaving_building.next_state = SERF_STATE_LOST;
+			break;
+		case SERF_STATE_FINISHED_BUILDING:
+			/* TODO */
+			break;
+		case SERF_STATE_WALKING:
+			if (MAP_PATHS(pos) == 0) {
+				serf_log_state_change(serf, SERF_STATE_LOST);
+				serf->state = SERF_STATE_LOST;
+			}
+			break;
+		default:
+			break;
+		}
+	}
+
+	flag_t *flag = game_get_flag(MAP_OBJ_INDEX(pos));
+	flag_remove_player_refs(flag);
+
+	/* Handle connected flag. */
+	if (MAP_PATHS(pos)) {
+		/* TODO */
+	}
+
+	/* Clear map. */
+	map_1_t *map = globals.map_mem2_ptr;
+	map_2_t *map_data = MAP_2_DATA(map);
+	map[pos].flags &= ~BIT(7);
+	map_data[pos].u.index = 0;
+
+	/* Update serfs with reference to this flag. */
+	for (int i = 1; i < globals.max_ever_serf_index; i++) {
+		if (BIT_TEST(globals.serfs_bitmap[i>>3], 7-(i&7))) {
+			serf_t *serf = game_get_serf(i);
+
+			if (serf->state == SERF_STATE_READY_TO_LEAVE_INVENTORY &&
+			    serf->s.ready_to_leave_inventory.dest == FLAG_INDEX(flag)) {
+				serf->s.ready_to_leave_inventory.dest = 0;
+				serf->s.ready_to_leave_inventory.mode = -2;
+			} else if (serf->state == SERF_STATE_WALKING &&
+				   serf->s.walking.dest == FLAG_INDEX(flag)) {
+				serf->s.walking.dest = 0;
+				serf->s.walking.res = -2;
+			} else if (serf->state == SERF_STATE_IDLE_IN_STOCK && 1/*...*/) {
+				/* TODO */
+			} else if ((serf->state == SERF_STATE_LEAVING_BUILDING ||
+				    serf->state == SERF_STATE_READY_TO_LEAVE) &&
+				   serf->s.leaving_building.dest == FLAG_INDEX(flag) &&
+				   serf->s.leaving_building.next_state == SERF_STATE_WALKING) {
+				serf->s.leaving_building.dest = 0;
+				serf->s.leaving_building.field_B = -2;
+			}
+		}
+	}
+
+	map_set_object(pos, MAP_OBJ_NONE);
+
+	/* Remove resources from flag. */
+	for (int i = 0; i < 8; i++) {
+		if (flag->res_waiting[i] != 0) {
+			int res = flag->res_waiting[i]-1;
+			uint dest = flag->res_dest[i];
+			lose_transported_resource(res, dest);
+		}
+	}
+
+	game_free_flag(FLAG_INDEX(flag));
+}
+
 /* Demolish building at pos. */
 void
 game_demolish_building(map_pos_t pos)
