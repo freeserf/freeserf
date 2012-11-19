@@ -3666,7 +3666,7 @@ static void
 handle_box_close_clk(player_t *player, int x, int y)
 {
 	const int clkmap[] = {
-		ACTION_CLOSE_BOX, 112, 127, 128, 143
+		ACTION_CLOSE_BOX, 112, 127, 128, 143,
 		-1
 	};
 	handle_clickmap(player, x, y, clkmap);
