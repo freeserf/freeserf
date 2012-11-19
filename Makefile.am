@@ -5,6 +5,7 @@ bin_PROGRAMS = freeserf
 freeserf_SOURCES = \
 	src/freeserf.c src/freeserf.h \
 	src/globals.h \
+	src/data.h \
 	src/game.c src/game.h \
 	src/serf.c src/serf.h \
 	src/flag.c src/flag.h \
@@ -26,7 +27,7 @@ freeserf_SOURCES = \
 	src/misc.h \
 	src/debug.h \
 	src/freeserf_endian.h \
-	src/version.c src/version.h src/version_git.h
+	src/version.c src/version.h src/version_vcs.h
 
 AM_CFLAGS = $(SDL_CFLAGS) $(SDL_mixer_CFLAGS) -I$(top_builddir)/src
 freeserf_LDADD = $(SDL_LIBS) $(SDL_mixer_LIBS) $(SDL_CFLAGS) -lm

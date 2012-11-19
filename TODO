@@ -1,27 +1,5 @@
 TODO
 ====
 
-freeserf 0.1 release
---------------------
-
-Port the missing essential features:
-
-### Dialog boxes
-Some statistics boxes still missing some features.
-
-### Serf states
-Missing states mostly related to battle.
-
-### Remove building
-After demolishing a building resources scheduled for the building are not cancelled.
-
-### Graphics
-Waves are not masked properly.
-Setting map size larger than 5 results in graphics glitches.
-
-
-Later
------
-
-* Implement AI
-* Multiplayer networking 
+Tasks that need to be done are tracked in
+<https://github.com/jonls/freeserf/issues>.

@@ -1,6 +1,7 @@
 Coding style
 ------------
-freeserf follows the Linux coding style (http://www.kernel.org/doc/Documentation/CodingStyle) with the following exceptions:
+
+freeserf follows the Linux coding style <http://www.kernel.org/doc/Documentation/CodingStyle> with the following exceptions:
 
 * Lines can be longer than 80 chars (but not much longer).
 * All structures are typedef'ed.

@@ -19,8 +19,6 @@ Keyboard controls:
 * s: Enable/disable sounds playback
 * m: Enable/disable music playback
 
-Because of a bug in SDL the game may hang when playing sound effects if you are using pulseaudio. This can be worked around by selecting a different SDL audio driver (e.g. SDL_AUDIODRIVER=alsa).
-
 
 Save games
 ----------
