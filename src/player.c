@@ -973,7 +973,6 @@ build_flag_split_path(map_pos_t pos)
 			if (BIT_TEST(globals.serfs_bitmap[i>>3], 7-(i&7))) {
 				serf_t *serf = game_get_serf(i);
 
-				/* TODO ??? */
 				if (serf->state == SERF_STATE_WALKING) {
 					if (serf->s.walking.dest == path_1_data.flag_index &&
 					    serf->s.walking.res == path_1_data.flag_dir) {
@@ -1006,8 +1005,6 @@ build_flag_split_path(map_pos_t pos)
 						select = 1;
 						break;
 					}
-				} else {
-					NOT_REACHED();
 				}
 			}
 		}
