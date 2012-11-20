@@ -3252,7 +3252,7 @@ handle_serf_making_tool_state(serf_t *serf)
 
 				player_sett_t *sett = globals.player_sett[SERF_PLAYER(serf)];
 				int total_tool_prio = 0;
-				for (int i = 0; i < 9; i++) total_tool_prio = sett->tool_prio[i];
+				for (int i = 0; i < 9; i++) total_tool_prio += sett->tool_prio[i];
 				total_tool_prio >>= 4;
 
 				int res = -1;
