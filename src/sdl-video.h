@@ -32,7 +32,5 @@ void sdl_set_palette(const uint8_t *palette);
 void sdl_mark_dirty(int x, int y, int width, int height);
 void sdl_swap_buffers();
 
-void sdl_main_loop();
-
 
 #endif /* ! _SDL_VIDEO_H */

@@ -311,9 +311,6 @@ typedef struct {
 	} s;
 } serf_t;
 
-
-serf_t *get_serf(int index); /* in freeserf.c */
-
 void update_serf(serf_t *serf);
 const char *serf_get_state_name(serf_state_t state);
 

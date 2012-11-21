@@ -722,8 +722,6 @@ send_serf_to_road(flag_t *src, dir_t dir, int water)
 		inventory->spawn_priority -= 1;
 	}
 
-	serf_t *serf = game_get_serf(serf_index);
-
 	inventory->serfs[SERF_4] += 1;
 	flag_t *dest_flag = game_get_flag(inventory->flg_index);
 
@@ -735,7 +733,7 @@ send_serf_to_road(flag_t *src, dir_t dir, int water)
 		dir = dir_2;
 	}
 
-	serf = game_get_serf(serf_index);
+	serf_t *serf = game_get_serf(serf_index);
 
 	serf_log_state_change(serf, SERF_STATE_READY_TO_LEAVE_INVENTORY);
 	serf->state = SERF_STATE_READY_TO_LEAVE_INVENTORY;

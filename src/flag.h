@@ -43,8 +43,6 @@ typedef struct {
 	int id;
 } flag_search_t;
 
-flag_t *get_flag(int index); /* in freeserf.c */
-
 void flag_search_init(flag_search_t *search);
 void flag_search_add_source(flag_search_t *search, flag_t *flag);
 int flag_search_execute(flag_search_t *search, flag_search_func *callback, int transporter, void *data);

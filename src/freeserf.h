@@ -456,12 +456,4 @@ static const int map_building_sprite[] = {
 
 int init_flag_search();
 
-building_t *get_building(int index);
-inventory_t *get_inventory(int index);
-
-serf_t *get_serf(int index);
-void free_serf(int index);
-
-void create_notification_message(int type, map_pos_t pos, int player);
-
 #endif /* ! _FREESERF_H */

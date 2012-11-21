@@ -1542,7 +1542,7 @@ deep_tree()
 	"Usage: %s [-g DATA-FILE]\n"
 #define HELP							\
 	USAGE							\
-	" -d NUM\t\tSet debug output level\n"				\
+	" -d NUM\t\tSet debug output level\n"			\
 	" -f\t\tFullscreen mode (CTRL-q to exit)\n"		\
 	" -g DATA-FILE\tUse specified data file\n"		\
 	" -h\t\tShow this help text\n"				\
@@ -1608,7 +1608,10 @@ main(int argc, char *argv[])
 		case 'r':
 		{
 			char *hstr = strchr(optarg, 'x');
-			if (hstr == NULL) fprintf(stdout, USAGE, argv[0]);
+			if (hstr == NULL) {
+				fprintf(stderr, USAGE, argv[0]);
+				exit(EXIT_FAILURE);
+			}
 			screen_width = atoi(optarg);
 			screen_height = atoi(hstr+1);
 		}
