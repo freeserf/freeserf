@@ -116,12 +116,6 @@ audio_volume_down()
 	audio_set_volume(volume - 1);
 }
 
-static int
-list_less_func_sfx(const list_elm_t *e1, const list_elm_t *e2)
-{
-	return ((audio_clip_t*)e1)->num < ((audio_clip_t*)e2)->num;
-}
-
 static char *
 sfx_produce_wav(char* data, uint32_t size, size_t *new_size)
 {
@@ -135,6 +129,8 @@ sfx_produce_wav(char* data, uint32_t size, size_t *new_size)
 	*new_size = 44 + size*2;
 	
 	char *result = malloc(*new_size);
+	if (result == NULL) abort();
+
 	char *current = result;
 
 	/* WAVE header */
@@ -203,7 +199,7 @@ sfx_play_clip(sfx_t sfx)
 			return;
 		}
 
-		list_insert_sorted(&sfx_clips_to_play, (list_elm_t*)audio_clip, list_less_func_sfx);
+		list_prepend(&sfx_clips_to_play, (list_elm_t*)audio_clip);
 	}
 
 	int r = Mix_PlayChannel(-1, audio_clip->chunk, 0);
@@ -352,18 +348,17 @@ typedef struct {
 static int
 list_less_func_midi_node(const list_elm_t *e1, const list_elm_t *e2)
 {
-	uint64_t time_left = ((midi_node_t*)e1)->time;
-	uint64_t time_right = ((midi_node_t*)e2)->time;
-	if (time_left < time_right) {
-		return 1;
+	midi_node_t *m1 = (midi_node_t *)e1;
+	midi_node_t *m2 = (midi_node_t *)e2;
+
+	if (m1->time != m2->time) {
+		return m1->time < m2->time;
 	}
-	if (time_left == time_right) {
-		if (((midi_node_t*)e1)->type != ((midi_node_t*)e2)->type) {
-			if (((midi_node_t*)e1)->type == 0xFF) {
-				return 1;
-			}
-		}
+
+	if (m1->type != m2->type) {
+		return m1->type == 0xff;
 	}
+
 	return 0;
 }
 
@@ -384,6 +379,8 @@ xmi_process_EVNT(char *data, int length, midi_file_t *midi)
 		
 		if (type & 0x80) {
 			midi_node_t *node = malloc(sizeof(midi_node_t));
+			if (node == NULL) abort();
+
 			node->time = time;
 			node->type = type;
 			node->buffer = NULL;
@@ -400,6 +397,8 @@ xmi_process_EVNT(char *data, int length, midi_file_t *midi)
 					uint8_t data1 = node->data1;
 					list_insert_sorted(&midi->nodes, (list_elm_t*)node, list_less_func_midi_node);
 					node = malloc(sizeof(midi_node_t));
+					if (node == NULL) abort();
+
 					node->type = type;
 					READ_DATA(type);
 					node->time = type + time;
@@ -450,6 +449,8 @@ static void
 midi_grow(midi_file_t *midi, uint8_t **current)
 {
 	uint8_t *data = malloc(midi->size + 1024);
+	if (data == NULL) abort();
+
 	Uint64 pos = *current - midi->data;
 	if (midi->data) {
 		memcpy(data, midi->data, midi->size);
@@ -556,11 +557,13 @@ midi_play_track(midi_t midi)
 			track = (track_t*)elm;
 		}
 	}
-	
+
 	current_track = midi;
 
 	if (NULL == track) {
-		track = (track_t*)malloc(sizeof(track_t));
+		track = (track_t *)malloc(sizeof(track_t));
+		if (track == NULL) abort();
+
 		track->num = midi;
 
 		size_t size = 0;
@@ -569,16 +572,16 @@ midi_play_track(midi_t midi)
 			free(track);
 			return;
 		}
-		
+
 		midi_file_t midi_file;
 		list_init(&midi_file.nodes);
 		midi_file.tempo = 0;
 		midi_file.data = NULL;
 		midi_file.size = 0;
-		
+
 		xmi_process_subchunks(data, (int)size, &midi_file);
 		data = midi_produce(&midi_file, &size);
-		
+
 		SDL_RWops *rw = SDL_RWFromMem(data, (int)size);
 		track->music = Mix_LoadMUS_RW(rw);
 		if (NULL == track->music) {
