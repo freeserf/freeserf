@@ -2570,12 +2570,15 @@ handle_serf_lost_state(serf_t *serf)
 					serf->s.free_walking.neg_dist2 = -1;
 					serf->s.free_walking.flags = 0;
 					serf->counter = 0;
-					break;
+					return;
 				}
 			}
 		}
 
-		/* TODO */
+		/* TODO choose a random direction */
+		LOGD("serf", "serf %i lost: no dest found.", SERF_INDEX(serf));
+		serf->state = SERF_STATE_NULL;
+		serf->counter = 0;
 	}
 }
 

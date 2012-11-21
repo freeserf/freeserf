@@ -2585,6 +2585,7 @@ static void
 remove_road_forwards(map_pos_t pos, dir_t dir)
 {
 	map_1_t *map = globals.map_mem2_ptr;
+	dir_t in_dir = -1;
 
 	while (1) {
 		if (MAP_IDLE_SERF(pos)) {
@@ -2609,7 +2610,7 @@ remove_road_forwards(map_pos_t pos, dir_t dir)
 
 		if (MAP_HAS_FLAG(pos)) {
 			flag_t *flag = game_get_flag(MAP_OBJ_INDEX(pos));
-			dir_t rev_dir = DIR_REVERSE(dir);
+			dir_t rev_dir = DIR_REVERSE(in_dir);
 
 			flag->path_con &= ~BIT(rev_dir);
 			flag->transporter &= ~BIT(rev_dir);
@@ -2627,14 +2628,14 @@ remove_road_forwards(map_pos_t pos, dir_t dir)
 						case SERF_STATE_WALKING:
 							if (serf->s.walking.dest == dest &&
 							    serf->s.walking.res == rev_dir) {
-								serf->s.walking.res = 0xfe;
+								serf->s.walking.res = -2;
 								serf->s.walking.dest = 0;
 							}
 							break;
 						case SERF_STATE_READY_TO_LEAVE_INVENTORY:
 							if (serf->s.ready_to_leave_inventory.dest == dest &&
 							    serf->s.ready_to_leave_inventory.mode == rev_dir) {
-								serf->s.ready_to_leave_inventory.dest = 0xfe;
+								serf->s.ready_to_leave_inventory.dest = -2;
 								serf->s.ready_to_leave_inventory.dest = 0;
 							}
 							break;
@@ -2643,12 +2644,12 @@ remove_road_forwards(map_pos_t pos, dir_t dir)
 							if (serf->s.leaving_building.dest == dest &&
 							    serf->s.leaving_building.field_B == rev_dir &&
 							    serf->s.leaving_building.next_state == SERF_STATE_WALKING) {
-								serf->s.leaving_building.field_B = 0xfe;
+								serf->s.leaving_building.field_B = -2;
 								serf->s.leaving_building.dest = 0;
 							}
 							break;
 						default:
-							LOGD("game", "Serf state %d isn't processed", serf->state);
+							break;
 						}
 					}
 				}
@@ -2671,6 +2672,7 @@ remove_road_forwards(map_pos_t pos, dir_t dir)
 		/* Clear forward reference. */
 		map[pos].flags &= ~BIT(dir);
 		pos = MAP_MOVE(pos, dir);
+		in_dir = dir;
 
 		/* Clear backreference. */
 		map[pos].flags &= ~BIT(DIR_REVERSE(dir));
