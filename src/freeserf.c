@@ -1537,6 +1537,62 @@ deep_tree()
 	hand_out_memory_2();
 }
 
+#define MAX_DATA_PATH      1024
+#define DEFAULT_DATA_FILE  "SPAE.PA"
+
+/* Load data file from path is non-NULL, otherwise search in
+   various standard paths. */
+static int
+load_data_file(const char *path)
+{
+	/* Use specified path. If something was specified
+	   but not found, this function should fail without
+	   looking anywhere else. */
+	if (path != NULL) {
+		LOGI("main", "Looking for game data in `%s'...", path);
+		int r = gfx_load_file(path);
+		if (r < 0) return -1;
+		return 0;
+	}
+
+	/* Use default data file if none was specified. */
+	char cp[MAX_DATA_PATH];
+	char *env;
+
+	/* Look in home */
+	if ((env = getenv("XDG_DATA_HOME")) != NULL &&
+	    env[0] != '\0') {
+		snprintf(cp, sizeof(cp), "%s/freeserf/" DEFAULT_DATA_FILE, env);
+		path = cp;
+#ifdef _WIN32
+	} else if ((env = getenv("userprofile")) != NULL && env[0] != '\0') {
+		snprintf(cp, sizeof(cp),
+			 "%s/.local/share/freeserf/" DEFAULT_DATA_FILE, env);
+		path = cp;
+#endif
+	} else if ((env = getenv("HOME")) != NULL && env[0] != '\0') {
+		snprintf(cp, sizeof(cp),
+			 "%s/.local/share/freeserf/" DEFAULT_DATA_FILE, env);
+		path = cp;
+	}
+
+	if (path != NULL) {
+		LOGI("main", "Looking for game data in `%s'...", path);
+		int r = gfx_load_file(path);
+		if (r >= 0) return 0;
+	}
+
+	/* TODO look in DATADIR, getenv("XDG_DATA_DIRS") or
+	   if not set look in /usr/local/share:/usr/share". */
+
+	/* Look in current directory */
+	LOGI("main", "Looking for game data in `%s'...", DEFAULT_DATA_FILE);
+	int r = gfx_load_file(DEFAULT_DATA_FILE);
+	if (r >= 0) return 0;
+
+	return -1;
+}
+
 
 #define USAGE					\
 	"Usage: %s [-g DATA-FILE]\n"
@@ -1632,16 +1688,7 @@ main(int argc, char *argv[])
 
 	LOGI("main", "freeserf %s", FREESERF_VERSION);
 
-	/* Use default data file if none was specified. */
-	if (data_file == NULL) {
-		data_file = malloc(strlen("SPAE.PA")+1);
-		if (data_file == NULL) exit(EXIT_FAILURE);
-		strcpy(data_file, "SPAE.PA");
-	}
-
-	LOGI("main", "Loading game data from `%s'...", data_file);
-
-	r = gfx_load_file(data_file);
+	r = load_data_file(data_file);
 	if (r < 0) {
 		LOGE("main", "Could not load game data.");
 		exit(EXIT_FAILURE);
