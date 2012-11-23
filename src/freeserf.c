@@ -190,6 +190,7 @@ init_player_structs(player_t *p[])
 	p[0]->return_timeout = 0;
 	/* ... */
 	p[0]->click = 0;
+	p[0]->minimap_advanced = -1;
 	/* ... */
 	p[0]->click |= BIT(1);
 	p[0]->clkmap = 0;
@@ -221,6 +222,7 @@ init_player_structs(player_t *p[])
 
 	p[0]->sett = globals.player_sett[0];
 	/*p[0]->map_serf_rows = globals.map_serf_rows_left; OBSOLETE */
+	p[0]->minimap_flags = 8;
 	p[0]->current_stat_8_mode = 0;
 	p[0]->current_stat_7_item = 7;
 	p[0]->box = 0;
