@@ -2051,7 +2051,7 @@ draw_serf_row(map_pos_t pos, int y_base, int cols, int x_base, frame_t *frame)
 		/* Idle serf */
 		if (MAP_IDLE_SERF(pos)) {
 			int x, y, body;
-			if (MAP_WATER(pos)) { /* Sailor */
+			if (MAP_DEEP_WATER(pos)) { /* Sailor */
 				x = x_base;
 				y = y_base - 4*MAP_HEIGHT(pos);
 				body = 0x203;
