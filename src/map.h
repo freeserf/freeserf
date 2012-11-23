@@ -218,7 +218,7 @@ extern const map_space_t map_space_from_obj[128];
 
 
 void map_set_height(map_pos_t pos, int height);
-void map_set_object(map_pos_t pos, map_obj_t obj);
+void map_set_object(map_pos_t pos, map_obj_t obj, int index);
 void map_remove_ground_deposit(map_pos_t pos, int amount);
 void map_remove_fish(map_pos_t pos, int amount);
 void map_set_serf_index(map_pos_t pos, int index);

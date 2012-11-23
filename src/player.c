@@ -1049,13 +1049,11 @@ player_build_flag(player_t *player)
 
 	map_pos_t map_cursor_pos = MAP_POS(player->sett->map_cursor_col, player->sett->map_cursor_row);
 	map_1_t *map = globals.map_mem2_ptr;
-	map_2_t *map_data = MAP_2_DATA(map);
 
 	flag->pos = map_cursor_pos;
-	map_set_object(map_cursor_pos, MAP_OBJ_FLAG);
+	map_set_object(map_cursor_pos, MAP_OBJ_FLAG, flg_index);
 	map[map_cursor_pos].flags |= BIT(7);
 	/* move_map_resources(..); */
-	map_data[map_cursor_pos].u.index = flg_index;
 
 	if (player->sett->map_cursor_type == 4) { /* built on existing road */
 		build_flag_split_path(map_cursor_pos);
@@ -1156,15 +1154,13 @@ build_building(player_t *player, map_obj_t obj_type)
 	map_data[pos].u.s.resource = 0;
 	map_data[pos].u.s.field_1 = 0;
 
-	map_data[pos].u.index = bld_index;
-	map_set_object(pos, obj_type);
+	map_set_object(pos, obj_type, bld_index);
 	map[pos].flags |= BIT(1) | BIT(6);
 
 	if (player->sett->map_cursor_type != 5) {
-		map_set_object(MAP_MOVE_DOWN_RIGHT(pos), MAP_OBJ_FLAG);
-		map[MAP_MOVE_DOWN_RIGHT(pos)].flags |= BIT(4) | BIT(7);
 		/* move_map_resources(MAP_MOVE_DOWN_RIGHT(pos), map_data); */
-		map_data[MAP_MOVE_DOWN_RIGHT(pos)].u.index = flg_index;
+		map_set_object(MAP_MOVE_DOWN_RIGHT(pos), MAP_OBJ_FLAG, flg_index);
+		map[MAP_MOVE_DOWN_RIGHT(pos)].flags |= BIT(4) | BIT(7);
 	}
 
 	if (player->sett->map_cursor_type == 6) {
@@ -1547,13 +1543,10 @@ player_build_castle(player_t *player)
 	flag->endpoint |= BIT(6);
 
 	map_1_t *map = globals.map_mem2_ptr;
-	map_2_t *map_data = MAP_2_DATA(map);
-	map_data[map_cursor_pos].u.index = bld_index;
-	map_set_object(map_cursor_pos, MAP_OBJ_CASTLE);
+	map_set_object(map_cursor_pos, MAP_OBJ_CASTLE, bld_index);
 	map[map_cursor_pos].flags |= BIT(1) | BIT(6);
 
-	map_data[MAP_MOVE_DOWN_RIGHT(map_cursor_pos)].u.index = flg_index;
-	map_set_object(MAP_MOVE_DOWN_RIGHT(map_cursor_pos), MAP_OBJ_FLAG);
+	map_set_object(MAP_MOVE_DOWN_RIGHT(map_cursor_pos), MAP_OBJ_FLAG, flg_index);
 	map[MAP_MOVE_DOWN_RIGHT(map_cursor_pos)].flags |= BIT(7) | BIT(4);
 
 	/* Level land in hexagon below castle */

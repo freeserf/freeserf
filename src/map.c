@@ -1300,12 +1300,16 @@ map_set_height(map_pos_t pos, int height)
 	viewport_redraw_map_pos(pos);
 }
 
-/* Change the object at a map position. */
+/* Change the object at a map position. If index is non-negative
+   also change this. The index should be reset to zero when a flag or
+   building is removed. */
 void
-map_set_object(map_pos_t pos, map_obj_t obj)
+map_set_object(map_pos_t pos, map_obj_t obj, int index)
 {
 	map_1_t *map = globals.map_mem2_ptr;
+	map_2_t *map_data = MAP_2_DATA(globals.map_mem2_ptr);
 	map[pos].obj = (map[pos].obj & 0x80) | (obj & 0x7f);
+	if (index >= 0) map_data[pos].u.index = index;
 
 	/* TODO Mark dirty in viewport. */
 }
@@ -1349,7 +1353,7 @@ map_update_public(map_pos_t pos)
 	int r;
 	switch (MAP_OBJ(pos)) {
 	case MAP_OBJ_STUB:
-		if ((random_int() & 3) == 0) map_set_object(pos, MAP_OBJ_NONE);
+		if ((random_int() & 3) == 0) map_set_object(pos, MAP_OBJ_NONE, -1);
 		break;
 	case MAP_OBJ_FELLED_PINE_0: case MAP_OBJ_FELLED_PINE_1:
 	case MAP_OBJ_FELLED_PINE_2: case MAP_OBJ_FELLED_PINE_3:
@@ -1357,15 +1361,15 @@ map_update_public(map_pos_t pos)
 	case MAP_OBJ_FELLED_TREE_0: case MAP_OBJ_FELLED_TREE_1:
 	case MAP_OBJ_FELLED_TREE_2: case MAP_OBJ_FELLED_TREE_3:
 	case MAP_OBJ_FELLED_TREE_4:
-		map_set_object(pos, MAP_OBJ_STUB);
+		map_set_object(pos, MAP_OBJ_STUB, -1);
 		break;
 	case MAP_OBJ_NEW_PINE:
 		r = random_int();
-		if ((r & 0x300) == 0) map_set_object(pos, MAP_OBJ_PINE_0 + (r & 7));
+		if ((r & 0x300) == 0) map_set_object(pos, MAP_OBJ_PINE_0 + (r & 7), -1);
 		break;
 	case MAP_OBJ_NEW_TREE:
 		r = random_int();
-		if ((r & 0x300) == 0) map_set_object(pos, MAP_OBJ_TREE_0 + (r & 7));
+		if ((r & 0x300) == 0) map_set_object(pos, MAP_OBJ_TREE_0 + (r & 7), -1);
 		break;
 	case MAP_OBJ_SEEDS_0: case MAP_OBJ_SEEDS_1:
 	case MAP_OBJ_SEEDS_2: case MAP_OBJ_SEEDS_3:
@@ -1373,13 +1377,13 @@ map_update_public(map_pos_t pos)
 	case MAP_OBJ_FIELD_0: case MAP_OBJ_FIELD_1:
 	case MAP_OBJ_FIELD_2: case MAP_OBJ_FIELD_3:
 	case MAP_OBJ_FIELD_4:
-		map_set_object(pos, MAP_OBJ(pos)+1);
+		map_set_object(pos, MAP_OBJ(pos)+1, -1);
 		break;
 	case MAP_OBJ_SEEDS_5:
-		map_set_object(pos, MAP_OBJ_FIELD_0);
+		map_set_object(pos, MAP_OBJ_FIELD_0, -1);
 		break;
 	case MAP_OBJ_FIELD_EXPIRED:
-		map_set_object(pos, MAP_OBJ_NONE);
+		map_set_object(pos, MAP_OBJ_NONE, -1);
 		break;
 	case MAP_OBJ_SIGN_LARGE_GOLD: case MAP_OBJ_SIGN_SMALL_GOLD:
 	case MAP_OBJ_SIGN_LARGE_IRON: case MAP_OBJ_SIGN_SMALL_IRON:
@@ -1387,11 +1391,11 @@ map_update_public(map_pos_t pos)
 	case MAP_OBJ_SIGN_LARGE_STONE: case MAP_OBJ_SIGN_SMALL_STONE:
 	case MAP_OBJ_SIGN_EMPTY:
 		if (globals.update_map_16_loop == 0) {
-			map_set_object(pos, MAP_OBJ_NONE);
+			map_set_object(pos, MAP_OBJ_NONE, -1);
 		}
 		break;
 	case MAP_OBJ_FIELD_5:
-		map_set_object(pos, MAP_OBJ_FIELD_EXPIRED);
+		map_set_object(pos, MAP_OBJ_FIELD_EXPIRED, -1);
 		break;
 	default:
 		break;

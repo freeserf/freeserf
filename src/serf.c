@@ -2316,7 +2316,7 @@ handle_serf_logging_state(serf_t *serf)
 		}
 
 		/* Change map object. */
-		map_set_object(serf->pos, new_obj);
+		map_set_object(serf->pos, new_obj, -1);
 
 		if (serf->s.free_walking.neg_dist2 < 5) {
 			serf->animation = 116 + serf->s.free_walking.neg_dist2;
@@ -2420,7 +2420,7 @@ handle_serf_planting_state(serf_t *serf)
 
 		if (MAP_PATHS(serf->pos) == 0 &&
 		    MAP_OBJ(serf->pos) == MAP_OBJ_NONE) {
-			map_set_object(serf->pos, new_obj);
+			map_set_object(serf->pos, new_obj, -1);
 		}
 
 		serf->s.free_walking.neg_dist2 = -serf->s.free_walking.neg_dist2 - 1;
@@ -2493,8 +2493,8 @@ handle_serf_stonecutting_state(serf_t *serf)
 		/* Decrement stone quantity or remove entirely if this
 		   was the last piece. */
 		int obj = MAP_OBJ(serf->pos);
-		if (obj <= MAP_OBJ_STONE_6) map_set_object(serf->pos, obj+1);
-		else map_set_object(serf->pos, MAP_OBJ_NONE);
+		if (obj <= MAP_OBJ_STONE_6) map_set_object(serf->pos, obj+1, -1);
+		else map_set_object(serf->pos, MAP_OBJ_NONE, -1);
 
 		serf->counter = 0;
 		serf_start_walking(serf, DIR_DOWN_RIGHT, 24);
@@ -2942,17 +2942,17 @@ handle_serf_farming_state(serf_t *serf)
 		/* Sowing. */
 		if (MAP_OBJ(serf->pos) == 0 &&
 		    MAP_PATHS(serf->pos) == 0) {
-			map_set_object(serf->pos, MAP_OBJ_SEEDS_0);
+			map_set_object(serf->pos, MAP_OBJ_SEEDS_0, -1);
 		}
 	} else {
 		/* Harvesting. */
 		serf->s.free_walking.neg_dist2 = 1;
 		if (MAP_OBJ(serf->pos) == MAP_OBJ_SEEDS_5) {
-			map_set_object(serf->pos, MAP_OBJ_FIELD_0);
+			map_set_object(serf->pos, MAP_OBJ_FIELD_0, -1);
 		} else if (MAP_OBJ(serf->pos) == MAP_OBJ_FIELD_5) {
-			map_set_object(serf->pos, MAP_OBJ_FIELD_EXPIRED);
+			map_set_object(serf->pos, MAP_OBJ_FIELD_EXPIRED, -1);
 		} else if (MAP_OBJ(serf->pos) != MAP_OBJ_FIELD_EXPIRED) {
-			map_set_object(serf->pos, MAP_OBJ(serf->pos) + 1);
+			map_set_object(serf->pos, MAP_OBJ(serf->pos) + 1, -1);
 		}
 	}
 
@@ -3403,7 +3403,7 @@ handle_serf_sampling_geo_spot_state(serf_t *serf)
 			if (MAP_RES_TYPE(serf->pos) == GROUND_DEPOSIT_NONE ||
 			    MAP_RES_AMOUNT(serf->pos) == 0) {
 				/* No available resource here. Put empty sign. */
-				map_set_object(serf->pos, MAP_OBJ_SIGN_EMPTY);
+				map_set_object(serf->pos, MAP_OBJ_SIGN_EMPTY, -1);
 			} else {
 				serf->s.free_walking.neg_dist1 = -1;
 				serf->animation = 142;
@@ -3412,7 +3412,7 @@ handle_serf_sampling_geo_spot_state(serf_t *serf)
 				int obj = MAP_OBJ_SIGN_LARGE_GOLD +
 					2*(MAP_RES_TYPE(serf->pos)-1) +
 					(MAP_RES_AMOUNT(serf->pos) < 12 ? 1 : 0);
-				map_set_object(serf->pos, obj);
+				map_set_object(serf->pos, obj, -1);
 
 				/* Check whether a new notification should be posted. */
 				int show_notification = 1;

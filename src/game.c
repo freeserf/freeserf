@@ -1981,7 +1981,6 @@ static void
 update_buildings()
 {
 	map_1_t *map = globals.map_mem2_ptr;
-	map_2_t *map_data = MAP_2_DATA(globals.map_mem2_ptr);
 
 	if (globals.next_index >= 32) return;
 
@@ -2000,8 +1999,7 @@ update_buildings()
 					int p = building->u.s.planks_needed;
 
 					map[pos].flags &= ~BIT(6);
-					map[pos].obj &= 0x80;
-					map_data[pos].u.index = 0;
+					map_set_object(pos, MAP_OBJ_NONE, 0);
 					game_free_building(i);
 
 					if ((p & 0x1f) != 0) {
@@ -2772,9 +2770,7 @@ game_demolish_flag(map_pos_t pos)
 
 	/* Clear map. */
 	map_1_t *map = globals.map_mem2_ptr;
-	map_2_t *map_data = MAP_2_DATA(map);
 	map[pos].flags &= ~BIT(7);
-	map_data[pos].u.index = 0;
 
 	/* Update serfs with reference to this flag. */
 	for (int i = 1; i < globals.max_ever_serf_index; i++) {
@@ -2801,7 +2797,7 @@ game_demolish_flag(map_pos_t pos)
 		}
 	}
 
-	map_set_object(pos, MAP_OBJ_NONE);
+	map_set_object(pos, MAP_OBJ_NONE, 0);
 
 	/* Remove resources from flag. */
 	for (int i = 0; i < 8; i++) {
