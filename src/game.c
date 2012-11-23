@@ -3054,13 +3054,27 @@ game_surrender_land(map_pos_t pos)
 		game_demolish_building(pos);
 	}
 
-	/* Remove roads. */
-	if (!MAP_HAS_FLAG(pos) &&
-	    MAP_PATHS(pos) != 0) {
+	if (!MAP_HAS_FLAG(pos) && MAP_PATHS(pos) != 0) {
 		game_demolish_road(pos);
 	}
 
-	/* TODO */
+	int remove_roads = MAP_HAS_FLAG(pos);
+
+	/* Remove roads and building around pos. */
+	for (dir_t d = DIR_RIGHT; d <= DIR_UP; d++) {
+		map_pos_t p = (pos + globals.spiral_pos_pattern[1+d]) &
+			globals.map_index_mask;
+
+		if (MAP_OBJ(p) >= MAP_OBJ_SMALL_BUILDING &&
+		    MAP_OBJ(p) <= MAP_OBJ_CASTLE) {
+			game_demolish_building(p);
+		}
+
+		if (remove_roads &&
+		    (MAP_PATHS(p) & BIT(DIR_REVERSE(d)))) {
+			game_demolish_road(p);
+		}
+	}
 
 	/* Remove flag. */
 	if (MAP_OBJ(pos) == MAP_OBJ_FLAG) {
@@ -3197,6 +3211,7 @@ game_update_land_ownership(int col, int row)
 				globals.player_sett[player]->total_land_area += 1;
 				map[pos].height = (1 << 7) | (player << 5) | MAP_HEIGHT(pos);
 			} else {
+				game_surrender_land(pos);
 				map[pos].height = (0 << 7) | (0 << 5) | MAP_HEIGHT(pos);
 			}
 		}
