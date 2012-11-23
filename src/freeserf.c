@@ -1091,6 +1091,14 @@ game_loop()
 				if (event.button.button <= 3) last_down[event.button.button-1] = current_ticks;
 				break;
 			case SDL_MOUSEMOTION:
+				if (drag_button == 0) {
+					/* Move pointer normally. */
+					if (event.motion.x != globals.player[0]->pointer_x || event.motion.y != globals.player[0]->pointer_y) {
+						globals.player[0]->pointer_x = min(max(0, event.motion.x), globals.player[0]->pointer_x_max);
+						globals.player[0]->pointer_y = min(max(0, event.motion.y), globals.player[0]->pointer_y_max);
+					}
+				}
+
 				for (int button = 1; button <= 3; button++) {
 					if (event.motion.state & SDL_BUTTON(button)) {
 						if (drag_button == 0) {
@@ -1109,14 +1117,6 @@ game_loop()
 						ev.button = drag_button;
 						gui_object_handle_event((gui_object_t *)&interface, &ev);
 						break;
-					}
-				}
-
-				if (drag_button == 0) {
-					/* Move pointer normally. */
-					if (event.motion.x != globals.player[0]->pointer_x || event.motion.y != globals.player[0]->pointer_y) {
-						globals.player[0]->pointer_x = min(max(0, event.motion.x), globals.player[0]->pointer_x_max);
-						globals.player[0]->pointer_y = min(max(0, event.motion.y), globals.player[0]->pointer_y_max);
 					}
 				}
 
