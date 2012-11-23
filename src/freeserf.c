@@ -165,6 +165,12 @@ gui_get_panel_bar()
 	return &panel;
 }
 
+popup_box_t *
+gui_get_popup_box()
+{
+	return &popup;
+}
+
 void
 gui_show_popup_frame(int show)
 {

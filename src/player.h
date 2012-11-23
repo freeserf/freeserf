@@ -179,8 +179,10 @@ typedef struct {
 	/* 70 */
 	box_t box;
 	box_t clkmap;
+	/* OBSOLETE moved to minimap object
 	int minimap_row;
 	int minimap_col;
+	*/
 	/* 78 */
 	int popup_x;
 	int popup_y;

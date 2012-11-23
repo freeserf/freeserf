@@ -5,13 +5,13 @@
 
 #include "gui.h"
 #include "player.h"
+#include "minimap.h"
 
 
 typedef struct {
 	gui_container_t cont;
 	player_t *player;
-	int pointer_x;
-	int pointer_y;
+	minimap_t minimap;
 } popup_box_t;
 
 void popup_box_init(popup_box_t *popup, player_t *player);

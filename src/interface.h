@@ -7,6 +7,7 @@
 #include "viewport.h"
 #include "panel.h"
 #include "list.h"
+#include "popup.h"
 
 typedef struct {
 	gui_container_t cont;
@@ -22,6 +23,7 @@ typedef struct {
    currently defined in freeserf.c (not in interface.c). */
 viewport_t *gui_get_top_viewport();
 panel_bar_t *gui_get_panel_bar();
+popup_box_t *gui_get_popup_box();
 void gui_show_popup_frame(int show);
 
 

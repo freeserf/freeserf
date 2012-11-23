@@ -3,15 +3,14 @@
 #include "panel.h"
 #include "gui.h"
 #include "viewport.h"
+#include "minimap.h"
+#include "interface.h"
 #include "player.h"
 #include "game.h"
 #include "data.h"
 #include "gfx.h"
 #include "audio.h"
 #include "globals.h"
-
-
-viewport_t *gui_get_top_viewport();
 
 
 /* Draw the frame around action buttons. */
@@ -240,8 +239,14 @@ handle_panel_button_click(player_t *player, int btn)
 					player->click &= ~BIT(1);
 					player->minimap_advanced = -1;
 					player->minimap_flags = 8;
-					player->minimap_col = 0;
-					player->minimap_row = 0;
+
+					/* Synchronize minimap window with viewport. */
+					int col, row;
+					viewport_get_current_map_pos(gui_get_top_viewport(),
+								     &col, &row);
+					minimap_move_to_map_pos(&gui_get_popup_box()->minimap,
+								col, row);
+
 					player_open_popup(player, BOX_MAP);
 				}
 			}
