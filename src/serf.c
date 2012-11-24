@@ -268,7 +268,7 @@ flag_search_inventory(int flag_index)
 	flag_t *src = game_get_flag(flag_index);
 
 	int dest_index = -1;
-	flag_search_single(src, (flag_search_func *)flag_search_inventory_search_cb, 0, &dest_index);
+	flag_search_single(src, (flag_search_func *)flag_search_inventory_search_cb, 1, 0, &dest_index);
 
 	return dest_index;
 }
@@ -500,7 +500,7 @@ handle_serf_walking_state(serf_t *serf)
 				}
 				int r = flag_search_execute(&search,
 							    (flag_search_func *)handle_serf_walking_state_search_cb,
-							    0, serf);
+							    1, 0, serf);
 				if (r == 0) continue;
 			}
 		} else {

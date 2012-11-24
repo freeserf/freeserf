@@ -572,7 +572,7 @@ update_ai_and_more()
 						data.arr = arr;
 						data.max_prio = max_prio;
 						data.flags = flags;
-						flag_search_execute(&search, (flag_search_func *)update_ai_and_more_search_cb, 1, &data);
+						flag_search_execute(&search, (flag_search_func *)update_ai_and_more_search_cb, 0, 1, &data);
 
 						for (int i = 0; i < n; i++) {
 							if (max_prio[i] > 0) {
@@ -696,7 +696,7 @@ send_serf_to_road(flag_t *src, dir_t dir, int water)
 	data.serf_index = -1;
 	data.water = water;
 
-	int r = flag_search_execute(&search, (flag_search_func *)send_serf_to_road_search_cb, 0, &data);
+	int r = flag_search_execute(&search, (flag_search_func *)send_serf_to_road_search_cb, 1, 0, &data);
 	inventory_t *inventory = data.inventory;
 	int serf_index = data.serf_index;
 	if (r < 0) {
@@ -760,7 +760,7 @@ find_nearest_inventory(flag_t *flag)
 {
 	flag_t *dest = NULL;
 	flag_search_single(flag, (flag_search_func *)find_nearest_inventory_search_cb,
-			   1, &dest);
+			   0, 1, &dest);
 	if (dest != NULL) return FLAG_INDEX(dest);
 
 	return -1;
@@ -938,7 +938,7 @@ update_flags()
 									data.res = slot;
 									int r = flag_search_execute(&search,
 												    (flag_search_func *)update_flags_search_cb,
-												    1, &data);
+												    0, 1, &data);
 									if (r < 0 || data.dest->search_dir == 6) {
 										LOGD("game", "update flags: unable to deliver.");
 										flag_cancel_transported_stock(data.dest, flag->res_waiting[slot] & 0x1f);
@@ -962,7 +962,7 @@ update_flags()
 
 									flag_search_execute(&search,
 											    (flag_search_func *)update_flags_search2_cb,
-											    1, &data);
+											    0, 1, &data);
 									if (data.flag != NULL) {
 										LOGV("game", "dest for flag %u res %i found: flag %u",
 										     FLAG_INDEX(flag), slot, FLAG_INDEX(data.flag));
@@ -1203,7 +1203,7 @@ send_serf_to_flag(flag_t *dest, building_t *building, int dest_index,
 	data.res1 = res1;
 	data.res2 = res2;
 
-	int r = flag_search_single(dest, (flag_search_func *)send_serf_to_flag_search_cb, 0, &data);
+	int r = flag_search_single(dest, (flag_search_func *)send_serf_to_flag_search_cb, 1, 0, &data);
 	if (r == 0) {
 		return 0;
 	} else if (data.inventory != NULL) {

@@ -44,7 +44,7 @@ flag_search_add_source(flag_search_t *search, flag_t *flag)
 }
 
 int
-flag_search_execute(flag_search_t *search, flag_search_func *callback, int transporter, void *data)
+flag_search_execute(flag_search_t *search, flag_search_func *callback, int land, int transporter, void *data)
 {
 	for (int i = 0; i < SEARCH_MAX_DEPTH && !list_is_empty(&search->queue); i++) {
 		flag_proxy_t *proxy = (flag_proxy_t *)list_remove_head(&search->queue);
@@ -61,7 +61,7 @@ flag_search_execute(flag_search_t *search, flag_search_func *callback, int trans
 		}
 
 		for (int i = 0; i < 6; i++) {
-			if (BIT_TEST(flag->endpoint, 5-i) &&
+			if ((!land || BIT_TEST(flag->endpoint, 5-i)) && /* Across land */
 			    (!transporter || BIT_TEST(flag->transporter, 5-i)) &&
 			    flag->other_endpoint.f[5-i]->search_num != search->id) {
 				flag->other_endpoint.f[5-i]->search_num = search->id;
@@ -81,12 +81,13 @@ flag_search_execute(flag_search_t *search, flag_search_func *callback, int trans
 }
 
 int
-flag_search_single(flag_t *src, flag_search_func *callback, int transporter, void *data)
+flag_search_single(flag_t *src, flag_search_func *callback,
+		   int land, int transporter, void *data)
 {
 	flag_search_t search;
 	flag_search_init(&search);
 	flag_search_add_source(&search, src);
-	return flag_search_execute(&search, callback, transporter, data);
+	return flag_search_execute(&search, callback, land, transporter, data);
 }
 
 void
