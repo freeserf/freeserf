@@ -1331,6 +1331,17 @@ draw_water_waves(map_pos_t pos, int x, int y, frame_t *frame)
 }
 
 static void
+draw_water_waves_row(map_pos_t pos, int y_base, int cols, int x_base, frame_t *frame)
+{
+	for (int i = 0; i < cols; i++, x_base += MAP_TILE_WIDTH, pos = MAP_MOVE_RIGHT(pos)) {
+		if (MAP_WATER(pos)) {
+			/*player->water_in_view += 1;*/
+			draw_water_waves(pos, x_base, y_base, frame);
+		}
+	}
+}
+
+static void
 draw_flag_and_res(map_pos_t pos, int x, int y, frame_t *frame)
 {
 	flag_t *flag = game_get_flag(MAP_OBJ_INDEX(pos));
@@ -1354,11 +1365,6 @@ static void
 draw_map_objects_row(map_pos_t pos, int y_base, int cols, int x_base, frame_t *frame)
 {
 	for (int i = 0; i < cols; i++, x_base += MAP_TILE_WIDTH, pos = MAP_MOVE_RIGHT(pos)) {
-		if (MAP_WATER(pos)) {
-			/*player->water_in_view += 1;*/
-			draw_water_waves(pos, x_base, y_base, frame);
-		}
-
 		if (MAP_OBJ(pos) == MAP_OBJ_NONE) continue;
 
 		int y = y_base - 4*MAP_HEIGHT(pos);
@@ -2084,9 +2090,10 @@ draw_game_objects(viewport_t *viewport, int layers, frame_t *frame)
 	/*player->water_in_view = 0;
 	player->trees_in_view = 0;*/
 
+	int draw_landscape = layers & VIEWPORT_LAYER_LANDSCAPE;
 	int draw_objects = layers & VIEWPORT_LAYER_OBJECTS;
 	int draw_serfs = layers & VIEWPORT_LAYER_SERFS;
-	if (!draw_objects && !draw_serfs) return;
+	if (!draw_landscape && !draw_objects && !draw_serfs) return;
 
 	int cols = VIEWPORT_COLS(viewport);
 	int short_row_len = ((cols + 1) >> 1) + 1;
@@ -2102,6 +2109,7 @@ draw_game_objects(viewport_t *viewport, int layers, frame_t *frame)
 	/* Loop until objects drawn fall outside the frame. */
 	while (1) {
 		/* short row */
+		if (draw_landscape) draw_water_waves_row(pos, viewport->y + y, short_row_len, viewport->x + x, frame);
 		if (draw_objects) draw_map_objects_row(pos, viewport->y + y, short_row_len, viewport->x + x, frame);
 		if (draw_serfs) draw_serf_row(pos, viewport->y + y, short_row_len, viewport->x + x, frame);
 
@@ -2111,6 +2119,7 @@ draw_game_objects(viewport_t *viewport, int layers, frame_t *frame)
 		pos = MAP_MOVE_DOWN(pos);
 
 		/* long row */
+		if (draw_landscape) draw_water_waves_row(pos, viewport->y + y, long_row_len, viewport->x + x - 16, frame);
 		if (draw_objects) draw_map_objects_row(pos, viewport->y + y, long_row_len, viewport->x + x - 16, frame);
 		if (draw_serfs) draw_serf_row(pos, viewport->y + y, long_row_len, viewport->x + x - 16, frame);
 
