@@ -1540,7 +1540,7 @@ serf_get_body(serf_t *serf)
 			if (((t & 7) == 4 && !BIT_TEST(serf->type, 7)) ||
 			    (t & 7) == 3) {
 				serf->type |= BIT(7);
-				/* sub_4693A(SFX_64); */
+				sfx_play_clip(SFX_UNKNOWN_24);
 			} else {
 				serf->type &= ~BIT(7);
 			}
@@ -1554,7 +1554,7 @@ serf_get_body(serf_t *serf)
 				if (((t & 7) == 4 && !BIT_TEST(serf->type, 7)) ||
 				    (t & 7) == 3) {
 					serf->type |= BIT(7);
-					/* sub_4693A(SFX_64); */
+					sfx_play_clip(SFX_UNKNOWN_24);
 				} else {
 					serf->type &= ~BIT(7);
 				}
@@ -1692,7 +1692,7 @@ serf_get_body(serf_t *serf)
 			t += 0xe00;
 		} else if (t == 0x86 || (t == 0x87 && !BIT_TEST(serf->type, 7))) {
 			serf->type |= BIT(7);
-			/*sub_4693A();*/ /* sfx 28 */
+			sfx_play_clip(28);
 			t += 0x1080;
 		} else if (t != 0x87) {
 			serf->type &= ~BIT(7);
@@ -1861,7 +1861,7 @@ serf_get_body(serf_t *serf)
 		} else if (t == 0x84 || t == 0x85) {
 			if (t == 0x84 || !BIT_TEST(serf->type, 7)) {
 				serf->type |= BIT(7);
-				/*sub_4693A();*/ /* sfx 36 */
+				sfx_play_clip(SFX_UNKNOWN_10);
 			}
 			t += 0x4e80;
 		} else {
@@ -1892,10 +1892,10 @@ serf_get_body(serf_t *serf)
 			/* edi10 += 4; */
 			if (t == 0x83 || (t == 0xb2 && !BIT_TEST(serf->type, 7))) {
 				serf->type |= BIT(7);
-				/* sub_4693A(SFX_42); */
+				sfx_play_clip(SFX_SAWING);
 			} else if (t == 0x87 || (t == 0xb6 && !BIT_TEST(serf->type, 7))) {
 				serf->type |= BIT(7);
-				/* sub_4693A(SFX_36); */
+				sfx_play_clip(SFX_UNKNOWN_10);
 			} else if (t != 0xb2 && t != 0xb6) {
 				serf->type &= ~BIT(7);
 			}
@@ -1918,7 +1918,7 @@ serf_get_body(serf_t *serf)
 			/* edi10 += 4; */
 			if (t == 0x83 || (t == 0x84 && !BIT_TEST(serf->type, 7))) {
 				serf->type |= BIT(7);
-				/* sub_4693A(SFX_30); */
+				sfx_play_clip(SFX_UNKNOWN_07);
 			} else if (t != 0x84) {
 				serf->type &= ~BIT(7);
 			}
@@ -1931,13 +1931,13 @@ serf_get_body(serf_t *serf)
 		} else if (t == 0x83 || t == 0x84 || t == 0x86) {
 			if (t == 0x83 || !BIT_TEST(serf->type, 7)) {
 				serf->type |= BIT(7);
-				/*sub_4693A();*/ /* sfx 46 */
+				sfx_play_clip(SFX_UNKNOWN_16);
 			}
 			t += 0x4c80;
 		} else if (t == 0x8c || t == 0x8d) {
 			if (t == 0x8c || !BIT_TEST(serf->type, 7)) {
 				serf->type |= BIT(7);
-				/*sub_4693A();*/ /* sfx 26 */
+				sfx_play_clip(SFX_UNKNOWN_05);
 			}
 			t += 0x4c80;
 		} else {
