@@ -122,7 +122,7 @@ load_v0_globals_state(FILE *f)
 	globals.max_ever_inventory_index = *(uint16_t *)&data[174];
 	globals.map_max_serfs_left = *(uint16_t *)&data[176];
 	/* globals.max_stock_buildings = *(uint16_t *)&data[178]; */
-	globals.field_286 = *(uint16_t *)&data[180];
+	globals.max_next_index = *(uint16_t *)&data[180];
 	/* globals.field_4A = *(uint16_t *)&data[182]; */
 	globals.map_gold_deposit = *(uint32_t *)&data[184];
 	globals.update_map_16_loop = *(uint16_t *)&data[188];

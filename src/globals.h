@@ -149,7 +149,7 @@ typedef struct {
 	map_pos_t update_map_initial_pos;
 	int anim_diff;
 	/* 286 */
-	uint16_t field_286;
+	uint16_t max_next_index;
 	/* 28C*/
 	int16_t update_map_16_loop;
 	/* 2F8 */

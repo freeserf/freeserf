@@ -519,7 +519,7 @@ reset_player_settings()
 {
 	globals.winning_player = -1;
 	/* TODO ... */
-	globals.field_286 = 33;
+	globals.max_next_index = 33;
 
 	/* TODO */
 
@@ -534,7 +534,7 @@ reset_player_settings()
 			if (init->face < 12) { /* AI player */
 				sett->flags |= BIT(7); /* Set AI bit */
 				/* TODO ... */
-				globals.field_286 = 49;
+				globals.max_next_index = 49;
 			}
 
 			sett->player_num = i;
