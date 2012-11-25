@@ -1610,7 +1610,9 @@ serf_get_body(serf_t *serf)
 			case SERF_STATE_READY_TO_ENTER:
 				res = serf->s.ready_to_enter.field_B;
 				break;
+			case SERF_STATE_MOVE_RESOURCE_OUT:
 			case SERF_STATE_DROP_RESOURCE_OUT:
+			case SERF_STATE_WAIT_FOR_RESOURCE_OUT:
 				res = serf->s.move_resource_out.res;
 				break;
 			default:
@@ -1946,56 +1948,56 @@ serf_get_body(serf_t *serf)
 		}
 		break;
 	case SERF_KNIGHT_0:
-		if (t < 0x80) {
-			t += 0x7800;
-		} else if (t < 0xc0) {
-			/* sub_36CC0(); */
-			t += 0x7cd0;
-		} else {
-			t += 0x7d90;
-		}
-		break;
 	case SERF_KNIGHT_1:
-		if (t < 0x80) {
-			t += 0x7900;
-		} else if (t < 0xc0) {
-			/* sub_36CC0(); */
-			t += 0x7ed0;
-		} else {
-			t += 0x7f90;
-		}
-		break;
 	case SERF_KNIGHT_2:
-		if (t < 0x80) {
-			t += 0x7a00;
-		} else if (t < 0xc0) {
-			/* sub_36CC0(); */
-			t += 0x80d0;
-		} else {
-			t += 0x8190;
-		}
-		break;
 	case SERF_KNIGHT_3:
-		if (t < 0x80) {
-			t += 0x7b00;
-		} else if (t < 0xc0) {
-			/* sub_36CC0(); */
-			t += 0x82d0;
-		} else {
-			t += 0x8390;
-		}
-		break;
 	case SERF_KNIGHT_4:
+	{
+		int k = SERF_TYPE(serf) - SERF_KNIGHT_0;
+
 		if (t < 0x80) {
-			t += 0x7c00;
+			t += 0x7800 + 0x100*k;
 		} else if (t < 0xc0) {
-			/* sub_36CC0(); */
-			t += 0x84d0;
+			if (serf->state == SERF_STATE_KNIGHT_ATTACKING ||
+			    serf->state == SERF_STATE_60) {
+				if (serf->counter >= 24 || serf->counter < 8) {
+					serf->type &= ~BIT(7);
+				} else if (!BIT_TEST(serf->type, 7)) {
+					serf->type |= BIT(7);
+					if (serf->s.attacking.field_D == 0 ||
+					    serf->s.attacking.field_D == 4){
+						sfx_play_clip(SFX_UNKNOWN_01);
+					} else if (serf->s.attacking.field_D == 2) {
+						/* TODO when is SFX_14 played? */
+						sfx_play_clip(SFX_UNKNOWN_03);
+					} else {
+						sfx_play_clip(SFX_UNKNOWN_04);
+					}
+				}
+			}
+
+			/* TODO */
+
+			t += 0x7cd0 + 0x200*k;
 		} else {
-			t += 0x8590;
+			t += 0x7d90 + 0x200*k;
 		}
+	}
 		break;
-	default: NOT_REACHED(); break;
+	case SERF_DEAD:
+		if ((!BIT_TEST(serf->type, 7) &&
+		     (t == 2 || t == 5)) ||
+		    (t == 1 || t == 4)) {
+			serf->type |= BIT(7);
+			sfx_play_clip(SFX_UNKNOWN_26);
+		} else {
+			serf->type &= ~BIT(7);
+		}
+		t += 0x8700;
+		break;
+	default:
+		NOT_REACHED();
+		break;
 	}
 
 	return t;

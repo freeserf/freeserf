@@ -50,7 +50,8 @@ typedef enum {
 	SERF_KNIGHT_1,
 	SERF_KNIGHT_2,
 	SERF_KNIGHT_3,
-	SERF_KNIGHT_4
+	SERF_KNIGHT_4,
+	SERF_DEAD
 } serf_type_t;
 
 typedef enum {
@@ -282,6 +283,7 @@ typedef struct {
 		struct {
 			int field_B; /* B */
 			int field_C; /* C */
+			int field_D; /* D */
 			int def_index; /* E */
 		} attacking;
 
