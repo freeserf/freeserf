@@ -209,8 +209,7 @@ create_surface_from_data(void *data, int width, int height, int transparent) {
 		}
 
 		surf = SDL_DisplayFormatAlpha(surf8);
-	}
-	else {
+	} else {
 		surf = SDL_DisplayFormat(surf8);
 	}
 
@@ -243,6 +242,69 @@ create_transp_surface(const sprite_t *sprite, int offset)
 	SDL_Surface *surf = create_surface_from_data(unpack, width, height, 1);
 
 	free(unpack);
+
+	return surf;
+}
+
+/* Create a masked surface from the given transparent sprite and mask.
+   The sprite must be at least as wide as the mask plus mask offset. */
+static SDL_Surface *
+create_masked_transp_surface(const sprite_t *sprite, const sprite_t *mask, int mask_off)
+{
+	void *s_data = (uint8_t *)sprite + sizeof(sprite_t);
+
+	size_t s_width = le16toh(sprite->w);
+	size_t s_height = le16toh(sprite->h);
+
+	/* Unpack */
+	size_t unpack_size = s_width * s_height;
+	uint8_t *unpack = calloc(unpack_size, sizeof(uint8_t));
+	if (unpack == NULL) abort();
+
+	gfx_unpack_transparent_sprite(unpack, s_data, unpack_size, 0);
+
+	size_t m_width = le16toh(mask->w);
+	size_t m_height = le16toh(mask->h);
+
+	uint8_t *s_copy = calloc(m_width * m_height, sizeof(uint8_t));
+	if (s_copy == NULL) abort();
+
+	size_t to_copy = m_width * min(m_height, s_height);
+	uint8_t *copy_dest = s_copy;
+	uint8_t *copy_src = unpack + mask_off;
+	while (to_copy) {
+		memcpy(copy_dest, copy_src, m_width * sizeof(uint8_t));
+		to_copy -= m_width;
+		copy_dest += m_width;
+		copy_src += s_width;
+	}
+
+	free(unpack);
+
+	/* Mask */
+	void *m_data = (uint8_t *)mask + sizeof(sprite_t);
+
+	/* Unpack mask */
+	size_t m_unpack_size = m_width * m_height;
+	uint8_t *m_unpack = calloc(m_unpack_size, sizeof(uint8_t));
+	if (m_unpack == NULL) abort();
+
+	gfx_unpack_mask_sprite(m_unpack, m_data, m_unpack_size);
+
+	/* Fill alpha value from mask data */
+	for (int y = 0; y < m_height; y++) {
+		for (int x = 0; x < m_width; x++) {
+			if (!m_unpack[y*m_width+x]) {
+				*(s_copy + y * m_width + x) = 0;
+			}
+		}
+	}
+
+	free(m_unpack);
+
+	SDL_Surface *surf = create_surface_from_data(s_copy, m_width, m_height, 1);
+
+	free(s_copy);
 
 	return surf;
 }
@@ -289,20 +351,23 @@ sdl_draw_transp_sprite(const sprite_t *sprite, int x, int y, int use_off, int y_
 }
 
 void
-sdl_draw_waves_sprite(const sprite_t *sprite, int x, int y, frame_t *dest)
+sdl_draw_waves_sprite(const sprite_t *sprite, const sprite_t *mask,
+		      int x, int y, int mask_off, frame_t *dest)
 {
-	int r;
-
 	x += le16toh(sprite->x) + dest->clip.x;
 	y += le16toh(sprite->y) + dest->clip.y;
 
-	surface_t *surface = get_cached_surface(&transp_sprite_cache, sprite, NULL, 0);
+	surface_t *surface = get_cached_surface(&transp_sprite_cache, sprite, mask, 0);
 	if (surface == NULL) {
 		surface = malloc(sizeof(surface_t));
 		if (surface == NULL) abort();
 
-		surface->surf = create_transp_surface(sprite, 0);
-		add_cached_surface(&transp_sprite_cache, sprite, NULL, 0, surface);
+		if (mask != NULL) {
+			surface->surf = create_masked_transp_surface(sprite, mask, mask_off);
+		} else {
+			surface->surf = create_transp_surface(sprite, 0);
+		}
+		add_cached_surface(&transp_sprite_cache, sprite, mask, 0, surface);
 	}
 
 	SDL_Surface *surf = surface->surf;
@@ -310,10 +375,8 @@ sdl_draw_waves_sprite(const sprite_t *sprite, int x, int y, frame_t *dest)
 
 	SDL_SetClipRect(dest->surf, &dest->clip);
 
-	/* TODO mask by the same mask sprite as used to mask the water in the first place */
-
 	/* Blit sprite */
-	r = SDL_BlitSurface(surf, NULL, dest->surf, &dest_rect);
+	int r = SDL_BlitSurface(surf, NULL, dest->surf, &dest_rect);
 	if (r < 0) {
 		LOGE("sdl-video", "BlitSurface error: %s.", SDL_GetError());
 	}
@@ -474,7 +537,7 @@ create_masked_surface(const sprite_t *sprite, const sprite_t *mask)
 	/* Fill alpha value from mask data */
 	for (int y = 0; y < m_height; y++) {
 		for (int x = 0; x < m_width; x++) {
-			if( !m_unpack[y*m_width+x] ) {
+			if (!m_unpack[y*m_width+x]) {
 				*(s_copy + y * m_width + x) = 0;
 			}
 		}
@@ -482,7 +545,7 @@ create_masked_surface(const sprite_t *sprite, const sprite_t *mask)
 
 	free(m_unpack);
 
-	SDL_Surface *surf = create_surface_from_data( s_copy, (int)m_width, (int)m_height, 1);
+	SDL_Surface *surf = create_surface_from_data(s_copy, (int)m_width, (int)m_height, 1);
 
 	free(s_copy);
 

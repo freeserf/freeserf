@@ -1315,7 +1315,19 @@ static void
 draw_water_waves(map_pos_t pos, int x, int y, frame_t *frame)
 {
 	int sprite = DATA_MAP_WAVES_BASE + (((pos ^ 5) + (globals.anim >> 3)) & 0xf);
-	sdl_draw_waves_sprite(gfx_get_data_object(sprite, NULL), x - 16, y, frame);
+	sprite_t *s = gfx_get_data_object(sprite, NULL);
+
+	if (MAP_TYPE_DOWN(pos) < 4 && MAP_TYPE_UP(pos) < 4) {
+		sdl_draw_waves_sprite(s, NULL, x - 16, y, 0, frame);
+	} else if (MAP_TYPE_DOWN(pos) < 4) {
+		int mask = DATA_MAP_MASK_DOWN_BASE + 40;
+		sprite_t *m = gfx_get_data_object(mask, NULL);
+		sdl_draw_waves_sprite(s, m, x, y, 16, frame);
+	} else {
+		int mask = DATA_MAP_MASK_UP_BASE + 40;
+		sprite_t *m = gfx_get_data_object(mask, NULL);
+		sdl_draw_waves_sprite(s, m, x - 16, y, 0, frame);
+	}
 }
 
 static void

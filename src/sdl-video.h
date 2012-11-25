@@ -21,7 +21,7 @@ int sdl_frame_get_width(const frame_t *frame);
 int sdl_frame_get_height(const frame_t *frame);
 
 void sdl_draw_transp_sprite(const sprite_t *sprite, int x, int y, int use_off, int y_off, int color_off, frame_t *dest);
-void sdl_draw_waves_sprite(const sprite_t *sprite, int x, int y, frame_t *dest);
+void sdl_draw_waves_sprite(const sprite_t *sprite, const sprite_t *mask, int x, int y, int mask_off, frame_t *dest);
 void sdl_draw_sprite(const sprite_t *sprite, int x, int y, frame_t *dest);
 void sdl_draw_overlay_sprite(const sprite_t *sprite, int x, int y, int y_off, frame_t *dest);
 surface_t *sdl_draw_masked_sprite(const sprite_t *sprite, int x, int y, const sprite_t *mask, surface_t *surface, frame_t *dest);
