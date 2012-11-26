@@ -1,6 +1,11 @@
+
+Building
+--------
+After first checkout run `./bootstrap`, `./configure` then `make`. After making changes to the code just run `make` to rebuild.
+
+
 Coding style
 ------------
-
 freeserf follows the Linux coding style <http://www.kernel.org/doc/Documentation/CodingStyle> with the following exceptions:
 
 * Lines can be longer than 80 chars (but not much longer).
