@@ -3552,18 +3552,19 @@ handle_serf_knight_prepare_attacking(serf_t *serf)
 		int player = -1;
 		int value = -1;
 		serf_type_t type = -1;
-		if ((((morale+def_morale)*random_int()) >> 16) < morale) {
+		int r = ((morale + def_morale)*random_int()) >> 16;
+		if (r < morale) {
 			player = SERF_PLAYER(def_serf);
 			value = def_exp_factor;
 			type = SERF_TYPE(def_serf);
 			serf->s.attacking.field_C = 1;
-			LOGD("serf", "Fight: %i vs %i. Attacker winning.", morale, def_morale);
+			LOGD("serf", "Fight: %i vs %i (%i). Attacker winning.", morale, def_morale, r);
 		} else {
 			player = SERF_PLAYER(serf);
 			value = exp_factor;
 			type = SERF_TYPE(serf);
 			serf->s.attacking.field_C = 0;
-			LOGD("serf", "Fight: %i vs %i. Defender winning.", morale, def_morale);
+			LOGD("serf", "Fight: %i vs %i (%i). Defender winning.", morale, def_morale, r);
 		}
 
 		globals.player_sett[player]->total_military_score -= value;
@@ -3673,7 +3674,8 @@ handle_knight_attacking(serf_t *serf)
 					serf->animation = 168;
 					serf->counter = 0;
 
-					building_t *building = game_get_building(MAP_OBJ_INDEX(def_serf->pos));
+					int index = MAP_OBJ_INDEX(MAP_MOVE_UP_LEFT(def_serf->pos));
+					building_t *building = game_get_building(index);
 					if (building->stock1 != 0xff) building->stock1 -= 1;
 				}
 			}
