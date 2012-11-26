@@ -580,7 +580,10 @@ reset_player_settings()
 			sett->current_sett_5_item = 8;
 			sett->current_sett_6_item = 15;
 
-			/* TODO ... */
+			sett->military_max_gold = 0;
+			sett->military_gold = 0;
+			sett->inventory_gold = 0;
+
 			sett->timers_count = 0;
 
 			sett->castle_knights_wanted = 3;

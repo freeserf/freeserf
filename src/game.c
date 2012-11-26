@@ -416,7 +416,10 @@ check_win_and_flags_buildings()
 static void
 update_knight_morale()
 {
-	/* TODO */
+	for (int i = 0; i < 3; i++) {
+		player_sett_t *sett = globals.player_sett[i];
+		/* TODO */
+	}
 }
 
 static void
@@ -1062,45 +1065,6 @@ update_flags()
 	}
 }
 
-/* Update castle as part of the game progression. */
-static void
-update_building_castle(building_t *building)
-{
-	player_sett_t *sett = globals.player_sett[BUILDING_PLAYER(building)];
-	if (sett->castle_knights == sett->castle_knights_wanted) {
-		/* TODO ... */
-	} else if (sett->castle_knights < sett->castle_knights_wanted) {
-		inventory_t *inventory = building->u.inventory;
-		int type = -1;
-		for (serf_type_t t = SERF_KNIGHT_4; t >= SERF_KNIGHT_0; t--) {
-			if (inventory->serfs[t] != 0) {
-				type = t;
-				break;
-			}
-		}
-
-		if (type < 0) { /* None found */
-			/* TODO */
-		} else {
-			/* Prepend to knights list */
-			int serf_index = inventory->serfs[type];
-			serf_t *serf = game_get_serf(serf_index);
-
-			serf_log_state_change(serf, SERF_STATE_DEFENDING_CASTLE);
-			serf->state = SERF_STATE_DEFENDING_CASTLE;
-			serf->s.defending.next_knight = building->serf_index;
-			serf->counter = 6000;
-			building->serf_index = serf_index;
-			sett->castle_knights += 1;
-			inventory->serfs[type] = 0; /* Clear inventory pointer */
-		}
-	} else {
-		/* TODO ... */
-	}
-
-	/* TODO */
-}
-
 typedef struct {
 	inventory_t *inventory;
 	building_t *building;
@@ -1385,6 +1349,65 @@ update_unfinished_adv_building(building_t *building)
 	}
 }
 
+/* Update castle as part of the game progression. */
+static void
+update_building_castle(building_t *building)
+{
+	player_sett_t *sett = globals.player_sett[BUILDING_PLAYER(building)];
+	if (sett->castle_knights == sett->castle_knights_wanted) {
+		/* TODO ... */
+	} else if (sett->castle_knights < sett->castle_knights_wanted) {
+		inventory_t *inventory = building->u.inventory;
+		int type = -1;
+		for (serf_type_t t = SERF_KNIGHT_4; t >= SERF_KNIGHT_0; t--) {
+			if (inventory->serfs[t] != 0) {
+				type = t;
+				break;
+			}
+		}
+
+		if (type < 0) { /* None found */
+			/* TODO */
+		} else {
+			/* Prepend to knights list */
+			int serf_index = inventory->serfs[type];
+			serf_t *serf = game_get_serf(serf_index);
+
+			serf_log_state_change(serf, SERF_STATE_DEFENDING_CASTLE);
+			serf->state = SERF_STATE_DEFENDING_CASTLE;
+			serf->s.defending.next_knight = building->serf_index;
+			serf->counter = 6000;
+			building->serf_index = serf_index;
+			sett->castle_knights += 1;
+			inventory->serfs[type] = 0; /* Clear inventory pointer */
+		}
+	} else {
+		/* TODO ... */
+	}
+
+	/* TODO */
+
+	inventory_t *inventory = building->u.inventory;
+
+	if (BIT_TEST(building->serf, 6) &&
+	    (inventory->res_dir & 0xa) == 0 && /* Not serf or res OUT mode */
+	    inventory->spawn_priority == 0) {
+		/* sett->field_160 -= 1; */
+		if (0/*sett->field_160 < 0*/) {
+			/* sett->field_160 = 5; */
+			send_serf_to_building(building, SERF_GENERIC, -1, -1);
+		}
+	}
+
+	sett->inventory_gold += inventory->resources[RESOURCE_GOLDBAR];
+
+	map_pos_t flag_pos = MAP_MOVE_DOWN_RIGHT(building->pos);
+	if (MAP_SERF_INDEX(flag_pos) != 0) {
+		serf_t *serf = game_get_serf(MAP_SERF_INDEX(flag_pos));
+		if (serf->pos != flag_pos) map_set_serf_index(flag_pos, 0);
+	}
+}
+
 static void
 handle_building_update(building_t *building)
 {
@@ -1521,7 +1544,7 @@ handle_building_update(building_t *building)
 					send_serf_to_building(building, SERF_TRANSPORTER, -1, -1);
 				}
 
-				/*player_sett_t *sett = globals.player_sett[BUILDING_PLAYER(building)];*/
+				player_sett_t *sett = globals.player_sett[BUILDING_PLAYER(building)];
 				inventory_t *inv = building->u.inventory;
 				if (BIT_TEST(building->serf, 6) &&
 				    (inv->res_dir & 0xa) == 0 && /* Not serf or res OUT mode */
@@ -1533,7 +1556,7 @@ handle_building_update(building_t *building)
 					}
 				}
 
-				/* sett->field_180 += inv->resources[RESOURCE_GOLDBAR]; */
+				sett->inventory_gold += inv->resources[RESOURCE_GOLDBAR];
 
 				/* TODO Following code looks like a hack */
 				map_pos_t flag_pos = MAP_MOVE_DOWN_RIGHT(building->pos);
@@ -1606,7 +1629,9 @@ handle_building_update(building_t *building)
 			/* Request gold */
 			if (BIT_TEST(building->serf, 6)) {
 				int total_gold = (building->stock2 & 0xf) + ((building->stock2 >> 4) & 0xf);
-				/* TODO Update player sett */
+				sett->military_gold += (building->stock2 >> 4) & 0xf;
+				sett->military_max_gold += max_gold;
+
 				if (total_gold < max_gold) {
 					building->u.flag->stock2_prio = ((0xfe >> total_gold) + 1) & 0xfe;
 				} else {
@@ -1838,7 +1863,9 @@ handle_building_update(building_t *building)
 			/* Request gold */
 			if (BIT_TEST(building->serf, 6)) {
 				int total_gold = (building->stock2 & 0xf) + ((building->stock2 >> 4) & 0xf);
-				/* TODO Update player sett */
+				sett->military_gold += (building->stock2 >> 4) & 0xf;
+				sett->military_max_gold += max_gold;
+
 				if (total_gold < max_gold) {
 					building->u.flag->stock2_prio = ((0xfe >> total_gold) + 1) & 0xfe;
 				} else {
@@ -1911,7 +1938,9 @@ handle_building_update(building_t *building)
 			/* Request gold */
 			if (BIT_TEST(building->serf, 6)) {
 				int total_gold = (building->stock2 & 0xf) + ((building->stock2 >> 4) & 0xf);
-				/* TODO Update player sett */
+				sett->military_gold += (building->stock2 >> 4) & 0xf;
+				sett->military_max_gold += max_gold;
+
 				if (total_gold < max_gold) {
 					building->u.flag->stock2_prio = ((0xfe >> total_gold) + 1) & 0xfe;
 				} else {

@@ -97,9 +97,11 @@ typedef struct {
 	int timers_count;
 	/* 176 */
 	int index;
-	/* 184 */
+	int military_max_gold;
+	int military_gold;
+	/* 180 */
+	int inventory_gold;
 	int knight_morale;
-	/* 188 */
 	int gold_deposited;
 	int castle_knights_wanted;
 	int castle_knights;
