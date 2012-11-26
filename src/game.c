@@ -418,7 +418,42 @@ update_knight_morale()
 {
 	for (int i = 0; i < 3; i++) {
 		player_sett_t *sett = globals.player_sett[i];
+		int depot = sett->military_gold + sett->inventory_gold;
+		sett->gold_deposited = min(depot, 0xffff);
+
+		/* Calculate according to gold collected. */
+		int map_gold = globals.map_gold_deposit;
+		if (map_gold != 0) {
+			while (map_gold > 0xffff) {
+				map_gold >>= 1;
+				depot >>= 1;
+			}
+			depot = min(depot, map_gold-1);
+			sett->knight_morale = 1024 + (globals.map_gold_morale_factor * depot)/map_gold;
+		} else {
+			sett->knight_morale = 4096;
+		}
+
+		/* Adjust based on castle score. */
+		int castle_score = sett->castle_score;
+		if (castle_score < 0) {
+			sett->knight_morale = max(1, sett->knight_morale - 1023);
+		} else if (castle_score > 0) {
+			sett->knight_morale = min(sett->knight_morale + 1024*castle_score, 0xffff);
+		}
+
+		int military_score = sett->total_military_score;
+		int morale = sett->knight_morale >> 5;
+		while (military_score > 0xffff) {
+			military_score >>= 1;
+			morale <<= 1;
+		}
+
 		/* TODO */
+
+		sett->military_gold = 0;
+		sett->military_max_gold = 0;
+		sett->inventory_gold = 0;
 	}
 }
 
