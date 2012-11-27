@@ -3014,9 +3014,10 @@ game_demolish_building(map_pos_t pos)
 
 	flag_reset_transport(flag);
 
-	if (MAP_PATHS(MAP_MOVE_DOWN_RIGHT(pos)) == 0 &&
-	    MAP_OBJ(MAP_MOVE_DOWN_RIGHT(pos)) == MAP_OBJ_FLAG) {
-		/* TODO */
+	map_pos_t flag_pos = MAP_MOVE_DOWN_RIGHT(pos);
+	if (MAP_PATHS(flag_pos) == 0 &&
+	    MAP_OBJ(flag_pos) == MAP_OBJ_FLAG) {
+		game_demolish_flag(flag_pos);
 	}
 }
 
