@@ -446,6 +446,11 @@ reset_game_objs()
 static void
 init_map_vars()
 {
+	const int map_size_arr[] = {
+		16, 30, 55, 90,
+		150, 220, 350, 500
+	};
+
 	/* globals.split |= BIT(3); */
 
 	if (globals.map_cols < 64 || globals.map_rows < 64) {
@@ -491,7 +496,15 @@ init_map_vars()
 	globals.map_max_serfs_left = globals.map_regions * 500;
 	globals.map_62_5_times_regions = (globals.map_regions * 500) >> 3;
 
-	/* TODO ... */
+	int active_players = 0;
+	for (int i = 0; i < 4; i++) {
+		if (globals.pl_init[0].face != 0) active_players += 1;
+	}
+
+	globals.map_field_4A = globals.map_max_serfs_left -
+		active_players * globals.map_62_5_times_regions;
+	globals.map_gold_morale_factor = 10 * 1024 * active_players;
+	globals.map_field_52 = map_size_arr[globals.map_size];
 }
 
 /* Initialize AI parameters. */
