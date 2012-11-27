@@ -53,8 +53,8 @@ load_v0_globals_state(FILE *f)
 
 	globals.game_type = *(uint16_t *)&data[74];
 	globals.game_tick = *(uint32_t *)&data[76];
-	/* globals.field_20E = *(uint16_t *)&data[80]; */
-	/* globals.field_210 = *(uint16_t *)&data[82]; */
+	globals.game_stats_counter = *(uint16_t *)&data[80];
+	globals.history_counter = *(uint16_t *)&data[82];
 
 	globals.rnd_1 = *(uint16_t *)&data[84];
 	globals.rnd_2 = *(uint16_t *)&data[86];
@@ -69,16 +69,15 @@ load_v0_globals_state(FILE *f)
 	globals.update_map_last_anim = *(uint16_t *)&data[100];
 	globals.update_map_counter = *(uint16_t *)&data[102];
 
-	/*
-	globals.field_320 = *(uint16_t *)&data[104];
-	globals.field_322 = *(uint16_t *)&data[106];
-	globals.field_324 = *(uint16_t *)&data[108];
-	globals.field_326 = *(uint16_t *)&data[110];
-	globals.field_328 = *(uint16_t *)&data[112];
-	globals.field_32A = *(uint16_t *)&data[114];
-	globals.field_32C = *(uint16_t *)&data[116];
-	globals.field_32E = *(uint16_t *)&data[118];
-	*/
+	for (int i = 0; i < 4; i++) {
+		globals.player_history_index[i] = *(uint16_t *)&data[104 + i*2];
+	}
+
+	for (int i = 0; i < 3; i++) {
+		globals.player_history_counter[i] = *(uint16_t *)&data[112 + i*2];
+	}
+
+	globals.resource_history_index = *(uint16_t *)&data[118];
 
 	globals.map_regions = *(uint16_t *)&data[120];
 
@@ -123,22 +122,22 @@ load_v0_globals_state(FILE *f)
 	globals.map_max_serfs_left = *(uint16_t *)&data[176];
 	/* globals.max_stock_buildings = *(uint16_t *)&data[178]; */
 	globals.max_next_index = *(uint16_t *)&data[180];
-	/* globals.field_4A = *(uint16_t *)&data[182]; */
+	globals.map_field_4A = *(uint16_t *)&data[182];
 	globals.map_gold_deposit = *(uint32_t *)&data[184];
 	globals.update_map_16_loop = *(uint16_t *)&data[188];
 	globals.map_size = *(uint16_t *)&data[190];
 
+	globals.map_field_52 = *(uint16_t *)&data[192];
 	/*
-	globals.field_52 = *(uint16_t *)&data[192];
 	globals.field_54 = *(uint16_t *)&data[194];
 	globals.field_56 = *(uint16_t *)&data[196];
 	*/
 
 	globals.map_62_5_times_regions = *(uint16_t *)&data[198];
+	globals.map_gold_morale_factor = *(uint16_t *)&data[200];
+	globals.winning_player = *(uint16_t *)&data[202];
+	globals.player_score_leader = *(uint8_t *)&data[204];
 	/*
-	globals.field_5A = *(uint16_t *)&data[200];
-	globals.field_5E = *(uint16_t *)&data[202];
-	globals.field_380 = *(uint8_t *)&data[204];
 	globals.show_game_end_box = *(uint8_t *)&data[205];
 	*/
 
