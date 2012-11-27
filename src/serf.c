@@ -3746,16 +3746,59 @@ handle_knight_occupy_enemy_building(serf_t *serf)
 			     BUILDING_TYPE(building) == BUILDING_TOWER ||
 			     BUILDING_TYPE(building) == BUILDING_FORTRESS ||
 			     BUILDING_TYPE(building) == BUILDING_CASTLE)) {
-				if (BUILDING_PLAYER(building) == SERF_PLAYER(serf)) {
-					/* TODO enter building if there is space. */
+				if (BUILDING_PLAYER(building) == SERF_PLAYER(serf) &&
+				    BUILDING_TYPE(building) != BUILDING_CASTLE) {
+					/* Enter building if there is space. */
+					int max_knights = -1;
+					switch (BUILDING_TYPE(building)) {
+					case BUILDING_HUT: max_knights = 3; break;
+					case BUILDING_TOWER: max_knights = 6; break;
+					case BUILDING_FORTRESS: max_knights = 12; break;
+					default: NOT_REACHED(); break;
+					}
+
+					int current = ((building->stock1 >> 4) & 0xf) +
+						(building->stock1 & 0xf);
+					if (current < max_knights) {
+						/* Enter building */
+						serf_log_state_change(serf, SERF_STATE_ENTERING_BUILDING);
+						serf->state = SERF_STATE_ENTERING_BUILDING;
+
+						serf_start_walking(serf, DIR_UP_LEFT, 32, 1);
+
+						int slope = road_bld_slope_arr[(building->bld >> 2) & 0x3f];
+						serf->s.entering_building.slope_len = (slope * serf->counter) >> 5;
+						serf->s.entering_building.field_B = -1;
+
+						building->stock1 += 1;
+						return;
+					}
 				} else if (building->serf_index == 0) {
-					/* TODO take the building. */
+					/* Occupy the building. */
+					game_occupy_enemy_building(building, SERF_PLAYER(serf));
+
+					if (BUILDING_TYPE(building) == BUILDING_CASTLE) {
+						serf->counter = 0;
+					} else {
+						/* Enter building */
+						serf_log_state_change(serf, SERF_STATE_ENTERING_BUILDING);
+						serf->state = SERF_STATE_ENTERING_BUILDING;
+
+						serf_start_walking(serf, DIR_UP_LEFT, 32, 1);
+
+						int slope = road_bld_slope_arr[(building->bld >> 2) & 0x3f];
+						serf->s.entering_building.slope_len = (slope * serf->counter) >> 5;
+						serf->s.entering_building.field_B = -1;
+
+						building->stock1 = 1;
+					}
+					return;
 				} else {
 					serf_log_state_change(serf, SERF_STATE_KNIGHT_ENGAGING_BUILDING);
 					serf->state = SERF_STATE_KNIGHT_ENGAGING_BUILDING;
 					serf->animation = 167;
 					serf->counter = 191;
-					continue;
+					return;
 				}
 			}
 		}

@@ -43,5 +43,6 @@ void game_demolish_building(map_pos_t pos);
 
 void game_calculate_military_flag_state(building_t *building);
 void game_update_land_ownership(int col, int row);
+void game_occupy_enemy_building(building_t *building, int player);
 
 #endif /* !_GAME_H */

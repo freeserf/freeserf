@@ -3322,3 +3322,115 @@ game_update_land_ownership(int col, int row)
 		}
 	}
 }
+
+static void
+game_demolish_flag_and_roads(map_pos_t pos)
+{
+	if (MAP_HAS_FLAG(pos)) {
+		/* Remove roads around pos. */
+		for (dir_t d = DIR_RIGHT; d <= DIR_UP; d++) {
+			map_pos_t p = MAP_MOVE(pos, d);
+
+			if (MAP_PATHS(p) & BIT(DIR_REVERSE(d))) {
+				game_demolish_road(p);
+			}
+		}
+
+		if (MAP_OBJ(pos) == MAP_OBJ_FLAG) {
+			game_demolish_flag(pos);
+		}
+	} else if (MAP_PATHS(pos) != 0) {
+		game_demolish_road(pos);
+	}
+}
+
+/* The given building has been defeated and is being
+   occupied by player. */
+void
+game_occupy_enemy_building(building_t *building, int player)
+{
+	/* Take the building. */
+	player_sett_t *def_sett = globals.player_sett[BUILDING_PLAYER(building)];
+	player_add_notification(def_sett, 2 + (player << 5), building->pos);
+
+	player_sett_t *sett = globals.player_sett[player];
+	player_add_notification(sett, 3 + (player << 5), building->pos);
+
+	if (BUILDING_TYPE(building) == BUILDING_CASTLE) {
+		sett->castle_score += 1;
+		game_demolish_building(building->pos);
+	} else {
+		flag_t *flag = game_get_flag(building->flg_index);
+		flag_reset_transport(flag);
+
+		/* Update player scores. */
+		def_sett->total_building_score -=
+			building_get_score_from_type(BUILDING_TYPE(building));
+		def_sett->total_land_area -= 7;
+		def_sett->completed_building_count[BUILDING_TYPE(building)] -= 1;
+
+		sett->total_building_score +=
+			building_get_score_from_type(BUILDING_TYPE(building));
+		sett->total_land_area += 7;
+		sett->completed_building_count[BUILDING_TYPE(building)] += 1;
+
+		/* Demolish nearby buildings. */
+		for (int i = 0; i < 12; i++) {
+			map_pos_t pos = (building->pos + globals.spiral_pos_pattern[7+i]) & globals.map_index_mask;
+			if (MAP_OBJ(pos) >= MAP_OBJ_SMALL_BUILDING &&
+			    MAP_OBJ(pos) <= MAP_OBJ_CASTLE) {
+				game_demolish_building(pos);
+			}
+		}
+
+		/* Change owner of land and remove roads and flags
+		   except the flag associated with the building. */
+		map_1_t *map = globals.map_mem2_ptr;
+		map[building->pos].height = (1 << 7) | (player << 5) |
+			MAP_HEIGHT(building->pos);
+
+		for (dir_t d = DIR_RIGHT; d <= DIR_UP; d++) {
+			map_pos_t pos = MAP_MOVE(building->pos, d);
+			map[pos].height = (1 << 7) | (player << 5) | MAP_HEIGHT(pos);
+			if (pos != flag->pos) {
+				game_demolish_flag_and_roads(pos);
+			}
+		}
+
+		/* Change owner of flag. */
+		flag->path_con = (player << 6) | (flag->path_con & 0x3f);
+
+		/* Reset destination of stolen resources. */
+		for (int i = 0; i < 8; i++) {
+			if (flag->res_waiting[i] != 0) {
+				resource_type_t res = flag->res_waiting[i]-1;
+				lose_transported_resource(res, flag->res_dest[i]);
+
+				/* Since the resource is not actually lost but
+				   merely changes owner, we have to readjust the total
+				   map gold. */
+				if (res == RESOURCE_GOLDORE ||
+				    res == RESOURCE_GOLDBAR) {
+					globals.map_gold_deposit += 1;
+				}
+				flag->res_dest[i] = 0;
+			}
+		}
+
+		/* Remove paths from flag. */
+		for (dir_t d  = DIR_RIGHT; d <= DIR_UP; d++) {
+			if (BIT_TEST(flag->path_con, d)) {
+				game_demolish_road(MAP_MOVE(flag->pos, d));
+			}
+		}
+
+		/* Change owner of building */
+		building->bld = (building->bld & 0xfc) | player;
+
+		game_update_land_ownership(MAP_COORD_ARGS(building->pos));
+
+		if (BIT_TEST(sett->flags, 7)) {
+			/* TODO AI */
+		}
+	}
+}
