@@ -262,6 +262,8 @@ load_v0_player_sett_state(FILE *f)
 
 		sett->current_sett_6_item = *(uint16_t *)&data[476];
 
+		sett->castle_score = *(int16_t *)&data[478];
+
 		/* TODO */
 	}
 

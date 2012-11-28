@@ -82,6 +82,10 @@ typedef struct {
 	int wheat_pigfarm;
 	int wheat_mill;
 	int current_sett_6_item;
+
+	/* +1 for every castle defeated,
+	   -1 for own castle lost. */
+	int castle_score;
 	/* 162 */
 	int initial_supplies;
 	/* 164 */

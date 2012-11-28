@@ -2976,7 +2976,7 @@ game_demolish_building(map_pos_t pos)
 		if (BUILDING_IS_DONE(building) &&
 		    BUILDING_TYPE(building) == BUILDING_CASTLE) {
 			sett->build &= ~BIT(3);
-			/* sett->field_15E -= 1; */
+			sett->castle_score -= 1;
 
 			building->serf_index = 8191;
 
