@@ -1227,6 +1227,24 @@ game_loop()
 				case SDLK_g:
 					viewport.layers ^= VIEWPORT_LAYER_GRID;
 					break;
+				case SDLK_j: {
+					int current = 0;
+					for (int i = 0; i < 4; i++) {
+						if (globals.player[0]->sett == globals.player_sett[i]) {
+							current = i;
+							break;
+						}
+					}
+
+					for (int i = (current+1) % 4; i != current; i = (i+1) % 4) {
+						if (BIT_TEST(globals.player_sett[i]->flags, 6)) { /* Active */
+							globals.player[0]->sett = globals.player_sett[i];
+							LOGD("main", "Switched to player %i.", i);
+							break;
+						}
+					}
+				}
+					break;
 
 				default:
 					break;
