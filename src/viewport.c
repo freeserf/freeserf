@@ -1959,7 +1959,7 @@ serf_get_body(serf_t *serf)
 			t += 0x7800 + 0x100*k;
 		} else if (t < 0xc0) {
 			if (serf->state == SERF_STATE_KNIGHT_ATTACKING ||
-			    serf->state == SERF_STATE_60) {
+			    serf->state == SERF_STATE_KNIGHT_ATTACKING_FREE) {
 				if (serf->counter >= 24 || serf->counter < 8) {
 					serf->type &= ~BIT(7);
 				} else if (!BIT_TEST(serf->type, 7)) {
@@ -2076,7 +2076,11 @@ draw_serf_row(map_pos_t pos, int y_base, int cols, int x_base, frame_t *frame)
 			/* Draw additional serf */
 			if (serf->state == SERF_STATE_KNIGHT_ENGAGING_BUILDING ||
 			    serf->state == SERF_STATE_KNIGHT_PREPARE_ATTACKING ||
-			    serf->state == SERF_STATE_KNIGHT_ATTACKING) {
+			    serf->state == SERF_STATE_KNIGHT_ATTACKING ||
+			    serf->state == SERF_STATE_KNIGHT_PREPARE_ATTACKING_FREE ||
+			    serf->state == SERF_STATE_KNIGHT_ATTACKING_FREE ||
+			    serf->state == SERF_STATE_KNIGHT_ATTACKING_VICTORY_FREE ||
+			    serf->state == SERF_STATE_KNIGHT_ATTACKING_DEFEAT_FREE) {
 				int index = serf->s.attacking.def_index;
 				if (index != 0) {
 					serf_t *def_serf = game_get_serf(index);
@@ -2097,10 +2101,9 @@ draw_serf_row(map_pos_t pos, int y_base, int cols, int x_base, frame_t *frame)
 			}
 
 			/* Draw extra objects for fight */
-			if (SERF_TYPE(serf) >= SERF_KNIGHT_0 &&
-			    SERF_TYPE(serf) <= SERF_KNIGHT_4 &&
+			if ((serf->state == SERF_STATE_KNIGHT_ATTACKING ||
+			     serf->state == SERF_STATE_KNIGHT_ATTACKING_FREE) &&
 			    tbl_ptr[0] >= 0x80 && tbl_ptr[0] < 0xc0) {
-				/* TODO what state are we in? Access to state vars. */
 				int index = serf->s.attacking.def_index;
 				if (index != 0) {
 					serf_t *def_serf = game_get_serf(index);

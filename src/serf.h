@@ -54,6 +54,9 @@ typedef enum {
 	SERF_DEAD
 } serf_type_t;
 
+/* The term FREE is used loosely in the following
+   names to denote a state where the serf is not
+   bound to a road or a flag. */
 typedef enum {
 	SERF_STATE_NULL = 0,
 	SERF_STATE_IDLE_IN_STOCK,
@@ -109,17 +112,17 @@ typedef enum {
 	SERF_STATE_KNIGHT_ATTACKING_DEFEAT,
 	SERF_STATE_KNIGHT_OCCUPY_ENEMY_BUILDING,
 	SERF_STATE_KNIGHT_FREE_WALKING,
-	SERF_STATE_54,
-	SERF_STATE_55, /* 55 */
-	SERF_STATE_56,
-	SERF_STATE_57,
-	SERF_STATE_58,
-	SERF_STATE_59,
-	SERF_STATE_60, /* 60 */
-	SERF_STATE_61,
-	SERF_STATE_62,
-	SERF_STATE_63,
-	SERF_STATE_64,
+	SERF_STATE_KNIGHT_ENGAGE_DEFENDING_FREE,
+	SERF_STATE_KNIGHT_ENGAGE_ATTACKING_FREE, /* 55 */
+	SERF_STATE_KNIGHT_ENGAGE_ATTACKING_FREE_JOIN,
+	SERF_STATE_KNIGHT_PREPARE_ATTACKING_FREE,
+	SERF_STATE_KNIGHT_PREPARE_DEFENDING_FREE,
+	SERF_STATE_KNIGHT_PREPARE_DEFENDING_FREE_WAIT,
+	SERF_STATE_KNIGHT_ATTACKING_FREE, /* 60 */
+	SERF_STATE_KNIGHT_DEFENDING_FREE,
+	SERF_STATE_KNIGHT_ATTACKING_VICTORY_FREE,
+	SERF_STATE_KNIGHT_DEFENDING_VICTORY_FREE,
+	SERF_STATE_KNIGHT_ATTACKING_FREE_WAIT,
 	SERF_STATE_KNIGHT_LEAVE_FOR_WALK_TO_FIGHT, /* 65 */
 	SERF_STATE_IDLE_ON_PATH,
 	SERF_STATE_WAIT_IDLE_ON_PATH,
@@ -130,7 +133,11 @@ typedef enum {
 	SERF_STATE_DEFENDING_FORTRESS,
 	SERF_STATE_73,
 	SERF_STATE_FINISHED_BUILDING,
-	SERF_STATE_DEFENDING_CASTLE /* 75 */
+	SERF_STATE_DEFENDING_CASTLE, /* 75 */
+
+	/* Additional state: goes at the end to ease loading of
+	   original save game. */
+	SERF_STATE_KNIGHT_ATTACKING_DEFEAT_FREE
 } serf_state_t;
 
 
@@ -286,6 +293,14 @@ typedef struct {
 			int field_D; /* D */
 			int def_index; /* E */
 		} attacking;
+
+		struct {
+			int dist_col; /* B */
+			int dist_row; /* C */
+			int field_D; /* D */
+			int other_dist_col; /* E */
+			int other_dist_row; /* F */
+		} defending_free;
 
 		struct {
 			int dist_col; /* B */

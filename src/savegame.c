@@ -487,6 +487,13 @@ load_v0_serf_state(FILE *f)
 			serf->s.building_boat.mode = *(int8_t *)&serf_data[11];
 			break;
 
+		case SERF_STATE_KNIGHT_DEFENDING_VICTORY_FREE:
+			/* TODO This will be tricky to load since the
+			   function of this state has been changed to one
+			   that is driven by the attacking serf instead
+			   (SERF_STATE_KNIGHT_ATTACKING_DEFEAT_FREE). */
+			break;
+
 		case SERF_STATE_IDLE_ON_PATH:
 		case SERF_STATE_WAIT_IDLE_ON_PATH:
 		case SERF_STATE_WAKE_AT_FLAG:

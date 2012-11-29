@@ -93,6 +93,18 @@ static const char *serf_state_name[] = {
 	[SERF_STATE_KNIGHT_ATTACKING_DEFEAT] = "KNIGHT ATTACKING DEFEAT",
 	[SERF_STATE_KNIGHT_OCCUPY_ENEMY_BUILDING] = "KNIGHT OCCUPY ENEMY BUILDING",
 	[SERF_STATE_KNIGHT_FREE_WALKING] = "KNIGHT FREE WALKING",
+	[SERF_STATE_KNIGHT_ENGAGE_DEFENDING_FREE] = "KNIGHT ENGAGE DEFENDING FREE",
+	[SERF_STATE_KNIGHT_ENGAGE_ATTACKING_FREE] = "KNIGHT ENGAGE ATTACKING FREE",
+	[SERF_STATE_KNIGHT_ENGAGE_ATTACKING_FREE_JOIN] = "KNIGHT ENGAGE ATTACKING FREE JOIN",
+	[SERF_STATE_KNIGHT_PREPARE_ATTACKING_FREE] = "KNIGHT PREPARE ATTACKING FREE",
+	[SERF_STATE_KNIGHT_PREPARE_DEFENDING_FREE] = "KNIGHT PREPARE DEFENDING FREE",
+	[SERF_STATE_KNIGHT_PREPARE_DEFENDING_FREE_WAIT] = "KNIGHT PREPARE DEFENDING FREE WAIT",
+	[SERF_STATE_KNIGHT_ATTACKING_FREE] = "KNIGHT ATTACKING FREE",
+	[SERF_STATE_KNIGHT_DEFENDING_FREE] = "KNIGHT DEFENDING FREE",
+	[SERF_STATE_KNIGHT_ATTACKING_VICTORY_FREE] = "KNIGHT ATTACKING VICTORY FREE",
+	[SERF_STATE_KNIGHT_DEFENDING_VICTORY_FREE] = "KNIGHT DEFENDING VICTORY FREE",
+	[SERF_STATE_KNIGHT_ATTACKING_DEFEAT_FREE] = "KNIGHT ATTACKING DEFEAT FREE",
+	[SERF_STATE_KNIGHT_ATTACKING_FREE_WAIT] = "KNIGHT ATTACKING FREE WAIT",
 	[SERF_STATE_KNIGHT_LEAVE_FOR_WALK_TO_FIGHT] = "KNIGHT LEAVE FOR WALK TO FIGHT",
 	[SERF_STATE_IDLE_ON_PATH] = "IDLE ON PATH",
 	[SERF_STATE_WAIT_IDLE_ON_PATH] = "WAIT IDLE ON PATH",
@@ -3516,6 +3528,50 @@ handle_serf_knight_engaging_building_state(serf_t *serf)
 }
 
 static void
+serf_set_fight_outcome(serf_t *attacker, serf_t *defender)
+{
+	/* Calculate "morale" for attacker. */
+	int exp_factor = 1 << (SERF_TYPE(attacker) - SERF_KNIGHT_0);
+	int land_factor = 0x1000;
+	if (SERF_PLAYER(attacker) != MAP_OWNER(attacker->pos)) {
+		land_factor = globals.player_sett[SERF_PLAYER(attacker)]->knight_morale;
+	}
+
+	int morale = (0x400*exp_factor * land_factor) >> 16;
+
+	/* Calculate "morale" for defender. */
+	int def_exp_factor = 1 << (SERF_TYPE(defender) - SERF_KNIGHT_0);
+	int def_land_factor = 0x1000;
+	if (SERF_PLAYER(defender) != MAP_OWNER(defender->pos)) {
+		def_land_factor = globals.player_sett[SERF_PLAYER(defender)]->knight_morale;
+	}
+
+	int def_morale = (0x400*def_exp_factor * def_land_factor) >> 16;
+
+	int player = -1;
+	int value = -1;
+	serf_type_t type = -1;
+	int r = ((morale + def_morale)*random_int()) >> 16;
+	if (r < morale) {
+		player = SERF_PLAYER(defender);
+		value = def_exp_factor;
+		type = SERF_TYPE(defender);
+		attacker->s.attacking.field_C = 1;
+		LOGD("serf", "Fight: %i vs %i (%i). Attacker winning.", morale, def_morale, r);
+	} else {
+		player = SERF_PLAYER(attacker);
+		value = exp_factor;
+		type = SERF_TYPE(attacker);
+		attacker->s.attacking.field_C = 0;
+		LOGD("serf", "Fight: %i vs %i (%i). Defender winning.", morale, def_morale, r);
+	}
+
+	globals.player_sett[player]->total_military_score -= value;
+	globals.player_sett[player]->serf_count[type] -= 1;
+	attacker->s.attacking.field_B = random_int() & 0x70;
+}
+
+static void
 handle_serf_knight_prepare_attacking(serf_t *serf)
 {
 	serf_t *def_serf = game_get_serf(serf->s.attacking.def_index);
@@ -3531,45 +3587,7 @@ handle_serf_knight_prepare_attacking(serf_t *serf)
 		def_serf->state = SERF_STATE_KNIGHT_DEFENDING;
 		def_serf->counter = 0;
 
-		/* Calculate "morale" for attacker. */
-		int exp_factor = 1 << (SERF_TYPE(serf) - SERF_KNIGHT_0);
-		int land_factor = 0x1000;
-		if (SERF_PLAYER(serf) != MAP_OWNER(serf->pos)) {
-			land_factor = globals.player_sett[SERF_PLAYER(serf)]->knight_morale;
-		}
-
-		int morale = (0x400*exp_factor * land_factor) >> 16;
-
-		/* Calculate "morale" for defender. */
-		int def_exp_factor = 1 << (SERF_TYPE(def_serf) - SERF_KNIGHT_0);
-		int def_land_factor = 0x1000;
-		if (SERF_PLAYER(def_serf) != MAP_OWNER(def_serf->pos)) {
-			def_land_factor = globals.player_sett[SERF_PLAYER(def_serf)]->knight_morale;
-		}
-
-		int def_morale = (0x400*def_exp_factor * def_land_factor) >> 16;
-
-		int player = -1;
-		int value = -1;
-		serf_type_t type = -1;
-		int r = ((morale + def_morale)*random_int()) >> 16;
-		if (r < morale) {
-			player = SERF_PLAYER(def_serf);
-			value = def_exp_factor;
-			type = SERF_TYPE(def_serf);
-			serf->s.attacking.field_C = 1;
-			LOGD("serf", "Fight: %i vs %i (%i). Attacker winning.", morale, def_morale, r);
-		} else {
-			player = SERF_PLAYER(serf);
-			value = exp_factor;
-			type = SERF_TYPE(serf);
-			serf->s.attacking.field_C = 0;
-			LOGD("serf", "Fight: %i vs %i (%i). Defender winning.", morale, def_morale, r);
-		}
-
-		globals.player_sett[player]->total_military_score -= value;
-		globals.player_sett[player]->serf_count[type] -= 1;
-		serf->s.attacking.field_B = random_int() & 0x70;
+		serf_set_fight_outcome(serf, def_serf);
 	}
 }
 
@@ -3633,8 +3651,19 @@ handle_knight_attacking(serf_t *serf)
 		if (move < 0) {
 			if (serf->s.attacking.field_C == 0) {
 				/* Defender won. */
-				if (serf->state == SERF_STATE_60) {
-					/* TODO */
+				if (serf->state == SERF_STATE_KNIGHT_ATTACKING_FREE) {
+					serf_log_state_change(def_serf, SERF_STATE_KNIGHT_DEFENDING_VICTORY_FREE);
+					def_serf->state = SERF_STATE_KNIGHT_DEFENDING_VICTORY_FREE;
+
+					def_serf->animation = 180;
+					def_serf->counter = 0;
+
+					/* Attacker dies. */
+					serf_log_state_change(serf, SERF_STATE_KNIGHT_ATTACKING_DEFEAT_FREE);
+					serf->state = SERF_STATE_KNIGHT_ATTACKING_DEFEAT_FREE;
+					serf->animation = 152 + SERF_TYPE(serf);
+					serf->counter = 255;
+					serf->type = (serf->type & 0x80) | (SERF_DEAD << 2) | SERF_PLAYER(serf);
 				} else {
 					/* Defender returns to building. */
 					def_serf->anim = globals.anim;
@@ -3655,20 +3684,20 @@ handle_knight_attacking(serf_t *serf)
 					serf->state = SERF_STATE_KNIGHT_ATTACKING_DEFEAT;
 					serf->animation = 152 + SERF_TYPE(serf);
 					serf->counter = 255;
-					serf->type = (serf->type & 0x80) | (27 << 2) | SERF_PLAYER(serf);
+					serf->type = (serf->type & 0x80) | (SERF_DEAD << 2) | SERF_PLAYER(serf);
 				}
 			} else {
 				/* Attacker won. */
-				if (serf->state == SERF_STATE_60) {
-					/* TODO */
-				} else {
-					/* Defender dies. */
-					def_serf->anim = globals.anim;
-					def_serf->animation = 147 + SERF_TYPE(serf);
-					def_serf->counter = 255;
-					def_serf->type = (def_serf->type & 0x80) | (27 << 2) | SERF_PLAYER(def_serf);
+				if (serf->state == SERF_STATE_KNIGHT_ATTACKING_FREE) {
+					serf_log_state_change(serf, SERF_STATE_KNIGHT_ATTACKING_VICTORY_FREE);
+					serf->state = SERF_STATE_KNIGHT_ATTACKING_VICTORY_FREE;
+					serf->animation = 168;
+					serf->counter = 0;
 
-					/* Attacker */
+					serf->s.attacking.field_B = def_serf->s.defending_free.field_D;
+					serf->s.attacking.field_C = def_serf->s.defending_free.other_dist_col;
+					serf->s.attacking.field_D = def_serf->s.defending_free.other_dist_row;
+				} else {
 					serf_log_state_change(serf, SERF_STATE_KNIGHT_ATTACKING_VICTORY);
 					serf->state = SERF_STATE_KNIGHT_ATTACKING_VICTORY;
 					serf->animation = 168;
@@ -3678,6 +3707,12 @@ handle_knight_attacking(serf_t *serf)
 					building_t *building = game_get_building(index);
 					if (building->stock1 != 0xff) building->stock1 -= 1;
 				}
+
+				/* Defender dies. */
+				def_serf->anim = globals.anim;
+				def_serf->animation = 147 + SERF_TYPE(serf);
+				def_serf->counter = 255;
+				def_serf->type = (def_serf->type & 0x80) | (27 << 2) | SERF_PLAYER(def_serf);
 			}
 		} else {
 			/* Go to next move in fight sequence. */
@@ -3829,20 +3864,24 @@ handle_state_knight_free_walking(serf_t *serf)
 					if (other->state == SERF_STATE_KNIGHT_FREE_WALKING) {
 						pos = MAP_MOVE_LEFT(pos);
 						if (!MAP_DEEP_WATER(pos)) {
-							serf_log_state_change(serf, SERF_STATE_54);
-							serf->state = SERF_STATE_54;
-							/* TODO copy some state from other serf. */
-							/* serf->s.field_E = other->s.field_B; */
-							/* serf->s.field_F = other->s.field_C; */
-							/* serf->s.field_D = 1; */
+							int dist_col = serf->s.free_walking.dist1;
+							int dist_row = serf->s.free_walking.dist2;
+
+							serf_log_state_change(serf, SERF_STATE_KNIGHT_ENGAGE_DEFENDING_FREE);
+							serf->state = SERF_STATE_KNIGHT_ENGAGE_DEFENDING_FREE;
+
+							serf->s.defending_free.dist_col = dist_col;
+							serf->s.defending_free.dist_row = dist_row;
+							serf->s.defending_free.other_dist_col = other->s.free_walking.dist1;
+							serf->s.defending_free.other_dist_row = other->s.free_walking.dist2;
+							serf->s.defending_free.field_D = 1;
 							serf->animation = 99;
 							serf->counter = 255;
 
-							serf_log_state_change(other, SERF_STATE_55);
-							other->state = SERF_STATE_55;
-							/* TODO set some state */
-							/* other->s.field_D = d; */
-							/* other->s.field_E = SERF_INDEX(serf); */
+							serf_log_state_change(other, SERF_STATE_KNIGHT_ENGAGE_ATTACKING_FREE);
+							other->state = SERF_STATE_KNIGHT_ENGAGE_ATTACKING_FREE;
+							other->s.attacking.field_D = d;
+							other->s.attacking.def_index = SERF_INDEX(serf);
 							return;
 						}
 					} else if (other->state == SERF_STATE_WALKING &&
@@ -3850,10 +3889,14 @@ handle_state_knight_free_walking(serf_t *serf)
 						   SERF_TYPE(other) <= SERF_KNIGHT_4) {
 						pos = MAP_MOVE_LEFT(pos);
 						if (!MAP_DEEP_WATER(pos)) {
-							serf_log_state_change(serf, SERF_STATE_54);
-							serf->state = SERF_STATE_54;
-							/* TODO set some state */
-							/* serf->s.field_D = 0; */
+							int dist_col = serf->s.free_walking.dist1;
+							int dist_row = serf->s.free_walking.dist2;
+
+							serf_log_state_change(serf, SERF_STATE_KNIGHT_ENGAGE_DEFENDING_FREE);
+							serf->state = SERF_STATE_KNIGHT_ENGAGE_DEFENDING_FREE;
+							serf->s.defending_free.dist_col = dist_col;
+							serf->s.defending_free.dist_row = dist_row;
+							serf->s.defending_free.field_D = 0;
 							serf->animation = 99;
 							serf->counter = 255;
 
@@ -3861,11 +3904,10 @@ handle_state_knight_free_walking(serf_t *serf)
 							building_t *building = dest->other_endpoint.b[DIR_UP_LEFT];
 							building->stock1 -= 1;
 
-							serf_log_state_change(other, SERF_STATE_55);
-							other->state = SERF_STATE_55;
-							/* TODO set some state */
-							/* other->s.field_D = d; */
-							/* other->s.field_E = SERF_INDEX(serf); */
+							serf_log_state_change(other, SERF_STATE_KNIGHT_ENGAGE_ATTACKING_FREE);
+							other->state = SERF_STATE_KNIGHT_ENGAGE_ATTACKING_FREE;
+							other->s.attacking.field_D = d;
+							other->s.attacking.def_index = SERF_INDEX(serf);
 							return;
 						}
 					}
@@ -3874,6 +3916,198 @@ handle_state_knight_free_walking(serf_t *serf)
 		}
 
 		handle_free_walking_common(serf);
+	}
+}
+
+static void
+handle_state_knight_engage_defending_free(serf_t *serf)
+{
+	uint16_t delta = globals.anim - serf->anim;
+	serf->anim = globals.anim;
+	serf->counter -= delta;
+
+	while (serf->counter < 0) serf->counter += 256;
+}
+
+static void
+handle_state_knight_engage_attacking_free(serf_t *serf)
+{
+	uint16_t delta = globals.anim - serf->anim;
+	serf->anim = globals.anim;
+	serf->counter -= delta;
+
+	while (serf->counter < 0) {
+		serf_log_state_change(serf, SERF_STATE_KNIGHT_ENGAGE_ATTACKING_FREE_JOIN);
+		serf->state = SERF_STATE_KNIGHT_ENGAGE_ATTACKING_FREE_JOIN;
+		serf->animation = 167;
+		serf->counter += 191;
+		return;
+	}
+}
+
+static void
+handle_state_knight_engage_attacking_free_join(serf_t *serf)
+{
+	uint16_t delta = globals.anim - serf->anim;
+	serf->anim = globals.anim;
+	serf->counter -= delta;
+
+	while (serf->counter < 0) {
+		serf_log_state_change(serf, SERF_STATE_KNIGHT_PREPARE_ATTACKING_FREE);
+		serf->state = SERF_STATE_KNIGHT_PREPARE_ATTACKING_FREE;
+		serf->animation = 168;
+		serf->counter = 0;
+
+		serf_t *other = game_get_serf(serf->s.attacking.def_index);
+		map_pos_t other_pos = other->pos;
+		serf_log_state_change(other, SERF_STATE_KNIGHT_PREPARE_DEFENDING_FREE);
+		other->state = SERF_STATE_KNIGHT_PREPARE_DEFENDING_FREE;
+
+		/* Adjust distance to final destination. */
+		dir_t d = serf->s.attacking.field_D;
+		if (d == DIR_RIGHT || d == DIR_DOWN_RIGHT) {
+			other->s.defending_free.dist_col -= 1;
+		} else if (d == DIR_LEFT || d == DIR_UP_LEFT) {
+			other->s.defending_free.dist_col += 1;
+		}
+
+		if (d == DIR_DOWN_RIGHT || d == DIR_DOWN) {
+			other->s.defending_free.dist_row -= 1;
+		} else if (d == DIR_UP_LEFT || d == DIR_UP) {
+			other->s.defending_free.dist_row += 1;
+		}
+
+		serf_start_walking(other, d, 32, 0);
+		map_set_serf_index(other_pos, 0);
+		return;
+	}
+}
+
+static void
+handle_state_knight_prepare_attacking_free(serf_t *serf)
+{
+	serf_t *other = game_get_serf(serf->s.attacking.def_index);
+	if (other->state == SERF_STATE_KNIGHT_PREPARE_DEFENDING_FREE_WAIT) {
+		serf_log_state_change(serf, SERF_STATE_KNIGHT_ATTACKING_FREE);
+		serf->state = SERF_STATE_KNIGHT_ATTACKING_FREE;
+		serf->counter = 0;
+
+		serf_log_state_change(other, SERF_STATE_KNIGHT_DEFENDING_FREE);
+		other->state = SERF_STATE_KNIGHT_DEFENDING_FREE;
+		other->counter = 0;
+
+		serf_set_fight_outcome(serf, other);
+	}
+}
+
+static void
+handle_state_knight_prepare_defending_free(serf_t *serf)
+{
+	uint16_t delta = globals.anim - serf->anim;
+	serf->anim = globals.anim;
+	serf->counter -= delta;
+
+	while (serf->counter < 0) {
+		serf_log_state_change(serf, SERF_STATE_KNIGHT_PREPARE_DEFENDING_FREE_WAIT);
+		serf->state = SERF_STATE_KNIGHT_PREPARE_DEFENDING_FREE_WAIT;
+		serf->counter = 0;
+		return;
+	}
+}
+
+static void
+handle_knight_attacking_victory_free(serf_t *serf)
+{
+	serf_t *other = game_get_serf(serf->s.attacking.def_index);
+
+	uint16_t delta = globals.anim - other->anim;
+	other->anim = globals.anim;
+	other->counter -= delta;
+
+	while (other->counter < 0) {
+		game_free_serf(SERF_INDEX(other));
+
+		int dist_col = serf->s.attacking.field_C;
+		int dist_row = serf->s.attacking.field_D;
+
+		serf_log_state_change(serf, SERF_STATE_KNIGHT_ATTACKING_FREE_WAIT);
+		serf->state = SERF_STATE_KNIGHT_ATTACKING_FREE_WAIT;
+
+		serf->s.free_walking.dist1 = dist_col;
+		serf->s.free_walking.dist2 = dist_row;
+		serf->s.free_walking.neg_dist1 = 0;
+		serf->s.free_walking.neg_dist2 = 0;
+
+		if (serf->s.attacking.field_B != 0) {
+			serf->s.free_walking.flags = 1;
+		} else {
+			serf->s.free_walking.flags = 0;
+		}
+
+		serf->animation = 179;
+		serf->counter = 127;
+		serf->anim = globals.anim;
+		return;
+	}
+}
+
+static void
+handle_knight_defending_victory_free(serf_t *serf)
+{
+	serf->animation = 180;
+	serf->counter = 0;
+}
+
+static void
+handle_serf_knight_attacking_defeat_free_state(serf_t *serf)
+{
+	uint16_t delta = globals.anim - serf->anim;
+	serf->anim = globals.anim;
+	serf->counter -= delta;
+
+	if (serf->counter < 0) {
+		/* Change state of other. */
+		serf_t *other = game_get_serf(serf->s.attacking.def_index);
+		int dist_col = other->s.defending_free.dist_col;
+		int dist_row = other->s.defending_free.dist_row;
+
+		serf_log_state_change(other, SERF_STATE_KNIGHT_FREE_WALKING);
+		other->state = SERF_STATE_KNIGHT_FREE_WALKING;
+
+		other->s.free_walking.dist1 = dist_col;
+		other->s.free_walking.dist2 = dist_row;
+		other->s.free_walking.neg_dist1 = 0;
+		other->s.free_walking.neg_dist2 = 0;
+		other->s.free_walking.flags = 0;
+
+		other->animation = 179;
+		other->counter = 0;
+		other->anim = globals.anim;
+
+		/* Remove itself. */
+		map_set_serf_index(serf->pos, SERF_INDEX(other));
+		game_free_serf(SERF_INDEX(serf));
+	}
+}
+
+static void
+handle_knight_attacking_free_wait(serf_t *serf)
+{
+	uint16_t delta = globals.anim - serf->anim;
+	serf->anim = globals.anim;
+	serf->counter -= delta;
+
+	while (serf->counter < 0) {
+		if (serf->s.free_walking.flags != 0) {
+			serf_log_state_change(serf, SERF_STATE_KNIGHT_FREE_WALKING);
+			serf->state = SERF_STATE_KNIGHT_FREE_WALKING;
+		} else {
+			serf_log_state_change(serf, SERF_STATE_LOST);
+			serf->state = SERF_STATE_LOST;
+		}
+
+		serf->counter = 0;
+		return;
 	}
 }
 
@@ -4268,9 +4502,11 @@ update_serf(serf_t *serf)
 		handle_serf_knight_prepare_defending_state(serf);
 		break;
 	case SERF_STATE_KNIGHT_ATTACKING:
+	case SERF_STATE_KNIGHT_ATTACKING_FREE:
 		handle_knight_attacking(serf);
 		break;
 	case SERF_STATE_KNIGHT_DEFENDING:
+	case SERF_STATE_KNIGHT_DEFENDING_FREE:
 		/* The actual fight update is handled for the attacking knight. */
 		break;
 	case SERF_STATE_KNIGHT_ATTACKING_VICTORY: /* 50 */
@@ -4285,7 +4521,37 @@ update_serf(serf_t *serf)
 	case SERF_STATE_KNIGHT_FREE_WALKING:
 		handle_state_knight_free_walking(serf);
 		break;
-	case SERF_STATE_KNIGHT_LEAVE_FOR_WALK_TO_FIGHT:
+	case SERF_STATE_KNIGHT_ENGAGE_DEFENDING_FREE:
+		handle_state_knight_engage_defending_free(serf);
+		break;
+	case SERF_STATE_KNIGHT_ENGAGE_ATTACKING_FREE:
+		handle_state_knight_engage_attacking_free(serf);
+		break;
+	case SERF_STATE_KNIGHT_ENGAGE_ATTACKING_FREE_JOIN:
+		handle_state_knight_engage_attacking_free_join(serf);
+		break;
+	case SERF_STATE_KNIGHT_PREPARE_ATTACKING_FREE:
+		handle_state_knight_prepare_attacking_free(serf);
+		break;
+	case SERF_STATE_KNIGHT_PREPARE_DEFENDING_FREE:
+		handle_state_knight_prepare_defending_free(serf);
+		break;
+	case SERF_STATE_KNIGHT_PREPARE_DEFENDING_FREE_WAIT:
+		/* Nothing to do for this state. */
+		break;
+	case SERF_STATE_KNIGHT_ATTACKING_VICTORY_FREE:
+		handle_knight_attacking_victory_free(serf);
+		break;
+	case SERF_STATE_KNIGHT_DEFENDING_VICTORY_FREE:
+		handle_knight_defending_victory_free(serf);
+		break;
+	case SERF_STATE_KNIGHT_ATTACKING_DEFEAT_FREE:
+		handle_serf_knight_attacking_defeat_free_state(serf);
+		break;
+	case SERF_STATE_KNIGHT_ATTACKING_FREE_WAIT:
+		handle_knight_attacking_free_wait(serf);
+		break;
+	case SERF_STATE_KNIGHT_LEAVE_FOR_WALK_TO_FIGHT: /* 65 */
 		handle_serf_state_knight_leave_for_walk_to_fight(serf);
 		break;
 	case SERF_STATE_IDLE_ON_PATH:
