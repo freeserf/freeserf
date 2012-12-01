@@ -67,6 +67,8 @@ static const char *serf_state_name[] = {
 	[SERF_STATE_STONECUTTING] = "STONECUTTING",
 	[SERF_STATE_SAWING] = "SAWING",
 	[SERF_STATE_LOST] = "LOST",
+	[SERF_STATE_LOST_SAILOR] = "LOST SAILOR",
+	[SERF_STATE_FREE_SAILING] = "FREE SAILING",
 	[SERF_STATE_ESCAPE_BUILDING] = "ESCAPE BUILDING",
 	[SERF_STATE_MINING] = "MINING",
 	[SERF_STATE_SMELTING] = "SMELTING",
@@ -2005,6 +2007,7 @@ handle_free_walking_common(serf_t *serf)
 		DIR_UP, DIR_RIGHT, DIR_UP_LEFT, DIR_DOWN_RIGHT, DIR_LEFT, DIR_DOWN, -1, -1
 	};
 
+	int water = (serf->state == SERF_STATE_FREE_SAILING);
 	int dir = -1;
 	map_pos_t new_pos = 0;
 
@@ -2021,7 +2024,7 @@ handle_free_walking_common(serf_t *serf)
 		int d2 = serf->s.free_walking.dist2;
 
 		/* Check if dest is only one step away. */
-		if (abs(d1) <= 1 && abs(d2) <= 1 &&
+		if (!water && abs(d1) <= 1 && abs(d2) <= 1 &&
 		    dir_from_offset[(d1+1) + 3*(d2+1)] > -1) {
 			/* Convert offset in two dimensions to
 			   direction variable. */
@@ -2060,7 +2063,8 @@ handle_free_walking_common(serf_t *serf)
 		int d = -1;
 		for (int i = 0; i < 6; i++) {
 			new_pos = MAP_MOVE(serf->pos, a0[i]);
-			if (!MAP_DEEP_WATER(new_pos) &&
+			if (((water && MAP_OBJ(new_pos) == 0) ||
+			     (!water && !MAP_DEEP_WATER(new_pos))) &&
 			    MAP_SERF_INDEX(new_pos) == 0) {
 				dir = a0[i];
 				d = 5 - i;
@@ -2130,7 +2134,8 @@ next_handler:;
 	const int *a0 = &dir_arr[8*offset];
 	dir = a0[0];
 	new_pos = MAP_MOVE(serf->pos, dir);
-	if (!MAP_DEEP_WATER(new_pos) &&
+	if (((water && MAP_OBJ(new_pos) == 0) ||
+	     (!water && !MAP_DEEP_WATER(new_pos))) &&
 	    MAP_SERF_INDEX(new_pos) == 0) {
 		goto switch_on_dir;
 	}
@@ -2139,7 +2144,7 @@ next_handler:;
 	d2 = serf->s.free_walking.dist2;
 
 	/* Check if dest is only one step away. */
-	if (abs(d1) <= 1 && abs(d2) <= 1 &&
+	if (!water && abs(d1) <= 1 && abs(d2) <= 1 &&
 	    dir_from_offset[(d1+1) + 3*(d2+1)] > -1) {
 		/* Convert offset in two dimensions to
 		   direction variable. */
@@ -2193,7 +2198,8 @@ next_handler:;
 	for (int i = 0; i < 5; i++) {
 		dir = a0[1+i];
 		new_pos = MAP_MOVE(serf->pos, dir);
-		if (!MAP_DEEP_WATER(new_pos) &&
+		if (((water && MAP_OBJ(new_pos) == 0) ||
+		     (!water && !MAP_DEEP_WATER(new_pos))) &&
 		    MAP_SERF_INDEX(new_pos) == 0) {
 			i0 = 4-i;
 			break;
@@ -2643,6 +2649,84 @@ handle_serf_lost_state(serf_t *serf)
 				return;
 			}
 		}
+	}
+}
+
+static void
+handle_lost_sailor(serf_t *serf)
+{
+	uint16_t delta = globals.anim - serf->anim;
+	serf->anim = globals.anim;
+	serf->counter -= delta;
+
+	while (serf->counter < 0) {
+		/* Try to find a suitable destination. */
+		for (int i = 0; i < 258; i++) {
+			map_pos_t dest = (serf->pos + globals.spiral_pos_pattern[i]) & globals.map_index_mask;
+
+			if (MAP_HAS_FLAG(dest)) {
+				flag_t *flag = game_get_flag(MAP_OBJ_INDEX(dest));
+				if ((flag->endpoint & 0x3f) != 0 &&
+				    MAP_HAS_OWNER(dest) && MAP_OWNER(dest) == SERF_PLAYER(serf)) {
+					serf_log_state_change(serf, SERF_STATE_FREE_SAILING);
+					serf->state = SERF_STATE_FREE_SAILING;
+
+					serf->s.free_walking.dist1 = globals.spiral_pattern[2*i];
+					serf->s.free_walking.dist2 = globals.spiral_pattern[2*i+1];
+					serf->s.free_walking.neg_dist1 = -128;
+					serf->s.free_walking.neg_dist2 = -1;
+					serf->s.free_walking.flags = 0;
+					serf->counter = 0;
+					return;
+				}
+			}
+		}
+
+		/* Choose a random, empty destination */
+		int src_col = serf->pos & globals.map_col_mask;
+		int src_row = (serf->pos >> globals.map_row_shift) & globals.map_row_mask;
+
+		while (1) {
+			int r = random_int();
+			int col = (r & 0x1f) - 16;
+			int row = ((r >> 8) & 0x1f) - 16;
+
+			int dest_col = (src_col + col) & globals.map_col_mask;
+			int dest_row = (src_row + row) & globals.map_row_mask;
+
+			map_pos_t dest = (dest_row << globals.map_row_shift) | dest_col;
+			if (MAP_OBJ(dest) == 0) {
+				serf_log_state_change(serf, SERF_STATE_FREE_SAILING);
+				serf->state = SERF_STATE_FREE_SAILING;
+
+				serf->s.free_walking.dist1 = col;
+				serf->s.free_walking.dist2 = row;
+				serf->s.free_walking.neg_dist1 = -128;
+				serf->s.free_walking.neg_dist2 = -1;
+				serf->s.free_walking.flags = 0;
+				serf->counter = 0;
+				return;
+			}
+		}
+	}
+}
+
+static void
+handle_free_sailing(serf_t *serf)
+{
+	uint16_t delta = globals.anim - serf->anim;
+	serf->anim = globals.anim;
+	serf->counter -= delta;
+
+	while (serf->counter < 0) {
+		if (!MAP_DEEP_WATER(serf->pos)) {
+			serf_log_state_change(serf, SERF_STATE_LOST);
+			serf->state = SERF_STATE_LOST;
+			serf->s.lost.field_B = 0;
+			return;
+		}
+
+		handle_free_walking_common(serf);
 	}
 }
 
@@ -4330,9 +4414,9 @@ handle_serf_wake_at_flag_state(serf_t *serf)
 		serf->anim = globals.anim;
 		serf->counter = 0;
 
-		if (SERF_TYPE(serf) == SERF_DIGGER) {
-			serf_log_state_change(serf, SERF_STATE_26);
-			serf->state = SERF_STATE_26;
+		if (SERF_TYPE(serf) == SERF_SAILOR) {
+			serf_log_state_change(serf, SERF_STATE_LOST_SAILOR);
+			serf->state = SERF_STATE_LOST_SAILOR;
 		} else {
 			serf_log_state_change(serf, SERF_STATE_LOST);
 			serf->state = SERF_STATE_LOST;
@@ -4481,11 +4565,11 @@ update_serf(serf_t *serf)
 	case SERF_STATE_LOST: /* 25 */
 		handle_serf_lost_state(serf);
 		break;
-	case SERF_STATE_26:
-		/* TODO */
+	case SERF_STATE_LOST_SAILOR:
+		handle_lost_sailor(serf);
 		break;
-	case SERF_STATE_27:
-		/* TODO */
+	case SERF_STATE_FREE_SAILING:
+		handle_free_sailing(serf);
 		break;
 	case SERF_STATE_ESCAPE_BUILDING:
 		handle_serf_escape_building_state(serf);

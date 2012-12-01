@@ -2650,8 +2650,8 @@ mark_serf_as_lost(serf_t *serf)
 			serf->state = SERF_STATE_LOST;
 			serf->s.lost.field_B = 0;
 		} else {
-			serf_log_state_change(serf, SERF_STATE_26);
-			serf->state = SERF_STATE_26;
+			serf_log_state_change(serf, SERF_STATE_LOST_SAILOR);
+			serf->state = SERF_STATE_LOST_SAILOR;
 		}
 	}
 }
