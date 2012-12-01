@@ -339,20 +339,6 @@ serf_transporter_move_to_flag(serf_t *serf, flag_t *flag)
 	serf_change_direction(serf, dir, 1);
 }
 
-static const int road_bld_slope_arr[] = {
-	/* Finished building */
-	5, 18, 18, 15, 18, 22, 22, 22,
-	22, 18, 16, 18, 1, 10, 1, 15,
-	15, 16, 15, 15, 10, 15, 20, 15,
-	18, 0, 0, 0, 0, 0, 0, 0,
-
-	/* Unfinished */
-	1, 1, 1, 1, 1, 1, 1, 1,
-	1, 1, 1, 1, 1, 1, 1, 1,
-	1, 1, 1, 1, 1, 1, 1, 1,
-	1
-};
-
 static int
 handle_serf_walking_state_search_cb(flag_t *flag, serf_t *serf)
 {
@@ -381,6 +367,54 @@ serf_start_walking(serf_t *serf, dir_t dir, int slope, int change_pos)
 	serf->pos = new_pos;
 }
 
+static const int road_building_slope[] = {
+	/* Finished building */
+	5, 18, 18, 15, 18, 22, 22, 22,
+	22, 18, 16, 18, 1, 10, 1, 15,
+	15, 16, 15, 15, 10, 15, 20, 15,
+	18, 0, 0, 0, 0, 0, 0, 0,
+
+	/* Unfinished */
+	1, 1, 1, 1, 1, 1, 1, 1,
+	1, 1, 1, 1, 1, 1, 1, 1,
+	1, 1, 1, 1, 1, 1, 1, 1,
+	1
+};
+
+/* Start entering building in direction up-left.
+   If join_pos is set the serf is assumed to origin from
+   a joined position so the source position will not have it's
+   serf index cleared. */
+static void
+serf_enter_building(serf_t *serf, int field_B, int join_pos)
+{
+	serf_log_state_change(serf, SERF_STATE_ENTERING_BUILDING);
+	serf->state = SERF_STATE_ENTERING_BUILDING;
+
+	serf_start_walking(serf, DIR_UP_LEFT, 32, !join_pos);
+	if (join_pos) map_set_serf_index(serf->pos, SERF_INDEX(serf));
+
+	building_t *building = game_get_building(MAP_OBJ_INDEX(serf->pos));
+	int slope = road_building_slope[(building->bld >> 2) & 0x3f];
+	serf->s.entering_building.slope_len = (slope * serf->counter) >> 5;
+	serf->s.entering_building.field_B = field_B;
+}
+
+/* Start leaving building by switching to LEAVING BUILDING and
+   setting appropriate state. */
+static void
+serf_leave_building(serf_t *serf, int join_pos)
+{
+	building_t *building = game_get_building(MAP_OBJ_INDEX(serf->pos));
+	int slope = 31 - road_building_slope[(building->bld >> 2) & 0x3f];
+
+	if (join_pos) map_set_serf_index(serf->pos, 0);
+	serf_start_walking(serf, DIR_DOWN_RIGHT, slope, !join_pos);
+
+	serf_log_state_change(serf, SERF_STATE_LEAVING_BUILDING);
+	serf->state = SERF_STATE_LEAVING_BUILDING;
+}
+
 static void
 handle_serf_walking_state_dest_reached(serf_t *serf)
 {
@@ -397,13 +431,7 @@ handle_serf_walking_state_dest_reached(serf_t *serf)
 			serf_log_state_change(serf, SERF_STATE_READY_TO_ENTER);
 			serf->state = SERF_STATE_READY_TO_ENTER;
 		} else {
-			serf->counter = 0;
-			serf_start_walking(serf, DIR_UP_LEFT, 32, 1);
-			serf->anim = globals.anim;
-			serf_log_state_change(serf, SERF_STATE_ENTERING_BUILDING);
-			serf->state = SERF_STATE_ENTERING_BUILDING;
-			int slope = road_bld_slope_arr[(building->bld >> 2) & 0x3f];
-			serf->s.entering_building.slope_len = (slope * serf->counter) >> 5;
+			serf_enter_building(serf, serf->s.walking.res, 0);
 		}
 	} else if (serf->s.walking.res == 6) {
 		serf_log_state_change(serf, SERF_STATE_LOOKING_FOR_GEO_SPOT);
@@ -1193,24 +1221,15 @@ handle_serf_ready_to_enter_state(serf_t *serf)
 		return;
 	}
 
-	serf->counter = 0;
-	serf_start_walking(serf, DIR_UP_LEFT, 32, 1);
-	serf->anim = globals.anim;
-
-	building_t *building = game_get_building(MAP_OBJ_INDEX(new_pos));
-
-	int slope = road_bld_slope_arr[(building->bld >> 2) & 0x3f];
-	int field_B = serf->s.ready_to_enter.field_B;
-
-	serf_log_state_change(serf, SERF_STATE_ENTERING_BUILDING);
-	serf->state = SERF_STATE_ENTERING_BUILDING;
-	serf->s.entering_building.slope_len = (slope * serf->counter) >> 5;
-	serf->s.entering_building.field_B = field_B;
+	serf_enter_building(serf, serf->s.ready_to_enter.field_B, 0);
 }
 
 static void
 handle_serf_ready_to_leave_state(serf_t *serf)
 {
+	serf->anim = globals.anim;
+	serf->counter = 0;
+
 	map_pos_t new_pos = MAP_MOVE_DOWN_RIGHT(serf->pos);
 
 	if ((MAP_SERF_INDEX(serf->pos) != SERF_INDEX(serf) &&
@@ -1221,14 +1240,7 @@ handle_serf_ready_to_leave_state(serf_t *serf)
 		return;
 	}
 
-	building_t *building = game_get_building(MAP_OBJ_INDEX(serf->pos));
-	int slope = 31 - road_bld_slope_arr[(building->bld >> 2) & 0x3f];
-	serf->counter = 0;
-	serf_start_walking(serf, DIR_DOWN_RIGHT, slope, 1);
-	serf->anim = globals.anim;
-
-	serf_log_state_change(serf, SERF_STATE_LEAVING_BUILDING);
-	serf->state = SERF_STATE_LEAVING_BUILDING;
+	serf_leave_building(serf, 0);
 }
 
 static void
@@ -1513,6 +1525,9 @@ handle_serf_building_castle_state(serf_t *serf)
 static void
 handle_serf_move_resource_out_state(serf_t *serf)
 {
+	serf->anim = globals.anim;
+	serf->counter = 0;
+
 	if ((MAP_SERF_INDEX(serf->pos) != SERF_INDEX(serf) &&
 	     MAP_SERF_INDEX(serf->pos) != 0) ||
 	    MAP_SERF_INDEX(MAP_MOVE_DOWN_RIGHT(serf->pos)) != 0) {
@@ -1533,18 +1548,11 @@ handle_serf_move_resource_out_state(serf_t *serf)
 		return;
 	}
 
-	building_t *building = game_get_building(MAP_OBJ_INDEX(serf->pos));
-	int slope = 31 - road_bld_slope_arr[(building->bld >> 2) & 0x3f];
-	serf->counter = 0;
-	serf_start_walking(serf, DIR_DOWN_RIGHT, slope, 1);
-	serf->anim = globals.anim;
-
 	uint res = serf->s.move_resource_out.res;
 	uint res_dest = serf->s.move_resource_out.res_dest;
 	serf_state_t next_state = serf->s.move_resource_out.next_state;
 
-	serf_log_state_change(serf, SERF_STATE_LEAVING_BUILDING);
-	serf->state = SERF_STATE_LEAVING_BUILDING;
+	serf_leave_building(serf, 0);
 	serf->s.leaving_building.next_state = next_state;
 	serf->s.leaving_building.field_B = res;
 	serf->s.leaving_building.dest = res_dest;
@@ -1649,6 +1657,9 @@ handle_serf_delivering_state(serf_t *serf)
 static void
 handle_serf_ready_to_leave_inventory_state(serf_t *serf)
 {
+	serf->anim = globals.anim;
+	serf->counter = 0;
+
 	if (MAP_SERF_INDEX(serf->pos) != 0 ||
 	    MAP_SERF_INDEX(MAP_MOVE_DOWN_RIGHT(serf->pos)) != 0) {
 		serf->animation = 82;
@@ -1674,22 +1685,11 @@ handle_serf_ready_to_leave_inventory_state(serf_t *serf)
 	if (serf->s.ready_to_leave_inventory.mode == -3) {
 		next_state = SERF_STATE_SCATTER;
 	}
-	LOGV("serf", "serf %i: next state is %s.", SERF_INDEX(serf), serf_state_name[next_state]);
-
-	map_set_serf_index(serf->pos, 0);
-	map_set_serf_index(MAP_MOVE_DOWN_RIGHT(serf->pos), SERF_INDEX(serf));
-
-	building_t *building = game_get_building(MAP_OBJ_INDEX(serf->pos));
-	int slope = 31 - road_bld_slope_arr[(building->bld >> 2) & 0x3f];
-	serf->counter = 0;
-	serf_start_walking(serf, DIR_DOWN_RIGHT, slope, 1);
-	serf->anim = globals.anim;
 
 	int mode = serf->s.ready_to_leave_inventory.mode;
 	uint dest = serf->s.ready_to_leave_inventory.dest;
 
-	serf_log_state_change(serf, SERF_STATE_LEAVING_BUILDING);
-	serf->state = SERF_STATE_LEAVING_BUILDING;
+	serf_leave_building(serf, 0);
 	serf->s.leaving_building.next_state = next_state;
 	serf->s.leaving_building.field_B = mode;
 	serf->s.leaving_building.dest = dest;
@@ -3751,16 +3751,12 @@ handle_serf_knight_prepare_attacking(serf_t *serf)
 static void
 handle_serf_knight_leave_for_fight_state(serf_t *serf)
 {
+	serf->anim = globals.anim;
+	serf->counter = 0;
+
 	if (MAP_SERF_INDEX(serf->pos) == SERF_INDEX(serf) ||
 	    MAP_SERF_INDEX(serf->pos) == 0) {
-		building_t *building = game_get_building(MAP_OBJ_INDEX(serf->pos));
-		int slope = road_bld_slope_arr[(building->bld >> 2) & 0x3f];
-		serf->counter = 0;
-		serf_start_walking(serf, DIR_DOWN_RIGHT, slope, 0);
-		serf->anim = globals.anim;
-
-		serf_log_state_change(serf, SERF_STATE_LEAVING_BUILDING);
-		serf->state = SERF_STATE_LEAVING_BUILDING;
+		serf_leave_building(serf, 1);
 	}
 }
 
@@ -3823,18 +3819,7 @@ handle_knight_attacking(serf_t *serf)
 					serf->type = (serf->type & 0x80) | (SERF_DEAD << 2) | SERF_PLAYER(serf);
 				} else {
 					/* Defender returns to building. */
-					def_serf->anim = globals.anim;
-					def_serf->counter = 0;
-					serf_log_state_change(def_serf, SERF_STATE_ENTERING_BUILDING);
-					def_serf->state = SERF_STATE_ENTERING_BUILDING;
-
-					serf_start_walking(def_serf, DIR_UP_LEFT, 32, 0);
-					map_set_serf_index(def_serf->pos, SERF_INDEX(def_serf));
-
-					building_t *building = game_get_building(MAP_OBJ_INDEX(def_serf->pos));
-					int slope = road_bld_slope_arr[(building->bld >> 2) & 0x3f];
-					def_serf->s.entering_building.slope_len = (slope * def_serf->counter) >> 5;
-					def_serf->s.entering_building.field_B = -1;
+					serf_enter_building(def_serf, -1, 1);
 
 					/* Attacker dies. */
 					serf_log_state_change(serf, SERF_STATE_KNIGHT_ATTACKING_DEFEAT);
@@ -3953,15 +3938,7 @@ handle_knight_occupy_enemy_building(serf_t *serf)
 						(building->stock1 & 0xf);
 					if (current < max_knights) {
 						/* Enter building */
-						serf_log_state_change(serf, SERF_STATE_ENTERING_BUILDING);
-						serf->state = SERF_STATE_ENTERING_BUILDING;
-
-						serf_start_walking(serf, DIR_UP_LEFT, 32, 1);
-
-						int slope = road_bld_slope_arr[(building->bld >> 2) & 0x3f];
-						serf->s.entering_building.slope_len = (slope * serf->counter) >> 5;
-						serf->s.entering_building.field_B = -1;
-
+						serf_enter_building(serf, -1, 0);
 						building->stock1 += 1;
 						return;
 					}
@@ -3973,15 +3950,7 @@ handle_knight_occupy_enemy_building(serf_t *serf)
 						serf->counter = 0;
 					} else {
 						/* Enter building */
-						serf_log_state_change(serf, SERF_STATE_ENTERING_BUILDING);
-						serf->state = SERF_STATE_ENTERING_BUILDING;
-
-						serf_start_walking(serf, DIR_UP_LEFT, 32, 1);
-
-						int slope = road_bld_slope_arr[(building->bld >> 2) & 0x3f];
-						serf->s.entering_building.slope_len = (slope * serf->counter) >> 5;
-						serf->s.entering_building.field_B = -1;
-
+						serf_enter_building(serf, -1, 0);
 						building->stock1 = 1;
 					}
 					return;
@@ -4119,6 +4088,7 @@ handle_state_knight_engage_attacking_free_join(serf_t *serf)
 		map_pos_t other_pos = other->pos;
 		serf_log_state_change(other, SERF_STATE_KNIGHT_PREPARE_DEFENDING_FREE);
 		other->state = SERF_STATE_KNIGHT_PREPARE_DEFENDING_FREE;
+		other->counter = serf->counter;
 
 		/* Adjust distance to final destination. */
 		dir_t d = serf->s.attacking.field_D;
@@ -4271,6 +4241,9 @@ handle_knight_attacking_free_wait(serf_t *serf)
 static void
 handle_serf_state_knight_leave_for_walk_to_fight(serf_t *serf)
 {
+	serf->anim = globals.anim;
+	serf->counter = 0;
+
 	if (MAP_SERF_INDEX(serf->pos) != SERF_INDEX(serf) &&
 	    MAP_SERF_INDEX(serf->pos) != 0) {
 		serf->animation = 82;
@@ -4282,15 +4255,6 @@ handle_serf_state_knight_leave_for_walk_to_fight(serf_t *serf)
 	map_pos_t new_pos = MAP_MOVE_DOWN_RIGHT(serf->pos);
 
 	if (MAP_SERF_INDEX(new_pos) == 0) {
-		map_set_serf_index(serf->pos, 0);
-		map_set_serf_index(new_pos, SERF_INDEX(serf));
-		serf->pos = new_pos;
-
-		int slope = 31 - road_bld_slope_arr[(building->bld >> 2) & 0x3f];
-		serf->animation = get_walking_animation(MAP_HEIGHT(new_pos) - MAP_HEIGHT(serf->pos), DIR_DOWN_RIGHT);
-		serf->counter = (slope * counter_from_animation[serf->animation]) >> 5;
-		serf->anim = globals.anim;
-
 		/* For clean state change, save the values first. */
 		/* TODO maybe knight_leave_for_walk_to_fight can
 		   share leaving_building state vars. */
@@ -4300,8 +4264,7 @@ handle_serf_state_knight_leave_for_walk_to_fight(serf_t *serf)
 		int field_E = serf->s.leave_for_walk_to_fight.field_E;
 		serf_state_t next_state = serf->s.leave_for_walk_to_fight.next_state;
 
-		serf_log_state_change(serf, SERF_STATE_LEAVING_BUILDING);
-		serf->state = SERF_STATE_LEAVING_BUILDING;
+		serf_leave_building(serf, 0);
 		/* TODO names for leaving_building vars make no sense here. */
 		serf->s.leaving_building.field_B = dist_col;
 		serf->s.leaving_building.dest = dist_row;
