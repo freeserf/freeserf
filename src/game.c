@@ -2645,7 +2645,7 @@ mark_serf_as_lost(serf_t *serf)
 			lose_transported_resource(res, dest);
 		}
 
-		if (serf->type != SERF_SAILOR) {
+		if (SERF_TYPE(serf) != SERF_SAILOR) {
 			serf_log_state_change(serf, SERF_STATE_LOST);
 			serf->state = SERF_STATE_LOST;
 			serf->s.lost.field_B = 0;
