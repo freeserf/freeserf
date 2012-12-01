@@ -45,4 +45,7 @@ void game_calculate_military_flag_state(building_t *building);
 void game_update_land_ownership(int col, int row);
 void game_occupy_enemy_building(building_t *building, int player);
 
+void game_set_inventory_resource_mode(inventory_t *inventory, int mode);
+void game_set_inventory_serf_mode(inventory_t *inventory, int mode);
+
 #endif /* !_GAME_H */

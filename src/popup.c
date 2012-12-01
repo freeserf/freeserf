@@ -2977,6 +2977,22 @@ sett_8_train(player_t *player, int number)
 	player_open_popup(player, player->clkmap);
 }
 
+static void
+set_inventory_resource_mode(player_t *player, int mode)
+{
+	building_t *building = game_get_building(player->sett->index);
+	inventory_t *inventory = building->u.inventory;
+	game_set_inventory_resource_mode(inventory, mode);
+}
+
+static void
+set_inventory_serf_mode(player_t *player, int mode)
+{
+	building_t *building = game_get_building(player->sett->index);
+	inventory_t *inventory = building->u.inventory;
+	game_set_inventory_serf_mode(inventory, mode);
+}
+
 /* Generic handler for clicks in popup boxes. */
 static int
 handle_clickmap(player_t *player, int x, int y, const int clkmap[])
@@ -3517,7 +3533,16 @@ handle_clickmap(player_t *player, int x, int y, const int clkmap[])
 			case ACTION_SEND_GEOLOGIST:
 				handle_send_geologist(player);
 				break;
-				/* TODO */
+			case ACTION_RES_MODE_IN:
+			case ACTION_RES_MODE_STOP:
+			case ACTION_RES_MODE_OUT:
+				set_inventory_resource_mode(player, action - ACTION_RES_MODE_IN);
+				break;
+			case ACTION_SERF_MODE_IN:
+			case ACTION_SERF_MODE_STOP:
+			case ACTION_SERF_MODE_OUT:
+				set_inventory_serf_mode(player, action - ACTION_SERF_MODE_IN);
+				break;
 			case ACTION_SHOW_SETT_8:
 				player_open_popup(player, BOX_SETT_8);
 				break;
@@ -3577,7 +3602,6 @@ handle_clickmap(player_t *player, int x, int y, const int clkmap[])
 					player->sett->attacking_knights[2] +
 					player->sett->attacking_knights[3];
 				break;
-				/* TODO ... */
 			case ACTION_MINIMAP_BLD_1:
 			case ACTION_MINIMAP_BLD_2:
 			case ACTION_MINIMAP_BLD_3:

@@ -3434,3 +3434,117 @@ game_occupy_enemy_building(building_t *building, int player)
 		}
 	}
 }
+
+/* mode: 0: IN, 1: STOP, 2: OUT */
+void
+game_set_inventory_resource_mode(inventory_t *inventory, int mode)
+{
+	flag_t *flag = game_get_flag(inventory->flg_index);
+
+	if (mode == 0) {
+		inventory->res_dir = (inventory->res_dir & 0xfc) | 0;
+	} else if (mode == 1) {
+		inventory->res_dir = (inventory->res_dir & 0xfc) | 1;
+	} else {
+		inventory->res_dir = (inventory->res_dir & 0xfc) | 3;
+	}
+
+	if (mode > 0) {
+		flag->bld2_flags &= ~BIT(7);
+
+		/* Clear destination of serfs with resources destined
+		   for this inventory. */
+		int dest = FLAG_INDEX(flag);
+		for (int i = 1; i < globals.max_ever_serf_index; i++) {
+			if (BIT_TEST(globals.serfs_bitmap[i>>3], 7-(i&7))) {
+				serf_t *serf = game_get_serf(i);
+
+				switch (serf->state) {
+				case SERF_STATE_TRANSPORTING:
+					if (serf->s.walking.dest == dest) {
+						serf->s.walking.dest = 0;
+					}
+					break;
+				case SERF_STATE_DROP_RESOURCE_OUT:
+					if (serf->s.move_resource_out.res_dest == dest) {
+						serf->s.move_resource_out.res_dest = 0;
+					}
+					break;
+				case SERF_STATE_LEAVING_BUILDING:
+					if (serf->s.leaving_building.dest == dest &&
+					    serf->s.leaving_building.next_state == SERF_STATE_DROP_RESOURCE_OUT) {
+						serf->s.leaving_building.dest = 0;
+					}
+					break;
+				case SERF_STATE_MOVE_RESOURCE_OUT:
+					if (serf->s.move_resource_out.res_dest == dest &&
+					    serf->s.move_resource_out.next_state == SERF_STATE_DROP_RESOURCE_OUT) {
+						serf->s.move_resource_out.res_dest = 0;
+					}
+					break;
+				default:
+					break;
+				}
+			}
+		}
+	} else {
+		flag->bld2_flags |= BIT(7);
+	}
+}
+
+/* mode: 0: IN, 1: STOP, 2: OUT */
+void
+game_set_inventory_serf_mode(inventory_t *inventory, int mode)
+{
+	flag_t *flag = game_get_flag(inventory->flg_index);
+
+	if (mode == 0) {
+		inventory->res_dir = (inventory->res_dir & 0xf3) | (0 << 2);
+	} else if (mode == 1) {
+		inventory->res_dir = (inventory->res_dir & 0xf3) | (1 << 2);
+	} else {
+		inventory->res_dir = (inventory->res_dir & 0xf3) | (3 << 2);
+	}
+
+	if (mode > 0) {
+		flag->bld_flags &= ~BIT(7);
+
+		/* Clear destination of serfs destined for this inventory. */
+		int dest = FLAG_INDEX(flag);
+		for (int i = 1; i < globals.max_ever_serf_index; i++) {
+			if (BIT_TEST(globals.serfs_bitmap[i>>3], 7-(i&7))) {
+				serf_t *serf = game_get_serf(i);
+
+				switch (serf->state) {
+				case SERF_STATE_WALKING:
+					if (serf->s.walking.dest == dest &&
+					    serf->s.walking.res < 0) {
+						serf->s.walking.res = -2;
+						serf->s.walking.dest = 0;
+					}
+					break;
+				case SERF_STATE_READY_TO_LEAVE_INVENTORY:
+					if (serf->s.ready_to_leave_inventory.dest == dest &&
+					    serf->s.ready_to_leave_inventory.mode < 0) {
+						serf->s.ready_to_leave_inventory.mode = -2;
+						serf->s.ready_to_leave_inventory.dest = 0;
+					}
+					break;
+				case SERF_STATE_LEAVING_BUILDING:
+				case SERF_STATE_READY_TO_LEAVE:
+					if (serf->s.leaving_building.dest == dest &&
+					    serf->s.leaving_building.field_B < 0 &&
+					    serf->s.leaving_building.next_state == SERF_STATE_WALKING) {
+						serf->s.leaving_building.field_B = -2;
+						serf->s.leaving_building.dest = 0;
+					}
+					break;
+				default:
+					break;
+				}
+			}
+		}
+	} else {
+		flag->bld_flags |= BIT(7);
+	}
+}
