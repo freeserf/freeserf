@@ -115,7 +115,7 @@ static const char *serf_state_name[] = {
 	[SERF_STATE_DEFENDING_HUT] = "DEFENDING HUT",
 	[SERF_STATE_DEFENDING_TOWER] = "DEFENDING TOWER",
 	[SERF_STATE_DEFENDING_FORTRESS] = "DEFENDING FORTRESS",
-	[SERF_STATE_73] = "STATE 73",
+	[SERF_STATE_SCATTER] = "SCATTER",
 	[SERF_STATE_FINISHED_BUILDING] = "FINISHED BUILDING",
 	[SERF_STATE_DEFENDING_CASTLE] = "DEFENDING CASTLE"
 };
@@ -1172,7 +1172,8 @@ handle_serf_leaving_building_state(serf_t *serf)
 			serf->s.free_walking.neg_dist1 = neg_dist1;
 			serf->s.free_walking.neg_dist2 = neg_dist2;
 			serf->s.free_walking.flags = 0;
-		} else if (serf->state == SERF_STATE_KNIGHT_PREPARE_DEFENDING) {
+		} else if (serf->state == SERF_STATE_KNIGHT_PREPARE_DEFENDING ||
+			   serf->state == SERF_STATE_SCATTER) {
 			/* No state. */
 		} else {
 			LOGD("serf", "unhandled next state when leaving building.");
@@ -1669,7 +1670,9 @@ handle_serf_ready_to_leave_inventory_state(serf_t *serf)
 	game_get_inventory(serf->s.ready_to_leave_inventory.inv_index)->serfs[SERF_4] -= 1;
 
 	serf_state_t next_state = SERF_STATE_WALKING;
-	if (serf->s.ready_to_leave_inventory.mode == -3) next_state = SERF_STATE_73;
+	if (serf->s.ready_to_leave_inventory.mode == -3) {
+		next_state = SERF_STATE_SCATTER;
+	}
 	LOGV("serf", "serf %i: next state is %s.", SERF_INDEX(serf), serf_state_name[next_state]);
 
 	map_set_serf_index(serf->pos, 0);
@@ -4386,6 +4389,45 @@ handle_serf_wait_idle_on_path_state(serf_t *serf)
 }
 
 static void
+handle_scatter_state(serf_t *serf)
+{
+	/* Choose a random, empty destination */
+	int src_col = serf->pos & globals.map_col_mask;
+	int src_row = (serf->pos >> globals.map_row_shift) & globals.map_row_mask;
+
+	while (1) {
+		int r = random_int();
+		int col = (r & 0xf);
+		if (col < 8) col -= 16;
+		int row = ((r >> 8) & 0xf);
+		if (row < 8) row -= 16;
+
+		int dest_col = (src_col + col) & globals.map_col_mask;
+		int dest_row = (src_row + row) & globals.map_row_mask;
+
+		map_pos_t dest = (dest_row << globals.map_row_shift) | dest_col;
+		if (MAP_OBJ(dest) == 0 && MAP_HEIGHT(dest) > 0) {
+			if (SERF_TYPE(serf) >= SERF_KNIGHT_0 &&
+			    SERF_TYPE(serf) >= SERF_KNIGHT_4) {
+				serf_log_state_change(serf, SERF_STATE_KNIGHT_FREE_WALKING);
+				serf->state = SERF_STATE_KNIGHT_FREE_WALKING;
+			} else {
+				serf_log_state_change(serf, SERF_STATE_FREE_WALKING);
+				serf->state = SERF_STATE_FREE_WALKING;
+			}
+
+			serf->s.free_walking.dist1 = col;
+			serf->s.free_walking.dist2 = row;
+			serf->s.free_walking.neg_dist1 = -128;
+			serf->s.free_walking.neg_dist2 = -1;
+			serf->s.free_walking.flags = 0;
+			serf->counter = 0;
+			return;
+		}
+	}
+}
+
+static void
 handle_serf_finished_building_state(serf_t *serf)
 {
 	if (MAP_SERF_INDEX(MAP_MOVE_DOWN_RIGHT(serf->pos)) == 0) {
@@ -4704,6 +4746,9 @@ update_serf(serf_t *serf)
 		break;
 	case SERF_STATE_DEFENDING_FORTRESS:
 		handle_serf_defending_fortress_state(serf);
+		break;
+	case SERF_STATE_SCATTER:
+		handle_scatter_state(serf);
 		break;
 	case SERF_STATE_FINISHED_BUILDING:
 		handle_serf_finished_building_state(serf);
