@@ -2710,7 +2710,7 @@ remove_road_forwards(map_pos_t pos, dir_t dir)
 						case SERF_STATE_READY_TO_LEAVE_INVENTORY:
 							if (serf->s.ready_to_leave_inventory.dest == dest &&
 							    serf->s.ready_to_leave_inventory.mode == rev_dir) {
-								serf->s.ready_to_leave_inventory.dest = -2;
+								serf->s.ready_to_leave_inventory.mode = -2;
 								serf->s.ready_to_leave_inventory.dest = 0;
 							}
 							break;
