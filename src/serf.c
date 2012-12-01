@@ -2593,10 +2593,56 @@ handle_serf_lost_state(serf_t *serf)
 			}
 		}
 
-		/* TODO choose a random direction */
-		LOGD("serf", "serf %i lost: no dest found.", SERF_INDEX(serf));
-		serf->state = SERF_STATE_NULL;
-		serf->counter = 0;
+		/* Choose a random destination */
+		int src_col = serf->pos & globals.map_col_mask;
+		int src_row = (serf->pos >> globals.map_row_shift) & globals.map_row_mask;
+
+		uint size = 16;
+		int tries = 10;
+
+		while (1) {
+			tries -= 1;
+			if (tries < 0) {
+				if (size < 64) {
+					tries = 19;
+					size *= 2;
+				} else {
+					tries = -1;
+					size = 16;
+				}
+			}
+
+			int r = random_int();
+			int col = (r & (size-1)) - (size/2);
+			int row = ((r >> 8) & (size-1)) - (size/2);
+
+			int dest_col = (src_col + col) & globals.map_col_mask;
+			int dest_row = (src_row + row) & globals.map_row_mask;
+
+			map_pos_t dest = (dest_row << globals.map_row_shift) | dest_col;
+			if (MAP_OBJ(dest) == 0 &&
+			    MAP_HEIGHT(dest) > 0 &&
+			    (MAP_HAS_FLAG(dest) ||
+			     (MAP_HAS_OWNER(dest) &&
+			      MAP_OWNER(dest) == SERF_PLAYER(serf)))) {
+				if (SERF_TYPE(serf) >= SERF_KNIGHT_0 &&
+				    SERF_TYPE(serf) <= SERF_KNIGHT_4) {
+					serf_log_state_change(serf, SERF_STATE_KNIGHT_FREE_WALKING);
+					serf->state = SERF_STATE_KNIGHT_FREE_WALKING;
+				} else {
+					serf_log_state_change(serf, SERF_STATE_FREE_WALKING);
+					serf->state = SERF_STATE_FREE_WALKING;
+				}
+
+				serf->s.free_walking.dist1 = col;
+				serf->s.free_walking.dist2 = row;
+				serf->s.free_walking.neg_dist1 = -128;
+				serf->s.free_walking.neg_dist2 = -1;
+				serf->s.free_walking.flags = 0;
+				serf->counter = 0;
+				return;
+			}
+		}
 	}
 }
 
