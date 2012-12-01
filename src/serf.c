@@ -63,7 +63,7 @@ static const char *serf_state_name[] = {
 	[SERF_STATE_PLANNING_PLANTING] = "PLANNING PLANTING",
 	[SERF_STATE_PLANTING] = "PLANTING",
 	[SERF_STATE_PLANNING_STONECUTTING] = "PLANNING STONECUTTING",
-	[SERF_STATE_22] = "STATE 22",
+	[SERF_STATE_STONECUTTER_FREE_WALKING] = "STONECUTTER FREE WALKING",
 	[SERF_STATE_STONECUTTING] = "STONECUTTING",
 	[SERF_STATE_SAWING] = "SAWING",
 	[SERF_STATE_LOST] = "LOST",
@@ -1162,7 +1162,8 @@ handle_serf_leaving_building_state(serf_t *serf)
 			serf->s.move_resource_out.res = res;
 			serf->s.move_resource_out.res_dest = res_dest;
 		} else if (serf->state == SERF_STATE_FREE_WALKING ||
-			   serf->state == SERF_STATE_KNIGHT_FREE_WALKING) {
+			   serf->state == SERF_STATE_KNIGHT_FREE_WALKING ||
+			   serf->state == SERF_STATE_STONECUTTER_FREE_WALKING) {
 			int dist1 = serf->s.leaving_building.field_B;
 			int dist2 = serf->s.leaving_building.dest;
 			int neg_dist1 = serf->s.leaving_building.dest2;
@@ -2259,7 +2260,7 @@ switch_with_other:;
 				break;
 			} else if ((other_serf->state == SERF_STATE_FREE_WALKING ||
 				    other_serf->state == SERF_STATE_KNIGHT_FREE_WALKING ||
-				    other_serf->state == SERF_STATE_22) &&
+				    other_serf->state == SERF_STATE_STONECUTTER_FREE_WALKING) &&
 				   other_serf->animation == 82) {
 				/* Move other free walking serf in opposite direction. */
 				int dx = ((dir < 3) ? 1 : -1)*((dir % 3) < 2);
@@ -2475,7 +2476,7 @@ handle_serf_planning_stonecutting(serf_t *serf)
 			serf->s.leaving_building.dest = globals.spiral_pattern[2*index+1] - 1;
 			serf->s.leaving_building.dest2 = -globals.spiral_pattern[2*index] + 1;
 			serf->s.leaving_building.dir = -globals.spiral_pattern[2*index+1] + 1;
-			serf->s.leaving_building.next_state = SERF_STATE_FREE_WALKING/*SERF_STATE_22*/;
+			serf->s.leaving_building.next_state = SERF_STATE_STONECUTTER_FREE_WALKING;
 			LOGV("serf", "planning stonecutting: stone found, dist %i, %i.",
 			     serf->s.leaving_building.field_B,
 			     serf->s.leaving_building.dest);
@@ -2483,6 +2484,29 @@ handle_serf_planning_stonecutting(serf_t *serf)
 		}
 
 		serf->counter += 100;
+	}
+}
+
+static void
+handle_stonecutter_free_walking(serf_t *serf)
+{
+	uint16_t delta = globals.anim - serf->anim;
+	serf->anim = globals.anim;
+	serf->counter -= delta;
+
+	while (serf->counter < 0) {
+		map_pos_t pos = MAP_MOVE_UP_LEFT(serf->pos);
+		if (MAP_SERF_INDEX(pos) == 0 &&
+		    MAP_OBJ(pos) >= MAP_OBJ_STONE_0 &&
+		    MAP_OBJ(pos) <= MAP_OBJ_STONE_7) {
+			serf->s.free_walking.neg_dist1 += serf->s.free_walking.dist1;
+			serf->s.free_walking.neg_dist2 += serf->s.free_walking.dist2;
+			serf->s.free_walking.dist1 = 0;
+			serf->s.free_walking.dist2 = 0;
+			serf->s.free_walking.flags = 8;
+		}
+
+		handle_free_walking_common(serf);
 	}
 }
 
@@ -4595,8 +4619,8 @@ update_serf(serf_t *serf)
 	case SERF_STATE_PLANNING_STONECUTTING:
 		handle_serf_planning_stonecutting(serf);
 		break;
-	case SERF_STATE_22:
-		/* TODO */
+	case SERF_STATE_STONECUTTER_FREE_WALKING:
+		handle_stonecutter_free_walking(serf);
 		break;
 	case SERF_STATE_STONECUTTING:
 		handle_serf_stonecutting_state(serf);
