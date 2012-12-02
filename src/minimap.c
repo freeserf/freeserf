@@ -208,8 +208,8 @@ static int
 minimap_handle_event_click(minimap_t *minimap, int x, int y)
 {
 	map_pos_t pos = minimap_map_pos_from_screen_pix(minimap, x, y);
-	int col = pos & globals.map_col_mask;
-	int row = (pos >> globals.map_row_shift) & globals.map_row_mask;
+	int col = MAP_POS_COL(pos);
+	int row = MAP_POS_ROW(pos);
 
 	viewport_move_to_map_pos(gui_get_top_viewport(), col, row);
 
@@ -365,8 +365,8 @@ minimap_get_current_map_pos(minimap_t *minimap, int *col, int *row)
 		minimap_map_pos_from_screen_pix(minimap,
 						minimap->obj.width/2,
 						minimap->obj.height/2);
-	*col = pos & globals.map_col_mask;
-	*row = (pos >> globals.map_row_shift) & globals.map_row_mask;
+	*col = MAP_POS_COL(pos);
+	*row = MAP_POS_ROW(pos);
 }
 
 void

@@ -1937,12 +1937,12 @@ player_start_attack(player_sett_t *sett)
 			target->progress |= BIT(0);
 
 			/* Calculate distance to target. */
-			int dist_col = ((target->pos & globals.map_col_mask) -
-					(def_serf->pos & globals.map_col_mask)) & globals.map_col_mask;
+			int dist_col = (MAP_POS_COL(target->pos) -
+					MAP_POS_COL(def_serf->pos)) & globals.map_col_mask;
 			if (dist_col >= globals.map_col_pairs) dist_col -= globals.map_cols;
 
-			int dist_row = (((target->pos >> globals.map_row_shift) & globals.map_col_mask) -
-					((def_serf->pos >> globals.map_row_shift) & globals.map_row_mask)) & globals.map_row_mask;
+			int dist_row = (MAP_POS_ROW(target->pos) -
+					MAP_POS_ROW(def_serf->pos)) & globals.map_row_mask;
 			if (dist_row >= globals.map_row_pairs) dist_row -= globals.map_rows;
 
 			/* Send this serf off to fight. */

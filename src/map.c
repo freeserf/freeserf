@@ -1458,7 +1458,7 @@ map_update()
 		if (globals.update_map_16_loop < 0) globals.update_map_16_loop = 16;
 
 		/* Test if moving 23 positions right crosses map boundary. */
-		if ((pos & globals.map_col_mask) + 23 < globals.map_cols) {
+		if (MAP_POS_COL(pos) + 23 < globals.map_cols) {
 			pos = MAP_MOVE_RIGHT_N(pos, 23);
 		} else {
 			pos = MAP_MOVE_RIGHT_N(pos, 23);

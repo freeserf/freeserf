@@ -451,8 +451,8 @@ handle_message_icon_click(player_t *player)
 	if (BIT_TEST(0x8f3fe, type)) {
 		/* Move screen to new position */
 		map_pos_t new_pos = player->sett->msg_queue_pos[0];
-		int col = new_pos & globals.map_col_mask;
-		int row = (new_pos >> globals.map_row_shift) & globals.map_row_mask;
+		int col = MAP_POS_COL(new_pos);
+		int row = MAP_POS_ROW(new_pos);
 
 		viewport_t *viewport = gui_get_top_viewport();
 		viewport_move_to_map_pos(viewport, col, row);

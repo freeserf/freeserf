@@ -390,11 +390,10 @@ init_spiral_pos_pattern()
 	int *pattern = globals.spiral_pattern;
 
 	for (int i = 0; i < 295; i++) {
-		int x = pattern[2*i];
-		int y = pattern[2*i+1];
+		int x = pattern[2*i] & globals.map_col_mask;
+		int y = pattern[2*i+1] & globals.map_row_mask;
 
-		map_pos_t pos = ((y & globals.map_row_mask) << globals.map_row_shift) | (x & globals.map_col_mask);
-		globals.spiral_pos_pattern[i] = pos;
+		globals.spiral_pos_pattern[i] = MAP_POS(x, y);
 	}
 }
 

@@ -2625,8 +2625,8 @@ handle_serf_lost_state(serf_t *serf)
 		}
 
 		/* Choose a random destination */
-		int src_col = serf->pos & globals.map_col_mask;
-		int src_row = (serf->pos >> globals.map_row_shift) & globals.map_row_mask;
+		int src_col = MAP_POS_COL(serf->pos);
+		int src_row = MAP_POS_ROW(serf->pos);
 
 		uint size = 16;
 		int tries = 10;
@@ -2650,7 +2650,7 @@ handle_serf_lost_state(serf_t *serf)
 			int dest_col = (src_col + col) & globals.map_col_mask;
 			int dest_row = (src_row + row) & globals.map_row_mask;
 
-			map_pos_t dest = (dest_row << globals.map_row_shift) | dest_col;
+			map_pos_t dest = MAP_POS(dest_col, dest_row);
 			if (MAP_OBJ(dest) == 0 &&
 			    MAP_HEIGHT(dest) > 0 &&
 			    (MAP_HAS_FLAG(dest) ||
@@ -2708,8 +2708,8 @@ handle_lost_sailor(serf_t *serf)
 		}
 
 		/* Choose a random, empty destination */
-		int src_col = serf->pos & globals.map_col_mask;
-		int src_row = (serf->pos >> globals.map_row_shift) & globals.map_row_mask;
+		int src_col = MAP_POS_COL(serf->pos);
+		int src_row = MAP_POS_ROW(serf->pos);
 
 		while (1) {
 			int r = random_int();
@@ -2719,7 +2719,7 @@ handle_lost_sailor(serf_t *serf)
 			int dest_col = (src_col + col) & globals.map_col_mask;
 			int dest_row = (src_row + row) & globals.map_row_mask;
 
-			map_pos_t dest = (dest_row << globals.map_row_shift) | dest_col;
+			map_pos_t dest = MAP_POS(dest_col, dest_row);
 			if (MAP_OBJ(dest) == 0) {
 				serf_log_state_change(serf, SERF_STATE_FREE_SAILING);
 				serf->state = SERF_STATE_FREE_SAILING;
@@ -4377,8 +4377,8 @@ static void
 handle_scatter_state(serf_t *serf)
 {
 	/* Choose a random, empty destination */
-	int src_col = serf->pos & globals.map_col_mask;
-	int src_row = (serf->pos >> globals.map_row_shift) & globals.map_row_mask;
+	int src_col = MAP_POS_COL(serf->pos);
+	int src_row = MAP_POS_ROW(serf->pos);
 
 	while (1) {
 		int r = random_int();
@@ -4390,7 +4390,7 @@ handle_scatter_state(serf_t *serf)
 		int dest_col = (src_col + col) & globals.map_col_mask;
 		int dest_row = (src_row + row) & globals.map_row_mask;
 
-		map_pos_t dest = (dest_row << globals.map_row_shift) | dest_col;
+		map_pos_t dest = MAP_POS(dest_col, dest_row);
 		if (MAP_OBJ(dest) == 0 && MAP_HEIGHT(dest) > 0) {
 			if (SERF_TYPE(serf) >= SERF_KNIGHT_0 &&
 			    SERF_TYPE(serf) >= SERF_KNIGHT_4) {

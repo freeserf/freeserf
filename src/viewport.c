@@ -2297,8 +2297,8 @@ viewport_handle_event_click(viewport_t *viewport, int x, int y, gui_event_button
 	player_t *player = viewport->player;
 
 	map_pos_t clk_pos = viewport_map_pos_from_screen_pix(viewport, x, y);
-	int clk_col = clk_pos & globals.map_col_mask;
-	int clk_row = (clk_pos >> globals.map_row_shift) & globals.map_col_mask;
+	int clk_col = MAP_POS_COL(clk_pos);
+	int clk_row = MAP_POS_ROW(clk_pos);
 
 	if (BIT_TEST(player->click, 7)) { /* Building road */
 		int y = (clk_col - player->sett->map_cursor_col + 1) & globals.map_col_mask;
@@ -2713,8 +2713,8 @@ viewport_get_current_map_pos(viewport_t *viewport, int *col, int *row)
 		viewport_map_pos_from_screen_pix(viewport,
 						 viewport->obj.width/2,
 						 viewport->obj.height/2);
-	*col = pos & globals.map_col_mask;
-	*row = (pos >> globals.map_row_shift) & globals.map_row_mask;
+	*col = MAP_POS_COL(pos);
+	*row = MAP_POS_ROW(pos);
 }
 
 void

@@ -31,6 +31,10 @@
 /* Translate col, row coordinate to map_pos_t value. */
 #define MAP_POS(x,y)  (((y)<<globals.map_row_shift) | (x))
 
+/* Extract col and row from map_pos_t */
+#define MAP_POS_COL(pos)  ((pos) & globals.map_col_mask)
+#define MAP_POS_ROW(pos)  (((pos)>>globals.map_row_shift) & globals.map_row_mask)
+
 
 /* Extractors for map data. */
 #define MAP_HAS_FLAG(pos)  ((int)((globals.map_mem2_ptr[(pos)].flags >> 7) & 1))
