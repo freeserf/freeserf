@@ -724,7 +724,7 @@ handle_serf_entering_building_state(serf_t *serf)
 				serf_log_state_change(serf, SERF_STATE_WAIT_FOR_RESOURCE_OUT);
 				serf->state = SERF_STATE_WAIT_FOR_RESOURCE_OUT;
 				serf->counter = 63;
-				serf->type = (SERF_4 << 2) | (serf->type & 83);
+				serf->type = (SERF_4 << 2) | (serf->type & 0x83);
 			}
 			break;
 		case SERF_SAILOR:
@@ -3869,7 +3869,7 @@ handle_knight_attacking(serf_t *serf)
 				def_serf->anim = globals.anim;
 				def_serf->animation = 147 + SERF_TYPE(serf);
 				def_serf->counter = 255;
-				def_serf->type = (def_serf->type & 0x80) | (27 << 2) | SERF_PLAYER(def_serf);
+				def_serf->type = (def_serf->type & 0x80) | (SERF_DEAD << 2) | SERF_PLAYER(def_serf);
 			}
 		} else {
 			/* Go to next move in fight sequence. */

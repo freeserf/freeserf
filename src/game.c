@@ -3017,7 +3017,7 @@ game_demolish_building(map_pos_t pos)
 
 			if (sett->serf_index != 0) {
 				serf_t *serf = game_get_serf(sett->serf_index);
-				serf->type = (0x83 & serf->type) | SERF_TRANSPORTER;
+				serf->type = (serf->type & 0x83) | (SERF_TRANSPORTER << 2);
 				serf->counter = 0;
 
 				if (MAP_SERF_INDEX(serf->pos) == SERF_INDEX(serf)) {
@@ -3052,7 +3052,7 @@ game_demolish_building(map_pos_t pos)
 		} else {
 			serf_t *serf = game_get_serf(serf_index);
 			if (SERF_TYPE(serf) == SERF_4) {
-				serf->type = (0x83 & serf->type) | SERF_TRANSPORTER;
+				serf->type = (serf->type & 0x83) | (SERF_TRANSPORTER << 2);
 			}
 
 			serf->counter = 0;
