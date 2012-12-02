@@ -1647,6 +1647,7 @@ handle_building_update(building_t *building)
 							serf->s.defending.next_knight = leaving_serf->s.defending.next_knight;
 							break;
 						}
+						serf_index = serf->s.defending.next_knight;
 					}
 				}
 
@@ -1881,6 +1882,7 @@ handle_building_update(building_t *building)
 							serf->s.defending.next_knight = leaving_serf->s.defending.next_knight;
 							break;
 						}
+						serf_index = serf->s.defending.next_knight;
 					}
 				}
 
@@ -1956,6 +1958,7 @@ handle_building_update(building_t *building)
 							serf->s.defending.next_knight = leaving_serf->s.defending.next_knight;
 							break;
 						}
+						serf_index = serf->s.defending.next_knight;
 					}
 				}
 
