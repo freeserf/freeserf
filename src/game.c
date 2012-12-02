@@ -286,7 +286,7 @@ game_spawn_serf(player_sett_t *sett, serf_t **serf, inventory_t **inventory, int
 	for (int i = 0; i < globals.max_ever_inventory_index; i++) {
 		if (BIT_TEST(globals.inventories_bitmap[i>>3], 7-(i&7))) {
 			inventory_t *loop_inv = game_get_inventory(i);
-			if (loop_inv->player_num == sett->player_num ||
+			if (loop_inv->player_num == sett->player_num &&
 			    !BIT_TEST(loop_inv->res_dir, 2)) { /* serf IN mode */
 				if (want_knight && (loop_inv->resources[RESOURCE_SWORD] == 0 ||
 						    loop_inv->resources[RESOURCE_SHIELD] == 0)) {
