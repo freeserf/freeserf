@@ -2224,11 +2224,9 @@ switch_on_dir:;
 	int dx = ((dir < 3) ? 1 : -1)*((dir % 3) < 2);
 	int dy = ((dir < 3) ? 1 : -1)*((dir % 3) > 0);
 
-#if 0
 	LOGV("serf", "free walking: dest %i, %i, move %i, %i.",
 	     serf->s.free_walking.dist1,
 	     serf->s.free_walking.dist2, dx, dy);
-#endif
 
 	serf->s.free_walking.dist1 -= dx;
 	serf->s.free_walking.dist2 -= dy;
