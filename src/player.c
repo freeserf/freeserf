@@ -148,7 +148,7 @@ static void
 populate_circular_map_pos_array(map_pos_t map_pos[], map_pos_t init_pos, int size)
 {
 	for (int i = 0; i < size; i++) {
-		map_pos[i] = (init_pos + globals.spiral_pos_pattern[i]) & globals.map_index_mask;
+		map_pos[i] = MAP_POS_ADD(init_pos, globals.spiral_pos_pattern[i]);
 	}
 }
 
@@ -564,13 +564,13 @@ player_build_road_end(player_t *player)
 	player->map_cursor_sprites[5].sprite = 33;
 	player->map_cursor_sprites[6].sprite = 33;
 
-	map_1_t *map = globals.map_mem2_ptr;
+	map_1_t *tiles1 = globals.map.tiles1;
 	map_pos_t pos = MAP_POS(player->sett->map_cursor_col, player->sett->map_cursor_row);
 
 	for (int i = 0; i < player->road_length; i++) {
 		dir_t backtrack_dir = -1;
 		for (dir_t d = 0; d < 6; d++) {
-			if (BIT_TEST(map[pos].flags, d)) {
+			if (BIT_TEST(tiles1[pos].flags, d)) {
 				backtrack_dir = d;
 				break;
 			}
@@ -578,8 +578,8 @@ player_build_road_end(player_t *player)
 
 		map_pos_t next_pos = MAP_MOVE(pos, backtrack_dir);
 
-		map[pos].flags &= ~BIT(backtrack_dir);
-		map[next_pos].flags &= ~BIT(DIR_REVERSE(backtrack_dir));
+		tiles1[pos].flags &= ~BIT(backtrack_dir);
+		tiles1[next_pos].flags &= ~BIT(DIR_REVERSE(backtrack_dir));
 		pos = next_pos;
 	}
 
@@ -1048,11 +1048,11 @@ player_build_flag(player_t *player)
 	flag->path_con = player->sett->player_num << 6;
 
 	map_pos_t map_cursor_pos = MAP_POS(player->sett->map_cursor_col, player->sett->map_cursor_row);
-	map_1_t *map = globals.map_mem2_ptr;
+	map_1_t *tiles1 = globals.map.tiles1;
 
 	flag->pos = map_cursor_pos;
 	map_set_object(map_cursor_pos, MAP_OBJ_FLAG, flg_index);
-	map[map_cursor_pos].flags |= BIT(7);
+	tiles1[map_cursor_pos].flags |= BIT(7);
 	/* move_map_resources(..); */
 
 	if (player->sett->map_cursor_type == 4) { /* built on existing road */
@@ -1119,8 +1119,8 @@ build_building(player_t *player, map_obj_t obj_type)
 
 	/* request_redraw_if_pos_visible(player->sett->map_cursor_col, player->sett->map_cursor_row); */
 
-	map_1_t *map = globals.map_mem2_ptr;
-	map_2_t *map_data = MAP_2_DATA(map);
+	map_1_t *tiles1 = globals.map.tiles1;
+	map_2_t *tiles2 = globals.map.tiles2;
 
 	map_pos_t pos = MAP_POS(player->sett->map_cursor_col, player->sett->map_cursor_row);
 	bld->u.s.level = player->sett->building_height_after_level;
@@ -1151,16 +1151,16 @@ build_building(player_t *player, map_obj_t obj_type)
 
 	/* move_map_resources(pos, map_data); */
 	/* TODO Resources should be moved, just set them to zero for now */
-	map_data[pos].u.s.resource = 0;
-	map_data[pos].u.s.field_1 = 0;
+	tiles2[pos].u.s.resource = 0;
+	tiles2[pos].u.s.field_1 = 0;
 
 	map_set_object(pos, obj_type, bld_index);
-	map[pos].flags |= BIT(1) | BIT(6);
+	tiles1[pos].flags |= BIT(1) | BIT(6);
 
 	if (player->sett->map_cursor_type != 5) {
 		/* move_map_resources(MAP_MOVE_DOWN_RIGHT(pos), map_data); */
 		map_set_object(MAP_MOVE_DOWN_RIGHT(pos), MAP_OBJ_FLAG, flg_index);
-		map[MAP_MOVE_DOWN_RIGHT(pos)].flags |= BIT(4) | BIT(7);
+		tiles1[MAP_MOVE_DOWN_RIGHT(pos)].flags |= BIT(4) | BIT(7);
 	}
 
 	if (player->sett->map_cursor_type == 6) {
@@ -1168,8 +1168,8 @@ build_building(player_t *player, map_obj_t obj_type)
 	}
 
 	/* Move cursor to flag. */
-	player->sett->map_cursor_col = (player->sett->map_cursor_col + 1) & globals.map_col_mask;
-	player->sett->map_cursor_row = (player->sett->map_cursor_row + 1) & globals.map_row_mask;
+	player->sett->map_cursor_col = (player->sett->map_cursor_col + 1) & globals.map.col_mask;
+	player->sett->map_cursor_row = (player->sett->map_cursor_row + 1) & globals.map.row_mask;
 }
 
 /* Build a mine. */
@@ -1542,12 +1542,12 @@ player_build_castle(player_t *player)
 	flag->other_endpoint.b[DIR_UP_LEFT] = castle;
 	flag->endpoint |= BIT(6);
 
-	map_1_t *map = globals.map_mem2_ptr;
+	map_1_t *tiles1 = globals.map.tiles1;
 	map_set_object(map_cursor_pos, MAP_OBJ_CASTLE, bld_index);
-	map[map_cursor_pos].flags |= BIT(1) | BIT(6);
+	tiles1[map_cursor_pos].flags |= BIT(1) | BIT(6);
 
 	map_set_object(MAP_MOVE_DOWN_RIGHT(map_cursor_pos), MAP_OBJ_FLAG, flg_index);
-	map[MAP_MOVE_DOWN_RIGHT(map_cursor_pos)].flags |= BIT(7) | BIT(4);
+	tiles1[MAP_MOVE_DOWN_RIGHT(map_cursor_pos)].flags |= BIT(7) | BIT(4);
 
 	/* Level land in hexagon below castle */
 	int h = player->sett->building_height_after_level;
@@ -1938,12 +1938,12 @@ player_start_attack(player_sett_t *sett)
 
 			/* Calculate distance to target. */
 			int dist_col = (MAP_POS_COL(target->pos) -
-					MAP_POS_COL(def_serf->pos)) & globals.map_col_mask;
-			if (dist_col >= globals.map_col_pairs) dist_col -= globals.map_cols;
+					MAP_POS_COL(def_serf->pos)) & globals.map.col_mask;
+			if (dist_col >= globals.map.cols/2) dist_col -= globals.map.cols;
 
 			int dist_row = (MAP_POS_ROW(target->pos) -
-					MAP_POS_ROW(def_serf->pos)) & globals.map_row_mask;
-			if (dist_row >= globals.map_row_pairs) dist_row -= globals.map_rows;
+					MAP_POS_ROW(def_serf->pos)) & globals.map.row_mask;
+			if (dist_row >= globals.map.rows/2) dist_row -= globals.map.rows;
 
 			/* Send this serf off to fight. */
 			serf_log_state_change(def_serf, SERF_STATE_KNIGHT_LEAVE_FOR_WALK_TO_FIGHT);

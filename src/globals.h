@@ -16,22 +16,26 @@
 
 /* Globals struct */
 typedef struct {
+	map_t map; /* ADDITION */
 	/* 0 */
+	/* MOVED to map_t
 	uint32_t map_index_mask;
 	uint32_t map_dirs[8];
 	map_1_t *map_mem2_ptr;
 	uint32_t map_col_size;
-	uint32_t map_elms;
+	uint32_t map_elms; */
 	/* 30 */
+	/*
 	uint16_t map_row_shift;
 	uint16_t map_col_mask;
 	uint16_t map_row_mask;
 	uint32_t map_data_offset;
 	uint16_t map_shifted_col_mask;
-	uint32_t map_shifted_row_mask;
+	uint32_t map_shifted_row_mask; */
 	/* 40 */
+	/*
 	uint16_t map_col_pairs;
-	uint16_t map_row_pairs;
+	uint16_t map_row_pairs; */
 	int16_t map_water_level;
 	int16_t map_max_lake_area;
 	uint16_t map_max_serfs_left;
@@ -46,7 +50,7 @@ typedef struct {
 	/* 5E */
 	int winning_player;
 	/* 60 */
-	uint16_t map_move_left_2;
+	/* uint16_t map_move_left_2; MOVED to map_t */
 	/* 64 */
 	player_sett_t *player_sett[4];
 	/* 78 */
@@ -78,8 +82,9 @@ typedef struct {
 	/* 108 */
 	frame_t *frame;
 	/* 1C2 */
+	/* MOVED to map_t 
 	uint16_t map_cols;
-	uint16_t map_rows;
+	uint16_t map_rows; */
 	/* 1C8 */
 	uint8_t svga; /* flags */
 	/* 1D6 */
@@ -155,7 +160,7 @@ typedef struct {
 	/* 28C*/
 	int16_t update_map_16_loop;
 	/* 2F8 */
-	map_1_t *map_mem2;
+	/*map_1_t *map_mem2; MOVED to map_t */
 	/*uint8_t *map_mem5;*/
 	/* 320 */
 	int player_history_index[4];

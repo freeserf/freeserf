@@ -2954,10 +2954,9 @@ static void
 handle_send_geologist(player_t *player)
 {
 	map_pos_t pos = MAP_POS(player->sett->map_cursor_col, player->sett->map_cursor_row);
-	map_2_t *map_data = MAP_2_DATA(globals.map_mem2_ptr);
-	int flag_index = map_data[pos].u.index;
-	flag_t *flag = game_get_flag(flag_index);
-	int r = game_send_geologist(flag, flag_index);
+	flag_t *flag = game_get_flag(MAP_OBJ_INDEX(pos));
+
+	int r = game_send_geologist(flag, MAP_OBJ_INDEX(pos));
 	if (r < 0) {
 		sfx_play_clip(SFX_NOT_ACCEPTED);
 	} else {

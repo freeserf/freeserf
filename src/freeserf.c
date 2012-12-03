@@ -390,8 +390,8 @@ init_spiral_pos_pattern()
 	int *pattern = globals.spiral_pattern;
 
 	for (int i = 0; i < 295; i++) {
-		int x = pattern[2*i] & globals.map_col_mask;
-		int y = pattern[2*i+1] & globals.map_row_mask;
+		int x = pattern[2*i] & globals.map.col_mask;
+		int y = pattern[2*i+1] & globals.map.row_mask;
 
 		globals.spiral_pos_pattern[i] = MAP_POS(x, y);
 	}
@@ -452,46 +452,13 @@ init_map_vars()
 
 	/* globals.split |= BIT(3); */
 
-	if (globals.map_cols < 64 || globals.map_rows < 64) {
+	if (globals.map.cols < 64 || globals.map.rows < 64) {
 		/* globals.split &= ~BIT(3); */
 	}
 
-	globals.map_col_pairs = globals.map_cols >> 1;
-	globals.map_row_pairs = globals.map_rows >> 1;
+	map_init_dimensions(&globals.map);
 
-	globals.map_elms = globals.map_cols * globals.map_rows;
-
-	globals.map_col_mask = globals.map_cols - 1;
-	globals.map_row_mask = globals.map_rows - 1;
-
-	globals.map_row_shift = 0;
-	int cols = globals.map_cols;
-	while (cols > 0) {
-		globals.map_row_shift += 1;
-		cols >>= 1;
-	}
-
-	globals.map_shifted_row_mask = globals.map_row_mask << globals.map_row_shift;
-	globals.map_shifted_col_mask = globals.map_col_mask;
-
-	globals.map_index_mask = globals.map_shifted_row_mask | globals.map_shifted_col_mask;
-
-	globals.map_col_size = 2*globals.map_cols;
-	globals.map_data_offset = globals.map_cols;
-
-	/* init map movement vars */
-	globals.map_dirs[DIR_RIGHT] = 1 & globals.map_col_mask;
-	globals.map_dirs[DIR_LEFT] = -1 & globals.map_col_mask;
-	globals.map_move_left_2 = -1 & globals.map_col_mask;
-	globals.map_dirs[DIR_DOWN] = globals.map_col_size & globals.map_shifted_row_mask;
-	globals.map_dirs[DIR_UP] = -globals.map_col_size & globals.map_shifted_row_mask;
-
-	globals.map_dirs[DIR_DOWN_RIGHT] = globals.map_dirs[DIR_DOWN] | globals.map_dirs[DIR_RIGHT];
-	globals.map_dirs[DIR_UP_RIGHT] = globals.map_dirs[DIR_UP] | globals.map_dirs[DIR_RIGHT];
-	globals.map_dirs[DIR_DOWN_LEFT] = globals.map_dirs[DIR_DOWN] | globals.map_dirs[DIR_LEFT];
-	globals.map_dirs[DIR_UP_LEFT] = globals.map_dirs[DIR_UP] | globals.map_dirs[DIR_LEFT];
-
-	globals.map_regions = (globals.map_cols >> 5) * (globals.map_rows >> 5);
+	globals.map_regions = (globals.map.cols >> 5) * (globals.map.rows >> 5);
 	globals.map_max_serfs_left = globals.map_regions * 500;
 	globals.map_62_5_times_regions = (globals.map_regions * 500) >> 3;
 
@@ -951,8 +918,11 @@ static void
 start_game()
 {
 	globals.map_size = load_map_spec();
-	globals.map_cols = 32 << (globals.map_size >> 1);
-	globals.map_rows = 32 << ((globals.map_size - 1) >> 1);
+
+	globals.map.col_size = 5 + globals.map_size/2;
+	globals.map.row_size = 5 + (globals.map_size - 1)/2;
+	globals.map.cols = 1 << globals.map.col_size;
+	globals.map.rows = 1 << globals.map.row_size;
 
 	globals.split &= ~BIT(2); /* Not split screen */
 	if (0/*globals.game_type == GAME_TYPE_2_PLAYERS*/) globals.split |= BIT(2);
@@ -1305,9 +1275,9 @@ pregame_continue()
 	if (BIT_TEST(globals.svga, 3)) { /* Game has been started */
 		init_map_vars();
 		reset_game_objs();
-		map_init();
 
 		init_spiral_pos_pattern();
+		map_init();
 		/* lowres_mode_and_init_players(); */
 
 		reset_player_settings();
@@ -1493,13 +1463,13 @@ hand_out_memory_2()
 	/* more memory handout */
 	/* TODO ... */
 
-	globals.map_mem2_ptr = globals.map_mem2;
-
 	int max_map_size = /*(globals.map & 0xf) + 2*/10;
 	globals.max_serf_cnt = (0x1f84 * (1 << max_map_size) - 4) / 0x81;
 	globals.max_flg_cnt = (0x2314 * (1 << max_map_size) - 4) / 0x231;
 	globals.max_building_cnt = (0x54c * (1 << max_map_size) - 4) / 0x91;
 	globals.max_inventory_cnt = (0x54c * (1 << max_map_size) - 4) / 0x3c1;
+
+	/* MOVED map allocation moved to map_init_dimensions(). */
 
 	/* map mem3 */
 	globals.serfs = malloc(globals.max_serf_cnt * sizeof(serf_t));
@@ -1568,11 +1538,6 @@ deep_tree()
 	globals.cfg_right = 0x39;
 
 	/* allocate memory for maps */
-	/* TODO ... */
-
-	globals.map_mem2 = malloc(0x2314 * (1 << /*max_map_size+2(?)*/10));
-	if (globals.map_mem2 == NULL) abort();
-
 	/* TODO ... */
 
 	hand_out_memory_2();

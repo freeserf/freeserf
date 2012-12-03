@@ -2062,7 +2062,7 @@ handle_building_update(building_t *building)
 static void
 update_buildings()
 {
-	map_1_t *map = globals.map_mem2_ptr;
+	map_1_t *tiles1 = globals.map.tiles1;
 
 	if (globals.next_index >= 32) return;
 
@@ -2080,7 +2080,7 @@ update_buildings()
 					map_pos_t pos = building->pos;
 					int p = building->u.s.planks_needed;
 
-					map[pos].flags &= ~BIT(6);
+					tiles1[pos].flags &= ~BIT(6);
 					map_set_object(pos, MAP_OBJ_NONE, 0);
 					game_free_building(i);
 
@@ -2501,13 +2501,13 @@ building_remove_pl_sett_refs(building_t *building)
 static int
 remove_road_backref_until_flag(map_pos_t pos, dir_t dir)
 {
-	map_1_t *map = globals.map_mem2_ptr;
+	map_1_t *tiles1 = globals.map.tiles1;
 
 	while (1) {
 		pos = MAP_MOVE(pos, dir);
 
 		/* Clear backreference */
-		map[pos].flags &= ~BIT(DIR_REVERSE(dir));
+		tiles1[pos].flags &= ~BIT(DIR_REVERSE(dir));
 
 		if (MAP_OBJ(pos) == MAP_OBJ_FLAG) break;
 
@@ -2662,7 +2662,7 @@ mark_serf_as_lost(serf_t *serf)
 static void
 remove_road_forwards(map_pos_t pos, dir_t dir)
 {
-	map_1_t *map = globals.map_mem2_ptr;
+	map_1_t *tiles1 = globals.map.tiles1;
 	dir_t in_dir = -1;
 
 	while (1) {
@@ -2748,12 +2748,12 @@ remove_road_forwards(map_pos_t pos, dir_t dir)
 		}
 
 		/* Clear forward reference. */
-		map[pos].flags &= ~BIT(dir);
+		tiles1[pos].flags &= ~BIT(dir);
 		pos = MAP_MOVE(pos, dir);
 		in_dir = dir;
 
 		/* Clear backreference. */
-		map[pos].flags &= ~BIT(DIR_REVERSE(dir));
+		tiles1[pos].flags &= ~BIT(DIR_REVERSE(dir));
 
 		/* Find next direction of path. */
 		dir = -1;
@@ -2851,8 +2851,8 @@ game_demolish_flag(map_pos_t pos)
 	}
 
 	/* Clear map. */
-	map_1_t *map = globals.map_mem2_ptr;
-	map[pos].flags &= ~BIT(7);
+	map_1_t *tiles1 = globals.map.tiles1;
+	tiles1[pos].flags &= ~BIT(7);
 
 	/* Update serfs with reference to this flag. */
 	for (int i = 1; i < globals.max_ever_serf_index; i++) {
@@ -2903,15 +2903,15 @@ game_demolish_building(map_pos_t pos)
 	building_remove_pl_sett_refs(building);
 
 	player_sett_t *sett = globals.player_sett[BUILDING_PLAYER(building)];
-	map_1_t *map = globals.map_mem2_ptr;
+	map_1_t *tiles1 = globals.map.tiles1;
 
 	if (BIT_TEST(building->serf, 5)) return; /* Already burning */
 
 	building->serf |= BIT(5);
 
 	/* Remove path to building. */
-	map[pos].flags &= ~BIT(1);
-	map[MAP_MOVE_DOWN_RIGHT(pos)].flags &= ~BIT(4);
+	tiles1[pos].flags &= ~BIT(1);
+	tiles1[MAP_MOVE_DOWN_RIGHT(pos)].flags &= ~BIT(4);
 
 	/* Remove lost gold stock from total count. */
 	if (BUILDING_IS_DONE(building) &&
@@ -3113,9 +3113,8 @@ game_calculate_military_flag_state(building_t *building)
 	for (f = 3, k = 0; f > 0; f--) {
 		int offset;
 		while ((offset = border_check_offsets[k++]) >= 0) {
-			map_pos_t check_pos =
-				(building->pos + globals.spiral_pos_pattern[offset]) &
-				globals.map_index_mask;
+			map_pos_t check_pos = MAP_POS_ADD(building->pos,
+							  globals.spiral_pos_pattern[offset]);
 			if (MAP_HAS_OWNER(check_pos) &&
 			    MAP_OWNER(check_pos) != BUILDING_PLAYER(building)) {
 				goto break_loops;
@@ -3145,8 +3144,7 @@ game_surrender_land(map_pos_t pos)
 
 	/* Remove roads and building around pos. */
 	for (dir_t d = DIR_RIGHT; d <= DIR_UP; d++) {
-		map_pos_t p = (pos + globals.spiral_pos_pattern[1+d]) &
-			globals.map_index_mask;
+		map_pos_t p = MAP_POS_ADD(pos, globals.spiral_pos_pattern[1+d]);
 
 		if (MAP_OBJ(p) >= MAP_OBJ_SMALL_BUILDING &&
 		    MAP_OBJ(p) <= MAP_OBJ_CASTLE) {
@@ -3212,10 +3210,9 @@ game_update_land_ownership(int col, int row)
 	     i <= influence_radius+calculate_radius; i++) {
 		for (int j = -(influence_radius+calculate_radius);
 		     j <= influence_radius+calculate_radius; j++) {
-			int c = (col + j) & globals.map_col_mask;
-			int r = (row + i) & globals.map_row_mask;
-
-			map_pos_t pos = MAP_POS(c, r);
+			map_pos_t pos = MAP_POS_ADD(MAP_POS(col, row),
+						    MAP_POS(j & globals.map.col_mask,
+							    i & globals.map.row_mask));
 
 			if (MAP_OBJ(pos) >= MAP_OBJ_SMALL_BUILDING &&
 			    MAP_OBJ(pos) <= MAP_OBJ_CASTLE &&
@@ -3262,7 +3259,7 @@ game_update_land_ownership(int col, int row)
 		}
 	}
 
-	map_1_t *map = globals.map_mem2_ptr;
+	map_1_t *tiles1 = globals.map.tiles1;
 
 	/* Update owner of 17*17 square. */
 	for (int i = -calculate_radius; i <= calculate_radius; i++) {
@@ -3279,10 +3276,9 @@ game_update_land_ownership(int col, int row)
 				}
 			}
 
-			int c = (col + j) & globals.map_col_mask;
-			int r = (row + i) & globals.map_row_mask;
-			map_pos_t pos = MAP_POS(c, r);
-
+			map_pos_t pos = MAP_POS_ADD(MAP_POS(col, row),
+						    MAP_POS(j & globals.map.col_mask,
+							    i & globals.map.row_mask));
 			if (player >= 0) {
 				if (MAP_HAS_OWNER(pos) &&
 				    MAP_OWNER(pos) != player) {
@@ -3292,10 +3288,10 @@ game_update_land_ownership(int col, int row)
 				}
 
 				globals.player_sett[player]->total_land_area += 1;
-				map[pos].height = (1 << 7) | (player << 5) | MAP_HEIGHT(pos);
+				tiles1[pos].height = (1 << 7) | (player << 5) | MAP_HEIGHT(pos);
 			} else {
 				game_surrender_land(pos);
-				map[pos].height = (0 << 7) | (0 << 5) | MAP_HEIGHT(pos);
+				tiles1[pos].height = (0 << 7) | (0 << 5) | MAP_HEIGHT(pos);
 			}
 		}
 	}
@@ -3305,10 +3301,9 @@ game_update_land_ownership(int col, int row)
 	/* Update military building flag state. */
 	for (int i = -25; i <= 25; i++) {
 		for (int j = -25; j <= 25; j++) {
-			int c = (col + i) & globals.map_col_mask;
-			int r = (row + j) & globals.map_row_mask;
-
-			map_pos_t pos = MAP_POS(c, r);
+			map_pos_t pos = MAP_POS_ADD(MAP_POS(col, row),
+						    MAP_POS(i & globals.map.col_mask,
+							    j & globals.map.row_mask));
 
 			if (MAP_OBJ(pos) >= MAP_OBJ_SMALL_BUILDING &&
 			    MAP_OBJ(pos) <= MAP_OBJ_CASTLE &&
@@ -3379,7 +3374,8 @@ game_occupy_enemy_building(building_t *building, int player)
 
 		/* Demolish nearby buildings. */
 		for (int i = 0; i < 12; i++) {
-			map_pos_t pos = (building->pos + globals.spiral_pos_pattern[7+i]) & globals.map_index_mask;
+			map_pos_t pos = MAP_POS_ADD(building->pos,
+						    globals.spiral_pos_pattern[7+i]);
 			if (MAP_OBJ(pos) >= MAP_OBJ_SMALL_BUILDING &&
 			    MAP_OBJ(pos) <= MAP_OBJ_CASTLE) {
 				game_demolish_building(pos);
@@ -3388,13 +3384,13 @@ game_occupy_enemy_building(building_t *building, int player)
 
 		/* Change owner of land and remove roads and flags
 		   except the flag associated with the building. */
-		map_1_t *map = globals.map_mem2_ptr;
-		map[building->pos].height = (1 << 7) | (player << 5) |
+		map_1_t *tiles1 = globals.map.tiles1;
+		tiles1[building->pos].height = (1 << 7) | (player << 5) |
 			MAP_HEIGHT(building->pos);
 
 		for (dir_t d = DIR_RIGHT; d <= DIR_UP; d++) {
 			map_pos_t pos = MAP_MOVE(building->pos, d);
-			map[pos].height = (1 << 7) | (player << 5) | MAP_HEIGHT(pos);
+			tiles1[pos].height = (1 << 7) | (player << 5) | MAP_HEIGHT(pos);
 			if (pos != flag->pos) {
 				game_demolish_flag_and_roads(pos);
 			}

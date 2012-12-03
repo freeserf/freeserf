@@ -6,8 +6,18 @@
 #include <stdlib.h>
 #include <stdint.h>
 
-/* Macros for moving a map_pos_t around in the map. */
-#define MAP_MOVE(pos,dir)  (((pos)+globals.map_dirs[(dir)]) & globals.map_index_mask)
+/* Extract col and row from map_pos_t */
+#define MAP_POS_COL(pos)  ((pos) & globals.map.col_mask)
+#define MAP_POS_ROW(pos)  (((pos)>>globals.map.row_shift) & globals.map.row_mask)
+
+/* Translate col, row coordinate to map_pos_t value. */
+#define MAP_POS(x,y)  (((y)<<globals.map.row_shift) | (x))
+
+/* Addition of two map positions. */
+#define MAP_POS_ADD(pos,off)  (((pos)+(off)) & globals.map.pos_mask)
+
+/* Movement of map position according to directions. */
+#define MAP_MOVE(pos,dir)  MAP_POS_ADD((pos), globals.map.dirs[(dir)])
 
 #define MAP_MOVE_RIGHT(pos)  MAP_MOVE((pos), DIR_RIGHT)
 #define MAP_MOVE_DOWN_RIGHT(pos)  MAP_MOVE((pos), DIR_DOWN_RIGHT)
@@ -19,51 +29,40 @@
 #define MAP_MOVE_UP_RIGHT(pos)  MAP_MOVE((pos), DIR_UP_RIGHT)
 #define MAP_MOVE_DOWN_LEFT(pos)  MAP_MOVE((pos), DIR_DOWN_LEFT)
 
-#define MAP_MOVE_RIGHT_N(pos,n)  (((pos)+globals.map_dirs[DIR_RIGHT]*(n)) & globals.map_index_mask)
-#define MAP_MOVE_DOWN_N(pos,n)  (((pos)+globals.map_dirs[DIR_DOWN]*(n)) & globals.map_index_mask)
+#define MAP_MOVE_RIGHT_N(pos,n)  MAP_POS_ADD((pos), globals.map.dirs[DIR_RIGHT]*(n))
+#define MAP_MOVE_DOWN_N(pos,n)  MAP_POS_ADD((pos), globals.map.dirs[DIR_DOWN]*(n))
 
-#define MAP_COORD_ARGS(pos)  \
-	((pos) & globals.map_col_mask), \
-	(((pos) >> globals.map_row_shift) & globals.map_row_mask)
-
-#define MAP_2_DATA(map)  ((map_2_t *)((map) + globals.map_data_offset))
-
-/* Translate col, row coordinate to map_pos_t value. */
-#define MAP_POS(x,y)  (((y)<<globals.map_row_shift) | (x))
-
-/* Extract col and row from map_pos_t */
-#define MAP_POS_COL(pos)  ((pos) & globals.map_col_mask)
-#define MAP_POS_ROW(pos)  (((pos)>>globals.map_row_shift) & globals.map_row_mask)
+#define MAP_COORD_ARGS(pos)  MAP_POS_COL(pos), MAP_POS_ROW(pos)
 
 
 /* Extractors for map data. */
-#define MAP_HAS_FLAG(pos)  ((int)((globals.map_mem2_ptr[(pos)].flags >> 7) & 1))
+#define MAP_HAS_FLAG(pos)  ((uint)((globals.map.tiles1[(pos)].flags >> 7) & 1))
 
 /* Whether the pos is entirely surrounded by water tiles. If this is true
    the resource field can safely be used, because no flag can be built here. */
-#define MAP_DEEP_WATER(pos)  ((int)((globals.map_mem2_ptr[(pos)].flags >> 6) & 1))
+#define MAP_DEEP_WATER(pos)  ((uint)((globals.map.tiles1[(pos)].flags >> 6) & 1))
 
-#define MAP_PATHS(pos)  ((int)(globals.map_mem2_ptr[(pos)].flags & 0x3f))
+#define MAP_PATHS(pos)  ((uint)(globals.map.tiles1[(pos)].flags & 0x3f))
 
-#define MAP_HAS_OWNER(pos)  ((int)((globals.map_mem2_ptr[(pos)].height >> 7) & 1))
-#define MAP_OWNER(pos)  ((int)((globals.map_mem2_ptr[(pos)].height >> 5) & 3))
-#define MAP_HEIGHT(pos)  ((int)(globals.map_mem2_ptr[(pos)].height & 0x1f))
+#define MAP_HAS_OWNER(pos)  ((uint)((globals.map.tiles1[(pos)].height >> 7) & 1))
+#define MAP_OWNER(pos)  ((uint)((globals.map.tiles1[(pos)].height >> 5) & 3))
+#define MAP_HEIGHT(pos)  ((uint)(globals.map.tiles1[(pos)].height & 0x1f))
 
-#define MAP_TYPE_UP(pos)  ((int)((globals.map_mem2_ptr[(pos)].type >> 4) & 0xf))
-#define MAP_TYPE_DOWN(pos)  ((int)(globals.map_mem2_ptr[(pos)].type & 0xf))
+#define MAP_TYPE_UP(pos)  ((uint)((globals.map.tiles1[(pos)].type >> 4) & 0xf))
+#define MAP_TYPE_DOWN(pos)  ((uint)(globals.map.tiles1[(pos)].type & 0xf))
 
-#define MAP_OBJ(pos)  ((map_obj_t)(globals.map_mem2_ptr[(pos)].obj & 0x7f))
+#define MAP_OBJ(pos)  ((map_obj_t)(globals.map.tiles1[(pos)].obj & 0x7f))
 
 /* Whether any of the two up/down tiles at this pos are water. */
-#define MAP_WATER(pos)  ((int)((globals.map_mem2_ptr[(pos)].obj >> 7) & 1))
+#define MAP_WATER(pos)  ((uint)((globals.map.tiles1[(pos)].obj >> 7) & 1))
 
-#define MAP_OBJ_INDEX(pos)  ((int)(MAP_2_DATA(globals.map_mem2_ptr)[(pos)].u.index))
-#define MAP_IDLE_SERF(pos)  ((int)((MAP_2_DATA(globals.map_mem2_ptr)[(pos)].u.s.field_1 >> 7) & 1))
-#define MAP_PLAYER(pos)  ((int)(MAP_2_DATA(globals.map_mem2_ptr)[(pos)].u.s.field_1 & 3))
-#define MAP_RES_TYPE(pos)  ((ground_deposit_t)((MAP_2_DATA(globals.map_mem2_ptr)[(pos)].u.s.resource >> 5) & 7))
-#define MAP_RES_AMOUNT(pos)  ((int)(MAP_2_DATA(globals.map_mem2_ptr)[(pos)].u.s.resource & 0x1f))
-#define MAP_RES_FISH(pos)  ((int)(MAP_2_DATA(globals.map_mem2_ptr)[(pos)].u.s.resource))
-#define MAP_SERF_INDEX(pos)  ((int)(MAP_2_DATA(globals.map_mem2_ptr)[(pos)].serf_index))
+#define MAP_OBJ_INDEX(pos)  ((uint)globals.map.tiles2[(pos)].u.index)
+#define MAP_IDLE_SERF(pos)  ((uint)((globals.map.tiles2[(pos)].u.s.field_1 >> 7) & 1))
+#define MAP_PLAYER(pos)  ((uint)(globals.map.tiles2[(pos)].u.s.field_1 & 3))
+#define MAP_RES_TYPE(pos)  ((ground_deposit_t)((globals.map.tiles2[(pos)].u.s.resource >> 5) & 7))
+#define MAP_RES_AMOUNT(pos)  ((uint)(globals.map.tiles2[(pos)].u.s.resource & 0x1f))
+#define MAP_RES_FISH(pos)  ((uint)globals.map.tiles2[(pos)].u.s.resource)
+#define MAP_SERF_INDEX(pos)  ((uint)globals.map.tiles2[(pos)].serf_index)
 
 
 typedef enum {
@@ -220,7 +219,22 @@ typedef struct {
 /* map_pos_t is a compact composition of col and row values that
    uniquely identifies a vertex in the map space. It is also used
    directly as index to map data arrays. */
-typedef int map_pos_t;
+typedef uint map_pos_t;
+
+typedef struct {
+	/* Fundamentals */
+	map_1_t *tiles1;
+	map_2_t *tiles2;
+	uint col_size, row_size;
+
+	/* Derived */
+	map_pos_t dirs[8];
+	uint tile_count;
+	uint cols, rows;
+	map_pos_t pos_mask;
+	uint col_mask, row_mask;
+	uint row_shift;
+} map_t;
 
 
 /* Mapping from map_obj_t to map_space_t. */
@@ -232,6 +246,8 @@ void map_set_object(map_pos_t pos, map_obj_t obj, int index);
 void map_remove_ground_deposit(map_pos_t pos, int amount);
 void map_remove_fish(map_pos_t pos, int amount);
 void map_set_serf_index(map_pos_t pos, int index);
+
+void map_init_dimensions(map_t *map);
 
 void map_init();
 void map_update();

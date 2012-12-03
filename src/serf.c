@@ -602,7 +602,7 @@ handle_serf_walking_state(serf_t *serf)
 static void
 handle_serf_transporting_state(serf_t *serf)
 {
-	map_2_t *map_data = MAP_2_DATA(globals.map_mem2_ptr);
+	map_2_t *tiles2 = globals.map.tiles2;
 
 	uint16_t delta = globals.anim - serf->anim;
 	serf->anim = globals.anim;
@@ -699,7 +699,7 @@ handle_serf_transporting_state(serf_t *serf)
 					serf->state = SERF_STATE_IDLE_ON_PATH;
 					serf->s.idle_on_path.rev_dir = rev_dir;
 					serf->s.idle_on_path.flag = flag;
-					map_data[serf->pos].u.s.field_1 = BIT(7) | SERF_PLAYER(serf);
+					tiles2[serf->pos].u.s.field_1 = BIT(7) | SERF_PLAYER(serf);
 					map_set_serf_index(serf->pos, 0);
 					return;
 				}
@@ -2368,7 +2368,8 @@ handle_serf_planning_logging_state(serf_t *serf)
 
 	while (serf->counter < 0) {
 		int index = (random_int() & 0x7f) + 1;
-		map_pos_t pos = (serf->pos + globals.spiral_pos_pattern[index]) & globals.map_index_mask;
+		map_pos_t pos = MAP_POS_ADD(serf->pos,
+					    globals.spiral_pos_pattern[index]);
 		int obj = MAP_OBJ(pos);
 		if (obj >= MAP_OBJ_TREE_0 && obj <= MAP_OBJ_PINE_7) {
 			serf_log_state_change(serf, SERF_STATE_READY_TO_LEAVE);
@@ -2397,7 +2398,8 @@ handle_serf_planning_planting_state(serf_t *serf)
 
 	while (serf->counter < 0) {
 		int index = (random_int() & 0x7f) + 1;
-		map_pos_t pos = (serf->pos + globals.spiral_pos_pattern[index]) & globals.map_index_mask;
+		map_pos_t pos = MAP_POS_ADD(serf->pos,
+					    globals.spiral_pos_pattern[index]);
 		if (MAP_PATHS(pos) == 0 &&
 		    !MAP_DEEP_WATER(pos) &&
 		    MAP_OBJ(pos) == MAP_OBJ_NONE &&
@@ -2463,7 +2465,8 @@ handle_serf_planning_stonecutting(serf_t *serf)
 
 	while (serf->counter < 0) {
 		int index = (random_int() & 0x7f) + 1;
-		map_pos_t pos = (serf->pos + globals.spiral_pos_pattern[index]) & globals.map_index_mask;
+		map_pos_t pos = MAP_POS_ADD(serf->pos,
+					    globals.spiral_pos_pattern[index]);;
 		int obj = MAP_OBJ(MAP_MOVE_UP_LEFT(pos));
 		if (obj >= MAP_OBJ_STONE_0 &&
 		    obj <= MAP_OBJ_STONE_7 &&
@@ -2598,7 +2601,8 @@ handle_serf_lost_state(serf_t *serf)
 		/* Try to find a suitable destination. */
 		for (int i = 0; i < 258; i++) {
 			int index = (serf->s.lost.field_B == 0) ? 1+i : 258-i;
-			map_pos_t dest = (serf->pos + globals.spiral_pos_pattern[index]) & globals.map_index_mask;
+			map_pos_t dest = MAP_POS_ADD(serf->pos,
+						     globals.spiral_pos_pattern[index]);
 
 			if (MAP_HAS_FLAG(dest)) {
 				flag_t *flag = game_get_flag(MAP_OBJ_INDEX(dest));
@@ -2625,9 +2629,6 @@ handle_serf_lost_state(serf_t *serf)
 		}
 
 		/* Choose a random destination */
-		int src_col = MAP_POS_COL(serf->pos);
-		int src_row = MAP_POS_ROW(serf->pos);
-
 		uint size = 16;
 		int tries = 10;
 
@@ -2644,13 +2645,11 @@ handle_serf_lost_state(serf_t *serf)
 			}
 
 			int r = random_int();
-			int col = (r & (size-1)) - (size/2);
-			int row = ((r >> 8) & (size-1)) - (size/2);
+			int col = ((r & (size-1)) - (size/2)) & globals.map.col_mask;
+			int row = (((r >> 8) & (size-1)) - (size/2)) & globals.map.row_mask;
 
-			int dest_col = (src_col + col) & globals.map_col_mask;
-			int dest_row = (src_row + row) & globals.map_row_mask;
-
-			map_pos_t dest = MAP_POS(dest_col, dest_row);
+			map_pos_t dest = MAP_POS_ADD(serf->pos,
+						     MAP_POS(col, row));
 			if (MAP_OBJ(dest) == 0 &&
 			    MAP_HEIGHT(dest) > 0 &&
 			    (MAP_HAS_FLAG(dest) ||
@@ -2687,7 +2686,8 @@ handle_lost_sailor(serf_t *serf)
 	while (serf->counter < 0) {
 		/* Try to find a suitable destination. */
 		for (int i = 0; i < 258; i++) {
-			map_pos_t dest = (serf->pos + globals.spiral_pos_pattern[i]) & globals.map_index_mask;
+			map_pos_t dest = MAP_POS_ADD(serf->pos,
+						     globals.spiral_pos_pattern[i]);
 
 			if (MAP_HAS_FLAG(dest)) {
 				flag_t *flag = game_get_flag(MAP_OBJ_INDEX(dest));
@@ -2708,18 +2708,13 @@ handle_lost_sailor(serf_t *serf)
 		}
 
 		/* Choose a random, empty destination */
-		int src_col = MAP_POS_COL(serf->pos);
-		int src_row = MAP_POS_ROW(serf->pos);
-
 		while (1) {
 			int r = random_int();
-			int col = (r & 0x1f) - 16;
-			int row = ((r >> 8) & 0x1f) - 16;
+			int col = ((r & 0x1f) - 16) & globals.map.col_mask;
+			int row = (((r >> 8) & 0x1f) - 16) & globals.map.row_mask;
 
-			int dest_col = (src_col + col) & globals.map_col_mask;
-			int dest_row = (src_row + row) & globals.map_row_mask;
-
-			map_pos_t dest = MAP_POS(dest_col, dest_row);
+			map_pos_t dest = MAP_POS_ADD(serf->pos,
+						     MAP_POS(col, row));
 			if (MAP_OBJ(dest) == 0) {
 				serf_log_state_change(serf, SERF_STATE_FREE_SAILING);
 				serf->state = SERF_STATE_FREE_SAILING;
@@ -2831,8 +2826,8 @@ handle_serf_mining_state(serf_t *serf)
 			serf->s.mining.substate += 1;
 
 			/* Look for resource in ground. */
-			int offset = globals.spiral_pos_pattern[(random_int() >> 2) & 0x1f];
-			map_pos_t dest = (serf->pos + offset) & globals.map_index_mask;
+			map_pos_t offset = globals.spiral_pos_pattern[(random_int() >> 2) & 0x1f];
+			map_pos_t dest = MAP_POS_ADD(serf->pos, offset);
 			if ((MAP_OBJ(dest) == MAP_OBJ_NONE || MAP_OBJ(dest) > MAP_OBJ_CASTLE) &&
 			    MAP_RES_TYPE(dest) == serf->s.mining.deposit &&
 			    MAP_RES_AMOUNT(dest) > 0) {
@@ -2975,7 +2970,8 @@ handle_serf_planning_fishing_state(serf_t *serf)
 
 	while (serf->counter < 0) {
 		int index = ((random_int() >> 2) & 0x3f) + 1;
-		map_pos_t dest = (serf->pos + globals.spiral_pos_pattern[index]) & globals.map_index_mask;
+		map_pos_t dest = MAP_POS_ADD(serf->pos,
+					     globals.spiral_pos_pattern[index]);
 
 		if (MAP_OBJ(dest) == MAP_OBJ_NONE &&
 		    MAP_PATHS(dest) == 0 &&
@@ -3057,7 +3053,8 @@ handle_serf_planning_farming_state(serf_t *serf)
 
 	while (serf->counter < 0) {
 		int index = ((random_int() >> 2) & 0x1f) + 7;
-		map_pos_t dest = (serf->pos + globals.spiral_pos_pattern[index]) & globals.map_index_mask;
+		map_pos_t dest = MAP_POS_ADD(serf->pos,
+					     globals.spiral_pos_pattern[index]);
 
 		/* If destination doesn't have an object it must be
 		   of the correct type and the surrounding spaces
@@ -3524,7 +3521,8 @@ handle_serf_looking_for_geo_spot_state(serf_t *serf)
 	int tries = 2;
 	for (int i = 0; i < 8; i++) {
 		int index = ((random_int() >> 2) & 0x3f) + 1;
-		map_pos_t dest = (serf->pos + globals.spiral_pos_pattern[index]) & globals.map_index_mask;
+		map_pos_t dest = MAP_POS_ADD(serf->pos,
+					     globals.spiral_pos_pattern[index]);
 
 		int obj = MAP_OBJ(dest);
 		if (obj == MAP_OBJ_NONE) {
@@ -3590,7 +3588,8 @@ handle_serf_sampling_geo_spot_state(serf_t *serf)
 				/* Check whether a new notification should be posted. */
 				int show_notification = 1;
 				for (int i = 0; i < 60; i++) {
-					map_pos_t pos = (serf->pos + globals.spiral_pos_pattern[1+i]) & globals.map_index_mask;
+					map_pos_t pos = MAP_POS_ADD(serf->pos,
+								    globals.spiral_pos_pattern[1+i]);
 					if ((MAP_OBJ(pos) >> 1) == (obj >> 1)) {
 						show_notification = 0;
 						break;
@@ -4314,7 +4313,7 @@ handle_serf_state_knight_leave_for_walk_to_fight(serf_t *serf)
 static void
 handle_serf_idle_on_path_state(serf_t *serf)
 {
-	map_2_t *map_data = MAP_2_DATA(globals.map_mem2_ptr);
+	map_2_t *tiles2 = globals.map.tiles2;
 
 	flag_t *flag = serf->s.idle_on_path.flag;
 	int rev_dir = serf->s.idle_on_path.rev_dir;
@@ -4333,7 +4332,7 @@ handle_serf_idle_on_path_state(serf_t *serf)
 	}
 
 	if (MAP_SERF_INDEX(serf->pos) == 0) {
-		map_data[serf->pos].u.s.field_1 = 0;
+		tiles2[serf->pos].u.s.field_1 = 0;
 		map_set_serf_index(serf->pos, SERF_INDEX(serf));
 
 		int dir = serf->s.idle_on_path.field_E;
@@ -4354,11 +4353,11 @@ handle_serf_idle_on_path_state(serf_t *serf)
 static void
 handle_serf_wait_idle_on_path_state(serf_t *serf)
 {
-	map_2_t *map_data = MAP_2_DATA(globals.map_mem2_ptr);
+	map_2_t *tiles2 = globals.map.tiles2;
 
 	if (MAP_SERF_INDEX(serf->pos) == 0) {
 		/* Duplicate code from handle_serf_idle_on_path_state() */
-		map_data[serf->pos].u.s.field_1 = 0;
+		tiles2[serf->pos].u.s.field_1 = 0;
 		map_set_serf_index(serf->pos, SERF_INDEX(serf));
 
 		int dir = serf->s.idle_on_path.field_E;
@@ -4377,9 +4376,6 @@ static void
 handle_scatter_state(serf_t *serf)
 {
 	/* Choose a random, empty destination */
-	int src_col = MAP_POS_COL(serf->pos);
-	int src_row = MAP_POS_ROW(serf->pos);
-
 	while (1) {
 		int r = random_int();
 		int col = (r & 0xf);
@@ -4387,10 +4383,9 @@ handle_scatter_state(serf_t *serf)
 		int row = ((r >> 8) & 0xf);
 		if (row < 8) row -= 16;
 
-		int dest_col = (src_col + col) & globals.map_col_mask;
-		int dest_row = (src_row + row) & globals.map_row_mask;
-
-		map_pos_t dest = MAP_POS(dest_col, dest_row);
+		map_pos_t dest = MAP_POS_ADD(serf->pos,
+					     MAP_POS(col & globals.map.col_mask,
+						     row & globals.map.row_mask));
 		if (MAP_OBJ(dest) == 0 && MAP_HEIGHT(dest) > 0) {
 			if (SERF_TYPE(serf) >= SERF_KNIGHT_0 &&
 			    SERF_TYPE(serf) >= SERF_KNIGHT_4) {
@@ -4433,10 +4428,10 @@ handle_serf_finished_building_state(serf_t *serf)
 static void
 handle_serf_wake_at_flag_state(serf_t *serf)
 {
-	map_2_t *map_data = MAP_2_DATA(globals.map_mem2_ptr);
+	map_2_t *tiles2 = globals.map.tiles2;
 
 	if (MAP_SERF_INDEX(serf->pos) == 0) {
-		map_data[serf->pos].u.s.field_1 = 0;
+		tiles2[serf->pos].u.s.field_1 = 0;
 		map_set_serf_index(serf->pos, SERF_INDEX(serf));
 		serf->anim = globals.anim;
 		serf->counter = 0;

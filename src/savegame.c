@@ -4,12 +4,18 @@
 #include <stdlib.h>
 
 #include "game.h"
+#include "map.h"
 #include "globals.h"
 
 
+typedef struct {
+	uint rows, cols;
+	uint row_shift;
+} v0_map_t;
+
 /* Load global state from save game. */
 static int
-load_v0_globals_state(FILE *f)
+load_v0_globals_state(FILE *f, v0_map_t *map)
 {
 	uint8_t *data = malloc(210);
 	if (data == NULL) return -1;
@@ -20,7 +26,8 @@ load_v0_globals_state(FILE *f)
 		return -1;
 	}
 
-	globals.map_index_mask = *(uint32_t *)&data[0] >> 2;
+	/* OBSOLETE may be needed to load map data correctly?
+	map->index_mask = *(uint32_t *)&data[0] >> 2;
 
 	globals.map_dirs[DIR_RIGHT] = *(uint32_t *)&data[4] >> 2;
 	globals.map_dirs[DIR_DOWN_RIGHT] = *(uint32_t *)&data[8] >> 2;
@@ -40,9 +47,11 @@ load_v0_globals_state(FILE *f)
 	globals.map_shifted_col_mask = *(uint16_t *)&data[52] >> 2;
 	globals.map_shifted_row_mask = *(uint32_t *)&data[54] >> 2;
 	globals.map_col_pairs = *(uint16_t *)&data[58];
-	globals.map_row_pairs = *(uint16_t *)&data[60];
-	globals.map_cols = *(uint16_t *)&data[62];
-	globals.map_rows = *(uint16_t *)&data[64];
+	globals.map_row_pairs = *(uint16_t *)&data[60];*/
+
+	map->row_shift = *(uint16_t *)&data[42];
+	map->cols = *(uint16_t *)&data[62];
+	map->rows = *(uint16_t *)&data[64];
 
 	globals.split = *(uint8_t *)&data[66];
 	/* globals.field_37F = *(uint8_t *)&data[67]; */
@@ -141,13 +150,20 @@ load_v0_globals_state(FILE *f)
 	globals.show_game_end_box = *(uint8_t *)&data[205];
 	*/
 
-	globals.map_dirs[DIR_LEFT] = *(uint32_t *)&data[206] >> 2;
+	/*globals.map_dirs[DIR_LEFT] = *(uint32_t *)&data[206] >> 2;*/
 
 	free(data);
 
 	/* Skip unused section. */
 	int r = fseek(f, 40, SEEK_CUR);
 	if (r < 0) return -1;
+
+	/* Init the rest of map dimensions. */
+	globals.map.col_size = 5 + globals.map_size/2;
+	globals.map.row_size = 5 + (globals.map_size - 1)/2;
+	globals.map.cols = 1 << globals.map.col_size;
+	globals.map.rows = 1 << globals.map.row_size;
+	map_init_dimensions(&globals.map);
 
 	return 0;
 }
@@ -274,42 +290,45 @@ load_v0_player_sett_state(FILE *f)
 
 /* Load map state from save game. */
 static int
-load_v0_map_state(FILE *f)
+load_v0_map_state(FILE *f, const v0_map_t *map)
 {
-	uint8_t *data = malloc(8*globals.map_elms);
+	uint tile_count = map->cols*map->rows;
+
+	uint8_t *data = malloc(8*tile_count);
 	if (data == NULL) return -1;
 
-	size_t rd = fread(data, sizeof(uint8_t), 8*globals.map_elms, f);
-	if (rd < 8*globals.map_elms) {
+	size_t rd = fread(data, sizeof(uint8_t), 8*tile_count, f);
+	if (rd < 8*tile_count) {
 		free(data);
 		return -1;
 	}
 
-	map_1_t *map = globals.map_mem2_ptr;
-	map_2_t *map_data = MAP_2_DATA(globals.map_mem2_ptr);
+	map_1_t *tiles1 = globals.map.tiles1;
+	map_2_t *tiles2 = globals.map.tiles2;
 
-	memset(globals.map_mem2_ptr, '\0', 8*globals.map_elms);
+	memset(globals.map.tiles1, '\0',
+	       tile_count*(sizeof(map_1_t)+sizeof(map_2_t)));
 
-	for (int y = 0; y < globals.map_rows; y++) {
-		for (int x = 0; x < globals.map_cols; x++) {
+	for (int y = 0; y < globals.map.rows; y++) {
+		for (int x = 0; x < globals.map.cols; x++) {
 			map_pos_t pos = MAP_POS(x, y);
-			uint8_t *field_1_data = &data[4*(x + (y << globals.map_row_shift))];
-			uint8_t *field_2_data = &data[4*(x + (y << globals.map_row_shift)) + 4*globals.map_cols];
+			uint8_t *field_1_data = &data[4*(x + (y << map->row_shift))];
+			uint8_t *field_2_data = &data[4*(x + (y << map->row_shift)) + 4*map->cols];
 
-			map[pos].flags = field_1_data[0];
-			map[pos].height = field_1_data[1];
-			map[pos].type = field_1_data[2];
-			map[pos].obj = field_1_data[3];
+			tiles1[pos].flags = field_1_data[0];
+			tiles1[pos].height = field_1_data[1];
+			tiles1[pos].type = field_1_data[2];
+			tiles1[pos].obj = field_1_data[3];
 
 			if (MAP_OBJ(pos) >= MAP_OBJ_FLAG &&
 			    MAP_OBJ(pos) <= MAP_OBJ_CASTLE) {
-				map_data[pos].u.index = *(uint16_t *)&field_2_data[0];
+				tiles2[pos].u.index = *(uint16_t *)&field_2_data[0];
 			} else {
-				map_data[pos].u.s.resource = field_2_data[0];
-				map_data[pos].u.s.field_1 = field_2_data[1];
+				tiles2[pos].u.s.resource = field_2_data[0];
+				tiles2[pos].u.s.field_1 = field_2_data[1];
 			}
 
-			map_data[pos].serf_index = *(uint16_t *)&field_2_data[2];
+			tiles2[pos].serf_index = *(uint16_t *)&field_2_data[2];
 		}
 	}
 
@@ -590,8 +609,8 @@ load_v0_flag_state(FILE *f)
 	free(data);
 
 	/* Set flag positions. */
-	for (int y = 0; y < globals.map_rows; y++) {
-		for (int x = 0; x < globals.map_cols; x++) {
+	for (int y = 0; y < globals.map.rows; y++) {
+		for (int x = 0; x < globals.map.cols; x++) {
 			map_pos_t pos = MAP_POS(x, y);
 			if (MAP_OBJ(pos) == MAP_OBJ_FLAG) {
 				flag_t *flag = game_get_flag(MAP_OBJ_INDEX(pos));
@@ -732,14 +751,15 @@ int
 load_v0_state(FILE *f)
 {
 	int r;
+	v0_map_t map;
 
-	r = load_v0_globals_state(f);
+	r = load_v0_globals_state(f, &map);
 	if (r < 0) return -1;
 
 	r = load_v0_player_sett_state(f);
 	if (r < 0) return -1;
 
-	r = load_v0_map_state(f);
+	r = load_v0_map_state(f, &map);
 	if (r < 0) return -1;
 
 	r = load_v0_serf_state(f);

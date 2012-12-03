@@ -268,8 +268,8 @@ viewport_redraw_map_pos(map_pos_t pos)
 static void
 draw_landscape(viewport_t *viewport, frame_t *frame)
 {
-	int map_width = globals.map_cols*MAP_TILE_WIDTH;
-	int map_height = globals.map_rows*MAP_TILE_HEIGHT;
+	int map_width = globals.map.cols*MAP_TILE_WIDTH;
+	int map_height = globals.map.rows*MAP_TILE_HEIGHT;
 
 	if (!landscape_frame_init) {
 		/* Initialize landscape frame. */
@@ -288,7 +288,7 @@ draw_landscape(viewport_t *viewport, frame_t *frame)
 
 		/* Draw one extra column as half a column will be outside the
 		   map tile on both right and left side.. */
-		for (int col = 0; col < globals.map_cols+1; col++) {
+		for (int col = 0; col < globals.map.cols+1; col++) {
 			draw_up_tile_col(pos, x_base, 0, map_height, &landscape_frame);
 			draw_down_tile_col(pos, x_base + 16, 0, map_height, &landscape_frame);
 
@@ -574,7 +574,7 @@ draw_ne_sw_borders(int x, int y, int h1, int h2, map_pos_t pos, frame_t *frame)
 static void
 draw_paths_and_borders_sub1(int x, int y_base, int max_y, map_pos_t pos, frame_t *frame)
 {
-	map_1_t *map = globals.map_mem2_ptr;
+	map_1_t *tiles1 = globals.map.tiles1;
 	int y = 0;
 
 	pos = MAP_MOVE_DOWN(pos);
@@ -585,7 +585,7 @@ draw_paths_and_borders_sub1(int x, int y_base, int max_y, map_pos_t pos, frame_t
 		int h1 = MAP_HEIGHT(pos);
 		int h2 = MAP_HEIGHT(other_pos);
 
-		if (BIT_TEST(map[pos].flags, 0)) {
+		if (BIT_TEST(tiles1[pos].flags, 0)) {
 			draw_e_w_paths(x, y_base + y, h1, h2, pos, frame);
 		} else if (MAP_HAS_OWNER(pos) != MAP_HAS_OWNER(other_pos) ||
 			   MAP_OWNER(pos) != MAP_OWNER(other_pos)) {
@@ -602,7 +602,7 @@ draw_paths_and_borders_sub1(int x, int y_base, int max_y, map_pos_t pos, frame_t
 static void
 draw_paths_and_borders_sub2(int x, int y_base, int max_y, map_pos_t pos, frame_t *frame)
 {
-	map_1_t *map = globals.map_mem2_ptr;
+	map_1_t *tiles1 = globals.map.tiles1;
 	int y = 0;
 
 	/* shared tail 1E412 */
@@ -611,7 +611,7 @@ draw_paths_and_borders_sub2(int x, int y_base, int max_y, map_pos_t pos, frame_t
 		int h1 = MAP_HEIGHT(pos);
 		int h2 = MAP_HEIGHT(other_pos);
 
-		if (BIT_TEST(map[pos].flags, 1)) {
+		if (BIT_TEST(tiles1[pos].flags, 1)) {
 			draw_nw_se_paths(x, y_base + y, h1, h2, pos, frame);
 		} else if (MAP_HAS_OWNER(pos) != MAP_HAS_OWNER(other_pos) ||
 			   MAP_OWNER(pos) != MAP_OWNER(other_pos)) {
@@ -629,7 +629,7 @@ draw_paths_and_borders_sub2(int x, int y_base, int max_y, map_pos_t pos, frame_t
 		h1 = MAP_HEIGHT(pos);
 		h2 = MAP_HEIGHT(other_pos);
 
-		if (BIT_TEST(map[pos].flags, 2)) {
+		if (BIT_TEST(tiles1[pos].flags, 2)) {
 			draw_ne_sw_paths(x, y_base + y, h1, h2, pos, frame);
 		} else if (MAP_HAS_OWNER(pos) != MAP_HAS_OWNER(other_pos) ||
 			   MAP_OWNER(pos) != MAP_OWNER(other_pos)) {
@@ -647,7 +647,7 @@ draw_paths_and_borders_sub2(int x, int y_base, int max_y, map_pos_t pos, frame_t
 static void
 draw_paths_and_borders_sub3(int x, int y_base, int max_y, map_pos_t pos, frame_t *frame)
 {
-	map_1_t *map = globals.map_mem2_ptr;
+	map_1_t *tiles1 = globals.map.tiles1;
 	int y = 0;
 
 	pos = MAP_MOVE_DOWN_RIGHT(pos);
@@ -659,7 +659,7 @@ draw_paths_and_borders_sub3(int x, int y_base, int max_y, map_pos_t pos, frame_t
 		int h1 = MAP_HEIGHT(pos);
 		int h2 = MAP_HEIGHT(other_pos);
 
-		if (BIT_TEST(map[pos].flags, 0)) {
+		if (BIT_TEST(tiles1[pos].flags, 0)) {
 			draw_e_w_paths(x, y_base + y, h1, h2, pos, frame);
 		} else if (MAP_HAS_OWNER(pos) != MAP_HAS_OWNER(other_pos) ||
 			   MAP_OWNER(pos) != MAP_OWNER(other_pos)) {
@@ -676,7 +676,7 @@ draw_paths_and_borders_sub3(int x, int y_base, int max_y, map_pos_t pos, frame_t
 static void
 draw_paths_and_borders_sub4(int x, int y_base, int max_y, map_pos_t pos, frame_t *frame)
 {
-	map_1_t *map = globals.map_mem2_ptr;
+	map_1_t *tiles1 = globals.map.tiles1;
 
 	int y = 0;
 
@@ -690,7 +690,7 @@ draw_paths_and_borders_sub4(int x, int y_base, int max_y, map_pos_t pos, frame_t
 		int h1 = MAP_HEIGHT(pos);
 		int h2 = MAP_HEIGHT(other_pos);
 
-		if (BIT_TEST(map[pos].flags, 1)) {
+		if (BIT_TEST(tiles1[pos].flags, 1)) {
 			draw_nw_se_paths(x, y_base + y, h1, h2, pos, frame);
 		} else if (MAP_HAS_OWNER(pos) != MAP_HAS_OWNER(other_pos) ||
 			   MAP_OWNER(pos) != MAP_OWNER(other_pos)) {
@@ -708,7 +708,7 @@ draw_paths_and_borders_sub4(int x, int y_base, int max_y, map_pos_t pos, frame_t
 		h1 = MAP_HEIGHT(pos);
 		h2 = MAP_HEIGHT(other_pos);
 
-		if (BIT_TEST(map[pos].flags, 2)) {
+		if (BIT_TEST(tiles1[pos].flags, 2)) {
 			draw_ne_sw_paths(x, y_base + y, h1, h2, pos, frame);
 		} else if (MAP_HAS_OWNER(pos) != MAP_HAS_OWNER(other_pos) ||
 			   MAP_OWNER(pos) != MAP_OWNER(other_pos)) {
@@ -730,8 +730,8 @@ draw_paths_and_borders(viewport_t *viewport, frame_t *frame)
 	int x = -(viewport->offset_x + 16*(viewport->offset_y/20)) % 32 - 16;
 	int y = -viewport->offset_y % 20;
 
-	int col_0 = (viewport->offset_x/16 + viewport->offset_y/20)/2 & globals.map_col_mask;
-	int row_0 = (viewport->offset_y/MAP_TILE_HEIGHT) & globals.map_row_mask;
+	int col_0 = (viewport->offset_x/16 + viewport->offset_y/20)/2 & globals.map.col_mask;
+	int row_0 = (viewport->offset_y/MAP_TILE_HEIGHT) & globals.map.row_mask;
 	map_pos_t pos = MAP_POS(col_0, row_0);
 
 	int cols = VIEWPORT_COLS(viewport) + 1;
@@ -2162,8 +2162,8 @@ draw_game_objects(viewport_t *viewport, int layers, frame_t *frame)
 	int x = -(viewport->offset_x + 16*(viewport->offset_y/20)) % 32;
 	int y = -(viewport->offset_y) % 20;
 
-	int col_0 = (viewport->offset_x/16 + viewport->offset_y/20)/2 & globals.map_col_mask;
-	int row_0 = (viewport->offset_y/MAP_TILE_HEIGHT) & globals.map_row_mask;
+	int col_0 = (viewport->offset_x/16 + viewport->offset_y/20)/2 & globals.map.col_mask;
+	int row_0 = (viewport->offset_y/MAP_TILE_HEIGHT) & globals.map.row_mask;
 	map_pos_t pos = MAP_POS(col_0, row_0);
 
 	/* Loop until objects drawn fall outside the frame. */
@@ -2236,8 +2236,8 @@ draw_height_grid_overlay(viewport_t *viewport, int color, frame_t *frame)
 	int x_off = -(viewport->offset_x + 16*(viewport->offset_y/20)) % 32;
 	int y_off = -viewport->offset_y % 20;
 
-	int col_0 = (viewport->offset_x/16 + viewport->offset_y/20)/2 & globals.map_col_mask;
-	int row_0 = (viewport->offset_y/MAP_TILE_HEIGHT) & globals.map_row_mask;
+	int col_0 = (viewport->offset_x/16 + viewport->offset_y/20)/2 & globals.map.col_mask;
+	int row_0 = (viewport->offset_y/MAP_TILE_HEIGHT) & globals.map.row_mask;
 	map_pos_t base_pos = MAP_POS(col_0, row_0);
 
 	for (int x_base = x_off; x_base < viewport->obj.width + MAP_TILE_WIDTH; x_base += MAP_TILE_WIDTH) {
@@ -2301,8 +2301,8 @@ viewport_handle_event_click(viewport_t *viewport, int x, int y, gui_event_button
 	int clk_row = MAP_POS_ROW(clk_pos);
 
 	if (BIT_TEST(player->click, 7)) { /* Building road */
-		int y = (clk_col - player->sett->map_cursor_col + 1) & globals.map_col_mask;
-		int x = (clk_row - player->sett->map_cursor_row + 1) & globals.map_row_mask;
+		int y = (clk_col - player->sett->map_cursor_col + 1) & globals.map.col_mask;
+		int x = (clk_row - player->sett->map_cursor_row + 1) & globals.map.row_mask;
 		dir_t dir = -1;
 
 		if (y == 0) {
@@ -2323,7 +2323,7 @@ viewport_handle_event_click(viewport_t *viewport, int x, int y, gui_event_button
 
 		if (BIT_TEST(player->field_D0, dir)) {
 			map_pos_t pos = MAP_POS(player->sett->map_cursor_col, player->sett->map_cursor_row);
-			map_1_t *map = globals.map_mem2_ptr;
+			map_1_t *tiles1 = globals.map.tiles1;
 			dir_t dir_rev = DIR_REVERSE(dir);
 
 			if (!BIT_TEST(MAP_PATHS(pos), dir)) { /* No existing path: Create path */
@@ -2334,14 +2334,14 @@ viewport_handle_event_click(viewport_t *viewport, int x, int y, gui_event_button
 						/* loc_3ABF0 */
 						if (MAP_OBJ(clk_pos) == MAP_OBJ_FLAG) { /* Existing flag */
 							/* 3AC0A */
-							int r = player_build_road_connect_flag(player, map, clk_pos, dir_rev);
+							int r = player_build_road_connect_flag(player, tiles1, clk_pos, dir_rev);
 							if (r < 0) {
 								sfx_play_clip(SFX_NOT_ACCEPTED);
 							} else {
 								player->sett->map_cursor_col = clk_col;
 								player->sett->map_cursor_row = clk_row;
-								map[pos].flags |= BIT(dir);
-								map[clk_pos].flags |= BIT(dir_rev);
+								tiles1[pos].flags |= BIT(dir);
+								tiles1[clk_pos].flags |= BIT(dir_rev);
 								player->road_length = 0;
 								/* redraw map cursor */
 								sfx_play_clip(SFX_ACCEPTED);
@@ -2349,8 +2349,8 @@ viewport_handle_event_click(viewport_t *viewport, int x, int y, gui_event_button
 							player_build_road_end(player);
 						} else {
 							player->road_length += 1;
-							map[pos].flags |= BIT(dir);
-							map[clk_pos].flags |= BIT(dir_rev);
+							tiles1[pos].flags |= BIT(dir);
+							tiles1[clk_pos].flags |= BIT(dir_rev);
 							sfx_play_clip(SFX_CLICK);
 
 							/* loc_3AD32 */
@@ -2366,16 +2366,16 @@ viewport_handle_event_click(viewport_t *viewport, int x, int y, gui_event_button
 						}
 					}
 				} else { /* Dest has existing paths */
-					if ((map[clk_pos].obj & 0x7f) == 1) { /* Flag at dest */
+					if (MAP_OBJ(clk_pos) == MAP_OBJ_FLAG) { /* Flag at dest */
 						/* 3AC0A */
-						int r = player_build_road_connect_flag(player, map, clk_pos, dir_rev);
+						int r = player_build_road_connect_flag(player, tiles1, clk_pos, dir_rev);
 						if (r < 0) {
 							sfx_play_clip(SFX_NOT_ACCEPTED);
 						} else {
 							player->sett->map_cursor_col = clk_col;
 							player->sett->map_cursor_row = clk_row;
-							map[pos].flags |= BIT(dir);
-							map[clk_pos].flags |= BIT(dir_rev);
+							tiles1[pos].flags |= BIT(dir);
+							tiles1[clk_pos].flags |= BIT(dir_rev);
 							player->road_length = 0;
 							/* redraw map cursor */
 							sfx_play_clip(SFX_ACCEPTED);
@@ -2392,8 +2392,8 @@ viewport_handle_event_click(viewport_t *viewport, int x, int y, gui_event_button
 				}
 			} else { /* Existing path: Delete path */
 				player->road_length -= 1;
-				map[pos].flags &= ~BIT(dir);
-				map[clk_pos].flags &= ~BIT(dir_rev);
+				tiles1[pos].flags &= ~BIT(dir);
+				tiles1[clk_pos].flags &= ~BIT(dir_rev);
 				sfx_play_clip(SFX_CLICK);
 
 				/* loc_3AD32 */
@@ -2485,10 +2485,10 @@ viewport_handle_event_click(viewport_t *viewport, int x, int y, gui_event_button
 							return 0;
 						}
 
-						const map_pos_t *p = globals.spiral_pos_pattern + 7;
+						const map_pos_t *p = &globals.spiral_pos_pattern[7];
 						int found = 0;
 						for (int i = 257; i >= 0; i--) {
-							map_pos_t pos = (building->pos + p[257-i]) & globals.map_index_mask;
+							map_pos_t pos = MAP_POS_ADD(building->pos, p[257-i]);
 							if (MAP_HAS_OWNER(pos) &&
 							    MAP_OWNER(pos) == player->sett->player_num) {
 								found = 1;
@@ -2625,8 +2625,8 @@ viewport_init(viewport_t *viewport, player_t *player)
 void
 viewport_screen_pix_from_map_pix(viewport_t *viewport, int mx, int my, int *sx, int *sy)
 {
-	int width = globals.map_cols*MAP_TILE_WIDTH;
-	int height = globals.map_rows*MAP_TILE_HEIGHT;
+	int width = globals.map.cols*MAP_TILE_WIDTH;
+	int height = globals.map.rows*MAP_TILE_HEIGHT;
 
 	*sx = mx - viewport->offset_x;
 	*sy = my - viewport->offset_y;
@@ -2648,8 +2648,8 @@ viewport_screen_pix_from_map_pix(viewport_t *viewport, int mx, int my, int *sx, 
 void
 viewport_map_pix_from_map_coord(viewport_t *viewport, int col, int row, int h, int *mx, int *my)
 {
-	int width = globals.map_cols*MAP_TILE_WIDTH;
-	int height = globals.map_rows*MAP_TILE_HEIGHT;
+	int width = globals.map.cols*MAP_TILE_WIDTH;
+	int height = globals.map.rows*MAP_TILE_HEIGHT;
 
 	*mx = MAP_TILE_WIDTH*col - (MAP_TILE_WIDTH/2)*row;
 	*my = MAP_TILE_HEIGHT*row - 4*h;
@@ -2669,8 +2669,8 @@ viewport_map_pos_from_screen_pix(viewport_t *viewport, int sx, int sy)
 	int x_off = -(viewport->offset_x + 16*(viewport->offset_y/20)) % 32;
 	int y_off = -viewport->offset_y % 20;
 
-	int col = (viewport->offset_x/16 + viewport->offset_y/20)/2 & globals.map_col_mask;
-	int row = (viewport->offset_y/MAP_TILE_HEIGHT) & globals.map_row_mask;
+	int col = (viewport->offset_x/16 + viewport->offset_y/20)/2 & globals.map.col_mask;
+	int row = (viewport->offset_y/MAP_TILE_HEIGHT) & globals.map.row_mask;
 
 	sx -= x_off;
 	sy -= y_off;
@@ -2682,8 +2682,8 @@ viewport_map_pos_from_screen_pix(viewport_t *viewport, int sx, int sy)
 		y_base = 16;
 	}
 
-	col = (col + col_offset) & globals.map_col_mask;
-	row = row & globals.map_row_mask;
+	col = (col + col_offset) & globals.map.col_mask;
+	row = row & globals.map.row_mask;
 
 	int y;
 	int last_y = -100;
@@ -2693,14 +2693,14 @@ viewport_map_pos_from_screen_pix(viewport_t *viewport, int sx, int sy)
 		if (sy < y) break;
 
 		last_y = y;
-		col = (col + 1) & globals.map_col_mask;
-		row = (row + 2) & globals.map_row_mask;
+		col = (col + 1) & globals.map.col_mask;
+		row = (row + 2) & globals.map.row_mask;
 		y_base += 2*MAP_TILE_HEIGHT;
 	}
 
 	if (sy < (y + last_y)/2) {
-		col = (col - 1) & globals.map_col_mask;
-		row = (row - 2) & globals.map_row_mask;
+		col = (col - 1) & globals.map.col_mask;
+		row = (row - 2) & globals.map.row_mask;
 	}
 
 	return MAP_POS(col, row);
@@ -2725,8 +2725,8 @@ viewport_move_to_map_pos(viewport_t *viewport, int col, int row)
 					MAP_HEIGHT(MAP_POS(col, row)),
 					&mx, &my);
 
-	int map_width = globals.map_cols*MAP_TILE_WIDTH;
-	int map_height = globals.map_rows*MAP_TILE_HEIGHT;
+	int map_width = globals.map.cols*MAP_TILE_WIDTH;
+	int map_height = globals.map.rows*MAP_TILE_HEIGHT;
 
 	/* Center screen. */
 	mx -= viewport->obj.width/2;
@@ -2749,8 +2749,8 @@ viewport_move_to_map_pos(viewport_t *viewport, int col, int row)
 void
 viewport_move_by_pixels(viewport_t *viewport, int x, int y)
 {
-	int width = globals.map_cols*MAP_TILE_WIDTH;
-	int height = globals.map_rows*MAP_TILE_HEIGHT;
+	int width = globals.map.cols*MAP_TILE_WIDTH;
+	int height = globals.map.rows*MAP_TILE_HEIGHT;
 
 	viewport->offset_x += x;
 	viewport->offset_y += y;
