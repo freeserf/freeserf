@@ -241,11 +241,8 @@ handle_panel_button_click(player_t *player, int btn)
 					player->minimap_flags = 8;
 
 					/* Synchronize minimap window with viewport. */
-					int col, row;
-					viewport_get_current_map_pos(gui_get_top_viewport(),
-								     &col, &row);
-					minimap_move_to_map_pos(&gui_get_popup_box()->minimap,
-								col, row);
+					map_pos_t pos = viewport_get_current_map_pos(gui_get_top_viewport());
+					minimap_move_to_map_pos(&gui_get_popup_box()->minimap, pos);
 
 					player_open_popup(player, BOX_MAP);
 				}
@@ -451,13 +448,11 @@ handle_message_icon_click(player_t *player)
 	if (BIT_TEST(0x8f3fe, type)) {
 		/* Move screen to new position */
 		map_pos_t new_pos = player->sett->msg_queue_pos[0];
-		int col = MAP_POS_COL(new_pos);
-		int row = MAP_POS_ROW(new_pos);
 
 		viewport_t *viewport = gui_get_top_viewport();
-		viewport_move_to_map_pos(viewport, col, row);
-		player->sett->map_cursor_col = col;
-		player->sett->map_cursor_row = row;
+		viewport_move_to_map_pos(viewport, new_pos);
+		player->sett->map_cursor_col = MAP_POS_COL(new_pos);
+		player->sett->map_cursor_row = MAP_POS_ROW(new_pos);
 	}
 
 	player_open_popup(player, BOX_MESSAGE);
@@ -558,9 +553,9 @@ panel_bar_handle_event_click(panel_bar_t *panel, int x, int y)
 						player->msg_flags |= BIT(4);
 						player->msg_flags |= BIT(3);
 						viewport_t *viewport = gui_get_top_viewport();
-						viewport_get_current_map_pos(viewport,
-									     &player->return_col_game_area,
-									     &player->return_row_game_area);
+						map_pos_t pos = viewport_get_current_map_pos(viewport);
+						player->return_col_game_area = MAP_POS_COL(pos);
+						player->return_row_game_area = MAP_POS_ROW(pos);
 					}
 
 					handle_message_icon_click(player);
@@ -576,8 +571,9 @@ panel_bar_handle_event_click(panel_bar_t *panel, int x, int y)
 
 					player->return_timeout = 0;
 					viewport_t *viewport = gui_get_top_viewport();
-					viewport_move_to_map_pos(viewport, player->return_col_game_area,
-								 player->return_row_game_area);
+					map_pos_t pos = MAP_POS(player->return_col_game_area,
+								player->return_row_game_area);
+					viewport_move_to_map_pos(viewport, pos);
 
 					if (player->clkmap == BOX_MESSAGE) player_close_popup(player);
 					sfx_play_clip(SFX_CLICK);

@@ -7,6 +7,7 @@
 #include "flag.h"
 #include "serf.h"
 #include "building.h"
+#include "map.h"
 #include "freeserf.h"
 
 #define DEFAULT_GAME_SPEED 0x20000
@@ -42,7 +43,7 @@ void game_demolish_flag(map_pos_t pos);
 void game_demolish_building(map_pos_t pos);
 
 void game_calculate_military_flag_state(building_t *building);
-void game_update_land_ownership(int col, int row);
+void game_update_land_ownership(map_pos_t pos);
 void game_occupy_enemy_building(building_t *building, int player);
 
 void game_set_inventory_resource_mode(inventory_t *inventory, int mode);

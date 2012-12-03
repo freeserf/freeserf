@@ -2002,7 +2002,7 @@ draw_transport_info_box(popup_box_t *popup, frame_t *frame)
 
 	flag_view.obj.parent = (gui_container_t *)popup;
 	gui_object_set_size((gui_object_t *)&flag_view, 128, 64);
-	viewport_move_to_map_pos(&flag_view, MAP_COORD_ARGS(flag->pos));
+	viewport_move_to_map_pos(&flag_view, flag->pos);
 	flag_view.offset_y -= 10;
 
 	gui_object_redraw((gui_object_t *)&flag_view, &flag_frame);

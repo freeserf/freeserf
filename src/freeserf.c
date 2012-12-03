@@ -1334,8 +1334,8 @@ pregame_continue()
 	}
 #endif
 
-	/* ADDITION move viewport to (0,0). */
-	viewport_move_to_map_pos(&viewport, 0, 0);
+	/* ADDITION move viewport to (0, 0). */
+	viewport_move_to_map_pos(&viewport, MAP_POS(0, 0));
 
 	game_loop();
 }

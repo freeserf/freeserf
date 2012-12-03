@@ -1152,7 +1152,7 @@ handle_serf_entering_building_state(serf_t *serf)
 						flag->stock2_prio = 0;
 
 						/* TODO Save total land amount and building count for each player. */
-						game_update_land_ownership(MAP_COORD_ARGS(building->pos));
+						game_update_land_ownership(building->pos);
 						/* TODO Create notifications if land amount or building count changed. */
 					}
 				}

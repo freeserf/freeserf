@@ -208,13 +208,10 @@ static int
 minimap_handle_event_click(minimap_t *minimap, int x, int y)
 {
 	map_pos_t pos = minimap_map_pos_from_screen_pix(minimap, x, y);
-	int col = MAP_POS_COL(pos);
-	int row = MAP_POS_ROW(pos);
+	viewport_move_to_map_pos(gui_get_top_viewport(), pos);
 
-	viewport_move_to_map_pos(gui_get_top_viewport(), col, row);
-
-	minimap->player->sett->map_cursor_col = col;
-	minimap->player->sett->map_cursor_row = row;
+	minimap->player->sett->map_cursor_col = MAP_POS_COL(pos);
+	minimap->player->sett->map_cursor_row = MAP_POS_ROW(pos);
 
 	player_close_popup(minimap->player);
 
@@ -297,10 +294,9 @@ minimap_init(minimap_t *minimap, player_t *player)
 void
 minimap_set_scale(minimap_t *minimap, int scale)
 {
-	int col, row;
-	minimap_get_current_map_pos(minimap, &col, &row);
+	map_pos_t pos = minimap_get_current_map_pos(minimap);
 	minimap->scale = scale;
-	minimap_move_to_map_pos(minimap, col, row);
+	minimap_move_to_map_pos(minimap, pos);
 
 	gui_object_set_redraw((gui_object_t *)minimap);
 }
@@ -329,13 +325,13 @@ minimap_screen_pix_from_map_pix(minimap_t *minimap, int mx, int my, int *sx, int
 }
 
 void
-minimap_map_pix_from_map_coord(minimap_t *minimap, int col, int row, int *mx, int *my)
+minimap_map_pix_from_map_coord(minimap_t *minimap, map_pos_t pos, int *mx, int *my)
 {
 	int width = globals.map.cols * minimap->scale;
 	int height = globals.map.rows * minimap->scale;
 
-	*mx = minimap->scale*col - (minimap->scale*row)/2;
-	*my = minimap->scale*row;
+	*mx = minimap->scale*MAP_POS_COL(pos) - (minimap->scale*MAP_POS_ROW(pos))/2;
+	*my = minimap->scale*MAP_POS_ROW(pos);
 
 	if (*my < 0) {
 		*mx += width/2;
@@ -358,22 +354,19 @@ minimap_map_pos_from_screen_pix(minimap_t *minimap, int x, int y)
 	return MAP_POS(col, row);
 }
 
-void
-minimap_get_current_map_pos(minimap_t *minimap, int *col, int *row)
+map_pos_t
+minimap_get_current_map_pos(minimap_t *minimap)
 {
-	map_pos_t pos =
-		minimap_map_pos_from_screen_pix(minimap,
-						minimap->obj.width/2,
-						minimap->obj.height/2);
-	*col = MAP_POS_COL(pos);
-	*row = MAP_POS_ROW(pos);
+	return minimap_map_pos_from_screen_pix(minimap,
+					       minimap->obj.width/2,
+					       minimap->obj.height/2);
 }
 
 void
-minimap_move_to_map_pos(minimap_t *minimap, int col, int row)
+minimap_move_to_map_pos(minimap_t *minimap, map_pos_t pos)
 {
 	int mx, my;
-	minimap_map_pix_from_map_coord(minimap, col, row, &mx, &my);
+	minimap_map_pix_from_map_coord(minimap, pos, &mx, &my);
 
 	int map_width = globals.map.cols*minimap->scale;
 	int map_height = globals.map.rows*minimap->scale;

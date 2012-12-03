@@ -2929,7 +2929,7 @@ game_demolish_building(map_pos_t pos)
 	     BUILDING_TYPE(building) == BUILDING_TOWER ||
 	     BUILDING_TYPE(building) == BUILDING_FORTRESS ||
 	     BUILDING_TYPE(building) == BUILDING_CASTLE)) {
-		game_update_land_ownership(MAP_COORD_ARGS(building->pos));
+		game_update_land_ownership(building->pos);
 	}
 
 	if (BUILDING_IS_DONE(building) &&
@@ -3163,9 +3163,9 @@ game_surrender_land(map_pos_t pos)
 	}
 }
 
-/* Update land ownership around col,row. */
+/* Update land ownership around map position. */
 void
-game_update_land_ownership(int col, int row)
+game_update_land_ownership(map_pos_t init_pos)
 {
 	/* Currently the below algorithm will only work when
 	   both influence_radius and calculate_radius are 8. */
@@ -3210,7 +3210,7 @@ game_update_land_ownership(int col, int row)
 	     i <= influence_radius+calculate_radius; i++) {
 		for (int j = -(influence_radius+calculate_radius);
 		     j <= influence_radius+calculate_radius; j++) {
-			map_pos_t pos = MAP_POS_ADD(MAP_POS(col, row),
+			map_pos_t pos = MAP_POS_ADD(init_pos,
 						    MAP_POS(j & globals.map.col_mask,
 							    i & globals.map.row_mask));
 
@@ -3276,7 +3276,7 @@ game_update_land_ownership(int col, int row)
 				}
 			}
 
-			map_pos_t pos = MAP_POS_ADD(MAP_POS(col, row),
+			map_pos_t pos = MAP_POS_ADD(init_pos,
 						    MAP_POS(j & globals.map.col_mask,
 							    i & globals.map.row_mask));
 			if (player >= 0) {
@@ -3301,7 +3301,7 @@ game_update_land_ownership(int col, int row)
 	/* Update military building flag state. */
 	for (int i = -25; i <= 25; i++) {
 		for (int j = -25; j <= 25; j++) {
-			map_pos_t pos = MAP_POS_ADD(MAP_POS(col, row),
+			map_pos_t pos = MAP_POS_ADD(init_pos,
 						    MAP_POS(i & globals.map.col_mask,
 							    j & globals.map.row_mask));
 
@@ -3426,7 +3426,7 @@ game_occupy_enemy_building(building_t *building, int player)
 		/* Change owner of building */
 		building->bld = (building->bld & 0xfc) | player;
 
-		game_update_land_ownership(MAP_COORD_ARGS(building->pos));
+		game_update_land_ownership(building->pos);
 
 		if (BIT_TEST(sett->flags, 7)) {
 			/* TODO AI */

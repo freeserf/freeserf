@@ -20,9 +20,9 @@ void minimap_init(minimap_t *minimap, player_t *player);
 
 void minimap_set_scale(minimap_t *minimap, int scale);
 
-void minimap_move_to_map_pos(minimap_t *minimap, int col, int row);
+void minimap_move_to_map_pos(minimap_t *minimap, map_pos_t pos);
 void minimap_move_by_pixels(minimap_t *minimap, int x, int y);
-void minimap_get_current_map_pos(minimap_t *minimap, int *col, int *row);
+map_pos_t minimap_get_current_map_pos(minimap_t *minimap);
 
 void minimap_screen_pix_from_map_pos(minimap_t *minimap, map_pos_t pos, int *sx, int *sy);
 map_pos_t minimap_map_pos_from_screen_pix(minimap_t *minimap, int x, int y);

@@ -2194,7 +2194,7 @@ static void
 draw_map_cursor_sprite(viewport_t *viewport, map_pos_t pos, int sprite, frame_t *frame)
 {
 	int mx, my;
-	viewport_map_pix_from_map_coord(viewport, MAP_COORD_ARGS(pos), MAP_HEIGHT(pos), &mx, &my);
+	viewport_map_pix_from_map_coord(viewport, pos, MAP_HEIGHT(pos), &mx, &my);
 
 	int sx, sy;
 	viewport_screen_pix_from_map_pix(viewport, mx, my, &sx, &sy);
@@ -2646,13 +2646,13 @@ viewport_screen_pix_from_map_pix(viewport_t *viewport, int mx, int my, int *sx, 
 }
 
 void
-viewport_map_pix_from_map_coord(viewport_t *viewport, int col, int row, int h, int *mx, int *my)
+viewport_map_pix_from_map_coord(viewport_t *viewport, map_pos_t pos, int h, int *mx, int *my)
 {
 	int width = globals.map.cols*MAP_TILE_WIDTH;
 	int height = globals.map.rows*MAP_TILE_HEIGHT;
 
-	*mx = MAP_TILE_WIDTH*col - (MAP_TILE_WIDTH/2)*row;
-	*my = MAP_TILE_HEIGHT*row - 4*h;
+	*mx = MAP_TILE_WIDTH*MAP_POS_COL(pos) - (MAP_TILE_WIDTH/2)*MAP_POS_ROW(pos);
+	*my = MAP_TILE_HEIGHT*MAP_POS_ROW(pos) - 4*h;
 
 	if (*my < 0) {
 		*mx += width/2;
@@ -2706,23 +2706,20 @@ viewport_map_pos_from_screen_pix(viewport_t *viewport, int sx, int sy)
 	return MAP_POS(col, row);
 }
 
-void
-viewport_get_current_map_pos(viewport_t *viewport, int *col, int *row)
+map_pos_t
+viewport_get_current_map_pos(viewport_t *viewport)
 {
-	map_pos_t pos =
-		viewport_map_pos_from_screen_pix(viewport,
-						 viewport->obj.width/2,
-						 viewport->obj.height/2);
-	*col = MAP_POS_COL(pos);
-	*row = MAP_POS_ROW(pos);
+	return viewport_map_pos_from_screen_pix(viewport,
+						viewport->obj.width/2,
+						viewport->obj.height/2);
 }
 
 void
-viewport_move_to_map_pos(viewport_t *viewport, int col, int row)
+viewport_move_to_map_pos(viewport_t *viewport, map_pos_t pos)
 {
 	int mx, my;
-	viewport_map_pix_from_map_coord(viewport, col, row,
-					MAP_HEIGHT(MAP_POS(col, row)),
+	viewport_map_pix_from_map_coord(viewport, pos,
+					MAP_HEIGHT(pos),
 					&mx, &my);
 
 	int map_width = globals.map.cols*MAP_TILE_WIDTH;

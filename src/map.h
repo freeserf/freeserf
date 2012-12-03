@@ -32,8 +32,6 @@
 #define MAP_MOVE_RIGHT_N(pos,n)  MAP_POS_ADD((pos), globals.map.dirs[DIR_RIGHT]*(n))
 #define MAP_MOVE_DOWN_N(pos,n)  MAP_POS_ADD((pos), globals.map.dirs[DIR_DOWN]*(n))
 
-#define MAP_COORD_ARGS(pos)  MAP_POS_COL(pos), MAP_POS_ROW(pos)
-
 
 /* Extractors for map data. */
 #define MAP_HAS_FLAG(pos)  ((uint)((globals.map.tiles1[(pos)].flags >> 7) & 1))
