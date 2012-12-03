@@ -54,11 +54,7 @@
 static unsigned int tick;
 static int update_from_cb;
 
-static frame_t svga_full_frame;
-static frame_t game_area_svga_frame;
-static frame_t svga_normal_frame;
-
-static frame_t popup_box_left_frame;
+static frame_t screen_frame;
 
 /* Viewport holds the state of the main map window
    (e.g. size and current map location). */
@@ -210,7 +206,7 @@ init_player_structs(player_t *p[])
 
 	/* TODO ... */
 
-	p[0]->popup_frame = &popup_box_left_frame;
+	/*p[0]->popup_frame = &popup_box_left_frame;*/
 
 	p[0]->panel_btns[0] = PANEL_BTN_BUILD_INACTIVE;
 	p[0]->panel_btns[1] = PANEL_BTN_DESTROY_INACTIVE;
@@ -253,7 +249,7 @@ init_player_structs(player_t *p[])
 static void
 init_players_svga(player_t *p[])
 {
-	globals.frame = &game_area_svga_frame;
+	globals.frame = &screen_frame;
 	int width = sdl_frame_get_width(globals.frame);
 	int height = sdl_frame_get_height(globals.frame);
 
@@ -319,7 +315,7 @@ init_players_svga(player_t *p[])
 	p[0]->map_cursor_col_max = 2*p[0]->game_area_cols + 8/*76*/;
 	p[0]->map_cursor_col_off = 0/*36*/;
 
-	p[0]->frame = &svga_normal_frame;
+	/*p[0]->frame = &svga_normal_frame;*/
 
 	/* Add objects to interface container. */
 	interface_set_top(&interface, (gui_object_t *)&viewport);
@@ -782,28 +778,6 @@ handle_player_inputs()
 	} else {
 		/* TODO coop mode */
 	}
-}
-
-static void
-draw_player_popup_to_frame(player_t *player)
-{
-	if (BIT_TEST(player->flags, 0)) return; /* Player inactive */
-
-	if (BIT_TEST(player->click, 1)) return;
-
-	if (BIT_TEST(globals.split, 5)) { /* Demo mode */
-		/* TODO ... */
-	} else {
-		sdl_draw_frame(player->popup_x-8, player->popup_y-9, player->frame,
-			       0, 0, player->popup_frame, 144, 160);
-	}
-}
-
-static void
-draw_popups_to_frame()
-{
-	draw_player_popup_to_frame(globals.player[0]);
-	draw_player_popup_to_frame(globals.player[1]);
 }
 
 /* Update game_tick. */
@@ -1306,34 +1280,6 @@ pregame_continue()
 		}
 	}
 
-#if 0
-	for (int i = 0; i < globals.map_rows; i++) {
-		map_1_t *map = globals.map_mem2_ptr;
-		map_2_t *map_data = MAP_2_DATA(map);
-		for (int j = 0; j < globals.map_cols; j++) {
-			map_pos_t pos = MAP_POS(j, i);
-			LOGD(NULL, "% 3i, % 3i:  %02x %02x %02x %02x    %04x %04x  H(%i)",
-			    j, i,
-			    map[pos].flags, map[pos].height, map[pos].type, map[pos].obj,
-			    map_data[pos].u.index, map_data[pos].serf_index,
-			    map[pos].height & 0x1f);
-
-			const char *name_from_dir[] = { "right", "down right", "down" };
-
-			for (dir_t d = DIR_RIGHT; d <= DIR_DOWN; d++) {
-				map_pos_t other_pos = MAP_MOVE(pos, d);
-				int h_diff = MAP_HEIGHT(pos) - MAP_HEIGHT(other_pos);
-				if (h_diff < -4 || h_diff > 4) {
-					LOGD(NULL, "h_diff fail: %s, (%i, %i, %i) -> (%i, %i, %i)",
-					       name_from_dir[d],
-					       MAP_COORD_ARGS(pos), MAP_HEIGHT(pos),
-					       MAP_COORD_ARGS(other_pos), MAP_HEIGHT(other_pos));
-				}
-			}
-		}
-	}
-#endif
-
 	/* ADDITION move viewport to (0, 0). */
 	viewport_move_to_map_pos(&viewport, MAP_POS(0, 0));
 
@@ -1510,18 +1456,16 @@ hand_out_memory_2()
 
 	/* TODO ...*/
 
-	sdl_frame_init(&svga_full_frame, 0, 0, sdl_frame_get_width(screen),
-		       sdl_frame_get_height(screen), screen);
-	sdl_frame_init(&svga_normal_frame, 0, 0, sdl_frame_get_width(screen),
+	sdl_frame_init(&screen_frame, 0, 0, sdl_frame_get_width(screen),
 		       sdl_frame_get_height(screen), screen);
 
 	/* TODO ... */
 
 	/*sdl_frame_init(&game_area_lowres_frame, 0, 0, 352, 192, screen);*/
-	sdl_frame_init(&game_area_svga_frame, 0, 0, sdl_frame_get_width(screen),
-		       sdl_frame_get_height(screen), screen);
+	/*sdl_frame_init(&game_area_svga_frame, 0, 0, sdl_frame_get_width(screen),
+	  sdl_frame_get_height(screen), screen);*/
 
-	sdl_frame_init(&popup_box_left_frame, 0, 0, 144, 160, NULL);
+	/*sdl_frame_init(&popup_box_left_frame, 0, 0, 144, 160, NULL);*/
 	/*sdl_frame_init_new(&popup_box_right_frame, 0, 0, 144, 160);*/
 
 	pregame_init();
