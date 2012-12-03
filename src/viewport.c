@@ -314,7 +314,7 @@ draw_landscape(viewport_t *viewport, frame_t *frame)
 	while (y < viewport->obj.height) {
 		int x = 0;
 		while (x < viewport->obj.width) {
-			sdl_draw_frame(viewport->x + x, viewport->y + y, frame,
+			sdl_draw_frame(x, y, frame,
 				       (mx + x_base + x) % map_width,
 				       (my + y) % map_height,
 				       &landscape_frame,
@@ -737,20 +737,20 @@ draw_paths_and_borders(viewport_t *viewport, frame_t *frame)
 	int cols = VIEWPORT_COLS(viewport) + 1;
 	int col = 0;
 	while (1) {
-		draw_paths_and_borders_sub1(viewport->x + x, viewport->y + y + MAP_TILE_HEIGHT, viewport->obj.height, pos, frame);
+		draw_paths_and_borders_sub1(x, y + MAP_TILE_HEIGHT, viewport->obj.height, pos, frame);
 		col += 1;
 		if (col >= cols) break;
 
 		x += MAP_TILE_WIDTH/2;
-		draw_paths_and_borders_sub2(viewport->x + x, viewport->y + y, viewport->obj.height, pos, frame);
-		draw_paths_and_borders_sub3(viewport->x + x, viewport->y + y + 2*MAP_TILE_HEIGHT, viewport->obj.height, pos, frame);
+		draw_paths_and_borders_sub2(x, y, viewport->obj.height, pos, frame);
+		draw_paths_and_borders_sub3(x, y + 2*MAP_TILE_HEIGHT, viewport->obj.height, pos, frame);
 
 		col += 1;
 		if (col >= cols) break;
 
 		pos = MAP_MOVE_RIGHT(pos);
 		x += MAP_TILE_WIDTH/2;
-		draw_paths_and_borders_sub4(viewport->x + x, viewport->y + y, viewport->obj.height, pos, frame);
+		draw_paths_and_borders_sub4(x, y, viewport->obj.height, pos, frame);
 	}
 }
 
@@ -2169,9 +2169,9 @@ draw_game_objects(viewport_t *viewport, int layers, frame_t *frame)
 	/* Loop until objects drawn fall outside the frame. */
 	while (1) {
 		/* short row */
-		if (draw_landscape) draw_water_waves_row(pos, viewport->y + y, short_row_len, viewport->x + x, frame);
-		if (draw_objects) draw_map_objects_row(pos, viewport->y + y, short_row_len, viewport->x + x, frame);
-		if (draw_serfs) draw_serf_row(pos, viewport->y + y, short_row_len, viewport->x + x, frame);
+		if (draw_landscape) draw_water_waves_row(pos, y, short_row_len, x, frame);
+		if (draw_objects) draw_map_objects_row(pos, y, short_row_len, x, frame);
+		if (draw_serfs) draw_serf_row(pos, y, short_row_len, x, frame);
 
 		y += MAP_TILE_HEIGHT;
 		if (y - 3*MAP_TILE_HEIGHT >= viewport->obj.height) break;
@@ -2179,9 +2179,9 @@ draw_game_objects(viewport_t *viewport, int layers, frame_t *frame)
 		pos = MAP_MOVE_DOWN(pos);
 
 		/* long row */
-		if (draw_landscape) draw_water_waves_row(pos, viewport->y + y, long_row_len, viewport->x + x - 16, frame);
-		if (draw_objects) draw_map_objects_row(pos, viewport->y + y, long_row_len, viewport->x + x - 16, frame);
-		if (draw_serfs) draw_serf_row(pos, viewport->y + y, long_row_len, viewport->x + x - 16, frame);
+		if (draw_landscape) draw_water_waves_row(pos, y, long_row_len, x - 16, frame);
+		if (draw_objects) draw_map_objects_row(pos, y, long_row_len, x - 16, frame);
+		if (draw_serfs) draw_serf_row(pos, y, long_row_len, x - 16, frame);
 
 		y += MAP_TILE_HEIGHT;
 		if (y - 3*MAP_TILE_HEIGHT >= viewport->obj.height) break;
@@ -2199,7 +2199,7 @@ draw_map_cursor_sprite(viewport_t *viewport, map_pos_t pos, int sprite, frame_t 
 	int sx, sy;
 	viewport_screen_pix_from_map_pix(viewport, mx, my, &sx, &sy);
 
-	draw_game_sprite(viewport->x + sx, viewport->y + sy, sprite, frame);
+	draw_game_sprite(sx, sy, sprite, frame);
 }
 
 static void
@@ -2222,10 +2222,10 @@ draw_base_grid_overlay(viewport_t *viewport, int color, frame_t *frame)
 
 	int row = 0;
 	for (int y = y_base; y < viewport->obj.height; y += MAP_TILE_HEIGHT, row++) {
-		sdl_fill_rect(viewport->x, viewport->y + y, viewport->obj.width, 1, color, frame);
+		sdl_fill_rect(0, y, viewport->obj.width, 1, color, frame);
 		for (int x = x_base + ((row % 2 == 0) ? 0 : -MAP_TILE_WIDTH/2);
 		     x < viewport->obj.width; x += MAP_TILE_WIDTH) {
-			sdl_fill_rect(viewport->x + x, viewport->y + y - 2, 1, 5, color, frame);
+			sdl_fill_rect(x, y + y - 2, 1, 5, color, frame);
 		}
 	}
 }
@@ -2255,11 +2255,11 @@ draw_height_grid_overlay(viewport_t *viewport, int color, frame_t *frame)
 
 			/* Draw cross. */
 			if (pos != MAP_POS(0, 0)) {
-				sdl_fill_rect(viewport->x + x, viewport->y + y - 1, 1, 3, color, frame);
-				sdl_fill_rect(viewport->x + x - 1, viewport->y + y, 3, 1, color, frame);
+				sdl_fill_rect(x, y - 1, 1, 3, color, frame);
+				sdl_fill_rect(x - 1, y, 3, 1, color, frame);
 			} else {
-				sdl_fill_rect(viewport->x + x, viewport->y + y - 2, 1, 5, color, frame);
-				sdl_fill_rect(viewport->x + x - 2, viewport->y + y, 5, 1, color, frame);
+				sdl_fill_rect(x, y - 2, 1, 5, color, frame);
+				sdl_fill_rect(x - 2, y, 5, 1, color, frame);
 			}
 
 			if (row % 2 == 0) pos = MAP_MOVE_DOWN(pos);
@@ -2579,9 +2579,6 @@ viewport_init(viewport_t *viewport, player_t *player)
 	gui_object_init((gui_object_t *)viewport);
 	viewport->obj.draw = (gui_draw_func *)viewport_draw;
 	viewport->obj.handle_event = (gui_handle_event_func *)viewport_handle_event;
-
-	viewport->x = 0;
-	viewport->y = 0;
 
 	viewport->player = player;
 	viewport->layers = VIEWPORT_LAYER_ALL;

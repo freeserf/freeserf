@@ -23,7 +23,6 @@ typedef enum {
 
 typedef struct {
 	gui_object_t obj;
-	int x, y;
 	int offset_x, offset_y;
 	viewport_layer_t layers;
 	player_t *player;
