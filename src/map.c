@@ -1235,9 +1235,7 @@ map_init_dimensions(map_t *map)
 
 	map->col_mask = (1 << map->col_size) - 1;
 	map->row_mask = (1 << map->row_size) - 1;
-	map->row_shift = map->col_size + 1;
-
-	map->pos_mask = (map->row_mask << map->row_shift) | map->col_mask;
+	map->row_shift = map->col_size;
 
 	/* Setup direction offsets. */
 	map->dirs[DIR_RIGHT] = 1 & map->col_mask;
@@ -1251,12 +1249,11 @@ map_init_dimensions(map_t *map)
 	map->dirs[DIR_UP_LEFT] = map->dirs[DIR_LEFT] | map->dirs[DIR_UP];
 
 	/* Allocate map */
-	map->tiles1 = calloc(map->tile_count,
-			     (sizeof(map_1_t)+sizeof(map_2_t)));
+	map->tiles1 = calloc(map->tile_count, sizeof(map_1_t));
 	if (map->tiles1 == NULL) abort();
 
-	/* Adjust secondary pointer */
-	map->tiles2 = (map_2_t *)(map->tiles1 + map->cols);
+	map->tiles2 = calloc(map->tile_count, sizeof(map_2_t));
+	if (map->tiles2 == NULL) abort();
 }
 
 void

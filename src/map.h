@@ -35,7 +35,8 @@
 #define MAP_POS(x,y)  (((y)<<globals.map.row_shift) | (x))
 
 /* Addition of two map positions. */
-#define MAP_POS_ADD(pos,off)  (((pos)+(off)) & globals.map.pos_mask)
+#define MAP_POS_ADD(pos,off)  MAP_POS(((MAP_POS_COL(pos) + MAP_POS_COL(off)) & globals.map.col_mask), \
+				      ((MAP_POS_ROW(pos) + MAP_POS_ROW(off)) & globals.map.row_mask))
 
 /* Movement of map position according to directions. */
 #define MAP_MOVE(pos,dir)  MAP_POS_ADD((pos), globals.map.dirs[(dir)])
@@ -256,7 +257,6 @@ typedef struct {
 	map_pos_t dirs[8];
 	uint tile_count;
 	uint cols, rows;
-	map_pos_t pos_mask;
 	uint col_mask, row_mask;
 	uint row_shift;
 } map_t;
