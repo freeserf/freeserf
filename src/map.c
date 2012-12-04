@@ -834,10 +834,7 @@ init_map_objects_shared_sub1(map_pos_t pos, int min, int max)
 static map_pos_t
 lookup_rnd_pattern(int col, int row, int mask)
 {
-	int index = (random_int() & mask) * 2;
-	int c = (col + globals.spiral_pattern[index]) & globals.map.col_mask;
-	int r = (row + globals.spiral_pattern[index+1]) & globals.map.row_mask;
-	return MAP_POS(c, r);
+	return lookup_pattern(col, row, random_int() & mask);
 }
 
 static void
