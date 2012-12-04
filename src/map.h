@@ -56,7 +56,7 @@
 
 
 /* Extractors for map data. */
-#define MAP_HAS_FLAG(pos)  ((uint)((globals.map.tiles1[(pos)].flags >> 7) & 1))
+#define MAP_HAS_FLAG(pos)  ((uint)((globals.map.tiles[(pos)].flags >> 7) & 1))
 
 /* This bit is used to indicate a band of positions in the water, that are
    entirely surrounded by water tiles, but are still close to the shore. This is
@@ -65,30 +65,30 @@
    used to indicate whether an idle serf should be drawn as a sailor in the viewport.
    Further, it is used to indicate on land certain positions that are impassable.*/
 /* TODO Clean up; this bit has too many different meanings. */
-#define MAP_DEEP_WATER(pos)  ((uint)((globals.map.tiles1[(pos)].flags >> 6) & 1))
+#define MAP_DEEP_WATER(pos)  ((uint)((globals.map.tiles[(pos)].flags >> 6) & 1))
 
-#define MAP_PATHS(pos)  ((uint)(globals.map.tiles1[(pos)].flags & 0x3f))
+#define MAP_PATHS(pos)  ((uint)(globals.map.tiles[(pos)].flags & 0x3f))
 
-#define MAP_HAS_OWNER(pos)  ((uint)((globals.map.tiles1[(pos)].height >> 7) & 1))
-#define MAP_OWNER(pos)  ((uint)((globals.map.tiles1[(pos)].height >> 5) & 3))
-#define MAP_HEIGHT(pos)  ((uint)(globals.map.tiles1[(pos)].height & 0x1f))
+#define MAP_HAS_OWNER(pos)  ((uint)((globals.map.tiles[(pos)].height >> 7) & 1))
+#define MAP_OWNER(pos)  ((uint)((globals.map.tiles[(pos)].height >> 5) & 3))
+#define MAP_HEIGHT(pos)  ((uint)(globals.map.tiles[(pos)].height & 0x1f))
 
-#define MAP_TYPE_UP(pos)  ((uint)((globals.map.tiles1[(pos)].type >> 4) & 0xf))
-#define MAP_TYPE_DOWN(pos)  ((uint)(globals.map.tiles1[(pos)].type & 0xf))
+#define MAP_TYPE_UP(pos)  ((uint)((globals.map.tiles[(pos)].type >> 4) & 0xf))
+#define MAP_TYPE_DOWN(pos)  ((uint)(globals.map.tiles[(pos)].type & 0xf))
 
-#define MAP_OBJ(pos)  ((map_obj_t)(globals.map.tiles1[(pos)].obj & 0x7f))
+#define MAP_OBJ(pos)  ((map_obj_t)(globals.map.tiles[(pos)].obj & 0x7f))
 
 /* Whether any of the two up/down tiles at this pos are water.
    This is used to indicate whether waves should be drawn. */
-#define MAP_WATER(pos)  ((uint)((globals.map.tiles1[(pos)].obj >> 7) & 1))
+#define MAP_WATER(pos)  ((uint)((globals.map.tiles[(pos)].obj >> 7) & 1))
 
-#define MAP_OBJ_INDEX(pos)  ((uint)globals.map.tiles2[(pos)].u.index)
-#define MAP_IDLE_SERF(pos)  ((uint)((globals.map.tiles2[(pos)].u.s.field_1 >> 7) & 1))
-#define MAP_PLAYER(pos)  ((uint)(globals.map.tiles2[(pos)].u.s.field_1 & 3))
-#define MAP_RES_TYPE(pos)  ((ground_deposit_t)((globals.map.tiles2[(pos)].u.s.resource >> 5) & 7))
-#define MAP_RES_AMOUNT(pos)  ((uint)(globals.map.tiles2[(pos)].u.s.resource & 0x1f))
-#define MAP_RES_FISH(pos)  ((uint)globals.map.tiles2[(pos)].u.s.resource)
-#define MAP_SERF_INDEX(pos)  ((uint)globals.map.tiles2[(pos)].serf_index)
+#define MAP_OBJ_INDEX(pos)  ((uint)globals.map.tiles[(pos)].u.index)
+#define MAP_IDLE_SERF(pos)  ((uint)((globals.map.tiles[(pos)].u.s.field_1 >> 7) & 1))
+#define MAP_PLAYER(pos)  ((uint)(globals.map.tiles[(pos)].u.s.field_1 & 3))
+#define MAP_RES_TYPE(pos)  ((ground_deposit_t)((globals.map.tiles[(pos)].u.s.resource >> 5) & 7))
+#define MAP_RES_AMOUNT(pos)  ((uint)(globals.map.tiles[(pos)].u.s.resource & 0x1f))
+#define MAP_RES_FISH(pos)  ((uint)globals.map.tiles[(pos)].u.s.resource)
+#define MAP_SERF_INDEX(pos)  ((uint)globals.map.tiles[(pos)].serf_index)
 
 
 typedef enum {
@@ -228,9 +228,6 @@ typedef struct {
 	uint8_t height;
 	uint8_t type;
 	uint8_t obj;
-} map_1_t;
-
-typedef struct {
 	union {
 		uint16_t index;
 		struct {
@@ -239,7 +236,7 @@ typedef struct {
 		} s;
 	} u;
 	uint16_t serf_index;
-} map_2_t;
+} map_tile_t;
 
 
 /* map_pos_t is a compact composition of col and row values that
@@ -249,8 +246,7 @@ typedef uint map_pos_t;
 
 typedef struct {
 	/* Fundamentals */
-	map_1_t *tiles1;
-	map_2_t *tiles2;
+	map_tile_t *tiles;
 	uint col_size, row_size;
 
 	/* Derived */

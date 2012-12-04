@@ -193,7 +193,7 @@ typedef struct {
 	int game_area_rows;
 	int map_max_y;
 	/* 54 */
-	map_1_t **map_rows;
+	map_tile_t **map_rows;
 	/* 5C */
 	frame_t *popup_frame;
 	/* 60 */

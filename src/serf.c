@@ -623,7 +623,7 @@ handle_serf_walking_state(serf_t *serf)
 static void
 handle_serf_transporting_state(serf_t *serf)
 {
-	map_2_t *tiles2 = globals.map.tiles2;
+	map_tile_t *tiles = globals.map.tiles;
 
 	uint16_t delta = globals.anim - serf->anim;
 	serf->anim = globals.anim;
@@ -720,7 +720,7 @@ handle_serf_transporting_state(serf_t *serf)
 					serf->state = SERF_STATE_IDLE_ON_PATH;
 					serf->s.idle_on_path.rev_dir = rev_dir;
 					serf->s.idle_on_path.flag = flag;
-					tiles2[serf->pos].u.s.field_1 = BIT(7) | SERF_PLAYER(serf);
+					tiles[serf->pos].u.s.field_1 = BIT(7) | SERF_PLAYER(serf);
 					map_set_serf_index(serf->pos, 0);
 					return;
 				}
@@ -4334,7 +4334,7 @@ handle_serf_state_knight_leave_for_walk_to_fight(serf_t *serf)
 static void
 handle_serf_idle_on_path_state(serf_t *serf)
 {
-	map_2_t *tiles2 = globals.map.tiles2;
+	map_tile_t *tiles = globals.map.tiles;
 
 	flag_t *flag = serf->s.idle_on_path.flag;
 	int rev_dir = serf->s.idle_on_path.rev_dir;
@@ -4353,7 +4353,7 @@ handle_serf_idle_on_path_state(serf_t *serf)
 	}
 
 	if (MAP_SERF_INDEX(serf->pos) == 0) {
-		tiles2[serf->pos].u.s.field_1 = 0;
+		tiles[serf->pos].u.s.field_1 = 0;
 		map_set_serf_index(serf->pos, SERF_INDEX(serf));
 
 		int dir = serf->s.idle_on_path.field_E;
@@ -4374,11 +4374,11 @@ handle_serf_idle_on_path_state(serf_t *serf)
 static void
 handle_serf_wait_idle_on_path_state(serf_t *serf)
 {
-	map_2_t *tiles2 = globals.map.tiles2;
+	map_tile_t *tiles = globals.map.tiles;
 
 	if (MAP_SERF_INDEX(serf->pos) == 0) {
 		/* Duplicate code from handle_serf_idle_on_path_state() */
-		tiles2[serf->pos].u.s.field_1 = 0;
+		tiles[serf->pos].u.s.field_1 = 0;
 		map_set_serf_index(serf->pos, SERF_INDEX(serf));
 
 		int dir = serf->s.idle_on_path.field_E;
@@ -4449,10 +4449,10 @@ handle_serf_finished_building_state(serf_t *serf)
 static void
 handle_serf_wake_at_flag_state(serf_t *serf)
 {
-	map_2_t *tiles2 = globals.map.tiles2;
+	map_tile_t *tiles = globals.map.tiles;
 
 	if (MAP_SERF_INDEX(serf->pos) == 0) {
-		tiles2[serf->pos].u.s.field_1 = 0;
+		tiles[serf->pos].u.s.field_1 = 0;
 		map_set_serf_index(serf->pos, SERF_INDEX(serf));
 		serf->anim = globals.anim;
 		serf->counter = 0;

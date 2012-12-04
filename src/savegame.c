@@ -326,11 +326,7 @@ load_v0_map_state(FILE *f, const v0_map_t *map)
 		return -1;
 	}
 
-	map_1_t *tiles1 = globals.map.tiles1;
-	map_2_t *tiles2 = globals.map.tiles2;
-
-	memset(globals.map.tiles1, '\0',
-	       tile_count*(sizeof(map_1_t)+sizeof(map_2_t)));
+	map_tile_t *tiles = globals.map.tiles;
 
 	for (int y = 0; y < globals.map.rows; y++) {
 		for (int x = 0; x < globals.map.cols; x++) {
@@ -338,20 +334,20 @@ load_v0_map_state(FILE *f, const v0_map_t *map)
 			uint8_t *field_1_data = &data[4*(x + (y << map->row_shift))];
 			uint8_t *field_2_data = &data[4*(x + (y << map->row_shift)) + 4*map->cols];
 
-			tiles1[pos].flags = field_1_data[0];
-			tiles1[pos].height = field_1_data[1];
-			tiles1[pos].type = field_1_data[2];
-			tiles1[pos].obj = field_1_data[3];
+			tiles[pos].flags = field_1_data[0];
+			tiles[pos].height = field_1_data[1];
+			tiles[pos].type = field_1_data[2];
+			tiles[pos].obj = field_1_data[3];
 
 			if (MAP_OBJ(pos) >= MAP_OBJ_FLAG &&
 			    MAP_OBJ(pos) <= MAP_OBJ_CASTLE) {
-				tiles2[pos].u.index = *(uint16_t *)&field_2_data[0];
+				tiles[pos].u.index = *(uint16_t *)&field_2_data[0];
 			} else {
-				tiles2[pos].u.s.resource = field_2_data[0];
-				tiles2[pos].u.s.field_1 = field_2_data[1];
+				tiles[pos].u.s.resource = field_2_data[0];
+				tiles[pos].u.s.field_1 = field_2_data[1];
 			}
 
-			tiles2[pos].serf_index = *(uint16_t *)&field_2_data[2];
+			tiles[pos].serf_index = *(uint16_t *)&field_2_data[2];
 		}
 	}
 
@@ -2396,8 +2392,7 @@ load_text_map_section(section_t *section)
 	if (row < 0 || row >= globals.map.rows) return -1;
 
 	map_pos_t pos = MAP_POS(col,row);
-	map_1_t *tiles1 = globals.map.tiles1;
-	map_2_t *tiles2 = globals.map.tiles2;
+	map_tile_t *tiles = globals.map.tiles;
 
 	uint deep_water = 0;
 	uint paths = 0;
@@ -2432,7 +2427,7 @@ load_text_map_section(section_t *section)
 		} else if (!strcmp(s->key, "water")) {
 			water = atoi(s->value);
 		} else if (!strcmp(s->key, "serf_index")) {
-			tiles2[pos].serf_index = atoi(s->value);
+			tiles[pos].serf_index = atoi(s->value);
 		} else if (!strcmp(s->key, "object_index") ||
 			   !strcmp(s->key, "idle_serf") ||
 			   !strcmp(s->key, "player") ||
@@ -2445,20 +2440,20 @@ load_text_map_section(section_t *section)
 		}
 	}
 
-	tiles1[pos].flags = ((deep_water & 1) << 6) | (paths & 0x3f);
-	tiles1[pos].height = ((has_owner & 1) << 7) |
+	tiles[pos].flags = ((deep_water & 1) << 6) | (paths & 0x3f);
+	tiles[pos].height = ((has_owner & 1) << 7) |
 		((owner & 3) << 5) | (height & 0x1f);
-	tiles1[pos].type = ((type_up & 0xf) << 4) | (type_down & 0xf);
-	tiles1[pos].obj = ((water & 1) << 7) | (obj & 0x7f);
+	tiles[pos].type = ((type_up & 0xf) << 4) | (type_down & 0xf);
+	tiles[pos].obj = ((water & 1) << 7) | (obj & 0x7f);
 
 	/* Set has_flag bit */
-	if (MAP_OBJ(pos) == MAP_OBJ_FLAG) tiles1[pos].flags |= BIT(7);
+	if (MAP_OBJ(pos) == MAP_OBJ_FLAG) tiles[pos].flags |= BIT(7);
 
 	if (MAP_OBJ(pos) >= MAP_OBJ_FLAG &&
 	    MAP_OBJ(pos) <= MAP_OBJ_CASTLE) {
 		char *value = load_text_get_setting(section, "object_index");
 		if (value == NULL) return -1;
-		tiles2[pos].u.index = atoi(value);
+		tiles[pos].u.index = atoi(value);
 	} else {
 		uint idle_serf = 0;
 		uint player = 0;
@@ -2481,12 +2476,12 @@ load_text_map_section(section_t *section)
 			}
 		}
 
-		tiles2[pos].u.s.field_1 = ((idle_serf & 1) << 7) |
+		tiles[pos].u.s.field_1 = ((idle_serf & 1) << 7) |
 			(player & 3);
 		if (MAP_DEEP_WATER(pos)) {
-			tiles2[pos].u.s.resource = fish;
+			tiles[pos].u.s.resource = fish;
 		} else {
-			tiles2[pos].u.s.resource = ((resource_type & 7) << 5) |
+			tiles[pos].u.s.resource = ((resource_type & 7) << 5) |
 				(resource_amount & 0x1f);
 		}
 	}

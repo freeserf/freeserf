@@ -583,13 +583,13 @@ player_build_road_end(player_t *player)
 	player->map_cursor_sprites[5].sprite = 33;
 	player->map_cursor_sprites[6].sprite = 33;
 
-	map_1_t *tiles1 = globals.map.tiles1;
+	map_tile_t *tiles = globals.map.tiles;
 	map_pos_t pos = MAP_POS(player->sett->map_cursor_col, player->sett->map_cursor_row);
 
 	for (int i = 0; i < player->road_length; i++) {
 		dir_t backtrack_dir = -1;
 		for (dir_t d = 0; d < 6; d++) {
-			if (BIT_TEST(tiles1[pos].flags, d)) {
+			if (BIT_TEST(tiles[pos].flags, d)) {
 				backtrack_dir = d;
 				break;
 			}
@@ -597,8 +597,8 @@ player_build_road_end(player_t *player)
 
 		map_pos_t next_pos = MAP_MOVE(pos, backtrack_dir);
 
-		tiles1[pos].flags &= ~BIT(backtrack_dir);
-		tiles1[next_pos].flags &= ~BIT(DIR_REVERSE(backtrack_dir));
+		tiles[pos].flags &= ~BIT(backtrack_dir);
+		tiles[next_pos].flags &= ~BIT(DIR_REVERSE(backtrack_dir));
 		pos = next_pos;
 	}
 
@@ -736,7 +736,7 @@ player_build_road_segment(player_t *player, map_pos_t pos, dir_t dir)
 
 	map_pos_t dest = MAP_MOVE(pos, dir);
 	dir_t dir_rev = DIR_REVERSE(dir);
-	map_1_t *tiles1 = globals.map.tiles1;
+	map_tile_t *tiles = globals.map.tiles;
 
 	if (MAP_OBJ(dest) == MAP_OBJ_FLAG) {
 		/* Existing flag at destination, try to connect. */
@@ -747,8 +747,8 @@ player_build_road_segment(player_t *player, map_pos_t pos, dir_t dir)
 		} else {
 			player->sett->map_cursor_col = MAP_POS_COL(dest);
 			player->sett->map_cursor_row = MAP_POS_ROW(dest);
-			tiles1[pos].flags |= BIT(dir);
-			tiles1[dest].flags |= BIT(dir_rev);
+			tiles[pos].flags |= BIT(dir);
+			tiles[dest].flags |= BIT(dir_rev);
 			player->road_length = 0;
 			player_build_road_end(player);
 			return 1;
@@ -756,8 +756,8 @@ player_build_road_segment(player_t *player, map_pos_t pos, dir_t dir)
 	} else if (MAP_PATHS(dest) == 0) {
 		/* No existing paths at destination, build segment. */
 		player->road_length += 1;
-		tiles1[pos].flags |= BIT(dir);
-		tiles1[dest].flags |= BIT(dir_rev);
+		tiles[pos].flags |= BIT(dir);
+		tiles[dest].flags |= BIT(dir_rev);
 
 		player->sett->map_cursor_col = MAP_POS_COL(dest);
 		player->sett->map_cursor_row = MAP_POS_ROW(dest);
@@ -779,11 +779,11 @@ player_remove_road_segment(player_t *player, map_pos_t pos, dir_t dir)
 {
 	map_pos_t dest = MAP_MOVE(pos, dir);
 	dir_t dir_rev = DIR_REVERSE(dir);
-	map_1_t *tiles1 = globals.map.tiles1;
+	map_tile_t *tiles = globals.map.tiles;
 
 	player->road_length -= 1;
-	tiles1[pos].flags &= ~BIT(dir);
-	tiles1[dest].flags &= ~BIT(dir_rev);
+	tiles[pos].flags &= ~BIT(dir);
+	tiles[dest].flags &= ~BIT(dir_rev);
 
 	player->sett->map_cursor_col = MAP_POS_COL(dest);
 	player->sett->map_cursor_row = MAP_POS_ROW(dest);
@@ -1136,11 +1136,11 @@ player_build_flag(player_t *player)
 	flag->path_con = player->sett->player_num << 6;
 
 	map_pos_t map_cursor_pos = MAP_POS(player->sett->map_cursor_col, player->sett->map_cursor_row);
-	map_1_t *tiles1 = globals.map.tiles1;
+	map_tile_t *tiles = globals.map.tiles;
 
 	flag->pos = map_cursor_pos;
 	map_set_object(map_cursor_pos, MAP_OBJ_FLAG, flg_index);
-	tiles1[map_cursor_pos].flags |= BIT(7);
+	tiles[map_cursor_pos].flags |= BIT(7);
 	/* move_map_resources(..); */
 
 	if (player->sett->map_cursor_type == 4) { /* built on existing road */
@@ -1207,8 +1207,7 @@ build_building(player_t *player, map_obj_t obj_type)
 
 	/* request_redraw_if_pos_visible(player->sett->map_cursor_col, player->sett->map_cursor_row); */
 
-	map_1_t *tiles1 = globals.map.tiles1;
-	map_2_t *tiles2 = globals.map.tiles2;
+	map_tile_t *tiles = globals.map.tiles;
 
 	map_pos_t pos = MAP_POS(player->sett->map_cursor_col, player->sett->map_cursor_row);
 	bld->u.s.level = player->sett->building_height_after_level;
@@ -1239,16 +1238,16 @@ build_building(player_t *player, map_obj_t obj_type)
 
 	/* move_map_resources(pos, map_data); */
 	/* TODO Resources should be moved, just set them to zero for now */
-	tiles2[pos].u.s.resource = 0;
-	tiles2[pos].u.s.field_1 = 0;
+	tiles[pos].u.s.resource = 0;
+	tiles[pos].u.s.field_1 = 0;
 
 	map_set_object(pos, obj_type, bld_index);
-	tiles1[pos].flags |= BIT(1) | BIT(6);
+	tiles[pos].flags |= BIT(1) | BIT(6);
 
 	if (player->sett->map_cursor_type != 5) {
 		/* move_map_resources(MAP_MOVE_DOWN_RIGHT(pos), map_data); */
 		map_set_object(MAP_MOVE_DOWN_RIGHT(pos), MAP_OBJ_FLAG, flg_index);
-		tiles1[MAP_MOVE_DOWN_RIGHT(pos)].flags |= BIT(4) | BIT(7);
+		tiles[MAP_MOVE_DOWN_RIGHT(pos)].flags |= BIT(4) | BIT(7);
 	}
 
 	if (player->sett->map_cursor_type == 6) {
@@ -1630,12 +1629,12 @@ player_build_castle(player_t *player)
 	flag->other_endpoint.b[DIR_UP_LEFT] = castle;
 	flag->endpoint |= BIT(6);
 
-	map_1_t *tiles1 = globals.map.tiles1;
+	map_tile_t *tiles = globals.map.tiles;
 	map_set_object(map_cursor_pos, MAP_OBJ_CASTLE, bld_index);
-	tiles1[map_cursor_pos].flags |= BIT(1) | BIT(6);
+	tiles[map_cursor_pos].flags |= BIT(1) | BIT(6);
 
 	map_set_object(MAP_MOVE_DOWN_RIGHT(map_cursor_pos), MAP_OBJ_FLAG, flg_index);
-	tiles1[MAP_MOVE_DOWN_RIGHT(map_cursor_pos)].flags |= BIT(7) | BIT(4);
+	tiles[MAP_MOVE_DOWN_RIGHT(map_cursor_pos)].flags |= BIT(7) | BIT(4);
 
 	/* Level land in hexagon below castle */
 	int h = player->sett->building_height_after_level;
