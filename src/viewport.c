@@ -329,11 +329,8 @@ draw_landscape(viewport_t *viewport, frame_t *frame)
 
 /* East -- west */
 static void
-draw_e_w_paths(int x, int y, int v1, int v2, map_pos_t pos, frame_t *frame)
+draw_e_w_paths(int x, int y, int h1, int h2, map_pos_t pos, frame_t *frame)
 {
-	int h1 = v1 & 0x1f;
-	int h2 = v2 & 0x1f;
-
 	int h_diff = h1 - h2;
 	int h_max = max(h1, h2);
 
@@ -376,11 +373,8 @@ draw_e_w_paths(int x, int y, int v1, int v2, map_pos_t pos, frame_t *frame)
 }
 
 static void
-draw_e_w_borders(int x, int y, int v1, int v2, map_pos_t pos, frame_t *frame)
+draw_e_w_borders(int x, int y, int h1, int h2, map_pos_t pos, frame_t *frame)
 {
-	int h1 = v1 & 0x1f;
-	int h2 = v2 & 0x1f;
-
 	int h_diff = h2 - h1;
 	y = y - 2*(h1 + h2) - 4;
 
@@ -418,11 +412,8 @@ draw_e_w_borders(int x, int y, int v1, int v2, map_pos_t pos, frame_t *frame)
 
 /* North-west -- south-east */
 static void
-draw_nw_se_paths(int x, int y, int v1, int v2, map_pos_t pos, frame_t *frame)
+draw_nw_se_paths(int x, int y, int h1, int h2, map_pos_t pos, frame_t *frame)
 {
-	int h1 = v1 & 0x1f;
-	int h2 = v2 & 0x1f;
-
 	int h_diff = h1 - h2;
 	y = y - 4*h1 - 2;
 
@@ -463,11 +454,8 @@ draw_nw_se_paths(int x, int y, int v1, int v2, map_pos_t pos, frame_t *frame)
 }
 
 static void
-draw_nw_se_borders(int x, int y, int v1, int v2, map_pos_t pos, frame_t *frame)
+draw_nw_se_borders(int x, int y, int h1, int h2, map_pos_t pos, frame_t *frame)
 {
-	int h1 = v1 & 0x1f;
-	int h2 = v2 & 0x1f;
-
 	y = y - 2*(h1 + h2) + 6;
 
 	int t1 = MAP_TYPE_UP(pos);
@@ -504,11 +492,8 @@ draw_nw_se_borders(int x, int y, int v1, int v2, map_pos_t pos, frame_t *frame)
 
 /* North-east -- south-west */
 static void
-draw_ne_sw_paths(int x, int y, int v1, int v2, map_pos_t pos, frame_t *frame)
+draw_ne_sw_paths(int x, int y, int h1, int h2, map_pos_t pos, frame_t *frame)
 {
-	int h1 = v1 & 0x1f;
-	int h2 = v2 & 0x1f;
-
 	int h_diff = h1 - h2;
 	y = y - 4*h1 - 2;
 
@@ -548,11 +533,8 @@ draw_ne_sw_paths(int x, int y, int v1, int v2, map_pos_t pos, frame_t *frame)
 }
 
 static void
-draw_ne_sw_borders(int x, int y, int v1, int v2, map_pos_t pos, frame_t *frame)
+draw_ne_sw_borders(int x, int y, int h1, int h2, map_pos_t pos, frame_t *frame)
 {
-	int h1 = v1 & 0x1f;
-	int h2 = v2 & 0x1f;
-
 	int h_diff = h2 - h1;
 
 	y = y - 2*(h1 + h2) + 6;
@@ -599,13 +581,15 @@ draw_paths_and_borders_sub1(int x, int y_base, int max_y, map_pos_t pos, frame_t
 
 	/* shared tail 1E326 */
 	while (y < max_y + 2*MAP_TILE_HEIGHT) {
-		int v1 = (map[pos].flags << 8) | map[pos].height;
-		int v2 = (map[MAP_MOVE_RIGHT(pos)].flags << 8) | map[MAP_MOVE_RIGHT(pos)].height;
+		map_pos_t other_pos = MAP_MOVE_RIGHT(pos);
+		int h1 = MAP_HEIGHT(pos);
+		int h2 = MAP_HEIGHT(other_pos);
 
-		if (BIT_TEST(v1, 8)) {
-			draw_e_w_paths(x, y_base + y, v1, v2, pos, frame);
-		} else if (((v1 ^ v2) & 0xe0) != 0) {
-			draw_e_w_borders(x, y_base + y, v1, v2, pos, frame);
+		if (BIT_TEST(map[pos].flags, 0)) {
+			draw_e_w_paths(x, y_base + y, h1, h2, pos, frame);
+		} else if (MAP_HAS_OWNER(pos) != MAP_HAS_OWNER(other_pos) ||
+			   MAP_OWNER(pos) != MAP_OWNER(other_pos)) {
+			draw_e_w_borders(x, y_base + y, h1, h2, pos, frame);
 		}
 
 		pos = MAP_MOVE_DOWN_RIGHT(pos);
@@ -623,29 +607,33 @@ draw_paths_and_borders_sub2(int x, int y_base, int max_y, map_pos_t pos, frame_t
 
 	/* shared tail 1E412 */
 	while (1) {
-		int v1 = (map[pos].flags << 8) | map[pos].height;
-		int v2 = (map[MAP_MOVE_DOWN_RIGHT(pos)].flags << 8) | map[MAP_MOVE_DOWN_RIGHT(pos)].height;
+		map_pos_t other_pos = MAP_MOVE_DOWN_RIGHT(pos);
+		int h1 = MAP_HEIGHT(pos);
+		int h2 = MAP_HEIGHT(other_pos);
 
-		if (BIT_TEST(v1, 9)) {
-			draw_nw_se_paths(x, y_base + y, v1, v2, pos, frame);
-		} else if (((v1 ^ v2) & 0xe0) != 0) {
-			draw_nw_se_borders(x, y_base + y, v1, v2, pos, frame);
+		if (BIT_TEST(map[pos].flags, 1)) {
+			draw_nw_se_paths(x, y_base + y, h1, h2, pos, frame);
+		} else if (MAP_HAS_OWNER(pos) != MAP_HAS_OWNER(other_pos) ||
+			   MAP_OWNER(pos) != MAP_OWNER(other_pos)) {
+			draw_nw_se_borders(x, y_base + y, h1, h2, pos, frame);
 		}
 
 		/* move down right */
 		pos = MAP_MOVE_DOWN_RIGHT(pos);
+		other_pos = MAP_MOVE_DOWN(pos);
 
 		y += MAP_TILE_HEIGHT;
 		if (y >= max_y + 2*MAP_TILE_HEIGHT) break;
 
 		/* shared tail 1E4F7 */
-		v1 = (map[pos].flags << 8) | map[pos].height;
-		v2 = (map[MAP_MOVE_DOWN(pos)].flags << 8) | map[MAP_MOVE_DOWN(pos)].height;
+		h1 = MAP_HEIGHT(pos);
+		h2 = MAP_HEIGHT(other_pos);
 
-		if (BIT_TEST(v1, 10)) {
-			draw_ne_sw_paths(x, y_base + y, v1, v2, pos, frame);
-		} else if (((v1 ^ v2) & 0xe0) != 0) {
-			draw_ne_sw_borders(x, y_base + y, v1, v2, pos, frame);
+		if (BIT_TEST(map[pos].flags, 2)) {
+			draw_ne_sw_paths(x, y_base + y, h1, h2, pos, frame);
+		} else if (MAP_HAS_OWNER(pos) != MAP_HAS_OWNER(other_pos) ||
+			   MAP_OWNER(pos) != MAP_OWNER(other_pos)) {
+			draw_ne_sw_borders(x, y_base + y, h1, h2, pos, frame);
 		}
 
 		/* move down */
@@ -667,13 +655,15 @@ draw_paths_and_borders_sub3(int x, int y_base, int max_y, map_pos_t pos, frame_t
 
 	/* shared tail 1E326 */
 	while (y < max_y + 2*MAP_TILE_HEIGHT) {
-		int v1 = (map[pos].flags << 8) | map[pos].height;
-		int v2 = (map[MAP_MOVE_RIGHT(pos)].flags << 8) | map[MAP_MOVE_RIGHT(pos)].height;
+		map_pos_t other_pos = MAP_MOVE_RIGHT(pos);
+		int h1 = MAP_HEIGHT(pos);
+		int h2 = MAP_HEIGHT(other_pos);
 
-		if (BIT_TEST(v1, 8)) {
-			draw_e_w_paths(x, y_base + y, v1, v2, pos, frame);
-		} else if (((v1 ^ v2) & 0xe0) != 0) {
-			draw_e_w_borders(x, y_base + y, v1, v2, pos, frame);
+		if (BIT_TEST(map[pos].flags, 0)) {
+			draw_e_w_paths(x, y_base + y, h1, h2, pos, frame);
+		} else if (MAP_HAS_OWNER(pos) != MAP_HAS_OWNER(other_pos) ||
+			   MAP_OWNER(pos) != MAP_OWNER(other_pos)) {
+			draw_e_w_borders(x, y_base + y, h1, h2, pos, frame);
 		}
 
 		pos = MAP_MOVE_DOWN_RIGHT(pos);
@@ -690,38 +680,44 @@ draw_paths_and_borders_sub4(int x, int y_base, int max_y, map_pos_t pos, frame_t
 
 	int y = 0;
 
+	map_pos_t other_pos = MAP_MOVE_DOWN_RIGHT(pos);
+
 	/* Same as sub2 with this goto added */
 	goto skip_first;
 
 	/* shared tail 1E412 */
 	while (1) {
-		int v1 = (map[pos].flags << 8) | map[pos].height;
-		int v2 = (map[MAP_MOVE_DOWN_RIGHT(pos)].flags << 8) | map[MAP_MOVE_DOWN_RIGHT(pos)].height;
+		int h1 = MAP_HEIGHT(pos);
+		int h2 = MAP_HEIGHT(other_pos);
 
-		if (BIT_TEST(v1, 9)) {
-			draw_nw_se_paths(x, y_base + y, v1, v2, pos, frame);
-		} else if (((v1 ^ v2) & 0xe0) != 0) {
-			draw_nw_se_borders(x, y_base + y, v1, v2, pos, frame);
+		if (BIT_TEST(map[pos].flags, 1)) {
+			draw_nw_se_paths(x, y_base + y, h1, h2, pos, frame);
+		} else if (MAP_HAS_OWNER(pos) != MAP_HAS_OWNER(other_pos) ||
+			   MAP_OWNER(pos) != MAP_OWNER(other_pos)) {
+			draw_nw_se_borders(x, y_base + y, h1, h2, pos, frame);
 		}
 
 		pos = MAP_MOVE_DOWN_RIGHT(pos);
+		other_pos = MAP_MOVE_DOWN(pos);
 
 		y += MAP_TILE_HEIGHT;
 		if (y >= max_y + 2*MAP_TILE_HEIGHT) break;
 
 	skip_first:
 		/* shared tail 1E4F7 */
-		v1 = (map[pos].flags << 8) | map[pos].height;
-		v2 = (map[MAP_MOVE_DOWN(pos)].flags << 8) | map[MAP_MOVE_DOWN(pos)].height;
+		h1 = MAP_HEIGHT(pos);
+		h2 = MAP_HEIGHT(other_pos);
 
-		if (BIT_TEST(v1, 10)) {
-			draw_ne_sw_paths(x, y_base + y, v1, v2, pos, frame);
-		} else if (((v1 ^ v2) & 0xe0) != 0) {
-			draw_ne_sw_borders(x, y_base + y, v1, v2, pos, frame);
+		if (BIT_TEST(map[pos].flags, 2)) {
+			draw_ne_sw_paths(x, y_base + y, h1, h2, pos, frame);
+		} else if (MAP_HAS_OWNER(pos) != MAP_HAS_OWNER(other_pos) ||
+			   MAP_OWNER(pos) != MAP_OWNER(other_pos)) {
+			draw_ne_sw_borders(x, y_base + y, h1, h2, pos, frame);
 		}
 
 		/* move down */
 		pos = MAP_MOVE_DOWN(pos);
+		other_pos = MAP_MOVE_DOWN_RIGHT(pos);
 
 		y += MAP_TILE_HEIGHT;
 		if (y >= max_y + 2*MAP_TILE_HEIGHT) break;
