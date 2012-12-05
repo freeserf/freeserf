@@ -27,4 +27,7 @@
 
 int load_v0_state(FILE *f);
 
+int save_text_state(FILE *f);
+int load_text_state(FILE *f);
+
 #endif /* !_SAVEGAME_H */
