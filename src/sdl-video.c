@@ -9,7 +9,6 @@
 #include "SDL.h"
 
 #include "freeserf_endian.h"
-#include "list.h"
 #include "sdl-video.h"
 #include "gfx.h"
 #include "misc.h"
@@ -40,17 +39,98 @@ struct surface {
 	SDL_Surface *surf;
 };
 
+
+/* Unique identifier for a surface. */
 typedef struct {
-	list_elm_t elm;
 	const sprite_t *sprite;
 	const sprite_t *mask;
-	int color_off;
-	surface_t *surface;
-} cached_surface_t;
+	uint offset;
+} surface_id_t;
 
-static list_t transp_sprite_cache = LIST_INIT(transp_sprite_cache);
-static list_t overlay_sprite_cache = LIST_INIT(overlay_sprite_cache);
-static list_t masked_sprite_cache = LIST_INIT(masked_sprite_cache);
+typedef struct surface_ht_entry surface_ht_entry_t;
+
+/* Entry in the hashtable of surfaces. */
+struct surface_ht_entry {
+	surface_ht_entry_t *next;
+	surface_id_t id;
+	surface_t *value;
+};
+
+/* Hashtable of surfaces, used as sprite cache. */
+typedef struct {
+	size_t size;
+	uint entry_count;
+	surface_ht_entry_t **entries;
+} surface_ht_t;
+
+
+/* The sprite cache is divided in three areas for
+   different sprite types. */
+static surface_ht_t transp_sprite_cache;
+static surface_ht_t overlay_sprite_cache;
+static surface_ht_t masked_sprite_cache;
+
+
+/* Calculate hash of surface identifier. */
+static uint32_t
+surface_id_hash(const surface_id_t *id)
+{
+	int n = sizeof(surface_id_t);
+	const uint8_t *s = (uint8_t *)id;
+
+	/* FNV-1 */
+	uint32_t hash = 2166136261;
+	for (int i = 0; i < 16; i++) {
+		hash *= 16777619;
+		hash ^= s[i];
+	}
+
+	return hash;
+}
+
+/* Intialize surface hashtable. */
+static int
+surface_ht_init(surface_ht_t *ht, size_t size)
+{
+	ht->size = size;
+	ht->entries = calloc(size, sizeof(surface_ht_entry_t *));
+	if (ht->entries == NULL) return -1;
+
+	ht->entry_count = 0;
+
+	return 0;
+}
+
+/* Return a pointer to the surface pointer associated with
+   id. If it does not exist in the table it a new entry is
+   created. */
+static surface_t **
+surface_ht_store(surface_ht_t *ht, const surface_id_t *id)
+{
+	uint32_t hash = surface_id_hash(id);
+	surface_ht_entry_t *entry =
+		(surface_ht_entry_t *)&ht->entries[hash % ht->size];
+
+	/* The first entry pointed to is not really an
+	   entry but a sentinel. */
+	while (entry->next != NULL) {
+		entry = entry->next;
+
+		if (memcmp(id, &entry->id, sizeof(surface_id_t)) == 0) {
+			return &entry->value;
+		}
+	}
+
+	surface_ht_entry_t *new_entry = calloc(1, sizeof(surface_ht_entry_t));
+	if (new_entry == NULL) return NULL;
+
+	ht->entry_count += 1;
+
+	entry->next = new_entry;
+	memcpy(&new_entry->id, id, sizeof(surface_id_t));
+
+	return &new_entry->value;
+}
 
 
 int
@@ -75,6 +155,11 @@ sdl_init()
 	SDL_ShowCursor(SDL_DISABLE);
 
 	SDL_EnableKeyRepeat(SDL_DEFAULT_REPEAT_DELAY, SDL_DEFAULT_REPEAT_INTERVAL);
+
+	/* Init sprite cache */
+	surface_ht_init(&transp_sprite_cache, 4096);
+	surface_ht_init(&overlay_sprite_cache, 512);
+	surface_ht_init(&masked_sprite_cache, 1024);
 
 	return 0;
 }
@@ -141,39 +226,6 @@ int
 sdl_frame_get_height(const frame_t *frame)
 {
 	return frame->clip.h;
-}
-
-static surface_t *
-get_cached_surface(list_t *cache, const sprite_t *sprite, const sprite_t *mask, int color_off)
-{
-	surface_t *cached_surface = NULL;
-
-	list_elm_t *elm;
-	list_foreach(cache, elm) {
-		cached_surface_t *cs = (cached_surface_t *)elm;
-		if (cs->sprite == sprite && cs->mask == mask && cs->color_off == color_off) {
-			cached_surface = cs->surface;
-			list_elm_remove((list_elm_t *)cs);
-			list_prepend(cache, (list_elm_t *)cs);
-			break;
-		}
-	}
-
-	return cached_surface;
-}
-
-static void
-add_cached_surface(list_t *cache, const sprite_t *sprite, const sprite_t *mask, int color_off, surface_t *surface)
-{
-	cached_surface_t *cs = malloc(sizeof(cached_surface_t));
-	if (cs == NULL) abort();
-
-	cs->sprite = sprite;
-	cs->mask = mask;
-	cs->surface = surface;
-	cs->color_off = color_off;
-
-	list_prepend(cache, (list_elm_t *)cs);
 }
 
 static SDL_Surface *
@@ -322,16 +374,16 @@ sdl_draw_transp_sprite(const sprite_t *sprite, int x, int y, int use_off, int y_
 		y += le16toh(sprite->y);
 	}
 
-	surface_t *surface = get_cached_surface(&transp_sprite_cache, sprite, NULL, color_off);
-	if (surface == NULL) {
-		surface = malloc(sizeof(surface_t));
-		if (surface == NULL) abort();
+	const surface_id_t id = { .sprite = sprite, .mask = NULL, .offset = color_off };
+	surface_t **surface = surface_ht_store(&transp_sprite_cache, &id);
+	if (*surface == NULL) {
+		*surface = malloc(sizeof(surface_t));
+		if (*surface == NULL) abort();
 
-		surface->surf = create_transp_surface(sprite, color_off);
-		add_cached_surface(&transp_sprite_cache, sprite, NULL, color_off, surface);
+		(*surface)->surf = create_transp_surface(sprite, color_off);
 	}
 
-	SDL_Surface *surf = surface->surf;
+	SDL_Surface *surf = (*surface)->surf;
 
 	SDL_Rect src_rect = { 0, y_off, surf->w, surf->h - y_off };
 	SDL_Rect dest_rect = { x, y + y_off, 0, 0 };
@@ -357,20 +409,20 @@ sdl_draw_waves_sprite(const sprite_t *sprite, const sprite_t *mask,
 	x += le16toh(sprite->x) + dest->clip.x;
 	y += le16toh(sprite->y) + dest->clip.y;
 
-	surface_t *surface = get_cached_surface(&transp_sprite_cache, sprite, mask, 0);
-	if (surface == NULL) {
-		surface = malloc(sizeof(surface_t));
-		if (surface == NULL) abort();
+	const surface_id_t id = { .sprite = sprite, .mask = mask, .offset = 0 };
+	surface_t **surface = surface_ht_store(&transp_sprite_cache, &id);
+	if (*surface == NULL) {
+		*surface = malloc(sizeof(surface_t));
+		if (*surface == NULL) abort();
 
 		if (mask != NULL) {
-			surface->surf = create_masked_transp_surface(sprite, mask, mask_off);
+			(*surface)->surf = create_masked_transp_surface(sprite, mask, mask_off);
 		} else {
-			surface->surf = create_transp_surface(sprite, 0);
+			(*surface)->surf = create_transp_surface(sprite, 0);
 		}
-		add_cached_surface(&transp_sprite_cache, sprite, mask, 0, surface);
 	}
 
-	SDL_Surface *surf = surface->surf;
+	SDL_Surface *surf = (*surface)->surf;
 	SDL_Rect dest_rect = { x, y, 0, 0 };
 
 	SDL_SetClipRect(dest->surf, &dest->clip);
@@ -474,16 +526,16 @@ sdl_draw_overlay_sprite(const sprite_t *sprite, int x, int y, int y_off, frame_t
 	x += le16toh(sprite->x) + dest->clip.x;
 	y += le16toh(sprite->y) + dest->clip.y;
 
-	surface_t *surface = get_cached_surface(&overlay_sprite_cache, sprite, NULL, 0);
-	if (surface == NULL) {
-		surface = malloc(sizeof(surface_t));
-		if (surface == NULL) abort();
+	const surface_id_t id = { .sprite = sprite, .mask = NULL, .offset = 0 };
+	surface_t **surface = surface_ht_store(&overlay_sprite_cache, &id);
+	if (*surface == NULL) {
+		*surface = malloc(sizeof(surface_t));
+		if (*surface == NULL) abort();
 
-		surface->surf = create_overlay_surface(sprite);
-		add_cached_surface(&overlay_sprite_cache, sprite, NULL, 0, surface);
+		(*surface)->surf = create_overlay_surface(sprite);
 	}
 
-	SDL_Surface *surf = surface->surf;
+	SDL_Surface *surf = (*surface)->surf;
 	SDL_Rect src_rect = { 0, y_off, surf->w, surf->h - y_off };
 	SDL_Rect dest_rect = { x, y + y_off, 0, 0 };
 
@@ -561,14 +613,15 @@ sdl_draw_masked_sprite(const sprite_t *sprite, int x, int y, const sprite_t *mas
 	y += le16toh(mask->y) + dest->clip.y;
 
 	if (surface == NULL) {
-		surface = get_cached_surface(&masked_sprite_cache, sprite, mask, 0);
-		if (surface == NULL) {
-			surface = malloc(sizeof(surface_t));
-			if (surface == NULL) abort();
+		const surface_id_t id = { .sprite = sprite, .mask = mask, .offset = 0 };
+		surface_t **s = surface_ht_store(&masked_sprite_cache, &id);
+		if (*s == NULL) {
+			*s = malloc(sizeof(surface_t));
+			if (*s == NULL) abort();
 
-			surface->surf = create_masked_surface(sprite, mask);
-			add_cached_surface(&masked_sprite_cache, sprite, mask, 0, surface);
+			(*s)->surf = create_masked_surface(sprite, mask);
 		}
+		surface = *s;
 	}
 
 	SDL_Surface *surf = surface->surf;
