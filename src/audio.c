@@ -474,7 +474,7 @@ xmi_process_EVNT(char *data, int length, midi_file_t *midi)
 #define READ_DATA(X) {X = *data; data += sizeof(X); balance -= sizeof(X); };
 
 	int balance = length;
-	Uint64 time = 0;
+	uint64_t time = 0;
 
 	uint32_t unknown = 0;
 	READ_DATA(unknown);
@@ -502,12 +502,24 @@ xmi_process_EVNT(char *data, int length, midi_file_t *midi)
 				if (0x90 == (type & 0xF0)) {
 					uint8_t data1 = node->data1;
 					node_queue_insert(&midi->nodes, node);
+
 					node = malloc(sizeof(midi_node_t));
 					if (node == NULL) abort();
 
 					node->type = type;
+
+					/* Decode variable length duration. */
+					uint64_t length = 0;
 					READ_DATA(type);
-					node->time = type + time;
+					while (type & 0x80) {
+						length = (length << 7) | (type & 0x7f);
+						READ_DATA(type);
+					}
+					length = (length << 7) | (type & 0x7f);
+
+					/* Generate on note with velocity zero
+					   corresponding to off note. */
+					node->time = time + length;
 					node->data1 = data1;
 					node->data2 = 0;
 				}
@@ -519,6 +531,7 @@ xmi_process_EVNT(char *data, int length, midi_file_t *midi)
 				break;
 			case 0xF0:
 				if (0xFF == type) {
+					/* Meta message */
 					READ_DATA(node->data1);
 					READ_DATA(node->data2);
 					node->buffer = data;
@@ -531,6 +544,7 @@ xmi_process_EVNT(char *data, int length, midi_file_t *midi)
 							READ_DATA(byte);
 							tempo |= byte;
 						}
+
 						if (0 == midi->tempo) {
 							midi->tempo = tempo;
 						}
