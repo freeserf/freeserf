@@ -75,12 +75,11 @@ static surface_ht_t masked_sprite_cache;
 static uint32_t
 surface_id_hash(const surface_id_t *id)
 {
-	int n = sizeof(surface_id_t);
 	const uint8_t *s = (uint8_t *)id;
 
 	/* FNV-1 */
 	uint32_t hash = 2166136261;
-	for (int i = 0; i < 16; i++) {
+	for (int i = 0; i < sizeof(surface_id_t); i++) {
 		hash *= 16777619;
 		hash ^= s[i];
 	}
