@@ -221,14 +221,146 @@ sfx_is_enabled()
 	return sfx_enabled;
 }
 
+
 /* Play music. */
 
+/* Midi node. */
 typedef struct {
-	list_t nodes;
+	uint64_t time;
+	uint index;
+	uint8_t type;
+	uint8_t data1;
+	uint8_t data2;
+	char *buffer;
+} midi_node_t;
+
+/* Priority queue of midi nodes,
+   implemented as binary heap. */
+typedef struct {
+	uint size;
+	uint capacity;
+	midi_node_t **entries;
+} node_queue_t;
+
+typedef struct {
+	node_queue_t nodes;
 	uint32_t tempo;
 	uint8_t *data;
 	uint64_t size;
 } midi_file_t;
+
+
+/* Return true if first midi node should come before second. */
+static int
+midi_node_less(const midi_node_t *m1, const midi_node_t *m2)
+{
+	if (m1->time != m2->time) {
+		return m1->time < m2->time;
+	}
+
+	if (m1->index != m2->index) {
+		return m1->index < m2->index;
+	}
+
+	return 0;
+}
+
+
+/* Initialize priority queue of midi nodes. */
+static int
+node_queue_init(node_queue_t *queue, uint capacity)
+{
+	queue->size = 0;
+	queue->capacity = capacity;
+	queue->entries = malloc(capacity*sizeof(midi_node_t *));
+	if (queue->entries == NULL) return -1;
+
+	return 0;
+}
+
+/* Free priority queue of midi nodes. */
+static void
+node_queue_deinit(node_queue_t *queue)
+{
+	free(queue->entries);
+}
+
+/* Insert a midi node in the queue. */
+static int
+node_queue_insert(node_queue_t *queue, midi_node_t *node)
+{
+	if (queue->size == queue->capacity) {
+		/* Double queue capacity if full. */
+		queue->capacity *= 2;
+		queue->entries = realloc(queue->entries,
+					 queue->capacity*sizeof(midi_node_t *));
+		if (queue->entries == NULL) return -1;
+	}
+
+	/* Add to end of binheap. */
+	uint i = queue->size;
+	queue->entries[i] = node;
+	queue->size += 1;
+
+	/* Heapify-up */
+	while (i > 0) {
+		uint parent = (i-1)/2;
+		if (midi_node_less(queue->entries[i], queue->entries[parent])) {
+			/* Swap */
+			midi_node_t *temp = queue->entries[parent];
+			queue->entries[parent] = queue->entries[i];
+			queue->entries[i] = temp;
+			i = parent;
+		} else {
+			break;
+		}
+	}
+
+	return 0;
+}
+
+/* Remove and return the next node in the queue. */
+static midi_node_t *
+node_queue_pop(node_queue_t *queue)
+{
+	if (queue->size == 0) return NULL;
+
+	midi_node_t *min_node = queue->entries[0];
+
+	/* Move last element to front */
+	uint i = 0;
+	queue->entries[i] = queue->entries[queue->size-1];
+	queue->size -= 1;
+
+	/* Heapify-down */
+	while (i < (queue->size-1)/2) {
+		uint child_l = 2*i+1;
+		uint child_r = 2*i+2;
+		uint swap = 0;
+		if (midi_node_less(queue->entries[child_l], queue->entries[i])) {
+			if (child_r < queue->size &&
+			    midi_node_less(queue->entries[child_r], queue->entries[child_l])) {
+				swap = child_r;
+			} else {
+				swap = child_l;
+			}
+		} else if (child_r < queue->size &&
+			   midi_node_less(queue->entries[child_r], queue->entries[i])) {
+			swap = child_r;
+		} else {
+			break;
+		}
+
+		/* Swap */
+		midi_node_t *temp = queue->entries[i];
+		queue->entries[i] = queue->entries[swap];
+		queue->entries[swap] = temp;
+		i = swap;
+	}
+
+	return min_node;
+}
+
 
 static int xmi_process_subchunks(char *data, int length, midi_file_t *midi);
 static int xmi_process_INFO(char *data, int length, midi_file_t *midi);
@@ -336,39 +468,14 @@ xmi_process_TIMB(char *data, int length, midi_file_t *midi)
 	return size + 4;
 }
 
-typedef struct {
-	list_elm_t elm;
-	uint64_t time;
-	uint8_t  type;
-	uint8_t  data1;
-	uint8_t  data2;
-	char*  buffer;
-} midi_node_t;
-
-static int
-list_less_func_midi_node(const list_elm_t *e1, const list_elm_t *e2)
-{
-	midi_node_t *m1 = (midi_node_t *)e1;
-	midi_node_t *m2 = (midi_node_t *)e2;
-
-	if (m1->time != m2->time) {
-		return m1->time < m2->time;
-	}
-
-	if (m1->type != m2->type) {
-		return m1->type == 0xff;
-	}
-
-	return 0;
-}
-
 static int
 xmi_process_EVNT(char *data, int length, midi_file_t *midi)
 {
 #define READ_DATA(X) {X = *data; data += sizeof(X); balance -= sizeof(X); };
 
 	int balance = length;
-	Uint64 time = 0;
+	uint64_t time = 0;
+	uint time_index = 0;
 
 	uint32_t unknown = 0;
 	READ_DATA(unknown);
@@ -382,6 +489,7 @@ xmi_process_EVNT(char *data, int length, midi_file_t *midi)
 			if (node == NULL) abort();
 
 			node->time = time;
+			node->index = time_index++;
 			node->type = type;
 			node->buffer = NULL;
 
@@ -395,13 +503,26 @@ xmi_process_EVNT(char *data, int length, midi_file_t *midi)
 				READ_DATA(node->data2);
 				if (0x90 == (type & 0xF0)) {
 					uint8_t data1 = node->data1;
-					list_insert_sorted(&midi->nodes, (list_elm_t*)node, list_less_func_midi_node);
+					node_queue_insert(&midi->nodes, node);
+
 					node = malloc(sizeof(midi_node_t));
 					if (node == NULL) abort();
 
 					node->type = type;
+
+					/* Decode variable length duration. */
+					uint64_t length = 0;
 					READ_DATA(type);
-					node->time = type + time;
+					while (type & 0x80) {
+						length = (length << 7) | (type & 0x7f);
+						READ_DATA(type);
+					}
+					length = (length << 7) | (type & 0x7f);
+
+					/* Generate on note with velocity zero
+					   corresponding to off note. */
+					node->time = time + length;
+					node->index = time_index++;
 					node->data1 = data1;
 					node->data2 = 0;
 				}
@@ -413,6 +534,7 @@ xmi_process_EVNT(char *data, int length, midi_file_t *midi)
 				break;
 			case 0xF0:
 				if (0xFF == type) {
+					/* Meta message */
 					READ_DATA(node->data1);
 					READ_DATA(node->data2);
 					node->buffer = data;
@@ -425,6 +547,7 @@ xmi_process_EVNT(char *data, int length, midi_file_t *midi)
 							READ_DATA(byte);
 							tempo |= byte;
 						}
+
 						if (0 == midi->tempo) {
 							midi->tempo = tempo;
 						}
@@ -436,7 +559,7 @@ xmi_process_EVNT(char *data, int length, midi_file_t *midi)
 				break;
 			}
 
-			list_insert_sorted(&midi->nodes, (list_elm_t*)node, list_less_func_midi_node);
+			node_queue_insert(&midi->nodes, node);
 		} else {
 			time += type;
 		}
@@ -506,9 +629,9 @@ midi_produce(midi_file_t *midi, size_t *size)
 
 	uint64_t time = 0;
 	int i = 0;
-	while (!list_is_empty(&midi->nodes)) {
+	while (midi->nodes.size > 0) {
 		i++;
-		midi_node_t *node = (midi_node_t*)list_remove_head(&midi->nodes);
+		midi_node_t *node = node_queue_pop(&midi->nodes);
 		midi_write_variable_size(midi, &current, node->time - time);
 		time = node->time;
 		WRITE_BYTE(node->type);
@@ -574,13 +697,15 @@ midi_play_track(midi_t midi)
 		}
 
 		midi_file_t midi_file;
-		list_init(&midi_file.nodes);
+		node_queue_init(&midi_file.nodes, 16*1024);
 		midi_file.tempo = 0;
 		midi_file.data = NULL;
 		midi_file.size = 0;
 
 		xmi_process_subchunks(data, (int)size, &midi_file);
 		data = midi_produce(&midi_file, &size);
+
+		node_queue_deinit(&midi_file.nodes);
 
 		SDL_RWops *rw = SDL_RWFromMem(data, (int)size);
 		track->music = Mix_LoadMUS_RW(rw);
