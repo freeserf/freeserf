@@ -227,6 +227,7 @@ sfx_is_enabled()
 /* Midi node. */
 typedef struct {
 	uint64_t time;
+	uint index;
 	uint8_t type;
 	uint8_t data1;
 	uint8_t data2;
@@ -257,8 +258,8 @@ midi_node_less(const midi_node_t *m1, const midi_node_t *m2)
 		return m1->time < m2->time;
 	}
 
-	if (m1->type != m2->type) {
-		return m1->type == 0xff;
+	if (m1->index != m2->index) {
+		return m1->index < m2->index;
 	}
 
 	return 0;
@@ -475,6 +476,7 @@ xmi_process_EVNT(char *data, int length, midi_file_t *midi)
 
 	int balance = length;
 	uint64_t time = 0;
+	uint time_index = 0;
 
 	uint32_t unknown = 0;
 	READ_DATA(unknown);
@@ -488,6 +490,7 @@ xmi_process_EVNT(char *data, int length, midi_file_t *midi)
 			if (node == NULL) abort();
 
 			node->time = time;
+			node->index = time_index++;
 			node->type = type;
 			node->buffer = NULL;
 
@@ -520,6 +523,7 @@ xmi_process_EVNT(char *data, int length, midi_file_t *midi)
 					/* Generate on note with velocity zero
 					   corresponding to off note. */
 					node->time = time + length;
+					node->index = time_index++;
 					node->data1 = data1;
 					node->data2 = 0;
 				}
