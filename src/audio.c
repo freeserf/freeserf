@@ -1,4 +1,10 @@
+
 /* audio.c */
+
+#include <time.h>
+
+#include "SDL.h"
+#include "SDL_mixer.h"
 
 #include "audio.h"
 #include "gfx.h"
@@ -6,11 +12,8 @@
 #include "log.h"
 #include "list.h"
 #include "freeserf_endian.h"
+#include "misc.h"
 
-#include "SDL.h"
-#include "SDL_mixer.h"
-
-#include <time.h>
 
 /* Play sound. */
 

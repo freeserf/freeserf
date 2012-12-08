@@ -6,6 +6,8 @@
 #include <stdlib.h>
 #include <stdint.h>
 
+#include "misc.h"
+
 /* Extract col and row from map_pos_t */
 #define MAP_POS_COL(pos)  ((pos) & globals.map.col_mask)
 #define MAP_POS_ROW(pos)  (((pos)>>globals.map.row_shift) & globals.map.row_mask)
