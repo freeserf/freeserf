@@ -1285,10 +1285,16 @@ pregame_continue()
 			exit(EXIT_FAILURE);
 		}
 
-		int r = load_v0_state(f);
+		int r = load_text_state(f);
 		if (r < 0) {
-			LOGE("main", "Unable to load save game.");
-			exit(EXIT_FAILURE);
+			LOGW("main", "Unable to load save game, trying compatability mode.");
+
+			fseek(f, 0, SEEK_SET);
+			r = load_v0_state(f);
+			if (r < 0) {
+				LOGE("main", "Failed to load save game.");
+				exit(EXIT_FAILURE);
+			}
 		}
 	}
 
