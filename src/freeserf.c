@@ -819,9 +819,7 @@ load_map_spec()
 	const map_spec_t mission[] = {
 		{
 			/* Mission 1: START */
-			.rnd_1 = 0x6d6f,
-			.rnd_2 = 0xf7f0,
-			.rnd_3 = 0xc8d4,
+			.rnd = {{ 0x6d6f, 0xf7f0, 0xc8d4 }},
 
 			.pl_0_supplies = 35,
 			.pl_0_reproduction = 30,
@@ -832,9 +830,7 @@ load_map_spec()
 			.pl_1_reproduction = 30,
 		}, {
 			/* Mission 2: STATION */
-			.rnd_1 = 0x60b9,
-			.rnd_2 = 0xe728,
-			.rnd_3 = 0xc484,
+			.rnd = {{ 0x60b9, 0xe728, 0xc484 }},
 
 			.pl_0_supplies = 30,
 			.pl_0_reproduction = 40,
@@ -850,9 +846,7 @@ load_map_spec()
 			.pl_2_reproduction = 30
 		}, {
 			/* Mission 3: UNITY */
-			.rnd_1 = 0x12ab,
-			.rnd_2 = 0x7a4a,
-			.rnd_3 = 0xe483,
+			.rnd = {{ 0x12ab, 0x7a4a, 0xe483 }},
 
 			.pl_0_supplies = 30,
 			.pl_0_reproduction = 30,
@@ -893,15 +887,14 @@ load_map_spec()
 
 	/* TODO ... */
 
-	globals.init_map_rnd_1 = mission[m].rnd_1;
-	globals.init_map_rnd_2 = mission[m].rnd_2;
-	globals.init_map_rnd_3 = mission[m].rnd_3;
+	memcpy(&globals.init_map_rnd, &mission[m].rnd,
+	       sizeof(random_state_t));
 
 	int map_size = 3;
 
-	globals.init_map_rnd_1 ^= 0x5a5a;
-	globals.init_map_rnd_2 ^= 0xa5a5;
-	globals.init_map_rnd_3 ^= 0xc3c3;
+	globals.init_map_rnd.state[0] ^= 0x5a5a;
+	globals.init_map_rnd.state[1] ^= 0xa5a5;
+	globals.init_map_rnd.state[2] ^= 0xc3c3;
 
 	return map_size;
 }

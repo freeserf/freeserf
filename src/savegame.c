@@ -84,9 +84,9 @@ load_v0_globals_state(FILE *f, v0_map_t *map)
 	globals.game_stats_counter = *(uint16_t *)&data[80];
 	globals.history_counter = *(uint16_t *)&data[82];
 
-	globals.rnd_1 = *(uint16_t *)&data[84];
-	globals.rnd_2 = *(uint16_t *)&data[86];
-	globals.rnd_3 = *(uint16_t *)&data[88];
+	globals.rnd.state[0] = *(uint16_t *)&data[84];
+	globals.rnd.state[1] = *(uint16_t *)&data[86];
+	globals.rnd.state[2] = *(uint16_t *)&data[88];
 
 	globals.max_ever_flag_index = *(uint16_t *)&data[90];
 	globals.max_ever_building_index = *(uint16_t *)&data[92];

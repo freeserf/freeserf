@@ -29,12 +29,13 @@
 uint16_t
 random_int()
 {
-	uint16_t r = (globals.rnd_1 + globals.rnd_2) ^ globals.rnd_3;
-	globals.rnd_3 += globals.rnd_2;
-	globals.rnd_2 ^= globals.rnd_3;
-	globals.rnd_2 = (globals.rnd_2 >> 1) | (globals.rnd_2 << 15);
-	globals.rnd_3 = (globals.rnd_3 >> 1) | (globals.rnd_3 << 15);
-	globals.rnd_1 = r;
+	uint16_t *rnd = globals.rnd.state;
+	uint16_t r = (rnd[0] + rnd[1]) ^ rnd[2];
+	rnd[2] += rnd[1];
+	rnd[1] ^= rnd[2];
+	rnd[1] = (rnd[1] >> 1) | (rnd[1] << 15);
+	rnd[2] = (rnd[2] >> 1) | (rnd[2] << 15);
+	rnd[0] = r;
 
 	return r;
 }

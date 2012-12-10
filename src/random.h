@@ -22,6 +22,12 @@
 #ifndef _RANDOM_H
 #define _RANDOM_H
 
+#include <stdint.h>
+
+typedef struct {
+	uint16_t state[3];
+} random_state_t;
+
 uint16_t random_int();
 
 #endif /* ! _RANDOM_H */

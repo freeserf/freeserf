@@ -1265,9 +1265,8 @@ map_init()
 	/* globals.svga &= ~BIT(5); */
 
 	/* initialize rnd state */
-	globals.rnd_1 = globals.init_map_rnd_1;
-	globals.rnd_2 = globals.init_map_rnd_2;
-	globals.rnd_3 = globals.init_map_rnd_3;
+	memcpy(&globals.rnd, &globals.init_map_rnd,
+	       sizeof(random_state_t));
 
 	random_int();
 	random_int();

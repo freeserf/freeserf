@@ -28,7 +28,7 @@
 
 #include "gfx.h"
 #include "map.h"
-
+#include "random.h"
 #include "building.h"
 #include "serf.h"
 
@@ -185,9 +185,7 @@ typedef struct {
 
 typedef struct {
 	/* 8 */
-	uint16_t rnd_1;
-	uint16_t rnd_2;
-	uint16_t rnd_3;
+	random_state_t rnd;
 	int pl_0_supplies;
 	int pl_0_reproduction;
 	int pl_1_face;

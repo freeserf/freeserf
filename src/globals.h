@@ -31,6 +31,7 @@
 #include "serf.h"
 #include "flag.h"
 #include "player.h"
+#include "random.h"
 
 
 /* Globals struct */
@@ -109,9 +110,7 @@ typedef struct {
 	/* 1D6 */
 	player_init_t pl_init[4];
 	/* 1EE */
-	uint16_t init_map_rnd_1;
-	uint16_t init_map_rnd_2;
-	uint16_t init_map_rnd_3;
+	random_state_t init_map_rnd;
 	/* 1FA */
 	uint32_t game_speed_save;
 	uint32_t game_speed;
@@ -121,9 +120,7 @@ typedef struct {
 	/* 20E */
 	uint16_t game_stats_counter;
 	uint16_t history_counter;
-	uint16_t rnd_1;
-	uint16_t rnd_2;
-	uint16_t rnd_3;
+	random_state_t rnd;
 	uint8_t field_218[4];
 	uint16_t map_regions;
 	/* OBSOLETE by local vars */
