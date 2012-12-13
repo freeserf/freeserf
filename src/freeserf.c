@@ -29,6 +29,7 @@
 #include <math.h>
 #include <limits.h>
 #include <unistd.h>
+#include <time.h>
 #include <assert.h>
 
 #include "freeserf.h"
@@ -647,6 +648,39 @@ init_game_globals()
 	/* TODO */
 }
 
+static int
+save_game(int autosave)
+{
+	int r;
+
+	/* Build filename including time stamp. */
+	char name[128];
+	time_t t = time(NULL);
+
+	struct tm *tm = localtime(&t);
+	if (tm == NULL) return -1;
+
+	if (!autosave) {
+		r = strftime(name, sizeof(name), "%c.save", tm);
+		if (r == 0) return -1;
+	} else {
+		r = strftime(name, sizeof(name), "autosave-%c.save", tm);
+		if (r == 0) return -1;
+	}
+
+	FILE *f = fopen(name, "wb");
+	if (f == NULL) return -1;
+
+	r = save_text_state(f);
+	if (r < 0) return -1;
+
+	fclose(f);
+
+	LOGI("main", "Game saved to `%s'.", name);
+
+	return 0;
+}
+
 /* Update global anim counters based on game_tick.
    Note: anim counters control the rate of updates in
    the rest of the game objects (_not_ just gfx animations). */
@@ -663,6 +697,11 @@ anim_update_and_more()
 	/* Viewport animation does not care about low bits in anim */
 	if (anim_xor >= 1 << 3) {
 		gui_object_set_redraw((gui_object_t *)&viewport);
+	}
+
+	if ((globals.anim & 0xffff) == 0) {
+		int r = save_game(1);
+		if (r < 0) LOGW("main", "Autosave failed.");
 	}
 
 	if (BIT_TEST(globals.svga, 3)) { /* Game has started */
@@ -1199,6 +1238,11 @@ game_loop()
 						}
 					}
 				}
+					break;
+				case SDLK_z:
+					if (event.key.keysym.mod & KMOD_CTRL) {
+						save_game(0);
+					}
 					break;
 
 				default:

@@ -13,15 +13,17 @@ Keyboard controls:
 * p: Pause game.
 * s: Enable/disable sounds playback
 * m: Enable/disable music playback
+* CTRL+z: Save game in current directory.
 
 
 Save games
 ----------
-To load a save game file from the original game:
+To load a save game file:
 
-`$ freeserf -l SAVE0.DS`
+`$ freeserf -l FILE`
 
-The game is paused after loading so press `p` to start the game. Saving the game in freeserf is not possible yet.
+Freeserf will (try to) load save games from the original game, as well as saves from freeserf itself.
+The game is paused after loading so press `p` to start the game.
 
 Run `freeserf -h` for more info on command line options.
 
