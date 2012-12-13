@@ -1627,7 +1627,6 @@ serf_get_body(serf_t *serf)
 				break;
 			case SERF_STATE_MOVE_RESOURCE_OUT:
 			case SERF_STATE_DROP_RESOURCE_OUT:
-			case SERF_STATE_WAIT_FOR_RESOURCE_OUT:
 				res = serf->s.move_resource_out.res;
 				break;
 			default:

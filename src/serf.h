@@ -221,13 +221,14 @@ typedef struct {
 			uint inv_index; /* C */
 		} building_castle;
 
-		/* States: move_resource_out, wait_for_resource_out,
-		   drop_resource_out */
+		/* States: move_resource_out, drop_resource_out */
 		struct {
 			uint res; /* B */
 			uint res_dest; /* C */
 			serf_state_t next_state; /* F */
 		} move_resource_out;
+
+		/* No state: wait_for_resource_out */
 
 		struct {
 			int mode; /* B */

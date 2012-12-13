@@ -450,7 +450,6 @@ load_v0_serf_state(FILE *f)
 			break;
 
 		case SERF_STATE_MOVE_RESOURCE_OUT:
-		case SERF_STATE_WAIT_FOR_RESOURCE_OUT:
 		case SERF_STATE_DROP_RESOURCE_OUT:
 			serf->s.move_resource_out.res = serf_data[11];
 			serf->s.move_resource_out.res_dest = *(uint16_t *)&serf_data[12];
