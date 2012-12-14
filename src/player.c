@@ -726,6 +726,108 @@ player_build_road_connect_flag(player_t *player, map_1_t *map, map_pos_t clk_pos
 	return 0;
 }
 
+/* Build a single road segment. Return -1 on fail, 0 on successful
+   construction, and 1 if this segment completed the path. */
+int
+player_build_road_segment(player_t *player, map_pos_t pos, dir_t dir)
+{
+	map_pos_t dest = MAP_MOVE(pos, dir);
+	dir_t dir_rev = DIR_REVERSE(dir);
+	map_1_t *tiles1 = globals.map.tiles1;
+
+	if (MAP_PATHS(dest) == 0) { /* No paths at destination */
+		if (BIT_TEST(player->click, 3)) { /* Special click */
+			/* TODO ... */
+		} else {
+			/* loc_3ABF0 */
+			if (MAP_OBJ(dest) == MAP_OBJ_FLAG) { /* Existing flag */
+				/* 3AC0A */
+				int r = player_build_road_connect_flag(player, tiles1, dest, dir_rev);
+				if (r < 0) {
+					player_build_road_end(player);
+					return -1;
+				} else {
+					player->sett->map_cursor_col = MAP_POS_COL(dest);
+					player->sett->map_cursor_row = MAP_POS_ROW(dest);
+					tiles1[pos].flags |= BIT(dir);
+					tiles1[dest].flags |= BIT(dir_rev);
+					player->road_length = 0;
+					/* redraw map cursor */
+					player_build_road_end(player);
+					return 1;
+				}
+			} else {
+				player->road_length += 1;
+				tiles1[pos].flags |= BIT(dir);
+				tiles1[dest].flags |= BIT(dir_rev);
+
+				/* loc_3AD32 */
+				player->sett->map_cursor_col = MAP_POS_COL(dest);
+				player->sett->map_cursor_row = MAP_POS_ROW(dest);
+
+				if (BIT_TEST(player->config, 0)) { /* Pathway scrolling */
+					/* TODO */
+				}
+
+				/*sub_4737E(player->sett->map_cursor_col, player->sett->map_cursor_row);*/
+				player->click |= BIT(2);
+			}
+		}
+	} else { /* Dest has existing paths */
+		if (MAP_OBJ(dest) == MAP_OBJ_FLAG) { /* Flag at dest */
+			/* 3AC0A */
+			int r = player_build_road_connect_flag(player, tiles1, dest, dir_rev);
+			if (r < 0) {
+				player_build_road_end(player);
+				return -1;
+			} else {
+				player->sett->map_cursor_col = MAP_POS_COL(dest);
+				player->sett->map_cursor_row = MAP_POS_ROW(dest);
+				tiles1[pos].flags |= BIT(dir);
+				tiles1[dest].flags |= BIT(dir_rev);
+				player->road_length = 0;
+				/* redraw map cursor */
+				player_build_road_end(player);
+				return 1;
+			}
+		} else { /* No flag at dest */
+			if (BIT_TEST(player->click, 3)) { /* Special click */
+				/* TODO ... */
+			} else {
+				player->click |= BIT(2);
+				return -1;
+			}
+		}
+	}
+
+	return 0;
+}
+
+int
+player_remove_road_segment(player_t *player, map_pos_t pos, dir_t dir)
+{
+	map_pos_t dest = MAP_MOVE(pos, dir);
+	dir_t dir_rev = DIR_REVERSE(dir);
+	map_1_t *tiles1 = globals.map.tiles1;
+
+	player->road_length -= 1;
+	tiles1[pos].flags &= ~BIT(dir);
+	tiles1[dest].flags &= ~BIT(dir_rev);
+
+	/* loc_3AD32 */
+	player->sett->map_cursor_col = MAP_POS_COL(dest);
+	player->sett->map_cursor_row = MAP_POS_ROW(dest);
+
+	if (BIT_TEST(player->config, 0)) { /* Pathway scrolling */
+		/* TODO */
+	}
+
+	/*sub_4737E(player->sett->map_cursor_col, player->sett->map_cursor_row);*/
+	player->click |= BIT(2);
+
+	return 0;
+}
+
 void
 player_demolish_object(player_t *player)
 {

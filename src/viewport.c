@@ -2341,89 +2341,23 @@ viewport_handle_event_click(viewport_t *viewport, int x, int y, gui_event_button
 
 		if (BIT_TEST(player->field_D0, dir)) {
 			map_pos_t pos = MAP_POS(player->sett->map_cursor_col, player->sett->map_cursor_row);
-			map_1_t *tiles1 = globals.map.tiles1;
-			dir_t dir_rev = DIR_REVERSE(dir);
 
 			if (!BIT_TEST(MAP_PATHS(pos), dir)) { /* No existing path: Create path */
-				if (MAP_PATHS(clk_pos) == 0) { /* No paths at destination */
-					if (BIT_TEST(player->click, 3)) { /* Special click */
-						/* TODO ... */
-					} else {
-						/* loc_3ABF0 */
-						if (MAP_OBJ(clk_pos) == MAP_OBJ_FLAG) { /* Existing flag */
-							/* 3AC0A */
-							int r = player_build_road_connect_flag(player, tiles1, clk_pos, dir_rev);
-							if (r < 0) {
-								sfx_play_clip(SFX_NOT_ACCEPTED);
-							} else {
-								player->sett->map_cursor_col = clk_col;
-								player->sett->map_cursor_row = clk_row;
-								tiles1[pos].flags |= BIT(dir);
-								tiles1[clk_pos].flags |= BIT(dir_rev);
-								player->road_length = 0;
-								/* redraw map cursor */
-								sfx_play_clip(SFX_ACCEPTED);
-							}
-							player_build_road_end(player);
-						} else {
-							player->road_length += 1;
-							tiles1[pos].flags |= BIT(dir);
-							tiles1[clk_pos].flags |= BIT(dir_rev);
-							sfx_play_clip(SFX_CLICK);
-
-							/* loc_3AD32 */
-							player->sett->map_cursor_col = clk_col;
-							player->sett->map_cursor_row = clk_row;
-
-							if (BIT_TEST(player->config, 0)) { /* Pathway scrolling */
-								/* TODO */
-							}
-
-							/*sub_4737E(player->sett->map_cursor_col, player->sett->map_cursor_row);*/
-							player->click |= BIT(2);
-						}
-					}
-				} else { /* Dest has existing paths */
-					if (MAP_OBJ(clk_pos) == MAP_OBJ_FLAG) { /* Flag at dest */
-						/* 3AC0A */
-						int r = player_build_road_connect_flag(player, tiles1, clk_pos, dir_rev);
-						if (r < 0) {
-							sfx_play_clip(SFX_NOT_ACCEPTED);
-						} else {
-							player->sett->map_cursor_col = clk_col;
-							player->sett->map_cursor_row = clk_row;
-							tiles1[pos].flags |= BIT(dir);
-							tiles1[clk_pos].flags |= BIT(dir_rev);
-							player->road_length = 0;
-							/* redraw map cursor */
-							sfx_play_clip(SFX_ACCEPTED);
-						}
-						player_build_road_end(player);
-					} else { /* No flag at dest */
-						if (BIT_TEST(player->click, 3)) { /* Special click */
-							/* TODO ... */
-						} else {
-							player->click |= BIT(2);
-							sfx_play_clip(SFX_NOT_ACCEPTED);
-						}
-					}
+				int r = player_build_road_segment(player, pos, dir);
+				if (r < 0) {
+					sfx_play_clip(SFX_NOT_ACCEPTED);
+				} else if (r == 0) {
+					sfx_play_clip(SFX_CLICK);
+				} else {
+					sfx_play_clip(SFX_ACCEPTED);
 				}
 			} else { /* Existing path: Delete path */
-				player->road_length -= 1;
-				tiles1[pos].flags &= ~BIT(dir);
-				tiles1[clk_pos].flags &= ~BIT(dir_rev);
-				sfx_play_clip(SFX_CLICK);
-
-				/* loc_3AD32 */
-				player->sett->map_cursor_col = clk_col;
-				player->sett->map_cursor_row = clk_row;
-
-				if (BIT_TEST(player->config, 0)) { /* Pathway scrolling */
-					/* TODO */
+				int r = player_remove_road_segment(player, pos, dir);
+				if (r < 0) {
+					sfx_play_clip(SFX_NOT_ACCEPTED);
+				} else {
+					sfx_play_clip(SFX_CLICK);
 				}
-
-				/*sub_4737E(player->sett->map_cursor_col, player->sett->map_cursor_row);*/
-				player->click |= BIT(2);
 			}
 		} else {
 			player->click |= BIT(2);
