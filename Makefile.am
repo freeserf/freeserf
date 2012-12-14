@@ -24,6 +24,7 @@ freeserf_SOURCES = \
 	src/audio.c src/audio.h \
 	src/savegame.c src/savegame.h \
 	src/list.c src/list.h \
+	src/pqueue.c src/pqueue.h \
 	src/log.c src/log.h \
 	src/misc.h \
 	src/debug.h \
