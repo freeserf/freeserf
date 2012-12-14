@@ -258,8 +258,6 @@ void player_update_interface(player_t *player);
 
 void player_build_road_begin(player_t *player);
 void player_build_road_end(player_t *player);
-int player_build_road_connect_flag(player_t *player, map_1_t *map,
-				   map_pos_t clk_pos, dir_t out_dir);
 
 int player_build_road_segment(player_t *player, map_pos_t pos, dir_t dir);
 int player_remove_road_segment(player_t *player, map_pos_t pos, dir_t dir);

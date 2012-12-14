@@ -605,86 +605,87 @@ player_build_road_end(player_t *player)
 	/* TODO set_map_redraw(); */
 }
 
-/* Connect a road under construction to an existing flag. */
-int
-player_build_road_connect_flag(player_t *player, map_1_t *map, map_pos_t clk_pos, dir_t out_dir)
+/* Connect a road under construction to an existing flag at dest. out_dir is the
+   direction from the flag down the new road. */
+static int
+player_build_road_connect_flag(player_t *player, map_pos_t dest, dir_t out_dir)
 {
-	if (!MAP_HAS_OWNER(clk_pos) || MAP_OWNER(clk_pos) != player->sett->player_num) {
+	if (!MAP_HAS_OWNER(dest) || MAP_OWNER(dest) != player->sett->player_num) {
 		return -1;
 	}
 
-	map_pos_t next_pos = clk_pos;
 	dir_t in_dir = -1;
 
-	flag_t *src = game_get_flag(MAP_OBJ_INDEX(clk_pos));
+	flag_t *dest_flag = game_get_flag(MAP_OBJ_INDEX(dest));
 
 	int paths = BIT(out_dir);
 	int test = 0;
 
 	/* Backtrack along path to other flag. Test along the way
 	   whether the path is on ground or in water. */
+	map_pos_t src = dest;
 	for (int i = 0; i < player->road_length + 1; i++) {
 		if (BIT_TEST(paths, DIR_RIGHT)) {
-			if (MAP_TYPE_UP(next_pos) < 4 &&
-			    MAP_TYPE_UP(MAP_MOVE_UP(next_pos)) < 4) {
+			if (MAP_TYPE_UP(src) < 4 &&
+			    MAP_TYPE_UP(MAP_MOVE_UP(src)) < 4) {
 				test |= BIT(1);
 			} else {
 				test |= BIT(0);
 			}
 			in_dir = DIR_LEFT;
-			next_pos = MAP_MOVE_RIGHT(next_pos);
+			src = MAP_MOVE_RIGHT(src);
 		} else if (BIT_TEST(paths, DIR_DOWN_RIGHT)) {
-			if (MAP_TYPE_UP(next_pos) < 4 &&
-			    MAP_TYPE_DOWN(next_pos) < 4) {
+			if (MAP_TYPE_UP(src) < 4 &&
+			    MAP_TYPE_DOWN(src) < 4) {
 				test |= BIT(1);
 			} else {
 				test |= BIT(0);
 			}
 			in_dir = DIR_UP_LEFT;
-			next_pos = MAP_MOVE_DOWN_RIGHT(next_pos);
+			src = MAP_MOVE_DOWN_RIGHT(src);
 		} else if (BIT_TEST(paths, DIR_DOWN)) {
-			if (MAP_TYPE_UP(next_pos) < 4 &&
-			    MAP_TYPE_DOWN(MAP_MOVE_LEFT(next_pos)) < 4) {
+			if (MAP_TYPE_UP(src) < 4 &&
+			    MAP_TYPE_DOWN(MAP_MOVE_LEFT(src)) < 4) {
 				test |= BIT(1);
 			} else {
 				test |= BIT(0);
 			}
 			in_dir = DIR_UP;
-			next_pos = MAP_MOVE_DOWN(next_pos);
+			src = MAP_MOVE_DOWN(src);
 		} else if (BIT_TEST(paths, DIR_LEFT)) {
-			if (MAP_TYPE_DOWN(MAP_MOVE_LEFT(next_pos)) < 4 &&
-			    MAP_TYPE_UP(MAP_MOVE_UP(next_pos)) < 4) {
+			if (MAP_TYPE_DOWN(MAP_MOVE_LEFT(src)) < 4 &&
+			    MAP_TYPE_UP(MAP_MOVE_UP(src)) < 4) {
 				test |= BIT(1);
 			} else {
 				test |= BIT(0);
 			}
 			in_dir = DIR_RIGHT;
-			next_pos = MAP_MOVE_LEFT(next_pos);
+			src = MAP_MOVE_LEFT(src);
 		} else if (BIT_TEST(paths, DIR_UP_LEFT)) {
-			if (MAP_TYPE_UP(MAP_MOVE_UP_LEFT(next_pos)) < 4 &&
-			    MAP_TYPE_DOWN(MAP_MOVE_UP_LEFT(next_pos)) < 4) {
+			if (MAP_TYPE_UP(MAP_MOVE_UP_LEFT(src)) < 4 &&
+			    MAP_TYPE_DOWN(MAP_MOVE_UP_LEFT(src)) < 4) {
 				test |= BIT(1);
 			} else {
 				test |= BIT(0);
 			}
 			in_dir = DIR_DOWN_RIGHT;
-			next_pos = MAP_MOVE_UP_LEFT(next_pos);
+			src = MAP_MOVE_UP_LEFT(src);
 		} else if (BIT_TEST(paths, DIR_UP)) {
-			if (MAP_TYPE_DOWN(MAP_MOVE_UP_LEFT(next_pos)) < 4 &&
-			    MAP_TYPE_UP(MAP_MOVE_RIGHT(next_pos)) < 4) {
+			if (MAP_TYPE_DOWN(MAP_MOVE_UP_LEFT(src)) < 4 &&
+			    MAP_TYPE_UP(MAP_MOVE_RIGHT(src)) < 4) {
 				test |= BIT(1);
 			} else {
 				test |= BIT(0);
 			}
 			in_dir = DIR_DOWN;
-			next_pos = MAP_MOVE_UP(next_pos);
+			src = MAP_MOVE_UP(src);
 		}
 
-		if (!MAP_HAS_OWNER(next_pos) || MAP_OWNER(next_pos) != player->sett->player_num) {
+		if (!MAP_HAS_OWNER(src) || MAP_OWNER(src) != player->sett->player_num) {
 			return -1;
 		}
 
-		paths = MAP_PATHS(next_pos) & ~BIT(in_dir);
+		paths = MAP_PATHS(src) & ~BIT(in_dir);
 	}
 
 	/* Bit 0 indicates a ground path, bit 1 indicates
@@ -697,31 +698,31 @@ player_build_road_connect_flag(player_t *player, map_1_t *map, map_pos_t clk_pos
 	}
 
 	/* Connect flags */
-	flag_t *dest = game_get_flag(MAP_OBJ_INDEX(next_pos));
+	flag_t *src_flag = game_get_flag(MAP_OBJ_INDEX(src));
 
-	src->path_con |= BIT(out_dir);
-	src->endpoint |= BIT(out_dir);
-	src->transporter &= ~BIT(out_dir);
+	dest_flag->path_con |= BIT(out_dir);
+	dest_flag->endpoint |= BIT(out_dir);
+	dest_flag->transporter &= ~BIT(out_dir);
 
-	dest->path_con |= BIT(in_dir);
-	dest->endpoint |= BIT(in_dir);
-	dest->transporter &= ~BIT(in_dir);
+	src_flag->path_con |= BIT(in_dir);
+	src_flag->endpoint |= BIT(in_dir);
+	src_flag->transporter &= ~BIT(in_dir);
 
 	if (water_path) {
-		src->endpoint &= ~BIT(out_dir);
-		dest->endpoint &= ~BIT(in_dir);
+		dest_flag->endpoint &= ~BIT(out_dir);
+		src_flag->endpoint &= ~BIT(in_dir);
 	}
 
-	src->other_end_dir[out_dir] = (src->other_end_dir[out_dir] & 0xc7) | (in_dir << 3);
-	dest->other_end_dir[in_dir] = (dest->other_end_dir[in_dir] & 0xc7) | (out_dir << 3);
+	dest_flag->other_end_dir[out_dir] = (dest_flag->other_end_dir[out_dir] & 0xc7) | (in_dir << 3);
+	src_flag->other_end_dir[in_dir] = (src_flag->other_end_dir[in_dir] & 0xc7) | (out_dir << 3);
 
 	int len = game_get_road_length_value(player->road_length + 1);
 
-	src->length[out_dir] = len;
-	dest->length[in_dir] = len;
+	dest_flag->length[out_dir] = len;
+	src_flag->length[in_dir] = len;
 
-	src->other_endpoint.f[out_dir] = dest;
-	dest->other_endpoint.f[in_dir] = src;
+	dest_flag->other_endpoint.f[out_dir] = src_flag;
+	src_flag->other_endpoint.f[in_dir] = dest_flag;
 
 	return 0;
 }
@@ -731,73 +732,43 @@ player_build_road_connect_flag(player_t *player, map_1_t *map, map_pos_t clk_pos
 int
 player_build_road_segment(player_t *player, map_pos_t pos, dir_t dir)
 {
+	if (!game_road_segment_valid(pos, dir)) return -1;
+
 	map_pos_t dest = MAP_MOVE(pos, dir);
 	dir_t dir_rev = DIR_REVERSE(dir);
 	map_1_t *tiles1 = globals.map.tiles1;
 
-	if (MAP_PATHS(dest) == 0) { /* No paths at destination */
-		if (BIT_TEST(player->click, 3)) { /* Special click */
-			/* TODO ... */
+	if (MAP_OBJ(dest) == MAP_OBJ_FLAG) {
+		/* Existing flag at destination, try to connect. */
+		int r = player_build_road_connect_flag(player, dest, dir_rev);
+		if (r < 0) {
+			player_build_road_end(player);
+			return -1;
 		} else {
-			/* loc_3ABF0 */
-			if (MAP_OBJ(dest) == MAP_OBJ_FLAG) { /* Existing flag */
-				/* 3AC0A */
-				int r = player_build_road_connect_flag(player, tiles1, dest, dir_rev);
-				if (r < 0) {
-					player_build_road_end(player);
-					return -1;
-				} else {
-					player->sett->map_cursor_col = MAP_POS_COL(dest);
-					player->sett->map_cursor_row = MAP_POS_ROW(dest);
-					tiles1[pos].flags |= BIT(dir);
-					tiles1[dest].flags |= BIT(dir_rev);
-					player->road_length = 0;
-					/* redraw map cursor */
-					player_build_road_end(player);
-					return 1;
-				}
-			} else {
-				player->road_length += 1;
-				tiles1[pos].flags |= BIT(dir);
-				tiles1[dest].flags |= BIT(dir_rev);
-
-				/* loc_3AD32 */
-				player->sett->map_cursor_col = MAP_POS_COL(dest);
-				player->sett->map_cursor_row = MAP_POS_ROW(dest);
-
-				if (BIT_TEST(player->config, 0)) { /* Pathway scrolling */
-					/* TODO */
-				}
-
-				/*sub_4737E(player->sett->map_cursor_col, player->sett->map_cursor_row);*/
-				player->click |= BIT(2);
-			}
+			player->sett->map_cursor_col = MAP_POS_COL(dest);
+			player->sett->map_cursor_row = MAP_POS_ROW(dest);
+			tiles1[pos].flags |= BIT(dir);
+			tiles1[dest].flags |= BIT(dir_rev);
+			player->road_length = 0;
+			player_build_road_end(player);
+			return 1;
 		}
-	} else { /* Dest has existing paths */
-		if (MAP_OBJ(dest) == MAP_OBJ_FLAG) { /* Flag at dest */
-			/* 3AC0A */
-			int r = player_build_road_connect_flag(player, tiles1, dest, dir_rev);
-			if (r < 0) {
-				player_build_road_end(player);
-				return -1;
-			} else {
-				player->sett->map_cursor_col = MAP_POS_COL(dest);
-				player->sett->map_cursor_row = MAP_POS_ROW(dest);
-				tiles1[pos].flags |= BIT(dir);
-				tiles1[dest].flags |= BIT(dir_rev);
-				player->road_length = 0;
-				/* redraw map cursor */
-				player_build_road_end(player);
-				return 1;
-			}
-		} else { /* No flag at dest */
-			if (BIT_TEST(player->click, 3)) { /* Special click */
-				/* TODO ... */
-			} else {
-				player->click |= BIT(2);
-				return -1;
-			}
-		}
+	} else if (MAP_PATHS(dest) == 0) {
+		/* No existing paths at destination, build segment. */
+		player->road_length += 1;
+		tiles1[pos].flags |= BIT(dir);
+		tiles1[dest].flags |= BIT(dir_rev);
+
+		player->sett->map_cursor_col = MAP_POS_COL(dest);
+		player->sett->map_cursor_row = MAP_POS_ROW(dest);
+
+		/* TODO Pathway scrolling */
+
+		player->click |= BIT(2);
+	} else {
+		/* TODO fast split path and connect on double click */
+		player->click |= BIT(2);
+		return -1;
 	}
 
 	return 0;
@@ -814,15 +785,11 @@ player_remove_road_segment(player_t *player, map_pos_t pos, dir_t dir)
 	tiles1[pos].flags &= ~BIT(dir);
 	tiles1[dest].flags &= ~BIT(dir_rev);
 
-	/* loc_3AD32 */
 	player->sett->map_cursor_col = MAP_POS_COL(dest);
 	player->sett->map_cursor_row = MAP_POS_ROW(dest);
 
-	if (BIT_TEST(player->config, 0)) { /* Pathway scrolling */
-		/* TODO */
-	}
+	/* TODO Pathway scrolling */
 
-	/*sub_4737E(player->sett->map_cursor_col, player->sett->map_cursor_row);*/
 	player->click |= BIT(2);
 
 	return 0;
