@@ -2398,6 +2398,34 @@ game_prepare_ground_analysis(player_t *player)
 	player->sett->analysis_stone = min(player->sett->analysis_stone, 999);
 }
 
+/* Return non-zero if the road segment from pos in direction dir
+   can be successfully constructed at the current time. */
+int
+game_road_segment_valid(map_pos_t pos, dir_t dir)
+{
+	map_pos_t other_pos = MAP_MOVE(pos, dir);
+
+	map_obj_t obj = MAP_OBJ(other_pos);
+	if ((MAP_PATHS(other_pos) != 0 && obj != MAP_OBJ_FLAG) ||
+	    (obj >= MAP_OBJ_SMALL_BUILDING &&
+	     obj <= MAP_OBJ_CASTLE) ||
+	    map_space_from_obj[obj] == MAP_SPACE_IMPASSABLE) {
+		return 0;
+	}
+
+	if (!MAP_HAS_OWNER(other_pos) ||
+	    MAP_OWNER(other_pos) != MAP_OWNER(pos)) {
+		return 0;
+	}
+
+	if (map_is_deep_water(pos) != map_is_deep_water(other_pos) &&
+	    !(MAP_HAS_FLAG(pos) || MAP_HAS_FLAG(other_pos))) {
+		return 0;
+	}
+
+	return 1;
+}
+
 /* Get road length category value for real length.
    Determines number of serfs servicing the path segment.(?) */
 int
