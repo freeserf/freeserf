@@ -57,8 +57,13 @@
 /* Extractors for map data. */
 #define MAP_HAS_FLAG(pos)  ((uint)((globals.map.tiles1[(pos)].flags >> 7) & 1))
 
-/* Whether the pos is entirely surrounded by water tiles. If this is true
-   the resource field can safely be used, because no flag can be built here. */
+/* This bit is used to indicate a band of positions in the water, that are
+   entirely surrounded by water tiles, but are still close to the shore. This is
+   the area where fish are present, and it also happens to be the only area where
+   a sailor can appear as idle (since flags have to be on the shore), so it is
+   used to indicate whether an idle serf should be drawn as a sailor in the viewport.
+   Further, it is used to indicate on land certain positions that are impassable.*/
+/* TODO Clean up; this bit has too many different meanings. */
 #define MAP_DEEP_WATER(pos)  ((uint)((globals.map.tiles1[(pos)].flags >> 6) & 1))
 
 #define MAP_PATHS(pos)  ((uint)(globals.map.tiles1[(pos)].flags & 0x3f))
@@ -72,7 +77,8 @@
 
 #define MAP_OBJ(pos)  ((map_obj_t)(globals.map.tiles1[(pos)].obj & 0x7f))
 
-/* Whether any of the two up/down tiles at this pos are water. */
+/* Whether any of the two up/down tiles at this pos are water.
+   This is used to indicate whether waves should be drawn. */
 #define MAP_WATER(pos)  ((uint)((globals.map.tiles1[(pos)].obj >> 7) & 1))
 
 #define MAP_OBJ_INDEX(pos)  ((uint)globals.map.tiles2[(pos)].u.index)
@@ -265,6 +271,8 @@ void map_set_object(map_pos_t pos, map_obj_t obj, int index);
 void map_remove_ground_deposit(map_pos_t pos, int amount);
 void map_remove_fish(map_pos_t pos, int amount);
 void map_set_serf_index(map_pos_t pos, int index);
+
+int map_is_deep_water(map_pos_t pos);
 
 void map_init_dimensions(map_t *map);
 
