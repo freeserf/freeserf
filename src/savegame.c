@@ -1336,6 +1336,38 @@ trim_whitespace(char *str, size_t *len)
 	return str;
 }
 
+/* Read line from f, realloc'ing the buffer
+   if necessary. Return bytes read (0 on EOF). */
+static size_t
+load_text_readline(char **buffer, size_t *len, FILE *f)
+{
+	size_t i = 0;
+
+	while (1) {
+		if (i >= *len-1) {
+			/* Double buffer size, always keep enough
+			   space for input character plus zero-byte. */
+			*len = 2*(*len);
+			*buffer = realloc(*buffer, *len);
+		}
+
+		/* Read character */
+		int c = fgetc(f);
+		if (c == EOF) {
+			(*buffer)[i] = '\0';
+			break;
+		}
+
+		(*buffer)[i++] = c;
+
+		if (c == '\n') {
+			(*buffer)[i] = '\0';
+			break;
+		}
+	}
+
+	return i;
+}
 
 
 typedef struct {
@@ -1356,22 +1388,21 @@ static int
 load_text_parse(FILE *f, list_t *sections)
 {
 	size_t buffer_len = 256;
-	char *buffer = malloc(256*sizeof(char));
+	char *buffer = malloc(buffer_len*sizeof(char));
 
 	section_t *section = NULL;
 
-	while (!feof(f)) {
+	while (1) {
 		/* Read line from file */
 		char *line = NULL;
 		size_t line_len = 0;
-		ssize_t len = getline(&buffer, &buffer_len, f);
-		if (len < 0) {
+		size_t len = load_text_readline(&buffer, &buffer_len, f);
+		if (len == 0) {
 			if (ferror(f)) return -1;
-			line_len = strlen(buffer);
-		} else {
-			line_len = len;
+			break;
 		}
 
+		line_len = len;
 		line = buffer;
 
 		/* Skip leading whitespace */
