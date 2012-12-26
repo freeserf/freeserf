@@ -2319,25 +2319,22 @@ viewport_handle_event_click(viewport_t *viewport, int x, int y, gui_event_button
 	int clk_row = MAP_POS_ROW(clk_pos);
 
 	if (BIT_TEST(player->click, 7)) { /* Building road */
-		int y = (clk_col - player->sett->map_cursor_col + 1) & globals.map.col_mask;
-		int x = (clk_row - player->sett->map_cursor_row + 1) & globals.map.row_mask;
-		dir_t dir = -1;
+		int x = (clk_col - player->sett->map_cursor_col + 1) & globals.map.col_mask;
+		int y = (clk_row - player->sett->map_cursor_row + 1) & globals.map.row_mask;
+		int dir = -1;
 
-		if (y == 0) {
-			if (x == 1) dir = DIR_LEFT;
-			else if (x == 0) dir = DIR_UP_LEFT;
-			else return 0;
-		} else if (y == 1) {
-			if (x == 2) dir = DIR_DOWN;
-			else if (x == 0) dir = DIR_UP;
-			else return 0;
-		} else if (y == 2) {
-			if (x == 1) dir = DIR_RIGHT;
-			else if (x == 2) dir = DIR_DOWN_RIGHT;
-			else return 0;
-		} else {
-			return 0;
+		if (x == 0) {
+			if (y == 1) dir = DIR_LEFT;
+			else if (y == 0) dir = DIR_UP_LEFT;
+		} else if (x == 1) {
+			if (y == 2) dir = DIR_DOWN;
+			else if (y == 0) dir = DIR_UP;
+		} else if (x == 2) {
+			if (y == 1) dir = DIR_RIGHT;
+			else if (y == 2) dir = DIR_DOWN_RIGHT;
 		}
+
+		if (dir < 0) return 0;
 
 		if (BIT_TEST(player->field_D0, dir)) {
 			map_pos_t pos = MAP_POS(player->sett->map_cursor_col, player->sett->map_cursor_row);
