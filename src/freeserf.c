@@ -699,7 +699,7 @@ anim_update_and_more()
 		gui_object_set_redraw((gui_object_t *)&viewport);
 	}
 
-	if ((globals.anim & 0xffff) == 0) {
+	if ((globals.anim & 0xffff) == 0 && globals.game_speed > 0) {
 		int r = save_game(1);
 		if (r < 0) LOGW("main", "Autosave failed.");
 	}
