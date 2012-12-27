@@ -36,6 +36,13 @@ typedef struct {
 	uint row_shift;
 } v0_map_t;
 
+static map_pos_t
+load_v0_map_pos(const v0_map_t *map, uint32_t value)
+{
+	return MAP_POS((value >> 2) & (map->cols-1),
+		       (value >> (2 + map->row_shift)) & (map->rows-1));
+}
+
 /* Load global state from save game. */
 static int
 load_v0_globals_state(FILE *f, v0_map_t *map)
@@ -48,6 +55,21 @@ load_v0_globals_state(FILE *f, v0_map_t *map)
 		free(data);
 		return -1;
 	}
+
+	/* Load these first so map dimensions can be reconstructed.
+	   This is necessary to load map positions. */
+	globals.map_size = *(uint16_t *)&data[190];
+
+	map->row_shift = *(uint16_t *)&data[42];
+	map->cols = *(uint16_t *)&data[62];
+	map->rows = *(uint16_t *)&data[64];
+
+	/* Init the rest of map dimensions. */
+	globals.map.col_size = 5 + globals.map_size/2;
+	globals.map.row_size = 5 + (globals.map_size - 1)/2;
+	globals.map.cols = 1 << globals.map.col_size;
+	globals.map.rows = 1 << globals.map.row_size;
+	map_init_dimensions(&globals.map);
 
 	/* OBSOLETE may be needed to load map data correctly?
 	map->index_mask = *(uint32_t *)&data[0] >> 2;
@@ -72,13 +94,9 @@ load_v0_globals_state(FILE *f, v0_map_t *map)
 	globals.map_col_pairs = *(uint16_t *)&data[58];
 	globals.map_row_pairs = *(uint16_t *)&data[60];*/
 
-	map->row_shift = *(uint16_t *)&data[42];
-	map->cols = *(uint16_t *)&data[62];
-	map->rows = *(uint16_t *)&data[64];
-
 	globals.split = *(uint8_t *)&data[66];
 	/* globals.field_37F = *(uint8_t *)&data[67]; */
-	globals.update_map_initial_pos = *(uint32_t *)&data[68] >> 2;
+	globals.update_map_initial_pos = load_v0_map_pos(map, *(uint32_t *)&data[68]);
 
 	globals.cfg_left = *(uint8_t *)&data[72];
 	globals.cfg_right = *(uint8_t *)&data[73];
@@ -157,7 +175,6 @@ load_v0_globals_state(FILE *f, v0_map_t *map)
 	globals.map_field_4A = *(uint16_t *)&data[182];
 	globals.map_gold_deposit = *(uint32_t *)&data[184];
 	globals.update_map_16_loop = *(uint16_t *)&data[188];
-	globals.map_size = *(uint16_t *)&data[190];
 
 	globals.map_field_52 = *(uint16_t *)&data[192];
 	/*
@@ -180,13 +197,6 @@ load_v0_globals_state(FILE *f, v0_map_t *map)
 	/* Skip unused section. */
 	int r = fseek(f, 40, SEEK_CUR);
 	if (r < 0) return -1;
-
-	/* Init the rest of map dimensions. */
-	globals.map.col_size = 5 + globals.map_size/2;
-	globals.map.row_size = 5 + (globals.map_size - 1)/2;
-	globals.map.cols = 1 << globals.map.col_size;
-	globals.map.rows = 1 << globals.map.row_size;
-	map_init_dimensions(&globals.map);
 
 	return 0;
 }
@@ -358,7 +368,7 @@ load_v0_map_state(FILE *f, const v0_map_t *map)
 
 /* Load serf state from save game. */
 static int
-load_v0_serf_state(FILE *f)
+load_v0_serf_state(FILE *f, const v0_map_t *map)
 {
 	/* Load serf bitmap. */
 	int bitmap_size = 4*((globals.max_ever_serf_index + 31)/32);
@@ -393,7 +403,7 @@ load_v0_serf_state(FILE *f)
 		serf->type = serf_data[0];
 		serf->animation = serf_data[1];
 		serf->counter = *(uint16_t *)&serf_data[2];
-		serf->pos = *(uint32_t *)&serf_data[4] >> 2;
+		serf->pos = load_v0_map_pos(map, *(uint32_t *)&serf_data[4]);
 		serf->anim = *(uint16_t *)&serf_data[8];
 		serf->state = serf_data[10];
 
@@ -643,7 +653,7 @@ load_v0_flag_state(FILE *f)
 
 /* Load building state from save game. */
 static int
-load_v0_building_state(FILE *f)
+load_v0_building_state(FILE *f, const v0_map_t *map)
 {
 	/* Load building bitmap. */
 	int bitmap_size = 4*((globals.max_ever_building_index + 31)/32);
@@ -675,7 +685,7 @@ load_v0_building_state(FILE *f)
 		uint8_t *building_data = &data[18*i];
 		building_t *building = &globals.buildings[i];
 
-		building->pos = *(uint32_t *)&building_data[0] >> 2;
+		building->pos = load_v0_map_pos(map, *(uint32_t *)&building_data[0]);
 		building->bld = building_data[4];
 		building->serf = building_data[5];
 		building->flg_index = *(uint16_t *)&building_data[6];
@@ -781,13 +791,13 @@ load_v0_state(FILE *f)
 	r = load_v0_map_state(f, &map);
 	if (r < 0) return -1;
 
-	r = load_v0_serf_state(f);
+	r = load_v0_serf_state(f, &map);
 	if (r < 0) return -1;
 
 	r = load_v0_flag_state(f);
 	if (r < 0) return -1;
 
-	r = load_v0_building_state(f);
+	r = load_v0_building_state(f, &map);
 	if (r < 0) return -1;
 
 	r = load_v0_inventory_state(f);
