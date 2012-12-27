@@ -3511,7 +3511,55 @@ handle_clickmap(player_t *player, int x, int y, const int clkmap[])
 				player->sett->field_170 = 1200;
 				sfx_play_clip(SFX_ACCEPTED);
 				break;
-				/* TODO */
+			case ACTION_CLOSE_OPTIONS:
+				player_close_popup(player);
+				globals.player[0]->config = globals.cfg_left;
+				globals.player[1]->config = globals.cfg_right;
+				break;
+			case ACTION_OPTIONS_PATHWAY_SCROLLING_1:
+				BIT_INVERT(globals.cfg_left, 0);
+				break;
+			case ACTION_OPTIONS_PATHWAY_SCROLLING_2:
+				BIT_INVERT(globals.cfg_right, 0);
+				break;
+			case ACTION_OPTIONS_FAST_MAP_CLICK_1:
+				BIT_INVERT(globals.cfg_left, 1);
+				break;
+			case ACTION_OPTIONS_FAST_MAP_CLICK_2:
+				BIT_INVERT(globals.cfg_right, 1);
+				break;
+			case ACTION_OPTIONS_FAST_BUILDING_1:
+				BIT_INVERT(globals.cfg_left, 2);
+				break;
+			case ACTION_OPTIONS_FAST_BUILDING_2:
+				BIT_INVERT(globals.cfg_right, 2);
+				break;
+			case ACTION_OPTIONS_MESSAGE_COUNT_1:
+				if (BIT_TEST(globals.cfg_left, 3)) {
+					BIT_INVERT(globals.cfg_left, 3);
+					globals.cfg_left |= BIT(4);
+				} else if (BIT_TEST(globals.cfg_left, 4)) {
+					BIT_INVERT(globals.cfg_left, 4);
+					globals.cfg_left |= BIT(5);
+				} else if (BIT_TEST(globals.cfg_left, 5)) {
+					BIT_INVERT(globals.cfg_left, 5);
+				} else {
+					globals.cfg_left |= BIT(3) | BIT(4) | BIT(5);
+				}
+				break;
+			case ACTION_OPTIONS_MESSAGE_COUNT_2:
+				if (BIT_TEST(globals.cfg_right, 3)) {
+					BIT_INVERT(globals.cfg_right, 3);
+					globals.cfg_left |= BIT(4);
+				} else if (BIT_TEST(globals.cfg_right, 4)) {
+					BIT_INVERT(globals.cfg_right, 4);
+					globals.cfg_left |= BIT(5);
+				} else if (BIT_TEST(globals.cfg_right, 5)) {
+					BIT_INVERT(globals.cfg_right, 5);
+				} else {
+					globals.cfg_right |= BIT(3) | BIT(4) | BIT(5);
+				}
+				break;
 			case ACTION_DEFAULT_SETT_1:
 				player_open_popup(player, BOX_SETT_1);
 				player_sett_reset_food_priority(player->sett);
@@ -3681,56 +3729,6 @@ handle_clickmap(player_t *player, int x, int y, const int clkmap[])
 						  popup->minimap.scale == 1 ? 2 : 1);
 				player->box = BOX_MAP;
 			}
-				break;
-				/* TODO */
-			case ACTION_CLOSE_OPTIONS:
-				player_close_popup(player);
-				globals.player[0]->config = globals.cfg_left;
-				globals.player[1]->config = globals.cfg_right;
-				break;
-			case ACTION_OPTIONS_PATHWAY_SCROLLING_1:
-				BIT_INVERT(globals.cfg_left, 0);
-				break;
-			case ACTION_OPTIONS_PATHWAY_SCROLLING_2:
-				BIT_INVERT(globals.cfg_right, 0);
-				break;
-			case ACTION_OPTIONS_FAST_MAP_CLICK_1:
-				BIT_INVERT(globals.cfg_left, 1);
-				break;
-			case ACTION_OPTIONS_FAST_MAP_CLICK_2:
-				BIT_INVERT(globals.cfg_right, 1);
-				break;
-			case ACTION_OPTIONS_FAST_BUILDING_1:
-				BIT_INVERT(globals.cfg_left, 2);
-				break;
-			case ACTION_OPTIONS_FAST_BUILDING_2:
-				BIT_INVERT(globals.cfg_right, 2);
-				break;
-			case ACTION_OPTIONS_MESSAGE_COUNT_1:
-				if (BIT_TEST(globals.cfg_left, 3)) {
-					BIT_INVERT(globals.cfg_left, 3);
-					globals.cfg_left |= BIT(4);
-				} else if (BIT_TEST(globals.cfg_left, 4)) {
-					BIT_INVERT(globals.cfg_left, 4);
-					globals.cfg_left |= BIT(5);
-				} else if (BIT_TEST(globals.cfg_left, 5)) {
-					BIT_INVERT(globals.cfg_left, 5);
-				} else {
-					globals.cfg_left |= BIT(3) | BIT(4) | BIT(5);
-				}
-				break;
-			case ACTION_OPTIONS_MESSAGE_COUNT_2:
-				if (BIT_TEST(globals.cfg_right, 3)) {
-					BIT_INVERT(globals.cfg_right, 3);
-					globals.cfg_left |= BIT(4);
-				} else if (BIT_TEST(globals.cfg_right, 4)) {
-					BIT_INVERT(globals.cfg_right, 4);
-					globals.cfg_left |= BIT(5);
-				} else if (BIT_TEST(globals.cfg_right, 5)) {
-					BIT_INVERT(globals.cfg_right, 5);
-				} else {
-					globals.cfg_right |= BIT(3) | BIT(4) | BIT(5);
-				}
 				break;
 				/* TODO */
 			case ACTION_SETT_8_CASTLE_DEF_DEC:
