@@ -3498,7 +3498,29 @@ handle_clickmap(player_t *player, int x, int y, const int clkmap[])
 			case ACTION_SETT_5_6_BOTTOM:
 				move_sett_5_6_item(player, 0, 1);
 				break;
-				/* TODO */
+			case ACTION_QUIT_CONFIRM:
+				if (0/* TODO suggest save game*/) {
+					player_open_popup(player, BOX_NO_SAVE_QUIT_CONFIRM);
+				} else {
+					sfx_play_clip(SFX_AHHH);
+					game_loop_quit();
+				}
+				break;
+			case ACTION_QUIT_CANCEL:
+				game_pause(0);
+				globals.svga |= BIT(5);
+				player_close_popup(player);
+				break;
+			case ACTION_NO_SAVE_QUIT_CONFIRM:
+				sfx_play_clip(SFX_AHHH);
+				game_loop_quit();
+				break;
+			case ACTION_SHOW_QUIT:
+				player->click &= ~BIT(6);
+				player->panel_btns[3] = PANEL_BTN_STATS_INACTIVE;
+				player->panel_btns[4] = PANEL_BTN_SETT_INACTIVE;
+				player_open_popup(player, BOX_QUIT_CONFIRM);
+				break;
 			case ACTION_SHOW_OPTIONS:
 				player->click &= ~BIT(6);
 				player->panel_btns[3] = PANEL_BTN_STATS_INACTIVE;
@@ -4176,6 +4198,28 @@ handle_sett_5_6_click(player_t *player, int x, int y)
 }
 
 static void
+handle_quit_confirm_click(player_t *player, int x, int y)
+{
+	const int clkmap[] = {
+		ACTION_QUIT_CONFIRM, 8, 39, 45, 52,
+		ACTION_QUIT_CANCEL, 88, 119, 45, 52,
+		-1
+	};
+	handle_clickmap(player, x, y, clkmap);
+}
+
+static void
+handle_no_save_quit_confirm_click(player_t *player, int x, int y)
+{
+	const int clkmap[] = {
+		ACTION_NO_SAVE_QUIT_CONFIRM, 8, 39, 125, 132,
+		ACTION_QUIT_CANCEL, 88, 119, 125, 132,
+		-1
+	};
+	handle_clickmap(player, x, y, clkmap);
+}
+
+static void
 handle_castle_res_clk(player_t *player, int x, int y)
 {
 	const int clkmap[] = {
@@ -4465,11 +4509,15 @@ popup_box_handle_event_click(popup_box_t *popup, int x, int y)
 	case BOX_SETT_5:
 		handle_sett_5_6_click(player, x, y);
 		break;
-		/* TODO */
+	case BOX_QUIT_CONFIRM:
+		handle_quit_confirm_click(player, x, y);
+		break;
+	case BOX_NO_SAVE_QUIT_CONFIRM:
+		handle_no_save_quit_confirm_click(player, x, y);
+		break;
 	case BOX_OPTIONS:
 		handle_box_options_clk(player, x, y);
 		break;
-		/* TODO */
 	case BOX_CASTLE_RES:
 		handle_castle_res_clk(player, x, y);
 		break;
