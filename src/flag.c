@@ -1,5 +1,5 @@
 /*
- * building.c - Flag related functions.
+ * flag.c - Flag related functions.
  *
  * Copyright (C) 2012  Jon Lund Steffensen <jonlst@gmail.com>
  *
