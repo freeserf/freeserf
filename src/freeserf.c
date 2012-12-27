@@ -74,6 +74,8 @@
 static unsigned int tick;
 static int update_from_cb;
 
+static int game_loop_run;
+
 static frame_t screen_frame;
 
 /* Viewport holds the state of the main map window
@@ -1025,6 +1027,12 @@ game_loop_iter()
 #define MOUSE_SENSITIVITY  600
 
 
+void
+game_loop_quit()
+{
+	game_loop_run = 0;
+}
+
 /* game_loop() has been turned into a SDL based loop.
    The code for one iteration of the original game_loop is
    in game_loop_iter. */
@@ -1048,11 +1056,11 @@ game_loop()
 	unsigned int accum = 0;
 	unsigned int accum_frames = 0;
 
-	int do_loop = 1;
 	SDL_Event event;
 	gui_event_t ev;
 
-	while (do_loop) {
+	game_loop_run = 1;
+	while (game_loop_run) {
 		if (SDL_PollEvent(&event)) {
 			switch (event.type) {
 			case SDL_MOUSEBUTTONUP:
@@ -1144,7 +1152,7 @@ game_loop()
 			case SDL_KEYDOWN:
 				if (event.key.keysym.sym == SDLK_q &&
 				    (event.key.keysym.mod & KMOD_CTRL)) {
-					do_loop = 0;
+					game_loop_quit();
 					break;
 				}
 
@@ -1250,7 +1258,7 @@ game_loop()
 				}
 				break;
 			case SDL_QUIT:
-				do_loop = 0;
+				game_loop_quit();
 				break;
 			}
 		}

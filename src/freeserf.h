@@ -228,4 +228,6 @@ static const int map_building_sprite[] = {
 
 int init_flag_search();
 
+void game_loop_quit();
+
 #endif /* ! _FREESERF_H */
