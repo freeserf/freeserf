@@ -1183,15 +1183,15 @@ init_map_ground_gold_deposit()
 }
 
 /* Initialize minimap data. */
-static void
-init_minimap()
+void
+map_init_minimap()
 {
-	static const uint16_t w_arr[] = {
+	static const int color_offset[] = {
 		0, 85, 102, 119, 17, 17, 17, 17,
 		34, 34, 34, 51, 51, 51, 68, 68
 	};
 
-	static const uint8_t b_arr[] = {
+	static const int colors[] = {
 		 8,  8,  8,  8,  8,  8,  8,  8,  8,  8,  8,  8,  8,  8,  8,  8,  8,
 		31, 31, 30, 29, 28, 27, 26, 25, 24, 23, 22, 21, 20, 19, 18, 17, 16,
 		63, 63, 62, 61, 61, 60, 59, 59, 58, 57, 57, 56, 55, 55, 54, 53, 53,
@@ -1202,25 +1202,23 @@ init_minimap()
 		11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11
 	};
 
-	globals.minimap = malloc(globals.map.rows * globals.map.cols);
+        globals.minimap = malloc(globals.map.rows * globals.map.cols);
 	map_tile_t *tiles = globals.map.tiles;
 	uint8_t *minimap = globals.minimap;
 
 	for (int y = 0; y < globals.map.rows; y++) {
 		for (int x = 0; x < globals.map.cols; x++) {
 			map_pos_t pos = MAP_POS(x, y);
-			uint32_t edi14 = w_arr[tiles[pos].type >> 4];
+			int type_off = color_offset[tiles[pos].type >> 4];
 
 			pos = MAP_MOVE_RIGHT(pos);
-			uint32_t edi18 = tiles[pos].height & 0x1f;
-		
-			pos = MAP_MOVE_DOWN_LEFT(pos);
-			int32_t edi1C_2 = tiles[pos].height & 0x1f;
-		
-			edi1C_2 = edi1C_2 - edi18 + 8;
-			edi14 += edi1C_2;
+			int h1 = MAP_HEIGHT(pos);
 
-			*(minimap++) = b_arr[edi14];
+			pos = MAP_MOVE_DOWN_LEFT(pos);
+			int h2 = MAP_HEIGHT(pos);
+
+			int h_off = h2 - h1 + 8;
+			*(minimap++) = colors[type_off + h_off];
 		}
 	}
 }
@@ -1311,7 +1309,7 @@ map_init()
 
 	/* draw_progress_bar(1); */
 
-	init_minimap();
+	map_init_minimap();
 
 	/* draw_progress_bar(1); */
 

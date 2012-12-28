@@ -271,6 +271,7 @@ void map_set_serf_index(map_pos_t pos, int index);
 int map_is_deep_water(map_pos_t pos);
 
 void map_init_dimensions(map_t *map);
+void map_init_minimap();
 
 void map_init();
 void map_update();
