@@ -72,7 +72,6 @@
 
 
 static unsigned int tick;
-static int update_from_cb;
 
 static int game_loop_run;
 
@@ -85,9 +84,6 @@ static panel_bar_t panel;
 static popup_box_t popup;
 
 static interface_t interface;
-
-static char *game_file = NULL;
-
 
 
 /* Facilitates quick lookup of offsets following a spiral pattern in the map data.
@@ -147,7 +143,7 @@ static int spiral_pattern[] = {
 
 /* Initialize the global spiral_pattern. */
 static void
-setup_spiral_pattern()
+init_spiral_pattern()
 {
 	static const int spiral_matrix[] = {
 		1,  0,  0,  1,
@@ -193,14 +189,6 @@ void
 gui_show_popup_frame(int show)
 {
 	gui_object_set_displayed((gui_object_t *)&popup, show);
-}
-
-/* Initialize game speed. */
-static void
-start_game_tick()
-{
-	globals.game_speed = DEFAULT_GAME_SPEED;
-	update_from_cb = 1;
 }
 
 /* Initialize player objects. */
@@ -350,39 +338,14 @@ init_players_svga(player_t *p[])
 }
 
 static void
-init_players()
+player_interface_init()
 {
-	/* mouse related call */
-
 	init_player_structs(globals.player);
 
-	if (/* split mode */ 0) {
-	} else {
-		globals.player[1]->flags |= 1;
-		if (BIT_TEST(globals.svga, 7)) {
-			init_players_svga(globals.player);
-		} else {
-			/*init_players_lowres(globals.player);*/
-		}
-	}
-}
+	/* Mark player 2 inactive */
+	globals.player[1]->flags |= BIT(0);
 
-/* Part of initialization procedure. */
-static void
-switch_to_pregame_video_mode()
-{
-	if (/*svga_mode*/ 0) {
-		/* svga_mode = 0; */
-		/* lowres_mode_and_redraw_frames(); */
-	}
-
-	/* set unknown flag */
-
-	/* split_mode = 0; */
-
-	init_players();
-
-	/* check more flags */
+	init_players_svga(globals.player);
 }
 
 static int
@@ -406,6 +369,11 @@ static void
 init_spiral_pos_pattern()
 {
 	int *pattern = globals.spiral_pattern;
+
+	if (globals.spiral_pos_pattern == NULL) {
+		globals.spiral_pos_pattern = malloc(295*sizeof(map_pos_t));
+		if (globals.spiral_pos_pattern == NULL) abort();
+	}
 
 	for (int i = 0; i < 295; i++) {
 		int x = pattern[2*i] & globals.map.col_mask;
@@ -921,10 +889,11 @@ load_map_spec()
 	return map_size;
 }
 
-/* Initialize various things before game starts. */
+/* Start a new game. */
 static void
 start_game()
 {
+	/* Initialize map */
 	globals.map_size = load_map_spec();
 
 	globals.map.col_size = 5 + globals.map_size/2;
@@ -933,17 +902,23 @@ start_game()
 	globals.map.rows = 1 << globals.map.row_size;
 
 	globals.split &= ~BIT(2); /* Not split screen */
-	if (0/*globals.game_type == GAME_TYPE_2_PLAYERS*/) globals.split |= BIT(2);
-
 	globals.split &= ~BIT(6); /* Not coop mode */
-
-	/* TODO ... */
-
 	globals.split &= ~BIT(5); /* Not demo mode */
-	if (0/*globals.game_type == GAME_TYPE_DEMO*/) globals.split |= BIT(5);
 
-	/*globals.game_loop_transition |= BIT(1); */
 	globals.svga |= BIT(3); /* Game has started. */
+	globals.game_speed = DEFAULT_GAME_SPEED;
+
+	init_map_vars();
+	reset_game_objs();
+
+	init_spiral_pos_pattern();
+	map_init();
+	map_init_minimap();
+
+	reset_player_settings();
+
+	init_player_settings();
+	init_game_globals();
 }
 
 
@@ -1282,59 +1257,34 @@ game_loop()
 	}
 }
 
-/* Initialization before game starts. */
-static void
-pregame_continue()
+static int
+load_game(const char *path)
 {
-	/* TODO ... */
-
-	/* Start the game. This should be called when the start button in the setup screen is clicked. */
-	start_game();
-
-	if (BIT_TEST(globals.svga, 3)) { /* Game has been started */
-		init_map_vars();
-		reset_game_objs();
-
-		init_spiral_pos_pattern();
-		map_init();
-		/* lowres_mode_and_init_players(); */
-
-		reset_player_settings();
-		
-		/*draw_game_and_popup_frame();*/
-		/*panel.obj.draw((gui_object_t *)&panel);*/
-
-		init_player_settings();
-		init_game_globals();
-	} else {
-		/* TODO ... */
+	FILE *f = fopen(path, "rb");
+	if (f == NULL) {
+		LOGE("main", "Unable to open save game file: `%s'.", path);
+		return -1;
 	}
 
-	/* TEST Load save game data */
-	if (game_file != NULL) {
-		FILE *f = fopen(game_file, "rb");
-		if (f == NULL) {
-			LOGE("main", "Unable to open save game file: `%s'.", game_file);
-			exit(EXIT_FAILURE);
-		}
+	int r = load_text_state(f);
+	if (r < 0) {
+		LOGW("main", "Unable to load save game, trying compatability mode.");
 
-		int r = load_text_state(f);
+		fseek(f, 0, SEEK_SET);
+		r = load_v0_state(f);
 		if (r < 0) {
-			LOGW("main", "Unable to load save game, trying compatability mode.");
-
-			fseek(f, 0, SEEK_SET);
-			r = load_v0_state(f);
-			if (r < 0) {
-				LOGE("main", "Failed to load save game.");
-				exit(EXIT_FAILURE);
-			}
+			LOGE("main", "Failed to load save game.");
+			fclose(f);
+			return -1;
 		}
 	}
 
-	/* ADDITION move viewport to (0, 0). */
-	viewport_move_to_map_pos(&viewport, MAP_POS(0, 0));
+	fclose(f);
 
-	game_loop();
+	init_spiral_pos_pattern();
+	map_init_minimap();
+
+	return 0;
 }
 
 static void
@@ -1354,7 +1304,7 @@ load_serf_animation_table()
 	   sprite. Second byte is a signed horizontal sprite
 	   offset. Third byte is a signed vertical offset.
 	*/
-	globals.serf_animation_table = ((int *)gfx_get_data_object(DATA_SERF_ANIMATION_TABLE, NULL)) + 1;
+	globals.serf_animation_table = ((uint32_t *)gfx_get_data_object(DATA_SERF_ANIMATION_TABLE, NULL)) + 1;
 
 	/* Endianess convert from big endian. */
 	for (int i = 0; i < 199; i++) {
@@ -1362,72 +1312,16 @@ load_serf_animation_table()
 	}
 }
 
+/* Allocate global memory before game starts. */
 static void
-pregame_init()
+allocate_global_memory()
 {
-	/* TODO unknown function ... */
-
-	/* mouse setup */
-
-	setup_spiral_pattern();
-
-	/* sound and joystick setup */
-
-	/* reset two globals */
-
-	switch_to_pregame_video_mode();
-
-	/*draw_game_and_popup_frame();*/
-
-	/*
-	gui_draw_bottom_frame(&svga_full_frame);
-	gui_draw_panel_buttons();
-	*/
-
-	start_game_tick();
-
-	/* show_intro_screens(); */
-	load_serf_animation_table(); /* called in show_intro_screens(); */
-
-	pregame_continue();
-}
-
-/* Memory allocation before game starts. */
-static void
-hand_out_memory_2()
-{
-	/* TODO ... */
-
-	/* hand out memory */
-
-	/* Player structs */
+	/* Players */
 	globals.player[0] = malloc(sizeof(player_t));
 	if (globals.player[0] == NULL) abort();
 
 	globals.player[1] = malloc(sizeof(player_t));
 	if (globals.player[1] == NULL) abort();
-
-	/* Flag queues (for road graph search) */
-	globals.flag_queue_black = malloc(1000*sizeof(flag_t *));
-	if (globals.flag_queue_black == NULL) abort();
-
-	globals.flag_queue_white = malloc(1000*sizeof(flag_t *));
-	if (globals.flag_queue_white == NULL) abort();
-
-	/* TODO ... */
-
-	globals.spiral_pos_pattern = malloc(295*sizeof(map_pos_t));
-	if (globals.spiral_pos_pattern == NULL) abort();
-
-	/* TODO ... */
-
-	/* Map rows */
-	/* OBSOLETE */
-	/*globals.player_map_rows[0] = malloc(0x984);
-	if (globals.player_map_rows[0] == NULL) abort();*/
-
-	/*globals.player_map_rows[1] = malloc(0x984);
-	if (globals.player_map_rows[1] == NULL) abort();*/
 
 	/* Player settings */
 	globals.player_sett[0] = malloc(sizeof(player_sett_t));
@@ -1442,100 +1336,56 @@ hand_out_memory_2()
 	globals.player_sett[3] = malloc(sizeof(player_sett_t));
 	if (globals.player_sett[3] == NULL) abort();
 
-	/* Map serf rows OBSOLETE */
-	/*globals.map_serf_rows_left = malloc(29*sizeof(int *) + 29*253*sizeof(int));
-	if (globals.map_serf_rows_left == NULL) abort();
-
-	globals.map_serf_rows_right = malloc(29*sizeof(int *) + 29*253*sizeof(int));
-	if (globals.map_serf_rows_right == NULL) abort();*/
-
-	/* vid mem popups: allocated as part of SDL surface later */
-
-	/* TODO ... */
-
-	/* void *credits_bg = gfx_get_data_object(DATA_CREDITS_BG, NULL); */
-
-	/* globals.map_ascii_sprite = map_ascii_sprite; */ /* not neccessary */
-
-	/* more memory handout */
-	/* TODO ... */
-
-	int max_map_size = /*(globals.map & 0xf) + 2*/10;
+	/* TODO this should be allocated on game start according to the
+	   map size of the particular game instance. */
+	int max_map_size = 10;
 	globals.max_serf_cnt = (0x1f84 * (1 << max_map_size) - 4) / 0x81;
 	globals.max_flg_cnt = (0x2314 * (1 << max_map_size) - 4) / 0x231;
 	globals.max_building_cnt = (0x54c * (1 << max_map_size) - 4) / 0x91;
 	globals.max_inventory_cnt = (0x54c * (1 << max_map_size) - 4) / 0x3c1;
 
-	/* MOVED map allocation moved to map_init_dimensions(). */
-
-	/* map mem3 */
+	/* Serfs */
 	globals.serfs = malloc(globals.max_serf_cnt * sizeof(serf_t));
 	if (globals.serfs == NULL) abort();
 
 	globals.serfs_bitmap = malloc(((globals.max_serf_cnt-1) / 8) + 1);
 	if (globals.serfs_bitmap == NULL) abort();
 
-	/* map mem1 */
+	/* Flags */
 	globals.flgs = malloc(globals.max_flg_cnt * sizeof(flag_t));
 	if (globals.flgs == NULL) abort();
 
 	globals.flg_bitmap = malloc(((globals.max_flg_cnt-1) / 8) + 1);
 	if (globals.flg_bitmap == NULL) abort();
 
-	/* map mem4 */
+	/* Buildings */
 	globals.buildings = malloc(globals.max_building_cnt * sizeof(building_t));
 	if (globals.buildings == NULL) abort();
 
 	globals.buildings_bitmap = malloc(((globals.max_building_cnt-1) / 8) + 1);
 	if (globals.buildings_bitmap == NULL) abort();
 
+	/* Inventories */
 	globals.inventories = malloc(globals.max_inventory_cnt * sizeof(inventory_t));
 	if (globals.inventories == NULL) abort();
 
 	globals.inventories_bitmap = malloc(((globals.max_inventory_cnt-1) / 8) + 1);
 	if (globals.inventories_bitmap == NULL) abort();
 
-	/* Setup frames */
-	/* TODO ... */
-
+	/* Setup screen frame */
 	frame_t *screen = sdl_get_screen_frame();
-
-	/*
-	sdl_frame_init(&lowres_full_frame, 0, 0, 352, 240, screen);
-	sdl_frame_init(&lowres_normal_frame, 16, 8, 320, 192, screen);
-	*/
-
-	/* TODO ...*/
-
 	sdl_frame_init(&screen_frame, 0, 0, sdl_frame_get_width(screen),
 		       sdl_frame_get_height(screen), screen);
-
-	/* TODO ... */
-
-	/*sdl_frame_init(&game_area_lowres_frame, 0, 0, 352, 192, screen);*/
-	/*sdl_frame_init(&game_area_svga_frame, 0, 0, sdl_frame_get_width(screen),
-	  sdl_frame_get_height(screen), screen);*/
-
-	/*sdl_frame_init(&popup_box_left_frame, 0, 0, 144, 160, NULL);*/
-	/*sdl_frame_init_new(&popup_box_right_frame, 0, 0, 144, 160);*/
-
-	pregame_init();
 }
 
-/* No need to supply an arg to this function as main_timer_cb doesn't call
-   this anyway, it calls update_game directly, so there's only one type of
-   call to this which is from main. */
+/* Initialize interface configuration. */
 static void
-deep_tree()
+init_global_config()
 {
-	/* TODO init mouse and joystick devices */
+	/* TODO load saved configuration */
 	globals.cfg_left = 0x39;
 	globals.cfg_right = 0x39;
-
-	/* allocate memory for maps */
-	/* TODO ... */
-
-	hand_out_memory_2();
+	audio_set_volume(75);
 }
 
 #define MAX_DATA_PATH      1024
@@ -1615,6 +1465,7 @@ main(int argc, char *argv[])
 	int r;
 
 	char *data_file = NULL;
+	char *save_file = NULL;
 
 	int screen_width = DEFAULT_SCREEN_WIDTH;
 	int screen_height = DEFAULT_SCREEN_HEIGHT;
@@ -1652,9 +1503,9 @@ main(int argc, char *argv[])
 			exit(EXIT_SUCCESS);
 			break;
 		case 'l':
-			game_file = malloc(strlen(optarg)+1);
-			if (game_file == NULL) exit(EXIT_FAILURE);
-			strcpy(game_file, optarg);
+			save_file = malloc(strlen(optarg)+1);
+			if (save_file == NULL) exit(EXIT_FAILURE);
+			strcpy(save_file, optarg);
 			break;
 		case 'm':
 			game_map = atoi(optarg);
@@ -1721,7 +1572,32 @@ main(int argc, char *argv[])
 	globals.map_generator = map_generator;
 	globals.map_preserve_bugs = preserve_map_bugs;
 
-	deep_tree();
+	/* Init globals */
+	init_global_config();
+	allocate_global_memory();
+	player_interface_init();
+
+	/* Initialize global lookup tables */
+	init_spiral_pattern();
+	load_serf_animation_table();
+
+	/* Either load a save game if specified or
+	   start a new game. */
+	if (save_file != NULL) {
+		int r = load_game(save_file);
+		if (r < 0) exit(EXIT_FAILURE);
+		free(save_file);
+	} else {
+		start_game();
+	}
+
+	/* Move viewport to initial position */
+	map_pos_t init_pos = MAP_POS(globals.player_sett[0]->map_cursor_col,
+				     globals.player_sett[0]->map_cursor_row);
+	viewport_move_to_map_pos(&viewport, init_pos);
+
+	/* Start game loop */
+	game_loop();
 
 	LOGI("main", "Cleaning up...");
 

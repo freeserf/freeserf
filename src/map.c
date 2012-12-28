@@ -1309,8 +1309,6 @@ map_init()
 
 	/* draw_progress_bar(1); */
 
-	map_init_minimap();
-
 	/* draw_progress_bar(1); */
 
 	/* globals.svga |= BIT(5); */

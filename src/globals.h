@@ -91,9 +91,10 @@ typedef struct {
 	uint8_t *buildings_bitmap;
 	uint8_t *serfs_bitmap;
 	/* B0 */
-	int *serf_animation_table;
+	uint32_t *serf_animation_table;
+	/* OBSOLETE
 	flag_t **flag_queue_black;
-	flag_t **flag_queue_white;
+	flag_t **flag_queue_white; */
 	/* C4 */
 	map_pos_t *spiral_pos_pattern;
 	/* F0 */
@@ -176,8 +177,8 @@ typedef struct {
 	/* 28C*/
 	int16_t update_map_16_loop;
 	/* 2F8 */
-	/*map_1_t *map_mem2; MOVED to map_t */
-	/*uint8_t *map_mem5;*/
+	/*map_1_t *map_tiles; MOVED to map_t */
+	/*uint8_t *map_minimap;*/
 	/* 320 */
 	int player_history_index[4];
 	int player_history_counter[3];
