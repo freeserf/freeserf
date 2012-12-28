@@ -769,25 +769,6 @@ update_player_input_click(player_t *player, int x, int y, int lmb, int rmb, int 
 	else player->click &= ~BIT(3);
 }
 
-/* Not used any more (?). */
-int
-init_flag_search()
-{
-	globals.flag_search_counter += 1;
-
-	if (globals.flag_search_counter == 0) {
-		globals.flag_search_counter += 1;
-		for (int i = 1; i < globals.max_ever_flag_index; i++) {
-			if (BIT_TEST(globals.flg_bitmap[i>>3], 7-(i&7))) {
-				game_get_flag(i)->search_num = 0;
-			}
-		}
-	}
-
-	globals.flag_queue_select = 0;
-	return globals.flag_search_counter;
-}
-
 static void
 handle_player_click(player_t *player)
 {

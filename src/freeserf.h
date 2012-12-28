@@ -225,9 +225,6 @@ static const int map_building_sprite[] = {
 	0xa2, 0xa0, 0xa1, 0x99, 0x9d, 0x9e, 0x98, 0x9f, 0xb2
 };
 
-
-int init_flag_search();
-
 void game_loop_quit();
 
 #endif /* ! _FREESERF_H */

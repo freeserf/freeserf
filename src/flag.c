@@ -25,6 +25,8 @@
 #include "flag.h"
 #include "building.h"
 #include "player.h"
+#include "game.h"
+#include "globals.h"
 #include "list.h"
 #include "misc.h"
 
@@ -47,11 +49,31 @@ flag_proxy_alloc(flag_t *flag)
 	return proxy;
 }
 
+static int
+next_search_id()
+{
+	globals.flag_search_counter += 1;
+
+	/* If we're back at zero the counter has overflown,
+	   everything needs a reset to be safe. */
+	if (globals.flag_search_counter == 0) {
+		globals.flag_search_counter += 1;
+		for (int i = 1; i < globals.max_ever_flag_index; i++) {
+			if (BIT_TEST(globals.flg_bitmap[i>>3], 7-(i&7))) {
+				game_get_flag(i)->search_num = 0;
+			}
+		}
+	}
+
+	globals.flag_queue_select = 0;
+	return globals.flag_search_counter;
+}
+
 void
 flag_search_init(flag_search_t *search)
 {
 	list_init(&search->queue);
-	search->id = init_flag_search();
+	search->id = next_search_id();
 }
 
 void
