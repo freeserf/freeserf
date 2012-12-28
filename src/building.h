@@ -29,6 +29,7 @@
 
 
 #define BUILDING_INDEX(ptr)  ((int)((ptr) - globals.buildings))
+#define BUILDING_ALLOCATED(i)  BIT_TEST(globals.buildings_bitmap[(i)>>3], 7-((i)&7))
 
 #define BUILDING_PLAYER(building)  ((int)((building)->bld & 3))
 #define BUILDING_TYPE(building)  ((building_type_t)(((building)->bld >> 2) & 0x1f))

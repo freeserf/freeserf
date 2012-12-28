@@ -59,7 +59,7 @@ next_search_id()
 	if (globals.flag_search_counter == 0) {
 		globals.flag_search_counter += 1;
 		for (int i = 1; i < globals.max_ever_flag_index; i++) {
-			if (BIT_TEST(globals.flg_bitmap[i>>3], 7-(i&7))) {
+			if (FLAG_ALLOCATED(i)) {
 				game_get_flag(i)->search_num = 0;
 			}
 		}

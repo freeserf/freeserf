@@ -34,6 +34,7 @@
 
 
 #define INVENTORY_INDEX(ptr)  ((int)((ptr) - globals.inventories))
+#define INVENTORY_ALLOCATED(i)  BIT_TEST(globals.inventories_bitmap[(i)>>3], 7-((i)&7))
 
 #define DIR_REVERSE(dir)  (((dir) + 3) % 6)
 

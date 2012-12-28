@@ -740,7 +740,7 @@ draw_stat_4_box(popup_box_t *popup, frame_t *frame)
 
 	/* Sum up resources of all inventories. */
 	for (int i = 0; i < globals.max_ever_inventory_index; i++) {
-		if (BIT_TEST(globals.inventories_bitmap[i>>3], 7-(i&7))) {
+		if (INVENTORY_ALLOCATED(i)) {
 			inventory_t *inventory = game_get_inventory(i);
 			if (inventory->player_num == popup->player->sett->player_num) {
 				for (int j = 0; j < 26; j++) {
@@ -1283,7 +1283,7 @@ draw_stat_3_box(popup_box_t *popup, frame_t *frame)
 
 	/* Sum up all existing serfs. */
 	for (int i = 1; i < globals.max_ever_serf_index; i++) {
-		if (BIT_TEST(globals.serfs_bitmap[i>>3], 7-(i&7))) {
+		if (SERF_ALLOCATED(i)) {
 			serf_t *serf = game_get_serf(i);
 			if (SERF_PLAYER(serf) == popup->player->sett->player_num &&
 			    serf->state == SERF_STATE_IDLE_IN_STOCK) {
@@ -1294,7 +1294,7 @@ draw_stat_3_box(popup_box_t *popup, frame_t *frame)
 
 	/* Sum up potential serfs of all inventories. */
 	for (int i = 0; i < globals.max_ever_inventory_index; i++) {
-		if (BIT_TEST(globals.inventories_bitmap[i>>3], 7-(i&7))) {
+		if (INVENTORY_ALLOCATED(i)) {
 			inventory_t *inventory = game_get_inventory(i);
 			if (inventory->player_num == popup->player->sett->player_num) {
 				/* TODO */
@@ -2081,7 +2081,7 @@ draw_castle_serf_box(popup_box_t *popup, frame_t *frame)
 	inventory_t *inventory = building->u.inventory;
 
 	for (int i = 1; i < globals.max_ever_serf_index; i++) {
-		if (BIT_TEST(globals.serfs_bitmap[i/8], 7-(i&7))) {
+		if (SERF_ALLOCATED(i)) {
 			serf_t *serf = game_get_serf(i);
 			if (serf->state == SERF_STATE_IDLE_IN_STOCK &&
 			    inventory == game_get_inventory(serf->s.idle_in_stock.inv_index)) {
@@ -2209,7 +2209,7 @@ draw_sett_8_box(popup_box_t *popup, frame_t *frame)
 
 	int convertible_to_knights = 0;
 	for (int i = 0; i < globals.max_ever_inventory_index; i++) {
-		if (BIT_TEST(globals.inventories_bitmap[i>>3], 7-(i&7))) {
+		if (INVENTORY_ALLOCATED(i)) {
 			inventory_t *inv = game_get_inventory(i);
 			if (inv->player_num == sett->player_num) {
 				int c = min(inv->resources[RESOURCE_SWORD],

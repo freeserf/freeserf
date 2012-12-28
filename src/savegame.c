@@ -971,7 +971,7 @@ static int
 save_text_flag_state(FILE *f)
 {
 	for (int i = 1; i < globals.max_ever_flag_index; i++) {
-		if (BIT_TEST(globals.flg_bitmap[i>>3], 7-(i&7))) {
+		if (FLAG_ALLOCATED(i)) {
 			flag_t *flag = game_get_flag(i);
 
 			fprintf(f, "[flag %i]\n", i);
@@ -1019,7 +1019,7 @@ static int
 save_text_building_state(FILE *f)
 {
 	for (int i = 1; i < globals.max_ever_building_index; i++) {
-		if (BIT_TEST(globals.buildings_bitmap[i>>3], 7-(i&7))) {
+		if (BUILDING_ALLOCATED(i)) {
 			building_t *building = game_get_building(i);
 
 			fprintf(f, "[building %i]\n", i);
@@ -1058,7 +1058,7 @@ static int
 save_text_inventory_state(FILE *f)
 {
 	for (int i = 0; i < globals.max_ever_inventory_index; i++) {
-		if (BIT_TEST(globals.inventories_bitmap[i>>3], 7-(i&7))) {
+		if (INVENTORY_ALLOCATED(i)) {
 			inventory_t *inventory = game_get_inventory(i);
 
 			fprintf(f, "[inventory %i]\n", i);
@@ -1087,7 +1087,7 @@ static int
 save_text_serf_state(FILE *f)
 {
 	for (int i = 1; i < globals.max_ever_serf_index; i++) {
-		if (!BIT_TEST(globals.serfs_bitmap[i>>3], 7-(i&7))) continue;
+		if (!SERF_ALLOCATED(i)) continue;
 
 		serf_t *serf = game_get_serf(i);
 

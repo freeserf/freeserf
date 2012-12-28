@@ -31,6 +31,7 @@
 #include "log.h"
 
 #define SERF_INDEX(ptr)    ((int)((ptr) - globals.serfs))
+#define SERF_ALLOCATED(i)  BIT_TEST(globals.serfs_bitmap[(i)>>3], 7-((i)&7))
 
 #define SERF_PLAYER(serf)  ((int)((serf)->type & 3))
 #define SERF_TYPE(serf)    ((serf_type_t)(((serf)->type >> 2) & 0x1f))

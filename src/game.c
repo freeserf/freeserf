@@ -29,6 +29,8 @@
 #include "game.h"
 #include "map.h"
 #include "player.h"
+#include "flag.h"
+#include "building.h"
 #include "globals.h"
 #include "random.h"
 #include "log.h"
@@ -85,7 +87,7 @@ flag_t *
 game_get_flag(int index)
 {
 	assert(index > 0 && index < globals.max_flg_cnt);
-	assert(globals.flg_bitmap[index/8] & BIT(7-(index&7)));
+	assert(FLAG_ALLOCATED(index));
 	return &globals.flgs[index];
 }
 
@@ -100,7 +102,7 @@ game_free_flag(int index)
 	if (index == globals.max_ever_flag_index + 1) {
 		while (--globals.max_ever_flag_index > 0) {
 			index -= 1;
-			if (globals.flg_bitmap[index/8] & BIT(7-(index&7))) break;
+			if (FLAG_ALLOCATED(index)) break;
 		}
 	}
 }
@@ -147,7 +149,7 @@ building_t *
 game_get_building(int index)
 {
 	assert(index > 0 && index < globals.max_building_cnt);
-	assert(globals.buildings_bitmap[index/8] & BIT(7-(index&7)));
+	assert(BUILDING_ALLOCATED(index));
 	return &globals.buildings[index];
 }
 
@@ -162,7 +164,7 @@ game_free_building(int index)
 	if (index == globals.max_ever_building_index + 1) {
 		while (--globals.max_ever_building_index > 0) {
 			index -= 1;
-			if (globals.buildings_bitmap[index/8] & BIT(7-(index&7))) break;
+			if (BUILDING_ALLOCATED(index)) break;
 		}
 	}
 }
@@ -207,7 +209,7 @@ inventory_t *
 game_get_inventory(int index)
 {
 	assert(index < globals.max_inventory_cnt);
-	assert(globals.inventories_bitmap[index/8] & BIT(7-(index&7)));
+	assert(INVENTORY_ALLOCATED(index));
 	return &globals.inventories[index];
 }
 
@@ -222,7 +224,7 @@ game_free_inventory(int index)
 	if (index == globals.max_ever_inventory_index + 1) {
 		while (--globals.max_ever_inventory_index > 0) {
 			index -= 1;
-			if (globals.inventories_bitmap[index/8] & BIT(7-(index&7))) break;
+			if (INVENTORY_ALLOCATED(index)) break;
 		}
 	}
 }
@@ -263,7 +265,7 @@ serf_t *
 game_get_serf(int index)
 {
 	assert(index > 0 && index < globals.max_serf_cnt);
-	assert(globals.serfs_bitmap[index/8] & BIT(7-(index&7)));
+	assert(SERF_ALLOCATED(index));
 	return &globals.serfs[index];
 }
 
@@ -278,7 +280,7 @@ game_free_serf(int index)
 	if (index == globals.max_ever_serf_index + 1) {
 		while (--globals.max_ever_serf_index > 0) {
 			index -= 1;
-			if (globals.serfs_bitmap[index/8] & BIT(7-(index&7))) break;
+			if (SERF_ALLOCATED(index)) break;
 		}
 	}
 
@@ -303,7 +305,7 @@ game_spawn_serf(player_sett_t *sett, serf_t **serf, inventory_t **inventory, int
 	inventory_t *inv = NULL;
 
 	for (int i = 0; i < globals.max_ever_inventory_index; i++) {
-		if (BIT_TEST(globals.inventories_bitmap[i>>3], 7-(i&7))) {
+		if (INVENTORY_ALLOCATED(i)) {
 			inventory_t *loop_inv = game_get_inventory(i);
 			if (loop_inv->player_num == sett->player_num &&
 			    !BIT_TEST(loop_inv->res_dir, 2)) { /* serf IN mode */
@@ -417,7 +419,7 @@ check_win_and_flags_buildings()
 
 	/* TODO Approximately right */
 	for (int i = 1; i < globals.max_ever_building_index; i++) {
-		if (BIT_TEST(globals.buildings_bitmap[i>>3], 7-(i&7))) {
+		if (BUILDING_ALLOCATED(i)) {
 			building_t *building = game_get_building(i);
 			building->serf &= ~BIT(2);
 		}
@@ -425,7 +427,7 @@ check_win_and_flags_buildings()
 
 	/* TODO Approximately right */
 	for (int i = 1; i < globals.max_ever_flag_index; i++) {
-		if (BIT_TEST(globals.flg_bitmap[i>>3], 7-(i&7))) {
+		if (FLAG_ALLOCATED(i)) {
 			flag_t *flag = game_get_flag(i);
 			flag->transporter &= ~BIT(7);
 		}
@@ -593,7 +595,7 @@ update_ai_and_more()
 				inventory_t *invs[256];
 				int n = 0;
 				for (int i = 0; i < globals.max_ever_inventory_index; i++) {
-					if (BIT_TEST(globals.inventories_bitmap[i>>3], 7-(i&7))) {
+					if (INVENTORY_ALLOCATED(i)) {
 						inventory_t *inventory = game_get_inventory(i);
 						if (inventory->player_num == p &&
 						    inventory->out_queue[1] == -1) {
@@ -918,7 +920,7 @@ update_flags()
 
 	int index = globals.next_index << 5;
 	for (int i = index ? index : 1; i < globals.max_ever_flag_index; i++) {
-		if (BIT_TEST(globals.flg_bitmap[i>>3], 7-(i&7))) {
+		if (FLAG_ALLOCATED(i)) {
 			flag_t *flag = game_get_flag(i);
 
 			for (int j = 0; j < 4; j++) globals.field_218[j] = 0;
@@ -2087,7 +2089,7 @@ update_buildings()
 
 	int index = globals.next_index << 5;
 	for (int i = index ? index : 1; i < globals.max_ever_building_index; i++) {
-		if (BIT_TEST(globals.buildings_bitmap[i>>3], 7-(i&7))) {
+		if (BUILDING_ALLOCATED(i)) {
 			building_t *building = game_get_building(i);
 			if (BIT_TEST(building->serf, 5)) { /* Building is burning */
 				uint16_t delta = globals.anim - building->u.anim;
@@ -2123,7 +2125,7 @@ update_serfs()
 	/*int index = globals.next_index & 0xf;
 	  for (int i = index ? index : 1; i < globals.max_ever_serf_index; i++) {*/
 	for (int i = 1; i < globals.max_ever_serf_index; i++) {
-		if (BIT_TEST(globals.serfs_bitmap[i>>3], 7-(i&7))) {
+		if (SERF_ALLOCATED(i)) {
 			serf_t *serf = game_get_serf(i);
 			update_serf(serf);
 		}
@@ -2446,7 +2448,7 @@ flag_reset_transport(flag_t *flag)
 {
 	/* Clear destination for any serf with resources for this flag. */
 	for (int i = 1; i < globals.max_ever_serf_index; i++) {
-		if (BIT_TEST(globals.serfs_bitmap[i>>3], 7-(i&7))) {
+		if (SERF_ALLOCATED(i)) {
 			serf_t *serf = game_get_serf(i);
 
 			if (serf->state == SERF_STATE_WALKING &&
@@ -2486,7 +2488,7 @@ flag_reset_transport(flag_t *flag)
 
 	/* Flag. */
 	for (int i = 1; i < globals.max_ever_flag_index; i++) {
-		if (BIT_TEST(globals.flg_bitmap[i>>3], 7-(i&7))) {
+		if (FLAG_ALLOCATED(i)) {
 			flag_t *other = game_get_flag(i);
 
 			for (int slot = 0; slot < 8; slot++) {
@@ -2507,7 +2509,7 @@ flag_reset_transport(flag_t *flag)
 
 	/* Inventories. */
 	for (int i = 0; i < globals.max_ever_inventory_index; i++) {
-		if (BIT_TEST(globals.inventories_bitmap[i>>3], 7-(i&7))) {
+		if (INVENTORY_ALLOCATED(i)) {
 			inventory_t *inventory = game_get_inventory(i);
 			if (inventory->out_dest[1] == FLAG_INDEX(flag)) {
 				inventory->out_queue[1] = -1;
@@ -2611,7 +2613,7 @@ path_serf_idle_to_wait_state(map_pos_t pos)
 {
 	/* Look through serf array for the corresponding serf. */
 	for (int i = 1; i < globals.max_ever_serf_index; i++) {
-		if (BIT_TEST(globals.serfs_bitmap[i>>3], 7-(i&7))) {
+		if (SERF_ALLOCATED(i)) {
 			serf_t *serf = game_get_serf(i);
 			if (serf->pos == pos &&
 			    (serf->state == SERF_STATE_IDLE_ON_PATH ||
@@ -2745,7 +2747,7 @@ remove_road_forwards(map_pos_t pos, dir_t dir)
 				flag->length[rev_dir] &= ~BIT(7);
 
 				for (int i = 1; i < globals.max_ever_serf_index; i++) {
-					if (BIT_TEST(globals.serfs_bitmap[i>>3], 7-(i&7))) {
+					if (SERF_ALLOCATED(i)) {
 						int dest = MAP_OBJ_INDEX(pos);
 						serf_t *serf = game_get_serf(i);
 
@@ -2903,7 +2905,7 @@ game_demolish_flag(map_pos_t pos)
 
 	/* Update serfs with reference to this flag. */
 	for (int i = 1; i < globals.max_ever_serf_index; i++) {
-		if (BIT_TEST(globals.serfs_bitmap[i>>3], 7-(i&7))) {
+		if (SERF_ALLOCATED(i)) {
 			serf_t *serf = game_get_serf(i);
 
 			if (serf->state == SERF_STATE_READY_TO_LEAVE_INVENTORY &&
@@ -3007,7 +3009,7 @@ game_demolish_building(map_pos_t pos)
 		/* Let some serfs escape while the building is burning. */
 		int escaping_serfs = 0;
 		for (int i = 1; i < globals.max_ever_serf_index; i++) {
-			if (BIT_TEST(globals.serfs_bitmap[i>>3], 7-(i&7))) {
+			if (SERF_ALLOCATED(i)) {
 				serf_t *serf = game_get_serf(i);
 
 				if (serf->pos == building->pos &&
@@ -3502,7 +3504,7 @@ game_set_inventory_resource_mode(inventory_t *inventory, int mode)
 		   for this inventory. */
 		int dest = FLAG_INDEX(flag);
 		for (int i = 1; i < globals.max_ever_serf_index; i++) {
-			if (BIT_TEST(globals.serfs_bitmap[i>>3], 7-(i&7))) {
+			if (SERF_ALLOCATED(i)) {
 				serf_t *serf = game_get_serf(i);
 
 				switch (serf->state) {
@@ -3558,7 +3560,7 @@ game_set_inventory_serf_mode(inventory_t *inventory, int mode)
 		/* Clear destination of serfs destined for this inventory. */
 		int dest = FLAG_INDEX(flag);
 		for (int i = 1; i < globals.max_ever_serf_index; i++) {
-			if (BIT_TEST(globals.serfs_bitmap[i>>3], 7-(i&7))) {
+			if (SERF_ALLOCATED(i)) {
 				serf_t *serf = game_get_serf(i);
 
 				switch (serf->state) {

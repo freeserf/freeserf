@@ -830,7 +830,7 @@ static int
 change_transporter_state_at_pos(map_pos_t pos, serf_state_t state)
 {
 	for (int i = 1; i < globals.max_ever_serf_index; i++) {
-		if (BIT_TEST(globals.serfs_bitmap[i>>3], 7-(i&7))) {
+		if (SERF_ALLOCATED(i)) {
 			serf_t *serf = game_get_serf(i);
 			if (serf->pos == pos &&
 			    (serf->state == SERF_STATE_WAKE_AT_FLAG ||
@@ -1058,7 +1058,7 @@ build_flag_split_path(map_pos_t pos)
 	int select = -1;
 	if (BIT_TEST(flag_2->length[dir_2], 7)) {
 		for (int i = 1; i < globals.max_ever_serf_index; i++) {
-			if (BIT_TEST(globals.serfs_bitmap[i>>3], 7-(i&7))) {
+			if (SERF_ALLOCATED(i)) {
 				serf_t *serf = game_get_serf(i);
 
 				if (serf->state == SERF_STATE_WALKING) {
@@ -1819,7 +1819,7 @@ player_promote_serfs_to_knights(player_sett_t *sett, int number)
 	int promoted = 0;
 
 	for (int i = 1; i < globals.max_ever_serf_index && number > 0; i++) {
-		if (BIT_TEST(globals.serfs_bitmap[i>>3], 7-(i&7))) {
+		if (SERF_ALLOCATED(i)) {
 			serf_t *serf = game_get_serf(i);
 			if (serf->state == SERF_STATE_IDLE_IN_STOCK &&
 			    SERF_PLAYER(serf) == sett->player_num &&

@@ -27,6 +27,7 @@
 #include "map.h"
 
 #define FLAG_INDEX(ptr)  ((int)((ptr) - globals.flgs))
+#define FLAG_ALLOCATED(i)  BIT_TEST(globals.flg_bitmap[(i)>>3], 7-((i)&7))
 
 #define FLAG_PLAYER(flag)  ((int)(((flag)->path_con >> 6) & 3))
 
