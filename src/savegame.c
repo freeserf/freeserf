@@ -695,7 +695,8 @@ load_v0_building_state(FILE *f, const v0_map_t *map)
 		building->progress = *(uint16_t *)&building_data[12];
 
 		if (!BUILDING_IS_BURNING(building) &&
-		    BUILDING_IS_DONE(building)) {
+		    (BUILDING_IS_DONE(building) ||
+		     BUILDING_TYPE(building) == BUILDING_CASTLE)) {
 			int offset = *(uint32_t *)&building_data[14];
 			if (BUILDING_TYPE(building) == BUILDING_STOCK ||
 			    BUILDING_TYPE(building) == BUILDING_CASTLE) {
@@ -1034,7 +1035,8 @@ save_text_building_state(FILE *f)
 			save_text_write_value(f, "progress", building->progress);
 
 			if (!BUILDING_IS_BURNING(building) &&
-			    BUILDING_IS_DONE(building)) {
+			    (BUILDING_IS_DONE(building) ||
+			     BUILDING_TYPE(building) == BUILDING_CASTLE)) {
 				if (BUILDING_TYPE(building) == BUILDING_STOCK ||
 				    BUILDING_TYPE(building) == BUILDING_CASTLE) {
 					save_text_write_value(f, "inventory", INVENTORY_INDEX(building->u.inventory));
@@ -1972,7 +1974,8 @@ load_text_building_section(section_t *section)
 	/* Load various values that depend on the building type. */
 	/* TODO Check validity of pointers when loading. */
 	if (!BUILDING_IS_BURNING(building) &&
-	    BUILDING_IS_DONE(building)) {
+	    (BUILDING_IS_DONE(building) ||
+	     BUILDING_TYPE(building) == BUILDING_CASTLE)) {
 		if (BUILDING_TYPE(building) == BUILDING_STOCK ||
 		    BUILDING_TYPE(building) == BUILDING_CASTLE) {
 			char *value = load_text_get_setting(section, "inventory");
