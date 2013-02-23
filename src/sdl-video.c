@@ -191,7 +191,7 @@ sdl_deinit()
 int
 sdl_set_resolution(int width, int height, int fullscreen)
 {
-	int flags = SDL_SWSURFACE | SDL_DOUBLEBUF;
+	int flags = SDL_SWSURFACE | SDL_DOUBLEBUF | SDL_RESIZABLE;
 	if (fullscreen) flags |= SDL_FULLSCREEN;
 
 	screen.surf = SDL_SetVideoMode(width, height, 32, flags);
@@ -200,7 +200,12 @@ sdl_set_resolution(int width, int height, int fullscreen)
 		return -1;
 	}
 
-	SDL_GetClipRect(screen.surf, &screen.clip);
+	/* Reset clipping */
+	screen.clip.x = 0;
+	screen.clip.y = 0;
+	screen.clip.w = width;
+	screen.clip.h = height;
+	SDL_SetClipRect(screen.surf, &screen.clip);
 
 	return 0;
 }

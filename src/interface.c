@@ -800,7 +800,7 @@ interface_set_size(interface_t *interface, int width, int height)
 	interface->timer_icon_x = 304;
 
 	interface->popup_x = (width - 144) / 2;
-	interface->popup_y = 270;
+	interface->popup_y = (height - 160) / 2;
 
 	interface->map_x_off = 0/*288*/;
 	interface->map_y_off = -4/*276*/;
@@ -808,16 +808,27 @@ interface_set_size(interface_t *interface, int width, int height)
 	interface->map_cursor_col_off = 0/*36*/;
 
 	gui_object_set_size(interface->top, width, height);
+	interface->redraw_top = 1;
 
-	/* TODO should be added on init, and
-	   only reassigned to a new position here. */
-	interface_add_float(interface, (gui_object_t *)&interface->popup,
-			    interface->popup_x, interface->popup_y, 144, 160);
-	interface_add_float(interface, (gui_object_t *)&interface->panel,
-			    interface->bottom_panel_x,
-			    interface->bottom_panel_y,
-			    interface->bottom_panel_width,
-			    interface->bottom_panel_height);
+	/* Reassign position of floats. */
+	list_elm_t *elm;
+	list_foreach(&interface->floats, elm) {
+		interface_float_t *fl = (interface_float_t *)elm;
+		if (fl->obj == (gui_object_t *)&interface->popup) {
+			fl->x = interface->popup_x;
+			fl->y = interface->popup_y;
+			fl->redraw = 1;
+			gui_object_set_size(fl->obj, 144, 160);
+		} else if (fl->obj == (gui_object_t *)&interface->panel) {
+			fl->x = interface->bottom_panel_x;
+			fl->y = interface->bottom_panel_y;
+			fl->redraw = 1;
+			gui_object_set_size(fl->obj, interface->bottom_panel_width,
+					    interface->bottom_panel_height);
+		}
+	}
+
+	gui_object_set_redraw((gui_object_t *)interface);
 }
 
 static void
@@ -899,6 +910,11 @@ interface_init(interface_t *interface)
 
 	/* Add objects to interface container. */
 	interface_set_top(interface, (gui_object_t *)&interface->viewport);
+
+	interface_add_float(interface, (gui_object_t *)&interface->popup,
+			    0, 0, 0, 0);
+	interface_add_float(interface, (gui_object_t *)&interface->panel,
+			    0, 0, 0, 0);
 
 	interface->map_cursor_pos = MAP_POS(0, 0);
 	interface->map_cursor_type = 0;
