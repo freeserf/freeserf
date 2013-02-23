@@ -387,18 +387,16 @@ handle_panel_button_click(player_t *player, int btn)
 			}
 			break;
 		case PANEL_BTN_DESTROY:
-			if (BIT_TEST(player->click, 3)) { /* Special click */
-				if (player->sett->map_cursor_type == 2) {
-					player_demolish_object(player);
-				} else {
-					player->panel_btns[0] = PANEL_BTN_BUILD_INACTIVE;
-					player->panel_btns[1] = PANEL_BTN_DESTROY_INACTIVE;
-					player->panel_btns[2] = PANEL_BTN_MAP_INACTIVE;
-					player->panel_btns[3] = PANEL_BTN_STATS_INACTIVE;
-					player->panel_btns[4] = PANEL_BTN_SETT_INACTIVE;
-					player->click &= ~BIT(1);
-					player_open_popup(player, BOX_DEMOLISH);
-				}
+			if (player->sett->map_cursor_type == 2) {
+				player_demolish_object(player);
+			} else {
+				player->panel_btns[0] = PANEL_BTN_BUILD_INACTIVE;
+				player->panel_btns[1] = PANEL_BTN_DESTROY_INACTIVE;
+				player->panel_btns[2] = PANEL_BTN_MAP_INACTIVE;
+				player->panel_btns[3] = PANEL_BTN_STATS_INACTIVE;
+				player->panel_btns[4] = PANEL_BTN_SETT_INACTIVE;
+				player->click &= ~BIT(1);
+				player_open_popup(player, BOX_DEMOLISH);
 			}
 			break;
 		case PANEL_BTN_BUILD_CASTLE:
