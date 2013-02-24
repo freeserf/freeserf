@@ -988,7 +988,7 @@ draw_unharmed_building(building_t *building, int x, int y, frame_t *frame)
 					building->serf &= ~BIT(3);
 				} else if (!BIT_TEST(building->serf, 3)) {
 					building->serf |= BIT(3);
-					sfx_play_clip(43); // ?????
+					sfx_play_clip(SFX_UNKNOWN_14);
 				}
 				draw_shadow_and_building_sprite(x, y, map_building_sprite[type] +
 								((globals.anim >> 4) & 3), frame);
@@ -1008,7 +1008,7 @@ draw_unharmed_building(building_t *building, int x, int y, frame_t *frame)
 				int i = (globals.anim >> 3) & 7;
 				if (i == 0 || (i == 7 && !BIT_TEST(building->serf, 3))) {
 					building->serf |= BIT(3);
-					/* sub_4692C(SFX_62); */
+					sfx_play_clip(SFX_GOLD_BOILS);
 				} else if (i != 7) {
 					building->serf &= ~BIT(3);
 				}
@@ -1709,7 +1709,7 @@ serf_get_body(serf_t *serf)
 			t += 0xe00;
 		} else if (t == 0x86 || (t == 0x87 && !BIT_TEST(serf->type, 7))) {
 			serf->type |= BIT(7);
-			sfx_play_clip(28);
+			sfx_play_clip(28); /* Wrong sfx number */
 			t += 0x1080;
 		} else if (t != 0x87) {
 			serf->type &= ~BIT(7);
