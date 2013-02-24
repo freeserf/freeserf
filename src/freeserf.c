@@ -76,6 +76,7 @@ static unsigned int tick;
 static int game_loop_run;
 
 static frame_t screen_frame;
+static frame_t cursor_buffer;
 
 /* Viewport holds the state of the main map window
    (e.g. size and current map location). */
@@ -971,6 +972,7 @@ game_loop_iter()
 		       sdl_frame_get_height(globals.frame));
 
 	/* ADDITIONS */
+
 	/* Mouse cursor */
 	gfx_draw_transp_sprite(globals.player[0]->pointer_x-8,
 			       globals.player[0]->pointer_y-8,
@@ -1096,8 +1098,17 @@ game_loop()
 				if (drag_button == 0) {
 					/* Move pointer normally. */
 					if (event.motion.x != globals.player[0]->pointer_x || event.motion.y != globals.player[0]->pointer_y) {
+						/* Undraw cursor */
+						sdl_draw_frame(globals.player[0]->pointer_x-8, globals.player[0]->pointer_y-8,
+							       sdl_get_screen_frame(), 0, 0, &cursor_buffer, 16, 16);
+
 						globals.player[0]->pointer_x = min(max(0, event.motion.x), globals.player[0]->pointer_x_max);
 						globals.player[0]->pointer_y = min(max(0, event.motion.y), globals.player[0]->pointer_y_max);
+
+						/* Restore cursor buffer */
+						sdl_draw_frame(0, 0, &cursor_buffer,
+							       globals.player[0]->pointer_x-8, globals.player[0]->pointer_y-8,
+							       sdl_get_screen_frame(), 16, 16);
 					}
 				}
 
@@ -1396,6 +1407,9 @@ allocate_global_memory()
 	frame_t *screen = sdl_get_screen_frame();
 	sdl_frame_init(&screen_frame, 0, 0, sdl_frame_get_width(screen),
 		       sdl_frame_get_height(screen), screen);
+
+	/* Setup cursor occlusion buffer */
+	sdl_frame_init(&cursor_buffer, 0, 0, 16, 16, NULL);
 }
 
 /* Initialize interface configuration. */
