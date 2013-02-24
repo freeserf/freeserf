@@ -34,6 +34,7 @@
 #define BUILDING_PLAYER(building)  ((int)((building)->bld & 3))
 #define BUILDING_TYPE(building)  ((building_type_t)(((building)->bld >> 2) & 0x1f))
 #define BUILDING_IS_DONE(building)  (!(((building)->bld >> 7) & 1))
+#define BUILDING_IS_ACTIVE(building)  ((int)(((building)->serf >> 4) & 1))
 #define BUILDING_IS_BURNING(building)  ((int)(((building)->serf >> 5) & 1))
 
 

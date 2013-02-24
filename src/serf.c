@@ -23,6 +23,7 @@
 #include <stdlib.h>
 #include <assert.h>
 
+
 #include "serf.h"
 #include "globals.h"
 #include "game.h"
@@ -1153,7 +1154,7 @@ handle_serf_entering_building_state(serf_t *serf)
 					serf->counter = 6000;
 
 					/* Test whether building is already occupied by knights */
-					if (!BIT_TEST(building->serf, 4)) { /* Not occupied */
+					if (!BUILDING_IS_ACTIVE(building)) {
 						building->serf |= BIT(4);
 
 						int mil_type = -1;

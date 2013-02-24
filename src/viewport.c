@@ -916,7 +916,7 @@ draw_unharmed_building(building_t *building, int x, int y, frame_t *frame)
 		case BUILDING_COALMINE:
 		case BUILDING_IRONMINE:
 		case BUILDING_GOLDMINE:
-			if (BIT_TEST(building->serf, 4)) { /* Draw elevator up */
+			if (BUILDING_IS_ACTIVE(building)) { /* Draw elevator up */
 				draw_game_sprite(x-6, y-39, 152, frame);
 			}
 			if (BIT_TEST(building->serf, 3)) { /* Draw elevator down */
@@ -983,7 +983,7 @@ draw_unharmed_building(building_t *building, int x, int y, frame_t *frame)
 			}
 			break;
 		case BUILDING_MILL:
-			if (BIT_TEST(building->serf, 4)) {
+			if (BUILDING_IS_ACTIVE(building)) {
 				if ((globals.anim >> 4) & 3) {
 					building->serf &= ~BIT(3);
 				} else if (!BIT_TEST(building->serf, 3)) {
@@ -998,13 +998,13 @@ draw_unharmed_building(building_t *building, int x, int y, frame_t *frame)
 			break;
 		case BUILDING_BAKER:
 			draw_shadow_and_building_sprite(x, y, map_building_sprite[type], frame);
-			if (BIT_TEST(building->serf, 4)) { /* Working */
+			if (BUILDING_IS_ACTIVE(building)) {
 				draw_game_sprite(x + 5, y-21, 154 + ((globals.anim >> 3) & 7), frame);
 			}
 			break;
 		case BUILDING_STEELSMELTER:
 			draw_shadow_and_building_sprite(x, y, map_building_sprite[type], frame);
-			if (BIT_TEST(building->serf, 4)) { /* Working */
+			if (BUILDING_IS_ACTIVE(building)) {
 				int i = (globals.anim >> 3) & 7;
 				if (i == 0 || (i == 7 && !BIT_TEST(building->serf, 3))) {
 					building->serf |= BIT(3);
@@ -1018,7 +1018,7 @@ draw_unharmed_building(building_t *building, int x, int y, frame_t *frame)
 			break;
 		case BUILDING_WEAPONSMITH:
 			draw_shadow_and_building_sprite(x, y, map_building_sprite[type], frame);
-			if (BIT_TEST(building->serf, 4)) { /* Working */
+			if (BUILDING_IS_ACTIVE(building)) {
 				draw_game_sprite(x-16, y-21, 128 + ((globals.anim >> 3) & 7), frame);
 			}
 			break;
@@ -1043,7 +1043,7 @@ draw_unharmed_building(building_t *building, int x, int y, frame_t *frame)
 			break;
 		case BUILDING_GOLDSMELTER:
 			draw_shadow_and_building_sprite(x, y, map_building_sprite[type], frame);
-			if (BIT_TEST(building->serf, 4)) { /* Working */
+			if (BUILDING_IS_ACTIVE(building)) {
 				int i = (globals.anim >> 3) & 7;
 				if (i == 0 || (i == 7 && !BIT_TEST(building->serf, 3))) {
 					building->serf |= BIT(3);
@@ -2430,7 +2430,7 @@ viewport_handle_event_click(viewport_t *viewport, int x, int y, gui_event_button
 					} else if (BUILDING_TYPE(building) == BUILDING_CASTLE) {
 						player_open_popup(player, BOX_CASTLE_RES);
 					} else if (BUILDING_TYPE(building) == BUILDING_STOCK) {
-						if (!BIT_TEST(building->serf, 4)) return 0;
+						if (!BUILDING_IS_ACTIVE(building)) return 0;
 						player_open_popup(player, BOX_CASTLE_RES);
 					} else if (BUILDING_TYPE(building) == BUILDING_HUT ||
 						   BUILDING_TYPE(building) == BUILDING_TOWER ||
@@ -2459,7 +2459,7 @@ viewport_handle_event_click(viewport_t *viewport, int x, int y, gui_event_button
 					     BUILDING_TYPE(building) == BUILDING_TOWER ||
 					     BUILDING_TYPE(building) == BUILDING_FORTRESS ||
 					     BUILDING_TYPE(building) == BUILDING_CASTLE)) {
-						if (!BIT_TEST(building->serf, 4) ||
+						if (!BUILDING_IS_ACTIVE(building) ||
 						    (building->serf & 3) != 3) {
 							/* It is not allowed to attack
 							   if currently not occupied or

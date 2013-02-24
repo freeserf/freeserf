@@ -1580,7 +1580,7 @@ handle_building_update(building_t *building)
 			}
 			break;
 		case BUILDING_STOCK:
-			if (!BIT_TEST(building->serf, 4)) {
+			if (!BUILDING_IS_ACTIVE(building)) {
 				inventory_t *inv;
 				int r = game_alloc_inventory(&inv, NULL);
 				if (r < 0) return;
@@ -2986,7 +2986,7 @@ game_demolish_building(map_pos_t pos)
 	     BUILDING_TYPE(building) == BUILDING_STOCK)) {
 		/* Cancel resources in the out queue and remove gold
 		   from map total. */
-		if (BIT_TEST(building->serf, 4)) {
+		if (BUILDING_IS_ACTIVE(building)) {
 			inventory_t *inventory = building->u.inventory;
 
 			for (int i = 0; i < 2 && inventory->out_queue[i] != -1; i++) {
@@ -3273,7 +3273,7 @@ game_update_land_ownership(map_pos_t init_pos)
 					/* Castle has military influence even when not done. */
 					mil_type = 2;
 				} else if (BUILDING_IS_DONE(building) &&
-					   BIT_TEST(building->serf, 4)) { /* Working */
+					   BUILDING_IS_ACTIVE(building)) {
 					switch (BUILDING_TYPE(building)) {
 					case BUILDING_HUT: mil_type = 0; break;
 					case BUILDING_TOWER: mil_type = 1; break;

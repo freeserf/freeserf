@@ -1956,7 +1956,7 @@ player_start_attack(player_sett_t *sett)
 	     BUILDING_TYPE(target) != BUILDING_TOWER &&
 	     BUILDING_TYPE(target) != BUILDING_FORTRESS &&
 	     BUILDING_TYPE(target) != BUILDING_CASTLE) ||
-	    !BIT_TEST(target->serf, 4) ||
+	    !BUILDING_IS_ACTIVE(target) ||
 	    (target->serf & 3) != 3) {
 		return;
 	}
