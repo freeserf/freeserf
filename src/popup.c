@@ -2194,6 +2194,7 @@ draw_sett_8_box(popup_box_t *popup, frame_t *frame)
 	player_sett_t *sett = popup->player->sett;
 
 	draw_slide_bar(4, 12, sett->serf_to_knight_rate, frame);
+	draw_green_string(8, 63, frame, "%");
 	draw_green_number(6, 63, frame, (100*sett->knight_morale)/0x1000);
 
 	draw_green_large_number(6, 73, frame, sett->gold_deposited);
