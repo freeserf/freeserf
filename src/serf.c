@@ -1654,18 +1654,18 @@ handle_serf_delivering_state(serf_t *serf)
 			int res = serf->s.walking.res - 1; /* Offset by one, because 0 means none. */
 			serf->s.walking.res = 0;
 			building_t *building = game_get_building(MAP_OBJ_INDEX(MAP_MOVE_UP_LEFT(serf->pos)));
-			if (!BIT_TEST(building->serf, 5)) { /* Not burning */
-				if (res == RESOURCE_COAL || (res < RESOURCE_BOAT && res != RESOURCE_LUMBER)) {
-					building->stock1 += 15;
-				} else {
-					building->stock2 += 15;
-				}
-				if (building->stock1 > 255 || building->stock2 > 255) {
-					/* Too many resources ? */
-					building->stock1 = 255;
-					building->stock2 = 255;
+			if (!BUILDING_IS_BURNING(building)) {
+				if (BUILDING_HAS_INVENTORY(building)) {
 					inventory_t *inventory = building->u.inventory;
 					inventory->resources[res] = min(inventory->resources[res]+1, 50000);
+				} else {
+					if (res == RESOURCE_COAL || (res < RESOURCE_BOAT && res != RESOURCE_LUMBER)) {
+						building->stock1 += 0x10;
+						building->stock1 -= 1;
+					} else {
+						building->stock2 += 0x10;
+						building->stock2 -= 1;
+					}
 				}
 			}
 		}
@@ -3668,7 +3668,7 @@ handle_serf_knight_engaging_building_state(serf_t *serf)
 				serf->animation = 168;
 
 				/* Remove knight from stats of defending building */
-				if (building->stock1 == 0xff) { /* Castle */
+				if (BUILDING_HAS_INVENTORY(building)) { /* Castle */
 					globals.player_sett[BUILDING_PLAYER(building)]->castle_knights -= 1;
 				} else {
 					building->stock1 -= 0xf;

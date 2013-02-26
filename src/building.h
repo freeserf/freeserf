@@ -36,6 +36,7 @@
 #define BUILDING_IS_DONE(building)  (!(((building)->bld >> 7) & 1))
 #define BUILDING_IS_ACTIVE(building)  ((int)(((building)->serf >> 4) & 1))
 #define BUILDING_IS_BURNING(building)  ((int)(((building)->serf >> 5) & 1))
+#define BUILDING_HAS_INVENTORY(building)  ((building)->stock1 == 0xff)
 
 
 typedef enum {

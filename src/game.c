@@ -2680,9 +2680,8 @@ mark_serf_as_lost(serf_t *serf)
 
 			if (BIT_TEST(building->serf, 7)) {
 				building->serf &= ~BIT(7);
-			} else if (building->stock1 != 0xff) {
+			} else if (!BUILDING_HAS_INVENTORY(building)) {
 				building->stock1 -= 1;
-				if (building->stock1 < 0) building->stock1 = 0xff; /* Should probably just be a signed int. */
 			}
 		}
 
