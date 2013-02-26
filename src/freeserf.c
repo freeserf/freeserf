@@ -965,6 +965,10 @@ game_loop_iter()
 
 	/* TODO */
 
+	/* Undraw cursor */
+	sdl_draw_frame(globals.player[0]->pointer_x-8, globals.player[0]->pointer_y-8,
+		       sdl_get_screen_frame(), 0, 0, &cursor_buffer, 16, 16);
+
 	gui_object_redraw((gui_object_t *)&interface, globals.frame);
 
 	/* TODO very crude dirty marking algortihm: mark everything. */
@@ -972,6 +976,11 @@ game_loop_iter()
 		       sdl_frame_get_height(globals.frame));
 
 	/* ADDITIONS */
+
+	/* Restore cursor buffer */
+	sdl_draw_frame(0, 0, &cursor_buffer,
+		       globals.player[0]->pointer_x-8, globals.player[0]->pointer_y-8,
+		       sdl_get_screen_frame(), 16, 16);
 
 	/* Mouse cursor */
 	gfx_draw_transp_sprite(globals.player[0]->pointer_x-8,
