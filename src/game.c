@@ -1590,7 +1590,8 @@ handle_building_update(building_t *building)
 				inv->flg_index = building->flg_index;
 
 				building->u.inventory = inv;
-				building->stock1 = 0xffff;
+				building->stock1 = 0xff;
+				building->stock2 = 0xff;
 				building->serf |= BIT(4);
 
 				player_add_notification(globals.player_sett[BUILDING_PLAYER(building)],
