@@ -1655,7 +1655,7 @@ handle_building_update(building_t *building)
 			};
 
 			player_sett_t *sett = globals.player_sett[BUILDING_PLAYER(building)];
-			int max_occ_level = (sett->knight_occupation[building->serf & 3] >> 4) & 0xf;
+			int max_occ_level = (sett->knight_occupation[BUILDING_STATE(building)] >> 4) & 0xf;
 			if (BIT_TEST(sett->flags, 4)) max_occ_level += 5;
 
 			int needed_occupants = hut_occupants_from_level[max_occ_level];
@@ -1908,7 +1908,7 @@ handle_building_update(building_t *building)
 			};
 
 			player_sett_t *sett = globals.player_sett[BUILDING_PLAYER(building)];
-			int max_occ_level = (sett->knight_occupation[building->serf & 3] >> 4) & 0xf;
+			int max_occ_level = (sett->knight_occupation[BUILDING_STATE(building)] >> 4) & 0xf;
 			if (BIT_TEST(sett->flags, 4)) max_occ_level += 5;
 
 			int needed_occupants = tower_occupants_from_level[max_occ_level];
@@ -1983,7 +1983,7 @@ handle_building_update(building_t *building)
 			};
 
 			player_sett_t *sett = globals.player_sett[BUILDING_PLAYER(building)];
-			int max_occ_level = (sett->knight_occupation[building->serf & 3] >> 4) & 0xf;
+			int max_occ_level = (sett->knight_occupation[BUILDING_STATE(building)] >> 4) & 0xf;
 			if (BIT_TEST(sett->flags, 4)) max_occ_level += 5;
 
 			int needed_occupants = fortress_occupants_from_level[max_occ_level];

@@ -1888,7 +1888,7 @@ available_knights_at_pos(player_sett_t *sett, map_pos_t pos, int index, int dist
 
 	sett->attacking_buildings[index] = bld_index;
 
-	int state = building->serf & 3;
+	int state = BUILDING_STATE(building);
 	int knights_present = building->stock[0].available;
 	int to_send = knights_present - min_level[sett->knight_occupation[state] & 0xf];
 
@@ -1959,7 +1959,7 @@ player_start_attack(player_sett_t *sett)
 	     BUILDING_TYPE(target) != BUILDING_FORTRESS &&
 	     BUILDING_TYPE(target) != BUILDING_CASTLE) ||
 	    !BUILDING_IS_ACTIVE(target) ||
-	    (target->serf & 3) != 3) {
+	    BUILDING_STATE(target) != 3) {
 		return;
 	}
 
@@ -1986,7 +1986,7 @@ player_start_attack(player_sett_t *sett)
 		default: continue; break;
 		}
 
-		int state = b->serf & 3;
+		int state = BUILDING_STATE(b);
 		int knights_present = b->stock[0].available;
 		int to_send = knights_present - min_level[sett->knight_occupation[state] & 0xf];
 

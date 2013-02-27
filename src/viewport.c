@@ -932,7 +932,7 @@ draw_unharmed_building(building_t *building, int x, int y, frame_t *frame)
 			draw_shadow_and_building_sprite(x, y, map_building_sprite[type], frame);
 			if (building->serf_index != 0) {
 				draw_game_sprite(x-14, y+2 - 2*building->stock[0].available,
-						 182 + ((globals.anim >> 3) & 3) + 4*(building->serf & 3),
+						 182 + ((globals.anim >> 3) & 3) + 4*BUILDING_STATE(building),
 						 frame);
 			}
 			break;
@@ -1026,7 +1026,7 @@ draw_unharmed_building(building_t *building, int x, int y, frame_t *frame)
 			draw_shadow_and_building_sprite(x, y, map_building_sprite[type], frame);
 			if (building->serf_index != 0) {
 				draw_game_sprite(x+13, y - 18 - building->stock[0].available,
-						 182 + ((globals.anim >> 3) & 3) + 4*(building->serf & 3),
+						 182 + ((globals.anim >> 3) & 3) + 4*BUILDING_STATE(building),
 						 frame);
 			}
 			break;
@@ -1034,10 +1034,10 @@ draw_unharmed_building(building_t *building, int x, int y, frame_t *frame)
 			draw_shadow_and_building_sprite(x, y, map_building_sprite[type], frame);
 			if (building->serf_index != 0) {
 				draw_game_sprite(x-12, y - 21 - building->stock[0].available/2,
-						 182 + ((globals.anim >> 3) & 3) + 4*(building->serf & 3),
+						 182 + ((globals.anim >> 3) & 3) + 4*BUILDING_STATE(building),
 						 frame);
 				draw_game_sprite(x+22, y - 34 - (building->stock[0].available+1)/2,
-						 182 + (((globals.anim >> 3) + 2) & 3) + 4*(building->serf & 3),
+						 182 + (((globals.anim >> 3) + 2) & 3) + 4*BUILDING_STATE(building),
 						 frame);
 			}
 			break;
@@ -2460,7 +2460,7 @@ viewport_handle_event_click(viewport_t *viewport, int x, int y, gui_event_button
 					     BUILDING_TYPE(building) == BUILDING_FORTRESS ||
 					     BUILDING_TYPE(building) == BUILDING_CASTLE)) {
 						if (!BUILDING_IS_ACTIVE(building) ||
-						    (building->serf & 3) != 3) {
+						    BUILDING_STATE(building)) {
 							/* It is not allowed to attack
 							   if currently not occupied or
 							   is too far from the border. */

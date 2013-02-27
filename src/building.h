@@ -35,6 +35,7 @@
 #define BUILDING_TYPE(building)  ((building_type_t)(((building)->bld >> 2) & 0x1f))
 #define BUILDING_IS_DONE(building)  (!(((building)->bld >> 7) & 1))
 
+#define BUILDING_STATE(building)  ((int)((building)->serf & 3))
 #define BUILDING_SERF_REQUEST_FAIL(building)  ((int)(((building)->serf >> 2) & 1))
 #define BUILDING_PLAYING_SFX(building)  ((int)(((building)->serf >> 3) & 1))
 #define BUILDING_IS_ACTIVE(building)  ((int)(((building)->serf >> 4) & 1))

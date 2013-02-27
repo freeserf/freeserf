@@ -1978,8 +1978,8 @@ draw_defenders_box(popup_box_t *popup, frame_t *frame)
 		next_knight = serf->s.defending.next_knight;
 	}
 
-	draw_green_string(0, 128, frame, "STATE:");
-	draw_green_number(7, 128, frame, building->serf & 3);
+	draw_green_string(0, 128, frame, "State:");
+	draw_green_number(7, 128, frame, BUILDING_STATE(building));
 
 	draw_popup_icon(14, 128, 0x3c, frame); /* Exit box */
 }
