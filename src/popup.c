@@ -2035,7 +2035,7 @@ draw_transport_info_box(popup_box_t *popup, frame_t *frame)
 		int y = layout[2*i+1];
 		if (FLAG_HAS_PATH(flag, 5-i)) {
 			int sprite = 0xdc; /* Minus box */
-			if (BIT_TEST(flag->transporter, 5-i)) sprite = 0x120; /* Check box */
+			if (FLAG_HAS_TRANSPORTER(flag, 5-i)) sprite = 0x120; /* Check box */
 			draw_popup_icon(x, y, sprite, frame);
 		}
 	}

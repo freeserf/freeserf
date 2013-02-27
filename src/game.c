@@ -722,8 +722,8 @@ typedef struct {
 static int
 send_serf_to_road_search_cb(flag_t *flag, send_serf_to_road_data_t *data)
 {
-	if (BIT_TEST(flag->bld_flags, 6)) { /* Castle flag */
-		/* Castle reached */
+	if (FLAG_HAS_INVENTORY(flag)) {
+		/* Inventory reached */
 		building_t *building = flag->other_endpoint.b[DIR_UP_LEFT];
 		inventory_t *inventory = building->u.inventory;
 		if (!data->water) {
@@ -743,7 +743,7 @@ send_serf_to_road_search_cb(flag_t *flag, send_serf_to_road_data_t *data)
 		}
 
 		if (data->inventory == NULL && inventory->serfs[SERF_GENERIC] != 0 &&
-				(!data->water || inventory->resources[RESOURCE_BOAT] > 0)) {
+		    (!data->water || inventory->resources[RESOURCE_BOAT] > 0)) {
 			data->inventory = inventory;
 			/*player_sett_t *sett = globals.player_sett[inventory->player_num];
 			globals.field_340 = sett->cont_search_after_non_optimal_find;*/
@@ -757,7 +757,7 @@ static int
 send_serf_to_road(flag_t *src, dir_t dir, int water)
 {
 	flag_t *src_2 = src->other_endpoint.f[dir];
-	dir_t dir_2 = (src->other_end_dir[dir] >> 3) & 7;
+	dir_t dir_2 = FLAG_OTHER_END_DIR(src, dir);
 
 	src->search_dir = 0;
 	src_2->search_dir = 1;
@@ -823,7 +823,7 @@ send_serf_to_road(flag_t *src, dir_t dir, int water)
 static int
 find_nearest_inventory_search_cb(flag_t *flag, flag_t **dest)
 {
-	if (BIT_TEST(flag->bld2_flags, 7)) {
+	if (FLAG_ACCEPTS_RESOURCES(flag)) {
 		*dest = flag;
 		return 1;
 	}
@@ -907,7 +907,7 @@ update_flags_search2_cb(flag_t *flag, update_flags_search2_t *data)
 static void
 update_flags()
 {
-	const int arr[] = { 1, 2, 3, 4, 6, 8, 11, 15 };
+	const int max_transporters[] = { 1, 2, 3, 4, 6, 8, 11, 15 };
 
 	const int arr2[] = {
 		-1, -1, 0, 66, 3, 66, 0, 66, 4, 66,
@@ -941,7 +941,7 @@ update_flags()
 
 			globals.field_24E = 0;
 
-			if (BIT_TEST(flag->endpoint, 7)) { /* Resources waiting */
+			if (FLAG_HAS_RESOURCES(flag)) {
 				flag->endpoint &= ~BIT(7);
 				for (int slot = 7; slot >= 0; slot--) {
 					if (flag->res_waiting[slot] != 0) {
@@ -956,7 +956,7 @@ update_flags()
 
 								flag->search_num = search.id;
 								flag->search_dir = 6;
-								int tr = flag->transporter & 0x3f;
+								int tr = FLAG_TRANSPORTERS(flag);
 
 								int sources = 0;
 								int flags = (globals.field_218[3] ^ 0x3f) & flag->transporter;
@@ -1088,26 +1088,23 @@ update_flags()
 
 			for (int j = 0; j < 6; j++) {
 				if (BIT_TEST(path, 5-j)) {
-					if (BIT_TEST(flag->length[5-j], 7)) {
+					if (FLAG_SERF_REQUESTED(flag, 5-j)) {
 						if (BIT_TEST(flags, 5-j)) {
 							if (BIT_TEST(path, 7)) tr &= BIT(5-j);
 						} else {
-							if ((flag->length[5-j] & 0xf) != 0) tr |= BIT(5-j);
+							if (FLAG_TRANSPORTER_COUNT(flag, 5-j) != 0) tr |= BIT(5-j);
 						}
-					} else if ((flag->length[5-j] & 0xf) == 0) {
+					} else if (FLAG_TRANSPORTER_COUNT(flag, 5-j) == 0) {
 						if (!BIT_TEST(tr, 7)) {
-							int r = 0;
-							if (BIT_TEST(flag->endpoint, 5-j)) r = send_serf_to_road(flag, 5-j, 0);
-							else r = send_serf_to_road(flag, 5-j, 1);
+							int r = send_serf_to_road(flag, 5-j, FLAG_IS_WATER_PATH(flag, 5-j));
 							if (r < 0) tr |= BIT(7);
 						}
 						if (BIT_TEST(path, 7)) tr &= BIT(5-j);
 					} else if (BIT_TEST(flags, 5-j)) {
-						if (arr[(flag->length[5-j] >> 4) & 7] != (flag->length[5-j] & 0xf)) {
+						int max_tr = max_transporters[FLAG_LENGTH_CATEGORY(flag, 5-j)];
+						if (FLAG_TRANSPORTER_COUNT(flag, 5-j) != max_tr) {
 							if (!BIT_TEST(tr, 7)) {
-								int r = 0;
-								if (BIT_TEST(flag->endpoint, 5-j)) r = send_serf_to_road(flag, 5-j, 0);
-								else r = send_serf_to_road(flag, 5-j, 1);
+								int r = send_serf_to_road(flag, 5-j, FLAG_IS_WATER_PATH(flag, 5-j));
 								if (r < 0) tr |= BIT(7);
 							}
 						}
@@ -1135,8 +1132,8 @@ typedef struct {
 static int
 send_serf_to_flag_search_cb(flag_t *flag, send_serf_to_flag_data_t *data)
 {
-	if (BIT_TEST(flag->bld_flags, 6)) { /* Castle flag */
-		/* Castle reached */
+	if (FLAG_HAS_INVENTORY(flag)) {
+		/* Inventory reached */
 		building_t *building = flag->other_endpoint.b[DIR_UP_LEFT];
 		inventory_t *inv = building->u.inventory;
 
@@ -2715,7 +2712,7 @@ mark_serf_as_lost(serf_t *serf)
 				flag_t *flag = game_get_flag(serf->s.walking.dest);
 				flag->length[dir] &= ~BIT(7);
 
-				dir_t other_dir = (flag->other_end_dir[dir] >> 3) & 7;
+				dir_t other_dir = FLAG_OTHER_END_DIR(flag, dir);
 				flag->other_endpoint.f[dir]->length[other_dir] &= ~BIT(7);
 			}
 		} else if (serf->s.walking.res == -1) {
@@ -2787,7 +2784,7 @@ remove_road_forwards(map_pos_t pos, dir_t dir)
 			flag->transporter &= ~BIT(rev_dir);
 			flag->endpoint &= ~BIT(rev_dir);
 
-			if (BIT_TEST(flag->length[rev_dir], 7)) {
+			if (FLAG_SERF_REQUESTED(flag, rev_dir)) {
 				flag->length[rev_dir] &= ~BIT(7);
 
 				for (int i = 1; i < globals.max_ever_serf_index; i++) {

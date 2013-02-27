@@ -289,7 +289,7 @@ serf_change_direction(serf_t *serf, int dir, int alt_end)
 static int
 flag_search_inventory_search_cb(flag_t *flag, int *dest_index)
 {
-	if (BIT_TEST(flag->bld_flags, 7)) { /* Has inventory */
+	if (FLAG_ACCEPTS_SERFS(flag)) {
 		building_t *building = flag->other_endpoint.b[DIR_UP_LEFT];
 		*dest_index = building->flg_index;
 		return 1;
@@ -314,10 +314,10 @@ static void
 serf_transporter_move_to_flag(serf_t *serf, flag_t *flag)
 {
 	int dir = serf->s.walking.dir;
-	if (BIT_TEST(flag->other_end_dir[dir], 7)) {
+	if (FLAG_IS_SCHEDULED(flag, dir)) {
 		/* Fetch resource from flag */
 		serf->s.walking.wait_counter = 0;
-		int res_index = flag->other_end_dir[dir] & 7;
+		int res_index = FLAG_SCHEDULED_SLOT(flag, dir);
 
 		if (serf->s.walking.res == 0) {
 			/* Pick up resource. */
@@ -463,7 +463,7 @@ handle_serf_walking_state_dest_reached(serf_t *serf)
 		flag_t *flag = game_get_flag(MAP_OBJ_INDEX(serf->pos));
 		dir_t dir = serf->s.walking.res;
 		flag_t *other_flag = flag->other_endpoint.f[dir];
-		dir_t other_dir = (flag->other_end_dir[dir] >> 3) & 7;
+		dir_t other_dir = FLAG_OTHER_END_DIR(flag, dir);
 
 		/* Increment transport serf count */
 		flag->length[dir] &= ~BIT(7);
@@ -560,7 +560,7 @@ handle_serf_walking_state(serf_t *serf)
 				flag_search_t search;
 				flag_search_init(&search);
 				for (int i = 0; i < 6; i++) {
-					if (BIT_TEST(src->endpoint, 5-i)) {
+					if (!FLAG_IS_WATER_PATH(src, 5-i)) {
 						flag_t *other_flag = src->other_endpoint.f[5-i];
 						other_flag->search_dir = 5-i;
 						flag_search_add_source(&search, other_flag);
@@ -612,7 +612,7 @@ handle_serf_walking_state(serf_t *serf)
 			flag_t *flag = game_get_flag(serf->s.walking.dest);
 			dir_t d = serf->s.walking.res;
 			flag->length[d] &= ~BIT(7);
-			flag->other_endpoint.f[d]->length[(flag->other_end_dir[d] >> 3) & 7] &= ~BIT(7);
+			flag->other_endpoint.f[d]->length[FLAG_OTHER_END_DIR(flag, d)] &= ~BIT(7);
 		}
 
 		serf->s.walking.res = -2;
@@ -695,9 +695,9 @@ handle_serf_transporting_state(serf_t *serf)
 			flag_t *flag = game_get_flag(MAP_OBJ_INDEX(MAP_MOVE(serf->pos, dir)));
 			int rev_dir = DIR_REVERSE(dir);
 			flag_t *other_flag = flag->other_endpoint.f[rev_dir];
-			int other_dir = (flag->other_end_dir[rev_dir] >> 3) & 7;
+			int other_dir = FLAG_OTHER_END_DIR(flag, rev_dir);
 
-			if (BIT_TEST(flag->other_end_dir[rev_dir], 7)) {
+			if (FLAG_IS_SCHEDULED(flag, rev_dir)) {
 				serf_change_direction(serf, dir, 1);
 				return;
 			}
@@ -706,7 +706,7 @@ handle_serf_transporting_state(serf_t *serf)
 			serf->counter = counter_from_animation[serf->animation];
 			serf->s.walking.dir -= 6;
 
-			if ((flag->length[rev_dir] & 0xf) > 1) {
+			if (FLAG_TRANSPORTER_COUNT(flag, rev_dir) > 1) {
 				serf->s.walking.wait_counter += 1;
 				if (serf->s.walking.wait_counter > 3) {
 					flag->length[rev_dir] -= 1;
@@ -714,7 +714,7 @@ handle_serf_transporting_state(serf_t *serf)
 					serf->s.walking.wait_counter = -1;
 				}
 			} else {
-				if (!BIT_TEST(other_flag->other_end_dir[other_dir], 7)) {
+				if (!FLAG_IS_SCHEDULED(other_flag, other_dir)) {
 					/* TODO Don't use anim as state var */
 					serf->anim = (serf->anim & 0xff00) | (serf->s.walking.dir & 0xff);
 					serf_log_state_change(serf, SERF_STATE_IDLE_ON_PATH);
@@ -768,7 +768,9 @@ handle_serf_entering_building_state(serf_t *serf)
 				map_set_serf_index(serf->pos, 0);
 				int flag_index = MAP_OBJ_INDEX(MAP_MOVE_DOWN_RIGHT(serf->pos));
 				flag_t *flag = game_get_flag(flag_index);
-				flag->bld_flags = BIT(7) | BIT(6); /* Why set these here? */
+
+				/* Mark as inventory accepting resources and serfs. */
+				flag->bld_flags = BIT(7) | BIT(6);
 				flag->bld2_flags = BIT(7);
 
 				serf_log_state_change(serf, SERF_STATE_WAIT_FOR_RESOURCE_OUT);
@@ -1979,7 +1981,7 @@ handle_serf_free_walking_state_dest_reached(serf_t *serf)
 	default:
 	other_type:
 		if (MAP_HAS_FLAG(serf->pos) &&
-		    game_get_flag(MAP_OBJ_INDEX(serf->pos))->endpoint & 0x3f &&
+		    FLAG_LAND_PATHS(game_get_flag(MAP_OBJ_INDEX(serf->pos))) != 0 &&
 		    MAP_OWNER(serf->pos) == SERF_PLAYER(serf)) {
 			serf_log_state_change(serf, SERF_STATE_WALKING);
 			serf->state = SERF_STATE_WALKING;
@@ -2629,7 +2631,7 @@ handle_serf_lost_state(serf_t *serf)
 
 			if (MAP_HAS_FLAG(dest)) {
 				flag_t *flag = game_get_flag(MAP_OBJ_INDEX(dest));
-				if ((flag->endpoint & 0x3f) != 0 &&
+				if (FLAG_LAND_PATHS(flag) != 0 &&
 				    MAP_HAS_OWNER(dest) && MAP_OWNER(dest) == SERF_PLAYER(serf)) {
 					if (SERF_TYPE(serf) >= SERF_KNIGHT_0 &&
 					    SERF_TYPE(serf) <= SERF_KNIGHT_4) {
@@ -2714,7 +2716,7 @@ handle_lost_sailor(serf_t *serf)
 
 			if (MAP_HAS_FLAG(dest)) {
 				flag_t *flag = game_get_flag(MAP_OBJ_INDEX(dest));
-				if ((flag->endpoint & 0x3f) != 0 &&
+				if (FLAG_LAND_PATHS(flag) != 0 &&
 				    MAP_HAS_OWNER(dest) && MAP_OWNER(dest) == SERF_PLAYER(serf)) {
 					serf_log_state_change(serf, SERF_STATE_FREE_SAILING);
 					serf->state = SERF_STATE_FREE_SAILING;
@@ -4344,12 +4346,12 @@ handle_serf_idle_on_path_state(serf_t *serf)
 	int rev_dir = serf->s.idle_on_path.rev_dir;
 
 	/* Set walking dir in field_E. */
-	if (BIT_TEST(flag->other_end_dir[rev_dir], 7)) {
+	if (FLAG_IS_SCHEDULED(flag, rev_dir)) {
 		serf->s.idle_on_path.field_E = (serf->anim & 0xff) + 6;
 	} else {
 		flag_t *other_flag = flag->other_endpoint.f[rev_dir];
-		int other_dir = (flag->other_end_dir[rev_dir] >> 3) & 7;
-		if (BIT_TEST(other_flag->other_end_dir[other_dir], 7)) {
+		int other_dir = FLAG_OTHER_END_DIR(flag, rev_dir);
+		if (FLAG_IS_SCHEDULED(other_flag, other_dir)) {
 			serf->s.idle_on_path.field_E = DIR_REVERSE(rev_dir);
 		} else {
 			return;

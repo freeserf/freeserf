@@ -103,8 +103,8 @@ flag_search_execute(flag_search_t *search, flag_search_func *callback, int land,
 		}
 
 		for (int i = 0; i < 6; i++) {
-			if ((!land || BIT_TEST(flag->endpoint, 5-i)) && /* Across land */
-			    (!transporter || BIT_TEST(flag->transporter, 5-i)) &&
+			if ((!land || !FLAG_IS_WATER_PATH(flag, 5-i)) &&
+			    (!transporter || FLAG_HAS_TRANSPORTER(flag, 5-i)) &&
 			    flag->other_endpoint.f[5-i]->search_num != search->id) {
 				flag->other_endpoint.f[5-i]->search_num = search->id;
 				flag->other_endpoint.f[5-i]->search_dir = flag->search_dir;

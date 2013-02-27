@@ -993,7 +993,7 @@ save_text_flag_state(FILE *f)
 
 			int indices[6];
 			for (dir_t d = DIR_RIGHT; d <= DIR_UP; d++) {
-				if (BIT_TEST(flag->endpoint, d)) {
+				if (FLAG_HAS_PATH(flag, d)) {
 					indices[d] = FLAG_INDEX(flag->other_endpoint.f[d]);
 				} else {
 					indices[d] = 0;

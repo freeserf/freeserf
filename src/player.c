@@ -206,7 +206,7 @@ get_map_cursor_type(const player_sett_t *sett, map_pos_t pos, panel_btn_t *panel
 
 		for (int i = DIR_UP; i >= DIR_RIGHT; i--) {
 			if (FLAG_HAS_PATH(flag, i)) {
-				if (!BIT_TEST(flag->endpoint, i)) {
+				if (FLAG_IS_WATER_PATH(flag, i)) {
 					*cursor_type = 1;
 					return;
 				}
@@ -959,7 +959,7 @@ restore_path_serf_info(flag_t *flag, dir_t dir, serf_path_info_t *data)
 	flag->path_con |= BIT(dir);
 	flag->endpoint &= ~BIT(dir);
 
-	if (BIT_TEST(other_flag->endpoint, other_dir)) {
+	if (!FLAG_IS_WATER_PATH(other_flag, other_dir)) {
 		flag->endpoint |= BIT(dir);
 	}
 
@@ -971,7 +971,7 @@ restore_path_serf_info(flag_t *flag, dir_t dir, serf_path_info_t *data)
 	flag->length[dir] = len;
 	other_flag->length[other_dir] = (0x80 & other_flag->length[other_dir]) | len;
 
-	if (BIT_TEST(other_flag->length[other_dir], 7)) {
+	if (FLAG_SERF_REQUESTED(other_flag, other_dir)) {
 		flag->length[dir] |= BIT(7);
 	}
 
@@ -982,7 +982,7 @@ restore_path_serf_info(flag_t *flag, dir_t dir, serf_path_info_t *data)
 	other_flag->other_endpoint.f[other_dir] = flag;
 
 	int max_serfs = max_path_serfs[(len >> 4) & 7];
-	if (BIT_TEST(flag->length[dir], 7)) max_serfs -= 1;
+	if (FLAG_SERF_REQUESTED(flag, dir)) max_serfs -= 1;
 
 	if (data->serf_count > max_serfs) {
 		for (int i = 0; i < data->serf_count - max_serfs; i++) {
@@ -1056,7 +1056,7 @@ build_flag_split_path(map_pos_t pos)
 	dir_t dir_2 = path_2_data.flag_dir;
 
 	int select = -1;
-	if (BIT_TEST(flag_2->length[dir_2], 7)) {
+	if (FLAG_SERF_REQUESTED(flag_2, dir_2)) {
 		for (int i = 1; i < globals.max_ever_serf_index; i++) {
 			if (SERF_ALLOCATED(i)) {
 				serf_t *serf = game_get_serf(i);
