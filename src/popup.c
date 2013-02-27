@@ -1813,7 +1813,7 @@ draw_castle_res_box(popup_box_t *popup, frame_t *frame)
 	if (popup->player->sett->index == 0) return;/*player_close_popup();*/
 
 	building_t *building = game_get_building(popup->player->sett->index);
-	if (BIT_TEST(building->serf, 5)) return;/*player_close_popup();*/ /* Building is burning */
+	if (BUILDING_IS_BURNING(building)) return;/*player_close_popup();*/
 
 	inventory_t *inventory = building->u.inventory;
 	if (BUILDING_TYPE(building) == BUILDING_STOCK) {
@@ -1835,7 +1835,8 @@ draw_mine_output_box(popup_box_t *popup, frame_t *frame)
 	if (popup->player->sett->index == 0) return;/*player_close_popup();*/
 
 	building_t *building = game_get_building(popup->player->sett->index);
-	/* if (BIT_TEST(building->serf, 5)) player_close_popup();*/ /* Building is burning */
+	if (BUILDING_IS_BURNING(building)) return;/*player_close_popup();*/
+
 	building_type_t type = BUILDING_TYPE(building);
 
 	if (type != BUILDING_STONEMINE &&
@@ -1850,7 +1851,7 @@ draw_mine_output_box(popup_box_t *popup, frame_t *frame)
 
 	/* Draw serf icon */
 	int sprite = 0xdc; /* minus box */
-	if (BIT_TEST(building->serf, 6)) sprite = 0x11; /* miner */
+	if (BUILDING_HAS_SERF(building)) sprite = 0x11; /* miner */
 
 	draw_popup_icon(10, 75, sprite, frame);
 
@@ -1898,7 +1899,8 @@ draw_ordered_building_box(popup_box_t *popup, frame_t *frame)
 	if (popup->player->sett->index == 0) return;/*player_close_popup();*/
 
 	building_t *building = game_get_building(popup->player->sett->index);
-	/* if (BIT_TEST(building->serf, 5)) player_close_popup();*/ /* Building is burning */
+	if (BUILDING_IS_BURNING(building)) return;/*player_close_popup();*/
+
 	building_type_t type = BUILDING_TYPE(building);
 
 	int sprite = map_building_sprite[type];
@@ -1909,7 +1911,7 @@ draw_ordered_building_box(popup_box_t *popup, frame_t *frame)
 	draw_green_string(2, 4, frame, "Ordered");
 	draw_green_string(2, 14, frame, "Building");
 
-	if (BIT_TEST(building->serf, 6)) { /* Serf present */
+	if (BUILDING_HAS_SERF(building)) {
 		if (building->progress == 0) draw_popup_icon(2, 100, 0xb, frame); /* Digger */
 		else draw_popup_icon(2, 100, 0xc, frame); /* Builder */
 	} else {
@@ -2071,7 +2073,7 @@ draw_castle_serf_box(popup_box_t *popup, frame_t *frame)
 	if (popup->player->sett->index == 0) return;/*player_close_popup();*/
 
 	building_t *building = game_get_building(popup->player->sett->index);
-	if (BIT_TEST(building->serf, 5)) return;/*player_close_popup();*/ /* Building is burning */
+	if (BUILDING_IS_BURNING(building)) return;/*player_close_popup();*/
 
 	building_type_t type = BUILDING_TYPE(building);
 	if (type != BUILDING_STOCK && type != BUILDING_CASTLE) return;/*player_close_popup();*/
@@ -2123,7 +2125,7 @@ draw_resdir_box(popup_box_t *popup, frame_t *frame)
 	if (popup->player->sett->index == 0) return;/*player_close_popup();*/
 
 	building_t *building = game_get_building(popup->player->sett->index);
-	if (BIT_TEST(building->serf, 5)) return;/*player_close_popup();*/ /* Building is burning */
+	if (BUILDING_IS_BURNING(building)) return;/*player_close_popup();*/
 
 	building_type_t type = BUILDING_TYPE(building);
 	if (type == BUILDING_CASTLE) {
@@ -2602,7 +2604,7 @@ draw_building_stock_box(popup_box_t *popup, frame_t *frame)
 	if (popup->player->sett->index == 0) return;/*player_close_popup();*/
 
 	building_t *building = game_get_building(popup->player->sett->index);
-	if (BIT_TEST(building->serf, 5)) return;/*player_close_popup();*/ /* Building is burning */
+	if (BUILDING_IS_BURNING(building)) return;/*player_close_popup();*/
 
 	int sprite1 = -1;
 	int sprite2 = -1;
@@ -2687,7 +2689,7 @@ draw_building_stock_box(popup_box_t *popup, frame_t *frame)
 
 	/* Draw picture of serf present */
 	int serf_sprite = 0xdc; /* minus box */
-	if (BIT_TEST(building->serf, 6)) serf_sprite = map_building_serf_sprite[type];
+	if (BUILDING_HAS_SERF(building)) serf_sprite = map_building_serf_sprite[type];
 
 	draw_popup_icon(1, 36, serf_sprite, frame);
 

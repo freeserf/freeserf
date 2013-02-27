@@ -1325,8 +1325,8 @@ update_unfinished_building(building_t *building)
 
 	/* Request builder serf */
 	if (!BIT_TEST(building->serf, 2) &&
-			!BIT_TEST(building->serf, 6) &&
-			!BIT_TEST(building->serf, 7)) {
+	    !BUILDING_HAS_SERF(building) &&
+	    !BIT_TEST(building->serf, 7)) {
 		building->progress = 1;
 		/*if (BIT_TEST(sett->field_163, 6) &&
 				sett->lumberjack_index != BUILDING_INDEX(building) &&
@@ -1353,7 +1353,7 @@ update_unfinished_building(building_t *building)
 	int total_planks = building->stock[0].requested + building->stock[0].available;
 	if (total_planks < 8 && total_planks != building->u.s.planks_needed) {
 		int planks_prio = sett->planks_construction >> (8 + total_planks);
-		if (!BIT_TEST(building->serf, 6)) planks_prio >>= 2;
+		if (!BUILDING_HAS_SERF(building)) planks_prio >>= 2;
 		flag->stock1_prio = planks_prio & ~BIT(0);
 	} else {
 		flag->stock1_prio = 0;
@@ -1370,7 +1370,7 @@ update_unfinished_building(building_t *building)
 	int total_stone = building->stock[1].requested + building->stock[1].available;
 	if (total_stone < 8 && total_stone != building->u.s.stone_needed) {
 		int stone_prio = 0xff >> total_stone;
-		if (!BIT_TEST(building->serf, 6)) stone_prio >>= 2;
+		if (!BUILDING_HAS_SERF(building)) stone_prio >>= 2;
 		flag->stock2_prio = stone_prio & ~BIT(0);
 	} else {
 		flag->stock2_prio = 0;
@@ -1387,8 +1387,8 @@ update_unfinished_adv_building(building_t *building)
 		return;
 	}
 
-	if (BIT_TEST(building->serf, 6) ||
-			BIT_TEST(building->serf, 7)) {
+	if (BUILDING_HAS_SERF(building) ||
+	    BIT_TEST(building->serf, 7)) {
 		return;
 	}
 
@@ -1447,7 +1447,7 @@ update_building_castle(building_t *building)
 
 	inventory_t *inventory = building->u.inventory;
 
-	if (BIT_TEST(building->serf, 6) &&
+	if (BUILDING_HAS_SERF(building) &&
 	    (inventory->res_dir & 0xa) == 0 && /* Not serf or res OUT mode */
 	    inventory->spawn_priority == 0) {
 		/* sett->field_160 -= 1; */
@@ -1470,31 +1470,37 @@ static void
 handle_building_update(building_t *building)
 {
 	building_type_t type = BUILDING_TYPE(building);
-	if (!BIT_TEST(building->bld, 7)) { /* Finished */
+	if (BUILDING_IS_DONE(building)) {
 		switch (type) {
 		case BUILDING_NONE:
 			break;
 		case BUILDING_FISHER:
-			if ((building->serf & 0xc4) == 0) {
+			if (!BIT_TEST(building->serf, 2) &&
+			    !BUILDING_HAS_SERF(building) &&
+			    !BIT_TEST(building->serf, 7)) {
 				int r = send_serf_to_building(building, SERF_FISHER,
 							      RESOURCE_ROD, -1);
 				if (r < 0) building->serf |= BIT(2);
 			}
 			break;
 		case BUILDING_LUMBERJACK:
-			if ((building->serf & 0xc4) == 0) {
+			if (!BIT_TEST(building->serf, 2) &&
+			    !BUILDING_HAS_SERF(building) &&
+			    !BIT_TEST(building->serf, 7)) {
 				int r = send_serf_to_building(building, SERF_LUMBERJACK,
 							      RESOURCE_AXE, -1);
 				if (r < 0) building->serf |= BIT(2);
 			}
 			break;
 		case BUILDING_BOATBUILDER:
-			if ((building->serf & 0xc4) == 0) {
+			if (!BIT_TEST(building->serf, 2) &&
+			    !BUILDING_HAS_SERF(building) &&
+			    !BIT_TEST(building->serf, 7)) {
 				int r = send_serf_to_building(building, SERF_BOATBUILDER,
 							      RESOURCE_HAMMER, -1);
 				if (r < 0) building->serf |= BIT(2);
 			}
-			if (BIT_TEST(building->serf, 6)) {
+			if (BUILDING_HAS_SERF(building)) {
 				player_sett_t *sett = globals.player_sett[BUILDING_PLAYER(building)];
 				int total_tree = building->stock[0].requested + building->stock[0].available;
 				if (total_tree < 8 && 1/*!BIT_TEST(sett->field_163, 1)*/) {
@@ -1505,19 +1511,23 @@ handle_building_update(building_t *building)
 			}
 			break;
 		case BUILDING_STONECUTTER:
-			if ((building->serf & 0xc4) == 0) {
+			if (!BIT_TEST(building->serf, 2) &&
+			    !BUILDING_HAS_SERF(building) &&
+			    !BIT_TEST(building->serf, 7)) {
 				int r = send_serf_to_building(building, SERF_STONECUTTER,
 							      RESOURCE_PICK, -1);
 				if (r < 0) building->serf |= BIT(2);
 			}
 			break;
 		case BUILDING_STONEMINE:
-			if ((building->serf & 0xc4) == 0) {
+			if (!BIT_TEST(building->serf, 2) &&
+			    !BUILDING_HAS_SERF(building) &&
+			    !BIT_TEST(building->serf, 7)) {
 				int r = send_serf_to_building(building, SERF_MINER,
 							      RESOURCE_PICK, -1);
 				if (r < 0) building->serf |= BIT(2);
 			}
-			if (BIT_TEST(building->serf, 6)) {
+			if (BUILDING_HAS_SERF(building)) {
 				int total_food = building->stock[0].requested + building->stock[0].available;
 				if (total_food < 8) {
 					player_sett_t *sett = globals.player_sett[BUILDING_PLAYER(building)];
@@ -1528,12 +1538,14 @@ handle_building_update(building_t *building)
 			}
 			break;
 		case BUILDING_COALMINE:
-			if ((building->serf & 0xc4) == 0) {
+			if (!BIT_TEST(building->serf, 2) &&
+			    !BUILDING_HAS_SERF(building) &&
+			    !BIT_TEST(building->serf, 7)) {
 				int r = send_serf_to_building(building, SERF_MINER,
 							      RESOURCE_PICK, -1);
 				if (r < 0) building->serf |= BIT(2);
 			}
-			if (BIT_TEST(building->serf, 6)) {
+			if (BUILDING_HAS_SERF(building)) {
 				int total_food = building->stock[0].requested + building->stock[0].available;
 				if (total_food < 8) {
 					player_sett_t *sett = globals.player_sett[BUILDING_PLAYER(building)];
@@ -1544,12 +1556,14 @@ handle_building_update(building_t *building)
 			}
 			break;
 		case BUILDING_IRONMINE:
-			if ((building->serf & 0xc4) == 0) {
+			if (!BIT_TEST(building->serf, 2) &&
+			    !BUILDING_HAS_SERF(building) &&
+			    !BIT_TEST(building->serf, 7)) {
 				int r = send_serf_to_building(building, SERF_MINER,
 							      RESOURCE_PICK, -1);
 				if (r < 0) building->serf |= BIT(2);
 			}
-			if (BIT_TEST(building->serf, 6)) {
+			if (BUILDING_HAS_SERF(building)) {
 				int total_food = building->stock[0].requested + building->stock[0].available;
 				if (total_food < 8) {
 					player_sett_t *sett = globals.player_sett[BUILDING_PLAYER(building)];
@@ -1560,12 +1574,14 @@ handle_building_update(building_t *building)
 			}
 			break;
 		case BUILDING_GOLDMINE:
-			if ((building->serf & 0xc4) == 0) {
+			if (!BIT_TEST(building->serf, 2) &&
+			    !BUILDING_HAS_SERF(building) &&
+			    !BIT_TEST(building->serf, 7)) {
 				int r = send_serf_to_building(building, SERF_MINER,
 							      RESOURCE_PICK, -1);
 				if (r < 0) building->serf |= BIT(2);
 			}
-			if (BIT_TEST(building->serf, 6)) {
+			if (BUILDING_HAS_SERF(building)) {
 				int total_food = building->stock[0].requested + building->stock[0].available;
 				if (total_food < 8) {
 					player_sett_t *sett = globals.player_sett[BUILDING_PLAYER(building)];
@@ -1576,7 +1592,9 @@ handle_building_update(building_t *building)
 			}
 			break;
 		case BUILDING_FORESTER:
-			if ((building->serf & 0xc4) == 0) {
+			if (!BIT_TEST(building->serf, 2) &&
+			    !BUILDING_HAS_SERF(building) &&
+			    !BIT_TEST(building->serf, 7)) {
 				int r = send_serf_to_building(building, SERF_FORESTER, -1, -1);
 				if (r < 0) building->serf |= BIT(2);
 			}
@@ -1601,13 +1619,15 @@ handle_building_update(building_t *building)
 				player_add_notification(globals.player_sett[BUILDING_PLAYER(building)],
 							7, building->pos);
 			} else {
-				if ((building->serf & 0xc0) == 0) {
+				if (!BIT_TEST(building->serf, 2) &&
+				    !BUILDING_HAS_SERF(building) &&
+				    !BIT_TEST(building->serf, 7)) {
 					send_serf_to_building(building, SERF_TRANSPORTER, -1, -1);
 				}
 
 				player_sett_t *sett = globals.player_sett[BUILDING_PLAYER(building)];
 				inventory_t *inv = building->u.inventory;
-				if (BIT_TEST(building->serf, 6) &&
+				if (BUILDING_HAS_SERF(building) &&
 				    (inv->res_dir & 0xa) == 0 && /* Not serf or res OUT mode */
 				    inv->spawn_priority == 0) {
 					/* sett->field_160 -= 1; */
@@ -1689,7 +1709,7 @@ handle_building_update(building_t *building)
 			}
 
 			/* Request gold */
-			if (BIT_TEST(building->serf, 6)) {
+			if (BUILDING_HAS_SERF(building)) {
 				int total_gold = building->stock[1].requested + building->stock[1].available;
 				sett->military_gold += building->stock[1].available;
 				sett->military_max_gold += max_gold;
@@ -1703,18 +1723,22 @@ handle_building_update(building_t *building)
 			break;
 		}
 		case BUILDING_FARM:
-			if ((building->serf & 0xc4) == 0) {
+			if (!BIT_TEST(building->serf, 2) &&
+			    !BUILDING_HAS_SERF(building) &&
+			    !BIT_TEST(building->serf, 7)) {
 				int r = send_serf_to_building(building, SERF_FARMER, RESOURCE_SCYTHE, -1);
 				if (r < 0) building->serf |= BIT(2);
 			}
 			break;
 		case BUILDING_BUTCHER:
-			if ((building->serf & 0xc4) == 0) {
+			if (!BIT_TEST(building->serf, 2) &&
+			    !BUILDING_HAS_SERF(building) &&
+			    !BIT_TEST(building->serf, 7)) {
 				int r = send_serf_to_building(building, SERF_BUTCHER,
 							      RESOURCE_CLEAVER, -1);
 				if (r < 0) building->serf |= BIT(2);
 			}
-			if (BIT_TEST(building->serf, 6)) {
+			if (BUILDING_HAS_SERF(building)) {
 				/* Request more of that delicious meat. */
 				int total_stock = building->stock[0].requested + building->stock[0].available;
 				if (total_stock < 8) {
@@ -1725,11 +1749,13 @@ handle_building_update(building_t *building)
 			}
 			break;
 		case BUILDING_PIGFARM:
-			if ((building->serf & 0xc4) == 0) {
+			if (!BIT_TEST(building->serf, 2) &&
+			    !BUILDING_HAS_SERF(building) &&
+			    !BIT_TEST(building->serf, 7)) {
 				int r = send_serf_to_building(building, SERF_PIGFARMER, -1, -1);
 				if (r < 0) building->serf |= BIT(2);
 			}
-			if (BIT_TEST(building->serf, 6)) {
+			if (BUILDING_HAS_SERF(building)) {
 				/* Request more wheat. */
 				int total_stock = building->stock[0].requested + building->stock[0].available;
 				if (total_stock < 8) {
@@ -1741,11 +1767,13 @@ handle_building_update(building_t *building)
 			}
 			break;
 		case BUILDING_MILL:
-			if ((building->serf & 0xc4) == 0) {
+			if (!BIT_TEST(building->serf, 2) &&
+			    !BUILDING_HAS_SERF(building) &&
+			    !BIT_TEST(building->serf, 7)) {
 				int r = send_serf_to_building(building, SERF_MILLER, -1, -1);
 				if (r < 0) building->serf |= BIT(2);
 			}
-			if (BIT_TEST(building->serf, 6)) {
+			if (BUILDING_HAS_SERF(building)) {
 				/* Request more wheat. */
 				int total_stock = building->stock[0].requested + building->stock[0].available;
 				if (total_stock < 8) {
@@ -1757,11 +1785,13 @@ handle_building_update(building_t *building)
 			}
 			break;
 		case BUILDING_BAKER:
-			if ((building->serf & 0xc4) == 0) {
+			if (!BIT_TEST(building->serf, 2) &&
+			    !BUILDING_HAS_SERF(building) &&
+			    !BIT_TEST(building->serf, 7)) {
 				int r = send_serf_to_building(building, SERF_BAKER, -1, -1);
 				if (r < 0) building->serf |= BIT(2);
 			}
-			if (BIT_TEST(building->serf, 6)) {
+			if (BUILDING_HAS_SERF(building)) {
 				/* Request more flour. */
 				int total_stock = building->stock[0].requested + building->stock[0].available;
 				if (total_stock < 8) {
@@ -1772,12 +1802,14 @@ handle_building_update(building_t *building)
 			}
 			break;
 		case BUILDING_SAWMILL:
-			if ((building->serf & 0xc4) == 0) {
+			if (!BIT_TEST(building->serf, 2) &&
+			    !BUILDING_HAS_SERF(building) &&
+			    !BIT_TEST(building->serf, 7)) {
 				int r = send_serf_to_building(building, SERF_SAWMILLER,
 							      RESOURCE_SAW, -1);
 				if (r < 0) building->serf |= BIT(2);
 			}
-			if (BIT_TEST(building->serf, 6)) {
+			if (BUILDING_HAS_SERF(building)) {
 				/* Request more lumber */
 				int total_stock = building->stock[1].requested + building->stock[1].available;
 				if (total_stock < 8) {
@@ -1788,12 +1820,14 @@ handle_building_update(building_t *building)
 			}
 			break;
 		case BUILDING_STEELSMELTER:
-			if ((building->serf & 0xc4) == 0) {
+			if (!BIT_TEST(building->serf, 2) &&
+			    !BUILDING_HAS_SERF(building) &&
+			    !BIT_TEST(building->serf, 7)) {
 				int r = send_serf_to_building(building, SERF_SMELTER,
 							      -1, -1);
 				if (r < 0) building->serf |= BIT(2);
 			}
-			if (BIT_TEST(building->serf, 6)) {
+			if (BUILDING_HAS_SERF(building)) {
 				/* Request more coal */
 				int total_coal = building->stock[0].requested + building->stock[0].available;
 				if (total_coal < 8) {
@@ -1813,12 +1847,14 @@ handle_building_update(building_t *building)
 			}
 			break;
 		case BUILDING_TOOLMAKER:
-			if ((building->serf & 0xc4) == 0) {
+			if (!BIT_TEST(building->serf, 2) &&
+			    !BUILDING_HAS_SERF(building) &&
+			    !BIT_TEST(building->serf, 7)) {
 				int r = send_serf_to_building(building, SERF_TOOLMAKER,
 							      RESOURCE_HAMMER, RESOURCE_SAW);
 				if (r < 0) building->serf |= BIT(2);
 			}
-			if (BIT_TEST(building->serf, 6)) {
+			if (BUILDING_HAS_SERF(building)) {
 				/* Request more planks. */
 				player_sett_t *sett = globals.player_sett[BUILDING_PLAYER(building)];
 				int total_tree = building->stock[0].requested + building->stock[0].available;
@@ -1838,12 +1874,14 @@ handle_building_update(building_t *building)
 			}
 			break;
 		case BUILDING_WEAPONSMITH:
-			if ((building->serf & 0xc4) == 0) {
+			if (!BIT_TEST(building->serf, 2) &&
+			    !BUILDING_HAS_SERF(building) &&
+			    !BIT_TEST(building->serf, 7)) {
 				int r = send_serf_to_building(building, SERF_WEAPONSMITH,
 							      RESOURCE_HAMMER, RESOURCE_PINCER);
 				if (r < 0) building->serf |= BIT(2);
 			}
-			if (BIT_TEST(building->serf, 6)) {
+			if (BUILDING_HAS_SERF(building)) {
 				/* Request more coal. */
 				player_sett_t *sett = globals.player_sett[BUILDING_PLAYER(building)];
 				int total_coal = building->stock[0].requested + building->stock[0].available;
@@ -1924,7 +1962,7 @@ handle_building_update(building_t *building)
 			}
 
 			/* Request gold */
-			if (BIT_TEST(building->serf, 6)) {
+			if (BUILDING_HAS_SERF(building)) {
 				int total_gold = building->stock[1].requested + building->stock[1].available;
 				sett->military_gold += building->stock[1].available;
 				sett->military_max_gold += max_gold;
@@ -2000,7 +2038,7 @@ handle_building_update(building_t *building)
 			}
 
 			/* Request gold */
-			if (BIT_TEST(building->serf, 6)) {
+			if (BUILDING_HAS_SERF(building)) {
 				int total_gold = building->stock[1].requested + building->stock[1].available;
 				sett->military_gold += building->stock[1].available;
 				sett->military_max_gold += max_gold;
@@ -2014,12 +2052,14 @@ handle_building_update(building_t *building)
 			break;
 		}
 		case BUILDING_GOLDSMELTER:
-			if ((building->serf & 0xc4) == 0) {
+			if (!BIT_TEST(building->serf, 2) &&
+			    !BUILDING_HAS_SERF(building) &&
+			    !BIT_TEST(building->serf, 7)) {
 				int r = send_serf_to_building(building, SERF_SMELTER,
 							      -1, -1);
 				if (r < 0) building->serf |= BIT(2);
 			}
-			if (BIT_TEST(building->serf, 6)) {
+			if (BUILDING_HAS_SERF(building)) {
 				/* Request more coal. */
 				player_sett_t *sett = globals.player_sett[BUILDING_PLAYER(building)];
 				int total_coal = building->stock[0].requested + building->stock[0].available;
@@ -2096,7 +2136,7 @@ update_buildings()
 	for (int i = index ? index : 1; i < globals.max_ever_building_index; i++) {
 		if (BUILDING_ALLOCATED(i)) {
 			building_t *building = game_get_building(i);
-			if (BIT_TEST(building->serf, 5)) { /* Building is burning */
+			if (BUILDING_IS_BURNING(building)) {
 				uint16_t delta = globals.anim - building->u.anim;
 				building->u.anim = globals.anim;
 				if (building->serf_index >= delta) {
@@ -2958,7 +2998,7 @@ game_demolish_building(map_pos_t pos)
 	player_sett_t *sett = globals.player_sett[BUILDING_PLAYER(building)];
 	map_tile_t *tiles = globals.map.tiles;
 
-	if (BIT_TEST(building->serf, 5)) return; /* Already burning */
+	if (BUILDING_IS_BURNING(building)) return;
 
 	building->serf |= BIT(5);
 
@@ -3063,7 +3103,7 @@ game_demolish_building(map_pos_t pos)
 		sett->incomplete_building_count[BUILDING_TYPE(building)] -= 1;
 	}
 
-	if (BIT_TEST(building->serf, 6)) {
+	if (BUILDING_HAS_SERF(building)) {
 		building->serf &= ~BIT(6);
 
 		if (BUILDING_IS_DONE(building) &&

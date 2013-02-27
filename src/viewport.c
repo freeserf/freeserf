@@ -1320,7 +1320,7 @@ draw_building(map_pos_t pos, int x, int y, frame_t *frame)
 {
 	building_t *building = game_get_building(MAP_OBJ_INDEX(pos));
 
-	if (BIT_TEST(building->serf, 5)) { /* check whether building is burning */
+	if (BUILDING_IS_BURNING(building)) {
 		draw_burning_building(building, x, y, frame);
 	} else {
 		draw_unharmed_building(building, x, y, frame);

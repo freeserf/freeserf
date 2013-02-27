@@ -1119,7 +1119,7 @@ handle_serf_entering_building_state(serf_t *serf)
 				serf_enter_inventory(serf);
 			} else {
 				building_t *building = game_get_building(MAP_OBJ_INDEX(serf->pos));
-				if (BIT_TEST(building->serf, 5)) { /* Burning */
+				if (BUILDING_IS_BURNING(building)) {
 					serf_log_state_change(serf, SERF_STATE_LOST);
 					serf->state = SERF_STATE_LOST;
 					serf->counter = 0;
