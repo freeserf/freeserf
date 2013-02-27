@@ -31,18 +31,31 @@
 #define BUILDING_INDEX(ptr)  ((int)((ptr) - globals.buildings))
 #define BUILDING_ALLOCATED(i)  BIT_TEST(globals.buildings_bitmap[(i)>>3], 7-((i)&7))
 
+/* Owning player of the building. */
 #define BUILDING_PLAYER(building)  ((int)((building)->bld & 3))
+/* Type of building. */
 #define BUILDING_TYPE(building)  ((building_type_t)(((building)->bld >> 2) & 0x1f))
+/* Whether construction of the building is finished. */
 #define BUILDING_IS_DONE(building)  (!(((building)->bld >> 7) & 1))
 
+/* The military state of the building. Higher values mean that
+   the building is closer to the enemy. */
 #define BUILDING_STATE(building)  ((int)((building)->serf & 3))
-#define BUILDING_SERF_REQUEST_FAIL(building)  ((int)(((building)->serf >> 2) & 1))
+/* Building is currently playing back a sound effect. */
 #define BUILDING_PLAYING_SFX(building)  ((int)(((building)->serf >> 3) & 1))
+/* Building is active (specifics depend on building type). */
 #define BUILDING_IS_ACTIVE(building)  ((int)(((building)->serf >> 4) & 1))
+/* Building is burning. */
 #define BUILDING_IS_BURNING(building)  ((int)(((building)->serf >> 5) & 1))
+/* Building has an associated serf. */
 #define BUILDING_HAS_SERF(building)  ((int)(((building)->serf >> 6) & 1))
+/* Building has succesfully requested a serf. */
 #define BUILDING_SERF_REQUESTED(building)  ((int)(((building)->serf >> 7) & 1))
+/* Building has requested a serf but none was available. */
+#define BUILDING_SERF_REQUEST_FAIL(building)  ((int)(((building)->serf >> 2) & 1))
 
+/* Building has inventory and the inventory pointer
+   is valid. */
 #define BUILDING_HAS_INVENTORY(building)  ((building)->stock[0].requested == 0xff)
 
 
