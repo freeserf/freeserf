@@ -1,7 +1,7 @@
 /*
  * popup.c - Popup GUI component
  *
- * Copyright (C) 2012  Jon Lund Steffensen <jonlst@gmail.com>
+ * Copyright (C) 2013  Jon Lund Steffensen <jonlst@gmail.com>
  *
  * This file is part of freeserf.
  *
@@ -1855,7 +1855,7 @@ draw_mine_output_box(popup_box_t *popup, frame_t *frame)
 	draw_popup_icon(10, 75, sprite, frame);
 
 	/* Draw food present at mine */
-	int stock = (building->stock1 >> 4) & 0xf;
+	int stock = building->stock[0].available;
 	int stock_left_col = (stock + 1) >> 1;
 	int stock_right_col = stock >> 1;
 
@@ -1953,15 +1953,13 @@ draw_defenders_box(popup_box_t *popup, frame_t *frame)
 	draw_popup_building(x, y, sprite, frame);
 
 	/* Draw gold stock */
-	if (building->stock2 & 0xf0) {
-		int amount = (building->stock2 >> 4) & 0xf;
-
-		int left = (amount + 1) / 2;
+	if (building->stock[1].available > 0) {
+		int left = (building->stock[1].available + 1) / 2;
 		for (int i = 0; i < left; i++) {
 			draw_popup_icon(1, 32 - 8*left + 16*i, 0x30, frame);
 		}
 
-		int right = amount / 2;
+		int right = building->stock[1].available / 2;
 		for (int i = 0; i < right; i++) {
 			draw_popup_icon(13, 32 - 8*right + 16*i, 0x30, frame);
 		}
@@ -2655,7 +2653,7 @@ draw_building_stock_box(popup_box_t *popup, frame_t *frame)
 
 	/* Draw list of primary resource */
 	if (sprite1 >= 0) {
-		int stock1 = (building->stock1 >> 4) & 0xf;
+		int stock1 = building->stock[0].available;
 		if (stock1 > 0) {
 			for (int i = 0; i < stock1; i++) {
 				draw_popup_icon(8-stock1+2*i, 110, sprite1, frame);
@@ -2667,7 +2665,7 @@ draw_building_stock_box(popup_box_t *popup, frame_t *frame)
 
 	/* Draw list of secondary resource */
 	if (sprite2 >= 0) {
-		int stock2 = (building->stock2 >> 4) & 0xf;
+		int stock2 = building->stock[1].available;
 		if (stock2 > 0) {
 			for (int i = 0; i < stock2; i++) {
 				draw_popup_icon(8-stock2+2*i, 90, sprite2, frame);

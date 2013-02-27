@@ -1,7 +1,7 @@
 /*
  * building.h - Building related functions.
  *
- * Copyright (C) 2012  Jon Lund Steffensen <jonlst@gmail.com>
+ * Copyright (C) 2013  Jon Lund Steffensen <jonlst@gmail.com>
  *
  * This file is part of freeserf.
  *
@@ -36,7 +36,7 @@
 #define BUILDING_IS_DONE(building)  (!(((building)->bld >> 7) & 1))
 #define BUILDING_IS_ACTIVE(building)  ((int)(((building)->serf >> 4) & 1))
 #define BUILDING_IS_BURNING(building)  ((int)(((building)->serf >> 5) & 1))
-#define BUILDING_HAS_INVENTORY(building)  ((building)->stock1 == 0xff)
+#define BUILDING_HAS_INVENTORY(building)  ((building)->stock[0].requested == 0xff)
 
 
 typedef enum {
@@ -68,6 +68,11 @@ typedef enum {
 } building_type_t;
 
 
+typedef struct {
+	int available;
+	int requested;
+} building_stock_t;
+
 typedef struct building building_t;
 
 struct building {
@@ -75,8 +80,7 @@ struct building {
 	int bld;
 	int serf;
 	int flg_index;
-	int stock1;
-	int stock2;
+	building_stock_t stock[2];
 	int serf_index; /* Also used for burning building counter. */
 	int progress;
 	union {

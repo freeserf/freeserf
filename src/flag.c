@@ -1,7 +1,7 @@
 /*
  * flag.c - Flag related functions.
  *
- * Copyright (C) 2012  Jon Lund Steffensen <jonlst@gmail.com>
+ * Copyright (C) 2013  Jon Lund Steffensen <jonlst@gmail.com>
  *
  * This file is part of freeserf.
  *
@@ -21,6 +21,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <assert.h>
 
 #include "flag.h"
 #include "building.h"
@@ -169,11 +170,8 @@ flag_cancel_transported_stock(flag_t *flag, int res)
 		if (!BUILDING_IS_DONE(building) ||
 		    (BUILDING_TYPE(building) != BUILDING_STOCK &&
 		     BUILDING_TYPE(building) != BUILDING_CASTLE)) {
-			if (res_stock_type[res] == 0) {
-				building->stock1 -= 1;
-			} else {
-				building->stock2 -= 1;
-			}
+			assert(res_stock_type[res] >= 0);
+			building->stock[res_stock_type[res]].requested -= 1;
 		}
 	}
 }

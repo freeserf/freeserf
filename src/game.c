@@ -128,8 +128,10 @@ game_alloc_building(building_t **building, int *index)
 					b->bld = 0;
 					b->flg_index = 0;
 					b->serf = 0;
-					b->stock1 = 0;
-					b->stock2 = 0;
+					b->stock[0].available = 0;
+					b->stock[0].requested = 0;
+					b->stock[1].available = 0;
+					b->stock[1].requested = 0;
 					b->serf_index = 0;
 
 					if (building != NULL) *building = b;
@@ -647,10 +649,10 @@ update_ai_and_more()
 							inventory_t *src_inv = invs[i];
 							if (arr[0] == 66) {
 								flags[i]->stock1_prio = 0;
-								dest_bld->stock1 += 1;
+								dest_bld->stock[0].requested += 1;
 							} else if (arr[0] == 68) {
 								flags[i]->stock2_prio = 0;
-								dest_bld->stock2 += 1;
+								dest_bld->stock[1].requested += 1;
 							}
 
 							resource_type_t res = arr[2];
@@ -1046,10 +1048,10 @@ update_flags()
 										if ((prio & 1) == 0) prio = 0;
 										if (arr2[2*res+1] == 66) {
 											data.flag->stock1_prio = prio >> 1;
-											dest_bld->stock1 += 1;
+											dest_bld->stock[0].requested += 1;
 										} else {
 											data.flag->stock2_prio = prio >> 1;
-											dest_bld->stock2 += 1;
+											dest_bld->stock[1].requested += 1;
 										}
 
 										flag->res_dest[slot] = dest_bld->flg_index;
@@ -1153,7 +1155,7 @@ send_serf_to_flag_search_cb(flag_t *flag, send_serf_to_flag_data_t *data)
 				serf_t *serf = game_get_serf(inv->serfs[SERF_KNIGHT_0+knight_type]);
 				inv->serfs[SERF_KNIGHT_0+knight_type] = 0;
 
-				data->building->stock1 += 1;
+				data->building->stock[0].requested += 1;
 				data->building->serf &= ~BIT(7);
 
 				serf_log_state_change(serf, SERF_STATE_READY_TO_LEAVE_INVENTORY);
@@ -1250,7 +1252,7 @@ send_serf_to_flag(flag_t *dest, building_t *building, int dest_index,
 
 		if (type < 0) {
 			/* Knight */
-			building->stock1 += 1;
+			building->stock[0].requested += 1;
 			building->serf &= ~BIT(7);
 
 			serf_log_state_change(serf, SERF_STATE_READY_TO_LEAVE_INVENTORY);
@@ -1348,7 +1350,7 @@ update_unfinished_building(building_t *building)
 		TODO
 	}*/
 
-	int total_planks = ((building->stock1 >> 4) & 0xf) + (building->stock1 & 0xf);
+	int total_planks = building->stock[0].requested + building->stock[0].available;
 	if (total_planks < 8 && total_planks != building->u.s.planks_needed) {
 		int planks_prio = sett->planks_construction >> (8 + total_planks);
 		if (!BIT_TEST(building->serf, 6)) planks_prio >>= 2;
@@ -1365,7 +1367,7 @@ update_unfinished_building(building_t *building)
 		TODO
 	}*/
 
-	int total_stone = ((building->stock2 >> 4) & 0xf) + (building->stock2 & 0xf);
+	int total_stone = building->stock[1].requested + building->stock[1].available;
 	if (total_stone < 8 && total_stone != building->u.s.stone_needed) {
 		int stone_prio = 0xff >> total_stone;
 		if (!BIT_TEST(building->serf, 6)) stone_prio >>= 2;
@@ -1494,7 +1496,7 @@ handle_building_update(building_t *building)
 			}
 			if (BIT_TEST(building->serf, 6)) {
 				player_sett_t *sett = globals.player_sett[BUILDING_PLAYER(building)];
-				int total_tree = ((building->stock1 >> 4) & 0xf) + (building->stock1 & 0xf);
+				int total_tree = building->stock[0].requested + building->stock[0].available;
 				if (total_tree < 8 && 1/*!BIT_TEST(sett->field_163, 1)*/) {
 					building->u.flag->stock1_prio = sett->planks_boatbuilder >> (8 + total_tree);
 				} else {
@@ -1516,7 +1518,7 @@ handle_building_update(building_t *building)
 				if (r < 0) building->serf |= BIT(2);
 			}
 			if (BIT_TEST(building->serf, 6)) {
-				int total_food = ((building->stock1 >> 4) & 0xf) + (building->stock1 & 0xf);
+				int total_food = building->stock[0].requested + building->stock[0].available;
 				if (total_food < 8) {
 					player_sett_t *sett = globals.player_sett[BUILDING_PLAYER(building)];
 					building->u.flag->stock1_prio = sett->food_stonemine >> (8 + total_food);
@@ -1532,7 +1534,7 @@ handle_building_update(building_t *building)
 				if (r < 0) building->serf |= BIT(2);
 			}
 			if (BIT_TEST(building->serf, 6)) {
-				int total_food = ((building->stock1 >> 4) & 0xf) + (building->stock1 & 0xf);
+				int total_food = building->stock[0].requested + building->stock[0].available;
 				if (total_food < 8) {
 					player_sett_t *sett = globals.player_sett[BUILDING_PLAYER(building)];
 					building->u.flag->stock1_prio = sett->food_coalmine >> (8 + total_food);
@@ -1548,7 +1550,7 @@ handle_building_update(building_t *building)
 				if (r < 0) building->serf |= BIT(2);
 			}
 			if (BIT_TEST(building->serf, 6)) {
-				int total_food = ((building->stock1 >> 4) & 0xf) + (building->stock1 & 0xf);
+				int total_food = building->stock[0].requested + building->stock[0].available;
 				if (total_food < 8) {
 					player_sett_t *sett = globals.player_sett[BUILDING_PLAYER(building)];
 					building->u.flag->stock1_prio = sett->food_ironmine >> (8 + total_food);
@@ -1564,7 +1566,7 @@ handle_building_update(building_t *building)
 				if (r < 0) building->serf |= BIT(2);
 			}
 			if (BIT_TEST(building->serf, 6)) {
-				int total_food = ((building->stock1 >> 4) & 0xf) + (building->stock1 & 0xf);
+				int total_food = building->stock[0].requested + building->stock[0].available;
 				if (total_food < 8) {
 					player_sett_t *sett = globals.player_sett[BUILDING_PLAYER(building)];
 					building->u.flag->stock1_prio = sett->food_goldmine >> (8 + total_food);
@@ -1590,8 +1592,10 @@ handle_building_update(building_t *building)
 				inv->flg_index = building->flg_index;
 
 				building->u.inventory = inv;
-				building->stock1 = 0xff;
-				building->stock2 = 0xff;
+				building->stock[0].requested = 0xff;
+				building->stock[0].available = 0xff;
+				building->stock[1].requested = 0xff;
+				building->stock[1].available = 0xff;
 				building->serf |= BIT(4);
 
 				player_add_notification(globals.player_sett[BUILDING_PLAYER(building)],
@@ -1637,8 +1641,8 @@ handle_building_update(building_t *building)
 			int needed_occupants = hut_occupants_from_level[max_occ_level];
 			int max_gold = 2;
 
-			int total_knights = (building->stock1 & 0xf) + ((building->stock1 >> 4) & 0xf);
-			int present_knights = (building->stock1 >> 4) & 0xf;
+			int total_knights = building->stock[0].requested + building->stock[0].available;
+			int present_knights = building->stock[0].available;
 			if (total_knights < needed_occupants) {
 				if (!BIT_TEST(building->serf, 2)) {
 					int r = send_serf_to_building(building, -1, -1, -1);
@@ -1681,13 +1685,13 @@ handle_building_update(building_t *building)
 				leaving_serf->s.leaving_building.dir = 0;
 				leaving_serf->s.leaving_building.next_state = SERF_STATE_WALKING;
 
-				building->stock1 -= 0x10;
+				building->stock[0].available -= 1;
 			}
 
 			/* Request gold */
 			if (BIT_TEST(building->serf, 6)) {
-				int total_gold = (building->stock2 & 0xf) + ((building->stock2 >> 4) & 0xf);
-				sett->military_gold += (building->stock2 >> 4) & 0xf;
+				int total_gold = building->stock[1].requested + building->stock[1].available;
+				sett->military_gold += building->stock[1].available;
 				sett->military_max_gold += max_gold;
 
 				if (total_gold < max_gold) {
@@ -1712,7 +1716,7 @@ handle_building_update(building_t *building)
 			}
 			if (BIT_TEST(building->serf, 6)) {
 				/* Request more of that delicious meat. */
-				int total_stock = (building->stock1 & 0xf) + ((building->stock1 >> 4) & 0xf);
+				int total_stock = building->stock[0].requested + building->stock[0].available;
 				if (total_stock < 8) {
 					building->u.flag->stock1_prio = (0xff >> total_stock);
 				} else {
@@ -1727,7 +1731,7 @@ handle_building_update(building_t *building)
 			}
 			if (BIT_TEST(building->serf, 6)) {
 				/* Request more wheat. */
-				int total_stock = (building->stock1 & 0xf) + ((building->stock1 >> 4) & 0xf);
+				int total_stock = building->stock[0].requested + building->stock[0].available;
 				if (total_stock < 8) {
 					player_sett_t *sett = globals.player_sett[BUILDING_PLAYER(building)];
 					building->u.flag->stock1_prio = sett->wheat_pigfarm >> (8 + total_stock);
@@ -1743,7 +1747,7 @@ handle_building_update(building_t *building)
 			}
 			if (BIT_TEST(building->serf, 6)) {
 				/* Request more wheat. */
-				int total_stock = (building->stock1 & 0xf) + ((building->stock1 >> 4) & 0xf);
+				int total_stock = building->stock[0].requested + building->stock[0].available;
 				if (total_stock < 8) {
 					player_sett_t *sett = globals.player_sett[BUILDING_PLAYER(building)];
 					building->u.flag->stock1_prio = sett->wheat_mill >> (8 + total_stock);
@@ -1759,7 +1763,7 @@ handle_building_update(building_t *building)
 			}
 			if (BIT_TEST(building->serf, 6)) {
 				/* Request more flour. */
-				int total_stock = (building->stock1 & 0xf) + ((building->stock1 >> 4) & 0xf);
+				int total_stock = building->stock[0].requested + building->stock[0].available;
 				if (total_stock < 8) {
 					building->u.flag->stock1_prio = 0xff >> total_stock;
 				} else {
@@ -1775,7 +1779,7 @@ handle_building_update(building_t *building)
 			}
 			if (BIT_TEST(building->serf, 6)) {
 				/* Request more lumber */
-				int total_stock = (building->stock2 & 0xf) + ((building->stock2 >> 4) & 0xf);
+				int total_stock = building->stock[1].requested + building->stock[1].available;
 				if (total_stock < 8) {
 					building->u.flag->stock2_prio = 0xff >> total_stock;
 				} else {
@@ -1791,7 +1795,7 @@ handle_building_update(building_t *building)
 			}
 			if (BIT_TEST(building->serf, 6)) {
 				/* Request more coal */
-				int total_coal = (building->stock1 & 0xf) + ((building->stock1 >> 4) & 0xf);
+				int total_coal = building->stock[0].requested + building->stock[0].available;
 				if (total_coal < 8) {
 					player_sett_t *sett = globals.player_sett[BUILDING_PLAYER(building)];
 					building->u.flag->stock1_prio = sett->coal_steelsmelter >> (8 + total_coal);
@@ -1800,7 +1804,7 @@ handle_building_update(building_t *building)
 				}
 
 				/* Request more iron ore */
-				int total_ironore = (building->stock2 & 0xf) + ((building->stock2 >> 4) & 0xf);
+				int total_ironore = building->stock[1].requested + building->stock[1].available;
 				if (total_ironore < 8) {
 					building->u.flag->stock2_prio = 0xff >> total_ironore;
 				} else {
@@ -1817,7 +1821,7 @@ handle_building_update(building_t *building)
 			if (BIT_TEST(building->serf, 6)) {
 				/* Request more planks. */
 				player_sett_t *sett = globals.player_sett[BUILDING_PLAYER(building)];
-				int total_tree = ((building->stock1 >> 4) & 0xf) + (building->stock1 & 0xf);
+				int total_tree = building->stock[0].requested + building->stock[0].available;
 				if (total_tree < 8 && 1/*!BIT_TEST(sett->field_163, 1)*/) {
 					building->u.flag->stock1_prio = sett->planks_toolmaker >> (8 + total_tree);
 				} else {
@@ -1825,7 +1829,7 @@ handle_building_update(building_t *building)
 				}
 
 				/* Request more steel. */
-				int total_steel = ((building->stock2 >> 4) & 0xf) + (building->stock2 & 0xf);
+				int total_steel = building->stock[1].requested + building->stock[1].available;
 				if (total_steel < 8) {
 					building->u.flag->stock2_prio = sett->steel_toolmaker >> (8 + total_steel);
 				} else {
@@ -1842,7 +1846,7 @@ handle_building_update(building_t *building)
 			if (BIT_TEST(building->serf, 6)) {
 				/* Request more coal. */
 				player_sett_t *sett = globals.player_sett[BUILDING_PLAYER(building)];
-				int total_coal = ((building->stock1 >> 4) & 0xf) + (building->stock1 & 0xf);
+				int total_coal = building->stock[0].requested + building->stock[0].available;
 				if (total_coal < 8) {
 					building->u.flag->stock1_prio = sett->coal_weaponsmith >> (8 + total_coal);
 				} else {
@@ -1850,7 +1854,7 @@ handle_building_update(building_t *building)
 				}
 
 				/* Request more steel. */
-				int total_steel = ((building->stock2 >> 4) & 0xf) + (building->stock2 & 0xf);
+				int total_steel = building->stock[1].requested + building->stock[1].available;
 				if (total_steel < 8) {
 					building->u.flag->stock2_prio = sett->steel_weaponsmith >> (8 + total_steel);
 				} else {
@@ -1872,8 +1876,8 @@ handle_building_update(building_t *building)
 			int needed_occupants = tower_occupants_from_level[max_occ_level];
 			int max_gold = 4;
 
-			int total_knights = (building->stock1 & 0xf) + ((building->stock1 >> 4) & 0xf);
-			int present_knights = (building->stock1 >> 4) & 0xf;
+			int total_knights = building->stock[0].requested + building->stock[0].available;
+			int present_knights = building->stock[0].available;
 			if (total_knights < needed_occupants) {
 				if (!BIT_TEST(building->serf, 2)) {
 					int r = send_serf_to_building(building, -1, -1, -1);
@@ -1916,13 +1920,13 @@ handle_building_update(building_t *building)
 				leaving_serf->s.leaving_building.dir = 0;
 				leaving_serf->s.leaving_building.next_state = SERF_STATE_WALKING;
 
-				building->stock1 -= 0x10;
+				building->stock[0].available -= 1;
 			}
 
 			/* Request gold */
 			if (BIT_TEST(building->serf, 6)) {
-				int total_gold = (building->stock2 & 0xf) + ((building->stock2 >> 4) & 0xf);
-				sett->military_gold += (building->stock2 >> 4) & 0xf;
+				int total_gold = building->stock[1].requested + building->stock[1].available;
+				sett->military_gold += building->stock[1].available;
 				sett->military_max_gold += max_gold;
 
 				if (total_gold < max_gold) {
@@ -1947,8 +1951,8 @@ handle_building_update(building_t *building)
 			int needed_occupants = fortress_occupants_from_level[max_occ_level];
 			int max_gold = 8;
 
-			int total_knights = (building->stock1 & 0xf) + ((building->stock1 >> 4) & 0xf);
-			int present_knights = (building->stock1 >> 4) & 0xf;
+			int total_knights = building->stock[0].requested + building->stock[0].available;
+			int present_knights = building->stock[0].available;
 			if (total_knights < needed_occupants) {
 				/* Send a knight to this building. */
 				if (!BIT_TEST(building->serf, 2)) {
@@ -1992,13 +1996,13 @@ handle_building_update(building_t *building)
 				leaving_serf->s.leaving_building.dir = 0;
 				leaving_serf->s.leaving_building.next_state = SERF_STATE_WALKING;
 
-				building->stock1 -= 0x10;
+				building->stock[0].available -= 1;
 			}
 
 			/* Request gold */
 			if (BIT_TEST(building->serf, 6)) {
-				int total_gold = (building->stock2 & 0xf) + ((building->stock2 >> 4) & 0xf);
-				sett->military_gold += (building->stock2 >> 4) & 0xf;
+				int total_gold = building->stock[1].requested + building->stock[1].available;
+				sett->military_gold += building->stock[1].available;
 				sett->military_max_gold += max_gold;
 
 				if (total_gold < max_gold) {
@@ -2018,7 +2022,7 @@ handle_building_update(building_t *building)
 			if (BIT_TEST(building->serf, 6)) {
 				/* Request more coal. */
 				player_sett_t *sett = globals.player_sett[BUILDING_PLAYER(building)];
-				int total_coal = ((building->stock1 >> 4) & 0xf) + (building->stock1 & 0xf);
+				int total_coal = building->stock[0].requested + building->stock[0].available;
 				if (total_coal < 8) {
 					building->u.flag->stock1_prio = sett->coal_goldsmelter >> (8 + total_coal);
 				} else {
@@ -2026,7 +2030,7 @@ handle_building_update(building_t *building)
 				}
 
 				/* Request more gold ore. */
-				int total_goldore = ((building->stock2 >> 4) & 0xf) + (building->stock2 & 0xf);
+				int total_goldore = building->stock[1].requested + building->stock[1].available;
 				if (total_goldore < 8) {
 					building->u.flag->stock2_prio = 0xff >> total_goldore;
 				} else {
@@ -2653,8 +2657,8 @@ lose_transported_resource(resource_type_t res, uint dest)
 		if (!(BUILDING_IS_DONE(building) &&
 		      (BUILDING_TYPE(building) == BUILDING_CASTLE ||
 		       BUILDING_TYPE(building) == BUILDING_STOCK))) {
-			if (stock_type[res] == 0) building->stock1 -= 1;
-			else building->stock2 -= 1;
+			assert(stock_type[res] >= 0);
+			building->stock[stock_type[res]].requested -= 1;
 		}
 	}
 }
@@ -2681,7 +2685,7 @@ mark_serf_as_lost(serf_t *serf)
 			if (BIT_TEST(building->serf, 7)) {
 				building->serf &= ~BIT(7);
 			} else if (!BUILDING_HAS_INVENTORY(building)) {
-				building->stock1 -= 1;
+				building->stock[0].requested -= 1;
 			}
 		}
 
@@ -2968,7 +2972,7 @@ game_demolish_building(map_pos_t pos)
 	     BUILDING_TYPE(building) == BUILDING_TOWER ||
 	     BUILDING_TYPE(building) == BUILDING_FORTRESS ||
 	     BUILDING_TYPE(building) == BUILDING_GOLDSMELTER)) {
-		int gold_stock = (building->stock2 >> 4) & 0xf;
+		int gold_stock = building->stock[1].available;
 		globals.map_gold_deposit -= gold_stock;
 	}
 
@@ -3037,8 +3041,10 @@ game_demolish_building(map_pos_t pos)
 	}
 
 	/* Remove stock from building. */
-	building->stock1 = 0;
-	building->stock2 = 0;
+	building->stock[0].available = 0;
+	building->stock[0].requested = 0;
+	building->stock[1].available = 0;
+	building->stock[1].requested = 0;
 
 	building->serf &= ~BIT(3);
 

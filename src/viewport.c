@@ -1,7 +1,7 @@
 /*
  * viewport.c - Viewport GUI component
  *
- * Copyright (C) 2012  Jon Lund Steffensen <jonlst@gmail.com>
+ * Copyright (C) 2013  Jon Lund Steffensen <jonlst@gmail.com>
  *
  * This file is part of freeserf.
  *
@@ -838,13 +838,13 @@ draw_building_unfinished(building_t *building, building_type_t bld_type, int x, 
 		draw_shadow_and_building_sprite(x, y, 0x90, frame);
 	} else {
 		/* Stone waiting */
-		int stone = (building->stock2 >> 4) & 0xf;
+		int stone = building->stock[1].available;
 		for (int i = 0; i < stone; i++) {
 			draw_game_sprite(x+10 - i*3, y-8 + i, 1 + RESOURCE_STONE, frame);
 		}
 
 		/* Planks waiting */
-		int planks = (building->stock1 >> 4) & 0xf;
+		int planks = building->stock[0].available;
 		for (int i = 0; i < planks; i++) {
 			draw_game_sprite(x+12 - i*3, y-6 + i, 1 + RESOURCE_PLANK, frame);
 		}
@@ -907,9 +907,9 @@ draw_unharmed_building(building_t *building, int x, int y, frame_t *frame)
 			break;
 		case BUILDING_BOATBUILDER:
 			draw_shadow_and_building_sprite(x, y, map_building_sprite[type], frame);
-			if (building->stock2) {
+			if (building->stock[1].available > 0) {
 				/* TODO x might not be correct */
-				draw_game_sprite(x+3, y + 13, 174 + building->stock2, frame);
+				draw_game_sprite(x+3, y + 13, 174 + building->stock[1].available, frame);
 			}
 			break;
 		case BUILDING_STONEMINE:
@@ -931,29 +931,29 @@ draw_unharmed_building(building_t *building, int x, int y, frame_t *frame)
 		case BUILDING_HUT:
 			draw_shadow_and_building_sprite(x, y, map_building_sprite[type], frame);
 			if (building->serf_index != 0) {
-				draw_game_sprite(x-14, y+2 - 2*((building->stock1 >> 4) & 0xf),
+				draw_game_sprite(x-14, y+2 - 2*building->stock[0].available,
 						 182 + ((globals.anim >> 3) & 3) + 4*(building->serf & 3),
 						 frame);
 			}
 			break;
 		case BUILDING_PIGFARM:
 			draw_shadow_and_building_sprite(x, y, map_building_sprite[type], frame);
-			if (building->stock2 > 0) {
-				if ((random_int() & 0x7f) < building->stock2) {
+			if (building->stock[1].available > 0) {
+				if ((random_int() & 0x7f) < building->stock[1].available) {
 					sfx_play_clip(SFX_PIG_OINK);
 				}
 
-				if (building->stock2 >= 6) {
+				if (building->stock[1].available >= 6) {
 					int i = (140 + (globals.anim >> 3)) & 0xfe;
 					draw_game_sprite(x + pigfarm_anim[i+1] - 2, y+6, pigfarm_anim[i], frame);
 				}
 
-				if (building->stock2 >= 5) {
+				if (building->stock[1].available >= 5) {
 					int i = (280 + (globals.anim >> 3)) & 0xfe;
 					draw_game_sprite(x + pigfarm_anim[i+1] + 8, y+8, pigfarm_anim[i], frame);
 				}
 
-				if (building->stock2 >= 3) {
+				if (building->stock[1].available >= 3) {
 					int i = (420 + (globals.anim >> 3)) & 0xfe;
 					draw_game_sprite(x + pigfarm_anim[i+1] - 11, y+8, pigfarm_anim[i], frame);
 				}
@@ -961,22 +961,22 @@ draw_unharmed_building(building_t *building, int x, int y, frame_t *frame)
 				int i = (40 + (globals.anim >> 3)) & 0xfe;
 				draw_game_sprite(x + pigfarm_anim[i+1] + 2, y+11, pigfarm_anim[i], frame);
 
-				if (building->stock2 >= 7) {
+				if (building->stock[1].available >= 7) {
 					int i = (180 + (globals.anim >> 3)) & 0xfe;
 					draw_game_sprite(x + pigfarm_anim[i+1] - 8, y+13, pigfarm_anim[i], frame);
 				}
 
-				if (building->stock2 >= 8) {
+				if (building->stock[1].available >= 8) {
 					int i = (320 + (globals.anim >> 3)) & 0xfe;
 					draw_game_sprite(x + pigfarm_anim[i+1] + 13, y+14, pigfarm_anim[i], frame);
 				}
 
-				if (building->stock2 >= 2) {
+				if (building->stock[1].available >= 2) {
 					int i = (460 + (globals.anim >> 3)) & 0xfe;
 					draw_game_sprite(x + pigfarm_anim[i+1], y+17, pigfarm_anim[i], frame);
 				}
 
-				if (building->stock2 >= 4) {
+				if (building->stock[1].available >= 4) {
 					int i = (90 + (globals.anim >> 3)) & 0xfe;
 					draw_game_sprite(x + pigfarm_anim[i+1] - 11, y+19, pigfarm_anim[i], frame);
 				}
@@ -1025,7 +1025,7 @@ draw_unharmed_building(building_t *building, int x, int y, frame_t *frame)
 		case BUILDING_TOWER:
 			draw_shadow_and_building_sprite(x, y, map_building_sprite[type], frame);
 			if (building->serf_index != 0) {
-				draw_game_sprite(x+13, y - 18 - ((building->stock1 >> 4) & 0xf),
+				draw_game_sprite(x+13, y - 18 - building->stock[0].available,
 						 182 + ((globals.anim >> 3) & 3) + 4*(building->serf & 3),
 						 frame);
 			}
@@ -1033,10 +1033,10 @@ draw_unharmed_building(building_t *building, int x, int y, frame_t *frame)
 		case BUILDING_FORTRESS:
 			draw_shadow_and_building_sprite(x, y, map_building_sprite[type], frame);
 			if (building->serf_index != 0) {
-				draw_game_sprite(x-12, y - 21 - ((building->stock1 >> 5) & 7),
+				draw_game_sprite(x-12, y - 21 - building->stock[0].available/2,
 						 182 + ((globals.anim >> 3) & 3) + 4*(building->serf & 3),
 						 frame);
-				draw_game_sprite(x+22, y - 34 - (((building->stock1+16) >> 5) & 7),
+				draw_game_sprite(x+22, y - 34 - (building->stock[0].available+1)/2,
 						 182 + (((globals.anim >> 3) + 2) & 3) + 4*(building->serf & 3),
 						 frame);
 			}

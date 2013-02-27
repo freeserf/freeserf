@@ -1,7 +1,7 @@
 /*
  * player.c - Player related functions
  *
- * Copyright (C) 2012  Jon Lund Steffensen <jonlst@gmail.com>
+ * Copyright (C) 2013  Jon Lund Steffensen <jonlst@gmail.com>
  *
  * This file is part of freeserf.
  *
@@ -1619,8 +1619,10 @@ player_build_castle(player_t *player)
 	flag->pos = MAP_MOVE_DOWN_RIGHT(map_cursor_pos);
 	castle->bld = BIT(7) | (BUILDING_CASTLE << 2) | player->sett->player_num;
 	castle->progress = 0;
-	castle->stock1 = 0xff;
-	castle->stock2 = 0xff;
+	castle->stock[0].available = 0xff;
+	castle->stock[0].requested = 0xff;
+	castle->stock[1].available = 0xff;
+	castle->stock[1].requested = 0xff;
 	player->sett->building = bld_index;
 	flag->path_con = player->sett->player_num << 6;
 	flag->bld_flags = BIT(7) | BIT(6);
@@ -1887,7 +1889,7 @@ available_knights_at_pos(player_sett_t *sett, map_pos_t pos, int index, int dist
 	sett->attacking_buildings[index] = bld_index;
 
 	int state = building->serf & 3;
-	int knights_present = (building->stock1 >> 4) & 0xf;
+	int knights_present = building->stock[0].available;
 	int to_send = knights_present - min_level[sett->knight_occupation[state] & 0xf];
 
 	if (to_send > 0) sett->attacking_knights[dist] += to_send;
@@ -1985,7 +1987,7 @@ player_start_attack(player_sett_t *sett)
 		}
 
 		int state = b->serf & 3;
-		int knights_present = (b->stock1 >> 4) & 0xf;
+		int knights_present = b->stock[0].available;
 		int to_send = knights_present - min_level[sett->knight_occupation[state] & 0xf];
 
 		for (int j = 0; j < to_send; j++) {
@@ -2019,7 +2021,7 @@ player_start_attack(player_sett_t *sett)
 				def_serf = game_get_serf(*def_index);
 			}
 			*def_index = def_serf->s.defending.next_knight;
-			b->stock1 -= 0x10;
+			b->stock[0].available -= 1;
 
 			target->progress |= BIT(0);
 

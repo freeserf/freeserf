@@ -1,7 +1,7 @@
 /*
  * savegame.c - Loading and saving of save games
  *
- * Copyright (C) 2012  Jon Lund Steffensen <jonlst@gmail.com>
+ * Copyright (C) 2013  Jon Lund Steffensen <jonlst@gmail.com>
  *
  * This file is part of freeserf.
  *
@@ -689,8 +689,10 @@ load_v0_building_state(FILE *f, const v0_map_t *map)
 		building->bld = building_data[4];
 		building->serf = building_data[5];
 		building->flg_index = *(uint16_t *)&building_data[6];
-		building->stock1 = building_data[8];
-		building->stock2 = building_data[9];
+		building->stock[0].available = (building_data[8] >> 4) & 0xf;
+		building->stock[0].requested = building_data[8] & 0xf;
+		building->stock[1].available = (building_data[9] >> 4) & 0xf;
+		building->stock[1].requested = building_data[9] & 0xf;
 		building->serf_index = *(uint16_t *)&building_data[10];
 		building->progress = *(uint16_t *)&building_data[12];
 
@@ -1029,8 +1031,10 @@ save_text_building_state(FILE *f)
 			save_text_write_value(f, "bld", building->bld);
 			save_text_write_value(f, "serf", building->serf);
 			save_text_write_value(f, "flag_index", building->flg_index);
-			save_text_write_value(f, "stock1", building->stock1);
-			save_text_write_value(f, "stock2", building->stock2);
+			save_text_write_value(f, "stock[0].available", building->stock[0].available);
+			save_text_write_value(f, "stock[0].requested", building->stock[0].requested);
+			save_text_write_value(f, "stock[1].available", building->stock[1].available);
+			save_text_write_value(f, "stock[1].requested", building->stock[1].requested);
 			save_text_write_value(f, "serf_index", building->serf_index);
 			save_text_write_value(f, "progress", building->progress);
 
@@ -1952,10 +1956,20 @@ load_text_building_section(section_t *section)
 			building->serf = atoi(s->value);
 		} else if (!strcmp(s->key, "flag_index")) {
 			building->flg_index = atoi(s->value);
-		} else if (!strcmp(s->key, "stock1")) {
-			building->stock1 = atoi(s->value);
-		} else if (!strcmp(s->key, "stock2")) {
-			building->stock2 = atoi(s->value);
+		} else if (!strcmp(s->key, "stock1")) { /* OBSOLETE */
+			building->stock[0].available = (atoi(s->value) >> 4) & 0xf;
+			building->stock[0].requested = atoi(s->value) & 0xf;
+		} else if (!strcmp(s->key, "stock2")) { /* OBSOLETE */
+			building->stock[1].available = (atoi(s->value) >> 4) & 0xf;
+			building->stock[1].requested = atoi(s->value) & 0xf;
+		} else if (!strcmp(s->key, "stock[0].available")) {
+			building->stock[0].available = atoi(s->value);
+		} else if (!strcmp(s->key, "stock[0].requested")) {
+			building->stock[0].requested = atoi(s->value);
+		} else if (!strcmp(s->key, "stock[1].available")) {
+			building->stock[1].available = atoi(s->value);
+		} else if (!strcmp(s->key, "stock[1].requested")) {
+			building->stock[1].requested = atoi(s->value);
 		} else if (!strcmp(s->key, "serf_index")) {
 			building->serf_index = atoi(s->value);
 		} else if (!strcmp(s->key, "progress")) {
