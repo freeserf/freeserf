@@ -1693,7 +1693,7 @@ handle_serf_ready_to_leave_inventory_state(serf_t *serf)
 
 	if (serf->s.ready_to_leave_inventory.mode == -1) {
 		flag_t *flag = game_get_flag(serf->s.ready_to_leave_inventory.dest);
-		if (BIT_TEST(flag->endpoint, 6)) {
+		if (FLAG_HAS_BUILDING(flag)) {
 			building_t *building = flag->other_endpoint.b[DIR_UP_LEFT];
 			if (MAP_SERF_INDEX(building->pos) != 0) {
 				serf->animation = 82;

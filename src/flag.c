@@ -164,6 +164,8 @@ flag_cancel_transported_stock(flag_t *flag, int res)
 		-1, -1
 	};
 
+	assert(FLAG_HAS_BUILDING(flag));
+
 	if (res_stock_type[res] >= 0 &&
 	    1/*FLAG_INDEX(flag) != ..*/) {
 		building_t *building = flag->other_endpoint.b[DIR_UP_LEFT];

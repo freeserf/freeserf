@@ -30,6 +30,7 @@
 #define FLAG_ALLOCATED(i)  BIT_TEST(globals.flg_bitmap[(i)>>3], 7-((i)&7))
 
 #define FLAG_PLAYER(flag)  ((int)(((flag)->path_con >> 6) & 3))
+#define FLAG_HAS_BUILDING(flag)  ((int)(((flag)->endpoint >> 6) & 1))
 
 
 typedef struct flag flag_t;

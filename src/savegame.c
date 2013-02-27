@@ -622,7 +622,7 @@ load_v0_flag_state(FILE *f)
 			flag->other_endpoint.f[j] = &globals.flgs[offset/70];
 
 			/* Other endpoint could be a building in direction up left. */
-			if (j == 4 && BIT_TEST(flag->endpoint, 6)) {
+			if (j == 4 && FLAG_HAS_BUILDING(flag)) {
 				flag->other_endpoint.b[j] = &globals.buildings[offset/18];
 			}
 
@@ -1000,7 +1000,7 @@ save_text_flag_state(FILE *f)
 				}
 			}
 
-			if (BIT_TEST(flag->endpoint, 6)) {
+			if (FLAG_HAS_BUILDING(flag)) {
 				indices[DIR_UP_LEFT] = BUILDING_INDEX(flag->other_endpoint.b[DIR_UP_LEFT]);
 			}
 
@@ -1897,7 +1897,7 @@ load_text_flag_section(section_t *section)
 	}
 
 	/* Fix link if connected to building*/
-	if (BIT_TEST(flag->endpoint, 6)) {
+	if (FLAG_HAS_BUILDING(flag)) {
 		char *array = load_text_get_setting(section, "other_endpoint");
 		char *v = NULL;
 		for (dir_t d = DIR_RIGHT; d <= DIR_UP_LEFT && array != NULL; d++) {
