@@ -444,7 +444,7 @@ handle_serf_walking_state_dest_reached(serf_t *serf)
 	if (serf->s.walking.res < 0) {
 		building_t *building = game_get_building(MAP_OBJ_INDEX(MAP_MOVE_UP_LEFT(serf->pos)));
 		building->serf |= BIT(6);
-		if (BIT_TEST(building->serf, 7)) building->serf_index = SERF_INDEX(serf);
+		if (BUILDING_SERF_REQUESTED(building)) building->serf_index = SERF_INDEX(serf);
 		building->serf &= ~BIT(7);
 
 		if (MAP_SERF_INDEX(MAP_MOVE_UP_LEFT(serf->pos)) != 0) {
@@ -3368,6 +3368,7 @@ handle_serf_making_weapon_state(serf_t *serf)
 		/* One of each resource makes a sword and a shield.
 		   Bit 3 is set if a sword has been made and a
 		   shield can be made without more resources. */
+		/* TODO Use of this bit overlaps with sfx check bit. */
 		if (!BIT_TEST(building->serf, 3)) {
 			if (building->stock[0].available == 0 ||
 			    building->stock[1].available == 0) {

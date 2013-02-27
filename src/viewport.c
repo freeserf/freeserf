@@ -919,7 +919,7 @@ draw_unharmed_building(building_t *building, int x, int y, frame_t *frame)
 			if (BUILDING_IS_ACTIVE(building)) { /* Draw elevator up */
 				draw_game_sprite(x-6, y-39, 152, frame);
 			}
-			if (BIT_TEST(building->serf, 3)) { /* Draw elevator down */
+			if (BUILDING_PLAYING_SFX(building)) { /* Draw elevator down */
 				draw_game_sprite(x-6, y-39, 153, frame);
 				if ((((globals.anim + ((uint8_t *)&building->pos)[1]) >> 3) & 7) == 0 &&
 				    random_int() < 40000) {
@@ -986,7 +986,7 @@ draw_unharmed_building(building_t *building, int x, int y, frame_t *frame)
 			if (BUILDING_IS_ACTIVE(building)) {
 				if ((globals.anim >> 4) & 3) {
 					building->serf &= ~BIT(3);
-				} else if (!BIT_TEST(building->serf, 3)) {
+				} else if (!BUILDING_PLAYING_SFX(building)) {
 					building->serf |= BIT(3);
 					sfx_play_clip(SFX_UNKNOWN_14);
 				}
@@ -1006,7 +1006,7 @@ draw_unharmed_building(building_t *building, int x, int y, frame_t *frame)
 			draw_shadow_and_building_sprite(x, y, map_building_sprite[type], frame);
 			if (BUILDING_IS_ACTIVE(building)) {
 				int i = (globals.anim >> 3) & 7;
-				if (i == 0 || (i == 7 && !BIT_TEST(building->serf, 3))) {
+				if (i == 0 || (i == 7 && !BUILDING_PLAYING_SFX(building))) {
 					building->serf |= BIT(3);
 					sfx_play_clip(SFX_GOLD_BOILS);
 				} else if (i != 7) {
@@ -1045,7 +1045,7 @@ draw_unharmed_building(building_t *building, int x, int y, frame_t *frame)
 			draw_shadow_and_building_sprite(x, y, map_building_sprite[type], frame);
 			if (BUILDING_IS_ACTIVE(building)) {
 				int i = (globals.anim >> 3) & 7;
-				if (i == 0 || (i == 7 && !BIT_TEST(building->serf, 3))) {
+				if (i == 0 || (i == 7 && !BUILDING_PLAYING_SFX(building))) {
 					building->serf |= BIT(3);
 					sfx_play_clip(SFX_GOLD_BOILS);
 				} else if (i != 7) {
@@ -1283,7 +1283,7 @@ draw_burning_building(building_t *building, int x, int y, frame_t *frame)
 
 	/* Play sound effect. */
 	if (((building->serf_index >> 3) & 3) == 3 &&
-	    !BIT_TEST(building->serf, 3)) {
+	    !BUILDING_PLAYING_SFX(building)) {
 		building->serf |= BIT(3);
 		sfx_play_clip(SFX_BURNING);
 	} else {

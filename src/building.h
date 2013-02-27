@@ -34,9 +34,14 @@
 #define BUILDING_PLAYER(building)  ((int)((building)->bld & 3))
 #define BUILDING_TYPE(building)  ((building_type_t)(((building)->bld >> 2) & 0x1f))
 #define BUILDING_IS_DONE(building)  (!(((building)->bld >> 7) & 1))
+
+#define BUILDING_SERF_REQUEST_FAIL(building)  ((int)(((building)->serf >> 2) & 1))
+#define BUILDING_PLAYING_SFX(building)  ((int)(((building)->serf >> 3) & 1))
 #define BUILDING_IS_ACTIVE(building)  ((int)(((building)->serf >> 4) & 1))
 #define BUILDING_IS_BURNING(building)  ((int)(((building)->serf >> 5) & 1))
 #define BUILDING_HAS_SERF(building)  ((int)(((building)->serf >> 6) & 1))
+#define BUILDING_SERF_REQUESTED(building)  ((int)(((building)->serf >> 7) & 1))
+
 #define BUILDING_HAS_INVENTORY(building)  ((building)->stock[0].requested == 0xff)
 
 
