@@ -1366,7 +1366,7 @@ draw_flag_and_res(map_pos_t pos, int x, int y, frame_t *frame)
 	if (flag->res_waiting[1] != 0) draw_game_sprite(x+10, y-2, flag->res_waiting[1] & 0x1f, frame);
 	if (flag->res_waiting[2] != 0) draw_game_sprite(x-4, y-4, flag->res_waiting[2] & 0x1f, frame);
 
-	int pl_num = (flag->path_con >> 6) & 3;
+	int pl_num = FLAG_PLAYER(flag);
 	int spr = 0x80 + (pl_num << 2) + ((globals.anim >> 3) & 3);
 	draw_shadow_and_building_sprite(x, y, spr, frame);
 

@@ -205,7 +205,7 @@ get_map_cursor_type(const player_sett_t *sett, map_pos_t pos, panel_btn_t *panel
 		void *other_end = NULL;
 
 		for (int i = DIR_UP; i >= DIR_RIGHT; i--) {
-			if (BIT_TEST(flag->path_con, i)) {
+			if (FLAG_HAS_PATH(flag, i)) {
 				if (!BIT_TEST(flag->endpoint, i)) {
 					*cursor_type = 1;
 					return;

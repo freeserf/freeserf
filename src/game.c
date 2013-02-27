@@ -861,7 +861,7 @@ update_flags_search_cb(flag_t *flag, update_flags_search_data_t *data)
 				src->other_end_dir[flag->search_dir] = BIT(7) | (src->other_end_dir[flag->search_dir] & 0x78) | data->res;
 				LOGV("game", "update flags: item %i is requesting fetch", data->res);
 			} else {
-				player_sett_t *sett = globals.player_sett[(flag->path_con >> 6) & 3];
+				player_sett_t *sett = globals.player_sett[FLAG_PLAYER(flag)];
 				int prio_old = sett->flag_prio[(src->res_waiting[other_dir & 7] & 0x1f)-1];
 				int prio_new = sett->flag_prio[(src->res_waiting[data->res] & 0x1f)-1];
 				if (prio_new > prio_old) {
@@ -1083,7 +1083,7 @@ update_flags()
 			/* Update transporter flags, decide if serf needs to be sent to road */
 			int tr = flag->transporter;
 			int flags = globals.field_218[1];
-			int path = flag->path_con & 0x3f;
+			int path = FLAG_PATHS(flag);
 			if (globals.field_24E >= 7) path |= BIT(7);
 
 			for (int j = 0; j < 6; j++) {
@@ -3492,7 +3492,7 @@ game_occupy_enemy_building(building_t *building, int player)
 		}
 
 		/* Change owner of flag. */
-		flag->path_con = (player << 6) | (flag->path_con & 0x3f);
+		flag->path_con = (player << 6) | FLAG_PATHS(flag);
 
 		/* Reset destination of stolen resources. */
 		for (int i = 0; i < 8; i++) {
@@ -3512,8 +3512,8 @@ game_occupy_enemy_building(building_t *building, int player)
 		}
 
 		/* Remove paths from flag. */
-		for (dir_t d  = DIR_RIGHT; d <= DIR_UP; d++) {
-			if (BIT_TEST(flag->path_con, d)) {
+		for (dir_t d = DIR_RIGHT; d <= DIR_UP; d++) {
+			if (FLAG_HAS_PATH(flag, d)) {
 				game_demolish_road(MAP_MOVE(flag->pos, d));
 			}
 		}

@@ -29,6 +29,8 @@
 #define FLAG_INDEX(ptr)  ((int)((ptr) - globals.flgs))
 #define FLAG_ALLOCATED(i)  BIT_TEST(globals.flg_bitmap[(i)>>3], 7-((i)&7))
 
+#define FLAG_PATHS(flag)  ((int)((flag)->path_con & 0x3f))
+#define FLAG_HAS_PATH(flag,dir)  ((int)((flag)->path_con & (1<<(dir))))
 #define FLAG_PLAYER(flag)  ((int)(((flag)->path_con >> 6) & 3))
 #define FLAG_HAS_BUILDING(flag)  ((int)(((flag)->endpoint >> 6) & 1))
 
