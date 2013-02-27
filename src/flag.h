@@ -1,7 +1,7 @@
 /*
  * flag.h - Flag related functions.
  *
- * Copyright (C) 2012  Jon Lund Steffensen <jonlst@gmail.com>
+ * Copyright (C) 2013  Jon Lund Steffensen <jonlst@gmail.com>
  *
  * This file is part of freeserf.
  *
@@ -96,9 +96,7 @@ struct flag {
 	} other_endpoint;
 	int other_end_dir[6];
 	int bld_flags;
-	int stock1_prio;
 	int bld2_flags;
-	int stock2_prio;
 };
 
 typedef int flag_search_func(flag_t *flag, void *data);

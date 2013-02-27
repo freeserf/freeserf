@@ -1229,10 +1229,15 @@ build_building(player_t *player, map_obj_t obj_type)
 	bld->flg_index = flg_index;
 	flag->other_endpoint.b[DIR_UP_LEFT] = bld;
 	flag->endpoint |= BIT(6);
-	flag->bld_flags = BIT(1);
-	flag->stock1_prio = 0;
-	flag->bld2_flags = BIT(4);
-	flag->stock2_prio = 0;
+
+	bld->stock[0].type = RESOURCE_PLANK;
+	bld->stock[0].prio = 0;
+	bld->stock[1].type = RESOURCE_STONE;
+	bld->stock[1].prio = 0;
+
+	flag->bld_flags = 0;
+	flag->bld2_flags = 0;
+
 	bld->u.s.planks_needed = construction_cost[2*bld_type];
 	bld->u.s.stone_needed = construction_cost[2*bld_type+1];
 

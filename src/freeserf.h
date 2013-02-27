@@ -1,7 +1,7 @@
 /*
  * freeserf.h - Various definitions.
  *
- * Copyright (C) 2012  Jon Lund Steffensen <jonlst@gmail.com>
+ * Copyright (C) 2013  Jon Lund Steffensen <jonlst@gmail.com>
  *
  * This file is part of freeserf.
  *
@@ -169,7 +169,9 @@ typedef enum {
 	RESOURCE_PICK,
 	RESOURCE_PINCER,
 	RESOURCE_SWORD,
-	RESOURCE_SHIELD
+	RESOURCE_SHIELD,
+
+	RESOURCE_GROUP_FOOD
 } resource_type_t;
 
 typedef struct {

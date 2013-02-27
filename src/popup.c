@@ -2606,74 +2606,18 @@ draw_building_stock_box(popup_box_t *popup, frame_t *frame)
 	building_t *building = game_get_building(popup->player->sett->index);
 	if (BUILDING_IS_BURNING(building)) return;/*player_close_popup();*/
 
-	int sprite1 = -1;
-	int sprite2 = -1;
-	building_type_t type = BUILDING_TYPE(building);
-
-	switch (type) {
-	case BUILDING_BOATBUILDER:
-		sprite1 = 34 + RESOURCE_PLANK;
-		break;
-	case BUILDING_BUTCHER:
-		sprite1 = 34 + RESOURCE_PIG;
-		break;
-	case BUILDING_PIGFARM:
-	case BUILDING_MILL:
-		sprite1 = 34 + RESOURCE_WHEAT;
-		break;
-	case BUILDING_BAKER:
-		sprite1 = 34 + RESOURCE_FLOUR;
-		break;
-	case BUILDING_SAWMILL:
-		sprite2 = 34 + RESOURCE_LUMBER;
-		break;
-	case BUILDING_STEELSMELTER:
-		sprite1 = 34 + RESOURCE_COAL;
-		sprite2 = 34 + RESOURCE_IRONORE;
-		break;
-	case BUILDING_TOOLMAKER:
-		sprite1 = 34 + RESOURCE_PLANK;
-		sprite2 = 34 + RESOURCE_STEEL;
-		break;
-	case BUILDING_WEAPONSMITH:
-		sprite1 = 34 + RESOURCE_COAL;
-		sprite2 = 34 + RESOURCE_STEEL;
-		break;
-	case BUILDING_GOLDSMELTER:
-		sprite1 = 34 + RESOURCE_COAL;
-		sprite2 = 34 + RESOURCE_GOLDORE;
-		break;
-	case BUILDING_FISHER:
-	case BUILDING_LUMBERJACK:
-	case BUILDING_STONECUTTER:
-	case BUILDING_FORESTER:
-	case BUILDING_FARM:
-		break;
-	default:
-		NOT_REACHED();
-	}
-
-	/* Draw list of primary resource */
-	if (sprite1 >= 0) {
-		int stock1 = building->stock[0].available;
-		if (stock1 > 0) {
-			for (int i = 0; i < stock1; i++) {
-				draw_popup_icon(8-stock1+2*i, 110, sprite1, frame);
+	/* Draw list of resources */
+	for (int j = 0; j < 2; j++) {
+		if (building->stock[j].type >= 0) {
+			int stock = building->stock[j].available;
+			if (stock > 0) {
+				int sprite = 34 + building->stock[j].type;
+				for (int i = 0; i < stock; i++) {
+					draw_popup_icon(8-stock+2*i, 110 - j*20, sprite, frame);
+				}
+			} else {
+				draw_popup_icon(7, 110 - j*20, 0xdc, frame); /* minus box */
 			}
-		} else {
-			draw_popup_icon(7, 110, 0xdc, frame); /* minus box */
-		}
-	}
-
-	/* Draw list of secondary resource */
-	if (sprite2 >= 0) {
-		int stock2 = building->stock[1].available;
-		if (stock2 > 0) {
-			for (int i = 0; i < stock2; i++) {
-				draw_popup_icon(8-stock2+2*i, 90, sprite2, frame);
-			}
-		} else {
-			draw_popup_icon(7, 90, 0xdc, frame); /* minus box */
 		}
 	}
 
@@ -2689,18 +2633,20 @@ draw_building_stock_box(popup_box_t *popup, frame_t *frame)
 
 	/* Draw picture of serf present */
 	int serf_sprite = 0xdc; /* minus box */
-	if (BUILDING_HAS_SERF(building)) serf_sprite = map_building_serf_sprite[type];
+	if (BUILDING_HAS_SERF(building)) {
+		serf_sprite = map_building_serf_sprite[BUILDING_TYPE(building)];
+	}
 
 	draw_popup_icon(1, 36, serf_sprite, frame);
 
 	/* Draw building */
-	int bld_sprite = map_building_sprite[type];
+	int bld_sprite = map_building_sprite[BUILDING_TYPE(building)];
 	int x = 6;
 	if (bld_sprite == 0xc0 /*stock*/ || bld_sprite >= 0x9e /*tower*/) x = 4;
 	draw_popup_building(x, 30, bld_sprite, frame);
 
-	draw_green_string(1, 4, frame, "STOCK OF");
-	draw_green_string(1, 14, frame, "THIS BUILDING:");
+	draw_green_string(1, 4, frame, "Stock of");
+	draw_green_string(1, 14, frame, "this building:");
 
 	draw_popup_icon(14, 128, 0x3c, frame); /* exit box */
 }

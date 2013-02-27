@@ -629,10 +629,13 @@ load_v0_flag_state(FILE *f)
 			flag->other_end_dir[j] = flag_data[60+j];
 		}
 
+		if (FLAG_HAS_BUILDING(flag)) {
+			flag->other_endpoint.b[DIR_UP_LEFT]->stock[0].prio = flag_data[67];
+			flag->other_endpoint.b[DIR_UP_LEFT]->stock[1].prio = flag_data[69];
+		}
+
 		flag->bld_flags = flag_data[66];
-		flag->stock1_prio = flag_data[67];
 		flag->bld2_flags = flag_data[68];
-		flag->stock2_prio = flag_data[69];
 	}
 
 	free(data);
@@ -689,10 +692,15 @@ load_v0_building_state(FILE *f, const v0_map_t *map)
 		building->bld = building_data[4];
 		building->serf = building_data[5];
 		building->flg_index = *(uint16_t *)&building_data[6];
+
+		building->stock[0].type = -1;
 		building->stock[0].available = (building_data[8] >> 4) & 0xf;
 		building->stock[0].requested = building_data[8] & 0xf;
+
+		building->stock[1].type = -1;
 		building->stock[1].available = (building_data[9] >> 4) & 0xf;
 		building->stock[1].requested = building_data[9] & 0xf;
+
 		building->serf_index = *(uint16_t *)&building_data[10];
 		building->progress = *(uint16_t *)&building_data[12];
 
@@ -710,6 +718,61 @@ load_v0_building_state(FILE *f, const v0_map_t *map)
 			building->u.s.level = *(uint16_t *)&building_data[14];
 			building->u.s.planks_needed = building_data[16];
 			building->u.s.stone_needed = building_data[17];
+		}
+
+		if (!BUILDING_IS_DONE(building)) {
+			building->stock[0].type = RESOURCE_PLANK;
+			building->stock[1].type = RESOURCE_STONE;
+		} else if (BUILDING_HAS_SERF(building)) {
+			switch (BUILDING_TYPE(building)) {
+			case BUILDING_BOATBUILDER:
+				building->stock[0].type = RESOURCE_PLANK;
+				break;
+			case BUILDING_STONEMINE:
+			case BUILDING_COALMINE:
+			case BUILDING_IRONMINE:
+			case BUILDING_GOLDMINE:
+				building->stock[0].type = RESOURCE_GROUP_FOOD;
+				break;
+			case BUILDING_HUT:
+			case BUILDING_TOWER:
+			case BUILDING_FORTRESS:
+				building->stock[1].type = RESOURCE_GOLDBAR;
+				break;
+			case BUILDING_BUTCHER:
+				building->stock[0].type = RESOURCE_PIG;
+				break;
+			case BUILDING_PIGFARM:
+				building->stock[0].type = RESOURCE_WHEAT;
+				break;
+			case BUILDING_MILL:
+				building->stock[0].type = RESOURCE_WHEAT;
+				break;
+			case BUILDING_BAKER:
+				building->stock[0].type = RESOURCE_FLOUR;
+				break;
+			case BUILDING_SAWMILL:
+				building->stock[1].type = RESOURCE_LUMBER;
+				break;
+			case BUILDING_STEELSMELTER:
+				building->stock[0].type = RESOURCE_COAL;
+				building->stock[1].type = RESOURCE_IRONORE;
+				break;
+			case BUILDING_TOOLMAKER:
+				building->stock[0].type = RESOURCE_PLANK;
+				building->stock[1].type = RESOURCE_STEEL;
+				break;
+			case BUILDING_WEAPONSMITH:
+				building->stock[0].type = RESOURCE_COAL;
+				building->stock[1].type = RESOURCE_STEEL;
+				break;
+			case BUILDING_GOLDSMELTER:
+				building->stock[0].type = RESOURCE_COAL;
+				building->stock[1].type = RESOURCE_GOLDORE;
+				break;
+			default:
+				break;
+			}
 		}
 	}
 
@@ -1007,9 +1070,7 @@ save_text_flag_state(FILE *f)
 			save_text_write_array(f, "other_endpoint", indices, 6);
 
 			save_text_write_value(f, "bld_flags", flag->bld_flags);
-			save_text_write_value(f, "stock1_prio", flag->stock1_prio);
 			save_text_write_value(f, "bld2_flags", flag->bld2_flags);
-			save_text_write_value(f, "stock2_prio", flag->stock2_prio);
 
 			fprintf(f, "\n");
 		}
@@ -1031,10 +1092,17 @@ save_text_building_state(FILE *f)
 			save_text_write_value(f, "bld", building->bld);
 			save_text_write_value(f, "serf", building->serf);
 			save_text_write_value(f, "flag_index", building->flg_index);
+
+			save_text_write_value(f, "stock[0].type", building->stock[0].type);
+			save_text_write_value(f, "stock[0].prio", building->stock[0].prio);
 			save_text_write_value(f, "stock[0].available", building->stock[0].available);
 			save_text_write_value(f, "stock[0].requested", building->stock[0].requested);
+
+			save_text_write_value(f, "stock[1].type", building->stock[1].type);
+			save_text_write_value(f, "stock[1].prio", building->stock[1].prio);
 			save_text_write_value(f, "stock[1].available", building->stock[1].available);
 			save_text_write_value(f, "stock[1].requested", building->stock[1].requested);
+
 			save_text_write_value(f, "serf_index", building->serf_index);
 			save_text_write_value(f, "progress", building->progress);
 
@@ -1885,12 +1953,8 @@ load_text_flag_section(section_t *section)
 			}
 		} else if (!strcmp(s->key, "bld_flags")) {
 			flag->bld_flags = atoi(s->value);
-		} else if (!strcmp(s->key, "stock1_prio")) {
-			flag->stock1_prio = atoi(s->value);
 		} else if (!strcmp(s->key, "bld2_flags")) {
 			flag->bld2_flags = atoi(s->value);
-		} else if (!strcmp(s->key, "stock2_prio")) {
-			flag->stock2_prio = atoi(s->value);
 		} else {
 			LOGD("savegame", "Unhandled flag setting: `%s'.", s->key);
 		}
@@ -1962,10 +2026,18 @@ load_text_building_section(section_t *section)
 		} else if (!strcmp(s->key, "stock2")) { /* OBSOLETE */
 			building->stock[1].available = (atoi(s->value) >> 4) & 0xf;
 			building->stock[1].requested = atoi(s->value) & 0xf;
+		} else if (!strcmp(s->key, "stock[0].type")) {
+			building->stock[0].type = atoi(s->value);
+		} else if (!strcmp(s->key, "stock[0].prio")) {
+			building->stock[0].prio = atoi(s->value);
 		} else if (!strcmp(s->key, "stock[0].available")) {
 			building->stock[0].available = atoi(s->value);
 		} else if (!strcmp(s->key, "stock[0].requested")) {
 			building->stock[0].requested = atoi(s->value);
+		} else if (!strcmp(s->key, "stock[1].type")) {
+			building->stock[1].type = atoi(s->value);
+		} else if (!strcmp(s->key, "stock[1].prio")) {
+			building->stock[1].prio = atoi(s->value);
 		} else if (!strcmp(s->key, "stock[1].available")) {
 			building->stock[1].available = atoi(s->value);
 		} else if (!strcmp(s->key, "stock[1].requested")) {

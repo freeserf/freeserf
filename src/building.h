@@ -89,6 +89,8 @@ typedef enum {
 
 
 typedef struct {
+	int type;
+	int prio;
 	int available;
 	int requested;
 } building_stock_t;

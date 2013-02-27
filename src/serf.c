@@ -843,11 +843,13 @@ handle_serf_entering_building_state(serf_t *serf)
 			} else {
 				map_set_serf_index(serf->pos, 0);
 				if (serf->s.entering_building.field_B != 0) {
+					building_t *building = game_get_building(MAP_OBJ_INDEX(serf->pos));
 					int flag_index = MAP_OBJ_INDEX(MAP_MOVE_DOWN_RIGHT(serf->pos));
 					flag_t *flag = game_get_flag(flag_index);
 					flag->bld_flags = 0;
-					flag->bld2_flags = BIT(5); /* request lumber */
-					flag->stock2_prio = 0;
+					flag->bld2_flags = 0;
+					building->stock[1].type = RESOURCE_LUMBER;
+					building->stock[1].prio = 0;
 				}
 				serf_log_state_change(serf, SERF_STATE_SAWING);
 				serf->state = SERF_STATE_SAWING;
@@ -890,9 +892,10 @@ handle_serf_entering_building_state(serf_t *serf)
 					building->serf &= ~BIT(3);
 
 					flag_t *flag = game_get_flag(MAP_OBJ_INDEX(MAP_MOVE_DOWN_RIGHT(serf->pos)));
-					flag->bld_flags = BIT(0); /* Want food delivered */
+					flag->bld_flags = 0;
 					flag->bld2_flags = 0;
-					flag->stock1_prio = 0;
+					building->stock[0].type = RESOURCE_GROUP_FOOD;
+					building->stock[0].prio = 0;
 				}
 
 				serf_log_state_change(serf, SERF_STATE_MINING);
@@ -913,16 +916,17 @@ handle_serf_entering_building_state(serf_t *serf)
 
 				if (serf->s.entering_building.field_B != 0) {
 					flag_t *flag = game_get_flag(MAP_OBJ_INDEX(MAP_MOVE_DOWN_RIGHT(serf->pos)));
-					flag->bld_flags = BIT(2); /* Request coal */
-					flag->stock1_prio = 0;
+					flag->bld_flags = 0;
+					flag->bld2_flags = 0;
+					building->stock[0].type = RESOURCE_COAL;
+					building->stock[0].prio = 0;
 
 					if (BUILDING_TYPE(building) == BUILDING_STEELSMELTER) {
-						flag->bld2_flags = BIT(1); /* Request iron ore */
+						building->stock[1].type = RESOURCE_IRONORE;
 					} else {
-						flag->bld2_flags = BIT(0); /* Request gold ore */
+						building->stock[1].type = RESOURCE_GOLDORE;
 					}
-
-					flag->stock2_prio = 0;
+					building->stock[1].prio = 0;
 				}
 
 				/* Switch to smelting state to begin work. */
@@ -959,9 +963,10 @@ handle_serf_entering_building_state(serf_t *serf)
 
 					building->stock[1].available = 1;
 
-					flag->bld_flags = BIT(4); /* Request wheat */
+					flag->bld_flags = 0;
 					flag->bld2_flags = 0;
-					flag->stock1_prio = 0;
+					building->stock[0].type = RESOURCE_WHEAT;
+					building->stock[0].prio = 0;
 
 					serf_log_state_change(serf, SERF_STATE_PIGFARMING);
 					serf->state = SERF_STATE_PIGFARMING;
@@ -981,10 +986,12 @@ handle_serf_entering_building_state(serf_t *serf)
 				map_set_serf_index(serf->pos, 0);
 
 				if (serf->s.entering_building.field_B != 0) {
+					building_t *building = game_get_building(MAP_OBJ_INDEX(serf->pos));
 					flag_t *flag = game_get_flag(MAP_OBJ_INDEX(MAP_MOVE_DOWN_RIGHT(serf->pos)));
-					flag->bld_flags = BIT(3); /* Request pigs */
+					flag->bld_flags = 0;
 					flag->bld2_flags = 0;
-					flag->stock1_prio = 0;
+					building->stock[0].type = RESOURCE_PIG;
+					building->stock[0].prio = 0;
 				}
 
 				serf_log_state_change(serf, SERF_STATE_BUTCHERING);
@@ -1008,10 +1015,12 @@ handle_serf_entering_building_state(serf_t *serf)
 				map_set_serf_index(serf->pos, 0);
 
 				if (serf->s.entering_building.field_B != 0) {
+					building_t *building = game_get_building(MAP_OBJ_INDEX(serf->pos));
 					flag_t *flag = game_get_flag(MAP_OBJ_INDEX(MAP_MOVE_DOWN_RIGHT(serf->pos)));
-					flag->bld_flags = BIT(4); /* Request wheat */
+					flag->bld_flags = 0;
 					flag->bld2_flags = 0;
-					flag->stock1_prio = 0;
+					building->stock[0].type = RESOURCE_WHEAT;
+					building->stock[0].prio = 0;
 				}
 
 				serf_log_state_change(serf, SERF_STATE_MILLING);
@@ -1026,10 +1035,12 @@ handle_serf_entering_building_state(serf_t *serf)
 				map_set_serf_index(serf->pos, 0);
 
 				if (serf->s.entering_building.field_B != 0) {
+					building_t *building = game_get_building(MAP_OBJ_INDEX(serf->pos));
 					flag_t *flag = game_get_flag(MAP_OBJ_INDEX(MAP_MOVE_DOWN_RIGHT(serf->pos)));
-					flag->bld_flags = BIT(5); /* Request flour */
+					flag->bld_flags = 0;
 					flag->bld2_flags = 0;
-					flag->stock1_prio = 0;
+					building->stock[0].type = RESOURCE_FLOUR;
+					building->stock[0].prio = 0;
 				}
 
 				serf_log_state_change(serf, SERF_STATE_BAKING);
@@ -1043,10 +1054,12 @@ handle_serf_entering_building_state(serf_t *serf)
 			} else {
 				map_set_serf_index(serf->pos, 0);
 				if (serf->s.entering_building.field_B != 0) {
+					building_t *building = game_get_building(MAP_OBJ_INDEX(serf->pos));
 					flag_t *flag = game_get_flag(MAP_OBJ_INDEX(MAP_MOVE_DOWN_RIGHT(serf->pos)));
-					flag->bld_flags = BIT(1); /* Request planks */
+					flag->bld_flags = 0;
 					flag->bld2_flags = 0;
-					flag->stock1_prio = 0;
+					building->stock[0].type = RESOURCE_PLANK;
+					building->stock[0].prio = 0;
 				}
 
 				serf_log_state_change(serf, SERF_STATE_BUILDING_BOAT);
@@ -1060,11 +1073,14 @@ handle_serf_entering_building_state(serf_t *serf)
 			} else {
 				map_set_serf_index(serf->pos, 0);
 				if (serf->s.entering_building.field_B != 0) {
+					building_t *building = game_get_building(MAP_OBJ_INDEX(serf->pos));
 					flag_t *flag = game_get_flag(MAP_OBJ_INDEX(MAP_MOVE_DOWN_RIGHT(serf->pos)));
-					flag->bld_flags = BIT(1); /* Request planks */
-					flag->bld2_flags = BIT(2); /* Request steel */
-					flag->stock1_prio = 0;
-					flag->stock2_prio = 0;
+					flag->bld_flags = 0;
+					flag->bld2_flags = 0;
+					building->stock[0].type = RESOURCE_PLANK;
+					building->stock[0].prio = 0;
+					building->stock[1].type = RESOURCE_STEEL;
+					building->stock[1].prio = 0;
 				}
 
 				serf_log_state_change(serf, SERF_STATE_MAKING_TOOL);
@@ -1078,11 +1094,14 @@ handle_serf_entering_building_state(serf_t *serf)
 			} else {
 				map_set_serf_index(serf->pos, 0);
 				if (serf->s.entering_building.field_B != 0) {
+					building_t *building = game_get_building(MAP_OBJ_INDEX(serf->pos));
 					flag_t *flag = game_get_flag(MAP_OBJ_INDEX(MAP_MOVE_DOWN_RIGHT(serf->pos)));
-					flag->bld_flags = BIT(2); /* Request coal */
-					flag->bld2_flags = BIT(2); /* Request steel */
-					flag->stock1_prio = 0;
-					flag->stock2_prio = 0;
+					flag->bld_flags = 0;
+					flag->bld2_flags = 0;
+					building->stock[0].type = RESOURCE_COAL;
+					building->stock[0].prio = 0;
+					building->stock[1].type = RESOURCE_STEEL;
+					building->stock[1].prio = 0;
 				}
 
 				serf_log_state_change(serf, SERF_STATE_MAKING_WEAPON);
@@ -1174,8 +1193,9 @@ handle_serf_entering_building_state(serf_t *serf)
 
 						flag_t *flag = game_get_flag(MAP_OBJ_INDEX(MAP_MOVE_DOWN_RIGHT(building->pos)));
 						flag->bld_flags = 0;
-						flag->bld2_flags = BIT(3);
-						flag->stock2_prio = 0;
+						flag->bld2_flags = 0;
+						building->stock[1].type = RESOURCE_GOLDBAR;
+						building->stock[1].prio = 0;
 
 						/* TODO Save total land amount and building count for each player. */
 						game_update_land_ownership(building->pos);
@@ -1436,6 +1456,8 @@ handle_serf_building_state(serf_t *serf)
 					break;
 				}
 
+				building->stock[0].type = -1;
+				building->stock[1].type = -1;
 				flag->bld_flags = 0;
 				flag->bld2_flags = 0;
 

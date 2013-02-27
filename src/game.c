@@ -65,9 +65,7 @@ game_alloc_flag(flag_t **flag, int *index)
 					memset(&f->length, 0, sizeof(f->length));
 					memset(&f->res_waiting, 0, sizeof(f->res_waiting));
 					f->bld_flags = 0;
-					f->stock1_prio = 0;
 					f->bld2_flags = 0;
-					f->stock2_prio = 0;
 					memset(&f->other_end_dir, 0, sizeof(f->other_end_dir));
 
 					if (flag != NULL) *flag = f;
@@ -128,10 +126,17 @@ game_alloc_building(building_t **building, int *index)
 					b->bld = 0;
 					b->flg_index = 0;
 					b->serf = 0;
+
+					b->stock[0].type = -1;
+					b->stock[0].prio = 0;
 					b->stock[0].available = 0;
 					b->stock[0].requested = 0;
+
+					b->stock[1].type = -1;
+					b->stock[1].prio = 0;
 					b->stock[1].available = 0;
 					b->stock[1].requested = 0;
+
 					b->serf_index = 0;
 
 					if (building != NULL) *building = b;
@@ -494,7 +499,7 @@ update_map_and_players()
 }
 
 typedef struct {
-	const int *arr;
+	int resource;
 	int *max_prio;
 	flag_t **flags;
 } update_ai_and_more_data_t;
@@ -503,17 +508,15 @@ static int
 update_ai_and_more_search_cb(flag_t *flag, update_ai_and_more_data_t *data)
 {
 	int inv = flag->search_dir;
-	if (data->max_prio[inv] < 255) {
-		if ((data->arr[0] == 66 && BIT_TEST(flag->bld_flags, data->arr[1]))) {
-			if (flag->stock1_prio >= 16 &&
-			    flag->stock1_prio > data->max_prio[inv]) {
-				data->max_prio[inv] = flag->stock1_prio;
-				data->flags[inv] = flag;
-			}
-		} else if ((data->arr[0] == 68 && BIT_TEST(flag->bld2_flags, data->arr[1]))) {
-			if (flag->stock2_prio >= 16 &&
-			    flag->stock2_prio > data->max_prio[inv]) {
-				data->max_prio[inv] = flag->stock2_prio;
+	if (data->max_prio[inv] < 255 &&
+	    FLAG_HAS_BUILDING(flag)) {
+		building_t *building = flag->other_endpoint.b[DIR_UP_LEFT];
+
+		for (int i = 0; i < 2; i++) {
+			if (building->stock[i].type == data->resource &&
+			    building->stock[i].prio >= 16 &&
+			    building->stock[i].prio > data->max_prio[inv]) {
+				data->max_prio[inv] = building->stock[i].prio;
 				data->flags[inv] = flag;
 			}
 		}
@@ -526,50 +529,50 @@ static void
 update_ai_and_more()
 {
 	const int arr_1[] = {
-		66, 1, RESOURCE_PLANK,
-		68, 4, RESOURCE_STONE,
-		68, 2, RESOURCE_STEEL,
-		66, 2, RESOURCE_COAL,
-		68, 5, RESOURCE_LUMBER,
-		68, 1, RESOURCE_IRONORE,
-		66, 0, -1,
-		66, 3, RESOURCE_PIG,
-		66, 5, RESOURCE_FLOUR,
-		66, 4, RESOURCE_WHEAT,
-		68, 3, RESOURCE_GOLDBAR,
-		68, 0, RESOURCE_GOLDORE,
+		RESOURCE_PLANK,
+		RESOURCE_STONE,
+		RESOURCE_STEEL,
+		RESOURCE_COAL,
+		RESOURCE_LUMBER,
+		RESOURCE_IRONORE,
+		RESOURCE_GROUP_FOOD,
+		RESOURCE_PIG,
+		RESOURCE_FLOUR,
+		RESOURCE_WHEAT,
+		RESOURCE_GOLDBAR,
+		RESOURCE_GOLDORE,
 		-1
 	};
 
 	const int arr_2[] = {
-		68, 4, RESOURCE_STONE,
-		68, 1, RESOURCE_IRONORE,
-		68, 0, RESOURCE_GOLDORE,
-		66, 2, RESOURCE_COAL,
-		68, 2, RESOURCE_STEEL,
-		68, 3, RESOURCE_GOLDBAR,
-		66, 0, -1,
-		66, 3, RESOURCE_PIG,
-		66, 5, RESOURCE_FLOUR,
-		66, 4, RESOURCE_WHEAT,
-		68, 5, RESOURCE_LUMBER,
-		66, 1, RESOURCE_PLANK,
+		RESOURCE_STONE,
+		RESOURCE_IRONORE,
+		RESOURCE_GOLDORE,
+		RESOURCE_COAL,
+		RESOURCE_STEEL,
+		RESOURCE_GOLDBAR,
+		RESOURCE_GROUP_FOOD,
+		RESOURCE_PIG,
+		RESOURCE_FLOUR,
+		RESOURCE_WHEAT,
+		RESOURCE_LUMBER,
+		RESOURCE_PLANK,
 		-1
 	};
 
 	const int arr_3[] = {
-		66, 0, -1,
-		66, 4, RESOURCE_WHEAT,
-		66, 3, RESOURCE_PIG,
-		66, 5, RESOURCE_FLOUR,
-		68, 3, RESOURCE_GOLDBAR,
-		68, 4, RESOURCE_STONE,
-		66, 1, RESOURCE_PLANK,
-		68, 2, RESOURCE_STEEL,
-		66, 2, RESOURCE_COAL,
-		68, 5, RESOURCE_LUMBER,
-		68, 0, RESOURCE_GOLDORE,
-		68, 1, RESOURCE_IRONORE,
+		RESOURCE_GROUP_FOOD,
+		RESOURCE_WHEAT,
+		RESOURCE_PIG,
+		RESOURCE_FLOUR,
+		RESOURCE_GOLDBAR,
+		RESOURCE_STONE,
+		RESOURCE_PLANK,
+		RESOURCE_STEEL,
+		RESOURCE_COAL,
+		RESOURCE_LUMBER,
+		RESOURCE_GOLDORE,
+		RESOURCE_IRONORE,
 		-1
 	};
 
@@ -603,14 +606,14 @@ update_ai_and_more()
 						    inventory->out_queue[1] == -1) {
 							int res_dir = inventory->res_dir & 3;
 							if (res_dir == 0 || res_dir == 1) { /* In mode, stop mode */
-								if (arr[2] < 0) {
+								if (arr[0] == RESOURCE_GROUP_FOOD) {
 									if (inventory->resources[RESOURCE_FISH] != 0 ||
 									    inventory->resources[RESOURCE_MEAT] != 0 ||
 									    inventory->resources[RESOURCE_BREAD] != 0) {
 										invs[n++] = inventory;
 										if (n == 256) break;
 									}
-								} else if (inventory->resources[arr[2]] != 0) {
+								} else if (inventory->resources[arr[0]] != 0) {
 									invs[n++] = inventory;
 									if (n == 256) break;
 								}
@@ -637,7 +640,7 @@ update_ai_and_more()
 					}
 
 					update_ai_and_more_data_t data;
-					data.arr = arr;
+					data.resource = arr[0];
 					data.max_prio = max_prio;
 					data.flags = flags;
 					flag_search_execute(&search, (flag_search_func *)update_ai_and_more_search_cb, 0, 1, &data);
@@ -647,16 +650,15 @@ update_ai_and_more()
 							LOGV("game", " dest for inventory %i found", i);
 							building_t *dest_bld = flags[i]->other_endpoint.b[DIR_UP_LEFT];
 							inventory_t *src_inv = invs[i];
-							if (arr[0] == 66) {
-								flags[i]->stock1_prio = 0;
-								dest_bld->stock[0].requested += 1;
-							} else if (arr[0] == 68) {
-								flags[i]->stock2_prio = 0;
-								dest_bld->stock[1].requested += 1;
+							for (int j = 0; j < 2; j++) {
+								if (dest_bld->stock[j].type == arr[0]) {
+									dest_bld->stock[j].prio = 0;
+									dest_bld->stock[j].requested += 1;
+								}
 							}
 
-							resource_type_t res = arr[2];
-							if (arr[2] < 0) {
+							resource_type_t res = arr[0];
+							if (res == RESOURCE_GROUP_FOOD) {
 								/* Select the food resource with highest amount available */
 								if (src_inv->resources[RESOURCE_MEAT] > src_inv->resources[RESOURCE_BREAD]) {
 									if (src_inv->resources[RESOURCE_MEAT] > src_inv->resources[RESOURCE_FISH]) {
@@ -691,7 +693,7 @@ update_ai_and_more()
 					}
 				}
 			}
-			arr += 3;
+			arr += 1;
 		}
 	} else if (globals.next_index > 32) {
 		while (globals.next_index < globals.max_next_index) {
@@ -878,7 +880,7 @@ update_flags_search_cb(flag_t *flag, update_flags_search_data_t *data)
 }
 
 typedef struct {
-	const int *arr;
+	int resource;
 	int max_prio;
 	flag_t *flag;
 } update_flags_search2_t;
@@ -886,19 +888,19 @@ typedef struct {
 static int
 update_flags_search2_cb(flag_t *flag, update_flags_search2_t *data)
 {
-	if (data->arr[1] == 66 && BIT_TEST(flag->bld_flags, data->arr[0])) {
-		if (flag->stock1_prio > data->max_prio) {
-			data->max_prio = flag->stock1_prio;
-			data->flag = flag;
-		}
-	} else if (data->arr[1] == 68 && BIT_TEST(flag->bld2_flags, data->arr[0])) {
-		if (flag->stock2_prio > data->max_prio) {
-			data->max_prio = flag->stock2_prio;
-			data->flag = flag;
-		}
-	}
+	if (FLAG_HAS_BUILDING(flag)) {
+		building_t *building = flag->other_endpoint.b[DIR_UP_LEFT];
 
-	if (data->max_prio > 204) return 1;
+		for (int i = 0; i < 2; i++) {
+			if (building->stock[i].type == data->resource &&
+			    building->stock[i].prio > data->max_prio) {
+				data->max_prio = building->stock[i].prio;
+				data->flag = flag;
+			}
+		}
+
+		if (data->max_prio > 204) return 1;
+	}
 
 	return 0;
 }
@@ -909,13 +911,11 @@ update_flags()
 {
 	const int max_transporters[] = { 1, 2, 3, 4, 6, 8, 11, 15 };
 
-	const int arr2[] = {
-		-1, -1, 0, 66, 3, 66, 0, 66, 4, 66,
-		5, 66, 0, 66, 5, 68, 1, 66, -1, -1,
-		4, 68, 1, 68, 2, 68, 2, 66, 0, 68,
-		3, 68, -1, -1, -1, -1, -1, -1, -1, -1,
-		-1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
-		-1, -1
+	const int routable[] = {
+		1, 1, 1, 1, 1, 1, 1, 1,
+		0, 1, 1, 1, 1, 1, 1, 0,
+		0, 0, 0, 0, 0, 0, 0, 0,
+		0
 	};
 
 	if (globals.next_index >= 32) return;
@@ -1025,14 +1025,14 @@ update_flags()
 									flag->endpoint |= BIT(7);
 								}
 							} else { /* Destination is not known */
-								int res = flag->res_waiting[slot] & 0x1f;
-								if (arr2[2*res] >= 0) {
+								resource_type_t res = (flag->res_waiting[slot] & 0x1f)-1;
+								if (routable[res]) {
 									flag_search_t search;
 									flag_search_init(&search);
 									flag_search_add_source(&search, flag);
 
 									update_flags_search2_t data;
-									data.arr = &arr2[2*res];
+									data.resource = res;
 									data.flag = NULL;
 									data.max_prio = 0;
 
@@ -1043,15 +1043,14 @@ update_flags()
 										LOGV("game", "dest for flag %u res %i found: flag %u",
 										     FLAG_INDEX(flag), slot, FLAG_INDEX(data.flag));
 										building_t *dest_bld = data.flag->other_endpoint.b[DIR_UP_LEFT];
-										int prio = (arr2[2*res+1] == 66) ? data.flag->stock1_prio :
-											data.flag->stock2_prio;
-										if ((prio & 1) == 0) prio = 0;
-										if (arr2[2*res+1] == 66) {
-											data.flag->stock1_prio = prio >> 1;
-											dest_bld->stock[0].requested += 1;
-										} else {
-											data.flag->stock2_prio = prio >> 1;
-											dest_bld->stock[1].requested += 1;
+										int prio = 0;
+										for (int i = 0; i < 2; i++) {
+											if (dest_bld->stock[i].type == res) {
+												prio = dest_bld->stock[i].prio;
+												if ((prio & 1) == 0) prio = 0;
+												dest_bld->stock[i].prio = prio >> 1;
+												dest_bld->stock[i].requested += 1;
+											}
 										}
 
 										flag->res_dest[slot] = dest_bld->flg_index;
@@ -1337,8 +1336,6 @@ update_unfinished_building(building_t *building)
 		if (r < 0) building->serf |= BIT(2);
 	}
 
-	flag_t *flag = game_get_flag(building->flg_index);
-
 	/* Request planks */
 	/*if (BIT_TEST(sett->field_163, 1) &&
 			sett->lumberjack_index != BUILDING_INDEX(building) &&
@@ -1351,9 +1348,9 @@ update_unfinished_building(building_t *building)
 	if (total_planks < 8 && total_planks != building->u.s.planks_needed) {
 		int planks_prio = sett->planks_construction >> (8 + total_planks);
 		if (!BUILDING_HAS_SERF(building)) planks_prio >>= 2;
-		flag->stock1_prio = planks_prio & ~BIT(0);
+		building->stock[0].prio = planks_prio & ~BIT(0);
 	} else {
-		flag->stock1_prio = 0;
+		building->stock[0].prio = 0;
 	}
 
 	/* Request stone */
@@ -1368,9 +1365,9 @@ update_unfinished_building(building_t *building)
 	if (total_stone < 8 && total_stone != building->u.s.stone_needed) {
 		int stone_prio = 0xff >> total_stone;
 		if (!BUILDING_HAS_SERF(building)) stone_prio >>= 2;
-		flag->stock2_prio = stone_prio & ~BIT(0);
+		building->stock[1].prio = stone_prio & ~BIT(0);
 	} else {
-		flag->stock2_prio = 0;
+		building->stock[1].prio = 0;
 	}
 }
 
@@ -1501,9 +1498,9 @@ handle_building_update(building_t *building)
 				player_sett_t *sett = globals.player_sett[BUILDING_PLAYER(building)];
 				int total_tree = building->stock[0].requested + building->stock[0].available;
 				if (total_tree < 8 && 1/*!BIT_TEST(sett->field_163, 1)*/) {
-					building->u.flag->stock1_prio = sett->planks_boatbuilder >> (8 + total_tree);
+					building->stock[0].prio = sett->planks_boatbuilder >> (8 + total_tree);
 				} else {
-					building->u.flag->stock1_prio = 0;
+					building->stock[0].prio = 0;
 				}
 			}
 			break;
@@ -1528,9 +1525,9 @@ handle_building_update(building_t *building)
 				int total_food = building->stock[0].requested + building->stock[0].available;
 				if (total_food < 8) {
 					player_sett_t *sett = globals.player_sett[BUILDING_PLAYER(building)];
-					building->u.flag->stock1_prio = sett->food_stonemine >> (8 + total_food);
+					building->stock[0].prio = sett->food_stonemine >> (8 + total_food);
 				} else {
-					building->u.flag->stock1_prio = 0;
+					building->stock[0].prio = 0;
 				}
 			}
 			break;
@@ -1546,9 +1543,9 @@ handle_building_update(building_t *building)
 				int total_food = building->stock[0].requested + building->stock[0].available;
 				if (total_food < 8) {
 					player_sett_t *sett = globals.player_sett[BUILDING_PLAYER(building)];
-					building->u.flag->stock1_prio = sett->food_coalmine >> (8 + total_food);
+					building->stock[0].prio = sett->food_coalmine >> (8 + total_food);
 				} else {
-					building->u.flag->stock1_prio = 0;
+					building->stock[0].prio = 0;
 				}
 			}
 			break;
@@ -1564,9 +1561,9 @@ handle_building_update(building_t *building)
 				int total_food = building->stock[0].requested + building->stock[0].available;
 				if (total_food < 8) {
 					player_sett_t *sett = globals.player_sett[BUILDING_PLAYER(building)];
-					building->u.flag->stock1_prio = sett->food_ironmine >> (8 + total_food);
+					building->stock[0].prio = sett->food_ironmine >> (8 + total_food);
 				} else {
-					building->u.flag->stock1_prio = 0;
+					building->stock[0].prio = 0;
 				}
 			}
 			break;
@@ -1582,9 +1579,9 @@ handle_building_update(building_t *building)
 				int total_food = building->stock[0].requested + building->stock[0].available;
 				if (total_food < 8) {
 					player_sett_t *sett = globals.player_sett[BUILDING_PLAYER(building)];
-					building->u.flag->stock1_prio = sett->food_goldmine >> (8 + total_food);
+					building->stock[0].prio = sett->food_goldmine >> (8 + total_food);
 				} else {
-					building->u.flag->stock1_prio = 0;
+					building->stock[0].prio = 0;
 				}
 			}
 			break;
@@ -1712,9 +1709,9 @@ handle_building_update(building_t *building)
 				sett->military_max_gold += max_gold;
 
 				if (total_gold < max_gold) {
-					building->u.flag->stock2_prio = ((0xfe >> total_gold) + 1) & 0xfe;
+					building->stock[1].prio = ((0xfe >> total_gold) + 1) & 0xfe;
 				} else {
-					building->u.flag->stock2_prio = 0;
+					building->stock[1].prio = 0;
 				}
 			}
 			break;
@@ -1739,9 +1736,9 @@ handle_building_update(building_t *building)
 				/* Request more of that delicious meat. */
 				int total_stock = building->stock[0].requested + building->stock[0].available;
 				if (total_stock < 8) {
-					building->u.flag->stock1_prio = (0xff >> total_stock);
+					building->stock[0].prio = (0xff >> total_stock);
 				} else {
-					building->u.flag->stock1_prio = 0;
+					building->stock[0].prio = 0;
 				}
 			}
 			break;
@@ -1757,9 +1754,9 @@ handle_building_update(building_t *building)
 				int total_stock = building->stock[0].requested + building->stock[0].available;
 				if (total_stock < 8) {
 					player_sett_t *sett = globals.player_sett[BUILDING_PLAYER(building)];
-					building->u.flag->stock1_prio = sett->wheat_pigfarm >> (8 + total_stock);
+					building->stock[0].prio = sett->wheat_pigfarm >> (8 + total_stock);
 				} else {
-					building->u.flag->stock1_prio = 0;
+					building->stock[0].prio = 0;
 				}
 			}
 			break;
@@ -1775,9 +1772,9 @@ handle_building_update(building_t *building)
 				int total_stock = building->stock[0].requested + building->stock[0].available;
 				if (total_stock < 8) {
 					player_sett_t *sett = globals.player_sett[BUILDING_PLAYER(building)];
-					building->u.flag->stock1_prio = sett->wheat_mill >> (8 + total_stock);
+					building->stock[0].prio = sett->wheat_mill >> (8 + total_stock);
 				} else {
-					building->u.flag->stock1_prio = 0;
+					building->stock[0].prio = 0;
 				}
 			}
 			break;
@@ -1792,9 +1789,9 @@ handle_building_update(building_t *building)
 				/* Request more flour. */
 				int total_stock = building->stock[0].requested + building->stock[0].available;
 				if (total_stock < 8) {
-					building->u.flag->stock1_prio = 0xff >> total_stock;
+					building->stock[0].prio = 0xff >> total_stock;
 				} else {
-					building->u.flag->stock1_prio = 0;
+					building->stock[0].prio = 0;
 				}
 			}
 			break;
@@ -1810,9 +1807,9 @@ handle_building_update(building_t *building)
 				/* Request more lumber */
 				int total_stock = building->stock[1].requested + building->stock[1].available;
 				if (total_stock < 8) {
-					building->u.flag->stock2_prio = 0xff >> total_stock;
+					building->stock[1].prio = 0xff >> total_stock;
 				} else {
-					building->u.flag->stock2_prio = 0;
+					building->stock[1].prio = 0;
 				}
 			}
 			break;
@@ -1829,17 +1826,17 @@ handle_building_update(building_t *building)
 				int total_coal = building->stock[0].requested + building->stock[0].available;
 				if (total_coal < 8) {
 					player_sett_t *sett = globals.player_sett[BUILDING_PLAYER(building)];
-					building->u.flag->stock1_prio = sett->coal_steelsmelter >> (8 + total_coal);
+					building->stock[0].prio = sett->coal_steelsmelter >> (8 + total_coal);
 				} else {
-					building->u.flag->stock1_prio = 0;
+					building->stock[0].prio = 0;
 				}
 
 				/* Request more iron ore */
 				int total_ironore = building->stock[1].requested + building->stock[1].available;
 				if (total_ironore < 8) {
-					building->u.flag->stock2_prio = 0xff >> total_ironore;
+					building->stock[1].prio = 0xff >> total_ironore;
 				} else {
-					building->u.flag->stock2_prio = 0;
+					building->stock[1].prio = 0;
 				}
 			}
 			break;
@@ -1856,17 +1853,17 @@ handle_building_update(building_t *building)
 				player_sett_t *sett = globals.player_sett[BUILDING_PLAYER(building)];
 				int total_tree = building->stock[0].requested + building->stock[0].available;
 				if (total_tree < 8 && 1/*!BIT_TEST(sett->field_163, 1)*/) {
-					building->u.flag->stock1_prio = sett->planks_toolmaker >> (8 + total_tree);
+					building->stock[0].prio = sett->planks_toolmaker >> (8 + total_tree);
 				} else {
-					building->u.flag->stock1_prio = 0;
+					building->stock[0].prio = 0;
 				}
 
 				/* Request more steel. */
 				int total_steel = building->stock[1].requested + building->stock[1].available;
 				if (total_steel < 8) {
-					building->u.flag->stock2_prio = sett->steel_toolmaker >> (8 + total_steel);
+					building->stock[1].prio = sett->steel_toolmaker >> (8 + total_steel);
 				} else {
-					building->u.flag->stock2_prio = 0;
+					building->stock[1].prio = 0;
 				}
 			}
 			break;
@@ -1883,17 +1880,17 @@ handle_building_update(building_t *building)
 				player_sett_t *sett = globals.player_sett[BUILDING_PLAYER(building)];
 				int total_coal = building->stock[0].requested + building->stock[0].available;
 				if (total_coal < 8) {
-					building->u.flag->stock1_prio = sett->coal_weaponsmith >> (8 + total_coal);
+					building->stock[0].prio = sett->coal_weaponsmith >> (8 + total_coal);
 				} else {
-					building->u.flag->stock1_prio = 0;
+					building->stock[0].prio = 0;
 				}
 
 				/* Request more steel. */
 				int total_steel = building->stock[1].requested + building->stock[1].available;
 				if (total_steel < 8) {
-					building->u.flag->stock2_prio = sett->steel_weaponsmith >> (8 + total_steel);
+					building->stock[1].prio = sett->steel_weaponsmith >> (8 + total_steel);
 				} else {
-					building->u.flag->stock2_prio = 0;
+					building->stock[1].prio = 0;
 				}
 			}
 			break;
@@ -1965,9 +1962,9 @@ handle_building_update(building_t *building)
 				sett->military_max_gold += max_gold;
 
 				if (total_gold < max_gold) {
-					building->u.flag->stock2_prio = ((0xfe >> total_gold) + 1) & 0xfe;
+					building->stock[1].prio = ((0xfe >> total_gold) + 1) & 0xfe;
 				} else {
-					building->u.flag->stock2_prio = 0;
+					building->stock[1].prio = 0;
 				}
 			}
 			break;
@@ -2041,9 +2038,9 @@ handle_building_update(building_t *building)
 				sett->military_max_gold += max_gold;
 
 				if (total_gold < max_gold) {
-					building->u.flag->stock2_prio = ((0xfe >> total_gold) + 1) & 0xfe;
+					building->stock[1].prio = ((0xfe >> total_gold) + 1) & 0xfe;
 				} else {
-					building->u.flag->stock2_prio = 0;
+					building->stock[1].prio = 0;
 				}
 			}
 			break;
@@ -2061,17 +2058,17 @@ handle_building_update(building_t *building)
 				player_sett_t *sett = globals.player_sett[BUILDING_PLAYER(building)];
 				int total_coal = building->stock[0].requested + building->stock[0].available;
 				if (total_coal < 8) {
-					building->u.flag->stock1_prio = sett->coal_goldsmelter >> (8 + total_coal);
+					building->stock[0].prio = sett->coal_goldsmelter >> (8 + total_coal);
 				} else {
-					building->u.flag->stock1_prio = 0;
+					building->stock[0].prio = 0;
 				}
 
 				/* Request more gold ore. */
 				int total_goldore = building->stock[1].requested + building->stock[1].available;
 				if (total_goldore < 8) {
-					building->u.flag->stock2_prio = 0xff >> total_goldore;
+					building->stock[1].prio = 0xff >> total_goldore;
 				} else {
-					building->u.flag->stock2_prio = 0;
+					building->stock[1].prio = 0;
 				}
 			}
 			break;
