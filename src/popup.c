@@ -488,7 +488,7 @@ draw_mine_building_box(popup_box_t *popup, frame_t *frame)
 
 	draw_box_background(0x83, frame);
 
-	if (!BIT_TEST(popup->player->sett->build, 1)) { /* Can build flag */
+	if (PLAYER_ALLOW_FLAG(popup->player->sett)) {
 		draw_popup_building(2, 114, 0x80+4*popup->player->sett->player_num, frame);
 	}
 
@@ -513,13 +513,13 @@ draw_basic_building_box(popup_box_t *popup, frame_t *frame, int flip)
 	draw_box_background(0x83, frame);
 
 	const int *l = layout;
-	if (BIT_TEST(popup->player->sett->build, 0)) { /* Can not build military building */
+	if (!PLAYER_ALLOW_MILITARY(popup->player->sett)) {
 		l += 3; /* Skip hut */
 	}
 
 	draw_custom_bld_box(l, frame);
 
-	if (!BIT_TEST(popup->player->sett->build, 1)) { /* Can build flag */
+	if (PLAYER_ALLOW_FLAG(popup->player->sett)) {
 		draw_popup_building(8, 108, 0x80+4*popup->player->sett->player_num, frame);
 	}
 
@@ -558,7 +558,7 @@ draw_adv_2_building_box(popup_box_t *popup, frame_t *frame)
 	};
 
 	const int *l = layout;
-	if (BIT_TEST(popup->player->sett->build, 0)) { /* Can not build military building */
+	if (!PLAYER_ALLOW_MILITARY(popup->player->sett)) {
 		l += 2*3; /* Skip tower and fortress */
 	}
 
@@ -3015,7 +3015,7 @@ handle_action(player_t *player, action_t action, int x, int y)
 		player_build_mine_building(player);
 		break;
 	case ACTION_BUILD_FLAG:
-		if (BIT_TEST(player->sett->build, 1)) break; /* Can not build flag */
+		if (!PLAYER_ALLOW_FLAG(player->sett)) break;
 		player_build_flag(player);
 		player_close_popup(player);
 		break;
@@ -3024,10 +3024,9 @@ handle_action(player_t *player, action_t action, int x, int y)
 		player_build_basic_building(player);
 		break;
 	case ACTION_BUILD_HUT:
-		if (!BIT_TEST(player->sett->build, 0)) { /* Can build military building */
-			globals.building_type = BUILDING_HUT;
-			player_build_basic_building(player);
-		}
+		if (!PLAYER_ALLOW_MILITARY(player->sett)) break;
+		globals.building_type = BUILDING_HUT;
+		player_build_basic_building(player);
 		break;
 	case ACTION_BUILD_LUMBERJACK:
 		globals.building_type = BUILDING_LUMBERJACK;
@@ -3074,16 +3073,14 @@ handle_action(player_t *player, action_t action, int x, int y)
 		player_build_advanced_building(player);
 		break;
 	case ACTION_BUILD_FORTRESS:
-		if (!BIT_TEST(player->sett->build, 0)) { /* Can build military building */
-			globals.building_type = BUILDING_FORTRESS;
-			player_build_advanced_building(player);
-		}
+		if (!PLAYER_ALLOW_MILITARY(player->sett)) break;
+		globals.building_type = BUILDING_FORTRESS;
+		player_build_advanced_building(player);
 		break;
 	case ACTION_BUILD_TOWER:
-		if (!BIT_TEST(player->sett->build, 0)) { /* Can build military building */
-			globals.building_type = BUILDING_TOWER;
-			player_build_advanced_building(player);
-		}
+		if (!PLAYER_ALLOW_MILITARY(player->sett)) break;
+		globals.building_type = BUILDING_TOWER;
+		player_build_advanced_building(player);
 		break;
 	case ACTION_BUILD_TOOLMAKER:
 		globals.building_type = BUILDING_TOOLMAKER;

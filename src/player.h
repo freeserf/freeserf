@@ -50,6 +50,16 @@
 #define PLAYER_IS_AI(sett)  ((int)(((sett)->flags >> 7) & 1))
 
 
+/* Whether player is prohibited from building military
+   buildings at current position. */
+#define PLAYER_ALLOW_MILITARY(sett)  (!(int)((sett)->build & 1))
+/* Whether player is prohibited from building flag at
+   current position. */
+#define PLAYER_ALLOW_FLAG(sett)  (!(int)(((sett)->build >> 1) & 1))
+/* Whether player can spawn new serfs. */
+#define PLAYER_CAN_SPAWN(sett)  ((int)(((sett)->build >> 2) & 1))
+
+
 typedef enum {
 	MAP_CURSOR_TYPE_NONE = 0,
 	MAP_CURSOR_TYPE_FLAG,

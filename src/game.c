@@ -300,7 +300,7 @@ game_free_serf(int index)
 int
 game_spawn_serf(player_sett_t *sett, serf_t **serf, inventory_t **inventory, int want_knight)
 {
-	if (!BIT_TEST(sett->build, 2)) return -1;
+	if (!PLAYER_CAN_SPAWN(sett)) return -1;
 	if (globals.map_max_serfs_left == 0) return -1;
 	if (globals.max_ever_inventory_index < 1) return -1;
 
