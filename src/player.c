@@ -60,11 +60,11 @@ determine_possible_building(const player_sett_t *sett, map_pos_t map_pos[], int 
 			    panel_btn_t *panel_btn, int *build_flags, int *height_after_level)
 {
 	if (hills) {
-		if (BIT_TEST(sett->flags, 0)) { /* Has castle */
+		if (PLAYER_HAS_CASTLE(sett)) {
 			*panel_btn = PANEL_BTN_BUILD_MINE;
 		}
 	} else {
-		if (BIT_TEST(sett->flags, 0)) { /* Has castle */
+		if (PLAYER_HAS_CASTLE(sett)) {
 			*panel_btn = PANEL_BTN_BUILD_SMALL;
 		}
 
@@ -146,7 +146,7 @@ determine_possible_building(const player_sett_t *sett, map_pos_t map_pos[], int 
 		int h_new = clamp(h_new_min, h_mean, h_new_max);
 		*height_after_level = h_new;
 
-		if (BIT_TEST(sett->flags, 0)) { /* Has castle */
+		if (PLAYER_HAS_CASTLE(sett)) {
 			*panel_btn = PANEL_BTN_BUILD_LARGE;
 		} else {
 			*panel_btn = PANEL_BTN_BUILD_CASTLE;
@@ -180,7 +180,7 @@ get_map_cursor_type(const player_sett_t *sett, map_pos_t pos, panel_btn_t *panel
 	populate_circular_map_pos_array(map_pos, pos, 1+6+12+18);
 
 	int player = sett->player_num;
-	if (!BIT_TEST(sett->flags, 0)) player = -1; /* Has no castle */
+	if (!PLAYER_HAS_CASTLE(sett)) player = -1;
 
 	if (player >= 0 &&
 	    (!MAP_HAS_OWNER(map_pos[0]) ||
@@ -272,7 +272,7 @@ get_map_cursor_type(const player_sett_t *sett, map_pos_t pos, panel_btn_t *panel
 
 		if (!found) {
 			*build_flags &= ~BIT(1);
-			if (BIT_TEST(sett->flags, 0)) { /* Has castle */
+			if (PLAYER_HAS_CASTLE(sett)) {
 				*panel_btn = PANEL_BTN_BUILD_FLAG;
 				if (*cursor_type == 4) return;
 			}
@@ -444,7 +444,7 @@ player_update_interface(player_t *player)
 			switch (player->sett->map_cursor_type) {
 				case 0:
 					player->panel_btns[0] = PANEL_BTN_BUILD_INACTIVE;
-					if (BIT_TEST(player->sett->flags, 0)) { /* Has castle */
+					if (PLAYER_HAS_CASTLE(player->sett)) {
 						player->panel_btns[1] = PANEL_BTN_DESTROY_INACTIVE;
 					} else {
 						player->panel_btns[1] = PANEL_BTN_GROUND_ANALYSIS;
@@ -508,7 +508,7 @@ player_update_interface(player_t *player)
 					break;
 				case 7:
 					player->panel_btns[0] = player->sett->panel_btn_type;
-					if (BIT_TEST(player->sett->flags, 0)) { /* Has castle */
+					if (PLAYER_HAS_CASTLE(player->sett)) {
 						player->panel_btns[1] = PANEL_BTN_DESTROY_INACTIVE;
 					} else {
 						player->panel_btns[1] = PANEL_BTN_GROUND_ANALYSIS;

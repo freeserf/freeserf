@@ -1,7 +1,7 @@
 /*
  * player.h - Player related functions
  *
- * Copyright (C) 2012  Jon Lund Steffensen <jonlst@gmail.com>
+ * Copyright (C) 2013  Jon Lund Steffensen <jonlst@gmail.com>
  *
  * This file is part of freeserf.
  *
@@ -29,6 +29,10 @@
 #include "freeserf.h"
 #include "map.h"
 #include "gfx.h"
+
+
+/* Whether player has built the initial castle. */
+#define PLAYER_HAS_CASTLE(sett)  ((int)((sett)->flags & 1))
 
 
 /* player_sett_t object.

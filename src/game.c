@@ -380,7 +380,7 @@ update_player_sett(player_sett_t *sett)
 		}
 	}
 
-	if (BIT_TEST(sett->flags, 0)) { /* Has castle */
+	if (PLAYER_HAS_CASTLE(sett)) {
 		uint16_t delta = globals.anim - sett->last_anim;
 		sett->last_anim = globals.anim;
 		sett->reproduction_counter -= delta;
