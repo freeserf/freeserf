@@ -1574,13 +1574,13 @@ player_start_attack(player_sett_t *sett)
 
 		for (int j = 0; j < to_send; j++) {
 			/* Find most approriate knight to send according to player settings. */
-			int best_type = BIT_TEST(sett->flags, 1) ? SERF_KNIGHT_0 : SERF_KNIGHT_4;
+			int best_type = PLAYER_SEND_STRONGEST(sett) ? SERF_KNIGHT_0 : SERF_KNIGHT_4;
 			int best_index = -1;
 
 			int knight_index = b->serf_index;
 			while (knight_index != 0) {
 				serf_t *knight = game_get_serf(knight_index);
-				if (BIT_TEST(sett->flags, 1)) {
+				if (PLAYER_SEND_STRONGEST(sett)) {
 					if (SERF_TYPE(knight) >= best_type) {
 						best_index = knight_index;
 						best_type = SERF_TYPE(knight);

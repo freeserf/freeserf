@@ -2907,7 +2907,7 @@ handle_serf_mining_state(serf_t *serf)
 			if (building->progress == 0x8000) {
 				/* Handle empty mine. */
 				player_sett_t *sett = globals.player_sett[SERF_PLAYER(serf)];
-				if (BIT_TEST(sett->flags, 7)) { /* AI */
+				if (PLAYER_IS_AI(sett)) {
 					/* TODO Burn building. */
 				}
 

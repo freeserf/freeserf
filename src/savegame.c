@@ -968,7 +968,7 @@ save_text_player_state(FILE *f)
 {
 	for (int i = 0; i < 4; i++) {
 		player_sett_t *sett = globals.player_sett[i];
-		if (!BIT_TEST(globals.player_sett[i]->flags, 6)) continue; /* Not active */
+		if (!PLAYER_IS_ACTIVE(globals.player_sett[i])) continue;
 
 		fprintf(f, "[player %i]\n", i);
 

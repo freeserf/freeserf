@@ -1,7 +1,7 @@
 /*
  * panel.c - Panel GUI component
  *
- * Copyright (C) 2012  Jon Lund Steffensen <jonlst@gmail.com>
+ * Copyright (C) 2013  Jon Lund Steffensen <jonlst@gmail.com>
  *
  * This file is part of freeserf.
  *
@@ -142,7 +142,7 @@ draw_panel_buttons(panel_bar_t *panel, frame_t *frame)
 				}
 			}
 
-			if (BIT_TEST(player->sett->flags, 3)) { /* Message in queue */
+			if (PLAYER_HAS_MESSAGE(player->sett)) {
 				player->sett->flags &= ~BIT(3);
 				while (player->sett->msg_queue_type[0] != 0) {
 					int type = player->sett->msg_queue_type[0] & 0x1f;

@@ -33,6 +33,21 @@
 
 /* Whether player has built the initial castle. */
 #define PLAYER_HAS_CASTLE(sett)  ((int)((sett)->flags & 1))
+/* Whether the strongest knight should be sent to fight. */
+#define PLAYER_SEND_STRONGEST(sett)  ((int)(((sett)->flags >> 1) & 1))
+/* Whether cycling of knights is in progress. */
+#define PLAYER_CYCLING_KNIGHTS(sett)  ((int)(((sett)->flags >> 2) & 1))
+/* Whether a message is queued for this player. */
+#define PLAYER_HAS_MESSAGE(sett)  ((int)(((sett)->flags >> 3) & 1))
+/* Whether the knight level of military buildings is temporarily
+   reduced bacause of cycling of the knights. */
+#define PLAYER_REDUCED_KNIGHT_LEVEL(sett)  ((int)(((sett)->flags >> 4) & 1))
+/* Whether the cycling of knights is in the second phase. */
+#define PLAYER_CYCLING_SECOND(sett)  ((int)(((sett)->flags >> 5) & 1))
+/* Whether this player is active. */
+#define PLAYER_IS_ACTIVE(sett)  ((int)(((sett)->flags >> 6) & 1))
+/* Whether this player is a computer controlled opponent. */
+#define PLAYER_IS_AI(sett)  ((int)(((sett)->flags >> 7) & 1))
 
 
 typedef enum {
@@ -131,7 +146,7 @@ typedef struct {
 	/* 16E */
 	int serf_index;
 	/* 170 */
-	int field_170;
+	int knight_cycle_counter;
 	int timers_count;
 	/* 176 */
 	int index;

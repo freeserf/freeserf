@@ -1997,10 +1997,9 @@ draw_transport_info_box(popup_box_t *popup, frame_t *frame)
 	};
 
 	draw_box_background(0x138, frame);
-	if (!BIT_TEST(popup->player->sett->flags, 7)) { /* Not AI (???) */
-		/* TODO int r = ... */
-		/* if (r == 0) draw_popup_icon(7, 51, 0x135, frame); */
-	}
+
+	/* TODO show path merge button. */
+	/* if (r == 0) draw_popup_icon(7, 51, 0x135, frame); */
 
 	if (popup->player->sett->index == 0) return;/*player_close_popup();*/
 
@@ -2202,7 +2201,7 @@ draw_sett_8_box(popup_box_t *popup, frame_t *frame)
 	draw_green_number(6, 119, frame, sett->castle_knights_wanted);
 	draw_green_number(6, 129, frame, sett->castle_knights);
 
-	if (!BIT_TEST(sett->flags, 1)) { /* Send weakest */
+	if (!PLAYER_SEND_STRONGEST(sett)) {
 		draw_popup_icon(6, 84, 288, frame); /* checkbox */
 	} else {
 		draw_popup_icon(6, 100, 288, frame); /* checkbox */
@@ -3470,7 +3469,7 @@ handle_action(player_t *player, action_t action, int x, int y)
 		/* TODO */
 	case ACTION_SETT_8_CYCLE:
 		player->sett->flags |= BIT(2) | BIT(4);
-		player->sett->field_170 = 1200;
+		player->sett->knight_cycle_counter = 1200;
 		sfx_play_clip(SFX_ACCEPTED);
 		break;
 	case ACTION_CLOSE_OPTIONS:

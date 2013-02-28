@@ -362,19 +362,19 @@ update_player_sett(player_sett_t *sett)
 	if (sett->total_military_score > 0xffff0000) sett->total_military_score = 0;
 	if (sett->total_building_score > 0xffff0000) sett->total_building_score = 0;
 
-	if (!BIT_TEST(sett->flags, 6)) return; /* Inactive */
+	if (!PLAYER_IS_ACTIVE(sett)) return;
 
-	if (BIT_TEST(sett->flags, 7)) { /* AI */
+	if (PLAYER_IS_AI(sett)) {
 		/*if (sett->field_1B2 != 0) sett->field_1B2 -= 1;*/
 		/*if (sett->field_1B0 != 0) sett->field_1B0 -= 1;*/
 	}
 
-	if (BIT_TEST(sett->flags, 2)) {
-		sett->field_170 -= 1;
-		if (sett->field_170 == 0) {
+	if (PLAYER_CYCLING_KNIGHTS(sett)) {
+		sett->knight_cycle_counter -= 1;
+		if (sett->knight_cycle_counter == 0) {
 			sett->flags &= ~BIT(5);
 			sett->flags &= ~BIT(2);
-		} else if (sett->field_170 == 1023) {
+		} else if (sett->knight_cycle_counter == 1023) {
 			sett->flags |= BIT(5);
 			sett->flags &= ~BIT(4);
 		}
@@ -699,7 +699,7 @@ update_ai_and_more()
 		while (globals.next_index < globals.max_next_index) {
 			int i = 33 - globals.next_index;
 			player_sett_t *sett = globals.player_sett[i & 3];
-			if (BIT_TEST(sett->flags, 6) && BIT_TEST(sett->flags, 7)) { /* Active and AI */
+			if (PLAYER_IS_ACTIVE(sett) && PLAYER_IS_AI(sett)) {
 				/* AI */
 				/* TODO */
 			}
@@ -708,7 +708,7 @@ update_ai_and_more()
 	} else if (globals.game_speed > 0 &&
 		   globals.max_ever_flag_index < 50) {
 		player_sett_t *sett = globals.player_sett[globals.next_index & 3];
-		if (BIT_TEST(sett->flags, 6) && BIT_TEST(sett->flags, 7)) { /* Active and AI */
+		if (PLAYER_IS_ACTIVE(sett) && PLAYER_IS_AI(sett)) {
 			/* AI */
 			/* TODO */
 		}
@@ -1223,8 +1223,8 @@ send_serf_to_flag(flag_t *dest, building_t *building, int dest_index,
 	/* If type is negative, building is non-NULL. */
 	if (type < 0) {
 		player_sett_t *sett = globals.player_sett[BUILDING_PLAYER(building)];
-		if (BIT_TEST(sett->flags, 5)) {
-			type = -((sett->field_170 >> 8) + 1);
+		if (PLAYER_CYCLING_SECOND(sett)) {
+			type = -((sett->knight_cycle_counter >> 8) + 1);
 		}
 	}
 
@@ -1650,7 +1650,7 @@ handle_building_update(building_t *building)
 
 			player_sett_t *sett = globals.player_sett[BUILDING_PLAYER(building)];
 			int max_occ_level = (sett->knight_occupation[BUILDING_STATE(building)] >> 4) & 0xf;
-			if (BIT_TEST(sett->flags, 4)) max_occ_level += 5;
+			if (PLAYER_REDUCED_KNIGHT_LEVEL(sett)) max_occ_level += 5;
 
 			int needed_occupants = hut_occupants_from_level[max_occ_level];
 			int max_gold = 2;
@@ -1903,7 +1903,7 @@ handle_building_update(building_t *building)
 
 			player_sett_t *sett = globals.player_sett[BUILDING_PLAYER(building)];
 			int max_occ_level = (sett->knight_occupation[BUILDING_STATE(building)] >> 4) & 0xf;
-			if (BIT_TEST(sett->flags, 4)) max_occ_level += 5;
+			if (PLAYER_REDUCED_KNIGHT_LEVEL(sett)) max_occ_level += 5;
 
 			int needed_occupants = tower_occupants_from_level[max_occ_level];
 			int max_gold = 4;
@@ -1978,7 +1978,7 @@ handle_building_update(building_t *building)
 
 			player_sett_t *sett = globals.player_sett[BUILDING_PLAYER(building)];
 			int max_occ_level = (sett->knight_occupation[BUILDING_STATE(building)] >> 4) & 0xf;
-			if (BIT_TEST(sett->flags, 4)) max_occ_level += 5;
+			if (PLAYER_REDUCED_KNIGHT_LEVEL(sett)) max_occ_level += 5;
 
 			int needed_occupants = fortress_occupants_from_level[max_occ_level];
 			int max_gold = 8;
@@ -4038,7 +4038,7 @@ game_occupy_enemy_building(building_t *building, int player)
 
 		game_update_land_ownership(building->pos);
 
-		if (BIT_TEST(sett->flags, 7)) {
+		if (PLAYER_IS_AI(sett)) {
 			/* TODO AI */
 		}
 	}
