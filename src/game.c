@@ -2136,17 +2136,9 @@ update_buildings()
 				if (building->serf_index >= delta) {
 					building->serf_index -= delta;
 				} else {
-					/* 2355E */
-					map_pos_t pos = building->pos;
-					int p = building->u.s.planks_needed;
-
-					tiles[pos].flags &= ~BIT(6);
-					map_set_object(pos, MAP_OBJ_NONE, 0);
+					tiles[building->pos].flags &= ~BIT(6);
+					map_set_object(building->pos, MAP_OBJ_NONE, 0);
 					game_free_building(i);
-
-					if ((p & 0x1f) != 0) {
-						/* TODO */
-					}
 				}
 			} else {
 				handle_building_update(building);

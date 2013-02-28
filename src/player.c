@@ -1278,15 +1278,7 @@ player_build_mine_building(player_t *player)
 {
 	player_determine_map_cursor_type(player);
 
-	if (player->sett->map_cursor_type == MAP_CURSOR_TYPE_BUILDING) {
-		if (player->sett->panel_btn_type == PANEL_BTN_BUILD_MINE &&
-		    BIT_TEST(player->click, 3)) { /* Special click */
-			player_close_popup(player);
-			sfx_play_clip(SFX_ACCEPTED);
-			/* sub_58DA8(player->sett->map_cursor_col, player->sett->map_cursor_row); */
-			/* sub_41D58(); */
-		}
-	} else {
+	if (player->sett->map_cursor_type != MAP_CURSOR_TYPE_BUILDING) {
 		player_close_popup(player);
 		if (player->sett->panel_btn_type != PANEL_BTN_BUILD_MINE ||
 		    (player->sett->map_cursor_type != MAP_CURSOR_TYPE_CLEAR &&
@@ -1306,15 +1298,7 @@ player_build_basic_building(player_t *player)
 {
 	player_determine_map_cursor_type(player);
 
-	if (player->sett->map_cursor_type == MAP_CURSOR_TYPE_BUILDING) {
-		if (player->sett->panel_btn_type >= PANEL_BTN_BUILD_SMALL &&
-		    BIT_TEST(player->click, 3)) { /* Special click */
-			player_close_popup(player);
-			sfx_play_clip(SFX_ACCEPTED);
-			/* sub_58DA8(player->sett->map_cursor_col, player->sett->map_cursor_row); */
-			/* sub_41D58(); */
-		}
-	} else {
+	if (player->sett->map_cursor_type != MAP_CURSOR_TYPE_BUILDING) {
 		player_close_popup(player);
 		if (player->sett->panel_btn_type < PANEL_BTN_BUILD_SMALL ||
 		    (player->sett->map_cursor_type != MAP_CURSOR_TYPE_CLEAR &&
@@ -1334,15 +1318,7 @@ player_build_advanced_building(player_t *player)
 {
 	player_determine_map_cursor_type(player);
 
-	if (player->sett->map_cursor_type == MAP_CURSOR_TYPE_BUILDING) {
-		if (player->sett->panel_btn_type >= PANEL_BTN_BUILD_LARGE &&
-		    BIT_TEST(player->click, 3)) { /* Special click */
-			player_close_popup(player);
-			sfx_play_clip(SFX_ACCEPTED);
-			/* sub_58DA8(player->sett->map_cursor_col, player->sett->map_cursor_row); */
-			/* sub_41D58(); */
-		}
-	} else {
+	if (player->sett->map_cursor_type != MAP_CURSOR_TYPE_BUILDING) {
 		player_close_popup(player);
 		if (player->sett->panel_btn_type != PANEL_BTN_BUILD_LARGE ||
 		    (player->sett->map_cursor_type != MAP_CURSOR_TYPE_CLEAR &&
