@@ -482,8 +482,14 @@ player_update_interface(player_t *player)
 					break;
 				case 5:
 					if (player->sett->panel_btn_type < PANEL_BTN_BUILD_MINE) {
-						/* TODO */
-						LOGD("player", "cursor type: unhandled 5 case.");
+						player->panel_btns[0] = PANEL_BTN_BUILD_INACTIVE;
+						if (PLAYER_HAS_CASTLE(player->sett)) {
+							player->panel_btns[1] = PANEL_BTN_DESTROY_INACTIVE;
+						} else {
+							player->panel_btns[1] = PANEL_BTN_GROUND_ANALYSIS;
+						}
+						player->map_cursor_sprites[0].sprite = 32;
+						player->map_cursor_sprites[2].sprite = 33;
 					} else {
 						player->panel_btns[0] = player->sett->panel_btn_type;
 						player->panel_btns[1] = PANEL_BTN_DESTROY_INACTIVE;
