@@ -601,7 +601,7 @@ load_v0_flag_state(FILE *f)
 		uint8_t *flag_data = &data[70*i];
 		flag_t *flag = &globals.flgs[i];
 
-		flag->pos = MAP_POS(0, 0); /* TODO */
+		flag->pos = MAP_POS(0, 0); /* Set correctly later. */
 		flag->search_num = *(uint16_t *)&flag_data[0];
 		flag->search_dir = flag_data[2];
 		flag->path_con = flag_data[3];
