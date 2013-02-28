@@ -174,7 +174,7 @@ populate_circular_map_pos_array(map_pos_t map_pos[], map_pos_t init_pos, int siz
 /* Return the cursor type and various related values of a map_pos_t. */
 static void
 get_map_cursor_type(const player_sett_t *sett, map_pos_t pos, panel_btn_t *panel_btn,
-		    int *build_flags, int *cursor_type, int *height_after_level)
+		    int *build_flags, map_cursor_type_t *cursor_type, int *height_after_level)
 {
 	map_pos_t map_pos[1+6+12+18];
 	populate_circular_map_pos_array(map_pos, pos, 1+6+12+18);
@@ -191,12 +191,12 @@ get_map_cursor_type(const player_sett_t *sett, map_pos_t pos, panel_btn_t *panel
 	if (map_space_from_obj[MAP_OBJ(map_pos[0])] == MAP_SPACE_FLAG) {
 		if (BIT_TEST(MAP_PATHS(map_pos[0]), DIR_UP_LEFT) &&
 		    map_space_from_obj[MAP_OBJ(map_pos[1+DIR_UP_LEFT])] >= MAP_SPACE_SMALL_BUILDING) {
-			*cursor_type = 1;
+			*cursor_type = MAP_CURSOR_TYPE_FLAG;
 			return;
 		}
 
 		if (MAP_PATHS(map_pos[0]) == 0) {
-			*cursor_type = 2;
+			*cursor_type = MAP_CURSOR_TYPE_REMOVABLE_FLAG;
 			return;
 		}
 
@@ -207,7 +207,7 @@ get_map_cursor_type(const player_sett_t *sett, map_pos_t pos, panel_btn_t *panel
 		for (int i = DIR_UP; i >= DIR_RIGHT; i--) {
 			if (FLAG_HAS_PATH(flag, i)) {
 				if (FLAG_IS_WATER_PATH(flag, i)) {
-					*cursor_type = 1;
+					*cursor_type = MAP_CURSOR_TYPE_FLAG;
 					return;
 				}
 
@@ -215,7 +215,7 @@ get_map_cursor_type(const player_sett_t *sett, map_pos_t pos, panel_btn_t *panel
 
 				if (other_end != NULL) {
 					if (flag->other_endpoint.v[i] == other_end) {
-						*cursor_type = 1;
+						*cursor_type = MAP_CURSOR_TYPE_FLAG;
 						return;
 					}
 				} else {
@@ -230,23 +230,23 @@ get_map_cursor_type(const player_sett_t *sett, map_pos_t pos, panel_btn_t *panel
 			}
 		}
 
-		if (connected == 2) *cursor_type = 2;
-		else *cursor_type = 1;
-	} else if (map_space_from_obj[MAP_OBJ(map_pos[0])] < MAP_SPACE_SMALL_BUILDING) {
+		if (connected == 2) *cursor_type = MAP_CURSOR_TYPE_REMOVABLE_FLAG;
+		else *cursor_type = MAP_CURSOR_TYPE_FLAG;
+	} else if (map_space_from_obj[MAP_OBJ(map_pos[0])] < MAP_SPACE_FLAG) {
 		int paths = MAP_PATHS(map_pos[0]);
 		if (paths == 0) {
 			if (map_space_from_obj[MAP_OBJ(map_pos[1+DIR_DOWN_RIGHT])] == MAP_SPACE_FLAG) {
-				*cursor_type = 5;
+				*cursor_type = MAP_CURSOR_TYPE_CLEAR_BY_FLAG;
 			} else if (MAP_PATHS(map_pos[1+DIR_DOWN_RIGHT]) == 0) {
-				*cursor_type = 7;
+				*cursor_type = MAP_CURSOR_TYPE_CLEAR;
 			} else {
-				*cursor_type = 6;
+				*cursor_type = MAP_CURSOR_TYPE_CLEAR_BY_PATH;
 			}
 		} else if (paths == BIT(DIR_DOWN_RIGHT) ||
 			   paths == BIT(DIR_UP_LEFT)) {
-			return;
+			NOT_REACHED();
 		} else {
-			*cursor_type = 4;
+			*cursor_type = MAP_CURSOR_TYPE_PATH;
 		}
 
 		if (map_space_from_obj[MAP_OBJ(map_pos[0])] != MAP_SPACE_OPEN) return;
@@ -264,7 +264,7 @@ get_map_cursor_type(const player_sett_t *sett, map_pos_t pos, panel_btn_t *panel
 		int found = 0;
 		for (int i = 0; i < 6; i++) {
 			if (map_space_from_obj[MAP_OBJ(map_pos[1+i])] == MAP_SPACE_FLAG) {
-				if (*cursor_type == 4) return;
+				if (*cursor_type == MAP_CURSOR_TYPE_PATH) return;
 				found = 1;
 				break;
 			}
@@ -274,7 +274,7 @@ get_map_cursor_type(const player_sett_t *sett, map_pos_t pos, panel_btn_t *panel
 			*build_flags &= ~BIT(1);
 			if (PLAYER_HAS_CASTLE(sett)) {
 				*panel_btn = PANEL_BTN_BUILD_FLAG;
-				if (*cursor_type == 4) return;
+				if (*cursor_type == MAP_CURSOR_TYPE_PATH) return;
 			}
 		}
 
@@ -282,20 +282,20 @@ get_map_cursor_type(const player_sett_t *sett, map_pos_t pos, panel_btn_t *panel
 			if (map_space_from_obj[MAP_OBJ(map_pos[1+i])] >= MAP_SPACE_SMALL_BUILDING) return;
 		}
 
-		if (*cursor_type != 5) {
+		if (*cursor_type != MAP_CURSOR_TYPE_CLEAR_BY_FLAG) {
 			if (map_space_from_obj[MAP_OBJ(map_pos[1+DIR_DOWN_RIGHT])] != MAP_SPACE_OPEN) return;
 		}
 
-		/* bleh */
-		if (map_space_from_obj[MAP_OBJ(map_pos[7])] == MAP_SPACE_FLAG ||
-		    map_space_from_obj[MAP_OBJ(map_pos[8])] == MAP_SPACE_FLAG ||
-		    map_space_from_obj[MAP_OBJ(map_pos[14])] == MAP_SPACE_FLAG ||
+		/* Check whether a flag exists anywhere around the position down right. */
+		if (map_space_from_obj[MAP_OBJ(map_pos[1+6+0])] == MAP_SPACE_FLAG ||
+		    map_space_from_obj[MAP_OBJ(map_pos[1+6+1])] == MAP_SPACE_FLAG ||
+		    map_space_from_obj[MAP_OBJ(map_pos[1+6+7])] == MAP_SPACE_FLAG ||
 		    map_space_from_obj[MAP_OBJ(map_pos[1+DIR_RIGHT])] == MAP_SPACE_FLAG ||
 		    map_space_from_obj[MAP_OBJ(map_pos[1+DIR_DOWN])] == MAP_SPACE_FLAG) {
 			return;
 		}
 
-		/* bleh */
+		/* Check whether there is water around the position down right. */
 		if (MAP_TYPE_UP(map_pos[1+DIR_RIGHT]) < 4 ||
 		    MAP_TYPE_DOWN(map_pos[1+DIR_DOWN]) < 4 ||
 		    MAP_TYPE_UP(map_pos[1+DIR_DOWN_RIGHT]) < 4 ||
@@ -325,11 +325,12 @@ get_map_cursor_type(const player_sett_t *sett, map_pos_t pos, panel_btn_t *panel
 						    panel_btn, build_flags,
 						    height_after_level);
 		}
-	} else if (map_space_from_obj[MAP_OBJ(map_pos[0])] != MAP_SPACE_CASTLE) {
+	} else if (map_space_from_obj[MAP_OBJ(map_pos[0])] == MAP_SPACE_SMALL_BUILDING ||
+		   map_space_from_obj[MAP_OBJ(map_pos[0])] == MAP_SPACE_LARGE_BUILDING) {
 		building_t *bld = game_get_building(MAP_OBJ_INDEX(map_pos[0]));
-		if (BIT_TEST(bld->serf, 5)) return; /* Building burning */
+		if (BUILDING_IS_BURNING(bld)) return;
 
-		*cursor_type = 3;
+		*cursor_type = MAP_CURSOR_TYPE_BUILDING;
 
 		/* 426FD: Check owner of surrounding land */
 		for (int i = 0; i < 6; i++) {
@@ -363,7 +364,7 @@ player_determine_map_cursor_type(player_t *player)
 {
 	player->sett->build |= BIT(1); /* Can not build flag */
 
-	player->sett->map_cursor_type = 0;
+	player->sett->map_cursor_type = MAP_CURSOR_TYPE_NONE;
 	player->sett->panel_btn_type = PANEL_BTN_BUILD_INACTIVE;
 
 	map_pos_t cursor_pos = MAP_POS(player->sett->map_cursor_col, player->sett->map_cursor_row);
@@ -405,7 +406,8 @@ player_determine_map_cursor_type_road(player_t *player)
 					bits |= BIT(i);
 				} else {
 					panel_btn_t panel_btn;
-					int build_flags, cursor_type, height_after_level;
+					map_cursor_type_t cursor_type;
+					int build_flags, height_after_level;
 					get_map_cursor_type(player->sett, map_pos[1+i],
 							    &panel_btn, &build_flags,
 							    &cursor_type, &height_after_level);
@@ -442,7 +444,7 @@ player_update_interface(player_t *player)
 			player->panel_btns[1] = PANEL_BTN_BUILD_INACTIVE;
 		} else {
 			switch (player->sett->map_cursor_type) {
-				case 0:
+				case MAP_CURSOR_TYPE_NONE:
 					player->panel_btns[0] = PANEL_BTN_BUILD_INACTIVE;
 					if (PLAYER_HAS_CASTLE(player->sett)) {
 						player->panel_btns[1] = PANEL_BTN_DESTROY_INACTIVE;
@@ -452,25 +454,25 @@ player_update_interface(player_t *player)
 					player->map_cursor_sprites[0].sprite = 32;
 					player->map_cursor_sprites[2].sprite = 33;
 					break;
-				case 1:
+				case MAP_CURSOR_TYPE_FLAG:
 					player->panel_btns[0] = PANEL_BTN_BUILD_ROAD;
 					player->panel_btns[1] = PANEL_BTN_DESTROY_INACTIVE;
 					player->map_cursor_sprites[0].sprite = 51;
 					player->map_cursor_sprites[2].sprite = 33;
 					break;
-				case 2:
+				case MAP_CURSOR_TYPE_REMOVABLE_FLAG:
 					player->panel_btns[0] = PANEL_BTN_BUILD_ROAD;
 					player->panel_btns[1] = PANEL_BTN_DESTROY;
 					player->map_cursor_sprites[0].sprite = 51;
 					player->map_cursor_sprites[2].sprite = 33;
 					break;
-				case 3:
+				case MAP_CURSOR_TYPE_BUILDING:
 					player->panel_btns[0] = player->sett->panel_btn_type;
 					player->panel_btns[1] = PANEL_BTN_DESTROY;
 					player->map_cursor_sprites[0].sprite = 46 + player->sett->panel_btn_type;
 					player->map_cursor_sprites[2].sprite = 33;
 					break;
-				case 4:
+				case MAP_CURSOR_TYPE_PATH:
 					player->panel_btns[0] = PANEL_BTN_BUILD_INACTIVE;
 					player->panel_btns[1] = PANEL_BTN_DESTROY_ROAD;
 					player->map_cursor_sprites[0].sprite = 52;
@@ -480,7 +482,7 @@ player_update_interface(player_t *player)
 						player->map_cursor_sprites[0].sprite = 47;
 					}
 					break;
-				case 5:
+				case MAP_CURSOR_TYPE_CLEAR_BY_FLAG:
 					if (player->sett->panel_btn_type < PANEL_BTN_BUILD_MINE) {
 						player->panel_btns[0] = PANEL_BTN_BUILD_INACTIVE;
 						if (PLAYER_HAS_CASTLE(player->sett)) {
@@ -497,7 +499,7 @@ player_update_interface(player_t *player)
 						player->map_cursor_sprites[2].sprite = 33;
 					}
 					break;
-				case 6:
+				case MAP_CURSOR_TYPE_CLEAR_BY_PATH:
 					player->panel_btns[0] = player->sett->panel_btn_type;
 					player->panel_btns[1] = PANEL_BTN_DESTROY_INACTIVE;
 					if (player->sett->panel_btn_type != PANEL_BTN_BUILD_INACTIVE) {
@@ -512,7 +514,7 @@ player_update_interface(player_t *player)
 						player->map_cursor_sprites[2].sprite = 33;
 					}
 					break;
-				case 7:
+				case MAP_CURSOR_TYPE_CLEAR:
 					player->panel_btns[0] = player->sett->panel_btn_type;
 					if (PLAYER_HAS_CASTLE(player->sett)) {
 						player->panel_btns[1] = PANEL_BTN_DESTROY_INACTIVE;
@@ -554,8 +556,8 @@ player_build_road_begin(player_t *player)
 
 	player_determine_map_cursor_type(player);
 
-	if (player->sett->map_cursor_type != 1 &&
-	    player->sett->map_cursor_type != 2) {
+	if (player->sett->map_cursor_type != MAP_CURSOR_TYPE_FLAG &&
+	    player->sett->map_cursor_type != MAP_CURSOR_TYPE_REMOVABLE_FLAG) {
 		player_update_interface(player);
 		return;
 	}
@@ -808,11 +810,11 @@ player_demolish_object(player_t *player)
 
 	map_pos_t cursor_pos = MAP_POS(player->sett->map_cursor_col, player->sett->map_cursor_row);
 
-	if (player->sett->map_cursor_type == 2) {
+	if (player->sett->map_cursor_type == MAP_CURSOR_TYPE_REMOVABLE_FLAG) {
 		sfx_play_clip(SFX_CLICK);
 		player->click |= BIT(2);
 		game_demolish_flag(cursor_pos);
-	} else if (player->sett->map_cursor_type == 3) {
+	} else if (player->sett->map_cursor_type == MAP_CURSOR_TYPE_BUILDING) {
 		building_t *building = game_get_building(MAP_OBJ_INDEX(cursor_pos));
 
 		if (BUILDING_IS_DONE(building) &&
@@ -1125,9 +1127,9 @@ player_build_flag(player_t *player)
 	player_determine_map_cursor_type(player);
 
 	if (player->sett->panel_btn_type < PANEL_BTN_BUILD_FLAG ||
-	    (player->sett->map_cursor_type != 7 &&
-	     player->sett->map_cursor_type != 6 &&
-	     player->sett->map_cursor_type != 4)) {
+	    (player->sett->map_cursor_type != MAP_CURSOR_TYPE_CLEAR &&
+	     player->sett->map_cursor_type != MAP_CURSOR_TYPE_CLEAR_BY_PATH &&
+	     player->sett->map_cursor_type != MAP_CURSOR_TYPE_PATH)) {
 		player_update_interface(player);
 		return;
 	}
@@ -1149,7 +1151,7 @@ player_build_flag(player_t *player)
 	tiles[map_cursor_pos].flags |= BIT(7);
 	/* move_map_resources(..); */
 
-	if (player->sett->map_cursor_type == 4) { /* built on existing road */
+	if (player->sett->map_cursor_type == MAP_CURSOR_TYPE_PATH) {
 		build_flag_split_path(map_cursor_pos);
 	}
 }
@@ -1181,7 +1183,7 @@ build_building(player_t *player, map_obj_t obj_type)
 
 	flag_t *flag = NULL;
 	int flg_index = 0;
-	if (player->sett->map_cursor_type != 5) {
+	if (player->sett->map_cursor_type != MAP_CURSOR_TYPE_CLEAR_BY_FLAG) {
 		r = game_alloc_flag(&flag, &flg_index);
 		if (r < 0) {
 			game_free_building(bld_index);
@@ -1223,7 +1225,7 @@ build_building(player_t *player, map_obj_t obj_type)
 	bld->progress = 0;
 	if (obj_type == 2) bld->progress = 1;
 
-	if (player->sett->map_cursor_type != 5) {
+	if (player->sett->map_cursor_type != MAP_CURSOR_TYPE_CLEAR_BY_FLAG) {
 		flag->path_con = player->sett->player_num << 6;
 	} else {
 		flg_index = MAP_OBJ_INDEX(MAP_MOVE_DOWN_RIGHT(pos));
@@ -1255,13 +1257,13 @@ build_building(player_t *player, map_obj_t obj_type)
 	map_set_object(pos, obj_type, bld_index);
 	tiles[pos].flags |= BIT(1) | BIT(6);
 
-	if (player->sett->map_cursor_type != 5) {
+	if (player->sett->map_cursor_type != MAP_CURSOR_TYPE_CLEAR_BY_FLAG) {
 		/* move_map_resources(MAP_MOVE_DOWN_RIGHT(pos), map_data); */
 		map_set_object(MAP_MOVE_DOWN_RIGHT(pos), MAP_OBJ_FLAG, flg_index);
 		tiles[MAP_MOVE_DOWN_RIGHT(pos)].flags |= BIT(4) | BIT(7);
 	}
 
-	if (player->sett->map_cursor_type == 6) {
+	if (player->sett->map_cursor_type == MAP_CURSOR_TYPE_CLEAR_BY_PATH) {
 		build_flag_split_path(MAP_MOVE_DOWN_RIGHT(pos));
 	}
 
@@ -1276,7 +1278,7 @@ player_build_mine_building(player_t *player)
 {
 	player_determine_map_cursor_type(player);
 
-	if (player->sett->map_cursor_type == 3) {
+	if (player->sett->map_cursor_type == MAP_CURSOR_TYPE_BUILDING) {
 		if (player->sett->panel_btn_type == PANEL_BTN_BUILD_MINE &&
 		    BIT_TEST(player->click, 3)) { /* Special click */
 			player_close_popup(player);
@@ -1287,9 +1289,9 @@ player_build_mine_building(player_t *player)
 	} else {
 		player_close_popup(player);
 		if (player->sett->panel_btn_type != PANEL_BTN_BUILD_MINE ||
-		    (player->sett->map_cursor_type != 7 &&
-		     player->sett->map_cursor_type != 6 &&
-		     player->sett->map_cursor_type != 5)) {
+		    (player->sett->map_cursor_type != MAP_CURSOR_TYPE_CLEAR &&
+		     player->sett->map_cursor_type != MAP_CURSOR_TYPE_CLEAR_BY_PATH &&
+		     player->sett->map_cursor_type != MAP_CURSOR_TYPE_CLEAR_BY_FLAG)) {
 			sfx_play_clip(SFX_NOT_ACCEPTED);
 			player_update_interface(player);
 		} else {
@@ -1304,7 +1306,7 @@ player_build_basic_building(player_t *player)
 {
 	player_determine_map_cursor_type(player);
 
-	if (player->sett->map_cursor_type == 3) {
+	if (player->sett->map_cursor_type == MAP_CURSOR_TYPE_BUILDING) {
 		if (player->sett->panel_btn_type >= PANEL_BTN_BUILD_SMALL &&
 		    BIT_TEST(player->click, 3)) { /* Special click */
 			player_close_popup(player);
@@ -1315,9 +1317,9 @@ player_build_basic_building(player_t *player)
 	} else {
 		player_close_popup(player);
 		if (player->sett->panel_btn_type < PANEL_BTN_BUILD_SMALL ||
-		    (player->sett->map_cursor_type != 7 &&
-		     player->sett->map_cursor_type != 6 &&
-		     player->sett->map_cursor_type != 5)) {
+		    (player->sett->map_cursor_type != MAP_CURSOR_TYPE_CLEAR &&
+		     player->sett->map_cursor_type != MAP_CURSOR_TYPE_CLEAR_BY_PATH &&
+		     player->sett->map_cursor_type != MAP_CURSOR_TYPE_CLEAR_BY_FLAG)) {
 			sfx_play_clip(SFX_NOT_ACCEPTED);
 			player_update_interface(player);
 		} else {
@@ -1332,7 +1334,7 @@ player_build_advanced_building(player_t *player)
 {
 	player_determine_map_cursor_type(player);
 
-	if (player->sett->map_cursor_type == 3) {
+	if (player->sett->map_cursor_type == MAP_CURSOR_TYPE_BUILDING) {
 		if (player->sett->panel_btn_type >= PANEL_BTN_BUILD_LARGE &&
 		    BIT_TEST(player->click, 3)) { /* Special click */
 			player_close_popup(player);
@@ -1343,9 +1345,9 @@ player_build_advanced_building(player_t *player)
 	} else {
 		player_close_popup(player);
 		if (player->sett->panel_btn_type != PANEL_BTN_BUILD_LARGE ||
-		    (player->sett->map_cursor_type != 7 &&
-		     player->sett->map_cursor_type != 6 &&
-		     player->sett->map_cursor_type != 5)) {
+		    (player->sett->map_cursor_type != MAP_CURSOR_TYPE_CLEAR &&
+		     player->sett->map_cursor_type != MAP_CURSOR_TYPE_CLEAR_BY_PATH &&
+		     player->sett->map_cursor_type != MAP_CURSOR_TYPE_CLEAR_BY_FLAG)) {
 			sfx_play_clip(SFX_NOT_ACCEPTED);
 			player_update_interface(player);
 		} else {
@@ -1522,7 +1524,7 @@ player_build_castle(player_t *player)
 	player_determine_map_cursor_type(player);
 
 	if (player->sett->panel_btn_type != PANEL_BTN_BUILD_CASTLE ||
-	    player->sett->map_cursor_type != 7) {
+	    player->sett->map_cursor_type != MAP_CURSOR_TYPE_CLEAR) {
 		sfx_play_clip(SFX_NOT_ACCEPTED);
 		player_update_interface(player);
 		return;

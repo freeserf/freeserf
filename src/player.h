@@ -35,6 +35,17 @@
 #define PLAYER_HAS_CASTLE(sett)  ((int)((sett)->flags & 1))
 
 
+typedef enum {
+	MAP_CURSOR_TYPE_NONE = 0,
+	MAP_CURSOR_TYPE_FLAG,
+	MAP_CURSOR_TYPE_REMOVABLE_FLAG,
+	MAP_CURSOR_TYPE_BUILDING,
+	MAP_CURSOR_TYPE_PATH,
+	MAP_CURSOR_TYPE_CLEAR_BY_FLAG,
+	MAP_CURSOR_TYPE_CLEAR_BY_PATH,
+	MAP_CURSOR_TYPE_CLEAR
+} map_cursor_type_t;
+
 /* player_sett_t object.
    Actually holds the game state of a player.
    This is the same for both human and AI players. */
@@ -59,7 +70,7 @@ typedef struct {
 	int map_cursor_col;
 	int map_cursor_row;
 	/* 100 */
-	int map_cursor_type;
+	map_cursor_type_t map_cursor_type;
 	panel_btn_t panel_btn_type;
 	int building_height_after_level;
 	int building;
