@@ -2885,6 +2885,446 @@ game_demolish_road(map_pos_t pos)
 	remove_road_forwards(pos, path_2_dir);
 }
 
+/* Find a transporter at pos and change it to state. */
+static int
+change_transporter_state_at_pos(map_pos_t pos, serf_state_t state)
+{
+	for (int i = 1; i < globals.max_ever_serf_index; i++) {
+		if (SERF_ALLOCATED(i)) {
+			serf_t *serf = game_get_serf(i);
+			if (serf->pos == pos &&
+			    (serf->state == SERF_STATE_WAKE_AT_FLAG ||
+			     serf->state == SERF_STATE_WAKE_ON_PATH ||
+			     serf->state == SERF_STATE_WAIT_IDLE_ON_PATH ||
+			     serf->state == SERF_STATE_IDLE_ON_PATH)) {
+				serf_log_state_change(serf, state);
+				serf->state = state;
+				return SERF_INDEX(serf);
+			}
+		}
+	}
+
+	return -1;
+}
+
+static int
+wake_transporter_at_flag(map_pos_t pos)
+{
+	return change_transporter_state_at_pos(pos, SERF_STATE_WAKE_AT_FLAG);
+}
+
+static int
+wake_transporter_on_path(map_pos_t pos)
+{
+	return change_transporter_state_at_pos(pos, SERF_STATE_WAKE_ON_PATH);
+}
+
+typedef struct {
+	int path_len;
+	int serf_count;
+	int flag_index;
+	dir_t flag_dir;
+	int serfs[16];
+} serf_path_info_t;
+
+static void
+fill_path_serf_info(map_pos_t pos, dir_t dir, serf_path_info_t *data)
+{
+	if (MAP_IDLE_SERF(pos)) wake_transporter_at_flag(pos);
+
+	int serf_count = 0;
+	int path_len = 0;
+
+	/* Handle first position. */
+	if (MAP_SERF_INDEX(pos) != 0) {
+		serf_t *serf = game_get_serf(MAP_SERF_INDEX(pos));
+		if (serf->state == SERF_STATE_TRANSPORTING &&
+		    serf->s.walking.wait_counter != -1) {
+			int d = serf->s.walking.dir;
+			if (d < 0) d += 6;
+
+			if (dir == d) {
+				serf->s.walking.wait_counter = 0;
+				data->serfs[serf_count++] = SERF_INDEX(serf);
+			}
+		}
+	}
+
+	/* Trace along the path to the flag at the other end. */
+	int paths = 0;
+	while (1) {
+		path_len += 1;
+		pos = MAP_MOVE(pos, dir);
+		paths = MAP_PATHS(pos);
+		paths &= ~BIT(DIR_REVERSE(dir));
+
+		if (MAP_HAS_FLAG(pos)) break;
+
+		/* Find out which direction the path follows. */
+		for (dir_t d = DIR_RIGHT; d <= DIR_UP; d++) {
+			if (BIT_TEST(paths, d)) {
+				dir = d;
+				break;
+			}
+		}
+
+		/* Check if there is a transporter waiting here. */
+		if (MAP_IDLE_SERF(pos)) {
+			int index = wake_transporter_on_path(pos);
+			if (index >= 0) data->serfs[serf_count++] = index;
+		}
+
+		/* Check if there is a serf occupying this space. */
+		if (MAP_SERF_INDEX(pos) != 0) {
+			serf_t *serf = game_get_serf(MAP_SERF_INDEX(pos));
+			if (serf->state == SERF_STATE_TRANSPORTING &&
+			    serf->s.walking.wait_counter != -1) {
+				serf->s.walking.wait_counter = 0;
+				data->serfs[serf_count++] = SERF_INDEX(serf);
+			}
+		}
+	}
+
+	/* Handle last position. */
+	if (MAP_SERF_INDEX(pos) != 0) {
+		serf_t *serf = game_get_serf(MAP_SERF_INDEX(pos));
+		if ((serf->state == SERF_STATE_TRANSPORTING &&
+		     serf->s.walking.wait_counter != -1) ||
+		    serf->state == SERF_STATE_DELIVERING) {
+			int d = serf->s.walking.dir;
+			if (d < 0) d += 6;
+
+			if (d == DIR_REVERSE(dir)) {
+				serf->s.walking.wait_counter = 0;
+				data->serfs[serf_count++] = SERF_INDEX(serf);
+			}
+		}
+	}
+
+	/* Fill the rest of the struct. */
+	data->path_len = path_len;
+	data->serf_count = serf_count;
+	data->flag_index = MAP_OBJ_INDEX(pos);
+	data->flag_dir = DIR_REVERSE(dir);
+}
+
+static void
+restore_path_serf_info(flag_t *flag, dir_t dir, serf_path_info_t *data)
+{
+	const int max_path_serfs[] = { 1, 2, 3, 4, 6, 8, 11, 15 };
+
+	flag_t *other_flag = game_get_flag(data->flag_index);
+	dir_t other_dir = data->flag_dir;
+
+	flag->path_con |= BIT(dir);
+	flag->endpoint &= ~BIT(dir);
+
+	if (!FLAG_IS_WATER_PATH(other_flag, other_dir)) {
+		flag->endpoint |= BIT(dir);
+	}
+
+	other_flag->transporter &= ~BIT(other_dir);
+	flag->transporter &= ~BIT(dir);
+
+	int len = game_get_road_length_value(data->path_len);
+
+	flag->length[dir] = len;
+	other_flag->length[other_dir] = (0x80 & other_flag->length[other_dir]) | len;
+
+	if (FLAG_SERF_REQUESTED(other_flag, other_dir)) {
+		flag->length[dir] |= BIT(7);
+	}
+
+	flag->other_end_dir[dir] = (flag->other_end_dir[dir] & 0xc7) | (other_dir << 3);
+	other_flag->other_end_dir[other_dir] = (other_flag->other_end_dir[other_dir] & 0xc7) | (dir << 3);
+
+	flag->other_endpoint.f[dir] = other_flag;
+	other_flag->other_endpoint.f[other_dir] = flag;
+
+	int max_serfs = max_path_serfs[(len >> 4) & 7];
+	if (FLAG_SERF_REQUESTED(flag, dir)) max_serfs -= 1;
+
+	if (data->serf_count > max_serfs) {
+		for (int i = 0; i < data->serf_count - max_serfs; i++) {
+			serf_t *serf = game_get_serf(data->serfs[i]);
+			if (serf->state != SERF_STATE_WAKE_ON_PATH) {
+				serf->s.walking.wait_counter = -1;
+				if (serf->s.walking.res != 0) {
+					resource_type_t res = serf->s.walking.res-1;
+					serf->s.walking.res = 0;
+
+					/* Remove gold from total count. */
+					if (res == RESOURCE_GOLDBAR ||
+					    res == RESOURCE_GOLDORE) {
+						globals.map_gold_deposit -= 1;
+					}
+
+					flag_cancel_transported_stock(game_get_flag(serf->s.walking.dest), res+1);
+				}
+			} else {
+				serf_log_state_change(serf, SERF_STATE_WAKE_AT_FLAG);
+				serf->state = SERF_STATE_WAKE_AT_FLAG;
+			}
+		}
+	}
+
+	if (min(data->serf_count, max_serfs) > 0) {
+		/* There is still transporters on the paths. */
+		flag->transporter |= BIT(dir);
+		other_flag->transporter |= BIT(other_dir);
+
+		flag->length[dir] |= min(data->serf_count, max_serfs);
+		other_flag->length[other_dir] |= min(data->serf_count, max_serfs);
+	}
+}
+
+/* Build flag on existing path. Path must be split in two segments. */
+static void
+build_flag_split_path(map_pos_t pos)
+{
+	/* Find directions of path segments to be split. */
+	dir_t path_1_dir = -1;
+	for (dir_t d = DIR_RIGHT; d <= DIR_UP; d++) {
+		if (BIT_TEST(MAP_PATHS(pos), d)) {
+			path_1_dir = d;
+			break;
+		}
+	}
+
+	dir_t path_2_dir = -1;
+	for (dir_t d = path_1_dir+1; d <= DIR_UP; d++) {
+		if (BIT_TEST(MAP_PATHS(pos), d)) {
+			path_2_dir = d;
+			break;
+		}
+	}
+
+	/* If last segment direction is UP LEFT it could
+	   be to a building and the real path is at UP. */
+	if (path_2_dir == DIR_UP_LEFT &&
+	    BIT_TEST(MAP_PATHS(pos), DIR_UP)) {
+		path_2_dir = DIR_UP;
+	}
+
+	serf_path_info_t path_1_data;
+	serf_path_info_t path_2_data;
+
+	fill_path_serf_info(pos, path_1_dir, &path_1_data);
+	fill_path_serf_info(pos, path_2_dir, &path_2_data);
+
+	flag_t *flag_2 = game_get_flag(path_2_data.flag_index);
+	dir_t dir_2 = path_2_data.flag_dir;
+
+	int select = -1;
+	if (FLAG_SERF_REQUESTED(flag_2, dir_2)) {
+		for (int i = 1; i < globals.max_ever_serf_index; i++) {
+			if (SERF_ALLOCATED(i)) {
+				serf_t *serf = game_get_serf(i);
+
+				if (serf->state == SERF_STATE_WALKING) {
+					if (serf->s.walking.dest == path_1_data.flag_index &&
+					    serf->s.walking.res == path_1_data.flag_dir) {
+						select = 0;
+						break;
+					} else if (serf->s.walking.dest == path_2_data.flag_index &&
+						   serf->s.walking.res == path_2_data.flag_dir) {
+						select = 1;
+						break;
+					}
+				} else if (serf->state == SERF_STATE_READY_TO_LEAVE_INVENTORY) {
+					if (serf->s.ready_to_leave_inventory.dest == path_1_data.flag_index &&
+					    serf->s.ready_to_leave_inventory.mode == path_1_data.flag_dir) {
+						select = 0;
+						break;
+					} else if (serf->s.ready_to_leave_inventory.dest == path_2_data.flag_index &&
+						   serf->s.ready_to_leave_inventory.mode == path_2_data.flag_dir) {
+						select = 1;
+						break;
+					}
+				} else if ((serf->state == SERF_STATE_READY_TO_LEAVE ||
+					    serf->state == SERF_STATE_LEAVING_BUILDING) &&
+					   serf->s.leaving_building.next_state == SERF_STATE_WALKING) {
+					if (serf->s.leaving_building.dest == path_1_data.flag_index &&
+					    serf->s.leaving_building.field_B == path_1_data.flag_dir) {
+						select = 0;
+						break;
+					} else if (serf->s.leaving_building.dest == path_2_data.flag_index &&
+						   serf->s.leaving_building.field_B == path_2_data.flag_dir) {
+						select = 1;
+						break;
+					}
+				}
+			}
+		}
+
+		serf_path_info_t *path_data = &path_1_data;
+		if (select == 0) path_data = &path_2_data;
+
+		flag_t *selected_flag = game_get_flag(path_data->flag_index);
+		selected_flag->length[path_data->flag_dir] &= ~BIT(7);
+	}
+
+	flag_t *flag = game_get_flag(MAP_OBJ_INDEX(pos));
+
+	restore_path_serf_info(flag, path_1_dir, &path_1_data);
+	restore_path_serf_info(flag, path_2_dir, &path_2_data);
+}
+
+/* Build flag at pos. */
+void
+game_build_flag(map_pos_t pos, player_sett_t *sett)
+{
+	flag_t *flag;
+	int flg_index;
+	int r = game_alloc_flag(&flag, &flg_index);
+	if (r < 0) return;
+
+	flag->path_con = sett->player_num << 6;
+
+	map_tile_t *tiles = globals.map.tiles;
+
+	flag->pos = pos;
+	map_set_object(pos, MAP_OBJ_FLAG, flg_index);
+	tiles[pos].flags |= BIT(7);
+	/* move_map_resources(..); */
+
+	if (MAP_PATHS(pos) != 0) {
+		build_flag_split_path(pos);
+	}
+}
+
+/* Build building at position. */
+void
+game_build_building(map_pos_t pos, building_type_t type, player_sett_t *sett)
+{
+	const int construction_cost[] = {
+		0, 0, 2, 0, 2, 0, 3, 0, 2, 0,
+		4, 1, 5, 0, 5, 0, 5, 0,
+		2, 0, 4, 3, 1, 1, 4, 1, 2, 1, 4, 1, 3, 1, 2, 1,
+		3, 2, 3, 2, 3, 3, 2, 1, 2, 3, 5, 5, 4, 1
+	};
+
+	const map_obj_t obj_types[] = {
+		[BUILDING_NONE] = MAP_OBJ_NONE,
+		[BUILDING_FISHER] = MAP_OBJ_SMALL_BUILDING,
+		[BUILDING_LUMBERJACK] = MAP_OBJ_SMALL_BUILDING,
+		[BUILDING_BOATBUILDER] = MAP_OBJ_SMALL_BUILDING,
+		[BUILDING_STONECUTTER] = MAP_OBJ_SMALL_BUILDING,
+		[BUILDING_STONEMINE] = MAP_OBJ_SMALL_BUILDING,
+		[BUILDING_COALMINE] = MAP_OBJ_SMALL_BUILDING,
+		[BUILDING_IRONMINE] = MAP_OBJ_SMALL_BUILDING,
+		[BUILDING_GOLDMINE] = MAP_OBJ_SMALL_BUILDING,
+		[BUILDING_FORESTER] = MAP_OBJ_SMALL_BUILDING,
+		[BUILDING_STOCK] = MAP_OBJ_LARGE_BUILDING,
+		[BUILDING_HUT] = MAP_OBJ_SMALL_BUILDING,
+		[BUILDING_FARM] = MAP_OBJ_LARGE_BUILDING,
+		[BUILDING_BUTCHER] = MAP_OBJ_LARGE_BUILDING,
+		[BUILDING_PIGFARM] = MAP_OBJ_LARGE_BUILDING,
+		[BUILDING_MILL] = MAP_OBJ_SMALL_BUILDING,
+		[BUILDING_BAKER] = MAP_OBJ_LARGE_BUILDING,
+		[BUILDING_SAWMILL] = MAP_OBJ_LARGE_BUILDING,
+		[BUILDING_STEELSMELTER] = MAP_OBJ_LARGE_BUILDING,
+		[BUILDING_TOOLMAKER] = MAP_OBJ_LARGE_BUILDING,
+		[BUILDING_WEAPONSMITH] = MAP_OBJ_LARGE_BUILDING,
+		[BUILDING_TOWER] = MAP_OBJ_LARGE_BUILDING,
+		[BUILDING_FORTRESS] = MAP_OBJ_LARGE_BUILDING,
+		[BUILDING_GOLDSMELTER] = MAP_OBJ_LARGE_BUILDING,
+		[BUILDING_CASTLE] = MAP_OBJ_CASTLE
+	};
+
+	if (type == BUILDING_STOCK) {
+		/* TODO Check that more stocks are allowed to be built */
+	}
+
+	building_t *bld;
+	int bld_index;
+	int r = game_alloc_building(&bld, &bld_index);
+	if (r < 0) return;
+
+	flag_t *flag = NULL;
+	int flg_index = 0;
+	if (MAP_OBJ(MAP_MOVE_DOWN_RIGHT(pos)) != MAP_OBJ_FLAG) {
+		r = game_alloc_flag(&flag, &flg_index);
+		if (r < 0) {
+			game_free_building(bld_index);
+			return;
+		}
+	}
+
+	if (/*!BIT_TEST(player->sett->field_163, 0)*/0) {
+		switch (type) {
+		case BUILDING_LUMBERJACK:
+			if (sett->lumberjack_index == 0) {
+				sett->lumberjack_index = bld_index;
+			}
+			break;
+		case BUILDING_SAWMILL:
+			if (sett->sawmill_index == 0) {
+				sett->sawmill_index = bld_index;
+			}
+			break;
+		case BUILDING_STONECUTTER:
+			if (sett->stonecutter_index == 0) {
+				sett->stonecutter_index = bld_index;
+			}
+			break;
+		default:
+			break;
+		}
+	}
+
+	map_tile_t *tiles = globals.map.tiles;
+
+	bld->u.s.level = sett->building_height_after_level;
+	bld->pos = pos;
+	sett->incomplete_building_count[type] += 1;
+	bld->bld = BIT(7) | (type << 2) | sett->player_num; /* bit 7: Unfinished building */
+	bld->progress = 0;
+	if (obj_types[type] != MAP_OBJ_SMALL_BUILDING) bld->progress = 1;
+
+	int split_path = 0;
+	if (MAP_OBJ(MAP_MOVE_DOWN_RIGHT(pos)) != MAP_OBJ_FLAG) {
+		flag->path_con = sett->player_num << 6;
+		if (MAP_PATHS(MAP_MOVE_DOWN_RIGHT(pos)) != 0) split_path = 1;
+	} else {
+		flg_index = MAP_OBJ_INDEX(MAP_MOVE_DOWN_RIGHT(pos));
+		flag = game_get_flag(flg_index);
+	}
+
+	flag->pos = MAP_MOVE_DOWN_RIGHT(pos);
+
+	bld->flg_index = flg_index;
+	flag->other_endpoint.b[DIR_UP_LEFT] = bld;
+	flag->endpoint |= BIT(6);
+
+	bld->stock[0].type = RESOURCE_PLANK;
+	bld->stock[0].prio = 0;
+	bld->stock[1].type = RESOURCE_STONE;
+	bld->stock[1].prio = 0;
+
+	flag->bld_flags = 0;
+	flag->bld2_flags = 0;
+
+	bld->u.s.planks_needed = construction_cost[2*type];
+	bld->u.s.stone_needed = construction_cost[2*type+1];
+
+	/* move_map_resources(pos, map_data); */
+	/* TODO Resources should be moved, just set them to zero for now */
+	tiles[pos].u.s.resource = 0;
+	tiles[pos].u.s.field_1 = 0;
+
+	map_set_object(pos, obj_types[type], bld_index);
+	tiles[pos].flags |= BIT(1) | BIT(6);
+
+	if (MAP_OBJ(MAP_MOVE_DOWN_RIGHT(pos)) != MAP_OBJ_FLAG) {
+		/* move_map_resources(MAP_MOVE_DOWN_RIGHT(pos), map_data); */
+		map_set_object(MAP_MOVE_DOWN_RIGHT(pos), MAP_OBJ_FLAG, flg_index);
+		tiles[MAP_MOVE_DOWN_RIGHT(pos)].flags |= BIT(4) | BIT(7);
+	}
+
+	if (split_path) build_flag_split_path(MAP_MOVE_DOWN_RIGHT(pos));
+}
+
 static void
 flag_remove_player_refs(flag_t *flag)
 {
@@ -2899,6 +3339,8 @@ flag_remove_player_refs(flag_t *flag)
 void
 game_demolish_flag(map_pos_t pos)
 {
+	const int max_transporters[] = { 1, 2, 3, 4, 6, 8, 11, 15 };
+
 	/* Handle any serf at pos. */
 	if (MAP_SERF_INDEX(pos) != 0) {
 		serf_t *serf = game_get_serf(MAP_SERF_INDEX(pos));
@@ -2908,8 +3350,6 @@ game_demolish_flag(map_pos_t pos)
 			serf->s.leaving_building.next_state = SERF_STATE_LOST;
 			break;
 		case SERF_STATE_FINISHED_BUILDING:
-			/* TODO */
-			break;
 		case SERF_STATE_WALKING:
 			if (MAP_PATHS(pos) == 0) {
 				serf_log_state_change(serf, SERF_STATE_LOST);
@@ -2926,7 +3366,96 @@ game_demolish_flag(map_pos_t pos)
 
 	/* Handle connected flag. */
 	if (MAP_PATHS(pos)) {
-		/* TODO */
+		dir_t path_1_dir = 0;
+		dir_t path_2_dir = 0;
+
+		/* Find first direction */
+		for (dir_t d = DIR_RIGHT; d <= DIR_UP; d++) {
+			if (BIT_TEST(MAP_PATHS(pos), d)) {
+				path_1_dir = d;
+				break;
+			}
+		}
+
+		/* Find second direction */
+		for (dir_t d = DIR_UP; d >= DIR_RIGHT; d--) {
+			if (BIT_TEST(MAP_PATHS(pos), d)) {
+				path_2_dir = d;
+				break;
+			}
+		}
+
+		serf_path_info_t path_1_data;
+		serf_path_info_t path_2_data;
+
+		fill_path_serf_info(pos, path_1_dir, &path_1_data);
+		fill_path_serf_info(pos, path_2_dir, &path_2_data);
+
+		flag_t *flag_1 = game_get_flag(path_1_data.flag_index);
+		flag_t *flag_2 = game_get_flag(path_2_data.flag_index);
+		dir_t dir_1 = path_1_data.flag_dir;
+		dir_t dir_2 = path_2_data.flag_dir;
+
+		flag_1->other_end_dir[dir_1] = (flag_1->other_end_dir[dir_1] & 0xc7) | (dir_2 << 3);
+		flag_2->other_end_dir[dir_2] = (flag_2->other_end_dir[dir_2] & 0xc7) | (dir_1 << 3);
+
+		flag_1->other_endpoint.f[dir_1] = flag_2;
+		flag_2->other_endpoint.f[dir_2] = flag_1;
+
+		flag_1->transporter &= ~BIT(dir_1);
+		flag_2->transporter &= ~BIT(dir_2);
+
+		int len = game_get_road_length_value(path_1_data.path_len + path_2_data.path_len);
+		flag_1->length[dir_1] = len;
+		flag_2->length[dir_2] = len;
+
+		int max_serfs = max_transporters[FLAG_LENGTH_CATEGORY(flag_1, dir_1)];
+		int serf_count = path_1_data.serf_count + path_2_data.serf_count;
+		if (serf_count > 0) {
+			flag_1->transporter |= BIT(dir_1);
+			flag_2->transporter |= BIT(dir_2);
+
+			if (serf_count > max_serfs) {
+				/* TODO 59B8B */
+			}
+
+			flag_1->length[dir_1] += serf_count;
+			flag_2->length[dir_2] += serf_count;
+		}
+
+		/* Update serfs with reference to this flag. */
+		for (int i = 1; i < globals.max_ever_serf_index; i++) {
+			if (SERF_ALLOCATED(i)) {
+				serf_t *serf = game_get_serf(i);
+
+				if (serf->state == SERF_STATE_READY_TO_LEAVE_INVENTORY &&
+				    ((serf->s.ready_to_leave_inventory.dest == FLAG_INDEX(flag_1) &&
+				      serf->s.ready_to_leave_inventory.mode == dir_1) ||
+				     (serf->s.ready_to_leave_inventory.dest == FLAG_INDEX(flag_2) &&
+				      serf->s.ready_to_leave_inventory.mode == dir_2))) {
+					serf->s.ready_to_leave_inventory.dest = 0;
+					serf->s.ready_to_leave_inventory.mode = -2;
+				} else if (serf->state == SERF_STATE_WALKING &&
+					   ((serf->s.walking.dest == FLAG_INDEX(flag_1) &&
+					     serf->s.walking.res == dir_1) ||
+					    (serf->s.walking.dest == FLAG_INDEX(flag_2) &&
+					     serf->s.walking.res == dir_2))) {
+					serf->s.walking.dest = 0;
+					serf->s.walking.res = -2;
+				} else if (serf->state == SERF_STATE_IDLE_IN_STOCK) {
+					/* TODO */
+				} else if ((serf->state == SERF_STATE_LEAVING_BUILDING ||
+					    serf->state == SERF_STATE_READY_TO_LEAVE) &&
+					   ((serf->s.leaving_building.dest == FLAG_INDEX(flag_1) &&
+					     serf->s.leaving_building.field_B == dir_1) ||
+					    (serf->s.leaving_building.dest == FLAG_INDEX(flag_2) &&
+					     serf->s.leaving_building.field_B == dir_2)) &&
+					   serf->s.leaving_building.next_state == SERF_STATE_WALKING) {
+					serf->s.leaving_building.dest = 0;
+					serf->s.leaving_building.field_B = -2;
+				}
+			}
+		}
 	}
 
 	/* Clear map. */
