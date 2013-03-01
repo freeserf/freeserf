@@ -1390,25 +1390,29 @@ draw_ground_analysis_box(popup_box_t *popup, frame_t *frame)
 		-1
 	};
 
+	map_pos_t pos = MAP_POS(popup->player->sett->map_cursor_col,
+				popup->player->sett->map_cursor_row);
+	int estimates[5];
+
 	draw_box_background(0x81, frame);
 	draw_custom_icon_box(layout, frame);
-	game_prepare_ground_analysis(popup->player);
+	game_prepare_ground_analysis(pos, estimates);
 	draw_green_string(0, 30, frame, "GROUND-ANALYSIS:");
 
 	/* Gold */
-	const char *s = prepare_res_amount_text(2*popup->player->sett->analysis_goldore);
+	const char *s = prepare_res_amount_text(2*estimates[GROUND_DEPOSIT_GOLD]);
 	draw_green_string(3, 54, frame, s);
 
 	/* Iron */
-	s = prepare_res_amount_text(popup->player->sett->analysis_ironore);
+	s = prepare_res_amount_text(estimates[GROUND_DEPOSIT_IRON]);
 	draw_green_string(3, 74, frame, s);
 
 	/* Coal */
-	s = prepare_res_amount_text(popup->player->sett->analysis_coal);
+	s = prepare_res_amount_text(estimates[GROUND_DEPOSIT_COAL]);
 	draw_green_string(3, 94, frame, s);
 
 	/* Stone */
-	s = prepare_res_amount_text(2*popup->player->sett->analysis_stone);
+	s = prepare_res_amount_text(2*estimates[GROUND_DEPOSIT_STONE]);
 	draw_green_string(3, 114, frame, s);
 }
 

@@ -2335,50 +2335,24 @@ game_pause(int enable)
 
 /* Generate an estimate of the amount of resources in the ground at map pos.*/
 static void
-get_resource_estimate(map_pos_t pos, int weight, player_t *player)
+get_resource_estimate(map_pos_t pos, int weight, int estimates[5])
 {
 	if ((MAP_OBJ(pos) == MAP_OBJ_NONE ||
 	     MAP_OBJ(pos) >= MAP_OBJ_TREE_0) &&
 	     MAP_RES_TYPE(pos) != GROUND_DEPOSIT_NONE) {
 		int value = weight*MAP_RES_AMOUNT(pos);
-
-		switch (MAP_RES_TYPE(pos)) {
-		case GROUND_DEPOSIT_GOLD:
-			player->sett->analysis_goldore += value;
-			break;
-		case GROUND_DEPOSIT_IRON:
-			player->sett->analysis_ironore += value;
-			break;
-		case GROUND_DEPOSIT_COAL:
-			player->sett->analysis_coal += value;
-			break;
-		case GROUND_DEPOSIT_STONE:
-			player->sett->analysis_stone += value;
-			break;
-		default:
-			NOT_REACHED();
-			break;
-		}
+		estimates[MAP_RES_TYPE(pos)] += value;
 	}
 }
 
-/* Prepare a ground analysis for player.
-   The cursor position is the center of the analysis. */
+/* Prepare a ground analysis at position. */
 void
-game_prepare_ground_analysis(player_t *player)
+game_prepare_ground_analysis(map_pos_t pos, int estimates[5])
 {
-	player->sett->analysis_goldore = 0;
-	player->sett->analysis_ironore = 0;
-	player->sett->analysis_coal = 0;
-	player->sett->analysis_stone = 0;
-
-	/* Use cursor position, not viewport position as
-	   was used in the original game. */
-	map_pos_t pos = MAP_POS(player->sett->map_cursor_col,
-				player->sett->map_cursor_row);
+	for (int i = 0; i < 5; i++) estimates[i] = 0;
 
 	/* Sample the cursor position with maximum weighting. */
-	get_resource_estimate(pos, GROUND_ANALYSIS_RADIUS, player);
+	get_resource_estimate(pos, GROUND_ANALYSIS_RADIUS, estimates);
 
 	/* Move outward in a spiral around the initial pos.
 	   The weighting of the samples attenuates linearly
@@ -2387,48 +2361,41 @@ game_prepare_ground_analysis(player_t *player)
 		pos = MAP_MOVE_RIGHT(pos);
 
 		for (int j = 0; j < i+1; j++) {
-			get_resource_estimate(pos, GROUND_ANALYSIS_RADIUS-i, player);
+			get_resource_estimate(pos, GROUND_ANALYSIS_RADIUS-i, estimates);
 			pos = MAP_MOVE_DOWN(pos);
 		}
 
 		for (int j = 0; j < i+1; j++) {
-			get_resource_estimate(pos, GROUND_ANALYSIS_RADIUS-i, player);
+			get_resource_estimate(pos, GROUND_ANALYSIS_RADIUS-i, estimates);
 			pos = MAP_MOVE_LEFT(pos);
 		}
 
 		for (int j = 0; j < i+1; j++) {
-			get_resource_estimate(pos, GROUND_ANALYSIS_RADIUS-i, player);
+			get_resource_estimate(pos, GROUND_ANALYSIS_RADIUS-i, estimates);
 			pos = MAP_MOVE_UP_LEFT(pos);
 		}
 
 		for (int j = 0; j < i+1; j++) {
-			get_resource_estimate(pos, GROUND_ANALYSIS_RADIUS-i, player);
+			get_resource_estimate(pos, GROUND_ANALYSIS_RADIUS-i, estimates);
 			pos = MAP_MOVE_UP(pos);
 		}
 
 		for (int j = 0; j < i+1; j++) {
-			get_resource_estimate(pos, GROUND_ANALYSIS_RADIUS-i, player);
+			get_resource_estimate(pos, GROUND_ANALYSIS_RADIUS-i, estimates);
 			pos = MAP_MOVE_RIGHT(pos);
 		}
 
 		for (int j = 0; j < i+1; j++) {
-			get_resource_estimate(pos, GROUND_ANALYSIS_RADIUS-i, player);
+			get_resource_estimate(pos, GROUND_ANALYSIS_RADIUS-i, estimates);
 			pos = MAP_MOVE_DOWN_RIGHT(pos);
 		}
 	}
 
 	/* Process the samples. */
-	player->sett->analysis_goldore >>= 4;
-	player->sett->analysis_goldore = min(player->sett->analysis_goldore, 999);
-
-	player->sett->analysis_ironore >>= 4;
-	player->sett->analysis_ironore = min(player->sett->analysis_ironore, 999);
-
-	player->sett->analysis_coal >>= 4;
-	player->sett->analysis_coal = min(player->sett->analysis_coal, 999);
-
-	player->sett->analysis_stone >>= 4;
-	player->sett->analysis_stone = min(player->sett->analysis_stone, 999);
+	for (int i = 0; i < 5; i++) {
+		estimates[i] >>= 4;
+		estimates[i] = min(estimates[i], 999);
+	}
 }
 
 /* Return non-zero if the road segment from pos in direction dir
