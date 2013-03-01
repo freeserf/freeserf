@@ -2370,7 +2370,7 @@ viewport_handle_event_click(viewport_t *viewport, int x, int y, gui_event_button
 			return 0;
 		}
 
-		if (BIT_TEST(player->field_D0, dir)) {
+		if (BIT_TEST(player->road_valid_dir, dir)) {
 			map_pos_t pos = MAP_POS(player->sett->map_cursor_col, player->sett->map_cursor_row);
 
 			if (!BIT_TEST(MAP_PATHS(pos), dir)) { /* No existing path: Create path */

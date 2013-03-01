@@ -98,7 +98,7 @@ determine_possible_building(const player_sett_t *sett, map_pos_t map_pos[], int 
 			if (s >= MAP_SPACE_LARGE_BUILDING) return;
 		}
 
-		/* Check if center hexagon is not type 5 (grass?) */
+		/* Check if center hexagon is not type 5 (grass) */
 		if (MAP_TYPE_UP(map_pos[0]) != 5 ||
 		    MAP_TYPE_DOWN(map_pos[0]) != 5 ||
 		    MAP_TYPE_DOWN(map_pos[1+DIR_LEFT]) != 5 ||
@@ -380,7 +380,7 @@ player_determine_map_cursor_type_road(player_t *player)
 	populate_circular_map_pos_array(map_pos, cursor_pos, 1+6);
 
 	int h = MAP_HEIGHT(map_pos[0]);
-	int bits = 0;
+	int valid_dir = 0;
 	int paths = 0;
 	if (player->road_length > 0) paths = MAP_PATHS(map_pos[0]);
 
@@ -397,7 +397,7 @@ player_determine_map_cursor_type_road(player_t *player)
 					   MAP_PATHS(map_pos[1+i]) == 0) {
 					int h_diff = MAP_HEIGHT(map_pos[1+i]) - h;
 					sprite = 39 + h_diff; /* height indicators */
-					bits |= BIT(i);
+					valid_dir |= BIT(i);
 				} else {
 					panel_btn_t panel_btn;
 					map_cursor_type_t cursor_type;
@@ -412,12 +412,12 @@ player_determine_map_cursor_type_road(player_t *player)
 					} else {
 						int h_diff = MAP_HEIGHT(map_pos[1+i]) - h;
 						sprite = 39 + h_diff; /* height indicators */
-						bits |= BIT(i);
+						valid_dir |= BIT(i);
 					}
 				}
 			} else {
 				sprite = 45; /* undo */
-				bits |= BIT(i);
+				valid_dir |= BIT(i);
 			}
 		} else {
 			sprite = 44; /* striped */
@@ -425,7 +425,7 @@ player_determine_map_cursor_type_road(player_t *player)
 		player->map_cursor_sprites[i+1].sprite = sprite;
 	}
 
-	player->field_D0 = bits;
+	player->road_valid_dir = valid_dir;
 }
 
 /* Set the appropriate sprites for the panel buttons and the map cursor. */

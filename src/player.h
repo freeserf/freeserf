@@ -268,7 +268,7 @@ typedef struct {
 	/* A4 */
 	sprite_loc_t map_cursor_sprites[7];
 	int road_length;
-	int field_D0;
+	int road_valid_dir;
 	uint8_t minimap_flags;
 	/* D2 */
 	uint16_t last_anim;
