@@ -300,9 +300,10 @@ get_map_cursor_type(const player_sett_t *sett, map_pos_t pos, panel_btn_t *panel
 
 		/* 426FD: Check owner of surrounding land */
 		for (int i = 0; i < 6; i++) {
-			if (player >= 0 &&
-			    (!MAP_HAS_OWNER(map_pos[1+i]) ||
-			     MAP_OWNER(map_pos[1+i]) != player)) {
+			if ((player >= 0 &&
+			     (!MAP_HAS_OWNER(map_pos[1+i]) ||
+			      MAP_OWNER(map_pos[1+i]) != player)) ||
+			    (player < 0 && MAP_HAS_OWNER(map_pos[1+i]))) {
 				return;
 			}
 		}
@@ -329,9 +330,10 @@ get_map_cursor_type(const player_sett_t *sett, map_pos_t pos, panel_btn_t *panel
 
 		/* 426FD: Check owner of surrounding land */
 		for (int i = 0; i < 6; i++) {
-			if (player >= 0 &&
+			if ((player >= 0 &&
 			    (!MAP_HAS_OWNER(map_pos[1+i]) ||
-			     MAP_OWNER(map_pos[1+i]) != player)) {
+			     MAP_OWNER(map_pos[1+i]) != player)) ||
+			    (player < 0 && MAP_HAS_OWNER(map_pos[1+i]))) {
 				return;
 			}
 		}
