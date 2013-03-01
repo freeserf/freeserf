@@ -302,6 +302,8 @@ void player_build_road_end(player_t *player);
 int player_build_road_segment(player_t *player, map_pos_t pos, dir_t dir);
 int player_remove_road_segment(player_t *player, map_pos_t pos, dir_t dir);
 
+int player_build_road(player_t *player, map_pos_t pos, dir_t *dirs, uint length);
+
 void player_demolish_object(player_t *player);
 
 void player_build_flag(player_t *player);

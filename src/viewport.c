@@ -2342,26 +2342,10 @@ viewport_handle_event_click(viewport_t *viewport, int x, int y, gui_event_button
 			uint length;
 			dir_t *dirs = pathfinder_map(pos, clk_pos, &length);
 			if (dirs != NULL) {
-				for (int i = 0; i < length; i++) {
-					dir_t dir = dirs[i];
-					int r = player_build_road_segment(player, pos, dir);
-					if (r < 0) {
-						for (int j = i-1; j >= 0; j--) {
-							dir_t rev_dir = DIR_REVERSE(dirs[j]);
-							player_remove_road_segment(player, pos,
-										   rev_dir);
-							pos = MAP_MOVE(pos, rev_dir);
-						}
-						sfx_play_clip(SFX_NOT_ACCEPTED);
-						break;
-					} else if (r == 1) {
-						sfx_play_clip(SFX_ACCEPTED);
-						break;
-					}
-					pos = MAP_MOVE(pos, dir);
-				}
+				int r = player_build_road(player, pos, dirs, length);
+				if (r < 0) sfx_play_clip(SFX_NOT_ACCEPTED);
+				else sfx_play_clip(SFX_ACCEPTED);
 				free(dirs);
-
 			} else {
 				sfx_play_clip(SFX_NOT_ACCEPTED);
 			}

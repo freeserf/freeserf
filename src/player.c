@@ -797,6 +797,31 @@ player_remove_road_segment(player_t *player, map_pos_t pos, dir_t dir)
 	return 0;
 }
 
+/* Build a complete road from pos with dirs specifying the directions. */
+int
+player_build_road(player_t *player, map_pos_t pos, dir_t *dirs, uint length)
+{
+	for (int i = 0; i < length; i++) {
+		dir_t dir = dirs[i];
+		int r = player_build_road_segment(player, pos, dir);
+		if (r < 0) {
+			/* Backtrack */
+			for (int j = i-1; j >= 0; j--) {
+				dir_t rev_dir = DIR_REVERSE(dirs[j]);
+				player_remove_road_segment(player, pos,
+							   rev_dir);
+				pos = MAP_MOVE(pos, rev_dir);
+			}
+			return -1;
+		} else if (r == 1) {
+			return 0;
+		}
+		pos = MAP_MOVE(pos, dir);
+	}
+
+	return -1;
+}
+
 void
 player_demolish_object(player_t *player)
 {
