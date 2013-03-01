@@ -60,6 +60,7 @@ int game_get_road_length_value(int length);
 
 void game_build_flag(map_pos_t pos, player_sett_t *sett);
 void game_build_building(map_pos_t pos, building_type_t type, player_sett_t *sett);
+void game_build_castle(map_pos_t pos, player_sett_t *sett);
 
 void game_demolish_road(map_pos_t pos);
 void game_demolish_flag(map_pos_t pos);
