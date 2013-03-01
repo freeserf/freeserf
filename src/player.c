@@ -182,9 +182,10 @@ get_map_cursor_type(const player_sett_t *sett, map_pos_t pos, panel_btn_t *panel
 	int player = sett->player_num;
 	if (!PLAYER_HAS_CASTLE(sett)) player = -1;
 
-	if (player >= 0 &&
+	if ((player >= 0 &&
 	    (!MAP_HAS_OWNER(map_pos[0]) ||
-	     MAP_OWNER(map_pos[0]) != player)) {
+	     MAP_OWNER(map_pos[0]) != player)) ||
+	    (player < 0 && MAP_HAS_OWNER(map_pos[0]))) {
 		return;
 	}
 
