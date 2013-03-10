@@ -297,8 +297,8 @@ game_free_serf(int index)
 
 /* Spawn new serf. Returns 0 on success.
    The serf_t object and inventory are returned if non-NULL. */
-int
-game_spawn_serf(player_sett_t *sett, serf_t **serf, inventory_t **inventory, int want_knight)
+static int
+spawn_serf(player_sett_t *sett, serf_t **serf, inventory_t **inventory, int want_knight)
 {
 	if (!PLAYER_CAN_SPAWN(sett)) return -1;
 	if (globals.map_max_serfs_left == 0) return -1;
@@ -332,7 +332,7 @@ game_spawn_serf(player_sett_t *sett, serf_t **serf, inventory_t **inventory, int
 
 	if (inv == NULL) {
 		game_free_serf(SERF_INDEX(s));
-		if (want_knight) return game_spawn_serf(sett, serf, inventory, 0);
+		if (want_knight) return spawn_serf(sett, serf, inventory, 0);
 		else return -1;
 	}
 
@@ -394,12 +394,12 @@ update_player_sett(player_sett_t *sett)
 
 			if (sett->knights_to_spawn == 0) {
 				/* Create unassigned serf */
-				game_spawn_serf(sett, NULL, NULL, 0);
+				spawn_serf(sett, NULL, NULL, 0);
 			} else {
 				/* Create knight serf */
 				serf_t *serf;
 				inventory_t *inventory;
-				int r = game_spawn_serf(sett, &serf, &inventory, 1);
+				int r = spawn_serf(sett, &serf, &inventory, 1);
 				if (r >= 0) {
 					if (inventory->resources[RESOURCE_SWORD] != 0 &&
 					    inventory->resources[RESOURCE_SHIELD] != 0) {
@@ -3301,7 +3301,7 @@ create_initial_castle_serfs(player_sett_t *sett)
 	/* Spawn serf 4 */
 	serf_t *serf;
 	inventory_t *inventory;
-	int r = game_spawn_serf(sett, &serf, &inventory, 0);
+	int r = spawn_serf(sett, &serf, &inventory, 0);
 	if (r < 0) return;
 
 	inventory->spawn_priority -= 1;
@@ -3320,12 +3320,12 @@ create_initial_castle_serfs(player_sett_t *sett)
 
 	/* Spawn generic serfs */
 	for (int i = 0; i < 5; i++) {
-		game_spawn_serf(sett, NULL, NULL, 0);
+		spawn_serf(sett, NULL, NULL, 0);
 	}
 
 	/* Spawn three knights */
 	for (int i = 0; i < 3; i++) {
-		r = game_spawn_serf(sett, &serf, &inventory, 0);
+		r = spawn_serf(sett, &serf, &inventory, 0);
 		if (r < 0) return;
 
 		serf->type = (serf->type & 0x83) | (SERF_KNIGHT_0 << 2);
@@ -3340,7 +3340,7 @@ create_initial_castle_serfs(player_sett_t *sett)
 	}
 
 	/* Spawn toolmaker */
-	r = game_spawn_serf(sett, &serf, &inventory, 0);
+	r = spawn_serf(sett, &serf, &inventory, 0);
 	if (r < 0) return;
 
 	serf->type = (serf->type & 0x83) | (SERF_TOOLMAKER << 2);
@@ -3353,7 +3353,7 @@ create_initial_castle_serfs(player_sett_t *sett)
 	inventory->spawn_priority -= 1;
 
 	/* Spawn timberman */
-	r = game_spawn_serf(sett, &serf, &inventory, 0);
+	r = spawn_serf(sett, &serf, &inventory, 0);
 	if (r < 0) return;
 
 	serf->type = (serf->type & 0x83) | (SERF_LUMBERJACK << 2);
@@ -3365,7 +3365,7 @@ create_initial_castle_serfs(player_sett_t *sett)
 	inventory->spawn_priority -= 1;
 
 	/* Spawn sawmiller */
-	r = game_spawn_serf(sett, &serf, &inventory, 0);
+	r = spawn_serf(sett, &serf, &inventory, 0);
 	if (r < 0) return;
 
 	serf->type = (serf->type & 0x83) | (SERF_SAWMILLER << 2);
@@ -3377,7 +3377,7 @@ create_initial_castle_serfs(player_sett_t *sett)
 	inventory->spawn_priority -= 1;
 
 	/* Spawn stonecutter */
-	r = game_spawn_serf(sett, &serf, &inventory, 0);
+	r = spawn_serf(sett, &serf, &inventory, 0);
 	if (r < 0) return;
 
 	serf->type = (serf->type & 0x83) | (SERF_STONECUTTER << 2);
@@ -3389,7 +3389,7 @@ create_initial_castle_serfs(player_sett_t *sett)
 	inventory->spawn_priority -= 1;
 
 	/* Spawn digger */
-	r = game_spawn_serf(sett, &serf, &inventory, 0);
+	r = spawn_serf(sett, &serf, &inventory, 0);
 	if (r < 0) return;
 
 	serf->type = (serf->type & 0x83) | (SERF_DIGGER << 2);
@@ -3401,7 +3401,7 @@ create_initial_castle_serfs(player_sett_t *sett)
 	inventory->spawn_priority -= 1;
 
 	/* Spawn builder */
-	r = game_spawn_serf(sett, &serf, &inventory, 0);
+	r = spawn_serf(sett, &serf, &inventory, 0);
 	if (r < 0) return;
 
 	serf->type = (serf->type & 0x83) | (SERF_BUILDER << 2);
@@ -3413,7 +3413,7 @@ create_initial_castle_serfs(player_sett_t *sett)
 	inventory->spawn_priority -= 1;
 
 	/* Spawn fisherman */
-	r = game_spawn_serf(sett, &serf, &inventory, 0);
+	r = spawn_serf(sett, &serf, &inventory, 0);
 	if (r < 0) return;
 
 	serf->type = (serf->type & 0x83) | (SERF_FISHER << 2);
@@ -3426,7 +3426,7 @@ create_initial_castle_serfs(player_sett_t *sett)
 
 	/* Spawn two geologists */
 	for (int i = 0; i < 2; i++) {
-		r = game_spawn_serf(sett, &serf, &inventory, 0);
+		r = spawn_serf(sett, &serf, &inventory, 0);
 		if (r < 0) return;
 
 		serf->type = (serf->type & 0x83) | (SERF_GEOLOGIST << 2);
@@ -3440,7 +3440,7 @@ create_initial_castle_serfs(player_sett_t *sett)
 
 	/* Spawn two miners */
 	for (int i = 0; i < 2; i++) {
-		r = game_spawn_serf(sett, &serf, &inventory, 0);
+		r = spawn_serf(sett, &serf, &inventory, 0);
 		if (r < 0) return;
 
 		serf->type = (serf->type & 0x83) | (SERF_MINER << 2);

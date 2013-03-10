@@ -47,8 +47,6 @@ int game_alloc_serf(serf_t **serf, int *index);
 serf_t *game_get_serf(int index);
 void game_free_serf(int index);
 
-int game_spawn_serf(player_sett_t *sett, serf_t **serf, inventory_t **inventory, int want_knight);
-
 void game_update();
 void game_pause(int enable);
 
