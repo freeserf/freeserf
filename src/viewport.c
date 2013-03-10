@@ -2378,13 +2378,6 @@ viewport_handle_event_click(viewport_t *viewport, int x, int y, gui_event_button
 			player->click |= BIT(2);
 			sfx_play_clip(SFX_NOT_ACCEPTED);
 		}
-	} else if (BIT_TEST(player->config, 2) && /* Fast building */
-		   clk_col == player->sett->map_cursor_col &&
-		   clk_row == player->sett->map_cursor_row) {
-		/* TODO maybe should be activated by double click instead? */
-		/* TODO handle this without invoking the panel. */
-		panel_bar_t *panel = gui_get_panel_bar();
-		panel_bar_activate_button(panel, 0);
 	} else {
 		player->sett->map_cursor_col = clk_col;
 		player->sett->map_cursor_row = clk_row;
