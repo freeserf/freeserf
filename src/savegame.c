@@ -203,7 +203,7 @@ load_v0_globals_state(FILE *f, v0_map_t *map)
 
 /* Load player state from save game. */
 static int
-load_v0_player_sett_state(FILE *f)
+load_v0_player_state(FILE *f)
 {
 	uint8_t *data = malloc(8628);
 	if (data == NULL) return -1;
@@ -215,103 +215,103 @@ load_v0_player_sett_state(FILE *f)
 			return -1;
 		}
 
-		player_sett_t *sett = globals.player_sett[i];
+		player_t *player = globals.player[i];
 
 		for (int j = 0; j < 9; j++) {
-			sett->tool_prio[j] = *(uint16_t *)&data[2*j];
+			player->tool_prio[j] = *(uint16_t *)&data[2*j];
 		}
 
 		for (int j = 0; j < 26; j++) {
-			sett->resource_count[j] = data[18+j];
-			sett->flag_prio[j] = data[44+j];
+			player->resource_count[j] = data[18+j];
+			player->flag_prio[j] = data[44+j];
 		}
 
 		for (int j = 0; j < 27; j++) {
-			sett->serf_count[j] = *(uint16_t *)&data[70+2*j];
+			player->serf_count[j] = *(uint16_t *)&data[70+2*j];
 		}
 
 		for (int j = 0; j < 4; j++) {
-			sett->knight_occupation[j] = data[124+j];
+			player->knight_occupation[j] = data[124+j];
 		}
 
-		sett->player_num = *(uint16_t *)&data[128];
-		sett->flags = data[130];
-		sett->build = data[131];
+		player->player_num = *(uint16_t *)&data[128];
+		player->flags = data[130];
+		player->build = data[131];
 
 		for (int j = 0; j < 23; j++) {
-			sett->completed_building_count[j] = *(uint16_t *)&data[132+2*j];
-			sett->incomplete_building_count[j] = *(uint16_t *)&data[178+2*j];
+			player->completed_building_count[j] = *(uint16_t *)&data[132+2*j];
+			player->incomplete_building_count[j] = *(uint16_t *)&data[178+2*j];
 		}
 
 		for (int j = 0; j < 26; j++) {
-			sett->inventory_prio[j] = data[224+j];
+			player->inventory_prio[j] = data[224+j];
 		}
 
 		for (int j = 0; j < 64; j++) {
-			sett->attacking_buildings[j] = *(uint16_t *)&data[250+2*j];
+			player->attacking_buildings[j] = *(uint16_t *)&data[250+2*j];
 		}
 
-		sett->current_sett_5_item = *(uint16_t *)&data[378];
-		sett->map_cursor_col = *(uint16_t *)&data[380];
-		sett->map_cursor_row = *(uint16_t *)&data[382];
-		sett->map_cursor_type = data[384];
-		sett->panel_btn_type = data[385];
-		sett->building_height_after_level = *(uint16_t *)&data[386];
-		sett->building = *(uint16_t *)&data[388];
+		player->current_sett_5_item = *(uint16_t *)&data[378];
+		player->map_cursor_col = *(uint16_t *)&data[380];
+		player->map_cursor_row = *(uint16_t *)&data[382];
+		player->map_cursor_type = data[384];
+		player->panel_btn_type = data[385];
+		player->building_height_after_level = *(uint16_t *)&data[386];
+		player->building = *(uint16_t *)&data[388];
 
-		sett->castle_flag = *(uint16_t *)&data[390];
-		sett->castle_inventory = *(uint16_t *)&data[392];
+		player->castle_flag = *(uint16_t *)&data[390];
+		player->castle_inventory = *(uint16_t *)&data[392];
 
-		sett->cont_search_after_non_optimal_find = *(uint16_t *)&data[394];
-		sett->knights_to_spawn = *(uint16_t *)&data[396];
-		sett->field_110 = *(uint16_t *)&data[400];
+		player->cont_search_after_non_optimal_find = *(uint16_t *)&data[394];
+		player->knights_to_spawn = *(uint16_t *)&data[396];
+		player->field_110 = *(uint16_t *)&data[400];
 
-		sett->total_land_area = *(uint32_t *)&data[402];
-		sett->total_building_score = *(uint32_t *)&data[406];
-		sett->total_military_score = *(uint32_t *)&data[410];
+		player->total_land_area = *(uint32_t *)&data[402];
+		player->total_building_score = *(uint32_t *)&data[406];
+		player->total_military_score = *(uint32_t *)&data[410];
 
-		sett->last_anim = *(uint16_t *)&data[414];
+		player->last_anim = *(uint16_t *)&data[414];
 
-		sett->reproduction_counter = *(uint16_t *)&data[416];
-		sett->reproduction_reset = *(uint16_t *)&data[418];
-		sett->serf_to_knight_rate = *(uint16_t *)&data[420];
-		sett->serf_to_knight_counter = *(uint16_t *)&data[422];
+		player->reproduction_counter = *(uint16_t *)&data[416];
+		player->reproduction_reset = *(uint16_t *)&data[418];
+		player->serf_to_knight_rate = *(uint16_t *)&data[420];
+		player->serf_to_knight_counter = *(uint16_t *)&data[422];
 
-		sett->attacking_building_count = *(uint16_t *)&data[424];
+		player->attacking_building_count = *(uint16_t *)&data[424];
 		for (int j = 0; j < 4; j++) {
-			sett->attacking_knights[j] = *(uint16_t *)&data[426+2*j];
+			player->attacking_knights[j] = *(uint16_t *)&data[426+2*j];
 		}
-		sett->total_attacking_knights = *(uint16_t *)&data[434];
-		sett->building_attacked = *(uint16_t *)&data[436];
-		sett->knights_attacking = *(uint16_t *)&data[438];
+		player->total_attacking_knights = *(uint16_t *)&data[434];
+		player->building_attacked = *(uint16_t *)&data[436];
+		player->knights_attacking = *(uint16_t *)&data[438];
 
-		sett->analysis_goldore = *(uint16_t *)&data[440];
-		sett->analysis_ironore = *(uint16_t *)&data[442];
-		sett->analysis_coal = *(uint16_t *)&data[444];
-		sett->analysis_stone = *(uint16_t *)&data[446];
+		player->analysis_goldore = *(uint16_t *)&data[440];
+		player->analysis_ironore = *(uint16_t *)&data[442];
+		player->analysis_coal = *(uint16_t *)&data[444];
+		player->analysis_stone = *(uint16_t *)&data[446];
 
-		sett->food_stonemine = *(uint16_t *)&data[448];
-		sett->food_coalmine = *(uint16_t *)&data[450];
-		sett->food_ironmine = *(uint16_t *)&data[452];
-		sett->food_goldmine = *(uint16_t *)&data[454];
+		player->food_stonemine = *(uint16_t *)&data[448];
+		player->food_coalmine = *(uint16_t *)&data[450];
+		player->food_ironmine = *(uint16_t *)&data[452];
+		player->food_goldmine = *(uint16_t *)&data[454];
 
-		sett->planks_construction = *(uint16_t *)&data[456];
-		sett->planks_boatbuilder = *(uint16_t *)&data[458];
-		sett->planks_toolmaker = *(uint16_t *)&data[460];
+		player->planks_construction = *(uint16_t *)&data[456];
+		player->planks_boatbuilder = *(uint16_t *)&data[458];
+		player->planks_toolmaker = *(uint16_t *)&data[460];
 
-		sett->steel_toolmaker = *(uint16_t *)&data[462];
-		sett->steel_weaponsmith = *(uint16_t *)&data[464];
+		player->steel_toolmaker = *(uint16_t *)&data[462];
+		player->steel_weaponsmith = *(uint16_t *)&data[464];
 
-		sett->coal_steelsmelter = *(uint16_t *)&data[466];
-		sett->coal_goldsmelter = *(uint16_t *)&data[468];
-		sett->coal_weaponsmith = *(uint16_t *)&data[470];
+		player->coal_steelsmelter = *(uint16_t *)&data[466];
+		player->coal_goldsmelter = *(uint16_t *)&data[468];
+		player->coal_weaponsmith = *(uint16_t *)&data[470];
 
-		sett->wheat_pigfarm = *(uint16_t *)&data[472];
-		sett->wheat_mill = *(uint16_t *)&data[474];
+		player->wheat_pigfarm = *(uint16_t *)&data[472];
+		player->wheat_mill = *(uint16_t *)&data[474];
 
-		sett->current_sett_6_item = *(uint16_t *)&data[476];
+		player->current_sett_6_item = *(uint16_t *)&data[476];
 
-		sett->castle_score = *(int16_t *)&data[478];
+		player->castle_score = *(int16_t *)&data[478];
 
 		/* TODO */
 	}
@@ -851,7 +851,7 @@ load_v0_state(FILE *f)
 	r = load_v0_globals_state(f, &map);
 	if (r < 0) return -1;
 
-	r = load_v0_player_sett_state(f);
+	r = load_v0_player_state(f);
 	if (r < 0) return -1;
 
 	r = load_v0_map_state(f, &map);
@@ -967,63 +967,63 @@ static int
 save_text_player_state(FILE *f)
 {
 	for (int i = 0; i < 4; i++) {
-		player_sett_t *sett = globals.player_sett[i];
-		if (!PLAYER_IS_ACTIVE(globals.player_sett[i])) continue;
+		player_t *player = globals.player[i];
+		if (!PLAYER_IS_ACTIVE(player)) continue;
 
 		fprintf(f, "[player %i]\n", i);
 
-		save_text_write_value(f, "flags", sett->flags);
-		save_text_write_value(f, "build", sett->build);
+		save_text_write_value(f, "flags", player->flags);
+		save_text_write_value(f, "build", player->build);
 
-		save_text_write_array(f, "tool_prio", sett->tool_prio, 9);
-		save_text_write_array(f, "resource_count", sett->resource_count, 26);
-		save_text_write_array(f, "flag_prio", sett->flag_prio, 26);
-		save_text_write_array(f, "serf_count", sett->serf_count, 27);
-		save_text_write_array(f, "knight_occupation", sett->knight_occupation, 4);
+		save_text_write_array(f, "tool_prio", player->tool_prio, 9);
+		save_text_write_array(f, "resource_count", player->resource_count, 26);
+		save_text_write_array(f, "flag_prio", player->flag_prio, 26);
+		save_text_write_array(f, "serf_count", player->serf_count, 27);
+		save_text_write_array(f, "knight_occupation", player->knight_occupation, 4);
 
-		save_text_write_array(f, "completed_building_count", sett->completed_building_count, 23);
-		save_text_write_array(f, "incomplete_building_count", sett->incomplete_building_count, 23);
+		save_text_write_array(f, "completed_building_count", player->completed_building_count, 23);
+		save_text_write_array(f, "incomplete_building_count", player->incomplete_building_count, 23);
 
-		save_text_write_array(f, "inventory_prio", sett->inventory_prio, 26);
-		save_text_write_array(f, "attacking_buildings", sett->attacking_buildings, 64);
+		save_text_write_array(f, "inventory_prio", player->inventory_prio, 26);
+		save_text_write_array(f, "attacking_buildings", player->attacking_buildings, 64);
 
-		save_text_write_value(f, "map_cursor.col", sett->map_cursor_col);
-		save_text_write_value(f, "map_cursor.row", sett->map_cursor_row);
+		save_text_write_value(f, "map_cursor.col", player->map_cursor_col);
+		save_text_write_value(f, "map_cursor.row", player->map_cursor_row);
 
-		save_text_write_value(f, "knights_to_spawn", sett->knights_to_spawn);
-		save_text_write_value(f, "last_anim", sett->last_anim);
+		save_text_write_value(f, "knights_to_spawn", player->knights_to_spawn);
+		save_text_write_value(f, "last_anim", player->last_anim);
 
-		save_text_write_value(f, "reproduction_counter", sett->reproduction_counter);
-		save_text_write_value(f, "reproduction_reset", sett->reproduction_reset);
-		save_text_write_value(f, "serf_to_knight_rate", sett->serf_to_knight_rate);
-		save_text_write_value(f, "serf_to_knight_counter", sett->serf_to_knight_counter);
+		save_text_write_value(f, "reproduction_counter", player->reproduction_counter);
+		save_text_write_value(f, "reproduction_reset", player->reproduction_reset);
+		save_text_write_value(f, "serf_to_knight_rate", player->serf_to_knight_rate);
+		save_text_write_value(f, "serf_to_knight_counter", player->serf_to_knight_counter);
 
-		save_text_write_value(f, "attacking_building_count", sett->attacking_building_count);
-		save_text_write_array(f, "attacking_knights", sett->attacking_knights, 4);
-		save_text_write_value(f, "total_attacking_knights", sett->total_attacking_knights);
-		save_text_write_value(f, "building_attacked", sett->building_attacked);
-		save_text_write_value(f, "knights_attacking", sett->knights_attacking);
+		save_text_write_value(f, "attacking_building_count", player->attacking_building_count);
+		save_text_write_array(f, "attacking_knights", player->attacking_knights, 4);
+		save_text_write_value(f, "total_attacking_knights", player->total_attacking_knights);
+		save_text_write_value(f, "building_attacked", player->building_attacked);
+		save_text_write_value(f, "knights_attacking", player->knights_attacking);
 
-		save_text_write_value(f, "food_stonemine", sett->food_stonemine);
-		save_text_write_value(f, "food_coalmine", sett->food_coalmine);
-		save_text_write_value(f, "food_ironmine", sett->food_ironmine);
-		save_text_write_value(f, "food_goldmine", sett->food_goldmine);
+		save_text_write_value(f, "food_stonemine", player->food_stonemine);
+		save_text_write_value(f, "food_coalmine", player->food_coalmine);
+		save_text_write_value(f, "food_ironmine", player->food_ironmine);
+		save_text_write_value(f, "food_goldmine", player->food_goldmine);
 
-		save_text_write_value(f, "planks_construction", sett->planks_construction);
-		save_text_write_value(f, "planks_boatbuilder", sett->planks_boatbuilder);
-		save_text_write_value(f, "planks_toolmaker", sett->planks_toolmaker);
+		save_text_write_value(f, "planks_construction", player->planks_construction);
+		save_text_write_value(f, "planks_boatbuilder", player->planks_boatbuilder);
+		save_text_write_value(f, "planks_toolmaker", player->planks_toolmaker);
 
-		save_text_write_value(f, "steel_toolmaker", sett->steel_toolmaker);
-		save_text_write_value(f, "steel_weaponsmith", sett->steel_weaponsmith);
+		save_text_write_value(f, "steel_toolmaker", player->steel_toolmaker);
+		save_text_write_value(f, "steel_weaponsmith", player->steel_weaponsmith);
 
-		save_text_write_value(f, "coal_steelsmelter", sett->coal_steelsmelter);
-		save_text_write_value(f, "coal_goldsmelter", sett->coal_goldsmelter);
-		save_text_write_value(f, "coal_weaponsmith", sett->coal_weaponsmith);
+		save_text_write_value(f, "coal_steelsmelter", player->coal_steelsmelter);
+		save_text_write_value(f, "coal_goldsmelter", player->coal_goldsmelter);
+		save_text_write_value(f, "coal_weaponsmith", player->coal_weaponsmith);
 
-		save_text_write_value(f, "wheat_pigfarm", sett->wheat_pigfarm);
-		save_text_write_value(f, "wheat_mill", sett->wheat_mill);
+		save_text_write_value(f, "wheat_pigfarm", player->wheat_pigfarm);
+		save_text_write_value(f, "wheat_mill", player->wheat_mill);
 
-		save_text_write_value(f, "castle_score", sett->castle_score);
+		save_text_write_value(f, "castle_score", player->castle_score);
 
 		/* TODO */
 
@@ -1752,130 +1752,130 @@ load_text_player_section(section_t *section)
 {
 	/* Parse player number. */
 	int n = atoi(section->param);
-	player_sett_t *sett = globals.player_sett[n];
+	player_t *player = globals.player[n];
 
 	/* Load the player state. */
 	list_elm_t *elm;
 	list_foreach(&section->settings, elm) {
 		setting_t *s = (setting_t *)elm;
 		if (!strcmp(s->key, "flags")) {
-			sett->flags = atoi(s->value);
+			player->flags = atoi(s->value);
 		} else if (!strcmp(s->key, "build")) {
-			sett->build = atoi(s->value);
+			player->build = atoi(s->value);
 		} else if (!strcmp(s->key, "tool_prio")) {
 			char *array = s->value;
 			for (int i = 0; i < 9 && array != NULL; i++) {
 				char *v = parse_array_value(&array);
-				sett->tool_prio[i] = atoi(v);
+				player->tool_prio[i] = atoi(v);
 			}
 		} else if (!strcmp(s->key, "resource_count")) {
 			char *array = s->value;
 			for (int i = 0; i < 26 && array != NULL; i++) {
 				char *v = parse_array_value(&array);
-				sett->resource_count[i] = atoi(v);
+				player->resource_count[i] = atoi(v);
 			}
 		} else if (!strcmp(s->key, "flag_prio")) {
 			char *array = s->value;
 			for (int i = 0; i < 26 && array != NULL; i++) {
 				char *v = parse_array_value(&array);
-				sett->flag_prio[i] = atoi(v);
+				player->flag_prio[i] = atoi(v);
 			}
 		} else if (!strcmp(s->key, "serf_count")) {
 			char *array = s->value;
 			for (int i = 0; i < 27 && array != NULL; i++) {
 				char *v = parse_array_value(&array);
-				sett->serf_count[i] = atoi(v);
+				player->serf_count[i] = atoi(v);
 			}
 		} else if (!strcmp(s->key, "knight_occupation")) {
 			char *array = s->value;
 			for (int i = 0; i < 4 && array != NULL; i++) {
 				char *v = parse_array_value(&array);
-				sett->knight_occupation[i] = atoi(v);
+				player->knight_occupation[i] = atoi(v);
 			}
 		} else if (!strcmp(s->key, "completed_building_count")) {
 			char *array = s->value;
 			for (int i = 0; i < 23 && array != NULL; i++) {
 				char *v = parse_array_value(&array);
-				sett->completed_building_count[i] = atoi(v);
+				player->completed_building_count[i] = atoi(v);
 			}
 		} else if (!strcmp(s->key, "incomplete_building_count")) {
 			char *array = s->value;
 			for (int i = 0; i < 23 && array != NULL; i++) {
 				char *v = parse_array_value(&array);
-				sett->incomplete_building_count[i] = atoi(v);
+				player->incomplete_building_count[i] = atoi(v);
 			}
 		} else if (!strcmp(s->key, "inventory_prio")) {
 			char *array = s->value;
 			for (int i = 0; i < 26 && array != NULL; i++) {
 				char *v = parse_array_value(&array);
-				sett->inventory_prio[i] = atoi(v);
+				player->inventory_prio[i] = atoi(v);
 			}
 		} else if (!strcmp(s->key, "attacking_buildings")) {
 			char *array = s->value;
 			for (int i = 0; i < 64 && array != NULL; i++) {
 				char *v = parse_array_value(&array);
-				sett->attacking_buildings[i] = atoi(v);
+				player->attacking_buildings[i] = atoi(v);
 			}
 		} else if (!strcmp(s->key, "map_cursor.col")) {
-			sett->map_cursor_col = atoi(s->value);
+			player->map_cursor_col = atoi(s->value);
 		} else if (!strcmp(s->key, "map_cursor.row")) {
-			sett->map_cursor_row = atoi(s->value);
+			player->map_cursor_row = atoi(s->value);
 		} else if (!strcmp(s->key, "knights_to_spawn")) {
-			sett->knights_to_spawn = atoi(s->value);
+			player->knights_to_spawn = atoi(s->value);
 		} else if (!strcmp(s->key, "last_anim")) {
-			sett->last_anim = atoi(s->value);
+			player->last_anim = atoi(s->value);
 		} else if (!strcmp(s->key, "reproduction_counter")) {
-			sett->reproduction_counter = atoi(s->value);
+			player->reproduction_counter = atoi(s->value);
 		} else if (!strcmp(s->key, "reproduction_reset")) {
-			sett->reproduction_reset = atoi(s->value);
+			player->reproduction_reset = atoi(s->value);
 		} else if (!strcmp(s->key, "serf_to_knight_rate")) {
-			sett->serf_to_knight_rate = atoi(s->value);
+			player->serf_to_knight_rate = atoi(s->value);
 		} else if (!strcmp(s->key, "serf_to_knight_counter")) {
-			sett->serf_to_knight_counter = atoi(s->value);
+			player->serf_to_knight_counter = atoi(s->value);
 		} else if (!strcmp(s->key, "attacking_building_count")) {
-			sett->attacking_building_count = atoi(s->value);
+			player->attacking_building_count = atoi(s->value);
 		} else if (!strcmp(s->key, "attacking_knights")) {
 			char *array = s->value;
 			for (int i = 0; i < 4 && array != NULL; i++) {
 				char *v = parse_array_value(&array);
-				sett->attacking_knights[i] = atoi(v);
+				player->attacking_knights[i] = atoi(v);
 			}
 		} else if (!strcmp(s->key, "total_attacking_knights")) {
-			sett->total_attacking_knights = atoi(s->value);
+			player->total_attacking_knights = atoi(s->value);
 		} else if (!strcmp(s->key, "building_attacked")) {
-			sett->building_attacked = atoi(s->value);
+			player->building_attacked = atoi(s->value);
 		} else if (!strcmp(s->key, "knights_attacking")) {
-			sett->knights_attacking = atoi(s->value);
+			player->knights_attacking = atoi(s->value);
 		} else if (!strcmp(s->key, "food_stonemine")) {
-			sett->food_stonemine = atoi(s->value);
+			player->food_stonemine = atoi(s->value);
 		} else if (!strcmp(s->key, "food_coalmine")) {
-			sett->food_coalmine = atoi(s->value);
+			player->food_coalmine = atoi(s->value);
 		} else if (!strcmp(s->key, "food_ironmine")) {
-			sett->food_ironmine = atoi(s->value);
+			player->food_ironmine = atoi(s->value);
 		} else if (!strcmp(s->key, "food_goldmine")) {
-			sett->food_goldmine = atoi(s->value);
+			player->food_goldmine = atoi(s->value);
 		} else if (!strcmp(s->key, "planks_construction")) {
-			sett->planks_construction = atoi(s->value);
+			player->planks_construction = atoi(s->value);
 		} else if (!strcmp(s->key, "planks_boatbuilder")) {
-			sett->planks_boatbuilder = atoi(s->value);
+			player->planks_boatbuilder = atoi(s->value);
 		} else if (!strcmp(s->key, "planks_toolmaker")) {
-			sett->planks_toolmaker = atoi(s->value);
+			player->planks_toolmaker = atoi(s->value);
 		} else if (!strcmp(s->key, "steel_toolmaker")) {
-			sett->steel_toolmaker = atoi(s->value);
+			player->steel_toolmaker = atoi(s->value);
 		} else if (!strcmp(s->key, "steel_weaponsmith")) {
-			sett->steel_weaponsmith = atoi(s->value);
+			player->steel_weaponsmith = atoi(s->value);
 		} else if (!strcmp(s->key, "coal_steelsmelter")) {
-			sett->coal_steelsmelter = atoi(s->value);
+			player->coal_steelsmelter = atoi(s->value);
 		} else if (!strcmp(s->key, "coal_goldsmelter")) {
-			sett->coal_goldsmelter = atoi(s->value);
+			player->coal_goldsmelter = atoi(s->value);
 		} else if (!strcmp(s->key, "coal_weaponsmith")) {
-			sett->coal_weaponsmith = atoi(s->value);
+			player->coal_weaponsmith = atoi(s->value);
 		} else if (!strcmp(s->key, "wheat_pigfarm")) {
-			sett->wheat_pigfarm = atoi(s->value);
+			player->wheat_pigfarm = atoi(s->value);
 		} else if (!strcmp(s->key, "wheat_mill")) {
-			sett->wheat_mill = atoi(s->value);
+			player->wheat_mill = atoi(s->value);
 		} else if (!strcmp(s->key, "castle_score")) {
-			sett->castle_score = atoi(s->value);
+			player->castle_score = atoi(s->value);
 		} else {
 			LOGD("savegame", "Unhandled player setting: `%s'.", s->key);
 		}

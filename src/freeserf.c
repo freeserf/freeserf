@@ -1,7 +1,7 @@
 /*
  * freeserf.c - Main program source.
  *
- * Copyright (C) 2012  Jon Lund Steffensen <jonlst@gmail.com>
+ * Copyright (C) 2013  Jon Lund Steffensen <jonlst@gmail.com>
  *
  * This file is part of freeserf.
  *
@@ -192,177 +192,41 @@ gui_show_popup_frame(int show)
 	gui_object_set_displayed((gui_object_t *)&popup, show);
 }
 
-/* Initialize player objects. */
+
 static void
-init_player_structs(player_t *p[])
+player_interface_init()
 {
-	/* Player 1 */
-	p[0]->flags = 0;
-	p[0]->config = globals.cfg_left;
-	p[0]->msg_flags = 0;
-	p[0]->return_timeout = 0;
-	/* ... */
-	p[0]->click = 0;
-	p[0]->minimap_advanced = -1;
-	/* ... */
-	p[0]->click |= BIT(1);
-	p[0]->clkmap = 0;
-	p[0]->flags |= BIT(4);
+	interface_init(&interface);
 
-	/* OBSOLETE
-	p[0]->col_game_area = 0;
-	p[0]->row_game_area = 0;
-	p[0]->map_rows
-	*/
-
-	/* TODO ... */
-
-	/*p[0]->popup_frame = &popup_box_left_frame;*/
-
-	p[0]->panel_btns[0] = PANEL_BTN_BUILD_INACTIVE;
-	p[0]->panel_btns[1] = PANEL_BTN_DESTROY_INACTIVE;
-	p[0]->panel_btns[2] = PANEL_BTN_MAP; /* TODO init to inactive */
-	p[0]->panel_btns[3] = PANEL_BTN_STATS; /* TODO init to inactive */
-	p[0]->panel_btns[4] = PANEL_BTN_SETT; /* TODO init to inactive */
-
-	p[0]->panel_btns_set[0] = -1;
-	p[0]->panel_btns_set[1] = -1;
-	p[0]->panel_btns_set[2] = -1;
-	p[0]->panel_btns_set[3] = -1;
-	p[0]->panel_btns_set[4] = -1;
-
-	/* TODO ... */
-
-	p[0]->sett = globals.player_sett[0];
-	/*p[0]->map_serf_rows = globals.map_serf_rows_left; OBSOLETE */
-	p[0]->minimap_flags = 8;
-	p[0]->current_stat_8_mode = 0;
-	p[0]->current_stat_7_item = 7;
-	p[0]->box = 0;
-
-	/* TODO ... */
-
-	p[0]->map_cursor_sprites[0].sprite = 32;
-	p[0]->map_cursor_sprites[1].sprite = 33;
-	p[0]->map_cursor_sprites[2].sprite = 33;
-	p[0]->map_cursor_sprites[3].sprite = 33;
-	p[0]->map_cursor_sprites[4].sprite = 33;
-	p[0]->map_cursor_sprites[5].sprite = 33;
-	p[0]->map_cursor_sprites[6].sprite = 33;
-
-	/* TODO ... */
-
-	/* Player 2 */
-	/* TODO */
-}
-
-/* Initialize player viewport. */
-static void
-init_players_svga(player_t *p[])
-{
 	globals.frame = &screen_frame;
 	int width = sdl_frame_get_width(globals.frame);
 	int height = sdl_frame_get_height(globals.frame);
 
 	/* ADDITION init viewport */
-	viewport_init(&viewport, p[0]);
+	viewport_init(&viewport, &interface);
 	gui_object_set_displayed((gui_object_t *)&viewport, 1);
 
 	/* ADDITION init panel bar */
-	panel_bar_init(&panel, p[0]);
+	panel_bar_init(&panel, &interface);
 	gui_object_set_displayed((gui_object_t *)&panel, 1);
 
 	/* ADDITION init popup box */
-	popup_box_init(&popup, p[0]);
+	popup_box_init(&popup, &interface);
 
 	/* ADDITION interface */
 	interface_init(&interface);
 	gui_object_set_size((gui_object_t *)&interface, width, height);
 	gui_object_set_displayed((gui_object_t *)&interface, 1);
 
-	/* OBSOLETE */
-	/*
-	p[0]->pointer_x_drag = 0;
-	p[0]->pointer_y_drag = 0;
-	*/
-
-	p[0]->pointer_x_max = width;
-	p[0]->pointer_y_max = height;
-	p[0]->pointer_x_off = 0;
-
-	p[0]->game_area_cols = (width >> 4) + 4;
-	p[0]->game_area_rows = (height >> 4) + 4;
-	p[0]->bottom_panel_width = 352;
-	p[0]->bottom_panel_height = 40;
-	p[0]->bottom_panel_x = (width - p[0]->bottom_panel_width) / 2;
-	p[0]->bottom_panel_y = height - p[0]->bottom_panel_height;
-
-	/* map_serf_rows is OBSOLETE
-	int r = p[0]->game_area_rows;
-	p[0]->map_serf_rows = malloc((r+1)*sizeof(int *) + (r+1)*253*sizeof(int));
-	if (p[0]->map_serf_rows == NULL) abort();
-	*/
-
-	p[0]->frame_width = width;
-	p[0]->frame_height = height;
-
-	p[0]->col_offset = 0; /* TODO center */
-	p[0]->row_offset = 0; /* TODO center */
-	p[0]->map_min_x = 0;
-	p[0]->map_min_y = 0;
-	p[0]->map_max_y = height + 2*MAP_TILE_HEIGHT;
-
-	p[0]->panel_btns_x = 64;
-	p[0]->panel_btns_first_x = 64;
-	p[0]->panel_btns_dist = 48;
-	p[0]->msg_icon_x = 40;
-	p[0]->timer_icon_x = 304;
-
-	p[0]->popup_x = (width - 144) / 2;
-	p[0]->popup_y = 270;
-
-	p[0]->map_x_off = 0/*288*/;
-	p[0]->map_y_off = -4/*276*/;
-	p[0]->map_cursor_col_max = 2*p[0]->game_area_cols + 8/*76*/;
-	p[0]->map_cursor_col_off = 0/*36*/;
-
-	/*p[0]->frame = &svga_normal_frame;*/
-
 	/* Add objects to interface container. */
 	interface_set_top(&interface, (gui_object_t *)&viewport);
 	interface_add_float(&interface, (gui_object_t *)&popup,
-			    p[0]->popup_x, p[0]->popup_y, 144, 160);
+			    interface.popup_x, interface.popup_y, 144, 160);
 	interface_add_float(&interface, (gui_object_t *)&panel,
-			    p[0]->bottom_panel_x, p[0]->bottom_panel_y,
-			    p[0]->bottom_panel_width,
-			    p[0]->bottom_panel_height);
-}
-
-static void
-player_interface_init()
-{
-	init_player_structs(globals.player);
-
-	/* Mark player 2 inactive */
-	globals.player[1]->flags |= BIT(0);
-
-	init_players_svga(globals.player);
-}
-
-static int
-handle_map_drag(player_t *player)
-{
-	if (BIT_TEST(player->click, 3)) { /* TODO should check bit 1, not bit 3*/
-		if (!/*pathway scrolling*/0) {
-			/* handled in the viewport */
-		} else {
-			/* TODO pathway scrolling */
-		}
-	} else {
-		return -1;
-	}
-
-	return 0;
+			    interface.bottom_panel_x,
+			    interface.bottom_panel_y,
+			    interface.bottom_panel_width,
+			    interface.bottom_panel_height);
 }
 
 /* Initialize spiral_pos_pattern from spiral_pattern. */
@@ -462,7 +326,7 @@ init_map_vars()
 
 /* Initialize AI parameters. */
 static void
-init_ai_values(player_sett_t *sett, int face)
+init_ai_values(player_t *player, int face)
 {
 	const int ai_values_0[] = { 13, 10, 16, 9, 10, 8, 6, 10, 12, 5, 8 };
 	const int ai_values_1[] = { 10000, 13000, 16000, 16000, 18000, 20000, 19000, 18000, 30000, 23000, 26000 };
@@ -471,15 +335,15 @@ init_ai_values(player_sett_t *sett, int face)
 	const int ai_values_4[] = { 0, 30000, 5000, 40000, 50000, 20000, 45000, 35000, 65000, 25000, 30000 };
 	const int ai_values_5[] = { 60000, 61000, 60000, 65400, 63000, 62000, 65000, 63000, 64000, 64000, 64000 };
 
-	sett->ai_value_0 = ai_values_0[face-1];
-	sett->ai_value_1 = ai_values_1[face-1];
-	sett->ai_value_2 = ai_values_2[face-1];
-	sett->ai_value_3 = ai_values_3[face-1];
-	sett->ai_value_4 = ai_values_4[face-1];
-	sett->ai_value_5 = ai_values_5[face-1];
+	player->ai_value_0 = ai_values_0[face-1];
+	player->ai_value_1 = ai_values_1[face-1];
+	player->ai_value_2 = ai_values_2[face-1];
+	player->ai_value_3 = ai_values_3[face-1];
+	player->ai_value_4 = ai_values_4[face-1];
+	player->ai_value_5 = ai_values_5[face-1];
 }
 
-/* Initialize player_sett_t objects. */
+/* Initialize player_t objects. */
 static void
 reset_player_settings()
 {
@@ -490,102 +354,102 @@ reset_player_settings()
 	/* TODO */
 
 	for (int i = 0; i < 4; i++) {
-		player_sett_t *sett = globals.player_sett[i];
-		memset(sett, 0, sizeof(player_sett_t));
-		sett->flags = 0;
+		player_t *player = globals.player[i];
+		memset(player, 0, sizeof(player_t));
+		player->flags = 0;
 
 		player_init_t *init = &globals.pl_init[i];
 		if (init->face != 0) {
-			sett->flags |= BIT(6); /* Player active */
+			player->flags |= BIT(6); /* Player active */
 			if (init->face < 12) { /* AI player */
-				sett->flags |= BIT(7); /* Set AI bit */
+				player->flags |= BIT(7); /* Set AI bit */
 				/* TODO ... */
 				globals.max_next_index = 49;
 			}
 
-			sett->player_num = i;
-			/* sett->field_163 = 0; */
-			sett->build = 0;
-			/*sett->field_163 |= BIT(0);*/
+			player->player_num = i;
+			/* player->field_163 = 0; */
+			player->build = 0;
+			/*player->field_163 |= BIT(0);*/
 
-			sett->map_cursor_col = 0;
-			sett->map_cursor_row = 0;
-			sett->map_cursor_type = 0;
-			sett->panel_btn_type = 0;
-			sett->building_height_after_level = 0;
-			sett->building = 0;
-			sett->castle_flag = 0;
-			sett->cont_search_after_non_optimal_find = 7;
-			sett->field_110 = 4;
-			sett->knights_to_spawn = 0;
-			/* OBSOLETE sett->spawn_serf_want_knight = 0; **/
-			sett->total_land_area = 0;
+			player->map_cursor_col = 0;
+			player->map_cursor_row = 0;
+			player->map_cursor_type = 0;
+			player->panel_btn_type = 0;
+			player->building_height_after_level = 0;
+			player->building = 0;
+			player->castle_flag = 0;
+			player->cont_search_after_non_optimal_find = 7;
+			player->field_110 = 4;
+			player->knights_to_spawn = 0;
+			/* OBSOLETE player->spawn_serf_want_knight = 0; **/
+			player->total_land_area = 0;
 
 			/* TODO ... */
 
-			sett->last_anim = 0;
+			player->last_anim = 0;
 
-			sett->serf_to_knight_rate = 20000;
-			sett->serf_to_knight_counter = 0x8000;
+			player->serf_to_knight_rate = 20000;
+			player->serf_to_knight_counter = 0x8000;
 
-			sett->knight_occupation[0] = 0x10;
-			sett->knight_occupation[1] = 0x21;
-			sett->knight_occupation[2] = 0x32;
-			sett->knight_occupation[3] = 0x43;
+			player->knight_occupation[0] = 0x10;
+			player->knight_occupation[1] = 0x21;
+			player->knight_occupation[2] = 0x32;
+			player->knight_occupation[3] = 0x43;
 
-			player_sett_reset_food_priority(sett);
-			player_sett_reset_planks_priority(sett);
-			player_sett_reset_steel_priority(sett);
-			player_sett_reset_coal_priority(sett);
-			player_sett_reset_wheat_priority(sett);
-			player_sett_reset_tool_priority(sett);
+			player_reset_food_priority(player);
+			player_reset_planks_priority(player);
+			player_reset_steel_priority(player);
+			player_reset_coal_priority(player);
+			player_reset_wheat_priority(player);
+			player_reset_tool_priority(player);
 
-			player_sett_reset_flag_priority(sett);
-			player_sett_reset_inventory_priority(sett);
+			player_reset_flag_priority(player);
+			player_reset_inventory_priority(player);
 
-			sett->current_sett_5_item = 8;
-			sett->current_sett_6_item = 15;
+			player->current_sett_5_item = 8;
+			player->current_sett_6_item = 15;
 
-			sett->military_max_gold = 0;
-			sett->military_gold = 0;
-			sett->inventory_gold = 0;
+			player->military_max_gold = 0;
+			player->military_gold = 0;
+			player->inventory_gold = 0;
 
-			sett->timers_count = 0;
+			player->timers_count = 0;
 
-			sett->castle_knights_wanted = 3;
-			sett->castle_knights = 0;
+			player->castle_knights_wanted = 3;
+			player->castle_knights = 0;
 			/* TODO ... */
-			sett->serf_index = 0;
+			player->serf_index = 0;
 			/* TODO ... */
-			sett->initial_supplies = init->supplies;
-			sett->reproduction_reset = (60 - init->reproduction) * 50;
-			sett->ai_intelligence = 1300*init->intelligence + 13535;
+			player->initial_supplies = init->supplies;
+			player->reproduction_reset = (60 - init->reproduction) * 50;
+			player->ai_intelligence = 1300*init->intelligence + 13535;
 
 			if (/*init->face != 0*/1) { /* Redundant check */
 				if (init->face < 12) { /* AI player */
-					init_ai_values(sett, init->face);
+					init_ai_values(player, init->face);
 				}
 			}
 
-			sett->reproduction_counter = sett->reproduction_reset;
+			player->reproduction_counter = player->reproduction_reset;
 			/* TODO ... */
-			for (int i = 0; i < 26; i++) sett->resource_count[i] = 0;
+			for (int i = 0; i < 26; i++) player->resource_count[i] = 0;
 			for (int i = 0; i < 24; i++) {
-				sett->completed_building_count[i] = 0;
-				sett->incomplete_building_count[i] = 0;
+				player->completed_building_count[i] = 0;
+				player->incomplete_building_count[i] = 0;
 			}
 
 			/* TODO */
 
 			for (int i = 0; i < 16; i++) {
-				for (int j = 0; j < 112; j++) sett->player_stat_history[i][j] = 0;
+				for (int j = 0; j < 112; j++) player->player_stat_history[i][j] = 0;
 			}
 
 			for (int i = 0; i < 26; i++) {
-				for (int j = 0; j < 120; j++) sett->resource_count_history[i][j] = 0;
+				for (int j = 0; j < 120; j++) player->resource_count_history[i][j] = 0;
 			}
 
-			for (int i = 0; i < 27; i++) sett->serf_count[i] = 0;
+			for (int i = 0; i < 27; i++) player->serf_count[i] = 0;
 		}
 	}
 
@@ -698,115 +562,38 @@ anim_update_and_more()
 	if (BIT_TEST(globals.svga, 3)) { /* Game has started */
 		/* TODO */
 
-		player_t *player = globals.player[0];
-		if (player->return_timeout < globals.anim_diff) {
-			player->msg_flags |= BIT(4);
-			player->msg_flags &= ~BIT(3);
-			player->return_timeout = 0;
+		if (interface.return_timeout < globals.anim_diff) {
+			interface.msg_flags |= BIT(4);
+			interface.msg_flags &= ~BIT(3);
+			interface.return_timeout = 0;
 		} else {
-			player->return_timeout -= globals.anim_diff;
+			interface.return_timeout -= globals.anim_diff;
 		}
-
-		/* TODO Same for player 2 return timeout. */
 	}
-}
-
-/* update_player_input is split into a click handler and a drag handler.
-   x and y are absolute instead of relative coords.
-   lmb and rmb are boolean (i.e. zero is false, non-zero is true),
-   instead of 0 is true, -1 is false. */
-static void
-update_player_input_drag(player_t *player, int x, int y, int lmb, int rmb)
-{
-	if (rmb) {
-		if (/*fast mapclick*/0) {
-			/* TODO fast mapclick */
-		} else {
-			player->click |= BIT(3); /* set right click pending */
-		}
-	} else {
-		player->click &= ~BIT(3); /* reset right click pending */
-	}
-
-	/* TODO more lmb(?) */
-}
-
-static void
-update_player_input_click(player_t *player, int x, int y, int lmb, int rmb, int lmb_dbl_time)
-{
-	/*if (player->field_9E) {
-		player->field_9E -= 1;
-		if (player->field_9E == 0) player->click &= ~BIT(4);
-	}*/
-
-	player->pointer_x = min(max(0, x), player->pointer_x_max);
-	player->pointer_y = min(max(0, y), player->pointer_y_max);
-
-	if (lmb) {
-		/* TODO ... */
-		player->flags &= ~BIT(3);
-		player->flags |= BIT(2);
-		/* player->field_8A = 0; */
-		player->pointer_x_clk = player->pointer_x;
-		player->pointer_y_clk = player->pointer_y;
-	} else {
-		player->flags |= BIT(3);
-	}
-
-	/* Handle double click as special click */
-	if (lmb && lmb_dbl_time < 600) player->click |= BIT(3);
-	else player->click &= ~BIT(3);
-}
-
-static void
-handle_player_click(player_t *player)
-{
-	player->flags &= ~BIT(2);
 }
 
 /* Handle player click and update buttons/cursors/sprites. */
 static void
-handle_player_click_and_update(player_t *player)
+handle_interface_inputs()
 {
-	if (BIT_TEST(player->flags, 0)) return; /* Player not active */
+	if (BIT_TEST(interface.flags, 0)) return; /* Player not active */
 
-	/* TODO ... */
-
-	if (BIT_TEST(player->flags, 2)) { /* Left click pending */
-		handle_player_click(player);
+	if (BIT_TEST(interface.flags, 2)) { /* Left click pending */
+		interface.flags &= ~BIT(2);
 	}
 
-	if (BIT_TEST(player->click, 5)) { /* Unknown */
-		/* TODO ... */
-	}
-
-	/* TODO ... */
-
-	if (BIT_TEST(player->click, 2)) {
-		player->click &= ~BIT(2);
+	if (BIT_TEST(interface.click, 2)) {
+		interface.click &= ~BIT(2);
 
 		/* Extracted from a small function 42059 */
-		if (!BIT_TEST(player->click, 7)) { /* Not building road */
-			player_determine_map_cursor_type(player);
+		if (!BIT_TEST(interface.click, 7)) { /* Not building road */
+			interface_determine_map_cursor_type(&interface);
 		} else { /* Building road */
-			player_determine_map_cursor_type_road(player);
+			interface_determine_map_cursor_type_road(&interface);
 		}
 
-		player_update_interface(player);
+		interface_update_interface(&interface);
 		/* redraw map cursor */
-	}
-
-	/* TODO ... */
-}
-
-static void
-handle_player_inputs()
-{
-	handle_player_click_and_update(globals.player[0]);
-	if (/*not coop mode*/1) {
-		handle_player_click_and_update(globals.player[1]);
-	} else {
-		/* TODO coop mode */
 	}
 }
 
@@ -957,16 +744,15 @@ game_loop_iter()
 
 	/* TODO ... */
 
-	handle_player_inputs();
+	handle_interface_inputs();
 
-	handle_map_drag(globals.player[0]);
-	globals.player[0]->flags &= ~BIT(4);
-	globals.player[0]->flags &= ~BIT(7);
+	interface.flags &= ~BIT(4);
+	interface.flags &= ~BIT(7);
 
 	/* TODO */
 
 	/* Undraw cursor */
-	sdl_draw_frame(globals.player[0]->pointer_x-8, globals.player[0]->pointer_y-8,
+	sdl_draw_frame(interface.pointer_x-8, interface.pointer_y-8,
 		       sdl_get_screen_frame(), 0, 0, &cursor_buffer, 16, 16);
 
 	gui_object_redraw((gui_object_t *)&interface, globals.frame);
@@ -979,28 +765,13 @@ game_loop_iter()
 
 	/* Restore cursor buffer */
 	sdl_draw_frame(0, 0, &cursor_buffer,
-		       globals.player[0]->pointer_x-8, globals.player[0]->pointer_y-8,
+		       interface.pointer_x-8, interface.pointer_y-8,
 		       sdl_get_screen_frame(), 16, 16);
 
 	/* Mouse cursor */
-	gfx_draw_transp_sprite(globals.player[0]->pointer_x-8,
-			       globals.player[0]->pointer_y-8,
+	gfx_draw_transp_sprite(interface.pointer_x-8,
+			       interface.pointer_y-8,
 			       DATA_CURSOR, sdl_get_screen_frame());
-
-#if 0
-	draw_green_string(2, 316, sdl_get_screen_frame(), "Col:");
-	draw_green_number(10, 316, sdl_get_screen_frame(), globals.player_sett[0]->map_cursor_col);
-
-	draw_green_string(2, 324, sdl_get_screen_frame(), "Row:");
-	draw_green_number(10, 324, sdl_get_screen_frame(), globals.player_sett[0]->map_cursor_row);
-
-	map_pos_t cursor_pos = MAP_POS(globals.player_sett[0]->map_cursor_col, globals.player_sett[0]->map_cursor_row);
-	gfx_draw_string(16, 332, 47, 1, sdl_get_screen_frame(), "Height:");
-	gfx_draw_number(80, 332, 47, 1, sdl_get_screen_frame(), MAP_HEIGHT(cursor_pos));
-
-	gfx_draw_string(16, 340, 47, 1, sdl_get_screen_frame(), "Object:");
-	gfx_draw_number(80, 340, 47, 1, sdl_get_screen_frame(), MAP_OBJ(cursor_pos));
-#endif
 
 	sdl_swap_buffers();
 }
@@ -1032,8 +803,6 @@ game_loop()
 	int fps_target = 100;
 	const float ema_alpha = 0.003;
 
-	int lmb_state = 0;
-	int rmb_state = 0;
 	int drag_button = 0;
 
 	unsigned int last_down[3] = {0};
@@ -1061,9 +830,6 @@ game_loop()
 					drag_button = 0;
 				}
 
-				if (event.button.button == SDL_BUTTON_LEFT) lmb_state = 0;
-				else if (event.button.button == SDL_BUTTON_RIGHT) rmb_state = 0;
-
 				ev.type = GUI_EVENT_TYPE_BUTTON_UP;
 				ev.x = event.button.x;
 				ev.y = event.button.y;
@@ -1090,33 +856,28 @@ game_loop()
 				}
 				break;
 			case SDL_MOUSEBUTTONDOWN:
-				if (event.button.button == SDL_BUTTON_LEFT) lmb_state = 1;
-				else if (event.button.button == SDL_BUTTON_RIGHT) rmb_state = 1;
-
 				ev.type = GUI_EVENT_TYPE_BUTTON_DOWN;
 				ev.x = event.button.x;
 				ev.y = event.button.y;
 				ev.button = event.button.button;
 				gui_object_handle_event((gui_object_t *)&interface, &ev);
 
-				update_player_input_click(globals.player[0], event.button.x, event.button.y, lmb_state, rmb_state, current_ticks - last_down[SDL_BUTTON_LEFT-1]);
-
 				if (event.button.button <= 3) last_down[event.button.button-1] = current_ticks;
 				break;
 			case SDL_MOUSEMOTION:
 				if (drag_button == 0) {
 					/* Move pointer normally. */
-					if (event.motion.x != globals.player[0]->pointer_x || event.motion.y != globals.player[0]->pointer_y) {
+					if (event.motion.x != interface.pointer_x || event.motion.y != interface.pointer_y) {
 						/* Undraw cursor */
-						sdl_draw_frame(globals.player[0]->pointer_x-8, globals.player[0]->pointer_y-8,
+						sdl_draw_frame(interface.pointer_x-8, interface.pointer_y-8,
 							       sdl_get_screen_frame(), 0, 0, &cursor_buffer, 16, 16);
 
-						globals.player[0]->pointer_x = min(max(0, event.motion.x), globals.player[0]->pointer_x_max);
-						globals.player[0]->pointer_y = min(max(0, event.motion.y), globals.player[0]->pointer_y_max);
+						interface.pointer_x = min(max(0, event.motion.x), interface.pointer_x_max);
+						interface.pointer_y = min(max(0, event.motion.y), interface.pointer_y_max);
 
 						/* Restore cursor buffer */
 						sdl_draw_frame(0, 0, &cursor_buffer,
-							       globals.player[0]->pointer_x-8, globals.player[0]->pointer_y-8,
+							       interface.pointer_x-8, interface.pointer_y-8,
 							       sdl_get_screen_frame(), 16, 16);
 					}
 				}
@@ -1141,9 +902,6 @@ game_loop()
 						break;
 					}
 				}
-
-				update_player_input_drag(globals.player[0], event.motion.x, event.motion.y,
-							 event.motion.state & SDL_BUTTON(1), event.motion.state & SDL_BUTTON(3));
 				break;
 			case SDL_KEYDOWN:
 				if (event.key.keysym.sym == SDLK_q &&
@@ -1214,10 +972,10 @@ game_loop()
 
 					/* Misc */
 				case SDLK_ESCAPE:
-					if (BIT_TEST(globals.player[0]->click, 7)) { /* Building road */
-						player_build_road_end(globals.player[0]);
-					} else if (globals.player[0]->clkmap != 0) {
-						player_close_popup(globals.player[0]);
+					if (BIT_TEST(interface.click, 7)) { /* Building road */
+						interface_build_road_end(&interface);
+					} else if (interface.clkmap != 0) {
+						interface_close_popup(&interface);
 					}
 					break;
 
@@ -1228,15 +986,15 @@ game_loop()
 				case SDLK_j: {
 					int current = 0;
 					for (int i = 0; i < 4; i++) {
-						if (globals.player[0]->sett == globals.player_sett[i]) {
+						if (interface.player == globals.player[i]) {
 							current = i;
 							break;
 						}
 					}
 
 					for (int i = (current+1) % 4; i != current; i = (i+1) % 4) {
-						if (BIT_TEST(globals.player_sett[i]->flags, 6)) { /* Active */
-							globals.player[0]->sett = globals.player_sett[i];
+						if (PLAYER_IS_ACTIVE(globals.player[i])) {
+							interface.player = globals.player[i];
 							LOGD("main", "Switched to player %i.", i);
 							break;
 						}
@@ -1363,18 +1121,11 @@ allocate_global_memory()
 	globals.player[1] = malloc(sizeof(player_t));
 	if (globals.player[1] == NULL) abort();
 
-	/* Player settings */
-	globals.player_sett[0] = malloc(sizeof(player_sett_t));
-	if (globals.player_sett[0] == NULL) abort();
+	globals.player[2] = malloc(sizeof(player_t));
+	if (globals.player[2] == NULL) abort();
 
-	globals.player_sett[1] = malloc(sizeof(player_sett_t));
-	if (globals.player_sett[1] == NULL) abort();
-
-	globals.player_sett[2] = malloc(sizeof(player_sett_t));
-	if (globals.player_sett[2] == NULL) abort();
-
-	globals.player_sett[3] = malloc(sizeof(player_sett_t));
-	if (globals.player_sett[3] == NULL) abort();
+	globals.player[3] = malloc(sizeof(player_t));
+	if (globals.player[3] == NULL) abort();
 
 	/* TODO this should be allocated on game start according to the
 	   map size of the particular game instance. */
@@ -1635,8 +1386,8 @@ main(int argc, char *argv[])
 	}
 
 	/* Move viewport to initial position */
-	map_pos_t init_pos = MAP_POS(globals.player_sett[0]->map_cursor_col,
-				     globals.player_sett[0]->map_cursor_row);
+	map_pos_t init_pos = MAP_POS(globals.player[0]->map_cursor_col,
+				     globals.player[0]->map_cursor_row);
 	viewport_move_to_map_pos(&viewport, init_pos);
 
 	/* Start game loop */

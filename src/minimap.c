@@ -132,9 +132,9 @@ draw_minimap_buildings(minimap_t *minimap, frame_t *frame)
 			int obj = MAP_OBJ(pos);
 			if (obj > MAP_OBJ_FLAG && obj <= MAP_OBJ_CASTLE) {
 				int color = player_colors[MAP_OWNER(pos)];
-				if (minimap->player->minimap_advanced > 0) {
+				if (minimap->interface->minimap_advanced > 0) {
 					building_t *bld = game_get_building(MAP_OBJ_INDEX(pos));
-					if (BUILDING_TYPE(bld) == building_remap[minimap->player->minimap_advanced]) {
+					if (BUILDING_TYPE(bld) == building_remap[minimap->interface->minimap_advanced]) {
 						draw_minimap_point(minimap, col, row, color,
 								   minimap->scale, frame);
 					}
@@ -192,31 +192,31 @@ draw_minimap_rect(minimap_t *minimap, frame_t *frame)
 static void
 minimap_draw(minimap_t *minimap, frame_t *frame)
 {
-	player_t *player = minimap->player;
+	interface_t *interface = minimap->interface;
 
-	if (BIT_TEST(player->minimap_flags, 1)) {
+	if (BIT_TEST(interface->minimap_flags, 1)) {
 		sdl_fill_rect(0, 0, 128, 128, 1, frame);
 		draw_minimap_ownership(minimap, 2, frame);
 	} else {
 		draw_minimap_map(minimap, frame);
-		if (BIT_TEST(player->minimap_flags, 0)) {
+		if (BIT_TEST(interface->minimap_flags, 0)) {
 			draw_minimap_ownership(minimap, 1, frame);
 		}
 	}
 
-	if (BIT_TEST(player->minimap_flags, 2)) {
+	if (BIT_TEST(interface->minimap_flags, 2)) {
 		draw_minimap_roads(minimap, frame);
 	}
 
-	if (BIT_TEST(player->minimap_flags, 3)) {
+	if (BIT_TEST(interface->minimap_flags, 3)) {
 		draw_minimap_buildings(minimap, frame);
 	}
 
-	if (BIT_TEST(player->minimap_flags, 4)) {
+	if (BIT_TEST(interface->minimap_flags, 4)) {
 		draw_minimap_grid(minimap, frame);
 	}
 
-	if (player->minimap_advanced) {
+	if (interface->minimap_advanced) {
 		draw_minimap_traffic(minimap, frame);
 	}
 
@@ -229,10 +229,10 @@ minimap_handle_event_click(minimap_t *minimap, int x, int y)
 	map_pos_t pos = minimap_map_pos_from_screen_pix(minimap, x, y);
 	viewport_move_to_map_pos(gui_get_top_viewport(), pos);
 
-	minimap->player->sett->map_cursor_col = MAP_POS_COL(pos);
-	minimap->player->sett->map_cursor_row = MAP_POS_ROW(pos);
+	minimap->interface->player->map_cursor_col = MAP_POS_COL(pos);
+	minimap->interface->player->map_cursor_row = MAP_POS_ROW(pos);
 
-	player_close_popup(minimap->player);
+	interface_close_popup(minimap->interface);
 
 	return 0;
 }
@@ -257,8 +257,8 @@ minimap_handle_drag(minimap_t *minimap, int x, int y,
 		int dy = y - minimap->pointer_y;
 		if (dx != 0 || dy != 0) {
 			minimap_move_by_pixels(minimap, dx, dy);
-			SDL_WarpMouse(minimap->player->pointer_x,
-				      minimap->player->pointer_y);
+			SDL_WarpMouse(minimap->interface->pointer_x,
+				      minimap->interface->pointer_y);
 		}
 	}
 
@@ -297,13 +297,13 @@ minimap_handle_event(minimap_t *minimap, const gui_event_t *event)
 }
 
 void
-minimap_init(minimap_t *minimap, player_t *player)
+minimap_init(minimap_t *minimap, interface_t *interface)
 {
 	gui_object_init((gui_object_t *)minimap);
 	minimap->obj.draw = (gui_draw_func *)minimap_draw;
 	minimap->obj.handle_event = (gui_handle_event_func *)minimap_handle_event;
 
-	minimap->player = player;
+	minimap->interface = interface;
 	minimap->offset_x = 0;
 	minimap->offset_y = 0;
 	minimap->scale = 1;

@@ -23,7 +23,6 @@
 #define _VIEWPORT_H
 
 #include "freeserf.h"
-#include "player.h"
 #include "gfx.h"
 #include "gui.h"
 #include "map.h"
@@ -44,11 +43,11 @@ typedef struct {
 	gui_object_t obj;
 	int offset_x, offset_y;
 	viewport_layer_t layers;
-	player_t *player;
+	struct interface *interface;
 } viewport_t;
 
 
-void viewport_init(viewport_t *viewport, player_t *player);
+void viewport_init(viewport_t *viewport, struct interface *interface);
 
 void viewport_move_to_map_pos(viewport_t *viewport, map_pos_t pos);
 void viewport_move_by_pixels(viewport_t *viewport, int x, int y);

@@ -1,7 +1,7 @@
 /*
  * game.h - Gameplay related functions
  *
- * Copyright (C) 2012  Jon Lund Steffensen <jonlst@gmail.com>
+ * Copyright (C) 2013  Jon Lund Steffensen <jonlst@gmail.com>
  *
  * This file is part of freeserf.
  *
@@ -56,9 +56,9 @@ int game_send_geologist(flag_t *dest, int dest_index);
 int game_road_segment_valid(map_pos_t pos, dir_t dir);
 int game_get_road_length_value(int length);
 
-void game_build_flag(map_pos_t pos, player_sett_t *sett);
-void game_build_building(map_pos_t pos, building_type_t type, player_sett_t *sett);
-void game_build_castle(map_pos_t pos, player_sett_t *sett);
+void game_build_flag(map_pos_t pos, player_t *player);
+void game_build_building(map_pos_t pos, building_type_t type, player_t *player);
+void game_build_castle(map_pos_t pos, player_t *player);
 
 void game_demolish_road(map_pos_t pos);
 void game_demolish_flag(map_pos_t pos);

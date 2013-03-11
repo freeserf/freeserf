@@ -23,17 +23,16 @@
 #define _POPUP_H
 
 #include "gui.h"
-#include "player.h"
 #include "minimap.h"
 
 
 typedef struct {
 	gui_container_t cont;
-	player_t *player;
+	struct interface *interface;
 	minimap_t minimap;
 } popup_box_t;
 
-void popup_box_init(popup_box_t *popup, player_t *player);
+void popup_box_init(popup_box_t *popup, struct interface *interface);
 
 
 #endif /* !_POPUP_H */

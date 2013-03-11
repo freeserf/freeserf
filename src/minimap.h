@@ -24,18 +24,17 @@
 
 #include "gui.h"
 #include "map.h"
-#include "player.h"
 
 typedef struct {
 	gui_object_t obj;
-	player_t *player;
+	struct interface *interface;
 	int pointer_x, pointer_y;
 	int offset_x, offset_y;
 	int scale;
 } minimap_t;
 
 
-void minimap_init(minimap_t *minimap, player_t *player);
+void minimap_init(minimap_t *minimap, struct interface *interface);
 
 void minimap_set_scale(minimap_t *minimap, int scale);
 

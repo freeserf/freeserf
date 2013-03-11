@@ -32,32 +32,32 @@
 
 
 /* Whether player has built the initial castle. */
-#define PLAYER_HAS_CASTLE(sett)  ((int)((sett)->flags & 1))
+#define PLAYER_HAS_CASTLE(player)  ((int)((player)->flags & 1))
 /* Whether the strongest knight should be sent to fight. */
-#define PLAYER_SEND_STRONGEST(sett)  ((int)(((sett)->flags >> 1) & 1))
+#define PLAYER_SEND_STRONGEST(player)  ((int)(((player)->flags >> 1) & 1))
 /* Whether cycling of knights is in progress. */
-#define PLAYER_CYCLING_KNIGHTS(sett)  ((int)(((sett)->flags >> 2) & 1))
+#define PLAYER_CYCLING_KNIGHTS(player)  ((int)(((player)->flags >> 2) & 1))
 /* Whether a message is queued for this player. */
-#define PLAYER_HAS_MESSAGE(sett)  ((int)(((sett)->flags >> 3) & 1))
+#define PLAYER_HAS_MESSAGE(player)  ((int)(((player)->flags >> 3) & 1))
 /* Whether the knight level of military buildings is temporarily
    reduced bacause of cycling of the knights. */
-#define PLAYER_REDUCED_KNIGHT_LEVEL(sett)  ((int)(((sett)->flags >> 4) & 1))
+#define PLAYER_REDUCED_KNIGHT_LEVEL(player)  ((int)(((player)->flags >> 4) & 1))
 /* Whether the cycling of knights is in the second phase. */
-#define PLAYER_CYCLING_SECOND(sett)  ((int)(((sett)->flags >> 5) & 1))
+#define PLAYER_CYCLING_SECOND(player)  ((int)(((player)->flags >> 5) & 1))
 /* Whether this player is active. */
-#define PLAYER_IS_ACTIVE(sett)  ((int)(((sett)->flags >> 6) & 1))
+#define PLAYER_IS_ACTIVE(player)  ((int)(((player)->flags >> 6) & 1))
 /* Whether this player is a computer controlled opponent. */
-#define PLAYER_IS_AI(sett)  ((int)(((sett)->flags >> 7) & 1))
+#define PLAYER_IS_AI(player)  ((int)(((player)->flags >> 7) & 1))
 
 
 /* Whether player is prohibited from building military
    buildings at current position. */
-#define PLAYER_ALLOW_MILITARY(sett)  (!(int)((sett)->build & 1))
+#define PLAYER_ALLOW_MILITARY(player)  (!(int)((player)->build & 1))
 /* Whether player is prohibited from building flag at
    current position. */
-#define PLAYER_ALLOW_FLAG(sett)  (!(int)(((sett)->build >> 1) & 1))
+#define PLAYER_ALLOW_FLAG(player)  (!(int)(((player)->build >> 1) & 1))
 /* Whether player can spawn new serfs. */
-#define PLAYER_CAN_SPAWN(sett)  ((int)(((sett)->build >> 2) & 1))
+#define PLAYER_CAN_SPAWN(player)  ((int)(((player)->build >> 2) & 1))
 
 
 typedef enum {
@@ -71,9 +71,7 @@ typedef enum {
 	MAP_CURSOR_TYPE_CLEAR
 } map_cursor_type_t;
 
-/* player_sett_t object.
-   Actually holds the game state of a player.
-   This is the same for both human and AI players. */
+/* player_t object. Holds the game state of a player. */
 typedef struct {
 	/* pl_sett_pre */
 	int tool_prio[9];
@@ -189,148 +187,27 @@ typedef struct {
 	} timers[64];
 
 	/* ... */
-} player_sett_t;
-
-/* player_t object.
-   Actually represents the interface to the human player.
-   Note: there is no player_t object for AI players for this reason. */
-typedef struct {
-	int flags;
-	int click;
-	int pointer_x_max;
-	int pointer_y_max;
-	int pointer_x;
-	int pointer_y;
-	int pointer_x_off;
-	int pointer_x_clk;
-	int pointer_y_clk;
-	/* 10 */
-	/* OBSOLETE
-	int pointer_x_drag;
-	int pointer_y_drag;
-	*/
-	/* 1A */
-	frame_t *frame;
-	/* 20 */
-	int game_area_cols;
-	/* 2E */
-	int minimap_advanced;
-	/* 30 */
-	int bottom_panel_x; /* ADDITION */
-	int bottom_panel_y;
-	int bottom_panel_width; /* ADDITION */
-	int bottom_panel_height; /* ADDITION */
-	/* 3E */
-	int frame_width;
-	int frame_height;
-	/* 46 */
-	/*int col_game_area;*/ /* OBSOLETE */
-	/*int row_game_area;*/ /* OBSOLETE */
-	int col_offset;
-	int row_offset;
-	int map_min_x;
-	int map_min_y; /* ADDITION */
-	int game_area_rows;
-	int map_max_y;
-	/* 54 */
-	map_tile_t **map_rows;
-	/* 5C */
-	frame_t *popup_frame;
-	/* 60 */
-	int panel_btns[5];
-	int panel_btns_set[5];
-	int panel_btns_x;
-	int msg_icon_x;
-	/* 70 */
-	box_t box;
-	box_t clkmap;
-	/* OBSOLETE moved to minimap object
-	int minimap_row;
-	int minimap_col;
-	*/
-	/* 78 */
-	int popup_x;
-	int popup_y;
-	/* 82 */
-	player_sett_t *sett;
-	int config;
-	int msg_flags;
-	int map_cursor_col_max;
-	/* 8E */
-	int map_cursor_col_off;
-	int map_y_off;
-	/*int **map_serf_rows;*/ /* OBSOLETE */
-	int message_box;
-	/* 9A */
-	int map_x_off;
-	/* A0 */
-	int panel_btns_dist;
-	/* A4 */
-	sprite_loc_t map_cursor_sprites[7];
-	int road_length;
-	int road_valid_dir;
-	uint8_t minimap_flags;
-	/* D2 */
-	uint16_t last_anim;
-	int current_stat_8_mode;
-	int current_stat_7_item;
-	/* 1B4 */
-	/* Determines what sfx should be played. */
-	int water_in_view;
-	int trees_in_view;
-	/* 1C0 */
-	int return_timeout;
-	int return_col_game_area;
-	int return_row_game_area;
-	/* 1E0 */
-	int panel_btns_first_x;
-	int timer_icon_x;
-	/* ... */
 } player_t;
 
 
-void player_open_popup(player_t *player, int box);
-void player_close_popup(player_t *player);
+void player_add_notification(player_t *player, int type, map_pos_t pos);
 
-void player_determine_map_cursor_type(player_t *player);
-void player_determine_map_cursor_type_road(player_t *player);
-void player_update_interface(player_t *player);
+void player_reset_food_priority(player_t *player);
+void player_reset_planks_priority(player_t *player);
+void player_reset_steel_priority(player_t *player);
+void player_reset_coal_priority(player_t *player);
+void player_reset_wheat_priority(player_t *player);
+void player_reset_tool_priority(player_t *player);
 
-void player_build_road_begin(player_t *player);
-void player_build_road_end(player_t *player);
+void player_reset_flag_priority(player_t *player);
+void player_reset_inventory_priority(player_t *player);
 
-int player_build_road_segment(player_t *player, map_pos_t pos, dir_t dir);
-int player_remove_road_segment(player_t *player, map_pos_t pos, dir_t dir);
-
-int player_build_road(player_t *player, map_pos_t pos, dir_t *dirs, uint length);
-
-void player_demolish_object(player_t *player);
-
-void player_build_flag(player_t *player);
-void player_build_mine_building(player_t *player);
-void player_build_basic_building(player_t *player);
-void player_build_advanced_building(player_t *player);
-void player_build_castle(player_t *player);
-
-
-void player_add_notification(player_sett_t *sett, int type, map_pos_t pos);
-
-void player_sett_reset_food_priority(player_sett_t *sett);
-void player_sett_reset_planks_priority(player_sett_t *sett);
-void player_sett_reset_steel_priority(player_sett_t *sett);
-void player_sett_reset_coal_priority(player_sett_t *sett);
-void player_sett_reset_wheat_priority(player_sett_t *sett);
-void player_sett_reset_tool_priority(player_sett_t *sett);
-
-void player_sett_reset_flag_priority(player_sett_t *sett);
-void player_sett_reset_inventory_priority(player_sett_t *sett);
-
-void player_change_knight_occupation(player_sett_t *sett, int index,
+void player_change_knight_occupation(player_t *player, int index,
 				     int adjust_max, int delta);
 
-int player_promote_serfs_to_knights(player_sett_t *sett, int number);
-int player_knights_available_for_attack(player_sett_t *sett, map_pos_t pos);
-void player_start_attack(player_sett_t *sett);
+int player_promote_serfs_to_knights(player_t *player, int number);
+int player_knights_available_for_attack(player_t *player, map_pos_t pos);
+void player_start_attack(player_t *player);
 
 
 #endif /* ! _PLAYER_H */

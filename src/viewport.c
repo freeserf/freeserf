@@ -2222,14 +2222,14 @@ draw_map_cursor_sprite(viewport_t *viewport, map_pos_t pos, int sprite, frame_t 
 }
 
 static void
-draw_map_cursor(viewport_t *viewport, player_t *player, frame_t *frame)
+draw_map_cursor(viewport_t *viewport, interface_t *interface, frame_t *frame)
 {
-	map_pos_t cursor_pos = MAP_POS(player->sett->map_cursor_col, player->sett->map_cursor_row);
-	draw_map_cursor_sprite(viewport, cursor_pos, player->map_cursor_sprites[0].sprite, frame);
+	map_pos_t cursor_pos = MAP_POS(interface->player->map_cursor_col, interface->player->map_cursor_row);
+	draw_map_cursor_sprite(viewport, cursor_pos, interface->map_cursor_sprites[0].sprite, frame);
 
 	for (dir_t d = 0; d < 6; d++) {
 		map_pos_t pos = MAP_MOVE(cursor_pos, d);
-		draw_map_cursor_sprite(viewport, pos, player->map_cursor_sprites[1+d].sprite, frame);
+		draw_map_cursor_sprite(viewport, pos, interface->map_cursor_sprites[1+d].sprite, frame);
 	}
 }
 
@@ -2303,7 +2303,7 @@ viewport_draw(viewport_t *viewport, frame_t *frame)
 	}
 	if (layers & VIEWPORT_LAYER_PATHS) draw_paths_and_borders(viewport, frame);
 	draw_game_objects(viewport, layers, frame);
-	if (layers & VIEWPORT_LAYER_CURSOR) draw_map_cursor(viewport, globals.player[0], frame);
+	if (layers & VIEWPORT_LAYER_CURSOR) draw_map_cursor(viewport, viewport->interface, frame);
 }
 
 static int
@@ -2313,15 +2313,15 @@ viewport_handle_event_click(viewport_t *viewport, int x, int y, gui_event_button
 
 	gui_object_set_redraw((gui_object_t *)viewport);
 
-	player_t *player = viewport->player;
+	interface_t *interface = viewport->interface;
 
 	map_pos_t clk_pos = viewport_map_pos_from_screen_pix(viewport, x, y);
 	int clk_col = MAP_POS_COL(clk_pos);
 	int clk_row = MAP_POS_ROW(clk_pos);
 
-	if (BIT_TEST(player->click, 7)) { /* Building road */
-		int x = (clk_col - player->sett->map_cursor_col + 1) & globals.map.col_mask;
-		int y = (clk_row - player->sett->map_cursor_row + 1) & globals.map.row_mask;
+	if (BIT_TEST(interface->click, 7)) { /* Building road */
+		int x = (clk_col - interface->player->map_cursor_col + 1) & globals.map.col_mask;
+		int y = (clk_row - interface->player->map_cursor_row + 1) & globals.map.row_mask;
 		int dir = -1;
 
 		if (x == 0) {
@@ -2335,30 +2335,11 @@ viewport_handle_event_click(viewport_t *viewport, int x, int y, gui_event_button
 			else if (y == 2) dir = DIR_DOWN_RIGHT;
 		}
 
-		if (BIT_TEST(player->click, 3) && dir < 0) { /* Special click */
-			player->click &= ~BIT(3);
-			map_pos_t pos = MAP_POS(player->sett->map_cursor_col,
-						player->sett->map_cursor_row);
-			uint length;
-			dir_t *dirs = pathfinder_map(pos, clk_pos, &length);
-			if (dirs != NULL) {
-				int r = player_build_road(player, pos, dirs, length);
-				if (r < 0) sfx_play_clip(SFX_NOT_ACCEPTED);
-				else sfx_play_clip(SFX_ACCEPTED);
-				free(dirs);
-			} else {
-				sfx_play_clip(SFX_NOT_ACCEPTED);
-			}
-			return 0;
-		} else if (dir < 0) {
-			return 0;
-		}
-
-		if (BIT_TEST(player->road_valid_dir, dir)) {
-			map_pos_t pos = MAP_POS(player->sett->map_cursor_col, player->sett->map_cursor_row);
+		if (BIT_TEST(interface->road_valid_dir, dir)) {
+			map_pos_t pos = MAP_POS(interface->player->map_cursor_col, interface->player->map_cursor_row);
 
 			if (!BIT_TEST(MAP_PATHS(pos), dir)) { /* No existing path: Create path */
-				int r = player_build_road_segment(player, pos, dir);
+				int r = interface_build_road_segment(interface, pos, dir);
 				if (r < 0) {
 					sfx_play_clip(SFX_NOT_ACCEPTED);
 				} else if (r == 0) {
@@ -2367,7 +2348,7 @@ viewport_handle_event_click(viewport_t *viewport, int x, int y, gui_event_button
 					sfx_play_clip(SFX_ACCEPTED);
 				}
 			} else { /* Existing path: Delete path */
-				int r = player_remove_road_segment(player, pos, dir);
+				int r = interface_remove_road_segment(interface, pos, dir);
 				if (r < 0) {
 					sfx_play_clip(SFX_NOT_ACCEPTED);
 				} else {
@@ -2375,121 +2356,149 @@ viewport_handle_event_click(viewport_t *viewport, int x, int y, gui_event_button
 				}
 			}
 		} else {
-			player->click |= BIT(2);
+			interface->click |= BIT(2);
+		}
+	} else {
+		interface->player->map_cursor_col = clk_col;
+		interface->player->map_cursor_row = clk_row;
+
+		interface->click |= BIT(2);
+
+		sfx_play_clip(SFX_CLICK);
+	}
+
+	return 0;
+}
+
+int
+viewport_handle_event_dbl_click(viewport_t *viewport, int x, int y,
+				gui_event_button_t button)
+{
+	if (button != GUI_EVENT_BUTTON_LEFT) return 0;
+
+	gui_object_set_redraw((gui_object_t *)viewport);
+
+	interface_t *interface = viewport->interface;
+
+	map_pos_t clk_pos = viewport_map_pos_from_screen_pix(viewport, x, y);
+
+	if (BIT_TEST(interface->click, 7)) { /* Building road */
+		interface->click &= ~BIT(3);
+		map_pos_t pos = MAP_POS(interface->player->map_cursor_col,
+					interface->player->map_cursor_row);
+		uint length;
+		dir_t *dirs = pathfinder_map(pos, clk_pos, &length);
+		if (dirs != NULL) {
+			int r = interface_build_road(interface, pos, dirs, length);
+			if (r < 0) sfx_play_clip(SFX_NOT_ACCEPTED);
+			else sfx_play_clip(SFX_ACCEPTED);
+			free(dirs);
+		} else {
 			sfx_play_clip(SFX_NOT_ACCEPTED);
 		}
 	} else {
-		player->sett->map_cursor_col = clk_col;
-		player->sett->map_cursor_row = clk_row;
-
-		player->click |= BIT(2);
-
-		if (BIT_TEST(player->click, 3)) { /* Special click */
-			if (MAP_OBJ(clk_pos) == MAP_OBJ_NONE ||
-			    MAP_OBJ(clk_pos) > MAP_OBJ_CASTLE) {
-				return 0;
-			}
-
-			if (MAP_OBJ(clk_pos) == MAP_OBJ_FLAG) {
-				if (BIT_TEST(globals.split, 5) || /* Demo mode */
-				    MAP_OWNER(clk_pos) == player->sett->player_num) {
-					player_open_popup(player, BOX_TRANSPORT_INFO);
-				}
-
-				player->sett->index = MAP_OBJ_INDEX(clk_pos);
-				player->click &= ~BIT(2);
-			} else { /* Building */
-				if (BIT_TEST(globals.split, 5) || /* Demo mode */
-				    MAP_OWNER(clk_pos) == player->sett->player_num) {
-					building_t *building = game_get_building(MAP_OBJ_INDEX(clk_pos));
-					if (!BUILDING_IS_DONE(building)) {
-						player_open_popup(player, BOX_ORDERED_BLD);
-					} else if (BUILDING_TYPE(building) == BUILDING_CASTLE) {
-						player_open_popup(player, BOX_CASTLE_RES);
-					} else if (BUILDING_TYPE(building) == BUILDING_STOCK) {
-						if (!BUILDING_IS_ACTIVE(building)) return 0;
-						player_open_popup(player, BOX_CASTLE_RES);
-					} else if (BUILDING_TYPE(building) == BUILDING_HUT ||
-						   BUILDING_TYPE(building) == BUILDING_TOWER ||
-						   BUILDING_TYPE(building) == BUILDING_FORTRESS) {
-						player_open_popup(player, BOX_DEFENDERS);
-					} else if (BUILDING_TYPE(building) == BUILDING_STONEMINE ||
-						   BUILDING_TYPE(building) == BUILDING_COALMINE ||
-						   BUILDING_TYPE(building) == BUILDING_IRONMINE ||
-						   BUILDING_TYPE(building) == BUILDING_GOLDMINE) {
-						player_open_popup(player, BOX_MINE_OUTPUT);
-					} else {
-						player_open_popup(player, BOX_BLD_STOCK);
-					}
-
-					player->sett->index = MAP_OBJ_INDEX(clk_pos);
-					player->click &= ~BIT(2);
-				} else if (BIT_TEST(globals.split, 5)) { /* Demo mode*/
-					return 0;
-				} else { /* Foreign building */
-					/* TODO handle coop mode*/
-					building_t *building = game_get_building(MAP_OBJ_INDEX(clk_pos));
-					player->sett->building_attacked = BUILDING_INDEX(building);
-
-					if (BUILDING_IS_DONE(building) &&
-					    (BUILDING_TYPE(building) == BUILDING_HUT ||
-					     BUILDING_TYPE(building) == BUILDING_TOWER ||
-					     BUILDING_TYPE(building) == BUILDING_FORTRESS ||
-					     BUILDING_TYPE(building) == BUILDING_CASTLE)) {
-						if (!BUILDING_IS_ACTIVE(building) ||
-						    BUILDING_STATE(building)) {
-							/* It is not allowed to attack
-							   if currently not occupied or
-							   is too far from the border. */
-							sfx_play_clip(SFX_NOT_ACCEPTED);
-							return 0;
-						}
-
-						const map_pos_t *p = &globals.spiral_pos_pattern[7];
-						int found = 0;
-						for (int i = 257; i >= 0; i--) {
-							map_pos_t pos = MAP_POS_ADD(building->pos, p[257-i]);
-							if (MAP_HAS_OWNER(pos) &&
-							    MAP_OWNER(pos) == player->sett->player_num) {
-								found = 1;
-								break;
-							}
-						}
-
-						if (!found) {
-							sfx_play_clip(SFX_NOT_ACCEPTED);
-							return 0;
-						}
-
-						/* Action accepted */
-						sfx_play_clip(SFX_CLICK);
-
-						int max_knights = 0;
-						switch (BUILDING_TYPE(building)) {
-						case BUILDING_HUT: max_knights = 3; break;
-						case BUILDING_TOWER: max_knights = 6; break;
-						case BUILDING_FORTRESS: max_knights = 12; break;
-						case BUILDING_CASTLE: max_knights = 20; break;
-						default: NOT_REACHED(); break;
-						}
-
-						int knights = player_knights_available_for_attack(player->sett,
-												  building->pos);
-						player->sett->knights_attacking = min(knights, max_knights);
-						player_open_popup(player, BOX_START_ATTACK);
-					}
-				}
-			}
-
-			player->panel_btns[0] = PANEL_BTN_BUILD_INACTIVE;
-			player->panel_btns[1] = PANEL_BTN_DESTROY_INACTIVE;
-			player->panel_btns[2] = PANEL_BTN_MAP_INACTIVE;
-			player->panel_btns[3] = PANEL_BTN_STATS_INACTIVE;
-			player->panel_btns[4] = PANEL_BTN_SETT_INACTIVE;
-			player->click &= ~BIT(1);
-		} else {
-			sfx_play_clip(SFX_CLICK);
+		if (MAP_OBJ(clk_pos) == MAP_OBJ_NONE ||
+		    MAP_OBJ(clk_pos) > MAP_OBJ_CASTLE) {
+			return 0;
 		}
+
+		if (MAP_OBJ(clk_pos) == MAP_OBJ_FLAG) {
+			if (BIT_TEST(globals.split, 5) || /* Demo mode */
+			    MAP_OWNER(clk_pos) == interface->player->player_num) {
+				interface_open_popup(interface, BOX_TRANSPORT_INFO);
+			}
+
+			interface->player->index = MAP_OBJ_INDEX(clk_pos);
+			interface->click &= ~BIT(2);
+		} else { /* Building */
+			if (BIT_TEST(globals.split, 5) || /* Demo mode */
+			    MAP_OWNER(clk_pos) == interface->player->player_num) {
+				building_t *building = game_get_building(MAP_OBJ_INDEX(clk_pos));
+				if (!BUILDING_IS_DONE(building)) {
+					interface_open_popup(interface, BOX_ORDERED_BLD);
+					} else if (BUILDING_TYPE(building) == BUILDING_CASTLE) {
+					interface_open_popup(interface, BOX_CASTLE_RES);
+				} else if (BUILDING_TYPE(building) == BUILDING_STOCK) {
+					if (!BUILDING_IS_ACTIVE(building)) return 0;
+					interface_open_popup(interface, BOX_CASTLE_RES);
+				} else if (BUILDING_TYPE(building) == BUILDING_HUT ||
+					   BUILDING_TYPE(building) == BUILDING_TOWER ||
+					   BUILDING_TYPE(building) == BUILDING_FORTRESS) {
+					interface_open_popup(interface, BOX_DEFENDERS);
+				} else if (BUILDING_TYPE(building) == BUILDING_STONEMINE ||
+					   BUILDING_TYPE(building) == BUILDING_COALMINE ||
+					   BUILDING_TYPE(building) == BUILDING_IRONMINE ||
+					   BUILDING_TYPE(building) == BUILDING_GOLDMINE) {
+					interface_open_popup(interface, BOX_MINE_OUTPUT);
+				} else {
+					interface_open_popup(interface, BOX_BLD_STOCK);
+				}
+
+				interface->player->index = MAP_OBJ_INDEX(clk_pos);
+				interface->click &= ~BIT(2);
+			} else if (BIT_TEST(globals.split, 5)) { /* Demo mode*/
+				return 0;
+			} else { /* Foreign building */
+				/* TODO handle coop mode*/
+				building_t *building = game_get_building(MAP_OBJ_INDEX(clk_pos));
+				interface->player->building_attacked = BUILDING_INDEX(building);
+
+				if (BUILDING_IS_DONE(building) &&
+				    (BUILDING_TYPE(building) == BUILDING_HUT ||
+				     BUILDING_TYPE(building) == BUILDING_TOWER ||
+				     BUILDING_TYPE(building) == BUILDING_FORTRESS ||
+				     BUILDING_TYPE(building) == BUILDING_CASTLE)) {
+					if (!BUILDING_IS_ACTIVE(building) ||
+					    BUILDING_STATE(building)) {
+						/* It is not allowed to attack
+						   if currently not occupied or
+						   is too far from the border. */
+						sfx_play_clip(SFX_NOT_ACCEPTED);
+						return 0;
+					}
+
+					const map_pos_t *p = &globals.spiral_pos_pattern[7];
+					int found = 0;
+					for (int i = 257; i >= 0; i--) {
+						map_pos_t pos = MAP_POS_ADD(building->pos, p[257-i]);
+						if (MAP_HAS_OWNER(pos) &&
+						    MAP_OWNER(pos) == interface->player->player_num) {
+							found = 1;
+							break;
+						}
+					}
+
+					if (!found) {
+						sfx_play_clip(SFX_NOT_ACCEPTED);
+						return 0;
+					}
+
+					/* Action accepted */
+					sfx_play_clip(SFX_CLICK);
+
+					int max_knights = 0;
+					switch (BUILDING_TYPE(building)) {
+					case BUILDING_HUT: max_knights = 3; break;
+					case BUILDING_TOWER: max_knights = 6; break;
+					case BUILDING_FORTRESS: max_knights = 12; break;
+					case BUILDING_CASTLE: max_knights = 20; break;
+					default: NOT_REACHED(); break;
+					}
+
+					int knights = player_knights_available_for_attack(interface->player,
+											  building->pos);
+					interface->player->knights_attacking = min(knights, max_knights);
+					interface_open_popup(interface, BOX_START_ATTACK);
+				}
+			}
+		}
+
+		interface->panel_btns[0] = PANEL_BTN_BUILD_INACTIVE;
+		interface->panel_btns[1] = PANEL_BTN_DESTROY_INACTIVE;
+		interface->panel_btns[2] = PANEL_BTN_MAP_INACTIVE;
+		interface->panel_btns[3] = PANEL_BTN_STATS_INACTIVE;
+		interface->panel_btns[4] = PANEL_BTN_SETT_INACTIVE;
+		interface->click &= ~BIT(1);
 	}
 
 	return 0;
@@ -2500,13 +2509,12 @@ viewport_handle_drag(viewport_t *viewport, int x, int y,
 		     gui_event_button_t button)
 {
 	if (button == GUI_EVENT_BUTTON_RIGHT) {
-		int dx = x - viewport->player->pointer_x;
-		int dy = y - viewport->player->pointer_y;
+		int dx = x - viewport->interface->pointer_x;
+		int dy = y - viewport->interface->pointer_y;
 		if (dx != 0 || dy != 0) {
-			/* TODO drag accelerates in linux(?) */
 			viewport_move_by_pixels(viewport, dx, dy);
-			SDL_WarpMouse(viewport->player->pointer_x,
-				      viewport->player->pointer_y);
+			SDL_WarpMouse(viewport->interface->pointer_x,
+				      viewport->interface->pointer_y);
 		}
 	}
 
@@ -2523,6 +2531,10 @@ viewport_handle_event(viewport_t *viewport, const gui_event_t *event)
 	case GUI_EVENT_TYPE_CLICK:
 		return viewport_handle_event_click(viewport, x, y,
 						   event->button);
+	case GUI_EVENT_TYPE_DBL_CLICK:
+		return viewport_handle_event_dbl_click(viewport, x, y,
+						       event->button);
+		break;
 	case GUI_EVENT_TYPE_DRAG_MOVE:
 		return viewport_handle_drag(viewport, x, y,
 					    event->button);
@@ -2534,13 +2546,13 @@ viewport_handle_event(viewport_t *viewport, const gui_event_t *event)
 }
 
 void
-viewport_init(viewport_t *viewport, player_t *player)
+viewport_init(viewport_t *viewport, interface_t *interface)
 {
 	gui_object_init((gui_object_t *)viewport);
 	viewport->obj.draw = (gui_draw_func *)viewport_draw;
 	viewport->obj.handle_event = (gui_handle_event_func *)viewport_handle_event;
 
-	viewport->player = player;
+	viewport->interface = interface;
 	viewport->layers = VIEWPORT_LAYER_ALL;
 }
 

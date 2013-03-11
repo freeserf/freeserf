@@ -1,7 +1,7 @@
 /*
  * globals.h - The global struct keeping the game state
  *
- * Copyright (C) 2012  Jon Lund Steffensen <jonlst@gmail.com>
+ * Copyright (C) 2013  Jon Lund Steffensen <jonlst@gmail.com>
  *
  * This file is part of freeserf.
  *
@@ -72,9 +72,9 @@ typedef struct {
 	/* 60 */
 	/* uint16_t map_move_left_2; MOVED to map_t */
 	/* 64 */
-	player_sett_t *player_sett[4];
+	player_t *player[4];
 	/* 78 */
-	player_t *player[2];
+	/*interface_t *interface;*/
 	/* 80 */
 	int *spiral_pattern;
 	/*void *player_map_rows[2];*/ /* OBSOLETE */
