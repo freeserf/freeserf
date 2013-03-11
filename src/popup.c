@@ -3002,100 +3002,74 @@ handle_action(interface_t *interface, action_t action, int x, int y)
 		interface->box = BOX_MAP;
 		break;
 	case ACTION_BUILD_STONEMINE:
-		globals.building_type = BUILDING_STONEMINE;
-		interface_build_mine_building(interface);
+		interface_build_building(interface, BUILDING_STONEMINE);
 		break;
 	case ACTION_BUILD_COALMINE:
-		globals.building_type = BUILDING_COALMINE;
-		interface_build_mine_building(interface);
+		interface_build_building(interface, BUILDING_COALMINE);
 		break;
 	case ACTION_BUILD_IRONMINE:
-		globals.building_type = BUILDING_IRONMINE;
-		interface_build_mine_building(interface);
+		interface_build_building(interface, BUILDING_IRONMINE);
 		break;
 	case ACTION_BUILD_GOLDMINE:
-		globals.building_type = BUILDING_GOLDMINE;
-		interface_build_mine_building(interface);
+		interface_build_building(interface, BUILDING_GOLDMINE);
 		break;
 	case ACTION_BUILD_FLAG:
-		if (!PLAYER_ALLOW_FLAG(interface->player)) break;
 		interface_build_flag(interface);
 		interface_close_popup(interface);
 		break;
 	case ACTION_BUILD_STONECUTTER:
-		globals.building_type = BUILDING_STONECUTTER;
-		interface_build_basic_building(interface);
+		interface_build_building(interface, BUILDING_STONECUTTER);
 		break;
 	case ACTION_BUILD_HUT:
-		if (!PLAYER_ALLOW_MILITARY(interface->player)) break;
-		globals.building_type = BUILDING_HUT;
-		interface_build_basic_building(interface);
+		interface_build_building(interface, BUILDING_HUT);
 		break;
 	case ACTION_BUILD_LUMBERJACK:
-		globals.building_type = BUILDING_LUMBERJACK;
-		interface_build_basic_building(interface);
+		interface_build_building(interface, BUILDING_LUMBERJACK);
 		break;
 	case ACTION_BUILD_FORESTER:
-		globals.building_type = BUILDING_FORESTER;
-		interface_build_basic_building(interface);
+		interface_build_building(interface, BUILDING_FORESTER);
 		break;
 	case ACTION_BUILD_FISHER:
-		globals.building_type = BUILDING_FISHER;
-		interface_build_basic_building(interface);
+		interface_build_building(interface, BUILDING_FISHER);
 		break;
 	case ACTION_BUILD_MILL:
-		globals.building_type = BUILDING_MILL;
-		interface_build_basic_building(interface);
+		interface_build_building(interface, BUILDING_MILL);
 		break;
 	case ACTION_BUILD_BOATBUILDER:
-		globals.building_type = BUILDING_BOATBUILDER;
-		interface_build_basic_building(interface);
+		interface_build_building(interface, BUILDING_BOATBUILDER);
 		break;
 	case ACTION_BUILD_BUTCHER:
-		globals.building_type = BUILDING_BUTCHER;
-		interface_build_advanced_building(interface);
+		interface_build_building(interface, BUILDING_BUTCHER);
 		break;
 	case ACTION_BUILD_WEAPONSMITH:
-		globals.building_type = BUILDING_WEAPONSMITH;
-		interface_build_advanced_building(interface);
+		interface_build_building(interface, BUILDING_WEAPONSMITH);
 		break;
 	case ACTION_BUILD_STEELSMELTER:
-		globals.building_type = BUILDING_STEELSMELTER;
-		interface_build_advanced_building(interface);
+		interface_build_building(interface, BUILDING_STEELSMELTER);
 		break;
 	case ACTION_BUILD_SAWMILL:
-		globals.building_type = BUILDING_SAWMILL;
-		interface_build_advanced_building(interface);
+		interface_build_building(interface, BUILDING_SAWMILL);
 		break;
 	case ACTION_BUILD_BAKER:
-		globals.building_type = BUILDING_BAKER;
-		interface_build_advanced_building(interface);
+		interface_build_building(interface, BUILDING_BAKER);
 		break;
 	case ACTION_BUILD_GOLDSMELTER:
-		globals.building_type = BUILDING_GOLDSMELTER;
-		interface_build_advanced_building(interface);
+		interface_build_building(interface, BUILDING_GOLDSMELTER);
 		break;
 	case ACTION_BUILD_FORTRESS:
-		if (!PLAYER_ALLOW_MILITARY(interface->player)) break;
-		globals.building_type = BUILDING_FORTRESS;
-		interface_build_advanced_building(interface);
+		interface_build_building(interface, BUILDING_FORTRESS);
 		break;
 	case ACTION_BUILD_TOWER:
-		if (!PLAYER_ALLOW_MILITARY(interface->player)) break;
-		globals.building_type = BUILDING_TOWER;
-		interface_build_advanced_building(interface);
+		interface_build_building(interface, BUILDING_TOWER);
 		break;
 	case ACTION_BUILD_TOOLMAKER:
-		globals.building_type = BUILDING_TOOLMAKER;
-		interface_build_advanced_building(interface);
+		interface_build_building(interface, BUILDING_TOOLMAKER);
 		break;
 	case ACTION_BUILD_FARM:
-		globals.building_type = BUILDING_FARM;
-		interface_build_advanced_building(interface);
+		interface_build_building(interface, BUILDING_FARM);
 		break;
 	case ACTION_BUILD_PIGFARM:
-		globals.building_type = BUILDING_PIGFARM;
-		interface_build_advanced_building(interface);
+		interface_build_building(interface, BUILDING_PIGFARM);
 		break;
 	case ACTION_BLD_FLIP_PAGE:
 		interface_open_popup(interface, (interface->clkmap + 1 <= BOX_ADV_2_BLD) ? (interface->clkmap + 1) : BOX_BASIC_BLD_FLIP);
@@ -3544,8 +3518,7 @@ handle_action(interface_t *interface, action_t action, int x, int y)
 		}
 		break;
 	case ACTION_BUILD_STOCK:
-		globals.building_type = BUILDING_STOCK;
-		interface_build_advanced_building(interface);
+		interface_build_building(interface, BUILDING_STOCK);
 		break;
 	case ACTION_SHOW_CASTLE_SERF:
 		interface_open_popup(interface, BOX_CASTLE_SERF);

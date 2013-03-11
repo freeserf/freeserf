@@ -167,9 +167,7 @@ int interface_build_road(interface_t *interface, map_pos_t pos, dir_t *dirs, uin
 void interface_demolish_object(interface_t *interface);
 
 void interface_build_flag(interface_t *interface);
-void interface_build_mine_building(interface_t *interface);
-void interface_build_basic_building(interface_t *interface);
-void interface_build_advanced_building(interface_t *interface);
+void interface_build_building(interface_t *interface, building_type_t type);
 void interface_build_castle(interface_t *interface);
 
 

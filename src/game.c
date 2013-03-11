@@ -3138,14 +3138,36 @@ build_flag_split_path(map_pos_t pos)
 	restore_path_serf_info(flag, path_2_dir, &path_2_data);
 }
 
+int
+game_can_build_flag(map_pos_t pos, player_t *player)
+{
+	if (player->panel_btn_type < PANEL_BTN_BUILD_FLAG ||
+	    (player->map_cursor_type != MAP_CURSOR_TYPE_CLEAR &&
+	     player->map_cursor_type != MAP_CURSOR_TYPE_CLEAR_BY_PATH &&
+	     player->map_cursor_type != MAP_CURSOR_TYPE_PATH)) {
+		return -1;
+	}
+
+	for (dir_t d = DIR_RIGHT; d <= DIR_UP; d++) {
+		if (MAP_OBJ(MAP_MOVE(pos, d)) == MAP_OBJ_FLAG) {
+			return -1;
+		}
+	}
+
+	return 0;
+}
+
 /* Build flag at pos. */
-void
+int
 game_build_flag(map_pos_t pos, player_t *player)
 {
+	int r = game_can_build_flag(pos, player);
+	if (r < 0) return -1;
+
 	flag_t *flag;
 	int flg_index;
-	int r = game_alloc_flag(&flag, &flg_index);
-	if (r < 0) return;
+	r = game_alloc_flag(&flag, &flg_index);
+	if (r < 0) return -1;
 
 	flag->path_con = player->player_num << 6;
 
@@ -3159,10 +3181,83 @@ game_build_flag(map_pos_t pos, player_t *player)
 	if (MAP_PATHS(pos) != 0) {
 		build_flag_split_path(pos);
 	}
+
+	return 0;
+}
+
+int
+game_can_build_building(map_pos_t pos, building_type_t type, player_t *player)
+{
+	/* Check if building size is possible. */
+	switch (type) {
+	case BUILDING_FISHER:
+	case BUILDING_LUMBERJACK:
+	case BUILDING_BOATBUILDER:
+	case BUILDING_STONECUTTER:
+	case BUILDING_FORESTER:
+	case BUILDING_HUT:
+	case BUILDING_MILL:
+		if (player->panel_btn_type < PANEL_BTN_BUILD_SMALL ||
+		    (player->map_cursor_type != MAP_CURSOR_TYPE_CLEAR &&
+		     player->map_cursor_type != MAP_CURSOR_TYPE_CLEAR_BY_PATH &&
+		     player->map_cursor_type != MAP_CURSOR_TYPE_CLEAR_BY_FLAG)) {
+			return -1;
+		}
+		break;
+	case BUILDING_STONEMINE:
+	case BUILDING_COALMINE:
+	case BUILDING_IRONMINE:
+	case BUILDING_GOLDMINE:
+		if (player->panel_btn_type != PANEL_BTN_BUILD_MINE ||
+		    (player->map_cursor_type != MAP_CURSOR_TYPE_CLEAR &&
+		     player->map_cursor_type != MAP_CURSOR_TYPE_CLEAR_BY_PATH &&
+		     player->map_cursor_type != MAP_CURSOR_TYPE_CLEAR_BY_FLAG)) {
+			return -1;
+		}
+		break;
+	case BUILDING_STOCK:
+	case BUILDING_FARM:
+	case BUILDING_BUTCHER:
+	case BUILDING_PIGFARM:
+	case BUILDING_BAKER:
+	case BUILDING_SAWMILL:
+	case BUILDING_STEELSMELTER:
+	case BUILDING_TOOLMAKER:
+	case BUILDING_WEAPONSMITH:
+	case BUILDING_TOWER:
+	case BUILDING_FORTRESS:
+	case BUILDING_GOLDSMELTER:
+		if (player->panel_btn_type != PANEL_BTN_BUILD_LARGE ||
+		    (player->map_cursor_type != MAP_CURSOR_TYPE_CLEAR &&
+		     player->map_cursor_type != MAP_CURSOR_TYPE_CLEAR_BY_PATH &&
+		     player->map_cursor_type != MAP_CURSOR_TYPE_CLEAR_BY_FLAG)) {
+			return -1;
+		}
+		break;
+	case BUILDING_CASTLE:
+		if (player->panel_btn_type != PANEL_BTN_BUILD_CASTLE ||
+		    player->map_cursor_type != MAP_CURSOR_TYPE_CLEAR) {
+			return -1;
+		}
+		break;
+	default:
+		NOT_REACHED();
+		break;
+	}
+
+	/* Check if military building is possible */
+	if ((type == BUILDING_HUT ||
+	     type == BUILDING_TOWER ||
+	     type == BUILDING_FORTRESS) &&
+	    !PLAYER_ALLOW_MILITARY(player)) {
+		return -1;
+	}
+
+	return 0;
 }
 
 /* Build building at position. */
-void
+int
 game_build_building(map_pos_t pos, building_type_t type, player_t *player)
 {
 	const int construction_cost[] = {
@@ -3200,14 +3295,17 @@ game_build_building(map_pos_t pos, building_type_t type, player_t *player)
 		[BUILDING_CASTLE] = MAP_OBJ_CASTLE
 	};
 
+	int r = game_can_build_building(pos, type, player);
+	if (r < 0) return -1;
+
 	if (type == BUILDING_STOCK) {
 		/* TODO Check that more stocks are allowed to be built */
 	}
 
 	building_t *bld;
 	int bld_index;
-	int r = game_alloc_building(&bld, &bld_index);
-	if (r < 0) return;
+	r = game_alloc_building(&bld, &bld_index);
+	if (r < 0) return -1;
 
 	flag_t *flag = NULL;
 	int flg_index = 0;
@@ -3215,7 +3313,7 @@ game_build_building(map_pos_t pos, building_type_t type, player_t *player)
 		r = game_alloc_flag(&flag, &flg_index);
 		if (r < 0) {
 			game_free_building(bld_index);
-			return;
+			return -1;
 		}
 	}
 
@@ -3291,6 +3389,8 @@ game_build_building(map_pos_t pos, building_type_t type, player_t *player)
 	}
 
 	if (split_path) build_flag_split_path(MAP_MOVE_DOWN_RIGHT(pos));
+
+	return 0;
 }
 
 /* Create the initial serfs that occupies the castle. */

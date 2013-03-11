@@ -870,93 +870,36 @@ interface_build_flag(interface_t *interface)
 
 	interface_determine_map_cursor_type(interface);
 
-	if (interface->player->panel_btn_type < PANEL_BTN_BUILD_FLAG ||
-	    (interface->player->map_cursor_type != MAP_CURSOR_TYPE_CLEAR &&
-	     interface->player->map_cursor_type != MAP_CURSOR_TYPE_CLEAR_BY_PATH &&
-	     interface->player->map_cursor_type != MAP_CURSOR_TYPE_PATH)) {
-		interface_update_interface(interface);
+	int r = game_build_flag(interface->map_cursor_pos,
+				interface->player);
+	if (r < 0) {
+		sfx_play_clip(SFX_NOT_ACCEPTED);
 		return;
 	}
 
 	interface->click |= BIT(2);
-
-	game_build_flag(interface->map_cursor_pos,
-			interface->player);
 }
 
-/* Build a new building. The type is stored in globals.building_type. */
-static void
-build_building(interface_t *interface)
+/* Build a new building. */
+void
+interface_build_building(interface_t *interface, building_type_t type)
 {
+	interface_determine_map_cursor_type(interface);
+
+	int r = game_build_building(interface->map_cursor_pos, type,
+				    interface->player);
+	if (r < 0) {
+		sfx_play_clip(SFX_NOT_ACCEPTED);
+		return;
+	}
+
 	sfx_play_clip(SFX_ACCEPTED);
 	interface->click |= BIT(2);
-
-	game_build_building(interface->map_cursor_pos,
-			    globals.building_type, interface->player);
+	interface_close_popup(interface);
 
 	/* Move cursor to flag. */
 	interface->map_cursor_pos = MAP_POS_ADD(interface->map_cursor_pos,
 						globals.spiral_pos_pattern[2]);
-}
-
-/* Build a mine. */
-void
-interface_build_mine_building(interface_t *interface)
-{
-	interface_determine_map_cursor_type(interface);
-
-	if (interface->player->map_cursor_type != MAP_CURSOR_TYPE_BUILDING) {
-		interface_close_popup(interface);
-		if (interface->player->panel_btn_type != PANEL_BTN_BUILD_MINE ||
-		    (interface->player->map_cursor_type != MAP_CURSOR_TYPE_CLEAR &&
-		     interface->player->map_cursor_type != MAP_CURSOR_TYPE_CLEAR_BY_PATH &&
-		     interface->player->map_cursor_type != MAP_CURSOR_TYPE_CLEAR_BY_FLAG)) {
-			sfx_play_clip(SFX_NOT_ACCEPTED);
-			interface_update_interface(interface);
-		} else {
-			build_building(interface);
-		}
-	}
-}
-
-/* Build a basic building. */
-void
-interface_build_basic_building(interface_t *interface)
-{
-	interface_determine_map_cursor_type(interface);
-
-	if (interface->player->map_cursor_type != MAP_CURSOR_TYPE_BUILDING) {
-		interface_close_popup(interface);
-		if (interface->player->panel_btn_type < PANEL_BTN_BUILD_SMALL ||
-		    (interface->player->map_cursor_type != MAP_CURSOR_TYPE_CLEAR &&
-		     interface->player->map_cursor_type != MAP_CURSOR_TYPE_CLEAR_BY_PATH &&
-		     interface->player->map_cursor_type != MAP_CURSOR_TYPE_CLEAR_BY_FLAG)) {
-			sfx_play_clip(SFX_NOT_ACCEPTED);
-			interface_update_interface(interface);
-		} else {
-			build_building(interface);
-		}
-	}
-}
-
-/* Build advanced building. */
-void
-interface_build_advanced_building(interface_t *interface)
-{
-	interface_determine_map_cursor_type(interface);
-
-	if (interface->player->map_cursor_type != MAP_CURSOR_TYPE_BUILDING) {
-		interface_close_popup(interface);
-		if (interface->player->panel_btn_type != PANEL_BTN_BUILD_LARGE ||
-		    (interface->player->map_cursor_type != MAP_CURSOR_TYPE_CLEAR &&
-		     interface->player->map_cursor_type != MAP_CURSOR_TYPE_CLEAR_BY_PATH &&
-		     interface->player->map_cursor_type != MAP_CURSOR_TYPE_CLEAR_BY_FLAG)) {
-			sfx_play_clip(SFX_NOT_ACCEPTED);
-			interface_update_interface(interface);
-		} else {
-			build_building(interface);
-		}
-	}
 }
 
 /* Build castle. */
