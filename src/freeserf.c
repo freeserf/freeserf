@@ -372,8 +372,7 @@ reset_player_settings()
 			player->build = 0;
 			/*player->field_163 |= BIT(0);*/
 
-			player->map_cursor_col = 0;
-			player->map_cursor_row = 0;
+			player->map_cursor_pos = MAP_POS(0, 0);
 			player->map_cursor_type = 0;
 			player->panel_btn_type = 0;
 			player->building_height_after_level = 0;
@@ -1386,9 +1385,7 @@ main(int argc, char *argv[])
 	}
 
 	/* Move viewport to initial position */
-	map_pos_t init_pos = MAP_POS(globals.player[0]->map_cursor_col,
-				     globals.player[0]->map_cursor_row);
-	viewport_move_to_map_pos(&viewport, init_pos);
+	viewport_move_to_map_pos(&viewport, globals.player[0]->map_cursor_pos);
 
 	/* Start game loop */
 	game_loop();

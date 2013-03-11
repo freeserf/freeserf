@@ -252,8 +252,8 @@ load_v0_player_state(FILE *f)
 		}
 
 		player->current_sett_5_item = *(uint16_t *)&data[378];
-		player->map_cursor_col = *(uint16_t *)&data[380];
-		player->map_cursor_row = *(uint16_t *)&data[382];
+		player->map_cursor_pos = MAP_POS(*(uint16_t *)&data[380],
+						 *(uint16_t *)&data[382]);
 		player->map_cursor_type = data[384];
 		player->panel_btn_type = data[385];
 		player->building_height_after_level = *(uint16_t *)&data[386];
@@ -987,8 +987,7 @@ save_text_player_state(FILE *f)
 		save_text_write_array(f, "inventory_prio", player->inventory_prio, 26);
 		save_text_write_array(f, "attacking_buildings", player->attacking_buildings, 64);
 
-		save_text_write_value(f, "map_cursor.col", player->map_cursor_col);
-		save_text_write_value(f, "map_cursor.row", player->map_cursor_row);
+		save_text_write_map_pos(f, "map_cursor_pos", player->map_cursor_pos);
 
 		save_text_write_value(f, "knights_to_spawn", player->knights_to_spawn);
 		save_text_write_value(f, "last_anim", player->last_anim);
@@ -1816,10 +1815,8 @@ load_text_player_section(section_t *section)
 				char *v = parse_array_value(&array);
 				player->attacking_buildings[i] = atoi(v);
 			}
-		} else if (!strcmp(s->key, "map_cursor.col")) {
-			player->map_cursor_col = atoi(s->value);
-		} else if (!strcmp(s->key, "map_cursor.row")) {
-			player->map_cursor_row = atoi(s->value);
+		} else if (!strcmp(s->key, "map_cursor_pos")) {
+			player->map_cursor_pos = parse_map_pos(s->value);
 		} else if (!strcmp(s->key, "knights_to_spawn")) {
 			player->knights_to_spawn = atoi(s->value);
 		} else if (!strcmp(s->key, "last_anim")) {

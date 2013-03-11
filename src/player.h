@@ -90,8 +90,7 @@ typedef struct {
 	int inventory_prio[26];
 	int attacking_buildings[64];
 	int current_sett_5_item;
-	int map_cursor_col;
-	int map_cursor_row;
+	map_pos_t map_cursor_pos;
 	/* 100 */
 	map_cursor_type_t map_cursor_type;
 	panel_btn_t panel_btn_type;

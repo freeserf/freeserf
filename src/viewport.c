@@ -2224,7 +2224,7 @@ draw_map_cursor_sprite(viewport_t *viewport, map_pos_t pos, int sprite, frame_t 
 static void
 draw_map_cursor(viewport_t *viewport, interface_t *interface, frame_t *frame)
 {
-	map_pos_t cursor_pos = MAP_POS(interface->player->map_cursor_col, interface->player->map_cursor_row);
+	map_pos_t cursor_pos = interface->player->map_cursor_pos;
 	draw_map_cursor_sprite(viewport, cursor_pos, interface->map_cursor_sprites[0].sprite, frame);
 
 	for (dir_t d = 0; d < 6; d++) {
@@ -2320,8 +2320,8 @@ viewport_handle_event_click(viewport_t *viewport, int x, int y, gui_event_button
 	int clk_row = MAP_POS_ROW(clk_pos);
 
 	if (BIT_TEST(interface->click, 7)) { /* Building road */
-		int x = (clk_col - interface->player->map_cursor_col + 1) & globals.map.col_mask;
-		int y = (clk_row - interface->player->map_cursor_row + 1) & globals.map.row_mask;
+		int x = (clk_col - MAP_POS_COL(interface->player->map_cursor_pos) + 1) & globals.map.col_mask;
+		int y = (clk_row - MAP_POS_ROW(interface->player->map_cursor_pos) + 1) & globals.map.row_mask;
 		int dir = -1;
 
 		if (x == 0) {
@@ -2336,7 +2336,7 @@ viewport_handle_event_click(viewport_t *viewport, int x, int y, gui_event_button
 		}
 
 		if (BIT_TEST(interface->road_valid_dir, dir)) {
-			map_pos_t pos = MAP_POS(interface->player->map_cursor_col, interface->player->map_cursor_row);
+			map_pos_t pos = interface->player->map_cursor_pos;
 
 			if (!BIT_TEST(MAP_PATHS(pos), dir)) { /* No existing path: Create path */
 				int r = interface_build_road_segment(interface, pos, dir);
@@ -2359,11 +2359,8 @@ viewport_handle_event_click(viewport_t *viewport, int x, int y, gui_event_button
 			interface->click |= BIT(2);
 		}
 	} else {
-		interface->player->map_cursor_col = clk_col;
-		interface->player->map_cursor_row = clk_row;
-
+		interface->player->map_cursor_pos = clk_pos;
 		interface->click |= BIT(2);
-
 		sfx_play_clip(SFX_CLICK);
 	}
 
@@ -2384,8 +2381,7 @@ viewport_handle_event_dbl_click(viewport_t *viewport, int x, int y,
 
 	if (BIT_TEST(interface->click, 7)) { /* Building road */
 		interface->click &= ~BIT(3);
-		map_pos_t pos = MAP_POS(interface->player->map_cursor_col,
-					interface->player->map_cursor_row);
+		map_pos_t pos = interface->player->map_cursor_pos;
 		uint length;
 		dir_t *dirs = pathfinder_map(pos, clk_pos, &length);
 		if (dirs != NULL) {
