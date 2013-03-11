@@ -229,7 +229,7 @@ minimap_handle_event_click(minimap_t *minimap, int x, int y)
 	map_pos_t pos = minimap_map_pos_from_screen_pix(minimap, x, y);
 	viewport_move_to_map_pos(gui_get_top_viewport(), pos);
 
-	minimap->interface->player->map_cursor_pos = pos;
+	minimap->interface->map_cursor_pos = pos;
 
 	interface_close_popup(minimap->interface);
 

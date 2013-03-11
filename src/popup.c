@@ -1390,7 +1390,7 @@ draw_ground_analysis_box(popup_box_t *popup, frame_t *frame)
 		-1
 	};
 
-	map_pos_t pos = popup->interface->player->map_cursor_pos;
+	map_pos_t pos = popup->interface->map_cursor_pos;
 	int estimates[5];
 
 	draw_box_background(0x81, frame);
@@ -2921,7 +2921,7 @@ move_sett_5_6_item(interface_t *interface, int up, int to_end)
 static void
 handle_send_geologist(interface_t *interface)
 {
-	map_pos_t pos = interface->player->map_cursor_pos;
+	map_pos_t pos = interface->map_cursor_pos;
 	flag_t *flag = game_get_flag(MAP_OBJ_INDEX(pos));
 
 	int r = game_send_geologist(flag, MAP_OBJ_INDEX(pos));

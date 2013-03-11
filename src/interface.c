@@ -374,7 +374,7 @@ interface_determine_map_cursor_type(interface_t *interface)
 	interface->player->map_cursor_type = MAP_CURSOR_TYPE_NONE;
 	interface->player->panel_btn_type = PANEL_BTN_BUILD_INACTIVE;
 
-	map_pos_t cursor_pos = interface->player->map_cursor_pos;
+	map_pos_t cursor_pos = interface->map_cursor_pos;
 	get_map_cursor_type(interface->player, cursor_pos,
 			    &interface->player->panel_btn_type,
 			    &interface->player->build,
@@ -388,7 +388,7 @@ interface_determine_map_cursor_type(interface_t *interface)
 void
 interface_determine_map_cursor_type_road(interface_t *interface)
 {
-	map_pos_t cursor_pos = interface->player->map_cursor_pos;
+	map_pos_t cursor_pos = interface->map_cursor_pos;
 	map_pos_t map_pos[1+6];
 	populate_circular_map_pos_array(map_pos, cursor_pos, 1+6);
 
@@ -599,7 +599,7 @@ interface_build_road_end(interface_t *interface)
 	interface->map_cursor_sprites[6].sprite = 33;
 
 	map_tile_t *tiles = globals.map.tiles;
-	map_pos_t pos = interface->player->map_cursor_pos;
+	map_pos_t pos = interface->map_cursor_pos;
 
 	for (int i = 0; i < interface->road_length; i++) {
 		dir_t backtrack_dir = -1;
@@ -760,7 +760,7 @@ interface_build_road_segment(interface_t *interface, map_pos_t pos, dir_t dir)
 			interface_build_road_end(interface);
 			return -1;
 		} else {
-			interface->player->map_cursor_pos = dest;
+			interface->map_cursor_pos = dest;
 			tiles[pos].flags |= BIT(dir);
 			tiles[dest].flags |= BIT(dir_rev);
 			interface->road_length = 0;
@@ -773,7 +773,7 @@ interface_build_road_segment(interface_t *interface, map_pos_t pos, dir_t dir)
 		tiles[pos].flags |= BIT(dir);
 		tiles[dest].flags |= BIT(dir_rev);
 
-		interface->player->map_cursor_pos = dest;
+		interface->map_cursor_pos = dest;
 
 		/* TODO Pathway scrolling */
 
@@ -798,7 +798,7 @@ interface_remove_road_segment(interface_t *interface, map_pos_t pos, dir_t dir)
 	tiles[pos].flags &= ~BIT(dir);
 	tiles[dest].flags &= ~BIT(dir_rev);
 
-	interface->player->map_cursor_pos = dest;
+	interface->map_cursor_pos = dest;
 
 	/* TODO Pathway scrolling */
 
@@ -837,7 +837,7 @@ interface_demolish_object(interface_t *interface)
 {
 	interface_determine_map_cursor_type(interface);
 
-	map_pos_t cursor_pos = interface->player->map_cursor_pos;
+	map_pos_t cursor_pos = interface->map_cursor_pos;
 
 	if (interface->player->map_cursor_type == MAP_CURSOR_TYPE_REMOVABLE_FLAG) {
 		sfx_play_clip(SFX_CLICK);
@@ -880,9 +880,8 @@ interface_build_flag(interface_t *interface)
 
 	interface->click |= BIT(2);
 
-	map_pos_t map_cursor_pos = interface->player->map_cursor_pos;
-
-	game_build_flag(map_cursor_pos, interface->player);
+	game_build_flag(interface->map_cursor_pos,
+			interface->player);
 }
 
 /* Build a new building. The type is stored in globals.building_type. */
@@ -892,12 +891,12 @@ build_building(interface_t *interface)
 	sfx_play_clip(SFX_ACCEPTED);
 	interface->click |= BIT(2);
 
-	map_pos_t pos = interface->player->map_cursor_pos;
-	game_build_building(pos, globals.building_type, interface->player);
+	game_build_building(interface->map_cursor_pos,
+			    globals.building_type, interface->player);
 
 	/* Move cursor to flag. */
-	interface->player->map_cursor_pos = MAP_POS_ADD(interface->player->map_cursor_pos,
-							globals.spiral_pos_pattern[2]);
+	interface->map_cursor_pos = MAP_POS_ADD(interface->map_cursor_pos,
+						globals.spiral_pos_pattern[2]);
 }
 
 /* Build a mine. */
@@ -981,9 +980,8 @@ interface_build_castle(interface_t *interface)
 		interface->click |= BIT(2);
 	}
 
-	int map_cursor_pos = interface->player->map_cursor_pos;
-
-	game_build_castle(map_cursor_pos, interface->player);
+	game_build_castle(interface->map_cursor_pos,
+			  interface->player);
 }
 
 
@@ -1116,6 +1114,8 @@ interface_init(interface_t *interface)
 	interface->top = NULL;
 	interface->redraw_top = 0;
 	list_init(&interface->floats);
+
+	interface->map_cursor_pos = MAP_POS(0, 0);
 
 	/* Settings */
 	interface->flags = 0;

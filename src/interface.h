@@ -38,6 +38,8 @@ struct interface {
 	int redraw_top;
 	list_t floats;
 
+	map_pos_t map_cursor_pos;
+
 	/* 0 */
 	int flags;
 	int click;

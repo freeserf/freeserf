@@ -415,9 +415,7 @@ handle_panel_button_click(interface_t *interface, int btn)
 				if (interface->player->map_cursor_type == 4) {
 					sfx_play_clip(SFX_ACCEPTED);
 					interface->click |= BIT(2);
-
-					map_pos_t cursor_pos = interface->player->map_cursor_pos;
-					game_demolish_road(cursor_pos);
+					game_demolish_road(interface->map_cursor_pos);
 				} else {
 					sfx_play_clip(SFX_NOT_ACCEPTED);
 					interface_update_interface(interface);
@@ -467,7 +465,7 @@ handle_message_icon_click(interface_t *interface)
 
 		viewport_t *viewport = gui_get_top_viewport();
 		viewport_move_to_map_pos(viewport, new_pos);
-		interface->player->map_cursor_pos = new_pos;
+		interface->map_cursor_pos = new_pos;
 	}
 
 	interface_open_popup(interface, BOX_MESSAGE);
@@ -537,7 +535,7 @@ panel_bar_handle_event_click(panel_bar_t *panel, int x, int y)
 					else timer_length = 60*60*100;
 
 					interface->player->timers[timer_id].timeout = timer_length;
-					interface->player->timers[timer_id].pos = interface->player->map_cursor_pos;
+					interface->player->timers[timer_id].pos = interface->map_cursor_pos;
 				} else {
 					/* Call to box (+ map) position */
 					/* TODO */
