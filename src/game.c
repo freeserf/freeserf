@@ -2812,9 +2812,11 @@ remove_road_forwards(map_pos_t pos, dir_t dir)
 }
 
 /* Demolish road at position. */
-void
+int
 game_demolish_road(map_pos_t pos)
 {
+	if (!game_can_demolish_road(pos)) return -1;
+
 	/* TODO necessary?
 	globals.player[0]->flags |= BIT(4);
 	globals.player[1]->flags |= BIT(4);
@@ -2823,6 +2825,7 @@ game_demolish_road(map_pos_t pos)
 	int r = remove_road_backrefs(pos);
 	if (r < 0) {
 		/* TODO */
+		return -1;
 	}
 
 	/* Find directions of path segments to be split. */
@@ -2851,6 +2854,8 @@ game_demolish_road(map_pos_t pos)
 
 	remove_road_forwards(pos, path_1_dir);
 	remove_road_forwards(pos, path_2_dir);
+
+	return 0;
 }
 
 /* Find a transporter at pos and change it to state. */
@@ -3912,6 +3917,18 @@ flag_remove_player_refs(flag_t *flag)
 	}
 }
 
+/* Check whether road can be demolished. */
+int
+game_can_demolish_road(map_pos_t pos)
+{
+	if (MAP_PATHS(pos) == 0 ||
+	    map_space_from_obj[MAP_OBJ(pos)] >= MAP_SPACE_FLAG) {
+		return 0;
+	}
+
+	return 1;
+}
+
 /* Check whether flag can be demolished. */
 int
 game_can_demolish_flag(map_pos_t pos)
@@ -3952,9 +3969,11 @@ game_can_demolish_flag(map_pos_t pos)
 }
 
 /* Demolish flag at pos. */
-void
+int
 game_demolish_flag(map_pos_t pos)
 {
+	if (!game_can_demolish_flag(pos)) return -1;
+
 	const int max_transporters[] = { 1, 2, 3, 4, 6, 8, 11, 15 };
 
 	/* Handle any serf at pos. */
@@ -4115,6 +4134,8 @@ game_demolish_flag(map_pos_t pos)
 	}
 
 	game_free_flag(FLAG_INDEX(flag));
+
+	return 0;
 }
 
 /* Demolish building at pos. */
