@@ -3346,7 +3346,7 @@ game_build_building(map_pos_t pos, building_type_t type, player_t *player)
 	player->incomplete_building_count[type] += 1;
 	bld->bld = BIT(7) | (type << 2) | player->player_num; /* bit 7: Unfinished building */
 	bld->progress = 0;
-	if (obj_types[type] != MAP_OBJ_SMALL_BUILDING) bld->progress = 1;
+	if (obj_types[type] != MAP_OBJ_LARGE_BUILDING) bld->progress = 1;
 
 	int split_path = 0;
 	if (MAP_OBJ(MAP_MOVE_DOWN_RIGHT(pos)) != MAP_OBJ_FLAG) {
