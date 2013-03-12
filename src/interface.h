@@ -30,6 +30,18 @@
 #include "player.h"
 
 
+typedef enum {
+	MAP_CURSOR_TYPE_NONE = 0,
+	MAP_CURSOR_TYPE_FLAG,
+	MAP_CURSOR_TYPE_REMOVABLE_FLAG,
+	MAP_CURSOR_TYPE_BUILDING,
+	MAP_CURSOR_TYPE_PATH,
+	MAP_CURSOR_TYPE_CLEAR_BY_FLAG,
+	MAP_CURSOR_TYPE_CLEAR_BY_PATH,
+	MAP_CURSOR_TYPE_CLEAR
+} map_cursor_type_t;
+
+
 typedef struct interface interface_t;
 
 struct interface {
@@ -39,6 +51,8 @@ struct interface {
 	list_t floats;
 
 	map_pos_t map_cursor_pos;
+	map_cursor_type_t map_cursor_type;
+	panel_btn_t panel_btn_type;
 
 	/* 0 */
 	int flags;

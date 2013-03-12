@@ -252,9 +252,6 @@ load_v0_player_state(FILE *f)
 		}
 
 		player->current_sett_5_item = *(uint16_t *)&data[378];
-		player->map_cursor_type = data[384];
-		player->panel_btn_type = data[385];
-		player->building_height_after_level = *(uint16_t *)&data[386];
 		player->building = *(uint16_t *)&data[388];
 
 		player->castle_flag = *(uint16_t *)&data[390];

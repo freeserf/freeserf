@@ -387,7 +387,7 @@ handle_panel_button_click(interface_t *interface, int btn)
 			}
 			break;
 		case PANEL_BTN_DESTROY:
-			if (interface->player->map_cursor_type == 2) {
+			if (interface->map_cursor_type == MAP_CURSOR_TYPE_REMOVABLE_FLAG) {
 				interface_demolish_object(interface);
 			} else {
 				interface->panel_btns[0] = PANEL_BTN_BUILD_INACTIVE;
@@ -412,7 +412,7 @@ handle_panel_button_click(interface_t *interface, int btn)
 			} else {
 				interface->flags &= ~BIT(6);
 				interface_determine_map_cursor_type(interface);
-				if (interface->player->map_cursor_type == 4) {
+				if (interface->map_cursor_type == MAP_CURSOR_TYPE_PATH) {
 					sfx_play_clip(SFX_ACCEPTED);
 					interface->click |= BIT(2);
 					game_demolish_road(interface->map_cursor_pos);

@@ -137,8 +137,8 @@ interface_determine_map_cursor_type(interface_t *interface)
 {
 	map_pos_t cursor_pos = interface->map_cursor_pos;
 	get_map_cursor_type(interface->player, cursor_pos,
-			    &interface->player->panel_btn_type,
-			    &interface->player->map_cursor_type);
+			    &interface->panel_btn_type,
+			    &interface->map_cursor_type);
 }
 
 /* Update the interface_t object with the information returned
@@ -207,7 +207,7 @@ interface_update_interface(interface_t *interface)
 			interface->panel_btns[0] = PANEL_BTN_BUILD_ROAD_STARRED;
 			interface->panel_btns[1] = PANEL_BTN_BUILD_INACTIVE;
 		} else {
-			switch (interface->player->map_cursor_type) {
+			switch (interface->map_cursor_type) {
 				case MAP_CURSOR_TYPE_NONE:
 					interface->panel_btns[0] = PANEL_BTN_BUILD_INACTIVE;
 					if (PLAYER_HAS_CASTLE(interface->player)) {
@@ -231,7 +231,7 @@ interface_update_interface(interface_t *interface)
 					interface->map_cursor_sprites[2].sprite = 33;
 					break;
 				case MAP_CURSOR_TYPE_BUILDING:
-					interface->panel_btns[0] = interface->player->panel_btn_type;
+					interface->panel_btns[0] = interface->panel_btn_type;
 					interface->panel_btns[1] = PANEL_BTN_DESTROY;
 					interface->map_cursor_sprites[0].sprite = 32;
 					interface->map_cursor_sprites[2].sprite = 33;
@@ -241,13 +241,13 @@ interface_update_interface(interface_t *interface)
 					interface->panel_btns[1] = PANEL_BTN_DESTROY_ROAD;
 					interface->map_cursor_sprites[0].sprite = 52;
 					interface->map_cursor_sprites[2].sprite = 33;
-					if (interface->player->panel_btn_type != PANEL_BTN_BUILD_INACTIVE) {
+					if (interface->panel_btn_type != PANEL_BTN_BUILD_INACTIVE) {
 						interface->panel_btns[0] = PANEL_BTN_BUILD_FLAG;
 						interface->map_cursor_sprites[0].sprite = 47;
 					}
 					break;
 				case MAP_CURSOR_TYPE_CLEAR_BY_FLAG:
-					if (interface->player->panel_btn_type < PANEL_BTN_BUILD_MINE) {
+					if (interface->panel_btn_type < PANEL_BTN_BUILD_MINE) {
 						interface->panel_btns[0] = PANEL_BTN_BUILD_INACTIVE;
 						if (PLAYER_HAS_CASTLE(interface->player)) {
 							interface->panel_btns[1] = PANEL_BTN_DESTROY_INACTIVE;
@@ -257,18 +257,18 @@ interface_update_interface(interface_t *interface)
 						interface->map_cursor_sprites[0].sprite = 32;
 						interface->map_cursor_sprites[2].sprite = 33;
 					} else {
-						interface->panel_btns[0] = interface->player->panel_btn_type;
+						interface->panel_btns[0] = interface->panel_btn_type;
 						interface->panel_btns[1] = PANEL_BTN_DESTROY_INACTIVE;
-						interface->map_cursor_sprites[0].sprite = 46 + interface->player->panel_btn_type;
+						interface->map_cursor_sprites[0].sprite = 46 + interface->panel_btn_type;
 						interface->map_cursor_sprites[2].sprite = 33;
 					}
 					break;
 				case MAP_CURSOR_TYPE_CLEAR_BY_PATH:
-					interface->panel_btns[0] = interface->player->panel_btn_type;
+					interface->panel_btns[0] = interface->panel_btn_type;
 					interface->panel_btns[1] = PANEL_BTN_DESTROY_INACTIVE;
-					if (interface->player->panel_btn_type != PANEL_BTN_BUILD_INACTIVE) {
-						interface->map_cursor_sprites[0].sprite = 46 + interface->player->panel_btn_type;
-						if (interface->player->panel_btn_type == PANEL_BTN_BUILD_FLAG) {
+					if (interface->panel_btn_type != PANEL_BTN_BUILD_INACTIVE) {
+						interface->map_cursor_sprites[0].sprite = 46 + interface->panel_btn_type;
+						if (interface->panel_btn_type == PANEL_BTN_BUILD_FLAG) {
 							interface->map_cursor_sprites[2].sprite = 33;
 						} else {
 							interface->map_cursor_sprites[2].sprite = 47;
@@ -279,19 +279,19 @@ interface_update_interface(interface_t *interface)
 					}
 					break;
 				case MAP_CURSOR_TYPE_CLEAR:
-					interface->panel_btns[0] = interface->player->panel_btn_type;
+					interface->panel_btns[0] = interface->panel_btn_type;
 					if (PLAYER_HAS_CASTLE(interface->player)) {
 						interface->panel_btns[1] = PANEL_BTN_DESTROY_INACTIVE;
 					} else {
 						interface->panel_btns[1] = PANEL_BTN_GROUND_ANALYSIS;
 					}
-					if (interface->player->panel_btn_type) {
-						if (interface->player->panel_btn_type == PANEL_BTN_BUILD_CASTLE) {
+					if (interface->panel_btn_type) {
+						if (interface->panel_btn_type == PANEL_BTN_BUILD_CASTLE) {
 							interface->map_cursor_sprites[0].sprite = 50;
 						} else {
-							interface->map_cursor_sprites[0].sprite = 46 + interface->player->panel_btn_type;
+							interface->map_cursor_sprites[0].sprite = 46 + interface->panel_btn_type;
 						}
-						if (interface->player->panel_btn_type == PANEL_BTN_BUILD_FLAG) {
+						if (interface->panel_btn_type == PANEL_BTN_BUILD_FLAG) {
 							interface->map_cursor_sprites[2].sprite = 33;
 						} else {
 							interface->map_cursor_sprites[2].sprite = 47;
@@ -320,8 +320,8 @@ interface_build_road_begin(interface_t *interface)
 
 	interface_determine_map_cursor_type(interface);
 
-	if (interface->player->map_cursor_type != MAP_CURSOR_TYPE_FLAG &&
-	    interface->player->map_cursor_type != MAP_CURSOR_TYPE_REMOVABLE_FLAG) {
+	if (interface->map_cursor_type != MAP_CURSOR_TYPE_FLAG &&
+	    interface->map_cursor_type != MAP_CURSOR_TYPE_REMOVABLE_FLAG) {
 		interface_update_interface(interface);
 		return;
 	}
@@ -596,11 +596,11 @@ interface_demolish_object(interface_t *interface)
 
 	map_pos_t cursor_pos = interface->map_cursor_pos;
 
-	if (interface->player->map_cursor_type == MAP_CURSOR_TYPE_REMOVABLE_FLAG) {
+	if (interface->map_cursor_type == MAP_CURSOR_TYPE_REMOVABLE_FLAG) {
 		sfx_play_clip(SFX_CLICK);
 		interface->click |= BIT(2);
 		game_demolish_flag(cursor_pos);
-	} else if (interface->player->map_cursor_type == MAP_CURSOR_TYPE_BUILDING) {
+	} else if (interface->map_cursor_type == MAP_CURSOR_TYPE_BUILDING) {
 		building_t *building = game_get_building(MAP_OBJ_INDEX(cursor_pos));
 
 		if (BUILDING_IS_DONE(building) &&
@@ -803,6 +803,8 @@ interface_init(interface_t *interface)
 	list_init(&interface->floats);
 
 	interface->map_cursor_pos = MAP_POS(0, 0);
+	interface->map_cursor_type = 0;
+	interface->panel_btn_type = 0;
 
 	/* Settings */
 	interface->flags = 0;

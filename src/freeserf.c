@@ -372,9 +372,6 @@ reset_player_settings()
 			player->build = 0;
 			/*player->field_163 |= BIT(0);*/
 
-			player->map_cursor_type = 0;
-			player->panel_btn_type = 0;
-			player->building_height_after_level = 0;
 			player->building = 0;
 			player->castle_flag = 0;
 			player->cont_search_after_non_optimal_find = 7;

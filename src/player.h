@@ -60,17 +60,6 @@
 #define PLAYER_CAN_SPAWN(player)  ((int)(((player)->build >> 2) & 1))
 
 
-typedef enum {
-	MAP_CURSOR_TYPE_NONE = 0,
-	MAP_CURSOR_TYPE_FLAG,
-	MAP_CURSOR_TYPE_REMOVABLE_FLAG,
-	MAP_CURSOR_TYPE_BUILDING,
-	MAP_CURSOR_TYPE_PATH,
-	MAP_CURSOR_TYPE_CLEAR_BY_FLAG,
-	MAP_CURSOR_TYPE_CLEAR_BY_PATH,
-	MAP_CURSOR_TYPE_CLEAR
-} map_cursor_type_t;
-
 /* player_t object. Holds the game state of a player. */
 typedef struct {
 	/* pl_sett_pre */
@@ -92,9 +81,9 @@ typedef struct {
 	int current_sett_5_item;
 	/*map_pos_t map_cursor_pos; MOVED to interface_t */
 	/* 100 */
-	map_cursor_type_t map_cursor_type;
-	panel_btn_t panel_btn_type;
-	int building_height_after_level;
+	/*map_cursor_type_t map_cursor_type; MOVED to interface_t */
+	/*panel_btn_t panel_btn_type; MOVED to interface_t */
+	/*int building_height_after_level; OBSOLETE */
 	int building;
 	int castle_flag;
 	int castle_inventory;
