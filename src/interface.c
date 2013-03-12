@@ -63,114 +63,6 @@ interface_close_popup(interface_t *interface)
 }
 
 
-/* Determine what buildings can possibly be built at map_pos[0]. */
-static void
-determine_possible_building(const player_t *player, map_pos_t map_pos[], int hills,
-			    panel_btn_t *panel_btn, int *build_flags, int *height_after_level)
-{
-	if (hills) {
-		if (PLAYER_HAS_CASTLE(player)) {
-			*panel_btn = PANEL_BTN_BUILD_MINE;
-		}
-	} else {
-		if (PLAYER_HAS_CASTLE(player)) {
-			*panel_btn = PANEL_BTN_BUILD_SMALL;
-		}
-
-		/* Check for adjacent military building */
-		*build_flags &= ~BIT(0); /* Can build military building */
-		for (int i = 0; i < 12; i++) {
-			map_obj_t obj = MAP_OBJ(map_pos[7+i]);
-			if (obj >= MAP_OBJ_SMALL_BUILDING &&
-			    obj <= MAP_OBJ_CASTLE) {
-				building_t *bld = game_get_building(MAP_OBJ_INDEX(map_pos[7+i]));
-				building_type_t bld_type = BUILDING_TYPE(bld);
-				if (bld_type == BUILDING_HUT ||
-				    bld_type == BUILDING_TOWER ||
-				    bld_type == BUILDING_FORTRESS ||
-				    bld_type == BUILDING_CASTLE) {
-					*build_flags |= BIT(0); /* Can not build military building */
-					break;
-				}
-			}
-		}
-
-		/* Check that surroundings are passable by serfs. */
-		for (int i = 0; i < 6; i++) {
-			map_space_t s = map_space_from_obj[MAP_OBJ(map_pos[1+i])];
-			if (s >= MAP_SPACE_IMPASSABLE && s != MAP_SPACE_FLAG) return;
-		}
-
-		/* Check that buildings in the second shell aren't large or castle. */
-		for (int i = 0; i < 12; i++) {
-			map_space_t s = map_space_from_obj[MAP_OBJ(map_pos[7+i])];
-			if (s >= MAP_SPACE_LARGE_BUILDING) return;
-		}
-
-		/* Check if center hexagon is not type 5 (grass) */
-		if (MAP_TYPE_UP(map_pos[0]) != 5 ||
-		    MAP_TYPE_DOWN(map_pos[0]) != 5 ||
-		    MAP_TYPE_DOWN(map_pos[1+DIR_LEFT]) != 5 ||
-		    MAP_TYPE_UP(map_pos[1+DIR_UP_LEFT]) != 5 ||
-		    MAP_TYPE_DOWN(map_pos[1+DIR_UP_LEFT]) != 5 ||
-		    MAP_TYPE_UP(map_pos[1+DIR_UP]) != 5) {
-			return;
-		}
-
-		/* Find min and max height */
-		int h_min = 31;
-		int h_max = 0;
-		for (int i = 0; i < 12; i++) {
-			int h = MAP_HEIGHT(map_pos[7+i]);
-			if (h_min > h) h_min = h;
-			if (h_max < h) h_max = h;
-		}
-
-		/* Adjust for height of adjacent unleveled buildings */
-		for (int i = 0; i < 18; i++) {
-			if (MAP_OBJ(map_pos[19+i]) == MAP_OBJ_LARGE_BUILDING) {
-				building_t *bld = game_get_building(MAP_OBJ_INDEX(map_pos[19+i]));
-				if (BIT_TEST(bld->bld, 7) && /* Unfinished */
-				    bld->progress == 0) { /* Leveling in progress */
-					int h = bld->u.s.level;
-					if (h_min > h) h_min = h;
-					if (h_max < h) h_max = h;
-				}
-			}
-		}
-
-		/* Return if height difference is too big */
-		if (h_max - h_min >= 9) return;
-
-		/* Calculate "mean" height. Height of center is added twice. */
-		int h_mean = MAP_HEIGHT(map_pos[0]);
-		for (int i = 0; i < 7; i++) {
-			h_mean += MAP_HEIGHT(map_pos[i]);
-		}
-		h_mean >>= 3;
-
-		/* Calcualte height after leveling */
-		int h_new_min = max((h_max > 4) ? (h_max - 4) : 1, 1);
-		int h_new_max = h_min + 4;
-		int h_new = clamp(h_new_min, h_mean, h_new_max);
-		*height_after_level = h_new;
-
-		if (PLAYER_HAS_CASTLE(player)) {
-			*panel_btn = PANEL_BTN_BUILD_LARGE;
-		} else {
-			*panel_btn = PANEL_BTN_BUILD_CASTLE;
-		}
-	}
-}
-
-static int
-determine_map_cursor_type_sub(int type)
-{
-	if (type >= 4 && type < 8) return 0;
-	else if (type >= 11 && type < 15) return BIT(0);
-	return BIT(1);
-}
-
 /* Initialize an array of map_pos_t following a spiral pattern based in init_pos. */
 static void
 populate_circular_map_pos_array(map_pos_t map_pos[], map_pos_t init_pos, int size)
@@ -183,183 +75,57 @@ populate_circular_map_pos_array(map_pos_t map_pos[], map_pos_t init_pos, int siz
 /* Return the cursor type and various related values of a map_pos_t. */
 static void
 get_map_cursor_type(const player_t *player, map_pos_t pos, panel_btn_t *panel_btn,
-		    int *build_flags, map_cursor_type_t *cursor_type, int *height_after_level)
+		    map_cursor_type_t *cursor_type)
 {
-	map_pos_t map_pos[1+6+12+18];
-	populate_circular_map_pos_array(map_pos, pos, 1+6+12+18);
-
-	int player_num = player->player_num;
-	if (!PLAYER_HAS_CASTLE(player)) player_num = -1;
-
-	if ((player_num >= 0 &&
-	    (!MAP_HAS_OWNER(map_pos[0]) ||
-	     MAP_OWNER(map_pos[0]) != player_num)) ||
-	    (player_num < 0 && MAP_HAS_OWNER(map_pos[0]))) {
-		return;
+	if (game_can_build_castle(pos, player)) {
+		*panel_btn = PANEL_BTN_BUILD_CASTLE;
+	} else if (game_can_player_build(pos, player) &&
+		   map_space_from_obj[MAP_OBJ(pos)] == MAP_SPACE_OPEN &&
+		   game_can_build_flag(MAP_MOVE_DOWN_RIGHT(pos), player)) {
+		if (game_can_build_mine(pos)) {
+			*panel_btn = PANEL_BTN_BUILD_MINE;
+		} else if (game_can_build_large(pos)) {
+			*panel_btn = PANEL_BTN_BUILD_LARGE;
+		} else if (game_can_build_small(pos)) {
+			*panel_btn = PANEL_BTN_BUILD_SMALL;
+		} else {
+			*panel_btn = PANEL_BTN_BUILD_INACTIVE;
+		}
+	} else if (game_can_build_flag(pos, player)) {
+		*panel_btn = PANEL_BTN_BUILD_FLAG;
+	} else {
+		*panel_btn = PANEL_BTN_BUILD_INACTIVE;
 	}
 
-	if (map_space_from_obj[MAP_OBJ(map_pos[0])] == MAP_SPACE_FLAG) {
-		if (BIT_TEST(MAP_PATHS(map_pos[0]), DIR_UP_LEFT) &&
-		    map_space_from_obj[MAP_OBJ(map_pos[1+DIR_UP_LEFT])] >= MAP_SPACE_SMALL_BUILDING) {
-			*cursor_type = MAP_CURSOR_TYPE_FLAG;
-			return;
-		}
-
-		if (MAP_PATHS(map_pos[0]) == 0) {
+	if (MAP_OBJ(pos) == MAP_OBJ_FLAG) {
+		if (game_can_demolish_flag(pos)) {
 			*cursor_type = MAP_CURSOR_TYPE_REMOVABLE_FLAG;
-			return;
+		} else {
+			*cursor_type = MAP_CURSOR_TYPE_FLAG;
 		}
-
-		flag_t *flag = game_get_flag(MAP_OBJ_INDEX(map_pos[0]));
-		int connected = 0;
-		void *other_end = NULL;
-
-		for (int i = DIR_UP; i >= DIR_RIGHT; i--) {
-			if (FLAG_HAS_PATH(flag, i)) {
-				if (FLAG_IS_WATER_PATH(flag, i)) {
-					*cursor_type = MAP_CURSOR_TYPE_FLAG;
-					return;
-				}
-
-			        connected += 1;
-
-				if (other_end != NULL) {
-					if (flag->other_endpoint.v[i] == other_end) {
-						*cursor_type = MAP_CURSOR_TYPE_FLAG;
-						return;
-					}
-				} else {
-					other_end = flag->other_endpoint.v[i];
-				}
-			}
-		}
-
-		if (connected == 2) *cursor_type = MAP_CURSOR_TYPE_REMOVABLE_FLAG;
-		else *cursor_type = MAP_CURSOR_TYPE_FLAG;
-	} else if (map_space_from_obj[MAP_OBJ(map_pos[0])] < MAP_SPACE_FLAG) {
-		int paths = MAP_PATHS(map_pos[0]);
+	} else if (map_space_from_obj[MAP_OBJ(pos)] < MAP_SPACE_FLAG) {
+		int paths = MAP_PATHS(pos);
 		if (paths == 0) {
-			if (map_space_from_obj[MAP_OBJ(map_pos[1+DIR_DOWN_RIGHT])] == MAP_SPACE_FLAG) {
+			if (MAP_OBJ(MAP_MOVE_DOWN_RIGHT(pos)) == MAP_OBJ_FLAG) {
 				*cursor_type = MAP_CURSOR_TYPE_CLEAR_BY_FLAG;
-			} else if (MAP_PATHS(map_pos[1+DIR_DOWN_RIGHT]) == 0) {
+			} else if (MAP_PATHS(MAP_MOVE_DOWN_RIGHT(pos)) == 0) {
 				*cursor_type = MAP_CURSOR_TYPE_CLEAR;
 			} else {
 				*cursor_type = MAP_CURSOR_TYPE_CLEAR_BY_PATH;
 			}
-		} else if (paths == BIT(DIR_DOWN_RIGHT) ||
-			   paths == BIT(DIR_UP_LEFT)) {
-			NOT_REACHED();
 		} else {
 			*cursor_type = MAP_CURSOR_TYPE_PATH;
 		}
-
-		if (map_space_from_obj[MAP_OBJ(map_pos[0])] != MAP_SPACE_OPEN) return;
-
-		/* Return if cursor is in water */
-		if (MAP_TYPE_UP(map_pos[0]) < 4 &&
-		    MAP_TYPE_DOWN(map_pos[0]) < 4 &&
-		    MAP_TYPE_DOWN(map_pos[1+DIR_LEFT]) < 4 &&
-		    MAP_TYPE_UP(map_pos[1+DIR_UP_LEFT]) < 4 &&
-		    MAP_TYPE_DOWN(map_pos[1+DIR_UP_LEFT]) < 4 &&
-		    MAP_TYPE_UP(map_pos[1+DIR_UP]) < 4) {
-			return;
+	} else if (MAP_OBJ(pos) == MAP_OBJ_SMALL_BUILDING ||
+		   MAP_OBJ(pos) == MAP_OBJ_LARGE_BUILDING) {
+		building_t *bld = game_get_building(MAP_OBJ_INDEX(pos));
+		if (!BUILDING_IS_BURNING(bld)) {
+			*cursor_type = MAP_CURSOR_TYPE_BUILDING;
+		} else {
+			*cursor_type = MAP_CURSOR_TYPE_NONE;
 		}
-
-		int found = 0;
-		for (int i = 0; i < 6; i++) {
-			if (map_space_from_obj[MAP_OBJ(map_pos[1+i])] == MAP_SPACE_FLAG) {
-				if (*cursor_type == MAP_CURSOR_TYPE_PATH) return;
-				found = 1;
-				break;
-			}
-		}
-
-		if (!found) {
-			*build_flags &= ~BIT(1);
-			if (PLAYER_HAS_CASTLE(player)) {
-				*panel_btn = PANEL_BTN_BUILD_FLAG;
-				if (*cursor_type == MAP_CURSOR_TYPE_PATH) return;
-			}
-		}
-
-		for (int i = 0; i < 6; i++) {
-			if (map_space_from_obj[MAP_OBJ(map_pos[1+i])] >= MAP_SPACE_SMALL_BUILDING) return;
-		}
-
-		if (*cursor_type != MAP_CURSOR_TYPE_CLEAR_BY_FLAG) {
-			if (map_space_from_obj[MAP_OBJ(map_pos[1+DIR_DOWN_RIGHT])] != MAP_SPACE_OPEN) return;
-		}
-
-		/* Check whether a flag exists anywhere around the position down right. */
-		if (map_space_from_obj[MAP_OBJ(map_pos[1+6+0])] == MAP_SPACE_FLAG ||
-		    map_space_from_obj[MAP_OBJ(map_pos[1+6+1])] == MAP_SPACE_FLAG ||
-		    map_space_from_obj[MAP_OBJ(map_pos[1+6+7])] == MAP_SPACE_FLAG ||
-		    map_space_from_obj[MAP_OBJ(map_pos[1+DIR_RIGHT])] == MAP_SPACE_FLAG ||
-		    map_space_from_obj[MAP_OBJ(map_pos[1+DIR_DOWN])] == MAP_SPACE_FLAG) {
-			return;
-		}
-
-		/* Check whether there is water around the position down right. */
-		if (MAP_TYPE_UP(map_pos[1+DIR_RIGHT]) < 4 ||
-		    MAP_TYPE_DOWN(map_pos[1+DIR_DOWN]) < 4 ||
-		    MAP_TYPE_UP(map_pos[1+DIR_DOWN_RIGHT]) < 4 ||
-		    MAP_TYPE_DOWN(map_pos[1+DIR_DOWN_RIGHT]) < 4) {
-			return;
-		}
-
-		/* 426FD: Check owner of surrounding land */
-		for (int i = 0; i < 6; i++) {
-			if ((player_num >= 0 &&
-			     (!MAP_HAS_OWNER(map_pos[1+i]) ||
-			      MAP_OWNER(map_pos[1+i]) != player_num)) ||
-			    (player_num < 0 && MAP_HAS_OWNER(map_pos[1+i]))) {
-				return;
-			}
-		}
-
-		int bits = 0;
-		bits |= determine_map_cursor_type_sub(MAP_TYPE_UP(map_pos[0]));
-		bits |= determine_map_cursor_type_sub(MAP_TYPE_DOWN(map_pos[0]));
-		bits |= determine_map_cursor_type_sub(MAP_TYPE_DOWN(map_pos[1+DIR_LEFT]));
-		bits |= determine_map_cursor_type_sub(MAP_TYPE_UP(map_pos[1+DIR_UP_LEFT]));
-		bits |= determine_map_cursor_type_sub(MAP_TYPE_DOWN(map_pos[1+DIR_UP_LEFT]));
-		bits |= determine_map_cursor_type_sub(MAP_TYPE_UP(map_pos[1+DIR_UP]));
-
-		if (bits < 2) {
-			determine_possible_building(player, map_pos, bits,
-						    panel_btn, build_flags,
-						    height_after_level);
-		}
-	} else if (map_space_from_obj[MAP_OBJ(map_pos[0])] == MAP_SPACE_SMALL_BUILDING ||
-		   map_space_from_obj[MAP_OBJ(map_pos[0])] == MAP_SPACE_LARGE_BUILDING) {
-		building_t *bld = game_get_building(MAP_OBJ_INDEX(map_pos[0]));
-		if (BUILDING_IS_BURNING(bld)) return;
-
-		*cursor_type = MAP_CURSOR_TYPE_BUILDING;
-
-		/* 426FD: Check owner of surrounding land */
-		for (int i = 0; i < 6; i++) {
-			if ((player_num >= 0 &&
-			    (!MAP_HAS_OWNER(map_pos[1+i]) ||
-			     MAP_OWNER(map_pos[1+i]) != player_num)) ||
-			    (player_num < 0 && MAP_HAS_OWNER(map_pos[1+i]))) {
-				return;
-			}
-		}
-
-		int bits = 0;
-		bits |= determine_map_cursor_type_sub(MAP_TYPE_UP(map_pos[0]));
-		bits |= determine_map_cursor_type_sub(MAP_TYPE_DOWN(map_pos[0]));
-		bits |= determine_map_cursor_type_sub(MAP_TYPE_DOWN(map_pos[1+DIR_LEFT]));
-		bits |= determine_map_cursor_type_sub(MAP_TYPE_UP(map_pos[1+DIR_UP_LEFT]));
-		bits |= determine_map_cursor_type_sub(MAP_TYPE_DOWN(map_pos[1+DIR_UP_LEFT]));
-		bits |= determine_map_cursor_type_sub(MAP_TYPE_UP(map_pos[1+DIR_UP]));
-
-		if (bits < 2) {
-			determine_possible_building(player, map_pos, bits,
-						    panel_btn, build_flags,
-						    height_after_level);
-		}
+	} else {
+		*cursor_type = MAP_CURSOR_TYPE_NONE;
 	}
 }
 
@@ -369,17 +135,10 @@ get_map_cursor_type(const player_t *player, map_pos_t pos, panel_btn_t *panel_bt
 void
 interface_determine_map_cursor_type(interface_t *interface)
 {
-	interface->player->build |= BIT(1); /* Can not build flag */
-
-	interface->player->map_cursor_type = MAP_CURSOR_TYPE_NONE;
-	interface->player->panel_btn_type = PANEL_BTN_BUILD_INACTIVE;
-
 	map_pos_t cursor_pos = interface->map_cursor_pos;
 	get_map_cursor_type(interface->player, cursor_pos,
 			    &interface->player->panel_btn_type,
-			    &interface->player->build,
-			    &interface->player->map_cursor_type,
-			    &interface->player->building_height_after_level);
+			    &interface->player->map_cursor_type);
 }
 
 /* Update the interface_t object with the information returned
@@ -414,11 +173,9 @@ interface_determine_map_cursor_type_road(interface_t *interface)
 				} else {
 					panel_btn_t panel_btn;
 					map_cursor_type_t cursor_type;
-					int build_flags, height_after_level;
 					get_map_cursor_type(interface->player, map_pos[1+i],
-							    &panel_btn, &build_flags,
-							    &cursor_type, &height_after_level);
-					if (BIT_TEST(build_flags, 1) ||
+							    &panel_btn, &cursor_type);
+					if (!game_can_build_flag(map_pos[1+i], interface->player) ||
 					    panel_btn == PANEL_BTN_BUILD_INACTIVE ||
 					    /*check_can_build_flag_on_road(map_pos[1+i]) < 0*/1) {
 						sprite = 44; /* striped */
@@ -476,7 +233,7 @@ interface_update_interface(interface_t *interface)
 				case MAP_CURSOR_TYPE_BUILDING:
 					interface->panel_btns[0] = interface->player->panel_btn_type;
 					interface->panel_btns[1] = PANEL_BTN_DESTROY;
-					interface->map_cursor_sprites[0].sprite = 46 + interface->player->panel_btn_type;
+					interface->map_cursor_sprites[0].sprite = 32;
 					interface->map_cursor_sprites[2].sprite = 33;
 					break;
 				case MAP_CURSOR_TYPE_PATH:
@@ -868,8 +625,6 @@ interface_build_flag(interface_t *interface)
 {
 	interface->flags &= ~BIT(7);
 
-	interface_determine_map_cursor_type(interface);
-
 	int r = game_build_flag(interface->map_cursor_pos,
 				interface->player);
 	if (r < 0) {
@@ -884,8 +639,6 @@ interface_build_flag(interface_t *interface)
 void
 interface_build_building(interface_t *interface, building_type_t type)
 {
-	interface_determine_map_cursor_type(interface);
-
 	int r = game_build_building(interface->map_cursor_pos, type,
 				    interface->player);
 	if (r < 0) {
@@ -906,25 +659,16 @@ interface_build_building(interface_t *interface, building_type_t type)
 void
 interface_build_castle(interface_t *interface)
 {
-	interface_determine_map_cursor_type(interface);
-
-	if (interface->player->panel_btn_type != PANEL_BTN_BUILD_CASTLE ||
-	    interface->player->map_cursor_type != MAP_CURSOR_TYPE_CLEAR) {
+	int r = game_build_castle(interface->map_cursor_pos,
+				  interface->player);
+	if (r < 0) {
 		sfx_play_clip(SFX_NOT_ACCEPTED);
-		interface_update_interface(interface);
 		return;
 	}
 
-	interface->flags &= ~BIT(6);
 	sfx_play_clip(SFX_ACCEPTED);
-	if (BIT_TEST(globals.split, 6)) {
-		/* Coop mode */
-	} else {
-		interface->click |= BIT(2);
-	}
-
-	game_build_castle(interface->map_cursor_pos,
-			  interface->player);
+	interface->flags &= ~BIT(6);
+	interface->click |= BIT(2);
 }
 
 

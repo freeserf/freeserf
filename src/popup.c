@@ -488,7 +488,8 @@ draw_mine_building_box(popup_box_t *popup, frame_t *frame)
 
 	draw_box_background(0x83, frame);
 
-	if (PLAYER_ALLOW_FLAG(popup->interface->player)) {
+	if (game_can_build_flag(popup->interface->map_cursor_pos,
+				popup->interface->player)) {
 		draw_popup_building(2, 114, 0x80+4*popup->interface->player->player_num, frame);
 	}
 
@@ -513,13 +514,14 @@ draw_basic_building_box(popup_box_t *popup, frame_t *frame, int flip)
 	draw_box_background(0x83, frame);
 
 	const int *l = layout;
-	if (!PLAYER_ALLOW_MILITARY(popup->interface->player)) {
+	if (!game_can_build_military(popup->interface->map_cursor_pos)) {
 		l += 3; /* Skip hut */
 	}
 
 	draw_custom_bld_box(l, frame);
 
-	if (PLAYER_ALLOW_FLAG(popup->interface->player)) {
+	if (game_can_build_flag(popup->interface->map_cursor_pos,
+				popup->interface->player)) {
 		draw_popup_building(8, 108, 0x80+4*popup->interface->player->player_num, frame);
 	}
 
@@ -558,7 +560,7 @@ draw_adv_2_building_box(popup_box_t *popup, frame_t *frame)
 	};
 
 	const int *l = layout;
-	if (!PLAYER_ALLOW_MILITARY(popup->interface->player)) {
+	if (!game_can_build_military(popup->interface->map_cursor_pos)) {
 		l += 2*3; /* Skip tower and fortress */
 	}
 
