@@ -3930,7 +3930,7 @@ game_can_demolish_flag(map_pos_t pos)
 	int connected = 0;
 	void *other_end = NULL;
 
-	for (dir_t d = DIR_UP; d >= DIR_RIGHT; d--) {
+	for (dir_t d = DIR_RIGHT; d <= DIR_UP; d++) {
 		if (FLAG_HAS_PATH(flag, d)) {
 			if (FLAG_IS_WATER_PATH(flag, d)) return 0;
 
