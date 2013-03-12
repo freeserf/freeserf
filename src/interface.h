@@ -50,6 +50,10 @@ struct interface {
 	int redraw_top;
 	list_t floats;
 
+	viewport_t viewport;
+	panel_bar_t panel;
+	popup_box_t popup;
+
 	map_pos_t map_cursor_pos;
 	map_cursor_type_t map_cursor_type;
 	panel_btn_t panel_btn_type;
@@ -153,22 +157,15 @@ struct interface {
 };
 
 
-/* TODO Since interface is a generic gui container, either these
-   functions should be defined elseware, or interface should
-   be aware of the viewport and panel. The functions are
-   currently defined in freeserf.c (not in interface.c). */
-viewport_t *gui_get_top_viewport();
-panel_bar_t *gui_get_panel_bar();
-popup_box_t *gui_get_popup_box();
-void gui_show_popup_frame(int show);
+viewport_t *interface_get_top_viewport(interface_t *interface);
+panel_bar_t *interface_get_panel_bar(interface_t *interface);
+popup_box_t *interface_get_popup_box(interface_t *interface);
 
 
 void interface_open_popup(interface_t *interface, int box);
 void interface_close_popup(interface_t *interface);
 
-void interface_determine_map_cursor_type(interface_t *interface);
-void interface_determine_map_cursor_type_road(interface_t *interface);
-void interface_update_interface(interface_t *interface);
+void interface_update_map_cursor_pos(interface_t *interface, map_pos_t pos);
 
 void interface_build_road_begin(interface_t *interface);
 void interface_build_road_end(interface_t *interface);

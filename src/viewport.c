@@ -2359,7 +2359,7 @@ viewport_handle_event_click(viewport_t *viewport, int x, int y, gui_event_button
 			interface->click |= BIT(2);
 		}
 	} else {
-		interface->map_cursor_pos = clk_pos;
+		interface_update_map_cursor_pos(viewport->interface, clk_pos);
 		interface->click |= BIT(2);
 		sfx_play_clip(SFX_CLICK);
 	}

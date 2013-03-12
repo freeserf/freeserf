@@ -3658,7 +3658,7 @@ handle_action(interface_t *interface, action_t action, int x, int y)
 		interface_open_popup(interface, BOX_PLAYER_FACES);
 		break;
 	case ACTION_MINIMAP_SCALE: {
-		popup_box_t *popup = gui_get_popup_box();
+		popup_box_t *popup = interface_get_popup_box(interface);
 		BIT_INVERT(interface->minimap_flags, 5);
 		minimap_set_scale(&popup->minimap,
 				  popup->minimap.scale == 1 ? 2 : 1);

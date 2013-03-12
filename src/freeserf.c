@@ -78,12 +78,6 @@ static int game_loop_run;
 static frame_t screen_frame;
 static frame_t cursor_buffer;
 
-/* Viewport holds the state of the main map window
-   (e.g. size and current map location). */
-static viewport_t viewport;
-static panel_bar_t panel;
-static popup_box_t popup;
-
 static interface_t interface;
 
 
@@ -168,65 +162,17 @@ init_spiral_pattern()
 	}
 }
 
-viewport_t *
-gui_get_top_viewport()
-{
-	return &viewport;
-}
-
-panel_bar_t *
-gui_get_panel_bar()
-{
-	return &panel;
-}
-
-popup_box_t *
-gui_get_popup_box()
-{
-	return &popup;
-}
-
-void
-gui_show_popup_frame(int show)
-{
-	gui_object_set_displayed((gui_object_t *)&popup, show);
-}
-
 
 static void
 player_interface_init()
 {
-	interface_init(&interface);
-
 	globals.frame = &screen_frame;
 	int width = sdl_frame_get_width(globals.frame);
 	int height = sdl_frame_get_height(globals.frame);
 
-	/* ADDITION init viewport */
-	viewport_init(&viewport, &interface);
-	gui_object_set_displayed((gui_object_t *)&viewport, 1);
-
-	/* ADDITION init panel bar */
-	panel_bar_init(&panel, &interface);
-	gui_object_set_displayed((gui_object_t *)&panel, 1);
-
-	/* ADDITION init popup box */
-	popup_box_init(&popup, &interface);
-
-	/* ADDITION interface */
 	interface_init(&interface);
 	gui_object_set_size((gui_object_t *)&interface, width, height);
 	gui_object_set_displayed((gui_object_t *)&interface, 1);
-
-	/* Add objects to interface container. */
-	interface_set_top(&interface, (gui_object_t *)&viewport);
-	interface_add_float(&interface, (gui_object_t *)&popup,
-			    interface.popup_x, interface.popup_y, 144, 160);
-	interface_add_float(&interface, (gui_object_t *)&panel,
-			    interface.bottom_panel_x,
-			    interface.bottom_panel_y,
-			    interface.bottom_panel_width,
-			    interface.bottom_panel_height);
 }
 
 /* Initialize spiral_pos_pattern from spiral_pattern. */
@@ -546,7 +492,8 @@ anim_update_and_more()
 
 	/* Viewport animation does not care about low bits in anim */
 	if (anim_xor >= 1 << 3) {
-		gui_object_set_redraw((gui_object_t *)&viewport);
+		viewport_t *viewport = interface_get_top_viewport(&interface);
+		gui_object_set_redraw((gui_object_t *)viewport);
 	}
 
 	if ((globals.anim & 0xffff) == 0 && globals.game_speed > 0) {
@@ -564,31 +511,6 @@ anim_update_and_more()
 		} else {
 			interface.return_timeout -= globals.anim_diff;
 		}
-	}
-}
-
-/* Handle player click and update buttons/cursors/sprites. */
-static void
-handle_interface_inputs()
-{
-	if (BIT_TEST(interface.flags, 0)) return; /* Player not active */
-
-	if (BIT_TEST(interface.flags, 2)) { /* Left click pending */
-		interface.flags &= ~BIT(2);
-	}
-
-	if (BIT_TEST(interface.click, 2)) {
-		interface.click &= ~BIT(2);
-
-		/* Extracted from a small function 42059 */
-		if (!BIT_TEST(interface.click, 7)) { /* Not building road */
-			interface_determine_map_cursor_type(&interface);
-		} else { /* Building road */
-			interface_determine_map_cursor_type_road(&interface);
-		}
-
-		interface_update_interface(&interface);
-		/* redraw map cursor */
 	}
 }
 
@@ -738,8 +660,6 @@ game_loop_iter()
 	game_update();
 
 	/* TODO ... */
-
-	handle_interface_inputs();
 
 	interface.flags &= ~BIT(4);
 	interface.flags &= ~BIT(7);
@@ -907,34 +827,52 @@ game_loop()
 
 				switch (event.key.keysym.sym) {
 					/* Map scroll */
-				case SDLK_UP:
-					viewport_move_by_pixels(&viewport, 0, -1);
+				case SDLK_UP: {
+					viewport_t *viewport = interface_get_top_viewport(&interface);
+					viewport_move_by_pixels(viewport, 0, -1);
+				}
 					break;
-				case SDLK_DOWN:
-					viewport_move_by_pixels(&viewport, 0, 1);
+				case SDLK_DOWN: {
+					viewport_t *viewport = interface_get_top_viewport(&interface);
+					viewport_move_by_pixels(viewport, 0, 1);
+				}
 					break;
-				case SDLK_LEFT:
-					viewport_move_by_pixels(&viewport, -1, 0);
+				case SDLK_LEFT: {
+					viewport_t *viewport = interface_get_top_viewport(&interface);
+					viewport_move_by_pixels(viewport, -1, 0);
+				}
 					break;
-				case SDLK_RIGHT:
-					viewport_move_by_pixels(&viewport, 1, 0);
+				case SDLK_RIGHT: {
+					viewport_t *viewport = interface_get_top_viewport(&interface);
+					viewport_move_by_pixels(viewport, 1, 0);
+				}
 					break;
 
 					/* Panel click shortcuts */
-				case SDLK_1:
-					panel_bar_activate_button(&panel, 0);
+				case SDLK_1: {
+					panel_bar_t *panel = interface_get_panel_bar(&interface);
+					panel_bar_activate_button(panel, 0);
+				}
 					break;
-				case SDLK_2:
-					panel_bar_activate_button(&panel, 1);
+				case SDLK_2: {
+					panel_bar_t *panel = interface_get_panel_bar(&interface);
+					panel_bar_activate_button(panel, 1);
+				}
 					break;
-				case SDLK_3:
-					panel_bar_activate_button(&panel, 2);
+				case SDLK_3: {
+					panel_bar_t *panel = interface_get_panel_bar(&interface);
+					panel_bar_activate_button(panel, 2);
+				}
 					break;
-				case SDLK_4:
-					panel_bar_activate_button(&panel, 3);
+				case SDLK_4: {
+					panel_bar_t *panel = interface_get_panel_bar(&interface);
+					panel_bar_activate_button(panel, 3);
+				}
 					break;
-				case SDLK_5:
-					panel_bar_activate_button(&panel, 4);
+				case SDLK_5: {
+					panel_bar_t *panel = interface_get_panel_bar(&interface);
+					panel_bar_activate_button(panel, 4);
+				}
 					break;
 
 					/* Game speed */
@@ -976,7 +914,7 @@ game_loop()
 
 					/* Debug */
 				case SDLK_g:
-					viewport.layers ^= VIEWPORT_LAYER_GRID;
+					interface.viewport.layers ^= VIEWPORT_LAYER_GRID;
 					break;
 				case SDLK_j: {
 					int current = 0;
@@ -1381,7 +1319,7 @@ main(int argc, char *argv[])
 	}
 
 	/* Move viewport to initial position */
-	viewport_move_to_map_pos(&viewport, interface.map_cursor_pos);
+	viewport_move_to_map_pos(&interface.viewport, interface.map_cursor_pos);
 
 	/* Start game loop */
 	game_loop();

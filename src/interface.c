@@ -38,21 +38,37 @@ typedef struct {
 } interface_float_t;
 
 
+viewport_t *
+interface_get_top_viewport(interface_t *interface)
+{
+	return &interface->viewport;
+}
 
-void gui_show_popup_frame(int show);
+panel_bar_t *
+interface_get_panel_bar(interface_t *interface)
+{
+	return &interface->panel;
+}
+
+popup_box_t *
+interface_get_popup_box(interface_t *interface)
+{
+	return &interface->popup;
+}
+
 
 void
 interface_open_popup(interface_t *interface, int box)
 {
 	interface->box = box;
-	gui_show_popup_frame(1);
+	gui_object_set_displayed((gui_object_t *)&interface->popup, 1);
 }
 
 /* Close the current popup. */
 void
 interface_close_popup(interface_t *interface)
 {
-	gui_show_popup_frame(0);
+	gui_object_set_displayed((gui_object_t *)&interface->popup, 0);
 	interface->click &= ~BIT(6);
 	interface->panel_btns[2] = PANEL_BTN_MAP;
 	interface->panel_btns[3] = PANEL_BTN_STATS;
@@ -132,7 +148,7 @@ get_map_cursor_type(const player_t *player, map_pos_t pos, panel_btn_t *panel_bt
 
 /* Update the interface_t object with the information returned
    in get_map_cursor_type(). */
-void
+static void
 interface_determine_map_cursor_type(interface_t *interface)
 {
 	map_pos_t cursor_pos = interface->map_cursor_pos;
@@ -144,7 +160,7 @@ interface_determine_map_cursor_type(interface_t *interface)
 /* Update the interface_t object with the information returned
    in get_map_cursor_type(). This is sets the appropriate values
    when the player interface is in road construction mode. */
-void
+static void
 interface_determine_map_cursor_type_road(interface_t *interface)
 {
 	map_pos_t cursor_pos = interface->map_cursor_pos;
@@ -199,7 +215,7 @@ interface_determine_map_cursor_type_road(interface_t *interface)
 }
 
 /* Set the appropriate sprites for the panel buttons and the map cursor. */
-void
+static void
 interface_update_interface(interface_t *interface)
 {
 	if (/*not demo mode*/1) {
@@ -311,6 +327,18 @@ interface_update_interface(interface_t *interface)
 	}
 }
 
+void
+interface_update_map_cursor_pos(interface_t *interface, map_pos_t pos)
+{
+	interface->map_cursor_pos = pos;
+	if (BIT_TEST(interface->click, 7)) { /* Building road */
+		interface_determine_map_cursor_type_road(interface);
+	} else {
+		interface_determine_map_cursor_type(interface);
+	}
+	interface_update_interface(interface);
+}
+
 
 /* Start road construction mode for player interface. */
 void
@@ -335,6 +363,9 @@ interface_build_road_begin(interface_t *interface)
 	interface->click |= BIT(7);
 	interface->click |= BIT(2);
 	interface->road_length = 0;
+
+	interface_update_map_cursor_pos(interface,
+					interface->map_cursor_pos);
 }
 
 /* End road construction mode for player interface. */
@@ -522,6 +553,7 @@ interface_build_road_segment(interface_t *interface, map_pos_t pos, dir_t dir)
 			tiles[dest].flags |= BIT(dir_rev);
 			interface->road_length = 0;
 			interface_build_road_end(interface);
+			interface_update_map_cursor_pos(interface, dest);
 			return 1;
 		}
 	} else if (MAP_PATHS(dest) == 0) {
@@ -530,7 +562,7 @@ interface_build_road_segment(interface_t *interface, map_pos_t pos, dir_t dir)
 		tiles[pos].flags |= BIT(dir);
 		tiles[dest].flags |= BIT(dir_rev);
 
-		interface->map_cursor_pos = dest;
+		interface_update_map_cursor_pos(interface, dest);
 
 		/* TODO Pathway scrolling */
 
@@ -555,7 +587,7 @@ interface_remove_road_segment(interface_t *interface, map_pos_t pos, dir_t dir)
 	tiles[pos].flags &= ~BIT(dir);
 	tiles[dest].flags &= ~BIT(dir_rev);
 
-	interface->map_cursor_pos = dest;
+	interface_update_map_cursor_pos(interface, dest);
 
 	/* TODO Pathway scrolling */
 
@@ -633,6 +665,8 @@ interface_build_flag(interface_t *interface)
 	}
 
 	interface->click |= BIT(2);
+	interface_update_map_cursor_pos(interface,
+					interface->map_cursor_pos);
 }
 
 /* Build a new building. */
@@ -651,8 +685,8 @@ interface_build_building(interface_t *interface, building_type_t type)
 	interface_close_popup(interface);
 
 	/* Move cursor to flag. */
-	interface->map_cursor_pos = MAP_POS_ADD(interface->map_cursor_pos,
-						globals.spiral_pos_pattern[2]);
+	map_pos_t flag_pos = MAP_MOVE_DOWN_RIGHT(interface->map_cursor_pos);
+	interface_update_map_cursor_pos(interface, flag_pos);
 }
 
 /* Build castle. */
@@ -669,6 +703,8 @@ interface_build_castle(interface_t *interface)
 	sfx_play_clip(SFX_ACCEPTED);
 	interface->flags &= ~BIT(6);
 	interface->click |= BIT(2);
+	interface_update_map_cursor_pos(interface,
+					interface->map_cursor_pos);
 }
 
 
@@ -764,6 +800,18 @@ interface_set_size(interface_t *interface, int width, int height)
 	interface->map_y_off = -4/*276*/;
 	interface->map_cursor_col_max = 2*interface->game_area_cols + 8/*76*/;
 	interface->map_cursor_col_off = 0/*36*/;
+
+	gui_object_set_size(interface->top, width, height);
+
+	/* TODO should be added on init, and
+	   only reassigned to a new position here. */
+	interface_add_float(interface, (gui_object_t *)&interface->popup,
+			    interface->popup_x, interface->popup_y, 144, 160);
+	interface_add_float(interface, (gui_object_t *)&interface->panel,
+			    interface->bottom_panel_x,
+			    interface->bottom_panel_y,
+			    interface->bottom_panel_width,
+			    interface->bottom_panel_height);
 }
 
 static void
@@ -801,6 +849,20 @@ interface_init(interface_t *interface)
 	interface->top = NULL;
 	interface->redraw_top = 0;
 	list_init(&interface->floats);
+
+	/* Viewport */
+	viewport_init(&interface->viewport, interface);
+	gui_object_set_displayed((gui_object_t *)&interface->viewport, 1);
+
+	/* Panel bar */
+	panel_bar_init(&interface->panel, interface);
+	gui_object_set_displayed((gui_object_t *)&interface->panel, 1);
+
+	/* Popup box */
+	popup_box_init(&interface->popup, interface);
+
+	/* Add objects to interface container. */
+	interface_set_top(interface, (gui_object_t *)&interface->viewport);
 
 	interface->map_cursor_pos = MAP_POS(0, 0);
 	interface->map_cursor_type = 0;

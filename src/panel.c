@@ -260,8 +260,10 @@ handle_panel_button_click(interface_t *interface, int btn)
 					interface->minimap_flags = 8;
 
 					/* Synchronize minimap window with viewport. */
-					map_pos_t pos = viewport_get_current_map_pos(gui_get_top_viewport());
-					minimap_move_to_map_pos(&gui_get_popup_box()->minimap, pos);
+					viewport_t *viewport = interface_get_top_viewport(interface);
+					popup_box_t *popup = interface_get_popup_box(interface);
+					map_pos_t pos = viewport_get_current_map_pos(viewport);
+					minimap_move_to_map_pos(&popup->minimap, pos);
 
 					interface_open_popup(interface, BOX_MAP);
 				}
@@ -411,14 +413,13 @@ handle_panel_button_click(interface_t *interface, int btn)
 				/* TODO */
 			} else {
 				interface->flags &= ~BIT(6);
-				interface_determine_map_cursor_type(interface);
-				if (interface->map_cursor_type == MAP_CURSOR_TYPE_PATH) {
+				int r = game_demolish_road(interface->map_cursor_pos);
+				if (r < 0) {
+					sfx_play_clip(SFX_NOT_ACCEPTED);
+					interface_update_map_cursor_pos(interface, interface->map_cursor_pos);
+				} else {
 					sfx_play_clip(SFX_ACCEPTED);
 					interface->click |= BIT(2);
-					game_demolish_road(interface->map_cursor_pos);
-				} else {
-					sfx_play_clip(SFX_NOT_ACCEPTED);
-					interface_update_interface(interface);
 				}
 			}
 			break;
@@ -463,9 +464,9 @@ handle_message_icon_click(interface_t *interface)
 		/* Move screen to new position */
 		map_pos_t new_pos = interface->player->msg_queue_pos[0];
 
-		viewport_t *viewport = gui_get_top_viewport();
+		viewport_t *viewport = interface_get_top_viewport(interface);
 		viewport_move_to_map_pos(viewport, new_pos);
-		interface->map_cursor_pos = new_pos;
+		interface_update_map_cursor_pos(interface, new_pos);
 	}
 
 	interface_open_popup(interface, BOX_MESSAGE);
@@ -564,7 +565,7 @@ panel_bar_handle_event_click(panel_bar_t *panel, int x, int y)
 					if (!BIT_TEST(interface->msg_flags, 3)) {
 						interface->msg_flags |= BIT(4);
 						interface->msg_flags |= BIT(3);
-						viewport_t *viewport = gui_get_top_viewport();
+						viewport_t *viewport = interface_get_top_viewport(interface);
 						map_pos_t pos = viewport_get_current_map_pos(viewport);
 						interface->return_col_game_area = MAP_POS_COL(pos);
 						interface->return_row_game_area = MAP_POS_ROW(pos);
@@ -582,7 +583,7 @@ panel_bar_handle_event_click(panel_bar_t *panel, int x, int y)
 					interface->msg_flags &= ~BIT(3);
 
 					interface->return_timeout = 0;
-					viewport_t *viewport = gui_get_top_viewport();
+					viewport_t *viewport = interface_get_top_viewport(interface);
 					map_pos_t pos = MAP_POS(interface->return_col_game_area,
 								interface->return_row_game_area);
 					viewport_move_to_map_pos(viewport, pos);
