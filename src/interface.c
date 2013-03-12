@@ -79,15 +79,6 @@ interface_close_popup(interface_t *interface)
 }
 
 
-/* Initialize an array of map_pos_t following a spiral pattern based in init_pos. */
-static void
-populate_circular_map_pos_array(map_pos_t map_pos[], map_pos_t init_pos, int size)
-{
-	for (int i = 0; i < size; i++) {
-		map_pos[i] = MAP_POS_ADD(init_pos, globals.spiral_pos_pattern[i]);
-	}
-}
-
 /* Return the cursor type and various related values of a map_pos_t. */
 static void
 get_map_cursor_type(const player_t *player, map_pos_t pos, panel_btn_t *panel_btn,
@@ -163,52 +154,49 @@ interface_determine_map_cursor_type(interface_t *interface)
 static void
 interface_determine_map_cursor_type_road(interface_t *interface)
 {
-	map_pos_t cursor_pos = interface->map_cursor_pos;
-	map_pos_t map_pos[1+6];
-	populate_circular_map_pos_array(map_pos, cursor_pos, 1+6);
-
-	int h = MAP_HEIGHT(map_pos[0]);
+	map_pos_t pos = interface->map_cursor_pos;
+	int h = MAP_HEIGHT(pos);
 	int valid_dir = 0;
 	int paths = 0;
-	if (interface->road_length > 0) paths = MAP_PATHS(map_pos[0]);
+	if (interface->road_length > 0) paths = MAP_PATHS(pos);
 
-	for (int i = 0; i < 6; i++) {
+	for (dir_t d = DIR_RIGHT; d <= DIR_UP; d++) {
 		int sprite = 0;
 
-		if (MAP_HAS_OWNER(map_pos[1+i]) &&
-		    MAP_OWNER(map_pos[1+i]) == interface->player->player_num) {
-			if (!BIT_TEST(paths, i)) {
-				if (map_space_from_obj[MAP_OBJ(map_pos[1+i])] == MAP_SPACE_IMPASSABLE ||
-				    map_space_from_obj[MAP_OBJ(map_pos[1+i])] == MAP_SPACE_SMALL_BUILDING) {
+		if (MAP_HAS_OWNER(MAP_MOVE(pos, d)) &&
+		    MAP_OWNER(MAP_MOVE(pos, d)) == interface->player->player_num) {
+			if (!BIT_TEST(paths, d)) {
+				if (map_space_from_obj[MAP_OBJ(MAP_MOVE(pos, d))] == MAP_SPACE_IMPASSABLE ||
+				    map_space_from_obj[MAP_OBJ(MAP_MOVE(pos, d))] == MAP_SPACE_SMALL_BUILDING) {
 					sprite = 44; /* striped */
-				} else if (map_space_from_obj[MAP_OBJ(map_pos[1+i])] == MAP_SPACE_FLAG ||
-					   MAP_PATHS(map_pos[1+i]) == 0) {
-					int h_diff = MAP_HEIGHT(map_pos[1+i]) - h;
+				} else if (map_space_from_obj[MAP_OBJ(MAP_MOVE(pos, d))] == MAP_SPACE_FLAG ||
+					   MAP_PATHS(MAP_MOVE(pos, d)) == 0) {
+					int h_diff = MAP_HEIGHT(MAP_MOVE(pos, d)) - h;
 					sprite = 39 + h_diff; /* height indicators */
-					valid_dir |= BIT(i);
+					valid_dir |= BIT(d);
 				} else {
 					panel_btn_t panel_btn;
 					map_cursor_type_t cursor_type;
-					get_map_cursor_type(interface->player, map_pos[1+i],
+					get_map_cursor_type(interface->player, MAP_MOVE(pos, d),
 							    &panel_btn, &cursor_type);
-					if (!game_can_build_flag(map_pos[1+i], interface->player) ||
+					if (!game_can_build_flag(MAP_MOVE(pos, d), interface->player) ||
 					    panel_btn == PANEL_BTN_BUILD_INACTIVE ||
-					    /*check_can_build_flag_on_road(map_pos[1+i]) < 0*/1) {
+					    /*check_can_build_flag_on_road(MAP_MOVE(pos, d)) < 0*/1) {
 						sprite = 44; /* striped */
 					} else {
-						int h_diff = MAP_HEIGHT(map_pos[1+i]) - h;
+						int h_diff = MAP_HEIGHT(MAP_MOVE(pos, d)) - h;
 						sprite = 39 + h_diff; /* height indicators */
-						valid_dir |= BIT(i);
+						valid_dir |= BIT(d);
 					}
 				}
 			} else {
 				sprite = 45; /* undo */
-				valid_dir |= BIT(i);
+				valid_dir |= BIT(d);
 			}
 		} else {
 			sprite = 44; /* striped */
 		}
-		interface->map_cursor_sprites[i+1].sprite = sprite;
+		interface->map_cursor_sprites[d+1].sprite = sprite;
 	}
 
 	interface->road_valid_dir = valid_dir;
@@ -218,112 +206,108 @@ interface_determine_map_cursor_type_road(interface_t *interface)
 static void
 interface_update_interface(interface_t *interface)
 {
-	if (/*not demo mode*/1) {
-		if (BIT_TEST(interface->click, 7)) { /* Building road */
-			interface->panel_btns[0] = PANEL_BTN_BUILD_ROAD_STARRED;
-			interface->panel_btns[1] = PANEL_BTN_BUILD_INACTIVE;
-		} else {
-			switch (interface->map_cursor_type) {
-				case MAP_CURSOR_TYPE_NONE:
-					interface->panel_btns[0] = PANEL_BTN_BUILD_INACTIVE;
-					if (PLAYER_HAS_CASTLE(interface->player)) {
-						interface->panel_btns[1] = PANEL_BTN_DESTROY_INACTIVE;
-					} else {
-						interface->panel_btns[1] = PANEL_BTN_GROUND_ANALYSIS;
-					}
-					interface->map_cursor_sprites[0].sprite = 32;
-					interface->map_cursor_sprites[2].sprite = 33;
-					break;
-				case MAP_CURSOR_TYPE_FLAG:
-					interface->panel_btns[0] = PANEL_BTN_BUILD_ROAD;
-					interface->panel_btns[1] = PANEL_BTN_DESTROY_INACTIVE;
-					interface->map_cursor_sprites[0].sprite = 51;
-					interface->map_cursor_sprites[2].sprite = 33;
-					break;
-				case MAP_CURSOR_TYPE_REMOVABLE_FLAG:
-					interface->panel_btns[0] = PANEL_BTN_BUILD_ROAD;
-					interface->panel_btns[1] = PANEL_BTN_DESTROY;
-					interface->map_cursor_sprites[0].sprite = 51;
-					interface->map_cursor_sprites[2].sprite = 33;
-					break;
-				case MAP_CURSOR_TYPE_BUILDING:
-					interface->panel_btns[0] = interface->panel_btn_type;
-					interface->panel_btns[1] = PANEL_BTN_DESTROY;
-					interface->map_cursor_sprites[0].sprite = 32;
-					interface->map_cursor_sprites[2].sprite = 33;
-					break;
-				case MAP_CURSOR_TYPE_PATH:
-					interface->panel_btns[0] = PANEL_BTN_BUILD_INACTIVE;
-					interface->panel_btns[1] = PANEL_BTN_DESTROY_ROAD;
-					interface->map_cursor_sprites[0].sprite = 52;
-					interface->map_cursor_sprites[2].sprite = 33;
-					if (interface->panel_btn_type != PANEL_BTN_BUILD_INACTIVE) {
-						interface->panel_btns[0] = PANEL_BTN_BUILD_FLAG;
-						interface->map_cursor_sprites[0].sprite = 47;
-					}
-					break;
-				case MAP_CURSOR_TYPE_CLEAR_BY_FLAG:
-					if (interface->panel_btn_type < PANEL_BTN_BUILD_MINE) {
-						interface->panel_btns[0] = PANEL_BTN_BUILD_INACTIVE;
-						if (PLAYER_HAS_CASTLE(interface->player)) {
-							interface->panel_btns[1] = PANEL_BTN_DESTROY_INACTIVE;
-						} else {
-							interface->panel_btns[1] = PANEL_BTN_GROUND_ANALYSIS;
-						}
-						interface->map_cursor_sprites[0].sprite = 32;
-						interface->map_cursor_sprites[2].sprite = 33;
-					} else {
-						interface->panel_btns[0] = interface->panel_btn_type;
-						interface->panel_btns[1] = PANEL_BTN_DESTROY_INACTIVE;
-						interface->map_cursor_sprites[0].sprite = 46 + interface->panel_btn_type;
-						interface->map_cursor_sprites[2].sprite = 33;
-					}
-					break;
-				case MAP_CURSOR_TYPE_CLEAR_BY_PATH:
-					interface->panel_btns[0] = interface->panel_btn_type;
-					interface->panel_btns[1] = PANEL_BTN_DESTROY_INACTIVE;
-					if (interface->panel_btn_type != PANEL_BTN_BUILD_INACTIVE) {
-						interface->map_cursor_sprites[0].sprite = 46 + interface->panel_btn_type;
-						if (interface->panel_btn_type == PANEL_BTN_BUILD_FLAG) {
-							interface->map_cursor_sprites[2].sprite = 33;
-						} else {
-							interface->map_cursor_sprites[2].sprite = 47;
-						}
-					} else {
-						interface->map_cursor_sprites[0].sprite = 32;
-						interface->map_cursor_sprites[2].sprite = 33;
-					}
-					break;
-				case MAP_CURSOR_TYPE_CLEAR:
-					interface->panel_btns[0] = interface->panel_btn_type;
-					if (PLAYER_HAS_CASTLE(interface->player)) {
-						interface->panel_btns[1] = PANEL_BTN_DESTROY_INACTIVE;
-					} else {
-						interface->panel_btns[1] = PANEL_BTN_GROUND_ANALYSIS;
-					}
-					if (interface->panel_btn_type) {
-						if (interface->panel_btn_type == PANEL_BTN_BUILD_CASTLE) {
-							interface->map_cursor_sprites[0].sprite = 50;
-						} else {
-							interface->map_cursor_sprites[0].sprite = 46 + interface->panel_btn_type;
-						}
-						if (interface->panel_btn_type == PANEL_BTN_BUILD_FLAG) {
-							interface->map_cursor_sprites[2].sprite = 33;
-						} else {
-							interface->map_cursor_sprites[2].sprite = 47;
-						}
-					} else {
-						interface->map_cursor_sprites[0].sprite = 32;
-						interface->map_cursor_sprites[2].sprite = 33;
-					}
-					break;
-				default:
-					NOT_REACHED();
-					break;
-			}
-		}
+	if (BIT_TEST(interface->click, 7)) { /* Building road */
+		interface->panel_btns[0] = PANEL_BTN_BUILD_ROAD_STARRED;
+		interface->panel_btns[1] = PANEL_BTN_BUILD_INACTIVE;
 	} else {
-		/* TODO demo mode */
+		switch (interface->map_cursor_type) {
+		case MAP_CURSOR_TYPE_NONE:
+			interface->panel_btns[0] = PANEL_BTN_BUILD_INACTIVE;
+			if (PLAYER_HAS_CASTLE(interface->player)) {
+				interface->panel_btns[1] = PANEL_BTN_DESTROY_INACTIVE;
+			} else {
+				interface->panel_btns[1] = PANEL_BTN_GROUND_ANALYSIS;
+			}
+			interface->map_cursor_sprites[0].sprite = 32;
+			interface->map_cursor_sprites[2].sprite = 33;
+			break;
+		case MAP_CURSOR_TYPE_FLAG:
+			interface->panel_btns[0] = PANEL_BTN_BUILD_ROAD;
+			interface->panel_btns[1] = PANEL_BTN_DESTROY_INACTIVE;
+			interface->map_cursor_sprites[0].sprite = 51;
+			interface->map_cursor_sprites[2].sprite = 33;
+			break;
+		case MAP_CURSOR_TYPE_REMOVABLE_FLAG:
+			interface->panel_btns[0] = PANEL_BTN_BUILD_ROAD;
+			interface->panel_btns[1] = PANEL_BTN_DESTROY;
+			interface->map_cursor_sprites[0].sprite = 51;
+			interface->map_cursor_sprites[2].sprite = 33;
+			break;
+		case MAP_CURSOR_TYPE_BUILDING:
+			interface->panel_btns[0] = interface->panel_btn_type;
+			interface->panel_btns[1] = PANEL_BTN_DESTROY;
+			interface->map_cursor_sprites[0].sprite = 32;
+			interface->map_cursor_sprites[2].sprite = 33;
+			break;
+		case MAP_CURSOR_TYPE_PATH:
+			interface->panel_btns[0] = PANEL_BTN_BUILD_INACTIVE;
+			interface->panel_btns[1] = PANEL_BTN_DESTROY_ROAD;
+			interface->map_cursor_sprites[0].sprite = 52;
+			interface->map_cursor_sprites[2].sprite = 33;
+			if (interface->panel_btn_type != PANEL_BTN_BUILD_INACTIVE) {
+				interface->panel_btns[0] = PANEL_BTN_BUILD_FLAG;
+				interface->map_cursor_sprites[0].sprite = 47;
+			}
+			break;
+		case MAP_CURSOR_TYPE_CLEAR_BY_FLAG:
+			if (interface->panel_btn_type < PANEL_BTN_BUILD_MINE) {
+				interface->panel_btns[0] = PANEL_BTN_BUILD_INACTIVE;
+				if (PLAYER_HAS_CASTLE(interface->player)) {
+					interface->panel_btns[1] = PANEL_BTN_DESTROY_INACTIVE;
+				} else {
+					interface->panel_btns[1] = PANEL_BTN_GROUND_ANALYSIS;
+				}
+				interface->map_cursor_sprites[0].sprite = 32;
+				interface->map_cursor_sprites[2].sprite = 33;
+			} else {
+				interface->panel_btns[0] = interface->panel_btn_type;
+				interface->panel_btns[1] = PANEL_BTN_DESTROY_INACTIVE;
+				interface->map_cursor_sprites[0].sprite = 46 + interface->panel_btn_type;
+				interface->map_cursor_sprites[2].sprite = 33;
+			}
+			break;
+		case MAP_CURSOR_TYPE_CLEAR_BY_PATH:
+			interface->panel_btns[0] = interface->panel_btn_type;
+			interface->panel_btns[1] = PANEL_BTN_DESTROY_INACTIVE;
+			if (interface->panel_btn_type != PANEL_BTN_BUILD_INACTIVE) {
+				interface->map_cursor_sprites[0].sprite = 46 + interface->panel_btn_type;
+				if (interface->panel_btn_type == PANEL_BTN_BUILD_FLAG) {
+					interface->map_cursor_sprites[2].sprite = 33;
+				} else {
+					interface->map_cursor_sprites[2].sprite = 47;
+				}
+			} else {
+				interface->map_cursor_sprites[0].sprite = 32;
+				interface->map_cursor_sprites[2].sprite = 33;
+			}
+			break;
+		case MAP_CURSOR_TYPE_CLEAR:
+			interface->panel_btns[0] = interface->panel_btn_type;
+			if (PLAYER_HAS_CASTLE(interface->player)) {
+				interface->panel_btns[1] = PANEL_BTN_DESTROY_INACTIVE;
+			} else {
+				interface->panel_btns[1] = PANEL_BTN_GROUND_ANALYSIS;
+			}
+			if (interface->panel_btn_type) {
+				if (interface->panel_btn_type == PANEL_BTN_BUILD_CASTLE) {
+					interface->map_cursor_sprites[0].sprite = 50;
+				} else {
+					interface->map_cursor_sprites[0].sprite = 46 + interface->panel_btn_type;
+				}
+				if (interface->panel_btn_type == PANEL_BTN_BUILD_FLAG) {
+					interface->map_cursor_sprites[2].sprite = 33;
+				} else {
+					interface->map_cursor_sprites[2].sprite = 47;
+				}
+			} else {
+				interface->map_cursor_sprites[0].sprite = 32;
+				interface->map_cursor_sprites[2].sprite = 33;
+			}
+			break;
+		default:
+			NOT_REACHED();
+			break;
+		}
 	}
 }
 
