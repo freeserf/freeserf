@@ -204,7 +204,7 @@ typedef enum {
    A FILLED space can be passed by a serf, but
    nothing can be built in this space. The higher
    space classes can neither be used for contructions
-   nor passed by serfs. */
+   nor passed by serfs (except flag which can be passed). */
 typedef enum {
 	MAP_SPACE_OPEN = 0,
 	MAP_SPACE_FILLED,
