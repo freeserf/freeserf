@@ -110,11 +110,12 @@ typedef struct {
 	/* 1EE */
 	random_state_t init_map_rnd;
 	/* 1FA */
-	uint32_t game_speed_save;
-	uint32_t game_speed;
-	uint32_t game_tick;  /* Overflow might be important */
-	uint16_t anim;  /* Overflow might be important */
-	uint16_t old_anim;
+	uint game_speed_save;
+	uint game_speed;
+	uint tick;
+	uint anim;
+	uint old_anim;
+	uint const_tick;
 	/* 20E */
 	uint16_t game_stats_counter;
 	uint16_t history_counter;

@@ -70,8 +70,6 @@
 #endif
 
 
-static unsigned int tick;
-
 static int game_loop_run;
 
 static frame_t screen_frame;
@@ -398,31 +396,6 @@ reset_player_settings()
 	}
 }
 
-/* Initialize global stuff. */
-static void
-init_player_settings()
-{
-	game.anim = 0;
-	/* TODO ... */
-}
-
-/* Initialize global counters for game updates. */
-static void
-init_game_globals()
-{
-	memset(game.player_history_index, '\0', sizeof(game.player_history_index));
-	memset(game.player_history_counter, '\0', sizeof(game.player_history_counter));
-
-	game.resource_history_index = 0;
-	game.game_tick = 0;
-	game.anim = 0;
-	/* TODO ... */
-	game.game_stats_counter = 0;
-	game.history_counter = 0;
-	game.anim_diff = 0;
-	/* TODO */
-}
-
 /* In target, replace any character from needle with replacement character. */
 static void
 strreplace(char *target, const char *needle, char replace)
@@ -476,7 +449,7 @@ save_game(int autosave)
 	return 0;
 }
 
-/* Update global anim counters based on game_tick.
+/* Update global anim counters based on game.tick.
    Note: anim counters control the rate of updates in
    the rest of the game objects (_not_ just gfx animations). */
 static void
@@ -484,7 +457,7 @@ anim_update_and_more()
 {
 	/* TODO ... */
 	game.old_anim = game.anim;
-	game.anim = game.game_tick >> 16;
+	game.anim = game.tick >> 16;
 	game.anim_diff = game.anim - game.old_anim;
 
 	int anim_xor = game.anim ^ game.old_anim;
@@ -511,18 +484,6 @@ anim_update_and_more()
 			interface.return_timeout -= game.anim_diff;
 		}
 	}
-}
-
-/* Update game_tick. */
-static void
-update_game_tick()
-{
-	/*game.field_208 += 1;*/
-	game.game_tick += game.game_speed;
-
-	/* Update player input: This is done from the SDL main loop instead. */
-
-	/* TODO pcm sounds ... */
 }
 
 /* Initialize map parameters from mission number. */
@@ -641,8 +602,18 @@ start_game()
 
 	reset_player_settings();
 
-	init_player_settings();
-	init_game_globals();
+	game.anim = 0;
+
+	memset(game.player_history_index, '\0', sizeof(game.player_history_index));
+	memset(game.player_history_counter, '\0', sizeof(game.player_history_counter));
+
+	game.resource_history_index = 0;
+	game.tick = 0;
+	game.anim = 0;
+	game.const_tick = 0;
+	game.game_stats_counter = 0;
+	game.history_counter = 0;
+	game.anim_diff = 0;
 }
 
 
@@ -955,11 +926,8 @@ game_loop()
 
 		accum += delta_ticks;
 		while (accum >= TICK_LENGTH) {
-			/* This is main_timer_cb */
-			tick += 1;
-			/* In original, deep_tree is called which will call update_game.
-			   Here, update_game is just called directly. */
-			update_game_tick();
+			game.const_tick += 1;
+			game.tick += game.game_speed;
 
 			/* FPS */
 			fps = 1000*((float)accum_frames / accum);

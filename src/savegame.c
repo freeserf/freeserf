@@ -101,7 +101,7 @@ load_v0_globals_state(FILE *f, v0_map_t *map)
 	game.cfg_right = *(uint8_t *)&data[73];
 
 	game.game_type = *(uint16_t *)&data[74];
-	game.game_tick = *(uint32_t *)&data[76];
+	game.tick = *(uint32_t *)&data[76];
 	game.game_stats_counter = *(uint16_t *)&data[80];
 	game.history_counter = *(uint16_t *)&data[82];
 
@@ -915,7 +915,7 @@ save_text_globals_state(FILE *f)
 	save_text_write_value(f, "cfg.right", game.cfg_right);
 
 	save_text_write_value(f, "game_type", game.game_type);
-	save_text_write_value(f, "game_tick", game.game_tick);
+	save_text_write_value(f, "tick", game.tick);
 	save_text_write_value(f, "game_stats_counter", game.game_stats_counter);
 	save_text_write_value(f, "history_counter", game.history_counter);
 
@@ -1664,8 +1664,8 @@ load_text_global_state(list_t *sections)
 			game.cfg_right = atoi(s->value);
 		} else if (!strcmp(s->key, "game_type")) {
 			game.game_type = atoi(s->value);
-		} else if (!strcmp(s->key, "game_tick")) {
-			game.game_tick = atoi(s->value);
+		} else if (!strcmp(s->key, "tick")) {
+			game.tick = atoi(s->value);
 		} else if (!strcmp(s->key, "game_stats_counter")) {
 			game.game_stats_counter = atoi(s->value);
 		} else if (!strcmp(s->key, "history_counter")) {
@@ -2007,12 +2007,6 @@ load_text_building_section(section_t *section)
 			building->serf = atoi(s->value);
 		} else if (!strcmp(s->key, "flag_index")) {
 			building->flg_index = atoi(s->value);
-		} else if (!strcmp(s->key, "stock1")) { /* OBSOLETE */
-			building->stock[0].available = (atoi(s->value) >> 4) & 0xf;
-			building->stock[0].requested = atoi(s->value) & 0xf;
-		} else if (!strcmp(s->key, "stock2")) { /* OBSOLETE */
-			building->stock[1].available = (atoi(s->value) >> 4) & 0xf;
-			building->stock[1].requested = atoi(s->value) & 0xf;
 		} else if (!strcmp(s->key, "stock[0].type")) {
 			building->stock[0].type = atoi(s->value);
 		} else if (!strcmp(s->key, "stock[0].prio")) {
