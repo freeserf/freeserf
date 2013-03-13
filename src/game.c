@@ -33,6 +33,7 @@
 #include "building.h"
 #include "random.h"
 #include "log.h"
+#include "savegame.h"
 #include "debug.h"
 
 #define GROUND_ANALYSIS_RADIUS  25
@@ -421,9 +422,6 @@ update_player(player_t *player)
 static void
 check_win_and_flags_buildings()
 {
-	/* TODO */
-
-	/* TODO Approximately right */
 	for (int i = 1; i < game.max_ever_building_index; i++) {
 		if (BUILDING_ALLOCATED(i)) {
 			building_t *building = game_get_building(i);
@@ -431,7 +429,6 @@ check_win_and_flags_buildings()
 		}
 	}
 
-	/* TODO Approximately right */
 	for (int i = 1; i < game.max_ever_flag_index; i++) {
 		if (FLAG_ALLOCATED(i)) {
 			flag_t *flag = game_get_flag(i);
@@ -4792,4 +4789,356 @@ game_set_inventory_serf_mode(inventory_t *inventory, int mode)
 	} else {
 		flag->bld_flags |= BIT(7);
 	}
+}
+
+
+
+/* Initialize AI parameters. */
+static void
+init_ai_values(player_t *player, int face)
+{
+	const int ai_values_0[] = { 13, 10, 16, 9, 10, 8, 6, 10, 12, 5, 8 };
+	const int ai_values_1[] = { 10000, 13000, 16000, 16000, 18000, 20000, 19000, 18000, 30000, 23000, 26000 };
+	const int ai_values_2[] = { 10000, 35000, 20000, 27000, 37000, 25000, 40000, 30000, 50000, 35000, 40000 };
+	const int ai_values_3[] = { 0, 36, 0, 31, 8, 480, 3, 16, 0, 193, 39 };
+	const int ai_values_4[] = { 0, 30000, 5000, 40000, 50000, 20000, 45000, 35000, 65000, 25000, 30000 };
+	const int ai_values_5[] = { 60000, 61000, 60000, 65400, 63000, 62000, 65000, 63000, 64000, 64000, 64000 };
+
+	player->ai_value_0 = ai_values_0[face-1];
+	player->ai_value_1 = ai_values_1[face-1];
+	player->ai_value_2 = ai_values_2[face-1];
+	player->ai_value_3 = ai_values_3[face-1];
+	player->ai_value_4 = ai_values_4[face-1];
+	player->ai_value_5 = ai_values_5[face-1];
+}
+
+/* Initialize player_t objects. */
+static void
+reset_player_settings()
+{
+	game.winning_player = -1;
+	/* TODO ... */
+	game.max_next_index = 33;
+
+	/* TODO */
+
+	for (int i = 0; i < 4; i++) {
+		player_t *player = game.player[i];
+		memset(player, 0, sizeof(player_t));
+		player->flags = 0;
+
+		player_init_t *init = &game.pl_init[i];
+		if (init->face != 0) {
+			LOGD("game", "Active player %i", i);
+			player->flags |= BIT(6); /* Player active */
+			if (init->face < 12) { /* AI player */
+				player->flags |= BIT(7); /* Set AI bit */
+				/* TODO ... */
+				game.max_next_index = 49;
+			}
+
+			player->player_num = i;
+			/* player->field_163 = 0; */
+			player->build = 0;
+			/*player->field_163 |= BIT(0);*/
+
+			player->building = 0;
+			player->castle_flag = 0;
+			player->cont_search_after_non_optimal_find = 7;
+			player->field_110 = 4;
+			player->knights_to_spawn = 0;
+			/* OBSOLETE player->spawn_serf_want_knight = 0; **/
+			player->total_land_area = 0;
+
+			/* TODO ... */
+
+			player->last_anim = 0;
+
+			player->serf_to_knight_rate = 20000;
+			player->serf_to_knight_counter = 0x8000;
+
+			player->knight_occupation[0] = 0x10;
+			player->knight_occupation[1] = 0x21;
+			player->knight_occupation[2] = 0x32;
+			player->knight_occupation[3] = 0x43;
+
+			player_reset_food_priority(player);
+			player_reset_planks_priority(player);
+			player_reset_steel_priority(player);
+			player_reset_coal_priority(player);
+			player_reset_wheat_priority(player);
+			player_reset_tool_priority(player);
+
+			player_reset_flag_priority(player);
+			player_reset_inventory_priority(player);
+
+			player->current_sett_5_item = 8;
+			player->current_sett_6_item = 15;
+
+			player->military_max_gold = 0;
+			player->military_gold = 0;
+			player->inventory_gold = 0;
+
+			player->timers_count = 0;
+
+			player->castle_knights_wanted = 3;
+			player->castle_knights = 0;
+			/* TODO ... */
+			player->serf_index = 0;
+			/* TODO ... */
+			player->initial_supplies = init->supplies;
+			player->reproduction_reset = (60 - init->reproduction) * 50;
+			player->ai_intelligence = 1300*init->intelligence + 13535;
+
+			if (/*init->face != 0*/1) { /* Redundant check */
+				if (init->face < 12) { /* AI player */
+					init_ai_values(player, init->face);
+				}
+			}
+
+			player->reproduction_counter = player->reproduction_reset;
+			/* TODO ... */
+			for (int i = 0; i < 26; i++) player->resource_count[i] = 0;
+			for (int i = 0; i < 24; i++) {
+				player->completed_building_count[i] = 0;
+				player->incomplete_building_count[i] = 0;
+			}
+
+			/* TODO */
+
+			for (int i = 0; i < 16; i++) {
+				for (int j = 0; j < 112; j++) player->player_stat_history[i][j] = 0;
+			}
+
+			for (int i = 0; i < 26; i++) {
+				for (int j = 0; j < 120; j++) player->resource_count_history[i][j] = 0;
+			}
+
+			for (int i = 0; i < 27; i++) player->serf_count[i] = 0;
+		}
+	}
+
+	if (BIT_TEST(game.split, 6)) { /* Coop mode */
+		/* TODO ... */
+	}
+}
+
+void
+game_init()
+{
+	game.svga |= BIT(3); /* Game has started. */
+	game.game_speed = DEFAULT_GAME_SPEED;
+
+	game.map_water_level = 20;
+	game.map_max_lake_area = 14;
+
+	game.update_map_last_anim = 0;
+	game.update_map_counter = 0;
+	game.update_map_16_loop = 0;
+	game.update_map_initial_pos = 0;
+	game.next_index = 0;
+
+	memset(game.flg_bitmap, 0, ((game.max_flg_cnt-1) / 8) + 1);
+	memset(game.buildings_bitmap, 0, ((game.max_building_cnt-1) / 8) + 1);
+	memset(game.serfs_bitmap, 0, ((game.max_serf_cnt-1) / 8) + 1);
+	memset(game.inventories_bitmap, 0, ((game.max_inventory_cnt-1) / 8) + 1);
+
+	game.max_ever_flag_index = 0;
+	game.max_ever_building_index = 0;
+	game.max_ever_serf_index = 0;
+	game.max_ever_inventory_index = 0;
+
+	/* Create NULL-serf */
+	serf_t *serf;
+	game_alloc_serf(&serf, NULL);
+	serf->state = SERF_STATE_NULL;
+	serf->type = 0;
+	serf->animation = 0;
+	serf->counter = 0;
+	serf->pos = -1;
+
+	/* Create NULL-flag (index 0 is undefined) */
+	game_alloc_flag(NULL, NULL);
+
+	/* Create NULL-building (index 0 is undefined) */
+	building_t *building;
+	game_alloc_building(&building, NULL);
+	building->bld = 0;
+
+	memset(game.player_history_index, '\0', sizeof(game.player_history_index));
+	memset(game.player_history_counter, '\0', sizeof(game.player_history_counter));
+	game.resource_history_index = 0;
+
+	game.anim = 0;
+	game.tick = 0;
+	game.const_tick = 0;
+	game.game_stats_counter = 0;
+	game.history_counter = 0;
+	game.anim_diff = 0;
+}
+
+/* Initialize spiral_pos_pattern from spiral_pattern. */
+static void
+init_spiral_pos_pattern()
+{
+	int *pattern = game.spiral_pattern;
+
+	if (game.spiral_pos_pattern == NULL) {
+		game.spiral_pos_pattern = malloc(295*sizeof(map_pos_t));
+		if (game.spiral_pos_pattern == NULL) abort();
+	}
+
+	for (int i = 0; i < 295; i++) {
+		int x = pattern[2*i] & game.map.col_mask;
+		int y = pattern[2*i+1] & game.map.row_mask;
+
+		game.spiral_pos_pattern[i] = MAP_POS(x, y);
+	}
+}
+
+/* Initialize map parameters from mission number. */
+static int
+load_map_spec()
+{
+	/* Only the three first are available for now. */
+	const map_spec_t mission[] = {
+		{
+			/* Mission 1: START */
+			.rnd = {{ 0x6d6f, 0xf7f0, 0xc8d4 }},
+
+			.pl_0_supplies = 35,
+			.pl_0_reproduction = 30,
+
+			.pl_1_face = 1,
+			.pl_1_intelligence = 10,
+			.pl_1_supplies = 5,
+			.pl_1_reproduction = 30,
+		}, {
+			/* Mission 2: STATION */
+			.rnd = {{ 0x60b9, 0xe728, 0xc484 }},
+
+			.pl_0_supplies = 30,
+			.pl_0_reproduction = 40,
+
+			.pl_1_face = 2,
+			.pl_1_intelligence = 12,
+			.pl_1_supplies = 15,
+			.pl_1_reproduction = 30,
+
+			.pl_2_face = 3,
+			.pl_2_intelligence = 14,
+			.pl_2_supplies = 15,
+			.pl_2_reproduction = 30
+		}, {
+			/* Mission 3: UNITY */
+			.rnd = {{ 0x12ab, 0x7a4a, 0xe483 }},
+
+			.pl_0_supplies = 30,
+			.pl_0_reproduction = 30,
+
+			.pl_1_face = 2,
+			.pl_1_intelligence = 18,
+			.pl_1_supplies = 10,
+			.pl_1_reproduction = 25,
+
+			.pl_2_face = 4,
+			.pl_2_intelligence = 18,
+			.pl_2_supplies = 10,
+			.pl_2_reproduction = 25
+		}
+	};
+
+	int m = game.mission_level;
+
+	game.pl_init[0].face = 12;
+	game.pl_init[0].supplies = mission[m].pl_0_supplies;
+	game.pl_init[0].intelligence = 40;
+	game.pl_init[0].reproduction = mission[m].pl_0_reproduction;
+
+	game.pl_init[1].face = mission[m].pl_1_face;
+	game.pl_init[1].supplies = mission[m].pl_1_supplies;
+	game.pl_init[1].intelligence = mission[m].pl_1_intelligence;
+	game.pl_init[1].reproduction = mission[m].pl_1_reproduction;
+
+	game.pl_init[2].face = mission[m].pl_2_face;
+	game.pl_init[2].supplies = mission[m].pl_2_supplies;
+	game.pl_init[2].intelligence = mission[m].pl_2_intelligence;
+	game.pl_init[2].reproduction = mission[m].pl_2_reproduction;
+
+	game.pl_init[3].face = mission[m].pl_3_face;
+	game.pl_init[3].supplies = mission[m].pl_3_supplies;
+	game.pl_init[3].intelligence = mission[m].pl_3_intelligence;
+	game.pl_init[3].reproduction = mission[m].pl_3_reproduction;
+
+	/* TODO ... */
+
+	memcpy(&game.init_map_rnd, &mission[m].rnd,
+	       sizeof(random_state_t));
+
+	int map_size = 3;
+
+	game.init_map_rnd.state[0] ^= 0x5a5a;
+	game.init_map_rnd.state[1] ^= 0xa5a5;
+	game.init_map_rnd.state[2] ^= 0xc3c3;
+
+	return map_size;
+}
+
+int
+game_load_random_map()
+{
+	/* Initialize map */
+	game.map_size = load_map_spec();
+
+	game.map.col_size = 5 + game.map_size/2;
+	game.map.row_size = 5 + (game.map_size - 1)/2;
+	game.map.cols = 1 << game.map.col_size;
+	game.map.rows = 1 << game.map.row_size;
+
+	const int map_size_arr[] = {
+		16, 30, 55, 90,
+		150, 220, 350, 500
+	};
+
+	/* game.split |= BIT(3); */
+
+	if (game.map.cols < 64 || game.map.rows < 64) {
+		/* game.split &= ~BIT(3); */
+	}
+
+	map_init_dimensions(&game.map);
+
+	game.map_regions = (game.map.cols >> 5) * (game.map.rows >> 5);
+	game.map_max_serfs_left = game.map_regions * 500;
+	game.map_62_5_times_regions = (game.map_regions * 500) >> 3;
+
+	int active_players = 0;
+	for (int i = 0; i < 4; i++) {
+		if (game.pl_init[0].face != 0) active_players += 1;
+	}
+
+	game.map_field_4A = game.map_max_serfs_left -
+		active_players * game.map_62_5_times_regions;
+	game.map_gold_morale_factor = 10 * 1024 * active_players;
+	game.map_field_52 = map_size_arr[game.map_size];
+
+	init_spiral_pos_pattern();
+	map_init();
+	map_init_minimap();
+
+	reset_player_settings();
+
+	return 0;
+}
+
+int
+game_load_save_game(const char *path)
+{
+	int r = load_state(path);
+	if (r < 0) return -1;
+
+	init_spiral_pos_pattern();
+	map_init_minimap();
+
+	return 0;
 }

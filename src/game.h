@@ -207,6 +207,10 @@ game_t game;
 
 
 /* External interface */
+void game_init();
+int game_load_random_map();
+int game_load_save_game(const char *path);
+
 void game_update();
 void game_pause(int enable);
 
