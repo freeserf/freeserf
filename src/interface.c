@@ -881,7 +881,7 @@ interface_init(interface_t *interface)
 
 	/* Settings */
 	interface->flags = 0;
-	interface->config = game.cfg_left;
+	interface->config = 0x39;
 	interface->msg_flags = 0;
 	interface->return_timeout = 0;
 	interface->click = 0;

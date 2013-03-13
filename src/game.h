@@ -194,9 +194,6 @@ typedef struct {
 	uint8_t split;
 	/* 380 */
 	int player_score_leader;
-	/* 3D8 */
-	uint8_t cfg_left;
-	uint8_t cfg_right;
 	/* ... */
 } game_t;
 

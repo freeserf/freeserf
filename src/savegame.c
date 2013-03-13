@@ -97,9 +97,6 @@ load_v0_globals_state(FILE *f, v0_map_t *map)
 	/* game.field_37F = *(uint8_t *)&data[67]; */
 	game.update_map_initial_pos = load_v0_map_pos(map, *(uint32_t *)&data[68]);
 
-	game.cfg_left = *(uint8_t *)&data[72];
-	game.cfg_right = *(uint8_t *)&data[73];
-
 	game.game_type = *(uint16_t *)&data[74];
 	game.tick = *(uint32_t *)&data[76];
 	game.game_stats_counter = *(uint16_t *)&data[80];
@@ -911,8 +908,6 @@ save_text_globals_state(FILE *f)
 
 	save_text_write_value(f, "split", game.split);
 	save_text_write_map_pos(f, "update_map_initial_pos", game.update_map_initial_pos);
-	save_text_write_value(f, "cfg.left", game.cfg_left);
-	save_text_write_value(f, "cfg.right", game.cfg_right);
 
 	save_text_write_value(f, "game_type", game.game_type);
 	save_text_write_value(f, "tick", game.tick);
@@ -1658,10 +1653,6 @@ load_text_global_state(list_t *sections)
 			game.split = atoi(s->value);
 		} else if (!strcmp(s->key, "update_map_initial_pos")) {
 			game.update_map_initial_pos = parse_map_pos(s->value);
-		} else if (!strcmp(s->key, "cfg.left")) {
-			game.cfg_left = atoi(s->value);
-		} else if (!strcmp(s->key, "cfg.right")) {
-			game.cfg_right = atoi(s->value);
 		} else if (!strcmp(s->key, "game_type")) {
 			game.game_type = atoi(s->value);
 		} else if (!strcmp(s->key, "tick")) {

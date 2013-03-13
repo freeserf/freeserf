@@ -1752,24 +1752,16 @@ draw_options_box(popup_box_t *popup, frame_t *frame)
 	draw_green_string(2, 68, frame, "    Fast");
 	draw_green_string(2, 77, frame, "  building");
 
+	interface_t *interface = popup->interface;
+
 	char *messages = strdup("    Messages    ");
 	messages[0] = '3';
-	if (!BIT_TEST(game.cfg_left,3)) {
+	if (!BIT_TEST(interface->config, 3)) {
 		messages[0] = '2';
-		if (!BIT_TEST(game.cfg_left,4)) {
+		if (!BIT_TEST(interface->config, 4)) {
 			messages[0] = '1';
-			if (!BIT_TEST(game.cfg_left,5)) {
+			if (!BIT_TEST(interface->config, 5)) {
 				messages[0] = '0';
-			}
-		}
-	}
-	messages[15] = '3';
-	if (!BIT_TEST(game.cfg_right,3)) {
-		messages[15] = '2';
-		if (!BIT_TEST(game.cfg_right,4)) {
-			messages[15] = '1';
-			if (!BIT_TEST(game.cfg_right,5)) {
-				messages[15] = '0';
 			}
 		}
 	}
@@ -1778,13 +1770,9 @@ draw_options_box(popup_box_t *popup, frame_t *frame)
 
 	draw_popup_icon(7, 0, 60, frame); /* exit */
 
-	draw_popup_icon(0, 28, BIT_TEST(game.cfg_left, 0) ? 288 : 220, frame);
-	draw_popup_icon(0, 48, BIT_TEST(game.cfg_left, 1) ? 288 : 220, frame);
-	draw_popup_icon(0, 68, BIT_TEST(game.cfg_left, 2) ? 288 : 220, frame);
-
-	draw_popup_icon(14, 28, BIT_TEST(game.cfg_right, 0) ? 288 : 220, frame);
-	draw_popup_icon(14, 48, BIT_TEST(game.cfg_right, 1) ? 288 : 220, frame);
-	draw_popup_icon(14, 68, BIT_TEST(game.cfg_right, 2) ? 288 : 220, frame);
+	draw_popup_icon(0, 28, BIT_TEST(interface->config, 0) ? 288 : 220, frame);
+	draw_popup_icon(0, 48, BIT_TEST(interface->config, 1) ? 288 : 220, frame);
+	draw_popup_icon(0, 68, BIT_TEST(interface->config, 2) ? 288 : 220, frame);
 
 	draw_green_string(2, 110, frame, "Music");
 	draw_green_string(7, 105, frame, "  SVGA"); /* TODO replace with fullscreen? */
@@ -3449,51 +3437,36 @@ handle_action(interface_t *interface, action_t action, int x, int y)
 		break;
 	case ACTION_CLOSE_OPTIONS:
 		interface_close_popup(interface);
-		interface->config = game.cfg_left;
 		break;
 	case ACTION_OPTIONS_PATHWAY_SCROLLING_1:
-		BIT_INVERT(game.cfg_left, 0);
+		BIT_INVERT(interface->config, 0);
 		break;
 	case ACTION_OPTIONS_PATHWAY_SCROLLING_2:
-		BIT_INVERT(game.cfg_right, 0);
 		break;
 	case ACTION_OPTIONS_FAST_MAP_CLICK_1:
-		BIT_INVERT(game.cfg_left, 1);
+		BIT_INVERT(interface->config, 1);
 		break;
 	case ACTION_OPTIONS_FAST_MAP_CLICK_2:
-		BIT_INVERT(game.cfg_right, 1);
 		break;
 	case ACTION_OPTIONS_FAST_BUILDING_1:
-		BIT_INVERT(game.cfg_left, 2);
+		BIT_INVERT(interface->config, 2);
 		break;
 	case ACTION_OPTIONS_FAST_BUILDING_2:
-		BIT_INVERT(game.cfg_right, 2);
 		break;
 	case ACTION_OPTIONS_MESSAGE_COUNT_1:
-		if (BIT_TEST(game.cfg_left, 3)) {
-			BIT_INVERT(game.cfg_left, 3);
-			game.cfg_left |= BIT(4);
-		} else if (BIT_TEST(game.cfg_left, 4)) {
-			BIT_INVERT(game.cfg_left, 4);
-			game.cfg_left |= BIT(5);
-		} else if (BIT_TEST(game.cfg_left, 5)) {
-			BIT_INVERT(game.cfg_left, 5);
+		if (BIT_TEST(interface->config, 3)) {
+			BIT_INVERT(interface->config, 3);
+			interface->config |= BIT(4);
+		} else if (BIT_TEST(interface->config, 4)) {
+			BIT_INVERT(interface->config, 4);
+			interface->config |= BIT(5);
+		} else if (BIT_TEST(interface->config, 5)) {
+			BIT_INVERT(interface->config, 5);
 		} else {
-			game.cfg_left |= BIT(3) | BIT(4) | BIT(5);
+			interface->config |= BIT(3) | BIT(4) | BIT(5);
 		}
 		break;
 	case ACTION_OPTIONS_MESSAGE_COUNT_2:
-		if (BIT_TEST(game.cfg_right, 3)) {
-			BIT_INVERT(game.cfg_right, 3);
-			game.cfg_left |= BIT(4);
-		} else if (BIT_TEST(game.cfg_right, 4)) {
-			BIT_INVERT(game.cfg_right, 4);
-			game.cfg_left |= BIT(5);
-		} else if (BIT_TEST(game.cfg_right, 5)) {
-			BIT_INVERT(game.cfg_right, 5);
-		} else {
-			game.cfg_right |= BIT(3) | BIT(4) | BIT(5);
-		}
 		break;
 	case ACTION_DEFAULT_SETT_1:
 		interface_open_popup(interface, BOX_SETT_1);

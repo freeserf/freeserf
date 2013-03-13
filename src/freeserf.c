@@ -663,16 +663,6 @@ allocate_global_memory()
 	sdl_frame_init(&cursor_buffer, 0, 0, 16, 16, NULL);
 }
 
-/* Initialize interface configuration. */
-static void
-init_global_config()
-{
-	/* TODO load saved configuration */
-	game.cfg_left = 0x39;
-	game.cfg_right = 0x39;
-	audio_set_volume(75);
-}
-
 #define MAX_DATA_PATH      1024
 #define DEFAULT_DATA_FILE  "SPAE.PA"
 
@@ -842,6 +832,7 @@ main(int argc, char *argv[])
 
 	/* TODO move to right place */
 	midi_play_track(MIDI_TRACK_0);
+	audio_set_volume(75);
 
 	/*gfx_set_palette(DATA_PALETTE_INTRO);*/
 	gfx_set_palette(DATA_PALETTE_GAME);
@@ -856,7 +847,6 @@ main(int argc, char *argv[])
 	game.map_preserve_bugs = preserve_map_bugs;
 
 	/* Init globals */
-	init_global_config();
 	allocate_global_memory();
 	player_interface_init();
 
