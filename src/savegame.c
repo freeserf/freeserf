@@ -2625,3 +2625,43 @@ error:
 	load_text_free_sections(&sections);
 	return -1;
 }
+
+
+int
+load_state(const char *path)
+{
+	FILE *f = fopen(path, "rb");
+	if (f == NULL) {
+		LOGE("savegame", "Unable to open save game file: `%s'.", path);
+		return -1;
+	}
+
+	int r = load_text_state(f);
+	if (r < 0) {
+		LOGW("savegame", "Unable to load save game, trying compatability mode...");
+
+		fseek(f, 0, SEEK_SET);
+		r = load_v0_state(f);
+		if (r < 0) {
+			LOGE("savegame", "Failed to load save game.");
+			fclose(f);
+			return -1;
+		}
+	}
+
+	fclose(f);
+
+	return 0;
+}
+
+int
+save_state(const char *path)
+{
+	FILE *f = fopen(path, "wb");
+	if (f == NULL) return -1;
+
+	int r = save_text_state(f);
+	fclose(f);
+
+	return r;
+}

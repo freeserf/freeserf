@@ -1,7 +1,7 @@
 /*
  * savegame.h - Loading and saving of save games
  *
- * Copyright (C) 2012  Jon Lund Steffensen <jonlst@gmail.com>
+ * Copyright (C) 2013  Jon Lund Steffensen <jonlst@gmail.com>
  *
  * This file is part of freeserf.
  *
@@ -25,9 +25,16 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+/* Original game format */
 int load_v0_state(FILE *f);
 
+/* Text format */
 int save_text_state(FILE *f);
 int load_text_state(FILE *f);
+
+/* Generic save/load function that will try to detect the right
+   format on load and save to the best format on write. */
+int save_state(const char *path);
+int load_state(const char *path);
 
 #endif /* !_SAVEGAME_H */
