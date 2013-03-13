@@ -601,31 +601,6 @@ game_loop()
 	}
 }
 
-static void
-load_serf_animation_table()
-{
-	/* The serf animation table is stored in big endian
-	   order in the data file.
-
-	   * The first uint32 is the byte length of the rest
-	   of the table (skipped below).
-	   * Next is 199 uint32s that are offsets from the start
-	   of this table to an animation table (one for each
-	   animation).
-	   * The animation tables are of varying lengths.
-	   Each entry in the animation table is three bytes
-	   long. First byte is used to determine the serf body
-	   sprite. Second byte is a signed horizontal sprite
-	   offset. Third byte is a signed vertical offset.
-	*/
-	game.serf_animation_table = ((uint32_t *)gfx_get_data_object(DATA_SERF_ANIMATION_TABLE, NULL)) + 1;
-
-	/* Endianess convert from big endian. */
-	for (int i = 0; i < 199; i++) {
-		game.serf_animation_table[i] = be32toh(game.serf_animation_table[i]);
-	}
-}
-
 /* Allocate global memory before game starts. */
 static void
 allocate_global_memory()
@@ -887,7 +862,6 @@ main(int argc, char *argv[])
 
 	/* Initialize global lookup tables */
 	init_spiral_pattern();
-	load_serf_animation_table();
 
 	game_init();
 

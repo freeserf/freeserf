@@ -50,6 +50,8 @@ struct interface {
 	int redraw_top;
 	list_t floats;
 
+	uint32_t *serf_animation_table;
+
 	viewport_t viewport;
 	panel_bar_t panel;
 	popup_box_t popup;

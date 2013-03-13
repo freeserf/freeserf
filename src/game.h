@@ -87,8 +87,6 @@ typedef struct {
 	uint8_t *flg_bitmap;
 	uint8_t *buildings_bitmap;
 	uint8_t *serfs_bitmap;
-	/* B0 */
-	uint32_t *serf_animation_table;
 	/* OBSOLETE
 	flag_t **flag_queue_black;
 	flag_t **flag_queue_white; */

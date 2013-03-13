@@ -1520,7 +1520,7 @@ draw_row_serf(int x, int y, int shadow, int color, int body, frame_t *frame)
 /* Extracted from obsolete update_map_serf_rows(). */
 /* Translate serf type into the corresponding sprite code. */
 static int
-serf_get_body(serf_t *serf)
+serf_get_body(serf_t *serf, uint32_t *animation_table)
 {
 	const int transporter_type[] = {
 		0, 0x3000, 0x3500, 0x3b00, 0x4100, 0x4600, 0x4b00, 0x1400,
@@ -1536,8 +1536,8 @@ serf_get_body(serf_t *serf)
 		0x7600, 0x5f00, 0x6000, 0, 0, 0, 0, 0
 	};
 
-	uint8_t *tbl_ptr = ((uint8_t *)game.serf_animation_table) +
-		game.serf_animation_table[serf->animation] +
+	uint8_t *tbl_ptr = ((uint8_t *)animation_table) +
+		animation_table[serf->animation] +
 		3*(serf->counter >> 3);
 	int t = tbl_ptr[0];
 
@@ -2020,7 +2020,8 @@ serf_get_body(serf_t *serf)
    Note that idle serfs do not have a serf_t object so they are drawn seperately
    from active serfs. */
 static void
-draw_serf_row(map_pos_t pos, int y_base, int cols, int x_base, frame_t *frame)
+draw_serf_row(map_pos_t pos, int y_base, int cols, int x_base,
+	      uint32_t *animation_table, frame_t *frame)
 {
 	const int arr_1[] = {
 		0x240, 0x40, 0x380, 0x140, 0x300, 0x80, 0x180, 0x200,
@@ -2077,13 +2078,13 @@ draw_serf_row(map_pos_t pos, int y_base, int cols, int x_base, frame_t *frame)
 		if (MAP_SERF_INDEX(pos) != 0) {
 			serf_t *serf = game_get_serf(MAP_SERF_INDEX(pos));
 
-			uint8_t *tbl_ptr = ((uint8_t *)game.serf_animation_table) +
-				game.serf_animation_table[serf->animation] +
+			uint8_t *tbl_ptr = ((uint8_t *)animation_table) +
+				animation_table[serf->animation] +
 				3*(serf->counter >> 3);
 
 			int x = x_base + ((int8_t *)tbl_ptr)[1];
 			int y = y_base - 4*MAP_HEIGHT(pos) + ((int8_t *)tbl_ptr)[2];
-			int body = serf_get_body(serf);
+			int body = serf_get_body(serf, animation_table);
 
 			if (body > -1) draw_row_serf(x, y, 1, SERF_PLAYER(serf), body, frame);
 
@@ -2099,13 +2100,13 @@ draw_serf_row(map_pos_t pos, int y_base, int cols, int x_base, frame_t *frame)
 				if (index != 0) {
 					serf_t *def_serf = game_get_serf(index);
 
-					uint8_t *tbl_ptr = ((uint8_t *)game.serf_animation_table) +
-						game.serf_animation_table[def_serf->animation] +
+					uint8_t *tbl_ptr = ((uint8_t *)animation_table) +
+						animation_table[def_serf->animation] +
 						3*(def_serf->counter >> 3);
 
 					int x = x_base + ((int8_t *)tbl_ptr)[1];
 					int y = y_base - 4*MAP_HEIGHT(pos) + ((int8_t *)tbl_ptr)[2];
-					int body = serf_get_body(def_serf);
+					int body = serf_get_body(def_serf, animation_table);
 
 					if (body > -1) {
 						draw_row_serf(x, y, 1, SERF_PLAYER(def_serf),
@@ -2184,12 +2185,16 @@ draw_game_objects(viewport_t *viewport, int layers, frame_t *frame)
 	int row_0 = (viewport->offset_y/MAP_TILE_HEIGHT) & game.map.row_mask;
 	map_pos_t pos = MAP_POS(col_0, row_0);
 
+	uint32_t *animation_table = viewport->interface->serf_animation_table;
+
 	/* Loop until objects drawn fall outside the frame. */
 	while (1) {
 		/* short row */
 		if (draw_landscape) draw_water_waves_row(pos, y, short_row_len, x, frame);
 		if (draw_objects) draw_map_objects_row(pos, y, short_row_len, x, frame);
-		if (draw_serfs) draw_serf_row(pos, y, short_row_len, x, frame);
+		if (draw_serfs) {
+			draw_serf_row(pos, y, short_row_len, x, animation_table, frame);
+		}
 
 		y += MAP_TILE_HEIGHT;
 		if (y - 3*MAP_TILE_HEIGHT >= viewport->obj.height) break;
@@ -2199,7 +2204,9 @@ draw_game_objects(viewport_t *viewport, int layers, frame_t *frame)
 		/* long row */
 		if (draw_landscape) draw_water_waves_row(pos, y, long_row_len, x - 16, frame);
 		if (draw_objects) draw_map_objects_row(pos, y, long_row_len, x - 16, frame);
-		if (draw_serfs) draw_serf_row(pos, y, long_row_len, x - 16, frame);
+		if (draw_serfs) {
+			draw_serf_row(pos, y, long_row_len, x - 16, animation_table, frame);
+		}
 
 		y += MAP_TILE_HEIGHT;
 		if (y - 3*MAP_TILE_HEIGHT >= viewport->obj.height) break;
