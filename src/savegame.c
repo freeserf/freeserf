@@ -25,7 +25,6 @@
 
 #include "game.h"
 #include "map.h"
-#include "globals.h"
 #include "version.h"
 #include "list.h"
 #include "debug.h"
@@ -58,139 +57,139 @@ load_v0_globals_state(FILE *f, v0_map_t *map)
 
 	/* Load these first so map dimensions can be reconstructed.
 	   This is necessary to load map positions. */
-	globals.map_size = *(uint16_t *)&data[190];
+	game.map_size = *(uint16_t *)&data[190];
 
 	map->row_shift = *(uint16_t *)&data[42];
 	map->cols = *(uint16_t *)&data[62];
 	map->rows = *(uint16_t *)&data[64];
 
 	/* Init the rest of map dimensions. */
-	globals.map.col_size = 5 + globals.map_size/2;
-	globals.map.row_size = 5 + (globals.map_size - 1)/2;
-	globals.map.cols = 1 << globals.map.col_size;
-	globals.map.rows = 1 << globals.map.row_size;
-	map_init_dimensions(&globals.map);
+	game.map.col_size = 5 + game.map_size/2;
+	game.map.row_size = 5 + (game.map_size - 1)/2;
+	game.map.cols = 1 << game.map.col_size;
+	game.map.rows = 1 << game.map.row_size;
+	map_init_dimensions(&game.map);
 
 	/* OBSOLETE may be needed to load map data correctly?
 	map->index_mask = *(uint32_t *)&data[0] >> 2;
 
-	globals.map_dirs[DIR_RIGHT] = *(uint32_t *)&data[4] >> 2;
-	globals.map_dirs[DIR_DOWN_RIGHT] = *(uint32_t *)&data[8] >> 2;
-	globals.map_dirs[DIR_DOWN] = *(uint32_t *)&data[12] >> 2;
-	globals.map_move_left_2 = *(uint16_t *)&data[16] >> 2;
-	globals.map_dirs[DIR_UP_LEFT] = *(uint32_t *)&data[18] >> 2;
-	globals.map_dirs[DIR_UP] = *(uint32_t *)&data[22] >> 2;
-	globals.map_dirs[DIR_UP_RIGHT] = *(uint32_t *)&data[26] >> 2;
-	globals.map_dirs[DIR_DOWN_LEFT] = *(uint32_t *)&data[30] >> 2;
+	game.map_dirs[DIR_RIGHT] = *(uint32_t *)&data[4] >> 2;
+	game.map_dirs[DIR_DOWN_RIGHT] = *(uint32_t *)&data[8] >> 2;
+	game.map_dirs[DIR_DOWN] = *(uint32_t *)&data[12] >> 2;
+	game.map_move_left_2 = *(uint16_t *)&data[16] >> 2;
+	game.map_dirs[DIR_UP_LEFT] = *(uint32_t *)&data[18] >> 2;
+	game.map_dirs[DIR_UP] = *(uint32_t *)&data[22] >> 2;
+	game.map_dirs[DIR_UP_RIGHT] = *(uint32_t *)&data[26] >> 2;
+	game.map_dirs[DIR_DOWN_LEFT] = *(uint32_t *)&data[30] >> 2;
 
-	globals.map_col_size = *(uint32_t *)&data[34] >> 2;
-	globals.map_elms = *(uint32_t *)&data[38];
-	globals.map_row_shift = *(uint16_t *)&data[42];
-	globals.map_col_mask = *(uint16_t *)&data[44];
-	globals.map_row_mask = *(uint16_t *)&data[46];
-	globals.map_data_offset = *(uint32_t *)&data[48] >> 2;
-	globals.map_shifted_col_mask = *(uint16_t *)&data[52] >> 2;
-	globals.map_shifted_row_mask = *(uint32_t *)&data[54] >> 2;
-	globals.map_col_pairs = *(uint16_t *)&data[58];
-	globals.map_row_pairs = *(uint16_t *)&data[60];*/
+	game.map_col_size = *(uint32_t *)&data[34] >> 2;
+	game.map_elms = *(uint32_t *)&data[38];
+	game.map_row_shift = *(uint16_t *)&data[42];
+	game.map_col_mask = *(uint16_t *)&data[44];
+	game.map_row_mask = *(uint16_t *)&data[46];
+	game.map_data_offset = *(uint32_t *)&data[48] >> 2;
+	game.map_shifted_col_mask = *(uint16_t *)&data[52] >> 2;
+	game.map_shifted_row_mask = *(uint32_t *)&data[54] >> 2;
+	game.map_col_pairs = *(uint16_t *)&data[58];
+	game.map_row_pairs = *(uint16_t *)&data[60];*/
 
-	globals.split = *(uint8_t *)&data[66];
-	/* globals.field_37F = *(uint8_t *)&data[67]; */
-	globals.update_map_initial_pos = load_v0_map_pos(map, *(uint32_t *)&data[68]);
+	game.split = *(uint8_t *)&data[66];
+	/* game.field_37F = *(uint8_t *)&data[67]; */
+	game.update_map_initial_pos = load_v0_map_pos(map, *(uint32_t *)&data[68]);
 
-	globals.cfg_left = *(uint8_t *)&data[72];
-	globals.cfg_right = *(uint8_t *)&data[73];
+	game.cfg_left = *(uint8_t *)&data[72];
+	game.cfg_right = *(uint8_t *)&data[73];
 
-	globals.game_type = *(uint16_t *)&data[74];
-	globals.game_tick = *(uint32_t *)&data[76];
-	globals.game_stats_counter = *(uint16_t *)&data[80];
-	globals.history_counter = *(uint16_t *)&data[82];
+	game.game_type = *(uint16_t *)&data[74];
+	game.game_tick = *(uint32_t *)&data[76];
+	game.game_stats_counter = *(uint16_t *)&data[80];
+	game.history_counter = *(uint16_t *)&data[82];
 
-	globals.rnd.state[0] = *(uint16_t *)&data[84];
-	globals.rnd.state[1] = *(uint16_t *)&data[86];
-	globals.rnd.state[2] = *(uint16_t *)&data[88];
+	game.rnd.state[0] = *(uint16_t *)&data[84];
+	game.rnd.state[1] = *(uint16_t *)&data[86];
+	game.rnd.state[2] = *(uint16_t *)&data[88];
 
-	globals.max_ever_flag_index = *(uint16_t *)&data[90];
-	globals.max_ever_building_index = *(uint16_t *)&data[92];
-	globals.max_ever_serf_index = *(uint16_t *)&data[94];
+	game.max_ever_flag_index = *(uint16_t *)&data[90];
+	game.max_ever_building_index = *(uint16_t *)&data[92];
+	game.max_ever_serf_index = *(uint16_t *)&data[94];
 
-	globals.next_index = *(uint16_t *)&data[96];
-	globals.flag_search_counter = *(uint16_t *)&data[98];
-	globals.update_map_last_anim = *(uint16_t *)&data[100];
-	globals.update_map_counter = *(uint16_t *)&data[102];
+	game.next_index = *(uint16_t *)&data[96];
+	game.flag_search_counter = *(uint16_t *)&data[98];
+	game.update_map_last_anim = *(uint16_t *)&data[100];
+	game.update_map_counter = *(uint16_t *)&data[102];
 
 	for (int i = 0; i < 4; i++) {
-		globals.player_history_index[i] = *(uint16_t *)&data[104 + i*2];
+		game.player_history_index[i] = *(uint16_t *)&data[104 + i*2];
 	}
 
 	for (int i = 0; i < 3; i++) {
-		globals.player_history_counter[i] = *(uint16_t *)&data[112 + i*2];
+		game.player_history_counter[i] = *(uint16_t *)&data[112 + i*2];
 	}
 
-	globals.resource_history_index = *(uint16_t *)&data[118];
+	game.resource_history_index = *(uint16_t *)&data[118];
 
-	globals.map_regions = *(uint16_t *)&data[120];
+	game.map_regions = *(uint16_t *)&data[120];
 
-	if (0/*globals.game_type == GAME_TYPE_TUTORIAL*/) {
-		globals.tutorial_level = *(uint16_t *)&data[122];
-	} else if (0/*globals.game_type == GAME_TYPE_MISSION*/) {
-		globals.mission_level = *(uint16_t *)&data[124];
-		/*globals.max_mission_level = *(uint16_t *)&data[126];*/
-		/* memcpy(globals.mission_code, &data[128], 8); */
-	} else if (1/*globals.game_type == GAME_TYPE_1_PLAYER*/) {
-		/*globals.menu_map_size = *(uint16_t *)&data[136];*/
-		/*globals.rnd_init_1 = *(uint16_t *)&data[138];
-		globals.rnd_init_2 = *(uint16_t *)&data[140];
-		globals.rnd_init_3 = *(uint16_t *)&data[142];*/
+	if (0/*game.game_type == GAME_TYPE_TUTORIAL*/) {
+		game.tutorial_level = *(uint16_t *)&data[122];
+	} else if (0/*game.game_type == GAME_TYPE_MISSION*/) {
+		game.mission_level = *(uint16_t *)&data[124];
+		/*game.max_mission_level = *(uint16_t *)&data[126];*/
+		/* memcpy(game.mission_code, &data[128], 8); */
+	} else if (1/*game.game_type == GAME_TYPE_1_PLAYER*/) {
+		/*game.menu_map_size = *(uint16_t *)&data[136];*/
+		/*game.rnd_init_1 = *(uint16_t *)&data[138];
+		game.rnd_init_2 = *(uint16_t *)&data[140];
+		game.rnd_init_3 = *(uint16_t *)&data[142];*/
 
 		/*
-		memcpy(globals.menu_ai_face, &data[144], 4);
-		memcpy(globals.menu_ai_intelligence, &data[148], 4);
-		memcpy(globals.menu_ai_supplies, &data[152], 4);
-		memcpy(globals.menu_ai_reproduction, &data[156], 4);
+		memcpy(game.menu_ai_face, &data[144], 4);
+		memcpy(game.menu_ai_intelligence, &data[148], 4);
+		memcpy(game.menu_ai_supplies, &data[152], 4);
+		memcpy(game.menu_ai_reproduction, &data[156], 4);
 		*/
 
 		/*
-		memcpy(globals.menu_human_supplies, &data[160], 2);
-		memcpy(globals.menu_human_reproduction, &data[162], 2);
+		memcpy(game.menu_human_supplies, &data[160], 2);
+		memcpy(game.menu_human_reproduction, &data[162], 2);
 		*/
 	}
 
 	/*
-	globals.saved_pl1_map_cursor_col = *(uint16_t *)&data[164];
-	globals.saved_pl1_map_cursor_row = *(uint16_t *)&data[166];
+	game.saved_pl1_map_cursor_col = *(uint16_t *)&data[164];
+	game.saved_pl1_map_cursor_row = *(uint16_t *)&data[166];
 
-	globals.saved_pl1_pl_sett_100 = *(uint8_t *)&data[168];
-	globals.saved_pl1_pl_sett_101 = *(uint8_t *)&data[169];
-	globals.saved_pl1_pl_sett_102 = *(uint16_t *)&data[170];
+	game.saved_pl1_pl_sett_100 = *(uint8_t *)&data[168];
+	game.saved_pl1_pl_sett_101 = *(uint8_t *)&data[169];
+	game.saved_pl1_pl_sett_102 = *(uint16_t *)&data[170];
 
-	globals.saved_pl1_build = *(uint8_t *)&data[172];
-	globals.field_17B = *(uint8_t *)&data[173];
+	game.saved_pl1_build = *(uint8_t *)&data[172];
+	game.field_17B = *(uint8_t *)&data[173];
 	*/
 
-	globals.max_ever_inventory_index = *(uint16_t *)&data[174];
-	globals.map_max_serfs_left = *(uint16_t *)&data[176];
-	/* globals.max_stock_buildings = *(uint16_t *)&data[178]; */
-	globals.max_next_index = *(uint16_t *)&data[180];
-	globals.map_field_4A = *(uint16_t *)&data[182];
-	globals.map_gold_deposit = *(uint32_t *)&data[184];
-	globals.update_map_16_loop = *(uint16_t *)&data[188];
+	game.max_ever_inventory_index = *(uint16_t *)&data[174];
+	game.map_max_serfs_left = *(uint16_t *)&data[176];
+	/* game.max_stock_buildings = *(uint16_t *)&data[178]; */
+	game.max_next_index = *(uint16_t *)&data[180];
+	game.map_field_4A = *(uint16_t *)&data[182];
+	game.map_gold_deposit = *(uint32_t *)&data[184];
+	game.update_map_16_loop = *(uint16_t *)&data[188];
 
-	globals.map_field_52 = *(uint16_t *)&data[192];
+	game.map_field_52 = *(uint16_t *)&data[192];
 	/*
-	globals.field_54 = *(uint16_t *)&data[194];
-	globals.field_56 = *(uint16_t *)&data[196];
+	game.field_54 = *(uint16_t *)&data[194];
+	game.field_56 = *(uint16_t *)&data[196];
 	*/
 
-	globals.map_62_5_times_regions = *(uint16_t *)&data[198];
-	globals.map_gold_morale_factor = *(uint16_t *)&data[200];
-	globals.winning_player = *(uint16_t *)&data[202];
-	globals.player_score_leader = *(uint8_t *)&data[204];
+	game.map_62_5_times_regions = *(uint16_t *)&data[198];
+	game.map_gold_morale_factor = *(uint16_t *)&data[200];
+	game.winning_player = *(uint16_t *)&data[202];
+	game.player_score_leader = *(uint8_t *)&data[204];
 	/*
-	globals.show_game_end_box = *(uint8_t *)&data[205];
+	game.show_game_end_box = *(uint8_t *)&data[205];
 	*/
 
-	/*globals.map_dirs[DIR_LEFT] = *(uint32_t *)&data[206] >> 2;*/
+	/*game.map_dirs[DIR_LEFT] = *(uint32_t *)&data[206] >> 2;*/
 
 	free(data);
 
@@ -215,7 +214,7 @@ load_v0_player_state(FILE *f)
 			return -1;
 		}
 
-		player_t *player = globals.player[i];
+		player_t *player = game.player[i];
 
 		for (int j = 0; j < 9; j++) {
 			player->tool_prio[j] = *(uint16_t *)&data[2*j];
@@ -331,10 +330,10 @@ load_v0_map_state(FILE *f, const v0_map_t *map)
 		return -1;
 	}
 
-	map_tile_t *tiles = globals.map.tiles;
+	map_tile_t *tiles = game.map.tiles;
 
-	for (int y = 0; y < globals.map.rows; y++) {
-		for (int x = 0; x < globals.map.cols; x++) {
+	for (int y = 0; y < game.map.rows; y++) {
+		for (int x = 0; x < game.map.cols; x++) {
 			map_pos_t pos = MAP_POS(x, y);
 			uint8_t *field_1_data = &data[4*(x + (y << map->row_shift))];
 			uint8_t *field_2_data = &data[4*(x + (y << map->row_shift)) + 4*map->cols];
@@ -366,7 +365,7 @@ static int
 load_v0_serf_state(FILE *f, const v0_map_t *map)
 {
 	/* Load serf bitmap. */
-	int bitmap_size = 4*((globals.max_ever_serf_index + 31)/32);
+	int bitmap_size = 4*((game.max_ever_serf_index + 31)/32);
 	uint8_t *bitmap = malloc(bitmap_size);
 	if (bitmap == NULL) return -1;
 
@@ -376,24 +375,24 @@ load_v0_serf_state(FILE *f, const v0_map_t *map)
 		return -1;
 	}
 
-	memset(globals.serfs_bitmap, '\0', (globals.max_serf_cnt+31)/32);
-	memcpy(globals.serfs_bitmap, bitmap, bitmap_size);
+	memset(game.serfs_bitmap, '\0', (game.max_serf_cnt+31)/32);
+	memcpy(game.serfs_bitmap, bitmap, bitmap_size);
 
 	free(bitmap);
 
 	/* Load serf data. */
-	uint8_t *data = malloc(16*globals.max_ever_serf_index);
+	uint8_t *data = malloc(16*game.max_ever_serf_index);
 	if (data == NULL) return -1;
 
-	rd = fread(data, 16*sizeof(uint8_t), globals.max_ever_serf_index, f);
-	if (rd < globals.max_ever_serf_index) {
+	rd = fread(data, 16*sizeof(uint8_t), game.max_ever_serf_index, f);
+	if (rd < game.max_ever_serf_index) {
 		free(data);
 		return -1;
 	}
 
-	for (int i = 0; i < globals.max_ever_serf_index; i++) {
+	for (int i = 0; i < game.max_ever_serf_index; i++) {
 		uint8_t *serf_data = &data[16*i];
-		serf_t *serf = &globals.serfs[i];
+		serf_t *serf = &game.serfs[i];
 
 		serf->type = serf_data[0];
 		serf->animation = serf_data[1];
@@ -542,7 +541,7 @@ load_v0_serf_state(FILE *f, const v0_map_t *map)
 		case SERF_STATE_WAKE_AT_FLAG:
 		case SERF_STATE_WAKE_ON_PATH:
 			serf->s.idle_on_path.rev_dir = *(int8_t *)&serf_data[11];
-			serf->s.idle_on_path.flag = &globals.flgs[*(uint32_t *)&serf_data[12]/70];
+			serf->s.idle_on_path.flag = &game.flgs[*(uint32_t *)&serf_data[12]/70];
 			serf->s.idle_on_path.field_E = serf_data[14];
 			break;
 
@@ -567,7 +566,7 @@ static int
 load_v0_flag_state(FILE *f)
 {
 	/* Load flag bitmap. */
-	int bitmap_size = 4*((globals.max_ever_flag_index + 31)/32);
+	int bitmap_size = 4*((game.max_ever_flag_index + 31)/32);
 	uint8_t *flag_bitmap = malloc(bitmap_size);
 	if (flag_bitmap == NULL) return -1;
 
@@ -577,24 +576,24 @@ load_v0_flag_state(FILE *f)
 		return -1;
 	}
 
-	memset(globals.flg_bitmap, '\0', (globals.max_flg_cnt+31)/32);
-	memcpy(globals.flg_bitmap, flag_bitmap, bitmap_size);
+	memset(game.flg_bitmap, '\0', (game.max_flg_cnt+31)/32);
+	memcpy(game.flg_bitmap, flag_bitmap, bitmap_size);
 
 	free(flag_bitmap);
 
 	/* Load flag data. */
-	uint8_t *data = malloc(70*globals.max_ever_flag_index);
+	uint8_t *data = malloc(70*game.max_ever_flag_index);
 	if (data == NULL) return -1;
 
-	rd = fread(data, 70*sizeof(uint8_t), globals.max_ever_flag_index, f);
-	if (rd < globals.max_ever_flag_index) {
+	rd = fread(data, 70*sizeof(uint8_t), game.max_ever_flag_index, f);
+	if (rd < game.max_ever_flag_index) {
 		free(data);
 		return -1;
 	}
 
-	for (int i = 0; i < globals.max_ever_flag_index; i++) {
+	for (int i = 0; i < game.max_ever_flag_index; i++) {
 		uint8_t *flag_data = &data[70*i];
-		flag_t *flag = &globals.flgs[i];
+		flag_t *flag = &game.flgs[i];
 
 		flag->pos = MAP_POS(0, 0); /* Set correctly later. */
 		flag->search_num = *(uint16_t *)&flag_data[0];
@@ -614,11 +613,11 @@ load_v0_flag_state(FILE *f)
 
 		for (int j = 0; j < 6; j++) {
 			int offset = *(uint32_t *)&flag_data[36+4*j];
-			flag->other_endpoint.f[j] = &globals.flgs[offset/70];
+			flag->other_endpoint.f[j] = &game.flgs[offset/70];
 
 			/* Other endpoint could be a building in direction up left. */
 			if (j == 4 && FLAG_HAS_BUILDING(flag)) {
-				flag->other_endpoint.b[j] = &globals.buildings[offset/18];
+				flag->other_endpoint.b[j] = &game.buildings[offset/18];
 			}
 
 			flag->other_end_dir[j] = flag_data[60+j];
@@ -636,8 +635,8 @@ load_v0_flag_state(FILE *f)
 	free(data);
 
 	/* Set flag positions. */
-	for (int y = 0; y < globals.map.rows; y++) {
-		for (int x = 0; x < globals.map.cols; x++) {
+	for (int y = 0; y < game.map.rows; y++) {
+		for (int x = 0; x < game.map.cols; x++) {
 			map_pos_t pos = MAP_POS(x, y);
 			if (MAP_OBJ(pos) == MAP_OBJ_FLAG) {
 				flag_t *flag = game_get_flag(MAP_OBJ_INDEX(pos));
@@ -654,7 +653,7 @@ static int
 load_v0_building_state(FILE *f, const v0_map_t *map)
 {
 	/* Load building bitmap. */
-	int bitmap_size = 4*((globals.max_ever_building_index + 31)/32);
+	int bitmap_size = 4*((game.max_ever_building_index + 31)/32);
 	uint8_t *bitmap = malloc(bitmap_size);
 	if (bitmap == NULL) return -1;
 
@@ -664,24 +663,24 @@ load_v0_building_state(FILE *f, const v0_map_t *map)
 		return -1;
 	}
 
-	memset(globals.buildings_bitmap, '\0', (globals.max_building_cnt+31)/32);
-	memcpy(globals.buildings_bitmap, bitmap, bitmap_size);
+	memset(game.buildings_bitmap, '\0', (game.max_building_cnt+31)/32);
+	memcpy(game.buildings_bitmap, bitmap, bitmap_size);
 
 	free(bitmap);
 
 	/* Load building data. */
-	uint8_t *data = malloc(18*globals.max_ever_building_index);
+	uint8_t *data = malloc(18*game.max_ever_building_index);
 	if (data == NULL) return -1;
 
-	rd = fread(data, 18*sizeof(uint8_t), globals.max_ever_building_index, f);
-	if (rd < globals.max_ever_building_index) {
+	rd = fread(data, 18*sizeof(uint8_t), game.max_ever_building_index, f);
+	if (rd < game.max_ever_building_index) {
 		free(data);
 		return -1;
 	}
 
-	for (int i = 0; i < globals.max_ever_building_index; i++) {
+	for (int i = 0; i < game.max_ever_building_index; i++) {
 		uint8_t *building_data = &data[18*i];
-		building_t *building = &globals.buildings[i];
+		building_t *building = &game.buildings[i];
 
 		building->pos = load_v0_map_pos(map, *(uint32_t *)&building_data[0]);
 		building->bld = building_data[4];
@@ -705,9 +704,9 @@ load_v0_building_state(FILE *f, const v0_map_t *map)
 			int offset = *(uint32_t *)&building_data[14];
 			if (BUILDING_TYPE(building) == BUILDING_STOCK ||
 			    BUILDING_TYPE(building) == BUILDING_CASTLE) {
-				building->u.inventory = &globals.inventories[offset/120];
+				building->u.inventory = &game.inventories[offset/120];
 			} else {
-				building->u.flag = &globals.flgs[offset/70];
+				building->u.flag = &game.flgs[offset/70];
 			}
 		} else {
 			building->u.s.level = *(uint16_t *)&building_data[14];
@@ -781,7 +780,7 @@ static int
 load_v0_inventory_state(FILE *f)
 {
 	/* Load inventory bitmap. */
-	int bitmap_size = 4*((globals.max_ever_inventory_index + 31)/32);
+	int bitmap_size = 4*((game.max_ever_inventory_index + 31)/32);
 	uint8_t *bitmap = malloc(bitmap_size);
 	if (bitmap == NULL) return -1;
 
@@ -791,24 +790,24 @@ load_v0_inventory_state(FILE *f)
 		return -1;
 	}
 
-	memset(globals.inventories_bitmap, '\0', (globals.max_inventory_cnt+31)/32);
-	memcpy(globals.inventories_bitmap, bitmap, bitmap_size);
+	memset(game.inventories_bitmap, '\0', (game.max_inventory_cnt+31)/32);
+	memcpy(game.inventories_bitmap, bitmap, bitmap_size);
 
 	free(bitmap);
 
 	/* Load inventory data. */
-	uint8_t *data = malloc(120*globals.max_ever_inventory_index);
+	uint8_t *data = malloc(120*game.max_ever_inventory_index);
 	if (data == NULL) return -1;
 
-	rd = fread(data, 120*sizeof(uint8_t), globals.max_ever_inventory_index, f);
-	if (rd < globals.max_ever_inventory_index) {
+	rd = fread(data, 120*sizeof(uint8_t), game.max_ever_inventory_index, f);
+	if (rd < game.max_ever_inventory_index) {
 		free(data);
 		return -1;
 	}
 
-	for (int i = 0; i < globals.max_ever_inventory_index; i++) {
+	for (int i = 0; i < game.max_ever_inventory_index; i++) {
 		uint8_t *inventory_data = &data[120*i];
-		inventory_t *inventory = &globals.inventories[i];
+		inventory_t *inventory = &game.inventories[i];
 
 		inventory->player_num = inventory_data[0];
 		inventory->res_dir = inventory_data[1];
@@ -864,8 +863,8 @@ load_v0_state(FILE *f)
 	r = load_v0_inventory_state(f);
 	if (r < 0) return -1;
 
-	globals.game_speed = 0;
-	globals.game_speed_save = DEFAULT_GAME_SPEED;
+	game.game_speed = 0;
+	game.game_speed_save = DEFAULT_GAME_SPEED;
 
 	return 0;
 }
@@ -907,52 +906,52 @@ save_text_globals_state(FILE *f)
 
 	save_text_write_string(f, "version", FREESERF_VERSION);
 
-	save_text_write_value(f, "map.col_size", globals.map.col_size);
-	save_text_write_value(f, "map.row_size", globals.map.row_size);
+	save_text_write_value(f, "map.col_size", game.map.col_size);
+	save_text_write_value(f, "map.row_size", game.map.row_size);
 
-	save_text_write_value(f, "split", globals.split);
-	save_text_write_map_pos(f, "update_map_initial_pos", globals.update_map_initial_pos);
-	save_text_write_value(f, "cfg.left", globals.cfg_left);
-	save_text_write_value(f, "cfg.right", globals.cfg_right);
+	save_text_write_value(f, "split", game.split);
+	save_text_write_map_pos(f, "update_map_initial_pos", game.update_map_initial_pos);
+	save_text_write_value(f, "cfg.left", game.cfg_left);
+	save_text_write_value(f, "cfg.right", game.cfg_right);
 
-	save_text_write_value(f, "game_type", globals.game_type);
-	save_text_write_value(f, "game_tick", globals.game_tick);
-	save_text_write_value(f, "game_stats_counter", globals.game_stats_counter);
-	save_text_write_value(f, "history_counter", globals.history_counter);
+	save_text_write_value(f, "game_type", game.game_type);
+	save_text_write_value(f, "game_tick", game.game_tick);
+	save_text_write_value(f, "game_stats_counter", game.game_stats_counter);
+	save_text_write_value(f, "history_counter", game.history_counter);
 
-	int rnd[3] = { globals.rnd.state[0],
-		       globals.rnd.state[1],
-		       globals.rnd.state[2] };
+	int rnd[3] = { game.rnd.state[0],
+		       game.rnd.state[1],
+		       game.rnd.state[2] };
 	save_text_write_array(f, "rnd", rnd, 3);
 
-	save_text_write_value(f, "max_ever_flag_index", globals.max_ever_flag_index);
-	save_text_write_value(f, "max_ever_building_index", globals.max_ever_building_index);
-	save_text_write_value(f, "max_ever_serf_index", globals.max_ever_serf_index);
+	save_text_write_value(f, "max_ever_flag_index", game.max_ever_flag_index);
+	save_text_write_value(f, "max_ever_building_index", game.max_ever_building_index);
+	save_text_write_value(f, "max_ever_serf_index", game.max_ever_serf_index);
 
-	save_text_write_value(f, "next_index", globals.next_index);
-	save_text_write_value(f, "flag_search_counter", globals.flag_search_counter);
-	save_text_write_value(f, "update_map_last_anim", globals.update_map_last_anim);
-	save_text_write_value(f, "update_map_counter", globals.update_map_counter);
+	save_text_write_value(f, "next_index", game.next_index);
+	save_text_write_value(f, "flag_search_counter", game.flag_search_counter);
+	save_text_write_value(f, "update_map_last_anim", game.update_map_last_anim);
+	save_text_write_value(f, "update_map_counter", game.update_map_counter);
 
-	save_text_write_array(f, "player_history_index", globals.player_history_index, 4);
-	save_text_write_array(f, "player_history_counter", globals.player_history_counter, 3);
-	save_text_write_value(f, "resource_history_index", globals.resource_history_index);
+	save_text_write_array(f, "player_history_index", game.player_history_index, 4);
+	save_text_write_array(f, "player_history_counter", game.player_history_counter, 3);
+	save_text_write_value(f, "resource_history_index", game.resource_history_index);
 
-	save_text_write_value(f, "map.regions", globals.map_regions);
+	save_text_write_value(f, "map.regions", game.map_regions);
 
-	save_text_write_value(f, "max_ever_inventory_index", globals.max_ever_inventory_index);
-	save_text_write_value(f, "map.max_serfs_left", globals.map_max_serfs_left);
-	save_text_write_value(f, "max_next_index", globals.max_next_index);
-	save_text_write_value(f, "map.field_4A", globals.map_field_4A);
-	save_text_write_value(f, "map.gold_deposit", globals.map_gold_deposit);
-	save_text_write_value(f, "update_map_16_loop", globals.update_map_16_loop);
-	save_text_write_value(f, "map.size", globals.map_size);
-	save_text_write_value(f, "map.field_52", globals.map_field_52);
+	save_text_write_value(f, "max_ever_inventory_index", game.max_ever_inventory_index);
+	save_text_write_value(f, "map.max_serfs_left", game.map_max_serfs_left);
+	save_text_write_value(f, "max_next_index", game.max_next_index);
+	save_text_write_value(f, "map.field_4A", game.map_field_4A);
+	save_text_write_value(f, "map.gold_deposit", game.map_gold_deposit);
+	save_text_write_value(f, "update_map_16_loop", game.update_map_16_loop);
+	save_text_write_value(f, "map.size", game.map_size);
+	save_text_write_value(f, "map.field_52", game.map_field_52);
 
-	save_text_write_value(f, "map.62_5_times_regions", globals.map_62_5_times_regions);
-	save_text_write_value(f, "map.gold_morale_factor", globals.map_gold_morale_factor);
-	save_text_write_value(f, "winning_player", globals.winning_player);
-	save_text_write_value(f, "player_score_leader", globals.player_score_leader);
+	save_text_write_value(f, "map.62_5_times_regions", game.map_62_5_times_regions);
+	save_text_write_value(f, "map.gold_morale_factor", game.map_gold_morale_factor);
+	save_text_write_value(f, "winning_player", game.winning_player);
+	save_text_write_value(f, "player_score_leader", game.player_score_leader);
 	fprintf(f, "\n");
 
 	return 0;
@@ -962,7 +961,7 @@ static int
 save_text_player_state(FILE *f)
 {
 	for (int i = 0; i < 4; i++) {
-		player_t *player = globals.player[i];
+		player_t *player = game.player[i];
 		if (!PLAYER_IS_ACTIVE(player)) continue;
 
 		fprintf(f, "[player %i]\n", i);
@@ -1028,7 +1027,7 @@ save_text_player_state(FILE *f)
 static int
 save_text_flag_state(FILE *f)
 {
-	for (int i = 1; i < globals.max_ever_flag_index; i++) {
+	for (int i = 1; i < game.max_ever_flag_index; i++) {
 		if (FLAG_ALLOCATED(i)) {
 			flag_t *flag = game_get_flag(i);
 
@@ -1074,7 +1073,7 @@ save_text_flag_state(FILE *f)
 static int
 save_text_building_state(FILE *f)
 {
-	for (int i = 1; i < globals.max_ever_building_index; i++) {
+	for (int i = 1; i < game.max_ever_building_index; i++) {
 		if (BUILDING_ALLOCATED(i)) {
 			building_t *building = game_get_building(i);
 
@@ -1123,7 +1122,7 @@ save_text_building_state(FILE *f)
 static int
 save_text_inventory_state(FILE *f)
 {
-	for (int i = 0; i < globals.max_ever_inventory_index; i++) {
+	for (int i = 0; i < game.max_ever_inventory_index; i++) {
 		if (INVENTORY_ALLOCATED(i)) {
 			inventory_t *inventory = game_get_inventory(i);
 
@@ -1152,7 +1151,7 @@ save_text_inventory_state(FILE *f)
 static int
 save_text_serf_state(FILE *f)
 {
-	for (int i = 1; i < globals.max_ever_serf_index; i++) {
+	for (int i = 1; i < game.max_ever_serf_index; i++) {
 		if (!SERF_ALLOCATED(i)) continue;
 
 		serf_t *serf = game_get_serf(i);
@@ -1320,8 +1319,8 @@ save_text_serf_state(FILE *f)
 static int
 save_text_map_state(FILE *f)
 {
-	for (int y = 0; y < globals.map.rows; y++) {
-		for (int x = 0; x < globals.map.cols; x++) {
+	for (int y = 0; y < game.map.rows; y++) {
+		for (int x = 0; x < game.map.cols; x++) {
 			map_pos_t pos = MAP_POS(x, y);
 
 			fprintf(f, "[map %i %i]\n", x, y);
@@ -1636,16 +1635,16 @@ load_text_global_state(list_t *sections)
 	   so that map positions can be loaded properly. */
 	value = load_text_get_setting(section, "map.col_size");
 	if (value == NULL) return -1;
-	globals.map.col_size = atoi(value);
+	game.map.col_size = atoi(value);
 
 	value = load_text_get_setting(section, "map.row_size");
 	if (value == NULL) return -1;
-	globals.map.row_size = atoi(value);
+	game.map.row_size = atoi(value);
 
 	/* Initialize remaining map dimensions. */
-	globals.map.cols = 1 << globals.map.col_size;
-	globals.map.rows = 1 << globals.map.row_size;
-	map_init_dimensions(&globals.map);
+	game.map.cols = 1 << game.map.col_size;
+	game.map.rows = 1 << game.map.row_size;
+	map_init_dimensions(&game.map);
 
 	/* Load the remaining global state. */
 	list_foreach(&section->settings, elm) {
@@ -1656,81 +1655,81 @@ load_text_global_state(list_t *sections)
 			   !strcmp(s->key, "map.row_size")) {
 			/* Already loaded above. */
 		} else if (!strcmp(s->key, "split")) {
-			globals.split = atoi(s->value);
+			game.split = atoi(s->value);
 		} else if (!strcmp(s->key, "update_map_initial_pos")) {
-			globals.update_map_initial_pos = parse_map_pos(s->value);
+			game.update_map_initial_pos = parse_map_pos(s->value);
 		} else if (!strcmp(s->key, "cfg.left")) {
-			globals.cfg_left = atoi(s->value);
+			game.cfg_left = atoi(s->value);
 		} else if (!strcmp(s->key, "cfg.right")) {
-			globals.cfg_right = atoi(s->value);
+			game.cfg_right = atoi(s->value);
 		} else if (!strcmp(s->key, "game_type")) {
-			globals.game_type = atoi(s->value);
+			game.game_type = atoi(s->value);
 		} else if (!strcmp(s->key, "game_tick")) {
-			globals.game_tick = atoi(s->value);
+			game.game_tick = atoi(s->value);
 		} else if (!strcmp(s->key, "game_stats_counter")) {
-			globals.game_stats_counter = atoi(s->value);
+			game.game_stats_counter = atoi(s->value);
 		} else if (!strcmp(s->key, "history_counter")) {
-			globals.history_counter = atoi(s->value);
+			game.history_counter = atoi(s->value);
 		} else if (!strcmp(s->key, "rnd")) {
 			char *array = s->value;
 			for (int i = 0; i < 3 && array != NULL; i++) {
 				char *v = parse_array_value(&array);
-				globals.rnd.state[i] = atoi(v);
+				game.rnd.state[i] = atoi(v);
 			}
 		} else if (!strcmp(s->key, "max_ever_flag_index")) {
-			globals.max_ever_flag_index = atoi(s->value);
+			game.max_ever_flag_index = atoi(s->value);
 		} else if (!strcmp(s->key, "max_ever_building_index")) {
-			globals.max_ever_building_index = atoi(s->value);
+			game.max_ever_building_index = atoi(s->value);
 		} else if (!strcmp(s->key, "max_ever_serf_index")) {
-			globals.max_ever_serf_index = atoi(s->value);
+			game.max_ever_serf_index = atoi(s->value);
 		} else if (!strcmp(s->key, "next_index")) {
-			globals.next_index = atoi(s->value);
+			game.next_index = atoi(s->value);
 		} else if (!strcmp(s->key, "flag_search_counter")) {
-			globals.flag_search_counter = atoi(s->value);
+			game.flag_search_counter = atoi(s->value);
 		} else if (!strcmp(s->key, "update_map_last_anim")) {
-			globals.update_map_last_anim = atoi(s->value);
+			game.update_map_last_anim = atoi(s->value);
 		} else if (!strcmp(s->key, "update_map_counter")) {
-			globals.update_map_counter = atoi(s->value);
+			game.update_map_counter = atoi(s->value);
 		} else if (!strcmp(s->key, "player_history_index")) {
 			char *array = s->value;
 			for (int i = 0; i < 4 && array != NULL; i++) {
 				char *v = parse_array_value(&array);
-				globals.player_history_index[i] = atoi(v);
+				game.player_history_index[i] = atoi(v);
 			}
 		} else if (!strcmp(s->key, "player_history_counter")) {
 			char *array = s->value;
 			for (int i = 0; i < 3 && array != NULL; i++) {
 				char *v = parse_array_value(&array);
-				globals.player_history_counter[i] = atoi(v);
+				game.player_history_counter[i] = atoi(v);
 			}
 		} else if (!strcmp(s->key, "resource_history_index")) {
-			globals.resource_history_index = atoi(s->value);
+			game.resource_history_index = atoi(s->value);
 		} else if (!strcmp(s->key, "map.regions")) {
-			globals.map_regions = atoi(s->value);
+			game.map_regions = atoi(s->value);
 		} else if (!strcmp(s->key, "max_ever_inventory_index")) {
-			globals.max_ever_inventory_index = atoi(s->value);
+			game.max_ever_inventory_index = atoi(s->value);
 		} else if (!strcmp(s->key, "map.max_serfs_left")) {
-			globals.map_max_serfs_left = atoi(s->value);
+			game.map_max_serfs_left = atoi(s->value);
 		} else if (!strcmp(s->key, "max_next_index")) {
-			globals.max_next_index = atoi(s->value);
+			game.max_next_index = atoi(s->value);
 		} else if (!strcmp(s->key, "map.field_4A")) {
-			globals.map_field_4A = atoi(s->value);
+			game.map_field_4A = atoi(s->value);
 		} else if (!strcmp(s->key, "map.gold_deposit")) {
-			globals.map_gold_deposit = atoi(s->value);
+			game.map_gold_deposit = atoi(s->value);
 		} else if (!strcmp(s->key, "update_map_16_loop")) {
-			globals.update_map_16_loop = atoi(s->value);
+			game.update_map_16_loop = atoi(s->value);
 		} else if (!strcmp(s->key, "map.size")) {
-			globals.map_size = atoi(s->value);
+			game.map_size = atoi(s->value);
 		} else if (!strcmp(s->key, "map.field_52")) {
-			globals.map_field_52 = atoi(s->value);
+			game.map_field_52 = atoi(s->value);
 		} else if (!strcmp(s->key, "map.62_5_times_regions")) {
-			globals.map_62_5_times_regions = atoi(s->value);
+			game.map_62_5_times_regions = atoi(s->value);
 		} else if (!strcmp(s->key, "map.gold_morale_factor")) {
-			globals.map_gold_morale_factor = atoi(s->value);
+			game.map_gold_morale_factor = atoi(s->value);
 		} else if (!strcmp(s->key, "winning_player")) {
-			globals.winning_player = atoi(s->value);
+			game.winning_player = atoi(s->value);
 		} else if (!strcmp(s->key, "player_score_leader")) {
-			globals.player_score_leader = atoi(s->value);
+			game.player_score_leader = atoi(s->value);
 		} else {
 			LOGD("savegame", "Unhandled global setting: `%s'.", s->key);
 		}
@@ -1744,7 +1743,7 @@ load_text_player_section(section_t *section)
 {
 	/* Parse player number. */
 	int n = atoi(section->param);
-	player_t *player = globals.player[n];
+	player_t *player = game.player[n];
 
 	/* Load the player state. */
 	list_elm_t *elm;
@@ -1892,10 +1891,10 @@ load_text_flag_section(section_t *section)
 {
 	/* Parse flag number. */
 	int n = atoi(section->param);
-	if (n >= globals.max_flg_cnt) return -1;
+	if (n >= game.max_flg_cnt) return -1;
 
-	flag_t *flag = &globals.flgs[n];
-	globals.flg_bitmap[n/8] |= BIT(7-(n&7));
+	flag_t *flag = &game.flgs[n];
+	game.flg_bitmap[n/8] |= BIT(7-(n&7));
 
 	/* Load the flag state. */
 	list_elm_t *elm;
@@ -1937,7 +1936,7 @@ load_text_flag_section(section_t *section)
 			char *array = s->value;
 			for (int i = 0; i < 6 && array != NULL; i++) {
 				char *v = parse_array_value(&array);
-				flag->other_endpoint.f[i] = &globals.flgs[atoi(v)];
+				flag->other_endpoint.f[i] = &game.flgs[atoi(v)];
 			}
 		} else if (!strcmp(s->key, "bld_flags")) {
 			flag->bld_flags = atoi(s->value);
@@ -1959,7 +1958,7 @@ load_text_flag_section(section_t *section)
 
 		if (v == NULL) return -1;
 
-		flag->other_endpoint.b[DIR_UP_LEFT] = &globals.buildings[atoi(v)];
+		flag->other_endpoint.b[DIR_UP_LEFT] = &game.buildings[atoi(v)];
 	}
 
 	return 0;
@@ -1969,7 +1968,7 @@ static int
 load_text_flag_state(list_t *sections)
 {
 	/* Clear flag allocation bitmap */
-	memset(globals.flg_bitmap, 0, ((globals.max_flg_cnt-1) / 8) + 1);
+	memset(game.flg_bitmap, 0, ((game.max_flg_cnt-1) / 8) + 1);
 
 	/* Create NULL-flag (index 0 is undefined) */
 	game_alloc_flag(NULL, NULL);
@@ -1991,10 +1990,10 @@ load_text_building_section(section_t *section)
 {
 	/* Parse building number. */
 	int n = atoi(section->param);
-	if (n >= globals.max_building_cnt) return -1;
+	if (n >= game.max_building_cnt) return -1;
 
-	building_t *building = &globals.buildings[n];
-	globals.buildings_bitmap[n/8] |= BIT(7-(n&7));
+	building_t *building = &game.buildings[n];
+	game.buildings_bitmap[n/8] |= BIT(7-(n&7));
 
 	/* Load the building state. */
 	list_elm_t *elm;
@@ -2054,11 +2053,11 @@ load_text_building_section(section_t *section)
 		    BUILDING_TYPE(building) == BUILDING_CASTLE) {
 			char *value = load_text_get_setting(section, "inventory");
 			if (value == NULL) return -1;
-			building->u.inventory = &globals.inventories[atoi(value)];
+			building->u.inventory = &game.inventories[atoi(value)];
 		} else {
 			char *value = load_text_get_setting(section, "flag");
 			if (value == NULL) return -1;
-			building->u.flag = &globals.flgs[atoi(value)];
+			building->u.flag = &game.flgs[atoi(value)];
 		}
 	} else {
 		list_foreach(&section->settings, elm) {
@@ -2080,7 +2079,7 @@ static int
 load_text_building_state(list_t *sections)
 {
 	/* Clear building allocation bitmap */
-	memset(globals.buildings_bitmap, 0, ((globals.max_building_cnt-1) / 8) + 1);
+	memset(game.buildings_bitmap, 0, ((game.max_building_cnt-1) / 8) + 1);
 
 	/* Create NULL-building (index 0 is undefined) */
 	building_t *building;
@@ -2104,10 +2103,10 @@ load_text_inventory_section(section_t *section)
 {
 	/* Parse building number. */
 	int n = atoi(section->param);
-	if (n >= globals.max_inventory_cnt) return -1;
+	if (n >= game.max_inventory_cnt) return -1;
 
-	inventory_t *inventory = &globals.inventories[n];
-	globals.inventories_bitmap[n/8] |= BIT(7-(n&7));
+	inventory_t *inventory = &game.inventories[n];
+	game.inventories_bitmap[n/8] |= BIT(7-(n&7));
 
 	/* Load the inventory state. */
 	list_elm_t *elm;
@@ -2159,7 +2158,7 @@ static int
 load_text_inventory_state(list_t *sections)
 {
 	/* Clear inventory allocation bitmap */
-	memset(globals.inventories_bitmap, 0, ((globals.max_inventory_cnt-1) / 8) + 1);
+	memset(game.inventories_bitmap, 0, ((game.max_inventory_cnt-1) / 8) + 1);
 
 	list_elm_t *elm;
 	list_foreach(sections, elm) {
@@ -2178,10 +2177,10 @@ load_text_serf_section(section_t *section)
 {
 	/* Parse serf number. */
 	int n = atoi(section->param);
-	if (n >= globals.max_serf_cnt) return -1;
+	if (n >= game.max_serf_cnt) return -1;
 
-	serf_t *serf = &globals.serfs[n];
-	globals.serfs_bitmap[n/8] |= BIT(7-(n&7));
+	serf_t *serf = &game.serfs[n];
+	game.serfs_bitmap[n/8] |= BIT(7-(n&7));
 
 	/* Load the serf state. */
 	list_elm_t *elm;
@@ -2412,7 +2411,7 @@ load_text_serf_section(section_t *section)
 			if (!strcmp(s->key, "state.rev_dir")) {
 				serf->s.idle_on_path.rev_dir = atoi(s->value);
 			} else if (!strcmp(s->key, "state.flag")) {
-				serf->s.idle_on_path.flag = &globals.flgs[atoi(s->value)];
+				serf->s.idle_on_path.flag = &game.flgs[atoi(s->value)];
 			} else if (!strcmp(s->key, "state.field_E")) {
 				serf->s.idle_on_path.field_E = atoi(s->value);
 			}
@@ -2439,7 +2438,7 @@ static int
 load_text_serf_state(list_t *sections)
 {
 	/* Clear serf allocation bitmap */
-	memset(globals.serfs_bitmap, 0, ((globals.max_serf_cnt-1) / 8) + 1);
+	memset(game.serfs_bitmap, 0, ((game.max_serf_cnt-1) / 8) + 1);
 
 	/* Create NULL-serf */
 	serf_t *serf;
@@ -2469,17 +2468,17 @@ load_text_map_section(section_t *section)
 
 	/* Parse map position. */
 	int col = atoi(param);
-	if (col < 0 || col >= globals.map.cols) return -1;
+	if (col < 0 || col >= game.map.cols) return -1;
 
 	while (!isspace(*param) && *param != '\0') param += 1;
 	while (isspace(*param) && *param != '\0') param += 1;
 	if (*param == '\0') return -1;
 
 	int row = atoi(param);
-	if (row < 0 || row >= globals.map.rows) return -1;
+	if (row < 0 || row >= game.map.rows) return -1;
 
 	map_pos_t pos = MAP_POS(col,row);
-	map_tile_t *tiles = globals.map.tiles;
+	map_tile_t *tiles = game.map.tiles;
 
 	uint deep_water = 0;
 	uint paths = 0;
@@ -2622,8 +2621,8 @@ load_text_state(FILE *f)
 	r = load_text_map_state(&sections);
 	if (r < 0) goto error;
 
-	globals.game_speed = 0;
-	globals.game_speed_save = DEFAULT_GAME_SPEED;
+	game.game_speed = 0;
+	game.game_speed_save = DEFAULT_GAME_SPEED;
 
 	load_text_free_sections(&sections);
 	return 0;

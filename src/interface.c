@@ -26,7 +26,6 @@
 #include "panel.h"
 #include "game.h"
 #include "sdl-video.h"
-#include "globals.h"
 #include "debug.h"
 
 
@@ -370,7 +369,7 @@ interface_build_road_end(interface_t *interface)
 	interface->map_cursor_sprites[5].sprite = 33;
 	interface->map_cursor_sprites[6].sprite = 33;
 
-	map_tile_t *tiles = globals.map.tiles;
+	map_tile_t *tiles = game.map.tiles;
 	map_pos_t pos = interface->map_cursor_pos;
 
 	for (int i = 0; i < interface->road_length; i++) {
@@ -523,7 +522,7 @@ interface_build_road_segment(interface_t *interface, map_pos_t pos, dir_t dir)
 
 	map_pos_t dest = MAP_MOVE(pos, dir);
 	dir_t dir_rev = DIR_REVERSE(dir);
-	map_tile_t *tiles = globals.map.tiles;
+	map_tile_t *tiles = game.map.tiles;
 
 	if (MAP_OBJ(dest) == MAP_OBJ_FLAG) {
 		/* Existing flag at destination, try to connect. */
@@ -565,7 +564,7 @@ interface_remove_road_segment(interface_t *interface, map_pos_t pos, dir_t dir)
 {
 	map_pos_t dest = MAP_MOVE(pos, dir);
 	dir_t dir_rev = DIR_REVERSE(dir);
-	map_tile_t *tiles = globals.map.tiles;
+	map_tile_t *tiles = game.map.tiles;
 
 	interface->road_length -= 1;
 	tiles[pos].flags &= ~BIT(dir);
@@ -854,7 +853,7 @@ interface_init(interface_t *interface)
 
 	/* Settings */
 	interface->flags = 0;
-	interface->config = globals.cfg_left;
+	interface->config = game.cfg_left;
 	interface->msg_flags = 0;
 	interface->return_timeout = 0;
 	interface->click = 0;
@@ -883,8 +882,8 @@ interface_init(interface_t *interface)
 	interface->panel_btns_set[3] = -1;
 	interface->panel_btns_set[4] = -1;
 
-	interface->player = globals.player[0];
-	/*interface->map_serf_rows = globals.map_serf_rows_left; OBSOLETE */
+	interface->player = game.player[0];
+	/*interface->map_serf_rows = game.map_serf_rows_left; OBSOLETE */
 	interface->minimap_flags = 8;
 	interface->current_stat_8_mode = 0;
 	interface->current_stat_7_item = 7;

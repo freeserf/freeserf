@@ -1,7 +1,7 @@
 /*
  * map.h - Map generators and map update functions
  *
- * Copyright (C) 2012  Jon Lund Steffensen <jonlst@gmail.com>
+ * Copyright (C) 2013  Jon Lund Steffensen <jonlst@gmail.com>
  *
  * This file is part of freeserf.
  *
@@ -28,18 +28,18 @@
 #include "misc.h"
 
 /* Extract col and row from map_pos_t */
-#define MAP_POS_COL(pos)  ((pos) & globals.map.col_mask)
-#define MAP_POS_ROW(pos)  (((pos)>>globals.map.row_shift) & globals.map.row_mask)
+#define MAP_POS_COL(pos)  ((pos) & game.map.col_mask)
+#define MAP_POS_ROW(pos)  (((pos)>>game.map.row_shift) & game.map.row_mask)
 
 /* Translate col, row coordinate to map_pos_t value. */
-#define MAP_POS(x,y)  (((y)<<globals.map.row_shift) | (x))
+#define MAP_POS(x,y)  (((y)<<game.map.row_shift) | (x))
 
 /* Addition of two map positions. */
-#define MAP_POS_ADD(pos,off)  MAP_POS(((MAP_POS_COL(pos) + MAP_POS_COL(off)) & globals.map.col_mask), \
-				      ((MAP_POS_ROW(pos) + MAP_POS_ROW(off)) & globals.map.row_mask))
+#define MAP_POS_ADD(pos,off)  MAP_POS(((MAP_POS_COL(pos) + MAP_POS_COL(off)) & game.map.col_mask), \
+				      ((MAP_POS_ROW(pos) + MAP_POS_ROW(off)) & game.map.row_mask))
 
 /* Movement of map position according to directions. */
-#define MAP_MOVE(pos,dir)  MAP_POS_ADD((pos), globals.map.dirs[(dir)])
+#define MAP_MOVE(pos,dir)  MAP_POS_ADD((pos), game.map.dirs[(dir)])
 
 #define MAP_MOVE_RIGHT(pos)  MAP_MOVE((pos), DIR_RIGHT)
 #define MAP_MOVE_DOWN_RIGHT(pos)  MAP_MOVE((pos), DIR_DOWN_RIGHT)
@@ -51,12 +51,12 @@
 #define MAP_MOVE_UP_RIGHT(pos)  MAP_MOVE((pos), DIR_UP_RIGHT)
 #define MAP_MOVE_DOWN_LEFT(pos)  MAP_MOVE((pos), DIR_DOWN_LEFT)
 
-#define MAP_MOVE_RIGHT_N(pos,n)  MAP_POS_ADD((pos), globals.map.dirs[DIR_RIGHT]*(n))
-#define MAP_MOVE_DOWN_N(pos,n)  MAP_POS_ADD((pos), globals.map.dirs[DIR_DOWN]*(n))
+#define MAP_MOVE_RIGHT_N(pos,n)  MAP_POS_ADD((pos), game.map.dirs[DIR_RIGHT]*(n))
+#define MAP_MOVE_DOWN_N(pos,n)  MAP_POS_ADD((pos), game.map.dirs[DIR_DOWN]*(n))
 
 
 /* Extractors for map data. */
-#define MAP_HAS_FLAG(pos)  ((uint)((globals.map.tiles[(pos)].flags >> 7) & 1))
+#define MAP_HAS_FLAG(pos)  ((uint)((game.map.tiles[(pos)].flags >> 7) & 1))
 
 /* This bit is used to indicate a band of positions in the water, that are
    entirely surrounded by water tiles, but are still close to the shore. This is
@@ -65,30 +65,30 @@
    used to indicate whether an idle serf should be drawn as a sailor in the viewport.
    Further, it is used to indicate on land certain positions that are impassable.*/
 /* TODO Clean up; this bit has too many different meanings. */
-#define MAP_DEEP_WATER(pos)  ((uint)((globals.map.tiles[(pos)].flags >> 6) & 1))
+#define MAP_DEEP_WATER(pos)  ((uint)((game.map.tiles[(pos)].flags >> 6) & 1))
 
-#define MAP_PATHS(pos)  ((uint)(globals.map.tiles[(pos)].flags & 0x3f))
+#define MAP_PATHS(pos)  ((uint)(game.map.tiles[(pos)].flags & 0x3f))
 
-#define MAP_HAS_OWNER(pos)  ((uint)((globals.map.tiles[(pos)].height >> 7) & 1))
-#define MAP_OWNER(pos)  ((uint)((globals.map.tiles[(pos)].height >> 5) & 3))
-#define MAP_HEIGHT(pos)  ((uint)(globals.map.tiles[(pos)].height & 0x1f))
+#define MAP_HAS_OWNER(pos)  ((uint)((game.map.tiles[(pos)].height >> 7) & 1))
+#define MAP_OWNER(pos)  ((uint)((game.map.tiles[(pos)].height >> 5) & 3))
+#define MAP_HEIGHT(pos)  ((uint)(game.map.tiles[(pos)].height & 0x1f))
 
-#define MAP_TYPE_UP(pos)  ((uint)((globals.map.tiles[(pos)].type >> 4) & 0xf))
-#define MAP_TYPE_DOWN(pos)  ((uint)(globals.map.tiles[(pos)].type & 0xf))
+#define MAP_TYPE_UP(pos)  ((uint)((game.map.tiles[(pos)].type >> 4) & 0xf))
+#define MAP_TYPE_DOWN(pos)  ((uint)(game.map.tiles[(pos)].type & 0xf))
 
-#define MAP_OBJ(pos)  ((map_obj_t)(globals.map.tiles[(pos)].obj & 0x7f))
+#define MAP_OBJ(pos)  ((map_obj_t)(game.map.tiles[(pos)].obj & 0x7f))
 
 /* Whether any of the two up/down tiles at this pos are water.
    This is used to indicate whether waves should be drawn. */
-#define MAP_WATER(pos)  ((uint)((globals.map.tiles[(pos)].obj >> 7) & 1))
+#define MAP_WATER(pos)  ((uint)((game.map.tiles[(pos)].obj >> 7) & 1))
 
-#define MAP_OBJ_INDEX(pos)  ((uint)globals.map.tiles[(pos)].u.index)
-#define MAP_IDLE_SERF(pos)  ((uint)((globals.map.tiles[(pos)].u.s.field_1 >> 7) & 1))
-#define MAP_PLAYER(pos)  ((uint)(globals.map.tiles[(pos)].u.s.field_1 & 3))
-#define MAP_RES_TYPE(pos)  ((ground_deposit_t)((globals.map.tiles[(pos)].u.s.resource >> 5) & 7))
-#define MAP_RES_AMOUNT(pos)  ((uint)(globals.map.tiles[(pos)].u.s.resource & 0x1f))
-#define MAP_RES_FISH(pos)  ((uint)globals.map.tiles[(pos)].u.s.resource)
-#define MAP_SERF_INDEX(pos)  ((uint)globals.map.tiles[(pos)].serf_index)
+#define MAP_OBJ_INDEX(pos)  ((uint)game.map.tiles[(pos)].u.index)
+#define MAP_IDLE_SERF(pos)  ((uint)((game.map.tiles[(pos)].u.s.field_1 >> 7) & 1))
+#define MAP_PLAYER(pos)  ((uint)(game.map.tiles[(pos)].u.s.field_1 & 3))
+#define MAP_RES_TYPE(pos)  ((ground_deposit_t)((game.map.tiles[(pos)].u.s.resource >> 5) & 7))
+#define MAP_RES_AMOUNT(pos)  ((uint)(game.map.tiles[(pos)].u.s.resource & 0x1f))
+#define MAP_RES_FISH(pos)  ((uint)game.map.tiles[(pos)].u.s.resource)
+#define MAP_SERF_INDEX(pos)  ((uint)game.map.tiles[(pos)].serf_index)
 
 
 typedef enum {

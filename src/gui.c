@@ -1,7 +1,7 @@
 /*
  * gui.c - Base functions for the GUI hierarchy
  *
- * Copyright (C) 2012  Jon Lund Steffensen <jonlst@gmail.com>
+ * Copyright (C) 2013  Jon Lund Steffensen <jonlst@gmail.com>
  *
  * This file is part of freeserf.
  *
@@ -26,7 +26,6 @@
 #include "sdl-video.h"
 #include "list.h"
 #include "misc.h"
-#include "globals.h"
 
 
 /* Get the resulting value from a click on a slider bar. */

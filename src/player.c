@@ -26,7 +26,6 @@
 #include "player.h"
 #include "freeserf.h"
 #include "game.h"
-#include "globals.h"
 #include "debug.h"
 
 
@@ -196,7 +195,7 @@ player_promote_serfs_to_knights(player_t *player, int number)
 {
 	int promoted = 0;
 
-	for (int i = 1; i < globals.max_ever_serf_index && number > 0; i++) {
+	for (int i = 1; i < game.max_ever_serf_index && number > 0; i++) {
 		if (SERF_ALLOCATED(i)) {
 			serf_t *serf = game_get_serf(i);
 			if (serf->state == SERF_STATE_IDLE_IN_STOCK &&
@@ -403,12 +402,12 @@ player_start_attack(player_t *player)
 
 			/* Calculate distance to target. */
 			int dist_col = (MAP_POS_COL(target->pos) -
-					MAP_POS_COL(def_serf->pos)) & globals.map.col_mask;
-			if (dist_col >= globals.map.cols/2) dist_col -= globals.map.cols;
+					MAP_POS_COL(def_serf->pos)) & game.map.col_mask;
+			if (dist_col >= game.map.cols/2) dist_col -= game.map.cols;
 
 			int dist_row = (MAP_POS_ROW(target->pos) -
-					MAP_POS_ROW(def_serf->pos)) & globals.map.row_mask;
-			if (dist_row >= globals.map.rows/2) dist_row -= globals.map.rows;
+					MAP_POS_ROW(def_serf->pos)) & game.map.row_mask;
+			if (dist_row >= game.map.rows/2) dist_row -= game.map.rows;
 
 			/* Send this serf off to fight. */
 			serf_log_state_change(def_serf, SERF_STATE_KNIGHT_LEAVE_FOR_WALK_TO_FIGHT);

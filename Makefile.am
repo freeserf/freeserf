@@ -4,7 +4,6 @@ bin_PROGRAMS = freeserf
 
 freeserf_SOURCES = \
 	src/freeserf.c src/freeserf.h \
-	src/globals.h \
 	src/data.h \
 	src/game.c src/game.h \
 	src/serf.c src/serf.h \

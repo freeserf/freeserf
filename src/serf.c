@@ -25,7 +25,6 @@
 
 
 #include "serf.h"
-#include "globals.h"
 #include "game.h"
 #include "random.h"
 #include "viewport.h"
@@ -152,8 +151,8 @@ serf_get_state_name(serf_state_t state)
 static int
 train_knight(serf_t *serf, int p)
 {
-	uint16_t delta = globals.anim - serf->anim;
-	serf->anim = globals.anim;
+	uint16_t delta = game.anim - serf->anim;
+	serf->anim = game.anim;
 	serf->counter -= delta;
 
 	while (serf->counter < 0) {
@@ -161,7 +160,7 @@ train_knight(serf_t *serf, int p)
 			/* Level up */
 			serf_type_t old_type = SERF_TYPE(serf);
 			serf->type = (serf->type & 0x83) | ((old_type + 1) << 2);
-			player_t *player = globals.player[SERF_PLAYER(serf)];
+			player_t *player = game.player[SERF_PLAYER(serf)];
 			player->serf_count[old_type] -= 1;
 			player->serf_count[old_type+1] += 1;
 			serf->counter = 6000;
@@ -338,7 +337,7 @@ serf_transporter_move_to_flag(serf_t *serf, flag_t *flag)
 		}
 
 		/* Find next resource to be picked up */
-		player_t *player = globals.player[SERF_PLAYER(serf)];
+		player_t *player = game.player[SERF_PLAYER(serf)];
 		flag_prioritize_pickup(flag, dir, player->flag_prio);
 	} else if (serf->s.walking.res != 0) {
 		/* Drop resource at flag */
@@ -523,8 +522,8 @@ handle_serf_walking_state_waiting(serf_t *serf)
 static void
 handle_serf_walking_state(serf_t *serf)
 {
-	uint16_t delta = globals.anim - serf->anim;
-	serf->anim = globals.anim;
+	uint16_t delta = game.anim - serf->anim;
+	serf->anim = game.anim;
 	serf->counter -= delta;
 
 	while (serf->counter < 0) {
@@ -624,10 +623,10 @@ handle_serf_walking_state(serf_t *serf)
 static void
 handle_serf_transporting_state(serf_t *serf)
 {
-	map_tile_t *tiles = globals.map.tiles;
+	map_tile_t *tiles = game.map.tiles;
 
-	uint16_t delta = globals.anim - serf->anim;
-	serf->anim = globals.anim;
+	uint16_t delta = game.anim - serf->anim;
+	serf->anim = game.anim;
 	serf->counter -= delta;
 
 	if (serf->counter >= 0) return;
@@ -745,8 +744,8 @@ serf_enter_inventory(serf_t *serf)
 static void
 handle_serf_entering_building_state(serf_t *serf)
 {
-	uint16_t delta = globals.anim - serf->anim;
-	serf->anim = globals.anim;
+	uint16_t delta = game.anim - serf->anim;
+	serf->anim = game.anim;
 	serf->counter -= delta;
 
 	if (serf->counter < 0 || serf->counter <= serf->s.entering_building.slope_len) {
@@ -883,7 +882,7 @@ handle_serf_entering_building_state(serf_t *serf)
 				building_type_t bld_type = BUILDING_TYPE(building);
 
 				if (bld_type == BUILDING_STONEMINE) {
-					/*player_t *player = globals.player[SERF_PLAYER(serf)];
+					/*player_t *player = game.player[SERF_PLAYER(serf)];
 					  player->field_163 |= BIT(5);*/
 				}
 
@@ -1156,7 +1155,7 @@ handle_serf_entering_building_state(serf_t *serf)
 						serf->state = SERF_STATE_DEFENDING_CASTLE;
 						serf->counter = 6000;
 
-						globals.player[BUILDING_PLAYER(building)]->castle_knights += 1;
+						game.player[BUILDING_PLAYER(building)]->castle_knights += 1;
 						return;
 					}
 
@@ -1188,7 +1187,7 @@ handle_serf_entering_building_state(serf_t *serf)
 						default: NOT_REACHED(); break;
 						}
 
-						player_add_notification(globals.player[BUILDING_PLAYER(building)],
+						player_add_notification(game.player[BUILDING_PLAYER(building)],
 									(mil_type << 5) | 6, building->pos);
 
 						flag_t *flag = game_get_flag(MAP_OBJ_INDEX(MAP_MOVE_DOWN_RIGHT(building->pos)));
@@ -1214,8 +1213,8 @@ handle_serf_entering_building_state(serf_t *serf)
 static void
 handle_serf_leaving_building_state(serf_t *serf)
 {
-	uint16_t delta = globals.anim - serf->anim;
-	serf->anim = globals.anim;
+	uint16_t delta = game.anim - serf->anim;
+	serf->anim = game.anim;
 	serf->counter -= delta;
 
 	if (serf->counter < 0) {
@@ -1273,7 +1272,7 @@ handle_serf_ready_to_enter_state(serf_t *serf)
 static void
 handle_serf_ready_to_leave_state(serf_t *serf)
 {
-	serf->anim = globals.anim;
+	serf->anim = game.anim;
 	serf->counter = 0;
 
 	map_pos_t new_pos = MAP_MOVE_DOWN_RIGHT(serf->pos);
@@ -1297,8 +1296,8 @@ handle_serf_digging_state(serf_t *serf)
 		-5, 5, -6, 6, -7, 7, -8, 8
 	};
 
-	uint16_t delta = globals.anim - serf->anim;
-	serf->anim = globals.anim;
+	uint16_t delta = game.anim - serf->anim;
+	serf->anim = game.anim;
 	serf->counter -= delta;
 
 	while (serf->counter < 0) {
@@ -1426,8 +1425,8 @@ handle_serf_building_state(serf_t *serf)
 		4096, 2048, 2048, 1366, 1024, 683, 2048, 1366
 	};
 
-	uint16_t delta = globals.anim - serf->anim;
-	serf->anim = globals.anim;
+	uint16_t delta = game.anim - serf->anim;
+	serf->anim = game.anim;
 	serf->counter -= delta;
 
 	while (serf->counter < 0) {
@@ -1462,7 +1461,7 @@ handle_serf_building_state(serf_t *serf)
 				flag->bld2_flags = 0;
 
 				/* Update player fields. */
-				player_t *player = globals.player[SERF_PLAYER(serf)];
+				player_t *player = game.player[SERF_PLAYER(serf)];
 				player->total_building_score += building_get_score_from_type(type);
 				player->completed_building_count[type] += 1;
 				player->incomplete_building_count[type] -= 1;
@@ -1554,8 +1553,8 @@ handle_serf_building_state(serf_t *serf)
 static void
 handle_serf_building_castle_state(serf_t *serf)
 {
-	int progress_delta = (uint16_t)(globals.anim - serf->anim) << 7;
-	serf->anim = globals.anim;
+	int progress_delta = (uint16_t)(game.anim - serf->anim) << 7;
+	serf->anim = game.anim;
 
 	inventory_t *inventory = game_get_inventory(serf->s.building_castle.inv_index);
 	building_t *building = game_get_building(inventory->bld_index);
@@ -1573,7 +1572,7 @@ handle_serf_building_castle_state(serf_t *serf)
 static void
 handle_serf_move_resource_out_state(serf_t *serf)
 {
-	serf->anim = globals.anim;
+	serf->anim = game.anim;
 	serf->counter = 0;
 
 	if ((MAP_SERF_INDEX(serf->pos) != SERF_INDEX(serf) &&
@@ -1610,8 +1609,8 @@ static void
 handle_serf_wait_for_resource_out_state(serf_t *serf)
 {
 	if (serf->counter != 0) {
-		uint16_t delta = globals.anim - serf->anim;
-		serf->anim = globals.anim;
+		uint16_t delta = game.anim - serf->anim;
+		serf->anim = game.anim;
 		serf->counter -= delta;
 
 		if (serf->counter >= 0) return;
@@ -1662,8 +1661,8 @@ handle_serf_drop_resource_out_state(serf_t *serf)
 static void
 handle_serf_delivering_state(serf_t *serf)
 {
-	uint16_t delta = globals.anim - serf->anim;
-	serf->anim = globals.anim;
+	uint16_t delta = game.anim - serf->anim;
+	serf->anim = game.anim;
 	serf->counter -= delta;
 
 	while (serf->counter < 0) {
@@ -1705,7 +1704,7 @@ handle_serf_delivering_state(serf_t *serf)
 static void
 handle_serf_ready_to_leave_inventory_state(serf_t *serf)
 {
-	serf->anim = globals.anim;
+	serf->anim = game.anim;
 	serf->counter = 0;
 
 	if (MAP_SERF_INDEX(serf->pos) != 0 ||
@@ -1763,7 +1762,7 @@ serf_drop_resource(serf_t *serf, resource_type_t res)
 		flag->res_dest[slot] = 0;
 		flag->endpoint |= BIT(7);
 
-		player_t *player = globals.player[SERF_PLAYER(serf)];
+		player_t *player = game.player[SERF_PLAYER(serf)];
 		player->resource_count[res] += 1;
 	}
 }
@@ -2363,8 +2362,8 @@ static void
 handle_serf_free_walking_state(serf_t *serf)
 {
 
-	uint16_t delta = globals.anim - serf->anim;
-	serf->anim = globals.anim;
+	uint16_t delta = game.anim - serf->anim;
+	serf->anim = game.anim;
 	serf->counter -= delta;
 
 	while (serf->counter < 0) {
@@ -2375,8 +2374,8 @@ handle_serf_free_walking_state(serf_t *serf)
 static void
 handle_serf_logging_state(serf_t *serf)
 {
-	uint16_t delta = globals.anim - serf->anim;
-	serf->anim = globals.anim;
+	uint16_t delta = game.anim - serf->anim;
+	serf->anim = game.anim;
 	serf->counter -= delta;
 
 	while (serf->counter < 0) {
@@ -2410,22 +2409,22 @@ handle_serf_logging_state(serf_t *serf)
 static void
 handle_serf_planning_logging_state(serf_t *serf)
 {
-	uint16_t delta = globals.anim - serf->anim;
-	serf->anim = globals.anim;
+	uint16_t delta = game.anim - serf->anim;
+	serf->anim = game.anim;
 	serf->counter -= delta;
 
 	while (serf->counter < 0) {
 		int index = (random_int() & 0x7f) + 1;
 		map_pos_t pos = MAP_POS_ADD(serf->pos,
-					    globals.spiral_pos_pattern[index]);
+					    game.spiral_pos_pattern[index]);
 		int obj = MAP_OBJ(pos);
 		if (obj >= MAP_OBJ_TREE_0 && obj <= MAP_OBJ_PINE_7) {
 			serf_log_state_change(serf, SERF_STATE_READY_TO_LEAVE);
 			serf->state = SERF_STATE_READY_TO_LEAVE;
-			serf->s.leaving_building.field_B = globals.spiral_pattern[2*index] - 1;
-			serf->s.leaving_building.dest = globals.spiral_pattern[2*index+1] - 1;
-			serf->s.leaving_building.dest2 = -globals.spiral_pattern[2*index] + 1;
-			serf->s.leaving_building.dir = -globals.spiral_pattern[2*index+1] + 1;
+			serf->s.leaving_building.field_B = game.spiral_pattern[2*index] - 1;
+			serf->s.leaving_building.dest = game.spiral_pattern[2*index+1] - 1;
+			serf->s.leaving_building.dest2 = -game.spiral_pattern[2*index] + 1;
+			serf->s.leaving_building.dir = -game.spiral_pattern[2*index+1] + 1;
 			serf->s.leaving_building.next_state = SERF_STATE_FREE_WALKING;
 			LOGV("serf", "planning logging: tree found, dist %i, %i.",
 			     serf->s.leaving_building.field_B,
@@ -2440,14 +2439,14 @@ handle_serf_planning_logging_state(serf_t *serf)
 static void
 handle_serf_planning_planting_state(serf_t *serf)
 {
-	uint16_t delta = globals.anim - serf->anim;
-	serf->anim = globals.anim;
+	uint16_t delta = game.anim - serf->anim;
+	serf->anim = game.anim;
 	serf->counter -= delta;
 
 	while (serf->counter < 0) {
 		int index = (random_int() & 0x7f) + 1;
 		map_pos_t pos = MAP_POS_ADD(serf->pos,
-					    globals.spiral_pos_pattern[index]);
+					    game.spiral_pos_pattern[index]);
 		if (MAP_PATHS(pos) == 0 &&
 		    !MAP_DEEP_WATER(pos) &&
 		    MAP_OBJ(pos) == MAP_OBJ_NONE &&
@@ -2457,10 +2456,10 @@ handle_serf_planning_planting_state(serf_t *serf)
 		    MAP_TYPE_DOWN(MAP_MOVE_UP_LEFT(pos)) == 5) {
 			serf_log_state_change(serf, SERF_STATE_READY_TO_LEAVE);
 			serf->state = SERF_STATE_READY_TO_LEAVE;
-			serf->s.leaving_building.field_B = globals.spiral_pattern[2*index] - 1;
-			serf->s.leaving_building.dest = globals.spiral_pattern[2*index+1] - 1;
-			serf->s.leaving_building.dest2 = -globals.spiral_pattern[2*index] + 1;
-			serf->s.leaving_building.dir = -globals.spiral_pattern[2*index+1] + 1;
+			serf->s.leaving_building.field_B = game.spiral_pattern[2*index] - 1;
+			serf->s.leaving_building.dest = game.spiral_pattern[2*index+1] - 1;
+			serf->s.leaving_building.dest2 = -game.spiral_pattern[2*index] + 1;
+			serf->s.leaving_building.dir = -game.spiral_pattern[2*index+1] + 1;
 			serf->s.leaving_building.next_state = SERF_STATE_FREE_WALKING;
 			LOGV("serf", "planning planting: free space found, dist %i, %i.",
 			     serf->s.leaving_building.field_B,
@@ -2475,8 +2474,8 @@ handle_serf_planning_planting_state(serf_t *serf)
 static void
 handle_serf_planting_state(serf_t *serf)
 {
-	uint16_t delta = globals.anim - serf->anim;
-	serf->anim = globals.anim;
+	uint16_t delta = game.anim - serf->anim;
+	serf->anim = game.anim;
 	serf->counter -= delta;
 
 	while (serf->counter < 0) {
@@ -2507,24 +2506,24 @@ handle_serf_planting_state(serf_t *serf)
 static void
 handle_serf_planning_stonecutting(serf_t *serf)
 {
-	uint16_t delta = globals.anim - serf->anim;
-	serf->anim = globals.anim;
+	uint16_t delta = game.anim - serf->anim;
+	serf->anim = game.anim;
 	serf->counter -= delta;
 
 	while (serf->counter < 0) {
 		int index = (random_int() & 0x7f) + 1;
 		map_pos_t pos = MAP_POS_ADD(serf->pos,
-					    globals.spiral_pos_pattern[index]);;
+					    game.spiral_pos_pattern[index]);;
 		int obj = MAP_OBJ(MAP_MOVE_UP_LEFT(pos));
 		if (obj >= MAP_OBJ_STONE_0 &&
 		    obj <= MAP_OBJ_STONE_7 &&
 		    !MAP_DEEP_WATER(pos)) {
 			serf_log_state_change(serf, SERF_STATE_READY_TO_LEAVE);
 			serf->state = SERF_STATE_READY_TO_LEAVE;
-			serf->s.leaving_building.field_B = globals.spiral_pattern[2*index] - 1;
-			serf->s.leaving_building.dest = globals.spiral_pattern[2*index+1] - 1;
-			serf->s.leaving_building.dest2 = -globals.spiral_pattern[2*index] + 1;
-			serf->s.leaving_building.dir = -globals.spiral_pattern[2*index+1] + 1;
+			serf->s.leaving_building.field_B = game.spiral_pattern[2*index] - 1;
+			serf->s.leaving_building.dest = game.spiral_pattern[2*index+1] - 1;
+			serf->s.leaving_building.dest2 = -game.spiral_pattern[2*index] + 1;
+			serf->s.leaving_building.dir = -game.spiral_pattern[2*index+1] + 1;
 			serf->s.leaving_building.next_state = SERF_STATE_STONECUTTER_FREE_WALKING;
 			LOGV("serf", "planning stonecutting: stone found, dist %i, %i.",
 			     serf->s.leaving_building.field_B,
@@ -2539,8 +2538,8 @@ handle_serf_planning_stonecutting(serf_t *serf)
 static void
 handle_stonecutter_free_walking(serf_t *serf)
 {
-	uint16_t delta = globals.anim - serf->anim;
-	serf->anim = globals.anim;
+	uint16_t delta = game.anim - serf->anim;
+	serf->anim = game.anim;
 	serf->counter -= delta;
 
 	while (serf->counter < 0) {
@@ -2562,8 +2561,8 @@ handle_stonecutter_free_walking(serf_t *serf)
 static void
 handle_serf_stonecutting_state(serf_t *serf)
 {
-	uint16_t delta = globals.anim - serf->anim;
-	serf->anim = globals.anim;
+	uint16_t delta = game.anim - serf->anim;
+	serf->anim = game.anim;
 	serf->counter -= delta;
 
 	if (serf->s.free_walking.neg_dist1 == 0) {
@@ -2598,7 +2597,7 @@ handle_serf_stonecutting_state(serf_t *serf)
 
 		serf->counter = 0;
 		serf_start_walking(serf, DIR_DOWN_RIGHT, 24, 1);
-		serf->anim = globals.anim;
+		serf->anim = game.anim;
 
 		serf->s.free_walking.neg_dist1 = 2;
 	}
@@ -2614,12 +2613,12 @@ handle_serf_sawing_state(serf_t *serf)
 			serf->s.sawing.mode = 1;
 			serf->animation = 124;
 			serf->counter = counter_from_animation[serf->animation];
-			serf->anim = globals.anim;
+			serf->anim = game.anim;
 			map_set_serf_index(serf->pos, SERF_INDEX(serf));
 		}
 	} else {
-		uint16_t delta = globals.anim - serf->anim;
-		serf->anim = globals.anim;
+		uint16_t delta = game.anim - serf->anim;
+		serf->anim = game.anim;
 		serf->counter -= delta;
 
 		if (serf->counter >= 0) return;
@@ -2632,7 +2631,7 @@ handle_serf_sawing_state(serf_t *serf)
 		serf->s.move_resource_out.next_state = SERF_STATE_DROP_RESOURCE_OUT;
 
 		/* Update resource stats. */
-		player_t *player = globals.player[SERF_PLAYER(serf)];
+		player_t *player = game.player[SERF_PLAYER(serf)];
 		player->resource_count[RESOURCE_PLANK] += 1;
 	}
 }
@@ -2640,8 +2639,8 @@ handle_serf_sawing_state(serf_t *serf)
 static void
 handle_serf_lost_state(serf_t *serf)
 {
-	uint16_t delta = globals.anim - serf->anim;
-	serf->anim = globals.anim;
+	uint16_t delta = game.anim - serf->anim;
+	serf->anim = game.anim;
 	serf->counter -= delta;
 
 	while (serf->counter < 0) {
@@ -2649,7 +2648,7 @@ handle_serf_lost_state(serf_t *serf)
 		for (int i = 0; i < 258; i++) {
 			int index = (serf->s.lost.field_B == 0) ? 1+i : 258-i;
 			map_pos_t dest = MAP_POS_ADD(serf->pos,
-						     globals.spiral_pos_pattern[index]);
+						     game.spiral_pos_pattern[index]);
 
 			if (MAP_HAS_FLAG(dest)) {
 				flag_t *flag = game_get_flag(MAP_OBJ_INDEX(dest));
@@ -2664,8 +2663,8 @@ handle_serf_lost_state(serf_t *serf)
 						serf->state = SERF_STATE_FREE_WALKING;
 					}
 
-					serf->s.free_walking.dist1 = globals.spiral_pattern[2*index];
-					serf->s.free_walking.dist2 = globals.spiral_pattern[2*index+1];
+					serf->s.free_walking.dist1 = game.spiral_pattern[2*index];
+					serf->s.free_walking.dist2 = game.spiral_pattern[2*index+1];
 					serf->s.free_walking.neg_dist1 = -128;
 					serf->s.free_walking.neg_dist2 = -1;
 					serf->s.free_walking.flags = 0;
@@ -2692,8 +2691,8 @@ handle_serf_lost_state(serf_t *serf)
 			}
 
 			int r = random_int();
-			int col = ((r & (size-1)) - (size/2)) & globals.map.col_mask;
-			int row = (((r >> 8) & (size-1)) - (size/2)) & globals.map.row_mask;
+			int col = ((r & (size-1)) - (size/2)) & game.map.col_mask;
+			int row = (((r >> 8) & (size-1)) - (size/2)) & game.map.row_mask;
 
 			map_pos_t dest = MAP_POS_ADD(serf->pos,
 						     MAP_POS(col, row));
@@ -2726,15 +2725,15 @@ handle_serf_lost_state(serf_t *serf)
 static void
 handle_lost_sailor(serf_t *serf)
 {
-	uint16_t delta = globals.anim - serf->anim;
-	serf->anim = globals.anim;
+	uint16_t delta = game.anim - serf->anim;
+	serf->anim = game.anim;
 	serf->counter -= delta;
 
 	while (serf->counter < 0) {
 		/* Try to find a suitable destination. */
 		for (int i = 0; i < 258; i++) {
 			map_pos_t dest = MAP_POS_ADD(serf->pos,
-						     globals.spiral_pos_pattern[i]);
+						     game.spiral_pos_pattern[i]);
 
 			if (MAP_HAS_FLAG(dest)) {
 				flag_t *flag = game_get_flag(MAP_OBJ_INDEX(dest));
@@ -2743,8 +2742,8 @@ handle_lost_sailor(serf_t *serf)
 					serf_log_state_change(serf, SERF_STATE_FREE_SAILING);
 					serf->state = SERF_STATE_FREE_SAILING;
 
-					serf->s.free_walking.dist1 = globals.spiral_pattern[2*i];
-					serf->s.free_walking.dist2 = globals.spiral_pattern[2*i+1];
+					serf->s.free_walking.dist1 = game.spiral_pattern[2*i];
+					serf->s.free_walking.dist2 = game.spiral_pattern[2*i+1];
 					serf->s.free_walking.neg_dist1 = -128;
 					serf->s.free_walking.neg_dist2 = -1;
 					serf->s.free_walking.flags = 0;
@@ -2757,8 +2756,8 @@ handle_lost_sailor(serf_t *serf)
 		/* Choose a random, empty destination */
 		while (1) {
 			int r = random_int();
-			int col = ((r & 0x1f) - 16) & globals.map.col_mask;
-			int row = (((r >> 8) & 0x1f) - 16) & globals.map.row_mask;
+			int col = ((r & 0x1f) - 16) & game.map.col_mask;
+			int row = (((r >> 8) & 0x1f) - 16) & game.map.row_mask;
 
 			map_pos_t dest = MAP_POS_ADD(serf->pos,
 						     MAP_POS(col, row));
@@ -2781,8 +2780,8 @@ handle_lost_sailor(serf_t *serf)
 static void
 handle_free_sailing(serf_t *serf)
 {
-	uint16_t delta = globals.anim - serf->anim;
-	serf->anim = globals.anim;
+	uint16_t delta = game.anim - serf->anim;
+	serf->anim = game.anim;
 	serf->counter -= delta;
 
 	while (serf->counter < 0) {
@@ -2804,7 +2803,7 @@ handle_serf_escape_building_state(serf_t *serf)
 		map_set_serf_index(serf->pos, SERF_INDEX(serf));
 		serf->animation = 82;
 		serf->counter = 0;
-		serf->anim = globals.anim;
+		serf->anim = game.anim;
 
 		serf_log_state_change(serf, SERF_STATE_LOST);
 		serf->state = SERF_STATE_LOST;
@@ -2815,8 +2814,8 @@ handle_serf_escape_building_state(serf_t *serf)
 static void
 handle_serf_mining_state(serf_t *serf)
 {
-	uint16_t delta = globals.anim - serf->anim;
-	serf->anim = globals.anim;
+	uint16_t delta = game.anim - serf->anim;
+	serf->anim = game.anim;
 	serf->counter -= delta;
 
 	while (serf->counter < 0) {
@@ -2873,7 +2872,7 @@ handle_serf_mining_state(serf_t *serf)
 			serf->s.mining.substate += 1;
 
 			/* Look for resource in ground. */
-			map_pos_t offset = globals.spiral_pos_pattern[(random_int() >> 2) & 0x1f];
+			map_pos_t offset = game.spiral_pos_pattern[(random_int() >> 2) & 0x1f];
 			map_pos_t dest = MAP_POS_ADD(serf->pos, offset);
 			if ((MAP_OBJ(dest) == MAP_OBJ_NONE || MAP_OBJ(dest) > MAP_OBJ_CASTLE) &&
 			    MAP_RES_TYPE(dest) == serf->s.mining.deposit &&
@@ -2906,13 +2905,13 @@ handle_serf_mining_state(serf_t *serf)
 
 			if (building->progress == 0x8000) {
 				/* Handle empty mine. */
-				player_t *player = globals.player[SERF_PLAYER(serf)];
+				player_t *player = game.player[SERF_PLAYER(serf)];
 				if (PLAYER_IS_AI(player)) {
 					/* TODO Burn building. */
 				}
 
 				int type = ((BUILDING_TYPE(building)-BUILDING_STONEMINE) << 5) | 4;
-				player_add_notification(globals.player[BUILDING_PLAYER(building)],
+				player_add_notification(game.player[BUILDING_PLAYER(building)],
 							type, building->pos);
 			}
 
@@ -2938,7 +2937,7 @@ handle_serf_mining_state(serf_t *serf)
 				serf->s.move_resource_out.next_state = SERF_STATE_DROP_RESOURCE_OUT;
 
 				/* Update resource stats. */
-				player_t *player = globals.player[SERF_PLAYER(serf)];
+				player_t *player = game.player[SERF_PLAYER(serf)];
 				player->resource_count[res-1] += 1;
 				return;
 			}
@@ -2970,13 +2969,13 @@ handle_serf_smelting_state(serf_t *serf)
 			}
 			serf->s.smelting.counter = 20;
 			serf->counter = counter_from_animation[serf->animation];
-			serf->anim = globals.anim;
+			serf->anim = game.anim;
 
 			map_set_serf_index(serf->pos, SERF_INDEX(serf));
 		}
 	} else {
-		uint16_t delta = globals.anim - serf->anim;
-		serf->anim = globals.anim;
+		uint16_t delta = game.anim - serf->anim;
+		serf->anim = game.anim;
 		serf->counter -= delta;
 
 		while (serf->counter < 0) {
@@ -2996,7 +2995,7 @@ handle_serf_smelting_state(serf_t *serf)
 				serf->s.move_resource_out.next_state = SERF_STATE_DROP_RESOURCE_OUT;
 
 				/* Update resource stats. */
-				player_t *player = globals.player[SERF_PLAYER(serf)];
+				player_t *player = game.player[SERF_PLAYER(serf)];
 				player->resource_count[res-1] += 1;
 				return;
 			} else if (serf->s.smelting.counter == 0) {
@@ -3011,14 +3010,14 @@ handle_serf_smelting_state(serf_t *serf)
 static void
 handle_serf_planning_fishing_state(serf_t *serf)
 {
-	uint16_t delta = globals.anim - serf->anim;
-	serf->anim = globals.anim;
+	uint16_t delta = game.anim - serf->anim;
+	serf->anim = game.anim;
 	serf->counter -= delta;
 
 	while (serf->counter < 0) {
 		int index = ((random_int() >> 2) & 0x3f) + 1;
 		map_pos_t dest = MAP_POS_ADD(serf->pos,
-					     globals.spiral_pos_pattern[index]);
+					     game.spiral_pos_pattern[index]);
 
 		if (MAP_OBJ(dest) == MAP_OBJ_NONE &&
 		    MAP_PATHS(dest) == 0 &&
@@ -3028,10 +3027,10 @@ handle_serf_planning_fishing_state(serf_t *serf)
 		      (MAP_TYPE_UP(MAP_MOVE_UP(dest)) & 0xc) != 0))) {
 			serf_log_state_change(serf, SERF_STATE_READY_TO_LEAVE);
 			serf->state = SERF_STATE_READY_TO_LEAVE;
-			serf->s.leaving_building.field_B = globals.spiral_pattern[2*index] - 1;
-			serf->s.leaving_building.dest = globals.spiral_pattern[2*index+1] - 1;
-			serf->s.leaving_building.dest2 = -globals.spiral_pattern[2*index] + 1;
-			serf->s.leaving_building.dir = -globals.spiral_pattern[2*index+1] + 1;
+			serf->s.leaving_building.field_B = game.spiral_pattern[2*index] - 1;
+			serf->s.leaving_building.dest = game.spiral_pattern[2*index+1] - 1;
+			serf->s.leaving_building.dest2 = -game.spiral_pattern[2*index] + 1;
+			serf->s.leaving_building.dir = -game.spiral_pattern[2*index+1] + 1;
 			serf->s.leaving_building.next_state = SERF_STATE_FREE_WALKING;
 			LOGV("serf", "planning fishing: lake found, dist %i, %i.",
 			     serf->s.leaving_building.field_B,
@@ -3046,8 +3045,8 @@ handle_serf_planning_fishing_state(serf_t *serf)
 static void
 handle_serf_fishing_state(serf_t *serf)
 {
-	uint16_t delta = globals.anim - serf->anim;
-	serf->anim = globals.anim;
+	uint16_t delta = game.anim - serf->anim;
+	serf->anim = game.anim;
 	serf->counter -= delta;
 
 	while (serf->counter < 0) {
@@ -3094,14 +3093,14 @@ handle_serf_fishing_state(serf_t *serf)
 static void
 handle_serf_planning_farming_state(serf_t *serf)
 {
-	uint16_t delta = globals.anim - serf->anim;
-	serf->anim = globals.anim;
+	uint16_t delta = game.anim - serf->anim;
+	serf->anim = game.anim;
 	serf->counter -= delta;
 
 	while (serf->counter < 0) {
 		int index = ((random_int() >> 2) & 0x1f) + 7;
 		map_pos_t dest = MAP_POS_ADD(serf->pos,
-					     globals.spiral_pos_pattern[index]);
+					     game.spiral_pos_pattern[index]);
 
 		/* If destination doesn't have an object it must be
 		   of the correct type and the surrounding spaces
@@ -3131,10 +3130,10 @@ handle_serf_planning_farming_state(serf_t *serf)
 		     MAP_OBJ(dest) <= MAP_OBJ_FIELD_5)) {
 			serf_log_state_change(serf, SERF_STATE_READY_TO_LEAVE);
 			serf->state = SERF_STATE_READY_TO_LEAVE;
-			serf->s.leaving_building.field_B = globals.spiral_pattern[2*index] - 1;
-			serf->s.leaving_building.dest = globals.spiral_pattern[2*index+1] - 1;
-			serf->s.leaving_building.dest2 = -globals.spiral_pattern[2*index] + 1;
-			serf->s.leaving_building.dir = -globals.spiral_pattern[2*index+1] + 1;
+			serf->s.leaving_building.field_B = game.spiral_pattern[2*index] - 1;
+			serf->s.leaving_building.dest = game.spiral_pattern[2*index+1] - 1;
+			serf->s.leaving_building.dest2 = -game.spiral_pattern[2*index] + 1;
+			serf->s.leaving_building.dir = -game.spiral_pattern[2*index+1] + 1;
 			serf->s.leaving_building.next_state = SERF_STATE_FREE_WALKING;
 			LOGV("serf", "planning farming: field spot found, dist %i, %i.",
 			     serf->s.leaving_building.field_B,
@@ -3149,8 +3148,8 @@ handle_serf_planning_farming_state(serf_t *serf)
 static void
 handle_serf_farming_state(serf_t *serf)
 {
-	uint16_t delta = globals.anim - serf->anim;
-	serf->anim = globals.anim;
+	uint16_t delta = game.anim - serf->anim;
+	serf->anim = game.anim;
 	serf->counter -= delta;
 
 	if (serf->counter >= 0) return;
@@ -3193,13 +3192,13 @@ handle_serf_milling_state(serf_t *serf)
 			serf->s.milling.mode = 1;
 			serf->animation = 137;
 			serf->counter = counter_from_animation[serf->animation];
-			serf->anim = globals.anim;
+			serf->anim = game.anim;
 
 			map_set_serf_index(serf->pos, SERF_INDEX(serf));
 		}
 	} else {
-		uint16_t delta = globals.anim - serf->anim;
-		serf->anim = globals.anim;
+		uint16_t delta = game.anim - serf->anim;
+		serf->anim = game.anim;
 		serf->counter -= delta;
 
 		while (serf->counter < 0) {
@@ -3213,7 +3212,7 @@ handle_serf_milling_state(serf_t *serf)
 				serf->s.move_resource_out.res_dest = 0;
 				serf->s.move_resource_out.next_state = SERF_STATE_DROP_RESOURCE_OUT;
 
-				player_t *player = globals.player[SERF_PLAYER(serf)];
+				player_t *player = game.player[SERF_PLAYER(serf)];
 				player->resource_count[RESOURCE_FLOUR] += 1;
 				return;
 			} else if (serf->s.milling.mode == 3) {
@@ -3240,13 +3239,13 @@ handle_serf_baking_state(serf_t *serf)
 			serf->s.baking.mode = 1;
 			serf->animation = 138;
 			serf->counter = counter_from_animation[serf->animation];
-			serf->anim = globals.anim;
+			serf->anim = game.anim;
 
 			map_set_serf_index(serf->pos, SERF_INDEX(serf));
 		}
 	} else {
-		uint16_t delta = globals.anim - serf->anim;
-		serf->anim = globals.anim;
+		uint16_t delta = game.anim - serf->anim;
+		serf->anim = game.anim;
 		serf->counter -= delta;
 
 		while (serf->counter < 0) {
@@ -3261,7 +3260,7 @@ handle_serf_baking_state(serf_t *serf)
 				serf->s.move_resource_out.res_dest = 0;
 				serf->s.move_resource_out.next_state = SERF_STATE_DROP_RESOURCE_OUT;
 
-				player_t *player = globals.player[SERF_PLAYER(serf)];
+				player_t *player = game.player[SERF_PLAYER(serf)];
 				player->resource_count[RESOURCE_BREAD] += 1;
 				return;
 			} else {
@@ -3292,13 +3291,13 @@ handle_serf_pigfarming_state(serf_t *serf)
 			serf->s.pigfarming.mode = 1;
 			serf->animation = 139;
 			serf->counter = counter_from_animation[serf->animation];
-			serf->anim = globals.anim;
+			serf->anim = game.anim;
 
 			map_set_serf_index(serf->pos, SERF_INDEX(serf));
 		}
 	} else {
-		uint16_t delta = globals.anim - serf->anim;
-		serf->anim = globals.anim;
+		uint16_t delta = game.anim - serf->anim;
+		serf->anim = game.anim;
 		serf->counter -= delta;
 
 		while (serf->counter < 0) {
@@ -3321,13 +3320,13 @@ handle_serf_pigfarming_state(serf_t *serf)
 					serf->s.move_resource_out.next_state = SERF_STATE_DROP_RESOURCE_OUT;
 
 					/* Update resource stats. */
-					player_t *player = globals.player[SERF_PLAYER(serf)];
+					player_t *player = game.player[SERF_PLAYER(serf)];
 					player->resource_count[RESOURCE_PIG] += 1;
 				} else if (random_int() & 0xf) {
 					serf->s.pigfarming.mode = 1;
 					serf->animation = 139;
 					serf->counter = counter_from_animation[serf->animation];
-					serf->anim = globals.anim;
+					serf->anim = game.anim;
 					map_set_serf_index(serf->pos, SERF_INDEX(serf));
 				} else {
 					serf->s.pigfarming.mode = 0;
@@ -3357,13 +3356,13 @@ handle_serf_butchering_state(serf_t *serf)
 			serf->s.butchering.mode = 1;
 			serf->animation = 140;
 			serf->counter = counter_from_animation[serf->animation];
-			serf->anim = globals.anim;
+			serf->anim = game.anim;
 
 			map_set_serf_index(serf->pos, SERF_INDEX(serf));
 		}
 	} else {
-		uint16_t delta = globals.anim - serf->anim;
-		serf->anim = globals.anim;
+		uint16_t delta = game.anim - serf->anim;
+		serf->anim = game.anim;
 		serf->counter -= delta;
 
 		if (serf->counter < 0) {
@@ -3377,7 +3376,7 @@ handle_serf_butchering_state(serf_t *serf)
 			serf->s.move_resource_out.next_state = SERF_STATE_DROP_RESOURCE_OUT;
 
 			/* Update resource stats. */
-			player_t *player = globals.player[SERF_PLAYER(serf)];
+			player_t *player = game.player[SERF_PLAYER(serf)];
 			player->resource_count[RESOURCE_MEAT] += 1;
 		}		
 	}
@@ -3407,12 +3406,12 @@ handle_serf_making_weapon_state(serf_t *serf)
 		serf->s.making_weapon.mode = 1;
 		serf->animation = 143;
 		serf->counter = counter_from_animation[serf->animation];
-		serf->anim = globals.anim;
+		serf->anim = game.anim;
 
 		map_set_serf_index(serf->pos, SERF_INDEX(serf));
 	} else {
-		uint16_t delta = globals.anim - serf->anim;
-		serf->anim = globals.anim;
+		uint16_t delta = game.anim - serf->anim;
+		serf->anim = game.anim;
 		serf->counter -= delta;
 
 		while (serf->counter < 0) {
@@ -3432,7 +3431,7 @@ handle_serf_making_weapon_state(serf_t *serf)
 				serf->s.move_resource_out.next_state = SERF_STATE_DROP_RESOURCE_OUT;
 
 				/* Update resource stats. */
-				player_t *player = globals.player[SERF_PLAYER(serf)];
+				player_t *player = game.player[SERF_PLAYER(serf)];
 				player->resource_count[res] += 1;
 				return;
 			} else {
@@ -3456,13 +3455,13 @@ handle_serf_making_tool_state(serf_t *serf)
 			serf->s.making_tool.mode = 1;
 			serf->animation = 144;
 			serf->counter = counter_from_animation[serf->animation];
-			serf->anim = globals.anim;
+			serf->anim = game.anim;
 
 			map_set_serf_index(serf->pos, SERF_INDEX(serf));
 		}
 	} else {
-		uint16_t delta = globals.anim - serf->anim;
-		serf->anim = globals.anim;
+		uint16_t delta = game.anim - serf->anim;
+		serf->anim = game.anim;
 		serf->counter -= delta;
 
 		while (serf->counter < 0) {
@@ -3471,7 +3470,7 @@ handle_serf_making_tool_state(serf_t *serf)
 				/* Done making tool. */
 				map_set_serf_index(serf->pos, 0);
 
-				player_t *player = globals.player[SERF_PLAYER(serf)];
+				player_t *player = game.player[SERF_PLAYER(serf)];
 				int total_tool_prio = 0;
 				for (int i = 0; i < 9; i++) total_tool_prio += player->tool_prio[i];
 				total_tool_prio >>= 4;
@@ -3521,12 +3520,12 @@ handle_serf_building_boat_state(serf_t *serf)
 		serf->s.building_boat.mode = 1;
 		serf->animation = 146;
 		serf->counter = counter_from_animation[serf->animation];
-		serf->anim = globals.anim;
+		serf->anim = game.anim;
 
 		map_set_serf_index(serf->pos, SERF_INDEX(serf));
 	} else {
-		uint16_t delta = globals.anim - serf->anim;
-		serf->anim = globals.anim;
+		uint16_t delta = game.anim - serf->anim;
+		serf->anim = game.anim;
 		serf->counter -= delta;
 
 		while (serf->counter < 0) {
@@ -3550,7 +3549,7 @@ handle_serf_building_boat_state(serf_t *serf)
 					serf->s.move_resource_out.next_state = SERF_STATE_DROP_RESOURCE_OUT;
 
 					/* Update resource stats. */
-					player_t *player = globals.player[SERF_PLAYER(serf)];
+					player_t *player = game.player[SERF_PLAYER(serf)];
 					player->resource_count[RESOURCE_BOAT] += 1;
 				}
 			} else {
@@ -3570,7 +3569,7 @@ handle_serf_looking_for_geo_spot_state(serf_t *serf)
 	for (int i = 0; i < 8; i++) {
 		int index = ((random_int() >> 2) & 0x3f) + 1;
 		map_pos_t dest = MAP_POS_ADD(serf->pos,
-					     globals.spiral_pos_pattern[index]);
+					     game.spiral_pos_pattern[index]);
 
 		int obj = MAP_OBJ(dest);
 		if (obj == MAP_OBJ_NONE) {
@@ -3582,12 +3581,12 @@ handle_serf_looking_for_geo_spot_state(serf_t *serf)
 			    (t3 >= 11 && t3 < 15) || (t4 >= 11 && t4 < 15)) {	
 				serf_log_state_change(serf, SERF_STATE_FREE_WALKING);
 				serf->state = SERF_STATE_FREE_WALKING;
-				serf->s.free_walking.dist1 = globals.spiral_pattern[2*index];
-				serf->s.free_walking.dist2 = globals.spiral_pattern[2*index+1];
-				serf->s.free_walking.neg_dist1 = -globals.spiral_pattern[2*index];
-				serf->s.free_walking.neg_dist2 = -globals.spiral_pattern[2*index+1];
+				serf->s.free_walking.dist1 = game.spiral_pattern[2*index];
+				serf->s.free_walking.dist2 = game.spiral_pattern[2*index+1];
+				serf->s.free_walking.neg_dist1 = -game.spiral_pattern[2*index];
+				serf->s.free_walking.neg_dist2 = -game.spiral_pattern[2*index+1];
 				serf->s.free_walking.flags = 0;
-				serf->anim = globals.anim;
+				serf->anim = game.anim;
 				LOGV("serf", "looking for geo spot: found, dist %i, %i.",
 				     serf->s.free_walking.dist1,
 				     serf->s.free_walking.dist2);
@@ -3612,8 +3611,8 @@ handle_serf_looking_for_geo_spot_state(serf_t *serf)
 static void
 handle_serf_sampling_geo_spot_state(serf_t *serf)
 {
-	uint16_t delta = globals.anim - serf->anim;
-	serf->anim = globals.anim;
+	uint16_t delta = game.anim - serf->anim;
+	serf->anim = game.anim;
 	serf->counter -= delta;
 
 	while (serf->counter < 0) {
@@ -3637,7 +3636,7 @@ handle_serf_sampling_geo_spot_state(serf_t *serf)
 				int show_notification = 1;
 				for (int i = 0; i < 60; i++) {
 					map_pos_t pos = MAP_POS_ADD(serf->pos,
-								    globals.spiral_pos_pattern[1+i]);
+								    game.spiral_pos_pattern[1+i]);
 					if ((MAP_OBJ(pos) >> 1) == (obj >> 1)) {
 						show_notification = 0;
 						break;
@@ -3646,7 +3645,7 @@ handle_serf_sampling_geo_spot_state(serf_t *serf)
 
 				/* Create notification for found resource. */
 				if (show_notification) {
-					player_add_notification(globals.player[SERF_PLAYER(serf)],
+					player_add_notification(game.player[SERF_PLAYER(serf)],
 								12 + MAP_RES_TYPE(serf->pos)-1, serf->pos);
 				}
 
@@ -3667,8 +3666,8 @@ handle_serf_sampling_geo_spot_state(serf_t *serf)
 static void
 handle_serf_knight_engaging_building_state(serf_t *serf)
 {
-	uint16_t delta = globals.anim - serf->anim;
-	serf->anim = globals.anim;
+	uint16_t delta = game.anim - serf->anim;
+	serf->anim = game.anim;
 	serf->counter -= delta;
 
 	if (serf->counter < 0) {
@@ -3684,7 +3683,7 @@ handle_serf_knight_engaging_building_state(serf_t *serf)
 			    BUILDING_PLAYER(building) != SERF_PLAYER(serf) &&
 			    building->serf_index != 0) {
 				if (BIT_TEST(building->progress, 0)) {
-					player_add_notification(globals.player[BUILDING_PLAYER(building)],
+					player_add_notification(game.player[BUILDING_PLAYER(building)],
 								(SERF_PLAYER(serf) << 5) | 1, building->pos);
 				}
 
@@ -3695,7 +3694,7 @@ handle_serf_knight_engaging_building_state(serf_t *serf)
 
 				/* Remove knight from stats of defending building */
 				if (BUILDING_HAS_INVENTORY(building)) { /* Castle */
-					globals.player[BUILDING_PLAYER(building)]->castle_knights -= 1;
+					game.player[BUILDING_PLAYER(building)]->castle_knights -= 1;
 				} else {
 					building->stock[0].available -= 1;
 					building->stock[0].requested += 1;
@@ -3726,7 +3725,7 @@ handle_serf_knight_engaging_building_state(serf_t *serf)
 		serf->state = SERF_STATE_KNIGHT_OCCUPY_ENEMY_BUILDING;
 		serf->animation = 179;
 		serf->counter = counter_from_animation[serf->animation];
-		serf->anim = globals.anim;
+		serf->anim = game.anim;
 	}
 }
 
@@ -3737,7 +3736,7 @@ serf_set_fight_outcome(serf_t *attacker, serf_t *defender)
 	int exp_factor = 1 << (SERF_TYPE(attacker) - SERF_KNIGHT_0);
 	int land_factor = 0x1000;
 	if (SERF_PLAYER(attacker) != MAP_OWNER(attacker->pos)) {
-		land_factor = globals.player[SERF_PLAYER(attacker)]->knight_morale;
+		land_factor = game.player[SERF_PLAYER(attacker)]->knight_morale;
 	}
 
 	int morale = (0x400*exp_factor * land_factor) >> 16;
@@ -3746,7 +3745,7 @@ serf_set_fight_outcome(serf_t *attacker, serf_t *defender)
 	int def_exp_factor = 1 << (SERF_TYPE(defender) - SERF_KNIGHT_0);
 	int def_land_factor = 0x1000;
 	if (SERF_PLAYER(defender) != MAP_OWNER(defender->pos)) {
-		def_land_factor = globals.player[SERF_PLAYER(defender)]->knight_morale;
+		def_land_factor = game.player[SERF_PLAYER(defender)]->knight_morale;
 	}
 
 	int def_morale = (0x400*def_exp_factor * def_land_factor) >> 16;
@@ -3769,8 +3768,8 @@ serf_set_fight_outcome(serf_t *attacker, serf_t *defender)
 		LOGD("serf", "Fight: %i vs %i (%i). Defender winning.", morale, def_morale, r);
 	}
 
-	globals.player[player]->total_military_score -= value;
-	globals.player[player]->serf_count[type] -= 1;
+	game.player[player]->total_military_score -= value;
+	game.player[player]->serf_count[type] -= 1;
 	attacker->s.attacking.field_B = random_int() & 0x70;
 }
 
@@ -3783,7 +3782,7 @@ handle_serf_knight_prepare_attacking(serf_t *serf)
 		serf_log_state_change(serf, SERF_STATE_KNIGHT_ATTACKING);
 		serf->state = SERF_STATE_KNIGHT_ATTACKING;
 		serf->counter = 0;
-		serf->anim = globals.anim;
+		serf->anim = game.anim;
 
 		/* Change state of defender. */
 		serf_log_state_change(def_serf, SERF_STATE_KNIGHT_DEFENDING);
@@ -3797,7 +3796,7 @@ handle_serf_knight_prepare_attacking(serf_t *serf)
 static void
 handle_serf_knight_leave_for_fight_state(serf_t *serf)
 {
-	serf->anim = globals.anim;
+	serf->anim = game.anim;
 	serf->counter = 0;
 
 	if (MAP_SERF_INDEX(serf->pos) == SERF_INDEX(serf) ||
@@ -3839,9 +3838,9 @@ handle_knight_attacking(serf_t *serf)
 
 	serf_t *def_serf = game_get_serf(serf->s.attacking.def_index);
 
-	uint16_t delta = globals.anim - serf->anim;
-	serf->anim = globals.anim;
-	def_serf->anim = globals.anim;
+	uint16_t delta = game.anim - serf->anim;
+	serf->anim = game.anim;
+	def_serf->anim = game.anim;
 	serf->counter -= delta;
 	def_serf->counter = serf->counter;
 
@@ -3897,7 +3896,7 @@ handle_knight_attacking(serf_t *serf)
 				}
 
 				/* Defender dies. */
-				def_serf->anim = globals.anim;
+				def_serf->anim = game.anim;
 				def_serf->animation = 147 + SERF_TYPE(serf);
 				def_serf->counter = 255;
 				def_serf->type = (def_serf->type & 0x80) | (SERF_DEAD << 2) | SERF_PLAYER(def_serf);
@@ -3924,8 +3923,8 @@ handle_serf_knight_attacking_victory_state(serf_t *serf)
 {
 	serf_t *def_serf = game_get_serf(serf->s.attacking.def_index);
 
-	uint16_t delta = globals.anim - def_serf->anim;
-	def_serf->anim = globals.anim;
+	uint16_t delta = game.anim - def_serf->anim;
+	def_serf->anim = game.anim;
 	def_serf->counter -= delta;
 
 	if (def_serf->counter < 0) {
@@ -3934,7 +3933,7 @@ handle_serf_knight_attacking_victory_state(serf_t *serf)
 
 		serf_log_state_change(serf, SERF_STATE_KNIGHT_ENGAGING_BUILDING);
 		serf->state = SERF_STATE_KNIGHT_ENGAGING_BUILDING;
-		serf->anim = globals.anim;
+		serf->anim = game.anim;
 		serf->counter = 0;
 	}
 }
@@ -3942,8 +3941,8 @@ handle_serf_knight_attacking_victory_state(serf_t *serf)
 static void
 handle_serf_knight_attacking_defeat_state(serf_t *serf)
 {
-	uint16_t delta = globals.anim - serf->anim;
-	serf->anim = globals.anim;
+	uint16_t delta = game.anim - serf->anim;
+	serf->anim = game.anim;
 	serf->counter -= delta;
 
 	if (serf->counter < 0) {
@@ -3955,8 +3954,8 @@ handle_serf_knight_attacking_defeat_state(serf_t *serf)
 static void
 handle_knight_occupy_enemy_building(serf_t *serf)
 {
-	uint16_t delta = globals.anim - serf->anim;
-	serf->anim = globals.anim;
+	uint16_t delta = game.anim - serf->anim;
+	serf->anim = game.anim;
 	serf->counter -= delta;
 
 	while (serf->counter < 0) {
@@ -4021,8 +4020,8 @@ handle_knight_occupy_enemy_building(serf_t *serf)
 static void
 handle_state_knight_free_walking(serf_t *serf)
 {
-	uint16_t delta = globals.anim - serf->anim;
-	serf->anim = globals.anim;
+	uint16_t delta = game.anim - serf->anim;
+	serf->anim = game.anim;
 	serf->counter -= delta;
 
 	while (serf->counter < 0) {
@@ -4094,8 +4093,8 @@ handle_state_knight_free_walking(serf_t *serf)
 static void
 handle_state_knight_engage_defending_free(serf_t *serf)
 {
-	uint16_t delta = globals.anim - serf->anim;
-	serf->anim = globals.anim;
+	uint16_t delta = game.anim - serf->anim;
+	serf->anim = game.anim;
 	serf->counter -= delta;
 
 	while (serf->counter < 0) serf->counter += 256;
@@ -4104,8 +4103,8 @@ handle_state_knight_engage_defending_free(serf_t *serf)
 static void
 handle_state_knight_engage_attacking_free(serf_t *serf)
 {
-	uint16_t delta = globals.anim - serf->anim;
-	serf->anim = globals.anim;
+	uint16_t delta = game.anim - serf->anim;
+	serf->anim = game.anim;
 	serf->counter -= delta;
 
 	while (serf->counter < 0) {
@@ -4120,8 +4119,8 @@ handle_state_knight_engage_attacking_free(serf_t *serf)
 static void
 handle_state_knight_engage_attacking_free_join(serf_t *serf)
 {
-	uint16_t delta = globals.anim - serf->anim;
-	serf->anim = globals.anim;
+	uint16_t delta = game.anim - serf->anim;
+	serf->anim = game.anim;
 	serf->counter -= delta;
 
 	while (serf->counter < 0) {
@@ -4176,8 +4175,8 @@ handle_state_knight_prepare_attacking_free(serf_t *serf)
 static void
 handle_state_knight_prepare_defending_free(serf_t *serf)
 {
-	uint16_t delta = globals.anim - serf->anim;
-	serf->anim = globals.anim;
+	uint16_t delta = game.anim - serf->anim;
+	serf->anim = game.anim;
 	serf->counter -= delta;
 
 	while (serf->counter < 0) {
@@ -4193,8 +4192,8 @@ handle_knight_attacking_victory_free(serf_t *serf)
 {
 	serf_t *other = game_get_serf(serf->s.attacking.def_index);
 
-	uint16_t delta = globals.anim - other->anim;
-	other->anim = globals.anim;
+	uint16_t delta = game.anim - other->anim;
+	other->anim = game.anim;
 	other->counter -= delta;
 
 	while (other->counter < 0) {
@@ -4219,7 +4218,7 @@ handle_knight_attacking_victory_free(serf_t *serf)
 
 		serf->animation = 179;
 		serf->counter = 127;
-		serf->anim = globals.anim;
+		serf->anim = game.anim;
 		return;
 	}
 }
@@ -4234,8 +4233,8 @@ handle_knight_defending_victory_free(serf_t *serf)
 static void
 handle_serf_knight_attacking_defeat_free_state(serf_t *serf)
 {
-	uint16_t delta = globals.anim - serf->anim;
-	serf->anim = globals.anim;
+	uint16_t delta = game.anim - serf->anim;
+	serf->anim = game.anim;
 	serf->counter -= delta;
 
 	if (serf->counter < 0) {
@@ -4255,7 +4254,7 @@ handle_serf_knight_attacking_defeat_free_state(serf_t *serf)
 
 		other->animation = 179;
 		other->counter = 0;
-		other->anim = globals.anim;
+		other->anim = game.anim;
 
 		/* Remove itself. */
 		map_set_serf_index(serf->pos, SERF_INDEX(other));
@@ -4266,8 +4265,8 @@ handle_serf_knight_attacking_defeat_free_state(serf_t *serf)
 static void
 handle_knight_attacking_free_wait(serf_t *serf)
 {
-	uint16_t delta = globals.anim - serf->anim;
-	serf->anim = globals.anim;
+	uint16_t delta = game.anim - serf->anim;
+	serf->anim = game.anim;
 	serf->counter -= delta;
 
 	while (serf->counter < 0) {
@@ -4287,7 +4286,7 @@ handle_knight_attacking_free_wait(serf_t *serf)
 static void
 handle_serf_state_knight_leave_for_walk_to_fight(serf_t *serf)
 {
-	serf->anim = globals.anim;
+	serf->anim = game.anim;
 	serf->counter = 0;
 
 	if (MAP_SERF_INDEX(serf->pos) != SERF_INDEX(serf) &&
@@ -4362,7 +4361,7 @@ handle_serf_state_knight_leave_for_walk_to_fight(serf_t *serf)
 static void
 handle_serf_idle_on_path_state(serf_t *serf)
 {
-	map_tile_t *tiles = globals.map.tiles;
+	map_tile_t *tiles = game.map.tiles;
 
 	flag_t *flag = serf->s.idle_on_path.flag;
 	int rev_dir = serf->s.idle_on_path.rev_dir;
@@ -4391,7 +4390,7 @@ handle_serf_idle_on_path_state(serf_t *serf)
 		serf->s.walking.res = 0;
 		serf->s.walking.wait_counter = 0;
 		serf->s.walking.dir = dir;
-		serf->anim = globals.anim;
+		serf->anim = game.anim;
 		serf->counter = 0;
 	} else {
 		serf_log_state_change(serf, SERF_STATE_WAIT_IDLE_ON_PATH);
@@ -4402,7 +4401,7 @@ handle_serf_idle_on_path_state(serf_t *serf)
 static void
 handle_serf_wait_idle_on_path_state(serf_t *serf)
 {
-	map_tile_t *tiles = globals.map.tiles;
+	map_tile_t *tiles = game.map.tiles;
 
 	if (MAP_SERF_INDEX(serf->pos) == 0) {
 		/* Duplicate code from handle_serf_idle_on_path_state() */
@@ -4416,7 +4415,7 @@ handle_serf_wait_idle_on_path_state(serf_t *serf)
 		serf->s.walking.res = 0;
 		serf->s.walking.wait_counter = 0;
 		serf->s.walking.dir = dir;
-		serf->anim = globals.anim;
+		serf->anim = game.anim;
 		serf->counter = 0;
 	}
 }
@@ -4433,8 +4432,8 @@ handle_scatter_state(serf_t *serf)
 		if (row < 8) row -= 16;
 
 		map_pos_t dest = MAP_POS_ADD(serf->pos,
-					     MAP_POS(col & globals.map.col_mask,
-						     row & globals.map.row_mask));
+					     MAP_POS(col & game.map.col_mask,
+						     row & game.map.row_mask));
 		if (MAP_OBJ(dest) == 0 && MAP_HEIGHT(dest) > 0) {
 			if (SERF_TYPE(serf) >= SERF_KNIGHT_0 &&
 			    SERF_TYPE(serf) >= SERF_KNIGHT_4) {
@@ -4477,12 +4476,12 @@ handle_serf_finished_building_state(serf_t *serf)
 static void
 handle_serf_wake_at_flag_state(serf_t *serf)
 {
-	map_tile_t *tiles = globals.map.tiles;
+	map_tile_t *tiles = game.map.tiles;
 
 	if (MAP_SERF_INDEX(serf->pos) == 0) {
 		tiles[serf->pos].u.s.field_1 = 0;
 		map_set_serf_index(serf->pos, SERF_INDEX(serf));
-		serf->anim = globals.anim;
+		serf->anim = game.anim;
 		serf->counter = 0;
 
 		if (SERF_TYPE(serf) == SERF_SAILOR) {

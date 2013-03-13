@@ -1,7 +1,7 @@
 /*
  * serf.h - Serf related functions
  *
- * Copyright (C) 2012  Jon Lund Steffensen <jonlst@gmail.com>
+ * Copyright (C) 2013  Jon Lund Steffensen <jonlst@gmail.com>
  *
  * This file is part of freeserf.
  *
@@ -30,8 +30,8 @@
 #include "misc.h"
 #include "log.h"
 
-#define SERF_INDEX(ptr)    ((int)((ptr) - globals.serfs))
-#define SERF_ALLOCATED(i)  BIT_TEST(globals.serfs_bitmap[(i)>>3], 7-((i)&7))
+#define SERF_INDEX(ptr)    ((int)((ptr) - game.serfs))
+#define SERF_ALLOCATED(i)  BIT_TEST(game.serfs_bitmap[(i)>>3], 7-((i)&7))
 
 #define SERF_PLAYER(serf)  ((int)((serf)->type & 3))
 #define SERF_TYPE(serf)    ((serf_type_t)(((serf)->type >> 2) & 0x1f))

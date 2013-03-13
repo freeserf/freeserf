@@ -1,7 +1,7 @@
 /*
  * map.c - Map generators and map update functions
  *
- * Copyright (C) 2012  Jon Lund Steffensen <jonlst@gmail.com>
+ * Copyright (C) 2013  Jon Lund Steffensen <jonlst@gmail.com>
  *
  * This file is part of freeserf.
  *
@@ -42,9 +42,9 @@
 #include <stdint.h>
 
 #include "map.h"
+#include "game.h"
 #include "viewport.h"
 #include "random.h"
-#include "globals.h"
 #include "misc.h"
 #include "debug.h"
 
@@ -142,8 +142,8 @@ const map_space_t map_space_from_obj[] = {
 static map_pos_t
 get_rnd_map_coord(int *col, int *row)
 {
-	int c = random_int() & globals.map.col_mask;
-	int r = random_int() & globals.map.row_mask;
+	int c = random_int() & game.map.col_mask;
+	int r = random_int() & game.map.row_mask;
 
 	if (col != NULL) *col = c;
 	if (row != NULL) *row = r;
@@ -155,10 +155,10 @@ get_rnd_map_coord(int *col, int *row)
 static void
 init_map_heights_squares()
 {
-	map_tile_t *tiles = globals.map.tiles;
+	map_tile_t *tiles = game.map.tiles;
 
-	for (int y = 0; y < globals.map.rows; y += 16) {
-		for (int x = 0; x < globals.map.cols; x += 16) {
+	for (int y = 0; y < game.map.rows; y += 16) {
+		for (int x = 0; x < game.map.cols; x += 16) {
 			int rnd = random_int() & 0xff;
 			tiles[MAP_POS(x,y)].height = min(rnd, 250);
 		}
@@ -181,7 +181,7 @@ calc_height_displacement(int avg, int base, int offset)
 static void
 init_map_heights_midpoints()
 {
-	map_tile_t *tiles = globals.map.tiles;
+	map_tile_t *tiles = game.map.tiles;
 
 	/* This is the central part of the midpoint displacement algorithm.
 	   The initial 16x16 squares are subdivided into 8x8 then 4x4 and so on,
@@ -201,8 +201,8 @@ init_map_heights_midpoints()
 	int r2 = (r1 * TERRAIN_SPIKYNESS) >> 16;
 
 	for (int i = 8; i > 0; i >>= 1) {
-		for (int y = 0; y < globals.map.rows; y += 2*i) {
-			for (int x = 0; x < globals.map.cols; x += 2*i) {
+		for (int y = 0; y < game.map.rows; y += 2*i) {
+			for (int x = 0; x < game.map.cols; x += 2*i) {
 				map_pos_t pos = MAP_POS(x, y);
 				int h = tiles[pos].height;
 
@@ -210,7 +210,7 @@ init_map_heights_midpoints()
 				map_pos_t pos_mid_r = MAP_MOVE_RIGHT_N(pos, i);
 				int h_r = tiles[pos_r].height;
 
-				if (globals.map_preserve_bugs) {
+				if (game.map_preserve_bugs) {
 					/* The intention was probably just to set h_r to the map height value,
 					   but the upper bits of rnd must be preserved in h_r in the first
 					   iteration to generate the same maps as the original game. */
@@ -239,7 +239,7 @@ init_map_heights_midpoints()
 static void
 init_map_heights_diamond_square()
 {
-	map_tile_t *tiles = globals.map.tiles;
+	map_tile_t *tiles = game.map.tiles;
 
 	/* This is the central part of the diamond-square algorithm.
 	   The squares are first subdivided into four new squares and
@@ -262,8 +262,8 @@ init_map_heights_diamond_square()
 
 	for (int i = 8; i > 0; i >>= 1) {
 		/* Diamond step */
-		for (int y = 0; y < globals.map.rows; y += 2*i) {
-			for (int x = 0; x < globals.map.cols; x += 2*i) {
+		for (int y = 0; y < game.map.rows; y += 2*i) {
+			for (int x = 0; x < game.map.cols; x += 2*i) {
 				map_pos_t pos = MAP_POS(x, y);
 				int h = tiles[pos].height;
 
@@ -283,8 +283,8 @@ init_map_heights_diamond_square()
 		}
 
 		/* Square step */
-		for (int y = 0; y < globals.map.rows; y += 2*i) {
-			for (int x = 0; x < globals.map.cols; x += 2*i) {
+		for (int y = 0; y < game.map.rows; y += 2*i) {
+			for (int x = 0; x < game.map.cols; x += 2*i) {
 				map_pos_t pos = MAP_POS(x, y);
 				int h = tiles[pos].height;
 
@@ -333,13 +333,13 @@ adjust_map_height(int h1, int h2, map_tile_t *tile)
 static void
 clamp_map_heights()
 {
-	map_tile_t *tiles = globals.map.tiles;
+	map_tile_t *tiles = game.map.tiles;
 
 	int changed = 1;
 	while (changed) {
 		changed = 0;
-		for (int y = 0; y < globals.map.rows; y++) {
-			for (int x = 0; x < globals.map.cols; x++) {
+		for (int y = 0; y < game.map.rows; y++) {
+			for (int x = 0; x < game.map.cols; x++) {
 				map_pos_t pos = MAP_POS(x, y);
 				int h = tiles[pos].height;
 
@@ -390,7 +390,7 @@ map_expand_level_area(map_tile_t *tiles, map_pos_t pos, int limit, int r)
 static void
 map_init_level_area(map_tile_t *tiles, map_pos_t pos)
 {
-	int limit = globals.map_water_level;
+	int limit = game.map_water_level;
 
 	if (limit >= tiles[MAP_MOVE_RIGHT(pos)].height &&
 	    limit >= tiles[MAP_MOVE_DOWN_RIGHT(pos)].height &&
@@ -406,7 +406,7 @@ map_init_level_area(map_tile_t *tiles, map_pos_t pos)
 		tiles[MAP_MOVE_UP_LEFT(pos)].height = 254;
 		tiles[MAP_MOVE_UP(pos)].height = 254;
 
-		for (int i = 0; i < globals.map_max_lake_area; i++) {
+		for (int i = 0; i < game.map_max_lake_area; i++) {
 			int flag = 0;
 
 			map_pos_t new_pos = MAP_MOVE_RIGHT_N(pos, i+1);
@@ -423,7 +423,7 @@ map_init_level_area(map_tile_t *tiles, map_pos_t pos)
 
 		if (tiles[pos].height > 253) tiles[pos].height -= 2;
 
-		for (int i = 0; i < globals.map_max_lake_area + 1; i++) {
+		for (int i = 0; i < game.map_max_lake_area + 1; i++) {
 			map_pos_t new_pos = MAP_MOVE_RIGHT_N(pos, i+1);
 			for (int k = 0; k < 6; k++) {
 				dir_t d = (k + DIR_DOWN) % 6;
@@ -444,13 +444,13 @@ map_init_level_area(map_tile_t *tiles, map_pos_t pos)
 static void
 map_init_sea_level()
 {
-	map_tile_t *tiles = globals.map.tiles;
+	map_tile_t *tiles = game.map.tiles;
 
-	if (globals.map_water_level < 0) return;
+	if (game.map_water_level < 0) return;
 
-	for (int h = 0; h <= globals.map_water_level; h++) {
-		for (int y = 0; y < globals.map.rows; y++) {
-			for (int x = 0; x < globals.map.cols; x++) {
+	for (int h = 0; h <= game.map_water_level; h++) {
+		for (int y = 0; y < game.map.rows; y++) {
+			for (int x = 0; x < game.map.cols; x++) {
 				map_pos_t pos = MAP_POS(x, y);
 				if (tiles[pos].height == h) {
 					map_init_level_area(tiles, pos);
@@ -464,19 +464,19 @@ map_init_sea_level()
 	   252: Land at water level.
 	   253: Water. */
 
-	for (int y = 0; y < globals.map.rows; y++) {
-		for (int x = 0; x < globals.map.cols; x++) {
+	for (int y = 0; y < game.map.rows; y++) {
+		for (int x = 0; x < game.map.cols; x++) {
 			map_pos_t pos = MAP_POS(x, y);
 			int h = tiles[pos].height;
 			switch (h) {
 				case 0:
-					tiles[pos].height = globals.map_water_level + 1;
+					tiles[pos].height = game.map_water_level + 1;
 					break;
 				case 252:
-					tiles[pos].height = globals.map_water_level;
+					tiles[pos].height = game.map_water_level;
 					break;
 				case 253:
-					tiles[pos].height = globals.map_water_level - 1;
+					tiles[pos].height = game.map_water_level - 1;
 					tiles[pos].flags |= BIT(6);
 					tiles[pos].u.s.resource = random_int() & 7; /* Fish (?) */
 					break;
@@ -489,11 +489,11 @@ map_init_sea_level()
 static void
 map_heights_rebase()
 {
-	map_tile_t *tiles = globals.map.tiles;
-	int h = globals.map_water_level - 1;
+	map_tile_t *tiles = game.map.tiles;
+	int h = game.map_water_level - 1;
 
-	for (int y = 0; y < globals.map.rows; y++) {
-		for (int x = 0; x < globals.map.cols; x++) {
+	for (int y = 0; y < game.map.rows; y++) {
+		for (int x = 0; x < game.map.cols; x++) {
 			tiles[MAP_POS(x, y)].height -= h;
 		}
 	}
@@ -516,10 +516,10 @@ calc_map_type(int h_sum)
 static void
 init_map_types()
 {
-	map_tile_t *tiles = globals.map.tiles;
+	map_tile_t *tiles = game.map.tiles;
 
-	for (int y = 0; y < globals.map.rows; y++) {
-		for (int x = 0; x < globals.map.cols; x++) {
+	for (int y = 0; y < game.map.rows; y++) {
+		for (int x = 0; x < game.map.cols; x++) {
 			map_pos_t pos = MAP_POS(x, y);
 			int h1 = tiles[pos].height;
 			int h2 = tiles[MAP_MOVE_RIGHT(pos)].height;
@@ -533,10 +533,10 @@ init_map_types()
 static void
 init_map_types_2_sub()
 {
-	map_tile_t *tiles = globals.map.tiles;
+	map_tile_t *tiles = game.map.tiles;
 
-	for (int y = 0; y < globals.map.rows; y++) {
-		for (int x = 0; x < globals.map.cols; x++) {
+	for (int y = 0; y < game.map.rows; y++) {
+		for (int x = 0; x < game.map.cols; x++) {
 			tiles[MAP_POS(x, y)].obj = 0;
 		}
 	}
@@ -547,10 +547,10 @@ init_map_types_2()
 {
 	init_map_types_2_sub();
 
-	map_tile_t *tiles = globals.map.tiles;
+	map_tile_t *tiles = game.map.tiles;
 
-	for (int y = 0; y < globals.map.rows; y++) {
-		for (int x = 0; x < globals.map.cols; x++) {
+	for (int y = 0; y < game.map.rows; y++) {
+		for (int x = 0; x < game.map.cols; x++) {
 			map_pos_t pos = MAP_POS(x, y);
 
 			if (tiles[pos].height > 0) {
@@ -560,8 +560,8 @@ init_map_types_2()
 				int changed = 1;
 				while (changed) {
 					changed = 0;
-					for (int y = 0; y < globals.map.rows; y++) {
-						for (int x = 0; x < globals.map.cols; x++) {
+					for (int y = 0; y < game.map.rows; y++) {
+						for (int x = 0; x < game.map.cols; x++) {
 							map_pos_t pos = MAP_POS(x, y);
 
 							if (tiles[pos].obj == 1) {
@@ -589,15 +589,15 @@ init_map_types_2()
 					}
 				}
 
-				if (4*num >= globals.map.tile_count) goto break_loop;
+				if (4*num >= game.map.tile_count) goto break_loop;
 			}
 		}
 	}
 
 	break_loop:
 
-	for (int y = 0; y < globals.map.rows; y++) {
-		for (int x = 0; x < globals.map.cols; x++) {
+	for (int y = 0; y < game.map.rows; y++) {
+		for (int x = 0; x < game.map.cols; x++) {
 			map_pos_t pos = MAP_POS(x, y);
 
 			if (tiles[pos].height > 0 && tiles[pos].obj == 0) {
@@ -618,10 +618,10 @@ init_map_types_2()
 static void
 map_heights_rescale()
 {
-	map_tile_t *tiles = globals.map.tiles;
+	map_tile_t *tiles = game.map.tiles;
 
-	for (int y = 0; y < globals.map.rows; y++) {
-		for (int x = 0; x < globals.map.cols; x++) {
+	for (int y = 0; y < game.map.rows; y++) {
+		for (int x = 0; x < game.map.cols; x++) {
 			map_pos_t pos = MAP_POS(x, y);
 			tiles[pos].height = (tiles[pos].height + 6) >> 3;
 		}
@@ -631,10 +631,10 @@ map_heights_rescale()
 static void
 init_map_types_shared_sub(int old, int seed, int new)
 {
-	map_tile_t *tiles = globals.map.tiles;
+	map_tile_t *tiles = game.map.tiles;
 
-	for (int y = 0; y < globals.map.rows; y++) {
-		for (int x = 0; x < globals.map.cols; x++) {
+	for (int y = 0; y < game.map.rows; y++) {
+		for (int x = 0; x < game.map.cols; x++) {
 			map_pos_t pos = MAP_POS(x, y);
 
 			if (MAP_TYPE_UP(pos) == old &&
@@ -691,7 +691,7 @@ static map_pos_t
 lookup_pattern(int col, int row, int index)
 {
 	return MAP_POS_ADD(MAP_POS(col, row),
-			   globals.spiral_pos_pattern[index]);
+			   game.spiral_pos_pattern[index]);
 }
 
 
@@ -735,9 +735,9 @@ init_map_desert_sub2(map_pos_t pos)
 static void
 init_map_desert()
 {
-	map_tile_t *tiles = globals.map.tiles;
+	map_tile_t *tiles = game.map.tiles;
 
-	for (int i = 0; i < globals.map_regions; i++) {
+	for (int i = 0; i < game.map_regions; i++) {
 		for (int try = 0; try < 200; try++) {
 			int col, row;
 			map_pos_t rnd_pos = get_rnd_map_coord(&col, &row);
@@ -762,10 +762,10 @@ init_map_desert()
 static void
 init_map_desert_2_sub()
 {
-	map_tile_t *tiles = globals.map.tiles;
+	map_tile_t *tiles = game.map.tiles;
 
-	for (int y = 0; y < globals.map.rows; y++) {
-		for (int x = 0; x < globals.map.cols; x++) {
+	for (int y = 0; y < game.map.rows; y++) {
+		for (int x = 0; x < game.map.cols; x++) {
 			map_pos_t pos = MAP_POS(x, y);
 			int type_d = MAP_TYPE_DOWN(pos);
 			int type_u = MAP_TYPE_UP(pos);
@@ -796,10 +796,10 @@ init_map_desert_2()
 static void
 init_map_crosses()
 {
-	map_tile_t *tiles = globals.map.tiles;
+	map_tile_t *tiles = game.map.tiles;
 
-	for (int y = 0; y < globals.map.rows; y++) {
-		for (int x = 0; x < globals.map.cols; x++) {
+	for (int y = 0; y < game.map.rows; y++) {
+		for (int x = 0; x < game.map.cols; x++) {
 			map_pos_t pos = MAP_POS(x, y);
 			int h = MAP_HEIGHT(pos);
 			if (h >= 26 &&
@@ -836,7 +836,7 @@ init_map_objects_shared_sub1(map_pos_t pos, int min, int max)
 	if (type_u < min || type_u >= max) return -1;
 
 	/* Should be checkeing the up tri type. */
-	if (globals.map_preserve_bugs) {
+	if (game.map_preserve_bugs) {
 		type_d = MAP_TYPE_DOWN(MAP_MOVE_UP(pos));
 		if (type_d < min || type_d >= max) return -1;
 	} else {
@@ -858,7 +858,7 @@ static void
 init_map_objects_shared(int num_clusters, int objs_in_cluster, int pos_mask,
 			int type_min, int type_max, int obj_base, int obj_mask)
 {
-	map_tile_t *tiles = globals.map.tiles;
+	map_tile_t *tiles = game.map.tiles;
 
 	for (int i = 0; i < num_clusters; i++) {
 		for (int try = 0; try < 100; try++) {
@@ -883,94 +883,94 @@ static void
 init_map_trees_1()
 {
 	/* Add either tree or pine. */
-	init_map_objects_shared(globals.map_regions << 3, 10, 0xff, 5, 7, MAP_OBJ_TREE_0, 0xf);
+	init_map_objects_shared(game.map_regions << 3, 10, 0xff, 5, 7, MAP_OBJ_TREE_0, 0xf);
 }
 
 static void
 init_map_trees_2()
 {
 	/* Add only trees. */
-	init_map_objects_shared(globals.map_regions, 45, 0x3f, 5, 7, MAP_OBJ_TREE_0, 0x7);
+	init_map_objects_shared(game.map_regions, 45, 0x3f, 5, 7, MAP_OBJ_TREE_0, 0x7);
 }
 
 static void
 init_map_trees_3()
 {
 	/* Add only pines. */
-	init_map_objects_shared(globals.map_regions, 30, 0x3f, 4, 7, MAP_OBJ_PINE_0, 0x7);
+	init_map_objects_shared(game.map_regions, 30, 0x3f, 4, 7, MAP_OBJ_PINE_0, 0x7);
 }
 
 static void
 init_map_trees_4()
 {
 	/* Add either tree or pine. */
-	init_map_objects_shared(globals.map_regions, 20, 0x7f, 5, 7, MAP_OBJ_TREE_0, 0xf);
+	init_map_objects_shared(game.map_regions, 20, 0x7f, 5, 7, MAP_OBJ_TREE_0, 0xf);
 }
 
 static void
 init_map_stone_1()
 {
-	init_map_objects_shared(globals.map_regions, 40, 0x3f, 5, 7, MAP_OBJ_STONE_0, 0x7);
+	init_map_objects_shared(game.map_regions, 40, 0x3f, 5, 7, MAP_OBJ_STONE_0, 0x7);
 }
 
 static void
 init_map_stone_2()
 {
-	init_map_objects_shared(globals.map_regions, 15, 0xff, 5, 7, MAP_OBJ_STONE_0, 0x7);
+	init_map_objects_shared(game.map_regions, 15, 0xff, 5, 7, MAP_OBJ_STONE_0, 0x7);
 }
 
 static void
 init_map_dead_trees()
 {
-	init_map_objects_shared(globals.map_regions, 2, 0xff, 5, 7, MAP_OBJ_DEAD_TREE, 0);
+	init_map_objects_shared(game.map_regions, 2, 0xff, 5, 7, MAP_OBJ_DEAD_TREE, 0);
 }
 
 static void
 init_map_large_boulders()
 {
-	init_map_objects_shared(globals.map_regions, 6, 0xff, 5, 7, MAP_OBJ_SANDSTONE_0, 0x1);
+	init_map_objects_shared(game.map_regions, 6, 0xff, 5, 7, MAP_OBJ_SANDSTONE_0, 0x1);
 }
 
 static void
 init_map_water_trees()
 {
-	init_map_objects_shared(globals.map_regions, 50, 0x7f, 2, 4, MAP_OBJ_WATER_TREE_0, 0x3);
+	init_map_objects_shared(game.map_regions, 50, 0x7f, 2, 4, MAP_OBJ_WATER_TREE_0, 0x3);
 }
 
 static void
 init_map_stubs()
 {
-	init_map_objects_shared(globals.map_regions, 5, 0xff, 5, 7, MAP_OBJ_STUB, 0);
+	init_map_objects_shared(game.map_regions, 5, 0xff, 5, 7, MAP_OBJ_STUB, 0);
 }
 
 static void
 init_map_small_boulders()
 {
-	init_map_objects_shared(globals.map_regions, 10, 0xff, 5, 7, MAP_OBJ_STONE, 0x1);
+	init_map_objects_shared(game.map_regions, 10, 0xff, 5, 7, MAP_OBJ_STONE, 0x1);
 }
 
 static void
 init_map_cadavers()
 {
-	init_map_objects_shared(globals.map_regions, 2, 0xf, 10, 11, MAP_OBJ_CADAVER_0, 0x1);
+	init_map_objects_shared(game.map_regions, 2, 0xf, 10, 11, MAP_OBJ_CADAVER_0, 0x1);
 }
 
 static void
 init_map_cacti()
 {
-	init_map_objects_shared(globals.map_regions, 6, 0x7f, 8, 11, MAP_OBJ_CACTUS_0, 0x1);
+	init_map_objects_shared(game.map_regions, 6, 0x7f, 8, 11, MAP_OBJ_CACTUS_0, 0x1);
 }
 
 static void
 init_map_water_stones()
 {
-	init_map_objects_shared(globals.map_regions, 8, 0x7f, 0, 3, MAP_OBJ_WATER_STONE_0, 0x1);
+	init_map_objects_shared(game.map_regions, 8, 0x7f, 0, 3, MAP_OBJ_WATER_STONE_0, 0x1);
 }
 
 static void
 init_map_palms()
 {
-	init_map_objects_shared(globals.map_regions, 6, 0x3f, 10, 11, MAP_OBJ_PALM_0, 0x3);
+	init_map_objects_shared(game.map_regions, 6, 0x3f, 10, 11, MAP_OBJ_PALM_0, 0x3);
 }
 
 static void
@@ -990,7 +990,7 @@ init_map_resources_shared_sub(map_tile_t *tiles, int iters, int col, int row, in
 static void
 init_map_resources_shared(int num_clusters, int res_type, int min, int max)
 {
-	map_tile_t *tiles = globals.map.tiles;
+	map_tile_t *tiles = game.map.tiles;
 
 	for (int i = 0; i < num_clusters; i++) {
 		for (int try = 0; try < 100; try++) {
@@ -1032,34 +1032,34 @@ init_map_resources_shared(int num_clusters, int res_type, int min, int max)
 static void
 init_map_resources_1()
 {
-	init_map_resources_shared(globals.map_regions * 9, 3, 11, 15);
+	init_map_resources_shared(game.map_regions * 9, 3, 11, 15);
 }
 
 static void
 init_map_resources_2()
 {
-	init_map_resources_shared(globals.map_regions * 4, 2, 11, 15);
+	init_map_resources_shared(game.map_regions * 4, 2, 11, 15);
 }
 
 static void
 init_map_resources_3()
 {
-	init_map_resources_shared(globals.map_regions * 2, 1, 11, 15);
+	init_map_resources_shared(game.map_regions * 2, 1, 11, 15);
 }
 
 static void
 init_map_resources_4()
 {
-	init_map_resources_shared(globals.map_regions * 2, 4, 11, 15);
+	init_map_resources_shared(game.map_regions * 2, 4, 11, 15);
 }
 
 static void
 init_map_clean_up()
 {
-	map_tile_t *tiles = globals.map.tiles;
+	map_tile_t *tiles = game.map.tiles;
 
-	for (int y = 0; y < globals.map.rows; y++) {
-		for (int x = 0; x < globals.map.cols; x++) {
+	for (int y = 0; y < game.map.rows; y++) {
+		for (int x = 0; x < game.map.cols; x++) {
 			map_pos_t pos = MAP_POS(x, y);
 			map_space_t s = map_space_from_obj[MAP_OBJ(pos)];
 			if (s >= MAP_SPACE_IMPASSABLE) {
@@ -1153,9 +1153,9 @@ init_map_sub()
 static void
 init_map_waves()
 {
-	map_tile_t *tiles = globals.map.tiles;
-	for (int y = 0; y < globals.map.rows; y++) {
-		for (int x = 0; x < globals.map.cols; x++) {
+	map_tile_t *tiles = game.map.tiles;
+	for (int y = 0; y < game.map.rows; y++) {
+		for (int x = 0; x < game.map.cols; x++) {
 			map_pos_t pos = MAP_POS(x, y);
 			if (MAP_TYPE_UP(pos) < 4 || MAP_TYPE_DOWN(pos) < 4) {
 				tiles[pos].obj |= BIT(7);
@@ -1170,8 +1170,8 @@ init_map_ground_gold_deposit()
 {
 	int total_gold = 0;
 
-	for (int y = 0; y < globals.map.rows; y++) {
-		for (int x = 0; x < globals.map.cols; x++) {
+	for (int y = 0; y < game.map.rows; y++) {
+		for (int x = 0; x < game.map.cols; x++) {
 			map_pos_t pos = MAP_POS(x, y);
 			if (MAP_RES_TYPE(pos) == GROUND_DEPOSIT_GOLD) {
 				total_gold += MAP_RES_AMOUNT(pos);
@@ -1179,7 +1179,7 @@ init_map_ground_gold_deposit()
 		}
 	}
 
-	globals.map_gold_deposit = total_gold;
+	game.map_gold_deposit = total_gold;
 }
 
 /* Initialize minimap data. */
@@ -1202,12 +1202,12 @@ map_init_minimap()
 		11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11
 	};
 
-        globals.minimap = malloc(globals.map.rows * globals.map.cols);
-	map_tile_t *tiles = globals.map.tiles;
-	uint8_t *minimap = globals.minimap;
+        game.minimap = malloc(game.map.rows * game.map.cols);
+	map_tile_t *tiles = game.map.tiles;
+	uint8_t *minimap = game.minimap;
 
-	for (int y = 0; y < globals.map.rows; y++) {
-		for (int x = 0; x < globals.map.cols; x++) {
+	for (int y = 0; y < game.map.rows; y++) {
+		for (int x = 0; x < game.map.cols; x++) {
 			map_pos_t pos = MAP_POS(x, y);
 			int type_off = color_offset[tiles[pos].type >> 4];
 
@@ -1253,10 +1253,10 @@ map_init_dimensions(map_t *map)
 void
 map_init()
 {
-	/* globals.svga &= ~BIT(5); */
+	/* game.svga &= ~BIT(5); */
 
 	/* initialize rnd state */
-	memcpy(&globals.rnd, &globals.init_map_rnd,
+	memcpy(&game.rnd, &game.init_map_rnd,
 	       sizeof(random_state_t));
 
 	random_int();
@@ -1268,7 +1268,7 @@ map_init()
 	/* draw_progress_bar(1); */
 
 	init_map_heights_squares();
-	switch (globals.map_generator) {
+	switch (game.map_generator) {
 	case 0:
 		init_map_heights_midpoints(); /* Midpoint displacement algorithm */
 		break;
@@ -1311,14 +1311,14 @@ map_init()
 
 	/* draw_progress_bar(1); */
 
-	/* globals.svga |= BIT(5); */
+	/* game.svga |= BIT(5); */
 }
 
 /* Change the height of a map position. */
 void
 map_set_height(map_pos_t pos, int height)
 {
-	map_tile_t *tiles = globals.map.tiles;
+	map_tile_t *tiles = game.map.tiles;
 	tiles[pos].height = (tiles[pos].height & 0xe0) | (height & 0x1f);
 
 	/* Mark landscape dirty in viewport. */
@@ -1331,7 +1331,7 @@ map_set_height(map_pos_t pos, int height)
 void
 map_set_object(map_pos_t pos, map_obj_t obj, int index)
 {
-	map_tile_t *tiles = globals.map.tiles;
+	map_tile_t *tiles = game.map.tiles;
 	tiles[pos].obj = (tiles[pos].obj & 0x80) | (obj & 0x7f);
 	if (index >= 0) tiles[pos].u.index = index;
 
@@ -1342,7 +1342,7 @@ map_set_object(map_pos_t pos, map_obj_t obj, int index)
 void
 map_remove_ground_deposit(map_pos_t pos, int amount)
 {
-	map_tile_t *tiles = globals.map.tiles;
+	map_tile_t *tiles = game.map.tiles;
 	tiles[pos].u.s.resource -= amount;
 
 	if (MAP_RES_AMOUNT(pos) == 0) {
@@ -1355,7 +1355,7 @@ map_remove_ground_deposit(map_pos_t pos, int amount)
 void
 map_remove_fish(map_pos_t pos, int amount)
 {
-	map_tile_t *tiles = globals.map.tiles;
+	map_tile_t *tiles = game.map.tiles;
 	tiles[pos].u.s.resource -= amount;
 }
 
@@ -1363,7 +1363,7 @@ map_remove_fish(map_pos_t pos, int amount)
 void
 map_set_serf_index(map_pos_t pos, int index)
 {
-	map_tile_t *tiles = globals.map.tiles;
+	map_tile_t *tiles = game.map.tiles;
 	tiles[pos].serf_index = index;
 
 	/* TODO Mark dirty in viewport. */
@@ -1428,7 +1428,7 @@ map_update_public(map_pos_t pos)
 	case MAP_OBJ_SIGN_LARGE_COAL: case MAP_OBJ_SIGN_SMALL_COAL:
 	case MAP_OBJ_SIGN_LARGE_STONE: case MAP_OBJ_SIGN_SMALL_STONE:
 	case MAP_OBJ_SIGN_EMPTY:
-		if (globals.update_map_16_loop == 0) {
+		if (game.update_map_16_loop == 0) {
 			map_set_object(pos, MAP_OBJ_NONE, -1);
 		}
 		break;
@@ -1444,7 +1444,7 @@ map_update_public(map_pos_t pos)
 static void
 map_update_hidden(map_pos_t pos)
 {
-	map_tile_t *tiles = globals.map.tiles;
+	map_tile_t *tiles = game.map.tiles;
 
 	/* Update fish resources in water */
 	if (MAP_WATER(pos) && MAP_DEEP_WATER(pos)) {
@@ -1479,24 +1479,24 @@ map_update_hidden(map_pos_t pos)
 void
 map_update()
 {
-	uint16_t delta = globals.anim - globals.update_map_last_anim;
-	globals.update_map_last_anim = globals.anim;
-	globals.update_map_counter -= delta;
+	uint16_t delta = game.anim - game.update_map_last_anim;
+	game.update_map_last_anim = game.anim;
+	game.update_map_counter -= delta;
 
 	int iters = 0;
-	while (globals.update_map_counter < 0) {
-		iters += globals.map_regions;
-		globals.update_map_counter += 20;
+	while (game.update_map_counter < 0) {
+		iters += game.map_regions;
+		game.update_map_counter += 20;
 	}
 
-	map_pos_t pos = globals.update_map_initial_pos;
+	map_pos_t pos = game.update_map_initial_pos;
 
 	for (int i = 0; i < iters; i++) {
-		globals.update_map_16_loop -= 1;
-		if (globals.update_map_16_loop < 0) globals.update_map_16_loop = 16;
+		game.update_map_16_loop -= 1;
+		if (game.update_map_16_loop < 0) game.update_map_16_loop = 16;
 
 		/* Test if moving 23 positions right crosses map boundary. */
-		if (MAP_POS_COL(pos) + 23 < globals.map.cols) {
+		if (MAP_POS_COL(pos) + 23 < game.map.cols) {
 			pos = MAP_MOVE_RIGHT_N(pos, 23);
 		} else {
 			pos = MAP_MOVE_RIGHT_N(pos, 23);
@@ -1508,5 +1508,5 @@ map_update()
 		map_update_public(pos);
 	}
 
-	globals.update_map_initial_pos = pos;
+	game.update_map_initial_pos = pos;
 }

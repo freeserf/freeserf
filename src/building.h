@@ -28,8 +28,8 @@
 #include "map.h"
 
 
-#define BUILDING_INDEX(ptr)  ((int)((ptr) - globals.buildings))
-#define BUILDING_ALLOCATED(i)  BIT_TEST(globals.buildings_bitmap[(i)>>3], 7-((i)&7))
+#define BUILDING_INDEX(ptr)  ((int)((ptr) - game.buildings))
+#define BUILDING_ALLOCATED(i)  BIT_TEST(game.buildings_bitmap[(i)>>3], 7-((i)&7))
 
 /* Owning player of the building. */
 #define BUILDING_PLAYER(building)  ((int)((building)->bld & 3))

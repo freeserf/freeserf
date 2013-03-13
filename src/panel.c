@@ -29,7 +29,6 @@
 #include "data.h"
 #include "gfx.h"
 #include "audio.h"
-#include "globals.h"
 
 
 /* Draw the frame around action buttons. */
@@ -123,10 +122,10 @@ draw_panel_buttons(panel_bar_t *panel, frame_t *frame)
 
 	if (BIT_TEST(interface->flags, 0)) return; /* Player not active */
 
-	if (BIT_TEST(globals.svga, 3)) { /* Game has started */
+	if (BIT_TEST(game.svga, 3)) { /* Game has started */
 		if (1/*!coop mode || ...*/) {
 			for (int i = 0; i < interface->player->timers_count; i++) {
-				interface->player->timers[i].timeout -= globals.anim_diff;
+				interface->player->timers[i].timeout -= game.anim_diff;
 				if (interface->player->timers[i].timeout < 0) {
 					/* Timer has expired. */
 					/* TODO box (+ pos) timer */
@@ -190,7 +189,7 @@ draw_panel_buttons(panel_bar_t *panel, frame_t *frame)
 
 		/* Blinking message icon. */
 		if (BIT_TEST(interface->msg_flags, 0)) {
-			if (globals.anim & 0x60) {
+			if (game.anim & 0x60) {
 				draw_message_notify(panel, frame);
 			} else {
 				draw_message_no_notify(panel, frame);
@@ -429,7 +428,7 @@ handle_panel_button_click(interface_t *interface, int btn)
 			if (BIT_TEST(interface->click, 6)) { /* Popup open */
 				interface_close_popup(interface);
 			} else {
-				if (BIT_TEST(globals.split, 6)) { /* Coop mode */
+				if (BIT_TEST(game.split, 6)) { /* Coop mode */
 					/* TODO */
 				}
 				interface->flags &= ~BIT(6);
@@ -516,8 +515,8 @@ panel_bar_handle_event_click(panel_bar_t *panel, int x, int y)
 			handle_panel_button_click(interface, btn);
 		} else {
 			/* Timer bar click */
-			if (BIT_TEST(globals.svga, 3)) { /* Game has started */
-				if ((BIT_TEST(globals.split, 6) && /* Coop mode */
+			if (BIT_TEST(game.svga, 3)) { /* Game has started */
+				if ((BIT_TEST(game.split, 6) && /* Coop mode */
 				     BIT_TEST(interface->click, 0)) ||
 				    interface->player->timers_count >= 64) {
 					sfx_play_clip(SFX_NOT_ACCEPTED);
@@ -547,7 +546,7 @@ panel_bar_handle_event_click(panel_bar_t *panel, int x, int y)
 		}
 	} else {
 		/* Message bar click */
-		if (BIT_TEST(globals.svga, 3)) { /* Game has started */
+		if (BIT_TEST(game.svga, 3)) { /* Game has started */
 			if (y < 16) {
 				/* Message icon */
 				if (!BIT_TEST(interface->msg_flags, 0) || /* No message */

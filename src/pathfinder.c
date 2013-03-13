@@ -1,7 +1,7 @@
 /*
  * pathfinder.c - Path finder functions
  *
- * Copyright (C) 2012  Jon Lund Steffensen <jonlst@gmail.com>
+ * Copyright (C) 2013  Jon Lund Steffensen <jonlst@gmail.com>
  *
  * This file is part of freeserf.
  *
@@ -23,7 +23,6 @@
 #include "pqueue.h"
 #include "list.h"
 #include "game.h"
-#include "globals.h"
 #include "freeserf.h"
 
 typedef struct search_node search_node_t;
@@ -51,12 +50,12 @@ heuristic_cost(map_pos_t start, map_pos_t end)
 {
 	/* Calculate distance to target. */
 	int dist_col = (MAP_POS_COL(start) -
-			MAP_POS_COL(end)) & globals.map.col_mask;
-	if (dist_col >= globals.map.cols/2) dist_col -= globals.map.cols;
+			MAP_POS_COL(end)) & game.map.col_mask;
+	if (dist_col >= game.map.cols/2) dist_col -= game.map.cols;
 
 	int dist_row = (MAP_POS_ROW(start) -
-			MAP_POS_ROW(end)) & globals.map.row_mask;
-	if (dist_row >= globals.map.rows/2) dist_row -= globals.map.rows;
+			MAP_POS_ROW(end)) & game.map.row_mask;
+	if (dist_row >= game.map.rows/2) dist_row -= game.map.rows;
 
 	int h_diff = abs(MAP_HEIGHT(start) - MAP_HEIGHT(end));
 	int dist = 0;

@@ -34,7 +34,6 @@
 
 #include "freeserf.h"
 #include "freeserf_endian.h"
-#include "globals.h"
 #include "serf.h"
 #include "flag.h"
 #include "building.h"
@@ -149,7 +148,7 @@ init_spiral_pattern()
 		0, -1,  1,  1
 	};
 
-	globals.spiral_pattern = spiral_pattern;
+	game.spiral_pattern = spiral_pattern;
 
 	for (int i = 0; i < 49; i++) {
 		int x = spiral_pattern[2 + 12*i];
@@ -166,9 +165,9 @@ init_spiral_pattern()
 static void
 player_interface_init()
 {
-	globals.frame = &screen_frame;
-	int width = sdl_frame_get_width(globals.frame);
-	int height = sdl_frame_get_height(globals.frame);
+	game.frame = &screen_frame;
+	int width = sdl_frame_get_width(game.frame);
+	int height = sdl_frame_get_height(game.frame);
 
 	interface_init(&interface);
 	gui_object_set_size((gui_object_t *)&interface, width, height);
@@ -179,18 +178,18 @@ player_interface_init()
 static void
 init_spiral_pos_pattern()
 {
-	int *pattern = globals.spiral_pattern;
+	int *pattern = game.spiral_pattern;
 
-	if (globals.spiral_pos_pattern == NULL) {
-		globals.spiral_pos_pattern = malloc(295*sizeof(map_pos_t));
-		if (globals.spiral_pos_pattern == NULL) abort();
+	if (game.spiral_pos_pattern == NULL) {
+		game.spiral_pos_pattern = malloc(295*sizeof(map_pos_t));
+		if (game.spiral_pos_pattern == NULL) abort();
 	}
 
 	for (int i = 0; i < 295; i++) {
-		int x = pattern[2*i] & globals.map.col_mask;
-		int y = pattern[2*i+1] & globals.map.row_mask;
+		int x = pattern[2*i] & game.map.col_mask;
+		int y = pattern[2*i+1] & game.map.row_mask;
 
-		globals.spiral_pos_pattern[i] = MAP_POS(x, y);
+		game.spiral_pos_pattern[i] = MAP_POS(x, y);
 	}
 }
 
@@ -198,27 +197,27 @@ init_spiral_pos_pattern()
 static void
 reset_game_objs()
 {
-	globals.map_water_level = 20;
-	globals.map_max_lake_area = 14;
+	game.map_water_level = 20;
+	game.map_max_lake_area = 14;
 
-	globals.update_map_last_anim = 0;
-	globals.update_map_counter = 0;
-	globals.update_map_16_loop = 0;
-	globals.update_map_initial_pos = 0;
-	/* globals.field_54 = 0; */
-	/* globals.field_56 = 0; */
-	globals.next_index = 0;
+	game.update_map_last_anim = 0;
+	game.update_map_counter = 0;
+	game.update_map_16_loop = 0;
+	game.update_map_initial_pos = 0;
+	/* game.field_54 = 0; */
+	/* game.field_56 = 0; */
+	game.next_index = 0;
 
 	/* loops */
-	memset(globals.flg_bitmap, 0, ((globals.max_flg_cnt-1) / 8) + 1);
-	memset(globals.buildings_bitmap, 0, ((globals.max_building_cnt-1) / 8) + 1);
-	memset(globals.serfs_bitmap, 0, ((globals.max_serf_cnt-1) / 8) + 1);
-	memset(globals.inventories_bitmap, 0, ((globals.max_inventory_cnt-1) / 8) + 1);
+	memset(game.flg_bitmap, 0, ((game.max_flg_cnt-1) / 8) + 1);
+	memset(game.buildings_bitmap, 0, ((game.max_building_cnt-1) / 8) + 1);
+	memset(game.serfs_bitmap, 0, ((game.max_serf_cnt-1) / 8) + 1);
+	memset(game.inventories_bitmap, 0, ((game.max_inventory_cnt-1) / 8) + 1);
 
-	globals.max_ever_flag_index = 0;
-	globals.max_ever_building_index = 0;
-	globals.max_ever_serf_index = 0;
-	globals.max_ever_inventory_index = 0;
+	game.max_ever_flag_index = 0;
+	game.max_ever_building_index = 0;
+	game.max_ever_serf_index = 0;
+	game.max_ever_inventory_index = 0;
 
 	/* Create NULL-serf */
 	serf_t *serf;
@@ -247,27 +246,27 @@ init_map_vars()
 		150, 220, 350, 500
 	};
 
-	/* globals.split |= BIT(3); */
+	/* game.split |= BIT(3); */
 
-	if (globals.map.cols < 64 || globals.map.rows < 64) {
-		/* globals.split &= ~BIT(3); */
+	if (game.map.cols < 64 || game.map.rows < 64) {
+		/* game.split &= ~BIT(3); */
 	}
 
-	map_init_dimensions(&globals.map);
+	map_init_dimensions(&game.map);
 
-	globals.map_regions = (globals.map.cols >> 5) * (globals.map.rows >> 5);
-	globals.map_max_serfs_left = globals.map_regions * 500;
-	globals.map_62_5_times_regions = (globals.map_regions * 500) >> 3;
+	game.map_regions = (game.map.cols >> 5) * (game.map.rows >> 5);
+	game.map_max_serfs_left = game.map_regions * 500;
+	game.map_62_5_times_regions = (game.map_regions * 500) >> 3;
 
 	int active_players = 0;
 	for (int i = 0; i < 4; i++) {
-		if (globals.pl_init[0].face != 0) active_players += 1;
+		if (game.pl_init[0].face != 0) active_players += 1;
 	}
 
-	globals.map_field_4A = globals.map_max_serfs_left -
-		active_players * globals.map_62_5_times_regions;
-	globals.map_gold_morale_factor = 10 * 1024 * active_players;
-	globals.map_field_52 = map_size_arr[globals.map_size];
+	game.map_field_4A = game.map_max_serfs_left -
+		active_players * game.map_62_5_times_regions;
+	game.map_gold_morale_factor = 10 * 1024 * active_players;
+	game.map_field_52 = map_size_arr[game.map_size];
 }
 
 /* Initialize AI parameters. */
@@ -293,24 +292,24 @@ init_ai_values(player_t *player, int face)
 static void
 reset_player_settings()
 {
-	globals.winning_player = -1;
+	game.winning_player = -1;
 	/* TODO ... */
-	globals.max_next_index = 33;
+	game.max_next_index = 33;
 
 	/* TODO */
 
 	for (int i = 0; i < 4; i++) {
-		player_t *player = globals.player[i];
+		player_t *player = game.player[i];
 		memset(player, 0, sizeof(player_t));
 		player->flags = 0;
 
-		player_init_t *init = &globals.pl_init[i];
+		player_init_t *init = &game.pl_init[i];
 		if (init->face != 0) {
 			player->flags |= BIT(6); /* Player active */
 			if (init->face < 12) { /* AI player */
 				player->flags |= BIT(7); /* Set AI bit */
 				/* TODO ... */
-				globals.max_next_index = 49;
+				game.max_next_index = 49;
 			}
 
 			player->player_num = i;
@@ -394,7 +393,7 @@ reset_player_settings()
 		}
 	}
 
-	if (BIT_TEST(globals.split, 6)) { /* Coop mode */
+	if (BIT_TEST(game.split, 6)) { /* Coop mode */
 		/* TODO ... */
 	}
 }
@@ -403,7 +402,7 @@ reset_player_settings()
 static void
 init_player_settings()
 {
-	globals.anim = 0;
+	game.anim = 0;
 	/* TODO ... */
 }
 
@@ -411,16 +410,16 @@ init_player_settings()
 static void
 init_game_globals()
 {
-	memset(globals.player_history_index, '\0', sizeof(globals.player_history_index));
-	memset(globals.player_history_counter, '\0', sizeof(globals.player_history_counter));
+	memset(game.player_history_index, '\0', sizeof(game.player_history_index));
+	memset(game.player_history_counter, '\0', sizeof(game.player_history_counter));
 
-	globals.resource_history_index = 0;
-	globals.game_tick = 0;
-	globals.anim = 0;
+	game.resource_history_index = 0;
+	game.game_tick = 0;
+	game.anim = 0;
 	/* TODO ... */
-	globals.game_stats_counter = 0;
-	globals.history_counter = 0;
-	globals.anim_diff = 0;
+	game.game_stats_counter = 0;
+	game.history_counter = 0;
+	game.anim_diff = 0;
 	/* TODO */
 }
 
@@ -484,11 +483,11 @@ static void
 anim_update_and_more()
 {
 	/* TODO ... */
-	globals.old_anim = globals.anim;
-	globals.anim = globals.game_tick >> 16;
-	globals.anim_diff = globals.anim - globals.old_anim;
+	game.old_anim = game.anim;
+	game.anim = game.game_tick >> 16;
+	game.anim_diff = game.anim - game.old_anim;
 
-	int anim_xor = globals.anim ^ globals.old_anim;
+	int anim_xor = game.anim ^ game.old_anim;
 
 	/* Viewport animation does not care about low bits in anim */
 	if (anim_xor >= 1 << 3) {
@@ -496,20 +495,20 @@ anim_update_and_more()
 		gui_object_set_redraw((gui_object_t *)viewport);
 	}
 
-	if ((globals.anim & 0xffff) == 0 && globals.game_speed > 0) {
+	if ((game.anim & 0xffff) == 0 && game.game_speed > 0) {
 		int r = save_game(1);
 		if (r < 0) LOGW("main", "Autosave failed.");
 	}
 
-	if (BIT_TEST(globals.svga, 3)) { /* Game has started */
+	if (BIT_TEST(game.svga, 3)) { /* Game has started */
 		/* TODO */
 
-		if (interface.return_timeout < globals.anim_diff) {
+		if (interface.return_timeout < game.anim_diff) {
 			interface.msg_flags |= BIT(4);
 			interface.msg_flags &= ~BIT(3);
 			interface.return_timeout = 0;
 		} else {
-			interface.return_timeout -= globals.anim_diff;
+			interface.return_timeout -= game.anim_diff;
 		}
 	}
 }
@@ -518,8 +517,8 @@ anim_update_and_more()
 static void
 update_game_tick()
 {
-	/*globals.field_208 += 1;*/
-	globals.game_tick += globals.game_speed;
+	/*game.field_208 += 1;*/
+	game.game_tick += game.game_speed;
 
 	/* Update player input: This is done from the SDL main loop instead. */
 
@@ -578,38 +577,38 @@ load_map_spec()
 		}
 	};
 
-	int m = globals.mission_level;
+	int m = game.mission_level;
 
-	globals.pl_init[0].face = 12;
-	globals.pl_init[0].supplies = mission[m].pl_0_supplies;
-	globals.pl_init[0].intelligence = 40;
-	globals.pl_init[0].reproduction = mission[m].pl_0_reproduction;
+	game.pl_init[0].face = 12;
+	game.pl_init[0].supplies = mission[m].pl_0_supplies;
+	game.pl_init[0].intelligence = 40;
+	game.pl_init[0].reproduction = mission[m].pl_0_reproduction;
 
-	globals.pl_init[1].face = mission[m].pl_1_face;
-	globals.pl_init[1].supplies = mission[m].pl_1_supplies;
-	globals.pl_init[1].intelligence = mission[m].pl_1_intelligence;
-	globals.pl_init[1].reproduction = mission[m].pl_1_reproduction;
+	game.pl_init[1].face = mission[m].pl_1_face;
+	game.pl_init[1].supplies = mission[m].pl_1_supplies;
+	game.pl_init[1].intelligence = mission[m].pl_1_intelligence;
+	game.pl_init[1].reproduction = mission[m].pl_1_reproduction;
 
-	globals.pl_init[2].face = mission[m].pl_2_face;
-	globals.pl_init[2].supplies = mission[m].pl_2_supplies;
-	globals.pl_init[2].intelligence = mission[m].pl_2_intelligence;
-	globals.pl_init[2].reproduction = mission[m].pl_2_reproduction;
+	game.pl_init[2].face = mission[m].pl_2_face;
+	game.pl_init[2].supplies = mission[m].pl_2_supplies;
+	game.pl_init[2].intelligence = mission[m].pl_2_intelligence;
+	game.pl_init[2].reproduction = mission[m].pl_2_reproduction;
 
-	globals.pl_init[3].face = mission[m].pl_3_face;
-	globals.pl_init[3].supplies = mission[m].pl_3_supplies;
-	globals.pl_init[3].intelligence = mission[m].pl_3_intelligence;
-	globals.pl_init[3].reproduction = mission[m].pl_3_reproduction;
+	game.pl_init[3].face = mission[m].pl_3_face;
+	game.pl_init[3].supplies = mission[m].pl_3_supplies;
+	game.pl_init[3].intelligence = mission[m].pl_3_intelligence;
+	game.pl_init[3].reproduction = mission[m].pl_3_reproduction;
 
 	/* TODO ... */
 
-	memcpy(&globals.init_map_rnd, &mission[m].rnd,
+	memcpy(&game.init_map_rnd, &mission[m].rnd,
 	       sizeof(random_state_t));
 
 	int map_size = 3;
 
-	globals.init_map_rnd.state[0] ^= 0x5a5a;
-	globals.init_map_rnd.state[1] ^= 0xa5a5;
-	globals.init_map_rnd.state[2] ^= 0xc3c3;
+	game.init_map_rnd.state[0] ^= 0x5a5a;
+	game.init_map_rnd.state[1] ^= 0xa5a5;
+	game.init_map_rnd.state[2] ^= 0xc3c3;
 
 	return map_size;
 }
@@ -619,19 +618,19 @@ static void
 start_game()
 {
 	/* Initialize map */
-	globals.map_size = load_map_spec();
+	game.map_size = load_map_spec();
 
-	globals.map.col_size = 5 + globals.map_size/2;
-	globals.map.row_size = 5 + (globals.map_size - 1)/2;
-	globals.map.cols = 1 << globals.map.col_size;
-	globals.map.rows = 1 << globals.map.row_size;
+	game.map.col_size = 5 + game.map_size/2;
+	game.map.row_size = 5 + (game.map_size - 1)/2;
+	game.map.cols = 1 << game.map.col_size;
+	game.map.rows = 1 << game.map.row_size;
 
-	globals.split &= ~BIT(2); /* Not split screen */
-	globals.split &= ~BIT(6); /* Not coop mode */
-	globals.split &= ~BIT(5); /* Not demo mode */
+	game.split &= ~BIT(2); /* Not split screen */
+	game.split &= ~BIT(6); /* Not coop mode */
+	game.split &= ~BIT(5); /* Not demo mode */
 
-	globals.svga |= BIT(3); /* Game has started. */
-	globals.game_speed = DEFAULT_GAME_SPEED;
+	game.svga |= BIT(3); /* Game has started. */
+	game.game_speed = DEFAULT_GAME_SPEED;
 
 	init_map_vars();
 	reset_game_objs();
@@ -670,11 +669,11 @@ game_loop_iter()
 	sdl_draw_frame(interface.pointer_x-8, interface.pointer_y-8,
 		       sdl_get_screen_frame(), 0, 0, &cursor_buffer, 16, 16);
 
-	gui_object_redraw((gui_object_t *)&interface, globals.frame);
+	gui_object_redraw((gui_object_t *)&interface, game.frame);
 
 	/* TODO very crude dirty marking algortihm: mark everything. */
-	sdl_mark_dirty(0, 0, sdl_frame_get_width(globals.frame),
-		       sdl_frame_get_height(globals.frame));
+	sdl_mark_dirty(0, 0, sdl_frame_get_width(game.frame),
+		       sdl_frame_get_height(game.frame));
 
 	/* ADDITIONS */
 
@@ -878,20 +877,20 @@ game_loop()
 					/* Game speed */
 				case SDLK_PLUS:
 				case SDLK_KP_PLUS:
-					if (globals.game_speed < 0xffff0000) globals.game_speed += 0x10000;
-					LOGI("main", "Game speed: %u", globals.game_speed >> 16);
+					if (game.game_speed < 0xffff0000) game.game_speed += 0x10000;
+					LOGI("main", "Game speed: %u", game.game_speed >> 16);
 					break;
 				case SDLK_MINUS:
 				case SDLK_KP_MINUS:
-					if (globals.game_speed >= 0x10000) globals.game_speed -= 0x10000;
-					LOGI("main", "Game speed: %u", globals.game_speed >> 16);
+					if (game.game_speed >= 0x10000) game.game_speed -= 0x10000;
+					LOGI("main", "Game speed: %u", game.game_speed >> 16);
 					break;
 				case SDLK_0:
-					globals.game_speed = 0x20000;
-					LOGI("main", "Game speed: %u", globals.game_speed >> 16);
+					game.game_speed = 0x20000;
+					LOGI("main", "Game speed: %u", game.game_speed >> 16);
 					break;
 				case SDLK_p:
-					if (globals.game_speed == 0) game_pause(0);
+					if (game.game_speed == 0) game_pause(0);
 					else game_pause(1);
 					break;
 
@@ -919,15 +918,15 @@ game_loop()
 				case SDLK_j: {
 					int current = 0;
 					for (int i = 0; i < 4; i++) {
-						if (interface.player == globals.player[i]) {
+						if (interface.player == game.player[i]) {
 							current = i;
 							break;
 						}
 					}
 
 					for (int i = (current+1) % 4; i != current; i = (i+1) % 4) {
-						if (PLAYER_IS_ACTIVE(globals.player[i])) {
-							interface.player = globals.player[i];
+						if (PLAYER_IS_ACTIVE(game.player[i])) {
+							interface.player = game.player[i];
 							LOGD("main", "Switched to player %i.", i);
 							break;
 						}
@@ -1035,11 +1034,11 @@ load_serf_animation_table()
 	   sprite. Second byte is a signed horizontal sprite
 	   offset. Third byte is a signed vertical offset.
 	*/
-	globals.serf_animation_table = ((uint32_t *)gfx_get_data_object(DATA_SERF_ANIMATION_TABLE, NULL)) + 1;
+	game.serf_animation_table = ((uint32_t *)gfx_get_data_object(DATA_SERF_ANIMATION_TABLE, NULL)) + 1;
 
 	/* Endianess convert from big endian. */
 	for (int i = 0; i < 199; i++) {
-		globals.serf_animation_table[i] = be32toh(globals.serf_animation_table[i]);
+		game.serf_animation_table[i] = be32toh(game.serf_animation_table[i]);
 	}
 }
 
@@ -1048,53 +1047,53 @@ static void
 allocate_global_memory()
 {
 	/* Players */
-	globals.player[0] = malloc(sizeof(player_t));
-	if (globals.player[0] == NULL) abort();
+	game.player[0] = malloc(sizeof(player_t));
+	if (game.player[0] == NULL) abort();
 
-	globals.player[1] = malloc(sizeof(player_t));
-	if (globals.player[1] == NULL) abort();
+	game.player[1] = malloc(sizeof(player_t));
+	if (game.player[1] == NULL) abort();
 
-	globals.player[2] = malloc(sizeof(player_t));
-	if (globals.player[2] == NULL) abort();
+	game.player[2] = malloc(sizeof(player_t));
+	if (game.player[2] == NULL) abort();
 
-	globals.player[3] = malloc(sizeof(player_t));
-	if (globals.player[3] == NULL) abort();
+	game.player[3] = malloc(sizeof(player_t));
+	if (game.player[3] == NULL) abort();
 
 	/* TODO this should be allocated on game start according to the
 	   map size of the particular game instance. */
 	int max_map_size = 10;
-	globals.max_serf_cnt = (0x1f84 * (1 << max_map_size) - 4) / 0x81;
-	globals.max_flg_cnt = (0x2314 * (1 << max_map_size) - 4) / 0x231;
-	globals.max_building_cnt = (0x54c * (1 << max_map_size) - 4) / 0x91;
-	globals.max_inventory_cnt = (0x54c * (1 << max_map_size) - 4) / 0x3c1;
+	game.max_serf_cnt = (0x1f84 * (1 << max_map_size) - 4) / 0x81;
+	game.max_flg_cnt = (0x2314 * (1 << max_map_size) - 4) / 0x231;
+	game.max_building_cnt = (0x54c * (1 << max_map_size) - 4) / 0x91;
+	game.max_inventory_cnt = (0x54c * (1 << max_map_size) - 4) / 0x3c1;
 
 	/* Serfs */
-	globals.serfs = malloc(globals.max_serf_cnt * sizeof(serf_t));
-	if (globals.serfs == NULL) abort();
+	game.serfs = malloc(game.max_serf_cnt * sizeof(serf_t));
+	if (game.serfs == NULL) abort();
 
-	globals.serfs_bitmap = malloc(((globals.max_serf_cnt-1) / 8) + 1);
-	if (globals.serfs_bitmap == NULL) abort();
+	game.serfs_bitmap = malloc(((game.max_serf_cnt-1) / 8) + 1);
+	if (game.serfs_bitmap == NULL) abort();
 
 	/* Flags */
-	globals.flgs = malloc(globals.max_flg_cnt * sizeof(flag_t));
-	if (globals.flgs == NULL) abort();
+	game.flgs = malloc(game.max_flg_cnt * sizeof(flag_t));
+	if (game.flgs == NULL) abort();
 
-	globals.flg_bitmap = malloc(((globals.max_flg_cnt-1) / 8) + 1);
-	if (globals.flg_bitmap == NULL) abort();
+	game.flg_bitmap = malloc(((game.max_flg_cnt-1) / 8) + 1);
+	if (game.flg_bitmap == NULL) abort();
 
 	/* Buildings */
-	globals.buildings = malloc(globals.max_building_cnt * sizeof(building_t));
-	if (globals.buildings == NULL) abort();
+	game.buildings = malloc(game.max_building_cnt * sizeof(building_t));
+	if (game.buildings == NULL) abort();
 
-	globals.buildings_bitmap = malloc(((globals.max_building_cnt-1) / 8) + 1);
-	if (globals.buildings_bitmap == NULL) abort();
+	game.buildings_bitmap = malloc(((game.max_building_cnt-1) / 8) + 1);
+	if (game.buildings_bitmap == NULL) abort();
 
 	/* Inventories */
-	globals.inventories = malloc(globals.max_inventory_cnt * sizeof(inventory_t));
-	if (globals.inventories == NULL) abort();
+	game.inventories = malloc(game.max_inventory_cnt * sizeof(inventory_t));
+	if (game.inventories == NULL) abort();
 
-	globals.inventories_bitmap = malloc(((globals.max_inventory_cnt-1) / 8) + 1);
-	if (globals.inventories_bitmap == NULL) abort();
+	game.inventories_bitmap = malloc(((game.max_inventory_cnt-1) / 8) + 1);
+	if (game.inventories_bitmap == NULL) abort();
 
 	/* Setup screen frame */
 	frame_t *screen = sdl_get_screen_frame();
@@ -1110,8 +1109,8 @@ static void
 init_global_config()
 {
 	/* TODO load saved configuration */
-	globals.cfg_left = 0x39;
-	globals.cfg_right = 0x39;
+	game.cfg_left = 0x39;
+	game.cfg_right = 0x39;
 	audio_set_volume(75);
 }
 
@@ -1293,11 +1292,11 @@ main(int argc, char *argv[])
 	r = sdl_set_resolution(screen_width, screen_height, fullscreen);
 	if (r < 0) exit(EXIT_FAILURE);
 
-	globals.svga |= BIT(7); /* set svga mode */
+	game.svga |= BIT(7); /* set svga mode */
 
-	globals.mission_level = game_map - 1; /* set game map */
-	globals.map_generator = map_generator;
-	globals.map_preserve_bugs = preserve_map_bugs;
+	game.mission_level = game_map - 1; /* set game map */
+	game.map_generator = map_generator;
+	game.map_preserve_bugs = preserve_map_bugs;
 
 	/* Init globals */
 	init_global_config();

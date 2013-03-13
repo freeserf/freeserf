@@ -28,7 +28,6 @@
 #include "game.h"
 #include "sdl-video.h"
 #include "audio.h"
-#include "globals.h"
 #include "debug.h"
 #include "interface.h"
 #include "viewport.h"
@@ -397,7 +396,7 @@ draw_player_face(int x, int y, int player, frame_t *frame)
 	};
 
 	gfx_fill_rect(8*x, y+5, 48, 72, player_colors[player], frame);
-	draw_popup_icon(x, y, get_player_face_sprite(globals.pl_init[player].face), frame);
+	draw_popup_icon(x, y, get_player_face_sprite(game.pl_init[player].face), frame);
 }
 
 /* Draw a layout of buildings in a popup box. */
@@ -741,7 +740,7 @@ draw_stat_4_box(popup_box_t *popup, frame_t *frame)
 	memset(resources, '\0', 26*sizeof(int));
 
 	/* Sum up resources of all inventories. */
-	for (int i = 0; i < globals.max_ever_inventory_index; i++) {
+	for (int i = 0; i < game.max_ever_inventory_index; i++) {
 		if (INVENTORY_ALLOCATED(i)) {
 			inventory_t *inventory = game_get_inventory(i);
 			if (inventory->player_num == popup->interface->player->player_num) {
@@ -997,11 +996,11 @@ draw_stat_8_box(popup_box_t *popup, frame_t *frame)
 	draw_popup_icon(10, 103, 94 + 3*scale + 2, frame);
 
 	/* Draw chart */
-	int index = globals.player_history_index[scale];
-	draw_player_stat_chart(globals.player[3]->player_stat_history[mode], index, 76, frame);
-	draw_player_stat_chart(globals.player[2]->player_stat_history[mode], index, 68, frame);
-	draw_player_stat_chart(globals.player[1]->player_stat_history[mode], index, 72, frame);
-	draw_player_stat_chart(globals.player[0]->player_stat_history[mode], index, 64, frame);
+	int index = game.player_history_index[scale];
+	draw_player_stat_chart(game.player[3]->player_stat_history[mode], index, 76, frame);
+	draw_player_stat_chart(game.player[2]->player_stat_history[mode], index, 68, frame);
+	draw_player_stat_chart(game.player[1]->player_stat_history[mode], index, 72, frame);
+	draw_player_stat_chart(game.player[0]->player_stat_history[mode], index, 64, frame);
 }
 
 static void
@@ -1067,7 +1066,7 @@ draw_stat_7_box(popup_box_t *popup, frame_t *frame)
 	/* Create array of historical counts */
 	int historical_data[112];
 	int max_val = 0;
-	int index = globals.resource_history_index;
+	int index = game.resource_history_index;
 
 	for (int i = 0; i < 112; i++) {
 		historical_data[i] = 0;
@@ -1284,7 +1283,7 @@ draw_stat_3_box(popup_box_t *popup, frame_t *frame)
 	memset(serfs, '\0', 27*sizeof(int));
 
 	/* Sum up all existing serfs. */
-	for (int i = 1; i < globals.max_ever_serf_index; i++) {
+	for (int i = 1; i < game.max_ever_serf_index; i++) {
 		if (SERF_ALLOCATED(i)) {
 			serf_t *serf = game_get_serf(i);
 			if (SERF_PLAYER(serf) == popup->interface->player->player_num &&
@@ -1295,7 +1294,7 @@ draw_stat_3_box(popup_box_t *popup, frame_t *frame)
 	}
 
 	/* Sum up potential serfs of all inventories. */
-	for (int i = 0; i < globals.max_ever_inventory_index; i++) {
+	for (int i = 0; i < game.max_ever_inventory_index; i++) {
 		if (INVENTORY_ALLOCATED(i)) {
 			inventory_t *inventory = game_get_inventory(i);
 			if (inventory->player_num == popup->interface->player->player_num) {
@@ -1710,7 +1709,7 @@ draw_quit_confirm_box(popup_box_t *popup, frame_t *frame)
 
 	/* wait_x_timer_ticks(8); */
 
-	globals.svga &= ~BIT(5);
+	game.svga &= ~BIT(5);
 }
 
 static void
@@ -1755,21 +1754,21 @@ draw_options_box(popup_box_t *popup, frame_t *frame)
 
 	char *messages = strdup("    Messages    ");
 	messages[0] = '3';
-	if (!BIT_TEST(globals.cfg_left,3)) {
+	if (!BIT_TEST(game.cfg_left,3)) {
 		messages[0] = '2';
-		if (!BIT_TEST(globals.cfg_left,4)) {
+		if (!BIT_TEST(game.cfg_left,4)) {
 			messages[0] = '1';
-			if (!BIT_TEST(globals.cfg_left,5)) {
+			if (!BIT_TEST(game.cfg_left,5)) {
 				messages[0] = '0';
 			}
 		}
 	}
 	messages[15] = '3';
-	if (!BIT_TEST(globals.cfg_right,3)) {
+	if (!BIT_TEST(game.cfg_right,3)) {
 		messages[15] = '2';
-		if (!BIT_TEST(globals.cfg_right,4)) {
+		if (!BIT_TEST(game.cfg_right,4)) {
 			messages[15] = '1';
-			if (!BIT_TEST(globals.cfg_right,5)) {
+			if (!BIT_TEST(game.cfg_right,5)) {
 				messages[15] = '0';
 			}
 		}
@@ -1779,13 +1778,13 @@ draw_options_box(popup_box_t *popup, frame_t *frame)
 
 	draw_popup_icon(7, 0, 60, frame); /* exit */
 
-	draw_popup_icon(0, 28, BIT_TEST(globals.cfg_left, 0) ? 288 : 220, frame);
-	draw_popup_icon(0, 48, BIT_TEST(globals.cfg_left, 1) ? 288 : 220, frame);
-	draw_popup_icon(0, 68, BIT_TEST(globals.cfg_left, 2) ? 288 : 220, frame);
+	draw_popup_icon(0, 28, BIT_TEST(game.cfg_left, 0) ? 288 : 220, frame);
+	draw_popup_icon(0, 48, BIT_TEST(game.cfg_left, 1) ? 288 : 220, frame);
+	draw_popup_icon(0, 68, BIT_TEST(game.cfg_left, 2) ? 288 : 220, frame);
 
-	draw_popup_icon(14, 28, BIT_TEST(globals.cfg_right, 0) ? 288 : 220, frame);
-	draw_popup_icon(14, 48, BIT_TEST(globals.cfg_right, 1) ? 288 : 220, frame);
-	draw_popup_icon(14, 68, BIT_TEST(globals.cfg_right, 2) ? 288 : 220, frame);
+	draw_popup_icon(14, 28, BIT_TEST(game.cfg_right, 0) ? 288 : 220, frame);
+	draw_popup_icon(14, 48, BIT_TEST(game.cfg_right, 1) ? 288 : 220, frame);
+	draw_popup_icon(14, 68, BIT_TEST(game.cfg_right, 2) ? 288 : 220, frame);
 
 	draw_green_string(2, 110, frame, "Music");
 	draw_green_string(7, 105, frame, "  SVGA"); /* TODO replace with fullscreen? */
@@ -1936,7 +1935,7 @@ draw_defenders_box(popup_box_t *popup, frame_t *frame)
 	building_t *building = game_get_building(popup->interface->player->index);
 	if (BUILDING_IS_BURNING(building)) return;/*player_close_popup();*/ /* Building is burning */
 
-	if (!BIT_TEST(globals.split, 5) && /* Demo mode */
+	if (!BIT_TEST(game.split, 5) && /* Demo mode */
 	    BUILDING_PLAYER(building) != popup->interface->player->player_num) {
 		return;/*player_close_popup();*/
 	}
@@ -2084,7 +2083,7 @@ draw_castle_serf_box(popup_box_t *popup, frame_t *frame)
 
 	inventory_t *inventory = building->u.inventory;
 
-	for (int i = 1; i < globals.max_ever_serf_index; i++) {
+	for (int i = 1; i < game.max_ever_serf_index; i++) {
 		if (SERF_ALLOCATED(i)) {
 			serf_t *serf = game_get_serf(i);
 			if (serf->state == SERF_STATE_IDLE_IN_STOCK &&
@@ -2213,7 +2212,7 @@ draw_sett_8_box(popup_box_t *popup, frame_t *frame)
 	}
 
 	int convertible_to_knights = 0;
-	for (int i = 0; i < globals.max_ever_inventory_index; i++) {
+	for (int i = 0; i < game.max_ever_inventory_index; i++) {
 		if (INVENTORY_ALLOCATED(i)) {
 			inventory_t *inv = game_get_inventory(i);
 			if (inv->player_num == player->player_num) {
@@ -2698,14 +2697,14 @@ popup_box_draw(popup_box_t *popup, frame_t *frame)
 		else if (!BIT_TEST(0x103ec0, box-32)) return;
 
 		if (box == BOX_25) {
-			/*if (!BIT_TEST(globals.string_bg, 1)) return;*/
-			/*globals.string_bg &= ~BIT(1);*/
-		} else if (globals.anim - popup->interface->last_anim < 100/*1000*/) return;
+			/*if (!BIT_TEST(game.string_bg, 1)) return;*/
+			/*game.string_bg &= ~BIT(1);*/
+		} else if (game.anim - popup->interface->last_anim < 100/*1000*/) return;
 	}
 
 	interface_open_popup(interface, 0);
 #endif
-	popup->interface->last_anim = globals.anim;
+	popup->interface->last_anim = game.anim;
 	popup->interface->clkmap = box;
 
 	/* Dispatch to one of the popup box functions above. */
@@ -3423,7 +3422,7 @@ handle_action(interface_t *interface, action_t action, int x, int y)
 		break;
 	case ACTION_QUIT_CANCEL:
 		game_pause(0);
-		globals.svga |= BIT(5);
+		game.svga |= BIT(5);
 		interface_close_popup(interface);
 		break;
 	case ACTION_NO_SAVE_QUIT_CONFIRM:
@@ -3450,50 +3449,50 @@ handle_action(interface_t *interface, action_t action, int x, int y)
 		break;
 	case ACTION_CLOSE_OPTIONS:
 		interface_close_popup(interface);
-		interface->config = globals.cfg_left;
+		interface->config = game.cfg_left;
 		break;
 	case ACTION_OPTIONS_PATHWAY_SCROLLING_1:
-		BIT_INVERT(globals.cfg_left, 0);
+		BIT_INVERT(game.cfg_left, 0);
 		break;
 	case ACTION_OPTIONS_PATHWAY_SCROLLING_2:
-		BIT_INVERT(globals.cfg_right, 0);
+		BIT_INVERT(game.cfg_right, 0);
 		break;
 	case ACTION_OPTIONS_FAST_MAP_CLICK_1:
-		BIT_INVERT(globals.cfg_left, 1);
+		BIT_INVERT(game.cfg_left, 1);
 		break;
 	case ACTION_OPTIONS_FAST_MAP_CLICK_2:
-		BIT_INVERT(globals.cfg_right, 1);
+		BIT_INVERT(game.cfg_right, 1);
 		break;
 	case ACTION_OPTIONS_FAST_BUILDING_1:
-		BIT_INVERT(globals.cfg_left, 2);
+		BIT_INVERT(game.cfg_left, 2);
 		break;
 	case ACTION_OPTIONS_FAST_BUILDING_2:
-		BIT_INVERT(globals.cfg_right, 2);
+		BIT_INVERT(game.cfg_right, 2);
 		break;
 	case ACTION_OPTIONS_MESSAGE_COUNT_1:
-		if (BIT_TEST(globals.cfg_left, 3)) {
-			BIT_INVERT(globals.cfg_left, 3);
-			globals.cfg_left |= BIT(4);
-		} else if (BIT_TEST(globals.cfg_left, 4)) {
-			BIT_INVERT(globals.cfg_left, 4);
-			globals.cfg_left |= BIT(5);
-		} else if (BIT_TEST(globals.cfg_left, 5)) {
-			BIT_INVERT(globals.cfg_left, 5);
+		if (BIT_TEST(game.cfg_left, 3)) {
+			BIT_INVERT(game.cfg_left, 3);
+			game.cfg_left |= BIT(4);
+		} else if (BIT_TEST(game.cfg_left, 4)) {
+			BIT_INVERT(game.cfg_left, 4);
+			game.cfg_left |= BIT(5);
+		} else if (BIT_TEST(game.cfg_left, 5)) {
+			BIT_INVERT(game.cfg_left, 5);
 		} else {
-			globals.cfg_left |= BIT(3) | BIT(4) | BIT(5);
+			game.cfg_left |= BIT(3) | BIT(4) | BIT(5);
 		}
 		break;
 	case ACTION_OPTIONS_MESSAGE_COUNT_2:
-		if (BIT_TEST(globals.cfg_right, 3)) {
-			BIT_INVERT(globals.cfg_right, 3);
-			globals.cfg_left |= BIT(4);
-		} else if (BIT_TEST(globals.cfg_right, 4)) {
-			BIT_INVERT(globals.cfg_right, 4);
-			globals.cfg_left |= BIT(5);
-		} else if (BIT_TEST(globals.cfg_right, 5)) {
-			BIT_INVERT(globals.cfg_right, 5);
+		if (BIT_TEST(game.cfg_right, 3)) {
+			BIT_INVERT(game.cfg_right, 3);
+			game.cfg_left |= BIT(4);
+		} else if (BIT_TEST(game.cfg_right, 4)) {
+			BIT_INVERT(game.cfg_right, 4);
+			game.cfg_left |= BIT(5);
+		} else if (BIT_TEST(game.cfg_right, 5)) {
+			BIT_INVERT(game.cfg_right, 5);
 		} else {
-			globals.cfg_right |= BIT(3) | BIT(4) | BIT(5);
+			game.cfg_right |= BIT(3) | BIT(4) | BIT(5);
 		}
 		break;
 	case ACTION_DEFAULT_SETT_1:
@@ -4165,7 +4164,7 @@ handle_transport_info_clk(interface_t *interface, int x, int y)
 		ACTION_CLOSE_BOX, 112, 128, 16, 16,
 		-1
 	};
-	if (!BIT_TEST(globals.split, 5)) { /* Not demo mode */
+	if (!BIT_TEST(game.split, 5)) { /* Not demo mode */
 		handle_clickmap(interface, x, y, clkmap);
 	} else {
 		handle_box_close_clk(interface, x, y);
@@ -4203,7 +4202,7 @@ handle_resdir_clk(interface_t *interface, int x, int y)
 	};
 
 	int r = -1;
-	if (!BIT_TEST(globals.split, 5)) { /* Not demo mode */
+	if (!BIT_TEST(game.split, 5)) { /* Not demo mode */
 		r = handle_clickmap(interface, x, y, mode_clkmap);
 	}
 	if (r < 0) handle_clickmap(interface, x, y, clkmap);

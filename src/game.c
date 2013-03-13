@@ -31,7 +31,6 @@
 #include "player.h"
 #include "flag.h"
 #include "building.h"
-#include "globals.h"
 #include "random.h"
 #include "log.h"
 #include "debug.h"
@@ -44,18 +43,18 @@
 int
 game_alloc_flag(flag_t **flag, int *index)
 {
-	for (int i = 0; i*8 < globals.max_flg_cnt; i++) {
-		if (globals.flg_bitmap[i] != 0xff) {
+	for (int i = 0; i*8 < game.max_flg_cnt; i++) {
+		if (game.flg_bitmap[i] != 0xff) {
 			for (int j = 0; j < 8; j++) {
-				if (!BIT_TEST(globals.flg_bitmap[i], 7-j)) {
+				if (!BIT_TEST(game.flg_bitmap[i], 7-j)) {
 					int ix = 8*i + j;
-					if (ix >= globals.max_flg_cnt) return -1; /* TODO looks unneccesary */
+					if (ix >= game.max_flg_cnt) return -1; /* TODO looks unneccesary */
 
-					globals.flg_bitmap[i] |= BIT(7-j);
+					game.flg_bitmap[i] |= BIT(7-j);
 
-					if (ix == globals.max_ever_flag_index) globals.max_ever_flag_index += 1;
+					if (ix == game.max_ever_flag_index) game.max_ever_flag_index += 1;
 
-					flag_t *f = &globals.flgs[ix];
+					flag_t *f = &game.flgs[ix];
 					f->pos = 0;
 					f->search_num = 0;
 					f->search_dir = 0;
@@ -84,9 +83,9 @@ game_alloc_flag(flag_t **flag, int *index)
 flag_t *
 game_get_flag(int index)
 {
-	assert(index > 0 && index < globals.max_flg_cnt);
+	assert(index > 0 && index < game.max_flg_cnt);
 	assert(FLAG_ALLOCATED(index));
-	return &globals.flgs[index];
+	return &game.flgs[index];
 }
 
 /* Deallocate flag_t object. */
@@ -94,11 +93,11 @@ void
 game_free_flag(int index)
 {
 	/* Remove flag from allocation bitmap. */
-	globals.flg_bitmap[index/8] &= ~BIT(7-(index&7));
+	game.flg_bitmap[index/8] &= ~BIT(7-(index&7));
 
 	/* Decrement max_ever_flag_index as much as possible. */
-	if (index == globals.max_ever_flag_index + 1) {
-		while (--globals.max_ever_flag_index > 0) {
+	if (index == game.max_ever_flag_index + 1) {
+		while (--game.max_ever_flag_index > 0) {
 			index -= 1;
 			if (FLAG_ALLOCATED(index)) break;
 		}
@@ -110,19 +109,19 @@ game_free_flag(int index)
 int
 game_alloc_building(building_t **building, int *index)
 {
-	for (int i = 0; i*8 < globals.max_building_cnt; i++) {
-		if (globals.buildings_bitmap[i] != 0xff) {
+	for (int i = 0; i*8 < game.max_building_cnt; i++) {
+		if (game.buildings_bitmap[i] != 0xff) {
 			for (int j = 0; j < 8; j++) {
-				if (!BIT_TEST(globals.buildings_bitmap[i], 7-j)) {
+				if (!BIT_TEST(game.buildings_bitmap[i], 7-j)) {
 					int ix = 8*i + j;
 
-					if (ix >= globals.max_building_cnt) return -1; /* TODO looks unneccesary */
+					if (ix >= game.max_building_cnt) return -1; /* TODO looks unneccesary */
 
-					globals.buildings_bitmap[i] |= BIT(7-j);
+					game.buildings_bitmap[i] |= BIT(7-j);
 
-					if (ix == globals.max_ever_building_index) globals.max_ever_building_index += 1;
+					if (ix == game.max_ever_building_index) game.max_ever_building_index += 1;
 
-					building_t *b = &globals.buildings[ix];
+					building_t *b = &game.buildings[ix];
 					b->bld = 0;
 					b->flg_index = 0;
 					b->serf = 0;
@@ -155,9 +154,9 @@ game_alloc_building(building_t **building, int *index)
 building_t *
 game_get_building(int index)
 {
-	assert(index > 0 && index < globals.max_building_cnt);
+	assert(index > 0 && index < game.max_building_cnt);
 	assert(BUILDING_ALLOCATED(index));
-	return &globals.buildings[index];
+	return &game.buildings[index];
 }
 
 /* Deallocate building_t object. */
@@ -165,11 +164,11 @@ void
 game_free_building(int index)
 {
 	/* Remove building from allocation bitmap. */
-	globals.buildings_bitmap[index/8] &= ~BIT(7-(index&7));
+	game.buildings_bitmap[index/8] &= ~BIT(7-(index&7));
 
 	/* Decrement max_ever_building_index as much as possible. */
-	if (index == globals.max_ever_building_index + 1) {
-		while (--globals.max_ever_building_index > 0) {
+	if (index == game.max_ever_building_index + 1) {
+		while (--game.max_ever_building_index > 0) {
 			index -= 1;
 			if (BUILDING_ALLOCATED(index)) break;
 		}
@@ -181,19 +180,19 @@ game_free_building(int index)
 int
 game_alloc_inventory(inventory_t **inventory, int *index)
 {
-	for (int i = 0; i*8 < globals.max_inventory_cnt; i++) {
-		if (globals.inventories_bitmap[i] != 0xff) {
+	for (int i = 0; i*8 < game.max_inventory_cnt; i++) {
+		if (game.inventories_bitmap[i] != 0xff) {
 			for (int j = 0; j < 8; j++) {
-				if (!BIT_TEST(globals.inventories_bitmap[i], 7-j)) {
+				if (!BIT_TEST(game.inventories_bitmap[i], 7-j)) {
 					int ix = 8*i + j;
 
-					if (ix >= globals.max_inventory_cnt) return -1; /* TODO looks unneccesary */
+					if (ix >= game.max_inventory_cnt) return -1; /* TODO looks unneccesary */
 
-					globals.inventories_bitmap[i] |= BIT(7-j);
+					game.inventories_bitmap[i] |= BIT(7-j);
 
-					if (ix == globals.max_ever_inventory_index) globals.max_ever_inventory_index += 1;
+					if (ix == game.max_ever_inventory_index) game.max_ever_inventory_index += 1;
 
-					inventory_t *iv = &globals.inventories[ix];
+					inventory_t *iv = &game.inventories[ix];
 					memset(iv, 0, sizeof(inventory_t));
 
 					iv->out_queue[0] = -1;
@@ -215,9 +214,9 @@ game_alloc_inventory(inventory_t **inventory, int *index)
 inventory_t *
 game_get_inventory(int index)
 {
-	assert(index < globals.max_inventory_cnt);
+	assert(index < game.max_inventory_cnt);
 	assert(INVENTORY_ALLOCATED(index));
-	return &globals.inventories[index];
+	return &game.inventories[index];
 }
 
 /* Deallocate inventory_t object. */
@@ -225,11 +224,11 @@ void
 game_free_inventory(int index)
 {
 	/* Remove inventory from allocation bitmap. */
-	globals.inventories_bitmap[index/8] &= ~BIT(7-(index&7));
+	game.inventories_bitmap[index/8] &= ~BIT(7-(index&7));
 
 	/* Decrement max_ever_inventory_index as much as possible. */
-	if (index == globals.max_ever_inventory_index + 1) {
-		while (--globals.max_ever_inventory_index > 0) {
+	if (index == game.max_ever_inventory_index + 1) {
+		while (--game.max_ever_inventory_index > 0) {
 			index -= 1;
 			if (INVENTORY_ALLOCATED(index)) break;
 		}
@@ -241,19 +240,19 @@ game_free_inventory(int index)
 int
 game_alloc_serf(serf_t **serf, int *index)
 {
-	for (int i = 0; i*8 < globals.max_serf_cnt; i++) {
-		if (globals.serfs_bitmap[i] != 0xff) {
+	for (int i = 0; i*8 < game.max_serf_cnt; i++) {
+		if (game.serfs_bitmap[i] != 0xff) {
 			for (int j = 0; j < 8; j++) {
-				if (!BIT_TEST(globals.serfs_bitmap[i], 7-j)) {
+				if (!BIT_TEST(game.serfs_bitmap[i], 7-j)) {
 					int ix = 8*i + j;
 
-					if (ix >= globals.max_serf_cnt) return -1; /* TODO looks unneccesary */
+					if (ix >= game.max_serf_cnt) return -1; /* TODO looks unneccesary */
 
-					globals.serfs_bitmap[i] |= BIT(7-j);
+					game.serfs_bitmap[i] |= BIT(7-j);
 
-					if (ix == globals.max_ever_serf_index) globals.max_ever_serf_index += 1;
+					if (ix == game.max_ever_serf_index) game.max_ever_serf_index += 1;
 
-					serf_t *s = &globals.serfs[ix];
+					serf_t *s = &game.serfs[ix];
 
 					if (serf != NULL) *serf = s;
 					if (index != NULL) *index = ix;
@@ -271,9 +270,9 @@ game_alloc_serf(serf_t **serf, int *index)
 serf_t *
 game_get_serf(int index)
 {
-	assert(index > 0 && index < globals.max_serf_cnt);
+	assert(index > 0 && index < game.max_serf_cnt);
 	assert(SERF_ALLOCATED(index));
-	return &globals.serfs[index];
+	return &game.serfs[index];
 }
 
 /* Deallocate and serf_t object. */
@@ -281,17 +280,17 @@ void
 game_free_serf(int index)
 {
 	/* Remove serf from allocation bitmap. */
-	globals.serfs_bitmap[index/8] &= ~BIT(7-(index&7));
+	game.serfs_bitmap[index/8] &= ~BIT(7-(index&7));
 
 	/* Decrement max_ever_serf_index as much as possible. */
-	if (index == globals.max_ever_serf_index + 1) {
-		while (--globals.max_ever_serf_index > 0) {
+	if (index == game.max_ever_serf_index + 1) {
+		while (--game.max_ever_serf_index > 0) {
 			index -= 1;
 			if (SERF_ALLOCATED(index)) break;
 		}
 	}
 
-	globals.map_max_serfs_left += 1;
+	game.map_max_serfs_left += 1;
 }
 
 
@@ -301,8 +300,8 @@ static int
 spawn_serf(player_t *player, serf_t **serf, inventory_t **inventory, int want_knight)
 {
 	if (!PLAYER_CAN_SPAWN(player)) return -1;
-	if (globals.map_max_serfs_left == 0) return -1;
-	if (globals.max_ever_inventory_index < 1) return -1;
+	if (game.map_max_serfs_left == 0) return -1;
+	if (game.max_ever_inventory_index < 1) return -1;
 
 	serf_t *s = NULL;
 	int r = game_alloc_serf(&s, NULL);
@@ -311,7 +310,7 @@ spawn_serf(player_t *player, serf_t **serf, inventory_t **inventory, int want_kn
 	building_t *building = NULL;
 	inventory_t *inv = NULL;
 
-	for (int i = 0; i < globals.max_ever_inventory_index; i++) {
+	for (int i = 0; i < game.max_ever_inventory_index; i++) {
 		if (INVENTORY_ALLOCATED(i)) {
 			inventory_t *loop_inv = game_get_inventory(i);
 			if (loop_inv->player_num == player->player_num &&
@@ -344,7 +343,7 @@ spawn_serf(player_t *player, serf_t **serf, inventory_t **inventory, int want_kn
 	s->animation = 0;
 	s->counter = 0;
 	s->pos = building->pos;
-	s->anim = globals.anim;
+	s->anim = game.anim;
 	s->state = SERF_STATE_IDLE_IN_STOCK;
 	s->s.idle_in_stock.inv_index = INVENTORY_INDEX(inv);
 
@@ -381,8 +380,8 @@ update_player(player_t *player)
 	}
 
 	if (PLAYER_HAS_CASTLE(player)) {
-		uint16_t delta = globals.anim - player->last_anim;
-		player->last_anim = globals.anim;
+		uint16_t delta = game.anim - player->last_anim;
+		player->last_anim = game.anim;
 		player->reproduction_counter -= delta;
 
 		while (player->reproduction_counter < 0) {
@@ -425,7 +424,7 @@ check_win_and_flags_buildings()
 	/* TODO */
 
 	/* TODO Approximately right */
-	for (int i = 1; i < globals.max_ever_building_index; i++) {
+	for (int i = 1; i < game.max_ever_building_index; i++) {
 		if (BUILDING_ALLOCATED(i)) {
 			building_t *building = game_get_building(i);
 			building->serf &= ~BIT(2);
@@ -433,7 +432,7 @@ check_win_and_flags_buildings()
 	}
 
 	/* TODO Approximately right */
-	for (int i = 1; i < globals.max_ever_flag_index; i++) {
+	for (int i = 1; i < game.max_ever_flag_index; i++) {
 		if (FLAG_ALLOCATED(i)) {
 			flag_t *flag = game_get_flag(i);
 			flag->transporter &= ~BIT(7);
@@ -445,19 +444,19 @@ static void
 update_knight_morale()
 {
 	for (int i = 0; i < 3; i++) {
-		player_t *player = globals.player[i];
+		player_t *player = game.player[i];
 		int depot = player->military_gold + player->inventory_gold;
 		player->gold_deposited = min(depot, 0xffff);
 
 		/* Calculate according to gold collected. */
-		int map_gold = globals.map_gold_deposit;
+		int map_gold = game.map_gold_deposit;
 		if (map_gold != 0) {
 			while (map_gold > 0xffff) {
 				map_gold >>= 1;
 				depot >>= 1;
 			}
 			depot = min(depot, map_gold-1);
-			player->knight_morale = 1024 + (globals.map_gold_morale_factor * depot)/map_gold;
+			player->knight_morale = 1024 + (game.map_gold_morale_factor * depot)/map_gold;
 		} else {
 			player->knight_morale = 4096;
 		}
@@ -493,7 +492,7 @@ update_map_and_players()
 	map_update();
 
 	for (int i = 0; i < 4; i++) {
-		update_player(globals.player[i]);
+		update_player(game.player[i]);
 	}
 }
 
@@ -575,15 +574,15 @@ update_ai_and_more()
 		-1
 	};
 
-	globals.next_index += 1;
-	if (globals.next_index >= globals.max_next_index) {
-		globals.next_index = 0;
+	game.next_index += 1;
+	if (game.next_index >= game.max_next_index) {
+		game.next_index = 0;
 	}
 
-	if (globals.next_index == 32) {
+	if (game.next_index == 32) {
 		/* 1FC1D */
 		update_knight_morale();
-		if (globals.game_speed == 0) return;
+		if (game.game_speed == 0) return;
 		/* update functions */
 
 		const int *arr = NULL;
@@ -595,10 +594,10 @@ update_ai_and_more()
 
 		while (arr[0] >= 0) {
 			for (int p = 0; p < 4; p++) {
-				/*player_t *player = globals.player[p];*/
+				/*player_t *player = game.player[p];*/
 				inventory_t *invs[256];
 				int n = 0;
-				for (int i = 0; i < globals.max_ever_inventory_index; i++) {
+				for (int i = 0; i < game.max_ever_inventory_index; i++) {
 					if (INVENTORY_ALLOCATED(i)) {
 						inventory_t *inventory = game_get_inventory(i);
 						if (inventory->player_num == p &&
@@ -694,19 +693,19 @@ update_ai_and_more()
 			}
 			arr += 1;
 		}
-	} else if (globals.next_index > 32) {
-		while (globals.next_index < globals.max_next_index) {
-			int i = 33 - globals.next_index;
-			player_t *player = globals.player[i & 3];
+	} else if (game.next_index > 32) {
+		while (game.next_index < game.max_next_index) {
+			int i = 33 - game.next_index;
+			player_t *player = game.player[i & 3];
 			if (PLAYER_IS_ACTIVE(player) && PLAYER_IS_AI(player)) {
 				/* AI */
 				/* TODO */
 			}
-			globals.next_index += 1;
+			game.next_index += 1;
 		}
-	} else if (globals.game_speed > 0 &&
-		   globals.max_ever_flag_index < 50) {
-		player_t *player = globals.player[globals.next_index & 3];
+	} else if (game.game_speed > 0 &&
+		   game.max_ever_flag_index < 50) {
+		player_t *player = game.player[game.next_index & 3];
 		if (PLAYER_IS_ACTIVE(player) && PLAYER_IS_AI(player)) {
 			/* AI */
 			/* TODO */
@@ -746,8 +745,8 @@ send_serf_to_road_search_cb(flag_t *flag, send_serf_to_road_data_t *data)
 		if (data->inventory == NULL && inventory->serfs[SERF_GENERIC] != 0 &&
 		    (!data->water || inventory->resources[RESOURCE_BOAT] > 0)) {
 			data->inventory = inventory;
-			/*player_t *player = globals.player[inventory->player_num];
-			globals.field_340 = player->cont_search_after_non_optimal_find;*/
+			/*player_t *player = game.player[inventory->player_num];
+			game.field_340 = player->cont_search_after_non_optimal_find;*/
 		}
 	}
 
@@ -779,7 +778,7 @@ send_serf_to_road(flag_t *src, dir_t dir, int water)
 	if (r < 0) {
 		if (inventory == NULL) return -1;
 
-		player_t *player = globals.player[inventory->player_num];
+		player_t *player = game.player[inventory->player_num];
 
 		player->serf_count[SERF_GENERIC] -= 1;
 		serf_index = inventory->serfs[SERF_GENERIC];
@@ -862,7 +861,7 @@ update_flags_search_cb(flag_t *flag, update_flags_search_data_t *data)
 				src->other_end_dir[flag->search_dir] = BIT(7) | (src->other_end_dir[flag->search_dir] & 0x78) | data->res;
 				LOGV("game", "update flags: item %i is requesting fetch", data->res);
 			} else {
-				player_t *player = globals.player[FLAG_PLAYER(flag)];
+				player_t *player = game.player[FLAG_PLAYER(flag)];
 				int prio_old = player->flag_prio[(src->res_waiting[other_dir & 7] & 0x1f)-1];
 				int prio_new = player->flag_prio[(src->res_waiting[data->res] & 0x1f)-1];
 				if (prio_new > prio_old) {
@@ -917,34 +916,34 @@ update_flags()
 		0
 	};
 
-	if (globals.next_index >= 32) return;
+	if (game.next_index >= 32) return;
 
-	int index = globals.next_index << 5;
-	for (int i = index ? index : 1; i < globals.max_ever_flag_index; i++) {
+	int index = game.next_index << 5;
+	for (int i = index ? index : 1; i < game.max_ever_flag_index; i++) {
 		if (FLAG_ALLOCATED(i)) {
 			flag_t *flag = game_get_flag(i);
 
-			for (int j = 0; j < 4; j++) globals.field_218[j] = 0;
+			for (int j = 0; j < 4; j++) game.field_218[j] = 0;
 
 			for (int j = 0; j < 8; j++) {
 				int res_dir = (flag->res_waiting[j] >> 5) - 1;
 				if (res_dir >= 0) {
 					for (int k = 3; k >= 0; k--) {
-						if (!BIT_TEST(globals.field_218[k], res_dir)) {
-							globals.field_218[k] |= BIT(res_dir);
+						if (!BIT_TEST(game.field_218[k], res_dir)) {
+							game.field_218[k] |= BIT(res_dir);
 							break;
 						}
 					}
 				}
 			}
 
-			globals.field_24E = 0;
+			game.field_24E = 0;
 
 			if (FLAG_HAS_RESOURCES(flag)) {
 				flag->endpoint &= ~BIT(7);
 				for (int slot = 7; slot >= 0; slot--) {
 					if (flag->res_waiting[slot] != 0) {
-						globals.field_24E += 1;
+						game.field_24E += 1;
 
 						/* Only schedule the slot if it has not already
 						   been scheduled for fetch. */
@@ -958,7 +957,7 @@ update_flags()
 								int tr = FLAG_TRANSPORTERS(flag);
 
 								int sources = 0;
-								int flags = (globals.field_218[3] ^ 0x3f) & flag->transporter;
+								int flags = (game.field_218[3] ^ 0x3f) & flag->transporter;
 								if (flags != 0) {
 									for (int k = 0; k < 6; k++) {
 										if (BIT_TEST(flags, 5-k)) {
@@ -975,7 +974,7 @@ update_flags()
 
 								if (tr != 0) {
 									for (int j = 0; j < 3; j++) {
-										flags = (globals.field_218[3-j] ^ globals.field_218[2-j]);
+										flags = (game.field_218[3-j] ^ game.field_218[2-j]);
 										for (int k = 0; k < 6; k++) {
 											if (BIT_TEST(flags, 5-k)) {
 												tr &= ~BIT(5-k);
@@ -990,7 +989,7 @@ update_flags()
 									}
 
 									if (tr != 0) {
-										flags = globals.field_218[0];
+										flags = game.field_218[0];
 										for (int k = 0; k < 6; k++) {
 											if (BIT_TEST(flags, 5-k)) {
 												tr &= ~BIT(5-k);
@@ -1080,9 +1079,9 @@ update_flags()
 
 			/* Update transporter flags, decide if serf needs to be sent to road */
 			int tr = flag->transporter;
-			int flags = globals.field_218[1];
+			int flags = game.field_218[1];
 			int path = FLAG_PATHS(flag);
-			if (globals.field_24E >= 7) path |= BIT(7);
+			if (game.field_24E >= 7) path |= BIT(7);
 
 			for (int j = 0; j < 6; j++) {
 				if (BIT_TEST(path, 5-j)) {
@@ -1164,13 +1163,13 @@ send_serf_to_flag_search_cb(flag_t *flag, send_serf_to_flag_data_t *data)
 				return 1;
 			} else if (type == -1) {
 				/* See if a knight can be created here. */
-				if (/*globals.field_342 == 0*/1 &&
+				if (/*game.field_342 == 0*/1 &&
 				    inv->serfs[SERF_GENERIC] != 0 &&
 				    inv->resources[RESOURCE_SWORD] > 0 &&
 				    inv->resources[RESOURCE_SHIELD] > 0) {
 					data->inventory = inv;
 					/* player_t *player = globals->player[SERF_PLAYER(serf)]; */
-					/* globals.field_340 = player->cont_search_after_non_optimal_find; */
+					/* game.field_340 = player->cont_search_after_non_optimal_find; */
 				}
 			}
 		} else {
@@ -1205,7 +1204,7 @@ send_serf_to_flag_search_cb(flag_t *flag, send_serf_to_flag_data_t *data)
 				    (data->res2 == -1 || inv->resources[data->res2] > 0)) {
 					data->inventory = inv;
 					/* player_t *player = globals->player[SERF_PLAYER(serf)]; */
-					/* globals.field_340 = player->cont_search_after_non_optimal_find; */
+					/* game.field_340 = player->cont_search_after_non_optimal_find; */
 				}
 			}
 		}
@@ -1221,7 +1220,7 @@ send_serf_to_flag(flag_t *dest, building_t *building, int dest_index,
 {
 	/* If type is negative, building is non-NULL. */
 	if (type < 0) {
-		player_t *player = globals.player[BUILDING_PLAYER(building)];
+		player_t *player = game.player[BUILDING_PLAYER(building)];
 		if (PLAYER_CYCLING_SECOND(player)) {
 			type = -((player->knight_cycle_counter >> 8) + 1);
 		}
@@ -1261,7 +1260,7 @@ send_serf_to_flag(flag_t *dest, building_t *building, int dest_index,
 			inventory->resources[RESOURCE_SHIELD] -= 1;
 			inventory->serfs[SERF_4] += 1;
 
-			player_t *player = globals.player[SERF_PLAYER(serf)];
+			player_t *player = game.player[SERF_PLAYER(serf)];
 			player->serf_count[SERF_GENERIC] -= 1;
 			player->serf_count[SERF_KNIGHT_0] += 1;
 			player->total_military_score += 1;
@@ -1286,7 +1285,7 @@ send_serf_to_flag(flag_t *dest, building_t *building, int dest_index,
 
 			inventory->serfs[SERF_4] += 1;
 
-			player_t *player = globals.player[SERF_PLAYER(serf)];
+			player_t *player = game.player[SERF_PLAYER(serf)];
 			player->serf_count[SERF_GENERIC] -= 1;
 			player->serf_count[type] += 1;
 		}
@@ -1316,7 +1315,7 @@ send_serf_to_building(building_t *building, int type, resource_type_t res1, reso
 static void
 update_unfinished_building(building_t *building)
 {
-	player_t *player = globals.player[BUILDING_PLAYER(building)];
+	player_t *player = game.player[BUILDING_PLAYER(building)];
 
 	/* Request builder serf */
 	if (!BUILDING_SERF_REQUEST_FAIL(building) &&
@@ -1373,7 +1372,7 @@ update_unfinished_building(building_t *building)
 static void
 update_unfinished_adv_building(building_t *building)
 {
-	/*player_t *player = globals.player[BUILDING_PLAYER(building)];*/
+	/*player_t *player = game.player[BUILDING_PLAYER(building)];*/
 
 	if (building->progress > 0) {
 		update_unfinished_building(building);
@@ -1404,7 +1403,7 @@ update_unfinished_adv_building(building_t *building)
 static void
 update_building_castle(building_t *building)
 {
-	player_t *player = globals.player[BUILDING_PLAYER(building)];
+	player_t *player = game.player[BUILDING_PLAYER(building)];
 	if (player->castle_knights == player->castle_knights_wanted) {
 		/* TODO ... */
 	} else if (player->castle_knights < player->castle_knights_wanted) {
@@ -1494,7 +1493,7 @@ handle_building_update(building_t *building)
 				if (r < 0) building->serf |= BIT(2);
 			}
 			if (BUILDING_HAS_SERF(building)) {
-				player_t *player = globals.player[BUILDING_PLAYER(building)];
+				player_t *player = game.player[BUILDING_PLAYER(building)];
 				int total_tree = building->stock[0].requested + building->stock[0].available;
 				if (total_tree < 8 && 1/*!BIT_TEST(player->field_163, 1)*/) {
 					building->stock[0].prio = player->planks_boatbuilder >> (8 + total_tree);
@@ -1523,7 +1522,7 @@ handle_building_update(building_t *building)
 			if (BUILDING_HAS_SERF(building)) {
 				int total_food = building->stock[0].requested + building->stock[0].available;
 				if (total_food < 8) {
-					player_t *player = globals.player[BUILDING_PLAYER(building)];
+					player_t *player = game.player[BUILDING_PLAYER(building)];
 					building->stock[0].prio = player->food_stonemine >> (8 + total_food);
 				} else {
 					building->stock[0].prio = 0;
@@ -1541,7 +1540,7 @@ handle_building_update(building_t *building)
 			if (BUILDING_HAS_SERF(building)) {
 				int total_food = building->stock[0].requested + building->stock[0].available;
 				if (total_food < 8) {
-					player_t *player = globals.player[BUILDING_PLAYER(building)];
+					player_t *player = game.player[BUILDING_PLAYER(building)];
 					building->stock[0].prio = player->food_coalmine >> (8 + total_food);
 				} else {
 					building->stock[0].prio = 0;
@@ -1559,7 +1558,7 @@ handle_building_update(building_t *building)
 			if (BUILDING_HAS_SERF(building)) {
 				int total_food = building->stock[0].requested + building->stock[0].available;
 				if (total_food < 8) {
-					player_t *player = globals.player[BUILDING_PLAYER(building)];
+					player_t *player = game.player[BUILDING_PLAYER(building)];
 					building->stock[0].prio = player->food_ironmine >> (8 + total_food);
 				} else {
 					building->stock[0].prio = 0;
@@ -1577,7 +1576,7 @@ handle_building_update(building_t *building)
 			if (BUILDING_HAS_SERF(building)) {
 				int total_food = building->stock[0].requested + building->stock[0].available;
 				if (total_food < 8) {
-					player_t *player = globals.player[BUILDING_PLAYER(building)];
+					player_t *player = game.player[BUILDING_PLAYER(building)];
 					building->stock[0].prio = player->food_goldmine >> (8 + total_food);
 				} else {
 					building->stock[0].prio = 0;
@@ -1609,7 +1608,7 @@ handle_building_update(building_t *building)
 				building->stock[1].available = 0xff;
 				building->serf |= BIT(4);
 
-				player_add_notification(globals.player[BUILDING_PLAYER(building)],
+				player_add_notification(game.player[BUILDING_PLAYER(building)],
 							7, building->pos);
 			} else {
 				if (!BUILDING_SERF_REQUEST_FAIL(building) &&
@@ -1618,7 +1617,7 @@ handle_building_update(building_t *building)
 					send_serf_to_building(building, SERF_TRANSPORTER, -1, -1);
 				}
 
-				player_t *player = globals.player[BUILDING_PLAYER(building)];
+				player_t *player = game.player[BUILDING_PLAYER(building)];
 				inventory_t *inv = building->u.inventory;
 				if (BUILDING_HAS_SERF(building) &&
 				    (inv->res_dir & 0xa) == 0 && /* Not serf or res OUT mode */
@@ -1647,7 +1646,7 @@ handle_building_update(building_t *building)
 				1, 1, 1, 1, 2
 			};
 
-			player_t *player = globals.player[BUILDING_PLAYER(building)];
+			player_t *player = game.player[BUILDING_PLAYER(building)];
 			int max_occ_level = (player->knight_occupation[BUILDING_STATE(building)] >> 4) & 0xf;
 			if (PLAYER_REDUCED_KNIGHT_LEVEL(player)) max_occ_level += 5;
 
@@ -1752,7 +1751,7 @@ handle_building_update(building_t *building)
 				/* Request more wheat. */
 				int total_stock = building->stock[0].requested + building->stock[0].available;
 				if (total_stock < 8) {
-					player_t *player = globals.player[BUILDING_PLAYER(building)];
+					player_t *player = game.player[BUILDING_PLAYER(building)];
 					building->stock[0].prio = player->wheat_pigfarm >> (8 + total_stock);
 				} else {
 					building->stock[0].prio = 0;
@@ -1770,7 +1769,7 @@ handle_building_update(building_t *building)
 				/* Request more wheat. */
 				int total_stock = building->stock[0].requested + building->stock[0].available;
 				if (total_stock < 8) {
-					player_t *player = globals.player[BUILDING_PLAYER(building)];
+					player_t *player = game.player[BUILDING_PLAYER(building)];
 					building->stock[0].prio = player->wheat_mill >> (8 + total_stock);
 				} else {
 					building->stock[0].prio = 0;
@@ -1824,7 +1823,7 @@ handle_building_update(building_t *building)
 				/* Request more coal */
 				int total_coal = building->stock[0].requested + building->stock[0].available;
 				if (total_coal < 8) {
-					player_t *player = globals.player[BUILDING_PLAYER(building)];
+					player_t *player = game.player[BUILDING_PLAYER(building)];
 					building->stock[0].prio = player->coal_steelsmelter >> (8 + total_coal);
 				} else {
 					building->stock[0].prio = 0;
@@ -1849,7 +1848,7 @@ handle_building_update(building_t *building)
 			}
 			if (BUILDING_HAS_SERF(building)) {
 				/* Request more planks. */
-				player_t *player = globals.player[BUILDING_PLAYER(building)];
+				player_t *player = game.player[BUILDING_PLAYER(building)];
 				int total_tree = building->stock[0].requested + building->stock[0].available;
 				if (total_tree < 8 && 1/*!BIT_TEST(player->field_163, 1)*/) {
 					building->stock[0].prio = player->planks_toolmaker >> (8 + total_tree);
@@ -1876,7 +1875,7 @@ handle_building_update(building_t *building)
 			}
 			if (BUILDING_HAS_SERF(building)) {
 				/* Request more coal. */
-				player_t *player = globals.player[BUILDING_PLAYER(building)];
+				player_t *player = game.player[BUILDING_PLAYER(building)];
 				int total_coal = building->stock[0].requested + building->stock[0].available;
 				if (total_coal < 8) {
 					building->stock[0].prio = player->coal_weaponsmith >> (8 + total_coal);
@@ -1900,7 +1899,7 @@ handle_building_update(building_t *building)
 				1, 1, 2, 3, 4
 			};
 
-			player_t *player = globals.player[BUILDING_PLAYER(building)];
+			player_t *player = game.player[BUILDING_PLAYER(building)];
 			int max_occ_level = (player->knight_occupation[BUILDING_STATE(building)] >> 4) & 0xf;
 			if (PLAYER_REDUCED_KNIGHT_LEVEL(player)) max_occ_level += 5;
 
@@ -1975,7 +1974,7 @@ handle_building_update(building_t *building)
 				1, 2, 4, 6, 8
 			};
 
-			player_t *player = globals.player[BUILDING_PLAYER(building)];
+			player_t *player = game.player[BUILDING_PLAYER(building)];
 			int max_occ_level = (player->knight_occupation[BUILDING_STATE(building)] >> 4) & 0xf;
 			if (PLAYER_REDUCED_KNIGHT_LEVEL(player)) max_occ_level += 5;
 
@@ -2054,7 +2053,7 @@ handle_building_update(building_t *building)
 			}
 			if (BUILDING_HAS_SERF(building)) {
 				/* Request more coal. */
-				player_t *player = globals.player[BUILDING_PLAYER(building)];
+				player_t *player = game.player[BUILDING_PLAYER(building)];
 				int total_coal = building->stock[0].requested + building->stock[0].available;
 				if (total_coal < 8) {
 					building->stock[0].prio = player->coal_goldsmelter >> (8 + total_coal);
@@ -2121,17 +2120,17 @@ handle_building_update(building_t *building)
 static void
 update_buildings()
 {
-	map_tile_t *tiles = globals.map.tiles;
+	map_tile_t *tiles = game.map.tiles;
 
-	if (globals.next_index >= 32) return;
+	if (game.next_index >= 32) return;
 
-	int index = globals.next_index << 5;
-	for (int i = index ? index : 1; i < globals.max_ever_building_index; i++) {
+	int index = game.next_index << 5;
+	for (int i = index ? index : 1; i < game.max_ever_building_index; i++) {
 		if (BUILDING_ALLOCATED(i)) {
 			building_t *building = game_get_building(i);
 			if (BUILDING_IS_BURNING(building)) {
-				uint16_t delta = globals.anim - building->u.anim;
-				building->u.anim = globals.anim;
+				uint16_t delta = game.anim - building->u.anim;
+				building->u.anim = game.anim;
 				if (building->serf_index >= delta) {
 					building->serf_index -= delta;
 				} else {
@@ -2150,11 +2149,11 @@ update_buildings()
 static void
 update_serfs()
 {
-	if (globals.next_index >= 32) return;
+	if (game.next_index >= 32) return;
 
-	/*int index = globals.next_index & 0xf;
-	  for (int i = index ? index : 1; i < globals.max_ever_serf_index; i++) {*/
-	for (int i = 1; i < globals.max_ever_serf_index; i++) {
+	/*int index = game.next_index & 0xf;
+	  for (int i = index ? index : 1; i < game.max_ever_serf_index; i++) {*/
+	for (int i = 1; i < game.max_ever_serf_index; i++) {
 		if (SERF_ALLOCATED(i)) {
 			serf_t *serf = game_get_serf(i);
 			update_serf(serf);
@@ -2208,47 +2207,47 @@ calculate_military_score(int military, int morale)
 static void
 update_game_stats()
 {
-	if (globals.anim - globals.game_stats_counter >= 1500) {
-		globals.game_stats_counter += 1500;
-		globals.player_score_leader = 0;
+	if (game.anim - game.game_stats_counter >= 1500) {
+		game.game_stats_counter += 1500;
+		game.player_score_leader = 0;
 
 		int update_level = 0;
 
 		/* Update first level index */
-		globals.player_history_index[0] =
-			globals.player_history_index[0]+1 < 112 ?
-			globals.player_history_index[0]+1 : 0;
+		game.player_history_index[0] =
+			game.player_history_index[0]+1 < 112 ?
+			game.player_history_index[0]+1 : 0;
 
-		globals.player_history_counter[0] -= 1;
-		if (globals.player_history_counter[0] < 0) {
+		game.player_history_counter[0] -= 1;
+		if (game.player_history_counter[0] < 0) {
 			update_level = 1;
-			globals.player_history_counter[0] = 3;
+			game.player_history_counter[0] = 3;
 
 			/* Update second level index */
-			globals.player_history_index[1] =
-				globals.player_history_index[1]+1 < 112 ?
-				globals.player_history_index[1]+1 : 0;
+			game.player_history_index[1] =
+				game.player_history_index[1]+1 < 112 ?
+				game.player_history_index[1]+1 : 0;
 
-			globals.player_history_counter[1] -= 1;
-			if (globals.player_history_counter[1] < 0) {
+			game.player_history_counter[1] -= 1;
+			if (game.player_history_counter[1] < 0) {
 				update_level = 2;
-				globals.player_history_counter[1] = 4;
+				game.player_history_counter[1] = 4;
 
 				/* Update third level index */
-				globals.player_history_index[2] =
-					globals.player_history_index[2]+1 < 112 ?
-					globals.player_history_index[2]+1 : 0;
+				game.player_history_index[2] =
+					game.player_history_index[2]+1 < 112 ?
+					game.player_history_index[2]+1 : 0;
 
-				globals.player_history_counter[2] -= 1;
-				if (globals.player_history_counter[2] < 0) {
+				game.player_history_counter[2] -= 1;
+				if (game.player_history_counter[2] < 0) {
 					update_level = 3;
 
-					globals.player_history_counter[2] = 4;
+					game.player_history_counter[2] = 4;
 
 					/* Update fourth level index */
-					globals.player_history_index[3] =
-						globals.player_history_index[3]+1 < 112 ?
-						globals.player_history_index[3]+1 : 0;
+					game.player_history_index[3] =
+						game.player_history_index[3]+1 < 112 ?
+						game.player_history_index[3]+1 : 0;
 				}
 			}
 		}
@@ -2256,52 +2255,52 @@ update_game_stats()
 		int values[4];
 
 		/* Store land area stats in history. */
-		for (int i = 0; i < 4; i++) values[i] = globals.player[i]->total_land_area;
-		record_player_history(globals.player, 4, update_level, 1,
-				      globals.player_history_index, values);
-		globals.player_score_leader |= BIT(calculate_clear_winner(4, values));
+		for (int i = 0; i < 4; i++) values[i] = game.player[i]->total_land_area;
+		record_player_history(game.player, 4, update_level, 1,
+				      game.player_history_index, values);
+		game.player_score_leader |= BIT(calculate_clear_winner(4, values));
 
 		/* Store building stats in history. */
-		for (int i = 0; i < 4; i++) values[i] = globals.player[i]->total_building_score;
-		record_player_history(globals.player, 4, update_level, 2,
-				      globals.player_history_index, values);
+		for (int i = 0; i < 4; i++) values[i] = game.player[i]->total_building_score;
+		record_player_history(game.player, 4, update_level, 2,
+				      game.player_history_index, values);
 
 		/* Store military stats in history. */
 		for (int i = 0; i < 4; i++) {
-			values[i] = calculate_military_score(globals.player[i]->total_military_score,
-							     globals.player[i]->knight_morale);
+			values[i] = calculate_military_score(game.player[i]->total_military_score,
+							     game.player[i]->knight_morale);
 		}
-		record_player_history(globals.player, 4, update_level, 3,
-				      globals.player_history_index, values);
-		globals.player_score_leader |= BIT(calculate_clear_winner(4, values)) << 4;
+		record_player_history(game.player, 4, update_level, 3,
+				      game.player_history_index, values);
+		game.player_score_leader |= BIT(calculate_clear_winner(4, values)) << 4;
 
 		/* Store condensed score of all aspects in history. */
 		for (int i = 0; i < 4; i++) {
-			int mil_score = calculate_military_score(globals.player[i]->total_military_score,
-								 globals.player[i]->knight_morale);
-			values[i] = globals.player[i]->total_building_score +
-				((globals.player[i]->total_land_area + mil_score) >> 4);
+			int mil_score = calculate_military_score(game.player[i]->total_military_score,
+								 game.player[i]->knight_morale);
+			values[i] = game.player[i]->total_building_score +
+				((game.player[i]->total_land_area + mil_score) >> 4);
 		}
-		record_player_history(globals.player, 4, update_level, 0,
-				      globals.player_history_index, values);
+		record_player_history(game.player, 4, update_level, 0,
+				      game.player_history_index, values);
 
-		/* TODO Determine winner based on globals.player_score_leader */
+		/* TODO Determine winner based on game.player_score_leader */
 	}
 
-	if (globals.anim - globals.history_counter >= 6000) {
-		globals.history_counter += 6000;
+	if (game.anim - game.history_counter >= 6000) {
+		game.history_counter += 6000;
 
-		int index = globals.resource_history_index;
+		int index = game.resource_history_index;
 
 		for (int res = 0; res < 26; res++) {
 			for (int i = 0; i < 4; i++) {
-				player_t *player = globals.player[i];
+				player_t *player = game.player[i];
 				player->resource_count_history[res][index] = player->resource_count[res];
 				player->resource_count[res] = 0;
 			}
 		}
 
-		globals.resource_history_index = index+1 < 120 ? index+1 : 0;
+		game.resource_history_index = index+1 < 120 ? index+1 : 0;
 	}
 }
 
@@ -2323,13 +2322,13 @@ void
 game_pause(int enable)
 {
 	if (enable) {
-		globals.game_speed_save = globals.game_speed;
-		globals.game_speed = 0;
+		game.game_speed_save = game.game_speed;
+		game.game_speed = 0;
 	} else {
-		globals.game_speed = globals.game_speed_save;
+		game.game_speed = game.game_speed_save;
 	}
 
-	LOGI("game", "Game speed: %u", globals.game_speed >> 16);
+	LOGI("game", "Game speed: %u", game.game_speed >> 16);
 }
 
 /* Generate an estimate of the amount of resources in the ground at map pos.*/
@@ -2444,7 +2443,7 @@ static void
 flag_reset_transport(flag_t *flag)
 {
 	/* Clear destination for any serf with resources for this flag. */
-	for (int i = 1; i < globals.max_ever_serf_index; i++) {
+	for (int i = 1; i < game.max_ever_serf_index; i++) {
 		if (SERF_ALLOCATED(i)) {
 			serf_t *serf = game_get_serf(i);
 
@@ -2484,7 +2483,7 @@ flag_reset_transport(flag_t *flag)
 	}
 
 	/* Flag. */
-	for (int i = 1; i < globals.max_ever_flag_index; i++) {
+	for (int i = 1; i < game.max_ever_flag_index; i++) {
 		if (FLAG_ALLOCATED(i)) {
 			flag_t *other = game_get_flag(i);
 
@@ -2496,7 +2495,7 @@ flag_reset_transport(flag_t *flag)
 
 					if (((other->res_waiting[slot] >> 5) & 3) != 0) {
 						dir_t dir = ((other->res_waiting[slot] >> 5) & 3)-1;
-						player_t *player = globals.player[FLAG_PLAYER(other)];
+						player_t *player = game.player[FLAG_PLAYER(other)];
 						flag_prioritize_pickup(other, dir, player->flag_prio);
 					}
 				}
@@ -2505,7 +2504,7 @@ flag_reset_transport(flag_t *flag)
 	}
 
 	/* Inventories. */
-	for (int i = 0; i < globals.max_ever_inventory_index; i++) {
+	for (int i = 0; i < game.max_ever_inventory_index; i++) {
 		if (INVENTORY_ALLOCATED(i)) {
 			inventory_t *inventory = game_get_inventory(i);
 			if (inventory->out_dest[1] == FLAG_INDEX(flag)) {
@@ -2524,12 +2523,12 @@ static void
 building_remove_player_refs(building_t *building)
 {
 	for (int i = 0; i < 4; i++) {
-		if (globals.player[i]->index == BUILDING_INDEX(building)) {
-			globals.player[i]->index = 0;
+		if (game.player[i]->index == BUILDING_INDEX(building)) {
+			game.player[i]->index = 0;
 		}
 	}
 
-	player_t *player = globals.player[BUILDING_PLAYER(building)];
+	player_t *player = game.player[BUILDING_PLAYER(building)];
 
 	if (player->sawmill_index == BUILDING_INDEX(building)) {
 		player->sawmill_index = 0;
@@ -2547,7 +2546,7 @@ building_remove_player_refs(building_t *building)
 static int
 remove_road_backref_until_flag(map_pos_t pos, dir_t dir)
 {
-	map_tile_t *tiles = globals.map.tiles;
+	map_tile_t *tiles = game.map.tiles;
 
 	while (1) {
 		pos = MAP_MOVE(pos, dir);
@@ -2609,7 +2608,7 @@ static int
 path_serf_idle_to_wait_state(map_pos_t pos)
 {
 	/* Look through serf array for the corresponding serf. */
-	for (int i = 1; i < globals.max_ever_serf_index; i++) {
+	for (int i = 1; i < game.max_ever_serf_index; i++) {
 		if (SERF_ALLOCATED(i)) {
 			serf_t *serf = game_get_serf(i);
 			if (serf->pos == pos &&
@@ -2640,7 +2639,7 @@ lose_transported_resource(resource_type_t res, uint dest)
 
 	if (res == RESOURCE_GOLDORE ||
 	    res == RESOURCE_GOLDBAR) {
-		globals.map_gold_deposit -= 1;
+		game.map_gold_deposit -= 1;
 	}
 
 	if (stock_type[res] >= 0 && dest != 0) {
@@ -2707,7 +2706,7 @@ mark_serf_as_lost(serf_t *serf)
 static void
 remove_road_forwards(map_pos_t pos, dir_t dir)
 {
-	map_tile_t *tiles = globals.map.tiles;
+	map_tile_t *tiles = game.map.tiles;
 	dir_t in_dir = -1;
 
 	while (1) {
@@ -2742,7 +2741,7 @@ remove_road_forwards(map_pos_t pos, dir_t dir)
 			if (FLAG_SERF_REQUESTED(flag, rev_dir)) {
 				flag->length[rev_dir] &= ~BIT(7);
 
-				for (int i = 1; i < globals.max_ever_serf_index; i++) {
+				for (int i = 1; i < game.max_ever_serf_index; i++) {
 					if (SERF_ALLOCATED(i)) {
 						int dest = MAP_OBJ_INDEX(pos);
 						serf_t *serf = game_get_serf(i);
@@ -2818,8 +2817,8 @@ game_demolish_road(map_pos_t pos)
 	if (!game_can_demolish_road(pos)) return -1;
 
 	/* TODO necessary?
-	globals.player[0]->flags |= BIT(4);
-	globals.player[1]->flags |= BIT(4);
+	game.player[0]->flags |= BIT(4);
+	game.player[1]->flags |= BIT(4);
 	*/
 
 	int r = remove_road_backrefs(pos);
@@ -2862,7 +2861,7 @@ game_demolish_road(map_pos_t pos)
 static int
 change_transporter_state_at_pos(map_pos_t pos, serf_state_t state)
 {
-	for (int i = 1; i < globals.max_ever_serf_index; i++) {
+	for (int i = 1; i < game.max_ever_serf_index; i++) {
 		if (SERF_ALLOCATED(i)) {
 			serf_t *serf = game_get_serf(i);
 			if (serf->pos == pos &&
@@ -3029,7 +3028,7 @@ restore_path_serf_info(flag_t *flag, dir_t dir, serf_path_info_t *data)
 					/* Remove gold from total count. */
 					if (res == RESOURCE_GOLDBAR ||
 					    res == RESOURCE_GOLDORE) {
-						globals.map_gold_deposit -= 1;
+						game.map_gold_deposit -= 1;
 					}
 
 					flag_cancel_transported_stock(game_get_flag(serf->s.walking.dest), res+1);
@@ -3090,7 +3089,7 @@ build_flag_split_path(map_pos_t pos)
 
 	int select = -1;
 	if (FLAG_SERF_REQUESTED(flag_2, dir_2)) {
-		for (int i = 1; i < globals.max_ever_serf_index; i++) {
+		for (int i = 1; i < game.max_ever_serf_index; i++) {
 			if (SERF_ALLOCATED(i)) {
 				serf_t *serf = game_get_serf(i);
 
@@ -3191,7 +3190,7 @@ game_build_flag(map_pos_t pos, player_t *player)
 
 	flag->path_con = player->player_num << 6;
 
-	map_tile_t *tiles = globals.map.tiles;
+	map_tile_t *tiles = game.map.tiles;
 
 	flag->pos = pos;
 	map_set_object(pos, MAP_OBJ_FLAG, flg_index);
@@ -3211,7 +3210,7 @@ game_can_build_military(map_pos_t pos)
 {
 	/* Check that no military buildings are nearby */
 	for (int i = 0; i < 1+6+12; i++) {
-		map_pos_t p = MAP_POS_ADD(pos, globals.spiral_pos_pattern[i]);
+		map_pos_t p = MAP_POS_ADD(pos, game.spiral_pos_pattern[i]);
 		if (MAP_OBJ(p) >= MAP_OBJ_SMALL_BUILDING &&
 		    MAP_OBJ(p) <= MAP_OBJ_CASTLE) {
 			building_t *bld = game_get_building(MAP_OBJ_INDEX(p));
@@ -3236,7 +3235,7 @@ game_get_leveling_height(map_pos_t pos)
 	int h_min = 31;
 	int h_max = 0;
 	for (int i = 0; i < 12; i++) {
-		map_pos_t p = MAP_POS_ADD(pos, globals.spiral_pos_pattern[7+i]);
+		map_pos_t p = MAP_POS_ADD(pos, game.spiral_pos_pattern[7+i]);
 		int h = MAP_HEIGHT(p);
 		if (h_min > h) h_min = h;
 		if (h_max < h) h_max = h;
@@ -3244,7 +3243,7 @@ game_get_leveling_height(map_pos_t pos)
 
 	/* Adjust for height of adjacent unleveled buildings */
 	for (int i = 0; i < 18; i++) {
-		map_pos_t p = MAP_POS_ADD(pos, globals.spiral_pos_pattern[19+i]);
+		map_pos_t p = MAP_POS_ADD(pos, game.spiral_pos_pattern[19+i]);
 		if (MAP_OBJ(p) == MAP_OBJ_LARGE_BUILDING) {
 			building_t *bld = game_get_building(MAP_OBJ_INDEX(p));
 			if (!BUILDING_IS_DONE(bld) &&
@@ -3262,7 +3261,7 @@ game_get_leveling_height(map_pos_t pos)
 	/* Calculate "mean" height. Height of center is added twice. */
 	int h_mean = MAP_HEIGHT(pos);
 	for (int i = 0; i < 7; i++) {
-		map_pos_t p = MAP_POS_ADD(pos, globals.spiral_pos_pattern[i]);
+		map_pos_t p = MAP_POS_ADD(pos, game.spiral_pos_pattern[i]);
 		h_mean += MAP_HEIGHT(p);
 	}
 	h_mean >>= 3;
@@ -3316,14 +3315,14 @@ game_can_build_large(map_pos_t pos)
 {
 	/* Check that surroundings are passable by serfs. */
 	for (int i = 0; i < 6; i++) {
-		map_pos_t p = MAP_POS_ADD(pos, globals.spiral_pos_pattern[1+i]);
+		map_pos_t p = MAP_POS_ADD(pos, game.spiral_pos_pattern[1+i]);
 		map_space_t s = map_space_from_obj[MAP_OBJ(p)];
 		if (s >= MAP_SPACE_IMPASSABLE && s != MAP_SPACE_FLAG) return 0;
 	}
 
 	/* Check that buildings in the second shell aren't large or castle. */
 	for (int i = 0; i < 12; i++) {
-		map_pos_t p = MAP_POS_ADD(pos, globals.spiral_pos_pattern[7+i]);
+		map_pos_t p = MAP_POS_ADD(pos, game.spiral_pos_pattern[7+i]);
 		map_space_t s = map_space_from_obj[MAP_OBJ(p)];
 		if (s >= MAP_SPACE_LARGE_BUILDING) return 0;
 	}
@@ -3353,7 +3352,7 @@ game_can_build_castle(map_pos_t pos, const player_t *player)
 
 	/* Check owner of land around position */
 	for (int i = 0; i < 7; i++) {
-		map_pos_t p = MAP_POS_ADD(pos, globals.spiral_pos_pattern[i]);
+		map_pos_t p = MAP_POS_ADD(pos, game.spiral_pos_pattern[i]);
 		if (MAP_HAS_OWNER(p)) return 0;
 	}
 
@@ -3391,7 +3390,7 @@ game_can_player_build(map_pos_t pos, const player_t *player)
 
 	/* Check owner of land around position */
 	for (int i = 0; i < 7; i++) {
-		map_pos_t p = MAP_POS_ADD(pos, globals.spiral_pos_pattern[i]);
+		map_pos_t p = MAP_POS_ADD(pos, game.spiral_pos_pattern[i]);
 		if (!MAP_HAS_OWNER(p) ||
 		    MAP_OWNER(p) != player->player_num) {
 			return 0;
@@ -3557,7 +3556,7 @@ game_build_building(map_pos_t pos, building_type_t type, player_t *player)
 		}
 	}
 
-	map_tile_t *tiles = globals.map.tiles;
+	map_tile_t *tiles = game.map.tiles;
 
 	bld->u.s.level = game_get_leveling_height(pos);
 	bld->pos = pos;
@@ -3851,7 +3850,7 @@ game_build_castle(map_pos_t pos, player_t *player)
 		inventory->resources[i] = t1 + (n >> 16);
 	}
 
-	if (0/*globals.game_type == GAME_TYPE_TUTORIAL*/) {
+	if (0/*game.game_type == GAME_TYPE_TUTORIAL*/) {
 		/* TODO ... */
 	}
 
@@ -3883,7 +3882,7 @@ game_build_castle(map_pos_t pos, player_t *player)
 	flag->other_endpoint.b[DIR_UP_LEFT] = castle;
 	flag->endpoint |= BIT(6);
 
-	map_tile_t *tiles = globals.map.tiles;
+	map_tile_t *tiles = game.map.tiles;
 	map_set_object(pos, MAP_OBJ_CASTLE, bld_index);
 	tiles[pos].flags |= BIT(1) | BIT(6);
 
@@ -3900,7 +3899,7 @@ game_build_castle(map_pos_t pos, player_t *player)
 	game_update_land_ownership(pos);
 	create_initial_castle_serfs(player);
 
-	player->last_anim = globals.anim;
+	player->last_anim = game.anim;
 
 	game_calculate_military_flag_state(castle);
 
@@ -3911,8 +3910,8 @@ static void
 flag_remove_player_refs(flag_t *flag)
 {
 	for (int i = 0; i < 4; i++) {
-		if (globals.player[i]->index == FLAG_INDEX(flag)) {
-			globals.player[i]->index = 0;
+		if (game.player[i]->index == FLAG_INDEX(flag)) {
+			game.player[i]->index = 0;
 		}
 	}
 }
@@ -4059,7 +4058,7 @@ game_demolish_flag(map_pos_t pos)
 		}
 
 		/* Update serfs with reference to this flag. */
-		for (int i = 1; i < globals.max_ever_serf_index; i++) {
+		for (int i = 1; i < game.max_ever_serf_index; i++) {
 			if (SERF_ALLOCATED(i)) {
 				serf_t *serf = game_get_serf(i);
 
@@ -4094,11 +4093,11 @@ game_demolish_flag(map_pos_t pos)
 	}
 
 	/* Clear map. */
-	map_tile_t *tiles = globals.map.tiles;
+	map_tile_t *tiles = game.map.tiles;
 	tiles[pos].flags &= ~BIT(7);
 
 	/* Update serfs with reference to this flag. */
-	for (int i = 1; i < globals.max_ever_serf_index; i++) {
+	for (int i = 1; i < game.max_ever_serf_index; i++) {
 		if (SERF_ALLOCATED(i)) {
 			serf_t *serf = game_get_serf(i);
 
@@ -4147,8 +4146,8 @@ game_demolish_building(map_pos_t pos)
 	building_t *building = game_get_building(MAP_OBJ_INDEX(pos));
 	building_remove_player_refs(building);
 
-	player_t *player = globals.player[BUILDING_PLAYER(building)];
-	map_tile_t *tiles = globals.map.tiles;
+	player_t *player = game.player[BUILDING_PLAYER(building)];
+	map_tile_t *tiles = game.map.tiles;
 
 	if (BUILDING_IS_BURNING(building)) return;
 
@@ -4165,7 +4164,7 @@ game_demolish_building(map_pos_t pos)
 	     BUILDING_TYPE(building) == BUILDING_FORTRESS ||
 	     BUILDING_TYPE(building) == BUILDING_GOLDSMELTER)) {
 		int gold_stock = building->stock[1].available;
-		globals.map_gold_deposit -= gold_stock;
+		game.map_gold_deposit -= gold_stock;
 	}
 
 	/* Update land owner ship if the building is military. */
@@ -4192,19 +4191,19 @@ game_demolish_building(map_pos_t pos)
 				/* Remove gold from total count. */
 				if (res == RESOURCE_GOLDBAR ||
 				    res == RESOURCE_GOLDORE) {
-					globals.map_gold_deposit -= 1;
+					game.map_gold_deposit -= 1;
 				}
 
 				flag_cancel_transported_stock(game_get_flag(dest), res+1);
 			}
 
-			globals.map_gold_deposit -= inventory->resources[RESOURCE_GOLDBAR];
-			globals.map_gold_deposit -= inventory->resources[RESOURCE_GOLDORE];
+			game.map_gold_deposit -= inventory->resources[RESOURCE_GOLDBAR];
+			game.map_gold_deposit -= inventory->resources[RESOURCE_GOLDORE];
 		}
 
 		/* Let some serfs escape while the building is burning. */
 		int escaping_serfs = 0;
-		for (int i = 1; i < globals.max_ever_serf_index; i++) {
+		for (int i = 1; i < game.max_ever_serf_index; i++) {
 			if (SERF_ALLOCATED(i)) {
 				serf_t *serf = game_get_serf(i);
 
@@ -4242,7 +4241,7 @@ game_demolish_building(map_pos_t pos)
 
 	int serf_index = building->serf_index;
 	building->serf_index = 2047;
-	building->u.anim = globals.anim;
+	building->u.anim = game.anim;
 
 	/* Update player fields. */
 	if (BUILDING_IS_DONE(building)) {
@@ -4361,7 +4360,7 @@ game_calculate_military_flag_state(building_t *building)
 		int offset;
 		while ((offset = border_check_offsets[k++]) >= 0) {
 			map_pos_t check_pos = MAP_POS_ADD(building->pos,
-							  globals.spiral_pos_pattern[offset]);
+							  game.spiral_pos_pattern[offset]);
 			if (MAP_HAS_OWNER(check_pos) &&
 			    MAP_OWNER(check_pos) != BUILDING_PLAYER(building)) {
 				goto break_loops;
@@ -4391,7 +4390,7 @@ game_surrender_land(map_pos_t pos)
 
 	/* Remove roads and building around pos. */
 	for (dir_t d = DIR_RIGHT; d <= DIR_UP; d++) {
-		map_pos_t p = MAP_POS_ADD(pos, globals.spiral_pos_pattern[1+d]);
+		map_pos_t p = MAP_POS_ADD(pos, game.spiral_pos_pattern[1+d]);
 
 		if (MAP_OBJ(p) >= MAP_OBJ_SMALL_BUILDING &&
 		    MAP_OBJ(p) <= MAP_OBJ_CASTLE) {
@@ -4458,8 +4457,8 @@ game_update_land_ownership(map_pos_t init_pos)
 		for (int j = -(influence_radius+calculate_radius);
 		     j <= influence_radius+calculate_radius; j++) {
 			map_pos_t pos = MAP_POS_ADD(init_pos,
-						    MAP_POS(j & globals.map.col_mask,
-							    i & globals.map.row_mask));
+						    MAP_POS(j & game.map.col_mask,
+							    i & game.map.row_mask));
 
 			if (MAP_OBJ(pos) >= MAP_OBJ_SMALL_BUILDING &&
 			    MAP_OBJ(pos) <= MAP_OBJ_CASTLE &&
@@ -4506,7 +4505,7 @@ game_update_land_ownership(map_pos_t init_pos)
 		}
 	}
 
-	map_tile_t *tiles = globals.map.tiles;
+	map_tile_t *tiles = game.map.tiles;
 
 	/* Update owner of 17*17 square. */
 	for (int i = -calculate_radius; i <= calculate_radius; i++) {
@@ -4524,17 +4523,17 @@ game_update_land_ownership(map_pos_t init_pos)
 			}
 
 			map_pos_t pos = MAP_POS_ADD(init_pos,
-						    MAP_POS(j & globals.map.col_mask,
-							    i & globals.map.row_mask));
+						    MAP_POS(j & game.map.col_mask,
+							    i & game.map.row_mask));
 			if (player >= 0) {
 				if (MAP_HAS_OWNER(pos) &&
 				    MAP_OWNER(pos) != player) {
 					int old_player = MAP_OWNER(pos);
-					globals.player[old_player]->total_land_area -= 1;
+					game.player[old_player]->total_land_area -= 1;
 					game_surrender_land(pos);
 				}
 
-				globals.player[player]->total_land_area += 1;
+				game.player[player]->total_land_area += 1;
 				tiles[pos].height = (1 << 7) | (player << 5) | MAP_HEIGHT(pos);
 			} else {
 				game_surrender_land(pos);
@@ -4549,8 +4548,8 @@ game_update_land_ownership(map_pos_t init_pos)
 	for (int i = -25; i <= 25; i++) {
 		for (int j = -25; j <= 25; j++) {
 			map_pos_t pos = MAP_POS_ADD(init_pos,
-						    MAP_POS(i & globals.map.col_mask,
-							    j & globals.map.row_mask));
+						    MAP_POS(i & game.map.col_mask,
+							    j & game.map.row_mask));
 
 			if (MAP_OBJ(pos) >= MAP_OBJ_SMALL_BUILDING &&
 			    MAP_OBJ(pos) <= MAP_OBJ_CASTLE &&
@@ -4595,10 +4594,10 @@ void
 game_occupy_enemy_building(building_t *building, int player_num)
 {
 	/* Take the building. */
-	player_t *def_player = globals.player[BUILDING_PLAYER(building)];
+	player_t *def_player = game.player[BUILDING_PLAYER(building)];
 	player_add_notification(def_player, 2 + (player_num << 5), building->pos);
 
-	player_t *player = globals.player[player_num];
+	player_t *player = game.player[player_num];
 	player_add_notification(player, 3 + (player_num << 5), building->pos);
 
 	if (BUILDING_TYPE(building) == BUILDING_CASTLE) {
@@ -4622,7 +4621,7 @@ game_occupy_enemy_building(building_t *building, int player_num)
 		/* Demolish nearby buildings. */
 		for (int i = 0; i < 12; i++) {
 			map_pos_t pos = MAP_POS_ADD(building->pos,
-						    globals.spiral_pos_pattern[7+i]);
+						    game.spiral_pos_pattern[7+i]);
 			if (MAP_OBJ(pos) >= MAP_OBJ_SMALL_BUILDING &&
 			    MAP_OBJ(pos) <= MAP_OBJ_CASTLE) {
 				game_demolish_building(pos);
@@ -4631,7 +4630,7 @@ game_occupy_enemy_building(building_t *building, int player_num)
 
 		/* Change owner of land and remove roads and flags
 		   except the flag associated with the building. */
-		map_tile_t *tiles = globals.map.tiles;
+		map_tile_t *tiles = game.map.tiles;
 		tiles[building->pos].height = (1 << 7) | (player_num << 5) |
 			MAP_HEIGHT(building->pos);
 
@@ -4657,7 +4656,7 @@ game_occupy_enemy_building(building_t *building, int player_num)
 				   map gold. */
 				if (res == RESOURCE_GOLDORE ||
 				    res == RESOURCE_GOLDBAR) {
-					globals.map_gold_deposit += 1;
+					game.map_gold_deposit += 1;
 				}
 				flag->res_dest[i] = 0;
 			}
@@ -4701,7 +4700,7 @@ game_set_inventory_resource_mode(inventory_t *inventory, int mode)
 		/* Clear destination of serfs with resources destined
 		   for this inventory. */
 		int dest = FLAG_INDEX(flag);
-		for (int i = 1; i < globals.max_ever_serf_index; i++) {
+		for (int i = 1; i < game.max_ever_serf_index; i++) {
 			if (SERF_ALLOCATED(i)) {
 				serf_t *serf = game_get_serf(i);
 
@@ -4757,7 +4756,7 @@ game_set_inventory_serf_mode(inventory_t *inventory, int mode)
 
 		/* Clear destination of serfs destined for this inventory. */
 		int dest = FLAG_INDEX(flag);
-		for (int i = 1; i < globals.max_ever_serf_index; i++) {
+		for (int i = 1; i < game.max_ever_serf_index; i++) {
 			if (SERF_ALLOCATED(i)) {
 				serf_t *serf = game_get_serf(i);
 

@@ -32,7 +32,6 @@
 #include "map.h"
 #include "random.h"
 #include "sdl-video.h"
-#include "globals.h"
 #include "game.h"
 #include "misc.h"
 #include "debug.h"
@@ -288,8 +287,8 @@ viewport_redraw_map_pos(map_pos_t pos)
 static void
 draw_landscape(viewport_t *viewport, frame_t *frame)
 {
-	int map_width = globals.map.cols*MAP_TILE_WIDTH;
-	int map_height = globals.map.rows*MAP_TILE_HEIGHT;
+	int map_width = game.map.cols*MAP_TILE_WIDTH;
+	int map_height = game.map.rows*MAP_TILE_HEIGHT;
 
 	if (!landscape_frame_init) {
 		/* Initialize landscape frame. */
@@ -308,7 +307,7 @@ draw_landscape(viewport_t *viewport, frame_t *frame)
 
 		/* Draw one extra column as half a column will be outside the
 		   map tile on both right and left side.. */
-		for (int col = 0; col < globals.map.cols+1; col++) {
+		for (int col = 0; col < game.map.cols+1; col++) {
 			draw_up_tile_col(pos, x_base, 0, map_height, &landscape_frame);
 			draw_down_tile_col(pos, x_base + 16, 0, map_height, &landscape_frame);
 
@@ -594,7 +593,7 @@ draw_ne_sw_borders(int x, int y, int h1, int h2, map_pos_t pos, frame_t *frame)
 static void
 draw_paths_and_borders_sub1(int x, int y_base, int max_y, map_pos_t pos, frame_t *frame)
 {
-	map_tile_t *tiles = globals.map.tiles;
+	map_tile_t *tiles = game.map.tiles;
 	int y = 0;
 
 	pos = MAP_MOVE_DOWN(pos);
@@ -622,7 +621,7 @@ draw_paths_and_borders_sub1(int x, int y_base, int max_y, map_pos_t pos, frame_t
 static void
 draw_paths_and_borders_sub2(int x, int y_base, int max_y, map_pos_t pos, frame_t *frame)
 {
-	map_tile_t *tiles = globals.map.tiles;
+	map_tile_t *tiles = game.map.tiles;
 	int y = 0;
 
 	/* shared tail 1E412 */
@@ -667,7 +666,7 @@ draw_paths_and_borders_sub2(int x, int y_base, int max_y, map_pos_t pos, frame_t
 static void
 draw_paths_and_borders_sub3(int x, int y_base, int max_y, map_pos_t pos, frame_t *frame)
 {
-	map_tile_t *tiles = globals.map.tiles;
+	map_tile_t *tiles = game.map.tiles;
 	int y = 0;
 
 	pos = MAP_MOVE_DOWN_RIGHT(pos);
@@ -696,7 +695,7 @@ draw_paths_and_borders_sub3(int x, int y_base, int max_y, map_pos_t pos, frame_t
 static void
 draw_paths_and_borders_sub4(int x, int y_base, int max_y, map_pos_t pos, frame_t *frame)
 {
-	map_tile_t *tiles = globals.map.tiles;
+	map_tile_t *tiles = game.map.tiles;
 
 	int y = 0;
 
@@ -750,8 +749,8 @@ draw_paths_and_borders(viewport_t *viewport, frame_t *frame)
 	int x = -(viewport->offset_x + 16*(viewport->offset_y/20)) % 32 - 16;
 	int y = -viewport->offset_y % 20;
 
-	int col_0 = (viewport->offset_x/16 + viewport->offset_y/20)/2 & globals.map.col_mask;
-	int row_0 = (viewport->offset_y/MAP_TILE_HEIGHT) & globals.map.row_mask;
+	int col_0 = (viewport->offset_x/16 + viewport->offset_y/20)/2 & game.map.col_mask;
+	int row_0 = (viewport->offset_y/MAP_TILE_HEIGHT) & game.map.row_mask;
 	map_pos_t pos = MAP_POS(col_0, row_0);
 
 	int cols = VIEWPORT_COLS(viewport) + 1;
@@ -921,7 +920,7 @@ draw_unharmed_building(building_t *building, int x, int y, frame_t *frame)
 			}
 			if (BUILDING_PLAYING_SFX(building)) { /* Draw elevator down */
 				draw_game_sprite(x-6, y-39, 153, frame);
-				if ((((globals.anim + ((uint8_t *)&building->pos)[1]) >> 3) & 7) == 0 &&
+				if ((((game.anim + ((uint8_t *)&building->pos)[1]) >> 3) & 7) == 0 &&
 				    random_int() < 40000) {
 					sfx_play_clip(SFX_ELEVATOR);
 				}
@@ -932,7 +931,7 @@ draw_unharmed_building(building_t *building, int x, int y, frame_t *frame)
 			draw_shadow_and_building_sprite(x, y, map_building_sprite[type], frame);
 			if (building->serf_index != 0) {
 				draw_game_sprite(x-14, y+2 - 2*building->stock[0].available,
-						 182 + ((globals.anim >> 3) & 3) + 4*BUILDING_STATE(building),
+						 182 + ((game.anim >> 3) & 3) + 4*BUILDING_STATE(building),
 						 frame);
 			}
 			break;
@@ -944,54 +943,54 @@ draw_unharmed_building(building_t *building, int x, int y, frame_t *frame)
 				}
 
 				if (building->stock[1].available >= 6) {
-					int i = (140 + (globals.anim >> 3)) & 0xfe;
+					int i = (140 + (game.anim >> 3)) & 0xfe;
 					draw_game_sprite(x + pigfarm_anim[i+1] - 2, y+6, pigfarm_anim[i], frame);
 				}
 
 				if (building->stock[1].available >= 5) {
-					int i = (280 + (globals.anim >> 3)) & 0xfe;
+					int i = (280 + (game.anim >> 3)) & 0xfe;
 					draw_game_sprite(x + pigfarm_anim[i+1] + 8, y+8, pigfarm_anim[i], frame);
 				}
 
 				if (building->stock[1].available >= 3) {
-					int i = (420 + (globals.anim >> 3)) & 0xfe;
+					int i = (420 + (game.anim >> 3)) & 0xfe;
 					draw_game_sprite(x + pigfarm_anim[i+1] - 11, y+8, pigfarm_anim[i], frame);
 				}
 
-				int i = (40 + (globals.anim >> 3)) & 0xfe;
+				int i = (40 + (game.anim >> 3)) & 0xfe;
 				draw_game_sprite(x + pigfarm_anim[i+1] + 2, y+11, pigfarm_anim[i], frame);
 
 				if (building->stock[1].available >= 7) {
-					int i = (180 + (globals.anim >> 3)) & 0xfe;
+					int i = (180 + (game.anim >> 3)) & 0xfe;
 					draw_game_sprite(x + pigfarm_anim[i+1] - 8, y+13, pigfarm_anim[i], frame);
 				}
 
 				if (building->stock[1].available >= 8) {
-					int i = (320 + (globals.anim >> 3)) & 0xfe;
+					int i = (320 + (game.anim >> 3)) & 0xfe;
 					draw_game_sprite(x + pigfarm_anim[i+1] + 13, y+14, pigfarm_anim[i], frame);
 				}
 
 				if (building->stock[1].available >= 2) {
-					int i = (460 + (globals.anim >> 3)) & 0xfe;
+					int i = (460 + (game.anim >> 3)) & 0xfe;
 					draw_game_sprite(x + pigfarm_anim[i+1], y+17, pigfarm_anim[i], frame);
 				}
 
 				if (building->stock[1].available >= 4) {
-					int i = (90 + (globals.anim >> 3)) & 0xfe;
+					int i = (90 + (game.anim >> 3)) & 0xfe;
 					draw_game_sprite(x + pigfarm_anim[i+1] - 11, y+19, pigfarm_anim[i], frame);
 				}
 			}
 			break;
 		case BUILDING_MILL:
 			if (BUILDING_IS_ACTIVE(building)) {
-				if ((globals.anim >> 4) & 3) {
+				if ((game.anim >> 4) & 3) {
 					building->serf &= ~BIT(3);
 				} else if (!BUILDING_PLAYING_SFX(building)) {
 					building->serf |= BIT(3);
 					sfx_play_clip(SFX_UNKNOWN_14);
 				}
 				draw_shadow_and_building_sprite(x, y, map_building_sprite[type] +
-								((globals.anim >> 4) & 3), frame);
+								((game.anim >> 4) & 3), frame);
 			} else {
 				draw_shadow_and_building_sprite(x, y, map_building_sprite[type], frame);
 			}
@@ -999,13 +998,13 @@ draw_unharmed_building(building_t *building, int x, int y, frame_t *frame)
 		case BUILDING_BAKER:
 			draw_shadow_and_building_sprite(x, y, map_building_sprite[type], frame);
 			if (BUILDING_IS_ACTIVE(building)) {
-				draw_game_sprite(x + 5, y-21, 154 + ((globals.anim >> 3) & 7), frame);
+				draw_game_sprite(x + 5, y-21, 154 + ((game.anim >> 3) & 7), frame);
 			}
 			break;
 		case BUILDING_STEELSMELTER:
 			draw_shadow_and_building_sprite(x, y, map_building_sprite[type], frame);
 			if (BUILDING_IS_ACTIVE(building)) {
-				int i = (globals.anim >> 3) & 7;
+				int i = (game.anim >> 3) & 7;
 				if (i == 0 || (i == 7 && !BUILDING_PLAYING_SFX(building))) {
 					building->serf |= BIT(3);
 					sfx_play_clip(SFX_GOLD_BOILS);
@@ -1019,14 +1018,14 @@ draw_unharmed_building(building_t *building, int x, int y, frame_t *frame)
 		case BUILDING_WEAPONSMITH:
 			draw_shadow_and_building_sprite(x, y, map_building_sprite[type], frame);
 			if (BUILDING_IS_ACTIVE(building)) {
-				draw_game_sprite(x-16, y-21, 128 + ((globals.anim >> 3) & 7), frame);
+				draw_game_sprite(x-16, y-21, 128 + ((game.anim >> 3) & 7), frame);
 			}
 			break;
 		case BUILDING_TOWER:
 			draw_shadow_and_building_sprite(x, y, map_building_sprite[type], frame);
 			if (building->serf_index != 0) {
 				draw_game_sprite(x+13, y - 18 - building->stock[0].available,
-						 182 + ((globals.anim >> 3) & 3) + 4*BUILDING_STATE(building),
+						 182 + ((game.anim >> 3) & 3) + 4*BUILDING_STATE(building),
 						 frame);
 			}
 			break;
@@ -1034,17 +1033,17 @@ draw_unharmed_building(building_t *building, int x, int y, frame_t *frame)
 			draw_shadow_and_building_sprite(x, y, map_building_sprite[type], frame);
 			if (building->serf_index != 0) {
 				draw_game_sprite(x-12, y - 21 - building->stock[0].available/2,
-						 182 + ((globals.anim >> 3) & 3) + 4*BUILDING_STATE(building),
+						 182 + ((game.anim >> 3) & 3) + 4*BUILDING_STATE(building),
 						 frame);
 				draw_game_sprite(x+22, y - 34 - (building->stock[0].available+1)/2,
-						 182 + (((globals.anim >> 3) + 2) & 3) + 4*BUILDING_STATE(building),
+						 182 + (((game.anim >> 3) + 2) & 3) + 4*BUILDING_STATE(building),
 						 frame);
 			}
 			break;
 		case BUILDING_GOLDSMELTER:
 			draw_shadow_and_building_sprite(x, y, map_building_sprite[type], frame);
 			if (BUILDING_IS_ACTIVE(building)) {
-				int i = (globals.anim >> 3) & 7;
+				int i = (game.anim >> 3) & 7;
 				if (i == 0 || (i == 7 && !BUILDING_PLAYING_SFX(building))) {
 					building->serf |= BIT(3);
 					sfx_play_clip(SFX_GOLD_BOILS);
@@ -1290,8 +1289,8 @@ draw_burning_building(building_t *building, int x, int y, frame_t *frame)
 		building->serf &= ~BIT(3);
 	}
 
-	uint16_t delta = globals.anim - building->u.anim;
-	building->u.anim = globals.anim;
+	uint16_t delta = game.anim - building->u.anim;
+	building->u.anim = game.anim;
 
 	if (building->serf_index >= delta) {
 		building->serf_index -= delta; /* TODO this is also done in update_buildings(). */
@@ -1330,7 +1329,7 @@ draw_building(map_pos_t pos, int x, int y, frame_t *frame)
 static void
 draw_water_waves(map_pos_t pos, int x, int y, frame_t *frame)
 {
-	int sprite = DATA_MAP_WAVES_BASE + (((pos ^ 5) + (globals.anim >> 3)) & 0xf);
+	int sprite = DATA_MAP_WAVES_BASE + (((pos ^ 5) + (game.anim >> 3)) & 0xf);
 	sprite_t *s = gfx_get_data_object(sprite, NULL);
 
 	if (MAP_TYPE_DOWN(pos) < 4 && MAP_TYPE_UP(pos) < 4) {
@@ -1367,7 +1366,7 @@ draw_flag_and_res(map_pos_t pos, int x, int y, frame_t *frame)
 	if (flag->res_waiting[2] != 0) draw_game_sprite(x-4, y-4, flag->res_waiting[2] & 0x1f, frame);
 
 	int pl_num = FLAG_PLAYER(flag);
-	int spr = 0x80 + (pl_num << 2) + ((globals.anim >> 3) & 3);
+	int spr = 0x80 + (pl_num << 2) + ((game.anim >> 3) & 3);
 	draw_shadow_and_building_sprite(x, y, spr, frame);
 
 	if (flag->res_waiting[3] != 0) draw_game_sprite(x+10, y+2, flag->res_waiting[3] & 0x1f, frame);
@@ -1399,7 +1398,7 @@ draw_map_objects_row(map_pos_t pos, int y_base, int cols, int x_base, frame_t *f
 				/* Adding sprite number to animation ensures
 				   that the tree animation won't be synchronized
 				   for all trees on the map. */
-				int tree_anim = (globals.anim + sprite) >> 4;
+				int tree_anim = (game.anim + sprite) >> 4;
 				if (sprite < 16) {
 					sprite = (sprite & ~7) + (tree_anim & 7);
 				} else {
@@ -1537,8 +1536,8 @@ serf_get_body(serf_t *serf)
 		0x7600, 0x5f00, 0x6000, 0, 0, 0, 0, 0
 	};
 
-	uint8_t *tbl_ptr = ((uint8_t *)globals.serf_animation_table) +
-		globals.serf_animation_table[serf->animation] +
+	uint8_t *tbl_ptr = ((uint8_t *)game.serf_animation_table) +
+		game.serf_animation_table[serf->animation] +
 		3*(serf->counter >> 3);
 	int t = tbl_ptr[0];
 
@@ -2078,8 +2077,8 @@ draw_serf_row(map_pos_t pos, int y_base, int cols, int x_base, frame_t *frame)
 		if (MAP_SERF_INDEX(pos) != 0) {
 			serf_t *serf = game_get_serf(MAP_SERF_INDEX(pos));
 
-			uint8_t *tbl_ptr = ((uint8_t *)globals.serf_animation_table) +
-				globals.serf_animation_table[serf->animation] +
+			uint8_t *tbl_ptr = ((uint8_t *)game.serf_animation_table) +
+				game.serf_animation_table[serf->animation] +
 				3*(serf->counter >> 3);
 
 			int x = x_base + ((int8_t *)tbl_ptr)[1];
@@ -2100,8 +2099,8 @@ draw_serf_row(map_pos_t pos, int y_base, int cols, int x_base, frame_t *frame)
 				if (index != 0) {
 					serf_t *def_serf = game_get_serf(index);
 
-					uint8_t *tbl_ptr = ((uint8_t *)globals.serf_animation_table) +
-						globals.serf_animation_table[def_serf->animation] +
+					uint8_t *tbl_ptr = ((uint8_t *)game.serf_animation_table) +
+						game.serf_animation_table[def_serf->animation] +
 						3*(def_serf->counter >> 3);
 
 					int x = x_base + ((int8_t *)tbl_ptr)[1];
@@ -2155,7 +2154,7 @@ draw_serf_row(map_pos_t pos, int y_base, int cols, int x_base, frame_t *frame)
 			} else { /* Transporter */
 				x = x_base + arr_3[2*MAP_PATHS(pos)];
 				y = y_base - 4*MAP_HEIGHT(pos) + arr_3[2*MAP_PATHS(pos)+1];
-				body = arr_2[((globals.anim + arr_1[pos & 0xf]) >> 3) & 0x7f];
+				body = arr_2[((game.anim + arr_1[pos & 0xf]) >> 3) & 0x7f];
 			}
 
 			draw_row_serf(x, y, 1, MAP_PLAYER(pos), body, frame);
@@ -2181,8 +2180,8 @@ draw_game_objects(viewport_t *viewport, int layers, frame_t *frame)
 	int x = -(viewport->offset_x + 16*(viewport->offset_y/20)) % 32;
 	int y = -(viewport->offset_y) % 20;
 
-	int col_0 = (viewport->offset_x/16 + viewport->offset_y/20)/2 & globals.map.col_mask;
-	int row_0 = (viewport->offset_y/MAP_TILE_HEIGHT) & globals.map.row_mask;
+	int col_0 = (viewport->offset_x/16 + viewport->offset_y/20)/2 & game.map.col_mask;
+	int row_0 = (viewport->offset_y/MAP_TILE_HEIGHT) & game.map.row_mask;
 	map_pos_t pos = MAP_POS(col_0, row_0);
 
 	/* Loop until objects drawn fall outside the frame. */
@@ -2255,8 +2254,8 @@ draw_height_grid_overlay(viewport_t *viewport, int color, frame_t *frame)
 	int x_off = -(viewport->offset_x + 16*(viewport->offset_y/20)) % 32;
 	int y_off = -viewport->offset_y % 20;
 
-	int col_0 = (viewport->offset_x/16 + viewport->offset_y/20)/2 & globals.map.col_mask;
-	int row_0 = (viewport->offset_y/MAP_TILE_HEIGHT) & globals.map.row_mask;
+	int col_0 = (viewport->offset_x/16 + viewport->offset_y/20)/2 & game.map.col_mask;
+	int row_0 = (viewport->offset_y/MAP_TILE_HEIGHT) & game.map.row_mask;
 	map_pos_t base_pos = MAP_POS(col_0, row_0);
 
 	for (int x_base = x_off; x_base < viewport->obj.width + MAP_TILE_WIDTH; x_base += MAP_TILE_WIDTH) {
@@ -2320,8 +2319,8 @@ viewport_handle_event_click(viewport_t *viewport, int x, int y, gui_event_button
 	int clk_row = MAP_POS_ROW(clk_pos);
 
 	if (BIT_TEST(interface->click, 7)) { /* Building road */
-		int x = (clk_col - MAP_POS_COL(interface->map_cursor_pos) + 1) & globals.map.col_mask;
-		int y = (clk_row - MAP_POS_ROW(interface->map_cursor_pos) + 1) & globals.map.row_mask;
+		int x = (clk_col - MAP_POS_COL(interface->map_cursor_pos) + 1) & game.map.col_mask;
+		int y = (clk_row - MAP_POS_ROW(interface->map_cursor_pos) + 1) & game.map.row_mask;
 		int dir = -1;
 
 		if (x == 0) {
@@ -2399,7 +2398,7 @@ viewport_handle_event_dbl_click(viewport_t *viewport, int x, int y,
 		}
 
 		if (MAP_OBJ(clk_pos) == MAP_OBJ_FLAG) {
-			if (BIT_TEST(globals.split, 5) || /* Demo mode */
+			if (BIT_TEST(game.split, 5) || /* Demo mode */
 			    MAP_OWNER(clk_pos) == interface->player->player_num) {
 				interface_open_popup(interface, BOX_TRANSPORT_INFO);
 			}
@@ -2407,7 +2406,7 @@ viewport_handle_event_dbl_click(viewport_t *viewport, int x, int y,
 			interface->player->index = MAP_OBJ_INDEX(clk_pos);
 			interface->click &= ~BIT(2);
 		} else { /* Building */
-			if (BIT_TEST(globals.split, 5) || /* Demo mode */
+			if (BIT_TEST(game.split, 5) || /* Demo mode */
 			    MAP_OWNER(clk_pos) == interface->player->player_num) {
 				building_t *building = game_get_building(MAP_OBJ_INDEX(clk_pos));
 				if (!BUILDING_IS_DONE(building)) {
@@ -2432,7 +2431,7 @@ viewport_handle_event_dbl_click(viewport_t *viewport, int x, int y,
 
 				interface->player->index = MAP_OBJ_INDEX(clk_pos);
 				interface->click &= ~BIT(2);
-			} else if (BIT_TEST(globals.split, 5)) { /* Demo mode*/
+			} else if (BIT_TEST(game.split, 5)) { /* Demo mode*/
 				return 0;
 			} else { /* Foreign building */
 				/* TODO handle coop mode*/
@@ -2453,7 +2452,7 @@ viewport_handle_event_dbl_click(viewport_t *viewport, int x, int y,
 						return 0;
 					}
 
-					const map_pos_t *p = &globals.spiral_pos_pattern[7];
+					const map_pos_t *p = &game.spiral_pos_pattern[7];
 					int found = 0;
 					for (int i = 257; i >= 0; i--) {
 						map_pos_t pos = MAP_POS_ADD(building->pos, p[257-i]);
@@ -2593,8 +2592,8 @@ viewport_init(viewport_t *viewport, interface_t *interface)
 void
 viewport_screen_pix_from_map_pix(viewport_t *viewport, int mx, int my, int *sx, int *sy)
 {
-	int width = globals.map.cols*MAP_TILE_WIDTH;
-	int height = globals.map.rows*MAP_TILE_HEIGHT;
+	int width = game.map.cols*MAP_TILE_WIDTH;
+	int height = game.map.rows*MAP_TILE_HEIGHT;
 
 	*sx = mx - viewport->offset_x;
 	*sy = my - viewport->offset_y;
@@ -2616,8 +2615,8 @@ viewport_screen_pix_from_map_pix(viewport_t *viewport, int mx, int my, int *sx, 
 void
 viewport_map_pix_from_map_coord(viewport_t *viewport, map_pos_t pos, int h, int *mx, int *my)
 {
-	int width = globals.map.cols*MAP_TILE_WIDTH;
-	int height = globals.map.rows*MAP_TILE_HEIGHT;
+	int width = game.map.cols*MAP_TILE_WIDTH;
+	int height = game.map.rows*MAP_TILE_HEIGHT;
 
 	*mx = MAP_TILE_WIDTH*MAP_POS_COL(pos) - (MAP_TILE_WIDTH/2)*MAP_POS_ROW(pos);
 	*my = MAP_TILE_HEIGHT*MAP_POS_ROW(pos) - 4*h;
@@ -2637,8 +2636,8 @@ viewport_map_pos_from_screen_pix(viewport_t *viewport, int sx, int sy)
 	int x_off = -(viewport->offset_x + 16*(viewport->offset_y/20)) % 32;
 	int y_off = -viewport->offset_y % 20;
 
-	int col = (viewport->offset_x/16 + viewport->offset_y/20)/2 & globals.map.col_mask;
-	int row = (viewport->offset_y/MAP_TILE_HEIGHT) & globals.map.row_mask;
+	int col = (viewport->offset_x/16 + viewport->offset_y/20)/2 & game.map.col_mask;
+	int row = (viewport->offset_y/MAP_TILE_HEIGHT) & game.map.row_mask;
 
 	sx -= x_off;
 	sy -= y_off;
@@ -2650,8 +2649,8 @@ viewport_map_pos_from_screen_pix(viewport_t *viewport, int sx, int sy)
 		y_base = 16;
 	}
 
-	col = (col + col_offset) & globals.map.col_mask;
-	row = row & globals.map.row_mask;
+	col = (col + col_offset) & game.map.col_mask;
+	row = row & game.map.row_mask;
 
 	int y;
 	int last_y = -100;
@@ -2661,14 +2660,14 @@ viewport_map_pos_from_screen_pix(viewport_t *viewport, int sx, int sy)
 		if (sy < y) break;
 
 		last_y = y;
-		col = (col + 1) & globals.map.col_mask;
-		row = (row + 2) & globals.map.row_mask;
+		col = (col + 1) & game.map.col_mask;
+		row = (row + 2) & game.map.row_mask;
 		y_base += 2*MAP_TILE_HEIGHT;
 	}
 
 	if (sy < (y + last_y)/2) {
-		col = (col - 1) & globals.map.col_mask;
-		row = (row - 2) & globals.map.row_mask;
+		col = (col - 1) & game.map.col_mask;
+		row = (row - 2) & game.map.row_mask;
 	}
 
 	return MAP_POS(col, row);
@@ -2690,8 +2689,8 @@ viewport_move_to_map_pos(viewport_t *viewport, map_pos_t pos)
 					MAP_HEIGHT(pos),
 					&mx, &my);
 
-	int map_width = globals.map.cols*MAP_TILE_WIDTH;
-	int map_height = globals.map.rows*MAP_TILE_HEIGHT;
+	int map_width = game.map.cols*MAP_TILE_WIDTH;
+	int map_height = game.map.rows*MAP_TILE_HEIGHT;
 
 	/* Center screen. */
 	mx -= viewport->obj.width/2;
@@ -2714,8 +2713,8 @@ viewport_move_to_map_pos(viewport_t *viewport, map_pos_t pos)
 void
 viewport_move_by_pixels(viewport_t *viewport, int x, int y)
 {
-	int width = globals.map.cols*MAP_TILE_WIDTH;
-	int height = globals.map.rows*MAP_TILE_HEIGHT;
+	int width = game.map.cols*MAP_TILE_WIDTH;
+	int height = game.map.rows*MAP_TILE_HEIGHT;
 
 	viewport->offset_x += x;
 	viewport->offset_y += y;

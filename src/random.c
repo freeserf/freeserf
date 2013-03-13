@@ -1,7 +1,7 @@
 /*
  * random.c - Random number generator
  *
- * Copyright (C) 2012  Jon Lund Steffensen <jonlst@gmail.com>
+ * Copyright (C) 2013  Jon Lund Steffensen <jonlst@gmail.com>
  *
  * This file is part of freeserf.
  *
@@ -23,13 +23,12 @@
 #include <stdlib.h>
 #include <stdint.h>
 
-#include "globals.h"
-
+#include "game.h"
 
 uint16_t
 random_int()
 {
-	uint16_t *rnd = globals.rnd.state;
+	uint16_t *rnd = game.rnd.state;
 	uint16_t r = (rnd[0] + rnd[1]) ^ rnd[2];
 	rnd[2] += rnd[1];
 	rnd[1] ^= rnd[2];
