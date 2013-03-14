@@ -105,7 +105,7 @@ get_map_cursor_type(const player_t *player, map_pos_t pos, panel_btn_t *panel_bt
 	}
 
 	if (MAP_OBJ(pos) == MAP_OBJ_FLAG) {
-		if (game_can_demolish_flag(pos)) {
+		if (game_can_demolish_flag(pos, player)) {
 			*cursor_type = MAP_CURSOR_TYPE_REMOVABLE_FLAG;
 		} else {
 			*cursor_type = MAP_CURSOR_TYPE_FLAG;
@@ -615,7 +615,7 @@ interface_demolish_object(interface_t *interface)
 	if (interface->map_cursor_type == MAP_CURSOR_TYPE_REMOVABLE_FLAG) {
 		sfx_play_clip(SFX_CLICK);
 		interface->click |= BIT(2);
-		game_demolish_flag(cursor_pos);
+		game_demolish_flag(cursor_pos, interface->player);
 	} else if (interface->map_cursor_type == MAP_CURSOR_TYPE_BUILDING) {
 		building_t *building = game_get_building(MAP_OBJ_INDEX(cursor_pos));
 
@@ -628,7 +628,7 @@ interface_demolish_object(interface_t *interface)
 
 		sfx_play_clip(SFX_AHHH);
 		interface->click |= BIT(2);
-		game_demolish_building(cursor_pos);
+		game_demolish_building(cursor_pos, interface->player);
 	} else {
 		sfx_play_clip(SFX_NOT_ACCEPTED);
 		interface_update_interface(interface);

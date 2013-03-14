@@ -412,7 +412,8 @@ handle_panel_button_click(interface_t *interface, int btn)
 				/* TODO */
 			} else {
 				interface->flags &= ~BIT(6);
-				int r = game_demolish_road(interface->map_cursor_pos);
+				int r = game_demolish_road(interface->map_cursor_pos,
+							   interface->player);
 				if (r < 0) {
 					sfx_play_clip(SFX_NOT_ACCEPTED);
 					interface_update_map_cursor_pos(interface, interface->map_cursor_pos);

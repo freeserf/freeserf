@@ -2807,12 +2807,9 @@ remove_road_forwards(map_pos_t pos, dir_t dir)
 	}
 }
 
-/* Demolish road at position. */
-int
-game_demolish_road(map_pos_t pos)
+static int
+demolish_road(map_pos_t pos)
 {
-	if (!game_can_demolish_road(pos)) return -1;
-
 	/* TODO necessary?
 	game.player[0]->flags |= BIT(4);
 	game.player[1]->flags |= BIT(4);
@@ -2852,6 +2849,15 @@ game_demolish_road(map_pos_t pos)
 	remove_road_forwards(pos, path_2_dir);
 
 	return 0;
+}
+
+/* Demolish road at position. */
+int
+game_demolish_road(map_pos_t pos, player_t *player)
+{
+	if (!game_can_demolish_road(pos, player)) return -1;
+
+	return demolish_road(pos);
 }
 
 /* Find a transporter at pos and change it to state. */
@@ -3915,8 +3921,13 @@ flag_remove_player_refs(flag_t *flag)
 
 /* Check whether road can be demolished. */
 int
-game_can_demolish_road(map_pos_t pos)
+game_can_demolish_road(map_pos_t pos, const player_t *player)
 {
+	if (!MAP_HAS_OWNER(pos) ||
+	    MAP_OWNER(pos) != player->player_num) {
+		return 0;
+	}
+
 	if (MAP_PATHS(pos) == 0 ||
 	    map_space_from_obj[MAP_OBJ(pos)] >= MAP_SPACE_FLAG) {
 		return 0;
@@ -3927,7 +3938,7 @@ game_can_demolish_road(map_pos_t pos)
 
 /* Check whether flag can be demolished. */
 int
-game_can_demolish_flag(map_pos_t pos)
+game_can_demolish_flag(map_pos_t pos, const player_t *player)
 {
 	if (MAP_OBJ(pos) != MAP_OBJ_FLAG) return 0;
 
@@ -3940,6 +3951,9 @@ game_can_demolish_flag(map_pos_t pos)
 	if (MAP_PATHS(pos) == 0) return 1;
 
 	flag_t *flag = game_get_flag(MAP_OBJ_INDEX(pos));
+
+	if (FLAG_PLAYER(flag) != player->player_num) return 0;
+
 	int connected = 0;
 	void *other_end = NULL;
 
@@ -3964,12 +3978,9 @@ game_can_demolish_flag(map_pos_t pos)
 	return 0;
 }
 
-/* Demolish flag at pos. */
-int
-game_demolish_flag(map_pos_t pos)
+static int
+demolish_flag(map_pos_t pos)
 {
-	if (!game_can_demolish_flag(pos)) return -1;
-
 	const int max_transporters[] = { 1, 2, 3, 4, 6, 8, 11, 15 };
 
 	/* Handle any serf at pos. */
@@ -4134,19 +4145,23 @@ game_demolish_flag(map_pos_t pos)
 	return 0;
 }
 
-/* Demolish building at pos. */
-void
-game_demolish_building(map_pos_t pos)
+/* Demolish flag at pos. */
+int
+game_demolish_flag(map_pos_t pos, player_t *player)
 {
-	/* request redraw at pos */
+	if (!game_can_demolish_flag(pos, player)) return -1;
 
+	return demolish_flag(pos);
+}
+
+static int
+demolish_building(map_pos_t pos)
+{
 	building_t *building = game_get_building(MAP_OBJ_INDEX(pos));
 	building_remove_player_refs(building);
 
 	player_t *player = game.player[BUILDING_PLAYER(building)];
 	map_tile_t *tiles = game.map.tiles;
-
-	if (BUILDING_IS_BURNING(building)) return;
 
 	building->serf |= BIT(5);
 
@@ -4327,8 +4342,22 @@ game_demolish_building(map_pos_t pos)
 	map_pos_t flag_pos = MAP_MOVE_DOWN_RIGHT(pos);
 	if (MAP_PATHS(flag_pos) == 0 &&
 	    MAP_OBJ(flag_pos) == MAP_OBJ_FLAG) {
-		game_demolish_flag(flag_pos);
+		game_demolish_flag(flag_pos, player);
 	}
+
+	return 0;
+}
+
+/* Demolish building at pos. */
+int
+game_demolish_building(map_pos_t pos, player_t *player)
+{
+	building_t *building = game_get_building(MAP_OBJ_INDEX(pos));
+
+	if (BUILDING_PLAYER(building) != player->player_num) return -1;
+	if (BUILDING_IS_BURNING(building)) return -1;
+
+	return demolish_building(pos);
 }
 
 /* Calculate the flag state of military buildings (distance to enemy). */
@@ -4376,11 +4405,11 @@ game_surrender_land(map_pos_t pos)
 	/* Remove building. */
 	if (MAP_OBJ(pos) >= MAP_OBJ_SMALL_BUILDING &&
 	    MAP_OBJ(pos) <= MAP_OBJ_CASTLE) {
-		game_demolish_building(pos);
+		demolish_building(pos);
 	}
 
 	if (!MAP_HAS_FLAG(pos) && MAP_PATHS(pos) != 0) {
-		game_demolish_road(pos);
+		demolish_road(pos);
 	}
 
 	int remove_roads = MAP_HAS_FLAG(pos);
@@ -4391,18 +4420,18 @@ game_surrender_land(map_pos_t pos)
 
 		if (MAP_OBJ(p) >= MAP_OBJ_SMALL_BUILDING &&
 		    MAP_OBJ(p) <= MAP_OBJ_CASTLE) {
-			game_demolish_building(p);
+			demolish_building(p);
 		}
 
 		if (remove_roads &&
 		    (MAP_PATHS(p) & BIT(DIR_REVERSE(d)))) {
-			game_demolish_road(p);
+			demolish_road(p);
 		}
 	}
 
 	/* Remove flag. */
 	if (MAP_OBJ(pos) == MAP_OBJ_FLAG) {
-		game_demolish_flag(pos);
+		demolish_flag(pos);
 	}
 }
 
@@ -4573,15 +4602,15 @@ game_demolish_flag_and_roads(map_pos_t pos)
 			map_pos_t p = MAP_MOVE(pos, d);
 
 			if (MAP_PATHS(p) & BIT(DIR_REVERSE(d))) {
-				game_demolish_road(p);
+				demolish_road(p);
 			}
 		}
 
 		if (MAP_OBJ(pos) == MAP_OBJ_FLAG) {
-			game_demolish_flag(pos);
+			demolish_flag(pos);
 		}
 	} else if (MAP_PATHS(pos) != 0) {
-		game_demolish_road(pos);
+		demolish_road(pos);
 	}
 }
 
@@ -4599,7 +4628,7 @@ game_occupy_enemy_building(building_t *building, int player_num)
 
 	if (BUILDING_TYPE(building) == BUILDING_CASTLE) {
 		player->castle_score += 1;
-		game_demolish_building(building->pos);
+		demolish_building(building->pos);
 	} else {
 		flag_t *flag = game_get_flag(building->flg_index);
 		flag_reset_transport(flag);
@@ -4621,7 +4650,7 @@ game_occupy_enemy_building(building_t *building, int player_num)
 						    game.spiral_pos_pattern[7+i]);
 			if (MAP_OBJ(pos) >= MAP_OBJ_SMALL_BUILDING &&
 			    MAP_OBJ(pos) <= MAP_OBJ_CASTLE) {
-				game_demolish_building(pos);
+				demolish_building(pos);
 			}
 		}
 
@@ -4662,7 +4691,7 @@ game_occupy_enemy_building(building_t *building, int player_num)
 		/* Remove paths from flag. */
 		for (dir_t d = DIR_RIGHT; d <= DIR_UP; d++) {
 			if (FLAG_HAS_PATH(flag, d)) {
-				game_demolish_road(MAP_MOVE(flag->pos, d));
+				demolish_road(MAP_MOVE(flag->pos, d));
 			}
 		}
 
