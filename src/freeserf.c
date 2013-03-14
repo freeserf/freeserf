@@ -33,7 +33,6 @@
 #include <assert.h>
 
 #include "freeserf.h"
-#include "freeserf_endian.h"
 #include "serf.h"
 #include "flag.h"
 #include "building.h"

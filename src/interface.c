@@ -30,6 +30,7 @@
 #include "sdl-video.h"
 #include "data.h"
 #include "debug.h"
+#include "freeserf_endian.h"
 
 
 typedef struct {
