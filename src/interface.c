@@ -19,6 +19,8 @@
  * along with freeserf.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include <time.h>
+
 #include "interface.h"
 #include "gui.h"
 #include "audio.h"
@@ -941,6 +943,13 @@ interface_init(interface_t *interface)
 	*/
 
 	/*interface->frame = &svga_normal_frame;*/
+
+	/* Randomness for interface */
+	srand(time(NULL));
+	interface->random.state[0] = rand();
+	interface->random.state[1] = rand();
+	interface->random.state[2] = rand();
+	random_int(&interface->random);
 }
 
 void

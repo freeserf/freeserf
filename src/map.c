@@ -142,8 +142,8 @@ const map_space_t map_space_from_obj[] = {
 static map_pos_t
 get_rnd_map_coord(int *col, int *row)
 {
-	int c = random_int() & game.map.col_mask;
-	int r = random_int() & game.map.row_mask;
+	int c = game_random_int() & game.map.col_mask;
+	int r = game_random_int() & game.map.row_mask;
 
 	if (col != NULL) *col = c;
 	if (row != NULL) *row = r;
@@ -159,7 +159,7 @@ init_map_heights_squares()
 
 	for (int y = 0; y < game.map.rows; y += 16) {
 		for (int x = 0; x < game.map.cols; x += 16) {
-			int rnd = random_int() & 0xff;
+			int rnd = game_random_int() & 0xff;
 			tiles[MAP_POS(x,y)].height = min(rnd, 250);
 		}
 	}
@@ -168,7 +168,7 @@ init_map_heights_squares()
 static int
 calc_height_displacement(int avg, int base, int offset)
 {
-	int r = random_int();
+	int r = game_random_int();
 	int h = ((r * base) >> 16) - offset + avg;
 
 	return max(0,min(h,250));
@@ -196,7 +196,7 @@ init_map_heights_midpoints()
 	   spikyness will result in smooth mountains and sharp valleys.
 	*/
 
-	int rnd = random_int();
+	int rnd = game_random_int();
 	int r1 = 0x80 + (rnd & 0x7f);
 	int r2 = (r1 * TERRAIN_SPIKYNESS) >> 16;
 
@@ -256,7 +256,7 @@ init_map_heights_diamond_square()
 	   spikyness will result in smooth mountains and sharp valleys.
 	*/
 
-	int rnd = random_int();
+	int rnd = game_random_int();
 	int r1 = 0x80 + (rnd & 0x7f);
 	int r2 = (r1 * TERRAIN_SPIKYNESS) >> 16;
 
@@ -478,7 +478,7 @@ map_init_sea_level()
 				case 253:
 					tiles[pos].height = game.map_water_level - 1;
 					tiles[pos].flags |= BIT(6);
-					tiles[pos].u.s.resource = random_int() & 7; /* Fish (?) */
+					tiles[pos].u.s.resource = game_random_int() & 7; /* Fish (?) */
 					break;
 			}
 		}
@@ -851,7 +851,7 @@ init_map_objects_shared_sub1(map_pos_t pos, int min, int max)
 static map_pos_t
 lookup_rnd_pattern(int col, int row, int mask)
 {
-	return lookup_pattern(col, row, random_int() & mask);
+	return lookup_pattern(col, row, game_random_int() & mask);
 }
 
 static void
@@ -870,7 +870,7 @@ init_map_objects_shared(int num_clusters, int objs_in_cluster, int pos_mask,
 					map_pos_t pos = lookup_rnd_pattern(col, row, pos_mask);
 					int r = init_map_objects_shared_sub1(pos, type_min, type_max);
 					if (r == 0 && MAP_OBJ(pos) == MAP_OBJ_NONE) {
-						tiles[pos].obj = (random_int() & obj_mask) + obj_base;
+						tiles[pos].obj = (game_random_int() & obj_mask) + obj_base;
 					}
 				}
 				break;
@@ -1000,7 +1000,7 @@ init_map_resources_shared(int num_clusters, int res_type, int min, int max)
 			if (tiles[pos].u.s.field_1 == 0 &&
 			    init_map_objects_shared_sub1(pos, min, max) == 0) {
 				int index = 0;
-				int amount = 8 + (random_int() & 0xc);
+				int amount = 8 + (game_random_int() & 0xc);
 				init_map_resources_shared_sub(tiles, 1, col, row, &index, amount, res_type);
 				amount -= 4;
 				if (amount == 0) break;
@@ -1259,8 +1259,8 @@ map_init()
 	memcpy(&game.rnd, &game.init_map_rnd,
 	       sizeof(random_state_t));
 
-	random_int();
-	random_int();
+	game_random_int();
+	game_random_int();
 	/* progress_reset(); */
 
 	/* draw_progress_bar(1); */
@@ -1391,7 +1391,7 @@ map_update_public(map_pos_t pos)
 	int r;
 	switch (MAP_OBJ(pos)) {
 	case MAP_OBJ_STUB:
-		if ((random_int() & 3) == 0) map_set_object(pos, MAP_OBJ_NONE, -1);
+		if ((game_random_int() & 3) == 0) map_set_object(pos, MAP_OBJ_NONE, -1);
 		break;
 	case MAP_OBJ_FELLED_PINE_0: case MAP_OBJ_FELLED_PINE_1:
 	case MAP_OBJ_FELLED_PINE_2: case MAP_OBJ_FELLED_PINE_3:
@@ -1402,11 +1402,11 @@ map_update_public(map_pos_t pos)
 		map_set_object(pos, MAP_OBJ_STUB, -1);
 		break;
 	case MAP_OBJ_NEW_PINE:
-		r = random_int();
+		r = game_random_int();
 		if ((r & 0x300) == 0) map_set_object(pos, MAP_OBJ_PINE_0 + (r & 7), -1);
 		break;
 	case MAP_OBJ_NEW_TREE:
-		r = random_int();
+		r = game_random_int();
 		if ((r & 0x300) == 0) map_set_object(pos, MAP_OBJ_TREE_0 + (r & 7), -1);
 		break;
 	case MAP_OBJ_SEEDS_0: case MAP_OBJ_SEEDS_1:
@@ -1449,7 +1449,7 @@ map_update_hidden(map_pos_t pos)
 	/* Update fish resources in water */
 	if (MAP_WATER(pos) && MAP_DEEP_WATER(pos)) {
 		if (tiles[pos].u.s.resource) {
-			int r = random_int();
+			int r = game_random_int();
 
 			if (tiles[pos].u.s.resource < 10 && (r & 0x3f00)) {
 				/* Spawn more fish. */

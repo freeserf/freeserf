@@ -28,6 +28,7 @@
 #include "list.h"
 #include "popup.h"
 #include "player.h"
+#include "random.h"
 
 
 typedef enum {
@@ -51,6 +52,8 @@ struct interface {
 	list_t floats;
 
 	uint32_t *serf_animation_table;
+
+	random_state_t random;
 
 	viewport_t viewport;
 	panel_bar_t panel;

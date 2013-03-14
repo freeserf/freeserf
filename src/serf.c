@@ -156,7 +156,7 @@ train_knight(serf_t *serf, int p)
 	serf->counter -= delta;
 
 	while (serf->counter < 0) {
-		if (random_int() < p) {
+		if (game_random_int() < p) {
 			/* Level up */
 			serf_type_t old_type = SERF_TYPE(serf);
 			serf->type = (serf->type & 0x83) | ((old_type + 1) << 2);
@@ -1543,7 +1543,7 @@ handle_serf_building_state(serf_t *serf)
 			serf->s.building.mode = -1;
 		}
 
-		int rnd = (random_int() & 3) + 102;
+		int rnd = (game_random_int() & 3) + 102;
 		if (BIT_TEST(serf->s.building.material_step, 7)) rnd += 4;
 		serf->animation = rnd;
 		serf->counter += counter_from_animation[serf->animation];
@@ -2414,7 +2414,7 @@ handle_serf_planning_logging_state(serf_t *serf)
 	serf->counter -= delta;
 
 	while (serf->counter < 0) {
-		int index = (random_int() & 0x7f) + 1;
+		int index = (game_random_int() & 0x7f) + 1;
 		map_pos_t pos = MAP_POS_ADD(serf->pos,
 					    game.spiral_pos_pattern[index]);
 		int obj = MAP_OBJ(pos);
@@ -2444,7 +2444,7 @@ handle_serf_planning_planting_state(serf_t *serf)
 	serf->counter -= delta;
 
 	while (serf->counter < 0) {
-		int index = (random_int() & 0x7f) + 1;
+		int index = (game_random_int() & 0x7f) + 1;
 		map_pos_t pos = MAP_POS_ADD(serf->pos,
 					    game.spiral_pos_pattern[index]);
 		if (MAP_PATHS(pos) == 0 &&
@@ -2491,7 +2491,7 @@ handle_serf_planting_state(serf_t *serf)
 
 		/* Plant a tree */
 		serf->animation = 122;
-		map_obj_t new_obj = MAP_OBJ_NEW_PINE + (random_int() & 1);
+		map_obj_t new_obj = MAP_OBJ_NEW_PINE + (game_random_int() & 1);
 
 		if (MAP_PATHS(serf->pos) == 0 &&
 		    MAP_OBJ(serf->pos) == MAP_OBJ_NONE) {
@@ -2511,7 +2511,7 @@ handle_serf_planning_stonecutting(serf_t *serf)
 	serf->counter -= delta;
 
 	while (serf->counter < 0) {
-		int index = (random_int() & 0x7f) + 1;
+		int index = (game_random_int() & 0x7f) + 1;
 		map_pos_t pos = MAP_POS_ADD(serf->pos,
 					    game.spiral_pos_pattern[index]);;
 		int obj = MAP_OBJ(MAP_MOVE_UP_LEFT(pos));
@@ -2690,7 +2690,7 @@ handle_serf_lost_state(serf_t *serf)
 				}
 			}
 
-			int r = random_int();
+			int r = game_random_int();
 			int col = ((r & (size-1)) - (size/2)) & game.map.col_mask;
 			int row = (((r >> 8) & (size-1)) - (size/2)) & game.map.row_mask;
 
@@ -2755,7 +2755,7 @@ handle_lost_sailor(serf_t *serf)
 
 		/* Choose a random, empty destination */
 		while (1) {
-			int r = random_int();
+			int r = game_random_int();
 			int col = ((r & 0x1f) - 16) & game.map.col_mask;
 			int row = (((r >> 8) & 0x1f) - 16) & game.map.row_mask;
 
@@ -2827,7 +2827,7 @@ handle_serf_mining_state(serf_t *serf)
 		{
 			/* There is a small chance that the miner will
 			   require food and go to state 1. */
-			int r = random_int();
+			int r = game_random_int();
 			if ((r & 7) != 0) serf->s.mining.substate = 2;
 			else serf->s.mining.substate = 1;
 			serf->counter += 100 + (r & 0x1ff);
@@ -2872,7 +2872,7 @@ handle_serf_mining_state(serf_t *serf)
 			serf->s.mining.substate += 1;
 
 			/* Look for resource in ground. */
-			map_pos_t offset = game.spiral_pos_pattern[(random_int() >> 2) & 0x1f];
+			map_pos_t offset = game.spiral_pos_pattern[(game_random_int() >> 2) & 0x1f];
 			map_pos_t dest = MAP_POS_ADD(serf->pos, offset);
 			if ((MAP_OBJ(dest) == MAP_OBJ_NONE || MAP_OBJ(dest) > MAP_OBJ_CASTLE) &&
 			    MAP_RES_TYPE(dest) == serf->s.mining.deposit &&
@@ -3015,7 +3015,7 @@ handle_serf_planning_fishing_state(serf_t *serf)
 	serf->counter -= delta;
 
 	while (serf->counter < 0) {
-		int index = ((random_int() >> 2) & 0x3f) + 1;
+		int index = ((game_random_int() >> 2) & 0x3f) + 1;
 		map_pos_t dest = MAP_POS_ADD(serf->pos,
 					     game.spiral_pos_pattern[index]);
 
@@ -3078,7 +3078,7 @@ handle_serf_fishing_state(serf_t *serf)
 		}
 
 		int res = MAP_RES_FISH(MAP_MOVE(serf->pos, dir));
-		if (res > 0 && (random_int() & 0x3f) + 4 < res) {
+		if (res > 0 && (game_random_int() & 0x3f) + 4 < res) {
 			/* Caught a fish. */
 			map_remove_fish(MAP_MOVE(serf->pos, dir), 1);
 			serf->s.free_walking.neg_dist2 = 1+RESOURCE_FISH;
@@ -3098,7 +3098,7 @@ handle_serf_planning_farming_state(serf_t *serf)
 	serf->counter -= delta;
 
 	while (serf->counter < 0) {
-		int index = ((random_int() >> 2) & 0x1f) + 7;
+		int index = ((game_random_int() >> 2) & 0x1f) + 7;
 		map_pos_t dest = MAP_POS_ADD(serf->pos,
 					     game.spiral_pos_pattern[index]);
 
@@ -3309,7 +3309,7 @@ handle_serf_pigfarming_state(serf_t *serf)
 					serf->counter = counter_from_animation[serf->animation];
 				} else if (building->stock[1].available == 8 ||
 					   (building->stock[1].available > 3 &&
-					    ((20*random_int()) >> 16) < building->stock[1].available)) {
+					    ((20*game_random_int()) >> 16) < building->stock[1].available)) {
 					/* Pig is ready for the butcher. */
 					building->stock[1].available -= 1;
 
@@ -3322,7 +3322,7 @@ handle_serf_pigfarming_state(serf_t *serf)
 					/* Update resource stats. */
 					player_t *player = game.player[SERF_PLAYER(serf)];
 					player->resource_count[RESOURCE_PIG] += 1;
-				} else if (random_int() & 0xf) {
+				} else if (game_random_int() & 0xf) {
 					serf->s.pigfarming.mode = 1;
 					serf->animation = 139;
 					serf->counter = counter_from_animation[serf->animation];
@@ -3335,7 +3335,7 @@ handle_serf_pigfarming_state(serf_t *serf)
 			} else {
 				map_set_serf_index(serf->pos, 0);
 				if (building->stock[1].available < 8 &&
-				    random_int() < breeding_prob[building->stock[1].available-1]) {
+				    game_random_int() < breeding_prob[building->stock[1].available-1]) {
 					building->stock[1].available += 1;
 				}
 				serf->counter += 2048;
@@ -3478,7 +3478,7 @@ handle_serf_making_tool_state(serf_t *serf)
 				int res = -1;
 				if (total_tool_prio > 0) {
 					/* Use defined tool priorities. */
-					int prio_offset = (total_tool_prio*random_int()) >> 16;
+					int prio_offset = (total_tool_prio*game_random_int()) >> 16;
 					for (int i = 0; i < 9; i++) {
 						prio_offset -= player->tool_prio[i] >> 4;
 						if (prio_offset < 0) {
@@ -3488,7 +3488,7 @@ handle_serf_making_tool_state(serf_t *serf)
 					}
 				} else {
 					/* Completely random. */
-					res = RESOURCE_SHOVEL + ((9*random_int()) >> 16);
+					res = RESOURCE_SHOVEL + ((9*game_random_int()) >> 16);
 				}
 
 				serf_log_state_change(serf, SERF_STATE_MOVE_RESOURCE_OUT);
@@ -3567,7 +3567,7 @@ handle_serf_looking_for_geo_spot_state(serf_t *serf)
 {
 	int tries = 2;
 	for (int i = 0; i < 8; i++) {
-		int index = ((random_int() >> 2) & 0x3f) + 1;
+		int index = ((game_random_int() >> 2) & 0x3f) + 1;
 		map_pos_t dest = MAP_POS_ADD(serf->pos,
 					     game.spiral_pos_pattern[index]);
 
@@ -3753,7 +3753,7 @@ serf_set_fight_outcome(serf_t *attacker, serf_t *defender)
 	int player = -1;
 	int value = -1;
 	serf_type_t type = -1;
-	int r = ((morale + def_morale)*random_int()) >> 16;
+	int r = ((morale + def_morale)*game_random_int()) >> 16;
 	if (r < morale) {
 		player = SERF_PLAYER(defender);
 		value = def_exp_factor;
@@ -3770,7 +3770,7 @@ serf_set_fight_outcome(serf_t *attacker, serf_t *defender)
 
 	game.player[player]->total_military_score -= value;
 	game.player[player]->serf_count[type] -= 1;
-	attacker->s.attacking.field_B = random_int() & 0x70;
+	attacker->s.attacking.field_B = game_random_int() & 0x70;
 }
 
 static void
@@ -3907,12 +3907,12 @@ handle_knight_attacking(serf_t *serf)
 			if (serf->s.attacking.field_C == 0) move = 4 - move;
 			serf->s.attacking.field_D = move;
 
-			int off = (random_int() * fight_anim_max[move]) >> 16;
+			int off = (game_random_int() * fight_anim_max[move]) >> 16;
 			int a = fight_anim[move*16 + off];
 
 			serf->animation = 146 + ((a >> 4) & 0xf);
 			def_serf->animation = 156 + (a & 0xf);
-			serf->counter = 72 + (random_int() & 0x18);
+			serf->counter = 72 + (game_random_int() & 0x18);
 			def_serf->counter = serf->counter;
 		}
 	}
@@ -4425,7 +4425,7 @@ handle_scatter_state(serf_t *serf)
 {
 	/* Choose a random, empty destination */
 	while (1) {
-		int r = random_int();
+		int r = game_random_int();
 		int col = (r & 0xf);
 		if (col < 8) col -= 16;
 		int row = ((r >> 8) & 0xf);

@@ -23,12 +23,12 @@
 #include <stdlib.h>
 #include <stdint.h>
 
-#include "game.h"
+#include "random.h"
 
 uint16_t
-random_int()
+random_int(random_state_t *random)
 {
-	uint16_t *rnd = game.rnd.state;
+	uint16_t *rnd = random->state;
 	uint16_t r = (rnd[0] + rnd[1]) ^ rnd[2];
 	rnd[2] += rnd[1];
 	rnd[1] ^= rnd[2];

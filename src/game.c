@@ -581,7 +581,7 @@ update_ai_and_more()
 		/* update functions */
 
 		const int *arr = NULL;
-		switch (random_int() & 7) {
+		switch (game_random_int() & 7) {
 		case 0: arr = arr_2; break;
 		case 1: arr = arr_3; break;
 		default: arr = arr_1; break;
@@ -5168,4 +5168,11 @@ game_load_save_game(const char *path)
 	map_init_minimap();
 
 	return 0;
+}
+
+
+uint16_t
+game_random_int()
+{
+	return random_int(&game.rnd);
 }

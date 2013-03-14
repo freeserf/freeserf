@@ -862,8 +862,11 @@ draw_building_unfinished(building_t *building, building_type_t bld_type, int x, 
 }
 
 static void
-draw_unharmed_building(building_t *building, int x, int y, frame_t *frame)
+draw_unharmed_building(viewport_t *viewport, building_t *building,
+		       int x, int y, frame_t *frame)
 {
+	random_state_t *random = &viewport->interface->random;
+
 	static const int pigfarm_anim[] = {
 		0xa2, 0, 0xa2, 0, 0xa2, 0, 0xa2, 0, 0xa2, 0, 0xa3, 0,
 		0xa2, 1, 0xa3, 1, 0xa2, 2, 0xa3, 2, 0xa2, 3, 0xa3, 3,
@@ -921,7 +924,7 @@ draw_unharmed_building(building_t *building, int x, int y, frame_t *frame)
 			if (BUILDING_PLAYING_SFX(building)) { /* Draw elevator down */
 				draw_game_sprite(x-6, y-39, 153, frame);
 				if ((((game.anim + ((uint8_t *)&building->pos)[1]) >> 3) & 7) == 0 &&
-				    random_int() < 40000) {
+				    random_int(random) < 40000) {
 					sfx_play_clip(SFX_ELEVATOR);
 				}
 			}
@@ -938,7 +941,7 @@ draw_unharmed_building(building_t *building, int x, int y, frame_t *frame)
 		case BUILDING_PIGFARM:
 			draw_shadow_and_building_sprite(x, y, map_building_sprite[type], frame);
 			if (building->stock[1].available > 0) {
-				if ((random_int() & 0x7f) < building->stock[1].available) {
+				if ((random_int(random) & 0x7f) < building->stock[1].available) {
 					sfx_play_clip(SFX_PIG_OINK);
 				}
 
@@ -1069,7 +1072,8 @@ draw_unharmed_building(building_t *building, int x, int y, frame_t *frame)
 }
 
 static void
-draw_burning_building(building_t *building, int x, int y, frame_t *frame)
+draw_burning_building(viewport_t *viewport, building_t *building,
+		      int x, int y, frame_t *frame)
 {
 	const int building_anim_offset_from_type[] = {
 		0, 10, 26, 39, 49, 62, 78, 97, 97, 116,
@@ -1294,7 +1298,7 @@ draw_burning_building(building_t *building, int x, int y, frame_t *frame)
 
 	if (building->serf_index >= delta) {
 		building->serf_index -= delta; /* TODO this is also done in update_buildings(). */
-		draw_unharmed_building(building, x, y, frame);
+		draw_unharmed_building(viewport, building, x, y, frame);
 
 		int type = 0;
 		if (BUILDING_IS_DONE(building) ||
@@ -1315,14 +1319,14 @@ draw_burning_building(building_t *building, int x, int y, frame_t *frame)
 }
 
 static void
-draw_building(map_pos_t pos, int x, int y, frame_t *frame)
+draw_building(viewport_t *viewport, map_pos_t pos, int x, int y, frame_t *frame)
 {
 	building_t *building = game_get_building(MAP_OBJ_INDEX(pos));
 
 	if (BUILDING_IS_BURNING(building)) {
-		draw_burning_building(building, x, y, frame);
+		draw_burning_building(viewport, building, x, y, frame);
 	} else {
-		draw_unharmed_building(building, x, y, frame);
+		draw_unharmed_building(viewport, building, x, y, frame);
 	}
 }
 
@@ -1377,7 +1381,8 @@ draw_flag_and_res(map_pos_t pos, int x, int y, frame_t *frame)
 }
 
 static void
-draw_map_objects_row(map_pos_t pos, int y_base, int cols, int x_base, frame_t *frame)
+draw_map_objects_row(viewport_t *viewport, map_pos_t pos, int y_base,
+		     int cols, int x_base, frame_t *frame)
 {
 	for (int i = 0; i < cols; i++, x_base += MAP_TILE_WIDTH, pos = MAP_MOVE_RIGHT(pos)) {
 		if (MAP_OBJ(pos) == MAP_OBJ_NONE) continue;
@@ -1387,7 +1392,7 @@ draw_map_objects_row(map_pos_t pos, int y_base, int cols, int x_base, frame_t *f
 			if (MAP_OBJ(pos) == MAP_OBJ_FLAG) {
 				draw_flag_and_res(pos, x_base, y, frame);
 			} else if (MAP_OBJ(pos) <= MAP_OBJ_CASTLE) {
-				draw_building(pos, x_base, y, frame);
+				draw_building(viewport, pos, x_base, y, frame);
 			}
 		} else {
 			int sprite = MAP_OBJ(pos) - MAP_OBJ_TREE_0;
@@ -2191,7 +2196,9 @@ draw_game_objects(viewport_t *viewport, int layers, frame_t *frame)
 	while (1) {
 		/* short row */
 		if (draw_landscape) draw_water_waves_row(pos, y, short_row_len, x, frame);
-		if (draw_objects) draw_map_objects_row(pos, y, short_row_len, x, frame);
+		if (draw_objects) {
+			draw_map_objects_row(viewport, pos, y, short_row_len, x, frame);
+		}
 		if (draw_serfs) {
 			draw_serf_row(pos, y, short_row_len, x, animation_table, frame);
 		}
@@ -2203,7 +2210,9 @@ draw_game_objects(viewport_t *viewport, int layers, frame_t *frame)
 
 		/* long row */
 		if (draw_landscape) draw_water_waves_row(pos, y, long_row_len, x - 16, frame);
-		if (draw_objects) draw_map_objects_row(pos, y, long_row_len, x - 16, frame);
+		if (draw_objects) {
+			draw_map_objects_row(viewport, pos, y, long_row_len, x - 16, frame);
+		}
 		if (draw_serfs) {
 			draw_serf_row(pos, y, long_row_len, x - 16, animation_table, frame);
 		}
