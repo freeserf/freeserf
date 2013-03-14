@@ -80,13 +80,13 @@ typedef struct {
 	/*int **map_serf_rows_left;*/ /* OBSOLETE */
 	/*int **map_serf_rows_right;*/ /* OBSOLETE */
 	/* 98 */
-	flag_t *flgs;
+	flag_t *flags;
 	building_t *buildings;
 	serf_t *serfs;
 	/* A4 */
-	uint8_t *flg_bitmap;
-	uint8_t *buildings_bitmap;
-	uint8_t *serfs_bitmap;
+	uint8_t *flag_bitmap;
+	uint8_t *building_bitmap;
+	uint8_t *serf_bitmap;
 	/* OBSOLETE
 	flag_t **flag_queue_black;
 	flag_t **flag_queue_white; */
@@ -94,7 +94,7 @@ typedef struct {
 	map_pos_t *spiral_pos_pattern;
 	/* F0 */
 	inventory_t *inventories;
-	uint8_t *inventories_bitmap;
+	uint8_t *inventory_bitmap;
 	/* 108 */
 	frame_t *frame;
 	/* 1C2 */
@@ -146,15 +146,15 @@ typedef struct {
 	/*uint16_t short_row_length;
 	uint16_t long_row_length;*/
 	/* 258 */
-	uint16_t max_flg_cnt;
-	uint16_t max_building_cnt;
-	uint16_t max_serf_cnt;
-	uint16_t max_ever_flag_index;
+	uint flag_limit;
+	uint building_limit;
+	uint serf_limit;
+	uint max_flag_index;
 	/* 260 */
-	uint16_t max_ever_building_index;
-	uint16_t max_ever_serf_index;
-	uint16_t max_inventory_cnt;
-	uint16_t max_ever_inventory_index;
+	uint max_building_index;
+	uint max_serf_index;
+	uint inventory_limit;
+	uint max_inventory_index;
 	/* 26C */
 	uint16_t next_index;
 	uint16_t flag_search_counter;

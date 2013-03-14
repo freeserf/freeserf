@@ -621,38 +621,38 @@ allocate_global_memory()
 	/* TODO this should be allocated on game start according to the
 	   map size of the particular game instance. */
 	int max_map_size = 10;
-	game.max_serf_cnt = (0x1f84 * (1 << max_map_size) - 4) / 0x81;
-	game.max_flg_cnt = (0x2314 * (1 << max_map_size) - 4) / 0x231;
-	game.max_building_cnt = (0x54c * (1 << max_map_size) - 4) / 0x91;
-	game.max_inventory_cnt = (0x54c * (1 << max_map_size) - 4) / 0x3c1;
+	game.serf_limit = (0x1f84 * (1 << max_map_size) - 4) / 0x81;
+	game.flag_limit = (0x2314 * (1 << max_map_size) - 4) / 0x231;
+	game.building_limit = (0x54c * (1 << max_map_size) - 4) / 0x91;
+	game.inventory_limit = (0x54c * (1 << max_map_size) - 4) / 0x3c1;
 
 	/* Serfs */
-	game.serfs = malloc(game.max_serf_cnt * sizeof(serf_t));
+	game.serfs = malloc(game.serf_limit * sizeof(serf_t));
 	if (game.serfs == NULL) abort();
 
-	game.serfs_bitmap = malloc(((game.max_serf_cnt-1) / 8) + 1);
-	if (game.serfs_bitmap == NULL) abort();
+	game.serf_bitmap = malloc(((game.serf_limit-1) / 8) + 1);
+	if (game.serf_bitmap == NULL) abort();
 
 	/* Flags */
-	game.flgs = malloc(game.max_flg_cnt * sizeof(flag_t));
-	if (game.flgs == NULL) abort();
+	game.flags = malloc(game.flag_limit * sizeof(flag_t));
+	if (game.flags == NULL) abort();
 
-	game.flg_bitmap = malloc(((game.max_flg_cnt-1) / 8) + 1);
-	if (game.flg_bitmap == NULL) abort();
+	game.flag_bitmap = malloc(((game.flag_limit-1) / 8) + 1);
+	if (game.flag_bitmap == NULL) abort();
 
 	/* Buildings */
-	game.buildings = malloc(game.max_building_cnt * sizeof(building_t));
+	game.buildings = malloc(game.building_limit * sizeof(building_t));
 	if (game.buildings == NULL) abort();
 
-	game.buildings_bitmap = malloc(((game.max_building_cnt-1) / 8) + 1);
-	if (game.buildings_bitmap == NULL) abort();
+	game.building_bitmap = malloc(((game.building_limit-1) / 8) + 1);
+	if (game.building_bitmap == NULL) abort();
 
 	/* Inventories */
-	game.inventories = malloc(game.max_inventory_cnt * sizeof(inventory_t));
+	game.inventories = malloc(game.inventory_limit * sizeof(inventory_t));
 	if (game.inventories == NULL) abort();
 
-	game.inventories_bitmap = malloc(((game.max_inventory_cnt-1) / 8) + 1);
-	if (game.inventories_bitmap == NULL) abort();
+	game.inventory_bitmap = malloc(((game.inventory_limit-1) / 8) + 1);
+	if (game.inventory_bitmap == NULL) abort();
 
 	/* Setup screen frame */
 	frame_t *screen = sdl_get_screen_frame();

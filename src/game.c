@@ -44,18 +44,16 @@
 int
 game_alloc_flag(flag_t **flag, int *index)
 {
-	for (int i = 0; i*8 < game.max_flg_cnt; i++) {
-		if (game.flg_bitmap[i] != 0xff) {
+	for (int i = 0; i*8 < game.flag_limit; i++) {
+		if (game.flag_bitmap[i] != 0xff) {
 			for (int j = 0; j < 8; j++) {
-				if (!BIT_TEST(game.flg_bitmap[i], 7-j)) {
+				if (!BIT_TEST(game.flag_bitmap[i], 7-j)) {
 					int ix = 8*i + j;
-					if (ix >= game.max_flg_cnt) return -1; /* TODO looks unneccesary */
+					game.flag_bitmap[i] |= BIT(7-j);
 
-					game.flg_bitmap[i] |= BIT(7-j);
+					if (ix == game.max_flag_index) game.max_flag_index += 1;
 
-					if (ix == game.max_ever_flag_index) game.max_ever_flag_index += 1;
-
-					flag_t *f = &game.flgs[ix];
+					flag_t *f = &game.flags[ix];
 					f->pos = 0;
 					f->search_num = 0;
 					f->search_dir = 0;
@@ -84,9 +82,9 @@ game_alloc_flag(flag_t **flag, int *index)
 flag_t *
 game_get_flag(int index)
 {
-	assert(index > 0 && index < game.max_flg_cnt);
+	assert(index > 0 && index < game.flag_limit);
 	assert(FLAG_ALLOCATED(index));
-	return &game.flgs[index];
+	return &game.flags[index];
 }
 
 /* Deallocate flag_t object. */
@@ -94,11 +92,11 @@ void
 game_free_flag(int index)
 {
 	/* Remove flag from allocation bitmap. */
-	game.flg_bitmap[index/8] &= ~BIT(7-(index&7));
+	game.flag_bitmap[index/8] &= ~BIT(7-(index&7));
 
 	/* Decrement max_ever_flag_index as much as possible. */
-	if (index == game.max_ever_flag_index + 1) {
-		while (--game.max_ever_flag_index > 0) {
+	if (index == game.max_flag_index + 1) {
+		while (--game.max_flag_index > 0) {
 			index -= 1;
 			if (FLAG_ALLOCATED(index)) break;
 		}
@@ -110,17 +108,17 @@ game_free_flag(int index)
 int
 game_alloc_building(building_t **building, int *index)
 {
-	for (int i = 0; i*8 < game.max_building_cnt; i++) {
-		if (game.buildings_bitmap[i] != 0xff) {
+	for (int i = 0; i*8 < game.building_limit; i++) {
+		if (game.building_bitmap[i] != 0xff) {
 			for (int j = 0; j < 8; j++) {
-				if (!BIT_TEST(game.buildings_bitmap[i], 7-j)) {
+				if (!BIT_TEST(game.building_bitmap[i], 7-j)) {
 					int ix = 8*i + j;
 
-					if (ix >= game.max_building_cnt) return -1; /* TODO looks unneccesary */
+					if (ix >= game.building_limit) return -1; /* TODO looks unneccesary */
 
-					game.buildings_bitmap[i] |= BIT(7-j);
+					game.building_bitmap[i] |= BIT(7-j);
 
-					if (ix == game.max_ever_building_index) game.max_ever_building_index += 1;
+					if (ix == game.max_building_index) game.max_building_index += 1;
 
 					building_t *b = &game.buildings[ix];
 					b->bld = 0;
@@ -155,7 +153,7 @@ game_alloc_building(building_t **building, int *index)
 building_t *
 game_get_building(int index)
 {
-	assert(index > 0 && index < game.max_building_cnt);
+	assert(index > 0 && index < game.building_limit);
 	assert(BUILDING_ALLOCATED(index));
 	return &game.buildings[index];
 }
@@ -165,11 +163,11 @@ void
 game_free_building(int index)
 {
 	/* Remove building from allocation bitmap. */
-	game.buildings_bitmap[index/8] &= ~BIT(7-(index&7));
+	game.building_bitmap[index/8] &= ~BIT(7-(index&7));
 
-	/* Decrement max_ever_building_index as much as possible. */
-	if (index == game.max_ever_building_index + 1) {
-		while (--game.max_ever_building_index > 0) {
+	/* Decrement max_building_index as much as possible. */
+	if (index == game.max_building_index + 1) {
+		while (--game.max_building_index > 0) {
 			index -= 1;
 			if (BUILDING_ALLOCATED(index)) break;
 		}
@@ -181,17 +179,17 @@ game_free_building(int index)
 int
 game_alloc_inventory(inventory_t **inventory, int *index)
 {
-	for (int i = 0; i*8 < game.max_inventory_cnt; i++) {
-		if (game.inventories_bitmap[i] != 0xff) {
+	for (int i = 0; i*8 < game.inventory_limit; i++) {
+		if (game.inventory_bitmap[i] != 0xff) {
 			for (int j = 0; j < 8; j++) {
-				if (!BIT_TEST(game.inventories_bitmap[i], 7-j)) {
+				if (!BIT_TEST(game.inventory_bitmap[i], 7-j)) {
 					int ix = 8*i + j;
 
-					if (ix >= game.max_inventory_cnt) return -1; /* TODO looks unneccesary */
+					if (ix >= game.inventory_limit) return -1; /* TODO looks unneccesary */
 
-					game.inventories_bitmap[i] |= BIT(7-j);
+					game.inventory_bitmap[i] |= BIT(7-j);
 
-					if (ix == game.max_ever_inventory_index) game.max_ever_inventory_index += 1;
+					if (ix == game.max_inventory_index) game.max_inventory_index += 1;
 
 					inventory_t *iv = &game.inventories[ix];
 					memset(iv, 0, sizeof(inventory_t));
@@ -215,7 +213,7 @@ game_alloc_inventory(inventory_t **inventory, int *index)
 inventory_t *
 game_get_inventory(int index)
 {
-	assert(index < game.max_inventory_cnt);
+	assert(index < game.inventory_limit);
 	assert(INVENTORY_ALLOCATED(index));
 	return &game.inventories[index];
 }
@@ -225,11 +223,11 @@ void
 game_free_inventory(int index)
 {
 	/* Remove inventory from allocation bitmap. */
-	game.inventories_bitmap[index/8] &= ~BIT(7-(index&7));
+	game.inventory_bitmap[index/8] &= ~BIT(7-(index&7));
 
-	/* Decrement max_ever_inventory_index as much as possible. */
-	if (index == game.max_ever_inventory_index + 1) {
-		while (--game.max_ever_inventory_index > 0) {
+	/* Decrement max_inventory_index as much as possible. */
+	if (index == game.max_inventory_index + 1) {
+		while (--game.max_inventory_index > 0) {
 			index -= 1;
 			if (INVENTORY_ALLOCATED(index)) break;
 		}
@@ -241,17 +239,17 @@ game_free_inventory(int index)
 int
 game_alloc_serf(serf_t **serf, int *index)
 {
-	for (int i = 0; i*8 < game.max_serf_cnt; i++) {
-		if (game.serfs_bitmap[i] != 0xff) {
+	for (int i = 0; i*8 < game.serf_limit; i++) {
+		if (game.serf_bitmap[i] != 0xff) {
 			for (int j = 0; j < 8; j++) {
-				if (!BIT_TEST(game.serfs_bitmap[i], 7-j)) {
+				if (!BIT_TEST(game.serf_bitmap[i], 7-j)) {
 					int ix = 8*i + j;
 
-					if (ix >= game.max_serf_cnt) return -1; /* TODO looks unneccesary */
+					if (ix >= game.serf_limit) return -1; /* TODO looks unneccesary */
 
-					game.serfs_bitmap[i] |= BIT(7-j);
+					game.serf_bitmap[i] |= BIT(7-j);
 
-					if (ix == game.max_ever_serf_index) game.max_ever_serf_index += 1;
+					if (ix == game.max_serf_index) game.max_serf_index += 1;
 
 					serf_t *s = &game.serfs[ix];
 
@@ -271,7 +269,7 @@ game_alloc_serf(serf_t **serf, int *index)
 serf_t *
 game_get_serf(int index)
 {
-	assert(index > 0 && index < game.max_serf_cnt);
+	assert(index > 0 && index < game.serf_limit);
 	assert(SERF_ALLOCATED(index));
 	return &game.serfs[index];
 }
@@ -281,11 +279,11 @@ void
 game_free_serf(int index)
 {
 	/* Remove serf from allocation bitmap. */
-	game.serfs_bitmap[index/8] &= ~BIT(7-(index&7));
+	game.serf_bitmap[index/8] &= ~BIT(7-(index&7));
 
-	/* Decrement max_ever_serf_index as much as possible. */
-	if (index == game.max_ever_serf_index + 1) {
-		while (--game.max_ever_serf_index > 0) {
+	/* Decrement max_serf_index as much as possible. */
+	if (index == game.max_serf_index + 1) {
+		while (--game.max_serf_index > 0) {
 			index -= 1;
 			if (SERF_ALLOCATED(index)) break;
 		}
@@ -302,7 +300,7 @@ spawn_serf(player_t *player, serf_t **serf, inventory_t **inventory, int want_kn
 {
 	if (!PLAYER_CAN_SPAWN(player)) return -1;
 	if (game.map_max_serfs_left == 0) return -1;
-	if (game.max_ever_inventory_index < 1) return -1;
+	if (game.max_inventory_index < 1) return -1;
 
 	serf_t *s = NULL;
 	int r = game_alloc_serf(&s, NULL);
@@ -311,7 +309,7 @@ spawn_serf(player_t *player, serf_t **serf, inventory_t **inventory, int want_kn
 	building_t *building = NULL;
 	inventory_t *inv = NULL;
 
-	for (int i = 0; i < game.max_ever_inventory_index; i++) {
+	for (int i = 0; i < game.max_inventory_index; i++) {
 		if (INVENTORY_ALLOCATED(i)) {
 			inventory_t *loop_inv = game_get_inventory(i);
 			if (loop_inv->player_num == player->player_num &&
@@ -422,14 +420,14 @@ update_player(player_t *player)
 static void
 check_win_and_flags_buildings()
 {
-	for (int i = 1; i < game.max_ever_building_index; i++) {
+	for (int i = 1; i < game.max_building_index; i++) {
 		if (BUILDING_ALLOCATED(i)) {
 			building_t *building = game_get_building(i);
 			building->serf &= ~BIT(2);
 		}
 	}
 
-	for (int i = 1; i < game.max_ever_flag_index; i++) {
+	for (int i = 1; i < game.max_flag_index; i++) {
 		if (FLAG_ALLOCATED(i)) {
 			flag_t *flag = game_get_flag(i);
 			flag->transporter &= ~BIT(7);
@@ -594,7 +592,7 @@ update_ai_and_more()
 				/*player_t *player = game.player[p];*/
 				inventory_t *invs[256];
 				int n = 0;
-				for (int i = 0; i < game.max_ever_inventory_index; i++) {
+				for (int i = 0; i < game.max_inventory_index; i++) {
 					if (INVENTORY_ALLOCATED(i)) {
 						inventory_t *inventory = game_get_inventory(i);
 						if (inventory->player_num == p &&
@@ -701,7 +699,7 @@ update_ai_and_more()
 			game.next_index += 1;
 		}
 	} else if (game.game_speed > 0 &&
-		   game.max_ever_flag_index < 50) {
+		   game.max_flag_index < 50) {
 		player_t *player = game.player[game.next_index & 3];
 		if (PLAYER_IS_ACTIVE(player) && PLAYER_IS_AI(player)) {
 			/* AI */
@@ -916,7 +914,7 @@ update_flags()
 	if (game.next_index >= 32) return;
 
 	int index = game.next_index << 5;
-	for (int i = index ? index : 1; i < game.max_ever_flag_index; i++) {
+	for (int i = index ? index : 1; i < game.max_flag_index; i++) {
 		if (FLAG_ALLOCATED(i)) {
 			flag_t *flag = game_get_flag(i);
 
@@ -2122,7 +2120,7 @@ update_buildings()
 	if (game.next_index >= 32) return;
 
 	int index = game.next_index << 5;
-	for (int i = index ? index : 1; i < game.max_ever_building_index; i++) {
+	for (int i = index ? index : 1; i < game.max_building_index; i++) {
 		if (BUILDING_ALLOCATED(i)) {
 			building_t *building = game_get_building(i);
 			if (BUILDING_IS_BURNING(building)) {
@@ -2149,8 +2147,8 @@ update_serfs()
 	if (game.next_index >= 32) return;
 
 	/*int index = game.next_index & 0xf;
-	  for (int i = index ? index : 1; i < game.max_ever_serf_index; i++) {*/
-	for (int i = 1; i < game.max_ever_serf_index; i++) {
+	  for (int i = index ? index : 1; i < game.max_serf_index; i++) {*/
+	for (int i = 1; i < game.max_serf_index; i++) {
 		if (SERF_ALLOCATED(i)) {
 			serf_t *serf = game_get_serf(i);
 			update_serf(serf);
@@ -2440,7 +2438,7 @@ static void
 flag_reset_transport(flag_t *flag)
 {
 	/* Clear destination for any serf with resources for this flag. */
-	for (int i = 1; i < game.max_ever_serf_index; i++) {
+	for (int i = 1; i < game.max_serf_index; i++) {
 		if (SERF_ALLOCATED(i)) {
 			serf_t *serf = game_get_serf(i);
 
@@ -2480,7 +2478,7 @@ flag_reset_transport(flag_t *flag)
 	}
 
 	/* Flag. */
-	for (int i = 1; i < game.max_ever_flag_index; i++) {
+	for (int i = 1; i < game.max_flag_index; i++) {
 		if (FLAG_ALLOCATED(i)) {
 			flag_t *other = game_get_flag(i);
 
@@ -2501,7 +2499,7 @@ flag_reset_transport(flag_t *flag)
 	}
 
 	/* Inventories. */
-	for (int i = 0; i < game.max_ever_inventory_index; i++) {
+	for (int i = 0; i < game.max_inventory_index; i++) {
 		if (INVENTORY_ALLOCATED(i)) {
 			inventory_t *inventory = game_get_inventory(i);
 			if (inventory->out_dest[1] == FLAG_INDEX(flag)) {
@@ -2605,7 +2603,7 @@ static int
 path_serf_idle_to_wait_state(map_pos_t pos)
 {
 	/* Look through serf array for the corresponding serf. */
-	for (int i = 1; i < game.max_ever_serf_index; i++) {
+	for (int i = 1; i < game.max_serf_index; i++) {
 		if (SERF_ALLOCATED(i)) {
 			serf_t *serf = game_get_serf(i);
 			if (serf->pos == pos &&
@@ -2738,7 +2736,7 @@ remove_road_forwards(map_pos_t pos, dir_t dir)
 			if (FLAG_SERF_REQUESTED(flag, rev_dir)) {
 				flag->length[rev_dir] &= ~BIT(7);
 
-				for (int i = 1; i < game.max_ever_serf_index; i++) {
+				for (int i = 1; i < game.max_serf_index; i++) {
 					if (SERF_ALLOCATED(i)) {
 						int dest = MAP_OBJ_INDEX(pos);
 						serf_t *serf = game_get_serf(i);
@@ -2864,7 +2862,7 @@ game_demolish_road(map_pos_t pos, player_t *player)
 static int
 change_transporter_state_at_pos(map_pos_t pos, serf_state_t state)
 {
-	for (int i = 1; i < game.max_ever_serf_index; i++) {
+	for (int i = 1; i < game.max_serf_index; i++) {
 		if (SERF_ALLOCATED(i)) {
 			serf_t *serf = game_get_serf(i);
 			if (serf->pos == pos &&
@@ -3092,7 +3090,7 @@ build_flag_split_path(map_pos_t pos)
 
 	int select = -1;
 	if (FLAG_SERF_REQUESTED(flag_2, dir_2)) {
-		for (int i = 1; i < game.max_ever_serf_index; i++) {
+		for (int i = 1; i < game.max_serf_index; i++) {
 			if (SERF_ALLOCATED(i)) {
 				serf_t *serf = game_get_serf(i);
 
@@ -4066,7 +4064,7 @@ demolish_flag(map_pos_t pos)
 		}
 
 		/* Update serfs with reference to this flag. */
-		for (int i = 1; i < game.max_ever_serf_index; i++) {
+		for (int i = 1; i < game.max_serf_index; i++) {
 			if (SERF_ALLOCATED(i)) {
 				serf_t *serf = game_get_serf(i);
 
@@ -4105,7 +4103,7 @@ demolish_flag(map_pos_t pos)
 	tiles[pos].flags &= ~BIT(7);
 
 	/* Update serfs with reference to this flag. */
-	for (int i = 1; i < game.max_ever_serf_index; i++) {
+	for (int i = 1; i < game.max_serf_index; i++) {
 		if (SERF_ALLOCATED(i)) {
 			serf_t *serf = game_get_serf(i);
 
@@ -4215,7 +4213,7 @@ demolish_building(map_pos_t pos)
 
 		/* Let some serfs escape while the building is burning. */
 		int escaping_serfs = 0;
-		for (int i = 1; i < game.max_ever_serf_index; i++) {
+		for (int i = 1; i < game.max_serf_index; i++) {
 			if (SERF_ALLOCATED(i)) {
 				serf_t *serf = game_get_serf(i);
 
@@ -4726,7 +4724,7 @@ game_set_inventory_resource_mode(inventory_t *inventory, int mode)
 		/* Clear destination of serfs with resources destined
 		   for this inventory. */
 		int dest = FLAG_INDEX(flag);
-		for (int i = 1; i < game.max_ever_serf_index; i++) {
+		for (int i = 1; i < game.max_serf_index; i++) {
 			if (SERF_ALLOCATED(i)) {
 				serf_t *serf = game_get_serf(i);
 
@@ -4782,7 +4780,7 @@ game_set_inventory_serf_mode(inventory_t *inventory, int mode)
 
 		/* Clear destination of serfs destined for this inventory. */
 		int dest = FLAG_INDEX(flag);
-		for (int i = 1; i < game.max_ever_serf_index; i++) {
+		for (int i = 1; i < game.max_serf_index; i++) {
 			if (SERF_ALLOCATED(i)) {
 				serf_t *serf = game_get_serf(i);
 
@@ -4967,15 +4965,15 @@ game_init()
 	game.update_map_initial_pos = 0;
 	game.next_index = 0;
 
-	memset(game.flg_bitmap, 0, ((game.max_flg_cnt-1) / 8) + 1);
-	memset(game.buildings_bitmap, 0, ((game.max_building_cnt-1) / 8) + 1);
-	memset(game.serfs_bitmap, 0, ((game.max_serf_cnt-1) / 8) + 1);
-	memset(game.inventories_bitmap, 0, ((game.max_inventory_cnt-1) / 8) + 1);
+	memset(game.flag_bitmap, 0, ((game.flag_limit-1) / 8) + 1);
+	memset(game.building_bitmap, 0, ((game.building_limit-1) / 8) + 1);
+	memset(game.serf_bitmap, 0, ((game.serf_limit-1) / 8) + 1);
+	memset(game.inventory_bitmap, 0, ((game.inventory_limit-1) / 8) + 1);
 
-	game.max_ever_flag_index = 0;
-	game.max_ever_building_index = 0;
-	game.max_ever_serf_index = 0;
-	game.max_ever_inventory_index = 0;
+	game.max_flag_index = 0;
+	game.max_building_index = 0;
+	game.max_serf_index = 0;
+	game.max_inventory_index = 0;
 
 	/* Create NULL-serf */
 	serf_t *serf;

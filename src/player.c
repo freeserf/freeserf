@@ -195,7 +195,7 @@ player_promote_serfs_to_knights(player_t *player, int number)
 {
 	int promoted = 0;
 
-	for (int i = 1; i < game.max_ever_serf_index && number > 0; i++) {
+	for (int i = 1; i < game.max_serf_index && number > 0; i++) {
 		if (SERF_ALLOCATED(i)) {
 			serf_t *serf = game_get_serf(i);
 			if (serf->state == SERF_STATE_IDLE_IN_STOCK &&

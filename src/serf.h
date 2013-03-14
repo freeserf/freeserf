@@ -31,7 +31,7 @@
 #include "log.h"
 
 #define SERF_INDEX(ptr)    ((int)((ptr) - game.serfs))
-#define SERF_ALLOCATED(i)  BIT_TEST(game.serfs_bitmap[(i)>>3], 7-((i)&7))
+#define SERF_ALLOCATED(i)  BIT_TEST(game.serf_bitmap[(i)>>3], 7-((i)&7))
 
 #define SERF_PLAYER(serf)  ((int)((serf)->type & 3))
 #define SERF_TYPE(serf)    ((serf_type_t)(((serf)->type >> 2) & 0x1f))

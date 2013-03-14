@@ -740,7 +740,7 @@ draw_stat_4_box(popup_box_t *popup, frame_t *frame)
 	memset(resources, '\0', 26*sizeof(int));
 
 	/* Sum up resources of all inventories. */
-	for (int i = 0; i < game.max_ever_inventory_index; i++) {
+	for (int i = 0; i < game.max_inventory_index; i++) {
 		if (INVENTORY_ALLOCATED(i)) {
 			inventory_t *inventory = game_get_inventory(i);
 			if (inventory->player_num == popup->interface->player->player_num) {
@@ -1283,7 +1283,7 @@ draw_stat_3_box(popup_box_t *popup, frame_t *frame)
 	memset(serfs, '\0', 27*sizeof(int));
 
 	/* Sum up all existing serfs. */
-	for (int i = 1; i < game.max_ever_serf_index; i++) {
+	for (int i = 1; i < game.max_serf_index; i++) {
 		if (SERF_ALLOCATED(i)) {
 			serf_t *serf = game_get_serf(i);
 			if (SERF_PLAYER(serf) == popup->interface->player->player_num &&
@@ -1294,7 +1294,7 @@ draw_stat_3_box(popup_box_t *popup, frame_t *frame)
 	}
 
 	/* Sum up potential serfs of all inventories. */
-	for (int i = 0; i < game.max_ever_inventory_index; i++) {
+	for (int i = 0; i < game.max_inventory_index; i++) {
 		if (INVENTORY_ALLOCATED(i)) {
 			inventory_t *inventory = game_get_inventory(i);
 			if (inventory->player_num == popup->interface->player->player_num) {
@@ -2071,7 +2071,7 @@ draw_castle_serf_box(popup_box_t *popup, frame_t *frame)
 
 	inventory_t *inventory = building->u.inventory;
 
-	for (int i = 1; i < game.max_ever_serf_index; i++) {
+	for (int i = 1; i < game.max_serf_index; i++) {
 		if (SERF_ALLOCATED(i)) {
 			serf_t *serf = game_get_serf(i);
 			if (serf->state == SERF_STATE_IDLE_IN_STOCK &&
@@ -2200,7 +2200,7 @@ draw_sett_8_box(popup_box_t *popup, frame_t *frame)
 	}
 
 	int convertible_to_knights = 0;
-	for (int i = 0; i < game.max_ever_inventory_index; i++) {
+	for (int i = 0; i < game.max_inventory_index; i++) {
 		if (INVENTORY_ALLOCATED(i)) {
 			inventory_t *inv = game_get_inventory(i);
 			if (inv->player_num == player->player_num) {

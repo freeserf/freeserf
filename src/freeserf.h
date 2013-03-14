@@ -34,7 +34,7 @@
 
 
 #define INVENTORY_INDEX(ptr)  ((int)((ptr) - game.inventories))
-#define INVENTORY_ALLOCATED(i)  BIT_TEST(game.inventories_bitmap[(i)>>3], 7-((i)&7))
+#define INVENTORY_ALLOCATED(i)  BIT_TEST(game.inventory_bitmap[(i)>>3], 7-((i)&7))
 
 #define DIR_REVERSE(dir)  (((dir) + 3) % 6)
 

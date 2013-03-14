@@ -26,8 +26,8 @@
 #include "list.h"
 #include "map.h"
 
-#define FLAG_INDEX(ptr)  ((int)((ptr) - game.flgs))
-#define FLAG_ALLOCATED(i)  BIT_TEST(game.flg_bitmap[(i)>>3], 7-((i)&7))
+#define FLAG_INDEX(ptr)  ((int)((ptr) - game.flags))
+#define FLAG_ALLOCATED(i)  BIT_TEST(game.flag_bitmap[(i)>>3], 7-((i)&7))
 
 /* Bitmap of all directions with outgoing paths. */
 #define FLAG_PATHS(flag)  ((int)((flag)->path_con & 0x3f))
