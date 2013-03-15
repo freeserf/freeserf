@@ -1020,3 +1020,19 @@ interface_set_cursor(interface_t *interface, int x, int y)
 			       sdl_get_screen_frame(), 16, 16);
 	}
 }
+
+
+/* Called periodically when the game progresses. */
+void
+interface_update(interface_t *interface)
+{
+	if (interface->return_timeout < game.anim_diff) {
+		interface->msg_flags |= BIT(4);
+		interface->msg_flags &= ~BIT(3);
+		interface->return_timeout = 0;
+	} else {
+		interface->return_timeout -= game.anim_diff;
+	}
+
+	viewport_update(&interface->viewport);
+}

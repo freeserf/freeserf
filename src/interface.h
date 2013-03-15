@@ -197,4 +197,7 @@ void interface_add_float(interface_t *interface, gui_object_t *obj,
 
 void interface_set_cursor(interface_t *interface, int x, int y);
 
+
+void interface_update(interface_t *interface);
+
 #endif /* !_INTERFACE_H */

@@ -1,7 +1,7 @@
 /*
  * viewport.h - Viewport GUI component
  *
- * Copyright (C) 2012  Jon Lund Steffensen <jonlst@gmail.com>
+ * Copyright (C) 2013  Jon Lund Steffensen <jonlst@gmail.com>
  *
  * This file is part of freeserf.
  *
@@ -58,6 +58,8 @@ void viewport_map_pix_from_map_coord(viewport_t *viewport, map_pos_t pos, int h,
 map_pos_t viewport_map_pos_from_screen_pix(viewport_t *viewport, int x, int y);
 
 void viewport_redraw_map_pos(map_pos_t pos);
+
+void viewport_update(viewport_t *viewport);
 
 
 #endif /* ! _VIEWPORT_H */

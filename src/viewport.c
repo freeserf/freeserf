@@ -2748,3 +2748,14 @@ viewport_move_by_pixels(viewport_t *viewport, int x, int y)
 
 	gui_object_set_redraw((gui_object_t *)viewport);
 }
+
+
+/* Called periodically when the game progresses. */
+void
+viewport_update(viewport_t *viewport)
+{
+	int anim_xor = game.anim ^ game.old_anim;
+
+	/* Viewport animation does not care about low bits in anim */
+	if (anim_xor >= 1 << 3) gui_object_set_redraw((gui_object_t *)viewport);
+}

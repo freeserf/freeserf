@@ -26,16 +26,10 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
-#include <math.h>
-#include <limits.h>
-#include <unistd.h>
 #include <time.h>
-#include <assert.h>
+#include <unistd.h>
 
 #include "freeserf.h"
-#include "serf.h"
-#include "flag.h"
-#include "building.h"
 #include "player.h"
 #include "map.h"
 #include "game.h"
@@ -53,9 +47,6 @@
 #include "audio.h"
 #include "savegame.h"
 #include "version.h"
-
-/* TODO This file is one big of mess of all the things that should really
-   be separated out into smaller files.  */
 
 #define DEFAULT_SCREEN_WIDTH  800
 #define DEFAULT_SCREEN_HEIGHT 600
@@ -223,62 +214,30 @@ save_game(int autosave)
 	return 0;
 }
 
-/* Update global anim counters based on game.tick.
-   Note: anim counters control the rate of updates in
-   the rest of the game objects (_not_ just gfx animations). */
-static void
-anim_update_and_more()
-{
-	/* TODO ... */
-	game.old_anim = game.anim;
-	game.anim = game.tick >> 16;
-	game.anim_diff = game.anim - game.old_anim;
-
-	int anim_xor = game.anim ^ game.old_anim;
-
-	/* Viewport animation does not care about low bits in anim */
-	if (anim_xor >= 1 << 3) {
-		viewport_t *viewport = interface_get_top_viewport(&interface);
-		gui_object_set_redraw((gui_object_t *)viewport);
-	}
-
-	if ((game.anim & 0xffff) == 0 && game.game_speed > 0) {
-		int r = save_game(1);
-		if (r < 0) LOGW("main", "Autosave failed.");
-	}
-
-	if (BIT_TEST(game.svga, 3)) { /* Game has started */
-		/* TODO */
-
-		if (interface.return_timeout < game.anim_diff) {
-			interface.msg_flags |= BIT(4);
-			interface.msg_flags &= ~BIT(3);
-			interface.return_timeout = 0;
-		} else {
-			interface.return_timeout -= game.anim_diff;
-		}
-	}
-}
-
 
 /* One iteration of game_loop(). */
 static void
 game_loop_iter()
 {
-	/* TODO music and sound effects */
+	/* Update global anim counters based on game.tick.
+	   Note: anim counters control the rate of updates in
+	   the rest of the game objects (_not_ just gfx animations). */
+	game.old_anim = game.anim;
+	game.anim = game.tick >> 16;
+	game.anim_diff = game.anim - game.old_anim;
 
-	anim_update_and_more();
+	/* Autosave periodically */
+	if ((game.anim & 0xffff) == 0 && game.game_speed > 0) {
+		int r = save_game(1);
+		if (r < 0) LOGW("main", "Autosave failed.");
+	}
 
-	/* TODO ... */
+	interface_update(&interface);
 
 	game_update();
 
-	/* TODO ... */
-
 	interface.flags &= ~BIT(4);
 	interface.flags &= ~BIT(7);
-
-	/* TODO */
 
 	gui_object_redraw((gui_object_t *)&interface, game.frame);
 
