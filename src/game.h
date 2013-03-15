@@ -29,7 +29,7 @@
 #include "map.h"
 #include "freeserf.h"
 
-#define DEFAULT_GAME_SPEED 0x20000
+#define DEFAULT_GAME_SPEED  0x20000
 
 
 typedef struct {
@@ -110,9 +110,11 @@ typedef struct {
 	/* 1FA */
 	uint game_speed_save;
 	uint game_speed;
+	uint full_tick;
+	/* Increased according to the currect game speed. */
 	uint tick;
-	uint anim;
-	uint old_anim;
+	uint last_tick;
+	/* Increased by one no matter the game speed. */
 	uint const_tick;
 	/* 20E */
 	uint16_t game_stats_counter;
@@ -163,11 +165,11 @@ typedef struct {
 	int16_t flags_in_queue;
 	/* 27A */
 	building_type_t building_type;
-	uint16_t update_map_last_anim;
+	uint16_t update_map_last_tick;
 	int16_t update_map_counter;
 	/* 280 */
 	map_pos_t update_map_initial_pos;
-	int anim_diff;
+	int tick_diff;
 	/* 286 */
 	uint16_t max_next_index;
 	/* 28C*/

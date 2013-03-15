@@ -342,7 +342,7 @@ spawn_serf(player_t *player, serf_t **serf, inventory_t **inventory, int want_kn
 	s->animation = 0;
 	s->counter = 0;
 	s->pos = building->pos;
-	s->anim = game.anim;
+	s->tick = game.tick;
 	s->state = SERF_STATE_IDLE_IN_STOCK;
 	s->s.idle_in_stock.inv_index = INVENTORY_INDEX(inv);
 
@@ -379,8 +379,8 @@ update_player(player_t *player)
 	}
 
 	if (PLAYER_HAS_CASTLE(player)) {
-		uint16_t delta = game.anim - player->last_anim;
-		player->last_anim = game.anim;
+		uint16_t delta = game.tick - player->last_tick;
+		player->last_tick = game.tick;
 		player->reproduction_counter -= delta;
 
 		while (player->reproduction_counter < 0) {
@@ -2124,8 +2124,8 @@ update_buildings()
 		if (BUILDING_ALLOCATED(i)) {
 			building_t *building = game_get_building(i);
 			if (BUILDING_IS_BURNING(building)) {
-				uint16_t delta = game.anim - building->u.anim;
-				building->u.anim = game.anim;
+				uint16_t delta = game.tick - building->u.tick;
+				building->u.tick = game.tick;
 				if (building->serf_index >= delta) {
 					building->serf_index -= delta;
 				} else {
@@ -2202,7 +2202,7 @@ calculate_military_score(int military, int morale)
 static void
 update_game_stats()
 {
-	if (game.anim - game.game_stats_counter >= 1500) {
+	if (game.tick - game.game_stats_counter >= 1500) {
 		game.game_stats_counter += 1500;
 		game.player_score_leader = 0;
 
@@ -2282,7 +2282,7 @@ update_game_stats()
 		/* TODO Determine winner based on game.player_score_leader */
 	}
 
-	if (game.anim - game.history_counter >= 6000) {
+	if (game.tick - game.history_counter >= 6000) {
 		game.history_counter += 6000;
 
 		int index = game.resource_history_index;
@@ -2305,14 +2305,12 @@ game_update()
 {
 	/* Increment tick counters */
 	game.const_tick += 1;
-	game.tick += game.game_speed;
+	game.full_tick += game.game_speed;
 
-	/* Update global anim counters based on game.tick.
-	   Note: anim counters control the rate of updates in
-	   the rest of the game objects (_not_ just gfx animations). */
-	game.old_anim = game.anim;
-	game.anim = game.tick >> 16;
-	game.anim_diff = game.anim - game.old_anim;
+	/* Update tick counters based on full_tick */
+	game.last_tick = game.tick;
+	game.tick = game.full_tick >> 16;
+	game.tick_diff = game.tick - game.last_tick;
 
 	update_map_and_players();
 	update_ai_and_more();
@@ -3910,7 +3908,7 @@ game_build_castle(map_pos_t pos, player_t *player)
 	game_update_land_ownership(pos);
 	create_initial_castle_serfs(player);
 
-	player->last_anim = game.anim;
+	player->last_tick = game.tick;
 
 	game_calculate_military_flag_state(castle);
 
@@ -4261,7 +4259,7 @@ demolish_building(map_pos_t pos)
 
 	int serf_index = building->serf_index;
 	building->serf_index = 2047;
-	building->u.anim = game.anim;
+	building->u.tick = game.tick;
 
 	/* Update player fields. */
 	if (BUILDING_IS_DONE(building)) {
@@ -4889,7 +4887,7 @@ reset_player_settings()
 
 			/* TODO ... */
 
-			player->last_anim = 0;
+			player->last_tick = 0;
 
 			player->serf_to_knight_rate = 20000;
 			player->serf_to_knight_counter = 0x8000;
@@ -4969,7 +4967,7 @@ game_init()
 	game.map_water_level = 20;
 	game.map_max_lake_area = 14;
 
-	game.update_map_last_anim = 0;
+	game.update_map_last_tick = 0;
 	game.update_map_counter = 0;
 	game.update_map_16_loop = 0;
 	game.update_map_initial_pos = 0;
@@ -5006,12 +5004,13 @@ game_init()
 	memset(game.player_history_counter, '\0', sizeof(game.player_history_counter));
 	game.resource_history_index = 0;
 
-	game.anim = 0;
 	game.tick = 0;
+	game.full_tick = 0;
 	game.const_tick = 0;
+	game.tick_diff = 0;
+
 	game.game_stats_counter = 0;
 	game.history_counter = 0;
-	game.anim_diff = 0;
 }
 
 /* Initialize spiral_pos_pattern from spiral_pattern. */

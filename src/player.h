@@ -95,7 +95,7 @@ typedef struct {
 	uint total_land_area;
 	uint total_building_score;
 	uint total_military_score;
-	uint16_t last_anim;
+	uint16_t last_tick;
 	/* 120 */
 	int reproduction_counter;
 	int reproduction_reset;

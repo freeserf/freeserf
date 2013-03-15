@@ -65,6 +65,8 @@ struct interface {
 	map_cursor_type_t map_cursor_type;
 	panel_btn_t panel_btn_type;
 
+	uint last_const_tick;
+
 	/* 0 */
 	int flags;
 	int click;
@@ -145,7 +147,6 @@ struct interface {
 	int road_valid_dir;
 	uint8_t minimap_flags;
 	/* D2 */
-	uint16_t last_anim;
 	int current_stat_8_mode;
 	int current_stat_7_item;
 	int pathway_scrolling_threshold;

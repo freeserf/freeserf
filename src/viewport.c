@@ -923,7 +923,7 @@ draw_unharmed_building(viewport_t *viewport, building_t *building,
 			}
 			if (BUILDING_PLAYING_SFX(building)) { /* Draw elevator down */
 				draw_game_sprite(x-6, y-39, 153, frame);
-				if ((((game.anim + ((uint8_t *)&building->pos)[1]) >> 3) & 7) == 0 &&
+				if ((((game.tick + ((uint8_t *)&building->pos)[1]) >> 3) & 7) == 0 &&
 				    random_int(random) < 40000) {
 					sfx_play_clip(SFX_ELEVATOR);
 				}
@@ -934,7 +934,7 @@ draw_unharmed_building(viewport_t *viewport, building_t *building,
 			draw_shadow_and_building_sprite(x, y, map_building_sprite[type], frame);
 			if (building->serf_index != 0) {
 				draw_game_sprite(x-14, y+2 - 2*building->stock[0].available,
-						 182 + ((game.anim >> 3) & 3) + 4*BUILDING_STATE(building),
+						 182 + ((game.tick >> 3) & 3) + 4*BUILDING_STATE(building),
 						 frame);
 			}
 			break;
@@ -946,54 +946,54 @@ draw_unharmed_building(viewport_t *viewport, building_t *building,
 				}
 
 				if (building->stock[1].available >= 6) {
-					int i = (140 + (game.anim >> 3)) & 0xfe;
+					int i = (140 + (game.tick >> 3)) & 0xfe;
 					draw_game_sprite(x + pigfarm_anim[i+1] - 2, y+6, pigfarm_anim[i], frame);
 				}
 
 				if (building->stock[1].available >= 5) {
-					int i = (280 + (game.anim >> 3)) & 0xfe;
+					int i = (280 + (game.tick >> 3)) & 0xfe;
 					draw_game_sprite(x + pigfarm_anim[i+1] + 8, y+8, pigfarm_anim[i], frame);
 				}
 
 				if (building->stock[1].available >= 3) {
-					int i = (420 + (game.anim >> 3)) & 0xfe;
+					int i = (420 + (game.tick >> 3)) & 0xfe;
 					draw_game_sprite(x + pigfarm_anim[i+1] - 11, y+8, pigfarm_anim[i], frame);
 				}
 
-				int i = (40 + (game.anim >> 3)) & 0xfe;
+				int i = (40 + (game.tick >> 3)) & 0xfe;
 				draw_game_sprite(x + pigfarm_anim[i+1] + 2, y+11, pigfarm_anim[i], frame);
 
 				if (building->stock[1].available >= 7) {
-					int i = (180 + (game.anim >> 3)) & 0xfe;
+					int i = (180 + (game.tick >> 3)) & 0xfe;
 					draw_game_sprite(x + pigfarm_anim[i+1] - 8, y+13, pigfarm_anim[i], frame);
 				}
 
 				if (building->stock[1].available >= 8) {
-					int i = (320 + (game.anim >> 3)) & 0xfe;
+					int i = (320 + (game.tick >> 3)) & 0xfe;
 					draw_game_sprite(x + pigfarm_anim[i+1] + 13, y+14, pigfarm_anim[i], frame);
 				}
 
 				if (building->stock[1].available >= 2) {
-					int i = (460 + (game.anim >> 3)) & 0xfe;
+					int i = (460 + (game.tick >> 3)) & 0xfe;
 					draw_game_sprite(x + pigfarm_anim[i+1], y+17, pigfarm_anim[i], frame);
 				}
 
 				if (building->stock[1].available >= 4) {
-					int i = (90 + (game.anim >> 3)) & 0xfe;
+					int i = (90 + (game.tick >> 3)) & 0xfe;
 					draw_game_sprite(x + pigfarm_anim[i+1] - 11, y+19, pigfarm_anim[i], frame);
 				}
 			}
 			break;
 		case BUILDING_MILL:
 			if (BUILDING_IS_ACTIVE(building)) {
-				if ((game.anim >> 4) & 3) {
+				if ((game.tick >> 4) & 3) {
 					building->serf &= ~BIT(3);
 				} else if (!BUILDING_PLAYING_SFX(building)) {
 					building->serf |= BIT(3);
 					sfx_play_clip(SFX_UNKNOWN_14);
 				}
 				draw_shadow_and_building_sprite(x, y, map_building_sprite[type] +
-								((game.anim >> 4) & 3), frame);
+								((game.tick >> 4) & 3), frame);
 			} else {
 				draw_shadow_and_building_sprite(x, y, map_building_sprite[type], frame);
 			}
@@ -1001,13 +1001,13 @@ draw_unharmed_building(viewport_t *viewport, building_t *building,
 		case BUILDING_BAKER:
 			draw_shadow_and_building_sprite(x, y, map_building_sprite[type], frame);
 			if (BUILDING_IS_ACTIVE(building)) {
-				draw_game_sprite(x + 5, y-21, 154 + ((game.anim >> 3) & 7), frame);
+				draw_game_sprite(x + 5, y-21, 154 + ((game.tick >> 3) & 7), frame);
 			}
 			break;
 		case BUILDING_STEELSMELTER:
 			draw_shadow_and_building_sprite(x, y, map_building_sprite[type], frame);
 			if (BUILDING_IS_ACTIVE(building)) {
-				int i = (game.anim >> 3) & 7;
+				int i = (game.tick >> 3) & 7;
 				if (i == 0 || (i == 7 && !BUILDING_PLAYING_SFX(building))) {
 					building->serf |= BIT(3);
 					sfx_play_clip(SFX_GOLD_BOILS);
@@ -1021,14 +1021,14 @@ draw_unharmed_building(viewport_t *viewport, building_t *building,
 		case BUILDING_WEAPONSMITH:
 			draw_shadow_and_building_sprite(x, y, map_building_sprite[type], frame);
 			if (BUILDING_IS_ACTIVE(building)) {
-				draw_game_sprite(x-16, y-21, 128 + ((game.anim >> 3) & 7), frame);
+				draw_game_sprite(x-16, y-21, 128 + ((game.tick >> 3) & 7), frame);
 			}
 			break;
 		case BUILDING_TOWER:
 			draw_shadow_and_building_sprite(x, y, map_building_sprite[type], frame);
 			if (building->serf_index != 0) {
 				draw_game_sprite(x+13, y - 18 - building->stock[0].available,
-						 182 + ((game.anim >> 3) & 3) + 4*BUILDING_STATE(building),
+						 182 + ((game.tick >> 3) & 3) + 4*BUILDING_STATE(building),
 						 frame);
 			}
 			break;
@@ -1036,17 +1036,17 @@ draw_unharmed_building(viewport_t *viewport, building_t *building,
 			draw_shadow_and_building_sprite(x, y, map_building_sprite[type], frame);
 			if (building->serf_index != 0) {
 				draw_game_sprite(x-12, y - 21 - building->stock[0].available/2,
-						 182 + ((game.anim >> 3) & 3) + 4*BUILDING_STATE(building),
+						 182 + ((game.tick >> 3) & 3) + 4*BUILDING_STATE(building),
 						 frame);
 				draw_game_sprite(x+22, y - 34 - (building->stock[0].available+1)/2,
-						 182 + (((game.anim >> 3) + 2) & 3) + 4*BUILDING_STATE(building),
+						 182 + (((game.tick >> 3) + 2) & 3) + 4*BUILDING_STATE(building),
 						 frame);
 			}
 			break;
 		case BUILDING_GOLDSMELTER:
 			draw_shadow_and_building_sprite(x, y, map_building_sprite[type], frame);
 			if (BUILDING_IS_ACTIVE(building)) {
-				int i = (game.anim >> 3) & 7;
+				int i = (game.tick >> 3) & 7;
 				if (i == 0 || (i == 7 && !BUILDING_PLAYING_SFX(building))) {
 					building->serf |= BIT(3);
 					sfx_play_clip(SFX_GOLD_BOILS);
@@ -1293,8 +1293,8 @@ draw_burning_building(viewport_t *viewport, building_t *building,
 		building->serf &= ~BIT(3);
 	}
 
-	uint16_t delta = game.anim - building->u.anim;
-	building->u.anim = game.anim;
+	uint16_t delta = game.tick - building->u.tick;
+	building->u.tick = game.tick;
 
 	if (building->serf_index >= delta) {
 		building->serf_index -= delta; /* TODO this is also done in update_buildings(). */
@@ -1333,7 +1333,7 @@ draw_building(viewport_t *viewport, map_pos_t pos, int x, int y, frame_t *frame)
 static void
 draw_water_waves(map_pos_t pos, int x, int y, frame_t *frame)
 {
-	int sprite = DATA_MAP_WAVES_BASE + (((pos ^ 5) + (game.anim >> 3)) & 0xf);
+	int sprite = DATA_MAP_WAVES_BASE + (((pos ^ 5) + (game.tick >> 3)) & 0xf);
 	sprite_t *s = gfx_get_data_object(sprite, NULL);
 
 	if (MAP_TYPE_DOWN(pos) < 4 && MAP_TYPE_UP(pos) < 4) {
@@ -1370,7 +1370,7 @@ draw_flag_and_res(map_pos_t pos, int x, int y, frame_t *frame)
 	if (flag->res_waiting[2] != 0) draw_game_sprite(x-4, y-4, flag->res_waiting[2] & 0x1f, frame);
 
 	int pl_num = FLAG_PLAYER(flag);
-	int spr = 0x80 + (pl_num << 2) + ((game.anim >> 3) & 3);
+	int spr = 0x80 + (pl_num << 2) + ((game.tick >> 3) & 3);
 	draw_shadow_and_building_sprite(x, y, spr, frame);
 
 	if (flag->res_waiting[3] != 0) draw_game_sprite(x+10, y+2, flag->res_waiting[3] & 0x1f, frame);
@@ -1403,7 +1403,7 @@ draw_map_objects_row(viewport_t *viewport, map_pos_t pos, int y_base,
 				/* Adding sprite number to animation ensures
 				   that the tree animation won't be synchronized
 				   for all trees on the map. */
-				int tree_anim = (game.anim + sprite) >> 4;
+				int tree_anim = (game.tick + sprite) >> 4;
 				if (sprite < 16) {
 					sprite = (sprite & ~7) + (tree_anim & 7);
 				} else {
@@ -2160,7 +2160,7 @@ draw_serf_row(map_pos_t pos, int y_base, int cols, int x_base,
 			} else { /* Transporter */
 				x = x_base + arr_3[2*MAP_PATHS(pos)];
 				y = y_base - 4*MAP_HEIGHT(pos) + arr_3[2*MAP_PATHS(pos)+1];
-				body = arr_2[((game.anim + arr_1[pos & 0xf]) >> 3) & 0x7f];
+				body = arr_2[((game.tick + arr_1[pos & 0xf]) >> 3) & 0x7f];
 			}
 
 			draw_row_serf(x, y, 1, MAP_PLAYER(pos), body, frame);
@@ -2565,6 +2565,8 @@ viewport_init(viewport_t *viewport, interface_t *interface)
 
 	viewport->interface = interface;
 	viewport->layers = VIEWPORT_LAYER_ALL;
+
+	viewport->last_tick = 0;
 }
 
 /* Space transformations. */
@@ -2754,8 +2756,9 @@ viewport_move_by_pixels(viewport_t *viewport, int x, int y)
 void
 viewport_update(viewport_t *viewport)
 {
-	int anim_xor = game.anim ^ game.old_anim;
+	int tick_xor = game.tick ^ viewport->last_tick;
+	viewport->last_tick = game.tick;
 
 	/* Viewport animation does not care about low bits in anim */
-	if (anim_xor >= 1 << 3) gui_object_set_redraw((gui_object_t *)viewport);
+	if (tick_xor >= 1 << 3) gui_object_set_redraw((gui_object_t *)viewport);
 }

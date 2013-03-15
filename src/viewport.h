@@ -44,6 +44,7 @@ typedef struct {
 	int offset_x, offset_y;
 	viewport_layer_t layers;
 	struct interface *interface;
+	uint last_tick;
 } viewport_t;
 
 

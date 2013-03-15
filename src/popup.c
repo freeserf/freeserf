@@ -2675,24 +2675,6 @@ popup_box_draw(popup_box_t *popup, frame_t *frame)
 	if (BIT_TEST(popup->interface->flags, 0)) return; /* Player inactive */
 
 	box_t box = popup->interface->box;
-#if 0
-	if (box == 0) {
-		if (popup->interface->clkmap == 0) return;
-		box = popup->interface->clkmap;
-
-		/* Certain boxes need to be redrawn periodically */
-		if (box < 32 && !BIT_TEST(0x20ffe04, box)) return;
-		else if (!BIT_TEST(0x103ec0, box-32)) return;
-
-		if (box == BOX_25) {
-			/*if (!BIT_TEST(game.string_bg, 1)) return;*/
-			/*game.string_bg &= ~BIT(1);*/
-		} else if (game.anim - popup->interface->last_anim < 100/*1000*/) return;
-	}
-
-	interface_open_popup(interface, 0);
-#endif
-	popup->interface->last_anim = game.anim;
 	popup->interface->clkmap = box;
 
 	/* Dispatch to one of the popup box functions above. */

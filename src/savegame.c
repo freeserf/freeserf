@@ -112,7 +112,7 @@ load_v0_globals_state(FILE *f, v0_map_t *map)
 
 	game.next_index = *(uint16_t *)&data[96];
 	game.flag_search_counter = *(uint16_t *)&data[98];
-	game.update_map_last_anim = *(uint16_t *)&data[100];
+	game.update_map_last_tick = *(uint16_t *)&data[100];
 	game.update_map_counter = *(uint16_t *)&data[102];
 
 	for (int i = 0; i < 4; i++) {
@@ -261,7 +261,7 @@ load_v0_player_state(FILE *f)
 		player->total_building_score = *(uint32_t *)&data[406];
 		player->total_military_score = *(uint32_t *)&data[410];
 
-		player->last_anim = *(uint16_t *)&data[414];
+		player->last_tick = *(uint16_t *)&data[414];
 
 		player->reproduction_counter = *(uint16_t *)&data[416];
 		player->reproduction_reset = *(uint16_t *)&data[418];
@@ -395,7 +395,7 @@ load_v0_serf_state(FILE *f, const v0_map_t *map)
 		serf->animation = serf_data[1];
 		serf->counter = *(uint16_t *)&serf_data[2];
 		serf->pos = load_v0_map_pos(map, *(uint32_t *)&serf_data[4]);
-		serf->anim = *(uint16_t *)&serf_data[8];
+		serf->tick = *(uint16_t *)&serf_data[8];
 		serf->state = serf_data[10];
 
 		LOGV("savegame", "load serf %i: %s", i, serf_get_state_name(serf->state));
@@ -925,7 +925,7 @@ save_text_globals_state(FILE *f)
 
 	save_text_write_value(f, "next_index", game.next_index);
 	save_text_write_value(f, "flag_search_counter", game.flag_search_counter);
-	save_text_write_value(f, "update_map_last_anim", game.update_map_last_anim);
+	save_text_write_value(f, "update_map_last_tick", game.update_map_last_tick);
 	save_text_write_value(f, "update_map_counter", game.update_map_counter);
 
 	save_text_write_array(f, "player_history_index", game.player_history_index, 4);
@@ -977,7 +977,7 @@ save_text_player_state(FILE *f)
 		save_text_write_array(f, "attacking_buildings", player->attacking_buildings, 64);
 
 		save_text_write_value(f, "knights_to_spawn", player->knights_to_spawn);
-		save_text_write_value(f, "last_anim", player->last_anim);
+		save_text_write_value(f, "last_tick", player->last_tick);
 
 		save_text_write_value(f, "reproduction_counter", player->reproduction_counter);
 		save_text_write_value(f, "reproduction_reset", player->reproduction_reset);
@@ -1157,7 +1157,7 @@ save_text_serf_state(FILE *f)
 		save_text_write_value(f, "animation", serf->animation);
 		save_text_write_value(f, "counter", serf->counter);
 		save_text_write_map_pos(f, "pos", serf->pos);
-		save_text_write_value(f, "anim", serf->anim);
+		save_text_write_value(f, "tick", serf->tick);
 		save_text_write_value(f, "state", serf->state);
 
 		switch (serf->state) {
@@ -1677,8 +1677,8 @@ load_text_global_state(list_t *sections)
 			game.next_index = atoi(s->value);
 		} else if (!strcmp(s->key, "flag_search_counter")) {
 			game.flag_search_counter = atoi(s->value);
-		} else if (!strcmp(s->key, "update_map_last_anim")) {
-			game.update_map_last_anim = atoi(s->value);
+		} else if (!strcmp(s->key, "update_map_last_tick")) {
+			game.update_map_last_tick = atoi(s->value);
 		} else if (!strcmp(s->key, "update_map_counter")) {
 			game.update_map_counter = atoi(s->value);
 		} else if (!strcmp(s->key, "player_history_index")) {
@@ -1800,8 +1800,8 @@ load_text_player_section(section_t *section)
 			}
 		} else if (!strcmp(s->key, "knights_to_spawn")) {
 			player->knights_to_spawn = atoi(s->value);
-		} else if (!strcmp(s->key, "last_anim")) {
-			player->last_anim = atoi(s->value);
+		} else if (!strcmp(s->key, "last_tick")) {
+			player->last_tick = atoi(s->value);
 		} else if (!strcmp(s->key, "reproduction_counter")) {
 			player->reproduction_counter = atoi(s->value);
 		} else if (!strcmp(s->key, "reproduction_reset")) {
@@ -2179,8 +2179,8 @@ load_text_serf_section(section_t *section)
 			serf->counter = atoi(s->value);
 		} else if (!strcmp(s->key, "pos")) {
 			serf->pos = parse_map_pos(s->value);
-		} else if (!strcmp(s->key, "anim")) {
-			serf->anim = atoi(s->value);
+		} else if (!strcmp(s->key, "tick")) {
+			serf->tick = atoi(s->value);
 		} else if (!strcmp(s->key, "state")) {
 			serf->state = atoi(s->value);
 		} else if (!strncmp(s->key, "state.", strlen("state."))) {

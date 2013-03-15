@@ -1479,8 +1479,8 @@ map_update_hidden(map_pos_t pos)
 void
 map_update()
 {
-	uint16_t delta = game.anim - game.update_map_last_anim;
-	game.update_map_last_anim = game.anim;
+	uint16_t delta = game.tick - game.update_map_last_tick;
+	game.update_map_last_tick = game.tick;
 	game.update_map_counter -= delta;
 
 	int iters = 0;

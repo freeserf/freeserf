@@ -125,7 +125,7 @@ draw_panel_buttons(panel_bar_t *panel, frame_t *frame)
 	if (BIT_TEST(game.svga, 3)) { /* Game has started */
 		if (1/*!coop mode || ...*/) {
 			for (int i = 0; i < interface->player->timers_count; i++) {
-				interface->player->timers[i].timeout -= game.anim_diff;
+				interface->player->timers[i].timeout -= game.tick_diff;
 				if (interface->player->timers[i].timeout < 0) {
 					/* Timer has expired. */
 					/* TODO box (+ pos) timer */
@@ -189,7 +189,7 @@ draw_panel_buttons(panel_bar_t *panel, frame_t *frame)
 
 		/* Blinking message icon. */
 		if (BIT_TEST(interface->msg_flags, 0)) {
-			if (game.anim & 0x60) {
+			if (game.tick & 0x60) {
 				draw_message_notify(panel, frame);
 			} else {
 				draw_message_no_notify(panel, frame);

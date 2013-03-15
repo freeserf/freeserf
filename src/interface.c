@@ -970,6 +970,8 @@ interface_init(interface_t *interface)
 	interface->random.state[1] = rand();
 	interface->random.state[2] = rand();
 	random_int(&interface->random);
+
+	interface->last_const_tick = 0;
 }
 
 void
@@ -1026,12 +1028,15 @@ interface_set_cursor(interface_t *interface, int x, int y)
 void
 interface_update(interface_t *interface)
 {
-	if (interface->return_timeout < game.anim_diff) {
+	uint tick_diff = game.const_tick - interface->last_const_tick;
+	interface->last_const_tick = game.const_tick;
+
+	if (interface->return_timeout < tick_diff) {
 		interface->msg_flags |= BIT(4);
 		interface->msg_flags &= ~BIT(3);
 		interface->return_timeout = 0;
 	} else {
-		interface->return_timeout -= game.anim_diff;
+		interface->return_timeout -= tick_diff;
 	}
 
 	viewport_update(&interface->viewport);

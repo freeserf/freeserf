@@ -166,7 +166,7 @@ typedef struct {
 	int animation; /* Index to animation table in data file. */
 	int counter;
 	map_pos_t pos;
-	uint16_t anim;
+	uint16_t tick;
 	serf_state_t state;
 
 	union {

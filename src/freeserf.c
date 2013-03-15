@@ -59,7 +59,7 @@
 # endif
 #endif
 
-/* The length of a game tick in miliseconds. */
+/* The length between game updates in miliseconds. */
 #define TICK_LENGTH  20
 #define TICKS_PER_SEC  (1000/20)
 

@@ -108,7 +108,7 @@ struct building {
 	union {
 		struct inventory *inventory;
 		struct flag *flag;
-		uint16_t anim; /* Used for burning building. */
+		uint16_t tick; /* Used for burning building. */
 		struct {
 			uint16_t level;
 			uint8_t planks_needed;
