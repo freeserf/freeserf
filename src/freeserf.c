@@ -215,40 +215,6 @@ save_game(int autosave)
 }
 
 
-/* One iteration of game_loop(). */
-static void
-game_loop_iter()
-{
-	/* Update global anim counters based on game.tick.
-	   Note: anim counters control the rate of updates in
-	   the rest of the game objects (_not_ just gfx animations). */
-	game.old_anim = game.anim;
-	game.anim = game.tick >> 16;
-	game.anim_diff = game.anim - game.old_anim;
-
-	/* Autosave periodically */
-	if ((game.anim & 0xffff) == 0 && game.game_speed > 0) {
-		int r = save_game(1);
-		if (r < 0) LOGW("main", "Autosave failed.");
-	}
-
-	interface_update(&interface);
-
-	game_update();
-
-	interface.flags &= ~BIT(4);
-	interface.flags &= ~BIT(7);
-
-	gui_object_redraw((gui_object_t *)&interface, game.frame);
-
-	/* TODO very crude dirty marking algortihm: mark everything. */
-	sdl_mark_dirty(0, 0, sdl_frame_get_width(game.frame),
-		       sdl_frame_get_height(game.frame));
-
-	sdl_swap_buffers();
-}
-
-
 /* The length of a game tick in miliseconds. */
 #define TICK_LENGTH  20
 
@@ -272,7 +238,7 @@ game_loop()
 	/* FPS */
 	int fps = 0;
 	int fps_ema = 0;
-	int fps_target = 100;
+	int fps_target = 25;
 	const float ema_alpha = 0.003;
 
 	int drag_button = 0;
@@ -504,20 +470,46 @@ game_loop()
 			game.const_tick += 1;
 			game.tick += game.game_speed;
 
+			/* Update global anim counters based on game.tick.
+			   Note: anim counters control the rate of updates in
+			   the rest of the game objects (_not_ just gfx animations). */
+			game.old_anim = game.anim;
+			game.anim = game.tick >> 16;
+			game.anim_diff = game.anim - game.old_anim;
+
+			game_update();
+
+			/* Autosave periodically */
+			if ((game.anim & 0xffff) == 0 && game.game_speed > 0) {
+				int r = save_game(1);
+				if (r < 0) LOGW("main", "Autosave failed.");
+			}
+
 			/* FPS */
 			fps = 1000*((float)accum_frames / accum);
 			if (fps_ema > 0) fps_ema = ema_alpha*fps + (1-ema_alpha)*fps_ema;
 			else if (fps > 0) fps_ema = fps;
 
+			if ((game.const_tick & 0xff) == 0) LOGV("main", "FPS: %i", fps_ema);
+
 			accum -= TICK_LENGTH;
 			accum_frames = 0;
 		}
 
-		game_loop_iter();
-#if 0
-		draw_green_string(6, 10, sdl_get_screen_frame(), "FPS");
-		draw_green_number(10, 10, sdl_get_screen_frame(), fps_ema);
-#endif
+		/* Update and draw interface */
+		interface_update(&interface);
+
+		interface.flags &= ~BIT(4);
+		interface.flags &= ~BIT(7);
+
+		gui_object_redraw((gui_object_t *)&interface, game.frame);
+
+		/* TODO very crude dirty marking algortihm: mark everything. */
+		sdl_mark_dirty(0, 0, sdl_frame_get_width(game.frame),
+			       sdl_frame_get_height(game.frame));
+
+		/* Swap video buffers */
+		sdl_swap_buffers();
 
 		accum_frames += 1;
 
