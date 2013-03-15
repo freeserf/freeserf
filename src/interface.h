@@ -51,6 +51,8 @@ struct interface {
 	int redraw_top;
 	list_t floats;
 
+	frame_t cursor_buffer;
+
 	uint32_t *serf_animation_table;
 
 	random_state_t random;
@@ -192,5 +194,7 @@ void interface_init(interface_t *interface);
 void interface_set_top(interface_t *interface, gui_object_t *obj);
 void interface_add_float(interface_t *interface, gui_object_t *obj,
 			 int x, int y, int width, int height);
+
+void interface_set_cursor(interface_t *interface, int x, int y);
 
 #endif /* !_INTERFACE_H */

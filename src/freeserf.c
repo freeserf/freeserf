@@ -72,7 +72,6 @@
 static int game_loop_run;
 
 static frame_t screen_frame;
-static frame_t cursor_buffer;
 
 static interface_t interface;
 
@@ -281,27 +280,11 @@ game_loop_iter()
 
 	/* TODO */
 
-	/* Undraw cursor */
-	sdl_draw_frame(interface.pointer_x-8, interface.pointer_y-8,
-		       sdl_get_screen_frame(), 0, 0, &cursor_buffer, 16, 16);
-
 	gui_object_redraw((gui_object_t *)&interface, game.frame);
 
 	/* TODO very crude dirty marking algortihm: mark everything. */
 	sdl_mark_dirty(0, 0, sdl_frame_get_width(game.frame),
 		       sdl_frame_get_height(game.frame));
-
-	/* ADDITIONS */
-
-	/* Restore cursor buffer */
-	sdl_draw_frame(0, 0, &cursor_buffer,
-		       interface.pointer_x-8, interface.pointer_y-8,
-		       sdl_get_screen_frame(), 16, 16);
-
-	/* Mouse cursor */
-	gfx_draw_transp_sprite(interface.pointer_x-8,
-			       interface.pointer_y-8,
-			       DATA_CURSOR, sdl_get_screen_frame());
 
 	sdl_swap_buffers();
 }
@@ -397,19 +380,7 @@ game_loop()
 			case SDL_MOUSEMOTION:
 				if (drag_button == 0) {
 					/* Move pointer normally. */
-					if (event.motion.x != interface.pointer_x || event.motion.y != interface.pointer_y) {
-						/* Undraw cursor */
-						sdl_draw_frame(interface.pointer_x-8, interface.pointer_y-8,
-							       sdl_get_screen_frame(), 0, 0, &cursor_buffer, 16, 16);
-
-						interface.pointer_x = min(max(0, event.motion.x), interface.pointer_x_max);
-						interface.pointer_y = min(max(0, event.motion.y), interface.pointer_y_max);
-
-						/* Restore cursor buffer */
-						sdl_draw_frame(0, 0, &cursor_buffer,
-							       interface.pointer_x-8, interface.pointer_y-8,
-							       sdl_get_screen_frame(), 16, 16);
-					}
+					interface_set_cursor(&interface, event.motion.x, event.motion.y);
 				}
 
 				for (int button = 1; button <= 3; button++) {
@@ -657,9 +628,6 @@ allocate_global_memory()
 	frame_t *screen = sdl_get_screen_frame();
 	sdl_frame_init(&screen_frame, 0, 0, sdl_frame_get_width(screen),
 		       sdl_frame_get_height(screen), screen);
-
-	/* Setup cursor occlusion buffer */
-	sdl_frame_init(&cursor_buffer, 0, 0, 16, 16, NULL);
 }
 
 #define MAX_DATA_PATH      1024
