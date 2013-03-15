@@ -2303,12 +2303,22 @@ update_game_stats()
 void
 game_update()
 {
+	/* Increment tick counters */
+	game.const_tick += 1;
+	game.tick += game.game_speed;
+
+	/* Update global anim counters based on game.tick.
+	   Note: anim counters control the rate of updates in
+	   the rest of the game objects (_not_ just gfx animations). */
+	game.old_anim = game.anim;
+	game.anim = game.tick >> 16;
+	game.anim_diff = game.anim - game.old_anim;
+
 	update_map_and_players();
 	update_ai_and_more();
 	update_flags();
 	update_buildings();
 	update_serfs();
-	/*update_visible_serfs(); OBSOLETE */
 	update_game_stats();
 }
 

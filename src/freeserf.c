@@ -467,16 +467,6 @@ game_loop()
 
 		accum += delta_ticks;
 		while (accum >= TICK_LENGTH) {
-			game.const_tick += 1;
-			game.tick += game.game_speed;
-
-			/* Update global anim counters based on game.tick.
-			   Note: anim counters control the rate of updates in
-			   the rest of the game objects (_not_ just gfx animations). */
-			game.old_anim = game.anim;
-			game.anim = game.tick >> 16;
-			game.anim_diff = game.anim - game.old_anim;
-
 			game_update();
 
 			/* Autosave periodically */
