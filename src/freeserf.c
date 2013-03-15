@@ -59,6 +59,17 @@
 # endif
 #endif
 
+/* The length of a game tick in miliseconds. */
+#define TICK_LENGTH  20
+#define TICKS_PER_SEC  (1000/20)
+
+/* Autosave interval */
+#define AUTOSAVE_INTERVAL  (10*60*TICKS_PER_SEC)
+
+/* How fast consequtive mouse events need to be generated
+   in order to be interpreted as click and double click. */
+#define MOUSE_SENSITIVITY  600
+
 
 static int game_loop_run;
 
@@ -213,14 +224,6 @@ save_game(int autosave)
 
 	return 0;
 }
-
-
-/* The length of a game tick in miliseconds. */
-#define TICK_LENGTH  20
-
-/* How fast consequtive mouse events need to be generated
-   in order to be interpreted as click and double click. */
-#define MOUSE_SENSITIVITY  600
 
 
 void
@@ -470,7 +473,8 @@ game_loop()
 			game_update();
 
 			/* Autosave periodically */
-			if ((game.anim & 0xffff) == 0 && game.game_speed > 0) {
+			if ((game.const_tick % AUTOSAVE_INTERVAL) == 0 &&
+			    game.game_speed > 0) {
 				int r = save_game(1);
 				if (r < 0) LOGW("main", "Autosave failed.");
 			}
@@ -480,7 +484,9 @@ game_loop()
 			if (fps_ema > 0) fps_ema = ema_alpha*fps + (1-ema_alpha)*fps_ema;
 			else if (fps > 0) fps_ema = fps;
 
-			if ((game.const_tick & 0xff) == 0) LOGV("main", "FPS: %i", fps_ema);
+			if ((game.const_tick % (10*TICKS_PER_SEC)) == 0) {
+				LOGV("main", "FPS: %i", fps_ema);
+			}
 
 			accum -= TICK_LENGTH;
 			accum_frames = 0;
