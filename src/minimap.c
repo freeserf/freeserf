@@ -283,8 +283,12 @@ minimap_handle_event(minimap_t *minimap, const gui_event_t *event)
 		return minimap_handle_drag(minimap, x, y,
 					   event->button);
 	case GUI_EVENT_TYPE_DRAG_START:
+		minimap->interface->cursor_lock_target = (gui_object_t *)minimap;
 		minimap->pointer_x = x;
 		minimap->pointer_y = y;
+		return 0;
+	case GUI_EVENT_TYPE_DRAG_END:
+		minimap->interface->cursor_lock_target = NULL;
 		return 0;
 	default:
 		break;

@@ -748,6 +748,37 @@ interface_draw(interface_t *interface, frame_t *frame)
 static int
 interface_handle_event(interface_t *interface, const gui_event_t *event)
 {
+	/* Handle locked cursor */
+	if (interface->cursor_lock_target != NULL) {
+		if (interface->cursor_lock_target == interface->top) {
+			return gui_object_handle_event(interface->top, event);
+		} else {
+			gui_event_t float_event = {
+				.type = event->type,
+				.x = event->x,
+				.y = event->y,
+				.button = event->button
+			};
+			gui_object_t *obj = interface->cursor_lock_target;
+			while (obj->parent != NULL) {
+				int x, y;
+				int r = gui_container_get_child_position(obj->parent, obj,
+									 &x, &y);
+				if (r < 0) return -1;
+
+				float_event.x -= x;
+				float_event.y -= y;
+
+				obj = (gui_object_t *)obj->parent;
+			}
+
+			if (obj != (gui_object_t *)interface) return -1;
+			return gui_object_handle_event(interface->cursor_lock_target,
+						       &float_event);
+		}
+	}
+
+	/* Find the corresponding float element if any */
 	list_elm_t *elm;
 	list_foreach_reverse(&interface->floats, elm) {
 		interface_float_t *fl = (interface_float_t *)elm;

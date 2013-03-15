@@ -2549,9 +2549,15 @@ viewport_handle_event(viewport_t *viewport, const gui_event_t *event)
 		return viewport_handle_event_dbl_click(viewport, x, y,
 						       event->button);
 		break;
+	case GUI_EVENT_TYPE_DRAG_START:
+		viewport->interface->cursor_lock_target = (gui_object_t *)viewport;
+		return 0;
 	case GUI_EVENT_TYPE_DRAG_MOVE:
 		return viewport_handle_drag(viewport, x, y,
 					    event->button);
+	case GUI_EVENT_TYPE_DRAG_END:
+		viewport->interface->cursor_lock_target = NULL;
+		return 0;
 	default:
 		break;
 	}

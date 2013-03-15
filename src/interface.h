@@ -51,6 +51,8 @@ struct interface {
 	int redraw_top;
 	list_t floats;
 
+	gui_object_t *cursor_lock_target;
+
 	frame_t cursor_buffer;
 
 	uint32_t *serf_animation_table;
