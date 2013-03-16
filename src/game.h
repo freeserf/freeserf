@@ -29,7 +29,7 @@
 #include "map.h"
 #include "freeserf.h"
 
-#define DEFAULT_GAME_SPEED  0x20000
+#define DEFAULT_GAME_SPEED  2
 
 
 typedef struct {
@@ -110,7 +110,6 @@ typedef struct {
 	/* 1FA */
 	uint game_speed_save;
 	uint game_speed;
-	uint full_tick;
 	/* Increased according to the currect game speed. */
 	uint tick;
 	uint last_tick;

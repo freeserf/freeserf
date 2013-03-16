@@ -388,17 +388,17 @@ game_loop()
 					/* Game speed */
 				case SDLK_PLUS:
 				case SDLK_KP_PLUS:
-					if (game.game_speed < 0xffff0000) game.game_speed += 0x10000;
-					LOGI("main", "Game speed: %u", game.game_speed >> 16);
+					if (game.game_speed < 40) game.game_speed += 1;
+					LOGI("main", "Game speed: %u", game.game_speed);
 					break;
 				case SDLK_MINUS:
 				case SDLK_KP_MINUS:
-					if (game.game_speed >= 0x10000) game.game_speed -= 0x10000;
-					LOGI("main", "Game speed: %u", game.game_speed >> 16);
+					if (game.game_speed >= 1) game.game_speed -= 1;
+					LOGI("main", "Game speed: %u", game.game_speed);
 					break;
 				case SDLK_0:
-					game.game_speed = 0x20000;
-					LOGI("main", "Game speed: %u", game.game_speed >> 16);
+					game.game_speed = DEFAULT_GAME_SPEED;
+					LOGI("main", "Game speed: %u", game.game_speed);
 					break;
 				case SDLK_p:
 					if (game.game_speed == 0) game_pause(0);

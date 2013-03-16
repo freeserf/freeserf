@@ -2324,11 +2324,10 @@ game_update()
 {
 	/* Increment tick counters */
 	game.const_tick += 1;
-	game.full_tick += game.game_speed;
 
-	/* Update tick counters based on full_tick */
+	/* Update tick counters based on game speed */
 	game.last_tick = game.tick;
-	game.tick = game.full_tick >> 16;
+	game.tick += game.game_speed;
 	game.tick_diff = game.tick - game.last_tick;
 
 	update_map_and_players();
@@ -2350,7 +2349,7 @@ game_pause(int enable)
 		game.game_speed = game.game_speed_save;
 	}
 
-	LOGI("game", "Game speed: %u", game.game_speed >> 16);
+	LOGI("game", "Game speed: %u", game.game_speed);
 }
 
 /* Generate an estimate of the amount of resources in the ground at map pos.*/
@@ -5024,7 +5023,6 @@ game_init()
 	game.resource_history_index = 0;
 
 	game.tick = 0;
-	game.full_tick = 0;
 	game.const_tick = 0;
 	game.tick_diff = 0;
 
