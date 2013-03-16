@@ -189,7 +189,7 @@ draw_panel_buttons(panel_bar_t *panel, frame_t *frame)
 
 		/* Blinking message icon. */
 		if (BIT_TEST(interface->msg_flags, 0)) {
-			if (game.tick & 0x60) {
+			if (game.const_tick & 0x30) {
 				draw_message_notify(panel, frame);
 			} else {
 				draw_message_no_notify(panel, frame);
