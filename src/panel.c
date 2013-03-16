@@ -124,23 +124,6 @@ draw_panel_buttons(panel_bar_t *panel, frame_t *frame)
 
 	if (BIT_TEST(game.svga, 3)) { /* Game has started */
 		if (1/*!coop mode || ...*/) {
-			for (int i = 0; i < interface->player->timers_count; i++) {
-				interface->player->timers[i].timeout -= game.tick_diff;
-				if (interface->player->timers[i].timeout < 0) {
-					/* Timer has expired. */
-					/* TODO box (+ pos) timer */
-					player_add_notification(interface->player, 5,
-								interface->player->timers[i].pos);
-
-					/* Delete timer from list. */
-					interface->player->timers_count -= 1;
-					for (int j = i; j < interface->player->timers_count; j++) {
-						interface->player->timers[j].timeout = interface->player->timers[j+1].timeout;
-						interface->player->timers[j].pos = interface->player->timers[j+1].pos;
-					}
-				}
-			}
-
 			if (PLAYER_HAS_MESSAGE(interface->player)) {
 				interface->player->flags &= ~BIT(3);
 				while (interface->player->msg_queue_type[0] != 0) {

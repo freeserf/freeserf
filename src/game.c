@@ -356,6 +356,24 @@ spawn_serf(player_t *player, serf_t **serf, inventory_t **inventory, int want_kn
 static void
 update_player(player_t *player)
 {
+	/* Update player timers. TODO should possibly be handled by interface. */
+	for (int i = 0; i < player->timers_count; i++) {
+		player->timers[i].timeout -= game.tick_diff;
+		if (player->timers[i].timeout < 0) {
+			/* Timer has expired. */
+			/* TODO box (+ pos) timer */
+			player_add_notification(player, 5,
+						player->timers[i].pos);
+
+			/* Delete timer from list. */
+			player->timers_count -= 1;
+			for (int j = i; j < player->timers_count; j++) {
+				player->timers[j].timeout = player->timers[j+1].timeout;
+				player->timers[j].pos = player->timers[j+1].pos;
+			}
+		}
+	}
+
 	if (player->total_land_area > 0xffff0000) player->total_land_area = 0;
 	if (player->total_military_score > 0xffff0000) player->total_military_score = 0;
 	if (player->total_building_score > 0xffff0000) player->total_building_score = 0;
