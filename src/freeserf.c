@@ -59,10 +59,6 @@
 # endif
 #endif
 
-/* The length between game updates in miliseconds. */
-#define TICK_LENGTH  20
-#define TICKS_PER_SEC  (1000/20)
-
 /* Autosave interval */
 #define AUTOSAVE_INTERVAL  (10*60*TICKS_PER_SEC)
 

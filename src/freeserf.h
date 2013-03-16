@@ -33,6 +33,11 @@
 #include "serf.h"
 
 
+/* The length between game updates in miliseconds. */
+#define TICK_LENGTH  20
+#define TICKS_PER_SEC  (1000/20)
+
+
 #define INVENTORY_INDEX(ptr)  ((int)((ptr) - game.inventories))
 #define INVENTORY_ALLOCATED(i)  BIT_TEST(game.inventory_bitmap[(i)>>3], 7-((i)&7))
 

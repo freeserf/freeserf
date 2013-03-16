@@ -512,13 +512,13 @@ panel_bar_handle_event_click(panel_bar_t *panel, int x, int y)
 					int timer_id = interface->player->timers_count++;
 					int timer_length = -1;
 
-					if (y < 7) timer_length = 5*60*100;
-					else if (y < 14) timer_length = 10*60*100;
-					else if (y < 21) timer_length = 20*60*100;
-					else if (y < 28) timer_length = 30*60*100;
-					else timer_length = 60*60*100;
+					if (y < 7) timer_length = 5*60;
+					else if (y < 14) timer_length = 10*60;
+					else if (y < 21) timer_length = 20*60;
+					else if (y < 28) timer_length = 30*60;
+					else timer_length = 60*60;
 
-					interface->player->timers[timer_id].timeout = timer_length;
+					interface->player->timers[timer_id].timeout = timer_length*TICKS_PER_SEC;
 					interface->player->timers[timer_id].pos = interface->map_cursor_pos;
 				} else {
 					/* Call to box (+ map) position */
@@ -556,7 +556,7 @@ panel_bar_handle_event_click(panel_bar_t *panel, int x, int y)
 
 					handle_message_icon_click(interface);
 					interface->msg_flags |= BIT(1);
-					interface->return_timeout = 2000;
+					interface->return_timeout = 60*TICKS_PER_SEC;
 					sfx_play_clip(SFX_CLICK);
 				}
 			} else if (y >= 28) {

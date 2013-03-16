@@ -357,8 +357,9 @@ static void
 update_player(player_t *player)
 {
 	/* Update player timers. TODO should possibly be handled by interface. */
+	int const_tick_diff = 1; /* Always 1 as long as this function is called every tick. */
 	for (int i = 0; i < player->timers_count; i++) {
-		player->timers[i].timeout -= game.tick_diff;
+		player->timers[i].timeout -= const_tick_diff;
 		if (player->timers[i].timeout < 0) {
 			/* Timer has expired. */
 			/* TODO box (+ pos) timer */
