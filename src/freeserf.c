@@ -574,13 +574,19 @@ allocate_global_memory()
 }
 
 #define MAX_DATA_PATH      1024
-#define DEFAULT_DATA_FILE  "SPAE.PA"
 
 /* Load data file from path is non-NULL, otherwise search in
    various standard paths. */
 static int
 load_data_file(const char *path)
 {
+	const char *default_data_file[] = {
+		"SPAE.PA", /* English */
+		"SPAD.PA", /* German */
+		"SPAF.PA", /* French */
+		NULL
+	};
+
 	/* Use specified path. If something was specified
 	   but not found, this function should fail without
 	   looking anywhere else. */
@@ -598,33 +604,45 @@ load_data_file(const char *path)
 	/* Look in home */
 	if ((env = getenv("XDG_DATA_HOME")) != NULL &&
 	    env[0] != '\0') {
-		snprintf(cp, sizeof(cp), "%s/freeserf/" DEFAULT_DATA_FILE, env);
-		path = cp;
-#ifdef _WIN32
-	} else if ((env = getenv("userprofile")) != NULL && env[0] != '\0') {
-		snprintf(cp, sizeof(cp),
-			 "%s/.local/share/freeserf/" DEFAULT_DATA_FILE, env);
-		path = cp;
-#endif
-	} else if ((env = getenv("HOME")) != NULL && env[0] != '\0') {
-		snprintf(cp, sizeof(cp),
-			 "%s/.local/share/freeserf/" DEFAULT_DATA_FILE, env);
-		path = cp;
+		for (const char **df = default_data_file; *df != NULL; df++) {
+			snprintf(cp, sizeof(cp), "%s/freeserf/%s", env, *df);
+			LOGI("main", "Looking for game data in `%s'...", cp);
+			int r = gfx_load_file(cp);
+			if (r >= 0) return 0;
+		}
 	}
 
-	if (path != NULL) {
-		LOGI("main", "Looking for game data in `%s'...", path);
-		int r = gfx_load_file(path);
-		if (r >= 0) return 0;
+#ifdef _WIN32
+	if ((env = getenv("userprofile")) != NULL && env[0] != '\0') {
+		for (const char **df = default_data_file; *df != NULL; df++) {
+			snprintf(cp, sizeof(cp),
+				 "%s/.local/share/freeserf/%s", env, *df);
+			LOGI("main", "Looking for game data in `%s'...", cp);
+			int r = gfx_load_file(cp);
+			if (r >= 0) return 0;
+		}
+	}
+#endif
+
+	if ((env = getenv("HOME")) != NULL && env[0] != '\0') {
+		for (const char **df = default_data_file; *df != NULL; df++) {
+			snprintf(cp, sizeof(cp),
+				 "%s/.local/share/freeserf/%s", env, *df);
+			LOGI("main", "Looking for game data in `%s'...", cp);
+			int r = gfx_load_file(cp);
+			if (r >= 0) return 0;
+		}
 	}
 
 	/* TODO look in DATADIR, getenv("XDG_DATA_DIRS") or
 	   if not set look in /usr/local/share:/usr/share". */
 
 	/* Look in current directory */
-	LOGI("main", "Looking for game data in `%s'...", DEFAULT_DATA_FILE);
-	int r = gfx_load_file(DEFAULT_DATA_FILE);
-	if (r >= 0) return 0;
+	for (const char **df = default_data_file; *df != NULL; df++) {
+		LOGI("main", "Looking for game data in `%s'...", *df);
+		int r = gfx_load_file(*df);
+		if (r >= 0) return 0;
+	}
 
 	return -1;
 }
