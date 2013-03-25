@@ -1,19 +1,19 @@
 Freeserf
 ========
 
-Try it
+Play
 ------
-Copy the data file (`SPAE.PA`) to the same directory as the program. Alternatively you can put the data file in `~/.local/share/freeserf`.
+Copy the data file from the original game to the same directory as freeserf. Alternatively you can put the data file in `~/.local/share/freeserf`. The data file is called `SPAE.PA`, `SPAD.PA`, `SPAF.PA` or `SPAU.PA`, depending on the language of the game.
 
 Keyboard controls:
 
-* 1, 2, 3, 4, 5: Activate one of the five buttons in the panel.
-* +/-: Increase/decrease game speed.
-* 0: Reset game speed.
-* p: Pause game.
-* s: Enable/disable sounds playback
-* m: Enable/disable music playback
-* CTRL+z: Save game in current directory.
+* `1`, `2`, `3`, `4`, `5`: Activate one of the five buttons in the panel.
+* `+`/`-`: Increase/decrease game speed.
+* `0`: Reset game speed.
+* `p`: Pause game.
+* `s`: Enable/disable sounds playback
+* `m`: Enable/disable music playback
+* CTRL+`z`: Save game in current directory.
 
 
 Save games

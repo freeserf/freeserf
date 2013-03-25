@@ -582,8 +582,9 @@ load_data_file(const char *path)
 {
 	const char *default_data_file[] = {
 		"SPAE.PA", /* English */
-		"SPAD.PA", /* German */
 		"SPAF.PA", /* French */
+		"SPAD.PA", /* German */
+		"SPAU.PA", /* Engish (US) */
 		NULL
 	};
 
