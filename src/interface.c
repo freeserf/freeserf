@@ -464,7 +464,7 @@ interface_build_road_connect_flag(interface_t *interface, map_pos_t dest, dir_t 
 			src = MAP_MOVE_UP_LEFT(src);
 		} else if (BIT_TEST(paths, DIR_UP)) {
 			if (MAP_TYPE_DOWN(MAP_MOVE_UP_LEFT(src)) < 4 &&
-			    MAP_TYPE_UP(MAP_MOVE_RIGHT(src)) < 4) {
+			    MAP_TYPE_UP(MAP_MOVE_UP(src)) < 4) {
 				test |= BIT(1);
 			} else {
 				test |= BIT(0);
