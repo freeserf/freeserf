@@ -1634,6 +1634,9 @@ serf_get_body(serf_t *serf, uint32_t *animation_table)
 			case SERF_STATE_DROP_RESOURCE_OUT:
 				res = serf->s.move_resource_out.res;
 				break;
+			case SERF_STATE_WAIT_FOR_RESOURCE_OUT:
+				res = 0; /* TODO */
+				break;
 			default:
 				NOT_REACHED();
 				break;
