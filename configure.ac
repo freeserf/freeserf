@@ -1,11 +1,13 @@
 #                                               -*- Autoconf -*-
 # Process this file with autoconf to produce a configure script.
 
-AC_PREREQ(2.64)
-AC_INIT([freeserf], [0.1], [jonlst@gmail.com])
+AC_PREREQ([2.69])
+AC_INIT([freeserf], [0.1], [https://github.com/jonls/freeserf/issues])
 AC_CONFIG_SRCDIR([src/freeserf.c])
 AC_CONFIG_HEADERS([config.h])
-AM_INIT_AUTOMAKE
+AM_INIT_AUTOMAKE([subdir-objects])
+
+m4_ifdef([AM_SILENT_RULES], [AM_SILENT_RULES([yes])])
 
 # Checks for programs.
 AC_PROG_CC_C99

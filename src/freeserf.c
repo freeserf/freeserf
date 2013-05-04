@@ -661,7 +661,9 @@ load_data_file(const char *path)
 	" -m MAP\t\tSelect world map (1-3)\n"			\
 	" -p\t\tPreserve map bugs of the original game\n"	\
 	" -r RES\t\tSet display resolution (e.g. 800x600)\n"	\
-	" -t GEN\t\tMap generator (0 or 1)\n"
+	" -t GEN\t\tMap generator (0 or 1)\n"			\
+	"\n"							\
+	"Please report bugs to " PACKAGE_BUGREPORT "\n"
 
 int
 main(int argc, char *argv[])
