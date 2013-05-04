@@ -2460,7 +2460,7 @@ viewport_handle_event_dbl_click(viewport_t *viewport, int x, int y,
 				     BUILDING_TYPE(building) == BUILDING_FORTRESS ||
 				     BUILDING_TYPE(building) == BUILDING_CASTLE)) {
 					if (!BUILDING_IS_ACTIVE(building) ||
-					    BUILDING_STATE(building)) {
+					    BUILDING_STATE(building) != 3) {
 						/* It is not allowed to attack
 						   if currently not occupied or
 						   is too far from the border. */
