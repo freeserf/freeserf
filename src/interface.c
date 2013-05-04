@@ -98,6 +98,8 @@ get_map_cursor_type(const player_t *player, map_pos_t pos, panel_btn_t *panel_bt
 			*panel_btn = PANEL_BTN_BUILD_LARGE;
 		} else if (game_can_build_small(pos)) {
 			*panel_btn = PANEL_BTN_BUILD_SMALL;
+		} else if (game_can_build_flag(pos, player)) {
+			*panel_btn = PANEL_BTN_BUILD_FLAG;
 		} else {
 			*panel_btn = PANEL_BTN_BUILD_INACTIVE;
 		}
