@@ -4158,7 +4158,7 @@ demolish_flag(map_pos_t pos)
 	/* Remove resources from flag. */
 	for (int i = 0; i < 8; i++) {
 		if (flag->res_waiting[i] != 0) {
-			int res = flag->res_waiting[i]-1;
+			int res = (flag->res_waiting[i] & 0x1f)-1;
 			uint dest = flag->res_dest[i];
 			lose_transported_resource(res, dest);
 		}
@@ -4698,7 +4698,7 @@ game_occupy_enemy_building(building_t *building, int player_num)
 		/* Reset destination of stolen resources. */
 		for (int i = 0; i < 8; i++) {
 			if (flag->res_waiting[i] != 0) {
-				resource_type_t res = flag->res_waiting[i]-1;
+				resource_type_t res = (flag->res_waiting[i] & 0x1f)-1;
 				lose_transported_resource(res, flag->res_dest[i]);
 
 				/* Since the resource is not actually lost but
