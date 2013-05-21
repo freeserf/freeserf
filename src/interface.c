@@ -79,6 +79,9 @@ interface_close_popup(interface_t *interface)
 	interface->click |= BIT(1);
 	interface->clkmap = 0;
 	interface->click |= BIT(2);
+
+	interface_update_map_cursor_pos(interface,
+					interface->map_cursor_pos);
 }
 
 
