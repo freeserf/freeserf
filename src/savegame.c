@@ -1101,6 +1101,8 @@ save_text_building_state(FILE *f)
 				} else {
 					save_text_write_value(f, "flag", FLAG_INDEX(building->u.flag));
 				}
+			} else if (BUILDING_IS_BURNING(building)) {
+				save_text_write_value(f, "tick", building->u.tick);
 			} else {
 				save_text_write_value(f, "level", building->u.s.level);
 				save_text_write_value(f, "planks_needed", building->u.s.planks_needed);
@@ -2022,7 +2024,8 @@ load_text_building_section(section_t *section)
 			   !strcmp(s->key, "flag") ||
 			   !strcmp(s->key, "level") ||
 			   !strcmp(s->key, "planks_needed") ||
-			   !strcmp(s->key, "stone_needed")) {
+			   !strcmp(s->key, "stone_needed") ||
+			   !strcmp(s->key, "tick")) {
 			/* Handled later */
 		} else {
 			LOGD("savegame", "Unhandled building setting: `%s'.", s->key);
@@ -2044,6 +2047,9 @@ load_text_building_section(section_t *section)
 			if (value == NULL) return -1;
 			building->u.flag = &game.flags[atoi(value)];
 		}
+	} else if (BUILDING_IS_BURNING(building)) {
+		char *value = load_text_get_setting(section, "tick");
+		building->u.tick = atoi(value);
 	} else {
 		list_foreach(&section->settings, elm) {
 			setting_t *s = (setting_t *)elm;
