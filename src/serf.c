@@ -1965,6 +1965,7 @@ handle_serf_free_walking_state_dest_reached(serf_t *serf)
 				serf->counter = 0;
 			} else {
 				serf_log_state_change(serf, SERF_STATE_LOST);
+				serf->state = SERF_STATE_LOST;
 				serf->s.lost.field_B = 0;
 				serf->counter = 0;
 			}
