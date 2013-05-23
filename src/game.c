@@ -867,20 +867,19 @@ update_flags_search_cb(flag_t *flag, update_flags_search_data_t *data)
 {
 	flag_t *src = data->src;
 	if (flag == data->dest) {
-		LOGV("game", "update flags: dest found: %i", flag->search_dir);
-
+		/* Destination found */
 		if (flag->search_dir != 6) {
 			int other_dir = src->other_end_dir[flag->search_dir];
 			if (!BIT_TEST(other_dir, 7)) {
+				/* Item is requesting to be fetched */
 				src->other_end_dir[flag->search_dir] = BIT(7) | (src->other_end_dir[flag->search_dir] & 0x78) | data->res;
-				LOGV("game", "update flags: item %i is requesting fetch", data->res);
 			} else {
 				player_t *player = game.player[FLAG_PLAYER(flag)];
 				int prio_old = player->flag_prio[(src->res_waiting[other_dir & 7] & 0x1f)-1];
 				int prio_new = player->flag_prio[(src->res_waiting[data->res] & 0x1f)-1];
 				if (prio_new > prio_old) {
+					/* This item has the highest priority new */
 					src->other_end_dir[flag->search_dir] = (src->other_end_dir[flag->search_dir] & 0xf8) | data->res;
-					LOGV("game", "update flags: item %i has priority now", data->res);
 				}
 				src->res_waiting[data->res] = ((flag->search_dir + 1) << 5) | (src->res_waiting[data->res] & 0x1f);
 			}
@@ -1028,7 +1027,7 @@ update_flags()
 												    (flag_search_func *)update_flags_search_cb,
 												    0, 1, &data);
 									if (r < 0 || data.dest->search_dir == 6) {
-										LOGD("game", "update flags: unable to deliver.");
+										/* Unable to deliver */
 										flag_cancel_transported_stock(data.dest, flag->res_waiting[slot] & 0x1f);
 										flag->res_dest[slot] = 0;
 										flag->endpoint |= BIT(7);

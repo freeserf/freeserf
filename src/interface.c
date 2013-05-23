@@ -748,8 +748,6 @@ interface_draw(interface_t *interface, frame_t *frame)
 static int
 interface_handle_event(interface_t *interface, const gui_event_t *event)
 {
-	LOGV("interface", "Event: %i, %i, %i, %i.", event->type, event->button, event->x, event->y);
-
 	list_elm_t *elm;
 	list_foreach_reverse(&interface->floats, elm) {
 		interface_float_t *fl = (interface_float_t *)elm;

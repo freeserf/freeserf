@@ -2040,6 +2040,7 @@ handle_serf_free_walking_switch_on_dir(serf_t *serf, int dir)
 
 	if (serf->s.free_walking.dist1 == 0 &&
 	    serf->s.free_walking.dist2 == 0) {
+		/* Arriving to destination */
 		serf->s.free_walking.flags = BIT(3);
 	}
 }
@@ -2076,6 +2077,7 @@ handle_serf_free_walking_switch_with_other(serf_t *serf)
 
 				if (other_serf->s.free_walking.dist1 == 0 &&
 				    other_serf->s.free_walking.dist2 == 0) {
+					/* Arriving to destination */
 					other_serf->s.free_walking.flags = BIT(3);
 				}
 				dir = i;
@@ -2097,6 +2099,7 @@ handle_serf_free_walking_switch_with_other(serf_t *serf)
 
 		if (serf->s.free_walking.dist1 == 0 &&
 		    serf->s.free_walking.dist2 == 0) {
+			/* Arriving to destination */
 			serf->s.free_walking.flags = BIT(3);
 		}
 
@@ -2163,6 +2166,7 @@ handle_free_walking_common(serf_t *serf)
 
 	if (BIT_TEST(serf->s.free_walking.flags, 3) &&
 	    (serf->s.free_walking.flags & 7) == 0) {
+		/* Destination reached */
 		handle_serf_free_walking_state_dest_reached(serf);
 		return;
 	} else if ((serf->s.free_walking.flags & 7) != 0) {
