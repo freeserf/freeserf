@@ -421,7 +421,7 @@ interface_build_road_connect_flag(interface_t *interface, map_pos_t dest, dir_t 
 	map_pos_t src = dest;
 	for (int i = 0; i < interface->road_length + 1; i++) {
 		if (BIT_TEST(paths, DIR_RIGHT)) {
-			if (MAP_TYPE_UP(src) < 4 &&
+			if (MAP_TYPE_DOWN(src) < 4 &&
 			    MAP_TYPE_UP(MAP_MOVE_UP(src)) < 4) {
 				test |= BIT(1);
 			} else {
@@ -449,7 +449,7 @@ interface_build_road_connect_flag(interface_t *interface, map_pos_t dest, dir_t 
 			src = MAP_MOVE_DOWN(src);
 		} else if (BIT_TEST(paths, DIR_LEFT)) {
 			if (MAP_TYPE_DOWN(MAP_MOVE_LEFT(src)) < 4 &&
-			    MAP_TYPE_UP(MAP_MOVE_UP(src)) < 4) {
+			    MAP_TYPE_UP(MAP_MOVE_UP_LEFT(src)) < 4) {
 				test |= BIT(1);
 			} else {
 				test |= BIT(0);
