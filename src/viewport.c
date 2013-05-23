@@ -342,7 +342,7 @@ draw_landscape(viewport_t *viewport, frame_t *frame)
 		}
 
 		y += map_height - ((my + y) % map_height);
-		x_base = (x_base + map_width/2) % map_width;
+		x_base = (x_base + (game.map.rows*MAP_TILE_WIDTH)/2) % map_width;
 	}
 }
 
@@ -2612,7 +2612,7 @@ viewport_init(viewport_t *viewport, interface_t *interface)
    The map pixel space also wraps around but the vertical wrap-around
    is a bit more tricky, so care must be taken when translating
    map pixel coordinates. When an edge is traversed vertically,
-   the x-coordinate has to be offset by half the width of the map,
+   the x-coordinate has to be offset by half the height of the map,
    because of the skew in the translation from game world space to
    map pixel space.
 */
@@ -2626,12 +2626,12 @@ viewport_screen_pix_from_map_pix(viewport_t *viewport, int mx, int my, int *sx, 
 	*sy = my - viewport->offset_y;
 
 	while (*sy < 0) {
-		*sx += width/2;
+		*sx -= (game.map.rows*MAP_TILE_WIDTH)/2;
 		*sy += height;
 	}
 
 	while (*sy >= height) {
-		*sx += width/2;
+		*sx += (game.map.rows*MAP_TILE_WIDTH)/2;
 		*sy -= height;
 	}
 
@@ -2649,7 +2649,7 @@ viewport_map_pix_from_map_coord(viewport_t *viewport, map_pos_t pos, int h, int 
 	*my = MAP_TILE_HEIGHT*MAP_POS_ROW(pos) - 4*h;
 
 	if (*my < 0) {
-		*mx += width/2;
+		*mx -= (game.map.rows*MAP_TILE_WIDTH)/2;
 		*my += height;
 	}
 
@@ -2724,7 +2724,7 @@ viewport_move_to_map_pos(viewport_t *viewport, map_pos_t pos)
 	my -= viewport->obj.height/2;
 
 	if (my < 0) {
-		mx += map_width/2;
+		mx -= (game.map.rows*MAP_TILE_WIDTH)/2;
 		my += map_height;
 	}
 
@@ -2748,10 +2748,10 @@ viewport_move_by_pixels(viewport_t *viewport, int x, int y)
 
 	if (viewport->offset_y < 0) {
 		viewport->offset_y += height;
-		viewport->offset_x -= width/2;
+		viewport->offset_x -= (game.map.rows*MAP_TILE_WIDTH)/2;
 	} else if (viewport->offset_y >= height) {
 		viewport->offset_y -= height;
-		viewport->offset_x += width/2;
+		viewport->offset_x += (game.map.rows*MAP_TILE_WIDTH)/2;
 	}
 
 	if (viewport->offset_x >= width) viewport->offset_x -= width;

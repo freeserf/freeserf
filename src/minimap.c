@@ -55,7 +55,7 @@ draw_minimap_point(minimap_t *minimap, int col, int row, uint8_t color,
 				mm_x += map_width;
 			}
 		}
-		col += game.map.rows/2;
+		col -= game.map.rows/2;
 		mm_y += map_height;
 	}
 }
@@ -331,12 +331,12 @@ minimap_screen_pix_from_map_pix(minimap_t *minimap, int mx, int my, int *sx, int
 	*sy = my - minimap->offset_y;
 
 	while (*sy < 0) {
-		*sx += width/2;
+		*sx -= height/2;
 		*sy += height;
 	}
 
 	while (*sy >= height) {
-		*sx += width/2;
+		*sx += height/2;
 		*sy -= height;
 	}
 
@@ -354,7 +354,7 @@ minimap_map_pix_from_map_coord(minimap_t *minimap, map_pos_t pos, int *mx, int *
 	*my = minimap->scale*MAP_POS_ROW(pos);
 
 	if (*my < 0) {
-		*mx += width/2;
+		*mx -= height/2;
 		*my += height;
 	}
 
@@ -396,7 +396,7 @@ minimap_move_to_map_pos(minimap_t *minimap, map_pos_t pos)
 	my -= minimap->obj.height/2;
 
 	if (my < 0) {
-		mx += map_width/2;
+		mx -= map_height/2;
 		my += map_height;
 	}
 
@@ -420,10 +420,10 @@ minimap_move_by_pixels(minimap_t *minimap, int dx, int dy)
 
 	if (minimap->offset_y < 0) {
 		minimap->offset_y += height;
-		minimap->offset_x -= width/2;
+		minimap->offset_x -= height/2;
 	} else if (minimap->offset_y >= height) {
 		minimap->offset_y -= height;
-		minimap->offset_x += width/2;
+		minimap->offset_x += height/2;
 	}
 
 	if (minimap->offset_x >= width) minimap->offset_x -= width;
