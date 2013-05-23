@@ -68,11 +68,15 @@ struct gui_object {
 
 typedef void gui_set_redraw_child_func(gui_container_t *cont,
 				       gui_object_t *child);
+typedef int gui_get_child_position_func(gui_container_t *cont,
+					gui_object_t *child,
+					int *x, int *t);
 
 struct gui_container {
 	gui_object_t obj;
 
 	gui_set_redraw_child_func *set_redraw_child;
+	gui_get_child_position_func *get_child_position;
 };
 
 
@@ -89,5 +93,8 @@ void gui_object_set_redraw(gui_object_t *obj);
 void gui_container_init(gui_container_t *cont);
 void gui_container_set_redraw_child(gui_container_t *cont,
 				    gui_object_t *child);
+int gui_container_get_child_position(gui_container_t *cont,
+				     gui_object_t *child,
+				     int *x, int *y);
 
 #endif /* !_GUI_H */

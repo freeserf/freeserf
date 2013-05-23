@@ -112,3 +112,10 @@ gui_container_set_redraw_child(gui_container_t *cont, gui_object_t *child)
 {
 	cont->set_redraw_child(cont, child);
 }
+
+int
+gui_container_get_child_position(gui_container_t *cont, gui_object_t *child,
+				 int *x, int *y)
+{
+	return cont->get_child_position(cont, child, x, y);
+}

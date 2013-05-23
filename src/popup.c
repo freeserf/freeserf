@@ -4489,12 +4489,26 @@ popup_box_handle_event(popup_box_t *popup, const gui_event_t *event)
 	return 0;
 }
 
+int
+popup_box_get_child_position(popup_box_t *popup, gui_object_t *child,
+			     int *x, int *y)
+{
+	if (child == (gui_object_t *)&popup->minimap) {
+		*x = 8;
+		*y = 9;
+		return 0;
+	}
+
+	return -1;
+}
+
 void
 popup_box_init(popup_box_t *popup, interface_t *interface)
 {
 	gui_container_init((gui_container_t *)popup);
 	popup->cont.obj.draw = (gui_draw_func *)popup_box_draw;
 	popup->cont.obj.handle_event = (gui_handle_event_func *)popup_box_handle_event;
+	popup->cont.get_child_position = (gui_get_child_position_func *)popup_box_get_child_position;
 
 	popup->interface = interface;
 

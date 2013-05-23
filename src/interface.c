@@ -854,6 +854,29 @@ interface_set_redraw_child(interface_t *interface, gui_object_t *child)
 	}
 }
 
+int
+interface_get_child_position(interface_t *interface, gui_object_t *child,
+			     int *x, int *y)
+{
+	if (interface->top == child) {
+		*x = 0;
+		*y = 0;
+		return 0;
+	}
+
+	list_elm_t *elm;
+	list_foreach(&interface->floats, elm) {
+		interface_float_t *fl = (interface_float_t *)elm;
+		if (fl->obj == child) {
+			*x = fl->x;
+			*y = fl->y;
+			return 0;
+		}
+	}
+
+	return -1;
+}
+
 static void
 load_serf_animation_table(interface_t *interface)
 {
@@ -887,6 +910,7 @@ interface_init(interface_t *interface)
 	interface->cont.obj.handle_event = (gui_handle_event_func *)interface_handle_event;
 	interface->cont.obj.set_size = (gui_set_size_func *)interface_set_size;
 	interface->cont.set_redraw_child = (gui_set_redraw_child_func *)interface_set_redraw_child;
+	interface->cont.get_child_position = (gui_get_child_position_func *)interface_get_child_position;
 
 	interface->top = NULL;
 	interface->redraw_top = 0;
