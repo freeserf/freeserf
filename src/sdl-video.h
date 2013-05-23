@@ -34,6 +34,8 @@ typedef struct surface surface_t;
 int sdl_init();
 void sdl_deinit();
 int sdl_set_resolution(int width, int height, int fullscreen);
+int sdl_is_fullscreen();
+
 frame_t *sdl_get_screen_frame();
 void sdl_frame_init(frame_t *frame, int x, int y, int width, int height, frame_t *dest);
 int sdl_frame_get_width(const frame_t *frame);

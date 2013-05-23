@@ -413,6 +413,17 @@ game_loop()
 					midi_enable(!midi_is_enabled());
 					break;
 
+					/* Video */
+				case SDLK_f: {
+					if (event.key.keysym.mod & KMOD_CTRL) {
+						frame_t *screen = sdl_get_screen_frame();
+						int width = sdl_frame_get_width(screen);
+						int height = sdl_frame_get_height(screen);
+						sdl_set_resolution(width, height, !sdl_is_fullscreen());
+					}
+				}
+					break;
+
 					/* Misc */
 				case SDLK_ESCAPE:
 					if (BIT_TEST(interface.click, 7)) { /* Building road */

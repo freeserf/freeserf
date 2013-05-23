@@ -48,6 +48,7 @@
 #define MAX_DIRTY_RECTS  128
 
 static frame_t screen;
+static int is_fullscreen;
 static SDL_Color pal_colors[256];
 
 static SDL_Rect dirty_rects[MAX_DIRTY_RECTS];
@@ -207,7 +208,15 @@ sdl_set_resolution(int width, int height, int fullscreen)
 	screen.clip.h = height;
 	SDL_SetClipRect(screen.surf, &screen.clip);
 
+	is_fullscreen = fullscreen;
+
 	return 0;
+}
+
+int
+sdl_is_fullscreen()
+{
+	return is_fullscreen;
 }
 
 static SDL_Surface *
