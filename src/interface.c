@@ -112,7 +112,8 @@ get_map_cursor_type(const player_t *player, map_pos_t pos, panel_btn_t *panel_bt
 		*panel_btn = PANEL_BTN_BUILD_INACTIVE;
 	}
 
-	if (MAP_OBJ(pos) == MAP_OBJ_FLAG) {
+	if (MAP_OBJ(pos) == MAP_OBJ_FLAG &&
+	    MAP_OWNER(pos) == player->player_num) {
 		if (game_can_demolish_flag(pos, player)) {
 			*cursor_type = MAP_CURSOR_TYPE_REMOVABLE_FLAG;
 		} else {
@@ -128,11 +129,14 @@ get_map_cursor_type(const player_t *player, map_pos_t pos, panel_btn_t *panel_bt
 			} else {
 				*cursor_type = MAP_CURSOR_TYPE_CLEAR_BY_PATH;
 			}
-		} else {
+		} else if (MAP_OWNER(pos) == player->player_num) {
 			*cursor_type = MAP_CURSOR_TYPE_PATH;
+		} else {
+			*cursor_type = MAP_CURSOR_TYPE_NONE;
 		}
-	} else if (MAP_OBJ(pos) == MAP_OBJ_SMALL_BUILDING ||
-		   MAP_OBJ(pos) == MAP_OBJ_LARGE_BUILDING) {
+	} else if ((MAP_OBJ(pos) == MAP_OBJ_SMALL_BUILDING ||
+		    MAP_OBJ(pos) == MAP_OBJ_LARGE_BUILDING) &&
+		   MAP_OWNER(pos) == player->player_num) {
 		building_t *bld = game_get_building(MAP_OBJ_INDEX(pos));
 		if (!BUILDING_IS_BURNING(bld)) {
 			*cursor_type = MAP_CURSOR_TYPE_BUILDING;
