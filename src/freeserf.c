@@ -254,7 +254,7 @@ game_loop()
 
 	game_loop_run = 1;
 	while (game_loop_run) {
-		if (SDL_PollEvent(&event)) {
+		while (SDL_PollEvent(&event)) {
 			switch (event.type) {
 			case SDL_MOUSEBUTTONUP:
 				if (drag_button == event.button.button) {
