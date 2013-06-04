@@ -417,14 +417,10 @@ game_loop()
 					break;
 
 					/* Video */
-				case SDLK_f: {
+				case SDLK_f:
 					if (event.key.keysym.mod & KMOD_CTRL) {
-						frame_t *screen = sdl_get_screen_frame();
-						int width = sdl_frame_get_width(screen);
-						int height = sdl_frame_get_height(screen);
-						sdl_set_resolution(width, height, !sdl_is_fullscreen());
+						sdl_set_fullscreen(!sdl_is_fullscreen());
 					}
-				}
 					break;
 
 					/* Misc */

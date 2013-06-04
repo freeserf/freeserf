@@ -214,6 +214,15 @@ sdl_set_resolution(int width, int height, int fullscreen)
 }
 
 int
+sdl_set_fullscreen(int enable)
+{
+	frame_t *screen = sdl_get_screen_frame();
+	int width = sdl_frame_get_width(screen);
+	int height = sdl_frame_get_height(screen);
+	return sdl_set_resolution(width, height, enable);
+}
+
+int
 sdl_is_fullscreen()
 {
 	return is_fullscreen;
