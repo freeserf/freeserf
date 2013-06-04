@@ -236,9 +236,13 @@ game_loop()
 {
 	/* FPS */
 	int fps = 0;
-	int fps_ema = 0;
+	float fps_ema = 0;
 	int fps_target = 25;
-	const float ema_alpha = 0.003;
+	/* TODO: compute alpha dynamically based on frametime */
+	const float ema_alpha = 0.07;
+
+	const int frametime_target = 1000 / fps_target; /* in milliseconds */
+	int last_frame = SDL_GetTicks();
 
 	int drag_button = 0;
 
@@ -247,7 +251,6 @@ game_loop()
 
 	unsigned int current_ticks = SDL_GetTicks();
 	unsigned int accum = 0;
-	unsigned int accum_frames = 0;
 
 	SDL_Event event;
 	gui_event_t ev;
@@ -490,6 +493,11 @@ game_loop()
 		int delta_ticks = new_ticks - current_ticks;
 		current_ticks = new_ticks;
 
+		/* Update FPS EMA per frame */
+		fps = 1000*(1.0 / (float)delta_ticks);
+		if (fps_ema > 0) fps_ema = ema_alpha*fps + (1-ema_alpha)*fps_ema;
+		else if (fps > 0) fps_ema = fps;
+
 		accum += delta_ticks;
 		while (accum >= TICK_LENGTH) {
 			game_update();
@@ -501,17 +509,12 @@ game_loop()
 				if (r < 0) LOGW("main", "Autosave failed.");
 			}
 
-			/* FPS */
-			fps = 1000*((float)accum_frames / accum);
-			if (fps_ema > 0) fps_ema = ema_alpha*fps + (1-ema_alpha)*fps_ema;
-			else if (fps > 0) fps_ema = fps;
-
+			/* Print FPS */
 			if ((game.const_tick % (10*TICKS_PER_SEC)) == 0) {
-				LOGV("main", "FPS: %i", fps_ema);
+				LOGV("main", "FPS: %i", (int)fps_ema);
 			}
 
 			accum -= TICK_LENGTH;
-			accum_frames = 0;
 		}
 
 		/* Update and draw interface */
@@ -529,14 +532,14 @@ game_loop()
 		/* Swap video buffers */
 		sdl_swap_buffers();
 
-		accum_frames += 1;
+		/* Reduce framerate to target if we finished too fast */
+		int now = SDL_GetTicks();
+		int frametime_spent = now - last_frame;
 
-		/* Reduce framerate to target */
-		if (fps_target > 0) {
-			int delay = 0;
-			if (fps_ema > 0) delay = (1000/fps_target) - (1000/fps_ema);
-			if (delay > 0) SDL_Delay(delay);
+		if (frametime_spent < frametime_target) {
+			SDL_Delay(frametime_target - frametime_spent);
 		}
+		last_frame = SDL_GetTicks();
 	}
 }
 
