@@ -45,6 +45,7 @@ typedef struct {
 	viewport_layer_t layers;
 	struct interface *interface;
 	uint last_tick;
+	int show_possible_build;
 } viewport_t;
 
 

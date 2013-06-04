@@ -437,6 +437,9 @@ game_loop()
 				case SDLK_g:
 					interface.viewport.layers ^= VIEWPORT_LAYER_GRID;
 					break;
+				case SDLK_b:
+					interface.viewport.show_possible_build = !interface.viewport.show_possible_build;
+					break;
 				case SDLK_j: {
 					int current = 0;
 					for (int i = 0; i < 4; i++) {

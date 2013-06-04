@@ -2240,8 +2240,66 @@ draw_map_cursor_sprite(viewport_t *viewport, map_pos_t pos, int sprite, frame_t 
 }
 
 static void
+draw_map_cursor_possible_build(viewport_t *viewport, interface_t *interface, frame_t *frame)
+{
+	int x_off = -(viewport->offset_x + 16*(viewport->offset_y/20)) % 32;
+	int y_off = -viewport->offset_y % 20;
+
+	int col_0 = (viewport->offset_x/16 + viewport->offset_y/20)/2 & game.map.col_mask;
+	int row_0 = (viewport->offset_y/MAP_TILE_HEIGHT) & game.map.row_mask;
+	map_pos_t base_pos = MAP_POS(col_0, row_0);
+
+	for (int x_base = x_off; x_base < viewport->obj.width + MAP_TILE_WIDTH; x_base += MAP_TILE_WIDTH) {
+		map_pos_t pos = base_pos;
+		int y_base = y_off;
+		int row = 0;
+
+		while (1) {
+			int x;
+			if (row % 2 == 0) x = x_base;
+			else x = x_base - MAP_TILE_WIDTH/2;
+
+			int y = y_base - 4*MAP_HEIGHT(pos);
+			if (y >= viewport->obj.height) break;
+
+			/* Draw possible building */
+			int sprite = -1;
+			if (game_can_build_castle(pos, interface->player)) {
+				sprite = 50;
+			} else if (game_can_player_build(pos, interface->player) &&
+				   map_space_from_obj[MAP_OBJ(pos)] == MAP_SPACE_OPEN &&
+				   game_can_build_flag(MAP_MOVE_DOWN_RIGHT(pos), interface->player)) {
+				if (game_can_build_mine(pos)) {
+					sprite = 48;
+				} else if (game_can_build_large(pos)) {
+					sprite = 50;
+				} else if (game_can_build_small(pos)) {
+					sprite = 49;
+				}
+			}
+
+			if (sprite >= 0) {
+				draw_game_sprite(x, y, sprite, frame);
+			}
+
+			if (row % 2 == 0) pos = MAP_MOVE_DOWN(pos);
+			else pos = MAP_MOVE_DOWN_RIGHT(pos);
+
+			y_base += MAP_TILE_HEIGHT;
+			row += 1;
+		}
+
+		base_pos = MAP_MOVE_RIGHT(base_pos);
+	}
+}
+
+static void
 draw_map_cursor(viewport_t *viewport, interface_t *interface, frame_t *frame)
 {
+	if (viewport->show_possible_build) {
+		draw_map_cursor_possible_build(viewport, interface, frame);
+	}
+
 	draw_map_cursor_sprite(viewport, interface->map_cursor_pos,
 			       interface->map_cursor_sprites[0].sprite, frame);
 
@@ -2576,6 +2634,7 @@ viewport_init(viewport_t *viewport, interface_t *interface)
 	viewport->layers = VIEWPORT_LAYER_ALL;
 
 	viewport->last_tick = 0;
+	viewport->show_possible_build = 0;
 }
 
 /* Space transformations. */
