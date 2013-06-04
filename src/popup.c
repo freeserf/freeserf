@@ -275,10 +275,12 @@ typedef enum {
 	ACTION_SETT_8_CASTLE_DEF_DEC,
 	ACTION_SETT_8_CASTLE_DEF_INC,
 	ACTION_OPTIONS_MUSIC,
-	ACTION_OPTIONS_SVGA,
+	ACTION_OPTIONS_FULLSCREEN,
 	ACTION_OPTIONS_VOLUME_MINUS,
 	ACTION_OPTIONS_VOLUME_PLUS,
-	ACTION_DEMOLISH
+	ACTION_DEMOLISH,
+
+	ACTION_OPTIONS_SFX
 } action_t;
 
 
@@ -1728,66 +1730,41 @@ draw_options_box(popup_box_t *popup, frame_t *frame)
 {
 	draw_box_background(310, frame);
 
-	draw_popup_icon(0, 0, 311, frame);
-	draw_popup_icon(2, 0, 311, frame);
-	draw_popup_icon(4, 0, 311, frame);
-	draw_popup_icon(10, 0, 311, frame);
-	draw_popup_icon(12, 0, 311, frame);
-	draw_popup_icon(14, 0, 311, frame);
-
-	draw_popup_icon(0, 8, 311, frame);
-	draw_popup_icon(2, 8, 311, frame);
-	draw_popup_icon(4, 8, 311, frame);
-	draw_popup_icon(10, 8, 311, frame);
-	draw_popup_icon(12, 8, 311, frame);
-	draw_popup_icon(14, 8, 311, frame);
-
-	draw_green_string(0, 2, frame, "Left       Right");
-	draw_green_string(0, 11, frame, "side        side");
-
-	draw_green_string(2, 28, frame, "  Pathway-");
-	draw_green_string(2, 37, frame, " scrolling");
-	draw_green_string(2, 48, frame, "    Fast");
-	draw_green_string(2, 57, frame, "  map click");
-	draw_green_string(2, 68, frame, "    Fast");
-	draw_green_string(2, 77, frame, "  building");
-
 	interface_t *interface = popup->interface;
 
-	char *messages = strdup("    Messages    ");
-	messages[0] = '3';
-	if (!BIT_TEST(interface->config, 3)) {
-		messages[0] = '2';
-		if (!BIT_TEST(interface->config, 4)) {
-			messages[0] = '1';
-			if (!BIT_TEST(interface->config, 5)) {
-				messages[0] = '0';
-			}
-		}
-	}
-	draw_green_string(0, 88, frame, messages);
-	free(messages);
+	draw_green_string(1, 14, frame, "Music");
+	draw_green_string(1, 30, frame, "Sound");
+	draw_green_string(1, 39, frame, "effects");
+	draw_green_string(1, 54, frame, "Volume");
 
-	draw_popup_icon(7, 0, 60, frame); /* exit */
-
-	draw_popup_icon(0, 28, BIT_TEST(interface->config, 0) ? 288 : 220, frame);
-	draw_popup_icon(0, 48, BIT_TEST(interface->config, 1) ? 288 : 220, frame);
-	draw_popup_icon(0, 68, BIT_TEST(interface->config, 2) ? 288 : 220, frame);
-
-	draw_green_string(2, 110, frame, "Music");
-	draw_green_string(7, 105, frame, "  SVGA"); /* TODO replace with fullscreen? */
-	draw_green_string(7, 114, frame, "  mode"); /* TODO replace with fullscreen? */
-	draw_green_string(0, 125, frame, ""); /* What is it? Look on Amiga?. */
-	draw_green_string(0, 134, frame, " Volume:");
-
-	draw_popup_icon(0, 106, midi_is_enabled() ? 288 : 220, frame); /* Music */
-	draw_popup_icon(14, 106, 288, frame); /* SVGA */ /* TODO replace with fullscreen? */
-	draw_popup_icon(12, 126, 220, frame); /* Volude minus */
-	draw_popup_icon(14, 126, 221, frame); /* Volude plus */
+	draw_popup_icon(13, 10, midi_is_enabled() ? 288 : 220, frame); /* Music */
+	draw_popup_icon(13, 30, sfx_is_enabled() ? 288 : 220, frame); /* Sfx */
+	draw_popup_icon(11, 50, 220, frame); /* Volude minus */
+	draw_popup_icon(13, 50, 221, frame); /* Volude plus */
 
 	char volume[4] = {0};
 	sprintf(volume, "%d", audio_volume());
-	draw_green_string(9, 134, frame, volume);
+	draw_green_string(8, 54, frame, volume);
+
+	draw_green_string(1, 70, frame, "Fullscreen");
+	draw_green_string(1, 79, frame, "video");
+
+	draw_popup_icon(13, 70, sdl_is_fullscreen() ? 288 : 220, frame); /* Fullscreen mode */
+
+	const char *value = "All";
+	if (!BIT_TEST(interface->config, 3)) {
+		value = "Most";
+		if (!BIT_TEST(interface->config, 4)) {
+			value = "Few";
+			if (!BIT_TEST(interface->config, 5)) {
+				value = "None";
+			}
+		}
+	}
+	draw_green_string(1, 94, frame, "Messages");
+	draw_green_string(11, 94, frame, value);
+
+	draw_popup_icon(14, 128, 60, frame); /* exit */
 }
 
 static void
@@ -3420,21 +3397,6 @@ handle_action(interface_t *interface, action_t action, int x, int y)
 	case ACTION_CLOSE_OPTIONS:
 		interface_close_popup(interface);
 		break;
-	case ACTION_OPTIONS_PATHWAY_SCROLLING_1:
-		BIT_INVERT(interface->config, 0);
-		break;
-	case ACTION_OPTIONS_PATHWAY_SCROLLING_2:
-		break;
-	case ACTION_OPTIONS_FAST_MAP_CLICK_1:
-		BIT_INVERT(interface->config, 1);
-		break;
-	case ACTION_OPTIONS_FAST_MAP_CLICK_2:
-		break;
-	case ACTION_OPTIONS_FAST_BUILDING_1:
-		BIT_INVERT(interface->config, 2);
-		break;
-	case ACTION_OPTIONS_FAST_BUILDING_2:
-		break;
 	case ACTION_OPTIONS_MESSAGE_COUNT_1:
 		if (BIT_TEST(interface->config, 3)) {
 			BIT_INVERT(interface->config, 3);
@@ -3447,8 +3409,6 @@ handle_action(interface_t *interface, action_t action, int x, int y)
 		} else {
 			interface->config |= BIT(3) | BIT(4) | BIT(5);
 		}
-		break;
-	case ACTION_OPTIONS_MESSAGE_COUNT_2:
 		break;
 	case ACTION_DEFAULT_SETT_1:
 		interface_open_popup(interface, BOX_SETT_1);
@@ -3632,8 +3592,12 @@ handle_action(interface_t *interface, action_t action, int x, int y)
 		midi_enable(!midi_is_enabled());
 		sfx_play_clip(SFX_CLICK);
 		break;
-	case ACTION_OPTIONS_SVGA:
-		/* TODO */
+	case ACTION_OPTIONS_SFX:
+		sfx_enable(!sfx_is_enabled());
+		sfx_play_clip(SFX_CLICK);
+		break;
+	case ACTION_OPTIONS_FULLSCREEN:
+		sdl_set_fullscreen(!sdl_is_fullscreen());
 		sfx_play_clip(SFX_CLICK);
 		break;
 	case ACTION_OPTIONS_VOLUME_MINUS:
@@ -3687,20 +3651,13 @@ static void
 handle_box_options_clk(interface_t *interface, int x, int y)
 {
 	const int clkmap[] = {
-		ACTION_CLOSE_OPTIONS, 56, 0, 16, 16,
-		ACTION_OPTIONS_PATHWAY_SCROLLING_1, 0, 28, 16, 16,
-		ACTION_OPTIONS_FAST_MAP_CLICK_1, 0, 48, 16, 16,
-		ACTION_OPTIONS_FAST_BUILDING_1, 0, 68, 16, 16,
-		ACTION_OPTIONS_PATHWAY_SCROLLING_2, 112, 28, 16, 16,
-		ACTION_OPTIONS_FAST_MAP_CLICK_2, 112, 48, 16, 16,
-		ACTION_OPTIONS_FAST_BUILDING_2, 112, 68, 16, 16,
-		ACTION_OPTIONS_MESSAGE_COUNT_1, 0, 88, 9, 8,
-		ACTION_OPTIONS_MESSAGE_COUNT_2, 120, 88, 8, 8,
-		ACTION_OPTIONS_MUSIC, 0, 106, 16, 16,
-		ACTION_OPTIONS_SVGA, 112, 106, 16, 16,
-		ACTION_OPTIONS_VOLUME_MINUS, 96, 126, 16, 16,
-		ACTION_OPTIONS_VOLUME_PLUS, 112, 126, 16, 16,
-		ACTION_OPTIONS_RIGHT_SIDE, 88, 0, 40, 16,
+		ACTION_OPTIONS_MUSIC, 106, 10, 16, 16,
+		ACTION_OPTIONS_SFX, 106, 30, 16, 16,
+		ACTION_OPTIONS_VOLUME_MINUS, 90, 50, 16, 16,
+		ACTION_OPTIONS_VOLUME_PLUS, 106, 50, 16, 16,
+		ACTION_OPTIONS_FULLSCREEN, 106, 70, 16, 16,
+		ACTION_OPTIONS_MESSAGE_COUNT_1, 90, 90, 32, 16,
+		ACTION_CLOSE_OPTIONS, 112, 126, 16, 16,
 		-1
 	};
 	handle_clickmap(interface, x, y, clkmap);
