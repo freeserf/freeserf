@@ -8,12 +8,14 @@ Copy the data file from the original game to the same directory as freeserf. Alt
 Keyboard controls:
 
 * `1`, `2`, `3`, `4`, `5`: Activate one of the five buttons in the panel.
+* `b`: Toggle overlay showing possibilities for constructions.
 * `+`/`-`: Increase/decrease game speed.
 * `0`: Reset game speed.
 * `p`: Pause game.
 * `s`: Enable/disable sounds playback
 * `m`: Enable/disable music playback
 * CTRL+`z`: Save game in current directory.
+* CTRL+`f`: Switch fullscreen mode on/off.
 
 
 Save games
