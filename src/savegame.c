@@ -1738,6 +1738,8 @@ load_text_player_section(section_t *section)
 	int n = atoi(section->param);
 	player_t *player = game.player[n];
 
+	player->player_num = n;
+
 	/* Load the player state. */
 	list_elm_t *elm;
 	list_foreach(&section->settings, elm) {
