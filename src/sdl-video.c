@@ -257,6 +257,12 @@ sdl_frame_init(frame_t *frame, int x, int y, int width, int height, frame_t *des
 	frame->clip.h = height;
 }
 
+void
+sdl_frame_deinit(frame_t *frame)
+{
+	SDL_FreeSurface(frame->surf);
+}
+
 int
 sdl_frame_get_width(const frame_t *frame)
 {

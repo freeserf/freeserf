@@ -39,6 +39,7 @@ int sdl_is_fullscreen();
 
 frame_t *sdl_get_screen_frame();
 void sdl_frame_init(frame_t *frame, int x, int y, int width, int height, frame_t *dest);
+void sdl_frame_deinit(frame_t *frame);
 int sdl_frame_get_width(const frame_t *frame);
 int sdl_frame_get_height(const frame_t *frame);
 
