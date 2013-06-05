@@ -26,6 +26,7 @@
 #include "audio.h"
 #include "viewport.h"
 #include "panel.h"
+#include "game-init.h"
 #include "game.h"
 #include "sdl-video.h"
 #include "data.h"
@@ -79,6 +80,25 @@ interface_close_popup(interface_t *interface)
 	interface->click |= BIT(1);
 	interface->clkmap = 0;
 	interface->click |= BIT(2);
+
+	interface_update_map_cursor_pos(interface,
+					interface->map_cursor_pos);
+}
+
+void
+interface_open_game_init(interface_t *interface)
+{
+	gui_object_set_displayed((gui_object_t *)&interface->init_box, 1);
+	gui_object_set_enabled((gui_object_t *)&interface->panel, 0);
+	gui_object_set_enabled((gui_object_t *)&interface->viewport, 0);
+}
+
+void
+interface_close_game_init(interface_t *interface)
+{
+	gui_object_set_displayed((gui_object_t *)&interface->init_box, 0);
+	gui_object_set_enabled((gui_object_t *)&interface->panel, 1);
+	gui_object_set_enabled((gui_object_t *)&interface->viewport, 1);
 
 	interface_update_map_cursor_pos(interface,
 					interface->map_cursor_pos);
@@ -842,6 +862,11 @@ interface_set_size(interface_t *interface, int width, int height)
 	interface->map_cursor_col_max = 2*interface->game_area_cols + 8/*76*/;
 	interface->map_cursor_col_off = 0/*36*/;
 
+	int init_box_width = 360;
+	int init_box_height = 174;
+	int init_box_x = (width - init_box_width) / 2;
+	int init_box_y = (height - init_box_height) / 2;
+
 	gui_object_set_size(interface->top, width, height);
 	interface->redraw_top = 1;
 
@@ -860,6 +885,12 @@ interface_set_size(interface_t *interface, int width, int height)
 			fl->redraw = 1;
 			gui_object_set_size(fl->obj, interface->bottom_panel_width,
 					    interface->bottom_panel_height);
+		} else if (fl->obj == (gui_object_t *)&interface->init_box) {
+			fl->x = init_box_x;
+			fl->y = init_box_y;
+			fl->redraw = 1;
+			gui_object_set_size(fl->obj, init_box_width,
+					    init_box_height);
 		}
 	}
 
@@ -973,6 +1004,12 @@ interface_init(interface_t *interface)
 	interface_add_float(interface, (gui_object_t *)&interface->popup,
 			    0, 0, 0, 0);
 	interface_add_float(interface, (gui_object_t *)&interface->panel,
+			    0, 0, 0, 0);
+
+	/* Game init box */
+	game_init_box_init(&interface->init_box, interface);
+	gui_object_set_displayed((gui_object_t *)&interface->init_box, 1);
+	interface_add_float(interface, (gui_object_t *)&interface->init_box,
 			    0, 0, 0, 0);
 
 	interface->map_cursor_pos = MAP_POS(0, 0);

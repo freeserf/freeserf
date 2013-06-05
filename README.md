@@ -5,17 +5,21 @@ Play
 ------
 Copy the data file from the original game to the same directory as freeserf. Alternatively you can put the data file in `~/.local/share/freeserf`. The data file is called `SPAE.PA`, `SPAD.PA`, `SPAF.PA` or `SPAU.PA`, depending on the language of the game.
 
-Keyboard controls:
+Keyboard gameplay controls:
 
 * `1`, `2`, `3`, `4`, `5`: Activate one of the five buttons in the panel.
 * `b`: Toggle overlay showing possibilities for constructions.
 * `+`/`-`: Increase/decrease game speed.
 * `0`: Reset game speed.
 * `p`: Pause game.
+
+Other keyboard controls:
+
+* `F10`: Return to main menu to start a new game
 * `s`: Enable/disable sounds playback
 * `m`: Enable/disable music playback
-* CTRL+`z`: Save game in current directory.
 * CTRL+`f`: Switch fullscreen mode on/off.
+* CTRL+`z`: Save game in current directory.
 
 
 Save games

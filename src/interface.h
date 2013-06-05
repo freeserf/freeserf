@@ -25,6 +25,7 @@
 #include "gui.h"
 #include "viewport.h"
 #include "panel.h"
+#include "game-init.h"
 #include "list.h"
 #include "popup.h"
 #include "player.h"
@@ -62,6 +63,7 @@ struct interface {
 	viewport_t viewport;
 	panel_bar_t panel;
 	popup_box_t popup;
+	game_init_box_t init_box;
 
 	map_pos_t map_cursor_pos;
 	map_cursor_type_t map_cursor_type;
@@ -174,6 +176,9 @@ popup_box_t *interface_get_popup_box(interface_t *interface);
 
 void interface_open_popup(interface_t *interface, int box);
 void interface_close_popup(interface_t *interface);
+
+void interface_open_game_init(interface_t *interface);
+void interface_close_game_init(interface_t *interface);
 
 void interface_update_map_cursor_pos(interface_t *interface, map_pos_t pos);
 
