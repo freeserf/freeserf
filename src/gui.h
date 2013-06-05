@@ -58,6 +58,7 @@ typedef void gui_set_size_func(gui_object_t *obj, int width, int height);
 struct gui_object {
 	int width, height;
 	int displayed;
+	int enabled;
 	int redraw;
 	gui_container_t *parent;
 
@@ -88,6 +89,7 @@ void gui_object_redraw(gui_object_t *obj, frame_t *frame);
 int gui_object_handle_event(gui_object_t *obj, const gui_event_t *event);
 void gui_object_set_size(gui_object_t *obj, int width, int height);
 void gui_object_set_displayed(gui_object_t *obj, int displayed);
+void gui_object_set_enabled(gui_object_t *obj, int enabled);
 void gui_object_set_redraw(gui_object_t *obj);
 
 void gui_container_init(gui_container_t *cont);

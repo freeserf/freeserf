@@ -190,18 +190,21 @@ draw_panel_buttons(panel_bar_t *panel, frame_t *frame)
 		}
 	}
 
+	const int inactive_buttons[] = {
+		PANEL_BTN_BUILD_INACTIVE,
+		PANEL_BTN_DESTROY_INACTIVE,
+		PANEL_BTN_MAP_INACTIVE,
+		PANEL_BTN_STATS_INACTIVE,
+		PANEL_BTN_SETT_INACTIVE
+	};
+
 	for (int i = 0; i < 5; i++) {
-		int new = interface->panel_btns[i];
-		/*int set = interface->panel_btns_set[i];*/
-		/*if (new == set) continue;*/
-
-		/* TODO request panel redraw */
-
-		interface->panel_btns_set[i] = new;
+		int button = interface->panel_btns[i];
+		if (!panel->obj.enabled) button = inactive_buttons[i];
 
 		int x = interface->panel_btns_x + i*interface->panel_btns_dist;
 		int y = 4;
-		int sprite = DATA_FRAME_BUTTON_BASE + new;
+		int sprite = DATA_FRAME_BUTTON_BASE + button;
 
 		gfx_draw_sprite(x, y, sprite, frame);
 	}

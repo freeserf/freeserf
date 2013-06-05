@@ -49,6 +49,7 @@ gui_object_init(gui_object_t *obj)
 	obj->width = 0;
 	obj->height = 0;
 	obj->displayed = 0;
+	obj->enabled = 1;
 	obj->redraw = 0;
 	obj->parent = NULL;
 
@@ -65,6 +66,7 @@ gui_object_redraw(gui_object_t *obj, frame_t *frame)
 int
 gui_object_handle_event(gui_object_t *obj, const gui_event_t *event)
 {
+	if (!obj->enabled) return 0;
 	return obj->handle_event(obj, event);
 }
 
@@ -83,6 +85,12 @@ gui_object_set_displayed(gui_object_t *obj, int displayed)
 	} else if (obj->parent != NULL) {
 		gui_object_set_redraw((gui_object_t *)obj->parent);
 	}
+}
+
+void
+gui_object_set_enabled(gui_object_t *obj, int enabled)
+{
+	obj->enabled = enabled;
 }
 
 void
