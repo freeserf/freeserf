@@ -191,26 +191,6 @@ typedef struct {
 	int reproduction;
 } player_init_t;
 
-typedef struct {
-	/* 8 */
-	random_state_t rnd;
-	int pl_0_supplies;
-	int pl_0_reproduction;
-	int pl_1_face;
-	int pl_1_intelligence;
-	int pl_1_supplies;
-	int pl_1_reproduction;
-	int pl_2_face;
-	int pl_2_intelligence;
-	int pl_2_supplies;
-	int pl_2_reproduction;
-	int pl_3_face;
-	int pl_3_intelligence;
-	int pl_3_supplies;
-	int pl_3_reproduction;
-	/* ... */
-} map_spec_t;
-
 typedef struct inventory inventory_t;
 
 struct inventory {

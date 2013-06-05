@@ -31,6 +31,7 @@
 #include "player.h"
 #include "flag.h"
 #include "building.h"
+#include "mission.h"
 #include "random.h"
 #include "log.h"
 #include "savegame.h"
@@ -4881,7 +4882,6 @@ reset_player_settings()
 
 		player_init_t *init = &game.pl_init[i];
 		if (init->face != 0) {
-			LOGD("game", "Active player %i", i);
 			player->flags |= BIT(6); /* Player active */
 			if (init->face < 12) { /* AI player */
 				player->flags |= BIT(7); /* Set AI bit */
@@ -5053,74 +5053,17 @@ static int
 load_map_spec()
 {
 	/* Only the three first are available for now. */
-	const map_spec_t mission[] = {
-		{
-			/* Mission 1: START */
-			.rnd = {{ 0x6d6f, 0xf7f0, 0xc8d4 }},
-
-			.pl_0_supplies = 35,
-			.pl_0_reproduction = 30,
-
-			.pl_1_face = 1,
-			.pl_1_intelligence = 10,
-			.pl_1_supplies = 5,
-			.pl_1_reproduction = 30,
-		}, {
-			/* Mission 2: STATION */
-			.rnd = {{ 0x60b9, 0xe728, 0xc484 }},
-
-			.pl_0_supplies = 30,
-			.pl_0_reproduction = 40,
-
-			.pl_1_face = 2,
-			.pl_1_intelligence = 12,
-			.pl_1_supplies = 15,
-			.pl_1_reproduction = 30,
-
-			.pl_2_face = 3,
-			.pl_2_intelligence = 14,
-			.pl_2_supplies = 15,
-			.pl_2_reproduction = 30
-		}, {
-			/* Mission 3: UNITY */
-			.rnd = {{ 0x12ab, 0x7a4a, 0xe483 }},
-
-			.pl_0_supplies = 30,
-			.pl_0_reproduction = 30,
-
-			.pl_1_face = 2,
-			.pl_1_intelligence = 18,
-			.pl_1_supplies = 10,
-			.pl_1_reproduction = 25,
-
-			.pl_2_face = 4,
-			.pl_2_intelligence = 18,
-			.pl_2_supplies = 10,
-			.pl_2_reproduction = 25
-		}
-	};
-
 	int m = game.mission_level;
 
+	for (int i = 0; i < 4; i++) {
+		game.pl_init[i].face = mission[m].player[i].face;
+		game.pl_init[i].supplies = mission[m].player[i].supplies;
+		game.pl_init[i].intelligence = mission[m].player[i].intelligence;
+		game.pl_init[i].reproduction = mission[m].player[i].reproduction;
+	}
+
 	game.pl_init[0].face = 12;
-	game.pl_init[0].supplies = mission[m].pl_0_supplies;
 	game.pl_init[0].intelligence = 40;
-	game.pl_init[0].reproduction = mission[m].pl_0_reproduction;
-
-	game.pl_init[1].face = mission[m].pl_1_face;
-	game.pl_init[1].supplies = mission[m].pl_1_supplies;
-	game.pl_init[1].intelligence = mission[m].pl_1_intelligence;
-	game.pl_init[1].reproduction = mission[m].pl_1_reproduction;
-
-	game.pl_init[2].face = mission[m].pl_2_face;
-	game.pl_init[2].supplies = mission[m].pl_2_supplies;
-	game.pl_init[2].intelligence = mission[m].pl_2_intelligence;
-	game.pl_init[2].reproduction = mission[m].pl_2_reproduction;
-
-	game.pl_init[3].face = mission[m].pl_3_face;
-	game.pl_init[3].supplies = mission[m].pl_3_supplies;
-	game.pl_init[3].intelligence = mission[m].pl_3_intelligence;
-	game.pl_init[3].reproduction = mission[m].pl_3_reproduction;
 
 	/* TODO ... */
 
