@@ -5048,43 +5048,9 @@ init_spiral_pos_pattern()
 	}
 }
 
-/* Initialize map parameters from mission number. */
-static int
-load_map_spec()
+static void
+game_init_map()
 {
-	/* Only the three first are available for now. */
-	int m = game.mission_level;
-
-	for (int i = 0; i < 4; i++) {
-		game.pl_init[i].face = mission[m].player[i].face;
-		game.pl_init[i].supplies = mission[m].player[i].supplies;
-		game.pl_init[i].intelligence = mission[m].player[i].intelligence;
-		game.pl_init[i].reproduction = mission[m].player[i].reproduction;
-	}
-
-	game.pl_init[0].face = 12;
-	game.pl_init[0].intelligence = 40;
-
-	/* TODO ... */
-
-	memcpy(&game.init_map_rnd, &mission[m].rnd,
-	       sizeof(random_state_t));
-
-	int map_size = 3;
-
-	game.init_map_rnd.state[0] ^= 0x5a5a;
-	game.init_map_rnd.state[1] ^= 0xa5a5;
-	game.init_map_rnd.state[2] ^= 0xc3c3;
-
-	return map_size;
-}
-
-int
-game_load_random_map()
-{
-	/* Initialize map */
-	game.map_size = load_map_spec();
-
 	game.map.col_size = 5 + game.map_size/2;
 	game.map.row_size = 5 + (game.map_size - 1)/2;
 	game.map.cols = 1 << game.map.col_size;
@@ -5122,6 +5088,59 @@ game_load_random_map()
 	map_init_minimap();
 
 	reset_player_settings();
+}
+
+int
+game_load_mission_map(int m)
+{
+	for (int i = 0; i < 4; i++) {
+		game.pl_init[i].face = mission[m].player[i].face;
+		game.pl_init[i].supplies = mission[m].player[i].supplies;
+		game.pl_init[i].intelligence = mission[m].player[i].intelligence;
+		game.pl_init[i].reproduction = mission[m].player[i].reproduction;
+	}
+
+	game.pl_init[0].face = 12;
+	game.pl_init[0].intelligence = 40;
+
+	/* TODO ... */
+
+	memcpy(&game.init_map_rnd, &mission[m].rnd,
+	       sizeof(random_state_t));
+
+	game.mission_level = m;
+	game.map_size = 3;
+	game.map_preserve_bugs = 1;
+
+	game.init_map_rnd.state[0] ^= 0x5a5a;
+	game.init_map_rnd.state[1] ^= 0xa5a5;
+	game.init_map_rnd.state[2] ^= 0xc3c3;
+
+	game_init_map();
+
+	return 0;
+}
+
+int
+game_load_random_map(int size, const random_state_t *rnd)
+{
+	if (size < 3 || size > 10) return -1;
+
+	game.pl_init[0].face = 12;
+	game.pl_init[0].intelligence = 40;
+	game.pl_init[0].supplies = 40;
+	game.pl_init[0].reproduction = 40;
+
+	for (int i = 1; i < 4; i++) {
+		game.pl_init[i].face = 0;
+	}
+
+	game.map_size = size;
+	game.map_preserve_bugs = 0;
+
+	memcpy(&game.init_map_rnd, rnd, sizeof(random_state_t));
+
+	game_init_map();
 
 	return 0;
 }

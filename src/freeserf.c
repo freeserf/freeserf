@@ -46,6 +46,7 @@
 #include "log.h"
 #include "audio.h"
 #include "savegame.h"
+#include "mission.h"
 #include "version.h"
 
 #define DEFAULT_SCREEN_WIDTH  800
@@ -678,17 +679,17 @@ load_data_file(const char *path)
 	"Usage: %s [-g DATA-FILE]\n"
 #define HELP							\
 	USAGE							\
-	" -d NUM\t\tSet debug output level\n"			\
-	" -f\t\tFullscreen mode (CTRL-q to exit)\n"		\
-	" -g DATA-FILE\tUse specified data file\n"		\
-	" -h\t\tShow this help text\n"				\
-	" -l FILE\tLoad saved game\n"				\
-	" -m MAP\t\tSelect world map (1-3)\n"			\
-	" -p\t\tPreserve map bugs of the original game\n"	\
-	" -r RES\t\tSet display resolution (e.g. 800x600)\n"	\
-	" -t GEN\t\tMap generator (0 or 1)\n"			\
-	"\n"							\
-	"Please report bugs to " PACKAGE_BUGREPORT "\n"
+	" -d NUM\t\tSet debug output level\n"				\
+	" -f\t\tFullscreen mode (CTRL-q to exit)\n"			\
+	" -g DATA-FILE\tUse specified data file\n"			\
+	" -h\t\tShow this help text\n"					\
+	" -l FILE\tLoad saved game\n"					\
+	" -m MAP\t\tSelect mission map (1-30)\n"			\
+	" -n SIZE\tSelect size of random map (3-10)\n"			\
+	" -r RES\t\tSet display resolution (e.g. 800x600)\n"		\
+	" -t GEN\t\tMap generator (0 or 1)\n"				\
+	"\n"								\
+	"Please report bugs to <" PACKAGE_BUGREPORT ">\n"
 
 int
 main(int argc, char *argv[])
@@ -701,15 +702,15 @@ main(int argc, char *argv[])
 	int screen_width = DEFAULT_SCREEN_WIDTH;
 	int screen_height = DEFAULT_SCREEN_HEIGHT;
 	int fullscreen = 0;
-	int game_map = 1;
+	int game_mission = -1;
+	int map_size = 3;
 	int map_generator = 0;
-	int preserve_map_bugs = 0;
 
 	int log_level = DEFAULT_LOG_LEVEL;
 
 	int opt;
 	while (1) {
-		opt = getopt(argc, argv, "d:fg:hl:m:pr:t:");
+		opt = getopt(argc, argv, "d:fg:hl:m:n:r:t:");
 		if (opt < 0) break;
 
 		switch (opt) {
@@ -739,10 +740,10 @@ main(int argc, char *argv[])
 			strcpy(save_file, optarg);
 			break;
 		case 'm':
-			game_map = atoi(optarg);
+			game_mission = atoi(optarg);
 			break;
-		case 'p':
-			preserve_map_bugs = 1;
+		case 'n':
+			map_size = atoi(optarg);
 			break;
 		case 'r':
 		{
@@ -798,9 +799,7 @@ main(int argc, char *argv[])
 	r = sdl_set_resolution(screen_width, screen_height, fullscreen);
 	if (r < 0) exit(EXIT_FAILURE);
 
-	game.mission_level = game_map - 1; /* set game map */
 	game.map_generator = map_generator;
-	game.map_preserve_bugs = preserve_map_bugs;
 
 	/* Init globals */
 	allocate_global_memory();
@@ -817,11 +816,23 @@ main(int argc, char *argv[])
 		int r = game_load_save_game(save_file);
 		if (r < 0) exit(EXIT_FAILURE);
 		free(save_file);
+	} else if (game_mission < 0) {
+		random_state_t rnd = {{ 0x5a5a, time(NULL) >> 16, time(NULL) }};
+		int r = game_load_random_map(map_size, &rnd);
+		if (r < 0) exit(EXIT_FAILURE);
 	} else {
-		game_load_random_map();
+		if (game_mission < 1 || game_mission > mission_count) {
+			LOGE("main", "Invalid mission selected (available 1-%i)",
+			     mission_count);
+			exit(EXIT_FAILURE);
+		}
+		int r = game_load_mission_map(game_mission-1);
+		if (r < 0) exit(EXIT_FAILURE);
 	}
 
 	/* Move viewport to initial position */
+	viewport_map_reinit();
+	interface_update_map_cursor_pos(&interface, interface.map_cursor_pos);
 	viewport_move_to_map_pos(&interface.viewport, interface.map_cursor_pos);
 
 	/* Start game loop */
