@@ -4028,6 +4028,8 @@ demolish_flag(map_pos_t pos)
 	}
 
 	flag_t *flag = game_get_flag(MAP_OBJ_INDEX(pos));
+	assert(!FLAG_HAS_BUILDING(flag));
+
 	flag_remove_player_refs(flag);
 
 	/* Handle connected flag. */
@@ -4182,6 +4184,9 @@ static int
 demolish_building(map_pos_t pos)
 {
 	building_t *building = game_get_building(MAP_OBJ_INDEX(pos));
+
+	if (BUILDING_IS_BURNING(building)) return 0;
+
 	building_remove_player_refs(building);
 
 	player_t *player = game.player[BUILDING_PLAYER(building)];
@@ -4205,6 +4210,7 @@ demolish_building(map_pos_t pos)
 
 	/* Update land owner ship if the building is military. */
 	if (BUILDING_IS_DONE(building) &&
+	    BUILDING_IS_ACTIVE(building) &&
 	    (BUILDING_TYPE(building) == BUILDING_HUT ||
 	     BUILDING_TYPE(building) == BUILDING_TOWER ||
 	     BUILDING_TYPE(building) == BUILDING_FORTRESS ||
@@ -4440,7 +4446,7 @@ game_surrender_land(map_pos_t pos)
 
 	/* Remove roads and building around pos. */
 	for (dir_t d = DIR_RIGHT; d <= DIR_UP; d++) {
-		map_pos_t p = MAP_POS_ADD(pos, game.spiral_pos_pattern[1+d]);
+		map_pos_t p = MAP_MOVE(pos, d);
 
 		if (MAP_OBJ(p) >= MAP_OBJ_SMALL_BUILDING &&
 		    MAP_OBJ(p) <= MAP_OBJ_CASTLE) {
