@@ -278,6 +278,14 @@ int landscape_frame_init = 0;
 int landscape_frame_redraw = 0;
 
 void
+viewport_map_reinit()
+{
+	sdl_frame_deinit(&landscape_frame);
+	landscape_frame_init = 0;
+	landscape_frame_redraw = 1;
+}
+
+void
 viewport_redraw_map_pos(map_pos_t pos)
 {
 	/* Ignore pos for now. */

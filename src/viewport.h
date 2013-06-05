@@ -59,6 +59,7 @@ void viewport_screen_pix_from_map_pix(viewport_t *viewport, int mx, int my, int 
 void viewport_map_pix_from_map_coord(viewport_t *viewport, map_pos_t pos, int h, int *mx, int *my);
 map_pos_t viewport_map_pos_from_screen_pix(viewport_t *viewport, int x, int y);
 
+void viewport_map_reinit();
 void viewport_redraw_map_pos(map_pos_t pos);
 
 void viewport_update(viewport_t *viewport);
