@@ -2675,7 +2675,8 @@ handle_serf_lost_state(serf_t *serf)
 
 			if (MAP_HAS_FLAG(dest)) {
 				flag_t *flag = game_get_flag(MAP_OBJ_INDEX(dest));
-				if (FLAG_LAND_PATHS(flag) != 0 &&
+				if ((FLAG_LAND_PATHS(flag) != 0 ||
+				     (FLAG_HAS_INVENTORY(flag) && FLAG_ACCEPTS_SERFS(flag))) &&
 				    MAP_HAS_OWNER(dest) && MAP_OWNER(dest) == SERF_PLAYER(serf)) {
 					if (SERF_TYPE(serf) >= SERF_KNIGHT_0 &&
 					    SERF_TYPE(serf) <= SERF_KNIGHT_4) {
