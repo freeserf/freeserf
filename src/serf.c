@@ -1767,15 +1767,46 @@ serf_drop_resource(serf_t *serf, resource_type_t res)
 	}
 }
 
+/* Serf will try to find the closest inventory from current position, either
+   by following the roads if it is already at a flag, otherwise it will try
+   to find a flag nearby. */
+static void
+serf_find_inventory(serf_t *serf)
+{
+	if (MAP_HAS_FLAG(serf->pos)) {
+		flag_t *flag = game_get_flag(MAP_OBJ_INDEX(serf->pos));
+		if ((FLAG_LAND_PATHS(flag) != 0 ||
+		     (FLAG_HAS_INVENTORY(flag) && FLAG_ACCEPTS_SERFS(flag))) &&
+		     MAP_OWNER(serf->pos) == SERF_PLAYER(serf)) {
+			serf_log_state_change(serf, SERF_STATE_WALKING);
+			serf->state = SERF_STATE_WALKING;
+			serf->s.walking.res = -2;
+			serf->s.walking.dest = 0;
+			serf->s.walking.dir = 0;
+			serf->counter = 0;
+			return;
+		}
+	}
+
+	serf_log_state_change(serf, SERF_STATE_LOST);
+	serf->state = SERF_STATE_LOST;
+	serf->s.lost.field_B = 0;
+	serf->counter = 0;
+}
+
 static void
 handle_serf_free_walking_state_dest_reached(serf_t *serf)
 {
+	if (serf->s.free_walking.neg_dist1 == -128 &&
+	    serf->s.free_walking.neg_dist2 < 0) {
+		serf_find_inventory(serf);
+		return;
+	}
+
 	switch (SERF_TYPE(serf)) {
 	case SERF_LUMBERJACK:
 		if (serf->s.free_walking.neg_dist1 == -128) {
-			if (serf->s.free_walking.neg_dist2 < 0) {
-				goto other_type;
-			} else if (serf->s.free_walking.neg_dist2 > 0) {
+			if (serf->s.free_walking.neg_dist2 > 0) {
 				serf_drop_resource(serf, RESOURCE_LUMBER);
 			}
 
@@ -1807,9 +1838,7 @@ handle_serf_free_walking_state_dest_reached(serf_t *serf)
 		break;
 	case SERF_STONECUTTER:
 		if (serf->s.free_walking.neg_dist1 == -128) {
-			if (serf->s.free_walking.neg_dist2 < 0) {
-				goto other_type;
-			} else if (serf->s.free_walking.neg_dist2 > 0) {
+			if (serf->s.free_walking.neg_dist2 > 0) {
 				serf_drop_resource(serf, RESOURCE_STONE);
 			}
 
@@ -1844,8 +1873,6 @@ handle_serf_free_walking_state_dest_reached(serf_t *serf)
 		break;
 	case SERF_FORESTER:
 		if (serf->s.free_walking.neg_dist1 == -128) {
-			if (serf->s.free_walking.neg_dist2 < 0) goto other_type;
-
 			serf_log_state_change(serf, SERF_STATE_READY_TO_ENTER);
 			serf->state = SERF_STATE_READY_TO_ENTER;
 			serf->s.ready_to_enter.field_B = 0;
@@ -1870,9 +1897,7 @@ handle_serf_free_walking_state_dest_reached(serf_t *serf)
 		break;
 	case SERF_FISHER:
 		if (serf->s.free_walking.neg_dist1 == -128) {
-			if (serf->s.free_walking.neg_dist2 < 0) {
-				goto other_type;
-			} else if (serf->s.free_walking.neg_dist2 > 0) {
+			if (serf->s.free_walking.neg_dist2 > 0) {
 				serf_drop_resource(serf, RESOURCE_FISH);
 			}
 
@@ -1914,9 +1939,7 @@ handle_serf_free_walking_state_dest_reached(serf_t *serf)
 		break;
 	case SERF_FARMER:
 		if (serf->s.free_walking.neg_dist1 == -128) {
-			if (serf->s.free_walking.neg_dist2 < 0) {
-				goto other_type;
-			} else if (serf->s.free_walking.neg_dist2 > 0) {
+			if (serf->s.free_walking.neg_dist2 > 0) {
 				serf_drop_resource(serf, RESOURCE_WHEAT);
 			}
 
@@ -1957,7 +1980,6 @@ handle_serf_free_walking_state_dest_reached(serf_t *serf)
 		break;
 	case SERF_GEOLOGIST:
 		if (serf->s.free_walking.neg_dist1 == -128) {
-			if (serf->s.free_walking.neg_dist2 < 0) goto other_type;
 			if (MAP_OBJ(serf->pos) == MAP_OBJ_FLAG &&
 			    MAP_OWNER(serf->pos) == SERF_PLAYER(serf)) {
 				serf_log_state_change(serf, SERF_STATE_LOOKING_FOR_GEO_SPOT);
@@ -1993,7 +2015,7 @@ handle_serf_free_walking_state_dest_reached(serf_t *serf)
 	case SERF_KNIGHT_3:
 	case SERF_KNIGHT_4:
 		if (serf->s.free_walking.neg_dist1 == -128) {
-			goto other_type;
+			serf_find_inventory(serf);
 		} else {
 			serf_log_state_change(serf, SERF_STATE_KNIGHT_OCCUPY_ENEMY_BUILDING);
 			serf->state = SERF_STATE_KNIGHT_OCCUPY_ENEMY_BUILDING;
@@ -2001,22 +2023,7 @@ handle_serf_free_walking_state_dest_reached(serf_t *serf)
 		}
 		break;
 	default:
-	other_type:
-		if (MAP_HAS_FLAG(serf->pos) &&
-		    FLAG_LAND_PATHS(game_get_flag(MAP_OBJ_INDEX(serf->pos))) != 0 &&
-		    MAP_OWNER(serf->pos) == SERF_PLAYER(serf)) {
-			serf_log_state_change(serf, SERF_STATE_WALKING);
-			serf->state = SERF_STATE_WALKING;
-			serf->s.walking.res = -2;
-			serf->s.walking.dest = 0;
-			serf->s.walking.dir = 0;
-			serf->counter = 0;
-		} else {
-			serf_log_state_change(serf, SERF_STATE_LOST);
-			serf->state = SERF_STATE_LOST;
-			serf->s.lost.field_B = 0;
-			serf->counter = 0;
-		}
+		serf_find_inventory(serf);
 		break;
 	}
 }
