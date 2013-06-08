@@ -195,38 +195,17 @@ interface_determine_map_cursor_type_road(interface_t *interface)
 	for (dir_t d = DIR_RIGHT; d <= DIR_UP; d++) {
 		int sprite = 0;
 
-		if (MAP_HAS_OWNER(MAP_MOVE(pos, d)) &&
-		    MAP_OWNER(MAP_MOVE(pos, d)) == interface->player->player_num) {
-			if (!BIT_TEST(paths, d)) {
-				if (map_space_from_obj[MAP_OBJ(MAP_MOVE(pos, d))] == MAP_SPACE_IMPASSABLE ||
-				    map_space_from_obj[MAP_OBJ(MAP_MOVE(pos, d))] == MAP_SPACE_SMALL_BUILDING) {
-					sprite = 44; /* striped */
-				} else if (map_space_from_obj[MAP_OBJ(MAP_MOVE(pos, d))] == MAP_SPACE_FLAG ||
-					   MAP_PATHS(MAP_MOVE(pos, d)) == 0) {
-					int h_diff = MAP_HEIGHT(MAP_MOVE(pos, d)) - h;
-					sprite = 39 + h_diff; /* height indicators */
-					valid_dir |= BIT(d);
-				} else {
-					panel_btn_t panel_btn;
-					map_cursor_type_t cursor_type;
-					get_map_cursor_type(interface->player, MAP_MOVE(pos, d),
-							    &panel_btn, &cursor_type);
-					if (!game_can_build_flag(MAP_MOVE(pos, d), interface->player) ||
-					    panel_btn == PANEL_BTN_BUILD_INACTIVE ||
-					    /*check_can_build_flag_on_road(MAP_MOVE(pos, d)) < 0*/1) {
-						sprite = 44; /* striped */
-					} else {
-						int h_diff = MAP_HEIGHT(MAP_MOVE(pos, d)) - h;
-						sprite = 39 + h_diff; /* height indicators */
-						valid_dir |= BIT(d);
-					}
-				}
-			} else {
-				sprite = 45; /* undo */
+		if (!BIT_TEST(paths, d)) {
+			if (game_road_segment_valid(pos, d)) {
+				int h_diff = MAP_HEIGHT(MAP_MOVE(pos, d)) - h;
+				sprite = 39 + h_diff; /* height indicators */
 				valid_dir |= BIT(d);
+			} else {
+				sprite = 44; /* striped */
 			}
 		} else {
-			sprite = 44; /* striped */
+			sprite = 45; /* undo */
+			valid_dir |= BIT(d);
 		}
 		interface->map_cursor_sprites[d+1].sprite = sprite;
 	}
