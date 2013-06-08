@@ -342,7 +342,7 @@ serf_transporter_move_to_flag(serf_t *serf, flag_t *flag)
 	} else if (serf->s.walking.res != 0) {
 		/* Drop resource at flag */
 		int free_slot = -1;
-		for (int i = 0; i < 8; i++) {
+		for (int i = 0; i < FLAG_MAX_RES_COUNT; i++) {
 			if (flag->res_waiting[i] == 0) {
 				free_slot = i;
 				break;
@@ -1640,7 +1640,7 @@ handle_serf_drop_resource_out_state(serf_t *serf)
 {
 	flag_t *flag = game_get_flag(MAP_OBJ_INDEX(serf->pos));
 	int i = -1;
-	for (i = 0; i < 8; i++) {
+	for (i = 0; i < FLAG_MAX_RES_COUNT; i++) {
 		/* Guaranteed to find a free slot because
 		   the map position has been reserved since
 		   a free position was found. */
@@ -1749,7 +1749,7 @@ serf_drop_resource(serf_t *serf, resource_type_t res)
 	flag_t *flag = game_get_flag(MAP_OBJ_INDEX(serf->pos));
 
 	int slot = -1;
-	for (int i = 0; i < 7; i++) {
+	for (int i = 0; i < FLAG_MAX_RES_COUNT; i++) {
 		if (flag->res_waiting[i] == 0) {
 			slot = i;
 			break;

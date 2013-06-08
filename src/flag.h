@@ -26,6 +26,9 @@
 #include "list.h"
 #include "map.h"
 
+/* Max number of resources waiting at a flag */
+#define FLAG_MAX_RES_COUNT  8
+
 #define FLAG_INDEX(ptr)  ((int)((ptr) - game.flags))
 #define FLAG_ALLOCATED(i)  BIT_TEST(game.flag_bitmap[(i)>>3], 7-((i)&7))
 
@@ -87,8 +90,8 @@ struct flag {
 	int endpoint;
 	int transporter;
 	int length[6];
-	int res_waiting[8];
-	int res_dest[8];
+	int res_waiting[FLAG_MAX_RES_COUNT];
+	int res_dest[FLAG_MAX_RES_COUNT];
 	union {
 		building_t *b[6];
 		flag_t *f[6];

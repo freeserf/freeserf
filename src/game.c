@@ -939,7 +939,7 @@ update_flags()
 
 			for (int j = 0; j < 4; j++) game.field_218[j] = 0;
 
-			for (int j = 0; j < 8; j++) {
+			for (int j = 0; j < FLAG_MAX_RES_COUNT; j++) {
 				int res_dir = (flag->res_waiting[j] >> 5) - 1;
 				if (res_dir >= 0) {
 					for (int k = 3; k >= 0; k--) {
@@ -955,7 +955,7 @@ update_flags()
 
 			if (FLAG_HAS_RESOURCES(flag)) {
 				flag->endpoint &= ~BIT(7);
-				for (int slot = 7; slot >= 0; slot--) {
+				for (int slot = 0; slot < FLAG_MAX_RES_COUNT; slot++) {
 					if (flag->res_waiting[slot] != 0) {
 						game.field_24E += 1;
 
@@ -1070,7 +1070,8 @@ update_flags()
 									} else { /* No flag requests this resource */
 										int r = find_nearest_inventory(flag);
 										if (r < 0) {
-											/* TODO */
+											/* No path to inventory was found */
+											LOGD("game", "TODO no inv found");
 										} else {
 											flag->res_dest[slot] = r;
 											flag->endpoint |= BIT(7);
@@ -1079,7 +1080,8 @@ update_flags()
 								} else { /* This resource can not be requested by a flag */
 									int r = find_nearest_inventory(flag);
 									if (r < 0) {
-										/* TODO */
+										/* No path to inventory was found */
+										LOGD("game", "TODO no inv found (2)");
 									} else {
 										flag->res_dest[slot] = r;
 										flag->endpoint |= BIT(7);
@@ -2508,7 +2510,7 @@ flag_reset_transport(flag_t *flag)
 		if (FLAG_ALLOCATED(i)) {
 			flag_t *other = game_get_flag(i);
 
-			for (int slot = 0; slot < 8; slot++) {
+			for (int slot = 0; slot < FLAG_MAX_RES_COUNT; slot++) {
 				if (other->res_waiting[slot] != 0 &&
 				    other->res_dest[slot] == FLAG_INDEX(flag)) {
 					other->res_dest[slot] = 0;
@@ -2802,7 +2804,7 @@ remove_road_forwards(map_pos_t pos, dir_t dir)
 
 			/* Mark resource path for recalculation if they would
 			   have followed the removed path. */
-			for (int i = 0; i < 8; i++) {
+			for (int i = 0; i < FLAG_MAX_RES_COUNT; i++) {
 				if (flag->res_waiting[i] != 0 &&
 				    (flag->res_waiting[i] >> 5) == rev_dir+1) {
 					flag->res_waiting[i] &= 0x1f;
@@ -4158,7 +4160,7 @@ demolish_flag(map_pos_t pos)
 	map_set_object(pos, MAP_OBJ_NONE, 0);
 
 	/* Remove resources from flag. */
-	for (int i = 0; i < 8; i++) {
+	for (int i = 0; i < FLAG_MAX_RES_COUNT; i++) {
 		if (flag->res_waiting[i] != 0) {
 			int res = (flag->res_waiting[i] & 0x1f)-1;
 			uint dest = flag->res_dest[i];
@@ -4702,7 +4704,7 @@ game_occupy_enemy_building(building_t *building, int player_num)
 		flag->path_con = (player_num << 6) | FLAG_PATHS(flag);
 
 		/* Reset destination of stolen resources. */
-		for (int i = 0; i < 8; i++) {
+		for (int i = 0; i < FLAG_MAX_RES_COUNT; i++) {
 			if (flag->res_waiting[i] != 0) {
 				resource_type_t res = (flag->res_waiting[i] & 0x1f)-1;
 				lose_transported_resource(res, flag->res_dest[i]);
