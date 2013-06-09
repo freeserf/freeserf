@@ -917,18 +917,146 @@ update_flags_search2_cb(flag_t *flag, update_flags_search2_t *data)
 	return 0;
 }
 
-/* Update flags as part of the game progression. */
 static void
-update_flags()
+schedule_slot_to_known_dest(flag_t *flag, int slot)
 {
-	const int max_transporters[] = { 1, 2, 3, 4, 6, 8, 11, 15 };
+	flag_search_t search;
+	flag_search_init(&search);
 
+	flag->search_num = search.id;
+	flag->search_dir = 6;
+	int tr = FLAG_TRANSPORTERS(flag);
+
+	int sources = 0;
+	int flags = (game.field_218[3] ^ 0x3f) & flag->transporter;
+	if (flags != 0) {
+		for (int k = 0; k < 6; k++) {
+			if (BIT_TEST(flags, 5-k)) {
+				tr &= ~BIT(5-k);
+				flag_t *other_flag = flag->other_endpoint.f[5-k];
+				if (other_flag->search_num != search.id) {
+					other_flag->search_dir = 5-k;
+					flag_search_add_source(&search, other_flag);
+					sources += 1;
+				}
+			}
+		}
+	}
+
+	if (tr != 0) {
+		for (int j = 0; j < 3; j++) {
+			flags = (game.field_218[3-j] ^ game.field_218[2-j]);
+			for (int k = 0; k < 6; k++) {
+				if (BIT_TEST(flags, 5-k)) {
+					tr &= ~BIT(5-k);
+					flag_t *other_flag = flag->other_endpoint.f[5-k];
+					if (other_flag->search_num != search.id) {
+						other_flag->search_dir = 5-k;
+						flag_search_add_source(&search, other_flag);
+						sources += 1;
+					}
+				}
+			}
+		}
+
+		if (tr != 0) {
+			flags = game.field_218[0];
+			for (int k = 0; k < 6; k++) {
+				if (BIT_TEST(flags, 5-k)) {
+					tr &= ~BIT(5-k);
+					flag_t *other_flag = flag->other_endpoint.f[5-k];
+					if (other_flag->search_num != search.id) {
+						other_flag->search_dir = 5-k;
+						flag_search_add_source(&search, other_flag);
+						sources += 1;
+					}
+				}
+			}
+			if (flags == 0) return;
+		}
+	}
+
+	if (sources > 0) {
+		update_flags_search_data_t data;
+		data.src = flag;
+		data.dest = game_get_flag(flag->res_dest[slot]);
+		data.res = slot;
+		int r = flag_search_execute(&search,
+					    (flag_search_func *)update_flags_search_cb,
+					    0, 1, &data);
+		if (r < 0 || data.dest->search_dir == 6) {
+			/* Unable to deliver */
+			flag_cancel_transported_stock(data.dest, flag->res_waiting[slot] & 0x1f);
+			flag->res_dest[slot] = 0;
+			flag->endpoint |= BIT(7);
+		}
+	} else {
+		flag->endpoint |= BIT(7);
+	}
+}
+
+static void
+schedule_slot_to_unknown_dest(flag_t *flag, int slot)
+{
 	const int routable[] = {
 		1, 1, 1, 1, 1, 1, 1, 1,
 		0, 1, 1, 1, 1, 1, 1, 0,
 		0, 0, 0, 0, 0, 0, 0, 0,
 		0
 	};
+
+	resource_type_t res = (flag->res_waiting[slot] & 0x1f)-1;
+	if (routable[res]) {
+		flag_search_t search;
+		flag_search_init(&search);
+		flag_search_add_source(&search, flag);
+
+		update_flags_search2_t data;
+		data.resource = res;
+		data.flag = NULL;
+		data.max_prio = 0;
+
+		flag_search_execute(&search,
+				    (flag_search_func *)update_flags_search2_cb,
+				    0, 1, &data);
+		if (data.flag != NULL) {
+			LOGV("game", "dest for flag %u res %i found: flag %u",
+			     FLAG_INDEX(flag), slot, FLAG_INDEX(data.flag));
+			building_t *dest_bld = data.flag->other_endpoint.b[DIR_UP_LEFT];
+			int prio = 0;
+			for (int i = 0; i < 2; i++) {
+				if (dest_bld->stock[i].type == res) {
+					prio = dest_bld->stock[i].prio;
+					if ((prio & 1) == 0) prio = 0;
+					dest_bld->stock[i].prio = prio >> 1;
+					dest_bld->stock[i].requested += 1;
+				}
+			}
+
+			flag->res_dest[slot] = dest_bld->flg_index;
+			flag->endpoint |= BIT(7);
+			return;
+		}
+	}
+
+	/* Either this resource cannot be routed to a destination
+	   other than an inventory or such destination could not be
+	   found. Send to inventory instead. */
+	int r = find_nearest_inventory(flag);
+	if (r < 0) {
+		/* No path to inventory was found */
+		LOGD("game", "TODO no inv found");
+	} else {
+		flag->res_dest[slot] = r;
+		flag->endpoint |= BIT(7);
+	}
+}
+
+/* Update flags as part of the game progression. */
+static void
+update_flags()
+{
+	const int max_transporters[] = { 1, 2, 3, 4, 6, 8, 11, 15 };
 
 	if (game.next_index >= 32) return;
 
@@ -962,131 +1090,12 @@ update_flags()
 						/* Only schedule the slot if it has not already
 						   been scheduled for fetch. */
 						if (((flag->res_waiting[slot] >> 5) & 7) == 0) {
-							if (flag->res_dest[slot] != 0) { /* Destination is known */
-								flag_search_t search;
-								flag_search_init(&search);
-
-								flag->search_num = search.id;
-								flag->search_dir = 6;
-								int tr = FLAG_TRANSPORTERS(flag);
-
-								int sources = 0;
-								int flags = (game.field_218[3] ^ 0x3f) & flag->transporter;
-								if (flags != 0) {
-									for (int k = 0; k < 6; k++) {
-										if (BIT_TEST(flags, 5-k)) {
-											tr &= ~BIT(5-k);
-											flag_t *other_flag = flag->other_endpoint.f[5-k];
-											if (other_flag->search_num != search.id) {
-												other_flag->search_dir = 5-k;
-												flag_search_add_source(&search, other_flag);
-												sources += 1;
-											}
-										}
-									}
-								}
-
-								if (tr != 0) {
-									for (int j = 0; j < 3; j++) {
-										flags = (game.field_218[3-j] ^ game.field_218[2-j]);
-										for (int k = 0; k < 6; k++) {
-											if (BIT_TEST(flags, 5-k)) {
-												tr &= ~BIT(5-k);
-												flag_t *other_flag = flag->other_endpoint.f[5-k];
-												if (other_flag->search_num != search.id) {
-													other_flag->search_dir = 5-k;
-													flag_search_add_source(&search, other_flag);
-													sources += 1;
-												}
-											}
-										}
-									}
-
-									if (tr != 0) {
-										flags = game.field_218[0];
-										for (int k = 0; k < 6; k++) {
-											if (BIT_TEST(flags, 5-k)) {
-												tr &= ~BIT(5-k);
-												flag_t *other_flag = flag->other_endpoint.f[5-k];
-												if (other_flag->search_num != search.id) {
-													other_flag->search_dir = 5-k;
-													flag_search_add_source(&search, other_flag);
-													sources += 1;
-												}
-											}
-										}
-										if (flags == 0) return;
-									}
-								}
-
-								if (sources > 0) {
-									update_flags_search_data_t data;
-									data.src = flag;
-									data.dest = game_get_flag(flag->res_dest[slot]);
-									data.res = slot;
-									int r = flag_search_execute(&search,
-												    (flag_search_func *)update_flags_search_cb,
-												    0, 1, &data);
-									if (r < 0 || data.dest->search_dir == 6) {
-										/* Unable to deliver */
-										flag_cancel_transported_stock(data.dest, flag->res_waiting[slot] & 0x1f);
-										flag->res_dest[slot] = 0;
-										flag->endpoint |= BIT(7);
-									}
-								} else {
-									flag->endpoint |= BIT(7);
-								}
-							} else { /* Destination is not known */
-								resource_type_t res = (flag->res_waiting[slot] & 0x1f)-1;
-								if (routable[res]) {
-									flag_search_t search;
-									flag_search_init(&search);
-									flag_search_add_source(&search, flag);
-
-									update_flags_search2_t data;
-									data.resource = res;
-									data.flag = NULL;
-									data.max_prio = 0;
-
-									flag_search_execute(&search,
-											    (flag_search_func *)update_flags_search2_cb,
-											    0, 1, &data);
-									if (data.flag != NULL) {
-										LOGV("game", "dest for flag %u res %i found: flag %u",
-										     FLAG_INDEX(flag), slot, FLAG_INDEX(data.flag));
-										building_t *dest_bld = data.flag->other_endpoint.b[DIR_UP_LEFT];
-										int prio = 0;
-										for (int i = 0; i < 2; i++) {
-											if (dest_bld->stock[i].type == res) {
-												prio = dest_bld->stock[i].prio;
-												if ((prio & 1) == 0) prio = 0;
-												dest_bld->stock[i].prio = prio >> 1;
-												dest_bld->stock[i].requested += 1;
-											}
-										}
-
-										flag->res_dest[slot] = dest_bld->flg_index;
-										flag->endpoint |= BIT(7);
-									} else { /* No flag requests this resource */
-										int r = find_nearest_inventory(flag);
-										if (r < 0) {
-											/* No path to inventory was found */
-											LOGD("game", "TODO no inv found");
-										} else {
-											flag->res_dest[slot] = r;
-											flag->endpoint |= BIT(7);
-										}
-									}
-								} else { /* This resource can not be requested by a flag */
-									int r = find_nearest_inventory(flag);
-									if (r < 0) {
-										/* No path to inventory was found */
-										LOGD("game", "TODO no inv found (2)");
-									} else {
-										flag->res_dest[slot] = r;
-										flag->endpoint |= BIT(7);
-									}
-								}
+							if (flag->res_dest[slot] != 0) {
+								/* Destination is known */
+								schedule_slot_to_known_dest(flag, slot);
+							} else {
+								/* Destination is not known */
+								schedule_slot_to_unknown_dest(flag, slot);
 							}
 						}
 					}
