@@ -1045,7 +1045,26 @@ schedule_slot_to_unknown_dest(flag_t *flag, int slot)
 	int r = find_nearest_inventory(flag);
 	if (r < 0) {
 		/* No path to inventory was found */
-		LOGD("game", "TODO no inv found");
+		if (FLAG_TRANSPORTERS(flag) == 0) {
+			flag->endpoint |= BIT(7);
+		} else {
+			int dir = -1;
+			for (int i = DIR_RIGHT; i <= DIR_UP; i++) {
+				int d = DIR_UP - i;
+				if (FLAG_HAS_TRANSPORTER(flag, d)) {
+					dir = d;
+					break;
+				}
+			}
+
+			assert(dir >= 0);
+
+			if (!FLAG_IS_SCHEDULED(flag, dir)) {
+				flag->other_end_dir[dir] = BIT(7) |
+					(flag->other_end_dir[dir] & 0x38) | slot;
+			}
+			flag->res_waiting[slot] |= (dir+1) << 5;
+		}
 	} else {
 		flag->res_dest[slot] = r;
 		flag->endpoint |= BIT(7);
@@ -1089,7 +1108,8 @@ update_flags()
 
 						/* Only schedule the slot if it has not already
 						   been scheduled for fetch. */
-						if (((flag->res_waiting[slot] >> 5) & 7) == 0) {
+						int res_dir = ((flag->res_waiting[slot] >> 5) & 7)-1;
+						if (res_dir < 0) {
 							if (flag->res_dest[slot] != 0) {
 								/* Destination is known */
 								schedule_slot_to_known_dest(flag, slot);
