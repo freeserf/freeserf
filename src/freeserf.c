@@ -389,6 +389,14 @@ game_loop()
 				}
 					break;
 
+				case SDLK_TAB:
+					if (event.key.keysym.mod & KMOD_SHIFT) {
+						interface_return_from_message(&interface);
+					} else {
+						interface_open_message(&interface);
+					}
+					break;
+
 					/* Game speed */
 				case SDLK_PLUS:
 				case SDLK_KP_PLUS:
