@@ -408,7 +408,9 @@ interface_build_road_end(interface_t *interface)
 static int
 interface_build_road_connect_flag(interface_t *interface, map_pos_t dest, dir_t out_dir)
 {
-	if (!MAP_HAS_OWNER(dest) || MAP_OWNER(dest) != interface->player->player_num) {
+	if (!MAP_HAS_OWNER(dest) ||
+	    MAP_OWNER(dest) != interface->player->player_num ||
+	    !MAP_HAS_FLAG(dest)) {
 		return -1;
 	}
 
@@ -494,6 +496,9 @@ interface_build_road_connect_flag(interface_t *interface, map_pos_t dest, dir_t 
 		water_path = 1;
 		if (test != BIT(1)) return -1;
 	}
+
+	/* Check that source also has an existing flag */
+	if (!MAP_HAS_FLAG(src)) return -1;
 
 	/* Connect flags */
 	flag_t *src_flag = game_get_flag(MAP_OBJ_INDEX(src));
