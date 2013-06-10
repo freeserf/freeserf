@@ -61,6 +61,7 @@ interface_get_popup_box(interface_t *interface)
 }
 
 
+/* Open popup box */
 void
 interface_open_popup(interface_t *interface, int box)
 {
@@ -85,6 +86,7 @@ interface_close_popup(interface_t *interface)
 					interface->map_cursor_pos);
 }
 
+/* Open box for starting a new game */
 void
 interface_open_game_init(interface_t *interface)
 {
@@ -102,6 +104,92 @@ interface_close_game_init(interface_t *interface)
 
 	interface_update_map_cursor_pos(interface,
 					interface->map_cursor_pos);
+}
+
+/* Open box for next message in the message queue */
+void
+interface_open_message(interface_t *interface)
+{
+	if (interface->player->msg_queue_type[0] == 0 || /* No message */
+	    BIT_TEST(interface->click, 7)) { /* Building road */
+		sfx_play_clip(SFX_CLICK);
+		return;
+	} else if (interface->clkmap == BOX_LOAD_ARCHIVE ||
+		   interface->clkmap == BOX_LOAD_SAVE ||
+		   interface->clkmap == BOX_DISK_MSG ||
+		   interface->clkmap == BOX_QUIT_CONFIRM ||
+		   interface->clkmap == BOX_NO_SAVE_QUIT_CONFIRM ||
+		   interface->clkmap == BOX_OPTIONS) {
+		sfx_play_clip(SFX_NOT_ACCEPTED);
+		return;
+	} else {
+		interface->flags &= ~BIT(6);
+		if (!BIT_TEST(interface->msg_flags, 3)) {
+			interface->msg_flags |= BIT(4);
+			interface->msg_flags |= BIT(3);
+			viewport_t *viewport = interface_get_top_viewport(interface);
+			map_pos_t pos = viewport_get_current_map_pos(viewport);
+			interface->return_col_game_area = MAP_POS_COL(pos);
+			interface->return_row_game_area = MAP_POS_ROW(pos);
+		}
+	}
+
+	int type = interface->player->msg_queue_type[0] & 0x1f;
+
+	if (type == 16) {
+		/* TODO */
+	}
+
+	interface->message_box = interface->player->msg_queue_type[0];
+
+	if (BIT_TEST(0x8f3fe, type)) {
+		/* Move screen to new position */
+		map_pos_t new_pos = interface->player->msg_queue_pos[0];
+
+		viewport_t *viewport = interface_get_top_viewport(interface);
+		viewport_move_to_map_pos(viewport, new_pos);
+		interface_update_map_cursor_pos(interface, new_pos);
+	}
+
+	interface_open_popup(interface, BOX_MESSAGE);
+	interface->click &= ~BIT(6);
+	interface->click &= ~BIT(1);
+
+	interface->panel_btns[0] = PANEL_BTN_BUILD_INACTIVE;
+	interface->panel_btns[1] = PANEL_BTN_DESTROY_INACTIVE;
+	interface->panel_btns[2] = PANEL_BTN_MAP_INACTIVE;
+	interface->panel_btns[3] = PANEL_BTN_STATS_INACTIVE;
+	interface->panel_btns[4] = PANEL_BTN_SETT_INACTIVE;
+
+	/* Move notifications forward in the queue. */
+	int i;
+	for (i = 1; i < 64 && interface->player->msg_queue_type[i] != 0; i++) {
+		interface->player->msg_queue_type[i-1] = interface->player->msg_queue_type[i];
+		interface->player->msg_queue_pos[i-1] = interface->player->msg_queue_pos[i];
+	}
+	interface->player->msg_queue_type[i-1] = 0;
+
+	interface->msg_flags |= BIT(1);
+	interface->return_timeout = 60*TICKS_PER_SEC;
+	sfx_play_clip(SFX_CLICK);
+}
+
+void
+interface_return_from_message(interface_t *interface)
+{
+	if (BIT_TEST(interface->msg_flags, 3)) { /* Return arrow present */
+		interface->msg_flags |= BIT(4);
+		interface->msg_flags &= ~BIT(3);
+
+		interface->return_timeout = 0;
+		viewport_t *viewport = interface_get_top_viewport(interface);
+		map_pos_t pos = MAP_POS(interface->return_col_game_area,
+					interface->return_row_game_area);
+		viewport_move_to_map_pos(viewport, pos);
+
+		if (interface->clkmap == BOX_MESSAGE) interface_close_popup(interface);
+		sfx_play_clip(SFX_CLICK);
+	}
 }
 
 
@@ -1130,12 +1218,60 @@ interface_update(interface_t *interface)
 	uint tick_diff = game.const_tick - interface->last_const_tick;
 	interface->last_const_tick = game.const_tick;
 
+	/* Clear return arrow after a timeout */
 	if (interface->return_timeout < tick_diff) {
 		interface->msg_flags |= BIT(4);
 		interface->msg_flags &= ~BIT(3);
 		interface->return_timeout = 0;
 	} else {
 		interface->return_timeout -= tick_diff;
+	}
+
+	const int msg_category[] = {
+		-1, 5, 5, 5, 4, 0, 4, 3, 4, 5,
+		5, 5, 4, 4, 4, 4, 0, 0, 0, 0
+	};
+
+	/* Handle newly enqueued messages */
+	if (PLAYER_HAS_MESSAGE(interface->player)) {
+		interface->player->flags &= ~BIT(3);
+		while (interface->player->msg_queue_type[0] != 0) {
+			int type = interface->player->msg_queue_type[0] & 0x1f;
+			if (BIT_TEST(interface->config, msg_category[type])) {
+				sfx_play_clip(SFX_MESSAGE);
+				interface->msg_flags |= BIT(0);
+				break;
+			}
+
+			/* Message is ignored. Remove. */
+			int i;
+			for (i = 1; i < 64 && interface->player->msg_queue_type[i] != 0; i++) {
+				interface->player->msg_queue_type[i-1] = interface->player->msg_queue_type[i];
+				interface->player->msg_queue_pos[i-1] = interface->player->msg_queue_pos[i];
+			}
+			interface->player->msg_queue_type[i-1] = 0;
+		}
+	}
+
+	if (BIT_TEST(interface->msg_flags, 1)) {
+		interface->msg_flags &= ~BIT(1);
+		while (1) {
+			if (interface->player->msg_queue_type[0] == 0) {
+				interface->msg_flags &= ~BIT(0);
+				break;
+			}
+
+			int type = interface->player->msg_queue_type[0] & 0x1f;
+			if (BIT_TEST(interface->config, msg_category[type])) break;
+
+			/* Message is ignored. Remove. */
+			int i;
+			for (i = 1; i < 64 && interface->player->msg_queue_type[i] != 0; i++) {
+				interface->player->msg_queue_type[i-1] = interface->player->msg_queue_type[i];
+				interface->player->msg_queue_pos[i-1] = interface->player->msg_queue_pos[i];
+			}
+			interface->player->msg_queue_type[i-1] = 0;
+		}
 	}
 
 	viewport_update(&interface->viewport);

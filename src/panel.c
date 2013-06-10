@@ -84,15 +84,6 @@ draw_message_notify(panel_bar_t *panel, frame_t *frame)
 			DATA_FRAME_BOTTOM_NOTIFY, frame);
 }
 
-/* Remove drawn notification icon in action panel. */
-static void
-draw_message_no_notify(panel_bar_t *panel, frame_t *frame)
-{
-	panel->interface->msg_flags &= ~BIT(2);
-	gfx_draw_sprite(panel->interface->msg_icon_x, 4,
-			DATA_FRAME_BOTTOM_NO_NOTIFY, frame);
-}
-
 /* Draw return arrow icon in action panel. */
 static void
 draw_return_arrow(panel_bar_t *panel, frame_t *frame)
@@ -101,92 +92,23 @@ draw_return_arrow(panel_bar_t *panel, frame_t *frame)
 			DATA_FRAME_BOTTOM_ARROW, frame);
 }
 
-/* Remove drawn return arrow icon in action panel. */
-static void
-draw_no_return_arrow(panel_bar_t *panel, frame_t *frame)
-{
-	gfx_draw_sprite(panel->interface->msg_icon_x, 28,
-			DATA_FRAME_BOTTOM_NO_ARROW, frame);
-}
-
 /* Draw buttons in action panel. */
 static void
 draw_panel_buttons(panel_bar_t *panel, frame_t *frame)
 {
 	interface_t *interface = panel->interface;
 
-	const int msg_category[] = {
-		-1, 5, 5, 5, 4, 0, 4, 3, 4, 5,
-		5, 5, 4, 4, 4, 4, 0, 0, 0, 0
-	};
-
-	if (BIT_TEST(interface->flags, 0)) return; /* Player not active */
-
-	if (BIT_TEST(game.svga, 3)) { /* Game has started */
-		if (1/*!coop mode || ...*/) {
-			if (PLAYER_HAS_MESSAGE(interface->player)) {
-				interface->player->flags &= ~BIT(3);
-				while (interface->player->msg_queue_type[0] != 0) {
-					int type = interface->player->msg_queue_type[0] & 0x1f;
-					if (BIT_TEST(interface->config, msg_category[type])) {
-						sfx_play_clip(SFX_MESSAGE);
-						if (!BIT_TEST(interface->msg_flags, 0)) {
-							interface->msg_flags |= BIT(0);
-							draw_message_notify(panel, frame);
-						}
-						break;
-					}
-
-					/* Message is ignored. Remove. */
-					int i;
-					for (i = 1; i < 64 && interface->player->msg_queue_type[i] != 0; i++) {
-						interface->player->msg_queue_type[i-1] = interface->player->msg_queue_type[i];
-						interface->player->msg_queue_pos[i-1] = interface->player->msg_queue_pos[i];
-					}
-					interface->player->msg_queue_type[i-1] = 0;
-				}
-			}
-		}
-
-		if (BIT_TEST(interface->msg_flags, 1)) {
-			interface->msg_flags &= ~BIT(1);
-			while (1) {
-				if (interface->player->msg_queue_type[0] == 0) {
-					interface->msg_flags &= ~BIT(0);
-					draw_message_no_notify(panel, frame);
-					break;
-				}
-
-				int type = interface->player->msg_queue_type[0] & 0x1f;
-				if (BIT_TEST(interface->config, msg_category[type])) break;
-
-				/* Message is ignored. Remove. */
-				int i;
-				for (i = 1; i < 64 && interface->player->msg_queue_type[i] != 0; i++) {
-					interface->player->msg_queue_type[i-1] = interface->player->msg_queue_type[i];
-					interface->player->msg_queue_pos[i-1] = interface->player->msg_queue_pos[i];
-				}
-				interface->player->msg_queue_type[i-1] = 0;
-			}
-		}
-
+	if (panel->obj.enabled) {
 		/* Blinking message icon. */
-		if (BIT_TEST(interface->msg_flags, 0)) {
+		if (interface->player->msg_queue_type[0] != 0) {
 			if (game.const_tick & 0x30) {
 				draw_message_notify(panel, frame);
-			} else {
-				draw_message_no_notify(panel, frame);
 			}
 		}
 
 		/* Return arrow icon. */
-		if (1/*TODO only redraw if update needed: BIT_TEST(interface->msg_flags, 4)*/) {
-			interface->msg_flags &= ~BIT(4);
-			if (BIT_TEST(interface->msg_flags, 3)) {
-				draw_return_arrow(panel, frame);
-			} else {
-				draw_no_return_arrow(panel, frame);
-			}
+		if (BIT_TEST(interface->msg_flags, 3)) {
+			draw_return_arrow(panel, frame);
 		}
 	}
 
@@ -435,45 +357,6 @@ handle_panel_button_click(interface_t *interface, int btn)
 	}
 }
 
-static void
-handle_message_icon_click(interface_t *interface)
-{
-	int type = interface->player->msg_queue_type[0] & 0x1f;
-
-	if (type == 16) {
-		/* TODO */
-	}
-
-	interface->message_box = interface->player->msg_queue_type[0];
-
-	if (BIT_TEST(0x8f3fe, type)) {
-		/* Move screen to new position */
-		map_pos_t new_pos = interface->player->msg_queue_pos[0];
-
-		viewport_t *viewport = interface_get_top_viewport(interface);
-		viewport_move_to_map_pos(viewport, new_pos);
-		interface_update_map_cursor_pos(interface, new_pos);
-	}
-
-	interface_open_popup(interface, BOX_MESSAGE);
-	interface->click &= ~BIT(6);
-	interface->click &= ~BIT(1);
-
-	interface->panel_btns[0] = PANEL_BTN_BUILD_INACTIVE;
-	interface->panel_btns[1] = PANEL_BTN_DESTROY_INACTIVE;
-	interface->panel_btns[2] = PANEL_BTN_MAP_INACTIVE;
-	interface->panel_btns[3] = PANEL_BTN_STATS_INACTIVE;
-	interface->panel_btns[4] = PANEL_BTN_SETT_INACTIVE;
-
-	/* Move notifications forward in the queue. */
-	int i;
-	for (i = 1; i < 64 && interface->player->msg_queue_type[i] != 0; i++) {
-		interface->player->msg_queue_type[i-1] = interface->player->msg_queue_type[i];
-		interface->player->msg_queue_pos[i-1] = interface->player->msg_queue_pos[i];
-	}
-	interface->player->msg_queue_type[i-1] = 0;
-}
-
 static int
 panel_bar_handle_event_click(panel_bar_t *panel, int x, int y)
 {
@@ -536,47 +419,10 @@ panel_bar_handle_event_click(panel_bar_t *panel, int x, int y)
 		if (BIT_TEST(game.svga, 3)) { /* Game has started */
 			if (y < 16) {
 				/* Message icon */
-				if (!BIT_TEST(interface->msg_flags, 0) || /* No message */
-				    BIT_TEST(interface->click, 7)) { /* Building road */
-					sfx_play_clip(SFX_CLICK);
-				} else if (interface->clkmap == BOX_LOAD_ARCHIVE ||
-					   interface->clkmap == BOX_LOAD_SAVE ||
-					   interface->clkmap == BOX_DISK_MSG ||
-					   interface->clkmap == BOX_QUIT_CONFIRM ||
-					   interface->clkmap == BOX_NO_SAVE_QUIT_CONFIRM ||
-					   interface->clkmap == BOX_OPTIONS) {
-					sfx_play_clip(SFX_NOT_ACCEPTED);
-				} else {
-					interface->flags &= ~BIT(6);
-					if (!BIT_TEST(interface->msg_flags, 3)) {
-						interface->msg_flags |= BIT(4);
-						interface->msg_flags |= BIT(3);
-						viewport_t *viewport = interface_get_top_viewport(interface);
-						map_pos_t pos = viewport_get_current_map_pos(viewport);
-						interface->return_col_game_area = MAP_POS_COL(pos);
-						interface->return_row_game_area = MAP_POS_ROW(pos);
-					}
-
-					handle_message_icon_click(interface);
-					interface->msg_flags |= BIT(1);
-					interface->return_timeout = 60*TICKS_PER_SEC;
-					sfx_play_clip(SFX_CLICK);
-				}
+				interface_open_message(interface);
 			} else if (y >= 28) {
 				/* Return arrow */
-				if (BIT_TEST(interface->msg_flags, 3)) { /* Return arrow present */
-					interface->msg_flags |= BIT(4);
-					interface->msg_flags &= ~BIT(3);
-
-					interface->return_timeout = 0;
-					viewport_t *viewport = interface_get_top_viewport(interface);
-					map_pos_t pos = MAP_POS(interface->return_col_game_area,
-								interface->return_row_game_area);
-					viewport_move_to_map_pos(viewport, pos);
-
-					if (interface->clkmap == BOX_MESSAGE) interface_close_popup(interface);
-					sfx_play_clip(SFX_CLICK);
-				}
+				interface_return_from_message(interface);
 			}
 		}
 	}

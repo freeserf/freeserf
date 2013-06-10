@@ -180,6 +180,9 @@ void interface_close_popup(interface_t *interface);
 void interface_open_game_init(interface_t *interface);
 void interface_close_game_init(interface_t *interface);
 
+void interface_open_message(interface_t *interface);
+void interface_return_from_message(interface_t *interface);
+
 void interface_update_map_cursor_pos(interface_t *interface, map_pos_t pos);
 
 void interface_build_road_begin(interface_t *interface);
