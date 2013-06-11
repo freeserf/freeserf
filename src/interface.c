@@ -797,6 +797,12 @@ interface_build_castle(interface_t *interface)
 
 
 static void
+update_map_height(map_pos_t pos, interface_t *interface)
+{
+	viewport_redraw_map_pos(&interface->viewport, pos);
+}
+
+static void
 interface_draw(interface_t *interface, frame_t *frame)
 {
 	int redraw_above = interface->cont.obj.redraw;
@@ -1159,6 +1165,11 @@ interface_init(interface_t *interface)
 	random_int(&interface->random);
 
 	interface->last_const_tick = 0;
+
+	/* Listen for updates to the map height */
+	game.update_map_height_cb =
+		(game_update_map_height_func *)update_map_height;
+	game.update_map_height_data = interface;
 }
 
 void

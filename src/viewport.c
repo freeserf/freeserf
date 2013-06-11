@@ -49,6 +49,16 @@
 /* Cache all combinations of textures and masks, and both up tiles and down tiles. */
 static surface_t *map_tile_cache[2*MAP_TILE_TEXTURES*MAP_TILE_MASKS];
 
+/* Cache prerendered tiles of the landscape. */
+typedef struct {
+	frame_t frame;
+	int dirty;
+} landscape_tile_t;
+
+static int tile_cols = 16;
+static int tile_rows = 16;
+static landscape_tile_t *landscape_tile;
+
 
 static void
 draw_map_tile(int x, int y, int mask, int sprite, frame_t *frame)
@@ -273,84 +283,124 @@ draw_down_tile_col(map_pos_t pos, int x_base, int y_base, int max_y, frame_t *fr
 	}
 }
 
-static frame_t landscape_frame;
-int landscape_frame_init = 0;
-int landscape_frame_redraw = 0;
 
 void
 viewport_map_reinit()
 {
-	sdl_frame_deinit(&landscape_frame);
-	landscape_frame_init = 0;
-	landscape_frame_redraw = 1;
+	if (landscape_tile != NULL) free(landscape_tile);
+
+	int horiz_tiles = game.map.cols/tile_cols;
+	int vert_tiles = game.map.rows/tile_rows;
+	int tile_count = horiz_tiles*vert_tiles;
+
+	int tile_width = tile_cols*MAP_TILE_WIDTH;
+	int tile_height = tile_rows*MAP_TILE_HEIGHT;
+
+	landscape_tile = malloc(tile_count*sizeof(landscape_tile_t));
+	if (landscape_tile == NULL) abort();
+
+	LOGV("viewport", "map: %i,%i, cols,rows: %i,%i, tcs,trs: %i,%i, tw,th: %i,%i",
+	     game.map.cols*MAP_TILE_WIDTH, game.map.rows*MAP_TILE_HEIGHT,
+	     game.map.cols, game.map.rows, horiz_tiles, vert_tiles,
+	     tile_width, tile_height);
+
+	for (int i = 0; i < tile_count; i++) {
+		sdl_frame_init(&landscape_tile[i].frame, 0, 0, tile_width, tile_height, NULL);
+		sdl_fill_rect(0, 0, tile_width, tile_height, 72, &landscape_tile[i].frame);
+		landscape_tile[i].dirty = 1;
+	}
 }
 
 void
-viewport_redraw_map_pos(map_pos_t pos)
+viewport_redraw_map_pos(viewport_t *viewport, map_pos_t pos)
 {
-	/* Ignore pos for now. */
-	landscape_frame_redraw = 1;
+	int mx, my;
+	viewport_map_pix_from_map_coord(viewport, pos, MAP_HEIGHT(pos),
+					&mx, &my);
+
+	int horiz_tiles = game.map.cols/tile_cols;
+	int vert_tiles = game.map.rows/tile_rows;
+
+	int tile_width = tile_cols*MAP_TILE_WIDTH;
+	int tile_height = tile_rows*MAP_TILE_HEIGHT;
+
+	int tc = (mx / tile_width) % horiz_tiles;
+	int tr = (my / tile_height) % vert_tiles;
+	int tid = tc + horiz_tiles*tr;
+
+	landscape_tile[tid].dirty = 1;
 }
 
 static void
 draw_landscape(viewport_t *viewport, frame_t *frame)
 {
+	int horiz_tiles = game.map.cols/tile_cols;
+	int vert_tiles = game.map.rows/tile_rows;
+
+	int tile_width = tile_cols*MAP_TILE_WIDTH;
+	int tile_height = tile_rows*MAP_TILE_HEIGHT;
+
 	int map_width = game.map.cols*MAP_TILE_WIDTH;
 	int map_height = game.map.rows*MAP_TILE_HEIGHT;
 
-	if (!landscape_frame_init) {
-		/* Initialize landscape frame. */
-		/* TODO It shouldn't have an alpha channel but sdl_frame_init()
-		   creates the surface with alpha, so we have to fill the frame. */
-		sdl_frame_init(&landscape_frame, 0, 0, map_width, map_height, NULL);
-		sdl_fill_rect(0, 0, map_width, map_height, 72, &landscape_frame);
-		landscape_frame_init = 1;
-		landscape_frame_redraw = 1;
-	}
-
-	if (landscape_frame_redraw) {
-		/* Draw complete map tile. */
-		map_pos_t pos = MAP_POS(0, 0);
-		int x_base = -(MAP_TILE_WIDTH/2);
-
-		/* Draw one extra column as half a column will be outside the
-		   map tile on both right and left side.. */
-		for (int col = 0; col < game.map.cols+1; col++) {
-			draw_up_tile_col(pos, x_base, 0, map_height, &landscape_frame);
-			draw_down_tile_col(pos, x_base + 16, 0, map_height, &landscape_frame);
-
-			pos = MAP_MOVE_RIGHT(pos);
-			x_base += MAP_TILE_WIDTH;
+	int my = viewport->offset_y;
+	int y = 0;
+	int x_base = 0;
+	while (y < viewport->obj.height) {
+		while (my >= map_height) {
+			my -= map_height;
+			x_base += (game.map.rows*MAP_TILE_WIDTH)/2;
 		}
 
-#if 0
-		/* Draw a border around the tile for debug. */
-		sdl_fill_rect(0, 0, map_width, 2, 76, &landscape_frame);
-		sdl_fill_rect(0, 0, 2, map_height, 76, &landscape_frame);
-		sdl_fill_rect(0, map_height-2, map_width, 2, 76, &landscape_frame);
-		sdl_fill_rect(map_width-2, 0, 2, map_height, 76, &landscape_frame);
-#endif
+		int ty = my % tile_height;
 
-		landscape_frame_redraw = 0;
-	}
-
-	int mx = viewport->offset_x;
-	int my = viewport->offset_y;
-
-	int y = 0, x_base = 0;
-	while (y < viewport->obj.height) {
 		int x = 0;
 		while (x < viewport->obj.width) {
-			sdl_draw_frame(x, y, frame,
-				       (mx + x_base + x) % map_width,
-				       (my + y) % map_height,
-				       &landscape_frame,
-				       viewport->obj.width - x, viewport->obj.height - y);
-			x += map_width - ((mx + x_base + x) % map_width);
+			int mx = (viewport->offset_x + x_base + x) % map_width;
+			int tx = mx % tile_width;
+
+			int tc = (mx / tile_width) % horiz_tiles;
+			int tr = (my / tile_height) % vert_tiles;
+			int tid = tc + horiz_tiles*tr;
+
+			/* Redraw tile if marked dirty */
+			if (landscape_tile[tid].dirty) {
+				int col = (tc*tile_cols + (tr*tile_rows)/2) % game.map.cols;
+				int row = tr*tile_rows;
+				map_pos_t pos = MAP_POS(col, row);
+
+				int x_base = -(MAP_TILE_WIDTH/2);
+
+				/* Draw one extra column as half a column will be outside the
+				   map tile on both right and left side.. */
+				for (int col = 0; col < tile_cols+1; col++) {
+					draw_up_tile_col(pos, x_base, 0, tile_height,
+							 &landscape_tile[tid].frame);
+					draw_down_tile_col(pos, x_base + 16, 0, tile_height,
+							   &landscape_tile[tid].frame);
+
+					pos = MAP_MOVE_RIGHT(pos);
+					x_base += MAP_TILE_WIDTH;
+				}
+
+#if 0
+				/* Draw a border around the tile for debug. */
+				sdl_draw_rect(0, 0, tile_width, tile_height,
+					      76, &landscape_tile[tid].frame);
+#endif
+
+				landscape_tile[tid].dirty = 0;
+			}
+
+			sdl_draw_frame(x, y, frame, tx, ty,
+				       &landscape_tile[tid].frame,
+				       viewport->obj.width - x,
+				       viewport->obj.height - y);
+			x += tile_width - tx;
 		}
 
-		y += map_height - ((my + y) % map_height);
-		x_base = (x_base + (game.map.rows*MAP_TILE_WIDTH)/2) % map_width;
+		y += tile_height - ty;
+		my += tile_height - ty;
 	}
 }
 
