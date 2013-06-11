@@ -26,6 +26,7 @@
 #include "viewport.h"
 #include "panel.h"
 #include "game-init.h"
+#include "notification.h"
 #include "list.h"
 #include "popup.h"
 #include "player.h"
@@ -64,6 +65,7 @@ struct interface {
 	panel_bar_t panel;
 	popup_box_t popup;
 	game_init_box_t init_box;
+	notification_box_t notification_box;
 
 	map_pos_t map_cursor_pos;
 	map_cursor_type_t map_cursor_type;
@@ -137,7 +139,7 @@ struct interface {
 	int map_cursor_col_off;
 	int map_y_off;
 	/*int **map_serf_rows;*/ /* OBSOLETE */
-	int message_box;
+	/*int message_box; *//* OBSOLETE */
 	/* 9A */
 	int map_x_off;
 	/* 9E */

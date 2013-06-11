@@ -19,6 +19,7 @@ freeserf_SOURCES = \
 	src/gui.c src/gui.h \
 	src/popup.c src/popup.h \
 	src/game-init.c src/game-init.h \
+	src/notification.c src/notification.h \
 	src/panel.c src/panel.h \
 	src/map.c src/map.h \
 	src/player.c src/player.h \

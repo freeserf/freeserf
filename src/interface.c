@@ -132,7 +132,10 @@ interface_open_message(interface_t *interface)
 		/* TODO */
 	}
 
-	interface->message_box = interface->player->msg_queue_type[0];
+	int param = (interface->player->msg_queue_type[0] >> 5) & 7;
+	interface->notification_box.type = type;
+	interface->notification_box.param = param;
+	gui_object_set_displayed((gui_object_t *)&interface->notification_box, 1);
 
 	if (BIT_TEST(0x8f3fe, type)) {
 		/* Move screen to new position */
@@ -143,7 +146,6 @@ interface_open_message(interface_t *interface)
 		interface_update_map_cursor_pos(interface, new_pos);
 	}
 
-	interface_open_popup(interface, BOX_MESSAGE);
 	interface->click &= ~BIT(6);
 	interface->click &= ~BIT(1);
 
@@ -937,6 +939,11 @@ interface_set_size(interface_t *interface, int width, int height)
 	int init_box_x = (width - init_box_width) / 2;
 	int init_box_y = (height - init_box_height) / 2;
 
+	int notification_box_width = 200;
+	int notification_box_height = 88;
+	int notification_box_x = interface->bottom_panel_x + 40;
+	int notification_box_y = interface->bottom_panel_y - notification_box_height;
+
 	gui_object_set_size(interface->top, width, height);
 	interface->redraw_top = 1;
 
@@ -961,6 +968,12 @@ interface_set_size(interface_t *interface, int width, int height)
 			fl->redraw = 1;
 			gui_object_set_size(fl->obj, init_box_width,
 					    init_box_height);
+		} else if (fl->obj == (gui_object_t *)&interface->notification_box) {
+			fl->x = notification_box_x;
+			fl->y = notification_box_y;
+			fl->redraw = 1;
+			gui_object_set_size(fl->obj, notification_box_width,
+					    notification_box_height);
 		}
 	}
 
@@ -1080,6 +1093,11 @@ interface_init(interface_t *interface)
 	game_init_box_init(&interface->init_box, interface);
 	gui_object_set_displayed((gui_object_t *)&interface->init_box, 1);
 	interface_add_float(interface, (gui_object_t *)&interface->init_box,
+			    0, 0, 0, 0);
+
+	/* Notification box */
+	notification_box_init(&interface->notification_box, interface);
+	interface_add_float(interface, (gui_object_t *)&interface->notification_box,
 			    0, 0, 0, 0);
 
 	interface->map_cursor_pos = MAP_POS(0, 0);
