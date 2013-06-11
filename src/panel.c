@@ -163,8 +163,6 @@ handle_panel_button_click(interface_t *interface, int btn)
 					interface->panel_btns[3] = PANEL_BTN_STATS_INACTIVE;
 					interface->panel_btns[4] = PANEL_BTN_SETT_INACTIVE;
 					interface->click &= ~BIT(1);
-					interface->minimap_advanced = -1;
-					interface->minimap_flags = 8;
 
 					/* Synchronize minimap window with viewport. */
 					viewport_t *viewport = interface_get_top_viewport(interface);

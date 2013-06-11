@@ -442,18 +442,16 @@ prepare_res_amount_text(int amount)
 static void
 draw_map_box(popup_box_t *popup, frame_t *frame)
 {
-	interface_t *interface = popup->interface;
-
 	/* Icons */
-	draw_popup_icon(0, 128, interface->minimap_flags & 3, frame); /* Mode */
-	draw_popup_icon(4, 128, BIT_TEST(interface->minimap_flags, 2) ? 3 : 4, frame); /* Roads */
-	if (interface->minimap_advanced >= 0) {
-		draw_popup_icon(8, 128, interface->minimap_advanced == 0 ? 306 : 305, frame); /* Unknown mode */
+	draw_popup_icon(0, 128, popup->minimap.flags & 3, frame); /* Mode */
+	draw_popup_icon(4, 128, BIT_TEST(popup->minimap.flags, 2) ? 3 : 4, frame); /* Roads */
+	if (popup->minimap.advanced >= 0) {
+		draw_popup_icon(8, 128, popup->minimap.advanced == 0 ? 306 : 305, frame); /* Unknown mode */
 	} else {
-		draw_popup_icon(8, 128, BIT_TEST(interface->minimap_flags, 3) ? 5 : 6, frame); /* Buildings */
+		draw_popup_icon(8, 128, BIT_TEST(popup->minimap.flags, 3) ? 5 : 6, frame); /* Buildings */
 	}
-	draw_popup_icon(12, 128, BIT_TEST(interface->minimap_flags, 4) ? 7 : 8, frame); /* Grid */
-	draw_popup_icon(14, 128, BIT_TEST(interface->minimap_flags, 5) ? 91 : 92, frame); /* Scale */
+	draw_popup_icon(12, 128, BIT_TEST(popup->minimap.flags, 4) ? 7 : 8, frame); /* Grid */
+	draw_popup_icon(14, 128, BIT_TEST(popup->minimap.flags, 5) ? 91 : 92, frame); /* Scale */
 
 	/* Draw minimap */
 	frame_t minimap_frame;
@@ -2892,37 +2890,37 @@ handle_action(interface_t *interface, action_t action, int x, int y)
 		/* Not handled here, event is passed to minimap. */
 		break;
 	case ACTION_MINIMAP_MODE: {
-		int mode = (interface->minimap_flags & 3) + 1;
-		interface->minimap_flags &= ~3;
+		int mode = (interface->popup.minimap.flags & 3) + 1;
+		interface->popup.minimap.flags &= ~3;
 		if (mode != 3) {
-			interface->minimap_flags |= mode;
+			interface->popup.minimap.flags |= mode;
 		}
 		interface->popup.box = BOX_MAP;
 		break;
 	}
 	case ACTION_MINIMAP_ROADS:
-		BIT_INVERT(interface->minimap_flags, 2);
+		BIT_INVERT(interface->popup.minimap.flags, 2);
 		interface->popup.box = BOX_MAP;
 		break;
 	case ACTION_MINIMAP_BUILDINGS:
 		if (BIT_TEST(interface->click,3)) {
-			if (interface->minimap_advanced >= 0) {
-				interface->minimap_advanced = -1;
+			if (interface->popup.minimap.advanced >= 0) {
+				interface->popup.minimap.advanced = -1;
 			} else {
 				interface->popup.box = BOX_BLD_1;
 			}
 		} else {
-			if (interface->minimap_advanced >= 0) {
-				interface->minimap_advanced = -1;
-				interface->minimap_flags |= BIT(3);
+			if (interface->popup.minimap.advanced >= 0) {
+				interface->popup.minimap.advanced = -1;
+				interface->popup.minimap.flags |= BIT(3);
 			} else {
-				BIT_INVERT(interface->minimap_flags, 3);
+				BIT_INVERT(interface->popup.minimap.flags, 3);
 			}
 			interface->popup.box = BOX_MAP;
 		}
 		break;
 	case ACTION_MINIMAP_GRID:
-		BIT_INVERT(interface->minimap_flags, 4);
+		BIT_INVERT(interface->popup.minimap.flags, 4);
 		interface->popup.box = BOX_MAP;
 		break;
 	case ACTION_BUILD_STONEMINE:
@@ -3503,12 +3501,12 @@ handle_action(interface_t *interface, action_t action, int x, int y)
 	case ACTION_MINIMAP_BLD_21:
 	case ACTION_MINIMAP_BLD_22:
 	case ACTION_MINIMAP_BLD_23:
-		interface->minimap_advanced = action - ACTION_MINIMAP_BLD_1 + 1;
-		interface->minimap_flags |= BIT(3);
+		interface->popup.minimap.advanced = action - ACTION_MINIMAP_BLD_1 + 1;
+		interface->popup.minimap.flags |= BIT(3);
 		interface->popup.box = BOX_MAP;
 		break;
 	case ACTION_MINIMAP_BLD_FLAG:
-		interface->minimap_advanced = 0;
+		interface->popup.minimap.advanced = 0;
 		interface->popup.box = BOX_MAP;
 		break;
 	case ACTION_MINIMAP_BLD_NEXT:
@@ -3536,7 +3534,7 @@ handle_action(interface_t *interface, action_t action, int x, int y)
 		break;
 	case ACTION_MINIMAP_SCALE: {
 		popup_box_t *popup = interface_get_popup_box(interface);
-		BIT_INVERT(interface->minimap_flags, 5);
+		BIT_INVERT(interface->popup.minimap.flags, 5);
 		minimap_set_scale(&popup->minimap,
 				  popup->minimap.scale == 1 ? 2 : 1);
 		interface->popup.box = BOX_MAP;

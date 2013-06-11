@@ -1092,7 +1092,6 @@ interface_init(interface_t *interface)
 	interface->msg_flags = 0;
 	interface->return_timeout = 0;
 	interface->click = 0;
-	interface->minimap_advanced = -1;
 	interface->click |= BIT(1);
 	interface->flags |= BIT(4);
 
@@ -1118,7 +1117,6 @@ interface_init(interface_t *interface)
 
 	interface->player = game.player[0];
 	/*interface->map_serf_rows = game.map_serf_rows_left; OBSOLETE */
-	interface->minimap_flags = 8;
 	interface->current_stat_8_mode = 0;
 	interface->current_stat_7_item = 7;
 	interface->pathway_scrolling_threshold = 0;

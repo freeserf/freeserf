@@ -92,7 +92,7 @@ struct interface {
 	/* 20 */
 	int game_area_cols;
 	/* 2E */
-	int minimap_advanced;
+	/* MOVED to minimap: int minimap_advanced; */
 	/* 30 */
 	int bottom_panel_x; /* ADDITION */
 	int bottom_panel_y;
@@ -148,7 +148,7 @@ struct interface {
 	sprite_loc_t map_cursor_sprites[7];
 	int road_length;
 	int road_valid_dir;
-	uint8_t minimap_flags;
+	/* MOVED to minimap: uint8_t minimap_flags; */
 	/* D2 */
 	int current_stat_8_mode;
 	int current_stat_7_item;

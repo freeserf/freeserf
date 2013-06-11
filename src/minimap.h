@@ -1,7 +1,7 @@
 /*
  * minimap.h - Minimap GUI component
  *
- * Copyright (C) 2012  Jon Lund Steffensen <jonlst@gmail.com>
+ * Copyright (C) 2013  Jon Lund Steffensen <jonlst@gmail.com>
  *
  * This file is part of freeserf.
  *
@@ -28,9 +28,13 @@
 typedef struct {
 	gui_object_t obj;
 	struct interface *interface;
+
 	int pointer_x, pointer_y;
 	int offset_x, offset_y;
 	int scale;
+
+	int advanced;
+	int flags;
 } minimap_t;
 
 

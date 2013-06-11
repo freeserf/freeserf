@@ -131,9 +131,9 @@ draw_minimap_buildings(minimap_t *minimap, frame_t *frame)
 			int obj = MAP_OBJ(pos);
 			if (obj > MAP_OBJ_FLAG && obj <= MAP_OBJ_CASTLE) {
 				int color = player_colors[MAP_OWNER(pos)];
-				if (minimap->interface->minimap_advanced > 0) {
+				if (minimap->advanced > 0) {
 					building_t *bld = game_get_building(MAP_OBJ_INDEX(pos));
-					if (BUILDING_TYPE(bld) == building_remap[minimap->interface->minimap_advanced]) {
+					if (BUILDING_TYPE(bld) == building_remap[minimap->advanced]) {
 						draw_minimap_point(minimap, col, row, color,
 								   minimap->scale, frame);
 					}
@@ -191,31 +191,29 @@ draw_minimap_rect(minimap_t *minimap, frame_t *frame)
 static void
 minimap_draw(minimap_t *minimap, frame_t *frame)
 {
-	interface_t *interface = minimap->interface;
-
-	if (BIT_TEST(interface->minimap_flags, 1)) {
+	if (BIT_TEST(minimap->flags, 1)) {
 		sdl_fill_rect(0, 0, 128, 128, 1, frame);
 		draw_minimap_ownership(minimap, 2, frame);
 	} else {
 		draw_minimap_map(minimap, frame);
-		if (BIT_TEST(interface->minimap_flags, 0)) {
+		if (BIT_TEST(minimap->flags, 0)) {
 			draw_minimap_ownership(minimap, 1, frame);
 		}
 	}
 
-	if (BIT_TEST(interface->minimap_flags, 2)) {
+	if (BIT_TEST(minimap->flags, 2)) {
 		draw_minimap_roads(minimap, frame);
 	}
 
-	if (BIT_TEST(interface->minimap_flags, 3)) {
+	if (BIT_TEST(minimap->flags, 3)) {
 		draw_minimap_buildings(minimap, frame);
 	}
 
-	if (BIT_TEST(interface->minimap_flags, 4)) {
+	if (BIT_TEST(minimap->flags, 4)) {
 		draw_minimap_grid(minimap, frame);
 	}
 
-	if (interface->minimap_advanced) {
+	if (minimap->advanced > 0) {
 		draw_minimap_traffic(minimap, frame);
 	}
 
@@ -308,6 +306,9 @@ minimap_init(minimap_t *minimap, interface_t *interface)
 	minimap->offset_x = 0;
 	minimap->offset_y = 0;
 	minimap->scale = 1;
+
+	minimap->advanced = -1;
+	minimap->flags = 8;
 }
 
 /* Set the scale of the map (zoom). Must be positive. */
