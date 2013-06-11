@@ -434,10 +434,10 @@ game_loop()
 
 					/* Misc */
 				case SDLK_ESCAPE:
-					if (BIT_TEST(interface.click, 7)) { /* Building road */
-						interface_build_road_end(&interface);
-					} else if (interface.clkmap != 0) {
+					if (((gui_object_t *)&interface.popup)->displayed) {
 						interface_close_popup(&interface);
+					} else if (BIT_TEST(interface.click, 7)) { /* Building road */
+						interface_build_road_end(&interface);
 					}
 					break;
 

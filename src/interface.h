@@ -120,8 +120,7 @@ struct interface {
 	int panel_btns_x;
 	int msg_icon_x;
 	/* 70 */
-	box_t box;
-	box_t clkmap;
+	/* MOVED to popup: box, clkmap */
 	/* OBSOLETE moved to minimap object
 	int minimap_row;
 	int minimap_col;

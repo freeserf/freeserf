@@ -65,7 +65,7 @@ interface_get_popup_box(interface_t *interface)
 void
 interface_open_popup(interface_t *interface, int box)
 {
-	interface->box = box;
+	interface->popup.box = box;
 	gui_object_set_displayed((gui_object_t *)&interface->popup, 1);
 }
 
@@ -73,13 +73,13 @@ interface_open_popup(interface_t *interface, int box)
 void
 interface_close_popup(interface_t *interface)
 {
+	interface->popup.box = 0;
 	gui_object_set_displayed((gui_object_t *)&interface->popup, 0);
 	interface->click &= ~BIT(6);
 	interface->panel_btns[2] = PANEL_BTN_MAP;
 	interface->panel_btns[3] = PANEL_BTN_STATS;
 	interface->panel_btns[4] = PANEL_BTN_SETT;
 	interface->click |= BIT(1);
-	interface->clkmap = 0;
 	interface->click |= BIT(2);
 
 	interface_update_map_cursor_pos(interface,
@@ -113,14 +113,6 @@ interface_open_message(interface_t *interface)
 	if (interface->player->msg_queue_type[0] == 0 || /* No message */
 	    BIT_TEST(interface->click, 7)) { /* Building road */
 		sfx_play_clip(SFX_CLICK);
-		return;
-	} else if (interface->clkmap == BOX_LOAD_ARCHIVE ||
-		   interface->clkmap == BOX_LOAD_SAVE ||
-		   interface->clkmap == BOX_DISK_MSG ||
-		   interface->clkmap == BOX_QUIT_CONFIRM ||
-		   interface->clkmap == BOX_NO_SAVE_QUIT_CONFIRM ||
-		   interface->clkmap == BOX_OPTIONS) {
-		sfx_play_clip(SFX_NOT_ACCEPTED);
 		return;
 	} else {
 		interface->flags &= ~BIT(6);
@@ -187,7 +179,7 @@ interface_return_from_message(interface_t *interface)
 					interface->return_row_game_area);
 		viewport_move_to_map_pos(viewport, pos);
 
-		if (interface->clkmap == BOX_MESSAGE) interface_close_popup(interface);
+		if (interface->popup.box == BOX_MESSAGE) interface_close_popup(interface);
 		sfx_play_clip(SFX_CLICK);
 	}
 }
@@ -1102,7 +1094,6 @@ interface_init(interface_t *interface)
 	interface->click = 0;
 	interface->minimap_advanced = -1;
 	interface->click |= BIT(1);
-	interface->clkmap = 0;
 	interface->flags |= BIT(4);
 
 	/* OBSOLETE
@@ -1130,7 +1121,6 @@ interface_init(interface_t *interface)
 	interface->minimap_flags = 8;
 	interface->current_stat_8_mode = 0;
 	interface->current_stat_7_item = 7;
-	interface->box = 0;
 	interface->pathway_scrolling_threshold = 0;
 
 	interface->map_cursor_sprites[0].sprite = 32;

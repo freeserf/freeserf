@@ -190,11 +190,7 @@ handle_panel_button_click(interface_t *interface, int btn)
 				interface->panel_btns[3] = PANEL_BTN_STATS_INACTIVE;
 				interface->panel_btns[4] = PANEL_BTN_SETT_STARRED;
 				interface->click &= ~BIT(1);
-				if (BIT_TEST(interface->click, 0)) {
-					interface_open_popup(interface, BOX_SETT_SELECT);
-				} else {
-					interface_open_popup(interface, BOX_SETT_SELECT_FILE);
-				}
+				interface_open_popup(interface, BOX_SETT_SELECT);
 			}
 			break;
 		case PANEL_BTN_STATS:

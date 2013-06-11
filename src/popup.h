@@ -1,7 +1,7 @@
 /*
  * popup.h - Popup GUI component
  *
- * Copyright (C) 2012  Jon Lund Steffensen <jonlst@gmail.com>
+ * Copyright (C) 2013  Jon Lund Steffensen <jonlst@gmail.com>
  *
  * This file is part of freeserf.
  *
@@ -24,12 +24,15 @@
 
 #include "gui.h"
 #include "minimap.h"
+#include "freeserf.h"
 
 
 typedef struct {
 	gui_container_t cont;
 	struct interface *interface;
 	minimap_t minimap;
+
+	box_t box;
 } popup_box_t;
 
 void popup_box_init(popup_box_t *popup, struct interface *interface);

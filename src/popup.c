@@ -209,8 +209,8 @@ typedef enum {
 	ACTION_OPTIONS_FAST_BUILDING_2,
 	ACTION_OPTIONS_MESSAGE_COUNT_1,
 	ACTION_OPTIONS_MESSAGE_COUNT_2,
-	ACTION_SHOW_SETT_SELECT_FILE,
-	ACTION_SHOW_STAT_SELECT_FILE,
+	ACTION_SHOW_SETT_SELECT_FILE, /* UNUSED */
+	ACTION_SHOW_STAT_SELECT_FILE, /* UNUSED */
 	ACTION_DEFAULT_SETT_1,
 	ACTION_DEFAULT_SETT_2,
 	ACTION_DEFAULT_SETT_5_6,
@@ -439,10 +439,12 @@ prepare_res_amount_text(int amount)
 	return "Perfect";
 }
 
-/* Draw map popup box. */
 static void
-draw_minimap_icons(interface_t *interface, frame_t *frame)
+draw_map_box(popup_box_t *popup, frame_t *frame)
 {
+	interface_t *interface = popup->interface;
+
+	/* Icons */
 	draw_popup_icon(0, 128, interface->minimap_flags & 3, frame); /* Mode */
 	draw_popup_icon(4, 128, BIT_TEST(interface->minimap_flags, 2) ? 3 : 4, frame); /* Roads */
 	if (interface->minimap_advanced >= 0) {
@@ -452,11 +454,7 @@ draw_minimap_icons(interface_t *interface, frame_t *frame)
 	}
 	draw_popup_icon(12, 128, BIT_TEST(interface->minimap_flags, 4) ? 7 : 8, frame); /* Grid */
 	draw_popup_icon(14, 128, BIT_TEST(interface->minimap_flags, 5) ? 91 : 92, frame); /* Scale */
-}
 
-static void
-draw_map_overlay_box(popup_box_t *popup, frame_t *frame)
-{
 	/* Draw minimap */
 	frame_t minimap_frame;
 	sdl_frame_init(&minimap_frame,
@@ -465,14 +463,6 @@ draw_map_overlay_box(popup_box_t *popup, frame_t *frame)
 		       128, 128, frame);
 
 	gui_object_redraw((gui_object_t *)&popup->minimap, &minimap_frame);
-}
-
-static void
-draw_map_box(popup_box_t *popup, frame_t *frame)
-{
-	popup->interface->clkmap = BOX_MAP_OVERLAY;
-	draw_minimap_icons(popup->interface, frame);
-	draw_map_overlay_box(popup, frame);
 }
 
 /* Draw building mine popup box. */
@@ -2649,18 +2639,10 @@ popup_box_draw(popup_box_t *popup, frame_t *frame)
 {
 	draw_popup_box_frame(frame);
 
-	if (BIT_TEST(popup->interface->flags, 0)) return; /* Player inactive */
-
-	box_t box = popup->interface->box;
-	popup->interface->clkmap = box;
-
 	/* Dispatch to one of the popup box functions above. */
-	switch (box) {
+	switch (popup->box) {
 	case BOX_MAP:
 		draw_map_box(popup, frame);
-		break;
-	case BOX_MAP_OVERLAY:
-		draw_map_overlay_box(popup, frame);
 		break;
 	case BOX_MINE_BUILDING:
 		draw_mine_building_box(popup, frame);
@@ -2724,7 +2706,6 @@ popup_box_draw(popup_box_t *popup, frame_t *frame)
 		break;
 		/* TODO */
 	case BOX_SETT_SELECT:
-	case BOX_SETT_SELECT_FILE:
 		draw_sett_select_box(popup, frame);
 		break;
 	case BOX_SETT_1:
@@ -2813,7 +2794,7 @@ popup_box_draw(popup_box_t *popup, frame_t *frame)
 static void
 activate_sett_5_6_item(interface_t *interface, int index)
 {
-	if (interface->clkmap == BOX_SETT_5) {
+	if (interface->popup.box == BOX_SETT_5) {
 		int i;
 		for (i = 0; i < 26; i++) {
 			if (interface->player->flag_prio[i] == index) break;
@@ -2826,7 +2807,6 @@ activate_sett_5_6_item(interface_t *interface, int index)
 		}
 		interface->player->current_sett_6_item = i+1;
 	}
-	interface_open_popup(interface, interface->clkmap);
 }
 
 static void
@@ -2835,7 +2815,7 @@ move_sett_5_6_item(interface_t *interface, int up, int to_end)
 	int *prio = NULL;
 	int cur = -1;
 
-	if (interface->clkmap == BOX_SETT_5) {
+	if (interface->popup.box == BOX_SETT_5) {
 		prio = interface->player->flag_prio;
 		cur = interface->player->current_sett_5_item-1;
 	} else {
@@ -2862,8 +2842,6 @@ move_sett_5_6_item(interface_t *interface, int up, int to_end)
 		}
 		prio[cur] = next_value;
 	}
-
-	interface_open_popup(interface, interface->clkmap);
 }
 
 static void
@@ -2888,8 +2866,6 @@ sett_8_train(interface_t *interface, int number)
 
 	if (r == 0) sfx_play_clip(SFX_NOT_ACCEPTED);
 	else sfx_play_clip(SFX_ACCEPTED);
-
-	interface_open_popup(interface, interface->clkmap);
 }
 
 static void
@@ -2921,19 +2897,19 @@ handle_action(interface_t *interface, action_t action, int x, int y)
 		if (mode != 3) {
 			interface->minimap_flags |= mode;
 		}
-		interface->box = BOX_MAP;
+		interface->popup.box = BOX_MAP;
 		break;
 	}
 	case ACTION_MINIMAP_ROADS:
 		BIT_INVERT(interface->minimap_flags, 2);
-		interface->box = BOX_MAP;
+		interface->popup.box = BOX_MAP;
 		break;
 	case ACTION_MINIMAP_BUILDINGS:
 		if (BIT_TEST(interface->click,3)) {
 			if (interface->minimap_advanced >= 0) {
 				interface->minimap_advanced = -1;
 			} else {
-				interface->box = BOX_BLD_1;
+				interface->popup.box = BOX_BLD_1;
 			}
 		} else {
 			if (interface->minimap_advanced >= 0) {
@@ -2942,12 +2918,12 @@ handle_action(interface_t *interface, action_t action, int x, int y)
 			} else {
 				BIT_INVERT(interface->minimap_flags, 3);
 			}
-			interface->box = BOX_MAP;
+			interface->popup.box = BOX_MAP;
 		}
 		break;
 	case ACTION_MINIMAP_GRID:
 		BIT_INVERT(interface->minimap_flags, 4);
-		interface->box = BOX_MAP;
+		interface->popup.box = BOX_MAP;
 		break;
 	case ACTION_BUILD_STONEMINE:
 		interface_build_building(interface, BUILDING_STONEMINE);
@@ -3020,7 +2996,8 @@ handle_action(interface_t *interface, action_t action, int x, int y)
 		interface_build_building(interface, BUILDING_PIGFARM);
 		break;
 	case ACTION_BLD_FLIP_PAGE:
-		interface_open_popup(interface, (interface->clkmap + 1 <= BOX_ADV_2_BLD) ? (interface->clkmap + 1) : BOX_BASIC_BLD_FLIP);
+		interface_open_popup(interface, (interface->popup.box + 1 <= BOX_ADV_2_BLD) ?
+				     (interface->popup.box + 1) : BOX_BASIC_BLD_FLIP);
 		break;
 	case ACTION_SHOW_STAT_1:
 		interface_open_popup(interface, BOX_STAT_1);
@@ -3047,11 +3024,11 @@ handle_action(interface_t *interface, action_t action, int x, int y)
 		interface_open_popup(interface, BOX_STAT_3);
 		break;
 	case ACTION_SHOW_STAT_SELECT:
-	case ACTION_SHOW_STAT_SELECT_FILE:
 		interface_open_popup(interface, BOX_STAT_SELECT);
 		break;
 	case ACTION_STAT_BLD_FLIP:
-		interface_open_popup(interface, (interface->clkmap + 1 <= BOX_STAT_BLD_4) ? (interface->clkmap + 1) : BOX_STAT_BLD_1);
+		interface_open_popup(interface, (interface->popup.box + 1 <= BOX_STAT_BLD_4) ?
+				     (interface->popup.box + 1) : BOX_STAT_BLD_1);
 		break;
 	case ACTION_CLOSE_BOX:
 	case ACTION_CLOSE_SETT_BOX:
@@ -3060,35 +3037,27 @@ handle_action(interface_t *interface, action_t action, int x, int y)
 		break;
 	case ACTION_SETT_8_SET_ASPECT_ALL:
 		interface->current_stat_8_mode = (0 << 2) | (interface->current_stat_8_mode & 3);
-		interface_open_popup(interface, interface->clkmap);
 		break;
 	case ACTION_SETT_8_SET_ASPECT_LAND:
 		interface->current_stat_8_mode = (1 << 2) | (interface->current_stat_8_mode & 3);
-		interface_open_popup(interface, interface->clkmap);
 		break;
 	case ACTION_SETT_8_SET_ASPECT_BUILDINGS:
 		interface->current_stat_8_mode = (2 << 2) | (interface->current_stat_8_mode & 3);
-		interface_open_popup(interface, interface->clkmap);
 		break;
 	case ACTION_SETT_8_SET_ASPECT_MILITARY:
 		interface->current_stat_8_mode = (3 << 2) | (interface->current_stat_8_mode & 3);
-		interface_open_popup(interface, interface->clkmap);
 		break;
 	case ACTION_SETT_8_SET_SCALE_30_MIN:
 		interface->current_stat_8_mode = (interface->current_stat_8_mode & 0xc) | 0;
-		interface_open_popup(interface, interface->clkmap);
 		break;
 	case ACTION_SETT_8_SET_SCALE_60_MIN:
 		interface->current_stat_8_mode = (interface->current_stat_8_mode & 0xc) | 1;
-		interface_open_popup(interface, interface->clkmap);
 		break;
 	case ACTION_SETT_8_SET_SCALE_600_MIN:
 		interface->current_stat_8_mode = (interface->current_stat_8_mode & 0xc) | 2;
-		interface_open_popup(interface, interface->clkmap);
 		break;
 	case ACTION_SETT_8_SET_SCALE_3000_MIN:
 		interface->current_stat_8_mode = (interface->current_stat_8_mode & 0xc) | 3;
-		interface_open_popup(interface, interface->clkmap);
 		break;
 	case ACTION_STAT_7_SELECT_FISH:
 	case ACTION_STAT_7_SELECT_PIG:
@@ -3117,7 +3086,6 @@ handle_action(interface_t *interface, action_t action, int x, int y)
 	case ACTION_STAT_7_SELECT_SWORD:
 	case ACTION_STAT_7_SELECT_SHIELD:
 		interface->current_stat_7_item = action - ACTION_STAT_7_SELECT_FISH + 1;
-		interface_open_popup(interface, interface->clkmap);
 		break;
 	case ACTION_ATTACKING_KNIGHTS_DEC:
 		interface->player->knights_attacking = max(interface->player->knights_attacking-1, 0);
@@ -3160,7 +3128,6 @@ handle_action(interface_t *interface, action_t action, int x, int y)
 		interface_open_popup(interface, BOX_SETT_5);
 		break;
 	case ACTION_SHOW_SETT_SELECT:
-	case ACTION_SHOW_SETT_SELECT_FILE:
 		interface_open_popup(interface, BOX_SETT_SELECT);
 		break;
 	case ACTION_SETT_1_ADJUST_STONEMINE:
@@ -3420,8 +3387,7 @@ handle_action(interface_t *interface, action_t action, int x, int y)
 		player_reset_steel_priority(interface->player);
 		break;
 	case ACTION_DEFAULT_SETT_5_6:
-		interface_open_popup(interface, interface->clkmap);
-		switch (interface->clkmap) {
+		switch (interface->popup.box) {
 		case BOX_SETT_5:
 			player_reset_flag_priority(interface->player);
 			break;
@@ -3466,7 +3432,6 @@ handle_action(interface_t *interface, action_t action, int x, int y)
 		break;
 	case ACTION_SETT_8_ADJUST_RATE:
 		interface->player->serf_to_knight_rate = gui_get_slider_click_value(x);
-		interface_open_popup(interface, interface->clkmap);
 		break;
 	case ACTION_SETT_8_TRAIN_1:
 		sett_8_train(interface, 1);
@@ -3487,12 +3452,10 @@ handle_action(interface_t *interface, action_t action, int x, int y)
 		break;
 	case ACTION_SETT_8_SET_COMBAT_MODE_WEAK:
 		interface->player->flags &= ~BIT(1);
-		interface_open_popup(interface, interface->clkmap);
 		sfx_play_clip(SFX_ACCEPTED);
 		break;
 	case ACTION_SETT_8_SET_COMBAT_MODE_STRONG:
 		interface->player->flags |= BIT(1);
-		interface_open_popup(interface, interface->clkmap);
 		sfx_play_clip(SFX_ACCEPTED);
 		break;
 	case ACTION_ATTACKING_SELECT_ALL_1:
@@ -3542,20 +3505,20 @@ handle_action(interface_t *interface, action_t action, int x, int y)
 	case ACTION_MINIMAP_BLD_23:
 		interface->minimap_advanced = action - ACTION_MINIMAP_BLD_1 + 1;
 		interface->minimap_flags |= BIT(3);
-		interface->box = BOX_MAP;
+		interface->popup.box = BOX_MAP;
 		break;
 	case ACTION_MINIMAP_BLD_FLAG:
 		interface->minimap_advanced = 0;
-		interface->box = BOX_MAP;
+		interface->popup.box = BOX_MAP;
 		break;
 	case ACTION_MINIMAP_BLD_NEXT:
-		interface->box = interface->clkmap + 1;
-		if (interface->box > BOX_BLD_4) {
-			interface->box = BOX_BLD_1;
+		interface->popup.box = interface->popup.box + 1;
+		if (interface->popup.box > BOX_BLD_4) {
+			interface->popup.box = BOX_BLD_1;
 		}
 		break;
 	case ACTION_MINIMAP_BLD_EXIT:
-		interface->box = BOX_MAP;
+		interface->popup.box = BOX_MAP;
 		break;
 	case ACTION_CLOSE_MESSAGE:
 		if ((interface->message_box & 0x1f) == 16) {
@@ -3576,17 +3539,15 @@ handle_action(interface_t *interface, action_t action, int x, int y)
 		BIT_INVERT(interface->minimap_flags, 5);
 		minimap_set_scale(&popup->minimap,
 				  popup->minimap.scale == 1 ? 2 : 1);
-		interface->box = BOX_MAP;
+		interface->popup.box = BOX_MAP;
 	}
 		break;
 		/* TODO */
 	case ACTION_SETT_8_CASTLE_DEF_DEC:
 		interface->player->castle_knights_wanted = max(1, interface->player->castle_knights_wanted-1);
-		interface_open_popup(interface, interface->clkmap);
 		break;
 	case ACTION_SETT_8_CASTLE_DEF_INC:
 		interface->player->castle_knights_wanted = min(interface->player->castle_knights_wanted+1, 99);
-		interface_open_popup(interface, interface->clkmap);
 		break;
 	case ACTION_OPTIONS_MUSIC:
 		midi_enable(!midi_is_enabled());
@@ -3744,7 +3705,7 @@ handle_stat_select_click(interface_t *interface, int x, int y)
 		ACTION_SHOW_STAT_7, 8, 100, 32, 32,
 		ACTION_SHOW_STAT_8, 48, 100, 32, 32,
 		ACTION_CLOSE_BOX, 112, 128, 16, 16,
-		ACTION_SHOW_SETT_SELECT_FILE, 96, 104, 16, 16,
+		ACTION_SHOW_SETT_SELECT, 96, 104, 16, 16,
 		-1
 	};
 	handle_clickmap(interface, x, y, clkmap);
@@ -3887,7 +3848,7 @@ handle_sett_select_clk(interface_t *interface, int x, int y)
 		ACTION_SHOW_SETT_8, 48, 88, 32, 32,
 
 		ACTION_CLOSE_SETT_BOX, 112, 128, 16, 16,
-		ACTION_SHOW_STAT_SELECT_FILE, 96, 104, 16, 16,
+		ACTION_SHOW_STAT_SELECT, 96, 104, 16, 16,
 		-1
 	};
 	handle_clickmap(interface, x, y, clkmap);
@@ -4271,9 +4232,8 @@ popup_box_handle_event_click(popup_box_t *popup, int x, int y)
 	x -= 8;
 	y -= 8;
 
-	switch (interface->clkmap) {
+	switch (popup->box) {
 	case BOX_MAP:
-	case BOX_MAP_OVERLAY:
 		handle_minimap_clk(interface, x, y);
 		break;
 	case BOX_MINE_BUILDING:
@@ -4325,7 +4285,6 @@ popup_box_handle_event_click(popup_box_t *popup, int x, int y)
 		break;
 		/* TODO ... */
 	case BOX_SETT_SELECT:
-	case BOX_SETT_SELECT_FILE:
 		handle_sett_select_clk(interface, x, y);
 		break;
 	case BOX_SETT_1:
@@ -4407,7 +4366,7 @@ popup_box_handle_event_click(popup_box_t *popup, int x, int y)
 		handle_box_demolish_clk(interface, x, y);
 		break;
 	default:
-		LOGD("popup", "unhandled box: %i", interface->clkmap);
+		LOGD("popup", "unhandled box: %i", popup->box);
 		break;
 	}
 
@@ -4421,8 +4380,7 @@ popup_box_handle_event(popup_box_t *popup, const gui_event_t *event)
 	int y = event->y;
 
 	/* Pass event on to minimap */
-	if ((popup->interface->clkmap == BOX_MAP ||
-	     popup->interface->clkmap == BOX_MAP_OVERLAY) &&
+	if (popup->box == BOX_MAP &&
 	    x >= 8 && x < 128+8 && y >= 9 && y < 128+9) {
 		gui_event_t minimap_event = {
 			.type = event->type,
