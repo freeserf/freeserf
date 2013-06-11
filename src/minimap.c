@@ -76,15 +76,11 @@ draw_minimap_map(minimap_t *minimap, frame_t *frame)
 static void
 draw_minimap_ownership(minimap_t *minimap, int density, frame_t *frame)
 {
-	const int player_colors[] = {
-		64, 72, 68, 76
-	};
-
 	for (int row = 0; row < game.map.rows; row++) {
 		for (int col = 0; col < game.map.cols; col++) {
 			map_pos_t pos = MAP_POS(col, row);
 			if (MAP_HAS_OWNER(pos)) {
-				int color = player_colors[MAP_OWNER(pos)];
+				int color = game.player[MAP_OWNER(pos)]->color;
 				draw_minimap_point(minimap, col, row, color,
 						   density, frame);
 			}
@@ -109,10 +105,6 @@ draw_minimap_roads(minimap_t *minimap, frame_t *frame)
 static void
 draw_minimap_buildings(minimap_t *minimap, frame_t *frame)
 {
-	const int player_colors[] = {
-		64, 72, 68, 76
-	};
-
 	const int building_remap[] = {
 		BUILDING_CASTLE,
 		BUILDING_STOCK, BUILDING_TOWER, BUILDING_HUT,
@@ -130,7 +122,7 @@ draw_minimap_buildings(minimap_t *minimap, frame_t *frame)
 			int pos = MAP_POS(col, row);
 			int obj = MAP_OBJ(pos);
 			if (obj > MAP_OBJ_FLAG && obj <= MAP_OBJ_CASTLE) {
-				int color = player_colors[MAP_OWNER(pos)];
+				int color = game.player[MAP_OWNER(pos)]->color;
 				if (minimap->advanced > 0) {
 					building_t *bld = game_get_building(MAP_OBJ_INDEX(pos));
 					if (BUILDING_TYPE(bld) == building_remap[minimap->advanced]) {
@@ -149,15 +141,11 @@ draw_minimap_buildings(minimap_t *minimap, frame_t *frame)
 static void
 draw_minimap_traffic(minimap_t *minimap, frame_t *frame)
 {
-	const int player_colors[] = {
-		64, 72, 68, 76
-	};
-
 	for (int row = 0; row < game.map.rows; row++) {
 		for (int col = 0; col < game.map.cols; col++) {
 			int pos = MAP_POS(col, row);
 			if (MAP_IDLE_SERF(pos)) {
-				int color = player_colors[MAP_OWNER(pos)];
+				int color = game.player[MAP_OWNER(pos)]->color;
 				draw_minimap_point(minimap, col, row, color,
 						   minimap->scale, frame);
 			}

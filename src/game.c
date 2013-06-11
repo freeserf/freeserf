@@ -4906,6 +4906,10 @@ init_ai_values(player_t *player, int face)
 static void
 reset_player_settings()
 {
+	const int default_player_colors[] = {
+		64, 72, 68, 76
+	};
+
 	game.winning_player = -1;
 	/* TODO ... */
 	game.max_next_index = 33;
@@ -4927,6 +4931,7 @@ reset_player_settings()
 			}
 
 			player->player_num = i;
+			player->color = default_player_colors[i];
 			/* player->field_163 = 0; */
 			player->build = 0;
 			/*player->field_163 |= BIT(0);*/

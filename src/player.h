@@ -71,6 +71,7 @@ typedef struct {
 
 	/* pl_sett */
 	int player_num;
+	int color; /* ADDED */
 	int flags;
 	int build;
 	int completed_building_count[24];

@@ -841,13 +841,11 @@ draw_game_sprite(int x, int y, int index, frame_t *frame)
 static void
 draw_serf(int x, int y, int color, int head, int body, frame_t *frame)
 {
-	int c = 4*color + 64;
-
 	sprite_t *s_arms = gfx_get_data_object(DATA_SERF_ARMS_BASE + body, NULL);
 	sprite_t *s_torso = gfx_get_data_object(DATA_SERF_TORSO_BASE + body, NULL);
 
 	sdl_draw_transp_sprite(s_arms, x, y, 1, 0, 0, frame);
-	sdl_draw_transp_sprite(s_torso, x, y, 1, 0, c, frame);
+	sdl_draw_transp_sprite(s_torso, x, y, 1, 0, color, frame);
 
 	if (head >= 0) {
 		sprite_t *s_head = gfx_get_data_object(DATA_SERF_HEAD_BASE + head, NULL);
@@ -1429,6 +1427,7 @@ draw_flag_and_res(map_pos_t pos, int x, int y, frame_t *frame)
 
 	int pl_num = FLAG_PLAYER(flag);
 	int spr = 0x80 + (pl_num << 2) + ((game.tick >> 3) & 3);
+
 	draw_shadow_and_building_sprite(x, y, spr, frame);
 
 	if (flag->res_waiting[3] != 0) draw_game_sprite(x+10, y+2, flag->res_waiting[3] & 0x1f, frame);
@@ -1560,9 +1559,6 @@ draw_row_serf(int x, int y, int shadow, int color, int body, frame_t *frame)
 		sprite_t *sh = gfx_get_data_object(DATA_SERF_SHADOW, NULL);
 		sdl_draw_overlay_sprite(sh, x, y, 0, frame);
 	}
-
-	if (color == 1) color = 2;
-	else if (color == 2) color = 1;
 
 	int hi = ((body >> 8) & 0xff) * 2;
 	int lo = (body & 0xff) * 2;
@@ -2136,7 +2132,10 @@ draw_serf_row(map_pos_t pos, int y_base, int cols, int x_base,
 #if 0
 		/* Draw serf marker */
 		if (MAP_SERF_INDEX(pos) != 0) {
-			gfx_fill_rect(x_base - 2, y_base - 4*MAP_HEIGHT(pos) - 2, 4, 4, 0x40, frame);
+			serf_t *serf = game_get_serf(MAP_SERF_INDEX(pos));
+			int color = game.player[SERF_PLAYER(serf)]->color;
+			gfx_fill_rect(x_base - 2, y_base - 4*MAP_HEIGHT(pos) - 2, 4, 4,
+				      color, frame);
 		}
 #endif
 
@@ -2152,7 +2151,10 @@ draw_serf_row(map_pos_t pos, int y_base, int cols, int x_base,
 			int y = y_base - 4*MAP_HEIGHT(pos) + ((int8_t *)tbl_ptr)[2];
 			int body = serf_get_body(serf, animation_table);
 
-			if (body > -1) draw_row_serf(x, y, 1, SERF_PLAYER(serf), body, frame);
+			if (body > -1) {
+				int color = game.player[SERF_PLAYER(serf)]->color;
+				draw_row_serf(x, y, 1, color, body, frame);
+			}
 
 			/* Draw additional serf */
 			if (serf->state == SERF_STATE_KNIGHT_ENGAGING_BUILDING ||
@@ -2175,8 +2177,8 @@ draw_serf_row(map_pos_t pos, int y_base, int cols, int x_base,
 					int body = serf_get_body(def_serf, animation_table);
 
 					if (body > -1) {
-						draw_row_serf(x, y, 1, SERF_PLAYER(def_serf),
-							      body, frame);
+						int color = game.player[SERF_PLAYER(def_serf)]->color;
+						draw_row_serf(x, y, 1, color, body, frame);
 					}
 				}
 			}
@@ -2224,7 +2226,8 @@ draw_serf_row(map_pos_t pos, int y_base, int cols, int x_base,
 				body = arr_2[((game.tick + arr_1[pos & 0xf]) >> 3) & 0x7f];
 			}
 
-			draw_row_serf(x, y, 1, MAP_PLAYER(pos), body, frame);
+			int color = game.player[MAP_PLAYER(pos)]->color;
+			draw_row_serf(x, y, 1, color, body, frame);
 		}
 	}
 }

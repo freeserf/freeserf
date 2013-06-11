@@ -393,11 +393,7 @@ get_player_face_sprite(int face)
 static void
 draw_player_face(int x, int y, int player, frame_t *frame)
 {
-	const int player_colors[] = {
-		64, 72, 68, 76
-	};
-
-	gfx_fill_rect(8*x, y+5, 48, 72, player_colors[player], frame);
+	gfx_fill_rect(8*x, y+5, 48, 72, game.player[player]->color, frame);
 	draw_popup_icon(x, y, get_player_face_sprite(game.pl_init[player].face), frame);
 }
 
