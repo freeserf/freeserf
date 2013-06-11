@@ -1763,10 +1763,16 @@ draw_castle_res_box(popup_box_t *popup, frame_t *frame)
 	draw_box_background(0x138, frame);
 	draw_custom_icon_box(layout, frame);
 
-	if (popup->interface->player->index == 0) return;/*player_close_popup();*/
+	if (popup->interface->player->index == 0) {
+		interface_close_popup(popup->interface);
+		return;
+	}
 
 	building_t *building = game_get_building(popup->interface->player->index);
-	if (BUILDING_IS_BURNING(building)) return;/*player_close_popup();*/
+	if (BUILDING_IS_BURNING(building)) {
+		interface_close_popup(popup->interface);
+		return;
+	}
 
 	inventory_t *inventory = building->u.inventory;
 	if (BUILDING_TYPE(building) == BUILDING_STOCK) {
@@ -1774,7 +1780,8 @@ draw_castle_res_box(popup_box_t *popup, frame_t *frame)
 	} else if (BUILDING_TYPE(building) == BUILDING_CASTLE) {
 		/* TODO add extra planks and extra stone */
 	} else {
-		return;/*player_close_popup();*/
+		interface_close_popup(popup->interface);
+		return;
 	}
 
 	draw_resources_box(frame, inventory->resources);
@@ -1785,10 +1792,16 @@ draw_mine_output_box(popup_box_t *popup, frame_t *frame)
 {
 	draw_box_background(0x138, frame);
 
-	if (popup->interface->player->index == 0) return;/*player_close_popup();*/
+	if (popup->interface->player->index == 0) {
+		interface_close_popup(popup->interface);
+		return;
+	}
 
 	building_t *building = game_get_building(popup->interface->player->index);
-	if (BUILDING_IS_BURNING(building)) return;/*player_close_popup();*/
+	if (BUILDING_IS_BURNING(building)) {
+		interface_close_popup(popup->interface);
+		return;
+	}
 
 	building_type_t type = BUILDING_TYPE(building);
 
@@ -1796,7 +1809,8 @@ draw_mine_output_box(popup_box_t *popup, frame_t *frame)
 	    type != BUILDING_COALMINE &&
 	    type != BUILDING_IRONMINE &&
 	    type != BUILDING_GOLDMINE) {
-		return;/*player_close_popup();*/
+		interface_close_popup(popup->interface);
+		return;
 	}
 
 	/* Draw building */
@@ -1849,10 +1863,16 @@ draw_ordered_building_box(popup_box_t *popup, frame_t *frame)
 {
 	draw_box_background(0x138, frame);
 
-	if (popup->interface->player->index == 0) return;/*player_close_popup();*/
+	if (popup->interface->player->index == 0) {
+		interface_close_popup(popup->interface);
+		return;
+	}
 
 	building_t *building = game_get_building(popup->interface->player->index);
-	if (BUILDING_IS_BURNING(building)) return;/*player_close_popup();*/
+	if (BUILDING_IS_BURNING(building)) {
+		interface_close_popup(popup->interface);
+		return;
+	}
 
 	building_type_t type = BUILDING_TYPE(building);
 
@@ -1879,20 +1899,28 @@ draw_defenders_box(popup_box_t *popup, frame_t *frame)
 {
 	draw_box_background(0x138, frame);
 
-	if (popup->interface->player->index == 0) return;/*player_close_popup();*/
+	if (popup->interface->player->index == 0) {
+		interface_close_popup(popup->interface);
+		return;
+	}
 
 	building_t *building = game_get_building(popup->interface->player->index);
-	if (BUILDING_IS_BURNING(building)) return;/*player_close_popup();*/ /* Building is burning */
+	if (BUILDING_IS_BURNING(building)) {
+		interface_close_popup(popup->interface);
+		return;
+	}
 
 	if (!BIT_TEST(game.split, 5) && /* Demo mode */
 	    BUILDING_PLAYER(building) != popup->interface->player->player_num) {
-		return;/*player_close_popup();*/
+		interface_close_popup(popup->interface);
+		return;
 	}
 
 	if (BUILDING_TYPE(building) != BUILDING_HUT &&
 	    BUILDING_TYPE(building) != BUILDING_TOWER &&
 	    BUILDING_TYPE(building) != BUILDING_FORTRESS) {
-		return;/*player_close_popup();*/
+		interface_close_popup(popup->interface);
+		return;
 	}
 
 	/* Draw building sprite */
@@ -1954,7 +1982,10 @@ draw_transport_info_box(popup_box_t *popup, frame_t *frame)
 	/* TODO show path merge button. */
 	/* if (r == 0) draw_popup_icon(7, 51, 0x135, frame); */
 
-	if (popup->interface->player->index == 0) return;/*player_close_popup();*/
+	if (popup->interface->player->index == 0) {
+		interface_close_popup(popup->interface);
+		return;
+	}
 
 	flag_t *flag = game_get_flag(popup->interface->player->index);
 
@@ -2022,13 +2053,22 @@ draw_castle_serf_box(popup_box_t *popup, frame_t *frame)
 	draw_box_background(0x138, frame);
 	draw_custom_icon_box(layout, frame);
 
-	if (popup->interface->player->index == 0) return;/*player_close_popup();*/
+	if (popup->interface->player->index == 0) {
+		interface_close_popup(popup->interface);
+		return;
+	}
 
 	building_t *building = game_get_building(popup->interface->player->index);
-	if (BUILDING_IS_BURNING(building)) return;/*player_close_popup();*/
+	if (BUILDING_IS_BURNING(building)) {
+		interface_close_popup(popup->interface);
+		return;
+	}
 
 	building_type_t type = BUILDING_TYPE(building);
-	if (type != BUILDING_STOCK && type != BUILDING_CASTLE) return;/*player_close_popup();*/
+	if (type != BUILDING_STOCK && type != BUILDING_CASTLE) {
+		interface_close_popup(popup->interface);
+		return;
+	}
 
 	inventory_t *inventory = building->u.inventory;
 
@@ -2074,10 +2114,16 @@ draw_resdir_box(popup_box_t *popup, frame_t *frame)
 	draw_box_background(0x138, frame);
 	draw_custom_icon_box(layout, frame);
 
-	if (popup->interface->player->index == 0) return;/*player_close_popup();*/
+	if (popup->interface->player->index == 0) {
+		interface_close_popup(popup->interface);
+		return;
+	}
 
 	building_t *building = game_get_building(popup->interface->player->index);
-	if (BUILDING_IS_BURNING(building)) return;/*player_close_popup();*/
+	if (BUILDING_IS_BURNING(building)) {
+		interface_close_popup(popup->interface);
+		return;
+	}
 
 	building_type_t type = BUILDING_TYPE(building);
 	if (type == BUILDING_CASTLE) {
@@ -2101,7 +2147,8 @@ draw_resdir_box(popup_box_t *popup, frame_t *frame)
 		draw_green_number(14, 80, frame, knights[1]);
 		draw_green_number(14, 100, frame, knights[0]);
 	} else if (type != BUILDING_STOCK) {
-		return;/*player_close_popup();*/
+		interface_close_popup(popup->interface);
+		return;
 	}
 
 	/* Draw resource mode checkbox */
@@ -2285,10 +2332,16 @@ draw_building_stock_box(popup_box_t *popup, frame_t *frame)
 {
 	draw_box_background(0x138, frame);
 
-	if (popup->interface->player->index == 0) return;/*player_close_popup();*/
+	if (popup->interface->player->index == 0) {
+		interface_close_popup(popup->interface);
+		return;
+	}
 
 	building_t *building = game_get_building(popup->interface->player->index);
-	if (BUILDING_IS_BURNING(building)) return;/*player_close_popup();*/
+	if (BUILDING_IS_BURNING(building)) {
+		interface_close_popup(popup->interface);
+		return;
+	}
 
 	/* Draw list of resources */
 	for (int j = 0; j < 2; j++) {
