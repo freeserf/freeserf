@@ -43,7 +43,6 @@
 
 #include "map.h"
 #include "game.h"
-#include "viewport.h"
 #include "random.h"
 #include "misc.h"
 #include "debug.h"
@@ -1321,8 +1320,13 @@ map_set_height(map_pos_t pos, int height)
 	map_tile_t *tiles = game.map.tiles;
 	tiles[pos].height = (tiles[pos].height & 0xe0) | (height & 0x1f);
 
-	/* Mark landscape dirty in viewport. */
-	viewport_redraw_map_pos(pos);
+	/* Mark landscape dirty */
+	if (game.update_map_height_cb != NULL) {
+		for (dir_t d = DIR_RIGHT; d <= DIR_UP; d++) {
+			game.update_map_height_cb(MAP_MOVE(pos, d),
+						  game.update_map_height_data);
+		}
+	}
 }
 
 /* Change the object at a map position. If index is non-negative

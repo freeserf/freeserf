@@ -32,6 +32,8 @@
 #define DEFAULT_GAME_SPEED  2
 
 
+typedef void game_update_map_height_func(map_pos_t pos, void *data);
+
 typedef struct {
 	map_t map; /* ADDITION */
 	/* 0 */
@@ -196,6 +198,10 @@ typedef struct {
 	/* 380 */
 	int player_score_leader;
 	/* ... */
+
+	/* Callback for map height changes */
+	game_update_map_height_func *update_map_height_cb;
+	void *update_map_height_data;
 } game_t;
 
 /* Global game object */
