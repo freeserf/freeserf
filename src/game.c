@@ -3481,9 +3481,13 @@ game_can_build_building(map_pos_t pos, building_type_t type, const player_t *pla
 	/* Check that space is clear */
 	if (map_space_from_obj[MAP_OBJ(pos)] != MAP_SPACE_OPEN) return 0;
 
-	/* Check that building flag is possible. */
+	/* Check that building flag is possible if it
+	   doesn't already exist. */
 	map_pos_t flag_pos = MAP_MOVE_DOWN_RIGHT(pos);
-	if (!game_can_build_flag(flag_pos, player)) return 0;
+	if (!MAP_HAS_FLAG(flag_pos) &&
+	    !game_can_build_flag(flag_pos, player)) {
+		return 0;
+	}
 
 	/* Check if building size is possible. */
 	switch (type) {

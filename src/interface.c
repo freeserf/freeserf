@@ -196,7 +196,8 @@ get_map_cursor_type(const player_t *player, map_pos_t pos, panel_btn_t *panel_bt
 		*panel_btn = PANEL_BTN_BUILD_CASTLE;
 	} else if (game_can_player_build(pos, player) &&
 		   map_space_from_obj[MAP_OBJ(pos)] == MAP_SPACE_OPEN &&
-		   game_can_build_flag(MAP_MOVE_DOWN_RIGHT(pos), player)) {
+		   (game_can_build_flag(MAP_MOVE_DOWN_RIGHT(pos), player) ||
+		    MAP_HAS_FLAG(MAP_MOVE_DOWN_RIGHT(pos)))) {
 		if (game_can_build_mine(pos)) {
 			*panel_btn = PANEL_BTN_BUILD_MINE;
 		} else if (game_can_build_large(pos)) {

@@ -2329,7 +2329,8 @@ draw_map_cursor_possible_build(viewport_t *viewport, interface_t *interface, fra
 				sprite = 50;
 			} else if (game_can_player_build(pos, interface->player) &&
 				   map_space_from_obj[MAP_OBJ(pos)] == MAP_SPACE_OPEN &&
-				   game_can_build_flag(MAP_MOVE_DOWN_RIGHT(pos), interface->player)) {
+				   (game_can_build_flag(MAP_MOVE_DOWN_RIGHT(pos), interface->player) ||
+				    MAP_HAS_FLAG(MAP_MOVE_DOWN_RIGHT(pos)))) {
 				if (game_can_build_mine(pos)) {
 					sprite = 48;
 				} else if (game_can_build_large(pos)) {
