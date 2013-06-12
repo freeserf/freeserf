@@ -149,12 +149,6 @@ interface_open_message(interface_t *interface)
 	interface->click &= ~BIT(6);
 	interface->click &= ~BIT(1);
 
-	interface->panel_btns[0] = PANEL_BTN_BUILD_INACTIVE;
-	interface->panel_btns[1] = PANEL_BTN_DESTROY_INACTIVE;
-	interface->panel_btns[2] = PANEL_BTN_MAP_INACTIVE;
-	interface->panel_btns[3] = PANEL_BTN_STATS_INACTIVE;
-	interface->panel_btns[4] = PANEL_BTN_SETT_INACTIVE;
-
 	/* Move notifications forward in the queue. */
 	int i;
 	for (i = 1; i < 64 && interface->player->msg_queue_type[i] != 0; i++) {
