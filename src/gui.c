@@ -83,7 +83,7 @@ gui_object_set_displayed(gui_object_t *obj, int displayed)
 	if (displayed) {
 		gui_object_set_redraw(obj);
 	} else if (obj->parent != NULL) {
-		gui_object_set_redraw((gui_object_t *)obj->parent);
+		gui_object_set_redraw(GUI_OBJECT(obj->parent));
 	}
 }
 
@@ -105,13 +105,13 @@ gui_object_set_redraw(gui_object_t *obj)
 static void
 gui_container_set_redraw_child_default(gui_container_t *cont, gui_object_t *child)
 {
-	gui_object_set_redraw((gui_object_t *)cont);
+	gui_object_set_redraw(GUI_OBJECT(cont));
 }
 
 void
 gui_container_init(gui_container_t *cont)
 {
-	gui_object_init((gui_object_t *)cont);
+	gui_object_init(GUI_OBJECT(cont));
 	cont->set_redraw_child = gui_container_set_redraw_child_default;
 }
 

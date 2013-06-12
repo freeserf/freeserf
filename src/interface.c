@@ -66,7 +66,7 @@ void
 interface_open_popup(interface_t *interface, int box)
 {
 	interface->popup.box = box;
-	gui_object_set_displayed((gui_object_t *)&interface->popup, 1);
+	gui_object_set_displayed(GUI_OBJECT(&interface->popup), 1);
 }
 
 /* Close the current popup. */
@@ -74,7 +74,7 @@ void
 interface_close_popup(interface_t *interface)
 {
 	interface->popup.box = 0;
-	gui_object_set_displayed((gui_object_t *)&interface->popup, 0);
+	gui_object_set_displayed(GUI_OBJECT(&interface->popup), 0);
 	interface->click &= ~BIT(6);
 	interface->panel_btns[2] = PANEL_BTN_MAP;
 	interface->panel_btns[3] = PANEL_BTN_STATS;
@@ -90,17 +90,17 @@ interface_close_popup(interface_t *interface)
 void
 interface_open_game_init(interface_t *interface)
 {
-	gui_object_set_displayed((gui_object_t *)&interface->init_box, 1);
-	gui_object_set_enabled((gui_object_t *)&interface->panel, 0);
-	gui_object_set_enabled((gui_object_t *)&interface->viewport, 0);
+	gui_object_set_displayed(GUI_OBJECT(&interface->init_box), 1);
+	gui_object_set_enabled(GUI_OBJECT(&interface->panel), 0);
+	gui_object_set_enabled(GUI_OBJECT(&interface->viewport), 0);
 }
 
 void
 interface_close_game_init(interface_t *interface)
 {
-	gui_object_set_displayed((gui_object_t *)&interface->init_box, 0);
-	gui_object_set_enabled((gui_object_t *)&interface->panel, 1);
-	gui_object_set_enabled((gui_object_t *)&interface->viewport, 1);
+	gui_object_set_displayed(GUI_OBJECT(&interface->init_box), 0);
+	gui_object_set_enabled(GUI_OBJECT(&interface->panel), 1);
+	gui_object_set_enabled(GUI_OBJECT(&interface->viewport), 1);
 
 	interface_update_map_cursor_pos(interface,
 					interface->map_cursor_pos);
@@ -135,7 +135,7 @@ interface_open_message(interface_t *interface)
 	int param = (interface->player->msg_queue_type[0] >> 5) & 7;
 	interface->notification_box.type = type;
 	interface->notification_box.param = param;
-	gui_object_set_displayed((gui_object_t *)&interface->notification_box, 1);
+	gui_object_set_displayed(GUI_OBJECT(&interface->notification_box), 1);
 
 	if (BIT_TEST(0x8f3fe, type)) {
 		/* Move screen to new position */
@@ -860,10 +860,10 @@ interface_handle_event(interface_t *interface, const gui_event_t *event)
 				float_event.x -= x;
 				float_event.y -= y;
 
-				obj = (gui_object_t *)obj->parent;
+				obj = GUI_OBJECT(obj->parent);
 			}
 
-			if (obj != (gui_object_t *)interface) return -1;
+			if (obj != GUI_OBJECT(interface)) return -1;
 			return gui_object_handle_event(interface->cursor_lock_target,
 						       &float_event);
 		}
@@ -972,7 +972,7 @@ interface_set_size(interface_t *interface, int width, int height)
 		}
 	}
 
-	gui_object_set_redraw((gui_object_t *)interface);
+	gui_object_set_redraw(GUI_OBJECT(interface));
 }
 
 static void
@@ -980,7 +980,7 @@ interface_set_redraw_child(interface_t *interface, gui_object_t *child)
 {
 	if (interface->cont.obj.parent != NULL) {
 		gui_container_set_redraw_child(interface->cont.obj.parent,
-					       (gui_object_t *)interface);
+					       GUI_OBJECT(interface));
 	}
 
 	if (interface->top == child) {
@@ -1049,7 +1049,7 @@ load_serf_animation_table(interface_t *interface)
 void
 interface_init(interface_t *interface)
 {
-	gui_container_init((gui_container_t *)interface);
+	gui_container_init(GUI_CONTAINER(interface));
 	interface->cont.obj.draw = (gui_draw_func *)interface_draw;
 	interface->cont.obj.handle_event = (gui_handle_event_func *)interface_handle_event;
 	interface->cont.obj.set_size = (gui_set_size_func *)interface_set_size;
@@ -1067,32 +1067,32 @@ interface_init(interface_t *interface)
 
 	/* Viewport */
 	viewport_init(&interface->viewport, interface);
-	gui_object_set_displayed((gui_object_t *)&interface->viewport, 1);
+	gui_object_set_displayed(GUI_OBJECT(&interface->viewport), 1);
 
 	/* Panel bar */
 	panel_bar_init(&interface->panel, interface);
-	gui_object_set_displayed((gui_object_t *)&interface->panel, 1);
+	gui_object_set_displayed(GUI_OBJECT(&interface->panel), 1);
 
 	/* Popup box */
 	popup_box_init(&interface->popup, interface);
 
 	/* Add objects to interface container. */
-	interface_set_top(interface, (gui_object_t *)&interface->viewport);
+	interface_set_top(interface, GUI_OBJECT(&interface->viewport));
 
-	interface_add_float(interface, (gui_object_t *)&interface->popup,
+	interface_add_float(interface, GUI_OBJECT(&interface->popup),
 			    0, 0, 0, 0);
-	interface_add_float(interface, (gui_object_t *)&interface->panel,
+	interface_add_float(interface, GUI_OBJECT(&interface->panel),
 			    0, 0, 0, 0);
 
 	/* Game init box */
 	game_init_box_init(&interface->init_box, interface);
-	gui_object_set_displayed((gui_object_t *)&interface->init_box, 1);
-	interface_add_float(interface, (gui_object_t *)&interface->init_box,
+	gui_object_set_displayed(GUI_OBJECT(&interface->init_box), 1);
+	interface_add_float(interface, GUI_OBJECT(&interface->init_box),
 			    0, 0, 0, 0);
 
 	/* Notification box */
 	notification_box_init(&interface->notification_box, interface);
-	interface_add_float(interface, (gui_object_t *)&interface->notification_box,
+	interface_add_float(interface, GUI_OBJECT(&interface->notification_box),
 			    0, 0, 0, 0);
 
 	interface->map_cursor_pos = MAP_POS(0, 0);
@@ -1177,11 +1177,11 @@ void
 interface_set_top(interface_t *interface, gui_object_t *obj)
 {
 	interface->top = obj;
-	obj->parent = (gui_container_t *)interface;
+	obj->parent = GUI_CONTAINER(interface);
 	gui_object_set_size(interface->top, interface->cont.obj.width,
 			    interface->cont.obj.height);
 	interface->redraw_top = 1;
-	gui_object_set_redraw((gui_object_t *)interface);
+	gui_object_set_redraw(GUI_OBJECT(interface));
 }
 
 void
@@ -1197,10 +1197,10 @@ interface_add_float(interface_t *interface, gui_object_t *obj,
 	fl->y = y;
 	fl->redraw = 1;
 
-	obj->parent = (gui_container_t *)interface;
+	obj->parent = GUI_CONTAINER(interface);
 	list_append(&interface->floats, (list_elm_t *)fl);
 	gui_object_set_size(obj, width, height);
-	gui_object_set_redraw((gui_object_t *)interface);
+	gui_object_set_redraw(GUI_OBJECT(interface));
 }
 
 void

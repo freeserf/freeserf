@@ -25,6 +25,9 @@
 #include "gfx.h"
 #include "list.h"
 
+#define GUI_OBJECT(obj)     ((gui_object_t *)(obj))
+#define GUI_CONTAINER(obj)  ((gui_container_t *)(obj))
+
 
 typedef enum {
 	GUI_EVENT_TYPE_CLICK,
