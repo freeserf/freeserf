@@ -56,18 +56,7 @@
 
 
 /* Extractors for map data. */
-#define MAP_HAS_FLAG(pos)  ((uint)((game.map.tiles[(pos)].flags >> 7) & 1))
-
-/* This bit is used to indicate a band of positions in the water, that are
-   entirely surrounded by water tiles, but are still close to the shore. This is
-   the area where fish are present, and it also happens to be the only area where
-   a sailor can appear as idle (since flags have to be on the shore), so it is
-   used to indicate whether an idle serf should be drawn as a sailor in the viewport.
-   Further, it is used to indicate on land certain positions that are impassable.*/
-/* TODO Clean up; this bit has too many different meanings. */
-#define MAP_DEEP_WATER(pos)  ((uint)((game.map.tiles[(pos)].flags >> 6) & 1))
-
-#define MAP_PATHS(pos)  ((uint)(game.map.tiles[(pos)].flags & 0x3f))
+#define MAP_PATHS(pos)  ((uint)(game.map.tiles[(pos)].paths & 0x3f))
 
 #define MAP_HAS_OWNER(pos)  ((uint)((game.map.tiles[(pos)].height >> 7) & 1))
 #define MAP_OWNER(pos)  ((uint)((game.map.tiles[(pos)].height >> 5) & 3))
@@ -77,18 +66,32 @@
 #define MAP_TYPE_DOWN(pos)  ((uint)(game.map.tiles[(pos)].type & 0xf))
 
 #define MAP_OBJ(pos)  ((map_obj_t)(game.map.tiles[(pos)].obj & 0x7f))
-
-/* Whether any of the two up/down tiles at this pos are water.
-   This is used to indicate whether waves should be drawn. */
-#define MAP_WATER(pos)  ((uint)((game.map.tiles[(pos)].obj >> 7) & 1))
+#define MAP_IDLE_SERF(pos)  ((uint)((game.map.tiles[(pos)].obj >> 7) & 1))
 
 #define MAP_OBJ_INDEX(pos)  ((uint)game.map.tiles[(pos)].u.index)
-#define MAP_IDLE_SERF(pos)  ((uint)((game.map.tiles[(pos)].u.s.field_1 >> 7) & 1))
-#define MAP_PLAYER(pos)  ((uint)(game.map.tiles[(pos)].u.s.field_1 & 3))
-#define MAP_RES_TYPE(pos)  ((ground_deposit_t)((game.map.tiles[(pos)].u.s.resource >> 5) & 7))
-#define MAP_RES_AMOUNT(pos)  ((uint)(game.map.tiles[(pos)].u.s.resource & 0x1f))
-#define MAP_RES_FISH(pos)  ((uint)game.map.tiles[(pos)].u.s.resource)
+#define MAP_RES_TYPE(pos)  ((ground_deposit_t)((game.map.tiles[(pos)].u.resource >> 5) & 7))
+#define MAP_RES_AMOUNT(pos)  ((uint)(game.map.tiles[(pos)].u.resource & 0x1f))
+#define MAP_RES_FISH(pos)  ((uint)game.map.tiles[(pos)].u.resource)
 #define MAP_SERF_INDEX(pos)  ((uint)game.map.tiles[(pos)].serf_index)
+
+
+#define MAP_HAS_FLAG(pos)  (MAP_OBJ(pos) == MAP_OBJ_FLAG)
+#define MAP_HAS_BUILDING(pos)  (MAP_OBJ(pos) >= MAP_OBJ_SMALL_BUILDING && \
+				MAP_OBJ(pos) <= MAP_OBJ_CASTLE)
+
+
+
+/* Whether any of the two up/down tiles at this pos are water. */
+#define MAP_WATER_TILE(pos)				\
+	(MAP_TYPE_DOWN(pos) < 4 &&			\
+	 MAP_TYPE_UP(pos) < 4)
+
+/* Whether the position is completely surrounded by water. */
+#define MAP_IN_WATER(pos)				\
+	(MAP_WATER_TILE(pos) &&				\
+	 MAP_WATER_TILE(MAP_MOVE_UP_LEFT(pos)) &&	\
+	 MAP_TYPE_DOWN(MAP_MOVE_LEFT(pos)) < 4 &&	\
+	 MAP_TYPE_UP(MAP_MOVE_UP(pos)) < 4)
 
 
 typedef enum {
@@ -224,16 +227,13 @@ typedef enum {
 } ground_deposit_t;
 
 typedef struct {
-	uint8_t flags;
+	uint8_t paths;
 	uint8_t height;
 	uint8_t type;
 	uint8_t obj;
 	union {
 		uint16_t index;
-		struct {
-			uint8_t resource;
-			uint8_t field_1;
-		} s;
+		uint8_t resource;
 	} u;
 	uint16_t serf_index;
 } map_tile_t;

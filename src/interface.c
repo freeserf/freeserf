@@ -470,7 +470,7 @@ interface_build_road_end(interface_t *interface)
 	for (int i = 0; i < interface->road_length; i++) {
 		dir_t backtrack_dir = -1;
 		for (dir_t d = 0; d < 6; d++) {
-			if (BIT_TEST(tiles[pos].flags, d)) {
+			if (BIT_TEST(tiles[pos].paths, d)) {
 				backtrack_dir = d;
 				break;
 			}
@@ -478,8 +478,8 @@ interface_build_road_end(interface_t *interface)
 
 		map_pos_t next_pos = MAP_MOVE(pos, backtrack_dir);
 
-		tiles[pos].flags &= ~BIT(backtrack_dir);
-		tiles[next_pos].flags &= ~BIT(DIR_REVERSE(backtrack_dir));
+		tiles[pos].paths &= ~BIT(backtrack_dir);
+		tiles[next_pos].paths &= ~BIT(DIR_REVERSE(backtrack_dir));
 		pos = next_pos;
 	}
 
@@ -632,8 +632,8 @@ interface_build_road_segment(interface_t *interface, map_pos_t pos, dir_t dir)
 			return -1;
 		} else {
 			interface->map_cursor_pos = dest;
-			tiles[pos].flags |= BIT(dir);
-			tiles[dest].flags |= BIT(dir_rev);
+			tiles[pos].paths |= BIT(dir);
+			tiles[dest].paths |= BIT(dir_rev);
 			interface->road_length = 0;
 			interface_build_road_end(interface);
 			interface_update_map_cursor_pos(interface, dest);
@@ -642,8 +642,8 @@ interface_build_road_segment(interface_t *interface, map_pos_t pos, dir_t dir)
 	} else if (MAP_PATHS(dest) == 0) {
 		/* No existing paths at destination, build segment. */
 		interface->road_length += 1;
-		tiles[pos].flags |= BIT(dir);
-		tiles[dest].flags |= BIT(dir_rev);
+		tiles[pos].paths |= BIT(dir);
+		tiles[dest].paths |= BIT(dir_rev);
 
 		interface_update_map_cursor_pos(interface, dest);
 
@@ -667,8 +667,8 @@ interface_remove_road_segment(interface_t *interface, map_pos_t pos, dir_t dir)
 	map_tile_t *tiles = game.map.tiles;
 
 	interface->road_length -= 1;
-	tiles[pos].flags &= ~BIT(dir);
-	tiles[dest].flags &= ~BIT(dir_rev);
+	tiles[pos].paths &= ~BIT(dir);
+	tiles[dest].paths &= ~BIT(dir_rev);
 
 	interface_update_map_cursor_pos(interface, dest);
 

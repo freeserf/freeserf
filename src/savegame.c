@@ -340,17 +340,17 @@ load_v0_map_state(FILE *f, const v0_map_t *map)
 			uint8_t *field_1_data = &data[4*(x + (y << map->row_shift))];
 			uint8_t *field_2_data = &data[4*(x + (y << map->row_shift)) + 4*map->cols];
 
-			tiles[pos].flags = field_1_data[0];
+			tiles[pos].paths = field_1_data[0] & 0x3f;
 			tiles[pos].height = field_1_data[1];
 			tiles[pos].type = field_1_data[2];
-			tiles[pos].obj = field_1_data[3];
+			tiles[pos].obj = field_1_data[3] & 0x7f;
 
 			if (MAP_OBJ(pos) >= MAP_OBJ_FLAG &&
 			    MAP_OBJ(pos) <= MAP_OBJ_CASTLE) {
 				tiles[pos].u.index = *(uint16_t *)&field_2_data[0];
 			} else {
-				tiles[pos].u.s.resource = field_2_data[0];
-				tiles[pos].u.s.field_1 = field_2_data[1];
+				tiles[pos].u.resource = field_2_data[0];
+				tiles[pos].obj |= (field_2_data[1] & 0x80);
 			}
 
 			tiles[pos].serf_index = *(uint16_t *)&field_2_data[2];
@@ -1328,7 +1328,6 @@ save_text_map_state(FILE *f)
 
 			fprintf(f, "[map %i %i]\n", x, y);
 
-			save_text_write_value(f, "deep_water", MAP_DEEP_WATER(pos));
 			save_text_write_value(f, "paths", MAP_PATHS(pos));
 			save_text_write_value(f, "has_owner", MAP_HAS_OWNER(pos));
 			save_text_write_value(f, "owner", MAP_OWNER(pos));
@@ -1336,19 +1335,16 @@ save_text_map_state(FILE *f)
 			save_text_write_value(f, "type.up", MAP_TYPE_UP(pos));
 			save_text_write_value(f, "type.down", MAP_TYPE_DOWN(pos));
 			save_text_write_value(f, "object", MAP_OBJ(pos));
-			save_text_write_value(f, "water", MAP_WATER(pos));
 			save_text_write_value(f, "serf_index", MAP_SERF_INDEX(pos));
 
 			if (MAP_OBJ(pos) >= MAP_OBJ_FLAG &&
 			    MAP_OBJ(pos) <= MAP_OBJ_CASTLE) {
 				save_text_write_value(f, "object_index", MAP_OBJ_INDEX(pos));
-			} else if (MAP_DEEP_WATER(pos)) {
+			} else if (MAP_IN_WATER(pos)) {
 				save_text_write_value(f, "idle_serf", MAP_IDLE_SERF(pos));
-				save_text_write_value(f, "player", MAP_PLAYER(pos));
 				save_text_write_value(f, "fish", MAP_RES_FISH(pos));
 			} else {
 				save_text_write_value(f, "idle_serf", MAP_IDLE_SERF(pos));
-				save_text_write_value(f, "player", MAP_PLAYER(pos));
 				save_text_write_value(f, "resource.type", MAP_RES_TYPE(pos));
 				save_text_write_value(f, "resource.amount", MAP_RES_AMOUNT(pos));
 			}
@@ -2481,7 +2477,6 @@ load_text_map_section(section_t *section)
 	map_pos_t pos = MAP_POS(col,row);
 	map_tile_t *tiles = game.map.tiles;
 
-	uint deep_water = 0;
 	uint paths = 0;
 	uint has_owner = 0;
 	uint owner = 0;
@@ -2489,15 +2484,12 @@ load_text_map_section(section_t *section)
 	uint type_up = 0;
 	uint type_down = 0;
 	map_obj_t obj = MAP_OBJ_NONE;
-	uint water = 0;
 
 	/* Load the map tile. */
 	list_elm_t *elm;
 	list_foreach(&section->settings, elm) {
 		setting_t *s = (setting_t *)elm;
-		if (!strcmp(s->key, "deep_water")) {
-			deep_water = atoi(s->value);
-		} else if (!strcmp(s->key, "paths")) {
+		if (!strcmp(s->key, "paths")) {
 			paths = atoi(s->value);
 		} else if (!strcmp(s->key, "has_owner")) {
 			has_owner = atoi(s->value);
@@ -2511,13 +2503,10 @@ load_text_map_section(section_t *section)
 			type_down = atoi(s->value);
 		} else if (!strcmp(s->key, "object")) {
 			obj = atoi(s->value);
-		} else if (!strcmp(s->key, "water")) {
-			water = atoi(s->value);
 		} else if (!strcmp(s->key, "serf_index")) {
 			tiles[pos].serf_index = atoi(s->value);
 		} else if (!strcmp(s->key, "object_index") ||
 			   !strcmp(s->key, "idle_serf") ||
-			   !strcmp(s->key, "player") ||
 			   !strcmp(s->key, "fish") ||
 			   !strcmp(s->key, "resource.type") ||
 			   !strcmp(s->key, "resource.amount")) {
@@ -2527,14 +2516,11 @@ load_text_map_section(section_t *section)
 		}
 	}
 
-	tiles[pos].flags = ((deep_water & 1) << 6) | (paths & 0x3f);
+	tiles[pos].paths = paths & 0x3f;
 	tiles[pos].height = ((has_owner & 1) << 7) |
 		((owner & 3) << 5) | (height & 0x1f);
 	tiles[pos].type = ((type_up & 0xf) << 4) | (type_down & 0xf);
-	tiles[pos].obj = ((water & 1) << 7) | (obj & 0x7f);
-
-	/* Set has_flag bit */
-	if (MAP_OBJ(pos) == MAP_OBJ_FLAG) tiles[pos].flags |= BIT(7);
+	tiles[pos].obj = obj & 0x7f;
 
 	if (MAP_OBJ(pos) >= MAP_OBJ_FLAG &&
 	    MAP_OBJ(pos) <= MAP_OBJ_CASTLE) {
@@ -2543,7 +2529,6 @@ load_text_map_section(section_t *section)
 		tiles[pos].u.index = atoi(value);
 	} else {
 		uint idle_serf = 0;
-		uint player = 0;
 		uint fish = 0;
 		uint resource_type = 0;
 		uint resource_amount = 0;
@@ -2552,8 +2537,6 @@ load_text_map_section(section_t *section)
 			setting_t *s = (setting_t *)elm;
 			if (!strcmp(s->key, "idle_serf")) {
 				idle_serf = atoi(s->value);
-			} else if (!strcmp(s->key, "player")) {
-				player = atoi(s->value);
 			} else if (!strcmp(s->key, "fish")) {
 				fish = atoi(s->value);
 			} else if (!strcmp(s->key, "resource.type")) {
@@ -2563,12 +2546,11 @@ load_text_map_section(section_t *section)
 			}
 		}
 
-		tiles[pos].u.s.field_1 = ((idle_serf & 1) << 7) |
-			(player & 3);
-		if (MAP_DEEP_WATER(pos)) {
-			tiles[pos].u.s.resource = fish;
+		tiles[pos].obj = (idle_serf & 1) << 7;
+		if (MAP_IN_WATER(pos)) {
+			tiles[pos].u.resource = fish;
 		} else {
-			tiles[pos].u.s.resource = ((resource_type & 7) << 5) |
+			tiles[pos].u.resource = ((resource_type & 7) << 5) |
 				(resource_amount & 0x1f);
 		}
 	}

@@ -476,8 +476,7 @@ map_init_sea_level()
 					break;
 				case 253:
 					tiles[pos].height = game.map_water_level - 1;
-					tiles[pos].flags |= BIT(6);
-					tiles[pos].u.s.resource = game_random_int() & 7; /* Fish (?) */
+					tiles[pos].u.resource = game_random_int() & 7; /* Fish */
 					break;
 			}
 		}
@@ -979,9 +978,9 @@ init_map_resources_shared_sub(map_tile_t *tiles, int iters, int col, int row, in
 		map_pos_t pos = lookup_pattern(col, row, *index);
 		*index += 1;
 
-		int res = tiles[pos].u.s.resource;
+		int res = tiles[pos].u.resource;
 		if (res == 0 || (res & 0x1f) < amount) {
-			tiles[pos].u.s.resource = (res_type << 5) + amount;
+			tiles[pos].u.resource = (res_type << 5) + amount;
 		}
 	}
 }
@@ -996,8 +995,7 @@ init_map_resources_shared(int num_clusters, int res_type, int min, int max)
 			int col, row;
 			map_pos_t pos = get_rnd_map_coord(&col, &row);
 
-			if (tiles[pos].u.s.field_1 == 0 &&
-			    init_map_objects_shared_sub1(pos, min, max) == 0) {
+			if (init_map_objects_shared_sub1(pos, min, max) == 0) {
 				int index = 0;
 				int amount = 8 + (game_random_int() & 0xc);
 				init_map_resources_shared_sub(tiles, 1, col, row, &index, amount, res_type);
@@ -1057,16 +1055,16 @@ init_map_clean_up()
 {
 	map_tile_t *tiles = game.map.tiles;
 
+	/* Clear water obstacles except in certain
+	   positions near the shore. */
 	for (int y = 0; y < game.map.rows; y++) {
 		for (int x = 0; x < game.map.cols; x++) {
 			map_pos_t pos = MAP_POS(x, y);
 			map_space_t s = map_space_from_obj[MAP_OBJ(pos)];
 			if (s >= MAP_SPACE_IMPASSABLE) {
-				if (!BIT_TEST(tiles[MAP_MOVE_LEFT(pos)].flags, 6) &&
-				    !BIT_TEST(tiles[MAP_MOVE_UP_LEFT(pos)].flags, 6) &&
-				    !BIT_TEST(tiles[MAP_MOVE_UP(pos)].flags, 6)) {
-					tiles[pos].flags |= BIT(6);
-				} else {
+				if (MAP_IN_WATER(MAP_MOVE_LEFT(pos)) ||
+				    MAP_IN_WATER(MAP_MOVE_UP_LEFT(pos)) ||
+				    MAP_IN_WATER(MAP_MOVE_UP(pos))) {
 					tiles[pos].obj &= 0x80;
 				}
 			}
@@ -1144,23 +1142,6 @@ init_map_sub()
 	/* draw_progress_bar(1); */
 
 	init_map_clean_up();
-
-	/* draw_progress_bar(1); */
-}
-
-/* Mark tiles that are to have waves painted. */
-static void
-init_map_waves()
-{
-	map_tile_t *tiles = game.map.tiles;
-	for (int y = 0; y < game.map.rows; y++) {
-		for (int x = 0; x < game.map.cols; x++) {
-			map_pos_t pos = MAP_POS(x, y);
-			if (MAP_TYPE_UP(pos) < 4 || MAP_TYPE_DOWN(pos) < 4) {
-				tiles[pos].obj |= BIT(7);
-			}
-		}
-	}
 }
 
 /* Initialize global count of gold deposits. */
@@ -1303,7 +1284,6 @@ map_init()
 	/* draw_progress_bar(1); */
 
 	init_map_sub();
-	init_map_waves();
 	init_map_ground_gold_deposit();
 
 	/* draw_progress_bar(1); */
@@ -1347,11 +1327,11 @@ void
 map_remove_ground_deposit(map_pos_t pos, int amount)
 {
 	map_tile_t *tiles = game.map.tiles;
-	tiles[pos].u.s.resource -= amount;
+	tiles[pos].u.resource -= amount;
 
 	if (MAP_RES_AMOUNT(pos) == 0) {
 		/* Also sets the ground deposit type to none. */
-		tiles[pos].u.s.resource = 0;
+		tiles[pos].u.resource = 0;
 	}
 }
 
@@ -1360,7 +1340,7 @@ void
 map_remove_fish(map_pos_t pos, int amount)
 {
 	map_tile_t *tiles = game.map.tiles;
-	tiles[pos].u.s.resource -= amount;
+	tiles[pos].u.resource -= amount;
 }
 
 /* Set the index of the serf occupying map position. */
@@ -1451,30 +1431,29 @@ map_update_hidden(map_pos_t pos)
 	map_tile_t *tiles = game.map.tiles;
 
 	/* Update fish resources in water */
-	if (MAP_WATER(pos) && MAP_DEEP_WATER(pos)) {
-		if (tiles[pos].u.s.resource) {
-			int r = game_random_int();
+	if (MAP_IN_WATER(pos) &&
+	    tiles[pos].u.resource > 0) {
+		int r = game_random_int();
 
-			if (tiles[pos].u.s.resource < 10 && (r & 0x3f00)) {
-				/* Spawn more fish. */
-				tiles[pos].u.s.resource += 1;
-			}
+		if (tiles[pos].u.resource < 10 && (r & 0x3f00)) {
+			/* Spawn more fish. */
+			tiles[pos].u.resource += 1;
+		}
 
-			/* Move in a random direction of: right, down right, left, up left */
-			map_pos_t adj_pos = pos;
-			switch ((r >> 2) & 3) {
-			case 0: adj_pos = MAP_MOVE_RIGHT(adj_pos); break;
-			case 1: adj_pos = MAP_MOVE_DOWN_RIGHT(adj_pos); break;
-			case 2: adj_pos = MAP_MOVE_LEFT(adj_pos); break;
-			case 3: adj_pos = MAP_MOVE_UP_LEFT(adj_pos); break;
-			default: NOT_REACHED(); break;
-			}
+		/* Move in a random direction of: right, down right, left, up left */
+		map_pos_t adj_pos = pos;
+		switch ((r >> 2) & 3) {
+		case 0: adj_pos = MAP_MOVE_RIGHT(adj_pos); break;
+		case 1: adj_pos = MAP_MOVE_DOWN_RIGHT(adj_pos); break;
+		case 2: adj_pos = MAP_MOVE_LEFT(adj_pos); break;
+		case 3: adj_pos = MAP_MOVE_UP_LEFT(adj_pos); break;
+		default: NOT_REACHED(); break;
+		}
 
-			if (MAP_DEEP_WATER(adj_pos)) {
-				/* Migrate a fish to adjacent water space. */
-				tiles[pos].u.s.resource -= 1;
-				tiles[adj_pos].u.s.resource += 1;
-			}
+		if (MAP_IN_WATER(adj_pos)) {
+			/* Migrate a fish to adjacent water space. */
+			tiles[pos].u.resource -= 1;
+			tiles[adj_pos].u.resource += 1;
 		}
 	}
 }

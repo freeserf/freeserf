@@ -2165,8 +2165,6 @@ handle_building_update(building_t *building)
 static void
 update_buildings()
 {
-	map_tile_t *tiles = game.map.tiles;
-
 	if (game.next_index >= 32) return;
 
 	int index = game.next_index << 5;
@@ -2179,7 +2177,6 @@ update_buildings()
 				if (building->serf_index >= delta) {
 					building->serf_index -= delta;
 				} else {
-					tiles[building->pos].flags &= ~BIT(6);
 					map_set_object(building->pos, MAP_OBJ_NONE, 0);
 					game_free_building(i);
 				}
@@ -2604,7 +2601,7 @@ remove_road_backref_until_flag(map_pos_t pos, dir_t dir)
 		pos = MAP_MOVE(pos, dir);
 
 		/* Clear backreference */
-		tiles[pos].flags &= ~BIT(DIR_REVERSE(dir));
+		tiles[pos].paths &= ~BIT(DIR_REVERSE(dir));
 
 		if (MAP_OBJ(pos) == MAP_OBJ_FLAG) break;
 
@@ -2844,12 +2841,12 @@ remove_road_forwards(map_pos_t pos, dir_t dir)
 		}
 
 		/* Clear forward reference. */
-		tiles[pos].flags &= ~BIT(dir);
+		tiles[pos].paths &= ~BIT(dir);
 		pos = MAP_MOVE(pos, dir);
 		in_dir = dir;
 
 		/* Clear backreference. */
-		tiles[pos].flags &= ~BIT(DIR_REVERSE(dir));
+		tiles[pos].paths &= ~BIT(DIR_REVERSE(dir));
 
 		/* Find next direction of path. */
 		dir = -1;
@@ -3248,11 +3245,8 @@ game_build_flag(map_pos_t pos, player_t *player)
 
 	flag->path_con = player->player_num << 6;
 
-	map_tile_t *tiles = game.map.tiles;
-
 	flag->pos = pos;
 	map_set_object(pos, MAP_OBJ_FLAG, flg_index);
-	tiles[pos].flags |= BIT(7);
 	/* move_map_resources(..); */
 
 	if (MAP_PATHS(pos) != 0) {
@@ -3655,16 +3649,16 @@ game_build_building(map_pos_t pos, building_type_t type, player_t *player)
 
 	/* move_map_resources(pos, map_data); */
 	/* TODO Resources should be moved, just set them to zero for now */
-	tiles[pos].u.s.resource = 0;
-	tiles[pos].u.s.field_1 = 0;
+	tiles[pos].u.resource = 0;
+	tiles[pos].obj &= ~BIT(7);
 
 	map_set_object(pos, obj_types[type], bld_index);
-	tiles[pos].flags |= BIT(1) | BIT(6);
+	tiles[pos].paths |= BIT(1);
 
 	if (MAP_OBJ(MAP_MOVE_DOWN_RIGHT(pos)) != MAP_OBJ_FLAG) {
 		/* move_map_resources(MAP_MOVE_DOWN_RIGHT(pos), map_data); */
 		map_set_object(MAP_MOVE_DOWN_RIGHT(pos), MAP_OBJ_FLAG, flg_index);
-		tiles[MAP_MOVE_DOWN_RIGHT(pos)].flags |= BIT(4) | BIT(7);
+		tiles[MAP_MOVE_DOWN_RIGHT(pos)].paths |= BIT(4);
 	}
 
 	if (split_path) build_flag_split_path(MAP_MOVE_DOWN_RIGHT(pos));
@@ -3946,10 +3940,10 @@ game_build_castle(map_pos_t pos, player_t *player)
 
 	map_tile_t *tiles = game.map.tiles;
 	map_set_object(pos, MAP_OBJ_CASTLE, bld_index);
-	tiles[pos].flags |= BIT(1) | BIT(6);
+	tiles[pos].paths |= BIT(1);
 
 	map_set_object(MAP_MOVE_DOWN_RIGHT(pos), MAP_OBJ_FLAG, flg_index);
-	tiles[MAP_MOVE_DOWN_RIGHT(pos)].flags |= BIT(7) | BIT(4);
+	tiles[MAP_MOVE_DOWN_RIGHT(pos)].paths |= BIT(4);
 
 	/* Level land in hexagon below castle */
 	int h = game_get_leveling_height(pos);
@@ -4161,10 +4155,6 @@ demolish_flag(map_pos_t pos)
 		}
 	}
 
-	/* Clear map. */
-	map_tile_t *tiles = game.map.tiles;
-	tiles[pos].flags &= ~BIT(7);
-
 	/* Update serfs with reference to this flag. */
 	for (int i = 1; i < game.max_serf_index; i++) {
 		if (SERF_ALLOCATED(i)) {
@@ -4230,8 +4220,8 @@ demolish_building(map_pos_t pos)
 	building->serf |= BIT(5);
 
 	/* Remove path to building. */
-	tiles[pos].flags &= ~BIT(1);
-	tiles[MAP_MOVE_DOWN_RIGHT(pos)].flags &= ~BIT(4);
+	tiles[pos].paths &= ~BIT(1);
+	tiles[MAP_MOVE_DOWN_RIGHT(pos)].paths &= ~BIT(4);
 
 	/* Remove lost gold stock from total count. */
 	if (BUILDING_IS_DONE(building) &&

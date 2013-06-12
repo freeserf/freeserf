@@ -720,7 +720,7 @@ handle_serf_transporting_state(serf_t *serf)
 					serf->state = SERF_STATE_IDLE_ON_PATH;
 					serf->s.idle_on_path.rev_dir = rev_dir;
 					serf->s.idle_on_path.flag = flag;
-					tiles[serf->pos].u.s.field_1 = BIT(7) | SERF_PLAYER(serf);
+					tiles[serf->pos].obj |= BIT(7);
 					map_set_serf_index(serf->pos, 0);
 					return;
 				}
@@ -2129,6 +2129,13 @@ handle_serf_free_walking_switch_with_other(serf_t *serf)
 	}
 }
 
+static int
+serf_can_pass_map_pos(map_pos_t pos)
+{
+	return map_space_from_obj[MAP_OBJ(pos)] < MAP_SPACE_IMPASSABLE ||
+		map_space_from_obj[MAP_OBJ(pos)] == MAP_SPACE_FLAG;
+}
+
 static void
 handle_free_walking_common(serf_t *serf)
 {
@@ -2191,7 +2198,7 @@ handle_free_walking_common(serf_t *serf)
 			   direction variable. */
 			dir_t dir = dir_from_offset[(d1+1) + 3*(d2+1)];
 
-			if (MAP_DEEP_WATER(MAP_MOVE(serf->pos, dir))) {
+			if (!serf_can_pass_map_pos(MAP_MOVE(serf->pos, dir))) {
 				if (serf->state != SERF_STATE_KNIGHT_FREE_WALKING &&
 				    serf->s.free_walking.neg_dist1 != -128) {
 					serf->s.free_walking.dist1 += serf->s.free_walking.neg_dist1;
@@ -2225,7 +2232,8 @@ handle_free_walking_common(serf_t *serf)
 		for (int i = 0; i < 6; i++) {
 			new_pos = MAP_MOVE(serf->pos, a0[i]);
 			if (((water && MAP_OBJ(new_pos) == 0) ||
-			     (!water && !MAP_DEEP_WATER(new_pos))) &&
+			     (!water && !MAP_IN_WATER(new_pos) &&
+			      serf_can_pass_map_pos(new_pos))) &&
 			    MAP_SERF_INDEX(new_pos) == 0) {
 				dir = a0[i];
 				d = 5 - i;
@@ -2297,7 +2305,8 @@ handle_free_walking_common(serf_t *serf)
 	dir = a0[0];
 	new_pos = MAP_MOVE(serf->pos, dir);
 	if (((water && MAP_OBJ(new_pos) == 0) ||
-	     (!water && !MAP_DEEP_WATER(new_pos))) &&
+	     (!water && !MAP_IN_WATER(new_pos) &&
+	      serf_can_pass_map_pos(new_pos))) &&
 	    MAP_SERF_INDEX(new_pos) == 0) {
 		handle_serf_free_walking_switch_on_dir(serf, dir);
 		return;
@@ -2314,7 +2323,7 @@ handle_free_walking_common(serf_t *serf)
 		dir_t d = dir_from_offset[(d1+1) + 3*(d2+1)];
 		new_pos = MAP_MOVE(serf->pos, d);
 
-		if (MAP_DEEP_WATER(new_pos)) {
+		if (!serf_can_pass_map_pos(new_pos)) {
 			if (serf->state != SERF_STATE_KNIGHT_FREE_WALKING &&
 			    serf->s.free_walking.neg_dist1 != -128) {
 				serf->s.free_walking.dist1 += serf->s.free_walking.neg_dist1;
@@ -2362,7 +2371,8 @@ handle_free_walking_common(serf_t *serf)
 		dir = a0[1+i];
 		new_pos = MAP_MOVE(serf->pos, dir);
 		if (((water && MAP_OBJ(new_pos) == 0) ||
-		     (!water && !MAP_DEEP_WATER(new_pos))) &&
+		     (!water && !MAP_IN_WATER(new_pos) &&
+		      serf_can_pass_map_pos(new_pos))) &&
 		    MAP_SERF_INDEX(new_pos) == 0) {
 			i0 = 4-i;
 			break;
@@ -2471,7 +2481,6 @@ handle_serf_planning_planting_state(serf_t *serf)
 		map_pos_t pos = MAP_POS_ADD(serf->pos,
 					    game.spiral_pos_pattern[index]);
 		if (MAP_PATHS(pos) == 0 &&
-		    !MAP_DEEP_WATER(pos) &&
 		    MAP_OBJ(pos) == MAP_OBJ_NONE &&
 		    MAP_TYPE_UP(pos) == 5 &&
 		    MAP_TYPE_DOWN(pos) == 5 &&
@@ -2540,7 +2549,7 @@ handle_serf_planning_stonecutting(serf_t *serf)
 		int obj = MAP_OBJ(MAP_MOVE_UP_LEFT(pos));
 		if (obj >= MAP_OBJ_STONE_0 &&
 		    obj <= MAP_OBJ_STONE_7 &&
-		    !MAP_DEEP_WATER(pos)) {
+		    serf_can_pass_map_pos(pos)) {
 			serf_log_state_change(serf, SERF_STATE_READY_TO_LEAVE);
 			serf->state = SERF_STATE_READY_TO_LEAVE;
 			serf->s.leaving_building.field_B = game.spiral_pattern[2*index] - 1;
@@ -2809,7 +2818,7 @@ handle_free_sailing(serf_t *serf)
 	serf->counter -= delta;
 
 	while (serf->counter < 0) {
-		if (!MAP_DEEP_WATER(serf->pos)) {
+		if (!MAP_IN_WATER(serf->pos)) {
 			serf_log_state_change(serf, SERF_STATE_LOST);
 			serf->state = SERF_STATE_LOST;
 			serf->s.lost.field_B = 0;
@@ -3094,10 +3103,10 @@ handle_serf_fishing_state(serf_t *serf)
 
 		dir_t dir = -1;
 		if (serf->animation == 131) {
-			if (MAP_DEEP_WATER(MAP_MOVE_LEFT(serf->pos))) dir = DIR_LEFT;
+			if (MAP_IN_WATER(MAP_MOVE_LEFT(serf->pos))) dir = DIR_LEFT;
 			else dir = DIR_DOWN;
 		} else {
-			if (MAP_DEEP_WATER(MAP_MOVE_RIGHT(serf->pos))) dir = DIR_RIGHT;
+			if (MAP_IN_WATER(MAP_MOVE_RIGHT(serf->pos))) dir = DIR_RIGHT;
 			else dir = DIR_DOWN_RIGHT;
 		}
 
@@ -4058,7 +4067,7 @@ handle_state_knight_free_walking(serf_t *serf)
 				if (SERF_PLAYER(serf) != SERF_PLAYER(other)) {
 					if (other->state == SERF_STATE_KNIGHT_FREE_WALKING) {
 						pos = MAP_MOVE_LEFT(pos);
-						if (!MAP_DEEP_WATER(pos)) {
+						if (serf_can_pass_map_pos(pos)) {
 							int dist_col = serf->s.free_walking.dist1;
 							int dist_row = serf->s.free_walking.dist2;
 
@@ -4083,7 +4092,7 @@ handle_state_knight_free_walking(serf_t *serf)
 						   SERF_TYPE(other) >= SERF_KNIGHT_0 &&
 						   SERF_TYPE(other) <= SERF_KNIGHT_4) {
 						pos = MAP_MOVE_LEFT(pos);
-						if (!MAP_DEEP_WATER(pos)) {
+						if (serf_can_pass_map_pos(pos)) {
 							int dist_col = serf->s.free_walking.dist1;
 							int dist_row = serf->s.free_walking.dist2;
 
@@ -4404,7 +4413,7 @@ handle_serf_idle_on_path_state(serf_t *serf)
 	}
 
 	if (MAP_SERF_INDEX(serf->pos) == 0) {
-		tiles[serf->pos].u.s.field_1 = 0;
+		tiles[serf->pos].obj &= ~BIT(7);
 		map_set_serf_index(serf->pos, SERF_INDEX(serf));
 
 		int dir = serf->s.idle_on_path.field_E;
@@ -4429,7 +4438,7 @@ handle_serf_wait_idle_on_path_state(serf_t *serf)
 
 	if (MAP_SERF_INDEX(serf->pos) == 0) {
 		/* Duplicate code from handle_serf_idle_on_path_state() */
-		tiles[serf->pos].u.s.field_1 = 0;
+		tiles[serf->pos].obj &= ~BIT(7);
 		map_set_serf_index(serf->pos, SERF_INDEX(serf));
 
 		int dir = serf->s.idle_on_path.field_E;
@@ -4503,7 +4512,7 @@ handle_serf_wake_at_flag_state(serf_t *serf)
 	map_tile_t *tiles = game.map.tiles;
 
 	if (MAP_SERF_INDEX(serf->pos) == 0) {
-		tiles[serf->pos].u.s.field_1 = 0;
+		tiles[serf->pos].obj &= ~BIT(7);
 		map_set_serf_index(serf->pos, SERF_INDEX(serf));
 		serf->tick = game.tick;
 		serf->counter = 0;

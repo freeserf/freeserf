@@ -662,7 +662,7 @@ draw_paths_and_borders_sub1(int x, int y_base, int max_y, map_pos_t pos, frame_t
 		int h1 = MAP_HEIGHT(pos);
 		int h2 = MAP_HEIGHT(other_pos);
 
-		if (BIT_TEST(tiles[pos].flags, 0)) {
+		if (BIT_TEST(tiles[pos].paths, DIR_RIGHT)) {
 			draw_e_w_paths(x, y_base + y, h1, h2, pos, frame);
 		} else if (MAP_HAS_OWNER(pos) != MAP_HAS_OWNER(other_pos) ||
 			   MAP_OWNER(pos) != MAP_OWNER(other_pos)) {
@@ -688,7 +688,7 @@ draw_paths_and_borders_sub2(int x, int y_base, int max_y, map_pos_t pos, frame_t
 		int h1 = MAP_HEIGHT(pos);
 		int h2 = MAP_HEIGHT(other_pos);
 
-		if (BIT_TEST(tiles[pos].flags, 1)) {
+		if (BIT_TEST(tiles[pos].paths, DIR_DOWN_RIGHT)) {
 			draw_nw_se_paths(x, y_base + y, h1, h2, pos, frame);
 		} else if (MAP_HAS_OWNER(pos) != MAP_HAS_OWNER(other_pos) ||
 			   MAP_OWNER(pos) != MAP_OWNER(other_pos)) {
@@ -706,7 +706,7 @@ draw_paths_and_borders_sub2(int x, int y_base, int max_y, map_pos_t pos, frame_t
 		h1 = MAP_HEIGHT(pos);
 		h2 = MAP_HEIGHT(other_pos);
 
-		if (BIT_TEST(tiles[pos].flags, 2)) {
+		if (BIT_TEST(tiles[pos].paths, DIR_DOWN)) {
 			draw_ne_sw_paths(x, y_base + y, h1, h2, pos, frame);
 		} else if (MAP_HAS_OWNER(pos) != MAP_HAS_OWNER(other_pos) ||
 			   MAP_OWNER(pos) != MAP_OWNER(other_pos)) {
@@ -736,7 +736,7 @@ draw_paths_and_borders_sub3(int x, int y_base, int max_y, map_pos_t pos, frame_t
 		int h1 = MAP_HEIGHT(pos);
 		int h2 = MAP_HEIGHT(other_pos);
 
-		if (BIT_TEST(tiles[pos].flags, 0)) {
+		if (BIT_TEST(tiles[pos].paths, DIR_RIGHT)) {
 			draw_e_w_paths(x, y_base + y, h1, h2, pos, frame);
 		} else if (MAP_HAS_OWNER(pos) != MAP_HAS_OWNER(other_pos) ||
 			   MAP_OWNER(pos) != MAP_OWNER(other_pos)) {
@@ -767,7 +767,7 @@ draw_paths_and_borders_sub4(int x, int y_base, int max_y, map_pos_t pos, frame_t
 		int h1 = MAP_HEIGHT(pos);
 		int h2 = MAP_HEIGHT(other_pos);
 
-		if (BIT_TEST(tiles[pos].flags, 1)) {
+		if (BIT_TEST(tiles[pos].paths, DIR_DOWN_RIGHT)) {
 			draw_nw_se_paths(x, y_base + y, h1, h2, pos, frame);
 		} else if (MAP_HAS_OWNER(pos) != MAP_HAS_OWNER(other_pos) ||
 			   MAP_OWNER(pos) != MAP_OWNER(other_pos)) {
@@ -785,7 +785,7 @@ draw_paths_and_borders_sub4(int x, int y_base, int max_y, map_pos_t pos, frame_t
 		h1 = MAP_HEIGHT(pos);
 		h2 = MAP_HEIGHT(other_pos);
 
-		if (BIT_TEST(tiles[pos].flags, 2)) {
+		if (BIT_TEST(tiles[pos].paths, DIR_DOWN)) {
 			draw_ne_sw_paths(x, y_base + y, h1, h2, pos, frame);
 		} else if (MAP_HAS_OWNER(pos) != MAP_HAS_OWNER(other_pos) ||
 			   MAP_OWNER(pos) != MAP_OWNER(other_pos)) {
@@ -1409,7 +1409,7 @@ static void
 draw_water_waves_row(map_pos_t pos, int y_base, int cols, int x_base, frame_t *frame)
 {
 	for (int i = 0; i < cols; i++, x_base += MAP_TILE_WIDTH, pos = MAP_MOVE_RIGHT(pos)) {
-		if (MAP_WATER(pos)) {
+		if (MAP_TYPE_UP(pos) < 4 || MAP_TYPE_DOWN(pos) < 4) {
 			/*player->water_in_view += 1;*/
 			draw_water_waves(pos, x_base, y_base, frame);
 		}
@@ -2216,7 +2216,7 @@ draw_serf_row(map_pos_t pos, int y_base, int cols, int x_base,
 		/* Idle serf */
 		if (MAP_IDLE_SERF(pos)) {
 			int x, y, body;
-			if (MAP_DEEP_WATER(pos)) { /* Sailor */
+			if (MAP_IN_WATER(pos)) { /* Sailor */
 				x = x_base;
 				y = y_base - 4*MAP_HEIGHT(pos);
 				body = 0x203;
@@ -2226,7 +2226,7 @@ draw_serf_row(map_pos_t pos, int y_base, int cols, int x_base,
 				body = arr_2[((game.tick + arr_1[pos & 0xf]) >> 3) & 0x7f];
 			}
 
-			int color = game.player[MAP_PLAYER(pos)]->color;
+			int color = game.player[MAP_OWNER(pos)]->color;
 			draw_row_serf(x, y, 1, color, body, frame);
 		}
 	}
