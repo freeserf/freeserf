@@ -1055,17 +1055,21 @@ init_map_clean_up()
 {
 	map_tile_t *tiles = game.map.tiles;
 
-	/* Clear water obstacles except in certain
-	   positions near the shore. */
+	/* Make sure that it is always possible to walk around
+	   any impassable objects. This also clears water obstacles
+	   except in certain positions near the shore. */
 	for (int y = 0; y < game.map.rows; y++) {
 		for (int x = 0; x < game.map.cols; x++) {
 			map_pos_t pos = MAP_POS(x, y);
-			map_space_t s = map_space_from_obj[MAP_OBJ(pos)];
-			if (s >= MAP_SPACE_IMPASSABLE) {
-				if (MAP_IN_WATER(MAP_MOVE_LEFT(pos)) ||
-				    MAP_IN_WATER(MAP_MOVE_UP_LEFT(pos)) ||
-				    MAP_IN_WATER(MAP_MOVE_UP(pos))) {
-					tiles[pos].obj &= 0x80;
+			if (map_space_from_obj[MAP_OBJ(pos)] >= MAP_SPACE_IMPASSABLE) {
+				for (dir_t d = DIR_LEFT; d <= DIR_UP; d++) {
+					map_pos_t other_pos = MAP_MOVE(pos, d);
+					map_space_t s = map_space_from_obj[MAP_OBJ(other_pos)];
+					if (MAP_IN_WATER(other_pos) ||
+					    s >= MAP_SPACE_IMPASSABLE) {
+						tiles[pos].obj &= 0x80;
+						break;
+					}
 				}
 			}
 		}
