@@ -201,6 +201,10 @@ load_v0_globals_state(FILE *f, v0_map_t *map)
 static int
 load_v0_player_state(FILE *f)
 {
+	const int default_player_colors[] = {
+		64, 72, 68, 76
+	};
+
 	uint8_t *data = malloc(8628);
 	if (data == NULL) return -1;
 
@@ -231,6 +235,7 @@ load_v0_player_state(FILE *f)
 		}
 
 		player->player_num = *(uint16_t *)&data[128];
+		player->color = default_player_colors[i];
 		player->flags = data[130];
 		player->build = data[131];
 
@@ -963,6 +968,7 @@ save_text_player_state(FILE *f)
 
 		save_text_write_value(f, "flags", player->flags);
 		save_text_write_value(f, "build", player->build);
+		save_text_write_value(f, "color", player->color);
 
 		save_text_write_array(f, "tool_prio", player->tool_prio, 9);
 		save_text_write_array(f, "resource_count", player->resource_count, 26);
@@ -1748,6 +1754,8 @@ load_text_player_section(section_t *section)
 			player->flags = atoi(s->value);
 		} else if (!strcmp(s->key, "build")) {
 			player->build = atoi(s->value);
+		} else if (!strcmp(s->key, "color")) {
+			player->color = atoi(s->value);
 		} else if (!strcmp(s->key, "tool_prio")) {
 			char *array = s->value;
 			for (int i = 0; i < 9 && array != NULL; i++) {
