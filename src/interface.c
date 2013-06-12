@@ -477,7 +477,8 @@ interface_build_road_end(interface_t *interface)
 		pos = next_pos;
 	}
 
-	/* TODO set_map_redraw(); */
+	interface_update_map_cursor_pos(interface,
+					interface->map_cursor_pos);
 }
 
 /* Connect a road under construction to an existing flag at dest. out_dir is the
