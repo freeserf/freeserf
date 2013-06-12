@@ -649,153 +649,100 @@ draw_ne_sw_borders(int x, int y, int h1, int h2, map_pos_t pos, frame_t *frame)
 }
 
 static void
-draw_paths_and_borders_sub1(int x, int y_base, int max_y, map_pos_t pos, frame_t *frame)
+draw_paths_and_borders_right(int x, int y, map_pos_t pos, frame_t *frame)
 {
 	map_tile_t *tiles = game.map.tiles;
-	int y = 0;
 
-	pos = MAP_MOVE_DOWN(pos);
+	map_pos_t other_pos = MAP_MOVE_RIGHT(pos);
 
-	/* shared tail 1E326 */
-	while (y < max_y + 2*MAP_TILE_HEIGHT) {
-		map_pos_t other_pos = MAP_MOVE_RIGHT(pos);
-		int h1 = MAP_HEIGHT(pos);
-		int h2 = MAP_HEIGHT(other_pos);
+	int h1 = MAP_HEIGHT(pos);
+	int h2 = MAP_HEIGHT(other_pos);
 
-		if (BIT_TEST(tiles[pos].paths, DIR_RIGHT)) {
-			draw_e_w_paths(x, y_base + y, h1, h2, pos, frame);
-		} else if (MAP_HAS_OWNER(pos) != MAP_HAS_OWNER(other_pos) ||
-			   MAP_OWNER(pos) != MAP_OWNER(other_pos)) {
-			draw_e_w_borders(x, y_base + y, h1, h2, pos, frame);
-		}
-
-		pos = MAP_MOVE_DOWN_RIGHT(pos);
-		pos = MAP_MOVE_DOWN(pos);
-
-		y += 2*MAP_TILE_HEIGHT;
+	if (BIT_TEST(tiles[pos].paths, DIR_RIGHT)) {
+		draw_e_w_paths(x, y, h1, h2, pos, frame);
+	} else if (MAP_HAS_OWNER(pos) != MAP_HAS_OWNER(other_pos) ||
+		   MAP_OWNER(pos) != MAP_OWNER(other_pos)) {
+		draw_e_w_borders(x, y, h1, h2, pos, frame);
 	}
 }
 
 static void
-draw_paths_and_borders_sub2(int x, int y_base, int max_y, map_pos_t pos, frame_t *frame)
+draw_paths_and_borders_down_right(int x, int y, map_pos_t pos, frame_t *frame)
 {
 	map_tile_t *tiles = game.map.tiles;
-	int y = 0;
-
-	/* shared tail 1E412 */
-	while (1) {
-		map_pos_t other_pos = MAP_MOVE_DOWN_RIGHT(pos);
-		int h1 = MAP_HEIGHT(pos);
-		int h2 = MAP_HEIGHT(other_pos);
-
-		if (BIT_TEST(tiles[pos].paths, DIR_DOWN_RIGHT)) {
-			draw_nw_se_paths(x, y_base + y, h1, h2, pos, frame);
-		} else if (MAP_HAS_OWNER(pos) != MAP_HAS_OWNER(other_pos) ||
-			   MAP_OWNER(pos) != MAP_OWNER(other_pos)) {
-			draw_nw_se_borders(x, y_base + y, h1, h2, pos, frame);
-		}
-
-		/* move down right */
-		pos = MAP_MOVE_DOWN_RIGHT(pos);
-		other_pos = MAP_MOVE_DOWN(pos);
-
-		y += MAP_TILE_HEIGHT;
-		if (y >= max_y + 2*MAP_TILE_HEIGHT) break;
-
-		/* shared tail 1E4F7 */
-		h1 = MAP_HEIGHT(pos);
-		h2 = MAP_HEIGHT(other_pos);
-
-		if (BIT_TEST(tiles[pos].paths, DIR_DOWN)) {
-			draw_ne_sw_paths(x, y_base + y, h1, h2, pos, frame);
-		} else if (MAP_HAS_OWNER(pos) != MAP_HAS_OWNER(other_pos) ||
-			   MAP_OWNER(pos) != MAP_OWNER(other_pos)) {
-			draw_ne_sw_borders(x, y_base + y, h1, h2, pos, frame);
-		}
-
-		/* move down */
-		pos = MAP_MOVE_DOWN(pos);
-
-		y += MAP_TILE_HEIGHT;
-		if (y >= max_y + 2*MAP_TILE_HEIGHT) break;
-	}
-}
-
-static void
-draw_paths_and_borders_sub3(int x, int y_base, int max_y, map_pos_t pos, frame_t *frame)
-{
-	map_tile_t *tiles = game.map.tiles;
-	int y = 0;
-
-	pos = MAP_MOVE_DOWN_RIGHT(pos);
-	pos = MAP_MOVE_DOWN(pos);
-
-	/* shared tail 1E326 */
-	while (y < max_y + 2*MAP_TILE_HEIGHT) {
-		map_pos_t other_pos = MAP_MOVE_RIGHT(pos);
-		int h1 = MAP_HEIGHT(pos);
-		int h2 = MAP_HEIGHT(other_pos);
-
-		if (BIT_TEST(tiles[pos].paths, DIR_RIGHT)) {
-			draw_e_w_paths(x, y_base + y, h1, h2, pos, frame);
-		} else if (MAP_HAS_OWNER(pos) != MAP_HAS_OWNER(other_pos) ||
-			   MAP_OWNER(pos) != MAP_OWNER(other_pos)) {
-			draw_e_w_borders(x, y_base + y, h1, h2, pos, frame);
-		}
-
-		pos = MAP_MOVE_DOWN_RIGHT(pos);
-		pos = MAP_MOVE_DOWN(pos);
-
-		y += 2*MAP_TILE_HEIGHT;
-	}
-}
-
-static void
-draw_paths_and_borders_sub4(int x, int y_base, int max_y, map_pos_t pos, frame_t *frame)
-{
-	map_tile_t *tiles = game.map.tiles;
-
-	int y = 0;
 
 	map_pos_t other_pos = MAP_MOVE_DOWN_RIGHT(pos);
 
-	/* Same as sub2 with this goto added */
-	goto skip_first;
+	int h1 = MAP_HEIGHT(pos);
+	int h2 = MAP_HEIGHT(other_pos);
 
-	/* shared tail 1E412 */
-	while (1) {
-		int h1 = MAP_HEIGHT(pos);
-		int h2 = MAP_HEIGHT(other_pos);
+	if (BIT_TEST(tiles[pos].paths, DIR_DOWN_RIGHT)) {
+		draw_nw_se_paths(x, y, h1, h2, pos, frame);
+	} else if (MAP_HAS_OWNER(pos) != MAP_HAS_OWNER(other_pos) ||
+		   MAP_OWNER(pos) != MAP_OWNER(other_pos)) {
+		draw_nw_se_borders(x, y, h1, h2, pos, frame);
+	}
+}
 
-		if (BIT_TEST(tiles[pos].paths, DIR_DOWN_RIGHT)) {
-			draw_nw_se_paths(x, y_base + y, h1, h2, pos, frame);
-		} else if (MAP_HAS_OWNER(pos) != MAP_HAS_OWNER(other_pos) ||
-			   MAP_OWNER(pos) != MAP_OWNER(other_pos)) {
-			draw_nw_se_borders(x, y_base + y, h1, h2, pos, frame);
-		}
+static void
+draw_paths_and_borders_down(int x, int y, map_pos_t pos, frame_t *frame)
+{
+	map_tile_t *tiles = game.map.tiles;
 
+	map_pos_t other_pos = MAP_MOVE_DOWN(pos);
+
+	int h1 = MAP_HEIGHT(pos);
+	int h2 = MAP_HEIGHT(other_pos);
+
+	if (BIT_TEST(tiles[pos].paths, DIR_DOWN)) {
+		draw_ne_sw_paths(x, y, h1, h2, pos, frame);
+	} else if (MAP_HAS_OWNER(pos) != MAP_HAS_OWNER(other_pos) ||
+		   MAP_OWNER(pos) != MAP_OWNER(other_pos)) {
+		draw_ne_sw_borders(x, y, h1, h2, pos, frame);
+	}
+}
+
+static void
+draw_paths_and_borders_col1(int x, int y_base, int max_y, map_pos_t pos, frame_t *frame)
+{
+	int y = 0;
+	while (y < max_y + 2*MAP_TILE_HEIGHT) {
+		pos = MAP_MOVE_DOWN(pos);
+		draw_paths_and_borders_right(x, y_base + y, pos, frame);
+		y += 2*MAP_TILE_HEIGHT;
 		pos = MAP_MOVE_DOWN_RIGHT(pos);
-		other_pos = MAP_MOVE_DOWN(pos);
+	}
+}
 
+static void
+draw_paths_and_borders_col2(int x, int y_base, int max_y, map_pos_t pos, frame_t *frame)
+{
+	int y = 0;
+	while (1) {
+		draw_paths_and_borders_down_right(x, y_base + y, pos, frame);
+		pos = MAP_MOVE_DOWN_RIGHT(pos);
 		y += MAP_TILE_HEIGHT;
 		if (y >= max_y + 2*MAP_TILE_HEIGHT) break;
 
-	skip_first:
-		/* shared tail 1E4F7 */
-		h1 = MAP_HEIGHT(pos);
-		h2 = MAP_HEIGHT(other_pos);
-
-		if (BIT_TEST(tiles[pos].paths, DIR_DOWN)) {
-			draw_ne_sw_paths(x, y_base + y, h1, h2, pos, frame);
-		} else if (MAP_HAS_OWNER(pos) != MAP_HAS_OWNER(other_pos) ||
-			   MAP_OWNER(pos) != MAP_OWNER(other_pos)) {
-			draw_ne_sw_borders(x, y_base + y, h1, h2, pos, frame);
-		}
-
-		/* move down */
+		draw_paths_and_borders_down(x, y_base + y, pos, frame);
 		pos = MAP_MOVE_DOWN(pos);
-		other_pos = MAP_MOVE_DOWN_RIGHT(pos);
+		y += MAP_TILE_HEIGHT;
+		if (y >= max_y + 2*MAP_TILE_HEIGHT) break;
+	}
+}
 
+static void
+draw_paths_and_borders_col3(int x, int y_base, int max_y, map_pos_t pos, frame_t *frame)
+{
+	int y = 0;
+	while (1) {
+		draw_paths_and_borders_down(x, y_base + y, pos, frame);
+		pos = MAP_MOVE_DOWN(pos);
+		y += MAP_TILE_HEIGHT;
+		if (y >= max_y + 2*MAP_TILE_HEIGHT) break;
+
+		draw_paths_and_borders_down_right(x, y_base + y, pos, frame);
+		pos = MAP_MOVE_DOWN_RIGHT(pos);
 		y += MAP_TILE_HEIGHT;
 		if (y >= max_y + 2*MAP_TILE_HEIGHT) break;
 	}
@@ -814,20 +761,21 @@ draw_paths_and_borders(viewport_t *viewport, frame_t *frame)
 	int cols = VIEWPORT_COLS(viewport) + 1;
 	int col = 0;
 	while (1) {
-		draw_paths_and_borders_sub1(x, y + MAP_TILE_HEIGHT, viewport->obj.height, pos, frame);
+		draw_paths_and_borders_col1(x, y + MAP_TILE_HEIGHT, viewport->obj.height, pos, frame);
 		col += 1;
 		if (col >= cols) break;
 
 		x += MAP_TILE_WIDTH/2;
-		draw_paths_and_borders_sub2(x, y, viewport->obj.height, pos, frame);
-		draw_paths_and_borders_sub3(x, y + 2*MAP_TILE_HEIGHT, viewport->obj.height, pos, frame);
+		draw_paths_and_borders_col2(x, y, viewport->obj.height, pos, frame);
+		draw_paths_and_borders_col1(x, y + 2*MAP_TILE_HEIGHT, viewport->obj.height,
+					    MAP_MOVE_DOWN_RIGHT(pos), frame);
 
 		col += 1;
 		if (col >= cols) break;
 
 		pos = MAP_MOVE_RIGHT(pos);
 		x += MAP_TILE_WIDTH/2;
-		draw_paths_and_borders_sub4(x, y, viewport->obj.height, pos, frame);
+		draw_paths_and_borders_col3(x, y, viewport->obj.height, pos, frame);
 	}
 }
 
@@ -2268,7 +2216,7 @@ draw_game_objects(viewport_t *viewport, int layers, frame_t *frame)
 		}
 
 		y += MAP_TILE_HEIGHT;
-		if (y - 3*MAP_TILE_HEIGHT >= viewport->obj.height) break;
+		if (y >= viewport->obj.height + 3*MAP_TILE_HEIGHT) break;
 
 		pos = MAP_MOVE_DOWN(pos);
 
@@ -2282,7 +2230,7 @@ draw_game_objects(viewport_t *viewport, int layers, frame_t *frame)
 		}
 
 		y += MAP_TILE_HEIGHT;
-		if (y - 3*MAP_TILE_HEIGHT >= viewport->obj.height) break;
+		if (y >= viewport->obj.height + 3*MAP_TILE_HEIGHT) break;
 
 		pos = MAP_MOVE_DOWN_RIGHT(pos);
 	}
