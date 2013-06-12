@@ -404,10 +404,46 @@ draw_landscape(viewport_t *viewport, frame_t *frame)
 	}
 }
 
+static void
+draw_path_segment(int x, int y, int type, int h_diff, int mask, frame_t *frame)
+{
+	int sprite = 0;
+
+	if (h_diff > 4) sprite = 0;
+	else if (h_diff > -6) sprite = 1;
+	else sprite = 2;
+
+	if (type < 4) sprite = 9;
+	else if (type > 13) sprite += 6;
+	else if (type > 7) sprite += 3;
+
+	draw_map_tile(x, y, DATA_PATH_MASK_BASE + mask,
+		      DATA_PATH_GROUND_BASE + sprite, frame);
+}
+
+static void
+draw_border_segment(int x, int y, int type, int h_diff, frame_t *frame)
+{
+	int sprite = 0;
+
+	if (h_diff > 1) sprite = 0;
+	else if (h_diff > -9) sprite = 1;
+	else sprite = 2;
+
+	if (type < 4) sprite = 9; /* Bouy */
+	else if (type > 13) sprite += 6;
+	else if (type > 7) sprite += 3;
+
+	gfx_draw_transp_sprite(x, y, DATA_MAP_BORDER_BASE + sprite,
+			       frame);
+}
+
 /* East -- west */
 static void
-draw_e_w_paths(int x, int y, int h1, int h2, map_pos_t pos, frame_t *frame)
+draw_path_right(int x, int y, map_pos_t pos, frame_t *frame)
 {
+	int h1 = MAP_HEIGHT(pos);
+	int h2 = MAP_HEIGHT(MAP_MOVE_RIGHT(pos));
 	int h_diff = h1 - h2;
 	int h_max = max(h1, h2);
 
@@ -422,37 +458,18 @@ draw_e_w_paths(int x, int y, int h1, int h2, map_pos_t pos, frame_t *frame)
 
 	int h_diff_2 = (h3 - h4) - 4*h_diff;
 
-	int mask = h_diff + 4;
-	int sprite = 0;
+	int mask = h_diff + 4 + DIR_RIGHT*9;
 
-	/* shared tail 1E873 */
-	if (h_diff_2 < 5) {
-		if (h_diff_2 >= -5) sprite = 1;
-		else sprite = 2;
-	} else {
-		sprite = 0;
-	}
-
-	if (t_max < 4) {
-		sprite = 9;
-	} else {
-		if (t_max >= 8) {
-			if (t_max >= 14) {
-				sprite += 6;
-			} else {
-				sprite += 3;
-			}
-		}
-	}
-
-	draw_map_tile(x, y, DATA_PATH_MASK_BASE + mask,
-		      DATA_PATH_GROUND_BASE + sprite, frame);
+	draw_path_segment(x, y, t_max, h_diff_2, mask, frame);
 }
 
 static void
-draw_e_w_borders(int x, int y, int h1, int h2, map_pos_t pos, frame_t *frame)
+draw_border_right(int x, int y, map_pos_t pos, frame_t *frame)
 {
+	int h1 = MAP_HEIGHT(pos);
+	int h2 = MAP_HEIGHT(MAP_MOVE_RIGHT(pos));
 	int h_diff = h2 - h1;
+
 	y = y - 2*(h1 + h2) - 4;
 
 	int t1 = MAP_TYPE_DOWN(pos);
@@ -463,35 +480,17 @@ draw_e_w_borders(int x, int y, int h1, int h2, map_pos_t pos, frame_t *frame)
 	int h4 = MAP_HEIGHT(MAP_MOVE_DOWN_RIGHT(pos));
 
 	int h_diff_2 = h3 - h4 + 4*h_diff;
-	int x_offset = 15;
-	int sprite = 0;
-
-	/* shared tail 1EBD1 */
-	if (h_diff_2 > 1) {
-		sprite = 0;
-	} else if (h_diff_2 > -9) {
-		sprite = 1;
-	} else {
-		sprite = 2;
-	}
-
-	if (t_max < 4) {
-		sprite = 9; /* Bouy */
-	} else if (t_max > 10 && t_max < 15) {
-		sprite += 3;
-	} else {
-		sprite += 6;
-	}
-
-	gfx_draw_transp_sprite(x + x_offset, y,
-			       DATA_MAP_BORDER_BASE + sprite, frame);
+	draw_border_segment(x + 15, y, t_max, h_diff_2, frame);
 }
 
 /* North-west -- south-east */
 static void
-draw_nw_se_paths(int x, int y, int h1, int h2, map_pos_t pos, frame_t *frame)
+draw_path_down_right(int x, int y, map_pos_t pos, frame_t *frame)
 {
+	int h1 = MAP_HEIGHT(pos);
+	int h2 = MAP_HEIGHT(MAP_MOVE_DOWN_RIGHT(pos));
 	int h_diff = h1 - h2;
+
 	y = y - 4*h1 - 2;
 
 	int t1 = MAP_TYPE_UP(pos);
@@ -502,37 +501,17 @@ draw_nw_se_paths(int x, int y, int h1, int h2, map_pos_t pos, frame_t *frame)
 	int h4 = MAP_HEIGHT(MAP_MOVE_DOWN(pos));
 
 	int h_diff_2 = 2*(h3 - h4);
-	int sprite = 0;
+	int mask = h_diff + 4 + DIR_DOWN_RIGHT*9;
 
-	int mask = h_diff + 13;
-
-	/* shared tail 1E873 */
-	if (h_diff_2 < 5) {
-		if (h_diff_2 >= -5) sprite = 1;
-		else sprite = 2;
-	} else {
-		sprite = 0;
-	}
-
-	if (t_max < 4) {
-		sprite = 9;
-	} else {
-		if (t_max >= 8) {
-			if (t_max >= 14) {
-				sprite += 6;
-			} else {
-				sprite += 3;
-			}
-		}
-	}
-
-	draw_map_tile(x, y, DATA_PATH_MASK_BASE + mask,
-		      DATA_PATH_GROUND_BASE + sprite, frame);
+	draw_path_segment(x, y, t_max, h_diff_2, mask, frame);
 }
 
 static void
-draw_nw_se_borders(int x, int y, int h1, int h2, map_pos_t pos, frame_t *frame)
+draw_border_down_right(int x, int y, map_pos_t pos, frame_t *frame)
 {
+	int h1 = MAP_HEIGHT(pos);
+	int h2 = MAP_HEIGHT(MAP_MOVE_DOWN_RIGHT(pos));
+
 	y = y - 2*(h1 + h2) + 6;
 
 	int t1 = MAP_TYPE_UP(pos);
@@ -543,34 +522,15 @@ draw_nw_se_borders(int x, int y, int h1, int h2, map_pos_t pos, frame_t *frame)
 	int h4 = MAP_HEIGHT(MAP_MOVE_DOWN(pos));
 
 	int h_diff_2 = 2*(h3 - h4);
-	int x_offset = 7;
-	int sprite = 0;
-
-	/* shared tail 1EBD1 */
-	if (h_diff_2 > 1) {
-		sprite = 0;
-	} else if (h_diff_2 > -9) {
-		sprite = 1;
-	} else {
-		sprite = 2;
-	}
-
-	if (t_max < 4) {
-		sprite = 9; /* Bouy */
-	} else if (t_max > 10 && t_max < 15) {
-		sprite += 3;
-	} else {
-		sprite += 6;
-	}
-
-	gfx_draw_transp_sprite(x + x_offset, y,
-			       DATA_MAP_BORDER_BASE + sprite, frame);
+	draw_border_segment(x + 7, y, t_max, h_diff_2, frame);
 }
 
 /* North-east -- south-west */
 static void
-draw_ne_sw_paths(int x, int y, int h1, int h2, map_pos_t pos, frame_t *frame)
+draw_path_down(int x, int y, map_pos_t pos, frame_t *frame)
 {
+	int h1 = MAP_HEIGHT(pos);
+	int h2 = MAP_HEIGHT(MAP_MOVE_DOWN(pos));
 	int h_diff = h1 - h2;
 	y = y - 4*h1 - 2;
 
@@ -582,36 +542,15 @@ draw_ne_sw_paths(int x, int y, int h1, int h2, map_pos_t pos, frame_t *frame)
 	int h4 = MAP_HEIGHT(MAP_MOVE_DOWN(pos));
 	int h_diff_2 = 4*h_diff - h3 + h4;
 
-	int mask = h_diff + 22;
-	int sprite = 0;
-
-	/* shared tail 1E873 */
-	if (h_diff_2 < 5) {
-		if (h_diff_2 >= -5) sprite = 1;
-		else sprite = 2;
-	} else {
-		sprite = 0;
-	}
-
-	if (t_max < 4) {
-		sprite = 9;
-	} else {
-		if (t_max >= 8) {
-			if (t_max >= 14) {
-				sprite += 6;
-			} else {
-				sprite += 3;
-			}
-		}
-	}
-
-	draw_map_tile(x, y, DATA_PATH_MASK_BASE + mask,
-		      DATA_PATH_GROUND_BASE + sprite, frame);
+	int mask = h_diff + 4 + DIR_DOWN*9;
+	draw_path_segment(x, y, t_max, h_diff_2, mask, frame);
 }
 
 static void
-draw_ne_sw_borders(int x, int y, int h1, int h2, map_pos_t pos, frame_t *frame)
+draw_border_down(int x, int y, map_pos_t pos, frame_t *frame)
 {
+	int h1 = MAP_HEIGHT(pos);
+	int h2 = MAP_HEIGHT(MAP_MOVE_DOWN(pos));
 	int h_diff = h2 - h1;
 
 	y = y - 2*(h1 + h2) + 6;
@@ -624,45 +563,20 @@ draw_ne_sw_borders(int x, int y, int h1, int h2, map_pos_t pos, frame_t *frame)
 	int h4 = MAP_HEIGHT(MAP_MOVE_DOWN(pos));
 
 	int h_diff_2 = 4*h_diff - h3 + h4;
-	int x_offset = 7;
-	int sprite = 0;
-
-	/* shared tail 1EBD1 */
-	if (h_diff_2 > 1) {
-		sprite = 0;
-	} else if (h_diff_2 > -9) {
-		sprite = 1;
-	} else {
-		sprite = 2;
-	}
-
-	if (t_max < 4) {
-		sprite = 9; /* Bouy */
-	} else if (t_max > 10 && t_max < 15) {
-		sprite += 3;
-	} else {
-		sprite += 6;
-	}
-
-	gfx_draw_transp_sprite(x + x_offset, y,
-			       DATA_MAP_BORDER_BASE + sprite, frame);
+	draw_border_segment(x + 7, y, t_max, h_diff_2, frame);
 }
 
 static void
 draw_paths_and_borders_right(int x, int y, map_pos_t pos, frame_t *frame)
 {
 	map_tile_t *tiles = game.map.tiles;
-
 	map_pos_t other_pos = MAP_MOVE_RIGHT(pos);
 
-	int h1 = MAP_HEIGHT(pos);
-	int h2 = MAP_HEIGHT(other_pos);
-
 	if (BIT_TEST(tiles[pos].paths, DIR_RIGHT)) {
-		draw_e_w_paths(x, y, h1, h2, pos, frame);
+		draw_path_right(x, y, pos, frame);
 	} else if (MAP_HAS_OWNER(pos) != MAP_HAS_OWNER(other_pos) ||
 		   MAP_OWNER(pos) != MAP_OWNER(other_pos)) {
-		draw_e_w_borders(x, y, h1, h2, pos, frame);
+		draw_border_right(x, y, pos, frame);
 	}
 }
 
@@ -670,17 +584,13 @@ static void
 draw_paths_and_borders_down_right(int x, int y, map_pos_t pos, frame_t *frame)
 {
 	map_tile_t *tiles = game.map.tiles;
-
 	map_pos_t other_pos = MAP_MOVE_DOWN_RIGHT(pos);
 
-	int h1 = MAP_HEIGHT(pos);
-	int h2 = MAP_HEIGHT(other_pos);
-
 	if (BIT_TEST(tiles[pos].paths, DIR_DOWN_RIGHT)) {
-		draw_nw_se_paths(x, y, h1, h2, pos, frame);
+		draw_path_down_right(x, y, pos, frame);
 	} else if (MAP_HAS_OWNER(pos) != MAP_HAS_OWNER(other_pos) ||
 		   MAP_OWNER(pos) != MAP_OWNER(other_pos)) {
-		draw_nw_se_borders(x, y, h1, h2, pos, frame);
+		draw_border_down_right(x, y, pos, frame);
 	}
 }
 
@@ -688,17 +598,13 @@ static void
 draw_paths_and_borders_down(int x, int y, map_pos_t pos, frame_t *frame)
 {
 	map_tile_t *tiles = game.map.tiles;
-
 	map_pos_t other_pos = MAP_MOVE_DOWN(pos);
 
-	int h1 = MAP_HEIGHT(pos);
-	int h2 = MAP_HEIGHT(other_pos);
-
 	if (BIT_TEST(tiles[pos].paths, DIR_DOWN)) {
-		draw_ne_sw_paths(x, y, h1, h2, pos, frame);
+		draw_path_down(x, y, pos, frame);
 	} else if (MAP_HAS_OWNER(pos) != MAP_HAS_OWNER(other_pos) ||
 		   MAP_OWNER(pos) != MAP_OWNER(other_pos)) {
-		draw_ne_sw_borders(x, y, h1, h2, pos, frame);
+		draw_border_down(x, y, pos, frame);
 	}
 }
 
