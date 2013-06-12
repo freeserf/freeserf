@@ -404,13 +404,53 @@ draw_landscape(viewport_t *viewport, frame_t *frame)
 	}
 }
 
-static void
-draw_path_segment(int x, int y, int type, int h_diff, int mask, frame_t *frame)
-{
-	int sprite = 0;
 
-	if (h_diff > 4) sprite = 0;
-	else if (h_diff > -6) sprite = 1;
+static void
+draw_path_segment(int x, int y, map_pos_t pos, dir_t dir, frame_t *frame)
+{
+	int h1 = MAP_HEIGHT(pos);
+	int h2 = MAP_HEIGHT(MAP_MOVE(pos, dir));
+	int h_diff = h1 - h2;
+
+	int t1, t2, h3, h4, h_diff_2;
+
+	switch (dir) {
+	case DIR_RIGHT:
+		y -= 4*max(h1, h2) + 2;
+		t1 = MAP_TYPE_DOWN(pos);
+		t2 = MAP_TYPE_UP(MAP_MOVE_UP(pos));
+		h3 = MAP_HEIGHT(MAP_MOVE_UP(pos));
+		h4 = MAP_HEIGHT(MAP_MOVE_DOWN_RIGHT(pos));
+		h_diff_2 = (h3 - h4) - 4*h_diff;
+		break;
+	case DIR_DOWN_RIGHT:
+		y -= 4*h1 + 2;
+		t1 = MAP_TYPE_UP(pos);
+		t2 = MAP_TYPE_DOWN(pos);
+		h3 = MAP_HEIGHT(MAP_MOVE_RIGHT(pos));
+		h4 = MAP_HEIGHT(MAP_MOVE_DOWN(pos));
+		h_diff_2 = 2*(h3 - h4);
+		break;
+	case DIR_DOWN:
+		x -= MAP_TILE_WIDTH/2;
+		y -= 4*h1 + 2;
+		t1 = MAP_TYPE_UP(pos);
+		t2 = MAP_TYPE_DOWN(MAP_MOVE_LEFT(pos));
+		h3 = MAP_HEIGHT(MAP_MOVE_LEFT(pos));
+		h4 = MAP_HEIGHT(MAP_MOVE_DOWN(pos));
+		h_diff_2 = 4*h_diff - h3 + h4;
+		break;
+	default:
+		NOT_REACHED();
+		break;
+	}
+
+	int mask = h_diff + 4 + dir*9;
+	int sprite = 0;
+	int type = max(t1, t2);
+
+	if (h_diff_2 > 4) sprite = 0;
+	else if (h_diff_2 > -6) sprite = 1;
 	else sprite = 2;
 
 	if (type < 4) sprite = 9;
@@ -422,12 +462,52 @@ draw_path_segment(int x, int y, int type, int h_diff, int mask, frame_t *frame)
 }
 
 static void
-draw_border_segment(int x, int y, int type, int h_diff, frame_t *frame)
+draw_border_segment(int x, int y, map_pos_t pos, dir_t dir, frame_t *frame)
 {
-	int sprite = 0;
+	int h1 = MAP_HEIGHT(pos);
+	int h2 = MAP_HEIGHT(MAP_MOVE(pos, dir));
+	int h_diff = h2 - h1;
 
-	if (h_diff > 1) sprite = 0;
-	else if (h_diff > -9) sprite = 1;
+	int t1, t2, h3, h4, h_diff_2;
+
+	switch (dir) {
+	case DIR_RIGHT:
+		x += MAP_TILE_WIDTH/2;
+		y -= 2*(h1 + h2) + 4;
+		t1 = MAP_TYPE_DOWN(pos);
+		t2 = MAP_TYPE_UP(MAP_MOVE_UP(pos));
+		h3 = MAP_HEIGHT(MAP_MOVE_UP(pos));
+		h4 = MAP_HEIGHT(MAP_MOVE_DOWN_RIGHT(pos));
+		h_diff_2 = h3 - h4 + 4*h_diff;
+		break;
+	case DIR_DOWN_RIGHT:
+		x += MAP_TILE_WIDTH/4;
+		y -= 2*(h1 + h2) - 6;
+		t1 = MAP_TYPE_UP(pos);
+		t2 = MAP_TYPE_DOWN(pos);
+		h3 = MAP_HEIGHT(MAP_MOVE_RIGHT(pos));
+		h4 = MAP_HEIGHT(MAP_MOVE_DOWN(pos));
+		h_diff_2 = 2*(h3 - h4);
+		break;
+	case DIR_DOWN:
+		x -= MAP_TILE_WIDTH/4;
+		y -= 2*(h1 + h2) - 6;
+		t1 = MAP_TYPE_UP(pos);
+		t2 = MAP_TYPE_DOWN(MAP_MOVE_LEFT(pos));
+		h3 = MAP_HEIGHT(MAP_MOVE_LEFT(pos));
+		h4 = MAP_HEIGHT(MAP_MOVE_DOWN(pos));
+		h_diff_2 = 4*h_diff - h3 + h4;
+		break;
+	default:
+		NOT_REACHED();
+		break;
+	}
+
+	int sprite = 0;
+	int type = max(t1, t2);
+
+	if (h_diff_2 > 1) sprite = 0;
+	else if (h_diff_2 > -9) sprite = 1;
 	else sprite = 2;
 
 	if (type < 4) sprite = 9; /* Bouy */
@@ -438,250 +518,51 @@ draw_border_segment(int x, int y, int type, int h_diff, frame_t *frame)
 			       frame);
 }
 
-/* East -- west */
-static void
-draw_path_right(int x, int y, map_pos_t pos, frame_t *frame)
-{
-	int h1 = MAP_HEIGHT(pos);
-	int h2 = MAP_HEIGHT(MAP_MOVE_RIGHT(pos));
-	int h_diff = h1 - h2;
-	int h_max = max(h1, h2);
-
-	y = y - 4*h_max - 2;
-
-	int t1 = MAP_TYPE_DOWN(pos);
-	int t2 = MAP_TYPE_UP(MAP_MOVE_UP(pos));
-	int t_max = max(t1, t2);
-
-	int h3 = MAP_HEIGHT(MAP_MOVE_UP(pos));
-	int h4 = MAP_HEIGHT(MAP_MOVE_DOWN_RIGHT(pos));
-
-	int h_diff_2 = (h3 - h4) - 4*h_diff;
-
-	int mask = h_diff + 4 + DIR_RIGHT*9;
-
-	draw_path_segment(x, y, t_max, h_diff_2, mask, frame);
-}
-
-static void
-draw_border_right(int x, int y, map_pos_t pos, frame_t *frame)
-{
-	int h1 = MAP_HEIGHT(pos);
-	int h2 = MAP_HEIGHT(MAP_MOVE_RIGHT(pos));
-	int h_diff = h2 - h1;
-
-	y = y - 2*(h1 + h2) - 4;
-
-	int t1 = MAP_TYPE_DOWN(pos);
-	int t2 = MAP_TYPE_UP(MAP_MOVE_UP(pos));
-	int t_max = max(t1, t2);
-
-	int h3 = MAP_HEIGHT(MAP_MOVE_UP(pos));
-	int h4 = MAP_HEIGHT(MAP_MOVE_DOWN_RIGHT(pos));
-
-	int h_diff_2 = h3 - h4 + 4*h_diff;
-	draw_border_segment(x + 15, y, t_max, h_diff_2, frame);
-}
-
-/* North-west -- south-east */
-static void
-draw_path_down_right(int x, int y, map_pos_t pos, frame_t *frame)
-{
-	int h1 = MAP_HEIGHT(pos);
-	int h2 = MAP_HEIGHT(MAP_MOVE_DOWN_RIGHT(pos));
-	int h_diff = h1 - h2;
-
-	y = y - 4*h1 - 2;
-
-	int t1 = MAP_TYPE_UP(pos);
-	int t2 = MAP_TYPE_DOWN(pos);
-	int t_max = max(t1, t2);
-
-	int h3 = MAP_HEIGHT(MAP_MOVE_RIGHT(pos));
-	int h4 = MAP_HEIGHT(MAP_MOVE_DOWN(pos));
-
-	int h_diff_2 = 2*(h3 - h4);
-	int mask = h_diff + 4 + DIR_DOWN_RIGHT*9;
-
-	draw_path_segment(x, y, t_max, h_diff_2, mask, frame);
-}
-
-static void
-draw_border_down_right(int x, int y, map_pos_t pos, frame_t *frame)
-{
-	int h1 = MAP_HEIGHT(pos);
-	int h2 = MAP_HEIGHT(MAP_MOVE_DOWN_RIGHT(pos));
-
-	y = y - 2*(h1 + h2) + 6;
-
-	int t1 = MAP_TYPE_UP(pos);
-	int t2 = MAP_TYPE_DOWN(pos);
-	int t_max = max(t1, t2);
-
-	int h3 = MAP_HEIGHT(MAP_MOVE_RIGHT(pos));
-	int h4 = MAP_HEIGHT(MAP_MOVE_DOWN(pos));
-
-	int h_diff_2 = 2*(h3 - h4);
-	draw_border_segment(x + 7, y, t_max, h_diff_2, frame);
-}
-
-/* North-east -- south-west */
-static void
-draw_path_down(int x, int y, map_pos_t pos, frame_t *frame)
-{
-	int h1 = MAP_HEIGHT(pos);
-	int h2 = MAP_HEIGHT(MAP_MOVE_DOWN(pos));
-	int h_diff = h1 - h2;
-	y = y - 4*h1 - 2;
-
-	int t1 = MAP_TYPE_UP(pos);
-	int t2 = MAP_TYPE_DOWN(MAP_MOVE_LEFT(pos));
-	int t_max = max(t1, t2);
-
-	int h3 = MAP_HEIGHT(MAP_MOVE_LEFT(pos));
-	int h4 = MAP_HEIGHT(MAP_MOVE_DOWN(pos));
-	int h_diff_2 = 4*h_diff - h3 + h4;
-
-	int mask = h_diff + 4 + DIR_DOWN*9;
-	draw_path_segment(x, y, t_max, h_diff_2, mask, frame);
-}
-
-static void
-draw_border_down(int x, int y, map_pos_t pos, frame_t *frame)
-{
-	int h1 = MAP_HEIGHT(pos);
-	int h2 = MAP_HEIGHT(MAP_MOVE_DOWN(pos));
-	int h_diff = h2 - h1;
-
-	y = y - 2*(h1 + h2) + 6;
-
-	int t1 = MAP_TYPE_UP(pos);
-	int t2 = MAP_TYPE_DOWN(MAP_MOVE_LEFT(pos));
-	int t_max = max(t1, t2);
-
-	int h3 = MAP_HEIGHT(MAP_MOVE_LEFT(pos));
-	int h4 = MAP_HEIGHT(MAP_MOVE_DOWN(pos));
-
-	int h_diff_2 = 4*h_diff - h3 + h4;
-	draw_border_segment(x + 7, y, t_max, h_diff_2, frame);
-}
-
-static void
-draw_paths_and_borders_right(int x, int y, map_pos_t pos, frame_t *frame)
-{
-	map_tile_t *tiles = game.map.tiles;
-	map_pos_t other_pos = MAP_MOVE_RIGHT(pos);
-
-	if (BIT_TEST(tiles[pos].paths, DIR_RIGHT)) {
-		draw_path_right(x, y, pos, frame);
-	} else if (MAP_HAS_OWNER(pos) != MAP_HAS_OWNER(other_pos) ||
-		   MAP_OWNER(pos) != MAP_OWNER(other_pos)) {
-		draw_border_right(x, y, pos, frame);
-	}
-}
-
-static void
-draw_paths_and_borders_down_right(int x, int y, map_pos_t pos, frame_t *frame)
-{
-	map_tile_t *tiles = game.map.tiles;
-	map_pos_t other_pos = MAP_MOVE_DOWN_RIGHT(pos);
-
-	if (BIT_TEST(tiles[pos].paths, DIR_DOWN_RIGHT)) {
-		draw_path_down_right(x, y, pos, frame);
-	} else if (MAP_HAS_OWNER(pos) != MAP_HAS_OWNER(other_pos) ||
-		   MAP_OWNER(pos) != MAP_OWNER(other_pos)) {
-		draw_border_down_right(x, y, pos, frame);
-	}
-}
-
-static void
-draw_paths_and_borders_down(int x, int y, map_pos_t pos, frame_t *frame)
-{
-	map_tile_t *tiles = game.map.tiles;
-	map_pos_t other_pos = MAP_MOVE_DOWN(pos);
-
-	if (BIT_TEST(tiles[pos].paths, DIR_DOWN)) {
-		draw_path_down(x, y, pos, frame);
-	} else if (MAP_HAS_OWNER(pos) != MAP_HAS_OWNER(other_pos) ||
-		   MAP_OWNER(pos) != MAP_OWNER(other_pos)) {
-		draw_border_down(x, y, pos, frame);
-	}
-}
-
-static void
-draw_paths_and_borders_col1(int x, int y_base, int max_y, map_pos_t pos, frame_t *frame)
-{
-	int y = 0;
-	while (y < max_y + 2*MAP_TILE_HEIGHT) {
-		pos = MAP_MOVE_DOWN(pos);
-		draw_paths_and_borders_right(x, y_base + y, pos, frame);
-		y += 2*MAP_TILE_HEIGHT;
-		pos = MAP_MOVE_DOWN_RIGHT(pos);
-	}
-}
-
-static void
-draw_paths_and_borders_col2(int x, int y_base, int max_y, map_pos_t pos, frame_t *frame)
-{
-	int y = 0;
-	while (1) {
-		draw_paths_and_borders_down_right(x, y_base + y, pos, frame);
-		pos = MAP_MOVE_DOWN_RIGHT(pos);
-		y += MAP_TILE_HEIGHT;
-		if (y >= max_y + 2*MAP_TILE_HEIGHT) break;
-
-		draw_paths_and_borders_down(x, y_base + y, pos, frame);
-		pos = MAP_MOVE_DOWN(pos);
-		y += MAP_TILE_HEIGHT;
-		if (y >= max_y + 2*MAP_TILE_HEIGHT) break;
-	}
-}
-
-static void
-draw_paths_and_borders_col3(int x, int y_base, int max_y, map_pos_t pos, frame_t *frame)
-{
-	int y = 0;
-	while (1) {
-		draw_paths_and_borders_down(x, y_base + y, pos, frame);
-		pos = MAP_MOVE_DOWN(pos);
-		y += MAP_TILE_HEIGHT;
-		if (y >= max_y + 2*MAP_TILE_HEIGHT) break;
-
-		draw_paths_and_borders_down_right(x, y_base + y, pos, frame);
-		pos = MAP_MOVE_DOWN_RIGHT(pos);
-		y += MAP_TILE_HEIGHT;
-		if (y >= max_y + 2*MAP_TILE_HEIGHT) break;
-	}
-}
-
 static void
 draw_paths_and_borders(viewport_t *viewport, frame_t *frame)
 {
-	int x = -(viewport->offset_x + 16*(viewport->offset_y/20)) % 32 - 16;
-	int y = -viewport->offset_y % 20;
+	int x_off = -(viewport->offset_x + 16*(viewport->offset_y/20)) % 32;
+	int y_off = -viewport->offset_y % 20;
 
 	int col_0 = (viewport->offset_x/16 + viewport->offset_y/20)/2 & game.map.col_mask;
 	int row_0 = (viewport->offset_y/MAP_TILE_HEIGHT) & game.map.row_mask;
-	map_pos_t pos = MAP_POS(col_0, row_0);
+	map_pos_t base_pos = MAP_POS(col_0, row_0);
 
-	int cols = VIEWPORT_COLS(viewport) + 1;
-	int col = 0;
-	while (1) {
-		draw_paths_and_borders_col1(x, y + MAP_TILE_HEIGHT, viewport->obj.height, pos, frame);
-		col += 1;
-		if (col >= cols) break;
+	for (int x_base = x_off; x_base < viewport->obj.width + MAP_TILE_WIDTH; x_base += MAP_TILE_WIDTH) {
+		map_pos_t pos = base_pos;
+		int y_base = y_off;
+		int row = 0;
 
-		x += MAP_TILE_WIDTH/2;
-		draw_paths_and_borders_col2(x, y, viewport->obj.height, pos, frame);
-		draw_paths_and_borders_col1(x, y + 2*MAP_TILE_HEIGHT, viewport->obj.height,
-					    MAP_MOVE_DOWN_RIGHT(pos), frame);
+		while (1) {
+			int x;
+			if (row % 2 == 0) x = x_base;
+			else x = x_base - MAP_TILE_WIDTH/2;
 
-		col += 1;
-		if (col >= cols) break;
+			int y = y_base - 4*MAP_HEIGHT(pos);
+			if (y >= viewport->obj.height) break;
 
-		pos = MAP_MOVE_RIGHT(pos);
-		x += MAP_TILE_WIDTH/2;
-		draw_paths_and_borders_col3(x, y, viewport->obj.height, pos, frame);
+			/* For each direction right, down right and down,
+			   draw the corresponding paths and borders. */
+			for (dir_t d = DIR_RIGHT; d <= DIR_DOWN; d++) {
+				map_tile_t *tiles = game.map.tiles;
+				map_pos_t other_pos = MAP_MOVE(pos, d);
+
+				if (BIT_TEST(tiles[pos].paths, d)) {
+					draw_path_segment(x, y_base, pos, d, frame);
+				} else if (MAP_HAS_OWNER(pos) != MAP_HAS_OWNER(other_pos) ||
+					   MAP_OWNER(pos) != MAP_OWNER(other_pos)) {
+					draw_border_segment(x, y_base, pos, d, frame);
+				}
+			}
+
+			if (row % 2 == 0) pos = MAP_MOVE_DOWN(pos);
+			else pos = MAP_MOVE_DOWN_RIGHT(pos);
+
+			y_base += MAP_TILE_HEIGHT;
+			row += 1;
+		}
+
+		base_pos = MAP_MOVE_RIGHT(base_pos);
 	}
 }
 
