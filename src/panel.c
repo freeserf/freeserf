@@ -80,16 +80,14 @@ static void
 draw_message_notify(panel_bar_t *panel, frame_t *frame)
 {
 	panel->interface->msg_flags |= BIT(2);
-	gfx_draw_sprite(panel->interface->msg_icon_x, 4,
-			DATA_FRAME_BOTTOM_NOTIFY, frame);
+	gfx_draw_sprite(40, 4, DATA_FRAME_BOTTOM_NOTIFY, frame);
 }
 
 /* Draw return arrow icon in action panel. */
 static void
 draw_return_arrow(panel_bar_t *panel, frame_t *frame)
 {
-	gfx_draw_sprite(panel->interface->msg_icon_x, 28,
-			DATA_FRAME_BOTTOM_ARROW, frame);
+	gfx_draw_sprite(40, 28, DATA_FRAME_BOTTOM_ARROW, frame);
 }
 
 /* Draw buttons in action panel. */
@@ -124,7 +122,7 @@ draw_panel_buttons(panel_bar_t *panel, frame_t *frame)
 		int button = interface->panel_btns[i];
 		if (!panel->obj.enabled) button = inactive_buttons[i];
 
-		int x = interface->panel_btns_x + i*interface->panel_btns_dist;
+		int x = 64 + i*48;
 		int y = 4;
 		int sprite = DATA_FRAME_BUTTON_BASE + button;
 
@@ -358,57 +356,7 @@ panel_bar_handle_event_click(panel_bar_t *panel, int x, int y)
 
 	interface_t *interface = panel->interface;
 
-	if (x <= interface->msg_icon_x - interface->pointer_x_off ||
-	    x > interface->msg_icon_x - interface->pointer_x_off + 12) {
-		if (x <= interface->timer_icon_x - interface->pointer_x_off - 4 ||
-		    x > interface->timer_icon_x - interface->pointer_x_off + 8) {
-			if (y < 4 || y >= 36 || x < interface->panel_btns_first_x) return 0;
-			x -= interface->panel_btns_first_x;
-
-			/* Figure out what button was clicked */
-			int btn = 0;
-			while (1) {
-				if (x < 32) {
-					if (btn < 5) break;
-					else return 0;
-				}
-				btn += 1;
-				if (x < interface->panel_btns_dist) return 0;
-				x -= interface->panel_btns_dist;
-			}
-			handle_panel_button_click(interface, btn);
-		} else {
-			/* Timer bar click */
-			if (BIT_TEST(game.svga, 3)) { /* Game has started */
-				if ((BIT_TEST(game.split, 6) && /* Coop mode */
-				     BIT_TEST(interface->click, 0)) ||
-				    interface->player->timers_count >= 64) {
-					sfx_play_clip(SFX_NOT_ACCEPTED);
-					return 0;
-				}
-
-				if (BIT_TEST(interface->click, 1)) {
-					/* Call to map position */
-					int timer_id = interface->player->timers_count++;
-					int timer_length = -1;
-
-					if (y < 7) timer_length = 5*60;
-					else if (y < 14) timer_length = 10*60;
-					else if (y < 21) timer_length = 20*60;
-					else if (y < 28) timer_length = 30*60;
-					else timer_length = 60*60;
-
-					interface->player->timers[timer_id].timeout = timer_length*TICKS_PER_SEC;
-					interface->player->timers[timer_id].pos = interface->map_cursor_pos;
-				} else {
-					/* Call to box (+ map) position */
-					/* TODO */
-				}
-
-				sfx_play_clip(SFX_ACCEPTED);
-			}
-		}
-	} else {
+	if (x >= 41 && x < 53) {
 		/* Message bar click */
 		if (BIT_TEST(game.svga, 3)) { /* Game has started */
 			if (y < 16) {
@@ -419,6 +367,51 @@ panel_bar_handle_event_click(panel_bar_t *panel, int x, int y)
 				interface_return_from_message(interface);
 			}
 		}
+	} else if (x >= 301 && x < 313) {
+		/* Timer bar click */
+		if (BIT_TEST(game.svga, 3)) { /* Game has started */
+			if ((BIT_TEST(game.split, 6) && /* Coop mode */
+			     BIT_TEST(interface->click, 0)) ||
+			    interface->player->timers_count >= 64) {
+				sfx_play_clip(SFX_NOT_ACCEPTED);
+				return 0;
+			}
+
+			if (BIT_TEST(interface->click, 1)) {
+				/* Call to map position */
+				int timer_id = interface->player->timers_count++;
+				int timer_length = -1;
+
+				if (y < 7) timer_length = 5*60;
+				else if (y < 14) timer_length = 10*60;
+				else if (y < 21) timer_length = 20*60;
+				else if (y < 28) timer_length = 30*60;
+				else timer_length = 60*60;
+
+				interface->player->timers[timer_id].timeout = timer_length*TICKS_PER_SEC;
+				interface->player->timers[timer_id].pos = interface->map_cursor_pos;
+			} else {
+				/* Call to box (+ map) position */
+				/* TODO */
+			}
+
+			sfx_play_clip(SFX_ACCEPTED);
+		}
+	} else if (y >= 4 && y < 36 && x >= 64) {
+		x -= 64;
+
+		/* Figure out what button was clicked */
+		int button = 0;
+		while (1) {
+			if (x < 32) {
+				if (button < 5) break;
+				else return 0;
+			}
+			button += 1;
+			if (x < 48) return 0;
+			x -= 48;
+		}
+		handle_panel_button_click(interface, button);
 	}
 
 	return 0;

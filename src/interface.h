@@ -73,100 +73,32 @@ struct interface {
 
 	uint last_const_tick;
 
-	/* 0 */
 	int flags;
 	int click;
-	int pointer_x_max;
-	int pointer_y_max;
 	int pointer_x;
 	int pointer_y;
-	int pointer_x_off;
-	int pointer_x_clk;
-	int pointer_y_clk;
-	/* 10 */
-	/* OBSOLETE
-	int pointer_x_drag;
-	int pointer_y_drag;
-	*/
-	/* 16 */
+
 	int sfx_queue[4];
-	frame_t *frame;
-	/* 20 */
-	int game_area_cols;
-	/* 2E */
-	/* MOVED to minimap: int minimap_advanced; */
-	/* 30 */
-	int bottom_panel_x; /* ADDITION */
-	int bottom_panel_y;
-	int bottom_panel_width; /* ADDITION */
-	int bottom_panel_height; /* ADDITION */
-	/* 3E */
-	int frame_width;
-	int frame_height;
-	/* 46 */
-	/*int col_game_area;*/ /* OBSOLETE */
-	/*int row_game_area;*/ /* OBSOLETE */
-	int col_offset;
-	int row_offset;
-	int map_min_x;
-	int map_min_y; /* ADDITION */
-	int game_area_rows;
-	int map_max_y;
-	/* 54 */
-	map_tile_t **map_rows;
-	/* 5C */
-	frame_t *popup_frame;
-	/* 60 */
+
 	int panel_btns[5];
-	int panel_btns_set[5];
-	int panel_btns_x;
-	int msg_icon_x;
-	/* 70 */
-	/* MOVED to popup: box, clkmap */
-	/* OBSOLETE moved to minimap object
-	int minimap_row;
-	int minimap_col;
-	*/
-	/* 78 */
-	int popup_x;
-	int popup_y;
-	/* 82 */
+
 	player_t *player;
 	int config;
 	int msg_flags;
-	int map_cursor_col_max;
-	/* 8E */
-	int map_cursor_col_off;
-	int map_y_off;
-	/*int **map_serf_rows;*/ /* OBSOLETE */
-	/*int message_box; *//* OBSOLETE */
-	/* 9A */
-	int map_x_off;
-	/* 9E */
-	int right_dbl_time;
-	/* A0 */
-	int panel_btns_dist;
-	/* A4 */
+
 	sprite_loc_t map_cursor_sprites[7];
 	int road_length;
 	int road_valid_dir;
-	/* MOVED to minimap: uint8_t minimap_flags; */
-	/* D2 */
+
 	int current_stat_8_mode;
 	int current_stat_7_item;
-	int pathway_scrolling_threshold;
-	/* 1B4 */
-	/* Determines what sfx should be played. */
+
 	int water_in_view;
 	int trees_in_view;
-	/* 1C0 */
+
 	int return_timeout;
 	int return_col_game_area;
 	int return_row_game_area;
-	/* 1E0 */
-	int panel_btns_first_x;
-	int timer_icon_x;
-	/* ... */
 };
 
 

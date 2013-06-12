@@ -896,38 +896,15 @@ interface_set_size(interface_t *interface, int width, int height)
 	interface->cont.obj.width = width;
 	interface->cont.obj.height = height;
 
-	interface->pointer_x_max = width;
-	interface->pointer_y_max = height;
+	int panel_width = 352;
+	int panel_height = 40;
+	int panel_x = (width - panel_width) / 2;
+	int panel_y = height - panel_height;
 
-	interface->game_area_cols = (width >> 4) + 4;
-	interface->game_area_rows = (height >> 4) + 4;
-	interface->bottom_panel_width = 352;
-	interface->bottom_panel_height = 40;
-	interface->bottom_panel_x = (width - interface->bottom_panel_width) / 2;
-	interface->bottom_panel_y = height - interface->bottom_panel_height;
-
-	interface->frame_width = width;
-	interface->frame_height = height;
-
-	interface->col_offset = 0; /* TODO center */
-	interface->row_offset = 0; /* TODO center */
-	interface->map_min_x = 0;
-	interface->map_min_y = 0;
-	interface->map_max_y = height + 2*MAP_TILE_HEIGHT;
-
-	interface->panel_btns_x = 64;
-	interface->panel_btns_first_x = 64;
-	interface->panel_btns_dist = 48;
-	interface->msg_icon_x = 40;
-	interface->timer_icon_x = 304;
-
-	interface->popup_x = (width - 144) / 2;
-	interface->popup_y = (height - 160) / 2;
-
-	interface->map_x_off = 0/*288*/;
-	interface->map_y_off = -4/*276*/;
-	interface->map_cursor_col_max = 2*interface->game_area_cols + 8/*76*/;
-	interface->map_cursor_col_off = 0/*36*/;
+	int popup_width = 144;
+	int popup_height = 160;
+	int popup_x = (width - popup_width) / 2;
+	int popup_y = (height - popup_height) / 2;
 
 	int init_box_width = 360;
 	int init_box_height = 174;
@@ -936,8 +913,8 @@ interface_set_size(interface_t *interface, int width, int height)
 
 	int notification_box_width = 200;
 	int notification_box_height = 88;
-	int notification_box_x = interface->bottom_panel_x + 40;
-	int notification_box_y = interface->bottom_panel_y - notification_box_height;
+	int notification_box_x = panel_x + 40;
+	int notification_box_y = panel_y - notification_box_height;
 
 	gui_object_set_size(interface->top, width, height);
 	interface->redraw_top = 1;
@@ -946,24 +923,24 @@ interface_set_size(interface_t *interface, int width, int height)
 	list_elm_t *elm;
 	list_foreach(&interface->floats, elm) {
 		interface_float_t *fl = (interface_float_t *)elm;
-		if (fl->obj == (gui_object_t *)&interface->popup) {
-			fl->x = interface->popup_x;
-			fl->y = interface->popup_y;
+		if (fl->obj == GUI_OBJECT(&interface->popup)) {
+			fl->x = popup_x;
+			fl->y = popup_y;
 			fl->redraw = 1;
-			gui_object_set_size(fl->obj, 144, 160);
-		} else if (fl->obj == (gui_object_t *)&interface->panel) {
-			fl->x = interface->bottom_panel_x;
-			fl->y = interface->bottom_panel_y;
+			gui_object_set_size(fl->obj, popup_width, popup_height);
+		} else if (fl->obj == GUI_OBJECT(&interface->panel)) {
+			fl->x = panel_x;
+			fl->y = panel_y;
 			fl->redraw = 1;
-			gui_object_set_size(fl->obj, interface->bottom_panel_width,
-					    interface->bottom_panel_height);
-		} else if (fl->obj == (gui_object_t *)&interface->init_box) {
+			gui_object_set_size(fl->obj, panel_width,
+					    panel_height);
+		} else if (fl->obj == GUI_OBJECT(&interface->init_box)) {
 			fl->x = init_box_x;
 			fl->y = init_box_y;
 			fl->redraw = 1;
 			gui_object_set_size(fl->obj, init_box_width,
 					    init_box_height);
-		} else if (fl->obj == (gui_object_t *)&interface->notification_box) {
+		} else if (fl->obj == GUI_OBJECT(&interface->notification_box)) {
 			fl->x = notification_box_x;
 			fl->y = notification_box_y;
 			fl->redraw = 1;
@@ -1108,31 +1085,15 @@ interface_init(interface_t *interface)
 	interface->click |= BIT(1);
 	interface->flags |= BIT(4);
 
-	/* OBSOLETE
-	interface->col_game_area = 0;
-	interface->row_game_area = 0;
-	interface->map_rows
-	*/
-
-	/*interface->popup_frame = &popup_box_left_frame;*/
-
 	interface->panel_btns[0] = PANEL_BTN_BUILD_INACTIVE;
 	interface->panel_btns[1] = PANEL_BTN_DESTROY_INACTIVE;
-	interface->panel_btns[2] = PANEL_BTN_MAP; /* TODO init to inactive */
-	interface->panel_btns[3] = PANEL_BTN_STATS; /* TODO init to inactive */
-	interface->panel_btns[4] = PANEL_BTN_SETT; /* TODO init to inactive */
-
-	interface->panel_btns_set[0] = -1;
-	interface->panel_btns_set[1] = -1;
-	interface->panel_btns_set[2] = -1;
-	interface->panel_btns_set[3] = -1;
-	interface->panel_btns_set[4] = -1;
+	interface->panel_btns[2] = PANEL_BTN_MAP;
+	interface->panel_btns[3] = PANEL_BTN_STATS;
+	interface->panel_btns[4] = PANEL_BTN_SETT;
 
 	interface->player = game.player[0];
-	/*interface->map_serf_rows = game.map_serf_rows_left; OBSOLETE */
 	interface->current_stat_8_mode = 0;
 	interface->current_stat_7_item = 7;
-	interface->pathway_scrolling_threshold = 0;
 
 	interface->map_cursor_sprites[0].sprite = 32;
 	interface->map_cursor_sprites[1].sprite = 33;
@@ -1141,22 +1102,6 @@ interface_init(interface_t *interface)
 	interface->map_cursor_sprites[4].sprite = 33;
 	interface->map_cursor_sprites[5].sprite = 33;
 	interface->map_cursor_sprites[6].sprite = 33;
-
-	/* SVGA settings */
-
-	/* OBSOLETE */
-	/*
-	interface->pointer_x_drag = 0;
-	interface->pointer_y_drag = 0;
-	*/
-
-	/* map_serf_rows is OBSOLETE
-	int r = interface->game_area_rows;
-	interface->map_serf_rows = malloc((r+1)*sizeof(int *) + (r+1)*253*sizeof(int));
-	if (interface->map_serf_rows == NULL) abort();
-	*/
-
-	/*interface->frame = &svga_normal_frame;*/
 
 	/* Randomness for interface */
 	srand(time(NULL));
@@ -1212,8 +1157,8 @@ interface_set_cursor(interface_t *interface, int x, int y)
 			       sdl_get_screen_frame(), 0, 0, &interface->cursor_buffer, 16, 16);
 
 		/* Update position */
-		interface->pointer_x = min(max(0, x), interface->pointer_x_max);
-		interface->pointer_y = min(max(0, y), interface->pointer_y_max);
+		interface->pointer_x = min(max(0, x), GUI_OBJECT(interface)->width);
+		interface->pointer_y = min(max(0, y), GUI_OBJECT(interface)->height);
 
 		/* Restore cursor buffer */
 		sdl_draw_frame(0, 0, &interface->cursor_buffer,
