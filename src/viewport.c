@@ -2289,12 +2289,11 @@ viewport_handle_event_dbl_click(viewport_t *viewport, int x, int y,
 		uint length;
 		dir_t *dirs = pathfinder_map(pos, clk_pos, &length);
 		if (dirs != NULL) {
-			if (length > 0) {
-				interface->building_road_length = 0;
-				int r = interface_build_road(interface, pos, dirs, length);
-				if (r < 0) sfx_play_clip(SFX_NOT_ACCEPTED);
-				else sfx_play_clip(SFX_ACCEPTED);
-			}
+			interface->building_road_length = 0;
+			int r = interface_build_road(interface, pos, dirs, length);
+			if (r < 0) sfx_play_clip(SFX_NOT_ACCEPTED);
+			else if (r == 1) sfx_play_clip(SFX_ACCEPTED);
+			else sfx_play_clip(SFX_CLICK);
 			free(dirs);
 		} else {
 			sfx_play_clip(SFX_NOT_ACCEPTED);

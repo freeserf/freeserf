@@ -546,12 +546,12 @@ interface_build_road(interface_t *interface, map_pos_t pos, dir_t *dirs, uint le
 			}
 			return -1;
 		} else if (r == 1) {
-			return 0;
+			return 1;
 		}
 		pos = MAP_MOVE(pos, dir);
 	}
 
-	return -1;
+	return 0;
 }
 
 void

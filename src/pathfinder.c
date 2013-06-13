@@ -116,6 +116,8 @@ pathfinder_map(map_pos_t start, map_pos_t end, uint *length)
 				n = n->parent;
 			}
 
+			if (*length == 0) break;
+
 			solution = malloc(*length*sizeof(dir_t));
 			if (solution == NULL) abort();
 
