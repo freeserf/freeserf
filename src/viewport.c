@@ -2285,18 +2285,39 @@ viewport_handle_event_dbl_click(viewport_t *viewport, int x, int y,
 	map_pos_t clk_pos = viewport_map_pos_from_screen_pix(viewport, x, y);
 
 	if (interface->building_road) {
-		map_pos_t pos = interface->building_road_source;
-		uint length;
-		dir_t *dirs = pathfinder_map(pos, clk_pos, &length);
-		if (dirs != NULL) {
-			interface->building_road_length = 0;
-			int r = interface_build_road(interface, pos, dirs, length);
-			if (r < 0) sfx_play_clip(SFX_NOT_ACCEPTED);
-			else if (r == 1) sfx_play_clip(SFX_ACCEPTED);
-			else sfx_play_clip(SFX_CLICK);
-			free(dirs);
+		if (clk_pos != interface->map_cursor_pos) {
+			map_pos_t pos = interface->building_road_source;
+			uint length;
+			dir_t *dirs = pathfinder_map(pos, clk_pos, &length);
+			if (dirs != NULL) {
+				interface->building_road_length = 0;
+				int r = interface_build_road(interface, pos, dirs, length);
+				if (r < 0) sfx_play_clip(SFX_NOT_ACCEPTED);
+				else if (r == 1) sfx_play_clip(SFX_ACCEPTED);
+				else sfx_play_clip(SFX_CLICK);
+				free(dirs);
+			} else {
+				sfx_play_clip(SFX_NOT_ACCEPTED);
+			}
 		} else {
-			sfx_play_clip(SFX_NOT_ACCEPTED);
+			int r = game_build_flag(interface->map_cursor_pos,
+						interface->player);
+			if (r < 0) {
+				sfx_play_clip(SFX_NOT_ACCEPTED);
+			} else {
+				r = game_build_road(interface->building_road_source,
+						    interface->building_road_dirs,
+						    interface->building_road_length,
+						    interface->player);
+				if (r < 0) {
+					sfx_play_clip(SFX_NOT_ACCEPTED);
+					game_demolish_flag(interface->map_cursor_pos,
+							   interface->player);
+				} else {
+					sfx_play_clip(SFX_ACCEPTED);
+					interface_build_road_end(interface);
+				}
+			}
 		}
 	} else {
 		if (MAP_OBJ(clk_pos) == MAP_OBJ_NONE ||
