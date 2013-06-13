@@ -55,6 +55,8 @@ struct interface {
 
 	gui_object_t *cursor_lock_target;
 
+	int pointer_x;
+	int pointer_y;
 	frame_t cursor_buffer;
 
 	uint32_t *serf_animation_table;
@@ -75,9 +77,6 @@ struct interface {
 
 	int building_road;
 
-	int pointer_x;
-	int pointer_y;
-
 	int sfx_queue[4];
 
 	int panel_btns[5];
@@ -97,8 +96,7 @@ struct interface {
 	int trees_in_view;
 
 	int return_timeout;
-	int return_col_game_area;
-	int return_row_game_area;
+	int return_pos;
 };
 
 
