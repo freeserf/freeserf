@@ -221,7 +221,8 @@ void game_prepare_ground_analysis(map_pos_t pos, int estimates[5]);
 int game_send_geologist(flag_t *dest, int dest_index);
 
 int game_road_segment_valid(map_pos_t pos, dir_t dir);
-int game_get_road_length_value(int length);
+int game_build_road(map_pos_t source, const dir_t dirs[],
+		    uint length, const player_t *player);
 
 int game_get_leveling_height(map_pos_t pos);
 

@@ -253,28 +253,40 @@ interface_determine_map_cursor_type_road(interface_t *interface)
 	map_pos_t pos = interface->map_cursor_pos;
 	int h = MAP_HEIGHT(pos);
 	int valid_dir = 0;
-	int paths = 0;
-	if (interface->road_length > 0) paths = MAP_PATHS(pos);
+	int length = interface->building_road_length;
 
 	for (dir_t d = DIR_RIGHT; d <= DIR_UP; d++) {
 		int sprite = 0;
 
-		if (!BIT_TEST(paths, d)) {
-			if (game_road_segment_valid(pos, d)) {
+		if (length > 0 && interface->building_road_dirs[length-1] == DIR_REVERSE(d)) {
+			sprite = 45; /* undo */
+			valid_dir |= BIT(d);
+		} else if (game_road_segment_valid(pos, d)) {
+			/* Check that road does not cross itself. */
+			map_pos_t road_pos = interface->building_road_source;
+			int crossing_self = 0;
+			for (int i = 0; i < length; i++) {
+				road_pos = MAP_MOVE(road_pos, interface->building_road_dirs[i]);
+				if (road_pos == MAP_MOVE(pos, d)) {
+					crossing_self = 1;
+					break;
+				}
+			}
+
+			if (!crossing_self) {
 				int h_diff = MAP_HEIGHT(MAP_MOVE(pos, d)) - h;
 				sprite = 39 + h_diff; /* height indicators */
 				valid_dir |= BIT(d);
 			} else {
-				sprite = 44; /* striped */
+				sprite = 44;
 			}
 		} else {
-			sprite = 45; /* undo */
-			valid_dir |= BIT(d);
+			sprite = 44; /* striped */
 		}
 		interface->map_cursor_sprites[d+1].sprite = sprite;
 	}
 
-	interface->road_valid_dir = valid_dir;
+	interface->building_road_valid_dir = valid_dir;
 }
 
 /* Set the appropriate sprites for the panel buttons and the map cursor. */
@@ -418,7 +430,8 @@ interface_build_road_begin(interface_t *interface)
 	interface->panel_btns[4] = PANEL_BTN_SETT_INACTIVE;
 
 	interface->building_road = 1;
-	interface->road_length = 0;
+	interface->building_road_length = 0;
+	interface->building_road_source = interface->map_cursor_pos;
 
 	interface_update_map_cursor_pos(interface,
 					interface->map_cursor_pos);
@@ -439,155 +452,18 @@ interface_build_road_end(interface_t *interface)
 	interface->map_cursor_sprites[5].sprite = 33;
 	interface->map_cursor_sprites[6].sprite = 33;
 
-	map_tile_t *tiles = game.map.tiles;
-	map_pos_t pos = interface->map_cursor_pos;
-
-	for (int i = 0; i < interface->road_length; i++) {
-		dir_t backtrack_dir = -1;
-		for (dir_t d = 0; d < 6; d++) {
-			if (BIT_TEST(tiles[pos].paths, d)) {
-				backtrack_dir = d;
-				break;
-			}
-		}
-
-		map_pos_t next_pos = MAP_MOVE(pos, backtrack_dir);
-
-		tiles[pos].paths &= ~BIT(backtrack_dir);
-		tiles[next_pos].paths &= ~BIT(DIR_REVERSE(backtrack_dir));
-		pos = next_pos;
-	}
-
 	interface->building_road = 0;
 	interface_update_map_cursor_pos(interface,
 					interface->map_cursor_pos);
 }
 
-/* Connect a road under construction to an existing flag at dest. out_dir is the
-   direction from the flag down the new road. */
 static int
-interface_build_road_connect_flag(interface_t *interface, map_pos_t dest, dir_t out_dir)
+interface_build_road_connect_flag(interface_t *interface)
 {
-	if (!MAP_HAS_OWNER(dest) ||
-	    MAP_OWNER(dest) != interface->player->player_num ||
-	    !MAP_HAS_FLAG(dest)) {
-		return -1;
-	}
-
-	dir_t in_dir = -1;
-
-	flag_t *dest_flag = game_get_flag(MAP_OBJ_INDEX(dest));
-
-	int paths = BIT(out_dir);
-	int test = 0;
-
-	/* Backtrack along path to other flag. Test along the way
-	   whether the path is on ground or in water. */
-	map_pos_t src = dest;
-	for (int i = 0; i < interface->road_length + 1; i++) {
-		if (BIT_TEST(paths, DIR_RIGHT)) {
-			if (MAP_TYPE_DOWN(src) < 4 &&
-			    MAP_TYPE_UP(MAP_MOVE_UP(src)) < 4) {
-				test |= BIT(1);
-			} else {
-				test |= BIT(0);
-			}
-			in_dir = DIR_LEFT;
-			src = MAP_MOVE_RIGHT(src);
-		} else if (BIT_TEST(paths, DIR_DOWN_RIGHT)) {
-			if (MAP_TYPE_UP(src) < 4 &&
-			    MAP_TYPE_DOWN(src) < 4) {
-				test |= BIT(1);
-			} else {
-				test |= BIT(0);
-			}
-			in_dir = DIR_UP_LEFT;
-			src = MAP_MOVE_DOWN_RIGHT(src);
-		} else if (BIT_TEST(paths, DIR_DOWN)) {
-			if (MAP_TYPE_UP(src) < 4 &&
-			    MAP_TYPE_DOWN(MAP_MOVE_LEFT(src)) < 4) {
-				test |= BIT(1);
-			} else {
-				test |= BIT(0);
-			}
-			in_dir = DIR_UP;
-			src = MAP_MOVE_DOWN(src);
-		} else if (BIT_TEST(paths, DIR_LEFT)) {
-			if (MAP_TYPE_DOWN(MAP_MOVE_LEFT(src)) < 4 &&
-			    MAP_TYPE_UP(MAP_MOVE_UP_LEFT(src)) < 4) {
-				test |= BIT(1);
-			} else {
-				test |= BIT(0);
-			}
-			in_dir = DIR_RIGHT;
-			src = MAP_MOVE_LEFT(src);
-		} else if (BIT_TEST(paths, DIR_UP_LEFT)) {
-			if (MAP_TYPE_UP(MAP_MOVE_UP_LEFT(src)) < 4 &&
-			    MAP_TYPE_DOWN(MAP_MOVE_UP_LEFT(src)) < 4) {
-				test |= BIT(1);
-			} else {
-				test |= BIT(0);
-			}
-			in_dir = DIR_DOWN_RIGHT;
-			src = MAP_MOVE_UP_LEFT(src);
-		} else if (BIT_TEST(paths, DIR_UP)) {
-			if (MAP_TYPE_DOWN(MAP_MOVE_UP_LEFT(src)) < 4 &&
-			    MAP_TYPE_UP(MAP_MOVE_UP(src)) < 4) {
-				test |= BIT(1);
-			} else {
-				test |= BIT(0);
-			}
-			in_dir = DIR_DOWN;
-			src = MAP_MOVE_UP(src);
-		}
-
-		if (!MAP_HAS_OWNER(src) || MAP_OWNER(src) != interface->player->player_num) {
-			return -1;
-		}
-
-		paths = MAP_PATHS(src) & ~BIT(in_dir);
-	}
-
-	/* Bit 0 indicates a ground path, bit 1 indicates
-	   water path. Abort if path went through both
-	   ground and water. */
-	int water_path = 0;
-	if (test != BIT(0)) {
-		water_path = 1;
-		if (test != BIT(1)) return -1;
-	}
-
-	/* Check that source also has an existing flag */
-	if (!MAP_HAS_FLAG(src)) return -1;
-
-	/* Connect flags */
-	flag_t *src_flag = game_get_flag(MAP_OBJ_INDEX(src));
-
-	dest_flag->path_con |= BIT(out_dir);
-	dest_flag->endpoint |= BIT(out_dir);
-	dest_flag->transporter &= ~BIT(out_dir);
-
-	src_flag->path_con |= BIT(in_dir);
-	src_flag->endpoint |= BIT(in_dir);
-	src_flag->transporter &= ~BIT(in_dir);
-
-	if (water_path) {
-		dest_flag->endpoint &= ~BIT(out_dir);
-		src_flag->endpoint &= ~BIT(in_dir);
-	}
-
-	dest_flag->other_end_dir[out_dir] = (dest_flag->other_end_dir[out_dir] & 0xc7) | (in_dir << 3);
-	src_flag->other_end_dir[in_dir] = (src_flag->other_end_dir[in_dir] & 0xc7) | (out_dir << 3);
-
-	int len = game_get_road_length_value(interface->road_length + 1);
-
-	dest_flag->length[out_dir] = len;
-	src_flag->length[in_dir] = len;
-
-	dest_flag->other_endpoint.f[out_dir] = src_flag;
-	src_flag->other_endpoint.f[in_dir] = dest_flag;
-
-	return 0;
+	return game_build_road(interface->building_road_source,
+			       interface->building_road_dirs,
+			       interface->building_road_length,
+			       interface->player);
 }
 
 /* Build a single road segment. Return -1 on fail, 0 on successful
@@ -598,29 +474,35 @@ interface_build_road_segment(interface_t *interface, map_pos_t pos, dir_t dir)
 	if (!game_road_segment_valid(pos, dir)) return -1;
 
 	map_pos_t dest = MAP_MOVE(pos, dir);
-	dir_t dir_rev = DIR_REVERSE(dir);
-	map_tile_t *tiles = game.map.tiles;
 
 	if (MAP_OBJ(dest) == MAP_OBJ_FLAG) {
+		if (interface->building_road_length+1 >= MAX_ROAD_LENGTH) {
+			return -1;
+		}
+
+		interface->building_road_dirs[interface->building_road_length] = dir;
+		interface->building_road_length += 1;
+
 		/* Existing flag at destination, try to connect. */
-		int r = interface_build_road_connect_flag(interface, dest, dir_rev);
+		int r = interface_build_road_connect_flag(interface);
 		if (r < 0) {
 			interface_build_road_end(interface);
 			return -1;
 		} else {
 			interface->map_cursor_pos = dest;
-			tiles[pos].paths |= BIT(dir);
-			tiles[dest].paths |= BIT(dir_rev);
-			interface->road_length = 0;
+			interface->building_road_length = 0;
 			interface_build_road_end(interface);
 			interface_update_map_cursor_pos(interface, dest);
 			return 1;
 		}
 	} else if (MAP_PATHS(dest) == 0) {
+		if (interface->building_road_length+1 >= MAX_ROAD_LENGTH) {
+			return -1;
+		}
+
 		/* No existing paths at destination, build segment. */
-		interface->road_length += 1;
-		tiles[pos].paths |= BIT(dir);
-		tiles[dest].paths |= BIT(dir_rev);
+		interface->building_road_dirs[interface->building_road_length] = dir;
+		interface->building_road_length += 1;
 
 		interface_update_map_cursor_pos(interface, dest);
 
@@ -637,12 +519,8 @@ int
 interface_remove_road_segment(interface_t *interface, map_pos_t pos, dir_t dir)
 {
 	map_pos_t dest = MAP_MOVE(pos, dir);
-	dir_t dir_rev = DIR_REVERSE(dir);
-	map_tile_t *tiles = game.map.tiles;
 
-	interface->road_length -= 1;
-	tiles[pos].paths &= ~BIT(dir);
-	tiles[dest].paths &= ~BIT(dir_rev);
+	interface->building_road_length -= 1;
 
 	interface_update_map_cursor_pos(interface, dest);
 

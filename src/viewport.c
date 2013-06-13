@@ -564,6 +564,36 @@ draw_paths_and_borders(viewport_t *viewport, frame_t *frame)
 
 		base_pos = MAP_MOVE_RIGHT(base_pos);
 	}
+
+	/* If we're in road construction mode, also draw
+	   the temporarily placed roads. */
+	interface_t *interface = viewport->interface;
+	if (interface->building_road) {
+		map_pos_t pos = interface->building_road_source;
+		for (int i = 0; i < interface->building_road_length; i++) {
+			dir_t dir = interface->building_road_dirs[i];
+
+			map_pos_t draw_pos = pos;
+			dir_t draw_dir = dir;
+			if (draw_dir > DIR_DOWN) {
+				draw_pos = MAP_MOVE(pos, dir);
+				draw_dir = DIR_REVERSE(dir);
+			}
+
+			int mx, my;
+			viewport_map_pix_from_map_coord(viewport, draw_pos,
+							MAP_HEIGHT(draw_pos),
+							&mx, &my);
+
+			int sx, sy;
+			viewport_screen_pix_from_map_pix(viewport, mx, my, &sx, &sy);
+
+			draw_path_segment(sx, sy + 4*MAP_HEIGHT(draw_pos), draw_pos,
+					  draw_dir, frame);
+
+			pos = MAP_MOVE(pos, dir);
+		}
+	}
 }
 
 static void
@@ -2208,10 +2238,22 @@ viewport_handle_event_click(viewport_t *viewport, int x, int y, gui_event_button
 			else if (y == 2) dir = DIR_DOWN_RIGHT;
 		}
 
-		if (BIT_TEST(interface->road_valid_dir, dir)) {
+		if (BIT_TEST(interface->building_road_valid_dir, dir)) {
 			map_pos_t pos = interface->map_cursor_pos;
+			int length = interface->building_road_length;
+			dir_t last_dir = 0;
+			if (length > 0) last_dir = interface->building_road_dirs[length-1];
 
-			if (!BIT_TEST(MAP_PATHS(pos), dir)) { /* No existing path: Create path */
+			if (length > 0 && DIR_REVERSE(last_dir) == dir) {
+				/* Delete existing path */
+				int r = interface_remove_road_segment(interface, pos, dir);
+				if (r < 0) {
+					sfx_play_clip(SFX_NOT_ACCEPTED);
+				} else {
+					sfx_play_clip(SFX_CLICK);
+				}
+			} else {
+				/* Build new road segment */
 				int r = interface_build_road_segment(interface, pos, dir);
 				if (r < 0) {
 					sfx_play_clip(SFX_NOT_ACCEPTED);
@@ -2219,13 +2261,6 @@ viewport_handle_event_click(viewport_t *viewport, int x, int y, gui_event_button
 					sfx_play_clip(SFX_CLICK);
 				} else {
 					sfx_play_clip(SFX_ACCEPTED);
-				}
-			} else { /* Existing path: Delete path */
-				int r = interface_remove_road_segment(interface, pos, dir);
-				if (r < 0) {
-					sfx_play_clip(SFX_NOT_ACCEPTED);
-				} else {
-					sfx_play_clip(SFX_CLICK);
 				}
 			}
 		}
@@ -2250,13 +2285,16 @@ viewport_handle_event_dbl_click(viewport_t *viewport, int x, int y,
 	map_pos_t clk_pos = viewport_map_pos_from_screen_pix(viewport, x, y);
 
 	if (interface->building_road) {
-		map_pos_t pos = interface->map_cursor_pos;
+		map_pos_t pos = interface->building_road_source;
 		uint length;
 		dir_t *dirs = pathfinder_map(pos, clk_pos, &length);
 		if (dirs != NULL) {
-			int r = interface_build_road(interface, pos, dirs, length);
-			if (r < 0) sfx_play_clip(SFX_NOT_ACCEPTED);
-			else sfx_play_clip(SFX_ACCEPTED);
+			if (length > 0) {
+				interface->building_road_length = 0;
+				int r = interface_build_road(interface, pos, dirs, length);
+				if (r < 0) sfx_play_clip(SFX_NOT_ACCEPTED);
+				else sfx_play_clip(SFX_ACCEPTED);
+			}
 			free(dirs);
 		} else {
 			sfx_play_clip(SFX_NOT_ACCEPTED);

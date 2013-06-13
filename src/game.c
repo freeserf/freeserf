@@ -2475,7 +2475,7 @@ game_road_segment_valid(map_pos_t pos, dir_t dir)
 
 /* Get road length category value for real length.
    Determines number of serfs servicing the path segment.(?) */
-int
+static int
 game_get_road_length_value(int length)
 {
 	if (length >= 24) return 7 << 4;
@@ -2485,6 +2485,156 @@ game_get_road_length_value(int length)
 	else if (length >= 7) return 3 << 4;
 	else if (length >= 6) return 2 << 4;
 	else if (length >= 4) return 1 << 4;
+	return 0;
+}
+
+static int
+road_segment_in_water(map_pos_t pos, dir_t dir)
+{
+	if (dir > DIR_DOWN) {
+		pos = MAP_MOVE(pos, dir);
+		dir = DIR_REVERSE(dir);
+	}
+
+	int water = 0;
+
+	switch (dir) {
+	case DIR_RIGHT:
+		if (MAP_TYPE_DOWN(pos) < 4 &&
+		    MAP_TYPE_UP(MAP_MOVE_UP(pos)) < 4) {
+			water = 1;
+		}
+		break;
+	case DIR_DOWN_RIGHT:
+		if (MAP_TYPE_UP(pos) < 4 &&
+		    MAP_TYPE_DOWN(pos) < 4) {
+			water = 1;
+		}
+		break;
+	case DIR_DOWN:
+		if (MAP_TYPE_UP(pos) < 4 &&
+		    MAP_TYPE_DOWN(MAP_MOVE_LEFT(pos)) < 4) {
+			water = 1;
+		}
+		break;
+	default:
+		NOT_REACHED();
+		break;
+	}
+
+	return water;
+}
+
+/* Construct a road spefified by a source and a list
+   of directions. */
+int
+game_build_road(map_pos_t source, const dir_t dirs[], uint length,
+		const player_t *player)
+{
+	map_tile_t *tiles = game.map.tiles;
+	int test = 0;
+
+	/* Follow along path to other flag. Test along the way
+	   whether the path is on ground or in water. */
+	map_pos_t pos = source;
+
+	if (!MAP_HAS_OWNER(pos) || MAP_OWNER(pos) != player->player_num ||
+	    !MAP_HAS_FLAG(pos)) {
+		return -1;
+	}
+
+	for (int i = 0; i < length; i++) {
+		dir_t dir = dirs[i];
+
+		if (!game_road_segment_valid(pos, dir)) {
+			return -1;
+		}
+
+		if (road_segment_in_water(pos, dir)) {
+			test |= BIT(1);
+		} else {
+			test |= BIT(0);
+		}
+
+		pos = MAP_MOVE(pos, dir);
+
+		if (!MAP_HAS_OWNER(pos) || MAP_OWNER(pos) != player->player_num) {
+			return -1;
+		}
+	}
+
+	map_pos_t dest = pos;
+	if (!MAP_HAS_FLAG(dest)) return -1;
+
+	flag_t *dest_flag = game_get_flag(MAP_OBJ_INDEX(dest));
+
+	/* Bit 0 indicates a ground path, bit 1 indicates
+	   water path. Abort if path went through both
+	   ground and water. */
+	int water_path = 0;
+	if (test != BIT(0)) {
+		water_path = 1;
+		if (test != BIT(1)) return -1;
+	}
+
+	dir_t out_dir = dirs[0];
+	dir_t in_dir = DIR_REVERSE(dirs[length-1]);
+
+	/* Actually place road segments */
+	pos = source;
+	for (int i = 0; i < length; i++) {
+		dir_t dir = dirs[i];
+		dir_t rev_dir = DIR_REVERSE(dir);
+
+		if (!game_road_segment_valid(pos, dir)) {
+			/* Not valid after all.
+			   Backtrack and abort. */
+			for (int j = i-1; j >= 0; j--) {
+				dir_t rev_dir = dirs[j];
+				dir_t dir = DIR_REVERSE(rev_dir);
+
+				tiles[pos].paths &= ~BIT(dir);
+				tiles[MAP_MOVE(pos, dir)].paths &= ~BIT(rev_dir);
+
+				pos = MAP_MOVE(pos, dir);
+			}
+
+			return -1;
+		}
+
+		tiles[pos].paths |= BIT(dir);
+		tiles[MAP_MOVE(pos, dir)].paths |= BIT(rev_dir);
+
+		pos = MAP_MOVE(pos, dir);
+	}
+
+	/* Connect flags */
+	flag_t *src_flag = game_get_flag(MAP_OBJ_INDEX(source));
+
+	dest_flag->path_con |= BIT(in_dir);
+	dest_flag->endpoint |= BIT(in_dir);
+	dest_flag->transporter &= ~BIT(in_dir);
+
+	src_flag->path_con |= BIT(out_dir);
+	src_flag->endpoint |= BIT(out_dir);
+	src_flag->transporter &= ~BIT(out_dir);
+
+	if (water_path) {
+		dest_flag->endpoint &= ~BIT(in_dir);
+		src_flag->endpoint &= ~BIT(out_dir);
+	}
+
+	dest_flag->other_end_dir[in_dir] = (dest_flag->other_end_dir[in_dir] & 0xc7) | (out_dir << 3);
+	src_flag->other_end_dir[out_dir] = (src_flag->other_end_dir[out_dir] & 0xc7) | (in_dir << 3);
+
+	int len = game_get_road_length_value(length);
+
+	dest_flag->length[in_dir] = len;
+	src_flag->length[out_dir] = len;
+
+	dest_flag->other_endpoint.f[in_dir] = src_flag;
+	src_flag->other_endpoint.f[out_dir] = dest_flag;
+
 	return 0;
 }
 

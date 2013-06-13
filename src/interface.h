@@ -32,6 +32,8 @@
 #include "player.h"
 #include "random.h"
 
+#define MAX_ROAD_LENGTH  256
+
 
 typedef enum {
 	MAP_CURSOR_TYPE_NONE = 0,
@@ -76,6 +78,10 @@ struct interface {
 	uint last_const_tick;
 
 	int building_road;
+	map_pos_t building_road_source;
+	dir_t building_road_dirs[MAX_ROAD_LENGTH];
+	int building_road_length;
+	int building_road_valid_dir;
 
 	int sfx_queue[4];
 
@@ -86,8 +92,6 @@ struct interface {
 	int msg_flags;
 
 	sprite_loc_t map_cursor_sprites[7];
-	int road_length;
-	int road_valid_dir;
 
 	int current_stat_8_mode;
 	int current_stat_7_item;
