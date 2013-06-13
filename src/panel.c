@@ -139,213 +139,154 @@ panel_bar_draw(panel_bar_t *panel, frame_t *frame)
 
 /* Handle a click on the panel buttons. */
 static void
-handle_panel_button_click(interface_t *interface, int btn)
+handle_panel_button_click(interface_t *interface, int button)
 {
-	switch (interface->panel_btns[btn]) {
-		case PANEL_BTN_MAP:
-		case PANEL_BTN_MAP_STARRED:
-			sfx_play_clip(SFX_CLICK);
-			if (BIT_TEST(interface->click, 6)) {
-				interface_close_popup(interface);
-			} else {
-				interface->flags &= ~BIT(6);
-				if (BIT_TEST(interface->click, 3)) {
-					/* TODO */
-				}
-				else {
-					interface->flags &= ~BIT(6);
-					interface->click |= BIT(6);
-					interface->panel_btns[0] = PANEL_BTN_BUILD_INACTIVE;
-					interface->panel_btns[1] = PANEL_BTN_DESTROY_INACTIVE;
-					interface->panel_btns[2] = PANEL_BTN_MAP_STARRED;
-					interface->panel_btns[3] = PANEL_BTN_STATS_INACTIVE;
-					interface->panel_btns[4] = PANEL_BTN_SETT_INACTIVE;
-					interface->click &= ~BIT(1);
+	switch (interface->panel_btns[button]) {
+	case PANEL_BTN_MAP:
+	case PANEL_BTN_MAP_STARRED:
+		sfx_play_clip(SFX_CLICK);
+		if (GUI_OBJECT(&interface->popup)->displayed) {
+			interface_close_popup(interface);
+		} else {
+			interface->panel_btns[0] = PANEL_BTN_BUILD_INACTIVE;
+			interface->panel_btns[1] = PANEL_BTN_DESTROY_INACTIVE;
+			interface->panel_btns[2] = PANEL_BTN_MAP_STARRED;
+			interface->panel_btns[3] = PANEL_BTN_STATS_INACTIVE;
+			interface->panel_btns[4] = PANEL_BTN_SETT_INACTIVE;
 
-					/* Synchronize minimap window with viewport. */
-					viewport_t *viewport = interface_get_top_viewport(interface);
-					popup_box_t *popup = interface_get_popup_box(interface);
-					map_pos_t pos = viewport_get_current_map_pos(viewport);
-					minimap_move_to_map_pos(&popup->minimap, pos);
+			/* Synchronize minimap window with viewport. */
+			viewport_t *viewport = interface_get_top_viewport(interface);
+			popup_box_t *popup = interface_get_popup_box(interface);
+			map_pos_t pos = viewport_get_current_map_pos(viewport);
+			minimap_move_to_map_pos(&popup->minimap, pos);
 
-					interface_open_popup(interface, BOX_MAP);
-				}
-			}
-			break;
-		case PANEL_BTN_SETT:
-		case PANEL_BTN_SETT_STARRED:
-			sfx_play_clip(SFX_CLICK);
-			if (BIT_TEST(interface->click, 6)) { /* Popup open */
-				interface_close_popup(interface);
-			} else {
-				interface->flags &= ~BIT(6);
-				interface->click |= BIT(6);
-				interface->panel_btns[0] = PANEL_BTN_BUILD_INACTIVE;
-				interface->panel_btns[1] = PANEL_BTN_DESTROY_INACTIVE;
-				interface->panel_btns[2] = PANEL_BTN_MAP_INACTIVE;
-				interface->panel_btns[3] = PANEL_BTN_STATS_INACTIVE;
-				interface->panel_btns[4] = PANEL_BTN_SETT_STARRED;
-				interface->click &= ~BIT(1);
-				interface_open_popup(interface, BOX_SETT_SELECT);
-			}
-			break;
-		case PANEL_BTN_STATS:
-		case PANEL_BTN_STATS_STARRED:
-			sfx_play_clip(SFX_CLICK);
-			if (BIT_TEST(interface->click, 6)) { /* Popup open */
-				interface_close_popup(interface);
-			} else {
-				interface->flags &= ~BIT(6);
-				interface->click |= BIT(6);
-				interface->panel_btns[0] = PANEL_BTN_BUILD_INACTIVE;
-				interface->panel_btns[1] = PANEL_BTN_DESTROY_INACTIVE;
-				interface->panel_btns[2] = PANEL_BTN_MAP_INACTIVE;
-				interface->panel_btns[3] = PANEL_BTN_STATS_STARRED;
-				interface->panel_btns[4] = PANEL_BTN_SETT_INACTIVE;
-				interface->click &= ~BIT(1);
-				interface_open_popup(interface, BOX_STAT_SELECT);
-			}
-			break;
-		case PANEL_BTN_BUILD_ROAD:
-		case PANEL_BTN_BUILD_ROAD_STARRED:
-			if (BIT_TEST(interface->click, 3)) { /* Special click */
-				/* TODO */
-			} else {
-				sfx_play_clip(SFX_CLICK);
-				if (BIT_TEST(interface->click, 6)) { /* Popup open (Building road) */
-					interface_build_road_end(interface);
-				} else {
-					interface_build_road_begin(interface);
-				}
-			}
-			break;
-		case PANEL_BTN_BUILD_FLAG:
-			if (BIT_TEST(interface->click, 3)) { /* Special click */
-				/* TODO */
-			} else {
-				sfx_play_clip(SFX_CLICK);
-				interface_build_flag(interface);
-			}
-			break;
-		case PANEL_BTN_BUILD_SMALL:
-		case PANEL_BTN_BUILD_SMALL_STARRED:
-			if (BIT_TEST(interface->click, 3)) { /* Special click */
-				/* TODO */
-			} else {
-				sfx_play_clip(SFX_CLICK);
-				if (BIT_TEST(interface->click, 6)) { /* Popup open */
-					interface_close_popup(interface);
-				} else {
-					interface->click |= BIT(6);
-					interface->panel_btns[0] = PANEL_BTN_BUILD_SMALL_STARRED;
-					interface->panel_btns[1] = PANEL_BTN_DESTROY_INACTIVE;
-					interface->panel_btns[2] = PANEL_BTN_MAP_INACTIVE;
-					interface->panel_btns[3] = PANEL_BTN_STATS_INACTIVE;
-					interface->panel_btns[4] = PANEL_BTN_SETT_INACTIVE;
-					interface->click &= ~BIT(1);
-					interface_open_popup(interface, BOX_BASIC_BLD);
-				}
-			}
-			break;
-		case PANEL_BTN_BUILD_LARGE:
-		case PANEL_BTN_BUILD_LARGE_STARRED:
-			if (BIT_TEST(interface->click, 3)) { /* Special click */
-				/* TODO */
-			} else {
-				sfx_play_clip(SFX_CLICK);
-				if (BIT_TEST(interface->click, 6)) { /* Popup open */
-					interface_close_popup(interface);
-				} else {
-					interface->click |= BIT(6);
-					interface->panel_btns[0] = PANEL_BTN_BUILD_LARGE_STARRED;
-					interface->panel_btns[1] = PANEL_BTN_DESTROY_INACTIVE;
-					interface->panel_btns[2] = PANEL_BTN_MAP_INACTIVE;
-					interface->panel_btns[3] = PANEL_BTN_STATS_INACTIVE;
-					interface->panel_btns[4] = PANEL_BTN_SETT_INACTIVE;
-					interface->click &= ~BIT(1);
-					interface_open_popup(interface, BOX_BASIC_BLD_FLIP);
-				}
-			}
-			break;
-		case PANEL_BTN_BUILD_MINE:
-		case PANEL_BTN_BUILD_MINE_STARRED:
-			if (BIT_TEST(interface->click, 3)) { /* Special click */
-				/* TODO */
-			} else {
-				sfx_play_clip(SFX_CLICK);
-				if (BIT_TEST(interface->click, 6)) { /* Popup open */
-					interface_close_popup(interface);
-				} else {
-					interface->click |= BIT(6);
-					interface->panel_btns[0] = PANEL_BTN_BUILD_MINE_STARRED;
-					interface->panel_btns[1] = PANEL_BTN_DESTROY_INACTIVE;
-					interface->panel_btns[2] = PANEL_BTN_MAP_INACTIVE;
-					interface->panel_btns[3] = PANEL_BTN_STATS_INACTIVE;
-					interface->panel_btns[4] = PANEL_BTN_SETT_INACTIVE;
-					interface->click &= ~BIT(1);
-					interface_open_popup(interface, BOX_MINE_BUILDING);
-				}
-			}
-			break;
-		case PANEL_BTN_DESTROY:
-			if (interface->map_cursor_type == MAP_CURSOR_TYPE_REMOVABLE_FLAG) {
-				interface_demolish_object(interface);
-			} else {
-				interface->panel_btns[0] = PANEL_BTN_BUILD_INACTIVE;
-				interface->panel_btns[1] = PANEL_BTN_DESTROY_INACTIVE;
-				interface->panel_btns[2] = PANEL_BTN_MAP_INACTIVE;
-				interface->panel_btns[3] = PANEL_BTN_STATS_INACTIVE;
-				interface->panel_btns[4] = PANEL_BTN_SETT_INACTIVE;
-				interface->click &= ~BIT(1);
-				interface_open_popup(interface, BOX_DEMOLISH);
-			}
-			break;
-		case PANEL_BTN_BUILD_CASTLE:
-			if (BIT_TEST(interface->click, 3)) { /* Special click */
-				/* TODO */
-			} else {
-				interface_build_castle(interface);
-			}
-			break;
-		case PANEL_BTN_DESTROY_ROAD:
-			if (BIT_TEST(interface->click, 3)) { /* Special click */
-				/* TODO */
-			} else {
-				interface->flags &= ~BIT(6);
-				int r = game_demolish_road(interface->map_cursor_pos,
-							   interface->player);
-				if (r < 0) {
-					sfx_play_clip(SFX_NOT_ACCEPTED);
-					interface_update_map_cursor_pos(interface, interface->map_cursor_pos);
-				} else {
-					sfx_play_clip(SFX_ACCEPTED);
-					interface->click |= BIT(2);
-				}
-			}
-			break;
-		case PANEL_BTN_GROUND_ANALYSIS:
-		case PANEL_BTN_GROUND_ANALYSIS_STARRED:
-			sfx_play_clip(SFX_CLICK);
-			if (BIT_TEST(interface->click, 6)) { /* Popup open */
-				interface_close_popup(interface);
-			} else {
-				if (BIT_TEST(game.split, 6)) { /* Coop mode */
-					/* TODO */
-				}
-				interface->flags &= ~BIT(6);
-				interface->click |= BIT(6);
-				interface->panel_btns[0] = PANEL_BTN_BUILD_INACTIVE;
-				interface->panel_btns[1] = PANEL_BTN_GROUND_ANALYSIS_STARRED;
-				interface->panel_btns[2] = PANEL_BTN_MAP_INACTIVE;
-				interface->panel_btns[3] = PANEL_BTN_STATS_INACTIVE;
-				interface->panel_btns[4] = PANEL_BTN_SETT_INACTIVE;
-				interface->click &= ~BIT(1);
-				interface_open_popup(interface, BOX_GROUND_ANALYSIS);
-			}
-			break;
-		case PANEL_BTN_BUILD_INACTIVE:
-			/* TODO */
-			break;
+			interface_open_popup(interface, BOX_MAP);
+		}
+		break;
+	case PANEL_BTN_SETT:
+	case PANEL_BTN_SETT_STARRED:
+		sfx_play_clip(SFX_CLICK);
+		if (GUI_OBJECT(&interface->popup)->displayed) {
+			interface_close_popup(interface);
+		} else {
+			interface->panel_btns[0] = PANEL_BTN_BUILD_INACTIVE;
+			interface->panel_btns[1] = PANEL_BTN_DESTROY_INACTIVE;
+			interface->panel_btns[2] = PANEL_BTN_MAP_INACTIVE;
+			interface->panel_btns[3] = PANEL_BTN_STATS_INACTIVE;
+			interface->panel_btns[4] = PANEL_BTN_SETT_STARRED;
+			interface_open_popup(interface, BOX_SETT_SELECT);
+		}
+		break;
+	case PANEL_BTN_STATS:
+	case PANEL_BTN_STATS_STARRED:
+		sfx_play_clip(SFX_CLICK);
+		if (GUI_OBJECT(&interface->popup)->displayed) {
+			interface_close_popup(interface);
+		} else {
+			interface->panel_btns[0] = PANEL_BTN_BUILD_INACTIVE;
+			interface->panel_btns[1] = PANEL_BTN_DESTROY_INACTIVE;
+			interface->panel_btns[2] = PANEL_BTN_MAP_INACTIVE;
+			interface->panel_btns[3] = PANEL_BTN_STATS_STARRED;
+			interface->panel_btns[4] = PANEL_BTN_SETT_INACTIVE;
+			interface_open_popup(interface, BOX_STAT_SELECT);
+		}
+		break;
+	case PANEL_BTN_BUILD_ROAD:
+	case PANEL_BTN_BUILD_ROAD_STARRED:
+		sfx_play_clip(SFX_CLICK);
+		if (interface->building_road) {
+			interface_build_road_end(interface);
+		} else {
+			interface_build_road_begin(interface);
+		}
+		break;
+	case PANEL_BTN_BUILD_FLAG:
+		sfx_play_clip(SFX_CLICK);
+		interface_build_flag(interface);
+		break;
+	case PANEL_BTN_BUILD_SMALL:
+	case PANEL_BTN_BUILD_SMALL_STARRED:
+		sfx_play_clip(SFX_CLICK);
+		if (GUI_OBJECT(&interface->popup)->displayed) {
+			interface_close_popup(interface);
+		} else {
+			interface->panel_btns[0] = PANEL_BTN_BUILD_SMALL_STARRED;
+			interface->panel_btns[1] = PANEL_BTN_DESTROY_INACTIVE;
+			interface->panel_btns[2] = PANEL_BTN_MAP_INACTIVE;
+			interface->panel_btns[3] = PANEL_BTN_STATS_INACTIVE;
+			interface->panel_btns[4] = PANEL_BTN_SETT_INACTIVE;
+			interface_open_popup(interface, BOX_BASIC_BLD);
+		}
+		break;
+	case PANEL_BTN_BUILD_LARGE:
+	case PANEL_BTN_BUILD_LARGE_STARRED:
+		sfx_play_clip(SFX_CLICK);
+		if (GUI_OBJECT(&interface->popup)->displayed) {
+			interface_close_popup(interface);
+		} else {
+			interface->panel_btns[0] = PANEL_BTN_BUILD_LARGE_STARRED;
+			interface->panel_btns[1] = PANEL_BTN_DESTROY_INACTIVE;
+			interface->panel_btns[2] = PANEL_BTN_MAP_INACTIVE;
+			interface->panel_btns[3] = PANEL_BTN_STATS_INACTIVE;
+			interface->panel_btns[4] = PANEL_BTN_SETT_INACTIVE;
+			interface_open_popup(interface, BOX_BASIC_BLD_FLIP);
+		}
+		break;
+	case PANEL_BTN_BUILD_MINE:
+	case PANEL_BTN_BUILD_MINE_STARRED:
+		sfx_play_clip(SFX_CLICK);
+		if (GUI_OBJECT(&interface->popup)->displayed) {
+			interface_close_popup(interface);
+		} else {
+			interface->panel_btns[0] = PANEL_BTN_BUILD_MINE_STARRED;
+			interface->panel_btns[1] = PANEL_BTN_DESTROY_INACTIVE;
+			interface->panel_btns[2] = PANEL_BTN_MAP_INACTIVE;
+			interface->panel_btns[3] = PANEL_BTN_STATS_INACTIVE;
+			interface->panel_btns[4] = PANEL_BTN_SETT_INACTIVE;
+			interface_open_popup(interface, BOX_MINE_BUILDING);
+		}
+		break;
+	case PANEL_BTN_DESTROY:
+		if (interface->map_cursor_type == MAP_CURSOR_TYPE_REMOVABLE_FLAG) {
+			interface_demolish_object(interface);
+		} else {
+			interface->panel_btns[0] = PANEL_BTN_BUILD_INACTIVE;
+			interface->panel_btns[1] = PANEL_BTN_DESTROY_INACTIVE;
+			interface->panel_btns[2] = PANEL_BTN_MAP_INACTIVE;
+			interface->panel_btns[3] = PANEL_BTN_STATS_INACTIVE;
+			interface->panel_btns[4] = PANEL_BTN_SETT_INACTIVE;
+			interface_open_popup(interface, BOX_DEMOLISH);
+		}
+		break;
+	case PANEL_BTN_BUILD_CASTLE:
+		interface_build_castle(interface);
+		break;
+	case PANEL_BTN_DESTROY_ROAD:
+	{
+		int r = game_demolish_road(interface->map_cursor_pos,
+					   interface->player);
+		if (r < 0) {
+			sfx_play_clip(SFX_NOT_ACCEPTED);
+			interface_update_map_cursor_pos(interface, interface->map_cursor_pos);
+		} else {
+			sfx_play_clip(SFX_ACCEPTED);
+		}
+	}
+		break;
+	case PANEL_BTN_GROUND_ANALYSIS:
+	case PANEL_BTN_GROUND_ANALYSIS_STARRED:
+		sfx_play_clip(SFX_CLICK);
+		if (GUI_OBJECT(&interface->popup)->displayed) {
+			interface_close_popup(interface);
+		} else {
+			interface->panel_btns[0] = PANEL_BTN_BUILD_INACTIVE;
+			interface->panel_btns[1] = PANEL_BTN_GROUND_ANALYSIS_STARRED;
+			interface->panel_btns[2] = PANEL_BTN_MAP_INACTIVE;
+			interface->panel_btns[3] = PANEL_BTN_STATS_INACTIVE;
+			interface->panel_btns[4] = PANEL_BTN_SETT_INACTIVE;
+			interface_open_popup(interface, BOX_GROUND_ANALYSIS);
+		}
+		break;
 	}
 }
 
@@ -370,30 +311,23 @@ panel_bar_handle_event_click(panel_bar_t *panel, int x, int y)
 	} else if (x >= 301 && x < 313) {
 		/* Timer bar click */
 		if (BIT_TEST(game.svga, 3)) { /* Game has started */
-			if ((BIT_TEST(game.split, 6) && /* Coop mode */
-			     BIT_TEST(interface->click, 0)) ||
-			    interface->player->timers_count >= 64) {
+			if (interface->player->timers_count >= 64) {
 				sfx_play_clip(SFX_NOT_ACCEPTED);
 				return 0;
 			}
 
-			if (BIT_TEST(interface->click, 1)) {
-				/* Call to map position */
-				int timer_id = interface->player->timers_count++;
-				int timer_length = -1;
+			/* Call to map position */
+			int timer_id = interface->player->timers_count++;
+			int timer_length = -1;
 
-				if (y < 7) timer_length = 5*60;
-				else if (y < 14) timer_length = 10*60;
-				else if (y < 21) timer_length = 20*60;
-				else if (y < 28) timer_length = 30*60;
-				else timer_length = 60*60;
+			if (y < 7) timer_length = 5*60;
+			else if (y < 14) timer_length = 10*60;
+			else if (y < 21) timer_length = 20*60;
+			else if (y < 28) timer_length = 30*60;
+			else timer_length = 60*60;
 
-				interface->player->timers[timer_id].timeout = timer_length*TICKS_PER_SEC;
-				interface->player->timers[timer_id].pos = interface->map_cursor_pos;
-			} else {
-				/* Call to box (+ map) position */
-				/* TODO */
-			}
+			interface->player->timers[timer_id].timeout = timer_length*TICKS_PER_SEC;
+			interface->player->timers[timer_id].pos = interface->map_cursor_pos;
 
 			sfx_play_clip(SFX_ACCEPTED);
 		}

@@ -73,8 +73,8 @@ struct interface {
 
 	uint last_const_tick;
 
-	int flags;
-	int click;
+	int building_road;
+
 	int pointer_x;
 	int pointer_y;
 

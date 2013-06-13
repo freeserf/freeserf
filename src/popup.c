@@ -2681,21 +2681,22 @@ handle_action(interface_t *interface, action_t action, int x, int y)
 		interface->popup.box = BOX_MAP;
 		break;
 	case ACTION_MINIMAP_BUILDINGS:
-		if (BIT_TEST(interface->click,3)) {
-			if (interface->popup.minimap.advanced >= 0) {
-				interface->popup.minimap.advanced = -1;
-			} else {
-				interface->popup.box = BOX_BLD_1;
-			}
+		if (interface->popup.minimap.advanced >= 0) {
+			interface->popup.minimap.advanced = -1;
+			interface->popup.minimap.flags |= BIT(3);
 		} else {
-			if (interface->popup.minimap.advanced >= 0) {
-				interface->popup.minimap.advanced = -1;
-				interface->popup.minimap.flags |= BIT(3);
-			} else {
-				BIT_INVERT(interface->popup.minimap.flags, 3);
-			}
-			interface->popup.box = BOX_MAP;
+			BIT_INVERT(interface->popup.minimap.flags, 3);
 		}
+		interface->popup.box = BOX_MAP;
+
+		/* TODO on double click */
+#if 0
+		if (interface->popup.minimap.advanced >= 0) {
+			interface->popup.minimap.advanced = -1;
+		} else {
+			interface->popup.box = BOX_BLD_1;
+		}
+#endif
 		break;
 	case ACTION_MINIMAP_GRID:
 		BIT_INVERT(interface->popup.minimap.flags, 4);
@@ -3120,13 +3121,11 @@ handle_action(interface_t *interface, action_t action, int x, int y)
 		game_loop_quit();
 		break;
 	case ACTION_SHOW_QUIT:
-		interface->click &= ~BIT(6);
 		interface->panel_btns[3] = PANEL_BTN_STATS_INACTIVE;
 		interface->panel_btns[4] = PANEL_BTN_SETT_INACTIVE;
 		interface_open_popup(interface, BOX_QUIT_CONFIRM);
 		break;
 	case ACTION_SHOW_OPTIONS:
-		interface->click &= ~BIT(6);
 		interface->panel_btns[3] = PANEL_BTN_STATS_INACTIVE;
 		interface->panel_btns[4] = PANEL_BTN_SETT_INACTIVE;
 		interface_open_popup(interface, BOX_OPTIONS);

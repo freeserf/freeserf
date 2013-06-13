@@ -2192,7 +2192,7 @@ viewport_handle_event_click(viewport_t *viewport, int x, int y, gui_event_button
 	int clk_col = MAP_POS_COL(clk_pos);
 	int clk_row = MAP_POS_ROW(clk_pos);
 
-	if (BIT_TEST(interface->click, 7)) { /* Building road */
+	if (interface->building_road) {
 		int x = (clk_col - MAP_POS_COL(interface->map_cursor_pos) + 1) & game.map.col_mask;
 		int y = (clk_row - MAP_POS_ROW(interface->map_cursor_pos) + 1) & game.map.row_mask;
 		int dir = -1;
@@ -2228,12 +2228,9 @@ viewport_handle_event_click(viewport_t *viewport, int x, int y, gui_event_button
 					sfx_play_clip(SFX_CLICK);
 				}
 			}
-		} else {
-			interface->click |= BIT(2);
 		}
 	} else {
 		interface_update_map_cursor_pos(viewport->interface, clk_pos);
-		interface->click |= BIT(2);
 		sfx_play_clip(SFX_CLICK);
 	}
 
@@ -2252,8 +2249,7 @@ viewport_handle_event_dbl_click(viewport_t *viewport, int x, int y,
 
 	map_pos_t clk_pos = viewport_map_pos_from_screen_pix(viewport, x, y);
 
-	if (BIT_TEST(interface->click, 7)) { /* Building road */
-		interface->click &= ~BIT(3);
+	if (interface->building_road) {
 		map_pos_t pos = interface->map_cursor_pos;
 		uint length;
 		dir_t *dirs = pathfinder_map(pos, clk_pos, &length);
@@ -2278,7 +2274,6 @@ viewport_handle_event_dbl_click(viewport_t *viewport, int x, int y,
 			}
 
 			interface->player->index = MAP_OBJ_INDEX(clk_pos);
-			interface->click &= ~BIT(2);
 		} else { /* Building */
 			if (BIT_TEST(game.split, 5) || /* Demo mode */
 			    MAP_OWNER(clk_pos) == interface->player->player_num) {
@@ -2304,7 +2299,6 @@ viewport_handle_event_dbl_click(viewport_t *viewport, int x, int y,
 				}
 
 				interface->player->index = MAP_OBJ_INDEX(clk_pos);
-				interface->click &= ~BIT(2);
 			} else if (BIT_TEST(game.split, 5)) { /* Demo mode*/
 				return 0;
 			} else { /* Foreign building */
@@ -2367,7 +2361,6 @@ viewport_handle_event_dbl_click(viewport_t *viewport, int x, int y,
 		interface->panel_btns[2] = PANEL_BTN_MAP_INACTIVE;
 		interface->panel_btns[3] = PANEL_BTN_STATS_INACTIVE;
 		interface->panel_btns[4] = PANEL_BTN_SETT_INACTIVE;
-		interface->click &= ~BIT(1);
 	}
 
 	return 0;

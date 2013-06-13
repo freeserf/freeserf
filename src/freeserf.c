@@ -434,9 +434,9 @@ game_loop()
 
 					/* Misc */
 				case SDLK_ESCAPE:
-					if (((gui_object_t *)&interface.popup)->displayed) {
+					if (GUI_OBJECT(&interface.popup)->displayed) {
 						interface_close_popup(&interface);
-					} else if (BIT_TEST(interface.click, 7)) { /* Building road */
+					} else if (interface.building_road) {
 						interface_build_road_end(&interface);
 					}
 					break;
@@ -528,10 +528,7 @@ game_loop()
 		/* Update and draw interface */
 		interface_update(&interface);
 
-		interface.flags &= ~BIT(4);
-		interface.flags &= ~BIT(7);
-
-		gui_object_redraw((gui_object_t *)&interface, game.frame);
+		gui_object_redraw(GUI_OBJECT(&interface), game.frame);
 
 		/* TODO very crude dirty marking algortihm: mark everything. */
 		sdl_mark_dirty(0, 0, sdl_frame_get_width(game.frame),

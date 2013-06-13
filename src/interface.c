@@ -75,12 +75,9 @@ interface_close_popup(interface_t *interface)
 {
 	interface->popup.box = 0;
 	gui_object_set_displayed(GUI_OBJECT(&interface->popup), 0);
-	interface->click &= ~BIT(6);
 	interface->panel_btns[2] = PANEL_BTN_MAP;
 	interface->panel_btns[3] = PANEL_BTN_STATS;
 	interface->panel_btns[4] = PANEL_BTN_SETT;
-	interface->click |= BIT(1);
-	interface->click |= BIT(2);
 
 	interface_update_map_cursor_pos(interface,
 					interface->map_cursor_pos);
@@ -110,12 +107,10 @@ interface_close_game_init(interface_t *interface)
 void
 interface_open_message(interface_t *interface)
 {
-	if (interface->player->msg_queue_type[0] == 0 || /* No message */
-	    BIT_TEST(interface->click, 7)) { /* Building road */
+	if (interface->player->msg_queue_type[0] == 0) {
 		sfx_play_clip(SFX_CLICK);
 		return;
 	} else {
-		interface->flags &= ~BIT(6);
 		if (!BIT_TEST(interface->msg_flags, 3)) {
 			interface->msg_flags |= BIT(4);
 			interface->msg_flags |= BIT(3);
@@ -145,9 +140,6 @@ interface_open_message(interface_t *interface)
 		viewport_move_to_map_pos(viewport, new_pos);
 		interface_update_map_cursor_pos(interface, new_pos);
 	}
-
-	interface->click &= ~BIT(6);
-	interface->click &= ~BIT(1);
 
 	/* Move notifications forward in the queue. */
 	int i;
@@ -294,7 +286,7 @@ interface_determine_map_cursor_type_road(interface_t *interface)
 static void
 interface_update_interface(interface_t *interface)
 {
-	if (BIT_TEST(interface->click, 7)) { /* Building road */
+	if (interface->building_road) {
 		interface->panel_btns[0] = PANEL_BTN_BUILD_ROAD_STARRED;
 		interface->panel_btns[1] = PANEL_BTN_BUILD_INACTIVE;
 	} else {
@@ -403,7 +395,7 @@ void
 interface_update_map_cursor_pos(interface_t *interface, map_pos_t pos)
 {
 	interface->map_cursor_pos = pos;
-	if (BIT_TEST(interface->click, 7)) { /* Building road */
+	if (interface->building_road) {
 		interface_determine_map_cursor_type_road(interface);
 	} else {
 		interface_determine_map_cursor_type(interface);
@@ -416,8 +408,6 @@ interface_update_map_cursor_pos(interface_t *interface, map_pos_t pos)
 void
 interface_build_road_begin(interface_t *interface)
 {
-	interface->flags &= ~BIT(6);
-
 	interface_determine_map_cursor_type(interface);
 
 	if (interface->map_cursor_type != MAP_CURSOR_TYPE_FLAG &&
@@ -431,9 +421,8 @@ interface_build_road_begin(interface_t *interface)
 	interface->panel_btns[2] = PANEL_BTN_MAP_INACTIVE;
 	interface->panel_btns[3] = PANEL_BTN_STATS_INACTIVE;
 	interface->panel_btns[4] = PANEL_BTN_SETT_INACTIVE;
-	interface->click |= BIT(6);
-	interface->click |= BIT(7);
-	interface->click |= BIT(2);
+
+	interface->building_road = 1;
 	interface->road_length = 0;
 
 	interface_update_map_cursor_pos(interface,
@@ -444,12 +433,9 @@ interface_build_road_begin(interface_t *interface)
 void
 interface_build_road_end(interface_t *interface)
 {
-	interface->click &= ~BIT(6);
 	interface->panel_btns[2] = PANEL_BTN_MAP;
 	interface->panel_btns[3] = PANEL_BTN_STATS;
 	interface->panel_btns[4] = PANEL_BTN_SETT;
-	interface->click &= ~BIT(7);
-	interface->click |= BIT(2);
 
 	interface->map_cursor_sprites[1].sprite = 33;
 	interface->map_cursor_sprites[2].sprite = 33;
@@ -477,6 +463,7 @@ interface_build_road_end(interface_t *interface)
 		pos = next_pos;
 	}
 
+	interface->building_road = 0;
 	interface_update_map_cursor_pos(interface,
 					interface->map_cursor_pos);
 }
@@ -643,11 +630,8 @@ interface_build_road_segment(interface_t *interface, map_pos_t pos, dir_t dir)
 		interface_update_map_cursor_pos(interface, dest);
 
 		/* TODO Pathway scrolling */
-
-		interface->click |= BIT(2);
 	} else {
 		/* TODO fast split path and connect on double click */
-		interface->click |= BIT(2);
 		return -1;
 	}
 
@@ -668,8 +652,6 @@ interface_remove_road_segment(interface_t *interface, map_pos_t pos, dir_t dir)
 	interface_update_map_cursor_pos(interface, dest);
 
 	/* TODO Pathway scrolling */
-
-	interface->click |= BIT(2);
 
 	return 0;
 }
@@ -708,7 +690,6 @@ interface_demolish_object(interface_t *interface)
 
 	if (interface->map_cursor_type == MAP_CURSOR_TYPE_REMOVABLE_FLAG) {
 		sfx_play_clip(SFX_CLICK);
-		interface->click |= BIT(2);
 		game_demolish_flag(cursor_pos, interface->player);
 	} else if (interface->map_cursor_type == MAP_CURSOR_TYPE_BUILDING) {
 		building_t *building = game_get_building(MAP_OBJ_INDEX(cursor_pos));
@@ -721,7 +702,6 @@ interface_demolish_object(interface_t *interface)
 		}
 
 		sfx_play_clip(SFX_AHHH);
-		interface->click |= BIT(2);
 		game_demolish_building(cursor_pos, interface->player);
 	} else {
 		sfx_play_clip(SFX_NOT_ACCEPTED);
@@ -733,8 +713,6 @@ interface_demolish_object(interface_t *interface)
 void
 interface_build_flag(interface_t *interface)
 {
-	interface->flags &= ~BIT(7);
-
 	int r = game_build_flag(interface->map_cursor_pos,
 				interface->player);
 	if (r < 0) {
@@ -742,7 +720,6 @@ interface_build_flag(interface_t *interface)
 		return;
 	}
 
-	interface->click |= BIT(2);
 	interface_update_map_cursor_pos(interface,
 					interface->map_cursor_pos);
 }
@@ -759,7 +736,6 @@ interface_build_building(interface_t *interface, building_type_t type)
 	}
 
 	sfx_play_clip(SFX_ACCEPTED);
-	interface->click |= BIT(2);
 	interface_close_popup(interface);
 
 	/* Move cursor to flag. */
@@ -779,8 +755,6 @@ interface_build_castle(interface_t *interface)
 	}
 
 	sfx_play_clip(SFX_ACCEPTED);
-	interface->flags &= ~BIT(6);
-	interface->click |= BIT(2);
 	interface_update_map_cursor_pos(interface,
 					interface->map_cursor_pos);
 }
@@ -1077,14 +1051,12 @@ interface_init(interface_t *interface)
 	interface->map_cursor_type = 0;
 	interface->panel_btn_type = 0;
 
+	interface->building_road = 0;
+
 	/* Settings */
-	interface->flags = 0;
 	interface->config = 0x39;
 	interface->msg_flags = 0;
 	interface->return_timeout = 0;
-	interface->click = 0;
-	interface->click |= BIT(1);
-	interface->flags |= BIT(4);
 
 	interface->panel_btns[0] = PANEL_BTN_BUILD_INACTIVE;
 	interface->panel_btns[1] = PANEL_BTN_DESTROY_INACTIVE;
