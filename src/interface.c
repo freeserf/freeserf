@@ -203,7 +203,7 @@ get_map_cursor_type(const player_t *player, map_pos_t pos, panel_btn_t *panel_bt
 		} else {
 			*cursor_type = MAP_CURSOR_TYPE_FLAG;
 		}
-	} else if (map_space_from_obj[MAP_OBJ(pos)] < MAP_SPACE_FLAG) {
+	} else if (!MAP_HAS_BUILDING(pos) && !MAP_HAS_FLAG(pos)) {
 		int paths = MAP_PATHS(pos);
 		if (paths == 0) {
 			if (MAP_OBJ(MAP_MOVE_DOWN_RIGHT(pos)) == MAP_OBJ_FLAG) {

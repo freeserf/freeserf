@@ -2454,9 +2454,7 @@ game_road_segment_valid(map_pos_t pos, dir_t dir)
 
 	map_obj_t obj = MAP_OBJ(other_pos);
 	if ((MAP_PATHS(other_pos) != 0 && obj != MAP_OBJ_FLAG) ||
-	    (obj >= MAP_OBJ_SMALL_BUILDING &&
-	     obj <= MAP_OBJ_CASTLE) ||
-	    map_space_from_obj[obj] == MAP_SPACE_IMPASSABLE) {
+	    map_space_from_obj[obj] >= MAP_SPACE_SEMIPASSABLE) {
 		return 0;
 	}
 
@@ -3519,14 +3517,16 @@ game_can_build_large(map_pos_t pos)
 	for (int i = 0; i < 6; i++) {
 		map_pos_t p = MAP_POS_ADD(pos, game.spiral_pos_pattern[1+i]);
 		map_space_t s = map_space_from_obj[MAP_OBJ(p)];
-		if (s >= MAP_SPACE_IMPASSABLE && s != MAP_SPACE_FLAG) return 0;
+		if (s >= MAP_SPACE_SEMIPASSABLE) return 0;
 	}
 
 	/* Check that buildings in the second shell aren't large or castle. */
 	for (int i = 0; i < 12; i++) {
 		map_pos_t p = MAP_POS_ADD(pos, game.spiral_pos_pattern[7+i]);
-		map_space_t s = map_space_from_obj[MAP_OBJ(p)];
-		if (s >= MAP_SPACE_LARGE_BUILDING) return 0;
+		if (MAP_OBJ(p) >= MAP_OBJ_LARGE_BUILDING &&
+		    MAP_OBJ(p) <= MAP_OBJ_CASTLE) {
+			return 0;
+		}
 	}
 
 	/* Check if center hexagon is not type grass. */
@@ -4132,7 +4132,8 @@ game_can_demolish_road(map_pos_t pos, const player_t *player)
 	}
 
 	if (MAP_PATHS(pos) == 0 ||
-	    map_space_from_obj[MAP_OBJ(pos)] >= MAP_SPACE_FLAG) {
+	    MAP_HAS_FLAG(pos) ||
+	    MAP_HAS_BUILDING(pos)) {
 		return 0;
 	}
 

@@ -2132,8 +2132,7 @@ handle_serf_free_walking_switch_with_other(serf_t *serf)
 static int
 serf_can_pass_map_pos(map_pos_t pos)
 {
-	return map_space_from_obj[MAP_OBJ(pos)] < MAP_SPACE_IMPASSABLE ||
-		map_space_from_obj[MAP_OBJ(pos)] == MAP_SPACE_FLAG;
+	return map_space_from_obj[MAP_OBJ(pos)] <= MAP_SPACE_SEMIPASSABLE;
 }
 
 static void
