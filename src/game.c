@@ -2463,7 +2463,7 @@ game_road_segment_valid(map_pos_t pos, dir_t dir)
 		return 0;
 	}
 
-	if (map_is_deep_water(pos) != map_is_deep_water(other_pos) &&
+	if (MAP_IN_WATER(pos) != MAP_IN_WATER(other_pos) &&
 	    !(MAP_HAS_FLAG(pos) || MAP_HAS_FLAG(other_pos))) {
 		return 0;
 	}

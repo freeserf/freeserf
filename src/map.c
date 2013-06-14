@@ -1357,20 +1357,6 @@ map_set_serf_index(map_pos_t pos, int index)
 	/* TODO Mark dirty in viewport. */
 }
 
-/* Return non-zero if the neighbours of position are
-   either deep water themselves or shore, i.e. if all
-   up/down triangles surrounding the position are water. */
-int
-map_is_deep_water(map_pos_t pos)
-{
-	return MAP_TYPE_DOWN(pos) < 4 &&
-		MAP_TYPE_UP(pos) < 4 &&
-		MAP_TYPE_DOWN(MAP_MOVE_LEFT(pos)) < 4 &&
-		MAP_TYPE_UP(MAP_MOVE_UP_LEFT(pos)) < 4 &&
-		MAP_TYPE_DOWN(MAP_MOVE_UP_LEFT(pos)) < 4 &&
-		MAP_TYPE_UP(MAP_MOVE_UP(pos)) < 4;
-}
-
 /* Update public parts of the map data. */
 static void
 map_update_public(map_pos_t pos)
