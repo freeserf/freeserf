@@ -2546,7 +2546,7 @@ load_text_map_section(section_t *section)
 			}
 		}
 
-		tiles[pos].obj = (idle_serf & 1) << 7;
+		tiles[pos].obj = (idle_serf & 1) << 7 | (tiles[pos].obj);
 		if (MAP_IN_WATER(pos)) {
 			tiles[pos].u.resource = fish;
 		} else {
