@@ -707,6 +707,7 @@ load_v0_building_state(FILE *f, const v0_map_t *map)
 			if (BUILDING_TYPE(building) == BUILDING_STOCK ||
 			    BUILDING_TYPE(building) == BUILDING_CASTLE) {
 				building->u.inventory = &game.inventories[offset/120];
+				building->stock[0].requested = 0xff;
 			} else {
 				building->u.flag = &game.flags[offset/70];
 			}
