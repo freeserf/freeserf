@@ -2445,6 +2445,7 @@ handle_free_walking_common(serf_t *serf)
 
 			serf->animation = 82;
 			serf->counter = counter_from_animation[serf->animation];
+			return;
 		}
 	}
 
