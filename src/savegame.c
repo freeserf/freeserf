@@ -99,8 +99,8 @@ load_v0_globals_state(FILE *f, v0_map_t *map)
 
 	game.game_type = *(uint16_t *)&data[74];
 	game.tick = *(uint32_t *)&data[76];
-	game.game_stats_counter = *(uint16_t *)&data[80];
-	game.history_counter = *(uint16_t *)&data[82];
+	game.game_stats_counter = 0;
+	game.history_counter = 0;
 
 	game.rnd.state[0] = *(uint16_t *)&data[84];
 	game.rnd.state[1] = *(uint16_t *)&data[86];

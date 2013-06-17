@@ -2249,8 +2249,11 @@ calculate_military_score(int military, int morale)
 static void
 update_game_stats()
 {
-	if (game.tick >= game.game_stats_counter + 1500) {
-		game.game_stats_counter += 1500;
+	if (game.game_stats_counter > game.tick_diff) {
+		game.game_stats_counter -= game.tick_diff;
+	} else {
+		game.game_stats_counter += 1500 - game.tick_diff;
+
 		game.player_score_leader = 0;
 
 		int update_level = 0;
@@ -2329,8 +2332,10 @@ update_game_stats()
 		/* TODO Determine winner based on game.player_score_leader */
 	}
 
-	if (game.tick >= game.history_counter + 6000) {
-		game.history_counter += 6000;
+	if (game.history_counter > game.tick_diff) {
+		game.history_counter -= game.tick_diff;
+	} else {
+		game.history_counter += 6000 - game.tick_diff;
 
 		int index = game.resource_history_index;
 
