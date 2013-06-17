@@ -902,26 +902,27 @@ static void
 draw_player_stat_chart(const int *data, int index, int color, frame_t *frame)
 {
 	int prev_value = data[index];
-	index = index > 0 ? index-1 : 111;
 
 	for (int i = 0; i < 112; i++) {
 		int value = data[index];
 		index = index > 0 ? index-1 : 111;
 
-		/* TODO There are glitches in drawing these charts. */
-
-		if (value > prev_value) {
-			int diff = value - prev_value;
-			int h = diff/2;
-			gfx_fill_rect(119 - i, 108 - h - prev_value, 1, h, color, frame);
-			diff -= h;
-			gfx_fill_rect(118 - i, 108 - prev_value, 1, diff, color, frame);
-		} else {
-			int diff = prev_value - value;
-			int h = diff/2;
-			gfx_fill_rect(119 - i, 108 - prev_value, 1, h, color, frame);
-			diff -= h;
-			gfx_fill_rect(118 - i, 108 - diff - prev_value, 1, diff, color, frame);
+		if (value > 0 || prev_value > 0) {
+			if (value > prev_value) {
+				int diff = value - prev_value;
+				int h = diff/2;
+				gfx_fill_rect(119 - i, 108 - h - prev_value, 1, h, color, frame);
+				diff -= h;
+				gfx_fill_rect(118 - i, 108 - value, 1, diff, color, frame);
+			} else if (value == prev_value) {
+				gfx_fill_rect(119 - i, 108 - value - 1, 1, 1, color, frame);
+			} else {
+				int diff = prev_value - value;
+				int h = diff/2;
+				gfx_fill_rect(119 - i, 108 - prev_value, 1, h, color, frame);
+				diff -= h;
+				gfx_fill_rect(118 - i, 108 - value - diff, 1, diff, color, frame);
+			}
 		}
 
 		prev_value = value;
@@ -983,10 +984,11 @@ draw_stat_8_box(popup_box_t *popup, frame_t *frame)
 
 	/* Draw chart */
 	int index = game.player_history_index[scale];
-	draw_player_stat_chart(game.player[3]->player_stat_history[mode], index, 76, frame);
-	draw_player_stat_chart(game.player[2]->player_stat_history[mode], index, 68, frame);
-	draw_player_stat_chart(game.player[1]->player_stat_history[mode], index, 72, frame);
-	draw_player_stat_chart(game.player[0]->player_stat_history[mode], index, 64, frame);
+	for (int i = 0; i < 4; i++) {
+		player_t *player = game.player[3-i];
+		draw_player_stat_chart(player->player_stat_history[mode], index,
+				       player->color, frame);
+	}
 }
 
 static void
