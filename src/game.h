@@ -118,8 +118,8 @@ typedef struct {
 	/* Increased by one no matter the game speed. */
 	uint const_tick;
 	/* 20E */
-	uint16_t game_stats_counter;
-	uint16_t history_counter;
+	uint game_stats_counter;
+	uint history_counter;
 	random_state_t rnd;
 	uint8_t field_218[4];
 	uint16_t map_regions;

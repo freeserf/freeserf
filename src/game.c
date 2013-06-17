@@ -2249,7 +2249,7 @@ calculate_military_score(int military, int morale)
 static void
 update_game_stats()
 {
-	if (game.tick - game.game_stats_counter >= 1500) {
+	if (game.tick >= game.game_stats_counter + 1500) {
 		game.game_stats_counter += 1500;
 		game.player_score_leader = 0;
 
@@ -2329,7 +2329,7 @@ update_game_stats()
 		/* TODO Determine winner based on game.player_score_leader */
 	}
 
-	if (game.tick - game.history_counter >= 6000) {
+	if (game.tick >= game.history_counter + 6000) {
 		game.history_counter += 6000;
 
 		int index = game.resource_history_index;
