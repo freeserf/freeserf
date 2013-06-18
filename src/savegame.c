@@ -1018,6 +1018,9 @@ save_text_player_state(FILE *f)
 
 		save_text_write_value(f, "castle_score", player->castle_score);
 
+		save_text_write_value(f, "castle_knights", player->castle_knights);
+		save_text_write_value(f, "castle_knights_wanted", player->castle_knights_wanted);
+
 		/* TODO */
 
 		fprintf(f, "\n");
@@ -1863,6 +1866,10 @@ load_text_player_section(section_t *section)
 			player->wheat_mill = atoi(s->value);
 		} else if (!strcmp(s->key, "castle_score")) {
 			player->castle_score = atoi(s->value);
+		} else if (!strcmp(s->key, "castle_knights")) {
+			player->castle_knights = atoi(s->value);
+		} else if (!strcmp(s->key, "castle_knights_wanted")) {
+			player->castle_knights_wanted = atoi(s->value);
 		} else {
 			LOGD("savegame", "Unhandled player setting: `%s'.", s->key);
 		}
