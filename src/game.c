@@ -1450,7 +1450,34 @@ update_building_castle(building_t *building)
 {
 	player_t *player = game.player[BUILDING_PLAYER(building)];
 	if (player->castle_knights == player->castle_knights_wanted) {
-		/* TODO ... */
+		serf_t *best_knight = NULL;
+		serf_t *last_knight = NULL;
+		int serf_index = building->serf_index;
+		while (serf_index != 0) {
+			serf_t *serf = game_get_serf(serf_index);
+			if (best_knight == NULL ||
+			    SERF_TYPE(serf) < SERF_TYPE(best_knight)) {
+				best_knight = serf;
+			}
+			last_knight = serf;
+			serf_index = serf->s.defending.next_knight;
+		}
+
+		if (best_knight != NULL) {
+			inventory_t *inventory = building->u.inventory;
+			int type = SERF_TYPE(best_knight);
+			for (serf_type_t t = SERF_KNIGHT_0; t <= SERF_KNIGHT_4; t++) {
+				if (type > t &&
+				    inventory->serfs[t] == SERF_INDEX(best_knight)) {
+					inventory->serfs[t] = 0;
+				}
+			}
+
+			/* Switch types */
+			int tmp = best_knight->type;
+			best_knight->type = last_knight->type;
+			last_knight->type = tmp;
+		}
 	} else if (player->castle_knights < player->castle_knights_wanted) {
 		inventory_t *inventory = building->u.inventory;
 		int type = -1;
@@ -1461,8 +1488,31 @@ update_building_castle(building_t *building)
 			}
 		}
 
-		if (type < 0) { /* None found */
-			/* TODO */
+		if (type < 0) {
+			/* None found */
+			if (inventory->serfs[SERF_GENERIC] != 0 &&
+			    inventory->resources[RESOURCE_SWORD] != 0 &&
+			    inventory->resources[RESOURCE_SHIELD] != 0) {
+				inventory->spawn_priority -= 1;
+				inventory->resources[RESOURCE_SWORD] -= 1;
+				inventory->resources[RESOURCE_SHIELD] -= 1;
+				player->serf_count[SERF_GENERIC] -= 1;
+				player->serf_count[SERF_KNIGHT_0] += 1;
+
+				int serf_index = inventory->serfs[SERF_GENERIC];
+				serf_t *serf = game_get_serf(serf_index);
+
+				serf->type = (0x83 & serf->type) | (SERF_KNIGHT_0 << 2);
+				serf->state = SERF_STATE_DEFENDING_CASTLE;
+				serf->s.defending.next_knight = building->serf_index;
+				building->serf_index = serf_index;
+			} else {
+				player->send_knight_delay -= 1;
+				if (player->send_knight_delay < 0) {
+					send_serf_to_building(building, -1, -1, -1);
+					player->send_knight_delay = 5;
+				}
+			}
 		} else {
 			/* Prepend to knights list */
 			int serf_index = inventory->serfs[type];
@@ -1477,10 +1527,16 @@ update_building_castle(building_t *building)
 			inventory->serfs[type] = 0; /* Clear inventory pointer */
 		}
 	} else {
-		/* TODO ... */
-	}
+		player->castle_knights -= 1;
 
-	/* TODO */
+		int serf_index = building->serf_index;
+		serf_t *serf = game_get_serf(serf_index);
+		building->serf_index = serf->s.defending.next_knight;
+
+		serf_log_state_change(serf, SERF_STATE_IDLE_IN_STOCK);
+		serf->state = SERF_STATE_IDLE_IN_STOCK;
+		serf->s.idle_in_stock.inv_index = INVENTORY_INDEX(building->u.inventory);
+	}
 
 	inventory_t *inventory = building->u.inventory;
 

@@ -145,6 +145,7 @@ typedef struct {
 	/* 170 */
 	int knight_cycle_counter;
 	int timers_count;
+	int send_knight_delay;
 	/* 176 */
 	int index;
 	int military_max_gold;
