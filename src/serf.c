@@ -4190,7 +4190,9 @@ handle_state_knight_free_walking(serf_t *serf)
 
 							flag_t *dest = game_get_flag(other->s.walking.dest);
 							building_t *building = dest->other_endpoint.b[DIR_UP_LEFT];
-							building->stock[0].requested -= 1;
+							if (!BUILDING_HAS_INVENTORY(building)) {
+								building->stock[0].requested -= 1;
+							}
 
 							serf_log_state_change(other, SERF_STATE_KNIGHT_ENGAGE_ATTACKING_FREE);
 							other->state = SERF_STATE_KNIGHT_ENGAGE_ATTACKING_FREE;
