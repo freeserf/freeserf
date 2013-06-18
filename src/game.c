@@ -4422,6 +4422,8 @@ demolish_building(map_pos_t pos)
 
 			game.map_gold_deposit -= inventory->resources[RESOURCE_GOLDBAR];
 			game.map_gold_deposit -= inventory->resources[RESOURCE_GOLDORE];
+
+			game_free_inventory(INVENTORY_INDEX(inventory));
 		}
 
 		/* Let some serfs escape while the building is burning. */
