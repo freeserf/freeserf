@@ -95,7 +95,7 @@ game_free_flag(int index)
 	/* Remove flag from allocation bitmap. */
 	game.flag_bitmap[index/8] &= ~BIT(7-(index&7));
 
-	/* Decrement max_ever_flag_index as much as possible. */
+	/* Decrement max_flag_index as much as possible. */
 	if (index == game.max_flag_index + 1) {
 		while (--game.max_flag_index > 0) {
 			index -= 1;
@@ -186,8 +186,6 @@ game_alloc_inventory(inventory_t **inventory, int *index)
 				if (!BIT_TEST(game.inventory_bitmap[i], 7-j)) {
 					int ix = 8*i + j;
 
-					if (ix >= game.inventory_limit) return -1; /* TODO looks unneccesary */
-
 					game.inventory_bitmap[i] |= BIT(7-j);
 
 					if (ix == game.max_inventory_index) game.max_inventory_index += 1;
@@ -245,8 +243,6 @@ game_alloc_serf(serf_t **serf, int *index)
 			for (int j = 0; j < 8; j++) {
 				if (!BIT_TEST(game.serf_bitmap[i], 7-j)) {
 					int ix = 8*i + j;
-
-					if (ix >= game.serf_limit) return -1; /* TODO looks unneccesary */
 
 					game.serf_bitmap[i] |= BIT(7-j);
 
