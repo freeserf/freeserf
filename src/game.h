@@ -218,7 +218,7 @@ void game_update();
 void game_pause(int enable);
 
 void game_prepare_ground_analysis(map_pos_t pos, int estimates[5]);
-int game_send_geologist(flag_t *dest, int dest_index);
+int game_send_geologist(flag_t *dest);
 
 int game_road_segment_valid(map_pos_t pos, dir_t dir);
 int game_build_road(map_pos_t source, const dir_t dirs[],

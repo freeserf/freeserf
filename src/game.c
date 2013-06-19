@@ -1256,9 +1256,13 @@ send_serf_to_flag_search_cb(flag_t *flag, send_serf_to_flag_data_t *data)
 
 /* Dispatch serf from (nearest?) inventory to flag. */
 static int
-send_serf_to_flag(flag_t *dest, building_t *building, int dest_index,
-		  int type, resource_type_t res1, resource_type_t res2)
+send_serf_to_flag(flag_t *dest, int type, resource_type_t res1, resource_type_t res2)
 {
+	building_t *building = NULL;
+	if (FLAG_HAS_BUILDING(dest)) {
+		building = dest->other_endpoint.b[DIR_UP_LEFT];
+	}
+
 	/* If type is negative, building is non-NULL. */
 	if (type < 0) {
 		player_t *player = game.player[BUILDING_PLAYER(building)];
@@ -1271,7 +1275,7 @@ send_serf_to_flag(flag_t *dest, building_t *building, int dest_index,
 	data.inventory = NULL;
 	data.building = building;
 	data.serf_type = type;
-	data.dest_index = dest_index;
+	data.dest_index = FLAG_INDEX(dest);
 	data.res1 = res1;
 	data.res2 = res2;
 
@@ -1312,12 +1316,11 @@ send_serf_to_flag(flag_t *dest, building_t *building, int dest_index,
 
 			if (type == SERF_GEOLOGIST) {
 				serf->s.ready_to_leave_inventory.mode = 6;
-				serf->s.ready_to_leave_inventory.dest = dest_index;
+				serf->s.ready_to_leave_inventory.dest = FLAG_INDEX(dest);
 			} else {
-				building_t *dest_bld = game_get_flag(dest_index)->other_endpoint.b[DIR_UP_LEFT];
-				dest_bld->serf |= BIT(7);
+				building->serf |= BIT(7);
 				serf->s.ready_to_leave_inventory.mode = -1;
-				serf->s.ready_to_leave_inventory.dest = dest_index;
+				serf->s.ready_to_leave_inventory.dest = FLAG_INDEX(dest);
 			}
 			serf->type = (serf->type & 0x83) | (type << 2);
 
@@ -1339,9 +1342,9 @@ send_serf_to_flag(flag_t *dest, building_t *building, int dest_index,
 
 /* Dispatch geologist to flag. */
 int
-game_send_geologist(flag_t *dest, int dest_index)
+game_send_geologist(flag_t *dest)
 {
-	return send_serf_to_flag(dest, NULL, dest_index, SERF_GEOLOGIST, RESOURCE_HAMMER, -1);
+	return send_serf_to_flag(dest, SERF_GEOLOGIST, RESOURCE_HAMMER, -1);
 }
 
 /* Dispatch serf to building. */
@@ -1349,7 +1352,7 @@ static int
 send_serf_to_building(building_t *building, int type, resource_type_t res1, resource_type_t res2)
 {
 	flag_t *dest = game_get_flag(building->flg_index);
-	return send_serf_to_flag(dest, building, building->flg_index, type, res1, res2);
+	return send_serf_to_flag(dest, type, res1, res2);
 }
 
 /* Update unfinished building as part of the game progression. */

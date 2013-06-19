@@ -2628,7 +2628,7 @@ handle_send_geologist(interface_t *interface)
 	map_pos_t pos = interface->map_cursor_pos;
 	flag_t *flag = game_get_flag(MAP_OBJ_INDEX(pos));
 
-	int r = game_send_geologist(flag, MAP_OBJ_INDEX(pos));
+	int r = game_send_geologist(flag);
 	if (r < 0) {
 		sfx_play_clip(SFX_NOT_ACCEPTED);
 	} else {
