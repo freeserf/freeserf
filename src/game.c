@@ -1559,6 +1559,109 @@ update_building_castle(building_t *building)
 }
 
 static void
+handle_military_building_update(building_t *building)
+{
+	const int hut_occupants_from_level[] = {
+		1, 1, 2, 2, 3,
+		1, 1, 1, 1, 2
+	};
+
+	const int tower_occupants_from_level[] = {
+		1, 2, 3, 4, 6,
+		1, 1, 2, 3, 4
+	};
+
+	const int fortress_occupants_from_level[] = {
+		1, 3, 6, 9, 12,
+		1, 2, 4, 6, 8
+	};
+
+	player_t *player = game.player[BUILDING_PLAYER(building)];
+	int max_occ_level = (player->knight_occupation[BUILDING_STATE(building)] >> 4) & 0xf;
+	if (PLAYER_REDUCED_KNIGHT_LEVEL(player)) max_occ_level += 5;
+
+	int needed_occupants = -1;
+	int max_gold = -1;
+	switch (BUILDING_TYPE(building)) {
+	case BUILDING_HUT:
+		needed_occupants = hut_occupants_from_level[max_occ_level];
+		max_gold = 2;
+		break;
+	case BUILDING_TOWER:
+		needed_occupants = tower_occupants_from_level[max_occ_level];
+		max_gold = 4;
+		break;
+	case BUILDING_FORTRESS:
+		needed_occupants = fortress_occupants_from_level[max_occ_level];
+		max_gold = 8;
+		break;
+	default:
+		NOT_REACHED();
+		break;
+	}
+
+	int total_knights = building->stock[0].requested + building->stock[0].available;
+	int present_knights = building->stock[0].available;
+	if (total_knights < needed_occupants) {
+		if (!BUILDING_SERF_REQUEST_FAIL(building)) {
+			int r = send_serf_to_building(building, -1, -1, -1);
+			if (r < 0) building->serf |= BIT(2);
+		}
+	} else if (needed_occupants < present_knights &&
+		   MAP_SERF_INDEX(MAP_MOVE_DOWN_RIGHT(building->pos)) == 0) {
+		/* Kick least trained knight out. */
+		serf_t *leaving_serf = NULL;
+		int serf_index = building->serf_index;
+		while (serf_index != 0) {
+			serf_t *serf = game_get_serf(serf_index);
+			if (leaving_serf == NULL ||
+			    SERF_TYPE(serf) < SERF_TYPE(leaving_serf)) {
+				leaving_serf = serf;
+			}
+			serf_index = serf->s.defending.next_knight;
+		}
+
+		/* Remove leaving serf from list. */
+		if (SERF_INDEX(leaving_serf) == building->serf_index) {
+			building->serf_index = leaving_serf->s.defending.next_knight;
+		} else {
+			serf_index = building->serf_index;
+			while (serf_index != 0) {
+				serf_t *serf = game_get_serf(serf_index);
+				if (serf->s.defending.next_knight == SERF_INDEX(leaving_serf)) {
+					serf->s.defending.next_knight = leaving_serf->s.defending.next_knight;
+					break;
+				}
+				serf_index = serf->s.defending.next_knight;
+			}
+		}
+
+		/* Update serf state. */
+		serf_log_state_change(leaving_serf, SERF_STATE_READY_TO_LEAVE);
+		leaving_serf->state = SERF_STATE_READY_TO_LEAVE;
+		leaving_serf->s.leaving_building.field_B = -2;
+		leaving_serf->s.leaving_building.dest = 0;
+		leaving_serf->s.leaving_building.dir = 0;
+		leaving_serf->s.leaving_building.next_state = SERF_STATE_WALKING;
+
+		building->stock[0].available -= 1;
+	}
+
+	/* Request gold */
+	if (BUILDING_HAS_SERF(building)) {
+		int total_gold = building->stock[1].requested + building->stock[1].available;
+		player->military_gold += building->stock[1].available;
+		player->military_max_gold += max_gold;
+
+		if (total_gold < max_gold) {
+			building->stock[1].prio = ((0xfe >> total_gold) + 1) & 0xfe;
+		} else {
+			building->stock[1].prio = 0;
+		}
+	}
+}
+
+static void
 handle_building_update(building_t *building)
 {
 	building_type_t type = BUILDING_TYPE(building);
@@ -1740,80 +1843,10 @@ handle_building_update(building_t *building)
 			}
 			break;
 		case BUILDING_HUT:
-		{
-			const int hut_occupants_from_level[] = {
-				1, 1, 2, 2, 3,
-				1, 1, 1, 1, 2
-			};
-
-			player_t *player = game.player[BUILDING_PLAYER(building)];
-			int max_occ_level = (player->knight_occupation[BUILDING_STATE(building)] >> 4) & 0xf;
-			if (PLAYER_REDUCED_KNIGHT_LEVEL(player)) max_occ_level += 5;
-
-			int needed_occupants = hut_occupants_from_level[max_occ_level];
-			int max_gold = 2;
-
-			int total_knights = building->stock[0].requested + building->stock[0].available;
-			int present_knights = building->stock[0].available;
-			if (total_knights < needed_occupants) {
-				if (!BUILDING_SERF_REQUEST_FAIL(building)) {
-					int r = send_serf_to_building(building, -1, -1, -1);
-					if (r < 0) building->serf |= BIT(2);
-				}
-			} else if (needed_occupants < present_knights &&
-				   MAP_SERF_INDEX(MAP_MOVE_DOWN_RIGHT(building->pos)) == 0) {
-				/* Kick least trained knight out. */
-				serf_t *leaving_serf = NULL;
-				int serf_index = building->serf_index;
-				while (serf_index != 0) {
-					serf_t *serf = game_get_serf(serf_index);
-					if (leaving_serf == NULL ||
-					    SERF_TYPE(serf) < SERF_TYPE(leaving_serf)) {
-						leaving_serf = serf;
-					}
-					serf_index = serf->s.defending.next_knight;
-				}
-
-				/* Remove leaving serf from list. */
-				if (SERF_INDEX(leaving_serf) == building->serf_index) {
-					building->serf_index = leaving_serf->s.defending.next_knight;
-				} else {
-					serf_index = building->serf_index;
-					while (serf_index != 0) {
-						serf_t *serf = game_get_serf(serf_index);
-						if (serf->s.defending.next_knight == SERF_INDEX(leaving_serf)) {
-							serf->s.defending.next_knight = leaving_serf->s.defending.next_knight;
-							break;
-						}
-						serf_index = serf->s.defending.next_knight;
-					}
-				}
-
-				/* Update serf state. */
-				serf_log_state_change(leaving_serf, SERF_STATE_READY_TO_LEAVE);
-				leaving_serf->state = SERF_STATE_READY_TO_LEAVE;
-				leaving_serf->s.leaving_building.field_B = -2;
-				leaving_serf->s.leaving_building.dest = 0;
-				leaving_serf->s.leaving_building.dir = 0;
-				leaving_serf->s.leaving_building.next_state = SERF_STATE_WALKING;
-
-				building->stock[0].available -= 1;
-			}
-
-			/* Request gold */
-			if (BUILDING_HAS_SERF(building)) {
-				int total_gold = building->stock[1].requested + building->stock[1].available;
-				player->military_gold += building->stock[1].available;
-				player->military_max_gold += max_gold;
-
-				if (total_gold < max_gold) {
-					building->stock[1].prio = ((0xfe >> total_gold) + 1) & 0xfe;
-				} else {
-					building->stock[1].prio = 0;
-				}
-			}
+		case BUILDING_TOWER:
+		case BUILDING_FORTRESS:
+			handle_military_building_update(building);
 			break;
-		}
 		case BUILDING_FARM:
 			if (!BUILDING_SERF_REQUEST_FAIL(building) &&
 			    !BUILDING_HAS_SERF(building) &&
@@ -1992,157 +2025,6 @@ handle_building_update(building_t *building)
 				}
 			}
 			break;
-		case BUILDING_TOWER:
-		{
-			const int tower_occupants_from_level[] = {
-				1, 2, 3, 4, 6,
-				1, 1, 2, 3, 4
-			};
-
-			player_t *player = game.player[BUILDING_PLAYER(building)];
-			int max_occ_level = (player->knight_occupation[BUILDING_STATE(building)] >> 4) & 0xf;
-			if (PLAYER_REDUCED_KNIGHT_LEVEL(player)) max_occ_level += 5;
-
-			int needed_occupants = tower_occupants_from_level[max_occ_level];
-			int max_gold = 4;
-
-			int total_knights = building->stock[0].requested + building->stock[0].available;
-			int present_knights = building->stock[0].available;
-			if (total_knights < needed_occupants) {
-				if (!BUILDING_SERF_REQUEST_FAIL(building)) {
-					int r = send_serf_to_building(building, -1, -1, -1);
-					if (r < 0) building->serf |= BIT(2);
-				}
-			} else if (needed_occupants < present_knights &&
-				   MAP_SERF_INDEX(MAP_MOVE_DOWN_RIGHT(building->pos)) == 0) {
-				/* Kick least trained knight out. */
-				serf_t *leaving_serf = NULL;
-				int serf_index = building->serf_index;
-				while (serf_index != 0) {
-					serf_t *serf = game_get_serf(serf_index);
-					if (leaving_serf == NULL ||
-					    SERF_TYPE(serf) < SERF_TYPE(leaving_serf)) {
-						leaving_serf = serf;
-					}
-					serf_index = serf->s.defending.next_knight;
-				}
-
-				/* Remove leaving serf from list. */
-				if (SERF_INDEX(leaving_serf) == building->serf_index) {
-					building->serf_index = leaving_serf->s.defending.next_knight;
-				} else {
-					serf_index = building->serf_index;
-					while (serf_index != 0) {
-						serf_t *serf = game_get_serf(serf_index);
-						if (serf->s.defending.next_knight == SERF_INDEX(leaving_serf)) {
-							serf->s.defending.next_knight = leaving_serf->s.defending.next_knight;
-							break;
-						}
-						serf_index = serf->s.defending.next_knight;
-					}
-				}
-
-				/* Update serf state. */
-				serf_log_state_change(leaving_serf, SERF_STATE_READY_TO_LEAVE);
-				leaving_serf->state = SERF_STATE_READY_TO_LEAVE;
-				leaving_serf->s.leaving_building.field_B = -2;
-				leaving_serf->s.leaving_building.dest = 0;
-				leaving_serf->s.leaving_building.dir = 0;
-				leaving_serf->s.leaving_building.next_state = SERF_STATE_WALKING;
-
-				building->stock[0].available -= 1;
-			}
-
-			/* Request gold */
-			if (BUILDING_HAS_SERF(building)) {
-				int total_gold = building->stock[1].requested + building->stock[1].available;
-				player->military_gold += building->stock[1].available;
-				player->military_max_gold += max_gold;
-
-				if (total_gold < max_gold) {
-					building->stock[1].prio = ((0xfe >> total_gold) + 1) & 0xfe;
-				} else {
-					building->stock[1].prio = 0;
-				}
-			}
-			break;
-		}
-		case BUILDING_FORTRESS:
-		{
-			const int fortress_occupants_from_level[] = {
-				1, 3, 6, 9, 12,
-				1, 2, 4, 6, 8
-			};
-
-			player_t *player = game.player[BUILDING_PLAYER(building)];
-			int max_occ_level = (player->knight_occupation[BUILDING_STATE(building)] >> 4) & 0xf;
-			if (PLAYER_REDUCED_KNIGHT_LEVEL(player)) max_occ_level += 5;
-
-			int needed_occupants = fortress_occupants_from_level[max_occ_level];
-			int max_gold = 8;
-
-			int total_knights = building->stock[0].requested + building->stock[0].available;
-			int present_knights = building->stock[0].available;
-			if (total_knights < needed_occupants) {
-				/* Send a knight to this building. */
-				if (!BUILDING_SERF_REQUEST_FAIL(building)) {
-					int r = send_serf_to_building(building, -1, -1, -1);
-					if (r < 0) building->serf |= BIT(2);
-				}
-			} else if (needed_occupants < present_knights &&
-				   MAP_SERF_INDEX(MAP_MOVE_DOWN_RIGHT(building->pos)) == 0) {
-				/* Kick least trained knight out. */
-				serf_t *leaving_serf = NULL;
-				int serf_index = building->serf_index;
-				while (serf_index != 0) {
-					serf_t *serf = game_get_serf(serf_index);
-					if (leaving_serf == NULL ||
-					    SERF_TYPE(serf) < SERF_TYPE(leaving_serf)) {
-						leaving_serf = serf;
-					}
-					serf_index = serf->s.defending.next_knight;
-				}
-
-				/* Remove leaving serf from list. */
-				if (SERF_INDEX(leaving_serf) == building->serf_index) {
-					building->serf_index = leaving_serf->s.defending.next_knight;
-				} else {
-					serf_index = building->serf_index;
-					while (serf_index != 0) {
-						serf_t *serf = game_get_serf(serf_index);
-						if (serf->s.defending.next_knight == SERF_INDEX(leaving_serf)) {
-							serf->s.defending.next_knight = leaving_serf->s.defending.next_knight;
-							break;
-						}
-						serf_index = serf->s.defending.next_knight;
-					}
-				}
-
-				/* Update serf state. */
-				serf_log_state_change(leaving_serf, SERF_STATE_READY_TO_LEAVE);
-				leaving_serf->state = SERF_STATE_READY_TO_LEAVE;
-				leaving_serf->s.leaving_building.field_B = -2;
-				leaving_serf->s.leaving_building.dest = 0;
-				leaving_serf->s.leaving_building.dir = 0;
-				leaving_serf->s.leaving_building.next_state = SERF_STATE_WALKING;
-
-				building->stock[0].available -= 1;
-			}
-
-			/* Request gold */
-			if (BUILDING_HAS_SERF(building)) {
-				int total_gold = building->stock[1].requested + building->stock[1].available;
-				player->military_gold += building->stock[1].available;
-				player->military_max_gold += max_gold;
-
-				if (total_gold < max_gold) {
-					building->stock[1].prio = ((0xfe >> total_gold) + 1) & 0xfe;
-				} else {
-					building->stock[1].prio = 0;
-				}
-			}
-			break;
-		}
 		case BUILDING_GOLDSMELTER:
 			if (!BUILDING_SERF_REQUEST_FAIL(building) &&
 			    !BUILDING_HAS_SERF(building) &&
