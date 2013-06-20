@@ -404,20 +404,22 @@ serf_transporter_move_to_flag(serf_t *serf, flag_t *flag)
 
 		if (serf->s.walking.res == 0) {
 			/* Pick up resource. */
-			serf->s.walking.res = flag->res_waiting[res_index] & 0x1f;
-			serf->s.walking.dest = flag->res_dest[res_index];
-			flag->res_waiting[res_index] = 0;
+			serf->s.walking.res = flag->slot[res_index].type+1;
+			serf->s.walking.dest = flag->slot[res_index].dest;
+			flag->slot[res_index].type = RESOURCE_NONE;
+			flag->slot[res_index].dir = DIR_NONE;
 		} else {
 			/* Switch resources and destination. */
 			flag->endpoint |= BIT(7);
 
 			int res = serf->s.walking.res;
-			serf->s.walking.res = flag->res_waiting[res_index] & 0x1f;
-			flag->res_waiting[res_index] = res;
+			serf->s.walking.res = flag->slot[res_index].type+1;
+			flag->slot[res_index].type = res-1;
+			flag->slot[res_index].dir = DIR_NONE;
 
 			int dest = serf->s.walking.dest;
-			serf->s.walking.dest = flag->res_dest[res_index];
-			flag->res_dest[res_index] = dest;
+			serf->s.walking.dest = flag->slot[res_index].dest;
+			flag->slot[res_index].dest = dest;
 		}
 
 		/* Find next resource to be picked up */
@@ -427,7 +429,7 @@ serf_transporter_move_to_flag(serf_t *serf, flag_t *flag)
 		/* Drop resource at flag */
 		int free_slot = -1;
 		for (int i = 0; i < FLAG_MAX_RES_COUNT; i++) {
-			if (flag->res_waiting[i] == 0) {
+			if (flag->slot[i].type == RESOURCE_NONE) {
 				free_slot = i;
 				break;
 			}
@@ -435,8 +437,9 @@ serf_transporter_move_to_flag(serf_t *serf, flag_t *flag)
 
 		if (free_slot > -1) {
 			flag->endpoint |= BIT(7);
-			flag->res_waiting[free_slot] = serf->s.walking.res;
-			flag->res_dest[free_slot] = serf->s.walking.dest;
+			flag->slot[free_slot].type = serf->s.walking.res-1;
+			flag->slot[free_slot].dest = serf->s.walking.dest;
+			flag->slot[free_slot].dir = DIR_NONE;
 			serf->s.walking.res = 0;
 		}
 	}
@@ -1669,10 +1672,10 @@ handle_serf_move_resource_out_state(serf_t *serf)
 	}
 
 	flag_t *flag = game_get_flag(MAP_OBJ_INDEX(MAP_MOVE_DOWN_RIGHT(serf->pos)));
-	if (flag->res_waiting[0] != 0 && flag->res_waiting[1] != 0 &&
-	    flag->res_waiting[2] != 0 && flag->res_waiting[3] != 0 &&
-	    flag->res_waiting[4] != 0 && flag->res_waiting[5] != 0 &&
-	    flag->res_waiting[6] != 0 && flag->res_waiting[7] != 0) {
+	if (flag->slot[0].type != RESOURCE_NONE && flag->slot[1].type != RESOURCE_NONE &&
+	    flag->slot[2].type != RESOURCE_NONE && flag->slot[3].type != RESOURCE_NONE &&
+	    flag->slot[4].type != RESOURCE_NONE && flag->slot[5].type != RESOURCE_NONE &&
+	    flag->slot[6].type != RESOURCE_NONE && flag->slot[7].type != RESOURCE_NONE) {
 		/* All resource slots at flag are occupied, wait */
 		serf->animation = 82;
 		serf->counter = 0;
@@ -1728,13 +1731,14 @@ handle_serf_drop_resource_out_state(serf_t *serf)
 		/* Guaranteed to find a free slot because
 		   the map position has been reserved since
 		   a free position was found. */
-		if (flag->res_waiting[i] == 0) break;
+		if (flag->slot[i].type == RESOURCE_NONE) break;
 	}
 
 	assert(i >= 0);
 
-	flag->res_waiting[i] = serf->s.move_resource_out.res;
-	flag->res_dest[i] = serf->s.move_resource_out.res_dest;
+	flag->slot[i].type = serf->s.move_resource_out.res-1;
+	flag->slot[i].dest = serf->s.move_resource_out.res_dest;
+	flag->slot[i].dir = DIR_NONE;
 	flag->endpoint |= BIT(7); /* Resources waiting */
 
 	serf_log_state_change(serf, SERF_STATE_READY_TO_ENTER);
@@ -1834,7 +1838,7 @@ serf_drop_resource(serf_t *serf, resource_type_t res)
 
 	int slot = -1;
 	for (int i = 0; i < FLAG_MAX_RES_COUNT; i++) {
-		if (flag->res_waiting[i] == 0) {
+		if (flag->slot[i].type == RESOURCE_NONE) {
 			slot = i;
 			break;
 		}
@@ -1842,8 +1846,9 @@ serf_drop_resource(serf_t *serf, resource_type_t res)
 
 	/* Resource is lost if no free slot is found */
 	if (slot >= 0) {
-		flag->res_waiting[slot] = 1 + res;
-		flag->res_dest[slot] = 0;
+		flag->slot[slot].type = res;
+		flag->slot[slot].dest = 0;
+		flag->slot[slot].dir = DIR_NONE;
 		flag->endpoint |= BIT(7);
 
 		player_t *player = game.player[SERF_PLAYER(serf)];
@@ -4908,4 +4913,3 @@ update_serf(serf_t *serf)
 		serf->state = SERF_STATE_NULL;
 	}
 }
-

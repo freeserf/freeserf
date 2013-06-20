@@ -80,6 +80,12 @@
 #define FLAG_ACCEPTS_RESOURCES(flag)  ((int)(((flag)->bld2_flags >> 7) & 1))
 
 
+typedef struct {
+	resource_type_t type;
+	dir_t dir;
+	int dest;
+} resource_slot_t;
+
 typedef struct flag flag_t;
 
 struct flag {
@@ -90,8 +96,7 @@ struct flag {
 	int endpoint;
 	int transporter;
 	int length[6];
-	int res_waiting[FLAG_MAX_RES_COUNT];
-	int res_dest[FLAG_MAX_RES_COUNT];
+	resource_slot_t slot[FLAG_MAX_RES_COUNT];
 	union {
 		building_t *b[6];
 		flag_t *f[6];

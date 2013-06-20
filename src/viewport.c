@@ -1186,20 +1186,20 @@ draw_flag_and_res(map_pos_t pos, int x, int y, frame_t *frame)
 {
 	flag_t *flag = game_get_flag(MAP_OBJ_INDEX(pos));
 
-	if (flag->res_waiting[0] != 0) draw_game_sprite(x+6, y-4, flag->res_waiting[0] & 0x1f, frame);
-	if (flag->res_waiting[1] != 0) draw_game_sprite(x+10, y-2, flag->res_waiting[1] & 0x1f, frame);
-	if (flag->res_waiting[2] != 0) draw_game_sprite(x-4, y-4, flag->res_waiting[2] & 0x1f, frame);
+	if (flag->slot[0].type != RESOURCE_NONE) draw_game_sprite(x+6, y-4, flag->slot[0].type + 1, frame);
+	if (flag->slot[1].type != RESOURCE_NONE) draw_game_sprite(x+10, y-2, flag->slot[1].type + 1, frame);
+	if (flag->slot[2].type != RESOURCE_NONE) draw_game_sprite(x-4, y-4, flag->slot[2].type + 1, frame);
 
 	int pl_num = FLAG_PLAYER(flag);
 	int spr = 0x80 + (pl_num << 2) + ((game.tick >> 3) & 3);
 
 	draw_shadow_and_building_sprite(x, y, spr, frame);
 
-	if (flag->res_waiting[3] != 0) draw_game_sprite(x+10, y+2, flag->res_waiting[3] & 0x1f, frame);
-	if (flag->res_waiting[4] != 0) draw_game_sprite(x-8, y-2, flag->res_waiting[4] & 0x1f, frame);
-	if (flag->res_waiting[5] != 0) draw_game_sprite(x+6, y+4, flag->res_waiting[5] & 0x1f, frame);
-	if (flag->res_waiting[6] != 0) draw_game_sprite(x-8, y+2, flag->res_waiting[6] & 0x1f, frame);
-	if (flag->res_waiting[7] != 0) draw_game_sprite(x-4, y+4, flag->res_waiting[7] & 0x1f, frame);
+	if (flag->slot[3].type != RESOURCE_NONE) draw_game_sprite(x+10, y+2, flag->slot[3].type + 1, frame);
+	if (flag->slot[4].type != RESOURCE_NONE) draw_game_sprite(x-8, y-2, flag->slot[4].type + 1, frame);
+	if (flag->slot[5].type != RESOURCE_NONE) draw_game_sprite(x+6, y+4, flag->slot[5].type + 1, frame);
+	if (flag->slot[6].type != RESOURCE_NONE) draw_game_sprite(x-8, y+2, flag->slot[6].type + 1, frame);
+	if (flag->slot[7].type != RESOURCE_NONE) draw_game_sprite(x-4, y+4, flag->slot[7].type + 1, frame);
 }
 
 static void

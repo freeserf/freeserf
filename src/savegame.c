@@ -609,8 +609,9 @@ load_v0_flag_state(FILE *f)
 		}
 
 		for (int j = 0; j < 8; j++) {
-			flag->res_waiting[j] = flag_data[12+j];
-			flag->res_dest[j] = *(uint16_t *)&flag_data[20+2*j];
+			flag->slot[j].type = (flag_data[12+j] & 0x1f)-1;
+			flag->slot[j].dir = ((flag_data[12+j] >> 5) & 7)-1;
+			flag->slot[j].dest = *(uint16_t *)&flag_data[20+2*j];
 		}
 
 		for (int j = 0; j < 6; j++) {
@@ -1047,8 +1048,15 @@ save_text_flag_state(FILE *f)
 
 			save_text_write_array(f, "length", flag->length, 6);
 
-			save_text_write_array(f, "resources.type", flag->res_waiting, 8);
-			save_text_write_array(f, "resources.dest", flag->res_dest, 8);
+			int values[FLAG_MAX_RES_COUNT];
+			for (int i = 0; i < FLAG_MAX_RES_COUNT; i++) values[i] = flag->slot[i].type;
+			save_text_write_array(f, "slot.type", values, FLAG_MAX_RES_COUNT);
+
+			for (int i = 0; i < FLAG_MAX_RES_COUNT; i++) values[i] = flag->slot[i].dir;
+			save_text_write_array(f, "slot.dir", values, FLAG_MAX_RES_COUNT);
+
+			for (int i = 0; i < FLAG_MAX_RES_COUNT; i++) values[i] = flag->slot[i].dest;
+			save_text_write_array(f, "slot.dest", values, FLAG_MAX_RES_COUNT);
 
 			int indices[6];
 			for (dir_t d = DIR_RIGHT; d <= DIR_UP; d++) {
@@ -1926,17 +1934,23 @@ load_text_flag_section(section_t *section)
 				char *v = parse_array_value(&array);
 				flag->length[i] = atoi(v);
 			}
-		} else if (!strcmp(s->key, "resources.type")) {
+		} else if (!strcmp(s->key, "slot.type")) {
 			char *array = s->value;
 			for (int i = 0; i < 8 && array != NULL; i++) {
 				char *v = parse_array_value(&array);
-				flag->res_waiting[i] = atoi(v);
+				flag->slot[i].type = atoi(v);
 			}
-		} else if (!strcmp(s->key, "resources.dest")) {
+		} else if (!strcmp(s->key, "slot.dir")) {
 			char *array = s->value;
 			for (int i = 0; i < 8 && array != NULL; i++) {
 				char *v = parse_array_value(&array);
-				flag->res_dest[i] = atoi(v);
+				flag->slot[i].dir = atoi(v);
+			}
+		} else if (!strcmp(s->key, "slot.dest")) {
+			char *array = s->value;
+			for (int i = 0; i < 8 && array != NULL; i++) {
+				char *v = parse_array_value(&array);
+				flag->slot[i].dest = atoi(v);
 			}
 		} else if (!strcmp(s->key, "other_endpoint")) {
 			/* TODO make sure these pointers are valid. Maybe postpone this

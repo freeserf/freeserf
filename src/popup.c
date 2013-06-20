@@ -2030,9 +2030,9 @@ draw_transport_info_box(popup_box_t *popup, frame_t *frame)
 	draw_popup_icon(14, 128, 0x3c, frame); /* Exit box */
 
 	/* Draw list of resources */
-	for (int i = 0; i < 8; i++) {
-		if (flag->res_waiting[i] != 0) {
-			draw_popup_icon(7 + 2*(i&3), 88 + 16*(i>>2), 0x22 + (flag->res_waiting[i] & 0x1f)-1, frame);
+	for (int i = 0; i < FLAG_MAX_RES_COUNT; i++) {
+		if (flag->slot[i].type != RESOURCE_NONE) {
+			draw_popup_icon(7 + 2*(i&3), 88 + 16*(i>>2), 0x22 + flag->slot[i].type, frame);
 		}
 	}
 

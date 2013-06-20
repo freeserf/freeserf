@@ -61,8 +61,10 @@ game_alloc_flag(flag_t **flag, int *index)
 					f->path_con = 0;
 					f->endpoint = 0;
 					f->transporter = 0;
+					for (int i = 0; i < FLAG_MAX_RES_COUNT; i++) {
+						f->slot[i].type = RESOURCE_NONE;
+					}
 					memset(&f->length, 0, sizeof(f->length));
-					memset(&f->res_waiting, 0, sizeof(f->res_waiting));
 					f->bld_flags = 0;
 					f->bld2_flags = 0;
 					memset(&f->other_end_dir, 0, sizeof(f->other_end_dir));
@@ -880,13 +882,13 @@ schedule_known_dest_cb(flag_t *flag, schedule_known_dest_data_t *data)
 			} else {
 				player_t *player = game.player[FLAG_PLAYER(flag)];
 				int other_dir = src->other_end_dir[flag->search_dir];
-				int prio_old = player->flag_prio[(src->res_waiting[other_dir & 7] & 0x1f)-1];
-				int prio_new = player->flag_prio[(src->res_waiting[data->slot] & 0x1f)-1];
+				int prio_old = player->flag_prio[src->slot[other_dir & 7].type];
+				int prio_new = player->flag_prio[src->slot[data->slot].type];
 				if (prio_new > prio_old) {
 					/* This item has the highest priority now */
 					src->other_end_dir[flag->search_dir] = (src->other_end_dir[flag->search_dir] & 0xf8) | data->slot;
 				}
-				src->res_waiting[data->slot] = ((flag->search_dir + 1) << 5) | (src->res_waiting[data->slot] & 0x1f);
+				src->slot[data->slot].dir = flag->search_dir;
 			}
 		}
 		return 1;
@@ -957,15 +959,15 @@ schedule_slot_to_known_dest(flag_t *flag, int slot)
 	if (sources > 0) {
 		schedule_known_dest_data_t data;
 		data.src = flag;
-		data.dest = game_get_flag(flag->res_dest[slot]);
+		data.dest = game_get_flag(flag->slot[slot].dest);
 		data.slot = slot;
 		int r = flag_search_execute(&search,
 					    (flag_search_func *)schedule_known_dest_cb,
 					    0, 1, &data);
 		if (r < 0 || data.dest->search_dir == 6) {
 			/* Unable to deliver */
-			flag_cancel_transported_stock(data.dest, flag->res_waiting[slot] & 0x1f);
-			flag->res_dest[slot] = 0;
+			flag_cancel_transported_stock(data.dest, flag->slot[slot].type);
+			flag->slot[slot].dest = 0;
 			flag->endpoint |= BIT(7);
 		}
 	} else {
@@ -1022,7 +1024,7 @@ schedule_slot_to_unknown_dest(flag_t *flag, int slot)
 		[RESOURCE_GOLDBAR] = 1
 	};
 
-	resource_type_t res = (flag->res_waiting[slot] & 0x1f)-1;
+	resource_type_t res = flag->slot[slot].type;
 	if (routable[res]) {
 		flag_search_t search;
 		flag_search_init(&search);
@@ -1057,7 +1059,7 @@ schedule_slot_to_unknown_dest(flag_t *flag, int slot)
 				}
 			}
 
-			flag->res_dest[slot] = dest_bld->flg_index;
+			flag->slot[slot].dest = dest_bld->flg_index;
 			flag->endpoint |= BIT(7);
 			return;
 		}
@@ -1087,10 +1089,10 @@ schedule_slot_to_unknown_dest(flag_t *flag, int slot)
 				flag->other_end_dir[dir] = BIT(7) |
 					(flag->other_end_dir[dir] & 0x38) | slot;
 			}
-			flag->res_waiting[slot] |= (dir+1) << 5;
+			flag->slot[slot].dir = dir;
 		}
 	} else {
-		flag->res_dest[slot] = r;
+		flag->slot[slot].dest = r;
 		flag->endpoint |= BIT(7);
 	}
 }
@@ -1111,8 +1113,9 @@ update_flags()
 			for (int j = 0; j < 4; j++) game.field_218[j] = 0;
 
 			for (int j = 0; j < FLAG_MAX_RES_COUNT; j++) {
-				int res_dir = (flag->res_waiting[j] >> 5) - 1;
-				if (res_dir >= 0) {
+				if (flag->slot[j].type != RESOURCE_NONE &&
+				    flag->slot[j].dir != DIR_NONE) {
+					dir_t res_dir = flag->slot[j].dir;
 					for (int k = 3; k >= 0; k--) {
 						if (!BIT_TEST(game.field_218[k], res_dir)) {
 							game.field_218[k] |= BIT(res_dir);
@@ -1127,14 +1130,14 @@ update_flags()
 			if (FLAG_HAS_RESOURCES(flag)) {
 				flag->endpoint &= ~BIT(7);
 				for (int slot = 0; slot < FLAG_MAX_RES_COUNT; slot++) {
-					if (flag->res_waiting[slot] != 0) {
+					if (flag->slot[slot].type != RESOURCE_NONE) {
 						game.field_24E += 1;
 
 						/* Only schedule the slot if it has not already
 						   been scheduled for fetch. */
-						int res_dir = ((flag->res_waiting[slot] >> 5) & 7)-1;
+						int res_dir = flag->slot[slot].dir;
 						if (res_dir < 0) {
-							if (flag->res_dest[slot] != 0) {
+							if (flag->slot[slot].dest != 0) {
 								/* Destination is known */
 								schedule_slot_to_known_dest(flag, slot);
 							} else {
@@ -2655,13 +2658,13 @@ flag_reset_transport(flag_t *flag)
 			flag_t *other = game_get_flag(i);
 
 			for (int slot = 0; slot < FLAG_MAX_RES_COUNT; slot++) {
-				if (other->res_waiting[slot] != 0 &&
-				    other->res_dest[slot] == FLAG_INDEX(flag)) {
-					other->res_dest[slot] = 0;
+				if (other->slot[slot].type != RESOURCE_NONE &&
+				    other->slot[slot].dest == FLAG_INDEX(flag)) {
+					other->slot[slot].dest = 0;
 					other->endpoint |= BIT(7);
 
-					if (((other->res_waiting[slot] >> 5) & 3) != 0) {
-						dir_t dir = ((other->res_waiting[slot] >> 5) & 3)-1;
+					if (other->slot[slot].dir != DIR_NONE) {
+						dir_t dir = other->slot[slot].dir;
 						player_t *player = game.player[FLAG_PLAYER(other)];
 						flag_prioritize_pickup(other, dir, player->flag_prio);
 					}
@@ -2949,9 +2952,9 @@ remove_road_forwards(map_pos_t pos, dir_t dir)
 			/* Mark resource path for recalculation if they would
 			   have followed the removed path. */
 			for (int i = 0; i < FLAG_MAX_RES_COUNT; i++) {
-				if (flag->res_waiting[i] != 0 &&
-				    (flag->res_waiting[i] >> 5) == rev_dir+1) {
-					flag->res_waiting[i] &= 0x1f;
+				if (flag->slot[i].type != RESOURCE_NONE &&
+				    flag->slot[i].dir == rev_dir) {
+					flag->slot[i].dir = DIR_NONE;
 					flag->endpoint |= BIT(7);
 				}
 			}
@@ -4305,9 +4308,9 @@ demolish_flag(map_pos_t pos)
 
 	/* Remove resources from flag. */
 	for (int i = 0; i < FLAG_MAX_RES_COUNT; i++) {
-		if (flag->res_waiting[i] != 0) {
-			int res = (flag->res_waiting[i] & 0x1f)-1;
-			uint dest = flag->res_dest[i];
+		if (flag->slot[i].type != RESOURCE_NONE) {
+			int res = flag->slot[i].type;
+			uint dest = flag->slot[i].dest;
 			lose_transported_resource(res, dest);
 		}
 	}
@@ -4851,9 +4854,9 @@ game_occupy_enemy_building(building_t *building, int player_num)
 
 		/* Reset destination of stolen resources. */
 		for (int i = 0; i < FLAG_MAX_RES_COUNT; i++) {
-			if (flag->res_waiting[i] != 0) {
-				resource_type_t res = (flag->res_waiting[i] & 0x1f)-1;
-				lose_transported_resource(res, flag->res_dest[i]);
+			if (flag->slot[i].type != RESOURCE_NONE) {
+				resource_type_t res = flag->slot[i].type;
+				lose_transported_resource(res, flag->slot[i].dest);
 
 				/* Since the resource is not actually lost but
 				   merely changes owner, we have to readjust the total
@@ -4862,7 +4865,7 @@ game_occupy_enemy_building(building_t *building, int player_num)
 				    res == RESOURCE_GOLDBAR) {
 					game.map_gold_deposit += 1;
 				}
-				flag->res_dest[i] = 0;
+				flag->slot[i].dest = 0;
 			}
 		}
 

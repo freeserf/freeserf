@@ -139,8 +139,8 @@ flag_prioritize_pickup(flag_t *flag, dir_t dir, const int flag_prio[])
 
 	for (int i = 0; i < FLAG_MAX_RES_COUNT; i++) {
 		/* Use flag_prio to prioritize resource pickup. */
-		dir_t res_dir = ((flag->res_waiting[i] >> 5) & 7)-1;
-		resource_type_t res_type = (flag->res_waiting[i] & 0x1f)-1;
+		dir_t res_dir = flag->slot[i].dir;
+		resource_type_t res_type = flag->slot[i].type;
 		if (res_dir == dir && flag_prio[res_type] > res_prio) {
 			res_next = i;
 			res_prio = flag_prio[res_type];
