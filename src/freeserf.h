@@ -45,6 +45,8 @@
 
 
 typedef enum {
+	DIR_NONE = -1,
+
 	DIR_RIGHT = 0,
 	DIR_DOWN_RIGHT,
 	DIR_DOWN,
@@ -149,6 +151,8 @@ typedef enum {
 } box_t;
 
 typedef enum {
+	RESOURCE_NONE = -1,
+
 	RESOURCE_FISH = 0,
 	RESOURCE_PIG,
 	RESOURCE_MEAT,
