@@ -660,6 +660,7 @@ update_inventories()
 						if (dest_bld->stock[j].type == arr[0]) {
 							dest_bld->stock[j].prio = 0;
 							dest_bld->stock[j].requested += 1;
+							break;
 						}
 					}
 
@@ -1049,13 +1050,13 @@ schedule_slot_to_unknown_dest(flag_t *flag, int slot)
 			LOGV("game", "dest for flag %u res %i found: flag %u",
 			     FLAG_INDEX(flag), slot, FLAG_INDEX(data.flag));
 			building_t *dest_bld = data.flag->other_endpoint.b[DIR_UP_LEFT];
-			int prio = 0;
 			for (int i = 0; i < 2; i++) {
 				if (dest_bld->stock[i].type == res) {
-					prio = dest_bld->stock[i].prio;
+					int prio = dest_bld->stock[i].prio;
 					if ((prio & 1) == 0) prio = 0;
 					dest_bld->stock[i].prio = prio >> 1;
 					dest_bld->stock[i].requested += 1;
+					break;
 				}
 			}
 
@@ -2799,27 +2800,28 @@ path_serf_idle_to_wait_state(map_pos_t pos)
 static void
 lose_transported_resource(resource_type_t res, uint dest)
 {
-	static const int stock_type[] = {
-		0, 0, 0, 0, 0, 0,
-		1, 0, -1, 1, 1, 1,
-		0, 1, 1, -1, -1, -1,
-		-1, -1, -1, -1, -1, -1,
-		-1, -1, -1
-	};
-
 	if (res == RESOURCE_GOLDORE ||
 	    res == RESOURCE_GOLDBAR) {
 		game.map_gold_deposit -= 1;
 	}
 
-	if (stock_type[res] >= 0 && dest != 0) {
+	if (dest != 0) {
 		flag_t *flag = game_get_flag(dest);
+		assert(FLAG_HAS_BUILDING(flag));
 		building_t *building = flag->other_endpoint.b[DIR_UP_LEFT];
-		if (!(BUILDING_IS_DONE(building) &&
-		      (BUILDING_TYPE(building) == BUILDING_CASTLE ||
-		       BUILDING_TYPE(building) == BUILDING_STOCK))) {
-			assert(stock_type[res] >= 0);
-			building->stock[stock_type[res]].requested -= 1;
+
+		if (res == RESOURCE_FISH ||
+		    res == RESOURCE_MEAT ||
+		    res == RESOURCE_BREAD) {
+			res = RESOURCE_GROUP_FOOD;
+		}
+
+		for (int i = 0; i < 2; i++) {
+			if (building->stock[i].type == res) {
+				building->stock[i].requested -= 1;
+				assert(building->stock[i].requested >= 0);
+				break;
+			}
 		}
 	}
 }
@@ -3207,7 +3209,7 @@ restore_path_serf_info(flag_t *flag, dir_t dir, serf_path_info_t *data)
 						game.map_gold_deposit -= 1;
 					}
 
-					flag_cancel_transported_stock(game_get_flag(serf->s.walking.dest), res+1);
+					flag_cancel_transported_stock(game_get_flag(serf->s.walking.dest), res);
 				}
 			} else {
 				serf_log_state_change(serf, SERF_STATE_WAKE_AT_FLAG);
@@ -4385,7 +4387,7 @@ demolish_building(map_pos_t pos)
 					game.map_gold_deposit -= 1;
 				}
 
-				flag_cancel_transported_stock(game_get_flag(dest), res+1);
+				flag_cancel_transported_stock(game_get_flag(dest), res);
 			}
 
 			game.map_gold_deposit -= inventory->resources[RESOURCE_GOLDBAR];

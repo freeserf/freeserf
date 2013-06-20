@@ -1772,12 +1772,20 @@ handle_serf_delivering_state(serf_t *serf)
 					inventory_t *inventory = building->u.inventory;
 					inventory->resources[res] = min(inventory->resources[res]+1, 50000);
 				} else {
-					if (res == RESOURCE_COAL || (res < RESOURCE_BOAT && res != RESOURCE_LUMBER)) {
-						building->stock[0].available += 1;
-						building->stock[0].requested -= 1;
-					} else {
-						building->stock[1].available += 1;
-						building->stock[1].requested -= 1;
+					if (res == RESOURCE_FISH ||
+					    res == RESOURCE_MEAT ||
+					    res == RESOURCE_BREAD) {
+						res = RESOURCE_GROUP_FOOD;
+					}
+
+					/* Add to building stock */
+					for (int i = 0; i < 2; i++) {
+						if (building->stock[i].type == res) {
+							building->stock[i].available += 1;
+							building->stock[i].requested -= 1;
+							assert(building->stock[i].requested >= 0);
+							break;
+						}
 					}
 				}
 			}
