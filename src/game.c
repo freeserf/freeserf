@@ -511,10 +511,10 @@ typedef struct {
 	int resource;
 	int *max_prio;
 	flag_t **flags;
-} update_ai_and_more_data_t;
+} update_inventories_data_t;
 
 static int
-update_ai_and_more_search_cb(flag_t *flag, update_ai_and_more_data_t *data)
+update_inventories_cb(flag_t *flag, update_inventories_data_t *data)
 {
 	int inv = flag->search_dir;
 	if (data->max_prio[inv] < 255 &&
@@ -534,8 +534,10 @@ update_ai_and_more_search_cb(flag_t *flag, update_ai_and_more_data_t *data)
 	return 0;
 }
 
+/* Update inventories as part of the game progression. Moves the appropriate
+   resources that are needed outside of the inventory into the out queue. */
 static void
-update_ai_and_more()
+update_inventories()
 {
 	const int arr_1[] = {
 		RESOURCE_PLANK,
@@ -585,6 +587,122 @@ update_ai_and_more()
 		-1
 	};
 
+	if (game.game_speed == 0) return;
+	/* update functions */
+
+	const int *arr = NULL;
+	switch (game_random_int() & 7) {
+	case 0: arr = arr_2; break;
+	case 1: arr = arr_3; break;
+	default: arr = arr_1; break;
+	}
+
+	while (arr[0] >= 0) {
+		for (int p = 0; p < 4; p++) {
+			/*player_t *player = game.player[p];*/
+			inventory_t *invs[256];
+			int n = 0;
+			for (int i = 0; i < game.max_inventory_index; i++) {
+				if (!INVENTORY_ALLOCATED(i)) continue;
+
+				inventory_t *inventory = game_get_inventory(i);
+				if (inventory->player_num == p &&
+				    inventory->out_queue[1] == -1) {
+					int res_dir = inventory->res_dir & 3;
+					if (res_dir == 0 || res_dir == 1) { /* In mode, stop mode */
+						if (arr[0] == RESOURCE_GROUP_FOOD) {
+							if (inventory->resources[RESOURCE_FISH] != 0 ||
+							    inventory->resources[RESOURCE_MEAT] != 0 ||
+							    inventory->resources[RESOURCE_BREAD] != 0) {
+								invs[n++] = inventory;
+								if (n == 256) break;
+							}
+						} else if (inventory->resources[arr[0]] != 0) {
+							invs[n++] = inventory;
+							if (n == 256) break;
+						}
+					} else {
+						/* TODO */
+					}
+				}
+			}
+
+			if (n == 0) continue;
+
+			flag_search_t search;
+			flag_search_init(&search);
+
+			int max_prio[256];
+			flag_t *flags[256];
+
+			for (int i = 0; i < n; i++) {
+				max_prio[i] = 0;
+				flags[i] = NULL;
+				flag_t *flag = game_get_flag(invs[i]->flg_index);
+				flag->search_dir = i;
+				flag_search_add_source(&search, flag);
+			}
+
+			update_inventories_data_t data;
+			data.resource = arr[0];
+			data.max_prio = max_prio;
+			data.flags = flags;
+			flag_search_execute(&search, (flag_search_func *)update_inventories_cb, 0, 1, &data);
+
+			for (int i = 0; i < n; i++) {
+				if (max_prio[i] > 0) {
+					LOGV("game", " dest for inventory %i found", i);
+					building_t *dest_bld = flags[i]->other_endpoint.b[DIR_UP_LEFT];
+					inventory_t *src_inv = invs[i];
+					for (int j = 0; j < 2; j++) {
+						if (dest_bld->stock[j].type == arr[0]) {
+							dest_bld->stock[j].prio = 0;
+							dest_bld->stock[j].requested += 1;
+						}
+					}
+
+					resource_type_t res = arr[0];
+					if (res == RESOURCE_GROUP_FOOD) {
+						/* Select the food resource with highest amount available */
+						if (src_inv->resources[RESOURCE_MEAT] > src_inv->resources[RESOURCE_BREAD]) {
+							if (src_inv->resources[RESOURCE_MEAT] > src_inv->resources[RESOURCE_FISH]) {
+								res = RESOURCE_MEAT;
+							} else {
+								res = RESOURCE_FISH;
+							}
+						} else if (src_inv->resources[RESOURCE_BREAD] > src_inv->resources[RESOURCE_FISH]) {
+							res = RESOURCE_BREAD;
+						} else {
+							res = RESOURCE_FISH;
+						}
+					}
+
+					/* Put resource in out queue */
+					src_inv->resources[res] -= 1;
+					if (src_inv->out_queue[0] == -1) {
+						LOGV("game", " added resource %i to front of queue", res);
+						src_inv->out_queue[0] = res;
+						src_inv->out_dest[0] = dest_bld->flg_index;
+					} else {
+						LOGV("game", " added resource %i next in queue", res);
+						src_inv->out_queue[1] = res;
+						src_inv->out_dest[1] = dest_bld->flg_index;
+					}
+
+					if (src_inv->serfs[SERF_4] == 0) {
+						/*serf_t *serf = game_get_serf(dest_bld->serf_index);*/
+						/* TODO */
+					}
+				}
+			}
+		}
+		arr += 1;
+	}
+}
+
+static void
+update_ai_and_more()
+{
 	game.next_index += 1;
 	if (game.next_index >= game.max_next_index) {
 		game.next_index = 0;
@@ -593,117 +711,7 @@ update_ai_and_more()
 	if (game.next_index == 32) {
 		/* 1FC1D */
 		update_knight_morale();
-		if (game.game_speed == 0) return;
-		/* update functions */
-
-		const int *arr = NULL;
-		switch (game_random_int() & 7) {
-		case 0: arr = arr_2; break;
-		case 1: arr = arr_3; break;
-		default: arr = arr_1; break;
-		}
-
-		while (arr[0] >= 0) {
-			for (int p = 0; p < 4; p++) {
-				/*player_t *player = game.player[p];*/
-				inventory_t *invs[256];
-				int n = 0;
-				for (int i = 0; i < game.max_inventory_index; i++) {
-					if (INVENTORY_ALLOCATED(i)) {
-						inventory_t *inventory = game_get_inventory(i);
-						if (inventory->player_num == p &&
-						    inventory->out_queue[1] == -1) {
-							int res_dir = inventory->res_dir & 3;
-							if (res_dir == 0 || res_dir == 1) { /* In mode, stop mode */
-								if (arr[0] == RESOURCE_GROUP_FOOD) {
-									if (inventory->resources[RESOURCE_FISH] != 0 ||
-									    inventory->resources[RESOURCE_MEAT] != 0 ||
-									    inventory->resources[RESOURCE_BREAD] != 0) {
-										invs[n++] = inventory;
-										if (n == 256) break;
-									}
-								} else if (inventory->resources[arr[0]] != 0) {
-									invs[n++] = inventory;
-									if (n == 256) break;
-								}
-							} else {
-								/* TODO */
-							}
-						}
-					}
-				}
-
-				if (n > 0) {
-					flag_search_t search;
-					flag_search_init(&search);
-
-					int max_prio[256];
-					flag_t *flags[256];
-
-					for (int i = 0; i < n; i++) {
-						max_prio[i] = 0;
-						flags[i] = NULL;
-						flag_t *flag = game_get_flag(invs[i]->flg_index);
-						flag->search_dir = i;
-						flag_search_add_source(&search, flag);
-					}
-
-					update_ai_and_more_data_t data;
-					data.resource = arr[0];
-					data.max_prio = max_prio;
-					data.flags = flags;
-					flag_search_execute(&search, (flag_search_func *)update_ai_and_more_search_cb, 0, 1, &data);
-
-					for (int i = 0; i < n; i++) {
-						if (max_prio[i] > 0) {
-							LOGV("game", " dest for inventory %i found", i);
-							building_t *dest_bld = flags[i]->other_endpoint.b[DIR_UP_LEFT];
-							inventory_t *src_inv = invs[i];
-							for (int j = 0; j < 2; j++) {
-								if (dest_bld->stock[j].type == arr[0]) {
-									dest_bld->stock[j].prio = 0;
-									dest_bld->stock[j].requested += 1;
-								}
-							}
-
-							resource_type_t res = arr[0];
-							if (res == RESOURCE_GROUP_FOOD) {
-								/* Select the food resource with highest amount available */
-								if (src_inv->resources[RESOURCE_MEAT] > src_inv->resources[RESOURCE_BREAD]) {
-									if (src_inv->resources[RESOURCE_MEAT] > src_inv->resources[RESOURCE_FISH]) {
-										res = RESOURCE_MEAT;
-									} else {
-										res = RESOURCE_FISH;
-									}
-								} else if (src_inv->resources[RESOURCE_BREAD] > src_inv->resources[RESOURCE_FISH]) {
-									res = RESOURCE_BREAD;
-								} else {
-									res = RESOURCE_FISH;
-								}
-							}
-
-							/* Put resource in out queue */
-							src_inv->resources[res] -= 1;
-							if (src_inv->out_queue[0] == -1) {
-								LOGV("game", " added resource %i to front of queue", res);
-								src_inv->out_queue[0] = res;
-								src_inv->out_dest[0] = dest_bld->flg_index;
-							} else {
-								LOGV("game", " added resource %i next in queue", res);
-								src_inv->out_queue[1] = res;
-								src_inv->out_dest[1] = dest_bld->flg_index;
-							}
-
-							if (src_inv->serfs[SERF_4] == 0) {
-								/*serf_t *serf = game_get_serf(dest_bld->serf_index);*/
-								/* TODO */
-							}
-						}
-					}
-				}
-			}
-			arr += 1;
-		}
+		update_inventories();
 	} else if (game.next_index > 32) {
 		while (game.next_index < game.max_next_index) {
 			int i = 33 - game.next_index;
