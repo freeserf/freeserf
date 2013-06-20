@@ -128,12 +128,12 @@ game_alloc_building(building_t **building, int *index)
 					b->flg_index = 0;
 					b->serf = 0;
 
-					b->stock[0].type = -1;
+					b->stock[0].type = RESOURCE_NONE;
 					b->stock[0].prio = 0;
 					b->stock[0].available = 0;
 					b->stock[0].requested = 0;
 
-					b->stock[1].type = -1;
+					b->stock[1].type = RESOURCE_NONE;
 					b->stock[1].prio = 0;
 					b->stock[1].available = 0;
 					b->stock[1].requested = 0;

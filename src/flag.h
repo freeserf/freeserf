@@ -25,6 +25,7 @@
 #include "freeserf.h"
 #include "list.h"
 #include "map.h"
+#include "building.h"
 
 /* Max number of resources waiting at a flag */
 #define FLAG_MAX_RES_COUNT  8

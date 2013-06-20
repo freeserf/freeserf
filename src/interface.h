@@ -24,6 +24,7 @@
 
 #include "gui.h"
 #include "viewport.h"
+#include "building.h"
 #include "panel.h"
 #include "game-init.h"
 #include "notification.h"

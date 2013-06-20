@@ -29,7 +29,6 @@
 #include "gfx.h"
 #include "map.h"
 #include "random.h"
-#include "building.h"
 #include "serf.h"
 
 

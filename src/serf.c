@@ -1542,8 +1542,8 @@ handle_serf_building_state(serf_t *serf)
 					break;
 				}
 
-				building->stock[0].type = -1;
-				building->stock[1].type = -1;
+				building->stock[0].type = RESOURCE_NONE;
+				building->stock[1].type = RESOURCE_NONE;
 				flag->bld_flags = 0;
 				flag->bld2_flags = 0;
 

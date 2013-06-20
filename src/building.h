@@ -26,6 +26,7 @@
 #include <stdint.h>
 
 #include "map.h"
+#include "freeserf.h"
 
 
 #define BUILDING_INDEX(ptr)  ((int)((ptr) - game.buildings))
@@ -89,7 +90,7 @@ typedef enum {
 
 
 typedef struct {
-	int type;
+	resource_type_t type;
 	int prio;
 	int available;
 	int requested;

@@ -690,11 +690,11 @@ load_v0_building_state(FILE *f, const v0_map_t *map)
 		building->serf = building_data[5];
 		building->flg_index = *(uint16_t *)&building_data[6];
 
-		building->stock[0].type = -1;
+		building->stock[0].type = RESOURCE_NONE;
 		building->stock[0].available = (building_data[8] >> 4) & 0xf;
 		building->stock[0].requested = building_data[8] & 0xf;
 
-		building->stock[1].type = -1;
+		building->stock[1].type = RESOURCE_NONE;
 		building->stock[1].available = (building_data[9] >> 4) & 0xf;
 		building->stock[1].requested = building_data[9] & 0xf;
 
