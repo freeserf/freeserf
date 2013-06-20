@@ -2447,15 +2447,15 @@ game_road_segment_valid(map_pos_t pos, dir_t dir)
 /* Get road length category value for real length.
    Determines number of serfs servicing the path segment.(?) */
 static int
-game_get_road_length_value(int length)
+get_road_length_value(int length)
 {
-	if (length >= 24) return 7 << 4;
-	else if (length >= 18) return 6 << 4;
-	else if (length >= 13) return 5 << 4;
-	else if (length >= 10) return 4 << 4;
-	else if (length >= 7) return 3 << 4;
-	else if (length >= 6) return 2 << 4;
-	else if (length >= 4) return 1 << 4;
+	if (length >= 24) return 7;
+	else if (length >= 18) return 6;
+	else if (length >= 13) return 5;
+	else if (length >= 10) return 4;
+	else if (length >= 7) return 3;
+	else if (length >= 6) return 2;
+	else if (length >= 4) return 1;
 	return 0;
 }
 
@@ -2598,10 +2598,10 @@ game_build_road(map_pos_t source, const dir_t dirs[], uint length,
 	dest_flag->other_end_dir[in_dir] = (dest_flag->other_end_dir[in_dir] & 0xc7) | (out_dir << 3);
 	src_flag->other_end_dir[out_dir] = (src_flag->other_end_dir[out_dir] & 0xc7) | (in_dir << 3);
 
-	int len = game_get_road_length_value(length);
+	int len = get_road_length_value(length);
 
-	dest_flag->length[in_dir] = len;
-	src_flag->length[out_dir] = len;
+	dest_flag->length[in_dir] = len << 4;
+	src_flag->length[out_dir] = len << 4;
 
 	dest_flag->other_endpoint.f[in_dir] = src_flag;
 	src_flag->other_endpoint.f[out_dir] = dest_flag;
@@ -3174,10 +3174,10 @@ restore_path_serf_info(flag_t *flag, dir_t dir, serf_path_info_t *data)
 	other_flag->transporter &= ~BIT(other_dir);
 	flag->transporter &= ~BIT(dir);
 
-	int len = game_get_road_length_value(data->path_len);
+	int len = get_road_length_value(data->path_len);
 
-	flag->length[dir] = len;
-	other_flag->length[other_dir] = (0x80 & other_flag->length[other_dir]) | len;
+	flag->length[dir] = len << 4;
+	other_flag->length[other_dir] = (0x80 & other_flag->length[other_dir]) | (len << 4);
 
 	if (FLAG_SERF_REQUESTED(other_flag, other_dir)) {
 		flag->length[dir] |= BIT(7);
@@ -4226,9 +4226,9 @@ demolish_flag(map_pos_t pos)
 		flag_1->transporter &= ~BIT(dir_1);
 		flag_2->transporter &= ~BIT(dir_2);
 
-		int len = game_get_road_length_value(path_1_data.path_len + path_2_data.path_len);
-		flag_1->length[dir_1] = len;
-		flag_2->length[dir_2] = len;
+		int len = get_road_length_value(path_1_data.path_len + path_2_data.path_len);
+		flag_1->length[dir_1] = len << 4;
+		flag_2->length[dir_2] = len << 4;
 
 		int max_serfs = max_transporters[FLAG_LENGTH_CATEGORY(flag_1, dir_1)];
 		int serf_count = path_1_data.serf_count + path_2_data.serf_count;
