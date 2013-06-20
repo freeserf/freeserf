@@ -1031,17 +1031,17 @@ schedule_slot_to_unknown_dest(flag_t *flag, int slot)
 		flag_search_init(&search);
 		flag_search_add_source(&search, flag);
 
+		/* Handle food as one resource group */
+		if (res == RESOURCE_MEAT ||
+		    res == RESOURCE_FISH ||
+		    res == RESOURCE_BREAD) {
+			res = RESOURCE_GROUP_FOOD;
+		}
+
 		schedule_unknown_dest_data_t data;
 		data.resource = res;
 		data.flag = NULL;
 		data.max_prio = 0;
-
-		/* Handle food as one resource group */
-		if (data.resource == RESOURCE_MEAT ||
-		    data.resource == RESOURCE_FISH ||
-		    data.resource == RESOURCE_BREAD) {
-			data.resource = RESOURCE_GROUP_FOOD;
-		}
 
 		flag_search_execute(&search,
 				    (flag_search_func *)schedule_unknown_dest_cb,
