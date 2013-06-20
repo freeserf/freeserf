@@ -5022,9 +5022,9 @@ init_ai_values(player_t *player, int face)
 	player->ai_value_5 = ai_values_5[face-1];
 }
 
-/* Initialize player_t objects. */
+/* Initialize player objects. */
 static void
-reset_player_settings()
+players_init()
 {
 	const int default_player_colors[] = {
 		64, 72, 68, 76
@@ -5249,7 +5249,7 @@ game_init_map()
 	map_init();
 	map_init_minimap();
 
-	reset_player_settings();
+	players_init();
 }
 
 int
