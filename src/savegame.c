@@ -1064,6 +1064,7 @@ save_text_flag_state(FILE *f)
 			}
 
 			save_text_write_array(f, "other_endpoint", indices, 6);
+			save_text_write_array(f, "other_end_dir", flag->other_end_dir, 6);
 
 			save_text_write_value(f, "bld_flags", flag->bld_flags);
 			save_text_write_value(f, "bld2_flags", flag->bld2_flags);
@@ -1945,6 +1946,12 @@ load_text_flag_section(section_t *section)
 				char *v = parse_array_value(&array);
 				flag->other_endpoint.f[i] = &game.flags[atoi(v)];
 			}
+		} else if (!strcmp(s->key, "other_end_dir")) {
+			char *array = s->value;
+			for (int i = 0; i < 6 && array != NULL; i++) {
+				char *v = parse_array_value(&array);
+				flag->other_end_dir[i] = atoi(v);
+			}
 		} else if (!strcmp(s->key, "bld_flags")) {
 			flag->bld_flags = atoi(s->value);
 		} else if (!strcmp(s->key, "bld2_flags")) {
@@ -1954,7 +1961,7 @@ load_text_flag_section(section_t *section)
 		}
 	}
 
-	/* Fix link if connected to building*/
+	/* Fix link if connected to building */
 	if (FLAG_HAS_BUILDING(flag)) {
 		char *array = load_text_get_setting(section, "other_endpoint");
 		char *v = NULL;
