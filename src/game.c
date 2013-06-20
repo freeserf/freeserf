@@ -856,58 +856,32 @@ find_nearest_inventory(flag_t *flag)
 typedef struct {
 	flag_t *src;
 	flag_t *dest;
-	int res;
-} update_flags_search_data_t;
+	int slot;
+} schedule_known_dest_data_t;
 
 static int
-update_flags_search_cb(flag_t *flag, update_flags_search_data_t *data)
+schedule_known_dest_cb(flag_t *flag, schedule_known_dest_data_t *data)
 {
 	flag_t *src = data->src;
 	if (flag == data->dest) {
 		/* Destination found */
 		if (flag->search_dir != 6) {
-			int other_dir = src->other_end_dir[flag->search_dir];
-			if (!BIT_TEST(other_dir, 7)) {
+			if (!FLAG_IS_SCHEDULED(src, flag->search_dir)) {
 				/* Item is requesting to be fetched */
-				src->other_end_dir[flag->search_dir] = BIT(7) | (src->other_end_dir[flag->search_dir] & 0x78) | data->res;
+				src->other_end_dir[flag->search_dir] = BIT(7) | (src->other_end_dir[flag->search_dir] & 0x78) | data->slot;
 			} else {
 				player_t *player = game.player[FLAG_PLAYER(flag)];
+				int other_dir = src->other_end_dir[flag->search_dir];
 				int prio_old = player->flag_prio[(src->res_waiting[other_dir & 7] & 0x1f)-1];
-				int prio_new = player->flag_prio[(src->res_waiting[data->res] & 0x1f)-1];
+				int prio_new = player->flag_prio[(src->res_waiting[data->slot] & 0x1f)-1];
 				if (prio_new > prio_old) {
-					/* This item has the highest priority new */
-					src->other_end_dir[flag->search_dir] = (src->other_end_dir[flag->search_dir] & 0xf8) | data->res;
+					/* This item has the highest priority now */
+					src->other_end_dir[flag->search_dir] = (src->other_end_dir[flag->search_dir] & 0xf8) | data->slot;
 				}
-				src->res_waiting[data->res] = ((flag->search_dir + 1) << 5) | (src->res_waiting[data->res] & 0x1f);
+				src->res_waiting[data->slot] = ((flag->search_dir + 1) << 5) | (src->res_waiting[data->slot] & 0x1f);
 			}
 		}
 		return 1;
-	}
-
-	return 0;
-}
-
-typedef struct {
-	int resource;
-	int max_prio;
-	flag_t *flag;
-} update_flags_search2_t;
-
-static int
-update_flags_search2_cb(flag_t *flag, update_flags_search2_t *data)
-{
-	if (FLAG_HAS_BUILDING(flag)) {
-		building_t *building = flag->other_endpoint.b[DIR_UP_LEFT];
-
-		for (int i = 0; i < 2; i++) {
-			if (building->stock[i].type == data->resource &&
-			    building->stock[i].prio > data->max_prio) {
-				data->max_prio = building->stock[i].prio;
-				data->flag = flag;
-			}
-		}
-
-		if (data->max_prio > 204) return 1;
 	}
 
 	return 0;
@@ -973,12 +947,12 @@ schedule_slot_to_known_dest(flag_t *flag, int slot)
 	}
 
 	if (sources > 0) {
-		update_flags_search_data_t data;
+		schedule_known_dest_data_t data;
 		data.src = flag;
 		data.dest = game_get_flag(flag->res_dest[slot]);
-		data.res = slot;
+		data.slot = slot;
 		int r = flag_search_execute(&search,
-					    (flag_search_func *)update_flags_search_cb,
+					    (flag_search_func *)schedule_known_dest_cb,
 					    0, 1, &data);
 		if (r < 0 || data.dest->search_dir == 6) {
 			/* Unable to deliver */
@@ -991,14 +965,53 @@ schedule_slot_to_known_dest(flag_t *flag, int slot)
 	}
 }
 
+typedef struct {
+	int resource;
+	int max_prio;
+	flag_t *flag;
+} schedule_unknown_dest_data_t;
+
+static int
+schedule_unknown_dest_cb(flag_t *flag, schedule_unknown_dest_data_t *data)
+{
+	if (FLAG_HAS_BUILDING(flag)) {
+		building_t *building = flag->other_endpoint.b[DIR_UP_LEFT];
+
+		for (int i = 0; i < 2; i++) {
+			if (building->stock[i].type == data->resource &&
+			    building->stock[i].prio > data->max_prio) {
+				data->max_prio = building->stock[i].prio;
+				data->flag = flag;
+			}
+		}
+
+		if (data->max_prio > 204) return 1;
+	}
+
+	return 0;
+}
+
 static void
 schedule_slot_to_unknown_dest(flag_t *flag, int slot)
 {
+	/* Resources which should be routed directly to
+	   buildings requesting them. Resources not listed
+	   here will simply be moved to an inventory. */
 	const int routable[] = {
-		1, 1, 1, 1, 1, 1, 1, 1,
-		0, 1, 1, 1, 1, 1, 1, 0,
-		0, 0, 0, 0, 0, 0, 0, 0,
-		0
+		[RESOURCE_FISH] = 1,
+		[RESOURCE_PIG] = 1,
+		[RESOURCE_MEAT] = 1,
+		[RESOURCE_WHEAT] = 1,
+		[RESOURCE_FLOUR] = 1,
+		[RESOURCE_BREAD] = 1,
+		[RESOURCE_LUMBER] = 1,
+		[RESOURCE_PLANK] = 1,
+		[RESOURCE_STONE] = 1,
+		[RESOURCE_IRONORE] = 1,
+		[RESOURCE_STEEL] = 1,
+		[RESOURCE_COAL] = 1,
+		[RESOURCE_GOLDORE] = 1,
+		[RESOURCE_GOLDBAR] = 1
 	};
 
 	resource_type_t res = (flag->res_waiting[slot] & 0x1f)-1;
@@ -1007,13 +1020,13 @@ schedule_slot_to_unknown_dest(flag_t *flag, int slot)
 		flag_search_init(&search);
 		flag_search_add_source(&search, flag);
 
-		update_flags_search2_t data;
+		schedule_unknown_dest_data_t data;
 		data.resource = res;
 		data.flag = NULL;
 		data.max_prio = 0;
 
 		flag_search_execute(&search,
-				    (flag_search_func *)update_flags_search2_cb,
+				    (flag_search_func *)schedule_unknown_dest_cb,
 				    0, 1, &data);
 		if (data.flag != NULL) {
 			LOGV("game", "dest for flag %u res %i found: flag %u",
