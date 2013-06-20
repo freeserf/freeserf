@@ -2943,9 +2943,9 @@ handle_serf_mining_state(serf_t *serf)
 		case 0:
 		{
 			/* There is a small chance that the miner will
-			   require food and go to state 1. */
+			   not require food and skip to state 2. */
 			int r = game_random_int();
-			if ((r & 7) != 0) serf->s.mining.substate = 2;
+			if ((r & 7) == 0) serf->s.mining.substate = 2;
 			else serf->s.mining.substate = 1;
 			serf->counter += 100 + (r & 0x1ff);
 		}
