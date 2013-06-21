@@ -3191,7 +3191,7 @@ restore_path_serf_info(flag_t *flag, dir_t dir, serf_path_info_t *data)
 	flag->other_endpoint.f[dir] = other_flag;
 	other_flag->other_endpoint.f[other_dir] = flag;
 
-	int max_serfs = max_path_serfs[(len >> 4) & 7];
+	int max_serfs = max_path_serfs[len];
 	if (FLAG_SERF_REQUESTED(flag, dir)) max_serfs -= 1;
 
 	if (data->serf_count > max_serfs) {
@@ -3219,7 +3219,7 @@ restore_path_serf_info(flag_t *flag, dir_t dir, serf_path_info_t *data)
 	}
 
 	if (min(data->serf_count, max_serfs) > 0) {
-		/* There is still transporters on the paths. */
+		/* There are still transporters on the paths. */
 		flag->transporter |= BIT(dir);
 		other_flag->transporter |= BIT(other_dir);
 
