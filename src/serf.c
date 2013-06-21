@@ -2316,7 +2316,7 @@ handle_free_walking_follow_edge(serf_t *serf)
 	}
 
 	const int *a0 = &dir_arr[6*dir_index];
-	int d = -1;
+	int i0 = -1;
 	dir_t dir = DIR_NONE;
 	for (int i = 0; i < 6; i++) {
 		map_pos_t new_pos = MAP_MOVE(serf->pos, a0[i]);
@@ -2325,23 +2325,22 @@ handle_free_walking_follow_edge(serf_t *serf)
 		      serf_can_pass_map_pos(new_pos))) &&
 		    MAP_SERF_INDEX(new_pos) == 0) {
 			dir = a0[i];
-			d = 5 - i;
+			i0 = i;
 			break;
 		}
 	}
 
-	if (d > -1) {
-		d -= 3;
-		serf->s.free_walking.flags -= (d << 4);
-		if (d > 0 && serf->s.free_walking.flags < 0) {
+	if (i0 > -1) {
+		int upper = ((serf->s.free_walking.flags >> 4) & 0xf) + i0 - 2;
+		if (i0 < 2 && upper < 0) {
 			serf->s.free_walking.flags = 0;
 			handle_serf_free_walking_switch_on_dir(serf, dir);
 			return 0;
-		} else if (d < 0 && serf->s.free_walking.flags > 255) { /* overflow byte */
+		} else if (i0 > 2 && upper > 15) {
 			serf->s.free_walking.flags = 0;
 		} else {
 			int dir_index = dir+1;
-			serf->s.free_walking.flags = (serf->s.free_walking.flags & 0xf8) | dir_index;
+			serf->s.free_walking.flags = (upper << 4) | (serf->s.free_walking.flags & 0x8) | dir_index;
 			handle_serf_free_walking_switch_on_dir(serf, dir);
 			return 0;
 		}
