@@ -2232,6 +2232,130 @@ serf_can_pass_map_pos(map_pos_t pos)
 	return map_space_from_obj[MAP_OBJ(pos)] <= MAP_SPACE_SEMIPASSABLE;
 }
 
+static int
+handle_free_walking_follow_edge(serf_t *serf)
+{
+	const int dir_from_offset[] = {
+		DIR_UP_LEFT, DIR_UP, -1,
+		DIR_LEFT, -1, DIR_RIGHT,
+		-1, DIR_DOWN, DIR_DOWN_RIGHT
+	};
+
+	/* Follow right-hand edge */
+	const dir_t dir_right_edge[] = {
+		DIR_DOWN, DIR_DOWN_RIGHT, DIR_RIGHT, DIR_UP, DIR_UP_LEFT, DIR_LEFT,
+		DIR_LEFT, DIR_DOWN, DIR_DOWN_RIGHT, DIR_RIGHT, DIR_UP, DIR_UP_LEFT,
+		DIR_UP_LEFT, DIR_LEFT, DIR_DOWN, DIR_DOWN_RIGHT, DIR_RIGHT, DIR_UP,
+		DIR_UP, DIR_UP_LEFT, DIR_LEFT, DIR_DOWN, DIR_DOWN_RIGHT, DIR_RIGHT,
+		DIR_RIGHT, DIR_UP, DIR_UP_LEFT, DIR_LEFT, DIR_DOWN, DIR_DOWN_RIGHT,
+		DIR_DOWN_RIGHT, DIR_RIGHT, DIR_UP, DIR_UP_LEFT, DIR_LEFT, DIR_DOWN,
+	};
+
+	/* Follow left-hand edge */
+	const dir_t dir_left_edge[] = {
+		DIR_UP_LEFT, DIR_UP, DIR_RIGHT, DIR_DOWN_RIGHT, DIR_DOWN, DIR_LEFT,
+		DIR_UP, DIR_RIGHT, DIR_DOWN_RIGHT, DIR_DOWN, DIR_LEFT, DIR_UP_LEFT,
+		DIR_RIGHT, DIR_DOWN_RIGHT, DIR_DOWN, DIR_LEFT, DIR_UP_LEFT, DIR_UP,
+		DIR_DOWN_RIGHT, DIR_DOWN, DIR_LEFT, DIR_UP_LEFT, DIR_UP, DIR_RIGHT,
+		DIR_DOWN, DIR_LEFT, DIR_UP_LEFT, DIR_UP, DIR_RIGHT, DIR_DOWN_RIGHT,
+		DIR_LEFT, DIR_UP_LEFT, DIR_UP, DIR_RIGHT, DIR_DOWN_RIGHT, DIR_DOWN,
+	};
+
+	int water = (serf->state == SERF_STATE_FREE_SAILING);
+	int dir_index = -1;
+	const int *dir_arr = NULL;
+
+	if (BIT_TEST(serf->s.free_walking.flags, 3)) {
+		/* Follow right-hand edge */
+		dir_arr = dir_left_edge;
+		dir_index = (serf->s.free_walking.flags & 7)-1;
+	} else {
+		/* Follow right-hand edge */
+		dir_arr = dir_right_edge;
+		dir_index = (serf->s.free_walking.flags & 7)-1;
+	}
+
+	int d1 = serf->s.free_walking.dist1;
+	int d2 = serf->s.free_walking.dist2;
+
+	/* Check if dest is only one step away. */
+	if (!water && abs(d1) <= 1 && abs(d2) <= 1 &&
+	    dir_from_offset[(d1+1) + 3*(d2+1)] > -1) {
+		/* Convert offset in two dimensions to
+		   direction variable. */
+		dir_t dir = dir_from_offset[(d1+1) + 3*(d2+1)];
+
+		if (!serf_can_pass_map_pos(MAP_MOVE(serf->pos, dir))) {
+			if (serf->state != SERF_STATE_KNIGHT_FREE_WALKING &&
+			    serf->s.free_walking.neg_dist1 != -128) {
+				serf->s.free_walking.dist1 += serf->s.free_walking.neg_dist1;
+				serf->s.free_walking.dist2 += serf->s.free_walking.neg_dist2;
+				serf->s.free_walking.neg_dist1 = 0;
+				serf->s.free_walking.neg_dist2 = 0;
+				serf->s.free_walking.flags = 0;
+				serf->animation = 82;
+				serf->counter = counter_from_animation[serf->animation];
+			} else {
+				serf_log_state_change(serf, SERF_STATE_LOST);
+				serf->state = SERF_STATE_LOST;
+				serf->s.lost.field_B = 0;
+				serf->counter = 0;
+			}
+			return 0;
+		}
+
+		if (serf->state == SERF_STATE_KNIGHT_FREE_WALKING &&
+		    serf->s.free_walking.neg_dist1 != -128 &&
+		    MAP_SERF_INDEX(MAP_MOVE(serf->pos, dir)) != 0) {
+			/* Wait for other serfs */
+			serf->s.free_walking.flags = 0;
+			serf->animation = 82;
+			serf->counter = counter_from_animation[serf->animation];
+			return 0;
+		}
+	}
+
+	const int *a0 = &dir_arr[6*dir_index];
+	int d = -1;
+	dir_t dir = DIR_NONE;
+	for (int i = 0; i < 6; i++) {
+		map_pos_t new_pos = MAP_MOVE(serf->pos, a0[i]);
+		if (((water && MAP_OBJ(new_pos) == 0) ||
+		     (!water && !MAP_IN_WATER(new_pos) &&
+		      serf_can_pass_map_pos(new_pos))) &&
+		    MAP_SERF_INDEX(new_pos) == 0) {
+			dir = a0[i];
+			d = 5 - i;
+			break;
+		}
+	}
+
+	if (d > -1) {
+		d -= 3;
+		serf->s.free_walking.flags -= (d << 4);
+		if (d > 0 && serf->s.free_walking.flags < 0) {
+			serf->s.free_walking.flags = 0;
+			handle_serf_free_walking_switch_on_dir(serf, dir);
+			return 0;
+		} else if (d < 0 && serf->s.free_walking.flags > 255) { /* overflow byte */
+			serf->s.free_walking.flags = 0;
+		} else {
+			int dir_index = dir+1;
+			serf->s.free_walking.flags = (serf->s.free_walking.flags & 0xf8) | dir_index;
+			handle_serf_free_walking_switch_on_dir(serf, dir);
+			return 0;
+		}
+	} else {
+		int dir_index = 0;
+		serf->s.free_walking.flags = (serf->s.free_walking.flags & 0xf8) | dir_index;
+		serf->s.free_walking.flags &= ~BIT(3);
+		handle_serf_free_walking_switch_with_other(serf);
+		return 0;
+	}
+
+	return -1;
+}
+
 static void
 handle_free_walking_common(serf_t *serf)
 {
@@ -2241,126 +2365,56 @@ handle_free_walking_common(serf_t *serf)
 		-1, DIR_DOWN, DIR_DOWN_RIGHT
 	};
 
-	const int dir_arr[] = {
-		DIR_DOWN, DIR_DOWN_RIGHT, DIR_RIGHT, DIR_UP, DIR_UP_LEFT, DIR_LEFT, -1, -1,
-		DIR_LEFT, DIR_DOWN, DIR_DOWN_RIGHT, DIR_RIGHT, DIR_UP, DIR_UP_LEFT, -1, -1,
-		DIR_UP_LEFT, DIR_LEFT, DIR_DOWN, DIR_DOWN_RIGHT, DIR_RIGHT, DIR_UP, -1, -1,
-		DIR_UP, DIR_UP_LEFT, DIR_LEFT, DIR_DOWN, DIR_DOWN_RIGHT, DIR_RIGHT, -1, -1,
-		DIR_RIGHT, DIR_UP, DIR_UP_LEFT, DIR_LEFT, DIR_DOWN, DIR_DOWN_RIGHT, -1, -1,
-		DIR_DOWN_RIGHT, DIR_RIGHT, DIR_UP, DIR_UP_LEFT, DIR_LEFT, DIR_DOWN, -1, -1,
+	/* Directions for moving forwards. Each of the 12 lines represents
+	   a general direction as shown in the diagram below.
+	   The lines list the local directions in order of preference for that
+	   general direction.
 
-		DIR_UP_LEFT, DIR_UP, DIR_RIGHT, DIR_DOWN_RIGHT, DIR_DOWN, DIR_LEFT, -1, -1,
-		DIR_UP, DIR_RIGHT, DIR_DOWN_RIGHT, DIR_DOWN, DIR_LEFT, DIR_UP_LEFT, -1, -1,
-		DIR_RIGHT, DIR_DOWN_RIGHT, DIR_DOWN, DIR_LEFT, DIR_UP_LEFT, DIR_UP, -1, -1,
-		DIR_DOWN_RIGHT, DIR_DOWN, DIR_LEFT, DIR_UP_LEFT, DIR_UP, DIR_RIGHT, -1, -1,
-		DIR_DOWN, DIR_LEFT, DIR_UP_LEFT, DIR_UP, DIR_RIGHT, DIR_DOWN_RIGHT, -1, -1,
-		DIR_LEFT, DIR_UP_LEFT, DIR_UP, DIR_RIGHT, DIR_DOWN_RIGHT, DIR_DOWN, -1, -1,
-
-		DIR_UP, DIR_UP_LEFT, DIR_RIGHT, DIR_LEFT, DIR_DOWN_RIGHT, DIR_DOWN, -1, -1,
-		DIR_UP_LEFT, DIR_UP, DIR_LEFT, DIR_RIGHT, DIR_DOWN, DIR_DOWN_RIGHT, -1, -1,
-		DIR_UP_LEFT, DIR_LEFT, DIR_UP, DIR_DOWN, DIR_RIGHT, DIR_DOWN_RIGHT, -1, -1,
-		DIR_LEFT, DIR_UP_LEFT, DIR_DOWN, DIR_UP, DIR_DOWN_RIGHT, DIR_RIGHT, -1, -1,
-		DIR_LEFT, DIR_DOWN, DIR_UP_LEFT, DIR_DOWN_RIGHT, DIR_UP, DIR_RIGHT, -1, -1,
-		DIR_DOWN, DIR_LEFT, DIR_DOWN_RIGHT, DIR_UP_LEFT, DIR_RIGHT, DIR_UP, -1, -1,
-		DIR_DOWN, DIR_DOWN_RIGHT, DIR_LEFT, DIR_RIGHT, DIR_UP_LEFT, DIR_UP, -1, -1,
-		DIR_DOWN_RIGHT, DIR_DOWN, DIR_RIGHT, DIR_LEFT, DIR_UP, DIR_UP_LEFT, -1, -1,
-		DIR_DOWN_RIGHT, DIR_RIGHT, DIR_DOWN, DIR_UP, DIR_LEFT, DIR_UP_LEFT, -1, -1,
-		DIR_RIGHT, DIR_DOWN_RIGHT, DIR_UP, DIR_DOWN, DIR_UP_LEFT, DIR_LEFT, -1, -1,
-		DIR_RIGHT, DIR_UP, DIR_DOWN_RIGHT, DIR_UP_LEFT, DIR_DOWN, DIR_LEFT, -1, -1,
-		DIR_UP, DIR_RIGHT, DIR_UP_LEFT, DIR_DOWN_RIGHT, DIR_LEFT, DIR_DOWN, -1, -1
+	   *         1    0
+	   *    2   ________   11
+	   *       /\      /\
+	   *      /  \    /  \
+	   *  3  /    \  /    \  10
+	   *    /______\/______\
+	   *    \      /\      /
+	   *  4  \    /  \    /  9
+	   *      \  /    \  /
+	   *       \/______\/
+	   *    5             8
+	   *         6    7
+	   */
+	const int dir_forward[] = {
+		DIR_UP, DIR_UP_LEFT, DIR_RIGHT, DIR_LEFT, DIR_DOWN_RIGHT, DIR_DOWN,
+		DIR_UP_LEFT, DIR_UP, DIR_LEFT, DIR_RIGHT, DIR_DOWN, DIR_DOWN_RIGHT,
+		DIR_UP_LEFT, DIR_LEFT, DIR_UP, DIR_DOWN, DIR_RIGHT, DIR_DOWN_RIGHT,
+		DIR_LEFT, DIR_UP_LEFT, DIR_DOWN, DIR_UP, DIR_DOWN_RIGHT, DIR_RIGHT,
+		DIR_LEFT, DIR_DOWN, DIR_UP_LEFT, DIR_DOWN_RIGHT, DIR_UP, DIR_RIGHT,
+		DIR_DOWN, DIR_LEFT, DIR_DOWN_RIGHT, DIR_UP_LEFT, DIR_RIGHT, DIR_UP,
+		DIR_DOWN, DIR_DOWN_RIGHT, DIR_LEFT, DIR_RIGHT, DIR_UP_LEFT, DIR_UP,
+		DIR_DOWN_RIGHT, DIR_DOWN, DIR_RIGHT, DIR_LEFT, DIR_UP, DIR_UP_LEFT,
+		DIR_DOWN_RIGHT, DIR_RIGHT, DIR_DOWN, DIR_UP, DIR_LEFT, DIR_UP_LEFT,
+		DIR_RIGHT, DIR_DOWN_RIGHT, DIR_UP, DIR_DOWN, DIR_UP_LEFT, DIR_LEFT,
+		DIR_RIGHT, DIR_UP, DIR_DOWN_RIGHT, DIR_UP_LEFT, DIR_DOWN, DIR_LEFT,
+		DIR_UP, DIR_RIGHT, DIR_UP_LEFT, DIR_DOWN_RIGHT, DIR_LEFT, DIR_DOWN
 	};
 
 	int water = (serf->state == SERF_STATE_FREE_SAILING);
-	int dir = -1;
-	map_pos_t new_pos = 0;
 
 	if (BIT_TEST(serf->s.free_walking.flags, 3) &&
 	    (serf->s.free_walking.flags & 7) == 0) {
 		/* Destination reached */
 		handle_serf_free_walking_state_dest_reached(serf);
 		return;
-	} else if ((serf->s.free_walking.flags & 7) != 0) {
-		int flags = serf->s.free_walking.flags & 7;
-		if (BIT_TEST(serf->s.free_walking.flags, 3)) flags += 5;
-		else flags -= 1;
-
-		int d1 = serf->s.free_walking.dist1;
-		int d2 = serf->s.free_walking.dist2;
-
-		/* Check if dest is only one step away. */
-		if (!water && abs(d1) <= 1 && abs(d2) <= 1 &&
-		    dir_from_offset[(d1+1) + 3*(d2+1)] > -1) {
-			/* Convert offset in two dimensions to
-			   direction variable. */
-			dir_t dir = dir_from_offset[(d1+1) + 3*(d2+1)];
-
-			if (!serf_can_pass_map_pos(MAP_MOVE(serf->pos, dir))) {
-				if (serf->state != SERF_STATE_KNIGHT_FREE_WALKING &&
-				    serf->s.free_walking.neg_dist1 != -128) {
-					serf->s.free_walking.dist1 += serf->s.free_walking.neg_dist1;
-					serf->s.free_walking.dist2 += serf->s.free_walking.neg_dist2;
-					serf->s.free_walking.neg_dist1 = 0;
-					serf->s.free_walking.neg_dist2 = 0;
-					serf->s.free_walking.flags = 0;
-					serf->animation = 82;
-					serf->counter = counter_from_animation[serf->animation];
-				} else {
-					serf_log_state_change(serf, SERF_STATE_LOST);
-					serf->state = SERF_STATE_LOST;
-					serf->s.lost.field_B = 0;
-					serf->counter = 0;
-				}
-				return;
-			}
-
-			if (serf->state == SERF_STATE_KNIGHT_FREE_WALKING &&
-			    serf->s.free_walking.neg_dist1 != -128 &&
-			    MAP_SERF_INDEX(MAP_MOVE(serf->pos, dir)) != 0) {
-				serf->s.free_walking.flags = 0;
-				serf->animation = 82;
-				serf->counter = counter_from_animation[serf->animation];
-				return;
-			}
-		}
-
-		const int *a0 = &dir_arr[8*flags];
-		int d = -1;
-		for (int i = 0; i < 6; i++) {
-			new_pos = MAP_MOVE(serf->pos, a0[i]);
-			if (((water && MAP_OBJ(new_pos) == 0) ||
-			     (!water && !MAP_IN_WATER(new_pos) &&
-			      serf_can_pass_map_pos(new_pos))) &&
-			    MAP_SERF_INDEX(new_pos) == 0) {
-				dir = a0[i];
-				d = 5 - i;
-				break;
-			}
-		}
-
-		if (d > -1) {
-			d -= 3;
-			serf->s.free_walking.flags -= (d << 4);
-			if (d > 0 && serf->s.free_walking.flags < 0) {
-				/* TODO Sometimes the direction chosen here
-				   seems weird. */
-				serf->s.free_walking.flags = 0;
-				handle_serf_free_walking_switch_on_dir(serf, dir);
-				return;
-			} else if (d < 0 && serf->s.free_walking.flags > 255) { /* overflow byte */
-				serf->s.free_walking.flags = 0;
-			} else {
-				serf->s.free_walking.flags = (serf->s.free_walking.flags & 0xf8) | (dir+1);
-				handle_serf_free_walking_switch_on_dir(serf, dir);
-				return;
-			}
-		} else {
-			serf->s.free_walking.flags &= 0xf0;
-			handle_serf_free_walking_switch_with_other(serf);
-			return;
-		}
 	}
 
-	int offset = 12;
+	if ((serf->s.free_walking.flags & 7) != 0) {
+		/* Obstacle encountered, follow along the edge */
+		int r = handle_free_walking_follow_edge(serf);
+		if (r >= 0) return;
+	}
+
+	/* Move fowards */
+	int dir_index = -1;
 	int d1 = serf->s.free_walking.dist1;
 	int d2 = serf->s.free_walking.dist2;
 	if (d1 < 0) {
@@ -2368,38 +2422,36 @@ handle_free_walking_common(serf_t *serf)
 		if (d2 < 0) {
 			d2 = -d2;
 			if (d2 < d1) {
-				offset += 2;
-				d2 *= 2;
-				if (d2 < d1) offset += 1;
+				if (2*d2 < d1) dir_index = 3;
+				else dir_index = 2;
 			} else {
-				d1 *= 2;
-				if (d2 < d1) offset += 1;
+				if (d2 < 2*d1) dir_index = 1;
+				else dir_index = 0;
 			}
 		} else {
-			offset += 4;
-			if (d2 >= d1) offset += 1;
+			if (d2 >= d1) dir_index = 5;
+			else dir_index = 4;
 		}
 	} else {
-		offset += 6;
 		if (d2 < 0) {
 			d2 = -d2;
-			offset += 4;
-			if (d2 >= d1) offset += 1;
+			if (d2 >= d1) dir_index = 11;
+			else dir_index = 10;
 		} else {
 			if (d2 < d1) {
-				offset += 2;
-				d2 *= 2;
-				if (d2 < d1) offset += 1;
+				if (2*d2 < d1) dir_index = 9;
+				else dir_index = 8;
 			} else {
-				d1 *= 2;
-				if (d2 < d1) offset += 1;
+				if (d2 < 2*d1) dir_index = 7;
+				else dir_index = 6;
 			}
 		}
 	}
 
-	const int *a0 = &dir_arr[8*offset];
-	dir = a0[0];
-	new_pos = MAP_MOVE(serf->pos, dir);
+	/* Try to move directly in the preferred direction */
+	const int *a0 = &dir_forward[6*dir_index];
+	dir_t dir = a0[0];
+	map_pos_t new_pos = MAP_MOVE(serf->pos, dir);
 	if (((water && MAP_OBJ(new_pos) == 0) ||
 	     (!water && !MAP_IN_WATER(new_pos) &&
 	      serf_can_pass_map_pos(new_pos))) &&
@@ -2408,16 +2460,13 @@ handle_free_walking_common(serf_t *serf)
 		return;
 	}
 
-	d1 = serf->s.free_walking.dist1;
-	d2 = serf->s.free_walking.dist2;
-
 	/* Check if dest is only one step away. */
 	if (!water && abs(d1) <= 1 && abs(d2) <= 1 &&
 	    dir_from_offset[(d1+1) + 3*(d2+1)] > -1) {
 		/* Convert offset in two dimensions to
 		   direction variable. */
 		dir_t d = dir_from_offset[(d1+1) + 3*(d2+1)];
-		new_pos = MAP_MOVE(serf->pos, d);
+		map_pos_t new_pos = MAP_MOVE(serf->pos, d);
 
 		if (!serf_can_pass_map_pos(new_pos)) {
 			if (serf->state != SERF_STATE_KNIGHT_FREE_WALKING &&
@@ -2466,24 +2515,26 @@ handle_free_walking_common(serf_t *serf)
 	int i0 = -1;
 	for (int i = 0; i < 5; i++) {
 		dir = a0[1+i];
-		new_pos = MAP_MOVE(serf->pos, dir);
+		map_pos_t new_pos = MAP_MOVE(serf->pos, dir);
 		if (((water && MAP_OBJ(new_pos) == 0) ||
 		     (!water && !MAP_IN_WATER(new_pos) &&
 		      serf_can_pass_map_pos(new_pos))) &&
 		    MAP_SERF_INDEX(new_pos) == 0) {
-			i0 = 4-i;
+			i0 = i;
 			break;
 		}
 	}
 
-	if (i0 > -1) {
-		int d0 = dir + 1;
-		if (BIT_TEST(offset ^ i0, 0)) d0 += 8; /* ? */
-		serf->s.free_walking.flags = (((6 - i0) & ~1) << 3) | d0;
-	} else {
+	if (i0 < 0) {
 		handle_serf_free_walking_switch_with_other(serf);
 		return;
 	}
+
+	int edge = 0;
+	if (BIT_TEST(dir_index ^ i0, 0)) edge = 1;
+	int upper = (i0/2) + 1;
+
+	serf->s.free_walking.flags = (upper << 4) | (edge << 3) | (dir+1);
 
 	handle_serf_free_walking_switch_on_dir(serf, dir);
 }
