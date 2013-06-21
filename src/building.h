@@ -28,6 +28,8 @@
 #include "map.h"
 #include "freeserf.h"
 
+/* Max number of different types of resources accepted by buildings. */
+#define BUILDING_MAX_STOCK  2
 
 #define BUILDING_INDEX(ptr)  ((int)((ptr) - game.buildings))
 #define BUILDING_ALLOCATED(i)  BIT_TEST(game.building_bitmap[(i)>>3], 7-((i)&7))
@@ -103,7 +105,7 @@ struct building {
 	int bld;
 	int serf;
 	int flg_index;
-	building_stock_t stock[2];
+	building_stock_t stock[BUILDING_MAX_STOCK];
 	int serf_index; /* Also used for burning building counter. */
 	int progress;
 	union {

@@ -166,7 +166,7 @@ flag_cancel_transported_stock(flag_t *flag, resource_type_t res)
 			res = RESOURCE_GROUP_FOOD;
 		}
 
-		for (int i = 0; i < 2; i++) {
+		for (int i = 0; i < BUILDING_MAX_STOCK; i++) {
 			if (building->stock[i].type == res) {
 				building->stock[i].requested -= 1;
 				assert(building->stock[i].requested >= 0);

@@ -2346,7 +2346,7 @@ draw_building_stock_box(popup_box_t *popup, frame_t *frame)
 	}
 
 	/* Draw list of resources */
-	for (int j = 0; j < 2; j++) {
+	for (int j = 0; j < BUILDING_MAX_STOCK; j++) {
 		if (building->stock[j].type >= 0) {
 			int stock = building->stock[j].available;
 			if (stock > 0) {

@@ -1779,7 +1779,7 @@ handle_serf_delivering_state(serf_t *serf)
 					}
 
 					/* Add to building stock */
-					for (int i = 0; i < 2; i++) {
+					for (int i = 0; i < BUILDING_MAX_STOCK; i++) {
 						if (building->stock[i].type == res) {
 							building->stock[i].available += 1;
 							building->stock[i].requested -= 1;

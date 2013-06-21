@@ -523,7 +523,7 @@ update_inventories_cb(flag_t *flag, update_inventories_data_t *data)
 	    FLAG_HAS_BUILDING(flag)) {
 		building_t *building = flag->other_endpoint.b[DIR_UP_LEFT];
 
-		for (int i = 0; i < 2; i++) {
+		for (int i = 0; i < BUILDING_MAX_STOCK; i++) {
 			if (building->stock[i].type == data->resource &&
 			    building->stock[i].prio >= 16 &&
 			    building->stock[i].prio > data->max_prio[inv]) {
@@ -656,7 +656,7 @@ update_inventories()
 					LOGV("game", " dest for inventory %i found", i);
 					building_t *dest_bld = flags[i]->other_endpoint.b[DIR_UP_LEFT];
 					inventory_t *src_inv = invs[i];
-					for (int j = 0; j < 2; j++) {
+					for (int j = 0; j < BUILDING_MAX_STOCK; j++) {
 						if (dest_bld->stock[j].type == arr[0]) {
 							dest_bld->stock[j].prio = 0;
 							dest_bld->stock[j].requested += 1;
@@ -988,7 +988,7 @@ schedule_unknown_dest_cb(flag_t *flag, schedule_unknown_dest_data_t *data)
 	if (FLAG_HAS_BUILDING(flag)) {
 		building_t *building = flag->other_endpoint.b[DIR_UP_LEFT];
 
-		for (int i = 0; i < 2; i++) {
+		for (int i = 0; i < BUILDING_MAX_STOCK; i++) {
 			if (building->stock[i].type == data->resource &&
 			    building->stock[i].prio > data->max_prio) {
 				data->max_prio = building->stock[i].prio;
@@ -1050,7 +1050,7 @@ schedule_slot_to_unknown_dest(flag_t *flag, int slot)
 			LOGV("game", "dest for flag %u res %i found: flag %u",
 			     FLAG_INDEX(flag), slot, FLAG_INDEX(data.flag));
 			building_t *dest_bld = data.flag->other_endpoint.b[DIR_UP_LEFT];
-			for (int i = 0; i < 2; i++) {
+			for (int i = 0; i < BUILDING_MAX_STOCK; i++) {
 				if (dest_bld->stock[i].type == res) {
 					int prio = dest_bld->stock[i].prio;
 					if ((prio & 1) == 0) prio = 0;
@@ -2816,7 +2816,7 @@ lose_transported_resource(resource_type_t res, uint dest)
 			res = RESOURCE_GROUP_FOOD;
 		}
 
-		for (int i = 0; i < 2; i++) {
+		for (int i = 0; i < BUILDING_MAX_STOCK; i++) {
 			if (building->stock[i].type == res) {
 				building->stock[i].requested -= 1;
 				assert(building->stock[i].requested >= 0);
