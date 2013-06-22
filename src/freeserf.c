@@ -65,7 +65,10 @@
 
 /* How fast consequtive mouse events need to be generated
    in order to be interpreted as click and double click. */
-#define MOUSE_SENSITIVITY  600
+#define MOUSE_TIME_SENSITIVITY  600
+/* How much the mouse can move between events to be still
+   considered as a double click. */
+#define MOUSE_MOVE_SENSITIVITY  8
 
 
 static int game_loop_run;
@@ -247,11 +250,13 @@ game_loop()
 
 	int drag_button = 0;
 
-	unsigned int last_down[3] = {0};
-	unsigned int last_click[3] = {0};
+	uint last_down[3] = {0};
+	uint last_click[3] = {0};
+	uint last_click_x = 0;
+	uint last_click_y = 0;
 
-	unsigned int current_ticks = SDL_GetTicks();
-	unsigned int accum = 0;
+	uint current_ticks = SDL_GetTicks();
+	uint accum = 0;
 
 	SDL_Event event;
 	gui_event_t ev;
@@ -278,14 +283,18 @@ game_loop()
 				gui_object_handle_event((gui_object_t *)&interface, &ev);
 
 				if (event.button.button <= 3 &&
-				    current_ticks - last_down[event.button.button-1] < MOUSE_SENSITIVITY) {
+				    current_ticks - last_down[event.button.button-1] < MOUSE_TIME_SENSITIVITY) {
 					ev.type = GUI_EVENT_TYPE_CLICK;
 					ev.x = event.button.x;
 					ev.y = event.button.y;
 					ev.button = event.button.button;
 					gui_object_handle_event((gui_object_t *)&interface, &ev);
 
-					if (current_ticks - last_click[event.button.button-1] < MOUSE_SENSITIVITY) {
+					if (current_ticks - last_click[event.button.button-1] < MOUSE_TIME_SENSITIVITY &&
+					    event.button.x >= last_click_x - MOUSE_MOVE_SENSITIVITY &&
+					    event.button.x <= last_click_x + MOUSE_MOVE_SENSITIVITY &&
+					    event.button.y >= last_click_y - MOUSE_MOVE_SENSITIVITY &&
+					    event.button.y <= last_click_y + MOUSE_MOVE_SENSITIVITY) {
 						ev.type = GUI_EVENT_TYPE_DBL_CLICK;
 						ev.x = event.button.x;
 						ev.y = event.button.y;
@@ -294,6 +303,8 @@ game_loop()
 					}
 
 					last_click[event.button.button-1] = current_ticks;
+					last_click_x = event.button.x;
+					last_click_y = event.button.y;
 				}
 				break;
 			case SDL_MOUSEBUTTONDOWN:
