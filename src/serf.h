@@ -189,7 +189,8 @@ typedef struct {
 			uint slope_len; /* C */
 		} entering_building;
 
-		/* States: leaving_building, ready_to_leave */
+		/* States: leaving_building, ready_to_leave,
+		   leave_for_fight */
 		struct {
 			int field_B; /* B */
 			int dest; /* C */
@@ -240,7 +241,9 @@ typedef struct {
 		/* States: free_walking, logging,
 		   planting, stonecutting, fishing,
 		   farming, sampling_geo_spot,
-		   knight_free_walking */
+		   knight_free_walking,
+		   knight_attacking_free,
+		   knight_attacking_free_wait */
 		struct {
 			int dist1; /* B */
 			int dist2; /* C */
@@ -307,7 +310,15 @@ typedef struct {
 		/* No state data: looking_for_geo_spot */
 
 		/* States: knight_engaging_building,
-		   knight_prepare_attacking, ... */
+		   knight_prepare_attacking,
+		   knight_prepare_defending_free_wait,
+		   knight_attacking_defeat_free,
+		   knight_attacking,
+		   knight_attacking_victory,
+		   knight_engage_attacking_free,
+		   knight_engage_attacking_free_join,
+		   knight_attacking_victory_free,
+		*/
 		struct {
 			int field_B; /* B */
 			int field_C; /* C */
@@ -315,6 +326,8 @@ typedef struct {
 			int def_index; /* E */
 		} attacking;
 
+		/* States: knight_defending_free,
+		   knight_engage_defending_free */
 		struct {
 			int dist_col; /* B */
 			int dist_row; /* C */

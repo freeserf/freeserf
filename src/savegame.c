@@ -1224,6 +1224,7 @@ save_text_serf_state(FILE *f)
 
 		case SERF_STATE_LEAVING_BUILDING:
 		case SERF_STATE_READY_TO_LEAVE:
+		case SERF_STATE_KNIGHT_LEAVE_FOR_FIGHT:
 			save_text_write_value(f, "state.field_B", serf->s.leaving_building.field_B);
 			save_text_write_value(f, "state.dest", serf->s.leaving_building.dest);
 			save_text_write_value(f, "state.dest2", serf->s.leaving_building.dest2);
@@ -1274,6 +1275,9 @@ save_text_serf_state(FILE *f)
 		case SERF_STATE_FISHING:
 		case SERF_STATE_FARMING:
 		case SERF_STATE_SAMPLING_GEO_SPOT:
+		case SERF_STATE_KNIGHT_FREE_WALKING:
+		case SERF_STATE_KNIGHT_ATTACKING_FREE:
+		case SERF_STATE_KNIGHT_ATTACKING_FREE_WAIT:
 			save_text_write_value(f, "state.dist1", serf->s.free_walking.dist1);
 			save_text_write_value(f, "state.dist2", serf->s.free_walking.dist2);
 			save_text_write_value(f, "state.neg_dist", serf->s.free_walking.neg_dist1);
@@ -1327,6 +1331,38 @@ save_text_serf_state(FILE *f)
 
 		case SERF_STATE_BUILDING_BOAT:
 			save_text_write_value(f, "state.mode", serf->s.building_boat.mode);
+			break;
+
+		case SERF_STATE_KNIGHT_ENGAGING_BUILDING:
+		case SERF_STATE_KNIGHT_PREPARE_ATTACKING:
+		case SERF_STATE_KNIGHT_PREPARE_DEFENDING_FREE_WAIT:
+		case SERF_STATE_KNIGHT_ATTACKING_DEFEAT_FREE:
+		case SERF_STATE_KNIGHT_ATTACKING:
+		case SERF_STATE_KNIGHT_ATTACKING_VICTORY:
+		case SERF_STATE_KNIGHT_ENGAGE_ATTACKING_FREE:
+		case SERF_STATE_KNIGHT_ENGAGE_ATTACKING_FREE_JOIN:
+		case SERF_STATE_KNIGHT_ATTACKING_VICTORY_FREE:
+			save_text_write_value(f, "state.field_B", serf->s.attacking.field_B);
+			save_text_write_value(f, "state.field_C", serf->s.attacking.field_C);
+			save_text_write_value(f, "state.field_D", serf->s.attacking.field_D);
+			save_text_write_value(f, "state.def_index", serf->s.attacking.def_index);
+			break;
+
+		case SERF_STATE_KNIGHT_DEFENDING_FREE:
+		case SERF_STATE_KNIGHT_ENGAGE_DEFENDING_FREE:
+			save_text_write_value(f, "state.dist_col", serf->s.defending_free.dist_col);
+			save_text_write_value(f, "state.dist_row", serf->s.defending_free.dist_row);
+			save_text_write_value(f, "state.field_D", serf->s.defending_free.field_D);
+			save_text_write_value(f, "state.other_dist_col", serf->s.defending_free.other_dist_col);
+			save_text_write_value(f, "state.other_dist_row", serf->s.defending_free.other_dist_row);
+			break;
+
+		case SERF_STATE_KNIGHT_LEAVE_FOR_WALK_TO_FIGHT:
+			save_text_write_value(f, "state.dist_col", serf->s.leave_for_walk_to_fight.dist_col);
+			save_text_write_value(f, "state.dist_row", serf->s.leave_for_walk_to_fight.dist_row);
+			save_text_write_value(f, "state.field_D", serf->s.leave_for_walk_to_fight.field_D);
+			save_text_write_value(f, "state.field_E", serf->s.leave_for_walk_to_fight.field_E);
+			save_text_write_value(f, "state.next_state", serf->s.leave_for_walk_to_fight.next_state);
 			break;
 
 		case SERF_STATE_IDLE_ON_PATH:
@@ -2281,6 +2317,7 @@ load_text_serf_section(section_t *section)
 
 		case SERF_STATE_LEAVING_BUILDING:
 		case SERF_STATE_READY_TO_LEAVE:
+		case SERF_STATE_KNIGHT_LEAVE_FOR_FIGHT:
 			if (!strcmp(s->key, "state.field_B")) {
 				serf->s.leaving_building.field_B = atoi(s->value);
 			} else if (!strcmp(s->key, "state.dest")) {
@@ -2359,6 +2396,9 @@ load_text_serf_section(section_t *section)
 		case SERF_STATE_FISHING:
 		case SERF_STATE_FARMING:
 		case SERF_STATE_SAMPLING_GEO_SPOT:
+		case SERF_STATE_KNIGHT_FREE_WALKING:
+		case SERF_STATE_KNIGHT_ATTACKING_FREE:
+		case SERF_STATE_KNIGHT_ATTACKING_FREE_WAIT:
 			if (!strcmp(s->key, "state.dist1")) {
 				serf->s.free_walking.dist1 = atoi(s->value);
 			} else if (!strcmp(s->key, "state.dist2")) {
@@ -2443,6 +2483,55 @@ load_text_serf_section(section_t *section)
 		case SERF_STATE_BUILDING_BOAT:
 			if (!strcmp(s->key, "state.mode")) {
 				serf->s.building_boat.mode = atoi(s->value);
+			}
+			break;
+
+		case SERF_STATE_KNIGHT_ENGAGING_BUILDING:
+		case SERF_STATE_KNIGHT_PREPARE_ATTACKING:
+		case SERF_STATE_KNIGHT_PREPARE_DEFENDING_FREE_WAIT:
+		case SERF_STATE_KNIGHT_ATTACKING_DEFEAT_FREE:
+		case SERF_STATE_KNIGHT_ATTACKING:
+		case SERF_STATE_KNIGHT_ATTACKING_VICTORY:
+		case SERF_STATE_KNIGHT_ENGAGE_ATTACKING_FREE:
+		case SERF_STATE_KNIGHT_ENGAGE_ATTACKING_FREE_JOIN:
+		case SERF_STATE_KNIGHT_ATTACKING_VICTORY_FREE:
+			if (!strcmp(s->key, "state.field_B")) {
+				serf->s.attacking.field_B = atoi(s->value);
+			} else if (!strcmp(s->key, "state.field_C")) {
+				serf->s.attacking.field_C = atoi(s->value);
+			} else if (!strcmp(s->key, "state.field_D")) {
+				serf->s.attacking.field_D = atoi(s->value);
+			} else if (!strcmp(s->key, "state.def_index")) {
+				serf->s.attacking.def_index = atoi(s->value);
+			}
+			break;
+
+		case SERF_STATE_KNIGHT_DEFENDING_FREE:
+		case SERF_STATE_KNIGHT_ENGAGE_DEFENDING_FREE:
+			if (!strcmp(s->key, "state.dist_col")) {
+				serf->s.defending_free.dist_col = atoi(s->value);
+			} else if (!strcmp(s->key, "state.dist_row")) {
+				serf->s.defending_free.dist_row = atoi(s->value);
+			} else if (!strcmp(s->key, "state.field_D")) {
+				serf->s.defending_free.field_D = atoi(s->value);
+			} else if (!strcmp(s->key, "state.other_dist_col")) {
+				serf->s.defending_free.other_dist_col = atoi(s->value);
+			} else if (!strcmp(s->key, "state.other_dist_row")) {
+				serf->s.defending_free.other_dist_row = atoi(s->value);
+			}
+			break;
+
+		case SERF_STATE_KNIGHT_LEAVE_FOR_WALK_TO_FIGHT:
+			if (!strcmp(s->key, "state.dist_col")) {
+				serf->s.leave_for_walk_to_fight.dist_col = atoi(s->value);
+			} else if (!strcmp(s->key, "state.dist_row")) {
+				serf->s.leave_for_walk_to_fight.dist_row = atoi(s->value);
+			} else if (!strcmp(s->key, "state.field_D")) {
+				serf->s.leave_for_walk_to_fight.field_D = atoi(s->value);
+			} else if (!strcmp(s->key, "state.field_E")) {
+				serf->s.leave_for_walk_to_fight.field_E = atoi(s->value);
+			} else if (!strcmp(s->key, "state.next_state")) {
+				serf->s.leave_for_walk_to_fight.next_state = atoi(s->value);
 			}
 			break;
 
