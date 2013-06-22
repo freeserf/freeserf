@@ -1842,10 +1842,92 @@ serf_get_body(serf_t *serf, uint32_t *animation_table)
 	return t;
 }
 
+static void
+draw_active_serf(serf_t *serf, map_pos_t pos, int x_base, int y_base,
+		 uint32_t *animation_table, frame_t *frame)
+{
+	const int arr_4[] = {
+		9, 5, 10, 7, 10, 2, 8, 6,
+		11, 8, 9, 6, 9, 8, 0, 0,
+		0, 0, 0, 0, 5, 5, 4, 7,
+		4, 2, 7, 5, 3, 8, 5, 6,
+		5, 8, 0, 0, 0, 0, 0, 0
+	};
+
+	uint8_t *tbl_ptr = ((uint8_t *)animation_table) +
+		animation_table[serf->animation] +
+		3*(serf->counter >> 3);
+
+	int x = x_base + ((int8_t *)tbl_ptr)[1];
+	int y = y_base + ((int8_t *)tbl_ptr)[2] - 4*MAP_HEIGHT(pos);
+	int body = serf_get_body(serf, animation_table);
+
+	if (body > -1) {
+		int color = game.player[SERF_PLAYER(serf)]->color;
+		draw_row_serf(x, y, 1, color, body, frame);
+	}
+
+	/* Draw additional serf */
+	if (serf->state == SERF_STATE_KNIGHT_ENGAGING_BUILDING ||
+	    serf->state == SERF_STATE_KNIGHT_PREPARE_ATTACKING ||
+	    serf->state == SERF_STATE_KNIGHT_ATTACKING ||
+	    serf->state == SERF_STATE_KNIGHT_PREPARE_ATTACKING_FREE ||
+	    serf->state == SERF_STATE_KNIGHT_ATTACKING_FREE ||
+	    serf->state == SERF_STATE_KNIGHT_ATTACKING_VICTORY_FREE ||
+	    serf->state == SERF_STATE_KNIGHT_ATTACKING_DEFEAT_FREE) {
+		int index = serf->s.attacking.def_index;
+		if (index != 0) {
+			serf_t *def_serf = game_get_serf(index);
+
+			uint8_t *tbl_ptr = ((uint8_t *)animation_table) +
+				animation_table[def_serf->animation] +
+				3*(def_serf->counter >> 3);
+
+			int x = x_base + ((int8_t *)tbl_ptr)[1];
+			int y = y_base + ((int8_t *)tbl_ptr)[2] - 4*MAP_HEIGHT(pos);
+			int body = serf_get_body(def_serf, animation_table);
+
+			if (body > -1) {
+				int color = game.player[SERF_PLAYER(def_serf)]->color;
+				draw_row_serf(x, y, 1, color, body, frame);
+			}
+		}
+	}
+
+	/* Draw extra objects for fight */
+	if ((serf->state == SERF_STATE_KNIGHT_ATTACKING ||
+	     serf->state == SERF_STATE_KNIGHT_ATTACKING_FREE) &&
+	    tbl_ptr[0] >= 0x80 && tbl_ptr[0] < 0xc0) {
+		int index = serf->s.attacking.def_index;
+		if (index != 0) {
+			serf_t *def_serf = game_get_serf(index);
+
+			if (serf->animation >= 146 &&
+			    serf->animation < 156) {
+				if ((serf->s.attacking.field_D == 0 ||
+				     serf->s.attacking.field_D == 4) &&
+				    serf->counter < 32) {
+					int anim = -1;
+					if (serf->s.attacking.field_D == 0) {
+						anim = serf->animation - 147;
+					} else {
+						anim = def_serf->animation - 147;
+					}
+
+					int sprite = 198 + ((serf->counter >> 3) ^ 3);
+					draw_game_sprite(x + arr_4[2*anim],
+							 y - arr_4[2*anim+1],
+							 sprite, frame);
+				}
+			}
+		}
+	}
+}
+
 /* Draw one row of serfs. The serfs are composed of two or three transparent
    sprites (arm, torso, possibly head). A shadow is also drawn if appropriate.
-   Note that idle serfs do not have a serf_t object so they are drawn seperately
-   from active serfs. */
+   Note that idle serfs do not have their serf_t object linked from the map
+   so they are drawn seperately from active serfs. */
 static void
 draw_serf_row(map_pos_t pos, int y_base, int cols, int x_base,
 	      uint32_t *animation_table, frame_t *frame)
@@ -1885,14 +1967,6 @@ draw_serf_row(map_pos_t pos, int y_base, int cols, int x_base,
 		0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
 	};
 
-	const int arr_4[] = {
-		9, 5, 10, 7, 10, 2, 8, 6,
-		11, 8, 9, 6, 9, 8, 0, 0,
-		0, 0, 0, 0, 5, 5, 4, 7,
-		4, 2, 7, 5, 3, 8, 5, 6,
-		5, 8, 0, 0, 0, 0, 0, 0
-	};
-
 	for (int i = 0; i < cols; i++, x_base += MAP_TILE_WIDTH, pos = MAP_MOVE_RIGHT(pos)) {
 #if 0
 		/* Draw serf marker */
@@ -1908,73 +1982,13 @@ draw_serf_row(map_pos_t pos, int y_base, int cols, int x_base,
 		if (MAP_SERF_INDEX(pos) != 0) {
 			serf_t *serf = game_get_serf(MAP_SERF_INDEX(pos));
 
-			uint8_t *tbl_ptr = ((uint8_t *)animation_table) +
-				animation_table[serf->animation] +
-				3*(serf->counter >> 3);
-
-			int x = x_base + ((int8_t *)tbl_ptr)[1];
-			int y = y_base - 4*MAP_HEIGHT(pos) + ((int8_t *)tbl_ptr)[2];
-			int body = serf_get_body(serf, animation_table);
-
-			if (body > -1) {
-				int color = game.player[SERF_PLAYER(serf)]->color;
-				draw_row_serf(x, y, 1, color, body, frame);
-			}
-
-			/* Draw additional serf */
-			if (serf->state == SERF_STATE_KNIGHT_ENGAGING_BUILDING ||
-			    serf->state == SERF_STATE_KNIGHT_PREPARE_ATTACKING ||
-			    serf->state == SERF_STATE_KNIGHT_ATTACKING ||
-			    serf->state == SERF_STATE_KNIGHT_PREPARE_ATTACKING_FREE ||
-			    serf->state == SERF_STATE_KNIGHT_ATTACKING_FREE ||
-			    serf->state == SERF_STATE_KNIGHT_ATTACKING_VICTORY_FREE ||
-			    serf->state == SERF_STATE_KNIGHT_ATTACKING_DEFEAT_FREE) {
-				int index = serf->s.attacking.def_index;
-				if (index != 0) {
-					serf_t *def_serf = game_get_serf(index);
-
-					uint8_t *tbl_ptr = ((uint8_t *)animation_table) +
-						animation_table[def_serf->animation] +
-						3*(def_serf->counter >> 3);
-
-					int x = x_base + ((int8_t *)tbl_ptr)[1];
-					int y = y_base - 4*MAP_HEIGHT(pos) + ((int8_t *)tbl_ptr)[2];
-					int body = serf_get_body(def_serf, animation_table);
-
-					if (body > -1) {
-						int color = game.player[SERF_PLAYER(def_serf)]->color;
-						draw_row_serf(x, y, 1, color, body, frame);
-					}
-				}
-			}
-
-			/* Draw extra objects for fight */
-			if ((serf->state == SERF_STATE_KNIGHT_ATTACKING ||
-			     serf->state == SERF_STATE_KNIGHT_ATTACKING_FREE) &&
-			    tbl_ptr[0] >= 0x80 && tbl_ptr[0] < 0xc0) {
-				int index = serf->s.attacking.def_index;
-				if (index != 0) {
-					serf_t *def_serf = game_get_serf(index);
-
-					if (serf->animation >= 146 &&
-					    serf->animation < 156) {
-						if ((serf->s.attacking.field_D == 0 ||
-						     serf->s.attacking.field_D == 4) &&
-						    serf->counter < 32) {
-							int anim = -1;
-							if (serf->s.attacking.field_D == 0) {
-								anim = serf->animation - 147;
-							} else {
-								anim = def_serf->animation - 147;
-							}
-
-							int sprite = 198 + ((serf->counter >> 3) ^ 3);
-							draw_game_sprite(x + arr_4[2*anim],
-									 y - arr_4[2*anim+1],
-									 sprite, frame);
-						}
-					}
-				}
+			if (serf->state != SERF_STATE_MINING ||
+			    (serf->s.mining.substate != 3 &&
+			     serf->s.mining.substate != 4 &&
+			     serf->s.mining.substate != 9 &&
+			     serf->s.mining.substate != 10)) {
+				draw_active_serf(serf, pos, x_base, y_base,
+						 animation_table, frame);
 			}
 		}
 
@@ -1993,6 +2007,29 @@ draw_serf_row(map_pos_t pos, int y_base, int cols, int x_base,
 
 			int color = game.player[MAP_OWNER(pos)]->color;
 			draw_row_serf(x, y, 1, color, body, frame);
+		}
+	}
+}
+
+/* Draw serfs that should appear behind the building at their
+   current position. */
+static void
+draw_serf_row_behind(map_pos_t pos, int y_base, int cols, int x_base,
+		     uint32_t *animation_table, frame_t *frame)
+{
+	for (int i = 0; i < cols; i++, x_base += MAP_TILE_WIDTH, pos = MAP_MOVE_RIGHT(pos)) {
+		/* Active serf */
+		if (MAP_SERF_INDEX(pos) != 0) {
+			serf_t *serf = game_get_serf(MAP_SERF_INDEX(pos));
+
+			if (serf->state == SERF_STATE_MINING &&
+			    (serf->s.mining.substate == 3 ||
+			     serf->s.mining.substate == 4 ||
+			     serf->s.mining.substate == 9 ||
+			     serf->s.mining.substate == 10)) {
+				draw_active_serf(serf, pos, x_base, y_base,
+						 animation_table, frame);
+			}
 		}
 	}
 }
@@ -2025,6 +2062,9 @@ draw_game_objects(viewport_t *viewport, int layers, frame_t *frame)
 	while (1) {
 		/* short row */
 		if (draw_landscape) draw_water_waves_row(pos, y, short_row_len, x, frame);
+		if (draw_serfs) {
+			draw_serf_row_behind(pos, y, short_row_len, x, animation_table, frame);
+		}
 		if (draw_objects) {
 			draw_map_objects_row(viewport, pos, y, short_row_len, x, frame);
 		}
@@ -2039,6 +2079,9 @@ draw_game_objects(viewport_t *viewport, int layers, frame_t *frame)
 
 		/* long row */
 		if (draw_landscape) draw_water_waves_row(pos, y, long_row_len, x - 16, frame);
+		if (draw_serfs) {
+			draw_serf_row_behind(pos, y, long_row_len, x - 16, animation_table, frame);
+		}
 		if (draw_objects) {
 			draw_map_objects_row(viewport, pos, y, long_row_len, x - 16, frame);
 		}
