@@ -1005,6 +1005,7 @@ interface_set_cursor(interface_t *interface, int x, int y)
 		/* Update position */
 		interface->pointer_x = min(max(0, x), GUI_OBJECT(interface)->width);
 		interface->pointer_y = min(max(0, y), GUI_OBJECT(interface)->height);
+		gui_object_set_redraw(GUI_OBJECT(interface));
 
 		/* Restore cursor buffer */
 		sdl_draw_frame(0, 0, &interface->cursor_buffer,
