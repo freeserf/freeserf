@@ -3757,6 +3757,8 @@ handle_serf_building_boat_state(serf_t *serf)
 					/* Update resource stats. */
 					player_t *player = game.player[SERF_PLAYER(serf)];
 					player->resource_count[RESOURCE_BOAT] += 1;
+
+					break;
 				}
 			} else {
 				/* Continue building. */
