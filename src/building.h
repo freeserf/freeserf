@@ -96,6 +96,7 @@ typedef struct {
 	int prio;
 	int available;
 	int requested;
+	int maximum;
 } building_stock_t;
 
 typedef struct building building_t;
@@ -112,11 +113,7 @@ struct building {
 		struct inventory *inventory;
 		struct flag *flag;
 		uint16_t tick; /* Used for burning building. */
-		struct {
-			uint16_t level;
-			uint8_t planks_needed;
-			uint8_t stone_needed;
-		} s;
+		uint16_t level;
 	} u;
 };
 

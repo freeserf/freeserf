@@ -117,8 +117,6 @@ game_alloc_building(building_t **building, int *index)
 				if (!BIT_TEST(game.building_bitmap[i], 7-j)) {
 					int ix = 8*i + j;
 
-					if (ix >= game.building_limit) return -1; /* TODO looks unneccesary */
-
 					game.building_bitmap[i] |= BIT(7-j);
 
 					if (ix == game.max_building_index) game.max_building_index += 1;
@@ -128,15 +126,13 @@ game_alloc_building(building_t **building, int *index)
 					b->flg_index = 0;
 					b->serf = 0;
 
-					b->stock[0].type = RESOURCE_NONE;
-					b->stock[0].prio = 0;
-					b->stock[0].available = 0;
-					b->stock[0].requested = 0;
-
-					b->stock[1].type = RESOURCE_NONE;
-					b->stock[1].prio = 0;
-					b->stock[1].available = 0;
-					b->stock[1].requested = 0;
+					for (int i = 0; i < BUILDING_MAX_STOCK; i++) {
+						b->stock[i].type = RESOURCE_NONE;
+						b->stock[i].prio = 0;
+						b->stock[i].available = 0;
+						b->stock[i].requested = 0;
+						b->stock[i].maximum = 0;
+					}
 
 					b->serf_index = 0;
 
@@ -1419,7 +1415,7 @@ update_unfinished_building(building_t *building)
 	}*/
 
 	int total_planks = building->stock[0].requested + building->stock[0].available;
-	if (total_planks < 8 && total_planks != building->u.s.planks_needed) {
+	if (total_planks < building->stock[0].maximum) {
 		int planks_prio = player->planks_construction >> (8 + total_planks);
 		if (!BUILDING_HAS_SERF(building)) planks_prio >>= 2;
 		building->stock[0].prio = planks_prio & ~BIT(0);
@@ -1436,7 +1432,7 @@ update_unfinished_building(building_t *building)
 	}*/
 
 	int total_stone = building->stock[1].requested + building->stock[1].available;
-	if (total_stone < 8 && total_stone != building->u.s.stone_needed) {
+	if (total_stone < building->stock[1].maximum) {
 		int stone_prio = 0xff >> total_stone;
 		if (!BUILDING_HAS_SERF(building)) stone_prio >>= 2;
 		building->stock[1].prio = stone_prio & ~BIT(0);
@@ -1730,7 +1726,7 @@ handle_building_update(building_t *building)
 			if (BUILDING_HAS_SERF(building)) {
 				player_t *player = game.player[BUILDING_PLAYER(building)];
 				int total_tree = building->stock[0].requested + building->stock[0].available;
-				if (total_tree < 8 && 1/*!BIT_TEST(player->field_163, 1)*/) {
+				if (total_tree < building->stock[0].maximum && 1/*!BIT_TEST(player->field_163, 1)*/) {
 					building->stock[0].prio = player->planks_boatbuilder >> (8 + total_tree);
 				} else {
 					building->stock[0].prio = 0;
@@ -1756,7 +1752,7 @@ handle_building_update(building_t *building)
 			}
 			if (BUILDING_HAS_SERF(building)) {
 				int total_food = building->stock[0].requested + building->stock[0].available;
-				if (total_food < 8) {
+				if (total_food < building->stock[0].maximum) {
 					player_t *player = game.player[BUILDING_PLAYER(building)];
 					building->stock[0].prio = player->food_stonemine >> (8 + total_food);
 				} else {
@@ -1774,7 +1770,7 @@ handle_building_update(building_t *building)
 			}
 			if (BUILDING_HAS_SERF(building)) {
 				int total_food = building->stock[0].requested + building->stock[0].available;
-				if (total_food < 8) {
+				if (total_food < building->stock[0].maximum) {
 					player_t *player = game.player[BUILDING_PLAYER(building)];
 					building->stock[0].prio = player->food_coalmine >> (8 + total_food);
 				} else {
@@ -1792,7 +1788,7 @@ handle_building_update(building_t *building)
 			}
 			if (BUILDING_HAS_SERF(building)) {
 				int total_food = building->stock[0].requested + building->stock[0].available;
-				if (total_food < 8) {
+				if (total_food < building->stock[0].maximum) {
 					player_t *player = game.player[BUILDING_PLAYER(building)];
 					building->stock[0].prio = player->food_ironmine >> (8 + total_food);
 				} else {
@@ -1810,7 +1806,7 @@ handle_building_update(building_t *building)
 			}
 			if (BUILDING_HAS_SERF(building)) {
 				int total_food = building->stock[0].requested + building->stock[0].available;
-				if (total_food < 8) {
+				if (total_food < building->stock[0].maximum) {
 					player_t *player = game.player[BUILDING_PLAYER(building)];
 					building->stock[0].prio = player->food_goldmine >> (8 + total_food);
 				} else {
@@ -1898,7 +1894,7 @@ handle_building_update(building_t *building)
 			if (BUILDING_HAS_SERF(building)) {
 				/* Request more of that delicious meat. */
 				int total_stock = building->stock[0].requested + building->stock[0].available;
-				if (total_stock < 8) {
+				if (total_stock < building->stock[0].maximum) {
 					building->stock[0].prio = (0xff >> total_stock);
 				} else {
 					building->stock[0].prio = 0;
@@ -1915,7 +1911,7 @@ handle_building_update(building_t *building)
 			if (BUILDING_HAS_SERF(building)) {
 				/* Request more wheat. */
 				int total_stock = building->stock[0].requested + building->stock[0].available;
-				if (total_stock < 8) {
+				if (total_stock < building->stock[0].maximum) {
 					player_t *player = game.player[BUILDING_PLAYER(building)];
 					building->stock[0].prio = player->wheat_pigfarm >> (8 + total_stock);
 				} else {
@@ -1933,7 +1929,7 @@ handle_building_update(building_t *building)
 			if (BUILDING_HAS_SERF(building)) {
 				/* Request more wheat. */
 				int total_stock = building->stock[0].requested + building->stock[0].available;
-				if (total_stock < 8) {
+				if (total_stock < building->stock[0].maximum) {
 					player_t *player = game.player[BUILDING_PLAYER(building)];
 					building->stock[0].prio = player->wheat_mill >> (8 + total_stock);
 				} else {
@@ -1951,7 +1947,7 @@ handle_building_update(building_t *building)
 			if (BUILDING_HAS_SERF(building)) {
 				/* Request more flour. */
 				int total_stock = building->stock[0].requested + building->stock[0].available;
-				if (total_stock < 8) {
+				if (total_stock < building->stock[0].maximum) {
 					building->stock[0].prio = 0xff >> total_stock;
 				} else {
 					building->stock[0].prio = 0;
@@ -1969,7 +1965,7 @@ handle_building_update(building_t *building)
 			if (BUILDING_HAS_SERF(building)) {
 				/* Request more lumber */
 				int total_stock = building->stock[1].requested + building->stock[1].available;
-				if (total_stock < 8) {
+				if (total_stock < building->stock[1].maximum) {
 					building->stock[1].prio = 0xff >> total_stock;
 				} else {
 					building->stock[1].prio = 0;
@@ -1987,7 +1983,7 @@ handle_building_update(building_t *building)
 			if (BUILDING_HAS_SERF(building)) {
 				/* Request more coal */
 				int total_coal = building->stock[0].requested + building->stock[0].available;
-				if (total_coal < 8) {
+				if (total_coal < building->stock[0].maximum) {
 					player_t *player = game.player[BUILDING_PLAYER(building)];
 					building->stock[0].prio = player->coal_steelsmelter >> (8 + total_coal);
 				} else {
@@ -1996,7 +1992,7 @@ handle_building_update(building_t *building)
 
 				/* Request more iron ore */
 				int total_ironore = building->stock[1].requested + building->stock[1].available;
-				if (total_ironore < 8) {
+				if (total_ironore < building->stock[1].maximum) {
 					building->stock[1].prio = 0xff >> total_ironore;
 				} else {
 					building->stock[1].prio = 0;
@@ -2015,7 +2011,7 @@ handle_building_update(building_t *building)
 				/* Request more planks. */
 				player_t *player = game.player[BUILDING_PLAYER(building)];
 				int total_tree = building->stock[0].requested + building->stock[0].available;
-				if (total_tree < 8 && 1/*!BIT_TEST(player->field_163, 1)*/) {
+				if (total_tree < building->stock[0].maximum && 1/*!BIT_TEST(player->field_163, 1)*/) {
 					building->stock[0].prio = player->planks_toolmaker >> (8 + total_tree);
 				} else {
 					building->stock[0].prio = 0;
@@ -2023,7 +2019,7 @@ handle_building_update(building_t *building)
 
 				/* Request more steel. */
 				int total_steel = building->stock[1].requested + building->stock[1].available;
-				if (total_steel < 8) {
+				if (total_steel < building->stock[1].maximum) {
 					building->stock[1].prio = player->steel_toolmaker >> (8 + total_steel);
 				} else {
 					building->stock[1].prio = 0;
@@ -2042,7 +2038,7 @@ handle_building_update(building_t *building)
 				/* Request more coal. */
 				player_t *player = game.player[BUILDING_PLAYER(building)];
 				int total_coal = building->stock[0].requested + building->stock[0].available;
-				if (total_coal < 8) {
+				if (total_coal < building->stock[0].maximum) {
 					building->stock[0].prio = player->coal_weaponsmith >> (8 + total_coal);
 				} else {
 					building->stock[0].prio = 0;
@@ -2050,7 +2046,7 @@ handle_building_update(building_t *building)
 
 				/* Request more steel. */
 				int total_steel = building->stock[1].requested + building->stock[1].available;
-				if (total_steel < 8) {
+				if (total_steel < building->stock[1].maximum) {
 					building->stock[1].prio = player->steel_weaponsmith >> (8 + total_steel);
 				} else {
 					building->stock[1].prio = 0;
@@ -2069,7 +2065,7 @@ handle_building_update(building_t *building)
 				/* Request more coal. */
 				player_t *player = game.player[BUILDING_PLAYER(building)];
 				int total_coal = building->stock[0].requested + building->stock[0].available;
-				if (total_coal < 8) {
+				if (total_coal < building->stock[0].maximum) {
 					building->stock[0].prio = player->coal_goldsmelter >> (8 + total_coal);
 				} else {
 					building->stock[0].prio = 0;
@@ -2077,7 +2073,7 @@ handle_building_update(building_t *building)
 
 				/* Request more gold ore. */
 				int total_goldore = building->stock[1].requested + building->stock[1].available;
-				if (total_goldore < 8) {
+				if (total_goldore < building->stock[1].maximum) {
 					building->stock[1].prio = 0xff >> total_goldore;
 				} else {
 					building->stock[1].prio = 0;
@@ -3423,7 +3419,7 @@ game_get_leveling_height(map_pos_t pos)
 			building_t *bld = game_get_building(MAP_OBJ_INDEX(p));
 			if (!BUILDING_IS_DONE(bld) &&
 			    bld->progress == 0) { /* Leveling in progress */
-				int h = bld->u.s.level;
+				int h = bld->u.level;
 				if (h_min > h) h_min = h;
 				if (h_max < h) h_max = h;
 			}
@@ -3739,7 +3735,7 @@ game_build_building(map_pos_t pos, building_type_t type, player_t *player)
 
 	map_tile_t *tiles = game.map.tiles;
 
-	bld->u.s.level = game_get_leveling_height(pos);
+	bld->u.level = game_get_leveling_height(pos);
 	bld->pos = pos;
 	player->incomplete_building_count[type] += 1;
 	bld->bld = BIT(7) | (type << 2) | player->player_num; /* bit 7: Unfinished building */
@@ -3763,14 +3759,13 @@ game_build_building(map_pos_t pos, building_type_t type, player_t *player)
 
 	bld->stock[0].type = RESOURCE_PLANK;
 	bld->stock[0].prio = 0;
+	bld->stock[0].maximum = construction_cost[2*type];
 	bld->stock[1].type = RESOURCE_STONE;
 	bld->stock[1].prio = 0;
+	bld->stock[1].maximum = construction_cost[2*type+1];
 
 	flag->bld_flags = 0;
 	flag->bld2_flags = 0;
-
-	bld->u.s.planks_needed = construction_cost[2*type];
-	bld->u.s.stone_needed = construction_cost[2*type+1];
 
 	/* move_map_resources(pos, map_data); */
 	/* TODO Resources should be moved, just set them to zero for now */

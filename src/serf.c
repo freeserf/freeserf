@@ -878,7 +878,7 @@ handle_serf_entering_building_state(serf_t *serf)
 
 				building_t *building = game_get_building(MAP_OBJ_INDEX(serf->pos));
 				serf->s.digging.dig_pos = 6;
-				serf->s.digging.target_h = building->u.s.level;
+				serf->s.digging.target_h = building->u.level;
 				serf->s.digging.substate = 1;
 			}
 			break;
@@ -936,6 +936,7 @@ handle_serf_entering_building_state(serf_t *serf)
 					flag->bld2_flags = 0;
 					building->stock[1].type = RESOURCE_LUMBER;
 					building->stock[1].prio = 0;
+					building->stock[1].maximum = 8;
 				}
 				serf_log_state_change(serf, SERF_STATE_SAWING);
 				serf->state = SERF_STATE_SAWING;
@@ -982,6 +983,7 @@ handle_serf_entering_building_state(serf_t *serf)
 					flag->bld2_flags = 0;
 					building->stock[0].type = RESOURCE_GROUP_FOOD;
 					building->stock[0].prio = 0;
+					building->stock[0].maximum = 8;
 				}
 
 				serf_log_state_change(serf, SERF_STATE_MINING);
@@ -1006,6 +1008,7 @@ handle_serf_entering_building_state(serf_t *serf)
 					flag->bld2_flags = 0;
 					building->stock[0].type = RESOURCE_COAL;
 					building->stock[0].prio = 0;
+					building->stock[0].maximum = 8;
 
 					if (BUILDING_TYPE(building) == BUILDING_STEELSMELTER) {
 						building->stock[1].type = RESOURCE_IRONORE;
@@ -1013,6 +1016,7 @@ handle_serf_entering_building_state(serf_t *serf)
 						building->stock[1].type = RESOURCE_GOLDORE;
 					}
 					building->stock[1].prio = 0;
+					building->stock[1].maximum = 8;
 				}
 
 				/* Switch to smelting state to begin work. */
@@ -1053,6 +1057,7 @@ handle_serf_entering_building_state(serf_t *serf)
 					flag->bld2_flags = 0;
 					building->stock[0].type = RESOURCE_WHEAT;
 					building->stock[0].prio = 0;
+					building->stock[0].maximum = 8;
 
 					serf_log_state_change(serf, SERF_STATE_PIGFARMING);
 					serf->state = SERF_STATE_PIGFARMING;
@@ -1078,6 +1083,7 @@ handle_serf_entering_building_state(serf_t *serf)
 					flag->bld2_flags = 0;
 					building->stock[0].type = RESOURCE_PIG;
 					building->stock[0].prio = 0;
+					building->stock[0].maximum = 8;
 				}
 
 				serf_log_state_change(serf, SERF_STATE_BUTCHERING);
@@ -1107,6 +1113,7 @@ handle_serf_entering_building_state(serf_t *serf)
 					flag->bld2_flags = 0;
 					building->stock[0].type = RESOURCE_WHEAT;
 					building->stock[0].prio = 0;
+					building->stock[0].maximum = 8;
 				}
 
 				serf_log_state_change(serf, SERF_STATE_MILLING);
@@ -1127,6 +1134,7 @@ handle_serf_entering_building_state(serf_t *serf)
 					flag->bld2_flags = 0;
 					building->stock[0].type = RESOURCE_FLOUR;
 					building->stock[0].prio = 0;
+					building->stock[0].maximum = 8;
 				}
 
 				serf_log_state_change(serf, SERF_STATE_BAKING);
@@ -1146,6 +1154,7 @@ handle_serf_entering_building_state(serf_t *serf)
 					flag->bld2_flags = 0;
 					building->stock[0].type = RESOURCE_PLANK;
 					building->stock[0].prio = 0;
+					building->stock[0].maximum = 8;
 				}
 
 				serf_log_state_change(serf, SERF_STATE_BUILDING_BOAT);
@@ -1165,8 +1174,10 @@ handle_serf_entering_building_state(serf_t *serf)
 					flag->bld2_flags = 0;
 					building->stock[0].type = RESOURCE_PLANK;
 					building->stock[0].prio = 0;
+					building->stock[0].maximum = 8;
 					building->stock[1].type = RESOURCE_STEEL;
 					building->stock[1].prio = 0;
+					building->stock[1].maximum = 8;
 				}
 
 				serf_log_state_change(serf, SERF_STATE_MAKING_TOOL);
@@ -1186,8 +1197,10 @@ handle_serf_entering_building_state(serf_t *serf)
 					flag->bld2_flags = 0;
 					building->stock[0].type = RESOURCE_COAL;
 					building->stock[0].prio = 0;
+					building->stock[0].maximum = 8;
 					building->stock[1].type = RESOURCE_STEEL;
 					building->stock[1].prio = 0;
+					building->stock[1].maximum = 8;
 				}
 
 				serf_log_state_change(serf, SERF_STATE_MAKING_WEAPON);
@@ -1267,11 +1280,23 @@ handle_serf_entering_building_state(serf_t *serf)
 						building->serf |= BIT(4);
 
 						int mil_type = -1;
+						int max_gold = -1;
 						switch (BUILDING_TYPE(building)) {
-						case BUILDING_HUT: mil_type = 0; break;
-						case BUILDING_TOWER: mil_type = 1; break;
-						case BUILDING_FORTRESS: mil_type = 2; break;
-						default: NOT_REACHED(); break;
+						case BUILDING_HUT:
+							mil_type = 0;
+							max_gold = 2;
+							break;
+						case BUILDING_TOWER:
+							mil_type = 1;
+							max_gold = 4;
+							break;
+						case BUILDING_FORTRESS:
+							mil_type = 2;
+							max_gold = 8;
+							break;
+						default:
+							NOT_REACHED();
+							break;
 						}
 
 						player_add_notification(game.player[BUILDING_PLAYER(building)],
@@ -1282,6 +1307,7 @@ handle_serf_entering_building_state(serf_t *serf)
 						flag->bld2_flags = 0;
 						building->stock[1].type = RESOURCE_GOLDBAR;
 						building->stock[1].prio = 0;
+						building->stock[1].maximum = max_gold;
 
 						/* TODO Save total land amount and building count for each player. */
 						game_update_land_ownership(building->pos);
@@ -1577,7 +1603,7 @@ handle_serf_building_state(serf_t *serf)
 					}
 
 					building->stock[0].available -= 1;
-					building->u.s.planks_needed -= 1;
+					building->stock[0].maximum -= 1;
 				} else {
 					/* Stone */
 					if (building->stock[1].available == 0) {
@@ -1587,7 +1613,7 @@ handle_serf_building_state(serf_t *serf)
 					}
 
 					building->stock[1].available -= 1;
-					building->u.s.stone_needed -= 1;
+					building->stock[1].maximum -= 1;
 				}
 
 				serf->s.building.material_step += 1;
@@ -1612,7 +1638,7 @@ handle_serf_building_state(serf_t *serf)
 				}
 
 				building->stock[0].available -= 1;
-				building->u.s.planks_needed -= 1;
+				building->stock[0].maximum -= 1;
 			} else {
 				/* Stone */
 				if (building->stock[1].available == 0) {
@@ -1622,7 +1648,7 @@ handle_serf_building_state(serf_t *serf)
 				}
 
 				building->stock[1].available -= 1;
-				building->u.s.stone_needed -= 1;
+				building->stock[1].maximum -= 1;
 			}
 
 			serf->s.building.material_step += 1;

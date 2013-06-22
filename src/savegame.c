@@ -713,60 +713,82 @@ load_v0_building_state(FILE *f, const v0_map_t *map)
 				building->u.flag = &game.flags[offset/70];
 			}
 		} else {
-			building->u.s.level = *(uint16_t *)&building_data[14];
-			building->u.s.planks_needed = building_data[16];
-			building->u.s.stone_needed = building_data[17];
+			building->u.level = *(uint16_t *)&building_data[14];
 		}
 
 		if (!BUILDING_IS_DONE(building)) {
 			building->stock[0].type = RESOURCE_PLANK;
+			building->stock[0].maximum = building_data[16];
 			building->stock[1].type = RESOURCE_STONE;
+			building->stock[1].maximum = building_data[17];
 		} else if (BUILDING_HAS_SERF(building)) {
 			switch (BUILDING_TYPE(building)) {
 			case BUILDING_BOATBUILDER:
 				building->stock[0].type = RESOURCE_PLANK;
+				building->stock[0].maximum = 8;
 				break;
 			case BUILDING_STONEMINE:
 			case BUILDING_COALMINE:
 			case BUILDING_IRONMINE:
 			case BUILDING_GOLDMINE:
 				building->stock[0].type = RESOURCE_GROUP_FOOD;
+				building->stock[0].maximum = 8;
 				break;
 			case BUILDING_HUT:
+				building->stock[1].type = RESOURCE_GOLDBAR;
+				building->stock[1].maximum = 2;
+				break;
 			case BUILDING_TOWER:
+				building->stock[1].type = RESOURCE_GOLDBAR;
+				building->stock[1].maximum = 4;
+				break;
 			case BUILDING_FORTRESS:
 				building->stock[1].type = RESOURCE_GOLDBAR;
+				building->stock[1].maximum = 8;
 				break;
 			case BUILDING_BUTCHER:
 				building->stock[0].type = RESOURCE_PIG;
+				building->stock[0].maximum = 8;
 				break;
 			case BUILDING_PIGFARM:
 				building->stock[0].type = RESOURCE_WHEAT;
+				building->stock[0].maximum = 8;
 				break;
 			case BUILDING_MILL:
 				building->stock[0].type = RESOURCE_WHEAT;
+				building->stock[0].maximum = 8;
 				break;
 			case BUILDING_BAKER:
 				building->stock[0].type = RESOURCE_FLOUR;
+				building->stock[0].maximum = 8;
 				break;
 			case BUILDING_SAWMILL:
 				building->stock[1].type = RESOURCE_LUMBER;
+				building->stock[1].maximum = 8;
 				break;
 			case BUILDING_STEELSMELTER:
 				building->stock[0].type = RESOURCE_COAL;
+				building->stock[0].maximum = 8;
 				building->stock[1].type = RESOURCE_IRONORE;
+				building->stock[1].maximum = 8;
 				break;
 			case BUILDING_TOOLMAKER:
 				building->stock[0].type = RESOURCE_PLANK;
+				building->stock[0].maximum = 8;
 				building->stock[1].type = RESOURCE_STEEL;
+				building->stock[1].maximum = 8;
 				break;
 			case BUILDING_WEAPONSMITH:
 				building->stock[0].type = RESOURCE_COAL;
+				building->stock[0].maximum = 8;
 				building->stock[1].type = RESOURCE_STEEL;
+				building->stock[1].maximum = 8;
 				break;
 			case BUILDING_GOLDSMELTER:
 				building->stock[0].type = RESOURCE_COAL;
+				building->stock[0].maximum = 8;
 				building->stock[1].type = RESOURCE_GOLDORE;
+				building->stock[1].maximum = 8;
 				break;
 			default:
 				break;
@@ -1102,11 +1124,13 @@ save_text_building_state(FILE *f)
 			save_text_write_value(f, "stock[0].prio", building->stock[0].prio);
 			save_text_write_value(f, "stock[0].available", building->stock[0].available);
 			save_text_write_value(f, "stock[0].requested", building->stock[0].requested);
+			save_text_write_value(f, "stock[0].maximum", building->stock[0].maximum);
 
 			save_text_write_value(f, "stock[1].type", building->stock[1].type);
 			save_text_write_value(f, "stock[1].prio", building->stock[1].prio);
 			save_text_write_value(f, "stock[1].available", building->stock[1].available);
 			save_text_write_value(f, "stock[1].requested", building->stock[1].requested);
+			save_text_write_value(f, "stock[1].maximum", building->stock[1].maximum);
 
 			save_text_write_value(f, "serf_index", building->serf_index);
 			save_text_write_value(f, "progress", building->progress);
@@ -1123,9 +1147,7 @@ save_text_building_state(FILE *f)
 			} else if (BUILDING_IS_BURNING(building)) {
 				save_text_write_value(f, "tick", building->u.tick);
 			} else {
-				save_text_write_value(f, "level", building->u.s.level);
-				save_text_write_value(f, "planks_needed", building->u.s.planks_needed);
-				save_text_write_value(f, "stone_needed", building->u.s.stone_needed);
+				save_text_write_value(f, "level", building->u.level);
 			}
 
 			fprintf(f, "\n");
@@ -2043,6 +2065,8 @@ load_text_building_section(section_t *section)
 			building->stock[0].available = atoi(s->value);
 		} else if (!strcmp(s->key, "stock[0].requested")) {
 			building->stock[0].requested = atoi(s->value);
+		} else if (!strcmp(s->key, "stock[0].maximum")) {
+			building->stock[0].maximum = atoi(s->value);
 		} else if (!strcmp(s->key, "stock[1].type")) {
 			building->stock[1].type = atoi(s->value);
 		} else if (!strcmp(s->key, "stock[1].prio")) {
@@ -2051,6 +2075,8 @@ load_text_building_section(section_t *section)
 			building->stock[1].available = atoi(s->value);
 		} else if (!strcmp(s->key, "stock[1].requested")) {
 			building->stock[1].requested = atoi(s->value);
+		} else if (!strcmp(s->key, "stock[1].maximum")) {
+			building->stock[1].maximum = atoi(s->value);
 		} else if (!strcmp(s->key, "serf_index")) {
 			building->serf_index = atoi(s->value);
 		} else if (!strcmp(s->key, "progress")) {
@@ -2058,8 +2084,6 @@ load_text_building_section(section_t *section)
 		} else if (!strcmp(s->key, "inventory") ||
 			   !strcmp(s->key, "flag") ||
 			   !strcmp(s->key, "level") ||
-			   !strcmp(s->key, "planks_needed") ||
-			   !strcmp(s->key, "stone_needed") ||
 			   !strcmp(s->key, "tick")) {
 			/* Handled later */
 		} else {
@@ -2086,16 +2110,8 @@ load_text_building_section(section_t *section)
 		char *value = load_text_get_setting(section, "tick");
 		building->u.tick = atoi(value);
 	} else {
-		list_foreach(&section->settings, elm) {
-			setting_t *s = (setting_t *)elm;
-			if (!strcmp(s->key, "level")) {
-				building->u.s.level = atoi(s->value);
-			} else if (!strcmp(s->key, "planks_needed")) {
-				building->u.s.planks_needed = atoi(s->value);
-			} else if (!strcmp(s->key, "stone_needed")) {
-				building->u.s.stone_needed = atoi(s->value);
-			}
-		}
+		char *value = load_text_get_setting(section, "level");
+		building->u.level = atoi(value);
 	}
 
 	return 0;
