@@ -2063,13 +2063,13 @@ draw_defenders_box(popup_box_t *popup, frame_t *frame)
 	}
 
 	/* Draw heading string */
-	draw_green_string(3, 62, frame, "DEFENDERS:");
+	draw_green_string(3, 62, frame, "Defenders:");
 
 	/* Draw knights */
 	int next_knight = building->serf_index;
 	for (int i = 0; next_knight != 0; i++) {
 		serf_t *serf = game_get_serf(next_knight);
-		draw_popup_icon(3 + 4*(i%4), 72 + 14*(i/4), 7 + SERF_TYPE(serf), frame);
+		draw_popup_icon(3 + 4*(i%3), 72 + 16*(i/3), 7 + SERF_TYPE(serf), frame);
 		next_knight = serf->s.defending.next_knight;
 	}
 
