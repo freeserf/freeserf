@@ -2073,7 +2073,7 @@ draw_game_objects(viewport_t *viewport, int layers, frame_t *frame)
 		}
 
 		y += MAP_TILE_HEIGHT;
-		if (y >= viewport->obj.height + 3*MAP_TILE_HEIGHT) break;
+		if (y >= viewport->obj.height + 6*MAP_TILE_HEIGHT) break;
 
 		pos = MAP_MOVE_DOWN(pos);
 
@@ -2090,7 +2090,7 @@ draw_game_objects(viewport_t *viewport, int layers, frame_t *frame)
 		}
 
 		y += MAP_TILE_HEIGHT;
-		if (y >= viewport->obj.height + 3*MAP_TILE_HEIGHT) break;
+		if (y >= viewport->obj.height + 6*MAP_TILE_HEIGHT) break;
 
 		pos = MAP_MOVE_DOWN_RIGHT(pos);
 	}
