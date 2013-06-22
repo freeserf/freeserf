@@ -1126,6 +1126,81 @@ draw_stat_7_box(popup_box_t *popup, frame_t *frame)
 }
 
 static void
+draw_gauge_balance(int x, int y, uint value, uint count, frame_t *frame)
+{
+	int sprite = -1;
+	if (count > 0) {
+		uint v = (16*value)/count;
+		if (v >= 230) sprite = 0xd2;
+		else if (v >= 207) sprite = 0xd1;
+		else if (v >= 184) sprite = 0xd0;
+		else if (v >= 161) sprite = 0xcf;
+		else if (v >= 138) sprite = 0xce;
+		else if (v >= 115) sprite = 0xcd;
+		else if (v >= 92) sprite = 0xcc;
+		else if (v >= 69) sprite = 0xcb;
+		else if (v >= 46) sprite = 0xca;
+		else if (v >= 23) sprite = 0xc9;
+		else sprite = 0xc8;
+	} else {
+		sprite = 0xd3;
+	}
+
+	draw_popup_icon(x, y, sprite, frame);
+}
+
+static void
+draw_gauge_full(int x, int y, uint value, uint count, frame_t *frame)
+{
+	int sprite = -1;
+	if (count > 0) {
+		uint v = (16*value)/count;
+		if (v >= 230) sprite = 0xc6;
+		else if (v >= 207) sprite = 0xc5;
+		else if (v >= 184) sprite = 0xc4;
+		else if (v >= 161) sprite = 0xc3;
+		else if (v >= 138) sprite = 0xc2;
+		else if (v >= 115) sprite = 0xc1;
+		else if (v >= 92) sprite = 0xc0;
+		else if (v >= 69) sprite = 0xbf;
+		else if (v >= 46) sprite = 0xbe;
+		else if (v >= 23) sprite = 0xbd;
+		else sprite = 0xbc;
+	} else {
+		sprite = 0xc7;
+	}
+
+	draw_popup_icon(x, y, sprite, frame);
+}
+
+static void
+calculate_gauge_values(player_t *player, uint values[24][BUILDING_MAX_STOCK][2])
+{
+	for (int i = 1; i < game.max_building_index; i++) {
+		if (!BUILDING_ALLOCATED(i)) continue;
+
+		building_t *building = game_get_building(i);
+		if (BUILDING_IS_BURNING(building) ||
+		    BUILDING_PLAYER(building) != player->player_num ||
+		    !BUILDING_HAS_SERF(building)) {
+			continue;
+		}
+
+		int type = BUILDING_TYPE(building);
+		if (!BUILDING_IS_DONE(building)) type = 0;
+
+		for (int i = 0; i < BUILDING_MAX_STOCK; i++) {
+			if (building->stock[i].maximum > 0) {
+				int v = 2*building->stock[i].available +
+					building->stock[i].requested;
+				values[type][i][0] += (16*v)/(2*building->stock[i].maximum);
+				values[type][i][1] += 1;
+			}
+		}
+	}
+}
+
+static void
 draw_stat_1_box(popup_box_t *popup, frame_t *frame)
 {
 	const int layout[] = {
@@ -1185,7 +1260,17 @@ draw_stat_1_box(popup_box_t *popup, frame_t *frame)
 
 	draw_custom_icon_box(layout, frame);
 
-	/* TODO */
+	uint values[24][BUILDING_MAX_STOCK][2] = {{{0}}};
+	calculate_gauge_values(popup->interface->player, values);
+
+	draw_gauge_balance(10, 0, values[BUILDING_MILL][0][0], values[BUILDING_MILL][0][1], frame);
+	draw_gauge_balance(2, 0, values[BUILDING_BAKER][0][0], values[BUILDING_BAKER][0][1], frame);
+	draw_gauge_full(10, 32, values[BUILDING_PIGFARM][0][0], values[BUILDING_PIGFARM][0][1], frame);
+	draw_gauge_balance(2, 32, values[BUILDING_BUTCHER][0][0], values[BUILDING_BUTCHER][0][1], frame);
+	draw_gauge_full(10, 56, values[BUILDING_GOLDMINE][0][0], values[BUILDING_GOLDMINE][0][1], frame);
+	draw_gauge_full(10, 80, values[BUILDING_COALMINE][0][0], values[BUILDING_COALMINE][0][1], frame);
+	draw_gauge_full(10, 104, values[BUILDING_IRONMINE][0][0], values[BUILDING_IRONMINE][0][1], frame);
+	draw_gauge_full(10, 128, values[BUILDING_STONEMINE][0][0], values[BUILDING_STONEMINE][0][1], frame);
 }
 
 static void
@@ -1244,7 +1329,34 @@ draw_stat_2_box(popup_box_t *popup, frame_t *frame)
 
 	draw_custom_icon_box(layout, frame);
 
-	/* TODO */
+	uint values[24][BUILDING_MAX_STOCK][2] = {{{0}}};
+	calculate_gauge_values(popup->interface->player, values);
+
+	draw_gauge_balance(6, 0, values[BUILDING_GOLDSMELTER][1][0], values[BUILDING_GOLDSMELTER][1][1], frame);
+	draw_gauge_balance(6, 16, values[BUILDING_GOLDSMELTER][0][0], values[BUILDING_GOLDSMELTER][0][1], frame);
+	draw_gauge_balance(6, 40, values[BUILDING_STEELSMELTER][0][0], values[BUILDING_STEELSMELTER][0][1], frame);
+	draw_gauge_balance(6, 56, values[BUILDING_STEELSMELTER][1][0], values[BUILDING_STEELSMELTER][1][1], frame);
+
+	draw_gauge_balance(6, 80, values[BUILDING_SAWMILL][1][0], values[BUILDING_SAWMILL][1][1], frame);
+
+	uint gold_value = values[BUILDING_HUT][1][0] +
+		values[BUILDING_TOWER][1][0] +
+		values[BUILDING_FORTRESS][1][0];
+	uint gold_count = values[BUILDING_HUT][1][1] +
+		values[BUILDING_TOWER][1][1] +
+		values[BUILDING_FORTRESS][1][1];
+	draw_gauge_full(12, 0, gold_value, gold_count, frame);
+
+	draw_gauge_balance(12, 20, values[BUILDING_WEAPONSMITH][0][0], values[BUILDING_WEAPONSMITH][0][1], frame);
+	draw_gauge_balance(12, 36, values[BUILDING_WEAPONSMITH][1][0], values[BUILDING_WEAPONSMITH][1][1], frame);
+
+	draw_gauge_balance(12, 56, values[BUILDING_TOOLMAKER][1][0], values[BUILDING_TOOLMAKER][1][1], frame);
+	draw_gauge_balance(12, 72, values[BUILDING_TOOLMAKER][0][0], values[BUILDING_TOOLMAKER][0][1], frame);
+
+	draw_gauge_balance(12, 92, values[BUILDING_BOATBUILDER][0][0], values[BUILDING_BOATBUILDER][0][1], frame);
+
+	draw_gauge_full(12, 112, values[0][0][0], values[0][0][1], frame);
+	draw_gauge_full(12, 128, values[0][1][0], values[0][1][1], frame);
 }
 
 static void
