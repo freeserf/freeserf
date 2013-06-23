@@ -47,12 +47,17 @@ all: gitversion
 .PHONY: gitversion
 gitversion:
 	@( FREESERF_VERSION="" ; \
-	[ -e "$(VCS_VERSION_FILE)" ] && FREESERF_VERSION=$$(grep "define VERSION_VCS " "$(VCS_VERSION_FILE)" | cut -f3 -d" " | sed 's/"//g') ; \
-	VCS_VERSION=$$(git describe --always --tags --dirty) ; \
-	echo "FREESERF_VERSION = $$FREESERF_VERSION" ; \
-	echo "VCS_VERSION = $$VCS_VERSION" ; \
-	if [ "$${VCS_VERSION}" != "$${FREESERF_VERSION}" ] ; then \
-		$(MKDIR_P) $(@D) ; \
-		echo "Updating version file." ; \
-		printf "#ifndef VERSION_VCS_H\n#define VERSION_VCS_H\n\n#define VERSION_VCS \"$${VCS_VERSION}\"\n\n#endif /* VERSION_VCS_H */\n" > $(VCS_VERSION_FILE) ; \
+	if [ ! -d $(top_srcdir)/.git ] ; then \
+		echo "Git repository not found, not updating version file." ; \
+		[ -e "$(VCS_VERSION_FILE)" ] && touch "$(VCS_VERSION_FILE)" ; \
+	else \
+		[ -e "$(VCS_VERSION_FILE)" ] && FREESERF_VERSION=$$(grep "define VERSION_VCS " "$(VCS_VERSION_FILE)" | cut -f3 -d" " | sed 's/"//g') ; \
+		VCS_VERSION=$$(git describe --always --tags --dirty) ; \
+		echo "FREESERF_VERSION = $$FREESERF_VERSION" ; \
+		echo "VCS_VERSION = $$VCS_VERSION" ; \
+		if [ "$${VCS_VERSION}" != "$${FREESERF_VERSION}" ] ; then \
+			$(MKDIR_P) $(@D) ; \
+			echo "Updating version file." ; \
+			printf "#ifndef VERSION_VCS_H\n#define VERSION_VCS_H\n\n#define VERSION_VCS \"$${VCS_VERSION}\"\n\n#endif /* VERSION_VCS_H */\n" > $(VCS_VERSION_FILE) ; \
+		fi ; \
 	fi )
