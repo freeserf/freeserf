@@ -2207,7 +2207,7 @@ calculate_clear_winner(int pl_count, const int values[])
 static int
 calculate_military_score(int military, int morale)
 {
-	return (2048 + (morale >> 1)) * (military >> 6);
+	return (2048 + (morale >> 1)) * (military << 6);
 }
 
 /* Update statistics of the game. */
