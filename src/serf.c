@@ -1246,10 +1246,6 @@ handle_serf_entering_building_state(serf_t *serf)
 				} else {
 					map_set_serf_index(serf->pos, 0);
 
-					/* Prepend to knight list - TODO accessing state before state change */
-					serf->s.defending.next_knight = building->serf_index;
-					building->serf_index = SERF_INDEX(serf);
-
 					if (BUILDING_HAS_INVENTORY(building)) {
 						serf_log_state_change(serf, SERF_STATE_DEFENDING_CASTLE);
 						serf->state = SERF_STATE_DEFENDING_CASTLE;
@@ -1274,6 +1270,10 @@ handle_serf_entering_building_state(serf_t *serf)
 					serf_log_state_change(serf, next_state);
 					serf->state = next_state;
 					serf->counter = 6000;
+
+					/* Prepend to knight list */
+					serf->s.defending.next_knight = building->serf_index;
+					building->serf_index = SERF_INDEX(serf);
 
 					/* Test whether building is already occupied by knights */
 					if (!BUILDING_IS_ACTIVE(building)) {

@@ -20,6 +20,7 @@
  */
 
 #include <math.h>
+#include <assert.h>
 
 #include "popup.h"
 #include "gfx.h"
@@ -2245,14 +2246,13 @@ draw_resdir_box(popup_box_t *popup, frame_t *frame)
 		draw_custom_icon_box(knights_layout, frame);
 
 		/* Follow linked list of knights on duty */
-		for (int index = building->serf_index; index != 0; index = game_get_serf(index)->s.defending.next_knight) {
-			serf_t *serf = game_get_serf(index);
+		int serf_index = building->serf_index;
+		while (serf_index != 0) {
+			serf_t *serf = game_get_serf(serf_index);
 			serf_type_t serf_type = SERF_TYPE(serf);
-			if (serf_type >= SERF_KNIGHT_0 && serf_type <= SERF_KNIGHT_4) {
-				knights[serf_type-SERF_KNIGHT_0] += 1;
-			} else {
-				break;
-			}
+			assert(serf_type >= SERF_KNIGHT_0 && serf_type <= SERF_KNIGHT_4);
+			knights[serf_type-SERF_KNIGHT_0] += 1;
+			serf_index = serf->s.defending.next_knight;
 		}
 
 		draw_green_number(14, 20, frame, knights[4]);

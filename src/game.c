@@ -1528,11 +1528,13 @@ update_building_castle(building_t *building)
 
 				int serf_index = inventory->serfs[SERF_GENERIC];
 				serf_t *serf = game_get_serf(serf_index);
+				inventory->serfs[SERF_GENERIC] = 0;
 
 				serf->type = (0x83 & serf->type) | (SERF_KNIGHT_0 << 2);
 				serf->state = SERF_STATE_DEFENDING_CASTLE;
 				serf->s.defending.next_knight = building->serf_index;
 				building->serf_index = serf_index;
+				player->castle_knights += 1;
 			} else {
 				player->send_knight_delay -= 1;
 				if (player->send_knight_delay < 0) {
@@ -1544,6 +1546,7 @@ update_building_castle(building_t *building)
 			/* Prepend to knights list */
 			int serf_index = inventory->serfs[type];
 			serf_t *serf = game_get_serf(serf_index);
+			inventory->serfs[type] = 0; /* Clear inventory pointer */
 
 			serf_log_state_change(serf, SERF_STATE_DEFENDING_CASTLE);
 			serf->state = SERF_STATE_DEFENDING_CASTLE;
@@ -1551,7 +1554,6 @@ update_building_castle(building_t *building)
 			serf->counter = 6000;
 			building->serf_index = serf_index;
 			player->castle_knights += 1;
-			inventory->serfs[type] = 0; /* Clear inventory pointer */
 		}
 	} else {
 		player->castle_knights -= 1;
