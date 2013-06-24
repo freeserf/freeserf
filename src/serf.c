@@ -4176,22 +4176,27 @@ handle_knight_occupy_enemy_building(serf_t *serf)
 			     BUILDING_TYPE(building) == BUILDING_TOWER ||
 			     BUILDING_TYPE(building) == BUILDING_FORTRESS ||
 			     BUILDING_TYPE(building) == BUILDING_CASTLE)) {
-				if (BUILDING_PLAYER(building) == SERF_PLAYER(serf) &&
-				    BUILDING_TYPE(building) != BUILDING_CASTLE) {
+				if (BUILDING_PLAYER(building) == SERF_PLAYER(serf)) {
 					/* Enter building if there is space. */
-					int max_knights = -1;
-					switch (BUILDING_TYPE(building)) {
-					case BUILDING_HUT: max_knights = 3; break;
-					case BUILDING_TOWER: max_knights = 6; break;
-					case BUILDING_FORTRESS: max_knights = 12; break;
-					default: NOT_REACHED(); break;
-					}
+					if (BUILDING_TYPE(building) != BUILDING_CASTLE) {
+						int max_knights = -1;
+						switch (BUILDING_TYPE(building)) {
+						case BUILDING_HUT: max_knights = 3; break;
+						case BUILDING_TOWER: max_knights = 6; break;
+						case BUILDING_FORTRESS: max_knights = 12; break;
+						default: NOT_REACHED(); break;
+						}
 
-					int current = building->stock[0].requested + building->stock[0].available;
-					if (current < max_knights) {
-						/* Enter building */
-						serf_enter_building(serf, -1, 0);
-						building->stock[0].requested += 1;
+						int current = building->stock[0].requested +
+							building->stock[0].available;
+						if (current < max_knights) {
+							/* Enter building */
+							serf_enter_building(serf, -1, 0);
+							building->stock[0].requested += 1;
+							return;
+						}
+					} else {
+						serf_enter_building(serf, -2, 0);
 						return;
 					}
 				} else if (building->serf_index == 0) {
