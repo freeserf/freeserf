@@ -138,12 +138,14 @@ flag_prioritize_pickup(flag_t *flag, dir_t dir, const int flag_prio[])
 	int res_prio = -1;
 
 	for (int i = 0; i < FLAG_MAX_RES_COUNT; i++) {
-		/* Use flag_prio to prioritize resource pickup. */
-		dir_t res_dir = flag->slot[i].dir;
-		resource_type_t res_type = flag->slot[i].type;
-		if (res_dir == dir && flag_prio[res_type] > res_prio) {
-			res_next = i;
-			res_prio = flag_prio[res_type];
+		if (flag->slot[i].type != RESOURCE_NONE) {
+			/* Use flag_prio to prioritize resource pickup. */
+			dir_t res_dir = flag->slot[i].dir;
+			resource_type_t res_type = flag->slot[i].type;
+			if (res_dir == dir && flag_prio[res_type] > res_prio) {
+				res_next = i;
+				res_prio = flag_prio[res_type];
+			}
 		}
 	}
 
