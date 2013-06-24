@@ -985,8 +985,8 @@ draw_stat_8_box(popup_box_t *popup, frame_t *frame)
 
 	/* Draw chart */
 	int index = game.player_history_index[scale];
-	for (int i = 0; i < 4; i++) {
-		player_t *player = game.player[3-i];
+	for (int i = 0; i < GAME_MAX_PLAYER_COUNT; i++) {
+		player_t *player = game.player[GAME_MAX_PLAYER_COUNT-i-1];
 		draw_player_stat_chart(player->player_stat_history[mode], index,
 				       player->color, frame);
 	}
