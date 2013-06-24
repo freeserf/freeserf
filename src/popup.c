@@ -2328,7 +2328,7 @@ draw_sett_8_box(popup_box_t *popup, frame_t *frame)
 			if (inv->player_num == player->player_num) {
 				int c = min(inv->resources[RESOURCE_SWORD],
 					    inv->resources[RESOURCE_SHIELD]);
-				convertible_to_knights += min(c, inv->spawn_priority);
+				convertible_to_knights += max(0, min(c, inv->spawn_priority));
 			}
 		}
 	}
