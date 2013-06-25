@@ -902,27 +902,37 @@ draw_stat_bld_4_box(popup_box_t *popup, frame_t *frame)
 static void
 draw_player_stat_chart(const int *data, int index, int color, frame_t *frame)
 {
+	int x = 8;
+	int y = 9;
+	int width = 112;
+	int height = 100;
+
 	int prev_value = data[index];
 
-	for (int i = 0; i < 112; i++) {
+	for (int i = 0; i < width; i++) {
 		int value = data[index];
-		index = index > 0 ? index-1 : 111;
+		index = index > 0 ? index-1 : (width-1);
 
 		if (value > 0 || prev_value > 0) {
 			if (value > prev_value) {
 				int diff = value - prev_value;
 				int h = diff/2;
-				gfx_fill_rect(119 - i, 108 - h - prev_value, 1, h, color, frame);
+				gfx_fill_rect(x + width - i, y + height - h - prev_value,
+					      1, h, color, frame);
 				diff -= h;
-				gfx_fill_rect(118 - i, 108 - value, 1, diff, color, frame);
+				gfx_fill_rect(x + width - i - 1, y + height - value,
+					      1, diff, color, frame);
 			} else if (value == prev_value) {
-				gfx_fill_rect(119 - i, 108 - value - 1, 1, 1, color, frame);
+				gfx_fill_rect(x + width - i - 1, y + height - value,
+					      2, 1, color, frame);
 			} else {
 				int diff = prev_value - value;
 				int h = diff/2;
-				gfx_fill_rect(119 - i, 108 - prev_value, 1, h, color, frame);
+				gfx_fill_rect(x + width - i, y + height - prev_value,
+					      1, h, color, frame);
 				diff -= h;
-				gfx_fill_rect(118 - i, 108 - value - diff, 1, diff, color, frame);
+				gfx_fill_rect(x + width - i - 1, y + height - value - diff,
+					      1, diff, color, frame);
 			}
 		}
 
