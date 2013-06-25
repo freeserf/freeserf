@@ -4470,18 +4470,23 @@ demolish_building(map_pos_t pos)
 
 			building->serf_index = 8191;
 
-			if (player->serf_index != 0) {
-				serf_t *serf = game_get_serf(player->serf_index);
-				serf->type = (serf->type & 0x83) | (SERF_TRANSPORTER << 2);
-				serf->counter = 0;
+			for (int i = 1; i < game.max_serf_index; i++) {
+				if (SERF_ALLOCATED(i)) {
+					serf_t *serf = game_get_serf(i);
+					if (SERF_TYPE(serf) == SERF_4 &&
+					    serf->pos == building->pos) {
+						serf->type = (serf->type & 0x83) | (SERF_TRANSPORTER << 2);
+						serf->counter = 0;
 
-				if (MAP_SERF_INDEX(serf->pos) == SERF_INDEX(serf)) {
-					serf_log_state_change(serf, SERF_STATE_LOST);
-					serf->state = SERF_STATE_LOST;
-					serf->s.lost.field_B = 0;
-				} else {
-					serf_log_state_change(serf, SERF_STATE_ESCAPE_BUILDING);
-					serf->state = SERF_STATE_ESCAPE_BUILDING;
+						if (MAP_SERF_INDEX(serf->pos) == SERF_INDEX(serf)) {
+							serf_log_state_change(serf, SERF_STATE_LOST);
+							serf->state = SERF_STATE_LOST;
+							serf->s.lost.field_B = 0;
+						} else {
+							serf_log_state_change(serf, SERF_STATE_ESCAPE_BUILDING);
+							serf->state = SERF_STATE_ESCAPE_BUILDING;
+						}
+					}
 				}
 			}
 		}
