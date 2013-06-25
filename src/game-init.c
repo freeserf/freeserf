@@ -113,7 +113,7 @@ game_init_box_draw(game_init_box_t *box, frame_t *frame)
 
 	/* Game info */
 	if (box->game_mission < 0) {
-		for (int i = 0; i < 4; i++) {
+		for (int i = 0; i < GAME_MAX_PLAYER_COUNT; i++) {
 			int face = i == 0 ? 12 : 0;
 			draw_box_icon(10*i+1, 48, get_player_face_sprite(face), frame);
 			draw_box_icon(10*i+6, 48, 282, frame);
@@ -129,7 +129,7 @@ game_init_box_draw(game_init_box_t *box, frame_t *frame)
 		}
 	} else {
 		int m = box->game_mission;
-		for (int i = 0; i < 4; i++) {
+		for (int i = 0; i < GAME_MAX_PLAYER_COUNT; i++) {
 			int face = i == 0 ? 12 : mission[m].player[i].face;
 			draw_box_icon(10*i+1, 48, get_player_face_sprite(face), frame);
 			draw_box_icon(10*i+6, 48, 282, frame);

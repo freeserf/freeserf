@@ -452,7 +452,7 @@ check_win_and_flags_buildings()
 static void
 update_knight_morale()
 {
-	for (int i = 0; i < 3; i++) {
+	for (int i = 0; i < GAME_MAX_PLAYER_COUNT; i++) {
 		player_t *player = game.player[i];
 		int depot = player->military_gold + player->inventory_gold;
 		player->gold_deposited = min(depot, 0xffff);
@@ -500,7 +500,7 @@ update_map_and_players()
 	/* sub_1EF25(); */
 	map_update();
 
-	for (int i = 0; i < 4; i++) {
+	for (int i = 0; i < GAME_MAX_PLAYER_COUNT; i++) {
 		update_player(game.player[i]);
 	}
 }
@@ -596,7 +596,7 @@ update_inventories()
 	}
 
 	while (arr[0] >= 0) {
-		for (int p = 0; p < 4; p++) {
+		for (int p = 0; p < GAME_MAX_PLAYER_COUNT; p++) {
 			/*player_t *player = game.player[p];*/
 			inventory_t *invs[256];
 			int n = 0;
@@ -1528,11 +1528,13 @@ update_building_castle(building_t *building)
 
 				int serf_index = inventory->serfs[SERF_GENERIC];
 				serf_t *serf = game_get_serf(serf_index);
+				inventory->serfs[SERF_GENERIC] = 0;
 
 				serf->type = (0x83 & serf->type) | (SERF_KNIGHT_0 << 2);
 				serf->state = SERF_STATE_DEFENDING_CASTLE;
 				serf->s.defending.next_knight = building->serf_index;
 				building->serf_index = serf_index;
+				player->castle_knights += 1;
 			} else {
 				player->send_knight_delay -= 1;
 				if (player->send_knight_delay < 0) {
@@ -1544,6 +1546,7 @@ update_building_castle(building_t *building)
 			/* Prepend to knights list */
 			int serf_index = inventory->serfs[type];
 			serf_t *serf = game_get_serf(serf_index);
+			inventory->serfs[type] = 0; /* Clear inventory pointer */
 
 			serf_log_state_change(serf, SERF_STATE_DEFENDING_CASTLE);
 			serf->state = SERF_STATE_DEFENDING_CASTLE;
@@ -1551,7 +1554,6 @@ update_building_castle(building_t *building)
 			serf->counter = 6000;
 			building->serf_index = serf_index;
 			player->castle_knights += 1;
-			inventory->serfs[type] = 0; /* Clear inventory pointer */
 		}
 	} else {
 		player->castle_knights -= 1;
@@ -2207,7 +2209,7 @@ calculate_clear_winner(int pl_count, const int values[])
 static int
 calculate_military_score(int military, int morale)
 {
-	return (2048 + (morale >> 1)) * (military >> 6);
+	return (2048 + (morale >> 1)) * (military << 6);
 }
 
 /* Update statistics of the game. */
@@ -2265,18 +2267,22 @@ update_game_stats()
 		int values[4];
 
 		/* Store land area stats in history. */
-		for (int i = 0; i < 4; i++) values[i] = game.player[i]->total_land_area;
+		for (int i = 0; i < GAME_MAX_PLAYER_COUNT; i++) {
+			values[i] = game.player[i]->total_land_area;
+		}
 		record_player_history(game.player, 4, update_level, 1,
 				      game.player_history_index, values);
 		game.player_score_leader |= BIT(calculate_clear_winner(4, values));
 
 		/* Store building stats in history. */
-		for (int i = 0; i < 4; i++) values[i] = game.player[i]->total_building_score;
+		for (int i = 0; i < GAME_MAX_PLAYER_COUNT; i++) {
+			values[i] = game.player[i]->total_building_score;
+		}
 		record_player_history(game.player, 4, update_level, 2,
 				      game.player_history_index, values);
 
 		/* Store military stats in history. */
-		for (int i = 0; i < 4; i++) {
+		for (int i = 0; i < GAME_MAX_PLAYER_COUNT; i++) {
 			values[i] = calculate_military_score(game.player[i]->total_military_score,
 							     game.player[i]->knight_morale);
 		}
@@ -2285,7 +2291,7 @@ update_game_stats()
 		game.player_score_leader |= BIT(calculate_clear_winner(4, values)) << 4;
 
 		/* Store condensed score of all aspects in history. */
-		for (int i = 0; i < 4; i++) {
+		for (int i = 0; i < GAME_MAX_PLAYER_COUNT; i++) {
 			int mil_score = calculate_military_score(game.player[i]->total_military_score,
 								 game.player[i]->knight_morale);
 			values[i] = game.player[i]->total_building_score +
@@ -2305,7 +2311,7 @@ update_game_stats()
 		int index = game.resource_history_index;
 
 		for (int res = 0; res < 26; res++) {
-			for (int i = 0; i < 4; i++) {
+			for (int i = 0; i < GAME_MAX_PLAYER_COUNT; i++) {
 				player_t *player = game.player[i];
 				player->resource_count_history[res][index] = player->resource_count[res];
 				player->resource_count[res] = 0;
@@ -2689,7 +2695,7 @@ flag_reset_transport(flag_t *flag)
 static void
 building_remove_player_refs(building_t *building)
 {
-	for (int i = 0; i < 4; i++) {
+	for (int i = 0; i < GAME_MAX_PLAYER_COUNT; i++) {
 		if (game.player[i]->index == BUILDING_INDEX(building)) {
 			game.player[i]->index = 0;
 		}
@@ -4085,7 +4091,7 @@ game_build_castle(map_pos_t pos, player_t *player)
 static void
 flag_remove_player_refs(flag_t *flag)
 {
-	for (int i = 0; i < 4; i++) {
+	for (int i = 0; i < GAME_MAX_PLAYER_COUNT; i++) {
 		if (game.player[i]->index == FLAG_INDEX(flag)) {
 			game.player[i]->index = 0;
 		}
@@ -4716,7 +4722,7 @@ game_update_land_ownership(map_pos_t init_pos)
 		for (int j = -calculate_radius; j <= calculate_radius; j++) {
 			int max_val = 0;
 			int player = -1;
-			for (int p = 0; p < 4; p++) {
+			for (int p = 0; p < GAME_MAX_PLAYER_COUNT; p++) {
 				int *arr = temp_arr +
 					p*calculate_diameter*calculate_diameter +
 					calculate_diameter*(i+calculate_radius) + (j+calculate_radius);
@@ -5033,7 +5039,7 @@ players_init()
 
 	/* TODO */
 
-	for (int i = 0; i < 4; i++) {
+	for (int i = 0; i < GAME_MAX_PLAYER_COUNT; i++) {
 		player_t *player = game.player[i];
 		memset(player, 0, sizeof(player_t));
 		player->flags = 0;
@@ -5233,7 +5239,7 @@ game_init_map()
 	game.map_62_5_times_regions = (game.map_regions * 500) >> 3;
 
 	int active_players = 0;
-	for (int i = 0; i < 4; i++) {
+	for (int i = 0; i < GAME_MAX_PLAYER_COUNT; i++) {
 		if (game.pl_init[0].face != 0) active_players += 1;
 	}
 
@@ -5252,7 +5258,7 @@ game_init_map()
 int
 game_load_mission_map(int m)
 {
-	for (int i = 0; i < 4; i++) {
+	for (int i = 0; i < GAME_MAX_PLAYER_COUNT; i++) {
 		game.pl_init[i].face = mission[m].player[i].face;
 		game.pl_init[i].supplies = mission[m].player[i].supplies;
 		game.pl_init[i].intelligence = mission[m].player[i].intelligence;
@@ -5290,7 +5296,7 @@ game_load_random_map(int size, const random_state_t *rnd)
 	game.pl_init[0].supplies = 40;
 	game.pl_init[0].reproduction = 40;
 
-	for (int i = 1; i < 4; i++) {
+	for (int i = 1; i < GAME_MAX_PLAYER_COUNT; i++) {
 		game.pl_init[i].face = 0;
 	}
 

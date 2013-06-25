@@ -20,6 +20,7 @@
  */
 
 #include <math.h>
+#include <assert.h>
 
 #include "popup.h"
 #include "gfx.h"
@@ -901,27 +902,37 @@ draw_stat_bld_4_box(popup_box_t *popup, frame_t *frame)
 static void
 draw_player_stat_chart(const int *data, int index, int color, frame_t *frame)
 {
+	int x = 8;
+	int y = 9;
+	int width = 112;
+	int height = 100;
+
 	int prev_value = data[index];
 
-	for (int i = 0; i < 112; i++) {
+	for (int i = 0; i < width; i++) {
 		int value = data[index];
-		index = index > 0 ? index-1 : 111;
+		index = index > 0 ? index-1 : (width-1);
 
 		if (value > 0 || prev_value > 0) {
 			if (value > prev_value) {
 				int diff = value - prev_value;
 				int h = diff/2;
-				gfx_fill_rect(119 - i, 108 - h - prev_value, 1, h, color, frame);
+				gfx_fill_rect(x + width - i, y + height - h - prev_value,
+					      1, h, color, frame);
 				diff -= h;
-				gfx_fill_rect(118 - i, 108 - value, 1, diff, color, frame);
+				gfx_fill_rect(x + width - i - 1, y + height - value,
+					      1, diff, color, frame);
 			} else if (value == prev_value) {
-				gfx_fill_rect(119 - i, 108 - value - 1, 1, 1, color, frame);
+				gfx_fill_rect(x + width - i - 1, y + height - value,
+					      2, 1, color, frame);
 			} else {
 				int diff = prev_value - value;
 				int h = diff/2;
-				gfx_fill_rect(119 - i, 108 - prev_value, 1, h, color, frame);
+				gfx_fill_rect(x + width - i, y + height - prev_value,
+					      1, h, color, frame);
 				diff -= h;
-				gfx_fill_rect(118 - i, 108 - value - diff, 1, diff, color, frame);
+				gfx_fill_rect(x + width - i - 1, y + height - value - diff,
+					      1, diff, color, frame);
 			}
 		}
 
@@ -984,8 +995,8 @@ draw_stat_8_box(popup_box_t *popup, frame_t *frame)
 
 	/* Draw chart */
 	int index = game.player_history_index[scale];
-	for (int i = 0; i < 4; i++) {
-		player_t *player = game.player[3-i];
+	for (int i = 0; i < GAME_MAX_PLAYER_COUNT; i++) {
+		player_t *player = game.player[GAME_MAX_PLAYER_COUNT-i-1];
 		draw_player_stat_chart(player->player_stat_history[mode], index,
 				       player->color, frame);
 	}
@@ -2245,14 +2256,13 @@ draw_resdir_box(popup_box_t *popup, frame_t *frame)
 		draw_custom_icon_box(knights_layout, frame);
 
 		/* Follow linked list of knights on duty */
-		for (int index = building->serf_index; index != 0; index = game_get_serf(index)->s.defending.next_knight) {
-			serf_t *serf = game_get_serf(index);
+		int serf_index = building->serf_index;
+		while (serf_index != 0) {
+			serf_t *serf = game_get_serf(serf_index);
 			serf_type_t serf_type = SERF_TYPE(serf);
-			if (serf_type >= SERF_KNIGHT_0 && serf_type <= SERF_KNIGHT_4) {
-				knights[serf_type-SERF_KNIGHT_0] += 1;
-			} else {
-				break;
-			}
+			assert(serf_type >= SERF_KNIGHT_0 && serf_type <= SERF_KNIGHT_4);
+			knights[serf_type-SERF_KNIGHT_0] += 1;
+			serf_index = serf->s.defending.next_knight;
 		}
 
 		draw_green_number(14, 20, frame, knights[4]);
@@ -2328,7 +2338,7 @@ draw_sett_8_box(popup_box_t *popup, frame_t *frame)
 			if (inv->player_num == player->player_num) {
 				int c = min(inv->resources[RESOURCE_SWORD],
 					    inv->resources[RESOURCE_SHIELD]);
-				convertible_to_knights += min(c, inv->spawn_priority);
+				convertible_to_knights += max(0, min(c, inv->spawn_priority));
 			}
 		}
 	}

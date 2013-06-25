@@ -31,6 +31,8 @@
 
 #define DEFAULT_GAME_SPEED  2
 
+#define GAME_MAX_PLAYER_COUNT  4
+
 
 typedef void game_update_map_height_func(map_pos_t pos, void *data);
 
@@ -71,7 +73,7 @@ typedef struct {
 	/* 60 */
 	/* uint16_t map_move_left_2; MOVED to map_t */
 	/* 64 */
-	player_t *player[4];
+	player_t *player[GAME_MAX_PLAYER_COUNT];
 	/* 78 */
 	/*interface_t *interface;*/
 	/* 80 */

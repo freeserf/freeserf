@@ -984,7 +984,7 @@ save_text_globals_state(FILE *f)
 static int
 save_text_player_state(FILE *f)
 {
-	for (int i = 0; i < 4; i++) {
+	for (int i = 0; i < GAME_MAX_PLAYER_COUNT; i++) {
 		player_t *player = game.player[i];
 		if (!PLAYER_IS_ACTIVE(player)) continue;
 

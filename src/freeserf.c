@@ -461,7 +461,7 @@ game_loop()
 					break;
 				case SDLK_j: {
 					int current = 0;
-					for (int i = 0; i < 4; i++) {
+					for (int i = 0; i < GAME_MAX_PLAYER_COUNT; i++) {
 						if (interface.player == game.player[i]) {
 							current = i;
 							break;

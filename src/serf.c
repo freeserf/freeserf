@@ -1246,10 +1246,6 @@ handle_serf_entering_building_state(serf_t *serf)
 				} else {
 					map_set_serf_index(serf->pos, 0);
 
-					/* Prepend to knight list - TODO accessing state before state change */
-					serf->s.defending.next_knight = building->serf_index;
-					building->serf_index = SERF_INDEX(serf);
-
 					if (BUILDING_HAS_INVENTORY(building)) {
 						serf_log_state_change(serf, SERF_STATE_DEFENDING_CASTLE);
 						serf->state = SERF_STATE_DEFENDING_CASTLE;
@@ -1274,6 +1270,10 @@ handle_serf_entering_building_state(serf_t *serf)
 					serf_log_state_change(serf, next_state);
 					serf->state = next_state;
 					serf->counter = 6000;
+
+					/* Prepend to knight list */
+					serf->s.defending.next_knight = building->serf_index;
+					building->serf_index = SERF_INDEX(serf);
 
 					/* Test whether building is already occupied by knights */
 					if (!BUILDING_IS_ACTIVE(building)) {
@@ -2159,7 +2159,8 @@ handle_serf_free_walking_switch_on_dir(serf_t *serf, int dir)
 	int dx = ((dir < 3) ? 1 : -1)*((dir % 3) < 2);
 	int dy = ((dir < 3) ? 1 : -1)*((dir % 3) > 0);
 
-	LOGV("serf", "free walking: dest %i, %i, move %i, %i.",
+	LOGV("serf", "serf %i: free walking: dest %i, %i, move %i, %i.",
+	     SERF_INDEX(serf),
 	     serf->s.free_walking.dist1,
 	     serf->s.free_walking.dist2, dx, dy);
 
@@ -2443,24 +2444,21 @@ handle_free_walking_common(serf_t *serf)
 	int d1 = serf->s.free_walking.dist1;
 	int d2 = serf->s.free_walking.dist2;
 	if (d1 < 0) {
-		d1 = -d1;
 		if (d2 < 0) {
-			d2 = -d2;
-			if (d2 < d1) {
-				if (2*d2 < d1) dir_index = 3;
+			if (-d2 < -d1) {
+				if (-2*d2 < -d1) dir_index = 3;
 				else dir_index = 2;
 			} else {
-				if (d2 < 2*d1) dir_index = 1;
+				if (-d2 < -2*d1) dir_index = 1;
 				else dir_index = 0;
 			}
 		} else {
-			if (d2 >= d1) dir_index = 5;
+			if (d2 >= -d1) dir_index = 5;
 			else dir_index = 4;
 		}
 	} else {
 		if (d2 < 0) {
-			d2 = -d2;
-			if (d2 >= d1) dir_index = 11;
+			if (-d2 >= d1) dir_index = 11;
 			else dir_index = 10;
 		} else {
 			if (d2 < d1) {
@@ -4176,22 +4174,27 @@ handle_knight_occupy_enemy_building(serf_t *serf)
 			     BUILDING_TYPE(building) == BUILDING_TOWER ||
 			     BUILDING_TYPE(building) == BUILDING_FORTRESS ||
 			     BUILDING_TYPE(building) == BUILDING_CASTLE)) {
-				if (BUILDING_PLAYER(building) == SERF_PLAYER(serf) &&
-				    BUILDING_TYPE(building) != BUILDING_CASTLE) {
+				if (BUILDING_PLAYER(building) == SERF_PLAYER(serf)) {
 					/* Enter building if there is space. */
-					int max_knights = -1;
-					switch (BUILDING_TYPE(building)) {
-					case BUILDING_HUT: max_knights = 3; break;
-					case BUILDING_TOWER: max_knights = 6; break;
-					case BUILDING_FORTRESS: max_knights = 12; break;
-					default: NOT_REACHED(); break;
-					}
+					if (BUILDING_TYPE(building) != BUILDING_CASTLE) {
+						int max_knights = -1;
+						switch (BUILDING_TYPE(building)) {
+						case BUILDING_HUT: max_knights = 3; break;
+						case BUILDING_TOWER: max_knights = 6; break;
+						case BUILDING_FORTRESS: max_knights = 12; break;
+						default: NOT_REACHED(); break;
+						}
 
-					int current = building->stock[0].requested + building->stock[0].available;
-					if (current < max_knights) {
-						/* Enter building */
-						serf_enter_building(serf, -1, 0);
-						building->stock[0].requested += 1;
+						int current = building->stock[0].requested +
+							building->stock[0].available;
+						if (current < max_knights) {
+							/* Enter building */
+							serf_enter_building(serf, -1, 0);
+							building->stock[0].requested += 1;
+							return;
+						}
+					} else {
+						serf_enter_building(serf, -2, 0);
 						return;
 					}
 				} else if (building->serf_index == 0) {
