@@ -4350,6 +4350,16 @@ demolish_building(map_pos_t pos)
 	tiles[pos].paths &= ~BIT(1);
 	tiles[MAP_MOVE_DOWN_RIGHT(pos)].paths &= ~BIT(4);
 
+	/* Disconnect flag. */
+	flag_t *flag = game_get_flag(building->flg_index);
+	flag->other_endpoint.b[DIR_UP_LEFT] = NULL;
+	flag->endpoint &= ~BIT(6);
+
+	flag->bld_flags = 0;
+	flag->bld2_flags = 0;
+
+	flag_reset_transport(flag);
+
 	/* Remove lost gold stock from total count. */
 	if (BUILDING_IS_DONE(building) &&
 	    (BUILDING_TYPE(building) == BUILDING_HUT ||
@@ -4512,16 +4522,6 @@ demolish_building(map_pos_t pos)
 			}
 		}
 	}
-
-	/* Flag. */
-	flag_t *flag = game_get_flag(building->flg_index);
-	flag->other_endpoint.b[DIR_UP_LEFT] = NULL;
-	flag->endpoint &= ~BIT(6);
-
-	flag->bld_flags = 0;
-	flag->bld2_flags = 0;
-
-	flag_reset_transport(flag);
 
 	map_pos_t flag_pos = MAP_MOVE_DOWN_RIGHT(pos);
 	if (MAP_PATHS(flag_pos) == 0 &&
