@@ -2159,7 +2159,8 @@ handle_serf_free_walking_switch_on_dir(serf_t *serf, int dir)
 	int dx = ((dir < 3) ? 1 : -1)*((dir % 3) < 2);
 	int dy = ((dir < 3) ? 1 : -1)*((dir % 3) > 0);
 
-	LOGV("serf", "free walking: dest %i, %i, move %i, %i.",
+	LOGV("serf", "serf %i: free walking: dest %i, %i, move %i, %i.",
+	     SERF_INDEX(serf),
 	     serf->s.free_walking.dist1,
 	     serf->s.free_walking.dist2, dx, dy);
 
@@ -2443,24 +2444,21 @@ handle_free_walking_common(serf_t *serf)
 	int d1 = serf->s.free_walking.dist1;
 	int d2 = serf->s.free_walking.dist2;
 	if (d1 < 0) {
-		d1 = -d1;
 		if (d2 < 0) {
-			d2 = -d2;
-			if (d2 < d1) {
-				if (2*d2 < d1) dir_index = 3;
+			if (-d2 < -d1) {
+				if (-2*d2 < -d1) dir_index = 3;
 				else dir_index = 2;
 			} else {
-				if (d2 < 2*d1) dir_index = 1;
+				if (-d2 < -2*d1) dir_index = 1;
 				else dir_index = 0;
 			}
 		} else {
-			if (d2 >= d1) dir_index = 5;
+			if (d2 >= -d1) dir_index = 5;
 			else dir_index = 4;
 		}
 	} else {
 		if (d2 < 0) {
-			d2 = -d2;
-			if (d2 >= d1) dir_index = 11;
+			if (-d2 >= d1) dir_index = 11;
 			else dir_index = 10;
 		} else {
 			if (d2 < d1) {
