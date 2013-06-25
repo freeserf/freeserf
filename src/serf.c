@@ -2904,9 +2904,9 @@ handle_serf_lost_state(serf_t *serf)
 
 			map_pos_t dest = MAP_POS_ADD(serf->pos,
 						     MAP_POS(col, row));
-			if (MAP_OBJ(dest) == 0 &&
-			    MAP_HEIGHT(dest) > 0 &&
-			    (MAP_HAS_FLAG(dest) ||
+			if ((MAP_OBJ(dest) == 0 &&
+			     MAP_HEIGHT(dest) > 0) ||
+			    (MAP_HAS_FLAG(dest) &&
 			     (MAP_HAS_OWNER(dest) &&
 			      MAP_OWNER(dest) == SERF_PLAYER(serf)))) {
 				if (SERF_TYPE(serf) >= SERF_KNIGHT_0 &&
