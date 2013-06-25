@@ -1251,6 +1251,10 @@ handle_serf_entering_building_state(serf_t *serf)
 						serf->state = SERF_STATE_DEFENDING_CASTLE;
 						serf->counter = 6000;
 
+						/* Prepend to knight list */
+						serf->s.defending.next_knight = building->serf_index;
+						building->serf_index = SERF_INDEX(serf);
+
 						game.player[BUILDING_PLAYER(building)]->castle_knights += 1;
 						return;
 					}
