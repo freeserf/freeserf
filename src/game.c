@@ -4350,6 +4350,16 @@ demolish_building(map_pos_t pos)
 	tiles[pos].paths &= ~BIT(1);
 	tiles[MAP_MOVE_DOWN_RIGHT(pos)].paths &= ~BIT(4);
 
+	/* Disconnect flag. */
+	flag_t *flag = game_get_flag(building->flg_index);
+	flag->other_endpoint.b[DIR_UP_LEFT] = NULL;
+	flag->endpoint &= ~BIT(6);
+
+	flag->bld_flags = 0;
+	flag->bld2_flags = 0;
+
+	flag_reset_transport(flag);
+
 	/* Remove lost gold stock from total count. */
 	if (BUILDING_IS_DONE(building) &&
 	    (BUILDING_TYPE(building) == BUILDING_HUT ||
@@ -4460,18 +4470,23 @@ demolish_building(map_pos_t pos)
 
 			building->serf_index = 8191;
 
-			if (player->serf_index != 0) {
-				serf_t *serf = game_get_serf(player->serf_index);
-				serf->type = (serf->type & 0x83) | (SERF_TRANSPORTER << 2);
-				serf->counter = 0;
+			for (int i = 1; i < game.max_serf_index; i++) {
+				if (SERF_ALLOCATED(i)) {
+					serf_t *serf = game_get_serf(i);
+					if (SERF_TYPE(serf) == SERF_4 &&
+					    serf->pos == building->pos) {
+						serf->type = (serf->type & 0x83) | (SERF_TRANSPORTER << 2);
+						serf->counter = 0;
 
-				if (MAP_SERF_INDEX(serf->pos) == SERF_INDEX(serf)) {
-					serf_log_state_change(serf, SERF_STATE_LOST);
-					serf->state = SERF_STATE_LOST;
-					serf->s.lost.field_B = 0;
-				} else {
-					serf_log_state_change(serf, SERF_STATE_ESCAPE_BUILDING);
-					serf->state = SERF_STATE_ESCAPE_BUILDING;
+						if (MAP_SERF_INDEX(serf->pos) == SERF_INDEX(serf)) {
+							serf_log_state_change(serf, SERF_STATE_LOST);
+							serf->state = SERF_STATE_LOST;
+							serf->s.lost.field_B = 0;
+						} else {
+							serf_log_state_change(serf, SERF_STATE_ESCAPE_BUILDING);
+							serf->state = SERF_STATE_ESCAPE_BUILDING;
+						}
+					}
 				}
 			}
 		}
@@ -4512,16 +4527,6 @@ demolish_building(map_pos_t pos)
 			}
 		}
 	}
-
-	/* Flag. */
-	flag_t *flag = game_get_flag(building->flg_index);
-	flag->other_endpoint.b[DIR_UP_LEFT] = NULL;
-	flag->endpoint &= ~BIT(6);
-
-	flag->bld_flags = 0;
-	flag->bld2_flags = 0;
-
-	flag_reset_transport(flag);
 
 	map_pos_t flag_pos = MAP_MOVE_DOWN_RIGHT(pos);
 	if (MAP_PATHS(flag_pos) == 0 &&

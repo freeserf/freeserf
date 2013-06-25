@@ -1251,6 +1251,10 @@ handle_serf_entering_building_state(serf_t *serf)
 						serf->state = SERF_STATE_DEFENDING_CASTLE;
 						serf->counter = 6000;
 
+						/* Prepend to knight list */
+						serf->s.defending.next_knight = building->serf_index;
+						building->serf_index = SERF_INDEX(serf);
+
 						game.player[BUILDING_PLAYER(building)]->castle_knights += 1;
 						return;
 					}
@@ -2900,9 +2904,9 @@ handle_serf_lost_state(serf_t *serf)
 
 			map_pos_t dest = MAP_POS_ADD(serf->pos,
 						     MAP_POS(col, row));
-			if (MAP_OBJ(dest) == 0 &&
-			    MAP_HEIGHT(dest) > 0 &&
-			    (MAP_HAS_FLAG(dest) ||
+			if ((MAP_OBJ(dest) == 0 &&
+			     MAP_HEIGHT(dest) > 0) ||
+			    (MAP_HAS_FLAG(dest) &&
 			     (MAP_HAS_OWNER(dest) &&
 			      MAP_OWNER(dest) == SERF_PLAYER(serf)))) {
 				if (SERF_TYPE(serf) >= SERF_KNIGHT_0 &&
