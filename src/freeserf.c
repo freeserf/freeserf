@@ -703,8 +703,6 @@ load_data_file(const char *path)
 	" -g DATA-FILE\tUse specified data file\n"			\
 	" -h\t\tShow this help text\n"					\
 	" -l FILE\tLoad saved game\n"					\
-	" -m MAP\t\tSelect mission map (1-30)\n"			\
-	" -n SIZE\tSelect size of random map (3-10)\n"			\
 	" -r RES\t\tSet display resolution (e.g. 800x600)\n"		\
 	" -t GEN\t\tMap generator (0 or 1)\n"				\
 	"\n"								\
@@ -721,15 +719,13 @@ main(int argc, char *argv[])
 	int screen_width = DEFAULT_SCREEN_WIDTH;
 	int screen_height = DEFAULT_SCREEN_HEIGHT;
 	int fullscreen = 0;
-	int game_mission = -1;
-	int map_size = 3;
 	int map_generator = 0;
 
 	int log_level = DEFAULT_LOG_LEVEL;
 
 	int opt;
 	while (1) {
-		opt = getopt(argc, argv, "d:fg:hl:m:n:r:t:");
+		opt = getopt(argc, argv, "d:fg:hl:r:t:");
 		if (opt < 0) break;
 
 		switch (opt) {
@@ -757,12 +753,6 @@ main(int argc, char *argv[])
 			save_file = malloc(strlen(optarg)+1);
 			if (save_file == NULL) exit(EXIT_FAILURE);
 			strcpy(save_file, optarg);
-			break;
-		case 'm':
-			game_mission = atoi(optarg);
-			break;
-		case 'n':
-			map_size = atoi(optarg);
 			break;
 		case 'r':
 		{
@@ -835,17 +825,8 @@ main(int argc, char *argv[])
 		int r = game_load_save_game(save_file);
 		if (r < 0) exit(EXIT_FAILURE);
 		free(save_file);
-	} else if (game_mission < 0) {
-		random_state_t rnd = {{ 0x5a5a, time(NULL) >> 16, time(NULL) }};
-		int r = game_load_random_map(map_size, &rnd);
-		if (r < 0) exit(EXIT_FAILURE);
 	} else {
-		if (game_mission < 1 || game_mission > mission_count) {
-			LOGE("main", "Invalid mission selected (available 1-%i)",
-			     mission_count);
-			exit(EXIT_FAILURE);
-		}
-		int r = game_load_mission_map(game_mission-1);
+		int r = game_load_random_map(3, &interface.random);
 		if (r < 0) exit(EXIT_FAILURE);
 	}
 
