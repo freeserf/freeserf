@@ -314,6 +314,8 @@ viewport_map_reinit()
 void
 viewport_redraw_map_pos(viewport_t *viewport, map_pos_t pos)
 {
+	if (landscape_tile == NULL) return;
+
 	int mx, my;
 	viewport_map_pix_from_map_coord(viewport, pos, MAP_HEIGHT(pos),
 					&mx, &my);

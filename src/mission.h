@@ -31,6 +31,7 @@ typedef struct {
 		int supplies;
 		int intelligence;
 		int reproduction;
+		struct { int col; int row; } castle;
 	} player[4];
 } mission_t;
 

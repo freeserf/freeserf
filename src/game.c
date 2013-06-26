@@ -5236,6 +5236,17 @@ game_load_mission_map(int m)
 
 	game_init_map();
 
+	/* Build initial castle */
+	for (int i = 0; i < GAME_MAX_PLAYER_COUNT; i++) {
+		if (PLAYER_IS_ACTIVE(game.player[i]) &&
+		    mission[m].player[i].castle.col > -1 &&
+		    mission[m].player[i].castle.row > -1) {
+			map_pos_t pos = MAP_POS(mission[m].player[i].castle.col,
+						mission[m].player[i].castle.row);
+			game_build_castle(pos, game.player[i]);
+		}
+	}
+
 	return 0;
 }
 
