@@ -2530,6 +2530,19 @@ handle_free_walking_common(serf_t *serf)
 						LOGD("serf", "free walking: unhandled sub_5AE56() call.");
 					}
 				}
+			} else if ((other_serf->state == SERF_STATE_FREE_WALKING ||
+				    other_serf->state == SERF_STATE_KNIGHT_FREE_WALKING ||
+				    other_serf->state == SERF_STATE_STONECUTTER_FREE_WALKING) &&
+				   other_serf->animation == 82) {
+				/* Move other free walking serf in opposite direction. */
+				other_serf->s.free_walking.dist1 += d1;
+				other_serf->s.free_walking.dist2 += d2;
+
+				if (other_serf->s.free_walking.dist1 == 0 &&
+				    other_serf->s.free_walking.dist2 == 0) {
+					/* Arriving to destination */
+					other_serf->s.free_walking.flags = BIT(3);
+				}
 			}
 
 			serf->animation = 82;
