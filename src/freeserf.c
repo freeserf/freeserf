@@ -850,8 +850,14 @@ main(int argc, char *argv[])
 	}
 
 	/* Move viewport to initial position */
+	map_pos_t init_pos = MAP_POS(0,0);
+	if (interface.player->castle_flag != 0) {
+		flag_t *flag = game_get_flag(interface.player->castle_flag);
+		init_pos = MAP_MOVE_UP_LEFT(flag->pos);
+	}
+
 	viewport_map_reinit();
-	interface_update_map_cursor_pos(&interface, interface.map_cursor_pos);
+	interface_update_map_cursor_pos(&interface, init_pos);
 	viewport_move_to_map_pos(&interface.viewport, interface.map_cursor_pos);
 
 	if (save_file != NULL) {
