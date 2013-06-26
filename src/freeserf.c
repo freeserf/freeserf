@@ -853,7 +853,10 @@ main(int argc, char *argv[])
 	viewport_map_reinit();
 	interface_update_map_cursor_pos(&interface, interface.map_cursor_pos);
 	viewport_move_to_map_pos(&interface.viewport, interface.map_cursor_pos);
-	interface_open_game_init(&interface);
+
+	if (save_file != NULL) {
+		interface_close_game_init(&interface);
+	}
 
 	/* Start game loop */
 	game_loop();
