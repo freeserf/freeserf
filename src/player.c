@@ -209,11 +209,7 @@ player_promote_serfs_to_knights(player_t *player, int number)
 					inv->spawn_priority -= 1;
 					inv->serfs[SERF_GENERIC] = 0;
 
-					serf->type = (SERF_KNIGHT_0 << 2) | (serf->type & 3);
-
-					player->serf_count[SERF_GENERIC] -= 1;
-					player->serf_count[SERF_KNIGHT_0] += 1;
-					player->total_military_score += 1;
+					serf_set_type(serf, SERF_KNIGHT_0);
 
 					promoted += 1;
 					number -= 1;

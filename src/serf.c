@@ -232,6 +232,37 @@ serf_get_state_name(serf_state_t state)
 	return serf_state_name[state];
 }
 
+/* Change type of serf and update all global tables
+   tracking serf types. */
+void
+serf_set_type(serf_t *serf, serf_type_t type)
+{
+	serf_type_t old_type = SERF_TYPE(serf);
+	serf->type = (serf->type & 0x83) | (type << 2);
+
+	/* Register this type as transporter */
+	if (type == SERF_4) type = SERF_TRANSPORTER;
+	if (old_type == SERF_4) type = SERF_TRANSPORTER;
+
+	player_t *player = game.player[SERF_PLAYER(serf)];
+	player->serf_count[old_type] -= 1;
+
+	if (type != SERF_DEAD) {
+		player->serf_count[type] += 1;
+	}
+
+	if (old_type >= SERF_KNIGHT_0 &&
+	    old_type <= SERF_KNIGHT_4) {
+		int value = 1 << (old_type - SERF_KNIGHT_0);
+		player->total_military_score -= value;
+	}
+	if (type >= SERF_KNIGHT_0 &&
+	    type <= SERF_KNIGHT_4) {
+		int value = 1 << (type - SERF_KNIGHT_0);
+		player->total_military_score += value;
+	}
+}
+
 static int
 train_knight(serf_t *serf, int p)
 {
@@ -243,10 +274,7 @@ train_knight(serf_t *serf, int p)
 		if (game_random_int() < p) {
 			/* Level up */
 			serf_type_t old_type = SERF_TYPE(serf);
-			serf->type = (serf->type & 0x83) | ((old_type + 1) << 2);
-			player_t *player = game.player[SERF_PLAYER(serf)];
-			player->serf_count[old_type] -= 1;
-			player->serf_count[old_type+1] += 1;
+			serf_set_type(serf, old_type+1);
 			serf->counter = 6000;
 			return 0;
 		}
@@ -862,7 +890,7 @@ handle_serf_entering_building_state(serf_t *serf)
 				serf_log_state_change(serf, SERF_STATE_WAIT_FOR_RESOURCE_OUT);
 				serf->state = SERF_STATE_WAIT_FOR_RESOURCE_OUT;
 				serf->counter = 63;
-				serf->type = (SERF_4 << 2) | (serf->type & 0x83);
+				serf_set_type(serf, SERF_4);
 			}
 			break;
 		case SERF_SAILOR:
@@ -4071,7 +4099,7 @@ handle_knight_attacking(serf_t *serf)
 					serf->state = SERF_STATE_KNIGHT_ATTACKING_DEFEAT_FREE;
 					serf->animation = 152 + SERF_TYPE(serf);
 					serf->counter = 255;
-					serf->type = (serf->type & 0x80) | (SERF_DEAD << 2) | SERF_PLAYER(serf);
+					serf_set_type(serf, SERF_DEAD);
 				} else {
 					/* Defender returns to building. */
 					serf_enter_building(def_serf, -1, 1);
@@ -4081,7 +4109,7 @@ handle_knight_attacking(serf_t *serf)
 					serf->state = SERF_STATE_KNIGHT_ATTACKING_DEFEAT;
 					serf->animation = 152 + SERF_TYPE(serf);
 					serf->counter = 255;
-					serf->type = (serf->type & 0x80) | (SERF_DEAD << 2) | SERF_PLAYER(serf);
+					serf_set_type(serf, SERF_DEAD);
 				}
 			} else {
 				/* Attacker won. */
@@ -4109,7 +4137,7 @@ handle_knight_attacking(serf_t *serf)
 				def_serf->tick = game.tick;
 				def_serf->animation = 147 + SERF_TYPE(serf);
 				def_serf->counter = 255;
-				def_serf->type = (def_serf->type & 0x80) | (SERF_DEAD << 2) | SERF_PLAYER(def_serf);
+				serf_set_type(def_serf, SERF_DEAD);
 			}
 		} else {
 			/* Go to next move in fight sequence. */

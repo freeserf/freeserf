@@ -1007,6 +1007,11 @@ save_text_player_state(FILE *f)
 		save_text_write_array(f, "attacking_buildings", player->attacking_buildings, 64);
 
 		save_text_write_value(f, "knights_to_spawn", player->knights_to_spawn);
+
+		save_text_write_value(f, "total_land_area", player->total_land_area);
+		save_text_write_value(f, "total_building_score", player->total_building_score);
+		save_text_write_value(f, "total_military_score", player->total_military_score);
+
 		save_text_write_value(f, "last_tick", player->last_tick);
 
 		save_text_write_value(f, "reproduction_counter", player->reproduction_counter);
@@ -1879,6 +1884,12 @@ load_text_player_section(section_t *section)
 			}
 		} else if (!strcmp(s->key, "knights_to_spawn")) {
 			player->knights_to_spawn = atoi(s->value);
+		} else if (!strcmp(s->key, "total_land_area")) {
+			player->total_land_area = atoi(s->value);
+		} else if (!strcmp(s->key, "total_building_score")) {
+			player->total_building_score = atoi(s->value);
+		} else if (!strcmp(s->key, "total_military_score")) {
+			player->total_military_score = atoi(s->value);
 		} else if (!strcmp(s->key, "last_tick")) {
 			player->last_tick = atoi(s->value);
 		} else if (!strcmp(s->key, "reproduction_counter")) {

@@ -416,9 +416,7 @@ update_player(player_t *player)
 					if (inventory->resources[RESOURCE_SWORD] != 0 &&
 					    inventory->resources[RESOURCE_SHIELD] != 0) {
 						player->knights_to_spawn -= 1;
-						serf->type = (serf->type & 0x83) | (SERF_KNIGHT_0 << 2);
-						player->serf_count[SERF_GENERIC] -= 1;
-						player->serf_count[SERF_KNIGHT_0] += 1;
+						serf_set_type(serf, SERF_KNIGHT_0);
 						inventory->resources[RESOURCE_SWORD] -= 1;
 						inventory->resources[RESOURCE_SHIELD] -= 1;
 						inventory->spawn_priority -= 1;
@@ -796,20 +794,15 @@ send_serf_to_road(flag_t *src, dir_t dir, int water)
 	if (r < 0) {
 		if (inventory == NULL) return -1;
 
-		player_t *player = game.player[inventory->player_num];
-
-		player->serf_count[SERF_GENERIC] -= 1;
 		serf_index = inventory->serfs[SERF_GENERIC];
 		inventory->serfs[SERF_GENERIC] = 0;
 
 		serf_t *serf = game_get_serf(serf_index);
 
 		if (!water) {
-			serf->type = (serf->type & 0x83) | (SERF_TRANSPORTER << 2);
-			player->serf_count[SERF_TRANSPORTER] += 1;
+			serf_set_type(serf, SERF_TRANSPORTER);
 		} else {
-			serf->type = (serf->type & 0x83) | (SERF_SAILOR << 2);
-			player->serf_count[SERF_SAILOR] += 1;
+			serf_set_type(serf, SERF_SAILOR);
 			inventory->resources[RESOURCE_BOAT] -= 1;
 		}
 
@@ -1327,16 +1320,11 @@ send_serf_to_flag(flag_t *dest, int type, resource_type_t res1, resource_type_t 
 			serf->s.ready_to_leave_inventory.mode = -1;
 			serf->s.ready_to_leave_inventory.dest = building->flg_index;
 			serf->s.ready_to_leave_inventory.inv_index = INVENTORY_INDEX(inventory);
-			serf->type = (serf->type & 0x83) | (SERF_KNIGHT_0 << 2);
+			serf_set_type(serf, SERF_KNIGHT_0);
 
 			inventory->resources[RESOURCE_SWORD] -= 1;
 			inventory->resources[RESOURCE_SHIELD] -= 1;
 			inventory->serfs[SERF_4] += 1;
-
-			player_t *player = game.player[SERF_PLAYER(serf)];
-			player->serf_count[SERF_GENERIC] -= 1;
-			player->serf_count[SERF_KNIGHT_0] += 1;
-			player->total_military_score += 1;
 		} else {
 			serf_log_state_change(serf, SERF_STATE_READY_TO_LEAVE_INVENTORY);
 			serf->state = SERF_STATE_READY_TO_LEAVE_INVENTORY;
@@ -1350,16 +1338,12 @@ send_serf_to_flag(flag_t *dest, int type, resource_type_t res1, resource_type_t 
 				serf->s.ready_to_leave_inventory.mode = -1;
 				serf->s.ready_to_leave_inventory.dest = FLAG_INDEX(dest);
 			}
-			serf->type = (serf->type & 0x83) | (type << 2);
+			serf_set_type(serf, type);
 
 			if (res1 != -1) inventory->resources[res1] -= 1;
 			if (res2 != -1) inventory->resources[res2] -= 1;
 
 			inventory->serfs[SERF_4] += 1;
-
-			player_t *player = game.player[SERF_PLAYER(serf)];
-			player->serf_count[SERF_GENERIC] -= 1;
-			player->serf_count[type] += 1;
 		}
 
 		return 0;
@@ -1523,14 +1507,12 @@ update_building_castle(building_t *building)
 				inventory->spawn_priority -= 1;
 				inventory->resources[RESOURCE_SWORD] -= 1;
 				inventory->resources[RESOURCE_SHIELD] -= 1;
-				player->serf_count[SERF_GENERIC] -= 1;
-				player->serf_count[SERF_KNIGHT_0] += 1;
 
 				int serf_index = inventory->serfs[SERF_GENERIC];
 				serf_t *serf = game_get_serf(serf_index);
 				inventory->serfs[SERF_GENERIC] = 0;
 
-				serf->type = (0x83 & serf->type) | (SERF_KNIGHT_0 << 2);
+				serf_set_type(serf, SERF_KNIGHT_0);
 				serf->state = SERF_STATE_DEFENDING_CASTLE;
 				serf->s.defending.next_knight = building->serf_index;
 				building->serf_index = serf_index;
@@ -3805,7 +3787,7 @@ create_initial_castle_serfs(player_t *player)
 	if (r < 0) return;
 
 	inventory->spawn_priority -= 1;
-	serf->type = (serf->type & 0x83) | (SERF_4 << 2);
+	serf_set_type(serf, SERF_4);
 
 	serf_log_state_change(serf, SERF_STATE_BUILDING_CASTLE);
 	serf->state = SERF_STATE_BUILDING_CASTLE;
@@ -3814,9 +3796,6 @@ create_initial_castle_serfs(player_t *player)
 
 	building_t *building = game_get_building(player->building);
 	building->serf_index = SERF_INDEX(serf);
-
-	player->serf_count[SERF_GENERIC] -= 1;
-	player->serf_count[SERF_TRANSPORTER] += 1;
 
 	/* Spawn generic serfs */
 	for (int i = 0; i < 5; i++) {
@@ -3828,11 +3807,7 @@ create_initial_castle_serfs(player_t *player)
 		r = spawn_serf(player, &serf, &inventory, 0);
 		if (r < 0) return;
 
-		serf->type = (serf->type & 0x83) | (SERF_KNIGHT_0 << 2);
-
-		player->serf_count[SERF_GENERIC] -= 1;
-		player->serf_count[SERF_KNIGHT_0] += 1;
-		player->total_military_score += 1;
+		serf_set_type(serf, SERF_KNIGHT_0);
 
 		inventory->resources[RESOURCE_SWORD] -= 1;
 		inventory->resources[RESOURCE_SHIELD] -= 1;
@@ -3843,10 +3818,7 @@ create_initial_castle_serfs(player_t *player)
 	r = spawn_serf(player, &serf, &inventory, 0);
 	if (r < 0) return;
 
-	serf->type = (serf->type & 0x83) | (SERF_TOOLMAKER << 2);
-
-	player->serf_count[SERF_GENERIC] -= 1;
-	player->serf_count[SERF_TOOLMAKER] += 1;
+	serf_set_type(serf, SERF_TOOLMAKER);
 
 	inventory->resources[RESOURCE_HAMMER] -= 1;
 	inventory->resources[RESOURCE_SAW] -= 1;
@@ -3856,10 +3828,7 @@ create_initial_castle_serfs(player_t *player)
 	r = spawn_serf(player, &serf, &inventory, 0);
 	if (r < 0) return;
 
-	serf->type = (serf->type & 0x83) | (SERF_LUMBERJACK << 2);
-
-	player->serf_count[SERF_GENERIC] -= 1;
-	player->serf_count[SERF_LUMBERJACK] += 1;
+	serf_set_type(serf, SERF_LUMBERJACK);
 
 	inventory->resources[RESOURCE_AXE] -= 1;
 	inventory->spawn_priority -= 1;
@@ -3868,10 +3837,7 @@ create_initial_castle_serfs(player_t *player)
 	r = spawn_serf(player, &serf, &inventory, 0);
 	if (r < 0) return;
 
-	serf->type = (serf->type & 0x83) | (SERF_SAWMILLER << 2);
-
-	player->serf_count[SERF_GENERIC] -= 1;
-	player->serf_count[SERF_SAWMILLER] += 1;
+	serf_set_type(serf, SERF_SAWMILLER);
 
 	inventory->resources[RESOURCE_SAW] -= 1;
 	inventory->spawn_priority -= 1;
@@ -3880,10 +3846,7 @@ create_initial_castle_serfs(player_t *player)
 	r = spawn_serf(player, &serf, &inventory, 0);
 	if (r < 0) return;
 
-	serf->type = (serf->type & 0x83) | (SERF_STONECUTTER << 2);
-
-	player->serf_count[SERF_GENERIC] -= 1;
-	player->serf_count[SERF_STONECUTTER] += 1;
+	serf_set_type(serf, SERF_STONECUTTER);
 
 	inventory->resources[RESOURCE_PICK] -= 1;
 	inventory->spawn_priority -= 1;
@@ -3892,10 +3855,7 @@ create_initial_castle_serfs(player_t *player)
 	r = spawn_serf(player, &serf, &inventory, 0);
 	if (r < 0) return;
 
-	serf->type = (serf->type & 0x83) | (SERF_DIGGER << 2);
-
-	player->serf_count[SERF_GENERIC] -= 1;
-	player->serf_count[SERF_DIGGER] += 1;
+	serf_set_type(serf, SERF_DIGGER);
 
 	inventory->resources[RESOURCE_SHOVEL] -= 1;
 	inventory->spawn_priority -= 1;
@@ -3904,10 +3864,7 @@ create_initial_castle_serfs(player_t *player)
 	r = spawn_serf(player, &serf, &inventory, 0);
 	if (r < 0) return;
 
-	serf->type = (serf->type & 0x83) | (SERF_BUILDER << 2);
-
-	player->serf_count[SERF_GENERIC] -= 1;
-	player->serf_count[SERF_BUILDER] += 1;
+	serf_set_type(serf, SERF_BUILDER);
 
 	inventory->resources[RESOURCE_HAMMER] -= 1;
 	inventory->spawn_priority -= 1;
@@ -3916,10 +3873,7 @@ create_initial_castle_serfs(player_t *player)
 	r = spawn_serf(player, &serf, &inventory, 0);
 	if (r < 0) return;
 
-	serf->type = (serf->type & 0x83) | (SERF_FISHER << 2);
-
-	player->serf_count[SERF_GENERIC] -= 1;
-	player->serf_count[SERF_FISHER] += 1;
+	serf_set_type(serf, SERF_FISHER);
 
 	inventory->resources[RESOURCE_ROD] -= 1;
 	inventory->spawn_priority -= 1;
@@ -3929,10 +3883,7 @@ create_initial_castle_serfs(player_t *player)
 		r = spawn_serf(player, &serf, &inventory, 0);
 		if (r < 0) return;
 
-		serf->type = (serf->type & 0x83) | (SERF_GEOLOGIST << 2);
-
-		player->serf_count[SERF_GENERIC] -= 1;
-		player->serf_count[SERF_GEOLOGIST] += 1;
+		serf_set_type(serf, SERF_GEOLOGIST);
 
 		inventory->resources[RESOURCE_HAMMER] -= 1;
 		inventory->spawn_priority -= 1;
@@ -3943,10 +3894,7 @@ create_initial_castle_serfs(player_t *player)
 		r = spawn_serf(player, &serf, &inventory, 0);
 		if (r < 0) return;
 
-		serf->type = (serf->type & 0x83) | (SERF_MINER << 2);
-
-		player->serf_count[SERF_GENERIC] -= 1;
-		player->serf_count[SERF_MINER] += 1;
+		serf_set_type(serf, SERF_MINER);
 
 		inventory->resources[RESOURCE_PICK] -= 1;
 		inventory->spawn_priority -= 1;
@@ -4475,7 +4423,7 @@ demolish_building(map_pos_t pos)
 					serf_t *serf = game_get_serf(i);
 					if (SERF_TYPE(serf) == SERF_4 &&
 					    serf->pos == building->pos) {
-						serf->type = (serf->type & 0x83) | (SERF_TRANSPORTER << 2);
+						serf_set_type(serf, SERF_TRANSPORTER);
 						serf->counter = 0;
 
 						if (MAP_SERF_INDEX(serf->pos) == SERF_INDEX(serf)) {
@@ -4512,7 +4460,7 @@ demolish_building(map_pos_t pos)
 		} else {
 			serf_t *serf = game_get_serf(serf_index);
 			if (SERF_TYPE(serf) == SERF_4) {
-				serf->type = (serf->type & 0x83) | (SERF_TRANSPORTER << 2);
+				serf_set_type(serf, SERF_TRANSPORTER);
 			}
 
 			serf->counter = 0;
