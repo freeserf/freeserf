@@ -37,9 +37,9 @@ Run `freeserf -h` for more info on command line options.
 
 Bugs
 ----
-Please report bugs at <https://github.com/jonls/freeserf/issues>.
+Please report bugs at <https://github.com/freeserf/freeserf/issues>.
 
 
 Development
 -----------
-The main source repository for this project is at <https://github.com/jonls/freeserf>. See the HACKING document in the source code root for information on how to compile and how to contribute.
+The main source repository for this project is at <https://github.com/freeserf/freeserf>. See the HACKING document in the source code root for information on how to compile and how to contribute.
