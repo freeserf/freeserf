@@ -3934,6 +3934,7 @@ game_build_castle(map_pos_t pos, player_t *player)
 	player->flags |= BIT(0); /* Has castle */
 	player->build |= BIT(3);
 	player->total_building_score += building_get_score_from_type(BUILDING_CASTLE);
+	player->castle_flag = flg_index;
 
 	castle->serf |= BIT(4) | BIT(6);
 	castle->u.inventory = inventory;

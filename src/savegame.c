@@ -2184,6 +2184,16 @@ load_text_building_state(list_t *sections)
 		}
 	}
 
+	for (int i = 1; i < game.max_building_index; i++) {
+		if (BUILDING_ALLOCATED(i)) {
+			building_t *building = game_get_building(i);
+			if (BUILDING_TYPE(building) == BUILDING_CASTLE) {
+				game.player[BUILDING_PLAYER(building)]->castle_flag =
+					building->flg_index;
+			}
+		}
+	}
+
 	return 0;
 }
 
