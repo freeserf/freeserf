@@ -5228,9 +5228,12 @@ game_cancel_transported_resource(resource_type_t res, uint dest)
 		}
 	}
 
-	assert(stock >= 0);
-	building->stock[stock].requested -= 1;
-	assert(building->stock[stock].requested >= 0);
+	if (stock >= 0) {
+		building->stock[stock].requested -= 1;
+		assert(building->stock[stock].requested >= 0);
+	} else {
+		assert(BUILDING_HAS_INVENTORY(building));
+	}
 }
 
 /* Called when a resource is lost forever from the game. This will
