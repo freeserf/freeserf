@@ -317,6 +317,84 @@ serf_set_lost_state(serf_t *serf)
 	}
 }
 
+/* Return true if serf is waiting for a position to be available.
+   In this case, dir will be set to the desired direction of the serf,
+   or DIR_NONE if the desired direction cannot be determined. */
+static int
+serf_is_waiting(serf_t *serf, dir_t *dir)
+{
+	const int dir_from_offset[] = {
+		DIR_UP_LEFT, DIR_UP, -1,
+		DIR_LEFT, -1, DIR_RIGHT,
+		-1, DIR_DOWN, DIR_DOWN_RIGHT
+	};
+
+	if ((serf->state == SERF_STATE_TRANSPORTING ||
+	     serf->state == SERF_STATE_WALKING ||
+	     serf->state == SERF_STATE_DELIVERING) &&
+	    serf->s.walking.dir < 0) {
+		*dir = serf->s.walking.dir + 6;
+		return 1;
+	} else if ((serf->state == SERF_STATE_FREE_WALKING ||
+		    serf->state == SERF_STATE_KNIGHT_FREE_WALKING ||
+		    serf->state == SERF_STATE_STONECUTTER_FREE_WALKING) &&
+		   serf->animation == 82) {
+		int dx = serf->s.free_walking.dist1;
+		int dy = serf->s.free_walking.dist2;
+
+		if (abs(dx) <= 1 && abs(dy) <= 1 &&
+		    dir_from_offset[(dx+1) + 3*(dy+1)] > -1) {
+			*dir = dir_from_offset[(dx+1) + 3*(dy+1)];
+		} else {
+			*dir = DIR_NONE;
+		}
+		return 1;
+	} else if (serf->state == SERF_STATE_DIGGING &&
+		   serf->s.digging.substate < 0) {
+		int d = serf->s.digging.dig_pos;
+		*dir = (d == 0) ? DIR_UP : 6-d;
+		return 1;
+	}
+
+	return 0;
+}
+
+/* Signal waiting serf that it is possible to move in direction
+   while switching position with another serf. Returns 0 if the
+   switch is not acceptable. */
+static int
+serf_switch_waiting(serf_t *serf, dir_t dir)
+{
+	if ((serf->state == SERF_STATE_TRANSPORTING ||
+	     serf->state == SERF_STATE_WALKING ||
+	     serf->state == SERF_STATE_DELIVERING) &&
+	    serf->s.walking.dir < 0) {
+		serf->s.walking.dir = DIR_REVERSE(dir);
+		return 1;
+	} else if ((serf->state == SERF_STATE_FREE_WALKING ||
+		    serf->state == SERF_STATE_KNIGHT_FREE_WALKING ||
+		    serf->state == SERF_STATE_STONECUTTER_FREE_WALKING) &&
+		   serf->animation == 82) {
+		int dx = ((dir < 3) ? 1 : -1)*((dir % 3) < 2);
+		int dy = ((dir < 3) ? 1 : -1)*((dir % 3) > 0);
+
+		serf->s.free_walking.dist1 -= dx;
+		serf->s.free_walking.dist2 -= dy;
+
+		if (serf->s.free_walking.dist1 == 0 &&
+		    serf->s.free_walking.dist2 == 0) {
+			/* Arriving to destination */
+			serf->s.free_walking.flags = BIT(3);
+		}
+		return 1;
+	} else if (serf->state == SERF_STATE_DIGGING &&
+		   serf->s.digging.substate < 0) {
+		return 0;
+	}
+
+	return 0;
+}
+
 
 static int
 train_knight(serf_t *serf, int p)
@@ -398,9 +476,11 @@ handle_serf_idle_in_stock_state(serf_t *serf)
 }
 
 static int
-get_walking_animation(int h_diff, dir_t dir)
+get_walking_animation(int h_diff, dir_t dir, int switch_pos)
 {
-	return 4 + h_diff + 9*dir;
+	int d = dir;
+	if (switch_pos && d < 3) d += 6;
+	return 4 + h_diff + 9*d;
 }
 
 /* Preconditon: serf is in WALKING or TRANSPORTING state */
@@ -408,48 +488,46 @@ static void
 serf_change_direction(serf_t *serf, int dir, int alt_end)
 {
 	map_pos_t new_pos = MAP_MOVE(serf->pos, dir);
-	int animation = 0;
 
 	if (MAP_SERF_INDEX(new_pos) == 0) {
 		/* Change direction, not occupied. */
 		map_set_serf_index(serf->pos, 0);
-		animation = get_walking_animation(MAP_HEIGHT(new_pos) - MAP_HEIGHT(serf->pos), dir);
+		serf->animation = get_walking_animation(MAP_HEIGHT(new_pos) - MAP_HEIGHT(serf->pos), dir, 0);
 		serf->s.walking.dir = DIR_REVERSE(dir);
 	} else {
 		/* Direction is occupied. */
 		serf_t *other_serf = game_get_serf(MAP_SERF_INDEX(new_pos));
-		if (dir == DIR_LEFT || dir == DIR_UP_LEFT || dir == DIR_UP ||
-		    (other_serf->state != SERF_STATE_TRANSPORTING &&
-		     other_serf->state != SERF_STATE_WALKING) ||
-		    other_serf->s.walking.dir != DIR_REVERSE(dir)-6) {
+		dir_t other_dir;
+
+		if (serf_is_waiting(other_serf, &other_dir) &&
+		    (other_dir == DIR_REVERSE(dir) || other_dir == DIR_NONE) &&
+		    serf_switch_waiting(other_serf, DIR_REVERSE(dir))) {
+			/* Do the switch */
+			other_serf->pos = serf->pos;
+			map_set_serf_index(other_serf->pos, SERF_INDEX(other_serf));
+			other_serf->animation = get_walking_animation(MAP_HEIGHT(other_serf->pos) - MAP_HEIGHT(new_pos),
+								      DIR_REVERSE(dir), 1);
+			other_serf->counter = counter_from_animation[other_serf->animation];
+
+			serf->animation = get_walking_animation(MAP_HEIGHT(new_pos) - MAP_HEIGHT(serf->pos), dir, 1);
+			serf->s.walking.dir = DIR_REVERSE(dir);
+		} else {
 			/* Wait for other serf */
 			serf->animation = 81 + dir;
 			serf->counter = counter_from_animation[serf->animation];
 			serf->s.walking.dir = dir-6;
 			return;
 		}
-
-		/* Do the switch */
-		other_serf->pos = serf->pos;
-		map_set_serf_index(other_serf->pos, MAP_SERF_INDEX(new_pos));
-		other_serf->animation = get_walking_animation(MAP_HEIGHT(other_serf->pos) - MAP_HEIGHT(new_pos),
-							      DIR_REVERSE(dir));
-		other_serf->s.walking.dir = dir;
-		other_serf->counter = counter_from_animation[other_serf->animation];
-
-		animation = get_walking_animation(MAP_HEIGHT(new_pos) - MAP_HEIGHT(serf->pos), 6+dir);
-		serf->s.walking.dir = DIR_REVERSE(dir);
 	}
 
 	if (!alt_end) serf->s.walking.wait_counter = 0;
 	serf->pos = new_pos;
-	map_set_serf_index(new_pos, SERF_INDEX(serf));
-	serf->counter += counter_from_animation[animation];
+	map_set_serf_index(serf->pos, SERF_INDEX(serf));
+	serf->counter += counter_from_animation[serf->animation];
 	if (alt_end && serf->counter < 0) {
 		if (MAP_HAS_FLAG(new_pos)) serf->counter = 0;
 		else LOGD("serf", "unhandled jump to 31B82.");
 	}
-	serf->animation = animation;
 }
 
 static int
@@ -547,7 +625,7 @@ static void
 serf_start_walking(serf_t *serf, dir_t dir, int slope, int change_pos)
 {
 	map_pos_t new_pos = MAP_MOVE(serf->pos, dir);
-	serf->animation = get_walking_animation(MAP_HEIGHT(new_pos) - MAP_HEIGHT(serf->pos), dir);
+	serf->animation = get_walking_animation(MAP_HEIGHT(new_pos) - MAP_HEIGHT(serf->pos), dir, 0);
 	serf->counter += (slope * counter_from_animation[serf->animation]) >> 5;
 
 	if (change_pos) {
@@ -1509,18 +1587,39 @@ handle_serf_digging_state(serf_t *serf)
 			map_pos_t new_pos = MAP_MOVE(serf->pos, dir);
 
 			if (MAP_SERF_INDEX(new_pos) != 0) {
-				serf->counter = 127;
-				serf->s.digging.substate = 0;
-				return;
+				serf_t *other_serf = game_get_serf(MAP_SERF_INDEX(new_pos));
+				dir_t other_dir;
+
+				if (serf_is_waiting(other_serf, &other_dir) &&
+				    other_dir == DIR_REVERSE(dir) &&
+				    serf_switch_waiting(other_serf, other_dir)) {
+					/* Do the switch */
+					other_serf->pos = serf->pos;
+					map_set_serf_index(other_serf->pos, SERF_INDEX(other_serf));
+					other_serf->animation = get_walking_animation(MAP_HEIGHT(other_serf->pos) - MAP_HEIGHT(new_pos),
+										      DIR_REVERSE(dir), 1);
+					other_serf->counter = counter_from_animation[other_serf->animation];
+
+					if (d != 0) {
+						serf->animation = get_walking_animation(MAP_HEIGHT(new_pos) - MAP_HEIGHT(serf->pos), dir, 1);
+					} else {
+						serf->animation = MAP_HEIGHT(new_pos) - MAP_HEIGHT(serf->pos);
+					}
+				} else {
+					serf->counter = 127;
+					serf->s.digging.substate = 0;
+					return;
+				}
+			} else {
+				map_set_serf_index(serf->pos, 0);
+				if (d != 0) {
+					serf->animation = get_walking_animation(MAP_HEIGHT(new_pos) - MAP_HEIGHT(serf->pos), dir, 0);
+				} else {
+					serf->animation = MAP_HEIGHT(new_pos) - MAP_HEIGHT(serf->pos);
+				}
 			}
 
-			map_set_serf_index(serf->pos, 0);
 			map_set_serf_index(new_pos, SERF_INDEX(serf));
-			if (d != 0) {
-				serf->animation = get_walking_animation(MAP_HEIGHT(new_pos) - MAP_HEIGHT(serf->pos), dir);
-			} else {
-				serf->animation = MAP_HEIGHT(new_pos) - MAP_HEIGHT(serf->pos);
-			}
 			serf->pos = new_pos;
 			serf->s.digging.substate = 3;
 			serf->counter += counter_from_animation[serf->animation];
@@ -2275,29 +2374,11 @@ handle_serf_free_walking_switch_with_other(serf_t *serf)
 		new_pos = MAP_MOVE(serf->pos, i);
 		if (MAP_SERF_INDEX(new_pos) != 0) {
 			other_serf = game_get_serf(MAP_SERF_INDEX(new_pos));
+			dir_t other_dir;
 
-			if ((other_serf->state == SERF_STATE_WALKING ||
-			     other_serf->state == SERF_STATE_TRANSPORTING) &&
-			    other_serf->s.walking.dir == DIR_REVERSE(i)-6) {
-				/* Move other walking serf in opposite direction. */
-				other_serf->s.walking.dir = i;
-				dir = i;
-				break;
-			} else if ((other_serf->state == SERF_STATE_FREE_WALKING ||
-				    other_serf->state == SERF_STATE_KNIGHT_FREE_WALKING ||
-				    other_serf->state == SERF_STATE_STONECUTTER_FREE_WALKING) &&
-				   other_serf->animation == 82) {
-				/* Move other free walking serf in opposite direction. */
-				int dx = ((dir < 3) ? 1 : -1)*((dir % 3) < 2);
-				int dy = ((dir < 3) ? 1 : -1)*((dir % 3) > 0);
-				other_serf->s.free_walking.dist1 += dx;
-				other_serf->s.free_walking.dist2 += dy;
-
-				if (other_serf->s.free_walking.dist1 == 0 &&
-				    other_serf->s.free_walking.dist2 == 0) {
-					/* Arriving to destination */
-					other_serf->s.free_walking.flags = BIT(3);
-				}
+			if (serf_is_waiting(other_serf, &other_dir) &&
+			    other_dir == DIR_REVERSE(i) &&
+			    serf_switch_waiting(other_serf, other_dir)) {
 				dir = i;
 				break;
 			}
@@ -2326,8 +2407,8 @@ handle_serf_free_walking_switch_with_other(serf_t *serf)
 		map_set_serf_index(new_pos, SERF_INDEX(serf));
 
 		other_serf->animation = get_walking_animation(MAP_HEIGHT(serf->pos) - MAP_HEIGHT(other_serf->pos),
-							      6+DIR_REVERSE(dir));
-		serf->animation = get_walking_animation(MAP_HEIGHT(new_pos) - MAP_HEIGHT(serf->pos), 6+dir);
+							      DIR_REVERSE(dir), 1);
+		serf->animation = get_walking_animation(MAP_HEIGHT(new_pos) - MAP_HEIGHT(serf->pos), dir, 1);
 
 		other_serf->counter = counter_from_animation[other_serf->animation];
 		serf->counter = counter_from_animation[serf->animation];
@@ -2398,8 +2479,9 @@ handle_free_walking_follow_edge(serf_t *serf)
 		/* Convert offset in two dimensions to
 		   direction variable. */
 		dir_t dir = dir_from_offset[(d1+1) + 3*(d2+1)];
+		map_pos_t new_pos = MAP_MOVE(serf->pos, dir);
 
-		if (!serf_can_pass_map_pos(MAP_MOVE(serf->pos, dir))) {
+		if (!serf_can_pass_map_pos(new_pos)) {
 			if (serf->state != SERF_STATE_KNIGHT_FREE_WALKING &&
 			    serf->s.free_walking.neg_dist1 != -128) {
 				serf->s.free_walking.dist1 += serf->s.free_walking.neg_dist1;
@@ -2420,7 +2502,7 @@ handle_free_walking_follow_edge(serf_t *serf)
 
 		if (serf->state == SERF_STATE_KNIGHT_FREE_WALKING &&
 		    serf->s.free_walking.neg_dist1 != -128 &&
-		    MAP_SERF_INDEX(MAP_MOVE(serf->pos, dir)) != 0) {
+		    MAP_SERF_INDEX(new_pos) != 0) {
 			/* Wait for other serfs */
 			serf->s.free_walking.flags = 0;
 			serf->animation = 82;
@@ -2599,32 +2681,43 @@ handle_free_walking_common(serf_t *serf)
 		    serf->s.free_walking.neg_dist1 != -128 &&
 		    MAP_SERF_INDEX(new_pos) != 0) {
 			serf_t *other_serf = game_get_serf(MAP_SERF_INDEX(new_pos));
+			dir_t other_dir;
+
+			if (serf_is_waiting(other_serf, &other_dir) &&
+			    (other_dir == DIR_REVERSE(d) || other_dir == DIR_NONE) &&
+			    serf_switch_waiting(other_serf, DIR_REVERSE(d))) {
+				/* Do the switch */
+				other_serf->pos = serf->pos;
+				map_set_serf_index(other_serf->pos, SERF_INDEX(other_serf));
+				other_serf->animation = get_walking_animation(MAP_HEIGHT(other_serf->pos) - MAP_HEIGHT(new_pos),
+									      DIR_REVERSE(d), 1);
+				other_serf->counter = counter_from_animation[other_serf->animation];
+
+				serf->animation = get_walking_animation(MAP_HEIGHT(new_pos) - MAP_HEIGHT(serf->pos), d, 1);
+				serf->counter = counter_from_animation[serf->animation];
+
+				serf->pos = new_pos;
+				map_set_serf_index(serf->pos, SERF_INDEX(serf));
+				return;
+			}
+
 			if (other_serf->state == SERF_STATE_WALKING ||
 			    other_serf->state == SERF_STATE_TRANSPORTING) {
 				serf->s.free_walking.neg_dist2 += 1;
 				if (serf->s.free_walking.neg_dist2 >= 10) {
 					serf->s.free_walking.neg_dist2 = 0;
-					if (MAP_HAS_FLAG(new_pos)) {
-						if (other_serf->state == SERF_STATE_TRANSPORTING &&
-						    other_serf->s.walking.wait_counter >= 0) {
-							/* TODO Remove other serf from path - really necessary? */
+					if (other_serf->state == SERF_STATE_TRANSPORTING) {
+						if (MAP_HAS_FLAG(new_pos)) {
+							if (other_serf->s.walking.wait_counter != -1) {
+								int dir = other_serf->s.walking.dir;
+								if (dir < 0) dir += 6;
+								LOGD("serf", "TODO remove %i from path", SERF_INDEX(other_serf));
+							}
+							serf_set_lost_state(other_serf);
 						}
-						/* sub_5AE56(); */
-						LOGD("serf", "free walking: unhandled sub_5AE56() call.");
+					} else {
+						serf_set_lost_state(other_serf);
 					}
-				}
-			} else if ((other_serf->state == SERF_STATE_FREE_WALKING ||
-				    other_serf->state == SERF_STATE_KNIGHT_FREE_WALKING ||
-				    other_serf->state == SERF_STATE_STONECUTTER_FREE_WALKING) &&
-				   other_serf->animation == 82) {
-				/* Move other free walking serf in opposite direction. */
-				other_serf->s.free_walking.dist1 += d1;
-				other_serf->s.free_walking.dist2 += d2;
-
-				if (other_serf->s.free_walking.dist1 == 0 &&
-				    other_serf->s.free_walking.dist2 == 0) {
-					/* Arriving to destination */
-					other_serf->s.free_walking.flags = BIT(3);
 				}
 			}
 
