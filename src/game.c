@@ -650,13 +650,18 @@ update_inventories()
 					LOGV("game", " dest for inventory %i found", i);
 					building_t *dest_bld = flags[i]->other_endpoint.b[DIR_UP_LEFT];
 					inventory_t *src_inv = invs[i];
+
+					int stock = -1;
 					for (int j = 0; j < BUILDING_MAX_STOCK; j++) {
 						if (dest_bld->stock[j].type == arr[0]) {
-							dest_bld->stock[j].prio = 0;
-							dest_bld->stock[j].requested += 1;
+							stock = j;
 							break;
 						}
 					}
+
+					assert(stock >= 0);
+					dest_bld->stock[stock].prio = 0;
+					dest_bld->stock[stock].requested += 1;
 
 					resource_type_t res = arr[0];
 					if (res == RESOURCE_GROUP_FOOD) {
@@ -956,8 +961,8 @@ schedule_slot_to_known_dest(flag_t *flag, int slot)
 					    0, 1, &data);
 		if (r < 0 || data.dest->search_dir == 6) {
 			/* Unable to deliver */
-			game_cancel_transported_resource(flag->slot[slot].dest,
-							 flag->slot[slot].type);
+			game_cancel_transported_resource(flag->slot[slot].type,
+							 flag->slot[slot].dest);
 			flag->slot[slot].dest = 0;
 			flag->endpoint |= BIT(7);
 		}
@@ -1040,17 +1045,22 @@ schedule_slot_to_unknown_dest(flag_t *flag, int slot)
 			LOGV("game", "dest for flag %u res %i found: flag %u",
 			     FLAG_INDEX(flag), slot, FLAG_INDEX(data.flag));
 			building_t *dest_bld = data.flag->other_endpoint.b[DIR_UP_LEFT];
+
+			int stock = -1;
 			for (int i = 0; i < BUILDING_MAX_STOCK; i++) {
 				if (dest_bld->stock[i].type == res) {
-					int prio = dest_bld->stock[i].prio;
-					if ((prio & 1) == 0) prio = 0;
-					dest_bld->stock[i].prio = prio >> 1;
-					dest_bld->stock[i].requested += 1;
+					stock = i;
 					break;
 				}
 			}
 
-			flag->slot[slot].dest = dest_bld->flg_index;
+			assert(stock >= 0);
+			int prio = dest_bld->stock[stock].prio;
+			if ((prio & 1) == 0) prio = 0;
+			dest_bld->stock[stock].prio = prio >> 1;
+			dest_bld->stock[stock].requested += 1;
+
+			flag->slot[stock].dest = dest_bld->flg_index;
 			flag->endpoint |= BIT(7);
 			return;
 		}
@@ -3110,7 +3120,7 @@ restore_path_serf_info(flag_t *flag, dir_t dir, serf_path_info_t *data)
 					resource_type_t res = serf->s.walking.res-1;
 					serf->s.walking.res = 0;
 
-					game_cancel_transported_resource(serf->s.walking.dest, res);
+					game_cancel_transported_resource(res, serf->s.walking.dest);
 					game_lose_resource(res);
 				}
 			} else {
@@ -4260,7 +4270,7 @@ demolish_building(map_pos_t pos)
 				resource_type_t res = inventory->out_queue[i];
 				int dest = inventory->out_dest[i];
 
-				game_cancel_transported_resource(dest, res);
+				game_cancel_transported_resource(res, dest);
 				game_lose_resource(res);
 			}
 
@@ -5210,17 +5220,17 @@ game_cancel_transported_resource(resource_type_t res, uint dest)
 		res = RESOURCE_GROUP_FOOD;
 	}
 
-	int slot = -1;
+	int stock = -1;
 	for (int i = 0; i < BUILDING_MAX_STOCK; i++) {
 		if (building->stock[i].type == res) {
-			slot = i;
+			stock = i;
 			break;
 		}
 	}
 
-	assert(slot >= 0);
-	building->stock[slot].requested -= 1;
-	assert(building->stock[slot].requested >= 0);
+	assert(stock >= 0);
+	building->stock[stock].requested -= 1;
+	assert(building->stock[stock].requested >= 0);
 }
 
 /* Called when a resource is lost forever from the game. This will

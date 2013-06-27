@@ -1991,14 +1991,18 @@ handle_serf_delivering_state(serf_t *serf)
 					}
 
 					/* Add to building stock */
+					int stock = -1;
 					for (int i = 0; i < BUILDING_MAX_STOCK; i++) {
 						if (building->stock[i].type == res) {
-							building->stock[i].available += 1;
-							building->stock[i].requested -= 1;
-							assert(building->stock[i].requested >= 0);
+							stock = i;
 							break;
 						}
 					}
+
+					assert(stock >= 0);
+					building->stock[stock].available += 1;
+					building->stock[stock].requested -= 1;
+					assert(building->stock[stock].requested >= 0);
 				}
 			}
 		}
