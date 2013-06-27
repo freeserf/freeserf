@@ -263,6 +263,61 @@ serf_set_type(serf_t *serf, serf_type_t type)
 	}
 }
 
+/* Change serf state to lost, but make necessary clean up
+   from any earlier state first. */
+void
+serf_set_lost_state(serf_t *serf)
+{
+	if (serf->state == SERF_STATE_WALKING) {
+		if (serf->s.walking.res >= 0) {
+			if (serf->s.walking.res != 6) {
+				dir_t dir = serf->s.walking.res;
+				flag_t *flag = game_get_flag(serf->s.walking.dest);
+				flag->length[dir] &= ~BIT(7);
+
+				dir_t other_dir = FLAG_OTHER_END_DIR(flag, dir);
+				flag->other_endpoint.f[dir]->length[other_dir] &= ~BIT(7);
+			}
+		} else if (serf->s.walking.res == -1) {
+			flag_t *flag = game_get_flag(serf->s.walking.dest);
+			building_t *building = flag->other_endpoint.b[DIR_UP_LEFT];
+
+			if (BUILDING_SERF_REQUESTED(building)) {
+				building->serf &= ~BIT(7);
+			} else if (!BUILDING_HAS_INVENTORY(building)) {
+				building->stock[0].requested -= 1;
+			}
+		}
+
+		serf_log_state_change(serf, SERF_STATE_LOST);
+		serf->state = SERF_STATE_LOST;
+		serf->s.lost.field_B = 0;
+	} else if (serf->state == SERF_STATE_TRANSPORTING ||
+		   serf->state == SERF_STATE_DELIVERING) {
+		if (serf->s.walking.res != 0) {
+			int res = serf->s.walking.res-1;
+			int dest = serf->s.walking.dest;
+
+			game_cancel_transported_resource(res, dest);
+			game_lose_resource(res);
+		}
+
+		if (SERF_TYPE(serf) != SERF_SAILOR) {
+			serf_log_state_change(serf, SERF_STATE_LOST);
+			serf->state = SERF_STATE_LOST;
+			serf->s.lost.field_B = 0;
+		} else {
+			serf_log_state_change(serf, SERF_STATE_LOST_SAILOR);
+			serf->state = SERF_STATE_LOST_SAILOR;
+		}
+	} else {
+		serf_log_state_change(serf, SERF_STATE_LOST);
+		serf->state = SERF_STATE_LOST;
+		serf->s.lost.field_B = 0;
+	}
+}
+
+
 static int
 train_knight(serf_t *serf, int p)
 {

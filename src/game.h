@@ -273,6 +273,9 @@ void game_calculate_military_flag_state(building_t *building);
 void game_update_land_ownership(map_pos_t pos);
 void game_occupy_enemy_building(building_t *building, int player);
 
+void game_cancel_transported_resource(resource_type_t type, uint dest);
+void game_lose_resource(resource_type_t type);
+
 uint16_t game_random_int();
 
 

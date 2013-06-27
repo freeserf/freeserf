@@ -956,7 +956,8 @@ schedule_slot_to_known_dest(flag_t *flag, int slot)
 					    0, 1, &data);
 		if (r < 0 || data.dest->search_dir == 6) {
 			/* Unable to deliver */
-			flag_cancel_transported_stock(data.dest, flag->slot[slot].type);
+			game_cancel_transported_resource(flag->slot[slot].dest,
+							 flag->slot[slot].type);
 			flag->slot[slot].dest = 0;
 			flag->endpoint |= BIT(7);
 		}
@@ -2782,84 +2783,6 @@ path_serf_idle_to_wait_state(map_pos_t pos)
 }
 
 static void
-lose_transported_resource(resource_type_t res, uint dest)
-{
-	if (res == RESOURCE_GOLDORE ||
-	    res == RESOURCE_GOLDBAR) {
-		game.map_gold_deposit -= 1;
-	}
-
-	if (dest != 0) {
-		flag_t *flag = game_get_flag(dest);
-		assert(FLAG_HAS_BUILDING(flag));
-		building_t *building = flag->other_endpoint.b[DIR_UP_LEFT];
-
-		if (res == RESOURCE_FISH ||
-		    res == RESOURCE_MEAT ||
-		    res == RESOURCE_BREAD) {
-			res = RESOURCE_GROUP_FOOD;
-		}
-
-		for (int i = 0; i < BUILDING_MAX_STOCK; i++) {
-			if (building->stock[i].type == res) {
-				building->stock[i].requested -= 1;
-				assert(building->stock[i].requested >= 0);
-				break;
-			}
-		}
-	}
-}
-
-
-/* ADDITION: Removed precondition that serf is in state walking or transporting. */
-static void
-mark_serf_as_lost(serf_t *serf)
-{
-	if (serf->state == SERF_STATE_WALKING) {
-		if (serf->s.walking.res >= 0) {
-			if (serf->s.walking.res != 6) {
-				dir_t dir = serf->s.walking.res;
-				flag_t *flag = game_get_flag(serf->s.walking.dest);
-				flag->length[dir] &= ~BIT(7);
-
-				dir_t other_dir = FLAG_OTHER_END_DIR(flag, dir);
-				flag->other_endpoint.f[dir]->length[other_dir] &= ~BIT(7);
-			}
-		} else if (serf->s.walking.res == -1) {
-			flag_t *flag = game_get_flag(serf->s.walking.dest);
-			building_t *building = flag->other_endpoint.b[DIR_UP_LEFT];
-
-			if (BUILDING_SERF_REQUESTED(building)) {
-				building->serf &= ~BIT(7);
-			} else if (!BUILDING_HAS_INVENTORY(building)) {
-				building->stock[0].requested -= 1;
-			}
-		}
-
-		serf_log_state_change(serf, SERF_STATE_LOST);
-		serf->state = SERF_STATE_LOST;
-		serf->s.lost.field_B = 0;
-	} else if (serf->state == SERF_STATE_TRANSPORTING ||
-		   serf->state == SERF_STATE_DELIVERING) {
-		if (serf->s.walking.res != 0) {
-			int res = serf->s.walking.res-1;
-			int dest = serf->s.walking.dest;
-
-			lose_transported_resource(res, dest);
-		}
-
-		if (SERF_TYPE(serf) != SERF_SAILOR) {
-			serf_log_state_change(serf, SERF_STATE_LOST);
-			serf->state = SERF_STATE_LOST;
-			serf->s.lost.field_B = 0;
-		} else {
-			serf_log_state_change(serf, SERF_STATE_LOST_SAILOR);
-			serf->state = SERF_STATE_LOST_SAILOR;
-		}
-	}
-}
-
-static void
 remove_road_forwards(map_pos_t pos, dir_t dir)
 {
 	map_tile_t *tiles = game.map.tiles;
@@ -2873,7 +2796,7 @@ remove_road_forwards(map_pos_t pos, dir_t dir)
 		if (MAP_SERF_INDEX(pos) != 0) {
 			serf_t *serf = game_get_serf(MAP_SERF_INDEX(pos));
 			if (!MAP_HAS_FLAG(pos)) {
-				mark_serf_as_lost(serf);
+				serf_set_lost_state(serf);
 			} else {
 				/* Handle serf close to flag, where
 				   it should only be lost if walking
@@ -2881,7 +2804,7 @@ remove_road_forwards(map_pos_t pos, dir_t dir)
 				int d = serf->s.walking.dir;
 				if (d < 0) d += 6;
 				if (d == DIR_REVERSE(dir)) {
-					mark_serf_as_lost(serf);
+					serf_set_lost_state(serf);
 				}
 			}
 		}
@@ -3187,13 +3110,8 @@ restore_path_serf_info(flag_t *flag, dir_t dir, serf_path_info_t *data)
 					resource_type_t res = serf->s.walking.res-1;
 					serf->s.walking.res = 0;
 
-					/* Remove gold from total count. */
-					if (res == RESOURCE_GOLDBAR ||
-					    res == RESOURCE_GOLDORE) {
-						game.map_gold_deposit -= 1;
-					}
-
-					flag_cancel_transported_stock(game_get_flag(serf->s.walking.dest), res);
+					game_cancel_transported_resource(serf->s.walking.dest, res);
+					game_lose_resource(res);
 				}
 			} else {
 				serf_log_state_change(serf, SERF_STATE_WAKE_AT_FLAG);
@@ -4263,7 +4181,8 @@ demolish_flag(map_pos_t pos)
 		if (flag->slot[i].type != RESOURCE_NONE) {
 			int res = flag->slot[i].type;
 			uint dest = flag->slot[i].dest;
-			lose_transported_resource(res, dest);
+			game_cancel_transported_resource(res, dest);
+			game_lose_resource(res);
 		}
 	}
 
@@ -4341,13 +4260,8 @@ demolish_building(map_pos_t pos)
 				resource_type_t res = inventory->out_queue[i];
 				int dest = inventory->out_dest[i];
 
-				/* Remove gold from total count. */
-				if (res == RESOURCE_GOLDBAR ||
-				    res == RESOURCE_GOLDORE) {
-					game.map_gold_deposit -= 1;
-				}
-
-				flag_cancel_transported_stock(game_get_flag(dest), res);
+				game_cancel_transported_resource(dest, res);
+				game_lose_resource(res);
 			}
 
 			game.map_gold_deposit -= inventory->resources[RESOURCE_GOLDBAR];
@@ -4813,15 +4727,7 @@ game_occupy_enemy_building(building_t *building, int player_num)
 		for (int i = 0; i < FLAG_MAX_RES_COUNT; i++) {
 			if (flag->slot[i].type != RESOURCE_NONE) {
 				resource_type_t res = flag->slot[i].type;
-				lose_transported_resource(res, flag->slot[i].dest);
-
-				/* Since the resource is not actually lost but
-				   merely changes owner, we have to readjust the total
-				   map gold. */
-				if (res == RESOURCE_GOLDORE ||
-				    res == RESOURCE_GOLDBAR) {
-					game.map_gold_deposit += 1;
-				}
+				game_cancel_transported_resource(res, flag->slot[i].dest);
 				flag->slot[i].dest = 0;
 			}
 		}
@@ -5287,6 +5193,46 @@ game_load_save_game(const char *path)
 	return 0;
 }
 
+/* Cancel a resource being transported to destination. This
+   ensures that the destination can request a new resource. */
+void
+game_cancel_transported_resource(resource_type_t res, uint dest)
+{
+	if (dest == 0) return;
+
+	flag_t *flag = game_get_flag(dest);
+	assert(FLAG_HAS_BUILDING(flag));
+	building_t *building = flag->other_endpoint.b[DIR_UP_LEFT];
+
+	if (res == RESOURCE_FISH ||
+	    res == RESOURCE_MEAT ||
+	    res == RESOURCE_BREAD) {
+		res = RESOURCE_GROUP_FOOD;
+	}
+
+	int slot = -1;
+	for (int i = 0; i < BUILDING_MAX_STOCK; i++) {
+		if (building->stock[i].type == res) {
+			slot = i;
+			break;
+		}
+	}
+
+	assert(slot >= 0);
+	building->stock[slot].requested -= 1;
+	assert(building->stock[slot].requested >= 0);
+}
+
+/* Called when a resource is lost forever from the game. This will
+   update any global state keeping track of that resource. */
+void
+game_lose_resource(resource_type_t res)
+{
+	if (res == RESOURCE_GOLDORE ||
+	    res == RESOURCE_GOLDBAR) {
+		game.map_gold_deposit -= 1;
+	}
+}
 
 uint16_t
 game_random_int()

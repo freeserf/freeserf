@@ -152,28 +152,3 @@ flag_prioritize_pickup(flag_t *flag, dir_t dir, const int flag_prio[])
 	flag->other_end_dir[dir] &= 0x78;
 	if (res_next > -1) flag->other_end_dir[dir] |= BIT(7) | res_next;
 }
-
-/* Cancel transport of resources to building at flag. */
-void
-flag_cancel_transported_stock(flag_t *flag, resource_type_t res)
-{
-	assert(FLAG_HAS_BUILDING(flag));
-
-	if (1/*FLAG_INDEX(flag) != ..*/) {
-		building_t *building = flag->other_endpoint.b[DIR_UP_LEFT];
-
-		if (res == RESOURCE_FISH ||
-		    res == RESOURCE_MEAT ||
-		    res == RESOURCE_BREAD) {
-			res = RESOURCE_GROUP_FOOD;
-		}
-
-		for (int i = 0; i < BUILDING_MAX_STOCK; i++) {
-			if (building->stock[i].type == res) {
-				building->stock[i].requested -= 1;
-				assert(building->stock[i].requested >= 0);
-				break;
-			}
-		}
-	}
-}
