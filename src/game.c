@@ -1060,7 +1060,7 @@ schedule_slot_to_unknown_dest(flag_t *flag, int slot)
 			dest_bld->stock[stock].prio = prio >> 1;
 			dest_bld->stock[stock].requested += 1;
 
-			flag->slot[stock].dest = dest_bld->flg_index;
+			flag->slot[slot].dest = dest_bld->flg_index;
 			flag->endpoint |= BIT(7);
 			return;
 		}
