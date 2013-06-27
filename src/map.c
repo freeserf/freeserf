@@ -476,7 +476,7 @@ map_init_sea_level()
 					break;
 				case 253:
 					tiles[pos].height = game.map_water_level - 1;
-					tiles[pos].u.resource = game_random_int() & 7; /* Fish */
+					tiles[pos].resource = game_random_int() & 7; /* Fish */
 					break;
 			}
 		}
@@ -972,21 +972,22 @@ init_map_palms()
 }
 
 static void
-init_map_resources_shared_sub(map_tile_t *tiles, int iters, int col, int row, int *index, int amount, int res_type)
+init_map_resources_shared_sub(map_tile_t *tiles, int iters, int col, int row, int *index,
+			      int amount, ground_deposit_t type)
 {
 	for (int i = 0; i < iters; i++) {
 		map_pos_t pos = lookup_pattern(col, row, *index);
 		*index += 1;
 
-		int res = tiles[pos].u.resource;
+		int res = tiles[pos].resource;
 		if (res == 0 || (res & 0x1f) < amount) {
-			tiles[pos].u.resource = (res_type << 5) + amount;
+			tiles[pos].resource = (type << 5) + amount;
 		}
 	}
 }
 
 static void
-init_map_resources_shared(int num_clusters, int res_type, int min, int max)
+init_map_resources_shared(int num_clusters, ground_deposit_t type, int min, int max)
 {
 	map_tile_t *tiles = game.map.tiles;
 
@@ -998,27 +999,27 @@ init_map_resources_shared(int num_clusters, int res_type, int min, int max)
 			if (init_map_objects_shared_sub1(pos, min, max) == 0) {
 				int index = 0;
 				int amount = 8 + (game_random_int() & 0xc);
-				init_map_resources_shared_sub(tiles, 1, col, row, &index, amount, res_type);
+				init_map_resources_shared_sub(tiles, 1, col, row, &index, amount, type);
 				amount -= 4;
 				if (amount == 0) break;
 
-				init_map_resources_shared_sub(tiles, 6, col, row, &index, amount, res_type);
+				init_map_resources_shared_sub(tiles, 6, col, row, &index, amount, type);
 				amount -= 4;
 				if (amount == 0) break;
 
-				init_map_resources_shared_sub(tiles, 12, col, row, &index, amount, res_type);
+				init_map_resources_shared_sub(tiles, 12, col, row, &index, amount, type);
 				amount -= 4;
 				if (amount == 0) break;
 
-				init_map_resources_shared_sub(tiles, 18, col, row, &index, amount, res_type);
+				init_map_resources_shared_sub(tiles, 18, col, row, &index, amount, type);
 				amount -= 4;
 				if (amount == 0) break;
 
-				init_map_resources_shared_sub(tiles, 24, col, row, &index, amount, res_type);
+				init_map_resources_shared_sub(tiles, 24, col, row, &index, amount, type);
 				amount -= 4;
 				if (amount == 0) break;
 
-				init_map_resources_shared_sub(tiles, 30, col, row, &index, amount, res_type);
+				init_map_resources_shared_sub(tiles, 30, col, row, &index, amount, type);
 				break;
 			}
 		}
@@ -1027,27 +1028,12 @@ init_map_resources_shared(int num_clusters, int res_type, int min, int max)
 
 /* Initialize resources in the ground. */
 static void
-init_map_resources_1()
+init_map_resources()
 {
-	init_map_resources_shared(game.map_regions * 9, 3, 11, 15);
-}
-
-static void
-init_map_resources_2()
-{
-	init_map_resources_shared(game.map_regions * 4, 2, 11, 15);
-}
-
-static void
-init_map_resources_3()
-{
-	init_map_resources_shared(game.map_regions * 2, 1, 11, 15);
-}
-
-static void
-init_map_resources_4()
-{
-	init_map_resources_shared(game.map_regions * 2, 4, 11, 15);
+	init_map_resources_shared(game.map_regions * 9, GROUND_DEPOSIT_COAL, 11, 15);
+	init_map_resources_shared(game.map_regions * 4, GROUND_DEPOSIT_IRON, 11, 15);
+	init_map_resources_shared(game.map_regions * 2, GROUND_DEPOSIT_GOLD, 11, 15);
+	init_map_resources_shared(game.map_regions * 2, GROUND_DEPOSIT_STONE, 11, 15);
 }
 
 static void
@@ -1129,19 +1115,7 @@ init_map_sub()
 
 	/* draw_progress_bar(1); */
 
-	init_map_resources_1();
-
-	/* draw_progress_bar(1); */
-
-	init_map_resources_2();
-
-	/* draw_progress_bar(1); */
-
-	init_map_resources_3();
-
-	/* draw_progress_bar(1); */
-
-	init_map_resources_4();
+	init_map_resources();
 
 	/* draw_progress_bar(1); */
 
@@ -1321,9 +1295,7 @@ map_set_object(map_pos_t pos, map_obj_t obj, int index)
 {
 	map_tile_t *tiles = game.map.tiles;
 	tiles[pos].obj = (tiles[pos].obj & 0x80) | (obj & 0x7f);
-	if (index >= 0) tiles[pos].u.index = index;
-
-	/* TODO Mark dirty in viewport. */
+	if (index >= 0) tiles[pos].obj_index = index;
 }
 
 /* Remove resources from the ground at a map position. */
@@ -1331,11 +1303,11 @@ void
 map_remove_ground_deposit(map_pos_t pos, int amount)
 {
 	map_tile_t *tiles = game.map.tiles;
-	tiles[pos].u.resource -= amount;
+	tiles[pos].resource -= amount;
 
 	if (MAP_RES_AMOUNT(pos) == 0) {
 		/* Also sets the ground deposit type to none. */
-		tiles[pos].u.resource = 0;
+		tiles[pos].resource = 0;
 	}
 }
 
@@ -1344,7 +1316,7 @@ void
 map_remove_fish(map_pos_t pos, int amount)
 {
 	map_tile_t *tiles = game.map.tiles;
-	tiles[pos].u.resource -= amount;
+	tiles[pos].resource -= amount;
 }
 
 /* Set the index of the serf occupying map position. */
@@ -1422,12 +1394,12 @@ map_update_hidden(map_pos_t pos)
 
 	/* Update fish resources in water */
 	if (MAP_IN_WATER(pos) &&
-	    tiles[pos].u.resource > 0) {
+	    tiles[pos].resource > 0) {
 		int r = game_random_int();
 
-		if (tiles[pos].u.resource < 10 && (r & 0x3f00)) {
+		if (tiles[pos].resource < 10 && (r & 0x3f00)) {
 			/* Spawn more fish. */
-			tiles[pos].u.resource += 1;
+			tiles[pos].resource += 1;
 		}
 
 		/* Move in a random direction of: right, down right, left, up left */
@@ -1442,8 +1414,8 @@ map_update_hidden(map_pos_t pos)
 
 		if (MAP_IN_WATER(adj_pos)) {
 			/* Migrate a fish to adjacent water space. */
-			tiles[pos].u.resource -= 1;
-			tiles[adj_pos].u.resource += 1;
+			tiles[pos].resource -= 1;
+			tiles[adj_pos].resource += 1;
 		}
 	}
 }

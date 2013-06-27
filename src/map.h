@@ -68,10 +68,10 @@
 #define MAP_OBJ(pos)  ((map_obj_t)(game.map.tiles[(pos)].obj & 0x7f))
 #define MAP_IDLE_SERF(pos)  ((uint)((game.map.tiles[(pos)].obj >> 7) & 1))
 
-#define MAP_OBJ_INDEX(pos)  ((uint)game.map.tiles[(pos)].u.index)
-#define MAP_RES_TYPE(pos)  ((ground_deposit_t)((game.map.tiles[(pos)].u.resource >> 5) & 7))
-#define MAP_RES_AMOUNT(pos)  ((uint)(game.map.tiles[(pos)].u.resource & 0x1f))
-#define MAP_RES_FISH(pos)  ((uint)game.map.tiles[(pos)].u.resource)
+#define MAP_OBJ_INDEX(pos)  ((uint)game.map.tiles[(pos)].obj_index)
+#define MAP_RES_TYPE(pos)  ((ground_deposit_t)((game.map.tiles[(pos)].resource >> 5) & 7))
+#define MAP_RES_AMOUNT(pos)  ((uint)(game.map.tiles[(pos)].resource & 0x1f))
+#define MAP_RES_FISH(pos)  ((uint)game.map.tiles[(pos)].resource)
 #define MAP_SERF_INDEX(pos)  ((uint)game.map.tiles[(pos)].serf_index)
 
 
@@ -229,10 +229,8 @@ typedef struct {
 	uint8_t height;
 	uint8_t type;
 	uint8_t obj;
-	union {
-		uint16_t index;
-		uint8_t resource;
-	} u;
+	uint16_t obj_index;
+	uint8_t resource;
 	uint16_t serf_index;
 } map_tile_t;
 

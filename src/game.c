@@ -3284,7 +3284,6 @@ game_build_flag(map_pos_t pos, player_t *player)
 
 	flag->pos = pos;
 	map_set_object(pos, MAP_OBJ_FLAG, flg_index);
-	/* move_map_resources(..); */
 
 	if (MAP_PATHS(pos) != 0) {
 		build_flag_split_path(pos);
@@ -3685,16 +3684,12 @@ game_build_building(map_pos_t pos, building_type_t type, player_t *player)
 	flag->bld_flags = 0;
 	flag->bld2_flags = 0;
 
-	/* move_map_resources(pos, map_data); */
-	/* TODO Resources should be moved, just set them to zero for now */
-	tiles[pos].u.resource = 0;
 	tiles[pos].obj &= ~BIT(7);
 
 	map_set_object(pos, obj_types[type], bld_index);
 	tiles[pos].paths |= BIT(1);
 
 	if (MAP_OBJ(MAP_MOVE_DOWN_RIGHT(pos)) != MAP_OBJ_FLAG) {
-		/* move_map_resources(MAP_MOVE_DOWN_RIGHT(pos), map_data); */
 		map_set_object(MAP_MOVE_DOWN_RIGHT(pos), MAP_OBJ_FLAG, flg_index);
 		tiles[MAP_MOVE_DOWN_RIGHT(pos)].paths |= BIT(4);
 	}
