@@ -2166,9 +2166,9 @@ update_serfs()
 /* Update historical player statistics for one measure. */
 static void
 record_player_history(player_t *player[], int pl_count, int max_level, int aspect,
-		      const int history_index[], const int values[])
+		      const int history_index[], const uint values[])
 {
-	int total = 0;
+	uint total = 0;
 	for (int i = 0; i < pl_count; i++) total += values[i];
 	total = max(1, total);
 
@@ -2176,7 +2176,8 @@ record_player_history(player_t *player[], int pl_count, int max_level, int aspec
 		int mode = (aspect << 2) | i;
 		int index = history_index[i];
 		for (int j = 0; j < pl_count; j++) {
-			player[j]->player_stat_history[mode][index] = (100*values[j])/total;
+			uint64_t value = values[j];
+			player[j]->player_stat_history[mode][index] = (100*value)/total;
 		}
 	}
 }
@@ -2185,14 +2186,15 @@ record_player_history(player_t *player[], int pl_count, int max_level, int aspec
    considered a clear winner regarding one aspect.
    Return -1 if there is no clear winner. */
 static int
-calculate_clear_winner(int pl_count, const int values[])
+calculate_clear_winner(int pl_count, const uint values[])
 {
 	int total = 0;
 	for (int i = 0; i < pl_count; i++) total += values[i];
 	total = max(1, total);
 
 	for (int i = 0; i < pl_count; i++) {
-		if ((100*values[i])/total >= 75) return i;
+		uint64_t value = values[i];
+		if ((100*value)/total >= 75) return i;
 	}
 
 	return -1;
@@ -2257,7 +2259,7 @@ update_game_stats()
 			}
 		}
 
-		int values[4];
+		uint values[4];
 
 		/* Store land area stats in history. */
 		for (int i = 0; i < GAME_MAX_PLAYER_COUNT; i++) {
