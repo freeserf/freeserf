@@ -108,7 +108,7 @@ typedef struct {
 	/* 1C8 */
 	uint8_t svga; /* flags */
 	/* 1D6 */
-	player_init_t pl_init[4];
+	/*player_init_t pl_init[4];*/
 	/* 1EE */
 	random_state_t init_map_rnd;
 	/* 1FA */

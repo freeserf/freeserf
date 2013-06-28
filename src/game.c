@@ -5169,26 +5169,16 @@ game_init_map()
 }
 
 int
-game_load_mission_map(int m)
+game_load_mission_map(int level)
 {
 	const uint default_player_colors[] = {
 		64, 72, 68, 76
 	};
 
-	for (int i = 0; i < GAME_MAX_PLAYER_COUNT; i++) {
-		game.pl_init[i].face = mission[m].player[i].face;
-		game.pl_init[i].supplies = mission[m].player[i].supplies;
-		game.pl_init[i].intelligence = mission[m].player[i].intelligence;
-		game.pl_init[i].reproduction = mission[m].player[i].reproduction;
-	}
-
-	game.pl_init[0].face = 12;
-	game.pl_init[0].intelligence = 40;
-
-	memcpy(&game.init_map_rnd, &mission[m].rnd,
+	memcpy(&game.init_map_rnd, &mission[level].rnd,
 	       sizeof(random_state_t));
 
-	game.mission_level = m;
+	game.mission_level = level;
 	game.map_size = 3;
 	game.map_preserve_bugs = 1;
 
@@ -5200,18 +5190,20 @@ game_load_mission_map(int m)
 
 	/* Initialize player and build initial castle */
 	for (int i = 0; i < GAME_MAX_PLAYER_COUNT; i++) {
-		player_init_t *init = &game.pl_init[i];
-		if (init->face == 0) continue;
+		const mission_t *m = &mission[level];
+		if (m->player[i].face == 0) continue;
 
-		int n = game_add_player(init->face, default_player_colors[i],
-					init->supplies, init->reproduction,
-					init->intelligence);
+		uint face = (i == 0) ? 12 : m->player[i].face;
+		int n = game_add_player(face, default_player_colors[i],
+					m->player[i].supplies,
+					m->player[i].reproduction,
+					m->player[i].intelligence);
 		if (n < 0) return -1;
 
-		if (mission[m].player[n].castle.col > -1 &&
-		    mission[m].player[n].castle.row > -1) {
-			map_pos_t pos = MAP_POS(mission[m].player[n].castle.col,
-						mission[m].player[n].castle.row);
+		if (m->player[n].castle.col > -1 &&
+		    m->player[n].castle.row > -1) {
+			map_pos_t pos = MAP_POS(m->player[n].castle.col,
+						m->player[n].castle.row);
 			game_build_castle(pos, game.player[n]);
 		}
 	}

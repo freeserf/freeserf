@@ -187,13 +187,6 @@ typedef struct {
 	int x, y;
 } sprite_loc_t;
 
-typedef struct {
-	int face;
-	int supplies;
-	int intelligence;
-	int reproduction;
-} player_init_t;
-
 typedef struct inventory inventory_t;
 
 struct inventory {
