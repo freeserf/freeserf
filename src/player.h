@@ -70,8 +70,9 @@ typedef struct {
 	int knight_occupation[4];
 
 	/* pl_sett */
-	int player_num;
-	int color; /* ADDED */
+	uint player_num;
+	uint color; /* ADDED */
+	uint face;
 	int flags;
 	int build;
 	int completed_building_count[24];

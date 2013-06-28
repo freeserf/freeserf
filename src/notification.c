@@ -68,7 +68,7 @@ static void
 draw_player_face(int x, int y, int player, frame_t *frame)
 {
 	gfx_fill_rect(8*x, y, 48, 72, game.player[player]->color, frame);
-	draw_icon(x+1, y+4, get_player_face_sprite(game.pl_init[player].face), frame);
+	draw_icon(x+1, y+4, get_player_face_sprite(game.player[player]->face), frame);
 }
 
 

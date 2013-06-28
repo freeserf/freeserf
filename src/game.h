@@ -212,6 +212,8 @@ game_t game;
 
 /* External interface */
 void game_init();
+int game_add_player(uint face, uint color, uint supplies,
+		    uint reproduction, uint intelligence);
 int game_load_mission_map(int m);
 int game_load_random_map(int size, const random_state_t *rnd);
 int game_load_save_game(const char *path);

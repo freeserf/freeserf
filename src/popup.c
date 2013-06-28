@@ -395,7 +395,7 @@ static void
 draw_player_face(int x, int y, int player, frame_t *frame)
 {
 	gfx_fill_rect(8*x, y+5, 48, 72, game.player[player]->color, frame);
-	draw_popup_icon(x, y, get_player_face_sprite(game.pl_init[player].face), frame);
+	draw_popup_icon(x, y, get_player_face_sprite(game.player[player]->face), frame);
 }
 
 /* Draw a layout of buildings in a popup box. */

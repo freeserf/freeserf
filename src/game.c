@@ -4922,7 +4922,6 @@ player_init(uint number, uint face, uint color, uint supplies,
 
 	if (face == 0) return;
 
-	memset(player, 0, sizeof(player_t));
 	player->flags |= BIT(6); /* Player active */
 	if (face < 12) { /* AI player */
 		player->flags |= BIT(7); /* Set AI bit */
@@ -4932,6 +4931,7 @@ player_init(uint number, uint face, uint color, uint supplies,
 
 	player->player_num = number;
 	player->color = color;
+	player->face = face;
 	player->build = 0;
 	/*player->emergency_index = BIT(0);*/
 
@@ -5020,24 +5020,36 @@ player_init(uint number, uint face, uint color, uint supplies,
 	/* TODO AI: Set array field_1bc of length 8 to -1 */
 }
 
-/* Initialize player objects. */
-static void
-players_init()
+/* Add new player to the game. Returns the player number
+   or negative on error. */
+int
+game_add_player(uint face, uint color, uint supplies,
+		uint reproduction, uint intelligence)
 {
-	const uint default_player_colors[] = {
-		64, 72, 68, 76
-	};
-
-	game.winning_player = -1;
-	/* game.show_game_end = 0; */
-	game.max_next_index = 33;
-
+	int number = -1;
 	for (int i = 0; i < GAME_MAX_PLAYER_COUNT; i++) {
-		player_init_t *init = &game.pl_init[i];
-		player_init(i, init->face, default_player_colors[i],
-			    init->supplies, init->reproduction,
-			    init->intelligence);
+		if (!PLAYER_IS_ACTIVE(game.player[i])) {
+			number = i;
+			break;
+		}
 	}
+
+	if (number < 0) return -1;
+
+	player_init(number, face, color, supplies,
+		    reproduction, intelligence);
+
+	/* Update map values dependent on player count */
+	int active_players = 0;
+	for (int i = 0; i < GAME_MAX_PLAYER_COUNT; i++) {
+		if (PLAYER_IS_ACTIVE(game.player[i])) active_players += 1;
+	}
+
+	game.map_field_4A = game.map_max_serfs_left -
+		active_players * game.map_62_5_times_regions;
+	game.map_gold_morale_factor = 10 * 1024 * active_players;
+
+	return number;
 }
 
 void
@@ -5054,6 +5066,11 @@ game_init()
 	game.update_map_16_loop = 0;
 	game.update_map_initial_pos = 0;
 	game.next_index = 0;
+
+	/* Clear player objects */
+	for (int i = 0; i < GAME_MAX_PLAYER_COUNT; i++) {
+		memset(game.player[i], 0, sizeof(player_t));
+	}
 
 	memset(game.flag_bitmap, 0, ((game.flag_limit-1) / 8) + 1);
 	memset(game.building_bitmap, 0, ((game.building_limit-1) / 8) + 1);
@@ -5138,26 +5155,26 @@ game_init_map()
 	game.map_max_serfs_left = game.map_regions * 500;
 	game.map_62_5_times_regions = (game.map_regions * 500) >> 3;
 
-	int active_players = 0;
-	for (int i = 0; i < GAME_MAX_PLAYER_COUNT; i++) {
-		if (game.pl_init[0].face != 0) active_players += 1;
-	}
-
-	game.map_field_4A = game.map_max_serfs_left -
-		active_players * game.map_62_5_times_regions;
-	game.map_gold_morale_factor = 10 * 1024 * active_players;
+	game.map_field_4A = game.map_max_serfs_left;
+	game.map_gold_morale_factor = 0;
 	game.map_field_52 = map_size_arr[game.map_size];
 
 	init_spiral_pos_pattern();
 	map_init();
 	map_init_minimap();
 
-	players_init();
+	game.winning_player = -1;
+	/* game.show_game_end = 0; */
+	game.max_next_index = 33;
 }
 
 int
 game_load_mission_map(int m)
 {
+	const uint default_player_colors[] = {
+		64, 72, 68, 76
+	};
+
 	for (int i = 0; i < GAME_MAX_PLAYER_COUNT; i++) {
 		game.pl_init[i].face = mission[m].player[i].face;
 		game.pl_init[i].supplies = mission[m].player[i].supplies;
@@ -5167,8 +5184,6 @@ game_load_mission_map(int m)
 
 	game.pl_init[0].face = 12;
 	game.pl_init[0].intelligence = 40;
-
-	/* TODO ... */
 
 	memcpy(&game.init_map_rnd, &mission[m].rnd,
 	       sizeof(random_state_t));
@@ -5183,14 +5198,21 @@ game_load_mission_map(int m)
 
 	game_init_map();
 
-	/* Build initial castle */
+	/* Initialize player and build initial castle */
 	for (int i = 0; i < GAME_MAX_PLAYER_COUNT; i++) {
-		if (PLAYER_IS_ACTIVE(game.player[i]) &&
-		    mission[m].player[i].castle.col > -1 &&
-		    mission[m].player[i].castle.row > -1) {
-			map_pos_t pos = MAP_POS(mission[m].player[i].castle.col,
-						mission[m].player[i].castle.row);
-			game_build_castle(pos, game.player[i]);
+		player_init_t *init = &game.pl_init[i];
+		if (init->face == 0) continue;
+
+		int n = game_add_player(init->face, default_player_colors[i],
+					init->supplies, init->reproduction,
+					init->intelligence);
+		if (n < 0) return -1;
+
+		if (mission[m].player[n].castle.col > -1 &&
+		    mission[m].player[n].castle.row > -1) {
+			map_pos_t pos = MAP_POS(mission[m].player[n].castle.col,
+						mission[m].player[n].castle.row);
+			game_build_castle(pos, game.player[n]);
 		}
 	}
 
@@ -5200,16 +5222,11 @@ game_load_mission_map(int m)
 int
 game_load_random_map(int size, const random_state_t *rnd)
 {
+	const uint default_player_colors[] = {
+		64, 72, 68, 76
+	};
+
 	if (size < 3 || size > 10) return -1;
-
-	game.pl_init[0].face = 12;
-	game.pl_init[0].intelligence = 40;
-	game.pl_init[0].supplies = 40;
-	game.pl_init[0].reproduction = 40;
-
-	for (int i = 1; i < GAME_MAX_PLAYER_COUNT; i++) {
-		game.pl_init[i].face = 0;
-	}
 
 	game.map_size = size;
 	game.map_preserve_bugs = 0;
@@ -5217,6 +5234,10 @@ game_load_random_map(int size, const random_state_t *rnd)
 	memcpy(&game.init_map_rnd, rnd, sizeof(random_state_t));
 
 	game_init_map();
+
+	int n = game_add_player(12, default_player_colors[0],
+				40, 40, 40);
+	if (n < 0) return -1;
 
 	return 0;
 }

@@ -995,6 +995,7 @@ save_text_player_state(FILE *f)
 		save_text_write_value(f, "flags", player->flags);
 		save_text_write_value(f, "build", player->build);
 		save_text_write_value(f, "color", player->color);
+		save_text_write_value(f, "face", player->face);
 
 		save_text_write_array(f, "tool_prio", player->tool_prio, 9);
 		save_text_write_array(f, "resource_count", player->resource_count, 26);
@@ -1832,6 +1833,8 @@ load_text_player_section(section_t *section)
 			player->build = atoi(s->value);
 		} else if (!strcmp(s->key, "color")) {
 			player->color = atoi(s->value);
+		} else if (!strcmp(s->key, "face")) {
+			player->face = atoi(s->value);
 		} else if (!strcmp(s->key, "tool_prio")) {
 			char *array = s->value;
 			for (int i = 0; i < 9 && array != NULL; i++) {
