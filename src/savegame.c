@@ -260,7 +260,7 @@ load_v0_player_state(FILE *f)
 
 		player->cont_search_after_non_optimal_find = *(uint16_t *)&data[394];
 		player->knights_to_spawn = *(uint16_t *)&data[396];
-		player->field_110 = *(uint16_t *)&data[400];
+		/*player->field_110 = *(uint16_t *)&data[400];*/
 
 		player->total_land_area = *(uint32_t *)&data[402];
 		player->total_building_score = *(uint32_t *)&data[406];

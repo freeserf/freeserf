@@ -1408,7 +1408,7 @@ update_unfinished_building(building_t *building)
 	    !BUILDING_HAS_SERF(building) &&
 	    !BUILDING_SERF_REQUESTED(building)) {
 		building->progress = 1;
-		/*if (BIT_TEST(player->field_163, 6) &&
+		/*if (BIT_TEST(player->emergency_flags, 6) &&
 				player->lumberjack_index != BUILDING_INDEX(building) &&
 				player->sawmill_index != BUILDING_INDEX(building) &&
 				player->stonecutter_index != BUILDING_INDEX(building)) {
@@ -1421,7 +1421,7 @@ update_unfinished_building(building_t *building)
 	}
 
 	/* Request planks */
-	/*if (BIT_TEST(player->field_163, 1) &&
+	/*if (BIT_TEST(player->emergency_flags, 1) &&
 			player->lumberjack_index != BUILDING_INDEX(building) &&
 			player->sawmill_index != BUILDING_INDEX(building) &&
 			player->stonecutter_index != BUILDING_INDEX(building)) {
@@ -1438,7 +1438,7 @@ update_unfinished_building(building_t *building)
 	}
 
 	/* Request stone */
-	/*if (BIT_TEST(player->field_163, 2) &&
+	/*if (BIT_TEST(player->emergency_index, 2) &&
 			player->lumberjack_index != BUILDING_INDEX(building) &&
 			player->sawmill_index != BUILDING_INDEX(building) &&
 			player->stonecutter_index != BUILDING_INDEX(building)) {
@@ -1473,7 +1473,7 @@ update_unfinished_adv_building(building_t *building)
 	/* TODO */
 
 	if (!BUILDING_SERF_REQUEST_FAIL(building)) {
-		/*if (BIT_TEST(player->field_163, 6) &&
+		/*if (BIT_TEST(player->emergency_index, 6) &&
 		  BUILDING_TYPE(building) != BUILDING_LUMBERJACK &&
 		  BUILDING_TYPE(building) != BUILDING_STONECUTTER &&
 		  BUILDING_TYPE(building) != BUILDING_SAWMILL) {
@@ -1584,10 +1584,10 @@ update_building_castle(building_t *building)
 	if (BUILDING_HAS_SERF(building) &&
 	    (inventory->res_dir & 0xa) == 0 && /* Not serf or res OUT mode */
 	    inventory->spawn_priority == 0) {
-		/* player->field_160 -= 1; */
-		if (0/*player->field_160 < 0*/) {
-			/* player->field_160 = 5; */
+		player->send_generic_delay -= 1;
+		if (player->send_generic_delay < 0) {
 			send_serf_to_building(building, SERF_GENERIC, -1, -1);
+			player->send_generic_delay = 5;
 		}
 	}
 
@@ -1740,7 +1740,7 @@ handle_building_update(building_t *building)
 			if (BUILDING_HAS_SERF(building)) {
 				player_t *player = game.player[BUILDING_PLAYER(building)];
 				int total_tree = building->stock[0].requested + building->stock[0].available;
-				if (total_tree < building->stock[0].maximum && 1/*!BIT_TEST(player->field_163, 1)*/) {
+				if (total_tree < building->stock[0].maximum && 1/*!BIT_TEST(player->emergency_flags, 1)*/) {
 					building->stock[0].prio = player->planks_boatbuilder >> (8 + total_tree);
 				} else {
 					building->stock[0].prio = 0;
@@ -1867,10 +1867,10 @@ handle_building_update(building_t *building)
 				if (BUILDING_HAS_SERF(building) &&
 				    (inv->res_dir & 0xa) == 0 && /* Not serf or res OUT mode */
 				    inv->spawn_priority == 0) {
-					/* player->field_160 -= 1; */
-					if (0/*player->field_160 < 0*/) {
-						/* player->field_160 = 5; */
+					player->send_generic_delay -= 1;
+					if (player->send_generic_delay < 0) {
 						send_serf_to_building(building, SERF_GENERIC, -1, -1);
+						player->send_generic_delay = 5;
 					}
 				}
 
@@ -2025,7 +2025,7 @@ handle_building_update(building_t *building)
 				/* Request more planks. */
 				player_t *player = game.player[BUILDING_PLAYER(building)];
 				int total_tree = building->stock[0].requested + building->stock[0].available;
-				if (total_tree < building->stock[0].maximum && 1/*!BIT_TEST(player->field_163, 1)*/) {
+				if (total_tree < building->stock[0].maximum && 1/*!BIT_TEST(player->emergency_flags, 1)*/) {
 					building->stock[0].prio = player->planks_toolmaker >> (8 + total_tree);
 				} else {
 					building->stock[0].prio = 0;
@@ -3649,7 +3649,7 @@ game_build_building(map_pos_t pos, building_type_t type, player_t *player)
 		}
 	}
 
-	if (/*!BIT_TEST(player->field_163, 0)*/0) {
+	if (/*!BIT_TEST(player->emergency_flags, 0)*/0) {
 		switch (type) {
 		case BUILDING_LUMBERJACK:
 			if (player->lumberjack_index == 0) {
@@ -3933,7 +3933,7 @@ game_build_castle(map_pos_t pos, player_t *player)
 	inventory->resources[RESOURCE_STONE] -= 2;
 	player->extra_planks = 7;
 	player->extra_stone = 2;
-	/* player->field_163 &= ~(BIT(0) | BIT(1) | BIT(2) | BIT(3) | BIT(4) | BIT(5)); */
+	/* player->emergency_flags &= ~(BIT(0) | BIT(1) | BIT(2) | BIT(3) | BIT(4) | BIT(5)); */
 
 	/* player->lumberjack_index = 0; */
 	/* player->sawmill_index = 0; */
@@ -4933,14 +4933,12 @@ player_init(uint number, uint face, uint color, uint supplies,
 	player->player_num = number;
 	player->color = color;
 	player->build = 0;
-	/*player->field_163 = BIT(0);*/
+	/*player->emergency_index = BIT(0);*/
 
 	player->building = 0;
 	player->castle_flag = 0;
 	player->cont_search_after_non_optimal_find = 7;
-	player->field_110 = 4;
 	player->knights_to_spawn = 0;
-	/* OBSOLETE player->spawn_serf_want_knight = 0; **/
 	player->total_land_area = 0;
 	player->total_military_score = 0;
 	player->total_building_score = 0;
@@ -4977,10 +4975,11 @@ player_init(uint number, uint face, uint color, uint supplies,
 	player->castle_knights_wanted = 3;
 	player->castle_knights = 0;
 	player->send_knight_delay = 0;
-	/* player->field_160 = 0;*/
-	/* player->field_1b0 = 0;*/
+	player->send_generic_delay = 0;
 	player->serf_index = 0;
-	/* player->field_1b2 = 0;*/
+
+	/* player->field_1b0 = 0; AI */
+	/* player->field_1b2 = 0; AI */
 
 	player->initial_supplies = supplies;
 	player->reproduction_reset = (60 - reproduction) * 50;
@@ -5000,8 +4999,6 @@ player_init(uint number, uint face, uint color, uint supplies,
 		player->incomplete_building_count[i] = 0;
 	}
 
-	/* TODO Set array field_402 of length 25 to -1 */
-
 	for (int i = 0; i < 16; i++) {
 		for (int j = 0; j < 112; j++) {
 			player->player_stat_history[i][j] = 0;
@@ -5018,8 +5015,9 @@ player_init(uint number, uint face, uint color, uint supplies,
 		player->serf_count[i] = 0;
 	}
 
-	/* TODO Set array field_434 of length 280*2 to 0 */
-	/* TODO Set array field_1bc of length 8 to -1 */
+	/* TODO AI: Set array field_402 of length 25 to -1. */
+	/* TODO AI: Set array field_434 of length 280*2 to 0 */
+	/* TODO AI: Set array field_1bc of length 8 to -1 */
 }
 
 /* Initialize player objects. */

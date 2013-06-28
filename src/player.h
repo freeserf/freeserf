@@ -92,7 +92,7 @@ typedef struct {
 	int knights_to_spawn;
 	/*int spawn_serf_want_knight; OBSOLETE by local var */
 	/* 110 */
-	int field_110;
+	/*int field_110;*/
 	uint total_land_area;
 	uint total_building_score;
 	uint total_military_score;
@@ -132,9 +132,10 @@ typedef struct {
 	/* +1 for every castle defeated,
 	   -1 for own castle lost. */
 	int castle_score;
-	/* 162 */
+	/* 160 */
+	int send_generic_delay;
 	int initial_supplies;
-	/* 164 */
+	/*int emergency_flags;*/
 	int extra_planks;
 	int extra_stone;
 	int lumberjack_index;

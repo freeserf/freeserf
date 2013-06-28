@@ -1132,7 +1132,7 @@ handle_serf_entering_building_state(serf_t *serf)
 
 				if (bld_type == BUILDING_STONEMINE) {
 					/*player_t *player = game.player[SERF_PLAYER(serf)];
-					  player->field_163 |= BIT(5);*/
+					  player->emergency_flags |= BIT(5);*/
 				}
 
 				if (serf->s.entering_building.field_B != 0) {
