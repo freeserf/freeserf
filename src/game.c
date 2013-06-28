@@ -714,11 +714,6 @@ update_inventories()
 
 					/* Put resource in out queue */
 					inventory_add_to_queue(src_inv, res, dest_bld->flg_index);
-
-					if (src_inv->serfs[SERF_4] == 0) {
-						/*serf_t *serf = game_get_serf(dest_bld->serf_index);*/
-						/* TODO */
-					}
 				}
 			}
 		}
@@ -3879,8 +3874,6 @@ game_build_castle(map_pos_t pos, player_t *player)
 		game_free_inventory(inv_index);
 		return -1;
 	}
-
-	/* TODO set_map_redraw(); */
 
 	player->flags |= BIT(0); /* Has castle */
 	player->build |= BIT(3);
