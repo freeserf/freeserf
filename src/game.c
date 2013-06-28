@@ -2700,9 +2700,11 @@ flag_reset_transport(flag_t *flag)
 		if (INVENTORY_ALLOCATED(i)) {
 			inventory_t *inventory = game_get_inventory(i);
 			if (inventory->out_dest[1] == FLAG_INDEX(flag)) {
+				inventory->resources[inventory->out_queue[1]] += 1;
 				inventory->out_queue[1] = -1;
 			}
 			if (inventory->out_dest[0] == FLAG_INDEX(flag)) {
+				inventory->resources[inventory->out_queue[0]] += 1;
 				inventory->out_queue[0] = inventory->out_queue[1];
 				inventory->out_dest[0] = inventory->out_dest[1];
 				inventory->out_queue[1] = -1;
