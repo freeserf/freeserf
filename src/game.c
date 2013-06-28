@@ -530,6 +530,23 @@ update_inventories_cb(flag_t *flag, update_inventories_data_t *data)
 	return 0;
 }
 
+/* Take resource from inventory and put in out queue. The resource must
+   be present.*/
+static void
+inventory_add_to_queue(inventory_t *inventory, resource_type_t type, uint dest)
+{
+	assert(inventory->resources[type] != 0);
+
+	inventory->resources[type] -= 1;
+	if (inventory->out_queue[0] == -1) {
+		inventory->out_queue[0] = type;
+		inventory->out_dest[0] = dest;
+	} else {
+		inventory->out_queue[1] = type;
+		inventory->out_dest[1] = dest;
+	}
+}
+
 /* Update inventories as part of the game progression. Moves the appropriate
    resources that are needed outside of the inventory into the out queue. */
 static void
@@ -584,7 +601,10 @@ update_inventories()
 	};
 
 	if (game.game_speed == 0) return;
-	/* update functions */
+
+	/* determine_max_serfs_reached(); */
+	/* TODO ... */
+	/* handle_emergency_mode(); */
 
 	const int *arr = NULL;
 	switch (game_random_int() & 7) {
@@ -595,7 +615,6 @@ update_inventories()
 
 	while (arr[0] >= 0) {
 		for (int p = 0; p < GAME_MAX_PLAYER_COUNT; p++) {
-			/*player_t *player = game.player[p];*/
 			inventory_t *invs[256];
 			int n = 0;
 			for (int i = 0; i < game.max_inventory_index; i++) {
@@ -617,8 +636,22 @@ update_inventories()
 							invs[n++] = inventory;
 							if (n == 256) break;
 						}
-					} else {
-						/* TODO */
+					} else { /* Out mode */
+						player_t *player = game.player[p];
+
+						int prio = 0;
+						resource_type_t type = RESOURCE_NONE;
+						for (int i = 0; i < 26; i++) {
+							if (inventory->resources[i] != 0 &&
+							    player->inventory_prio[i] >= prio) {
+								prio = player->inventory_prio[i];
+								type = i;
+							}
+						}
+
+						if (type != RESOURCE_NONE) {
+							inventory_add_to_queue(inventory, type, 0);
+						}
 					}
 				}
 			}
@@ -680,16 +713,7 @@ update_inventories()
 					}
 
 					/* Put resource in out queue */
-					src_inv->resources[res] -= 1;
-					if (src_inv->out_queue[0] == -1) {
-						LOGV("game", " added resource %i to front of queue", res);
-						src_inv->out_queue[0] = res;
-						src_inv->out_dest[0] = dest_bld->flg_index;
-					} else {
-						LOGV("game", " added resource %i next in queue", res);
-						src_inv->out_queue[1] = res;
-						src_inv->out_dest[1] = dest_bld->flg_index;
-					}
+					inventory_add_to_queue(src_inv, res, dest_bld->flg_index);
 
 					if (src_inv->serfs[SERF_4] == 0) {
 						/*serf_t *serf = game_get_serf(dest_bld->serf_index);*/
