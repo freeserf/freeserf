@@ -4911,118 +4911,134 @@ init_ai_values(player_t *player, int face)
 	player->ai_value_5 = ai_values_5[face-1];
 }
 
+static void
+player_init(uint number, uint face, uint color, uint supplies,
+	    uint reproduction, uint intelligence)
+{
+	assert(number < GAME_MAX_PLAYER_COUNT);
+
+	player_t *player = game.player[number];
+	player->flags = 0;
+
+	if (face == 0) return;
+
+	memset(player, 0, sizeof(player_t));
+	player->flags |= BIT(6); /* Player active */
+	if (face < 12) { /* AI player */
+		player->flags |= BIT(7); /* Set AI bit */
+		/* TODO ... */
+		game.max_next_index = 49;
+	}
+
+	player->player_num = number;
+	player->color = color;
+	player->build = 0;
+	/*player->field_163 = BIT(0);*/
+
+	player->building = 0;
+	player->castle_flag = 0;
+	player->cont_search_after_non_optimal_find = 7;
+	player->field_110 = 4;
+	player->knights_to_spawn = 0;
+	/* OBSOLETE player->spawn_serf_want_knight = 0; **/
+	player->total_land_area = 0;
+	player->total_military_score = 0;
+	player->total_building_score = 0;
+
+	player->last_tick = 0;
+
+	player->serf_to_knight_rate = 20000;
+	player->serf_to_knight_counter = 0x8000;
+
+	player->knight_occupation[0] = 0x10;
+	player->knight_occupation[1] = 0x21;
+	player->knight_occupation[2] = 0x32;
+	player->knight_occupation[3] = 0x43;
+
+	player_reset_food_priority(player);
+	player_reset_planks_priority(player);
+	player_reset_steel_priority(player);
+	player_reset_coal_priority(player);
+	player_reset_wheat_priority(player);
+	player_reset_tool_priority(player);
+
+	player_reset_flag_priority(player);
+	player_reset_inventory_priority(player);
+
+	player->current_sett_5_item = 8;
+	player->current_sett_6_item = 15;
+
+	player->military_max_gold = 0;
+	player->military_gold = 0;
+	player->inventory_gold = 0;
+
+	player->timers_count = 0;
+
+	player->castle_knights_wanted = 3;
+	player->castle_knights = 0;
+	player->send_knight_delay = 0;
+	/* player->field_160 = 0;*/
+	/* player->field_1b0 = 0;*/
+	player->serf_index = 0;
+	/* player->field_1b2 = 0;*/
+
+	player->initial_supplies = supplies;
+	player->reproduction_reset = (60 - reproduction) * 50;
+	player->ai_intelligence = 1300*intelligence + 13535;
+
+	if (PLAYER_IS_AI(player)) init_ai_values(player, face);
+
+	player->reproduction_counter = player->reproduction_reset;
+	player->castle_score = 0;
+
+	for (int i = 0; i < 26; i++) {
+		player->resource_count[i] = 0;
+	}
+
+	for (int i = 0; i < 24; i++) {
+		player->completed_building_count[i] = 0;
+		player->incomplete_building_count[i] = 0;
+	}
+
+	/* TODO Set array field_402 of length 25 to -1 */
+
+	for (int i = 0; i < 16; i++) {
+		for (int j = 0; j < 112; j++) {
+			player->player_stat_history[i][j] = 0;
+		}
+	}
+
+	for (int i = 0; i < 26; i++) {
+		for (int j = 0; j < 120; j++) {
+			player->resource_count_history[i][j] = 0;
+		}
+	}
+
+	for (int i = 0; i < 27; i++) {
+		player->serf_count[i] = 0;
+	}
+
+	/* TODO Set array field_434 of length 280*2 to 0 */
+	/* TODO Set array field_1bc of length 8 to -1 */
+}
+
 /* Initialize player objects. */
 static void
 players_init()
 {
-	const int default_player_colors[] = {
+	const uint default_player_colors[] = {
 		64, 72, 68, 76
 	};
 
 	game.winning_player = -1;
-	/* TODO ... */
+	/* game.show_game_end = 0; */
 	game.max_next_index = 33;
 
-	/* TODO */
-
 	for (int i = 0; i < GAME_MAX_PLAYER_COUNT; i++) {
-		player_t *player = game.player[i];
-		memset(player, 0, sizeof(player_t));
-		player->flags = 0;
-
 		player_init_t *init = &game.pl_init[i];
-		if (init->face != 0) {
-			player->flags |= BIT(6); /* Player active */
-			if (init->face < 12) { /* AI player */
-				player->flags |= BIT(7); /* Set AI bit */
-				/* TODO ... */
-				game.max_next_index = 49;
-			}
-
-			player->player_num = i;
-			player->color = default_player_colors[i];
-			/* player->field_163 = 0; */
-			player->build = 0;
-			/*player->field_163 |= BIT(0);*/
-
-			player->building = 0;
-			player->castle_flag = 0;
-			player->cont_search_after_non_optimal_find = 7;
-			player->field_110 = 4;
-			player->knights_to_spawn = 0;
-			/* OBSOLETE player->spawn_serf_want_knight = 0; **/
-			player->total_land_area = 0;
-
-			/* TODO ... */
-
-			player->last_tick = 0;
-
-			player->serf_to_knight_rate = 20000;
-			player->serf_to_knight_counter = 0x8000;
-
-			player->knight_occupation[0] = 0x10;
-			player->knight_occupation[1] = 0x21;
-			player->knight_occupation[2] = 0x32;
-			player->knight_occupation[3] = 0x43;
-
-			player_reset_food_priority(player);
-			player_reset_planks_priority(player);
-			player_reset_steel_priority(player);
-			player_reset_coal_priority(player);
-			player_reset_wheat_priority(player);
-			player_reset_tool_priority(player);
-
-			player_reset_flag_priority(player);
-			player_reset_inventory_priority(player);
-
-			player->current_sett_5_item = 8;
-			player->current_sett_6_item = 15;
-
-			player->military_max_gold = 0;
-			player->military_gold = 0;
-			player->inventory_gold = 0;
-
-			player->timers_count = 0;
-
-			player->castle_knights_wanted = 3;
-			player->castle_knights = 0;
-			/* TODO ... */
-			player->serf_index = 0;
-			/* TODO ... */
-			player->initial_supplies = init->supplies;
-			player->reproduction_reset = (60 - init->reproduction) * 50;
-			player->ai_intelligence = 1300*init->intelligence + 13535;
-
-			if (/*init->face != 0*/1) { /* Redundant check */
-				if (init->face < 12) { /* AI player */
-					init_ai_values(player, init->face);
-				}
-			}
-
-			player->reproduction_counter = player->reproduction_reset;
-			/* TODO ... */
-			for (int i = 0; i < 26; i++) player->resource_count[i] = 0;
-			for (int i = 0; i < 24; i++) {
-				player->completed_building_count[i] = 0;
-				player->incomplete_building_count[i] = 0;
-			}
-
-			/* TODO */
-
-			for (int i = 0; i < 16; i++) {
-				for (int j = 0; j < 112; j++) player->player_stat_history[i][j] = 0;
-			}
-
-			for (int i = 0; i < 26; i++) {
-				for (int j = 0; j < 120; j++) player->resource_count_history[i][j] = 0;
-			}
-
-			for (int i = 0; i < 27; i++) player->serf_count[i] = 0;
-		}
-	}
-
-	if (BIT_TEST(game.split, 6)) { /* Coop mode */
-		/* TODO ... */
+		player_init(i, init->face, default_player_colors[i],
+			    init->supplies, init->reproduction,
+			    init->intelligence);
 	}
 }
 
