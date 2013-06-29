@@ -2743,25 +2743,46 @@ load_text_state(FILE *f)
 	load_text_parse(f, &sections);
 
 	r = load_text_global_state(&sections);
-	if (r < 0) goto error;
+	if (r < 0) {
+		LOGD("savegame", "Error loading globals state");
+		goto error;
+	}
 
 	r = load_text_player_state(&sections);
-	if (r < 0) goto error;
+	if (r < 0) {
+		LOGD("savegame", "Error loading player state");
+		goto error;
+	}
 
 	r = load_text_flag_state(&sections);
-	if (r < 0) goto error;
+	if (r < 0) {
+		LOGD("savegame", "Error loading flag state");
+		goto error;
+	}
 
 	r = load_text_building_state(&sections);
-	if (r < 0) goto error;
+	if (r < 0) {
+		LOGD("savegame", "Error loading building state");
+		goto error;
+	}
 
 	r = load_text_inventory_state(&sections);
-	if (r < 0) goto error;
+	if (r < 0) {
+		LOGD("savegame", "Error loading inventory state");
+		goto error;
+	}
 
 	r = load_text_serf_state(&sections);
-	if (r < 0) goto error;
+	if (r < 0) {
+		LOGD("savegame", "Error loading serf state");
+		goto error;
+	}
 
 	r = load_text_map_state(&sections);
-	if (r < 0) goto error;
+	if (r < 0) {
+		LOGD("savegame", "Error loading map state");
+		goto error;
+	}
 
 	game.game_speed = 0;
 	game.game_speed_save = DEFAULT_GAME_SPEED;
