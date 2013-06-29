@@ -559,65 +559,6 @@ game_loop()
 	}
 }
 
-/* Allocate global memory before game starts. */
-static void
-allocate_global_memory()
-{
-	/* Players */
-	game.player[0] = malloc(sizeof(player_t));
-	if (game.player[0] == NULL) abort();
-
-	game.player[1] = malloc(sizeof(player_t));
-	if (game.player[1] == NULL) abort();
-
-	game.player[2] = malloc(sizeof(player_t));
-	if (game.player[2] == NULL) abort();
-
-	game.player[3] = malloc(sizeof(player_t));
-	if (game.player[3] == NULL) abort();
-
-	/* TODO this should be allocated on game start according to the
-	   map size of the particular game instance. */
-	int max_map_size = 10;
-	game.serf_limit = (0x1f84 * (1 << max_map_size) - 4) / 0x81;
-	game.flag_limit = (0x2314 * (1 << max_map_size) - 4) / 0x231;
-	game.building_limit = (0x54c * (1 << max_map_size) - 4) / 0x91;
-	game.inventory_limit = (0x54c * (1 << max_map_size) - 4) / 0x3c1;
-
-	/* Serfs */
-	game.serfs = malloc(game.serf_limit * sizeof(serf_t));
-	if (game.serfs == NULL) abort();
-
-	game.serf_bitmap = malloc(((game.serf_limit-1) / 8) + 1);
-	if (game.serf_bitmap == NULL) abort();
-
-	/* Flags */
-	game.flags = malloc(game.flag_limit * sizeof(flag_t));
-	if (game.flags == NULL) abort();
-
-	game.flag_bitmap = malloc(((game.flag_limit-1) / 8) + 1);
-	if (game.flag_bitmap == NULL) abort();
-
-	/* Buildings */
-	game.buildings = malloc(game.building_limit * sizeof(building_t));
-	if (game.buildings == NULL) abort();
-
-	game.building_bitmap = malloc(((game.building_limit-1) / 8) + 1);
-	if (game.building_bitmap == NULL) abort();
-
-	/* Inventories */
-	game.inventories = malloc(game.inventory_limit * sizeof(inventory_t));
-	if (game.inventories == NULL) abort();
-
-	game.inventory_bitmap = malloc(((game.inventory_limit-1) / 8) + 1);
-	if (game.inventory_bitmap == NULL) abort();
-
-	/* Setup screen frame */
-	frame_t *screen = sdl_get_screen_frame();
-	sdl_frame_init(&screen_frame, 0, 0, sdl_frame_get_width(screen),
-		       sdl_frame_get_height(screen), screen);
-}
-
 #define MAX_DATA_PATH      1024
 
 /* Load data file from path is non-NULL, otherwise search in
@@ -810,14 +751,17 @@ main(int argc, char *argv[])
 
 	game.map_generator = map_generator;
 
-	/* Init globals */
-	allocate_global_memory();
-	player_interface_init();
+	/* Setup screen frame */
+	frame_t *screen = sdl_get_screen_frame();
+	sdl_frame_init(&screen_frame, 0, 0, sdl_frame_get_width(screen),
+		       sdl_frame_get_height(screen), screen);
 
 	/* Initialize global lookup tables */
 	init_spiral_pattern();
 
 	game_init();
+
+	player_interface_init();
 
 	/* Either load a save game if specified or
 	   start a new game. */

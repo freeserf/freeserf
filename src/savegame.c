@@ -70,6 +70,14 @@ load_v0_globals_state(FILE *f, v0_map_t *map)
 	game.map.rows = 1 << game.map.row_size;
 	map_init_dimensions(&game.map);
 
+	/* Allocate game objects */
+	const int max_map_size = 10;
+	game.serf_limit = (0x1f84 * (1 << max_map_size) - 4) / 0x81;
+	game.flag_limit = (0x2314 * (1 << max_map_size) - 4) / 0x231;
+	game.building_limit = (0x54c * (1 << max_map_size) - 4) / 0x91;
+	game.inventory_limit = (0x54c * (1 << max_map_size) - 4) / 0x3c1;
+	game_allocate_objects();
+
 	/* OBSOLETE may be needed to load map data correctly?
 	map->index_mask = *(uint32_t *)&data[0] >> 2;
 
@@ -1725,6 +1733,13 @@ load_text_global_state(list_t *sections)
 	game.map.cols = 1 << game.map.col_size;
 	game.map.rows = 1 << game.map.row_size;
 	map_init_dimensions(&game.map);
+
+	/* Allocate game objects */
+	game.serf_limit = (0x1f84 * (1 << game.map_size) - 4) / 0x81;
+	game.flag_limit = (0x2314 * (1 << game.map_size) - 4) / 0x231;
+	game.building_limit = (0x54c * (1 << game.map_size) - 4) / 0x91;
+	game.inventory_limit = (0x54c * (1 << game.map_size) - 4) / 0x3c1;
+	game_allocate_objects();
 
 	/* Load the remaining global state. */
 	list_foreach(&section->settings, elm) {

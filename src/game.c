@@ -5069,35 +5069,13 @@ game_init()
 
 	/* Clear player objects */
 	for (int i = 0; i < GAME_MAX_PLAYER_COUNT; i++) {
-		memset(game.player[i], 0, sizeof(player_t));
+		if (game.player[i] == NULL) {
+			game.player[i] = calloc(1, sizeof(player_t));
+			if (game.player[i] == NULL) abort();
+		} else {
+			memset(game.player[i], 0, sizeof(player_t));
+		}
 	}
-
-	memset(game.flag_bitmap, 0, ((game.flag_limit-1) / 8) + 1);
-	memset(game.building_bitmap, 0, ((game.building_limit-1) / 8) + 1);
-	memset(game.serf_bitmap, 0, ((game.serf_limit-1) / 8) + 1);
-	memset(game.inventory_bitmap, 0, ((game.inventory_limit-1) / 8) + 1);
-
-	game.max_flag_index = 0;
-	game.max_building_index = 0;
-	game.max_serf_index = 0;
-	game.max_inventory_index = 0;
-
-	/* Create NULL-serf */
-	serf_t *serf;
-	game_alloc_serf(&serf, NULL);
-	serf->state = SERF_STATE_NULL;
-	serf->type = 0;
-	serf->animation = 0;
-	serf->counter = 0;
-	serf->pos = -1;
-
-	/* Create NULL-flag (index 0 is undefined) */
-	game_alloc_flag(NULL, NULL);
-
-	/* Create NULL-building (index 0 is undefined) */
-	building_t *building;
-	game_alloc_building(&building, NULL);
-	building->bld = 0;
 
 	memset(game.player_history_index, '\0', sizeof(game.player_history_index));
 	memset(game.player_history_counter, '\0', sizeof(game.player_history_counter));
@@ -5151,6 +5129,11 @@ game_init_map()
 
 	map_init_dimensions(&game.map);
 
+	game.serf_limit = (0x1f84 * (1 << game.map_size) - 4) / 0x81;
+	game.flag_limit = (0x2314 * (1 << game.map_size) - 4) / 0x231;
+	game.building_limit = (0x54c * (1 << game.map_size) - 4) / 0x91;
+	game.inventory_limit = (0x54c * (1 << game.map_size) - 4) / 0x3c1;
+
 	game.map_regions = (game.map.cols >> 5) * (game.map.rows >> 5);
 	game.map_max_serfs_left = game.map_regions * 500;
 	game.map_62_5_times_regions = (game.map_regions * 500) >> 3;
@@ -5166,6 +5149,68 @@ game_init_map()
 	game.winning_player = -1;
 	/* game.show_game_end = 0; */
 	game.max_next_index = 33;
+}
+
+void
+game_allocate_objects()
+{
+	/* Serfs */
+	if (game.serfs != NULL) free(game.serfs);
+	game.serfs = malloc(game.serf_limit * sizeof(serf_t));
+	if (game.serfs == NULL) abort();
+
+	if (game.serf_bitmap != NULL) free(game.serf_bitmap);
+	game.serf_bitmap = calloc(((game.serf_limit-1) / 8) + 1, 1);
+	if (game.serf_bitmap == NULL) abort();
+
+	/* Flags */
+	if (game.flags != NULL) free(game.flags);
+	game.flags = malloc(game.flag_limit * sizeof(flag_t));
+	if (game.flags == NULL) abort();
+
+	if (game.flag_bitmap != NULL) free(game.flag_bitmap);
+	game.flag_bitmap = calloc(((game.flag_limit-1) / 8) + 1, 1);
+	if (game.flag_bitmap == NULL) abort();
+
+	/* Buildings */
+	if (game.buildings != NULL) free(game.buildings);
+	game.buildings = malloc(game.building_limit * sizeof(building_t));
+	if (game.buildings == NULL) abort();
+
+	if (game.building_bitmap != NULL) free(game.building_bitmap);
+	game.building_bitmap = calloc(((game.building_limit-1) / 8) + 1, 1);
+	if (game.building_bitmap == NULL) abort();
+
+	/* Inventories */
+	if (game.inventories != NULL) free(game.inventories);
+	game.inventories = malloc(game.inventory_limit * sizeof(inventory_t));
+	if (game.inventories == NULL) abort();
+
+	if (game.inventory_bitmap != NULL) free(game.inventory_bitmap);
+	game.inventory_bitmap = calloc(((game.inventory_limit-1) / 8) + 1, 1);
+	if (game.inventory_bitmap == NULL) abort();
+
+	game.max_flag_index = 0;
+	game.max_building_index = 0;
+	game.max_serf_index = 0;
+	game.max_inventory_index = 0;
+
+	/* Create NULL-serf */
+	serf_t *serf;
+	game_alloc_serf(&serf, NULL);
+	serf->state = SERF_STATE_NULL;
+	serf->type = 0;
+	serf->animation = 0;
+	serf->counter = 0;
+	serf->pos = -1;
+
+	/* Create NULL-flag (index 0 is undefined) */
+	game_alloc_flag(NULL, NULL);
+
+	/* Create NULL-building (index 0 is undefined) */
+	building_t *building;
+	game_alloc_building(&building, NULL);
+	building->bld = 0;
 }
 
 int
@@ -5187,6 +5232,7 @@ game_load_mission_map(int level)
 	game.init_map_rnd.state[2] ^= 0xc3c3;
 
 	game_init_map();
+	game_allocate_objects();
 
 	/* Initialize player and build initial castle */
 	for (int i = 0; i < GAME_MAX_PLAYER_COUNT; i++) {
@@ -5226,6 +5272,7 @@ game_load_random_map(int size, const random_state_t *rnd)
 	memcpy(&game.init_map_rnd, rnd, sizeof(random_state_t));
 
 	game_init_map();
+	game_allocate_objects();
 
 	int n = game_add_player(12, default_player_colors[0],
 				40, 40, 40);

@@ -217,6 +217,7 @@ int game_add_player(uint face, uint color, uint supplies,
 int game_load_mission_map(int m);
 int game_load_random_map(int size, const random_state_t *rnd);
 int game_load_save_game(const char *path);
+void game_allocate_objects();
 
 void game_update();
 void game_pause(int enable);
