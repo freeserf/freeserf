@@ -160,18 +160,6 @@ init_spiral_pattern()
 }
 
 
-static void
-player_interface_init()
-{
-	game.frame = &screen_frame;
-	int width = sdl_frame_get_width(game.frame);
-	int height = sdl_frame_get_height(game.frame);
-
-	interface_init(&interface);
-	gui_object_set_size((gui_object_t *)&interface, width, height);
-	gui_object_set_displayed((gui_object_t *)&interface, 1);
-}
-
 /* In target, replace any character from needle with replacement character. */
 static void
 strreplace(char *target, const char *needle, char replace)
@@ -468,9 +456,10 @@ game_loop()
 						}
 					}
 
-					for (int i = (current+1) % 4; i != current; i = (i+1) % 4) {
+					for (int i = (current+1) % GAME_MAX_PLAYER_COUNT;
+					     i != current; i = (i+1) % GAME_MAX_PLAYER_COUNT) {
 						if (PLAYER_IS_ACTIVE(game.player[i])) {
-							interface.player = game.player[i];
+							interface_set_player(&interface, i);
 							LOGD("main", "Switched to player %i.", i);
 							break;
 						}
@@ -761,7 +750,14 @@ main(int argc, char *argv[])
 
 	game_init();
 
-	player_interface_init();
+	/* Initialize interface */
+	game.frame = &screen_frame;
+	int width = sdl_frame_get_width(game.frame);
+	int height = sdl_frame_get_height(game.frame);
+
+	interface_init(&interface);
+	gui_object_set_size((gui_object_t *)&interface, width, height);
+	gui_object_set_displayed((gui_object_t *)&interface, 1);
 
 	/* Either load a save game if specified or
 	   start a new game. */
@@ -774,16 +770,8 @@ main(int argc, char *argv[])
 		if (r < 0) exit(EXIT_FAILURE);
 	}
 
-	/* Move viewport to initial position */
-	map_pos_t init_pos = MAP_POS(0,0);
-	if (interface.player->castle_flag != 0) {
-		flag_t *flag = game_get_flag(interface.player->castle_flag);
-		init_pos = MAP_MOVE_UP_LEFT(flag->pos);
-	}
-
+	interface_set_player(&interface, 0);
 	viewport_map_reinit();
-	interface_update_map_cursor_pos(&interface, init_pos);
-	viewport_move_to_map_pos(&interface.viewport, interface.map_cursor_pos);
 
 	if (save_file != NULL) {
 		interface_close_game_init(&interface);

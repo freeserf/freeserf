@@ -20,6 +20,7 @@
  */
 
 #include <time.h>
+#include <assert.h>
 
 #include "interface.h"
 #include "gui.h"
@@ -396,6 +397,23 @@ interface_update_interface(interface_t *interface)
 			break;
 		}
 	}
+}
+
+void
+interface_set_player(interface_t *interface, uint player)
+{
+	assert(PLAYER_IS_ACTIVE(game.player[player]));
+	interface->player = game.player[player];
+
+	/* Move viewport to initial position */
+	map_pos_t init_pos = MAP_POS(0,0);
+	if (interface->player->castle_flag != 0) {
+		flag_t *flag = game_get_flag(interface->player->castle_flag);
+		init_pos = MAP_MOVE_UP_LEFT(flag->pos);
+	}
+
+	interface_update_map_cursor_pos(interface, init_pos);
+	viewport_move_to_map_pos(&interface->viewport, interface->map_cursor_pos);
 }
 
 void
@@ -926,6 +944,8 @@ interface_init(interface_t *interface)
 
 	interface->building_road = 0;
 
+	interface->player = NULL;
+
 	/* Settings */
 	interface->config = 0x39;
 	interface->msg_flags = 0;
@@ -937,7 +957,6 @@ interface_init(interface_t *interface)
 	interface->panel_btns[3] = PANEL_BTN_STATS;
 	interface->panel_btns[4] = PANEL_BTN_SETT;
 
-	interface->player = game.player[0];
 	interface->current_stat_8_mode = 0;
 	interface->current_stat_7_item = 7;
 

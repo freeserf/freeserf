@@ -163,16 +163,8 @@ handle_action(game_init_box_t *box, int action)
 			if (r < 0) return;
 		}
 
-		/* Move viewport to initial position */
-		map_pos_t init_pos = MAP_POS(0,0);
-		if (box->interface->player->castle_flag != 0) {
-			flag_t *flag = game_get_flag(box->interface->player->castle_flag);
-			init_pos = MAP_MOVE_UP_LEFT(flag->pos);
-		}
-
 		viewport_map_reinit();
-		interface_update_map_cursor_pos(box->interface, init_pos);
-		viewport_move_to_map_pos(&box->interface->viewport, init_pos);
+		interface_set_player(box->interface, 0);
 		interface_close_game_init(box->interface);
 		break;
 	case ACTION_TOGGLE_GAME_TYPE:
