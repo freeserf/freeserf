@@ -223,6 +223,14 @@ load_v0_player_state(FILE *f)
 			return -1;
 		}
 
+		if (!BIT_TEST(data[130], 6)) continue;;
+
+		game.player[i] = calloc(1, sizeof(player_t));
+		if (game.player[i] == NULL) {
+			free(data);
+			return -1;
+		}
+
 		player_t *player = game.player[i];
 
 		for (int j = 0; j < 9; j++) {
@@ -1833,8 +1841,12 @@ load_text_player_section(section_t *section)
 {
 	/* Parse player number. */
 	int n = atoi(section->param);
-	player_t *player = game.player[n];
+	if (n < 0 || n >= GAME_MAX_PLAYER_COUNT) return -1;
 
+	game.player[n] = calloc(1, sizeof(player_t));
+	if (game.player[n] == NULL) return -1;
+
+	player_t *player = game.player[n];
 	player->player_num = n;
 
 	/* Load the player state. */

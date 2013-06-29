@@ -452,6 +452,8 @@ update_knight_morale()
 {
 	for (int i = 0; i < GAME_MAX_PLAYER_COUNT; i++) {
 		player_t *player = game.player[i];
+		if (!PLAYER_IS_ACTIVE(player)) continue;
+
 		int depot = player->military_gold + player->inventory_gold;
 		player->gold_deposited = min(depot, 0xffff);
 
@@ -499,7 +501,9 @@ update_map_and_players()
 	map_update();
 
 	for (int i = 0; i < GAME_MAX_PLAYER_COUNT; i++) {
-		update_player(game.player[i]);
+		if (PLAYER_IS_ACTIVE(game.player[i])) {
+			update_player(game.player[i]);
+		}
 	}
 }
 
@@ -2278,40 +2282,50 @@ update_game_stats()
 			}
 		}
 
-		uint values[4];
+		uint values[GAME_MAX_PLAYER_COUNT];
 
 		/* Store land area stats in history. */
+		int pl_count = 0;
 		for (int i = 0; i < GAME_MAX_PLAYER_COUNT; i++) {
-			values[i] = game.player[i]->total_land_area;
+			if (PLAYER_IS_ACTIVE(game.player[i])) {
+				values[i] = game.player[i]->total_land_area;
+				pl_count += 1;
+			}
 		}
-		record_player_history(game.player, 4, update_level, 1,
+		record_player_history(game.player, pl_count, update_level, 1,
 				      game.player_history_index, values);
 		game.player_score_leader |= BIT(calculate_clear_winner(4, values));
 
 		/* Store building stats in history. */
 		for (int i = 0; i < GAME_MAX_PLAYER_COUNT; i++) {
-			values[i] = game.player[i]->total_building_score;
+			if (PLAYER_IS_ACTIVE(game.player[i])) {
+				values[i] = game.player[i]->total_building_score;
+			}
 		}
-		record_player_history(game.player, 4, update_level, 2,
+		record_player_history(game.player, pl_count, update_level, 2,
 				      game.player_history_index, values);
 
 		/* Store military stats in history. */
 		for (int i = 0; i < GAME_MAX_PLAYER_COUNT; i++) {
-			values[i] = calculate_military_score(game.player[i]->total_military_score,
-							     game.player[i]->knight_morale);
+			if (PLAYER_IS_ACTIVE(game.player[i])) {
+				values[i] = calculate_military_score(game.player[i]->total_military_score,
+								     game.player[i]->knight_morale);
+			}
 		}
-		record_player_history(game.player, 4, update_level, 3,
+		record_player_history(game.player, pl_count, update_level, 3,
 				      game.player_history_index, values);
 		game.player_score_leader |= BIT(calculate_clear_winner(4, values)) << 4;
 
 		/* Store condensed score of all aspects in history. */
 		for (int i = 0; i < GAME_MAX_PLAYER_COUNT; i++) {
-			int mil_score = calculate_military_score(game.player[i]->total_military_score,
-								 game.player[i]->knight_morale);
-			values[i] = game.player[i]->total_building_score +
-				((game.player[i]->total_land_area + mil_score) >> 4);
+			if (PLAYER_IS_ACTIVE(game.player[i])) {
+				int mil_score = calculate_military_score(game.player[i]->total_military_score,
+									 game.player[i]->knight_morale);
+				values[i] = game.player[i]->total_building_score +
+					((game.player[i]->total_land_area + mil_score) >> 4);
+			}
 		}
-		record_player_history(game.player, 4, update_level, 0,
+		record_player_history(game.player, pl_count, update_level, 0,
 				      game.player_history_index, values);
 
 		/* TODO Determine winner based on game.player_score_leader */
@@ -2327,8 +2341,10 @@ update_game_stats()
 		for (int res = 0; res < 26; res++) {
 			for (int i = 0; i < GAME_MAX_PLAYER_COUNT; i++) {
 				player_t *player = game.player[i];
-				player->resource_count_history[res][index] = player->resource_count[res];
-				player->resource_count[res] = 0;
+				if (PLAYER_IS_ACTIVE(player)) {
+					player->resource_count_history[res][index] = player->resource_count[res];
+					player->resource_count[res] = 0;
+				}
 			}
 		}
 
@@ -4922,7 +4938,6 @@ player_init(uint number, uint face, uint color, uint supplies,
 
 	if (face == 0) return;
 
-	player->flags |= BIT(6); /* Player active */
 	if (face < 12) { /* AI player */
 		player->flags |= BIT(7); /* Set AI bit */
 		/* TODO ... */
@@ -5036,6 +5051,10 @@ game_add_player(uint face, uint color, uint supplies,
 
 	if (number < 0) return -1;
 
+	/* Allocate object */
+	game.player[number] = calloc(1, sizeof(player_t));
+	if (game.player[number] == NULL) abort();
+
 	player_init(number, face, color, supplies,
 		    reproduction, intelligence);
 
@@ -5069,12 +5088,8 @@ game_init()
 
 	/* Clear player objects */
 	for (int i = 0; i < GAME_MAX_PLAYER_COUNT; i++) {
-		if (game.player[i] == NULL) {
-			game.player[i] = calloc(1, sizeof(player_t));
-			if (game.player[i] == NULL) abort();
-		} else {
-			memset(game.player[i], 0, sizeof(player_t));
-		}
+		if (game.player[i] != NULL) free(game.player[i]);
+		game.player[i] = NULL;
 	}
 
 	memset(game.player_history_index, '\0', sizeof(game.player_history_index));

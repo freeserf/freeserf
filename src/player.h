@@ -45,7 +45,7 @@
 /* Whether the cycling of knights is in the second phase. */
 #define PLAYER_CYCLING_SECOND(player)  ((int)(((player)->flags >> 5) & 1))
 /* Whether this player is active. */
-#define PLAYER_IS_ACTIVE(player)  ((int)(((player)->flags >> 6) & 1))
+#define PLAYER_IS_ACTIVE(player)  ((player) != NULL)
 /* Whether this player is a computer controlled opponent. */
 #define PLAYER_IS_AI(player)  ((int)(((player)->flags >> 7) & 1))
 
