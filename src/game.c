@@ -5237,9 +5237,9 @@ game_load_mission_map(int level)
 	/* Initialize player and build initial castle */
 	for (int i = 0; i < GAME_MAX_PLAYER_COUNT; i++) {
 		const mission_t *m = &mission[level];
-		if (m->player[i].face == 0) continue;
-
 		uint face = (i == 0) ? 12 : m->player[i].face;
+		if (face == 0) continue;
+
 		int n = game_add_player(face, default_player_colors[i],
 					m->player[i].supplies,
 					m->player[i].reproduction,
