@@ -906,6 +906,7 @@ schedule_slot_to_known_dest(flag_t *flag, int slot)
 
 	int sources = 0;
 	int flags = (game.field_218[3] ^ 0x3f) & flag->transporter;
+
 	if (flags != 0) {
 		for (int k = 0; k < 6; k++) {
 			if (BIT_TEST(flags, 5-k)) {
@@ -1066,8 +1067,11 @@ schedule_slot_to_unknown_dest(flag_t *flag, int slot)
 	   other than an inventory or such destination could not be
 	   found. Send to inventory instead. */
 	int r = find_nearest_inventory(flag);
-	if (r < 0) {
-		/* No path to inventory was found */
+	if (r < 0 || r == FLAG_INDEX(flag)) {
+		/* No path to inventory was found, or
+		   resource is already at destination.
+		   In the latter case we need to move it
+		   forth and back once before it can be delivered. */
 		if (FLAG_TRANSPORTERS(flag) == 0) {
 			flag->endpoint |= BIT(7);
 		} else {
