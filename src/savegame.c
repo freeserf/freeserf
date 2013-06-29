@@ -979,7 +979,6 @@ save_text_globals_state(FILE *f)
 	save_text_write_value(f, "map.field_4A", game.map_field_4A);
 	save_text_write_value(f, "map.gold_deposit", game.map_gold_deposit);
 	save_text_write_value(f, "update_map_16_loop", game.update_map_16_loop);
-	save_text_write_value(f, "map.size", game.map_size);
 	save_text_write_value(f, "map.field_52", game.map_field_52);
 
 	save_text_write_value(f, "map.62_5_times_regions", game.map_62_5_times_regions);
@@ -1729,6 +1728,8 @@ load_text_global_state(list_t *sections)
 	if (value == NULL) return -1;
 	game.map.row_size = atoi(value);
 
+	game.map_size = (game.map.col_size + game.map.row_size) - 9;
+
 	/* Initialize remaining map dimensions. */
 	game.map.cols = 1 << game.map.col_size;
 	game.map.rows = 1 << game.map.row_size;
@@ -1809,8 +1810,6 @@ load_text_global_state(list_t *sections)
 			game.map_gold_deposit = atoi(s->value);
 		} else if (!strcmp(s->key, "update_map_16_loop")) {
 			game.update_map_16_loop = atoi(s->value);
-		} else if (!strcmp(s->key, "map.size")) {
-			game.map_size = atoi(s->value);
 		} else if (!strcmp(s->key, "map.field_52")) {
 			game.map_field_52 = atoi(s->value);
 		} else if (!strcmp(s->key, "map.62_5_times_regions")) {
