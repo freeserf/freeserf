@@ -5156,11 +5156,6 @@ game_init_map()
 	game.map.cols = 1 << game.map.col_size;
 	game.map.rows = 1 << game.map.row_size;
 
-	const int map_size_arr[] = {
-		16, 30, 55, 90,
-		150, 220, 350, 500
-	};
-
 	/* game.split |= BIT(3); */
 
 	if (game.map.cols < 64 || game.map.rows < 64) {
@@ -5180,7 +5175,6 @@ game_init_map()
 
 	game.map_field_4A = game.map_max_serfs_left;
 	game.map_gold_morale_factor = 0;
-	game.map_field_52 = map_size_arr[game.map_size];
 
 	init_spiral_pos_pattern();
 	map_init();

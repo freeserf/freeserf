@@ -180,8 +180,8 @@ load_v0_globals_state(FILE *f, v0_map_t *map)
 	game.map_gold_deposit = *(uint32_t *)&data[184];
 	game.update_map_16_loop = *(uint16_t *)&data[188];
 
-	game.map_field_52 = *(uint16_t *)&data[192];
 	/*
+	game.map_field_52 = *(uint16_t *)&data[192];
 	game.field_54 = *(uint16_t *)&data[194];
 	game.field_56 = *(uint16_t *)&data[196];
 	*/
@@ -987,7 +987,6 @@ save_text_globals_state(FILE *f)
 	save_text_write_value(f, "map.field_4A", game.map_field_4A);
 	save_text_write_value(f, "map.gold_deposit", game.map_gold_deposit);
 	save_text_write_value(f, "update_map_16_loop", game.update_map_16_loop);
-	save_text_write_value(f, "map.field_52", game.map_field_52);
 
 	save_text_write_value(f, "map.62_5_times_regions", game.map_62_5_times_regions);
 	save_text_write_value(f, "map.gold_morale_factor", game.map_gold_morale_factor);
@@ -1818,8 +1817,6 @@ load_text_global_state(list_t *sections)
 			game.map_gold_deposit = atoi(s->value);
 		} else if (!strcmp(s->key, "update_map_16_loop")) {
 			game.update_map_16_loop = atoi(s->value);
-		} else if (!strcmp(s->key, "map.field_52")) {
-			game.map_field_52 = atoi(s->value);
 		} else if (!strcmp(s->key, "map.62_5_times_regions")) {
 			game.map_62_5_times_regions = atoi(s->value);
 		} else if (!strcmp(s->key, "map.gold_morale_factor")) {

@@ -64,7 +64,6 @@ typedef struct {
 	uint32_t map_gold_deposit;
 	/* 50 */
 	uint16_t map_size;
-	int map_field_52;
 	/* 58 */
 	uint16_t map_62_5_times_regions;
 	int map_gold_morale_factor;
