@@ -1086,10 +1086,7 @@ update_flags()
 {
 	const int max_transporters[] = { 1, 2, 3, 4, 6, 8, 11, 15 };
 
-	if (game.next_index >= 32) return;
-
-	int index = game.next_index << 5;
-	for (int i = index ? index : 1; i < game.max_flag_index; i++) {
+	for (int i = 1; i < game.max_flag_index; i++) {
 		if (FLAG_ALLOCATED(i)) {
 			flag_t *flag = game_get_flag(i);
 
@@ -2124,10 +2121,7 @@ handle_building_update(building_t *building)
 static void
 update_buildings()
 {
-	if (game.next_index >= 32) return;
-
-	int index = game.next_index << 5;
-	for (int i = index ? index : 1; i < game.max_building_index; i++) {
+	for (int i = 1; i < game.max_building_index; i++) {
 		if (BUILDING_ALLOCATED(i)) {
 			building_t *building = game_get_building(i);
 			if (BUILDING_IS_BURNING(building)) {
@@ -2150,10 +2144,6 @@ update_buildings()
 static void
 update_serfs()
 {
-	if (game.next_index >= 32) return;
-
-	/*int index = game.next_index & 0xf;
-	  for (int i = index ? index : 1; i < game.max_serf_index; i++) {*/
 	for (int i = 1; i < game.max_serf_index; i++) {
 		if (SERF_ALLOCATED(i)) {
 			serf_t *serf = game_get_serf(i);
