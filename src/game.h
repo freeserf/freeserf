@@ -122,7 +122,7 @@ typedef struct {
 	uint game_stats_counter;
 	uint history_counter;
 	random_state_t rnd;
-	uint8_t field_218[4];
+	/*uint8_t field_218[4];*/
 	uint16_t map_regions;
 	/* OBSOLETE by local vars */
 	/*uint8_t init_map_old_type;
@@ -143,8 +143,8 @@ typedef struct {
 	/* OBSOLETE by local vars*/
 	/*uint16_t build_road_source_flag;
 	uint16_t build_road_out_dir;
-	uint16_t build_road_in_dir;*/
-	uint16_t field_24E;
+	uint16_t build_road_in_dir;
+	uint16_t field_24E;*/
 	/* 250 */
 	/* OBSOLETE by local vars */
 	/*uint16_t short_row_length;

@@ -881,7 +881,7 @@ schedule_known_dest_cb(flag_t *flag, schedule_known_dest_data_t *data)
 }
 
 static void
-schedule_slot_to_known_dest(flag_t *flag, int slot)
+schedule_slot_to_known_dest(flag_t *flag, int slot, uint res_waiting[4])
 {
 	flag_search_t search;
 	flag_search_init(&search);
@@ -891,7 +891,9 @@ schedule_slot_to_known_dest(flag_t *flag, int slot)
 	int tr = FLAG_TRANSPORTERS(flag);
 
 	int sources = 0;
-	int flags = (game.field_218[3] ^ 0x3f) & flag->transporter;
+
+	/* Directions where transporters are idle (zero slots waiting) */
+	int flags = (res_waiting[0] ^ 0x3f) & flag->transporter;
 
 	if (flags != 0) {
 		for (int k = 0; k < 6; k++) {
@@ -909,7 +911,7 @@ schedule_slot_to_known_dest(flag_t *flag, int slot)
 
 	if (tr != 0) {
 		for (int j = 0; j < 3; j++) {
-			flags = (game.field_218[3-j] ^ game.field_218[2-j]);
+			flags = res_waiting[j] ^ res_waiting[j+1];
 			for (int k = 0; k < 6; k++) {
 				if (BIT_TEST(flags, 5-k)) {
 					tr &= ~BIT(5-k);
@@ -924,7 +926,7 @@ schedule_slot_to_known_dest(flag_t *flag, int slot)
 		}
 
 		if (tr != 0) {
-			flags = game.field_218[0];
+			flags = res_waiting[3];
 			for (int k = 0; k < 6; k++) {
 				if (BIT_TEST(flags, 5-k)) {
 					tr &= ~BIT(5-k);
@@ -1100,28 +1102,30 @@ update_flags()
 		if (FLAG_ALLOCATED(i)) {
 			flag_t *flag = game_get_flag(i);
 
-			for (int j = 0; j < 4; j++) game.field_218[j] = 0;
-
+			/* Count and store in bitfield which directions
+			   have strictly more than 0,1,2,3 slots waiting. */
+			uint res_waiting[4] = {0};
 			for (int j = 0; j < FLAG_MAX_RES_COUNT; j++) {
 				if (flag->slot[j].type != RESOURCE_NONE &&
 				    flag->slot[j].dir != DIR_NONE) {
 					dir_t res_dir = flag->slot[j].dir;
-					for (int k = 3; k >= 0; k--) {
-						if (!BIT_TEST(game.field_218[k], res_dir)) {
-							game.field_218[k] |= BIT(res_dir);
+					for (int k = 0; k < 4; k++) {
+						if (!BIT_TEST(res_waiting[k], res_dir)) {
+							res_waiting[k] |= BIT(res_dir);
 							break;
 						}
 					}
 				}
 			}
 
-			game.field_24E = 0;
+			/* Count of total resources waiting at flag */
+			int waiting_count = 0;
 
 			if (FLAG_HAS_RESOURCES(flag)) {
 				flag->endpoint &= ~BIT(7);
 				for (int slot = 0; slot < FLAG_MAX_RES_COUNT; slot++) {
 					if (flag->slot[slot].type != RESOURCE_NONE) {
-						game.field_24E += 1;
+						waiting_count += 1;
 
 						/* Only schedule the slot if it has not already
 						   been scheduled for fetch. */
@@ -1129,7 +1133,8 @@ update_flags()
 						if (res_dir < 0) {
 							if (flag->slot[slot].dest != 0) {
 								/* Destination is known */
-								schedule_slot_to_known_dest(flag, slot);
+								schedule_slot_to_known_dest(flag, slot,
+											    res_waiting);
 							} else {
 								/* Destination is not known */
 								schedule_slot_to_unknown_dest(flag, slot);
@@ -1140,41 +1145,33 @@ update_flags()
 			}
 
 			/* Update transporter flags, decide if serf needs to be sent to road */
-			int tr = flag->transporter;
-			int flags = game.field_218[1];
-			int path = FLAG_PATHS(flag);
-			if (game.field_24E >= 7) path |= BIT(7);
-
 			for (int j = 0; j < 6; j++) {
-				if (BIT_TEST(path, 5-j)) {
+				if (FLAG_HAS_PATH(flag, 5-j)) {
 					if (FLAG_SERF_REQUESTED(flag, 5-j)) {
-						if (BIT_TEST(flags, 5-j)) {
-							if (BIT_TEST(path, 7)) tr &= BIT(5-j);
-						} else {
-							if (FLAG_TRANSPORTER_COUNT(flag, 5-j) != 0) tr |= BIT(5-j);
-						}
-					} else if (FLAG_TRANSPORTER_COUNT(flag, 5-j) == 0) {
-						if (!BIT_TEST(tr, 7)) {
-							int r = send_serf_to_road(flag, 5-j, FLAG_IS_WATER_PATH(flag, 5-j));
-							if (r < 0) tr |= BIT(7);
-						}
-						if (BIT_TEST(path, 7)) tr &= BIT(5-j);
-					} else if (BIT_TEST(flags, 5-j)) {
-						int max_tr = max_transporters[FLAG_LENGTH_CATEGORY(flag, 5-j)];
-						if (FLAG_TRANSPORTER_COUNT(flag, 5-j) != max_tr) {
-							if (!BIT_TEST(tr, 7)) {
-								int r = send_serf_to_road(flag, 5-j, FLAG_IS_WATER_PATH(flag, 5-j));
-								if (r < 0) tr |= BIT(7);
+						if (BIT_TEST(res_waiting[2], 5-j)) {
+							if (waiting_count >= 7) {
+								flag->transporter &= BIT(5-j);
 							}
+						} else if (FLAG_TRANSPORTER_COUNT(flag, 5-j) != 0) {
+							flag->transporter |= BIT(5-j);
 						}
-						if (BIT_TEST(path, 7)) tr &= BIT(5-j);
+					} else if (FLAG_TRANSPORTER_COUNT(flag, 5-j) == 0 ||
+						   BIT_TEST(res_waiting[2], 5-j)) {
+						int max_tr = max_transporters[FLAG_LENGTH_CATEGORY(flag, 5-j)];
+						if (FLAG_TRANSPORTER_COUNT(flag, 5-j) < max_tr &&
+						    !FLAG_SERF_REQUEST_FAIL(flag)) {
+							int r = send_serf_to_road(flag, 5-j,
+										  FLAG_IS_WATER_PATH(flag, 5-j));
+							if (r < 0) flag->transporter |= BIT(7);
+						}
+						if (waiting_count >= 7) {
+							flag->transporter &= BIT(5-j);
+						}
 					} else {
-						tr |= BIT(5-j);
+						flag->transporter |= BIT(5-j);
 					}
 				}
 			}
-
-			flag->transporter = tr;
 		}
 	}
 }
