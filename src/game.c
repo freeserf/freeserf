@@ -364,11 +364,11 @@ update_player(player_t *player)
 	}
 
 	if (PLAYER_CYCLING_KNIGHTS(player)) {
-		player->knight_cycle_counter -= 1;
+		player->knight_cycle_counter -= delta;
 		if (player->knight_cycle_counter < 1) {
 			player->flags &= ~BIT(5);
 			player->flags &= ~BIT(2);
-		} else if (player->knight_cycle_counter < 1024 &&
+		} else if (player->knight_cycle_counter < 2048 &&
 			   PLAYER_REDUCED_KNIGHT_LEVEL(player)) {
 			player->flags |= BIT(5);
 			player->flags &= ~BIT(4);
