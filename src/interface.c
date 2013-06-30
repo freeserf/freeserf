@@ -1041,6 +1041,26 @@ interface_update(interface_t *interface)
 	uint tick_diff = game.const_tick - interface->last_const_tick;
 	interface->last_const_tick = game.const_tick;
 
+	player_t *player = interface->player;
+
+	/* Update timers */
+	for (int i = 0; i < player->timers_count; i++) {
+		player->timers[i].timeout -= tick_diff;
+		if (player->timers[i].timeout < 0) {
+			/* Timer has expired. */
+			/* TODO box (+ pos) timer */
+			player_add_notification(player, 5,
+						player->timers[i].pos);
+
+			/* Delete timer from list. */
+			player->timers_count -= 1;
+			for (int j = i; j < player->timers_count; j++) {
+				player->timers[j].timeout = player->timers[j+1].timeout;
+				player->timers[j].pos = player->timers[j+1].pos;
+			}
+		}
+	}
+
 	/* Clear return arrow after a timeout */
 	if (interface->return_timeout < tick_diff) {
 		interface->msg_flags |= BIT(4);
@@ -1056,10 +1076,10 @@ interface_update(interface_t *interface)
 	};
 
 	/* Handle newly enqueued messages */
-	if (PLAYER_HAS_MESSAGE(interface->player)) {
-		interface->player->flags &= ~BIT(3);
-		while (interface->player->msg_queue_type[0] != 0) {
-			int type = interface->player->msg_queue_type[0] & 0x1f;
+	if (PLAYER_HAS_MESSAGE(player)) {
+		player->flags &= ~BIT(3);
+		while (player->msg_queue_type[0] != 0) {
+			int type = player->msg_queue_type[0] & 0x1f;
 			if (BIT_TEST(interface->config, msg_category[type])) {
 				sfx_play_clip(SFX_MESSAGE);
 				interface->msg_flags |= BIT(0);
@@ -1068,32 +1088,32 @@ interface_update(interface_t *interface)
 
 			/* Message is ignored. Remove. */
 			int i;
-			for (i = 1; i < 64 && interface->player->msg_queue_type[i] != 0; i++) {
-				interface->player->msg_queue_type[i-1] = interface->player->msg_queue_type[i];
-				interface->player->msg_queue_pos[i-1] = interface->player->msg_queue_pos[i];
+			for (i = 1; i < 64 && player->msg_queue_type[i] != 0; i++) {
+				player->msg_queue_type[i-1] = player->msg_queue_type[i];
+				player->msg_queue_pos[i-1] = player->msg_queue_pos[i];
 			}
-			interface->player->msg_queue_type[i-1] = 0;
+			player->msg_queue_type[i-1] = 0;
 		}
 	}
 
 	if (BIT_TEST(interface->msg_flags, 1)) {
 		interface->msg_flags &= ~BIT(1);
 		while (1) {
-			if (interface->player->msg_queue_type[0] == 0) {
+			if (player->msg_queue_type[0] == 0) {
 				interface->msg_flags &= ~BIT(0);
 				break;
 			}
 
-			int type = interface->player->msg_queue_type[0] & 0x1f;
+			int type = player->msg_queue_type[0] & 0x1f;
 			if (BIT_TEST(interface->config, msg_category[type])) break;
 
 			/* Message is ignored. Remove. */
 			int i;
-			for (i = 1; i < 64 && interface->player->msg_queue_type[i] != 0; i++) {
-				interface->player->msg_queue_type[i-1] = interface->player->msg_queue_type[i];
-				interface->player->msg_queue_pos[i-1] = interface->player->msg_queue_pos[i];
+			for (i = 1; i < 64 && player->msg_queue_type[i] != 0; i++) {
+				player->msg_queue_type[i-1] = player->msg_queue_type[i];
+				player->msg_queue_pos[i-1] = player->msg_queue_pos[i];
 			}
-			interface->player->msg_queue_type[i-1] = 0;
+			player->msg_queue_type[i-1] = 0;
 		}
 	}
 
