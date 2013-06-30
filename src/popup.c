@@ -394,8 +394,15 @@ get_player_face_sprite(int face)
 static void
 draw_player_face(int x, int y, int player, frame_t *frame)
 {
-	gfx_fill_rect(8*x, y+5, 48, 72, game.player[player]->color, frame);
-	draw_popup_icon(x, y, get_player_face_sprite(game.player[player]->face), frame);
+	int color = 0;
+	int face = 0;
+	if (PLAYER_IS_ACTIVE(game.player[player])) {
+		color = game.player[player]->color;
+		face = game.player[player]->face;
+	}
+
+	gfx_fill_rect(8*x, y+5, 48, 72, color, frame);
+	draw_popup_icon(x, y, get_player_face_sprite(face), frame);
 }
 
 /* Draw a layout of buildings in a popup box. */
@@ -996,9 +1003,11 @@ draw_stat_8_box(popup_box_t *popup, frame_t *frame)
 	/* Draw chart */
 	int index = game.player_history_index[scale];
 	for (int i = 0; i < GAME_MAX_PLAYER_COUNT; i++) {
-		player_t *player = game.player[GAME_MAX_PLAYER_COUNT-i-1];
-		draw_player_stat_chart(player->player_stat_history[mode], index,
-				       player->color, frame);
+		if (PLAYER_IS_ACTIVE(game.player[GAME_MAX_PLAYER_COUNT-i-1])) {
+			player_t *player = game.player[GAME_MAX_PLAYER_COUNT-i-1];
+			draw_player_stat_chart(player->player_stat_history[mode], index,
+					       player->color, frame);
+		}
 	}
 }
 
