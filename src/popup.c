@@ -1386,6 +1386,22 @@ draw_stat_6_box(popup_box_t *popup, frame_t *frame)
 }
 
 static void
+draw_stat_3_meter(int x, int y, int value, frame_t *frame)
+{
+	int sprite = -1;
+	if (value < 1) sprite = 0xbc;
+	else if (value < 2) sprite = 0xbe;
+	else if (value < 3) sprite = 0xc0;
+	else if (value < 4) sprite = 0xc1;
+	else if (value < 5) sprite = 0xc2;
+	else if (value < 7) sprite = 0xc3;
+	else if (value < 10) sprite = 0xc4;
+	else if (value < 20) sprite = 0xc5;
+	else sprite = 0xc6;
+	draw_popup_icon(x, y, sprite, frame);
+}
+
+static void
 draw_stat_3_box(popup_box_t *popup, frame_t *frame)
 {
 	draw_box_background(129, frame);
@@ -1408,14 +1424,115 @@ draw_stat_3_box(popup_box_t *popup, frame_t *frame)
 	for (int i = 0; i < game.max_inventory_index; i++) {
 		if (INVENTORY_ALLOCATED(i)) {
 			inventory_t *inventory = game_get_inventory(i);
-			if (inventory->player_num == popup->interface->player->player_num) {
-				/* TODO */
+			if (inventory->player_num == popup->interface->player->player_num &&
+			    inventory->spawn_priority > 0) {
+				serfs[SERF_TRANSPORTER] += inventory->spawn_priority;
+				serfs[SERF_FORESTER] += inventory->spawn_priority;
+				serfs[SERF_SMELTER] += inventory->spawn_priority;
+				serfs[SERF_PIGFARMER] += inventory->spawn_priority;
+				serfs[SERF_MILLER] += inventory->spawn_priority;
+				serfs[SERF_BAKER] += inventory->spawn_priority;
+
+				serfs[SERF_SAWMILLER] += min(inventory->spawn_priority,
+							     inventory->resources[RESOURCE_SAW]);
+				serfs[SERF_SAILOR] += min(inventory->spawn_priority,
+							 inventory->resources[RESOURCE_BOAT]);
+				serfs[SERF_DIGGER] += min(inventory->spawn_priority,
+							  inventory->resources[RESOURCE_SHOVEL]);
+				serfs[SERF_BUILDER] += min(inventory->spawn_priority,
+							   inventory->resources[RESOURCE_HAMMER]);
+				serfs[SERF_LUMBERJACK] += min(inventory->spawn_priority,
+							      inventory->resources[RESOURCE_AXE]);
+				serfs[SERF_STONECUTTER] += min(inventory->spawn_priority,
+							       inventory->resources[RESOURCE_PICK]);
+				serfs[SERF_MINER] += min(inventory->spawn_priority,
+							 inventory->resources[RESOURCE_PICK]);
+				serfs[SERF_FISHER] += min(inventory->spawn_priority,
+							  inventory->resources[RESOURCE_ROD]);
+				serfs[SERF_BUTCHER] += min(inventory->spawn_priority,
+							   inventory->resources[RESOURCE_CLEAVER]);
+				serfs[SERF_FARMER] += min(inventory->spawn_priority,
+							  inventory->resources[RESOURCE_SCYTHE]);
+				serfs[SERF_BOATBUILDER] += min(inventory->spawn_priority,
+							       inventory->resources[RESOURCE_HAMMER]);
+				serfs[SERF_TOOLMAKER] += min(inventory->spawn_priority,
+							     min(inventory->resources[RESOURCE_HAMMER],
+								 inventory->resources[RESOURCE_SAW]));
+				serfs[SERF_WEAPONSMITH] += min(inventory->spawn_priority,
+							       min(inventory->resources[RESOURCE_HAMMER],
+								   inventory->resources[RESOURCE_PINCER]));
+				serfs[SERF_GEOLOGIST] += min(inventory->spawn_priority,
+							     inventory->resources[RESOURCE_HAMMER]);
+				serfs[SERF_KNIGHT_0] += min(inventory->spawn_priority,
+							    min(inventory->resources[RESOURCE_SWORD],
+								inventory->resources[RESOURCE_SHIELD]));
 			}
 		}
 	}
 
-	/* TODO draw meters */
-	draw_serfs_box(frame, serfs, -1);
+	const int layout[] = {
+		0x9, 1, 0, /* serfs */
+		0xa, 1, 16,
+		0xb, 1, 32,
+		0xc, 1, 48,
+		0x21, 1, 64,
+		0x20, 1, 80,
+		0x1f, 1, 96,
+		0x1e, 1, 112,
+		0x1d, 1, 128,
+		0xd, 6, 0,
+		0xe, 6, 16,
+		0x12, 6, 32,
+		0xf, 6, 48,
+		0x10, 6, 64,
+		0x11, 6, 80,
+		0x19, 6, 96,
+		0x1a, 6, 112,
+		0x1b, 6, 128,
+		0x13, 11, 0,
+		0x14, 11, 16,
+		0x15, 11, 32,
+		0x16, 11, 48,
+		0x17, 11, 64,
+		0x18, 11, 80,
+		0x1c, 11, 96,
+		0x82, 11, 112,
+		-1
+	};
+
+	draw_custom_icon_box(layout, frame);
+
+	/* First column */
+	draw_stat_3_meter(3, 4, serfs[SERF_TRANSPORTER], frame);
+	draw_stat_3_meter(3, 20, serfs[SERF_SAILOR], frame);
+	draw_stat_3_meter(3, 36, serfs[SERF_DIGGER], frame);
+	draw_stat_3_meter(3, 52, serfs[SERF_BUILDER], frame);
+	draw_stat_3_meter(3, 68, serfs[SERF_KNIGHT_4], frame);
+	draw_stat_3_meter(3, 84, serfs[SERF_KNIGHT_3], frame);
+	draw_stat_3_meter(3, 100, serfs[SERF_KNIGHT_2], frame);
+	draw_stat_3_meter(3, 116, serfs[SERF_KNIGHT_1], frame);
+	draw_stat_3_meter(3, 132, serfs[SERF_KNIGHT_0], frame);
+
+	/* Second column */
+	draw_stat_3_meter(8, 4, serfs[SERF_LUMBERJACK], frame);
+	draw_stat_3_meter(8, 20, serfs[SERF_SAWMILLER], frame);
+	draw_stat_3_meter(8, 36, serfs[SERF_SMELTER], frame);
+	draw_stat_3_meter(8, 52, serfs[SERF_STONECUTTER], frame);
+	draw_stat_3_meter(8, 68, serfs[SERF_FORESTER], frame);
+	draw_stat_3_meter(8, 84, serfs[SERF_MINER], frame);
+	draw_stat_3_meter(8, 100, serfs[SERF_BOATBUILDER], frame);
+	draw_stat_3_meter(8, 116, serfs[SERF_TOOLMAKER], frame);
+	draw_stat_3_meter(8, 132, serfs[SERF_WEAPONSMITH], frame);
+
+	/* Third column */
+	draw_stat_3_meter(13, 4, serfs[SERF_FISHER], frame);
+	draw_stat_3_meter(13, 20, serfs[SERF_PIGFARMER], frame);
+	draw_stat_3_meter(13, 36, serfs[SERF_BUTCHER], frame);
+	draw_stat_3_meter(13, 52, serfs[SERF_FARMER], frame);
+	draw_stat_3_meter(13, 68, serfs[SERF_MILLER], frame);
+	draw_stat_3_meter(13, 84, serfs[SERF_BAKER], frame);
+	draw_stat_3_meter(13, 100, serfs[SERF_GEOLOGIST], frame);
+	draw_stat_3_meter(13, 116, serfs[SERF_GENERIC], frame);
 
 	draw_popup_icon(14, 128, 60, frame); /* exit */
 }
