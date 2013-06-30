@@ -3976,7 +3976,8 @@ game_build_castle(map_pos_t pos, player_t *player)
 	/* player->sawmill_index = 0; */
 	/* player->stonecutter_index = 0; */
 
-	/* TODO ... */
+	game.map_gold_deposit += inventory->resources[RESOURCE_GOLDBAR];
+	game.map_gold_deposit += inventory->resources[RESOURCE_GOLDORE];
 
 	castle->pos = pos;
 	flag->pos = MAP_MOVE_DOWN_RIGHT(pos);
