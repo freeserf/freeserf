@@ -1476,8 +1476,25 @@ update_unfinished_adv_building(building_t *building)
 		return;
 	}
 
-	/* TODO */
+	/* Check whether building needs leveling */
+	int need_leveling = 0;
+	int height = game_get_leveling_height(building->pos);
+	for (int i = 0; i < 7; i++) {
+		map_pos_t pos = MAP_POS_ADD(building->pos, game.spiral_pos_pattern[i]);
+		if (MAP_HEIGHT(pos) != height) {
+			need_leveling = 1;
+			break;
+		}
+	}
 
+	if (!need_leveling) {
+		/* Already at the correct level, don't send digger */
+		building->progress = 1;
+		update_unfinished_building(building);
+		return;
+	}
+
+	/* Request digger */
 	if (!BUILDING_SERF_REQUEST_FAIL(building)) {
 		/*if (BIT_TEST(player->emergency_index, 6) &&
 		  BUILDING_TYPE(building) != BUILDING_LUMBERJACK &&
