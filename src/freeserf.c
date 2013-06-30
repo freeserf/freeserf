@@ -765,16 +765,19 @@ main(int argc, char *argv[])
 		int r = game_load_save_game(save_file);
 		if (r < 0) exit(EXIT_FAILURE);
 		free(save_file);
+
+		interface_set_player(&interface, 0);
 	} else {
 		int r = game_load_random_map(3, &interface.random);
 		if (r < 0) exit(EXIT_FAILURE);
+
+		/* Add default player */
+		r = game_add_player(12, 64, 40, 40, 40);
+		if (r < 0) exit(EXIT_FAILURE);
+
+		interface_set_player(&interface, r);
 	}
 
-	/* Add default player */
-	r = game_add_player(12, 64, 40, 40, 40);
-	if (r < 0) exit(EXIT_FAILURE);
-
-	interface_set_player(&interface, r);
 	viewport_map_reinit();
 
 	if (save_file != NULL) {
