@@ -427,8 +427,11 @@ update_player(player_t *player)
 	}
 }
 
+/* Clear the serf request bit of all flags and buildings.
+   This allows the flag or building to try and request a
+   serf again. */
 static void
-check_win_and_flags_buildings()
+clear_serf_request_failure()
 {
 	for (int i = 1; i < game.max_building_index; i++) {
 		if (BUILDING_ALLOCATED(i)) {
@@ -494,7 +497,7 @@ update_knight_morale()
 static void
 update_map_and_players()
 {
-	check_win_and_flags_buildings();
+	clear_serf_request_failure();
 	/* sub_1EF25(); */
 	map_update();
 
