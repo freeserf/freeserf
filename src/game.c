@@ -5300,10 +5300,6 @@ game_load_mission_map(int level)
 int
 game_load_random_map(int size, const random_state_t *rnd)
 {
-	const uint default_player_colors[] = {
-		64, 72, 68, 76
-	};
-
 	if (size < 3 || size > 10) return -1;
 
 	game.map_size = size;
@@ -5313,10 +5309,6 @@ game_load_random_map(int size, const random_state_t *rnd)
 
 	game_init_map();
 	game_allocate_objects();
-
-	int n = game_add_player(12, default_player_colors[0],
-				40, 40, 40);
-	if (n < 0) return -1;
 
 	return 0;
 }

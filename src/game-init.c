@@ -114,17 +114,19 @@ game_init_box_draw(game_init_box_t *box, frame_t *frame)
 	/* Game info */
 	if (box->game_mission < 0) {
 		for (int i = 0; i < GAME_MAX_PLAYER_COUNT; i++) {
-			int face = i == 0 ? 12 : 0;
+			int face = box->face[i];
 			draw_box_icon(10*i+1, 48, get_player_face_sprite(face), frame);
 			draw_box_icon(10*i+6, 48, 282, frame);
 
-			int intelligence = i == 0 ? 40 : 0;
+			if (face == 0) continue;
+
+			int intelligence = box->intelligence[i];
 			gfx_fill_rect(80*i+78, 124-intelligence, 4, intelligence, 30, frame);
 
-			int supplies = i == 0 ? 40 : 0;
+			int supplies = box->supplies[i];
 			gfx_fill_rect(80*i+72, 124-supplies, 4, supplies, 67, frame);
 
-			int reproduction = i == 0 ? 40 : 0;
+			int reproduction = box->reproduction[i];
 			gfx_fill_rect(80*i+84, 124-reproduction, 4, reproduction, 75, frame);
 		}
 	} else {
@@ -151,6 +153,10 @@ game_init_box_draw(game_init_box_t *box, frame_t *frame)
 static void
 handle_action(game_init_box_t *box, int action)
 {
+	const uint default_player_colors[] = {
+		64, 72, 68, 76
+	};
+
 	switch (action) {
 	case ACTION_START_GAME:
 		game_init();
@@ -158,6 +164,16 @@ handle_action(game_init_box_t *box, int action)
 			random_state_t rnd = {{ 0x5a5a, time(NULL) >> 16, time(NULL) }};
 			int r = game_load_random_map(box->map_size, &rnd);
 			if (r < 0) return;
+
+			for (int i = 0; i < GAME_MAX_PLAYER_COUNT; i++) {
+				if (box->face[i] == 0) continue;
+				int p = game_add_player(box->face[i],
+							default_player_colors[i],
+							box->supplies[i],
+							box->reproduction[i],
+							box->intelligence[i]);
+				if (p < 0) return;
+			}
 		} else {
 			int r = game_load_mission_map(box->game_mission);
 			if (r < 0) return;
@@ -225,6 +241,52 @@ game_init_box_handle_event_click(game_init_box_t *box, int x, int y)
 		i += 5;
 	}
 
+	/* Check player area */
+	for (int i = 0; i < GAME_MAX_PLAYER_COUNT; i++) {
+		if (x >= 80*i+20 && x <= 80*(i+1)+20 &&
+		    y >= 48 && y <= 132) {
+			x -= 80*i + 20;
+
+			if (x >= 8 && x < 8+32 &&
+			    y >= 48 && y < 132) {
+				/* Face */
+				int in_use = 0;
+				do {
+					box->face[i] = (box->face[i] + 1) % 14;
+
+					/* Check that face is not already in use
+					   by another player */
+					in_use = 0;
+					for (int j = 0; j < GAME_MAX_PLAYER_COUNT; j++) {
+						if (i != j &&
+						    box->face[i] != 0 &&
+						    box->face[j] == box->face[i]) {
+							in_use = 1;
+							break;
+						}
+					}
+				} while (in_use);
+			} else if (x >= 48 && x < 72 &&
+				   y >= 64 && y < 80) {
+				/* Controller */
+				/* TODO */
+			} else if (x >= 52 && x < 52+4 &&
+				   y >= 84 && y < 124) {
+				/* Supplies */
+				box->supplies[i] = clamp(0, 124 - y, 40);
+			} else if (x >= 58 && x < 58+4 &&
+				   y >= 84 && y < 124) {
+				/* Intelligence */
+				box->intelligence[i] = clamp(0, 124 - y, 40);
+			} else if (x >= 64 && x < 64+4 &&
+				   y >= 84 && y < 124) {
+				/* Reproduction */
+				box->reproduction[i] = clamp(0, 124 - y, 40);
+			}
+			break;
+		}
+	}
+
 	return 0;
 }
 
@@ -253,4 +315,23 @@ game_init_box_init(game_init_box_t *box, interface_t *interface)
 	box->interface = interface;
 	box->map_size = 3;
 	box->game_mission = -1;
+
+	/* Clear player settings */
+	for (int i = 0; i < GAME_MAX_PLAYER_COUNT; i++) {
+		box->face[i] = 0;
+		box->intelligence[i] = 0;
+		box->supplies[i] = 0;
+		box->reproduction[i] = 0;
+	}
+
+	/* Create default game setup */
+	box->face[0] = 12;
+	box->intelligence[0] = 40;
+	box->supplies[0] = 40;
+	box->reproduction[0] = 40;
+
+	box->face[1] = 1;
+	box->intelligence[1] = 20;
+	box->supplies[1] = 30;
+	box->reproduction[1] = 40;
 }

@@ -23,14 +23,21 @@
 #define _GAME_INIT_H
 
 #include "gui.h"
+#include "game.h"
 
 struct interface;
 
 typedef struct {
 	gui_object_t obj;
 	struct interface *interface;
+
 	int map_size;
 	int game_mission;
+
+	uint face[GAME_MAX_PLAYER_COUNT];
+	uint intelligence[GAME_MAX_PLAYER_COUNT];
+	uint supplies[GAME_MAX_PLAYER_COUNT];
+	uint reproduction[GAME_MAX_PLAYER_COUNT];
 } game_init_box_t;
 
 void game_init_box_init(game_init_box_t *box, struct interface *interface);

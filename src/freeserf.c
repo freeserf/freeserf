@@ -770,7 +770,11 @@ main(int argc, char *argv[])
 		if (r < 0) exit(EXIT_FAILURE);
 	}
 
-	interface_set_player(&interface, 0);
+	/* Add default player */
+	r = game_add_player(12, 64, 40, 40, 40);
+	if (r < 0) exit(EXIT_FAILURE);
+
+	interface_set_player(&interface, r);
 	viewport_map_reinit();
 
 	if (save_file != NULL) {
