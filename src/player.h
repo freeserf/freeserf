@@ -151,9 +151,9 @@ typedef struct {
 	/* 176 */
 	int index;
 	int military_max_gold;
-	int military_gold;
+	/*int military_gold;*/
 	/* 180 */
-	int inventory_gold;
+	/*int inventory_gold;*/
 	int knight_morale;
 	int gold_deposited;
 	int castle_knights_wanted;

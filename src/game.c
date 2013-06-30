@@ -434,12 +434,41 @@ clear_serf_request_failure()
 static void
 update_knight_morale()
 {
+	uint inventory_gold[GAME_MAX_PLAYER_COUNT] = {0};
+	uint military_gold[GAME_MAX_PLAYER_COUNT] = {0};
+
+	/* Sum gold collected in inventories */
+	for (int i = 0; i < game.max_inventory_index; i++) {
+		if (INVENTORY_ALLOCATED(i)) {
+			inventory_t *inventory = game_get_inventory(i);
+			inventory_gold[inventory->player_num] +=
+				inventory->resources[RESOURCE_GOLDBAR];
+		}
+	}
+
+	/* Sum gold deposited in military buildings */
+	for (int i = 1; i < game.max_building_index; i++) {
+		if (BUILDING_ALLOCATED(i)) {
+			building_t *building = game_get_building(i);
+			if (BUILDING_TYPE(building) == BUILDING_HUT ||
+			    BUILDING_TYPE(building) == BUILDING_TOWER ||
+			    BUILDING_TYPE(building) == BUILDING_FORTRESS) {
+				for (int j = 0; j < BUILDING_MAX_STOCK; j++) {
+					if (building->stock[j].type == RESOURCE_GOLDBAR) {
+						military_gold[BUILDING_PLAYER(building)] +=
+							building->stock[j].available;
+					}
+				}
+			}
+		}
+	}
+
 	for (int i = 0; i < GAME_MAX_PLAYER_COUNT; i++) {
 		player_t *player = game.player[i];
 		if (!PLAYER_IS_ACTIVE(player)) continue;
 
-		int depot = (player->military_gold + player->inventory_gold)/32;
-		player->gold_deposited = min(depot, 0xffff);
+		int depot = inventory_gold[i] + military_gold[i];
+		player->gold_deposited = depot;
 
 		/* Calculate according to gold collected. */
 		int map_gold = game.map_gold_deposit;
@@ -471,9 +500,7 @@ update_knight_morale()
 
 		/* TODO */
 
-		player->military_gold = 0;
 		player->military_max_gold = 0;
-		player->inventory_gold = 0;
 	}
 }
 
@@ -1551,8 +1578,6 @@ update_building_castle(building_t *building)
 		}
 	}
 
-	player->inventory_gold += inventory->resources[RESOURCE_GOLDBAR];
-
 	map_pos_t flag_pos = MAP_MOVE_DOWN_RIGHT(building->pos);
 	if (MAP_SERF_INDEX(flag_pos) != 0) {
 		serf_t *serf = game_get_serf(MAP_SERF_INDEX(flag_pos));
@@ -1652,7 +1677,6 @@ handle_military_building_update(building_t *building)
 	/* Request gold */
 	if (BUILDING_HAS_SERF(building)) {
 		int total_gold = building->stock[1].requested + building->stock[1].available;
-		player->military_gold += building->stock[1].available;
 		player->military_max_gold += max_gold;
 
 		if (total_gold < max_gold) {
@@ -1833,8 +1857,6 @@ handle_building_update(building_t *building)
 						player->send_generic_delay = 5;
 					}
 				}
-
-				player->inventory_gold += inv->resources[RESOURCE_GOLDBAR];
 
 				/* TODO Following code looks like a hack */
 				map_pos_t flag_pos = MAP_MOVE_DOWN_RIGHT(building->pos);
@@ -4982,8 +5004,6 @@ player_init(uint number, uint face, uint color, uint supplies,
 	player->current_sett_6_item = 15;
 
 	player->military_max_gold = 0;
-	player->military_gold = 0;
-	player->inventory_gold = 0;
 
 	player->timers_count = 0;
 
