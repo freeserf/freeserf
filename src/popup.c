@@ -3373,8 +3373,7 @@ handle_action(interface_t *interface, action_t action, int x, int y)
 		break;
 		/* TODO */
 	case ACTION_SETT_8_CYCLE:
-		interface->player->flags |= BIT(2) | BIT(4);
-		interface->player->knight_cycle_counter = 1200;
+		player_cycle_knights(interface->player);
 		sfx_play_clip(SFX_ACCEPTED);
 		break;
 	case ACTION_CLOSE_OPTIONS:

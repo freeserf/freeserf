@@ -351,6 +351,9 @@ spawn_serf(player_t *player, serf_t **serf, inventory_t **inventory, int want_kn
 static void
 update_player(player_t *player)
 {
+	uint16_t delta = game.tick - player->last_tick;
+	player->last_tick = game.tick;
+
 	if (player->total_land_area > 0xffff0000) player->total_land_area = 0;
 	if (player->total_military_score > 0xffff0000) player->total_military_score = 0;
 	if (player->total_building_score > 0xffff0000) player->total_building_score = 0;
@@ -362,18 +365,17 @@ update_player(player_t *player)
 
 	if (PLAYER_CYCLING_KNIGHTS(player)) {
 		player->knight_cycle_counter -= 1;
-		if (player->knight_cycle_counter == 0) {
+		if (player->knight_cycle_counter < 1) {
 			player->flags &= ~BIT(5);
 			player->flags &= ~BIT(2);
-		} else if (player->knight_cycle_counter == 1023) {
+		} else if (player->knight_cycle_counter < 1024 &&
+			   PLAYER_REDUCED_KNIGHT_LEVEL(player)) {
 			player->flags |= BIT(5);
 			player->flags &= ~BIT(4);
 		}
 	}
 
 	if (PLAYER_HAS_CASTLE(player)) {
-		uint16_t delta = game.tick - player->last_tick;
-		player->last_tick = game.tick;
 		player->reproduction_counter -= delta;
 
 		while (player->reproduction_counter < 0) {

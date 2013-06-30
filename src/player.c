@@ -420,3 +420,13 @@ player_start_attack(player_t *player)
 		}
 	}
 }
+
+/* Begin cycling knights by sending knights from military buildings
+   to inventories. The knights can then be replaced by more experienced
+   knights. */
+void
+player_cycle_knights(player_t *player)
+{
+	player->flags |= BIT(2) | BIT(4);
+	player->knight_cycle_counter = 1200;
+}

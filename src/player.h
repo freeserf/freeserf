@@ -200,6 +200,7 @@ void player_change_knight_occupation(player_t *player, int index,
 int player_promote_serfs_to_knights(player_t *player, int number);
 int player_knights_available_for_attack(player_t *player, map_pos_t pos);
 void player_start_attack(player_t *player);
+void player_cycle_knights(player_t *player);
 
 
 #endif /* ! _PLAYER_H */
