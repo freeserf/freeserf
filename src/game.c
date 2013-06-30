@@ -494,20 +494,6 @@ update_knight_morale()
 	}
 }
 
-static void
-update_map_and_players()
-{
-	clear_serf_request_failure();
-	/* sub_1EF25(); */
-	map_update();
-
-	for (int i = 0; i < GAME_MAX_PLAYER_COUNT; i++) {
-		if (PLAYER_IS_ACTIVE(game.player[i])) {
-			update_player(game.player[i]);
-		}
-	}
-}
-
 typedef struct {
 	int resource;
 	int *max_prio;
@@ -723,38 +709,6 @@ update_inventories()
 			}
 		}
 		arr += 1;
-	}
-}
-
-static void
-update_ai_and_more()
-{
-	game.next_index += 1;
-	if (game.next_index >= game.max_next_index) {
-		game.next_index = 0;
-	}
-
-	if (game.next_index == 32) {
-		/* 1FC1D */
-		update_knight_morale();
-		update_inventories();
-	} else if (game.next_index > 32) {
-		while (game.next_index < game.max_next_index) {
-			int i = 33 - game.next_index;
-			player_t *player = game.player[i & 3];
-			if (PLAYER_IS_ACTIVE(player) && PLAYER_IS_AI(player)) {
-				/* AI */
-				/* TODO */
-			}
-			game.next_index += 1;
-		}
-	} else if (game.game_speed > 0 &&
-		   game.max_flag_index < 50) {
-		player_t *player = game.player[game.next_index & 3];
-		if (PLAYER_IS_ACTIVE(player) && PLAYER_IS_AI(player)) {
-			/* AI */
-			/* TODO */
-		}
 	}
 }
 
@@ -2386,8 +2340,39 @@ game_update()
 	game.tick += game.game_speed;
 	game.tick_diff = game.tick - game.last_tick;
 
-	update_map_and_players();
-	update_ai_and_more();
+	clear_serf_request_failure();
+	map_update();
+
+	/* Update players */
+	for (int i = 0; i < GAME_MAX_PLAYER_COUNT; i++) {
+		if (PLAYER_IS_ACTIVE(game.player[i])) {
+			update_player(game.player[i]);
+		}
+	}
+
+	game.next_index = (game.next_index + 1) % game.max_next_index;
+	if (game.next_index == 32) {
+		update_knight_morale();
+		update_inventories();
+	} else if (game.next_index > 32) {
+		while (game.next_index < game.max_next_index) {
+			int i = 33 - game.next_index;
+			player_t *player = game.player[i & 3];
+			if (PLAYER_IS_ACTIVE(player) && PLAYER_IS_AI(player)) {
+				/* AI */
+				/* TODO */
+			}
+			game.next_index += 1;
+		}
+	} else if (game.game_speed > 0 &&
+		   game.max_flag_index < 50) {
+		player_t *player = game.player[game.next_index & 3];
+		if (PLAYER_IS_ACTIVE(player) && PLAYER_IS_AI(player)) {
+			/* AI */
+			/* TODO */
+		}
+	}
+
 	update_flags();
 	update_buildings();
 	update_serfs();
