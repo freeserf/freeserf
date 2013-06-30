@@ -2323,12 +2323,25 @@ game_update()
 		}
 	}
 
-	game.next_index = (game.next_index + 1) % game.max_next_index;
-	if (game.next_index == 32) {
+	/* Update knight morale */
+	game.knight_morale_counter -= game.tick_diff;
+	if (game.knight_morale_counter < 0) {
 		update_knight_morale();
+		game.knight_morale_counter += 256;
+	}
+
+	/* Schedule resources to go out of inventories */
+	game.inventory_schedule_counter -= game.tick_diff;
+	if (game.inventory_schedule_counter < 0) {
 		update_inventories();
-	} else if (game.next_index > 32) {
-		while (game.next_index < game.max_next_index) {
+		game.inventory_schedule_counter += 64;
+	}
+
+#if 0
+	/* AI related updates */	
+	game.next_index = (game.next_index + 1) % game.max_next_index;
+	if (game.next_index > 32) {
+		for (int i = 0; i < game.max_next_index) {
 			int i = 33 - game.next_index;
 			player_t *player = game.player[i & 3];
 			if (PLAYER_IS_ACTIVE(player) && PLAYER_IS_AI(player)) {
@@ -2345,6 +2358,7 @@ game_update()
 			/* TODO */
 		}
 	}
+#endif
 
 	update_flags();
 	update_buildings();
@@ -4927,7 +4941,7 @@ player_init(uint number, uint face, uint color, uint supplies,
 	if (face < 12) { /* AI player */
 		player->flags |= BIT(7); /* Set AI bit */
 		/* TODO ... */
-		game.max_next_index = 49;
+		/*game.max_next_index = 49;*/
 	}
 
 	player->player_num = number;
@@ -5088,6 +5102,9 @@ game_init()
 
 	game.game_stats_counter = 0;
 	game.history_counter = 0;
+
+	game.knight_morale_counter = 0;
+	game.inventory_schedule_counter = 0;
 }
 
 /* Initialize spiral_pos_pattern from spiral_pattern. */

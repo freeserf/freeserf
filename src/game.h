@@ -203,6 +203,9 @@ typedef struct {
 	/* Callback for map height changes */
 	game_update_map_height_func *update_map_height_cb;
 	void *update_map_height_data;
+
+	int knight_morale_counter;
+	int inventory_schedule_counter;
 } game_t;
 
 /* Global game object */
