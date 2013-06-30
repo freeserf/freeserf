@@ -438,7 +438,7 @@ update_knight_morale()
 		player_t *player = game.player[i];
 		if (!PLAYER_IS_ACTIVE(player)) continue;
 
-		int depot = player->military_gold + player->inventory_gold;
+		int depot = (player->military_gold + player->inventory_gold)/32;
 		player->gold_deposited = min(depot, 0xffff);
 
 		/* Calculate according to gold collected. */
