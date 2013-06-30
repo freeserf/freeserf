@@ -374,8 +374,6 @@ update_player(player_t *player)
 	if (player->total_military_score > 0xffff0000) player->total_military_score = 0;
 	if (player->total_building_score > 0xffff0000) player->total_building_score = 0;
 
-	if (!PLAYER_IS_ACTIVE(player)) return;
-
 	if (PLAYER_IS_AI(player)) {
 		/*if (player->field_1B2 != 0) player->field_1B2 -= 1;*/
 		/*if (player->field_1B0 != 0) player->field_1B0 -= 1;*/
@@ -2732,8 +2730,10 @@ static void
 building_remove_player_refs(building_t *building)
 {
 	for (int i = 0; i < GAME_MAX_PLAYER_COUNT; i++) {
-		if (game.player[i]->index == BUILDING_INDEX(building)) {
-			game.player[i]->index = 0;
+		if (PLAYER_IS_ACTIVE(game.player[i])) {
+			if (game.player[i]->index == BUILDING_INDEX(building)) {
+				game.player[i]->index = 0;
+			}
 		}
 	}
 
@@ -4005,8 +4005,10 @@ static void
 flag_remove_player_refs(flag_t *flag)
 {
 	for (int i = 0; i < GAME_MAX_PLAYER_COUNT; i++) {
-		if (game.player[i]->index == FLAG_INDEX(flag)) {
-			game.player[i]->index = 0;
+		if (PLAYER_IS_ACTIVE(game.player[i])) {
+			if (game.player[i]->index == FLAG_INDEX(flag)) {
+				game.player[i]->index = 0;
+			}
 		}
 	}
 }
@@ -4545,7 +4547,8 @@ game_update_land_ownership(map_pos_t init_pos)
 	int calculate_radius = influence_radius;
 	int calculate_diameter = 1 + 2*calculate_radius;
 
-	int *temp_arr = calloc(4*calculate_diameter*calculate_diameter, sizeof(int));
+	int *temp_arr = calloc(GAME_MAX_PLAYER_COUNT*calculate_diameter*calculate_diameter,
+			       sizeof(int));
 	if (temp_arr == NULL) abort();
 
 	const int military_influence[] = {
