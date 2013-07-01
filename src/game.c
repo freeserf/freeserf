@@ -45,37 +45,31 @@
 int
 game_alloc_flag(flag_t **flag, int *index)
 {
-	for (int i = 0; i*8 < game.flag_limit; i++) {
-		if (game.flag_bitmap[i] != 0xff) {
-			for (int j = 0; j < 8; j++) {
-				if (!BIT_TEST(game.flag_bitmap[i], 7-j)) {
-					int ix = 8*i + j;
-					game.flag_bitmap[i] |= BIT(7-j);
+	for (int i = 0; i < game.flag_limit; i++) {
+		if (FLAG_ALLOCATED(i)) continue;
+		game.flag_bitmap[i/8] |= BIT(7-(i&7));
 
-					if (ix == game.max_flag_index) game.max_flag_index += 1;
+		if (i == game.max_flag_index) game.max_flag_index += 1;
 
-					flag_t *f = &game.flags[ix];
-					f->pos = 0;
-					f->search_num = 0;
-					f->search_dir = 0;
-					f->path_con = 0;
-					f->endpoint = 0;
-					f->transporter = 0;
-					for (int i = 0; i < FLAG_MAX_RES_COUNT; i++) {
-						f->slot[i].type = RESOURCE_NONE;
-					}
-					memset(&f->length, 0, sizeof(f->length));
-					f->bld_flags = 0;
-					f->bld2_flags = 0;
-					memset(&f->other_end_dir, 0, sizeof(f->other_end_dir));
-
-					if (flag != NULL) *flag = f;
-					if (index != NULL) *index = ix;
-
-					return 0;
-				}
-			}
+		flag_t *f = &game.flags[i];
+		f->pos = 0;
+		f->search_num = 0;
+		f->search_dir = 0;
+		f->path_con = 0;
+		f->endpoint = 0;
+		f->transporter = 0;
+		for (int i = 0; i < FLAG_MAX_RES_COUNT; i++) {
+			f->slot[i].type = RESOURCE_NONE;
 		}
+		memset(&f->length, 0, sizeof(f->length));
+		f->bld_flags = 0;
+		f->bld2_flags = 0;
+		memset(&f->other_end_dir, 0, sizeof(f->other_end_dir));
+
+		if (flag != NULL) *flag = f;
+		if (index != NULL) *index = i;
+
+		return 0;
 	}
 
 	return -1;
@@ -111,38 +105,31 @@ game_free_flag(int index)
 int
 game_alloc_building(building_t **building, int *index)
 {
-	for (int i = 0; i*8 < game.building_limit; i++) {
-		if (game.building_bitmap[i] != 0xff) {
-			for (int j = 0; j < 8; j++) {
-				if (!BIT_TEST(game.building_bitmap[i], 7-j)) {
-					int ix = 8*i + j;
+	for (int i = 0; i < game.building_limit; i++) {
+		if (BUILDING_ALLOCATED(i)) continue;
+		game.building_bitmap[i/8] |= BIT(7-(i&7));
 
-					game.building_bitmap[i] |= BIT(7-j);
+		if (i == game.max_building_index) game.max_building_index += 1;
 
-					if (ix == game.max_building_index) game.max_building_index += 1;
+		building_t *b = &game.buildings[i];
+		b->bld = 0;
+		b->flg_index = 0;
+		b->serf = 0;
 
-					building_t *b = &game.buildings[ix];
-					b->bld = 0;
-					b->flg_index = 0;
-					b->serf = 0;
-
-					for (int i = 0; i < BUILDING_MAX_STOCK; i++) {
-						b->stock[i].type = RESOURCE_NONE;
-						b->stock[i].prio = 0;
-						b->stock[i].available = 0;
-						b->stock[i].requested = 0;
-						b->stock[i].maximum = 0;
-					}
-
-					b->serf_index = 0;
-
-					if (building != NULL) *building = b;
-					if (index != NULL) *index = ix;
-
-					return 0;
-				}
-			}
+		for (int j = 0; j < BUILDING_MAX_STOCK; j++) {
+			b->stock[j].type = RESOURCE_NONE;
+			b->stock[j].prio = 0;
+			b->stock[j].available = 0;
+			b->stock[j].requested = 0;
+			b->stock[j].maximum = 0;
 		}
+
+		b->serf_index = 0;
+
+		if (building != NULL) *building = b;
+		if (index != NULL) *index = i;
+
+		return 0;
 	}
 
 	return -1;
@@ -178,29 +165,22 @@ game_free_building(int index)
 int
 game_alloc_inventory(inventory_t **inventory, int *index)
 {
-	for (int i = 0; i*8 < game.inventory_limit; i++) {
-		if (game.inventory_bitmap[i] != 0xff) {
-			for (int j = 0; j < 8; j++) {
-				if (!BIT_TEST(game.inventory_bitmap[i], 7-j)) {
-					int ix = 8*i + j;
+	for (int i = 0; i < game.inventory_limit; i++) {
+		if (INVENTORY_ALLOCATED(i)) continue;
+		game.inventory_bitmap[i/8] |= BIT(7-(i&7));
 
-					game.inventory_bitmap[i] |= BIT(7-j);
+		if (i == game.max_inventory_index) game.max_inventory_index += 1;
 
-					if (ix == game.max_inventory_index) game.max_inventory_index += 1;
+		inventory_t *iv = &game.inventories[i];
+		memset(iv, 0, sizeof(inventory_t));
 
-					inventory_t *iv = &game.inventories[ix];
-					memset(iv, 0, sizeof(inventory_t));
+		iv->out_queue[0] = -1;
+		iv->out_queue[1] = -1;
 
-					iv->out_queue[0] = -1;
-					iv->out_queue[1] = -1;
+		if (inventory != NULL) *inventory = iv;
+		if (index != NULL) *index = i;
 
-					if (inventory != NULL) *inventory = iv;
-					if (index != NULL) *index = ix;
-
-					return 0;
-				}
-			}
-		}
+		return 0;
 	}
 
 	return -1;
@@ -236,25 +216,18 @@ game_free_inventory(int index)
 int
 game_alloc_serf(serf_t **serf, int *index)
 {
-	for (int i = 0; i*8 < game.serf_limit; i++) {
-		if (game.serf_bitmap[i] != 0xff) {
-			for (int j = 0; j < 8; j++) {
-				if (!BIT_TEST(game.serf_bitmap[i], 7-j)) {
-					int ix = 8*i + j;
+	for (int i = 0; i < game.serf_limit; i++) {
+		if (SERF_ALLOCATED(i)) continue;
+		game.serf_bitmap[i/8] |= BIT(7-(i&7));
 
-					game.serf_bitmap[i] |= BIT(7-j);
+		if (i == game.max_serf_index) game.max_serf_index += 1;
 
-					if (ix == game.max_serf_index) game.max_serf_index += 1;
+		serf_t *s = &game.serfs[i];
 
-					serf_t *s = &game.serfs[ix];
+		if (serf != NULL) *serf = s;
+		if (index != NULL) *index = i;
 
-					if (serf != NULL) *serf = s;
-					if (index != NULL) *index = ix;
-
-					return 0;
-				}
-			}
-		}
+		return 0;
 	}
 
 	return -1;
