@@ -257,8 +257,6 @@ game_free_serf(int index)
 			if (SERF_ALLOCATED(index)) break;
 		}
 	}
-
-	game.map_max_serfs_left += 1;
 }
 
 
@@ -268,7 +266,6 @@ static int
 spawn_serf(player_t *player, serf_t **serf, inventory_t **inventory, int want_knight)
 {
 	if (!PLAYER_CAN_SPAWN(player)) return -1;
-	if (game.map_max_serfs_left == 0) return -1;
 	if (game.max_inventory_index < 1) return -1;
 
 	serf_t *s = NULL;
@@ -542,6 +539,35 @@ inventory_add_to_queue(inventory_t *inventory, resource_type_t type, uint dest)
 	}
 }
 
+/* Check which players are allowed to spawn new serfs. */
+static void
+check_max_serfs_reached()
+{
+	uint land_area = 0;
+	for (int i = 0; i < GAME_MAX_PLAYER_COUNT; i++) {
+		if (!PLAYER_IS_ACTIVE(game.player[i])) continue;
+		land_area += game.player[i]->total_land_area;
+	}
+
+	for (int i = 0; i < GAME_MAX_PLAYER_COUNT; i++) {
+		player_t *player = game.player[i];
+		if (!PLAYER_IS_ACTIVE(player)) continue;
+
+		uint max_serfs = game.max_serfs_per_player;
+		if (land_area != 0) {
+			max_serfs += (game.max_serfs_from_land*player->total_land_area)/land_area;
+		}
+
+		uint serf_count = 0;
+		for (int j = 0; j < 27; j++) {
+			serf_count += player->serf_count[j];
+		}
+
+		if (serf_count < max_serfs) player->build |= BIT(2);
+		else player->build &= ~BIT(2);
+	}
+}
+
 /* Update inventories as part of the game progression. Moves the appropriate
    resources that are needed outside of the inventory into the out queue. */
 static void
@@ -597,7 +623,7 @@ update_inventories()
 
 	if (game.game_speed == 0) return;
 
-	/* determine_max_serfs_reached(); */
+	check_max_serfs_reached();
 	/* TODO ... */
 	/* handle_emergency_mode(); */
 
@@ -5081,8 +5107,6 @@ game_add_player(uint face, uint color, uint supplies,
 		if (PLAYER_IS_ACTIVE(game.player[i])) active_players += 1;
 	}
 
-	game.map_field_4A = game.map_max_serfs_left -
-		active_players * game.map_62_5_times_regions;
 	game.map_gold_morale_factor = 10 * 1024 * active_players;
 
 	return number;
@@ -5159,16 +5183,18 @@ game_init_map()
 
 	map_init_dimensions(&game.map);
 
-	game.serf_limit = (0x1f84 * (1 << game.map_size) - 4) / 0x81;
-	game.flag_limit = (0x2314 * (1 << game.map_size) - 4) / 0x231;
-	game.building_limit = (0x54c * (1 << game.map_size) - 4) / 0x91;
-	game.inventory_limit = (0x54c * (1 << game.map_size) - 4) / 0x3c1;
-
 	game.map_regions = (game.map.cols >> 5) * (game.map.rows >> 5);
-	game.map_max_serfs_left = game.map_regions * 500;
-	game.map_62_5_times_regions = (game.map_regions * 500) >> 3;
 
-	game.map_field_4A = game.map_max_serfs_left;
+	game.serf_limit = 500 * game.map_regions;
+	game.flag_limit = 32 * game.map_regions;
+	game.building_limit = 25 * game.map_regions;
+	game.inventory_limit = 4 * game.map_regions;
+
+	/* Reserve half the serfs equally among players,
+	   and the rest according to the amount of land controlled. */
+	game.max_serfs_per_player = (game.serf_limit/2)/GAME_MAX_PLAYER_COUNT;
+	game.max_serfs_from_land = game.serf_limit/2;
+
 	game.map_gold_morale_factor = 0;
 
 	init_spiral_pos_pattern();

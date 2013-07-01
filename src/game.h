@@ -59,13 +59,13 @@ typedef struct {
 	uint16_t map_row_pairs; */
 	int16_t map_water_level;
 	int16_t map_max_lake_area;
-	uint16_t map_max_serfs_left;
-	int map_field_4A;
+	/*uint16_t map_max_serfs_left;*/
+	uint max_serfs_from_land;
 	uint32_t map_gold_deposit;
 	/* 50 */
 	uint16_t map_size;
 	/* 58 */
-	uint16_t map_62_5_times_regions;
+	uint max_serfs_per_player;
 	int map_gold_morale_factor;
 	/* 5E */
 	int winning_player;

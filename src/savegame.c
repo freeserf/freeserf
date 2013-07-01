@@ -173,10 +173,10 @@ load_v0_globals_state(FILE *f, v0_map_t *map)
 	*/
 
 	game.max_inventory_index = *(uint16_t *)&data[174];
-	game.map_max_serfs_left = *(uint16_t *)&data[176];
+	/*game.map_max_serfs_left = *(uint16_t *)&data[176];*/
 	/* game.max_stock_buildings = *(uint16_t *)&data[178]; */
 	game.max_next_index = *(uint16_t *)&data[180];
-	game.map_field_4A = *(uint16_t *)&data[182];
+	game.max_serfs_from_land = *(uint16_t *)&data[182];
 	game.map_gold_deposit = *(uint32_t *)&data[184];
 	game.update_map_16_loop = *(uint16_t *)&data[188];
 
@@ -186,7 +186,7 @@ load_v0_globals_state(FILE *f, v0_map_t *map)
 	game.field_56 = *(uint16_t *)&data[196];
 	*/
 
-	game.map_62_5_times_regions = *(uint16_t *)&data[198];
+	game.max_serfs_per_player = *(uint16_t *)&data[198];
 	game.map_gold_morale_factor = *(uint16_t *)&data[200];
 	game.winning_player = *(uint16_t *)&data[202];
 	game.player_score_leader = *(uint8_t *)&data[204];
@@ -981,13 +981,12 @@ save_text_globals_state(FILE *f)
 	save_text_write_value(f, "map.regions", game.map_regions);
 
 	save_text_write_value(f, "max_inventory_index", game.max_inventory_index);
-	save_text_write_value(f, "map.max_serfs_left", game.map_max_serfs_left);
 	save_text_write_value(f, "max_next_index", game.max_next_index);
-	save_text_write_value(f, "map.field_4A", game.map_field_4A);
+	save_text_write_value(f, "max_serfs_from_land", game.max_serfs_from_land);
 	save_text_write_value(f, "map.gold_deposit", game.map_gold_deposit);
 	save_text_write_value(f, "update_map_16_loop", game.update_map_16_loop);
 
-	save_text_write_value(f, "map.62_5_times_regions", game.map_62_5_times_regions);
+	save_text_write_value(f, "max_serfs_per_player", game.max_serfs_per_player);
 	save_text_write_value(f, "map.gold_morale_factor", game.map_gold_morale_factor);
 	save_text_write_value(f, "winning_player", game.winning_player);
 	save_text_write_value(f, "player_score_leader", game.player_score_leader);
@@ -1805,18 +1804,16 @@ load_text_global_state(list_t *sections)
 			game.map_regions = atoi(s->value);
 		} else if (!strcmp(s->key, "max_inventory_index")) {
 			game.max_inventory_index = atoi(s->value);
-		} else if (!strcmp(s->key, "map.max_serfs_left")) {
-			game.map_max_serfs_left = atoi(s->value);
 		} else if (!strcmp(s->key, "max_next_index")) {
 			game.max_next_index = atoi(s->value);
-		} else if (!strcmp(s->key, "map.field_4A")) {
-			game.map_field_4A = atoi(s->value);
+		} else if (!strcmp(s->key, "max_serfs_from_land")) {
+			game.max_serfs_from_land = atoi(s->value);
 		} else if (!strcmp(s->key, "map.gold_deposit")) {
 			game.map_gold_deposit = atoi(s->value);
 		} else if (!strcmp(s->key, "update_map_16_loop")) {
 			game.update_map_16_loop = atoi(s->value);
-		} else if (!strcmp(s->key, "map.62_5_times_regions")) {
-			game.map_62_5_times_regions = atoi(s->value);
+		} else if (!strcmp(s->key, "max_serfs_per_player")) {
+			game.max_serfs_per_player = atoi(s->value);
 		} else if (!strcmp(s->key, "map.gold_morale_factor")) {
 			game.map_gold_morale_factor = atoi(s->value);
 		} else if (!strcmp(s->key, "winning_player")) {
