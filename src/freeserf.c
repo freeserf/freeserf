@@ -73,8 +73,6 @@
 
 static int game_loop_run;
 
-static frame_t screen_frame;
-
 static interface_t interface;
 
 
@@ -486,9 +484,6 @@ game_loop()
 				int width = sdl_frame_get_width(screen);
 				int height = sdl_frame_get_height(screen);
 
-				screen_frame.clip.w = width;
-				screen_frame.clip.h = height;
-
 				gui_object_set_size((gui_object_t *)&interface, width, height);
 				break;
 			case SDL_QUIT:
@@ -528,11 +523,12 @@ game_loop()
 		/* Update and draw interface */
 		interface_update(&interface);
 
-		gui_object_redraw(GUI_OBJECT(&interface), game.frame);
+		frame_t *screen = sdl_get_screen_frame();
+		gui_object_redraw(GUI_OBJECT(&interface), screen);
 
 		/* TODO very crude dirty marking algortihm: mark everything. */
-		sdl_mark_dirty(0, 0, sdl_frame_get_width(game.frame),
-			       sdl_frame_get_height(game.frame));
+		sdl_mark_dirty(0, 0, sdl_frame_get_width(screen),
+			       sdl_frame_get_height(screen));
 
 		/* Swap video buffers */
 		sdl_swap_buffers();
@@ -740,23 +736,15 @@ main(int argc, char *argv[])
 
 	game.map_generator = map_generator;
 
-	/* Setup screen frame */
-	frame_t *screen = sdl_get_screen_frame();
-	sdl_frame_init(&screen_frame, 0, 0, sdl_frame_get_width(screen),
-		       sdl_frame_get_height(screen), screen);
-
 	/* Initialize global lookup tables */
 	init_spiral_pattern();
 
 	game_init();
 
 	/* Initialize interface */
-	game.frame = &screen_frame;
-	int width = sdl_frame_get_width(game.frame);
-	int height = sdl_frame_get_height(game.frame);
-
 	interface_init(&interface);
-	gui_object_set_size((gui_object_t *)&interface, width, height);
+	gui_object_set_size((gui_object_t *)&interface,
+			    screen_width, screen_height);
 	gui_object_set_displayed((gui_object_t *)&interface, 1);
 
 	/* Either load a save game if specified or

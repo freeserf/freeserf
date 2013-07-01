@@ -99,7 +99,7 @@ typedef struct {
 	inventory_t *inventories;
 	uint8_t *inventory_bitmap;
 	/* 108 */
-	frame_t *frame;
+	/*frame_t *frame;*/
 	/* 1C2 */
 	/* MOVED to map_t 
 	uint16_t map_cols;
