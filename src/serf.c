@@ -1761,9 +1761,6 @@ handle_serf_building_state(serf_t *serf)
 				building->serf_index = 0;
 				building->bld &= ~BIT(7); /* Building finished */
 
-				flag_t *flag = game_get_flag(building->flg_index);
-				building->u.flag = flag;
-
 				switch (type) {
 				case BUILDING_HUT:
 				case BUILDING_TOWER:
@@ -1773,6 +1770,8 @@ handle_serf_building_state(serf_t *serf)
 				default:
 					break;
 				}
+
+				flag_t *flag = game_get_flag(building->flg_index);
 
 				building->stock[0].type = RESOURCE_NONE;
 				building->stock[1].type = RESOURCE_NONE;

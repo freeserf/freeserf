@@ -728,8 +728,6 @@ load_v0_building_state(FILE *f, const v0_map_t *map)
 			    BUILDING_TYPE(building) == BUILDING_CASTLE) {
 				building->u.inventory = &game.inventories[offset/120];
 				building->stock[0].requested = 0xff;
-			} else {
-				building->u.flag = &game.flags[offset/70];
 			}
 		} else {
 			building->u.level = *(uint16_t *)&building_data[14];
@@ -1165,8 +1163,6 @@ save_text_building_state(FILE *f)
 				if (BUILDING_TYPE(building) == BUILDING_STOCK ||
 				    BUILDING_TYPE(building) == BUILDING_CASTLE) {
 					save_text_write_value(f, "inventory", INVENTORY_INDEX(building->u.inventory));
-				} else {
-					save_text_write_value(f, "flag", FLAG_INDEX(building->u.flag));
 				}
 			} else if (BUILDING_IS_BURNING(building)) {
 				save_text_write_value(f, "tick", building->u.tick);
@@ -2185,10 +2181,6 @@ load_text_building_section(section_t *section)
 			char *value = load_text_get_setting(section, "inventory");
 			if (value == NULL) return -1;
 			building->u.inventory = &game.inventories[atoi(value)];
-		} else {
-			char *value = load_text_get_setting(section, "flag");
-			if (value == NULL) return -1;
-			building->u.flag = &game.flags[atoi(value)];
 		}
 	} else if (BUILDING_IS_BURNING(building)) {
 		char *value = load_text_get_setting(section, "tick");

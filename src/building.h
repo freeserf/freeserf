@@ -112,7 +112,6 @@ struct building {
 	int progress;
 	union {
 		struct inventory *inventory;
-		struct flag *flag;
 		uint16_t tick; /* Used for burning building. */
 		uint16_t level;
 	} u;
