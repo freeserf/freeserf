@@ -965,9 +965,10 @@ save_text_globals_state(FILE *f)
 		       game.rnd.state[2] };
 	save_text_write_array(f, "rnd", rnd, 3);
 
-	save_text_write_value(f, "max_flag_index", game.max_flag_index);
-	save_text_write_value(f, "max_building_index", game.max_building_index);
-	save_text_write_value(f, "max_serf_index", game.max_serf_index);
+	save_text_write_value(f, "serf_limit", game.serf_limit);
+	save_text_write_value(f, "flag_limit", game.flag_limit);
+	save_text_write_value(f, "building_limit", game.building_limit);
+	save_text_write_value(f, "inventory_limit", game.inventory_limit);
 
 	save_text_write_value(f, "next_index", game.next_index);
 	save_text_write_value(f, "flag_search_counter", game.flag_search_counter);
@@ -980,7 +981,6 @@ save_text_globals_state(FILE *f)
 
 	save_text_write_value(f, "map.regions", game.map_regions);
 
-	save_text_write_value(f, "max_inventory_index", game.max_inventory_index);
 	save_text_write_value(f, "max_next_index", game.max_next_index);
 	save_text_write_value(f, "max_serfs_from_land", game.max_serfs_from_land);
 	save_text_write_value(f, "map.gold_deposit", game.map_gold_deposit);
@@ -1739,13 +1739,6 @@ load_text_global_state(list_t *sections)
 	game.map.rows = 1 << game.map.row_size;
 	map_init_dimensions(&game.map);
 
-	/* Allocate game objects */
-	game.serf_limit = (0x1f84 * (1 << game.map_size) - 4) / 0x81;
-	game.flag_limit = (0x2314 * (1 << game.map_size) - 4) / 0x231;
-	game.building_limit = (0x54c * (1 << game.map_size) - 4) / 0x91;
-	game.inventory_limit = (0x54c * (1 << game.map_size) - 4) / 0x3c1;
-	game_allocate_objects();
-
 	/* Load the remaining global state. */
 	list_foreach(&section->settings, elm) {
 		setting_t *s = (setting_t *)elm;
@@ -1772,12 +1765,14 @@ load_text_global_state(list_t *sections)
 				char *v = parse_array_value(&array);
 				game.rnd.state[i] = atoi(v);
 			}
-		} else if (!strcmp(s->key, "max_flag_index")) {
-			game.max_flag_index = atoi(s->value);
-		} else if (!strcmp(s->key, "max_building_index")) {
-			game.max_building_index = atoi(s->value);
-		} else if (!strcmp(s->key, "max_serf_index")) {
-			game.max_serf_index = atoi(s->value);
+		} else if (!strcmp(s->key, "serf_limit")) {
+			game.serf_limit = atoi(s->value);
+		} else if (!strcmp(s->key, "flag_limit")) {
+			game.flag_limit = atoi(s->value);
+		} else if (!strcmp(s->key, "building_limit")) {
+			game.building_limit = atoi(s->value);
+		} else if (!strcmp(s->key, "inventory_limit")) {
+			game.inventory_limit = atoi(s->value);
 		} else if (!strcmp(s->key, "next_index")) {
 			game.next_index = atoi(s->value);
 		} else if (!strcmp(s->key, "flag_search_counter")) {
@@ -1802,8 +1797,6 @@ load_text_global_state(list_t *sections)
 			game.resource_history_index = atoi(s->value);
 		} else if (!strcmp(s->key, "map.regions")) {
 			game.map_regions = atoi(s->value);
-		} else if (!strcmp(s->key, "max_inventory_index")) {
-			game.max_inventory_index = atoi(s->value);
 		} else if (!strcmp(s->key, "max_next_index")) {
 			game.max_next_index = atoi(s->value);
 		} else if (!strcmp(s->key, "max_serfs_from_land")) {
@@ -1824,6 +1817,9 @@ load_text_global_state(list_t *sections)
 			LOGD("savegame", "Unhandled global setting: `%s'.", s->key);
 		}
 	}
+
+	/* Allocate game objects */
+	game_allocate_objects();
 
 	return 0;
 }
@@ -2092,18 +2088,19 @@ load_text_flag_section(section_t *section)
 static int
 load_text_flag_state(list_t *sections)
 {
-	/* Clear flag allocation bitmap */
-	memset(game.flag_bitmap, 0, ((game.flag_limit-1) / 8) + 1);
-
-	/* Create NULL-flag (index 0 is undefined) */
-	game_alloc_flag(NULL, NULL);
-
 	list_elm_t *elm;
 	list_foreach(sections, elm) {
 		section_t *s = (section_t *)elm;
 		if (!strcmp(s->name, "flag")) {
 			int r = load_text_flag_section(s);
 			if (r < 0) return -1;
+		}
+	}
+
+	for (int i = 0; i < game.flag_limit; i++) {
+		if (FLAG_ALLOCATED(i)) {
+			/* Restore max flag index */
+			game.max_flag_index = i+1;
 		}
 	}
 
@@ -2193,14 +2190,6 @@ load_text_building_section(section_t *section)
 static int
 load_text_building_state(list_t *sections)
 {
-	/* Clear building allocation bitmap */
-	memset(game.building_bitmap, 0, ((game.building_limit-1) / 8) + 1);
-
-	/* Create NULL-building (index 0 is undefined) */
-	building_t *building;
-	game_alloc_building(&building, NULL);
-	building->bld = 0;
-
 	list_elm_t *elm;
 	list_foreach(sections, elm) {
 		section_t *s = (section_t *)elm;
@@ -2210,8 +2199,12 @@ load_text_building_state(list_t *sections)
 		}
 	}
 
-	for (int i = 1; i < game.max_building_index; i++) {
+	for (int i = 1; i < game.building_limit; i++) {
 		if (BUILDING_ALLOCATED(i)) {
+			/* Restore max building index */
+			game.max_building_index = i+1;
+
+			/* Restore pointer to castle flag */
 			building_t *building = game_get_building(i);
 			if (BUILDING_TYPE(building) == BUILDING_CASTLE) {
 				game.player[BUILDING_PLAYER(building)]->castle_flag =
@@ -2282,15 +2275,19 @@ load_text_inventory_section(section_t *section)
 static int
 load_text_inventory_state(list_t *sections)
 {
-	/* Clear inventory allocation bitmap */
-	memset(game.inventory_bitmap, 0, ((game.inventory_limit-1) / 8) + 1);
-
 	list_elm_t *elm;
 	list_foreach(sections, elm) {
 		section_t *s = (section_t *)elm;
 		if (!strcmp(s->name, "inventory")) {
 			int r = load_text_inventory_section(s);
 			if (r < 0) return -1;
+		}
+	}
+
+	for (int i = 0; i < game.inventory_limit; i++) {
+		if (INVENTORY_ALLOCATED(i)) {
+			/* Restore max inventory index */
+			game.max_inventory_index = i+1;
 		}
 	}
 
@@ -2615,24 +2612,19 @@ load_text_serf_section(section_t *section)
 static int
 load_text_serf_state(list_t *sections)
 {
-	/* Clear serf allocation bitmap */
-	memset(game.serf_bitmap, 0, ((game.serf_limit-1) / 8) + 1);
-
-	/* Create NULL-serf */
-	serf_t *serf;
-	game_alloc_serf(&serf, NULL);
-	serf->state = SERF_STATE_NULL;
-	serf->type = 0;
-	serf->animation = 0;
-	serf->counter = 0;
-	serf->pos = -1;
-
 	list_elm_t *elm;
 	list_foreach(sections, elm) {
 		section_t *s = (section_t *)elm;
 		if (!strcmp(s->name, "serf")) {
 			int r = load_text_serf_section(s);
 			if (r < 0) return -1;
+		}
+	}
+
+	for (int i = 0; i < game.serf_limit; i++) {
+		if (SERF_ALLOCATED(i)) {
+			/* Restore max serf index */
+			game.max_serf_index = i+1;
 		}
 	}
 
