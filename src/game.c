@@ -440,11 +440,11 @@ update_knight_morale()
 		player_t *player = game.player[i];
 		if (!PLAYER_IS_ACTIVE(player)) continue;
 
-		int depot = inventory_gold[i] + military_gold[i];
+		uint depot = inventory_gold[i] + military_gold[i];
 		player->gold_deposited = depot;
 
 		/* Calculate according to gold collected. */
-		int map_gold = game.map_gold_deposit;
+		uint map_gold = game.map_gold_deposit;
 		if (map_gold != 0) {
 			while (map_gold > 0xffff) {
 				map_gold >>= 1;
@@ -457,21 +457,41 @@ update_knight_morale()
 		}
 
 		/* Adjust based on castle score. */
-		int castle_score = player->castle_score;
+		uint castle_score = player->castle_score;
 		if (castle_score < 0) {
 			player->knight_morale = max(1, player->knight_morale - 1023);
 		} else if (castle_score > 0) {
 			player->knight_morale = min(player->knight_morale + 1024*castle_score, 0xffff);
 		}
 
-		int military_score = player->total_military_score;
-		int morale = player->knight_morale >> 5;
+		uint military_score = player->total_military_score;
+		uint morale = player->knight_morale >> 5;
 		while (military_score > 0xffff) {
 			military_score >>= 1;
 			morale <<= 1;
 		}
 
-		/* TODO */
+		/* Calculate fractional score used by AI */
+		uint player_score = (military_score * morale) >> 7;
+		uint enemy_score = 0;
+		for (int j = 0; j < GAME_MAX_PLAYER_COUNT; j++) {
+			if (PLAYER_IS_ACTIVE(game.player[j]) && i != j) {
+				enemy_score += game.player[j]->total_military_score;
+			}
+		}
+
+		while (player_score > 0xffff &&
+		       enemy_score > 0xffff) {
+			player_score >>= 1;
+			enemy_score >>= 1;
+		}
+
+		player_score >>= 1;
+		uint frac_score = 0;
+		if (player_score != 0 && enemy_score != 0) {
+			if (player_score > enemy_score) frac_score = 0xffffffff;
+			else frac_score = (player_score*0x10000)/enemy_score;
+		}
 
 		player->military_max_gold = 0;
 	}
