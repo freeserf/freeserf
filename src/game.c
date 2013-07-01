@@ -174,8 +174,8 @@ game_alloc_inventory(inventory_t **inventory, int *index)
 		inventory_t *iv = &game.inventories[i];
 		memset(iv, 0, sizeof(inventory_t));
 
-		iv->out_queue[0] = -1;
-		iv->out_queue[1] = -1;
+		iv->out_queue[0] = RESOURCE_NONE;
+		iv->out_queue[1] = RESOURCE_NONE;
 
 		if (inventory != NULL) *inventory = iv;
 		if (index != NULL) *index = i;
@@ -512,7 +512,7 @@ inventory_add_to_queue(inventory_t *inventory, resource_type_t type, uint dest)
 	assert(inventory->resources[type] != 0);
 
 	inventory->resources[type] -= 1;
-	if (inventory->out_queue[0] == -1) {
+	if (inventory->out_queue[0] == RESOURCE_NONE) {
 		inventory->out_queue[0] = type;
 		inventory->out_dest[0] = dest;
 	} else {
@@ -596,7 +596,7 @@ update_inventories()
 
 				inventory_t *inventory = game_get_inventory(i);
 				if (inventory->player_num == p &&
-				    inventory->out_queue[1] == -1) {
+				    inventory->out_queue[1] == RESOURCE_NONE) {
 					int res_dir = inventory->res_dir & 3;
 					if (res_dir == 0 || res_dir == 1) { /* In mode, stop mode */
 						if (arr[0] == RESOURCE_GROUP_FOOD) {
@@ -2698,13 +2698,13 @@ flag_reset_transport(flag_t *flag)
 			inventory_t *inventory = game_get_inventory(i);
 			if (inventory->out_dest[1] == FLAG_INDEX(flag)) {
 				inventory->resources[inventory->out_queue[1]] += 1;
-				inventory->out_queue[1] = -1;
+				inventory->out_queue[1] = RESOURCE_NONE;
 			}
 			if (inventory->out_dest[0] == FLAG_INDEX(flag)) {
 				inventory->resources[inventory->out_queue[0]] += 1;
 				inventory->out_queue[0] = inventory->out_queue[1];
 				inventory->out_dest[0] = inventory->out_dest[1];
-				inventory->out_queue[1] = -1;
+				inventory->out_queue[1] = RESOURCE_NONE;
 			}
 		}
 	}
@@ -4289,7 +4289,7 @@ demolish_building(map_pos_t pos)
 		if (BUILDING_IS_ACTIVE(building)) {
 			inventory_t *inventory = building->u.inventory;
 
-			for (int i = 0; i < 2 && inventory->out_queue[i] != -1; i++) {
+			for (int i = 0; i < 2 && inventory->out_queue[i] != RESOURCE_NONE; i++) {
 				resource_type_t res = inventory->out_queue[i];
 				int dest = inventory->out_dest[i];
 

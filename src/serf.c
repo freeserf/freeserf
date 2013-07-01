@@ -1919,7 +1919,10 @@ handle_serf_wait_for_resource_out_state(serf_t *serf)
 
 	building_t *building = game_get_building(MAP_OBJ_INDEX(serf->pos));
 	inventory_t *inventory = building->u.inventory;
-	if (inventory->serfs[SERF_4] != 0 || inventory->out_queue[0] == -1) return;
+	if (inventory->serfs[SERF_4] != 0 ||
+	    inventory->out_queue[0] == RESOURCE_NONE) {
+		return;
+	}
 
 	serf_log_state_change(serf, SERF_STATE_MOVE_RESOURCE_OUT);
 	serf->state = SERF_STATE_MOVE_RESOURCE_OUT;
@@ -1928,7 +1931,7 @@ handle_serf_wait_for_resource_out_state(serf_t *serf)
 	serf->s.move_resource_out.next_state = SERF_STATE_DROP_RESOURCE_OUT;
 
 	inventory->out_queue[0] = inventory->out_queue[1];
-	inventory->out_queue[1] = -1;
+	inventory->out_queue[1] = RESOURCE_NONE;
 	inventory->out_dest[0] = inventory->out_dest[1];
 
 	/*handle_serf_move_resource_out_state(serf);*//* why isn't a state switch enough? */
