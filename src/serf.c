@@ -641,13 +641,7 @@ static const int road_building_slope[] = {
 	5, 18, 18, 15, 18, 22, 22, 22,
 	22, 18, 16, 18, 1, 10, 1, 15,
 	15, 16, 15, 15, 10, 15, 20, 15,
-	18, 0, 0, 0, 0, 0, 0, 0,
-
-	/* Unfinished */
-	1, 1, 1, 1, 1, 1, 1, 1,
-	1, 1, 1, 1, 1, 1, 1, 1,
-	1, 1, 1, 1, 1, 1, 1, 1,
-	1
+	18
 };
 
 /* Start entering building in direction up-left.
@@ -664,7 +658,8 @@ serf_enter_building(serf_t *serf, int field_B, int join_pos)
 	if (join_pos) map_set_serf_index(serf->pos, SERF_INDEX(serf));
 
 	building_t *building = game_get_building(MAP_OBJ_INDEX(serf->pos));
-	int slope = road_building_slope[(building->bld >> 2) & 0x3f];
+	int slope = road_building_slope[building->type];
+	if (!BUILDING_IS_DONE(building)) slope = 1;
 	serf->s.entering_building.slope_len = (slope * serf->counter) >> 5;
 	serf->s.entering_building.field_B = field_B;
 }
@@ -675,7 +670,8 @@ static void
 serf_leave_building(serf_t *serf, int join_pos)
 {
 	building_t *building = game_get_building(MAP_OBJ_INDEX(serf->pos));
-	int slope = 31 - road_building_slope[(building->bld >> 2) & 0x3f];
+	int slope = 31 - road_building_slope[building->type];
+	if (!BUILDING_IS_DONE(building)) slope = 30;
 
 	if (join_pos) map_set_serf_index(serf->pos, 0);
 	serf_start_walking(serf, DIR_DOWN_RIGHT, slope, !join_pos);

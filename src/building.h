@@ -34,10 +34,10 @@
 #define BUILDING_INDEX(ptr)  ((int)((ptr) - game.buildings))
 #define BUILDING_ALLOCATED(i)  BIT_TEST(game.building_bitmap[(i)>>3], 7-((i)&7))
 
+/* Type of building. */
+#define BUILDING_TYPE(building)  ((building)->type)
 /* Owning player of the building. */
 #define BUILDING_PLAYER(building)  ((int)((building)->bld & 3))
-/* Type of building. */
-#define BUILDING_TYPE(building)  ((building_type_t)(((building)->bld >> 2) & 0x1f))
 /* Whether construction of the building is finished. */
 #define BUILDING_IS_DONE(building)  (!(((building)->bld >> 7) & 1))
 
@@ -103,6 +103,7 @@ typedef struct building building_t;
 
 struct building {
 	map_pos_t pos;
+	building_type_t type;
 	int bld;
 	int serf;
 	int flg_index;

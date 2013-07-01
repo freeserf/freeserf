@@ -704,7 +704,8 @@ load_v0_building_state(FILE *f, const v0_map_t *map)
 		building_t *building = &game.buildings[i];
 
 		building->pos = load_v0_map_pos(map, *(uint32_t *)&building_data[0]);
-		building->bld = building_data[4];
+		building->type = (building_data[4] >> 2) & 0x1f;
+		building->bld = building_data[4] & 0x83;
 		building->serf = building_data[5];
 		building->flg_index = *(uint16_t *)&building_data[6];
 
@@ -1138,6 +1139,7 @@ save_text_building_state(FILE *f)
 			fprintf(f, "[building %i]\n", i);
 
 			save_text_write_map_pos(f, "pos", building->pos);
+			save_text_write_value(f, "type", building->type);
 			save_text_write_value(f, "bld", building->bld);
 			save_text_write_value(f, "serf", building->serf);
 			save_text_write_value(f, "flag_index", building->flg_index);
@@ -2083,7 +2085,10 @@ load_text_flag_section(section_t *section)
 			if (d == DIR_UP_LEFT) v = r;
 		}
 
-		if (v == NULL) return -1;
+		if (v == NULL) {
+			LOGD("savegame", "Unable to link flag %i to building", FLAG_INDEX(flag));
+			return -1;
+		}
 
 		flag->other_endpoint.b[DIR_UP_LEFT] = &game.buildings[atoi(v)];
 	}
@@ -2128,6 +2133,8 @@ load_text_building_section(section_t *section)
 		setting_t *s = (setting_t *)elm;
 		if (!strcmp(s->key, "pos")) {
 			building->pos = parse_map_pos(s->value);
+		} else if (!strcmp(s->key, "type")) {
+			building->type = atoi(s->value);
 		} else if (!strcmp(s->key, "bld")) {
 			building->bld = atoi(s->value);
 		} else if (!strcmp(s->key, "serf")) {

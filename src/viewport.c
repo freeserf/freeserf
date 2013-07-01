@@ -715,9 +715,9 @@ draw_unharmed_building(viewport_t *viewport, building_t *building,
 		0xa2, 0, 0xa2, 0
 	};
 
-	if (!(building->bld & 0x80)) { /* normal building */
-		building_type_t type = (building->bld >> 2) & 0x1f;
-		switch (type) {
+	if (BUILDING_IS_DONE(building)) {
+		building_type_t type = building->type;
+		switch (building->type) {
 		case BUILDING_FISHER:
 		case BUILDING_LUMBERJACK:
 		case BUILDING_STONECUTTER:
@@ -885,9 +885,8 @@ draw_unharmed_building(viewport_t *viewport, building_t *building,
 			break;
 		}
 	} else { /* unfinished building */
-		building_type_t type = (building->bld >> 2) & 0x1f;
-		if (type != BUILDING_CASTLE) {
-			draw_building_unfinished(building, type, x, y, frame);
+		if (building->type != BUILDING_CASTLE) {
+			draw_building_unfinished(building, building->type, x, y, frame);
 		} else {
 			draw_shadow_and_building_unfinished(x, y, 0xb2, building->progress, frame);
 		}

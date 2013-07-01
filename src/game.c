@@ -112,6 +112,7 @@ game_alloc_building(building_t **building, int *index)
 		if (i == game.max_building_index) game.max_building_index += 1;
 
 		building_t *b = &game.buildings[i];
+		b->type = BUILDING_NONE;
 		b->bld = 0;
 		b->flg_index = 0;
 		b->serf = 0;
@@ -3702,7 +3703,8 @@ game_build_building(map_pos_t pos, building_type_t type, player_t *player)
 	bld->u.level = game_get_leveling_height(pos);
 	bld->pos = pos;
 	player->incomplete_building_count[type] += 1;
-	bld->bld = BIT(7) | (type << 2) | player->player_num; /* bit 7: Unfinished building */
+	bld->type = type;
+	bld->bld = BIT(7) | player->player_num; /* bit 7: Unfinished building */
 	bld->progress = 0;
 	if (obj_types[type] != MAP_OBJ_LARGE_BUILDING) bld->progress = 1;
 
@@ -3970,7 +3972,8 @@ game_build_castle(map_pos_t pos, player_t *player)
 
 	castle->pos = pos;
 	flag->pos = MAP_MOVE_DOWN_RIGHT(pos);
-	castle->bld = BIT(7) | (BUILDING_CASTLE << 2) | player->player_num;
+	castle->type = BUILDING_CASTLE;
+	castle->bld = BIT(7) | player->player_num;
 	castle->progress = 0;
 	castle->stock[0].available = 0xff;
 	castle->stock[0].requested = 0xff;
@@ -5236,6 +5239,7 @@ game_allocate_objects()
 	/* Create NULL-building (index 0 is undefined) */
 	building_t *building;
 	game_alloc_building(&building, NULL);
+	building->type = BUILDING_NONE;
 	building->bld = 0;
 }
 
