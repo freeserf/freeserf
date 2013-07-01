@@ -1126,11 +1126,6 @@ handle_serf_entering_building_state(serf_t *serf)
 				building_t *building = game_get_building(MAP_OBJ_INDEX(serf->pos));
 				building_type_t bld_type = BUILDING_TYPE(building);
 
-				if (bld_type == BUILDING_STONEMINE) {
-					/*player_t *player = game.player[SERF_PLAYER(serf)];
-					  player->emergency_flags |= BIT(5);*/
-				}
-
 				if (serf->s.entering_building.field_B != 0) {
 					building->serf |= BIT(4);
 					building->serf &= ~BIT(3);

@@ -621,11 +621,8 @@ update_inventories()
 		-1
 	};
 
-	if (game.game_speed == 0) return;
-
 	check_max_serfs_reached();
-	/* TODO ... */
-	/* handle_emergency_mode(); */
+	/* AI: TODO */
 
 	const int *arr = NULL;
 	switch (game_random_int() & 7) {
@@ -1395,26 +1392,11 @@ update_unfinished_building(building_t *building)
 	    !BUILDING_HAS_SERF(building) &&
 	    !BUILDING_SERF_REQUESTED(building)) {
 		building->progress = 1;
-		/*if (BIT_TEST(player->emergency_flags, 6) &&
-				player->lumberjack_index != BUILDING_INDEX(building) &&
-				player->sawmill_index != BUILDING_INDEX(building) &&
-				player->stonecutter_index != BUILDING_INDEX(building)) {
-			building->serf |= BIT(2);
-			return;
-		}*/
-
 		int r = send_serf_to_building(building, SERF_BUILDER, RESOURCE_HAMMER, -1);
 		if (r < 0) building->serf |= BIT(2);
 	}
 
 	/* Request planks */
-	/*if (BIT_TEST(player->emergency_flags, 1) &&
-			player->lumberjack_index != BUILDING_INDEX(building) &&
-			player->sawmill_index != BUILDING_INDEX(building) &&
-			player->stonecutter_index != BUILDING_INDEX(building)) {
-		TODO
-	}*/
-
 	int total_planks = building->stock[0].requested + building->stock[0].available;
 	if (total_planks < building->stock[0].maximum) {
 		int planks_prio = player->planks_construction >> (8 + total_planks);
@@ -1425,13 +1407,6 @@ update_unfinished_building(building_t *building)
 	}
 
 	/* Request stone */
-	/*if (BIT_TEST(player->emergency_index, 2) &&
-			player->lumberjack_index != BUILDING_INDEX(building) &&
-			player->sawmill_index != BUILDING_INDEX(building) &&
-			player->stonecutter_index != BUILDING_INDEX(building)) {
-		TODO
-	}*/
-
 	int total_stone = building->stock[1].requested + building->stock[1].available;
 	if (total_stone < building->stock[1].maximum) {
 		int stone_prio = 0xff >> total_stone;
@@ -1477,13 +1452,6 @@ update_unfinished_adv_building(building_t *building)
 
 	/* Request digger */
 	if (!BUILDING_SERF_REQUEST_FAIL(building)) {
-		/*if (BIT_TEST(player->emergency_index, 6) &&
-		  BUILDING_TYPE(building) != BUILDING_LUMBERJACK &&
-		  BUILDING_TYPE(building) != BUILDING_STONECUTTER &&
-		  BUILDING_TYPE(building) != BUILDING_SAWMILL) {
-			building->serf |= BIT(2);
-			return;
-		}*/
 		int r = send_serf_to_building(building, SERF_DIGGER, RESOURCE_SHOVEL, -1);
 		if (r < 0) building->serf |= BIT(2);
 	}
@@ -1741,7 +1709,7 @@ handle_building_update(building_t *building)
 			if (BUILDING_HAS_SERF(building)) {
 				player_t *player = game.player[BUILDING_PLAYER(building)];
 				int total_tree = building->stock[0].requested + building->stock[0].available;
-				if (total_tree < building->stock[0].maximum && 1/*!BIT_TEST(player->emergency_flags, 1)*/) {
+				if (total_tree < building->stock[0].maximum) {
 					building->stock[0].prio = player->planks_boatbuilder >> (8 + total_tree);
 				} else {
 					building->stock[0].prio = 0;
@@ -2024,7 +1992,7 @@ handle_building_update(building_t *building)
 				/* Request more planks. */
 				player_t *player = game.player[BUILDING_PLAYER(building)];
 				int total_tree = building->stock[0].requested + building->stock[0].available;
-				if (total_tree < building->stock[0].maximum && 1/*!BIT_TEST(player->emergency_flags, 1)*/) {
+				if (total_tree < building->stock[0].maximum) {
 					building->stock[0].prio = player->planks_toolmaker >> (8 + total_tree);
 				} else {
 					building->stock[0].prio = 0;
@@ -2768,20 +2736,6 @@ building_remove_player_refs(building_t *building)
 				game.player[i]->index = 0;
 			}
 		}
-	}
-
-	player_t *player = game.player[BUILDING_PLAYER(building)];
-
-	if (player->sawmill_index == BUILDING_INDEX(building)) {
-		player->sawmill_index = 0;
-	}
-
-	if (player->stonecutter_index == BUILDING_INDEX(building)) {
-		player->stonecutter_index = 0;
-	}
-
-	if (player->lumberjack_index == BUILDING_INDEX(building)) {
-		player->lumberjack_index = 0;
 	}
 }
 
@@ -3702,28 +3656,6 @@ game_build_building(map_pos_t pos, building_type_t type, player_t *player)
 		}
 	}
 
-	if (/*!BIT_TEST(player->emergency_flags, 0)*/0) {
-		switch (type) {
-		case BUILDING_LUMBERJACK:
-			if (player->lumberjack_index == 0) {
-				player->lumberjack_index = bld_index;
-			}
-			break;
-		case BUILDING_SAWMILL:
-			if (player->sawmill_index == 0) {
-				player->sawmill_index = bld_index;
-			}
-			break;
-		case BUILDING_STONECUTTER:
-			if (player->stonecutter_index == 0) {
-				player->stonecutter_index = bld_index;
-			}
-			break;
-		default:
-			break;
-		}
-	}
-
 	map_tile_t *tiles = game.map.tiles;
 
 	bld->u.level = game_get_leveling_height(pos);
@@ -3982,16 +3914,6 @@ game_build_castle(map_pos_t pos, player_t *player)
 	if (0/*game.game_type == GAME_TYPE_TUTORIAL*/) {
 		/* TODO ... */
 	}
-
-	inventory->resources[RESOURCE_PLANK] -= 7;
-	inventory->resources[RESOURCE_STONE] -= 2;
-	player->extra_planks = 7;
-	player->extra_stone = 2;
-	/* player->emergency_flags &= ~(BIT(0) | BIT(1) | BIT(2) | BIT(3) | BIT(4) | BIT(5)); */
-
-	/* player->lumberjack_index = 0; */
-	/* player->sawmill_index = 0; */
-	/* player->stonecutter_index = 0; */
 
 	game.map_gold_deposit += inventory->resources[RESOURCE_GOLDBAR];
 	game.map_gold_deposit += inventory->resources[RESOURCE_GOLDORE];
@@ -4993,7 +4915,6 @@ player_init(uint number, uint face, uint color, uint supplies,
 	player->color = color;
 	player->face = face;
 	player->build = 0;
-	/*player->emergency_index = BIT(0);*/
 
 	player->building = 0;
 	player->castle_flag = 0;

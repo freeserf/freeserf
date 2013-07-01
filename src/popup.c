@@ -745,10 +745,6 @@ draw_stat_4_box(popup_box_t *popup, frame_t *frame)
 		}
 	}
 
-	/* Add extra resources. */
-	resources[RESOURCE_PLANK] += popup->interface->player->extra_planks;
-	resources[RESOURCE_STONE] += popup->interface->player->extra_stone;
-
 	draw_resources_box(frame, resources);
 
 	draw_popup_icon(14, 128, 60, frame); /* exit */
@@ -2025,16 +2021,13 @@ draw_castle_res_box(popup_box_t *popup, frame_t *frame)
 		return;
 	}
 
-	inventory_t *inventory = building->u.inventory;
-	if (BUILDING_TYPE(building) == BUILDING_STOCK) {
-		/* TODO supply zeroed array to draw_resources_box */
-	} else if (BUILDING_TYPE(building) == BUILDING_CASTLE) {
-		/* TODO add extra planks and extra stone */
-	} else {
+	if (BUILDING_TYPE(building) != BUILDING_STOCK &&
+	    BUILDING_TYPE(building) != BUILDING_CASTLE) {
 		interface_close_popup(popup->interface);
 		return;
 	}
 
+	inventory_t *inventory = building->u.inventory;
 	draw_resources_box(frame, inventory->resources);
 }
 

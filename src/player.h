@@ -136,12 +136,12 @@ typedef struct {
 	/* 160 */
 	int send_generic_delay;
 	int initial_supplies;
-	/*int emergency_flags;*/
+	/*int emergency_flags;
 	int extra_planks;
 	int extra_stone;
 	int lumberjack_index;
 	int sawmill_index;
-	int stonecutter_index;
+	int stonecutter_index;*/
 	/* 16E */
 	int serf_index;
 	/* 170 */
