@@ -4657,18 +4657,20 @@ game_update_land_ownership(map_pos_t init_pos)
 			map_pos_t pos = MAP_POS_ADD(init_pos,
 						    MAP_POS(j & game.map.col_mask,
 							    i & game.map.row_mask));
-			if (player >= 0) {
-				if (MAP_HAS_OWNER(pos) &&
-				    MAP_OWNER(pos) != player) {
-					int old_player = MAP_OWNER(pos);
-					game.player[old_player]->total_land_area -= 1;
-					game_surrender_land(pos);
-				}
+			int old_player = -1;
+			if (MAP_HAS_OWNER(pos)) old_player = MAP_OWNER(pos);
 
-				game.player[player]->total_land_area += 1;
-				tiles[pos].height = (1 << 7) | (player << 5) | MAP_HEIGHT(pos);
-			} else {
+			if (old_player >= 0 && player != old_player) {
+				game.player[old_player]->total_land_area -= 1;
 				game_surrender_land(pos);
+			}
+
+			if (player >= 0) {
+				if (player != old_player) {
+					game.player[player]->total_land_area += 1;
+					tiles[pos].height = (1 << 7) | (player << 5) | MAP_HEIGHT(pos);
+				}
+			} else {
 				tiles[pos].height = (0 << 7) | (0 << 5) | MAP_HEIGHT(pos);
 			}
 		}
