@@ -2716,11 +2716,13 @@ flag_reset_transport(flag_t *flag)
 	for (int i = 0; i < game.max_inventory_index; i++) {
 		if (INVENTORY_ALLOCATED(i)) {
 			inventory_t *inventory = game_get_inventory(i);
-			if (inventory->out_dest[1] == FLAG_INDEX(flag)) {
+			if (inventory->out_queue[1] != RESOURCE_NONE &&
+			    inventory->out_dest[1] == FLAG_INDEX(flag)) {
 				inventory->resources[inventory->out_queue[1]] += 1;
 				inventory->out_queue[1] = RESOURCE_NONE;
 			}
-			if (inventory->out_dest[0] == FLAG_INDEX(flag)) {
+			if (inventory->out_queue[0] != RESOURCE_NONE &&
+			    inventory->out_dest[0] == FLAG_INDEX(flag)) {
 				inventory->resources[inventory->out_queue[0]] += 1;
 				inventory->out_queue[0] = inventory->out_queue[1];
 				inventory->out_dest[0] = inventory->out_dest[1];
