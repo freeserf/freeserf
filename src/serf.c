@@ -1474,9 +1474,33 @@ handle_serf_entering_building_state(serf_t *serf)
 						building->stock[1].prio = 0;
 						building->stock[1].maximum = max_gold;
 
-						/* TODO Save total land amount and building count for each player. */
+						/* Save amount of land and buildings for each player */
+						uint land_before[GAME_MAX_PLAYER_COUNT] = {0};
+						uint buildings_before[GAME_MAX_PLAYER_COUNT] = {0};
+						for (int i = 0; i < GAME_MAX_PLAYER_COUNT; i++) {
+							player_t *player = game.player[i];
+							if (!PLAYER_IS_ACTIVE(game.player[i])) continue;
+
+							land_before[i] = player->total_land_area;
+							buildings_before[i] = player->total_building_score;
+						}
+
+						/* Update land ownership */
 						game_update_land_ownership(building->pos);
-						/* TODO Create notifications if land amount or building count changed. */
+
+						/* Create notfications for lost land and buildings */
+						for (int i = 0; i < GAME_MAX_PLAYER_COUNT; i++) {
+							player_t *player = game.player[i];
+							if (!PLAYER_IS_ACTIVE(game.player[i])) continue;
+
+							if (buildings_before[i] > player->total_building_score) {
+								player_add_notification(player, (BUILDING_PLAYER(building) << 5) | 9,
+											building->pos);
+							} else if (land_before[i] > player->total_land_area) {
+								player_add_notification(player, (BUILDING_PLAYER(building) << 5) | 8,
+											building->pos);
+							}
+						}
 					}
 				}
 			}
