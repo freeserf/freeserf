@@ -117,6 +117,13 @@ gfx_load_file(const char *path)
 	fclose(f);
 #endif
 
+	/* Check that data file is decompressed. */
+	if (!memcmp(sprites, "TPWM", 4)) {
+		LOGE("gfx", "Data file is compressed! Please run the installer"
+		     " from the original game to decompress the data file.");
+		return -1;
+	}
+
 	/* Read the number of entries in the index table.
 	   Some entries are undefined (size and offset are zero). */
 	entry_count = le32toh(*((uint32_t *)sprites + 1)) + 1;
