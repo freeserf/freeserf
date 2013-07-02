@@ -1931,8 +1931,6 @@ draw_sett_5_box(popup_box_t *popup, frame_t *frame)
 static void
 draw_quit_confirm_box(popup_box_t *popup, frame_t *frame)
 {
-	game_pause(1);
-
 	draw_box_background(310, frame);
 
 	draw_green_string(0, 10, frame, "   Do you want");
@@ -3355,7 +3353,6 @@ handle_action(interface_t *interface, action_t action, int x, int y)
 		}
 		break;
 	case ACTION_QUIT_CANCEL:
-		game_pause(0);
 		game.svga |= BIT(5);
 		interface_close_popup(interface);
 		break;
