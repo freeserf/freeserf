@@ -227,27 +227,32 @@ void game_pause(int enable);
 void game_prepare_ground_analysis(map_pos_t pos, int estimates[5]);
 int game_send_geologist(flag_t *dest);
 
-int game_road_segment_valid(map_pos_t pos, dir_t dir);
-int game_build_road(map_pos_t source, const dir_t dirs[],
-		    uint length, const player_t *player);
-
 int game_get_leveling_height(map_pos_t pos);
+
+int game_road_segment_valid(map_pos_t pos, dir_t dir);
 
 int game_can_build_military(map_pos_t pos);
 int game_can_build_small(map_pos_t pos);
 int game_can_build_mine(map_pos_t pos);
 int game_can_build_large(map_pos_t pos);
-int game_can_build_building(map_pos_t pos, building_type_t type, const player_t *player);
+int game_can_build_building(map_pos_t pos, building_type_t type,
+			    const player_t *player);
 int game_can_build_castle(map_pos_t pos, const player_t *player);
 int game_can_build_flag(map_pos_t pos, const player_t *player);
 int game_can_player_build(map_pos_t pos, const player_t *player);
 
-int game_build_flag(map_pos_t pos, player_t *player);
-int game_build_building(map_pos_t pos, building_type_t type, player_t *player);
-int game_build_castle(map_pos_t pos, player_t *player);
+int game_can_build_road(map_pos_t source, const dir_t dirs[], uint length,
+			const player_t *player, map_pos_t *dest, int *water);
 
 int game_can_demolish_flag(map_pos_t pos, const player_t *player);
 int game_can_demolish_road(map_pos_t pos, const player_t *player);
+
+int game_build_road(map_pos_t source, const dir_t dirs[],
+		    uint length, const player_t *player);
+
+int game_build_flag(map_pos_t pos, player_t *player);
+int game_build_building(map_pos_t pos, building_type_t type, player_t *player);
+int game_build_castle(map_pos_t pos, player_t *player);
 
 int game_demolish_road(map_pos_t pos, player_t *player);
 int game_demolish_flag(map_pos_t pos, player_t *player);

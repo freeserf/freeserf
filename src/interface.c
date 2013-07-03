@@ -475,53 +475,45 @@ interface_build_road_end(interface_t *interface)
 					interface->map_cursor_pos);
 }
 
-static int
-interface_build_road_connect_flag(interface_t *interface)
-{
-	return game_build_road(interface->building_road_source,
-			       interface->building_road_dirs,
-			       interface->building_road_length,
-			       interface->player);
-}
-
 /* Build a single road segment. Return -1 on fail, 0 on successful
    construction, and 1 if this segment completed the path. */
 int
-interface_build_road_segment(interface_t *interface, map_pos_t pos, dir_t dir)
+interface_build_road_segment(interface_t *interface, dir_t dir)
 {
-	if (!game_road_segment_valid(pos, dir)) return -1;
+	if (interface->building_road_length+1 >= MAX_ROAD_LENGTH) {
+		/* Max length reached */
+		return -1;
+	}
 
-	map_pos_t dest = MAP_MOVE(pos, dir);
+	interface->building_road_dirs[interface->building_road_length] = dir;
+	interface->building_road_length += 1;
+
+	map_pos_t dest;
+	int r = game_can_build_road(interface->building_road_source,
+				    interface->building_road_dirs,
+				    interface->building_road_length,
+				    interface->player, &dest, NULL);
+	if (!r) {
+		/* Invalid construction, undo. */
+		return interface_remove_road_segment(interface);
+	}
 
 	if (MAP_OBJ(dest) == MAP_OBJ_FLAG) {
-		if (interface->building_road_length+1 >= MAX_ROAD_LENGTH) {
-			return -1;
-		}
-
-		interface->building_road_dirs[interface->building_road_length] = dir;
-		interface->building_road_length += 1;
-
 		/* Existing flag at destination, try to connect. */
-		int r = interface_build_road_connect_flag(interface);
+		int r = game_build_road(interface->building_road_source,
+					interface->building_road_dirs,
+					interface->building_road_length,
+					interface->player);
 		if (r < 0) {
 			interface_build_road_end(interface);
 			return -1;
 		} else {
-			interface->map_cursor_pos = dest;
-			interface->building_road_length = 0;
 			interface_build_road_end(interface);
 			interface_update_map_cursor_pos(interface, dest);
 			return 1;
 		}
 	} else if (MAP_PATHS(dest) == 0) {
-		if (interface->building_road_length+1 >= MAX_ROAD_LENGTH) {
-			return -1;
-		}
-
 		/* No existing paths at destination, build segment. */
-		interface->building_road_dirs[interface->building_road_length] = dir;
-		interface->building_road_length += 1;
-
 		interface_update_map_cursor_pos(interface, dest);
 
 		/* TODO Pathway scrolling */
@@ -534,11 +526,20 @@ interface_build_road_segment(interface_t *interface, map_pos_t pos, dir_t dir)
 }
 
 int
-interface_remove_road_segment(interface_t *interface, map_pos_t pos, dir_t dir)
+interface_remove_road_segment(interface_t *interface)
 {
-	map_pos_t dest = MAP_MOVE(pos, dir);
-
 	interface->building_road_length -= 1;
+
+	map_pos_t dest;
+	int r = game_can_build_road(interface->building_road_source,
+				    interface->building_road_dirs,
+				    interface->building_road_length,
+				    interface->player, &dest, NULL);
+	if (!r) {
+		/* Road construction is no longer valid, abort. */
+		interface_build_road_end(interface);
+		return -1;
+	}
 
 	interface_update_map_cursor_pos(interface, dest);
 
@@ -547,26 +548,22 @@ interface_remove_road_segment(interface_t *interface, map_pos_t pos, dir_t dir)
 	return 0;
 }
 
-/* Build a complete road from pos with dirs specifying the directions. */
+/* Extend currently constructed road with an array of directions. */
 int
-interface_build_road(interface_t *interface, map_pos_t pos, dir_t *dirs, uint length)
+interface_extend_road(interface_t *interface, dir_t *dirs, uint length)
 {
 	for (int i = 0; i < length; i++) {
 		dir_t dir = dirs[i];
-		int r = interface_build_road_segment(interface, pos, dir);
+		int r = interface_build_road_segment(interface, dir);
 		if (r < 0) {
 			/* Backtrack */
 			for (int j = i-1; j >= 0; j--) {
-				dir_t rev_dir = DIR_REVERSE(dirs[j]);
-				interface_remove_road_segment(interface, pos,
-							      rev_dir);
-				pos = MAP_MOVE(pos, rev_dir);
+				interface_remove_road_segment(interface);
 			}
 			return -1;
 		} else if (r == 1) {
 			return 1;
 		}
-		pos = MAP_MOVE(pos, dir);
 	}
 
 	return 0;

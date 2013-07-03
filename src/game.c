@@ -2530,22 +2530,23 @@ road_segment_in_water(map_pos_t pos, dir_t dir)
 	return water;
 }
 
-/* Construct a road spefified by a source and a list
-   of directions. */
+/* Test whether a given road can be constructed by player. The final
+   destination will be returned in dest, and water will be set if the
+   resulting path is a water path.
+   This will return success even if the destination does _not_ contain
+   a flag, and therefore partial paths can be validated with this function. */
 int
-game_build_road(map_pos_t source, const dir_t dirs[], uint length,
-		const player_t *player)
+game_can_build_road(map_pos_t source, const dir_t dirs[], uint length,
+		    const player_t *player, map_pos_t *dest, int *water)
 {
-	map_tile_t *tiles = game.map.tiles;
-	int test = 0;
-
 	/* Follow along path to other flag. Test along the way
 	   whether the path is on ground or in water. */
 	map_pos_t pos = source;
+	int test = 0;
 
 	if (!MAP_HAS_OWNER(pos) || MAP_OWNER(pos) != player->player_num ||
 	    !MAP_HAS_FLAG(pos)) {
-		return -1;
+		return 0;
 	}
 
 	for (int i = 0; i < length; i++) {
@@ -2563,37 +2564,60 @@ game_build_road(map_pos_t source, const dir_t dirs[], uint length,
 
 		pos = MAP_MOVE(pos, dir);
 
-		if (!MAP_HAS_OWNER(pos) || MAP_OWNER(pos) != player->player_num) {
-			return -1;
+		/* Check that owner is correct, and that only the destination
+		   has a flag. */
+		if (!MAP_HAS_OWNER(pos) || MAP_OWNER(pos) != player->player_num ||
+		    (MAP_HAS_FLAG(pos) && i != length-1)) {
+			return 0;
 		}
 	}
 
-	map_pos_t dest = pos;
-	if (!MAP_HAS_FLAG(dest)) return -1;
-
-	flag_t *dest_flag = game_get_flag(MAP_OBJ_INDEX(dest));
+	map_pos_t d = pos;
+	if (dest != NULL) *dest = d;
 
 	/* Bit 0 indicates a ground path, bit 1 indicates
 	   water path. Abort if path went through both
 	   ground and water. */
-	int water_path = 0;
-	if (test != BIT(0)) {
-		water_path = 1;
-		if (test != BIT(1)) return -1;
+	int w = 0;
+	if (BIT_TEST(test, 1)) {
+		w = 1;
+		if (BIT_TEST(test, 0)) return 0;
 	}
+	if (water != NULL) *water = w;
+
+	return 1;
+}
+
+/* Construct a road spefified by a source and a list
+   of directions. */
+int
+game_build_road(map_pos_t source, const dir_t dirs[], uint length,
+		const player_t *player)
+{
+	if (length < 1) return -1;
+
+	map_pos_t dest;
+	int water_path;
+	int r = game_can_build_road(source, dirs, length,
+				    player, &dest, &water_path);
+	if (!r) return -1;
+	if (!MAP_HAS_FLAG(dest)) return -1;
+
+	map_tile_t *tiles = game.map.tiles;
 
 	dir_t out_dir = dirs[0];
 	dir_t in_dir = DIR_REVERSE(dirs[length-1]);
 
 	/* Actually place road segments */
-	pos = source;
+	map_pos_t pos = source;
 	for (int i = 0; i < length; i++) {
 		dir_t dir = dirs[i];
 		dir_t rev_dir = DIR_REVERSE(dir);
 
 		if (!game_road_segment_valid(pos, dir)) {
-			/* Not valid after all.
-			   Backtrack and abort. */
+			/* Not valid after all. Backtrack and abort.
+			   This is needed to check that the road
+			   does not cross itself. */
 			for (int j = i-1; j >= 0; j--) {
 				dir_t rev_dir = dirs[j];
 				dir_t dir = DIR_REVERSE(rev_dir);
@@ -2615,6 +2639,7 @@ game_build_road(map_pos_t source, const dir_t dirs[], uint length,
 
 	/* Connect flags */
 	flag_t *src_flag = game_get_flag(MAP_OBJ_INDEX(source));
+	flag_t *dest_flag = game_get_flag(MAP_OBJ_INDEX(dest));
 
 	dest_flag->path_con |= BIT(in_dir);
 	dest_flag->endpoint |= BIT(in_dir);
