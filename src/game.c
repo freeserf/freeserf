@@ -2250,7 +2250,7 @@ update_game_stats()
 		}
 		record_player_history(game.player, pl_count, update_level, 1,
 				      game.player_history_index, values);
-		game.player_score_leader |= BIT(calculate_clear_winner(4, values));
+		game.player_score_leader |= BIT(calculate_clear_winner(pl_count, values));
 
 		/* Store building stats in history. */
 		for (int i = 0; i < GAME_MAX_PLAYER_COUNT; i++) {
@@ -2270,7 +2270,7 @@ update_game_stats()
 		}
 		record_player_history(game.player, pl_count, update_level, 3,
 				      game.player_history_index, values);
-		game.player_score_leader |= BIT(calculate_clear_winner(4, values)) << 4;
+		game.player_score_leader |= BIT(calculate_clear_winner(pl_count, values)) << 4;
 
 		/* Store condensed score of all aspects in history. */
 		for (int i = 0; i < GAME_MAX_PLAYER_COUNT; i++) {
