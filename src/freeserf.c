@@ -862,6 +862,7 @@ main(int argc, char *argv[])
 
 	/* Clean up */
 	map_deinit();
+	viewport_map_deinit();
 	audio_cleanup();
 	sdl_deinit();
 	gfx_unload();
