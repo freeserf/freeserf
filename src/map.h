@@ -270,6 +270,7 @@ void map_init_dimensions(map_t *map);
 void map_init_minimap();
 
 void map_init();
+void map_deinit();
 void map_update();
 
 

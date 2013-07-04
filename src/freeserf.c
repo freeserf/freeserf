@@ -861,6 +861,7 @@ main(int argc, char *argv[])
 	LOGI("main", "Cleaning up...");
 
 	/* Clean up */
+	map_deinit();
 	audio_cleanup();
 	sdl_deinit();
 	gfx_unload();
