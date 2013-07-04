@@ -1160,7 +1160,10 @@ map_init_minimap()
 		11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11
 	};
 
+	if (game.minimap != NULL) free(game.minimap);
         game.minimap = malloc(game.map.rows * game.map.cols);
+	if (game.minimap == NULL) abort();
+
 	map_tile_t *tiles = game.map.tiles;
 	uint8_t *minimap = game.minimap;
 
@@ -1204,6 +1207,7 @@ map_init_dimensions(map_t *map)
 	map->dirs[DIR_UP_LEFT] = map->dirs[DIR_LEFT] | map->dirs[DIR_UP];
 
 	/* Allocate map */
+	if (map->tiles != NULL) free(map->tiles);
 	map->tiles = calloc(map->tile_count, sizeof(map_tile_t));
 	if (map->tiles == NULL) abort();
 }
@@ -1269,6 +1273,13 @@ map_init()
 	/* draw_progress_bar(1); */
 
 	/* game.svga |= BIT(5); */
+}
+
+void
+map_deinit()
+{
+	free(game.map.tiles);
+	free(game.minimap);
 }
 
 /* Change the height of a map position. */
