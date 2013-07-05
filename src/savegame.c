@@ -1021,6 +1021,7 @@ save_text_player_state(FILE *f)
 		save_text_write_array(f, "inventory_prio", player->inventory_prio, 26);
 		save_text_write_array(f, "attacking_buildings", player->attacking_buildings, 64);
 
+		save_text_write_value(f, "initial_supplies", player->initial_supplies);
 		save_text_write_value(f, "knights_to_spawn", player->knights_to_spawn);
 
 		save_text_write_value(f, "total_land_area", player->total_land_area);
@@ -1903,6 +1904,8 @@ load_text_player_section(section_t *section)
 				char *v = parse_array_value(&array);
 				player->attacking_buildings[i] = atoi(v);
 			}
+		} else if (!strcmp(s->key, "initial_supplies")) {
+			player->initial_supplies = atoi(s->value);
 		} else if (!strcmp(s->key, "knights_to_spawn")) {
 			player->knights_to_spawn = atoi(s->value);
 		} else if (!strcmp(s->key, "total_land_area")) {
