@@ -4316,12 +4316,7 @@ demolish_building(map_pos_t pos)
 						serf->state = SERF_STATE_ESCAPE_BUILDING;
 					} else {
 						/* Kill this serf. */
-						if (SERF_TYPE(serf) >= SERF_KNIGHT_0 &&
-						    SERF_TYPE(serf) <= SERF_KNIGHT_4) {
-							int score = 1 << (SERF_TYPE(serf)-SERF_KNIGHT_0);
-							player->total_military_score -= score;
-						}
-						player->serf_count[SERF_TYPE(serf)] -= 1;
+						serf_set_type(serf, SERF_DEAD);
 						game_free_serf(SERF_INDEX(serf));
 					}
 				}
