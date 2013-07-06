@@ -367,7 +367,6 @@ load_v0_map_state(FILE *f, const v0_map_t *map)
 			} else {
 				tiles[pos].resource = field_2_data[0];
 				tiles[pos].obj_index = 0;
-				tiles[pos].obj |= (field_2_data[1] & 0x80);
 			}
 
 			tiles[pos].serf_index = *(uint16_t *)&field_2_data[2];
@@ -1417,23 +1416,32 @@ save_text_map_state(FILE *f)
 
 			fprintf(f, "[map %i %i]\n", x, y);
 
-			save_text_write_value(f, "paths", MAP_PATHS(pos));
 			save_text_write_value(f, "height", MAP_HEIGHT(pos));
 			save_text_write_value(f, "type.up", MAP_TYPE_UP(pos));
 			save_text_write_value(f, "type.down", MAP_TYPE_DOWN(pos));
-			save_text_write_value(f, "object", MAP_OBJ(pos));
-			save_text_write_value(f, "serf_index", MAP_SERF_INDEX(pos));
+
+			if (MAP_PATHS(pos) != 0) {
+				save_text_write_value(f, "paths", MAP_PATHS(pos));
+			}
+
+			if (MAP_OBJ(pos) != MAP_OBJ_NONE) {
+				save_text_write_value(f, "object", MAP_OBJ(pos));
+			}
+
+			if (MAP_SERF_INDEX(pos) != 0) {
+				save_text_write_value(f, "serf_index", MAP_SERF_INDEX(pos));
+			}
 
 			if (MAP_OBJ(pos) >= MAP_OBJ_FLAG &&
 			    MAP_OBJ(pos) <= MAP_OBJ_CASTLE) {
 				save_text_write_value(f, "object_index", MAP_OBJ_INDEX(pos));
-			} else {
-				save_text_write_value(f, "idle_serf", MAP_IDLE_SERF(pos));
 			}
 
 			if (MAP_IN_WATER(pos)) {
-				save_text_write_value(f, "fish", MAP_RES_FISH(pos));
-			} else {
+				if (MAP_RES_FISH(pos) > 0) {
+					save_text_write_value(f, "fish", MAP_RES_FISH(pos));
+				}
+			} else if (MAP_RES_TYPE(pos) != GROUND_DEPOSIT_NONE) {
 				save_text_write_value(f, "resource.type", MAP_RES_TYPE(pos));
 				save_text_write_value(f, "resource.amount", MAP_RES_AMOUNT(pos));
 			}
@@ -2653,7 +2661,6 @@ load_text_map_section(section_t *section)
 	uint type_down = 0;
 	map_obj_t obj = MAP_OBJ_NONE;
 
-	uint idle_serf = 0;
 	uint fish = 0;
 	uint resource_type = 0;
 	uint resource_amount = 0;
@@ -2676,8 +2683,6 @@ load_text_map_section(section_t *section)
 			tiles[pos].serf_index = atoi(s->value);
 		} else if (!strcmp(s->key, "object_index")) {
 			tiles[pos].obj_index = atoi(s->value);
-		} else if (!strcmp(s->key, "idle_serf")) {
-			idle_serf = atoi(s->value);
 		} else if (!strcmp(s->key, "fish")) {
 			fish = atoi(s->value);
 		} else if (!strcmp(s->key, "resource.type")) {
@@ -2692,7 +2697,7 @@ load_text_map_section(section_t *section)
 	tiles[pos].paths = paths & 0x3f;
 	tiles[pos].height = height & 0x1f;
 	tiles[pos].type = ((type_up & 0xf) << 4) | (type_down & 0xf);
-	tiles[pos].obj = ((idle_serf & 1) << 7) | (obj & 0x7f);
+	tiles[pos].obj = obj & 0x7f;
 
 	if (MAP_IN_WATER(pos)) {
 		tiles[pos].resource = fish;
@@ -2713,6 +2718,17 @@ load_text_map_state(list_t *sections)
 		if (!strcmp(s->name, "map")) {
 			int r = load_text_map_section(s);
 			if (r < 0) return -1;
+		}
+	}
+
+	/* Restore idle serf flag */
+	for (int i = 1; i < game.max_serf_index; i++) {
+		if (!SERF_ALLOCATED(i)) continue;
+
+		serf_t *serf = game_get_serf(i);
+		if (serf->state == SERF_STATE_IDLE_ON_PATH ||
+		    serf->state == SERF_STATE_WAIT_IDLE_ON_PATH) {
+			game.map.tiles[serf->pos].obj |= BIT(7);
 		}
 	}
 
