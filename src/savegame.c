@@ -29,6 +29,9 @@
 #include "list.h"
 #include "debug.h"
 
+#define SAVE_MAP_TILE_SIZE   16
+#define SAVE_MAP_TILE_COUNT  (SAVE_MAP_TILE_SIZE*SAVE_MAP_TILE_SIZE)
+
 
 typedef struct {
 	uint rows, cols;
@@ -1415,36 +1418,52 @@ save_text_serf_state(FILE *f)
 static int
 save_text_map_state(FILE *f)
 {
-	for (int y = 0; y < game.map.rows; y++) {
-		for (int x = 0; x < game.map.cols; x++) {
-			map_pos_t pos = MAP_POS(x, y);
+	int height[SAVE_MAP_TILE_COUNT];
+	int type_up[SAVE_MAP_TILE_COUNT];
+	int type_down[SAVE_MAP_TILE_COUNT];
+	int paths[SAVE_MAP_TILE_COUNT];
+	int obj[SAVE_MAP_TILE_COUNT];
+	int serfs[SAVE_MAP_TILE_COUNT];
+	int resources[SAVE_MAP_TILE_COUNT];
+	int resource_type[SAVE_MAP_TILE_COUNT];
 
-			fprintf(f, "[map %i %i]\n", x, y);
+	for (int ty = 0; ty < game.map.rows; ty += SAVE_MAP_TILE_SIZE) {
+		for (int tx = 0; tx < game.map.cols; tx += SAVE_MAP_TILE_SIZE) {
+			map_pos_t pos = MAP_POS(tx, ty);
 
-			save_text_write_value(f, "height", MAP_HEIGHT(pos));
-			save_text_write_value(f, "type.up", MAP_TYPE_UP(pos));
-			save_text_write_value(f, "type.down", MAP_TYPE_DOWN(pos));
+			fprintf(f, "[map]\n");
 
-			if (MAP_PATHS(pos) != 0) {
-				save_text_write_value(f, "paths", MAP_PATHS(pos));
-			}
+			save_text_write_map_pos(f, "pos", pos);
 
-			if (MAP_OBJ(pos) != MAP_OBJ_NONE) {
-				save_text_write_value(f, "object", MAP_OBJ(pos));
-			}
+			for (int y = 0; y < SAVE_MAP_TILE_SIZE; y++) {
+				for (int x = 0; x < SAVE_MAP_TILE_SIZE; x++) {
+					map_pos_t pos = MAP_POS(tx+x, ty+y);
+					int i = y*SAVE_MAP_TILE_SIZE + x;
+					height[i] = MAP_HEIGHT(pos);
+					type_up[i] = MAP_TYPE_UP(pos);
+					type_down[i] = MAP_TYPE_DOWN(pos);
+					paths[i] = MAP_PATHS(pos);
+					obj[i] = MAP_OBJ(pos);
+					serfs[i] = MAP_SERF_INDEX(pos);
 
-			if (MAP_SERF_INDEX(pos) != 0) {
-				save_text_write_value(f, "serf", MAP_SERF_INDEX(pos));
-			}
-
-			if (MAP_IN_WATER(pos)) {
-				if (MAP_RES_FISH(pos) > 0) {
-					save_text_write_value(f, "fish", MAP_RES_FISH(pos));
+					if (MAP_IN_WATER(pos)) {
+						resource_type[i] = 0;
+						resources[i] = MAP_RES_FISH(pos);
+					} else {
+						resource_type[i] = MAP_RES_TYPE(pos);
+						resources[i] = MAP_RES_AMOUNT(pos);
+					}
 				}
-			} else if (MAP_RES_TYPE(pos) != GROUND_DEPOSIT_NONE) {
-				save_text_write_value(f, "resource.type", MAP_RES_TYPE(pos));
-				save_text_write_value(f, "resource.amount", MAP_RES_AMOUNT(pos));
 			}
+
+			save_text_write_array(f, "height", height, SAVE_MAP_TILE_COUNT);
+			save_text_write_array(f, "type.up", type_up, SAVE_MAP_TILE_COUNT);
+			save_text_write_array(f, "type.down", type_down, SAVE_MAP_TILE_COUNT);
+			save_text_write_array(f, "paths", paths, SAVE_MAP_TILE_COUNT);
+			save_text_write_array(f, "object", obj, SAVE_MAP_TILE_COUNT);
+			save_text_write_array(f, "serf", serfs, SAVE_MAP_TILE_COUNT);
+			save_text_write_array(f, "resource.type", resource_type, SAVE_MAP_TILE_COUNT);
+			save_text_write_array(f, "resource.amount", resources, SAVE_MAP_TILE_COUNT);
 
 			fprintf(f, "\n");
 		}
@@ -2638,71 +2657,102 @@ load_text_serf_state(list_t *sections)
 static int
 load_text_map_section(section_t *section)
 {
-	char *param = section->param;
+	char *value = load_text_get_setting(section, "pos");
+	if (value == NULL) return -1;
 
-	/* Parse map position. */
-	int col = atoi(param);
-	if (col < 0 || col >= game.map.cols) return -1;
+	map_pos_t pos = parse_map_pos(value);
 
-	while (!isspace(*param) && *param != '\0') param += 1;
-	while (isspace(*param) && *param != '\0') param += 1;
-	if (*param == '\0') return -1;
-
-	int row = atoi(param);
-	if (row < 0 || row >= game.map.rows) return -1;
-
-	map_pos_t pos = MAP_POS(col,row);
 	map_tile_t *tiles = game.map.tiles;
-
-	uint paths = 0;
-	uint height = 0;
-	uint type_up = 0;
-	uint type_down = 0;
-	map_obj_t obj = MAP_OBJ_NONE;
-
-	uint fish = 0;
-	uint resource_type = 0;
-	uint resource_amount = 0;
 
 	/* Load the map tile. */
 	list_elm_t *elm;
 	list_foreach(&section->settings, elm) {
 		setting_t *s = (setting_t *)elm;
-		if (!strcmp(s->key, "paths")) {
-			paths = atoi(s->value);
+		if (!strcmp(s->key, "pos")) {
+			/* Already handled */
+		} else if (!strcmp(s->key, "paths")) {
+			char *array = s->value;
+			for (int y = 0; y < SAVE_MAP_TILE_SIZE; y++) {
+				for (int x = 0; x < SAVE_MAP_TILE_SIZE; x++) {
+					if (array == NULL) return -1;
+					map_pos_t p = MAP_POS_ADD(pos, MAP_POS(x, y));
+					char *v = parse_array_value(&array);
+					tiles[p].paths = atoi(v) & 0x3f;
+				}
+			}
 		} else if (!strcmp(s->key, "height")) {
-			height = atoi(s->value);
+			char *array = s->value;
+			for (int y = 0; y < SAVE_MAP_TILE_SIZE; y++) {
+				for (int x = 0; x < SAVE_MAP_TILE_SIZE; x++) {
+					if (array == NULL) return -1;
+					map_pos_t p = MAP_POS_ADD(pos, MAP_POS(x, y));
+					char *v = parse_array_value(&array);
+					tiles[p].height = atoi(v) & 0x1f;
+				}
+			}
 		} else if (!strcmp(s->key, "type.up")) {
-			type_up = atoi(s->value);
+			char *array = s->value;
+			for (int y = 0; y < SAVE_MAP_TILE_SIZE; y++) {
+				for (int x = 0; x < SAVE_MAP_TILE_SIZE; x++) {
+					if (array == NULL) return -1;
+					map_pos_t p = MAP_POS_ADD(pos, MAP_POS(x, y));
+					char *v = parse_array_value(&array);
+					tiles[p].type = ((atoi(v) & 0xf) << 4) | (tiles[p].type & 0xf);
+				}
+			}
 		} else if (!strcmp(s->key, "type.down")) {
-			type_down = atoi(s->value);
+			char *array = s->value;
+			for (int y = 0; y < SAVE_MAP_TILE_SIZE; y++) {
+				for (int x = 0; x < SAVE_MAP_TILE_SIZE; x++) {
+					if (array == NULL) return -1;
+					map_pos_t p = MAP_POS_ADD(pos, MAP_POS(x, y));
+					char *v = parse_array_value(&array);
+					tiles[p].type = (tiles[p].type & 0xf0) | (atoi(v) & 0xf);
+				}
+			}
 		} else if (!strcmp(s->key, "object")) {
-			obj = atoi(s->value);
+			char *array = s->value;
+			for (int y = 0; y < SAVE_MAP_TILE_SIZE; y++) {
+				for (int x = 0; x < SAVE_MAP_TILE_SIZE; x++) {
+					if (array == NULL) return -1;
+					map_pos_t p = MAP_POS_ADD(pos, MAP_POS(x, y));
+					char *v = parse_array_value(&array);
+					tiles[p].obj = atoi(v) & 0x7f;
+				}
+			}
 		} else if (!strcmp(s->key, "serf")) {
-			tiles[pos].serf = atoi(s->value);
-		} else if (!strcmp(s->key, "fish")) {
-			fish = atoi(s->value);
+			char *array = s->value;
+			for (int y = 0; y < SAVE_MAP_TILE_SIZE; y++) {
+				for (int x = 0; x < SAVE_MAP_TILE_SIZE; x++) {
+					if (array == NULL) return -1;
+					map_pos_t p = MAP_POS_ADD(pos, MAP_POS(x, y));
+					char *v = parse_array_value(&array);
+					tiles[p].serf = atoi(v);
+				}
+			}
 		} else if (!strcmp(s->key, "resource.type")) {
-			resource_type = atoi(s->value);
+			char *array = s->value;
+			for (int y = 0; y < SAVE_MAP_TILE_SIZE; y++) {
+				for (int x = 0; x < SAVE_MAP_TILE_SIZE; x++) {
+					if (array == NULL) return -1;
+					map_pos_t p = MAP_POS_ADD(pos, MAP_POS(x, y));
+					char *v = parse_array_value(&array);
+					tiles[p].resource = ((atoi(v) & 7) << 5) | (tiles[p].resource & 0x1f);
+				}
+			}
 		} else if (!strcmp(s->key, "resource.amount")) {
-			resource_amount = atoi(s->value);
+			char *array = s->value;
+			for (int y = 0; y < SAVE_MAP_TILE_SIZE; y++) {
+				for (int x = 0; x < SAVE_MAP_TILE_SIZE; x++) {
+					if (array == NULL) return -1;
+					map_pos_t p = MAP_POS_ADD(pos, MAP_POS(x, y));
+					char *v = parse_array_value(&array);
+					tiles[p].resource = (tiles[p].resource & 0xe0) | (atoi(v) & 0x1f);
+				}
+			}
 		} else {
 			LOGD("savegame", "Unhandled map setting: `%s'.", s->key);
 		}
-	}
-
-	tiles[pos].paths = paths & 0x3f;
-	tiles[pos].height = height & 0x1f;
-	tiles[pos].type = ((type_up & 0xf) << 4) | (type_down & 0xf);
-	tiles[pos].obj = obj & 0x7f;
-
-	tiles[pos].obj_index = 0;
-
-	if (MAP_IN_WATER(pos)) {
-		tiles[pos].resource = fish;
-	} else {
-		tiles[pos].resource = ((resource_type & 7) << 5) |
-			(resource_amount & 0x1f);
 	}
 
 	return 0;
