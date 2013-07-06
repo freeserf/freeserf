@@ -5294,6 +5294,7 @@ game_load_save_game(const char *path)
 	if (r < 0) return -1;
 
 	init_spiral_pos_pattern();
+	game_init_land_ownership();
 	map_init_minimap();
 
 	return 0;

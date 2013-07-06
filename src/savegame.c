@@ -278,7 +278,6 @@ load_v0_player_state(FILE *f)
 		player->knights_to_spawn = *(uint16_t *)&data[396];
 		/*player->field_110 = *(uint16_t *)&data[400];*/
 
-		player->total_land_area = *(uint32_t *)&data[402];
 		player->total_building_score = *(uint32_t *)&data[406];
 		player->total_military_score = *(uint32_t *)&data[410];
 
@@ -357,7 +356,7 @@ load_v0_map_state(FILE *f, const v0_map_t *map)
 			uint8_t *field_2_data = &data[4*(x + (y << map->row_shift)) + 4*map->cols];
 
 			tiles[pos].paths = field_1_data[0] & 0x3f;
-			tiles[pos].height = field_1_data[1];
+			tiles[pos].height = field_1_data[1] & 0x1f;
 			tiles[pos].type = field_1_data[2];
 			tiles[pos].obj = field_1_data[3] & 0x7f;
 
@@ -1024,7 +1023,6 @@ save_text_player_state(FILE *f)
 		save_text_write_value(f, "initial_supplies", player->initial_supplies);
 		save_text_write_value(f, "knights_to_spawn", player->knights_to_spawn);
 
-		save_text_write_value(f, "total_land_area", player->total_land_area);
 		save_text_write_value(f, "total_building_score", player->total_building_score);
 		save_text_write_value(f, "total_military_score", player->total_military_score);
 
@@ -1420,8 +1418,6 @@ save_text_map_state(FILE *f)
 			fprintf(f, "[map %i %i]\n", x, y);
 
 			save_text_write_value(f, "paths", MAP_PATHS(pos));
-			save_text_write_value(f, "has_owner", MAP_HAS_OWNER(pos));
-			save_text_write_value(f, "owner", MAP_OWNER(pos));
 			save_text_write_value(f, "height", MAP_HEIGHT(pos));
 			save_text_write_value(f, "type.up", MAP_TYPE_UP(pos));
 			save_text_write_value(f, "type.down", MAP_TYPE_DOWN(pos));
@@ -1908,8 +1904,6 @@ load_text_player_section(section_t *section)
 			player->initial_supplies = atoi(s->value);
 		} else if (!strcmp(s->key, "knights_to_spawn")) {
 			player->knights_to_spawn = atoi(s->value);
-		} else if (!strcmp(s->key, "total_land_area")) {
-			player->total_land_area = atoi(s->value);
 		} else if (!strcmp(s->key, "total_building_score")) {
 			player->total_building_score = atoi(s->value);
 		} else if (!strcmp(s->key, "total_military_score")) {
@@ -2654,8 +2648,6 @@ load_text_map_section(section_t *section)
 	map_tile_t *tiles = game.map.tiles;
 
 	uint paths = 0;
-	uint has_owner = 0;
-	uint owner = 0;
 	uint height = 0;
 	uint type_up = 0;
 	uint type_down = 0;
@@ -2672,10 +2664,6 @@ load_text_map_section(section_t *section)
 		setting_t *s = (setting_t *)elm;
 		if (!strcmp(s->key, "paths")) {
 			paths = atoi(s->value);
-		} else if (!strcmp(s->key, "has_owner")) {
-			has_owner = atoi(s->value);
-		} else if (!strcmp(s->key, "owner")) {
-			owner = atoi(s->value);
 		} else if (!strcmp(s->key, "height")) {
 			height = atoi(s->value);
 		} else if (!strcmp(s->key, "type.up")) {
@@ -2702,8 +2690,7 @@ load_text_map_section(section_t *section)
 	}
 
 	tiles[pos].paths = paths & 0x3f;
-	tiles[pos].height = ((has_owner & 1) << 7) |
-		((owner & 3) << 5) | (height & 0x1f);
+	tiles[pos].height = height & 0x1f;
 	tiles[pos].type = ((type_up & 0xf) << 4) | (type_down & 0xf);
 	tiles[pos].obj = ((idle_serf & 1) << 7) | (obj & 0x7f);
 
