@@ -42,9 +42,9 @@ load_v0_map_pos(const v0_map_t *map, uint32_t value)
 		       (value >> (2 + map->row_shift)) & (map->rows-1));
 }
 
-/* Load global state from save game. */
+/* Load main game state from save game. */
 static int
-load_v0_globals_state(FILE *f, v0_map_t *map)
+load_v0_game_state(FILE *f, v0_map_t *map)
 {
 	uint8_t *data = malloc(210);
 	if (data == NULL) return -1;
@@ -369,7 +369,7 @@ load_v0_map_state(FILE *f, const v0_map_t *map)
 				tiles[pos].obj_index = 0;
 			}
 
-			tiles[pos].serf_index = *(uint16_t *)&field_2_data[2];
+			tiles[pos].serf = *(uint16_t *)&field_2_data[2];
 		}
 	}
 
@@ -883,7 +883,7 @@ load_v0_state(FILE *f)
 	int r;
 	v0_map_t map;
 
-	r = load_v0_globals_state(f, &map);
+	r = load_v0_game_state(f, &map);
 	if (r < 0) return -1;
 
 	r = load_v0_player_state(f);
@@ -941,9 +941,9 @@ save_text_write_array(FILE *f, const char *name,
 }
 
 static int
-save_text_globals_state(FILE *f)
+save_text_game_state(FILE *f)
 {
-	fprintf(f, "[globals]\n");
+	fprintf(f, "[game]\n");
 
 	save_text_write_string(f, "version", FREESERF_VERSION);
 
@@ -1434,12 +1434,7 @@ save_text_map_state(FILE *f)
 			}
 
 			if (MAP_SERF_INDEX(pos) != 0) {
-				save_text_write_value(f, "serf_index", MAP_SERF_INDEX(pos));
-			}
-
-			if (MAP_OBJ(pos) >= MAP_OBJ_FLAG &&
-			    MAP_OBJ(pos) <= MAP_OBJ_CASTLE) {
-				save_text_write_value(f, "object_index", MAP_OBJ_INDEX(pos));
+				save_text_write_value(f, "serf", MAP_SERF_INDEX(pos));
 			}
 
 			if (MAP_IN_WATER(pos)) {
@@ -1463,7 +1458,7 @@ save_text_state(FILE *f)
 {
 	int r;
 
-	r = save_text_globals_state(f);
+	r = save_text_game_state(f);
 	if (r < 0) return -1;
 
 	r = save_text_player_state(f);
@@ -1715,16 +1710,16 @@ parse_array_value(char **str)
 }
 
 static int
-load_text_global_state(list_t *sections)
+load_text_game_state(list_t *sections)
 {
 	const char *value;
 
-	/* Find the globals section */
+	/* Find the game section */
 	section_t *section = NULL;
 	list_elm_t *elm;
 	list_foreach(sections, elm) {
 		section_t *s = (section_t *)elm;
-		if (!strcmp(s->name, "globals")) {
+		if (!strcmp(s->name, "game")) {
 			section = s;
 			break;
 		}
@@ -1749,7 +1744,7 @@ load_text_global_state(list_t *sections)
 	game.map.rows = 1 << game.map.row_size;
 	map_init_dimensions(&game.map);
 
-	/* Load the remaining global state. */
+	/* Load the remaining game state. */
 	list_foreach(&section->settings, elm) {
 		setting_t *s = (setting_t *)elm;
 		if (!strcmp(s->key, "version")) {
@@ -1824,7 +1819,7 @@ load_text_global_state(list_t *sections)
 		} else if (!strcmp(s->key, "player_score_leader")) {
 			game.player_score_leader = atoi(s->value);
 		} else {
-			LOGD("savegame", "Unhandled global setting: `%s'.", s->key);
+			LOGD("savegame", "Unhandled game setting: `%s'.", s->key);
 		}
 	}
 
@@ -2683,10 +2678,8 @@ load_text_map_section(section_t *section)
 			type_down = atoi(s->value);
 		} else if (!strcmp(s->key, "object")) {
 			obj = atoi(s->value);
-		} else if (!strcmp(s->key, "serf_index")) {
-			tiles[pos].serf_index = atoi(s->value);
-		} else if (!strcmp(s->key, "object_index")) {
-			tiles[pos].obj_index = atoi(s->value);
+		} else if (!strcmp(s->key, "serf")) {
+			tiles[pos].serf = atoi(s->value);
 		} else if (!strcmp(s->key, "fish")) {
 			fish = atoi(s->value);
 		} else if (!strcmp(s->key, "resource.type")) {
@@ -2702,6 +2695,8 @@ load_text_map_section(section_t *section)
 	tiles[pos].height = height & 0x1f;
 	tiles[pos].type = ((type_up & 0xf) << 4) | (type_down & 0xf);
 	tiles[pos].obj = obj & 0x7f;
+
+	tiles[pos].obj_index = 0;
 
 	if (MAP_IN_WATER(pos)) {
 		tiles[pos].resource = fish;
@@ -2736,6 +2731,31 @@ load_text_map_state(list_t *sections)
 		}
 	}
 
+	/* Restore building index */
+	for (int i = 1; i < game.max_building_index; i++) {
+		if (!BUILDING_ALLOCATED(i)) continue;
+
+		building_t *building = game_get_building(i);
+		if (MAP_OBJ(building->pos) < MAP_OBJ_SMALL_BUILDING ||
+		    MAP_OBJ(building->pos) > MAP_OBJ_CASTLE) {
+			return -1;
+		}
+
+		game.map.tiles[building->pos].obj_index = BUILDING_INDEX(building);
+	}
+
+	/* Restore flag index */
+	for (int i = 1; i < game.max_flag_index; i++) {
+		if (!FLAG_ALLOCATED(i)) continue;
+
+		flag_t *flag = game_get_flag(i);
+		if (MAP_OBJ(flag->pos) != MAP_OBJ_FLAG) {
+			return -1;
+		}
+
+		game.map.tiles[flag->pos].obj_index = FLAG_INDEX(flag);
+	}
+
 	return 0;
 }
 
@@ -2749,9 +2769,9 @@ load_text_state(FILE *f)
 
 	load_text_parse(f, &sections);
 
-	r = load_text_global_state(&sections);
+	r = load_text_game_state(&sections);
 	if (r < 0) {
-		LOGD("savegame", "Error loading globals state");
+		LOGD("savegame", "Error loading game state");
 		goto error;
 	}
 

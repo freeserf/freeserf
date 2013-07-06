@@ -1335,7 +1335,7 @@ void
 map_set_serf_index(map_pos_t pos, int index)
 {
 	map_tile_t *tiles = game.map.tiles;
-	tiles[pos].serf_index = index;
+	tiles[pos].serf = index;
 
 	/* TODO Mark dirty in viewport. */
 }

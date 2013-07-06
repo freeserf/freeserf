@@ -72,7 +72,7 @@
 #define MAP_RES_TYPE(pos)  ((ground_deposit_t)((game.map.tiles[(pos)].resource >> 5) & 7))
 #define MAP_RES_AMOUNT(pos)  ((uint)(game.map.tiles[(pos)].resource & 0x1f))
 #define MAP_RES_FISH(pos)  ((uint)game.map.tiles[(pos)].resource)
-#define MAP_SERF_INDEX(pos)  ((uint)game.map.tiles[(pos)].serf_index)
+#define MAP_SERF_INDEX(pos)  ((uint)game.map.tiles[(pos)].serf)
 
 
 #define MAP_HAS_FLAG(pos)  (MAP_OBJ(pos) == MAP_OBJ_FLAG)
@@ -231,7 +231,7 @@ typedef struct {
 	uint8_t obj;
 	uint16_t obj_index;
 	uint8_t resource;
-	uint16_t serf_index;
+	uint16_t serf;
 } map_tile_t;
 
 
