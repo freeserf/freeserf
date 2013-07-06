@@ -819,7 +819,7 @@ send_serf_to_road(flag_t *src, dir_t dir, int water)
 		inventory->spawn_priority -= 1;
 	}
 
-	inventory->serfs[SERF_4] += 1;
+	inventory->serfs_out += 1;
 	flag_t *dest_flag = game_get_flag(inventory->flag);
 
 	src->length[dir] |= BIT(7);
@@ -1234,7 +1234,7 @@ send_serf_to_flag_search_cb(flag_t *flag, send_serf_to_flag_data_t *data)
 				serf->s.ready_to_leave_inventory.dest = data->building->flag;
 				serf->s.ready_to_leave_inventory.inv_index = INVENTORY_INDEX(inv);
 
-				inv->serfs[SERF_4] += 1;
+				inv->serfs_out += 1;
 
 				return 1;
 			} else if (type == -1) {
@@ -1270,7 +1270,7 @@ send_serf_to_flag_search_cb(flag_t *flag, send_serf_to_flag_data_t *data)
 						serf->s.ready_to_leave_inventory.mode = -1;
 					}
 
-					inv->serfs[SERF_4] += 1;
+					inv->serfs_out += 1;
 					return 1;
 				}
 			} else {
@@ -1338,7 +1338,7 @@ send_serf_to_flag(flag_t *dest, int type, resource_type_t res1, resource_type_t 
 
 			inventory->resources[RESOURCE_SWORD] -= 1;
 			inventory->resources[RESOURCE_SHIELD] -= 1;
-			inventory->serfs[SERF_4] += 1;
+			inventory->serfs_out += 1;
 		} else {
 			serf_log_state_change(serf, SERF_STATE_READY_TO_LEAVE_INVENTORY);
 			serf->state = SERF_STATE_READY_TO_LEAVE_INVENTORY;
@@ -1357,7 +1357,7 @@ send_serf_to_flag(flag_t *dest, int type, resource_type_t res1, resource_type_t 
 			if (res1 != -1) inventory->resources[res1] -= 1;
 			if (res2 != -1) inventory->resources[res2] -= 1;
 
-			inventory->serfs[SERF_4] += 1;
+			inventory->serfs_out += 1;
 		}
 
 		return 0;

@@ -203,6 +203,8 @@ struct inventory {
 		resource_type_t type;
 		uint dest;
 	} out_queue[2];
+	/* Count of serfs waiting to move out */
+	uint serfs_out;
 	int spawn_priority;
 	/* Count of serfs */
 	int serfs[27];
