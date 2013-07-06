@@ -192,12 +192,19 @@ typedef struct inventory inventory_t;
 struct inventory {
 	int player_num;
 	int res_dir;
-	int flg_index;
-	int bld_index;
+	/* Index of flag connected to this inventory */
+	int flag;
+	/* Index of building containing this inventory */
+	int building;
+	/* Count of resources */
 	int resources[26];
-	int out_queue[2];
-	int out_dest[2];
+	/* Resources waiting to be moved out */
+	struct {
+		resource_type_t type;
+		uint dest;
+	} out_queue[2];
 	int spawn_priority;
+	/* Count of serfs */
 	int serfs[27];
 };
 

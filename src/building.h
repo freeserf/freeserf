@@ -102,11 +102,16 @@ typedef struct {
 typedef struct building building_t;
 
 struct building {
+	/* Map position of building */
 	map_pos_t pos;
+	/* Type of building */
 	building_type_t type;
+	/* Flags */
 	int bld;
 	int serf;
-	int flg_index;
+	/* Index of flag connected to this building */
+	int flag;
+	/* Stock of this building */
 	building_stock_t stock[BUILDING_MAX_STOCK];
 	int serf_index; /* Also used for burning building counter. */
 	int progress;

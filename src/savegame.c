@@ -705,7 +705,7 @@ load_v0_building_state(FILE *f, const v0_map_t *map)
 		building->type = (building_data[4] >> 2) & 0x1f;
 		building->bld = building_data[4] & 0x83;
 		building->serf = building_data[5];
-		building->flg_index = *(uint16_t *)&building_data[6];
+		building->flag = *(uint16_t *)&building_data[6];
 
 		building->stock[0].type = RESOURCE_NONE;
 		building->stock[0].available = (building_data[8] >> 4) & 0xf;
@@ -852,16 +852,16 @@ load_v0_inventory_state(FILE *f)
 
 		inventory->player_num = inventory_data[0];
 		inventory->res_dir = inventory_data[1];
-		inventory->flg_index = *(uint16_t *)&inventory_data[2];
-		inventory->bld_index = *(uint16_t *)&inventory_data[4];
+		inventory->flag = *(uint16_t *)&inventory_data[2];
+		inventory->building = *(uint16_t *)&inventory_data[4];
 
 		for (int j = 0; j < 26; j++) {
 			inventory->resources[j] = *(uint16_t *)&inventory_data[6+2*j];
 		}
 
 		for (int j = 0; j < 2; j++) {
-			inventory->out_queue[j] = inventory_data[58+j]-1;
-			inventory->out_dest[j] = *(uint16_t *)&inventory_data[60+2*j];
+			inventory->out_queue[j].type = inventory_data[58+j]-1;
+			inventory->out_queue[j].dest = *(uint16_t *)&inventory_data[60+2*j];
 		}
 
 		inventory->spawn_priority = *(uint16_t *)&inventory_data[64];
@@ -1137,7 +1137,7 @@ save_text_building_state(FILE *f)
 			save_text_write_value(f, "type", building->type);
 			save_text_write_value(f, "bld", building->bld);
 			save_text_write_value(f, "serf", building->serf);
-			save_text_write_value(f, "flag_index", building->flg_index);
+			save_text_write_value(f, "flag", building->flag);
 
 			save_text_write_value(f, "stock[0].type", building->stock[0].type);
 			save_text_write_value(f, "stock[0].prio", building->stock[0].prio);
@@ -1185,11 +1185,16 @@ save_text_inventory_state(FILE *f)
 
 			save_text_write_value(f, "player", inventory->player_num);
 			save_text_write_value(f, "res_dir", inventory->res_dir);
-			save_text_write_value(f, "flag", inventory->flg_index);
-			save_text_write_value(f, "building", inventory->bld_index);
+			save_text_write_value(f, "flag", inventory->flag);
+			save_text_write_value(f, "building", inventory->building);
 
-			save_text_write_array(f, "queue.type", inventory->out_queue, 2);
-			save_text_write_array(f, "queue.dest", inventory->out_dest, 2);
+			resource_type_t types[2];
+			for (int i = 0; i < 2; i++) types[i] = inventory->out_queue[i].type;
+			save_text_write_array(f, "queue.type", types, 2);
+
+			int dests[2];
+			for (int i = 0; i < 2; i++) dests[i] = inventory->out_queue[i].dest;
+			save_text_write_array(f, "queue.dest", dests, 2);
 
 			save_text_write_value(f, "spawn_priority", inventory->spawn_priority);
 
@@ -2134,8 +2139,8 @@ load_text_building_section(section_t *section)
 			building->bld = atoi(s->value);
 		} else if (!strcmp(s->key, "serf")) {
 			building->serf = atoi(s->value);
-		} else if (!strcmp(s->key, "flag_index")) {
-			building->flg_index = atoi(s->value);
+		} else if (!strcmp(s->key, "flag")) {
+			building->flag = atoi(s->value);
 		} else if (!strcmp(s->key, "stock[0].type")) {
 			building->stock[0].type = atoi(s->value);
 		} else if (!strcmp(s->key, "stock[0].prio")) {
@@ -2212,8 +2217,7 @@ load_text_building_state(list_t *sections)
 			/* Restore pointer to castle flag */
 			building_t *building = game_get_building(i);
 			if (BUILDING_TYPE(building) == BUILDING_CASTLE) {
-				game.player[BUILDING_PLAYER(building)]->castle_flag =
-					building->flg_index;
+				game.player[BUILDING_PLAYER(building)]->castle_flag = building->flag;
 			}
 		}
 	}
@@ -2240,20 +2244,20 @@ load_text_inventory_section(section_t *section)
 		} else if (!strcmp(s->key, "res_dir")) {
 			inventory->res_dir = atoi(s->value);
 		} else if (!strcmp(s->key, "flag")) {
-			inventory->flg_index = atoi(s->value);
+			inventory->flag = atoi(s->value);
 		} else if (!strcmp(s->key, "building")) {
-			inventory->bld_index = atoi(s->value);
+			inventory->building = atoi(s->value);
 		} else if (!strcmp(s->key, "queue.type")) {
 			char *array = s->value;
 			for (int i = 0; i < 2 && array != NULL; i++) {
 				char *v = parse_array_value(&array);
-				inventory->out_queue[i] = atoi(v);
+				inventory->out_queue[i].type = atoi(v);
 			}
 		} else if (!strcmp(s->key, "queue.dest")) {
 			char *array = s->value;
 			for (int i = 0; i < 2 && array != NULL; i++) {
 				char *v = parse_array_value(&array);
-				inventory->out_dest[i] = atoi(v);
+				inventory->out_queue[i].dest = atoi(v);
 			}
 		} else if (!strcmp(s->key, "spawn_priority")) {
 			inventory->spawn_priority = atoi(s->value);

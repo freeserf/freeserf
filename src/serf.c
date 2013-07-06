@@ -535,7 +535,7 @@ flag_search_inventory_search_cb(flag_t *flag, int *dest_index)
 {
 	if (FLAG_ACCEPTS_SERFS(flag)) {
 		building_t *building = flag->other_endpoint.b[DIR_UP_LEFT];
-		*dest_index = building->flg_index;
+		*dest_index = building->flag;
 		return 1;
 	}
 
@@ -1766,7 +1766,7 @@ handle_serf_building_state(serf_t *serf)
 					break;
 				}
 
-				flag_t *flag = game_get_flag(building->flg_index);
+				flag_t *flag = game_get_flag(building->flag);
 
 				building->stock[0].type = RESOURCE_NONE;
 				building->stock[1].type = RESOURCE_NONE;
@@ -1870,7 +1870,7 @@ handle_serf_building_castle_state(serf_t *serf)
 	serf->tick = game.tick;
 
 	inventory_t *inventory = game_get_inventory(serf->s.building_castle.inv_index);
-	building_t *building = game_get_building(inventory->bld_index);
+	building_t *building = game_get_building(inventory->building);
 	building->progress += progress_delta;
 
 	if (building->progress >= 0x10000) { /* Finished */
@@ -1934,19 +1934,19 @@ handle_serf_wait_for_resource_out_state(serf_t *serf)
 	building_t *building = game_get_building(MAP_OBJ_INDEX(serf->pos));
 	inventory_t *inventory = building->u.inventory;
 	if (inventory->serfs[SERF_4] != 0 ||
-	    inventory->out_queue[0] == RESOURCE_NONE) {
+	    inventory->out_queue[0].type == RESOURCE_NONE) {
 		return;
 	}
 
 	serf_log_state_change(serf, SERF_STATE_MOVE_RESOURCE_OUT);
 	serf->state = SERF_STATE_MOVE_RESOURCE_OUT;
-	serf->s.move_resource_out.res = inventory->out_queue[0] + 1;
-	serf->s.move_resource_out.res_dest = inventory->out_dest[0];
+	serf->s.move_resource_out.res = inventory->out_queue[0].type + 1;
+	serf->s.move_resource_out.res_dest = inventory->out_queue[0].dest;
 	serf->s.move_resource_out.next_state = SERF_STATE_DROP_RESOURCE_OUT;
 
-	inventory->out_queue[0] = inventory->out_queue[1];
-	inventory->out_queue[1] = RESOURCE_NONE;
-	inventory->out_dest[0] = inventory->out_dest[1];
+	inventory->out_queue[0].type = inventory->out_queue[1].type;
+	inventory->out_queue[1].type = RESOURCE_NONE;
+	inventory->out_queue[0].dest = inventory->out_queue[1].dest;
 
 	/*handle_serf_move_resource_out_state(serf);*//* why isn't a state switch enough? */
 }

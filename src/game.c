@@ -114,7 +114,7 @@ game_alloc_building(building_t **building, int *index)
 		building_t *b = &game.buildings[i];
 		b->type = BUILDING_NONE;
 		b->bld = 0;
-		b->flg_index = 0;
+		b->flag = 0;
 		b->serf = 0;
 
 		for (int j = 0; j < BUILDING_MAX_STOCK; j++) {
@@ -175,8 +175,8 @@ game_alloc_inventory(inventory_t **inventory, int *index)
 		inventory_t *iv = &game.inventories[i];
 		memset(iv, 0, sizeof(inventory_t));
 
-		iv->out_queue[0] = RESOURCE_NONE;
-		iv->out_queue[1] = RESOURCE_NONE;
+		iv->out_queue[0].type = RESOURCE_NONE;
+		iv->out_queue[1].type = RESOURCE_NONE;
 
 		if (inventory != NULL) *inventory = iv;
 		if (index != NULL) *index = i;
@@ -300,7 +300,7 @@ spawn_serf(player_t *player, serf_t **serf, inventory_t **inventory, int want_kn
 		else return -1;
 	}
 
-	building = game_get_building(inv->bld_index);
+	building = game_get_building(inv->building);
 	inv->spawn_priority += 1;
 
 	player->serf_count[SERF_GENERIC] += 1;
@@ -530,12 +530,12 @@ inventory_add_to_queue(inventory_t *inventory, resource_type_t type, uint dest)
 	assert(inventory->resources[type] != 0);
 
 	inventory->resources[type] -= 1;
-	if (inventory->out_queue[0] == RESOURCE_NONE) {
-		inventory->out_queue[0] = type;
-		inventory->out_dest[0] = dest;
+	if (inventory->out_queue[0].type == RESOURCE_NONE) {
+		inventory->out_queue[0].type = type;
+		inventory->out_queue[0].dest = dest;
 	} else {
-		inventory->out_queue[1] = type;
-		inventory->out_dest[1] = dest;
+		inventory->out_queue[1].type = type;
+		inventory->out_queue[1].dest = dest;
 	}
 }
 
@@ -640,7 +640,7 @@ update_inventories()
 
 				inventory_t *inventory = game_get_inventory(i);
 				if (inventory->player_num == p &&
-				    inventory->out_queue[1] == RESOURCE_NONE) {
+				    inventory->out_queue[1].type == RESOURCE_NONE) {
 					int res_dir = inventory->res_dir & 3;
 					if (res_dir == 0 || res_dir == 1) { /* In mode, stop mode */
 						if (arr[0] == RESOURCE_GROUP_FOOD) {
@@ -685,7 +685,7 @@ update_inventories()
 			for (int i = 0; i < n; i++) {
 				max_prio[i] = 0;
 				flags[i] = NULL;
-				flag_t *flag = game_get_flag(invs[i]->flg_index);
+				flag_t *flag = game_get_flag(invs[i]->flag);
 				flag->search_dir = i;
 				flag_search_add_source(&search, flag);
 			}
@@ -731,7 +731,7 @@ update_inventories()
 					}
 
 					/* Put resource in out queue */
-					inventory_add_to_queue(src_inv, res, dest_bld->flg_index);
+					inventory_add_to_queue(src_inv, res, dest_bld->flag);
 				}
 			}
 		}
@@ -820,7 +820,7 @@ send_serf_to_road(flag_t *src, dir_t dir, int water)
 	}
 
 	inventory->serfs[SERF_4] += 1;
-	flag_t *dest_flag = game_get_flag(inventory->flg_index);
+	flag_t *dest_flag = game_get_flag(inventory->flag);
 
 	src->length[dir] |= BIT(7);
 	src_2->length[dir_2] |= BIT(7);
@@ -1068,7 +1068,7 @@ schedule_slot_to_unknown_dest(flag_t *flag, int slot)
 			dest_bld->stock[stock].prio = prio >> 1;
 			dest_bld->stock[stock].requested += 1;
 
-			flag->slot[slot].dest = dest_bld->flg_index;
+			flag->slot[slot].dest = dest_bld->flag;
 			flag->endpoint |= BIT(7);
 			return;
 		}
@@ -1231,7 +1231,7 @@ send_serf_to_flag_search_cb(flag_t *flag, send_serf_to_flag_data_t *data)
 				serf_log_state_change(serf, SERF_STATE_READY_TO_LEAVE_INVENTORY);
 				serf->state = SERF_STATE_READY_TO_LEAVE_INVENTORY;
 				serf->s.ready_to_leave_inventory.mode = -1;
-				serf->s.ready_to_leave_inventory.dest = data->building->flg_index;
+				serf->s.ready_to_leave_inventory.dest = data->building->flag;
 				serf->s.ready_to_leave_inventory.inv_index = INVENTORY_INDEX(inv);
 
 				inv->serfs[SERF_4] += 1;
@@ -1332,7 +1332,7 @@ send_serf_to_flag(flag_t *dest, int type, resource_type_t res1, resource_type_t 
 			serf_log_state_change(serf, SERF_STATE_READY_TO_LEAVE_INVENTORY);
 			serf->state = SERF_STATE_READY_TO_LEAVE_INVENTORY;
 			serf->s.ready_to_leave_inventory.mode = -1;
-			serf->s.ready_to_leave_inventory.dest = building->flg_index;
+			serf->s.ready_to_leave_inventory.dest = building->flag;
 			serf->s.ready_to_leave_inventory.inv_index = INVENTORY_INDEX(inventory);
 			serf_set_type(serf, SERF_KNIGHT_0);
 
@@ -1377,7 +1377,7 @@ game_send_geologist(flag_t *dest)
 static int
 send_serf_to_building(building_t *building, int type, resource_type_t res1, resource_type_t res2)
 {
-	flag_t *dest = game_get_flag(building->flg_index);
+	flag_t *dest = game_get_flag(building->flag);
 	return send_serf_to_flag(dest, type, res1, res2);
 }
 
@@ -1812,8 +1812,8 @@ handle_building_update(building_t *building)
 				if (r < 0) return;
 
 				inv->player_num = BUILDING_PLAYER(building);
-				inv->bld_index = BUILDING_INDEX(building);
-				inv->flg_index = building->flg_index;
+				inv->building = BUILDING_INDEX(building);
+				inv->flag = building->flag;
 
 				building->u.inventory = inv;
 				building->stock[0].requested = 0xff;
@@ -2736,17 +2736,17 @@ flag_reset_transport(flag_t *flag)
 	for (int i = 0; i < game.max_inventory_index; i++) {
 		if (INVENTORY_ALLOCATED(i)) {
 			inventory_t *inventory = game_get_inventory(i);
-			if (inventory->out_queue[1] != RESOURCE_NONE &&
-			    inventory->out_dest[1] == FLAG_INDEX(flag)) {
-				inventory->resources[inventory->out_queue[1]] += 1;
-				inventory->out_queue[1] = RESOURCE_NONE;
+			if (inventory->out_queue[1].type != RESOURCE_NONE &&
+			    inventory->out_queue[1].dest == FLAG_INDEX(flag)) {
+				inventory->resources[inventory->out_queue[1].type] += 1;
+				inventory->out_queue[1].type = RESOURCE_NONE;
 			}
-			if (inventory->out_queue[0] != RESOURCE_NONE &&
-			    inventory->out_dest[0] == FLAG_INDEX(flag)) {
-				inventory->resources[inventory->out_queue[0]] += 1;
-				inventory->out_queue[0] = inventory->out_queue[1];
-				inventory->out_dest[0] = inventory->out_dest[1];
-				inventory->out_queue[1] = RESOURCE_NONE;
+			if (inventory->out_queue[0].type != RESOURCE_NONE &&
+			    inventory->out_queue[0].dest == FLAG_INDEX(flag)) {
+				inventory->resources[inventory->out_queue[0].type] += 1;
+				inventory->out_queue[0].type = inventory->out_queue[1].type;
+				inventory->out_queue[0].dest = inventory->out_queue[1].dest;
+				inventory->out_queue[1].type = RESOURCE_NONE;
 			}
 		}
 	}
@@ -3702,7 +3702,7 @@ game_build_building(map_pos_t pos, building_type_t type, player_t *player)
 
 	flag->pos = MAP_MOVE_DOWN_RIGHT(pos);
 
-	bld->flg_index = flg_index;
+	bld->flag = flg_index;
 	flag->other_endpoint.b[DIR_UP_LEFT] = bld;
 	flag->endpoint |= BIT(6);
 
@@ -3894,8 +3894,8 @@ game_build_castle(map_pos_t pos, player_t *player)
 	castle->serf |= BIT(4) | BIT(6);
 	castle->u.inventory = inventory;
 	player->castle_inventory = inv_index;
-	inventory->bld_index = bld_index;
-	inventory->flg_index = flg_index;
+	inventory->building = bld_index;
+	inventory->flag = flg_index;
 	inventory->player_num = player->player_num;
 
 	/* Create initial resources */
@@ -3956,7 +3956,7 @@ game_build_castle(map_pos_t pos, player_t *player)
 	flag->path_con = player->player_num << 6;
 	flag->bld_flags = BIT(7) | BIT(6);
 	flag->bld2_flags = BIT(7);
-	castle->flg_index = flg_index;
+	castle->flag = flg_index;
 	flag->other_endpoint.b[DIR_UP_LEFT] = castle;
 	flag->endpoint |= BIT(6);
 
@@ -4250,7 +4250,7 @@ demolish_building(map_pos_t pos)
 	tiles[MAP_MOVE_DOWN_RIGHT(pos)].paths &= ~BIT(4);
 
 	/* Disconnect flag. */
-	flag_t *flag = game_get_flag(building->flg_index);
+	flag_t *flag = game_get_flag(building->flag);
 	flag->other_endpoint.b[DIR_UP_LEFT] = NULL;
 	flag->endpoint &= ~BIT(6);
 
@@ -4287,9 +4287,9 @@ demolish_building(map_pos_t pos)
 		if (BUILDING_IS_ACTIVE(building)) {
 			inventory_t *inventory = building->u.inventory;
 
-			for (int i = 0; i < 2 && inventory->out_queue[i] != RESOURCE_NONE; i++) {
-				resource_type_t res = inventory->out_queue[i];
-				int dest = inventory->out_dest[i];
+			for (int i = 0; i < 2 && inventory->out_queue[i].type != RESOURCE_NONE; i++) {
+				resource_type_t res = inventory->out_queue[i].type;
+				int dest = inventory->out_queue[i].dest;
 
 				game_cancel_transported_resource(res, dest);
 				game_lose_resource(res);
@@ -4728,7 +4728,7 @@ game_occupy_enemy_building(building_t *building, int player_num)
 		player->castle_score += 1;
 		demolish_building(building->pos);
 	} else {
-		flag_t *flag = game_get_flag(building->flg_index);
+		flag_t *flag = game_get_flag(building->flag);
 		flag_reset_transport(flag);
 
 		/* Update player scores. */
@@ -4800,7 +4800,7 @@ game_occupy_enemy_building(building_t *building, int player_num)
 void
 game_set_inventory_resource_mode(inventory_t *inventory, int mode)
 {
-	flag_t *flag = game_get_flag(inventory->flg_index);
+	flag_t *flag = game_get_flag(inventory->flag);
 
 	if (mode == 0) {
 		inventory->res_dir = (inventory->res_dir & 0xfc) | 0;
@@ -4857,7 +4857,7 @@ game_set_inventory_resource_mode(inventory_t *inventory, int mode)
 void
 game_set_inventory_serf_mode(inventory_t *inventory, int mode)
 {
-	flag_t *flag = game_get_flag(inventory->flg_index);
+	flag_t *flag = game_get_flag(inventory->flag);
 
 	if (mode == 0) {
 		inventory->res_dir = (inventory->res_dir & 0xf3) | (0 << 2);
