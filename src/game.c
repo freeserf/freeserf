@@ -4513,6 +4513,23 @@ game_surrender_land(map_pos_t pos)
 	}
 }
 
+/* Initialize land ownership for whole map. */ 
+void
+game_init_land_ownership()
+{
+	for (int i = 1; i < game.max_building_index; i++) {
+		if (!BUILDING_ALLOCATED(i)) continue;
+
+		building_t *building = game_get_building(i);
+		if (building->type == BUILDING_HUT ||
+		    building->type == BUILDING_TOWER ||
+		    building->type == BUILDING_FORTRESS ||
+		    building->type == BUILDING_CASTLE) {
+			game_update_land_ownership(building->pos);
+		}
+	}
+}
+
 /* Update land ownership around map position. */
 void
 game_update_land_ownership(map_pos_t init_pos)

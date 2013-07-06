@@ -280,6 +280,7 @@ serf_t *game_get_serf(int index);
 void game_free_serf(int index);
 
 void game_calculate_military_flag_state(building_t *building);
+void game_init_land_ownership();
 void game_update_land_ownership(map_pos_t pos);
 void game_occupy_enemy_building(building_t *building, int player);
 
