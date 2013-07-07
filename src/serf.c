@@ -1374,7 +1374,7 @@ handle_serf_entering_building_state(serf_t *serf)
 
 			building_t *building = game_get_building(MAP_OBJ_INDEX(serf->pos));
 			inventory_t *inventory = building->u.inventory;
-			inventory->spawn_priority += 1;
+			inventory->generic_count += 1;
 
 			serf_log_state_change(serf, SERF_STATE_IDLE_IN_STOCK);
 			serf->state = SERF_STATE_IDLE_IN_STOCK;

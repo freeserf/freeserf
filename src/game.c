@@ -283,11 +283,11 @@ spawn_serf(player_t *player, serf_t **serf, inventory_t **inventory, int want_kn
 				if (want_knight && (loop_inv->resources[RESOURCE_SWORD] == 0 ||
 						    loop_inv->resources[RESOURCE_SHIELD] == 0)) {
 					continue;
-				} else if (loop_inv->spawn_priority == 0) {
+				} else if (loop_inv->generic_count == 0) {
 					inv = loop_inv;
 					break;
 				} else if (inv == NULL ||
-					   loop_inv->spawn_priority < inv->spawn_priority) {
+					   loop_inv->generic_count < inv->generic_count) {
 					inv = loop_inv;
 				}
 			}
@@ -301,7 +301,7 @@ spawn_serf(player_t *player, serf_t **serf, inventory_t **inventory, int want_kn
 	}
 
 	building = game_get_building(inv->building);
-	inv->spawn_priority += 1;
+	inv->generic_count += 1;
 
 	player->serf_count[SERF_GENERIC] += 1;
 	s->type = (SERF_GENERIC << 2) | player->player_num;
@@ -371,7 +371,7 @@ update_player(player_t *player)
 						serf_set_type(serf, SERF_KNIGHT_0);
 						inventory->resources[RESOURCE_SWORD] -= 1;
 						inventory->resources[RESOURCE_SHIELD] -= 1;
-						inventory->spawn_priority -= 1;
+						inventory->generic_count -= 1;
 					}
 				}
 			}
@@ -816,7 +816,7 @@ send_serf_to_road(flag_t *src, dir_t dir, int water)
 			inventory->resources[RESOURCE_BOAT] -= 1;
 		}
 
-		inventory->spawn_priority -= 1;
+		inventory->generic_count -= 1;
 	}
 
 	inventory->serfs_out += 1;
@@ -1250,7 +1250,7 @@ send_serf_to_flag_search_cb(flag_t *flag, send_serf_to_flag_data_t *data)
 			}
 		} else {
 			if (inv->serfs[type] != 0) {
-				if (type != SERF_GENERIC || inv->spawn_priority > 4) {
+				if (type != SERF_GENERIC || inv->generic_count > 4) {
 					serf_t *serf = game_get_serf(inv->serfs[type]);
 
 					serf_log_state_change(serf, SERF_STATE_READY_TO_LEAVE_INVENTORY);
@@ -1261,7 +1261,7 @@ send_serf_to_flag_search_cb(flag_t *flag, send_serf_to_flag_data_t *data)
 					inv->serfs[type] = 0;
 					if (type == SERF_GENERIC) {
 						serf->s.ready_to_leave_inventory.mode = -2;
-						inv->spawn_priority -= 1;
+						inv->generic_count -= 1;
 					} else if (type == SERF_GEOLOGIST) {
 						serf->s.ready_to_leave_inventory.mode = 6;
 					} else {
@@ -1322,7 +1322,7 @@ send_serf_to_flag(flag_t *dest, int type, resource_type_t res1, resource_type_t 
 		serf_t *serf = game_get_serf(inventory->serfs[SERF_GENERIC]);
 
 		inventory->serfs[SERF_GENERIC] = 0;
-		inventory->spawn_priority -= 1;
+		inventory->generic_count -= 1;
 
 		if (type < 0) {
 			/* Knight */
@@ -1506,7 +1506,7 @@ update_building_castle(building_t *building)
 			if (inventory->serfs[SERF_GENERIC] != 0 &&
 			    inventory->resources[RESOURCE_SWORD] != 0 &&
 			    inventory->resources[RESOURCE_SHIELD] != 0) {
-				inventory->spawn_priority -= 1;
+				inventory->generic_count -= 1;
 				inventory->resources[RESOURCE_SWORD] -= 1;
 				inventory->resources[RESOURCE_SHIELD] -= 1;
 
@@ -1555,7 +1555,7 @@ update_building_castle(building_t *building)
 
 	if (BUILDING_HAS_SERF(building) &&
 	    (inventory->res_dir & 0xa) == 0 && /* Not serf or res OUT mode */
-	    inventory->spawn_priority == 0) {
+	    inventory->generic_count == 0) {
 		player->send_generic_delay -= 1;
 		if (player->send_generic_delay < 0) {
 			send_serf_to_building(building, SERF_GENERIC, -1, -1);
@@ -1835,7 +1835,7 @@ handle_building_update(building_t *building)
 				inventory_t *inv = building->u.inventory;
 				if (BUILDING_HAS_SERF(building) &&
 				    (inv->res_dir & 0xa) == 0 && /* Not serf or res OUT mode */
-				    inv->spawn_priority == 0) {
+				    inv->generic_count == 0) {
 					player->send_generic_delay -= 1;
 					if (player->send_generic_delay < 0) {
 						send_serf_to_building(building, SERF_GENERIC, -1, -1);
@@ -3743,7 +3743,7 @@ create_initial_castle_serfs(player_t *player)
 	int r = spawn_serf(player, &serf, &inventory, 0);
 	if (r < 0) return;
 
-	inventory->spawn_priority -= 1;
+	inventory->generic_count -= 1;
 	serf_set_type(serf, SERF_4);
 
 	serf_log_state_change(serf, SERF_STATE_BUILDING_CASTLE);
@@ -3768,7 +3768,7 @@ create_initial_castle_serfs(player_t *player)
 
 		inventory->resources[RESOURCE_SWORD] -= 1;
 		inventory->resources[RESOURCE_SHIELD] -= 1;
-		inventory->spawn_priority -= 1;
+		inventory->generic_count -= 1;
 	}
 
 	/* Spawn toolmaker */
@@ -3779,7 +3779,7 @@ create_initial_castle_serfs(player_t *player)
 
 	inventory->resources[RESOURCE_HAMMER] -= 1;
 	inventory->resources[RESOURCE_SAW] -= 1;
-	inventory->spawn_priority -= 1;
+	inventory->generic_count -= 1;
 
 	/* Spawn timberman */
 	r = spawn_serf(player, &serf, &inventory, 0);
@@ -3788,7 +3788,7 @@ create_initial_castle_serfs(player_t *player)
 	serf_set_type(serf, SERF_LUMBERJACK);
 
 	inventory->resources[RESOURCE_AXE] -= 1;
-	inventory->spawn_priority -= 1;
+	inventory->generic_count -= 1;
 
 	/* Spawn sawmiller */
 	r = spawn_serf(player, &serf, &inventory, 0);
@@ -3797,7 +3797,7 @@ create_initial_castle_serfs(player_t *player)
 	serf_set_type(serf, SERF_SAWMILLER);
 
 	inventory->resources[RESOURCE_SAW] -= 1;
-	inventory->spawn_priority -= 1;
+	inventory->generic_count -= 1;
 
 	/* Spawn stonecutter */
 	r = spawn_serf(player, &serf, &inventory, 0);
@@ -3806,7 +3806,7 @@ create_initial_castle_serfs(player_t *player)
 	serf_set_type(serf, SERF_STONECUTTER);
 
 	inventory->resources[RESOURCE_PICK] -= 1;
-	inventory->spawn_priority -= 1;
+	inventory->generic_count -= 1;
 
 	/* Spawn digger */
 	r = spawn_serf(player, &serf, &inventory, 0);
@@ -3815,7 +3815,7 @@ create_initial_castle_serfs(player_t *player)
 	serf_set_type(serf, SERF_DIGGER);
 
 	inventory->resources[RESOURCE_SHOVEL] -= 1;
-	inventory->spawn_priority -= 1;
+	inventory->generic_count -= 1;
 
 	/* Spawn builder */
 	r = spawn_serf(player, &serf, &inventory, 0);
@@ -3824,7 +3824,7 @@ create_initial_castle_serfs(player_t *player)
 	serf_set_type(serf, SERF_BUILDER);
 
 	inventory->resources[RESOURCE_HAMMER] -= 1;
-	inventory->spawn_priority -= 1;
+	inventory->generic_count -= 1;
 
 	/* Spawn fisherman */
 	r = spawn_serf(player, &serf, &inventory, 0);
@@ -3833,7 +3833,7 @@ create_initial_castle_serfs(player_t *player)
 	serf_set_type(serf, SERF_FISHER);
 
 	inventory->resources[RESOURCE_ROD] -= 1;
-	inventory->spawn_priority -= 1;
+	inventory->generic_count -= 1;
 
 	/* Spawn two geologists */
 	for (int i = 0; i < 2; i++) {
@@ -3843,7 +3843,7 @@ create_initial_castle_serfs(player_t *player)
 		serf_set_type(serf, SERF_GEOLOGIST);
 
 		inventory->resources[RESOURCE_HAMMER] -= 1;
-		inventory->spawn_priority -= 1;
+		inventory->generic_count -= 1;
 	}
 
 	/* Spawn two miners */
@@ -3854,7 +3854,7 @@ create_initial_castle_serfs(player_t *player)
 		serf_set_type(serf, SERF_MINER);
 
 		inventory->resources[RESOURCE_PICK] -= 1;
-		inventory->spawn_priority -= 1;
+		inventory->generic_count -= 1;
 	}
 }
 

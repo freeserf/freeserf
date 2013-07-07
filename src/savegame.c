@@ -867,7 +867,7 @@ load_v0_inventory_state(FILE *f)
 			inventory->out_queue[j].dest = *(uint16_t *)&inventory_data[60+2*j];
 		}
 
-		inventory->spawn_priority = *(uint16_t *)&inventory_data[64];
+		inventory->generic_count = *(uint16_t *)&inventory_data[64];
 
 		for (int j = 0; j < 27; j++) {
 			inventory->serfs[j] = *(uint16_t *)&inventory_data[66+2*j];
@@ -1199,7 +1199,7 @@ save_text_inventory_state(FILE *f)
 			for (int i = 0; i < 2; i++) dests[i] = inventory->out_queue[i].dest;
 			save_text_write_array(f, "queue.dest", dests, 2);
 
-			save_text_write_value(f, "spawn_priority", inventory->spawn_priority);
+			save_text_write_value(f, "generic_count", inventory->generic_count);
 
 			save_text_write_array(f, "resources", inventory->resources, 26);
 			save_text_write_array(f, "serfs", inventory->serfs, 27);
@@ -2273,8 +2273,8 @@ load_text_inventory_section(section_t *section)
 				char *v = parse_array_value(&array);
 				inventory->out_queue[i].dest = atoi(v);
 			}
-		} else if (!strcmp(s->key, "spawn_priority")) {
-			inventory->spawn_priority = atoi(s->value);
+		} else if (!strcmp(s->key, "generic_count")) {
+			inventory->generic_count = atoi(s->value);
 		} else if (!strcmp(s->key, "resources")) {
 			char *array = s->value;
 			for (int i = 0; i < 26 && array != NULL; i++) {

@@ -205,8 +205,9 @@ struct inventory {
 	} out_queue[2];
 	/* Count of serfs waiting to move out */
 	uint serfs_out;
-	int spawn_priority;
-	/* Count of serfs */
+	/* Count of generic serfs */
+	int generic_count;
+	/* Indices to serfs of each type */
 	int serfs[27];
 };
 

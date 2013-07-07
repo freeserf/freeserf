@@ -206,7 +206,7 @@ player_promote_serfs_to_knights(player_t *player, int number)
 				    inv->resources[RESOURCE_SHIELD] > 0) {
 					inv->resources[RESOURCE_SWORD] -= 1;
 					inv->resources[RESOURCE_SHIELD] -= 1;
-					inv->spawn_priority -= 1;
+					inv->generic_count -= 1;
 					inv->serfs[SERF_GENERIC] = 0;
 
 					serf_set_type(serf, SERF_KNIGHT_0);

@@ -1430,45 +1430,45 @@ draw_stat_3_box(popup_box_t *popup, frame_t *frame)
 		if (INVENTORY_ALLOCATED(i)) {
 			inventory_t *inventory = game_get_inventory(i);
 			if (inventory->player_num == popup->interface->player->player_num &&
-			    inventory->spawn_priority > 0) {
-				serfs[SERF_TRANSPORTER] += inventory->spawn_priority;
-				serfs[SERF_FORESTER] += inventory->spawn_priority;
-				serfs[SERF_SMELTER] += inventory->spawn_priority;
-				serfs[SERF_PIGFARMER] += inventory->spawn_priority;
-				serfs[SERF_MILLER] += inventory->spawn_priority;
-				serfs[SERF_BAKER] += inventory->spawn_priority;
+			    inventory->generic_count > 0) {
+				serfs[SERF_TRANSPORTER] += inventory->generic_count;
+				serfs[SERF_FORESTER] += inventory->generic_count;
+				serfs[SERF_SMELTER] += inventory->generic_count;
+				serfs[SERF_PIGFARMER] += inventory->generic_count;
+				serfs[SERF_MILLER] += inventory->generic_count;
+				serfs[SERF_BAKER] += inventory->generic_count;
 
-				serfs[SERF_SAWMILLER] += min(inventory->spawn_priority,
+				serfs[SERF_SAWMILLER] += min(inventory->generic_count,
 							     inventory->resources[RESOURCE_SAW]);
-				serfs[SERF_SAILOR] += min(inventory->spawn_priority,
+				serfs[SERF_SAILOR] += min(inventory->generic_count,
 							 inventory->resources[RESOURCE_BOAT]);
-				serfs[SERF_DIGGER] += min(inventory->spawn_priority,
+				serfs[SERF_DIGGER] += min(inventory->generic_count,
 							  inventory->resources[RESOURCE_SHOVEL]);
-				serfs[SERF_BUILDER] += min(inventory->spawn_priority,
+				serfs[SERF_BUILDER] += min(inventory->generic_count,
 							   inventory->resources[RESOURCE_HAMMER]);
-				serfs[SERF_LUMBERJACK] += min(inventory->spawn_priority,
+				serfs[SERF_LUMBERJACK] += min(inventory->generic_count,
 							      inventory->resources[RESOURCE_AXE]);
-				serfs[SERF_STONECUTTER] += min(inventory->spawn_priority,
+				serfs[SERF_STONECUTTER] += min(inventory->generic_count,
 							       inventory->resources[RESOURCE_PICK]);
-				serfs[SERF_MINER] += min(inventory->spawn_priority,
+				serfs[SERF_MINER] += min(inventory->generic_count,
 							 inventory->resources[RESOURCE_PICK]);
-				serfs[SERF_FISHER] += min(inventory->spawn_priority,
+				serfs[SERF_FISHER] += min(inventory->generic_count,
 							  inventory->resources[RESOURCE_ROD]);
-				serfs[SERF_BUTCHER] += min(inventory->spawn_priority,
+				serfs[SERF_BUTCHER] += min(inventory->generic_count,
 							   inventory->resources[RESOURCE_CLEAVER]);
-				serfs[SERF_FARMER] += min(inventory->spawn_priority,
+				serfs[SERF_FARMER] += min(inventory->generic_count,
 							  inventory->resources[RESOURCE_SCYTHE]);
-				serfs[SERF_BOATBUILDER] += min(inventory->spawn_priority,
+				serfs[SERF_BOATBUILDER] += min(inventory->generic_count,
 							       inventory->resources[RESOURCE_HAMMER]);
-				serfs[SERF_TOOLMAKER] += min(inventory->spawn_priority,
+				serfs[SERF_TOOLMAKER] += min(inventory->generic_count,
 							     min(inventory->resources[RESOURCE_HAMMER],
 								 inventory->resources[RESOURCE_SAW]));
-				serfs[SERF_WEAPONSMITH] += min(inventory->spawn_priority,
+				serfs[SERF_WEAPONSMITH] += min(inventory->generic_count,
 							       min(inventory->resources[RESOURCE_HAMMER],
 								   inventory->resources[RESOURCE_PINCER]));
-				serfs[SERF_GEOLOGIST] += min(inventory->spawn_priority,
+				serfs[SERF_GEOLOGIST] += min(inventory->generic_count,
 							     inventory->resources[RESOURCE_HAMMER]);
-				serfs[SERF_KNIGHT_0] += min(inventory->spawn_priority,
+				serfs[SERF_KNIGHT_0] += min(inventory->generic_count,
 							    min(inventory->resources[RESOURCE_SWORD],
 								inventory->resources[RESOURCE_SHIELD]));
 			}
@@ -2455,7 +2455,7 @@ draw_sett_8_box(popup_box_t *popup, frame_t *frame)
 			if (inv->player_num == player->player_num) {
 				int c = min(inv->resources[RESOURCE_SWORD],
 					    inv->resources[RESOURCE_SHIELD]);
-				convertible_to_knights += max(0, min(c, inv->spawn_priority));
+				convertible_to_knights += max(0, min(c, inv->generic_count));
 			}
 		}
 	}
