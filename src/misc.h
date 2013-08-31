@@ -32,4 +32,11 @@
 
 typedef unsigned int uint;
 
+
+#if _MSC_VER
+#pragma warning( disable : 4996 )
+#define snprintf _snprintf
+#endif
+
+
 #endif /* ! _MISC_H */

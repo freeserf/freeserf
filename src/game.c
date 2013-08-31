@@ -39,43 +39,38 @@
 
 #define GROUND_ANALYSIS_RADIUS  25
 
+game_t game;
 
 /* Allocate and initialize a new flag_t object.
    Return -1 if no more flags can be allocated, otherwise 0. */
 int
 game_alloc_flag(flag_t **flag, int *index)
 {
-	for (int i = 0; i*8 < game.flag_limit; i++) {
-		if (game.flag_bitmap[i] != 0xff) {
-			for (int j = 0; j < 8; j++) {
-				if (!BIT_TEST(game.flag_bitmap[i], 7-j)) {
-					int ix = 8*i + j;
-					game.flag_bitmap[i] |= BIT(7-j);
+	for (uint i = 0; i < game.flag_limit; i++) {
+		if (FLAG_ALLOCATED(i)) continue;
+		game.flag_bitmap[i/8] |= BIT(7-(i&7));
 
-					if (ix == game.max_flag_index) game.max_flag_index += 1;
+		if (i == game.max_flag_index) game.max_flag_index += 1;
 
-					flag_t *f = &game.flags[ix];
-					f->pos = 0;
-					f->search_num = 0;
-					f->search_dir = 0;
-					f->path_con = 0;
-					f->endpoint = 0;
-					f->transporter = 0;
-					for (int i = 0; i < FLAG_MAX_RES_COUNT; i++) {
-						f->slot[i].type = RESOURCE_NONE;
-					}
-					memset(&f->length, 0, sizeof(f->length));
-					f->bld_flags = 0;
-					f->bld2_flags = 0;
-					memset(&f->other_end_dir, 0, sizeof(f->other_end_dir));
-
-					if (flag != NULL) *flag = f;
-					if (index != NULL) *index = ix;
-
-					return 0;
-				}
-			}
+		flag_t *f = &game.flags[i];
+		f->pos = 0;
+		f->search_num = 0;
+		f->search_dir = (dir_t)0;
+		f->path_con = 0;
+		f->endpoint = 0;
+		f->transporter = 0;
+		for (int j = 0; j < FLAG_MAX_RES_COUNT; j++) {
+			f->slot[j].type = RESOURCE_NONE;
 		}
+		memset(&f->length, 0, sizeof(f->length));
+		f->bld_flags = 0;
+		f->bld2_flags = 0;
+		memset(&f->other_end_dir, 0, sizeof(f->other_end_dir));
+
+		if (flag != NULL) *flag = f;
+		if (index != NULL) *index = i;
+
+		return 0;
 	}
 
 	return -1;
@@ -85,7 +80,7 @@ game_alloc_flag(flag_t **flag, int *index)
 flag_t *
 game_get_flag(int index)
 {
-	assert(index > 0 && index < game.flag_limit);
+	assert(index > 0 && index < (int)game.flag_limit);
 	assert(FLAG_ALLOCATED(index));
 	return &game.flags[index];
 }
@@ -111,38 +106,32 @@ game_free_flag(int index)
 int
 game_alloc_building(building_t **building, int *index)
 {
-	for (int i = 0; i*8 < game.building_limit; i++) {
-		if (game.building_bitmap[i] != 0xff) {
-			for (int j = 0; j < 8; j++) {
-				if (!BIT_TEST(game.building_bitmap[i], 7-j)) {
-					int ix = 8*i + j;
+	for (uint i = 0; i < game.building_limit; i++) {
+		if (BUILDING_ALLOCATED(i)) continue;
+		game.building_bitmap[i/8] |= BIT(7-(i&7));
 
-					game.building_bitmap[i] |= BIT(7-j);
+		if (i == game.max_building_index) game.max_building_index += 1;
 
-					if (ix == game.max_building_index) game.max_building_index += 1;
+		building_t *b = &game.buildings[i];
+		b->type = BUILDING_NONE;
+		b->bld = 0;
+		b->flag = 0;
+		b->serf = 0;
 
-					building_t *b = &game.buildings[ix];
-					b->bld = 0;
-					b->flg_index = 0;
-					b->serf = 0;
-
-					for (int i = 0; i < BUILDING_MAX_STOCK; i++) {
-						b->stock[i].type = RESOURCE_NONE;
-						b->stock[i].prio = 0;
-						b->stock[i].available = 0;
-						b->stock[i].requested = 0;
-						b->stock[i].maximum = 0;
-					}
-
-					b->serf_index = 0;
-
-					if (building != NULL) *building = b;
-					if (index != NULL) *index = ix;
-
-					return 0;
-				}
-			}
+		for (int j = 0; j < BUILDING_MAX_STOCK; j++) {
+			b->stock[j].type = RESOURCE_NONE;
+			b->stock[j].prio = 0;
+			b->stock[j].available = 0;
+			b->stock[j].requested = 0;
+			b->stock[j].maximum = 0;
 		}
+
+		b->serf_index = 0;
+
+		if (building != NULL) *building = b;
+		if (index != NULL) *index = i;
+
+		return 0;
 	}
 
 	return -1;
@@ -152,7 +141,7 @@ game_alloc_building(building_t **building, int *index)
 building_t *
 game_get_building(int index)
 {
-	assert(index > 0 && index < game.building_limit);
+	assert(index > 0 && index < (int)game.building_limit);
 	assert(BUILDING_ALLOCATED(index));
 	return &game.buildings[index];
 }
@@ -178,29 +167,22 @@ game_free_building(int index)
 int
 game_alloc_inventory(inventory_t **inventory, int *index)
 {
-	for (int i = 0; i*8 < game.inventory_limit; i++) {
-		if (game.inventory_bitmap[i] != 0xff) {
-			for (int j = 0; j < 8; j++) {
-				if (!BIT_TEST(game.inventory_bitmap[i], 7-j)) {
-					int ix = 8*i + j;
+	for (uint i = 0; i < game.inventory_limit; i++) {
+		if (INVENTORY_ALLOCATED(i)) continue;
+		game.inventory_bitmap[i/8] |= BIT(7-(i&7));
 
-					game.inventory_bitmap[i] |= BIT(7-j);
+		if (i == game.max_inventory_index) game.max_inventory_index += 1;
 
-					if (ix == game.max_inventory_index) game.max_inventory_index += 1;
+		inventory_t *iv = &game.inventories[i];
+		memset(iv, 0, sizeof(inventory_t));
 
-					inventory_t *iv = &game.inventories[ix];
-					memset(iv, 0, sizeof(inventory_t));
+		iv->out_queue[0].type = RESOURCE_NONE;
+		iv->out_queue[1].type = RESOURCE_NONE;
 
-					iv->out_queue[0] = -1;
-					iv->out_queue[1] = -1;
+		if (inventory != NULL) *inventory = iv;
+		if (index != NULL) *index = i;
 
-					if (inventory != NULL) *inventory = iv;
-					if (index != NULL) *index = ix;
-
-					return 0;
-				}
-			}
-		}
+		return 0;
 	}
 
 	return -1;
@@ -210,7 +192,7 @@ game_alloc_inventory(inventory_t **inventory, int *index)
 inventory_t *
 game_get_inventory(int index)
 {
-	assert(index < game.inventory_limit);
+	assert(index < (int)game.inventory_limit);
 	assert(INVENTORY_ALLOCATED(index));
 	return &game.inventories[index];
 }
@@ -236,25 +218,18 @@ game_free_inventory(int index)
 int
 game_alloc_serf(serf_t **serf, int *index)
 {
-	for (int i = 0; i*8 < game.serf_limit; i++) {
-		if (game.serf_bitmap[i] != 0xff) {
-			for (int j = 0; j < 8; j++) {
-				if (!BIT_TEST(game.serf_bitmap[i], 7-j)) {
-					int ix = 8*i + j;
+	for (uint i = 0; i < game.serf_limit; i++) {
+		if (SERF_ALLOCATED(i)) continue;
+		game.serf_bitmap[i/8] |= BIT(7-(i&7));
 
-					game.serf_bitmap[i] |= BIT(7-j);
+		if (i == game.max_serf_index) game.max_serf_index += 1;
 
-					if (ix == game.max_serf_index) game.max_serf_index += 1;
+		serf_t *s = &game.serfs[i];
 
-					serf_t *s = &game.serfs[ix];
+		if (serf != NULL) *serf = s;
+		if (index != NULL) *index = i;
 
-					if (serf != NULL) *serf = s;
-					if (index != NULL) *index = ix;
-
-					return 0;
-				}
-			}
-		}
+		return 0;
 	}
 
 	return -1;
@@ -264,7 +239,7 @@ game_alloc_serf(serf_t **serf, int *index)
 serf_t *
 game_get_serf(int index)
 {
-	assert(index > 0 && index < game.serf_limit);
+	assert(index > 0 && index < (int)game.serf_limit);
 	assert(SERF_ALLOCATED(index));
 	return &game.serfs[index];
 }
@@ -283,8 +258,6 @@ game_free_serf(int index)
 			if (SERF_ALLOCATED(index)) break;
 		}
 	}
-
-	game.map_max_serfs_left += 1;
 }
 
 
@@ -294,7 +267,6 @@ static int
 spawn_serf(player_t *player, serf_t **serf, inventory_t **inventory, int want_knight)
 {
 	if (!PLAYER_CAN_SPAWN(player)) return -1;
-	if (game.map_max_serfs_left == 0) return -1;
 	if (game.max_inventory_index < 1) return -1;
 
 	serf_t *s = NULL;
@@ -304,7 +276,7 @@ spawn_serf(player_t *player, serf_t **serf, inventory_t **inventory, int want_kn
 	building_t *building = NULL;
 	inventory_t *inv = NULL;
 
-	for (int i = 0; i < game.max_inventory_index; i++) {
+	for (uint i = 0; i < game.max_inventory_index; i++) {
 		if (INVENTORY_ALLOCATED(i)) {
 			inventory_t *loop_inv = game_get_inventory(i);
 			if (loop_inv->player_num == player->player_num &&
@@ -312,11 +284,11 @@ spawn_serf(player_t *player, serf_t **serf, inventory_t **inventory, int want_kn
 				if (want_knight && (loop_inv->resources[RESOURCE_SWORD] == 0 ||
 						    loop_inv->resources[RESOURCE_SHIELD] == 0)) {
 					continue;
-				} else if (loop_inv->spawn_priority == 0) {
+				} else if (loop_inv->generic_count == 0) {
 					inv = loop_inv;
 					break;
 				} else if (inv == NULL ||
-					   loop_inv->spawn_priority < inv->spawn_priority) {
+					   loop_inv->generic_count < inv->generic_count) {
 					inv = loop_inv;
 				}
 			}
@@ -329,8 +301,8 @@ spawn_serf(player_t *player, serf_t **serf, inventory_t **inventory, int want_kn
 		else return -1;
 	}
 
-	building = game_get_building(inv->bld_index);
-	inv->spawn_priority += 1;
+	building = game_get_building(inv->building);
+	inv->generic_count += 1;
 
 	player->serf_count[SERF_GENERIC] += 1;
 	s->type = (SERF_GENERIC << 2) | player->player_num;
@@ -351,30 +323,12 @@ spawn_serf(player_t *player, serf_t **serf, inventory_t **inventory, int want_kn
 static void
 update_player(player_t *player)
 {
-	/* Update player timers. TODO should possibly be handled by interface. */
-	int const_tick_diff = 1; /* Always 1 as long as this function is called every tick. */
-	for (int i = 0; i < player->timers_count; i++) {
-		player->timers[i].timeout -= const_tick_diff;
-		if (player->timers[i].timeout < 0) {
-			/* Timer has expired. */
-			/* TODO box (+ pos) timer */
-			player_add_notification(player, 5,
-						player->timers[i].pos);
-
-			/* Delete timer from list. */
-			player->timers_count -= 1;
-			for (int j = i; j < player->timers_count; j++) {
-				player->timers[j].timeout = player->timers[j+1].timeout;
-				player->timers[j].pos = player->timers[j+1].pos;
-			}
-		}
-	}
+	uint16_t delta = game.tick - player->last_tick;
+	player->last_tick = game.tick;
 
 	if (player->total_land_area > 0xffff0000) player->total_land_area = 0;
 	if (player->total_military_score > 0xffff0000) player->total_military_score = 0;
 	if (player->total_building_score > 0xffff0000) player->total_building_score = 0;
-
-	if (!PLAYER_IS_ACTIVE(player)) return;
 
 	if (PLAYER_IS_AI(player)) {
 		/*if (player->field_1B2 != 0) player->field_1B2 -= 1;*/
@@ -382,19 +336,18 @@ update_player(player_t *player)
 	}
 
 	if (PLAYER_CYCLING_KNIGHTS(player)) {
-		player->knight_cycle_counter -= 1;
-		if (player->knight_cycle_counter == 0) {
+		player->knight_cycle_counter -= delta;
+		if (player->knight_cycle_counter < 1) {
 			player->flags &= ~BIT(5);
 			player->flags &= ~BIT(2);
-		} else if (player->knight_cycle_counter == 1023) {
+		} else if (player->knight_cycle_counter < 2048 &&
+			   PLAYER_REDUCED_KNIGHT_LEVEL(player)) {
 			player->flags |= BIT(5);
 			player->flags &= ~BIT(4);
 		}
 	}
 
 	if (PLAYER_HAS_CASTLE(player)) {
-		uint16_t delta = game.tick - player->last_tick;
-		player->last_tick = game.tick;
 		player->reproduction_counter -= delta;
 
 		while (player->reproduction_counter < 0) {
@@ -416,12 +369,10 @@ update_player(player_t *player)
 					if (inventory->resources[RESOURCE_SWORD] != 0 &&
 					    inventory->resources[RESOURCE_SHIELD] != 0) {
 						player->knights_to_spawn -= 1;
-						serf->type = (serf->type & 0x83) | (SERF_KNIGHT_0 << 2);
-						player->serf_count[SERF_GENERIC] -= 1;
-						player->serf_count[SERF_KNIGHT_0] += 1;
+						serf_set_type(serf, SERF_KNIGHT_0);
 						inventory->resources[RESOURCE_SWORD] -= 1;
 						inventory->resources[RESOURCE_SHIELD] -= 1;
-						inventory->spawn_priority -= 1;
+						inventory->generic_count -= 1;
 					}
 				}
 			}
@@ -431,17 +382,20 @@ update_player(player_t *player)
 	}
 }
 
+/* Clear the serf request bit of all flags and buildings.
+   This allows the flag or building to try and request a
+   serf again. */
 static void
-check_win_and_flags_buildings()
+clear_serf_request_failure()
 {
-	for (int i = 1; i < game.max_building_index; i++) {
+	for (uint i = 1; i < game.max_building_index; i++) {
 		if (BUILDING_ALLOCATED(i)) {
 			building_t *building = game_get_building(i);
 			building->serf &= ~BIT(2);
 		}
 	}
 
-	for (int i = 1; i < game.max_flag_index; i++) {
+	for (uint i = 1; i < game.max_flag_index; i++) {
 		if (FLAG_ALLOCATED(i)) {
 			flag_t *flag = game_get_flag(i);
 			flag->transporter &= ~BIT(7);
@@ -452,13 +406,44 @@ check_win_and_flags_buildings()
 static void
 update_knight_morale()
 {
-	for (int i = 0; i < 3; i++) {
+	uint inventory_gold[GAME_MAX_PLAYER_COUNT] = {0};
+	uint military_gold[GAME_MAX_PLAYER_COUNT] = {0};
+
+	/* Sum gold collected in inventories */
+	for (uint i = 0; i < game.max_inventory_index; i++) {
+		if (INVENTORY_ALLOCATED(i)) {
+			inventory_t *inventory = game_get_inventory(i);
+			inventory_gold[inventory->player_num] +=
+				inventory->resources[RESOURCE_GOLDBAR];
+		}
+	}
+
+	/* Sum gold deposited in military buildings */
+	for (uint i = 1; i < game.max_building_index; i++) {
+		if (BUILDING_ALLOCATED(i)) {
+			building_t *building = game_get_building(i);
+			if (BUILDING_TYPE(building) == BUILDING_HUT ||
+			    BUILDING_TYPE(building) == BUILDING_TOWER ||
+			    BUILDING_TYPE(building) == BUILDING_FORTRESS) {
+				for (int j = 0; j < BUILDING_MAX_STOCK; j++) {
+					if (building->stock[j].type == RESOURCE_GOLDBAR) {
+						military_gold[BUILDING_PLAYER(building)] +=
+							building->stock[j].available;
+					}
+				}
+			}
+		}
+	}
+
+	for (int i = 0; i < GAME_MAX_PLAYER_COUNT; i++) {
 		player_t *player = game.player[i];
-		int depot = player->military_gold + player->inventory_gold;
-		player->gold_deposited = min(depot, 0xffff);
+		if (!PLAYER_IS_ACTIVE(player)) continue;
+
+		uint depot = inventory_gold[i] + military_gold[i];
+		player->gold_deposited = depot;
 
 		/* Calculate according to gold collected. */
-		int map_gold = game.map_gold_deposit;
+		uint map_gold = game.map_gold_deposit;
 		if (map_gold != 0) {
 			while (map_gold > 0xffff) {
 				map_gold >>= 1;
@@ -471,37 +456,43 @@ update_knight_morale()
 		}
 
 		/* Adjust based on castle score. */
-		int castle_score = player->castle_score;
+		uint castle_score = player->castle_score;
 		if (castle_score < 0) {
 			player->knight_morale = max(1, player->knight_morale - 1023);
 		} else if (castle_score > 0) {
 			player->knight_morale = min(player->knight_morale + 1024*castle_score, 0xffff);
 		}
 
-		int military_score = player->total_military_score;
-		int morale = player->knight_morale >> 5;
+		uint military_score = player->total_military_score;
+		uint morale = player->knight_morale >> 5;
 		while (military_score > 0xffff) {
 			military_score >>= 1;
 			morale <<= 1;
 		}
 
-		/* TODO */
+		/* Calculate fractional score used by AI */
+		uint player_score = (military_score * morale) >> 7;
+		uint enemy_score = 0;
+		for (int j = 0; j < GAME_MAX_PLAYER_COUNT; j++) {
+			if (PLAYER_IS_ACTIVE(game.player[j]) && i != j) {
+				enemy_score += game.player[j]->total_military_score;
+			}
+		}
 
-		player->military_gold = 0;
+		while (player_score > 0xffff &&
+		       enemy_score > 0xffff) {
+			player_score >>= 1;
+			enemy_score >>= 1;
+		}
+
+		player_score >>= 1;
+		uint frac_score = 0;
+		if (player_score != 0 && enemy_score != 0) {
+			if (player_score > enemy_score) frac_score = 0xffffffff;
+			else frac_score = (player_score*0x10000)/enemy_score;
+		}
+
 		player->military_max_gold = 0;
-		player->inventory_gold = 0;
-	}
-}
-
-static void
-update_map_and_players()
-{
-	check_win_and_flags_buildings();
-	/* sub_1EF25(); */
-	map_update();
-
-	for (int i = 0; i < 4; i++) {
-		update_player(game.player[i]);
 	}
 }
 
@@ -530,6 +521,52 @@ update_inventories_cb(flag_t *flag, update_inventories_data_t *data)
 	}
 
 	return 0;
+}
+
+/* Take resource from inventory and put in out queue. The resource must
+   be present.*/
+static void
+inventory_add_to_queue(inventory_t *inventory, resource_type_t type, uint dest)
+{
+	assert(inventory->resources[type] != 0);
+
+	inventory->resources[type] -= 1;
+	if (inventory->out_queue[0].type == RESOURCE_NONE) {
+		inventory->out_queue[0].type = type;
+		inventory->out_queue[0].dest = dest;
+	} else {
+		inventory->out_queue[1].type = type;
+		inventory->out_queue[1].dest = dest;
+	}
+}
+
+/* Check which players are allowed to spawn new serfs. */
+static void
+check_max_serfs_reached()
+{
+	uint land_area = 0;
+	for (int i = 0; i < GAME_MAX_PLAYER_COUNT; i++) {
+		if (!PLAYER_IS_ACTIVE(game.player[i])) continue;
+		land_area += game.player[i]->total_land_area;
+	}
+
+	for (int i = 0; i < GAME_MAX_PLAYER_COUNT; i++) {
+		player_t *player = game.player[i];
+		if (!PLAYER_IS_ACTIVE(player)) continue;
+
+		uint max_serfs = game.max_serfs_per_player;
+		if (land_area != 0) {
+			max_serfs += (game.max_serfs_from_land*player->total_land_area)/land_area;
+		}
+
+		uint serf_count = 0;
+		for (int j = 0; j < 27; j++) {
+			serf_count += player->serf_count[j];
+		}
+
+		if (serf_count < max_serfs) player->build |= BIT(2);
+		else player->build &= ~BIT(2);
+	}
 }
 
 /* Update inventories as part of the game progression. Moves the appropriate
@@ -585,8 +622,8 @@ update_inventories()
 		-1
 	};
 
-	if (game.game_speed == 0) return;
-	/* update functions */
+	check_max_serfs_reached();
+	/* AI: TODO */
 
 	const int *arr = NULL;
 	switch (game_random_int() & 7) {
@@ -596,16 +633,15 @@ update_inventories()
 	}
 
 	while (arr[0] >= 0) {
-		for (int p = 0; p < 4; p++) {
-			/*player_t *player = game.player[p];*/
+		for (int p = 0; p < GAME_MAX_PLAYER_COUNT; p++) {
 			inventory_t *invs[256];
 			int n = 0;
-			for (int i = 0; i < game.max_inventory_index; i++) {
+			for (uint i = 0; i < game.max_inventory_index; i++) {
 				if (!INVENTORY_ALLOCATED(i)) continue;
 
 				inventory_t *inventory = game_get_inventory(i);
 				if (inventory->player_num == p &&
-				    inventory->out_queue[1] == -1) {
+				    inventory->out_queue[1].type == RESOURCE_NONE) {
 					int res_dir = inventory->res_dir & 3;
 					if (res_dir == 0 || res_dir == 1) { /* In mode, stop mode */
 						if (arr[0] == RESOURCE_GROUP_FOOD) {
@@ -619,8 +655,22 @@ update_inventories()
 							invs[n++] = inventory;
 							if (n == 256) break;
 						}
-					} else {
-						/* TODO */
+					} else { /* Out mode */
+						player_t *player = game.player[p];
+
+						int prio = 0;
+						resource_type_t type = RESOURCE_NONE;
+						for (int i = 0; i < 26; i++) {
+							if (inventory->resources[i] != 0 &&
+							    player->inventory_prio[i] >= prio) {
+								prio = player->inventory_prio[i];
+								type = (resource_type_t)i;
+							}
+						}
+
+						if (type != RESOURCE_NONE) {
+							inventory_add_to_queue(inventory, type, 0);
+						}
 					}
 				}
 			}
@@ -636,8 +686,8 @@ update_inventories()
 			for (int i = 0; i < n; i++) {
 				max_prio[i] = 0;
 				flags[i] = NULL;
-				flag_t *flag = game_get_flag(invs[i]->flg_index);
-				flag->search_dir = i;
+				flag_t *flag = game_get_flag(invs[i]->flag);
+				flag->search_dir = (dir_t)i;
 				flag_search_add_source(&search, flag);
 			}
 
@@ -652,15 +702,20 @@ update_inventories()
 					LOGV("game", " dest for inventory %i found", i);
 					building_t *dest_bld = flags[i]->other_endpoint.b[DIR_UP_LEFT];
 					inventory_t *src_inv = invs[i];
+
+					int stock = -1;
 					for (int j = 0; j < BUILDING_MAX_STOCK; j++) {
 						if (dest_bld->stock[j].type == arr[0]) {
-							dest_bld->stock[j].prio = 0;
-							dest_bld->stock[j].requested += 1;
+							stock = j;
 							break;
 						}
 					}
 
-					resource_type_t res = arr[0];
+					assert(stock >= 0);
+					dest_bld->stock[stock].prio = 0;
+					dest_bld->stock[stock].requested += 1;
+
+					resource_type_t res = (resource_type_t)arr[0];
 					if (res == RESOURCE_GROUP_FOOD) {
 						/* Select the food resource with highest amount available */
 						if (src_inv->resources[RESOURCE_MEAT] > src_inv->resources[RESOURCE_BREAD]) {
@@ -677,57 +732,11 @@ update_inventories()
 					}
 
 					/* Put resource in out queue */
-					src_inv->resources[res] -= 1;
-					if (src_inv->out_queue[0] == -1) {
-						LOGV("game", " added resource %i to front of queue", res);
-						src_inv->out_queue[0] = res;
-						src_inv->out_dest[0] = dest_bld->flg_index;
-					} else {
-						LOGV("game", " added resource %i next in queue", res);
-						src_inv->out_queue[1] = res;
-						src_inv->out_dest[1] = dest_bld->flg_index;
-					}
-
-					if (src_inv->serfs[SERF_4] == 0) {
-						/*serf_t *serf = game_get_serf(dest_bld->serf_index);*/
-						/* TODO */
-					}
+					inventory_add_to_queue(src_inv, res, dest_bld->flag);
 				}
 			}
 		}
 		arr += 1;
-	}
-}
-
-static void
-update_ai_and_more()
-{
-	game.next_index += 1;
-	if (game.next_index >= game.max_next_index) {
-		game.next_index = 0;
-	}
-
-	if (game.next_index == 32) {
-		/* 1FC1D */
-		update_knight_morale();
-		update_inventories();
-	} else if (game.next_index > 32) {
-		while (game.next_index < game.max_next_index) {
-			int i = 33 - game.next_index;
-			player_t *player = game.player[i & 3];
-			if (PLAYER_IS_ACTIVE(player) && PLAYER_IS_AI(player)) {
-				/* AI */
-				/* TODO */
-			}
-			game.next_index += 1;
-		}
-	} else if (game.game_speed > 0 &&
-		   game.max_flag_index < 50) {
-		player_t *player = game.player[game.next_index & 3];
-		if (PLAYER_IS_ACTIVE(player) && PLAYER_IS_AI(player)) {
-			/* AI */
-			/* TODO */
-		}
 	}
 }
 
@@ -777,8 +786,8 @@ send_serf_to_road(flag_t *src, dir_t dir, int water)
 	flag_t *src_2 = src->other_endpoint.f[dir];
 	dir_t dir_2 = FLAG_OTHER_END_DIR(src, dir);
 
-	src->search_dir = 0;
-	src_2->search_dir = 1;
+	src->search_dir = (dir_t)0;
+	src_2->search_dir = (dir_t)1;
 
 	flag_search_t search;
 	flag_search_init(&search);
@@ -796,28 +805,23 @@ send_serf_to_road(flag_t *src, dir_t dir, int water)
 	if (r < 0) {
 		if (inventory == NULL) return -1;
 
-		player_t *player = game.player[inventory->player_num];
-
-		player->serf_count[SERF_GENERIC] -= 1;
 		serf_index = inventory->serfs[SERF_GENERIC];
 		inventory->serfs[SERF_GENERIC] = 0;
 
 		serf_t *serf = game_get_serf(serf_index);
 
 		if (!water) {
-			serf->type = (serf->type & 0x83) | (SERF_TRANSPORTER << 2);
-			player->serf_count[SERF_TRANSPORTER] += 1;
+			serf_set_type(serf, SERF_TRANSPORTER);
 		} else {
-			serf->type = (serf->type & 0x83) | (SERF_SAILOR << 2);
-			player->serf_count[SERF_SAILOR] += 1;
+			serf_set_type(serf, SERF_SAILOR);
 			inventory->resources[RESOURCE_BOAT] -= 1;
 		}
 
-		inventory->spawn_priority -= 1;
+		inventory->generic_count -= 1;
 	}
 
-	inventory->serfs[SERF_4] += 1;
-	flag_t *dest_flag = game_get_flag(inventory->flg_index);
+	inventory->serfs_out += 1;
+	flag_t *dest_flag = game_get_flag(inventory->flag);
 
 	src->length[dir] |= BIT(7);
 	src_2->length[dir_2] |= BIT(7);
@@ -895,24 +899,27 @@ schedule_known_dest_cb(flag_t *flag, schedule_known_dest_data_t *data)
 }
 
 static void
-schedule_slot_to_known_dest(flag_t *flag, int slot)
+schedule_slot_to_known_dest(flag_t *flag, int slot, uint res_waiting[4])
 {
 	flag_search_t search;
 	flag_search_init(&search);
 
 	flag->search_num = search.id;
-	flag->search_dir = 6;
+	flag->search_dir = (dir_t)6;
 	int tr = FLAG_TRANSPORTERS(flag);
 
 	int sources = 0;
-	int flags = (game.field_218[3] ^ 0x3f) & flag->transporter;
+
+	/* Directions where transporters are idle (zero slots waiting) */
+	int flags = (res_waiting[0] ^ 0x3f) & flag->transporter;
+
 	if (flags != 0) {
 		for (int k = 0; k < 6; k++) {
 			if (BIT_TEST(flags, 5-k)) {
 				tr &= ~BIT(5-k);
 				flag_t *other_flag = flag->other_endpoint.f[5-k];
 				if (other_flag->search_num != search.id) {
-					other_flag->search_dir = 5-k;
+					other_flag->search_dir = (dir_t)(5-k);
 					flag_search_add_source(&search, other_flag);
 					sources += 1;
 				}
@@ -922,13 +929,13 @@ schedule_slot_to_known_dest(flag_t *flag, int slot)
 
 	if (tr != 0) {
 		for (int j = 0; j < 3; j++) {
-			flags = (game.field_218[3-j] ^ game.field_218[2-j]);
+			flags = res_waiting[j] ^ res_waiting[j+1];
 			for (int k = 0; k < 6; k++) {
 				if (BIT_TEST(flags, 5-k)) {
 					tr &= ~BIT(5-k);
 					flag_t *other_flag = flag->other_endpoint.f[5-k];
 					if (other_flag->search_num != search.id) {
-						other_flag->search_dir = 5-k;
+						other_flag->search_dir = (dir_t)(5-k);
 						flag_search_add_source(&search, other_flag);
 						sources += 1;
 					}
@@ -937,13 +944,13 @@ schedule_slot_to_known_dest(flag_t *flag, int slot)
 		}
 
 		if (tr != 0) {
-			flags = game.field_218[0];
+			flags = res_waiting[3];
 			for (int k = 0; k < 6; k++) {
 				if (BIT_TEST(flags, 5-k)) {
 					tr &= ~BIT(5-k);
 					flag_t *other_flag = flag->other_endpoint.f[5-k];
 					if (other_flag->search_num != search.id) {
-						other_flag->search_dir = 5-k;
+						other_flag->search_dir = (dir_t)(5-k);
 						flag_search_add_source(&search, other_flag);
 						sources += 1;
 					}
@@ -963,7 +970,8 @@ schedule_slot_to_known_dest(flag_t *flag, int slot)
 					    0, 1, &data);
 		if (r < 0 || data.dest->search_dir == 6) {
 			/* Unable to deliver */
-			flag_cancel_transported_stock(data.dest, flag->slot[slot].type);
+			game_cancel_transported_resource(flag->slot[slot].type,
+							 flag->slot[slot].dest);
 			flag->slot[slot].dest = 0;
 			flag->endpoint |= BIT(7);
 		}
@@ -1001,24 +1009,46 @@ schedule_unknown_dest_cb(flag_t *flag, schedule_unknown_dest_data_t *data)
 static void
 schedule_slot_to_unknown_dest(flag_t *flag, int slot)
 {
+	#ifndef AFINIT_INT
+	#ifdef HAVE_DESIGNATED_INITIALIZERS
+	#define AFINIT_INT(f) [f] =
+	#else
+	#define AFINIT_INT(f)
+	#endif
+	#endif
+
+
 	/* Resources which should be routed directly to
 	   buildings requesting them. Resources not listed
 	   here will simply be moved to an inventory. */
 	const int routable[] = {
-		[RESOURCE_FISH] = 1,
-		[RESOURCE_PIG] = 1,
-		[RESOURCE_MEAT] = 1,
-		[RESOURCE_WHEAT] = 1,
-		[RESOURCE_FLOUR] = 1,
-		[RESOURCE_BREAD] = 1,
-		[RESOURCE_LUMBER] = 1,
-		[RESOURCE_PLANK] = 1,
-		[RESOURCE_STONE] = 1,
-		[RESOURCE_IRONORE] = 1,
-		[RESOURCE_STEEL] = 1,
-		[RESOURCE_COAL] = 1,
-		[RESOURCE_GOLDORE] = 1,
-		[RESOURCE_GOLDBAR] = 1
+		AFINIT_INT(RESOURCE_FISH]) 1,
+		AFINIT_INT(RESOURCE_PIG) 1,
+		AFINIT_INT(RESOURCE_MEAT) 1,
+		AFINIT_INT(RESOURCE_WHEAT) 1,
+		AFINIT_INT(RESOURCE_FLOUR) 1,
+		AFINIT_INT(RESOURCE_BREAD) 1,
+		AFINIT_INT(RESOURCE_LUMBER) 1,
+		AFINIT_INT(RESOURCE_PLANK) 1,
+		AFINIT_INT(RESOURCE_BOAT) 0,
+		AFINIT_INT(RESOURCE_STONE) 1,
+		AFINIT_INT(RESOURCE_IRONORE) 1,
+		AFINIT_INT(RESOURCE_STEEL) 1,
+		AFINIT_INT(RESOURCE_COAL) 1,
+		AFINIT_INT(RESOURCE_GOLDORE) 1,
+		AFINIT_INT(RESOURCE_GOLDBAR) 1,
+		AFINIT_INT(RESOURCE_SHOVEL) 0,
+		AFINIT_INT(RESOURCE_HAMMER) 0,
+		AFINIT_INT(RESOURCE_ROD) 0,
+		AFINIT_INT(RESOURCE_CLEAVER) 0,
+		AFINIT_INT(RESOURCE_SCYTHE) 0,
+		AFINIT_INT(RESOURCE_AXE) 0,
+		AFINIT_INT(RESOURCE_SAW) 0,
+		AFINIT_INT(RESOURCE_PICK) 0,
+		AFINIT_INT(RESOURCE_PINCER) 0,
+		AFINIT_INT(RESOURCE_SWORD) 0,
+		AFINIT_INT(RESOURCE_SHIELD) 0,
+		AFINIT_INT(RESOURCE_GROUP_FOOD) 0
 	};
 
 	resource_type_t res = flag->slot[slot].type;
@@ -1046,17 +1076,22 @@ schedule_slot_to_unknown_dest(flag_t *flag, int slot)
 			LOGV("game", "dest for flag %u res %i found: flag %u",
 			     FLAG_INDEX(flag), slot, FLAG_INDEX(data.flag));
 			building_t *dest_bld = data.flag->other_endpoint.b[DIR_UP_LEFT];
+
+			int stock = -1;
 			for (int i = 0; i < BUILDING_MAX_STOCK; i++) {
 				if (dest_bld->stock[i].type == res) {
-					int prio = dest_bld->stock[i].prio;
-					if ((prio & 1) == 0) prio = 0;
-					dest_bld->stock[i].prio = prio >> 1;
-					dest_bld->stock[i].requested += 1;
+					stock = i;
 					break;
 				}
 			}
 
-			flag->slot[slot].dest = dest_bld->flg_index;
+			assert(stock >= 0);
+			int prio = dest_bld->stock[stock].prio;
+			if ((prio & 1) == 0) prio = 0;
+			dest_bld->stock[stock].prio = prio >> 1;
+			dest_bld->stock[stock].requested += 1;
+
+			flag->slot[slot].dest = dest_bld->flag;
 			flag->endpoint |= BIT(7);
 			return;
 		}
@@ -1066,8 +1101,11 @@ schedule_slot_to_unknown_dest(flag_t *flag, int slot)
 	   other than an inventory or such destination could not be
 	   found. Send to inventory instead. */
 	int r = find_nearest_inventory(flag);
-	if (r < 0) {
-		/* No path to inventory was found */
+	if (r < 0 || r == FLAG_INDEX(flag)) {
+		/* No path to inventory was found, or
+		   resource is already at destination.
+		   In the latter case we need to move it
+		   forth and back once before it can be delivered. */
 		if (FLAG_TRANSPORTERS(flag) == 0) {
 			flag->endpoint |= BIT(7);
 		} else {
@@ -1086,7 +1124,7 @@ schedule_slot_to_unknown_dest(flag_t *flag, int slot)
 				flag->other_end_dir[dir] = BIT(7) |
 					(flag->other_end_dir[dir] & 0x38) | slot;
 			}
-			flag->slot[slot].dir = dir;
+			flag->slot[slot].dir = (dir_t)dir;
 		}
 	} else {
 		flag->slot[slot].dest = r;
@@ -1100,35 +1138,34 @@ update_flags()
 {
 	const int max_transporters[] = { 1, 2, 3, 4, 6, 8, 11, 15 };
 
-	if (game.next_index >= 32) return;
-
-	int index = game.next_index << 5;
-	for (int i = index ? index : 1; i < game.max_flag_index; i++) {
+	for (uint i = 1; i < game.max_flag_index; i++) {
 		if (FLAG_ALLOCATED(i)) {
 			flag_t *flag = game_get_flag(i);
 
-			for (int j = 0; j < 4; j++) game.field_218[j] = 0;
-
+			/* Count and store in bitfield which directions
+			   have strictly more than 0,1,2,3 slots waiting. */
+			uint res_waiting[4] = {0};
 			for (int j = 0; j < FLAG_MAX_RES_COUNT; j++) {
 				if (flag->slot[j].type != RESOURCE_NONE &&
 				    flag->slot[j].dir != DIR_NONE) {
 					dir_t res_dir = flag->slot[j].dir;
-					for (int k = 3; k >= 0; k--) {
-						if (!BIT_TEST(game.field_218[k], res_dir)) {
-							game.field_218[k] |= BIT(res_dir);
+					for (int k = 0; k < 4; k++) {
+						if (!BIT_TEST(res_waiting[k], res_dir)) {
+							res_waiting[k] |= BIT(res_dir);
 							break;
 						}
 					}
 				}
 			}
 
-			game.field_24E = 0;
+			/* Count of total resources waiting at flag */
+			int waiting_count = 0;
 
 			if (FLAG_HAS_RESOURCES(flag)) {
 				flag->endpoint &= ~BIT(7);
 				for (int slot = 0; slot < FLAG_MAX_RES_COUNT; slot++) {
 					if (flag->slot[slot].type != RESOURCE_NONE) {
-						game.field_24E += 1;
+						waiting_count += 1;
 
 						/* Only schedule the slot if it has not already
 						   been scheduled for fetch. */
@@ -1136,7 +1173,8 @@ update_flags()
 						if (res_dir < 0) {
 							if (flag->slot[slot].dest != 0) {
 								/* Destination is known */
-								schedule_slot_to_known_dest(flag, slot);
+								schedule_slot_to_known_dest(flag, slot,
+											    res_waiting);
 							} else {
 								/* Destination is not known */
 								schedule_slot_to_unknown_dest(flag, slot);
@@ -1147,41 +1185,33 @@ update_flags()
 			}
 
 			/* Update transporter flags, decide if serf needs to be sent to road */
-			int tr = flag->transporter;
-			int flags = game.field_218[1];
-			int path = FLAG_PATHS(flag);
-			if (game.field_24E >= 7) path |= BIT(7);
-
 			for (int j = 0; j < 6; j++) {
-				if (BIT_TEST(path, 5-j)) {
+				if (FLAG_HAS_PATH(flag, 5-j)) {
 					if (FLAG_SERF_REQUESTED(flag, 5-j)) {
-						if (BIT_TEST(flags, 5-j)) {
-							if (BIT_TEST(path, 7)) tr &= BIT(5-j);
-						} else {
-							if (FLAG_TRANSPORTER_COUNT(flag, 5-j) != 0) tr |= BIT(5-j);
-						}
-					} else if (FLAG_TRANSPORTER_COUNT(flag, 5-j) == 0) {
-						if (!BIT_TEST(tr, 7)) {
-							int r = send_serf_to_road(flag, 5-j, FLAG_IS_WATER_PATH(flag, 5-j));
-							if (r < 0) tr |= BIT(7);
-						}
-						if (BIT_TEST(path, 7)) tr &= BIT(5-j);
-					} else if (BIT_TEST(flags, 5-j)) {
-						int max_tr = max_transporters[FLAG_LENGTH_CATEGORY(flag, 5-j)];
-						if (FLAG_TRANSPORTER_COUNT(flag, 5-j) != max_tr) {
-							if (!BIT_TEST(tr, 7)) {
-								int r = send_serf_to_road(flag, 5-j, FLAG_IS_WATER_PATH(flag, 5-j));
-								if (r < 0) tr |= BIT(7);
+						if (BIT_TEST(res_waiting[2], 5-j)) {
+							if (waiting_count >= 7) {
+								flag->transporter &= BIT(5-j);
 							}
+						} else if (FLAG_TRANSPORTER_COUNT(flag, 5-j) != 0) {
+							flag->transporter |= BIT(5-j);
 						}
-						if (BIT_TEST(path, 7)) tr &= BIT(5-j);
+					} else if (FLAG_TRANSPORTER_COUNT(flag, 5-j) == 0 ||
+						   BIT_TEST(res_waiting[2], 5-j)) {
+						int max_tr = max_transporters[FLAG_LENGTH_CATEGORY(flag, 5-j)];
+						if (FLAG_TRANSPORTER_COUNT(flag, 5-j) < (uint)max_tr &&
+						    !FLAG_SERF_REQUEST_FAIL(flag)) {
+							int r = send_serf_to_road(flag, (dir_t)(5-j),
+										  FLAG_IS_WATER_PATH(flag, 5-j));
+							if (r < 0) flag->transporter |= BIT(7);
+						}
+						if (waiting_count >= 7) {
+							flag->transporter &= BIT(5-j);
+						}
 					} else {
-						tr |= BIT(5-j);
+						flag->transporter |= BIT(5-j);
 					}
 				}
 			}
-
-			flag->transporter = tr;
 		}
 	}
 }
@@ -1224,10 +1254,10 @@ send_serf_to_flag_search_cb(flag_t *flag, send_serf_to_flag_data_t *data)
 				serf_log_state_change(serf, SERF_STATE_READY_TO_LEAVE_INVENTORY);
 				serf->state = SERF_STATE_READY_TO_LEAVE_INVENTORY;
 				serf->s.ready_to_leave_inventory.mode = -1;
-				serf->s.ready_to_leave_inventory.dest = data->building->flg_index;
+				serf->s.ready_to_leave_inventory.dest = data->building->flag;
 				serf->s.ready_to_leave_inventory.inv_index = INVENTORY_INDEX(inv);
 
-				inv->serfs[SERF_4] += 1;
+				inv->serfs_out += 1;
 
 				return 1;
 			} else if (type == -1) {
@@ -1243,7 +1273,7 @@ send_serf_to_flag_search_cb(flag_t *flag, send_serf_to_flag_data_t *data)
 			}
 		} else {
 			if (inv->serfs[type] != 0) {
-				if (type != SERF_GENERIC || inv->spawn_priority > 4) {
+				if (type != SERF_GENERIC || inv->generic_count > 4) {
 					serf_t *serf = game_get_serf(inv->serfs[type]);
 
 					serf_log_state_change(serf, SERF_STATE_READY_TO_LEAVE_INVENTORY);
@@ -1254,7 +1284,7 @@ send_serf_to_flag_search_cb(flag_t *flag, send_serf_to_flag_data_t *data)
 					inv->serfs[type] = 0;
 					if (type == SERF_GENERIC) {
 						serf->s.ready_to_leave_inventory.mode = -2;
-						inv->spawn_priority -= 1;
+						inv->generic_count -= 1;
 					} else if (type == SERF_GEOLOGIST) {
 						serf->s.ready_to_leave_inventory.mode = 6;
 					} else {
@@ -1263,7 +1293,7 @@ send_serf_to_flag_search_cb(flag_t *flag, send_serf_to_flag_data_t *data)
 						serf->s.ready_to_leave_inventory.mode = -1;
 					}
 
-					inv->serfs[SERF_4] += 1;
+					inv->serfs_out += 1;
 					return 1;
 				}
 			} else {
@@ -1315,7 +1345,7 @@ send_serf_to_flag(flag_t *dest, int type, resource_type_t res1, resource_type_t 
 		serf_t *serf = game_get_serf(inventory->serfs[SERF_GENERIC]);
 
 		inventory->serfs[SERF_GENERIC] = 0;
-		inventory->spawn_priority -= 1;
+		inventory->generic_count -= 1;
 
 		if (type < 0) {
 			/* Knight */
@@ -1325,18 +1355,13 @@ send_serf_to_flag(flag_t *dest, int type, resource_type_t res1, resource_type_t 
 			serf_log_state_change(serf, SERF_STATE_READY_TO_LEAVE_INVENTORY);
 			serf->state = SERF_STATE_READY_TO_LEAVE_INVENTORY;
 			serf->s.ready_to_leave_inventory.mode = -1;
-			serf->s.ready_to_leave_inventory.dest = building->flg_index;
+			serf->s.ready_to_leave_inventory.dest = building->flag;
 			serf->s.ready_to_leave_inventory.inv_index = INVENTORY_INDEX(inventory);
-			serf->type = (serf->type & 0x83) | (SERF_KNIGHT_0 << 2);
+			serf_set_type(serf, SERF_KNIGHT_0);
 
 			inventory->resources[RESOURCE_SWORD] -= 1;
 			inventory->resources[RESOURCE_SHIELD] -= 1;
-			inventory->serfs[SERF_4] += 1;
-
-			player_t *player = game.player[SERF_PLAYER(serf)];
-			player->serf_count[SERF_GENERIC] -= 1;
-			player->serf_count[SERF_KNIGHT_0] += 1;
-			player->total_military_score += 1;
+			inventory->serfs_out += 1;
 		} else {
 			serf_log_state_change(serf, SERF_STATE_READY_TO_LEAVE_INVENTORY);
 			serf->state = SERF_STATE_READY_TO_LEAVE_INVENTORY;
@@ -1350,16 +1375,12 @@ send_serf_to_flag(flag_t *dest, int type, resource_type_t res1, resource_type_t 
 				serf->s.ready_to_leave_inventory.mode = -1;
 				serf->s.ready_to_leave_inventory.dest = FLAG_INDEX(dest);
 			}
-			serf->type = (serf->type & 0x83) | (type << 2);
+			serf_set_type(serf, (serf_type_t)type);
 
 			if (res1 != -1) inventory->resources[res1] -= 1;
 			if (res2 != -1) inventory->resources[res2] -= 1;
 
-			inventory->serfs[SERF_4] += 1;
-
-			player_t *player = game.player[SERF_PLAYER(serf)];
-			player->serf_count[SERF_GENERIC] -= 1;
-			player->serf_count[type] += 1;
+			inventory->serfs_out += 1;
 		}
 
 		return 0;
@@ -1372,14 +1393,14 @@ send_serf_to_flag(flag_t *dest, int type, resource_type_t res1, resource_type_t 
 int
 game_send_geologist(flag_t *dest)
 {
-	return send_serf_to_flag(dest, SERF_GEOLOGIST, RESOURCE_HAMMER, -1);
+	return send_serf_to_flag(dest, SERF_GEOLOGIST, RESOURCE_HAMMER, (resource_type_t)-1);
 }
 
 /* Dispatch serf to building. */
 static int
 send_serf_to_building(building_t *building, int type, resource_type_t res1, resource_type_t res2)
 {
-	flag_t *dest = game_get_flag(building->flg_index);
+	flag_t *dest = game_get_flag(building->flag);
 	return send_serf_to_flag(dest, type, res1, res2);
 }
 
@@ -1394,26 +1415,11 @@ update_unfinished_building(building_t *building)
 	    !BUILDING_HAS_SERF(building) &&
 	    !BUILDING_SERF_REQUESTED(building)) {
 		building->progress = 1;
-		/*if (BIT_TEST(player->field_163, 6) &&
-				player->lumberjack_index != BUILDING_INDEX(building) &&
-				player->sawmill_index != BUILDING_INDEX(building) &&
-				player->stonecutter_index != BUILDING_INDEX(building)) {
-			building->serf |= BIT(2);
-			return;
-		}*/
-
-		int r = send_serf_to_building(building, SERF_BUILDER, RESOURCE_HAMMER, -1);
+		int r = send_serf_to_building(building, SERF_BUILDER, RESOURCE_HAMMER, (resource_type_t)-1);
 		if (r < 0) building->serf |= BIT(2);
 	}
 
 	/* Request planks */
-	/*if (BIT_TEST(player->field_163, 1) &&
-			player->lumberjack_index != BUILDING_INDEX(building) &&
-			player->sawmill_index != BUILDING_INDEX(building) &&
-			player->stonecutter_index != BUILDING_INDEX(building)) {
-		TODO
-	}*/
-
 	int total_planks = building->stock[0].requested + building->stock[0].available;
 	if (total_planks < building->stock[0].maximum) {
 		int planks_prio = player->planks_construction >> (8 + total_planks);
@@ -1424,13 +1430,6 @@ update_unfinished_building(building_t *building)
 	}
 
 	/* Request stone */
-	/*if (BIT_TEST(player->field_163, 2) &&
-			player->lumberjack_index != BUILDING_INDEX(building) &&
-			player->sawmill_index != BUILDING_INDEX(building) &&
-			player->stonecutter_index != BUILDING_INDEX(building)) {
-		TODO
-	}*/
-
 	int total_stone = building->stock[1].requested + building->stock[1].available;
 	if (total_stone < building->stock[1].maximum) {
 		int stone_prio = 0xff >> total_stone;
@@ -1456,17 +1455,27 @@ update_unfinished_adv_building(building_t *building)
 		return;
 	}
 
-	/* TODO */
+	/* Check whether building needs leveling */
+	int need_leveling = 0;
+	int height = game_get_leveling_height(building->pos);
+	for (int i = 0; i < 7; i++) {
+		map_pos_t pos = MAP_POS_ADD(building->pos, game.spiral_pos_pattern[i]);
+		if (MAP_HEIGHT(pos) != height) {
+			need_leveling = 1;
+			break;
+		}
+	}
 
+	if (!need_leveling) {
+		/* Already at the correct level, don't send digger */
+		building->progress = 1;
+		update_unfinished_building(building);
+		return;
+	}
+
+	/* Request digger */
 	if (!BUILDING_SERF_REQUEST_FAIL(building)) {
-		/*if (BIT_TEST(player->field_163, 6) &&
-		  BUILDING_TYPE(building) != BUILDING_LUMBERJACK &&
-		  BUILDING_TYPE(building) != BUILDING_STONECUTTER &&
-		  BUILDING_TYPE(building) != BUILDING_SAWMILL) {
-			building->serf |= BIT(2);
-			return;
-		}*/
-		int r = send_serf_to_building(building, SERF_DIGGER, RESOURCE_SHOVEL, -1);
+		int r = send_serf_to_building(building, SERF_DIGGER, RESOURCE_SHOVEL, (resource_type_t)-1);
 		if (r < 0) building->serf |= BIT(2);
 	}
 }
@@ -1493,7 +1502,7 @@ update_building_castle(building_t *building)
 		if (best_knight != NULL) {
 			inventory_t *inventory = building->u.inventory;
 			int type = SERF_TYPE(best_knight);
-			for (serf_type_t t = SERF_KNIGHT_0; t <= SERF_KNIGHT_4; t++) {
+			for (int t = SERF_KNIGHT_0; t <= SERF_KNIGHT_4; t++) {
 				if (type > t &&
 				    inventory->serfs[t] == SERF_INDEX(best_knight)) {
 					inventory->serfs[t] = 0;
@@ -1508,7 +1517,7 @@ update_building_castle(building_t *building)
 	} else if (player->castle_knights < player->castle_knights_wanted) {
 		inventory_t *inventory = building->u.inventory;
 		int type = -1;
-		for (serf_type_t t = SERF_KNIGHT_4; t >= SERF_KNIGHT_0; t--) {
+		for (int t = SERF_KNIGHT_4; t >= SERF_KNIGHT_0; t--) {
 			if (inventory->serfs[t] != 0) {
 				type = t;
 				break;
@@ -1520,23 +1529,23 @@ update_building_castle(building_t *building)
 			if (inventory->serfs[SERF_GENERIC] != 0 &&
 			    inventory->resources[RESOURCE_SWORD] != 0 &&
 			    inventory->resources[RESOURCE_SHIELD] != 0) {
-				inventory->spawn_priority -= 1;
+				inventory->generic_count -= 1;
 				inventory->resources[RESOURCE_SWORD] -= 1;
 				inventory->resources[RESOURCE_SHIELD] -= 1;
-				player->serf_count[SERF_GENERIC] -= 1;
-				player->serf_count[SERF_KNIGHT_0] += 1;
 
 				int serf_index = inventory->serfs[SERF_GENERIC];
 				serf_t *serf = game_get_serf(serf_index);
+				inventory->serfs[SERF_GENERIC] = 0;
 
-				serf->type = (0x83 & serf->type) | (SERF_KNIGHT_0 << 2);
+				serf_set_type(serf, SERF_KNIGHT_0);
 				serf->state = SERF_STATE_DEFENDING_CASTLE;
 				serf->s.defending.next_knight = building->serf_index;
 				building->serf_index = serf_index;
+				player->castle_knights += 1;
 			} else {
 				player->send_knight_delay -= 1;
 				if (player->send_knight_delay < 0) {
-					send_serf_to_building(building, -1, -1, -1);
+					send_serf_to_building(building, -1, (resource_type_t) - 1, (resource_type_t) - 1);
 					player->send_knight_delay = 5;
 				}
 			}
@@ -1544,6 +1553,7 @@ update_building_castle(building_t *building)
 			/* Prepend to knights list */
 			int serf_index = inventory->serfs[type];
 			serf_t *serf = game_get_serf(serf_index);
+			inventory->serfs[type] = 0; /* Clear inventory pointer */
 
 			serf_log_state_change(serf, SERF_STATE_DEFENDING_CASTLE);
 			serf->state = SERF_STATE_DEFENDING_CASTLE;
@@ -1551,7 +1561,6 @@ update_building_castle(building_t *building)
 			serf->counter = 6000;
 			building->serf_index = serf_index;
 			player->castle_knights += 1;
-			inventory->serfs[type] = 0; /* Clear inventory pointer */
 		}
 	} else {
 		player->castle_knights -= 1;
@@ -1569,15 +1578,13 @@ update_building_castle(building_t *building)
 
 	if (BUILDING_HAS_SERF(building) &&
 	    (inventory->res_dir & 0xa) == 0 && /* Not serf or res OUT mode */
-	    inventory->spawn_priority == 0) {
-		/* player->field_160 -= 1; */
-		if (0/*player->field_160 < 0*/) {
-			/* player->field_160 = 5; */
-			send_serf_to_building(building, SERF_GENERIC, -1, -1);
+	    inventory->generic_count == 0) {
+		player->send_generic_delay -= 1;
+		if (player->send_generic_delay < 0) {
+			send_serf_to_building(building, SERF_GENERIC, (resource_type_t) - 1, (resource_type_t) - 1);
+			player->send_generic_delay = 5;
 		}
 	}
-
-	player->inventory_gold += inventory->resources[RESOURCE_GOLDBAR];
 
 	map_pos_t flag_pos = MAP_MOVE_DOWN_RIGHT(building->pos);
 	if (MAP_SERF_INDEX(flag_pos) != 0) {
@@ -1632,7 +1639,7 @@ handle_military_building_update(building_t *building)
 	int present_knights = building->stock[0].available;
 	if (total_knights < needed_occupants) {
 		if (!BUILDING_SERF_REQUEST_FAIL(building)) {
-			int r = send_serf_to_building(building, -1, -1, -1);
+			int r = send_serf_to_building(building, -1, (resource_type_t) - 1, (resource_type_t) - 1);
 			if (r < 0) building->serf |= BIT(2);
 		}
 	} else if (needed_occupants < present_knights &&
@@ -1678,7 +1685,6 @@ handle_military_building_update(building_t *building)
 	/* Request gold */
 	if (BUILDING_HAS_SERF(building)) {
 		int total_gold = building->stock[1].requested + building->stock[1].available;
-		player->military_gold += building->stock[1].available;
 		player->military_max_gold += max_gold;
 
 		if (total_gold < max_gold) {
@@ -1702,7 +1708,7 @@ handle_building_update(building_t *building)
 			    !BUILDING_HAS_SERF(building) &&
 			    !BUILDING_SERF_REQUESTED(building)) {
 				int r = send_serf_to_building(building, SERF_FISHER,
-							      RESOURCE_ROD, -1);
+					RESOURCE_ROD, (resource_type_t) - 1);
 				if (r < 0) building->serf |= BIT(2);
 			}
 			break;
@@ -1711,7 +1717,7 @@ handle_building_update(building_t *building)
 			    !BUILDING_HAS_SERF(building) &&
 			    !BUILDING_SERF_REQUESTED(building)) {
 				int r = send_serf_to_building(building, SERF_LUMBERJACK,
-							      RESOURCE_AXE, -1);
+					RESOURCE_AXE, (resource_type_t) - 1);
 				if (r < 0) building->serf |= BIT(2);
 			}
 			break;
@@ -1720,13 +1726,13 @@ handle_building_update(building_t *building)
 			    !BUILDING_HAS_SERF(building) &&
 			    !BUILDING_SERF_REQUESTED(building)) {
 				int r = send_serf_to_building(building, SERF_BOATBUILDER,
-							      RESOURCE_HAMMER, -1);
+					RESOURCE_HAMMER, (resource_type_t) - 1);
 				if (r < 0) building->serf |= BIT(2);
 			}
 			if (BUILDING_HAS_SERF(building)) {
 				player_t *player = game.player[BUILDING_PLAYER(building)];
 				int total_tree = building->stock[0].requested + building->stock[0].available;
-				if (total_tree < building->stock[0].maximum && 1/*!BIT_TEST(player->field_163, 1)*/) {
+				if (total_tree < building->stock[0].maximum) {
 					building->stock[0].prio = player->planks_boatbuilder >> (8 + total_tree);
 				} else {
 					building->stock[0].prio = 0;
@@ -1738,7 +1744,7 @@ handle_building_update(building_t *building)
 			    !BUILDING_HAS_SERF(building) &&
 			    !BUILDING_SERF_REQUESTED(building)) {
 				int r = send_serf_to_building(building, SERF_STONECUTTER,
-							      RESOURCE_PICK, -1);
+					RESOURCE_PICK, (resource_type_t) - 1);
 				if (r < 0) building->serf |= BIT(2);
 			}
 			break;
@@ -1747,7 +1753,7 @@ handle_building_update(building_t *building)
 			    !BUILDING_HAS_SERF(building) &&
 			    !BUILDING_SERF_REQUESTED(building)) {
 				int r = send_serf_to_building(building, SERF_MINER,
-							      RESOURCE_PICK, -1);
+					RESOURCE_PICK, (resource_type_t) - 1);
 				if (r < 0) building->serf |= BIT(2);
 			}
 			if (BUILDING_HAS_SERF(building)) {
@@ -1765,7 +1771,7 @@ handle_building_update(building_t *building)
 			    !BUILDING_HAS_SERF(building) &&
 			    !BUILDING_SERF_REQUESTED(building)) {
 				int r = send_serf_to_building(building, SERF_MINER,
-							      RESOURCE_PICK, -1);
+					RESOURCE_PICK, (resource_type_t) - 1);
 				if (r < 0) building->serf |= BIT(2);
 			}
 			if (BUILDING_HAS_SERF(building)) {
@@ -1783,7 +1789,7 @@ handle_building_update(building_t *building)
 			    !BUILDING_HAS_SERF(building) &&
 			    !BUILDING_SERF_REQUESTED(building)) {
 				int r = send_serf_to_building(building, SERF_MINER,
-							      RESOURCE_PICK, -1);
+					RESOURCE_PICK, (resource_type_t) - 1);
 				if (r < 0) building->serf |= BIT(2);
 			}
 			if (BUILDING_HAS_SERF(building)) {
@@ -1801,7 +1807,7 @@ handle_building_update(building_t *building)
 			    !BUILDING_HAS_SERF(building) &&
 			    !BUILDING_SERF_REQUESTED(building)) {
 				int r = send_serf_to_building(building, SERF_MINER,
-							      RESOURCE_PICK, -1);
+					RESOURCE_PICK, (resource_type_t) - 1);
 				if (r < 0) building->serf |= BIT(2);
 			}
 			if (BUILDING_HAS_SERF(building)) {
@@ -1818,7 +1824,7 @@ handle_building_update(building_t *building)
 			if (!BUILDING_SERF_REQUEST_FAIL(building) &&
 			    !BUILDING_HAS_SERF(building) &&
 			    !BUILDING_SERF_REQUESTED(building)) {
-				int r = send_serf_to_building(building, SERF_FORESTER, -1, -1);
+					int r = send_serf_to_building(building, SERF_FORESTER, (resource_type_t) - 1, (resource_type_t) - 1);
 				if (r < 0) building->serf |= BIT(2);
 			}
 			break;
@@ -1829,8 +1835,8 @@ handle_building_update(building_t *building)
 				if (r < 0) return;
 
 				inv->player_num = BUILDING_PLAYER(building);
-				inv->bld_index = BUILDING_INDEX(building);
-				inv->flg_index = building->flg_index;
+				inv->building = BUILDING_INDEX(building);
+				inv->flag = building->flag;
 
 				building->u.inventory = inv;
 				building->stock[0].requested = 0xff;
@@ -1845,22 +1851,20 @@ handle_building_update(building_t *building)
 				if (!BUILDING_SERF_REQUEST_FAIL(building) &&
 				    !BUILDING_HAS_SERF(building) &&
 				    !BUILDING_SERF_REQUESTED(building)) {
-					send_serf_to_building(building, SERF_TRANSPORTER, -1, -1);
+						send_serf_to_building(building, SERF_TRANSPORTER, (resource_type_t) - 1, (resource_type_t) - 1);
 				}
 
 				player_t *player = game.player[BUILDING_PLAYER(building)];
 				inventory_t *inv = building->u.inventory;
 				if (BUILDING_HAS_SERF(building) &&
 				    (inv->res_dir & 0xa) == 0 && /* Not serf or res OUT mode */
-				    inv->spawn_priority == 0) {
-					/* player->field_160 -= 1; */
-					if (0/*player->field_160 < 0*/) {
-						/* player->field_160 = 5; */
-						send_serf_to_building(building, SERF_GENERIC, -1, -1);
+				    inv->generic_count == 0) {
+					player->send_generic_delay -= 1;
+					if (player->send_generic_delay < 0) {
+						send_serf_to_building(building, SERF_GENERIC, (resource_type_t) - 1, (resource_type_t) - 1);
+						player->send_generic_delay = 5;
 					}
 				}
-
-				player->inventory_gold += inv->resources[RESOURCE_GOLDBAR];
 
 				/* TODO Following code looks like a hack */
 				map_pos_t flag_pos = MAP_MOVE_DOWN_RIGHT(building->pos);
@@ -1879,7 +1883,7 @@ handle_building_update(building_t *building)
 			if (!BUILDING_SERF_REQUEST_FAIL(building) &&
 			    !BUILDING_HAS_SERF(building) &&
 			    !BUILDING_SERF_REQUESTED(building)) {
-				int r = send_serf_to_building(building, SERF_FARMER, RESOURCE_SCYTHE, -1);
+					int r = send_serf_to_building(building, SERF_FARMER, RESOURCE_SCYTHE, (resource_type_t) - 1);
 				if (r < 0) building->serf |= BIT(2);
 			}
 			break;
@@ -1888,7 +1892,7 @@ handle_building_update(building_t *building)
 			    !BUILDING_HAS_SERF(building) &&
 			    !BUILDING_SERF_REQUESTED(building)) {
 				int r = send_serf_to_building(building, SERF_BUTCHER,
-							      RESOURCE_CLEAVER, -1);
+					RESOURCE_CLEAVER, (resource_type_t) - 1);
 				if (r < 0) building->serf |= BIT(2);
 			}
 			if (BUILDING_HAS_SERF(building)) {
@@ -1905,7 +1909,7 @@ handle_building_update(building_t *building)
 			if (!BUILDING_SERF_REQUEST_FAIL(building) &&
 			    !BUILDING_HAS_SERF(building) &&
 			    !BUILDING_SERF_REQUESTED(building)) {
-				int r = send_serf_to_building(building, SERF_PIGFARMER, -1, -1);
+					int r = send_serf_to_building(building, SERF_PIGFARMER, (resource_type_t) - 1, (resource_type_t) - 1);
 				if (r < 0) building->serf |= BIT(2);
 			}
 			if (BUILDING_HAS_SERF(building)) {
@@ -1923,7 +1927,7 @@ handle_building_update(building_t *building)
 			if (!BUILDING_SERF_REQUEST_FAIL(building) &&
 			    !BUILDING_HAS_SERF(building) &&
 			    !BUILDING_SERF_REQUESTED(building)) {
-				int r = send_serf_to_building(building, SERF_MILLER, -1, -1);
+					int r = send_serf_to_building(building, SERF_MILLER, (resource_type_t) - 1, (resource_type_t) - 1);
 				if (r < 0) building->serf |= BIT(2);
 			}
 			if (BUILDING_HAS_SERF(building)) {
@@ -1941,7 +1945,7 @@ handle_building_update(building_t *building)
 			if (!BUILDING_SERF_REQUEST_FAIL(building) &&
 			    !BUILDING_HAS_SERF(building) &&
 			    !BUILDING_SERF_REQUESTED(building)) {
-				int r = send_serf_to_building(building, SERF_BAKER, -1, -1);
+					int r = send_serf_to_building(building, SERF_BAKER, (resource_type_t) - 1, (resource_type_t) - 1);
 				if (r < 0) building->serf |= BIT(2);
 			}
 			if (BUILDING_HAS_SERF(building)) {
@@ -1959,7 +1963,7 @@ handle_building_update(building_t *building)
 			    !BUILDING_HAS_SERF(building) &&
 			    !BUILDING_SERF_REQUESTED(building)) {
 				int r = send_serf_to_building(building, SERF_SAWMILLER,
-							      RESOURCE_SAW, -1);
+					RESOURCE_SAW, (resource_type_t) - 1);
 				if (r < 0) building->serf |= BIT(2);
 			}
 			if (BUILDING_HAS_SERF(building)) {
@@ -1977,7 +1981,7 @@ handle_building_update(building_t *building)
 			    !BUILDING_HAS_SERF(building) &&
 			    !BUILDING_SERF_REQUESTED(building)) {
 				int r = send_serf_to_building(building, SERF_SMELTER,
-							      -1, -1);
+					(resource_type_t) - 1, (resource_type_t) - 1);
 				if (r < 0) building->serf |= BIT(2);
 			}
 			if (BUILDING_HAS_SERF(building)) {
@@ -2011,7 +2015,7 @@ handle_building_update(building_t *building)
 				/* Request more planks. */
 				player_t *player = game.player[BUILDING_PLAYER(building)];
 				int total_tree = building->stock[0].requested + building->stock[0].available;
-				if (total_tree < building->stock[0].maximum && 1/*!BIT_TEST(player->field_163, 1)*/) {
+				if (total_tree < building->stock[0].maximum) {
 					building->stock[0].prio = player->planks_toolmaker >> (8 + total_tree);
 				} else {
 					building->stock[0].prio = 0;
@@ -2058,7 +2062,7 @@ handle_building_update(building_t *building)
 			    !BUILDING_HAS_SERF(building) &&
 			    !BUILDING_SERF_REQUESTED(building)) {
 				int r = send_serf_to_building(building, SERF_SMELTER,
-							      -1, -1);
+					(resource_type_t) - 1, (resource_type_t) - 1);
 				if (r < 0) building->serf |= BIT(2);
 			}
 			if (BUILDING_HAS_SERF(building)) {
@@ -2130,10 +2134,7 @@ handle_building_update(building_t *building)
 static void
 update_buildings()
 {
-	if (game.next_index >= 32) return;
-
-	int index = game.next_index << 5;
-	for (int i = index ? index : 1; i < game.max_building_index; i++) {
+	for (uint i = 1; i < game.max_building_index; i++) {
 		if (BUILDING_ALLOCATED(i)) {
 			building_t *building = game_get_building(i);
 			if (BUILDING_IS_BURNING(building)) {
@@ -2156,11 +2157,7 @@ update_buildings()
 static void
 update_serfs()
 {
-	if (game.next_index >= 32) return;
-
-	/*int index = game.next_index & 0xf;
-	  for (int i = index ? index : 1; i < game.max_serf_index; i++) {*/
-	for (int i = 1; i < game.max_serf_index; i++) {
+	for (uint i = 1; i < game.max_serf_index; i++) {
 		if (SERF_ALLOCATED(i)) {
 			serf_t *serf = game_get_serf(i);
 			update_serf(serf);
@@ -2171,9 +2168,9 @@ update_serfs()
 /* Update historical player statistics for one measure. */
 static void
 record_player_history(player_t *player[], int pl_count, int max_level, int aspect,
-		      const int history_index[], const int values[])
+		      const int history_index[], const uint values[])
 {
-	int total = 0;
+	uint total = 0;
 	for (int i = 0; i < pl_count; i++) total += values[i];
 	total = max(1, total);
 
@@ -2181,7 +2178,8 @@ record_player_history(player_t *player[], int pl_count, int max_level, int aspec
 		int mode = (aspect << 2) | i;
 		int index = history_index[i];
 		for (int j = 0; j < pl_count; j++) {
-			player[j]->player_stat_history[mode][index] = (100*values[j])/total;
+			uint64_t value = values[j];
+			player[j]->player_stat_history[mode][index] = (int)((100*value)/total);
 		}
 	}
 }
@@ -2190,14 +2188,15 @@ record_player_history(player_t *player[], int pl_count, int max_level, int aspec
    considered a clear winner regarding one aspect.
    Return -1 if there is no clear winner. */
 static int
-calculate_clear_winner(int pl_count, const int values[])
+calculate_clear_winner(int pl_count, const uint values[])
 {
 	int total = 0;
 	for (int i = 0; i < pl_count; i++) total += values[i];
 	total = max(1, total);
 
 	for (int i = 0; i < pl_count; i++) {
-		if ((100*values[i])/total >= 75) return i;
+		uint64_t value = values[i];
+		if ((100*value)/total >= 75) return i;
 	}
 
 	return -1;
@@ -2207,14 +2206,14 @@ calculate_clear_winner(int pl_count, const int values[])
 static int
 calculate_military_score(int military, int morale)
 {
-	return (2048 + (morale >> 1)) * (military >> 6);
+	return (2048 + (morale >> 1)) * (military << 6);
 }
 
 /* Update statistics of the game. */
 static void
 update_game_stats()
 {
-	if (game.game_stats_counter > game.tick_diff) {
+	if (game.game_stats_counter > (uint)game.tick_diff) {
 		game.game_stats_counter -= game.tick_diff;
 	} else {
 		game.game_stats_counter += 1500 - game.tick_diff;
@@ -2262,42 +2261,56 @@ update_game_stats()
 			}
 		}
 
-		int values[4];
+		uint values[GAME_MAX_PLAYER_COUNT];
 
 		/* Store land area stats in history. */
-		for (int i = 0; i < 4; i++) values[i] = game.player[i]->total_land_area;
-		record_player_history(game.player, 4, update_level, 1,
+		int pl_count = 0;
+		for (int i = 0; i < GAME_MAX_PLAYER_COUNT; i++) {
+			if (PLAYER_IS_ACTIVE(game.player[i])) {
+				values[i] = game.player[i]->total_land_area;
+				pl_count += 1;
+			}
+		}
+		record_player_history(game.player, pl_count, update_level, 1,
 				      game.player_history_index, values);
-		game.player_score_leader |= BIT(calculate_clear_winner(4, values));
+		game.player_score_leader |= BIT(calculate_clear_winner(pl_count, values));
 
 		/* Store building stats in history. */
-		for (int i = 0; i < 4; i++) values[i] = game.player[i]->total_building_score;
-		record_player_history(game.player, 4, update_level, 2,
+		for (int i = 0; i < GAME_MAX_PLAYER_COUNT; i++) {
+			if (PLAYER_IS_ACTIVE(game.player[i])) {
+				values[i] = game.player[i]->total_building_score;
+			}
+		}
+		record_player_history(game.player, pl_count, update_level, 2,
 				      game.player_history_index, values);
 
 		/* Store military stats in history. */
-		for (int i = 0; i < 4; i++) {
-			values[i] = calculate_military_score(game.player[i]->total_military_score,
-							     game.player[i]->knight_morale);
+		for (int i = 0; i < GAME_MAX_PLAYER_COUNT; i++) {
+			if (PLAYER_IS_ACTIVE(game.player[i])) {
+				values[i] = calculate_military_score(game.player[i]->total_military_score,
+								     game.player[i]->knight_morale);
+			}
 		}
-		record_player_history(game.player, 4, update_level, 3,
+		record_player_history(game.player, pl_count, update_level, 3,
 				      game.player_history_index, values);
-		game.player_score_leader |= BIT(calculate_clear_winner(4, values)) << 4;
+		game.player_score_leader |= BIT(calculate_clear_winner(pl_count, values)) << 4;
 
 		/* Store condensed score of all aspects in history. */
-		for (int i = 0; i < 4; i++) {
-			int mil_score = calculate_military_score(game.player[i]->total_military_score,
-								 game.player[i]->knight_morale);
-			values[i] = game.player[i]->total_building_score +
-				((game.player[i]->total_land_area + mil_score) >> 4);
+		for (int i = 0; i < GAME_MAX_PLAYER_COUNT; i++) {
+			if (PLAYER_IS_ACTIVE(game.player[i])) {
+				int mil_score = calculate_military_score(game.player[i]->total_military_score,
+									 game.player[i]->knight_morale);
+				values[i] = game.player[i]->total_building_score +
+					((game.player[i]->total_land_area + mil_score) >> 4);
+			}
 		}
-		record_player_history(game.player, 4, update_level, 0,
+		record_player_history(game.player, pl_count, update_level, 0,
 				      game.player_history_index, values);
 
 		/* TODO Determine winner based on game.player_score_leader */
 	}
 
-	if (game.history_counter > game.tick_diff) {
+	if (game.history_counter > (uint)game.tick_diff) {
 		game.history_counter -= game.tick_diff;
 	} else {
 		game.history_counter += 6000 - game.tick_diff;
@@ -2305,10 +2318,12 @@ update_game_stats()
 		int index = game.resource_history_index;
 
 		for (int res = 0; res < 26; res++) {
-			for (int i = 0; i < 4; i++) {
+			for (int i = 0; i < GAME_MAX_PLAYER_COUNT; i++) {
 				player_t *player = game.player[i];
-				player->resource_count_history[res][index] = player->resource_count[res];
-				player->resource_count[res] = 0;
+				if (PLAYER_IS_ACTIVE(player)) {
+					player->resource_count_history[res][index] = player->resource_count[res];
+					player->resource_count[res] = 0;
+				}
 			}
 		}
 
@@ -2328,8 +2343,53 @@ game_update()
 	game.tick += game.game_speed;
 	game.tick_diff = game.tick - game.last_tick;
 
-	update_map_and_players();
-	update_ai_and_more();
+	clear_serf_request_failure();
+	map_update();
+
+	/* Update players */
+	for (int i = 0; i < GAME_MAX_PLAYER_COUNT; i++) {
+		if (PLAYER_IS_ACTIVE(game.player[i])) {
+			update_player(game.player[i]);
+		}
+	}
+
+	/* Update knight morale */
+	game.knight_morale_counter -= game.tick_diff;
+	if (game.knight_morale_counter < 0) {
+		update_knight_morale();
+		game.knight_morale_counter += 256;
+	}
+
+	/* Schedule resources to go out of inventories */
+	game.inventory_schedule_counter -= game.tick_diff;
+	if (game.inventory_schedule_counter < 0) {
+		update_inventories();
+		game.inventory_schedule_counter += 64;
+	}
+
+#if 0
+	/* AI related updates */	
+	game.next_index = (game.next_index + 1) % game.max_next_index;
+	if (game.next_index > 32) {
+		for (int i = 0; i < game.max_next_index) {
+			int i = 33 - game.next_index;
+			player_t *player = game.player[i & 3];
+			if (PLAYER_IS_ACTIVE(player) && PLAYER_IS_AI(player)) {
+				/* AI */
+				/* TODO */
+			}
+			game.next_index += 1;
+		}
+	} else if (game.game_speed > 0 &&
+		   game.max_flag_index < 50) {
+		player_t *player = game.player[game.next_index & 3];
+		if (PLAYER_IS_ACTIVE(player) && PLAYER_IS_AI(player)) {
+			/* AI */
+			/* TODO */
+		}
+	}
+#endif
+
 	update_flags();
 	update_buildings();
 	update_serfs();
@@ -2493,25 +2553,26 @@ road_segment_in_water(map_pos_t pos, dir_t dir)
 	return water;
 }
 
-/* Construct a road spefified by a source and a list
-   of directions. */
+/* Test whether a given road can be constructed by player. The final
+   destination will be returned in dest, and water will be set if the
+   resulting path is a water path.
+   This will return success even if the destination does _not_ contain
+   a flag, and therefore partial paths can be validated with this function. */
 int
-game_build_road(map_pos_t source, const dir_t dirs[], uint length,
-		const player_t *player)
+game_can_build_road(map_pos_t source, const dir_t dirs[], uint length,
+		    const player_t *player, map_pos_t *dest, int *water)
 {
-	map_tile_t *tiles = game.map.tiles;
-	int test = 0;
-
 	/* Follow along path to other flag. Test along the way
 	   whether the path is on ground or in water. */
 	map_pos_t pos = source;
+	int test = 0;
 
 	if (!MAP_HAS_OWNER(pos) || MAP_OWNER(pos) != player->player_num ||
 	    !MAP_HAS_FLAG(pos)) {
-		return -1;
+		return 0;
 	}
 
-	for (int i = 0; i < length; i++) {
+	for (uint i = 0; i < length; i++) {
 		dir_t dir = dirs[i];
 
 		if (!game_road_segment_valid(pos, dir)) {
@@ -2526,37 +2587,60 @@ game_build_road(map_pos_t source, const dir_t dirs[], uint length,
 
 		pos = MAP_MOVE(pos, dir);
 
-		if (!MAP_HAS_OWNER(pos) || MAP_OWNER(pos) != player->player_num) {
-			return -1;
+		/* Check that owner is correct, and that only the destination
+		   has a flag. */
+		if (!MAP_HAS_OWNER(pos) || MAP_OWNER(pos) != player->player_num ||
+		    (MAP_HAS_FLAG(pos) && i != length-1)) {
+			return 0;
 		}
 	}
 
-	map_pos_t dest = pos;
-	if (!MAP_HAS_FLAG(dest)) return -1;
-
-	flag_t *dest_flag = game_get_flag(MAP_OBJ_INDEX(dest));
+	map_pos_t d = pos;
+	if (dest != NULL) *dest = d;
 
 	/* Bit 0 indicates a ground path, bit 1 indicates
 	   water path. Abort if path went through both
 	   ground and water. */
-	int water_path = 0;
-	if (test != BIT(0)) {
-		water_path = 1;
-		if (test != BIT(1)) return -1;
+	int w = 0;
+	if (BIT_TEST(test, 1)) {
+		w = 1;
+		if (BIT_TEST(test, 0)) return 0;
 	}
+	if (water != NULL) *water = w;
+
+	return 1;
+}
+
+/* Construct a road spefified by a source and a list
+   of directions. */
+int
+game_build_road(map_pos_t source, const dir_t dirs[], uint length,
+		const player_t *player)
+{
+	if (length < 1) return -1;
+
+	map_pos_t dest;
+	int water_path;
+	int r = game_can_build_road(source, dirs, length,
+				    player, &dest, &water_path);
+	if (!r) return -1;
+	if (!MAP_HAS_FLAG(dest)) return -1;
+
+	map_tile_t *tiles = game.map.tiles;
 
 	dir_t out_dir = dirs[0];
 	dir_t in_dir = DIR_REVERSE(dirs[length-1]);
 
 	/* Actually place road segments */
-	pos = source;
-	for (int i = 0; i < length; i++) {
+	map_pos_t pos = source;
+	for (uint i = 0; i < length; i++) {
 		dir_t dir = dirs[i];
 		dir_t rev_dir = DIR_REVERSE(dir);
 
 		if (!game_road_segment_valid(pos, dir)) {
-			/* Not valid after all.
-			   Backtrack and abort. */
+			/* Not valid after all. Backtrack and abort.
+			   This is needed to check that the road
+			   does not cross itself. */
 			for (int j = i-1; j >= 0; j--) {
 				dir_t rev_dir = dirs[j];
 				dir_t dir = DIR_REVERSE(rev_dir);
@@ -2578,6 +2662,7 @@ game_build_road(map_pos_t source, const dir_t dirs[], uint length,
 
 	/* Connect flags */
 	flag_t *src_flag = game_get_flag(MAP_OBJ_INDEX(source));
+	flag_t *dest_flag = game_get_flag(MAP_OBJ_INDEX(dest));
 
 	dest_flag->path_con |= BIT(in_dir);
 	dest_flag->endpoint |= BIT(in_dir);
@@ -2610,7 +2695,7 @@ static void
 flag_reset_transport(flag_t *flag)
 {
 	/* Clear destination for any serf with resources for this flag. */
-	for (int i = 1; i < game.max_serf_index; i++) {
+	for (uint i = 1; i < game.max_serf_index; i++) {
 		if (SERF_ALLOCATED(i)) {
 			serf_t *serf = game_get_serf(i);
 
@@ -2650,7 +2735,7 @@ flag_reset_transport(flag_t *flag)
 	}
 
 	/* Flag. */
-	for (int i = 1; i < game.max_flag_index; i++) {
+	for (uint i = 1; i < game.max_flag_index; i++) {
 		if (FLAG_ALLOCATED(i)) {
 			flag_t *other = game_get_flag(i);
 
@@ -2671,16 +2756,20 @@ flag_reset_transport(flag_t *flag)
 	}
 
 	/* Inventories. */
-	for (int i = 0; i < game.max_inventory_index; i++) {
+	for (uint i = 0; i < game.max_inventory_index; i++) {
 		if (INVENTORY_ALLOCATED(i)) {
 			inventory_t *inventory = game_get_inventory(i);
-			if (inventory->out_dest[1] == FLAG_INDEX(flag)) {
-				inventory->out_queue[1] = -1;
+			if (inventory->out_queue[1].type != RESOURCE_NONE &&
+			    inventory->out_queue[1].dest == FLAG_INDEX(flag)) {
+				inventory->resources[inventory->out_queue[1].type] += 1;
+				inventory->out_queue[1].type = RESOURCE_NONE;
 			}
-			if (inventory->out_dest[0] == FLAG_INDEX(flag)) {
-				inventory->out_queue[0] = inventory->out_queue[1];
-				inventory->out_dest[0] = inventory->out_dest[1];
-				inventory->out_queue[1] = -1;
+			if (inventory->out_queue[0].type != RESOURCE_NONE &&
+			    inventory->out_queue[0].dest == FLAG_INDEX(flag)) {
+				inventory->resources[inventory->out_queue[0].type] += 1;
+				inventory->out_queue[0].type = inventory->out_queue[1].type;
+				inventory->out_queue[0].dest = inventory->out_queue[1].dest;
+				inventory->out_queue[1].type = RESOURCE_NONE;
 			}
 		}
 	}
@@ -2689,24 +2778,12 @@ flag_reset_transport(flag_t *flag)
 static void
 building_remove_player_refs(building_t *building)
 {
-	for (int i = 0; i < 4; i++) {
-		if (game.player[i]->index == BUILDING_INDEX(building)) {
-			game.player[i]->index = 0;
+	for (int i = 0; i < GAME_MAX_PLAYER_COUNT; i++) {
+		if (PLAYER_IS_ACTIVE(game.player[i])) {
+			if (game.player[i]->index == BUILDING_INDEX(building)) {
+				game.player[i]->index = 0;
+			}
 		}
-	}
-
-	player_t *player = game.player[BUILDING_PLAYER(building)];
-
-	if (player->sawmill_index == BUILDING_INDEX(building)) {
-		player->sawmill_index = 0;
-	}
-
-	if (player->stonecutter_index == BUILDING_INDEX(building)) {
-		player->stonecutter_index = 0;
-	}
-
-	if (player->lumberjack_index == BUILDING_INDEX(building)) {
-		player->lumberjack_index = 0;
 	}
 }
 
@@ -2724,10 +2801,10 @@ remove_road_backref_until_flag(map_pos_t pos, dir_t dir)
 		if (MAP_OBJ(pos) == MAP_OBJ_FLAG) break;
 
 		/* Find next direction of path. */
-		dir = -1;
-		for (dir_t d = DIR_RIGHT; d <= DIR_UP; d++) {
+		dir = (dir_t)-1;
+		for (int d = DIR_RIGHT; d <= DIR_UP; d++) {
 			if (BIT_TEST(MAP_PATHS(pos), d)) {
-				dir = d;
+				dir = (dir_t)d;
 				break;
 			}
 		}
@@ -2744,18 +2821,18 @@ remove_road_backrefs(map_pos_t pos)
 	if (MAP_PATHS(pos) == 0) return -1;
 
 	/* Find directions of path segments to be split. */
-	dir_t path_1_dir = -1;
-	for (dir_t d = DIR_RIGHT; d <= DIR_UP; d++) {
+	dir_t path_1_dir = (dir_t) -1;
+	for (int d = DIR_RIGHT; d <= DIR_UP; d++) {
 		if (BIT_TEST(MAP_PATHS(pos), d)) {
-			path_1_dir = d;
+			path_1_dir = (dir_t) d;
 			break;
 		}
 	}
 
-	dir_t path_2_dir = -1;
-	for (dir_t d = path_1_dir+1; d <= DIR_UP; d++) {
+	dir_t path_2_dir = (dir_t) - 1;
+	for (int d = path_1_dir+1; d <= DIR_UP; d++) {
 		if (BIT_TEST(MAP_PATHS(pos), d)) {
-			path_2_dir = d;
+			path_2_dir = (dir_t) d;
 			break;
 		}
 	}
@@ -2775,7 +2852,7 @@ static int
 path_serf_idle_to_wait_state(map_pos_t pos)
 {
 	/* Look through serf array for the corresponding serf. */
-	for (int i = 1; i < game.max_serf_index; i++) {
+	for (uint i = 1; i < game.max_serf_index; i++) {
 		if (SERF_ALLOCATED(i)) {
 			serf_t *serf = game_get_serf(i);
 			if (serf->pos == pos &&
@@ -2794,88 +2871,10 @@ path_serf_idle_to_wait_state(map_pos_t pos)
 }
 
 static void
-lose_transported_resource(resource_type_t res, uint dest)
-{
-	if (res == RESOURCE_GOLDORE ||
-	    res == RESOURCE_GOLDBAR) {
-		game.map_gold_deposit -= 1;
-	}
-
-	if (dest != 0) {
-		flag_t *flag = game_get_flag(dest);
-		assert(FLAG_HAS_BUILDING(flag));
-		building_t *building = flag->other_endpoint.b[DIR_UP_LEFT];
-
-		if (res == RESOURCE_FISH ||
-		    res == RESOURCE_MEAT ||
-		    res == RESOURCE_BREAD) {
-			res = RESOURCE_GROUP_FOOD;
-		}
-
-		for (int i = 0; i < BUILDING_MAX_STOCK; i++) {
-			if (building->stock[i].type == res) {
-				building->stock[i].requested -= 1;
-				assert(building->stock[i].requested >= 0);
-				break;
-			}
-		}
-	}
-}
-
-
-/* ADDITION: Removed precondition that serf is in state walking or transporting. */
-static void
-mark_serf_as_lost(serf_t *serf)
-{
-	if (serf->state == SERF_STATE_WALKING) {
-		if (serf->s.walking.res >= 0) {
-			if (serf->s.walking.res != 6) {
-				dir_t dir = serf->s.walking.res;
-				flag_t *flag = game_get_flag(serf->s.walking.dest);
-				flag->length[dir] &= ~BIT(7);
-
-				dir_t other_dir = FLAG_OTHER_END_DIR(flag, dir);
-				flag->other_endpoint.f[dir]->length[other_dir] &= ~BIT(7);
-			}
-		} else if (serf->s.walking.res == -1) {
-			flag_t *flag = game_get_flag(serf->s.walking.dest);
-			building_t *building = flag->other_endpoint.b[DIR_UP_LEFT];
-
-			if (BUILDING_SERF_REQUESTED(building)) {
-				building->serf &= ~BIT(7);
-			} else if (!BUILDING_HAS_INVENTORY(building)) {
-				building->stock[0].requested -= 1;
-			}
-		}
-
-		serf_log_state_change(serf, SERF_STATE_LOST);
-		serf->state = SERF_STATE_LOST;
-		serf->s.lost.field_B = 0;
-	} else if (serf->state == SERF_STATE_TRANSPORTING ||
-		   serf->state == SERF_STATE_DELIVERING) {
-		if (serf->s.walking.res != 0) {
-			int res = serf->s.walking.res-1;
-			int dest = serf->s.walking.dest;
-
-			lose_transported_resource(res, dest);
-		}
-
-		if (SERF_TYPE(serf) != SERF_SAILOR) {
-			serf_log_state_change(serf, SERF_STATE_LOST);
-			serf->state = SERF_STATE_LOST;
-			serf->s.lost.field_B = 0;
-		} else {
-			serf_log_state_change(serf, SERF_STATE_LOST_SAILOR);
-			serf->state = SERF_STATE_LOST_SAILOR;
-		}
-	}
-}
-
-static void
 remove_road_forwards(map_pos_t pos, dir_t dir)
 {
 	map_tile_t *tiles = game.map.tiles;
-	dir_t in_dir = -1;
+	dir_t in_dir = (dir_t)-1;
 
 	while (1) {
 		if (MAP_IDLE_SERF(pos)) {
@@ -2885,7 +2884,7 @@ remove_road_forwards(map_pos_t pos, dir_t dir)
 		if (MAP_SERF_INDEX(pos) != 0) {
 			serf_t *serf = game_get_serf(MAP_SERF_INDEX(pos));
 			if (!MAP_HAS_FLAG(pos)) {
-				mark_serf_as_lost(serf);
+				serf_set_lost_state(serf);
 			} else {
 				/* Handle serf close to flag, where
 				   it should only be lost if walking
@@ -2893,7 +2892,7 @@ remove_road_forwards(map_pos_t pos, dir_t dir)
 				int d = serf->s.walking.dir;
 				if (d < 0) d += 6;
 				if (d == DIR_REVERSE(dir)) {
-					mark_serf_as_lost(serf);
+					serf_set_lost_state(serf);
 				}
 			}
 		}
@@ -2909,7 +2908,7 @@ remove_road_forwards(map_pos_t pos, dir_t dir)
 			if (FLAG_SERF_REQUESTED(flag, rev_dir)) {
 				flag->length[rev_dir] &= ~BIT(7);
 
-				for (int i = 1; i < game.max_serf_index; i++) {
+				for (uint i = 1; i < game.max_serf_index; i++) {
 					if (SERF_ALLOCATED(i)) {
 						int dest = MAP_OBJ_INDEX(pos);
 						serf_t *serf = game_get_serf(i);
@@ -2968,10 +2967,10 @@ remove_road_forwards(map_pos_t pos, dir_t dir)
 		tiles[pos].paths &= ~BIT(DIR_REVERSE(dir));
 
 		/* Find next direction of path. */
-		dir = -1;
-		for (dir_t d = DIR_RIGHT; d <= DIR_UP; d++) {
+		dir = (dir_t) - 1;
+		for (int d = DIR_RIGHT; d <= DIR_UP; d++) {
 			if (BIT_TEST(MAP_PATHS(pos), d)) {
-				dir = d;
+				dir = (dir_t) d;
 				break;
 			}
 		}
@@ -2993,18 +2992,18 @@ demolish_road(map_pos_t pos)
 	}
 
 	/* Find directions of path segments to be split. */
-	dir_t path_1_dir = -1;
-	for (dir_t d = DIR_RIGHT; d <= DIR_UP; d++) {
+	dir_t path_1_dir = (dir_t) - 1;
+	for (int d = DIR_RIGHT; d <= DIR_UP; d++) {
 		if (BIT_TEST(MAP_PATHS(pos), d)) {
-			path_1_dir = d;
+			path_1_dir = (dir_t) d;
 			break;
 		}
 	}
 
-	dir_t path_2_dir = -1;
-	for (dir_t d = path_1_dir+1; d <= DIR_UP; d++) {
+	dir_t path_2_dir = (dir_t) - 1;
+	for (int d = path_1_dir+1; d <= DIR_UP; d++) {
 		if (BIT_TEST(MAP_PATHS(pos), d)) {
-			path_2_dir = d;
+			path_2_dir = (dir_t) d;
 			break;
 		}
 	}
@@ -3035,7 +3034,7 @@ game_demolish_road(map_pos_t pos, player_t *player)
 static int
 change_transporter_state_at_pos(map_pos_t pos, serf_state_t state)
 {
-	for (int i = 1; i < game.max_serf_index; i++) {
+	for (uint i = 1; i < game.max_serf_index; i++) {
 		if (SERF_ALLOCATED(i)) {
 			serf_t *serf = game_get_serf(i);
 			if (serf->pos == pos &&
@@ -3107,9 +3106,9 @@ fill_path_serf_info(map_pos_t pos, dir_t dir, serf_path_info_t *data)
 		if (MAP_HAS_FLAG(pos)) break;
 
 		/* Find out which direction the path follows. */
-		for (dir_t d = DIR_RIGHT; d <= DIR_UP; d++) {
+		for (int d = DIR_RIGHT; d <= DIR_UP; d++) {
 			if (BIT_TEST(paths, d)) {
-				dir = d;
+				dir = (dir_t) d;
 				break;
 			}
 		}
@@ -3196,16 +3195,11 @@ restore_path_serf_info(flag_t *flag, dir_t dir, serf_path_info_t *data)
 			if (serf->state != SERF_STATE_WAKE_ON_PATH) {
 				serf->s.walking.wait_counter = -1;
 				if (serf->s.walking.res != 0) {
-					resource_type_t res = serf->s.walking.res-1;
+					resource_type_t res = (resource_type_t)( serf->s.walking.res - 1);
 					serf->s.walking.res = 0;
 
-					/* Remove gold from total count. */
-					if (res == RESOURCE_GOLDBAR ||
-					    res == RESOURCE_GOLDORE) {
-						game.map_gold_deposit -= 1;
-					}
-
-					flag_cancel_transported_stock(game_get_flag(serf->s.walking.dest), res);
+					game_cancel_transported_resource(res, serf->s.walking.dest);
+					game_lose_resource(res);
 				}
 			} else {
 				serf_log_state_change(serf, SERF_STATE_WAKE_AT_FLAG);
@@ -3229,18 +3223,18 @@ static void
 build_flag_split_path(map_pos_t pos)
 {
 	/* Find directions of path segments to be split. */
-	dir_t path_1_dir = -1;
-	for (dir_t d = DIR_RIGHT; d <= DIR_UP; d++) {
+	dir_t path_1_dir = (dir_t) - 1;
+	for (int d = DIR_RIGHT; d <= DIR_UP; d++) {
 		if (BIT_TEST(MAP_PATHS(pos), d)) {
-			path_1_dir = d;
+			path_1_dir = (dir_t) d;
 			break;
 		}
 	}
 
-	dir_t path_2_dir = -1;
-	for (dir_t d = path_1_dir+1; d <= DIR_UP; d++) {
+	dir_t path_2_dir = (dir_t) - 1;
+	for (int d = path_1_dir+1; d <= DIR_UP; d++) {
 		if (BIT_TEST(MAP_PATHS(pos), d)) {
-			path_2_dir = d;
+			path_2_dir = (dir_t) d;
 			break;
 		}
 	}
@@ -3263,7 +3257,7 @@ build_flag_split_path(map_pos_t pos)
 
 	int select = -1;
 	if (FLAG_SERF_REQUESTED(flag_2, dir_2)) {
-		for (int i = 1; i < game.max_serf_index; i++) {
+		for (uint i = 1; i < game.max_serf_index; i++) {
 			if (SERF_ALLOCATED(i)) {
 				serf_t *serf = game_get_serf(i);
 
@@ -3342,7 +3336,7 @@ game_can_build_flag(map_pos_t pos, const player_t *player)
 	}
 
 	/* Check that no flags are nearby */
-	for (dir_t d = DIR_RIGHT; d <= DIR_UP; d++) {
+	for (int d = DIR_RIGHT; d <= DIR_UP; d++) {
 		if (MAP_OBJ(MAP_MOVE(pos, d)) == MAP_OBJ_FLAG) {
 			return 0;
 		}
@@ -3366,7 +3360,6 @@ game_build_flag(map_pos_t pos, player_t *player)
 
 	flag->pos = pos;
 	map_set_object(pos, MAP_OBJ_FLAG, flg_index);
-	/* move_map_resources(..); */
 
 	if (MAP_PATHS(pos) != 0) {
 		build_flag_split_path(pos);
@@ -3446,7 +3439,7 @@ game_get_leveling_height(map_pos_t pos)
 }
 
 static int
-map_types_within(map_pos_t pos, int low, int high)
+map_types_within(map_pos_t pos, uint low, uint high)
 {
 	if ((MAP_TYPE_UP(pos) >= low &&
 	     MAP_TYPE_UP(pos) <= high) &&
@@ -3662,32 +3655,41 @@ game_build_building(map_pos_t pos, building_type_t type, player_t *player)
 		3, 2, 3, 2, 3, 3, 2, 1, 2, 3, 5, 5, 4, 1
 	};
 
+#ifndef AFINIT_mobj
+#ifdef HAVE_DESIGNATED_INITIALIZERS
+#define AFINIT_mobj(f) [f] =
+#else
+#define AFINIT_mobj(f)(map_obj_t)
+#endif
+#endif
+
+
 	const map_obj_t obj_types[] = {
-		[BUILDING_NONE] = MAP_OBJ_NONE,
-		[BUILDING_FISHER] = MAP_OBJ_SMALL_BUILDING,
-		[BUILDING_LUMBERJACK] = MAP_OBJ_SMALL_BUILDING,
-		[BUILDING_BOATBUILDER] = MAP_OBJ_SMALL_BUILDING,
-		[BUILDING_STONECUTTER] = MAP_OBJ_SMALL_BUILDING,
-		[BUILDING_STONEMINE] = MAP_OBJ_SMALL_BUILDING,
-		[BUILDING_COALMINE] = MAP_OBJ_SMALL_BUILDING,
-		[BUILDING_IRONMINE] = MAP_OBJ_SMALL_BUILDING,
-		[BUILDING_GOLDMINE] = MAP_OBJ_SMALL_BUILDING,
-		[BUILDING_FORESTER] = MAP_OBJ_SMALL_BUILDING,
-		[BUILDING_STOCK] = MAP_OBJ_LARGE_BUILDING,
-		[BUILDING_HUT] = MAP_OBJ_SMALL_BUILDING,
-		[BUILDING_FARM] = MAP_OBJ_LARGE_BUILDING,
-		[BUILDING_BUTCHER] = MAP_OBJ_LARGE_BUILDING,
-		[BUILDING_PIGFARM] = MAP_OBJ_LARGE_BUILDING,
-		[BUILDING_MILL] = MAP_OBJ_SMALL_BUILDING,
-		[BUILDING_BAKER] = MAP_OBJ_LARGE_BUILDING,
-		[BUILDING_SAWMILL] = MAP_OBJ_LARGE_BUILDING,
-		[BUILDING_STEELSMELTER] = MAP_OBJ_LARGE_BUILDING,
-		[BUILDING_TOOLMAKER] = MAP_OBJ_LARGE_BUILDING,
-		[BUILDING_WEAPONSMITH] = MAP_OBJ_LARGE_BUILDING,
-		[BUILDING_TOWER] = MAP_OBJ_LARGE_BUILDING,
-		[BUILDING_FORTRESS] = MAP_OBJ_LARGE_BUILDING,
-		[BUILDING_GOLDSMELTER] = MAP_OBJ_LARGE_BUILDING,
-		[BUILDING_CASTLE] = MAP_OBJ_CASTLE
+		AFINIT_mobj(BUILDING_NONE) MAP_OBJ_NONE,
+		AFINIT_mobj(BUILDING_FISHER) MAP_OBJ_SMALL_BUILDING,
+		AFINIT_mobj(BUILDING_LUMBERJACK) MAP_OBJ_SMALL_BUILDING,
+		AFINIT_mobj(BUILDING_BOATBUILDER) MAP_OBJ_SMALL_BUILDING,
+		AFINIT_mobj(BUILDING_STONECUTTER) MAP_OBJ_SMALL_BUILDING,
+		AFINIT_mobj(BUILDING_STONEMINE) MAP_OBJ_SMALL_BUILDING,
+		AFINIT_mobj(BUILDING_COALMINE) MAP_OBJ_SMALL_BUILDING,
+		AFINIT_mobj(BUILDING_IRONMINE) MAP_OBJ_SMALL_BUILDING,
+		AFINIT_mobj(BUILDING_GOLDMINE) MAP_OBJ_SMALL_BUILDING,
+		AFINIT_mobj(BUILDING_FORESTER) MAP_OBJ_SMALL_BUILDING,
+		AFINIT_mobj(BUILDING_STOCK) MAP_OBJ_LARGE_BUILDING,
+		AFINIT_mobj(BUILDING_HUT) MAP_OBJ_SMALL_BUILDING,
+		AFINIT_mobj(BUILDING_FARM) MAP_OBJ_LARGE_BUILDING,
+		AFINIT_mobj(BUILDING_BUTCHER) MAP_OBJ_LARGE_BUILDING,
+		AFINIT_mobj(BUILDING_PIGFARM) MAP_OBJ_LARGE_BUILDING,
+		AFINIT_mobj(BUILDING_MILL) MAP_OBJ_SMALL_BUILDING,
+		AFINIT_mobj(BUILDING_BAKER) MAP_OBJ_LARGE_BUILDING,
+		AFINIT_mobj(BUILDING_SAWMILL) MAP_OBJ_LARGE_BUILDING,
+		AFINIT_mobj(BUILDING_STEELSMELTER) MAP_OBJ_LARGE_BUILDING,
+		AFINIT_mobj(BUILDING_TOOLMAKER) MAP_OBJ_LARGE_BUILDING,
+		AFINIT_mobj(BUILDING_WEAPONSMITH) MAP_OBJ_LARGE_BUILDING,
+		AFINIT_mobj(BUILDING_TOWER) MAP_OBJ_LARGE_BUILDING,
+		AFINIT_mobj(BUILDING_FORTRESS) MAP_OBJ_LARGE_BUILDING,
+		AFINIT_mobj(BUILDING_GOLDSMELTER) MAP_OBJ_LARGE_BUILDING,
+		AFINIT_mobj(BUILDING_CASTLE) MAP_OBJ_CASTLE
 	};
 
 	if (!game_can_build_building(pos, type, player)) return -1;
@@ -3711,34 +3713,13 @@ game_build_building(map_pos_t pos, building_type_t type, player_t *player)
 		}
 	}
 
-	if (/*!BIT_TEST(player->field_163, 0)*/0) {
-		switch (type) {
-		case BUILDING_LUMBERJACK:
-			if (player->lumberjack_index == 0) {
-				player->lumberjack_index = bld_index;
-			}
-			break;
-		case BUILDING_SAWMILL:
-			if (player->sawmill_index == 0) {
-				player->sawmill_index = bld_index;
-			}
-			break;
-		case BUILDING_STONECUTTER:
-			if (player->stonecutter_index == 0) {
-				player->stonecutter_index = bld_index;
-			}
-			break;
-		default:
-			break;
-		}
-	}
-
 	map_tile_t *tiles = game.map.tiles;
 
 	bld->u.level = game_get_leveling_height(pos);
 	bld->pos = pos;
 	player->incomplete_building_count[type] += 1;
-	bld->bld = BIT(7) | (type << 2) | player->player_num; /* bit 7: Unfinished building */
+	bld->type = type;
+	bld->bld = BIT(7) | player->player_num; /* bit 7: Unfinished building */
 	bld->progress = 0;
 	if (obj_types[type] != MAP_OBJ_LARGE_BUILDING) bld->progress = 1;
 
@@ -3753,7 +3734,7 @@ game_build_building(map_pos_t pos, building_type_t type, player_t *player)
 
 	flag->pos = MAP_MOVE_DOWN_RIGHT(pos);
 
-	bld->flg_index = flg_index;
+	bld->flag = flg_index;
 	flag->other_endpoint.b[DIR_UP_LEFT] = bld;
 	flag->endpoint |= BIT(6);
 
@@ -3767,16 +3748,12 @@ game_build_building(map_pos_t pos, building_type_t type, player_t *player)
 	flag->bld_flags = 0;
 	flag->bld2_flags = 0;
 
-	/* move_map_resources(pos, map_data); */
-	/* TODO Resources should be moved, just set them to zero for now */
-	tiles[pos].u.resource = 0;
 	tiles[pos].obj &= ~BIT(7);
 
 	map_set_object(pos, obj_types[type], bld_index);
 	tiles[pos].paths |= BIT(1);
 
 	if (MAP_OBJ(MAP_MOVE_DOWN_RIGHT(pos)) != MAP_OBJ_FLAG) {
-		/* move_map_resources(MAP_MOVE_DOWN_RIGHT(pos), map_data); */
 		map_set_object(MAP_MOVE_DOWN_RIGHT(pos), MAP_OBJ_FLAG, flg_index);
 		tiles[MAP_MOVE_DOWN_RIGHT(pos)].paths |= BIT(4);
 	}
@@ -3798,8 +3775,8 @@ create_initial_castle_serfs(player_t *player)
 	int r = spawn_serf(player, &serf, &inventory, 0);
 	if (r < 0) return;
 
-	inventory->spawn_priority -= 1;
-	serf->type = (serf->type & 0x83) | (SERF_4 << 2);
+	inventory->generic_count -= 1;
+	serf_set_type(serf, SERF_4);
 
 	serf_log_state_change(serf, SERF_STATE_BUILDING_CASTLE);
 	serf->state = SERF_STATE_BUILDING_CASTLE;
@@ -3808,9 +3785,6 @@ create_initial_castle_serfs(player_t *player)
 
 	building_t *building = game_get_building(player->building);
 	building->serf_index = SERF_INDEX(serf);
-
-	player->serf_count[SERF_GENERIC] -= 1;
-	player->serf_count[SERF_TRANSPORTER] += 1;
 
 	/* Spawn generic serfs */
 	for (int i = 0; i < 5; i++) {
@@ -3822,114 +3796,86 @@ create_initial_castle_serfs(player_t *player)
 		r = spawn_serf(player, &serf, &inventory, 0);
 		if (r < 0) return;
 
-		serf->type = (serf->type & 0x83) | (SERF_KNIGHT_0 << 2);
-
-		player->serf_count[SERF_GENERIC] -= 1;
-		player->serf_count[SERF_KNIGHT_0] += 1;
-		player->total_military_score += 1;
+		serf_set_type(serf, SERF_KNIGHT_0);
 
 		inventory->resources[RESOURCE_SWORD] -= 1;
 		inventory->resources[RESOURCE_SHIELD] -= 1;
-		inventory->spawn_priority -= 1;
+		inventory->generic_count -= 1;
 	}
 
 	/* Spawn toolmaker */
 	r = spawn_serf(player, &serf, &inventory, 0);
 	if (r < 0) return;
 
-	serf->type = (serf->type & 0x83) | (SERF_TOOLMAKER << 2);
-
-	player->serf_count[SERF_GENERIC] -= 1;
-	player->serf_count[SERF_TOOLMAKER] += 1;
+	serf_set_type(serf, SERF_TOOLMAKER);
 
 	inventory->resources[RESOURCE_HAMMER] -= 1;
 	inventory->resources[RESOURCE_SAW] -= 1;
-	inventory->spawn_priority -= 1;
+	inventory->generic_count -= 1;
 
 	/* Spawn timberman */
 	r = spawn_serf(player, &serf, &inventory, 0);
 	if (r < 0) return;
 
-	serf->type = (serf->type & 0x83) | (SERF_LUMBERJACK << 2);
-
-	player->serf_count[SERF_GENERIC] -= 1;
-	player->serf_count[SERF_LUMBERJACK] += 1;
+	serf_set_type(serf, SERF_LUMBERJACK);
 
 	inventory->resources[RESOURCE_AXE] -= 1;
-	inventory->spawn_priority -= 1;
+	inventory->generic_count -= 1;
 
 	/* Spawn sawmiller */
 	r = spawn_serf(player, &serf, &inventory, 0);
 	if (r < 0) return;
 
-	serf->type = (serf->type & 0x83) | (SERF_SAWMILLER << 2);
-
-	player->serf_count[SERF_GENERIC] -= 1;
-	player->serf_count[SERF_SAWMILLER] += 1;
+	serf_set_type(serf, SERF_SAWMILLER);
 
 	inventory->resources[RESOURCE_SAW] -= 1;
-	inventory->spawn_priority -= 1;
+	inventory->generic_count -= 1;
 
 	/* Spawn stonecutter */
 	r = spawn_serf(player, &serf, &inventory, 0);
 	if (r < 0) return;
 
-	serf->type = (serf->type & 0x83) | (SERF_STONECUTTER << 2);
-
-	player->serf_count[SERF_GENERIC] -= 1;
-	player->serf_count[SERF_STONECUTTER] += 1;
+	serf_set_type(serf, SERF_STONECUTTER);
 
 	inventory->resources[RESOURCE_PICK] -= 1;
-	inventory->spawn_priority -= 1;
+	inventory->generic_count -= 1;
 
 	/* Spawn digger */
 	r = spawn_serf(player, &serf, &inventory, 0);
 	if (r < 0) return;
 
-	serf->type = (serf->type & 0x83) | (SERF_DIGGER << 2);
-
-	player->serf_count[SERF_GENERIC] -= 1;
-	player->serf_count[SERF_DIGGER] += 1;
+	serf_set_type(serf, SERF_DIGGER);
 
 	inventory->resources[RESOURCE_SHOVEL] -= 1;
-	inventory->spawn_priority -= 1;
+	inventory->generic_count -= 1;
 
 	/* Spawn builder */
 	r = spawn_serf(player, &serf, &inventory, 0);
 	if (r < 0) return;
 
-	serf->type = (serf->type & 0x83) | (SERF_BUILDER << 2);
-
-	player->serf_count[SERF_GENERIC] -= 1;
-	player->serf_count[SERF_BUILDER] += 1;
+	serf_set_type(serf, SERF_BUILDER);
 
 	inventory->resources[RESOURCE_HAMMER] -= 1;
-	inventory->spawn_priority -= 1;
+	inventory->generic_count -= 1;
 
 	/* Spawn fisherman */
 	r = spawn_serf(player, &serf, &inventory, 0);
 	if (r < 0) return;
 
-	serf->type = (serf->type & 0x83) | (SERF_FISHER << 2);
-
-	player->serf_count[SERF_GENERIC] -= 1;
-	player->serf_count[SERF_FISHER] += 1;
+	serf_set_type(serf, SERF_FISHER);
 
 	inventory->resources[RESOURCE_ROD] -= 1;
-	inventory->spawn_priority -= 1;
+	inventory->generic_count -= 1;
 
 	/* Spawn two geologists */
 	for (int i = 0; i < 2; i++) {
 		r = spawn_serf(player, &serf, &inventory, 0);
 		if (r < 0) return;
 
-		serf->type = (serf->type & 0x83) | (SERF_GEOLOGIST << 2);
-
-		player->serf_count[SERF_GENERIC] -= 1;
-		player->serf_count[SERF_GEOLOGIST] += 1;
+		serf_set_type(serf, SERF_GEOLOGIST);
 
 		inventory->resources[RESOURCE_HAMMER] -= 1;
-		inventory->spawn_priority -= 1;
+		inventory->generic_count -= 1;
 	}
 
 	/* Spawn two miners */
@@ -3937,13 +3883,10 @@ create_initial_castle_serfs(player_t *player)
 		r = spawn_serf(player, &serf, &inventory, 0);
 		if (r < 0) return;
 
-		serf->type = (serf->type & 0x83) | (SERF_MINER << 2);
-
-		player->serf_count[SERF_GENERIC] -= 1;
-		player->serf_count[SERF_MINER] += 1;
+		serf_set_type(serf, SERF_MINER);
 
 		inventory->resources[RESOURCE_PICK] -= 1;
-		inventory->spawn_priority -= 1;
+		inventory->generic_count -= 1;
 	}
 }
 
@@ -3975,17 +3918,16 @@ game_build_castle(map_pos_t pos, player_t *player)
 		return -1;
 	}
 
-	/* TODO set_map_redraw(); */
-
 	player->flags |= BIT(0); /* Has castle */
 	player->build |= BIT(3);
 	player->total_building_score += building_get_score_from_type(BUILDING_CASTLE);
+	player->castle_flag = flg_index;
 
 	castle->serf |= BIT(4) | BIT(6);
 	castle->u.inventory = inventory;
 	player->castle_inventory = inv_index;
-	inventory->bld_index = bld_index;
-	inventory->flg_index = flg_index;
+	inventory->building = bld_index;
+	inventory->flag = flg_index;
 	inventory->player_num = player->player_num;
 
 	/* Create initial resources */
@@ -4030,21 +3972,13 @@ game_build_castle(map_pos_t pos, player_t *player)
 		/* TODO ... */
 	}
 
-	inventory->resources[RESOURCE_PLANK] -= 7;
-	inventory->resources[RESOURCE_STONE] -= 2;
-	player->extra_planks = 7;
-	player->extra_stone = 2;
-	/* player->field_163 &= ~(BIT(0) | BIT(1) | BIT(2) | BIT(3) | BIT(4) | BIT(5)); */
-
-	/* player->lumberjack_index = 0; */
-	/* player->sawmill_index = 0; */
-	/* player->stonecutter_index = 0; */
-
-	/* TODO ... */
+	game.map_gold_deposit += inventory->resources[RESOURCE_GOLDBAR];
+	game.map_gold_deposit += inventory->resources[RESOURCE_GOLDORE];
 
 	castle->pos = pos;
 	flag->pos = MAP_MOVE_DOWN_RIGHT(pos);
-	castle->bld = BIT(7) | (BUILDING_CASTLE << 2) | player->player_num;
+	castle->type = BUILDING_CASTLE;
+	castle->bld = BIT(7) | player->player_num;
 	castle->progress = 0;
 	castle->stock[0].available = 0xff;
 	castle->stock[0].requested = 0xff;
@@ -4054,7 +3988,7 @@ game_build_castle(map_pos_t pos, player_t *player)
 	flag->path_con = player->player_num << 6;
 	flag->bld_flags = BIT(7) | BIT(6);
 	flag->bld2_flags = BIT(7);
-	castle->flg_index = flg_index;
+	castle->flag = flg_index;
 	flag->other_endpoint.b[DIR_UP_LEFT] = castle;
 	flag->endpoint |= BIT(6);
 
@@ -4068,7 +4002,7 @@ game_build_castle(map_pos_t pos, player_t *player)
 	/* Level land in hexagon below castle */
 	int h = game_get_leveling_height(pos);
 	map_set_height(pos, h);
-	for (dir_t d = DIR_RIGHT; d <= DIR_UP; d++) {
+	for (int d = DIR_RIGHT; d <= DIR_UP; d++) {
 		map_set_height(MAP_MOVE(pos, d), h);
 	}
 
@@ -4085,9 +4019,11 @@ game_build_castle(map_pos_t pos, player_t *player)
 static void
 flag_remove_player_refs(flag_t *flag)
 {
-	for (int i = 0; i < 4; i++) {
-		if (game.player[i]->index == FLAG_INDEX(flag)) {
-			game.player[i]->index = 0;
+	for (int i = 0; i < GAME_MAX_PLAYER_COUNT; i++) {
+		if (PLAYER_IS_ACTIVE(game.player[i])) {
+			if (game.player[i]->index == FLAG_INDEX(flag)) {
+				game.player[i]->index = 0;
+			}
 		}
 	}
 }
@@ -4131,7 +4067,7 @@ game_can_demolish_flag(map_pos_t pos, const player_t *player)
 	int connected = 0;
 	void *other_end = NULL;
 
-	for (dir_t d = DIR_RIGHT; d <= DIR_UP; d++) {
+	for (int d = DIR_RIGHT; d <= DIR_UP; d++) {
 		if (FLAG_HAS_PATH(flag, d)) {
 			if (FLAG_IS_WATER_PATH(flag, d)) return 0;
 
@@ -4184,21 +4120,21 @@ demolish_flag(map_pos_t pos)
 
 	/* Handle connected flag. */
 	if (MAP_PATHS(pos)) {
-		dir_t path_1_dir = 0;
-		dir_t path_2_dir = 0;
+		dir_t path_1_dir = (dir_t) 0;
+		dir_t path_2_dir = (dir_t) 0;
 
 		/* Find first direction */
-		for (dir_t d = DIR_RIGHT; d <= DIR_UP; d++) {
+		for (int d = DIR_RIGHT; d <= DIR_UP; d++) {
 			if (BIT_TEST(MAP_PATHS(pos), d)) {
-				path_1_dir = d;
+				path_1_dir = (dir_t) d;
 				break;
 			}
 		}
 
 		/* Find second direction */
-		for (dir_t d = DIR_UP; d >= DIR_RIGHT; d--) {
+		for (int d = DIR_UP; d >= DIR_RIGHT; d--) {
 			if (BIT_TEST(MAP_PATHS(pos), d)) {
-				path_2_dir = d;
+				path_2_dir = (dir_t) d;
 				break;
 			}
 		}
@@ -4242,7 +4178,7 @@ demolish_flag(map_pos_t pos)
 		}
 
 		/* Update serfs with reference to this flag. */
-		for (int i = 1; i < game.max_serf_index; i++) {
+		for (uint i = 1; i < game.max_serf_index; i++) {
 			if (SERF_ALLOCATED(i)) {
 				serf_t *serf = game_get_serf(i);
 
@@ -4277,7 +4213,7 @@ demolish_flag(map_pos_t pos)
 	}
 
 	/* Update serfs with reference to this flag. */
-	for (int i = 1; i < game.max_serf_index; i++) {
+	for (uint i = 1; i < game.max_serf_index; i++) {
 		if (SERF_ALLOCATED(i)) {
 			serf_t *serf = game_get_serf(i);
 
@@ -4308,7 +4244,8 @@ demolish_flag(map_pos_t pos)
 		if (flag->slot[i].type != RESOURCE_NONE) {
 			int res = flag->slot[i].type;
 			uint dest = flag->slot[i].dest;
-			lose_transported_resource(res, dest);
+			game_cancel_transported_resource((resource_type_t) res, dest);
+			game_lose_resource((resource_type_t) res);
 		}
 	}
 
@@ -4344,6 +4281,16 @@ demolish_building(map_pos_t pos)
 	tiles[pos].paths &= ~BIT(1);
 	tiles[MAP_MOVE_DOWN_RIGHT(pos)].paths &= ~BIT(4);
 
+	/* Disconnect flag. */
+	flag_t *flag = game_get_flag(building->flag);
+	flag->other_endpoint.b[DIR_UP_LEFT] = NULL;
+	flag->endpoint &= ~BIT(6);
+
+	flag->bld_flags = 0;
+	flag->bld2_flags = 0;
+
+	flag_reset_transport(flag);
+
 	/* Remove lost gold stock from total count. */
 	if (BUILDING_IS_DONE(building) &&
 	    (BUILDING_TYPE(building) == BUILDING_HUT ||
@@ -4372,17 +4319,12 @@ demolish_building(map_pos_t pos)
 		if (BUILDING_IS_ACTIVE(building)) {
 			inventory_t *inventory = building->u.inventory;
 
-			for (int i = 0; i < 2 && inventory->out_queue[i] != -1; i++) {
-				resource_type_t res = inventory->out_queue[i];
-				int dest = inventory->out_dest[i];
+			for (int i = 0; i < 2 && inventory->out_queue[i].type != RESOURCE_NONE; i++) {
+				resource_type_t res = inventory->out_queue[i].type;
+				int dest = inventory->out_queue[i].dest;
 
-				/* Remove gold from total count. */
-				if (res == RESOURCE_GOLDBAR ||
-				    res == RESOURCE_GOLDORE) {
-					game.map_gold_deposit -= 1;
-				}
-
-				flag_cancel_transported_stock(game_get_flag(dest), res);
+				game_cancel_transported_resource(res, dest);
+				game_lose_resource(res);
 			}
 
 			game.map_gold_deposit -= inventory->resources[RESOURCE_GOLDBAR];
@@ -4393,7 +4335,7 @@ demolish_building(map_pos_t pos)
 
 		/* Let some serfs escape while the building is burning. */
 		int escaping_serfs = 0;
-		for (int i = 1; i < game.max_serf_index; i++) {
+		for (uint i = 1; i < game.max_serf_index; i++) {
 			if (SERF_ALLOCATED(i)) {
 				serf_t *serf = game_get_serf(i);
 
@@ -4406,12 +4348,7 @@ demolish_building(map_pos_t pos)
 						serf->state = SERF_STATE_ESCAPE_BUILDING;
 					} else {
 						/* Kill this serf. */
-						if (SERF_TYPE(serf) >= SERF_KNIGHT_0 &&
-						    SERF_TYPE(serf) <= SERF_KNIGHT_4) {
-							int score = 1 << (SERF_TYPE(serf)-SERF_KNIGHT_0);
-							player->total_military_score -= score;
-						}
-						player->serf_count[SERF_TYPE(serf)] -= 1;
+						serf_set_type(serf, SERF_DEAD);
 						game_free_serf(SERF_INDEX(serf));
 					}
 				}
@@ -4454,18 +4391,23 @@ demolish_building(map_pos_t pos)
 
 			building->serf_index = 8191;
 
-			if (player->serf_index != 0) {
-				serf_t *serf = game_get_serf(player->serf_index);
-				serf->type = (serf->type & 0x83) | (SERF_TRANSPORTER << 2);
-				serf->counter = 0;
+			for (uint i = 1; i < game.max_serf_index; i++) {
+				if (SERF_ALLOCATED(i)) {
+					serf_t *serf = game_get_serf(i);
+					if (SERF_TYPE(serf) == SERF_4 &&
+					    serf->pos == building->pos) {
+						serf_set_type(serf, SERF_TRANSPORTER);
+						serf->counter = 0;
 
-				if (MAP_SERF_INDEX(serf->pos) == SERF_INDEX(serf)) {
-					serf_log_state_change(serf, SERF_STATE_LOST);
-					serf->state = SERF_STATE_LOST;
-					serf->s.lost.field_B = 0;
-				} else {
-					serf_log_state_change(serf, SERF_STATE_ESCAPE_BUILDING);
-					serf->state = SERF_STATE_ESCAPE_BUILDING;
+						if (MAP_SERF_INDEX(serf->pos) == SERF_INDEX(serf)) {
+							serf_log_state_change(serf, SERF_STATE_LOST);
+							serf->state = SERF_STATE_LOST;
+							serf->s.lost.field_B = 0;
+						} else {
+							serf_log_state_change(serf, SERF_STATE_ESCAPE_BUILDING);
+							serf->state = SERF_STATE_ESCAPE_BUILDING;
+						}
+					}
 				}
 			}
 		}
@@ -4491,7 +4433,7 @@ demolish_building(map_pos_t pos)
 		} else {
 			serf_t *serf = game_get_serf(serf_index);
 			if (SERF_TYPE(serf) == SERF_4) {
-				serf->type = (serf->type & 0x83) | (SERF_TRANSPORTER << 2);
+				serf_set_type(serf, SERF_TRANSPORTER);
 			}
 
 			serf->counter = 0;
@@ -4506,16 +4448,6 @@ demolish_building(map_pos_t pos)
 			}
 		}
 	}
-
-	/* Flag. */
-	flag_t *flag = game_get_flag(building->flg_index);
-	flag->other_endpoint.b[DIR_UP_LEFT] = NULL;
-	flag->endpoint &= ~BIT(6);
-
-	flag->bld_flags = 0;
-	flag->bld2_flags = 0;
-
-	flag_reset_transport(flag);
 
 	map_pos_t flag_pos = MAP_MOVE_DOWN_RIGHT(pos);
 	if (MAP_PATHS(flag_pos) == 0 &&
@@ -4593,7 +4525,7 @@ game_surrender_land(map_pos_t pos)
 	int remove_roads = MAP_HAS_FLAG(pos);
 
 	/* Remove roads and building around pos. */
-	for (dir_t d = DIR_RIGHT; d <= DIR_UP; d++) {
+	for (int d = DIR_RIGHT; d <= DIR_UP; d++) {
 		map_pos_t p = MAP_MOVE(pos, d);
 
 		if (MAP_OBJ(p) >= MAP_OBJ_SMALL_BUILDING &&
@@ -4613,6 +4545,23 @@ game_surrender_land(map_pos_t pos)
 	}
 }
 
+/* Initialize land ownership for whole map. */ 
+void
+game_init_land_ownership()
+{
+	for (uint i = 1; i < game.max_building_index; i++) {
+		if (!BUILDING_ALLOCATED(i)) continue;
+
+		building_t *building = game_get_building(i);
+		if (building->type == BUILDING_HUT ||
+		    building->type == BUILDING_TOWER ||
+		    building->type == BUILDING_FORTRESS ||
+		    building->type == BUILDING_CASTLE) {
+			game_update_land_ownership(building->pos);
+		}
+	}
+}
+
 /* Update land ownership around map position. */
 void
 game_update_land_ownership(map_pos_t init_pos)
@@ -4625,7 +4574,8 @@ game_update_land_ownership(map_pos_t init_pos)
 	int calculate_radius = influence_radius;
 	int calculate_diameter = 1 + 2*calculate_radius;
 
-	int *temp_arr = calloc(4*calculate_diameter*calculate_diameter, sizeof(int));
+	int *temp_arr = (int *) calloc(GAME_MAX_PLAYER_COUNT*calculate_diameter*calculate_diameter,
+			       sizeof(int));
 	if (temp_arr == NULL) abort();
 
 	const int military_influence[] = {
@@ -4716,7 +4666,7 @@ game_update_land_ownership(map_pos_t init_pos)
 		for (int j = -calculate_radius; j <= calculate_radius; j++) {
 			int max_val = 0;
 			int player = -1;
-			for (int p = 0; p < 4; p++) {
+			for (int p = 0; p < GAME_MAX_PLAYER_COUNT; p++) {
 				int *arr = temp_arr +
 					p*calculate_diameter*calculate_diameter +
 					calculate_diameter*(i+calculate_radius) + (j+calculate_radius);
@@ -4729,18 +4679,20 @@ game_update_land_ownership(map_pos_t init_pos)
 			map_pos_t pos = MAP_POS_ADD(init_pos,
 						    MAP_POS(j & game.map.col_mask,
 							    i & game.map.row_mask));
-			if (player >= 0) {
-				if (MAP_HAS_OWNER(pos) &&
-				    MAP_OWNER(pos) != player) {
-					int old_player = MAP_OWNER(pos);
-					game.player[old_player]->total_land_area -= 1;
-					game_surrender_land(pos);
-				}
+			int old_player = -1;
+			if (MAP_HAS_OWNER(pos)) old_player = MAP_OWNER(pos);
 
-				game.player[player]->total_land_area += 1;
-				tiles[pos].height = (1 << 7) | (player << 5) | MAP_HEIGHT(pos);
-			} else {
+			if (old_player >= 0 && player != old_player) {
+				game.player[old_player]->total_land_area -= 1;
 				game_surrender_land(pos);
+			}
+
+			if (player >= 0) {
+				if (player != old_player) {
+					game.player[player]->total_land_area += 1;
+					tiles[pos].height = (1 << 7) | (player << 5) | MAP_HEIGHT(pos);
+				}
+			} else {
 				tiles[pos].height = (0 << 7) | (0 << 5) | MAP_HEIGHT(pos);
 			}
 		}
@@ -4776,7 +4728,7 @@ game_demolish_flag_and_roads(map_pos_t pos)
 {
 	if (MAP_HAS_FLAG(pos)) {
 		/* Remove roads around pos. */
-		for (dir_t d = DIR_RIGHT; d <= DIR_UP; d++) {
+		for (int d = DIR_RIGHT; d <= DIR_UP; d++) {
 			map_pos_t p = MAP_MOVE(pos, d);
 
 			if (MAP_PATHS(p) & BIT(DIR_REVERSE(d))) {
@@ -4808,7 +4760,7 @@ game_occupy_enemy_building(building_t *building, int player_num)
 		player->castle_score += 1;
 		demolish_building(building->pos);
 	} else {
-		flag_t *flag = game_get_flag(building->flg_index);
+		flag_t *flag = game_get_flag(building->flag);
 		flag_reset_transport(flag);
 
 		/* Update player scores. */
@@ -4838,7 +4790,7 @@ game_occupy_enemy_building(building_t *building, int player_num)
 		tiles[building->pos].height = (1 << 7) | (player_num << 5) |
 			MAP_HEIGHT(building->pos);
 
-		for (dir_t d = DIR_RIGHT; d <= DIR_UP; d++) {
+		for (int d = DIR_RIGHT; d <= DIR_UP; d++) {
 			map_pos_t pos = MAP_MOVE(building->pos, d);
 			tiles[pos].height = (1 << 7) | (player_num << 5) | MAP_HEIGHT(pos);
 			if (pos != flag->pos) {
@@ -4853,21 +4805,13 @@ game_occupy_enemy_building(building_t *building, int player_num)
 		for (int i = 0; i < FLAG_MAX_RES_COUNT; i++) {
 			if (flag->slot[i].type != RESOURCE_NONE) {
 				resource_type_t res = flag->slot[i].type;
-				lose_transported_resource(res, flag->slot[i].dest);
-
-				/* Since the resource is not actually lost but
-				   merely changes owner, we have to readjust the total
-				   map gold. */
-				if (res == RESOURCE_GOLDORE ||
-				    res == RESOURCE_GOLDBAR) {
-					game.map_gold_deposit += 1;
-				}
+				game_cancel_transported_resource(res, flag->slot[i].dest);
 				flag->slot[i].dest = 0;
 			}
 		}
 
 		/* Remove paths from flag. */
-		for (dir_t d = DIR_RIGHT; d <= DIR_UP; d++) {
+		for (int d = DIR_RIGHT; d <= DIR_UP; d++) {
 			if (FLAG_HAS_PATH(flag, d)) {
 				demolish_road(MAP_MOVE(flag->pos, d));
 			}
@@ -4888,7 +4832,7 @@ game_occupy_enemy_building(building_t *building, int player_num)
 void
 game_set_inventory_resource_mode(inventory_t *inventory, int mode)
 {
-	flag_t *flag = game_get_flag(inventory->flg_index);
+	flag_t *flag = game_get_flag(inventory->flag);
 
 	if (mode == 0) {
 		inventory->res_dir = (inventory->res_dir & 0xfc) | 0;
@@ -4904,7 +4848,7 @@ game_set_inventory_resource_mode(inventory_t *inventory, int mode)
 		/* Clear destination of serfs with resources destined
 		   for this inventory. */
 		int dest = FLAG_INDEX(flag);
-		for (int i = 1; i < game.max_serf_index; i++) {
+		for (uint i = 1; i < game.max_serf_index; i++) {
 			if (SERF_ALLOCATED(i)) {
 				serf_t *serf = game_get_serf(i);
 
@@ -4945,7 +4889,7 @@ game_set_inventory_resource_mode(inventory_t *inventory, int mode)
 void
 game_set_inventory_serf_mode(inventory_t *inventory, int mode)
 {
-	flag_t *flag = game_get_flag(inventory->flg_index);
+	flag_t *flag = game_get_flag(inventory->flag);
 
 	if (mode == 0) {
 		inventory->res_dir = (inventory->res_dir & 0xf3) | (0 << 2);
@@ -4960,7 +4904,7 @@ game_set_inventory_serf_mode(inventory_t *inventory, int mode)
 
 		/* Clear destination of serfs destined for this inventory. */
 		int dest = FLAG_INDEX(flag);
-		for (int i = 1; i < game.max_serf_index; i++) {
+		for (uint i = 1; i < game.max_serf_index; i++) {
 			if (SERF_ALLOCATED(i)) {
 				serf_t *serf = game_get_serf(i);
 
@@ -5019,119 +4963,143 @@ init_ai_values(player_t *player, int face)
 	player->ai_value_5 = ai_values_5[face-1];
 }
 
-/* Initialize player objects. */
 static void
-players_init()
+player_init(uint number, uint face, uint color, uint supplies,
+	    uint reproduction, uint intelligence)
 {
-	const int default_player_colors[] = {
-		64, 72, 68, 76
-	};
+	assert(number < GAME_MAX_PLAYER_COUNT);
 
-	game.winning_player = -1;
-	/* TODO ... */
-	game.max_next_index = 33;
+	player_t *player = game.player[number];
+	player->flags = 0;
 
-	/* TODO */
+	if (face == 0) return;
 
-	for (int i = 0; i < 4; i++) {
-		player_t *player = game.player[i];
-		memset(player, 0, sizeof(player_t));
-		player->flags = 0;
+	if (face < 12) { /* AI player */
+		player->flags |= BIT(7); /* Set AI bit */
+		/* TODO ... */
+		/*game.max_next_index = 49;*/
+	}
 
-		player_init_t *init = &game.pl_init[i];
-		if (init->face != 0) {
-			player->flags |= BIT(6); /* Player active */
-			if (init->face < 12) { /* AI player */
-				player->flags |= BIT(7); /* Set AI bit */
-				/* TODO ... */
-				game.max_next_index = 49;
-			}
+	player->player_num = number;
+	player->color = color;
+	player->face = face;
+	player->build = 0;
 
-			player->player_num = i;
-			player->color = default_player_colors[i];
-			/* player->field_163 = 0; */
-			player->build = 0;
-			/*player->field_163 |= BIT(0);*/
+	player->building = 0;
+	player->castle_flag = 0;
+	player->cont_search_after_non_optimal_find = 7;
+	player->knights_to_spawn = 0;
+	player->total_land_area = 0;
+	player->total_military_score = 0;
+	player->total_building_score = 0;
 
-			player->building = 0;
-			player->castle_flag = 0;
-			player->cont_search_after_non_optimal_find = 7;
-			player->field_110 = 4;
-			player->knights_to_spawn = 0;
-			/* OBSOLETE player->spawn_serf_want_knight = 0; **/
-			player->total_land_area = 0;
+	player->last_tick = 0;
 
-			/* TODO ... */
+	player->serf_to_knight_rate = 20000;
+	player->serf_to_knight_counter = 0x8000;
 
-			player->last_tick = 0;
+	player->knight_occupation[0] = 0x10;
+	player->knight_occupation[1] = 0x21;
+	player->knight_occupation[2] = 0x32;
+	player->knight_occupation[3] = 0x43;
 
-			player->serf_to_knight_rate = 20000;
-			player->serf_to_knight_counter = 0x8000;
+	player_reset_food_priority(player);
+	player_reset_planks_priority(player);
+	player_reset_steel_priority(player);
+	player_reset_coal_priority(player);
+	player_reset_wheat_priority(player);
+	player_reset_tool_priority(player);
 
-			player->knight_occupation[0] = 0x10;
-			player->knight_occupation[1] = 0x21;
-			player->knight_occupation[2] = 0x32;
-			player->knight_occupation[3] = 0x43;
+	player_reset_flag_priority(player);
+	player_reset_inventory_priority(player);
 
-			player_reset_food_priority(player);
-			player_reset_planks_priority(player);
-			player_reset_steel_priority(player);
-			player_reset_coal_priority(player);
-			player_reset_wheat_priority(player);
-			player_reset_tool_priority(player);
+	player->current_sett_5_item = 8;
+	player->current_sett_6_item = 15;
 
-			player_reset_flag_priority(player);
-			player_reset_inventory_priority(player);
+	player->military_max_gold = 0;
 
-			player->current_sett_5_item = 8;
-			player->current_sett_6_item = 15;
+	player->timers_count = 0;
 
-			player->military_max_gold = 0;
-			player->military_gold = 0;
-			player->inventory_gold = 0;
+	player->castle_knights_wanted = 3;
+	player->castle_knights = 0;
+	player->send_knight_delay = 0;
+	player->send_generic_delay = 0;
+	player->serf_index = 0;
 
-			player->timers_count = 0;
+	/* player->field_1b0 = 0; AI */
+	/* player->field_1b2 = 0; AI */
 
-			player->castle_knights_wanted = 3;
-			player->castle_knights = 0;
-			/* TODO ... */
-			player->serf_index = 0;
-			/* TODO ... */
-			player->initial_supplies = init->supplies;
-			player->reproduction_reset = (60 - init->reproduction) * 50;
-			player->ai_intelligence = 1300*init->intelligence + 13535;
+	player->initial_supplies = supplies;
+	player->reproduction_reset = (60 - reproduction) * 50;
+	player->ai_intelligence = 1300*intelligence + 13535;
 
-			if (/*init->face != 0*/1) { /* Redundant check */
-				if (init->face < 12) { /* AI player */
-					init_ai_values(player, init->face);
-				}
-			}
+	if (PLAYER_IS_AI(player)) init_ai_values(player, face);
 
-			player->reproduction_counter = player->reproduction_reset;
-			/* TODO ... */
-			for (int i = 0; i < 26; i++) player->resource_count[i] = 0;
-			for (int i = 0; i < 24; i++) {
-				player->completed_building_count[i] = 0;
-				player->incomplete_building_count[i] = 0;
-			}
+	player->reproduction_counter = player->reproduction_reset;
+	player->castle_score = 0;
 
-			/* TODO */
+	for (int i = 0; i < 26; i++) {
+		player->resource_count[i] = 0;
+	}
 
-			for (int i = 0; i < 16; i++) {
-				for (int j = 0; j < 112; j++) player->player_stat_history[i][j] = 0;
-			}
+	for (int i = 0; i < 24; i++) {
+		player->completed_building_count[i] = 0;
+		player->incomplete_building_count[i] = 0;
+	}
 
-			for (int i = 0; i < 26; i++) {
-				for (int j = 0; j < 120; j++) player->resource_count_history[i][j] = 0;
-			}
-
-			for (int i = 0; i < 27; i++) player->serf_count[i] = 0;
+	for (int i = 0; i < 16; i++) {
+		for (int j = 0; j < 112; j++) {
+			player->player_stat_history[i][j] = 0;
 		}
 	}
 
-	if (BIT_TEST(game.split, 6)) { /* Coop mode */
-		/* TODO ... */
+	for (int i = 0; i < 26; i++) {
+		for (int j = 0; j < 120; j++) {
+			player->resource_count_history[i][j] = 0;
+		}
 	}
+
+	for (int i = 0; i < 27; i++) {
+		player->serf_count[i] = 0;
+	}
+
+	/* TODO AI: Set array field_402 of length 25 to -1. */
+	/* TODO AI: Set array field_434 of length 280*2 to 0 */
+	/* TODO AI: Set array field_1bc of length 8 to -1 */
+}
+
+/* Add new player to the game. Returns the player number
+   or negative on error. */
+int
+game_add_player(uint face, uint color, uint supplies,
+		uint reproduction, uint intelligence)
+{
+	int number = -1;
+	for (int i = 0; i < GAME_MAX_PLAYER_COUNT; i++) {
+		if (!PLAYER_IS_ACTIVE(game.player[i])) {
+			number = i;
+			break;
+		}
+	}
+
+	if (number < 0) return -1;
+
+	/* Allocate object */
+	game.player[number] = (player_t *) calloc(1, sizeof(player_t));
+	if (game.player[number] == NULL) abort();
+
+	player_init(number, face, color, supplies,
+		    reproduction, intelligence);
+
+	/* Update map values dependent on player count */
+	int active_players = 0;
+	for (int i = 0; i < GAME_MAX_PLAYER_COUNT; i++) {
+		if (PLAYER_IS_ACTIVE(game.player[i])) active_players += 1;
+	}
+
+	game.map_gold_morale_factor = 10 * 1024 * active_players;
+
+	return number;
 }
 
 void
@@ -5149,10 +5117,123 @@ game_init()
 	game.update_map_initial_pos = 0;
 	game.next_index = 0;
 
-	memset(game.flag_bitmap, 0, ((game.flag_limit-1) / 8) + 1);
-	memset(game.building_bitmap, 0, ((game.building_limit-1) / 8) + 1);
-	memset(game.serf_bitmap, 0, ((game.serf_limit-1) / 8) + 1);
-	memset(game.inventory_bitmap, 0, ((game.inventory_limit-1) / 8) + 1);
+	/* Clear player objects */
+	for (int i = 0; i < GAME_MAX_PLAYER_COUNT; i++) {
+		if (game.player[i] != NULL) free(game.player[i]);
+		game.player[i] = NULL;
+	}
+
+	memset(game.player_history_index, '\0', sizeof(game.player_history_index));
+	memset(game.player_history_counter, '\0', sizeof(game.player_history_counter));
+	game.resource_history_index = 0;
+
+	game.tick = 0;
+	game.const_tick = 0;
+	game.tick_diff = 0;
+
+	game.game_stats_counter = 0;
+	game.history_counter = 0;
+
+	game.knight_morale_counter = 0;
+	game.inventory_schedule_counter = 0;
+}
+
+/* Initialize spiral_pos_pattern from spiral_pattern. */
+static void
+init_spiral_pos_pattern()
+{
+	int *pattern = game.spiral_pattern;
+
+	if (game.spiral_pos_pattern == NULL) {
+		game.spiral_pos_pattern = (map_pos_t *) malloc(295 * sizeof(map_pos_t));
+		if (game.spiral_pos_pattern == NULL) abort();
+	}
+
+	for (int i = 0; i < 295; i++) {
+		int x = pattern[2*i] & game.map.col_mask;
+		int y = pattern[2*i+1] & game.map.row_mask;
+
+		game.spiral_pos_pattern[i] = MAP_POS(x, y);
+	}
+}
+
+static void
+game_init_map()
+{
+	game.map.col_size = 5 + game.map_size/2;
+	game.map.row_size = 5 + (game.map_size - 1)/2;
+	game.map.cols = 1 << game.map.col_size;
+	game.map.rows = 1 << game.map.row_size;
+
+	/* game.split |= BIT(3); */
+
+	if (game.map.cols < 64 || game.map.rows < 64) {
+		/* game.split &= ~BIT(3); */
+	}
+
+	map_init_dimensions(&game.map);
+
+	game.map_regions = (game.map.cols >> 5) * (game.map.rows >> 5);
+
+	game.serf_limit = 500 * game.map_regions;
+	game.flag_limit = 32 * game.map_regions;
+	game.building_limit = 25 * game.map_regions;
+	game.inventory_limit = 4 * game.map_regions;
+
+	/* Reserve half the serfs equally among players,
+	   and the rest according to the amount of land controlled. */
+	game.max_serfs_per_player = (game.serf_limit/2)/GAME_MAX_PLAYER_COUNT;
+	game.max_serfs_from_land = game.serf_limit/2;
+
+	game.map_gold_morale_factor = 0;
+
+	init_spiral_pos_pattern();
+	map_init();
+	map_init_minimap();
+
+	game.winning_player = -1;
+	/* game.show_game_end = 0; */
+	game.max_next_index = 33;
+}
+
+void
+game_allocate_objects()
+{
+	/* Serfs */
+	if (game.serfs != NULL) free(game.serfs);
+	game.serfs = (serf_t *)malloc(game.serf_limit * sizeof(serf_t));
+	if (game.serfs == NULL) abort();
+
+	if (game.serf_bitmap != NULL) free(game.serf_bitmap);
+	game.serf_bitmap = (uint8_t *) calloc(((game.serf_limit - 1) / 8) + 1, 1);
+	if (game.serf_bitmap == NULL) abort();
+
+	/* Flags */
+	if (game.flags != NULL) free(game.flags);
+	game.flags = (flag_t *) malloc(game.flag_limit * sizeof(flag_t));
+	if (game.flags == NULL) abort();
+
+	if (game.flag_bitmap != NULL) free(game.flag_bitmap);
+	game.flag_bitmap = (uint8_t *) calloc(((game.flag_limit - 1) / 8) + 1, 1);
+	if (game.flag_bitmap == NULL) abort();
+
+	/* Buildings */
+	if (game.buildings != NULL) free(game.buildings);
+	game.buildings = (building_t *) malloc(game.building_limit * sizeof(building_t));
+	if (game.buildings == NULL) abort();
+
+	if (game.building_bitmap != NULL) free(game.building_bitmap);
+	game.building_bitmap = (uint8_t *) calloc(((game.building_limit - 1) / 8) + 1, 1);
+	if (game.building_bitmap == NULL) abort();
+
+	/* Inventories */
+	if (game.inventories != NULL) free(game.inventories);
+	game.inventories = (inventory_t *) malloc(game.inventory_limit * sizeof(inventory_t));
+	if (game.inventories == NULL) abort();
+
+	if (game.inventory_bitmap != NULL) free(game.inventory_bitmap);
+	game.inventory_bitmap = (uint8_t *) calloc(((game.inventory_limit - 1) / 8) + 1, 1);
+	if (game.inventory_bitmap == NULL) abort();
 
 	game.max_flag_index = 0;
 	game.max_building_index = 0;
@@ -5174,100 +5255,21 @@ game_init()
 	/* Create NULL-building (index 0 is undefined) */
 	building_t *building;
 	game_alloc_building(&building, NULL);
+	building->type = BUILDING_NONE;
 	building->bld = 0;
-
-	memset(game.player_history_index, '\0', sizeof(game.player_history_index));
-	memset(game.player_history_counter, '\0', sizeof(game.player_history_counter));
-	game.resource_history_index = 0;
-
-	game.tick = 0;
-	game.const_tick = 0;
-	game.tick_diff = 0;
-
-	game.game_stats_counter = 0;
-	game.history_counter = 0;
-}
-
-/* Initialize spiral_pos_pattern from spiral_pattern. */
-static void
-init_spiral_pos_pattern()
-{
-	int *pattern = game.spiral_pattern;
-
-	if (game.spiral_pos_pattern == NULL) {
-		game.spiral_pos_pattern = malloc(295*sizeof(map_pos_t));
-		if (game.spiral_pos_pattern == NULL) abort();
-	}
-
-	for (int i = 0; i < 295; i++) {
-		int x = pattern[2*i] & game.map.col_mask;
-		int y = pattern[2*i+1] & game.map.row_mask;
-
-		game.spiral_pos_pattern[i] = MAP_POS(x, y);
-	}
-}
-
-static void
-game_init_map()
-{
-	game.map.col_size = 5 + game.map_size/2;
-	game.map.row_size = 5 + (game.map_size - 1)/2;
-	game.map.cols = 1 << game.map.col_size;
-	game.map.rows = 1 << game.map.row_size;
-
-	const int map_size_arr[] = {
-		16, 30, 55, 90,
-		150, 220, 350, 500
-	};
-
-	/* game.split |= BIT(3); */
-
-	if (game.map.cols < 64 || game.map.rows < 64) {
-		/* game.split &= ~BIT(3); */
-	}
-
-	map_init_dimensions(&game.map);
-
-	game.map_regions = (game.map.cols >> 5) * (game.map.rows >> 5);
-	game.map_max_serfs_left = game.map_regions * 500;
-	game.map_62_5_times_regions = (game.map_regions * 500) >> 3;
-
-	int active_players = 0;
-	for (int i = 0; i < 4; i++) {
-		if (game.pl_init[0].face != 0) active_players += 1;
-	}
-
-	game.map_field_4A = game.map_max_serfs_left -
-		active_players * game.map_62_5_times_regions;
-	game.map_gold_morale_factor = 10 * 1024 * active_players;
-	game.map_field_52 = map_size_arr[game.map_size];
-
-	init_spiral_pos_pattern();
-	map_init();
-	map_init_minimap();
-
-	players_init();
 }
 
 int
-game_load_mission_map(int m)
+game_load_mission_map(const mission_t * mission_data, int level)
 {
-	for (int i = 0; i < 4; i++) {
-		game.pl_init[i].face = mission[m].player[i].face;
-		game.pl_init[i].supplies = mission[m].player[i].supplies;
-		game.pl_init[i].intelligence = mission[m].player[i].intelligence;
-		game.pl_init[i].reproduction = mission[m].player[i].reproduction;
-	}
+	const uint default_player_colors[] = {
+		64, 72, 68, 76
+	};
 
-	game.pl_init[0].face = 12;
-	game.pl_init[0].intelligence = 40;
-
-	/* TODO ... */
-
-	memcpy(&game.init_map_rnd, &mission[m].rnd,
+	memcpy(&game.init_map_rnd, &mission_data->rnd,
 	       sizeof(random_state_t));
 
-	game.mission_level = m;
+	game.mission_level = level;
 	game.map_size = 3;
 	game.map_preserve_bugs = 1;
 
@@ -5276,6 +5278,27 @@ game_load_mission_map(int m)
 	game.init_map_rnd.state[2] ^= 0xc3c3;
 
 	game_init_map();
+	game_allocate_objects();
+
+	/* Initialize player and build initial castle */
+	for (int i = 0; i < GAME_MAX_PLAYER_COUNT; i++) {
+		const mission_t *m = mission_data;
+		uint face = (i == 0) ? 12 : m->player[i].face;
+		if (face == 0) continue;
+
+		int n = game_add_player(face, default_player_colors[i],
+					m->player[i].supplies,
+					m->player[i].reproduction,
+					m->player[i].intelligence);
+		if (n < 0) return -1;
+
+		if (m->player[n].castle.col > -1 &&
+		    m->player[n].castle.row > -1) {
+			map_pos_t pos = MAP_POS(m->player[n].castle.col,
+						m->player[n].castle.row);
+			game_build_castle(pos, game.player[n]);
+		}
+	}
 
 	return 0;
 }
@@ -5285,21 +5308,13 @@ game_load_random_map(int size, const random_state_t *rnd)
 {
 	if (size < 3 || size > 10) return -1;
 
-	game.pl_init[0].face = 12;
-	game.pl_init[0].intelligence = 40;
-	game.pl_init[0].supplies = 40;
-	game.pl_init[0].reproduction = 40;
-
-	for (int i = 1; i < 4; i++) {
-		game.pl_init[i].face = 0;
-	}
-
 	game.map_size = size;
 	game.map_preserve_bugs = 0;
 
 	memcpy(&game.init_map_rnd, rnd, sizeof(random_state_t));
 
 	game_init_map();
+	game_allocate_objects();
 
 	return 0;
 }
@@ -5311,11 +5326,55 @@ game_load_save_game(const char *path)
 	if (r < 0) return -1;
 
 	init_spiral_pos_pattern();
+	game_init_land_ownership();
 	map_init_minimap();
 
 	return 0;
 }
 
+/* Cancel a resource being transported to destination. This
+   ensures that the destination can request a new resource. */
+void
+game_cancel_transported_resource(resource_type_t res, uint dest)
+{
+	if (dest == 0) return;
+
+	flag_t *flag = game_get_flag(dest);
+	assert(FLAG_HAS_BUILDING(flag));
+	building_t *building = flag->other_endpoint.b[DIR_UP_LEFT];
+
+	if (res == RESOURCE_FISH ||
+	    res == RESOURCE_MEAT ||
+	    res == RESOURCE_BREAD) {
+		res = RESOURCE_GROUP_FOOD;
+	}
+
+	int stock = -1;
+	for (int i = 0; i < BUILDING_MAX_STOCK; i++) {
+		if (building->stock[i].type == res) {
+			stock = i;
+			break;
+		}
+	}
+
+	if (stock >= 0) {
+		building->stock[stock].requested -= 1;
+		assert(building->stock[stock].requested >= 0);
+	} else {
+		assert(BUILDING_HAS_INVENTORY(building));
+	}
+}
+
+/* Called when a resource is lost forever from the game. This will
+   update any global state keeping track of that resource. */
+void
+game_lose_resource(resource_type_t res)
+{
+	if (res == RESOURCE_GOLDORE ||
+	    res == RESOURCE_GOLDBAR) {
+		game.map_gold_deposit -= 1;
+	}
+}
 
 uint16_t
 game_random_int()

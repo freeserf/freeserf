@@ -365,4 +365,7 @@ typedef struct {
 void update_serf(serf_t *serf);
 const char *serf_get_state_name(serf_state_t state);
 
+void serf_set_type(serf_t *serf, serf_type_t type);
+void serf_set_lost_state(serf_t *serf);
+
 #endif /* ! _SERF_H */

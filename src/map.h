@@ -68,11 +68,11 @@
 #define MAP_OBJ(pos)  ((map_obj_t)(game.map.tiles[(pos)].obj & 0x7f))
 #define MAP_IDLE_SERF(pos)  ((uint)((game.map.tiles[(pos)].obj >> 7) & 1))
 
-#define MAP_OBJ_INDEX(pos)  ((uint)game.map.tiles[(pos)].u.index)
-#define MAP_RES_TYPE(pos)  ((ground_deposit_t)((game.map.tiles[(pos)].u.resource >> 5) & 7))
-#define MAP_RES_AMOUNT(pos)  ((uint)(game.map.tiles[(pos)].u.resource & 0x1f))
-#define MAP_RES_FISH(pos)  ((uint)game.map.tiles[(pos)].u.resource)
-#define MAP_SERF_INDEX(pos)  ((uint)game.map.tiles[(pos)].serf_index)
+#define MAP_OBJ_INDEX(pos)  ((uint)game.map.tiles[(pos)].obj_index)
+#define MAP_RES_TYPE(pos)  ((ground_deposit_t)((game.map.tiles[(pos)].resource >> 5) & 7))
+#define MAP_RES_AMOUNT(pos)  ((uint)(game.map.tiles[(pos)].resource & 0x1f))
+#define MAP_RES_FISH(pos)  ((uint)game.map.tiles[(pos)].resource)
+#define MAP_SERF_INDEX(pos)  ((uint)game.map.tiles[(pos)].serf)
 
 
 #define MAP_HAS_FLAG(pos)  (MAP_OBJ(pos) == MAP_OBJ_FLAG)
@@ -101,7 +101,11 @@ typedef enum {
 	MAP_OBJ_LARGE_BUILDING,
 	MAP_OBJ_CASTLE,
 
-	MAP_OBJ_TREE_0 = 8,
+	MAP_OBJ_UNUSED_00,
+	MAP_OBJ_UNUSED_01,
+	MAP_OBJ_UNUSED_02,
+
+	MAP_OBJ_TREE_0, /* 8 */
 	MAP_OBJ_TREE_1,
 	MAP_OBJ_TREE_2, /* 10 */
 	MAP_OBJ_TREE_3,
@@ -129,7 +133,52 @@ typedef enum {
 	MAP_OBJ_WATER_TREE_2, /* 30 */
 	MAP_OBJ_WATER_TREE_3,
 
-	MAP_OBJ_STONE_0 = 72,
+	MAP_OBJ_UNUSED_32,
+	MAP_OBJ_UNUSED_33,
+	MAP_OBJ_UNUSED_34,
+	MAP_OBJ_UNUSED_35,
+	MAP_OBJ_UNUSED_36,
+	MAP_OBJ_UNUSED_37,
+	MAP_OBJ_UNUSED_38,
+	MAP_OBJ_UNUSED_39,
+
+	MAP_OBJ_UNUSED_40,
+	MAP_OBJ_UNUSED_41,
+	MAP_OBJ_UNUSED_42,
+	MAP_OBJ_UNUSED_43,
+	MAP_OBJ_UNUSED_44,
+	MAP_OBJ_UNUSED_45,
+	MAP_OBJ_UNUSED_46,
+	MAP_OBJ_UNUSED_47,
+	MAP_OBJ_UNUSED_48,
+	MAP_OBJ_UNUSED_49,
+
+	MAP_OBJ_UNUSED_50,
+	MAP_OBJ_UNUSED_51,
+	MAP_OBJ_UNUSED_52,
+	MAP_OBJ_UNUSED_53,
+	MAP_OBJ_UNUSED_54,
+	MAP_OBJ_UNUSED_55,
+	MAP_OBJ_UNUSED_56,
+	MAP_OBJ_UNUSED_57,
+	MAP_OBJ_UNUSED_58,
+	MAP_OBJ_UNUSED_59,
+
+	MAP_OBJ_UNUSED_60,
+	MAP_OBJ_UNUSED_61,
+	MAP_OBJ_UNUSED_62,
+	MAP_OBJ_UNUSED_63,
+	MAP_OBJ_UNUSED_64,
+	MAP_OBJ_UNUSED_65,
+	MAP_OBJ_UNUSED_66,
+	MAP_OBJ_UNUSED_67,
+	MAP_OBJ_UNUSED_68,
+	MAP_OBJ_UNUSED_69,
+
+	MAP_OBJ_UNUSED_70,
+	MAP_OBJ_UNUSED_71,
+	
+	MAP_OBJ_STONE_0, /* 72 */
 	MAP_OBJ_STONE_1,
 	MAP_OBJ_STONE_2,
 	MAP_OBJ_STONE_3, /* 75 */
@@ -229,11 +278,9 @@ typedef struct {
 	uint8_t height;
 	uint8_t type;
 	uint8_t obj;
-	union {
-		uint16_t index;
-		uint8_t resource;
-	} u;
-	uint16_t serf_index;
+	uint16_t obj_index;
+	uint8_t resource;
+	uint16_t serf;
 } map_tile_t;
 
 
@@ -270,6 +317,7 @@ void map_init_dimensions(map_t *map);
 void map_init_minimap();
 
 void map_init();
+void map_deinit();
 void map_update();
 
 

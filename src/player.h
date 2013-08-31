@@ -45,7 +45,7 @@
 /* Whether the cycling of knights is in the second phase. */
 #define PLAYER_CYCLING_SECOND(player)  ((int)(((player)->flags >> 5) & 1))
 /* Whether this player is active. */
-#define PLAYER_IS_ACTIVE(player)  ((int)(((player)->flags >> 6) & 1))
+#define PLAYER_IS_ACTIVE(player)  ((player) != NULL)
 /* Whether this player is a computer controlled opponent. */
 #define PLAYER_IS_AI(player)  ((int)(((player)->flags >> 7) & 1))
 
@@ -70,8 +70,9 @@ typedef struct {
 	int knight_occupation[4];
 
 	/* pl_sett */
-	int player_num;
-	int color; /* ADDED */
+	uint player_num;
+	uint color; /* ADDED */
+	uint face;
 	int flags;
 	int build;
 	int completed_building_count[24];
@@ -92,7 +93,7 @@ typedef struct {
 	int knights_to_spawn;
 	/*int spawn_serf_want_knight; OBSOLETE by local var */
 	/* 110 */
-	int field_110;
+	/*int field_110;*/
 	uint total_land_area;
 	uint total_building_score;
 	uint total_military_score;
@@ -132,14 +133,15 @@ typedef struct {
 	/* +1 for every castle defeated,
 	   -1 for own castle lost. */
 	int castle_score;
-	/* 162 */
+	/* 160 */
+	int send_generic_delay;
 	int initial_supplies;
-	/* 164 */
+	/*int emergency_flags;
 	int extra_planks;
 	int extra_stone;
 	int lumberjack_index;
 	int sawmill_index;
-	int stonecutter_index;
+	int stonecutter_index;*/
 	/* 16E */
 	int serf_index;
 	/* 170 */
@@ -149,9 +151,9 @@ typedef struct {
 	/* 176 */
 	int index;
 	int military_max_gold;
-	int military_gold;
+	/*int military_gold;*/
 	/* 180 */
-	int inventory_gold;
+	/*int inventory_gold;*/
 	int knight_morale;
 	int gold_deposited;
 	int castle_knights_wanted;
@@ -198,6 +200,7 @@ void player_change_knight_occupation(player_t *player, int index,
 int player_promote_serfs_to_knights(player_t *player, int number);
 int player_knights_available_for_attack(player_t *player, map_pos_t pos);
 void player_start_attack(player_t *player);
+void player_cycle_knights(player_t *player);
 
 
 #endif /* ! _PLAYER_H */

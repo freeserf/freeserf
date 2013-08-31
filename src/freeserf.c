@@ -27,7 +27,16 @@
 #include <stdlib.h>
 #include <stdint.h>
 #include <time.h>
-#include <unistd.h>
+
+#if _MSC_VER
+  #define PACKAGE_BUGREPORT ""
+
+  #include "pgetopt.h"
+  #define getopt pgetopt 
+  #define optarg poptarg 
+#else
+  #include <unistd.h>
+#endif
 
 #include "freeserf.h"
 #include "player.h"
@@ -72,8 +81,6 @@
 
 
 static int game_loop_run;
-
-static frame_t screen_frame;
 
 static interface_t interface;
 
@@ -160,18 +167,6 @@ init_spiral_pattern()
 }
 
 
-static void
-player_interface_init()
-{
-	game.frame = &screen_frame;
-	int width = sdl_frame_get_width(game.frame);
-	int height = sdl_frame_get_height(game.frame);
-
-	interface_init(&interface);
-	gui_object_set_size((gui_object_t *)&interface, width, height);
-	gui_object_set_displayed((gui_object_t *)&interface, 1);
-}
-
 /* In target, replace any character from needle with replacement character. */
 static void
 strreplace(char *target, const char *needle, char replace)
@@ -243,7 +238,7 @@ game_loop()
 	float fps_ema = 0;
 	int fps_target = 25;
 	/* TODO: compute alpha dynamically based on frametime */
-	const float ema_alpha = 0.07;
+	const float ema_alpha = 0.07f;
 
 	const int frametime_target = 1000 / fps_target; /* in milliseconds */
 	int last_frame = SDL_GetTicks();
@@ -271,7 +266,7 @@ game_loop()
 					ev.x = event.button.x;
 					ev.y = event.button.y;
 					ev.button = drag_button;
-					gui_object_handle_event((gui_object_t *)&interface, &ev);
+					gui_object_handle_event((gui_object_t *) &interface, &ev);
 
 					drag_button = 0;
 				}
@@ -280,31 +275,31 @@ game_loop()
 				ev.x = event.button.x;
 				ev.y = event.button.y;
 				ev.button = event.button.button;
-				gui_object_handle_event((gui_object_t *)&interface, &ev);
+				gui_object_handle_event((gui_object_t *) &interface, &ev);
 
 				if (event.button.button <= 3 &&
-				    current_ticks - last_down[event.button.button-1] < MOUSE_TIME_SENSITIVITY) {
-					ev.type = GUI_EVENT_TYPE_CLICK;
-					ev.x = event.button.x;
-					ev.y = event.button.y;
-					ev.button = event.button.button;
-					gui_object_handle_event((gui_object_t *)&interface, &ev);
-
-					if (current_ticks - last_click[event.button.button-1] < MOUSE_TIME_SENSITIVITY &&
-					    event.button.x >= last_click_x - MOUSE_MOVE_SENSITIVITY &&
-					    event.button.x <= last_click_x + MOUSE_MOVE_SENSITIVITY &&
-					    event.button.y >= last_click_y - MOUSE_MOVE_SENSITIVITY &&
-					    event.button.y <= last_click_y + MOUSE_MOVE_SENSITIVITY) {
-						ev.type = GUI_EVENT_TYPE_DBL_CLICK;
+					current_ticks - last_down[event.button.button - 1] < MOUSE_TIME_SENSITIVITY) {
+						ev.type = GUI_EVENT_TYPE_CLICK;
 						ev.x = event.button.x;
 						ev.y = event.button.y;
 						ev.button = event.button.button;
-						gui_object_handle_event((gui_object_t *)&interface, &ev);
-					}
+						gui_object_handle_event((gui_object_t *) &interface, &ev);
 
-					last_click[event.button.button-1] = current_ticks;
-					last_click_x = event.button.x;
-					last_click_y = event.button.y;
+						if (current_ticks - last_click[event.button.button - 1] < MOUSE_TIME_SENSITIVITY &&
+							event.button.x >= last_click_x - MOUSE_MOVE_SENSITIVITY &&
+							event.button.x <= last_click_x + MOUSE_MOVE_SENSITIVITY &&
+							event.button.y >= last_click_y - MOUSE_MOVE_SENSITIVITY &&
+							event.button.y <= last_click_y + MOUSE_MOVE_SENSITIVITY) {
+								ev.type = GUI_EVENT_TYPE_DBL_CLICK;
+								ev.x = event.button.x;
+								ev.y = event.button.y;
+								ev.button = event.button.button;
+								gui_object_handle_event((gui_object_t *) &interface, &ev);
+						}
+
+						last_click[event.button.button - 1] = current_ticks;
+						last_click_x = event.button.x;
+						last_click_y = event.button.y;
 				}
 				break;
 			case SDL_MOUSEBUTTONDOWN:
@@ -312,9 +307,15 @@ game_loop()
 				ev.x = event.button.x;
 				ev.y = event.button.y;
 				ev.button = event.button.button;
-				gui_object_handle_event((gui_object_t *)&interface, &ev);
+				gui_object_handle_event((gui_object_t *) &interface, &ev);
 
-				if (event.button.button <= 3) last_down[event.button.button-1] = current_ticks;
+				if (event.button.button <= 3) {
+					last_down[event.button.button - 1] = current_ticks;
+				}
+				else {
+					if ((event.button.button == SDL_BUTTON_WHEELUP)   && (interface.viewport.skale_faktor < 2.00f)) interface.viewport.skale_faktor += 0.10f;
+					if ((event.button.button == SDL_BUTTON_WHEELDOWN) && (interface.viewport.skale_faktor > 0.75f))	interface.viewport.skale_faktor -= 0.10f;
+				}
 				break;
 			case SDL_MOUSEMOTION:
 				if (drag_button == 0) {
@@ -331,23 +332,23 @@ game_loop()
 							ev.x = event.motion.x;
 							ev.y = event.motion.y;
 							ev.button = drag_button;
-							gui_object_handle_event((gui_object_t *)&interface, &ev);
+							gui_object_handle_event((gui_object_t *) &interface, &ev);
 						}
 
 						ev.type = GUI_EVENT_TYPE_DRAG_MOVE;
 						ev.x = event.motion.x;
 						ev.y = event.motion.y;
 						ev.button = drag_button;
-						gui_object_handle_event((gui_object_t *)&interface, &ev);
+						gui_object_handle_event((gui_object_t *) &interface, &ev);
 						break;
 					}
 				}
 				break;
 			case SDL_KEYDOWN:
 				if (event.key.keysym.sym == SDLK_q &&
-				    (event.key.keysym.mod & KMOD_CTRL)) {
-					game_loop_quit();
-					break;
+					(event.key.keysym.mod & KMOD_CTRL)) {
+						game_loop_quit();
+						break;
 				}
 
 				switch (event.key.keysym.sym) {
@@ -355,55 +356,56 @@ game_loop()
 				case SDLK_UP: {
 					viewport_t *viewport = interface_get_top_viewport(&interface);
 					viewport_move_by_pixels(viewport, 0, -1);
-				}
+					}
 					break;
 				case SDLK_DOWN: {
 					viewport_t *viewport = interface_get_top_viewport(&interface);
 					viewport_move_by_pixels(viewport, 0, 1);
-				}
+					}
 					break;
 				case SDLK_LEFT: {
 					viewport_t *viewport = interface_get_top_viewport(&interface);
 					viewport_move_by_pixels(viewport, -1, 0);
-				}
+					}
 					break;
 				case SDLK_RIGHT: {
 					viewport_t *viewport = interface_get_top_viewport(&interface);
 					viewport_move_by_pixels(viewport, 1, 0);
-				}
+					}
 					break;
 
 					/* Panel click shortcuts */
 				case SDLK_1: {
 					panel_bar_t *panel = interface_get_panel_bar(&interface);
 					panel_bar_activate_button(panel, 0);
-				}
+					}
 					break;
 				case SDLK_2: {
 					panel_bar_t *panel = interface_get_panel_bar(&interface);
 					panel_bar_activate_button(panel, 1);
-				}
+					}
 					break;
 				case SDLK_3: {
 					panel_bar_t *panel = interface_get_panel_bar(&interface);
 					panel_bar_activate_button(panel, 2);
-				}
+					}
 					break;
 				case SDLK_4: {
 					panel_bar_t *panel = interface_get_panel_bar(&interface);
 					panel_bar_activate_button(panel, 3);
-				}
+					}
 					break;
 				case SDLK_5: {
 					panel_bar_t *panel = interface_get_panel_bar(&interface);
 					panel_bar_activate_button(panel, 4);
-				}
+					}
 					break;
 
 				case SDLK_TAB:
 					if (event.key.keysym.mod & KMOD_SHIFT) {
 						interface_return_from_message(&interface);
-					} else {
+					}
+					else {
 						interface_open_message(&interface);
 					}
 					break;
@@ -447,35 +449,37 @@ game_loop()
 				case SDLK_ESCAPE:
 					if (GUI_OBJECT(&interface.popup)->displayed) {
 						interface_close_popup(&interface);
-					} else if (interface.building_road) {
+					}
+					else if (interface.building_road) {
 						interface_build_road_end(&interface);
 					}
 					break;
 
 					/* Debug */
 				case SDLK_g:
-					interface.viewport.layers ^= VIEWPORT_LAYER_GRID;
+					interface.viewport.layers = (viewport_layer_t) ((int) interface.viewport.layers ^ VIEWPORT_LAYER_GRID);
 					break;
 				case SDLK_b:
 					interface.viewport.show_possible_build = !interface.viewport.show_possible_build;
 					break;
 				case SDLK_j: {
 					int current = 0;
-					for (int i = 0; i < 4; i++) {
+					for (int i = 0; i < GAME_MAX_PLAYER_COUNT; i++) {
 						if (interface.player == game.player[i]) {
 							current = i;
 							break;
 						}
 					}
 
-					for (int i = (current+1) % 4; i != current; i = (i+1) % 4) {
-						if (PLAYER_IS_ACTIVE(game.player[i])) {
-							interface.player = game.player[i];
-							LOGD("main", "Switched to player %i.", i);
-							break;
-						}
+					for (int i = (current + 1) % GAME_MAX_PLAYER_COUNT;
+						i != current; i = (i + 1) % GAME_MAX_PLAYER_COUNT) {
+							if (PLAYER_IS_ACTIVE(game.player[i])) {
+								interface_set_player(&interface, i);
+								LOGD("main", "Switched to player %i.", i);
+								break;
+							}
 					}
-				}
+					}
 					break;
 				case SDLK_z:
 					if (event.key.keysym.mod & KMOD_CTRL) {
@@ -491,16 +495,15 @@ game_loop()
 				}
 				break;
 			case SDL_VIDEORESIZE:
-				sdl_set_resolution(event.resize.w, event.resize.h, 0);
+				{
+					sdl_set_resolution(event.resize.w, event.resize.h, 0);
 
-				frame_t *screen = sdl_get_screen_frame();
-				int width = sdl_frame_get_width(screen);
-				int height = sdl_frame_get_height(screen);
+					frame_t *screen = sdl_get_screen_frame();
+					int width = sdl_frame_get_width(screen);
+					int height = sdl_frame_get_height(screen);
 
-				screen_frame.clip.w = width;
-				screen_frame.clip.h = height;
-
-				gui_object_set_size((gui_object_t *)&interface, width, height);
+					gui_object_set_size((gui_object_t *) &interface, width, height);
+				}
 				break;
 			case SDL_QUIT:
 				game_loop_quit();
@@ -513,9 +516,9 @@ game_loop()
 		current_ticks = new_ticks;
 
 		/* Update FPS EMA per frame */
-		fps = 1000*(1.0 / (float)delta_ticks);
+		fps = (int)(1000*(1.0f / (float)delta_ticks));
 		if (fps_ema > 0) fps_ema = ema_alpha*fps + (1-ema_alpha)*fps_ema;
-		else if (fps > 0) fps_ema = fps;
+		else if (fps > 0) fps_ema = (float)fps;
 
 		accum += delta_ticks;
 		while (accum >= TICK_LENGTH) {
@@ -536,17 +539,22 @@ game_loop()
 			accum -= TICK_LENGTH;
 		}
 
+
 		/* Update and draw interface */
 		interface_update(&interface);
 
-		gui_object_redraw(GUI_OBJECT(&interface), game.frame);
+		frame_t *screen = sdl_get_screen_frame();
+
+
+		gui_object_redraw(GUI_OBJECT(&interface), screen);
 
 		/* TODO very crude dirty marking algortihm: mark everything. */
-		sdl_mark_dirty(0, 0, sdl_frame_get_width(game.frame),
-			       sdl_frame_get_height(game.frame));
+		sdl_mark_dirty(0, 0, sdl_frame_get_width(screen),
+			       sdl_frame_get_height(screen));
 
 		/* Swap video buffers */
 		sdl_swap_buffers();
+
 
 		/* Reduce framerate to target if we finished too fast */
 		int now = SDL_GetTicks();
@@ -557,65 +565,6 @@ game_loop()
 		}
 		last_frame = SDL_GetTicks();
 	}
-}
-
-/* Allocate global memory before game starts. */
-static void
-allocate_global_memory()
-{
-	/* Players */
-	game.player[0] = malloc(sizeof(player_t));
-	if (game.player[0] == NULL) abort();
-
-	game.player[1] = malloc(sizeof(player_t));
-	if (game.player[1] == NULL) abort();
-
-	game.player[2] = malloc(sizeof(player_t));
-	if (game.player[2] == NULL) abort();
-
-	game.player[3] = malloc(sizeof(player_t));
-	if (game.player[3] == NULL) abort();
-
-	/* TODO this should be allocated on game start according to the
-	   map size of the particular game instance. */
-	int max_map_size = 10;
-	game.serf_limit = (0x1f84 * (1 << max_map_size) - 4) / 0x81;
-	game.flag_limit = (0x2314 * (1 << max_map_size) - 4) / 0x231;
-	game.building_limit = (0x54c * (1 << max_map_size) - 4) / 0x91;
-	game.inventory_limit = (0x54c * (1 << max_map_size) - 4) / 0x3c1;
-
-	/* Serfs */
-	game.serfs = malloc(game.serf_limit * sizeof(serf_t));
-	if (game.serfs == NULL) abort();
-
-	game.serf_bitmap = malloc(((game.serf_limit-1) / 8) + 1);
-	if (game.serf_bitmap == NULL) abort();
-
-	/* Flags */
-	game.flags = malloc(game.flag_limit * sizeof(flag_t));
-	if (game.flags == NULL) abort();
-
-	game.flag_bitmap = malloc(((game.flag_limit-1) / 8) + 1);
-	if (game.flag_bitmap == NULL) abort();
-
-	/* Buildings */
-	game.buildings = malloc(game.building_limit * sizeof(building_t));
-	if (game.buildings == NULL) abort();
-
-	game.building_bitmap = malloc(((game.building_limit-1) / 8) + 1);
-	if (game.building_bitmap == NULL) abort();
-
-	/* Inventories */
-	game.inventories = malloc(game.inventory_limit * sizeof(inventory_t));
-	if (game.inventories == NULL) abort();
-
-	game.inventory_bitmap = malloc(((game.inventory_limit-1) / 8) + 1);
-	if (game.inventory_bitmap == NULL) abort();
-
-	/* Setup screen frame */
-	frame_t *screen = sdl_get_screen_frame();
-	sdl_frame_init(&screen_frame, 0, 0, sdl_frame_get_width(screen),
-		       sdl_frame_get_height(screen), screen);
 }
 
 #define MAX_DATA_PATH      1024
@@ -703,8 +652,6 @@ load_data_file(const char *path)
 	" -g DATA-FILE\tUse specified data file\n"			\
 	" -h\t\tShow this help text\n"					\
 	" -l FILE\tLoad saved game\n"					\
-	" -m MAP\t\tSelect mission map (1-30)\n"			\
-	" -n SIZE\tSelect size of random map (3-10)\n"			\
 	" -r RES\t\tSet display resolution (e.g. 800x600)\n"		\
 	" -t GEN\t\tMap generator (0 or 1)\n"				\
 	"\n"								\
@@ -721,15 +668,13 @@ main(int argc, char *argv[])
 	int screen_width = DEFAULT_SCREEN_WIDTH;
 	int screen_height = DEFAULT_SCREEN_HEIGHT;
 	int fullscreen = 0;
-	int game_mission = -1;
-	int map_size = 3;
 	int map_generator = 0;
 
 	int log_level = DEFAULT_LOG_LEVEL;
 
 	int opt;
 	while (1) {
-		opt = getopt(argc, argv, "d:fg:hl:m:n:r:t:");
+		opt = getopt(argc, argv, "d:fg:hl:r:t:");
 		if (opt < 0) break;
 
 		switch (opt) {
@@ -745,7 +690,7 @@ main(int argc, char *argv[])
 			fullscreen = 1;
 			break;
 		case 'g':
-			data_file = malloc(strlen(optarg)+1);
+			data_file = (char *)malloc(strlen(optarg)+1);
 			if (data_file == NULL) exit(EXIT_FAILURE);
 			strcpy(data_file, optarg);
 			break;
@@ -754,15 +699,9 @@ main(int argc, char *argv[])
 			exit(EXIT_SUCCESS);
 			break;
 		case 'l':
-			save_file = malloc(strlen(optarg)+1);
+			save_file = (char *)malloc(strlen(optarg)+1);
 			if (save_file == NULL) exit(EXIT_FAILURE);
 			strcpy(save_file, optarg);
-			break;
-		case 'm':
-			game_mission = atoi(optarg);
-			break;
-		case 'n':
-			map_size = atoi(optarg);
 			break;
 		case 'r':
 		{
@@ -787,7 +726,7 @@ main(int argc, char *argv[])
 
 	/* Set up logging */
 	log_set_file(stdout);
-	log_set_level(log_level);
+	log_set_level((log_level_t)log_level);
 
 	LOGI("main", "freeserf %s", FREESERF_VERSION);
 
@@ -820,14 +759,19 @@ main(int argc, char *argv[])
 
 	game.map_generator = map_generator;
 
-	/* Init globals */
-	allocate_global_memory();
-	player_interface_init();
-
 	/* Initialize global lookup tables */
 	init_spiral_pattern();
 
 	game_init();
+
+	/* Initialize Missions*/
+	init_mission("missions.xml");
+
+	/* Initialize interface */
+	interface_init(&interface);
+	gui_object_set_size((gui_object_t *)&interface,
+			    screen_width, screen_height);
+	gui_object_set_displayed((gui_object_t *)&interface, 1);
 
 	/* Either load a save game if specified or
 	   start a new game. */
@@ -835,25 +779,24 @@ main(int argc, char *argv[])
 		int r = game_load_save_game(save_file);
 		if (r < 0) exit(EXIT_FAILURE);
 		free(save_file);
-	} else if (game_mission < 0) {
-		random_state_t rnd = {{ 0x5a5a, time(NULL) >> 16, time(NULL) }};
-		int r = game_load_random_map(map_size, &rnd);
-		if (r < 0) exit(EXIT_FAILURE);
+
+		interface_set_player(&interface, 0);
 	} else {
-		if (game_mission < 1 || game_mission > mission_count) {
-			LOGE("main", "Invalid mission selected (available 1-%i)",
-			     mission_count);
-			exit(EXIT_FAILURE);
-		}
-		int r = game_load_mission_map(game_mission-1);
+		int r = game_load_random_map(3, &interface.random);
 		if (r < 0) exit(EXIT_FAILURE);
+
+		/* Add default player */
+		r = game_add_player(12, 64, 40, 40, 40);
+		if (r < 0) exit(EXIT_FAILURE);
+
+		interface_set_player(&interface, r);
 	}
 
-	/* Move viewport to initial position */
 	viewport_map_reinit();
-	interface_update_map_cursor_pos(&interface, interface.map_cursor_pos);
-	viewport_move_to_map_pos(&interface.viewport, interface.map_cursor_pos);
-	interface_open_game_init(&interface);
+
+	if (save_file != NULL) {
+		interface_close_game_init(&interface);
+	}
 
 	/* Start game loop */
 	game_loop();
@@ -861,6 +804,8 @@ main(int argc, char *argv[])
 	LOGI("main", "Cleaning up...");
 
 	/* Clean up */
+	map_deinit();
+	viewport_map_deinit();
 	audio_cleanup();
 	sdl_deinit();
 	gfx_unload();

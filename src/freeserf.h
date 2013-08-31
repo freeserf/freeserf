@@ -40,7 +40,7 @@
 #define INVENTORY_INDEX(ptr)  ((int)((ptr) - game.inventories))
 #define INVENTORY_ALLOCATED(i)  BIT_TEST(game.inventory_bitmap[(i)>>3], 7-((i)&7))
 
-#define DIR_REVERSE(dir)  (((dir) + 3) % 6)
+#define DIR_REVERSE(dir)  (dir_t)(((dir) + 3) % 6)
 
 
 typedef enum {
@@ -187,24 +187,27 @@ typedef struct {
 	int x, y;
 } sprite_loc_t;
 
-typedef struct {
-	int face;
-	int supplies;
-	int intelligence;
-	int reproduction;
-} player_init_t;
-
 typedef struct inventory inventory_t;
 
 struct inventory {
 	int player_num;
 	int res_dir;
-	int flg_index;
-	int bld_index;
+	/* Index of flag connected to this inventory */
+	int flag;
+	/* Index of building containing this inventory */
+	int building;
+	/* Count of resources */
 	int resources[26];
-	int out_queue[2];
-	int out_dest[2];
-	int spawn_priority;
+	/* Resources waiting to be moved out */
+	struct {
+		resource_type_t type;
+		uint dest;
+	} out_queue[2];
+	/* Count of serfs waiting to move out */
+	uint serfs_out;
+	/* Count of generic serfs */
+	int generic_count;
+	/* Indices to serfs of each type */
 	int serfs[27];
 };
 

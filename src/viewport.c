@@ -37,11 +37,10 @@
 #include "debug.h"
 #include "audio.h"
 #include "pathfinder.h"
-
+#include "SDL.h"
 
 #define MAP_TILE_TEXTURES  33
 #define MAP_TILE_MASKS     81
-
 
 #define VIEWPORT_COLS(viewport)  (2*((viewport)->obj.width / MAP_TILE_WIDTH) + 1)
 
@@ -55,24 +54,27 @@ typedef struct {
 	int dirty;
 } landscape_tile_t;
 
-static int tile_cols = 16;
-static int tile_rows = 16;
+/* Number of cols,rows in each landscape tile */
+#define MAP_TILE_COLS  16
+#define MAP_TILE_ROWS  16
+
+static uint landscape_tile_count;
 static landscape_tile_t *landscape_tile;
 
 
 static void
 draw_map_tile(int x, int y, int mask, int sprite, frame_t *frame)
 {
-	sprite_t *spr = gfx_get_data_object(sprite, NULL);
-	sprite_t *msk = gfx_get_data_object(mask, NULL);
+	sprite_t *spr = (sprite_t *)gfx_get_data_object(sprite, NULL);
+	sprite_t *msk = (sprite_t *)gfx_get_data_object(mask, NULL);
 	sdl_draw_masked_sprite(spr, x, y, msk, NULL, frame);
 }
 
 static void
 draw_map_tile_cached(int x, int y, int mask, int sprite, unsigned int index, frame_t *frame)
 {
-	sprite_t *spr = gfx_get_data_object(sprite, NULL);
-	sprite_t *msk = gfx_get_data_object(mask, NULL);
+	sprite_t *spr = (sprite_t *)gfx_get_data_object(sprite, NULL);
+	sprite_t *msk = (sprite_t *)gfx_get_data_object(mask, NULL);
 	map_tile_cache[index] = sdl_draw_masked_sprite(spr, x, y, msk, map_tile_cache[index], frame);
 }
 
@@ -110,18 +112,22 @@ draw_triangle_up(int x, int y, int m, int left, int right, map_pos_t pos, frame_
 		-1, -1, -1,  0,  1,  2,  5,  6,  7,
 		-1, -1, -1, -1,  0,  1,  4,  6,  7
 	};
+	int mask;
+	int type;
+	int index;
+	int sprite;
 
 	assert(left - m >= -4 && left - m <= 4);
 	assert(right - m >= -4 && right - m <= 4);
 
-	int mask = 4 + m - left + 9*(4 + m - right);
+	mask = 4 + m - left + 9*(4 + m - right);
 	assert(tri_mask[mask] >= 0);
 
-	int type = MAP_TYPE_UP(MAP_MOVE_UP(pos));
-	int index = (type << 3) | tri_mask[mask];
+	type = MAP_TYPE_UP(MAP_MOVE_UP(pos));
+	index = (type << 3) | tri_mask[mask];
 	assert(index < 128);
 
-	int sprite = tri_spr[index];
+	sprite = tri_spr[index];
 
 	draw_map_tile_cached(x, y,
 			     DATA_MAP_MASK_UP_BASE + mask,
@@ -142,18 +148,22 @@ draw_triangle_down(int x, int y, int m, int left, int right, map_pos_t pos, fram
 		-1, -1, -1,  7,  6,  6,  6,  6,  6,
 		-1, -1, -1, -1,  7,  7,  7,  7,  7
 	};
+	int mask;
+	int type;
+	int index;
+	int sprite;
 
 	assert(left - m >= -4 && left - m <= 4);
 	assert(right - m >= -4 && right - m <= 4);
 
-	int mask = 4 + left - m + 9*(4 + right - m);
+	mask = 4 + left - m + 9*(4 + right - m);
 	assert(tri_mask[mask] >= 0);
 
-	int type = MAP_TYPE_DOWN(MAP_MOVE_UP_LEFT(pos));
-	int index = (type << 3) | tri_mask[mask];
+	type = MAP_TYPE_DOWN(MAP_MOVE_UP_LEFT(pos));
+	index = (type << 3) | tri_mask[mask];
 	assert(index < 128);
 
-	int sprite = tri_spr[index];
+	sprite = tri_spr[index];
 
 	draw_map_tile_cached(x, y + MAP_TILE_HEIGHT,
 			     DATA_MAP_MASK_DOWN_BASE + mask,
@@ -166,6 +176,7 @@ draw_up_tile_col(map_pos_t pos, int x_base, int y_base, int max_y, frame_t *fram
 {
 	int m = MAP_HEIGHT(pos);
 	int left, right;
+	int t;
 
 	/* Loop until a tile is inside the frame (y >= 0). */
 	while (1) {
@@ -175,7 +186,7 @@ draw_up_tile_col(map_pos_t pos, int x_base, int y_base, int max_y, frame_t *fram
 		left = MAP_HEIGHT(pos);
 		right = MAP_HEIGHT(MAP_MOVE_RIGHT(pos));
 
-		int t = min(left, right);
+		t = min(left, right);
 		/*if (left == right) t -= 1;*/ /* TODO ? */
 
 		if (y_base + MAP_TILE_HEIGHT - 4*t >= 0) break;
@@ -204,7 +215,7 @@ draw_up_tile_col(map_pos_t pos, int x_base, int y_base, int max_y, frame_t *fram
 		pos = MAP_MOVE_DOWN_RIGHT(pos);
 		m = MAP_HEIGHT(pos);
 
-		int t = max(left, right);
+		t = max(left, right);
 		if (y_base - 2*MAP_TILE_HEIGHT - 4*t >= max_y) break;
 
 	down:
@@ -227,6 +238,7 @@ draw_down_tile_col(map_pos_t pos, int x_base, int y_base, int max_y, frame_t *fr
 	int left = MAP_HEIGHT(pos);
 	int right = MAP_HEIGHT(MAP_MOVE_RIGHT(pos));
 	int m;
+	int t;
 
 	/* Loop until a tile is inside the frame (y >= 0). */
 	while (1) {
@@ -245,7 +257,7 @@ draw_down_tile_col(map_pos_t pos, int x_base, int y_base, int max_y, frame_t *fr
 		left = MAP_HEIGHT(pos);
 		right = MAP_HEIGHT(MAP_MOVE_RIGHT(pos));
 
-		int t = min(left, right);
+		t = min(left, right);
 		/*if (left == right) t -= 1;*/ /* TODO ? */
 
 		if (y_base + MAP_TILE_HEIGHT - 4*t >= 0) break;
@@ -265,11 +277,12 @@ draw_down_tile_col(map_pos_t pos, int x_base, int y_base, int max_y, frame_t *fr
 		pos = MAP_MOVE_DOWN_RIGHT(pos);
 		m = MAP_HEIGHT(pos);
 
-		int t = max(left, right);
-		/*if (left == right) t += 1;*/ /* TODO ? */
+		{
+			int t = max(left, right);
+			/*if (left == right) t += 1;*/ /* TODO ? */
 
-		if (y_base - 2*MAP_TILE_HEIGHT - 4*t >= max_y) break;
-
+			if (y_base - 2 * MAP_TILE_HEIGHT - 4 * t >= max_y) break;
+		}
 	down:
 		draw_triangle_down(x_base, y_base - 4*m, m, left, right, pos, frame);
 
@@ -283,20 +296,32 @@ draw_down_tile_col(map_pos_t pos, int x_base, int y_base, int max_y, frame_t *fr
 	}
 }
 
+/* Deallocate global allocations for landscape tiles */
+void
+viewport_map_deinit()
+{
+	if (landscape_tile != NULL) {
+		for (uint i = 0; i < landscape_tile_count; i++) {
+			sdl_frame_deinit(&landscape_tile[i].frame);
+		}
+		free(landscape_tile);
+	}
+}
 
+/* Reinitialize landscape tiles */
 void
 viewport_map_reinit()
 {
-	if (landscape_tile != NULL) free(landscape_tile);
+	viewport_map_deinit();
 
-	int horiz_tiles = game.map.cols/tile_cols;
-	int vert_tiles = game.map.rows/tile_rows;
-	int tile_count = horiz_tiles*vert_tiles;
+	int horiz_tiles = game.map.cols/MAP_TILE_COLS;
+	int vert_tiles = game.map.rows/MAP_TILE_ROWS;
+	landscape_tile_count = horiz_tiles*vert_tiles;
 
-	int tile_width = tile_cols*MAP_TILE_WIDTH;
-	int tile_height = tile_rows*MAP_TILE_HEIGHT;
+	int tile_width = MAP_TILE_COLS*MAP_TILE_WIDTH;
+	int tile_height = MAP_TILE_ROWS*MAP_TILE_HEIGHT;
 
-	landscape_tile = malloc(tile_count*sizeof(landscape_tile_t));
+	landscape_tile = (landscape_tile_t *)malloc(landscape_tile_count*sizeof(landscape_tile_t));
 	if (landscape_tile == NULL) abort();
 
 	LOGV("viewport", "map: %i,%i, cols,rows: %i,%i, tcs,trs: %i,%i, tw,th: %i,%i",
@@ -304,9 +329,9 @@ viewport_map_reinit()
 	     game.map.cols, game.map.rows, horiz_tiles, vert_tiles,
 	     tile_width, tile_height);
 
-	for (int i = 0; i < tile_count; i++) {
+	for (uint i = 0; i < landscape_tile_count; i++) {
 		sdl_frame_init(&landscape_tile[i].frame, 0, 0, tile_width, tile_height, NULL);
-		sdl_fill_rect(0, 0, tile_width, tile_height, 72, &landscape_tile[i].frame);
+		sdl_fill_rect(0, 0, tile_width, tile_height, 0, &landscape_tile[i].frame);
 		landscape_tile[i].dirty = 1;
 	}
 }
@@ -314,15 +339,17 @@ viewport_map_reinit()
 void
 viewport_redraw_map_pos(viewport_t *viewport, map_pos_t pos)
 {
+	if (landscape_tile == NULL) return;
+
 	int mx, my;
 	viewport_map_pix_from_map_coord(viewport, pos, MAP_HEIGHT(pos),
 					&mx, &my);
 
-	int horiz_tiles = game.map.cols/tile_cols;
-	int vert_tiles = game.map.rows/tile_rows;
+	int horiz_tiles = game.map.cols/MAP_TILE_COLS;
+	int vert_tiles = game.map.rows/MAP_TILE_ROWS;
 
-	int tile_width = tile_cols*MAP_TILE_WIDTH;
-	int tile_height = tile_rows*MAP_TILE_HEIGHT;
+	int tile_width = MAP_TILE_COLS*MAP_TILE_WIDTH;
+	int tile_height = MAP_TILE_ROWS*MAP_TILE_HEIGHT;
 
 	int tc = (mx / tile_width) % horiz_tiles;
 	int tr = (my / tile_height) % vert_tiles;
@@ -334,11 +361,11 @@ viewport_redraw_map_pos(viewport_t *viewport, map_pos_t pos)
 static void
 draw_landscape(viewport_t *viewport, frame_t *frame)
 {
-	int horiz_tiles = game.map.cols/tile_cols;
-	int vert_tiles = game.map.rows/tile_rows;
+	int horiz_tiles = game.map.cols/MAP_TILE_COLS;
+	int vert_tiles = game.map.rows/MAP_TILE_ROWS;
 
-	int tile_width = tile_cols*MAP_TILE_WIDTH;
-	int tile_height = tile_rows*MAP_TILE_HEIGHT;
+	int tile_width = MAP_TILE_COLS*MAP_TILE_WIDTH;
+	int tile_height = MAP_TILE_ROWS*MAP_TILE_HEIGHT;
 
 	int map_width = game.map.cols*MAP_TILE_WIDTH;
 	int map_height = game.map.rows*MAP_TILE_HEIGHT;
@@ -365,15 +392,15 @@ draw_landscape(viewport_t *viewport, frame_t *frame)
 
 			/* Redraw tile if marked dirty */
 			if (landscape_tile[tid].dirty) {
-				int col = (tc*tile_cols + (tr*tile_rows)/2) % game.map.cols;
-				int row = tr*tile_rows;
+				int col = (tc*MAP_TILE_COLS + (tr*MAP_TILE_ROWS)/2) % game.map.cols;
+				int row = tr*MAP_TILE_ROWS;
 				map_pos_t pos = MAP_POS(col, row);
 
 				int x_base = -(MAP_TILE_WIDTH/2);
 
 				/* Draw one extra column as half a column will be outside the
 				   map tile on both right and left side.. */
-				for (int col = 0; col < tile_cols+1; col++) {
+				for (int col = 0; col < MAP_TILE_COLS+1; col++) {
 					draw_up_tile_col(pos, x_base, 0, tile_height,
 							 &landscape_tile[tid].frame);
 					draw_down_tile_col(pos, x_base + 16, 0, tile_height,
@@ -543,15 +570,15 @@ draw_paths_and_borders(viewport_t *viewport, frame_t *frame)
 
 			/* For each direction right, down right and down,
 			   draw the corresponding paths and borders. */
-			for (dir_t d = DIR_RIGHT; d <= DIR_DOWN; d++) {
+			for (int d = DIR_RIGHT; d <= DIR_DOWN; d++) {
 				map_tile_t *tiles = game.map.tiles;
 				map_pos_t other_pos = MAP_MOVE(pos, d);
 
 				if (BIT_TEST(tiles[pos].paths, d)) {
-					draw_path_segment(x, y_base, pos, d, frame);
+					draw_path_segment(x, y_base, pos, (dir_t)d, frame);
 				} else if (MAP_HAS_OWNER(pos) != MAP_HAS_OWNER(other_pos) ||
 					   MAP_OWNER(pos) != MAP_OWNER(other_pos)) {
-					draw_border_segment(x, y_base, pos, d, frame);
+					draw_border_segment(x, y_base, pos, (dir_t)d, frame);
 				}
 			}
 
@@ -577,7 +604,7 @@ draw_paths_and_borders(viewport_t *viewport, frame_t *frame)
 			dir_t draw_dir = dir;
 			if (draw_dir > DIR_DOWN) {
 				draw_pos = MAP_MOVE(pos, dir);
-				draw_dir = DIR_REVERSE(dir);
+				draw_dir = (dir_t)DIR_REVERSE(dir);
 			}
 
 			int mx, my;
@@ -599,21 +626,21 @@ draw_paths_and_borders(viewport_t *viewport, frame_t *frame)
 static void
 draw_game_sprite(int x, int y, int index, frame_t *frame)
 {
-	void *sprite = gfx_get_data_object(DATA_GAME_OBJECT_BASE + index, NULL);
+	sprite_t *sprite = (sprite_t *)gfx_get_data_object(DATA_GAME_OBJECT_BASE + index, NULL);
 	sdl_draw_transp_sprite(sprite, x, y, 1, 0, 0, frame);
 }
 
 static void
 draw_serf(int x, int y, int color, int head, int body, frame_t *frame)
 {
-	sprite_t *s_arms = gfx_get_data_object(DATA_SERF_ARMS_BASE + body, NULL);
-	sprite_t *s_torso = gfx_get_data_object(DATA_SERF_TORSO_BASE + body, NULL);
+	sprite_t *s_arms = (sprite_t *) gfx_get_data_object(DATA_SERF_ARMS_BASE + body, NULL);
+	sprite_t *s_torso = (sprite_t *) gfx_get_data_object(DATA_SERF_TORSO_BASE + body, NULL);
 
 	sdl_draw_transp_sprite(s_arms, x, y, 1, 0, 0, frame);
 	sdl_draw_transp_sprite(s_torso, x, y, 1, 0, color, frame);
 
 	if (head >= 0) {
-		sprite_t *s_head = gfx_get_data_object(DATA_SERF_HEAD_BASE + head, NULL);
+		sprite_t *s_head = (sprite_t *)gfx_get_data_object(DATA_SERF_HEAD_BASE + head, NULL);
 		x += s_arms->b_x;
 		y += s_arms->b_y;
 		sdl_draw_transp_sprite(s_head, x, y, 1, 0, 0, frame);
@@ -623,8 +650,8 @@ draw_serf(int x, int y, int color, int head, int body, frame_t *frame)
 static void
 draw_shadow_and_building_sprite(int x, int y, int index, frame_t *frame)
 {
-	void *shadow = gfx_get_data_object(DATA_MAP_SHADOW_BASE + index, NULL);
-	void *building = gfx_get_data_object(DATA_MAP_OBJECT_BASE + index, NULL);
+	sprite_t *shadow = (sprite_t *)gfx_get_data_object(DATA_MAP_SHADOW_BASE + index, NULL);
+	sprite_t *building = (sprite_t *)gfx_get_data_object(DATA_MAP_OBJECT_BASE + index, NULL);
 
 	sdl_draw_overlay_sprite(shadow, x, y, 0, frame);
 	sdl_draw_transp_sprite(building, x, y, 1, 0, 0, frame);
@@ -633,8 +660,8 @@ draw_shadow_and_building_sprite(int x, int y, int index, frame_t *frame)
 static void
 draw_shadow_and_building_unfinished(int x, int y, int index, int progress, frame_t *frame)
 {
-	sprite_t *shadow = gfx_get_data_object(DATA_MAP_SHADOW_BASE + index, NULL);
-	sprite_t *building = gfx_get_data_object(DATA_MAP_OBJECT_BASE + index, NULL);
+	sprite_t *shadow = (sprite_t *)gfx_get_data_object(DATA_MAP_SHADOW_BASE + index, NULL);
+	sprite_t *building = (sprite_t *)gfx_get_data_object(DATA_MAP_OBJECT_BASE + index, NULL);
 
 	int h = ((building->h * progress) >> 16) + 1;
 	int y_off = building->h - h;
@@ -713,9 +740,9 @@ draw_unharmed_building(viewport_t *viewport, building_t *building,
 		0xa2, 0, 0xa2, 0
 	};
 
-	if (!(building->bld & 0x80)) { /* normal building */
-		building_type_t type = (building->bld >> 2) & 0x1f;
-		switch (type) {
+	if (BUILDING_IS_DONE(building)) {
+		building_type_t type = building->type;
+		switch (building->type) {
 		case BUILDING_FISHER:
 		case BUILDING_LUMBERJACK:
 		case BUILDING_STONECUTTER:
@@ -883,9 +910,8 @@ draw_unharmed_building(viewport_t *viewport, building_t *building,
 			break;
 		}
 	} else { /* unfinished building */
-		building_type_t type = (building->bld >> 2) & 0x1f;
-		if (type != BUILDING_CASTLE) {
-			draw_building_unfinished(building, type, x, y, frame);
+		if (building->type != BUILDING_CASTLE) {
+			draw_building_unfinished(building, building->type, x, y, frame);
 		} else {
 			draw_shadow_and_building_unfinished(x, y, 0xb2, building->progress, frame);
 		}
@@ -1155,17 +1181,17 @@ static void
 draw_water_waves(map_pos_t pos, int x, int y, frame_t *frame)
 {
 	int sprite = DATA_MAP_WAVES_BASE + (((pos ^ 5) + (game.tick >> 3)) & 0xf);
-	sprite_t *s = gfx_get_data_object(sprite, NULL);
+	sprite_t *s = (sprite_t *)gfx_get_data_object(sprite, NULL);
 
 	if (MAP_TYPE_DOWN(pos) < 4 && MAP_TYPE_UP(pos) < 4) {
 		sdl_draw_waves_sprite(s, NULL, x - 16, y, 0, frame);
 	} else if (MAP_TYPE_DOWN(pos) < 4) {
 		int mask = DATA_MAP_MASK_DOWN_BASE + 40;
-		sprite_t *m = gfx_get_data_object(mask, NULL);
+		sprite_t *m = (sprite_t *)gfx_get_data_object(mask, NULL);
 		sdl_draw_waves_sprite(s, m, x, y, 16, frame);
 	} else {
 		int mask = DATA_MAP_MASK_UP_BASE + 40;
-		sprite_t *m = gfx_get_data_object(mask, NULL);
+		sprite_t *m = (sprite_t *)gfx_get_data_object(mask, NULL);
 		sdl_draw_waves_sprite(s, m, x - 16, y, 0, frame);
 	}
 }
@@ -1321,7 +1347,7 @@ draw_row_serf(int x, int y, int shadow, int color, int body, frame_t *frame)
 
 	/* Shadow */
 	if (shadow) {
-		sprite_t *sh = gfx_get_data_object(DATA_SERF_SHADOW, NULL);
+		sprite_t *sh = (sprite_t *)gfx_get_data_object(DATA_SERF_SHADOW, NULL);
 		sdl_draw_overlay_sprite(sh, x, y, 0, frame);
 	}
 
@@ -1550,14 +1576,14 @@ serf_get_body(serf_t *serf, uint32_t *animation_table)
 			     serf->s.leaving_building.next_state != SERF_STATE_DROP_RESOURCE_OUT)) {
 				t += 0x1800;
 			} else {
-				resource_type_t res = 0;
+				resource_type_t res = (resource_type_t)0;
 
 				switch (serf->state) {
 				case SERF_STATE_MINING:
-					res = serf->s.mining.res - 1;
+					res = (resource_type_t)(serf->s.mining.res - 1);
 					break;
 				case SERF_STATE_LEAVING_BUILDING:
-					res = serf->s.leaving_building.field_B - 1;
+					res = (resource_type_t)(serf->s.leaving_building.field_B - 1);
 					break;
 				default:
 					NOT_REACHED();
@@ -2173,8 +2199,8 @@ draw_map_cursor(viewport_t *viewport, interface_t *interface, frame_t *frame)
 	draw_map_cursor_sprite(viewport, interface->map_cursor_pos,
 			       interface->map_cursor_sprites[0].sprite, frame);
 
-	for (dir_t d = 0; d < 6; d++) {
-		draw_map_cursor_sprite(viewport, MAP_MOVE(interface->map_cursor_pos, d),
+	for (int d = 0; d < 6; d++) {
+		draw_map_cursor_sprite(viewport, MAP_MOVE(interface->map_cursor_pos, (dir_t)d),
 				       interface->map_cursor_sprites[1+d].sprite, frame);
 	}
 }
@@ -2282,14 +2308,13 @@ viewport_handle_event_click(viewport_t *viewport, int x, int y, gui_event_button
 		}
 
 		if (BIT_TEST(interface->building_road_valid_dir, dir)) {
-			map_pos_t pos = interface->map_cursor_pos;
 			int length = interface->building_road_length;
-			dir_t last_dir = 0;
+			dir_t last_dir = (dir_t)0;
 			if (length > 0) last_dir = interface->building_road_dirs[length-1];
 
 			if (length > 0 && DIR_REVERSE(last_dir) == dir) {
 				/* Delete existing path */
-				int r = interface_remove_road_segment(interface, pos, dir);
+				int r = interface_remove_road_segment(interface);
 				if (r < 0) {
 					sfx_play_clip(SFX_NOT_ACCEPTED);
 				} else {
@@ -2297,7 +2322,7 @@ viewport_handle_event_click(viewport_t *viewport, int x, int y, gui_event_button
 				}
 			} else {
 				/* Build new road segment */
-				int r = interface_build_road_segment(interface, pos, dir);
+				int r = interface_build_road_segment(interface, (dir_t)dir);
 				if (r < 0) {
 					sfx_play_clip(SFX_NOT_ACCEPTED);
 				} else if (r == 0) {
@@ -2334,7 +2359,7 @@ viewport_handle_event_dbl_click(viewport_t *viewport, int x, int y,
 			dir_t *dirs = pathfinder_map(pos, clk_pos, &length);
 			if (dirs != NULL) {
 				interface->building_road_length = 0;
-				int r = interface_build_road(interface, pos, dirs, length);
+				int r = interface_extend_road(interface, dirs, length);
 				if (r < 0) sfx_play_clip(SFX_NOT_ACCEPTED);
 				else if (r == 1) sfx_play_clip(SFX_ACCEPTED);
 				else sfx_play_clip(SFX_CLICK);
@@ -2493,17 +2518,17 @@ viewport_handle_event(viewport_t *viewport, const gui_event_t *event)
 	switch (event->type) {
 	case GUI_EVENT_TYPE_CLICK:
 		return viewport_handle_event_click(viewport, x, y,
-						   event->button);
+						   (gui_event_button_t)event->button);
 	case GUI_EVENT_TYPE_DBL_CLICK:
 		return viewport_handle_event_dbl_click(viewport, x, y,
-						       event->button);
+						       (gui_event_button_t)event->button);
 		break;
 	case GUI_EVENT_TYPE_DRAG_START:
 		viewport->interface->cursor_lock_target = (gui_object_t *)viewport;
 		return 0;
 	case GUI_EVENT_TYPE_DRAG_MOVE:
 		return viewport_handle_drag(viewport, x, y,
-					    event->button);
+					    (gui_event_button_t)event->button);
 	case GUI_EVENT_TYPE_DRAG_END:
 		viewport->interface->cursor_lock_target = NULL;
 		return 0;
@@ -2526,6 +2551,7 @@ viewport_init(viewport_t *viewport, interface_t *interface)
 
 	viewport->last_tick = 0;
 	viewport->show_possible_build = 0;
+	viewport->skale_faktor = 1.0f;
 }
 
 /* Space transformations. */

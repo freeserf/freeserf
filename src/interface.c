@@ -20,6 +20,7 @@
  */
 
 #include <time.h>
+#include <assert.h>
 
 #include "interface.h"
 #include "gui.h"
@@ -65,7 +66,7 @@ interface_get_popup_box(interface_t *interface)
 void
 interface_open_popup(interface_t *interface, int box)
 {
-	interface->popup.box = box;
+	interface->popup.box = (box_t)box;
 	gui_object_set_displayed(GUI_OBJECT(&interface->popup), 1);
 }
 
@@ -73,7 +74,7 @@ interface_open_popup(interface_t *interface, int box)
 void
 interface_close_popup(interface_t *interface)
 {
-	interface->popup.box = 0;
+	interface->popup.box = (box_t)0;
 	gui_object_set_displayed(GUI_OBJECT(&interface->popup), 0);
 	interface->panel_btns[2] = PANEL_BTN_MAP;
 	interface->panel_btns[3] = PANEL_BTN_STATS;
@@ -255,13 +256,13 @@ interface_determine_map_cursor_type_road(interface_t *interface)
 	int valid_dir = 0;
 	int length = interface->building_road_length;
 
-	for (dir_t d = DIR_RIGHT; d <= DIR_UP; d++) {
+	for (int d = DIR_RIGHT; d <= DIR_UP; d++) {
 		int sprite = 0;
 
 		if (length > 0 && interface->building_road_dirs[length-1] == DIR_REVERSE(d)) {
 			sprite = 45; /* undo */
 			valid_dir |= BIT(d);
-		} else if (game_road_segment_valid(pos, d)) {
+		} else if (game_road_segment_valid(pos, (dir_t)d)) {
 			/* Check that road does not cross itself. */
 			map_pos_t road_pos = interface->building_road_source;
 			int crossing_self = 0;
@@ -399,6 +400,23 @@ interface_update_interface(interface_t *interface)
 }
 
 void
+interface_set_player(interface_t *interface, uint player)
+{
+	assert(PLAYER_IS_ACTIVE(game.player[player]));
+	interface->player = game.player[player];
+
+	/* Move viewport to initial position */
+	map_pos_t init_pos = MAP_POS(0,0);
+	if (interface->player->castle_flag != 0) {
+		flag_t *flag = game_get_flag(interface->player->castle_flag);
+		init_pos = MAP_MOVE_UP_LEFT(flag->pos);
+	}
+
+	interface_update_map_cursor_pos(interface, init_pos);
+	viewport_move_to_map_pos(&interface->viewport, interface->map_cursor_pos);
+}
+
+void
 interface_update_map_cursor_pos(interface_t *interface, map_pos_t pos)
 {
 	interface->map_cursor_pos = pos;
@@ -457,53 +475,45 @@ interface_build_road_end(interface_t *interface)
 					interface->map_cursor_pos);
 }
 
-static int
-interface_build_road_connect_flag(interface_t *interface)
-{
-	return game_build_road(interface->building_road_source,
-			       interface->building_road_dirs,
-			       interface->building_road_length,
-			       interface->player);
-}
-
 /* Build a single road segment. Return -1 on fail, 0 on successful
    construction, and 1 if this segment completed the path. */
 int
-interface_build_road_segment(interface_t *interface, map_pos_t pos, dir_t dir)
+interface_build_road_segment(interface_t *interface, dir_t dir)
 {
-	if (!game_road_segment_valid(pos, dir)) return -1;
+	if (interface->building_road_length+1 >= MAX_ROAD_LENGTH) {
+		/* Max length reached */
+		return -1;
+	}
 
-	map_pos_t dest = MAP_MOVE(pos, dir);
+	interface->building_road_dirs[interface->building_road_length] = dir;
+	interface->building_road_length += 1;
+
+	map_pos_t dest;
+	int r = game_can_build_road(interface->building_road_source,
+				    interface->building_road_dirs,
+				    interface->building_road_length,
+				    interface->player, &dest, NULL);
+	if (!r) {
+		/* Invalid construction, undo. */
+		return interface_remove_road_segment(interface);
+	}
 
 	if (MAP_OBJ(dest) == MAP_OBJ_FLAG) {
-		if (interface->building_road_length+1 >= MAX_ROAD_LENGTH) {
-			return -1;
-		}
-
-		interface->building_road_dirs[interface->building_road_length] = dir;
-		interface->building_road_length += 1;
-
 		/* Existing flag at destination, try to connect. */
-		int r = interface_build_road_connect_flag(interface);
+		int r = game_build_road(interface->building_road_source,
+					interface->building_road_dirs,
+					interface->building_road_length,
+					interface->player);
 		if (r < 0) {
 			interface_build_road_end(interface);
 			return -1;
 		} else {
-			interface->map_cursor_pos = dest;
-			interface->building_road_length = 0;
 			interface_build_road_end(interface);
 			interface_update_map_cursor_pos(interface, dest);
 			return 1;
 		}
 	} else if (MAP_PATHS(dest) == 0) {
-		if (interface->building_road_length+1 >= MAX_ROAD_LENGTH) {
-			return -1;
-		}
-
 		/* No existing paths at destination, build segment. */
-		interface->building_road_dirs[interface->building_road_length] = dir;
-		interface->building_road_length += 1;
-
 		interface_update_map_cursor_pos(interface, dest);
 
 		/* TODO Pathway scrolling */
@@ -516,11 +526,20 @@ interface_build_road_segment(interface_t *interface, map_pos_t pos, dir_t dir)
 }
 
 int
-interface_remove_road_segment(interface_t *interface, map_pos_t pos, dir_t dir)
+interface_remove_road_segment(interface_t *interface)
 {
-	map_pos_t dest = MAP_MOVE(pos, dir);
-
 	interface->building_road_length -= 1;
+
+	map_pos_t dest;
+	int r = game_can_build_road(interface->building_road_source,
+				    interface->building_road_dirs,
+				    interface->building_road_length,
+				    interface->player, &dest, NULL);
+	if (!r) {
+		/* Road construction is no longer valid, abort. */
+		interface_build_road_end(interface);
+		return -1;
+	}
 
 	interface_update_map_cursor_pos(interface, dest);
 
@@ -529,26 +548,22 @@ interface_remove_road_segment(interface_t *interface, map_pos_t pos, dir_t dir)
 	return 0;
 }
 
-/* Build a complete road from pos with dirs specifying the directions. */
+/* Extend currently constructed road with an array of directions. */
 int
-interface_build_road(interface_t *interface, map_pos_t pos, dir_t *dirs, uint length)
+interface_extend_road(interface_t *interface, dir_t *dirs, uint length)
 {
-	for (int i = 0; i < length; i++) {
+	for (uint i = 0; i < length; i++) {
 		dir_t dir = dirs[i];
-		int r = interface_build_road_segment(interface, pos, dir);
+		int r = interface_build_road_segment(interface, dir);
 		if (r < 0) {
 			/* Backtrack */
 			for (int j = i-1; j >= 0; j--) {
-				dir_t rev_dir = DIR_REVERSE(dirs[j]);
-				interface_remove_road_segment(interface, pos,
-							      rev_dir);
-				pos = MAP_MOVE(pos, rev_dir);
+				interface_remove_road_segment(interface);
 			}
 			return -1;
 		} else if (r == 1) {
 			return 1;
 		}
-		pos = MAP_MOVE(pos, dir);
 	}
 
 	return 0;
@@ -667,6 +682,7 @@ interface_draw(interface_t *interface, frame_t *frame)
 				       frame->clip.y + fl->y,
 				       fl->obj->width, fl->obj->height, frame);
 			gui_object_redraw(fl->obj, &float_frame);
+			
 			fl->redraw = 0;
 			redraw_above = 1;
 		}
@@ -692,12 +708,13 @@ interface_handle_event(interface_t *interface, const gui_event_t *event)
 		if (interface->cursor_lock_target == interface->top) {
 			return gui_object_handle_event(interface->top, event);
 		} else {
-			gui_event_t float_event = {
-				.type = event->type,
-				.x = event->x,
-				.y = event->y,
-				.button = event->button
-			};
+			gui_event_t float_event;
+			
+			float_event.type = event->type;
+			float_event.x = event->x;
+			float_event.y = event->y;
+			float_event.button = event->button;
+			
 			gui_object_t *obj = interface->cursor_lock_target;
 			while (obj->parent != NULL) {
 				int x, y;
@@ -725,12 +742,13 @@ interface_handle_event(interface_t *interface, const gui_event_t *event)
 		    event->x >= fl->x && event->y >= fl->y &&
 		    event->x < fl->x + fl->obj->width &&
 		    event->y < fl->y + fl->obj->height) {
-			gui_event_t float_event = {
-				.type = event->type,
-				.x = event->x - fl->x,
-				.y = event->y - fl->y,
-				.button = event->button
-			};
+			gui_event_t float_event;
+			
+			float_event.type = event->type;
+			float_event.x = event->x - fl->x;
+			float_event.y = event->y - fl->y;
+			float_event.button = event->button;
+
 			return gui_object_handle_event(fl->obj, &float_event);
 		}
 	}
@@ -921,10 +939,12 @@ interface_init(interface_t *interface)
 			    0, 0, 0, 0);
 
 	interface->map_cursor_pos = MAP_POS(0, 0);
-	interface->map_cursor_type = 0;
-	interface->panel_btn_type = 0;
+	interface->map_cursor_type = (map_cursor_type_t)0;
+	interface->panel_btn_type = (panel_btn_t)0;
 
 	interface->building_road = 0;
+
+	interface->player = NULL;
 
 	/* Settings */
 	interface->config = 0x39;
@@ -937,7 +957,6 @@ interface_init(interface_t *interface)
 	interface->panel_btns[3] = PANEL_BTN_STATS;
 	interface->panel_btns[4] = PANEL_BTN_SETT;
 
-	interface->player = game.player[0];
 	interface->current_stat_8_mode = 0;
 	interface->current_stat_7_item = 7;
 
@@ -950,7 +969,7 @@ interface_init(interface_t *interface)
 	interface->map_cursor_sprites[6].sprite = 33;
 
 	/* Randomness for interface */
-	srand(time(NULL));
+	srand((unsigned int)time(NULL));
 	interface->random.state[0] = rand();
 	interface->random.state[1] = rand();
 	interface->random.state[2] = rand();
@@ -979,7 +998,7 @@ void
 interface_add_float(interface_t *interface, gui_object_t *obj,
 		    int x, int y, int width, int height)
 {
-	interface_float_t *fl = malloc(sizeof(interface_float_t));
+	interface_float_t *fl = (interface_float_t *)malloc(sizeof(interface_float_t));
 	if (fl == NULL) abort();
 
 	/* Store currect location with object. */
@@ -1022,6 +1041,26 @@ interface_update(interface_t *interface)
 	uint tick_diff = game.const_tick - interface->last_const_tick;
 	interface->last_const_tick = game.const_tick;
 
+	player_t *player = interface->player;
+
+	/* Update timers */
+	for (int i = 0; i < player->timers_count; i++) {
+		player->timers[i].timeout -= tick_diff;
+		if (player->timers[i].timeout < 0) {
+			/* Timer has expired. */
+			/* TODO box (+ pos) timer */
+			player_add_notification(player, 5,
+						player->timers[i].pos);
+
+			/* Delete timer from list. */
+			player->timers_count -= 1;
+			for (int j = i; j < player->timers_count; j++) {
+				player->timers[j].timeout = player->timers[j+1].timeout;
+				player->timers[j].pos = player->timers[j+1].pos;
+			}
+		}
+	}
+
 	/* Clear return arrow after a timeout */
 	if (interface->return_timeout < tick_diff) {
 		interface->msg_flags |= BIT(4);
@@ -1037,10 +1076,10 @@ interface_update(interface_t *interface)
 	};
 
 	/* Handle newly enqueued messages */
-	if (PLAYER_HAS_MESSAGE(interface->player)) {
-		interface->player->flags &= ~BIT(3);
-		while (interface->player->msg_queue_type[0] != 0) {
-			int type = interface->player->msg_queue_type[0] & 0x1f;
+	if (PLAYER_HAS_MESSAGE(player)) {
+		player->flags &= ~BIT(3);
+		while (player->msg_queue_type[0] != 0) {
+			int type = player->msg_queue_type[0] & 0x1f;
 			if (BIT_TEST(interface->config, msg_category[type])) {
 				sfx_play_clip(SFX_MESSAGE);
 				interface->msg_flags |= BIT(0);
@@ -1049,32 +1088,32 @@ interface_update(interface_t *interface)
 
 			/* Message is ignored. Remove. */
 			int i;
-			for (i = 1; i < 64 && interface->player->msg_queue_type[i] != 0; i++) {
-				interface->player->msg_queue_type[i-1] = interface->player->msg_queue_type[i];
-				interface->player->msg_queue_pos[i-1] = interface->player->msg_queue_pos[i];
+			for (i = 1; i < 64 && player->msg_queue_type[i] != 0; i++) {
+				player->msg_queue_type[i-1] = player->msg_queue_type[i];
+				player->msg_queue_pos[i-1] = player->msg_queue_pos[i];
 			}
-			interface->player->msg_queue_type[i-1] = 0;
+			player->msg_queue_type[i-1] = 0;
 		}
 	}
 
 	if (BIT_TEST(interface->msg_flags, 1)) {
 		interface->msg_flags &= ~BIT(1);
 		while (1) {
-			if (interface->player->msg_queue_type[0] == 0) {
+			if (player->msg_queue_type[0] == 0) {
 				interface->msg_flags &= ~BIT(0);
 				break;
 			}
 
-			int type = interface->player->msg_queue_type[0] & 0x1f;
+			int type = player->msg_queue_type[0] & 0x1f;
 			if (BIT_TEST(interface->config, msg_category[type])) break;
 
 			/* Message is ignored. Remove. */
 			int i;
-			for (i = 1; i < 64 && interface->player->msg_queue_type[i] != 0; i++) {
-				interface->player->msg_queue_type[i-1] = interface->player->msg_queue_type[i];
-				interface->player->msg_queue_pos[i-1] = interface->player->msg_queue_pos[i];
+			for (i = 1; i < 64 && player->msg_queue_type[i] != 0; i++) {
+				player->msg_queue_type[i-1] = player->msg_queue_type[i];
+				player->msg_queue_pos[i-1] = player->msg_queue_pos[i];
 			}
-			interface->player->msg_queue_type[i-1] = 0;
+			player->msg_queue_type[i-1] = 0;
 		}
 	}
 

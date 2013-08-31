@@ -195,7 +195,7 @@ player_promote_serfs_to_knights(player_t *player, int number)
 {
 	int promoted = 0;
 
-	for (int i = 1; i < game.max_serf_index && number > 0; i++) {
+	for (uint i = 1; i < game.max_serf_index && number > 0; i++) {
 		if (SERF_ALLOCATED(i)) {
 			serf_t *serf = game_get_serf(i);
 			if (serf->state == SERF_STATE_IDLE_IN_STOCK &&
@@ -206,14 +206,10 @@ player_promote_serfs_to_knights(player_t *player, int number)
 				    inv->resources[RESOURCE_SHIELD] > 0) {
 					inv->resources[RESOURCE_SWORD] -= 1;
 					inv->resources[RESOURCE_SHIELD] -= 1;
-					inv->spawn_priority -= 1;
+					inv->generic_count -= 1;
 					inv->serfs[SERF_GENERIC] = 0;
 
-					serf->type = (SERF_KNIGHT_0 << 2) | (serf->type & 3);
-
-					player->serf_count[SERF_GENERIC] -= 1;
-					player->serf_count[SERF_KNIGHT_0] += 1;
-					player->total_military_score += 1;
+					serf_set_type(serf, SERF_KNIGHT_0);
 
 					promoted += 1;
 					number -= 1;
@@ -404,11 +400,11 @@ player_start_attack(player_t *player)
 			/* Calculate distance to target. */
 			int dist_col = (MAP_POS_COL(target->pos) -
 					MAP_POS_COL(def_serf->pos)) & game.map.col_mask;
-			if (dist_col >= game.map.cols/2) dist_col -= game.map.cols;
+			if (dist_col >= (int)(game.map.cols/2)) dist_col -= game.map.cols;
 
 			int dist_row = (MAP_POS_ROW(target->pos) -
 					MAP_POS_ROW(def_serf->pos)) & game.map.row_mask;
-			if (dist_row >= game.map.rows/2) dist_row -= game.map.rows;
+			if (dist_row >= (int)(game.map.rows/2)) dist_row -= game.map.rows;
 
 			/* Send this serf off to fight. */
 			serf_log_state_change(def_serf, SERF_STATE_KNIGHT_LEAVE_FOR_WALK_TO_FIGHT);
@@ -423,4 +419,14 @@ player_start_attack(player_t *player)
 			if (player->knights_attacking == 0) return;
 		}
 	}
+}
+
+/* Begin cycling knights by sending knights from military buildings
+   to inventories. The knights can then be replaced by more experienced
+   knights. */
+void
+player_cycle_knights(player_t *player)
+{
+	player->flags |= BIT(2) | BIT(4);
+	player->knight_cycle_counter = 2400;
 }

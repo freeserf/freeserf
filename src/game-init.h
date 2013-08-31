@@ -23,14 +23,31 @@
 #define _GAME_INIT_H
 
 #include "gui.h"
+#include "game.h"
 
 struct interface;
+
+typedef enum {
+	GAME_TYPE_FREE,
+	GAME_TYPE_MISSION,
+	GAME_TYPE_TRAINING,
+
+	GAME_TYPE_END_OF_LIST // last Entry in List
+} game_type_t;
+
 
 typedef struct {
 	gui_object_t obj;
 	struct interface *interface;
+
 	int map_size;
 	int game_mission;
+	game_type_t game_type;
+
+	uint face[GAME_MAX_PLAYER_COUNT];
+	uint intelligence[GAME_MAX_PLAYER_COUNT];
+	uint supplies[GAME_MAX_PLAYER_COUNT];
+	uint reproduction[GAME_MAX_PLAYER_COUNT];
 } game_init_box_t;
 
 void game_init_box_init(game_init_box_t *box, struct interface *interface);

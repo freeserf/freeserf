@@ -88,62 +88,106 @@ game_init_box_draw(game_init_box_t *box, frame_t *frame)
 	}
 
 	/* Game type settings */
-	if (box->game_mission < 0) {
-		draw_box_icon(5, 0, 263, frame);
+	switch (box->game_type)
+	{
+		case GAME_TYPE_FREE:
+			{
+				draw_box_icon(5, 0, 263, frame);
 
-		char map_size[4] = {0};
-		sprintf(map_size, "%d", box->map_size);
+				char map_size[4] = { 0 };
+				sprintf(map_size, "%d", box->map_size);
 
-		draw_box_string(10, 0, frame, "Start new game");
-		draw_box_string(10, 14, frame, "Map size:");
-		draw_box_string(20, 14, frame, map_size);
-	} else {
-		draw_box_icon(5, 0, 260, frame);
+				draw_box_string(10, 0, frame, "Start new game");
+				draw_box_string(10, 14, frame, "Map size:");
+				draw_box_string(20, 14, frame, map_size);
+			}
+			break;
 
-		char level[4] = {0};
-		sprintf(level, "%d", box->game_mission+1);
+		case GAME_TYPE_MISSION:
+			{
+				draw_box_icon(5, 0, 260, frame);
 
-		draw_box_string(10, 0, frame, "Start mission");
-		draw_box_string(10, 14, frame, "Mission:");
-		draw_box_string(20, 14, frame, level);
+				char level[4] = { 0 };
+				sprintf(level, "%d", box->game_mission + 1);
+
+				draw_box_string(10, 0, frame, "Start mission");
+				draw_box_string(10, 14, frame, "Mission:");
+				draw_box_string(20, 14, frame, level);
+			}
+			break;
+
+		case GAME_TYPE_TRAINING:
+			{
+				draw_box_icon(5, 0, 261, frame);
+
+				char level[4] = { 0 };
+				sprintf(level, "%d", box->game_mission + 1);
+
+				draw_box_string(10, 0, frame, "Start training");
+				draw_box_string(10, 14, frame, "Level:");
+				draw_box_string(20, 14, frame, level);
+			}
+			break;
 	}
+
 
 	draw_box_icon(28, 0, 237, frame);
 	draw_box_icon(28, 16, 240, frame);
 
 	/* Game info */
-	if (box->game_mission < 0) {
-		for (int i = 0; i < 4; i++) {
-			int face = i == 0 ? 12 : 0;
-			draw_box_icon(10*i+1, 48, get_player_face_sprite(face), frame);
-			draw_box_icon(10*i+6, 48, 282, frame);
+	switch (box->game_type)
+	{
+		case GAME_TYPE_FREE:
+			for (int i = 0; i < GAME_MAX_PLAYER_COUNT; i++) {
+				int face = box->face[i];
+				draw_box_icon(10 * i + 1, 48, get_player_face_sprite(face), frame);
+				draw_box_icon(10 * i + 6, 48, 282, frame);
 
-			int intelligence = i == 0 ? 40 : 0;
-			gfx_fill_rect(80*i+78, 124-intelligence, 4, intelligence, 30, frame);
+				if (face == 0) continue;
 
-			int supplies = i == 0 ? 40 : 0;
-			gfx_fill_rect(80*i+72, 124-supplies, 4, supplies, 67, frame);
+				int intelligence = box->intelligence[i];
+				gfx_fill_rect(80 * i + 78, 124 - intelligence, 4, intelligence, 30, frame);
 
-			int reproduction = i == 0 ? 40 : 0;
-			gfx_fill_rect(80*i+84, 124-reproduction, 4, reproduction, 75, frame);
-		}
-	} else {
-		int m = box->game_mission;
-		for (int i = 0; i < 4; i++) {
-			int face = i == 0 ? 12 : mission[m].player[i].face;
-			draw_box_icon(10*i+1, 48, get_player_face_sprite(face), frame);
-			draw_box_icon(10*i+6, 48, 282, frame);
+				int supplies = box->supplies[i];
+				gfx_fill_rect(80 * i + 72, 124 - supplies, 4, supplies, 67, frame);
 
-			int intelligence = i == 0 ? 40 : mission[m].player[i].intelligence;
-			gfx_fill_rect(80*i+78, 124-intelligence, 4, intelligence, 30, frame);
+				int reproduction = box->reproduction[i];
+				gfx_fill_rect(80 * i + 84, 124 - reproduction, 4, reproduction, 75, frame);
+			}
+			break;
 
-			int supplies = mission[m].player[i].supplies;
-			gfx_fill_rect(80*i+72, 124-supplies, 4, supplies, 67, frame);
+		case GAME_TYPE_MISSION:
+		case GAME_TYPE_TRAINING:
 
-			int reproduction = mission[m].player[i].reproduction;
-			gfx_fill_rect(80*i+84, 124-reproduction, 4, reproduction, 75, frame);
-		}
+			mission_t * use_mission = NULL;
+
+			if (box->game_type == GAME_TYPE_MISSION) {
+				if (mission != NULL)	use_mission = & mission[box->game_mission];
+			} else	{
+				if (training != NULL) use_mission = & training[box->game_mission];
+			}
+
+			if (use_mission != NULL) {
+
+				//int m = box->game_mission;
+				for (int i = 0; i < GAME_MAX_PLAYER_COUNT; i++) {
+					int face = i == 0 ? 12 : use_mission->player[i].face;
+					draw_box_icon(10 * i + 1, 48, get_player_face_sprite(face), frame);
+					draw_box_icon(10 * i + 6, 48, 282, frame);
+
+					int intelligence = i == 0 ? 40 : use_mission->player[i].intelligence;
+					gfx_fill_rect(80 * i + 78, 124 - intelligence, 4, intelligence, 30, frame);
+
+					int supplies = use_mission->player[i].supplies;
+					gfx_fill_rect(80 * i + 72, 124 - supplies, 4, supplies, 67, frame);
+
+					int reproduction = use_mission->player[i].reproduction;
+					gfx_fill_rect(80 * i + 84, 124 - reproduction, 4, reproduction, 75, frame);
+				}
+			}
+			break;
 	}
+
 
 	draw_box_icon(38, 128, 60, frame); /* exit */
 }
@@ -151,48 +195,117 @@ game_init_box_draw(game_init_box_t *box, frame_t *frame)
 static void
 handle_action(game_init_box_t *box, int action)
 {
+	const uint default_player_colors[] = {
+		64, 72, 68, 76
+	};
+
 	switch (action) {
 	case ACTION_START_GAME:
 		game_init();
-		if (box->game_mission < 0) {
-			random_state_t rnd = {{ 0x5a5a, time(NULL) >> 16, time(NULL) }};
-			int r = game_load_random_map(box->map_size, &rnd);
-			if (r < 0) return;
-		} else {
-			int r = game_load_mission_map(box->game_mission);
-			if (r < 0) return;
+
+		switch (box->game_type)
+		{
+			int r;
+
+			case GAME_TYPE_FREE:
+				{
+					random_state_t rnd = { { 0x5a5a, uint16_t(time(NULL) >> 16), uint16_t(time(NULL)) } };
+					r = game_load_random_map(box->map_size, &rnd);
+					if (r < 0) return;
+
+					for (int i = 0; i < GAME_MAX_PLAYER_COUNT; i++) {
+						if (box->face[i] == 0) continue;
+						int p = game_add_player(box->face[i],
+							default_player_colors[i],
+							box->supplies[i],
+							box->reproduction[i],
+							box->intelligence[i]);
+						if (p < 0) return;
+					}
+				}
+				break;
+
+			case GAME_TYPE_MISSION:
+				if (mission == NULL) return;
+
+				r = game_load_mission_map(&mission[box->game_mission], box->game_mission);
+				if (r < 0) return;
+				
+				break;
+
+			case GAME_TYPE_TRAINING:
+				if (training == NULL) return;
+
+				r = game_load_mission_map(&training[box->game_mission], box->game_mission);
+				if (r < 0) return;
+
+				break;
 		}
 
 		viewport_map_reinit();
-		interface_update_map_cursor_pos(box->interface, MAP_POS(0,0));
-		viewport_move_to_map_pos(&box->interface->viewport, MAP_POS(0,0));
+		interface_set_player(box->interface, 0);
 		interface_close_game_init(box->interface);
 		break;
+
 	case ACTION_TOGGLE_GAME_TYPE:
-		if (box->game_mission < 0) {
-			box->game_mission = 0;
-		} else {
-			box->game_mission = -1;
-			box->map_size = 3;
+
+		switch (box->game_type)
+		{
+			case GAME_TYPE_FREE:
+				box->game_type = GAME_TYPE_MISSION;
+				box->game_mission = 0;
+				break;
+
+			case GAME_TYPE_MISSION:
+				box->game_type = GAME_TYPE_TRAINING;
+				box->game_mission = 0;
+				break;
+
+			case GAME_TYPE_TRAINING:
+				box->game_type = GAME_TYPE_FREE;
+				box->map_size = 3;
+				break;
 		}
 		break;
+
 	case ACTION_SHOW_OPTIONS:
 		break;
 	case ACTION_SHOW_LOAD_GAME:
 		break;
 	case ACTION_INCREMENT:
-		if (box->game_mission < 0) {
-			box->map_size = min(box->map_size+1, 10);
-		} else {
-			box->game_mission = min(box->game_mission+1, mission_count-1);
+
+		switch (box->game_type)
+		{
+			case GAME_TYPE_FREE:
+				box->map_size = min(box->map_size + 1, 10);
+				break;
+
+			case GAME_TYPE_MISSION:
+				box->game_mission = min(box->game_mission + 1, mission_count - 1);
+				break;
+
+			case GAME_TYPE_TRAINING:
+				box->game_mission = min(box->game_mission + 1, training_count - 1);
+				break;
 		}
+
 		break;
 	case ACTION_DECREMENT:
-		if (box->game_mission < 0) {
-			box->map_size = max(3, box->map_size-1);
-		} else {
-			box->game_mission = max(0, box->game_mission-1);
+		switch (box->game_type)
+		{
+			case GAME_TYPE_FREE:
+				box->map_size = max(3, box->map_size - 1);
+				break;
+
+			case GAME_TYPE_MISSION:
+				box->game_mission = max(0, box->game_mission - 1);
+				break;
+
+			case GAME_TYPE_TRAINING:
+				box->game_mission = max(0, box->game_mission - 1);
+				break;
 		}
+
 		break;
 	case ACTION_CLOSE:
 		interface_close_game_init(box->interface);
@@ -226,6 +339,52 @@ game_init_box_handle_event_click(game_init_box_t *box, int x, int y)
 		i += 5;
 	}
 
+	/* Check player area */
+	for (int i = 0; i < GAME_MAX_PLAYER_COUNT; i++) {
+		if (x >= 80*i+20 && x <= 80*(i+1)+20 &&
+		    y >= 48 && y <= 132) {
+			x -= 80*i + 20;
+
+			if (x >= 8 && x < 8+32 &&
+			    y >= 48 && y < 132) {
+				/* Face */
+				int in_use = 0;
+				do {
+					box->face[i] = (box->face[i] + 1) % 14;
+
+					/* Check that face is not already in use
+					   by another player */
+					in_use = 0;
+					for (int j = 0; j < GAME_MAX_PLAYER_COUNT; j++) {
+						if (i != j &&
+						    box->face[i] != 0 &&
+						    box->face[j] == box->face[i]) {
+							in_use = 1;
+							break;
+						}
+					}
+				} while (in_use);
+			} else if (x >= 48 && x < 72 &&
+				   y >= 64 && y < 80) {
+				/* Controller */
+				/* TODO */
+			} else if (x >= 52 && x < 52+4 &&
+				   y >= 84 && y < 124) {
+				/* Supplies */
+				box->supplies[i] = clamp(0, 124 - y, 40);
+			} else if (x >= 58 && x < 58+4 &&
+				   y >= 84 && y < 124) {
+				/* Intelligence */
+				box->intelligence[i] = clamp(0, 124 - y, 40);
+			} else if (x >= 64 && x < 64+4 &&
+				   y >= 84 && y < 124) {
+				/* Reproduction */
+				box->reproduction[i] = clamp(0, 124 - y, 40);
+			}
+			break;
+		}
+	}
+
 	return 0;
 }
 
@@ -253,5 +412,25 @@ game_init_box_init(game_init_box_t *box, interface_t *interface)
 
 	box->interface = interface;
 	box->map_size = 3;
-	box->game_mission = -1;
+	box->game_mission = 0;
+	box->game_type = GAME_TYPE_FREE;
+
+	/* Clear player settings */
+	for (int i = 0; i < GAME_MAX_PLAYER_COUNT; i++) {
+		box->face[i] = 0;
+		box->intelligence[i] = 0;
+		box->supplies[i] = 0;
+		box->reproduction[i] = 0;
+	}
+
+	/* Create default game setup */
+	box->face[0] = 12;
+	box->intelligence[0] = 40;
+	box->supplies[0] = 40;
+	box->reproduction[0] = 40;
+
+	box->face[1] = 1;
+	box->intelligence[1] = 20;
+	box->supplies[1] = 30;
+	box->reproduction[1] = 40;
 }

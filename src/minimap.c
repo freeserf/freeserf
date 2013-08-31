@@ -64,8 +64,8 @@ static void
 draw_minimap_map(minimap_t *minimap, frame_t *frame)
 {
 	uint8_t *color_data = game.minimap;
-	for (int row = 0; row < game.map.rows; row++) {
-		for (int col = 0; col < game.map.cols; col++) {
+	for (uint row = 0; row < game.map.rows; row++) {
+		for (uint col = 0; col < game.map.cols; col++) {
 			uint8_t color = *(color_data++);
 			draw_minimap_point(minimap, col, row, color,
 					   minimap->scale, frame);
@@ -76,8 +76,8 @@ draw_minimap_map(minimap_t *minimap, frame_t *frame)
 static void
 draw_minimap_ownership(minimap_t *minimap, int density, frame_t *frame)
 {
-	for (int row = 0; row < game.map.rows; row++) {
-		for (int col = 0; col < game.map.cols; col++) {
+	for (uint row = 0; row < game.map.rows; row++) {
+		for (uint col = 0; col < game.map.cols; col++) {
 			map_pos_t pos = MAP_POS(col, row);
 			if (MAP_HAS_OWNER(pos)) {
 				int color = game.player[MAP_OWNER(pos)]->color;
@@ -91,8 +91,8 @@ draw_minimap_ownership(minimap_t *minimap, int density, frame_t *frame)
 static void
 draw_minimap_roads(minimap_t *minimap, frame_t *frame)
 {
-	for (int row = 0; row < game.map.rows; row++) {
-		for (int col = 0; col < game.map.cols; col++) {
+	for (uint row = 0; row < game.map.rows; row++) {
+		for (uint col = 0; col < game.map.cols; col++) {
 			int pos = MAP_POS(col, row);
 			if (MAP_PATHS(pos)) {
 				draw_minimap_point(minimap, col, row, 1,
@@ -117,8 +117,8 @@ draw_minimap_buildings(minimap_t *minimap, frame_t *frame)
 		BUILDING_GOLDSMELTER
 	};
 
-	for (int row = 0; row < game.map.rows; row++) {
-		for (int col = 0; col < game.map.cols; col++) {
+	for (uint row = 0; row < game.map.rows; row++) {
+		for (uint col = 0; col < game.map.cols; col++) {
 			int pos = MAP_POS(col, row);
 			int obj = MAP_OBJ(pos);
 			if (obj > MAP_OBJ_FLAG && obj <= MAP_OBJ_CASTLE) {
@@ -141,8 +141,8 @@ draw_minimap_buildings(minimap_t *minimap, frame_t *frame)
 static void
 draw_minimap_traffic(minimap_t *minimap, frame_t *frame)
 {
-	for (int row = 0; row < game.map.rows; row++) {
-		for (int col = 0; col < game.map.cols; col++) {
+	for (uint row = 0; row < game.map.rows; row++) {
+		for (uint col = 0; col < game.map.cols; col++) {
 			int pos = MAP_POS(col, row);
 			if (MAP_IDLE_SERF(pos)) {
 				int color = game.player[MAP_OWNER(pos)]->color;
@@ -156,12 +156,12 @@ draw_minimap_traffic(minimap_t *minimap, frame_t *frame)
 static void
 draw_minimap_grid(minimap_t *minimap, frame_t *frame)
 {
-	for (int y = 0; y < game.map.rows * minimap->scale; y += 2) {
+	for (uint y = 0; y < game.map.rows * minimap->scale; y += 2) {
 		draw_minimap_point(minimap, 0, y, 47, 1, frame);
 		draw_minimap_point(minimap, 0, y+1, 1, 1, frame);
 	}
 
-	for (int x = 0; x < game.map.cols * minimap->scale; x += 2) {
+	for (uint x = 0; x < game.map.cols * minimap->scale; x += 2) {
 		draw_minimap_point(minimap, x, 0, 47, 1, frame);
 		draw_minimap_point(minimap, x+1, 0, 1, 1, frame);
 	}
@@ -173,7 +173,7 @@ draw_minimap_rect(minimap_t *minimap, frame_t *frame)
 	void *sprite = gfx_get_data_object(354, NULL);
 	int y = minimap->obj.height/2;
 	int x = minimap->obj.width/2;
-	sdl_draw_transp_sprite(sprite, x, y, 1, 0, 0, frame);
+	sdl_draw_transp_sprite((const sprite_t *)sprite, x, y, 1, 0, 0, frame);
 }
 
 static void
@@ -267,7 +267,7 @@ minimap_handle_event(minimap_t *minimap, const gui_event_t *event)
 		break;
 	case GUI_EVENT_TYPE_DRAG_MOVE:
 		return minimap_handle_drag(minimap, x, y,
-					   event->button);
+					   (gui_event_button_t)event->button);
 	case GUI_EVENT_TYPE_DRAG_START:
 		minimap->interface->cursor_lock_target = (gui_object_t *)minimap;
 		minimap->pointer_x = x;

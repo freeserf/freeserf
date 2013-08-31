@@ -23,6 +23,7 @@
 #define _MISSION_H
 
 #include "random.h"
+#include "ezxml.h"
 
 typedef struct {
 	random_state_t rnd;
@@ -31,10 +32,17 @@ typedef struct {
 		int supplies;
 		int intelligence;
 		int reproduction;
+		struct { int col; int row; } castle;
 	} player[4];
 } mission_t;
 
-extern const mission_t mission[];
-extern const int mission_count;
+extern mission_t * mission;
+extern int mission_count;
+
+extern mission_t * training;
+extern int training_count;
+
+void init_mission(const char * mission_filename);
+int init_mission_type(mission_t ** mission_dest, ezxml_t rootTag, const char * mission_tag_name);
 
 #endif /* !_MISSION_H */

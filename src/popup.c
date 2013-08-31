@@ -20,6 +20,7 @@
  */
 
 #include <math.h>
+#include <assert.h>
 
 #include "popup.h"
 #include "gfx.h"
@@ -347,7 +348,7 @@ draw_green_number(int x, int y, frame_t *frame, int n)
 		   in gfx_draw_number(). */
 		int draw_zero = 0;
 		if (n >= 100) {
-			int n100 = floor(n / 100);
+			int n100 = (int)floor((float)n / 100);
 			n -= n100 * 100;
 			draw_popup_icon(x, y, 0x4e + n100, frame);
 			x += 1;
@@ -355,7 +356,7 @@ draw_green_number(int x, int y, frame_t *frame, int n)
 		}
 
 		if (n >= 10 || draw_zero) {
-			int n10 = floor(n / 10);
+			int n10 = (int)floor((float)n / 10);
 			n -= n10 * 10;
 			draw_popup_icon(x, y, 0x4e + n10, frame);
 			x += 1;
@@ -393,8 +394,15 @@ get_player_face_sprite(int face)
 static void
 draw_player_face(int x, int y, int player, frame_t *frame)
 {
-	gfx_fill_rect(8*x, y+5, 48, 72, game.player[player]->color, frame);
-	draw_popup_icon(x, y, get_player_face_sprite(game.pl_init[player].face), frame);
+	int color = 0;
+	int face = 0;
+	if (PLAYER_IS_ACTIVE(game.player[player])) {
+		color = game.player[player]->color;
+		face = game.player[player]->face;
+	}
+
+	gfx_fill_rect(8*x, y+5, 48, 72, color, frame);
+	draw_popup_icon(x, y, get_player_face_sprite(face), frame);
 }
 
 /* Draw a layout of buildings in a popup box. */
@@ -726,7 +734,7 @@ draw_stat_4_box(popup_box_t *popup, frame_t *frame)
 	memset(resources, '\0', 26*sizeof(int));
 
 	/* Sum up resources of all inventories. */
-	for (int i = 0; i < game.max_inventory_index; i++) {
+	for (uint i = 0; i < game.max_inventory_index; i++) {
 		if (INVENTORY_ALLOCATED(i)) {
 			inventory_t *inventory = game_get_inventory(i);
 			if (inventory->player_num == popup->interface->player->player_num) {
@@ -736,10 +744,6 @@ draw_stat_4_box(popup_box_t *popup, frame_t *frame)
 			}
 		}
 	}
-
-	/* Add extra resources. */
-	resources[RESOURCE_PLANK] += popup->interface->player->extra_planks;
-	resources[RESOURCE_STONE] += popup->interface->player->extra_stone;
 
 	draw_resources_box(frame, resources);
 
@@ -901,27 +905,37 @@ draw_stat_bld_4_box(popup_box_t *popup, frame_t *frame)
 static void
 draw_player_stat_chart(const int *data, int index, int color, frame_t *frame)
 {
+	int x = 8;
+	int y = 9;
+	int width = 112;
+	int height = 100;
+
 	int prev_value = data[index];
 
-	for (int i = 0; i < 112; i++) {
+	for (int i = 0; i < width; i++) {
 		int value = data[index];
-		index = index > 0 ? index-1 : 111;
+		index = index > 0 ? index-1 : (width-1);
 
 		if (value > 0 || prev_value > 0) {
 			if (value > prev_value) {
 				int diff = value - prev_value;
 				int h = diff/2;
-				gfx_fill_rect(119 - i, 108 - h - prev_value, 1, h, color, frame);
+				gfx_fill_rect(x + width - i, y + height - h - prev_value,
+					      1, h, color, frame);
 				diff -= h;
-				gfx_fill_rect(118 - i, 108 - value, 1, diff, color, frame);
+				gfx_fill_rect(x + width - i - 1, y + height - value,
+					      1, diff, color, frame);
 			} else if (value == prev_value) {
-				gfx_fill_rect(119 - i, 108 - value - 1, 1, 1, color, frame);
+				gfx_fill_rect(x + width - i - 1, y + height - value,
+					      2, 1, color, frame);
 			} else {
 				int diff = prev_value - value;
 				int h = diff/2;
-				gfx_fill_rect(119 - i, 108 - prev_value, 1, h, color, frame);
+				gfx_fill_rect(x + width - i, y + height - prev_value,
+					      1, h, color, frame);
 				diff -= h;
-				gfx_fill_rect(118 - i, 108 - value - diff, 1, diff, color, frame);
+				gfx_fill_rect(x + width - i - 1, y + height - value - diff,
+					      1, diff, color, frame);
 			}
 		}
 
@@ -984,10 +998,12 @@ draw_stat_8_box(popup_box_t *popup, frame_t *frame)
 
 	/* Draw chart */
 	int index = game.player_history_index[scale];
-	for (int i = 0; i < 4; i++) {
-		player_t *player = game.player[3-i];
-		draw_player_stat_chart(player->player_stat_history[mode], index,
-				       player->color, frame);
+	for (int i = 0; i < GAME_MAX_PLAYER_COUNT; i++) {
+		if (PLAYER_IS_ACTIVE(game.player[GAME_MAX_PLAYER_COUNT-i-1])) {
+			player_t *player = game.player[GAME_MAX_PLAYER_COUNT-i-1];
+			draw_player_stat_chart(player->player_stat_history[mode], index,
+					       player->color, frame);
+		}
 	}
 }
 
@@ -1176,7 +1192,7 @@ draw_gauge_full(int x, int y, uint value, uint count, frame_t *frame)
 static void
 calculate_gauge_values(player_t *player, uint values[24][BUILDING_MAX_STOCK][2])
 {
-	for (int i = 1; i < game.max_building_index; i++) {
+	for (uint i = 1; i < game.max_building_index; i++) {
 		if (!BUILDING_ALLOCATED(i)) continue;
 
 		building_t *building = game_get_building(i);
@@ -1375,6 +1391,22 @@ draw_stat_6_box(popup_box_t *popup, frame_t *frame)
 }
 
 static void
+draw_stat_3_meter(int x, int y, int value, frame_t *frame)
+{
+	int sprite = -1;
+	if (value < 1) sprite = 0xbc;
+	else if (value < 2) sprite = 0xbe;
+	else if (value < 3) sprite = 0xc0;
+	else if (value < 4) sprite = 0xc1;
+	else if (value < 5) sprite = 0xc2;
+	else if (value < 7) sprite = 0xc3;
+	else if (value < 10) sprite = 0xc4;
+	else if (value < 20) sprite = 0xc5;
+	else sprite = 0xc6;
+	draw_popup_icon(x, y, sprite, frame);
+}
+
+static void
 draw_stat_3_box(popup_box_t *popup, frame_t *frame)
 {
 	draw_box_background(129, frame);
@@ -1383,7 +1415,7 @@ draw_stat_3_box(popup_box_t *popup, frame_t *frame)
 	memset(serfs, '\0', 27*sizeof(int));
 
 	/* Sum up all existing serfs. */
-	for (int i = 1; i < game.max_serf_index; i++) {
+	for (uint i = 1; i < game.max_serf_index; i++) {
 		if (SERF_ALLOCATED(i)) {
 			serf_t *serf = game_get_serf(i);
 			if (SERF_PLAYER(serf) == popup->interface->player->player_num &&
@@ -1394,17 +1426,118 @@ draw_stat_3_box(popup_box_t *popup, frame_t *frame)
 	}
 
 	/* Sum up potential serfs of all inventories. */
-	for (int i = 0; i < game.max_inventory_index; i++) {
+	for (uint i = 0; i < game.max_inventory_index; i++) {
 		if (INVENTORY_ALLOCATED(i)) {
 			inventory_t *inventory = game_get_inventory(i);
-			if (inventory->player_num == popup->interface->player->player_num) {
-				/* TODO */
+			if (inventory->player_num == popup->interface->player->player_num &&
+			    inventory->generic_count > 0) {
+				serfs[SERF_TRANSPORTER] += inventory->generic_count;
+				serfs[SERF_FORESTER] += inventory->generic_count;
+				serfs[SERF_SMELTER] += inventory->generic_count;
+				serfs[SERF_PIGFARMER] += inventory->generic_count;
+				serfs[SERF_MILLER] += inventory->generic_count;
+				serfs[SERF_BAKER] += inventory->generic_count;
+
+				serfs[SERF_SAWMILLER] += min(inventory->generic_count,
+							     inventory->resources[RESOURCE_SAW]);
+				serfs[SERF_SAILOR] += min(inventory->generic_count,
+							 inventory->resources[RESOURCE_BOAT]);
+				serfs[SERF_DIGGER] += min(inventory->generic_count,
+							  inventory->resources[RESOURCE_SHOVEL]);
+				serfs[SERF_BUILDER] += min(inventory->generic_count,
+							   inventory->resources[RESOURCE_HAMMER]);
+				serfs[SERF_LUMBERJACK] += min(inventory->generic_count,
+							      inventory->resources[RESOURCE_AXE]);
+				serfs[SERF_STONECUTTER] += min(inventory->generic_count,
+							       inventory->resources[RESOURCE_PICK]);
+				serfs[SERF_MINER] += min(inventory->generic_count,
+							 inventory->resources[RESOURCE_PICK]);
+				serfs[SERF_FISHER] += min(inventory->generic_count,
+							  inventory->resources[RESOURCE_ROD]);
+				serfs[SERF_BUTCHER] += min(inventory->generic_count,
+							   inventory->resources[RESOURCE_CLEAVER]);
+				serfs[SERF_FARMER] += min(inventory->generic_count,
+							  inventory->resources[RESOURCE_SCYTHE]);
+				serfs[SERF_BOATBUILDER] += min(inventory->generic_count,
+							       inventory->resources[RESOURCE_HAMMER]);
+				serfs[SERF_TOOLMAKER] += min(inventory->generic_count,
+							     min(inventory->resources[RESOURCE_HAMMER],
+								 inventory->resources[RESOURCE_SAW]));
+				serfs[SERF_WEAPONSMITH] += min(inventory->generic_count,
+							       min(inventory->resources[RESOURCE_HAMMER],
+								   inventory->resources[RESOURCE_PINCER]));
+				serfs[SERF_GEOLOGIST] += min(inventory->generic_count,
+							     inventory->resources[RESOURCE_HAMMER]);
+				serfs[SERF_KNIGHT_0] += min(inventory->generic_count,
+							    min(inventory->resources[RESOURCE_SWORD],
+								inventory->resources[RESOURCE_SHIELD]));
 			}
 		}
 	}
 
-	/* TODO draw meters */
-	draw_serfs_box(frame, serfs, -1);
+	const int layout[] = {
+		0x9, 1, 0, /* serfs */
+		0xa, 1, 16,
+		0xb, 1, 32,
+		0xc, 1, 48,
+		0x21, 1, 64,
+		0x20, 1, 80,
+		0x1f, 1, 96,
+		0x1e, 1, 112,
+		0x1d, 1, 128,
+		0xd, 6, 0,
+		0xe, 6, 16,
+		0x12, 6, 32,
+		0xf, 6, 48,
+		0x10, 6, 64,
+		0x11, 6, 80,
+		0x19, 6, 96,
+		0x1a, 6, 112,
+		0x1b, 6, 128,
+		0x13, 11, 0,
+		0x14, 11, 16,
+		0x15, 11, 32,
+		0x16, 11, 48,
+		0x17, 11, 64,
+		0x18, 11, 80,
+		0x1c, 11, 96,
+		0x82, 11, 112,
+		-1
+	};
+
+	draw_custom_icon_box(layout, frame);
+
+	/* First column */
+	draw_stat_3_meter(3, 4, serfs[SERF_TRANSPORTER], frame);
+	draw_stat_3_meter(3, 20, serfs[SERF_SAILOR], frame);
+	draw_stat_3_meter(3, 36, serfs[SERF_DIGGER], frame);
+	draw_stat_3_meter(3, 52, serfs[SERF_BUILDER], frame);
+	draw_stat_3_meter(3, 68, serfs[SERF_KNIGHT_4], frame);
+	draw_stat_3_meter(3, 84, serfs[SERF_KNIGHT_3], frame);
+	draw_stat_3_meter(3, 100, serfs[SERF_KNIGHT_2], frame);
+	draw_stat_3_meter(3, 116, serfs[SERF_KNIGHT_1], frame);
+	draw_stat_3_meter(3, 132, serfs[SERF_KNIGHT_0], frame);
+
+	/* Second column */
+	draw_stat_3_meter(8, 4, serfs[SERF_LUMBERJACK], frame);
+	draw_stat_3_meter(8, 20, serfs[SERF_SAWMILLER], frame);
+	draw_stat_3_meter(8, 36, serfs[SERF_SMELTER], frame);
+	draw_stat_3_meter(8, 52, serfs[SERF_STONECUTTER], frame);
+	draw_stat_3_meter(8, 68, serfs[SERF_FORESTER], frame);
+	draw_stat_3_meter(8, 84, serfs[SERF_MINER], frame);
+	draw_stat_3_meter(8, 100, serfs[SERF_BOATBUILDER], frame);
+	draw_stat_3_meter(8, 116, serfs[SERF_TOOLMAKER], frame);
+	draw_stat_3_meter(8, 132, serfs[SERF_WEAPONSMITH], frame);
+
+	/* Third column */
+	draw_stat_3_meter(13, 4, serfs[SERF_FISHER], frame);
+	draw_stat_3_meter(13, 20, serfs[SERF_PIGFARMER], frame);
+	draw_stat_3_meter(13, 36, serfs[SERF_BUTCHER], frame);
+	draw_stat_3_meter(13, 52, serfs[SERF_FARMER], frame);
+	draw_stat_3_meter(13, 68, serfs[SERF_MILLER], frame);
+	draw_stat_3_meter(13, 84, serfs[SERF_BAKER], frame);
+	draw_stat_3_meter(13, 100, serfs[SERF_GEOLOGIST], frame);
+	draw_stat_3_meter(13, 116, serfs[SERF_GENERIC], frame);
 
 	draw_popup_icon(14, 128, 60, frame); /* exit */
 }
@@ -1798,8 +1931,6 @@ draw_sett_5_box(popup_box_t *popup, frame_t *frame)
 static void
 draw_quit_confirm_box(popup_box_t *popup, frame_t *frame)
 {
-	game_pause(1);
-
 	draw_box_background(310, frame);
 
 	draw_green_string(0, 10, frame, "   Do you want");
@@ -1888,16 +2019,13 @@ draw_castle_res_box(popup_box_t *popup, frame_t *frame)
 		return;
 	}
 
-	inventory_t *inventory = building->u.inventory;
-	if (BUILDING_TYPE(building) == BUILDING_STOCK) {
-		/* TODO supply zeroed array to draw_resources_box */
-	} else if (BUILDING_TYPE(building) == BUILDING_CASTLE) {
-		/* TODO add extra planks and extra stone */
-	} else {
+	if (BUILDING_TYPE(building) != BUILDING_STOCK &&
+	    BUILDING_TYPE(building) != BUILDING_CASTLE) {
 		interface_close_popup(popup->interface);
 		return;
 	}
 
+	inventory_t *inventory = building->u.inventory;
 	draw_resources_box(frame, inventory->resources);
 }
 
@@ -2113,7 +2241,7 @@ draw_transport_info_box(popup_box_t *popup, frame_t *frame)
 
 	viewport_t flag_view;
 	viewport_init(&flag_view, popup->interface);
-	flag_view.layers = VIEWPORT_LAYER_PATHS | VIEWPORT_LAYER_OBJECTS;
+	flag_view.layers = (viewport_layer_t)(VIEWPORT_LAYER_PATHS | VIEWPORT_LAYER_OBJECTS);
 	gui_object_set_displayed((gui_object_t *)&flag_view, 1);
 
 	flag_view.obj.parent = (gui_container_t *)popup;
@@ -2186,7 +2314,7 @@ draw_castle_serf_box(popup_box_t *popup, frame_t *frame)
 
 	inventory_t *inventory = building->u.inventory;
 
-	for (int i = 1; i < game.max_serf_index; i++) {
+	for (uint i = 1; i < game.max_serf_index; i++) {
 		if (SERF_ALLOCATED(i)) {
 			serf_t *serf = game_get_serf(i);
 			if (serf->state == SERF_STATE_IDLE_IN_STOCK &&
@@ -2245,14 +2373,13 @@ draw_resdir_box(popup_box_t *popup, frame_t *frame)
 		draw_custom_icon_box(knights_layout, frame);
 
 		/* Follow linked list of knights on duty */
-		for (int index = building->serf_index; index != 0; index = game_get_serf(index)->s.defending.next_knight) {
-			serf_t *serf = game_get_serf(index);
+		int serf_index = building->serf_index;
+		while (serf_index != 0) {
+			serf_t *serf = game_get_serf(serf_index);
 			serf_type_t serf_type = SERF_TYPE(serf);
-			if (serf_type >= SERF_KNIGHT_0 && serf_type <= SERF_KNIGHT_4) {
-				knights[serf_type-SERF_KNIGHT_0] += 1;
-			} else {
-				break;
-			}
+			assert(serf_type >= SERF_KNIGHT_0 && serf_type <= SERF_KNIGHT_4);
+			knights[serf_type-SERF_KNIGHT_0] += 1;
+			serf_index = serf->s.defending.next_knight;
 		}
 
 		draw_green_number(14, 20, frame, knights[4]);
@@ -2322,13 +2449,13 @@ draw_sett_8_box(popup_box_t *popup, frame_t *frame)
 	}
 
 	int convertible_to_knights = 0;
-	for (int i = 0; i < game.max_inventory_index; i++) {
+	for (uint i = 0; i < game.max_inventory_index; i++) {
 		if (INVENTORY_ALLOCATED(i)) {
 			inventory_t *inv = game_get_inventory(i);
 			if (inv->player_num == player->player_num) {
 				int c = min(inv->resources[RESOURCE_SWORD],
 					    inv->resources[RESOURCE_SHIELD]);
-				convertible_to_knights += min(c, inv->spawn_priority);
+				convertible_to_knights += max(0, min(c, inv->generic_count));
 			}
 		}
 	}
@@ -3226,7 +3353,6 @@ handle_action(interface_t *interface, action_t action, int x, int y)
 		}
 		break;
 	case ACTION_QUIT_CANCEL:
-		game_pause(0);
 		game.svga |= BIT(5);
 		interface_close_popup(interface);
 		break;
@@ -3246,8 +3372,7 @@ handle_action(interface_t *interface, action_t action, int x, int y)
 		break;
 		/* TODO */
 	case ACTION_SETT_8_CYCLE:
-		interface->player->flags |= BIT(2) | BIT(4);
-		interface->player->knight_cycle_counter = 1200;
+		player_cycle_knights(interface->player);
 		sfx_play_clip(SFX_ACCEPTED);
 		break;
 	case ACTION_CLOSE_OPTIONS:
@@ -3401,7 +3526,7 @@ handle_action(interface_t *interface, action_t action, int x, int y)
 		interface->popup.box = BOX_MAP;
 		break;
 	case ACTION_MINIMAP_BLD_NEXT:
-		interface->popup.box = interface->popup.box + 1;
+		interface->popup.box = (box_t)(interface->popup.box + 1);
 		if (interface->popup.box > BOX_BLD_4) {
 			interface->popup.box = BOX_BLD_1;
 		}
@@ -3470,7 +3595,7 @@ handle_clickmap(interface_t *interface, int x, int y, const int clkmap[])
 		    clkmap[2] <= y && y < clkmap[2] + clkmap[4]) {
 			sfx_play_clip(SFX_CLICK);
 
-			action_t action = clkmap[0];
+			action_t action = (action_t)clkmap[0];
 			handle_action(interface, action, x-clkmap[1], y-clkmap[2]);
 			return 0;
 		}
@@ -4265,10 +4390,10 @@ popup_box_handle_event(popup_box_t *popup, const gui_event_t *event)
 	if (popup->box == BOX_MAP &&
 	    x >= 8 && x < 128+8 && y >= 9 && y < 128+9) {
 		gui_event_t minimap_event = {
-			.type = event->type,
-			.x = event->x - 8,
-			.y = event->y - 9,
-			.button = event->button
+			/*.type =*/ event->type,
+			/*.x =*/ event->x - 8,
+			/*.y =*/ event->y - 9,
+			/*.button =*/ event->button
 		};
 		return gui_object_handle_event((gui_object_t *)&popup->minimap,
 					       &minimap_event);

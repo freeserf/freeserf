@@ -100,7 +100,7 @@ struct interface {
 	int water_in_view;
 	int trees_in_view;
 
-	int return_timeout;
+	uint return_timeout;
 	int return_pos;
 };
 
@@ -119,15 +119,14 @@ void interface_close_game_init(interface_t *interface);
 void interface_open_message(interface_t *interface);
 void interface_return_from_message(interface_t *interface);
 
+void interface_set_player(interface_t *interface, uint player);
 void interface_update_map_cursor_pos(interface_t *interface, map_pos_t pos);
 
 void interface_build_road_begin(interface_t *interface);
 void interface_build_road_end(interface_t *interface);
-
-int interface_build_road_segment(interface_t *interface, map_pos_t pos, dir_t dir);
-int interface_remove_road_segment(interface_t *interface, map_pos_t pos, dir_t dir);
-
-int interface_build_road(interface_t *interface, map_pos_t pos, dir_t *dirs, uint length);
+int interface_build_road_segment(interface_t *interface, dir_t dir);
+int interface_remove_road_segment(interface_t *interface);
+int interface_extend_road(interface_t *interface, dir_t *dirs, uint length);
 
 void interface_demolish_object(interface_t *interface);
 

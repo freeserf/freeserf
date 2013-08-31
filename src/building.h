@@ -34,10 +34,10 @@
 #define BUILDING_INDEX(ptr)  ((int)((ptr) - game.buildings))
 #define BUILDING_ALLOCATED(i)  BIT_TEST(game.building_bitmap[(i)>>3], 7-((i)&7))
 
+/* Type of building. */
+#define BUILDING_TYPE(building)  ((building)->type)
 /* Owning player of the building. */
 #define BUILDING_PLAYER(building)  ((int)((building)->bld & 3))
-/* Type of building. */
-#define BUILDING_TYPE(building)  ((building_type_t)(((building)->bld >> 2) & 0x1f))
 /* Whether construction of the building is finished. */
 #define BUILDING_IS_DONE(building)  (!(((building)->bld >> 7) & 1))
 
@@ -102,16 +102,21 @@ typedef struct {
 typedef struct building building_t;
 
 struct building {
+	/* Map position of building */
 	map_pos_t pos;
+	/* Type of building */
+	building_type_t type;
+	/* Flags */
 	int bld;
 	int serf;
-	int flg_index;
+	/* Index of flag connected to this building */
+	int flag;
+	/* Stock of this building */
 	building_stock_t stock[BUILDING_MAX_STOCK];
 	int serf_index; /* Also used for burning building counter. */
 	int progress;
 	union {
 		struct inventory *inventory;
-		struct flag *flag;
 		uint16_t tick; /* Used for burning building. */
 		uint16_t level;
 	} u;

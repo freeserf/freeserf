@@ -42,7 +42,7 @@ typedef struct {
 static flag_proxy_t *
 flag_proxy_alloc(flag_t *flag)
 {
-	flag_proxy_t *proxy = malloc(sizeof(flag_proxy_t));
+	flag_proxy_t *proxy = (flag_proxy_t *) malloc(sizeof(flag_proxy_t));
 	if (proxy == NULL) abort();
 
 	proxy->flag = flag;
@@ -58,7 +58,7 @@ next_search_id()
 	   everything needs a reset to be safe. */
 	if (game.flag_search_counter == 0) {
 		game.flag_search_counter += 1;
-		for (int i = 1; i < game.max_flag_index; i++) {
+		for (uint i = 1; i < game.max_flag_index; i++) {
 			if (FLAG_ALLOCATED(i)) {
 				game_get_flag(i)->search_num = 0;
 			}
@@ -138,40 +138,17 @@ flag_prioritize_pickup(flag_t *flag, dir_t dir, const int flag_prio[])
 	int res_prio = -1;
 
 	for (int i = 0; i < FLAG_MAX_RES_COUNT; i++) {
-		/* Use flag_prio to prioritize resource pickup. */
-		dir_t res_dir = flag->slot[i].dir;
-		resource_type_t res_type = flag->slot[i].type;
-		if (res_dir == dir && flag_prio[res_type] > res_prio) {
-			res_next = i;
-			res_prio = flag_prio[res_type];
+		if (flag->slot[i].type != RESOURCE_NONE) {
+			/* Use flag_prio to prioritize resource pickup. */
+			dir_t res_dir = flag->slot[i].dir;
+			resource_type_t res_type = flag->slot[i].type;
+			if (res_dir == dir && flag_prio[res_type] > res_prio) {
+				res_next = i;
+				res_prio = flag_prio[res_type];
+			}
 		}
 	}
 
 	flag->other_end_dir[dir] &= 0x78;
 	if (res_next > -1) flag->other_end_dir[dir] |= BIT(7) | res_next;
-}
-
-/* Cancel transport of resources to building at flag. */
-void
-flag_cancel_transported_stock(flag_t *flag, resource_type_t res)
-{
-	assert(FLAG_HAS_BUILDING(flag));
-
-	if (1/*FLAG_INDEX(flag) != ..*/) {
-		building_t *building = flag->other_endpoint.b[DIR_UP_LEFT];
-
-		if (res == RESOURCE_FISH ||
-		    res == RESOURCE_MEAT ||
-		    res == RESOURCE_BREAD) {
-			res = RESOURCE_GROUP_FOOD;
-		}
-
-		for (int i = 0; i < BUILDING_MAX_STOCK; i++) {
-			if (building->stock[i].type == res) {
-				building->stock[i].requested -= 1;
-				assert(building->stock[i].requested >= 0);
-				break;
-			}
-		}
-	}
 }
