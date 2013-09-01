@@ -28,7 +28,7 @@
 #include "mission.h"
 #include "data.h"
 #include "gfx.h"
-
+#include "language.h"
 
 typedef enum {
 	ACTION_START_GAME,
@@ -97,9 +97,9 @@ game_init_box_draw(game_init_box_t *box, frame_t *frame)
 				char map_size[4] = { 0 };
 				sprintf(map_size, "%d", box->map_size);
 
-				draw_box_string(10, 0, frame, "Start new game");
-				draw_box_string(10, 14, frame, "Map size:");
-				draw_box_string(20, 14, frame, map_size);
+				draw_box_string(10, 0, frame, _S(STR_START_NEW_GAME, "Start new game"));
+				draw_box_string(10, 14, frame, _S(STR_MAP_SIZE, "Map size:"));
+				draw_box_string(24, 14, frame, map_size);
 			}
 			break;
 
@@ -110,8 +110,8 @@ game_init_box_draw(game_init_box_t *box, frame_t *frame)
 				char level[4] = { 0 };
 				sprintf(level, "%d", box->game_mission + 1);
 
-				draw_box_string(10, 0, frame, "Start mission");
-				draw_box_string(10, 14, frame, "Mission:");
+				draw_box_string(10, 0, frame, _S(STR_START_MISSION, "Start mission"));
+				draw_box_string(10, 14, frame, _S(STR_MISSION, "Mission:"));
 				draw_box_string(20, 14, frame, level);
 			}
 			break;
@@ -123,8 +123,8 @@ game_init_box_draw(game_init_box_t *box, frame_t *frame)
 				char level[4] = { 0 };
 				sprintf(level, "%d", box->game_mission + 1);
 
-				draw_box_string(10, 0, frame, "Start training");
-				draw_box_string(10, 14, frame, "Level:");
+				draw_box_string(10, 0, frame, _S(STR_START_TRAINING, "Start training"));
+				draw_box_string(10, 14, frame, _S(STR_LEVEL, "Level:"));
 				draw_box_string(20, 14, frame, level);
 			}
 			break;
@@ -158,31 +158,32 @@ game_init_box_draw(game_init_box_t *box, frame_t *frame)
 
 		case GAME_TYPE_MISSION:
 		case GAME_TYPE_TRAINING:
+			{
+				mission_t * use_mission = NULL;
 
-			mission_t * use_mission = NULL;
+				if (box->game_type == GAME_TYPE_MISSION) {
+					if (mission != NULL)	use_mission = & mission[box->game_mission];
+				} else	{
+					if (training != NULL) use_mission = & training[box->game_mission];
+				}
 
-			if (box->game_type == GAME_TYPE_MISSION) {
-				if (mission != NULL)	use_mission = & mission[box->game_mission];
-			} else	{
-				if (training != NULL) use_mission = & training[box->game_mission];
-			}
+				if (use_mission != NULL) {
 
-			if (use_mission != NULL) {
+					//int m = box->game_mission;
+					for (int i = 0; i < GAME_MAX_PLAYER_COUNT; i++) {
+						int face = i == 0 ? 12 : use_mission->player[i].face;
+						draw_box_icon(10 * i + 1, 48, get_player_face_sprite(face), frame);
+						draw_box_icon(10 * i + 6, 48, 282, frame);
 
-				//int m = box->game_mission;
-				for (int i = 0; i < GAME_MAX_PLAYER_COUNT; i++) {
-					int face = i == 0 ? 12 : use_mission->player[i].face;
-					draw_box_icon(10 * i + 1, 48, get_player_face_sprite(face), frame);
-					draw_box_icon(10 * i + 6, 48, 282, frame);
+						int intelligence = i == 0 ? 40 : use_mission->player[i].intelligence;
+						gfx_fill_rect(80 * i + 78, 124 - intelligence, 4, intelligence, 30, frame);
 
-					int intelligence = i == 0 ? 40 : use_mission->player[i].intelligence;
-					gfx_fill_rect(80 * i + 78, 124 - intelligence, 4, intelligence, 30, frame);
+						int supplies = use_mission->player[i].supplies;
+						gfx_fill_rect(80 * i + 72, 124 - supplies, 4, supplies, 67, frame);
 
-					int supplies = use_mission->player[i].supplies;
-					gfx_fill_rect(80 * i + 72, 124 - supplies, 4, supplies, 67, frame);
-
-					int reproduction = use_mission->player[i].reproduction;
-					gfx_fill_rect(80 * i + 84, 124 - reproduction, 4, reproduction, 75, frame);
+						int reproduction = use_mission->player[i].reproduction;
+						gfx_fill_rect(80 * i + 84, 124 - reproduction, 4, reproduction, 75, frame);
+					}
 				}
 			}
 			break;
@@ -209,7 +210,7 @@ handle_action(game_init_box_t *box, int action)
 
 			case GAME_TYPE_FREE:
 				{
-					random_state_t rnd = { { 0x5a5a, uint16_t(time(NULL) >> 16), uint16_t(time(NULL)) } };
+					random_state_t rnd = { { 0x5a5a, (uint16_t)(time(NULL) >> 16), (uint16_t)(time(NULL)) } };
 					r = game_load_random_map(box->map_size, &rnd);
 					if (r < 0) return;
 

@@ -644,7 +644,7 @@ init_map_types_2()
 					}
 				}
 
-				if (uint(4*num) >= game.map.tile_count) goto break_loop;
+				if ((uint)(4*num) >= game.map.tile_count) goto break_loop;
 			}
 		}
 	}

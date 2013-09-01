@@ -1,0 +1,67 @@
+<strings for="german">
+
+  <str key="START_NEW_GAME" text="FREIES Spiel" />
+  <str key="MAP_SIZE" text="KARTEN GROESE" />
+  <str key="START_MISSION" text="Mission" />
+  <str key="MISSION" text="LEVEL:" />
+  <str key="START_TRAINING" text="Trainingsspiel" />
+  <str key="LEVEL" text="LEVEL:" />
+
+  <str key="MUSIC" text="Musik" />
+  <str key="SOUND" text="Geraeusch-" />
+  <str key="EFFECTS" text="effekt" />
+  <str key="VOLUME" text="Lautstaerke" />
+  <str key="FULLSCR" text="Vollbild" />
+  <str key="VIDEO" text="" />
+  <str key="MESSAGES" text="Meldungen" />
+
+  <str key="ALL" text="alle" />
+  <str key="MOST" text="viele" />
+  <str key="FEW" text="wenige" />
+  <str key="NONE" text="keine" />
+
+  <str key="MINING" text="MINING" />
+  <str key="OUTPUT" text="OUTPUT:" />
+  <str key="ORDERED" text="ORDERED" />
+  <str key="BUILD" text="Building" />
+  <str key="DEFENDERS" text="Defenders:" />
+  <str key="STATE" text="State:" />
+  <str key="TRANS_INFO" text="Transport Info:" />
+  <str key="INDEX" text="Index:" />
+  <str key="THIS_BULD" text="this building:" />
+  <str key="STOCK_OF" text="Stock of:" />
+
+  <str key="DEST_SURE1" text="      Abriss:" />
+  <str key="DEST_SURE2" text="Klicken sie hier" />
+  <str key="DEST_SURE3" text="wenn Sie sicher" />	
+  <str key="DEST_SURE4" text="      sind" />
+  <str key="NO_PRESENT" text="unauffindbar" />
+
+  <str key="MINIMUM" text="Minimal" />
+  <str key="VERY_FEW" text="sehr wenig" />
+  <str key="BELOW_AVG" text="unter Mittel" />
+  <str key="AVERAGE" text="Durchschnitt"	 />
+  <str key="ABOVE_AVG" text="ueber Mittel" />
+  <str key="MUCH" text="viel" />
+  <str key="VERY_MUCH" text="sehr viel" />
+  <str key="PERFECT" text="extrem viel" />
+  <str key="GND_ANALYSIS" text="  Bodenproben:" />
+
+  <str key="WEAK" text="Weak" />
+  <str key="MEDIUM" text="Medium" />
+  <str key="GOOD" text="Good" />
+  <str key="FULL" text="Full"/>
+
+  <str key="QUIT1" text="   Wollen Sie" />
+  <str key="QUIT2" text="  dieses Spiel" />
+  <str key="QUIT3" text="   Beenden ?" />
+  <str key="QUIT4" text="  Ja       NEIN" />
+
+  <str key="NOSAVE1" text="  Der aktuelle" />
+  <str key="NOSAVE2" text="   Spielstand" />
+  <str key="NOSAVE3" text="  wurde nicht" />
+  <str key="NOSAVE4" text="gespeichert. Sind" />
+  <str key="NOSAVE5" text="  Sie sicher ?" />
+  <str key="NOSAVE6" text="  JA       NEIN" />
+
+</strings>

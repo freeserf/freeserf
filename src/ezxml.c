@@ -105,6 +105,31 @@ const char *ezxml_attr(ezxml_t xml, const char *attr)
     return (root->attr[i][j]) ? root->attr[i][j + 1] : NULL; // found default
 }
 
+// returns the int value of the requested tag attribute or defaultRet if not found
+int ezxml_attr_int(ezxml_t xml, const char * attr, int defaultRet)
+{
+	const char * value = ezxml_attr(xml, attr);
+
+	if (value == 0) return defaultRet;
+
+	const char * start = value;
+	char * pEnd;
+	int base = 10;
+
+	//- for Hex-Values line #AABBCC
+	if (value[0] == '#')
+	{
+		start++;
+		base = 16;
+	}
+	
+	int num = strtol(start, &pEnd, base);
+
+	if (&pEnd != NULL) return num;
+
+	return defaultRet;
+}
+
 // same as ezxml_get but takes an already initialized va_list
 ezxml_t ezxml_vget(ezxml_t xml, va_list ap)
 {

@@ -33,7 +33,7 @@
 #include "interface.h"
 #include "viewport.h"
 #include "minimap.h"
-
+#include "language.h"
 
 /* Action types that can be fired from
    clicks in the popup window. */
@@ -431,16 +431,16 @@ draw_custom_icon_box(const int sprites[], frame_t *frame)
 static const char *
 prepare_res_amount_text(int amount)
 {
-	if (amount == 0) return "Not Present";
-	else if (amount < 100) return "Minimum";
-	else if (amount < 180) return "Very Few";
-	else if (amount < 240) return "Few";
-	else if (amount < 300) return "Below Average";
-	else if (amount < 400) return "Average";
-	else if (amount < 500) return "Above Average";
-	else if (amount < 600) return "Much";
-	else if (amount < 800) return "Very Much";
-	return "Perfect";
+	if (amount == 0) return _S(STR_NO_PRESENT, "Not Present");
+	else if (amount < 100) return _S(STR_MINIMUM, "Minimum");
+	else if (amount < 180) return _S(STR_VERY_FEW, "Very Few");
+	else if (amount < 240) return _S(STR_FEW, "Few");
+	else if (amount < 300) return _S(STR_BELOW_AVG, "Below Average");
+	else if (amount < 400) return _S(STR_AVERAGE, "Average");
+	else if (amount < 500) return _S(STR_ABOVE_AVG, "Above Average");
+	else if (amount < 600) return _S(STR_MUCH,"Much");
+	else if (amount < 800) return _S(STR_VERY_MUCH, "Very Much");
+	return _S(STR_PERFECT, "Perfect");
 }
 
 static void
@@ -1630,7 +1630,7 @@ draw_ground_analysis_box(popup_box_t *popup, frame_t *frame)
 	draw_box_background(0x81, frame);
 	draw_custom_icon_box(layout, frame);
 	game_prepare_ground_analysis(pos, estimates);
-	draw_green_string(0, 30, frame, "GROUND-ANALYSIS:");
+	draw_green_string(0, 30, frame, _S(STR_GND_ANALYSIS, "GROUND-ANALYSIS:"));
 
 	/* Gold */
 	const char *s = prepare_res_amount_text(2*estimates[GROUND_DEPOSIT_GOLD]);
@@ -1781,7 +1781,7 @@ static void
 draw_knight_level_box(popup_box_t *popup, frame_t *frame)
 {
 	const char *level_str[] = {
-		"Minimum", "Weak", "Medium", "Good", "Full"
+		_S(STR_MINIMUM, "Minimum"), _S(STR_WEAK, "Weak"), _S(STR_MEDIUM, "Medium"), _S(STR_GOOD, "Good"), _S(STR_FULL, "Full")
 	};
 
 	const int layout[] = {
@@ -1933,10 +1933,10 @@ draw_quit_confirm_box(popup_box_t *popup, frame_t *frame)
 {
 	draw_box_background(310, frame);
 
-	draw_green_string(0, 10, frame, "   Do you want");
-	draw_green_string(0, 20, frame, "     to quit");
-	draw_green_string(0, 30, frame, "   this game?");
-	draw_green_string(0, 45, frame, "  Yes       No");
+	draw_green_string(0, 10, frame, _S(STR_QUIT1, "   Do you want"));
+	draw_green_string(0, 20, frame, _S(STR_QUIT2, "     to quit"));
+	draw_green_string(0, 30, frame, _S(STR_QUIT3, "   this game?"));
+	draw_green_string(0, 45, frame, _S(STR_QUIT4, "  Yes       No"));
 
 	/* wait_x_timer_ticks(8); */
 
@@ -1946,12 +1946,12 @@ draw_quit_confirm_box(popup_box_t *popup, frame_t *frame)
 static void
 draw_no_save_quit_confirm_box(popup_box_t *popup, frame_t *frame)
 {
-	draw_green_string(0, 70, frame, "The game has not");
-	draw_green_string(0, 80, frame, "   been saved");
-	draw_green_string(0, 90, frame, "   recently.");
-	draw_green_string(0, 100, frame, "    Are you");
-	draw_green_string(0, 110, frame, "     sure?");
-	draw_green_string(0, 125, frame, "  Yes       No");
+	draw_green_string(0, 70, frame, _S(STR_NOSAVE1, "The game has not"));
+	draw_green_string(0, 80, frame, _S(STR_NOSAVE2, "   been saved"));
+	draw_green_string(0, 90, frame, _S(STR_NOSAVE3, "   recently."));
+	draw_green_string(0, 100, frame, _S(STR_NOSAVE4, "    Are you"));
+	draw_green_string(0, 110, frame, _S(STR_NOSAVE5, "     sure?"));
+	draw_green_string(0, 125, frame, _S(STR_NOSAVE6, "  Yes       No"));
 }
 
 static void
@@ -1961,10 +1961,10 @@ draw_options_box(popup_box_t *popup, frame_t *frame)
 
 	interface_t *interface = popup->interface;
 
-	draw_green_string(1, 14, frame, "Music");
-	draw_green_string(1, 30, frame, "Sound");
-	draw_green_string(1, 39, frame, "effects");
-	draw_green_string(1, 54, frame, "Volume");
+	draw_green_string(1, 14, frame, _S(STR_MUSIC, "Music"));
+	draw_green_string(1, 30, frame, _S(STR_SOUND, "Sound"));
+	draw_green_string(1, 39, frame, _S(STR_EFFECTS, "effects"));
+	draw_green_string(1, 54, frame, _S(STR_VOLUME, "Volume"));
 
 	draw_popup_icon(13, 10, midi_is_enabled() ? 288 : 220, frame); /* Music */
 	draw_popup_icon(13, 30, sfx_is_enabled() ? 288 : 220, frame); /* Sfx */
@@ -1975,22 +1975,22 @@ draw_options_box(popup_box_t *popup, frame_t *frame)
 	sprintf(volume, "%d", audio_volume());
 	draw_green_string(8, 54, frame, volume);
 
-	draw_green_string(1, 70, frame, "Fullscreen");
-	draw_green_string(1, 79, frame, "video");
+	draw_green_string(1, 70, frame, _S(STR_FULLSCR, "Fullscreen"));
+	draw_green_string(1, 79, frame, _S(STR_VIDEO, "video"));
 
 	draw_popup_icon(13, 70, sdl_is_fullscreen() ? 288 : 220, frame); /* Fullscreen mode */
 
-	const char *value = "All";
+	const char *value = _S(STR_ALL, "All");
 	if (!BIT_TEST(interface->config, 3)) {
-		value = "Most";
+		value = _S(STR_MOST,"Most");
 		if (!BIT_TEST(interface->config, 4)) {
-			value = "Few";
+			value = _S(STR_FEW, "Few");
 			if (!BIT_TEST(interface->config, 5)) {
-				value = "None";
+				value = _S(STR_NONE, "None");
 			}
 		}
 	}
-	draw_green_string(1, 94, frame, "Messages");
+	draw_green_string(1, 94, frame, _S(STR_MESSAGES, "Messages"));
 	draw_green_string(11, 94, frame, value);
 
 	draw_popup_icon(14, 128, 60, frame); /* exit */
@@ -2093,8 +2093,8 @@ draw_mine_output_box(popup_box_t *popup, frame_t *frame)
 	draw_green_string(x, 38, frame, "%");
 	draw_green_number(6, 38, frame, output);
 
-	draw_green_string(1, 14, frame, "MINING");
-	draw_green_string(1, 24, frame, "OUTPUT:");
+	draw_green_string(1, 14, frame, _S(STR_MINING, "MINING"));
+	draw_green_string(1, 24, frame, _S(STR_OUTPUT, "OUTPUT:"));
 
 	/* Exit box */
 	draw_popup_icon(14, 128, 0x3c, frame);
@@ -2123,8 +2123,8 @@ draw_ordered_building_box(popup_box_t *popup, frame_t *frame)
 	if (sprite == 0xc0 /*stock*/ || sprite >= 0x9e /*tower*/) x = 4;
 	draw_popup_building(x, 40, sprite, frame);
 
-	draw_green_string(2, 4, frame, "Ordered");
-	draw_green_string(2, 14, frame, "Building");
+	draw_green_string(2, 4, frame, _S(STR_ORDERED, "Ordered"));
+	draw_green_string(2, 14, frame, _S(STR_BUILD, "Building"));
 
 	if (BUILDING_HAS_SERF(building)) {
 		if (building->progress == 0) draw_popup_icon(2, 100, 0xb, frame); /* Digger */
@@ -2191,7 +2191,7 @@ draw_defenders_box(popup_box_t *popup, frame_t *frame)
 	}
 
 	/* Draw heading string */
-	draw_green_string(3, 62, frame, "Defenders:");
+	draw_green_string(3, 62, frame, _S(STR_DEFENDERS, "Defenders:"));
 
 	/* Draw knights */
 	int next_knight = building->serf_index;
@@ -2201,7 +2201,7 @@ draw_defenders_box(popup_box_t *popup, frame_t *frame)
 		next_knight = serf->s.defending.next_knight;
 	}
 
-	draw_green_string(0, 128, frame, "State:");
+	draw_green_string(0, 128, frame, _S(STR_STATE, "State:"));
 	draw_green_number(7, 128, frame, BUILDING_STATE(building));
 
 	draw_popup_icon(14, 128, 0x3c, frame); /* Exit box */
@@ -2265,7 +2265,7 @@ draw_transport_info_box(popup_box_t *popup, frame_t *frame)
 		}
 	}
 
-	draw_green_string(0, 4, frame, "Transport Info:");
+	draw_green_string(0, 4, frame, _S(STR_TRANS_INFO, "Transport Info:"));
 	draw_popup_icon(2, 96, 0x1c, frame); /* Geologist */
 	draw_popup_icon(14, 128, 0x3c, frame); /* Exit box */
 
@@ -2276,7 +2276,7 @@ draw_transport_info_box(popup_box_t *popup, frame_t *frame)
 		}
 	}
 
-	draw_green_string(0, 128, frame, "Index:");
+	draw_green_string(0, 128, frame, _S(STR_INDEX, "Index:"));
 	draw_green_number(7, 128, frame, FLAG_INDEX(flag));
 }
 
@@ -2623,8 +2623,8 @@ draw_building_stock_box(popup_box_t *popup, frame_t *frame)
 	if (bld_sprite == 0xc0 /*stock*/ || bld_sprite >= 0x9e /*tower*/) x = 4;
 	draw_popup_building(x, 30, bld_sprite, frame);
 
-	draw_green_string(1, 4, frame, "Stock of");
-	draw_green_string(1, 14, frame, "this building:");
+	draw_green_string(1, 4, frame, _S(STR_STOCK_OF, "Stock of"));
+	draw_green_string(1, 14, frame, _S(STR_THIS_BULD, "this building:"));
 
 	draw_popup_icon(14, 128, 0x3c, frame); /* exit box */
 }
@@ -2648,10 +2648,10 @@ draw_demolish_box(popup_box_t *popup, frame_t *frame)
 	draw_popup_icon(14, 128, 60, frame); /* Exit */
 	draw_popup_icon(7, 45, 288, frame); /* Checkbox */
 
-	draw_green_string(0, 10, frame, "    Demolish:");
-	draw_green_string(0, 30, frame, "   Click here");
-	draw_green_string(0, 68, frame, "   if you are");
-	draw_green_string(0, 86, frame, "      sure");
+	draw_green_string(0, 10, frame, _S(STR_DEST_SURE1, "    Demolish:"));
+	draw_green_string(0, 30, frame, _S(STR_DEST_SURE2, "   Click here"));
+	draw_green_string(0, 68, frame, _S(STR_DEST_SURE3, "   if you are"));
+	draw_green_string(0, 86, frame, _S(STR_DEST_SURE4, "      sure"));
 }
 
 static void

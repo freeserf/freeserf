@@ -1,78 +1,78 @@
 <missions>
   <training rnd0='#D372' rnd1='#5192' rnd2='#F9C2'>
-    <player0 supplies='30' reproduction='30' castleCol='255' castleRow='255' />
+    <player0 supplies='30' reproduction='30' />
   </training>
 
   <training rnd0='#A28' rnd1='#763C' rnd2='#1BB5'>
-    <player0 supplies='30' reproduction='30' castleCol='255' castleRow='255' />
+    <player0 supplies='30' reproduction='30' />
   </training>
 
   <training rnd0='#4E19' rnd1='#D3CE' rnd2='#E017'>
-    <player0 supplies='30' reproduction='30' castleCol='255' castleRow='255' />
+    <player0 supplies='30' reproduction='30' />
   </training>
 
   <training rnd0='#271B' rnd1='#D849' rnd2='#F2BB'>
-    <player0 supplies='30' reproduction='30' castleCol='255' castleRow='255' />
+    <player0 supplies='30' reproduction='30' />
   </training>
 
   <training rnd0='#74B' rnd1='#505C' rnd2='#2983'>
-    <player0 supplies='30' reproduction='30' castleCol='255' castleRow='255' />
+    <player0 supplies='30' reproduction='30' />
   </training>
 
   <training rnd0='#1DD9' rnd1='#A702' rnd2='#FC8A'>
-    <player0 supplies='30' reproduction='30' castleCol='255' castleRow='255' />
+    <player0 supplies='30' reproduction='30' />
   </training>
 
   <mission name='START' rnd0='#6D6F' rnd1='#F7F0' rnd2='#C8D4'>
-    <player0 supplies='35' reproduction='30' castleCol='255' castleRow='255' />
-    <player1 supplies='5' reproduction='30' castleCol='255' castleRow='255' face='1' intelligence='10' />
+    <player0 supplies='35' reproduction='30' />
+    <player1 supplies='5' reproduction='30' face='1' intelligence='10' />
   </mission>
 
   <mission name='STATION' rnd0='#60B9' rnd1='#E728' rnd2='#C484'>
-    <player0 supplies='30' reproduction='40' castleCol='255' castleRow='255' />
-    <player1 supplies='15' reproduction='30' castleCol='255' castleRow='255' face='2' intelligence='12' />
-    <player2 supplies='15' reproduction='30' castleCol='255' castleRow='255' face='3' intelligence='14' />
+    <player0 supplies='30' reproduction='40' />
+    <player1 supplies='15' reproduction='30' face='2' intelligence='12' />
+    <player2 supplies='15' reproduction='30' face='3' intelligence='14' />
   </mission>
 
   <mission name='UNITY' rnd0='#12AB' rnd1='#7A4A' rnd2='#E483'>
-    <player0 supplies='30' reproduction='30' castleCol='255' castleRow='255' />
-    <player1 supplies='10' reproduction='25' castleCol='255' castleRow='255' face='2' intelligence='18' />
-    <player2 supplies='10' reproduction='25' castleCol='255' castleRow='255' face='4' intelligence='18' />
+    <player0 supplies='30' reproduction='30' />
+    <player1 supplies='10' reproduction='25' face='2' intelligence='18' />
+    <player2 supplies='10' reproduction='25' face='4' intelligence='18' />
   </mission>
 
   <mission name='WAVE' rnd0='#ACDF' rnd1='#EE65' rnd2='#3701'>
-    <player0 supplies='25' reproduction='40' castleCol='255' castleRow='255' />
-    <player1 supplies='20' reproduction='30' castleCol='255' castleRow='255' face='2' intelligence='15' />
+    <player0 supplies='25' reproduction='40' />
+    <player1 supplies='20' reproduction='30' face='2' intelligence='15' />
   </mission>
 
   <mission name='EXPORT' rnd0='#3B8B' rnd1='#D867' rnd2='#D847'>
-    <player0 supplies='30' reproduction='30' castleCol='255' castleRow='255' />
-    <player1 supplies='25' reproduction='20' castleCol='255' castleRow='255' face='3' intelligence='16' />
-    <player2 supplies='25' reproduction='20' castleCol='255' castleRow='255' face='4' intelligence='16' />
+    <player0 supplies='30' reproduction='30' />
+    <player1 supplies='25' reproduction='20' face='3' intelligence='16' />
+    <player2 supplies='25' reproduction='20' face='4' intelligence='16' />
   </mission>
 
   <mission name='OPTION' rnd0='#4491' rnd1='#36FB' rnd2='#F9E1'>
-    <player0 supplies='30' reproduction='30' castleCol='255' castleRow='255' />
-    <player1 supplies='12' reproduction='14' castleCol='255' castleRow='255' face='3' intelligence='20' />
-    <player2 supplies='12' reproduction='14' castleCol='255' castleRow='255' face='5' intelligence='20' />
+    <player0 supplies='30' reproduction='30' />
+    <player1 supplies='12' reproduction='14' face='3' intelligence='20' />
+    <player2 supplies='12' reproduction='14' face='5' intelligence='20' />
   </mission>
 
   <mission name='RECORD' rnd0='#CA18' rnd1='#4221' rnd2='#7F96'>
-    <player0 supplies='30' reproduction='40' castleCol='255' castleRow='255' />
-    <player1 supplies='30' reproduction='30' castleCol='255' castleRow='255' face='3' intelligence='22' />
+    <player0 supplies='30' reproduction='40' />
+    <player1 supplies='30' reproduction='30' face='3' intelligence='22' />
   </mission>
 
   <mission name='SCALE' rnd0='#88FE' rnd1='#E0DB' rnd2='#ED5C'>
-    <player0 supplies='25' reproduction='30' castleCol='255' castleRow='255' />
-    <player1 supplies='25' reproduction='30' castleCol='255' castleRow='255' face='4' intelligence='23' />
-    <player2 supplies='25' reproduction='30' castleCol='255' castleRow='255' face='6' intelligence='24' />
+    <player0 supplies='25' reproduction='30' />
+    <player1 supplies='25' reproduction='30' face='4' intelligence='23' />
+    <player2 supplies='25' reproduction='30' face='6' intelligence='24' />
   </mission>
 
   <mission name='SIGN' rnd0='#E9C4' rnd1='#16FE' rnd2='#2EF0'>
-    <player0 supplies='25' reproduction='40' castleCol='255' castleRow='255' />
-    <player1 supplies='13' reproduction='30' castleCol='255' castleRow='255' face='4' intelligence='26' />
-    <player2 supplies='13' reproduction='30' castleCol='255' castleRow='255' face='5' intelligence='28' />
-    <player3 supplies='13' reproduction='30' castleCol='255' castleRow='255' face='6' intelligence='30' />
+    <player0 supplies='25' reproduction='40' />
+    <player1 supplies='13' reproduction='30' face='4' intelligence='26' />
+    <player2 supplies='13' reproduction='30' face='5' intelligence='28' />
+    <player3 supplies='13' reproduction='30' face='6' intelligence='30' />
   </mission>
 
   <mission name='ACORN' rnd0='#15C2' rnd1='#F9D0' rnd2='#5FB1'>

@@ -45,4 +45,6 @@ extern int training_count;
 void init_mission(const char * mission_filename);
 int init_mission_type(mission_t ** mission_dest, ezxml_t rootTag, const char * mission_tag_name);
 
+void mission_cleanup();
+
 #endif /* !_MISSION_H */

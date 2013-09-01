@@ -93,6 +93,9 @@ ezxml_t ezxml_idx(ezxml_t xml, int idx);
 // returns the value of the requested tag attribute, or NULL if not found
 const char *ezxml_attr(ezxml_t xml, const char *attr);
 
+// returns the int value of the requested tag attribute or defaultRet if not found
+int ezxml_attr_int(ezxml_t xml, const char * attr, int defaultRet);
+
 // Traverses the ezxml sturcture to retrieve a specific subtag. Takes a
 // variable length list of tag names and indexes. The argument list must be
 // terminated by either an index of -1 or an empty string tag name. Example: 

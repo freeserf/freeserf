@@ -57,6 +57,7 @@
 #include "savegame.h"
 #include "mission.h"
 #include "version.h"
+#include "language.h"
 
 #define DEFAULT_SCREEN_WIDTH  800
 #define DEFAULT_SCREEN_HEIGHT 600
@@ -644,7 +645,7 @@ load_data_file(const char *path)
 
 
 #define USAGE					\
-	"Usage: %s [-g DATA-FILE]\n"
+	"Usage: %s [-g DATA-FILE] \n or use parameter -h for help\n"
 #define HELP							\
 	USAGE							\
 	" -d NUM\t\tSet debug output level\n"				\
@@ -654,6 +655,7 @@ load_data_file(const char *path)
 	" -l FILE\tLoad saved game\n"					\
 	" -r RES\t\tSet display resolution (e.g. 800x600)\n"		\
 	" -t GEN\t\tMap generator (0 or 1)\n"				\
+	" -s LANGUAGE\tlanguage (en, de)\n"				\
 	"\n"								\
 	"Please report bugs to <" PACKAGE_BUGREPORT ">\n"
 
@@ -672,19 +674,21 @@ main(int argc, char *argv[])
 
 	int log_level = DEFAULT_LOG_LEVEL;
 
+	enum_lng_t language = LNG_ENGLISH;
+
 	int opt;
 	while (1) {
-		opt = getopt(argc, argv, "d:fg:hl:r:t:");
+		opt = getopt(argc, argv, "d:fg:hl:r:t:s:");
 		if (opt < 0) break;
 
 		switch (opt) {
 		case 'd':
-		{
-			int d = atoi(optarg);
-			if (d >= 0 && d < LOG_LEVEL_MAX) {
-				log_level = d;
+			{
+				int d = atoi(optarg);
+				if (d >= 0 && d < LOG_LEVEL_MAX) {
+					log_level = d;
+				}
 			}
-		}
 			break;
 		case 'f':
 			fullscreen = 1;
@@ -704,18 +708,30 @@ main(int argc, char *argv[])
 			strcpy(save_file, optarg);
 			break;
 		case 'r':
-		{
-			char *hstr = strchr(optarg, 'x');
-			if (hstr == NULL) {
-				fprintf(stderr, USAGE, argv[0]);
-				exit(EXIT_FAILURE);
+			{
+				char *hstr = strchr(optarg, 'x');
+				if (hstr == NULL) {
+					fprintf(stderr, USAGE, argv[0]);
+					exit(EXIT_FAILURE);
+				}
+				screen_width = atoi(optarg);
+				screen_height = atoi(hstr+1);
 			}
-			screen_width = atoi(optarg);
-			screen_height = atoi(hstr+1);
-		}
 			break;
 		case 't':
 			map_generator = atoi(optarg);
+			break;
+		case 's':
+			{
+				char *  tmp_language_str = (char *) malloc(strlen(optarg) + 1);
+				if (tmp_language_str != NULL)
+				{
+					strcpy(tmp_language_str, optarg);
+
+					if (strcmp(tmp_language_str, "en") == 0) language = LNG_ENGLISH;
+					if (strcmp(tmp_language_str, "de") == 0) language = LNG_GERMAN;
+				}
+			}
 			break;
 		default:
 			fprintf(stderr, USAGE, argv[0]);
@@ -729,6 +745,10 @@ main(int argc, char *argv[])
 	log_set_level((log_level_t)log_level);
 
 	LOGI("main", "freeserf %s", FREESERF_VERSION);
+
+	/* load language */
+	init_language_data(language);
+
 
 	r = load_data_file(data_file);
 	if (r < 0) {
@@ -809,6 +829,8 @@ main(int argc, char *argv[])
 	audio_cleanup();
 	sdl_deinit();
 	gfx_unload();
+	language_cleanup();
+	mission_cleanup();
 
 	return EXIT_SUCCESS;
 }

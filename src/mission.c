@@ -22,6 +22,7 @@
 #include "mission.h"
 #include "random.h"
 #include "ezxml.h"
+#include "log.h"
 
 mission_t * mission = NULL;
 int mission_count;
@@ -29,25 +30,15 @@ int mission_count;
 mission_t * training = NULL;
 int training_count;
 
-int ezxml_attr_int(ezxml_t xml, const char * attr, int defaultRet)
-{
-	const char * value = ezxml_attr(xml, attr);
-	
-	if (value == 0) return defaultRet;
-
-	if (value[0] == '#')
-	{
-		return strtol(&value[1], NULL, 16);
-	}
-	else
-	{
-		return atoi(value);
-	}
-}
 
 void init_mission(const char * mission_filename)
 {
 	ezxml_t rootTag = ezxml_parse_file(mission_filename);
+
+	if (rootTag == NULL)
+	{
+		LOGW("mission", "unable to open mission-data file '%s'", mission_filename);
+	}
 
 	mission_count = init_mission_type(& mission, rootTag, "mission");
 	training_count = init_mission_type(& training, rootTag, "training");
@@ -97,8 +88,8 @@ int init_mission_type(mission_t ** mission_dest, ezxml_t rootTag, const char * m
 			playerTag = ezxml_child(missionTag, PlayerBuffer);
 			if (playerTag)
 			{
-				dest[i].player[p].castle.col = ezxml_attr_int(playerTag, "castleCol", 0);
-				dest[i].player[p].castle.row = ezxml_attr_int(playerTag, "castleRow", 0);
+				dest[i].player[p].castle.col = ezxml_attr_int(playerTag, "castleCol", -1);
+				dest[i].player[p].castle.row = ezxml_attr_int(playerTag, "castleRow", -1);
 
 				dest[i].player[p].face = ezxml_attr_int(playerTag, "face", 0);
 				dest[i].player[p].intelligence = ezxml_attr_int(playerTag, "intelligence", 0);
@@ -107,8 +98,8 @@ int init_mission_type(mission_t ** mission_dest, ezxml_t rootTag, const char * m
 			}
 			else
 			{
-				dest[i].player[p].castle.col = 0;
-				dest[i].player[p].castle.row = 0;
+				dest[i].player[p].castle.col = -1;
+				dest[i].player[p].castle.row = -1;
 
 				dest[i].player[p].face = 0;
 				dest[i].player[p].intelligence = 0;
@@ -124,3 +115,20 @@ int init_mission_type(mission_t ** mission_dest, ezxml_t rootTag, const char * m
 }
 
 
+
+void mission_cleanup()
+{
+
+	if (mission != NULL)
+	{
+		free(mission);
+		mission = NULL;
+	}
+
+	if (training != NULL)
+	{
+		free(training);
+		training = NULL;
+	}
+
+}

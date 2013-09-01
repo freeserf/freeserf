@@ -70,47 +70,20 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <PreprocessorDefinitions>WIN32;NDEBUG;_CONSOLE;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>D:\Entwicklung\VC\freeserf\SDL\include;D:\Entwicklung\VC\freeserf\SDL_mixer\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
+      <AdditionalLibraryDirectories>D:\Entwicklung\VC\freeserf\SDL\lib\x86;D:\Entwicklung\VC\freeserf\SDL_mixer\lib\x86;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>SDLmain.lib;SDL.lib;SDL_mixer.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
     <Text Include="ezxml.txt" />
     <Text Include="ReadMe.txt" />
-  </ItemGroup>
-  <ItemGroup>
-    <ClCompile Include="..\src\audio.cpp" />
-    <ClCompile Include="..\src\building.cpp" />
-    <ClCompile Include="..\src\ezxml.cpp" />
-    <ClCompile Include="..\src\flag.cpp" />
-    <ClCompile Include="..\src\freeserf.cpp" />
-    <ClCompile Include="..\src\game-init.cpp" />
-    <ClCompile Include="..\src\game.cpp" />
-    <ClCompile Include="..\src\gfx.cpp" />
-    <ClCompile Include="..\src\gui.cpp" />
-    <ClCompile Include="..\src\interface.cpp" />
-    <ClCompile Include="..\src\list.cpp" />
-    <ClCompile Include="..\src\log.cpp" />
-    <ClCompile Include="..\src\map.cpp" />
-    <ClCompile Include="..\src\minimap.cpp" />
-    <ClCompile Include="..\src\mission.cpp" />
-    <ClCompile Include="..\src\notification.cpp" />
-    <ClCompile Include="..\src\panel.cpp" />
-    <ClCompile Include="..\src\pathfinder.cpp" />
-    <ClCompile Include="..\src\pgetopt.cpp" />
-    <ClCompile Include="..\src\player.cpp" />
-    <ClCompile Include="..\src\popup.cpp" />
-    <ClCompile Include="..\src\pqueue.cpp" />
-    <ClCompile Include="..\src\random.cpp" />
-    <ClCompile Include="..\src\savegame.cpp" />
-    <ClCompile Include="..\src\sdl-video.cpp" />
-    <ClCompile Include="..\src\serf.cpp" />
-    <ClCompile Include="..\src\version.cpp" />
-    <ClCompile Include="..\src\viewport.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\src\audio.h" />
@@ -126,6 +99,7 @@
     <ClInclude Include="..\src\gfx.h" />
     <ClInclude Include="..\src\gui.h" />
     <ClInclude Include="..\src\interface.h" />
+    <ClInclude Include="..\src\language.h" />
     <ClInclude Include="..\src\list.h" />
     <ClInclude Include="..\src\log.h" />
     <ClInclude Include="..\src\map.h" />
@@ -148,6 +122,37 @@
     <ClInclude Include="..\src\version.h" />
     <ClInclude Include="..\src\version_vcs.h" />
     <ClInclude Include="..\src\viewport.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="..\src\audio.cpp" />
+    <ClCompile Include="..\src\building.cpp" />
+    <ClCompile Include="..\src\ezxml.cpp" />
+    <ClCompile Include="..\src\flag.cpp" />
+    <ClCompile Include="..\src\freeserf.cpp" />
+    <ClCompile Include="..\src\game-init.cpp" />
+    <ClCompile Include="..\src\game.cpp" />
+    <ClCompile Include="..\src\gfx.cpp" />
+    <ClCompile Include="..\src\gui.cpp" />
+    <ClCompile Include="..\src\interface.cpp" />
+    <ClCompile Include="..\src\language.cpp" />
+    <ClCompile Include="..\src\list.cpp" />
+    <ClCompile Include="..\src\log.cpp" />
+    <ClCompile Include="..\src\map.cpp" />
+    <ClCompile Include="..\src\minimap.cpp" />
+    <ClCompile Include="..\src\mission.cpp" />
+    <ClCompile Include="..\src\notification.cpp" />
+    <ClCompile Include="..\src\panel.cpp" />
+    <ClCompile Include="..\src\pathfinder.cpp" />
+    <ClCompile Include="..\src\pgetopt.cpp" />
+    <ClCompile Include="..\src\player.cpp" />
+    <ClCompile Include="..\src\popup.cpp" />
+    <ClCompile Include="..\src\pqueue.cpp" />
+    <ClCompile Include="..\src\random.cpp" />
+    <ClCompile Include="..\src\savegame.cpp" />
+    <ClCompile Include="..\src\sdl-video.cpp" />
+    <ClCompile Include="..\src\serf.cpp" />
+    <ClCompile Include="..\src\version.cpp" />
+    <ClCompile Include="..\src\viewport.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
