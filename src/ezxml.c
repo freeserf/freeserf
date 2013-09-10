@@ -217,11 +217,11 @@ char *ezxml_decode(char *s, char **ent, char t)
             else c = strtol(s + 2, &e, 10); // base 10
             if (! c || *e != ';') { s++; continue; } // not a character ref
 
-            if (c < 0x80) *(s++) = c; // US-ASCII subset
+            if (c < 0x80) *(s++) = (char)c; // US-ASCII subset
             else { // multi-byte UTF-8 sequence
                 for (b = 0, d = c; d; d /= 2) b++; // number of bits in c
                 b = (b - 2) / 5; // number of bytes in payload
-                *(s++) = (0xFF << (7 - b)) | (c >> (6 * b)); // head
+                *(s++) = (char) ((0xFF << (7 - b)) | (c >> (6 * b))); // head
                 while (b) *(s++) = 0x80 | ((c >> (6 * --b)) & 0x3F); // payload
             }
 
@@ -480,11 +480,11 @@ char *ezxml_str2utf8(char **s, size_t *len)
         }
 
 		while (l + 6 > max) u = (char *)realloc(u, max += EZXML_BUFSIZE);
-        if (c < 0x80) u[l++] = c; // US-ASCII subset
+        if (c < 0x80) u[l++] = (char)c; // US-ASCII subset
         else { // multi-byte UTF-8 sequence
             for (b = 0, d = c; d; d /= 2) b++; // bits in c
             b = (b - 2) / 5; // bytes in payload
-            u[l++] = (0xFF << (7 - b)) | (c >> (6 * b)); // head
+            u[l++] = (char)((0xFF << (7 - b)) | (c >> (6 * b))); // head
             while (b) u[l++] = 0x80 | ((c >> (6 * --b)) & 0x3F); // payload
         }
     }

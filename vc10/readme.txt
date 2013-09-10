@@ -11,4 +11,5 @@ To run you need
  - SDL_mixer.dll
  - SPA?.PA
  - missions.xml
+ - lng_de.xml
 files in your "debug" / "release" folder.

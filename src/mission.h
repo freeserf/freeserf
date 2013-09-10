@@ -25,6 +25,15 @@
 #include "random.h"
 #include "ezxml.h"
 
+#if _MSC_VER
+  #pragma warning(disable:4996)
+
+  #define snprintf _snprintf
+#endif
+
+
+#define PLAYER_BUFFER_LENGTH 64
+
 typedef struct {
 	random_state_t rnd;
 	struct {
@@ -46,5 +55,7 @@ void init_mission(const char * mission_filename);
 int init_mission_type(mission_t ** mission_dest, ezxml_t rootTag, const char * mission_tag_name);
 
 void mission_cleanup();
+
+
 
 #endif /* !_MISSION_H */

@@ -27,7 +27,7 @@
 #include "building.h"
 #include "data.h"
 #include "debug.h"
-
+#include "language.h"
 
 static void
 draw_icon(int x, int y, int sprite, frame_t *frame)
@@ -49,6 +49,32 @@ static void
 draw_string(int x, int y, frame_t *frame, const char *str)
 {
 	gfx_draw_string(8*x, y, 31, 0, frame, str);
+}
+
+static int
+	draw_string_block(int x, int y, frame_t *frame, const char *str)
+{
+	const char * startstr = str;
+	int lastlen = 0;
+
+	for (; *str != 0; str++) {
+		if (*str == '|') {
+			gfx_draw_n_string(8 * x, y, 31, 0, frame, startstr, lastlen);
+			y += 10;
+			lastlen = 0;
+			startstr = str + 1;
+		}
+		else {
+			lastlen++;
+		}	
+	}
+
+	if (lastlen > 0) {
+		gfx_draw_n_string(8 * x, y, 31, 0, frame, startstr, lastlen);
+		y += 10;
+	}
+
+	return y;
 }
 
 static void
@@ -76,34 +102,29 @@ draw_player_face(int x, int y, int player, frame_t *frame)
 static void
 draw_under_attack_message_box(frame_t *frame, int opponent)
 {
-	draw_string(1, 10, frame, "Your settlement");
-	draw_string(1, 20, frame, "is under attack");
+	draw_string_block(1, 10, frame, _S(STR_UNDERATK, "Your settlement|is under attack"));
 	draw_player_face(18, 8, opponent, frame);
 }
 
 static void
 draw_lost_fight_message_box(frame_t *frame, int opponent)
 {
-	draw_string(1, 10, frame, "Your knights");
-	draw_string(1, 20, frame, "just lost the");
-	draw_string(1, 30, frame, "fight");
+	draw_string_block(1, 10, frame, _S(STR_KNIGHTLOST, "Your knights|just lost the|fight"));
 	draw_player_face(18, 8, opponent, frame);
 }
 
 static void
 draw_victory_fight_message_box(frame_t *frame, int opponent)
 {
-	draw_string(1, 10, frame, "You gained");
-	draw_string(1, 20, frame, "a victory here");
+	draw_string_block(1, 10, frame, _S(STR_KNIGHTVIC, "You gained|a victory here"));
 	draw_player_face(18, 8, opponent, frame);
 }
 
 static void
 draw_mine_empty_message_box(frame_t *frame, int mine)
 {
-	draw_string(1, 10, frame, "This mine hauls");
-	draw_string(1, 20, frame, "no more raw");
-	draw_string(1, 30, frame, "materials");
+
+	draw_string_block(1, 10, frame, _S(STR_MINEEMPTY, "This mine hauls|no more raw|materials"));
 	draw_map_object(18, 8, map_building_sprite[BUILDING_STONEMINE] + mine,
 			frame);
 }
@@ -111,18 +132,14 @@ draw_mine_empty_message_box(frame_t *frame, int mine)
 static void
 draw_call_to_location_message_box(frame_t *frame, int param)
 {
-	draw_string(1, 10, frame, "You wanted me");
-	draw_string(1, 20, frame, "to call you to");
-	draw_string(1, 30, frame, "this location");
+	draw_string_block(1, 10, frame, _S(STR_CALLYOU, "You wanted me|to call you to|this location"));
 	draw_map_object(20, 14, 0x90, frame);
 }
 
 static void
 draw_knight_occupied_message_box(frame_t *frame, int building)
 {
-	draw_string(1, 10, frame, "A knight has");
-	draw_string(1, 20, frame, "occupied this");
-	draw_string(1, 30, frame, "new building");
+	draw_string_block(1, 10, frame, _S(STR_KNIGHTOCCUP, "A knight has|occupied this|new building"));
 
 	switch (building) {
 	case 0:
@@ -149,79 +166,63 @@ draw_knight_occupied_message_box(frame_t *frame, int building)
 static void
 draw_new_stock_message_box(frame_t *frame, int param)
 {
-	draw_string(1, 10, frame, "A new stock");
-	draw_string(1, 20, frame, "has been built");
+	draw_string_block(1, 10, frame, _S(STR_STOCKBUILD, "A new stock|has been built"));
 	draw_map_object(16, 8, map_building_sprite[BUILDING_STOCK], frame);
 }
 
 static void
 draw_lost_land_message_box(frame_t *frame, int opponent)
 {
-	draw_string(1, 10, frame, "Because of this");
-	draw_string(1, 20, frame, "enemy building");
-	draw_string(1, 30, frame, "you lost some");
-	draw_string(1, 40, frame, "land");
+	draw_string_block(1, 10, frame, _S(STR_LANDLOST, "Because of this|enemy building|you lost some|land"));
 	draw_player_face(18, 8, opponent, frame);
 }
 
 static void
 draw_lost_buildings_message_box(frame_t *frame, int opponent)
 {
-	draw_string(1, 10, frame, "Because of this");
-	draw_string(1, 20, frame, "enemy building");
-	draw_string(1, 30, frame, "you lost some");
-	draw_string(1, 40, frame, "land and");
-	draw_string(1, 50, frame, "some buildings");
+	draw_string_block(1, 10, frame, _S(STR_BUILDLOST, "Because of this|enemy building|you lost some|land and|some buildings"));
 	draw_player_face(18, 8, opponent, frame);
 }
 
 static void
 draw_emergency_active_message_box(frame_t *frame, int param)
 {
-	draw_string(1, 10, frame, "Emergency");
-	draw_string(1, 20, frame, "program");
-	draw_string(1, 30, frame, "activated");
+	draw_string_block(1, 10, frame, _S(STR_EMERG_PROG_START, "Emergency|program|activated"));
 	draw_map_object(18, 8, map_building_sprite[BUILDING_CASTLE] + 1, frame);
 }
 
 static void
 draw_emergency_neutral_message_box(frame_t *frame, int param)
 {
-	draw_string(1, 10, frame, "Emergency");
-	draw_string(1, 20, frame, "program");
-	draw_string(1, 30, frame, "neutralized");
+	draw_string_block(1, 10, frame, _S(STR_EMERG_PROG_STOP, "Emergency|program|neutralized"));
 	draw_map_object(16, 8, map_building_sprite[BUILDING_CASTLE], frame);
 }
 
 static void
 draw_found_gold_message_box(frame_t *frame, int param)
 {
-	draw_string(1, 10, frame, "A geologist");
-	draw_string(1, 20, frame, "has found gold");
+	draw_string_block(1, 10, frame, _S(STR_GEO_GOLD, "A geologist|has found gold"));
 	draw_icon(20, 14, 0x2f, frame);
 }
 
 static void
 draw_found_iron_message_box(frame_t *frame, int param)
 {
-	draw_string(1, 10, frame, "A geologist");
-	draw_string(1, 20, frame, "has found iron");
+	draw_string_block(1, 10, frame, _S(STR_GEO_IRON, "A geologist|has found iron"));
 	draw_icon(20, 14, 0x2c, frame);
 }
 
 static void
 draw_found_coal_message_box(frame_t *frame, int param)
 {
-	draw_string(1, 10, frame, "A geologist");
-	draw_string(1, 20, frame, "has found coal");
+	draw_string_block(1, 10, frame, _S(STR_GEO_COAL, "A geologist|has found coal"));
 	draw_icon(20, 14, 0x2e, frame);
 }
 
 static void
 draw_found_stone_message_box(frame_t *frame, int param)
 {
-	draw_string(1, 10, frame, "A geologist");
-	draw_string(1, 20, frame, "has found stone");
+	draw_string_block(1, 10, frame, _S(STR_GEO_STONE, "A geologist|has found stone"));
 	draw_icon(20, 14, 0x2b, frame);
 }
 
@@ -233,36 +234,28 @@ draw_call_to_menu_message_box(frame_t *frame, int menu)
 		0xea, 0xeb, 0x12a, 0x12b
 	};
 
-	draw_string(1, 10, frame, "You wanted me");
-	draw_string(1, 20, frame, "to call you");
-	draw_string(1, 30, frame, "to this menu");
+	draw_string_block(1, 10, frame, _S(STR_CALLYOU_MENU, "You wanted me|to call you|to this menu"));
 	draw_icon(18, 8, map_menu_sprite[menu], frame);
 }
 
 static void
 draw_30m_since_save_message_box(frame_t *frame, int param)
 {
-	draw_string(1, 10, frame, "30 min. passed");
-	draw_string(1, 20, frame, "since the last");
-	draw_string(1, 30, frame, "saving");
+	draw_string_block(1, 10, frame, _S(STR_30M_SAVE, "30 min. passed|since the last|saving"));
 	draw_icon(20, 14, 0x5d, frame);
 }
 
 static void
 draw_1h_since_save_message_box(frame_t *frame, int param)
 {
-	draw_string(1, 10, frame, "One hour passed");
-	draw_string(1, 20, frame, "since the last");
-	draw_string(1, 30, frame, "saving");
+	draw_string_block(1, 10, frame, _S(STR_1H_SAVE, "One hour passed|since the last|saving"));
 	draw_icon(20, 14, 0x5d, frame);
 }
 
 static void
 draw_call_to_stock_message_box(frame_t *frame, int param)
 {
-	draw_string(1, 10, frame, "You wanted me");
-	draw_string(1, 20, frame, "to call you");
-	draw_string(1, 30, frame, "to this stock");
+	draw_string_block(1, 10, frame, _S(STR_CALLYOU_STOCK, "You wanted me|to call you|to this stock"));
 	draw_map_object(16, 8, map_building_sprite[BUILDING_STOCK], frame);
 }
 

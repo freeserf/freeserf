@@ -109,7 +109,7 @@ void init_language_data(enum_lng_t lng_id)
 				int len = strlen(value)+1;
 
 				//- copy string to buffer
-				strncpy(languageDataPos, value, len);
+				snprintf(languageDataPos, textLen - (languageDataPos-languageData), value, len);
 
 				//- save buffer pos of string
 				language[str_id] = languageDataPos;

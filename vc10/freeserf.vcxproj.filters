@@ -127,6 +127,9 @@
     <ClInclude Include="..\src\language.h">
       <Filter>Headerdateien</Filter>
     </ClInclude>
+    <ClInclude Include="..\src\config.h">
+      <Filter>Headerdateien</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\src\viewport.cpp">
@@ -214,6 +217,9 @@
       <Filter>Quelldateien</Filter>
     </ClCompile>
     <ClCompile Include="..\src\audio.cpp">
+      <Filter>Quelldateien</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\config.cpp">
       <Filter>Quelldateien</Filter>
     </ClCompile>
   </ItemGroup>

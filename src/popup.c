@@ -334,6 +334,33 @@ draw_green_string(int x, int y, frame_t *frame, const char *str)
 	gfx_draw_string(8*x+8, y+9, 31, 0, frame, str);
 }
 
+/* Draw a green string in a popup frame. */
+static int
+	draw_green_string_block(int x, int y, frame_t *frame, const char *str)
+{
+	const char * startstr = str;
+	int lastlen = 0;
+
+	for (; *str != 0; str++) {
+		if (*str == '|') {
+			gfx_draw_n_string(8 * x+8, y+9, 31, 0, frame, startstr, lastlen);
+			y += 10;
+			lastlen = 0;
+			startstr = str + 1;
+		}
+		else {
+			lastlen++;
+		}
+	}
+
+	if (lastlen > 0) {
+		gfx_draw_n_string(8 * x+8, y+9, 31, 0, frame, startstr, lastlen);
+		y += 10;
+	}
+
+	return y;
+}
+
 /* Draw a green number in a popup frame.
    n must be non-negative. If > 999 simply draw ">999" (three characters). */
 static void
@@ -432,7 +459,7 @@ static const char *
 prepare_res_amount_text(int amount)
 {
 	if (amount == 0) return _S(STR_NO_PRESENT, "Not Present");
-	else if (amount < 100) return _S(STR_MINIMUM, "Minimum");
+	else if (amount < 100) return _S(STR_MINIMAL, "Minimum");
 	else if (amount < 180) return _S(STR_VERY_FEW, "Very Few");
 	else if (amount < 240) return _S(STR_FEW, "Few");
 	else if (amount < 300) return _S(STR_BELOW_AVG, "Below Average");
@@ -1933,10 +1960,8 @@ draw_quit_confirm_box(popup_box_t *popup, frame_t *frame)
 {
 	draw_box_background(310, frame);
 
-	draw_green_string(0, 10, frame, _S(STR_QUIT1, "   Do you want"));
-	draw_green_string(0, 20, frame, _S(STR_QUIT2, "     to quit"));
-	draw_green_string(0, 30, frame, _S(STR_QUIT3, "   this game?"));
-	draw_green_string(0, 45, frame, _S(STR_QUIT4, "  Yes       No"));
+	draw_green_string_block(0, 10, frame, _S(STR_QUIT, "   Do you want|     to quit|   this game?"));
+	draw_green_string(0, 45, frame, _S(STR_YESNO, "  Yes       No"));
 
 	/* wait_x_timer_ticks(8); */
 
@@ -1946,12 +1971,8 @@ draw_quit_confirm_box(popup_box_t *popup, frame_t *frame)
 static void
 draw_no_save_quit_confirm_box(popup_box_t *popup, frame_t *frame)
 {
-	draw_green_string(0, 70, frame, _S(STR_NOSAVE1, "The game has not"));
-	draw_green_string(0, 80, frame, _S(STR_NOSAVE2, "   been saved"));
-	draw_green_string(0, 90, frame, _S(STR_NOSAVE3, "   recently."));
-	draw_green_string(0, 100, frame, _S(STR_NOSAVE4, "    Are you"));
-	draw_green_string(0, 110, frame, _S(STR_NOSAVE5, "     sure?"));
-	draw_green_string(0, 125, frame, _S(STR_NOSAVE6, "  Yes       No"));
+	draw_green_string_block(0, 70, frame, _S(STR_NOSAVE, "The game has not|   been saved|   recently.|    Are you|     sure?"));
+	draw_green_string(0, 125, frame, _S(STR_YESNO, "  Yes       No"));
 }
 
 static void
@@ -1962,8 +1983,7 @@ draw_options_box(popup_box_t *popup, frame_t *frame)
 	interface_t *interface = popup->interface;
 
 	draw_green_string(1, 14, frame, _S(STR_MUSIC, "Music"));
-	draw_green_string(1, 30, frame, _S(STR_SOUND, "Sound"));
-	draw_green_string(1, 39, frame, _S(STR_EFFECTS, "effects"));
+	draw_green_string_block(1, 30, frame, _S(STR_SOUND_EFCT, "Sound|effects"));
 	draw_green_string(1, 54, frame, _S(STR_VOLUME, "Volume"));
 
 	draw_popup_icon(13, 10, midi_is_enabled() ? 288 : 220, frame); /* Music */
@@ -2093,8 +2113,7 @@ draw_mine_output_box(popup_box_t *popup, frame_t *frame)
 	draw_green_string(x, 38, frame, "%");
 	draw_green_number(6, 38, frame, output);
 
-	draw_green_string(1, 14, frame, _S(STR_MINING, "MINING"));
-	draw_green_string(1, 24, frame, _S(STR_OUTPUT, "OUTPUT:"));
+	draw_green_string_block(1, 14, frame, _S(STR_MINE_OUT, "MINING|OUTPUT:"));
 
 	/* Exit box */
 	draw_popup_icon(14, 128, 0x3c, frame);
@@ -2123,8 +2142,7 @@ draw_ordered_building_box(popup_box_t *popup, frame_t *frame)
 	if (sprite == 0xc0 /*stock*/ || sprite >= 0x9e /*tower*/) x = 4;
 	draw_popup_building(x, 40, sprite, frame);
 
-	draw_green_string(2, 4, frame, _S(STR_ORDERED, "Ordered"));
-	draw_green_string(2, 14, frame, _S(STR_BUILD, "Building"));
+	draw_green_string_block(2, 4, frame, _S(STR_BUILD_ORDER, "Ordered|Building"));
 
 	if (BUILDING_HAS_SERF(building)) {
 		if (building->progress == 0) draw_popup_icon(2, 100, 0xb, frame); /* Digger */
@@ -2623,8 +2641,7 @@ draw_building_stock_box(popup_box_t *popup, frame_t *frame)
 	if (bld_sprite == 0xc0 /*stock*/ || bld_sprite >= 0x9e /*tower*/) x = 4;
 	draw_popup_building(x, 30, bld_sprite, frame);
 
-	draw_green_string(1, 4, frame, _S(STR_STOCK_OF, "Stock of"));
-	draw_green_string(1, 14, frame, _S(STR_THIS_BULD, "this building:"));
+	draw_green_string_block(1, 4, frame, _S(STR_STOCK_OF_BUILD, "Stock of|this building:"));
 
 	draw_popup_icon(14, 128, 0x3c, frame); /* exit box */
 }
@@ -2646,12 +2663,9 @@ draw_demolish_box(popup_box_t *popup, frame_t *frame)
 	draw_box_background(314, frame);
 
 	draw_popup_icon(14, 128, 60, frame); /* Exit */
-	draw_popup_icon(7, 45, 288, frame); /* Checkbox */
+	draw_popup_icon(7, 42, 288, frame); /* Checkbox */
 
-	draw_green_string(0, 10, frame, _S(STR_DEST_SURE1, "    Demolish:"));
-	draw_green_string(0, 30, frame, _S(STR_DEST_SURE2, "   Click here"));
-	draw_green_string(0, 68, frame, _S(STR_DEST_SURE3, "   if you are"));
-	draw_green_string(0, 86, frame, _S(STR_DEST_SURE4, "      sure"));
+	draw_green_string_block(0, 10, frame, _S(STR_DOMOLISH_SURE, "    Demolish:||   Click here|||   if you are|     sure"));
 }
 
 static void

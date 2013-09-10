@@ -28,6 +28,7 @@
 #include <stdint.h>
 
 #if _MSC_VER
+  #pragma warning(disable:4996)
 #else
   #include <unistd.h>
 #endif
@@ -248,6 +249,22 @@ gfx_draw_string(int x, int y, int color, int shadow, frame_t *dest, const char *
 
 		unsigned char c = *str++;
 		gfx_draw_char_sprite(x, y, c, color, shadow, dest);
+	}
+}
+
+/* Draw the length of a string str at x, y in the dest frame. */
+void
+gfx_draw_n_string(int x, int y, int color, int shadow, frame_t *dest, const char *str, int length)
+{
+	for (; length > 0 && *str != 0; length--) {
+
+		if (/*string_bg*/ 0) {
+			gfx_fill_rect(x, y, 8, 8, 0, dest);
+		}
+
+		unsigned char c = *str++;
+		gfx_draw_char_sprite(x, y, c, color, shadow, dest);
+		x += 8;
 	}
 }
 

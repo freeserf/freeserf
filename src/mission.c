@@ -82,8 +82,8 @@ int init_mission_type(mission_t ** mission_dest, ezxml_t rootTag, const char * m
 
 		for (int p = 0; p < 4; p++)
 		{
-			char PlayerBuffer[50];
-			sprintf(PlayerBuffer, "player%d", p);
+			char PlayerBuffer[PLAYER_BUFFER_LENGTH];
+			snprintf(PlayerBuffer, PLAYER_BUFFER_LENGTH, "player%d", p);
 
 			playerTag = ezxml_child(missionTag, PlayerBuffer);
 			if (playerTag)

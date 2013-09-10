@@ -32,6 +32,6 @@ rename sxmlc.cpp sxmlc.c
 rename version.cpp version.c
 rename viewport.cpp viewport.c
 rename language.cpp language.c
-
+rename config.cpp config.c
 
 rename ___rot___freeserf.cpp ___rot___freeserf.c

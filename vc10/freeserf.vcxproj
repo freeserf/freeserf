@@ -88,6 +88,7 @@
   <ItemGroup>
     <ClInclude Include="..\src\audio.h" />
     <ClInclude Include="..\src\building.h" />
+    <ClInclude Include="..\src\config.h" />
     <ClInclude Include="..\src\data.h" />
     <ClInclude Include="..\src\debug.h" />
     <ClInclude Include="..\src\ezxml.h" />
@@ -126,6 +127,7 @@
   <ItemGroup>
     <ClCompile Include="..\src\audio.cpp" />
     <ClCompile Include="..\src\building.cpp" />
+    <ClCompile Include="..\src\config.cpp" />
     <ClCompile Include="..\src\ezxml.cpp" />
     <ClCompile Include="..\src\flag.cpp" />
     <ClCompile Include="..\src\freeserf.cpp" />

@@ -8,8 +8,7 @@
   <str key="LEVEL" text="LEVEL:" />
 
   <str key="MUSIC" text="Musik" />
-  <str key="SOUND" text="Geraeusch-" />
-  <str key="EFFECTS" text="effekt" />
+  <str key="SOUND_EFCT" text="Geraeusche" />
   <str key="VOLUME" text="Lautstaerke" />
   <str key="FULLSCR" text="Vollbild" />
   <str key="VIDEO" text="" />
@@ -20,48 +19,64 @@
   <str key="FEW" text="wenige" />
   <str key="NONE" text="keine" />
 
-  <str key="MINING" text="MINING" />
-  <str key="OUTPUT" text="OUTPUT:" />
-  <str key="ORDERED" text="ORDERED" />
-  <str key="BUILD" text="Building" />
-  <str key="DEFENDERS" text="Defenders:" />
-  <str key="STATE" text="State:" />
-  <str key="TRANS_INFO" text="Transport Info:" />
+  <str key="MINE_OUT" text="ERFOLGSQUOTE|DES BERGWERKS:" />
+  <str key="BUILD_ORDER" text="AUFTRAG DER|BAUSTELLE:" />
+  <str key="DEFENDERS" text="Verteidigung:" />
+  <str key="STATE" text="BESETZUNG:" />
+  <str key="TRANS_INFO" text="WARENTRANSPORT:" />
   <str key="INDEX" text="Index:" />
-  <str key="THIS_BULD" text="this building:" />
-  <str key="STOCK_OF" text="Stock of:" />
+  <str key="STOCK_OF_BUILD" text="LAGERBESTAND|DES GEBAEUDES:" />
 
-  <str key="DEST_SURE1" text="      Abriss:" />
-  <str key="DEST_SURE2" text="Klicken sie hier" />
-  <str key="DEST_SURE3" text="wenn Sie sicher" />	
-  <str key="DEST_SURE4" text="      sind" />
-  <str key="NO_PRESENT" text="unauffindbar" />
 
-  <str key="MINIMUM" text="Minimal" />
-  <str key="VERY_FEW" text="sehr wenig" />
-  <str key="BELOW_AVG" text="unter Mittel" />
-  <str key="AVERAGE" text="Durchschnitt"	 />
-  <str key="ABOVE_AVG" text="ueber Mittel" />
-  <str key="MUCH" text="viel" />
-  <str key="VERY_MUCH" text="sehr viel" />
-  <str key="PERFECT" text="extrem viel" />
-  <str key="GND_ANALYSIS" text="  Bodenproben:" />
+  <str key="NO_PRESENT" text="UNAUFFINDBAR" />
+  <str key="MINIMAL" text="MINIMAL" />
+  <str key="VERY_FEW" text="SEHR WENIG" />
+  <str key="BELOW_AVG" text="UNTER MITTEL" />
+  <str key="AVERAGE" text="DURCHSCHNITT"	 />
+  <str key="ABOVE_AVG" text="UEBER MITTEL" />
+  <str key="MUCH" text="VIEL" />
+  <str key="VERY_MUCH" text="SEHR VIEL" />
+  <str key="PERFECT" text="EXTREM VIEL" />
+  <str key="GND_ANALYSIS" text="  BODENPROBEN:" />
 
-  <str key="WEAK" text="Weak" />
-  <str key="MEDIUM" text="Medium" />
-  <str key="GOOD" text="Good" />
-  <str key="FULL" text="Full"/>
+  <str key="MINIMUM" text="MINIMUM" />
+  <str key="WEAK" text="SCHWACH" />
+  <str key="MEDIUM" text="MITTEL" />
+  <str key="GOOD" text="GUT" />
+  <str key="FULL" text="VOLL"/>
 
-  <str key="QUIT1" text="   Wollen Sie" />
-  <str key="QUIT2" text="  dieses Spiel" />
-  <str key="QUIT3" text="   Beenden ?" />
-  <str key="QUIT4" text="  Ja       NEIN" />
+  <str key="MINEEMPTY" text="DIESEM BERGWERK|   GEHEN DIE| ROHSTOFFE AUS" />
 
-  <str key="NOSAVE1" text="  Der aktuelle" />
-  <str key="NOSAVE2" text="   Spielstand" />
-  <str key="NOSAVE3" text="  wurde nicht" />
-  <str key="NOSAVE4" text="gespeichert. Sind" />
-  <str key="NOSAVE5" text="  Sie sicher ?" />
-  <str key="NOSAVE6" text="  JA       NEIN" />
+  <str key="CALLYOU" text=" SIE WOLLTEN AN|  DIESE STELLE| GERUFEN WERDEN" />
+  <str key="CALLYOU_MENU" text=" SIE WOLLTEN ZU|  DIESEM MENU| GERUFEN WERDEN" />
+  <str key="CALLYOU_STOCK" text="SIE WOLLTEN|ZU DIESEM LAGER| GERUFEN WERDEN" />
+
+  <str key="30M_SAVE" text="SIE HABEN VOR|   30 MINUTEN| DAS LETZTE MAL|  GESPEICHERT" />
+  <str key="1H_SAVE" text="SIE HABEN VOR|  EINER STUNDE| DAS LETZTE MAL|  GESPEICHERT" />
+
+
+  <str key="NOSAVE" text="  DER AKTUELLE|   SPIELSTAND|  WURDE NICHT|GESPEICHERT.SIND|  SIE SICHER ?" />
+  <str key="QUIT" text="   WOLLEN SIE|  DIESES SPIEL|   BEENDEN ?" />
+  <str key="YESNO" text="  Ja       NEIN" />
+  <str key="DOMOLISH_SURE" text="     ABRISS:||KLICKEN SIE HIER|||WENN SIE SICHER|      SIND" />
+
+
+  <str key="KNIGHTOCCUP" text="EIN RITTER HAT|   EIN NEUES|GEBAEUDE BESETZT" />
+  <str key="LANDLOST" text="Sie haben durch|dieses generischen|Gebaeude Land|verloren" />
+  <str key="KNIGHTVIC" text="SIE HABEN EINEN| SIEG ERRUNGEN" />
+  <str key="KNIGHTLOST" text="IHRE RITTER| HABEN HIER DEN| KAMPF VERLOREN" />
+  <str key="BUILDLOST" text="DURCH DIESES| NEUE FEINDLICHE| GEBAEUDE HABEN|    SIE LAND|  UND GEBAEUDE|    VERLOREN" />
+  <str key="UNDERATK" text="IHRE SIEDLUNG|WIRD ANGEGRIFFEN" />
+
+
+  <str key="STOCKBUILD" text="EINE NEUE LAGER-|HALLE IST FERITG" />
+  <str key="EMERG_PROG_START" text="WEGEN ZUWENIG|BAUMATERIAL WIRD|DAS NOTPROGRAMM|  EINGELEITET" />
+  <str key="EMERG_PROG_STOP" text="DAS NOTPROGRAMM|  WIRD WIEDER|   ABGESETZT" />
+
+
+  <str key="GEO_GOLD" text="EIN GEOLOGE HAT| GOLD GEFUNDEN" />
+  <str key="GEO_IRON" text="EIN GEOLOGE HAT| EISEN GEFUNDEN" />
+  <str key="GEO_COAL" text="EIN GEOLOGE HAT| KOHLE GEFUNDEN" />
+  <str key="GEO_STONE" text="EIN GEOLOGE HAT|GRANIT GEFUNDEN" />
 
 </strings>
