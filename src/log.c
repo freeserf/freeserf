@@ -45,7 +45,7 @@ static void
 log_msg_va(log_level_t level, const char *system,
 	   const char *format, va_list ap)
 {
-	if (level >= log_level) {
+	if ((level >= log_level) && (log_file!=NULL)) {
 		if (system != NULL) fprintf(log_file, "[%s] ", system);
 		vfprintf(log_file, format, ap);
 		fprintf(log_file, "\n");

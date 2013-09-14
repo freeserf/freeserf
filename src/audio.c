@@ -490,7 +490,7 @@ xmi_process_EVNT(char *data, int length, midi_file_t *midi)
 static void
 midi_grow(midi_file_t *midi, uint8_t **current)
 {
-	uint8_t *data = (uint8_t *) malloc(uint(midi->size + 1024));
+	uint8_t *data = (uint8_t *) malloc((uint)(midi->size + 1024));
 	if (data == NULL) abort();
 
 	Uint64 pos = *current - midi->data;

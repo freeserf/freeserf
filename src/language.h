@@ -139,6 +139,10 @@ const char * get_language_text(enum_str_t str_id, const char * defaultStr);
 void init_language_data(enum_lng_t lng_id);
 void language_cleanup();
 
+
+const char * lagEnum_to_str(enum_lng_t str_id);
+enum_lng_t str_to_lagEnum(char * languageStr);
+
 enum_str_t get_strEnum_of_token(const char * token);
 
 

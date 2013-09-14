@@ -21,6 +21,24 @@ const char * get_language_text(enum_str_t str_id, const char * defaultStr)
 	return defaultStr;
 }
 
+const char * lagEnum_to_str(enum_lng_t str_id){
+	switch (str_id){
+		case LNG_GERMAN: return "DE";
+		default:
+			return "EN";
+	}
+}
+
+enum_lng_t str_to_lagEnum(char * languageStr) {
+	if (strcmp(languageStr, "en") == 0) return LNG_ENGLISH;
+	if (strcmp(languageStr, "de") == 0) return LNG_GERMAN;
+	return LNG_ENGLISH;
+}
+
+
+
+
+
 enum_str_t get_strEnum_of_token(const char * token)
 {
 	if (token == 0) return _STR_ENUM_LIST_BEGIN;
@@ -37,6 +55,7 @@ enum_str_t get_strEnum_of_token(const char * token)
 
 	return _STR_ENUM_LIST_BEGIN;
 }
+
 
 
 void init_language_data(enum_lng_t lng_id)
@@ -125,6 +144,7 @@ void init_language_data(enum_lng_t lng_id)
 		ezxml_free(rootTag);
 	}
 }
+
 
 
 void language_cleanup()

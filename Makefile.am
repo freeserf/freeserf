@@ -34,6 +34,7 @@ freeserf_SOURCES = \
 	src/freeserf_endian.h \
 	src/ezxml.c src/ezxml.h \
 	src/language.c src/language.h \
+	src/config.c src/config.h \
 	src/version.c src/version.h src/version_vcs.h
 
 AM_CFLAGS = $(SDL_CFLAGS) $(SDL_mixer_CFLAGS) -I$(top_builddir)/src

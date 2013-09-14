@@ -58,6 +58,7 @@
 #include "mission.h"
 #include "version.h"
 #include "language.h"
+#include "config.h"
 
 #define DEFAULT_SCREEN_WIDTH  800
 #define DEFAULT_SCREEN_HEIGHT 600
@@ -667,15 +668,24 @@ main(int argc, char *argv[])
 	char *data_file = NULL;
 	char *save_file = NULL;
 
-	int screen_width = DEFAULT_SCREEN_WIDTH;
-	int screen_height = DEFAULT_SCREEN_HEIGHT;
-	int fullscreen = 0;
 	int map_generator = 0;
 
-	int log_level = DEFAULT_LOG_LEVEL;
 
-	enum_lng_t language = LNG_ENGLISH;
+	log_set_file(stdout);
 
+	init_config_data();
+
+	//- read config data
+	int screen_width = get_config_int(CONFIG_SCREEN_WIDTH, DEFAULT_SCREEN_WIDTH);
+	int screen_height = get_config_int(CONFIG_SCREEN_HEIGHT, DEFAULT_SCREEN_HEIGHT);
+	int fullscreen = get_config_bool(CONFIG_FULLSCREEN, 0);
+	int log_level = get_config_int(CONFIG_LOGGLEVEL, DEFAULT_LOG_LEVEL);
+	enum_lng_t language = str_to_lagEnum((char *)get_config_string(CONFIG_LANGUAGE, "EN"));
+	int play_midi = get_config_bool(CONFIG_MUSIC, 1);
+	int play_SFX = get_config_bool(CONFIG_SFX, 1);
+	int volume = get_config_int(CONFIG_VOLUME, 75);
+
+	//- read command line parameters
 	int opt;
 	while (1) {
 		opt = getopt(argc, argv, "d:fg:hl:r:t:s:");
@@ -727,9 +737,7 @@ main(int argc, char *argv[])
 				if (tmp_language_str != NULL)
 				{
 					strcpy(tmp_language_str, optarg);
-
-					if (strcmp(tmp_language_str, "en") == 0) language = LNG_ENGLISH;
-					if (strcmp(tmp_language_str, "de") == 0) language = LNG_GERMAN;
+					language = str_to_lagEnum(tmp_language_str);
 				}
 			}
 			break;
@@ -741,7 +749,6 @@ main(int argc, char *argv[])
 	}
 
 	/* Set up logging */
-	log_set_file(stdout);
 	log_set_level((log_level_t)log_level);
 
 	LOGI("main", "freeserf %s", FREESERF_VERSION);
@@ -767,7 +774,11 @@ main(int argc, char *argv[])
 
 	/* TODO move to right place */
 	midi_play_track(MIDI_TRACK_0);
-	audio_set_volume(75);
+	audio_set_volume(volume);
+
+	midi_enable(play_midi);
+	sfx_enable(play_SFX);
+
 
 	/*gfx_set_palette(DATA_PALETTE_INTRO);*/
 	gfx_set_palette(DATA_PALETTE_GAME);
@@ -831,6 +842,7 @@ main(int argc, char *argv[])
 	gfx_unload();
 	language_cleanup();
 	mission_cleanup();
+	config_cleanup();
 
 	return EXIT_SUCCESS;
 }
