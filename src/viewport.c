@@ -2485,7 +2485,8 @@ static int
 viewport_handle_drag(viewport_t *viewport, int x, int y,
 		     gui_event_button_t button)
 {
-	if (button == GUI_EVENT_BUTTON_RIGHT) {
+	if (button == GUI_EVENT_BUTTON_RIGHT ||
+	    button == GUI_EVENT_BUTTON_LEFT) {
 		int dx = x - viewport->interface->pointer_x;
 		int dy = y - viewport->interface->pointer_y;
 		if (dx != 0 || dy != 0) {
