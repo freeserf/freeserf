@@ -170,8 +170,16 @@ sdl_init()
 	signal(SIGINT, exit);
 	signal(SIGTERM, exit);
 
+#ifdef __AMIGAOS4
+	/* Amiga's SDL has a bug which makes mouse to lag
+	   when cursor is hidden. Therefore cursor must
+	   be visible. */
+	SDL_ShowCursor(SDL_ENABLE);
+	SDL_SetCursor(NULL);
+#else
 	/* Don't show cursor */
 	SDL_ShowCursor(SDL_DISABLE);
+#endif
 
 	SDL_EnableKeyRepeat(SDL_DEFAULT_REPEAT_DELAY, SDL_DEFAULT_REPEAT_INTERVAL);
 
@@ -192,8 +200,20 @@ sdl_deinit()
 int
 sdl_set_resolution(int width, int height, int fullscreen)
 {
-	int flags = SDL_SWSURFACE | SDL_DOUBLEBUF | SDL_RESIZABLE;
+	int flags = SDL_RESIZABLE;
+#ifdef __AMIGAOS4
+	if (fullscreen) {
+		/* Double buffering does not work in full screen mode and
+		   any attempt to use video memory will also lock up the system. */
+		flags |= SDL_SWSURFACE | SDL_FULLSCREEN;
+	} else {
+		/* Use video memory and double buffering */
+		flags |= SDL_HWSURFACE | SDL_HWPALETTE | SDL_DOUBLEBUF;
+	}
+#else
+	flags |= SDL_SWSURFACE | SDL_DOUBLEBUF;
 	if (fullscreen) flags |= SDL_FULLSCREEN;
+#endif
 
 	screen.surf = SDL_SetVideoMode(width, height, 32, flags);
 	if (screen.surf == NULL) {
