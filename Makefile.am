@@ -24,7 +24,7 @@ freeserf_SOURCES = \
 	src/map.c src/map.h \
 	src/player.c src/player.h \
 	src/sdl-video.c src/sdl-video.h \
-	src/audio.c src/audio.h \
+	src/audio.h \
 	src/savegame.c src/savegame.h \
 	src/list.c src/list.h \
 	src/pqueue.c src/pqueue.h \
@@ -34,8 +34,16 @@ freeserf_SOURCES = \
 	src/freeserf_endian.h \
 	src/version.c src/version.h src/version_vcs.h
 
-AM_CFLAGS = $(SDL_CFLAGS) $(SDL_mixer_CFLAGS) -I$(top_builddir)/src
-freeserf_LDADD = $(SDL_LIBS) $(SDL_mixer_LIBS) $(SDL_CFLAGS) -lm
+AM_CFLAGS = $(SDL_CFLAGS) -I$(top_builddir)/src
+freeserf_LDADD = $(SDL_LIBS) $(SDL_CFLAGS) -lm
+
+if ENABLE_SDL_MIXER
+AM_CFLAGS += $(SDL_mixer_CFLAGS)
+freeserf_LDADD += $(SDL_mixer_LIBS)
+freeserf_SOURCES += src/audio-sdlmixer.c
+else
+freeserf_SOURCES += src/audio-dummy.c
+endif
 
 VCS_VERSION_FILE = src/version_vcs.h
 
