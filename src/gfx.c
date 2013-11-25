@@ -159,6 +159,7 @@ gfx_unload()
 #else /* ! HAVE_MMAP */
 	free(sprites);
 #endif
+	sprites = NULL;
 }
 
 /* Return a pointer to the data object at index.
