@@ -53,7 +53,7 @@ static list_t midi_tracks;
 static int initialized = 0;
 static int sfx_enabled = 1;
 static int midi_enabled = 1;
-static midi_t current_track = -1;
+static midi_t current_track = MIDI_TRACK_NONE;
 
 static void
 midi_track_finished();

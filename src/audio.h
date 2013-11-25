@@ -66,6 +66,7 @@ typedef enum {
 } sfx_t;
 
 typedef enum {
+	MIDI_TRACK_NONE = -1,
 	MIDI_TRACK_0 = 0,
 	MIDI_TRACK_1 = 1,
 	MIDI_TRACK_2 = 2,
