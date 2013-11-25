@@ -15,7 +15,7 @@ AM_PROG_CC_C_O
 
 # Checks for libraries.
 AM_PATH_SDL
-PKG_CHECK_MODULES([SDL_mixer], [SDL_mixer])
+PKG_CHECK_MODULES([SDL_mixer], [SDL_mixer], [have_sdl_mixer=yes], [have_sdl_mixer=no])
 
 # Checks for header files.
 AC_HEADER_ASSERT
@@ -39,6 +39,29 @@ AC_TYPE_UINT32_T
 AC_FUNC_MMAP
 AC_TYPE_SIGNAL
 AC_CHECK_FUNCS([atexit memset munmap strtol])
+
+# Check SDL_mixer support
+AC_MSG_CHECKING([whether to enable SDL_mixer support])
+AC_ARG_ENABLE([sdl-mixer], [AC_HELP_STRING([--enable-sdl-mixer],
+			   [enable SDL_mixer support (music/sound effects)])],
+			   [enable_sdl_mixer=$enableval], [enable_sdl_mixer=maybe])
+AS_IF([test "x$enable_sdl_mixer" != xno], [
+	AS_IF([test $have_sdl_mixer = yes], [
+		AC_DEFINE([ENABLE_SDL_MIXER], 1, [Define to 1 to enable SDL_mixer support])
+		AC_MSG_RESULT([yes])
+		enable_sdl_mixer=yes
+	], [
+		AC_MSG_RESULT([missing dependencies])
+		AS_IF([test "x$enable_sdl_mixer" = xyes], [
+			AC_MSG_ERROR([missing dependencies for SDL_mixer])
+		])
+		enable_sdl_mixer=no
+	])
+], [
+	AC_MSG_RESULT([no])
+	enable_sdl_mixer=no
+])
+AM_CONDITIONAL([ENABLE_SDL_MIXER], [test "x$enable_sdl_mixer" = xyes])
 
 # Check debug mode
 AC_MSG_CHECKING([whether to enable debug mode])
@@ -80,4 +103,6 @@ echo "
     compiler:		${CC}
     cflags:		${CFLAGS}
     ldflags:		${LDFLAGS}
+
+    SDL_mixer:		${enable_sdl_mixer}
 "
