@@ -310,6 +310,8 @@ load_v0_player_state(FILE *f)
 		player->castle_score = *(int16_t *)&data[478];
 
 		/* TODO */
+
+		player->timers_count = 0;
 	}
 
 	free(data);
@@ -1941,6 +1943,8 @@ load_text_player_section(section_t *section)
 			LOGD("savegame", "Unhandled player setting: `%s'.", s->key);
 		}
 	}
+
+	player->timers_count = 0;
 
 	return 0;
 }
