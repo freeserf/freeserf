@@ -564,16 +564,16 @@ static void
 allocate_global_memory()
 {
 	/* Players */
-	game.player[0] = malloc(sizeof(player_t));
+	game.player[0] = calloc(1, sizeof(player_t));
 	if (game.player[0] == NULL) abort();
 
-	game.player[1] = malloc(sizeof(player_t));
+	game.player[1] = calloc(1, sizeof(player_t));
 	if (game.player[1] == NULL) abort();
 
-	game.player[2] = malloc(sizeof(player_t));
+	game.player[2] = calloc(1, sizeof(player_t));
 	if (game.player[2] == NULL) abort();
 
-	game.player[3] = malloc(sizeof(player_t));
+	game.player[3] = calloc(1, sizeof(player_t));
 	if (game.player[3] == NULL) abort();
 
 	/* TODO this should be allocated on game start according to the
