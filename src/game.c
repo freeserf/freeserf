@@ -3744,7 +3744,7 @@ create_initial_castle_serfs(player_t *player)
 	if (r < 0) return;
 
 	inventory->generic_count -= 1;
-	serf_set_type(serf, SERF_4);
+	serf_set_type(serf, SERF_TRANSPORTER_INVENTORY);
 
 	serf_log_state_change(serf, SERF_STATE_BUILDING_CASTLE);
 	serf->state = SERF_STATE_BUILDING_CASTLE;
@@ -4362,7 +4362,7 @@ demolish_building(map_pos_t pos)
 			for (int i = 1; i < game.max_serf_index; i++) {
 				if (SERF_ALLOCATED(i)) {
 					serf_t *serf = game_get_serf(i);
-					if (SERF_TYPE(serf) == SERF_4 &&
+					if (SERF_TYPE(serf) == SERF_TRANSPORTER_INVENTORY &&
 					    serf->pos == building->pos) {
 						serf_set_type(serf, SERF_TRANSPORTER);
 						serf->counter = 0;
@@ -4400,7 +4400,7 @@ demolish_building(map_pos_t pos)
 			}
 		} else {
 			serf_t *serf = game_get_serf(serf_index);
-			if (SERF_TYPE(serf) == SERF_4) {
+			if (SERF_TYPE(serf) == SERF_TRANSPORTER_INVENTORY) {
 				serf_set_type(serf, SERF_TRANSPORTER);
 			}
 

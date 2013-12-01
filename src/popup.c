@@ -1382,7 +1382,9 @@ draw_stat_6_box(popup_box_t *popup, frame_t *frame)
 
 	int total = 0;
 	for (int i = 0; i < 27; i++) {
-		if (i != SERF_4) total += popup->interface->player->serf_count[i];
+		if (i != SERF_TRANSPORTER_INVENTORY) {
+			total += popup->interface->player->serf_count[i];
+		}
 	}
 
 	draw_serfs_box(frame, popup->interface->player->serf_count, total);

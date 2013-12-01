@@ -1448,11 +1448,10 @@ serf_get_body(serf_t *serf, uint32_t *animation_table)
 			t += 0x580;
 		}
 		break;
-	case SERF_4:
+	case SERF_TRANSPORTER_INVENTORY:
 		if (serf->state == SERF_STATE_BUILDING_CASTLE) {
 			return -1;
 		} else {
-			/* TODO Dangerous reference to unknown state var. Guessing. */
 			int res = -1;
 			switch (serf->state) {
 			case SERF_STATE_ENTERING_BUILDING:

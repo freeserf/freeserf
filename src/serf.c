@@ -241,8 +241,8 @@ serf_set_type(serf_t *serf, serf_type_t type)
 	serf->type = (serf->type & 0x83) | (type << 2);
 
 	/* Register this type as transporter */
-	if (type == SERF_4) type = SERF_TRANSPORTER;
-	if (old_type == SERF_4) type = SERF_TRANSPORTER;
+	if (type == SERF_TRANSPORTER_INVENTORY) type = SERF_TRANSPORTER;
+	if (old_type == SERF_TRANSPORTER_INVENTORY) type = SERF_TRANSPORTER;
 
 	player_t *player = game.player[SERF_PLAYER(serf)];
 	player->serf_count[old_type] -= 1;
@@ -1019,7 +1019,7 @@ handle_serf_entering_building_state(serf_t *serf)
 				serf_log_state_change(serf, SERF_STATE_WAIT_FOR_RESOURCE_OUT);
 				serf->state = SERF_STATE_WAIT_FOR_RESOURCE_OUT;
 				serf->counter = 63;
-				serf_set_type(serf, SERF_4);
+				serf_set_type(serf, SERF_TRANSPORTER_INVENTORY);
 			}
 			break;
 		case SERF_SAILOR:
@@ -1065,7 +1065,7 @@ handle_serf_entering_building_state(serf_t *serf)
 				}
 			}
 			break;
-		case SERF_4:
+		case SERF_TRANSPORTER_INVENTORY:
 			map_set_serf_index(serf->pos, 0);
 			serf_log_state_change(serf, SERF_STATE_WAIT_FOR_RESOURCE_OUT);
 			serf->state = SERF_STATE_WAIT_FOR_RESOURCE_OUT;
