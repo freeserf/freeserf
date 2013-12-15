@@ -34,12 +34,12 @@ freeserf_SOURCES = \
 	src/freeserf_endian.h \
 	src/version.c src/version.h src/version_vcs.h
 
-AM_CFLAGS = $(SDL_CFLAGS) -I$(top_builddir)/src
-freeserf_LDADD = $(SDL_LIBS) $(SDL_CFLAGS) -lm
+AM_CFLAGS = $(SDL2_CFLAGS) -I$(top_builddir)/src
+freeserf_LDADD = $(SDL2_LIBS) $(SDL2_CFLAGS) -lm
 
-if ENABLE_SDL_MIXER
-AM_CFLAGS += $(SDL_mixer_CFLAGS)
-freeserf_LDADD += $(SDL_mixer_LIBS)
+if ENABLE_SDL2_MIXER
+AM_CFLAGS += $(SDL2_mixer_CFLAGS)
+freeserf_LDADD += $(SDL2_mixer_LIBS)
 freeserf_SOURCES += src/audio-sdlmixer.c
 else
 freeserf_SOURCES += src/audio-dummy.c

@@ -616,7 +616,7 @@ midi_play_track(midi_t midi)
 		pqueue_deinit(&midi_file.nodes);
 
 		SDL_RWops *rw = SDL_RWFromMem(data, (int)size);
-		track->music = Mix_LoadMUS_RW(rw);
+		track->music = Mix_LoadMUS_RW(rw, 0);
 		if (NULL == track->music) {
 			free(track);
 			return;

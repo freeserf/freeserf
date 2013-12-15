@@ -240,8 +240,8 @@ minimap_handle_drag(minimap_t *minimap, int x, int y,
 		int dy = y - minimap->pointer_y;
 		if (dx != 0 || dy != 0) {
 			minimap_move_by_pixels(minimap, dx, dy);
-			SDL_WarpMouse(minimap->interface->pointer_x,
-				      minimap->interface->pointer_y);
+			sdl_warp_mouse(minimap->interface->pointer_x,
+				       minimap->interface->pointer_y);
 		}
 	}
 

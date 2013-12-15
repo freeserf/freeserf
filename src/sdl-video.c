@@ -1,7 +1,7 @@
 /*
  * sdl-video.c - SDL graphics rendering
  *
- * Copyright (C) 2012  Jon Lund Steffensen <jonlst@gmail.com>
+ * Copyright (C) 2013  Jon Lund Steffensen <jonlst@gmail.com>
  *
  * This file is part of freeserf.
  *
@@ -45,14 +45,14 @@
 #define BMASK  (0xff << BSHIFT)
 #define AMASK  (0xff << ASHIFT)
 
-#define MAX_DIRTY_RECTS  128
+
+static SDL_Window *window;
+static SDL_Renderer *renderer;
+static SDL_Texture *screen_texture;
 
 static frame_t screen;
 static int is_fullscreen;
 static SDL_Color pal_colors[256];
-
-static SDL_Rect dirty_rects[MAX_DIRTY_RECTS];
-static int dirty_rect_counter = 0;
 
 
 struct surface {
@@ -164,24 +164,33 @@ sdl_init()
 	/* Display program name and version in caption */
 	char caption[64];
 	snprintf(caption, 64, "freeserf %s", FREESERF_VERSION);
-	SDL_WM_SetCaption(caption, caption);
+
+	/* Create window and renderer */
+	window = SDL_CreateWindow(caption,
+				  SDL_WINDOWPOS_UNDEFINED,
+				  SDL_WINDOWPOS_UNDEFINED,
+				  800, 600, SDL_WINDOW_RESIZABLE);
+	if (window == NULL) {
+		LOGE("sdl-video", "Unable to create SDL window: %s.", SDL_GetError());
+		return -1;
+	}
+
+	/* Create renderer for window */
+	renderer = SDL_CreateRenderer(window, -1, 0);
+	if (renderer == NULL) {
+		LOGE("sdl-video", "Unable to create SDL renderer: %s.", SDL_GetError());
+		return -1;
+	}
+
+	/* Set scaling mode */
+	SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY, "linear");
 
 	/* Exit on signals */
 	signal(SIGINT, exit);
 	signal(SIGTERM, exit);
 
-#ifdef __AMIGAOS4
-	/* Amiga's SDL has a bug which makes mouse to lag
-	   when cursor is hidden. Therefore cursor must
-	   be visible. */
-	SDL_ShowCursor(SDL_ENABLE);
-	SDL_SetCursor(NULL);
-#else
 	/* Don't show cursor */
 	SDL_ShowCursor(SDL_DISABLE);
-#endif
-
-	SDL_EnableKeyRepeat(SDL_DEFAULT_REPEAT_DELAY, SDL_DEFAULT_REPEAT_INTERVAL);
 
 	/* Init sprite cache */
 	surface_ht_init(&transp_sprite_cache, 4096);
@@ -197,27 +206,46 @@ sdl_deinit()
 	SDL_Quit();
 }
 
+static SDL_Surface *
+sdl_create_surface(int width, int height)
+{
+	SDL_Surface *surf = SDL_CreateRGBSurface(0, width, height, 32,
+						 RMASK, GMASK, BMASK, AMASK);
+	if (surf == NULL) {
+		LOGE("sdl-video", "Unable to create SDL surface: %s.", SDL_GetError());
+		exit(EXIT_FAILURE);
+	}
+
+	return surf;
+}
+
 int
 sdl_set_resolution(int width, int height, int fullscreen)
 {
-	int flags = SDL_RESIZABLE;
-#ifdef __AMIGAOS4
-	if (fullscreen) {
-		/* Double buffering does not work in full screen mode and
-		   any attempt to use video memory will also lock up the system. */
-		flags |= SDL_SWSURFACE | SDL_FULLSCREEN;
-	} else {
-		/* Use video memory and double buffering */
-		flags |= SDL_HWSURFACE | SDL_HWPALETTE | SDL_DOUBLEBUF;
-	}
-#else
-	flags |= SDL_SWSURFACE | SDL_DOUBLEBUF;
-	if (fullscreen) flags |= SDL_FULLSCREEN;
-#endif
+	/* Allocate new screen surface and texture */
+	if (screen.surf != NULL) SDL_FreeSurface(screen.surf);
+	screen.surf = sdl_create_surface(width, height);
 
-	screen.surf = SDL_SetVideoMode(width, height, 32, flags);
-	if (screen.surf == NULL) {
-		LOGE("sdl-video", "Unable to set video mode: %s.", SDL_GetError());
+	if (screen_texture != NULL) SDL_DestroyTexture(screen_texture);
+	screen_texture = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_ABGR8888,
+					   SDL_TEXTUREACCESS_STREAMING,
+					   width, height);
+	if (screen_texture == NULL) {
+		LOGE("sdl-video", "Unable to create SDL texture: %s.", SDL_GetError());
+		return -1;
+	}
+
+	/* Set fullscreen mode */
+	int r = SDL_SetWindowFullscreen(window, fullscreen ? SDL_WINDOW_FULLSCREEN_DESKTOP : 0);
+	if (r < 0) {
+		LOGE("sdl-video", "Unable to set window fullscreen: %s.", SDL_GetError());
+		return -1;
+	}
+
+	/* Set logical size of screen */
+	r = SDL_RenderSetLogicalSize(renderer, width, height);
+	if (r < 0) {
+		LOGE("sdl-video", "Unable to set logical size: %s.", SDL_GetError());
 		return -1;
 	}
 
@@ -246,19 +274,6 @@ int
 sdl_is_fullscreen()
 {
 	return is_fullscreen;
-}
-
-static SDL_Surface *
-sdl_create_surface(int width, int height)
-{
-	SDL_Surface *surf = SDL_CreateRGBSurface(SDL_SRCALPHA,
-						 width, height, 32, RMASK, GMASK, BMASK, AMASK);
-	if (surf == NULL) {
-		LOGE("sdl-video", "Unable to create SDL surface: %s.", SDL_GetError());
-		exit(EXIT_FAILURE);
-	}
-
-	return surf;
 }
 
 frame_t *
@@ -295,6 +310,13 @@ sdl_frame_get_height(const frame_t *frame)
 	return frame->clip.h;
 }
 
+void
+sdl_warp_mouse(int x, int y)
+{
+	SDL_WarpMouseInWindow(NULL, x, y);
+}
+
+
 static SDL_Surface *
 create_surface_from_data(void *data, int width, int height, int transparent) {
 	int r;
@@ -310,8 +332,8 @@ create_surface_from_data(void *data, int width, int height, int transparent) {
 	}
 
 	/* Set sprite palette */
-	r = SDL_SetPalette(surf8, SDL_LOGPAL | SDL_PHYSPAL, pal_colors, 0, 256);
-	if (r == 0) {
+	r = SDL_SetPaletteColors(surf8->format->palette, pal_colors, 0, 256);
+	if (r < 0) {
 		LOGE("sdl-video", "Unable to set palette for sprite.");
 		exit(EXIT_FAILURE);
 	}
@@ -321,25 +343,22 @@ create_surface_from_data(void *data, int width, int height, int transparent) {
 
 	if (transparent) {
 		/* Set color key */
-		r = SDL_SetColorKey(surf8, SDL_SRCCOLORKEY | SDL_RLEACCEL, 0);
+		r = SDL_SetColorKey(surf8, SDL_TRUE, 0);
 		if (r < 0) {
 			LOGE("sdl-video", "Unable to set color key for sprite.");
 			exit(EXIT_FAILURE);
 		}
-
-		surf = SDL_DisplayFormatAlpha(surf8);
-	} else {
-		surf = SDL_DisplayFormat(surf8);
 	}
 
+	surf = SDL_ConvertSurface(surf8, screen.surf->format, 0);
 	if (surf == NULL) {
 		LOGE("sdl-video", "Unable to convert sprite surface: %s.",
 		     SDL_GetError());
 		exit(EXIT_FAILURE);
 	}
-	
+
 	SDL_FreeSurface(surf8);
-	
+
 	return surf;
 }
 
@@ -759,41 +778,25 @@ sdl_fill_rect(int x, int y, int width, int height, int color, frame_t *dest)
 }
 
 void
-sdl_mark_dirty(int x, int y, int width, int height)
-{
-	if (dirty_rect_counter < MAX_DIRTY_RECTS) {
-		dirty_rects[dirty_rect_counter].x = x;
-		dirty_rects[dirty_rect_counter].y = y;
-		dirty_rects[dirty_rect_counter].w = width;
-		dirty_rects[dirty_rect_counter].h = height;
-	}
-	dirty_rect_counter += 1;
-}
-
-void
 sdl_swap_buffers()
 {
-	if (dirty_rect_counter > MAX_DIRTY_RECTS) {
-		SDL_UpdateRect(screen.surf, 0, 0, 0, 0);
-	} else if (dirty_rect_counter > 0) {
-		SDL_UpdateRects(screen.surf, dirty_rect_counter, dirty_rects);
-	}
-	dirty_rect_counter = 0;
+	SDL_UpdateTexture(screen_texture, NULL,
+			  screen.surf->pixels,
+			  screen.surf->pitch);
+
+	SDL_RenderClear(renderer);
+	SDL_RenderCopy(renderer, screen_texture, NULL, NULL);
+	SDL_RenderPresent(renderer);
 }
 
 void
 sdl_set_palette(const uint8_t *palette)
 {
-	/* Entry 0 is always black */
-	pal_colors[0].r = 0;
-	pal_colors[0].g = 0;
-	pal_colors[0].b = 0;
-
 	/* Fill palette */
 	for (int i = 0; i < 256; i++) {
 		pal_colors[i].r = palette[i*3];
 		pal_colors[i].g = palette[i*3+1];
 		pal_colors[i].b = palette[i*3+2];
+		pal_colors[i].a = SDL_ALPHA_OPAQUE;
 	}
 }
-

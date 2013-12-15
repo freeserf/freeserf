@@ -14,8 +14,8 @@ AC_PROG_CC_C99
 AM_PROG_CC_C_O
 
 # Checks for libraries.
-AM_PATH_SDL
-PKG_CHECK_MODULES([SDL_mixer], [SDL_mixer], [have_sdl_mixer=yes], [have_sdl_mixer=no])
+PKG_CHECK_MODULES([SDL2], [sdl2])
+PKG_CHECK_MODULES([SDL2_mixer], [SDL2_mixer], [have_sdl2_mixer=yes], [have_sdl2_mixer=no])
 
 # Checks for header files.
 AC_HEADER_ASSERT
@@ -40,28 +40,28 @@ AC_FUNC_MMAP
 AC_TYPE_SIGNAL
 AC_CHECK_FUNCS([atexit memset munmap strtol])
 
-# Check SDL_mixer support
-AC_MSG_CHECKING([whether to enable SDL_mixer support])
-AC_ARG_ENABLE([sdl-mixer], [AC_HELP_STRING([--enable-sdl-mixer],
-			   [enable SDL_mixer support (music/sound effects)])],
-			   [enable_sdl_mixer=$enableval], [enable_sdl_mixer=maybe])
-AS_IF([test "x$enable_sdl_mixer" != xno], [
-	AS_IF([test $have_sdl_mixer = yes], [
-		AC_DEFINE([ENABLE_SDL_MIXER], 1, [Define to 1 to enable SDL_mixer support])
+# Check SDL2_mixer support
+AC_MSG_CHECKING([whether to enable SDL2_mixer support])
+AC_ARG_ENABLE([sdl2-mixer], [AC_HELP_STRING([--enable-sdl2-mixer],
+			   [enable SDL2_mixer support (music/sound effects)])],
+			   [enable_sdl2_mixer=$enableval], [enable_sdl2_mixer=maybe])
+AS_IF([test "x$enable_sdl2_mixer" != xno], [
+	AS_IF([test $have_sdl2_mixer = yes], [
+		AC_DEFINE([ENABLE_SDL2_MIXER], 1, [Define to 1 to enable SDL2_mixer support])
 		AC_MSG_RESULT([yes])
-		enable_sdl_mixer=yes
+		enable_sdl2_mixer=yes
 	], [
 		AC_MSG_RESULT([missing dependencies])
-		AS_IF([test "x$enable_sdl_mixer" = xyes], [
-			AC_MSG_ERROR([missing dependencies for SDL_mixer])
+		AS_IF([test "x$enable_sdl2_mixer" = xyes], [
+			AC_MSG_ERROR([missing dependencies for SDL2_mixer])
 		])
-		enable_sdl_mixer=no
+		enable_sdl2_mixer=no
 	])
 ], [
 	AC_MSG_RESULT([no])
-	enable_sdl_mixer=no
+	enable_sdl2_mixer=no
 ])
-AM_CONDITIONAL([ENABLE_SDL_MIXER], [test "x$enable_sdl_mixer" = xyes])
+AM_CONDITIONAL([ENABLE_SDL2_MIXER], [test "x$enable_sdl2_mixer" = xyes])
 
 # Check debug mode
 AC_MSG_CHECKING([whether to enable debug mode])
@@ -104,5 +104,5 @@ echo "
     cflags:		${CFLAGS}
     ldflags:		${LDFLAGS}
 
-    SDL_mixer:		${enable_sdl_mixer}
+    SDL2_mixer:		${enable_sdl2_mixer}
 "

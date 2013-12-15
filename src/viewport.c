@@ -2490,8 +2490,8 @@ viewport_handle_drag(viewport_t *viewport, int x, int y,
 		int dy = y - viewport->interface->pointer_y;
 		if (dx != 0 || dy != 0) {
 			viewport_move_by_pixels(viewport, dx, dy);
-			SDL_WarpMouse(viewport->interface->pointer_x,
-				      viewport->interface->pointer_y);
+			sdl_warp_mouse(viewport->interface->pointer_x,
+				       viewport->interface->pointer_y);
 		}
 	}
 

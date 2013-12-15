@@ -477,15 +477,6 @@ game_loop()
 					break;
 				}
 				break;
-			case SDL_VIDEORESIZE:
-				sdl_set_resolution(event.resize.w, event.resize.h, 0);
-
-				frame_t *screen = sdl_get_screen_frame();
-				int width = sdl_frame_get_width(screen);
-				int height = sdl_frame_get_height(screen);
-
-				gui_object_set_size((gui_object_t *)&interface, width, height);
-				break;
 			case SDL_QUIT:
 				game_loop_quit();
 				break;
@@ -525,10 +516,6 @@ game_loop()
 
 		frame_t *screen = sdl_get_screen_frame();
 		gui_object_redraw(GUI_OBJECT(&interface), screen);
-
-		/* TODO very crude dirty marking algortihm: mark everything. */
-		sdl_mark_dirty(0, 0, sdl_frame_get_width(screen),
-			       sdl_frame_get_height(screen));
 
 		/* Swap video buffers */
 		sdl_swap_buffers();
