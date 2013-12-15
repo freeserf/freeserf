@@ -45,9 +45,6 @@
 #define VIEWPORT_COLS(viewport)  (2*((viewport)->obj.width / MAP_TILE_WIDTH) + 1)
 
 
-/* Cache all combinations of textures and masks, and both up tiles and down tiles. */
-static surface_t *map_tile_cache[2*MAP_TILE_TEXTURES*MAP_TILE_MASKS];
-
 /* Cache prerendered tiles of the landscape. */
 typedef struct {
 	frame_t frame;
@@ -68,14 +65,6 @@ draw_map_tile(int x, int y, int mask, int sprite, frame_t *frame)
 	sprite_t *spr = gfx_get_data_object(sprite, NULL);
 	sprite_t *msk = gfx_get_data_object(mask, NULL);
 	sdl_draw_masked_sprite(spr, x, y, msk, NULL, frame);
-}
-
-static void
-draw_map_tile_cached(int x, int y, int mask, int sprite, unsigned int index, frame_t *frame)
-{
-	sprite_t *spr = gfx_get_data_object(sprite, NULL);
-	sprite_t *msk = gfx_get_data_object(mask, NULL);
-	map_tile_cache[index] = sdl_draw_masked_sprite(spr, x, y, msk, map_tile_cache[index], frame);
 }
 
 
@@ -125,9 +114,9 @@ draw_triangle_up(int x, int y, int m, int left, int right, map_pos_t pos, frame_
 
 	int sprite = tri_spr[index];
 
-	draw_map_tile_cached(x, y,
-			     DATA_MAP_MASK_UP_BASE + mask,
-			     DATA_MAP_GROUND_BASE + sprite, 33*80 + 33*mask + sprite, frame);
+	draw_map_tile(x, y,
+		      DATA_MAP_MASK_UP_BASE + mask,
+		      DATA_MAP_GROUND_BASE + sprite, frame);
 }
 
 static void
@@ -157,9 +146,9 @@ draw_triangle_down(int x, int y, int m, int left, int right, map_pos_t pos, fram
 
 	int sprite = tri_spr[index];
 
-	draw_map_tile_cached(x, y + MAP_TILE_HEIGHT,
-			     DATA_MAP_MASK_DOWN_BASE + mask,
-			     DATA_MAP_GROUND_BASE + sprite, 33*mask + sprite, frame);
+	draw_map_tile(x, y + MAP_TILE_HEIGHT,
+		      DATA_MAP_MASK_DOWN_BASE + mask,
+		      DATA_MAP_GROUND_BASE + sprite, frame);
 }
 
 /* Draw a column (vertical) of tiles, starting at an up pointing tile. */
