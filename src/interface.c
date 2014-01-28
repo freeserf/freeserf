@@ -168,6 +168,12 @@ interface_return_from_message(interface_t *interface)
 	}
 }
 
+void
+interface_close_message(interface_t *interface)
+{
+	gui_object_set_displayed(GUI_OBJECT(&interface->notification_box), 0);
+}
+
 
 /* Return the cursor type and various related values of a map_pos_t. */
 static void

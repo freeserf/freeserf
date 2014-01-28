@@ -118,6 +118,7 @@ void interface_close_game_init(interface_t *interface);
 
 void interface_open_message(interface_t *interface);
 void interface_return_from_message(interface_t *interface);
+void interface_close_message(interface_t *interface);
 
 void interface_set_player(interface_t *interface, uint player);
 void interface_update_map_cursor_pos(interface_t *interface, map_pos_t pos);

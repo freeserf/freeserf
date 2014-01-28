@@ -431,7 +431,9 @@ game_loop()
 
 					/* Misc */
 				case SDLK_ESCAPE:
-					if (GUI_OBJECT(&interface.popup)->displayed) {
+					if (GUI_OBJECT(&interface.notification_box)->displayed) {
+						interface_close_message(&interface);
+					} else if (GUI_OBJECT(&interface.popup)->displayed) {
 						interface_close_popup(&interface);
 					} else if (interface.building_road) {
 						interface_build_road_end(&interface);
