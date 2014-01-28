@@ -340,22 +340,22 @@ game_loop()
 					/* Map scroll */
 				case SDLK_UP: {
 					viewport_t *viewport = interface_get_top_viewport(&interface);
-					viewport_move_by_pixels(viewport, 0, -1);
+					viewport_move_by_pixels(viewport, 0, -32);
 				}
 					break;
 				case SDLK_DOWN: {
 					viewport_t *viewport = interface_get_top_viewport(&interface);
-					viewport_move_by_pixels(viewport, 0, 1);
+					viewport_move_by_pixels(viewport, 0, 32);
 				}
 					break;
 				case SDLK_LEFT: {
 					viewport_t *viewport = interface_get_top_viewport(&interface);
-					viewport_move_by_pixels(viewport, -1, 0);
+					viewport_move_by_pixels(viewport, -32, 0);
 				}
 					break;
 				case SDLK_RIGHT: {
 					viewport_t *viewport = interface_get_top_viewport(&interface);
-					viewport_move_by_pixels(viewport, 1, 0);
+					viewport_move_by_pixels(viewport, 32, 0);
 				}
 					break;
 
