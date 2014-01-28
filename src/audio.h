@@ -74,7 +74,8 @@ typedef enum {
 } midi_t;
 
 /* Common audio. */
-void audio_cleanup();
+int audio_init();
+void audio_deinit();
 int audio_volume();
 void audio_set_volume(int volume);
 void audio_volume_up();

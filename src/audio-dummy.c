@@ -24,8 +24,15 @@
 
 
 /* Common audio. */
+int
+audio_init()
+{
+	LOGI("audio-dummy", "Initializing audio driver `dummy'.");
+	return 0;
+}
+
 void
-audio_cleanup()
+audio_deinit()
 {
 }
 

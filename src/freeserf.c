@@ -723,8 +723,9 @@ main(int argc, char *argv[])
 	if (r < 0) exit(EXIT_FAILURE);
 
 	/* TODO move to right place */
-	midi_play_track(MIDI_TRACK_0);
+	audio_init();
 	audio_set_volume(75);
+	midi_play_track(MIDI_TRACK_0);
 
 	/*gfx_set_palette(DATA_PALETTE_INTRO);*/
 	gfx_set_palette(DATA_PALETTE_GAME);
@@ -780,7 +781,7 @@ main(int argc, char *argv[])
 	/* Clean up */
 	map_deinit();
 	viewport_map_deinit();
-	audio_cleanup();
+	audio_deinit();
 	sdl_deinit();
 	gfx_unload();
 

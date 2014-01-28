@@ -50,17 +50,18 @@ typedef struct {
 
 static list_t sfx_clips_to_play;
 static list_t midi_tracks;
-static int initialized = 0;
 static int sfx_enabled = 1;
 static int midi_enabled = 1;
 static midi_t current_track = MIDI_TRACK_NONE;
 
-static void
-midi_track_finished();
+static void midi_track_finished();
 
-static int
+
+int
 audio_init()
 {
+	LOGI("audio-sdlmixer", "Initializing audio driver `sdlmixer'.");
+
 	list_init(&sfx_clips_to_play);
 	list_init(&midi_tracks);
 
@@ -84,12 +85,11 @@ audio_init()
 
 	Mix_HookMusicFinished(midi_track_finished);
 
-	initialized = 1;
 	return 0;
 }
 
 void
-audio_cleanup()
+audio_deinit()
 {
 	while (!list_is_empty(&sfx_clips_to_play)) {
 		list_elm_t *elm = list_remove_head(&sfx_clips_to_play);
@@ -187,11 +187,6 @@ sfx_play_clip(sfx_t sfx)
 {
 	if (0 == sfx_enabled) {
 		return;
-	}
-
-	if (0 == initialized) {
-		int r = audio_init();
-		if (r < 0) return;
 	}
 
 	audio_clip_t *audio_clip = NULL;
@@ -583,13 +578,6 @@ midi_play_track(midi_t midi)
 {
 	if (0 == midi_enabled) {
 		return;
-	}
-
-	if (0 == initialized) {
-		audio_init();
-		if (0 == initialized) {
-			return;
-		}
 	}
 
 	track_t *track = NULL;
