@@ -2389,7 +2389,7 @@ handle_serf_free_walking_switch_with_other(serf_t *serf)
 {
 	/* No free position can be found. Switch with
 	   other serf. */
-	map_pos_t new_pos;
+	map_pos_t new_pos = 0;
 	int dir = -1;
 	serf_t *other_serf = NULL;
 	for (int i = 0; i < 6; i++) {

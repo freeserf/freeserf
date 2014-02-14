@@ -440,7 +440,7 @@ create_masked_transp_surface(const sprite_t *sprite, const sprite_t *mask, int m
 
 	free(m_unpack);
 
-	SDL_Surface *surf = create_surface_from_data(s_copy, m_width, m_height, 1);
+	SDL_Surface *surf = create_surface_from_data(s_copy, (int)m_width, (int)m_height, 1);
 
 	free(s_copy);
 

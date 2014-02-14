@@ -175,7 +175,7 @@ strreplace(char *target, const char *needle, char replace)
 static int
 save_game(int autosave)
 {
-	int r;
+	size_t r;
 
 	/* Build filename including time stamp. */
 	char name[128];
@@ -201,8 +201,8 @@ save_game(int autosave)
 	FILE *f = fopen(name, "wb");
 	if (f == NULL) return -1;
 
-	r = save_text_state(f);
-	if (r < 0) return -1;
+	int r1 = save_text_state(f);
+	if (r1 < 0) return -1;
 
 	fclose(f);
 
@@ -397,6 +397,7 @@ game_loop()
 					/* Game speed */
 				case SDLK_PLUS:
 				case SDLK_KP_PLUS:
+				case SDLK_EQUALS:
 					if (game.game_speed < 40) game.game_speed += 1;
 					LOGI("main", "Game speed: %u", game.game_speed);
 					break;
