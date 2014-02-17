@@ -554,7 +554,7 @@ load_data_file(const char *path)
 	   looking anywhere else. */
 	if (path != NULL) {
 		LOGI("main", "Looking for game data in `%s'...", path);
-		int r = gfx_load_file(path);
+		int r = data_load(path);
 		if (r < 0) return -1;
 		return 0;
 	}
@@ -569,7 +569,7 @@ load_data_file(const char *path)
 		for (const char **df = default_data_file; *df != NULL; df++) {
 			snprintf(cp, sizeof(cp), "%s/freeserf/%s", env, *df);
 			LOGI("main", "Looking for game data in `%s'...", cp);
-			int r = gfx_load_file(cp);
+			int r = data_load(cp);
 			if (r >= 0) return 0;
 		}
 	}
@@ -580,7 +580,7 @@ load_data_file(const char *path)
 			snprintf(cp, sizeof(cp),
 				 "%s/.local/share/freeserf/%s", env, *df);
 			LOGI("main", "Looking for game data in `%s'...", cp);
-			int r = gfx_load_file(cp);
+			int r = data_load(cp);
 			if (r >= 0) return 0;
 		}
 	}
@@ -591,7 +591,7 @@ load_data_file(const char *path)
 			snprintf(cp, sizeof(cp),
 				 "%s/.local/share/freeserf/%s", env, *df);
 			LOGI("main", "Looking for game data in `%s'...", cp);
-			int r = gfx_load_file(cp);
+			int r = data_load(cp);
 			if (r >= 0) return 0;
 		}
 	}
@@ -602,7 +602,7 @@ load_data_file(const char *path)
 	/* Look in current directory */
 	for (const char **df = default_data_file; *df != NULL; df++) {
 		LOGI("main", "Looking for game data in `%s'...", *df);
-		int r = gfx_load_file(*df);
+		int r = data_load(*df);
 		if (r >= 0) return 0;
 	}
 
@@ -705,8 +705,6 @@ main(int argc, char *argv[])
 
 	free(data_file);
 
-	gfx_data_fixup();
-
 	LOGI("main", "SDL init...");
 
 	r = sdl_init();
@@ -773,7 +771,7 @@ main(int argc, char *argv[])
 	viewport_map_deinit();
 	audio_deinit();
 	sdl_deinit();
-	gfx_unload();
+	data_unload();
 
 	return EXIT_SUCCESS;
 }
