@@ -203,7 +203,7 @@ sfx_play_clip(sfx_t sfx)
 		audio_clip->num = sfx;
 
 		size_t size = 0;
-		char *data = gfx_get_data_object(DATA_SFX_BASE + sfx, &size);
+		char *data = data_get_object(DATA_SFX_BASE + sfx, &size);
 
 		char *wav = sfx_produce_wav(data, (int)size, &size);
 
@@ -597,7 +597,7 @@ midi_play_track(midi_t midi)
 		track->num = midi;
 
 		size_t size = 0;
-		char *data = gfx_get_data_object(DATA_MUSIC_GAME + midi, &size);
+		char *data = data_get_object(DATA_MUSIC_GAME + midi, &size);
 		if (NULL == data) {
 			free(track);
 			return;

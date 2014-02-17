@@ -27,6 +27,7 @@
 #include "game.h"
 #include "player.h"
 #include "misc.h"
+#include "data.h"
 
 
 #define MINIMAP_MAX_SCALE  8
@@ -170,7 +171,7 @@ draw_minimap_grid(minimap_t *minimap, frame_t *frame)
 static void
 draw_minimap_rect(minimap_t *minimap, frame_t *frame)
 {
-	void *sprite = gfx_get_data_object(354, NULL);
+	void *sprite = data_get_object(354, NULL);
 	int y = minimap->obj.height/2;
 	int x = minimap->obj.width/2;
 	sdl_draw_transp_sprite(sprite, x, y, 1, 0, 0, frame);

@@ -884,7 +884,7 @@ load_serf_animation_table(interface_t *interface)
 	   sprite. Second byte is a signed horizontal sprite
 	   offset. Third byte is a signed vertical offset.
 	*/
-	interface->serf_animation_table = ((uint32_t *)gfx_get_data_object(DATA_SERF_ANIMATION_TABLE, NULL)) + 1;
+	interface->serf_animation_table = ((uint32_t *)data_get_object(DATA_SERF_ANIMATION_TABLE, NULL)) + 1;
 
 	/* Endianess convert from big endian. */
 	for (int i = 0; i < 199; i++) {
