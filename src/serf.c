@@ -730,19 +730,26 @@ handle_serf_walking_state_waiting(serf_t *serf)
 	/* Waiting for other serf. */
 	dir_t dir = serf->s.walking.dir + 6;
 
+	/* Only check for loops once in a while. */
 	serf->s.walking.wait_counter += 1;
 	if ((!MAP_HAS_FLAG(serf->pos) && serf->s.walking.wait_counter >= 10) ||
 	    serf->s.walking.wait_counter >= 50) {
 		map_pos_t pos = serf->pos;
+
+		/* Follow the chain of serfs waiting for each other and
+		   see if there is a loop. */
 		for (int i = 0; i < 100; i++) {
 			pos = MAP_MOVE(pos, dir);
 
-			if (MAP_SERF_INDEX(pos) == 0) break;
-			else if (MAP_SERF_INDEX(pos) == SERF_INDEX(serf)) {
-				dir = DIR_REVERSE(dir);
+			if (MAP_SERF_INDEX(pos) == 0) {
 				break;
+			} else if (MAP_SERF_INDEX(pos) == SERF_INDEX(serf)) {
+				/* We have found a loop, try a different direction. */
+				serf_change_direction(serf, DIR_REVERSE(dir), 0);
+				return;
 			}
 
+			/* Get next serf and follow the chain */
 			serf_t *other_serf = game_get_serf(MAP_SERF_INDEX(pos));
 			if (other_serf->state != SERF_STATE_WALKING &&
 			    other_serf->state != SERF_STATE_TRANSPORTING) {
@@ -756,11 +763,11 @@ handle_serf_walking_state_waiting(serf_t *serf)
 
 			dir = other_serf->s.walking.dir + 6;
 		}
-
-		dir = serf->s.walking.dir + 6;
 	}
 
-	serf_change_direction(serf, dir, 0);
+	/* Stick to the same direction */
+	serf->s.walking.wait_counter = 0;
+	serf_change_direction(serf, serf->s.walking.dir + 6, 0);
 }
 
 static void
