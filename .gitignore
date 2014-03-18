@@ -33,5 +33,5 @@ depcomp
 freeserf
 install-sh
 missing
-src/version_vcs.h
+src/version-vcs.h
 stamp-h1

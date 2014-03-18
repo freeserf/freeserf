@@ -20,6 +20,6 @@
  */
 
 #include "version.h"
-#include "version_vcs.h"
+#include "version-vcs.h"
 
 const char FREESERF_VERSION[] = VERSION_VCS;

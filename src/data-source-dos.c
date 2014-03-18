@@ -1,5 +1,5 @@
 /*
- * data_source_dos.c - DOS game resources file functions
+ * data-source-dos.c - DOS game resources file functions
  *
  * Copyright (C) 2014  Jon Lund Steffensen <jonlst@gmail.com>
  *
