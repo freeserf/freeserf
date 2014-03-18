@@ -25,6 +25,7 @@
 
 #include <stdlib.h>
 #include <assert.h>
+#include <string.h>
 
 #include "game.h"
 #include "map.h"
@@ -455,7 +456,7 @@ update_knight_morale()
 		}
 
 		/* Adjust based on castle score. */
-		uint castle_score = player->castle_score;
+		int castle_score = player->castle_score;
 		if (castle_score < 0) {
 			player->knight_morale = max(1, player->knight_morale - 1023);
 		} else if (castle_score > 0) {
@@ -2156,7 +2157,7 @@ record_player_history(player_t *player[], int pl_count, int max_level, int aspec
 		int index = history_index[i];
 		for (int j = 0; j < pl_count; j++) {
 			uint64_t value = values[j];
-			player[j]->player_stat_history[mode][index] = (100*value)/total;
+			player[j]->player_stat_history[mode][index] = (int)((100*value)/total);
 		}
 	}
 }

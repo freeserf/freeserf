@@ -21,6 +21,7 @@
 
 #include <math.h>
 #include <assert.h>
+#include <string.h>
 
 #include "popup.h"
 #include "gfx.h"

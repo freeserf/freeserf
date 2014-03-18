@@ -22,6 +22,8 @@
 #ifndef _DATA_H
 #define _DATA_H
 
+#include <sys/types.h>
+
 /* Index 0 is undefined (entry 0 in the data file
    contains a header with the size and total
    number of entries in the file). */
@@ -227,5 +229,13 @@
 
 #define DATA_CURSOR  3999
 
+int data_load(const char *path);
+void data_unload();
+
+void *data_get_object(int index, size_t *size);
+
+void data_unpack_transparent_sprite(void *dest, const void *src, size_t destlen, int offset);
+void data_unpack_overlay_sprite(void *dest, const void *src, size_t destlen);
+void data_unpack_mask_sprite(void *dest, const void *src, size_t destlen);
 
 #endif /* ! _DATA_H */

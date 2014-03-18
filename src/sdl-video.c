@@ -33,7 +33,7 @@
 #include "misc.h"
 #include "version.h"
 #include "log.h"
-
+#include "data.h"
 
 #define RSHIFT   0
 #define GSHIFT   8
@@ -375,7 +375,7 @@ create_transp_surface(const sprite_t *sprite, int offset)
 	uint8_t *unpack = calloc(unpack_size, sizeof(uint8_t));
 	if (unpack == NULL) abort();
 
-	gfx_unpack_transparent_sprite(unpack, data, unpack_size, offset);
+	data_unpack_transparent_sprite(unpack, data, unpack_size, offset);
 
 	SDL_Surface *surf = create_surface_from_data(unpack, width, height, 1);
 
@@ -399,7 +399,7 @@ create_masked_transp_surface(const sprite_t *sprite, const sprite_t *mask, int m
 	uint8_t *unpack = calloc(unpack_size, sizeof(uint8_t));
 	if (unpack == NULL) abort();
 
-	gfx_unpack_transparent_sprite(unpack, s_data, unpack_size, 0);
+	data_unpack_transparent_sprite(unpack, s_data, unpack_size, 0);
 
 	size_t m_width = le16toh(mask->w);
 	size_t m_height = le16toh(mask->h);
@@ -427,7 +427,7 @@ create_masked_transp_surface(const sprite_t *sprite, const sprite_t *mask, int m
 	uint8_t *m_unpack = calloc(m_unpack_size, sizeof(uint8_t));
 	if (m_unpack == NULL) abort();
 
-	gfx_unpack_mask_sprite(m_unpack, m_data, m_unpack_size);
+	data_unpack_mask_sprite(m_unpack, m_data, m_unpack_size);
 
 	/* Fill alpha value from mask data */
 	for (int y = 0; y < m_height; y++) {
@@ -440,7 +440,7 @@ create_masked_transp_surface(const sprite_t *sprite, const sprite_t *mask, int m
 
 	free(m_unpack);
 
-	SDL_Surface *surf = create_surface_from_data(s_copy, m_width, m_height, 1);
+	SDL_Surface *surf = create_surface_from_data(s_copy, (int)m_width, (int)m_height, 1);
 
 	free(s_copy);
 
@@ -580,7 +580,7 @@ create_overlay_surface(const sprite_t *sprite)
 	uint8_t *unpack = calloc(unpack_size, sizeof(uint8_t));
 	if (unpack == NULL) abort();
 
-	gfx_unpack_overlay_sprite(unpack, data, unpack_size);
+	data_unpack_overlay_sprite(unpack, data, unpack_size);
 
 	/* Create sprite surface */
 	SDL_Surface *surf = sdl_create_surface((int)width, (int)height);
@@ -670,7 +670,7 @@ create_masked_surface(const sprite_t *sprite, const sprite_t *mask)
 	uint8_t *m_unpack = calloc(unpack_size, sizeof(uint8_t));
 	if (m_unpack == NULL) abort();
 
-	gfx_unpack_mask_sprite(m_unpack, m_data, unpack_size);
+	data_unpack_mask_sprite(m_unpack, m_data, unpack_size);
 
 	/* Fill alpha value from mask data */
 	for (int y = 0; y < m_height; y++) {
