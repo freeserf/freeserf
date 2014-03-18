@@ -32,7 +32,8 @@ freeserf_SOURCES = \
 	src/misc.h \
 	src/debug.h \
 	src/freeserf_endian.h \
-	src/version.c src/version.h src/version_vcs.h
+	src/version.c src/version.h src/version_vcs.h \
+	src/data_source_dos.c
 
 AM_CFLAGS = $(SDL2_CFLAGS) -I$(top_builddir)/src
 freeserf_LDADD = $(SDL2_LIBS) $(SDL2_CFLAGS) -lm

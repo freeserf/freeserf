@@ -49,15 +49,11 @@ typedef struct {
 } sprite_t;
 
 
-int gfx_load_file(const char *path);
-void gfx_unload();
-void *gfx_get_data_object(int index, size_t *size);
 void gfx_draw_string(int x, int y, int color, int shadow, frame_t *dest, const char *str);
 void gfx_draw_number(int x, int y, int color, int shadow, frame_t *dest, int n);
 void gfx_draw_sprite(int x, int y, int sprite, frame_t *dest);
 void gfx_draw_transp_sprite(int x, int y, int sprite, frame_t *dest);
 void gfx_fill_rect(int x, int y, int width, int height, int color, frame_t *dest);
-void gfx_data_fixup();
 void gfx_set_palette(int palette);
 
 void gfx_unpack_transparent_sprite(void *dest, const void *src, size_t destlen, int offset);
