@@ -39,6 +39,10 @@ draw_minimap_point(minimap_t *minimap, int col, int row, uint8_t color,
 	int map_width = game.map.cols * minimap->scale;
 	int map_height = game.map.rows * minimap->scale;
 
+	if (0 == map_width || 0 == map_height) {
+		return;
+	}
+
 	int mm_y = row*minimap->scale - minimap->offset_y;
 	col -= (game.map.rows/2) * (int)(mm_y / map_height);
 	mm_y = mm_y % map_height;
@@ -237,12 +241,8 @@ minimap_handle_drag(minimap_t *minimap, int x, int y,
 		    gui_event_button_t button)
 {
 	if (button == GUI_EVENT_BUTTON_RIGHT) {
-		int dx = x - minimap->pointer_x;
-		int dy = y - minimap->pointer_y;
-		if (dx != 0 || dy != 0) {
-			minimap_move_by_pixels(minimap, dx, dy);
-			sdl_warp_mouse(minimap->interface->pointer_x,
-				       minimap->interface->pointer_y);
+		if (x != 0 || y != 0) {
+			minimap_move_by_pixels(minimap, x, y);
 		}
 	}
 
@@ -271,8 +271,6 @@ minimap_handle_event(minimap_t *minimap, const gui_event_t *event)
 					   event->button);
 	case GUI_EVENT_TYPE_DRAG_START:
 		minimap->interface->cursor_lock_target = (gui_object_t *)minimap;
-		minimap->pointer_x = x;
-		minimap->pointer_y = y;
 		return 0;
 	case GUI_EVENT_TYPE_DRAG_END:
 		minimap->interface->cursor_lock_target = NULL;

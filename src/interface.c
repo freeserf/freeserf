@@ -665,11 +665,6 @@ interface_draw(interface_t *interface, frame_t *frame)
 {
 	int redraw_above = interface->cont.obj.redraw;
 
-	/* Undraw cursor */
-	sdl_draw_frame(interface->pointer_x-8, interface->pointer_y-8,
-		       sdl_get_screen_frame(), 0, 0,
-		       &interface->cursor_buffer, 16, 16);
-
 	if (interface->top->displayed &&
 	    (interface->redraw_top || redraw_above)) {
 		gui_object_redraw(interface->top, frame);
@@ -692,17 +687,6 @@ interface_draw(interface_t *interface, frame_t *frame)
 			redraw_above = 1;
 		}
 	}
-
-	/* Restore cursor buffer */
-	sdl_draw_frame(0, 0, &interface->cursor_buffer,
-		       interface->pointer_x-8, interface->pointer_y-8,
-		       sdl_get_screen_frame(), 16, 16);
-
-	/* Mouse cursor */
-	gfx_draw_transp_sprite(interface->pointer_x-8,
-			       interface->pointer_y-8,
-			       DATA_CURSOR, sdl_get_screen_frame());
-
 }
 
 static int
@@ -713,6 +697,9 @@ interface_handle_event(interface_t *interface, const gui_event_t *event)
 		if (interface->cursor_lock_target == interface->top) {
 			return gui_object_handle_event(interface->top, event);
 		} else {
+			if (event->type == GUI_EVENT_TYPE_DRAG_MOVE) {
+				return gui_object_handle_event(interface->cursor_lock_target, event);
+			}
 			gui_event_t float_event = {
 				.type = event->type,
 				.x = event->x,
@@ -906,9 +893,6 @@ interface_init(interface_t *interface)
 	interface->redraw_top = 0;
 	list_init(&interface->floats);
 
-	/* Cursor occlusion buffer */
-	sdl_frame_init(&interface->cursor_buffer, 0, 0, 16, 16, NULL);
-
 	load_serf_animation_table(interface);
 
 	/* Viewport */
@@ -1015,27 +999,6 @@ interface_add_float(interface_t *interface, gui_object_t *obj,
 	gui_object_set_size(obj, width, height);
 	gui_object_set_redraw(GUI_OBJECT(interface));
 }
-
-void
-interface_set_cursor(interface_t *interface, int x, int y)
-{
-	if (x != interface->pointer_x || y != interface->pointer_y) {
-		/* Undraw cursor */
-		sdl_draw_frame(interface->pointer_x-8, interface->pointer_y-8,
-			       sdl_get_screen_frame(), 0, 0, &interface->cursor_buffer, 16, 16);
-
-		/* Update position */
-		interface->pointer_x = min(max(0, x), GUI_OBJECT(interface)->width);
-		interface->pointer_y = min(max(0, y), GUI_OBJECT(interface)->height);
-		gui_object_set_redraw(GUI_OBJECT(interface));
-
-		/* Restore cursor buffer */
-		sdl_draw_frame(0, 0, &interface->cursor_buffer,
-			       interface->pointer_x-8, interface->pointer_y-8,
-			       sdl_get_screen_frame(), 16, 16);
-	}
-}
-
 
 /* Called periodically when the game progresses. */
 void
