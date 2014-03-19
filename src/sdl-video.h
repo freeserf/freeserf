@@ -55,5 +55,6 @@ void sdl_fill_rect(int x, int y, int width, int height, int color, frame_t *dest
 void sdl_set_palette(const uint8_t *palette);
 void sdl_swap_buffers();
 
+void sdl_set_cursor(const sprite_t *sprite);
 
 #endif /* ! _SDL_VIDEO_H */

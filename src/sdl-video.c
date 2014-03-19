@@ -53,6 +53,7 @@ static SDL_Texture *screen_texture;
 static frame_t screen;
 static int is_fullscreen;
 static SDL_Color pal_colors[256];
+static SDL_Cursor *cursor = NULL;
 
 
 struct surface {
@@ -189,9 +190,6 @@ sdl_init()
 	signal(SIGINT, exit);
 	signal(SIGTERM, exit);
 
-	/* Don't show cursor */
-	SDL_ShowCursor(SDL_DISABLE);
-
 	/* Init sprite cache */
 	surface_ht_init(&transp_sprite_cache, 4096);
 	surface_ht_init(&overlay_sprite_cache, 512);
@@ -203,6 +201,7 @@ sdl_init()
 void
 sdl_deinit()
 {
+	sdl_set_cursor(NULL);
 	SDL_Quit();
 }
 
@@ -799,4 +798,19 @@ sdl_set_palette(const uint8_t *palette)
 		pal_colors[i].b = palette[i*3+2];
 		pal_colors[i].a = SDL_ALPHA_OPAQUE;
 	}
+}
+
+void
+sdl_set_cursor(const sprite_t *sprite)
+{
+	if (NULL != cursor) {
+		SDL_SetCursor(NULL);
+		SDL_FreeCursor(cursor);
+	}
+	if (NULL == sprite) {
+		return;
+	}
+	SDL_Surface *surface = create_transp_surface(sprite, 0);
+	cursor = SDL_CreateColorCursor(surface, 8, 8);
+	SDL_SetCursor(cursor);
 }

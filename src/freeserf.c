@@ -235,6 +235,8 @@ game_loop()
 	int last_frame = SDL_GetTicks();
 
 	int drag_button = 0;
+	int drag_x = 0;
+	int drag_y = 0;
 
 	uint last_down[3] = {0};
 	uint last_click[3] = {0};
@@ -303,15 +305,12 @@ game_loop()
 				if (event.button.button <= 3) last_down[event.button.button-1] = current_ticks;
 				break;
 			case SDL_MOUSEMOTION:
-				if (drag_button == 0) {
-					/* Move pointer normally. */
-					interface_set_cursor(&interface, event.motion.x, event.motion.y);
-				}
-
 				for (int button = 1; button <= 3; button++) {
 					if (event.motion.state & SDL_BUTTON(button)) {
 						if (drag_button == 0) {
 							drag_button = button;
+							drag_x = event.motion.x;
+							drag_y = event.motion.y;
 
 							ev.type = GUI_EVENT_TYPE_DRAG_START;
 							ev.x = event.motion.x;
@@ -321,10 +320,13 @@ game_loop()
 						}
 
 						ev.type = GUI_EVENT_TYPE_DRAG_MOVE;
-						ev.x = event.motion.x;
-						ev.y = event.motion.y;
+						ev.x = event.motion.x - drag_x;
+						ev.y = event.motion.y - drag_y;
 						ev.button = drag_button;
 						gui_object_handle_event((gui_object_t *)&interface, &ev);
+
+						sdl_warp_mouse(drag_x, drag_y);
+
 						break;
 					}
 				}
@@ -722,6 +724,8 @@ main(int argc, char *argv[])
 
 	r = sdl_set_resolution(screen_width, screen_height, fullscreen);
 	if (r < 0) exit(EXIT_FAILURE);
+
+	sdl_set_cursor(data_get_object(DATA_CURSOR, NULL));
 
 	game.map_generator = map_generator;
 

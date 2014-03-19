@@ -2475,12 +2475,8 @@ viewport_handle_drag(viewport_t *viewport, int x, int y,
 {
 	if (button == GUI_EVENT_BUTTON_RIGHT ||
 	    button == GUI_EVENT_BUTTON_LEFT) {
-		int dx = x - viewport->interface->pointer_x;
-		int dy = y - viewport->interface->pointer_y;
-		if (dx != 0 || dy != 0) {
-			viewport_move_by_pixels(viewport, dx, dy);
-			sdl_warp_mouse(viewport->interface->pointer_x,
-				       viewport->interface->pointer_y);
+		if (x != 0 || y != 0) {
+			viewport_move_by_pixels(viewport, x, y);
 		}
 	}
 

@@ -58,10 +58,6 @@ struct interface {
 
 	gui_object_t *cursor_lock_target;
 
-	int pointer_x;
-	int pointer_y;
-	frame_t cursor_buffer;
-
 	uint32_t *serf_animation_table;
 
 	random_state_t random;
@@ -141,8 +137,6 @@ void interface_init(interface_t *interface);
 void interface_set_top(interface_t *interface, gui_object_t *obj);
 void interface_add_float(interface_t *interface, gui_object_t *obj,
 			 int x, int y, int width, int height);
-
-void interface_set_cursor(interface_t *interface, int x, int y);
 
 
 void interface_update(interface_t *interface);

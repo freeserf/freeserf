@@ -29,7 +29,6 @@ typedef struct {
 	gui_object_t obj;
 	struct interface *interface;
 
-	int pointer_x, pointer_y;
 	int offset_x, offset_y;
 	int scale;
 
