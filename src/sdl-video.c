@@ -35,20 +35,16 @@
 #include "log.h"
 #include "data.h"
 
-#define RSHIFT   0
-#define GSHIFT   8
-#define BSHIFT  16
-#define ASHIFT  24
-
-#define RMASK  (0xff << RSHIFT)
-#define GMASK  (0xff << GSHIFT)
-#define BMASK  (0xff << BSHIFT)
-#define AMASK  (0xff << ASHIFT)
-
 
 static SDL_Window *window;
 static SDL_Renderer *renderer;
 static SDL_Texture *screen_texture;
+static int bpp = 32;
+static Uint32 Rmask = 0xFF000000;
+static Uint32 Gmask = 0x00FF0000;
+static Uint32 Bmask = 0x0000FF00;
+static Uint32 Amask = 0x000000FF;
+static Uint32 pixel_format = SDL_PIXELFORMAT_RGBA8888;
 
 static frame_t screen;
 static int is_fullscreen;
@@ -183,6 +179,19 @@ sdl_init()
 		return -1;
 	}
 
+	/* Determine optimal pixel format for current window */
+	SDL_RendererInfo render_info = {0};
+	SDL_GetRendererInfo(renderer, &render_info);
+	for (int i = 0; i < render_info.num_texture_formats; i++) {
+		Uint32 format = render_info.texture_formats[i];
+		int bpp = SDL_BITSPERPIXEL(format);
+		if (32 == bpp) {
+			pixel_format = format;
+			break;
+		}
+	}
+	SDL_PixelFormatEnumToMasks(pixel_format, &bpp, &Rmask, &Gmask, &Bmask, &Amask);
+
 	/* Set scaling mode */
 	SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY, "linear");
 
@@ -208,8 +217,8 @@ sdl_deinit()
 static SDL_Surface *
 sdl_create_surface(int width, int height)
 {
-	SDL_Surface *surf = SDL_CreateRGBSurface(0, width, height, 32,
-						 RMASK, GMASK, BMASK, AMASK);
+	SDL_Surface *surf = SDL_CreateRGBSurface(0, width, height, bpp,
+						 Rmask, Gmask, Bmask, Amask);
 	if (surf == NULL) {
 		LOGE("sdl-video", "Unable to create SDL surface: %s.", SDL_GetError());
 		exit(EXIT_FAILURE);
@@ -221,23 +230,23 @@ sdl_create_surface(int width, int height)
 int
 sdl_set_resolution(int width, int height, int fullscreen)
 {
+	/* Set fullscreen mode */
+	int r = SDL_SetWindowFullscreen(window, fullscreen ? SDL_WINDOW_FULLSCREEN_DESKTOP : 0);
+	if (r < 0) {
+		LOGE("sdl-video", "Unable to set window fullscreen: %s.", SDL_GetError());
+		return -1;
+	}
+
 	/* Allocate new screen surface and texture */
 	if (screen.surf != NULL) SDL_FreeSurface(screen.surf);
 	screen.surf = sdl_create_surface(width, height);
 
 	if (screen_texture != NULL) SDL_DestroyTexture(screen_texture);
-	screen_texture = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_ABGR8888,
+	screen_texture = SDL_CreateTexture(renderer, pixel_format,
 					   SDL_TEXTUREACCESS_STREAMING,
 					   width, height);
 	if (screen_texture == NULL) {
 		LOGE("sdl-video", "Unable to create SDL texture: %s.", SDL_GetError());
-		return -1;
-	}
-
-	/* Set fullscreen mode */
-	int r = SDL_SetWindowFullscreen(window, fullscreen ? SDL_WINDOW_FULLSCREEN_DESKTOP : 0);
-	if (r < 0) {
-		LOGE("sdl-video", "Unable to set window fullscreen: %s.", SDL_GetError());
 		return -1;
 	}
 
@@ -258,6 +267,12 @@ sdl_set_resolution(int width, int height, int fullscreen)
 	is_fullscreen = fullscreen;
 
 	return 0;
+}
+
+void
+sdl_get_resolution(int *width, int *height)
+{
+	SDL_GetWindowSize(window, width, height);
 }
 
 int

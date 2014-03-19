@@ -485,6 +485,15 @@ game_loop()
 			case SDL_QUIT:
 				game_loop_quit();
 				break;
+			case SDL_WINDOWEVENT:
+				if (SDL_WINDOWEVENT_SIZE_CHANGED == event.window.event){
+					int width = 0;
+					int height = 0;
+					sdl_get_resolution(&width, &height);
+					sdl_set_resolution(width, height, sdl_is_fullscreen());
+					gui_object_set_size((gui_object_t*)&interface, width, height);
+				}
+				break;
 			}
 		}
 
