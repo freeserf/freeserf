@@ -221,6 +221,13 @@ sdl_create_surface(int width, int height)
 int
 sdl_set_resolution(int width, int height, int fullscreen)
 {
+	/* Set fullscreen mode */
+	int r = SDL_SetWindowFullscreen(window, fullscreen ? SDL_WINDOW_FULLSCREEN_DESKTOP : 0);
+	if (r < 0) {
+		LOGE("sdl-video", "Unable to set window fullscreen: %s.", SDL_GetError());
+		return -1;
+	}
+
 	/* Allocate new screen surface and texture */
 	if (screen.surf != NULL) SDL_FreeSurface(screen.surf);
 	screen.surf = sdl_create_surface(width, height);
@@ -231,13 +238,6 @@ sdl_set_resolution(int width, int height, int fullscreen)
 					   width, height);
 	if (screen_texture == NULL) {
 		LOGE("sdl-video", "Unable to create SDL texture: %s.", SDL_GetError());
-		return -1;
-	}
-
-	/* Set fullscreen mode */
-	int r = SDL_SetWindowFullscreen(window, fullscreen ? SDL_WINDOW_FULLSCREEN_DESKTOP : 0);
-	if (r < 0) {
-		LOGE("sdl-video", "Unable to set window fullscreen: %s.", SDL_GetError());
 		return -1;
 	}
 
@@ -258,6 +258,12 @@ sdl_set_resolution(int width, int height, int fullscreen)
 	is_fullscreen = fullscreen;
 
 	return 0;
+}
+
+void
+sdl_get_resolution(int *width, int *height)
+{
+	SDL_GetWindowSize(window, width, height);
 }
 
 int
