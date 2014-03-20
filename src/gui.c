@@ -23,7 +23,6 @@
 
 #include "gui.h"
 #include "gfx.h"
-#include "sdl-video.h"
 #include "list.h"
 #include "misc.h"
 

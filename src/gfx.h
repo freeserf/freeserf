@@ -23,42 +23,54 @@
 #define _GFX_H
 
 #include <stdint.h>
+#include <sys/types.h>
 
-#include "SDL.h"
-
-
-#define MAP_TILE_WIDTH   32
-#define MAP_TILE_HEIGHT  20
-
+typedef struct {
+  int x;
+  int y;
+  int w;
+  int h;
+} rect_t;
 
 /* Frame. Keeps track of a specific rectangular area of a surface.
    Multiple frames can refer to the same surface. */
 typedef struct {
-	SDL_Surface *surf;
-	SDL_Rect clip;
+	void *surf;
+	rect_t clip;
 } frame_t;
 
-/* Sprite header. In the data file this is immediately followed by sprite data. */
-typedef struct {
-	int8_t b_x;
-	int8_t b_y;
-	uint16_t w;
-	uint16_t h;
-	int16_t x;
-	int16_t y;
-} sprite_t;
 
+int gfx_init(int width, int height, int fullscreen);
+void gfx_deinit();
 
+// Sprite tools
+void gfx_draw_sprite(int x, int y, int sprite, frame_t *dest);
+void gfx_draw_transp_sprite(int x, int y, int sprite, int use_off, int y_off, int color_off, frame_t *dest);
+void gfx_draw_masked_sprite(int x, int y, int mask, int sprite, frame_t *dest);
+void gfx_draw_overlay_sprite(int x, int y, int sprite, int y_off, frame_t *dest);
+void gfx_draw_waves_sprite(int x, int y, int mask, int sprite, int mask_off, frame_t *dest);
+void gfx_get_sprite_size(int sprite, int *width, int *height);
+void gfx_get_sprite_offset(int sprite, int *dx, int *dy);
+
+// Text tools
 void gfx_draw_string(int x, int y, int color, int shadow, frame_t *dest, const char *str);
 void gfx_draw_number(int x, int y, int color, int shadow, frame_t *dest, int n);
-void gfx_draw_sprite(int x, int y, int sprite, frame_t *dest);
-void gfx_draw_transp_sprite(int x, int y, int sprite, frame_t *dest);
+
+// Graphics tools
 void gfx_fill_rect(int x, int y, int width, int height, int color, frame_t *dest);
+void gfx_draw_rect(int x, int y, int width, int height, int color, frame_t *dest);
+
+// Palette tools
 void gfx_set_palette(int palette);
 
-void gfx_unpack_transparent_sprite(void *dest, const void *src, size_t destlen, int offset);
-void gfx_unpack_overlay_sprite(void *dest, const void *src, size_t destlen);
-void gfx_unpack_mask_sprite(void *dest, const void *src, size_t destlen);
+// Frame tools
+void gfx_frame_init(frame_t *frame, int x, int y, int width, int height, frame_t *dest);
+void gfx_frame_deinit(frame_t *frame);
+void gfx_draw_frame(int dx, int dy, frame_t *dest, int sx, int sy, frame_t *src, int w, int h);
 
+// Screen tools
+int gfx_set_fullscreen(int enable);
+int gfx_is_fullscreen();
+int gfx_is_fullscreen_possible();
 
 #endif /* ! _GFX_H */

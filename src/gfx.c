@@ -23,18 +23,20 @@
 # include <config.h>
 #endif
 
-#include "sdl-video.h"
+#include <string.h>
+
 #include "gfx.h"
 #include "data.h"
+#include "log.h"
 
-/* There are different types of sprites:
-   - Non-packed, rectangular sprites: These are simple called sprites here.
-   - Transparent sprites, "transp": These are e.g. buldings/serfs.
-   The transparent regions are RLE encoded.
-   - Bitmap sprites: Conceptually these contain either 0 or 1 at each pixel.
-   This is used to either modify the alpha level of another sprite (shadows)
-   or mask parts of other sprites completely (mask sprites).
-*/
+typedef struct {
+	int8_t b_x;
+	int8_t b_y;
+	uint16_t w;
+	uint16_t h;
+	int16_t x;
+	int16_t y;
+} sprite_t;
 
 /* Draw a character at x, y in the dest frame. */
 static void
@@ -81,11 +83,9 @@ gfx_draw_char_sprite(int x, int y, unsigned int c, int color, int shadow, frame_
 	if (s < 0) return;
 
 	if (shadow) {
-		sdl_draw_transp_sprite(data_get_object(DATA_FONT_SHADOW_BASE + s, NULL),
-				       x, y, 0, 0, shadow, dest);
+		gfx_draw_transp_sprite(x, y, DATA_FONT_SHADOW_BASE + s, 0, 0, shadow, dest);
 	}
-	sdl_draw_transp_sprite(data_get_object(DATA_FONT_BASE + s, NULL),
-			       x, y, 0, 0, color, dest);
+	gfx_draw_transp_sprite(x, y, DATA_FONT_BASE + s, 0, 0, color, dest);
 }
 
 /* Draw the string str at x, y in the dest frame. */
@@ -126,36 +126,33 @@ gfx_draw_number(int x, int y, int color, int shadow, frame_t *dest, int n)
 	}
 }
 
-/* Draw the opaque sprite with data file index of
-   sprite at x, y in dest frame. */
 void
-gfx_draw_sprite(int x, int y, int sprite, frame_t *dest)
+gfx_get_sprite_size(int sprite, int *width, int *height)
 {
 	sprite_t *spr = data_get_object(sprite, NULL);
-	if (spr != NULL) sdl_draw_sprite(spr, x, y, dest);
+	if (spr != NULL) {
+		*width = spr->w;
+		*height = spr->h;
+	}
 }
 
-/* Draw the transparent sprite with data file index of
-   sprite at x, y in dest frame.*/
 void
-gfx_draw_transp_sprite(int x, int y, int sprite, frame_t *dest)
+gfx_get_sprite_offset(int sprite, int *dx, int *dy)
 {
 	sprite_t *spr = data_get_object(sprite, NULL);
-	if (spr != NULL) sdl_draw_transp_sprite(spr, x, y, 0, 0, 0, dest);
+	if (spr != NULL) {
+		*dx = spr->b_x;
+		*dy = spr->b_y;
+	}
 }
 
-/* Fill a rectangle with color at x, y in the dest frame. */
 void
-gfx_fill_rect(int x, int y, int width, int height, int color, frame_t *dest)
+gfx_draw_rect(int x, int y, int width, int height, int color, frame_t *dest)
 {
-	sdl_fill_rect(x, y, width, height, color, dest);
-}
-
-/* Select the color palette that is location at the given data file index. */
-void
-gfx_set_palette(int palette)
-{
-	uint8_t *pal = data_get_object(palette, NULL);
-	sdl_set_palette(pal);
+	/* Draw rectangle. */
+	gfx_fill_rect(x, y, width, 1, color, dest);
+	gfx_fill_rect(x, y+height-1, width, 1, color, dest);
+	gfx_fill_rect(x, y, 1, height, color, dest);
+	gfx_fill_rect(x+width-1, y, 1, height, color, dest);
 }
 

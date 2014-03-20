@@ -227,6 +227,13 @@ sdl_create_surface(int width, int height)
 	return surf;
 }
 
+void
+sdl_actualize_clipping(frame_t *frame)
+{
+	SDL_Rect rect = {frame->clip.x, frame->clip.y, frame->clip.w, frame->clip.h};
+	SDL_SetClipRect(frame->surf, &rect);
+}
+
 int
 sdl_set_resolution(int width, int height, int fullscreen)
 {
@@ -262,7 +269,7 @@ sdl_set_resolution(int width, int height, int fullscreen)
 	screen.clip.y = 0;
 	screen.clip.w = width;
 	screen.clip.h = height;
-	SDL_SetClipRect(screen.surf, &screen.clip);
+	sdl_actualize_clipping(&screen);
 
 	is_fullscreen = fullscreen;
 
@@ -364,7 +371,7 @@ create_surface_from_data(void *data, int width, int height, int transparent) {
 		}
 	}
 
-	surf = SDL_ConvertSurface(surf8, screen.surf->format, 0);
+	surf = SDL_ConvertSurface(surf8, ((SDL_Surface*)screen.surf)->format, 0);
 	if (surf == NULL) {
 		LOGE("sdl-video", "Unable to convert sprite surface: %s.",
 		     SDL_GetError());
@@ -488,7 +495,7 @@ sdl_draw_transp_sprite(const sprite_t *sprite, int x, int y, int use_off, int y_
 	SDL_Rect src_rect = { 0, y_off, surf->w, surf->h - y_off };
 	SDL_Rect dest_rect = { x, y + y_off, 0, 0 };
 
-	SDL_SetClipRect(dest->surf, &dest->clip);
+	sdl_actualize_clipping(dest);
 
 	/* Blit sprite */
 	r = SDL_BlitSurface(surf, &src_rect, dest->surf, &dest_rect);
@@ -525,7 +532,7 @@ sdl_draw_waves_sprite(const sprite_t *sprite, const sprite_t *mask,
 	SDL_Surface *surf = (*surface)->surf;
 	SDL_Rect dest_rect = { x, y, 0, 0 };
 
-	SDL_SetClipRect(dest->surf, &dest->clip);
+	sdl_actualize_clipping(dest);
 
 	/* Blit sprite */
 	int r = SDL_BlitSurface(surf, NULL, dest->surf, &dest_rect);
@@ -562,7 +569,7 @@ sdl_draw_sprite(const sprite_t *sprite, int x, int y, frame_t *dest)
 
 	SDL_Rect dest_rect = { x, y, 0, 0 };
 
-	SDL_SetClipRect(dest->surf, &dest->clip);
+	sdl_actualize_clipping(dest);
 
 	/* Blit sprite */
 	r = SDL_BlitSurface(surf, NULL, dest->surf, &dest_rect);
@@ -639,7 +646,7 @@ sdl_draw_overlay_sprite(const sprite_t *sprite, int x, int y, int y_off, frame_t
 	SDL_Rect src_rect = { 0, y_off, surf->w, surf->h - y_off };
 	SDL_Rect dest_rect = { x, y + y_off, 0, 0 };
 
-	SDL_SetClipRect(dest->surf, &dest->clip);
+	sdl_actualize_clipping(dest);
 
 	/* Blit sprite */
 	r = SDL_BlitSurface(surf, &src_rect, dest->surf, &dest_rect);
@@ -729,7 +736,7 @@ sdl_draw_masked_sprite(const sprite_t *sprite, int x, int y, const sprite_t *mas
 	SDL_Rect src_rect = { 0, 0, surf->w, surf->h };
 	SDL_Rect dest_rect = { x, y, 0, 0 };
 
-	SDL_SetClipRect(dest->surf, &dest->clip);
+	sdl_actualize_clipping(dest);
 
 	/* Blit to dest */
 	r = SDL_BlitSurface(surf, &src_rect, dest->surf, &dest_rect);
@@ -749,7 +756,7 @@ sdl_draw_frame(int dx, int dy, frame_t *dest, int sx, int sy, frame_t *src, int 
 	SDL_Rect dest_rect = { x, y, 0, 0 };
 	SDL_Rect src_rect = { sx, sy, w, h };
 
-	SDL_SetClipRect(dest->surf, &dest->clip);
+	sdl_actualize_clipping(dest);
 
 	int r = SDL_BlitSurface(src->surf, &src_rect, dest->surf, &dest_rect);
 	if (r < 0) {
@@ -760,7 +767,7 @@ sdl_draw_frame(int dx, int dy, frame_t *dest, int sx, int sy, frame_t *src, int 
 void
 sdl_draw_rect(int x, int y, int width, int height, int color, frame_t *dest)
 {
-	SDL_SetClipRect(dest->surf, &dest->clip);
+	sdl_actualize_clipping(dest);
 
 	x += dest->clip.x;
 	y += dest->clip.y;
@@ -781,10 +788,10 @@ sdl_fill_rect(int x, int y, int width, int height, int color, frame_t *dest)
 		width, height
 	};
 
-	SDL_SetClipRect(dest->surf, &dest->clip);
+	sdl_actualize_clipping(dest);
 
 	/* Fill rectangle */
-	int r = SDL_FillRect(dest->surf, &rect, SDL_MapRGBA(dest->surf->format,
+	int r = SDL_FillRect(dest->surf, &rect, SDL_MapRGBA(((SDL_Surface*)dest->surf)->format,
 			pal_colors[color].r, pal_colors[color].g, pal_colors[color].b, 0xff));
 	if (r < 0) {
 		LOGE("sdl-video", "FillRect error: %s.", SDL_GetError());
@@ -795,8 +802,8 @@ void
 sdl_swap_buffers()
 {
 	SDL_UpdateTexture(screen_texture, NULL,
-			  screen.surf->pixels,
-			  screen.surf->pitch);
+			  ((SDL_Surface*)screen.surf)->pixels,
+			  ((SDL_Surface*)screen.surf)->pitch);
 
 	SDL_RenderClear(renderer);
 	SDL_RenderCopy(renderer, screen_texture, NULL, NULL);
