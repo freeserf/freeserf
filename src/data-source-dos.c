@@ -70,7 +70,7 @@ data_load(const char *path)
 	int r;
 
 #ifdef HAVE_MMAP
-	int fd = open(path, O_RDWR);
+	int fd = open(path, O_RDONLY);
 	if (fd < 0) return -1;
 
 	struct stat sb;
