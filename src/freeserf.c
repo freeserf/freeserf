@@ -570,7 +570,14 @@ load_data_file(const char *path)
 		return 0;
 	}
 
-	/* Use default data file if none was specified. */
+	/* If a path is not specified (path is NULL) then
+	   the configuration file is searched for in the directories
+	   specified by the XDG Base Directory Specification
+	   <http://standards.freedesktop.org/basedir-spec/basedir-spec-latest.html>.
+
+	   On windows platforms the %localappdata% is used in place of XDG_CONFIG_HOME.
+	*/
+
 	char cp[MAX_DATA_PATH];
 	char *env;
 
@@ -579,6 +586,14 @@ load_data_file(const char *path)
 	    env[0] != '\0') {
 		for (const char **df = default_data_file; *df != NULL; df++) {
 			snprintf(cp, sizeof(cp), "%s/freeserf/%s", env, *df);
+			LOGI("main", "Looking for game data in `%s'...", cp);
+			int r = data_load(cp);
+			if (r >= 0) return 0;
+		}
+	} else if ((env = getenv("HOME")) != NULL && env[0] != '\0') {
+		for (const char **df = default_data_file; *df != NULL; df++) {
+			snprintf(cp, sizeof(cp),
+				 "%s/.local/share/freeserf/%s", env, *df);
 			LOGI("main", "Looking for game data in `%s'...", cp);
 			int r = data_load(cp);
 			if (r >= 0) return 0;
@@ -597,18 +612,44 @@ load_data_file(const char *path)
 	}
 #endif
 
-	if ((env = getenv("HOME")) != NULL && env[0] != '\0') {
+	if ((env = getenv("XDG_DATA_DIRS")) != NULL && env[0] != '\0') {
+		char *begin = env;
+		while (1) {
+			char *end = strchr(begin, ':');
+			if (end == NULL) end = strchr(begin, '\0');
+
+			int len = end - begin;
+			if (len > 0) {
+				for (const char **df = default_data_file; *df != NULL; df++) {
+					snprintf(cp, sizeof(cp),
+						 "%.*s/freeserf/%s", len, begin, *df);
+					LOGI("main", "Looking for game data in `%s'...", cp);
+					int r = data_load(cp);
+					if (r >= 0) return 0;
+				}
+			}
+
+			if (end[0] == '\0') break;
+			begin = end + 1;
+		}
+	} else {
+		/* Look in /usr/local/share and /usr/share per XDG spec. */
 		for (const char **df = default_data_file; *df != NULL; df++) {
 			snprintf(cp, sizeof(cp),
-				 "%s/.local/share/freeserf/%s", env, *df);
+				 "/usr/local/share/freeserf/%s", *df);
+			LOGI("main", "Looking for game data in `%s'...", cp);
+			int r = data_load(cp);
+			if (r >= 0) return 0;
+		}
+
+		for (const char **df = default_data_file; *df != NULL; df++) {
+			snprintf(cp, sizeof(cp),
+				 "/usr/share/freeserf/%s", *df);
 			LOGI("main", "Looking for game data in `%s'...", cp);
 			int r = data_load(cp);
 			if (r >= 0) return 0;
 		}
 	}
-
-	/* TODO look in DATADIR, getenv("XDG_DATA_DIRS") or
-	   if not set look in /usr/local/share:/usr/share". */
 
 	/* Look in current directory */
 	for (const char **df = default_data_file; *df != NULL; df++) {
