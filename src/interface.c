@@ -29,7 +29,7 @@
 #include "panel.h"
 #include "game-init.h"
 #include "game.h"
-#include "sdl-video.h"
+#include "gfx.h"
 #include "data.h"
 #include "debug.h"
 #include "freeserf_endian.h"
@@ -678,7 +678,7 @@ interface_draw(interface_t *interface, frame_t *frame)
 		if (fl->obj->displayed &&
 		    (fl->redraw || redraw_above)) {
 			frame_t float_frame;
-			sdl_frame_init(&float_frame,
+			gfx_frame_init(&float_frame,
 				       frame->clip.x + fl->x,
 				       frame->clip.y + fl->y,
 				       fl->obj->width, fl->obj->height, frame);
