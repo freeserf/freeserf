@@ -31,7 +31,7 @@ pqueue_init(pqueue_t *queue, uint capacity, pqueue_less_func *less)
 	queue->size = 0;
 	queue->capacity = capacity;
 	queue->less = less;
-	queue->entries = malloc(capacity*sizeof(void *));
+	queue->entries = (void**)malloc(capacity*sizeof(void *));
 	if (queue->entries == NULL) return -1;
 
 	return 0;
@@ -51,7 +51,7 @@ pqueue_insert(pqueue_t *queue, void *elm)
 	if (queue->size == queue->capacity) {
 		/* Double queue capacity if full. */
 		queue->capacity *= 2;
-		queue->entries = realloc(queue->entries,
+		queue->entries = (void**)realloc(queue->entries,
 					 queue->capacity*sizeof(void *));
 		if (queue->entries == NULL) return -1;
 	}

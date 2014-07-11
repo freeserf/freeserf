@@ -22,7 +22,9 @@
 #ifndef _SDL_VIDEO_H
 #define _SDL_VIDEO_H
 
+#ifdef HAVE_STDINT_H
 #include <stdint.h>
+#endif
 
 #include "SDL.h"
 

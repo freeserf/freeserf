@@ -20,226 +20,285 @@
  */
 
 #include "mission.h"
-#include "random.h"
 
-const mission_t mission[] = {
-	{
-		/* Mission 1: START */
-		.rnd = {{ 0x6d6f, 0xf7f0, 0xc8d4 }},
+mission_t mission[12] = {0};
 
-		.player[0].supplies = 35,
-		.player[0].reproduction = 30,
-		.player[0].castle = { -1, -1 },
+void
+init_missions()
+{
+	/* Mission 1: START */
+	mission[0].rnd.state[0] = 0x6d6f;
+	mission[0].rnd.state[1] = 0xf7f0;
+	mission[0].rnd.state[2] = 0xc8d4;
 
-		.player[1].face = 1,
-		.player[1].intelligence = 10,
-		.player[1].supplies = 5,
-		.player[1].reproduction = 30,
-		.player[1].castle = { -1, -1 }
-	}, {
-		/* Mission 2: STATION */
-		.rnd = {{ 0x60b9, 0xe728, 0xc484 }},
+	mission[0].player[0].supplies = 35,
+	mission[0].player[0].reproduction = 30,
+	mission[0].player[0].castle.col = -1;
+	mission[0].player[0].castle.row = -1;
 
-		.player[0].supplies = 30,
-		.player[0].reproduction = 40,
-		.player[0].castle = { -1, -1 },
+	mission[0].player[1].face = 1,
+	mission[0].player[1].intelligence = 10,
+	mission[0].player[1].supplies = 5,
+	mission[0].player[1].reproduction = 30,
+	mission[0].player[1].castle.col = -1;
+	mission[0].player[1].castle.row = -1;
 
-		.player[1].face = 2,
-		.player[1].intelligence = 12,
-		.player[1].supplies = 15,
-		.player[1].reproduction = 30,
-		.player[1].castle = { -1, -1 },
+	/* Mission 2: STATION */
+	mission[1].rnd.state[0] = 0x60b9;
+	mission[1].rnd.state[1] = 0xe728;
+	mission[1].rnd.state[2] = 0xc484;
 
-		.player[2].face = 3,
-		.player[2].intelligence = 14,
-		.player[2].supplies = 15,
-		.player[2].reproduction = 30,
-		.player[2].castle = { -1, -1 },
-	}, {
+	mission[1].player[0].supplies = 30,
+	mission[1].player[0].reproduction = 40,
+	mission[1].player[0].castle.col = -1;
+	mission[1].player[0].castle.row = -1;
+
+	mission[1].player[1].face = 2,
+	mission[1].player[1].intelligence = 12,
+	mission[1].player[1].supplies = 15,
+	mission[1].player[1].reproduction = 30,
+	mission[1].player[1].castle.col = -1;
+	mission[1].player[1].castle.row = -1;
+
+	mission[1].player[2].face = 3,
+	mission[1].player[2].intelligence = 14,
+	mission[1].player[2].supplies = 15,
+	mission[1].player[2].reproduction = 30,
+	mission[1].player[2].castle.col = -1;
+	mission[1].player[2].castle.row = -1;
+
 		/* Mission 3: UNITY */
-		.rnd = {{ 0x12ab, 0x7a4a, 0xe483 }},
+	mission[2].rnd.state[0] = 0x12ab;
+	mission[2].rnd.state[1] = 0x7a4a;
+	mission[2].rnd.state[2] = 0xe483;
 
-		.player[0].supplies = 30,
-		.player[0].reproduction = 30,
-		.player[0].castle = { -1, -1 },
+	mission[2].player[0].supplies = 30,
+	mission[2].player[0].reproduction = 30,
+	mission[2].player[0].castle.col = -1;
+	mission[2].player[0].castle.row = -1;
 
-		.player[1].face = 2,
-		.player[1].intelligence = 18,
-		.player[1].supplies = 10,
-		.player[1].reproduction = 25,
-		.player[1].castle = { -1, -1 },
+	mission[2].player[1].face = 2,
+	mission[2].player[1].intelligence = 18,
+	mission[2].player[1].supplies = 10,
+	mission[2].player[1].reproduction = 25,
+	mission[2].player[1].castle.col = -1;
+	mission[2].player[1].castle.row = -1;
 
-		.player[2].face = 4,
-		.player[2].intelligence = 18,
-		.player[2].supplies = 10,
-		.player[2].reproduction = 25,
-		.player[2].castle = { -1, -1 },
-	}, {
-		/* Mission 4 */
-		.rnd = {{ 0xacdf, 0xee65, 0x3701 }},
+	mission[2].player[2].face = 4,
+	mission[2].player[2].intelligence = 18,
+	mission[2].player[2].supplies = 10,
+	mission[2].player[2].reproduction = 25,
+	mission[2].player[2].castle.col = -1;
+	mission[2].player[2].castle.row = -1;
 
-		.player[0].supplies = 25,
-		.player[0].reproduction = 40,
-		.player[0].castle = { -1, -1 },
+	/* Mission 4 */
+	mission[3].rnd.state[0] = 0xacdf;
+	mission[3].rnd.state[1] = 0xee65;
+	mission[3].rnd.state[2] = 0x3701;
 
-		.player[1].face = 2,
-		.player[1].intelligence = 15,
-		.player[1].supplies = 20,
-		.player[1].reproduction = 30,
-		.player[1].castle = { -1, -1 },
-	}, {
-		/* Mission 5 */
-		.rnd = {{ 0x3b8b, 0xd867, 0xd847 }},
+	mission[3].player[0].supplies = 25,
+	mission[3].player[0].reproduction = 40,
+	mission[3].player[0].castle.col = -1;
+	mission[3].player[0].castle.row = -1;
 
-		.player[0].supplies = 30,
-		.player[0].reproduction = 30,
-		.player[0].castle = { -1, -1 },
+	mission[3].player[1].face = 2,
+	mission[3].player[1].intelligence = 15,
+	mission[3].player[1].supplies = 20,
+	mission[3].player[1].reproduction = 30,
+	mission[3].player[1].castle.col = -1;
+	mission[3].player[1].castle.row = -1;
 
-		.player[1].face = 3,
-		.player[1].intelligence = 16,
-		.player[1].supplies = 25,
-		.player[1].reproduction = 20,
-		.player[1].castle = { -1, -1 },
+	/* Mission 5 */
+	mission[4].rnd.state[0] = 0x3b8b;
+	mission[4].rnd.state[1] = 0xd867;
+	mission[4].rnd.state[2] = 0xd847;
 
-		.player[2].face = 4,
-		.player[2].intelligence = 16,
-		.player[2].supplies = 25,
-		.player[2].reproduction = 20,
-		.player[2].castle = { -1, -1 },
-	}, {
-		/* Mission 6 */
-		.rnd = {{ 0x4491, 0x36fb, 0xf9e1 }},
+	mission[4].player[0].supplies = 30,
+	mission[4].player[0].reproduction = 30,
+	mission[4].player[0].castle.col = -1;
+	mission[4].player[0].castle.row = -1;
 
-		.player[0].supplies = 30,
-		.player[0].reproduction = 30,
-		.player[0].castle = { -1, -1 },
+	mission[4].player[1].face = 3,
+	mission[4].player[1].intelligence = 16,
+	mission[4].player[1].supplies = 25,
+	mission[4].player[1].reproduction = 20,
+	mission[4].player[1].castle.col = -1;
+	mission[4].player[1].castle.row = -1;
 
-		.player[1].face = 3,
-		.player[1].intelligence = 20,
-		.player[1].supplies = 12,
-		.player[1].reproduction = 14,
-		.player[1].castle = { -1, -1 },
+	mission[4].player[2].face = 4,
+	mission[4].player[2].intelligence = 16,
+	mission[4].player[2].supplies = 25,
+	mission[4].player[2].reproduction = 20,
+	mission[4].player[2].castle.col = -1;
+	mission[4].player[2].castle.row = -1;
 
-		.player[2].face = 5,
-		.player[2].intelligence = 20,
-		.player[2].supplies = 12,
-		.player[2].reproduction = 14,
-		.player[2].castle = { -1, -1 },
-	}, {
-		/* Mission 7 */
-		.rnd = {{ 0xca18, 0x4221, 0x7f96 }},
+	/* Mission 6 */
+	mission[5].rnd.state[0] = 0x4491;
+	mission[5].rnd.state[1] = 0x36fb;
+	mission[5].rnd.state[2] = 0xf9e1;
 
-		.player[0].supplies = 30,
-		.player[0].reproduction = 40,
-		.player[0].castle = { -1, -1 },
+	mission[5].player[0].supplies = 30,
+	mission[5].player[0].reproduction = 30,
+	mission[5].player[0].castle.col = -1;
+	mission[5].player[0].castle.row = -1;
 
-		.player[1].face = 3,
-		.player[1].intelligence = 22,
-		.player[1].supplies = 30,
-		.player[1].reproduction = 30,
-		.player[1].castle = { -1, -1 },
-	}, {
-		/* Mission 8 */
-		.rnd = {{ 0x88fe, 0xe0db, 0xed5c }},
+	mission[5].player[1].face = 3,
+	mission[5].player[1].intelligence = 20,
+	mission[5].player[1].supplies = 12,
+	mission[5].player[1].reproduction = 14,
+	mission[5].player[1].castle.col = -1;
+	mission[5].player[1].castle.row = -1;
 
-		.player[0].supplies = 25,
-		.player[0].reproduction = 30,
-		.player[0].castle = { -1, -1 },
+	mission[5].player[2].face = 5,
+	mission[5].player[2].intelligence = 20,
+	mission[5].player[2].supplies = 12,
+	mission[5].player[2].reproduction = 14,
+	mission[5].player[2].castle.col = -1;
+	mission[5].player[2].castle.row = -1;
 
-		.player[1].face = 4,
-		.player[1].intelligence = 23,
-		.player[1].supplies = 25,
-		.player[1].reproduction = 30,
-		.player[1].castle = { -1, -1 },
+	/* Mission 7 */
+	mission[6].rnd.state[0] = 0xca18;
+	mission[6].rnd.state[1] = 0x4221;
+	mission[6].rnd.state[2] = 0x7f96;
 
-		.player[2].face = 6,
-		.player[2].intelligence = 24,
-		.player[2].supplies = 25,
-		.player[2].reproduction = 30,
-		.player[2].castle = { -1, -1 },
-	}, {
-		/* Mission 9 */
-		.rnd = {{ 0xe9c4, 0x16fe, 0x2ef0 }},
+	mission[6].player[0].supplies = 30,
+	mission[6].player[0].reproduction = 40,
+	mission[6].player[0].castle.col = -1;
+	mission[6].player[0].castle.row = -1;
 
-		.player[0].supplies = 25,
-		.player[0].reproduction = 40,
-		.player[0].castle = { -1, -1 },
+	mission[6].player[1].face = 3,
+	mission[6].player[1].intelligence = 22,
+	mission[6].player[1].supplies = 30,
+	mission[6].player[1].reproduction = 30,
+	mission[6].player[1].castle.col = -1;
+	mission[6].player[1].castle.row = -1;
 
-		.player[1].face = 4,
-		.player[1].intelligence = 26,
-		.player[1].supplies = 13,
-		.player[1].reproduction = 30,
-		.player[1].castle = { -1, -1 },
+	/* Mission 8 */
+	mission[7].rnd.state[0] = 0x88fe;
+	mission[7].rnd.state[1] = 0xe0db;
+	mission[7].rnd.state[2] = 0xed5c;
 
-		.player[2].face = 5,
-		.player[2].intelligence = 28,
-		.player[2].supplies = 13,
-		.player[2].reproduction = 30,
-		.player[2].castle = { -1, -1 },
+	mission[7].player[0].supplies = 25,
+	mission[7].player[0].reproduction = 30,
+	mission[7].player[0].castle.col = -1;
+	mission[7].player[0].castle.row = -1;
 
-		.player[3].face = 6,
-		.player[3].intelligence = 30,
-		.player[3].supplies = 13,
-		.player[3].reproduction = 30,
-		.player[3].castle = { -1, -1 },
-	}, {
-		/* Mission 10 */
-		.rnd = {{ 0x15c2, 0xf9d0, 0x5fb1 }},
+	mission[7].player[1].face = 4,
+	mission[7].player[1].intelligence = 23,
+	mission[7].player[1].supplies = 25,
+	mission[7].player[1].reproduction = 30,
+	mission[7].player[1].castle.col = -1;
+	mission[7].player[1].castle.row = -1;
 
-		.player[0].supplies = 20,
-		.player[0].reproduction = 16,
-		.player[0].castle = { 28, 14 },
+	mission[7].player[2].face = 6,
+	mission[7].player[2].intelligence = 24,
+	mission[7].player[2].supplies = 25,
+	mission[7].player[2].reproduction = 30,
+	mission[7].player[2].castle.col = -1;
+	mission[7].player[2].castle.row = -1;
 
-		.player[1].face = 4,
-		.player[1].intelligence = 30,
-		.player[1].supplies = 19,
-		.player[1].reproduction = 20,
-		.player[1].castle = { 5, 47 },
-	}, {
-		/* Mission 11 */
-		.rnd = {{ 0x9b93, 0x6be1, 0x79c0 }},
+	/* Mission 9 */
+	mission[8].rnd.state[0] = 0xe9c4;
+	mission[8].rnd.state[1] = 0x16fe;
+	mission[8].rnd.state[2] = 0x2ef0;
 
-		.player[0].supplies = 16,
-		.player[0].reproduction = 20,
-		.player[0].castle = { 16, 42 },
+	mission[8].player[0].supplies = 25,
+	mission[8].player[0].reproduction = 40,
+	mission[8].player[0].castle.col = -1;
+	mission[8].player[0].castle.row = -1;
 
-		.player[1].face = 5,
-		.player[1].intelligence = 33,
-		.player[1].supplies = 10,
-		.player[1].reproduction = 20,
-		.player[1].castle = { 0x34, 0x19 },
+	mission[8].player[1].face = 4,
+	mission[8].player[1].intelligence = 26,
+	mission[8].player[1].supplies = 13,
+	mission[8].player[1].reproduction = 30,
+	mission[8].player[1].castle.col = -1;
+	mission[8].player[1].castle.row = -1;
 
-		.player[2].face = 7,
-		.player[2].intelligence = 34,
-		.player[2].supplies = 13,
-		.player[2].reproduction = 20,
-		.player[2].castle = { 0x17, 12 },
-	}, {
-		/* Mission 12 */
-		.rnd = {{ 0x4195, 0x7dba, 0xd884 }},
+	mission[8].player[2].face = 5,
+	mission[8].player[2].intelligence = 28,
+	mission[8].player[2].supplies = 13,
+	mission[8].player[2].reproduction = 30,
+	mission[8].player[2].castle.col = -1;
+	mission[8].player[2].castle.row = -1;
 
-		.player[0].supplies = 23,
-		.player[0].reproduction = 27,
-		.player[0].castle = { 0x35, 13 },
+	mission[8].player[3].face = 6,
+	mission[8].player[3].intelligence = 30,
+	mission[8].player[3].supplies = 13,
+	mission[8].player[3].reproduction = 30,
+	mission[8].player[3].castle.col = -1;
+	mission[8].player[3].castle.row = -1;
 
-		.player[1].face = 5,
-		.player[1].intelligence = 27,
-		.player[1].supplies = 17,
-		.player[1].reproduction = 24,
-		.player[1].castle = { 0x1b, 10 },
+	/* Mission 10 */
+	mission[9].rnd.state[0] = 0x15c2;
+	mission[9].rnd.state[1] = 0xf9d0;
+	mission[9].rnd.state[2] = 0x5fb1;
 
-		.player[2].face = 6,
-		.player[2].intelligence = 27,
-		.player[2].supplies = 13,
-		.player[2].reproduction = 24,
-		.player[2].castle = { 0x1d, 0x26 },
+	mission[9].player[0].supplies = 20,
+	mission[9].player[0].reproduction = 16,
+	mission[9].player[0].castle.col = 28;
+	mission[9].player[0].castle.row = 14;
 
-		.player[3].face = 7,
-		.player[3].intelligence = 27,
-		.player[3].supplies = 13,
-		.player[3].reproduction = 24,
-		.player[3].castle = { 15, 32 },
-	}
-};
+	mission[9].player[1].face = 4,
+	mission[9].player[1].intelligence = 30,
+	mission[9].player[1].supplies = 19,
+	mission[9].player[1].reproduction = 20,
+	mission[9].player[1].castle.col = 5;
+	mission[9].player[1].castle.row = 47;
+
+	/* Mission 11 */
+	mission[10].rnd.state[0] = 0x9b93;
+	mission[10].rnd.state[1] = 0x6be1;
+	mission[10].rnd.state[2] = 0x79c0;
+
+	mission[10].player[0].supplies = 16,
+	mission[10].player[0].reproduction = 20,
+	mission[10].player[0].castle.col = 16;
+	mission[10].player[0].castle.row = 42;
+
+	mission[10].player[1].face = 5,
+	mission[10].player[1].intelligence = 33,
+	mission[10].player[1].supplies = 10,
+	mission[10].player[1].reproduction = 20,
+	mission[10].player[1].castle.col = 0x34;
+	mission[10].player[1].castle.row = 0x19;
+
+	mission[10].player[2].face = 7,
+	mission[10].player[2].intelligence = 34,
+	mission[10].player[2].supplies = 13,
+	mission[10].player[2].reproduction = 20,
+	mission[10].player[2].castle.col = 0x17;
+	mission[10].player[2].castle.row = 12;
+
+	/* Mission 12 */
+	mission[11].rnd.state[0] = 0x4195;
+	mission[11].rnd.state[1] = 0x7dba;
+	mission[11].rnd.state[2] = 0xd884;
+
+	mission[11].player[0].supplies = 23,
+	mission[11].player[0].reproduction = 27,
+	mission[11].player[0].castle.col = 0x35;
+	mission[11].player[0].castle.row = 13;
+
+	mission[11].player[1].face = 5,
+	mission[11].player[1].intelligence = 27,
+	mission[11].player[1].supplies = 17,
+	mission[11].player[1].reproduction = 24,
+	mission[11].player[1].castle.col = 0x1b;
+	mission[11].player[1].castle.row = 10;
+
+	mission[11].player[2].face = 6,
+	mission[11].player[2].intelligence = 27,
+	mission[11].player[2].supplies = 13,
+	mission[11].player[2].reproduction = 24,
+	mission[11].player[2].castle.col = 0x1d;
+	mission[11].player[2].castle.row = 0x26;
+
+	mission[11].player[3].face = 7,
+	mission[11].player[3].intelligence = 27,
+	mission[11].player[3].supplies = 13,
+	mission[11].player[3].reproduction = 24,
+	mission[11].player[3].castle.col = 15;
+	mission[11].player[3].castle.row = 32;
+}
 
 const int mission_count = sizeof(mission) / sizeof(mission[0]);

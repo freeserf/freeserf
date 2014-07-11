@@ -66,7 +66,7 @@ interface_get_popup_box(interface_t *interface)
 void
 interface_open_popup(interface_t *interface, int box)
 {
-	interface->popup.box = box;
+	interface->popup.box = (box_t)box;
 	gui_object_set_displayed(GUI_OBJECT(&interface->popup), 1);
 }
 
@@ -74,7 +74,7 @@ interface_open_popup(interface_t *interface, int box)
 void
 interface_close_popup(interface_t *interface)
 {
-	interface->popup.box = 0;
+	interface->popup.box = (box_t)0;
 	gui_object_set_displayed(GUI_OBJECT(&interface->popup), 0);
 	interface->panel_btns[2] = PANEL_BTN_MAP;
 	interface->panel_btns[3] = PANEL_BTN_STATS;
@@ -262,13 +262,13 @@ interface_determine_map_cursor_type_road(interface_t *interface)
 	int valid_dir = 0;
 	int length = interface->building_road_length;
 
-	for (dir_t d = DIR_RIGHT; d <= DIR_UP; d++) {
+	for (int d = DIR_RIGHT; d <= DIR_UP; d++) {
 		int sprite = 0;
 
 		if (length > 0 && interface->building_road_dirs[length-1] == DIR_REVERSE(d)) {
 			sprite = 45; /* undo */
 			valid_dir |= BIT(d);
-		} else if (game_road_segment_valid(pos, d)) {
+		} else if (game_road_segment_valid(pos, (dir_t)d)) {
 			/* Check that road does not cross itself. */
 			map_pos_t road_pos = interface->building_road_source;
 			int crossing_self = 0;
@@ -558,7 +558,7 @@ interface_remove_road_segment(interface_t *interface)
 int
 interface_extend_road(interface_t *interface, dir_t *dirs, uint length)
 {
-	for (int i = 0; i < length; i++) {
+	for (uint i = 0; i < length; i++) {
 		dir_t dir = dirs[i];
 		int r = interface_build_road_segment(interface, dir);
 		if (r < 0) {
@@ -700,12 +700,11 @@ interface_handle_event(interface_t *interface, const gui_event_t *event)
 			if (event->type == GUI_EVENT_TYPE_DRAG_MOVE) {
 				return gui_object_handle_event(interface->cursor_lock_target, event);
 			}
-			gui_event_t float_event = {
-				.type = event->type,
-				.x = event->x,
-				.y = event->y,
-				.button = event->button
-			};
+			gui_event_t float_event;
+			float_event.type = event->type;
+			float_event.x = event->x;
+			float_event.y = event->y;
+			float_event.button = event->button;
 			gui_object_t *obj = interface->cursor_lock_target;
 			while (obj->parent != NULL) {
 				int x, y;
@@ -733,12 +732,11 @@ interface_handle_event(interface_t *interface, const gui_event_t *event)
 		    event->x >= fl->x && event->y >= fl->y &&
 		    event->x < fl->x + fl->obj->width &&
 		    event->y < fl->y + fl->obj->height) {
-			gui_event_t float_event = {
-				.type = event->type,
-				.x = event->x - fl->x,
-				.y = event->y - fl->y,
-				.button = event->button
-			};
+			gui_event_t float_event;
+			float_event.type = event->type;
+			float_event.x = event->x - fl->x;
+			float_event.y = event->y - fl->y;
+			float_event.button = event->button;
 			return gui_object_handle_event(fl->obj, &float_event);
 		}
 	}
@@ -926,8 +924,8 @@ interface_init(interface_t *interface)
 			    0, 0, 0, 0);
 
 	interface->map_cursor_pos = MAP_POS(0, 0);
-	interface->map_cursor_type = 0;
-	interface->panel_btn_type = 0;
+	interface->map_cursor_type = (map_cursor_type_t)0;
+	interface->panel_btn_type = (panel_btn_t)0;
 
 	interface->building_road = 0;
 
@@ -985,7 +983,7 @@ void
 interface_add_float(interface_t *interface, gui_object_t *obj,
 		    int x, int y, int width, int height)
 {
-	interface_float_t *fl = malloc(sizeof(interface_float_t));
+	interface_float_t *fl = (interface_float_t*)malloc(sizeof(interface_float_t));
 	if (fl == NULL) abort();
 
 	/* Store currect location with object. */
@@ -1028,7 +1026,7 @@ interface_update(interface_t *interface)
 	}
 
 	/* Clear return arrow after a timeout */
-	if (interface->return_timeout < tick_diff) {
+	if (interface->return_timeout < (int)tick_diff) {
 		interface->msg_flags |= BIT(4);
 		interface->msg_flags &= ~BIT(3);
 		interface->return_timeout = 0;

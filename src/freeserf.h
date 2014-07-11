@@ -22,9 +22,15 @@
 #ifndef _FREESERF_H
 #define _FREESERF_H
 
+#ifdef HAVE_CONFIG_H
+# include <config.h>
+#endif
+
 #include <stdio.h>
 #include <stdlib.h>
+#ifdef HAVE_STDINT_H
 #include <stdint.h>
+#endif
 
 #include "gfx.h"
 #include "map.h"
@@ -40,7 +46,7 @@
 #define INVENTORY_INDEX(ptr)  ((int)((ptr) - game.inventories))
 #define INVENTORY_ALLOCATED(i)  BIT_TEST(game.inventory_bitmap[(i)>>3], 7-((i)&7))
 
-#define DIR_REVERSE(dir)  (((dir) + 3) % 6)
+#define DIR_REVERSE(dir)  (dir_t)(((dir) + 3) % 6)
 
 
 typedef enum {

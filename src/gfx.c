@@ -23,6 +23,10 @@
 # include <config.h>
 #endif
 
+#ifdef HAVE_CONFIG_H
+# include <config.h>
+#endif
+
 #include "sdl-video.h"
 #include "gfx.h"
 #include "data.h"
@@ -81,10 +85,10 @@ gfx_draw_char_sprite(int x, int y, unsigned int c, int color, int shadow, frame_
 	if (s < 0) return;
 
 	if (shadow) {
-		sdl_draw_transp_sprite(data_get_object(DATA_FONT_SHADOW_BASE + s, NULL),
+		sdl_draw_transp_sprite((sprite_t*)data_get_object(DATA_FONT_SHADOW_BASE + s, NULL),
 				       x, y, 0, 0, shadow, dest);
 	}
-	sdl_draw_transp_sprite(data_get_object(DATA_FONT_BASE + s, NULL),
+	sdl_draw_transp_sprite((sprite_t*)data_get_object(DATA_FONT_BASE + s, NULL),
 			       x, y, 0, 0, color, dest);
 }
 
@@ -131,7 +135,7 @@ gfx_draw_number(int x, int y, int color, int shadow, frame_t *dest, int n)
 void
 gfx_draw_sprite(int x, int y, int sprite, frame_t *dest)
 {
-	sprite_t *spr = data_get_object(sprite, NULL);
+	sprite_t *spr = (sprite_t*)data_get_object(sprite, NULL);
 	if (spr != NULL) sdl_draw_sprite(spr, x, y, dest);
 }
 
@@ -140,7 +144,7 @@ gfx_draw_sprite(int x, int y, int sprite, frame_t *dest)
 void
 gfx_draw_transp_sprite(int x, int y, int sprite, frame_t *dest)
 {
-	sprite_t *spr = data_get_object(sprite, NULL);
+	sprite_t *spr = (sprite_t*)data_get_object(sprite, NULL);
 	if (spr != NULL) sdl_draw_transp_sprite(spr, x, y, 0, 0, 0, dest);
 }
 
@@ -155,7 +159,7 @@ gfx_fill_rect(int x, int y, int width, int height, int color, frame_t *dest)
 void
 gfx_set_palette(int palette)
 {
-	uint8_t *pal = data_get_object(palette, NULL);
+	uint8_t *pal = (uint8_t*)data_get_object(palette, NULL);
 	sdl_set_palette(pal);
 }
 

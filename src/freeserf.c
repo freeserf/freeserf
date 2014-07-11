@@ -25,9 +25,14 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#ifdef HAVE_STDINT_H
 #include <stdint.h>
+#endif
 #include <time.h>
+#ifdef HAVE_UNISTD_H
 #include <unistd.h>
+#endif
+#include <string.h>
 
 #include "freeserf.h"
 #include "player.h"
@@ -225,11 +230,11 @@ static void
 game_loop()
 {
 	/* FPS */
-	int fps = 0;
+	float fps = 0;
 	float fps_ema = 0;
 	int fps_target = 25;
 	/* TODO: compute alpha dynamically based on frametime */
-	const float ema_alpha = 0.07;
+	const float ema_alpha = 0.07f;
 
 	const int frametime_target = 1000 / fps_target; /* in milliseconds */
 	int last_frame = SDL_GetTicks();
@@ -279,10 +284,10 @@ game_loop()
 					gui_object_handle_event((gui_object_t *)&interface, &ev);
 
 					if (current_ticks - last_click[event.button.button-1] < MOUSE_TIME_SENSITIVITY &&
-					    event.button.x >= last_click_x - MOUSE_MOVE_SENSITIVITY &&
-					    event.button.x <= last_click_x + MOUSE_MOVE_SENSITIVITY &&
-					    event.button.y >= last_click_y - MOUSE_MOVE_SENSITIVITY &&
-					    event.button.y <= last_click_y + MOUSE_MOVE_SENSITIVITY) {
+					    event.button.x >= (int)(last_click_x - MOUSE_MOVE_SENSITIVITY) &&
+					    event.button.x <= (int)(last_click_x + MOUSE_MOVE_SENSITIVITY) &&
+					    event.button.y >= (int)(last_click_y - MOUSE_MOVE_SENSITIVITY) &&
+					    event.button.y <= (int)(last_click_y + MOUSE_MOVE_SENSITIVITY)) {
 						ev.type = GUI_EVENT_TYPE_DBL_CLICK;
 						ev.x = event.button.x;
 						ev.y = event.button.y;
@@ -445,7 +450,7 @@ game_loop()
 
 					/* Debug */
 				case SDLK_g:
-					interface.viewport.layers ^= VIEWPORT_LAYER_GRID;
+					interface.viewport.layers = (viewport_layer_t)(interface.viewport.layers ^ VIEWPORT_LAYER_GRID);
 					break;
 				case SDLK_b:
 					interface.viewport.show_possible_build = !interface.viewport.show_possible_build;
@@ -502,7 +507,7 @@ game_loop()
 		current_ticks = new_ticks;
 
 		/* Update FPS EMA per frame */
-		fps = 1000*(1.0 / (float)delta_ticks);
+		fps = 1000.f*(1.f / (float)delta_ticks);
 		if (fps_ema > 0) fps_ema = ema_alpha*fps + (1-ema_alpha)*fps_ema;
 		else if (fps > 0) fps_ema = fps;
 
@@ -618,7 +623,7 @@ load_data_file(const char *path)
 			char *end = strchr(begin, ':');
 			if (end == NULL) end = strchr(begin, '\0');
 
-			int len = end - begin;
+			int len = (int)(end - begin);
 			if (len > 0) {
 				for (const char **df = default_data_file; *df != NULL; df++) {
 					snprintf(cp, sizeof(cp),
@@ -689,9 +694,12 @@ main(int argc, char *argv[])
 	int fullscreen = 0;
 	int map_generator = 0;
 
-	int log_level = DEFAULT_LOG_LEVEL;
+	init_missions();
 
-	int opt;
+	log_level_t log_level = DEFAULT_LOG_LEVEL;
+
+#ifdef HAVE_UNISTD_H
+	char opt;
 	while (1) {
 		opt = getopt(argc, argv, "d:fg:hl:r:t:");
 		if (opt < 0) break;
@@ -701,7 +709,7 @@ main(int argc, char *argv[])
 		{
 			int d = atoi(optarg);
 			if (d >= 0 && d < LOG_LEVEL_MAX) {
-				log_level = d;
+				log_level = (log_level_t)d;
 			}
 		}
 			break;
@@ -709,7 +717,7 @@ main(int argc, char *argv[])
 			fullscreen = 1;
 			break;
 		case 'g':
-			data_file = malloc(strlen(optarg)+1);
+			data_file = (char*)malloc(strlen(optarg)+1);
 			if (data_file == NULL) exit(EXIT_FAILURE);
 			strcpy(data_file, optarg);
 			break;
@@ -718,7 +726,7 @@ main(int argc, char *argv[])
 			exit(EXIT_SUCCESS);
 			break;
 		case 'l':
-			save_file = malloc(strlen(optarg)+1);
+			save_file = (char*)malloc(strlen(optarg)+1);
 			if (save_file == NULL) exit(EXIT_FAILURE);
 			strcpy(save_file, optarg);
 			break;
@@ -742,6 +750,7 @@ main(int argc, char *argv[])
 			break;
 		}
 	}
+#endif
 
 	/* Set up logging */
 	log_set_file(stdout);
@@ -775,7 +784,7 @@ main(int argc, char *argv[])
 	r = sdl_set_resolution(screen_width, screen_height, fullscreen);
 	if (r < 0) exit(EXIT_FAILURE);
 
-	sdl_set_cursor(data_get_object(DATA_CURSOR, NULL));
+	sdl_set_cursor((sprite_t*)data_get_object(DATA_CURSOR, NULL));
 
 	game.map_generator = map_generator;
 

@@ -349,7 +349,7 @@ draw_green_number(int x, int y, frame_t *frame, int n)
 		   in gfx_draw_number(). */
 		int draw_zero = 0;
 		if (n >= 100) {
-			int n100 = floor(n / 100);
+			int n100 = (int)floor(n / 100.f);
 			n -= n100 * 100;
 			draw_popup_icon(x, y, 0x4e + n100, frame);
 			x += 1;
@@ -357,7 +357,7 @@ draw_green_number(int x, int y, frame_t *frame, int n)
 		}
 
 		if (n >= 10 || draw_zero) {
-			int n10 = floor(n / 10);
+			int n10 = (int)floor(n / 10.f);
 			n -= n10 * 10;
 			draw_popup_icon(x, y, 0x4e + n10, frame);
 			x += 1;
@@ -735,7 +735,7 @@ draw_stat_4_box(popup_box_t *popup, frame_t *frame)
 	memset(resources, '\0', 26*sizeof(int));
 
 	/* Sum up resources of all inventories. */
-	for (int i = 0; i < game.max_inventory_index; i++) {
+	for (uint i = 0; i < game.max_inventory_index; i++) {
 		if (INVENTORY_ALLOCATED(i)) {
 			inventory_t *inventory = game_get_inventory(i);
 			if (inventory->player_num == popup->interface->player->player_num) {
@@ -1193,7 +1193,7 @@ draw_gauge_full(int x, int y, uint value, uint count, frame_t *frame)
 static void
 calculate_gauge_values(player_t *player, uint values[24][BUILDING_MAX_STOCK][2])
 {
-	for (int i = 1; i < game.max_building_index; i++) {
+	for (uint i = 1; i < game.max_building_index; i++) {
 		if (!BUILDING_ALLOCATED(i)) continue;
 
 		building_t *building = game_get_building(i);
@@ -1418,7 +1418,7 @@ draw_stat_3_box(popup_box_t *popup, frame_t *frame)
 	memset(serfs, '\0', 27*sizeof(int));
 
 	/* Sum up all existing serfs. */
-	for (int i = 1; i < game.max_serf_index; i++) {
+	for (uint i = 1; i < game.max_serf_index; i++) {
 		if (SERF_ALLOCATED(i)) {
 			serf_t *serf = game_get_serf(i);
 			if (SERF_PLAYER(serf) == popup->interface->player->player_num &&
@@ -1429,7 +1429,7 @@ draw_stat_3_box(popup_box_t *popup, frame_t *frame)
 	}
 
 	/* Sum up potential serfs of all inventories. */
-	for (int i = 0; i < game.max_inventory_index; i++) {
+	for (uint i = 0; i < game.max_inventory_index; i++) {
 		if (INVENTORY_ALLOCATED(i)) {
 			inventory_t *inventory = game_get_inventory(i);
 			if (inventory->player_num == popup->interface->player->player_num &&
@@ -1971,8 +1971,8 @@ draw_options_box(popup_box_t *popup, frame_t *frame)
 
 	draw_popup_icon(13, 10, midi_is_enabled() ? 288 : 220, frame); /* Music */
 	draw_popup_icon(13, 30, sfx_is_enabled() ? 288 : 220, frame); /* Sfx */
-	draw_popup_icon(11, 50, 220, frame); /* Volude minus */
-	draw_popup_icon(13, 50, 221, frame); /* Volude plus */
+	draw_popup_icon(11, 50, 220, frame); /* Volume minus */
+	draw_popup_icon(13, 50, 221, frame); /* Volume plus */
 
 	char volume[4] = {0};
 	sprintf(volume, "%d", audio_volume());
@@ -2244,7 +2244,7 @@ draw_transport_info_box(popup_box_t *popup, frame_t *frame)
 
 	viewport_t flag_view;
 	viewport_init(&flag_view, popup->interface);
-	flag_view.layers = VIEWPORT_LAYER_PATHS | VIEWPORT_LAYER_OBJECTS;
+	flag_view.layers = (viewport_layer_t)(VIEWPORT_LAYER_PATHS | VIEWPORT_LAYER_OBJECTS);
 	gui_object_set_displayed((gui_object_t *)&flag_view, 1);
 
 	flag_view.obj.parent = (gui_container_t *)popup;
@@ -2317,7 +2317,7 @@ draw_castle_serf_box(popup_box_t *popup, frame_t *frame)
 
 	inventory_t *inventory = building->u.inventory;
 
-	for (int i = 1; i < game.max_serf_index; i++) {
+	for (uint i = 1; i < game.max_serf_index; i++) {
 		if (SERF_ALLOCATED(i)) {
 			serf_t *serf = game_get_serf(i);
 			if (serf->state == SERF_STATE_IDLE_IN_STOCK &&
@@ -2452,7 +2452,7 @@ draw_sett_8_box(popup_box_t *popup, frame_t *frame)
 	}
 
 	int convertible_to_knights = 0;
-	for (int i = 0; i < game.max_inventory_index; i++) {
+	for (uint i = 0; i < game.max_inventory_index; i++) {
 		if (INVENTORY_ALLOCATED(i)) {
 			inventory_t *inv = game_get_inventory(i);
 			if (inv->player_num == player->player_num) {
@@ -3529,7 +3529,7 @@ handle_action(interface_t *interface, action_t action, int x, int y)
 		interface->popup.box = BOX_MAP;
 		break;
 	case ACTION_MINIMAP_BLD_NEXT:
-		interface->popup.box = interface->popup.box + 1;
+		interface->popup.box = (box_t)(interface->popup.box + 1);
 		if (interface->popup.box > BOX_BLD_4) {
 			interface->popup.box = BOX_BLD_1;
 		}
@@ -3598,7 +3598,7 @@ handle_clickmap(interface_t *interface, int x, int y, const int clkmap[])
 		    clkmap[2] <= y && y < clkmap[2] + clkmap[4]) {
 			sfx_play_clip(SFX_CLICK);
 
-			action_t action = clkmap[0];
+			action_t action = (action_t)clkmap[0];
 			handle_action(interface, action, x-clkmap[1], y-clkmap[2]);
 			return 0;
 		}
@@ -4392,12 +4392,11 @@ popup_box_handle_event(popup_box_t *popup, const gui_event_t *event)
 	/* Pass event on to minimap */
 	if (popup->box == BOX_MAP &&
 	    x >= 8 && x < 128+8 && y >= 9 && y < 128+9) {
-		gui_event_t minimap_event = {
-			.type = event->type,
-			.x = event->x - 8,
-			.y = event->y - 9,
-			.button = event->button
-		};
+		gui_event_t minimap_event;
+		minimap_event.type = event->type;
+		minimap_event.x = event->x - 8;
+		minimap_event.y = event->y - 9;
+		minimap_event.button = event->button;
 		return gui_object_handle_event((gui_object_t *)&popup->minimap,
 					       &minimap_event);
 	}

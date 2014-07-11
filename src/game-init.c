@@ -92,7 +92,7 @@ game_init_box_draw(game_init_box_t *box, frame_t *frame)
 		draw_box_icon(5, 0, 263, frame);
 
 		char map_size[4] = {0};
-		sprintf(map_size, "%d", box->map_size);
+		snprintf(map_size, 4, "%d", box->map_size);
 
 		draw_box_string(10, 0, frame, "Start new game");
 		draw_box_string(10, 14, frame, "Map size:");
@@ -101,7 +101,7 @@ game_init_box_draw(game_init_box_t *box, frame_t *frame)
 		draw_box_icon(5, 0, 260, frame);
 
 		char level[4] = {0};
-		sprintf(level, "%d", box->game_mission+1);
+		snprintf(level, 4, "%d", box->game_mission+1);
 
 		draw_box_string(10, 0, frame, "Start mission");
 		draw_box_string(10, 14, frame, "Mission:");
@@ -161,7 +161,7 @@ handle_action(game_init_box_t *box, int action)
 	case ACTION_START_GAME:
 		game_init();
 		if (box->game_mission < 0) {
-			random_state_t rnd = {{ 0x5a5a, time(NULL) >> 16, time(NULL) }};
+			random_state_t rnd = {{ 0x5a5a, (uint16_t)(time(NULL) >> 16), (uint16_t)time(NULL) }};
 			int r = game_load_random_map(box->map_size, &rnd);
 			if (r < 0) return;
 

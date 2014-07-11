@@ -232,7 +232,7 @@
 int data_load(const char *path);
 void data_unload();
 
-void *data_get_object(int index, size_t *size);
+void *data_get_object(unsigned int index, size_t *size);
 
 void data_unpack_transparent_sprite(void *dest, const void *src, size_t destlen, int offset);
 void data_unpack_overlay_sprite(void *dest, const void *src, size_t destlen);

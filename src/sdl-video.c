@@ -21,7 +21,9 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#ifdef HAVE_STDINT_H
 #include <stdint.h>
+#endif
 #include <string.h>
 #include <signal.h>
 
@@ -109,7 +111,7 @@ static int
 surface_ht_init(surface_ht_t *ht, size_t size)
 {
 	ht->size = size;
-	ht->entries = calloc(size, sizeof(surface_ht_entry_t *));
+	ht->entries = (surface_ht_entry_t**)calloc(size, sizeof(surface_ht_entry_t *));
 	if (ht->entries == NULL) return -1;
 
 	ht->entry_count = 0;
@@ -137,7 +139,7 @@ surface_ht_store(surface_ht_t *ht, const surface_id_t *id)
 		}
 	}
 
-	surface_ht_entry_t *new_entry = calloc(1, sizeof(surface_ht_entry_t));
+	surface_ht_entry_t *new_entry = (surface_ht_entry_t*)calloc(1, sizeof(surface_ht_entry_t));
 	if (new_entry == NULL) return NULL;
 
 	ht->entry_count += 1;
@@ -182,7 +184,7 @@ sdl_init()
 	/* Determine optimal pixel format for current window */
 	SDL_RendererInfo render_info = {0};
 	SDL_GetRendererInfo(renderer, &render_info);
-	for (int i = 0; i < render_info.num_texture_formats; i++) {
+	for (Uint32 i = 0; i < render_info.num_texture_formats; i++) {
 		Uint32 format = render_info.texture_formats[i];
 		int bpp = SDL_BITSPERPIXEL(format);
 		if (32 == bpp) {
@@ -238,7 +240,7 @@ sdl_set_resolution(int width, int height, int fullscreen)
 	}
 
 	/* Allocate new screen surface and texture */
-	if (screen.surf != NULL) SDL_FreeSurface(screen.surf);
+	if (screen.surf != NULL) SDL_FreeSurface((SDL_Surface*)screen.surf);
 	screen.surf = sdl_create_surface(width, height);
 
 	if (screen_texture != NULL) SDL_DestroyTexture(screen_texture);
@@ -309,7 +311,7 @@ sdl_frame_init(frame_t *frame, int x, int y, int width, int height, frame_t *des
 void
 sdl_frame_deinit(frame_t *frame)
 {
-	SDL_FreeSurface(frame->surf);
+	SDL_FreeSurface((SDL_Surface*)frame->surf);
 }
 
 int
@@ -364,7 +366,7 @@ create_surface_from_data(void *data, int width, int height, int transparent) {
 		}
 	}
 
-	surf = SDL_ConvertSurface(surf8, screen.surf->format, 0);
+	surf = SDL_ConvertSurface(surf8, ((SDL_Surface*)screen.surf)->format, 0);
 	if (surf == NULL) {
 		LOGE("sdl-video", "Unable to convert sprite surface: %s.",
 		     SDL_GetError());
@@ -386,7 +388,7 @@ create_transp_surface(const sprite_t *sprite, int offset)
 
 	/* Unpack */
 	size_t unpack_size = width * height;
-	uint8_t *unpack = calloc(unpack_size, sizeof(uint8_t));
+	uint8_t *unpack = (uint8_t*)calloc(unpack_size, sizeof(uint8_t));
 	if (unpack == NULL) abort();
 
 	data_unpack_transparent_sprite(unpack, data, unpack_size, offset);
@@ -410,7 +412,7 @@ create_masked_transp_surface(const sprite_t *sprite, const sprite_t *mask, int m
 
 	/* Unpack */
 	size_t unpack_size = s_width * s_height;
-	uint8_t *unpack = calloc(unpack_size, sizeof(uint8_t));
+	uint8_t *unpack = (uint8_t*)calloc(unpack_size, sizeof(uint8_t));
 	if (unpack == NULL) abort();
 
 	data_unpack_transparent_sprite(unpack, s_data, unpack_size, 0);
@@ -418,7 +420,7 @@ create_masked_transp_surface(const sprite_t *sprite, const sprite_t *mask, int m
 	size_t m_width = le16toh(mask->w);
 	size_t m_height = le16toh(mask->h);
 
-	uint8_t *s_copy = calloc(m_width * m_height, sizeof(uint8_t));
+	uint8_t *s_copy = (uint8_t*)calloc(m_width * m_height, sizeof(uint8_t));
 	if (s_copy == NULL) abort();
 
 	size_t to_copy = m_width * min(m_height, s_height);
@@ -438,14 +440,14 @@ create_masked_transp_surface(const sprite_t *sprite, const sprite_t *mask, int m
 
 	/* Unpack mask */
 	size_t m_unpack_size = m_width * m_height;
-	uint8_t *m_unpack = calloc(m_unpack_size, sizeof(uint8_t));
+	uint8_t *m_unpack = (uint8_t*)calloc(m_unpack_size, sizeof(uint8_t));
 	if (m_unpack == NULL) abort();
 
 	data_unpack_mask_sprite(m_unpack, m_data, m_unpack_size);
 
 	/* Fill alpha value from mask data */
-	for (int y = 0; y < m_height; y++) {
-		for (int x = 0; x < m_width; x++) {
+	for (size_t y = 0; y < m_height; y++) {
+		for (size_t x = 0; x < m_width; x++) {
 			if (!m_unpack[y*m_width+x]) {
 				*(s_copy + y * m_width + x) = 0;
 			}
@@ -474,10 +476,13 @@ sdl_draw_transp_sprite(const sprite_t *sprite, int x, int y, int use_off, int y_
 		y += le16toh(sprite->y);
 	}
 
-	const surface_id_t id = { .sprite = sprite, .mask = NULL, .offset = color_off };
+	surface_id_t id;
+	id.sprite = sprite;
+	id.mask = NULL;
+	id.offset = color_off;
 	surface_t **surface = surface_ht_store(&transp_sprite_cache, &id);
 	if (*surface == NULL) {
-		*surface = malloc(sizeof(surface_t));
+		*surface = (surface_t*)malloc(sizeof(surface_t));
 		if (*surface == NULL) abort();
 
 		(*surface)->surf = create_transp_surface(sprite, color_off);
@@ -491,7 +496,7 @@ sdl_draw_transp_sprite(const sprite_t *sprite, int x, int y, int use_off, int y_
 	SDL_SetClipRect(dest->surf, &dest->clip);
 
 	/* Blit sprite */
-	r = SDL_BlitSurface(surf, &src_rect, dest->surf, &dest_rect);
+	r = SDL_BlitSurface(surf, &src_rect, (SDL_Surface*)dest->surf, &dest_rect);
 	if (r < 0) {
 		LOGE("sdl-video", "BlitSurface error: %s.", SDL_GetError());
 	}
@@ -509,10 +514,13 @@ sdl_draw_waves_sprite(const sprite_t *sprite, const sprite_t *mask,
 	x += le16toh(sprite->x) + dest->clip.x;
 	y += le16toh(sprite->y) + dest->clip.y;
 
-	const surface_id_t id = { .sprite = sprite, .mask = mask, .offset = 0 };
+	surface_id_t id;
+	id.sprite = sprite;
+	id.mask = mask;
+	id.offset = 0;
 	surface_t **surface = surface_ht_store(&transp_sprite_cache, &id);
 	if (*surface == NULL) {
-		*surface = malloc(sizeof(surface_t));
+		*surface = (surface_t*)malloc(sizeof(surface_t));
 		if (*surface == NULL) abort();
 
 		if (mask != NULL) {
@@ -528,7 +536,7 @@ sdl_draw_waves_sprite(const sprite_t *sprite, const sprite_t *mask,
 	SDL_SetClipRect(dest->surf, &dest->clip);
 
 	/* Blit sprite */
-	int r = SDL_BlitSurface(surf, NULL, dest->surf, &dest_rect);
+	int r = SDL_BlitSurface(surf, NULL, (SDL_Surface*)dest->surf, &dest_rect);
 	if (r < 0) {
 		LOGE("sdl-video", "BlitSurface error: %s.", SDL_GetError());
 	}
@@ -565,7 +573,7 @@ sdl_draw_sprite(const sprite_t *sprite, int x, int y, frame_t *dest)
 	SDL_SetClipRect(dest->surf, &dest->clip);
 
 	/* Blit sprite */
-	r = SDL_BlitSurface(surf, NULL, dest->surf, &dest_rect);
+	r = SDL_BlitSurface(surf, NULL, (SDL_Surface*)dest->surf, &dest_rect);
 	if (r < 0) {
 		LOGE("sdl-video", "BlitSurface error: %s.", SDL_GetError());
 	}
@@ -591,7 +599,7 @@ create_overlay_surface(const sprite_t *sprite)
 
 	/* Unpack */
 	size_t unpack_size = width * height;
-	uint8_t *unpack = calloc(unpack_size, sizeof(uint8_t));
+	uint8_t *unpack = (uint8_t*)calloc(unpack_size, sizeof(uint8_t));
 	if (unpack == NULL) abort();
 
 	data_unpack_overlay_sprite(unpack, data, unpack_size);
@@ -605,8 +613,8 @@ create_overlay_surface(const sprite_t *sprite)
 	}
 
 	/* Fill alpha value from overlay data */
-	for (int y = 0; y < height; y++) {
-		for (int x = 0; x < width; x++) {
+	for (size_t y = 0; y < height; y++) {
+		for (size_t x = 0; x < width; x++) {
 			uint32_t *p = (uint32_t *)((uint8_t *)surf->pixels + y * surf->pitch);
 			p[x] = SDL_MapRGBA(surf->format, 0, 0, 0, unpack[y*width+x]);
 		}
@@ -626,10 +634,13 @@ sdl_draw_overlay_sprite(const sprite_t *sprite, int x, int y, int y_off, frame_t
 	x += le16toh(sprite->x) + dest->clip.x;
 	y += le16toh(sprite->y) + dest->clip.y;
 
-	const surface_id_t id = { .sprite = sprite, .mask = NULL, .offset = 0 };
+	surface_id_t id;
+	id.sprite = sprite;
+	id.mask = NULL;
+	id.offset = 0;
 	surface_t **surface = surface_ht_store(&overlay_sprite_cache, &id);
 	if (*surface == NULL) {
-		*surface = malloc(sizeof(surface_t));
+		*surface = (surface_t*)malloc(sizeof(surface_t));
 		if (*surface == NULL) abort();
 
 		(*surface)->surf = create_overlay_surface(sprite);
@@ -642,7 +653,7 @@ sdl_draw_overlay_sprite(const sprite_t *sprite, int x, int y, int y_off, frame_t
 	SDL_SetClipRect(dest->surf, &dest->clip);
 
 	/* Blit sprite */
-	r = SDL_BlitSurface(surf, &src_rect, dest->surf, &dest_rect);
+	r = SDL_BlitSurface(surf, &src_rect, (SDL_Surface*)dest->surf, &dest_rect);
 	if (r < 0) {
 		LOGE("sdl-video", "BlitSurface error: %s.", SDL_GetError());
 	}
@@ -664,7 +675,7 @@ create_masked_surface(const sprite_t *sprite, const sprite_t *mask)
 
 	void *s_data = (uint8_t *)sprite + sizeof(sprite_t);
 
-	uint8_t *s_copy = malloc(m_width * m_height * sizeof(uint8_t));
+	uint8_t *s_copy = (uint8_t*)malloc(m_width * m_height * sizeof(uint8_t));
 	if (s_copy == NULL) abort();
 
 	size_t to_copy = m_width * m_height;
@@ -681,14 +692,14 @@ create_masked_surface(const sprite_t *sprite, const sprite_t *mask)
 
 	/* Unpack mask */
 	size_t unpack_size = m_width * m_height;
-	uint8_t *m_unpack = calloc(unpack_size, sizeof(uint8_t));
+	uint8_t *m_unpack = (uint8_t*)calloc(unpack_size, sizeof(uint8_t));
 	if (m_unpack == NULL) abort();
 
 	data_unpack_mask_sprite(m_unpack, m_data, unpack_size);
 
 	/* Fill alpha value from mask data */
-	for (int y = 0; y < m_height; y++) {
-		for (int x = 0; x < m_width; x++) {
+	for (size_t y = 0; y < m_height; y++) {
+		for (size_t x = 0; x < m_width; x++) {
 			if (!m_unpack[y*m_width+x]) {
 				*(s_copy + y * m_width + x) = 0;
 			}
@@ -713,10 +724,13 @@ sdl_draw_masked_sprite(const sprite_t *sprite, int x, int y, const sprite_t *mas
 	y += le16toh(mask->y) + dest->clip.y;
 
 	if (surface == NULL) {
-		const surface_id_t id = { .sprite = sprite, .mask = mask, .offset = 0 };
+		surface_id_t id;
+		id.sprite = sprite;
+		id.mask = mask;
+		id.offset = 0;
 		surface_t **s = surface_ht_store(&masked_sprite_cache, &id);
 		if (*s == NULL) {
-			*s = malloc(sizeof(surface_t));
+			*s = (surface_t*)malloc(sizeof(surface_t));
 			if (*s == NULL) abort();
 
 			(*s)->surf = create_masked_surface(sprite, mask);
@@ -724,7 +738,7 @@ sdl_draw_masked_sprite(const sprite_t *sprite, int x, int y, const sprite_t *mas
 		surface = *s;
 	}
 
-	SDL_Surface *surf = surface->surf;
+	SDL_Surface *surf = (SDL_Surface*)surface->surf;
 
 	SDL_Rect src_rect = { 0, 0, surf->w, surf->h };
 	SDL_Rect dest_rect = { x, y, 0, 0 };
@@ -732,7 +746,7 @@ sdl_draw_masked_sprite(const sprite_t *sprite, int x, int y, const sprite_t *mas
 	SDL_SetClipRect(dest->surf, &dest->clip);
 
 	/* Blit to dest */
-	r = SDL_BlitSurface(surf, &src_rect, dest->surf, &dest_rect);
+	r = SDL_BlitSurface(surf, &src_rect, (SDL_Surface*)dest->surf, &dest_rect);
 	if (r < 0) {
 		LOGE("sdl-video", "BlitSurface error: %s", SDL_GetError());
 	}
@@ -751,7 +765,7 @@ sdl_draw_frame(int dx, int dy, frame_t *dest, int sx, int sy, frame_t *src, int 
 
 	SDL_SetClipRect(dest->surf, &dest->clip);
 
-	int r = SDL_BlitSurface(src->surf, &src_rect, dest->surf, &dest_rect);
+	int r = SDL_BlitSurface((SDL_Surface*)src->surf, &src_rect, (SDL_Surface*)dest->surf, &dest_rect);
 	if (r < 0) {
 		LOGE("sdl-video", "BlitSurface error: %s", SDL_GetError());
 	}
@@ -784,7 +798,7 @@ sdl_fill_rect(int x, int y, int width, int height, int color, frame_t *dest)
 	SDL_SetClipRect(dest->surf, &dest->clip);
 
 	/* Fill rectangle */
-	int r = SDL_FillRect(dest->surf, &rect, SDL_MapRGBA(dest->surf->format,
+	int r = SDL_FillRect((SDL_Surface*)dest->surf, &rect, SDL_MapRGBA(((SDL_Surface*)dest->surf)->format,
 			pal_colors[color].r, pal_colors[color].g, pal_colors[color].b, 0xff));
 	if (r < 0) {
 		LOGE("sdl-video", "FillRect error: %s.", SDL_GetError());
@@ -795,8 +809,8 @@ void
 sdl_swap_buffers()
 {
 	SDL_UpdateTexture(screen_texture, NULL,
-			  screen.surf->pixels,
-			  screen.surf->pitch);
+			  ((SDL_Surface*)screen.surf)->pixels,
+			  ((SDL_Surface*)screen.surf)->pitch);
 
 	SDL_RenderClear(renderer);
 	SDL_RenderCopy(renderer, screen_texture, NULL, NULL);
