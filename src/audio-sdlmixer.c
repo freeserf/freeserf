@@ -150,7 +150,7 @@ sfx_produce_wav(char* data, uint32_t size, size_t *new_size)
 
 	*new_size = 44 + size*2;
 
-	char *result = malloc(*new_size);
+	char *result = (char*)malloc(*new_size);
 	if (result == NULL) abort();
 
 	char *current = result;
@@ -173,7 +173,7 @@ sfx_produce_wav(char* data, uint32_t size, size_t *new_size)
 	/* Subchunk #2 */
 	WRITE_BE32_WG(0x64617461);	/* 'data' */
 	WRITE_LE32_WG(size*2);				/* Data size */
-	for (int i = 0; i < size; i++) {
+	for (uint32_t i = 0; i < size; i++) {
 		int value = *(data + i);
 		value = value - 0x20;
 		WRITE_BE16_WG(value*0xFF);
@@ -198,12 +198,12 @@ sfx_play_clip(sfx_t sfx)
 	}
 
 	if (NULL == audio_clip) {
-		audio_clip = malloc(sizeof(audio_clip_t));
+		audio_clip = (audio_clip_t*)malloc(sizeof(audio_clip_t));
 		if (audio_clip == NULL) abort();
 		audio_clip->num = sfx;
 
 		size_t size = 0;
-		char *data = data_get_object(DATA_SFX_BASE + sfx, &size);
+		char *data = (char*)data_get_object(DATA_SFX_BASE + sfx, &size);
 
 		char *wav = sfx_produce_wav(data, (int)size, &size);
 
@@ -399,7 +399,7 @@ xmi_process_EVNT(char *data, int length, midi_file_t *midi)
 		READ_DATA(type);
 
 		if (type & 0x80) {
-			midi_node_t *node = malloc(sizeof(midi_node_t));
+			midi_node_t *node = (midi_node_t*)malloc(sizeof(midi_node_t));
 			if (node == NULL) abort();
 
 			node->time = time;
@@ -419,7 +419,7 @@ xmi_process_EVNT(char *data, int length, midi_file_t *midi)
 					uint8_t data1 = node->data1;
 					pqueue_insert(&midi->nodes, node);
 
-					node = malloc(sizeof(midi_node_t));
+					node = (midi_node_t*)malloc(sizeof(midi_node_t));
 					if (node == NULL) abort();
 
 					node->type = type;
@@ -485,12 +485,12 @@ xmi_process_EVNT(char *data, int length, midi_file_t *midi)
 static void
 midi_grow(midi_file_t *midi, uint8_t **current)
 {
-	uint8_t *data = malloc(midi->size + 1024);
+	uint8_t *data = (uint8_t*)malloc((size_t)(midi->size + 1024));
 	if (data == NULL) abort();
 
 	Uint64 pos = *current - midi->data;
 	if (midi->data) {
-		memcpy(data, midi->data, midi->size);
+		memcpy(data, midi->data, (size_t)midi->size);
 		free(midi->data);
 	}
 	*current = data + pos;
@@ -509,7 +509,7 @@ midi_write_variable_size(midi_file_t *midi, uint8_t **current, Uint64 val)
 	if (midi->size <= (*current-midi->data) + count) {
 		midi_grow(midi,current);
 	}
-	for (int i = 0; i < count; ++i) {
+	for (uint32_t i = 0; i < count; ++i) {
 		**current = (uint8_t)(buf & 0xFF);
 		(*current)++;
 		buf >>= 8;
@@ -545,7 +545,7 @@ midi_produce(midi_file_t *midi, size_t *size)
 	int i = 0;
 	while (!pqueue_is_empty(&midi->nodes)) {
 		i++;
-		midi_node_t *node = pqueue_pop(&midi->nodes);
+		midi_node_t *node = (midi_node_t*)pqueue_pop(&midi->nodes);
 		midi_write_variable_size(midi, &current, node->time - time);
 		time = node->time;
 		WRITE_BYTE(node->type);
@@ -597,7 +597,7 @@ midi_play_track(midi_t midi)
 		track->num = midi;
 
 		size_t size = 0;
-		char *data = data_get_object(DATA_MUSIC_GAME + midi, &size);
+		char *data = (char*)data_get_object(DATA_MUSIC_GAME + midi, &size);
 		if (NULL == data) {
 			free(track);
 			return;
@@ -611,7 +611,7 @@ midi_play_track(midi_t midi)
 		midi_file.size = 0;
 
 		xmi_process_subchunks(data, (int)size, &midi_file);
-		data = midi_produce(&midi_file, &size);
+		data = (char*)midi_produce(&midi_file, &size);
 
 		pqueue_deinit(&midi_file.nodes);
 

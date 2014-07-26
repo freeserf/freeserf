@@ -22,8 +22,14 @@
 #ifndef _MAP_H
 #define _MAP_H
 
+#ifdef HAVE_CONFIG_H
+# include <config.h>
+#endif
+
 #include <stdlib.h>
+#ifdef HAVE_STDINT_H
 #include <stdint.h>
+#endif
 
 #include "misc.h"
 

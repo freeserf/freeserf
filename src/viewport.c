@@ -21,7 +21,9 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#ifdef HAVE_STDINT_H
 #include <stdint.h>
+#endif
 #include <assert.h>
 
 #include "viewport.h"
@@ -62,8 +64,8 @@ static landscape_tile_t *landscape_tile;
 static void
 draw_map_tile(int x, int y, int mask, int sprite, frame_t *frame)
 {
-	sprite_t *spr = data_get_object(sprite, NULL);
-	sprite_t *msk = data_get_object(mask, NULL);
+	sprite_t *spr = (sprite_t*)data_get_object(sprite, NULL);
+	sprite_t *msk = (sprite_t*)data_get_object(mask, NULL);
 	sdl_draw_masked_sprite(spr, x, y, msk, NULL, frame);
 }
 
@@ -195,8 +197,7 @@ draw_up_tile_col(map_pos_t pos, int x_base, int y_base, int max_y, frame_t *fram
 		pos = MAP_MOVE_DOWN_RIGHT(pos);
 		m = MAP_HEIGHT(pos);
 
-		int t = max(left, right);
-		if (y_base - 2*MAP_TILE_HEIGHT - 4*t >= max_y) break;
+		if (y_base - 2*MAP_TILE_HEIGHT - 4*max(left, right) >= max_y) break;
 
 	down:
 		draw_triangle_down(x_base, y_base - 4*m, m, left, right, pos, frame);
@@ -256,10 +257,7 @@ draw_down_tile_col(map_pos_t pos, int x_base, int y_base, int max_y, frame_t *fr
 		pos = MAP_MOVE_DOWN_RIGHT(pos);
 		m = MAP_HEIGHT(pos);
 
-		int t = max(left, right);
-		/*if (left == right) t += 1;*/ /* TODO ? */
-
-		if (y_base - 2*MAP_TILE_HEIGHT - 4*t >= max_y) break;
+		if (y_base - 2*MAP_TILE_HEIGHT - 4*max(left, right) >= max_y) break;
 
 	down:
 		draw_triangle_down(x_base, y_base - 4*m, m, left, right, pos, frame);
@@ -279,7 +277,7 @@ void
 viewport_map_deinit()
 {
 	if (landscape_tile != NULL) {
-		for (int i = 0; i < landscape_tile_count; i++) {
+		for (uint i = 0; i < landscape_tile_count; i++) {
 			sdl_frame_deinit(&landscape_tile[i].frame);
 		}
 		free(landscape_tile);
@@ -299,7 +297,7 @@ viewport_map_reinit()
 	int tile_width = MAP_TILE_COLS*MAP_TILE_WIDTH;
 	int tile_height = MAP_TILE_ROWS*MAP_TILE_HEIGHT;
 
-	landscape_tile = malloc(landscape_tile_count*sizeof(landscape_tile_t));
+	landscape_tile = (landscape_tile_t*)malloc(landscape_tile_count*sizeof(landscape_tile_t));
 	if (landscape_tile == NULL) abort();
 
 	LOGV("viewport", "map: %i,%i, cols,rows: %i,%i, tcs,trs: %i,%i, tw,th: %i,%i",
@@ -307,7 +305,7 @@ viewport_map_reinit()
 	     game.map.cols, game.map.rows, horiz_tiles, vert_tiles,
 	     tile_width, tile_height);
 
-	for (int i = 0; i < landscape_tile_count; i++) {
+	for (uint i = 0; i < landscape_tile_count; i++) {
 		sdl_frame_init(&landscape_tile[i].frame, 0, 0, tile_width, tile_height, NULL);
 		sdl_fill_rect(0, 0, tile_width, tile_height, 0, &landscape_tile[i].frame);
 		landscape_tile[i].dirty = 1;
@@ -548,15 +546,15 @@ draw_paths_and_borders(viewport_t *viewport, frame_t *frame)
 
 			/* For each direction right, down right and down,
 			   draw the corresponding paths and borders. */
-			for (dir_t d = DIR_RIGHT; d <= DIR_DOWN; d++) {
+			for (int d = DIR_RIGHT; d <= DIR_DOWN; d++) {
 				map_tile_t *tiles = game.map.tiles;
 				map_pos_t other_pos = MAP_MOVE(pos, d);
 
 				if (BIT_TEST(tiles[pos].paths, d)) {
-					draw_path_segment(x, y_base, pos, d, frame);
+					draw_path_segment(x, y_base, pos, (dir_t)d, frame);
 				} else if (MAP_HAS_OWNER(pos) != MAP_HAS_OWNER(other_pos) ||
 					   MAP_OWNER(pos) != MAP_OWNER(other_pos)) {
-					draw_border_segment(x, y_base, pos, d, frame);
+					draw_border_segment(x, y_base, pos, (dir_t)d, frame);
 				}
 			}
 
@@ -604,21 +602,21 @@ draw_paths_and_borders(viewport_t *viewport, frame_t *frame)
 static void
 draw_game_sprite(int x, int y, int index, frame_t *frame)
 {
-	void *sprite = data_get_object(DATA_GAME_OBJECT_BASE + index, NULL);
+	sprite_t *sprite = (sprite_t*)data_get_object(DATA_GAME_OBJECT_BASE + index, NULL);
 	sdl_draw_transp_sprite(sprite, x, y, 1, 0, 0, frame);
 }
 
 static void
 draw_serf(int x, int y, int color, int head, int body, frame_t *frame)
 {
-	sprite_t *s_arms = data_get_object(DATA_SERF_ARMS_BASE + body, NULL);
-	sprite_t *s_torso = data_get_object(DATA_SERF_TORSO_BASE + body, NULL);
+	sprite_t *s_arms = (sprite_t*)data_get_object(DATA_SERF_ARMS_BASE + body, NULL);
+	sprite_t *s_torso = (sprite_t*)data_get_object(DATA_SERF_TORSO_BASE + body, NULL);
 
 	sdl_draw_transp_sprite(s_arms, x, y, 1, 0, 0, frame);
 	sdl_draw_transp_sprite(s_torso, x, y, 1, 0, color, frame);
 
 	if (head >= 0) {
-		sprite_t *s_head = data_get_object(DATA_SERF_HEAD_BASE + head, NULL);
+		sprite_t *s_head = (sprite_t*)data_get_object(DATA_SERF_HEAD_BASE + head, NULL);
 		x += s_arms->b_x;
 		y += s_arms->b_y;
 		sdl_draw_transp_sprite(s_head, x, y, 1, 0, 0, frame);
@@ -628,8 +626,8 @@ draw_serf(int x, int y, int color, int head, int body, frame_t *frame)
 static void
 draw_shadow_and_building_sprite(int x, int y, int index, frame_t *frame)
 {
-	void *shadow = data_get_object(DATA_MAP_SHADOW_BASE + index, NULL);
-	void *building = data_get_object(DATA_MAP_OBJECT_BASE + index, NULL);
+	sprite_t *shadow = (sprite_t*)data_get_object(DATA_MAP_SHADOW_BASE + index, NULL);
+	sprite_t *building = (sprite_t*)data_get_object(DATA_MAP_OBJECT_BASE + index, NULL);
 
 	sdl_draw_overlay_sprite(shadow, x, y, 0, frame);
 	sdl_draw_transp_sprite(building, x, y, 1, 0, 0, frame);
@@ -638,8 +636,8 @@ draw_shadow_and_building_sprite(int x, int y, int index, frame_t *frame)
 static void
 draw_shadow_and_building_unfinished(int x, int y, int index, int progress, frame_t *frame)
 {
-	sprite_t *shadow = data_get_object(DATA_MAP_SHADOW_BASE + index, NULL);
-	sprite_t *building = data_get_object(DATA_MAP_OBJECT_BASE + index, NULL);
+	sprite_t *shadow = (sprite_t*)data_get_object(DATA_MAP_SHADOW_BASE + index, NULL);
+	sprite_t *building = (sprite_t*)data_get_object(DATA_MAP_OBJECT_BASE + index, NULL);
 
 	int h = ((building->h * progress) >> 16) + 1;
 	int y_off = building->h - h;
@@ -1159,17 +1157,17 @@ static void
 draw_water_waves(map_pos_t pos, int x, int y, frame_t *frame)
 {
 	int sprite = DATA_MAP_WAVES_BASE + (((pos ^ 5) + (game.tick >> 3)) & 0xf);
-	sprite_t *s = data_get_object(sprite, NULL);
+	sprite_t *s = (sprite_t*)data_get_object(sprite, NULL);
 
 	if (MAP_TYPE_DOWN(pos) < 4 && MAP_TYPE_UP(pos) < 4) {
 		sdl_draw_waves_sprite(s, NULL, x - 16, y, 0, frame);
 	} else if (MAP_TYPE_DOWN(pos) < 4) {
 		int mask = DATA_MAP_MASK_DOWN_BASE + 40;
-		sprite_t *m = data_get_object(mask, NULL);
+		sprite_t *m = (sprite_t*)data_get_object(mask, NULL);
 		sdl_draw_waves_sprite(s, m, x, y, 16, frame);
 	} else {
 		int mask = DATA_MAP_MASK_UP_BASE + 40;
-		sprite_t *m = data_get_object(mask, NULL);
+		sprite_t *m = (sprite_t*)data_get_object(mask, NULL);
 		sdl_draw_waves_sprite(s, m, x - 16, y, 0, frame);
 	}
 }
@@ -1325,7 +1323,7 @@ draw_row_serf(int x, int y, int shadow, int color, int body, frame_t *frame)
 
 	/* Shadow */
 	if (shadow) {
-		sprite_t *sh = data_get_object(DATA_SERF_SHADOW, NULL);
+		sprite_t *sh = (sprite_t*)data_get_object(DATA_SERF_SHADOW, NULL);
 		sdl_draw_overlay_sprite(sh, x, y, 0, frame);
 	}
 
@@ -1553,14 +1551,14 @@ serf_get_body(serf_t *serf, uint32_t *animation_table)
 			     serf->s.leaving_building.next_state != SERF_STATE_DROP_RESOURCE_OUT)) {
 				t += 0x1800;
 			} else {
-				resource_type_t res = 0;
+				resource_type_t res = RESOURCE_NONE;
 
 				switch (serf->state) {
 				case SERF_STATE_MINING:
-					res = serf->s.mining.res - 1;
+					res = (resource_type_t)(serf->s.mining.res - 1);
 					break;
 				case SERF_STATE_LEAVING_BUILDING:
-					res = serf->s.leaving_building.field_B - 1;
+					res = (resource_type_t)(serf->s.leaving_building.field_B - 1);
 					break;
 				default:
 					NOT_REACHED();
@@ -2176,7 +2174,7 @@ draw_map_cursor(viewport_t *viewport, interface_t *interface, frame_t *frame)
 	draw_map_cursor_sprite(viewport, interface->map_cursor_pos,
 			       interface->map_cursor_sprites[0].sprite, frame);
 
-	for (dir_t d = 0; d < 6; d++) {
+	for (int d = 0; d < 6; d++) {
 		draw_map_cursor_sprite(viewport, MAP_MOVE(interface->map_cursor_pos, d),
 				       interface->map_cursor_sprites[1+d].sprite, frame);
 	}
@@ -2286,7 +2284,7 @@ viewport_handle_event_click(viewport_t *viewport, int x, int y, gui_event_button
 
 		if (BIT_TEST(interface->building_road_valid_dir, dir)) {
 			int length = interface->building_road_length;
-			dir_t last_dir = 0;
+			dir_t last_dir = DIR_RIGHT;
 			if (length > 0) last_dir = interface->building_road_dirs[length-1];
 
 			if (length > 0 && DIR_REVERSE(last_dir) == dir) {
@@ -2299,7 +2297,7 @@ viewport_handle_event_click(viewport_t *viewport, int x, int y, gui_event_button
 				}
 			} else {
 				/* Build new road segment */
-				int r = interface_build_road_segment(interface, dir);
+				int r = interface_build_road_segment(interface, (dir_t)dir);
 				if (r < 0) {
 					sfx_play_clip(SFX_NOT_ACCEPTED);
 				} else if (r == 0) {
@@ -2492,17 +2490,17 @@ viewport_handle_event(viewport_t *viewport, const gui_event_t *event)
 	switch (event->type) {
 	case GUI_EVENT_TYPE_CLICK:
 		return viewport_handle_event_click(viewport, x, y,
-						   event->button);
+						   (gui_event_button_t)event->button);
 	case GUI_EVENT_TYPE_DBL_CLICK:
 		return viewport_handle_event_dbl_click(viewport, x, y,
-						       event->button);
+						       (gui_event_button_t)event->button);
 		break;
 	case GUI_EVENT_TYPE_DRAG_START:
 		viewport->interface->cursor_lock_target = (gui_object_t *)viewport;
 		return 0;
 	case GUI_EVENT_TYPE_DRAG_MOVE:
 		return viewport_handle_drag(viewport, x, y,
-					    event->button);
+					    (gui_event_button_t)event->button);
 	case GUI_EVENT_TYPE_DRAG_END:
 		viewport->interface->cursor_lock_target = NULL;
 		return 0;

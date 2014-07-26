@@ -23,8 +23,6 @@
 #ifndef _BUILDING_H
 #define _BUILDING_H
 
-#include <stdint.h>
-
 #include "map.h"
 #include "freeserf.h"
 

@@ -1,7 +1,8 @@
 
 Building
 --------
-After first checkout run `./bootstrap`, `./configure` then `make`. After making changes to the code just run `make` to rebuild.
+GNU like systems: After first checkout run `./bootstrap`, `./configure` then `make`. After making changes to the code just run `make` to rebuild.
+MS Visual Studio: Open windows/freeserf.sln, build, run or debug.
 
 
 Coding style

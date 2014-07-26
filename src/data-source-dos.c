@@ -19,8 +19,6 @@
  * along with freeserf.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "data.h"
-
 #ifdef HAVE_CONFIG_H
 # include <config.h>
 #endif
@@ -30,15 +28,22 @@
 #include <assert.h>
 #include <fcntl.h>
 #include <sys/stat.h>
+#ifdef HAVE_UNISTD_H
 #include <unistd.h>
+#endif
+#ifdef HAVE_STDINT_H
 #include <stdint.h>
+#endif
+#include <stdlib.h>
 
 #ifdef HAVE_SYS_MMAN_H
 # include <sys/mman.h>
 #endif
 
+#include "data.h"
 #include "freeserf_endian.h"
 #include "log.h"
+#include "misc.h"
 
 /* There are different types of sprites:
  - Non-packed, rectangular sprites: These are simple called sprites here.
@@ -58,7 +63,7 @@ typedef struct {
 
 static void *sprites;
 static size_t sprites_size;
-static unsigned int entry_count;
+static uint entry_count;
 
 static void data_fixup();
 
@@ -166,12 +171,12 @@ data_unload()
  If size is non-NULL it will be set to the size of the data object.
  (There's no guarantee that size is correct!). */
 void *
-data_get_object(int index, size_t *size)
+data_get_object(uint index, size_t *size)
 {
 	assert(index > 0 && index < entry_count);
 
-	spae_entry_t *entries = sprites;
-	uint8_t *bytes = sprites;
+	spae_entry_t *entries = (spae_entry_t*)sprites;
+	uint8_t *bytes = (uint8_t*)sprites;
 
 	size_t offset = le32toh(entries[index].offset);
 	assert(offset != 0);
@@ -185,7 +190,7 @@ data_get_object(int index, size_t *size)
 static void
 data_fixup()
 {
-	spae_entry_t *entries = sprites;
+	spae_entry_t *entries = (spae_entry_t*)sprites;
 
 	/* Fill out some undefined spaces in the index from other
 	   places in the data file index. */
@@ -221,7 +226,7 @@ data_unpack_transparent_sprite(void *dest, const void *src, size_t destlen, int 
 	uint8_t *bdest = (uint8_t *)dest;
 
 	int i = 0;
-	int j = 0;
+	size_t j = 0;
 	while (j < destlen) {
 		j += bsrc[i];
 		int n = bsrc[i+1];
@@ -247,7 +252,7 @@ data_unpack_bitmap_sprite(void *dest, const void *src, size_t destlen, int value
 	uint8_t *bdest = (uint8_t *)dest;
 
 	int i = 0;
-	int j = 0;
+	size_t j = 0;
 	while (j < destlen) {
 		j += bsrc[i];
 		int n = bsrc[i+1];

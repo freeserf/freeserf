@@ -35,7 +35,9 @@
 
 # include <stdio.h>
 # include <stdlib.h>
+#ifdef HAVE_STDINT_H
 # include <stdint.h>
+#endif
 
 # ifdef HAVE_BYTESWAP_H
 #  include <byteswap.h>

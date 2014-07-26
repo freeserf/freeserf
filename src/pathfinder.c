@@ -51,11 +51,11 @@ heuristic_cost(map_pos_t start, map_pos_t end)
 	/* Calculate distance to target. */
 	int dist_col = (MAP_POS_COL(start) -
 			MAP_POS_COL(end)) & game.map.col_mask;
-	if (dist_col >= game.map.cols/2) dist_col -= game.map.cols;
+	if (dist_col >= (int)(game.map.cols/2)) dist_col -= game.map.cols;
 
 	int dist_row = (MAP_POS_ROW(start) -
 			MAP_POS_ROW(end)) & game.map.row_mask;
-	if (dist_row >= game.map.rows/2) dist_row -= game.map.rows;
+	if (dist_row >= (int)(game.map.rows/2)) dist_row -= game.map.rows;
 
 	int h_diff = abs(MAP_HEIGHT(start) - MAP_HEIGHT(end));
 	int dist = 0;
@@ -95,7 +95,7 @@ pathfinder_map(map_pos_t start, map_pos_t end, uint *length)
 	dir_t *solution = NULL;
 
 	/* Create start node */
-	search_node_t *node = malloc(sizeof(search_node_t));
+	search_node_t *node = (search_node_t*)malloc(sizeof(search_node_t));
 	if (node == NULL) abort();
 
 	node->pos = start;
@@ -106,7 +106,7 @@ pathfinder_map(map_pos_t start, map_pos_t end, uint *length)
 	if (r < 0) abort();
 
 	while (!pqueue_is_empty(&open)) {
-		node = pqueue_pop(&open);
+		node = (search_node_t*)pqueue_pop(&open);
 		if (node->pos == end) {
 			/* Construct solution */
 			*length = 0;
@@ -118,7 +118,7 @@ pathfinder_map(map_pos_t start, map_pos_t end, uint *length)
 
 			if (*length == 0) break;
 
-			solution = malloc(*length*sizeof(dir_t));
+			solution = (dir_t*)malloc(*length*sizeof(dir_t));
 			if (solution == NULL) abort();
 
 			for (int i = *length-1; i >= 0; i--) {
@@ -131,12 +131,12 @@ pathfinder_map(map_pos_t start, map_pos_t end, uint *length)
 		/* Put current node on closed list. */
 		list_prepend(&closed, (list_elm_t *)node);
 
-		for (dir_t d = DIR_RIGHT; d <= DIR_UP; d++) {
+		for (int d = DIR_RIGHT; d <= DIR_UP; d++) {
 			map_pos_t new_pos = MAP_MOVE(node->pos, d);
-			uint cost = actual_cost(node->pos, d);
+			uint cost = actual_cost(node->pos, (dir_t)d);
 
 			/* Check if neighbour is valid. */
-			if (!game_road_segment_valid(node->pos, d) ||
+			if (!game_road_segment_valid(node->pos, (dir_t)d) ||
 			    (MAP_OBJ(new_pos) == MAP_OBJ_FLAG && new_pos != end)) {
 				continue;
 			}
@@ -156,8 +156,8 @@ pathfinder_map(map_pos_t start, map_pos_t end, uint *length)
 
 			/* See if neighbour is already in open list. */
 			int in_open = 0;
-			for (int i = 0; i < open.size; i++) {
-				search_node_t *n = open.entries[i];
+			for (uint i = 0; i < open.size; i++) {
+				search_node_t *n = (search_node_t*)open.entries[i];
 				if (n->pos == new_pos) {
 					in_open = 1;
 					if (n->g_score >= node->g_score + cost) {
@@ -165,7 +165,7 @@ pathfinder_map(map_pos_t start, map_pos_t end, uint *length)
 						n->g_score = node->g_score + cost;
 						n->f_score = n->g_score + heuristic_cost(new_pos, end);
 						n->parent = node;
-						n->dir = d;
+						n->dir = (dir_t)d;
 						int r = pqueue_insert(&open, n);
 						if (r < 0) abort();
 					}
@@ -175,14 +175,14 @@ pathfinder_map(map_pos_t start, map_pos_t end, uint *length)
 
 			/* If not found in the open set, create a new node. */
 			if (!in_open) {
-				search_node_t *new_node = malloc(sizeof(search_node_t));
+				search_node_t *new_node = (search_node_t*)malloc(sizeof(search_node_t));
 				if (new_node == NULL) abort();
 
 				new_node->pos = new_pos;
 				new_node->g_score = node->g_score + cost;
 				new_node->f_score = new_node->g_score + heuristic_cost(new_pos, end);
 				new_node->parent = node;
-				new_node->dir = d;
+				new_node->dir = (dir_t)d;
 				int r = pqueue_insert(&open, new_node);
 				if (r < 0) abort();
 			}
@@ -190,7 +190,7 @@ pathfinder_map(map_pos_t start, map_pos_t end, uint *length)
 	}
 
 	/* Clean up open list */
-	for (int i = 0; i < open.size; i++) {
+	for (uint i = 0; i < open.size; i++) {
 		free(open.entries[i]);
 	}
 

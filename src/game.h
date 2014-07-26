@@ -28,6 +28,9 @@
 #include "building.h"
 #include "map.h"
 #include "freeserf.h"
+#ifdef HAVE_STDINT_H
+#include <stdint.h>
+#endif
 
 #define DEFAULT_GAME_SPEED  2
 
@@ -209,7 +212,7 @@ typedef struct {
 } game_t;
 
 /* Global game object */
-game_t game;
+extern game_t game;
 
 
 /* External interface */

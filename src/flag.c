@@ -42,7 +42,7 @@ typedef struct {
 static flag_proxy_t *
 flag_proxy_alloc(flag_t *flag)
 {
-	flag_proxy_t *proxy = malloc(sizeof(flag_proxy_t));
+	flag_proxy_t *proxy = (flag_proxy_t*)malloc(sizeof(flag_proxy_t));
 	if (proxy == NULL) abort();
 
 	proxy->flag = flag;
@@ -58,7 +58,7 @@ next_search_id()
 	   everything needs a reset to be safe. */
 	if (game.flag_search_counter == 0) {
 		game.flag_search_counter += 1;
-		for (int i = 1; i < game.max_flag_index; i++) {
+		for (uint i = 1; i < game.max_flag_index; i++) {
 			if (FLAG_ALLOCATED(i)) {
 				game_get_flag(i)->search_num = 0;
 			}
