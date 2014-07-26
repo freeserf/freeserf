@@ -1,7 +1,7 @@
 /*
  * data.h - Definitions for data file access.
  *
- * Copyright (C) 2012  Jon Lund Steffensen <jonlst@gmail.com>
+ * Copyright (C) 2012-2014  Jon Lund Steffensen <jonlst@gmail.com>
  *
  * This file is part of freeserf.
  *
@@ -23,6 +23,8 @@
 #define _DATA_H
 
 #include <sys/types.h>
+
+#include "misc.h"
 
 /* Index 0 is undefined (entry 0 in the data file
    contains a header with the size and total
@@ -232,7 +234,7 @@
 int data_load(const char *path);
 void data_unload();
 
-void *data_get_object(unsigned int index, size_t *size);
+void *data_get_object(uint index, size_t *size);
 
 void data_unpack_transparent_sprite(void *dest, const void *src, size_t destlen, int offset);
 void data_unpack_overlay_sprite(void *dest, const void *src, size_t destlen);

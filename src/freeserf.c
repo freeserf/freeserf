@@ -1,7 +1,7 @@
 /*
  * freeserf.c - Main program source.
  *
- * Copyright (C) 2013  Jon Lund Steffensen <jonlst@gmail.com>
+ * Copyright (C) 2013-2014  Jon Lund Steffensen <jonlst@gmail.com>
  *
  * This file is part of freeserf.
  *
@@ -502,7 +502,7 @@ game_loop()
 			}
 		}
 
-		unsigned int new_ticks = SDL_GetTicks();
+		uint new_ticks = SDL_GetTicks();
 		int delta_ticks = new_ticks - current_ticks;
 		current_ticks = new_ticks;
 

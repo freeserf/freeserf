@@ -19,8 +19,6 @@
  * along with freeserf.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "data.h"
-
 #ifdef HAVE_CONFIG_H
 # include <config.h>
 #endif
@@ -42,8 +40,10 @@
 # include <sys/mman.h>
 #endif
 
+#include "data.h"
 #include "freeserf_endian.h"
 #include "log.h"
+#include "misc.h"
 
 /* There are different types of sprites:
  - Non-packed, rectangular sprites: These are simple called sprites here.
@@ -63,7 +63,7 @@ typedef struct {
 
 static void *sprites;
 static size_t sprites_size;
-static unsigned int entry_count;
+static uint entry_count;
 
 static void data_fixup();
 
@@ -171,7 +171,7 @@ data_unload()
  If size is non-NULL it will be set to the size of the data object.
  (There's no guarantee that size is correct!). */
 void *
-data_get_object(unsigned int index, size_t *size)
+data_get_object(uint index, size_t *size)
 {
 	assert(index > 0 && index < entry_count);
 

@@ -33,6 +33,7 @@
 #include "data.h"
 #include "debug.h"
 #include "freeserf_endian.h"
+#include "misc.h"
 
 
 typedef struct {
@@ -954,7 +955,7 @@ interface_init(interface_t *interface)
 	interface->map_cursor_sprites[6].sprite = 33;
 
 	/* Randomness for interface */
-	srand((unsigned int)time(NULL));
+	srand((uint)time(NULL));
 	interface->random.state[0] = rand();
 	interface->random.state[1] = rand();
 	interface->random.state[2] = rand();

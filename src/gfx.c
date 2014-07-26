@@ -42,7 +42,7 @@
 
 /* Draw a character at x, y in the dest frame. */
 static void
-gfx_draw_char_sprite(int x, int y, unsigned int c, int color, int shadow, frame_t *dest)
+gfx_draw_char_sprite(int x, int y, uint c, int color, int shadow, frame_t *dest)
 {
 	static const int sprite_offset_from_ascii[] = {
 
