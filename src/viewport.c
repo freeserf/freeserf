@@ -19,27 +19,17 @@
  * along with freeserf.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <stdio.h>
-#include <stdlib.h>
-#ifdef HAVE_STDINT_H
-#include <stdint.h>
-#endif
-#include <assert.h>
-
 #include "viewport.h"
 #include "interface.h"
-#include "panel.h"
-#include "gfx.h"
 #include "data.h"
-#include "map.h"
-#include "random.h"
 #include "sdl-video.h"
 #include "game.h"
-#include "misc.h"
+#include "log.h"
 #include "debug.h"
 #include "audio.h"
 #include "pathfinder.h"
 
+#include <assert.h>
 
 #define MAP_TILE_TEXTURES  33
 #define MAP_TILE_MASKS     81

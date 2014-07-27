@@ -19,6 +19,17 @@
  * along with freeserf.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include "freeserf.h"
+#include "interface.h"
+#include "gfx.h"
+#include "data.h"
+#include "sdl-video.h"
+#include "log.h"
+#include "audio.h"
+#include "savegame.h"
+#include "mission.h"
+#include "version.h"
+
 #ifdef HAVE_CONFIG_H
 # include <config.h>
 #endif
@@ -33,26 +44,6 @@
 #include <unistd.h>
 #endif
 #include <string.h>
-
-#include "freeserf.h"
-#include "player.h"
-#include "map.h"
-#include "game.h"
-#include "gui.h"
-#include "popup.h"
-#include "panel.h"
-#include "viewport.h"
-#include "interface.h"
-#include "gfx.h"
-#include "data.h"
-#include "sdl-video.h"
-#include "misc.h"
-#include "debug.h"
-#include "log.h"
-#include "audio.h"
-#include "savegame.h"
-#include "mission.h"
-#include "version.h"
 
 #define DEFAULT_SCREEN_WIDTH  800
 #define DEFAULT_SCREEN_HEIGHT 600
@@ -79,89 +70,6 @@
 static int game_loop_run;
 
 static interface_t interface;
-
-
-/* Facilitates quick lookup of offsets following a spiral pattern in the map data.
-   The columns following the second are filled out by setup_spiral_pattern(). */
-static int spiral_pattern[] = {
-	0, 0,
-	1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-	2, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-	2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-	3, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-	3, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-	3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-	4, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-	4, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-	4, 3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-	4, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-	5, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-	5, 3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-	5, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-	5, 4, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-	5, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-	6, 3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-	6, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-	6, 4, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-	6, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-	6, 5, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-	6, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-	7, 3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-	7, 4, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-	7, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-	7, 5, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-	7, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-	7, 6, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-	7, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-	8, 4, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-	8, 3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-	8, 5, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-	8, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-	8, 6, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-	8, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-	8, 7, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-	8, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-	9, 4, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-	9, 5, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-	9, 3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-	9, 6, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-	9, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-	9, 7, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-	9, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-	9, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-	16, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-	16, 8, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-	24, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-	24, 8, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-	24, 16, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
-};
-
-/* Initialize the global spiral_pattern. */
-static void
-init_spiral_pattern()
-{
-	static const int spiral_matrix[] = {
-		1,  0,  0,  1,
-		1,  1, -1,  0,
-		0,  1, -1, -1,
-		-1,  0,  0, -1,
-		-1, -1,  1,  0,
-		0, -1,  1,  1
-	};
-
-	game.spiral_pattern = spiral_pattern;
-
-	for (int i = 0; i < 49; i++) {
-		int x = spiral_pattern[2 + 12*i];
-		int y = spiral_pattern[2 + 12*i + 1];
-
-		for (int j = 0; j < 6; j++) {
-			spiral_pattern[2+12*i+2*j] = x*spiral_matrix[4*j+0] + y*spiral_matrix[4*j+2];
-			spiral_pattern[2+12*i+2*j+1] = x*spiral_matrix[4*j+1] + y*spiral_matrix[4*j+3];
-		}
-	}
-}
-
 
 /* In target, replace any character from needle with replacement character. */
 static void
@@ -787,9 +695,6 @@ main(int argc, char *argv[])
 	sdl_set_cursor((sprite_t*)data_get_object(DATA_CURSOR, NULL));
 
 	game.map_generator = map_generator;
-
-	/* Initialize global lookup tables */
-	init_spiral_pattern();
 
 	game_init();
 

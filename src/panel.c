@@ -20,16 +20,9 @@
  */
 
 #include "panel.h"
-#include "gui.h"
-#include "viewport.h"
-#include "minimap.h"
 #include "interface.h"
-#include "player.h"
-#include "game.h"
 #include "data.h"
-#include "gfx.h"
 #include "audio.h"
-
 
 /* Draw the frame around action buttons. */
 static void

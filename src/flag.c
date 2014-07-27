@@ -19,16 +19,10 @@
  * along with freeserf.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <assert.h>
-
 #include "flag.h"
-#include "building.h"
-#include "player.h"
 #include "game.h"
-#include "list.h"
-#include "misc.h"
+
+#include <stdlib.h>
 
 #define SEARCH_MAX_DEPTH  0x10000
 

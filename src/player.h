@@ -22,16 +22,7 @@
 #ifndef _PLAYER_H
 #define _PLAYER_H
 
-#include <stdio.h>
-#include <stdlib.h>
-#ifdef HAVE_STDINT_H
-#include <stdint.h>
-#endif
-
-#include "freeserf.h"
 #include "map.h"
-#include "gfx.h"
-
 
 /* Whether player has built the initial castle. */
 #define PLAYER_HAS_CASTLE(player)  ((int)((player)->flags & 1))

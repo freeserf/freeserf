@@ -20,14 +20,12 @@
  */
 
 #include "notification.h"
-#include "gfx.h"
-#include "gui.h"
 #include "interface.h"
 #include "game.h"
-#include "building.h"
 #include "data.h"
 #include "debug.h"
 
+#include <stdlib.h>
 
 static void
 draw_icon(int x, int y, int sprite, frame_t *frame)

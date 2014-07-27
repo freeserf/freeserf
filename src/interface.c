@@ -19,22 +19,15 @@
  * along with freeserf.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <time.h>
-#include <assert.h>
-
 #include "interface.h"
-#include "gui.h"
 #include "audio.h"
-#include "viewport.h"
-#include "panel.h"
-#include "game-init.h"
-#include "game.h"
 #include "sdl-video.h"
 #include "data.h"
 #include "debug.h"
 #include "freeserf_endian.h"
-#include "misc.h"
 
+#include <time.h>
+#include <assert.h>
 
 typedef struct {
 	list_elm_t elm;

@@ -19,22 +19,18 @@
  * along with freeserf.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <math.h>
-#include <assert.h>
-#include <string.h>
-
 #include "popup.h"
-#include "gfx.h"
+#include "freeserf.h"
 #include "data.h"
-#include "viewport.h"
 #include "game.h"
 #include "sdl-video.h"
 #include "audio.h"
 #include "debug.h"
 #include "interface.h"
-#include "viewport.h"
-#include "minimap.h"
 
+#include <math.h>
+#include <assert.h>
+#include <string.h>
 
 /* Action types that can be fired from
    clicks in the popup window. */

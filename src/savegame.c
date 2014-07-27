@@ -19,20 +19,15 @@
  * along with freeserf.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <ctype.h>
-
-#ifdef HAVE_STDINT_H
-#include <stdint.h>
-#endif
-
+#include "savegame.h"
 #include "game.h"
 #include "map.h"
 #include "version.h"
-#include "list.h"
-#include "debug.h"
+#include "log.h"
+
+#include <string.h>
+#include <ctype.h>
+#include <time.h>
 
 #define SAVE_MAP_TILE_SIZE   16
 #define SAVE_MAP_TILE_COUNT  (SAVE_MAP_TILE_SIZE*SAVE_MAP_TILE_SIZE)

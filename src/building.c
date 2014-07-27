@@ -19,12 +19,7 @@
  * along with freeserf.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <assert.h>
-
 #include "building.h"
-
 
 int
 building_get_score_from_type(building_type_t type)

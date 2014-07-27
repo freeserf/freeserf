@@ -19,10 +19,9 @@
  * along with freeserf.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <stdlib.h>
-
 #include "pqueue.h"
-#include "misc.h"
+
+#include <stdlib.h>
 
 /* Initialize priority queue. */
 int

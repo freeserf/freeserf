@@ -24,7 +24,7 @@
 #define _BUILDING_H
 
 #include "map.h"
-#include "freeserf.h"
+#include "resource.h"
 
 /* Max number of different types of resources accepted by buildings. */
 #define BUILDING_MAX_STOCK  2
@@ -97,9 +97,7 @@ typedef struct {
 	int maximum;
 } building_stock_t;
 
-typedef struct building building_t;
-
-struct building {
+typedef struct {
 	/* Map position of building */
 	map_pos_t pos;
 	/* Type of building */
@@ -114,11 +112,11 @@ struct building {
 	int serf_index; /* Also used for burning building counter. */
 	int progress;
 	union {
-		struct inventory *inventory;
+		inventory_t *inventory;
 		uint16_t tick; /* Used for burning building. */
 		uint16_t level;
 	} u;
-};
+} building_t;
 
 
 int building_get_score_from_type(building_type_t type);

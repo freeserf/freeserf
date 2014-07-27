@@ -19,15 +19,9 @@
  * along with freeserf.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifdef HAVE_CONFIG_H
-# include <config.h>
-#endif
-
-#include <stdio.h>
-#include <stdlib.h>
-
 #include "list.h"
 
+#include <stdlib.h>
 
 void
 list_init(list_t *list)

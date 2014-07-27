@@ -25,12 +25,8 @@
 #include "player.h"
 #include "flag.h"
 #include "serf.h"
-#include "building.h"
 #include "map.h"
-#include "freeserf.h"
-#ifdef HAVE_STDINT_H
-#include <stdint.h>
-#endif
+#include "random.h"
 
 #define DEFAULT_GAME_SPEED  2
 

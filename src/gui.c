@@ -19,12 +19,7 @@
  * along with freeserf.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <stdlib.h>
-
 #include "gui.h"
-#include "gfx.h"
-#include "sdl-video.h"
-#include "list.h"
 #include "misc.h"
 
 

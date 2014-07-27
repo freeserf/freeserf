@@ -22,9 +22,9 @@
 #ifndef _DATA_H
 #define _DATA_H
 
-#include <sys/types.h>
-
 #include "misc.h"
+
+#include <sys/types.h>
 
 /* Index 0 is undefined (entry 0 in the data file
    contains a header with the size and total

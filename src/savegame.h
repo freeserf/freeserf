@@ -23,7 +23,6 @@
 #define _SAVEGAME_H
 
 #include <stdio.h>
-#include <stdlib.h>
 
 /* Original game format */
 int load_v0_state(FILE *f);

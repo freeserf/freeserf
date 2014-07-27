@@ -22,12 +22,6 @@
 #ifndef _DEBUG_H
 #define _DEBUG_H
 
-#ifdef HAVE_CONFIG_H
-# include <config.h>
-#endif
-
-#include <stdlib.h>
-
 #include "log.h"
 
 #ifndef NDEBUG

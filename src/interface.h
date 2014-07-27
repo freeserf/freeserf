@@ -24,17 +24,25 @@
 
 #include "gui.h"
 #include "viewport.h"
-#include "building.h"
 #include "panel.h"
 #include "game-init.h"
 #include "notification.h"
 #include "list.h"
 #include "popup.h"
-#include "player.h"
 #include "random.h"
+
+/* The length between game updates in miliseconds. */
+#define TICK_LENGTH  20
+#define TICKS_PER_SEC  (1000/TICK_LENGTH)
 
 #define MAX_ROAD_LENGTH  256
 
+static const int map_building_sprite[] = {
+	0, 0xa7, 0xa8, 0xae, 0xa9,
+	0xa3, 0xa4, 0xa5, 0xa6,
+	0xaa, 0xc0, 0xab, 0x9a, 0x9c, 0x9b, 0xbc,
+	0xa2, 0xa0, 0xa1, 0x99, 0x9d, 0x9e, 0x98, 0x9f, 0xb2
+};
 
 typedef enum {
 	MAP_CURSOR_TYPE_NONE = 0,
@@ -47,6 +55,10 @@ typedef enum {
 	MAP_CURSOR_TYPE_CLEAR
 } map_cursor_type_t;
 
+typedef struct {
+	int sprite;
+	int x, y;
+} sprite_loc_t;
 
 typedef struct interface interface_t;
 
