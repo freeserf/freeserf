@@ -3,7 +3,7 @@
 
 AC_PREREQ([2.69])
 AC_INIT([freeserf], [0.1], [https://github.com/freeserf/freeserf/issues])
-AC_CONFIG_SRCDIR([src/freeserf.c])
+AC_CONFIG_SRCDIR([src/freeserf.cc])
 AC_CONFIG_HEADERS([config.h])
 AM_INIT_AUTOMAKE([foreign subdir-objects dist-xz])
 

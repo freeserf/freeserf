@@ -1,5 +1,5 @@
 /*
- * freeserf.c - Main program source.
+ * freeserf.cc - Main program source.
  *
  * Copyright (C) 2013-2014  Jon Lund Steffensen <jonlst@gmail.com>
  *
@@ -19,31 +19,32 @@
  * along with freeserf.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "freeserf.h"
-#include "interface.h"
-#include "gfx.h"
-#include "data.h"
-#include "sdl-video.h"
-#include "log.h"
-#include "audio.h"
-#include "savegame.h"
-#include "mission.h"
-#include "version.h"
+extern "C" {
+  #include "freeserf.h"
+  #include "interface.h"
+  #include "gfx.h"
+  #include "data.h"
+  #include "sdl-video.h"
+  #include "log.h"
+  #include "audio.h"
+  #include "savegame.h"
+  #include "mission.h"
+  #include "version.h"
 
-#ifdef HAVE_CONFIG_H
-# include <config.h>
-#endif
+  #ifdef HAVE_CONFIG_H
+  # include <config.h>
+  #endif
+}
 
-#include <stdio.h>
-#include <stdlib.h>
-#ifdef HAVE_STDINT_H
-#include <stdint.h>
-#endif
-#include <time.h>
+#include <cstdio>
+#include <cstdlib>
+#include <ctime>
+#include <cstring>
+
 #ifdef HAVE_UNISTD_H
 #include <unistd.h>
 #endif
-#include <string.h>
+#include <stdint.h>
 
 #define DEFAULT_SCREEN_WIDTH  800
 #define DEFAULT_SCREEN_HEIGHT 600
