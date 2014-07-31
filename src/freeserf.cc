@@ -173,7 +173,7 @@ game_loop()
             ev.x = event.button.x;
             ev.y = event.button.y;
             ev.button = drag_button;
-            gui_object_handle_event((gui_object_t *)&interface, &ev);
+            gui_object_handle_event(reinterpret_cast<gui_object_t*>(&interface), &ev);
 
             drag_button = 0;
           }
@@ -182,7 +182,7 @@ game_loop()
           ev.x = event.button.x;
           ev.y = event.button.y;
           ev.button = event.button.button;
-          gui_object_handle_event((gui_object_t *)&interface, &ev);
+          gui_object_handle_event(reinterpret_cast<gui_object_t*>(&interface), &ev);
 
           if (event.button.button <= 3 &&
               current_ticks - last_down[event.button.button-1] < MOUSE_TIME_SENSITIVITY) {
@@ -190,18 +190,18 @@ game_loop()
             ev.x = event.button.x;
             ev.y = event.button.y;
             ev.button = event.button.button;
-            gui_object_handle_event((gui_object_t *)&interface, &ev);
+            gui_object_handle_event(reinterpret_cast<gui_object_t*>(&interface), &ev);
 
             if (current_ticks - last_click[event.button.button-1] < MOUSE_TIME_SENSITIVITY &&
-                event.button.x >= (int)(last_click_x - MOUSE_MOVE_SENSITIVITY) &&
-                event.button.x <= (int)(last_click_x + MOUSE_MOVE_SENSITIVITY) &&
-                event.button.y >= (int)(last_click_y - MOUSE_MOVE_SENSITIVITY) &&
-                event.button.y <= (int)(last_click_y + MOUSE_MOVE_SENSITIVITY)) {
+                event.button.x >= static_cast<int>(last_click_x - MOUSE_MOVE_SENSITIVITY) &&
+                event.button.x <= static_cast<int>(last_click_x + MOUSE_MOVE_SENSITIVITY) &&
+                event.button.y >= static_cast<int>(last_click_y - MOUSE_MOVE_SENSITIVITY) &&
+                event.button.y <= static_cast<int>(last_click_y + MOUSE_MOVE_SENSITIVITY)) {
               ev.type = GUI_EVENT_TYPE_DBL_CLICK;
               ev.x = event.button.x;
               ev.y = event.button.y;
               ev.button = event.button.button;
-              gui_object_handle_event((gui_object_t *)&interface, &ev);
+              gui_object_handle_event(reinterpret_cast<gui_object_t *>(&interface), &ev);
             }
 
             last_click[event.button.button-1] = current_ticks;
@@ -214,7 +214,7 @@ game_loop()
           ev.x = event.button.x;
           ev.y = event.button.y;
           ev.button = event.button.button;
-          gui_object_handle_event((gui_object_t *)&interface, &ev);
+          gui_object_handle_event(reinterpret_cast<gui_object_t*>(&interface), &ev);
 
           if (event.button.button <= 3) last_down[event.button.button-1] = current_ticks;
           break;
@@ -230,14 +230,14 @@ game_loop()
                 ev.x = event.motion.x;
                 ev.y = event.motion.y;
                 ev.button = drag_button;
-                gui_object_handle_event((gui_object_t *)&interface, &ev);
+                gui_object_handle_event(reinterpret_cast<gui_object_t*>(&interface), &ev);
               }
 
               ev.type = GUI_EVENT_TYPE_DRAG_MOVE;
               ev.x = event.motion.x - drag_x;
               ev.y = event.motion.y - drag_y;
               ev.button = drag_button;
-              gui_object_handle_event((gui_object_t *)&interface, &ev);
+              gui_object_handle_event(reinterpret_cast<gui_object_t*>(&interface), &ev);
 
               sdl_warp_mouse(drag_x, drag_y);
 
@@ -359,7 +359,7 @@ game_loop()
 
               /* Debug */
             case SDLK_g:
-              interface.viewport.layers = (viewport_layer_t)(interface.viewport.layers ^ VIEWPORT_LAYER_GRID);
+              interface.viewport.layers = static_cast<viewport_layer_t>(interface.viewport.layers ^ VIEWPORT_LAYER_GRID);
               break;
             case SDLK_b:
               interface.viewport.show_possible_build = !interface.viewport.show_possible_build;
@@ -405,7 +405,7 @@ game_loop()
             int height = 0;
             sdl_get_resolution(&width, &height);
             sdl_set_resolution(width, height, sdl_is_fullscreen());
-            gui_object_set_size((gui_object_t*)&interface, width, height);
+            gui_object_set_size(reinterpret_cast<gui_object_t*>(&interface), width, height);
           }
           break;
       }
@@ -416,7 +416,7 @@ game_loop()
     current_ticks = new_ticks;
 
     /* Update FPS EMA per frame */
-    fps = 1000.f*(1.f / (float)delta_ticks);
+    fps = 1000.f*(1.f / static_cast<float>(delta_ticks));
     if (fps_ema > 0) fps_ema = ema_alpha*fps + (1-ema_alpha)*fps_ema;
     else if (fps > 0) fps_ema = fps;
 
@@ -433,7 +433,7 @@ game_loop()
 
       /* Print FPS */
       if ((game.const_tick % (10*TICKS_PER_SEC)) == 0) {
-        LOGV("main", "FPS: %i", (int)fps_ema);
+        LOGV("main", "FPS: %i", static_cast<int>(fps_ema));
       }
 
       accum -= TICK_LENGTH;
@@ -578,7 +578,7 @@ load_data_file(const char *path)
 
 #define USAGE					\
   "Usage: %s [-g DATA-FILE]\n"
-#define HELP							\
+#define HELP                                                            \
   USAGE                                                                 \
       " -d NUM\t\tSet debug output level\n"				\
       " -f\t\tFullscreen mode (CTRL-q to exit)\n"			\
@@ -618,7 +618,7 @@ main(int argc, char *argv[])
         {
           int d = atoi(optarg);
           if (d >= 0 && d < LOG_LEVEL_MAX) {
-            log_level = (log_level_t)d;
+            log_level = static_cast<log_level_t>(d);
           }
         }
         break;
@@ -626,7 +626,7 @@ main(int argc, char *argv[])
         fullscreen = 1;
         break;
       case 'g':
-        data_file = (char*)malloc(strlen(optarg)+1);
+        data_file = static_cast<char*>(malloc(strlen(optarg)+1));
         if (data_file == NULL) exit(EXIT_FAILURE);
         strcpy(data_file, optarg);
         break;
@@ -635,7 +635,7 @@ main(int argc, char *argv[])
         exit(EXIT_SUCCESS);
         break;
       case 'l':
-        save_file = (char*)malloc(strlen(optarg)+1);
+        save_file = static_cast<char*>(malloc(strlen(optarg)+1));
         if (save_file == NULL) exit(EXIT_FAILURE);
         strcpy(save_file, optarg);
         break;
@@ -693,7 +693,7 @@ main(int argc, char *argv[])
   r = sdl_set_resolution(screen_width, screen_height, fullscreen);
   if (r < 0) exit(EXIT_FAILURE);
 
-  sdl_set_cursor((sprite_t*)data_get_object(DATA_CURSOR, NULL));
+  sdl_set_cursor(static_cast<sprite_t*>(data_get_object(DATA_CURSOR, NULL)));
 
   game.map_generator = map_generator;
 
@@ -701,9 +701,9 @@ main(int argc, char *argv[])
 
   /* Initialize interface */
   interface_init(&interface);
-  gui_object_set_size((gui_object_t *)&interface,
+  gui_object_set_size(reinterpret_cast<gui_object_t*>(&interface),
       screen_width, screen_height);
-  gui_object_set_displayed((gui_object_t *)&interface, 1);
+  gui_object_set_displayed(reinterpret_cast<gui_object_t*>(&interface), 1);
 
   /* Either load a save game if specified or
      start a new game. */
