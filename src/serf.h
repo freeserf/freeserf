@@ -22,19 +22,7 @@
 #ifndef _SERF_H
 #define _SERF_H
 
-#ifdef HAVE_CONFIG_H
-# include <config.h>
-#endif
-
-#include <stdio.h>
-#include <stdlib.h>
-#ifdef HAVE_STDINT_H
-#include <stdint.h>
-#endif
-
 #include "map.h"
-#include "misc.h"
-#include "log.h"
 
 #define SERF_INDEX(ptr)    ((int)((ptr) - game.serfs))
 #define SERF_ALLOCATED(i)  BIT_TEST(game.serf_bitmap[(i)>>3], 7-((i)&7))

@@ -19,16 +19,8 @@
  * along with freeserf.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifdef HAVE_CONFIG_H
-# include <config.h>
-#endif
-
-#ifdef HAVE_CONFIG_H
-# include <config.h>
-#endif
-
-#include "sdl-video.h"
 #include "gfx.h"
+#include "sdl-video.h"
 #include "data.h"
 
 /* There are different types of sprites:

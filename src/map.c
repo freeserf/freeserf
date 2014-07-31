@@ -37,19 +37,12 @@
    among others a height value which means that the 3D landscape is
    defined by these points in (col, row, height)-space. */
 
-#include <stdio.h>
-#include <stdlib.h>
-#ifdef HAVE_STDINT_H
-#include <stdint.h>
-#endif
-#include <string.h>
-
 #include "map.h"
 #include "game.h"
 #include "random.h"
-#include "misc.h"
 #include "debug.h"
 
+#include <string.h>
 
 /* Map map_obj_t to map_space_t. */
 const map_space_t map_space_from_obj[] = {

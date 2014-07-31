@@ -22,9 +22,7 @@
 #ifndef _FLAG_H
 #define _FLAG_H
 
-#include "freeserf.h"
 #include "list.h"
-#include "map.h"
 #include "building.h"
 
 /* Max number of resources waiting at a flag */
@@ -87,9 +85,7 @@ typedef struct {
 	int dest;
 } resource_slot_t;
 
-typedef struct flag flag_t;
-
-struct flag {
+typedef struct flag {
 	map_pos_t pos; /* ADDITION */
 	int search_num;
 	dir_t search_dir;
@@ -100,13 +96,13 @@ struct flag {
 	resource_slot_t slot[FLAG_MAX_RES_COUNT];
 	union {
 		building_t *b[6];
-		flag_t *f[6];
+		struct flag *f[6];
 		void *v[6];
 	} other_endpoint;
 	int other_end_dir[6];
 	int bld_flags;
 	int bld2_flags;
-};
+} flag_t;
 
 typedef int flag_search_func(flag_t *flag, void *data);
 

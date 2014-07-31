@@ -19,18 +19,12 @@
  * along with freeserf.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <assert.h>
-
-
 #include "serf.h"
 #include "game.h"
-#include "random.h"
-#include "viewport.h"
-#include "misc.h"
+#include "log.h"
 #include "debug.h"
 
+#include <assert.h>
 
 static const int counter_from_animation[] = {
 	/* Walking (0-80) */

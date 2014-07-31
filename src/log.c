@@ -19,11 +19,10 @@
  * along with freeserf.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <stdio.h>
+#include "log.h"
+
 #include <stdlib.h>
 #include <stdarg.h>
-
-#include "log.h"
 
 static log_level_t log_level = LOG_LEVEL_DEBUG;
 static FILE *log_file = NULL;

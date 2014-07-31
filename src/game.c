@@ -23,24 +23,100 @@
    a whole. Functions that only act on a specific game object should
    go in the respective source file. */
 
+#include "game.h"
+#include "mission.h"
+#include "savegame.h"
+#include "debug.h"
+#include "log.h"
+
 #include <stdlib.h>
 #include <assert.h>
 #include <string.h>
 
-#include "game.h"
-#include "map.h"
-#include "player.h"
-#include "flag.h"
-#include "building.h"
-#include "mission.h"
-#include "random.h"
-#include "log.h"
-#include "savegame.h"
-#include "debug.h"
-
 #define GROUND_ANALYSIS_RADIUS  25
 
 game_t game = {0};
+
+/* Facilitates quick lookup of offsets following a spiral pattern in the map data.
+ The columns following the second are filled out by setup_spiral_pattern(). */
+static int spiral_pattern[] = {
+	0, 0,
+	1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+	2, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+	2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+	3, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+	3, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+	3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+	4, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+	4, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+	4, 3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+	4, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+	5, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+	5, 3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+	5, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+	5, 4, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+	5, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+	6, 3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+	6, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+	6, 4, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+	6, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+	6, 5, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+	6, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+	7, 3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+	7, 4, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+	7, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+	7, 5, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+	7, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+	7, 6, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+	7, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+	8, 4, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+	8, 3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+	8, 5, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+	8, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+	8, 6, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+	8, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+	8, 7, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+	8, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+	9, 4, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+	9, 5, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+	9, 3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+	9, 6, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+	9, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+	9, 7, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+	9, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+	9, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+	16, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+	16, 8, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+	24, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+	24, 8, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+	24, 16, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
+};
+
+/* Initialize the global spiral_pattern. */
+static void
+init_spiral_pattern()
+{
+	static const int spiral_matrix[] = {
+		1,  0,  0,  1,
+		1,  1, -1,  0,
+		0,  1, -1, -1,
+		-1,  0,  0, -1,
+		-1, -1,  1,  0,
+		0, -1,  1,  1
+	};
+
+	game.spiral_pattern = spiral_pattern;
+
+	for (int i = 0; i < 49; i++) {
+		int x = spiral_pattern[2 + 12*i];
+		int y = spiral_pattern[2 + 12*i + 1];
+
+		for (int j = 0; j < 6; j++) {
+			spiral_pattern[2+12*i+2*j] = x*spiral_matrix[4*j+0] + y*spiral_matrix[4*j+2];
+			spiral_pattern[2+12*i+2*j+1] = x*spiral_matrix[4*j+1] + y*spiral_matrix[4*j+3];
+		}
+	}
+}
 
 /* Allocate and initialize a new flag_t object.
    Return -1 if no more flags can be allocated, otherwise 0. */
@@ -5088,6 +5164,9 @@ game_add_player(uint face, uint color, uint supplies,
 void
 game_init()
 {
+	/* Initialize global lookup tables */
+	init_spiral_pattern();
+
 	game.svga |= BIT(3); /* Game has started. */
 	game.game_speed = DEFAULT_GAME_SPEED;
 

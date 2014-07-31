@@ -22,6 +22,8 @@
 #ifndef _MAP_H
 #define _MAP_H
 
+#include "misc.h"
+
 #ifdef HAVE_CONFIG_H
 # include <config.h>
 #endif
@@ -31,7 +33,21 @@
 #include <stdint.h>
 #endif
 
-#include "misc.h"
+typedef enum {
+	DIR_NONE = -1,
+
+	DIR_RIGHT = 0,
+	DIR_DOWN_RIGHT,
+	DIR_DOWN,
+	DIR_LEFT,
+	DIR_UP_LEFT,
+	DIR_UP,
+
+	DIR_UP_RIGHT,
+	DIR_DOWN_LEFT
+} dir_t;
+
+#define DIR_REVERSE(dir)  ((dir_t)(((dir) + 3) % 6))
 
 /* Extract col and row from map_pos_t */
 #define MAP_POS_COL(pos)  ((pos) & game.map.col_mask)

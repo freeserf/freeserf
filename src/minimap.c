@@ -20,15 +20,12 @@
  */
 
 #include "minimap.h"
-#include "gui.h"
-#include "viewport.h"
 #include "interface.h"
 #include "sdl-video.h"
 #include "game.h"
-#include "player.h"
-#include "misc.h"
 #include "data.h"
 
+#include <stdlib.h>
 
 #define MINIMAP_MAX_SCALE  8
 

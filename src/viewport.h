@@ -22,11 +22,8 @@
 #ifndef _VIEWPORT_H
 #define _VIEWPORT_H
 
-#include "freeserf.h"
-#include "gfx.h"
 #include "gui.h"
 #include "map.h"
-
 
 typedef enum {
 	VIEWPORT_LAYER_LANDSCAPE = 1<<0,

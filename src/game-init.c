@@ -19,16 +19,13 @@
  * along with freeserf.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <time.h>
-
 #include "game-init.h"
 #include "interface.h"
-
-#include "game.h"
 #include "mission.h"
 #include "data.h"
-#include "gfx.h"
 
+#include <time.h>
+#include <stdio.h>
 
 typedef enum {
 	ACTION_START_GAME,

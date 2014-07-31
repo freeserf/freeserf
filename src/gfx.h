@@ -22,16 +22,7 @@
 #ifndef _GFX_H
 #define _GFX_H
 
-#ifdef HAVE_CONFIG_H
-# include <config.h>
-#endif
-
-#ifdef HAVE_STDINT_H
-#include <stdint.h>
-#endif
-
 #include "SDL.h"
-
 
 #define MAP_TILE_WIDTH   32
 #define MAP_TILE_HEIGHT  20

@@ -19,20 +19,15 @@
  * along with freeserf.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <time.h>
-
-#include "SDL.h"
-#include "SDL_mixer.h"
-
 #include "audio.h"
-#include "gfx.h"
 #include "data.h"
 #include "log.h"
 #include "list.h"
 #include "pqueue.h"
 #include "freeserf_endian.h"
-#include "misc.h"
 
+#include "SDL.h"
+#include "SDL_mixer.h"
 
 /* Play sound. */
 

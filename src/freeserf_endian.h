@@ -33,8 +33,6 @@
 # include <endian.h>
 #else /* ! HAVE_SYS_ENDIAN_H */
 
-# include <stdio.h>
-# include <stdlib.h>
 #ifdef HAVE_STDINT_H
 # include <stdint.h>
 #endif

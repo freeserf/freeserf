@@ -19,14 +19,9 @@
  * along with freeserf.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <assert.h>
-
 #include "player.h"
-#include "freeserf.h"
 #include "game.h"
-#include "debug.h"
+#include "log.h"
 
 
 /* Enqueue a new notification message for player. */
