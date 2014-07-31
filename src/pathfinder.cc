@@ -56,10 +56,10 @@ heuristic_cost(map_pos_t start, map_pos_t end)
 {
   /* Calculate distance to target. */
   int dist_col = (MAP_POS_COL(start) - MAP_POS_COL(end)) & game.map.col_mask;
-  if (dist_col >= (int)(game.map.cols/2)) dist_col -= game.map.cols;
+  if (dist_col >= static_cast<int>(game.map.cols/2.0)) dist_col -= game.map.cols;
 
   int dist_row = (MAP_POS_ROW(start) - MAP_POS_ROW(end)) & game.map.row_mask;
-  if (dist_row >= (int)(game.map.rows/2)) dist_row -= game.map.rows;
+  if (dist_row >= static_cast<int>(game.map.rows/2.0)) dist_row -= game.map.rows;
 
   int h_diff = abs(MAP_HEIGHT(start) - MAP_HEIGHT(end));
   int dist = 0;
@@ -124,7 +124,7 @@ pathfinder_map(map_pos_t start, map_pos_t end, uint *length)
 
       if (*length == 0) break;
 
-      solution = (dir_t*)malloc(*length*sizeof(dir_t));
+      solution = static_cast<dir_t*>(malloc(*length*sizeof(dir_t)));
       if (solution == NULL) abort();
 
       for (int i = *length-1; i >= 0; i--) {
@@ -139,10 +139,10 @@ pathfinder_map(map_pos_t start, map_pos_t end, uint *length)
 
     for (int d = DIR_RIGHT; d <= DIR_UP; d++) {
       map_pos_t new_pos = MAP_MOVE(node->pos, d);
-      uint cost = actual_cost(node->pos, (dir_t)d);
+      uint cost = actual_cost(node->pos, static_cast<dir_t>(d));
 
       /* Check if neighbour is valid. */
-      if (!game_road_segment_valid(node->pos, (dir_t)d) ||
+      if (!game_road_segment_valid(node->pos, static_cast<dir_t>(d)) ||
           (MAP_OBJ(new_pos) == MAP_OBJ_FLAG && new_pos != end)) {
         continue;
       }
@@ -170,7 +170,7 @@ pathfinder_map(map_pos_t start, map_pos_t end, uint *length)
             n->g_score = node->g_score + cost;
             n->f_score = n->g_score + heuristic_cost(new_pos, end);
             n->parent = node;
-            n->dir = (dir_t)d;
+            n->dir = static_cast<dir_t>(d);
 
             // Move element to the back and heapify
             iter_swap(it, open.rbegin());
@@ -188,7 +188,7 @@ pathfinder_map(map_pos_t start, map_pos_t end, uint *length)
         new_node->g_score = node->g_score + cost;
         new_node->f_score = new_node->g_score + heuristic_cost(new_pos, end);
         new_node->parent = node;
-        new_node->dir = (dir_t)d;
+        new_node->dir = static_cast<dir_t>(d);
 
         open.push_back(new_node);
         std::push_heap(open.begin(), open.end(), search_node_less);
