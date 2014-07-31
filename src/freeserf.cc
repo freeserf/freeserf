@@ -76,60 +76,60 @@ static interface_t interface;
 static void
 strreplace(char *target, const char *needle, char replace)
 {
-	for (int i = 0; target[i] != '\0'; i++) {
-		for (int j = 0; needle[j] != '\0'; j++) {
-			if (needle[j] == target[i]) {
-				target[i] = replace;
-				break;
-			}
-		}
-	}
+  for (int i = 0; target[i] != '\0'; i++) {
+    for (int j = 0; needle[j] != '\0'; j++) {
+      if (needle[j] == target[i]) {
+        target[i] = replace;
+        break;
+      }
+    }
+  }
 }
 
 static int
 save_game(int autosave)
 {
-	size_t r;
+  size_t r;
 
-	/* Build filename including time stamp. */
-	char name[128];
-	time_t t = time(NULL);
+  /* Build filename including time stamp. */
+  char name[128];
+  time_t t = time(NULL);
 
-	struct tm *tm = localtime(&t);
-	if (tm == NULL) return -1;
+  struct tm *tm = localtime(&t);
+  if (tm == NULL) return -1;
 
-	if (!autosave) {
-		r = strftime(name, sizeof(name), "%c.save", tm);
-		if (r == 0) return -1;
-	} else {
-		r = strftime(name, sizeof(name), "autosave-%c.save", tm);
-		if (r == 0) return -1;
-	}
+  if (!autosave) {
+    r = strftime(name, sizeof(name), "%c.save", tm);
+    if (r == 0) return -1;
+  } else {
+    r = strftime(name, sizeof(name), "autosave-%c.save", tm);
+    if (r == 0) return -1;
+  }
 
-	/* Substitute problematic characters. These are problematic
-	   particularly on windows platforms, but also in general on FAT
-	   filesystems through any platform. */
-	/* TODO Possibly use PathCleanupSpec() when building for windows platform. */
-	strreplace(name, "\\/:*?\"<>| ", '_');
+  /* Substitute problematic characters. These are problematic
+     particularly on windows platforms, but also in general on FAT
+     filesystems through any platform. */
+  /* TODO Possibly use PathCleanupSpec() when building for windows platform. */
+  strreplace(name, "\\/:*?\"<>| ", '_');
 
-	FILE *f = fopen(name, "wb");
-	if (f == NULL) return -1;
+  FILE *f = fopen(name, "wb");
+  if (f == NULL) return -1;
 
-	int r1 = save_text_state(f);
-	if (r1 < 0) return -1;
+  int r1 = save_text_state(f);
+  if (r1 < 0) return -1;
 
-	fclose(f);
+  fclose(f);
 
-	LOGI("main", "Game saved to `%s'.", name);
+  LOGI("main", "Game saved to `%s'.", name);
 
-	return 0;
+  return 0;
 }
 
 
 void
 game_loop_quit()
 {
-	game_loop_run = 0;
+  game_loop_run = 0;
 }
 
 /* game_loop() has been turned into a SDL based loop.
@@ -138,325 +138,325 @@ game_loop_quit()
 static void
 game_loop()
 {
-	/* FPS */
-	float fps = 0;
-	float fps_ema = 0;
-	int fps_target = 25;
-	/* TODO: compute alpha dynamically based on frametime */
-	const float ema_alpha = 0.07f;
+  /* FPS */
+  float fps = 0;
+  float fps_ema = 0;
+  int fps_target = 25;
+  /* TODO: compute alpha dynamically based on frametime */
+  const float ema_alpha = 0.07f;
 
-	const int frametime_target = 1000 / fps_target; /* in milliseconds */
-	int last_frame = SDL_GetTicks();
+  const int frametime_target = 1000 / fps_target; /* in milliseconds */
+  int last_frame = SDL_GetTicks();
 
-	int drag_button = 0;
-	int drag_x = 0;
-	int drag_y = 0;
+  int drag_button = 0;
+  int drag_x = 0;
+  int drag_y = 0;
 
-	uint last_down[3] = {0};
-	uint last_click[3] = {0};
-	uint last_click_x = 0;
-	uint last_click_y = 0;
+  uint last_down[3] = {0};
+  uint last_click[3] = {0};
+  uint last_click_x = 0;
+  uint last_click_y = 0;
 
-	uint current_ticks = SDL_GetTicks();
-	uint accum = 0;
+  uint current_ticks = SDL_GetTicks();
+  uint accum = 0;
 
-	SDL_Event event;
-	gui_event_t ev;
+  SDL_Event event;
+  gui_event_t ev;
 
-	game_loop_run = 1;
-	while (game_loop_run) {
-		while (SDL_PollEvent(&event)) {
-			switch (event.type) {
-			case SDL_MOUSEBUTTONUP:
-				if (drag_button == event.button.button) {
-					ev.type = GUI_EVENT_TYPE_DRAG_END;
-					ev.x = event.button.x;
-					ev.y = event.button.y;
-					ev.button = drag_button;
-					gui_object_handle_event((gui_object_t *)&interface, &ev);
+  game_loop_run = 1;
+  while (game_loop_run) {
+    while (SDL_PollEvent(&event)) {
+      switch (event.type) {
+        case SDL_MOUSEBUTTONUP:
+          if (drag_button == event.button.button) {
+            ev.type = GUI_EVENT_TYPE_DRAG_END;
+            ev.x = event.button.x;
+            ev.y = event.button.y;
+            ev.button = drag_button;
+            gui_object_handle_event((gui_object_t *)&interface, &ev);
 
-					drag_button = 0;
-				}
+            drag_button = 0;
+          }
 
-				ev.type = GUI_EVENT_TYPE_BUTTON_UP;
-				ev.x = event.button.x;
-				ev.y = event.button.y;
-				ev.button = event.button.button;
-				gui_object_handle_event((gui_object_t *)&interface, &ev);
+          ev.type = GUI_EVENT_TYPE_BUTTON_UP;
+          ev.x = event.button.x;
+          ev.y = event.button.y;
+          ev.button = event.button.button;
+          gui_object_handle_event((gui_object_t *)&interface, &ev);
 
-				if (event.button.button <= 3 &&
-				    current_ticks - last_down[event.button.button-1] < MOUSE_TIME_SENSITIVITY) {
-					ev.type = GUI_EVENT_TYPE_CLICK;
-					ev.x = event.button.x;
-					ev.y = event.button.y;
-					ev.button = event.button.button;
-					gui_object_handle_event((gui_object_t *)&interface, &ev);
+          if (event.button.button <= 3 &&
+              current_ticks - last_down[event.button.button-1] < MOUSE_TIME_SENSITIVITY) {
+            ev.type = GUI_EVENT_TYPE_CLICK;
+            ev.x = event.button.x;
+            ev.y = event.button.y;
+            ev.button = event.button.button;
+            gui_object_handle_event((gui_object_t *)&interface, &ev);
 
-					if (current_ticks - last_click[event.button.button-1] < MOUSE_TIME_SENSITIVITY &&
-					    event.button.x >= (int)(last_click_x - MOUSE_MOVE_SENSITIVITY) &&
-					    event.button.x <= (int)(last_click_x + MOUSE_MOVE_SENSITIVITY) &&
-					    event.button.y >= (int)(last_click_y - MOUSE_MOVE_SENSITIVITY) &&
-					    event.button.y <= (int)(last_click_y + MOUSE_MOVE_SENSITIVITY)) {
-						ev.type = GUI_EVENT_TYPE_DBL_CLICK;
-						ev.x = event.button.x;
-						ev.y = event.button.y;
-						ev.button = event.button.button;
-						gui_object_handle_event((gui_object_t *)&interface, &ev);
-					}
+            if (current_ticks - last_click[event.button.button-1] < MOUSE_TIME_SENSITIVITY &&
+                event.button.x >= (int)(last_click_x - MOUSE_MOVE_SENSITIVITY) &&
+                event.button.x <= (int)(last_click_x + MOUSE_MOVE_SENSITIVITY) &&
+                event.button.y >= (int)(last_click_y - MOUSE_MOVE_SENSITIVITY) &&
+                event.button.y <= (int)(last_click_y + MOUSE_MOVE_SENSITIVITY)) {
+              ev.type = GUI_EVENT_TYPE_DBL_CLICK;
+              ev.x = event.button.x;
+              ev.y = event.button.y;
+              ev.button = event.button.button;
+              gui_object_handle_event((gui_object_t *)&interface, &ev);
+            }
 
-					last_click[event.button.button-1] = current_ticks;
-					last_click_x = event.button.x;
-					last_click_y = event.button.y;
-				}
-				break;
-			case SDL_MOUSEBUTTONDOWN:
-				ev.type = GUI_EVENT_TYPE_BUTTON_DOWN;
-				ev.x = event.button.x;
-				ev.y = event.button.y;
-				ev.button = event.button.button;
-				gui_object_handle_event((gui_object_t *)&interface, &ev);
+            last_click[event.button.button-1] = current_ticks;
+            last_click_x = event.button.x;
+            last_click_y = event.button.y;
+          }
+          break;
+        case SDL_MOUSEBUTTONDOWN:
+          ev.type = GUI_EVENT_TYPE_BUTTON_DOWN;
+          ev.x = event.button.x;
+          ev.y = event.button.y;
+          ev.button = event.button.button;
+          gui_object_handle_event((gui_object_t *)&interface, &ev);
 
-				if (event.button.button <= 3) last_down[event.button.button-1] = current_ticks;
-				break;
-			case SDL_MOUSEMOTION:
-				for (int button = 1; button <= 3; button++) {
-					if (event.motion.state & SDL_BUTTON(button)) {
-						if (drag_button == 0) {
-							drag_button = button;
-							drag_x = event.motion.x;
-							drag_y = event.motion.y;
+          if (event.button.button <= 3) last_down[event.button.button-1] = current_ticks;
+          break;
+        case SDL_MOUSEMOTION:
+          for (int button = 1; button <= 3; button++) {
+            if (event.motion.state & SDL_BUTTON(button)) {
+              if (drag_button == 0) {
+                drag_button = button;
+                drag_x = event.motion.x;
+                drag_y = event.motion.y;
 
-							ev.type = GUI_EVENT_TYPE_DRAG_START;
-							ev.x = event.motion.x;
-							ev.y = event.motion.y;
-							ev.button = drag_button;
-							gui_object_handle_event((gui_object_t *)&interface, &ev);
-						}
+                ev.type = GUI_EVENT_TYPE_DRAG_START;
+                ev.x = event.motion.x;
+                ev.y = event.motion.y;
+                ev.button = drag_button;
+                gui_object_handle_event((gui_object_t *)&interface, &ev);
+              }
 
-						ev.type = GUI_EVENT_TYPE_DRAG_MOVE;
-						ev.x = event.motion.x - drag_x;
-						ev.y = event.motion.y - drag_y;
-						ev.button = drag_button;
-						gui_object_handle_event((gui_object_t *)&interface, &ev);
+              ev.type = GUI_EVENT_TYPE_DRAG_MOVE;
+              ev.x = event.motion.x - drag_x;
+              ev.y = event.motion.y - drag_y;
+              ev.button = drag_button;
+              gui_object_handle_event((gui_object_t *)&interface, &ev);
 
-						sdl_warp_mouse(drag_x, drag_y);
+              sdl_warp_mouse(drag_x, drag_y);
 
-						break;
-					}
-				}
-				break;
-			case SDL_KEYDOWN:
-				if (event.key.keysym.sym == SDLK_q &&
-				    (event.key.keysym.mod & KMOD_CTRL)) {
-					game_loop_quit();
-					break;
-				}
+              break;
+            }
+          }
+          break;
+        case SDL_KEYDOWN:
+          if (event.key.keysym.sym == SDLK_q &&
+              (event.key.keysym.mod & KMOD_CTRL)) {
+            game_loop_quit();
+            break;
+          }
 
-				switch (event.key.keysym.sym) {
-					/* Map scroll */
-				case SDLK_UP: {
-					viewport_t *viewport = interface_get_top_viewport(&interface);
-					viewport_move_by_pixels(viewport, 0, -32);
-				}
-					break;
-				case SDLK_DOWN: {
-					viewport_t *viewport = interface_get_top_viewport(&interface);
-					viewport_move_by_pixels(viewport, 0, 32);
-				}
-					break;
-				case SDLK_LEFT: {
-					viewport_t *viewport = interface_get_top_viewport(&interface);
-					viewport_move_by_pixels(viewport, -32, 0);
-				}
-					break;
-				case SDLK_RIGHT: {
-					viewport_t *viewport = interface_get_top_viewport(&interface);
-					viewport_move_by_pixels(viewport, 32, 0);
-				}
-					break;
+          switch (event.key.keysym.sym) {
+            /* Map scroll */
+            case SDLK_UP: {
+              viewport_t *viewport = interface_get_top_viewport(&interface);
+              viewport_move_by_pixels(viewport, 0, -32);
+            }
+              break;
+            case SDLK_DOWN: {
+              viewport_t *viewport = interface_get_top_viewport(&interface);
+              viewport_move_by_pixels(viewport, 0, 32);
+            }
+              break;
+            case SDLK_LEFT: {
+              viewport_t *viewport = interface_get_top_viewport(&interface);
+              viewport_move_by_pixels(viewport, -32, 0);
+            }
+              break;
+            case SDLK_RIGHT: {
+              viewport_t *viewport = interface_get_top_viewport(&interface);
+              viewport_move_by_pixels(viewport, 32, 0);
+            }
+              break;
 
-					/* Panel click shortcuts */
-				case SDLK_1: {
-					panel_bar_t *panel = interface_get_panel_bar(&interface);
-					panel_bar_activate_button(panel, 0);
-				}
-					break;
-				case SDLK_2: {
-					panel_bar_t *panel = interface_get_panel_bar(&interface);
-					panel_bar_activate_button(panel, 1);
-				}
-					break;
-				case SDLK_3: {
-					panel_bar_t *panel = interface_get_panel_bar(&interface);
-					panel_bar_activate_button(panel, 2);
-				}
-					break;
-				case SDLK_4: {
-					panel_bar_t *panel = interface_get_panel_bar(&interface);
-					panel_bar_activate_button(panel, 3);
-				}
-					break;
-				case SDLK_5: {
-					panel_bar_t *panel = interface_get_panel_bar(&interface);
-					panel_bar_activate_button(panel, 4);
-				}
-					break;
+              /* Panel click shortcuts */
+            case SDLK_1: {
+              panel_bar_t *panel = interface_get_panel_bar(&interface);
+              panel_bar_activate_button(panel, 0);
+            }
+              break;
+            case SDLK_2: {
+              panel_bar_t *panel = interface_get_panel_bar(&interface);
+              panel_bar_activate_button(panel, 1);
+            }
+              break;
+            case SDLK_3: {
+              panel_bar_t *panel = interface_get_panel_bar(&interface);
+              panel_bar_activate_button(panel, 2);
+            }
+              break;
+            case SDLK_4: {
+              panel_bar_t *panel = interface_get_panel_bar(&interface);
+              panel_bar_activate_button(panel, 3);
+            }
+              break;
+            case SDLK_5: {
+              panel_bar_t *panel = interface_get_panel_bar(&interface);
+              panel_bar_activate_button(panel, 4);
+            }
+              break;
 
-				case SDLK_TAB:
-					if (event.key.keysym.mod & KMOD_SHIFT) {
-						interface_return_from_message(&interface);
-					} else {
-						interface_open_message(&interface);
-					}
-					break;
+            case SDLK_TAB:
+              if (event.key.keysym.mod & KMOD_SHIFT) {
+                interface_return_from_message(&interface);
+              } else {
+                interface_open_message(&interface);
+              }
+              break;
 
-					/* Game speed */
-				case SDLK_PLUS:
-				case SDLK_KP_PLUS:
-				case SDLK_EQUALS:
-					if (game.game_speed < 40) game.game_speed += 1;
-					LOGI("main", "Game speed: %u", game.game_speed);
-					break;
-				case SDLK_MINUS:
-				case SDLK_KP_MINUS:
-					if (game.game_speed >= 1) game.game_speed -= 1;
-					LOGI("main", "Game speed: %u", game.game_speed);
-					break;
-				case SDLK_0:
-					game.game_speed = DEFAULT_GAME_SPEED;
-					LOGI("main", "Game speed: %u", game.game_speed);
-					break;
-				case SDLK_p:
-					if (game.game_speed == 0) game_pause(0);
-					else game_pause(1);
-					break;
+              /* Game speed */
+            case SDLK_PLUS:
+            case SDLK_KP_PLUS:
+            case SDLK_EQUALS:
+              if (game.game_speed < 40) game.game_speed += 1;
+              LOGI("main", "Game speed: %u", game.game_speed);
+              break;
+            case SDLK_MINUS:
+            case SDLK_KP_MINUS:
+              if (game.game_speed >= 1) game.game_speed -= 1;
+              LOGI("main", "Game speed: %u", game.game_speed);
+              break;
+            case SDLK_0:
+              game.game_speed = DEFAULT_GAME_SPEED;
+              LOGI("main", "Game speed: %u", game.game_speed);
+              break;
+            case SDLK_p:
+              if (game.game_speed == 0) game_pause(0);
+              else game_pause(1);
+              break;
 
-					/* Audio */
-				case SDLK_s:
-					sfx_enable(!sfx_is_enabled());
-					break;
-				case SDLK_m:
-					midi_enable(!midi_is_enabled());
-					break;
+              /* Audio */
+            case SDLK_s:
+              sfx_enable(!sfx_is_enabled());
+              break;
+            case SDLK_m:
+              midi_enable(!midi_is_enabled());
+              break;
 
-					/* Video */
-				case SDLK_f:
-					if (event.key.keysym.mod & KMOD_CTRL) {
-						sdl_set_fullscreen(!sdl_is_fullscreen());
-					}
-					break;
+              /* Video */
+            case SDLK_f:
+              if (event.key.keysym.mod & KMOD_CTRL) {
+                sdl_set_fullscreen(!sdl_is_fullscreen());
+              }
+              break;
 
-					/* Misc */
-				case SDLK_ESCAPE:
-					if (GUI_OBJECT(&interface.notification_box)->displayed) {
-						interface_close_message(&interface);
-					} else if (GUI_OBJECT(&interface.popup)->displayed) {
-						interface_close_popup(&interface);
-					} else if (interface.building_road) {
-						interface_build_road_end(&interface);
-					}
-					break;
+              /* Misc */
+            case SDLK_ESCAPE:
+              if (GUI_OBJECT(&interface.notification_box)->displayed) {
+                interface_close_message(&interface);
+              } else if (GUI_OBJECT(&interface.popup)->displayed) {
+                interface_close_popup(&interface);
+              } else if (interface.building_road) {
+                interface_build_road_end(&interface);
+              }
+              break;
 
-					/* Debug */
-				case SDLK_g:
-					interface.viewport.layers = (viewport_layer_t)(interface.viewport.layers ^ VIEWPORT_LAYER_GRID);
-					break;
-				case SDLK_b:
-					interface.viewport.show_possible_build = !interface.viewport.show_possible_build;
-					break;
-				case SDLK_j: {
-					int current = 0;
-					for (int i = 0; i < GAME_MAX_PLAYER_COUNT; i++) {
-						if (interface.player == game.player[i]) {
-							current = i;
-							break;
-						}
-					}
+              /* Debug */
+            case SDLK_g:
+              interface.viewport.layers = (viewport_layer_t)(interface.viewport.layers ^ VIEWPORT_LAYER_GRID);
+              break;
+            case SDLK_b:
+              interface.viewport.show_possible_build = !interface.viewport.show_possible_build;
+              break;
+            case SDLK_j: {
+              int current = 0;
+              for (int i = 0; i < GAME_MAX_PLAYER_COUNT; i++) {
+                if (interface.player == game.player[i]) {
+                  current = i;
+                  break;
+                }
+              }
 
-					for (int i = (current+1) % GAME_MAX_PLAYER_COUNT;
-					     i != current; i = (i+1) % GAME_MAX_PLAYER_COUNT) {
-						if (PLAYER_IS_ACTIVE(game.player[i])) {
-							interface_set_player(&interface, i);
-							LOGD("main", "Switched to player %i.", i);
-							break;
-						}
-					}
-				}
-					break;
-				case SDLK_z:
-					if (event.key.keysym.mod & KMOD_CTRL) {
-						save_game(0);
-					}
-					break;
-				case SDLK_F10:
-					interface_open_game_init(&interface);
-					break;
+              for (int i = (current+1) % GAME_MAX_PLAYER_COUNT;
+                   i != current; i = (i+1) % GAME_MAX_PLAYER_COUNT) {
+                if (PLAYER_IS_ACTIVE(game.player[i])) {
+                  interface_set_player(&interface, i);
+                  LOGD("main", "Switched to player %i.", i);
+                  break;
+                }
+              }
+            }
+              break;
+            case SDLK_z:
+              if (event.key.keysym.mod & KMOD_CTRL) {
+                save_game(0);
+              }
+              break;
+            case SDLK_F10:
+              interface_open_game_init(&interface);
+              break;
 
-				default:
-					break;
-				}
-				break;
-			case SDL_QUIT:
-				game_loop_quit();
-				break;
-			case SDL_WINDOWEVENT:
-				if (SDL_WINDOWEVENT_SIZE_CHANGED == event.window.event){
-					int width = 0;
-					int height = 0;
-					sdl_get_resolution(&width, &height);
-					sdl_set_resolution(width, height, sdl_is_fullscreen());
-					gui_object_set_size((gui_object_t*)&interface, width, height);
-				}
-				break;
-			}
-		}
+            default:
+              break;
+          }
+          break;
+        case SDL_QUIT:
+          game_loop_quit();
+          break;
+        case SDL_WINDOWEVENT:
+          if (SDL_WINDOWEVENT_SIZE_CHANGED == event.window.event){
+            int width = 0;
+            int height = 0;
+            sdl_get_resolution(&width, &height);
+            sdl_set_resolution(width, height, sdl_is_fullscreen());
+            gui_object_set_size((gui_object_t*)&interface, width, height);
+          }
+          break;
+      }
+    }
 
-		uint new_ticks = SDL_GetTicks();
-		int delta_ticks = new_ticks - current_ticks;
-		current_ticks = new_ticks;
+    uint new_ticks = SDL_GetTicks();
+    int delta_ticks = new_ticks - current_ticks;
+    current_ticks = new_ticks;
 
-		/* Update FPS EMA per frame */
-		fps = 1000.f*(1.f / (float)delta_ticks);
-		if (fps_ema > 0) fps_ema = ema_alpha*fps + (1-ema_alpha)*fps_ema;
-		else if (fps > 0) fps_ema = fps;
+    /* Update FPS EMA per frame */
+    fps = 1000.f*(1.f / (float)delta_ticks);
+    if (fps_ema > 0) fps_ema = ema_alpha*fps + (1-ema_alpha)*fps_ema;
+    else if (fps > 0) fps_ema = fps;
 
-		accum += delta_ticks;
-		while (accum >= TICK_LENGTH) {
-			game_update();
+    accum += delta_ticks;
+    while (accum >= TICK_LENGTH) {
+      game_update();
 
-			/* Autosave periodically */
-			if ((game.const_tick % AUTOSAVE_INTERVAL) == 0 &&
-			    game.game_speed > 0) {
-				int r = save_game(1);
-				if (r < 0) LOGW("main", "Autosave failed.");
-			}
+      /* Autosave periodically */
+      if ((game.const_tick % AUTOSAVE_INTERVAL) == 0 &&
+          game.game_speed > 0) {
+        int r = save_game(1);
+        if (r < 0) LOGW("main", "Autosave failed.");
+      }
 
-			/* Print FPS */
-			if ((game.const_tick % (10*TICKS_PER_SEC)) == 0) {
-				LOGV("main", "FPS: %i", (int)fps_ema);
-			}
+      /* Print FPS */
+      if ((game.const_tick % (10*TICKS_PER_SEC)) == 0) {
+        LOGV("main", "FPS: %i", (int)fps_ema);
+      }
 
-			accum -= TICK_LENGTH;
-		}
+      accum -= TICK_LENGTH;
+    }
 
-		/* Update and draw interface */
-		interface_update(&interface);
+    /* Update and draw interface */
+    interface_update(&interface);
 
-		frame_t *screen = sdl_get_screen_frame();
-		gui_object_redraw(GUI_OBJECT(&interface), screen);
+    frame_t *screen = sdl_get_screen_frame();
+    gui_object_redraw(GUI_OBJECT(&interface), screen);
 
-		/* Swap video buffers */
-		sdl_swap_buffers();
+    /* Swap video buffers */
+    sdl_swap_buffers();
 
-		/* Reduce framerate to target if we finished too fast */
-		int now = SDL_GetTicks();
-		int frametime_spent = now - last_frame;
+    /* Reduce framerate to target if we finished too fast */
+    int now = SDL_GetTicks();
+    int frametime_spent = now - last_frame;
 
-		if (frametime_spent < frametime_target) {
-			SDL_Delay(frametime_target - frametime_spent);
-		}
-		last_frame = SDL_GetTicks();
-	}
+    if (frametime_spent < frametime_target) {
+      SDL_Delay(frametime_target - frametime_spent);
+    }
+    last_frame = SDL_GetTicks();
+  }
 }
 
 #define MAX_DATA_PATH      1024
@@ -466,281 +466,281 @@ game_loop()
 static int
 load_data_file(const char *path)
 {
-	const char *default_data_file[] = {
-		"SPAE.PA", /* English */
-		"SPAF.PA", /* French */
-		"SPAD.PA", /* German */
-		"SPAU.PA", /* Engish (US) */
-		NULL
-	};
+  const char *default_data_file[] = {
+    "SPAE.PA", /* English */
+    "SPAF.PA", /* French */
+    "SPAD.PA", /* German */
+    "SPAU.PA", /* Engish (US) */
+    NULL
+  };
 
-	/* Use specified path. If something was specified
-	   but not found, this function should fail without
-	   looking anywhere else. */
-	if (path != NULL) {
-		LOGI("main", "Looking for game data in `%s'...", path);
-		int r = data_load(path);
-		if (r < 0) return -1;
-		return 0;
-	}
+  /* Use specified path. If something was specified
+     but not found, this function should fail without
+     looking anywhere else. */
+  if (path != NULL) {
+    LOGI("main", "Looking for game data in `%s'...", path);
+    int r = data_load(path);
+    if (r < 0) return -1;
+    return 0;
+  }
 
-	/* If a path is not specified (path is NULL) then
-	   the configuration file is searched for in the directories
-	   specified by the XDG Base Directory Specification
-	   <http://standards.freedesktop.org/basedir-spec/basedir-spec-latest.html>.
+  /* If a path is not specified (path is NULL) then
+     the configuration file is searched for in the directories
+     specified by the XDG Base Directory Specification
+     <http://standards.freedesktop.org/basedir-spec/basedir-spec-latest.html>.
 
-	   On windows platforms the %localappdata% is used in place of XDG_CONFIG_HOME.
-	*/
+     On windows platforms the %localappdata% is used in place of XDG_CONFIG_HOME.
+  */
 
-	char cp[MAX_DATA_PATH];
-	char *env;
+  char cp[MAX_DATA_PATH];
+  char *env;
 
-	/* Look in home */
-	if ((env = getenv("XDG_DATA_HOME")) != NULL &&
-	    env[0] != '\0') {
-		for (const char **df = default_data_file; *df != NULL; df++) {
-			snprintf(cp, sizeof(cp), "%s/freeserf/%s", env, *df);
-			LOGI("main", "Looking for game data in `%s'...", cp);
-			int r = data_load(cp);
-			if (r >= 0) return 0;
-		}
-	} else if ((env = getenv("HOME")) != NULL && env[0] != '\0') {
-		for (const char **df = default_data_file; *df != NULL; df++) {
-			snprintf(cp, sizeof(cp),
-				 "%s/.local/share/freeserf/%s", env, *df);
-			LOGI("main", "Looking for game data in `%s'...", cp);
-			int r = data_load(cp);
-			if (r >= 0) return 0;
-		}
-	}
+  /* Look in home */
+  if ((env = getenv("XDG_DATA_HOME")) != NULL &&
+      env[0] != '\0') {
+    for (const char **df = default_data_file; *df != NULL; df++) {
+      snprintf(cp, sizeof(cp), "%s/freeserf/%s", env, *df);
+      LOGI("main", "Looking for game data in `%s'...", cp);
+      int r = data_load(cp);
+      if (r >= 0) return 0;
+    }
+  } else if ((env = getenv("HOME")) != NULL && env[0] != '\0') {
+    for (const char **df = default_data_file; *df != NULL; df++) {
+      snprintf(cp, sizeof(cp),
+               "%s/.local/share/freeserf/%s", env, *df);
+      LOGI("main", "Looking for game data in `%s'...", cp);
+      int r = data_load(cp);
+      if (r >= 0) return 0;
+    }
+  }
 
 #ifdef _WIN32
-	if ((env = getenv("userprofile")) != NULL && env[0] != '\0') {
-		for (const char **df = default_data_file; *df != NULL; df++) {
-			snprintf(cp, sizeof(cp),
-				 "%s/.local/share/freeserf/%s", env, *df);
-			LOGI("main", "Looking for game data in `%s'...", cp);
-			int r = data_load(cp);
-			if (r >= 0) return 0;
-		}
-	}
+  if ((env = getenv("userprofile")) != NULL && env[0] != '\0') {
+    for (const char **df = default_data_file; *df != NULL; df++) {
+      snprintf(cp, sizeof(cp),
+               "%s/.local/share/freeserf/%s", env, *df);
+      LOGI("main", "Looking for game data in `%s'...", cp);
+      int r = data_load(cp);
+      if (r >= 0) return 0;
+    }
+  }
 #endif
 
-	if ((env = getenv("XDG_DATA_DIRS")) != NULL && env[0] != '\0') {
-		char *begin = env;
-		while (1) {
-			char *end = strchr(begin, ':');
-			if (end == NULL) end = strchr(begin, '\0');
+  if ((env = getenv("XDG_DATA_DIRS")) != NULL && env[0] != '\0') {
+    char *begin = env;
+    while (1) {
+      char *end = strchr(begin, ':');
+      if (end == NULL) end = strchr(begin, '\0');
 
-			int len = (int)(end - begin);
-			if (len > 0) {
-				for (const char **df = default_data_file; *df != NULL; df++) {
-					snprintf(cp, sizeof(cp),
-						 "%.*s/freeserf/%s", len, begin, *df);
-					LOGI("main", "Looking for game data in `%s'...", cp);
-					int r = data_load(cp);
-					if (r >= 0) return 0;
-				}
-			}
+      int len = (int)(end - begin);
+      if (len > 0) {
+        for (const char **df = default_data_file; *df != NULL; df++) {
+          snprintf(cp, sizeof(cp),
+                   "%.*s/freeserf/%s", len, begin, *df);
+          LOGI("main", "Looking for game data in `%s'...", cp);
+          int r = data_load(cp);
+          if (r >= 0) return 0;
+        }
+      }
 
-			if (end[0] == '\0') break;
-			begin = end + 1;
-		}
-	} else {
-		/* Look in /usr/local/share and /usr/share per XDG spec. */
-		for (const char **df = default_data_file; *df != NULL; df++) {
-			snprintf(cp, sizeof(cp),
-				 "/usr/local/share/freeserf/%s", *df);
-			LOGI("main", "Looking for game data in `%s'...", cp);
-			int r = data_load(cp);
-			if (r >= 0) return 0;
-		}
+      if (end[0] == '\0') break;
+      begin = end + 1;
+    }
+  } else {
+    /* Look in /usr/local/share and /usr/share per XDG spec. */
+    for (const char **df = default_data_file; *df != NULL; df++) {
+      snprintf(cp, sizeof(cp),
+               "/usr/local/share/freeserf/%s", *df);
+      LOGI("main", "Looking for game data in `%s'...", cp);
+      int r = data_load(cp);
+      if (r >= 0) return 0;
+    }
 
-		for (const char **df = default_data_file; *df != NULL; df++) {
-			snprintf(cp, sizeof(cp),
-				 "/usr/share/freeserf/%s", *df);
-			LOGI("main", "Looking for game data in `%s'...", cp);
-			int r = data_load(cp);
-			if (r >= 0) return 0;
-		}
-	}
+    for (const char **df = default_data_file; *df != NULL; df++) {
+      snprintf(cp, sizeof(cp),
+               "/usr/share/freeserf/%s", *df);
+      LOGI("main", "Looking for game data in `%s'...", cp);
+      int r = data_load(cp);
+      if (r >= 0) return 0;
+    }
+  }
 
-	/* Look in current directory */
-	for (const char **df = default_data_file; *df != NULL; df++) {
-		LOGI("main", "Looking for game data in `%s'...", *df);
-		int r = data_load(*df);
-		if (r >= 0) return 0;
-	}
+  /* Look in current directory */
+  for (const char **df = default_data_file; *df != NULL; df++) {
+    LOGI("main", "Looking for game data in `%s'...", *df);
+    int r = data_load(*df);
+    if (r >= 0) return 0;
+  }
 
-	return -1;
+  return -1;
 }
 
 
 #define USAGE					\
-	"Usage: %s [-g DATA-FILE]\n"
+  "Usage: %s [-g DATA-FILE]\n"
 #define HELP							\
-	USAGE							\
-	" -d NUM\t\tSet debug output level\n"				\
-	" -f\t\tFullscreen mode (CTRL-q to exit)\n"			\
-	" -g DATA-FILE\tUse specified data file\n"			\
-	" -h\t\tShow this help text\n"					\
-	" -l FILE\tLoad saved game\n"					\
-	" -r RES\t\tSet display resolution (e.g. 800x600)\n"		\
-	" -t GEN\t\tMap generator (0 or 1)\n"				\
-	"\n"								\
-	"Please report bugs to <" PACKAGE_BUGREPORT ">\n"
+  USAGE                                                                 \
+      " -d NUM\t\tSet debug output level\n"				\
+      " -f\t\tFullscreen mode (CTRL-q to exit)\n"			\
+      " -g DATA-FILE\tUse specified data file\n"			\
+      " -h\t\tShow this help text\n"					\
+      " -l FILE\tLoad saved game\n"					\
+      " -r RES\t\tSet display resolution (e.g. 800x600)\n"		\
+      " -t GEN\t\tMap generator (0 or 1)\n"				\
+      "\n"								\
+      "Please report bugs to <" PACKAGE_BUGREPORT ">\n"
 
 int
 main(int argc, char *argv[])
 {
-	int r;
+  int r;
 
-	char *data_file = NULL;
-	char *save_file = NULL;
+  char *data_file = NULL;
+  char *save_file = NULL;
 
-	int screen_width = DEFAULT_SCREEN_WIDTH;
-	int screen_height = DEFAULT_SCREEN_HEIGHT;
-	int fullscreen = 0;
-	int map_generator = 0;
+  int screen_width = DEFAULT_SCREEN_WIDTH;
+  int screen_height = DEFAULT_SCREEN_HEIGHT;
+  int fullscreen = 0;
+  int map_generator = 0;
 
-	init_missions();
+  init_missions();
 
-	log_level_t log_level = DEFAULT_LOG_LEVEL;
+  log_level_t log_level = DEFAULT_LOG_LEVEL;
 
 #ifdef HAVE_UNISTD_H
-	char opt;
-	while (1) {
-		opt = getopt(argc, argv, "d:fg:hl:r:t:");
-		if (opt < 0) break;
+  char opt;
+  while (1) {
+    opt = getopt(argc, argv, "d:fg:hl:r:t:");
+    if (opt < 0) break;
 
-		switch (opt) {
-		case 'd':
-		{
-			int d = atoi(optarg);
-			if (d >= 0 && d < LOG_LEVEL_MAX) {
-				log_level = (log_level_t)d;
-			}
-		}
-			break;
-		case 'f':
-			fullscreen = 1;
-			break;
-		case 'g':
-			data_file = (char*)malloc(strlen(optarg)+1);
-			if (data_file == NULL) exit(EXIT_FAILURE);
-			strcpy(data_file, optarg);
-			break;
-		case 'h':
-			fprintf(stdout, HELP, argv[0]);
-			exit(EXIT_SUCCESS);
-			break;
-		case 'l':
-			save_file = (char*)malloc(strlen(optarg)+1);
-			if (save_file == NULL) exit(EXIT_FAILURE);
-			strcpy(save_file, optarg);
-			break;
-		case 'r':
-		{
-			char *hstr = strchr(optarg, 'x');
-			if (hstr == NULL) {
-				fprintf(stderr, USAGE, argv[0]);
-				exit(EXIT_FAILURE);
-			}
-			screen_width = atoi(optarg);
-			screen_height = atoi(hstr+1);
-		}
-			break;
-		case 't':
-			map_generator = atoi(optarg);
-			break;
-		default:
-			fprintf(stderr, USAGE, argv[0]);
-			exit(EXIT_FAILURE);
-			break;
-		}
-	}
+    switch (opt) {
+      case 'd':
+        {
+          int d = atoi(optarg);
+          if (d >= 0 && d < LOG_LEVEL_MAX) {
+            log_level = (log_level_t)d;
+          }
+        }
+        break;
+      case 'f':
+        fullscreen = 1;
+        break;
+      case 'g':
+        data_file = (char*)malloc(strlen(optarg)+1);
+        if (data_file == NULL) exit(EXIT_FAILURE);
+        strcpy(data_file, optarg);
+        break;
+      case 'h':
+        fprintf(stdout, HELP, argv[0]);
+        exit(EXIT_SUCCESS);
+        break;
+      case 'l':
+        save_file = (char*)malloc(strlen(optarg)+1);
+        if (save_file == NULL) exit(EXIT_FAILURE);
+        strcpy(save_file, optarg);
+        break;
+      case 'r':
+        {
+          char *hstr = strchr(optarg, 'x');
+          if (hstr == NULL) {
+            fprintf(stderr, USAGE, argv[0]);
+            exit(EXIT_FAILURE);
+          }
+          screen_width = atoi(optarg);
+          screen_height = atoi(hstr+1);
+        }
+        break;
+      case 't':
+        map_generator = atoi(optarg);
+        break;
+      default:
+        fprintf(stderr, USAGE, argv[0]);
+        exit(EXIT_FAILURE);
+        break;
+    }
+  }
 #endif
 
-	/* Set up logging */
-	log_set_file(stdout);
-	log_set_level(log_level);
+  /* Set up logging */
+  log_set_file(stdout);
+  log_set_level(log_level);
 
-	LOGI("main", "freeserf %s", FREESERF_VERSION);
+  LOGI("main", "freeserf %s", FREESERF_VERSION);
 
-	r = load_data_file(data_file);
-	if (r < 0) {
-		LOGE("main", "Could not load game data.");
-		exit(EXIT_FAILURE);
-	}
+  r = load_data_file(data_file);
+  if (r < 0) {
+    LOGE("main", "Could not load game data.");
+    exit(EXIT_FAILURE);
+  }
 
-	free(data_file);
+  free(data_file);
 
-	LOGI("main", "SDL init...");
+  LOGI("main", "SDL init...");
 
-	r = sdl_init();
-	if (r < 0) exit(EXIT_FAILURE);
+  r = sdl_init();
+  if (r < 0) exit(EXIT_FAILURE);
 
-	/* TODO move to right place */
-	audio_init();
-	audio_set_volume(75);
-	midi_play_track(MIDI_TRACK_0);
+  /* TODO move to right place */
+  audio_init();
+  audio_set_volume(75);
+  midi_play_track(MIDI_TRACK_0);
 
-	/*gfx_set_palette(DATA_PALETTE_INTRO);*/
-	gfx_set_palette(DATA_PALETTE_GAME);
+  /*gfx_set_palette(DATA_PALETTE_INTRO);*/
+  gfx_set_palette(DATA_PALETTE_GAME);
 
-	LOGI("main", "SDL resolution %ix%i...", screen_width, screen_height);
+  LOGI("main", "SDL resolution %ix%i...", screen_width, screen_height);
 
-	r = sdl_set_resolution(screen_width, screen_height, fullscreen);
-	if (r < 0) exit(EXIT_FAILURE);
+  r = sdl_set_resolution(screen_width, screen_height, fullscreen);
+  if (r < 0) exit(EXIT_FAILURE);
 
-	sdl_set_cursor((sprite_t*)data_get_object(DATA_CURSOR, NULL));
+  sdl_set_cursor((sprite_t*)data_get_object(DATA_CURSOR, NULL));
 
-	game.map_generator = map_generator;
+  game.map_generator = map_generator;
 
-	game_init();
+  game_init();
 
-	/* Initialize interface */
-	interface_init(&interface);
-	gui_object_set_size((gui_object_t *)&interface,
-			    screen_width, screen_height);
-	gui_object_set_displayed((gui_object_t *)&interface, 1);
+  /* Initialize interface */
+  interface_init(&interface);
+  gui_object_set_size((gui_object_t *)&interface,
+      screen_width, screen_height);
+  gui_object_set_displayed((gui_object_t *)&interface, 1);
 
-	/* Either load a save game if specified or
-	   start a new game. */
-	if (save_file != NULL) {
-		int r = game_load_save_game(save_file);
-		if (r < 0) exit(EXIT_FAILURE);
-		free(save_file);
+  /* Either load a save game if specified or
+     start a new game. */
+  if (save_file != NULL) {
+    int r = game_load_save_game(save_file);
+    if (r < 0) exit(EXIT_FAILURE);
+    free(save_file);
 
-		interface_set_player(&interface, 0);
-	} else {
-		int r = game_load_random_map(3, &interface.random);
-		if (r < 0) exit(EXIT_FAILURE);
+    interface_set_player(&interface, 0);
+  } else {
+    int r = game_load_random_map(3, &interface.random);
+    if (r < 0) exit(EXIT_FAILURE);
 
-		/* Add default player */
-		r = game_add_player(12, 64, 40, 40, 40);
-		if (r < 0) exit(EXIT_FAILURE);
+    /* Add default player */
+    r = game_add_player(12, 64, 40, 40, 40);
+    if (r < 0) exit(EXIT_FAILURE);
 
-		interface_set_player(&interface, r);
-	}
+    interface_set_player(&interface, r);
+  }
 
-	viewport_map_reinit();
+  viewport_map_reinit();
 
-	if (save_file != NULL) {
-		interface_close_game_init(&interface);
-	}
+  if (save_file != NULL) {
+    interface_close_game_init(&interface);
+  }
 
-	/* Start game loop */
-	game_loop();
+  /* Start game loop */
+  game_loop();
 
-	LOGI("main", "Cleaning up...");
+  LOGI("main", "Cleaning up...");
 
-	/* Clean up */
-	map_deinit();
-	viewport_map_deinit();
-	audio_deinit();
-	sdl_deinit();
-	data_unload();
+  /* Clean up */
+  map_deinit();
+  viewport_map_deinit();
+  audio_deinit();
+  sdl_deinit();
+  data_unload();
 
-	return EXIT_SUCCESS;
+  return EXIT_SUCCESS;
 }
