@@ -21,18 +21,17 @@
 
 extern "C" {
   #include "pathfinder.h"
-  #include "pqueue.h"
-  #include "list.h"
   #include "game.h"
 }
 
 #include <cstdlib>
+#include <list>
+#include <vector>
 #include <algorithm>
 
 typedef struct search_node search_node_t;
 
 struct search_node {
-  list_elm_t elm;
   map_pos_t pos;
   uint g_score;
   uint f_score;
@@ -40,12 +39,15 @@ struct search_node {
   dir_t dir;
 };
 
-
-static int
-search_node_less(search_node_t *n1, search_node_t *n2)
+static bool
+search_node_less(const search_node_t* left, const search_node_t* right)
 {
-  return n1->f_score < n2->f_score;
+  // A search node is considered less than the other if
+  // it has a larger f-score. This means that in the max-heap
+  // the lower score will go to the top.
+  return left->f_score > right->f_score;
 }
+
 
 static const uint walk_cost[] = { 255, 319, 383, 447, 511 };
 
@@ -87,27 +89,30 @@ actual_cost(map_pos_t pos, dir_t dir)
 dir_t *
 pathfinder_map(map_pos_t start, map_pos_t end, uint *length)
 {
-  list_t closed;
-  list_init(&closed);
-
-  pqueue_t open;
-  pqueue_init(&open, 32, (pqueue_less_func *)search_node_less);
+  // Unfortunately the STL priority_queue cannot be used since we
+  // would need access to the underlying sequence to determine if
+  // a node is already in the open list. We keep instead open as
+  // a vector and apply std::pop_heap and std::push_heap to keep
+  // it heapified.
+  std::vector<search_node_t*> open;
+  std::list<search_node_t*> closed;
 
   dir_t *solution = NULL;
 
   /* Create start node */
-  search_node_t *node = (search_node_t*)malloc(sizeof(search_node_t));
-  if (node == NULL) abort();
-
+  search_node_t *node = new search_node_t;
   node->pos = start;
   node->g_score = 0;
   node->f_score = heuristic_cost(start, end);
   node->parent = NULL;
-  int r = pqueue_insert(&open, node);
-  if (r < 0) abort();
 
-  while (!pqueue_is_empty(&open)) {
-    node = (search_node_t*)pqueue_pop(&open);
+  open.push_back(node);
+
+  while (!open.empty()) {
+    std::pop_heap(open.begin(), open.end(), search_node_less);
+    node = open.back();
+    open.pop_back();
+
     if (node->pos == end) {
       /* Construct solution */
       *length = 0;
@@ -130,7 +135,7 @@ pathfinder_map(map_pos_t start, map_pos_t end, uint *length)
     }
 
     /* Put current node on closed list. */
-    list_prepend(&closed, (list_elm_t *)node);
+    closed.push_front(node);
 
     for (int d = DIR_RIGHT; d <= DIR_UP; d++) {
       map_pos_t new_pos = MAP_MOVE(node->pos, d);
@@ -143,12 +148,11 @@ pathfinder_map(map_pos_t start, map_pos_t end, uint *length)
       }
 
       /* Check if neighbour is in closed list. */
-      int in_closed = 0;
-      list_elm_t *elm;
-      list_foreach(&closed, elm) {
-        search_node_t *n = (search_node_t *)elm;
-        if (n->pos == new_pos) {
-          in_closed = 1;
+      bool in_closed = false;
+      for (std::list<search_node_t*>::iterator it = closed.begin();
+           it != closed.end(); ++it) {
+        if ((*it)->pos == new_pos) {
+          in_closed = true;
           break;
         }
       }
@@ -156,19 +160,21 @@ pathfinder_map(map_pos_t start, map_pos_t end, uint *length)
       if (in_closed) continue;
 
       /* See if neighbour is already in open list. */
-      int in_open = 0;
-      for (uint i = 0; i < open.size; i++) {
-        search_node_t *n = (search_node_t*)open.entries[i];
+      bool in_open = false;
+      for (std::vector<search_node_t*>::iterator it = open.begin();
+           it != open.end(); ++it) {
+        search_node_t *n = *it;
         if (n->pos == new_pos) {
-          in_open = 1;
+          in_open = true;
           if (n->g_score >= node->g_score + cost) {
-            pqueue_remove(&open, i);
             n->g_score = node->g_score + cost;
             n->f_score = n->g_score + heuristic_cost(new_pos, end);
             n->parent = node;
             n->dir = (dir_t)d;
-            int r = pqueue_insert(&open, n);
-            if (r < 0) abort();
+
+            // Move element to the back and heapify
+            iter_swap(it, open.rbegin());
+            std::push_heap(open.begin(), open.end(), search_node_less);
           }
           break;
         }
@@ -176,32 +182,29 @@ pathfinder_map(map_pos_t start, map_pos_t end, uint *length)
 
       /* If not found in the open set, create a new node. */
       if (!in_open) {
-        search_node_t *new_node = (search_node_t*)malloc(sizeof(search_node_t));
-        if (new_node == NULL) abort();
+        search_node_t *new_node = new search_node_t;
 
         new_node->pos = new_pos;
         new_node->g_score = node->g_score + cost;
         new_node->f_score = new_node->g_score + heuristic_cost(new_pos, end);
         new_node->parent = node;
         new_node->dir = (dir_t)d;
-        int r = pqueue_insert(&open, new_node);
-        if (r < 0) abort();
+
+        open.push_back(new_node);
+        std::push_heap(open.begin(), open.end(), search_node_less);
       }
     }
   }
 
-  /* Clean up open list */
-  for (uint i = 0; i < open.size; i++) {
-    free(open.entries[i]);
+  /* Clean up */
+  for (std::vector<search_node_t*>::iterator it = open.begin();
+       it != open.end(); ++it) {
+    delete *it;
   }
 
-  pqueue_deinit(&open);
-
-  /* Clean up closed list */
-  while (!list_is_empty(&closed)) {
-    search_node_t *node =
-        (search_node_t *)list_remove_head(&closed);
-    free(node);
+  for (std::list<search_node_t*>::iterator it = closed.begin();
+       it != closed.end(); ++it) {
+    delete *it;
   }
 
   return solution;
