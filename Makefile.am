@@ -3,7 +3,7 @@
 bin_PROGRAMS = freeserf
 
 freeserf_SOURCES = \
-	src/freeserf.c src/freeserf.h \
+	src/freeserf.cc src/freeserf.h \
 	src/data.h src/resource.h \
 	src/mission.c src/mission.h \
 	src/game.c src/game.h \
@@ -36,10 +36,12 @@ freeserf_SOURCES = \
 	src/data-source-dos.c
 
 AM_CFLAGS = $(SDL2_CFLAGS) -I$(top_builddir)/src
+AM_CXXFLAGS = $(SDL2_CFLAGS) -I$(top_builddir)/src
 freeserf_LDADD = $(SDL2_LIBS) $(SDL2_CFLAGS) -lm
 
 if ENABLE_SDL2_MIXER
 AM_CFLAGS += $(SDL2_mixer_CFLAGS)
+AM_CXXFLAGS += $(SDL2_mixer_CFLAGS)
 freeserf_LDADD += $(SDL2_mixer_LIBS)
 freeserf_SOURCES += src/audio-sdlmixer.c
 else
