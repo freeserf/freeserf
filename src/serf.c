@@ -3522,13 +3522,14 @@ handle_serf_planning_farming_state(serf_t *serf)
 	while (serf->counter < 0) {
 		uint16_t rand_num = game_random_int();
 		map_pos_t dest = serf->farmer.farm_pos[rand_num % 3].pos;
+		int enabled = serf->farmer.farm_pos[rand_num % 3].enabled;
 		int index;
 		if (serf->farmer.farm_counter < 3) {
 			index = ((rand_num >> 2) & 0x1f) + 7;
 			dest = MAP_POS_ADD(serf->pos,
 						game.spiral_pos_pattern[index]);
 		}
-		else if ( dest != -1 &&
+		else if ( enabled == 1 &&
 			( (MAP_OBJ(dest) == MAP_OBJ_SEEDS_5) ||
 			(MAP_OBJ(dest) >= MAP_OBJ_FIELD_0 &&
 			MAP_OBJ(dest) <= MAP_OBJ_FIELD_5) ) ) {
@@ -3568,7 +3569,8 @@ handle_serf_planning_farming_state(serf_t *serf)
 				if (serf->farmer.farm_pos[i].pos == dest) {
 					break;
 				}
-				else if (serf->farmer.farm_pos[i].pos == -1) {
+				else if (serf->farmer.farm_pos[i].enabled == 0) {
+					serf->farmer.farm_pos[i].enabled = 1;
 					serf->farmer.farm_pos[i].pos = dest;
 					serf->farmer.farm_pos[i].index = index;
 					serf->farmer.farm_counter++;
@@ -3616,6 +3618,7 @@ handle_serf_farming_state(serf_t *serf)
 			map_set_object(serf->pos, MAP_OBJ_FIELD_EXPIRED, -1);
 			for (int i = 0; i < serf->farmer.farm_counter; i++) {
 				if (serf->pos == serf->farmer.farm_pos[i].pos) {
+					serf->farmer.farm_pos[i].enabled = 0;
 					serf->farmer.farm_pos[i].pos = -1;
 					serf->farmer.farm_pos[i].index = -1;
 				}
