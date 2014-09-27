@@ -435,6 +435,12 @@ game_loop()
 	    height/=zoom.WheelScale;
             sdl_set_resolution(width, height, sdl_is_fullscreen());
             gui_object_set_size(reinterpret_cast<gui_object_t*>(&interface), width, height);
+	    int offset_x = (width_pre - width) / 2;
+	    int offset_y = (height_pre - height) / 2;
+	    viewport_t *viewport = interface_get_top_viewport(&interface);
+	    viewport_move_by_pixels(viewport, offset_x, offset_y);
+	    width_pre = width;
+	    height_pre = height;
           }
           break;
       }
