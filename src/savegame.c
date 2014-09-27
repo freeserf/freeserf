@@ -502,6 +502,13 @@ load_v0_serf_state(FILE *f, const v0_map_t *map)
 			serf->s.free_walking.neg_dist1 = *(int8_t *)&serf_data[13];
 			serf->s.free_walking.neg_dist2 = *(int8_t *)&serf_data[14];
 			serf->s.free_walking.flags = *(int8_t *)&serf_data[15];
+			serf->farmer.farm_counter = serf_data[16];
+			serf->farmer.farm_pos[0].pos = serf_data[17];
+			serf->farmer.farm_pos[0].index = serf_data[18];
+			serf->farmer.farm_pos[1].pos = serf_data[19];
+			serf->farmer.farm_pos[1].index = serf_data[20];
+			serf->farmer.farm_pos[2].pos = serf_data[21];
+			serf->farmer.farm_pos[2].index = serf_data[22];
 			break;
 
 		case SERF_STATE_SAWING:
@@ -1310,6 +1317,13 @@ save_text_serf_state(FILE *f)
 			save_text_write_value(f, "state.neg_dist", serf->s.free_walking.neg_dist1);
 			save_text_write_value(f, "state.neg_dist2", serf->s.free_walking.neg_dist2);
 			save_text_write_value(f, "state.flags", serf->s.free_walking.flags);
+			save_text_write_value(f, "farm.counter", serf->farmer.farm_counter);
+			save_text_write_value(f, "farm.farm_pos1", serf->farmer.farm_pos[0].pos);
+			save_text_write_value(f, "farm.farm_index1", serf->farmer.farm_pos[0].index);
+			save_text_write_value(f, "farm.farm_pos2", serf->farmer.farm_pos[1].pos);
+			save_text_write_value(f, "farm.farm_index2", serf->farmer.farm_pos[1].index);
+			save_text_write_value(f, "farm.farm_pos3", serf->farmer.farm_pos[2].pos);
+			save_text_write_value(f, "farm.farm_index3", serf->farmer.farm_pos[2].index);
 			break;
 
 		case SERF_STATE_SAWING:
@@ -2480,6 +2494,20 @@ load_text_serf_section(section_t *section)
 				serf->s.free_walking.neg_dist2 = atoi(s->value);
 			} else if (!strcmp(s->key, "state.flags")) {
 				serf->s.free_walking.flags = atoi(s->value);
+			} else if (!strcmp(s->key, "farm.counter")) {
+				serf->farmer.farm_counter = atoi(s->value);
+			} else if (!strcmp(s->key, "farm.farm_pos1")) {
+				serf->farmer.farm_pos[0].pos = atoi(s->value);
+			} else if (!strcmp(s->key, "farm.farm_index1")) {
+				serf->farmer.farm_pos[0].index = atoi(s->value);
+			} else if (!strcmp(s->key, "farm.farm_pos2")) {
+				serf->farmer.farm_pos[1].pos = atoi(s->value);
+			} else if (!strcmp(s->key, "farm.farm_index2")) {
+				serf->farmer.farm_pos[1].index = atoi(s->value);
+			} else if (!strcmp(s->key, "farm.farm_pos3")) {
+				serf->farmer.farm_pos[2].pos = atoi(s->value);
+			} else if (!strcmp(s->key, "farm.farm_index3")) {
+				serf->farmer.farm_pos[2].index = atoi(s->value);
 			}
 			break;
 
