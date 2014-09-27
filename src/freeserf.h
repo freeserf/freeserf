@@ -22,6 +22,10 @@
 #ifndef _FREESERF_H
 #define _FREESERF_H
 
+typedef struct {
+	double WheelScale;
+} zoom_t;
+
 void game_loop_quit();
 
 #endif /* ! _FREESERF_H */
