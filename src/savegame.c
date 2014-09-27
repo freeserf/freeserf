@@ -502,13 +502,6 @@ load_v0_serf_state(FILE *f, const v0_map_t *map)
 			serf->s.free_walking.neg_dist1 = *(int8_t *)&serf_data[13];
 			serf->s.free_walking.neg_dist2 = *(int8_t *)&serf_data[14];
 			serf->s.free_walking.flags = *(int8_t *)&serf_data[15];
-			serf->farmer.farm_counter = serf_data[16];
-			serf->farmer.farm_pos[0].pos = serf_data[17];
-			serf->farmer.farm_pos[0].index = serf_data[18];
-			serf->farmer.farm_pos[1].pos = serf_data[19];
-			serf->farmer.farm_pos[1].index = serf_data[20];
-			serf->farmer.farm_pos[2].pos = serf_data[21];
-			serf->farmer.farm_pos[2].index = serf_data[22];
 			break;
 
 		case SERF_STATE_SAWING:
