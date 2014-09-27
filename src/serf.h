@@ -162,6 +162,13 @@ typedef struct {
 	map_pos_t pos;
 	uint16_t tick;
 	serf_state_t state;
+	struct {
+		struct {
+			map_pos_t pos;
+			int index;
+		}farm_pos[3];
+		int farm_counter;
+	}farmer;
 
 	union {
 		struct {

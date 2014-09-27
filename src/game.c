@@ -389,6 +389,10 @@ spawn_serf(player_t *player, serf_t **serf, inventory_t **inventory, int want_kn
 	s->tick = game.tick;
 	s->state = SERF_STATE_IDLE_IN_STOCK;
 	s->s.idle_in_stock.inv_index = INVENTORY_INDEX(inv);
+	s->farmer.farm_counter = 0;
+	for (int i = 0; i < 3; i++) {
+		s->farmer.farm_pos[i].pos = s->farmer.farm_pos[i].index = -1;
+	}
 
 	if (serf) *serf = s;
 	if (inventory) *inventory = inv;
