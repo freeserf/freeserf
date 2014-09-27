@@ -166,6 +166,7 @@ typedef struct {
 		struct {
 			map_pos_t pos;
 			int index;
+			int enabled;
 		}farm_pos[3];
 		int farm_counter;
 	}farmer;
