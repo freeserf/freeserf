@@ -1229,16 +1229,16 @@ save_text_serf_state(FILE *f)
 		save_text_write_map_pos(f, "pos", serf->pos);
 		save_text_write_value(f, "tick", serf->tick);
 		save_text_write_value(f, "state", serf->state);
-                save_text_write_value(f, "farm.counter", serf->farmer.farm_counter);
-                save_text_write_value(f, "farm.farm_enabled1", serf->farmer.farm_pos[0].enabled);
-                save_text_write_value(f, "farm.farm_pos1", serf->farmer.farm_pos[0].pos);
-                save_text_write_value(f, "farm.farm_index1", serf->farmer.farm_pos[0].index);
-                save_text_write_value(f, "farm.farm_enabled1", serf->farmer.farm_pos[1].enabled);
-                save_text_write_value(f, "farm.farm_pos2", serf->farmer.farm_pos[1].pos);
-                save_text_write_value(f, "farm.farm_index2", serf->farmer.farm_pos[1].index);
-                save_text_write_value(f, "farm.farm_enabled1", serf->farmer.farm_pos[2].enabled);
-                save_text_write_value(f, "farm.farm_pos3", serf->farmer.farm_pos[2].pos);
-                save_text_write_value(f, "farm.farm_index3", serf->farmer.farm_pos[2].index);
+		save_text_write_value(f, "farm.counter", serf->farmer.farm_counter);
+		save_text_write_value(f, "farm.farm_enabled1", serf->farmer.farm_pos[0].enabled);
+		save_text_write_value(f, "farm.farm_pos1", serf->farmer.farm_pos[0].pos);
+		save_text_write_value(f, "farm.farm_index1", serf->farmer.farm_pos[0].index);
+		save_text_write_value(f, "farm.farm_enabled2", serf->farmer.farm_pos[1].enabled);
+		save_text_write_value(f, "farm.farm_pos2", serf->farmer.farm_pos[1].pos);
+		save_text_write_value(f, "farm.farm_index2", serf->farmer.farm_pos[1].index);
+		save_text_write_value(f, "farm.farm_enabled3", serf->farmer.farm_pos[2].enabled);
+		save_text_write_value(f, "farm.farm_pos3", serf->farmer.farm_pos[2].pos);
+		save_text_write_value(f, "farm.farm_index3", serf->farmer.farm_pos[2].index);
 
 		switch (serf->state) {
 		case SERF_STATE_IDLE_IN_STOCK:
