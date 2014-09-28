@@ -3619,7 +3619,7 @@ handle_serf_farming_state(serf_t *serf)
 			map_set_object(serf->pos, MAP_OBJ_FIELD_0, -1);
 		} else if (MAP_OBJ(serf->pos) == MAP_OBJ_FIELD_5) {
 			map_set_object(serf->pos, MAP_OBJ_FIELD_EXPIRED, -1);
-                        for (int i = 0; i < serf->farmer.farm_counter; i++) {
+                        for (int i = 0; i < 3; i++) {
                           if (serf->pos == serf->farmer.farm_pos[i].pos) {
                             serf->farmer.farm_pos[i].enabled = 0;
                             serf->farmer.farm_pos[i].pos = -1;
