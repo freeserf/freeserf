@@ -1310,6 +1310,16 @@ save_text_serf_state(FILE *f)
 			save_text_write_value(f, "state.neg_dist", serf->s.free_walking.neg_dist1);
 			save_text_write_value(f, "state.neg_dist2", serf->s.free_walking.neg_dist2);
 			save_text_write_value(f, "state.flags", serf->s.free_walking.flags);
+			save_text_write_value(f, "farm.counter", serf->farmer.farm_counter);
+			save_text_write_value(f, "farm.farm_enabled1", serf->farmer.farm_pos[0].enabled);
+			save_text_write_value(f, "farm.farm_pos1", serf->farmer.farm_pos[0].pos);
+			save_text_write_value(f, "farm.farm_index1", serf->farmer.farm_pos[0].index);
+			save_text_write_value(f, "farm.farm_enabled1", serf->farmer.farm_pos[1].enabled);
+			save_text_write_value(f, "farm.farm_pos2", serf->farmer.farm_pos[1].pos);
+			save_text_write_value(f, "farm.farm_index2", serf->farmer.farm_pos[1].index);
+			save_text_write_value(f, "farm.farm_enabled1", serf->farmer.farm_pos[2].enabled);
+			save_text_write_value(f, "farm.farm_pos3", serf->farmer.farm_pos[2].pos);
+			save_text_write_value(f, "farm.farm_index3", serf->farmer.farm_pos[2].index);
 			break;
 
 		case SERF_STATE_SAWING:
@@ -2343,6 +2353,26 @@ load_text_serf_section(section_t *section)
 			serf->counter = atoi(s->value);
 		} else if (!strcmp(s->key, "pos")) {
 			serf->pos = parse_map_pos(s->value);
+		} else if (!strcmp(s->key, "farm.counter")) {
+			serf->farmer.farm_counter = atoi(s->value);
+		} else if (!strcmp(s->key, "farm.farm_enabled1")) {
+			serf->farmer.farm_pos[0].enabled = atoi(s->value);
+		} else if (!strcmp(s->key, "farm.farm_pos1")) {
+			serf->farmer.farm_pos[0].pos = atoi(s->value);
+		} else if (!strcmp(s->key, "farm.farm_index1")) {
+			serf->farmer.farm_pos[0].index = atoi(s->value);
+		} else if (!strcmp(s->key, "farm.farm_enabled2")) {
+			serf->farmer.farm_pos[1].enabled = atoi(s->value);
+		} else if (!strcmp(s->key, "farm.farm_pos2")) {
+			serf->farmer.farm_pos[1].pos = atoi(s->value);
+		} else if (!strcmp(s->key, "farm.farm_index2")) {
+			serf->farmer.farm_pos[1].index = atoi(s->value);
+		} else if (!strcmp(s->key, "farm.farm_enabled3")) {
+			serf->farmer.farm_pos[2].enabled = atoi(s->value);
+		} else if (!strcmp(s->key, "farm.farm_pos3")) {
+			serf->farmer.farm_pos[2].pos = atoi(s->value);
+		} else if (!strcmp(s->key, "farm.farm_index3")) {
+			serf->farmer.farm_pos[2].index = atoi(s->value);
 		} else if (!strcmp(s->key, "tick")) {
 			serf->tick = atoi(s->value);
 		} else if (!strcmp(s->key, "state")) {
