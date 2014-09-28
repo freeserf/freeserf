@@ -3624,6 +3624,9 @@ handle_serf_farming_state(serf_t *serf)
                                 }
                         }
                         serf->farmer.farm_counter --;
+                        if ( serf->farmer.farm_counter < 0 ) {
+                                serf->farmer.farm_counter = 0;
+                        }
 		} else if (MAP_OBJ(serf->pos) != MAP_OBJ_FIELD_EXPIRED) {
 			map_set_object(serf->pos, (map_obj_t)(MAP_OBJ(serf->pos) + 1), -1);
 		}
