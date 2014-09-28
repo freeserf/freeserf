@@ -3617,15 +3617,16 @@ handle_serf_farming_state(serf_t *serf)
 		} else if (MAP_OBJ(serf->pos) == MAP_OBJ_FIELD_5) {
 			map_set_object(serf->pos, MAP_OBJ_FIELD_EXPIRED, -1);
                         for (int i = 0; i < serf->farmer.farm_counter; i++) {
-                                if (serf->pos == serf->farmer.farm_pos[i].pos) {
-                                        serf->farmer.farm_pos[i].enabled = 0;
-                                        serf->farmer.farm_pos[i].pos = -1;
-                                        serf->farmer.farm_pos[i].index = -1;
-                                }
-                        }
-                        serf->farmer.farm_counter --;
-                        if ( serf->farmer.farm_counter < 0 ) {
-                                serf->farmer.farm_counter = 0;
+                          if (serf->pos == serf->farmer.farm_pos[i].pos) {
+                            serf->farmer.farm_pos[i].enabled = 0;
+                            serf->farmer.farm_pos[i].pos = -1;
+                            serf->farmer.farm_pos[i].index = -1;
+                            serf->farmer.farm_counter --;
+                            if ( serf->farmer.farm_counter < 0 ) {
+                                    serf->farmer.farm_counter = 0;
+                            }
+                            break;
+                          }
                         }
 		} else if (MAP_OBJ(serf->pos) != MAP_OBJ_FIELD_EXPIRED) {
 			map_set_object(serf->pos, (map_obj_t)(MAP_OBJ(serf->pos) + 1), -1);
