@@ -24,4 +24,8 @@
 
 void game_loop_quit();
 
+typedef struct {
+        double WheelScale;
+}zoom_t;
+
 #endif /* ! _FREESERF_H */

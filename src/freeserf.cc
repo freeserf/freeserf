@@ -71,6 +71,7 @@ extern "C" {
 static int game_loop_run;
 
 static interface_t interface;
+zoom_t zoom = {0};
 
 /* In target, replace any character from needle with replacement character. */
 static void
@@ -159,6 +160,8 @@ game_loop()
 
   uint current_ticks = SDL_GetTicks();
   uint accum = 0;
+  int width_pre = DEFAULT_SCREEN_WIDTH;
+  int height_pre = DEFAULT_SCREEN_HEIGHT;
 
   SDL_Event event;
   gui_event_t ev;
@@ -243,6 +246,30 @@ game_loop()
 
               break;
             }
+          }
+          break;
+        case SDL_MOUSEWHEEL:
+          zoom.WheelScale = zoom.WheelScale + (0.01 * event.wheel.y);
+          if (zoom.WheelScale <= 2 && zoom.WheelScale >= 1 ) {
+            int width = 0;
+            int height = 0;
+            sdl_get_resolution(&width, &height);
+            width/=zoom.WheelScale;
+            height/=zoom.WheelScale;
+            sdl_set_resolution(width, height, sdl_is_fullscreen());
+            gui_object_set_size(reinterpret_cast<gui_object_t*>(&interface), width, height);
+            int offset_x = (width_pre - width) / 2;
+            int offset_y = (height_pre - height) / 2;
+            viewport_t *viewport = interface_get_top_viewport(&interface);
+            viewport_move_by_pixels(viewport, offset_x, offset_y);
+            width_pre = width;
+            height_pre = height;
+          }
+          else if (zoom.WheelScale > 2) {
+                  zoom.WheelScale = 2;
+          }
+          else if (zoom.WheelScale < 1) {
+                  zoom.WheelScale = 1;
           }
           break;
         case SDL_KEYDOWN:
@@ -404,8 +431,16 @@ game_loop()
             int width = 0;
             int height = 0;
             sdl_get_resolution(&width, &height);
+            width/=zoom.WheelScale;
+            height/=zoom.WheelScale;
             sdl_set_resolution(width, height, sdl_is_fullscreen());
             gui_object_set_size(reinterpret_cast<gui_object_t*>(&interface), width, height);
+            int offset_x = (width_pre - width) / 2;
+            int offset_y = (height_pre - height) / 2;
+            viewport_t *viewport = interface_get_top_viewport(&interface);
+            viewport_move_by_pixels(viewport, offset_x, offset_y);
+            width_pre = width;
+            height_pre = height;
           }
           break;
       }
@@ -600,6 +635,7 @@ main(int argc, char *argv[])
 
   int screen_width = DEFAULT_SCREEN_WIDTH;
   int screen_height = DEFAULT_SCREEN_HEIGHT;
+  zoom.WheelScale = 1.0f;
   int fullscreen = 0;
   int map_generator = 0;
 
