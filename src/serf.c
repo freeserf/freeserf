@@ -3573,6 +3573,9 @@ handle_serf_planning_farming_state(serf_t *serf)
                             serf->farmer.farm_pos[i].enabled = 1;
                             serf->farmer.farm_pos[i].pos = dest;
                             serf->farmer.farm_pos[i].index = index;
+                            if ( serf->farmer.farm_counter < 0 ) {
+                                    serf->farmer.farm_counter = 0;
+                            }
                             serf->farmer.farm_counter++;
                             break;
                           }
