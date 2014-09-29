@@ -3540,7 +3540,8 @@ handle_serf_planning_farming_state(serf_t *serf)
 		   of the correct type and the surrounding spaces
 		   must not be occupied by large buildings.
 		   If it _has_ an object it must be an existing field. */
-		if ((MAP_OBJ(dest) == MAP_OBJ_NONE &&
+		if ((serf->farmer.farm_counter < 3 &&
+			MAP_OBJ(dest) == MAP_OBJ_NONE &&
 		     (MAP_TYPE_UP(dest) == 5 && MAP_TYPE_DOWN(dest) == 5 &&
 		      MAP_PATHS(dest) == 0 &&
 		      MAP_OBJ(MAP_MOVE_RIGHT(dest)) != MAP_OBJ_LARGE_BUILDING &&
