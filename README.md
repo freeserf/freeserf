@@ -23,6 +23,15 @@ Other keyboard controls:
 * CTRL+`z`: Save game in current directory.
 
 
+Audio
+-----
+
+To play back the sound track that is included in the original data files,
+SDL2_mixer has to be enabled at compile-time and a set of sound patches
+for SDL2_mixer has to be available at runtime. See the SDL2_mixer
+documentation for more information.
+
+
 Save games
 ----------
 To load a save game file:
