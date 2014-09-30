@@ -11,7 +11,7 @@ freeserf_SOURCES = \
 	src/flag.c src/flag.h \
 	src/building.c src/building.h \
 	src/random.c src/random.h \
-	src/pathfinder.c src/pathfinder.h \
+	src/pathfinder.cc src/pathfinder.h \
 	src/gfx.c src/gfx.h \
 	src/viewport.c src/viewport.h \
 	src/minimap.c src/minimap.h \
