@@ -1,7 +1,7 @@
 /*
  * gfx.h - General graphics and data file functions
  *
- * Copyright (C) 2012  Jon Lund Steffensen <jonlst@gmail.com>
+ * Copyright (C) 2012-2014  Jon Lund Steffensen <jonlst@gmail.com>
  *
  * This file is part of freeserf.
  *
@@ -45,6 +45,9 @@ typedef struct {
 	int16_t y;
 } sprite_t;
 
+
+int gfx_init(int width, int height, int fullscreen);
+void gfx_deinit();
 
 void gfx_draw_string(int x, int y, int color, int shadow, frame_t *dest, const char *str);
 void gfx_draw_number(int x, int y, int color, int shadow, frame_t *dest, int n);

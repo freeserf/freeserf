@@ -675,25 +675,15 @@ main(int argc, char *argv[])
 
   free(data_file);
 
-  LOGI("main", "SDL init...");
+  LOGI("main", "Initialize graphics...");
 
-  r = sdl_init();
+  r = gfx_init(screen_width, screen_height, fullscreen);
   if (r < 0) exit(EXIT_FAILURE);
 
   /* TODO move to right place */
   audio_init();
   audio_set_volume(75);
   midi_play_track(MIDI_TRACK_0);
-
-  /*gfx_set_palette(DATA_PALETTE_INTRO);*/
-  gfx_set_palette(DATA_PALETTE_GAME);
-
-  LOGI("main", "SDL resolution %ix%i...", screen_width, screen_height);
-
-  r = sdl_set_resolution(screen_width, screen_height, fullscreen);
-  if (r < 0) exit(EXIT_FAILURE);
-
-  sdl_set_cursor(static_cast<sprite_t*>(data_get_object(DATA_CURSOR, NULL)));
 
   game.map_generator = map_generator;
 
@@ -739,7 +729,7 @@ main(int argc, char *argv[])
   map_deinit();
   viewport_map_deinit();
   audio_deinit();
-  sdl_deinit();
+  gfx_deinit();
   data_unload();
 
   return EXIT_SUCCESS;

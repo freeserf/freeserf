@@ -1,7 +1,7 @@
 /*
  * gfx.c - General graphics and data file functions
  *
- * Copyright (C) 2013  Jon Lund Steffensen <jonlst@gmail.com>
+ * Copyright (C) 2013-2014  Jon Lund Steffensen <jonlst@gmail.com>
  *
  * This file is part of freeserf.
  *
@@ -22,6 +22,7 @@
 #include "gfx.h"
 #include "sdl-video.h"
 #include "data.h"
+#include "log.h"
 
 /* There are different types of sprites:
    - Non-packed, rectangular sprites: These are simple called sprites here.
@@ -31,6 +32,31 @@
    This is used to either modify the alpha level of another sprite (shadows)
    or mask parts of other sprites completely (mask sprites).
 */
+
+int
+gfx_init(int width, int height, int fullscreen)
+{
+	int r = sdl_init();
+	if (r < 0) return -1;
+
+	LOGI("graphics", "Setting resolution to %ix%i...", width, height);
+
+	r = sdl_set_resolution(width, height, fullscreen);
+	if (r < 0) return -1;
+
+	gfx_set_palette(DATA_PALETTE_GAME);
+
+	sprite_t *cursor = (sprite_t *)data_get_object(DATA_CURSOR, NULL);
+	sdl_set_cursor(cursor);
+
+	return 0;
+}
+
+void
+gfx_deinit()
+{
+	sdl_deinit();
+}
 
 /* Draw a character at x, y in the dest frame. */
 static void
