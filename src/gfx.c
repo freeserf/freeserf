@@ -206,7 +206,14 @@ gfx_draw_number(int x, int y, int color, int shadow, frame_t *dest, int n)
 	}
 }
 
-/* Fill a rectangle with color at x, y in the dest frame. */
+/* Draw a rectangle with color at x, y in the dest frame. */
+void
+gfx_draw_rect(int x, int y, int width, int height, int color, frame_t *dest)
+{
+	sdl_draw_rect(x, y, width, height, color, dest);
+}
+
+/* Draw a rectangle with color at x, y in the dest frame. */
 void
 gfx_fill_rect(int x, int y, int width, int height, int color, frame_t *dest)
 {

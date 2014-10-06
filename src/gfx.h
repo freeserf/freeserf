@@ -56,9 +56,14 @@ void gfx_draw_masked_sprite(int x, int y, uint mask, uint sprite, frame_t *dest)
 void gfx_draw_overlay_sprite(int x, int y, uint sprite, int y_off, frame_t *dest);
 void gfx_draw_waves_sprite(int x, int y, uint mask, uint sprite, int mask_off, frame_t *dest);
 
+/* Graphics functions */
+void gfx_draw_rect(int x, int y, int width, int height, int color, frame_t *dest);
+void gfx_fill_rect(int x, int y, int width, int height, int color, frame_t *dest);
+
+/* Text functions */
 void gfx_draw_string(int x, int y, int color, int shadow, frame_t *dest, const char *str);
 void gfx_draw_number(int x, int y, int color, int shadow, frame_t *dest, int n);
-void gfx_fill_rect(int x, int y, int width, int height, int color, frame_t *dest);
+
 void gfx_set_palette(int palette);
 
 void gfx_unpack_transparent_sprite(void *dest, const void *src, size_t destlen, int offset);

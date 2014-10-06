@@ -21,7 +21,7 @@
 
 #include "minimap.h"
 #include "interface.h"
-#include "sdl-video.h"
+#include "gfx.h"
 #include "game.h"
 #include "data.h"
 
@@ -51,7 +51,7 @@ draw_minimap_point(minimap_t *minimap, int col, int row, uint8_t color,
 			mm_x = mm_x % map_width;
 			while (mm_x < minimap->obj.width) {
 				if (mm_x >= -density) {
-					sdl_fill_rect(mm_x, mm_y, density,
+					gfx_fill_rect(mm_x, mm_y, density,
 						      density, color, frame);
 				}
 				mm_x += map_width;
@@ -181,7 +181,7 @@ static void
 minimap_draw(minimap_t *minimap, frame_t *frame)
 {
 	if (BIT_TEST(minimap->flags, 1)) {
-		sdl_fill_rect(0, 0, 128, 128, 1, frame);
+		gfx_fill_rect(0, 0, 128, 128, 1, frame);
 		draw_minimap_ownership(minimap, 2, frame);
 	} else {
 		draw_minimap_map(minimap, frame);

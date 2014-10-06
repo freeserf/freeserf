@@ -289,7 +289,7 @@ viewport_map_reinit()
 
 	for (uint i = 0; i < landscape_tile_count; i++) {
 		sdl_frame_init(&landscape_tile[i].frame, 0, 0, tile_width, tile_height, NULL);
-		sdl_fill_rect(0, 0, tile_width, tile_height, 0, &landscape_tile[i].frame);
+		gfx_fill_rect(0, 0, tile_width, tile_height, 0, &landscape_tile[i].frame);
 		landscape_tile[i].dirty = 1;
 	}
 }
@@ -370,7 +370,7 @@ draw_landscape(viewport_t *viewport, frame_t *frame)
 
 #if 0
 				/* Draw a border around the tile for debug. */
-				sdl_draw_rect(0, 0, tile_width, tile_height,
+				gfx_draw_rect(0, 0, tile_width, tile_height,
 					      76, &landscape_tile[tid].frame);
 #endif
 
@@ -2167,10 +2167,10 @@ draw_base_grid_overlay(viewport_t *viewport, int color, frame_t *frame)
 
 	int row = 0;
 	for (int y = y_base; y < viewport->obj.height; y += MAP_TILE_HEIGHT, row++) {
-		sdl_fill_rect(0, y, viewport->obj.width, 1, color, frame);
+		gfx_fill_rect(0, y, viewport->obj.width, 1, color, frame);
 		for (int x = x_base + ((row % 2 == 0) ? 0 : -MAP_TILE_WIDTH/2);
 		     x < viewport->obj.width; x += MAP_TILE_WIDTH) {
-			sdl_fill_rect(x, y + y - 2, 1, 5, color, frame);
+			gfx_fill_rect(x, y + y - 2, 1, 5, color, frame);
 		}
 	}
 }
@@ -2200,11 +2200,11 @@ draw_height_grid_overlay(viewport_t *viewport, int color, frame_t *frame)
 
 			/* Draw cross. */
 			if (pos != MAP_POS(0, 0)) {
-				sdl_fill_rect(x, y - 1, 1, 3, color, frame);
-				sdl_fill_rect(x - 1, y, 3, 1, color, frame);
+				gfx_fill_rect(x, y - 1, 1, 3, color, frame);
+				gfx_fill_rect(x - 1, y, 3, 1, color, frame);
 			} else {
-				sdl_fill_rect(x, y - 2, 1, 5, color, frame);
-				sdl_fill_rect(x - 2, y, 5, 1, color, frame);
+				gfx_fill_rect(x, y - 2, 1, 5, color, frame);
+				gfx_fill_rect(x - 2, y, 5, 1, color, frame);
 			}
 
 			if (row % 2 == 0) pos = MAP_MOVE_DOWN(pos);
