@@ -458,7 +458,7 @@ draw_map_box(popup_box_t *popup, frame_t *frame)
 
 	/* Draw minimap */
 	frame_t minimap_frame;
-	sdl_frame_init(&minimap_frame,
+	gfx_frame_init(&minimap_frame,
 		       frame->clip.x + 8,
 		       frame->clip.y + 9,
 		       128, 128, frame);
@@ -2235,7 +2235,7 @@ draw_transport_info_box(popup_box_t *popup, frame_t *frame)
 #if 1
 	/* Draw viewport of flag */
 	frame_t flag_frame;
-	sdl_frame_init(&flag_frame,
+	gfx_frame_init(&flag_frame,
 		       frame->clip.x + 8,
 		       frame->clip.y + 24,
 		       128, 64, frame);

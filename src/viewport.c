@@ -22,7 +22,7 @@
 #include "viewport.h"
 #include "interface.h"
 #include "data.h"
-#include "sdl-video.h"
+#include "gfx.h"
 #include "game.h"
 #include "log.h"
 #include "debug.h"
@@ -260,7 +260,7 @@ viewport_map_deinit()
 {
 	if (landscape_tile != NULL) {
 		for (uint i = 0; i < landscape_tile_count; i++) {
-			sdl_frame_deinit(&landscape_tile[i].frame);
+			gfx_frame_deinit(&landscape_tile[i].frame);
 		}
 		free(landscape_tile);
 	}
@@ -288,7 +288,7 @@ viewport_map_reinit()
 	     tile_width, tile_height);
 
 	for (uint i = 0; i < landscape_tile_count; i++) {
-		sdl_frame_init(&landscape_tile[i].frame, 0, 0, tile_width, tile_height, NULL);
+		gfx_frame_init(&landscape_tile[i].frame, 0, 0, tile_width, tile_height, NULL);
 		gfx_fill_rect(0, 0, tile_width, tile_height, 0, &landscape_tile[i].frame);
 		landscape_tile[i].dirty = 1;
 	}
@@ -377,7 +377,7 @@ draw_landscape(viewport_t *viewport, frame_t *frame)
 				landscape_tile[tid].dirty = 0;
 			}
 
-			sdl_draw_frame(x, y, frame, tx, ty,
+			gfx_draw_frame(x, y, frame, tx, ty,
 				       &landscape_tile[tid].frame,
 				       viewport->obj.width - x,
 				       viewport->obj.height - y);

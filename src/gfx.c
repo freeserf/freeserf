@@ -220,6 +220,32 @@ gfx_fill_rect(int x, int y, int width, int height, int color, frame_t *dest)
 	sdl_fill_rect(x, y, width, height, color, dest);
 }
 
+
+/* Initialize new graphics frame. If dest is NULL a new
+   backing surface is created, otherwise the same surface
+   as dest is used. */
+void
+gfx_frame_init(frame_t *frame, int x, int y, int width, int height, frame_t *dest)
+{
+	sdl_frame_init(frame, x, y, width, height, dest);
+}
+
+/* Deinitialize frame and backing surface. */
+void
+gfx_frame_deinit(frame_t *frame)
+{
+	sdl_frame_deinit(frame);
+}
+
+/* Draw source frame from rectangle at sx, sy with given
+   width and height, to destination frame at dx, dy. */
+void
+gfx_draw_frame(int dx, int dy, frame_t *dest, int sx, int sy, frame_t *src, int w, int h)
+{
+	sdl_draw_frame(dx, dy, dest, sx, sy, src, w, h);
+}
+
+
 /* Select the color palette that is location at the given data file index. */
 void
 gfx_set_palette(int palette)

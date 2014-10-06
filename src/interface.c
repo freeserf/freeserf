@@ -1,7 +1,7 @@
 /*
  * interface.c - Top-level GUI interface
  *
- * Copyright (C) 2013  Jon Lund Steffensen <jonlst@gmail.com>
+ * Copyright (C) 2013-2014  Jon Lund Steffensen <jonlst@gmail.com>
  *
  * This file is part of freeserf.
  *
@@ -21,7 +21,7 @@
 
 #include "interface.h"
 #include "audio.h"
-#include "sdl-video.h"
+#include "gfx.h"
 #include "data.h"
 #include "debug.h"
 #include "freeserf_endian.h"
@@ -672,7 +672,7 @@ interface_draw(interface_t *interface, frame_t *frame)
 		if (fl->obj->displayed &&
 		    (fl->redraw || redraw_above)) {
 			frame_t float_frame;
-			sdl_frame_init(&float_frame,
+			gfx_frame_init(&float_frame,
 				       frame->clip.x + fl->x,
 				       frame->clip.y + fl->y,
 				       fl->obj->width, fl->obj->height, frame);
