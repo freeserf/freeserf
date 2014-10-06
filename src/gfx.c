@@ -88,7 +88,7 @@ gfx_draw_masked_sprite(int x, int y, uint mask, uint sprite, frame_t *dest)
 {
 	sprite_t *spr = (sprite_t*)data_get_object(sprite, NULL);
 	sprite_t *msk = (sprite_t*)data_get_object(mask, NULL);
-	sdl_draw_masked_sprite(spr, x, y, msk, NULL, dest);
+	sdl_draw_masked_sprite(spr, x, y, msk, dest);
 }
 
 /* Draw the overlay sprite with data file index of
