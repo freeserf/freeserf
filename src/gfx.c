@@ -58,6 +58,64 @@ gfx_deinit()
 	sdl_deinit();
 }
 
+
+/* Draw the opaque sprite with data file index of
+   sprite at x, y in dest frame. */
+void
+gfx_draw_sprite(int x, int y, uint sprite, frame_t *dest)
+{
+	sprite_t *spr = (sprite_t*)data_get_object(sprite, NULL);
+	if (spr != NULL) sdl_draw_sprite(spr, x, y, dest);
+}
+
+/* Draw the transparent sprite with data file index of
+   sprite at x, y in dest frame.*/
+void
+gfx_draw_transp_sprite(int x, int y, uint sprite, int use_off,
+		       int y_off, int color_off, frame_t *dest)
+{
+	sprite_t *spr = (sprite_t*)data_get_object(sprite, NULL);
+	if (spr != NULL) {
+		sdl_draw_transp_sprite(spr, x, y, use_off,
+				       y_off, color_off, dest);
+	}
+}
+
+/* Draw the masked sprite with given mask and sprite
+   indices at x, y in dest frame. */
+void
+gfx_draw_masked_sprite(int x, int y, uint mask, uint sprite, frame_t *dest)
+{
+	sprite_t *spr = (sprite_t*)data_get_object(sprite, NULL);
+	sprite_t *msk = (sprite_t*)data_get_object(mask, NULL);
+	sdl_draw_masked_sprite(spr, x, y, msk, NULL, dest);
+}
+
+/* Draw the overlay sprite with data file index of
+   sprite at x, y in dest frame. Rendering will be
+   offset in the vertical axis from y_off in the
+   sprite. */
+void
+gfx_draw_overlay_sprite(int x, int y, uint sprite, int y_off, frame_t *dest)
+{
+	sprite_t *spr = (sprite_t *)data_get_object(sprite, NULL);
+	if (spr != NULL) sdl_draw_overlay_sprite(spr, x, y, y_off, dest);
+}
+
+/* Draw the waves sprite with given mask and sprite
+   indices at x, y in dest frame. */
+void
+gfx_draw_waves_sprite(int x, int y, uint mask, uint sprite,
+		      int mask_off, frame_t *dest)
+{
+	sprite_t *spr = (sprite_t*)data_get_object(sprite, NULL);
+	sprite_t *msk = NULL;
+	if (mask > 0) msk = (sprite_t*)data_get_object(mask, NULL);
+
+	sdl_draw_waves_sprite(spr, msk, x, y, mask_off, dest);
+}
+
+
 /* Draw a character at x, y in the dest frame. */
 static void
 gfx_draw_char_sprite(int x, int y, uint c, int color, int shadow, frame_t *dest)
@@ -103,11 +161,11 @@ gfx_draw_char_sprite(int x, int y, uint c, int color, int shadow, frame_t *dest)
 	if (s < 0) return;
 
 	if (shadow) {
-		sdl_draw_transp_sprite((sprite_t*)data_get_object(DATA_FONT_SHADOW_BASE + s, NULL),
-				       x, y, 0, 0, shadow, dest);
+		gfx_draw_transp_sprite(x, y, DATA_FONT_SHADOW_BASE + s,
+				       0, 0, shadow, dest);
 	}
-	sdl_draw_transp_sprite((sprite_t*)data_get_object(DATA_FONT_BASE + s, NULL),
-			       x, y, 0, 0, color, dest);
+	gfx_draw_transp_sprite(x, y, DATA_FONT_BASE + s, 0, 0,
+			       color, dest);
 }
 
 /* Draw the string str at x, y in the dest frame. */
@@ -146,24 +204,6 @@ gfx_draw_number(int x, int y, int color, int shadow, frame_t *dest, int n)
 		gfx_draw_char_sprite(x+8*i, y, '0'+(n % 10), color, shadow, dest);
 		n /= 10;
 	}
-}
-
-/* Draw the opaque sprite with data file index of
-   sprite at x, y in dest frame. */
-void
-gfx_draw_sprite(int x, int y, int sprite, frame_t *dest)
-{
-	sprite_t *spr = (sprite_t*)data_get_object(sprite, NULL);
-	if (spr != NULL) sdl_draw_sprite(spr, x, y, dest);
-}
-
-/* Draw the transparent sprite with data file index of
-   sprite at x, y in dest frame.*/
-void
-gfx_draw_transp_sprite(int x, int y, int sprite, frame_t *dest)
-{
-	sprite_t *spr = (sprite_t*)data_get_object(sprite, NULL);
-	if (spr != NULL) sdl_draw_transp_sprite(spr, x, y, 0, 0, 0, dest);
 }
 
 /* Fill a rectangle with color at x, y in the dest frame. */

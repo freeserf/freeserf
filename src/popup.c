@@ -1,7 +1,7 @@
 /*
  * popup.c - Popup GUI component
  *
- * Copyright (C) 2013  Jon Lund Steffensen <jonlst@gmail.com>
+ * Copyright (C) 2013-2014  Jon Lund Steffensen <jonlst@gmail.com>
  *
  * This file is part of freeserf.
  *
@@ -303,7 +303,8 @@ draw_popup_icon(int x, int y, int sprite, frame_t *frame)
 static void
 draw_popup_building(int x, int y, int sprite, frame_t *frame)
 {
-	gfx_draw_transp_sprite(8*x+8, y+9, DATA_MAP_OBJECT_BASE + sprite, frame);
+	gfx_draw_transp_sprite(8*x+8, y+9, DATA_MAP_OBJECT_BASE + sprite,
+			       0, 0, 0, frame);
 }
 
 /* Fill the background of a popup frame. */
@@ -409,7 +410,8 @@ draw_custom_bld_box(const int sprites[], frame_t *frame)
 	while (sprites[0] > 0) {
 		int x = sprites[1];
 		int y = sprites[2];
-		gfx_draw_transp_sprite(8*x+8, y+9, DATA_MAP_OBJECT_BASE + sprites[0], frame);
+		gfx_draw_transp_sprite(8*x+8, y+9, DATA_MAP_OBJECT_BASE + sprites[0],
+				       0, 0, 0, frame);
 		sprites += 3;
 	}
 }

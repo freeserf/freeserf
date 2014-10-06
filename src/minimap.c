@@ -1,7 +1,7 @@
 /*
  * minimap.c - Minimap GUI component
  *
- * Copyright (C) 2013  Jon Lund Steffensen <jonlst@gmail.com>
+ * Copyright (C) 2013-2014  Jon Lund Steffensen <jonlst@gmail.com>
  *
  * This file is part of freeserf.
  *
@@ -172,10 +172,9 @@ draw_minimap_grid(minimap_t *minimap, frame_t *frame)
 static void
 draw_minimap_rect(minimap_t *minimap, frame_t *frame)
 {
-	sprite_t *sprite = (sprite_t*)data_get_object(354, NULL);
 	int y = minimap->obj.height/2;
 	int x = minimap->obj.width/2;
-	sdl_draw_transp_sprite(sprite, x, y, 1, 0, 0, frame);
+	gfx_draw_transp_sprite(x, y, 354, 1, 0, 0, frame);
 }
 
 static void
