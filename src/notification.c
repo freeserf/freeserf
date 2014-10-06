@@ -1,7 +1,7 @@
 /*
  * notification.c - Notification GUI component
  *
- * Copyright (C) 2013  Jon Lund Steffensen <jonlst@gmail.com>
+ * Copyright (C) 2013-2014  Jon Lund Steffensen <jonlst@gmail.com>
  *
  * This file is part of freeserf.
  *
@@ -52,7 +52,8 @@ draw_string(int x, int y, frame_t *frame, const char *str)
 static void
 draw_map_object(int x, int y, int sprite, frame_t *frame)
 {
-	gfx_draw_transp_sprite(8*x, y, DATA_MAP_OBJECT_BASE + sprite, frame);
+	gfx_draw_transp_sprite(8*x, y, DATA_MAP_OBJECT_BASE + sprite,
+			       0, 0, 0, frame);
 }
 
 static int

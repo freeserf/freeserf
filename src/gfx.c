@@ -1,7 +1,7 @@
 /*
  * gfx.c - General graphics and data file functions
  *
- * Copyright (C) 2013  Jon Lund Steffensen <jonlst@gmail.com>
+ * Copyright (C) 2013-2014  Jon Lund Steffensen <jonlst@gmail.com>
  *
  * This file is part of freeserf.
  *
@@ -22,6 +22,7 @@
 #include "gfx.h"
 #include "sdl-video.h"
 #include "data.h"
+#include "log.h"
 
 /* There are different types of sprites:
    - Non-packed, rectangular sprites: These are simple called sprites here.
@@ -31,6 +32,89 @@
    This is used to either modify the alpha level of another sprite (shadows)
    or mask parts of other sprites completely (mask sprites).
 */
+
+int
+gfx_init(int width, int height, int fullscreen)
+{
+	int r = sdl_init();
+	if (r < 0) return -1;
+
+	LOGI("graphics", "Setting resolution to %ix%i...", width, height);
+
+	r = sdl_set_resolution(width, height, fullscreen);
+	if (r < 0) return -1;
+
+	gfx_set_palette(DATA_PALETTE_GAME);
+
+	sprite_t *cursor = (sprite_t *)data_get_object(DATA_CURSOR, NULL);
+	sdl_set_cursor(cursor);
+
+	return 0;
+}
+
+void
+gfx_deinit()
+{
+	sdl_deinit();
+}
+
+
+/* Draw the opaque sprite with data file index of
+   sprite at x, y in dest frame. */
+void
+gfx_draw_sprite(int x, int y, uint sprite, frame_t *dest)
+{
+	sprite_t *spr = (sprite_t*)data_get_object(sprite, NULL);
+	if (spr != NULL) sdl_draw_sprite(spr, x, y, dest);
+}
+
+/* Draw the transparent sprite with data file index of
+   sprite at x, y in dest frame.*/
+void
+gfx_draw_transp_sprite(int x, int y, uint sprite, int use_off,
+		       int y_off, int color_off, frame_t *dest)
+{
+	sprite_t *spr = (sprite_t*)data_get_object(sprite, NULL);
+	if (spr != NULL) {
+		sdl_draw_transp_sprite(spr, x, y, use_off,
+				       y_off, color_off, dest);
+	}
+}
+
+/* Draw the masked sprite with given mask and sprite
+   indices at x, y in dest frame. */
+void
+gfx_draw_masked_sprite(int x, int y, uint mask, uint sprite, frame_t *dest)
+{
+	sprite_t *spr = (sprite_t*)data_get_object(sprite, NULL);
+	sprite_t *msk = (sprite_t*)data_get_object(mask, NULL);
+	sdl_draw_masked_sprite(spr, x, y, msk, dest);
+}
+
+/* Draw the overlay sprite with data file index of
+   sprite at x, y in dest frame. Rendering will be
+   offset in the vertical axis from y_off in the
+   sprite. */
+void
+gfx_draw_overlay_sprite(int x, int y, uint sprite, int y_off, frame_t *dest)
+{
+	sprite_t *spr = (sprite_t *)data_get_object(sprite, NULL);
+	if (spr != NULL) sdl_draw_overlay_sprite(spr, x, y, y_off, dest);
+}
+
+/* Draw the waves sprite with given mask and sprite
+   indices at x, y in dest frame. */
+void
+gfx_draw_waves_sprite(int x, int y, uint mask, uint sprite,
+		      int mask_off, frame_t *dest)
+{
+	sprite_t *spr = (sprite_t*)data_get_object(sprite, NULL);
+	sprite_t *msk = NULL;
+	if (mask > 0) msk = (sprite_t*)data_get_object(mask, NULL);
+
+	sdl_draw_waves_sprite(spr, msk, x, y, mask_off, dest);
+}
+
 
 /* Draw a character at x, y in the dest frame. */
 static void
@@ -77,11 +161,11 @@ gfx_draw_char_sprite(int x, int y, uint c, int color, int shadow, frame_t *dest)
 	if (s < 0) return;
 
 	if (shadow) {
-		sdl_draw_transp_sprite((sprite_t*)data_get_object(DATA_FONT_SHADOW_BASE + s, NULL),
-				       x, y, 0, 0, shadow, dest);
+		gfx_draw_transp_sprite(x, y, DATA_FONT_SHADOW_BASE + s,
+				       0, 0, shadow, dest);
 	}
-	sdl_draw_transp_sprite((sprite_t*)data_get_object(DATA_FONT_BASE + s, NULL),
-			       x, y, 0, 0, color, dest);
+	gfx_draw_transp_sprite(x, y, DATA_FONT_BASE + s, 0, 0,
+			       color, dest);
 }
 
 /* Draw the string str at x, y in the dest frame. */
@@ -122,30 +206,60 @@ gfx_draw_number(int x, int y, int color, int shadow, frame_t *dest, int n)
 	}
 }
 
-/* Draw the opaque sprite with data file index of
-   sprite at x, y in dest frame. */
+/* Draw a rectangle with color at x, y in the dest frame. */
 void
-gfx_draw_sprite(int x, int y, int sprite, frame_t *dest)
+gfx_draw_rect(int x, int y, int width, int height, int color, frame_t *dest)
 {
-	sprite_t *spr = (sprite_t*)data_get_object(sprite, NULL);
-	if (spr != NULL) sdl_draw_sprite(spr, x, y, dest);
+	sdl_draw_rect(x, y, width, height, color, dest);
 }
 
-/* Draw the transparent sprite with data file index of
-   sprite at x, y in dest frame.*/
-void
-gfx_draw_transp_sprite(int x, int y, int sprite, frame_t *dest)
-{
-	sprite_t *spr = (sprite_t*)data_get_object(sprite, NULL);
-	if (spr != NULL) sdl_draw_transp_sprite(spr, x, y, 0, 0, 0, dest);
-}
-
-/* Fill a rectangle with color at x, y in the dest frame. */
+/* Draw a rectangle with color at x, y in the dest frame. */
 void
 gfx_fill_rect(int x, int y, int width, int height, int color, frame_t *dest)
 {
 	sdl_fill_rect(x, y, width, height, color, dest);
 }
+
+
+/* Initialize new graphics frame. If dest is NULL a new
+   backing surface is created, otherwise the same surface
+   as dest is used. */
+void
+gfx_frame_init(frame_t *frame, int x, int y, int width, int height, frame_t *dest)
+{
+	sdl_frame_init(frame, x, y, width, height, dest);
+}
+
+/* Deinitialize frame and backing surface. */
+void
+gfx_frame_deinit(frame_t *frame)
+{
+	sdl_frame_deinit(frame);
+}
+
+/* Draw source frame from rectangle at sx, sy with given
+   width and height, to destination frame at dx, dy. */
+void
+gfx_draw_frame(int dx, int dy, frame_t *dest, int sx, int sy, frame_t *src, int w, int h)
+{
+	sdl_draw_frame(dx, dy, dest, sx, sy, src, w, h);
+}
+
+
+/* Enable or disable fullscreen mode */
+int
+gfx_set_fullscreen(int enable)
+{
+	return sdl_set_fullscreen(enable);
+}
+
+/* Check whether fullscreen mode is enabled */
+int
+gfx_is_fullscreen()
+{
+	return sdl_is_fullscreen();
+}
+
 
 /* Select the color palette that is location at the given data file index. */
 void

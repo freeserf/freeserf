@@ -54,9 +54,9 @@ static SDL_Color pal_colors[256];
 static SDL_Cursor *cursor = NULL;
 
 
-struct surface {
+typedef struct {
 	SDL_Surface *surf;
-};
+} surface_t;
 
 
 /* Unique identifier for a surface. */
@@ -715,31 +715,27 @@ create_masked_surface(const sprite_t *sprite, const sprite_t *mask)
 	return surf;
 }
 
-surface_t *
-sdl_draw_masked_sprite(const sprite_t *sprite, int x, int y, const sprite_t *mask, surface_t *surface, frame_t *dest)
+void
+sdl_draw_masked_sprite(const sprite_t *sprite, int x, int y, const sprite_t *mask, frame_t *dest)
 {
 	int r;
 
 	x += le16toh(mask->x) + dest->clip.x;
 	y += le16toh(mask->y) + dest->clip.y;
 
-	if (surface == NULL) {
-		surface_id_t id;
-		id.sprite = sprite;
-		id.mask = mask;
-		id.offset = 0;
-		surface_t **s = surface_ht_store(&masked_sprite_cache, &id);
-		if (*s == NULL) {
-			*s = (surface_t*)malloc(sizeof(surface_t));
-			if (*s == NULL) abort();
+	surface_id_t id;
+	id.sprite = sprite;
+	id.mask = mask;
+	id.offset = 0;
+	surface_t **surface = surface_ht_store(&masked_sprite_cache, &id);
+	if (*surface == NULL) {
+		*surface = (surface_t*)malloc(sizeof(surface_t));
+		if (*surface == NULL) abort();
 
-			(*s)->surf = create_masked_surface(sprite, mask);
-		}
-		surface = *s;
+		(*surface)->surf = create_masked_surface(sprite, mask);
 	}
 
-	SDL_Surface *surf = (SDL_Surface*)surface->surf;
-
+	SDL_Surface *surf = (*surface)->surf;
 	SDL_Rect src_rect = { 0, 0, surf->w, surf->h };
 	SDL_Rect dest_rect = { x, y, 0, 0 };
 
@@ -750,8 +746,6 @@ sdl_draw_masked_sprite(const sprite_t *sprite, int x, int y, const sprite_t *mas
 	if (r < 0) {
 		LOGE("sdl-video", "BlitSurface error: %s", SDL_GetError());
 	}
-
-	return surface;
 }
 
 void

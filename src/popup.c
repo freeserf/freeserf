@@ -1,7 +1,7 @@
 /*
  * popup.c - Popup GUI component
  *
- * Copyright (C) 2013  Jon Lund Steffensen <jonlst@gmail.com>
+ * Copyright (C) 2013-2014  Jon Lund Steffensen <jonlst@gmail.com>
  *
  * This file is part of freeserf.
  *
@@ -23,7 +23,7 @@
 #include "freeserf.h"
 #include "data.h"
 #include "game.h"
-#include "sdl-video.h"
+#include "gfx.h"
 #include "audio.h"
 #include "debug.h"
 #include "interface.h"
@@ -303,7 +303,8 @@ draw_popup_icon(int x, int y, int sprite, frame_t *frame)
 static void
 draw_popup_building(int x, int y, int sprite, frame_t *frame)
 {
-	gfx_draw_transp_sprite(8*x+8, y+9, DATA_MAP_OBJECT_BASE + sprite, frame);
+	gfx_draw_transp_sprite(8*x+8, y+9, DATA_MAP_OBJECT_BASE + sprite,
+			       0, 0, 0, frame);
 }
 
 /* Fill the background of a popup frame. */
@@ -409,7 +410,8 @@ draw_custom_bld_box(const int sprites[], frame_t *frame)
 	while (sprites[0] > 0) {
 		int x = sprites[1];
 		int y = sprites[2];
-		gfx_draw_transp_sprite(8*x+8, y+9, DATA_MAP_OBJECT_BASE + sprites[0], frame);
+		gfx_draw_transp_sprite(8*x+8, y+9, DATA_MAP_OBJECT_BASE + sprites[0],
+				       0, 0, 0, frame);
 		sprites += 3;
 	}
 }
@@ -456,7 +458,7 @@ draw_map_box(popup_box_t *popup, frame_t *frame)
 
 	/* Draw minimap */
 	frame_t minimap_frame;
-	sdl_frame_init(&minimap_frame,
+	gfx_frame_init(&minimap_frame,
 		       frame->clip.x + 8,
 		       frame->clip.y + 9,
 		       128, 128, frame);
@@ -1977,7 +1979,7 @@ draw_options_box(popup_box_t *popup, frame_t *frame)
 	draw_green_string(1, 70, frame, "Fullscreen");
 	draw_green_string(1, 79, frame, "video");
 
-	draw_popup_icon(13, 70, sdl_is_fullscreen() ? 288 : 220, frame); /* Fullscreen mode */
+	draw_popup_icon(13, 70, gfx_is_fullscreen() ? 288 : 220, frame); /* Fullscreen mode */
 
 	const char *value = "All";
 	if (!BIT_TEST(interface->config, 3)) {
@@ -2233,7 +2235,7 @@ draw_transport_info_box(popup_box_t *popup, frame_t *frame)
 #if 1
 	/* Draw viewport of flag */
 	frame_t flag_frame;
-	sdl_frame_init(&flag_frame,
+	gfx_frame_init(&flag_frame,
 		       frame->clip.x + 8,
 		       frame->clip.y + 24,
 		       128, 64, frame);
@@ -3564,7 +3566,7 @@ handle_action(interface_t *interface, action_t action, int x, int y)
 		sfx_play_clip(SFX_CLICK);
 		break;
 	case ACTION_OPTIONS_FULLSCREEN:
-		sdl_set_fullscreen(!sdl_is_fullscreen());
+		gfx_set_fullscreen(!gfx_is_fullscreen());
 		sfx_play_clip(SFX_CLICK);
 		break;
 	case ACTION_OPTIONS_VOLUME_MINUS:
