@@ -246,6 +246,21 @@ gfx_draw_frame(int dx, int dy, frame_t *dest, int sx, int sy, frame_t *src, int 
 }
 
 
+/* Enable or disable fullscreen mode */
+int
+gfx_set_fullscreen(int enable)
+{
+	return sdl_set_fullscreen(enable);
+}
+
+/* Check whether fullscreen mode is enabled */
+int
+gfx_is_fullscreen()
+{
+	return sdl_is_fullscreen();
+}
+
+
 /* Select the color palette that is location at the given data file index. */
 void
 gfx_set_palette(int palette)

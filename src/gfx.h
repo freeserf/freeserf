@@ -69,6 +69,10 @@ void gfx_frame_init(frame_t *frame, int x, int y, int width, int height, frame_t
 void gfx_frame_deinit(frame_t *frame);
 void gfx_draw_frame(int dx, int dy, frame_t *dest, int sx, int sy, frame_t *src, int w, int h);
 
+/* Screen functions */
+int gfx_set_fullscreen(int enable);
+int gfx_is_fullscreen();
+
 void gfx_set_palette(int palette);
 
 void gfx_unpack_transparent_sprite(void *dest, const void *src, size_t destlen, int offset);

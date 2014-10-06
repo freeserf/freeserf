@@ -23,7 +23,7 @@
 #include "freeserf.h"
 #include "data.h"
 #include "game.h"
-#include "sdl-video.h"
+#include "gfx.h"
 #include "audio.h"
 #include "debug.h"
 #include "interface.h"
@@ -1979,7 +1979,7 @@ draw_options_box(popup_box_t *popup, frame_t *frame)
 	draw_green_string(1, 70, frame, "Fullscreen");
 	draw_green_string(1, 79, frame, "video");
 
-	draw_popup_icon(13, 70, sdl_is_fullscreen() ? 288 : 220, frame); /* Fullscreen mode */
+	draw_popup_icon(13, 70, gfx_is_fullscreen() ? 288 : 220, frame); /* Fullscreen mode */
 
 	const char *value = "All";
 	if (!BIT_TEST(interface->config, 3)) {
@@ -3566,7 +3566,7 @@ handle_action(interface_t *interface, action_t action, int x, int y)
 		sfx_play_clip(SFX_CLICK);
 		break;
 	case ACTION_OPTIONS_FULLSCREEN:
-		sdl_set_fullscreen(!sdl_is_fullscreen());
+		gfx_set_fullscreen(!gfx_is_fullscreen());
 		sfx_play_clip(SFX_CLICK);
 		break;
 	case ACTION_OPTIONS_VOLUME_MINUS:

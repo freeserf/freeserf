@@ -342,7 +342,7 @@ game_loop()
               /* Video */
             case SDLK_f:
               if (event.key.keysym.mod & KMOD_CTRL) {
-                sdl_set_fullscreen(!sdl_is_fullscreen());
+                gfx_set_fullscreen(!gfx_is_fullscreen());
               }
               break;
 
@@ -404,7 +404,7 @@ game_loop()
             int width = 0;
             int height = 0;
             sdl_get_resolution(&width, &height);
-            sdl_set_resolution(width, height, sdl_is_fullscreen());
+            sdl_set_resolution(width, height, gfx_is_fullscreen());
             gui_object_set_size(reinterpret_cast<gui_object_t*>(&interface), width, height);
           }
           break;
