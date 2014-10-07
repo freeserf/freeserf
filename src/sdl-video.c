@@ -826,13 +826,14 @@ sdl_set_palette(const uint8_t *palette)
 void
 sdl_set_cursor(const sprite_t *sprite)
 {
-	if (NULL != cursor) {
+	if (cursor != NULL) {
 		SDL_SetCursor(NULL);
 		SDL_FreeCursor(cursor);
+		cursor = NULL;
 	}
-	if (NULL == sprite) {
-		return;
-	}
+
+	if (sprite == NULL) return;
+
 	SDL_Surface *surface = create_transp_surface(sprite, 0);
 	cursor = SDL_CreateColorCursor(surface, 8, 8);
 	SDL_SetCursor(cursor);
