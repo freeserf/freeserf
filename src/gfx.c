@@ -46,7 +46,7 @@ gfx_init(int width, int height, int fullscreen)
 
 	gfx_set_palette(DATA_PALETTE_GAME);
 
-	sprite_t *cursor = (sprite_t *)data_get_object(DATA_CURSOR, NULL);
+	const dos_sprite_t *cursor = data_get_dos_sprite(DATA_CURSOR);
 	sdl_set_cursor(cursor);
 
 	return 0;
@@ -64,7 +64,7 @@ gfx_deinit()
 void
 gfx_draw_sprite(int x, int y, uint sprite, frame_t *dest)
 {
-	sprite_t *spr = (sprite_t*)data_get_object(sprite, NULL);
+	const dos_sprite_t *spr = data_get_dos_sprite(sprite);
 	if (spr != NULL) sdl_draw_sprite(spr, x, y, dest);
 }
 
@@ -74,7 +74,7 @@ void
 gfx_draw_transp_sprite(int x, int y, uint sprite, int use_off,
 		       int y_off, int color_off, frame_t *dest)
 {
-	sprite_t *spr = (sprite_t*)data_get_object(sprite, NULL);
+	const dos_sprite_t *spr = data_get_dos_sprite(sprite);
 	if (spr != NULL) {
 		sdl_draw_transp_sprite(spr, x, y, use_off,
 				       y_off, color_off, dest);
@@ -86,8 +86,8 @@ gfx_draw_transp_sprite(int x, int y, uint sprite, int use_off,
 void
 gfx_draw_masked_sprite(int x, int y, uint mask, uint sprite, frame_t *dest)
 {
-	sprite_t *spr = (sprite_t*)data_get_object(sprite, NULL);
-	sprite_t *msk = (sprite_t*)data_get_object(mask, NULL);
+	const dos_sprite_t *spr = data_get_dos_sprite(sprite);
+	const dos_sprite_t *msk = data_get_dos_sprite(mask);
 	sdl_draw_masked_sprite(spr, x, y, msk, dest);
 }
 
@@ -98,7 +98,7 @@ gfx_draw_masked_sprite(int x, int y, uint mask, uint sprite, frame_t *dest)
 void
 gfx_draw_overlay_sprite(int x, int y, uint sprite, int y_off, frame_t *dest)
 {
-	sprite_t *spr = (sprite_t *)data_get_object(sprite, NULL);
+	const dos_sprite_t *spr = data_get_dos_sprite(sprite);
 	if (spr != NULL) sdl_draw_overlay_sprite(spr, x, y, y_off, dest);
 }
 
@@ -108,9 +108,9 @@ void
 gfx_draw_waves_sprite(int x, int y, uint mask, uint sprite,
 		      int mask_off, frame_t *dest)
 {
-	sprite_t *spr = (sprite_t*)data_get_object(sprite, NULL);
-	sprite_t *msk = NULL;
-	if (mask > 0) msk = (sprite_t*)data_get_object(mask, NULL);
+	const dos_sprite_t *spr = data_get_dos_sprite(sprite);
+	const dos_sprite_t *msk = NULL;
+	if (mask > 0) msk = data_get_dos_sprite(mask);
 
 	sdl_draw_waves_sprite(spr, msk, x, y, mask_off, dest);
 }

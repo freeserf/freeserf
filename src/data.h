@@ -24,6 +24,13 @@
 
 #include "misc.h"
 
+#ifdef HAVE_CONFIG_H
+# include <config.h>
+#endif
+
+#ifdef HAVE_STDINT_H
+#include <stdint.h>
+#endif
 #include <sys/types.h>
 
 /* Index 0 is undefined (entry 0 in the data file
@@ -231,10 +238,23 @@
 
 #define DATA_CURSOR  3999
 
+
+/* Sprite header. In the data file this is immediately followed by sprite data. */
+typedef struct {
+	int8_t b_x;
+	int8_t b_y;
+	uint16_t w;
+	uint16_t h;
+	int16_t x;
+	int16_t y;
+} dos_sprite_t;
+
+
 int data_load(const char *path);
 void data_unload();
 
 void *data_get_object(uint index, size_t *size);
+const dos_sprite_t *data_get_dos_sprite(uint index);
 
 void data_unpack_transparent_sprite(void *dest, const void *src, size_t destlen, int offset);
 void data_unpack_overlay_sprite(void *dest, const void *src, size_t destlen);

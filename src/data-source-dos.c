@@ -185,6 +185,12 @@ data_get_object(uint index, size_t *size)
 	return &bytes[offset];
 }
 
+const dos_sprite_t *
+data_get_dos_sprite(uint index)
+{
+	return (const dos_sprite_t *)data_get_object(index, NULL);
+}
+
 /* Perform various fixups of the data file entries. */
 static void
 data_fixup()

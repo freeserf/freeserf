@@ -26,6 +26,7 @@
 #include <stdint.h>
 #endif
 
+#include "data.h"
 #include "gfx.h"
 
 
@@ -43,17 +44,17 @@ int sdl_frame_get_width(const frame_t *frame);
 int sdl_frame_get_height(const frame_t *frame);
 void sdl_warp_mouse(int x, int y);
 
-void sdl_draw_transp_sprite(const sprite_t *sprite, int x, int y, int use_off, int y_off, int color_off, frame_t *dest);
-void sdl_draw_waves_sprite(const sprite_t *sprite, const sprite_t *mask, int x, int y, int mask_off, frame_t *dest);
-void sdl_draw_sprite(const sprite_t *sprite, int x, int y, frame_t *dest);
-void sdl_draw_overlay_sprite(const sprite_t *sprite, int x, int y, int y_off, frame_t *dest);
-void sdl_draw_masked_sprite(const sprite_t *sprite, int x, int y, const sprite_t *mask, frame_t *dest);
+void sdl_draw_transp_sprite(const dos_sprite_t *sprite, int x, int y, int use_off, int y_off, int color_off, frame_t *dest);
+void sdl_draw_waves_sprite(const dos_sprite_t *sprite, const dos_sprite_t *mask, int x, int y, int mask_off, frame_t *dest);
+void sdl_draw_sprite(const dos_sprite_t *sprite, int x, int y, frame_t *dest);
+void sdl_draw_overlay_sprite(const dos_sprite_t *sprite, int x, int y, int y_off, frame_t *dest);
+void sdl_draw_masked_sprite(const dos_sprite_t *sprite, int x, int y, const dos_sprite_t *mask, frame_t *dest);
 void sdl_draw_frame(int dx, int dy, frame_t *dest, int sx, int sy, frame_t *src, int w, int h);
 void sdl_draw_rect(int x, int y, int width, int height, int color, frame_t *dest);
 void sdl_fill_rect(int x, int y, int width, int height, int color, frame_t *dest);
 void sdl_set_palette(const uint8_t *palette);
 void sdl_swap_buffers();
 
-void sdl_set_cursor(const sprite_t *sprite);
+void sdl_set_cursor(const dos_sprite_t *sprite);
 
 #endif /* ! _SDL_VIDEO_H */

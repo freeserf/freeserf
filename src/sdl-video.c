@@ -61,8 +61,8 @@ typedef struct {
 
 /* Unique identifier for a surface. */
 typedef struct {
-	const sprite_t *sprite;
-	const sprite_t *mask;
+	const dos_sprite_t *sprite;
+	const dos_sprite_t *mask;
 	uint offset;
 } surface_id_t;
 
@@ -379,9 +379,9 @@ create_surface_from_data(void *data, int width, int height, int transparent) {
 }
 
 static SDL_Surface *
-create_transp_surface(const sprite_t *sprite, int offset)
+create_transp_surface(const dos_sprite_t *sprite, int offset)
 {
-	void *data = (uint8_t *)sprite + sizeof(sprite_t);
+	void *data = (uint8_t *)sprite + sizeof(dos_sprite_t);
 
 	int width = le16toh(sprite->w);
 	int height = le16toh(sprite->h);
@@ -403,9 +403,9 @@ create_transp_surface(const sprite_t *sprite, int offset)
 /* Create a masked surface from the given transparent sprite and mask.
    The sprite must be at least as wide as the mask plus mask offset. */
 static SDL_Surface *
-create_masked_transp_surface(const sprite_t *sprite, const sprite_t *mask, int mask_off)
+create_masked_transp_surface(const dos_sprite_t *sprite, const dos_sprite_t *mask, int mask_off)
 {
-	void *s_data = (uint8_t *)sprite + sizeof(sprite_t);
+	void *s_data = (uint8_t *)sprite + sizeof(dos_sprite_t);
 
 	size_t s_width = le16toh(sprite->w);
 	size_t s_height = le16toh(sprite->h);
@@ -436,7 +436,7 @@ create_masked_transp_surface(const sprite_t *sprite, const sprite_t *mask, int m
 	free(unpack);
 
 	/* Mask */
-	void *m_data = (uint8_t *)mask + sizeof(sprite_t);
+	void *m_data = (uint8_t *)mask + sizeof(dos_sprite_t);
 
 	/* Unpack mask */
 	size_t m_unpack_size = m_width * m_height;
@@ -464,7 +464,7 @@ create_masked_transp_surface(const sprite_t *sprite, const sprite_t *mask, int m
 }
 
 void
-sdl_draw_transp_sprite(const sprite_t *sprite, int x, int y, int use_off, int y_off, int color_off, frame_t *dest)
+sdl_draw_transp_sprite(const dos_sprite_t *sprite, int x, int y, int use_off, int y_off, int color_off, frame_t *dest)
 {
 	int r;
 
@@ -508,7 +508,7 @@ sdl_draw_transp_sprite(const sprite_t *sprite, int x, int y, int use_off, int y_
 }
 
 void
-sdl_draw_waves_sprite(const sprite_t *sprite, const sprite_t *mask,
+sdl_draw_waves_sprite(const dos_sprite_t *sprite, const dos_sprite_t *mask,
 		      int x, int y, int mask_off, frame_t *dest)
 {
 	x += le16toh(sprite->x) + dest->clip.x;
@@ -548,9 +548,9 @@ sdl_draw_waves_sprite(const sprite_t *sprite, const sprite_t *mask,
 }
 
 static SDL_Surface *
-create_sprite_surface(const sprite_t *sprite)
+create_sprite_surface(const dos_sprite_t *sprite)
 {
-	void *data = (uint8_t *)sprite + sizeof(sprite_t);
+	void *data = (uint8_t *)sprite + sizeof(dos_sprite_t);
 
 	int width = le16toh(sprite->w);
 	int height = le16toh(sprite->h);
@@ -559,7 +559,7 @@ create_sprite_surface(const sprite_t *sprite)
 }
 
 void
-sdl_draw_sprite(const sprite_t *sprite, int x, int y, frame_t *dest)
+sdl_draw_sprite(const dos_sprite_t *sprite, int x, int y, frame_t *dest)
 {
 	int r;
 
@@ -588,11 +588,11 @@ sdl_draw_sprite(const sprite_t *sprite, int x, int y, frame_t *dest)
 }
 
 static SDL_Surface *
-create_overlay_surface(const sprite_t *sprite)
+create_overlay_surface(const dos_sprite_t *sprite)
 {
 	int r;
 
-	void *data = (uint8_t *)sprite + sizeof(sprite_t);
+	void *data = (uint8_t *)sprite + sizeof(dos_sprite_t);
 
 	size_t width = le16toh(sprite->w);
 	size_t height = le16toh(sprite->h);
@@ -627,7 +627,7 @@ create_overlay_surface(const sprite_t *sprite)
 }
 
 void
-sdl_draw_overlay_sprite(const sprite_t *sprite, int x, int y, int y_off, frame_t *dest)
+sdl_draw_overlay_sprite(const dos_sprite_t *sprite, int x, int y, int y_off, frame_t *dest)
 {
 	int r;
 
@@ -665,7 +665,7 @@ sdl_draw_overlay_sprite(const sprite_t *sprite, int x, int y, int y_off, frame_t
 }
 
 static SDL_Surface *
-create_masked_surface(const sprite_t *sprite, const sprite_t *mask)
+create_masked_surface(const dos_sprite_t *sprite, const dos_sprite_t *mask)
 {
 	size_t m_width = le16toh(mask->w);
 	size_t m_height = le16toh(mask->h);
@@ -673,7 +673,7 @@ create_masked_surface(const sprite_t *sprite, const sprite_t *mask)
 	size_t s_width = le16toh(sprite->w);
 	size_t s_height = le16toh(sprite->h);
 
-	void *s_data = (uint8_t *)sprite + sizeof(sprite_t);
+	void *s_data = (uint8_t *)sprite + sizeof(dos_sprite_t);
 
 	uint8_t *s_copy = (uint8_t*)malloc(m_width * m_height * sizeof(uint8_t));
 	if (s_copy == NULL) abort();
@@ -688,7 +688,7 @@ create_masked_surface(const sprite_t *sprite, const sprite_t *mask)
 	}
 
 	/* Mask */
-	void *m_data = (uint8_t *)mask + sizeof(sprite_t);
+	void *m_data = (uint8_t *)mask + sizeof(dos_sprite_t);
 
 	/* Unpack mask */
 	size_t unpack_size = m_width * m_height;
@@ -716,7 +716,7 @@ create_masked_surface(const sprite_t *sprite, const sprite_t *mask)
 }
 
 void
-sdl_draw_masked_sprite(const sprite_t *sprite, int x, int y, const sprite_t *mask, frame_t *dest)
+sdl_draw_masked_sprite(const dos_sprite_t *sprite, int x, int y, const dos_sprite_t *mask, frame_t *dest)
 {
 	int r;
 
@@ -824,7 +824,7 @@ sdl_set_palette(const uint8_t *palette)
 }
 
 void
-sdl_set_cursor(const sprite_t *sprite)
+sdl_set_cursor(const dos_sprite_t *sprite)
 {
 	if (cursor != NULL) {
 		SDL_SetCursor(NULL);

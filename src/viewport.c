@@ -593,7 +593,7 @@ draw_game_sprite(int x, int y, int index, frame_t *frame)
 static void
 draw_serf(int x, int y, int color, int head, int body, frame_t *frame)
 {
-	sprite_t *s_arms = (sprite_t *)data_get_object(DATA_SERF_ARMS_BASE + body, NULL);
+	const dos_sprite_t *s_arms = data_get_dos_sprite(DATA_SERF_ARMS_BASE + body);
 	gfx_draw_transp_sprite(x, y, DATA_SERF_ARMS_BASE + body,
 			       1, 0, 0, frame);
 	gfx_draw_transp_sprite(x, y, DATA_SERF_TORSO_BASE + body,
@@ -619,7 +619,7 @@ draw_shadow_and_building_sprite(int x, int y, int index, frame_t *frame)
 static void
 draw_shadow_and_building_unfinished(int x, int y, int index, int progress, frame_t *frame)
 {
-	sprite_t *building = (sprite_t*)data_get_object(DATA_MAP_OBJECT_BASE + index, NULL);
+	const dos_sprite_t *building = data_get_dos_sprite(DATA_MAP_OBJECT_BASE + index);
 	int h = ((building->h * progress) >> 16) + 1;
 	int y_off = building->h - h;
 
