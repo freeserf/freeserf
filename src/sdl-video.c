@@ -269,48 +269,6 @@ create_surface_from_sprite(const sprite_t *sprite)
 	return create_surface_from_data(data, width, height);
 }
 
-/* Create a masked surface from the given transparent sprite and mask.
-   The sprite must be at least as wide as the mask plus mask offset. */
-static SDL_Surface *
-create_masked_transp_surface(const sprite_t *sprite, const sprite_t *mask, int mask_off)
-{
-	uint8_t *s_data = (uint8_t *)sprite + sizeof(sprite_t);
-
-	uint s_width = sprite->width;
-	uint s_height = sprite->height;
-	uint m_width = mask->width;
-	uint m_height = mask->height;
-
-	uint8_t *s_copy = (uint8_t*)calloc(m_width * m_height, 4);
-	if (s_copy == NULL) abort();
-
-	int lines_to_copy = min(m_height, s_height);
-	uint8_t *copy_dest = s_copy;
-	uint8_t *copy_src = s_data + 4*mask_off;
-	for (int i = 0; i < lines_to_copy; i++) {
-		memcpy(copy_dest, copy_src, m_width * 4);
-		copy_dest += 4*m_width;
-		copy_src += 4*s_width;
-	}
-
-	/* Mask */
-	uint8_t *m_data = (uint8_t *)mask + sizeof(sprite_t);
-
-	/* Mask alpha value from mask data */
-	for (size_t y = 0; y < m_height; y++) {
-		for (size_t x = 0; x < m_width; x++) {
-			int alpha_index = 4*(y * m_width + x) + 3;
-			s_copy[alpha_index] &= m_data[alpha_index];
-		}
-	}
-
-	SDL_Surface *surf = create_surface_from_data(s_copy, m_width, m_height);
-
-	free(s_copy);
-
-	return surf;
-}
-
 void
 sdl_draw_transp_sprite(const sprite_t *sprite, int x, int y, int use_off, int y_off, frame_t *dest)
 {
@@ -343,38 +301,6 @@ sdl_draw_transp_sprite(const sprite_t *sprite, int x, int y, int use_off, int y_
 #if 0
 	/* Bounding box */
 	sdl_draw_rect(x, y + y_off, surf->w, surf->h - y_off, 72, dest);
-#endif
-}
-
-void
-sdl_draw_waves_sprite(const sprite_t *sprite, const sprite_t *mask,
-		      int x, int y, int mask_off, frame_t *dest)
-{
-	x += sprite->offset_x + dest->clip.x;
-	y += sprite->offset_y + dest->clip.y;
-
-	SDL_Surface *surf = NULL;
-	if (mask != NULL) {
-		surf = create_masked_transp_surface(sprite, mask, mask_off);
-	} else {
-		surf = create_surface_from_sprite(sprite);
-	}
-
-	SDL_Rect dest_rect = { x, y, 0, 0 };
-	SDL_SetClipRect(dest->surf, &dest->clip);
-
-	/* Blit sprite */
-	int r = SDL_BlitSurface(surf, NULL, (SDL_Surface*)dest->surf, &dest_rect);
-	if (r < 0) {
-		LOGE("sdl-video", "BlitSurface error: %s.", SDL_GetError());
-	}
-
-	/* Clean up */
-	SDL_FreeSurface(surf);
-
-#if 0
-	/* Bounding box */
-	sdl_draw_rect(x, y, surf->w, surf->h, 41, dest);
 #endif
 }
 
@@ -434,71 +360,6 @@ sdl_draw_overlay_sprite(const sprite_t *sprite, int x, int y, int y_off, frame_t
 	/* Bounding box */
 	sdl_draw_rect(x, y + y_off, surf->w, surf->h - y_off, 1, dest);
 #endif
-}
-
-static SDL_Surface *
-create_masked_surface(const sprite_t *sprite, const sprite_t *mask)
-{
-	uint m_width = mask->width;
-	uint m_height = mask->height;
-
-	uint s_width = sprite->width;
-	uint s_height = sprite->height;
-
-	uint8_t *s_data = (uint8_t *)sprite + sizeof(sprite_t);
-
-	uint8_t *s_copy = (uint8_t*)malloc(m_width * m_height * 4);
-	if (s_copy == NULL) abort();
-
-	uint to_copy = 4 * m_width * m_height;
-	uint8_t *copy_dest = s_copy;
-	while (to_copy) {
-		uint s = min(to_copy, 4 * s_width * s_height);
-		memcpy(copy_dest, s_data, s);
-		to_copy -= s;
-		copy_dest += s;
-	}
-
-	/* Mask */
-	uint8_t *m_data = (uint8_t *)mask + sizeof(sprite_t);
-
-	/* Mask alpha value from mask data */
-	for (size_t y = 0; y < m_height; y++) {
-		for (size_t x = 0; x < m_width; x++) {
-			int alpha_index = 4*(y * m_width + x) + 3;
-			s_copy[alpha_index] &= m_data[alpha_index];
-		}
-	}
-
-	SDL_Surface *surf = create_surface_from_data(s_copy, (int)m_width, (int)m_height);
-
-	free(s_copy);
-
-	return surf;
-}
-
-void
-sdl_draw_masked_sprite(const sprite_t *sprite, int x, int y, const sprite_t *mask, frame_t *dest)
-{
-	int r;
-
-	x += mask->offset_x + dest->clip.x;
-	y += mask->offset_y + dest->clip.y;
-
-	SDL_Surface *surf = create_masked_surface(sprite, mask);
-	SDL_Rect src_rect = { 0, 0, surf->w, surf->h };
-	SDL_Rect dest_rect = { x, y, 0, 0 };
-
-	SDL_SetClipRect(dest->surf, &dest->clip);
-
-	/* Blit to dest */
-	r = SDL_BlitSurface(surf, &src_rect, (SDL_Surface*)dest->surf, &dest_rect);
-	if (r < 0) {
-		LOGE("sdl-video", "BlitSurface error: %s", SDL_GetError());
-	}
-
-	/* Clean up */
-	SDL_FreeSurface(surf);
 }
 
 void

@@ -41,7 +41,6 @@ struct sprite_ht_entry {
 	sprite_ht_entry_t *next;
 	sprite_id_t id;
 	sprite_t *value;
-	sprite_t *mask;
 };
 
 /* Hashtable of sprites, used as sprite cache. */
@@ -236,6 +235,92 @@ gfx_free_sprite(sprite_t *sprite)
 	free(sprite);
 }
 
+/* Apply mask to map tile sprite
+   The resulting sprite will be extended to the height of the mask
+   by repeating lines from the top of the sprite. The width of the
+   mask and the sprite must be identical. */
+static sprite_t *
+gfx_mask_map_tile_sprite(const sprite_t *sprite, const sprite_t *mask)
+{
+	uint size = mask->width * mask->height * 4;
+	sprite_t *s = (sprite_t *)calloc(sizeof(sprite_t) + size, 1);
+	if (s == NULL) return NULL;
+
+	s->delta_x = mask->delta_x;
+	s->delta_y = mask->delta_y;
+	s->offset_x = mask->offset_x;
+	s->offset_y = mask->offset_y;
+	s->width = mask->width;
+	s->height = mask->height;
+
+	uint8_t *src_data = (uint8_t *)sprite + sizeof(sprite_t);
+	uint8_t *dest_data = (uint8_t *)s + sizeof(sprite_t);
+	uint to_copy = size;
+
+	/* Copy extended data to new sprite */
+	while (to_copy > 0) {
+		uint s = min(to_copy, sprite->width * sprite->height * 4);
+		memcpy(dest_data, src_data, s);
+		to_copy -= s;
+		dest_data += s;
+	}
+
+	/* Apply mask from mask sprite */
+	uint8_t *s_data = (uint8_t *)s + sizeof(sprite_t);
+	uint8_t *m_data = (uint8_t *)mask + sizeof(sprite_t);
+	for (uint y = 0; y < mask->height; y++) {
+		for (uint x = 0; x < mask->width; x++) {
+			int alpha_index = 4*(y * mask->width + x) + 3;
+			s_data[alpha_index] &= m_data[alpha_index];
+		}
+	}
+
+	return s;
+}
+
+/* Apply mask to waves sprite
+   The mask will be applied at a horizontal offset on the
+   sprite, and the resulting sprite will be limited by the
+   size of the mask, and the height of the sprite. The sprite
+   must be at least as wide as the mask plus the mask offset. */
+static sprite_t *
+gfx_mask_waves_sprite(const sprite_t *sprite, const sprite_t *mask, int x_off)
+{
+	uint height = min(mask->height, sprite->height);
+	uint size = mask->width * height * 4;
+	sprite_t *s = (sprite_t *)calloc(sizeof(sprite_t) + size, 1);
+	if (s == NULL) return NULL;
+
+	s->delta_x = sprite->delta_x;
+	s->delta_y = sprite->delta_y;
+	s->offset_x = sprite->offset_x;
+	s->offset_y = sprite->offset_y;
+	s->width = mask->width;
+	s->height = height;
+
+	uint8_t *src_data = (uint8_t *)sprite + sizeof(sprite_t) + 4*x_off;
+	uint8_t *dest_data = (uint8_t *)s + sizeof(sprite_t);
+
+	/* Copy data to new sprite */
+	for (int i = 0; i < height; i++) {
+		memcpy(dest_data, src_data, mask->width * 4);
+		src_data += 4*sprite->width;
+		dest_data += 4*mask->width;
+	}
+
+	/* Apply mask from mask sprite */
+	uint8_t *s_data = (uint8_t *)s + sizeof(sprite_t);
+	uint8_t *m_data = (uint8_t *)mask + sizeof(sprite_t);
+	for (uint y = 0; y < s->height; y++) {
+		for (uint x = 0; x < s->width; x++) {
+			int alpha_index = 4*(y * s->width + x) + 3;
+			s_data[alpha_index] &= m_data[alpha_index];
+		}
+	}
+
+	return s;
+}
+
 
 int
 gfx_init(int width, int height, int fullscreen)
@@ -338,11 +423,16 @@ gfx_draw_masked_sprite(int x, int y, uint mask, uint sprite, frame_t *dest)
 		sprite_t *m = gfx_create_bitmap_sprite(msk, 0xff);
 		assert(m != NULL);
 
-		entry->value = s;
-		entry->mask = m;
+		sprite_t *masked = gfx_mask_map_tile_sprite(s, m);
+		assert(masked != NULL);
+
+		entry->value = masked;
+
+		gfx_free_sprite(s);
+		gfx_free_sprite(m);
 	}
 
-	sdl_draw_masked_sprite(entry->value, x, y, entry->mask, dest);
+	sdl_draw_sprite(entry->value, x, y, dest);
 }
 
 /* Draw the overlay sprite with data file index of
@@ -387,7 +477,7 @@ gfx_draw_waves_sprite(int x, int y, uint mask, uint sprite,
 	sprite_id_t id;
 	id.sprite = spr;
 	id.mask = msk;
-	id.offset = 0;
+	id.offset = mask_off;
 	sprite_ht_entry_t *entry = sprite_ht_store(&transp_sprite_cache, &id);
 	if (entry->value == NULL) {
 		sprite_t *s = gfx_create_transparent_sprite(spr, 0);
@@ -397,13 +487,20 @@ gfx_draw_waves_sprite(int x, int y, uint mask, uint sprite,
 		if (msk != NULL) {
 			m = gfx_create_bitmap_sprite(msk, 0xff);
 			assert(m != NULL);
-		}
 
-		entry->value = s;
-		entry->mask = m;
+			sprite_t *masked = gfx_mask_waves_sprite(s, m, mask_off);
+			assert(masked != NULL);
+
+			gfx_free_sprite(s);
+			gfx_free_sprite(m);
+
+			entry->value = masked;
+		} else {
+			entry->value = s;
+		}
 	}
 
-	sdl_draw_waves_sprite(entry->value, entry->mask, x, y, mask_off, dest);
+	sdl_draw_sprite(entry->value, x, y, dest);
 }
 
 
