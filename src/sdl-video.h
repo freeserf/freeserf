@@ -49,9 +49,8 @@ void sdl_draw_sprite(const sprite_t *sprite, int x, int y, frame_t *dest);
 void sdl_draw_overlay_sprite(const sprite_t *sprite, int x, int y, int y_off, frame_t *dest);
 void sdl_draw_masked_sprite(const sprite_t *sprite, int x, int y, const sprite_t *mask, frame_t *dest);
 void sdl_draw_frame(int dx, int dy, frame_t *dest, int sx, int sy, frame_t *src, int w, int h);
-void sdl_draw_rect(int x, int y, int width, int height, int color, frame_t *dest);
-void sdl_fill_rect(int x, int y, int width, int height, int color, frame_t *dest);
-void sdl_set_palette(const uint8_t *palette);
+void sdl_draw_rect(int x, int y, int width, int height, const color_t *color, frame_t *dest);
+void sdl_fill_rect(int x, int y, int width, int height, const color_t *color, frame_t *dest);
 void sdl_swap_buffers();
 
 void sdl_set_cursor(const sprite_t *sprite);

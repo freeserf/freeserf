@@ -45,6 +45,13 @@ typedef struct {
        uint height;
 } sprite_t;
 
+typedef struct {
+	uint8_t r;
+	uint8_t g;
+	uint8_t b;
+	uint8_t a;
+} color_t;
+
 
 int gfx_init(int width, int height, int fullscreen);
 void gfx_deinit();
@@ -72,7 +79,5 @@ void gfx_draw_frame(int dx, int dy, frame_t *dest, int sx, int sy, frame_t *src,
 /* Screen functions */
 int gfx_set_fullscreen(int enable);
 int gfx_is_fullscreen();
-
-void gfx_set_palette(int palette);
 
 #endif /* ! _GFX_H */

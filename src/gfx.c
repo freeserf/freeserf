@@ -248,8 +248,6 @@ gfx_init(int width, int height, int fullscreen)
 	r = sdl_set_resolution(width, height, fullscreen);
 	if (r < 0) return -1;
 
-	gfx_set_palette(DATA_PALETTE_GAME);
-
 	const dos_sprite_t *cursor = data_get_dos_sprite(DATA_CURSOR);
 	sprite_t *sprite = gfx_create_transparent_sprite(cursor, 0);
 	sdl_set_cursor(sprite);
@@ -503,14 +501,22 @@ gfx_draw_number(int x, int y, int color, int shadow, frame_t *dest, int n)
 void
 gfx_draw_rect(int x, int y, int width, int height, int color, frame_t *dest)
 {
-	sdl_draw_rect(x, y, width, height, color, dest);
+	uint8_t *palette = (uint8_t*)data_get_object(DATA_PALETTE_GAME, NULL);
+	color_t c = { palette[3*color+0], palette[3*color+1],
+		      palette[3*color+2], 0xff };
+
+	sdl_draw_rect(x, y, width, height, &c, dest);
 }
 
 /* Draw a rectangle with color at x, y in the dest frame. */
 void
 gfx_fill_rect(int x, int y, int width, int height, int color, frame_t *dest)
 {
-	sdl_fill_rect(x, y, width, height, color, dest);
+	uint8_t *palette = (uint8_t*)data_get_object(DATA_PALETTE_GAME, NULL);
+	color_t c = { palette[3*color+0], palette[3*color+1],
+		      palette[3*color+2], 0xff };
+
+	sdl_fill_rect(x, y, width, height, &c, dest);
 }
 
 
@@ -551,13 +557,4 @@ int
 gfx_is_fullscreen()
 {
 	return sdl_is_fullscreen();
-}
-
-
-/* Select the color palette that is location at the given data file index. */
-void
-gfx_set_palette(int palette)
-{
-	uint8_t *pal = (uint8_t*)data_get_object(palette, NULL);
-	sdl_set_palette(pal);
 }

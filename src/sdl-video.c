@@ -519,7 +519,7 @@ sdl_draw_frame(int dx, int dy, frame_t *dest, int sx, int sy, frame_t *src, int 
 }
 
 void
-sdl_draw_rect(int x, int y, int width, int height, int color, frame_t *dest)
+sdl_draw_rect(int x, int y, int width, int height, const color_t *color, frame_t *dest)
 {
 	SDL_SetClipRect(dest->surf, &dest->clip);
 
@@ -534,7 +534,7 @@ sdl_draw_rect(int x, int y, int width, int height, int color, frame_t *dest)
 }
 
 void
-sdl_fill_rect(int x, int y, int width, int height, int color, frame_t *dest)
+sdl_fill_rect(int x, int y, int width, int height, const color_t *color, frame_t *dest)
 {
 	SDL_Rect rect = {
 		x + dest->clip.x,
@@ -546,7 +546,7 @@ sdl_fill_rect(int x, int y, int width, int height, int color, frame_t *dest)
 
 	/* Fill rectangle */
 	int r = SDL_FillRect((SDL_Surface*)dest->surf, &rect, SDL_MapRGBA(((SDL_Surface*)dest->surf)->format,
-			pal_colors[color].r, pal_colors[color].g, pal_colors[color].b, 0xff));
+									  color->r, color->g, color->b, 0xff));
 	if (r < 0) {
 		LOGE("sdl-video", "FillRect error: %s.", SDL_GetError());
 	}
