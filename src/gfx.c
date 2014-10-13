@@ -51,12 +51,8 @@ typedef struct {
 } sprite_ht_t;
 
 
-/* The sprite cache is divided in four areas for
-   different sprite types. */
-static sprite_ht_t opaque_sprite_cache;
-static sprite_ht_t transp_sprite_cache;
-static sprite_ht_t overlay_sprite_cache;
-static sprite_ht_t masked_sprite_cache;
+/* Sprite cache hash table */
+static sprite_ht_t sprite_cache;
 
 
 /* Calculate hash of sprite identifier. */
@@ -339,10 +335,7 @@ gfx_init(int width, int height, int fullscreen)
 	gfx_free_sprite(sprite);
 
 	/* Init sprite cache */
-	sprite_ht_init(&opaque_sprite_cache, 1024);
-	sprite_ht_init(&transp_sprite_cache, 4096);
-	sprite_ht_init(&overlay_sprite_cache, 512);
-	sprite_ht_init(&masked_sprite_cache, 1024);
+	sprite_ht_init(&sprite_cache, 10240);
 
 	return 0;
 }
@@ -366,7 +359,7 @@ gfx_draw_sprite(int x, int y, uint sprite, frame_t *dest)
 	id.sprite = spr;
 	id.mask = NULL;
 	id.offset = 0;
-	sprite_ht_entry_t *entry = sprite_ht_store(&opaque_sprite_cache, &id);
+	sprite_ht_entry_t *entry = sprite_ht_store(&sprite_cache, &id);
 	if (entry->value == NULL) {
 		sprite_t *s = gfx_create_sprite(spr);
 		assert(s != NULL);
@@ -389,7 +382,7 @@ gfx_draw_transp_sprite(int x, int y, uint sprite, int use_off,
 	id.sprite = spr;
 	id.mask = NULL;
 	id.offset = color_off;
-	sprite_ht_entry_t *entry = sprite_ht_store(&transp_sprite_cache, &id);
+	sprite_ht_entry_t *entry = sprite_ht_store(&sprite_cache, &id);
 	if (entry->value == NULL) {
 		sprite_t *s = gfx_create_transparent_sprite(spr, color_off);
 		assert(s != NULL);
@@ -415,7 +408,7 @@ gfx_draw_masked_sprite(int x, int y, uint mask, uint sprite, frame_t *dest)
 	id.sprite = spr;
 	id.mask = msk;
 	id.offset = 0;
-	sprite_ht_entry_t *entry = sprite_ht_store(&masked_sprite_cache, &id);
+	sprite_ht_entry_t *entry = sprite_ht_store(&sprite_cache, &id);
 	if (entry->value == NULL) {
 		sprite_t *s = gfx_create_sprite(spr);
 		assert(s != NULL);
@@ -449,7 +442,7 @@ gfx_draw_overlay_sprite(int x, int y, uint sprite, int y_off, frame_t *dest)
 	id.sprite = spr;
 	id.mask = NULL;
 	id.offset = 0;
-	sprite_ht_entry_t *entry = sprite_ht_store(&overlay_sprite_cache, &id);
+	sprite_ht_entry_t *entry = sprite_ht_store(&sprite_cache, &id);
 	if (entry->value == NULL) {
 		sprite_t *s = gfx_create_bitmap_sprite(spr, 0x80);
 		assert(s != NULL);
@@ -478,7 +471,7 @@ gfx_draw_waves_sprite(int x, int y, uint mask, uint sprite,
 	id.sprite = spr;
 	id.mask = msk;
 	id.offset = mask_off;
-	sprite_ht_entry_t *entry = sprite_ht_store(&transp_sprite_cache, &id);
+	sprite_ht_entry_t *entry = sprite_ht_store(&sprite_cache, &id);
 	if (entry->value == NULL) {
 		sprite_t *s = gfx_create_transparent_sprite(spr, 0);
 		assert(s != NULL);
