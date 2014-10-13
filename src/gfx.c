@@ -366,7 +366,9 @@ gfx_draw_sprite(int x, int y, uint sprite, frame_t *dest)
 		entry->value = s;
 	}
 
-	sdl_draw_sprite(entry->value, x, y, dest);
+	x += entry->value->offset_x;
+	y += entry->value->offset_y;
+	sdl_draw_sprite(entry->value, x, y, 0, dest);
 }
 
 /* Draw the transparent sprite with data file index of
@@ -389,8 +391,11 @@ gfx_draw_transp_sprite(int x, int y, uint sprite, int use_off,
 		entry->value = s;
 	}
 
-	sdl_draw_transp_sprite(entry->value, x, y, use_off,
-			       y_off, dest);
+	if (use_off) {
+		x += entry->value->offset_x;
+		y += entry->value->offset_y;
+	}
+	sdl_draw_sprite(entry->value, x, y, y_off, dest);
 }
 
 /* Draw the masked sprite with given mask and sprite
@@ -425,7 +430,9 @@ gfx_draw_masked_sprite(int x, int y, uint mask, uint sprite, frame_t *dest)
 		gfx_free_sprite(m);
 	}
 
-	sdl_draw_sprite(entry->value, x, y, dest);
+	x += entry->value->offset_x;
+	y += entry->value->offset_y;
+	sdl_draw_sprite(entry->value, x, y, 0, dest);
 }
 
 /* Draw the overlay sprite with data file index of
@@ -449,7 +456,9 @@ gfx_draw_overlay_sprite(int x, int y, uint sprite, int y_off, frame_t *dest)
 		entry->value = s;
 	}
 
-	sdl_draw_overlay_sprite(entry->value, x, y, y_off, dest);
+	x += entry->value->offset_x;
+	y += entry->value->offset_y;
+	sdl_draw_sprite(entry->value, x, y, y_off, dest);
 }
 
 /* Draw the waves sprite with given mask and sprite
@@ -493,7 +502,9 @@ gfx_draw_waves_sprite(int x, int y, uint mask, uint sprite,
 		}
 	}
 
-	sdl_draw_sprite(entry->value, x, y, dest);
+	x += entry->value->offset_x;
+	y += entry->value->offset_y;
+	sdl_draw_sprite(entry->value, x, y, 0, dest);
 }
 
 

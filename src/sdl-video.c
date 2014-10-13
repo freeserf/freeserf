@@ -270,27 +270,20 @@ create_surface_from_sprite(const sprite_t *sprite)
 }
 
 void
-sdl_draw_transp_sprite(const sprite_t *sprite, int x, int y, int use_off, int y_off, frame_t *dest)
+sdl_draw_sprite(const sprite_t *sprite, int x, int y, int y_offset, frame_t *dest)
 {
-	int r;
-
 	x += dest->clip.x;
 	y += dest->clip.y;
 
-	if (use_off) {
-		x += sprite->offset_x;
-		y += sprite->offset_y;
-	}
-
 	SDL_Surface *surf = create_surface_from_sprite(sprite);
 
-	SDL_Rect src_rect = { 0, y_off, surf->w, surf->h - y_off };
-	SDL_Rect dest_rect = { x, y + y_off, 0, 0 };
+	SDL_Rect src_rect = { 0, y_offset, surf->w, surf->h - y_offset };
+	SDL_Rect dest_rect = { x, y + y_offset, 0, 0 };
 
 	SDL_SetClipRect(dest->surf, &dest->clip);
 
 	/* Blit sprite */
-	r = SDL_BlitSurface(surf, &src_rect, (SDL_Surface*)dest->surf, &dest_rect);
+	int r = SDL_BlitSurface(surf, &src_rect, (SDL_Surface*)dest->surf, &dest_rect);
 	if (r < 0) {
 		LOGE("sdl-video", "BlitSurface error: %s.", SDL_GetError());
 	}
@@ -301,64 +294,6 @@ sdl_draw_transp_sprite(const sprite_t *sprite, int x, int y, int use_off, int y_
 #if 0
 	/* Bounding box */
 	sdl_draw_rect(x, y + y_off, surf->w, surf->h - y_off, 72, dest);
-#endif
-}
-
-void
-sdl_draw_sprite(const sprite_t *sprite, int x, int y, frame_t *dest)
-{
-	int r;
-
-	x += sprite->offset_x + dest->clip.x;
-	y += sprite->offset_y + dest->clip.y;
-
-	SDL_Surface *surf = create_surface_from_sprite(sprite);
-
-	SDL_Rect dest_rect = { x, y, 0, 0 };
-
-	SDL_SetClipRect(dest->surf, &dest->clip);
-
-	/* Blit sprite */
-	r = SDL_BlitSurface(surf, NULL, (SDL_Surface*)dest->surf, &dest_rect);
-	if (r < 0) {
-		LOGE("sdl-video", "BlitSurface error: %s.", SDL_GetError());
-	}
-
-	/* Clean up */
-	SDL_FreeSurface(surf);
-
-#if 0
-	/* Bounding box */
-	sdl_draw_rect(x, y, surf->w, surf->h, 68, dest);
-#endif
-}
-
-void
-sdl_draw_overlay_sprite(const sprite_t *sprite, int x, int y, int y_off, frame_t *dest)
-{
-	int r;
-
-	x += sprite->offset_x + dest->clip.x;
-	y += sprite->offset_y + dest->clip.y;
-
-	SDL_Surface *surf = surf = create_surface_from_sprite(sprite);
-	SDL_Rect src_rect = { 0, y_off, surf->w, surf->h - y_off };
-	SDL_Rect dest_rect = { x, y + y_off, 0, 0 };
-
-	SDL_SetClipRect(dest->surf, &dest->clip);
-
-	/* Blit sprite */
-	r = SDL_BlitSurface(surf, &src_rect, (SDL_Surface*)dest->surf, &dest_rect);
-	if (r < 0) {
-		LOGE("sdl-video", "BlitSurface error: %s.", SDL_GetError());
-	}
-
-	/* Clean up */
-	SDL_FreeSurface(surf);
-
-#if 0
-	/* Bounding box */
-	sdl_draw_rect(x, y + y_off, surf->w, surf->h - y_off, 1, dest);
 #endif
 }
 
