@@ -1,6 +1,11 @@
 Freeserf
 ========
 
+Build status
+------------
+
+[![Build Status](https://travis-ci.org/freeserf/freeserf.svg?branch=master)](https://travis-ci.org/freeserf/freeserf)
+
 Play
 ------
 Copy the data file from the original game to the same directory as freeserf. Alternatively you can put the data file in `~/.local/share/freeserf`. The data file is called `SPAE.PA`, `SPAD.PA`, `SPAF.PA` or `SPAU.PA`, depending on the language of the game.
