@@ -22,6 +22,8 @@
 #ifndef _GFX_H
 #define _GFX_H
 
+#include "misc.h"
+
 #include "SDL.h"
 
 #define MAP_TILE_WIDTH   32
