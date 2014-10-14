@@ -37,6 +37,23 @@ typedef struct {
 	SDL_Rect clip;
 } frame_t;
 
+/* Sprite object. Immediately followed by RGBA data. */
+typedef struct {
+       int delta_x;
+       int delta_y;
+       int offset_x;
+       int offset_y;
+       uint width;
+       uint height;
+} sprite_t;
+
+typedef struct {
+	uint8_t r;
+	uint8_t g;
+	uint8_t b;
+	uint8_t a;
+} color_t;
+
 
 int gfx_init(int width, int height, int fullscreen);
 void gfx_deinit();
@@ -64,12 +81,5 @@ void gfx_draw_frame(int dx, int dy, frame_t *dest, int sx, int sy, frame_t *src,
 /* Screen functions */
 int gfx_set_fullscreen(int enable);
 int gfx_is_fullscreen();
-
-void gfx_set_palette(int palette);
-
-void gfx_unpack_transparent_sprite(void *dest, const void *src, size_t destlen, int offset);
-void gfx_unpack_overlay_sprite(void *dest, const void *src, size_t destlen);
-void gfx_unpack_mask_sprite(void *dest, const void *src, size_t destlen);
-
 
 #endif /* ! _GFX_H */

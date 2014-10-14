@@ -256,8 +256,4 @@ void data_unload();
 void *data_get_object(uint index, size_t *size);
 const dos_sprite_t *data_get_dos_sprite(uint index);
 
-void data_unpack_transparent_sprite(void *dest, const void *src, size_t destlen, int offset);
-void data_unpack_overlay_sprite(void *dest, const void *src, size_t destlen);
-void data_unpack_mask_sprite(void *dest, const void *src, size_t destlen);
-
 #endif /* ! _DATA_H */
