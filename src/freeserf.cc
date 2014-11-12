@@ -51,6 +51,8 @@ END_EXT_C
 #include <stdint.h>
 #endif
 
+#include "SDL.h"
+
 #define DEFAULT_SCREEN_WIDTH  800
 #define DEFAULT_SCREEN_HEIGHT 600
 

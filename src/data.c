@@ -200,3 +200,40 @@ data_file_read(const char *path, uint *size)
 	return data;
 }
 
+void
+data_sprite_free(sprite_t *sprite)
+{
+	if (NULL != sprite->data) {
+		free(sprite->data);
+		sprite->data = NULL;
+	}
+
+	free(sprite);
+}
+
+sprite_t *
+data_apply_mask(sprite_t *sprite, sprite_t *mask)
+{
+	sprite_t *masked = (sprite_t*)malloc(sizeof(sprite_t));
+	masked->width = mask->width;
+	masked->height = mask->height;
+	masked->offset_x = mask->offset_x;
+	masked->offset_y = mask->offset_y;
+	masked->delta_x = 0;
+	masked->delta_y = 0;
+	masked->data = malloc(mask->width * mask->height * 4);
+
+	uint32_t *pos = (uint32_t*)masked->data;
+	uint32_t *end = pos + mask->width * mask->height;
+	uint32_t *s_pos = (uint32_t*)sprite->data;
+	uint32_t *s_end = s_pos + sprite->width * sprite->height;
+	uint32_t *m_pos = (uint32_t*)mask->data;
+	while (pos < end) {
+		if (s_pos > s_end) {
+			s_pos = (uint32_t*)sprite->data;
+		}
+		*(pos++) = *(s_pos++) & *(m_pos++);
+	}
+
+	return masked;
+}

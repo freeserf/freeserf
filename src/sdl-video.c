@@ -126,6 +126,13 @@ sdl_create_surface(int width, int height)
 	return surf;
 }
 
+void
+video_actualize_clipping(frame_t *frame)
+{
+	SDL_Rect rect = {frame->clip.x, frame->clip.y, frame->clip.w, frame->clip.h};
+	SDL_SetClipRect((SDL_Surface*)frame->surf, &rect);
+}
+
 int
 sdl_set_resolution(int width, int height, int fullscreen)
 {
@@ -161,7 +168,7 @@ sdl_set_resolution(int width, int height, int fullscreen)
 	screen.clip.y = 0;
 	screen.clip.w = width;
 	screen.clip.h = height;
-	SDL_SetClipRect(screen.surf, &screen.clip);
+	video_actualize_clipping(&screen);
 
 	is_fullscreen = fullscreen;
 
@@ -237,7 +244,7 @@ create_surface_from_data(void *data, int width, int height)
 	SDL_Surface *surf =
 		SDL_CreateRGBSurfaceFrom(data, width, height,
 					 32, 4 * width,
-					 0xff, 0xff00, 0xff0000, 0xff000000);
+					 0x00FF0000, 0x0000FF00, 0x000000FF, 0xFF000000);
 	if (surf == NULL) {
 		LOGE("sdl-video", "Unable to create sprite surface: %s.",
 		     SDL_GetError());
@@ -261,8 +268,7 @@ create_surface_from_data(void *data, int width, int height)
 static SDL_Surface *
 create_surface_from_sprite(const sprite_t *sprite)
 {
-	void *data = (uint8_t *)sprite + sizeof(sprite_t);
-
+	void *data = sprite->data;
 	uint width = sprite->width;
 	uint height = sprite->height;
 
@@ -280,7 +286,7 @@ sdl_draw_sprite(const sprite_t *sprite, int x, int y, int y_offset, frame_t *des
 	SDL_Rect src_rect = { 0, y_offset, surf->w, surf->h - y_offset };
 	SDL_Rect dest_rect = { x, y + y_offset, 0, 0 };
 
-	SDL_SetClipRect(dest->surf, &dest->clip);
+	video_actualize_clipping(dest);
 
 	/* Blit sprite */
 	int r = SDL_BlitSurface(surf, &src_rect, (SDL_Surface*)dest->surf, &dest_rect);
@@ -306,27 +312,12 @@ sdl_draw_frame(int dx, int dy, frame_t *dest, int sx, int sy, frame_t *src, int 
 	SDL_Rect dest_rect = { x, y, 0, 0 };
 	SDL_Rect src_rect = { sx, sy, w, h };
 
-	SDL_SetClipRect(dest->surf, &dest->clip);
+	video_actualize_clipping(dest);
 
 	int r = SDL_BlitSurface((SDL_Surface*)src->surf, &src_rect, (SDL_Surface*)dest->surf, &dest_rect);
 	if (r < 0) {
 		LOGE("sdl-video", "BlitSurface error: %s", SDL_GetError());
 	}
-}
-
-void
-sdl_draw_rect(int x, int y, int width, int height, const color_t *color, frame_t *dest)
-{
-	SDL_SetClipRect(dest->surf, &dest->clip);
-
-	x += dest->clip.x;
-	y += dest->clip.y;
-
-	/* Draw rectangle. */
-	sdl_fill_rect(x, y, width, 1, color, dest);
-	sdl_fill_rect(x, y+height-1, width, 1, color, dest);
-	sdl_fill_rect(x, y, 1, height, color, dest);
-	sdl_fill_rect(x+width-1, y, 1, height, color, dest);
 }
 
 void
@@ -338,7 +329,7 @@ sdl_fill_rect(int x, int y, int width, int height, const color_t *color, frame_t
 		width, height
 	};
 
-	SDL_SetClipRect(dest->surf, &dest->clip);
+	video_actualize_clipping(dest);
 
 	/* Fill rectangle */
 	int r = SDL_FillRect((SDL_Surface*)dest->surf, &rect, SDL_MapRGBA(((SDL_Surface*)dest->surf)->format,

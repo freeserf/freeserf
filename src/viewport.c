@@ -31,6 +31,9 @@
 
 #include <assert.h>
 
+#define MAP_TILE_WIDTH   32
+#define MAP_TILE_HEIGHT  20
+
 #define MAP_TILE_TEXTURES  33
 #define MAP_TILE_MASKS     81
 
@@ -263,6 +266,7 @@ viewport_map_deinit()
 			gfx_frame_deinit(&landscape_tile[i].frame);
 		}
 		free(landscape_tile);
+		landscape_tile = NULL;
 	}
 }
 
@@ -593,15 +597,16 @@ draw_game_sprite(int x, int y, int index, frame_t *frame)
 static void
 draw_serf(int x, int y, int color, int head, int body, frame_t *frame)
 {
-	const dos_sprite_t *s_arms = data_get_dos_sprite(DATA_SERF_ARMS_BASE + body);
 	gfx_draw_transp_sprite(x, y, DATA_SERF_ARMS_BASE + body,
 			       1, 0, 0, frame);
 	gfx_draw_transp_sprite(x, y, DATA_SERF_TORSO_BASE + body,
 			       1, 0, color, frame);
 
 	if (head >= 0) {
-		x += s_arms->b_x;
-		y += s_arms->b_y;
+		int ax, ay;
+		gfx_get_sprite_offset(DATA_SERF_ARMS_BASE + body, &ax, &ay);
+		x += ax;
+		y += ay;
 		gfx_draw_transp_sprite(x, y, DATA_SERF_HEAD_BASE + head,
 				       1, 0, 0, frame);
 	}
@@ -619,9 +624,10 @@ draw_shadow_and_building_sprite(int x, int y, int index, frame_t *frame)
 static void
 draw_shadow_and_building_unfinished(int x, int y, int index, int progress, frame_t *frame)
 {
-	const dos_sprite_t *building = data_get_dos_sprite(DATA_MAP_OBJECT_BASE + index);
-	int h = ((building->h * progress) >> 16) + 1;
-	int y_off = building->h - h;
+	uint bw, bh;
+	gfx_get_sprite_size(DATA_MAP_OBJECT_BASE + index, &bw, &bh);
+	int h = ((bh * progress) >> 16) + 1;
+	int y_off = bh - h;
 
 	gfx_draw_overlay_sprite(x, y, DATA_MAP_SHADOW_BASE + index,
 				y_off, frame);

@@ -22,6 +22,7 @@
 #include "gui.h"
 #include "misc.h"
 
+#include <stdlib.h>
 
 /* Get the resulting value from a click on a slider bar. */
 int

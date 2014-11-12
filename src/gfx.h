@@ -22,38 +22,21 @@
 #ifndef _GFX_H
 #define _GFX_H
 
-#include "misc.h"
+#include "data.h"
 
-#include "SDL.h"
-
-#define MAP_TILE_WIDTH   32
-#define MAP_TILE_HEIGHT  20
-
+typedef struct {
+	int x;
+	int y;
+	int w;
+	int h;
+} rect_t;
 
 /* Frame. Keeps track of a specific rectangular area of a surface.
    Multiple frames can refer to the same surface. */
 typedef struct {
-	SDL_Surface *surf;
-	SDL_Rect clip;
+	void *surf;
+	rect_t clip;
 } frame_t;
-
-/* Sprite object. Immediately followed by RGBA data. */
-typedef struct {
-       int delta_x;
-       int delta_y;
-       int offset_x;
-       int offset_y;
-       uint width;
-       uint height;
-} sprite_t;
-
-typedef struct {
-	uint8_t r;
-	uint8_t g;
-	uint8_t b;
-	uint8_t a;
-} color_t;
-
 
 int gfx_init(int width, int height, int fullscreen);
 void gfx_deinit();
@@ -64,6 +47,8 @@ void gfx_draw_transp_sprite(int x, int y, uint sprite, int use_off, int y_off, i
 void gfx_draw_masked_sprite(int x, int y, uint mask, uint sprite, frame_t *dest);
 void gfx_draw_overlay_sprite(int x, int y, uint sprite, int y_off, frame_t *dest);
 void gfx_draw_waves_sprite(int x, int y, uint mask, uint sprite, int mask_off, frame_t *dest);
+void gfx_get_sprite_size(int sprite, uint *width, uint *height);
+void gfx_get_sprite_offset(int sprite, int *dx, int *dy);
 
 /* Graphics functions */
 void gfx_draw_rect(int x, int y, int width, int height, int color, frame_t *dest);

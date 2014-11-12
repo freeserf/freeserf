@@ -238,24 +238,45 @@
 
 #define DATA_CURSOR  3999
 
-
-/* Sprite header. In the data file this is immediately followed by sprite data. */
+// System and data source color representation
 typedef struct {
-	int8_t b_x;
-	int8_t b_y;
-	uint16_t w;
-	uint16_t h;
-	int16_t x;
-	int16_t y;
-} dos_sprite_t;
+	unsigned char r;
+	unsigned char g;
+	unsigned char b;
+	unsigned char a;
+} color_t;
+
+// System and data source sprite representation
+typedef struct {
+	int delta_x;
+	int delta_y;
+	int offset_x;
+	int offset_y;
+	uint width;
+	uint height;
+	void *data;			// Allways RGBA 32bit
+} sprite_t;
 
 int data_init(const char *path);
 int data_check(const char *path, char **load_path);
 int data_check_file(const char *path);
 int data_load(const char *path);
 void data_deinit();
+void *data_file_read(const char *path, uint *size);
 
 void *data_get_object(uint index, size_t *size);
-const dos_sprite_t *data_get_dos_sprite(uint index);
+
+sprite_t *data_sprite_for_index(uint index);
+sprite_t *data_transparent_sprite_for_index(uint index, int color_offset);
+sprite_t *data_overlay_sprite_for_index(uint index);
+sprite_t *data_mask_sprite_for_index(uint index);
+color_t data_get_color(uint index);
+void data_get_sprite_size(int sprite, uint *width, uint *height);
+void data_get_sprite_offset(int sprite, int *dx, int *dy);
+
+sprite_t *data_get_cursor();
+
+void data_sprite_free(sprite_t *sprite);
+sprite_t *data_apply_mask(sprite_t *sprite, sprite_t *mask);
 
 #endif /* ! _DATA_H */

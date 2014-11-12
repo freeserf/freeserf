@@ -45,7 +45,6 @@ void sdl_warp_mouse(int x, int y);
 
 void sdl_draw_sprite(const sprite_t *sprite, int x, int y, int y_offset, frame_t *dest);
 void sdl_draw_frame(int dx, int dy, frame_t *dest, int sx, int sy, frame_t *src, int w, int h);
-void sdl_draw_rect(int x, int y, int width, int height, const color_t *color, frame_t *dest);
 void sdl_fill_rect(int x, int y, int width, int height, const color_t *color, frame_t *dest);
 void sdl_swap_buffers();
 
