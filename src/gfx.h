@@ -64,7 +64,9 @@ void gfx_frame_deinit(frame_t *frame);
 void gfx_draw_frame(int dx, int dy, frame_t *dest, int sx, int sy, frame_t *src, int w, int h);
 
 /* Screen functions */
+void gfx_get_resolution(int *width, int *height);
 int gfx_set_fullscreen(int enable);
 int gfx_is_fullscreen();
+int gfx_is_fullscreen_possible();
 
 #endif /* ! _GFX_H */

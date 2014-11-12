@@ -1973,13 +1973,14 @@ draw_options_box(popup_box_t *popup, frame_t *frame)
 	draw_popup_icon(13, 50, 221, frame); /* Volume plus */
 
 	char volume[4] = {0};
-	sprintf(volume, "%d", audio_volume());
+	snprintf(volume, 4, "%d", audio_volume());
 	draw_green_string(8, 54, frame, volume);
 
-	draw_green_string(1, 70, frame, "Fullscreen");
-	draw_green_string(1, 79, frame, "video");
-
-	draw_popup_icon(13, 70, gfx_is_fullscreen() ? 288 : 220, frame); /* Fullscreen mode */
+	if (gfx_is_fullscreen_possible()) {
+		draw_green_string(1, 70, frame, "Fullscreen");
+		draw_green_string(1, 79, frame, "video");
+		draw_popup_icon(13, 70, gfx_is_fullscreen() ? 288 : 220, frame); /* Fullscreen mode */
+	}
 
 	const char *value = "All";
 	if (!BIT_TEST(interface->config, 3)) {

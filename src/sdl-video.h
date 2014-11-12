@@ -35,6 +35,7 @@ int sdl_set_resolution(int width, int height, int fullscreen);
 void sdl_get_resolution(int *width, int *height);
 int sdl_set_fullscreen(int enable);
 int sdl_is_fullscreen();
+int sdl_is_fullscreen_possible();
 
 frame_t *sdl_get_screen_frame();
 void sdl_frame_init(frame_t *frame, int x, int y, int width, int height, frame_t *dest);

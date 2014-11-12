@@ -410,7 +410,7 @@ game_loop()
           if (SDL_WINDOWEVENT_SIZE_CHANGED == event.window.event){
             int width = 0;
             int height = 0;
-            sdl_get_resolution(&width, &height);
+            gfx_get_resolution(&width, &height);
             sdl_set_resolution(width, height, gfx_is_fullscreen());
             gui_object_set_size(reinterpret_cast<gui_object_t*>(&interface), width, height);
           }
@@ -594,6 +594,7 @@ main(int argc, char *argv[])
 
   /* Initialize interface */
   interface_init(&interface);
+  gfx_get_resolution(&screen_width, &screen_height);
   gui_object_set_size(reinterpret_cast<gui_object_t*>(&interface),
       screen_width, screen_height);
   gui_object_set_displayed(reinterpret_cast<gui_object_t*>(&interface), 1);

@@ -178,7 +178,13 @@ sdl_set_resolution(int width, int height, int fullscreen)
 void
 sdl_get_resolution(int *width, int *height)
 {
-	SDL_GetWindowSize(window, width, height);
+	SDL_GL_GetDrawableSize(window, width, height);
+}
+
+int
+sdl_is_fullscreen_possible()
+{
+	return 1;
 }
 
 int

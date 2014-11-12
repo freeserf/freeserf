@@ -443,3 +443,15 @@ gfx_is_fullscreen()
 {
 	return sdl_is_fullscreen();
 }
+
+int
+gfx_is_fullscreen_possible()
+{
+	return sdl_is_fullscreen_possible();
+}
+
+void
+gfx_get_resolution(int *width, int *height)
+{
+	sdl_get_resolution(width, height);
+}
