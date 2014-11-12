@@ -280,7 +280,7 @@
 				>
 			</File>
 			<File
-				RelativePath="..\src\sdl-video.c"
+				RelativePath="..\src\video-sdl.c"
 				>
 			</File>
 			<File
@@ -414,7 +414,7 @@
 				>
 			</File>
 			<File
-				RelativePath="..\src\sdl-video.h"
+				RelativePath="..\src\video.h"
 				>
 			</File>
 			<File

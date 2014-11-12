@@ -23,7 +23,7 @@ freeserf_SOURCES = \
 	src/panel.c src/panel.h \
 	src/map.c src/map.h \
 	src/player.c src/player.h \
-	src/sdl-video.c src/sdl-video.h \
+	src/video-sdl.c src/video.h \
 	src/audio.h \
 	src/savegame.c src/savegame.h \
 	src/list.c src/list.h \

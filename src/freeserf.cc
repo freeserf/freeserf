@@ -26,7 +26,7 @@ BEGIN_EXT_C
   #include "interface.h"
   #include "gfx.h"
   #include "data.h"
-  #include "sdl-video.h"
+  #include "video.h"
   #include "log.h"
   #include "audio.h"
   #include "savegame.h"
@@ -246,7 +246,7 @@ game_loop()
               ev.button = drag_button;
               gui_object_handle_event(reinterpret_cast<gui_object_t*>(&interface), &ev);
 
-              sdl_warp_mouse(drag_x, drag_y);
+              video_warp_mouse(drag_x, drag_y);
 
               break;
             }
@@ -411,7 +411,7 @@ game_loop()
             int width = 0;
             int height = 0;
             gfx_get_resolution(&width, &height);
-            sdl_set_resolution(width, height, gfx_is_fullscreen());
+            video_set_resolution(width, height, gfx_is_fullscreen());
             gui_object_set_size(reinterpret_cast<gui_object_t*>(&interface), width, height);
           }
           break;
@@ -449,11 +449,11 @@ game_loop()
     /* Update and draw interface */
     interface_update(&interface);
 
-    frame_t *screen = sdl_get_screen_frame();
+    frame_t *screen = video_get_screen_frame();
     gui_object_redraw(GUI_OBJECT(&interface), screen);
 
     /* Swap video buffers */
-    sdl_swap_buffers();
+    video_swap_buffers();
 
     /* Reduce framerate to target if we finished too fast */
     int now = SDL_GetTicks();

@@ -20,7 +20,7 @@
  */
 
 #include "gfx.h"
-#include "sdl-video.h"
+#include "video.h"
 #include "log.h"
 
 #include <stdlib.h>
@@ -30,17 +30,17 @@ gfx_init(int width, int height, int fullscreen)
 {
 	LOGI("graphics", "Init...");
 
-	int r = sdl_init();
+	int r = video_init();
 	if (r < 0) return r;
 
 	LOGI("graphics", "Setting resolution to %ix%i...", width, height);
 
-	sdl_get_resolution(&width, &height);
-	r = sdl_set_resolution(width, height, fullscreen);
+	video_get_resolution(&width, &height);
+	r = video_set_resolution(width, height, fullscreen);
 	if (r < 0) return r;
 
 	sprite_t *sprite = data_get_cursor();
-	sdl_set_cursor(sprite);
+	video_set_cursor(sprite);
 	data_sprite_free(sprite);
 
 	return 0;
@@ -50,7 +50,7 @@ void
 gfx_deinit()
 {
 	gfx_clear_cache();
-	sdl_deinit();
+	video_deinit();
 }
 
 // Image tools
@@ -60,7 +60,7 @@ gfx_image_from_sprite(sprite_t *sprite)
 	image_t *image = (image_t*)malloc(sizeof(image_t));
 
 	image->sprite = sprite;
-	image->native_image = sdl_native_image_from_sprite(sprite);
+	image->native_image = video_native_image_from_sprite(sprite);
 
 	return image;
 }
@@ -73,7 +73,7 @@ gfx_image_free(image_t *image)
 	}
 
 	if (image->native_image != NULL) {
-		sdl_native_image_free(image->native_image);
+		video_native_image_free(image->native_image);
 	}
 
 	free(image);
@@ -82,7 +82,7 @@ gfx_image_free(image_t *image)
 void
 gfx_draw_image_to_frame(image_t *image, frame_t *frame, int x, int y, int y_offset)
 {
-	sdl_draw_image_to_frame(image, frame, x, y, y_offset);
+	video_draw_image_to_frame(image, frame, x, y, y_offset);
 }
 
 /* Draw the opaque sprite with data file index of
@@ -337,7 +337,7 @@ gfx_fill_rect(int x, int y, int width, int height, int color, frame_t *dest)
 {
 	color_t clr = data_get_color(color);
 
-	sdl_fill_rect(x, y, width, height, &clr, dest);
+	video_fill_rect(x, y, width, height, &clr, dest);
 }
 
 
@@ -347,14 +347,14 @@ gfx_fill_rect(int x, int y, int width, int height, int color, frame_t *dest)
 void
 gfx_frame_init(frame_t *frame, int x, int y, int width, int height, frame_t *dest)
 {
-	sdl_frame_init(frame, x, y, width, height, dest);
+	video_frame_init(frame, x, y, width, height, dest);
 }
 
 /* Deinitialize frame and backing surface. */
 void
 gfx_frame_deinit(frame_t *frame)
 {
-	sdl_frame_deinit(frame);
+	video_frame_deinit(frame);
 }
 
 /* Draw source frame from rectangle at sx, sy with given
@@ -362,7 +362,7 @@ gfx_frame_deinit(frame_t *frame)
 void
 gfx_draw_frame(int dx, int dy, frame_t *dest, int sx, int sy, frame_t *src, int w, int h)
 {
-	sdl_draw_frame(dx, dy, dest, sx, sy, src, w, h);
+	video_draw_frame(dx, dy, dest, sx, sy, src, w, h);
 }
 
 
@@ -370,24 +370,24 @@ gfx_draw_frame(int dx, int dy, frame_t *dest, int sx, int sy, frame_t *src, int 
 int
 gfx_set_fullscreen(int enable)
 {
-	return sdl_set_fullscreen(enable);
+	return video_set_fullscreen(enable);
 }
 
 /* Check whether fullscreen mode is enabled */
 int
 gfx_is_fullscreen()
 {
-	return sdl_is_fullscreen();
+	return video_is_fullscreen();
 }
 
 int
 gfx_is_fullscreen_possible()
 {
-	return sdl_is_fullscreen_possible();
+	return video_is_fullscreen_possible();
 }
 
 void
 gfx_get_resolution(int *width, int *height)
 {
-	sdl_get_resolution(width, height);
+	video_get_resolution(width, height);
 }

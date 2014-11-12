@@ -1,5 +1,5 @@
 /*
- * sdl-video.c - SDL graphics rendering
+ * video-sdl.c - SDL graphics rendering
  *
  * Copyright (C) 2013  Jon Lund Steffensen <jonlst@gmail.com>
  *
@@ -19,7 +19,7 @@
  * along with freeserf.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "sdl-video.h"
+#include "video.h"
 #include "version.h"
 #include "log.h"
 
@@ -47,7 +47,7 @@ static int is_fullscreen;
 static SDL_Cursor *cursor = NULL;
 
 int
-sdl_init()
+video_init()
 {
 	/* Initialize defaults and Video subsystem */
 	if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO) < 0) {
@@ -100,14 +100,14 @@ sdl_init()
 }
 
 void
-sdl_deinit()
+video_deinit()
 {
-	sdl_set_cursor(NULL);
+	video_set_cursor(NULL);
 	SDL_Quit();
 }
 
 static SDL_Surface *
-sdl_create_surface(int width, int height)
+video_create_surface(int width, int height)
 {
 	SDL_Surface *surf = SDL_CreateRGBSurface(0, width, height, bpp,
 						 Rmask, Gmask, Bmask, Amask);
@@ -127,7 +127,7 @@ video_actualize_clipping(frame_t *frame)
 }
 
 int
-sdl_set_resolution(int width, int height, int fullscreen)
+video_set_resolution(int width, int height, int fullscreen)
 {
 	/* Set fullscreen mode */
 	int r = SDL_SetWindowFullscreen(window, fullscreen ? SDL_WINDOW_FULLSCREEN_DESKTOP : 0);
@@ -138,7 +138,7 @@ sdl_set_resolution(int width, int height, int fullscreen)
 
 	/* Allocate new screen surface and texture */
 	if (screen.surf != NULL) SDL_FreeSurface((SDL_Surface*)screen.surf);
-	screen.surf = sdl_create_surface(width, height);
+	screen.surf = video_create_surface(width, height);
 
 	if (screen_texture != NULL) SDL_DestroyTexture(screen_texture);
 	screen_texture = SDL_CreateTexture(renderer, pixel_format,
@@ -169,42 +169,42 @@ sdl_set_resolution(int width, int height, int fullscreen)
 }
 
 void
-sdl_get_resolution(int *width, int *height)
+video_get_resolution(int *width, int *height)
 {
 	SDL_GL_GetDrawableSize(window, width, height);
 }
 
 int
-sdl_is_fullscreen_possible()
+video_is_fullscreen_possible()
 {
 	return 1;
 }
 
 int
-sdl_set_fullscreen(int enable)
+video_set_fullscreen(int enable)
 {
-	frame_t *screen = sdl_get_screen_frame();
-	int width = sdl_frame_get_width(screen);
-	int height = sdl_frame_get_height(screen);
-	return sdl_set_resolution(width, height, enable);
+	frame_t *screen = video_get_screen_frame();
+	int width = video_frame_get_width(screen);
+	int height = video_frame_get_height(screen);
+	return video_set_resolution(width, height, enable);
 }
 
 int
-sdl_is_fullscreen()
+video_is_fullscreen()
 {
 	return is_fullscreen;
 }
 
 frame_t *
-sdl_get_screen_frame()
+video_get_screen_frame()
 {
 	return &screen;
 }
 
 void
-sdl_frame_init(frame_t *frame, int x, int y, int width, int height, frame_t *dest)
+video_frame_init(frame_t *frame, int x, int y, int width, int height, frame_t *dest)
 {
-	frame->surf = (dest != NULL) ? dest->surf : sdl_create_surface(width, height);
+	frame->surf = (dest != NULL) ? dest->surf : video_create_surface(width, height);
 	frame->clip.x = x;
 	frame->clip.y = y;
 	frame->clip.w = width;
@@ -212,31 +212,31 @@ sdl_frame_init(frame_t *frame, int x, int y, int width, int height, frame_t *des
 }
 
 void
-sdl_frame_deinit(frame_t *frame)
+video_frame_deinit(frame_t *frame)
 {
 	SDL_FreeSurface((SDL_Surface*)frame->surf);
 }
 
 int
-sdl_frame_get_width(const frame_t *frame)
+video_frame_get_width(const frame_t *frame)
 {
 	return frame->clip.w;
 }
 
 int
-sdl_frame_get_height(const frame_t *frame)
+video_frame_get_height(const frame_t *frame)
 {
 	return frame->clip.h;
 }
 
 void
-sdl_warp_mouse(int x, int y)
+video_warp_mouse(int x, int y)
 {
 	SDL_WarpMouseInWindow(NULL, x, y);
 }
 
 void *
-sdl_native_image_from_sprite(const sprite_t *sprite)
+video_native_image_from_sprite(const sprite_t *sprite)
 {
 	/* Create sprite surface */
 	SDL_Surface *sprite_surf =
@@ -265,13 +265,13 @@ sdl_native_image_from_sprite(const sprite_t *sprite)
 }
 
 void
-sdl_native_image_free(void *native_image)
+video_native_image_free(void *native_image)
 {
 	SDL_FreeSurface((SDL_Surface*)native_image);
 }
 
 void
-sdl_draw_image_to_frame(image_t *image, frame_t *frame, int x, int y, int y_offset)
+video_draw_image_to_frame(image_t *image, frame_t *frame, int x, int y, int y_offset)
 {
 	x += frame->clip.x;
 	y += frame->clip.y;
@@ -289,7 +289,7 @@ sdl_draw_image_to_frame(image_t *image, frame_t *frame, int x, int y, int y_offs
 }
 
 void
-sdl_draw_frame(int dx, int dy, frame_t *dest, int sx, int sy, frame_t *src, int w, int h)
+video_draw_frame(int dx, int dy, frame_t *dest, int sx, int sy, frame_t *src, int w, int h)
 {
 	int x = dx + dest->clip.x;
 	int y = dy + dest->clip.y;
@@ -306,7 +306,7 @@ sdl_draw_frame(int dx, int dy, frame_t *dest, int sx, int sy, frame_t *src, int 
 }
 
 void
-sdl_fill_rect(int x, int y, int width, int height, const color_t *color, frame_t *dest)
+video_fill_rect(int x, int y, int width, int height, const color_t *color, frame_t *dest)
 {
 	SDL_Rect rect = {
 		x + dest->clip.x,
@@ -325,7 +325,7 @@ sdl_fill_rect(int x, int y, int width, int height, const color_t *color, frame_t
 }
 
 void
-sdl_swap_buffers()
+video_swap_buffers()
 {
 	SDL_UpdateTexture(screen_texture, NULL,
 			  ((SDL_Surface*)screen.surf)->pixels,
@@ -337,7 +337,7 @@ sdl_swap_buffers()
 }
 
 void
-sdl_set_cursor(const sprite_t *sprite)
+video_set_cursor(const sprite_t *sprite)
 {
 	if (cursor != NULL) {
 		SDL_SetCursor(NULL);
@@ -347,7 +347,7 @@ sdl_set_cursor(const sprite_t *sprite)
 
 	if (sprite == NULL) return;
 
-	SDL_Surface *surface = (SDL_Surface*)sdl_native_image_from_sprite(sprite);
+	SDL_Surface *surface = (SDL_Surface*)video_native_image_from_sprite(sprite);
 	cursor = SDL_CreateColorCursor(surface, 8, 8);
 	SDL_SetCursor(cursor);
 }
