@@ -853,7 +853,7 @@ load_serf_animation_table(interface_t *interface)
 	   order in the data file.
 
 	   * The first uint32 is the byte length of the rest
-	   of the table (skipped below).
+	   of the table.
 	   * Next is 199 uint32s that are offsets from the start
 	   of this table to an animation table (one for each
 	   animation).
@@ -863,12 +863,23 @@ load_serf_animation_table(interface_t *interface)
 	   sprite. Second byte is a signed horizontal sprite
 	   offset. Third byte is a signed vertical offset.
 	*/
-	interface->serf_animation_table = ((uint32_t *)data_get_object(DATA_SERF_ANIMATION_TABLE, NULL)) + 1;
+
+	size_t size = 0;
+	interface->serf_animation_table = (uint32_t *)data_get_object(DATA_SERF_ANIMATION_TABLE, &size);
+	if (NULL == interface->serf_animation_table) {
+		return;
+	}
 
 	/* Endianess convert from big endian. */
-	for (int i = 0; i < 199; i++) {
+	for (int i = 0; i < 200; i++) {
 		interface->serf_animation_table[i] = be32toh(interface->serf_animation_table[i]);
 	}
+
+	if (size != *interface->serf_animation_table) {
+		// TODO: report and assert
+	}
+
+	interface->serf_animation_table++;
 }
 
 void
