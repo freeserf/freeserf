@@ -38,6 +38,11 @@ typedef struct {
 	rect_t clip;
 } frame_t;
 
+typedef struct {
+	sprite_t *sprite;
+	void *native_image;
+} image_t;
+
 int gfx_init(int width, int height, int fullscreen);
 void gfx_deinit();
 
@@ -53,6 +58,11 @@ void gfx_get_sprite_offset(int sprite, int *dx, int *dy);
 /* Graphics functions */
 void gfx_draw_rect(int x, int y, int width, int height, int color, frame_t *dest);
 void gfx_fill_rect(int x, int y, int width, int height, int color, frame_t *dest);
+
+/* Image functions */
+image_t *gfx_image_from_sprite(sprite_t *sprite);
+void gfx_image_free(image_t *image);
+void gfx_draw_image_to_frame(image_t *image, frame_t *frame, int x, int y, int y_offset);
 
 /* Text functions */
 void gfx_draw_string(int x, int y, int color, int shadow, frame_t *dest, const char *str);
@@ -70,8 +80,8 @@ int gfx_is_fullscreen();
 int gfx_is_fullscreen_possible();
 
 /* Image caching functions */
-void gfx_add_image_to_cache(int sprite, int mask, int offset, sprite_t *image);
-sprite_t *gfx_get_image_from_cache(int sprite, int mask, int offset);
+void gfx_add_image_to_cache(int sprite, int mask, int offset, image_t *image);
+image_t *gfx_get_image_from_cache(int sprite, int mask, int offset);
 void gfx_clear_cache();
 
 #endif /* ! _GFX_H */

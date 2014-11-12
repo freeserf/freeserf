@@ -235,71 +235,57 @@ sdl_warp_mouse(int x, int y)
 	SDL_WarpMouseInWindow(NULL, x, y);
 }
 
-
-static SDL_Surface *
-create_surface_from_data(void *data, int width, int height)
+void *
+sdl_native_image_from_sprite(const sprite_t *sprite)
 {
 	/* Create sprite surface */
-	SDL_Surface *surf =
-		SDL_CreateRGBSurfaceFrom(data, width, height,
-					 32, 4 * width,
+	SDL_Surface *sprite_surf =
+		SDL_CreateRGBSurfaceFrom(sprite->data, (int)sprite->width, (int)sprite->height,
+					 32, (int)sprite->width*4,
 					 0x00FF0000, 0x0000FF00, 0x000000FF, 0xFF000000);
-	if (surf == NULL) {
+	if (sprite_surf == NULL) {
 		LOGE("sdl-video", "Unable to create sprite surface: %s.",
 		     SDL_GetError());
 		exit(EXIT_FAILURE);
 	}
 
 	/* Covert to screen format */
-	SDL_Surface *surf_screen =
-		SDL_ConvertSurface(surf, ((SDL_Surface*)screen.surf)->format, 0);
-	if (surf_screen == NULL) {
+	SDL_Surface *surf = NULL;
+
+	surf = SDL_ConvertSurfaceFormat(sprite_surf, pixel_format, 0);
+	if (surf == NULL) {
 		LOGE("sdl-video", "Unable to convert sprite surface: %s.",
 		     SDL_GetError());
 		exit(EXIT_FAILURE);
 	}
 
-	SDL_FreeSurface(surf);
+	SDL_FreeSurface(sprite_surf);
 
-	return surf_screen;
-}
-
-static SDL_Surface *
-create_surface_from_sprite(const sprite_t *sprite)
-{
-	void *data = sprite->data;
-	uint width = sprite->width;
-	uint height = sprite->height;
-
-	return create_surface_from_data(data, width, height);
+	return surf;
 }
 
 void
-sdl_draw_sprite(const sprite_t *sprite, int x, int y, int y_offset, frame_t *dest)
+sdl_native_image_free(void *native_image)
 {
-	x += dest->clip.x;
-	y += dest->clip.y;
+	SDL_FreeSurface((SDL_Surface*)native_image);
+}
 
-	SDL_Surface *surf = create_surface_from_sprite(sprite);
+void
+sdl_draw_image_to_frame(image_t *image, frame_t *frame, int x, int y, int y_offset)
+{
+	x += frame->clip.x;
+	y += frame->clip.y;
 
-	SDL_Rect src_rect = { 0, y_offset, surf->w, surf->h - y_offset };
-	SDL_Rect dest_rect = { x, y + y_offset, 0, 0 };
+	SDL_Rect dest_rect = { x, y + y_offset, x + (int)image->sprite->width, y + (int)image->sprite->height - y_offset};
+	SDL_Rect src_rect = { 0, y_offset, (int)image->sprite->width, (int)image->sprite->height - y_offset};
 
-	video_actualize_clipping(dest);
+	video_actualize_clipping(frame);
 
 	/* Blit sprite */
-	int r = SDL_BlitSurface(surf, &src_rect, (SDL_Surface*)dest->surf, &dest_rect);
+	int r = SDL_BlitSurface((SDL_Surface*)image->native_image, &src_rect, (SDL_Surface*)frame->surf, &dest_rect);
 	if (r < 0) {
 		LOGE("sdl-video", "BlitSurface error: %s.", SDL_GetError());
 	}
-
-	/* Clean up */
-	SDL_FreeSurface(surf);
-
-#if 0
-	/* Bounding box */
-	sdl_draw_rect(x, y + y_off, surf->w, surf->h - y_off, 72, dest);
-#endif
 }
 
 void
@@ -361,7 +347,7 @@ sdl_set_cursor(const sprite_t *sprite)
 
 	if (sprite == NULL) return;
 
-	SDL_Surface *surface = create_surface_from_sprite(sprite);
+	SDL_Surface *surface = (SDL_Surface*)sdl_native_image_from_sprite(sprite);
 	cursor = SDL_CreateColorCursor(surface, 8, 8);
 	SDL_SetCursor(cursor);
 }

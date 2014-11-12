@@ -21,23 +21,23 @@
 
 #include "gfx.h"
 #include "sdl-video.h"
-#include "data.h"
 #include "log.h"
 
-#include <assert.h>
 #include <stdlib.h>
-#include <string.h>
 
 int
 gfx_init(int width, int height, int fullscreen)
 {
+	LOGI("graphics", "Init...");
+
 	int r = sdl_init();
-	if (r < 0) return -1;
+	if (r < 0) return r;
 
 	LOGI("graphics", "Setting resolution to %ix%i...", width, height);
 
+	sdl_get_resolution(&width, &height);
 	r = sdl_set_resolution(width, height, fullscreen);
-	if (r < 0) return -1;
+	if (r < 0) return r;
 
 	sprite_t *sprite = data_get_cursor();
 	sdl_set_cursor(sprite);
@@ -53,22 +53,56 @@ gfx_deinit()
 	sdl_deinit();
 }
 
+// Image tools
+image_t *
+gfx_image_from_sprite(sprite_t *sprite)
+{
+	image_t *image = (image_t*)malloc(sizeof(image_t));
+
+	image->sprite = sprite;
+	image->native_image = sdl_native_image_from_sprite(sprite);
+
+	return image;
+}
+
+void
+gfx_image_free(image_t *image)
+{
+	if (image->sprite != NULL) {
+		data_sprite_free(image->sprite);
+	}
+
+	if (image->native_image != NULL) {
+		sdl_native_image_free(image->native_image);
+	}
+
+	free(image);
+}
+
+void
+gfx_draw_image_to_frame(image_t *image, frame_t *frame, int x, int y, int y_offset)
+{
+	sdl_draw_image_to_frame(image, frame, x, y, y_offset);
+}
 
 /* Draw the opaque sprite with data file index of
    sprite at x, y in dest frame. */
 void
 gfx_draw_sprite(int x, int y, uint sprite, frame_t *dest)
 {
-	sprite_t *image = gfx_get_image_from_cache(sprite, 0, 0);
+	image_t *image = gfx_get_image_from_cache(sprite, 0, 0);
 	if (image == NULL) {
-		image = data_sprite_for_index(sprite);
-		assert(image != NULL);
+		sprite_t *spr = data_sprite_for_index(sprite);
+		if (spr == NULL) {
+			return;
+		}
+		image = gfx_image_from_sprite(spr);
 		gfx_add_image_to_cache(sprite, 0, 0, image);
 	}
 
-	x += image->offset_x;
-	y += image->offset_y;
-	sdl_draw_sprite(image, x, y, 0, dest);
+	x += image->sprite->offset_x;
+	y += image->sprite->offset_y;
+	gfx_draw_image_to_frame(image, dest, x, y, 0);
 }
 
 /* Draw the transparent sprite with data file index of
@@ -77,18 +111,22 @@ void
 gfx_draw_transp_sprite(int x, int y, uint sprite, int use_off,
 		       int y_off, int color_off, frame_t *dest)
 {
-	sprite_t *image = gfx_get_image_from_cache(sprite, 0, color_off);
+	image_t *image = gfx_get_image_from_cache(sprite, 0, color_off);
 	if (image == NULL) {
-		image = data_transparent_sprite_for_index(sprite, color_off);
-		assert(image != NULL);
+		sprite_t *spr = data_transparent_sprite_for_index(sprite, color_off);
+		if (spr == NULL) {
+			return;
+		}
+		image = gfx_image_from_sprite(spr);
 		gfx_add_image_to_cache(sprite, 0, color_off, image);
 	}
 
 	if (use_off) {
-		x += image->offset_x;
-		y += image->offset_y;
+		x += image->sprite->offset_x;
+		y += image->sprite->offset_y;
 	}
-	sdl_draw_sprite(image, x, y, y_off, dest);
+
+	gfx_draw_image_to_frame(image, dest, x, y, y_off);
 }
 
 /* Draw the masked sprite with given mask and sprite
@@ -96,26 +134,29 @@ gfx_draw_transp_sprite(int x, int y, uint sprite, int use_off,
 void
 gfx_draw_masked_sprite(int x, int y, uint mask, uint sprite, frame_t *dest)
 {
-	sprite_t *image = gfx_get_image_from_cache(sprite, mask, 0);
+	image_t *image = gfx_get_image_from_cache(sprite, mask, 0);
 	if (image == NULL) {
-		sprite_t *s = data_sprite_for_index(sprite);
-		assert(s != NULL);
+		sprite_t *spr = data_sprite_for_index(sprite);
+		if (NULL == spr) {
+			return;
+		}
+		sprite_t *msk = data_mask_sprite_for_index(mask);
+		if (msk == NULL) {
+			data_sprite_free(spr);
+			return;
+		}
 
-		sprite_t *m = data_mask_sprite_for_index(mask);
-		assert(m != NULL);
-
-		image = data_apply_mask(s, m);
-		assert(image != NULL);
-
+		sprite_t *masked = data_apply_mask(spr, msk);
+		image = gfx_image_from_sprite(masked);
 		gfx_add_image_to_cache(sprite, mask, 0, image);
 
-		data_sprite_free(s);
-		data_sprite_free(m);
+		data_sprite_free(spr);
+		data_sprite_free(msk);
 	}
 
-	x += image->offset_x;
-	y += image->offset_y;
-	sdl_draw_sprite(image, x, y, 0, dest);
+	x += image->sprite->offset_x;
+	y += image->sprite->offset_y;
+	gfx_draw_image_to_frame(image, dest, x, y, 0);
 }
 
 /* Draw the overlay sprite with data file index of
@@ -125,16 +166,20 @@ gfx_draw_masked_sprite(int x, int y, uint mask, uint sprite, frame_t *dest)
 void
 gfx_draw_overlay_sprite(int x, int y, uint sprite, int y_off, frame_t *dest)
 {
-	sprite_t *image = gfx_get_image_from_cache(sprite, 0, 0);
+	image_t *image = gfx_get_image_from_cache(sprite, 0, 0);
 	if (image == NULL) {
-		image = data_overlay_sprite_for_index(sprite);
-		assert(image != NULL);
+		sprite_t *spr = data_overlay_sprite_for_index(sprite);
+		if (spr == NULL) {
+			return;
+		}
+		image = gfx_image_from_sprite(spr);
 		gfx_add_image_to_cache(sprite, 0, 0, image);
 	}
 
-	x += image->offset_x;
-	y += image->offset_y;
-	sdl_draw_sprite(image, x, y, y_off, dest);
+	x += image->sprite->offset_x;
+	y += image->sprite->offset_y;
+
+	gfx_draw_image_to_frame(image, dest, x, y, y_off);
 }
 
 /* Draw the waves sprite with given mask and sprite
@@ -148,31 +193,29 @@ gfx_draw_waves_sprite(int x, int y, uint mask, uint sprite,
 		return;
 	}
 
-	sprite_t *image = gfx_get_image_from_cache(sprite, mask, 0);
+	image_t *image = gfx_get_image_from_cache(sprite, mask, 0);
 	if (image == NULL) {
-		sprite_t *s = data_transparent_sprite_for_index(sprite, 0);
-		assert(s != NULL);
-
-		sprite_t *m = NULL;
-		if (mask > 0) {
-			m = data_mask_sprite_for_index(mask);
-			assert(m != NULL);
-
-			image = data_apply_mask(s, m);
-			assert(masked != NULL);
-
-			data_sprite_free(s);
-			data_sprite_free(m);
-		} else {
-			image = s;
+		sprite_t *spr = data_transparent_sprite_for_index(sprite, 0);
+		if (spr == NULL) {
+			return;
+		}
+		sprite_t *msk = data_mask_sprite_for_index(mask);
+		if (msk == NULL) {
+			data_sprite_free(spr);
+			return;
 		}
 
+		sprite_t *masked = data_apply_mask(spr, msk);
+		image = gfx_image_from_sprite(masked);
 		gfx_add_image_to_cache(sprite, mask, 0, image);
+
+		data_sprite_free(spr);
+		data_sprite_free(msk);
 	}
 
-	x += image->offset_x;
-	y += image->offset_y;
-	sdl_draw_sprite(image, x, y, 0, dest);
+	x += image->sprite->offset_x;
+	y += image->sprite->offset_y;
+	gfx_draw_image_to_frame(image, dest, x, y, 0);
 }
 
 

@@ -45,11 +45,11 @@ gfx_image_id(int sprite, int mask, int offset)
   return strdup(str);
 }
 
-typedef std::map<std::string, sprite_t *> image_cache_t;
+typedef std::map<std::string, image_t *> image_cache_t;
 image_cache_t image_cache;
 
 void
-gfx_add_image_to_cache(int sprite, int mask, int offset, sprite_t *image)
+gfx_add_image_to_cache(int sprite, int mask, int offset, image_t *image)
 {
   char *str = gfx_image_id(sprite, mask, offset);
   std::string key = str;
@@ -57,7 +57,7 @@ gfx_add_image_to_cache(int sprite, int mask, int offset, sprite_t *image)
   image_cache[key] = image;
 }
 
-sprite_t *
+image_t *
 gfx_get_image_from_cache(int sprite, int mask, int offset)
 {
   char *str = gfx_image_id(sprite, mask, offset);
@@ -73,7 +73,7 @@ gfx_get_image_from_cache(int sprite, int mask, int offset)
 void gfx_clear_cache()
 {
   while(!image_cache.empty()) {
-    data_sprite_free(image_cache.begin()->second);
+    gfx_image_free(image_cache.begin()->second);
     image_cache.erase(image_cache.begin());
   }
 }

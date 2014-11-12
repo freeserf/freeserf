@@ -22,12 +22,7 @@
 #ifndef _SDL_VIDEO_H
 #define _SDL_VIDEO_H
 
-#ifdef HAVE_STDINT_H
-#include <stdint.h>
-#endif
-
 #include "gfx.h"
-
 
 int sdl_init();
 void sdl_deinit();
@@ -44,11 +39,14 @@ int sdl_frame_get_width(const frame_t *frame);
 int sdl_frame_get_height(const frame_t *frame);
 void sdl_warp_mouse(int x, int y);
 
-void sdl_draw_sprite(const sprite_t *sprite, int x, int y, int y_offset, frame_t *dest);
 void sdl_draw_frame(int dx, int dy, frame_t *dest, int sx, int sy, frame_t *src, int w, int h);
 void sdl_fill_rect(int x, int y, int width, int height, const color_t *color, frame_t *dest);
 void sdl_swap_buffers();
 
 void sdl_set_cursor(const sprite_t *sprite);
+
+void *sdl_native_image_from_sprite(const sprite_t *sprite);
+void sdl_native_image_free(void *native_image);
+void sdl_draw_image_to_frame(image_t *image, frame_t *frame, int x, int y, int y_offset);
 
 #endif /* ! _SDL_VIDEO_H */
