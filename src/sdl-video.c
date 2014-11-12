@@ -19,23 +19,18 @@
  * along with freeserf.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <stdio.h>
-#include <stdlib.h>
-#ifdef HAVE_STDINT_H
-#include <stdint.h>
+#include "sdl-video.h"
+#include "version.h"
+#include "log.h"
+
+#ifdef HAVE_CONFIG_H
+# include <config.h>
 #endif
-#include <string.h>
+
+#include <stdlib.h>
 #include <signal.h>
 
 #include "SDL.h"
-
-#include "sdl-video.h"
-#include "gfx.h"
-#include "misc.h"
-#include "version.h"
-#include "log.h"
-#include "data.h"
-
 
 static SDL_Window *window;
 static SDL_Renderer *renderer;
@@ -49,9 +44,7 @@ static Uint32 pixel_format = SDL_PIXELFORMAT_RGBA8888;
 
 static frame_t screen;
 static int is_fullscreen;
-static SDL_Color pal_colors[256];
 static SDL_Cursor *cursor = NULL;
-
 
 int
 sdl_init()
@@ -355,18 +348,6 @@ sdl_swap_buffers()
 	SDL_RenderClear(renderer);
 	SDL_RenderCopy(renderer, screen_texture, NULL, NULL);
 	SDL_RenderPresent(renderer);
-}
-
-void
-sdl_set_palette(const uint8_t *palette)
-{
-	/* Fill palette */
-	for (int i = 0; i < 256; i++) {
-		pal_colors[i].r = palette[i*3];
-		pal_colors[i].g = palette[i*3+1];
-		pal_colors[i].b = palette[i*3+2];
-		pal_colors[i].a = SDL_ALPHA_OPAQUE;
-	}
 }
 
 void

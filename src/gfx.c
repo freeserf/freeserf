@@ -292,11 +292,9 @@ gfx_draw_rect(int x, int y, int width, int height, int color, frame_t *dest)
 void
 gfx_fill_rect(int x, int y, int width, int height, int color, frame_t *dest)
 {
-	uint8_t *palette = (uint8_t*)data_get_object(DATA_PALETTE_GAME, NULL);
-	color_t c = { palette[3*color+0], palette[3*color+1],
-		      palette[3*color+2], 0xff };
+	color_t clr = data_get_color(color);
 
-	sdl_fill_rect(x, y, width, height, &c, dest);
+	sdl_fill_rect(x, y, width, height, &clr, dest);
 }
 
 
