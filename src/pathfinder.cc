@@ -71,7 +71,7 @@ heuristic_cost(map_pos_t start, map_pos_t end)
   int dist_row = (MAP_POS_ROW(start) - MAP_POS_ROW(end)) & game.map.row_mask;
   if (dist_row >= static_cast<int>(game.map.rows/2.0)) dist_row -= game.map.rows;
 
-  int h_diff = abs(MAP_HEIGHT(start) - MAP_HEIGHT(end));
+  int h_diff = abs((int)MAP_HEIGHT(start) - (int)MAP_HEIGHT(end));
   int dist = 0;
 
   if ((dist_col > 0 && dist_row > 0) ||
@@ -88,7 +88,7 @@ static uint
 actual_cost(map_pos_t pos, dir_t dir)
 {
   map_pos_t other_pos = MAP_MOVE(pos, dir);
-  int h_diff = abs(MAP_HEIGHT(pos) - MAP_HEIGHT(other_pos));
+  int h_diff = abs((int)MAP_HEIGHT(pos) - (int)MAP_HEIGHT(other_pos));
   return walk_cost[h_diff];
 }
 
