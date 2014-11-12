@@ -1148,13 +1148,14 @@ draw_water_waves(map_pos_t pos, int x, int y, frame_t *frame)
 	int sprite = DATA_MAP_WAVES_BASE + (((pos ^ 5) + (game.tick >> 3)) & 0xf);
 
 	if (MAP_TYPE_DOWN(pos) < 4 && MAP_TYPE_UP(pos) < 4) {
-		gfx_draw_waves_sprite(x - 16, y, 0, sprite, 0, frame);
-	} else if (MAP_TYPE_DOWN(pos) < 4) {
-		int mask = DATA_MAP_MASK_DOWN_BASE + 40;
-		gfx_draw_waves_sprite(x, y, mask, sprite, 16, frame);
-	} else {
+		gfx_draw_waves_sprite(x - 16, y, 0, sprite, frame);
+	}
+	else if (MAP_TYPE_DOWN(pos) < 4) {
+		gfx_draw_waves_sprite(x, y, 0, sprite, frame);
+	}
+	else {
 		int mask = DATA_MAP_MASK_UP_BASE + 40;
-		gfx_draw_waves_sprite(x - 16, y, mask, sprite, 0, frame);
+		gfx_draw_waves_sprite(x - 16, y, mask, sprite, frame);
 	}
 }
 

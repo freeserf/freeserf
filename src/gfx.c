@@ -247,12 +247,12 @@ gfx_draw_overlay_sprite(int x, int y, uint sprite, int y_off, frame_t *dest)
    indices at x, y in dest frame. */
 void
 gfx_draw_waves_sprite(int x, int y, uint mask, uint sprite,
-		      int mask_off, frame_t *dest)
+		      frame_t *dest)
 {
 	sprite_id_t id;
 	id.sprite = sprite;
 	id.mask = mask;
-	id.offset = mask_off;
+	id.offset = 0;
 	sprite_ht_entry_t *entry = sprite_ht_store(&sprite_cache, &id);
 	if (entry->value == NULL) {
 		sprite_t *s = data_transparent_sprite_for_index(sprite, 0);

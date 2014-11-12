@@ -46,7 +46,7 @@ void gfx_draw_sprite(int x, int y, uint sprite, frame_t *dest);
 void gfx_draw_transp_sprite(int x, int y, uint sprite, int use_off, int y_off, int color_off, frame_t *dest);
 void gfx_draw_masked_sprite(int x, int y, uint mask, uint sprite, frame_t *dest);
 void gfx_draw_overlay_sprite(int x, int y, uint sprite, int y_off, frame_t *dest);
-void gfx_draw_waves_sprite(int x, int y, uint mask, uint sprite, int mask_off, frame_t *dest);
+void gfx_draw_waves_sprite(int x, int y, uint mask, uint sprite, frame_t *dest);
 void gfx_get_sprite_size(int sprite, uint *width, uint *height);
 void gfx_get_sprite_offset(int sprite, int *dx, int *dy);
 
