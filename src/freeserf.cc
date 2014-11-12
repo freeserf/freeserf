@@ -464,122 +464,6 @@ game_loop()
   }
 }
 
-#define MAX_DATA_PATH      1024
-
-/* Load data file from path is non-NULL, otherwise search in
-   various standard paths. */
-static int
-load_data_file(const char *path)
-{
-  const char *default_data_file[] = {
-    "SPAE.PA", /* English */
-    "SPAF.PA", /* French */
-    "SPAD.PA", /* German */
-    "SPAU.PA", /* Engish (US) */
-    NULL
-  };
-
-  /* Use specified path. If something was specified
-     but not found, this function should fail without
-     looking anywhere else. */
-  if (path != NULL) {
-    LOGI("main", "Looking for game data in `%s'...", path);
-    int r = data_load(path);
-    if (r < 0) return -1;
-    return 0;
-  }
-
-  /* If a path is not specified (path is NULL) then
-     the configuration file is searched for in the directories
-     specified by the XDG Base Directory Specification
-     <http://standards.freedesktop.org/basedir-spec/basedir-spec-latest.html>.
-
-     On windows platforms the %localappdata% is used in place of XDG_CONFIG_HOME.
-  */
-
-  char cp[MAX_DATA_PATH];
-  char *env;
-
-  /* Look in home */
-  if ((env = getenv("XDG_DATA_HOME")) != NULL &&
-      env[0] != '\0') {
-    for (const char **df = default_data_file; *df != NULL; df++) {
-      snprintf(cp, sizeof(cp), "%s/freeserf/%s", env, *df);
-      LOGI("main", "Looking for game data in `%s'...", cp);
-      int r = data_load(cp);
-      if (r >= 0) return 0;
-    }
-  } else if ((env = getenv("HOME")) != NULL && env[0] != '\0') {
-    for (const char **df = default_data_file; *df != NULL; df++) {
-      snprintf(cp, sizeof(cp),
-               "%s/.local/share/freeserf/%s", env, *df);
-      LOGI("main", "Looking for game data in `%s'...", cp);
-      int r = data_load(cp);
-      if (r >= 0) return 0;
-    }
-  }
-
-#ifdef _WIN32
-  if ((env = getenv("userprofile")) != NULL && env[0] != '\0') {
-    for (const char **df = default_data_file; *df != NULL; df++) {
-      snprintf(cp, sizeof(cp),
-               "%s/.local/share/freeserf/%s", env, *df);
-      LOGI("main", "Looking for game data in `%s'...", cp);
-      int r = data_load(cp);
-      if (r >= 0) return 0;
-    }
-  }
-#endif
-
-  if ((env = getenv("XDG_DATA_DIRS")) != NULL && env[0] != '\0') {
-    char *begin = env;
-    while (1) {
-      char *end = strchr(begin, ':');
-      if (end == NULL) end = strchr(begin, '\0');
-
-      int len = (int)(end - begin);
-      if (len > 0) {
-        for (const char **df = default_data_file; *df != NULL; df++) {
-          snprintf(cp, sizeof(cp),
-                   "%.*s/freeserf/%s", len, begin, *df);
-          LOGI("main", "Looking for game data in `%s'...", cp);
-          int r = data_load(cp);
-          if (r >= 0) return 0;
-        }
-      }
-
-      if (end[0] == '\0') break;
-      begin = end + 1;
-    }
-  } else {
-    /* Look in /usr/local/share and /usr/share per XDG spec. */
-    for (const char **df = default_data_file; *df != NULL; df++) {
-      snprintf(cp, sizeof(cp),
-               "/usr/local/share/freeserf/%s", *df);
-      LOGI("main", "Looking for game data in `%s'...", cp);
-      int r = data_load(cp);
-      if (r >= 0) return 0;
-    }
-
-    for (const char **df = default_data_file; *df != NULL; df++) {
-      snprintf(cp, sizeof(cp),
-               "/usr/share/freeserf/%s", *df);
-      LOGI("main", "Looking for game data in `%s'...", cp);
-      int r = data_load(cp);
-      if (r >= 0) return 0;
-    }
-  }
-
-  /* Look in current directory */
-  for (const char **df = default_data_file; *df != NULL; df++) {
-    LOGI("main", "Looking for game data in `%s'...", *df);
-    int r = data_load(*df);
-    if (r >= 0) return 0;
-  }
-
-  return -1;
-}
-
 
 #define USAGE					\
   "Usage: %s [-g DATA-FILE]\n"
@@ -631,18 +515,30 @@ main(int argc, char *argv[])
         fullscreen = 1;
         break;
       case 'g':
-        data_file = static_cast<char*>(malloc(strlen(optarg)+1));
-        if (data_file == NULL) exit(EXIT_FAILURE);
-        strcpy(data_file, optarg);
+        if (data_file != NULL) {
+          free(data_file);
+          data_file = NULL;
+        }
+        if (strlen(optarg) > 0) {
+          data_file = static_cast<char*>(malloc(strlen(optarg)+1));
+          if (data_file == NULL) exit(EXIT_FAILURE);
+          strcpy(data_file, optarg);
+        }
         break;
       case 'h':
         fprintf(stdout, HELP, argv[0]);
         exit(EXIT_SUCCESS);
         break;
       case 'l':
-        save_file = static_cast<char*>(malloc(strlen(optarg)+1));
-        if (save_file == NULL) exit(EXIT_FAILURE);
-        strcpy(save_file, optarg);
+        if (save_file != NULL) {
+          free(save_file);
+          save_file = NULL;
+        }
+        if (strlen(optarg) > 0) {
+          save_file = static_cast<char*>(malloc(strlen(optarg)+1));
+          if (save_file == NULL) exit(EXIT_FAILURE);
+          strcpy(save_file, optarg);
+		}
         break;
       case 'r':
         {
@@ -672,16 +568,16 @@ main(int argc, char *argv[])
 
   LOGI("main", "freeserf %s", FREESERF_VERSION);
 
-  r = load_data_file(data_file);
+  r = data_init(data_file);
+  if (data_file != NULL) {
+    free(data_file);
+  }
   if (r < 0) {
     LOGE("main", "Could not load game data.");
     exit(EXIT_FAILURE);
   }
 
-  free(data_file);
-
   LOGI("main", "Initialize graphics...");
-
   r = gfx_init(screen_width, screen_height, fullscreen);
   if (r < 0) exit(EXIT_FAILURE);
 
@@ -735,7 +631,7 @@ main(int argc, char *argv[])
   viewport_map_deinit();
   audio_deinit();
   gfx_deinit();
-  data_unload();
+  data_deinit();
 
   return EXIT_SUCCESS;
 }

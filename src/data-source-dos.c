@@ -68,6 +68,35 @@ static uint entry_count;
 
 static void data_fixup();
 
+#define MAX_DATA_PATH      1024
+
+int
+data_check(const char *path, char **load_path)
+{
+	const char *default_data_file[] = {
+		"SPAE.PA", /* English */
+		"SPAF.PA", /* French */
+		"SPAD.PA", /* German */
+		"SPAU.PA", /* Engish (US) */
+		NULL
+	};
+
+	char cp[MAX_DATA_PATH];
+
+	for (const char **df = default_data_file; *df != NULL; df++) {
+		snprintf(cp, MAX_DATA_PATH, "%s/%s", path, *df);
+		LOGI("data", "Looking for game data in '%s'...", cp);
+		int r = data_check_file(cp);
+		if (r >= 0) {
+			*load_path = (char*)malloc(strlen(cp)+1);
+			strcpy(*load_path, cp);
+			return 0;
+		}
+	}
+
+	return -1;
+}
+
 /* Load data file at path and let the global variable sprites refer to the memory
  with the data file content. */
 int
@@ -180,7 +209,7 @@ data_load(const char *path)
 
 /* Free the loaded data file. */
 void
-data_unload()
+data_deinit()
 {
 #ifdef HAVE_MMAP
 	if (mapped) {

@@ -249,9 +249,11 @@ typedef struct {
 	int16_t y;
 } dos_sprite_t;
 
-
+int data_init(const char *path);
+int data_check(const char *path, char **load_path);
+int data_check_file(const char *path);
 int data_load(const char *path);
-void data_unload();
+void data_deinit();
 
 void *data_get_object(uint index, size_t *size);
 const dos_sprite_t *data_get_dos_sprite(uint index);
