@@ -344,8 +344,8 @@ draw_landscape(viewport_t *viewport, frame_t *frame)
 		int ty = my % tile_height;
 
 		int x = 0;
+		int mx = (viewport->offset_x + x_base) % map_width;
 		while (x < viewport->obj.width) {
-			int mx = (viewport->offset_x + x_base + x) % map_width;
 			int tx = mx % tile_width;
 
 			int tc = (mx / tile_width) % horiz_tiles;
@@ -365,7 +365,7 @@ draw_landscape(viewport_t *viewport, frame_t *frame)
 				for (int col = 0; col < MAP_TILE_COLS+1; col++) {
 					draw_up_tile_col(pos, x_base, 0, tile_height,
 							 &landscape_tile[tid].frame);
-					draw_down_tile_col(pos, x_base + 16, 0, tile_height,
+					draw_down_tile_col(pos, x_base + MAP_TILE_WIDTH/2, 0, tile_height,
 							   &landscape_tile[tid].frame);
 
 					pos = MAP_MOVE_RIGHT(pos);
@@ -381,11 +381,20 @@ draw_landscape(viewport_t *viewport, frame_t *frame)
 				landscape_tile[tid].dirty = 0;
 			}
 
-			gfx_draw_frame(x, y, frame, tx, ty,
-				       &landscape_tile[tid].frame,
-				       viewport->obj.width - x,
-				       viewport->obj.height - y);
+			int w = tile_width - tx;
+			if (x+w > viewport->obj.width) {
+				w = viewport->obj.width - x;
+			}
+			int h = tile_height - ty;
+			if (y+h > viewport->obj.height) {
+				h = viewport->obj.height - y;
+			}
+
+			gfx_draw_frame(x, y, frame,
+			               tx, ty, &landscape_tile[tid].frame,
+			               w, h);
 			x += tile_width - tx;
+			mx += tile_width - tx;
 		}
 
 		y += tile_height - ty;
