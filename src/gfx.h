@@ -69,4 +69,9 @@ int gfx_set_fullscreen(int enable);
 int gfx_is_fullscreen();
 int gfx_is_fullscreen_possible();
 
+/* Image caching functions */
+void gfx_add_image_to_cache(int sprite, int mask, int offset, sprite_t *image);
+sprite_t *gfx_get_image_from_cache(int sprite, int mask, int offset);
+void gfx_clear_cache();
+
 #endif /* ! _GFX_H */

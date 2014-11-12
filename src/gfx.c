@@ -28,94 +28,6 @@
 #include <stdlib.h>
 #include <string.h>
 
-
-/* Unique identifier for a sprite. */
-typedef struct {
-	uint sprite;
-	uint mask;
-	uint offset;
-} sprite_id_t;
-
-typedef struct sprite_ht_entry sprite_ht_entry_t;
-
-/* Entry in the hashtable of sprites. */
-struct sprite_ht_entry {
-	sprite_ht_entry_t *next;
-	sprite_id_t id;
-	sprite_t *value;
-};
-
-/* Hashtable of sprites, used as sprite cache. */
-typedef struct {
-	size_t size;
-	uint entry_count;
-	sprite_ht_entry_t **entries;
-} sprite_ht_t;
-
-
-/* Sprite cache hash table */
-static sprite_ht_t sprite_cache;
-
-
-/* Calculate hash of sprite identifier. */
-static uint32_t
-sprite_id_hash(const sprite_id_t *id)
-{
-	const uint8_t *s = (uint8_t *)id;
-
-	/* FNV-1 */
-	uint32_t hash = 2166136261;
-	for (int i = 0; i < sizeof(sprite_id_t); i++) {
-		hash *= 16777619;
-		hash ^= s[i];
-	}
-
-	return hash;
-}
-
-/* Intialize sprite hashtable. */
-static int
-sprite_ht_init(sprite_ht_t *ht, size_t size)
-{
-	ht->size = size;
-	ht->entries = (sprite_ht_entry_t**)calloc(size, sizeof(sprite_ht_entry_t *));
-	if (ht->entries == NULL) return -1;
-
-	ht->entry_count = 0;
-
-	return 0;
-}
-
-/* Return a pointer to the surface pointer associated with
-   id. If it does not exist in the table it a new entry is
-   created. */
-static sprite_ht_entry_t *
-sprite_ht_store(sprite_ht_t *ht, const sprite_id_t *id)
-{
-	uint32_t hash = sprite_id_hash(id);
-	sprite_ht_entry_t *entry =
-		(sprite_ht_entry_t *)&ht->entries[hash % ht->size];
-
-	/* The first entry pointed to is not really an
-	   entry but a sentinel. */
-	while (entry->next != NULL) {
-		entry = entry->next;
-		if (memcmp(id, &entry->id, sizeof(sprite_id_t)) == 0) {
-			return entry;
-		}
-	}
-
-	sprite_ht_entry_t *new_entry = (sprite_ht_entry_t*)calloc(1, sizeof(sprite_ht_entry_t));
-	if (new_entry == NULL) return NULL;
-
-	ht->entry_count += 1;
-
-	entry->next = new_entry;
-	memcpy(&new_entry->id, id, sizeof(sprite_id_t));
-
-	return new_entry;
-}
-
 int
 gfx_init(int width, int height, int fullscreen)
 {
@@ -131,15 +43,13 @@ gfx_init(int width, int height, int fullscreen)
 	sdl_set_cursor(sprite);
 	data_sprite_free(sprite);
 
-	/* Init sprite cache */
-	sprite_ht_init(&sprite_cache, 10240);
-
 	return 0;
 }
 
 void
 gfx_deinit()
 {
+	gfx_clear_cache();
 	sdl_deinit();
 }
 
@@ -149,20 +59,16 @@ gfx_deinit()
 void
 gfx_draw_sprite(int x, int y, uint sprite, frame_t *dest)
 {
-	sprite_id_t id;
-	id.sprite = sprite;
-	id.mask = 0;
-	id.offset = 0;
-	sprite_ht_entry_t *entry = sprite_ht_store(&sprite_cache, &id);
-	if (entry->value == NULL) {
-		sprite_t *s = data_sprite_for_index(sprite);
-		assert(s != NULL);
-		entry->value = s;
+	sprite_t *image = gfx_get_image_from_cache(sprite, 0, 0);
+	if (image == NULL) {
+		image = data_sprite_for_index(sprite);
+		assert(image != NULL);
+		gfx_add_image_to_cache(sprite, 0, 0, image);
 	}
 
-	x += entry->value->offset_x;
-	y += entry->value->offset_y;
-	sdl_draw_sprite(entry->value, x, y, 0, dest);
+	x += image->offset_x;
+	y += image->offset_y;
+	sdl_draw_sprite(image, x, y, 0, dest);
 }
 
 /* Draw the transparent sprite with data file index of
@@ -171,22 +77,18 @@ void
 gfx_draw_transp_sprite(int x, int y, uint sprite, int use_off,
 		       int y_off, int color_off, frame_t *dest)
 {
-	sprite_id_t id;
-	id.sprite = sprite;
-	id.mask = 0;
-	id.offset = color_off;
-	sprite_ht_entry_t *entry = sprite_ht_store(&sprite_cache, &id);
-	if (entry->value == NULL) {
-		sprite_t *s = data_transparent_sprite_for_index(sprite, color_off);
-		assert(s != NULL);
-		entry->value = s;
+	sprite_t *image = gfx_get_image_from_cache(sprite, 0, color_off);
+	if (image == NULL) {
+		image = data_transparent_sprite_for_index(sprite, color_off);
+		assert(image != NULL);
+		gfx_add_image_to_cache(sprite, 0, color_off, image);
 	}
 
 	if (use_off) {
-		x += entry->value->offset_x;
-		y += entry->value->offset_y;
+		x += image->offset_x;
+		y += image->offset_y;
 	}
-	sdl_draw_sprite(entry->value, x, y, y_off, dest);
+	sdl_draw_sprite(image, x, y, y_off, dest);
 }
 
 /* Draw the masked sprite with given mask and sprite
@@ -194,30 +96,26 @@ gfx_draw_transp_sprite(int x, int y, uint sprite, int use_off,
 void
 gfx_draw_masked_sprite(int x, int y, uint mask, uint sprite, frame_t *dest)
 {
-	sprite_id_t id;
-	id.sprite = sprite;
-	id.mask = mask;
-	id.offset = 0;
-	sprite_ht_entry_t *entry = sprite_ht_store(&sprite_cache, &id);
-	if (entry->value == NULL) {
+	sprite_t *image = gfx_get_image_from_cache(sprite, mask, 0);
+	if (image == NULL) {
 		sprite_t *s = data_sprite_for_index(sprite);
 		assert(s != NULL);
 
 		sprite_t *m = data_mask_sprite_for_index(mask);
 		assert(m != NULL);
 
-		sprite_t *masked = data_apply_mask(s, m);
-		assert(masked != NULL);
+		image = data_apply_mask(s, m);
+		assert(image != NULL);
 
-		entry->value = masked;
+		gfx_add_image_to_cache(sprite, mask, 0, image);
 
 		data_sprite_free(s);
 		data_sprite_free(m);
 	}
 
-	x += entry->value->offset_x;
-	y += entry->value->offset_y;
-	sdl_draw_sprite(entry->value, x, y, 0, dest);
+	x += image->offset_x;
+	y += image->offset_y;
+	sdl_draw_sprite(image, x, y, 0, dest);
 }
 
 /* Draw the overlay sprite with data file index of
@@ -227,20 +125,16 @@ gfx_draw_masked_sprite(int x, int y, uint mask, uint sprite, frame_t *dest)
 void
 gfx_draw_overlay_sprite(int x, int y, uint sprite, int y_off, frame_t *dest)
 {
-	sprite_id_t id;
-	id.sprite = sprite;
-	id.mask = 0;
-	id.offset = 0;
-	sprite_ht_entry_t *entry = sprite_ht_store(&sprite_cache, &id);
-	if (entry->value == NULL) {
-		sprite_t *s = data_overlay_sprite_for_index(sprite);
-		assert(s != NULL);
-		entry->value = s;
+	sprite_t *image = gfx_get_image_from_cache(sprite, 0, 0);
+	if (image == NULL) {
+		image = data_overlay_sprite_for_index(sprite);
+		assert(image != NULL);
+		gfx_add_image_to_cache(sprite, 0, 0, image);
 	}
 
-	x += entry->value->offset_x;
-	y += entry->value->offset_y;
-	sdl_draw_sprite(entry->value, x, y, y_off, dest);
+	x += image->offset_x;
+	y += image->offset_y;
+	sdl_draw_sprite(image, x, y, y_off, dest);
 }
 
 /* Draw the waves sprite with given mask and sprite
@@ -249,12 +143,13 @@ void
 gfx_draw_waves_sprite(int x, int y, uint mask, uint sprite,
 		      frame_t *dest)
 {
-	sprite_id_t id;
-	id.sprite = sprite;
-	id.mask = mask;
-	id.offset = 0;
-	sprite_ht_entry_t *entry = sprite_ht_store(&sprite_cache, &id);
-	if (entry->value == NULL) {
+	if (mask == 0) {
+		gfx_draw_transp_sprite(x, y, sprite, 0, 0, 0, dest);
+		return;
+	}
+
+	sprite_t *image = gfx_get_image_from_cache(sprite, mask, 0);
+	if (image == NULL) {
 		sprite_t *s = data_transparent_sprite_for_index(sprite, 0);
 		assert(s != NULL);
 
@@ -263,21 +158,21 @@ gfx_draw_waves_sprite(int x, int y, uint mask, uint sprite,
 			m = data_mask_sprite_for_index(mask);
 			assert(m != NULL);
 
-			sprite_t *masked = data_apply_mask(s, m);
+			image = data_apply_mask(s, m);
 			assert(masked != NULL);
 
 			data_sprite_free(s);
 			data_sprite_free(m);
-
-			entry->value = masked;
 		} else {
-			entry->value = s;
+			image = s;
 		}
+
+		gfx_add_image_to_cache(sprite, mask, 0, image);
 	}
 
-	x += entry->value->offset_x;
-	y += entry->value->offset_y;
-	sdl_draw_sprite(entry->value, x, y, 0, dest);
+	x += image->offset_x;
+	y += image->offset_y;
+	sdl_draw_sprite(image, x, y, 0, dest);
 }
 
 
