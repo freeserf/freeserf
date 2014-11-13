@@ -37,33 +37,26 @@ extern "C" {
 #include <cstdio>
 #include <cstring>
 
-char *
+static uint64_t
 gfx_image_id(int sprite, int mask, int offset)
 {
-  char str[255];
-  snprintf(str, 255, "%05d_%05d_%05d", sprite, mask, offset);
-  return strdup(str);
+  uint64_t result = (uint64_t)sprite + (((uint64_t)mask) << 32) + (((uint64_t)offset) << 48);
+  return result;
 }
 
-typedef std::map<std::string, image_t *> image_cache_t;
+typedef std::map<uint64_t, image_t *> image_cache_t;
 image_cache_t image_cache;
 
 void
 gfx_add_image_to_cache(int sprite, int mask, int offset, image_t *image)
 {
-  char *str = gfx_image_id(sprite, mask, offset);
-  std::string key = str;
-  free(str);
-  image_cache[key] = image;
+  image_cache[gfx_image_id(sprite, mask, offset)] = image;
 }
 
 image_t *
 gfx_get_image_from_cache(int sprite, int mask, int offset)
 {
-  char *str = gfx_image_id(sprite, mask, offset);
-  std::string key = str;
-  free(str);
-  image_cache_t::iterator result = image_cache.find(key);
+  image_cache_t::iterator result = image_cache.find(gfx_image_id(sprite, mask, offset));
   if(result == image_cache.end()) {
     return NULL;
   }

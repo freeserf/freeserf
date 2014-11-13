@@ -34,7 +34,6 @@
 
 static SDL_Window *window;
 static SDL_Renderer *renderer;
-static SDL_Texture *screen_texture;
 static int bpp = 32;
 static Uint32 Rmask = 0xFF000000;
 static Uint32 Gmask = 0x00FF0000;
@@ -42,7 +41,7 @@ static Uint32 Bmask = 0x0000FF00;
 static Uint32 Amask = 0x000000FF;
 static Uint32 pixel_format = SDL_PIXELFORMAT_RGBA8888;
 
-static frame_t screen;
+static frame_t *screen = NULL;
 static int is_fullscreen;
 static SDL_Cursor *cursor = NULL;
 
@@ -50,7 +49,7 @@ int
 video_init()
 {
 	/* Initialize defaults and Video subsystem */
-	if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO) < 0) {
+	if (SDL_InitSubSystem(SDL_INIT_VIDEO) < 0) {
 		LOGE("sdl-video", "Unable to initialize SDL: %s.", SDL_GetError());
 		return -1;
 	}
@@ -70,19 +69,19 @@ video_init()
 	}
 
 	/* Create renderer for window */
-	renderer = SDL_CreateRenderer(window, -1, 0);
+	renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED | SDL_RENDERER_TARGETTEXTURE);
 	if (renderer == NULL) {
 		LOGE("sdl-video", "Unable to create SDL renderer: %s.", SDL_GetError());
 		return -1;
 	}
+	SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
 
 	/* Determine optimal pixel format for current window */
 	SDL_RendererInfo render_info = {0};
 	SDL_GetRendererInfo(renderer, &render_info);
 	for (Uint32 i = 0; i < render_info.num_texture_formats; i++) {
 		Uint32 format = render_info.texture_formats[i];
-		int bpp = SDL_BITSPERPIXEL(format);
-		if (32 == bpp) {
+		if (SDL_BITSPERPIXEL(format) == 32) {
 			pixel_format = format;
 			break;
 		}
@@ -106,19 +105,6 @@ video_deinit()
 	SDL_Quit();
 }
 
-static SDL_Surface *
-video_create_surface(int width, int height)
-{
-	SDL_Surface *surf = SDL_CreateRGBSurface(0, width, height, bpp,
-						 Rmask, Gmask, Bmask, Amask);
-	if (surf == NULL) {
-		LOGE("sdl-video", "Unable to create SDL surface: %s.", SDL_GetError());
-		exit(EXIT_FAILURE);
-	}
-
-	return surf;
-}
-
 int
 video_set_resolution(int width, int height, int fullscreen)
 {
@@ -130,17 +116,8 @@ video_set_resolution(int width, int height, int fullscreen)
 	}
 
 	/* Allocate new screen surface and texture */
-	if (screen.surf != NULL) SDL_FreeSurface((SDL_Surface*)screen.surf);
-	screen.surf = video_create_surface(width, height);
-
-	if (screen_texture != NULL) SDL_DestroyTexture(screen_texture);
-	screen_texture = SDL_CreateTexture(renderer, pixel_format,
-					   SDL_TEXTUREACCESS_STREAMING,
-					   width, height);
-	if (screen_texture == NULL) {
-		LOGE("sdl-video", "Unable to create SDL texture: %s.", SDL_GetError());
-		return -1;
-	}
+	gfx_frame_destroy(screen);
+	screen = gfx_frame_create(width, height);
 
 	/* Set logical size of screen */
 	r = SDL_RenderSetLogicalSize(renderer, width, height);
@@ -184,20 +161,26 @@ video_is_fullscreen()
 frame_t *
 video_get_screen_frame()
 {
-	return &screen;
+	return screen;
 }
 
 void
 video_frame_init(frame_t *frame, int width, int height)
 {
-	frame->surf = video_create_surface(width, height);
+	frame->surf = SDL_CreateTexture(renderer, pixel_format,
+	                                SDL_TEXTUREACCESS_TARGET,
+	                                width, height);
+
+	if (frame->surf == NULL) {
+		LOGE("sdl-video", "Unable to create SDL texture: %s.", SDL_GetError());
+	}
 }
 
 void
 video_frame_deinit(frame_t *frame)
 {
 	if (frame->surf) {
-		SDL_FreeSurface((SDL_Surface*)frame->surf);
+		SDL_DestroyTexture((SDL_Texture*)frame->surf);
 	}
 }
 
@@ -219,8 +202,8 @@ video_warp_mouse(int x, int y)
 	SDL_WarpMouseInWindow(NULL, x, y);
 }
 
-void *
-video_native_image_from_sprite(const sprite_t *sprite)
+static SDL_Surface *
+video_create_surface_from_sprite(const sprite_t *sprite)
 {
 	/* Create sprite surface */
 	SDL_Surface *sprite_surf =
@@ -248,10 +231,28 @@ video_native_image_from_sprite(const sprite_t *sprite)
 	return surf;
 }
 
+void *
+video_native_image_from_sprite(const sprite_t *sprite)
+{
+	/* Create sprite surface */
+	SDL_Surface *surf = video_create_surface_from_sprite(sprite);
+
+	SDL_Texture *texture = SDL_CreateTextureFromSurface(renderer, surf);
+	if (texture == NULL) {
+		LOGE("sdl-video", "Unable to create SDL texture: %s.", SDL_GetError());
+	}
+
+	SDL_FreeSurface(surf);
+
+	return texture;
+}
+
 void
 video_native_image_free(void *native_image)
 {
-	SDL_FreeSurface((SDL_Surface*)native_image);
+	if (native_image != NULL) {
+		SDL_DestroyTexture((SDL_Texture*)native_image);
+	}
 }
 
 void
@@ -261,9 +262,10 @@ video_draw_image_to_frame(image_t *image, frame_t *frame, int x, int y, int y_of
 	SDL_Rect src_rect = { 0, y_offset, (int)image->sprite->width, (int)image->sprite->height - y_offset};
 
 	/* Blit sprite */
-	int r = SDL_BlitSurface((SDL_Surface*)image->native_image, &src_rect, (SDL_Surface*)frame->surf, &dest_rect);
+	SDL_SetRenderTarget(renderer, (SDL_Texture*)frame->surf);
+	int r = SDL_RenderCopy(renderer, (SDL_Texture*)image->native_image, &src_rect, &dest_rect);
 	if (r < 0) {
-		LOGE("sdl-video", "BlitSurface error: %s.", SDL_GetError());
+		LOGE("sdl-video", "RenderCopy error: %s.", SDL_GetError());
 	}
 }
 
@@ -273,9 +275,10 @@ video_draw_frame(int dx, int dy, frame_t *dest, int sx, int sy, frame_t *src, in
 	SDL_Rect dest_rect = { dx, dy, w, h };
 	SDL_Rect src_rect = { sx, sy, w, h };
 
-	int r = SDL_BlitSurface((SDL_Surface*)src->surf, &src_rect, (SDL_Surface*)dest->surf, &dest_rect);
+	SDL_SetRenderTarget(renderer, (SDL_Texture*)dest->surf);
+	int r = SDL_RenderCopy(renderer, (SDL_Texture*)src->surf, &src_rect, &dest_rect);
 	if (r < 0) {
-		LOGE("sdl-video", "BlitSurface error: %s", SDL_GetError());
+		LOGE("sdl-video", "RenderCopy error: %s", SDL_GetError());
 	}
 }
 
@@ -288,22 +291,19 @@ video_fill_rect(int x, int y, int width, int height, const color_t *color, frame
 	};
 
 	/* Fill rectangle */
-	int r = SDL_FillRect((SDL_Surface*)dest->surf, &rect, SDL_MapRGBA(((SDL_Surface*)dest->surf)->format,
-									  color->r, color->g, color->b, 0xff));
+	SDL_SetRenderTarget(renderer, (SDL_Texture*)dest->surf);
+	SDL_SetRenderDrawColor(renderer, color->r, color->g, color->b, 0xff);
+	int r = SDL_RenderFillRect(renderer, &rect);
 	if (r < 0) {
-		LOGE("sdl-video", "FillRect error: %s.", SDL_GetError());
+		LOGE("sdl-video", "RenderFillRect error: %s.", SDL_GetError());
 	}
 }
 
 void
 video_swap_buffers()
 {
-	SDL_UpdateTexture(screen_texture, NULL,
-			  ((SDL_Surface*)screen.surf)->pixels,
-			  ((SDL_Surface*)screen.surf)->pitch);
-
-	SDL_RenderClear(renderer);
-	SDL_RenderCopy(renderer, screen_texture, NULL, NULL);
+	SDL_SetRenderTarget(renderer, NULL);
+	SDL_RenderCopy(renderer, (SDL_Texture*)screen->surf, NULL, NULL);
 	SDL_RenderPresent(renderer);
 }
 
@@ -318,7 +318,8 @@ video_set_cursor(const sprite_t *sprite)
 
 	if (sprite == NULL) return;
 
-	SDL_Surface *surface = (SDL_Surface*)video_native_image_from_sprite(sprite);
+	SDL_Surface *surface = video_create_surface_from_sprite(sprite);
 	cursor = SDL_CreateColorCursor(surface, 8, 8);
 	SDL_SetCursor(cursor);
+	SDL_FreeSurface(surface);
 }
