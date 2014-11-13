@@ -33,7 +33,7 @@ int video_is_fullscreen();
 int video_is_fullscreen_possible();
 
 frame_t *video_get_screen_frame();
-void video_frame_init(frame_t *frame, int x, int y, int width, int height, frame_t *dest);
+void video_frame_init(frame_t *frame, int width, int height);
 void video_frame_deinit(frame_t *frame);
 int video_frame_get_width(const frame_t *frame);
 int video_frame_get_height(const frame_t *frame);

@@ -344,17 +344,23 @@ gfx_fill_rect(int x, int y, int width, int height, int color, frame_t *dest)
 /* Initialize new graphics frame. If dest is NULL a new
    backing surface is created, otherwise the same surface
    as dest is used. */
-void
-gfx_frame_init(frame_t *frame, int x, int y, int width, int height, frame_t *dest)
+frame_t *
+gfx_frame_create(int width, int height)
 {
-	video_frame_init(frame, x, y, width, height, dest);
+	frame_t *frame = (frame_t*)calloc(sizeof(frame_t), 1);
+	video_frame_init(frame, width, height);
+	return frame;
 }
 
 /* Deinitialize frame and backing surface. */
 void
-gfx_frame_deinit(frame_t *frame)
+gfx_frame_destroy(frame_t *frame)
 {
+	if (frame == NULL) {
+		return;
+	}
 	video_frame_deinit(frame);
+	free(frame);
 }
 
 /* Draw source frame from rectangle at sx, sy with given

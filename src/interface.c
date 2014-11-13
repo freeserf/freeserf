@@ -671,12 +671,12 @@ interface_draw(interface_t *interface, frame_t *frame)
 		interface_float_t *fl = (interface_float_t *)elm;
 		if (fl->obj->displayed &&
 		    (fl->redraw || redraw_above)) {
-			frame_t float_frame;
-			gfx_frame_init(&float_frame,
-				       frame->clip.x + fl->x,
-				       frame->clip.y + fl->y,
-				       fl->obj->width, fl->obj->height, frame);
-			gui_object_redraw(fl->obj, &float_frame);
+			frame_t *float_frame =
+				gfx_frame_create(fl->obj->width, fl->obj->height);
+			gui_object_redraw(fl->obj, float_frame);
+			gfx_draw_frame(fl->x, fl->y, frame, 0, 0,
+				float_frame, fl->obj->width, fl->obj->height);
+			gfx_frame_destroy(float_frame);
 			fl->redraw = 0;
 			redraw_above = 1;
 		}

@@ -34,8 +34,9 @@ typedef struct {
 /* Frame. Keeps track of a specific rectangular area of a surface.
    Multiple frames can refer to the same surface. */
 typedef struct {
+	uint width;
+	uint height;
 	void *surf;
-	rect_t clip;
 } frame_t;
 
 typedef struct {
@@ -69,8 +70,8 @@ void gfx_draw_string(int x, int y, int color, int shadow, frame_t *dest, const c
 void gfx_draw_number(int x, int y, int color, int shadow, frame_t *dest, int n);
 
 /* Frame functions */
-void gfx_frame_init(frame_t *frame, int x, int y, int width, int height, frame_t *dest);
-void gfx_frame_deinit(frame_t *frame);
+frame_t *gfx_frame_create(int width, int height);
+void gfx_frame_destroy(frame_t *frame);
 void gfx_draw_frame(int dx, int dy, frame_t *dest, int sx, int sy, frame_t *src, int w, int h);
 
 /* Screen functions */

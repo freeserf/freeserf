@@ -119,13 +119,6 @@ video_create_surface(int width, int height)
 	return surf;
 }
 
-void
-video_actualize_clipping(frame_t *frame)
-{
-	SDL_Rect rect = {frame->clip.x, frame->clip.y, frame->clip.w, frame->clip.h};
-	SDL_SetClipRect((SDL_Surface*)frame->surf, &rect);
-}
-
 int
 video_set_resolution(int width, int height, int fullscreen)
 {
@@ -155,13 +148,6 @@ video_set_resolution(int width, int height, int fullscreen)
 		LOGE("sdl-video", "Unable to set logical size: %s.", SDL_GetError());
 		return -1;
 	}
-
-	/* Reset clipping */
-	screen.clip.x = 0;
-	screen.clip.y = 0;
-	screen.clip.w = width;
-	screen.clip.h = height;
-	video_actualize_clipping(&screen);
 
 	is_fullscreen = fullscreen;
 
@@ -202,31 +188,29 @@ video_get_screen_frame()
 }
 
 void
-video_frame_init(frame_t *frame, int x, int y, int width, int height, frame_t *dest)
+video_frame_init(frame_t *frame, int width, int height)
 {
-	frame->surf = (dest != NULL) ? dest->surf : video_create_surface(width, height);
-	frame->clip.x = x;
-	frame->clip.y = y;
-	frame->clip.w = width;
-	frame->clip.h = height;
+	frame->surf = video_create_surface(width, height);
 }
 
 void
 video_frame_deinit(frame_t *frame)
 {
-	SDL_FreeSurface((SDL_Surface*)frame->surf);
+	if (frame->surf) {
+		SDL_FreeSurface((SDL_Surface*)frame->surf);
+	}
 }
 
 int
 video_frame_get_width(const frame_t *frame)
 {
-	return frame->clip.w;
+	return frame->width;
 }
 
 int
 video_frame_get_height(const frame_t *frame)
 {
-	return frame->clip.h;
+	return frame->height;
 }
 
 void
@@ -273,13 +257,8 @@ video_native_image_free(void *native_image)
 void
 video_draw_image_to_frame(image_t *image, frame_t *frame, int x, int y, int y_offset)
 {
-	x += frame->clip.x;
-	y += frame->clip.y;
-
-	SDL_Rect dest_rect = { x, y + y_offset, x + (int)image->sprite->width, y + (int)image->sprite->height - y_offset};
+	SDL_Rect dest_rect = { x, y + y_offset, (int)image->sprite->width, (int)image->sprite->height - y_offset};
 	SDL_Rect src_rect = { 0, y_offset, (int)image->sprite->width, (int)image->sprite->height - y_offset};
-
-	video_actualize_clipping(frame);
 
 	/* Blit sprite */
 	int r = SDL_BlitSurface((SDL_Surface*)image->native_image, &src_rect, (SDL_Surface*)frame->surf, &dest_rect);
@@ -291,13 +270,8 @@ video_draw_image_to_frame(image_t *image, frame_t *frame, int x, int y, int y_of
 void
 video_draw_frame(int dx, int dy, frame_t *dest, int sx, int sy, frame_t *src, int w, int h)
 {
-	int x = dx + dest->clip.x;
-	int y = dy + dest->clip.y;
-
-	SDL_Rect dest_rect = { x, y, 0, 0 };
+	SDL_Rect dest_rect = { dx, dy, w, h };
 	SDL_Rect src_rect = { sx, sy, w, h };
-
-	video_actualize_clipping(dest);
 
 	int r = SDL_BlitSurface((SDL_Surface*)src->surf, &src_rect, (SDL_Surface*)dest->surf, &dest_rect);
 	if (r < 0) {
@@ -309,12 +283,9 @@ void
 video_fill_rect(int x, int y, int width, int height, const color_t *color, frame_t *dest)
 {
 	SDL_Rect rect = {
-		x + dest->clip.x,
-		y + dest->clip.y,
+		x, y,
 		width, height
 	};
-
-	video_actualize_clipping(dest);
 
 	/* Fill rectangle */
 	int r = SDL_FillRect((SDL_Surface*)dest->surf, &rect, SDL_MapRGBA(((SDL_Surface*)dest->surf)->format,

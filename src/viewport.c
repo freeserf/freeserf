@@ -42,7 +42,7 @@
 
 /* Cache prerendered tiles of the landscape. */
 typedef struct {
-	frame_t frame;
+	frame_t *frame;
 	int dirty;
 } landscape_tile_t;
 
@@ -263,7 +263,7 @@ viewport_map_deinit()
 {
 	if (landscape_tile != NULL) {
 		for (uint i = 0; i < landscape_tile_count; i++) {
-			gfx_frame_deinit(&landscape_tile[i].frame);
+			gfx_frame_destroy(landscape_tile[i].frame);
 		}
 		free(landscape_tile);
 		landscape_tile = NULL;
@@ -292,8 +292,7 @@ viewport_map_reinit()
 	     tile_width, tile_height);
 
 	for (uint i = 0; i < landscape_tile_count; i++) {
-		gfx_frame_init(&landscape_tile[i].frame, 0, 0, tile_width, tile_height, NULL);
-		gfx_fill_rect(0, 0, tile_width, tile_height, 0, &landscape_tile[i].frame);
+		landscape_tile[i].frame = NULL;
 		landscape_tile[i].dirty = 1;
 	}
 }
@@ -354,6 +353,11 @@ draw_landscape(viewport_t *viewport, frame_t *frame)
 
 			/* Redraw tile if marked dirty */
 			if (landscape_tile[tid].dirty) {
+				if (landscape_tile[tid].frame == NULL) {
+					landscape_tile[tid].frame = gfx_frame_create(tile_width, tile_height);
+					gfx_fill_rect(0, 0, tile_width, tile_height, 0, landscape_tile[tid].frame);
+				}
+
 				int col = (tc*MAP_TILE_COLS + (tr*MAP_TILE_ROWS)/2) % game.map.cols;
 				int row = tr*MAP_TILE_ROWS;
 				map_pos_t pos = MAP_POS(col, row);
@@ -364,9 +368,9 @@ draw_landscape(viewport_t *viewport, frame_t *frame)
 				   map tile on both right and left side.. */
 				for (int col = 0; col < MAP_TILE_COLS+1; col++) {
 					draw_up_tile_col(pos, x_base, 0, tile_height,
-							 &landscape_tile[tid].frame);
+							 landscape_tile[tid].frame);
 					draw_down_tile_col(pos, x_base + MAP_TILE_WIDTH/2, 0, tile_height,
-							   &landscape_tile[tid].frame);
+							   landscape_tile[tid].frame);
 
 					pos = MAP_MOVE_RIGHT(pos);
 					x_base += MAP_TILE_WIDTH;
@@ -375,7 +379,7 @@ draw_landscape(viewport_t *viewport, frame_t *frame)
 #if 0
 				/* Draw a border around the tile for debug. */
 				gfx_draw_rect(0, 0, tile_width, tile_height,
-					      76, &landscape_tile[tid].frame);
+					      76, landscape_tile[tid].frame);
 #endif
 
 				landscape_tile[tid].dirty = 0;
@@ -391,7 +395,7 @@ draw_landscape(viewport_t *viewport, frame_t *frame)
 			}
 
 			gfx_draw_frame(x, y, frame,
-			               tx, ty, &landscape_tile[tid].frame,
+			               tx, ty, landscape_tile[tid].frame,
 			               w, h);
 			x += tile_width - tx;
 			mx += tile_width - tx;
