@@ -60,7 +60,6 @@ gitversion:
 	@( FREESERF_VERSION="" ; \
 	if [ ! -d $(top_srcdir)/.git ] ; then \
 		echo "Git repository not found, not updating version file." ; \
-		[ -e "$(VCS_VERSION_FILE)" ] && touch "$(VCS_VERSION_FILE)" ; \
 	else \
 		[ -e "$(VCS_VERSION_FILE)" ] && FREESERF_VERSION=$$(grep "define VERSION_VCS " "$(VCS_VERSION_FILE)" | cut -f3 -d" " | sed 's/"//g') ; \
 		VCS_VERSION=$$(git describe --always --tags --dirty) ; \
