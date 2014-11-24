@@ -71,3 +71,5 @@ gitversion:
 			printf "#ifndef VERSION_VCS_H\n#define VERSION_VCS_H\n\n#define VERSION_VCS \"$${VCS_VERSION}\"\n\n#endif /* VERSION_VCS_H */\n" > $(VCS_VERSION_FILE) ; \
 		fi ; \
 	fi )
+
+$(VCS_VERSION_FILE): gitversion
