@@ -91,12 +91,12 @@ typedef enum {
 } box_t;
 
 class interface_t;
-class minimap_t;
+class game_minimap_t;
 
 class popup_box_t : public gui_object_t {
  protected:
   interface_t *interface;
-  minimap_t *minimap;
+  game_minimap_t *minimap;
 
   box_t box;
 
@@ -110,7 +110,7 @@ class popup_box_t : public gui_object_t {
   virtual ~popup_box_t();
 
   box_t get_box() const { return box; }
-  minimap_t *get_minimap() { return minimap; }
+  game_minimap_t *get_minimap() { return minimap; }
 
   void show(box_t box);
   void hide();

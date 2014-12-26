@@ -61,3 +61,5 @@ windows/Release
 *.sdf
 *.lastbuildstate
 *.unsuccessfulbuild
+
+*.pbxproj

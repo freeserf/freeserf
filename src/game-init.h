@@ -30,6 +30,7 @@
 
 class interface_t;
 class random_input_t;
+class minimap_t;
 
 class game_init_box_t : public gui_object_t {
  protected:
@@ -42,6 +43,8 @@ class game_init_box_t : public gui_object_t {
   mission_t *mission;
 
   random_input_t *field;
+  map_t *map;
+  minimap_t *minimap;
 
  public:
   explicit game_init_box_t(interface_t *interface);
@@ -56,6 +59,7 @@ class game_init_box_t : public gui_object_t {
   void handle_action(int action);
   bool handle_player_click(int player, int x, int y);
   void apply_random(random_state_t rnd);
+  void generate_map_priview();
 
   virtual void internal_draw();
   virtual bool handle_click_left(int x, int y);

@@ -24,12 +24,12 @@
 
 #include "src/gui.h"
 #include "src/map.h"
+#include "src/game.h"
 
 class interface_t;
 
 class minimap_t : public gui_object_t {
  protected:
-  interface_t *interface;
   map_t *map;
 
   int offset_x, offset_y;
@@ -39,7 +39,9 @@ class minimap_t : public gui_object_t {
   int flags;
 
  public:
-  explicit minimap_t(interface_t *interface, map_t *map);
+  explicit minimap_t(map_t *map);
+
+  void set_map(map_t *map);
 
   int get_flags() const { return flags; }
   void set_flags(int flags) { this->flags = flags; }
@@ -58,10 +60,6 @@ class minimap_t : public gui_object_t {
  protected:
   void draw_minimap_point(int col, int row, uint8_t color, int density);
   void draw_minimap_map();
-  void draw_minimap_ownership(int density);
-  void draw_minimap_roads();
-  void draw_minimap_buildings();
-  void draw_minimap_traffic();
   void draw_minimap_grid();
   void draw_minimap_rect();
   int handle_scroll(int up);
@@ -69,8 +67,26 @@ class minimap_t : public gui_object_t {
   void map_pix_from_map_coord(map_pos_t pos, int *mx, int *my);
 
   virtual void internal_draw();
-  virtual bool handle_click_left(int x, int y);
   virtual bool handle_drag(int dx, int dy);
+};
+
+class game_minimap_t : public minimap_t {
+ protected:
+  interface_t *interface;
+
+  game_t *game;
+
+ public:
+  game_minimap_t(interface_t *interface, game_t *game);
+
+ protected:
+  void draw_minimap_ownership(int density);
+  void draw_minimap_roads();
+  void draw_minimap_buildings();
+  void draw_minimap_traffic();
+
+  virtual void internal_draw();
+  virtual bool handle_click_left(int x, int y);
 };
 
 #endif  // SRC_MINIMAP_H_

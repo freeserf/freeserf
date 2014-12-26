@@ -32,6 +32,7 @@
 #include "src/interface.h"
 #include "src/version.h"
 #include "src/text-input.h"
+#include "src/minimap.h"
 
 class random_input_t : public text_input_t {
  protected:
@@ -176,12 +177,16 @@ game_init_box_t::internal_draw() {
   for (int i = 0; i < GAME_MAX_PLAYER_COUNT; i++) {
     draw_player_box(i, 10 * x, 40 + y * 80);
     x++;
+    if (i == 1) {
+      y++;
+      x = 0;
+    }
   }
 
   /* Display program name and version in caption */
-  draw_box_string(0, 132, FREESERF_VERSION);
+  draw_box_string(0, 212, FREESERF_VERSION);
 
-  draw_box_icon(38, 128, 60); /* exit */
+  draw_box_icon(38, 208, 60); /* exit */
 }
 
 void
@@ -265,12 +270,14 @@ game_init_box_t::handle_action(int action) {
         game_mission = 0;
         mission = mission_t::get_mission(game_mission);
         field->set_displayed(false);
+        generate_map_priview();
       } else {
         game_mission = -1;
         map_size = 3;
         mission = &custom_mission;
         field->set_displayed(true);
         field->set_random(custom_mission.rnd);
+        generate_map_priview();
       }
       break;
     case ACTION_SHOW_OPTIONS:
@@ -285,6 +292,7 @@ game_init_box_t::handle_action(int action) {
                                 mission_t::get_mission_count()-1);
         mission = mission_t::get_mission(game_mission);
       }
+      generate_map_priview();
       break;
     case ACTION_DECREMENT:
       if (game_mission < 0) {
@@ -293,6 +301,7 @@ game_init_box_t::handle_action(int action) {
         game_mission = std::max(0, game_mission-1);
         mission = mission_t::get_mission(game_mission);
       }
+      generate_map_priview();
       break;
     case ACTION_CLOSE:
       interface->close_game_init();
@@ -306,6 +315,7 @@ game_init_box_t::handle_action(int action) {
       std::string str = field->get_text();
       if (str.length() == 16) {
         apply_random(field->get_random());
+        generate_map_priview();
       }
       break;
     }
@@ -323,7 +333,7 @@ game_init_box_t::handle_click_left(int x, int y) {
     ACTION_SHOW_LOAD_GAME,   308,  16, 32, 32,
     ACTION_INCREMENT,        244,  16, 16, 16,
     ACTION_DECREMENT,        244,  32, 16, 16,
-    ACTION_CLOSE,            324, 144, 16, 16,
+    ACTION_CLOSE,            324, 216, 16, 16,
     -1
   };
 
@@ -336,7 +346,7 @@ game_init_box_t::handle_click_left(int x, int y) {
     ACTION_DECREMENT,        180,  16,  8,  8,
     ACTION_GEN_RANDOM,       204,  16, 16,  8,
     ACTION_APPLY_RANDOM ,    204,  24, 16, 24,
-    ACTION_CLOSE,            324, 144, 16, 16,
+    ACTION_CLOSE,            324, 216, 16, 16,
     -1
   };
 
@@ -367,6 +377,10 @@ game_init_box_t::handle_click_left(int x, int y) {
       }
     }
     cx++;
+    if (i == 1) {
+      cy++;
+      cx = 0;
+    }
   }
 
   return true;
@@ -419,6 +433,22 @@ game_init_box_t::handle_player_click(int player, int x, int y) {
   set_redraw();
 
   return true;
+}
+
+void
+game_init_box_t::generate_map_priview() {
+  if (map != NULL) {
+    delete map;
+    map = NULL;
+  }
+
+  map = new map_t();
+  map->init(map_size);
+  map->generate(0, mission->rnd, true);
+
+  minimap->set_map(map);
+
+  set_redraw();
 }
 
 void
@@ -481,7 +511,7 @@ game_init_box_t::game_init_box_t(interface_t *interface) {
   map_size = 3;
   game_mission = -1;
 
-  set_size(360, 174);
+  set_size(360, 254);
 
   /* Clear player settings */
   for (int i = 0; i < GAME_MAX_PLAYER_COUNT; i++) {
@@ -506,6 +536,14 @@ game_init_box_t::game_init_box_t(interface_t *interface) {
 
   mission = &custom_mission;
 
+  minimap = new minimap_t(NULL);
+  minimap->set_displayed(true);
+  minimap->set_size(150, 160);
+  add_float(minimap, 190, 55);
+
+  map = NULL;
+  generate_map_priview();
+
   field = new random_input_t();
   field->set_random(custom_mission.rnd);
   field->set_displayed(true);
@@ -516,6 +554,16 @@ game_init_box_t::~game_init_box_t() {
   if (field != NULL) {
     delete field;
     field = NULL;
+  }
+
+  if (map != NULL) {
+    delete map;
+    map = NULL;
+  }
+
+  if (minimap != NULL) {
+    delete minimap;
+    minimap = NULL;
   }
 }
 
