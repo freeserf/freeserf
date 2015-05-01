@@ -60,10 +60,11 @@ class AudioSDL : public Audio, public Audio::VolumeController {
 
   class TrackMIDI : public Audio::Track {
    protected:
+    void *data;
     Mix_Music *chunk;
 
    public:
-    explicit TrackMIDI(Mix_Music *chunk);
+    explicit TrackMIDI(void *data, Mix_Music *chunk);
     virtual ~TrackMIDI();
 
     virtual void play();

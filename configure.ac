@@ -17,6 +17,7 @@ AC_LANG(C++)
 # Checks for libraries.
 PKG_CHECK_MODULES([SDL2], [sdl2])
 PKG_CHECK_MODULES([SDL2_mixer], [SDL2_mixer], [have_sdl2_mixer=yes], [have_sdl2_mixer=no])
+PKG_CHECK_MODULES([libxmp], [libxmp], [have_libxmp=yes], [have_libxmp=no])
 
 # Checks for header files.
 AC_HEADER_ASSERT
@@ -47,6 +48,29 @@ AS_IF([test "x$enable_sdl2_mixer" != xno], [
 	enable_sdl2_mixer=no
 ])
 AM_CONDITIONAL([ENABLE_SDL2_MIXER], [test "x$enable_sdl2_mixer" = xyes])
+
+# Check libxmp support
+AC_MSG_CHECKING([whether to enable XMP support])
+AC_ARG_ENABLE([xmp], [AC_HELP_STRING([--enable-xmp],
+			   [enable XMP support (Amiga music playback)])],
+			   [enable_xmp=$enableval], [enable_xmp=maybe])
+AS_IF([test "x$enable_xmp" != xno], [
+	AS_IF([test $have_libxmp = yes], [
+		AC_DEFINE([ENABLE_XMP], 1, [Define to 1 to enable XMP support])
+		AC_MSG_RESULT([yes])
+		enable_xmp=yes
+	], [
+		AC_MSG_RESULT([missing dependencies])
+		AS_IF([test "x$enable_xmp" = xyes], [
+			AC_MSG_ERROR([missing dependencies for XMP])
+		])
+		enable_xmp=no
+	])
+], [
+	AC_MSG_RESULT([no])
+	enable_xmp=no
+])
+AM_CONDITIONAL([ENABLE_XMP], [test "x$enable_xmp" = xyes])
 
 # Check debug mode
 AC_MSG_CHECKING([whether to enable debug mode])
@@ -90,4 +114,5 @@ echo "
     ldflags:		${LDFLAGS}
 
     SDL2_mixer:		${enable_sdl2_mixer}
+    libxmp:		${enable_xmp}
 "

@@ -40,6 +40,8 @@ src/.dirstamp
 
 # test related
 tests/test_map
+tests/test_map_geometry
+tests/test_save_game
 tests/.dirstamp
 test-driver
 
@@ -49,7 +51,7 @@ test-driver
 xcuserdata
 mac/version_vcs.h
 .DS_Store
-FreeSerf.dmg
+*.dmg
 *.pbxproj
 
 # windows specific
@@ -67,3 +69,5 @@ windows/x64
 *.sdf
 *.lastbuildstate
 *.unsuccessfulbuild
+*.VC.db
+*.VC.VC.opendb

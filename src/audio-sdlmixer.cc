@@ -55,7 +55,7 @@ AudioSDL::AudioSDL() {
     assert(false);
   }
 
-  r = Mix_OpenAudio(8000, MIX_DEFAULT_FORMAT, MIX_DEFAULT_CHANNELS, 512);
+  r = Mix_OpenAudio(44100, MIX_DEFAULT_FORMAT, MIX_DEFAULT_CHANNELS, 512);
   if (r < 0) {
     Log::Error["audio-sdlmixer"] << "Could not open audio device: "
                                  << Mix_GetError();
@@ -231,12 +231,11 @@ AudioSDL::PlayerMIDI::create_track(int track_id) {
 
   SDL_RWops *rw = SDL_RWFromMem(midi, static_cast<int>(size));
   Mix_Music *music = Mix_LoadMUS_RW(rw, 0);
-  free(midi);
   if (music == NULL) {
     return NULL;
   }
 
-  return new AudioSDL::TrackMIDI(music);
+  return new AudioSDL::TrackMIDI(midi, music);
 }
 
 void
@@ -307,12 +306,14 @@ AudioSDL::PlayerMIDI::music_finished() {
   }
 }
 
-AudioSDL::TrackMIDI::TrackMIDI(Mix_Music *chunk) {
-  this->chunk = chunk;
+AudioSDL::TrackMIDI::TrackMIDI(void *_data, Mix_Music *_chunk) {
+  data = _data;
+  chunk = _chunk;
 }
 
 AudioSDL::TrackMIDI::~TrackMIDI() {
   Mix_FreeMusic(chunk);
+  free(data);
 }
 
 void

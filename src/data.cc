@@ -29,6 +29,7 @@
 
 #include "src/log.h"
 #include "src/data-source-dos.h"
+#include "src/data-source-amiga.h"
 
 #ifdef _WIN32
 // need for GetModuleFileName
@@ -99,6 +100,7 @@ Data::load(const std::string* path) {
   // If it is possible, prefer DOS game data.
   std::vector<std::unique_ptr<DataSource>> data_sources;
   data_sources.emplace_back(new DataSourceDOS());
+  data_sources.emplace_back(new DataSourceAmiga());
 
   std::list<std::string> search_paths;
   if (path == nullptr || path->empty()) {

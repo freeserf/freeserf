@@ -27,4 +27,6 @@
 void *sfx2wav(void* sfx, size_t sfx_size, size_t *wav_size, int level,
               bool invert = false);
 
+void *sfx2wav16(void* sfx, size_t sfx_size, size_t *wav_size);
+
 #endif  // SRC_SFX2WAV_H_
