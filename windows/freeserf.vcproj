@@ -422,6 +422,10 @@
 				>
 			</File>
 			<File
+				RelativePath="..\src\objects.h"
+				>
+			</File>
+			<File
 				RelativePath="..\src\panel.h"
 				>
 			</File>

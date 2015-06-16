@@ -40,7 +40,8 @@ freeserf_SOURCES = \
 	src/event_loop-sdl.cc src/event_loop-sdl.h \
 	src/sfx2wav.cc src/sfx2wav.h \
 	src/xmi2mid.cc src/xmi2mid.h \
-	src/data-source.cc src/data-source.h
+	src/data-source.cc src/data-source.h \
+	src/objects.h
 
 AM_CFLAGS = $(SDL2_CFLAGS) -I$(top_builddir)/src
 AM_CXXFLAGS = $(SDL2_CFLAGS) -I$(top_builddir)/src
