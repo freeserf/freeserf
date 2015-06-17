@@ -24,6 +24,9 @@
 #include <cstring>
 #include <cctype>
 #include <ctime>
+#include <sstream>
+#include <vector>
+#include <map>
 
 #include "src/game.h"
 #include "src/map.h"
@@ -39,6 +42,8 @@ typedef struct {
   unsigned int rows, cols;
   unsigned int row_shift;
 } v0_map_t;
+
+static unsigned int max_flag_index = 0;
 
 static map_pos_t
 load_v0_map_pos(const v0_map_t *map, uint32_t value) {
@@ -76,7 +81,6 @@ load_v0_game_state(FILE *f, v0_map_t *map) {
   /* Allocate game objects */
   const int max_map_size = 10;
   game.serf_limit = (0x1f84 * (1 << max_map_size) - 4) / 0x81;
-  game.flag_limit = (0x2314 * (1 << max_map_size) - 4) / 0x231;
   game.building_limit = (0x54c * (1 << max_map_size) - 4) / 0x91;
   game.inventory_limit = (0x54c * (1 << max_map_size) - 4) / 0x3c1;
   game_allocate_objects();
@@ -118,7 +122,7 @@ load_v0_game_state(FILE *f, v0_map_t *map) {
   game.rnd.state[1] = *reinterpret_cast<uint16_t*>(&data[86]);
   game.rnd.state[2] = *reinterpret_cast<uint16_t*>(&data[88]);
 
-  game.max_flag_index = *reinterpret_cast<uint16_t*>(&data[90]);
+  max_flag_index = *reinterpret_cast<uint16_t*>(&data[90]);
   game.max_building_index = *reinterpret_cast<uint16_t*>(&data[92]);
   game.max_serf_index = *reinterpret_cast<uint16_t*>(&data[94]);
 
@@ -587,9 +591,9 @@ load_v0_serf_state(FILE *f, const v0_map_t *map) {
     case SERF_STATE_WAKE_AT_FLAG:
     case SERF_STATE_WAKE_ON_PATH:
       serf->s.idle_on_path.rev_dir =
-                                    *reinterpret_cast<uint8_t*>(&serf_data[11]);
+                             (dir_t)*reinterpret_cast<uint8_t*>(&serf_data[11]);
       serf->s.idle_on_path.flag =
-                   &game.flags[*reinterpret_cast<uint32_t*>(&serf_data[12])/70];
+                    game.flags[*reinterpret_cast<uint32_t*>(&serf_data[12])/70];
       serf->s.idle_on_path.field_E = serf_data[14];
       break;
 
@@ -614,7 +618,7 @@ load_v0_serf_state(FILE *f, const v0_map_t *map) {
 static int
 load_v0_flag_state(FILE *f) {
   /* Load flag bitmap. */
-  int bitmap_size = 4*((game.max_flag_index + 31)/32);
+  int bitmap_size = 4*((max_flag_index + 31)/32);
   uint8_t *flag_bitmap = reinterpret_cast<uint8_t*>(malloc(bitmap_size));
   if (flag_bitmap == NULL) return -1;
 
@@ -624,72 +628,37 @@ load_v0_flag_state(FILE *f) {
     return -1;
   }
 
-  memset(game.flag_bitmap, '\0', (game.flag_limit+31)/32);
-  memcpy(game.flag_bitmap, flag_bitmap, bitmap_size);
-
-  free(flag_bitmap);
-
   /* Load flag data. */
-  uint8_t *data = reinterpret_cast<uint8_t*>(malloc(70*game.max_flag_index));
-  if (data == NULL) return -1;
-
-  rd = fread(data, 70*sizeof(uint8_t), game.max_flag_index, f);
-  if (rd < game.max_flag_index) {
-    free(data);
+  void *flag_data = malloc(70);
+  if (flag_data == NULL) {
+    free(flag_bitmap);
     return -1;
   }
 
-  for (unsigned int i = 0; i < game.max_flag_index; i++) {
-    uint8_t *flag_data = &data[70*i];
-    flag_t *flag = &game.flags[i];
-
-    flag->pos = MAP_POS(0, 0); /* Set correctly later. */
-    flag->search_num = *reinterpret_cast<uint16_t*>(&flag_data[0]);
-    flag->search_dir = (dir_t)flag_data[2];
-    flag->path_con = flag_data[3];
-    flag->endpoint = flag_data[4];
-    flag->transporter = flag_data[5];
-
-    for (int j = 0; j < 6; j++) {
-      flag->length[j] = flag_data[6+j];
+  for (unsigned int i = 0; i < max_flag_index; i++) {
+    rd = fread(flag_data, 70, 1, f);
+    if (rd != 1) {
+      free(flag_data);
+      free(flag_bitmap);
+      return -1;
     }
 
-    for (int j = 0; j < 8; j++) {
-      flag->slot[j].type = (resource_type_t)((flag_data[12+j] & 0x1f)-1);
-      flag->slot[j].dir = (dir_t)(((flag_data[12+j] >> 5) & 7)-1);
-      flag->slot[j].dest = *reinterpret_cast<uint16_t*>(&flag_data[20+2*j]);
+    if (BIT_TEST(flag_bitmap[(i)>>3], 7-((i)&7))) {
+      flag_t *flag = game.flags.get_or_insert(i);
+      save_reader_binary_t reader(flag_data, 70);
+      reader >> *flag;
     }
-
-    for (int j = 0; j < 6; j++) {
-      int offset = *reinterpret_cast<uint32_t*>(&flag_data[36+4*j]);
-      flag->other_endpoint.f[j] = &game.flags[offset/70];
-
-      /* Other endpoint could be a building in direction up left. */
-      if (j == 4 && FLAG_HAS_BUILDING(flag)) {
-        flag->other_endpoint.b[j] = &game.buildings[offset/18];
-      }
-
-      flag->other_end_dir[j] = flag_data[60+j];
-    }
-
-    if (FLAG_HAS_BUILDING(flag)) {
-      flag->other_endpoint.b[DIR_UP_LEFT]->stock[0].prio = flag_data[67];
-      flag->other_endpoint.b[DIR_UP_LEFT]->stock[1].prio = flag_data[69];
-    }
-
-    flag->bld_flags = flag_data[66];
-    flag->bld2_flags = flag_data[68];
   }
-
-  free(data);
+  free(flag_data);
+  free(flag_bitmap);
 
   /* Set flag positions. */
   for (unsigned int y = 0; y < game.map.rows; y++) {
     for (unsigned int x = 0; x < game.map.cols; x++) {
       map_pos_t pos = MAP_POS(x, y);
       if (MAP_OBJ(pos) == MAP_OBJ_FLAG) {
-        flag_t *flag = game_get_flag(MAP_OBJ_INDEX(pos));
-        flag->pos = pos;
+        flag_t *flag = game.flags[MAP_OBJ_INDEX(pos)];
+        flag->set_position(pos);
       }
     }
   }
@@ -996,7 +965,6 @@ save_text_game_state(FILE *f) {
   save_text_write_array(f, "rnd", rnd, 3);
 
   save_text_write_value(f, "serf_limit", game.serf_limit);
-  save_text_write_value(f, "flag_limit", game.flag_limit);
   save_text_write_value(f, "building_limit", game.building_limit);
   save_text_write_value(f, "inventory_limit", game.inventory_limit);
 
@@ -1117,64 +1085,50 @@ save_text_player_state(FILE *f) {
   return 0;
 }
 
-static int
-save_text_flag_state(FILE *f) {
-  for (unsigned int i = 1; i < game.max_flag_index; i++) {
-    if (FLAG_ALLOCATED(i)) {
-      flag_t *flag = game_get_flag(i);
+typedef std::map<std::string, save_writer_text_value_t> values_t;
 
-      fprintf(f, "[flag %i]\n", i);
+class save_writer_text_section_t : public save_writer_text_t {
+ protected:
+  std::string name;
+  unsigned int number;
+  values_t values;
 
-      save_text_write_map_pos(f, "pos", flag->pos);
-      save_text_write_value(f, "search_num", flag->search_num);
-      save_text_write_value(f, "search_dir", flag->search_dir);
-      save_text_write_value(f, "path_con", flag->path_con);
-      save_text_write_value(f, "endpoints", flag->endpoint);
-      save_text_write_value(f, "transporter", flag->transporter);
-
-      save_text_write_array(f, "length", flag->length, 6);
-
-      int values[FLAG_MAX_RES_COUNT];
-      for (int i = 0; i < FLAG_MAX_RES_COUNT; i++) {
-        values[i] = flag->slot[i].type;
-      }
-      save_text_write_array(f, "slot.type", values, FLAG_MAX_RES_COUNT);
-
-      for (int i = 0; i < FLAG_MAX_RES_COUNT; i++) {
-        values[i] = flag->slot[i].dir;
-      }
-      save_text_write_array(f, "slot.dir", values, FLAG_MAX_RES_COUNT);
-
-      for (int i = 0; i < FLAG_MAX_RES_COUNT; i++) {
-        values[i] = flag->slot[i].dest;
-      }
-      save_text_write_array(f, "slot.dest", values, FLAG_MAX_RES_COUNT);
-
-      int indices[6];
-      for (int d = DIR_RIGHT; d <= DIR_UP; d++) {
-        if (FLAG_HAS_PATH(flag, d)) {
-          indices[d] = FLAG_INDEX(flag->other_endpoint.f[d]);
-        } else {
-          indices[d] = 0;
-        }
-      }
-
-      if (FLAG_HAS_BUILDING(flag)) {
-        indices[DIR_UP_LEFT] =
-                            BUILDING_INDEX(flag->other_endpoint.b[DIR_UP_LEFT]);
-      }
-
-      save_text_write_array(f, "other_endpoint", indices, 6);
-      save_text_write_array(f, "other_end_dir", flag->other_end_dir, 6);
-
-      save_text_write_value(f, "bld_flags", flag->bld_flags);
-      save_text_write_value(f, "bld2_flags", flag->bld2_flags);
-
-      fprintf(f, "\n");
-    }
+ public:
+  save_writer_text_section_t(std::string name, unsigned int number) {
+    this->name = name;
+    this->number = number;
   }
 
-  return 0;
+  virtual save_writer_text_value_t &value(std::string name) {
+    values_t::iterator i = values.find(name);
+    if (i != values.end()) {
+      return i->second;
+    }
+
+    values[name] = save_writer_text_value_t();
+    i = values.find(name);
+    return i->second;
+  }
+
+  bool save(FILE *file) {
+    fprintf(file, "[%s %i]\n", name.c_str(), number);
+
+    for (values_t::iterator i = values.begin(); i != values.end(); i++) {
+      fprintf(file, "%s=%s\n", i->first.c_str(), i->second.get_value().c_str());
+    }
+
+    fprintf(file, "\n");
+    return true;
+  }
+};
+
+static bool
+save_text_flag_state(flag_t *flag, FILE *f) {
+  save_writer_text_section_t writer("flag", flag->get_index());
+  writer << *flag;
+  writer.save(f);
+
+  return true;
 }
 
 static int
@@ -1472,7 +1426,7 @@ save_text_serf_state(FILE *f) {
     case SERF_STATE_WAKE_ON_PATH:
       save_text_write_value(f, "state.rev_dir", serf->s.idle_on_path.rev_dir);
       save_text_write_value(f, "state.flag",
-                            FLAG_INDEX(serf->s.idle_on_path.flag));
+                            serf->s.idle_on_path.flag->get_index());
       save_text_write_value(f, "state.field_E", serf->s.idle_on_path.field_E);
       break;
 
@@ -1561,8 +1515,10 @@ save_text_state(FILE *f) {
   r = save_text_player_state(f);
   if (r < 0) return -1;
 
-  r = save_text_flag_state(f);
-  if (r < 0) return -1;
+  for (flags_t::iterator i = game.flags.begin();
+       i != game.flags.end(); ++i) {
+    if (!save_text_flag_state(*i, f)) return -1;
+  }
 
   r = save_text_building_state(f);
   if (r < 0) return -1;
@@ -1633,6 +1589,11 @@ load_text_readline(char **buffer, size_t *len, FILE *f) {
   return i;
 }
 
+typedef struct {
+  list_elm_t elm;
+  char *key;
+  char *value;
+} setting_t;
 
 typedef struct {
   list_elm_t elm;
@@ -1640,13 +1601,6 @@ typedef struct {
   char *param;
   list_t settings;
 } section_t;
-
-typedef struct {
-  list_elm_t elm;
-  char *key;
-  char *value;
-} setting_t;
-
 
 static int
 load_text_parse(FILE *f, list_t *sections) {
@@ -1862,8 +1816,6 @@ load_text_game_state(list_t *sections) {
       }
     } else if (!strcmp(s->key, "serf_limit")) {
       game.serf_limit = atoi(s->value);
-    } else if (!strcmp(s->key, "flag_limit")) {
-      game.flag_limit = atoi(s->value);
     } else if (!strcmp(s->key, "building_limit")) {
       game.building_limit = atoi(s->value);
     } else if (!strcmp(s->key, "inventory_limit")) {
@@ -2087,94 +2039,36 @@ load_text_player_state(list_t *sections) {
   return 0;
 }
 
+class save_reader_text_section_t : public save_reader_text_t {
+ protected:
+  section_t *section;
+
+ public:
+  explicit save_reader_text_section_t(section_t *section) {
+    this->section = section; }
+
+  virtual save_reader_text_value_t value(std::string name) const {
+    list_elm_t *elm;
+    list_foreach(&section->settings, elm) {
+      setting_t *s = reinterpret_cast<setting_t*>(elm);
+      if (name == s->key) {
+        return save_reader_text_value_t(s->value);
+      }
+    }
+
+    return save_reader_text_value_t("");
+  }
+};
+
 static int
 load_text_flag_section(section_t *section) {
   /* Parse flag number. */
   int n = atoi(section->param);
-  if (n >= static_cast<int>(game.flag_limit)) return -1;
 
-  flag_t *flag = &game.flags[n];
-  game.flag_bitmap[n/8] |= BIT(7-(n&7));
+  save_reader_text_section_t reader(section);
 
-  /* Load the flag state. */
-  list_elm_t *elm;
-  list_foreach(&section->settings, elm) {
-    setting_t *s = reinterpret_cast<setting_t*>(elm);
-    if (!strcmp(s->key, "pos")) {
-      flag->pos = parse_map_pos(s->value);
-    } else if (!strcmp(s->key, "search_num")) {
-      flag->search_num = atoi(s->value);
-    } else if (!strcmp(s->key, "search_dir")) {
-      flag->search_dir = (dir_t)atoi(s->value);
-    } else if (!strcmp(s->key, "path_con")) {
-      flag->path_con = atoi(s->value);
-    } else if (!strcmp(s->key, "endpoints")) {
-      flag->endpoint = atoi(s->value);
-    } else if (!strcmp(s->key, "transporter")) {
-      flag->transporter = atoi(s->value);
-    } else if (!strcmp(s->key, "length")) {
-      char *array = s->value;
-      for (int i = 0; i < 6 && array != NULL; i++) {
-        char *v = parse_array_value(&array);
-        flag->length[i] = atoi(v);
-      }
-    } else if (!strcmp(s->key, "slot.type")) {
-      char *array = s->value;
-      for (int i = 0; i < 8 && array != NULL; i++) {
-        char *v = parse_array_value(&array);
-        flag->slot[i].type = (resource_type_t)atoi(v);
-      }
-    } else if (!strcmp(s->key, "slot.dir")) {
-      char *array = s->value;
-      for (int i = 0; i < 8 && array != NULL; i++) {
-        char *v = parse_array_value(&array);
-        flag->slot[i].dir = (dir_t)atoi(v);
-      }
-    } else if (!strcmp(s->key, "slot.dest")) {
-      char *array = s->value;
-      for (int i = 0; i < 8 && array != NULL; i++) {
-        char *v = parse_array_value(&array);
-        flag->slot[i].dest = atoi(v);
-      }
-    } else if (!strcmp(s->key, "other_endpoint")) {
-      /* TODO make sure these pointers are valid. Maybe postpone this
-         linking until all flags are loaded. */
-      char *array = s->value;
-      for (int i = 0; i < 6 && array != NULL; i++) {
-        char *v = parse_array_value(&array);
-        flag->other_endpoint.f[i] = &game.flags[atoi(v)];
-      }
-    } else if (!strcmp(s->key, "other_end_dir")) {
-      char *array = s->value;
-      for (int i = 0; i < 6 && array != NULL; i++) {
-        char *v = parse_array_value(&array);
-        flag->other_end_dir[i] = atoi(v);
-      }
-    } else if (!strcmp(s->key, "bld_flags")) {
-      flag->bld_flags = atoi(s->value);
-    } else if (!strcmp(s->key, "bld2_flags")) {
-      flag->bld2_flags = atoi(s->value);
-    } else {
-      LOGD("savegame", "Unhandled flag setting: `%s'.", s->key);
-    }
-  }
-
-  /* Fix link if connected to building */
-  if (FLAG_HAS_BUILDING(flag)) {
-    char *array = load_text_get_setting(section, "other_endpoint");
-    char *v = NULL;
-    for (int d = DIR_RIGHT; d <= DIR_UP_LEFT && array != NULL; d++) {
-      char *r = parse_array_value(&array);
-      if (d == DIR_UP_LEFT) v = r;
-    }
-
-    if (v == NULL) {
-      LOGD("savegame", "Unable to link flag %i to building", FLAG_INDEX(flag));
-      return -1;
-    }
-
-    flag->other_endpoint.b[DIR_UP_LEFT] = &game.buildings[atoi(v)];
-  }
+  flag_t *flag = game.flags.get_or_insert(n);
+  reader >> *flag;
 
   return 0;
 }
@@ -2187,13 +2081,6 @@ load_text_flag_state(list_t *sections) {
     if (!strcmp(s->name, "flag")) {
       int r = load_text_flag_section(s);
       if (r < 0) return -1;
-    }
-  }
-
-  for (unsigned int i = 0; i < game.flag_limit; i++) {
-    if (FLAG_ALLOCATED(i)) {
-      /* Restore max flag index */
-      game.max_flag_index = i+1;
     }
   }
 
@@ -2672,9 +2559,9 @@ load_text_serf_section(section_t *section) {
     case SERF_STATE_WAKE_AT_FLAG:
     case SERF_STATE_WAKE_ON_PATH:
       if (!strcmp(s->key, "state.rev_dir")) {
-        serf->s.idle_on_path.rev_dir = atoi(s->value);
+        serf->s.idle_on_path.rev_dir = (dir_t)atoi(s->value);
       } else if (!strcmp(s->key, "state.flag")) {
-        serf->s.idle_on_path.flag = &game.flags[atoi(s->value)];
+        serf->s.idle_on_path.flag = game.flags[atoi(s->value)];
       } else if (!strcmp(s->key, "state.field_E")) {
         serf->s.idle_on_path.field_E = atoi(s->value);
       }
@@ -2857,15 +2744,15 @@ load_text_map_state(list_t *sections) {
   }
 
   /* Restore flag index */
-  for (unsigned int i = 1; i < game.max_flag_index; i++) {
-    if (!FLAG_ALLOCATED(i)) continue;
+  for (flags_t::iterator i = game.flags.begin();
+       i != game.flags.end(); ++i) {
+    flag_t *flag = *i;
 
-    flag_t *flag = game_get_flag(i);
-    if (MAP_OBJ(flag->pos) != MAP_OBJ_FLAG) {
-      return -1;
+    if (MAP_OBJ(flag->get_position()) != MAP_OBJ_FLAG) {
+      return false;
     }
 
-    game.map.tiles[flag->pos].obj_index = FLAG_INDEX(flag);
+    game.map.tiles[flag->get_position()].obj_index = flag->get_index();
   }
 
   return 0;
@@ -2969,4 +2856,131 @@ save_state(const char *path) {
   fclose(f);
 
   return r;
+}
+
+save_reader_binary_t::save_reader_binary_t(void *data, size_t size) {
+  current = reinterpret_cast<uint8_t*>(data);
+  end = current + size;
+}
+
+save_reader_binary_t& save_reader_binary_t::operator >> (uint8_t &val) {
+  val = *current;
+  current++;
+  return *this;
+}
+
+save_reader_binary_t& save_reader_binary_t::operator >> (uint16_t &val) {
+  val = *reinterpret_cast<uint16_t*>(current);
+  current += 2;
+  return *this;
+}
+
+save_reader_binary_t& save_reader_binary_t::operator >> (uint32_t &val) {
+  val = *reinterpret_cast<uint32_t*>(current);
+  current += 4;
+  return *this;
+}
+
+save_reader_text_value_t::save_reader_text_value_t(std::string value) {
+  this->value = value;
+}
+
+save_reader_text_value_t&
+save_reader_text_value_t::operator >> (int &val) {
+  int result = atoi(value.c_str());
+  val = result;
+
+  return *this;
+}
+
+save_reader_text_value_t&
+save_reader_text_value_t::operator >> (unsigned int &val) {
+  int result = atoi(value.c_str());
+  val = result;
+
+  return *this;
+}
+
+save_reader_text_value_t&
+save_reader_text_value_t::operator >> (dir_t &val) {
+  int result = atoi(value.c_str());
+  val = (dir_t)result;
+
+  return *this;
+}
+
+save_reader_text_value_t&
+save_reader_text_value_t::operator >> (resource_type_t &val) {
+  int result = atoi(value.c_str());
+  val = (resource_type_t)result;
+
+  return *this;
+}
+
+save_reader_text_value_t
+save_reader_text_value_t::operator[] (size_t pos) {
+  std::vector<std::string> parts;
+  std::istringstream iss(value);
+  std::string item;
+  while (std::getline(iss, item, ',')) {
+    parts.push_back(item);
+  }
+
+  if (pos >= parts.size()) {
+    return save_reader_text_value_t("");
+  }
+
+  return save_reader_text_value_t(parts[pos]);
+}
+
+save_writer_text_value_t&
+save_writer_text_value_t::operator << (int val) {
+  if (!value.empty()) {
+    value += ",";
+  }
+
+  std::ostringstream ss;
+  ss << val;
+  value += ss.str();
+
+  return *this;
+}
+
+save_writer_text_value_t&
+save_writer_text_value_t::operator << (unsigned int val) {
+  if (!value.empty()) {
+    value += ",";
+  }
+
+  std::ostringstream ss;
+  ss << val;
+  value += ss.str();
+
+  return *this;
+}
+
+save_writer_text_value_t&
+save_writer_text_value_t::operator << (dir_t val) {
+  if (!value.empty()) {
+    value += ",";
+  }
+
+  std::ostringstream ss;
+  ss << static_cast<int>(val);
+  value += ss.str();
+
+  return *this;
+}
+
+save_writer_text_value_t&
+save_writer_text_value_t::operator << (resource_type_t val) {
+  if (!value.empty()) {
+    value += ",";
+  }
+
+  std::ostringstream ss;
+  ss << static_cast<int>(val);
+  value += ss.str();
+
+  return *this;
 }

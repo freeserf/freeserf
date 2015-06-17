@@ -1164,37 +1164,37 @@ viewport_t::draw_water_waves_row(map_pos_t pos, int y_base, int cols,
 
 void
 viewport_t::draw_flag_and_res(map_pos_t pos, int x, int y) {
-  flag_t *flag = game_get_flag(MAP_OBJ_INDEX(pos));
+  flag_t *flag = game.flags[MAP_OBJ_INDEX(pos)];
 
-  if (flag->slot[0].type != RESOURCE_NONE) {
-    draw_game_sprite(x+6, y-4, flag->slot[0].type + 1);
+  if (flag->get_resource_at_slot(0) != RESOURCE_NONE) {
+    draw_game_sprite(x+6 , y-4, flag->get_resource_at_slot(0) + 1);
   }
-  if (flag->slot[1].type != RESOURCE_NONE) {
-    draw_game_sprite(x+10, y-2, flag->slot[1].type + 1);
+  if (flag->get_resource_at_slot(1) != RESOURCE_NONE) {
+    draw_game_sprite(x+10, y-2, flag->get_resource_at_slot(1) + 1);
   }
-  if (flag->slot[2].type != RESOURCE_NONE) {
-    draw_game_sprite(x-4, y-4, flag->slot[2].type + 1);
+  if (flag->get_resource_at_slot(2) != RESOURCE_NONE) {
+    draw_game_sprite(x-4 , y-4, flag->get_resource_at_slot(2) + 1);
   }
 
-  int pl_num = FLAG_PLAYER(flag);
+  int pl_num = flag->get_player();
   int spr = 0x80 + (pl_num << 2) + ((game.tick >> 3) & 3);
 
   draw_shadow_and_building_sprite(x, y, spr);
 
-  if (flag->slot[3].type != RESOURCE_NONE) {
-    draw_game_sprite(x+10, y+2, flag->slot[3].type + 1);
+  if (flag->get_resource_at_slot(3) != RESOURCE_NONE) {
+    draw_game_sprite(x+10, y+2, flag->get_resource_at_slot(3) + 1);
   }
-  if (flag->slot[4].type != RESOURCE_NONE) {
-    draw_game_sprite(x-8, y-2, flag->slot[4].type + 1);
+  if (flag->get_resource_at_slot(4) != RESOURCE_NONE) {
+    draw_game_sprite(x-8 , y-2, flag->get_resource_at_slot(4) + 1);
   }
-  if (flag->slot[5].type != RESOURCE_NONE) {
-    draw_game_sprite(x+6, y+4, flag->slot[5].type + 1);
+  if (flag->get_resource_at_slot(5) != RESOURCE_NONE) {
+    draw_game_sprite(x+6 , y+4, flag->get_resource_at_slot(5) + 1);
   }
-  if (flag->slot[6].type != RESOURCE_NONE) {
-    draw_game_sprite(x-8, y+2, flag->slot[6].type + 1);
+  if (flag->get_resource_at_slot(6) != RESOURCE_NONE) {
+    draw_game_sprite(x-8 , y+2, flag->get_resource_at_slot(6) + 1);
   }
-  if (flag->slot[7].type != RESOURCE_NONE) {
-    draw_game_sprite(x-4, y+4, flag->slot[7].type + 1);
+  if (flag->get_resource_at_slot(7) != RESOURCE_NONE) {
+    draw_game_sprite(x-4 , y+4, flag->get_resource_at_slot(7) + 1);
   }
 }
 
@@ -2328,7 +2328,7 @@ viewport_t::handle_dbl_click(int x, int y, event_button_t button) {
   if (interface->is_building_road()) {
     if (clk_pos != interface->get_map_cursor_pos()) {
       map_pos_t pos = interface->get_building_road_source();
-      unsigned int length;
+      unsigned int length = 0;
       dir_t *dirs = pathfinder_map(pos, clk_pos, &length);
       if (dirs != NULL) {
         interface->build_road_reset();

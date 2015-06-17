@@ -122,63 +122,6 @@ init_spiral_pattern() {
   }
 }
 
-/* Allocate and initialize a new flag_t object.
-   Return -1 if no more flags can be allocated, otherwise 0. */
-int
-game_alloc_flag(flag_t **flag, int *index) {
-  for (unsigned int i = 0; i < game.flag_limit; i++) {
-    if (FLAG_ALLOCATED(i)) continue;
-    game.flag_bitmap[i/8] |= BIT(7-(i&7));
-
-    if (i == game.max_flag_index) game.max_flag_index += 1;
-
-    flag_t *f = &game.flags[i];
-    f->pos = 0;
-    f->search_num = 0;
-    f->search_dir = DIR_RIGHT;
-    f->path_con = 0;
-    f->endpoint = 0;
-    f->transporter = 0;
-    for (int j = 0; j < FLAG_MAX_RES_COUNT; j++) {
-      f->slot[j].type = RESOURCE_NONE;
-    }
-    memset(&f->length, 0, sizeof(f->length));
-    f->bld_flags = 0;
-    f->bld2_flags = 0;
-    memset(&f->other_end_dir, 0, sizeof(f->other_end_dir));
-
-    if (flag != NULL) *flag = f;
-    if (index != NULL) *index = i;
-
-    return 0;
-  }
-
-  return -1;
-}
-
-/* Return flag_t object with index. */
-flag_t *
-game_get_flag(int index) {
-  assert(index > 0 && index < static_cast<int>(game.flag_limit));
-  assert(FLAG_ALLOCATED(index));
-  return &game.flags[index];
-}
-
-/* Deallocate flag_t object. */
-void
-game_free_flag(int index) {
-  /* Remove flag from allocation bitmap. */
-  game.flag_bitmap[index/8] &= ~BIT(7-(index&7));
-
-  /* Decrement max_flag_index as much as possible. */
-  if (index == game.max_flag_index + 1) {
-    while (--game.max_flag_index > 0) {
-      index -= 1;
-      if (FLAG_ALLOCATED(index)) break;
-    }
-  }
-}
-
 /* Allocate and initialize a new building_t object.
    Return -1 if no more buildings can be allocated, otherwise 0. */
 int
@@ -471,11 +414,10 @@ clear_serf_request_failure() {
     }
   }
 
-  for (unsigned int i = 1; i < game.max_flag_index; i++) {
-    if (FLAG_ALLOCATED(i)) {
-      flag_t *flag = game_get_flag(i);
-      flag->transporter &= ~BIT(7);
-    }
+  for (flags_t::iterator i = game.flags.begin();
+       i != game.flags.end(); ++i) {
+    flag_t *flag = *i;
+    flag->serf_request_clear();
   }
 }
 
@@ -584,10 +526,10 @@ typedef struct {
 
 static int
 update_inventories_cb(flag_t *flag, update_inventories_data_t *data) {
-  int inv = flag->search_dir;
+  int inv = flag->get_search_dir();
   if (data->max_prio[inv] < 255 &&
-      FLAG_HAS_BUILDING(flag)) {
-    building_t *building = flag->other_endpoint.b[DIR_UP_LEFT];
+    flag->has_building()) {
+    building_t *building = flag->get_building();
 
     for (int i = 0; i < BUILDING_MAX_STOCK; i++) {
       if (building->stock[i].type == data->resource &&
@@ -758,7 +700,6 @@ update_inventories() {
       if (n == 0) continue;
 
       flag_search_t search;
-      flag_search_init(&search);
 
       int max_prio[256];
       flag_t *flags[256];
@@ -766,23 +707,22 @@ update_inventories() {
       for (int i = 0; i < n; i++) {
         max_prio[i] = 0;
         flags[i] = NULL;
-        flag_t *flag = game_get_flag(invs[i]->flag);
-        flag->search_dir = (dir_t)i;
-        flag_search_add_source(&search, flag);
+        flag_t *flag = game.flags[invs[i]->flag];
+        flag->set_search_dir((dir_t)i);
+        search.add_source(flag);
       }
 
       update_inventories_data_t data;
       data.resource = arr[0];
       data.max_prio = max_prio;
       data.flags = flags;
-      flag_search_execute(&search,
-                     reinterpret_cast<flag_search_func*>(update_inventories_cb),
-                          0, 1, &data);
+      search.execute(reinterpret_cast<flag_search_func*>(update_inventories_cb),
+                     false, true, &data);
 
       for (int i = 0; i < n; i++) {
         if (max_prio[i] > 0) {
           LOGV("game", " dest for inventory %i found", i);
-          building_t *dest_bld = flags[i]->other_endpoint.b[DIR_UP_LEFT];
+          building_t *dest_bld = flags[i]->get_building();
           inventory_t *src_inv = invs[i];
 
           int stock = -1;
@@ -825,469 +765,13 @@ update_inventories() {
   }
 }
 
-typedef struct {
-  inventory_t *inventory;
-  int serf_index;
-  int water;
-} send_serf_to_road_data_t;
-
-static int
-send_serf_to_road_search_cb(flag_t *flag, send_serf_to_road_data_t *data) {
-  if (FLAG_HAS_INVENTORY(flag)) {
-    /* Inventory reached */
-    building_t *building = flag->other_endpoint.b[DIR_UP_LEFT];
-    inventory_t *inventory = building->u.inventory;
-    if (!data->water) {
-      if (inventory->serfs[SERF_TRANSPORTER] != 0) {
-        data->inventory = inventory;
-        data->serf_index = inventory->serfs[SERF_TRANSPORTER];
-        inventory->serfs[SERF_TRANSPORTER] = 0;
-        return 1;
-      }
-    } else {
-      if (inventory->serfs[SERF_SAILOR] != 0) {
-        data->inventory = inventory;
-        data->serf_index = inventory->serfs[SERF_SAILOR];
-        inventory->serfs[SERF_SAILOR] = 0;
-        return 1;
-      }
-    }
-
-    if (data->inventory == NULL && inventory->serfs[SERF_GENERIC] != 0 &&
-        (!data->water || inventory->resources[RESOURCE_BOAT] > 0)) {
-      data->inventory = inventory;
-      /*player_t *player = game.player[inventory->player_num];
-      game.field_340 = player->cont_search_after_non_optimal_find;*/
-    }
-  }
-
-  return 0;
-}
-
-static int
-send_serf_to_road(flag_t *src, dir_t dir, int water) {
-  flag_t *src_2 = src->other_endpoint.f[dir];
-  dir_t dir_2 = FLAG_OTHER_END_DIR(src, dir);
-
-  src->search_dir = DIR_RIGHT;
-  src_2->search_dir = DIR_DOWN_RIGHT;
-
-  flag_search_t search;
-  flag_search_init(&search);
-  flag_search_add_source(&search, src);
-  flag_search_add_source(&search, src_2);
-
-  send_serf_to_road_data_t data;
-  data.inventory = NULL;
-  data.serf_index = -1;
-  data.water = water;
-
-  int r = flag_search_execute(&search,
-               reinterpret_cast<flag_search_func*>(send_serf_to_road_search_cb),
-                              1, 0, &data);
-  inventory_t *inventory = data.inventory;
-  int serf_index = data.serf_index;
-  if (r < 0) {
-    if (inventory == NULL) return -1;
-
-    serf_index = inventory->serfs[SERF_GENERIC];
-    inventory->serfs[SERF_GENERIC] = 0;
-
-    serf_t *serf = game_get_serf(serf_index);
-
-    if (!water) {
-      serf_set_type(serf, SERF_TRANSPORTER);
-    } else {
-      serf_set_type(serf, SERF_SAILOR);
-      inventory->resources[RESOURCE_BOAT] -= 1;
-    }
-
-    inventory->generic_count -= 1;
-  }
-
-  inventory->serfs_out += 1;
-  flag_t *dest_flag = game_get_flag(inventory->flag);
-
-  src->length[dir] |= BIT(7);
-  src_2->length[dir_2] |= BIT(7);
-
-  if (dest_flag->search_dir == src_2->search_dir) {
-    src = src_2;
-    dir = dir_2;
-  }
-
-  serf_t *serf = game_get_serf(serf_index);
-
-  serf_log_state_change(serf, SERF_STATE_READY_TO_LEAVE_INVENTORY);
-  serf->state = SERF_STATE_READY_TO_LEAVE_INVENTORY;
-  serf->s.ready_to_leave_inventory.mode = dir;
-  serf->s.ready_to_leave_inventory.dest = FLAG_INDEX(src);
-  serf->s.ready_to_leave_inventory.inv_index = INVENTORY_INDEX(inventory);
-
-  return 0;
-}
-
-static int
-find_nearest_inventory_search_cb(flag_t *flag, flag_t **dest) {
-  if (FLAG_ACCEPTS_RESOURCES(flag)) {
-    *dest = flag;
-    return 1;
-  }
-  return 0;
-}
-
-/* Return the flag index of the inventory nearest to flag. */
-static int
-find_nearest_inventory(flag_t *flag) {
-  flag_t *dest = NULL;
-  flag_search_single(flag,
-          reinterpret_cast<flag_search_func*>(find_nearest_inventory_search_cb),
-                     0, 1, &dest);
-  if (dest != NULL) return FLAG_INDEX(dest);
-
-  return -1;
-}
-
-typedef struct {
-  flag_t *src;
-  flag_t *dest;
-  int slot;
-} schedule_known_dest_data_t;
-
-static int
-schedule_known_dest_cb(flag_t *flag, schedule_known_dest_data_t *data) {
-  flag_t *src = data->src;
-  if (flag == data->dest) {
-    /* Destination found */
-    if (flag->search_dir != 6) {
-      if (!FLAG_IS_SCHEDULED(src, flag->search_dir)) {
-        /* Item is requesting to be fetched */
-        src->other_end_dir[flag->search_dir] = BIT(7) |
-                                 (src->other_end_dir[flag->search_dir] & 0x78) |
-                                 data->slot;
-      } else {
-        player_t *player = game.player[FLAG_PLAYER(flag)];
-        int other_dir = src->other_end_dir[flag->search_dir];
-        int prio_old = player->flag_prio[src->slot[other_dir & 7].type];
-        int prio_new = player->flag_prio[src->slot[data->slot].type];
-        if (prio_new > prio_old) {
-          /* This item has the highest priority now */
-          src->other_end_dir[flag->search_dir] =
-                                 (src->other_end_dir[flag->search_dir] & 0xf8) |
-                                 data->slot;
-        }
-        src->slot[data->slot].dir = flag->search_dir;
-      }
-    }
-    return 1;
-  }
-
-  return 0;
-}
-
-static void
-schedule_slot_to_known_dest(flag_t *flag, int slot,
-                            unsigned int res_waiting[4]) {
-  flag_search_t search;
-  flag_search_init(&search);
-
-  flag->search_num = search.id;
-  flag->search_dir = DIR_UP_RIGHT;
-  int tr = FLAG_TRANSPORTERS(flag);
-
-  int sources = 0;
-
-  /* Directions where transporters are idle (zero slots waiting) */
-  int flags = (res_waiting[0] ^ 0x3f) & flag->transporter;
-
-  if (flags != 0) {
-    for (int k = 0; k < 6; k++) {
-      if (BIT_TEST(flags, 5-k)) {
-        tr &= ~BIT(5-k);
-        flag_t *other_flag = flag->other_endpoint.f[5-k];
-        if (other_flag->search_num != search.id) {
-          other_flag->search_dir = (dir_t)(5-k);
-          flag_search_add_source(&search, other_flag);
-          sources += 1;
-        }
-      }
-    }
-  }
-
-  if (tr != 0) {
-    for (int j = 0; j < 3; j++) {
-      flags = res_waiting[j] ^ res_waiting[j+1];
-      for (int k = 0; k < 6; k++) {
-        if (BIT_TEST(flags, 5-k)) {
-          tr &= ~BIT(5-k);
-          flag_t *other_flag = flag->other_endpoint.f[5-k];
-          if (other_flag->search_num != search.id) {
-            other_flag->search_dir = (dir_t)(5-k);
-            flag_search_add_source(&search, other_flag);
-            sources += 1;
-          }
-        }
-      }
-    }
-
-    if (tr != 0) {
-      flags = res_waiting[3];
-      for (int k = 0; k < 6; k++) {
-        if (BIT_TEST(flags, 5-k)) {
-          tr &= ~BIT(5-k);
-          flag_t *other_flag = flag->other_endpoint.f[5-k];
-          if (other_flag->search_num != search.id) {
-            other_flag->search_dir = (dir_t)(5-k);
-            flag_search_add_source(&search, other_flag);
-            sources += 1;
-          }
-        }
-      }
-      if (flags == 0) return;
-    }
-  }
-
-  if (sources > 0) {
-    schedule_known_dest_data_t data;
-    data.src = flag;
-    data.dest = game_get_flag(flag->slot[slot].dest);
-    data.slot = slot;
-    int r = flag_search_execute(&search,
-                    reinterpret_cast<flag_search_func*>(schedule_known_dest_cb),
-                                0, 1, &data);
-    if (r < 0 || data.dest->search_dir == 6) {
-      /* Unable to deliver */
-      game_cancel_transported_resource(flag->slot[slot].type,
-               flag->slot[slot].dest);
-      flag->slot[slot].dest = 0;
-      flag->endpoint |= BIT(7);
-    }
-  } else {
-    flag->endpoint |= BIT(7);
-  }
-}
-
-typedef struct {
-  int resource;
-  int max_prio;
-  flag_t *flag;
-} schedule_unknown_dest_data_t;
-
-static int
-schedule_unknown_dest_cb(flag_t *flag, schedule_unknown_dest_data_t *data) {
-  if (FLAG_HAS_BUILDING(flag)) {
-    building_t *building = flag->other_endpoint.b[DIR_UP_LEFT];
-
-    for (int i = 0; i < BUILDING_MAX_STOCK; i++) {
-      if (building->stock[i].type == data->resource &&
-          building->stock[i].prio > data->max_prio) {
-        data->max_prio = building->stock[i].prio;
-        data->flag = flag;
-      }
-    }
-
-    if (data->max_prio > 204) return 1;
-  }
-
-  return 0;
-}
-
-static void
-schedule_slot_to_unknown_dest(flag_t *flag, int slot) {
-  /* Resources which should be routed directly to
-     buildings requesting them. Resources not listed
-     here will simply be moved to an inventory. */
-  const int routable[] = {
-    1,  // RESOURCE_FISH
-    1,  // RESOURCE_PIG
-    1,  // RESOURCE_MEAT
-    1,  // RESOURCE_WHEAT
-    1,  // RESOURCE_FLOUR
-    1,  // RESOURCE_BREAD
-    1,  // RESOURCE_LUMBER
-    1,  // RESOURCE_PLANK
-    0,  // RESOURCE_BOAT
-    1,  // RESOURCE_STONE
-    1,  // RESOURCE_IRONORE
-    1,  // RESOURCE_STEEL
-    1,  // RESOURCE_COAL
-    1,  // RESOURCE_GOLDORE
-    1,  // RESOURCE_GOLDBAR
-    0,  // RESOURCE_SHOVEL
-    0,  // RESOURCE_HAMMER
-    0,  // RESOURCE_ROD
-    0,  // RESOURCE_CLEAVER
-    0,  // RESOURCE_SCYTHE
-    0,  // RESOURCE_AXE
-    0,  // RESOURCE_SAW
-    0,  // RESOURCE_PICK
-    0,  // RESOURCE_PINCER
-    0,  // RESOURCE_SWORD
-    0,  // RESOURCE_SHIELD
-    0,  // RESOURCE_GROUP_FOOD
-  };
-
-  resource_type_t res = flag->slot[slot].type;
-  if (routable[res]) {
-    flag_search_t search;
-    flag_search_init(&search);
-    flag_search_add_source(&search, flag);
-
-    /* Handle food as one resource group */
-    if (res == RESOURCE_MEAT ||
-        res == RESOURCE_FISH ||
-        res == RESOURCE_BREAD) {
-      res = RESOURCE_GROUP_FOOD;
-    }
-
-    schedule_unknown_dest_data_t data;
-    data.resource = res;
-    data.flag = NULL;
-    data.max_prio = 0;
-
-    flag_search_execute(&search,
-                  reinterpret_cast<flag_search_func*>(schedule_unknown_dest_cb),
-                        0, 1, &data);
-    if (data.flag != NULL) {
-      LOGV("game", "dest for flag %u res %i found: flag %u",
-           FLAG_INDEX(flag), slot, FLAG_INDEX(data.flag));
-      building_t *dest_bld = data.flag->other_endpoint.b[DIR_UP_LEFT];
-
-      int stock = -1;
-      for (int i = 0; i < BUILDING_MAX_STOCK; i++) {
-        if (dest_bld->stock[i].type == res) {
-          stock = i;
-          break;
-        }
-      }
-
-      assert(stock >= 0);
-      int prio = dest_bld->stock[stock].prio;
-      if ((prio & 1) == 0) prio = 0;
-      dest_bld->stock[stock].prio = prio >> 1;
-      dest_bld->stock[stock].requested += 1;
-
-      flag->slot[slot].dest = dest_bld->flag;
-      flag->endpoint |= BIT(7);
-      return;
-    }
-  }
-
-  /* Either this resource cannot be routed to a destination
-     other than an inventory or such destination could not be
-     found. Send to inventory instead. */
-  int r = find_nearest_inventory(flag);
-  if (r < 0 || r == FLAG_INDEX(flag)) {
-    /* No path to inventory was found, or
-       resource is already at destination.
-       In the latter case we need to move it
-       forth and back once before it can be delivered. */
-    if (FLAG_TRANSPORTERS(flag) == 0) {
-      flag->endpoint |= BIT(7);
-    } else {
-      int dir = -1;
-      for (int i = DIR_RIGHT; i <= DIR_UP; i++) {
-        int d = DIR_UP - i;
-        if (FLAG_HAS_TRANSPORTER(flag, d)) {
-          dir = d;
-          break;
-        }
-      }
-
-      assert(dir >= 0);
-
-      if (!FLAG_IS_SCHEDULED(flag, dir)) {
-        flag->other_end_dir[dir] = BIT(7) |
-          (flag->other_end_dir[dir] & 0x38) | slot;
-      }
-      flag->slot[slot].dir = (dir_t)dir;
-    }
-  } else {
-    flag->slot[slot].dest = r;
-    flag->endpoint |= BIT(7);
-  }
-}
-
 /* Update flags as part of the game progression. */
 static void
 update_flags() {
-  const int max_transporters[] = { 1, 2, 3, 4, 6, 8, 11, 15 };
-
-  for (unsigned int i = 1; i < game.max_flag_index; i++) {
-    if (FLAG_ALLOCATED(i)) {
-      flag_t *flag = game_get_flag(i);
-
-      /* Count and store in bitfield which directions
-         have strictly more than 0,1,2,3 slots waiting. */
-      unsigned int res_waiting[4] = {0};
-      for (int j = 0; j < FLAG_MAX_RES_COUNT; j++) {
-        if (flag->slot[j].type != RESOURCE_NONE &&
-            flag->slot[j].dir != DIR_NONE) {
-          dir_t res_dir = flag->slot[j].dir;
-          for (int k = 0; k < 4; k++) {
-            if (!BIT_TEST(res_waiting[k], res_dir)) {
-              res_waiting[k] |= BIT(res_dir);
-              break;
-            }
-          }
-        }
-      }
-
-      /* Count of total resources waiting at flag */
-      int waiting_count = 0;
-
-      if (FLAG_HAS_RESOURCES(flag)) {
-        flag->endpoint &= ~BIT(7);
-        for (int slot = 0; slot < FLAG_MAX_RES_COUNT; slot++) {
-          if (flag->slot[slot].type != RESOURCE_NONE) {
-            waiting_count += 1;
-
-            /* Only schedule the slot if it has not already
-               been scheduled for fetch. */
-            int res_dir = flag->slot[slot].dir;
-            if (res_dir < 0) {
-              if (flag->slot[slot].dest != 0) {
-                /* Destination is known */
-                schedule_slot_to_known_dest(flag, slot,
-                          res_waiting);
-              } else {
-                /* Destination is not known */
-                schedule_slot_to_unknown_dest(flag, slot);
-              }
-            }
-          }
-        }
-      }
-
-      /* Update transporter flags, decide if serf needs to be sent to road */
-      for (int j = 0; j < 6; j++) {
-        if (FLAG_HAS_PATH(flag, 5-j)) {
-          if (FLAG_SERF_REQUESTED(flag, 5-j)) {
-            if (BIT_TEST(res_waiting[2], 5-j)) {
-              if (waiting_count >= 7) {
-                flag->transporter &= BIT(5-j);
-              }
-            } else if (FLAG_TRANSPORTER_COUNT(flag, 5-j) != 0) {
-              flag->transporter |= BIT(5-j);
-            }
-          } else if (FLAG_TRANSPORTER_COUNT(flag, 5-j) == 0 ||
-               BIT_TEST(res_waiting[2], 5-j)) {
-            int max_tr = max_transporters[FLAG_LENGTH_CATEGORY(flag, 5-j)];
-            if (FLAG_TRANSPORTER_COUNT(flag, 5-j) < (unsigned int)max_tr &&
-                !FLAG_SERF_REQUEST_FAIL(flag)) {
-              int r = send_serf_to_road(flag, (dir_t)(5-j),
-                      FLAG_IS_WATER_PATH(flag, 5-j));
-              if (r < 0) flag->transporter |= BIT(7);
-            }
-            if (waiting_count >= 7) {
-              flag->transporter &= BIT(5-j);
-            }
-          } else {
-            flag->transporter |= BIT(5-j);
-          }
-        }
-      }
-    }
+  for (flags_t::iterator i = game.flags.begin();
+       i != game.flags.end(); ++i) {
+    flag_t *flag = *i;
+    flag->update();
   }
 }
 
@@ -1302,9 +786,9 @@ typedef struct {
 
 static int
 send_serf_to_flag_search_cb(flag_t *flag, send_serf_to_flag_data_t *data) {
-  if (FLAG_HAS_INVENTORY(flag)) {
+  if (flag->has_inventory()) {
     /* Inventory reached */
-    building_t *building = flag->other_endpoint.b[DIR_UP_LEFT];
+    building_t *building = flag->get_building();
     inventory_t *inv = building->u.inventory;
 
     int type = data->serf_type;
@@ -1362,8 +846,7 @@ send_serf_to_flag_search_cb(flag_t *flag, send_serf_to_flag_data_t *data) {
           } else if (type == SERF_GEOLOGIST) {
             serf->s.ready_to_leave_inventory.mode = 6;
           } else {
-            building_t *dest_bld =
-                 game_get_flag(data->dest_index)->other_endpoint.b[DIR_UP_LEFT];
+            building_t *dest_bld = game.flags[data->dest_index]->get_building();
             dest_bld->serf |= BIT(7);
             serf->s.ready_to_leave_inventory.mode = -1;
           }
@@ -1392,8 +875,8 @@ static int
 send_serf_to_flag(flag_t *dest, int type, resource_type_t res1,
                   resource_type_t res2) {
   building_t *building = NULL;
-  if (FLAG_HAS_BUILDING(dest)) {
-    building = dest->other_endpoint.b[DIR_UP_LEFT];
+  if (dest->has_building()) {
+    building = dest->get_building();
   }
 
   /* If type is negative, building is non-NULL. */
@@ -1408,13 +891,13 @@ send_serf_to_flag(flag_t *dest, int type, resource_type_t res1,
   data.inventory = NULL;
   data.building = building;
   data.serf_type = type;
-  data.dest_index = FLAG_INDEX(dest);
+  data.dest_index = dest->get_index();
   data.res1 = res1;
   data.res2 = res2;
 
-  int r = flag_search_single(dest,
+  int r = flag_search_t::single(dest,
                reinterpret_cast<flag_search_func*>(send_serf_to_flag_search_cb),
-                             1, 0, &data);
+                                true, false, &data);
   if (r == 0) {
     return 0;
   } else if (data.inventory != NULL) {
@@ -1446,11 +929,11 @@ send_serf_to_flag(flag_t *dest, int type, resource_type_t res1,
 
       if (type == SERF_GEOLOGIST) {
         serf->s.ready_to_leave_inventory.mode = 6;
-        serf->s.ready_to_leave_inventory.dest = FLAG_INDEX(dest);
+        serf->s.ready_to_leave_inventory.dest = dest->get_index();
       } else {
         building->serf |= BIT(7);
         serf->s.ready_to_leave_inventory.mode = -1;
-        serf->s.ready_to_leave_inventory.dest = FLAG_INDEX(dest);
+        serf->s.ready_to_leave_inventory.dest = dest->get_index();
       }
       serf_set_type(serf, (serf_type_t)type);
 
@@ -1477,7 +960,7 @@ game_send_geologist(flag_t *dest) {
 static int
 send_serf_to_building(building_t *building, int type, resource_type_t res1,
                       resource_type_t res2) {
-  flag_t *dest = game_get_flag(building->flag);
+  flag_t *dest = game.flags[building->flag];
   return send_serf_to_flag(dest, type, res1, res2);
 }
 
@@ -2585,42 +2068,28 @@ game_prepare_ground_analysis(map_pos_t pos, int estimates[5]) {
 }
 
 /* Return non-zero if the road segment from pos in direction dir
-   can be successfully constructed at the current time. */
+can be successfully constructed at the current time. */
 int
 game_road_segment_valid(map_pos_t pos, dir_t dir) {
   map_pos_t other_pos = MAP_MOVE(pos, dir);
 
   map_obj_t obj = MAP_OBJ(other_pos);
   if ((MAP_PATHS(other_pos) != 0 && obj != MAP_OBJ_FLAG) ||
-      map_space_from_obj[obj] >= MAP_SPACE_SEMIPASSABLE) {
+    map_space_from_obj[obj] >= MAP_SPACE_SEMIPASSABLE) {
     return 0;
   }
 
   if (!MAP_HAS_OWNER(other_pos) ||
-      MAP_OWNER(other_pos) != MAP_OWNER(pos)) {
+    MAP_OWNER(other_pos) != MAP_OWNER(pos)) {
     return 0;
   }
 
   if (MAP_IN_WATER(pos) != MAP_IN_WATER(other_pos) &&
-      !(MAP_HAS_FLAG(pos) || MAP_HAS_FLAG(other_pos))) {
+    !(MAP_HAS_FLAG(pos) || MAP_HAS_FLAG(other_pos))) {
     return 0;
   }
 
   return 1;
-}
-
-/* Get road length category value for real length.
-   Determines number of serfs servicing the path segment.(?) */
-static int
-get_road_length_value(int length) {
-  if (length >= 24) return 7;
-  else if (length >= 18) return 6;
-  else if (length >= 13) return 5;
-  else if (length >= 10) return 4;
-  else if (length >= 7) return 3;
-  else if (length >= 6) return 2;
-  else if (length >= 4) return 1;
-  return 0;
 }
 
 static int
@@ -2765,34 +2234,10 @@ game_build_road(map_pos_t source, const dir_t dirs[], unsigned int length,
   }
 
   /* Connect flags */
-  flag_t *src_flag = game_get_flag(MAP_OBJ_INDEX(source));
-  flag_t *dest_flag = game_get_flag(MAP_OBJ_INDEX(dest));
+  flag_t *src_flag = game.flags[MAP_OBJ_INDEX(source)];
+  flag_t *dest_flag = game.flags[MAP_OBJ_INDEX(dest)];
 
-  dest_flag->path_con |= BIT(in_dir);
-  dest_flag->endpoint |= BIT(in_dir);
-  dest_flag->transporter &= ~BIT(in_dir);
-
-  src_flag->path_con |= BIT(out_dir);
-  src_flag->endpoint |= BIT(out_dir);
-  src_flag->transporter &= ~BIT(out_dir);
-
-  if (water_path) {
-    dest_flag->endpoint &= ~BIT(in_dir);
-    src_flag->endpoint &= ~BIT(out_dir);
-  }
-
-  dest_flag->other_end_dir[in_dir] = (dest_flag->other_end_dir[in_dir] & 0xc7) |
-                                     (out_dir << 3);
-  src_flag->other_end_dir[out_dir] = (src_flag->other_end_dir[out_dir] & 0xc7) |
-                                     (in_dir << 3);
-
-  int len = get_road_length_value(length);
-
-  dest_flag->length[in_dir] = len << 4;
-  src_flag->length[out_dir] = len << 4;
-
-  dest_flag->other_endpoint.f[in_dir] = src_flag;
-  src_flag->other_endpoint.f[out_dir] = dest_flag;
+  src_flag->link_with_flag(dest_flag, water_path == 1, length, in_dir, out_dir);
 
   return 0;
 }
@@ -2805,61 +2250,46 @@ flag_reset_transport(flag_t *flag) {
       serf_t *serf = game_get_serf(i);
 
       if (serf->state == SERF_STATE_WALKING &&
-          serf->s.walking.dest == FLAG_INDEX(flag) &&
+          serf->s.walking.dest == flag->get_index() &&
           serf->s.walking.res < 0) {
         serf->s.walking.res = -2;
         serf->s.walking.dest = 0;
       } else if (serf->state == SERF_STATE_READY_TO_LEAVE_INVENTORY &&
-           serf->s.ready_to_leave_inventory.dest == FLAG_INDEX(flag) &&
+           serf->s.ready_to_leave_inventory.dest == flag->get_index() &&
            serf->s.ready_to_leave_inventory.mode < 0) {
         serf->s.ready_to_leave_inventory.mode = -2;
         serf->s.ready_to_leave_inventory.dest = 0;
       } else if ((serf->state == SERF_STATE_LEAVING_BUILDING ||
             serf->state == SERF_STATE_READY_TO_LEAVE) &&
            serf->s.leaving_building.next_state == SERF_STATE_WALKING &&
-           serf->s.leaving_building.dest == FLAG_INDEX(flag) &&
+           serf->s.leaving_building.dest == flag->get_index() &&
            serf->s.leaving_building.field_B < 0) {
         serf->s.leaving_building.field_B = -2;
         serf->s.leaving_building.dest = 0;
       } else if (serf->state == SERF_STATE_TRANSPORTING &&
-           serf->s.walking.dest == FLAG_INDEX(flag)) {
+           serf->s.walking.dest == flag->get_index()) {
         serf->s.walking.dest = 0;
       } else if (serf->state == SERF_STATE_MOVE_RESOURCE_OUT &&
-           serf->s.move_resource_out.next_state ==
-                 SERF_STATE_DROP_RESOURCE_OUT &&
-           serf->s.move_resource_out.res_dest == FLAG_INDEX(flag)) {
+                 serf->s.move_resource_out.next_state ==
+                   SERF_STATE_DROP_RESOURCE_OUT &&
+                 serf->s.move_resource_out.res_dest == flag->get_index()) {
         serf->s.move_resource_out.res_dest = 0;
       } else if (serf->state == SERF_STATE_DROP_RESOURCE_OUT &&
-           serf->s.move_resource_out.res_dest == FLAG_INDEX(flag)) {
+                 serf->s.move_resource_out.res_dest == flag->get_index()) {
         serf->s.move_resource_out.res_dest = 0;
       } else if (serf->state == SERF_STATE_LEAVING_BUILDING &&
-           serf->s.leaving_building.next_state ==
-                 SERF_STATE_DROP_RESOURCE_OUT &&
-           serf->s.leaving_building.dest == FLAG_INDEX(flag)) {
+                 serf->s.leaving_building.next_state ==
+                   SERF_STATE_DROP_RESOURCE_OUT &&
+                 serf->s.leaving_building.dest == flag->get_index()) {
         serf->s.leaving_building.dest = 0;
       }
     }
   }
 
   /* Flag. */
-  for (unsigned int i = 1; i < game.max_flag_index; i++) {
-    if (FLAG_ALLOCATED(i)) {
-      flag_t *other = game_get_flag(i);
-
-      for (int slot = 0; slot < FLAG_MAX_RES_COUNT; slot++) {
-        if (other->slot[slot].type != RESOURCE_NONE &&
-            other->slot[slot].dest == FLAG_INDEX(flag)) {
-          other->slot[slot].dest = 0;
-          other->endpoint |= BIT(7);
-
-          if (other->slot[slot].dir != DIR_NONE) {
-            dir_t dir = other->slot[slot].dir;
-            player_t *player = game.player[FLAG_PLAYER(other)];
-            flag_prioritize_pickup(other, dir, player->flag_prio);
-          }
-        }
-      }
-    }
+  for (flags_t::iterator i = game.flags.begin();
+       i != game.flags.end(); ++i) {
+    flag->reset_transport(*i);
   }
 
   /* Inventories. */
@@ -2867,12 +2297,12 @@ flag_reset_transport(flag_t *flag) {
     if (INVENTORY_ALLOCATED(i)) {
       inventory_t *inventory = game_get_inventory(i);
       if (inventory->out_queue[1].type != RESOURCE_NONE &&
-          inventory->out_queue[1].dest == FLAG_INDEX(flag)) {
+          inventory->out_queue[1].dest == flag->get_index()) {
         inventory->resources[inventory->out_queue[1].type] += 1;
         inventory->out_queue[1].type = RESOURCE_NONE;
       }
       if (inventory->out_queue[0].type != RESOURCE_NONE &&
-          inventory->out_queue[0].dest == FLAG_INDEX(flag)) {
+          inventory->out_queue[0].dest == flag->get_index()) {
         inventory->resources[inventory->out_queue[0].type] += 1;
         inventory->out_queue[0].type = inventory->out_queue[1].type;
         inventory->out_queue[0].dest = inventory->out_queue[1].dest;
@@ -3000,63 +2430,11 @@ remove_road_forwards(map_pos_t pos, dir_t dir) {
     }
 
     if (MAP_HAS_FLAG(pos)) {
-      flag_t *flag = game_get_flag(MAP_OBJ_INDEX(pos));
+      flag_t *flag = game.flags[MAP_OBJ_INDEX(pos)];
       dir_t rev_dir = DIR_REVERSE(in_dir);
 
-      flag->path_con &= ~BIT(rev_dir);
-      flag->transporter &= ~BIT(rev_dir);
-      flag->endpoint &= ~BIT(rev_dir);
+      flag->del_path(rev_dir);
 
-      if (FLAG_SERF_REQUESTED(flag, rev_dir)) {
-        flag->length[rev_dir] &= ~BIT(7);
-
-        for (unsigned int i = 1; i < game.max_serf_index; i++) {
-          if (SERF_ALLOCATED(i)) {
-            int dest = MAP_OBJ_INDEX(pos);
-            serf_t *serf = game_get_serf(i);
-
-            switch (serf->state) {
-            case SERF_STATE_WALKING:
-              if (serf->s.walking.dest == dest &&
-                  serf->s.walking.res == rev_dir) {
-                serf->s.walking.res = -2;
-                serf->s.walking.dest = 0;
-              }
-              break;
-            case SERF_STATE_READY_TO_LEAVE_INVENTORY:
-              if (serf->s.ready_to_leave_inventory.dest == dest &&
-                  serf->s.ready_to_leave_inventory.mode == rev_dir) {
-                serf->s.ready_to_leave_inventory.mode = -2;
-                serf->s.ready_to_leave_inventory.dest = 0;
-              }
-              break;
-            case SERF_STATE_LEAVING_BUILDING:
-            case SERF_STATE_READY_TO_LEAVE:
-              if (serf->s.leaving_building.dest == dest &&
-                  serf->s.leaving_building.field_B == rev_dir &&
-                  serf->s.leaving_building.next_state == SERF_STATE_WALKING) {
-                serf->s.leaving_building.field_B = -2;
-                serf->s.leaving_building.dest = 0;
-              }
-              break;
-            default:
-              break;
-            }
-          }
-        }
-      }
-
-      flag->other_end_dir[rev_dir] &= 0x78;
-
-      /* Mark resource path for recalculation if they would
-         have followed the removed path. */
-      for (int i = 0; i < FLAG_MAX_RES_COUNT; i++) {
-        if (flag->slot[i].type != RESOURCE_NONE &&
-            flag->slot[i].dir == rev_dir) {
-          flag->slot[i].dir = DIR_NONE;
-          flag->endpoint |= BIT(7);
-        }
-      }
       break;
     }
 
@@ -3130,192 +2508,6 @@ game_demolish_road(map_pos_t pos, player_t *player) {
   return demolish_road(pos);
 }
 
-/* Find a transporter at pos and change it to state. */
-static int
-change_transporter_state_at_pos(map_pos_t pos, serf_state_t state) {
-  for (unsigned int i = 1; i < game.max_serf_index; i++) {
-    if (SERF_ALLOCATED(i)) {
-      serf_t *serf = game_get_serf(i);
-      if (serf->pos == pos &&
-          (serf->state == SERF_STATE_WAKE_AT_FLAG ||
-           serf->state == SERF_STATE_WAKE_ON_PATH ||
-           serf->state == SERF_STATE_WAIT_IDLE_ON_PATH ||
-           serf->state == SERF_STATE_IDLE_ON_PATH)) {
-        serf_log_state_change(serf, state);
-        serf->state = state;
-        return SERF_INDEX(serf);
-      }
-    }
-  }
-
-  return -1;
-}
-
-static int
-wake_transporter_at_flag(map_pos_t pos) {
-  return change_transporter_state_at_pos(pos, SERF_STATE_WAKE_AT_FLAG);
-}
-
-static int
-wake_transporter_on_path(map_pos_t pos) {
-  return change_transporter_state_at_pos(pos, SERF_STATE_WAKE_ON_PATH);
-}
-
-typedef struct {
-  int path_len;
-  int serf_count;
-  int flag_index;
-  dir_t flag_dir;
-  int serfs[16];
-} serf_path_info_t;
-
-static void
-fill_path_serf_info(map_pos_t pos, dir_t dir, serf_path_info_t *data) {
-  if (MAP_IDLE_SERF(pos)) wake_transporter_at_flag(pos);
-
-  int serf_count = 0;
-  int path_len = 0;
-
-  /* Handle first position. */
-  if (MAP_SERF_INDEX(pos) != 0) {
-    serf_t *serf = game_get_serf(MAP_SERF_INDEX(pos));
-    if (serf->state == SERF_STATE_TRANSPORTING &&
-        serf->s.walking.wait_counter != -1) {
-      int d = serf->s.walking.dir;
-      if (d < 0) d += 6;
-
-      if (dir == d) {
-        serf->s.walking.wait_counter = 0;
-        data->serfs[serf_count++] = SERF_INDEX(serf);
-      }
-    }
-  }
-
-  /* Trace along the path to the flag at the other end. */
-  int paths = 0;
-  while (1) {
-    path_len += 1;
-    pos = MAP_MOVE(pos, dir);
-    paths = MAP_PATHS(pos);
-    paths &= ~BIT(DIR_REVERSE(dir));
-
-    if (MAP_HAS_FLAG(pos)) break;
-
-    /* Find out which direction the path follows. */
-    for (int d = DIR_RIGHT; d <= DIR_UP; d++) {
-      if (BIT_TEST(paths, d)) {
-        dir = (dir_t)d;
-        break;
-      }
-    }
-
-    /* Check if there is a transporter waiting here. */
-    if (MAP_IDLE_SERF(pos)) {
-      int index = wake_transporter_on_path(pos);
-      if (index >= 0) data->serfs[serf_count++] = index;
-    }
-
-    /* Check if there is a serf occupying this space. */
-    if (MAP_SERF_INDEX(pos) != 0) {
-      serf_t *serf = game_get_serf(MAP_SERF_INDEX(pos));
-      if (serf->state == SERF_STATE_TRANSPORTING &&
-          serf->s.walking.wait_counter != -1) {
-        serf->s.walking.wait_counter = 0;
-        data->serfs[serf_count++] = SERF_INDEX(serf);
-      }
-    }
-  }
-
-  /* Handle last position. */
-  if (MAP_SERF_INDEX(pos) != 0) {
-    serf_t *serf = game_get_serf(MAP_SERF_INDEX(pos));
-    if ((serf->state == SERF_STATE_TRANSPORTING &&
-         serf->s.walking.wait_counter != -1) ||
-        serf->state == SERF_STATE_DELIVERING) {
-      int d = serf->s.walking.dir;
-      if (d < 0) d += 6;
-
-      if (d == DIR_REVERSE(dir)) {
-        serf->s.walking.wait_counter = 0;
-        data->serfs[serf_count++] = SERF_INDEX(serf);
-      }
-    }
-  }
-
-  /* Fill the rest of the struct. */
-  data->path_len = path_len;
-  data->serf_count = serf_count;
-  data->flag_index = MAP_OBJ_INDEX(pos);
-  data->flag_dir = DIR_REVERSE(dir);
-}
-
-static void
-restore_path_serf_info(flag_t *flag, dir_t dir, serf_path_info_t *data) {
-  const int max_path_serfs[] = { 1, 2, 3, 4, 6, 8, 11, 15 };
-
-  flag_t *other_flag = game_get_flag(data->flag_index);
-  dir_t other_dir = data->flag_dir;
-
-  flag->path_con |= BIT(dir);
-  flag->endpoint &= ~BIT(dir);
-
-  if (!FLAG_IS_WATER_PATH(other_flag, other_dir)) {
-    flag->endpoint |= BIT(dir);
-  }
-
-  other_flag->transporter &= ~BIT(other_dir);
-  flag->transporter &= ~BIT(dir);
-
-  int len = get_road_length_value(data->path_len);
-
-  flag->length[dir] = len << 4;
-  other_flag->length[other_dir] = (0x80 & other_flag->length[other_dir]) |
-                                  (len << 4);
-
-  if (FLAG_SERF_REQUESTED(other_flag, other_dir)) {
-    flag->length[dir] |= BIT(7);
-  }
-
-  flag->other_end_dir[dir] = (flag->other_end_dir[dir] & 0xc7) |
-                             (other_dir << 3);
-  other_flag->other_end_dir[other_dir] =
-                     (other_flag->other_end_dir[other_dir] & 0xc7) | (dir << 3);
-
-  flag->other_endpoint.f[dir] = other_flag;
-  other_flag->other_endpoint.f[other_dir] = flag;
-
-  int max_serfs = max_path_serfs[len];
-  if (FLAG_SERF_REQUESTED(flag, dir)) max_serfs -= 1;
-
-  if (data->serf_count > max_serfs) {
-    for (int i = 0; i < data->serf_count - max_serfs; i++) {
-      serf_t *serf = game_get_serf(data->serfs[i]);
-      if (serf->state != SERF_STATE_WAKE_ON_PATH) {
-        serf->s.walking.wait_counter = -1;
-        if (serf->s.walking.res != 0) {
-          resource_type_t res = (resource_type_t)(serf->s.walking.res-1);
-          serf->s.walking.res = 0;
-
-          game_cancel_transported_resource(res, serf->s.walking.dest);
-          game_lose_resource(res);
-        }
-      } else {
-        serf_log_state_change(serf, SERF_STATE_WAKE_AT_FLAG);
-        serf->state = SERF_STATE_WAKE_AT_FLAG;
-      }
-    }
-  }
-
-  if (std::min(data->serf_count, max_serfs) > 0) {
-    /* There are still transporters on the paths. */
-    flag->transporter |= BIT(dir);
-    other_flag->transporter |= BIT(other_dir);
-
-    flag->length[dir] |= std::min(data->serf_count, max_serfs);
-    other_flag->length[other_dir] |= std::min(data->serf_count, max_serfs);
-  }
-}
-
 /* Build flag on existing path. Path must be split in two segments. */
 static void
 build_flag_split_path(map_pos_t pos) {
@@ -3346,14 +2538,14 @@ build_flag_split_path(map_pos_t pos) {
   serf_path_info_t path_1_data;
   serf_path_info_t path_2_data;
 
-  fill_path_serf_info(pos, path_1_dir, &path_1_data);
-  fill_path_serf_info(pos, path_2_dir, &path_2_data);
+  flag_t::fill_path_serf_info(pos, path_1_dir, &path_1_data);
+  flag_t::fill_path_serf_info(pos, path_2_dir, &path_2_data);
 
-  flag_t *flag_2 = game_get_flag(path_2_data.flag_index);
+  flag_t *flag_2 = game.flags[path_2_data.flag_index];
   dir_t dir_2 = path_2_data.flag_dir;
 
   int select = -1;
-  if (FLAG_SERF_REQUESTED(flag_2, dir_2)) {
+  if (flag_2->serf_requested(dir_2)) {
     for (unsigned int i = 1; i < game.max_serf_index; i++) {
       if (SERF_ALLOCATED(i)) {
         serf_t *serf = game_get_serf(i);
@@ -3398,14 +2590,14 @@ build_flag_split_path(map_pos_t pos) {
     serf_path_info_t *path_data = &path_1_data;
     if (select == 0) path_data = &path_2_data;
 
-    flag_t *selected_flag = game_get_flag(path_data->flag_index);
-    selected_flag->length[path_data->flag_dir] &= ~BIT(7);
+    flag_t *selected_flag = game.flags[path_data->flag_index];
+    selected_flag->cancel_serf_request(path_data->flag_dir);
   }
 
-  flag_t *flag = game_get_flag(MAP_OBJ_INDEX(pos));
+  flag_t *flag = game.flags[MAP_OBJ_INDEX(pos)];
 
-  restore_path_serf_info(flag, path_1_dir, &path_1_data);
-  restore_path_serf_info(flag, path_2_dir, &path_2_data);
+  flag->restore_path_serf_info(path_1_dir, &path_1_data);
+  flag->restore_path_serf_info(path_2_dir, &path_2_data);
 }
 
 /* Check whether player can build flag at pos. */
@@ -3448,13 +2640,11 @@ game_build_flag(map_pos_t pos, player_t *player) {
   if (!game_can_build_flag(pos, player)) return -1;
 
   flag_t *flag;
-  int flg_index;
-  int r = game_alloc_flag(&flag, &flg_index);
-  if (r < 0) return -1;
+  unsigned int flg_index;
+  if (!game.flags.allocate(&flag, &flg_index)) return -1;
 
-  flag->path_con = player->player_num << 6;
-
-  flag->pos = pos;
+  flag->set_player(player->player_num);
+  flag->set_position(pos);
   map_set_object(pos, MAP_OBJ_FLAG, flg_index);
 
   if (MAP_PATHS(pos) != 0) {
@@ -3782,10 +2972,9 @@ game_build_building(map_pos_t pos, building_type_t type, player_t *player) {
   if (r < 0) return -1;
 
   flag_t *flag = NULL;
-  int flg_index = 0;
+  unsigned int flg_index = 0;
   if (MAP_OBJ(MAP_MOVE_DOWN_RIGHT(pos)) != MAP_OBJ_FLAG) {
-    r = game_alloc_flag(&flag, &flg_index);
-    if (r < 0) {
+    if (!game.flags.allocate(&flag, &flg_index)) {
       game_free_building(bld_index);
       return -1;
     }
@@ -3803,18 +2992,17 @@ game_build_building(map_pos_t pos, building_type_t type, player_t *player) {
 
   int split_path = 0;
   if (MAP_OBJ(MAP_MOVE_DOWN_RIGHT(pos)) != MAP_OBJ_FLAG) {
-    flag->path_con = player->player_num << 6;
+    flag->set_player(player->player_num);
     if (MAP_PATHS(MAP_MOVE_DOWN_RIGHT(pos)) != 0) split_path = 1;
   } else {
     flg_index = MAP_OBJ_INDEX(MAP_MOVE_DOWN_RIGHT(pos));
-    flag = game_get_flag(flg_index);
+    flag = game.flags[flg_index];
   }
 
-  flag->pos = MAP_MOVE_DOWN_RIGHT(pos);
+  flag->set_position(MAP_MOVE_DOWN_RIGHT(pos));
 
   bld->flag = flg_index;
-  flag->other_endpoint.b[DIR_UP_LEFT] = bld;
-  flag->endpoint |= BIT(6);
+  flag->link_building(bld);
 
   bld->stock[0].type = RESOURCE_PLANK;
   bld->stock[0].prio = 0;
@@ -3823,8 +3011,7 @@ game_build_building(map_pos_t pos, building_type_t type, player_t *player) {
   bld->stock[1].prio = 0;
   bld->stock[1].maximum = construction_cost[2*type+1];
 
-  flag->bld_flags = 0;
-  flag->bld2_flags = 0;
+  flag->clear_flags();
 
   tiles[pos].obj &= ~BIT(7);
 
@@ -3986,9 +3173,8 @@ game_build_castle(map_pos_t pos, player_t *player) {
   }
 
   flag_t *flag;
-  int flg_index;
-  r = game_alloc_flag(&flag, &flg_index);
-  if (r < 0) {
+  unsigned int flg_index;
+  if (!game.flags.allocate(&flag, &flg_index)) {
     game_free_building(bld_index);
     game_free_inventory(inv_index);
     return -1;
@@ -4062,7 +3248,7 @@ game_build_castle(map_pos_t pos, player_t *player) {
   game.map_gold_deposit += inventory->resources[RESOURCE_GOLDORE];
 
   castle->pos = pos;
-  flag->pos = MAP_MOVE_DOWN_RIGHT(pos);
+  flag->set_position(MAP_MOVE_DOWN_RIGHT(pos));
   castle->type = BUILDING_CASTLE;
   castle->bld = BIT(7) | player->player_num;
   castle->progress = 0;
@@ -4071,12 +3257,12 @@ game_build_castle(map_pos_t pos, player_t *player) {
   castle->stock[1].available = 0xff;
   castle->stock[1].requested = 0xff;
   player->building = bld_index;
-  flag->path_con = player->player_num << 6;
-  flag->bld_flags = BIT(7) | BIT(6);
-  flag->bld2_flags = BIT(7);
+  flag->set_player(player->player_num);
+  flag->set_accepts_serfs(true);
+  flag->set_has_inventory();
+  flag->set_accepts_resources(true);
   castle->flag = flg_index;
-  flag->other_endpoint.b[DIR_UP_LEFT] = castle;
-  flag->endpoint |= BIT(6);
+  flag->link_building(castle);
 
   map_tile_t *tiles = game.map.tiles;
   map_set_object(pos, MAP_OBJ_CASTLE, bld_index);
@@ -4106,7 +3292,7 @@ static void
 flag_remove_player_refs(flag_t *flag) {
   for (int i = 0; i < GAME_MAX_PLAYER_COUNT; i++) {
     if (PLAYER_IS_ACTIVE(game.player[i])) {
-      if (game.player[i]->index == FLAG_INDEX(flag)) {
+      if (game.player[i]->index == flag->get_index()) {
         game.player[i]->index = 0;
       }
     }
@@ -4131,50 +3317,27 @@ game_can_demolish_road(map_pos_t pos, const player_t *player) {
 }
 
 /* Check whether flag can be demolished. */
-int
+bool
 game_can_demolish_flag(map_pos_t pos, const player_t *player) {
-  if (MAP_OBJ(pos) != MAP_OBJ_FLAG) return 0;
+  if (MAP_OBJ(pos) != MAP_OBJ_FLAG) return false;
 
   if (BIT_TEST(MAP_PATHS(pos), DIR_UP_LEFT) &&
       MAP_OBJ(MAP_MOVE_UP_LEFT(pos)) >= MAP_OBJ_SMALL_BUILDING &&
       MAP_OBJ(MAP_MOVE_UP_LEFT(pos)) <= MAP_OBJ_CASTLE) {
-    return 0;
+    return false;
   }
 
-  if (MAP_PATHS(pos) == 0) return 1;
+  if (MAP_PATHS(pos) == 0) return true;
 
-  flag_t *flag = game_get_flag(MAP_OBJ_INDEX(pos));
+  flag_t *flag = game.flags[MAP_OBJ_INDEX(pos)];
 
-  if (FLAG_PLAYER(flag) != player->player_num) return 0;
+  if (flag->get_player() != player->player_num) return false;
 
-  int connected = 0;
-  void *other_end = NULL;
-
-  for (int d = DIR_RIGHT; d <= DIR_UP; d++) {
-    if (FLAG_HAS_PATH(flag, d)) {
-      if (FLAG_IS_WATER_PATH(flag, d)) return 0;
-
-      connected += 1;
-
-      if (other_end != NULL) {
-        if (flag->other_endpoint.v[d] == other_end) {
-          return 0;
-        }
-      } else {
-        other_end = flag->other_endpoint.v[d];
-      }
-    }
-  }
-
-  if (connected == 2) return 1;
-
-  return 0;
+  return flag->can_demolish();
 }
 
 static int
 demolish_flag(map_pos_t pos) {
-  const int max_transporters[] = { 1, 2, 3, 4, 6, 8, 11, 15 };
-
   /* Handle any serf at pos. */
   if (MAP_SERF_INDEX(pos) != 0) {
     serf_t *serf = game_get_serf(MAP_SERF_INDEX(pos));
@@ -4195,107 +3358,13 @@ demolish_flag(map_pos_t pos) {
     }
   }
 
-  flag_t *flag = game_get_flag(MAP_OBJ_INDEX(pos));
-  assert(!FLAG_HAS_BUILDING(flag));
+  flag_t *flag = game.flags[MAP_OBJ_INDEX(pos)];
+  assert(!flag->has_building());
 
   flag_remove_player_refs(flag);
 
   /* Handle connected flag. */
-  if (MAP_PATHS(pos)) {
-    dir_t path_1_dir = DIR_RIGHT;
-    dir_t path_2_dir = DIR_RIGHT;
-
-    /* Find first direction */
-    for (int d = DIR_RIGHT; d <= DIR_UP; d++) {
-      if (BIT_TEST(MAP_PATHS(pos), d)) {
-        path_1_dir = (dir_t)d;
-        break;
-      }
-    }
-
-    /* Find second direction */
-    for (int d = DIR_UP; d >= DIR_RIGHT; d--) {
-      if (BIT_TEST(MAP_PATHS(pos), d)) {
-        path_2_dir = (dir_t)d;
-        break;
-      }
-    }
-
-    serf_path_info_t path_1_data;
-    serf_path_info_t path_2_data;
-
-    fill_path_serf_info(pos, path_1_dir, &path_1_data);
-    fill_path_serf_info(pos, path_2_dir, &path_2_data);
-
-    flag_t *flag_1 = game_get_flag(path_1_data.flag_index);
-    flag_t *flag_2 = game_get_flag(path_2_data.flag_index);
-    dir_t dir_1 = path_1_data.flag_dir;
-    dir_t dir_2 = path_2_data.flag_dir;
-
-    flag_1->other_end_dir[dir_1] = (flag_1->other_end_dir[dir_1] & 0xc7) |
-                                   (dir_2 << 3);
-    flag_2->other_end_dir[dir_2] = (flag_2->other_end_dir[dir_2] & 0xc7) |
-                                   (dir_1 << 3);
-
-    flag_1->other_endpoint.f[dir_1] = flag_2;
-    flag_2->other_endpoint.f[dir_2] = flag_1;
-
-    flag_1->transporter &= ~BIT(dir_1);
-    flag_2->transporter &= ~BIT(dir_2);
-
-    int len = get_road_length_value(path_1_data.path_len +
-                                    path_2_data.path_len);
-    flag_1->length[dir_1] = len << 4;
-    flag_2->length[dir_2] = len << 4;
-
-    int max_serfs = max_transporters[FLAG_LENGTH_CATEGORY(flag_1, dir_1)];
-    int serf_count = path_1_data.serf_count + path_2_data.serf_count;
-    if (serf_count > 0) {
-      flag_1->transporter |= BIT(dir_1);
-      flag_2->transporter |= BIT(dir_2);
-
-      if (serf_count > max_serfs) {
-        /* TODO 59B8B */
-      }
-
-      flag_1->length[dir_1] += serf_count;
-      flag_2->length[dir_2] += serf_count;
-    }
-
-    /* Update serfs with reference to this flag. */
-    for (unsigned int i = 1; i < game.max_serf_index; i++) {
-      if (SERF_ALLOCATED(i)) {
-        serf_t *serf = game_get_serf(i);
-
-        if (serf->state == SERF_STATE_READY_TO_LEAVE_INVENTORY &&
-            ((serf->s.ready_to_leave_inventory.dest == FLAG_INDEX(flag_1) &&
-              serf->s.ready_to_leave_inventory.mode == dir_1) ||
-             (serf->s.ready_to_leave_inventory.dest == FLAG_INDEX(flag_2) &&
-              serf->s.ready_to_leave_inventory.mode == dir_2))) {
-          serf->s.ready_to_leave_inventory.dest = 0;
-          serf->s.ready_to_leave_inventory.mode = -2;
-        } else if (serf->state == SERF_STATE_WALKING &&
-             ((serf->s.walking.dest == FLAG_INDEX(flag_1) &&
-               serf->s.walking.res == dir_1) ||
-              (serf->s.walking.dest == FLAG_INDEX(flag_2) &&
-               serf->s.walking.res == dir_2))) {
-          serf->s.walking.dest = 0;
-          serf->s.walking.res = -2;
-        } else if (serf->state == SERF_STATE_IDLE_IN_STOCK) {
-          /* TODO */
-        } else if ((serf->state == SERF_STATE_LEAVING_BUILDING ||
-              serf->state == SERF_STATE_READY_TO_LEAVE) &&
-             ((serf->s.leaving_building.dest == FLAG_INDEX(flag_1) &&
-               serf->s.leaving_building.field_B == dir_1) ||
-              (serf->s.leaving_building.dest == FLAG_INDEX(flag_2) &&
-               serf->s.leaving_building.field_B == dir_2)) &&
-             serf->s.leaving_building.next_state == SERF_STATE_WALKING) {
-          serf->s.leaving_building.dest = 0;
-          serf->s.leaving_building.field_B = -2;
-        }
-      }
-    }
-  }
+  flag->merge_paths(pos);
 
   /* Update serfs with reference to this flag. */
   for (unsigned int i = 1; i < game.max_serf_index; i++) {
@@ -4303,18 +3372,18 @@ demolish_flag(map_pos_t pos) {
       serf_t *serf = game_get_serf(i);
 
       if (serf->state == SERF_STATE_READY_TO_LEAVE_INVENTORY &&
-          serf->s.ready_to_leave_inventory.dest == FLAG_INDEX(flag)) {
+          serf->s.ready_to_leave_inventory.dest == flag->get_index()) {
         serf->s.ready_to_leave_inventory.dest = 0;
         serf->s.ready_to_leave_inventory.mode = -2;
       } else if (serf->state == SERF_STATE_WALKING &&
-           serf->s.walking.dest == FLAG_INDEX(flag)) {
+           serf->s.walking.dest == flag->get_index()) {
         serf->s.walking.dest = 0;
         serf->s.walking.res = -2;
       } else if (serf->state == SERF_STATE_IDLE_IN_STOCK && 1/*...*/) {
         /* TODO */
       } else if ((serf->state == SERF_STATE_LEAVING_BUILDING ||
             serf->state == SERF_STATE_READY_TO_LEAVE) &&
-           serf->s.leaving_building.dest == FLAG_INDEX(flag) &&
+           serf->s.leaving_building.dest == flag->get_index() &&
            serf->s.leaving_building.next_state == SERF_STATE_WALKING) {
         serf->s.leaving_building.dest = 0;
         serf->s.leaving_building.field_B = -2;
@@ -4325,16 +3394,9 @@ demolish_flag(map_pos_t pos) {
   map_set_object(pos, MAP_OBJ_NONE, 0);
 
   /* Remove resources from flag. */
-  for (int i = 0; i < FLAG_MAX_RES_COUNT; i++) {
-    if (flag->slot[i].type != RESOURCE_NONE) {
-      int res = flag->slot[i].type;
-      unsigned int dest = flag->slot[i].dest;
-      game_cancel_transported_resource((resource_type_t)res, dest);
-      game_lose_resource((resource_type_t)res);
-    }
-  }
+  flag->remove_all_resources();
 
-  game_free_flag(FLAG_INDEX(flag));
+  game.flags.erase(flag->get_index());
 
   return 0;
 }
@@ -4365,13 +3427,8 @@ demolish_building(map_pos_t pos) {
   tiles[MAP_MOVE_DOWN_RIGHT(pos)].paths &= ~BIT(4);
 
   /* Disconnect flag. */
-  flag_t *flag = game_get_flag(building->flag);
-  flag->other_endpoint.b[DIR_UP_LEFT] = NULL;
-  flag->endpoint &= ~BIT(6);
-
-  flag->bld_flags = 0;
-  flag->bld2_flags = 0;
-
+  flag_t *flag = game.flags[building->flag];
+  flag->unlink_building();
   flag_reset_transport(flag);
 
   /* Remove lost gold stock from total count. */
@@ -4842,7 +3899,7 @@ game_occupy_enemy_building(building_t *building, int player_num) {
     player->castle_score += 1;
     demolish_building(building->pos);
   } else {
-    flag_t *flag = game_get_flag(building->flag);
+    flag_t *flag = game.flags[building->flag];
     flag_reset_transport(flag);
 
     /* Update player scores. */
@@ -4875,27 +3932,21 @@ game_occupy_enemy_building(building_t *building, int player_num) {
     for (int d = DIR_RIGHT; d <= DIR_UP; d++) {
       map_pos_t pos = MAP_MOVE(building->pos, d);
       tiles[pos].height = (1 << 7) | (player_num << 5) | MAP_HEIGHT(pos);
-      if (pos != flag->pos) {
+      if (pos != flag->get_position()) {
         game_demolish_flag_and_roads(pos);
       }
     }
 
     /* Change owner of flag. */
-    flag->path_con = (player_num << 6) | FLAG_PATHS(flag);
+    flag->set_player(player_num);
 
     /* Reset destination of stolen resources. */
-    for (int i = 0; i < FLAG_MAX_RES_COUNT; i++) {
-      if (flag->slot[i].type != RESOURCE_NONE) {
-        resource_type_t res = flag->slot[i].type;
-        game_cancel_transported_resource(res, flag->slot[i].dest);
-        flag->slot[i].dest = 0;
-      }
-    }
+    flag->reset_destination_of_stolen_resources();
 
     /* Remove paths from flag. */
     for (int d = DIR_RIGHT; d <= DIR_UP; d++) {
-      if (FLAG_HAS_PATH(flag, d)) {
-        demolish_road(MAP_MOVE(flag->pos, d));
+      if (flag->has_path((dir_t)d)) {
+        demolish_road(MAP_MOVE(flag->get_position(), d));
       }
     }
 
@@ -4913,7 +3964,7 @@ game_occupy_enemy_building(building_t *building, int player_num) {
 /* mode: 0: IN, 1: STOP, 2: OUT */
 void
 game_set_inventory_resource_mode(inventory_t *inventory, int mode) {
-  flag_t *flag = game_get_flag(inventory->flag);
+  flag_t *flag = game.flags[inventory->flag];
 
   if (mode == 0) {
     inventory->res_dir = (inventory->res_dir & 0xfc) | 0;
@@ -4924,11 +3975,11 @@ game_set_inventory_resource_mode(inventory_t *inventory, int mode) {
   }
 
   if (mode > 0) {
-    flag->bld2_flags &= ~BIT(7);
+    flag->set_accepts_resources(false);
 
     /* Clear destination of serfs with resources destined
        for this inventory. */
-    int dest = FLAG_INDEX(flag);
+    int dest = flag->get_index();
     for (unsigned int i = 1; i < game.max_serf_index; i++) {
       if (SERF_ALLOCATED(i)) {
         serf_t *serf = game_get_serf(i);
@@ -4964,14 +4015,14 @@ game_set_inventory_resource_mode(inventory_t *inventory, int mode) {
       }
     }
   } else {
-    flag->bld2_flags |= BIT(7);
+    flag->set_accepts_resources(true);
   }
 }
 
 /* mode: 0: IN, 1: STOP, 2: OUT */
 void
 game_set_inventory_serf_mode(inventory_t *inventory, int mode) {
-  flag_t *flag = game_get_flag(inventory->flag);
+  flag_t *flag = game.flags[inventory->flag];
 
   if (mode == 0) {
     inventory->res_dir = (inventory->res_dir & 0xf3) | (0 << 2);
@@ -4982,10 +4033,10 @@ game_set_inventory_serf_mode(inventory_t *inventory, int mode) {
   }
 
   if (mode > 0) {
-    flag->bld_flags &= ~BIT(7);
+    flag->set_accepts_serfs(false);
 
     /* Clear destination of serfs destined for this inventory. */
-    int dest = FLAG_INDEX(flag);
+    int dest = flag->get_index();
     for (unsigned int i = 1; i < game.max_serf_index; i++) {
       if (SERF_ALLOCATED(i)) {
         serf_t *serf = game_get_serf(i);
@@ -5020,7 +4071,7 @@ game_set_inventory_serf_mode(inventory_t *inventory, int mode) {
       }
     }
   } else {
-    flag->bld_flags |= BIT(7);
+    flag->set_accepts_serfs(true);
   }
 }
 
@@ -5263,7 +4314,6 @@ game_init_map() {
   game.map_regions = (game.map.cols >> 5) * (game.map.rows >> 5);
 
   game.serf_limit = 500 * game.map_regions;
-  game.flag_limit = 32 * game.map_regions;
   game.building_limit = 25 * game.map_regions;
   game.inventory_limit = 4 * game.map_regions;
 
@@ -5296,17 +4346,6 @@ game_allocate_objects() {
                                                         8) + 1, 1));
   if (game.serf_bitmap == NULL) abort();
 
-  /* Flags */
-  if (game.flags != NULL) free(game.flags);
-  game.flags = reinterpret_cast<flag_t*>(malloc(game.flag_limit *
-                                                sizeof(flag_t)));
-  if (game.flags == NULL) abort();
-
-  if (game.flag_bitmap != NULL) free(game.flag_bitmap);
-  game.flag_bitmap = reinterpret_cast<uint8_t*>(calloc(((game.flag_limit-1) /
-                                                        8) + 1, 1));
-  if (game.flag_bitmap == NULL) abort();
-
   /* Buildings */
   if (game.buildings != NULL) free(game.buildings);
   game.buildings = reinterpret_cast<building_t*>(malloc(game.building_limit *
@@ -5329,7 +4368,6 @@ game_allocate_objects() {
       reinterpret_cast<uint8_t*>(calloc(((game.inventory_limit-1) / 8) + 1, 1));
   if (game.inventory_bitmap == NULL) abort();
 
-  game.max_flag_index = 0;
   game.max_building_index = 0;
   game.max_serf_index = 0;
   game.max_inventory_index = 0;
@@ -5342,9 +4380,6 @@ game_allocate_objects() {
   serf->animation = 0;
   serf->counter = 0;
   serf->pos = -1;
-
-  /* Create NULL-flag (index 0 is undefined) */
-  game_alloc_flag(NULL, NULL);
 
   /* Create NULL-building (index 0 is undefined) */
   building_t *building;
@@ -5429,9 +4464,9 @@ void
 game_cancel_transported_resource(resource_type_t res, unsigned int dest) {
   if (dest == 0) return;
 
-  flag_t *flag = game_get_flag(dest);
-  assert(FLAG_HAS_BUILDING(flag));
-  building_t *building = flag->other_endpoint.b[DIR_UP_LEFT];
+  flag_t *flag = game.flags[dest];
+  assert(flag->has_building());
+  building_t *building = flag->get_building();
 
   if (res == RESOURCE_FISH ||
       res == RESOURCE_MEAT ||

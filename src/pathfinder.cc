@@ -175,7 +175,7 @@ pathfinder_map(map_pos_t start, map_pos_t end, unsigned int *length) {
 
             // Move element to the back and heapify
             iter_swap(it, open.rbegin());
-            std::push_heap(open.begin(), open.end(), search_node_less);
+            std::make_heap(open.begin(), open.end(), search_node_less);
           }
           break;
         }

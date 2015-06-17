@@ -27,6 +27,7 @@
 #include "src/serf.h"
 #include "src/map.h"
 #include "src/random.h"
+#include "src/objects.h"
 
 #define DEFAULT_GAME_SPEED  2
 
@@ -34,6 +35,8 @@
 
 
 typedef void game_update_map_height_func(map_pos_t pos, void *data);
+
+typedef collection_t<flag_t> flags_t;
 
 typedef struct {
   map_t map; /* ADDITION */
@@ -82,11 +85,10 @@ typedef struct {
   /*int **map_serf_rows_left;*/ /* OBSOLETE */
   /*int **map_serf_rows_right;*/ /* OBSOLETE */
   /* 98 */
-  flag_t *flags;
+  flags_t flags;
   building_t *buildings;
   serf_t *serfs;
   /* A4 */
-  uint8_t *flag_bitmap;
   uint8_t *building_bitmap;
   uint8_t *serf_bitmap;
   /* OBSOLETE
@@ -149,10 +151,8 @@ typedef struct {
   /*uint16_t short_row_length;
   uint16_t long_row_length;*/
   /* 258 */
-  unsigned int flag_limit;
   unsigned int building_limit;
   unsigned int serf_limit;
-  unsigned int max_flag_index;
   /* 260 */
   unsigned int max_building_index;
   unsigned int max_serf_index;
@@ -245,7 +245,7 @@ int game_can_build_road(map_pos_t source, const dir_t dirs[],
                         unsigned int length, const player_t *player,
                         map_pos_t *dest, int *water);
 
-int game_can_demolish_flag(map_pos_t pos, const player_t *player);
+bool game_can_demolish_flag(map_pos_t pos, const player_t *player);
 int game_can_demolish_road(map_pos_t pos, const player_t *player);
 
 int game_build_road(map_pos_t source, const dir_t dirs[],
@@ -264,10 +264,6 @@ void game_set_inventory_serf_mode(inventory_t *inventory, int mode);
 
 
 /* Internal interface */
-int game_alloc_flag(flag_t **flag, int *index);
-flag_t *game_get_flag(int index);
-void game_free_flag(int index);
-
 int game_alloc_building(building_t **building, int *index);
 building_t *game_get_building(int index);
 void game_free_building(int index);

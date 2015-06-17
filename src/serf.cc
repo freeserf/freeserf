@@ -269,15 +269,15 @@ serf_set_lost_state(serf_t *serf) {
     if (serf->s.walking.res >= 0) {
       if (serf->s.walking.res != 6) {
         dir_t dir = (dir_t)serf->s.walking.res;
-        flag_t *flag = game_get_flag(serf->s.walking.dest);
-        flag->length[dir] &= ~BIT(7);
+        flag_t *flag = game.flags[serf->s.walking.dest];
+        flag->cancel_serf_request(dir);
 
-        dir_t other_dir = FLAG_OTHER_END_DIR(flag, dir);
-        flag->other_endpoint.f[dir]->length[other_dir] &= ~BIT(7);
+        dir_t other_dir = flag->get_other_end_dir(dir);
+        flag->get_other_end_flag(dir)->cancel_serf_request(other_dir);
       }
     } else if (serf->s.walking.res == -1) {
-      flag_t *flag = game_get_flag(serf->s.walking.dest);
-      building_t *building = flag->other_endpoint.b[DIR_UP_LEFT];
+      flag_t *flag = game.flags[serf->s.walking.dest];
+      building_t *building = flag->get_building();
 
       if (BUILDING_SERF_REQUESTED(building)) {
         building->serf &= ~BIT(7);
@@ -529,75 +529,44 @@ serf_change_direction(serf_t *serf, int dir, int alt_end) {
 }
 
 static int
-flag_search_inventory_search_cb(flag_t *flag, int *dest_index) {
-  if (FLAG_ACCEPTS_SERFS(flag)) {
-    building_t *building = flag->other_endpoint.b[DIR_UP_LEFT];
-    *dest_index = building->flag;
-    return 1;
-  }
-
-  return 0;
-}
-
-static int
 flag_search_inventory(int flag_index) {
-  flag_t *src = game_get_flag(flag_index);
-
-  int dest_index = -1;
-  flag_search_single(src,
-           reinterpret_cast<flag_search_func*>(flag_search_inventory_search_cb),
-                     1, 0, &dest_index);
-
-  return dest_index;
+  flag_t *src = game.flags[flag_index];
+  return src->find_nearest_inventory_for_serf();
 }
 
 /* Precondition: serf state is in WALKING or TRANSPORTING state */
 static void
 serf_transporter_move_to_flag(serf_t *serf, flag_t *flag) {
   int dir = serf->s.walking.dir;
-  if (FLAG_IS_SCHEDULED(flag, dir)) {
+  if (flag->is_scheduled((dir_t)dir)) {
     /* Fetch resource from flag */
     serf->s.walking.wait_counter = 0;
-    int res_index = FLAG_SCHEDULED_SLOT(flag, dir);
+    int res_index = flag->scheduled_slot((dir_t)dir);
 
     if (serf->s.walking.res == 0) {
       /* Pick up resource. */
-      serf->s.walking.res = flag->slot[res_index].type+1;
-      serf->s.walking.dest = flag->slot[res_index].dest;
-      flag->slot[res_index].type = RESOURCE_NONE;
-      flag->slot[res_index].dir = DIR_NONE;
+      resource_type_t res;
+      flag->pick_up_resource(res_index, &res, &serf->s.walking.dest);
+      serf->s.walking.res = res + 1;
     } else {
       /* Switch resources and destination. */
-      flag->endpoint |= BIT(7);
+      resource_type_t temp_res = (resource_type_t)(serf->s.walking.res-1);
+      int temp_dest = serf->s.walking.dest;
 
-      int res = serf->s.walking.res;
-      serf->s.walking.res = flag->slot[res_index].type+1;
-      flag->slot[res_index].type = (resource_type_t)(res-1);
-      flag->slot[res_index].dir = DIR_NONE;
+      resource_type_t pick_res;
+      flag->pick_up_resource(res_index, &pick_res, &serf->s.walking.dest);
+      serf->s.walking.res = pick_res + 1;
 
-      int dest = serf->s.walking.dest;
-      serf->s.walking.dest = flag->slot[res_index].dest;
-      flag->slot[res_index].dest = dest;
+      flag->drop_resource(temp_res, temp_dest);
     }
 
     /* Find next resource to be picked up */
     player_t *player = game.player[SERF_PLAYER(serf)];
-    flag_prioritize_pickup(flag, (dir_t)dir, player->flag_prio);
+    flag->prioritize_pickup((dir_t)dir, player->flag_prio);
   } else if (serf->s.walking.res != 0) {
     /* Drop resource at flag */
-    int free_slot = -1;
-    for (int i = 0; i < FLAG_MAX_RES_COUNT; i++) {
-      if (flag->slot[i].type == RESOURCE_NONE) {
-        free_slot = i;
-        break;
-      }
-    }
-
-    if (free_slot > -1) {
-      flag->endpoint |= BIT(7);
-      flag->slot[free_slot].type = (resource_type_t)(serf->s.walking.res-1);
-      flag->slot[free_slot].dest = serf->s.walking.dest;
-      flag->slot[free_slot].dir = DIR_NONE;
+    if (flag->drop_resource((resource_type_t)(serf->s.walking.res-1),
+                            serf->s.walking.dest)) {
       serf->s.walking.res = 0;
     }
   }
@@ -607,10 +576,10 @@ serf_transporter_move_to_flag(serf_t *serf, flag_t *flag) {
 
 static int
 handle_serf_walking_state_search_cb(flag_t *flag, serf_t *serf) {
-  flag_t *dest = game_get_flag(serf->s.walking.dest);
+  flag_t *dest = game.flags[serf->s.walking.dest];
   if (flag == dest) {
-    LOGV("serf", " dest found: %i.", dest->search_dir);
-    serf_change_direction(serf, dest->search_dir, 0);
+    LOGV("serf", " dest found: %i.", dest->get_search_dir());
+    serf_change_direction(serf, dest->get_search_dir(), 0);
     return 1;
   }
 
@@ -699,16 +668,14 @@ handle_serf_walking_state_dest_reached(serf_t *serf) {
     serf->state = SERF_STATE_LOOKING_FOR_GEO_SPOT;
     serf->counter = 0;
   } else {
-    flag_t *flag = game_get_flag(MAP_OBJ_INDEX(serf->pos));
+    flag_t *flag = game.flags[MAP_OBJ_INDEX(serf->pos)];
     dir_t dir = (dir_t)serf->s.walking.res;
-    flag_t *other_flag = flag->other_endpoint.f[dir];
-    dir_t other_dir = FLAG_OTHER_END_DIR(flag, dir);
+    flag_t *other_flag = flag->get_other_end_flag(dir);
+    dir_t other_dir = flag->get_other_end_dir(dir);
 
     /* Increment transport serf count */
-    flag->length[dir] &= ~BIT(7);
-    flag->length[dir] += 1;
-    other_flag->length[other_dir] &= ~BIT(7);
-    other_flag->length[other_dir] += 1;
+    flag->complete_serf_request(dir);
+    other_flag->complete_serf_request(other_dir);
 
     serf_log_state_change(serf, SERF_STATE_TRANSPORTING);
     serf->state = SERF_STATE_TRANSPORTING;
@@ -800,20 +767,19 @@ handle_serf_walking_state(serf_t *serf) {
         handle_serf_walking_state_dest_reached(serf);
         return;
       } else {
-        flag_t *src = game_get_flag(MAP_OBJ_INDEX(serf->pos));
+        flag_t *src = game.flags[MAP_OBJ_INDEX(serf->pos)];
         flag_search_t search;
-        flag_search_init(&search);
         for (int i = 0; i < 6; i++) {
-          if (!FLAG_IS_WATER_PATH(src, 5-i)) {
-            flag_t *other_flag = src->other_endpoint.f[5-i];
-            other_flag->search_dir = (dir_t)(5-i);
-            flag_search_add_source(&search, other_flag);
+          if (!src->is_water_path((dir_t)(5-i))) {
+            flag_t *other_flag = src->get_other_end_flag((dir_t)(5-i));
+            other_flag->set_search_dir((dir_t)(5-i));
+            search.add_source(other_flag);
           }
         }
-        int r = flag_search_execute(&search,
+        bool r = search.execute(
        reinterpret_cast<flag_search_func*>(handle_serf_walking_state_search_cb),
-                                    1, 0, serf);
-        if (r == 0) continue;
+                                true, false, serf);
+        if (r) continue;
       }
     } else {
       /* 30A37 */
@@ -847,16 +813,17 @@ handle_serf_walking_state(serf_t *serf) {
         return;
       }
 
-      flag_t *flag = game_get_flag(serf->s.walking.dest);
-      building_t *building = flag->other_endpoint.b[DIR_UP_LEFT];
+      flag_t *flag = game.flags[serf->s.walking.dest];
+      building_t *building = flag->get_building();
 
       building->serf &= ~BIT(7);
       if (!BUILDING_HAS_INVENTORY(building)) building->stock[0].requested -= 1;
     } else if (serf->s.walking.res != 6) {
-      flag_t *flag = game_get_flag(serf->s.walking.dest);
+      flag_t *flag = game.flags[serf->s.walking.dest];
       dir_t d = (dir_t)serf->s.walking.res;
-      flag->length[d] &= ~BIT(7);
-      flag->other_endpoint.f[d]->length[FLAG_OTHER_END_DIR(flag, d)] &= ~BIT(7);
+      flag->cancel_serf_request(d);
+      flag->get_other_end_flag(d)->cancel_serf_request(
+                                                    flag->get_other_end_dir(d));
     }
 
     serf->s.walking.res = -2;
@@ -910,7 +877,7 @@ handle_serf_transporting_state(serf_t *serf) {
         return;
       }
 
-      flag_t *flag = game_get_flag(MAP_OBJ_INDEX(serf->pos));
+      flag_t *flag = game.flags[MAP_OBJ_INDEX(serf->pos)];
       serf_transporter_move_to_flag(serf, flag);
     } else {
       int paths = MAP_PATHS(serf->pos) & ~BIT(serf->s.walking.dir);
@@ -936,12 +903,12 @@ handle_serf_transporting_state(serf_t *serf) {
         return;
       }
 
-      flag_t *flag = game_get_flag(MAP_OBJ_INDEX(MAP_MOVE(serf->pos, dir)));
-      int rev_dir = DIR_REVERSE(dir);
-      flag_t *other_flag = flag->other_endpoint.f[rev_dir];
-      int other_dir = FLAG_OTHER_END_DIR(flag, rev_dir);
+      flag_t *flag = game.flags[MAP_OBJ_INDEX(MAP_MOVE(serf->pos, dir))];
+      dir_t rev_dir = DIR_REVERSE(dir);
+      flag_t *other_flag = flag->get_other_end_flag(rev_dir);
+      dir_t other_dir = flag->get_other_end_dir(rev_dir);
 
-      if (FLAG_IS_SCHEDULED(flag, rev_dir)) {
+      if (flag->is_scheduled(rev_dir)) {
         serf_change_direction(serf, dir, 1);
         return;
       }
@@ -950,15 +917,15 @@ handle_serf_transporting_state(serf_t *serf) {
       serf->counter = counter_from_animation[serf->animation];
       serf->s.walking.dir -= 6;
 
-      if (FLAG_TRANSPORTER_COUNT(flag, rev_dir) > 1) {
+      if (flag->free_transporter_count(rev_dir) > 1) {
         serf->s.walking.wait_counter += 1;
         if (serf->s.walking.wait_counter > 3) {
-          flag->length[rev_dir] -= 1;
-          other_flag->length[other_dir] -= 1;
+          flag->transporter_to_serve(rev_dir);
+          other_flag->transporter_to_serve(other_dir);
           serf->s.walking.wait_counter = -1;
         }
       } else {
-        if (!FLAG_IS_SCHEDULED(other_flag, other_dir)) {
+        if (!other_flag->is_scheduled(other_dir)) {
           /* TODO Don't use anim as state var */
           serf->tick = (serf->tick & 0xff00) | (serf->s.walking.dir & 0xff);
           serf_log_state_change(serf, SERF_STATE_IDLE_ON_PATH);
@@ -1011,11 +978,12 @@ handle_serf_entering_building_state(serf_t *serf) {
       } else {
         map_set_serf_index(serf->pos, 0);
         int flag_index = MAP_OBJ_INDEX(MAP_MOVE_DOWN_RIGHT(serf->pos));
-        flag_t *flag = game_get_flag(flag_index);
+        flag_t *flag = game.flags[flag_index];
 
         /* Mark as inventory accepting resources and serfs. */
-        flag->bld_flags = BIT(7) | BIT(6);
-        flag->bld2_flags = BIT(7);
+        flag->set_has_inventory();
+        flag->set_accepts_resources(true);
+        flag->set_accepts_serfs(true);
 
         serf_log_state_change(serf, SERF_STATE_WAIT_FOR_RESOURCE_OUT);
         serf->state = SERF_STATE_WAIT_FOR_RESOURCE_OUT;
@@ -1089,9 +1057,8 @@ handle_serf_entering_building_state(serf_t *serf) {
         if (serf->s.entering_building.field_B != 0) {
           building_t *building = game_get_building(MAP_OBJ_INDEX(serf->pos));
           int flag_index = MAP_OBJ_INDEX(MAP_MOVE_DOWN_RIGHT(serf->pos));
-          flag_t *flag = game_get_flag(flag_index);
-          flag->bld_flags = 0;
-          flag->bld2_flags = 0;
+          flag_t *flag = game.flags[flag_index];
+          flag->clear_flags();
           building->stock[1].type = RESOURCE_LUMBER;
           building->stock[1].prio = 0;
           building->stock[1].maximum = 8;
@@ -1132,9 +1099,8 @@ handle_serf_entering_building_state(serf_t *serf) {
           building->serf &= ~BIT(3);
 
           flag_t *flag =
-                   game_get_flag(MAP_OBJ_INDEX(MAP_MOVE_DOWN_RIGHT(serf->pos)));
-          flag->bld_flags = 0;
-          flag->bld2_flags = 0;
+                      game.flags[MAP_OBJ_INDEX(MAP_MOVE_DOWN_RIGHT(serf->pos))];
+          flag->clear_flags();
           building->stock[0].type = RESOURCE_GROUP_FOOD;
           building->stock[0].prio = 0;
           building->stock[0].maximum = 8;
@@ -1159,9 +1125,8 @@ handle_serf_entering_building_state(serf_t *serf) {
 
         if (serf->s.entering_building.field_B != 0) {
           flag_t *flag =
-                   game_get_flag(MAP_OBJ_INDEX(MAP_MOVE_DOWN_RIGHT(serf->pos)));
-          flag->bld_flags = 0;
-          flag->bld2_flags = 0;
+                      game.flags[MAP_OBJ_INDEX(MAP_MOVE_DOWN_RIGHT(serf->pos))];
+          flag->clear_flags();
           building->stock[0].type = RESOURCE_COAL;
           building->stock[0].prio = 0;
           building->stock[0].maximum = 8;
@@ -1206,12 +1171,11 @@ handle_serf_entering_building_state(serf_t *serf) {
         if (serf->s.entering_building.field_B != 0) {
           building_t *building = game_get_building(MAP_OBJ_INDEX(serf->pos));
           flag_t *flag =
-                   game_get_flag(MAP_OBJ_INDEX(MAP_MOVE_DOWN_RIGHT(serf->pos)));
+                      game.flags[MAP_OBJ_INDEX(MAP_MOVE_DOWN_RIGHT(serf->pos))];
 
           building->stock[1].available = 1;
 
-          flag->bld_flags = 0;
-          flag->bld2_flags = 0;
+          flag->clear_flags();
           building->stock[0].type = RESOURCE_WHEAT;
           building->stock[0].prio = 0;
           building->stock[0].maximum = 8;
@@ -1236,9 +1200,8 @@ handle_serf_entering_building_state(serf_t *serf) {
         if (serf->s.entering_building.field_B != 0) {
           building_t *building = game_get_building(MAP_OBJ_INDEX(serf->pos));
           flag_t *flag =
-                   game_get_flag(MAP_OBJ_INDEX(MAP_MOVE_DOWN_RIGHT(serf->pos)));
-          flag->bld_flags = 0;
-          flag->bld2_flags = 0;
+                      game.flags[MAP_OBJ_INDEX(MAP_MOVE_DOWN_RIGHT(serf->pos))];
+          flag->clear_flags();
           building->stock[0].type = RESOURCE_PIG;
           building->stock[0].prio = 0;
           building->stock[0].maximum = 8;
@@ -1267,9 +1230,8 @@ handle_serf_entering_building_state(serf_t *serf) {
         if (serf->s.entering_building.field_B != 0) {
           building_t *building = game_get_building(MAP_OBJ_INDEX(serf->pos));
           flag_t *flag =
-                   game_get_flag(MAP_OBJ_INDEX(MAP_MOVE_DOWN_RIGHT(serf->pos)));
-          flag->bld_flags = 0;
-          flag->bld2_flags = 0;
+                      game.flags[MAP_OBJ_INDEX(MAP_MOVE_DOWN_RIGHT(serf->pos))];
+          flag->clear_flags();
           building->stock[0].type = RESOURCE_WHEAT;
           building->stock[0].prio = 0;
           building->stock[0].maximum = 8;
@@ -1289,9 +1251,8 @@ handle_serf_entering_building_state(serf_t *serf) {
         if (serf->s.entering_building.field_B != 0) {
           building_t *building = game_get_building(MAP_OBJ_INDEX(serf->pos));
           flag_t *flag =
-                   game_get_flag(MAP_OBJ_INDEX(MAP_MOVE_DOWN_RIGHT(serf->pos)));
-          flag->bld_flags = 0;
-          flag->bld2_flags = 0;
+                      game.flags[MAP_OBJ_INDEX(MAP_MOVE_DOWN_RIGHT(serf->pos))];
+          flag->clear_flags();
           building->stock[0].type = RESOURCE_FLOUR;
           building->stock[0].prio = 0;
           building->stock[0].maximum = 8;
@@ -1310,9 +1271,8 @@ handle_serf_entering_building_state(serf_t *serf) {
         if (serf->s.entering_building.field_B != 0) {
           building_t *building = game_get_building(MAP_OBJ_INDEX(serf->pos));
           flag_t *flag =
-                   game_get_flag(MAP_OBJ_INDEX(MAP_MOVE_DOWN_RIGHT(serf->pos)));
-          flag->bld_flags = 0;
-          flag->bld2_flags = 0;
+                      game.flags[MAP_OBJ_INDEX(MAP_MOVE_DOWN_RIGHT(serf->pos))];
+          flag->clear_flags();
           building->stock[0].type = RESOURCE_PLANK;
           building->stock[0].prio = 0;
           building->stock[0].maximum = 8;
@@ -1331,9 +1291,8 @@ handle_serf_entering_building_state(serf_t *serf) {
         if (serf->s.entering_building.field_B != 0) {
           building_t *building = game_get_building(MAP_OBJ_INDEX(serf->pos));
           flag_t *flag =
-                   game_get_flag(MAP_OBJ_INDEX(MAP_MOVE_DOWN_RIGHT(serf->pos)));
-          flag->bld_flags = 0;
-          flag->bld2_flags = 0;
+                      game.flags[MAP_OBJ_INDEX(MAP_MOVE_DOWN_RIGHT(serf->pos))];
+          flag->clear_flags();
           building->stock[0].type = RESOURCE_PLANK;
           building->stock[0].prio = 0;
           building->stock[0].maximum = 8;
@@ -1355,9 +1314,8 @@ handle_serf_entering_building_state(serf_t *serf) {
         if (serf->s.entering_building.field_B != 0) {
           building_t *building = game_get_building(MAP_OBJ_INDEX(serf->pos));
           flag_t *flag =
-                   game_get_flag(MAP_OBJ_INDEX(MAP_MOVE_DOWN_RIGHT(serf->pos)));
-          flag->bld_flags = 0;
-          flag->bld2_flags = 0;
+                      game.flags[MAP_OBJ_INDEX(MAP_MOVE_DOWN_RIGHT(serf->pos))];
+          flag->clear_flags();
           building->stock[0].type = RESOURCE_COAL;
           building->stock[0].prio = 0;
           building->stock[0].maximum = 8;
@@ -1484,9 +1442,8 @@ handle_serf_entering_building_state(serf_t *serf) {
                   (mil_type << 5) | 6, building->pos);
 
             flag_t *flag =
-               game_get_flag(MAP_OBJ_INDEX(MAP_MOVE_DOWN_RIGHT(building->pos)));
-            flag->bld_flags = 0;
-            flag->bld2_flags = 0;
+                  game.flags[MAP_OBJ_INDEX(MAP_MOVE_DOWN_RIGHT(building->pos))];
+            flag->clear_flags();
             building->stock[1].type = RESOURCE_GOLDBAR;
             building->stock[1].prio = 0;
             building->stock[1].maximum = max_gold;
@@ -1800,12 +1757,11 @@ handle_serf_building_state(serf_t *serf) {
           break;
         }
 
-        flag_t *flag = game_get_flag(building->flag);
+        flag_t *flag = game.flags[building->flag];
 
         building->stock[0].type = RESOURCE_NONE;
         building->stock[1].type = RESOURCE_NONE;
-        flag->bld_flags = 0;
-        flag->bld2_flags = 0;
+        flag->clear_flags();
 
         /* Update player fields. */
         player_t *player = game.player[SERF_PLAYER(serf)];
@@ -1930,15 +1886,8 @@ handle_serf_move_resource_out_state(serf_t *serf) {
     return;
   }
 
-  flag_t *flag = game_get_flag(MAP_OBJ_INDEX(MAP_MOVE_DOWN_RIGHT(serf->pos)));
-  if (flag->slot[0].type != RESOURCE_NONE &&
-      flag->slot[1].type != RESOURCE_NONE &&
-      flag->slot[2].type != RESOURCE_NONE &&
-      flag->slot[3].type != RESOURCE_NONE &&
-      flag->slot[4].type != RESOURCE_NONE &&
-      flag->slot[5].type != RESOURCE_NONE &&
-      flag->slot[6].type != RESOURCE_NONE &&
-      flag->slot[7].type != RESOURCE_NONE) {
+  flag_t *flag = game.flags[MAP_OBJ_INDEX(MAP_MOVE_DOWN_RIGHT(serf->pos))];
+  if (!flag->has_empty_slot()) {
     /* All resource slots at flag are occupied, wait */
     serf->animation = 82;
     serf->counter = 0;
@@ -1990,21 +1939,12 @@ handle_serf_wait_for_resource_out_state(serf_t *serf) {
 
 static void
 handle_serf_drop_resource_out_state(serf_t *serf) {
-  flag_t *flag = game_get_flag(MAP_OBJ_INDEX(serf->pos));
-  int i = -1;
-  for (i = 0; i < FLAG_MAX_RES_COUNT; i++) {
-    /* Guaranteed to find a free slot because
-       the map position has been reserved since
-       a free position was found. */
-    if (flag->slot[i].type == RESOURCE_NONE) break;
-  }
+  flag_t *flag = game.flags[MAP_OBJ_INDEX(serf->pos)];
 
-  assert(i >= 0);
-
-  flag->slot[i].type = (resource_type_t)(serf->s.move_resource_out.res-1);
-  flag->slot[i].dest = serf->s.move_resource_out.res_dest;
-  flag->slot[i].dir = DIR_NONE;
-  flag->endpoint |= BIT(7); /* Resources waiting */
+  bool res = flag->drop_resource(
+                             (resource_type_t)(serf->s.move_resource_out.res-1),
+                                 serf->s.move_resource_out.res_dest);
+  assert(res);
 
   serf_log_state_change(serf, SERF_STATE_READY_TO_ENTER);
   serf->state = SERF_STATE_READY_TO_ENTER;
@@ -2022,7 +1962,7 @@ handle_serf_delivering_state(serf_t *serf) {
       serf_log_state_change(serf, SERF_STATE_TRANSPORTING);
       serf->state = SERF_STATE_TRANSPORTING;
       serf->s.walking.wait_counter = 0;
-      flag_t *flag = game_get_flag(MAP_OBJ_INDEX(serf->pos));
+      flag_t *flag = game.flags[MAP_OBJ_INDEX(serf->pos)];
       serf_transporter_move_to_flag(serf, flag);
       return;
     }
@@ -2081,9 +2021,9 @@ handle_serf_ready_to_leave_inventory_state(serf_t *serf) {
   }
 
   if (serf->s.ready_to_leave_inventory.mode == -1) {
-    flag_t *flag = game_get_flag(serf->s.ready_to_leave_inventory.dest);
-    if (FLAG_HAS_BUILDING(flag)) {
-      building_t *building = flag->other_endpoint.b[DIR_UP_LEFT];
+    flag_t *flag = game.flags[serf->s.ready_to_leave_inventory.dest];
+    if (flag->has_building()) {
+      building_t *building = flag->get_building();
       if (MAP_SERF_INDEX(building->pos) != 0) {
         serf->animation = 82;
         serf->counter = 0;
@@ -2113,23 +2053,11 @@ handle_serf_ready_to_leave_inventory_state(serf_t *serf) {
 
 static void
 serf_drop_resource(serf_t *serf, resource_type_t res) {
-  flag_t *flag = game_get_flag(MAP_OBJ_INDEX(serf->pos));
-
-  int slot = -1;
-  for (int i = 0; i < FLAG_MAX_RES_COUNT; i++) {
-    if (flag->slot[i].type == RESOURCE_NONE) {
-      slot = i;
-      break;
-    }
-  }
+  flag_t *flag = game.flags[MAP_OBJ_INDEX(serf->pos)];
 
   /* Resource is lost if no free slot is found */
-  if (slot >= 0) {
-    flag->slot[slot].type = res;
-    flag->slot[slot].dest = 0;
-    flag->slot[slot].dir = DIR_NONE;
-    flag->endpoint |= BIT(7);
-
+  bool result = flag->drop_resource(res, 0);
+  if (result) {
     player_t *player = game.player[SERF_PLAYER(serf)];
     player->resource_count[res] += 1;
   }
@@ -2141,9 +2069,9 @@ serf_drop_resource(serf_t *serf, resource_type_t res) {
 static void
 serf_find_inventory(serf_t *serf) {
   if (MAP_HAS_FLAG(serf->pos)) {
-    flag_t *flag = game_get_flag(MAP_OBJ_INDEX(serf->pos));
-    if ((FLAG_LAND_PATHS(flag) != 0 ||
-         (FLAG_HAS_INVENTORY(flag) && FLAG_ACCEPTS_SERFS(flag))) &&
+    flag_t *flag = game.flags[MAP_OBJ_INDEX(serf->pos)];
+    if ((flag->land_paths() != 0 ||
+         (flag->has_inventory() && flag->accepts_serfs())) &&
          MAP_OWNER(serf->pos) == SERF_PLAYER(serf)) {
       serf_log_state_change(serf, SERF_STATE_WALKING);
       serf->state = SERF_STATE_WALKING;
@@ -3119,9 +3047,9 @@ handle_serf_lost_state(serf_t *serf) {
                  game.spiral_pos_pattern[index]);
 
       if (MAP_HAS_FLAG(dest)) {
-        flag_t *flag = game_get_flag(MAP_OBJ_INDEX(dest));
-        if ((FLAG_LAND_PATHS(flag) != 0 ||
-             (FLAG_HAS_INVENTORY(flag) && FLAG_ACCEPTS_SERFS(flag))) &&
+        flag_t *flag = game.flags[MAP_OBJ_INDEX(dest)];
+        if ((flag->land_paths() != 0 ||
+             (flag->has_inventory() && flag->accepts_serfs())) &&
             MAP_HAS_OWNER(dest) && MAP_OWNER(dest) == SERF_PLAYER(serf)) {
           if (SERF_TYPE(serf) >= SERF_KNIGHT_0 &&
               SERF_TYPE(serf) <= SERF_KNIGHT_4) {
@@ -3204,8 +3132,8 @@ handle_lost_sailor(serf_t *serf) {
                  game.spiral_pos_pattern[i]);
 
       if (MAP_HAS_FLAG(dest)) {
-        flag_t *flag = game_get_flag(MAP_OBJ_INDEX(dest));
-        if (FLAG_LAND_PATHS(flag) != 0 &&
+        flag_t *flag = game.flags[MAP_OBJ_INDEX(dest)];
+        if (flag->land_paths() != 0 &&
             MAP_HAS_OWNER(dest) && MAP_OWNER(dest) == SERF_PLAYER(serf)) {
           serf_log_state_change(serf, SERF_STATE_FREE_SAILING);
           serf->state = SERF_STATE_FREE_SAILING;
@@ -4546,8 +4474,8 @@ handle_state_knight_free_walking(serf_t *serf) {
               serf->animation = 99;
               serf->counter = 255;
 
-              flag_t *dest = game_get_flag(other->s.walking.dest);
-              building_t *building = dest->other_endpoint.b[DIR_UP_LEFT];
+              flag_t *dest = game.flags[other->s.walking.dest];
+              building_t *building = dest->get_building();
               if (!BUILDING_HAS_INVENTORY(building)) {
                 building->stock[0].requested -= 1;
               }
@@ -4832,15 +4760,15 @@ handle_serf_idle_on_path_state(serf_t *serf) {
   map_tile_t *tiles = game.map.tiles;
 
   flag_t *flag = serf->s.idle_on_path.flag;
-  int rev_dir = serf->s.idle_on_path.rev_dir;
+  dir_t rev_dir = serf->s.idle_on_path.rev_dir;
 
   /* Set walking dir in field_E. */
-  if (FLAG_IS_SCHEDULED(flag, rev_dir)) {
+  if (flag->is_scheduled(rev_dir)) {
     serf->s.idle_on_path.field_E = (serf->tick & 0xff) + 6;
   } else {
-    flag_t *other_flag = flag->other_endpoint.f[rev_dir];
-    int other_dir = FLAG_OTHER_END_DIR(flag, rev_dir);
-    if (FLAG_IS_SCHEDULED(other_flag, other_dir)) {
+    flag_t *other_flag = flag->get_other_end_flag(rev_dir);
+    dir_t other_dir = flag->get_other_end_dir((dir_t)rev_dir);
+    if (other_flag->is_scheduled(other_dir)) {
       serf->s.idle_on_path.field_E = DIR_REVERSE(rev_dir);
     } else {
       return;

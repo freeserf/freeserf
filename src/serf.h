@@ -154,6 +154,7 @@ typedef enum {
   SERF_STATE_KNIGHT_ATTACKING_DEFEAT_FREE
 } serf_state_t;
 
+class flag_t;
 
 typedef struct {
   int type;
@@ -341,8 +342,8 @@ typedef struct {
     /* States: idle_on_path, wait_idle_on_path,
        wake_at_flag, wake_on_path. */
     struct {
-      int rev_dir; /* B */
-      struct flag *flag; /* C */
+      dir_t rev_dir; /* B */
+      flag_t *flag; /* C */
       int field_E; /* E */
     } idle_on_path;
 

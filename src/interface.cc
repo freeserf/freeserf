@@ -349,8 +349,8 @@ interface_t::set_player(unsigned int player) {
   /* Move viewport to initial position */
   map_pos_t init_pos = MAP_POS(0, 0);
   if (this->player->castle_flag != 0) {
-    flag_t *flag = game_get_flag(this->player->castle_flag);
-    init_pos = MAP_MOVE_UP_LEFT(flag->pos);
+    flag_t *flag = game.flags[this->player->castle_flag];
+    init_pos = MAP_MOVE_UP_LEFT(flag->get_position());
   }
 
   update_map_cursor_pos(init_pos);

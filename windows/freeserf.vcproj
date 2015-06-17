@@ -446,6 +446,10 @@
 				>
 			</File>
 			<File
+				RelativePath="..\src\resource.h"
+				>
+			</File>
+			<File
 				RelativePath="..\src\savegame.h"
 				>
 			</File>

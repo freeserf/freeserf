@@ -2201,7 +2201,7 @@ popup_box_t::draw_transport_info_box() {
     return;
   }
 
-  flag_t *flag = game_get_flag(interface->get_player()->index);
+  flag_t *flag = game.flags[interface->get_player()->index];
 
 #if 1
   /* Draw viewport of flag */
@@ -2213,7 +2213,7 @@ popup_box_t::draw_transport_info_box() {
 
   flag_view.set_parent(this);
   flag_view.set_size(128, 64);
-  flag_view.move_to_map_pos(flag->pos);
+  flag_view.move_to_map_pos(flag->get_position());
   flag_view.move_by_pixels(0, -10);
 
   flag_view.move_to(8, 24);
@@ -2226,9 +2226,9 @@ popup_box_t::draw_transport_info_box() {
   for (int i = 0; i < 6; i++) {
     int x = layout[2*i];
     int y = layout[2*i+1];
-    if (FLAG_HAS_PATH(flag, 5-i)) {
+    if (flag->has_path((dir_t)(5-i))) {
       int sprite = 0xdc; /* Minus box */
-      if (FLAG_HAS_TRANSPORTER(flag, 5-i)) sprite = 0x120; /* Check box */
+      if (flag->has_transporter((dir_t)(5-i))) sprite = 0x120; /* Check box */
       draw_popup_icon(x, y, sprite);
     }
   }
@@ -2239,13 +2239,14 @@ popup_box_t::draw_transport_info_box() {
 
   /* Draw list of resources */
   for (int i = 0; i < FLAG_MAX_RES_COUNT; i++) {
-    if (flag->slot[i].type != RESOURCE_NONE) {
-      draw_popup_icon(7 + 2*(i&3), 88 + 16*(i>>2), 0x22 + flag->slot[i].type);
+    if (flag->get_resource_at_slot(i) != RESOURCE_NONE) {
+      draw_popup_icon(7 + 2*(i&3), 88 + 16*(i>>2),
+                      0x22 + flag->get_resource_at_slot(i));
     }
   }
 
   draw_green_string(0, 128, "Index:");
-  draw_green_number(7, 128, FLAG_INDEX(flag));
+  draw_green_number(7, 128, flag->get_index());
 }
 
 void
@@ -2831,7 +2832,7 @@ popup_box_t::move_sett_5_6_item(int up, int to_end) {
 void
 popup_box_t::handle_send_geologist() {
   map_pos_t pos = interface->get_map_cursor_pos();
-  flag_t *flag = game_get_flag(MAP_OBJ_INDEX(pos));
+  flag_t *flag = game.flags[MAP_OBJ_INDEX(pos)];
 
   int r = game_send_geologist(flag);
   if (r < 0) {
