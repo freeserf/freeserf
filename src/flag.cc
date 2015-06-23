@@ -28,6 +28,7 @@
 #include "src/game.h"
 #include "src/savegame.h"
 #include "src/log.h"
+#include "src/inventory.h"
 
 #define SEARCH_MAX_DEPTH  0x10000
 
@@ -992,9 +993,9 @@ flag_t::update() {
         int max_tr = max_transporters[length_category((dir_t)(5-j))];
         if (free_transporter_count((dir_t)(5-j)) < (unsigned int)max_tr &&
             !serf_request_fail()) {
-          int r = send_serf_to_road((dir_t)(5-j),
+          bool r = call_transporter((dir_t)(5-j),
                                     is_water_path((dir_t)(5-j)));
-          if (r < 0) transporter |= BIT(7);
+          if (!r) transporter |= BIT(7);
         }
         if (waiting_count >= 7) {
           transporter &= BIT(5-j);
@@ -1008,7 +1009,6 @@ flag_t::update() {
 
 typedef struct {
   inventory_t *inventory;
-  int serf_index;
   int water;
 } send_serf_to_road_data_t;
 
@@ -1021,34 +1021,28 @@ send_serf_to_road_search_cb(flag_t *flag, void *data) {
     building_t *building = flag->get_building();
     inventory_t *inventory = building->u.inventory;
     if (!road_data->water) {
-      if (inventory->serfs[SERF_TRANSPORTER] != 0) {
+      if (inventory->have_serf(SERF_TRANSPORTER)) {
         road_data->inventory = inventory;
-        road_data->serf_index = inventory->serfs[SERF_TRANSPORTER];
-        inventory->serfs[SERF_TRANSPORTER] = 0;
         return true;
       }
     } else {
-      if (inventory->serfs[SERF_SAILOR] != 0) {
+      if (inventory->have_serf(SERF_SAILOR)) {
         road_data->inventory = inventory;
-        road_data->serf_index = inventory->serfs[SERF_SAILOR];
-        inventory->serfs[SERF_SAILOR] = 0;
         return true;
       }
     }
 
-    if (road_data->inventory == NULL && inventory->serfs[SERF_GENERIC] != 0 &&
-        (!road_data->water || inventory->resources[RESOURCE_BOAT] > 0)) {
+    if (road_data->inventory == NULL && inventory->have_serf(SERF_GENERIC) &&
+        (!road_data->water || inventory->get_count_of(RESOURCE_BOAT) > 0)) {
       road_data->inventory = inventory;
-      /*player_t *player = game.player[inventory->player_num];
-       game.field_340 = player->cont_search_after_non_optimal_find;*/
     }
   }
 
   return false;
 }
 
-int
-flag_t::send_serf_to_road(dir_t dir, bool water) {
+bool
+flag_t::call_transporter(dir_t dir, bool water) {
   flag_t *src_2 = other_endpoint.f[dir];
   dir_t dir_2 = get_other_end_dir(dir);
 
@@ -1061,32 +1055,16 @@ flag_t::send_serf_to_road(dir_t dir, bool water) {
 
   send_serf_to_road_data_t data;
   data.inventory = NULL;
-  data.serf_index = -1;
   data.water = water;
-
-  bool r = search.execute(send_serf_to_road_search_cb, true, false, &data);
+  search.execute(send_serf_to_road_search_cb, true, false, &data);
   inventory_t *inventory = data.inventory;
-  int serf_index = data.serf_index;
-  if (!r) {
-    if (inventory == NULL) return -1;
-
-    serf_index = inventory->serfs[SERF_GENERIC];
-    inventory->serfs[SERF_GENERIC] = 0;
-
-    serf_t *serf = game_get_serf(serf_index);
-
-    if (!water) {
-      serf_set_type(serf, SERF_TRANSPORTER);
-    } else {
-      serf_set_type(serf, SERF_SAILOR);
-      inventory->resources[RESOURCE_BOAT] -= 1;
-    }
-
-    inventory->generic_count -= 1;
+  if (inventory == NULL) {
+    return false;
   }
 
-  inventory->serfs_out += 1;
-  flag_t *dest_flag = game.flags[inventory->flag];
+  serf_t *serf = data.inventory->call_transporter(water);
+
+  flag_t *dest_flag = game.flags[inventory->get_flag_index()];
 
   length[dir] |= BIT(7);
   src_2->length[dir_2] |= BIT(7);
@@ -1097,15 +1075,13 @@ flag_t::send_serf_to_road(dir_t dir, bool water) {
     dir = dir_2;
   }
 
-  serf_t *serf = game_get_serf(serf_index);
-
   serf_log_state_change(serf, SERF_STATE_READY_TO_LEAVE_INVENTORY);
   serf->state = SERF_STATE_READY_TO_LEAVE_INVENTORY;
   serf->s.ready_to_leave_inventory.mode = dir;
   serf->s.ready_to_leave_inventory.dest = src->get_index();
-  serf->s.ready_to_leave_inventory.inv_index = INVENTORY_INDEX(inventory);
+  serf->s.ready_to_leave_inventory.inv_index = inventory->get_index();
 
-  return 0;
+  return true;
 }
 
 void

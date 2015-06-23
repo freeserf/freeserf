@@ -55,31 +55,4 @@ typedef enum {
   RESOURCE_GROUP_FOOD
 } resource_type_t;
 
-
-typedef struct {
-  int player_num;
-  int res_dir;
-  /* Index of flag connected to this inventory */
-  int flag;
-  /* Index of building containing this inventory */
-  int building;
-  /* Count of resources */
-  int resources[26];
-  /* Resources waiting to be moved out */
-  struct {
-    resource_type_t type;
-    unsigned int dest;
-  } out_queue[2];
-  /* Count of serfs waiting to move out */
-  unsigned int serfs_out;
-  /* Count of generic serfs */
-  int generic_count;
-  /* Indices to serfs of each type */
-  int serfs[27];
-} inventory_t;
-
-#define INVENTORY_INDEX(ptr)  (static_cast<int>((ptr) - game.inventories))
-#define INVENTORY_ALLOCATED(i)  \
-                            BIT_TEST(game.inventory_bitmap[(i) >> 3], 7-((i)&7))
-
 #endif  // SRC_RESOURCE_H_

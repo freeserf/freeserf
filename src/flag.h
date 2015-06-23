@@ -206,7 +206,7 @@ class flag_t {
 
   void schedule_slot_to_unknown_dest(int slot);
   void schedule_slot_to_known_dest(int slot, unsigned int res_waiting[4]);
-  int send_serf_to_road(dir_t dir, bool water);
+  bool call_transporter(dir_t dir, bool water);
 
   friend class flag_search_t;
 };

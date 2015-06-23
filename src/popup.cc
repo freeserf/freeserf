@@ -36,6 +36,7 @@
 #include "src/event_loop.h"
 #include "src/minimap.h"
 #include "src/viewport.h"
+#include "src/inventory.h"
 
 /* Action types that can be fired from
    clicks in the popup window. */
@@ -708,13 +709,12 @@ popup_box_t::draw_stat_4_box() {
   int resources[26] = {0};
 
   /* Sum up resources of all inventories. */
-  for (unsigned int i = 0; i < game.max_inventory_index; i++) {
-    if (INVENTORY_ALLOCATED(i)) {
-      inventory_t *inventory = game_get_inventory(i);
-      if (inventory->player_num == interface->get_player()->player_num) {
-        for (int j = 0; j < 26; j++) {
-          resources[j] += inventory->resources[j];
-        }
+  for (inventories_t::iterator i = game.inventories.begin();
+       i != game.inventories.end(); ++i) {
+    inventory_t *inventory = *i;
+    if (inventory->get_player_num() == interface->get_player()->player_num) {
+      for (int j = 0; j < 26; j++) {
+        resources[j] += inventory->get_count_of((resource_type_t)j);
       }
     }
   }
@@ -1403,51 +1403,13 @@ popup_box_t::draw_stat_3_box() {
   }
 
   /* Sum up potential serfs of all inventories. */
-  for (unsigned int i = 0; i < game.max_inventory_index; i++) {
-    if (INVENTORY_ALLOCATED(i)) {
-      inventory_t *inventory = game_get_inventory(i);
-      if (inventory->player_num == interface->get_player()->player_num &&
-          inventory->generic_count > 0) {
-        serfs[SERF_TRANSPORTER] += inventory->generic_count;
-        serfs[SERF_FORESTER] += inventory->generic_count;
-        serfs[SERF_SMELTER] += inventory->generic_count;
-        serfs[SERF_PIGFARMER] += inventory->generic_count;
-        serfs[SERF_MILLER] += inventory->generic_count;
-        serfs[SERF_BAKER] += inventory->generic_count;
-
-        serfs[SERF_SAWMILLER] += std::min(inventory->generic_count,
-                   inventory->resources[RESOURCE_SAW]);
-        serfs[SERF_SAILOR] += std::min(inventory->generic_count,
-               inventory->resources[RESOURCE_BOAT]);
-        serfs[SERF_DIGGER] += std::min(inventory->generic_count,
-                inventory->resources[RESOURCE_SHOVEL]);
-        serfs[SERF_BUILDER] += std::min(inventory->generic_count,
-                 inventory->resources[RESOURCE_HAMMER]);
-        serfs[SERF_LUMBERJACK] += std::min(inventory->generic_count,
-                    inventory->resources[RESOURCE_AXE]);
-        serfs[SERF_STONECUTTER] += std::min(inventory->generic_count,
-                     inventory->resources[RESOURCE_PICK]);
-        serfs[SERF_MINER] += std::min(inventory->generic_count,
-               inventory->resources[RESOURCE_PICK]);
-        serfs[SERF_FISHER] += std::min(inventory->generic_count,
-                inventory->resources[RESOURCE_ROD]);
-        serfs[SERF_BUTCHER] += std::min(inventory->generic_count,
-                 inventory->resources[RESOURCE_CLEAVER]);
-        serfs[SERF_FARMER] += std::min(inventory->generic_count,
-                inventory->resources[RESOURCE_SCYTHE]);
-        serfs[SERF_BOATBUILDER] += std::min(inventory->generic_count,
-                     inventory->resources[RESOURCE_HAMMER]);
-        serfs[SERF_TOOLMAKER] += std::min(inventory->generic_count,
-                   std::min(inventory->resources[RESOURCE_HAMMER],
-                 inventory->resources[RESOURCE_SAW]));
-        serfs[SERF_WEAPONSMITH] += std::min(inventory->generic_count,
-                     std::min(inventory->resources[RESOURCE_HAMMER],
-                   inventory->resources[RESOURCE_PINCER]));
-        serfs[SERF_GEOLOGIST] += std::min(inventory->generic_count,
-                   inventory->resources[RESOURCE_HAMMER]);
-        serfs[SERF_KNIGHT_0] += std::min(inventory->generic_count,
-                  std::min(inventory->resources[RESOURCE_SWORD],
-                inventory->resources[RESOURCE_SHIELD]));
+  for (inventories_t::iterator i = game.inventories.begin();
+       i != game.inventories.end(); ++i) {
+    inventory_t *inventory = *i;
+    if (inventory->get_player_num() == interface->get_player()->player_num &&
+        inventory->free_serf_count() > 0) {
+      for (int i = 0; i < 27; i++) {
+        serfs[i] += inventory->serf_potencial_count((serf_type_t)i);
       }
     }
   }
@@ -1996,7 +1958,7 @@ popup_box_t::draw_castle_res_box() {
   }
 
   inventory_t *inventory = building->u.inventory;
-  draw_resources_box(inventory->resources);
+  draw_resources_box(inventory->get_all_resources());
 }
 
 void
@@ -2285,7 +2247,7 @@ popup_box_t::draw_castle_serf_box() {
     if (SERF_ALLOCATED(i)) {
       serf_t *serf = game_get_serf(i);
       if (serf->state == SERF_STATE_IDLE_IN_STOCK &&
-          inventory == game_get_inventory(serf->s.idle_in_stock.inv_index)) {
+          inventory == game.inventories[serf->s.idle_in_stock.inv_index]) {
         serfs[SERF_TYPE(serf)] += 1;
       }
     }
@@ -2360,23 +2322,23 @@ popup_box_t::draw_resdir_box() {
 
   /* Draw resource mode checkbox */
   inventory_t *inventory = building->u.inventory;
-  int res_mode = inventory->res_dir & 3;
-  if (res_mode == 0) {
-    draw_popup_icon(9, 16, 0x120); /* in */
-  } else if (res_mode == 1) {
-    draw_popup_icon(9, 32, 0x120); /* stop */
-  } else {
-    draw_popup_icon(9, 48, 0x120); /* out */
+  inventory_mode_t res_mode = inventory->get_res_mode();
+  if (res_mode == mode_in) { /* in */
+    draw_popup_icon(9, 16, 0x120);
+  } else if (res_mode == mode_stop) { /* stop */
+    draw_popup_icon(9, 32, 0x120);
+  } else { /* out */
+    draw_popup_icon(9, 48, 0x120);
   }
 
   /* Draw serf mode checkbox */
-  int serf_mode = (inventory->res_dir >> 2) & 3;
-  if (serf_mode == 0) {
-    draw_popup_icon(9, 80, 0x120); /* in */
-  } else if (serf_mode == 1) {
-    draw_popup_icon(9, 96, 0x120); /* stop */
-  } else {
-    draw_popup_icon(9, 112, 0x120); /* out */
+  inventory_mode_t serf_mode = inventory->get_serf_mode();
+  if (serf_mode == mode_in) { /* in */
+    draw_popup_icon(9, 80, 0x120);
+  } else if (serf_mode == mode_stop) { /* stop */
+    draw_popup_icon(9, 96, 0x120);
+  } else { /* out */
+    draw_popup_icon(9, 112, 0x120);
   }
 }
 
@@ -2422,14 +2384,14 @@ popup_box_t::draw_sett_8_box() {
   }
 
   int convertible_to_knights = 0;
-  for (unsigned int i = 0; i < game.max_inventory_index; i++) {
-    if (INVENTORY_ALLOCATED(i)) {
-      inventory_t *inv = game_get_inventory(i);
-      if (inv->player_num == player->player_num) {
-        int c = std::min(inv->resources[RESOURCE_SWORD],
-              inv->resources[RESOURCE_SHIELD]);
-        convertible_to_knights += std::max(0, std::min(c, inv->generic_count));
-      }
+  for (inventories_t::iterator i = game.inventories.begin();
+       i != game.inventories.end(); ++i) {
+    inventory_t *inv = *i;
+    if (inv->get_player_num() == player->player_num) {
+      int c = std::min(inv->get_count_of(RESOURCE_SWORD),
+                       inv->get_count_of(RESOURCE_SHIELD));
+      convertible_to_knights += std::max(0,
+                                         std::min(c, inv->free_serf_count()));
     }
   }
 

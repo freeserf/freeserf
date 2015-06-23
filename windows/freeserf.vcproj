@@ -236,6 +236,10 @@
 				>
 			</File>
 			<File
+				RelativePath="..\src\inventory.cc"
+				>
+			</File>
+			<File
 				RelativePath="..\src\list.cc"
 				>
 			</File>
@@ -330,6 +334,10 @@
 				>
 			</File>
 			<File
+				RelativePath="..\src\audio.h"
+				>
+			</File>
+			<File
 				RelativePath="..\src\building.h"
 				>
 			</File>
@@ -391,6 +399,10 @@
 			</File>
 			<File
 				RelativePath="..\src\interface.h"
+				>
+			</File>
+			<File
+				RelativePath="..\src\inventory.h"
 				>
 			</File>
 			<File

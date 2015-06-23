@@ -104,6 +104,8 @@ typedef struct {
   int maximum;
 } building_stock_t;
 
+class inventory_t;
+
 typedef struct {
   /* Map position of building */
   map_pos_t pos;

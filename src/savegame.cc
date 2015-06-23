@@ -33,6 +33,7 @@
 #include "src/version.h"
 #include "src/log.h"
 #include "src/misc.h"
+#include "src/inventory.h"
 
 #define SAVE_MAP_TILE_SIZE   16
 #define SAVE_MAP_TILE_COUNT  (SAVE_MAP_TILE_SIZE*SAVE_MAP_TILE_SIZE)
@@ -44,6 +45,7 @@ typedef struct {
 } v0_map_t;
 
 static unsigned int max_flag_index = 0;
+static unsigned int max_inventory_index = 0;
 
 static map_pos_t
 load_v0_map_pos(const v0_map_t *map, uint32_t value) {
@@ -82,7 +84,6 @@ load_v0_game_state(FILE *f, v0_map_t *map) {
   const int max_map_size = 10;
   game.serf_limit = (0x1f84 * (1 << max_map_size) - 4) / 0x81;
   game.building_limit = (0x54c * (1 << max_map_size) - 4) / 0x91;
-  game.inventory_limit = (0x54c * (1 << max_map_size) - 4) / 0x3c1;
   game_allocate_objects();
 
   /* OBSOLETE may be needed to load map data correctly?
@@ -182,7 +183,7 @@ load_v0_game_state(FILE *f, v0_map_t *map) {
   game.field_17B = *(uint8_t *)&data[173];
   */
 
-  game.max_inventory_index = *reinterpret_cast<uint16_t*>(&data[174]);
+  max_inventory_index = *reinterpret_cast<uint16_t*>(&data[174]);
   /*game.map_max_serfs_left = *(uint16_t *)&data[176];*/
   /* game.max_stock_buildings = *(uint16_t *)&data[178]; */
   game.max_next_index = *reinterpret_cast<uint16_t*>(&data[180]);
@@ -724,7 +725,7 @@ load_v0_building_state(FILE *f, const v0_map_t *map) {
       int offset = *reinterpret_cast<uint32_t*>(&building_data[14]);
       if (BUILDING_TYPE(building) == BUILDING_STOCK ||
           BUILDING_TYPE(building) == BUILDING_CASTLE) {
-        building->u.inventory = &game.inventories[offset/120];
+        building->u.inventory = game.inventories.get_or_insert(offset/120);
         building->stock[0].requested = 0xff;
       }
     } else {
@@ -820,7 +821,7 @@ load_v0_building_state(FILE *f, const v0_map_t *map) {
 static int
 load_v0_inventory_state(FILE *f) {
   /* Load inventory bitmap. */
-  int bitmap_size = 4*((game.max_inventory_index + 31)/32);
+  int bitmap_size = 4*((max_inventory_index + 31)/32);
   uint8_t *bitmap = reinterpret_cast<uint8_t*>(malloc(bitmap_size));
   if (bitmap == NULL) return -1;
 
@@ -830,52 +831,30 @@ load_v0_inventory_state(FILE *f) {
     return -1;
   }
 
-  memset(game.inventory_bitmap, '\0', (game.inventory_limit+31)/32);
-  memcpy(game.inventory_bitmap, bitmap, bitmap_size);
-
-  free(bitmap);
-
   /* Load inventory data. */
-  uint8_t *data = reinterpret_cast<uint8_t*>(malloc(120 *
-                                                    game.max_inventory_index));
-  if (data == NULL) return -1;
-
-  rd = fread(data, 120*sizeof(uint8_t), game.max_inventory_index, f);
-  if (rd < game.max_inventory_index) {
-    free(data);
+  uint8_t *inventory_data = reinterpret_cast<uint8_t*>(malloc(120));
+  if (inventory_data == NULL) {
+    free(bitmap);
     return -1;
   }
 
-  for (unsigned int i = 0; i < game.max_inventory_index; i++) {
-    uint8_t *inventory_data = &data[120*i];
-    inventory_t *inventory = &game.inventories[i];
-
-    inventory->player_num = inventory_data[0];
-    inventory->res_dir = inventory_data[1];
-    inventory->flag = *reinterpret_cast<uint16_t*>(&inventory_data[2]);
-    inventory->building = *reinterpret_cast<uint16_t*>(&inventory_data[4]);
-
-    for (int j = 0; j < 26; j++) {
-      inventory->resources[j] =
-                           *reinterpret_cast<uint16_t*>(&inventory_data[6+2*j]);
+  for (unsigned int i = 0; i < max_inventory_index; i++) {
+    rd = fread(inventory_data, 120, 1, f);
+    if (rd != 1) {
+      free(inventory_data);
+      free(bitmap);
+      return -1;
     }
 
-    for (int j = 0; j < 2; j++) {
-      inventory->out_queue[j].type = (resource_type_t)(inventory_data[58+j]-1);
-      inventory->out_queue[j].dest =
-                          *reinterpret_cast<uint16_t*>(&inventory_data[60+2*j]);
-    }
-
-    inventory->generic_count =
-                              *reinterpret_cast<uint16_t*>(&inventory_data[64]);
-
-    for (int j = 0; j < 27; j++) {
-      inventory->serfs[j] =
-                          *reinterpret_cast<uint16_t*>(&inventory_data[66+2*j]);
+    if (BIT_TEST(bitmap[(i)>>3], 7-((i)&7))) {
+      inventory_t *inventory = game.inventories.get_or_insert(i);
+      save_reader_binary_t reader(inventory_data, 120);
+      reader >> *inventory;
     }
   }
 
-  free(data);
+  free(inventory_data);
+  free(bitmap);
 
   return 0;
 }
@@ -966,7 +945,6 @@ save_text_game_state(FILE *f) {
 
   save_text_write_value(f, "serf_limit", game.serf_limit);
   save_text_write_value(f, "building_limit", game.building_limit);
-  save_text_write_value(f, "inventory_limit", game.inventory_limit);
 
   save_text_write_value(f, "next_index", game.next_index);
   save_text_write_value(f, "flag_search_counter", game.flag_search_counter);
@@ -1170,7 +1148,7 @@ save_text_building_state(FILE *f) {
         if (BUILDING_TYPE(building) == BUILDING_STOCK ||
             BUILDING_TYPE(building) == BUILDING_CASTLE) {
           save_text_write_value(f, "inventory",
-                                INVENTORY_INDEX(building->u.inventory));
+                                building->u.inventory->get_index());
         }
       } else if (BUILDING_IS_BURNING(building)) {
         save_text_write_value(f, "tick", building->u.tick);
@@ -1185,37 +1163,13 @@ save_text_building_state(FILE *f) {
   return 0;
 }
 
-static int
-save_text_inventory_state(FILE *f) {
-  for (unsigned int i = 0; i < game.max_inventory_index; i++) {
-    if (INVENTORY_ALLOCATED(i)) {
-      inventory_t *inventory = game_get_inventory(i);
+static bool
+save_text_inventory_state(inventory_t *inventory, FILE *f) {
+  save_writer_text_section_t writer("inventory", inventory->get_index());
+  writer << *inventory;
+  writer.save(f);
 
-      fprintf(f, "[inventory %i]\n", i);
-
-      save_text_write_value(f, "player", inventory->player_num);
-      save_text_write_value(f, "res_dir", inventory->res_dir);
-      save_text_write_value(f, "flag", inventory->flag);
-      save_text_write_value(f, "building", inventory->building);
-
-      resource_type_t types[2];
-      for (int i = 0; i < 2; i++) types[i] = inventory->out_queue[i].type;
-      save_text_write_array(f, "queue.type", reinterpret_cast<int*>(types), 2);
-
-      int dests[2];
-      for (int i = 0; i < 2; i++) dests[i] = inventory->out_queue[i].dest;
-      save_text_write_array(f, "queue.dest", dests, 2);
-
-      save_text_write_value(f, "generic_count", inventory->generic_count);
-
-      save_text_write_array(f, "resources", inventory->resources, 26);
-      save_text_write_array(f, "serfs", inventory->serfs, 27);
-
-      fprintf(f, "\n");
-    }
-  }
-
-  return 0;
+  return true;
 }
 
 static int
@@ -1523,8 +1477,10 @@ save_text_state(FILE *f) {
   r = save_text_building_state(f);
   if (r < 0) return -1;
 
-  r = save_text_inventory_state(f);
-  if (r < 0) return -1;
+  for (inventories_t::iterator i = game.inventories.begin();
+       i != game.inventories.end(); ++i) {
+    if (!save_text_inventory_state(*i, f)) return -1;
+  }
 
   r = save_text_serf_state(f);
   if (r < 0) return -1;
@@ -1818,8 +1774,6 @@ load_text_game_state(list_t *sections) {
       game.serf_limit = atoi(s->value);
     } else if (!strcmp(s->key, "building_limit")) {
       game.building_limit = atoi(s->value);
-    } else if (!strcmp(s->key, "inventory_limit")) {
-      game.inventory_limit = atoi(s->value);
     } else if (!strcmp(s->key, "next_index")) {
       game.next_index = atoi(s->value);
     } else if (!strcmp(s->key, "flag_search_counter")) {
@@ -2153,7 +2107,7 @@ load_text_building_section(section_t *section) {
         BUILDING_TYPE(building) == BUILDING_CASTLE) {
       char *value = load_text_get_setting(section, "inventory");
       if (value == NULL) return -1;
-      building->u.inventory = &game.inventories[atoi(value)];
+      building->u.inventory = game.inventories.get_or_insert(atoi(value));
     }
   } else if (BUILDING_IS_BURNING(building)) {
     char *value = load_text_get_setting(section, "tick");
@@ -2197,53 +2151,11 @@ static int
 load_text_inventory_section(section_t *section) {
   /* Parse building number. */
   int n = atoi(section->param);
-  if (n >= static_cast<int>(game.inventory_limit)) return -1;
 
-  inventory_t *inventory = &game.inventories[n];
-  game.inventory_bitmap[n/8] |= BIT(7-(n&7));
+  save_reader_text_section_t reader(section);
 
-  /* Load the inventory state. */
-  list_elm_t *elm;
-  list_foreach(&section->settings, elm) {
-    setting_t *s = reinterpret_cast<setting_t*>(elm);
-    if (!strcmp(s->key, "player")) {
-      inventory->player_num = atoi(s->value);
-    } else if (!strcmp(s->key, "res_dir")) {
-      inventory->res_dir = atoi(s->value);
-    } else if (!strcmp(s->key, "flag")) {
-      inventory->flag = atoi(s->value);
-    } else if (!strcmp(s->key, "building")) {
-      inventory->building = atoi(s->value);
-    } else if (!strcmp(s->key, "queue.type")) {
-      char *array = s->value;
-      for (int i = 0; i < 2 && array != NULL; i++) {
-        char *v = parse_array_value(&array);
-        inventory->out_queue[i].type = (resource_type_t)atoi(v);
-      }
-    } else if (!strcmp(s->key, "queue.dest")) {
-      char *array = s->value;
-      for (int i = 0; i < 2 && array != NULL; i++) {
-        char *v = parse_array_value(&array);
-        inventory->out_queue[i].dest = atoi(v);
-      }
-    } else if (!strcmp(s->key, "generic_count")) {
-      inventory->generic_count = atoi(s->value);
-    } else if (!strcmp(s->key, "resources")) {
-      char *array = s->value;
-      for (int i = 0; i < 26 && array != NULL; i++) {
-        char *v = parse_array_value(&array);
-        inventory->resources[i] = atoi(v);
-      }
-    } else if (!strcmp(s->key, "serfs")) {
-      char *array = s->value;
-      for (int i = 0; i < 27 && array != NULL; i++) {
-        char *v = parse_array_value(&array);
-        inventory->serfs[i] = atoi(v);
-      }
-    } else {
-      LOGD("savegame", "Unhandled inventory setting: `%s'.", s->key);
-    }
-  }
+  inventory_t *inventory = game.inventories.get_or_insert(n);
+  reader >> *inventory;
 
   return 0;
 }
@@ -2256,13 +2168,6 @@ load_text_inventory_state(list_t *sections) {
     if (!strcmp(s->name, "inventory")) {
       int r = load_text_inventory_section(s);
       if (r < 0) return -1;
-    }
-  }
-
-  for (unsigned int i = 0; i < game.inventory_limit; i++) {
-    if (INVENTORY_ALLOCATED(i)) {
-      /* Restore max inventory index */
-      game.max_inventory_index = i+1;
     }
   }
 

@@ -28,6 +28,7 @@
 #include "src/log.h"
 #include "src/debug.h"
 #include "src/misc.h"
+#include "src/inventory.h"
 
 static const int counter_from_animation[] = {
   /* Walking (0-80) */
@@ -390,9 +391,8 @@ serf_switch_waiting(serf_t *serf, dir_t dir) {
   return 0;
 }
 
-
-static int
-train_knight(serf_t *serf, int p) {
+int
+serf_train_knight(serf_t *serf, int p) {
   uint16_t delta = game.tick - serf->tick;
   serf->tick = game.tick;
   serf->counter -= delta;
@@ -412,56 +412,38 @@ train_knight(serf_t *serf, int p) {
 }
 
 static void
-handle_serf_idle_in_stock_common(serf_t *serf, inventory_t *inventory) {
-  inventory->serfs[SERF_TYPE(serf)] = SERF_INDEX(serf);
-}
-
-static void
-handle_knight_training_in_stock(serf_t *serf, inventory_t *inventory, int p) {
-  serf_type_t old_type = SERF_TYPE(serf);
-  int r = train_knight(serf, p);
-  if (r == 0) inventory->serfs[old_type] = 0;
-
-  handle_serf_idle_in_stock_common(serf, inventory);
-}
-
-static void
 handle_serf_idle_in_stock_state(serf_t *serf) {
-  inventory_t *inventory = game_get_inventory(serf->s.idle_in_stock.inv_index);
-  int serf_mode = (inventory->res_dir >> 2) & 3;
+  inventory_t *inventory = game.inventories[serf->s.idle_in_stock.inv_index];
 
-  if (serf_mode == 0 || serf_mode == 1 ||  /* in, stop */
-      inventory->serfs_out >= 3) {
+  if (inventory->get_serf_mode() == 0
+      || inventory->get_serf_mode() == 1 /* in, stop */
+      || inventory->get_serf_queue_length() >= 3) {
     switch (SERF_TYPE(serf)) {
       case SERF_KNIGHT_0:
-        handle_knight_training_in_stock(serf, inventory, 4000);
+        inventory->knight_training(serf, 4000);
         break;
       case SERF_KNIGHT_1:
-        handle_knight_training_in_stock(serf, inventory, 2000);
+        inventory->knight_training(serf, 2000);
         break;
       case SERF_KNIGHT_2:
-        handle_knight_training_in_stock(serf, inventory, 1000);
+        inventory->knight_training(serf, 1000);
         break;
       case SERF_KNIGHT_3:
-        handle_knight_training_in_stock(serf, inventory, 500);
+        inventory->knight_training(serf, 500);
         break;
       case SERF_SMELTER: /* TODO ??? */
         break;
       default:
-        handle_serf_idle_in_stock_common(serf, inventory);
+        inventory->serf_idle_in_stock(serf);
         break;
     }
   } else { /* out */
-    if (inventory->serfs[SERF_TYPE(serf)] == SERF_INDEX(serf)) {
-      inventory->serfs[SERF_TYPE(serf)] = 0;
-    }
-
-    inventory->serfs_out += 1;
+    inventory->call_out_serf(serf);
 
     serf_log_state_change(serf, SERF_STATE_READY_TO_LEAVE_INVENTORY);
     serf->state = SERF_STATE_READY_TO_LEAVE_INVENTORY;
     serf->s.ready_to_leave_inventory.mode = -3;
-    serf->s.ready_to_leave_inventory.inv_index = INVENTORY_INDEX(inventory);
+    serf->s.ready_to_leave_inventory.inv_index = inventory->get_index();
     /* TODO immediate switch to next state. */
   }
 }
@@ -949,7 +931,7 @@ serf_enter_inventory(serf_t *serf) {
   serf->state = SERF_STATE_IDLE_IN_STOCK;
   /*serf->s.idle_in_stock.field_B = 0;
     serf->s.idle_in_stock.field_C = 0;*/
-  serf->s.idle_in_stock.inv_index = INVENTORY_INDEX(building->u.inventory);
+  serf->s.idle_in_stock.inv_index = building->u.inventory->get_index();
 }
 
 static void
@@ -1344,13 +1326,12 @@ handle_serf_entering_building_state(serf_t *serf) {
 
       building_t *building = game_get_building(MAP_OBJ_INDEX(serf->pos));
       inventory_t *inventory = building->u.inventory;
-      inventory->generic_count += 1;
+      assert(inventory);
+      inventory->serf_come_back();
 
       serf_log_state_change(serf, SERF_STATE_IDLE_IN_STOCK);
       serf->state = SERF_STATE_IDLE_IN_STOCK;
-      /*serf->s.idle_in_stock.field_B = 0;
-        serf->s.idle_in_stock.field_C = 0;*/
-      serf->s.idle_in_stock.inv_index = INVENTORY_INDEX(inventory);
+      serf->s.idle_in_stock.inv_index = inventory->get_index();
       break;
     }
     case SERF_KNIGHT_0:
@@ -1858,9 +1839,8 @@ handle_serf_building_castle_state(serf_t *serf) {
   int progress_delta = (uint16_t)(game.tick - serf->tick) << 7;
   serf->tick = game.tick;
 
-  inventory_t *inventory =
-                          game_get_inventory(serf->s.building_castle.inv_index);
-  building_t *building = game_get_building(inventory->building);
+  inventory_t *inventory = game.inventories[serf->s.building_castle.inv_index];
+  building_t *building = game_get_building(inventory->get_building_index());
   building->progress += progress_delta;
 
   if (building->progress >= 0x10000) { /* Finished */
@@ -1918,20 +1898,19 @@ handle_serf_wait_for_resource_out_state(serf_t *serf) {
 
   building_t *building = game_get_building(MAP_OBJ_INDEX(serf->pos));
   inventory_t *inventory = building->u.inventory;
-  if (inventory->serfs_out > 0 ||
-      inventory->out_queue[0].type == RESOURCE_NONE) {
+  if (inventory->get_serf_queue_length() > 0 ||
+      !inventory->has_resource_in_queue()) {
     return;
   }
 
   serf_log_state_change(serf, SERF_STATE_MOVE_RESOURCE_OUT);
   serf->state = SERF_STATE_MOVE_RESOURCE_OUT;
-  serf->s.move_resource_out.res = inventory->out_queue[0].type + 1;
-  serf->s.move_resource_out.res_dest = inventory->out_queue[0].dest;
+  resource_type_t res = RESOURCE_NONE;
+  int dest = 0;
+  inventory->get_resource_from_queue(&res, &dest);
+  serf->s.move_resource_out.res = res + 1;
+  serf->s.move_resource_out.res_dest = dest;
   serf->s.move_resource_out.next_state = SERF_STATE_DROP_RESOURCE_OUT;
-
-  inventory->out_queue[0].type = inventory->out_queue[1].type;
-  inventory->out_queue[1].type = RESOURCE_NONE;
-  inventory->out_queue[0].dest = inventory->out_queue[1].dest;
 
   /*handle_serf_move_resource_out_state(serf);*/
   /* why isn't a state switch enough? */
@@ -1968,16 +1947,15 @@ handle_serf_delivering_state(serf_t *serf) {
     }
 
     if (serf->s.walking.res != 0) {
-      int res = serf->s.walking.res - 1;  // Offset by one,
-                                          // because 0 means none.
+      resource_type_t res = (resource_type_t)(serf->s.walking.res - 1);
+                                      /* Offset by one, because 0 means none. */
       serf->s.walking.res = 0;
       building_t *building =
                   game_get_building(MAP_OBJ_INDEX(MAP_MOVE_UP_LEFT(serf->pos)));
       if (!BUILDING_IS_BURNING(building)) {
         if (BUILDING_HAS_INVENTORY(building)) {
           inventory_t *inventory = building->u.inventory;
-          inventory->resources[res] = std::min(inventory->resources[res]+1,
-                                               50000);
+          inventory->push_resource(res);
         } else {
           if (res == RESOURCE_FISH ||
               res == RESOURCE_MEAT ||
@@ -2033,8 +2011,8 @@ handle_serf_ready_to_leave_inventory_state(serf_t *serf) {
   }
 
   inventory_t *inventory =
-                 game_get_inventory(serf->s.ready_to_leave_inventory.inv_index);
-  inventory->serfs_out -= 1;
+                   game.inventories[serf->s.ready_to_leave_inventory.inv_index];
+  inventory->sers_away();
 
   serf_state_t next_state = SERF_STATE_WALKING;
   if (serf->s.ready_to_leave_inventory.mode == -3) {
@@ -4907,7 +4885,7 @@ handle_serf_defending_state(serf_t *serf, const int training_params[]) {
   case SERF_KNIGHT_1:
   case SERF_KNIGHT_2:
   case SERF_KNIGHT_3:
-    train_knight(serf, training_params[SERF_TYPE(serf)-SERF_KNIGHT_0]);
+    serf_train_knight(serf, training_params[SERF_TYPE(serf)-SERF_KNIGHT_0]);
   case SERF_KNIGHT_4: /* Cannot train anymore. */
     break;
   default:

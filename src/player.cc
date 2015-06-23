@@ -26,6 +26,7 @@
 #include "src/game.h"
 #include "src/log.h"
 #include "src/misc.h"
+#include "src/inventory.h"
 
 /* Enqueue a new notification message for player. */
 void
@@ -189,16 +190,8 @@ player_promote_serfs_to_knights(player_t *player, int number) {
       if (serf->state == SERF_STATE_IDLE_IN_STOCK &&
           SERF_PLAYER(serf) == player->player_num &&
           SERF_TYPE(serf) == SERF_GENERIC) {
-        inventory_t *inv = game_get_inventory(serf->s.idle_in_stock.inv_index);
-        if (inv->resources[RESOURCE_SWORD] > 0 &&
-            inv->resources[RESOURCE_SHIELD] > 0) {
-          inv->resources[RESOURCE_SWORD] -= 1;
-          inv->resources[RESOURCE_SHIELD] -= 1;
-          inv->generic_count -= 1;
-          inv->serfs[SERF_GENERIC] = 0;
-
-          serf_set_type(serf, SERF_KNIGHT_0);
-
+        inventory_t *inv = game.inventories[serf->s.idle_in_stock.inv_index];
+        if (inv->promote_serf_to_knight(serf)) {
           promoted += 1;
           number -= 1;
         }

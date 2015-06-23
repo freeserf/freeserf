@@ -363,4 +363,6 @@ const char *serf_get_state_name(serf_state_t state);
 void serf_set_type(serf_t *serf, serf_type_t type);
 void serf_set_lost_state(serf_t *serf);
 
+int serf_train_knight(serf_t *serf, int p);
+
 #endif  // SRC_SERF_H_

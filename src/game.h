@@ -22,6 +22,8 @@
 #ifndef SRC_GAME_H_
 #define SRC_GAME_H_
 
+#include <vector>
+
 #include "src/player.h"
 #include "src/flag.h"
 #include "src/serf.h"
@@ -37,6 +39,7 @@
 typedef void game_update_map_height_func(map_pos_t pos, void *data);
 
 typedef collection_t<flag_t> flags_t;
+typedef collection_t<inventory_t> inventories_t;
 
 typedef struct {
   map_t map; /* ADDITION */
@@ -86,6 +89,7 @@ typedef struct {
   /*int **map_serf_rows_right;*/ /* OBSOLETE */
   /* 98 */
   flags_t flags;
+  inventories_t inventories;
   building_t *buildings;
   serf_t *serfs;
   /* A4 */
@@ -97,8 +101,6 @@ typedef struct {
   /* C4 */
   map_pos_t *spiral_pos_pattern;
   /* F0 */
-  inventory_t *inventories;
-  uint8_t *inventory_bitmap;
   /* 108 */
   /*frame_t *frame;*/
   /* 1C2 */
@@ -156,8 +158,6 @@ typedef struct {
   /* 260 */
   unsigned int max_building_index;
   unsigned int max_serf_index;
-  unsigned int inventory_limit;
-  unsigned int max_inventory_index;
   /* 26C */
   uint16_t next_index;
   uint16_t flag_search_counter;
@@ -268,10 +268,6 @@ int game_alloc_building(building_t **building, int *index);
 building_t *game_get_building(int index);
 void game_free_building(int index);
 
-int game_alloc_inventory(inventory_t **inventory, int *index);
-inventory_t *game_get_inventory(int index);
-void game_free_inventory(int index);
-
 int game_alloc_serf(serf_t **serf, int *index);
 serf_t *game_get_serf(int index);
 void game_free_serf(int index);
@@ -286,5 +282,6 @@ void game_lose_resource(resource_type_t type);
 
 uint16_t game_random_int();
 
+std::vector<inventory_t*> game_inventories_for_player(player_t *player);
 
 #endif  // SRC_GAME_H_

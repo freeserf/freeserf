@@ -35,6 +35,7 @@
 #include "src/debug.h"
 #include "src/log.h"
 #include "src/misc.h"
+#include "src/inventory.h"
 
 #define GROUND_ANALYSIS_RADIUS  25
 
@@ -180,54 +181,6 @@ game_free_building(int index) {
   }
 }
 
-/* Allocate and initialize a new inventory_t object.
-   Return -1 if no more inventories can be allocated, otherwise 0. */
-int
-game_alloc_inventory(inventory_t **inventory, int *index) {
-  for (unsigned int i = 0; i < game.inventory_limit; i++) {
-    if (INVENTORY_ALLOCATED(i)) continue;
-    game.inventory_bitmap[i/8] |= BIT(7-(i&7));
-
-    if (i == game.max_inventory_index) game.max_inventory_index += 1;
-
-    inventory_t *iv = &game.inventories[i];
-    memset(iv, 0, sizeof(inventory_t));
-
-    iv->out_queue[0].type = RESOURCE_NONE;
-    iv->out_queue[1].type = RESOURCE_NONE;
-
-    if (inventory != NULL) *inventory = iv;
-    if (index != NULL) *index = i;
-
-    return 0;
-  }
-
-  return -1;
-}
-
-/* Return inventory_t object with index. */
-inventory_t *
-game_get_inventory(int index) {
-  assert(index < static_cast<int>(game.inventory_limit));
-  assert(INVENTORY_ALLOCATED(index));
-  return &game.inventories[index];
-}
-
-/* Deallocate inventory_t object. */
-void
-game_free_inventory(int index) {
-  /* Remove inventory from allocation bitmap. */
-  game.inventory_bitmap[index/8] &= ~BIT(7-(index&7));
-
-  /* Decrement max_inventory_index as much as possible. */
-  if (index == game.max_inventory_index + 1) {
-    while (--game.max_inventory_index > 0) {
-      index -= 1;
-      if (INVENTORY_ALLOCATED(index)) break;
-    }
-  }
-}
-
 /* Allocate and initialize a new serf_t object.
    Return -1 if no more serfs can be allocated, otherwise 0. */
 int
@@ -279,36 +232,29 @@ static int
 spawn_serf(player_t *player, serf_t **serf, inventory_t **inventory,
            int want_knight) {
   if (!PLAYER_CAN_SPAWN(player)) return -1;
-  if (game.max_inventory_index < 1) return -1;
+  if (game.inventories.size() < 1) return -1;
 
-  serf_t *s = NULL;
-  int r = game_alloc_serf(&s, NULL);
-  if (r < 0) return -1;
-
-  building_t *building = NULL;
   inventory_t *inv = NULL;
 
-  for (unsigned int i = 0; i < game.max_inventory_index; i++) {
-    if (INVENTORY_ALLOCATED(i)) {
-      inventory_t *loop_inv = game_get_inventory(i);
-      if (loop_inv->player_num == player->player_num &&
-          !BIT_TEST(loop_inv->res_dir, 2)) { /* serf IN mode */
-        if (want_knight && (loop_inv->resources[RESOURCE_SWORD] == 0 ||
-                loop_inv->resources[RESOURCE_SHIELD] == 0)) {
-          continue;
-        } else if (loop_inv->generic_count == 0) {
-          inv = loop_inv;
-          break;
-        } else if (inv == NULL ||
-             loop_inv->generic_count < inv->generic_count) {
-          inv = loop_inv;
-        }
+  for (inventories_t::iterator i = game.inventories.begin();
+       i != game.inventories.end(); ++i) {
+    inventory_t *loop_inv = *i;
+    if (loop_inv->get_player_num() == player->player_num &&
+        !(loop_inv->get_serf_mode() == mode_in)) { /* serf IN mode */
+      if (want_knight && (loop_inv->get_count_of(RESOURCE_SWORD) == 0 ||
+                          loop_inv->get_count_of(RESOURCE_SHIELD) == 0)) {
+        continue;
+      } else if (loop_inv->free_serf_count() == 0) {
+        inv = loop_inv;
+        break;
+      } else if (inv == NULL ||
+                 loop_inv->free_serf_count() < inv->free_serf_count()) {
+        inv = loop_inv;
       }
     }
   }
 
   if (inv == NULL) {
-    game_free_serf(SERF_INDEX(s));
     if (want_knight) {
       return spawn_serf(player, serf, inventory, 0);
     } else {
@@ -316,17 +262,10 @@ spawn_serf(player_t *player, serf_t **serf, inventory_t **inventory,
     }
   }
 
-  building = game_get_building(inv->building);
-  inv->generic_count += 1;
-
-  player->serf_count[SERF_GENERIC] += 1;
-  s->type = (SERF_GENERIC << 2) | player->player_num;
-  s->animation = 0;
-  s->counter = 0;
-  s->pos = building->pos;
-  s->tick = game.tick;
-  s->state = SERF_STATE_IDLE_IN_STOCK;
-  s->s.idle_in_stock.inv_index = INVENTORY_INDEX(inv);
+  serf_t *s = inv->spawn_serf_generic();
+  if (s == NULL) {
+    return -1;
+  }
 
   if (serf) *serf = s;
   if (inventory) *inventory = inv;
@@ -386,13 +325,10 @@ update_player(player_t *player) {
         inventory_t *inventory;
         int r = spawn_serf(player, &serf, &inventory, 1);
         if (r >= 0) {
-          if (inventory->resources[RESOURCE_SWORD] != 0 &&
-              inventory->resources[RESOURCE_SHIELD] != 0) {
+          if (inventory->get_count_of(RESOURCE_SWORD) != 0 &&
+              inventory->get_count_of(RESOURCE_SHIELD) != 0) {
             player->knights_to_spawn -= 1;
-            serf_set_type(serf, SERF_KNIGHT_0);
-            inventory->resources[RESOURCE_SWORD] -= 1;
-            inventory->resources[RESOURCE_SHIELD] -= 1;
-            inventory->generic_count -= 1;
+            inventory->specialize_serf(serf, SERF_KNIGHT_0);
           }
         }
       }
@@ -427,12 +363,11 @@ update_knight_morale() {
   unsigned int military_gold[GAME_MAX_PLAYER_COUNT] = {0};
 
   /* Sum gold collected in inventories */
-  for (unsigned int i = 0; i < game.max_inventory_index; i++) {
-    if (INVENTORY_ALLOCATED(i)) {
-      inventory_t *inventory = game_get_inventory(i);
-      inventory_gold[inventory->player_num] +=
-        inventory->resources[RESOURCE_GOLDBAR];
-    }
+  for (inventories_t::iterator i = game.inventories.begin();
+       i != game.inventories.end(); ++i) {
+    inventory_t *inventory = *i;
+    inventory_gold[inventory->get_player_num()] +=
+      inventory->get_count_of(RESOURCE_GOLDBAR);
   }
 
   /* Sum gold deposited in military buildings */
@@ -544,23 +479,6 @@ update_inventories_cb(flag_t *flag, update_inventories_data_t *data) {
   return 0;
 }
 
-/* Take resource from inventory and put in out queue. The resource must
-   be present.*/
-static void
-inventory_add_to_queue(inventory_t *inventory, resource_type_t type,
-                       unsigned int dest) {
-  assert(inventory->resources[type] != 0);
-
-  inventory->resources[type] -= 1;
-  if (inventory->out_queue[0].type == RESOURCE_NONE) {
-    inventory->out_queue[0].type = type;
-    inventory->out_queue[0].dest = dest;
-  } else {
-    inventory->out_queue[1].type = type;
-    inventory->out_queue[1].dest = dest;
-  }
-}
-
 /* Check which players are allowed to spawn new serfs. */
 static void
 check_max_serfs_reached() {
@@ -596,7 +514,7 @@ check_max_serfs_reached() {
    resources that are needed outside of the inventory into the out queue. */
 static void
 update_inventories() {
-  const int arr_1[] = {
+  const resource_type_t arr_1[] = {
     RESOURCE_PLANK,
     RESOURCE_STONE,
     RESOURCE_STEEL,
@@ -609,10 +527,10 @@ update_inventories() {
     RESOURCE_WHEAT,
     RESOURCE_GOLDBAR,
     RESOURCE_GOLDORE,
-    -1
+    RESOURCE_NONE,
   };
 
-  const int arr_2[] = {
+  const resource_type_t arr_2[] = {
     RESOURCE_STONE,
     RESOURCE_IRONORE,
     RESOURCE_GOLDORE,
@@ -625,10 +543,10 @@ update_inventories() {
     RESOURCE_WHEAT,
     RESOURCE_LUMBER,
     RESOURCE_PLANK,
-    -1
+    RESOURCE_NONE,
   };
 
-  const int arr_3[] = {
+  const resource_type_t arr_3[] = {
     RESOURCE_GROUP_FOOD,
     RESOURCE_WHEAT,
     RESOURCE_PIG,
@@ -641,39 +559,37 @@ update_inventories() {
     RESOURCE_LUMBER,
     RESOURCE_GOLDORE,
     RESOURCE_IRONORE,
-    -1
+    RESOURCE_NONE,
   };
 
   check_max_serfs_reached();
   /* AI: TODO */
 
-  const int *arr = NULL;
+  const resource_type_t *arr = NULL;
   switch (game_random_int() & 7) {
   case 0: arr = arr_2; break;
   case 1: arr = arr_3; break;
   default: arr = arr_1; break;
   }
 
-  while (arr[0] >= 0) {
+  while (arr[0] != RESOURCE_NONE) {
     for (int p = 0; p < GAME_MAX_PLAYER_COUNT; p++) {
       inventory_t *invs[256];
       int n = 0;
-      for (unsigned int i = 0; i < game.max_inventory_index; i++) {
-        if (!INVENTORY_ALLOCATED(i)) continue;
-
-        inventory_t *inventory = game_get_inventory(i);
-        if (inventory->player_num == p &&
-            inventory->out_queue[1].type == RESOURCE_NONE) {
-          int res_dir = inventory->res_dir & 3;
-          if (res_dir == 0 || res_dir == 1) { /* In mode, stop mode */
+      for (inventories_t::iterator i = game.inventories.begin();
+           i != game.inventories.end(); ++i) {
+        inventory_t *inventory = *i;
+        if (inventory->get_player_num() == p &&
+            !inventory->is_queue_full()) {
+          inventory_mode_t res_dir = inventory->get_res_mode();
+          if (res_dir == mode_in || res_dir == mode_stop) {  // In mode,
+                                                             // stop mode
             if (arr[0] == RESOURCE_GROUP_FOOD) {
-              if (inventory->resources[RESOURCE_FISH] != 0 ||
-                  inventory->resources[RESOURCE_MEAT] != 0 ||
-                  inventory->resources[RESOURCE_BREAD] != 0) {
+              if (inventory->has_food()) {
                 invs[n++] = inventory;
                 if (n == 256) break;
               }
-            } else if (inventory->resources[arr[0]] != 0) {
+            } else if (inventory->get_count_of(arr[0]) != 0) {
               invs[n++] = inventory;
               if (n == 256) break;
             }
@@ -683,7 +599,7 @@ update_inventories() {
             int prio = 0;
             resource_type_t type = RESOURCE_NONE;
             for (int i = 0; i < 26; i++) {
-              if (inventory->resources[i] != 0 &&
+              if (inventory->get_count_of((resource_type_t)i) != 0 &&
                   player->inventory_prio[i] >= prio) {
                 prio = player->inventory_prio[i];
                 type = (resource_type_t)i;
@@ -691,7 +607,7 @@ update_inventories() {
             }
 
             if (type != RESOURCE_NONE) {
-              inventory_add_to_queue(inventory, type, 0);
+              inventory->add_to_queue(type, 0);
             }
           }
         }
@@ -707,7 +623,7 @@ update_inventories() {
       for (int i = 0; i < n; i++) {
         max_prio[i] = 0;
         flags[i] = NULL;
-        flag_t *flag = game.flags[invs[i]->flag];
+        flag_t *flag = game.flags[invs[i]->get_flag_index()];
         flag->set_search_dir((dir_t)i);
         search.add_source(flag);
       }
@@ -740,16 +656,16 @@ update_inventories() {
           resource_type_t res = (resource_type_t)arr[0];
           if (res == RESOURCE_GROUP_FOOD) {
             /* Select the food resource with highest amount available */
-            if (src_inv->resources[RESOURCE_MEAT] >
-                src_inv->resources[RESOURCE_BREAD]) {
-              if (src_inv->resources[RESOURCE_MEAT] >
-                  src_inv->resources[RESOURCE_FISH]) {
+            if (src_inv->get_count_of(RESOURCE_MEAT) >
+                src_inv->get_count_of(RESOURCE_BREAD)) {
+              if (src_inv->get_count_of(RESOURCE_MEAT) >
+                  src_inv->get_count_of(RESOURCE_FISH)) {
                 res = RESOURCE_MEAT;
               } else {
                 res = RESOURCE_FISH;
               }
-            } else if (src_inv->resources[RESOURCE_BREAD] >
-                       src_inv->resources[RESOURCE_FISH]) {
+            } else if (src_inv->get_count_of(RESOURCE_BREAD) >
+                       src_inv->get_count_of(RESOURCE_FISH)) {
               res = RESOURCE_BREAD;
             } else {
               res = RESOURCE_FISH;
@@ -757,7 +673,7 @@ update_inventories() {
           }
 
           /* Put resource in out queue */
-          inventory_add_to_queue(src_inv, res, dest_bld->flag);
+          src_inv->add_to_queue(res, dest_bld->flag);
         }
       }
     }
@@ -795,7 +711,7 @@ send_serf_to_flag_search_cb(flag_t *flag, send_serf_to_flag_data_t *data) {
     if (type < 0) {
       int knight_type = -1;
       for (int i = 4; i >= -type-1; i--) {
-        if (inv->serfs[SERF_KNIGHT_0+i] != 0) {
+        if (inv->have_serf((serf_type_t)(SERF_KNIGHT_0+i))) {
           knight_type = i;
           break;
         }
@@ -803,8 +719,8 @@ send_serf_to_flag_search_cb(flag_t *flag, send_serf_to_flag_data_t *data) {
 
       if (knight_type >= 0) {
         /* Knight of appropriate type was found. */
-        serf_t *serf = game_get_serf(inv->serfs[SERF_KNIGHT_0+knight_type]);
-        inv->serfs[SERF_KNIGHT_0+knight_type] = 0;
+        serf_t *serf =
+                   inv->call_out_serf((serf_type_t)(SERF_KNIGHT_0+knight_type));
 
         data->building->stock[0].requested += 1;
         data->building->serf &= ~BIT(7);
@@ -813,36 +729,29 @@ send_serf_to_flag_search_cb(flag_t *flag, send_serf_to_flag_data_t *data) {
         serf->state = SERF_STATE_READY_TO_LEAVE_INVENTORY;
         serf->s.ready_to_leave_inventory.mode = -1;
         serf->s.ready_to_leave_inventory.dest = data->building->flag;
-        serf->s.ready_to_leave_inventory.inv_index = INVENTORY_INDEX(inv);
-
-        inv->serfs_out += 1;
+        serf->s.ready_to_leave_inventory.inv_index = inv->get_index();
 
         return 1;
       } else if (type == -1) {
         /* See if a knight can be created here. */
-        if (/*game.field_342 == 0*/1 &&
-            inv->serfs[SERF_GENERIC] != 0 &&
-            inv->resources[RESOURCE_SWORD] > 0 &&
-            inv->resources[RESOURCE_SHIELD] > 0) {
+        if (inv->have_serf(SERF_GENERIC) &&
+            inv->get_count_of(RESOURCE_SWORD) > 0 &&
+            inv->get_count_of(RESOURCE_SHIELD) > 0) {
           data->inventory = inv;
-          /* player_t *player = globals->player[SERF_PLAYER(serf)]; */
-          /* game.field_340 = player->cont_search_after_non_optimal_find; */
         }
       }
     } else {
-      if (inv->serfs[type] != 0) {
-        if (type != SERF_GENERIC || inv->generic_count > 4) {
-          serf_t *serf = game_get_serf(inv->serfs[type]);
+      if (inv->have_serf((serf_type_t)type)) {
+        if (type != SERF_GENERIC || inv->free_serf_count() > 4) {
+          serf_t *serf = inv->call_out_serf((serf_type_t)type);
 
           serf_log_state_change(serf, SERF_STATE_READY_TO_LEAVE_INVENTORY);
           serf->state = SERF_STATE_READY_TO_LEAVE_INVENTORY;
-          serf->s.ready_to_leave_inventory.inv_index = INVENTORY_INDEX(inv);
+          serf->s.ready_to_leave_inventory.inv_index = inv->get_index();
           serf->s.ready_to_leave_inventory.dest = data->dest_index;
 
-          inv->serfs[type] = 0;
           if (type == SERF_GENERIC) {
             serf->s.ready_to_leave_inventory.mode = -2;
-            inv->generic_count -= 1;
           } else if (type == SERF_GEOLOGIST) {
             serf->s.ready_to_leave_inventory.mode = 6;
           } else {
@@ -851,14 +760,13 @@ send_serf_to_flag_search_cb(flag_t *flag, send_serf_to_flag_data_t *data) {
             serf->s.ready_to_leave_inventory.mode = -1;
           }
 
-          inv->serfs_out += 1;
           return 1;
         }
       } else {
         if (data->inventory == NULL &&
-            inv->serfs[SERF_GENERIC] != 0 &&
-            (data->res1 == -1 || inv->resources[data->res1] > 0) &&
-            (data->res2 == -1 || inv->resources[data->res2] > 0)) {
+            inv->have_serf(SERF_GENERIC) &&
+            (data->res1 == -1 || inv->get_count_of(data->res1) > 0) &&
+            (data->res2 == -1 || inv->get_count_of(data->res2) > 0)) {
           data->inventory = inv;
           /* player_t *player = globals->player[SERF_PLAYER(serf)]; */
           /* game.field_340 = player->cont_search_after_non_optimal_find; */
@@ -902,10 +810,7 @@ send_serf_to_flag(flag_t *dest, int type, resource_type_t res1,
     return 0;
   } else if (data.inventory != NULL) {
     inventory_t *inventory = data.inventory;
-    serf_t *serf = game_get_serf(inventory->serfs[SERF_GENERIC]);
-
-    inventory->serfs[SERF_GENERIC] = 0;
-    inventory->generic_count -= 1;
+    serf_t *serf = inventory->call_out_serf(SERF_GENERIC);
 
     if (type < 0) {
       /* Knight */
@@ -916,16 +821,15 @@ send_serf_to_flag(flag_t *dest, int type, resource_type_t res1,
       serf->state = SERF_STATE_READY_TO_LEAVE_INVENTORY;
       serf->s.ready_to_leave_inventory.mode = -1;
       serf->s.ready_to_leave_inventory.dest = building->flag;
-      serf->s.ready_to_leave_inventory.inv_index = INVENTORY_INDEX(inventory);
+      serf->s.ready_to_leave_inventory.inv_index = inventory->get_index();
       serf_set_type(serf, SERF_KNIGHT_0);
 
-      inventory->resources[RESOURCE_SWORD] -= 1;
-      inventory->resources[RESOURCE_SHIELD] -= 1;
-      inventory->serfs_out += 1;
+      inventory->pop_resource(RESOURCE_SWORD);
+      inventory->pop_resource(RESOURCE_SHIELD);
     } else {
       serf_log_state_change(serf, SERF_STATE_READY_TO_LEAVE_INVENTORY);
       serf->state = SERF_STATE_READY_TO_LEAVE_INVENTORY;
-      serf->s.ready_to_leave_inventory.inv_index = INVENTORY_INDEX(inventory);
+      serf->s.ready_to_leave_inventory.inv_index = inventory->get_index();
 
       if (type == SERF_GEOLOGIST) {
         serf->s.ready_to_leave_inventory.mode = 6;
@@ -937,10 +841,8 @@ send_serf_to_flag(flag_t *dest, int type, resource_type_t res1,
       }
       serf_set_type(serf, (serf_type_t)type);
 
-      if (res1 != -1) inventory->resources[res1] -= 1;
-      if (res2 != -1) inventory->resources[res2] -= 1;
-
-      inventory->serfs_out += 1;
+      if (res1 != RESOURCE_NONE) inventory->pop_resource(res1);
+      if (res2 != RESOURCE_NONE) inventory->pop_resource(res2);
     }
 
     return 0;
@@ -975,7 +877,7 @@ update_unfinished_building(building_t *building) {
       !BUILDING_SERF_REQUESTED(building)) {
     building->progress = 1;
     int r = send_serf_to_building(building, SERF_BUILDER, RESOURCE_HAMMER,
-                                  (resource_type_t)-1);
+                                  RESOURCE_NONE);
     if (r < 0) building->serf |= BIT(2);
   }
 
@@ -1063,9 +965,8 @@ update_building_castle(building_t *building) {
       inventory_t *inventory = building->u.inventory;
       int type = SERF_TYPE(best_knight);
       for (int t = SERF_KNIGHT_0; t <= SERF_KNIGHT_4; t++) {
-        if (type > t &&
-            inventory->serfs[t] == SERF_INDEX(best_knight)) {
-          inventory->serfs[t] = 0;
+        if (type > t) {
+          inventory->call_internal(best_knight);
         }
       }
 
@@ -1078,7 +979,7 @@ update_building_castle(building_t *building) {
     inventory_t *inventory = building->u.inventory;
     int type = -1;
     for (int t = SERF_KNIGHT_4; t >= SERF_KNIGHT_0; t--) {
-      if (inventory->serfs[t] != 0) {
+      if (inventory->have_serf((serf_type_t)t)) {
         type = t;
         break;
       }
@@ -1086,21 +987,15 @@ update_building_castle(building_t *building) {
 
     if (type < 0) {
       /* None found */
-      if (inventory->serfs[SERF_GENERIC] != 0 &&
-          inventory->resources[RESOURCE_SWORD] != 0 &&
-          inventory->resources[RESOURCE_SHIELD] != 0) {
-        inventory->generic_count -= 1;
-        inventory->resources[RESOURCE_SWORD] -= 1;
-        inventory->resources[RESOURCE_SHIELD] -= 1;
+      if (inventory->have_serf(SERF_GENERIC) &&
+          inventory->get_count_of(RESOURCE_SWORD) != 0 &&
+          inventory->get_count_of(RESOURCE_SHIELD) != 0) {
+        serf_t *serf = inventory->specialize_free_serf(SERF_KNIGHT_0);
+        inventory->call_internal(serf);
 
-        int serf_index = inventory->serfs[SERF_GENERIC];
-        serf_t *serf = game_get_serf(serf_index);
-        inventory->serfs[SERF_GENERIC] = 0;
-
-        serf_set_type(serf, SERF_KNIGHT_0);
         serf->state = SERF_STATE_DEFENDING_CASTLE;
         serf->s.defending.next_knight = building->serf_index;
-        building->serf_index = serf_index;
+        building->serf_index = SERF_INDEX(serf);
         player->castle_knights += 1;
       } else {
         player->send_knight_delay -= 1;
@@ -1112,15 +1007,13 @@ update_building_castle(building_t *building) {
       }
     } else {
       /* Prepend to knights list */
-      int serf_index = inventory->serfs[type];
-      serf_t *serf = game_get_serf(serf_index);
-      inventory->serfs[type] = 0; /* Clear inventory pointer */
+      serf_t *serf = inventory->call_internal((serf_type_t)type);
 
       serf_log_state_change(serf, SERF_STATE_DEFENDING_CASTLE);
       serf->state = SERF_STATE_DEFENDING_CASTLE;
       serf->s.defending.next_knight = building->serf_index;
       serf->counter = 6000;
-      building->serf_index = serf_index;
+      building->serf_index = SERF_INDEX(serf);
       player->castle_knights += 1;
     }
   } else {
@@ -1132,14 +1025,14 @@ update_building_castle(building_t *building) {
 
     serf_log_state_change(serf, SERF_STATE_IDLE_IN_STOCK);
     serf->state = SERF_STATE_IDLE_IN_STOCK;
-    serf->s.idle_in_stock.inv_index = INVENTORY_INDEX(building->u.inventory);
+    serf->s.idle_in_stock.inv_index = building->u.inventory->get_index();
   }
 
   inventory_t *inventory = building->u.inventory;
 
   if (BUILDING_HAS_SERF(building) &&
-      (inventory->res_dir & 0xa) == 0 && /* Not serf or res OUT mode */
-      inventory->generic_count == 0) {
+      !inventory->have_any_out_mode() && /* Not serf or res OUT mode */
+      inventory->free_serf_count() == 0) {
     player->send_generic_delay -= 1;
     if (player->send_generic_delay < 0) {
       send_serf_to_building(building, SERF_GENERIC, (resource_type_t)-1,
@@ -1402,12 +1295,12 @@ handle_building_update(building_t *building) {
     case BUILDING_STOCK:
       if (!BUILDING_IS_ACTIVE(building)) {
         inventory_t *inv;
-        int r = game_alloc_inventory(&inv, NULL);
+        int r = game.inventories.allocate(&inv, NULL);
         if (r < 0) return;
 
-        inv->player_num = BUILDING_PLAYER(building);
-        inv->building = BUILDING_INDEX(building);
-        inv->flag = building->flag;
+        inv->set_player_num(BUILDING_PLAYER(building));
+        inv->set_building_index(BUILDING_INDEX(building));
+        inv->set_flag_index(building->flag);
 
         building->u.inventory = inv;
         building->stock[0].requested = 0xff;
@@ -1429,8 +1322,8 @@ handle_building_update(building_t *building) {
         player_t *player = game.player[BUILDING_PLAYER(building)];
         inventory_t *inv = building->u.inventory;
         if (BUILDING_HAS_SERF(building) &&
-            (inv->res_dir & 0xa) == 0 && /* Not serf or res OUT mode */
-            inv->generic_count == 0) {
+            !inv->have_any_out_mode() == 0 && /* Not serf or res OUT mode */
+            inv->free_serf_count() == 0) {
           player->send_generic_delay -= 1;
           if (player->send_generic_delay < 0) {
             send_serf_to_building(building, SERF_GENERIC, (resource_type_t)-1,
@@ -2293,22 +2186,10 @@ flag_reset_transport(flag_t *flag) {
   }
 
   /* Inventories. */
-  for (unsigned int i = 0; i < game.max_inventory_index; i++) {
-    if (INVENTORY_ALLOCATED(i)) {
-      inventory_t *inventory = game_get_inventory(i);
-      if (inventory->out_queue[1].type != RESOURCE_NONE &&
-          inventory->out_queue[1].dest == flag->get_index()) {
-        inventory->resources[inventory->out_queue[1].type] += 1;
-        inventory->out_queue[1].type = RESOURCE_NONE;
-      }
-      if (inventory->out_queue[0].type != RESOURCE_NONE &&
-          inventory->out_queue[0].dest == flag->get_index()) {
-        inventory->resources[inventory->out_queue[0].type] += 1;
-        inventory->out_queue[0].type = inventory->out_queue[1].type;
-        inventory->out_queue[0].dest = inventory->out_queue[1].dest;
-        inventory->out_queue[1].type = RESOURCE_NONE;
-      }
-    }
+  for (inventories_t::iterator i = game.inventories.begin();
+       i != game.inventories.end(); ++i) {
+    inventory_t *inventory = *i;
+    inventory->reset_queue_for_dest(flag);
   }
 }
 
@@ -3030,17 +2911,14 @@ game_build_building(map_pos_t pos, building_type_t type, player_t *player) {
 
 /* Create the initial serfs that occupies the castle. */
 static void
-create_initial_castle_serfs(player_t *player) {
+create_initial_castle_serfs(player_t *player, building_t *castle) {
   player->build |= BIT(2);
 
   /* Spawn serf 4 */
-  serf_t *serf;
-  inventory_t *inventory;
-  int r = spawn_serf(player, &serf, &inventory, 0);
-  if (r < 0) return;
-
-  inventory->generic_count -= 1;
-  serf_set_type(serf, SERF_TRANSPORTER_INVENTORY);
+  inventory_t *inventory = castle->u.inventory;
+  serf_t *serf = inventory->spawn_serf_generic();
+  if (serf == NULL) return;
+  inventory->specialize_serf(serf, SERF_TRANSPORTER_INVENTORY);
 
   serf_log_state_change(serf, SERF_STATE_BUILDING_CASTLE);
   serf->state = SERF_STATE_BUILDING_CASTLE;
@@ -3057,100 +2935,58 @@ create_initial_castle_serfs(player_t *player) {
 
   /* Spawn three knights */
   for (int i = 0; i < 3; i++) {
-    r = spawn_serf(player, &serf, &inventory, 0);
-    if (r < 0) return;
-
-    serf_set_type(serf, SERF_KNIGHT_0);
-
-    inventory->resources[RESOURCE_SWORD] -= 1;
-    inventory->resources[RESOURCE_SHIELD] -= 1;
-    inventory->generic_count -= 1;
+    serf = inventory->spawn_serf_generic();
+    if (serf == NULL) return;
+    inventory->promote_serf_to_knight(serf);
   }
 
   /* Spawn toolmaker */
-  r = spawn_serf(player, &serf, &inventory, 0);
-  if (r < 0) return;
-
-  serf_set_type(serf, SERF_TOOLMAKER);
-
-  inventory->resources[RESOURCE_HAMMER] -= 1;
-  inventory->resources[RESOURCE_SAW] -= 1;
-  inventory->generic_count -= 1;
+  serf = inventory->spawn_serf_generic();
+  if (serf == NULL) return;
+  inventory->specialize_serf(serf, SERF_TOOLMAKER);
 
   /* Spawn timberman */
-  r = spawn_serf(player, &serf, &inventory, 0);
-  if (r < 0) return;
-
-  serf_set_type(serf, SERF_LUMBERJACK);
-
-  inventory->resources[RESOURCE_AXE] -= 1;
-  inventory->generic_count -= 1;
+  serf = inventory->spawn_serf_generic();
+  if (serf == NULL) return;
+  inventory->specialize_serf(serf, SERF_LUMBERJACK);
 
   /* Spawn sawmiller */
-  r = spawn_serf(player, &serf, &inventory, 0);
-  if (r < 0) return;
-
-  serf_set_type(serf, SERF_SAWMILLER);
-
-  inventory->resources[RESOURCE_SAW] -= 1;
-  inventory->generic_count -= 1;
+  serf = inventory->spawn_serf_generic();
+  if (serf == NULL) return;
+  inventory->specialize_serf(serf, SERF_SAWMILLER);
 
   /* Spawn stonecutter */
-  r = spawn_serf(player, &serf, &inventory, 0);
-  if (r < 0) return;
-
-  serf_set_type(serf, SERF_STONECUTTER);
-
-  inventory->resources[RESOURCE_PICK] -= 1;
-  inventory->generic_count -= 1;
+  serf = inventory->spawn_serf_generic();
+  if (serf == NULL) return;
+  inventory->specialize_serf(serf, SERF_STONECUTTER);
 
   /* Spawn digger */
-  r = spawn_serf(player, &serf, &inventory, 0);
-  if (r < 0) return;
-
-  serf_set_type(serf, SERF_DIGGER);
-
-  inventory->resources[RESOURCE_SHOVEL] -= 1;
-  inventory->generic_count -= 1;
+  serf = inventory->spawn_serf_generic();
+  if (serf == NULL) return;
+  inventory->specialize_serf(serf, SERF_DIGGER);
 
   /* Spawn builder */
-  r = spawn_serf(player, &serf, &inventory, 0);
-  if (r < 0) return;
-
-  serf_set_type(serf, SERF_BUILDER);
-
-  inventory->resources[RESOURCE_HAMMER] -= 1;
-  inventory->generic_count -= 1;
+  serf = inventory->spawn_serf_generic();
+  if (serf == NULL) return;
+  inventory->specialize_serf(serf, SERF_BUILDER);
 
   /* Spawn fisherman */
-  r = spawn_serf(player, &serf, &inventory, 0);
-  if (r < 0) return;
-
-  serf_set_type(serf, SERF_FISHER);
-
-  inventory->resources[RESOURCE_ROD] -= 1;
-  inventory->generic_count -= 1;
+  serf = inventory->spawn_serf_generic();
+  if (serf == NULL) return;
+  inventory->specialize_serf(serf, SERF_FISHER);
 
   /* Spawn two geologists */
   for (int i = 0; i < 2; i++) {
-    r = spawn_serf(player, &serf, &inventory, 0);
-    if (r < 0) return;
-
-    serf_set_type(serf, SERF_GEOLOGIST);
-
-    inventory->resources[RESOURCE_HAMMER] -= 1;
-    inventory->generic_count -= 1;
+    serf = inventory->spawn_serf_generic();
+    if (serf == NULL) return;
+    inventory->specialize_serf(serf, SERF_GEOLOGIST);
   }
 
   /* Spawn two miners */
   for (int i = 0; i < 2; i++) {
-    r = spawn_serf(player, &serf, &inventory, 0);
-    if (r < 0) return;
-
-    serf_set_type(serf, SERF_MINER);
-
-    inventory->resources[RESOURCE_PICK] -= 1;
-    inventory->generic_count -= 1;
+    serf = inventory->spawn_serf_generic();
+    if (serf == NULL) return;
+    inventory->specialize_serf(serf, SERF_MINER);
   }
 }
 
@@ -3160,15 +2996,14 @@ game_build_castle(map_pos_t pos, player_t *player) {
   if (!game_can_build_castle(pos, player)) return -1;
 
   inventory_t *inventory;
-  int inv_index;
-  int r = game_alloc_inventory(&inventory, &inv_index);
-  if (r < 0) return -1;
+  unsigned int inv_index;
+  if (!game.inventories.allocate(&inventory, &inv_index)) return -1;
 
   building_t *castle;
   int bld_index;
-  r = game_alloc_building(&castle, &bld_index);
+  int r = game_alloc_building(&castle, &bld_index);
   if (r < 0) {
-    game_free_inventory(inv_index);
+    game.inventories.erase(inv_index);
     return -1;
   }
 
@@ -3176,7 +3011,7 @@ game_build_castle(map_pos_t pos, player_t *player) {
   unsigned int flg_index;
   if (!game.flags.allocate(&flag, &flg_index)) {
     game_free_building(bld_index);
-    game_free_inventory(inv_index);
+    game.inventories.erase(inv_index);
     return -1;
   }
 
@@ -3188,64 +3023,13 @@ game_build_castle(map_pos_t pos, player_t *player) {
   castle->serf |= BIT(4) | BIT(6);
   castle->u.inventory = inventory;
   player->castle_inventory = inv_index;
-  inventory->building = bld_index;
-  inventory->flag = flg_index;
-  inventory->player_num = player->player_num;
+  inventory->set_building_index(bld_index);
+  inventory->set_flag_index(flg_index);
+  inventory->set_player_num(player->player_num);
+  inventory->apply_supplies_preset(player->initial_supplies);
 
-  /* Create initial resources */
-  const int supplies_template_0[] = { 0, 0, 0, 0, 0, 0, 0, 7, 0,
-                                      2, 0, 0, 0, 0, 0, 1, 6, 1,
-                                      0, 0, 1, 2, 3, 0, 10, 10 };
-  const int supplies_template_1[] = { 2, 1, 1, 3, 2, 1, 0, 25, 1,
-                                      8, 4, 3, 8, 2, 1, 3, 12, 2,
-                                      1, 1, 2, 3, 4, 1, 30, 30 };
-  const int supplies_template_2[] = { 3, 2, 2, 10, 3, 1, 0, 40, 2,
-                                     20, 12, 8, 20, 4, 2, 5, 20, 3,
-                                      1, 2, 3, 4, 6, 2, 60, 60 };
-  const int supplies_template_3[] = { 8, 4, 6, 20, 7, 5, 3, 80, 5,
-                                     40, 20, 40, 50, 8, 4, 10, 30,
-                                      5, 2, 4, 6, 6, 12, 4, 100, 100 };
-  const int supplies_template_4[] = { 30, 10, 30, 50, 10, 30, 10, 200,
-                                      10, 100, 30, 150, 100, 10, 5, 20,
-                                      50, 10, 5, 10, 20, 20, 50, 10, 200, 200 };
-
-  int supplies = player->initial_supplies;
-  const int *template_1 = NULL;
-  const int *template_2 = NULL;
-  if (supplies < 10) {
-    template_1 = supplies_template_0;
-    template_2 = supplies_template_1;
-  } else if (supplies < 20) {
-    template_1 = supplies_template_1;
-    template_2 = supplies_template_2;
-    supplies -= 10;
-  } else if (supplies < 30) {
-    template_1 = supplies_template_2;
-    template_2 = supplies_template_3;
-    supplies -= 20;
-  } else if (supplies < 40) {
-    template_1 = supplies_template_3;
-    template_2 = supplies_template_4;
-    supplies -= 30;
-  } else {
-    template_1 = supplies_template_4;
-    template_2 = supplies_template_4;
-    supplies -= 40;
-  }
-
-  for (int i = 0; i < 26; i++) {
-    int t1 = template_1[i];
-    int n = (template_2[i] - template_1[i]) * (supplies * 6554);
-    if (n >= 0x8000) t1 += 1;
-    inventory->resources[i] = t1 + (n >> 16);
-  }
-
-  if (0/*game.game_type == GAME_TYPE_TUTORIAL*/) {
-    /* TODO ... */
-  }
-
-  game.map_gold_deposit += inventory->resources[RESOURCE_GOLDBAR];
-  game.map_gold_deposit += inventory->resources[RESOURCE_GOLDORE];
+  game.map_gold_deposit += inventory->get_count_of(RESOURCE_GOLDBAR);
+  game.map_gold_deposit += inventory->get_count_of(RESOURCE_GOLDORE);
 
   castle->pos = pos;
   flag->set_position(MAP_MOVE_DOWN_RIGHT(pos));
@@ -3279,7 +3063,7 @@ game_build_castle(map_pos_t pos, player_t *player) {
   }
 
   game_update_land_ownership(pos);
-  create_initial_castle_serfs(player);
+  create_initial_castle_serfs(player, castle);
 
   player->last_tick = game.tick;
 
@@ -3459,19 +3243,12 @@ demolish_building(map_pos_t pos) {
     if (BUILDING_IS_ACTIVE(building)) {
       inventory_t *inventory = building->u.inventory;
 
-      for (int i = 0;
-           i < 2 && inventory->out_queue[i].type != RESOURCE_NONE; i++) {
-        resource_type_t res = inventory->out_queue[i].type;
-        int dest = inventory->out_queue[i].dest;
+      inventory->lose_queue();
 
-        game_cancel_transported_resource(res, dest);
-        game_lose_resource(res);
-      }
+      game.map_gold_deposit -= inventory->get_count_of(RESOURCE_GOLDBAR);
+      game.map_gold_deposit -= inventory->get_count_of(RESOURCE_GOLDORE);
 
-      game.map_gold_deposit -= inventory->resources[RESOURCE_GOLDBAR];
-      game.map_gold_deposit -= inventory->resources[RESOURCE_GOLDORE];
-
-      game_free_inventory(INVENTORY_INDEX(inventory));
+      game.inventories.erase(inventory->get_index());
     }
 
     /* Let some serfs escape while the building is burning. */
@@ -3964,14 +3741,14 @@ game_occupy_enemy_building(building_t *building, int player_num) {
 /* mode: 0: IN, 1: STOP, 2: OUT */
 void
 game_set_inventory_resource_mode(inventory_t *inventory, int mode) {
-  flag_t *flag = game.flags[inventory->flag];
+  flag_t *flag = game.flags[inventory->get_flag_index()];
 
   if (mode == 0) {
-    inventory->res_dir = (inventory->res_dir & 0xfc) | 0;
+    inventory->set_res_mode(mode_in);
   } else if (mode == 1) {
-    inventory->res_dir = (inventory->res_dir & 0xfc) | 1;
+    inventory->set_res_mode(mode_stop);
   } else {
-    inventory->res_dir = (inventory->res_dir & 0xfc) | 3;
+    inventory->set_res_mode(mode_out);
   }
 
   if (mode > 0) {
@@ -4022,14 +3799,14 @@ game_set_inventory_resource_mode(inventory_t *inventory, int mode) {
 /* mode: 0: IN, 1: STOP, 2: OUT */
 void
 game_set_inventory_serf_mode(inventory_t *inventory, int mode) {
-  flag_t *flag = game.flags[inventory->flag];
+  flag_t *flag = game.flags[inventory->get_flag_index()];
 
   if (mode == 0) {
-    inventory->res_dir = (inventory->res_dir & 0xf3) | (0 << 2);
+    inventory->set_serf_mode(mode_in);
   } else if (mode == 1) {
-    inventory->res_dir = (inventory->res_dir & 0xf3) | (1 << 2);
+    inventory->set_serf_mode(mode_stop);
   } else {
-    inventory->res_dir = (inventory->res_dir & 0xf3) | (3 << 2);
+    inventory->set_serf_mode(mode_out);
   }
 
   if (mode > 0) {
@@ -4315,7 +4092,6 @@ game_init_map() {
 
   game.serf_limit = 500 * game.map_regions;
   game.building_limit = 25 * game.map_regions;
-  game.inventory_limit = 4 * game.map_regions;
 
   /* Reserve half the serfs equally among players,
      and the rest according to the amount of land controlled. */
@@ -4357,20 +4133,8 @@ game_allocate_objects() {
        reinterpret_cast<uint8_t*>(calloc(((game.building_limit-1) / 8) + 1, 1));
   if (game.building_bitmap == NULL) abort();
 
-  /* Inventories */
-  if (game.inventories != NULL) free(game.inventories);
-  game.inventories = reinterpret_cast<inventory_t*>(malloc(game.inventory_limit*
-                                                          sizeof(inventory_t)));
-  if (game.inventories == NULL) abort();
-
-  if (game.inventory_bitmap != NULL) free(game.inventory_bitmap);
-  game.inventory_bitmap =
-      reinterpret_cast<uint8_t*>(calloc(((game.inventory_limit-1) / 8) + 1, 1));
-  if (game.inventory_bitmap == NULL) abort();
-
   game.max_building_index = 0;
   game.max_serf_index = 0;
-  game.max_inventory_index = 0;
 
   /* Create NULL-serf */
   serf_t *serf;
