@@ -118,8 +118,8 @@ minimap_t::draw_minimap_buildings() {
       if (obj > MAP_OBJ_FLAG && obj <= MAP_OBJ_CASTLE) {
         int color = game.player[MAP_OWNER(pos)]->color;
         if (advanced > 0) {
-          building_t *bld = game_get_building(MAP_OBJ_INDEX(pos));
-          if (BUILDING_TYPE(bld) == building_remap[advanced]) {
+          building_t *bld = game.buildings[MAP_OBJ_INDEX(pos)];
+          if (bld->get_type() == building_remap[advanced]) {
             draw_minimap_point(col, row, color, scale);
           }
         } else {

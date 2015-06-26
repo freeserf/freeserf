@@ -642,32 +642,32 @@ void
 viewport_t::draw_building_unfinished(building_t *building,
                                      building_type_t bld_type,
                                      int x, int y) {
-  if (building->progress == 0) { /* Draw cross */
+  if (building->get_progress() == 0) { /* Draw cross */
     draw_shadow_and_building_sprite(x, y, 0x90);
   } else {
     /* Stone waiting */
-    int stone = building->stock[1].available;
+    int stone = building->waiting_stone();
     for (int i = 0; i < stone; i++) {
       draw_game_sprite(x+10 - i*3, y-8 + i, 1 + RESOURCE_STONE);
     }
 
     /* Planks waiting */
-    int planks = building->stock[0].available;
+    int planks = building->waiting_planks();
     for (int i = 0; i < planks; i++) {
       draw_game_sprite(x+12 - i*3, y-6 + i, 1 + RESOURCE_PLANK);
     }
 
-    if (BIT_TEST(building->progress, 15)) { /* Frame finished */
+    if (BIT_TEST(building->get_progress(), 15)) { /* Frame finished */
       draw_shadow_and_building_sprite(x, y,
                                       map_building_frame_sprite[bld_type]);
       draw_shadow_and_building_unfinished(x, y, map_building_sprite[bld_type],
-                                          2*(building->progress & 0x7fff));
+                                         2*(building->get_progress() & 0x7fff));
     } else {
       draw_shadow_and_building_sprite(x, y, 0x91); /* corner stone */
-      if (building->progress > 1) {
+      if (building->get_progress() > 1) {
         draw_shadow_and_building_unfinished(x, y,
                                             map_building_frame_sprite[bld_type],
-                                            2*building->progress);
+                                            2*building->get_progress());
       }
     }
   }
@@ -702,9 +702,9 @@ viewport_t::draw_unharmed_building(building_t *building, int x, int y) {
     0xa2, 0, 0xa2, 0
   };
 
-  if (BUILDING_IS_DONE(building)) {
-    building_type_t type = building->type;
-    switch (building->type) {
+  if (building->is_done()) {
+    building_type_t type = building->get_type();
+    switch (type) {
     case BUILDING_FISHER:
     case BUILDING_LUMBERJACK:
     case BUILDING_STONECUTTER:
@@ -719,22 +719,24 @@ viewport_t::draw_unharmed_building(building_t *building, int x, int y) {
       break;
     case BUILDING_BOATBUILDER:
       draw_shadow_and_building_sprite(x, y, map_building_sprite[type]);
-      if (building->stock[1].available > 0) {
+      if (building->get_res_count_in_stock(1) > 0) {
         /* TODO x might not be correct */
-        draw_game_sprite(x+3, y + 13, 174 + building->stock[1].available);
+        draw_game_sprite(x+3, y + 13,
+                         174 + building->get_res_count_in_stock(1));
       }
       break;
     case BUILDING_STONEMINE:
     case BUILDING_COALMINE:
     case BUILDING_IRONMINE:
     case BUILDING_GOLDMINE:
-      if (BUILDING_IS_ACTIVE(building)) { /* Draw elevator up */
+      if (building->is_active()) { /* Draw elevator up */
         draw_game_sprite(x-6, y-39, 152);
       }
-      if (BUILDING_PLAYING_SFX(building)) { /* Draw elevator down */
+      if (building->playing_sfx()) { /* Draw elevator down */
         draw_game_sprite(x-6, y-39, 153);
+        map_pos_t pos = building->get_position();
         if ((((game.tick +
-               reinterpret_cast<uint8_t*>(&building->pos)[1]) >> 3) & 7) == 0
+               reinterpret_cast<uint8_t*>(&pos)[1]) >> 3) & 7) == 0
             && random_int(random) < 40000) {
           play_sound(SFX_ELEVATOR);
         }
@@ -743,29 +745,32 @@ viewport_t::draw_unharmed_building(building_t *building, int x, int y) {
       break;
     case BUILDING_HUT:
       draw_shadow_and_building_sprite(x, y, map_building_sprite[type]);
-      if (building->serf_index != 0) {
-        draw_game_sprite(x-14, y+2 - 2*building->stock[0].available,
-             182 + ((game.tick >> 3) & 3) + 4*BUILDING_STATE(building));
+      if (building->has_main_serf()) {
+        draw_game_sprite(x-14, y+2 - 2*building->get_knight_count(),
+             182 + ((game.tick >> 3) & 3) + 4*building->get_state());
       }
       break;
     case BUILDING_PIGFARM:
       draw_shadow_and_building_sprite(x, y, map_building_sprite[type]);
-      if (building->stock[1].available > 0) {
-        if ((random_int(random) & 0x7f) < building->stock[1].available) {
+      if (building->get_res_count_in_stock(1) > 0) {
+        if ((random_int(random) & 0x7f) <
+            static_cast<int>(building->get_res_count_in_stock(1))) {
           play_sound(SFX_PIG_OINK);
         }
 
-        if (building->stock[1].available >= 6) {
+        int pigs_count = building->get_res_count_in_stock(1);
+
+        if (pigs_count >= 6) {
           int i = (140 + (game.tick >> 3)) & 0xfe;
           draw_game_sprite(x + pigfarm_anim[i+1] - 2, y+6, pigfarm_anim[i]);
         }
 
-        if (building->stock[1].available >= 5) {
+        if (pigs_count >= 5) {
           int i = (280 + (game.tick >> 3)) & 0xfe;
           draw_game_sprite(x + pigfarm_anim[i+1] + 8, y+8, pigfarm_anim[i]);
         }
 
-        if (building->stock[1].available >= 3) {
+        if (pigs_count >= 3) {
           int i = (420 + (game.tick >> 3)) & 0xfe;
           draw_game_sprite(x + pigfarm_anim[i+1] - 11, y+8, pigfarm_anim[i]);
         }
@@ -773,33 +778,33 @@ viewport_t::draw_unharmed_building(building_t *building, int x, int y) {
         int i = (40 + (game.tick >> 3)) & 0xfe;
         draw_game_sprite(x + pigfarm_anim[i+1] + 2, y+11, pigfarm_anim[i]);
 
-        if (building->stock[1].available >= 7) {
+        if (pigs_count >= 7) {
           int i = (180 + (game.tick >> 3)) & 0xfe;
           draw_game_sprite(x + pigfarm_anim[i+1] - 8, y+13, pigfarm_anim[i]);
         }
 
-        if (building->stock[1].available >= 8) {
+        if (pigs_count >= 8) {
           int i = (320 + (game.tick >> 3)) & 0xfe;
           draw_game_sprite(x + pigfarm_anim[i+1] + 13, y+14, pigfarm_anim[i]);
         }
 
-        if (building->stock[1].available >= 2) {
+        if (pigs_count >= 2) {
           int i = (460 + (game.tick >> 3)) & 0xfe;
           draw_game_sprite(x + pigfarm_anim[i+1], y+17, pigfarm_anim[i]);
         }
 
-        if (building->stock[1].available >= 4) {
+        if (pigs_count >= 4) {
           int i = (90 + (game.tick >> 3)) & 0xfe;
           draw_game_sprite(x + pigfarm_anim[i+1] - 11, y+19, pigfarm_anim[i]);
         }
       }
       break;
     case BUILDING_MILL:
-      if (BUILDING_IS_ACTIVE(building)) {
+      if (building->is_active()) {
         if ((game.tick >> 4) & 3) {
-          building->serf &= ~BIT(3);
-        } else if (!BUILDING_PLAYING_SFX(building)) {
-          building->serf |= BIT(3);
+          building->stop_playing_sfx();
+        } else if (!building->playing_sfx()) {
+          building->start_playing_sfx();
           play_sound(SFX_MILL_GRINDING);
         }
         draw_shadow_and_building_sprite(x, y, map_building_sprite[type] +
@@ -810,19 +815,19 @@ viewport_t::draw_unharmed_building(building_t *building, int x, int y) {
       break;
     case BUILDING_BAKER:
       draw_shadow_and_building_sprite(x, y, map_building_sprite[type]);
-      if (BUILDING_IS_ACTIVE(building)) {
+      if (building->is_active()) {
         draw_game_sprite(x + 5, y-21, 154 + ((game.tick >> 3) & 7));
       }
       break;
     case BUILDING_STEELSMELTER:
       draw_shadow_and_building_sprite(x, y, map_building_sprite[type]);
-      if (BUILDING_IS_ACTIVE(building)) {
+      if (building->is_active()) {
         int i = (game.tick >> 3) & 7;
-        if (i == 0 || (i == 7 && !BUILDING_PLAYING_SFX(building))) {
-          building->serf |= BIT(3);
+        if (i == 0 || (i == 7 && !building->playing_sfx())) {
+          building->start_playing_sfx();
           play_sound(SFX_GOLD_BOILS);
         } else if (i != 7) {
-          building->serf &= ~BIT(3);
+          building->stop_playing_sfx();
         }
 
         draw_game_sprite(x+6, y-32, 128+i);
@@ -830,35 +835,35 @@ viewport_t::draw_unharmed_building(building_t *building, int x, int y) {
       break;
     case BUILDING_WEAPONSMITH:
       draw_shadow_and_building_sprite(x, y, map_building_sprite[type]);
-      if (BUILDING_IS_ACTIVE(building)) {
+      if (building->is_active()) {
         draw_game_sprite(x-16, y-21, 128 + ((game.tick >> 3) & 7));
       }
       break;
     case BUILDING_TOWER:
       draw_shadow_and_building_sprite(x, y, map_building_sprite[type]);
-      if (building->serf_index != 0) {
-        draw_game_sprite(x+13, y - 18 - building->stock[0].available,
-                     182 + ((game.tick >> 3) & 3) + 4*BUILDING_STATE(building));
+      if (building->has_main_serf()) {
+        draw_game_sprite(x+13, y - 18 - building->get_knight_count(),
+                     182 + ((game.tick >> 3) & 3) + 4*building->get_state());
       }
       break;
     case BUILDING_FORTRESS:
       draw_shadow_and_building_sprite(x, y, map_building_sprite[type]);
-      if (building->serf_index != 0) {
-        draw_game_sprite(x-12, y - 21 - building->stock[0].available/2,
-             182 + ((game.tick >> 3) & 3) + 4*BUILDING_STATE(building));
-        draw_game_sprite(x+22, y - 34 - (building->stock[0].available+1)/2,
-             182 + (((game.tick >> 3) + 2) & 3) + 4*BUILDING_STATE(building));
+      if (building->has_main_serf()) {
+        draw_game_sprite(x-12, y - 21 - building->get_knight_count()/2,
+             182 + ((game.tick >> 3) & 3) + 4*building->get_state());
+        draw_game_sprite(x+22, y - 34 - (building->get_knight_count()+1)/2,
+             182 + (((game.tick >> 3) + 2) & 3) + 4*building->get_state());
       }
       break;
     case BUILDING_GOLDSMELTER:
       draw_shadow_and_building_sprite(x, y, map_building_sprite[type]);
-      if (BUILDING_IS_ACTIVE(building)) {
+      if (building->is_active()) {
         int i = (game.tick >> 3) & 7;
-        if (i == 0 || (i == 7 && !BUILDING_PLAYING_SFX(building))) {
-          building->serf |= BIT(3);
+        if (i == 0 || (i == 7 && !building->playing_sfx())) {
+          building->start_playing_sfx();
           play_sound(SFX_GOLD_BOILS);
         } else if (i != 7) {
-          building->serf &= ~BIT(3);
+          building->stop_playing_sfx();
         }
 
         draw_game_sprite(x-7, y-33, 128+i);
@@ -869,10 +874,10 @@ viewport_t::draw_unharmed_building(building_t *building, int x, int y) {
       break;
     }
   } else { /* unfinished building */
-    if (building->type != BUILDING_CASTLE) {
-      draw_building_unfinished(building, building->type, x, y);
+    if (building->get_type() != BUILDING_CASTLE) {
+      draw_building_unfinished(building, building->get_type(), x, y);
     } else {
-      draw_shadow_and_building_unfinished(x, y, 0xb2, building->progress);
+      draw_shadow_and_building_unfinished(x, y, 0xb2, building->get_progress());
     }
   }
 }
@@ -1089,29 +1094,29 @@ viewport_t::draw_burning_building(building_t *building, int x, int y) {
   };
 
   /* Play sound effect. */
-  if (((building->serf_index >> 3) & 3) == 3 &&
-      !BUILDING_PLAYING_SFX(building)) {
-    building->serf |= BIT(3);
+  if (((building->get_burning_counter() >> 3) & 3) == 3 &&
+      !building->playing_sfx()) {
+    building->start_playing_sfx();
     play_sound(SFX_BURNING);
   } else {
-    building->serf &= ~BIT(3);
+    building->stop_playing_sfx();
   }
 
-  uint16_t delta = game.tick - building->u.tick;
-  building->u.tick = game.tick;
+  uint16_t delta = game.tick - building->get_tick();
+  building->set_tick(game.tick);
 
-  if (building->serf_index >= delta) {
-    building->serf_index -= delta;  // TODO(jonls): this is also done in
-                                    // update_buildings().
+  if (building->get_burning_counter() >= delta) {
+    building->decrease_burning_counter(delta);  // TODO(jonls): this is also
+                                                // done in update_buildings().
     draw_unharmed_building(building, x, y);
 
     int type = 0;
-    if (BUILDING_IS_DONE(building) ||
-        building->progress >= 16000) {
-      type = BUILDING_TYPE(building);
+    if (building->is_done() ||
+        building->get_progress() >= 16000) {
+      type = building->get_type();
     }
 
-    int offset = ((building->serf_index >> 3) & 7) ^ 7;
+    int offset = ((building->get_burning_counter() >> 3) & 7) ^ 7;
     const int *anim = building_burn_animation +
                       building_anim_offset_from_type[type];
     while (anim[0] >= 0) {
@@ -1120,15 +1125,15 @@ viewport_t::draw_burning_building(building_t *building, int x, int y) {
       anim += 3;
     }
   } else {
-    building->serf_index = 0;
+    building->set_burning_counter(0);
   }
 }
 
 void
 viewport_t::draw_building(map_pos_t pos, int x, int y) {
-  building_t *building = game_get_building(MAP_OBJ_INDEX(pos));
+  building_t *building = game.buildings[MAP_OBJ_INDEX(pos)];
 
-  if (BUILDING_IS_BURNING(building)) {
+  if (building->is_burning()) {
     draw_burning_building(building, x, y);
   } else {
     draw_unharmed_building(building, x, y);
@@ -2367,24 +2372,23 @@ viewport_t::handle_dbl_click(int x, int y, event_button_t button) {
 
       interface->get_player()->index = MAP_OBJ_INDEX(clk_pos);
     } else { /* Building */
-      if (BIT_TEST(game.split, 5) || /* Demo mode */
-          MAP_OWNER(clk_pos) == interface->get_player()->player_num) {
-        building_t *building = game_get_building(MAP_OBJ_INDEX(clk_pos));
-        if (!BUILDING_IS_DONE(building)) {
+      if (MAP_OWNER(clk_pos) == interface->get_player()->player_num) {
+        building_t *building = game.buildings[MAP_OBJ_INDEX(clk_pos)];
+        if (!building->is_done()) {
           interface->open_popup(BOX_ORDERED_BLD);
-          } else if (BUILDING_TYPE(building) == BUILDING_CASTLE) {
+          } else if (building->get_type() == BUILDING_CASTLE) {
           interface->open_popup(BOX_CASTLE_RES);
-        } else if (BUILDING_TYPE(building) == BUILDING_STOCK) {
-          if (!BUILDING_IS_ACTIVE(building)) return 0;
+        } else if (building->get_type() == BUILDING_STOCK) {
+          if (!building->is_active()) return 0;
           interface->open_popup(BOX_CASTLE_RES);
-        } else if (BUILDING_TYPE(building) == BUILDING_HUT ||
-             BUILDING_TYPE(building) == BUILDING_TOWER ||
-             BUILDING_TYPE(building) == BUILDING_FORTRESS) {
+        } else if (building->get_type() == BUILDING_HUT ||
+             building->get_type() == BUILDING_TOWER ||
+             building->get_type() == BUILDING_FORTRESS) {
           interface->open_popup(BOX_DEFENDERS);
-        } else if (BUILDING_TYPE(building) == BUILDING_STONEMINE ||
-             BUILDING_TYPE(building) == BUILDING_COALMINE ||
-             BUILDING_TYPE(building) == BUILDING_IRONMINE ||
-             BUILDING_TYPE(building) == BUILDING_GOLDMINE) {
+        } else if (building->get_type() == BUILDING_STONEMINE ||
+             building->get_type() == BUILDING_COALMINE ||
+             building->get_type() == BUILDING_IRONMINE ||
+             building->get_type() == BUILDING_GOLDMINE) {
           interface->open_popup(BOX_MINE_OUTPUT);
         } else {
           interface->open_popup(BOX_BLD_STOCK);
@@ -2395,16 +2399,13 @@ viewport_t::handle_dbl_click(int x, int y, event_button_t button) {
         return false;
       } else { /* Foreign building */
         /* TODO handle coop mode*/
-        building_t *building = game_get_building(MAP_OBJ_INDEX(clk_pos));
-        interface->get_player()->building_attacked = BUILDING_INDEX(building);
+        building_t *building = game.buildings[MAP_OBJ_INDEX(clk_pos)];
+        interface->get_player()->building_attacked = building->get_index();
 
-        if (BUILDING_IS_DONE(building) &&
-            (BUILDING_TYPE(building) == BUILDING_HUT ||
-             BUILDING_TYPE(building) == BUILDING_TOWER ||
-             BUILDING_TYPE(building) == BUILDING_FORTRESS ||
-             BUILDING_TYPE(building) == BUILDING_CASTLE)) {
-          if (!BUILDING_IS_ACTIVE(building) ||
-              BUILDING_STATE(building) != 3) {
+        if (building->is_done() &&
+            building->is_military()) {
+          if (!building->is_active() ||
+              building->get_state() != 3) {
             /* It is not allowed to attack
                if currently not occupied or
                is too far from the border. */
@@ -2415,7 +2416,7 @@ viewport_t::handle_dbl_click(int x, int y, event_button_t button) {
           const map_pos_t *p = &game.spiral_pos_pattern[7];
           int found = 0;
           for (int i = 257; i >= 0; i--) {
-            map_pos_t pos = MAP_POS_ADD(building->pos, p[257-i]);
+            map_pos_t pos = MAP_POS_ADD(building->get_position(), p[257-i]);
             if (MAP_HAS_OWNER(pos) &&
                 MAP_OWNER(pos) == interface->get_player()->player_num) {
               found = 1;
@@ -2432,7 +2433,7 @@ viewport_t::handle_dbl_click(int x, int y, event_button_t button) {
           play_sound(SFX_CLICK);
 
           int max_knights = 0;
-          switch (BUILDING_TYPE(building)) {
+          switch (building->get_type()) {
           case BUILDING_HUT: max_knights = 3; break;
           case BUILDING_TOWER: max_knights = 6; break;
           case BUILDING_FORTRESS: max_knights = 12; break;
@@ -2442,9 +2443,9 @@ viewport_t::handle_dbl_click(int x, int y, event_button_t button) {
 
           int knights =
                 player_knights_available_for_attack(interface->get_player(),
-                                                    building->pos);
-          interface->get_player()->knights_attacking = std::min(knights,
-                                                                max_knights);
+                                                    building->get_position());
+          interface->get_player()->knights_attacking =
+                                     std::min(knights, max_knights);
           interface->open_popup(BOX_START_ATTACK);
         }
       }

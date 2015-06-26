@@ -47,7 +47,6 @@ flag_search_t::next_search_id() {
     }
   }
 
-  game.flag_queue_select = 0;
   return game.flag_search_counter;
 }
 
@@ -260,7 +259,7 @@ flag_t::fix_scheduled() {
 }
 
 typedef struct {
-  int resource;
+  resource_type_t resource;
   int max_prio;
   flag_t *flag;
 } schedule_unknown_dest_data_t;
@@ -272,12 +271,10 @@ schedule_unknown_dest_cb(flag_t *flag, void *data) {
   if (flag->has_building()) {
     building_t *building = flag->get_building();
 
-    for (int i = 0; i < BUILDING_MAX_STOCK; i++) {
-      if (building->stock[i].type == dest_data->resource &&
-          building->stock[i].prio > dest_data->max_prio) {
-        dest_data->max_prio = building->stock[i].prio;
-        dest_data->flag = flag;
-      }
+    int bld_prio = building->get_max_priority_for_resource(dest_data->resource);
+    if (bld_prio > dest_data->max_prio) {
+      dest_data->max_prio = bld_prio;
+      dest_data->flag = flag;
     }
 
     if (dest_data->max_prio > 204) return true;
@@ -287,7 +284,7 @@ schedule_unknown_dest_cb(flag_t *flag, void *data) {
 }
 
 void
-flag_t::schedule_slot_to_unknown_dest(int slot) {
+flag_t::schedule_slot_to_unknown_dest(int slot_num) {
   /* Resources which should be routed directly to
    buildings requesting them. Resources not listed
    here will simply be moved to an inventory. */
@@ -321,7 +318,7 @@ flag_t::schedule_slot_to_unknown_dest(int slot) {
     0,  // RESOURCE_GROUP_FOOD
   };
 
-  resource_type_t res = this->slot[slot].type;
+  resource_type_t res = slot[slot_num].type;
   if (routable[res]) {
     flag_search_t search;
     search.add_source(this);
@@ -344,21 +341,9 @@ flag_t::schedule_slot_to_unknown_dest(int slot) {
            index, slot, data.flag->get_index());
       building_t *dest_bld = data.flag->other_endpoint.b[DIR_UP_LEFT];
 
-      int stock = -1;
-      for (int i = 0; i < BUILDING_MAX_STOCK; i++) {
-        if (dest_bld->stock[i].type == res) {
-          stock = i;
-          break;
-        }
-      }
+      assert(dest_bld->add_requested_resource(res, true));
 
-      assert(stock >= 0);
-      int prio = dest_bld->stock[stock].prio;
-      if ((prio & 1) == 0) prio = 0;
-      dest_bld->stock[stock].prio = prio >> 1;
-      dest_bld->stock[stock].requested += 1;
-
-      this->slot[slot].dest = dest_bld->flag;
+      slot[slot_num].dest = dest_bld->get_flag_index();
       endpoint |= BIT(7);
       return;
     }
@@ -389,12 +374,12 @@ flag_t::schedule_slot_to_unknown_dest(int slot) {
 
       if (!is_scheduled((dir_t)dir)) {
         other_end_dir[dir] = BIT(7) |
-        (other_end_dir[dir] & 0x38) | slot;
+        (other_end_dir[dir] & 0x38) | slot_num;
       }
-      this->slot[slot].dir = (dir_t)dir;
+      slot[slot_num].dir = (dir_t)dir;
     }
   } else {
-    this->slot[slot].dest = r;
+    this->slot[slot_num].dest = r;
     endpoint |= BIT(7);
   }
 }
@@ -425,8 +410,8 @@ flag_search_inventory_search_cb(flag_t *flag, void *data) {
   int *dest_index = static_cast<int*>(data);
   if (flag->accepts_serfs()) {
     building_t *building = flag->get_building();
-    *dest_index = building->flag;
-    return true;
+    *dest_index = building->get_flag_index();
+    return 1;
   }
 
   return false;
@@ -1019,7 +1004,7 @@ send_serf_to_road_search_cb(flag_t *flag, void *data) {
   if (flag->has_inventory()) {
     /* Inventory reached */
     building_t *building = flag->get_building();
-    inventory_t *inventory = building->u.inventory;
+    inventory_t *inventory = building->get_inventory();
     if (!road_data->water) {
       if (inventory->have_serf(SERF_TRANSPORTER)) {
         road_data->inventory = inventory;
@@ -1139,7 +1124,7 @@ operator >> (save_reader_binary_t &reader, flag_t &flag) {
   reader >> val8;  // 3
   flag.path_con = val8;
 
-  reader >> val8; // 4
+  reader >> val8;  // 4
   flag.endpoint = val8;
 
   reader >> val8;  // 5
@@ -1168,7 +1153,7 @@ operator >> (save_reader_binary_t &reader, flag_t &flag) {
 
     /* Other endpoint could be a building in direction up left. */
     if (j == 4 && flag.has_building()) {
-      flag.other_endpoint.b[j] = game.buildings + (offset/18);
+      flag.other_endpoint.b[j] = game.buildings.get_or_insert(offset/18);
     } else {
       if (offset < 0) {
         flag.other_endpoint.f[j] = NULL;
@@ -1189,7 +1174,7 @@ operator >> (save_reader_binary_t &reader, flag_t &flag) {
 
   reader >> val8;  // 67
   if (flag.has_building()) {
-    flag.other_endpoint.b[DIR_UP_LEFT]->stock[0].prio = val8;
+    flag.other_endpoint.b[DIR_UP_LEFT]->set_priority_in_stock(0, val8);
   }
 
   reader >> val8;  // 68
@@ -1197,7 +1182,7 @@ operator >> (save_reader_binary_t &reader, flag_t &flag) {
 
   reader >> val8;  // 69
   if (flag.has_building()) {
-    flag.other_endpoint.b[DIR_UP_LEFT]->stock[1].prio = val8;
+    flag.other_endpoint.b[DIR_UP_LEFT]->set_priority_in_stock(1, val8);
   }
 
   return reader;
@@ -1221,7 +1206,7 @@ operator >> (save_reader_text_t &reader, flag_t &flag) {
     unsigned int obj_index;
     reader.value("other_endpoint")[i] >> obj_index;
     if (flag.has_building() && (i == DIR_UP_LEFT)) {
-      flag.other_endpoint.b[DIR_UP_LEFT] = &game.buildings[obj_index];
+      flag.other_endpoint.b[DIR_UP_LEFT] = game.buildings[obj_index];
     } else {
       flag_t *other_flag = NULL;
       if (obj_index != 0) {
@@ -1257,7 +1242,7 @@ operator << (save_writer_text_t &writer, flag_t &flag) {
     writer.value("length") << flag.length[d];
     if (d == DIR_UP_LEFT && flag.has_building()) {
       writer.value("other_endpoint") <<
-        BUILDING_INDEX(flag.other_endpoint.b[DIR_UP_LEFT]);
+        flag.other_endpoint.b[DIR_UP_LEFT]->get_index();
     } else {
       if (flag.has_path((dir_t)d)) {
         writer.value("other_endpoint") << flag.other_endpoint.f[d]->get_index();

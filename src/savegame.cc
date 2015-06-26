@@ -46,6 +46,7 @@ typedef struct {
 
 static unsigned int max_flag_index = 0;
 static unsigned int max_inventory_index = 0;
+static unsigned int max_building_index = 0;
 
 static map_pos_t
 load_v0_map_pos(const v0_map_t *map, uint32_t value) {
@@ -83,7 +84,6 @@ load_v0_game_state(FILE *f, v0_map_t *map) {
   /* Allocate game objects */
   const int max_map_size = 10;
   game.serf_limit = (0x1f84 * (1 << max_map_size) - 4) / 0x81;
-  game.building_limit = (0x54c * (1 << max_map_size) - 4) / 0x91;
   game_allocate_objects();
 
   /* OBSOLETE may be needed to load map data correctly?
@@ -124,7 +124,7 @@ load_v0_game_state(FILE *f, v0_map_t *map) {
   game.rnd.state[2] = *reinterpret_cast<uint16_t*>(&data[88]);
 
   max_flag_index = *reinterpret_cast<uint16_t*>(&data[90]);
-  game.max_building_index = *reinterpret_cast<uint16_t*>(&data[92]);
+  max_building_index = *reinterpret_cast<uint16_t*>(&data[92]);
   game.max_serf_index = *reinterpret_cast<uint16_t*>(&data[94]);
 
   game.next_index = *reinterpret_cast<uint16_t*>(&data[96]);
@@ -671,7 +671,7 @@ load_v0_flag_state(FILE *f) {
 static int
 load_v0_building_state(FILE *f, const v0_map_t *map) {
   /* Load building bitmap. */
-  int bitmap_size = 4*((game.max_building_index + 31)/32);
+  int bitmap_size = 4*((max_building_index + 31)/32);
   uint8_t *bitmap = reinterpret_cast<uint8_t*>(malloc(bitmap_size));
   if (bitmap == NULL) return -1;
 
@@ -681,138 +681,30 @@ load_v0_building_state(FILE *f, const v0_map_t *map) {
     return -1;
   }
 
-  memset(game.building_bitmap, '\0', (game.building_limit+31)/32);
-  memcpy(game.building_bitmap, bitmap, bitmap_size);
-
-  free(bitmap);
-
   /* Load building data. */
-  uint8_t *data = reinterpret_cast<uint8_t*>(malloc(18*
-                                                    game.max_building_index));
-  if (data == NULL) return -1;
-
-  rd = fread(data, 18*sizeof(uint8_t), game.max_building_index, f);
-  if (rd < game.max_building_index) {
-    free(data);
+  uint8_t *data = reinterpret_cast<uint8_t*>(malloc(18));
+  if (data == NULL) {
+    free(bitmap);
     return -1;
   }
 
-  for (unsigned int i = 0; i < game.max_building_index; i++) {
-    uint8_t *building_data = &data[18*i];
-    building_t *building = &game.buildings[i];
-
-    building->pos = load_v0_map_pos(map,
-                               *reinterpret_cast<uint32_t*>(&building_data[0]));
-    building->type = (building_type_t)((building_data[4] >> 2) & 0x1f);
-    building->bld = building_data[4] & 0x83;
-    building->serf = building_data[5];
-    building->flag = *reinterpret_cast<uint16_t*>(&building_data[6]);
-
-    building->stock[0].type = RESOURCE_NONE;
-    building->stock[0].available = (building_data[8] >> 4) & 0xf;
-    building->stock[0].requested = building_data[8] & 0xf;
-
-    building->stock[1].type = RESOURCE_NONE;
-    building->stock[1].available = (building_data[9] >> 4) & 0xf;
-    building->stock[1].requested = building_data[9] & 0xf;
-
-    building->serf_index = *reinterpret_cast<uint16_t*>(&building_data[10]);
-    building->progress = *reinterpret_cast<uint16_t*>(&building_data[12]);
-
-    if (!BUILDING_IS_BURNING(building) &&
-        (BUILDING_IS_DONE(building) ||
-         BUILDING_TYPE(building) == BUILDING_CASTLE)) {
-      int offset = *reinterpret_cast<uint32_t*>(&building_data[14]);
-      if (BUILDING_TYPE(building) == BUILDING_STOCK ||
-          BUILDING_TYPE(building) == BUILDING_CASTLE) {
-        building->u.inventory = game.inventories.get_or_insert(offset/120);
-        building->stock[0].requested = 0xff;
-      }
-    } else {
-      building->u.level = *reinterpret_cast<uint16_t*>(&building_data[14]);
+  for (unsigned int i = 0; i < max_building_index; i++) {
+    rd = fread(data, 18*sizeof(uint8_t), 1, f);
+    if (rd != 1) {
+      free(data);
+      free(bitmap);
+      return -1;
     }
 
-    if (!BUILDING_IS_DONE(building)) {
-      building->stock[0].type = RESOURCE_PLANK;
-      building->stock[0].maximum = building_data[16];
-      building->stock[1].type = RESOURCE_STONE;
-      building->stock[1].maximum = building_data[17];
-    } else if (BUILDING_HAS_SERF(building)) {
-      switch (BUILDING_TYPE(building)) {
-      case BUILDING_BOATBUILDER:
-        building->stock[0].type = RESOURCE_PLANK;
-        building->stock[0].maximum = 8;
-        break;
-      case BUILDING_STONEMINE:
-      case BUILDING_COALMINE:
-      case BUILDING_IRONMINE:
-      case BUILDING_GOLDMINE:
-        building->stock[0].type = RESOURCE_GROUP_FOOD;
-        building->stock[0].maximum = 8;
-        break;
-      case BUILDING_HUT:
-        building->stock[1].type = RESOURCE_GOLDBAR;
-        building->stock[1].maximum = 2;
-        break;
-      case BUILDING_TOWER:
-        building->stock[1].type = RESOURCE_GOLDBAR;
-        building->stock[1].maximum = 4;
-        break;
-      case BUILDING_FORTRESS:
-        building->stock[1].type = RESOURCE_GOLDBAR;
-        building->stock[1].maximum = 8;
-        break;
-      case BUILDING_BUTCHER:
-        building->stock[0].type = RESOURCE_PIG;
-        building->stock[0].maximum = 8;
-        break;
-      case BUILDING_PIGFARM:
-        building->stock[0].type = RESOURCE_WHEAT;
-        building->stock[0].maximum = 8;
-        break;
-      case BUILDING_MILL:
-        building->stock[0].type = RESOURCE_WHEAT;
-        building->stock[0].maximum = 8;
-        break;
-      case BUILDING_BAKER:
-        building->stock[0].type = RESOURCE_FLOUR;
-        building->stock[0].maximum = 8;
-        break;
-      case BUILDING_SAWMILL:
-        building->stock[1].type = RESOURCE_LUMBER;
-        building->stock[1].maximum = 8;
-        break;
-      case BUILDING_STEELSMELTER:
-        building->stock[0].type = RESOURCE_COAL;
-        building->stock[0].maximum = 8;
-        building->stock[1].type = RESOURCE_IRONORE;
-        building->stock[1].maximum = 8;
-        break;
-      case BUILDING_TOOLMAKER:
-        building->stock[0].type = RESOURCE_PLANK;
-        building->stock[0].maximum = 8;
-        building->stock[1].type = RESOURCE_STEEL;
-        building->stock[1].maximum = 8;
-        break;
-      case BUILDING_WEAPONSMITH:
-        building->stock[0].type = RESOURCE_COAL;
-        building->stock[0].maximum = 8;
-        building->stock[1].type = RESOURCE_STEEL;
-        building->stock[1].maximum = 8;
-        break;
-      case BUILDING_GOLDSMELTER:
-        building->stock[0].type = RESOURCE_COAL;
-        building->stock[0].maximum = 8;
-        building->stock[1].type = RESOURCE_GOLDORE;
-        building->stock[1].maximum = 8;
-        break;
-      default:
-        break;
-      }
+    if (BIT_TEST(bitmap[(i)>>3], 7-((i)&7))) {
+      building_t *building = game.buildings.get_or_insert(i);
+      save_reader_binary_t reader(data, 18);
+      reader >> *building;
     }
   }
 
   free(data);
+  free(bitmap);
 
   return 0;
 }
@@ -944,7 +836,6 @@ save_text_game_state(FILE *f) {
   save_text_write_array(f, "rnd", rnd, 3);
 
   save_text_write_value(f, "serf_limit", game.serf_limit);
-  save_text_write_value(f, "building_limit", game.building_limit);
 
   save_text_write_value(f, "next_index", game.next_index);
   save_text_write_value(f, "flag_search_counter", game.flag_search_counter);
@@ -1110,57 +1001,12 @@ save_text_flag_state(flag_t *flag, FILE *f) {
 }
 
 static int
-save_text_building_state(FILE *f) {
-  for (unsigned int i = 1; i < game.max_building_index; i++) {
-    if (BUILDING_ALLOCATED(i)) {
-      building_t *building = game_get_building(i);
+save_text_building_state(building_t *building, FILE *f) {
+  save_writer_text_section_t writer("building", building->get_index());
+  writer << *building;
+  writer.save(f);
 
-      fprintf(f, "[building %i]\n", i);
-
-      save_text_write_map_pos(f, "pos", building->pos);
-      save_text_write_value(f, "type", building->type);
-      save_text_write_value(f, "bld", building->bld);
-      save_text_write_value(f, "serf", building->serf);
-      save_text_write_value(f, "flag", building->flag);
-
-      save_text_write_value(f, "stock[0].type", building->stock[0].type);
-      save_text_write_value(f, "stock[0].prio", building->stock[0].prio);
-      save_text_write_value(f, "stock[0].available",
-                            building->stock[0].available);
-      save_text_write_value(f, "stock[0].requested",
-                            building->stock[0].requested);
-      save_text_write_value(f, "stock[0].maximum", building->stock[0].maximum);
-
-      save_text_write_value(f, "stock[1].type", building->stock[1].type);
-      save_text_write_value(f, "stock[1].prio", building->stock[1].prio);
-      save_text_write_value(f, "stock[1].available",
-                            building->stock[1].available);
-      save_text_write_value(f, "stock[1].requested",
-                            building->stock[1].requested);
-      save_text_write_value(f, "stock[1].maximum", building->stock[1].maximum);
-
-      save_text_write_value(f, "serf_index", building->serf_index);
-      save_text_write_value(f, "progress", building->progress);
-
-      if (!BUILDING_IS_BURNING(building) &&
-          (BUILDING_IS_DONE(building) ||
-           BUILDING_TYPE(building) == BUILDING_CASTLE)) {
-        if (BUILDING_TYPE(building) == BUILDING_STOCK ||
-            BUILDING_TYPE(building) == BUILDING_CASTLE) {
-          save_text_write_value(f, "inventory",
-                                building->u.inventory->get_index());
-        }
-      } else if (BUILDING_IS_BURNING(building)) {
-        save_text_write_value(f, "tick", building->u.tick);
-      } else {
-        save_text_write_value(f, "level", building->u.level);
-      }
-
-      fprintf(f, "\n");
-    }
-  }
-
-  return 0;
+  return true;
 }
 
 static bool
@@ -1474,8 +1320,10 @@ save_text_state(FILE *f) {
     if (!save_text_flag_state(*i, f)) return -1;
   }
 
-  r = save_text_building_state(f);
-  if (r < 0) return -1;
+  for (buildings_t::iterator i = game.buildings.begin();
+       i != game.buildings.end(); ++i) {
+    if (!save_text_building_state(*i, f)) return -1;
+  }
 
   for (inventories_t::iterator i = game.inventories.begin();
        i != game.inventories.end(); ++i) {
@@ -1772,8 +1620,6 @@ load_text_game_state(list_t *sections) {
       }
     } else if (!strcmp(s->key, "serf_limit")) {
       game.serf_limit = atoi(s->value);
-    } else if (!strcmp(s->key, "building_limit")) {
-      game.building_limit = atoi(s->value);
     } else if (!strcmp(s->key, "next_index")) {
       game.next_index = atoi(s->value);
     } else if (!strcmp(s->key, "flag_search_counter")) {
@@ -2045,77 +1891,11 @@ static int
 load_text_building_section(section_t *section) {
   /* Parse building number. */
   int n = atoi(section->param);
-  if (n >= static_cast<int>(game.building_limit)) return -1;
 
-  building_t *building = &game.buildings[n];
-  game.building_bitmap[n/8] |= BIT(7-(n&7));
+  save_reader_text_section_t reader(section);
 
-  /* Load the building state. */
-  list_elm_t *elm;
-  list_foreach(&section->settings, elm) {
-    setting_t *s = reinterpret_cast<setting_t*>(elm);
-    if (!strcmp(s->key, "pos")) {
-      building->pos = parse_map_pos(s->value);
-    } else if (!strcmp(s->key, "type")) {
-      building->type = (building_type_t)atoi(s->value);
-    } else if (!strcmp(s->key, "bld")) {
-      building->bld = atoi(s->value);
-    } else if (!strcmp(s->key, "serf")) {
-      building->serf = atoi(s->value);
-    } else if (!strcmp(s->key, "flag")) {
-      building->flag = atoi(s->value);
-    } else if (!strcmp(s->key, "stock[0].type")) {
-      building->stock[0].type = (resource_type_t)atoi(s->value);
-    } else if (!strcmp(s->key, "stock[0].prio")) {
-      building->stock[0].prio = atoi(s->value);
-    } else if (!strcmp(s->key, "stock[0].available")) {
-      building->stock[0].available = atoi(s->value);
-    } else if (!strcmp(s->key, "stock[0].requested")) {
-      building->stock[0].requested = atoi(s->value);
-    } else if (!strcmp(s->key, "stock[0].maximum")) {
-      building->stock[0].maximum = atoi(s->value);
-    } else if (!strcmp(s->key, "stock[1].type")) {
-      building->stock[1].type = (resource_type_t)atoi(s->value);
-    } else if (!strcmp(s->key, "stock[1].prio")) {
-      building->stock[1].prio = atoi(s->value);
-    } else if (!strcmp(s->key, "stock[1].available")) {
-      building->stock[1].available = atoi(s->value);
-    } else if (!strcmp(s->key, "stock[1].requested")) {
-      building->stock[1].requested = atoi(s->value);
-    } else if (!strcmp(s->key, "stock[1].maximum")) {
-      building->stock[1].maximum = atoi(s->value);
-    } else if (!strcmp(s->key, "serf_index")) {
-      building->serf_index = atoi(s->value);
-    } else if (!strcmp(s->key, "progress")) {
-      building->progress = atoi(s->value);
-    } else if (!strcmp(s->key, "inventory") ||
-         !strcmp(s->key, "flag") ||
-         !strcmp(s->key, "level") ||
-         !strcmp(s->key, "tick")) {
-      /* Handled later */
-    } else {
-      LOGD("savegame", "Unhandled building setting: `%s'.", s->key);
-    }
-  }
-
-  /* Load various values that depend on the building type. */
-  /* TODO Check validity of pointers when loading. */
-  if (!BUILDING_IS_BURNING(building) &&
-      (BUILDING_IS_DONE(building) ||
-       BUILDING_TYPE(building) == BUILDING_CASTLE)) {
-    if (BUILDING_TYPE(building) == BUILDING_STOCK ||
-        BUILDING_TYPE(building) == BUILDING_CASTLE) {
-      char *value = load_text_get_setting(section, "inventory");
-      if (value == NULL) return -1;
-      building->u.inventory = game.inventories.get_or_insert(atoi(value));
-    }
-  } else if (BUILDING_IS_BURNING(building)) {
-    char *value = load_text_get_setting(section, "tick");
-    building->u.tick = atoi(value);
-  } else {
-    char *value = load_text_get_setting(section, "level");
-    building->u.level = atoi(value);
-  }
+  building_t *building = game.buildings.get_or_insert(n);
+  reader >> *building;
 
   return 0;
 }
@@ -2131,16 +1911,14 @@ load_text_building_state(list_t *sections) {
     }
   }
 
-  for (unsigned int i = 1; i < game.building_limit; i++) {
-    if (BUILDING_ALLOCATED(i)) {
-      /* Restore max building index */
-      game.max_building_index = i+1;
-
-      /* Restore pointer to castle flag */
-      building_t *building = game_get_building(i);
-      if (BUILDING_TYPE(building) == BUILDING_CASTLE) {
-        game.player[BUILDING_PLAYER(building)]->castle_flag = building->flag;
-      }
+  for (buildings_t::iterator i = game.buildings.begin();
+       i != game.buildings.end(); ++i) {
+    /* Restore pointer to castle flag */
+    building_t *building = *i;
+    if (building->get_type() == BUILDING_CASTLE) {
+      game.player[building->get_player()]->castle_flag =
+                                                     building->get_flag_index();
+      break;
     }
   }
 
@@ -2636,16 +2414,15 @@ load_text_map_state(list_t *sections) {
   }
 
   /* Restore building index */
-  for (unsigned int i = 1; i < game.max_building_index; i++) {
-    if (!BUILDING_ALLOCATED(i)) continue;
-
-    building_t *building = game_get_building(i);
-    if (MAP_OBJ(building->pos) < MAP_OBJ_SMALL_BUILDING ||
-        MAP_OBJ(building->pos) > MAP_OBJ_CASTLE) {
+  for (buildings_t::iterator i = game.buildings.begin();
+       i != game.buildings.end(); ++i) {
+    building_t *building = *i;
+    if (MAP_OBJ(building->get_position()) < MAP_OBJ_SMALL_BUILDING ||
+        MAP_OBJ(building->get_position()) > MAP_OBJ_CASTLE) {
       return -1;
     }
 
-    game.map.tiles[building->pos].obj_index = BUILDING_INDEX(building);
+    game.map.tiles[building->get_position()].obj_index = building->get_index();
   }
 
   /* Restore flag index */
@@ -2818,6 +2595,14 @@ save_reader_text_value_t&
 save_reader_text_value_t::operator >> (resource_type_t &val) {
   int result = atoi(value.c_str());
   val = (resource_type_t)result;
+
+  return *this;
+}
+
+save_reader_text_value_t&
+save_reader_text_value_t::operator >> (building_type_t &val) {
+  int result = atoi(value.c_str());
+  val = (building_type_t)result;
 
   return *this;
 }

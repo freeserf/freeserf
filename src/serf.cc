@@ -232,6 +232,42 @@ serf_get_state_name(serf_state_t state) {
   return serf_state_name[state];
 }
 
+static const char *serf_type_name[] = {
+  "TRANSPORTER",  // SERF_TRANSPORTER = 0,
+  "SAILOR",  // SERF_SAILOR,
+  "DIGGER",  // SERF_DIGGER,
+  "BUILDER",  // SERF_BUILDER,
+  "TRANSPORTER_INVENTORY",  // SERF_TRANSPORTER_INVENTORY,
+  "LUMBERJACK",  // SERF_LUMBERJACK,
+  "SAWMILLER",  // SERF_SAWMILLER,
+  "STONECUTTER",  // SERF_STONECUTTER,
+  "FORESTER",  // SERF_FORESTER,
+  "MINER",  // SERF_MINER,
+  "SMELTER",  // SERF_SMELTER,
+  "FISHER",  // SERF_FISHER,
+  "PIGFARMER",  // SERF_PIGFARMER,
+  "BUTCHER",  // SERF_BUTCHER,
+  "FARMER",  // SERF_FARMER,
+  "MILLER",  // SERF_MILLER,
+  "BAKER",  // SERF_BAKER,
+  "BOATBUILDER",  // SERF_BOATBUILDER,
+  "TOOLMAKER",  // SERF_TOOLMAKER,
+  "WEAPONSMITH",  // SERF_WEAPONSMITH,
+  "GEOLOGIST",  // SERF_GEOLOGIST,
+  "GENERIC",  // SERF_GENERIC,
+  "KNIGHT_0",  // SERF_KNIGHT_0,
+  "KNIGHT_1",  // SERF_KNIGHT_1,
+  "KNIGHT_2",  // SERF_KNIGHT_2,
+  "KNIGHT_3",  // SERF_KNIGHT_3,
+  "KNIGHT_4",  // SERF_KNIGHT_4,
+  "DEAD",  // SERF_DEAD
+};
+
+const char *
+serf_get_type_name(serf_type_t type) {
+  return serf_type_name[type];
+}
+
 /* Change type of serf and update all global tables
    tracking serf types. */
 void
@@ -280,10 +316,10 @@ serf_set_lost_state(serf_t *serf) {
       flag_t *flag = game.flags[serf->s.walking.dest];
       building_t *building = flag->get_building();
 
-      if (BUILDING_SERF_REQUESTED(building)) {
-        building->serf &= ~BIT(7);
-      } else if (!BUILDING_HAS_INVENTORY(building)) {
-        building->stock[0].requested -= 1;
+      if (building->serf_requested()) {
+        building->serf_request_failed();
+      } else if (!building->has_inventory()) {
+        building->decrease_requested_for_stock(0);
       }
     }
 
@@ -603,9 +639,9 @@ serf_enter_building(serf_t *serf, int field_B, int join_pos) {
   serf_start_walking(serf, DIR_UP_LEFT, 32, !join_pos);
   if (join_pos) map_set_serf_index(serf->pos, SERF_INDEX(serf));
 
-  building_t *building = game_get_building(MAP_OBJ_INDEX(serf->pos));
-  int slope = road_building_slope[building->type];
-  if (!BUILDING_IS_DONE(building)) slope = 1;
+  building_t *building = game.buildings[MAP_OBJ_INDEX(serf->pos)];
+  int slope = road_building_slope[building->get_type()];
+  if (!building->is_done()) slope = 1;
   serf->s.entering_building.slope_len = (slope * serf->counter) >> 5;
   serf->s.entering_building.field_B = field_B;
 }
@@ -614,9 +650,9 @@ serf_enter_building(serf_t *serf, int field_B, int join_pos) {
    setting appropriate state. */
 static void
 serf_leave_building(serf_t *serf, int join_pos) {
-  building_t *building = game_get_building(MAP_OBJ_INDEX(serf->pos));
-  int slope = 31 - road_building_slope[building->type];
-  if (!BUILDING_IS_DONE(building)) slope = 30;
+  building_t *building = game.buildings[MAP_OBJ_INDEX(serf->pos)];
+  int slope = 31 - road_building_slope[building->get_type()];
+  if (!building->is_done()) slope = 30;
 
   if (join_pos) map_set_serf_index(serf->pos, 0);
   serf_start_walking(serf, DIR_DOWN_RIGHT, slope, !join_pos);
@@ -630,12 +666,10 @@ handle_serf_walking_state_dest_reached(serf_t *serf) {
   /* Destination reached. */
   if (serf->s.walking.res < 0) {
     building_t *building =
-                  game_get_building(MAP_OBJ_INDEX(MAP_MOVE_UP_LEFT(serf->pos)));
-    building->serf |= BIT(6);
-    if (BUILDING_SERF_REQUESTED(building)) {
-      building->serf_index = SERF_INDEX(serf);
-    }
-    building->serf &= ~BIT(7);
+                     game.buildings[MAP_OBJ_INDEX(MAP_MOVE_UP_LEFT(serf->pos))];
+    building->serf_arrive();
+    if (building->serf_requested()) building->set_main_serf(SERF_INDEX(serf));
+    building->serf_request_complete();
 
     if (MAP_SERF_INDEX(MAP_MOVE_UP_LEFT(serf->pos)) != 0) {
       serf->animation = 85;
@@ -798,8 +832,8 @@ handle_serf_walking_state(serf_t *serf) {
       flag_t *flag = game.flags[serf->s.walking.dest];
       building_t *building = flag->get_building();
 
-      building->serf &= ~BIT(7);
-      if (!BUILDING_HAS_INVENTORY(building)) building->stock[0].requested -= 1;
+      building->serf_request_failed();
+      if (!building->has_inventory()) building->decrease_requested_for_stock(0);
     } else if (serf->s.walking.res != 6) {
       flag_t *flag = game.flags[serf->s.walking.dest];
       dir_t d = (dir_t)serf->s.walking.res;
@@ -926,12 +960,12 @@ handle_serf_transporting_state(serf_t *serf) {
 static void
 serf_enter_inventory(serf_t *serf) {
   map_set_serf_index(serf->pos, 0);
-  building_t *building = game_get_building(MAP_OBJ_INDEX(serf->pos));
+  building_t *building = game.buildings[MAP_OBJ_INDEX(serf->pos)];
   serf_log_state_change(serf, SERF_STATE_IDLE_IN_STOCK);
   serf->state = SERF_STATE_IDLE_IN_STOCK;
   /*serf->s.idle_in_stock.field_B = 0;
     serf->s.idle_in_stock.field_C = 0;*/
-  serf->s.idle_in_stock.inv_index = building->u.inventory->get_index();
+  serf->s.idle_in_stock.inv_index = building->get_inventory()->get_index();
 }
 
 static void
@@ -943,8 +977,7 @@ handle_serf_entering_building_state(serf_t *serf) {
   if (serf->counter < 0 ||
       serf->counter <= static_cast<int>(serf->s.entering_building.slope_len)) {
     if (MAP_OBJ_INDEX(serf->pos) == 0 ||
-        BIT_TEST(game_get_building(MAP_OBJ_INDEX(serf->pos))->serf,
-                 5)) { /* Burning */
+        game.buildings[MAP_OBJ_INDEX(serf->pos)]->is_burning()) { /* Burning */
       serf_log_state_change(serf, SERF_STATE_LOST);
       serf->state = SERF_STATE_LOST;
       serf->s.lost.field_B = 0;
@@ -984,9 +1017,9 @@ handle_serf_entering_building_state(serf_t *serf) {
         serf->state = SERF_STATE_DIGGING;
         serf->s.digging.h_index = 15;
 
-        building_t *building = game_get_building(MAP_OBJ_INDEX(serf->pos));
+        building_t *building = game.buildings[MAP_OBJ_INDEX(serf->pos)];
         serf->s.digging.dig_pos = 6;
-        serf->s.digging.target_h = building->u.level;
+        serf->s.digging.target_h = building->get_level();
         serf->s.digging.substate = 1;
       }
       break;
@@ -1002,8 +1035,8 @@ handle_serf_entering_building_state(serf_t *serf) {
         serf->s.building.bld_index = MAP_OBJ_INDEX(serf->pos);
         serf->s.building.material_step = 0;
 
-        building_t *building = game_get_building(serf->s.building.bld_index);
-        switch (BUILDING_TYPE(building)) {
+        building_t *building = game.buildings[serf->s.building.bld_index];
+        switch (building->get_type()) {
         case BUILDING_STOCK:
         case BUILDING_SAWMILL:
         case BUILDING_TOOLMAKER:
@@ -1037,13 +1070,11 @@ handle_serf_entering_building_state(serf_t *serf) {
       } else {
         map_set_serf_index(serf->pos, 0);
         if (serf->s.entering_building.field_B != 0) {
-          building_t *building = game_get_building(MAP_OBJ_INDEX(serf->pos));
+          building_t *building = game.buildings[MAP_OBJ_INDEX(serf->pos)];
           int flag_index = MAP_OBJ_INDEX(MAP_MOVE_DOWN_RIGHT(serf->pos));
           flag_t *flag = game.flags[flag_index];
           flag->clear_flags();
-          building->stock[1].type = RESOURCE_LUMBER;
-          building->stock[1].prio = 0;
-          building->stock[1].maximum = 8;
+          building->stock_init(1, RESOURCE_LUMBER, 8);
         }
         serf_log_state_change(serf, SERF_STATE_SAWING);
         serf->state = SERF_STATE_SAWING;
@@ -1073,19 +1104,17 @@ handle_serf_entering_building_state(serf_t *serf) {
         serf_enter_inventory(serf);
       } else {
         map_set_serf_index(serf->pos, 0);
-        building_t *building = game_get_building(MAP_OBJ_INDEX(serf->pos));
-        building_type_t bld_type = BUILDING_TYPE(building);
+        building_t *building = game.buildings[MAP_OBJ_INDEX(serf->pos)];
+        building_type_t bld_type = building->get_type();
 
         if (serf->s.entering_building.field_B != 0) {
-          building->serf |= BIT(4);
-          building->serf &= ~BIT(3);
+          building->start_activity();
+          building->stop_playing_sfx();
 
           flag_t *flag =
                       game.flags[MAP_OBJ_INDEX(MAP_MOVE_DOWN_RIGHT(serf->pos))];
           flag->clear_flags();
-          building->stock[0].type = RESOURCE_GROUP_FOOD;
-          building->stock[0].prio = 0;
-          building->stock[0].maximum = 8;
+          building->stock_init(0, RESOURCE_GROUP_FOOD, 8);
         }
 
         serf_log_state_change(serf, SERF_STATE_MINING);
@@ -1103,30 +1132,26 @@ handle_serf_entering_building_state(serf_t *serf) {
       } else {
         map_set_serf_index(serf->pos, 0);
 
-        building_t *building = game_get_building(MAP_OBJ_INDEX(serf->pos));
+        building_t *building = game.buildings[MAP_OBJ_INDEX(serf->pos)];
 
         if (serf->s.entering_building.field_B != 0) {
           flag_t *flag =
                       game.flags[MAP_OBJ_INDEX(MAP_MOVE_DOWN_RIGHT(serf->pos))];
           flag->clear_flags();
-          building->stock[0].type = RESOURCE_COAL;
-          building->stock[0].prio = 0;
-          building->stock[0].maximum = 8;
+          building->stock_init(0, RESOURCE_COAL, 8);
 
-          if (BUILDING_TYPE(building) == BUILDING_STEELSMELTER) {
-            building->stock[1].type = RESOURCE_IRONORE;
+          if (building->get_type() == BUILDING_STEELSMELTER) {
+            building->stock_init(1, RESOURCE_IRONORE, 8);
           } else {
-            building->stock[1].type = RESOURCE_GOLDORE;
+            building->stock_init(1, RESOURCE_GOLDORE, 8);
           }
-          building->stock[1].prio = 0;
-          building->stock[1].maximum = 8;
         }
 
         /* Switch to smelting state to begin work. */
         serf_log_state_change(serf, SERF_STATE_SMELTING);
         serf->state = SERF_STATE_SMELTING;
 
-        if (BUILDING_TYPE(building) == BUILDING_STEELSMELTER) {
+        if (building->get_type() == BUILDING_STEELSMELTER) {
           serf->s.smelting.type = 0;
         } else {
           serf->s.smelting.type = -1;
@@ -1151,16 +1176,14 @@ handle_serf_entering_building_state(serf_t *serf) {
         map_set_serf_index(serf->pos, 0);
 
         if (serf->s.entering_building.field_B != 0) {
-          building_t *building = game_get_building(MAP_OBJ_INDEX(serf->pos));
+          building_t *building = game.buildings[MAP_OBJ_INDEX(serf->pos)];
           flag_t *flag =
                       game.flags[MAP_OBJ_INDEX(MAP_MOVE_DOWN_RIGHT(serf->pos))];
 
-          building->stock[1].available = 1;
+          building->set_initial_res_in_stock(1, 1);
 
           flag->clear_flags();
-          building->stock[0].type = RESOURCE_WHEAT;
-          building->stock[0].prio = 0;
-          building->stock[0].maximum = 8;
+          building->stock_init(0, RESOURCE_WHEAT, 8);
 
           serf_log_state_change(serf, SERF_STATE_PIGFARMING);
           serf->state = SERF_STATE_PIGFARMING;
@@ -1180,13 +1203,11 @@ handle_serf_entering_building_state(serf_t *serf) {
         map_set_serf_index(serf->pos, 0);
 
         if (serf->s.entering_building.field_B != 0) {
-          building_t *building = game_get_building(MAP_OBJ_INDEX(serf->pos));
+          building_t *building = game.buildings[MAP_OBJ_INDEX(serf->pos)];
           flag_t *flag =
                       game.flags[MAP_OBJ_INDEX(MAP_MOVE_DOWN_RIGHT(serf->pos))];
           flag->clear_flags();
-          building->stock[0].type = RESOURCE_PIG;
-          building->stock[0].prio = 0;
-          building->stock[0].maximum = 8;
+          building->stock_init(0, RESOURCE_PIG, 8);
         }
 
         serf_log_state_change(serf, SERF_STATE_BUTCHERING);
@@ -1210,13 +1231,11 @@ handle_serf_entering_building_state(serf_t *serf) {
         map_set_serf_index(serf->pos, 0);
 
         if (serf->s.entering_building.field_B != 0) {
-          building_t *building = game_get_building(MAP_OBJ_INDEX(serf->pos));
+          building_t *building = game.buildings[MAP_OBJ_INDEX(serf->pos)];
           flag_t *flag =
                       game.flags[MAP_OBJ_INDEX(MAP_MOVE_DOWN_RIGHT(serf->pos))];
           flag->clear_flags();
-          building->stock[0].type = RESOURCE_WHEAT;
-          building->stock[0].prio = 0;
-          building->stock[0].maximum = 8;
+          building->stock_init(0, RESOURCE_WHEAT, 8);
         }
 
         serf_log_state_change(serf, SERF_STATE_MILLING);
@@ -1231,13 +1250,11 @@ handle_serf_entering_building_state(serf_t *serf) {
         map_set_serf_index(serf->pos, 0);
 
         if (serf->s.entering_building.field_B != 0) {
-          building_t *building = game_get_building(MAP_OBJ_INDEX(serf->pos));
+          building_t *building = game.buildings[MAP_OBJ_INDEX(serf->pos)];
           flag_t *flag =
                       game.flags[MAP_OBJ_INDEX(MAP_MOVE_DOWN_RIGHT(serf->pos))];
           flag->clear_flags();
-          building->stock[0].type = RESOURCE_FLOUR;
-          building->stock[0].prio = 0;
-          building->stock[0].maximum = 8;
+          building->stock_init(0, RESOURCE_FLOUR, 8);
         }
 
         serf_log_state_change(serf, SERF_STATE_BAKING);
@@ -1251,13 +1268,11 @@ handle_serf_entering_building_state(serf_t *serf) {
       } else {
         map_set_serf_index(serf->pos, 0);
         if (serf->s.entering_building.field_B != 0) {
-          building_t *building = game_get_building(MAP_OBJ_INDEX(serf->pos));
+          building_t *building = game.buildings[MAP_OBJ_INDEX(serf->pos)];
           flag_t *flag =
                       game.flags[MAP_OBJ_INDEX(MAP_MOVE_DOWN_RIGHT(serf->pos))];
           flag->clear_flags();
-          building->stock[0].type = RESOURCE_PLANK;
-          building->stock[0].prio = 0;
-          building->stock[0].maximum = 8;
+          building->stock_init(0, RESOURCE_PLANK, 8);
         }
 
         serf_log_state_change(serf, SERF_STATE_BUILDING_BOAT);
@@ -1271,16 +1286,12 @@ handle_serf_entering_building_state(serf_t *serf) {
       } else {
         map_set_serf_index(serf->pos, 0);
         if (serf->s.entering_building.field_B != 0) {
-          building_t *building = game_get_building(MAP_OBJ_INDEX(serf->pos));
+          building_t *building = game.buildings[MAP_OBJ_INDEX(serf->pos)];
           flag_t *flag =
                       game.flags[MAP_OBJ_INDEX(MAP_MOVE_DOWN_RIGHT(serf->pos))];
           flag->clear_flags();
-          building->stock[0].type = RESOURCE_PLANK;
-          building->stock[0].prio = 0;
-          building->stock[0].maximum = 8;
-          building->stock[1].type = RESOURCE_STEEL;
-          building->stock[1].prio = 0;
-          building->stock[1].maximum = 8;
+          building->stock_init(0, RESOURCE_PLANK, 8);
+          building->stock_init(1, RESOURCE_STEEL, 8);
         }
 
         serf_log_state_change(serf, SERF_STATE_MAKING_TOOL);
@@ -1294,16 +1305,12 @@ handle_serf_entering_building_state(serf_t *serf) {
       } else {
         map_set_serf_index(serf->pos, 0);
         if (serf->s.entering_building.field_B != 0) {
-          building_t *building = game_get_building(MAP_OBJ_INDEX(serf->pos));
+          building_t *building = game.buildings[MAP_OBJ_INDEX(serf->pos)];
           flag_t *flag =
                       game.flags[MAP_OBJ_INDEX(MAP_MOVE_DOWN_RIGHT(serf->pos))];
           flag->clear_flags();
-          building->stock[0].type = RESOURCE_COAL;
-          building->stock[0].prio = 0;
-          building->stock[0].maximum = 8;
-          building->stock[1].type = RESOURCE_STEEL;
-          building->stock[1].prio = 0;
-          building->stock[1].maximum = 8;
+          building->stock_init(0, RESOURCE_COAL, 8);
+          building->stock_init(1, RESOURCE_STEEL, 8);
         }
 
         serf_log_state_change(serf, SERF_STATE_MAKING_WEAPON);
@@ -1324,8 +1331,8 @@ handle_serf_entering_building_state(serf_t *serf) {
     case SERF_GENERIC: {
       map_set_serf_index(serf->pos, 0);
 
-      building_t *building = game_get_building(MAP_OBJ_INDEX(serf->pos));
-      inventory_t *inventory = building->u.inventory;
+      building_t *building = game.buildings[MAP_OBJ_INDEX(serf->pos)];
+      inventory_t *inventory = building->get_inventory();
       assert(inventory);
       inventory->serf_come_back();
 
@@ -1342,32 +1349,31 @@ handle_serf_entering_building_state(serf_t *serf) {
       if (serf->s.entering_building.field_B == -2) {
         serf_enter_inventory(serf);
       } else {
-        building_t *building = game_get_building(MAP_OBJ_INDEX(serf->pos));
-        if (BUILDING_IS_BURNING(building)) {
+        building_t *building = game.buildings[MAP_OBJ_INDEX(serf->pos)];
+        if (building->is_burning()) {
           serf_log_state_change(serf, SERF_STATE_LOST);
           serf->state = SERF_STATE_LOST;
           serf->counter = 0;
         } else {
           map_set_serf_index(serf->pos, 0);
 
-          if (BUILDING_HAS_INVENTORY(building)) {
+          if (building->has_inventory()) {
             serf_log_state_change(serf, SERF_STATE_DEFENDING_CASTLE);
             serf->state = SERF_STATE_DEFENDING_CASTLE;
             serf->counter = 6000;
 
             /* Prepend to knight list */
-            serf->s.defending.next_knight = building->serf_index;
-            building->serf_index = SERF_INDEX(serf);
+            serf->s.defending.next_knight = building->get_main_serf();
+            building->set_main_serf(SERF_INDEX(serf));
 
-            game.player[BUILDING_PLAYER(building)]->castle_knights += 1;
+            game.player[building->get_player()]->castle_knights += 1;
             return;
           }
 
-          building->stock[0].available += 1;
-          building->stock[0].requested -= 1;
+          building->requested_knight_arrived();
 
           serf_state_t next_state = (serf_state_t)-1;
-          switch (BUILDING_TYPE(building)) {
+          switch (building->get_type()) {
             case BUILDING_HUT: {
               next_state = SERF_STATE_DEFENDING_HUT;
               break;
@@ -1392,16 +1398,16 @@ handle_serf_entering_building_state(serf_t *serf) {
           serf->counter = 6000;
 
           /* Prepend to knight list */
-          serf->s.defending.next_knight = building->serf_index;
-          building->serf_index = SERF_INDEX(serf);
+          serf->s.defending.next_knight = building->get_main_serf();
+          building->set_main_serf(SERF_INDEX(serf));
 
           /* Test whether building is already occupied by knights */
-          if (!BUILDING_IS_ACTIVE(building)) {
-            building->serf |= BIT(4);
+          if (!building->is_active()) {
+            building->start_activity();
 
             int mil_type = -1;
             int max_gold = -1;
-            switch (BUILDING_TYPE(building)) {
+            switch (building->get_type()) {
             case BUILDING_HUT:
               mil_type = 0;
               max_gold = 2;
@@ -1419,15 +1425,13 @@ handle_serf_entering_building_state(serf_t *serf) {
               break;
             }
 
-            player_add_notification(game.player[BUILDING_PLAYER(building)],
-                  (mil_type << 5) | 6, building->pos);
+            player_add_notification(game.player[building->get_player()],
+                  (mil_type << 5) | 6, building->get_position());
 
             flag_t *flag =
-                  game.flags[MAP_OBJ_INDEX(MAP_MOVE_DOWN_RIGHT(building->pos))];
+       game.flags[MAP_OBJ_INDEX(MAP_MOVE_DOWN_RIGHT(building->get_position()))];
             flag->clear_flags();
-            building->stock[1].type = RESOURCE_GOLDBAR;
-            building->stock[1].prio = 0;
-            building->stock[1].maximum = max_gold;
+            building->stock_init(1, RESOURCE_GOLDBAR, max_gold);
 
             /* Save amount of land and buildings for each player */
             unsigned int land_before[GAME_MAX_PLAYER_COUNT] = {0};
@@ -1441,7 +1445,7 @@ handle_serf_entering_building_state(serf_t *serf) {
             }
 
             /* Update land ownership */
-            game_update_land_ownership(building->pos);
+            game_update_land_ownership(building->get_position());
 
             /* Create notfications for lost land and buildings */
             for (int i = 0; i < GAME_MAX_PLAYER_COUNT; i++) {
@@ -1450,12 +1454,12 @@ handle_serf_entering_building_state(serf_t *serf) {
 
               if (buildings_before[i] > player->total_building_score) {
                 player_add_notification(player,
-                                        (BUILDING_PLAYER(building) << 5) | 9,
-                                        building->pos);
+                                        (building->get_player() << 5) | 9,
+                                        building->get_position());
               } else if (land_before[i] > player->total_land_area) {
                 player_add_notification(player,
-                                        (BUILDING_PLAYER(building) << 5) | 8,
-                                        building->pos);
+                                        (building->get_player() << 5) | 8,
+                                        building->get_position());
               }
             }
           }
@@ -1675,18 +1679,18 @@ handle_serf_digging_state(serf_t *serf) {
 
       if (serf->s.digging.h_index < 0) {
         /* Done digging */
-        building_t *building = game_get_building(MAP_OBJ_INDEX(serf->pos));
-        building->progress = 1;
-        building->serf &= ~BIT(6);
-        building->serf_index = 0;
+        building_t *building = game.buildings[MAP_OBJ_INDEX(serf->pos)];
+        building->done_leveling();
+        building->serf_gone();
+        building->set_main_serf(0);
         serf_log_state_change(serf, SERF_STATE_READY_TO_LEAVE);
         serf->state = SERF_STATE_READY_TO_LEAVE;
         serf->s.leaving_building.dest = 0;
         serf->s.leaving_building.field_B = -2;
         serf->s.leaving_building.dir = 0;
         serf->s.leaving_building.next_state = SERF_STATE_WALKING;
-        handle_serf_ready_to_leave_state(serf);
-        /* TODO why isn't a state switch enough? */
+        handle_serf_ready_to_leave_state(serf);  // TODO(_): why isn't a state
+                                                 //          switch enough?
         return;
       }
     }
@@ -1716,17 +1720,17 @@ handle_serf_building_state(serf_t *serf) {
   serf->counter -= delta;
 
   while (serf->counter < 0) {
-    building_t *building = game_get_building(serf->s.building.bld_index);
+    building_t *building = game.buildings[serf->s.building.bld_index];
     if (serf->s.building.mode < 0) {
-      building_type_t type = BUILDING_TYPE(building);
-      int frame_finished = !!BIT_TEST(building->progress, 15);
-      building->progress += construction_progress[2*type+frame_finished];
+      building_type_t type = building->get_type();
+      int frame_finished = !!BIT_TEST(building->get_progress(), 15);
+      building->increase_progress(construction_progress[2*type+frame_finished]);
 
-      if (building->progress > 0xffff) {
-        building->progress = 0;
-        building->serf &= ~BIT(6);
-        building->serf_index = 0;
-        building->bld &= ~BIT(7); /* Building finished */
+      if (building->get_progress() > 0xffff) {
+        building->drop_progress();
+        building->serf_gone();
+        building->set_main_serf(0);
+        building->done_build(); /* Building finished */
 
         switch (type) {
         case BUILDING_HUT:
@@ -1738,10 +1742,10 @@ handle_serf_building_state(serf_t *serf) {
           break;
         }
 
-        flag_t *flag = game.flags[building->flag];
+        flag_t *flag = game.flags[building->get_flag_index()];
 
-        building->stock[0].type = RESOURCE_NONE;
-        building->stock[1].type = RESOURCE_NONE;
+        building->stock_init(0, RESOURCE_NONE, 0);
+        building->stock_init(1, RESOURCE_NONE, 0);
         flag->clear_flags();
 
         /* Update player fields. */
@@ -1765,26 +1769,24 @@ handle_serf_building_state(serf_t *serf) {
 
         /* 353A5 */
         int material_step = serf->s.building.material_step & 0xf;
-        if (!BIT_TEST(material_order[BUILDING_TYPE(building)], material_step)) {
+        if (!BIT_TEST(material_order[building->get_type()], material_step)) {
           /* Planks */
-          if (building->stock[0].available == 0) {
+          if (building->get_res_count_in_stock(0) == 0) {
             serf->counter += 256;
             if (serf->counter < 0) serf->counter = 255;
             return;
           }
 
-          building->stock[0].available -= 1;
-          building->stock[0].maximum -= 1;
+          building->plank_used_for_build();
         } else {
           /* Stone */
-          if (building->stock[1].available == 0) {
+          if (building->get_res_count_in_stock(1) == 0) {
             serf->counter += 256;
             if (serf->counter < 0) serf->counter = 255;
             return;
           }
 
-          building->stock[1].available -= 1;
-          building->stock[1].maximum -= 1;
+          building->stone_used_for_build();
         }
 
         serf->s.building.material_step += 1;
@@ -1800,26 +1802,24 @@ handle_serf_building_state(serf_t *serf) {
 
       /* 353A5: Duplicate code */
       int material_step = serf->s.building.material_step & 0xf;
-      if (!BIT_TEST(material_order[BUILDING_TYPE(building)], material_step)) {
+      if (!BIT_TEST(material_order[building->get_type()], material_step)) {
         /* Planks */
-        if (building->stock[0].available == 0) {
+        if (building->get_res_count_in_stock(0) == 0) {
           serf->counter += 256;
           if (serf->counter < 0) serf->counter = 255;
           return;
         }
 
-        building->stock[0].available -= 1;
-        building->stock[0].maximum -= 1;
+        building->plank_used_for_build();
       } else {
         /* Stone */
-        if (building->stock[1].available == 0) {
+        if (building->get_res_count_in_stock(1) == 0) {
           serf->counter += 256;
           if (serf->counter < 0) serf->counter = 255;
           return;
         }
 
-        building->stock[1].available -= 1;
-        building->stock[1].maximum -= 1;
+        building->stone_used_for_build();
       }
 
       serf->s.building.material_step += 1;
@@ -1840,15 +1840,15 @@ handle_serf_building_castle_state(serf_t *serf) {
   serf->tick = game.tick;
 
   inventory_t *inventory = game.inventories[serf->s.building_castle.inv_index];
-  building_t *building = game_get_building(inventory->get_building_index());
-  building->progress += progress_delta;
+  building_t *building = game.buildings[inventory->get_building_index()];
+  building->increase_progress(progress_delta);
 
-  if (building->progress >= 0x10000) { /* Finished */
+  if (building->get_progress() >= 0x10000) { /* Finished */
     serf_log_state_change(serf, SERF_STATE_WAIT_FOR_RESOURCE_OUT);
     serf->state = SERF_STATE_WAIT_FOR_RESOURCE_OUT;
     map_set_serf_index(serf->pos, 0);
-    building->bld &= ~BIT(7); /* Building finished */
-    building->serf_index = 0;
+    building->done_build(); /* Building finished */
+    building->set_main_serf(0);
   }
 }
 
@@ -1896,8 +1896,8 @@ handle_serf_wait_for_resource_out_state(serf_t *serf) {
     serf->counter = 0;
   }
 
-  building_t *building = game_get_building(MAP_OBJ_INDEX(serf->pos));
-  inventory_t *inventory = building->u.inventory;
+  building_t *building = game.buildings[MAP_OBJ_INDEX(serf->pos)];
+  inventory_t *inventory = building->get_inventory();
   if (inventory->get_serf_queue_length() > 0 ||
       !inventory->has_resource_in_queue()) {
     return;
@@ -1951,10 +1951,10 @@ handle_serf_delivering_state(serf_t *serf) {
                                       /* Offset by one, because 0 means none. */
       serf->s.walking.res = 0;
       building_t *building =
-                  game_get_building(MAP_OBJ_INDEX(MAP_MOVE_UP_LEFT(serf->pos)));
-      if (!BUILDING_IS_BURNING(building)) {
-        if (BUILDING_HAS_INVENTORY(building)) {
-          inventory_t *inventory = building->u.inventory;
+                     game.buildings[MAP_OBJ_INDEX(MAP_MOVE_UP_LEFT(serf->pos))];
+      if (!building->is_burning()) {
+        if (building->has_inventory()) {
+          inventory_t *inventory = building->get_inventory();
           inventory->push_resource(res);
         } else {
           if (res == RESOURCE_FISH ||
@@ -1964,18 +1964,7 @@ handle_serf_delivering_state(serf_t *serf) {
           }
 
           /* Add to building stock */
-          int stock = -1;
-          for (int i = 0; i < BUILDING_MAX_STOCK; i++) {
-            if (building->stock[i].type == res) {
-              stock = i;
-              break;
-            }
-          }
-
-          assert(stock >= 0);
-          building->stock[stock].available += 1;
-          building->stock[stock].requested -= 1;
-          assert(building->stock[stock].requested >= 0);
+          building->requested_resource_delivered(res);
         }
       }
     }
@@ -2002,7 +1991,7 @@ handle_serf_ready_to_leave_inventory_state(serf_t *serf) {
     flag_t *flag = game.flags[serf->s.ready_to_leave_inventory.dest];
     if (flag->has_building()) {
       building_t *building = flag->get_building();
-      if (MAP_SERF_INDEX(building->pos) != 0) {
+      if (MAP_SERF_INDEX(building->get_position()) != 0) {
         serf->animation = 82;
         serf->counter = 0;
         return;
@@ -2982,9 +2971,8 @@ handle_serf_stonecutting_state(serf_t *serf) {
 static void
 handle_serf_sawing_state(serf_t *serf) {
   if (serf->s.sawing.mode == 0) {
-    building_t *building = game_get_building(MAP_OBJ_INDEX(serf->pos));
-    if (building->stock[1].available > 0) {
-      building->stock[1].available -= 1;
+    building_t *building = game.buildings[MAP_OBJ_INDEX(serf->pos)];
+    if (building->use_resource_in_stock(1)) {
       serf->s.sawing.mode = 1;
       serf->animation = 124;
       serf->counter = counter_from_animation[serf->animation];
@@ -3190,7 +3178,7 @@ handle_serf_mining_state(serf_t *serf) {
   serf->counter -= delta;
 
   while (serf->counter < 0) {
-    building_t *building = game_get_building(MAP_OBJ_INDEX(serf->pos));
+    building_t *building = game.buildings[MAP_OBJ_INDEX(serf->pos)];
 
     LOGV("serf", "mining substate: %i.", serf->s.mining.substate);
     switch (serf->s.mining.substate) {
@@ -3208,18 +3196,17 @@ handle_serf_mining_state(serf_t *serf) {
     }
     break;
     case 1:
-      if (building->stock[0].available == 0) {
-        map_set_serf_index(serf->pos, SERF_INDEX(serf));
-        serf->animation = 98;
-        serf->counter += 256;
-        if (serf->counter < 0) serf->counter = 255;
-      } else {
+      if (building->use_resource_in_stock(0)) {
         /* Eat the food. */
-        building->stock[0].available -= 1;
         serf->s.mining.substate = 3;
         map_set_serf_index(serf->pos, SERF_INDEX(serf));
         serf->animation = 125;
         serf->counter = counter_from_animation[serf->animation];
+      } else {
+        map_set_serf_index(serf->pos, SERF_INDEX(serf));
+        serf->animation = 98;
+        serf->counter += 256;
+        if (serf->counter < 0) serf->counter = 255;
       }
       break;
     case 2:
@@ -3230,13 +3217,12 @@ handle_serf_mining_state(serf_t *serf) {
       break;
     case 3:
       serf->s.mining.substate = 4;
-      building->serf &= ~BIT(4);
+      building->stop_activity();
       serf->animation = 126;
       serf->counter = 304; /* TODO counter_from_animation[126] == 303 */
       break;
-    case 4:
-    {
-      building->serf |= BIT(3);
+    case 4: {
+      building->start_playing_sfx();
       map_set_serf_index(serf->pos, 0);
       /* fall through */
     }
@@ -3271,28 +3257,28 @@ handle_serf_mining_state(serf_t *serf) {
     case 8:
       map_set_serf_index(serf->pos, SERF_INDEX(serf));
       serf->s.mining.substate = 9;
-      building->serf &= ~BIT(3);
+      building->stop_playing_sfx();
       serf->animation = 127;
       serf->counter = counter_from_animation[serf->animation];
       break;
     case 9:
       serf->s.mining.substate = 10;
-      building->serf |= BIT(4);
+      building->start_activity();
 
-      if (building->progress == 0x8000) {
+      if (building->get_progress() == 0x8000) {
         /* Handle empty mine. */
         player_t *player = game.player[SERF_PLAYER(serf)];
         if (PLAYER_IS_AI(player)) {
           /* TODO Burn building. */
         }
 
-        int type = ((BUILDING_TYPE(building)-BUILDING_STONEMINE) << 5) | 4;
-        player_add_notification(game.player[BUILDING_PLAYER(building)],
-              type, building->pos);
+        int type = ((building->get_type()-BUILDING_STONEMINE) << 5) | 4;
+        player_add_notification(game.player[building->get_player()],
+              type, building->get_position());
       }
 
-      building->progress = (building->progress << 1) & 0xffff;
-      if (serf->s.mining.res > 0) building->progress += 1;
+      building->increase_mining();
+      if (serf->s.mining.res > 0) building->increase_progress(1);
 
       serf->animation = 128;
       serf->counter = 384; /* TODO counter_from_animation[128] == 383 */
@@ -3327,14 +3313,11 @@ handle_serf_mining_state(serf_t *serf) {
 
 static void
 handle_serf_smelting_state(serf_t *serf) {
-  building_t *building = game_get_building(MAP_OBJ_INDEX(serf->pos));
+  building_t *building = game.buildings[MAP_OBJ_INDEX(serf->pos)];
 
   if (serf->s.smelting.mode == 0) {
-    if (building->stock[0].available != 0 &&
-        building->stock[1].available != 0) {
-      building->serf |= BIT(4);
-      building->stock[0].available -= 1;
-      building->stock[1].available -= 1;
+    if (building->use_resources_in_stocks()) {
+      building->start_activity();
 
       serf->s.smelting.mode = 1;
       if (serf->s.smelting.type == 0) {
@@ -3356,7 +3339,7 @@ handle_serf_smelting_state(serf_t *serf) {
     while (serf->counter < 0) {
       serf->s.smelting.counter -= 1;
       if (serf->s.smelting.counter < 0) {
-        building->serf &= ~BIT(4);
+        building->stop_activity();
 
         int res = -1;
         if (serf->s.smelting.type == 0) {
@@ -3561,12 +3544,11 @@ handle_serf_farming_state(serf_t *serf) {
 
 static void
 handle_serf_milling_state(serf_t *serf) {
-  building_t *building = game_get_building(MAP_OBJ_INDEX(serf->pos));
+  building_t *building = game.buildings[MAP_OBJ_INDEX(serf->pos)];
 
   if (serf->s.milling.mode == 0) {
-    if (building->stock[0].available > 0) {
-      building->serf |= BIT(4);
-      building->stock[0].available -= 1;
+    if (building->use_resource_in_stock(0)) {
+      building->start_activity();
 
       serf->s.milling.mode = 1;
       serf->animation = 137;
@@ -3584,7 +3566,7 @@ handle_serf_milling_state(serf_t *serf) {
       serf->s.milling.mode += 1;
       if (serf->s.milling.mode == 5) {
         /* Done milling. */
-        building->serf &= ~BIT(4);
+        building->stop_activity();
         serf_log_state_change(serf, SERF_STATE_MOVE_RESOURCE_OUT);
         serf->state = SERF_STATE_MOVE_RESOURCE_OUT;
         serf->s.move_resource_out.res = 1 + RESOURCE_FLOUR;
@@ -3608,12 +3590,10 @@ handle_serf_milling_state(serf_t *serf) {
 
 static void
 handle_serf_baking_state(serf_t *serf) {
-  building_t *building = game_get_building(MAP_OBJ_INDEX(serf->pos));
+  building_t *building = game.buildings[MAP_OBJ_INDEX(serf->pos)];
 
   if (serf->s.baking.mode == 0) {
-    if (building->stock[0].available > 0) {
-      building->stock[0].available -= 1;
-
+    if (building->use_resource_in_stock(0)) {
       serf->s.baking.mode = 1;
       serf->animation = 138;
       serf->counter = counter_from_animation[serf->animation];
@@ -3630,7 +3610,7 @@ handle_serf_baking_state(serf_t *serf) {
       serf->s.baking.mode += 1;
       if (serf->s.baking.mode == 3) {
         /* Done baking. */
-        building->serf &= ~BIT(4);
+        building->stop_activity();
 
         serf_log_state_change(serf, SERF_STATE_MOVE_RESOURCE_OUT);
         serf->state = SERF_STATE_MOVE_RESOURCE_OUT;
@@ -3642,7 +3622,7 @@ handle_serf_baking_state(serf_t *serf) {
         player->resource_count[RESOURCE_BREAD] += 1;
         return;
       } else {
-        building->serf |= BIT(4);
+        building->start_activity();
         map_set_serf_index(serf->pos, 0);
         serf->counter += 1500;
       }
@@ -3659,12 +3639,10 @@ handle_serf_pigfarming_state(serf_t *serf) {
     12000, 13000, 14000, 0
   };
 
-  building_t *building = game_get_building(MAP_OBJ_INDEX(serf->pos));
+  building_t *building = game.buildings[MAP_OBJ_INDEX(serf->pos)];
 
   if (serf->s.pigfarming.mode == 0) {
-    if (building->stock[0].available > 0) {
-      building->stock[0].available -= 1;
-
+    if (building->use_resource_in_stock(0)) {
       serf->s.pigfarming.mode = 1;
       serf->animation = 139;
       serf->counter = counter_from_animation[serf->animation];
@@ -3684,11 +3662,11 @@ handle_serf_pigfarming_state(serf_t *serf) {
           map_set_serf_index(serf->pos, SERF_INDEX(serf));
           serf->animation = 139;
           serf->counter = counter_from_animation[serf->animation];
-        } else if (building->stock[1].available == 8 ||
-             (building->stock[1].available > 3 &&
-              ((20*game_random_int()) >> 16) < building->stock[1].available)) {
+        } else if (building->pigs_count() == 8 ||
+                   (building->pigs_count() > 3 &&
+                   ((20*game_random_int()) >> 16) < building->pigs_count())) {
           /* Pig is ready for the butcher. */
-          building->stock[1].available -= 1;
+          building->send_pig_to_butcher();
 
           serf_log_state_change(serf, SERF_STATE_MOVE_RESOURCE_OUT);
           serf->state = SERF_STATE_MOVE_RESOURCE_OUT;
@@ -3711,9 +3689,9 @@ handle_serf_pigfarming_state(serf_t *serf) {
         return;
       } else {
         map_set_serf_index(serf->pos, 0);
-        if (building->stock[1].available < 8 &&
-            game_random_int() < breeding_prob[building->stock[1].available-1]) {
-          building->stock[1].available += 1;
+        if (building->pigs_count() < 8 &&
+            game_random_int() < breeding_prob[building->pigs_count()-1]) {
+          building->place_new_pig();
         }
         serf->counter += 2048;
       }
@@ -3723,12 +3701,10 @@ handle_serf_pigfarming_state(serf_t *serf) {
 
 static void
 handle_serf_butchering_state(serf_t *serf) {
-  building_t *building = game_get_building(MAP_OBJ_INDEX(serf->pos));
+  building_t *building = game.buildings[MAP_OBJ_INDEX(serf->pos)];
 
   if (serf->s.butchering.mode == 0) {
-    if (building->stock[0].available > 0) {
-      building->stock[0].available -= 1;
-
+    if (building->use_resource_in_stock(0)) {
       serf->s.butchering.mode = 1;
       serf->animation = 140;
       serf->counter = counter_from_animation[serf->animation];
@@ -3760,23 +3736,20 @@ handle_serf_butchering_state(serf_t *serf) {
 
 static void
 handle_serf_making_weapon_state(serf_t *serf) {
-  building_t *building = game_get_building(MAP_OBJ_INDEX(serf->pos));
+  building_t *building = game.buildings[MAP_OBJ_INDEX(serf->pos)];
 
   if (serf->s.making_weapon.mode == 0) {
     /* One of each resource makes a sword and a shield.
        Bit 3 is set if a sword has been made and a
        shield can be made without more resources. */
     /* TODO Use of this bit overlaps with sfx check bit. */
-    if (!BIT_TEST(building->serf, 3)) {
-      if (building->stock[0].available == 0 ||
-          building->stock[1].available == 0) {
+    if (!building->playing_sfx()) {
+      if (!building->use_resources_in_stocks()) {
         return;
       }
-      building->stock[0].available -= 1;
-      building->stock[1].available -= 1;
     }
 
-    building->serf |= BIT(4);
+    building->start_activity();
 
     serf->s.making_weapon.mode = 1;
     serf->animation = 143;
@@ -3793,12 +3766,16 @@ handle_serf_making_weapon_state(serf_t *serf) {
       serf->s.making_weapon.mode += 1;
       if (serf->s.making_weapon.mode == 7) {
         /* Done making sword or shield. */
-        building->serf &= ~BIT(4);
+        building->stop_activity();
         map_set_serf_index(serf->pos, 0);
 
-        resource_type_t res = BIT_TEST(building->serf, 3) ? RESOURCE_SHIELD :
-                                                            RESOURCE_SWORD;
-        building->serf ^= BIT(3);
+        resource_type_t res = building->playing_sfx() ? RESOURCE_SHIELD :
+                                                        RESOURCE_SWORD;
+        if (building->playing_sfx()) {
+          building->stop_playing_sfx();
+        } else {
+          building->start_playing_sfx();
+        }
 
         serf_log_state_change(serf, SERF_STATE_MOVE_RESOURCE_OUT);
         serf->state = SERF_STATE_MOVE_RESOURCE_OUT;
@@ -3819,14 +3796,10 @@ handle_serf_making_weapon_state(serf_t *serf) {
 
 static void
 handle_serf_making_tool_state(serf_t *serf) {
-  building_t *building = game_get_building(MAP_OBJ_INDEX(serf->pos));
+  building_t *building = game.buildings[MAP_OBJ_INDEX(serf->pos)];
 
   if (serf->s.making_tool.mode == 0) {
-    if (building->stock[0].available > 0 &&
-        building->stock[1].available > 0) {
-      building->stock[0].available -= 1;
-      building->stock[1].available -= 1;
-
+    if (building->use_resources_in_stocks()) {
       serf->s.making_tool.mode = 1;
       serf->animation = 144;
       serf->counter = counter_from_animation[serf->animation];
@@ -3884,12 +3857,11 @@ handle_serf_making_tool_state(serf_t *serf) {
 
 static void
 handle_serf_building_boat_state(serf_t *serf) {
-  building_t *building = game_get_building(MAP_OBJ_INDEX(serf->pos));
+  building_t *building = game.buildings[MAP_OBJ_INDEX(serf->pos)];
 
   if (serf->s.building_boat.mode == 0) {
-    if (building->stock[0].available == 0) return;
-    building->stock[0].available -= 1;
-    building->stock[1].available = 0;
+    if (!building->use_resource_in_stock(0)) return;
+    building->boat_clear();
 
     serf->s.building_boat.mode = 1;
     serf->animation = 146;
@@ -3913,7 +3885,7 @@ handle_serf_building_boat_state(serf_t *serf) {
           serf->counter = 0;
         } else {
           /* Drop boat at flag. */
-          building->stock[1].available = 0;
+          building->boat_clear();
           map_set_serf_index(serf->pos, 0);
 
           serf_log_state_change(serf, SERF_STATE_MOVE_RESOURCE_OUT);
@@ -3930,7 +3902,7 @@ handle_serf_building_boat_state(serf_t *serf) {
         }
       } else {
         /* Continue building. */
-        building->stock[1].available += 1;
+        building->boat_do();
         serf->animation = 145;
         serf->counter += 1408;
       }
@@ -4048,17 +4020,14 @@ handle_serf_knight_engaging_building_state(serf_t *serf) {
     if (obj >= MAP_OBJ_SMALL_BUILDING &&
         obj <= MAP_OBJ_CASTLE) {
       building_t *building =
-                  game_get_building(MAP_OBJ_INDEX(MAP_MOVE_UP_LEFT(serf->pos)));
-      if (BUILDING_IS_DONE(building) &&
-          (BUILDING_TYPE(building) == BUILDING_HUT ||
-           BUILDING_TYPE(building) == BUILDING_TOWER ||
-           BUILDING_TYPE(building) == BUILDING_FORTRESS ||
-           BUILDING_TYPE(building) == BUILDING_CASTLE) &&
-          BUILDING_PLAYER(building) != SERF_PLAYER(serf) &&
-          building->serf_index != 0) {
-        if (BIT_TEST(building->progress, 0)) {
-          player_add_notification(game.player[BUILDING_PLAYER(building)],
-                (SERF_PLAYER(serf) << 5) | 1, building->pos);
+                     game.buildings[MAP_OBJ_INDEX(MAP_MOVE_UP_LEFT(serf->pos))];
+      if (building->is_done() &&
+          building->is_military() &&
+          building->get_player() != SERF_PLAYER(serf) &&
+          building->has_main_serf()) {
+        if (building->is_under_attack()) {
+          player_add_notification(game.player[building->get_player()],
+                (SERF_PLAYER(serf) << 5) | 1, building->get_position());
         }
 
         /* Change state of attacking knight */
@@ -4066,22 +4035,7 @@ handle_serf_knight_engaging_building_state(serf_t *serf) {
         serf->state = SERF_STATE_KNIGHT_PREPARE_ATTACKING;
         serf->animation = 168;
 
-        /* Remove knight from stats of defending building */
-        if (BUILDING_HAS_INVENTORY(building)) { /* Castle */
-          game.player[BUILDING_PLAYER(building)]->castle_knights -= 1;
-        } else {
-          building->stock[0].available -= 1;
-          building->stock[0].requested += 1;
-        }
-
-        /* The last knight in the list has to defend. */
-        int *def_index = &building->serf_index;
-        serf_t *def_serf = game_get_serf(*def_index);
-        while (def_serf->s.defending.next_knight != 0) {
-          def_index = &def_serf->s.defending.next_knight;
-          def_serf = game_get_serf(*def_index);
-        }
-        *def_index = 0;
+        serf_t *def_serf = building->call_defender_out();
 
         serf->s.attacking.def_index = SERF_INDEX(def_serf);
 
@@ -4264,10 +4218,8 @@ handle_knight_attacking(serf_t *serf) {
           serf->counter = 0;
 
           int index = MAP_OBJ_INDEX(MAP_MOVE_UP_LEFT(def_serf->pos));
-          building_t *building = game_get_building(index);
-          if (!BUILDING_HAS_INVENTORY(building)) {
-            building->stock[0].requested -= 1;
-          }
+          building_t *building = game.buildings[index];
+          building->requested_knight_defeat_on_walk();
         }
 
         /* Defender dies. */
@@ -4334,46 +4286,32 @@ handle_knight_occupy_enemy_building(serf_t *serf) {
     map_pos_t pos = MAP_MOVE_UP_LEFT(serf->pos);
     if (MAP_OBJ(pos) >= MAP_OBJ_SMALL_BUILDING &&
         MAP_OBJ(pos) <= MAP_OBJ_CASTLE) {
-      building_t *building = game_get_building(MAP_OBJ_INDEX(pos));
-      if (!BUILDING_IS_BURNING(building) &&
-          (BUILDING_TYPE(building) == BUILDING_HUT ||
-           BUILDING_TYPE(building) == BUILDING_TOWER ||
-           BUILDING_TYPE(building) == BUILDING_FORTRESS ||
-           BUILDING_TYPE(building) == BUILDING_CASTLE)) {
-        if (BUILDING_PLAYER(building) == SERF_PLAYER(serf)) {
+      building_t *building = game.buildings[MAP_OBJ_INDEX(pos)];
+      if (!building->is_burning() &&
+          building->is_military()) {
+        if (building->get_player() == SERF_PLAYER(serf)) {
           /* Enter building if there is space. */
-          if (BUILDING_TYPE(building) != BUILDING_CASTLE) {
-            int max_knights = -1;
-            switch (BUILDING_TYPE(building)) {
-            case BUILDING_HUT: max_knights = 3; break;
-            case BUILDING_TOWER: max_knights = 6; break;
-            case BUILDING_FORTRESS: max_knights = 12; break;
-            default: NOT_REACHED(); break;
-            }
-
-            int current = building->stock[0].requested +
-              building->stock[0].available;
-            if (current < max_knights) {
+          if (building->get_type() != BUILDING_CASTLE) {
+            if (building->is_enough_place_for_knight()) {
               /* Enter building */
               serf_enter_building(serf, -1, 0);
-              building->stock[0].requested += 1;
+              building->knight_occupy();
               return;
             }
           } else {
             serf_enter_building(serf, -2, 0);
             return;
           }
-        } else if (building->serf_index == 0) {
+        } else if (!building->has_main_serf()) {
           /* Occupy the building. */
           game_occupy_enemy_building(building, SERF_PLAYER(serf));
 
-          if (BUILDING_TYPE(building) == BUILDING_CASTLE) {
+          if (building->get_type() == BUILDING_CASTLE) {
             serf->counter = 0;
           } else {
             /* Enter building */
             serf_enter_building(serf, -1, 0);
-            building->stock[0].available = 0;
-            building->stock[0].requested = 1;
+            building->knight_occupy();
           }
           return;
         } else {
@@ -4436,8 +4374,8 @@ handle_state_knight_free_walking(serf_t *serf) {
               return;
             }
           } else if (other->state == SERF_STATE_WALKING &&
-               SERF_TYPE(other) >= SERF_KNIGHT_0 &&
-               SERF_TYPE(other) <= SERF_KNIGHT_4) {
+                     SERF_TYPE(other) >= SERF_KNIGHT_0 &&
+                     SERF_TYPE(other) <= SERF_KNIGHT_4) {
             pos = MAP_MOVE_LEFT(pos);
             if (serf_can_pass_map_pos(pos)) {
               int dist_col = serf->s.free_walking.dist1;
@@ -4454,8 +4392,8 @@ handle_state_knight_free_walking(serf_t *serf) {
 
               flag_t *dest = game.flags[other->s.walking.dest];
               building_t *building = dest->get_building();
-              if (!BUILDING_HAS_INVENTORY(building)) {
-                building->stock[0].requested -= 1;
+              if (!building->has_inventory()) {
+                building->requested_knight_attacking_on_walk();
               }
 
               serf_log_state_change(other,
@@ -4670,7 +4608,7 @@ handle_serf_state_knight_leave_for_walk_to_fight(serf_t *serf) {
     return;
   }
 
-  building_t *building = game_get_building(MAP_OBJ_INDEX(serf->pos));
+  building_t *building = game.buildings[MAP_OBJ_INDEX(serf->pos)];
   map_pos_t new_pos = MAP_MOVE_DOWN_RIGHT(serf->pos);
 
   if (MAP_SERF_INDEX(new_pos) == 0) {
@@ -4697,35 +4635,25 @@ handle_serf_state_knight_leave_for_walk_to_fight(serf_t *serf) {
       serf->counter = 0;
     } else {
       /* Go back to defending the building. */
-      int max_capacity = -1;
-      switch (BUILDING_TYPE(building)) {
+      switch (building->get_type()) {
       case BUILDING_HUT:
         serf_log_state_change(serf, SERF_STATE_DEFENDING_HUT);
         serf->state = SERF_STATE_DEFENDING_HUT;
-        max_capacity = 3;
         break;
       case BUILDING_TOWER:
         serf_log_state_change(serf, SERF_STATE_DEFENDING_TOWER);
         serf->state = SERF_STATE_DEFENDING_TOWER;
-        max_capacity = 6;
         break;
       case BUILDING_FORTRESS:
         serf_log_state_change(serf, SERF_STATE_DEFENDING_FORTRESS);
         serf->state = SERF_STATE_DEFENDING_FORTRESS;
-        max_capacity = 12;
         break;
       default:
         NOT_REACHED();
         break;
       }
 
-      int total_knights = building->stock[0].requested +
-                          building->stock[0].available;
-      if (total_knights < max_capacity) {
-        building->stock[0].available += 1;
-        serf->s.defending.next_knight = building->serf_index;
-        building->serf_index = SERF_INDEX(serf);
-      } else {
+      if (!building->knight_come_back_from_fight(serf)) {
         serf->animation = 82;
         serf->counter = 0;
       }

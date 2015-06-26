@@ -1142,27 +1142,26 @@ popup_box_t::draw_gauge_full(int x, int y, unsigned int value,
   draw_popup_icon(x, y, sprite);
 }
 
-static void
+void
 calculate_gauge_values(player_t *player,
                        unsigned int values[24][BUILDING_MAX_STOCK][2]) {
-  for (unsigned int i = 1; i < game.max_building_index; i++) {
-    if (!BUILDING_ALLOCATED(i)) continue;
-
-    building_t *building = game_get_building(i);
-    if (BUILDING_IS_BURNING(building) ||
-        BUILDING_PLAYER(building) != player->player_num ||
-        !BUILDING_HAS_SERF(building)) {
+  for (buildings_t::iterator i = game.buildings.begin();
+       i != game.buildings.end(); ++i) {
+    building_t *building = *i;
+    if (building->is_burning() ||
+        building->get_player() != player->player_num ||
+        !building->has_serf()) {
       continue;
     }
 
-    int type = BUILDING_TYPE(building);
-    if (!BUILDING_IS_DONE(building)) type = 0;
+    int type = building->get_type();
+    if (!building->is_done()) type = 0;
 
     for (int i = 0; i < BUILDING_MAX_STOCK; i++) {
-      if (building->stock[i].maximum > 0) {
-        int v = 2*building->stock[i].available +
-          building->stock[i].requested;
-        values[type][i][0] += (16*v)/(2*building->stock[i].maximum);
+      if (building->get_maximum_in_stock(i) > 0) {
+        int v = 2*building->get_res_count_in_stock(i) +
+          building->get_requested_in_stock(i);
+        values[type][i][0] += (16*v)/(2*building->get_maximum_in_stock(i));
         values[type][i][1] += 1;
       }
     }
@@ -1525,10 +1524,10 @@ popup_box_t::draw_start_attack_box() {
   }
 
   building_t *building =
-                game_get_building(interface->get_player()->building_attacked);
+                game.buildings[interface->get_player()->building_attacked];
   int y = 0;
 
-  switch (BUILDING_TYPE(building)) {
+  switch (building->get_type()) {
   case BUILDING_HUT: y = 50; break;
   case BUILDING_TOWER: y = 32; break;
   case BUILDING_FORTRESS: y = 17; break;
@@ -1536,7 +1535,7 @@ popup_box_t::draw_start_attack_box() {
   default: NOT_REACHED(); break;
   }
 
-  draw_popup_building(0, y, map_building_sprite[BUILDING_TYPE(building)]);
+  draw_popup_building(0, y, map_building_sprite[building->get_type()]);
   draw_custom_icon_box(icon_layout);
 
   /* Draw number of knight at each distance. */
@@ -1945,19 +1944,19 @@ popup_box_t::draw_castle_res_box() {
     return;
   }
 
-  building_t *building = game_get_building(interface->get_player()->index);
-  if (BUILDING_IS_BURNING(building)) {
+  building_t *building = game.buildings[interface->get_player()->index];
+  if (building->is_burning()) {
     interface->close_popup();
     return;
   }
 
-  if (BUILDING_TYPE(building) != BUILDING_STOCK &&
-      BUILDING_TYPE(building) != BUILDING_CASTLE) {
+  if (building->get_type() != BUILDING_STOCK &&
+      building->get_type() != BUILDING_CASTLE) {
     interface->close_popup();
     return;
   }
 
-  inventory_t *inventory = building->u.inventory;
+  inventory_t *inventory = building->get_inventory();
   draw_resources_box(inventory->get_all_resources());
 }
 
@@ -1970,13 +1969,13 @@ popup_box_t::draw_mine_output_box() {
     return;
   }
 
-  building_t *building = game_get_building(interface->get_player()->index);
-  if (BUILDING_IS_BURNING(building)) {
+  building_t *building = game.buildings[interface->get_player()->index];
+  if (building->is_burning()) {
     interface->close_popup();
     return;
   }
 
-  building_type_t type = BUILDING_TYPE(building);
+  building_type_t type = building->get_type();
 
   if (type != BUILDING_STONEMINE &&
       type != BUILDING_COALMINE &&
@@ -1991,12 +1990,12 @@ popup_box_t::draw_mine_output_box() {
 
   /* Draw serf icon */
   int sprite = 0xdc; /* minus box */
-  if (BUILDING_HAS_SERF(building)) sprite = 0x11; /* miner */
+  if (building->has_serf()) sprite = 0x11; /* miner */
 
   draw_popup_icon(10, 75, sprite);
 
   /* Draw food present at mine */
-  int stock = building->stock[0].available;
+  int stock = building->get_res_count_in_stock(0);
   int stock_left_col = (stock + 1) >> 1;
   int stock_right_col = stock >> 1;
 
@@ -2017,7 +2016,7 @@ popup_box_t::draw_mine_output_box() {
                                  6,  6, 5, 5, 4, 3, 2, 1 };
   int output = 0;
   for (int i = 0; i < 15; i++) {
-    output += !!BIT_TEST(building->progress, i) * output_weight[i];
+    output += !!BIT_TEST(building->get_progress(), i) * output_weight[i];
   }
 
   /* Print output precentage */
@@ -2043,13 +2042,13 @@ popup_box_t::draw_ordered_building_box() {
     return;
   }
 
-  building_t *building = game_get_building(interface->get_player()->index);
-  if (BUILDING_IS_BURNING(building)) {
+  building_t *building = game.buildings[interface->get_player()->index];
+  if (building->is_burning()) {
     interface->close_popup();
     return;
   }
 
-  building_type_t type = BUILDING_TYPE(building);
+  building_type_t type = building->get_type();
 
   int sprite = map_building_sprite[type];
   int x = 6;
@@ -2059,11 +2058,11 @@ popup_box_t::draw_ordered_building_box() {
   draw_green_string(2, 4, "Ordered");
   draw_green_string(2, 14, "Building");
 
-  if (BUILDING_HAS_SERF(building)) {
-    if (building->progress == 0) {
-      draw_popup_icon(2, 100, 0xb); /* Digger */
-    } else {
-      draw_popup_icon(2, 100, 0xc); /* Builder */
+  if (building->has_serf()) {
+    if (building->get_progress() == 0) { /* Digger */
+      draw_popup_icon(2, 100, 0xb);
+    } else { /* Builder */
+      draw_popup_icon(2, 100, 0xc);
     }
   } else {
     draw_popup_icon(2, 100, 0xdc); /* Minus box */
@@ -2081,29 +2080,29 @@ popup_box_t::draw_defenders_box() {
     return;
   }
 
-  building_t *building = game_get_building(interface->get_player()->index);
-  if (BUILDING_IS_BURNING(building)) {
+  building_t *building = game.buildings[interface->get_player()->index];
+  if (building->is_burning()) {
     interface->close_popup();
     return;
   }
 
   if (!BIT_TEST(game.split, 5) && /* Demo mode */
-      BUILDING_PLAYER(building) != interface->get_player()->player_num) {
+      building->get_player() != interface->get_player()->player_num) {
     interface->close_popup();
     return;
   }
 
-  if (BUILDING_TYPE(building) != BUILDING_HUT &&
-      BUILDING_TYPE(building) != BUILDING_TOWER &&
-      BUILDING_TYPE(building) != BUILDING_FORTRESS) {
+  if (building->get_type() != BUILDING_HUT &&
+      building->get_type() != BUILDING_TOWER &&
+      building->get_type() != BUILDING_FORTRESS) {
     interface->close_popup();
     return;
   }
 
   /* Draw building sprite */
-  int sprite = map_building_sprite[BUILDING_TYPE(building)];
+  int sprite = map_building_sprite[building->get_type()];
   int x = 0, y = 0;
-  switch (BUILDING_TYPE(building)) {
+  switch (building->get_type()) {
   case BUILDING_HUT: x = 6; y = 20; break;
   case BUILDING_TOWER: x = 4; y = 6; break;
   case BUILDING_FORTRESS: x = 4; y = 1; break;
@@ -2113,13 +2112,13 @@ popup_box_t::draw_defenders_box() {
   draw_popup_building(x, y, sprite);
 
   /* Draw gold stock */
-  if (building->stock[1].available > 0) {
-    int left = (building->stock[1].available + 1) / 2;
+  if (building->get_res_count_in_stock(1) > 0) {
+    int left = (building->get_res_count_in_stock(1) + 1) / 2;
     for (int i = 0; i < left; i++) {
       draw_popup_icon(1, 32 - 8*left + 16*i, 0x30);
     }
 
-    int right = building->stock[1].available / 2;
+    int right = building->get_res_count_in_stock(1) / 2;
     for (int i = 0; i < right; i++) {
       draw_popup_icon(13, 32 - 8*right + 16*i, 0x30);
     }
@@ -2129,7 +2128,7 @@ popup_box_t::draw_defenders_box() {
   draw_green_string(3, 62, "Defenders:");
 
   /* Draw knights */
-  int next_knight = building->serf_index;
+  int next_knight = building->get_main_serf();
   for (int i = 0; next_knight != 0; i++) {
     serf_t *serf = game_get_serf(next_knight);
     draw_popup_icon(3 + 4*(i%3), 72 + 16*(i/3), 7 + SERF_TYPE(serf));
@@ -2137,7 +2136,7 @@ popup_box_t::draw_defenders_box() {
   }
 
   draw_green_string(0, 128, "State:");
-  draw_green_number(7, 128, BUILDING_STATE(building));
+  draw_green_number(7, 128, building->get_state());
 
   draw_popup_icon(14, 128, 0x3c); /* Exit box */
 }
@@ -2229,19 +2228,19 @@ popup_box_t::draw_castle_serf_box() {
     return;
   }
 
-  building_t *building = game_get_building(interface->get_player()->index);
-  if (BUILDING_IS_BURNING(building)) {
+  building_t *building = game.buildings[interface->get_player()->index];
+  if (building->is_burning()) {
     interface->close_popup();
     return;
   }
 
-  building_type_t type = BUILDING_TYPE(building);
+  building_type_t type = building->get_type();
   if (type != BUILDING_STOCK && type != BUILDING_CASTLE) {
     interface->close_popup();
     return;
   }
 
-  inventory_t *inventory = building->u.inventory;
+  inventory_t *inventory = building->get_inventory();
 
   for (unsigned int i = 1; i < game.max_serf_index; i++) {
     if (SERF_ALLOCATED(i)) {
@@ -2289,19 +2288,19 @@ popup_box_t::draw_resdir_box() {
     return;
   }
 
-  building_t *building = game_get_building(interface->get_player()->index);
-  if (BUILDING_IS_BURNING(building)) {
+  building_t *building = game.buildings[interface->get_player()->index];
+  if (building->is_burning()) {
     interface->close_popup();
     return;
   }
 
-  building_type_t type = BUILDING_TYPE(building);
+  building_type_t type = building->get_type();
   if (type == BUILDING_CASTLE) {
     int knights[] = { 0, 0, 0, 0, 0 };
     draw_custom_icon_box(knights_layout);
 
     /* Follow linked list of knights on duty */
-    int serf_index = building->serf_index;
+    int serf_index = building->get_main_serf();
     while (serf_index != 0) {
       serf_t *serf = game_get_serf(serf_index);
       serf_type_t serf_type = SERF_TYPE(serf);
@@ -2321,7 +2320,7 @@ popup_box_t::draw_resdir_box() {
   }
 
   /* Draw resource mode checkbox */
-  inventory_t *inventory = building->u.inventory;
+  inventory_t *inventory = building->get_inventory();
   inventory_mode_t res_mode = inventory->get_res_mode();
   if (res_mode == mode_in) { /* in */
     draw_popup_icon(9, 16, 0x120);
@@ -2507,18 +2506,18 @@ popup_box_t::draw_building_stock_box() {
     return;
   }
 
-  building_t *building = game_get_building(interface->get_player()->index);
-  if (BUILDING_IS_BURNING(building)) {
+  building_t *building = game.buildings[interface->get_player()->index];
+  if (building->is_burning()) {
     interface->close_popup();
     return;
   }
 
   /* Draw list of resources */
-  for (int j = 0; j < BUILDING_MAX_STOCK; j++) {
-    if (building->stock[j].type >= 0) {
-      int stock = building->stock[j].available;
+  for (unsigned int j = 0; j < BUILDING_MAX_STOCK; j++) {
+    if (building->is_stock_active(j)) {
+      int stock = building->get_res_count_in_stock(j);
       if (stock > 0) {
-        int sprite = 34 + building->stock[j].type;
+        int sprite = 34 + building->get_res_type_in_stock(j);
         for (int i = 0; i < stock; i++) {
           draw_popup_icon(8-stock+2*i, 110 - j*20, sprite);
         }
@@ -2540,14 +2539,14 @@ popup_box_t::draw_building_stock_box() {
 
   /* Draw picture of serf present */
   int serf_sprite = 0xdc; /* minus box */
-  if (BUILDING_HAS_SERF(building)) {
-    serf_sprite = map_building_serf_sprite[BUILDING_TYPE(building)];
+  if (building->has_serf()) {
+    serf_sprite = map_building_serf_sprite[building->get_type()];
   }
 
   draw_popup_icon(1, 36, serf_sprite);
 
   /* Draw building */
-  int bld_sprite = map_building_sprite[BUILDING_TYPE(building)];
+  int bld_sprite = map_building_sprite[building->get_type()];
   int x = 6;
   if (bld_sprite == 0xc0 /*stock*/ || bld_sprite < 0x9e /*tower*/) x = 4;
   draw_popup_building(x, 30, bld_sprite);
@@ -2818,15 +2817,15 @@ popup_box_t::sett_8_train(int number) {
 
 void
 popup_box_t::set_inventory_resource_mode(int mode) {
-  building_t *building = game_get_building(interface->get_player()->index);
-  inventory_t *inventory = building->u.inventory;
+  building_t *building = game.buildings[interface->get_player()->index];
+  inventory_t *inventory = building->get_inventory();
   game_set_inventory_resource_mode(inventory, mode);
 }
 
 void
 popup_box_t::set_inventory_serf_mode(int mode) {
-  building_t *building = game_get_building(interface->get_player()->index);
-  inventory_t *inventory = building->u.inventory;
+  building_t *building = game.buildings[interface->get_player()->index];
+  inventory_t *inventory = building->get_inventory();
   game_set_inventory_serf_mode(inventory, mode);
 }
 

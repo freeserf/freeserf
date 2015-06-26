@@ -32,7 +32,8 @@
 
 
 #define serf_log_state_change(serf, new_state)  \
-  LOGV("serf", "serf %i: state %s -> %s (%s:%i)", SERF_INDEX(serf), \
+  LOGV("serf", "serf %i (%s): state %s -> %s (%s:%i)", SERF_INDEX(serf), \
+       serf_get_type_name(SERF_TYPE(serf)), \
        serf_get_state_name((serf)->state),      \
        serf_get_state_name((new_state)), __FUNCTION__, __LINE__)
 
@@ -156,7 +157,8 @@ typedef enum {
 
 class flag_t;
 
-typedef struct {
+class serf_t {
+ public:
   int type;
   int animation; /* Index to animation table in data file. */
   int counter;
@@ -355,10 +357,11 @@ typedef struct {
       int next_knight; /* E */
     } defending;
   } s;
-} serf_t;
+};
 
 void update_serf(serf_t *serf);
 const char *serf_get_state_name(serf_state_t state);
+const char *serf_get_type_name(serf_type_t type);
 
 void serf_set_type(serf_t *serf, serf_type_t type);
 void serf_set_lost_state(serf_t *serf);

@@ -222,14 +222,14 @@ available_knights_at_pos(player_t *player, map_pos_t pos, int index, int dist) {
     }
   }
 
-  building_t *building = game_get_building(bld_index);
-  if (!BUILDING_IS_DONE(building) ||
-      BUILDING_IS_BURNING(building)) {
+  building_t *building = game.buildings[bld_index];
+  if (!building->is_done() ||
+      building->is_burning()) {
     return index;
   }
 
   const int *min_level = NULL;
-  switch (BUILDING_TYPE(building)) {
+  switch (building->get_type()) {
   case BUILDING_HUT: min_level = min_level_hut; break;
   case BUILDING_TOWER: min_level = min_level_tower; break;
   case BUILDING_FORTRESS: min_level = min_level_fortress; break;
@@ -240,8 +240,8 @@ available_knights_at_pos(player_t *player, map_pos_t pos, int index, int dist) {
 
   player->attacking_buildings[index] = bld_index;
 
-  int state = BUILDING_STATE(building);
-  int knights_present = building->stock[0].available;
+  int state = building->get_state();
+  int knights_present = building->get_knight_count();
   int to_send = knights_present -
                 min_level[player->knight_occupation[state] & 0xf];
 
@@ -303,26 +303,22 @@ player_start_attack(player_t *player) {
   const int min_level_tower[] = { 1, 2, 3, 4, 6 };
   const int min_level_fortress[] = { 1, 3, 6, 9, 12 };
 
-  building_t *target = game_get_building(player->building_attacked);
-  if (!BUILDING_IS_DONE(target) ||
-      (BUILDING_TYPE(target) != BUILDING_HUT &&
-       BUILDING_TYPE(target) != BUILDING_TOWER &&
-       BUILDING_TYPE(target) != BUILDING_FORTRESS &&
-       BUILDING_TYPE(target) != BUILDING_CASTLE) ||
-      !BUILDING_IS_ACTIVE(target) ||
-      BUILDING_STATE(target) != 3) {
+  building_t *target = game.buildings[player->building_attacked];
+  if (!target->is_done() || !target->is_military() ||
+      !target->is_active() ||
+      target->get_state() != 3) {
     return;
   }
 
   for (int i = 0; i < player->attacking_building_count; i++) {
     /* TODO building index may not be valid any more(?). */
-    building_t *b = game_get_building(player->attacking_buildings[i]);
-    if (BUILDING_IS_BURNING(b) ||
-        MAP_OWNER(b->pos) != player->player_num) {
+    building_t *b = game.buildings[player->attacking_buildings[i]];
+    if (b->is_burning() ||
+        MAP_OWNER(b->get_position()) != player->player_num) {
       continue;
     }
 
-    map_pos_t flag_pos = MAP_MOVE_DOWN_RIGHT(b->pos);
+    map_pos_t flag_pos = MAP_MOVE_DOWN_RIGHT(b->get_position());
     if (MAP_SERF_INDEX(flag_pos) != 0) {
       /* Check if building is under siege. */
       serf_t *s = game_get_serf(MAP_SERF_INDEX(flag_pos));
@@ -330,15 +326,15 @@ player_start_attack(player_t *player) {
     }
 
     const int *min_level = NULL;
-    switch (BUILDING_TYPE(b)) {
+    switch (b->get_type()) {
     case BUILDING_HUT: min_level = min_level_hut; break;
     case BUILDING_TOWER: min_level = min_level_tower; break;
     case BUILDING_FORTRESS: min_level = min_level_fortress; break;
     default: continue; break;
     }
 
-    int state = BUILDING_STATE(b);
-    int knights_present = b->stock[0].available;
+    int state = b->get_state();
+    int knights_present = b->get_knight_count();
     int to_send = knights_present -
                   min_level[player->knight_occupation[state] & 0xf];
 
@@ -348,7 +344,7 @@ player_start_attack(player_t *player) {
                                                       SERF_KNIGHT_4;
       int best_index = -1;
 
-      int knight_index = b->serf_index;
+      int knight_index = b->get_main_serf();
       while (knight_index != 0) {
         serf_t *knight = game_get_serf(knight_index);
         if (PLAYER_SEND_STRONGEST(player)) {
@@ -366,27 +362,19 @@ player_start_attack(player_t *player) {
         knight_index = knight->s.defending.next_knight;
       }
 
-      /* Unlink knight from list. */
-      int *def_index = &b->serf_index;
-      serf_t *def_serf = game_get_serf(*def_index);
-      while (*def_index != best_index) {
-        def_index = &def_serf->s.defending.next_knight;
-        def_serf = game_get_serf(*def_index);
-      }
-      *def_index = def_serf->s.defending.next_knight;
-      b->stock[0].available -= 1;
+      serf_t *def_serf = b->call_attacker_out(knight_index);
 
-      target->progress |= BIT(0);
+      target->set_under_attack();
 
       /* Calculate distance to target. */
-      int dist_col = (MAP_POS_COL(target->pos) -
-                     MAP_POS_COL(def_serf->pos)) & game.map.col_mask;
+      int dist_col = (MAP_POS_COL(target->get_position()) -
+                      MAP_POS_COL(def_serf->pos)) & game.map.col_mask;
       if (dist_col >= static_cast<int>(game.map.cols/2)) {
         dist_col -= game.map.cols;
       }
 
-      int dist_row = (MAP_POS_ROW(target->pos) -
-                     MAP_POS_ROW(def_serf->pos)) & game.map.row_mask;
+      int dist_row = (MAP_POS_ROW(target->get_position()) -
+                      MAP_POS_ROW(def_serf->pos)) & game.map.row_mask;
       if (dist_row >= static_cast<int>(game.map.rows/2)) {
         dist_row -= game.map.rows;
       }

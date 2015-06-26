@@ -35,6 +35,7 @@
 
 #include "src/map.h"
 #include "src/resource.h"
+#include "src/building.h"
 
 /* Original game format */
 int load_v0_state(FILE *f);
@@ -84,6 +85,7 @@ class save_reader_text_value_t {
   save_reader_text_value_t& operator >> (resource_type_t &val);
   save_reader_text_value_t& operator >> (uint16_t &val);
   save_reader_text_value_t& operator >> (std::string &val);
+  save_reader_text_value_t& operator >> (building_type_t &val);
   save_reader_text_value_t operator[] (size_t pos);
 };
 

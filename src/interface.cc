@@ -201,8 +201,8 @@ interface_t::get_map_cursor_type(const player_t *player, map_pos_t pos,
   } else if ((MAP_OBJ(pos) == MAP_OBJ_SMALL_BUILDING ||
               MAP_OBJ(pos) == MAP_OBJ_LARGE_BUILDING) &&
              MAP_OWNER(pos) == player->player_num) {
-    building_t *bld = game_get_building(MAP_OBJ_INDEX(pos));
-    if (!BUILDING_IS_BURNING(bld)) {
+    building_t *bld = game.buildings[MAP_OBJ_INDEX(pos)];
+    if (!bld->is_burning()) {
       *cursor_type = MAP_CURSOR_TYPE_BUILDING;
     } else {
       *cursor_type = MAP_CURSOR_TYPE_NONE;
@@ -497,12 +497,12 @@ interface_t::demolish_object() {
     play_sound(SFX_CLICK);
     game_demolish_flag(map_cursor_pos, player);
   } else if (map_cursor_type == MAP_CURSOR_TYPE_BUILDING) {
-    building_t *building = game_get_building(MAP_OBJ_INDEX(map_cursor_pos));
+    building_t *building = game.buildings[MAP_OBJ_INDEX(map_cursor_pos)];
 
-    if (BUILDING_IS_DONE(building) &&
-        (BUILDING_TYPE(building) == BUILDING_HUT ||
-         BUILDING_TYPE(building) == BUILDING_TOWER ||
-         BUILDING_TYPE(building) == BUILDING_FORTRESS)) {
+    if (building->is_done() &&
+        (building->get_type() == BUILDING_HUT ||
+         building->get_type() == BUILDING_TOWER ||
+         building->get_type() == BUILDING_FORTRESS)) {
       /* TODO */
     }
 

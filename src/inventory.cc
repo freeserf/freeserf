@@ -76,6 +76,21 @@ inventory_t::get_resource_from_queue(resource_type_t *res, int *dest) {
 
 void
 inventory_t::add_to_queue(resource_type_t type, unsigned int dest) {
+  if (type == RESOURCE_GROUP_FOOD) {
+    /* Select the food resource with highest amount available */
+    if (resources[RESOURCE_MEAT] > resources[RESOURCE_BREAD]) {
+      if (resources[RESOURCE_MEAT] > resources[RESOURCE_FISH]) {
+        type = RESOURCE_MEAT;
+      } else {
+        type = RESOURCE_FISH;
+      }
+    } else if (resources[RESOURCE_BREAD] > resources[RESOURCE_FISH]) {
+      type = RESOURCE_BREAD;
+    } else {
+      type = RESOURCE_FISH;
+    }
+  }
+
   assert(resources[type] != 0);
 
   resources[type] -= 1;
@@ -186,7 +201,7 @@ inventory_t::call_transporter(bool water) {
     }
   } else {
     if (serfs[SERF_TRANSPORTER] != 0) {
-      serf = game_get_serf(serfs[serfs[SERF_TRANSPORTER]]);
+      serf = game_get_serf(serfs[SERF_TRANSPORTER]);
       serfs[SERF_TRANSPORTER] = 0;
     } else {
       if (serfs[SERF_GENERIC] != 0) {
@@ -286,8 +301,8 @@ inventory_t::spawn_serf_generic() {
   serf->type = (SERF_GENERIC << 2) | player_num;
   serf->animation = 0;
   serf->counter = 0;
-  building_t *building = game_get_building(get_building_index());
-  serf->pos = building->pos;
+  building_t *building = game.buildings[get_building_index()];
+  serf->pos = building->get_position();
   serf->tick = game.tick;
   serf->state = SERF_STATE_IDLE_IN_STOCK;
   serf->s.idle_in_stock.inv_index = index;
