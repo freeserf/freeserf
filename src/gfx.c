@@ -25,6 +25,7 @@
 #include "log.h"
 
 #include <assert.h>
+#include <string.h>
 
 
 /* Unique identifier for a sprite. */
@@ -155,7 +156,7 @@ gfx_create_sprite(const dos_sprite_t *sprite)
 	uint8_t *dest = (uint8_t *)s + sizeof(sprite_t);
 	uint size = sprite->w * sprite->h;
 
-	for (int i = 0; i < size; i++) {
+	for (uint i = 0; i < size; i++) {
 		dest[4*i+0] = palette[3*src[i]+0]; /* Red */
 		dest[4*i+1] = palette[3*src[i]+1]; /* Green */
 		dest[4*i+2] = palette[3*src[i]+2]; /* Blue */
@@ -298,7 +299,7 @@ gfx_mask_waves_sprite(const sprite_t *sprite, const sprite_t *mask, int x_off)
 	uint8_t *dest_data = (uint8_t *)s + sizeof(sprite_t);
 
 	/* Copy data to new sprite */
-	for (int i = 0; i < height; i++) {
+	for (uint i = 0; i < height; i++) {
 		memcpy(dest_data, src_data, mask->width * 4);
 		src_data += 4*sprite->width;
 		dest_data += 4*mask->width;
