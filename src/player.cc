@@ -184,17 +184,16 @@ int
 player_promote_serfs_to_knights(player_t *player, int number) {
   int promoted = 0;
 
-  for (unsigned int i = 1; i < game.max_serf_index && number > 0; i++) {
-    if (SERF_ALLOCATED(i)) {
-      serf_t *serf = game_get_serf(i);
-      if (serf->state == SERF_STATE_IDLE_IN_STOCK &&
-          SERF_PLAYER(serf) == player->player_num &&
-          SERF_TYPE(serf) == SERF_GENERIC) {
-        inventory_t *inv = game.inventories[serf->s.idle_in_stock.inv_index];
-        if (inv->promote_serf_to_knight(serf)) {
-          promoted += 1;
-          number -= 1;
-        }
+  for (serfs_t::iterator i = game.serfs.begin();
+       i != game.serfs.end(); ++i) {
+    serf_t *serf = *i;
+    if (serf->get_state() == SERF_STATE_IDLE_IN_STOCK &&
+        serf->get_player() == player->player_num &&
+        serf->get_type() == SERF_GENERIC) {
+      inventory_t *inv = game.inventories[serf->get_idle_in_stock_inv_index()];
+      if (inv->promote_serf_to_knight(serf)) {
+        promoted += 1;
+        number -= 1;
       }
     }
   }
@@ -321,8 +320,8 @@ player_start_attack(player_t *player) {
     map_pos_t flag_pos = MAP_MOVE_DOWN_RIGHT(b->get_position());
     if (MAP_SERF_INDEX(flag_pos) != 0) {
       /* Check if building is under siege. */
-      serf_t *s = game_get_serf(MAP_SERF_INDEX(flag_pos));
-      if (SERF_PLAYER(s) != player->player_num) continue;
+      serf_t *s = game.serfs[MAP_SERF_INDEX(flag_pos)];
+      if (s->get_player() != player->player_num) continue;
     }
 
     const int *min_level = NULL;
@@ -346,20 +345,20 @@ player_start_attack(player_t *player) {
 
       int knight_index = b->get_main_serf();
       while (knight_index != 0) {
-        serf_t *knight = game_get_serf(knight_index);
+        serf_t *knight = game.serfs[knight_index];
         if (PLAYER_SEND_STRONGEST(player)) {
-          if (SERF_TYPE(knight) >= best_type) {
+          if (knight->get_type() >= best_type) {
             best_index = knight_index;
-            best_type = SERF_TYPE(knight);
+            best_type = knight->get_type();
           }
         } else {
-          if (SERF_TYPE(knight) <= best_type) {
+          if (knight->get_type() <= best_type) {
             best_index = knight_index;
-            best_type = SERF_TYPE(knight);
+            best_type = knight->get_type();
           }
         }
 
-        knight_index = knight->s.defending.next_knight;
+        knight_index = knight->get_next();
       }
 
       serf_t *def_serf = b->call_attacker_out(knight_index);
@@ -368,27 +367,19 @@ player_start_attack(player_t *player) {
 
       /* Calculate distance to target. */
       int dist_col = (MAP_POS_COL(target->get_position()) -
-                      MAP_POS_COL(def_serf->pos)) & game.map.col_mask;
+                      MAP_POS_COL(def_serf->get_pos())) & game.map.col_mask;
       if (dist_col >= static_cast<int>(game.map.cols/2)) {
         dist_col -= game.map.cols;
       }
 
       int dist_row = (MAP_POS_ROW(target->get_position()) -
-                      MAP_POS_ROW(def_serf->pos)) & game.map.row_mask;
+                      MAP_POS_ROW(def_serf->get_pos())) & game.map.row_mask;
       if (dist_row >= static_cast<int>(game.map.rows/2)) {
         dist_row -= game.map.rows;
       }
 
       /* Send this serf off to fight. */
-      serf_log_state_change(def_serf,
-                            SERF_STATE_KNIGHT_LEAVE_FOR_WALK_TO_FIGHT);
-      def_serf->state = SERF_STATE_KNIGHT_LEAVE_FOR_WALK_TO_FIGHT;
-      def_serf->s.leave_for_walk_to_fight.dist_col = dist_col;
-      def_serf->s.leave_for_walk_to_fight.dist_row = dist_row;
-      def_serf->s.leave_for_walk_to_fight.field_D = 0;
-      def_serf->s.leave_for_walk_to_fight.field_E = 0;
-      def_serf->s.leave_for_walk_to_fight.next_state =
-                                                 SERF_STATE_KNIGHT_FREE_WALKING;
+      def_serf->send_off_to_fight(dist_col, dist_row);
 
       player->knights_attacking -= 1;
       if (player->knights_attacking == 0) return;

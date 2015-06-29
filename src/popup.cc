@@ -1391,13 +1391,12 @@ popup_box_t::draw_stat_3_box() {
   int serfs[27] = {0};
 
   /* Sum up all existing serfs. */
-  for (unsigned int i = 1; i < game.max_serf_index; i++) {
-    if (SERF_ALLOCATED(i)) {
-      serf_t *serf = game_get_serf(i);
-      if (SERF_PLAYER(serf) == interface->get_player()->player_num &&
-          serf->state == SERF_STATE_IDLE_IN_STOCK) {
-        serfs[SERF_TYPE(serf)] += 1;
-      }
+  for (serfs_t::iterator i = game.serfs.begin();
+       i != game.serfs.end(); ++i) {
+    serf_t *serf = *i;
+    if (serf->get_player() == interface->get_player()->player_num &&
+        serf->get_state() == SERF_STATE_IDLE_IN_STOCK) {
+      serfs[serf->get_type()] += 1;
     }
   }
 
@@ -2130,9 +2129,9 @@ popup_box_t::draw_defenders_box() {
   /* Draw knights */
   int next_knight = building->get_main_serf();
   for (int i = 0; next_knight != 0; i++) {
-    serf_t *serf = game_get_serf(next_knight);
-    draw_popup_icon(3 + 4*(i%3), 72 + 16*(i/3), 7 + SERF_TYPE(serf));
-    next_knight = serf->s.defending.next_knight;
+    serf_t *serf = game.serfs[next_knight];
+    draw_popup_icon(3 + 4*(i%3), 72 + 16*(i/3), 7 + serf->get_type());
+    next_knight = serf->get_next();
   }
 
   draw_green_string(0, 128, "State:");
@@ -2242,13 +2241,12 @@ popup_box_t::draw_castle_serf_box() {
 
   inventory_t *inventory = building->get_inventory();
 
-  for (unsigned int i = 1; i < game.max_serf_index; i++) {
-    if (SERF_ALLOCATED(i)) {
-      serf_t *serf = game_get_serf(i);
-      if (serf->state == SERF_STATE_IDLE_IN_STOCK &&
-          inventory == game.inventories[serf->s.idle_in_stock.inv_index]) {
-        serfs[SERF_TYPE(serf)] += 1;
-      }
+  for (serfs_t::iterator i = game.serfs.begin();
+       i != game.serfs.end(); ++i) {
+    serf_t *serf = *i;
+    if (serf->get_state() == SERF_STATE_IDLE_IN_STOCK &&
+        inventory == game.inventories[serf->get_idle_in_stock_inv_index()]) {
+      serfs[serf->get_type()] += 1;
     }
   }
 
@@ -2302,11 +2300,11 @@ popup_box_t::draw_resdir_box() {
     /* Follow linked list of knights on duty */
     int serf_index = building->get_main_serf();
     while (serf_index != 0) {
-      serf_t *serf = game_get_serf(serf_index);
-      serf_type_t serf_type = SERF_TYPE(serf);
+      serf_t *serf = game.serfs[serf_index];
+      serf_type_t serf_type = serf->get_type();
       assert(serf_type >= SERF_KNIGHT_0 && serf_type <= SERF_KNIGHT_4);
       knights[serf_type-SERF_KNIGHT_0] += 1;
-      serf_index = serf->s.defending.next_knight;
+      serf_index = serf->get_next();
     }
 
     draw_green_number(14, 20, knights[4]);

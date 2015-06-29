@@ -138,40 +138,12 @@ flag_t::del_path(dir_t dir) {
 
   if (serf_requested(dir)) {
     cancel_serf_request(dir);
+    int dest = MAP_OBJ_INDEX(pos);
 
-    for (unsigned int i = 1; i < game.max_serf_index; i++) {
-      if (SERF_ALLOCATED(i)) {
-        int dest = MAP_OBJ_INDEX(pos);
-        serf_t *serf = game_get_serf(i);
-
-        switch (serf->state) {
-          case SERF_STATE_WALKING:
-            if (serf->s.walking.dest == dest &&
-                serf->s.walking.res == dir) {
-              serf->s.walking.res = -2;
-              serf->s.walking.dest = 0;
-            }
-            break;
-          case SERF_STATE_READY_TO_LEAVE_INVENTORY:
-            if (serf->s.ready_to_leave_inventory.dest == dest &&
-                serf->s.ready_to_leave_inventory.mode == dir) {
-              serf->s.ready_to_leave_inventory.mode = -2;
-              serf->s.ready_to_leave_inventory.dest = 0;
-            }
-            break;
-          case SERF_STATE_LEAVING_BUILDING:
-          case SERF_STATE_READY_TO_LEAVE:
-            if (serf->s.leaving_building.dest == dest &&
-                serf->s.leaving_building.field_B == dir &&
-                serf->s.leaving_building.next_state == SERF_STATE_WALKING) {
-              serf->s.leaving_building.field_B = -2;
-              serf->s.leaving_building.dest = 0;
-            }
-            break;
-          default:
-            break;
-        }
-      }
+    for (serfs_t::iterator i = game.serfs.begin();
+         i != game.serfs.end(); ++i) {
+      serf_t *serf = *i;
+      serf->path_deleted(dest, dir);
     }
   }
 
@@ -645,20 +617,8 @@ flag_t::restore_path_serf_info(dir_t dir, serf_path_info_t *data) {
 
   if (data->serf_count > max_serfs) {
     for (int i = 0; i < data->serf_count - max_serfs; i++) {
-      serf_t *serf = game_get_serf(data->serfs[i]);
-      if (serf->state != SERF_STATE_WAKE_ON_PATH) {
-        serf->s.walking.wait_counter = -1;
-        if (serf->s.walking.res != 0) {
-          resource_type_t res = (resource_type_t)(serf->s.walking.res-1);
-          serf->s.walking.res = 0;
-
-          game_cancel_transported_resource(res, serf->s.walking.dest);
-          game_lose_resource(res);
-        }
-      } else {
-        serf_log_state_change(serf, SERF_STATE_WAKE_AT_FLAG);
-        serf->state = SERF_STATE_WAKE_AT_FLAG;
-      }
+      serf_t *serf = game.serfs[data->serfs[i]];
+      serf->restore_path_serf_info();
     }
   }
 
@@ -701,18 +661,11 @@ flag_t::can_demolish() {
 /* Find a transporter at pos and change it to state. */
 static int
 change_transporter_state_at_pos(map_pos_t pos, serf_state_t state) {
-  for (unsigned int i = 1; i < game.max_serf_index; i++) {
-    if (SERF_ALLOCATED(i)) {
-      serf_t *serf = game_get_serf(i);
-      if (serf->pos == pos &&
-          (serf->state == SERF_STATE_WAKE_AT_FLAG ||
-           serf->state == SERF_STATE_WAKE_ON_PATH ||
-           serf->state == SERF_STATE_WAIT_IDLE_ON_PATH ||
-           serf->state == SERF_STATE_IDLE_ON_PATH)) {
-            serf_log_state_change(serf, state);
-            serf->state = state;
-            return SERF_INDEX(serf);
-          }
+  for (serfs_t::iterator i = game.serfs.begin();
+       i != game.serfs.end(); ++i) {
+    serf_t *serf = *i;
+    if (serf->change_transporter_state_at_pos(pos, state)) {
+      return serf->get_index();
     }
   }
 
@@ -738,15 +691,15 @@ flag_t::fill_path_serf_info(map_pos_t pos, dir_t dir, serf_path_info_t *data) {
 
   /* Handle first position. */
   if (MAP_SERF_INDEX(pos) != 0) {
-    serf_t *serf = game_get_serf(MAP_SERF_INDEX(pos));
-    if (serf->state == SERF_STATE_TRANSPORTING &&
-        serf->s.walking.wait_counter != -1) {
-      int d = serf->s.walking.dir;
+    serf_t *serf = game.serfs[MAP_SERF_INDEX(pos)];
+    if (serf->get_state() == SERF_STATE_TRANSPORTING &&
+        serf->get_walking_wait_counter() != -1) {
+      int d = serf->get_walking_dir();
       if (d < 0) d += 6;
 
       if (dir == d) {
-        serf->s.walking.wait_counter = 0;
-        data->serfs[serf_count++] = SERF_INDEX(serf);
+        serf->set_walking_wait_counter(0);
+        data->serfs[serf_count++] = serf->get_index();
       }
     }
   }
@@ -777,27 +730,27 @@ flag_t::fill_path_serf_info(map_pos_t pos, dir_t dir, serf_path_info_t *data) {
 
     /* Check if there is a serf occupying this space. */
     if (MAP_SERF_INDEX(pos) != 0) {
-      serf_t *serf = game_get_serf(MAP_SERF_INDEX(pos));
-      if (serf->state == SERF_STATE_TRANSPORTING &&
-          serf->s.walking.wait_counter != -1) {
-        serf->s.walking.wait_counter = 0;
-        data->serfs[serf_count++] = SERF_INDEX(serf);
+      serf_t *serf = game.serfs[MAP_SERF_INDEX(pos)];
+      if (serf->get_state() == SERF_STATE_TRANSPORTING &&
+          serf->get_walking_wait_counter() != -1) {
+        serf->set_walking_wait_counter(0);
+        data->serfs[serf_count++] = serf->get_index();
       }
     }
   }
 
   /* Handle last position. */
   if (MAP_SERF_INDEX(pos) != 0) {
-    serf_t *serf = game_get_serf(MAP_SERF_INDEX(pos));
-    if ((serf->state == SERF_STATE_TRANSPORTING &&
-         serf->s.walking.wait_counter != -1) ||
-        serf->state == SERF_STATE_DELIVERING) {
-      int d = serf->s.walking.dir;
+    serf_t *serf = game.serfs[MAP_SERF_INDEX(pos)];
+    if ((serf->get_state() == SERF_STATE_TRANSPORTING &&
+         serf->get_walking_wait_counter() != -1) ||
+        serf->get_state() == SERF_STATE_DELIVERING) {
+      int d = serf->get_walking_dir();
       if (d < 0) d += 6;
 
       if (d == DIR_REVERSE(dir)) {
-        serf->s.walking.wait_counter = 0;
-        data->serfs[serf_count++] = SERF_INDEX(serf);
+        serf->set_walking_wait_counter(0);
+        data->serfs[serf_count++] = serf->get_index();
       }
     }
   }
@@ -878,42 +831,11 @@ flag_t::merge_paths(map_pos_t pos) {
   }
 
   /* Update serfs with reference to this flag. */
-  for (unsigned int i = 1; i < game.max_serf_index; i++) {
-    if (SERF_ALLOCATED(i)) {
-      serf_t *serf = game_get_serf(i);
-
-      if (serf->state == SERF_STATE_READY_TO_LEAVE_INVENTORY &&
-          ((serf->s.ready_to_leave_inventory.dest == flag_1->get_index() &&
-            serf->s.ready_to_leave_inventory.mode == dir_1) ||
-           (serf->s.ready_to_leave_inventory.dest == flag_2->get_index() &&
-            serf->s.ready_to_leave_inventory.mode == dir_2))) {
-             serf->s.ready_to_leave_inventory.dest = 0;
-             serf->s.ready_to_leave_inventory.mode = -2;
-           } else if (serf->state == SERF_STATE_WALKING &&
-                      ((serf->s.walking.dest == flag_1->get_index() &&
-                        serf->s.walking.res == dir_1) ||
-                       (serf->s.walking.dest == flag_2->get_index() &&
-                        serf->s.walking.res == dir_2))) {
-                         serf->s.walking.dest = 0;
-                         serf->s.walking.res = -2;
-                       } else if (serf->state == SERF_STATE_IDLE_IN_STOCK) {
-                         /* TODO */
-                       } else if ((serf->state == SERF_STATE_LEAVING_BUILDING ||
-                                   serf->state == SERF_STATE_READY_TO_LEAVE) &&
-                                  ((serf->s.leaving_building.dest ==
-                                      flag_1->get_index() &&
-                                    serf->s.leaving_building.field_B ==
-                                      dir_1) ||
-                                   (serf->s.leaving_building.dest ==
-                                      flag_2->get_index() &&
-                                    serf->s.leaving_building.field_B ==
-                                      dir_2)) &&
-                                  serf->s.leaving_building.next_state ==
-                                    SERF_STATE_WALKING) {
-                         serf->s.leaving_building.dest = 0;
-                         serf->s.leaving_building.field_B = -2;
-                       }
-    }
+  for (serfs_t::iterator i = game.serfs.begin();
+       i != game.serfs.end(); ++i) {
+    serf_t *serf = *i;
+    serf->path_merged2(flag_1->get_index(), dir_1,
+                       flag_2->get_index(), dir_2);
   }
 }
 
@@ -1060,11 +982,7 @@ flag_t::call_transporter(dir_t dir, bool water) {
     dir = dir_2;
   }
 
-  serf_log_state_change(serf, SERF_STATE_READY_TO_LEAVE_INVENTORY);
-  serf->state = SERF_STATE_READY_TO_LEAVE_INVENTORY;
-  serf->s.ready_to_leave_inventory.mode = dir;
-  serf->s.ready_to_leave_inventory.dest = src->get_index();
-  serf->s.ready_to_leave_inventory.inv_index = inventory->get_index();
+  serf->go_out_from_inventory(inventory->get_index(), src->get_index(), dir);
 
   return true;
 }

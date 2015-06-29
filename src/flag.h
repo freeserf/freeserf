@@ -39,6 +39,7 @@ typedef struct {
 /* Max number of resources waiting at a flag */
 #define FLAG_MAX_RES_COUNT  8
 
+class building_t;
 class save_reader_binary_t;
 class save_reader_text_t;
 class save_writer_text_t;

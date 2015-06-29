@@ -47,6 +47,7 @@ typedef struct {
 static unsigned int max_flag_index = 0;
 static unsigned int max_inventory_index = 0;
 static unsigned int max_building_index = 0;
+static unsigned int max_serf_index = 0;
 
 static map_pos_t
 load_v0_map_pos(const v0_map_t *map, uint32_t value) {
@@ -82,8 +83,7 @@ load_v0_game_state(FILE *f, v0_map_t *map) {
   map_init_dimensions(&game.map);
 
   /* Allocate game objects */
-  const int max_map_size = 10;
-  game.serf_limit = (0x1f84 * (1 << max_map_size) - 4) / 0x81;
+//  const int max_map_size = 10;
   game_allocate_objects();
 
   /* OBSOLETE may be needed to load map data correctly?
@@ -125,7 +125,7 @@ load_v0_game_state(FILE *f, v0_map_t *map) {
 
   max_flag_index = *reinterpret_cast<uint16_t*>(&data[90]);
   max_building_index = *reinterpret_cast<uint16_t*>(&data[92]);
-  game.max_serf_index = *reinterpret_cast<uint16_t*>(&data[94]);
+  max_serf_index = *reinterpret_cast<uint16_t*>(&data[94]);
 
   game.next_index = *reinterpret_cast<uint16_t*>(&data[96]);
   game.flag_search_counter = *reinterpret_cast<uint16_t*>(&data[98]);
@@ -187,7 +187,7 @@ load_v0_game_state(FILE *f, v0_map_t *map) {
   /*game.map_max_serfs_left = *(uint16_t *)&data[176];*/
   /* game.max_stock_buildings = *(uint16_t *)&data[178]; */
   game.max_next_index = *reinterpret_cast<uint16_t*>(&data[180]);
-  game.max_serfs_from_land = *reinterpret_cast<uint16_t*>(&data[182]);
+//  game.max_serfs_from_land = *(uint16_t *)&data[182];
   game.map_gold_deposit = *reinterpret_cast<uint32_t*>(&data[184]);
   game.update_map_16_loop = *reinterpret_cast<uint16_t*>(&data[188]);
 
@@ -197,7 +197,7 @@ load_v0_game_state(FILE *f, v0_map_t *map) {
   game.field_56 = *(uint16_t *)&data[196];
   */
 
-  game.max_serfs_per_player = *reinterpret_cast<uint16_t*>(&data[198]);
+//  game.max_serfs_per_player = *(uint16_t *)&data[198];
   game.map_gold_morale_factor = *reinterpret_cast<uint16_t*>(&data[200]);
   game.winning_player = *reinterpret_cast<uint16_t*>(&data[202]);
   game.player_score_leader = *reinterpret_cast<uint8_t*>(&data[204]);
@@ -399,7 +399,7 @@ load_v0_map_state(FILE *f, const v0_map_t *map) {
 static int
 load_v0_serf_state(FILE *f, const v0_map_t *map) {
   /* Load serf bitmap. */
-  int bitmap_size = 4*((game.max_serf_index + 31)/32);
+  int bitmap_size = 4*((max_serf_index + 31)/32);
   uint8_t *bitmap = reinterpret_cast<uint8_t*>(malloc(bitmap_size));
   if (bitmap == NULL) return -1;
 
@@ -409,208 +409,30 @@ load_v0_serf_state(FILE *f, const v0_map_t *map) {
     return -1;
   }
 
-  memset(game.serf_bitmap, '\0', (game.serf_limit+31)/32);
-  memcpy(game.serf_bitmap, bitmap, bitmap_size);
-
-  free(bitmap);
-
   /* Load serf data. */
-  uint8_t *data = reinterpret_cast<uint8_t*>(malloc(16*game.max_serf_index));
-  if (data == NULL) return -1;
-
-  rd = fread(data, 16*sizeof(uint8_t), game.max_serf_index, f);
-  if (rd < game.max_serf_index) {
-    free(data);
+  void *data = malloc(16);
+  if (data == NULL) {
+    free(bitmap);
     return -1;
   }
 
-  for (unsigned int i = 0; i < game.max_serf_index; i++) {
-    uint8_t *serf_data = &data[16*i];
-    serf_t *serf = &game.serfs[i];
+  for (unsigned int i = 0; i < max_serf_index; i++) {
+    rd = fread(data, 16, 1, f);
+    if (rd != 1) {
+      free(data);
+      free(bitmap);
+      return -1;
+    }
 
-    serf->type = serf_data[0];
-    serf->animation = serf_data[1];
-    serf->counter = *reinterpret_cast<uint16_t*>(&serf_data[2]);
-    serf->pos = load_v0_map_pos(map,
-                                *reinterpret_cast<uint32_t*>(&serf_data[4]));
-    serf->tick = *reinterpret_cast<uint16_t*>(&serf_data[8]);
-    serf->state = (serf_state_t)serf_data[10];
-
-    LOGV("savegame", "load serf %i: %s", i, serf_get_state_name(serf->state));
-
-    switch (serf->state) {
-    case SERF_STATE_IDLE_IN_STOCK:
-      serf->s.idle_in_stock.inv_index =
-                                   *reinterpret_cast<uint16_t*>(&serf_data[14]);
-      break;
-
-    case SERF_STATE_WALKING:
-    case SERF_STATE_TRANSPORTING:
-    case SERF_STATE_DELIVERING:
-      serf->s.walking.res = *reinterpret_cast<uint8_t*>(&serf_data[11]);
-      serf->s.walking.dest = *reinterpret_cast<uint16_t*>(&serf_data[12]);
-      serf->s.walking.dir = *reinterpret_cast<uint8_t*>(&serf_data[14]);
-      serf->s.walking.wait_counter =
-                                    *reinterpret_cast<uint8_t*>(&serf_data[15]);
-      break;
-
-    case SERF_STATE_ENTERING_BUILDING:
-      serf->s.entering_building.field_B =
-                                    *reinterpret_cast<uint8_t*>(&serf_data[11]);
-      serf->s.entering_building.slope_len =
-                                   *reinterpret_cast<uint16_t*>(&serf_data[12]);
-      break;
-
-    case SERF_STATE_LEAVING_BUILDING:
-    case SERF_STATE_READY_TO_LEAVE:
-      serf->s.leaving_building.field_B =
-                                    *reinterpret_cast<uint8_t*>(&serf_data[11]);
-      serf->s.leaving_building.dest =
-                                    *reinterpret_cast<uint8_t*>(&serf_data[12]);
-      serf->s.leaving_building.dest2 =
-                                    *reinterpret_cast<uint8_t*>(&serf_data[13]);
-      serf->s.leaving_building.dir =
-                                    *reinterpret_cast<uint8_t*>(&serf_data[14]);
-      serf->s.leaving_building.next_state = (serf_state_t)serf_data[15];
-      break;
-
-    case SERF_STATE_READY_TO_ENTER:
-      serf->s.ready_to_enter.field_B =
-                                    *reinterpret_cast<uint8_t*>(&serf_data[11]);
-      break;
-
-    case SERF_STATE_DIGGING:
-      serf->s.digging.h_index = *reinterpret_cast<uint8_t*>(&serf_data[11]);
-      serf->s.digging.target_h = serf_data[12];
-      serf->s.digging.dig_pos = *reinterpret_cast<uint8_t*>(&serf_data[13]);
-      serf->s.digging.substate = *reinterpret_cast<uint8_t*>(&serf_data[14]);
-      break;
-
-    case SERF_STATE_BUILDING:
-      serf->s.building.mode = *reinterpret_cast<uint8_t*>(&serf_data[11]);
-      serf->s.building.bld_index = *reinterpret_cast<uint16_t*>(&serf_data[12]);
-      serf->s.building.material_step = serf_data[14];
-      serf->s.building.counter = serf_data[15];
-      break;
-
-    case SERF_STATE_BUILDING_CASTLE:
-      serf->s.building_castle.inv_index =
-                                   *reinterpret_cast<uint16_t*>(&serf_data[12]);
-      break;
-
-    case SERF_STATE_MOVE_RESOURCE_OUT:
-    case SERF_STATE_DROP_RESOURCE_OUT:
-      serf->s.move_resource_out.res = serf_data[11];
-      serf->s.move_resource_out.res_dest =
-                                   *reinterpret_cast<uint16_t*>(&serf_data[12]);
-      serf->s.move_resource_out.next_state = (serf_state_t)serf_data[15];
-      break;
-
-    case SERF_STATE_READY_TO_LEAVE_INVENTORY:
-      serf->s.ready_to_leave_inventory.mode =
-                                    *reinterpret_cast<uint8_t*>(&serf_data[11]);
-      serf->s.ready_to_leave_inventory.dest =
-                                   *reinterpret_cast<uint16_t*>(&serf_data[12]);
-      serf->s.ready_to_leave_inventory.inv_index =
-                                   *reinterpret_cast<uint16_t*>(&serf_data[14]);
-      break;
-
-    case SERF_STATE_FREE_WALKING:
-    case SERF_STATE_LOGGING:
-    case SERF_STATE_PLANTING:
-    case SERF_STATE_STONECUTTING:
-    case SERF_STATE_STONECUTTER_FREE_WALKING:
-    case SERF_STATE_FISHING:
-    case SERF_STATE_FARMING:
-    case SERF_STATE_SAMPLING_GEO_SPOT:
-      serf->s.free_walking.dist1 = *reinterpret_cast<uint8_t*>(&serf_data[11]);
-      serf->s.free_walking.dist2 = *reinterpret_cast<uint8_t*>(&serf_data[12]);
-      serf->s.free_walking.neg_dist1 =
-                                    *reinterpret_cast<uint8_t*>(&serf_data[13]);
-      serf->s.free_walking.neg_dist2 =
-                                    *reinterpret_cast<uint8_t*>(&serf_data[14]);
-      serf->s.free_walking.flags = *reinterpret_cast<uint8_t*>(&serf_data[15]);
-      break;
-
-    case SERF_STATE_SAWING:
-      serf->s.sawing.mode = *reinterpret_cast<uint8_t*>(&serf_data[11]);
-      break;
-
-    case SERF_STATE_LOST:
-      serf->s.lost.field_B = *reinterpret_cast<uint8_t*>(&serf_data[11]);
-      break;
-
-    case SERF_STATE_MINING:
-      serf->s.mining.substate = serf_data[11];
-      serf->s.mining.res = serf_data[13];
-      serf->s.mining.deposit = (ground_deposit_t)serf_data[14];
-      break;
-
-    case SERF_STATE_SMELTING:
-      serf->s.smelting.mode = *reinterpret_cast<uint8_t*>(&serf_data[11]);
-      serf->s.smelting.counter = *reinterpret_cast<uint8_t*>(&serf_data[12]);
-      serf->s.smelting.type = serf_data[13];
-      break;
-
-    case SERF_STATE_MILLING:
-      serf->s.milling.mode = *reinterpret_cast<uint8_t*>(&serf_data[11]);
-      break;
-
-    case SERF_STATE_BAKING:
-      serf->s.baking.mode = *reinterpret_cast<uint8_t*>(&serf_data[11]);
-      break;
-
-    case SERF_STATE_PIGFARMING:
-      serf->s.pigfarming.mode = *reinterpret_cast<uint8_t*>(&serf_data[11]);
-      break;
-
-    case SERF_STATE_BUTCHERING:
-      serf->s.butchering.mode = *reinterpret_cast<uint8_t*>(&serf_data[11]);
-      break;
-
-    case SERF_STATE_MAKING_WEAPON:
-      serf->s.making_weapon.mode = *reinterpret_cast<uint8_t*>(&serf_data[11]);
-      break;
-
-    case SERF_STATE_MAKING_TOOL:
-      serf->s.making_tool.mode = *reinterpret_cast<uint8_t*>(&serf_data[11]);
-      break;
-
-    case SERF_STATE_BUILDING_BOAT:
-      serf->s.building_boat.mode = *reinterpret_cast<uint8_t*>(&serf_data[11]);
-      break;
-
-    case SERF_STATE_KNIGHT_DEFENDING_VICTORY_FREE:
-      /* TODO This will be tricky to load since the
-         function of this state has been changed to one
-         that is driven by the attacking serf instead
-         (SERF_STATE_KNIGHT_ATTACKING_DEFEAT_FREE). */
-      break;
-
-    case SERF_STATE_IDLE_ON_PATH:
-    case SERF_STATE_WAIT_IDLE_ON_PATH:
-    case SERF_STATE_WAKE_AT_FLAG:
-    case SERF_STATE_WAKE_ON_PATH:
-      serf->s.idle_on_path.rev_dir =
-                             (dir_t)*reinterpret_cast<uint8_t*>(&serf_data[11]);
-      serf->s.idle_on_path.flag =
-                    game.flags[*reinterpret_cast<uint32_t*>(&serf_data[12])/70];
-      serf->s.idle_on_path.field_E = serf_data[14];
-      break;
-
-    case SERF_STATE_DEFENDING_HUT:
-    case SERF_STATE_DEFENDING_TOWER:
-    case SERF_STATE_DEFENDING_FORTRESS:
-    case SERF_STATE_DEFENDING_CASTLE:
-      serf->s.defending.next_knight =
-                                   *reinterpret_cast<uint16_t*>(&serf_data[14]);
-      break;
-
-    default: break;
+    if (BIT_TEST(bitmap[(i)>>3], 7-((i)&7))) {
+      serf_t *serf = game.serfs.get_or_insert(i);
+      save_reader_binary_t reader(data, 16);
+      reader >> *serf;
     }
   }
 
   free(data);
+  free(bitmap);
 
   return 0;
 }
@@ -835,8 +657,6 @@ save_text_game_state(FILE *f) {
            game.rnd.state[2] };
   save_text_write_array(f, "rnd", rnd, 3);
 
-  save_text_write_value(f, "serf_limit", game.serf_limit);
-
   save_text_write_value(f, "next_index", game.next_index);
   save_text_write_value(f, "flag_search_counter", game.flag_search_counter);
   save_text_write_value(f, "update_map_last_tick", game.update_map_last_tick);
@@ -852,11 +672,9 @@ save_text_game_state(FILE *f) {
   save_text_write_value(f, "map.regions", game.map_regions);
 
   save_text_write_value(f, "max_next_index", game.max_next_index);
-  save_text_write_value(f, "max_serfs_from_land", game.max_serfs_from_land);
   save_text_write_value(f, "map.gold_deposit", game.map_gold_deposit);
   save_text_write_value(f, "update_map_16_loop", game.update_map_16_loop);
 
-  save_text_write_value(f, "max_serfs_per_player", game.max_serfs_per_player);
   save_text_write_value(f, "map.gold_morale_factor",
                         game.map_gold_morale_factor);
   save_text_write_value(f, "winning_player", game.winning_player);
@@ -1019,232 +837,12 @@ save_text_inventory_state(inventory_t *inventory, FILE *f) {
 }
 
 static int
-save_text_serf_state(FILE *f) {
-  for (unsigned int i = 1; i < game.max_serf_index; i++) {
-    if (!SERF_ALLOCATED(i)) continue;
+save_text_serf_state(serf_t *serf, FILE *f) {
+  save_writer_text_section_t writer("serf", serf->get_index());
+  writer << *serf;
+  writer.save(f);
 
-    serf_t *serf = game_get_serf(i);
-
-    fprintf(f, "[serf %i]\n", i);
-
-    save_text_write_value(f, "type", serf->type);
-    save_text_write_value(f, "animation", serf->animation);
-    save_text_write_value(f, "counter", serf->counter);
-    save_text_write_map_pos(f, "pos", serf->pos);
-    save_text_write_value(f, "tick", serf->tick);
-    save_text_write_value(f, "state", serf->state);
-
-    switch (serf->state) {
-    case SERF_STATE_IDLE_IN_STOCK:
-      save_text_write_value(f, "state.inventory",
-                            serf->s.idle_in_stock.inv_index);
-      break;
-
-    case SERF_STATE_WALKING:
-    case SERF_STATE_TRANSPORTING:
-    case SERF_STATE_DELIVERING:
-      save_text_write_value(f, "state.res", serf->s.walking.res);
-      save_text_write_value(f, "state.dest", serf->s.walking.dest);
-      save_text_write_value(f, "state.dir", serf->s.walking.dir);
-      save_text_write_value(f, "state.wait_counter",
-                            serf->s.walking.wait_counter);
-      break;
-
-    case SERF_STATE_ENTERING_BUILDING:
-      save_text_write_value(f, "state.field_B",
-                            serf->s.entering_building.field_B);
-      save_text_write_value(f, "state.slope_len",
-                            serf->s.entering_building.slope_len);
-      break;
-
-    case SERF_STATE_LEAVING_BUILDING:
-    case SERF_STATE_READY_TO_LEAVE:
-    case SERF_STATE_KNIGHT_LEAVE_FOR_FIGHT:
-      save_text_write_value(f, "state.field_B",
-                            serf->s.leaving_building.field_B);
-      save_text_write_value(f, "state.dest", serf->s.leaving_building.dest);
-      save_text_write_value(f, "state.dest2", serf->s.leaving_building.dest2);
-      save_text_write_value(f, "state.dir", serf->s.leaving_building.dir);
-      save_text_write_value(f, "state.next_state",
-                            serf->s.leaving_building.next_state);
-      break;
-
-    case SERF_STATE_READY_TO_ENTER:
-      save_text_write_value(f, "state.field_B", serf->s.ready_to_enter.field_B);
-      break;
-
-    case SERF_STATE_DIGGING:
-      save_text_write_value(f, "state.h_index", serf->s.digging.h_index);
-      save_text_write_value(f, "state.target_h", serf->s.digging.target_h);
-      save_text_write_value(f, "state.dig_pos", serf->s.digging.dig_pos);
-      save_text_write_value(f, "state.substate", serf->s.digging.substate);
-      break;
-
-    case SERF_STATE_BUILDING:
-      save_text_write_value(f, "state.mode", serf->s.building.mode);
-      save_text_write_value(f, "state.bld_index", serf->s.building.bld_index);
-      save_text_write_value(f, "state.material_step",
-                            serf->s.building.material_step);
-      save_text_write_value(f, "state.counter", serf->s.building.counter);
-      break;
-
-    case SERF_STATE_BUILDING_CASTLE:
-      save_text_write_value(f, "state.inv_index",
-                            serf->s.building_castle.inv_index);
-      break;
-
-    case SERF_STATE_MOVE_RESOURCE_OUT:
-    case SERF_STATE_DROP_RESOURCE_OUT:
-      save_text_write_value(f, "state.res", serf->s.move_resource_out.res);
-      save_text_write_value(f, "state.res_dest",
-                            serf->s.move_resource_out.res_dest);
-      save_text_write_value(f, "state.next_state",
-                            serf->s.move_resource_out.next_state);
-      break;
-
-    case SERF_STATE_READY_TO_LEAVE_INVENTORY:
-      save_text_write_value(f, "state.mode",
-                            serf->s.ready_to_leave_inventory.mode);
-      save_text_write_value(f, "state.dest",
-                            serf->s.ready_to_leave_inventory.dest);
-      save_text_write_value(f, "state.inv_index",
-                            serf->s.ready_to_leave_inventory.inv_index);
-      break;
-
-    case SERF_STATE_FREE_WALKING:
-    case SERF_STATE_LOGGING:
-    case SERF_STATE_PLANTING:
-    case SERF_STATE_STONECUTTING:
-    case SERF_STATE_STONECUTTER_FREE_WALKING:
-    case SERF_STATE_FISHING:
-    case SERF_STATE_FARMING:
-    case SERF_STATE_SAMPLING_GEO_SPOT:
-    case SERF_STATE_KNIGHT_FREE_WALKING:
-    case SERF_STATE_KNIGHT_ATTACKING_FREE:
-    case SERF_STATE_KNIGHT_ATTACKING_FREE_WAIT:
-      save_text_write_value(f, "state.dist1", serf->s.free_walking.dist1);
-      save_text_write_value(f, "state.dist2", serf->s.free_walking.dist2);
-      save_text_write_value(f, "state.neg_dist",
-                            serf->s.free_walking.neg_dist1);
-      save_text_write_value(f, "state.neg_dist2",
-                            serf->s.free_walking.neg_dist2);
-      save_text_write_value(f, "state.flags", serf->s.free_walking.flags);
-      break;
-
-    case SERF_STATE_SAWING:
-      save_text_write_value(f, "state.mode", serf->s.sawing.mode);
-      break;
-
-    case SERF_STATE_LOST:
-      save_text_write_value(f, "state.field_B", serf->s.lost.field_B);
-      break;
-
-    case SERF_STATE_MINING:
-      save_text_write_value(f, "state.substate", serf->s.mining.substate);
-      save_text_write_value(f, "state.res", serf->s.mining.res);
-      save_text_write_value(f, "state.deposit", serf->s.mining.deposit);
-      break;
-
-    case SERF_STATE_SMELTING:
-      save_text_write_value(f, "state.mode", serf->s.smelting.mode);
-      save_text_write_value(f, "state.counter", serf->s.smelting.counter);
-      save_text_write_value(f, "state.type", serf->s.smelting.type);
-      break;
-
-    case SERF_STATE_MILLING:
-      save_text_write_value(f, "state.mode", serf->s.milling.mode);
-      break;
-
-    case SERF_STATE_BAKING:
-      save_text_write_value(f, "state.mode", serf->s.baking.mode);
-      break;
-
-    case SERF_STATE_PIGFARMING:
-      save_text_write_value(f, "state.mode", serf->s.pigfarming.mode);
-      break;
-
-    case SERF_STATE_BUTCHERING:
-      save_text_write_value(f, "state.mode", serf->s.butchering.mode);
-      break;
-
-    case SERF_STATE_MAKING_WEAPON:
-      save_text_write_value(f, "state.mode", serf->s.making_weapon.mode);
-      break;
-
-    case SERF_STATE_MAKING_TOOL:
-      save_text_write_value(f, "state.mode", serf->s.making_tool.mode);
-      break;
-
-    case SERF_STATE_BUILDING_BOAT:
-      save_text_write_value(f, "state.mode", serf->s.building_boat.mode);
-      break;
-
-    case SERF_STATE_KNIGHT_ENGAGING_BUILDING:
-    case SERF_STATE_KNIGHT_PREPARE_ATTACKING:
-    case SERF_STATE_KNIGHT_PREPARE_DEFENDING_FREE_WAIT:
-    case SERF_STATE_KNIGHT_ATTACKING_DEFEAT_FREE:
-    case SERF_STATE_KNIGHT_ATTACKING:
-    case SERF_STATE_KNIGHT_ATTACKING_VICTORY:
-    case SERF_STATE_KNIGHT_ENGAGE_ATTACKING_FREE:
-    case SERF_STATE_KNIGHT_ENGAGE_ATTACKING_FREE_JOIN:
-    case SERF_STATE_KNIGHT_ATTACKING_VICTORY_FREE:
-      save_text_write_value(f, "state.field_B", serf->s.attacking.field_B);
-      save_text_write_value(f, "state.field_C", serf->s.attacking.field_C);
-      save_text_write_value(f, "state.field_D", serf->s.attacking.field_D);
-      save_text_write_value(f, "state.def_index", serf->s.attacking.def_index);
-      break;
-
-    case SERF_STATE_KNIGHT_DEFENDING_FREE:
-    case SERF_STATE_KNIGHT_ENGAGE_DEFENDING_FREE:
-      save_text_write_value(f, "state.dist_col",
-                            serf->s.defending_free.dist_col);
-      save_text_write_value(f, "state.dist_row",
-                            serf->s.defending_free.dist_row);
-      save_text_write_value(f, "state.field_D", serf->s.defending_free.field_D);
-      save_text_write_value(f, "state.other_dist_col",
-                            serf->s.defending_free.other_dist_col);
-      save_text_write_value(f, "state.other_dist_row",
-                            serf->s.defending_free.other_dist_row);
-      break;
-
-    case SERF_STATE_KNIGHT_LEAVE_FOR_WALK_TO_FIGHT:
-      save_text_write_value(f, "state.dist_col",
-                            serf->s.leave_for_walk_to_fight.dist_col);
-      save_text_write_value(f, "state.dist_row",
-                            serf->s.leave_for_walk_to_fight.dist_row);
-      save_text_write_value(f, "state.field_D",
-                            serf->s.leave_for_walk_to_fight.field_D);
-      save_text_write_value(f, "state.field_E",
-                            serf->s.leave_for_walk_to_fight.field_E);
-      save_text_write_value(f, "state.next_state",
-                            serf->s.leave_for_walk_to_fight.next_state);
-      break;
-
-    case SERF_STATE_IDLE_ON_PATH:
-    case SERF_STATE_WAIT_IDLE_ON_PATH:
-    case SERF_STATE_WAKE_AT_FLAG:
-    case SERF_STATE_WAKE_ON_PATH:
-      save_text_write_value(f, "state.rev_dir", serf->s.idle_on_path.rev_dir);
-      save_text_write_value(f, "state.flag",
-                            serf->s.idle_on_path.flag->get_index());
-      save_text_write_value(f, "state.field_E", serf->s.idle_on_path.field_E);
-      break;
-
-    case SERF_STATE_DEFENDING_HUT:
-    case SERF_STATE_DEFENDING_TOWER:
-    case SERF_STATE_DEFENDING_FORTRESS:
-    case SERF_STATE_DEFENDING_CASTLE:
-      save_text_write_value(f, "state.next_knight",
-                            serf->s.defending.next_knight);
-      break;
-
-    default: break;
-    }
-
-    fprintf(f, "\n");
-  }
-
-  return 0;
+  return true;
 }
 
 static int
@@ -1330,8 +928,10 @@ save_text_state(FILE *f) {
     if (!save_text_inventory_state(*i, f)) return -1;
   }
 
-  r = save_text_serf_state(f);
-  if (r < 0) return -1;
+  for (serfs_t::iterator i = game.serfs.begin();
+       i != game.serfs.end(); ++i) {
+    if (!save_text_serf_state(*i, f)) return -1;
+  }
 
   r = save_text_map_state(f);
   if (r < 0) return -1;
@@ -1618,8 +1218,6 @@ load_text_game_state(list_t *sections) {
         char *v = parse_array_value(&array);
         game.rnd.state[i] = atoi(v);
       }
-    } else if (!strcmp(s->key, "serf_limit")) {
-      game.serf_limit = atoi(s->value);
     } else if (!strcmp(s->key, "next_index")) {
       game.next_index = atoi(s->value);
     } else if (!strcmp(s->key, "flag_search_counter")) {
@@ -1646,14 +1244,10 @@ load_text_game_state(list_t *sections) {
       game.map_regions = atoi(s->value);
     } else if (!strcmp(s->key, "max_next_index")) {
       game.max_next_index = atoi(s->value);
-    } else if (!strcmp(s->key, "max_serfs_from_land")) {
-      game.max_serfs_from_land = atoi(s->value);
     } else if (!strcmp(s->key, "map.gold_deposit")) {
       game.map_gold_deposit = atoi(s->value);
     } else if (!strcmp(s->key, "update_map_16_loop")) {
       game.update_map_16_loop = atoi(s->value);
-    } else if (!strcmp(s->key, "max_serfs_per_player")) {
-      game.max_serfs_per_player = atoi(s->value);
     } else if (!strcmp(s->key, "map.gold_morale_factor")) {
       game.map_gold_morale_factor = atoi(s->value);
     } else if (!strcmp(s->key, "winning_player")) {
@@ -1956,313 +1550,11 @@ static int
 load_text_serf_section(section_t *section) {
   /* Parse serf number. */
   int n = atoi(section->param);
-  if (n >= static_cast<int>(game.serf_limit)) return -1;
 
-  serf_t *serf = &game.serfs[n];
-  game.serf_bitmap[n/8] |= BIT(7-(n&7));
+  save_reader_text_section_t reader(section);
 
-  /* Load the serf state. */
-  list_elm_t *elm;
-  list_foreach(&section->settings, elm) {
-    setting_t *s = reinterpret_cast<setting_t*>(elm);
-    if (!strcmp(s->key, "type")) {
-      serf->type = atoi(s->value);
-    } else if (!strcmp(s->key, "animation")) {
-      serf->animation = atoi(s->value);
-    } else if (!strcmp(s->key, "counter")) {
-      serf->counter = atoi(s->value);
-    } else if (!strcmp(s->key, "pos")) {
-      serf->pos = parse_map_pos(s->value);
-    } else if (!strcmp(s->key, "tick")) {
-      serf->tick = atoi(s->value);
-    } else if (!strcmp(s->key, "state")) {
-      serf->state = (serf_state_t)atoi(s->value);
-    } else if (!strncmp(s->key, "state.", strlen("state."))) {
-      /* Handled later */
-    } else {
-      LOGD("savegame", "Unhandled serf setting: `%s'.", s->key);
-    }
-  }
-
-  /* Load state variables */
-  list_foreach(&section->settings, elm) {
-    setting_t *s = reinterpret_cast<setting_t*>(elm);
-    switch (serf->state) {
-    case SERF_STATE_IDLE_IN_STOCK:
-      if (!strcmp(s->key, "state.inventory")) {
-        serf->s.idle_in_stock.inv_index = atoi(s->value);
-      }
-      break;
-
-    case SERF_STATE_WALKING:
-    case SERF_STATE_TRANSPORTING:
-    case SERF_STATE_DELIVERING:
-      if (!strcmp(s->key, "state.res")) {
-        serf->s.walking.res = atoi(s->value);
-      } else if (!strcmp(s->key, "state.dest")) {
-        serf->s.walking.dest = atoi(s->value);
-      } else if (!strcmp(s->key, "state.dir")) {
-        serf->s.walking.dir = atoi(s->value);
-      } else if (!strcmp(s->key, "state.wait_counter")) {
-        serf->s.walking.wait_counter = atoi(s->value);
-      }
-      break;
-
-    case SERF_STATE_ENTERING_BUILDING:
-      if (!strcmp(s->key, "state.field_B")) {
-        serf->s.entering_building.field_B = atoi(s->value);
-      } else if (!strcmp(s->key, "state.slope_len")) {
-        serf->s.entering_building.slope_len = atoi(s->value);
-      }
-      break;
-
-    case SERF_STATE_LEAVING_BUILDING:
-    case SERF_STATE_READY_TO_LEAVE:
-    case SERF_STATE_KNIGHT_LEAVE_FOR_FIGHT:
-      if (!strcmp(s->key, "state.field_B")) {
-        serf->s.leaving_building.field_B = atoi(s->value);
-      } else if (!strcmp(s->key, "state.dest")) {
-        serf->s.leaving_building.dest = atoi(s->value);
-      } else if (!strcmp(s->key, "state.dest2")) {
-        serf->s.leaving_building.dest2 = atoi(s->value);
-      } else if (!strcmp(s->key, "state.dir")) {
-        serf->s.leaving_building.dir = atoi(s->value);
-      } else if (!strcmp(s->key, "state.next_state")) {
-        serf->s.leaving_building.next_state = (serf_state_t)atoi(s->value);
-      }
-      break;
-
-    case SERF_STATE_READY_TO_ENTER:
-      if (!strcmp(s->key, "state.field_B")) {
-        serf->s.ready_to_enter.field_B = atoi(s->value);
-      }
-      break;
-
-    case SERF_STATE_DIGGING:
-      if (!strcmp(s->key, "state.h_index")) {
-        serf->s.digging.h_index = atoi(s->value);
-      } else if (!strcmp(s->key, "state.target_h")) {
-        serf->s.digging.target_h = atoi(s->value);
-      } else if (!strcmp(s->key, "state.dig_pos")) {
-        serf->s.digging.dig_pos = atoi(s->value);
-      } else if (!strcmp(s->key, "state.substate")) {
-        serf->s.digging.substate = atoi(s->value);
-      }
-      break;
-
-    case SERF_STATE_BUILDING:
-      if (!strcmp(s->key, "state.mode")) {
-        serf->s.building.mode = atoi(s->value);
-      } else if (!strcmp(s->key, "state.bld_index")) {
-        serf->s.building.bld_index = atoi(s->value);
-      } else if (!strcmp(s->key, "state.material_step")) {
-        serf->s.building.material_step = atoi(s->value);
-      } else if (!strcmp(s->key, "state.counter")) {
-        serf->s.building.counter = atoi(s->value);
-      }
-      break;
-
-    case SERF_STATE_BUILDING_CASTLE:
-      if (!strcmp(s->key, "state.inv_index")) {
-        serf->s.building_castle.inv_index = atoi(s->value);
-      }
-      break;
-
-    case SERF_STATE_MOVE_RESOURCE_OUT:
-    case SERF_STATE_DROP_RESOURCE_OUT:
-      if (!strcmp(s->key, "state.res")) {
-        serf->s.move_resource_out.res = atoi(s->value);
-      } else if (!strcmp(s->key, "state.res_dest")) {
-        serf->s.move_resource_out.res_dest = atoi(s->value);
-      } else if (!strcmp(s->key, "state.next_state")) {
-        serf->s.move_resource_out.next_state = (serf_state_t)atoi(s->value);
-      }
-      break;
-
-    case SERF_STATE_READY_TO_LEAVE_INVENTORY:
-      if (!strcmp(s->key, "state.mode")) {
-        serf->s.ready_to_leave_inventory.mode = atoi(s->value);
-      } else if (!strcmp(s->key, "state.dest")) {
-        serf->s.ready_to_leave_inventory.dest = atoi(s->value);
-      } else if (!strcmp(s->key, "state.inv_index")) {
-        serf->s.ready_to_leave_inventory.inv_index = atoi(s->value);
-      }
-      break;
-
-    case SERF_STATE_FREE_WALKING:
-    case SERF_STATE_LOGGING:
-    case SERF_STATE_PLANTING:
-    case SERF_STATE_STONECUTTING:
-    case SERF_STATE_STONECUTTER_FREE_WALKING:
-    case SERF_STATE_FISHING:
-    case SERF_STATE_FARMING:
-    case SERF_STATE_SAMPLING_GEO_SPOT:
-    case SERF_STATE_KNIGHT_FREE_WALKING:
-    case SERF_STATE_KNIGHT_ATTACKING_FREE:
-    case SERF_STATE_KNIGHT_ATTACKING_FREE_WAIT:
-      if (!strcmp(s->key, "state.dist1")) {
-        serf->s.free_walking.dist1 = atoi(s->value);
-      } else if (!strcmp(s->key, "state.dist2")) {
-        serf->s.free_walking.dist2 = atoi(s->value);
-      } else if (!strcmp(s->key, "state.neg_dist")) {
-        serf->s.free_walking.neg_dist1 = atoi(s->value);
-      } else if (!strcmp(s->key, "state.neg_dist2")) {
-        serf->s.free_walking.neg_dist2 = atoi(s->value);
-      } else if (!strcmp(s->key, "state.flags")) {
-        serf->s.free_walking.flags = atoi(s->value);
-      }
-      break;
-
-    case SERF_STATE_SAWING:
-      if (!strcmp(s->key, "state.mode")) {
-        serf->s.sawing.mode = atoi(s->value);
-      }
-      break;
-
-    case SERF_STATE_LOST:
-      if (!strcmp(s->key, "state.field_B")) {
-        serf->s.lost.field_B = atoi(s->value);
-      }
-      break;
-
-    case SERF_STATE_MINING:
-      if (!strcmp(s->key, "state.substate")) {
-        serf->s.mining.substate = atoi(s->value);
-      } else if (!strcmp(s->key, "state.res")) {
-        serf->s.mining.res = atoi(s->value);
-      } else if (!strcmp(s->key, "state.deposit")) {
-        serf->s.mining.deposit = (ground_deposit_t)atoi(s->value);
-      }
-      break;
-
-    case SERF_STATE_SMELTING:
-      if (!strcmp(s->key, "state.mode")) {
-        serf->s.smelting.mode = atoi(s->value);
-      } else if (!strcmp(s->key, "state.counter")) {
-        serf->s.smelting.counter = atoi(s->value);
-      } else if (!strcmp(s->key, "state.type")) {
-        serf->s.smelting.type = atoi(s->value);
-      }
-      break;
-
-    case SERF_STATE_MILLING:
-      if (!strcmp(s->key, "state.mode")) {
-        serf->s.milling.mode = atoi(s->value);
-      }
-      break;
-
-    case SERF_STATE_BAKING:
-      if (!strcmp(s->key, "state.mode")) {
-        serf->s.baking.mode = atoi(s->value);
-      }
-      break;
-
-    case SERF_STATE_PIGFARMING:
-      if (!strcmp(s->key, "state.mode")) {
-        serf->s.pigfarming.mode = atoi(s->value);
-      }
-      break;
-
-    case SERF_STATE_BUTCHERING:
-      if (!strcmp(s->key, "state.mode")) {
-        serf->s.butchering.mode = atoi(s->value);
-      }
-      break;
-
-    case SERF_STATE_MAKING_WEAPON:
-      if (!strcmp(s->key, "state.mode")) {
-        serf->s.making_weapon.mode = atoi(s->value);
-      }
-      break;
-
-    case SERF_STATE_MAKING_TOOL:
-      if (!strcmp(s->key, "state.mode")) {
-        serf->s.making_tool.mode = atoi(s->value);
-      }
-      break;
-
-    case SERF_STATE_BUILDING_BOAT:
-      if (!strcmp(s->key, "state.mode")) {
-        serf->s.building_boat.mode = atoi(s->value);
-      }
-      break;
-
-    case SERF_STATE_KNIGHT_ENGAGING_BUILDING:
-    case SERF_STATE_KNIGHT_PREPARE_ATTACKING:
-    case SERF_STATE_KNIGHT_PREPARE_DEFENDING_FREE_WAIT:
-    case SERF_STATE_KNIGHT_ATTACKING_DEFEAT_FREE:
-    case SERF_STATE_KNIGHT_ATTACKING:
-    case SERF_STATE_KNIGHT_ATTACKING_VICTORY:
-    case SERF_STATE_KNIGHT_ENGAGE_ATTACKING_FREE:
-    case SERF_STATE_KNIGHT_ENGAGE_ATTACKING_FREE_JOIN:
-    case SERF_STATE_KNIGHT_ATTACKING_VICTORY_FREE:
-      if (!strcmp(s->key, "state.field_B")) {
-        serf->s.attacking.field_B = atoi(s->value);
-      } else if (!strcmp(s->key, "state.field_C")) {
-        serf->s.attacking.field_C = atoi(s->value);
-      } else if (!strcmp(s->key, "state.field_D")) {
-        serf->s.attacking.field_D = atoi(s->value);
-      } else if (!strcmp(s->key, "state.def_index")) {
-        serf->s.attacking.def_index = atoi(s->value);
-      }
-      break;
-
-    case SERF_STATE_KNIGHT_DEFENDING_FREE:
-    case SERF_STATE_KNIGHT_ENGAGE_DEFENDING_FREE:
-      if (!strcmp(s->key, "state.dist_col")) {
-        serf->s.defending_free.dist_col = atoi(s->value);
-      } else if (!strcmp(s->key, "state.dist_row")) {
-        serf->s.defending_free.dist_row = atoi(s->value);
-      } else if (!strcmp(s->key, "state.field_D")) {
-        serf->s.defending_free.field_D = atoi(s->value);
-      } else if (!strcmp(s->key, "state.other_dist_col")) {
-        serf->s.defending_free.other_dist_col = atoi(s->value);
-      } else if (!strcmp(s->key, "state.other_dist_row")) {
-        serf->s.defending_free.other_dist_row = atoi(s->value);
-      }
-      break;
-
-    case SERF_STATE_KNIGHT_LEAVE_FOR_WALK_TO_FIGHT:
-      if (!strcmp(s->key, "state.dist_col")) {
-        serf->s.leave_for_walk_to_fight.dist_col = atoi(s->value);
-      } else if (!strcmp(s->key, "state.dist_row")) {
-        serf->s.leave_for_walk_to_fight.dist_row = atoi(s->value);
-      } else if (!strcmp(s->key, "state.field_D")) {
-        serf->s.leave_for_walk_to_fight.field_D = atoi(s->value);
-      } else if (!strcmp(s->key, "state.field_E")) {
-        serf->s.leave_for_walk_to_fight.field_E = atoi(s->value);
-      } else if (!strcmp(s->key, "state.next_state")) {
-        serf->s.leave_for_walk_to_fight.next_state =
-                                                   (serf_state_t)atoi(s->value);
-      }
-      break;
-
-    case SERF_STATE_IDLE_ON_PATH:
-    case SERF_STATE_WAIT_IDLE_ON_PATH:
-    case SERF_STATE_WAKE_AT_FLAG:
-    case SERF_STATE_WAKE_ON_PATH:
-      if (!strcmp(s->key, "state.rev_dir")) {
-        serf->s.idle_on_path.rev_dir = (dir_t)atoi(s->value);
-      } else if (!strcmp(s->key, "state.flag")) {
-        serf->s.idle_on_path.flag = game.flags[atoi(s->value)];
-      } else if (!strcmp(s->key, "state.field_E")) {
-        serf->s.idle_on_path.field_E = atoi(s->value);
-      }
-      break;
-
-    case SERF_STATE_DEFENDING_HUT:
-    case SERF_STATE_DEFENDING_TOWER:
-    case SERF_STATE_DEFENDING_FORTRESS:
-    case SERF_STATE_DEFENDING_CASTLE:
-      if (!strcmp(s->key, "state.next_knight")) {
-        serf->s.defending.next_knight = atoi(s->value);
-      }
-      break;
-
-    default:
-      break;
-    }
-  }
+  serf_t *serf = game.serfs.get_or_insert(n);
+  reader >> *serf;
 
   return 0;
 }
@@ -2275,13 +1567,6 @@ load_text_serf_state(list_t *sections) {
     if (!strcmp(s->name, "serf")) {
       int r = load_text_serf_section(s);
       if (r < 0) return -1;
-    }
-  }
-
-  for (unsigned int i = 0; i < game.serf_limit; i++) {
-    if (SERF_ALLOCATED(i)) {
-      /* Restore max serf index */
-      game.max_serf_index = i+1;
     }
   }
 
@@ -2403,13 +1688,12 @@ load_text_map_state(list_t *sections) {
   }
 
   /* Restore idle serf flag */
-  for (unsigned int i = 1; i < game.max_serf_index; i++) {
-    if (!SERF_ALLOCATED(i)) continue;
-
-    serf_t *serf = game_get_serf(i);
-    if (serf->state == SERF_STATE_IDLE_ON_PATH ||
-        serf->state == SERF_STATE_WAIT_IDLE_ON_PATH) {
-      game.map.tiles[serf->pos].obj |= BIT(7);
+  for (serfs_t::iterator i = game.serfs.begin();
+       i != game.serfs.end(); ++i) {
+    serf_t *serf = *i;
+    if (serf->get_state() == SERF_STATE_IDLE_ON_PATH ||
+        serf->get_state() == SERF_STATE_WAIT_IDLE_ON_PATH) {
+      game.map.tiles[serf->get_pos()].obj |= BIT(7);
     }
   }
 
@@ -2603,6 +1887,22 @@ save_reader_text_value_t&
 save_reader_text_value_t::operator >> (building_type_t &val) {
   int result = atoi(value.c_str());
   val = (building_type_t)result;
+
+  return *this;
+}
+
+save_reader_text_value_t&
+save_reader_text_value_t::operator >> (serf_state_t &val) {
+  int result = atoi(value.c_str());
+  val = (serf_state_t)result;
+
+  return *this;
+}
+
+save_reader_text_value_t&
+save_reader_text_value_t::operator >> (uint16_t &val) {
+  int result = atoi(value.c_str());
+  val = (uint16_t)result;
 
   return *this;
 }

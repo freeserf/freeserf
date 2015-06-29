@@ -185,15 +185,15 @@ inventory_t::call_transporter(bool water) {
 
   if (water) {
     if (serfs[SERF_SAILOR] != 0) {
-      serf = game_get_serf(serfs[serfs[SERF_SAILOR]]);
+      serf = game.serfs[serfs[SERF_SAILOR]];
       serfs[SERF_SAILOR] = 0;
     } else {
       if ((serfs[SERF_GENERIC] != 0) &&
           (resources[RESOURCE_BOAT] > 0)) {
-        serf = game_get_serf(serfs[SERF_GENERIC]);
+        serf = game.serfs[serfs[SERF_GENERIC]];
         serfs[SERF_GENERIC] = 0;
         resources[RESOURCE_BOAT]--;
-        serf_set_type(serf, SERF_SAILOR);
+        serf->set_type(SERF_SAILOR);
         generic_count -= 1;
       } else {
         return NULL;
@@ -201,13 +201,13 @@ inventory_t::call_transporter(bool water) {
     }
   } else {
     if (serfs[SERF_TRANSPORTER] != 0) {
-      serf = game_get_serf(serfs[SERF_TRANSPORTER]);
+      serf = game.serfs[serfs[SERF_TRANSPORTER]];
       serfs[SERF_TRANSPORTER] = 0;
     } else {
       if (serfs[SERF_GENERIC] != 0) {
-        serf = game_get_serf(serfs[SERF_GENERIC]);
+        serf = game.serfs[serfs[SERF_GENERIC]];
         serfs[SERF_GENERIC] = 0;
-        serf_set_type(serf, SERF_TRANSPORTER);
+        serf->set_type(SERF_TRANSPORTER);
         generic_count -= 1;
       } else {
         return NULL;
@@ -222,12 +222,12 @@ inventory_t::call_transporter(bool water) {
 
 bool
 inventory_t::call_out_serf(serf_t *serf) {
-  if (serfs[SERF_TYPE(serf)] != SERF_INDEX(serf)) {
+  if (serfs[serf->get_type()] != serf->get_index()) {
     return false;
   }
 
-  serfs[SERF_TYPE(serf)] = 0;
-  if (SERF_TYPE(serf) == SERF_GENERIC) {
+  serfs[serf->get_type()] = 0;
+  if (serf->get_type() == SERF_GENERIC) {
     generic_count--;
   }
   serfs_out++;
@@ -240,7 +240,7 @@ inventory_t::call_out_serf(serf_type_t type) {
     return NULL;
   }
 
-  serf_t *serf = game_get_serf(serfs[type]);
+  serf_t *serf = game.serfs[serfs[type]];
   if (!call_out_serf(serf)) {
     return NULL;
   }
@@ -250,11 +250,11 @@ inventory_t::call_out_serf(serf_type_t type) {
 
 bool
 inventory_t::call_internal(serf_t *serf) {
-  if (serfs[SERF_TYPE(serf)] != SERF_INDEX(serf)) {
+  if (serfs[serf->get_type()] != serf->get_index()) {
     return false;
   }
 
-  serfs[SERF_TYPE(serf)] = 0;
+  serfs[serf->get_type()] = 0;
 
   return true;
 }
@@ -265,7 +265,7 @@ inventory_t::call_internal(serf_type_t type) {
     return NULL;
   }
 
-  serf_t *serf = game_get_serf(serfs[type]);
+  serf_t *serf = game.serfs[serfs[type]];
   serfs[type] = 0;
 
   return serf;
@@ -273,7 +273,7 @@ inventory_t::call_internal(serf_type_t type) {
 
 bool
 inventory_t::promote_serf_to_knight(serf_t *serf) {
-  if (SERF_TYPE(serf) != SERF_GENERIC) {
+  if (serf->get_type() != SERF_GENERIC) {
     return false;
   }
 
@@ -287,7 +287,7 @@ inventory_t::promote_serf_to_knight(serf_t *serf) {
   generic_count--;
   serfs[SERF_GENERIC] = 0;
 
-  serf_set_type(serf, SERF_KNIGHT_0);
+  serf->set_type(SERF_KNIGHT_0);
 
   return true;
 }
@@ -295,21 +295,14 @@ inventory_t::promote_serf_to_knight(serf_t *serf) {
 serf_t*
 inventory_t::spawn_serf_generic() {
   serf_t *serf = NULL;
-  int r = game_alloc_serf(&serf, NULL);
+  int r = game.serfs.allocate(&serf, NULL);
   if (r < 0) return NULL;
 
-  serf->type = (SERF_GENERIC << 2) | player_num;
-  serf->animation = 0;
-  serf->counter = 0;
-  building_t *building = game.buildings[get_building_index()];
-  serf->pos = building->get_position();
-  serf->tick = game.tick;
-  serf->state = SERF_STATE_IDLE_IN_STOCK;
-  serf->s.idle_in_stock.inv_index = index;
+  serf->init_generic(this);
 
   generic_count++;
   if (serfs[SERF_GENERIC] == 0) {
-    serfs[SERF_GENERIC] = SERF_INDEX(serf);
+    serfs[SERF_GENERIC] = serf->get_index();
   }
 
   player_t *player = game.player[player_num];
@@ -351,7 +344,7 @@ resource_type_t res_needed[] = {
 
 bool
 inventory_t::specialize_serf(serf_t *serf, serf_type_t type) {
-  if (SERF_TYPE(serf) != SERF_GENERIC) {
+  if (serf->get_type() != SERF_GENERIC) {
     return false;
   }
 
@@ -368,7 +361,7 @@ inventory_t::specialize_serf(serf_t *serf, serf_type_t type) {
     return false;
   }
 
-  if (serfs[SERF_GENERIC] == SERF_INDEX(serf)) {
+  if (serfs[SERF_GENERIC] == serf->get_index()) {
     serfs[SERF_GENERIC] = 0;
   }
   generic_count--;
@@ -380,9 +373,9 @@ inventory_t::specialize_serf(serf_t *serf, serf_type_t type) {
     resources[res_needed[type*2+1]]--;
   }
 
-  serf_set_type(serf, type);
+  serf->set_type(type);
 
-  serfs[type] = SERF_INDEX(serf);
+  serfs[type] = serf->get_index();
 
   return true;
 }
@@ -393,7 +386,7 @@ inventory_t::specialize_free_serf(serf_type_t type) {
     return NULL;
   }
 
-  serf_t *serf = game_get_serf(serfs[SERF_GENERIC]);
+  serf_t *serf = game.serfs[serfs[SERF_GENERIC]];
 
   if (!specialize_serf(serf, type)) {
     return NULL;
@@ -418,13 +411,13 @@ inventory_t::serf_potencial_count(serf_type_t type) {
 
 void
 inventory_t::serf_idle_in_stock(serf_t *serf) {
-  serfs[SERF_TYPE(serf)] = SERF_INDEX(serf);
+  serfs[serf->get_type()] = serf->get_index();
 }
 
 void
 inventory_t::knight_training(serf_t *serf, int p) {
-  serf_type_t old_type = SERF_TYPE(serf);
-  int r = serf_train_knight(serf, p);
+  serf_type_t old_type = serf->get_type();
+  int r = serf->train_knight(p);
   if (r == 0) serfs[old_type] = 0;
 
   serf_idle_in_stock(serf);

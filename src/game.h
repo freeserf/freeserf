@@ -41,6 +41,7 @@ typedef void game_update_map_height_func(map_pos_t pos, void *data);
 typedef collection_t<flag_t> flags_t;
 typedef collection_t<inventory_t> inventories_t;
 typedef collection_t<building_t> buildings_t;
+typedef collection_t<serf_t> serfs_t;
 
 typedef struct {
   map_t map; /* ADDITION */
@@ -66,12 +67,10 @@ typedef struct {
   int16_t map_water_level;
   int16_t map_max_lake_area;
   /*uint16_t map_max_serfs_left;*/
-  unsigned int max_serfs_from_land;
   uint32_t map_gold_deposit;
   /* 50 */
   uint16_t map_size;
   /* 58 */
-  unsigned int max_serfs_per_player;
   int map_gold_morale_factor;
   /* 5E */
   int winning_player;
@@ -92,8 +91,7 @@ typedef struct {
   flags_t flags;
   inventories_t inventories;
   buildings_t buildings;
-  serf_t *serfs;
-  uint8_t *serf_bitmap;
+  serfs_t serfs;
   /* OBSOLETE
   flag_t **flag_queue_black;
   flag_t **flag_queue_white; */
@@ -152,9 +150,7 @@ typedef struct {
   /*uint16_t short_row_length;
   uint16_t long_row_length;*/
   /* 258 */
-  unsigned int serf_limit;
   /* 260 */
-  unsigned int max_serf_index;
   /* 26C */
   uint16_t next_index;
   uint16_t flag_search_counter;
@@ -261,10 +257,6 @@ void game_set_inventory_serf_mode(inventory_t *inventory, int mode);
 
 
 /* Internal interface */
-int game_alloc_serf(serf_t **serf, int *index);
-serf_t *game_get_serf(int index);
-void game_free_serf(int index);
-
 void game_calculate_military_flag_state(building_t *building);
 void game_init_land_ownership();
 void game_update_land_ownership(map_pos_t pos);

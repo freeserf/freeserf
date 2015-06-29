@@ -118,28 +118,27 @@ building_t::call_defender_out() {
   }
 
   /* The last knight in the list has to defend. */
-  int *def_index = &serf_index;
-  serf_t *def_serf = game_get_serf(*def_index);
-  while (def_serf->s.defending.next_knight != 0) {
-    def_index = &def_serf->s.defending.next_knight;
-    def_serf = game_get_serf(*def_index);
+  serf_t *first_serf = game.serfs[serf_index];
+  serf_t *def_serf = first_serf->extract_last_knight_from_list();
+
+  if (def_serf->get_index() == serf_index) {
+    serf_index = 0;
   }
-  *def_index = 0;
 
   return def_serf;
 }
 
 serf_t*
 building_t::call_attacker_out(int knight_index) {
-  /* Unlink knight from list. */
-  int *def_index = &serf_index;
-  serf_t *def_serf = game_get_serf(*def_index);
-  while (*def_index != knight_index) {
-    def_index = &def_serf->s.defending.next_knight;
-    def_serf = game_get_serf(*def_index);
-  }
-  *def_index = def_serf->s.defending.next_knight;
   stock[0].available -= 1;
+
+  /* Unlink knight from list. */
+  serf_t *first_serf = game.serfs[serf_index];
+  serf_t *def_serf = first_serf->extract_last_knight_from_list();
+
+  if (def_serf->get_index() == serf_index) {
+    serf_index = 0;
+  }
 
   return def_serf;
 }
@@ -250,8 +249,9 @@ bool
 building_t::knight_come_back_from_fight(serf_t *knight) {
   if (is_enough_place_for_knight()) {
     stock[0].available += 1;
-    knight->s.defending.next_knight = get_main_serf();
-    set_main_serf(SERF_INDEX(knight));
+    serf_t *serf = game.serfs[serf_index];
+    knight->insert_before(serf);
+    set_main_serf(knight->get_index());
     return true;
   }
 
@@ -316,8 +316,8 @@ building_t::get_max_priority_for_resource(resource_type_t resource,
 
 bool
 building_t::use_resource_in_stock(int stock_num) {
-  if (stock[0].available > 0) {
-    stock[0].available -= 1;
+  if (stock[stock_num].available > 0) {
+    stock[stock_num].available -= 1;
     return true;
   }
   return false;
@@ -509,8 +509,8 @@ building_t::update() {
           /* TODO Following code looks like a hack */
           map_pos_t flag_pos = MAP_MOVE_DOWN_RIGHT(pos);
           if (MAP_SERF_INDEX(flag_pos) != 0) {
-            serf_t *serf = game_get_serf(MAP_SERF_INDEX(flag_pos));
-            if (serf->pos != flag_pos) map_set_serf_index(flag_pos, 0);
+            serf_t *serf = game.serfs[MAP_SERF_INDEX(flag_pos)];
+            if (serf->get_pos() != flag_pos) map_set_serf_index(flag_pos, 0);
           }
         }
         break;
@@ -863,20 +863,20 @@ building_t::update_castle() {
   if (player->castle_knights == player->castle_knights_wanted) {
     serf_t *best_knight = NULL;
     serf_t *last_knight = NULL;
-    int serf_index = this->serf_index;
-    while (serf_index != 0) {
-      serf_t *serf = game_get_serf(serf_index);
+    int next_serf_index = this->serf_index;
+    while (next_serf_index != 0) {
+      serf_t *serf = game.serfs[next_serf_index];
       if (best_knight == NULL ||
-          SERF_TYPE(serf) < SERF_TYPE(best_knight)) {
+          serf->get_type() < best_knight->get_type()) {
         best_knight = serf;
       }
       last_knight = serf;
-      serf_index = serf->s.defending.next_knight;
+      next_serf_index = serf->get_next();
     }
 
     if (best_knight != NULL) {
       inventory_t *inventory = u.inventory;
-      int type = SERF_TYPE(best_knight);
+      int type = best_knight->get_type();
       for (int t = SERF_KNIGHT_0; t <= SERF_KNIGHT_4; t++) {
         if (type > t) {
           inventory->call_internal(best_knight);
@@ -884,9 +884,9 @@ building_t::update_castle() {
       }
 
       /* Switch types */
-      int tmp = best_knight->type;
-      best_knight->type = last_knight->type;
-      last_knight->type = tmp;
+      serf_type_t tmp = best_knight->get_type();
+      best_knight->set_type(last_knight->get_type());
+      last_knight->set_type(tmp);
     }
   } else if (player->castle_knights < player->castle_knights_wanted) {
     inventory_t *inventory = u.inventory;
@@ -906,9 +906,8 @@ building_t::update_castle() {
         serf_t *serf = inventory->specialize_free_serf(SERF_KNIGHT_0);
         inventory->call_internal(serf);
 
-        serf->state = SERF_STATE_DEFENDING_CASTLE;
-        serf->s.defending.next_knight = serf_index;
-        this->serf_index = SERF_INDEX(serf);
+        serf->add_to_defending_queue(serf_index, false);
+        serf_index = serf->get_index();
         player->castle_knights += 1;
       } else {
         player->send_knight_delay -= 1;
@@ -920,24 +919,18 @@ building_t::update_castle() {
     } else {
       /* Prepend to knights list */
       serf_t *serf = inventory->call_internal((serf_type_t)type);
-
-      serf_log_state_change(serf, SERF_STATE_DEFENDING_CASTLE);
-      serf->state = SERF_STATE_DEFENDING_CASTLE;
-      serf->s.defending.next_knight = serf_index;
-      serf->counter = 6000;
-      this->serf_index = SERF_INDEX(serf);
+      serf->add_to_defending_queue(serf_index, true);
+      serf_index = serf->get_index();
       player->castle_knights += 1;
     }
   } else {
     player->castle_knights -= 1;
 
     int serf_index = this->serf_index;
-    serf_t *serf = game_get_serf(serf_index);
-    this->serf_index = serf->s.defending.next_knight;
+    serf_t *serf = game.serfs[serf_index];
+    this->serf_index = serf->get_next();
 
-    serf_log_state_change(serf, SERF_STATE_IDLE_IN_STOCK);
-    serf->state = SERF_STATE_IDLE_IN_STOCK;
-    serf->s.idle_in_stock.inv_index = u.inventory->get_index();
+    serf->stay_idle_in_stock(u.inventory->get_index());
   }
 
   inventory_t *inventory = u.inventory;
@@ -954,8 +947,8 @@ building_t::update_castle() {
 
   map_pos_t flag_pos = MAP_MOVE_DOWN_RIGHT(pos);
   if (MAP_SERF_INDEX(flag_pos) != 0) {
-    serf_t *serf = game_get_serf(MAP_SERF_INDEX(flag_pos));
-    if (serf->pos != flag_pos) map_set_serf_index(flag_pos, 0);
+    serf_t *serf = game.serfs[MAP_SERF_INDEX(flag_pos)];
+    if (serf->get_pos() != flag_pos) map_set_serf_index(flag_pos, 0);
   }
 }
 
@@ -1014,36 +1007,31 @@ building_t::update_military() {
     serf_t *leaving_serf = NULL;
     int serf_index = this->serf_index;
     while (serf_index != 0) {
-      serf_t *serf = game_get_serf(serf_index);
+      serf_t *serf = game.serfs[serf_index];
       if (leaving_serf == NULL ||
-          SERF_TYPE(serf) < SERF_TYPE(leaving_serf)) {
+          serf->get_type() < leaving_serf->get_type()) {
         leaving_serf = serf;
       }
-      serf_index = serf->s.defending.next_knight;
+      serf_index = serf->get_next();
     }
 
     /* Remove leaving serf from list. */
-    if (SERF_INDEX(leaving_serf) == this->serf_index) {
-      this->serf_index = leaving_serf->s.defending.next_knight;
+    if (leaving_serf->get_index() == this->serf_index) {
+      this->serf_index = leaving_serf->get_next();
     } else {
       serf_index = this->serf_index;
       while (serf_index != 0) {
-        serf_t *serf = game_get_serf(serf_index);
-        if (serf->s.defending.next_knight == SERF_INDEX(leaving_serf)) {
-          serf->s.defending.next_knight = leaving_serf->s.defending.next_knight;
+        serf_t *serf = game.serfs[serf_index];
+        if (serf->get_next() == leaving_serf->get_index()) {
+          serf->set_next(leaving_serf->get_next());
           break;
         }
-        serf_index = serf->s.defending.next_knight;
+        serf_index = serf->get_next();
       }
     }
 
     /* Update serf state. */
-    serf_log_state_change(leaving_serf, SERF_STATE_READY_TO_LEAVE);
-    leaving_serf->state = SERF_STATE_READY_TO_LEAVE;
-    leaving_serf->s.leaving_building.field_B = -2;
-    leaving_serf->s.leaving_building.dest = 0;
-    leaving_serf->s.leaving_building.dir = 0;
-    leaving_serf->s.leaving_building.next_state = SERF_STATE_WALKING;
+    leaving_serf->go_out_from_building(0, 0, -2);
 
     stock[0].available -= 1;
   }

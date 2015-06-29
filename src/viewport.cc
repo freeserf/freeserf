@@ -1358,47 +1358,48 @@ viewport_t::serf_get_body(serf_t *serf) {
     0x7600, 0x5f00, 0x6000, 0, 0, 0, 0, 0
   };
 
-  animation_t *animation = data_source->get_animation(serf->animation,
-                                                      serf->counter);
+  animation_t *animation = data_source->get_animation(serf->get_animation(),
+                                                      serf->get_counter());
   int t = animation->time;
 
-  switch (SERF_TYPE(serf)) {
+  switch (serf->get_type()) {
   case SERF_TRANSPORTER:
   case SERF_GENERIC:
-    if (serf->state == SERF_STATE_IDLE_ON_PATH) {
+    if (serf->get_state() == SERF_STATE_IDLE_ON_PATH) {
       return -1;
-    } else if ((serf->state == SERF_STATE_TRANSPORTING ||
-        serf->state == SERF_STATE_DELIVERING) && serf->s.walking.res != 0) {
-      t += transporter_type[serf->s.walking.res];
+    } else if ((serf->get_state() == SERF_STATE_TRANSPORTING ||
+                serf->get_state() == SERF_STATE_DELIVERING) &&
+               serf->get_delivery() != 0) {
+      t += transporter_type[serf->get_delivery()];
     }
     break;
   case SERF_SAILOR:
-    if (serf->state == SERF_STATE_TRANSPORTING && t < 0x80) {
-      if (((t & 7) == 4 && !BIT_TEST(serf->type, 7)) ||
+    if (serf->get_state() == SERF_STATE_TRANSPORTING && t < 0x80) {
+      if (((t & 7) == 4 && !serf->playing_sfx()) ||
           (t & 7) == 3) {
-        serf->type |= BIT(7);
+        serf->start_playing_sfx();
         play_sound(SFX_ROWING);
       } else {
-        serf->type &= ~BIT(7);
+        serf->stop_playing_sfx();
       }
     }
 
-    if ((serf->state == SERF_STATE_TRANSPORTING &&
-         serf->s.walking.res == 0) ||
-        serf->state == SERF_STATE_LOST_SAILOR ||
-        serf->state == SERF_STATE_FREE_SAILING) {
+    if ((serf->get_state() == SERF_STATE_TRANSPORTING &&
+         serf->get_delivery() == 0) ||
+        serf->get_state() == SERF_STATE_LOST_SAILOR ||
+        serf->get_state() == SERF_STATE_FREE_SAILING) {
       if (t < 0x80) {
-        if (((t & 7) == 4 && !BIT_TEST(serf->type, 7)) ||
+        if (((t & 7) == 4 && !serf->playing_sfx()) ||
             (t & 7) == 3) {
-          serf->type |= BIT(7);
+          serf->start_playing_sfx();
           play_sound(SFX_ROWING);
         } else {
-          serf->type &= ~BIT(7);
+          serf->stop_playing_sfx();
         }
       }
       t += 0x200;
-    } else if (serf->state == SERF_STATE_TRANSPORTING) {
-      t += sailor_type[serf->s.walking.res];
+    } else if (serf->get_state() == SERF_STATE_TRANSPORTING) {
+      t += sailor_type[serf->get_delivery()];
     } else {
       t += 0x100;
     }
@@ -1407,13 +1408,13 @@ viewport_t::serf_get_body(serf_t *serf) {
     if (t < 0x80) {
       t += 0x300;
     } else if (t == 0x83 || t == 0x84) {
-      if (t == 0x83 || !BIT_TEST(serf->type, 7)) {
-        serf->type |= BIT(7);
+      if (t == 0x83 || !serf->playing_sfx()) {
+        serf->start_playing_sfx();
         play_sound(SFX_DIGGING);
       }
       t += 0x380;
     } else {
-      serf->type &= ~BIT(7);
+      serf->stop_playing_sfx();
       t += 0x380;
     }
     break;
@@ -1421,75 +1422,54 @@ viewport_t::serf_get_body(serf_t *serf) {
     if (t < 0x80) {
       t += 0x500;
     } else if ((t & 7) == 4 || (t & 7) == 5) {
-      if ((t & 7) == 4 || !BIT_TEST(serf->type, 7)) {
-        serf->type |= BIT(7);
+      if ((t & 7) == 4 || !serf->playing_sfx()) {
+        serf->start_playing_sfx();
         play_sound(SFX_HAMMER_BLOW);
       }
       t += 0x580;
     } else {
-      serf->type &= ~BIT(7);
+      serf->stop_playing_sfx();
       t += 0x580;
     }
     break;
   case SERF_TRANSPORTER_INVENTORY:
-    if (serf->state == SERF_STATE_BUILDING_CASTLE) {
+    if (serf->get_state() == SERF_STATE_BUILDING_CASTLE) {
       return -1;
     } else {
-      int res = -1;
-      switch (serf->state) {
-      case SERF_STATE_ENTERING_BUILDING:
-        res = serf->s.entering_building.field_B;
-        break;
-      case SERF_STATE_LEAVING_BUILDING:
-        res = serf->s.leaving_building.field_B;
-        break;
-      case SERF_STATE_READY_TO_ENTER:
-        res = serf->s.ready_to_enter.field_B;
-        break;
-      case SERF_STATE_MOVE_RESOURCE_OUT:
-      case SERF_STATE_DROP_RESOURCE_OUT:
-        res = serf->s.move_resource_out.res;
-        break;
-      case SERF_STATE_WAIT_FOR_RESOURCE_OUT:
-        res = 0; /* TODO */
-        break;
-      default:
-        NOT_REACHED();
-        break;
-      }
-
+      int res = serf->get_delivery();
       t += transporter_type[res];
     }
     break;
   case SERF_LUMBERJACK:
     if (t < 0x80) {
-      if (serf->state == SERF_STATE_FREE_WALKING &&
-          serf->s.free_walking.neg_dist1 == -128 &&
-          serf->s.free_walking.neg_dist2 == 1) {
+      if (serf->get_state() == SERF_STATE_FREE_WALKING &&
+          serf->get_free_walking_neg_dist1() == -128 &&
+          serf->get_free_walking_neg_dist2() == 1) {
         t += 0x1000;
       } else {
         t += 0xb00;
       }
-    } else if ((t == 0x86 && !BIT_TEST(serf->type, 7)) ||
+    } else if ((t == 0x86 && !serf->playing_sfx()) ||
          t == 0x85) {
-      serf->type |= BIT(7);
+      serf->start_playing_sfx();
       play_sound(SFX_AX_BLOW);
       /* TODO Dangerous reference to unknown state vars.
          It is probably free walking. */
-      if (serf->s.free_walking.neg_dist2 == 0 &&
-          serf->counter < 64) {
+      if (serf->get_free_walking_neg_dist2() == 0 &&
+          serf->get_counter() < 64) {
         play_sound(SFX_TREE_FALL);
       }
       t += 0xe80;
     } else if (t != 0x86) {
-      serf->type &= ~BIT(7);
+      serf->stop_playing_sfx();
       t += 0xe80;
     }
     break;
   case SERF_SAWMILLER:
     if (t < 0x80) {
-      if (serf->state == SERF_STATE_LEAVING_BUILDING &&
-          serf->s.leaving_building.next_state == SERF_STATE_DROP_RESOURCE_OUT) {
+      if (serf->get_state() == SERF_STATE_LEAVING_BUILDING &&
+          serf->get_leaving_building_next_state() ==
+            SERF_STATE_DROP_RESOURCE_OUT) {
         t += 0x1700;
       } else {
         t += 0xc00;
@@ -1497,65 +1477,65 @@ viewport_t::serf_get_body(serf_t *serf) {
     } else {
       /* player_num += 4; ??? */
       if (t == 0xb3 || t == 0xbb || t == 0xc3 || t == 0xcb ||
-          (!BIT_TEST(serf->type, 7) && (t == 0xb7 || t == 0xbf ||
+          (!serf->playing_sfx() && (t == 0xb7 || t == 0xbf ||
                 t == 0xc7 || t == 0xcf))) {
-        serf->type |= BIT(7);
+        serf->start_playing_sfx();
         play_sound(SFX_SAWING);
       } else if (t != 0xb7 && t != 0xbf && t != 0xc7 && t != 0xcf) {
-        serf->type &= ~BIT(7);
+        serf->stop_playing_sfx();
       }
       t += 0x1580;
     }
     break;
   case SERF_STONECUTTER:
     if (t < 0x80) {
-      if ((serf->state == SERF_STATE_FREE_WALKING &&
-           serf->s.free_walking.neg_dist1 == -128 &&
-           serf->s.free_walking.neg_dist2 == 1) ||
-          (serf->state == SERF_STATE_STONECUTTING &&
-           serf->s.free_walking.neg_dist1 == 2)) {
+      if ((serf->get_state() == SERF_STATE_FREE_WALKING &&
+           serf->get_free_walking_neg_dist1() == -128 &&
+           serf->get_free_walking_neg_dist2() == 1) ||
+          (serf->get_state() == SERF_STATE_STONECUTTING &&
+           serf->get_free_walking_neg_dist1() == 2)) {
         t += 0x1200;
       } else {
         t += 0xd00;
       }
-    } else if (t == 0x85 || (t == 0x86 && !BIT_TEST(serf->type, 7))) {
-      serf->type |= BIT(7);
+    } else if (t == 0x85 || (t == 0x86 && !serf->playing_sfx())) {
+      serf->start_playing_sfx();
       play_sound(SFX_PICK_BLOW);
       t += 0x1280;
     } else if (t != 0x86) {
-      serf->type &= ~BIT(7);
+      serf->stop_playing_sfx();
       t += 0x1280;
     }
     break;
   case SERF_FORESTER:
     if (t < 0x80) {
       t += 0xe00;
-    } else if (t == 0x86 || (t == 0x87 && !BIT_TEST(serf->type, 7))) {
-      serf->type |= BIT(7);
+    } else if (t == 0x86 || (t == 0x87 && !serf->playing_sfx())) {
+      serf->start_playing_sfx();
       play_sound(SFX_PLANTING);
       t += 0x1080;
     } else if (t != 0x87) {
-      serf->type &= ~BIT(7);
+      serf->stop_playing_sfx();
       t += 0x1080;
     }
     break;
   case SERF_MINER:
     if (t < 0x80) {
-      if ((serf->state != SERF_STATE_MINING ||
-           serf->s.mining.res == 0) &&
-          (serf->state != SERF_STATE_LEAVING_BUILDING ||
-           serf->s.leaving_building.next_state !=
-             SERF_STATE_DROP_RESOURCE_OUT)) {
+      if ((serf->get_state() != SERF_STATE_MINING ||
+           serf->get_mining_res() == 0) &&
+          (serf->get_state() != SERF_STATE_LEAVING_BUILDING ||
+           serf->get_leaving_building_next_state() !=
+           SERF_STATE_DROP_RESOURCE_OUT)) {
         t += 0x1800;
       } else {
         resource_type_t res = RESOURCE_NONE;
 
-        switch (serf->state) {
+        switch (serf->get_state()) {
         case SERF_STATE_MINING:
-          res = (resource_type_t)(serf->s.mining.res - 1);
+          res = (resource_type_t)(serf->get_mining_res() - 1);
           break;
         case SERF_STATE_LEAVING_BUILDING:
-          res = (resource_type_t)(serf->s.leaving_building.field_B - 1);
+          res = (resource_type_t)(serf->get_leaving_building_field_B() - 1);
           break;
         default:
           NOT_REACHED();
@@ -1576,9 +1556,10 @@ viewport_t::serf_get_body(serf_t *serf) {
     break;
   case SERF_SMELTER:
     if (t < 0x80) {
-      if (serf->state == SERF_STATE_LEAVING_BUILDING &&
-          serf->s.leaving_building.next_state == SERF_STATE_DROP_RESOURCE_OUT) {
-        if (serf->s.leaving_building.field_B == 1+RESOURCE_STEEL) {
+      if (serf->get_state() == SERF_STATE_LEAVING_BUILDING &&
+          serf->get_leaving_building_next_state() ==
+          SERF_STATE_DROP_RESOURCE_OUT) {
+        if (serf->get_leaving_building_field_B() == 1+RESOURCE_STEEL) {
           t += 0x2900;
         } else {
           t += 0x2800;
@@ -1593,9 +1574,9 @@ viewport_t::serf_get_body(serf_t *serf) {
     break;
   case SERF_FISHER:
     if (t < 0x80) {
-      if (serf->state == SERF_STATE_FREE_WALKING &&
-          serf->s.free_walking.neg_dist1 == -128 &&
-          serf->s.free_walking.neg_dist2 == 1) {
+      if (serf->get_state() == SERF_STATE_FREE_WALKING &&
+          serf->get_free_walking_neg_dist1() == -128 &&
+          serf->get_free_walking_neg_dist2() == 1) {
         t += 0x2f00;
       } else {
         t += 0x2c00;
@@ -1606,7 +1587,7 @@ viewport_t::serf_get_body(serf_t *serf) {
       }
 
       /* TODO no check for state */
-      if (serf->s.free_walking.neg_dist2 == 1) {
+      if (serf->get_free_walking_neg_dist2() == 1) {
         t += 0x2d80;
       } else {
         t += 0x2c80;
@@ -1615,8 +1596,9 @@ viewport_t::serf_get_body(serf_t *serf) {
     break;
   case SERF_PIGFARMER:
     if (t < 0x80) {
-      if (serf->state == SERF_STATE_LEAVING_BUILDING &&
-          serf->s.leaving_building.next_state == SERF_STATE_DROP_RESOURCE_OUT) {
+      if (serf->get_state() == SERF_STATE_LEAVING_BUILDING &&
+          serf->get_leaving_building_next_state() ==
+            SERF_STATE_DROP_RESOURCE_OUT) {
         t += 0x3400;
       } else {
         t += 0x3200;
@@ -1627,8 +1609,9 @@ viewport_t::serf_get_body(serf_t *serf) {
     break;
   case SERF_BUTCHER:
     if (t < 0x80) {
-      if (serf->state == SERF_STATE_LEAVING_BUILDING &&
-          serf->s.leaving_building.next_state == SERF_STATE_DROP_RESOURCE_OUT) {
+      if (serf->get_state() == SERF_STATE_LEAVING_BUILDING &&
+          serf->get_leaving_building_next_state() ==
+            SERF_STATE_DROP_RESOURCE_OUT) {
         t += 0x3a00;
       } else {
         t += 0x3700;
@@ -1636,42 +1619,43 @@ viewport_t::serf_get_body(serf_t *serf) {
     } else {
       /* edi10 += 4; */
       if ((t == 0xb2 || t == 0xba || t == 0xc2 || t == 0xca) &&
-          !BIT_TEST(serf->type, 7)) {
-        serf->type |= BIT(7);
+          !serf->playing_sfx()) {
+        serf->start_playing_sfx();
         play_sound(SFX_BACKSWORD_BLOW);
       } else if (t != 0xb2 && t != 0xba && t != 0xc2 && t != 0xca) {
-        serf->type  &= ~BIT(7);
+        serf->stop_playing_sfx();
       }
       t += 0x3780;
     }
     break;
   case SERF_FARMER:
     if (t < 0x80) {
-      if (serf->state == SERF_STATE_FREE_WALKING &&
-          serf->s.free_walking.neg_dist1 == -128 &&
-          serf->s.free_walking.neg_dist2 == 1) {
+      if (serf->get_state() == SERF_STATE_FREE_WALKING &&
+          serf->get_free_walking_neg_dist1() == -128 &&
+          serf->get_free_walking_neg_dist2() == 1) {
         t += 0x4000;
       } else {
         t += 0x3d00;
       }
     } else {
       /* TODO access to state without state check */
-      if (serf->s.free_walking.neg_dist1 == 0) {
+      if (serf->get_free_walking_neg_dist1() == 0) {
         t += 0x3d80;
-      } else if (t == 0x83 || (t == 0x84 && !BIT_TEST(serf->type, 7))) {
-        serf->type |= BIT(7);
+      } else if (t == 0x83 || (t == 0x84 && !serf->playing_sfx())) {
+        serf->start_playing_sfx();
         play_sound(SFX_MOWING);
         t += 0x3e80;
       } else if (t != 0x83 && t != 0x84) {
-        serf->type &= ~BIT(7);
+        serf->stop_playing_sfx();
         t += 0x3e80;
       }
     }
     break;
   case SERF_MILLER:
     if (t < 0x80) {
-      if (serf->state == SERF_STATE_LEAVING_BUILDING &&
-          serf->s.leaving_building.next_state == SERF_STATE_DROP_RESOURCE_OUT) {
+      if (serf->get_state() == SERF_STATE_LEAVING_BUILDING &&
+          serf->get_leaving_building_next_state() ==
+            SERF_STATE_DROP_RESOURCE_OUT) {
         t += 0x4500;
       } else {
         t += 0x4300;
@@ -1683,8 +1667,9 @@ viewport_t::serf_get_body(serf_t *serf) {
     break;
   case SERF_BAKER:
     if (t < 0x80) {
-      if (serf->state == SERF_STATE_LEAVING_BUILDING &&
-          serf->s.leaving_building.next_state == SERF_STATE_DROP_RESOURCE_OUT) {
+      if (serf->get_state() == SERF_STATE_LEAVING_BUILDING &&
+          serf->get_leaving_building_next_state() ==
+            SERF_STATE_DROP_RESOURCE_OUT) {
         t += 0x4a00;
       } else {
         t += 0x4800;
@@ -1696,28 +1681,30 @@ viewport_t::serf_get_body(serf_t *serf) {
     break;
   case SERF_BOATBUILDER:
     if (t < 0x80) {
-      if (serf->state == SERF_STATE_LEAVING_BUILDING &&
-          serf->s.leaving_building.next_state == SERF_STATE_DROP_RESOURCE_OUT) {
+      if (serf->get_state() == SERF_STATE_LEAVING_BUILDING &&
+          serf->get_leaving_building_next_state() ==
+            SERF_STATE_DROP_RESOURCE_OUT) {
         t += 0x5000;
       } else {
         t += 0x4e00;
       }
     } else if (t == 0x84 || t == 0x85) {
-      if (t == 0x84 || !BIT_TEST(serf->type, 7)) {
-        serf->type |= BIT(7);
+      if (t == 0x84 || !serf->playing_sfx()) {
+        serf->start_playing_sfx();
         play_sound(SFX_WOOD_HAMMERING);
       }
       t += 0x4e80;
     } else {
-      serf->type &= ~BIT(7);
+      serf->stop_playing_sfx();
       t += 0x4e80;
     }
     break;
   case SERF_TOOLMAKER:
     if (t < 0x80) {
-      if (serf->state == SERF_STATE_LEAVING_BUILDING &&
-          serf->s.leaving_building.next_state == SERF_STATE_DROP_RESOURCE_OUT) {
-        switch (serf->s.leaving_building.field_B-1) {
+      if (serf->get_state() == SERF_STATE_LEAVING_BUILDING &&
+          serf->get_leaving_building_next_state() ==
+            SERF_STATE_DROP_RESOURCE_OUT) {
+        switch (serf->get_leaving_building_field_B() - 1) {
         case RESOURCE_SHOVEL: t += 0x5a00; break;
         case RESOURCE_HAMMER: t += 0x5b00; break;
         case RESOURCE_ROD: t += 0x5c00; break;
@@ -1734,23 +1721,24 @@ viewport_t::serf_get_body(serf_t *serf) {
       }
     } else {
       /* edi10 += 4; */
-      if (t == 0x83 || (t == 0xb2 && !BIT_TEST(serf->type, 7))) {
-        serf->type |= BIT(7);
+      if (t == 0x83 || (t == 0xb2 && !serf->playing_sfx())) {
+        serf->start_playing_sfx();
         play_sound(SFX_SAWING);
-      } else if (t == 0x87 || (t == 0xb6 && !BIT_TEST(serf->type, 7))) {
-        serf->type |= BIT(7);
+      } else if (t == 0x87 || (t == 0xb6 && !serf->playing_sfx())) {
+        serf->start_playing_sfx();
         play_sound(SFX_WOOD_HAMMERING);
       } else if (t != 0xb2 && t != 0xb6) {
-        serf->type &= ~BIT(7);
+        serf->stop_playing_sfx();
       }
       t += 0x5880;
     }
     break;
   case SERF_WEAPONSMITH:
     if (t < 0x80) {
-      if (serf->state == SERF_STATE_LEAVING_BUILDING &&
-          serf->s.leaving_building.next_state == SERF_STATE_DROP_RESOURCE_OUT) {
-        if (serf->s.leaving_building.field_B == 1+RESOURCE_SWORD) {
+      if (serf->get_state() == SERF_STATE_LEAVING_BUILDING &&
+          serf->get_leaving_building_next_state() ==
+            SERF_STATE_DROP_RESOURCE_OUT) {
+        if (serf->get_leaving_building_field_B() == 1+RESOURCE_SWORD) {
           t += 0x5500;
         } else {
           t += 0x5400;
@@ -1760,11 +1748,11 @@ viewport_t::serf_get_body(serf_t *serf) {
       }
     } else {
       /* edi10 += 4; */
-      if (t == 0x83 || (t == 0x84 && !BIT_TEST(serf->type, 7))) {
-        serf->type |= BIT(7);
+      if (t == 0x83 || (t == 0x84 && !serf->playing_sfx())) {
+        serf->start_playing_sfx();
         play_sound(SFX_METAL_HAMMERING);
       } else if (t != 0x84) {
-        serf->type &= ~BIT(7);
+        serf->stop_playing_sfx();
       }
       t += 0x5280;
     }
@@ -1773,19 +1761,19 @@ viewport_t::serf_get_body(serf_t *serf) {
     if (t < 0x80) {
       t += 0x3900;
     } else if (t == 0x83 || t == 0x84 || t == 0x86) {
-      if (t == 0x83 || !BIT_TEST(serf->type, 7)) {
-        serf->type |= BIT(7);
+      if (t == 0x83 || !serf->playing_sfx()) {
+        serf->start_playing_sfx();
         play_sound(SFX_GEOLOGIST_SAMPLING);
       }
       t += 0x4c80;
     } else if (t == 0x8c || t == 0x8d) {
-      if (t == 0x8c || !BIT_TEST(serf->type, 7)) {
-        serf->type |= BIT(7);
+      if (t == 0x8c || !serf->playing_sfx()) {
+        serf->start_playing_sfx();
         play_sound(SFX_RESOURCE_FOUND);
       }
       t += 0x4c80;
     } else {
-      serf->type &= ~BIT(7);
+      serf->stop_playing_sfx();
       t += 0x4c80;
     }
     break;
@@ -1795,21 +1783,21 @@ viewport_t::serf_get_body(serf_t *serf) {
   case SERF_KNIGHT_3:
   case SERF_KNIGHT_4:
   {
-    int k = SERF_TYPE(serf) - SERF_KNIGHT_0;
+    int k = serf->get_type() - SERF_KNIGHT_0;
 
     if (t < 0x80) {
       t += 0x7800 + 0x100*k;
     } else if (t < 0xc0) {
-      if (serf->state == SERF_STATE_KNIGHT_ATTACKING ||
-          serf->state == SERF_STATE_KNIGHT_ATTACKING_FREE) {
-        if (serf->counter >= 24 || serf->counter < 8) {
-          serf->type &= ~BIT(7);
-        } else if (!BIT_TEST(serf->type, 7)) {
-          serf->type |= BIT(7);
-          if (serf->s.attacking.field_D == 0 ||
-              serf->s.attacking.field_D == 4) {
+      if (serf->get_state() == SERF_STATE_KNIGHT_ATTACKING ||
+          serf->get_state() == SERF_STATE_KNIGHT_ATTACKING_FREE) {
+        if (serf->get_counter() >= 24 || serf->get_counter() < 8) {
+          serf->stop_playing_sfx();
+        } else if (!serf->playing_sfx()) {
+          serf->start_playing_sfx();
+          if (serf->get_attacking_field_D() == 0 ||
+              serf->get_attacking_field_D() == 4) {
             play_sound(SFX_FIGHT_01);
-          } else if (serf->s.attacking.field_D == 2) {
+          } else if (serf->get_attacking_field_D() == 2) {
             /* TODO when is SFX_FIGHT_02 played? */
             play_sound(SFX_FIGHT_03);
           } else {
@@ -1825,13 +1813,13 @@ viewport_t::serf_get_body(serf_t *serf) {
   }
     break;
   case SERF_DEAD:
-    if ((!BIT_TEST(serf->type, 7) &&
+    if ((!serf->playing_sfx() &&
          (t == 2 || t == 5)) ||
         (t == 1 || t == 4)) {
-      serf->type |= BIT(7);
+      serf->start_playing_sfx();
       play_sound(SFX_SERF_DYING);
     } else {
-      serf->type &= ~BIT(7);
+      serf->stop_playing_sfx();
     }
     t += 0x8700;
     break;
@@ -1854,71 +1842,74 @@ viewport_t::draw_active_serf(serf_t *serf, map_pos_t pos,
     5, 8, 0, 0, 0, 0, 0, 0
   };
 
-  if ((serf->animation < 0) || (serf->animation > 199) || (serf->counter < 0)) {
-    LOGE("viewport", "bad animation for serf #%i (%s): %d,%d", SERF_INDEX(serf),
-         serf_get_state_name(serf->state), serf->animation, serf->counter);
+  if ((serf->get_animation() < 0) || (serf->get_animation() > 199) ||
+      (serf->get_counter() < 0)) {
+    LOGE("viewport", "bad animation for serf #%i (%s): %d,%d",
+         serf->get_index(), serf_t::get_state_name(serf->get_state()),
+         serf->get_animation(), serf->get_counter());
     return;
   }
 
-  animation_t *animation = data_source->get_animation(serf->animation,
-                                                      serf->counter);
+  animation_t *animation = data_source->get_animation(serf->get_animation(),
+                                                      serf->get_counter());
 
   int x = x_base + animation->x;
   int y = y_base + animation->y - 4*MAP_HEIGHT(pos);
   int body = serf_get_body(serf);
 
   if (body > -1) {
-    int color = game.player[SERF_PLAYER(serf)]->color;
+    int color = game.player[serf->get_player()]->color;
     draw_row_serf(x, y, 1, color, body);
   }
 
   /* Draw additional serf */
-  if (serf->state == SERF_STATE_KNIGHT_ENGAGING_BUILDING ||
-      serf->state == SERF_STATE_KNIGHT_PREPARE_ATTACKING ||
-      serf->state == SERF_STATE_KNIGHT_ATTACKING ||
-      serf->state == SERF_STATE_KNIGHT_PREPARE_ATTACKING_FREE ||
-      serf->state == SERF_STATE_KNIGHT_ATTACKING_FREE ||
-      serf->state == SERF_STATE_KNIGHT_ATTACKING_VICTORY_FREE ||
-      serf->state == SERF_STATE_KNIGHT_ATTACKING_DEFEAT_FREE) {
-    int index = serf->s.attacking.def_index;
+  if (serf->get_state() == SERF_STATE_KNIGHT_ENGAGING_BUILDING ||
+      serf->get_state() == SERF_STATE_KNIGHT_PREPARE_ATTACKING ||
+      serf->get_state() == SERF_STATE_KNIGHT_ATTACKING ||
+      serf->get_state() == SERF_STATE_KNIGHT_PREPARE_ATTACKING_FREE ||
+      serf->get_state() == SERF_STATE_KNIGHT_ATTACKING_FREE ||
+      serf->get_state() == SERF_STATE_KNIGHT_ATTACKING_VICTORY_FREE ||
+      serf->get_state() == SERF_STATE_KNIGHT_ATTACKING_DEFEAT_FREE) {
+    int index = serf->get_attacking_def_index();
     if (index != 0) {
-      serf_t *def_serf = game_get_serf(index);
+      serf_t *def_serf = game.serfs[index];
 
-      animation_t *animation = data_source->get_animation(def_serf->animation,
-                                                          def_serf->counter);
+      animation_t *animation =
+                           data_source->get_animation(def_serf->get_animation(),
+                                                      def_serf->get_counter());
 
       int x = x_base + animation->x;
       int y = y_base + animation->y - 4*MAP_HEIGHT(pos);
       int body = serf_get_body(def_serf);
 
       if (body > -1) {
-        int color = game.player[SERF_PLAYER(def_serf)]->color;
+        int color = game.player[def_serf->get_player()]->color;
         draw_row_serf(x, y, 1, color, body);
       }
     }
   }
 
   /* Draw extra objects for fight */
-  if ((serf->state == SERF_STATE_KNIGHT_ATTACKING ||
-       serf->state == SERF_STATE_KNIGHT_ATTACKING_FREE) &&
+  if ((serf->get_state() == SERF_STATE_KNIGHT_ATTACKING ||
+       serf->get_state() == SERF_STATE_KNIGHT_ATTACKING_FREE) &&
       animation->time >= 0x80 && animation->time < 0xc0) {
-    int index = serf->s.attacking.def_index;
+    int index = serf->get_attacking_def_index();
     if (index != 0) {
-      serf_t *def_serf = game_get_serf(index);
+      serf_t *def_serf = game.serfs[index];
 
-      if (serf->animation >= 146 &&
-          serf->animation < 156) {
-        if ((serf->s.attacking.field_D == 0 ||
-             serf->s.attacking.field_D == 4) &&
-            serf->counter < 32) {
+      if (serf->get_animation() >= 146 &&
+          serf->get_animation() < 156) {
+        if ((serf->get_attacking_field_D() == 0 ||
+             serf->get_attacking_field_D() == 4) &&
+            serf->get_counter() < 32) {
           int anim = -1;
-          if (serf->s.attacking.field_D == 0) {
-            anim = serf->animation - 147;
+          if (serf->get_attacking_field_D() == 0) {
+            anim = serf->get_animation() - 147;
           } else {
-            anim = def_serf->animation - 147;
+            anim = def_serf->get_animation() - 147;
           }
 
-          int sprite = 198 + ((serf->counter >> 3) ^ 3);
+          int sprite = 198 + ((serf->get_counter() >> 3) ^ 3);
           draw_game_sprite(x + arr_4[2*anim], y - arr_4[2*anim+1], sprite);
         }
       }
@@ -1980,15 +1971,15 @@ viewport_t::draw_serf_row(map_pos_t pos, int y_base, int cols, int x_base) {
 
     /* Active serf */
     if (MAP_SERF_INDEX(pos) != 0) {
-      serf_t *serf = game_get_serf(MAP_SERF_INDEX(pos));
+      serf_t *serf = game.serfs[MAP_SERF_INDEX(pos)];
 
-      if (serf->state != SERF_STATE_MINING ||
-          (serf->s.mining.substate != 3 &&
-           serf->s.mining.substate != 4 &&
-           serf->s.mining.substate != 9 &&
-           serf->s.mining.substate != 10)) {
-        draw_active_serf(serf, pos, x_base, y_base);
-      }
+      if (serf->get_state() != SERF_STATE_MINING ||
+          (serf->get_mining_substate() != 3 &&
+           serf->get_mining_substate() != 4 &&
+           serf->get_mining_substate() != 9 &&
+           serf->get_mining_substate() != 10)) {
+            draw_active_serf(serf, pos, x_base, y_base);
+          }
     }
 
     /* Idle serf */
@@ -2019,15 +2010,15 @@ viewport_t::draw_serf_row_behind(map_pos_t pos, int y_base, int cols,
        i++, x_base += MAP_TILE_WIDTH, pos = MAP_MOVE_RIGHT(pos)) {
     /* Active serf */
     if (MAP_SERF_INDEX(pos) != 0) {
-      serf_t *serf = game_get_serf(MAP_SERF_INDEX(pos));
+      serf_t *serf = game.serfs[MAP_SERF_INDEX(pos)];
 
-      if (serf->state == SERF_STATE_MINING &&
-          (serf->s.mining.substate == 3 ||
-           serf->s.mining.substate == 4 ||
-           serf->s.mining.substate == 9 ||
-           serf->s.mining.substate == 10)) {
-        draw_active_serf(serf, pos, x_base, y_base);
-      }
+      if (serf->get_state() == SERF_STATE_MINING &&
+          (serf->get_mining_substate() == 3 ||
+           serf->get_mining_substate() == 4 ||
+           serf->get_mining_substate() == 9 ||
+           serf->get_mining_substate() == 10)) {
+            draw_active_serf(serf, pos, x_base, y_base);
+          }
     }
   }
 }
