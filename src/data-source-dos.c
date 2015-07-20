@@ -22,6 +22,7 @@
 #include "data.h"
 #include "freeserf_endian.h"
 #include "log.h"
+#include "tpwm.h"
 
 #ifdef HAVE_CONFIG_H
 # include <config.h>
@@ -61,6 +62,7 @@ typedef struct {
 
 
 static void *sprites;
+static int mapped = 0;
 static size_t sprites_size;
 static uint entry_count;
 
@@ -92,6 +94,8 @@ data_load(const char *path)
 	}
 
 	close(fd);
+
+	mapped = 1;
 #else /* ! HAVE_MMAP */
 	FILE *f = fopen(path, "rb");
 	if (f == NULL) return -1;
@@ -120,10 +124,30 @@ data_load(const char *path)
 #endif
 
 	/* Check that data file is decompressed. */
-	if (!memcmp(sprites, "TPWM", 4)) {
-		LOGE("gfx", "Data file is compressed! Please run the installer"
-		     " from the original game to decompress the data file.");
-		return -1;
+	if (tpwm_is_compressed(sprites, sprites_size) >= 0) {
+		LOGV("data", "Data file is compressed");
+		void *uncompressed = NULL;
+		unsigned int uncmpsd_size = 0;
+		char *error = NULL;
+		if (tpwm_uncompress(sprites, sprites_size,
+		                    &uncompressed, &uncmpsd_size,
+		                    &error) < 0) {
+			LOGE("tpwm", error);
+			LOGE("data", "Data file is broken!");
+			return -1;
+		}
+#ifdef HAVE_MMAP
+		if (mapped) {
+			munmap(sprites, sprites_size);
+			mapped = 0;
+		} else {
+			free(sprites);
+		}
+#else /* ! HAVE_MMAP */
+		free(sprites);
+#endif
+		sprites = uncompressed;
+		sprites_size = uncmpsd_size;
 	}
 
 	/* Read the number of entries in the index table.
@@ -159,7 +183,11 @@ void
 data_unload()
 {
 #ifdef HAVE_MMAP
-	munmap(sprites, sprites_size);
+	if (mapped) {
+		munmap(sprites, sprites_size);
+	} else {
+		free(sprites);
+	}
 #else /* ! HAVE_MMAP */
 	free(sprites);
 #endif
