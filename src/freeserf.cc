@@ -19,7 +19,9 @@
  * along with freeserf.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#ifndef _MSC_VER
 extern "C" {
+#endif
   #include "freeserf.h"
   #include "interface.h"
   #include "gfx.h"
@@ -34,7 +36,9 @@ extern "C" {
   #ifdef HAVE_CONFIG_H
   # include <config.h>
   #endif
+#ifndef _MSC_VER
 }
+#endif
 
 #include <cstdio>
 #include <cstdlib>
@@ -44,7 +48,10 @@ extern "C" {
 #ifdef HAVE_UNISTD_H
 #include <unistd.h>
 #endif
+
+#ifdef HAVE_STDINT_H
 #include <stdint.h>
+#endif
 
 #define DEFAULT_SCREEN_WIDTH  800
 #define DEFAULT_SCREEN_HEIGHT 600
