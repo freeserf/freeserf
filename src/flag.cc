@@ -423,10 +423,10 @@ flag_t::schedule_known_dest_cb_(flag_t *src, flag_t *dest, int _slot) {
         src->other_end_dir[this->search_dir] =
           BIT(7) | (src->other_end_dir[this->search_dir] & 0x78) | _slot;
       } else {
-        player_t *player = game.player[this->get_player()];
+        player_t *player = game.players[this->get_player()];
         int other_dir = src->other_end_dir[this->search_dir];
-        int prio_old = player->flag_prio[src->slot[other_dir & 7].type];
-        int prio_new = player->flag_prio[src->slot[_slot].type];
+        int prio_old = player->get_flag_prio(src->slot[other_dir & 7].type);
+        int prio_new = player->get_flag_prio(src->slot[_slot].type);
         if (prio_new > prio_old) {
           /* This item has the highest priority now */
           src->other_end_dir[this->search_dir] =
@@ -520,7 +520,7 @@ flag_t::schedule_slot_to_known_dest(int slot, unsigned int res_waiting[4]) {
 }
 
 void
-flag_t::prioritize_pickup(dir_t dir, const int flag_prio[]) {
+flag_t::prioritize_pickup(dir_t dir, player_t *player) {
   int res_next = -1;
   int res_prio = -1;
 
@@ -529,9 +529,9 @@ flag_t::prioritize_pickup(dir_t dir, const int flag_prio[]) {
       /* Use flag_prio to prioritize resource pickup. */
       dir_t res_dir = slot[i].dir;
       resource_type_t res_type = slot[i].type;
-      if (res_dir == dir && flag_prio[res_type] > res_prio) {
+      if (res_dir == dir && player->get_flag_prio(res_type) > res_prio) {
         res_next = i;
-        res_prio = flag_prio[res_type];
+        res_prio = player->get_flag_prio(res_type);
       }
     }
   }
@@ -997,8 +997,8 @@ flag_t::reset_transport(flag_t *other) {
 
       if (other->slot[slot_].dir != DIR_NONE) {
         dir_t dir = other->slot[slot_].dir;
-        player_t *player = game.player[other->get_player()];
-        other->prioritize_pickup(dir, player->flag_prio);
+        player_t *player = game.players[other->get_player()];
+        other->prioritize_pickup(dir, player);
       }
     }
   }

@@ -42,6 +42,7 @@ typedef collection_t<flag_t> flags_t;
 typedef collection_t<inventory_t> inventories_t;
 typedef collection_t<building_t> buildings_t;
 typedef collection_t<serf_t> serfs_t;
+typedef collection_t<player_t> players_t;
 
 typedef struct {
   map_t map; /* ADDITION */
@@ -77,7 +78,7 @@ typedef struct {
   /* 60 */
   /* uint16_t map_move_left_2; MOVED to map_t */
   /* 64 */
-  player_t *player[GAME_MAX_PLAYER_COUNT];
+  players_t players;
   /* 78 */
   /*interface_t *interface;*/
   /* 80 */
@@ -267,7 +268,7 @@ void game_lose_resource(resource_type_t type);
 
 uint16_t game_random_int();
 
-int game_send_serf_to_flag(flag_t *dest, int type, resource_type_t res1,
+int game_send_serf_to_flag(flag_t *dest, serf_type_t type, resource_type_t res1,
                            resource_type_t res2);
 
 #endif  // SRC_GAME_H_

@@ -99,6 +99,11 @@ class popup_box_t : public gui_object_t {
 
   box_t box;
 
+  int current_sett_5_item;
+  int current_sett_6_item;
+  int current_stat_7_item;
+  int current_stat_8_mode;
+
  public:
   explicit popup_box_t(interface_t *interface);
   virtual ~popup_box_t();

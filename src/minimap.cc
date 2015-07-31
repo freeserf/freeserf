@@ -78,7 +78,7 @@ minimap_t::draw_minimap_ownership(int density) {
     for (unsigned int col = 0; col < game.map.cols; col++) {
       map_pos_t pos = MAP_POS(col, row);
       if (MAP_HAS_OWNER(pos)) {
-        int color = game.player[MAP_OWNER(pos)]->color;
+        int color = game.players[MAP_OWNER(pos)]->get_color();
         draw_minimap_point(col, row, color, density);
       }
     }
@@ -116,7 +116,7 @@ minimap_t::draw_minimap_buildings() {
       int pos = MAP_POS(col, row);
       int obj = MAP_OBJ(pos);
       if (obj > MAP_OBJ_FLAG && obj <= MAP_OBJ_CASTLE) {
-        int color = game.player[MAP_OWNER(pos)]->color;
+        int color = game.players[MAP_OWNER(pos)]->get_color();
         if (advanced > 0) {
           building_t *bld = game.buildings[MAP_OBJ_INDEX(pos)];
           if (bld->get_type() == building_remap[advanced]) {
@@ -136,7 +136,7 @@ minimap_t::draw_minimap_traffic() {
     for (unsigned int col = 0; col < game.map.cols; col++) {
       int pos = MAP_POS(col, row);
       if (MAP_IDLE_SERF(pos)) {
-        int color = game.player[MAP_OWNER(pos)]->color;
+        int color = game.players[MAP_OWNER(pos)]->get_color();
         draw_minimap_point(col, row, color, scale);
       }
     }

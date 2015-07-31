@@ -40,6 +40,7 @@ typedef struct {
 #define FLAG_MAX_RES_COUNT  8
 
 class building_t;
+class player_t;
 class save_reader_binary_t;
 class save_reader_text_t;
 class save_writer_text_t;
@@ -89,7 +90,7 @@ class flag_t {
   /* Whether a path exists in a given direction. */
   bool has_path(dir_t dir) { return ((path_con & (1 << (dir))) != 0); }
 
-  void prioritize_pickup(dir_t dir, const int flag_prio[]);
+  void prioritize_pickup(dir_t dir, player_t *player);
 
   /* Owner of this flag. */
   int get_player() { return (path_con >> 6) & 3; }

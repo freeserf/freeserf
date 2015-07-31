@@ -89,7 +89,7 @@ interface_t::close_game_init() {
 /* Open box for next message in the message queue */
 void
 interface_t::open_message() {
-  if (player->msg_queue_type[0] == 0) {
+  if (!player->has_notification()) {
     play_sound(SFX_CLICK);
     return;
   } else if (!BIT_TEST(msg_flags, 3)) {
@@ -99,30 +99,19 @@ interface_t::open_message() {
     return_pos = pos;
   }
 
-  int type = player->msg_queue_type[0] & 0x1f;
+  message_t message = player->pop_notification();
 
-  if (type == 16) {
+  if (message.type == 16) {
     /* TODO */
   }
 
-  int param = (player->msg_queue_type[0] >> 5) & 7;
-  notification_box->show(type, param);
+  notification_box->show(message);
 
-  if (BIT_TEST(0x8f3fe, type)) {
+  if (BIT_TEST(0x8f3fe, message.type)) {
     /* Move screen to new position */
-    map_pos_t new_pos = player->msg_queue_pos[0];
-
-    viewport->move_to_map_pos(new_pos);
-    update_map_cursor_pos(new_pos);
+    viewport->move_to_map_pos(message.pos);
+    update_map_cursor_pos(message.pos);
   }
-
-  /* Move notifications forward in the queue. */
-  int i;
-  for (i = 1; i < 64 && player->msg_queue_type[i] != 0; i++) {
-    player->msg_queue_type[i-1] = player->msg_queue_type[i];
-    player->msg_queue_pos[i-1] = player->msg_queue_pos[i];
-  }
-  player->msg_queue_type[i-1] = 0;
 
   msg_flags |= BIT(1);
   return_timeout = 60*TICKS_PER_SEC;
@@ -177,7 +166,7 @@ interface_t::get_map_cursor_type(const player_t *player, map_pos_t pos,
   }
 
   if (MAP_OBJ(pos) == MAP_OBJ_FLAG &&
-      MAP_OWNER(pos) == player->player_num) {
+      MAP_OWNER(pos) == player->get_index()) {
     if (game_can_demolish_flag(pos, player)) {
       *cursor_type = MAP_CURSOR_TYPE_REMOVABLE_FLAG;
     } else {
@@ -193,14 +182,14 @@ interface_t::get_map_cursor_type(const player_t *player, map_pos_t pos,
       } else {
         *cursor_type = MAP_CURSOR_TYPE_CLEAR_BY_PATH;
       }
-    } else if (MAP_OWNER(pos) == player->player_num) {
+    } else if (MAP_OWNER(pos) == player->get_index()) {
       *cursor_type = MAP_CURSOR_TYPE_PATH;
     } else {
       *cursor_type = MAP_CURSOR_TYPE_NONE;
     }
   } else if ((MAP_OBJ(pos) == MAP_OBJ_SMALL_BUILDING ||
               MAP_OBJ(pos) == MAP_OBJ_LARGE_BUILDING) &&
-             MAP_OWNER(pos) == player->player_num) {
+             MAP_OWNER(pos) == player->get_index()) {
     building_t *bld = game.buildings[MAP_OBJ_INDEX(pos)];
     if (!bld->is_burning()) {
       *cursor_type = MAP_CURSOR_TYPE_BUILDING;
@@ -343,13 +332,12 @@ interface_t::update_interface() {
 
 void
 interface_t::set_player(unsigned int player) {
-  assert(PLAYER_IS_ACTIVE(game.player[player]));
-  this->player = game.player[player];
+  this->player = game.players[player];
 
   /* Move viewport to initial position */
   map_pos_t init_pos = MAP_POS(0, 0);
-  if (this->player->castle_flag != 0) {
-    flag_t *flag = game.flags[this->player->castle_flag];
+  if (this->player->get_castle_flag() != 0) {
+    flag_t *flag = game.flags[this->player->get_castle_flag()];
     init_pos = MAP_MOVE_UP_LEFT(flag->get_position());
   }
 
@@ -702,24 +690,6 @@ interface_t::update() {
   int tick_diff = game.const_tick - last_const_tick;
   last_const_tick = game.const_tick;
 
-  /* Update timers */
-  for (int i = 0; i < player->timers_count; i++) {
-    player->timers[i].timeout -= tick_diff;
-    if (player->timers[i].timeout < 0) {
-      /* Timer has expired. */
-      /* TODO box (+ pos) timer */
-      player_add_notification(player, 5,
-            player->timers[i].pos);
-
-      /* Delete timer from list. */
-      player->timers_count -= 1;
-      for (int j = i; j < player->timers_count; j++) {
-        player->timers[j].timeout = player->timers[j+1].timeout;
-        player->timers[j].pos = player->timers[j+1].pos;
-      }
-    }
-  }
-
   /* Clear return arrow after a timeout */
   if (return_timeout < tick_diff) {
     msg_flags |= BIT(4);
@@ -735,44 +705,30 @@ interface_t::update() {
   };
 
   /* Handle newly enqueued messages */
-  if (PLAYER_HAS_MESSAGE(player)) {
-    player->flags &= ~BIT(3);
-    while (player->msg_queue_type[0] != 0) {
-      int type = player->msg_queue_type[0] & 0x1f;
-      if (BIT_TEST(config, msg_category[type])) {
+  if (player->has_message()) {
+    player->drop_message();
+    while (player->has_notification()) {
+      message_t message = player->peek_notification();
+      if (BIT_TEST(config, msg_category[message.type])) {
         play_sound(SFX_MESSAGE);
         msg_flags |= BIT(0);
         break;
       }
-
-      /* Message is ignored. Remove. */
-      int i;
-      for (i = 1; i < 64 && player->msg_queue_type[i] != 0; i++) {
-        player->msg_queue_type[i-1] = player->msg_queue_type[i];
-        player->msg_queue_pos[i-1] = player->msg_queue_pos[i];
-      }
-      player->msg_queue_type[i-1] = 0;
+      player->pop_notification();
     }
   }
 
   if (BIT_TEST(msg_flags, 1)) {
     msg_flags &= ~BIT(1);
     while (1) {
-      if (player->msg_queue_type[0] == 0) {
+      if (!player->has_notification()) {
         msg_flags &= ~BIT(0);
         break;
       }
 
-      int type = player->msg_queue_type[0] & 0x1f;
-      if (BIT_TEST(config, msg_category[type])) break;
-
-      /* Message is ignored. Remove. */
-      int i;
-      for (i = 1; i < 64 && player->msg_queue_type[i] != 0; i++) {
-        player->msg_queue_type[i-1] = player->msg_queue_type[i];
-        player->msg_queue_pos[i-1] = player->msg_queue_pos[i];
-      }
-      player->msg_queue_type[i-1] = 0;
+      message_t message = player->peek_notification();
+      if (BIT_TEST(config, msg_category[message.type])) break;
+      player->pop_notification();
     }
   }
 
@@ -878,7 +834,7 @@ interface_t::handle_key_pressed(char key, int modifier) {
     case 'j': {
       int current = 0;
       for (int i = 0; i < GAME_MAX_PLAYER_COUNT; i++) {
-        if (get_player() == game.player[i]) {
+        if (get_player() == game.players[i]) {
           current = i;
           break;
         }
@@ -886,7 +842,7 @@ interface_t::handle_key_pressed(char key, int modifier) {
 
       for (int i = (current+1) % GAME_MAX_PLAYER_COUNT;
            i != current; i = (i+1) % GAME_MAX_PLAYER_COUNT) {
-        if (PLAYER_IS_ACTIVE(game.player[i])) {
+        if (game.players[i] != NULL) {
           set_player(i);
           LOGD("main", "Switched to player %i.", i);
           break;

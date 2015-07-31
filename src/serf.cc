@@ -291,22 +291,22 @@ serf_t::set_type(serf_type_t new_type) {
   if (new_type == SERF_TRANSPORTER_INVENTORY) new_type = SERF_TRANSPORTER;
   if (old_type == SERF_TRANSPORTER_INVENTORY) new_type = SERF_TRANSPORTER;
 
-  player_t *player = game.player[get_player()];
-  player->serf_count[old_type] -= 1;
+  player_t *player = game.players[get_player()];
+  player->decrease_serf_count(old_type);
 
   if (type != SERF_DEAD) {
-    player->serf_count[new_type] += 1;
+    player->increase_serf_count(new_type);
   }
 
   if (old_type >= SERF_KNIGHT_0 &&
       old_type <= SERF_KNIGHT_4) {
     int value = 1 << (old_type - SERF_KNIGHT_0);
-    player->total_military_score -= value;
+    player->decrease_military_score(value);
   }
   if (new_type >= SERF_KNIGHT_0 &&
       new_type <= SERF_KNIGHT_4) {
     int value = 1 << (type - SERF_KNIGHT_0);
-    player->total_military_score += value;
+    player->increase_military_score(value);
   }
   if (new_type == SERF_TRANSPORTER) {
     counter = 0;
@@ -1033,8 +1033,8 @@ serf_t::transporter_move_to_flag(flag_t *flag) {
     }
 
     /* Find next resource to be picked up */
-    player_t *player = game.player[get_player()];
-    flag->prioritize_pickup((dir_t)dir, player->flag_prio);
+    player_t *player = game.players[get_player()];
+    flag->prioritize_pickup((dir_t)dir, player);
   } else if (s.walking.res != 0) {
     /* Drop resource at flag */
     if (flag->drop_resource((resource_type_t)(s.walking.res-1),
@@ -1809,7 +1809,7 @@ serf_t::handle_serf_entering_building_state() {
             s.defending.next_knight = building->get_main_serf();
             building->set_main_serf(get_index());
 
-            game.player[building->get_player()]->castle_knights += 1;
+            game.players[building->get_player()]->increase_castle_knights();
             return;
           }
 
@@ -1864,8 +1864,9 @@ serf_t::handle_serf_entering_building_state() {
               break;
             }
 
-            player_add_notification(game.player[building->get_player()],
-                  (mil_type << 5) | 6, building->get_position());
+            game.players[building->get_player()]->add_notification(6,
+                                                       building->get_position(),
+                                                                   mil_type);
 
             flag_t *flag =
               game.flags[MAP_OBJ_INDEX(MAP_MOVE_DOWN_RIGHT(
@@ -1876,30 +1877,29 @@ serf_t::handle_serf_entering_building_state() {
             /* Save amount of land and buildings for each player */
             unsigned int land_before[GAME_MAX_PLAYER_COUNT] = {0};
             unsigned int buildings_before[GAME_MAX_PLAYER_COUNT] = {0};
-            for (int i = 0; i < GAME_MAX_PLAYER_COUNT; i++) {
-              player_t *player = game.player[i];
-              if (!PLAYER_IS_ACTIVE(game.player[i])) continue;
-
-              land_before[i] = player->total_land_area;
-              buildings_before[i] = player->total_building_score;
+            for (players_t::iterator it = game.players.begin();
+                 it != game.players.end(); ++it) {
+              player_t *player = *it;
+              land_before[player->get_index()] = player->get_land_area();
+              buildings_before[player->get_index()] =
+                player->get_building_score();
             }
 
             /* Update land ownership */
             game_update_land_ownership(building->get_position());
 
             /* Create notfications for lost land and buildings */
-            for (int i = 0; i < GAME_MAX_PLAYER_COUNT; i++) {
-              player_t *player = game.player[i];
-              if (!PLAYER_IS_ACTIVE(game.player[i])) continue;
-
-              if (buildings_before[i] > player->total_building_score) {
-                player_add_notification(player,
-                                        (building->get_player() << 5) | 9,
-                                        building->get_position());
-              } else if (land_before[i] > player->total_land_area) {
-                player_add_notification(player,
-                                        (building->get_player() << 5) | 8,
-                                        building->get_position());
+            for (players_t::iterator it = game.players.begin();
+                 it != game.players.end(); ++it) {
+              player_t *player = *it;
+              if (buildings_before[player->get_index()] >
+                  player->get_building_score()) {
+                player->add_notification(9, building->get_position(),
+                                         building->get_player());
+              } else if (land_before[player->get_index()] >
+                         player->get_land_area()) {
+                player->add_notification(8, building->get_position(),
+                                         building->get_player());
               }
             }
           }
@@ -2188,10 +2188,8 @@ serf_t::handle_serf_building_state() {
         flag->clear_flags();
 
         /* Update player fields. */
-        player_t *player = game.player[get_player()];
-        player->total_building_score += building_get_score_from_type(type);
-        player->completed_building_count[type] += 1;
-        player->incomplete_building_count[type] -= 1;
+        player_t *player = game.players[get_player()];
+        player->building_built(building);
 
         counter = 0;
 
@@ -2464,8 +2462,8 @@ serf_t::drop_resource(resource_type_t res) {
   /* Resource is lost if no free slot is found */
   bool result = flag->drop_resource(res, 0);
   if (result) {
-    player_t *player = game.player[get_player()];
-    player->resource_count[res] += 1;
+    player_t *player = game.players[get_player()];
+    player->increase_res_count(res);
   }
 }
 
@@ -3427,8 +3425,8 @@ serf_t::handle_serf_sawing_state() {
     s.move_resource_out.next_state = SERF_STATE_DROP_RESOURCE_OUT;
 
     /* Update resource stats. */
-    player_t *player = game.player[get_player()];
-    player->resource_count[RESOURCE_PLANK] += 1;
+    player_t *player = game.players[get_player()];
+    player->increase_res_count(RESOURCE_PLANK);
   }
 }
 
@@ -3698,14 +3696,14 @@ serf_t::handle_serf_mining_state() {
 
       if (building->get_progress() == 0x8000) {
         /* Handle empty mine. */
-        player_t *player = game.player[get_player()];
-        if (PLAYER_IS_AI(player)) {
+        player_t *player = game.players[get_player()];
+        if (player->is_ai()) {
           /* TODO Burn building. */
         }
 
-        int type = ((building->get_type()-BUILDING_STONEMINE) << 5) | 4;
-        player_add_notification(game.player[building->get_player()],
-              type, building->get_position());
+        game.players[building->get_player()]->add_notification(4,
+                                                       building->get_position(),
+                                     building->get_type() - BUILDING_STONEMINE);
       }
 
       building->increase_mining();
@@ -3730,8 +3728,8 @@ serf_t::handle_serf_mining_state() {
         s.move_resource_out.next_state = SERF_STATE_DROP_RESOURCE_OUT;
 
         /* Update resource stats. */
-        player_t *player = game.player[get_player()];
-        player->resource_count[res-1] += 1;
+        player_t *player = game.players[get_player()];
+        player->increase_res_count(res-1);
         return;
       }
       break;
@@ -3787,8 +3785,8 @@ serf_t::handle_serf_smelting_state() {
         s.move_resource_out.next_state = SERF_STATE_DROP_RESOURCE_OUT;
 
         /* Update resource stats. */
-        player_t *player = game.player[get_player()];
-        player->resource_count[res-1] += 1;
+        player_t *player = game.players[get_player()];
+        player->increase_res_count(res-1);
         return;
       } else if (s.smelting.counter == 0) {
         map_set_serf_index(pos, 0);
@@ -4002,8 +4000,8 @@ serf_t::handle_serf_milling_state() {
         s.move_resource_out.res_dest = 0;
         s.move_resource_out.next_state = SERF_STATE_DROP_RESOURCE_OUT;
 
-        player_t *player = game.player[get_player()];
-        player->resource_count[RESOURCE_FLOUR] += 1;
+        player_t *player = game.players[get_player()];
+        player->increase_res_count(RESOURCE_FLOUR);
         return;
       } else if (s.milling.mode == 3) {
         map_set_serf_index(pos, index);
@@ -4047,8 +4045,8 @@ serf_t::handle_serf_baking_state() {
         s.move_resource_out.res_dest = 0;
         s.move_resource_out.next_state = SERF_STATE_DROP_RESOURCE_OUT;
 
-        player_t *player = game.player[get_player()];
-        player->resource_count[RESOURCE_BREAD] += 1;
+        player_t *player = game.players[get_player()];
+        player->increase_res_count(RESOURCE_BREAD);
         return;
       } else {
         building->start_activity();
@@ -4104,8 +4102,8 @@ serf_t::handle_serf_pigfarming_state() {
           s.move_resource_out.next_state = SERF_STATE_DROP_RESOURCE_OUT;
 
           /* Update resource stats. */
-          player_t *player = game.player[get_player()];
-          player->resource_count[RESOURCE_PIG] += 1;
+          player_t *player = game.players[get_player()];
+          player->increase_res_count(RESOURCE_PIG);
         } else if (game_random_int() & 0xf) {
           s.pigfarming.mode = 1;
           animation = 139;
@@ -4157,8 +4155,8 @@ serf_t::handle_serf_butchering_state() {
       s.move_resource_out.next_state = SERF_STATE_DROP_RESOURCE_OUT;
 
       /* Update resource stats. */
-      player_t *player = game.player[get_player()];
-      player->resource_count[RESOURCE_MEAT] += 1;
+      player_t *player = game.players[get_player()];
+      player->increase_res_count(RESOURCE_MEAT);
     }
   }
 }
@@ -4213,8 +4211,8 @@ serf_t::handle_serf_making_weapon_state() {
         s.move_resource_out.next_state = SERF_STATE_DROP_RESOURCE_OUT;
 
         /* Update resource stats. */
-        player_t *player = game.player[get_player()];
-        player->resource_count[res] += 1;
+        player_t *player = game.players[get_player()];
+        player->increase_res_count(res);
         return;
       } else {
         counter += 576;
@@ -4247,9 +4245,9 @@ serf_t::handle_serf_making_tool_state() {
         /* Done making tool. */
         map_set_serf_index(pos, 0);
 
-        player_t *player = game.player[get_player()];
+        player_t *player = game.players[get_player()];
         int total_tool_prio = 0;
-        for (int i = 0; i < 9; i++) total_tool_prio += player->tool_prio[i];
+        for (int i = 0; i < 9; i++) total_tool_prio += player->get_tool_prio(i);
         total_tool_prio >>= 4;
 
         int res = -1;
@@ -4257,7 +4255,7 @@ serf_t::handle_serf_making_tool_state() {
           /* Use defined tool priorities. */
           int prio_offset = (total_tool_prio*game_random_int()) >> 16;
           for (int i = 0; i < 9; i++) {
-            prio_offset -= player->tool_prio[i] >> 4;
+            prio_offset -= player->get_tool_prio(i) >> 4;
             if (prio_offset < 0) {
               res = RESOURCE_SHOVEL + i;
               break;
@@ -4275,7 +4273,7 @@ serf_t::handle_serf_making_tool_state() {
         s.move_resource_out.next_state = SERF_STATE_DROP_RESOURCE_OUT;
 
         /* Update resource stats. */
-        player->resource_count[res] += 1;
+        player->increase_res_count(res);
         return;
       } else {
         counter += 1536;
@@ -4324,8 +4322,8 @@ serf_t::handle_serf_building_boat_state() {
           s.move_resource_out.next_state = SERF_STATE_DROP_RESOURCE_OUT;
 
           /* Update resource stats. */
-          player_t *player = game.player[get_player()];
-          player->resource_count[RESOURCE_BOAT] += 1;
+          player_t *player = game.players[get_player()];
+          player->increase_res_count(RESOURCE_BOAT);
 
           break;
         }
@@ -4418,8 +4416,8 @@ serf_t::handle_serf_sampling_geo_spot_state() {
 
         /* Create notification for found resource. */
         if (show_notification) {
-          player_add_notification(game.player[get_player()],
-                12 + MAP_RES_TYPE(pos)-1, pos);
+          game.players[get_player()]->add_notification(12, pos,
+                                                       MAP_RES_TYPE(pos)-1);
         }
 
         counter += 64;
@@ -4453,8 +4451,9 @@ serf_t::handle_serf_knight_engaging_building_state() {
           building->get_player() != get_player() &&
           building->has_main_serf()) {
         if (building->is_under_attack()) {
-          player_add_notification(game.player[building->get_player()],
-                (get_player() << 5) | 1, building->get_position());
+          game.players[building->get_player()]->add_notification(1,
+                                                       building->get_position(),
+                                                                 get_player());
         }
 
         /* Change state of attacking knight */
@@ -4491,7 +4490,7 @@ serf_t::set_fight_outcome(serf_t *attacker, serf_t *defender) {
   int exp_factor = 1 << (attacker->get_type() - SERF_KNIGHT_0);
   int land_factor = 0x1000;
   if (attacker->get_player() != MAP_OWNER(attacker->pos)) {
-    land_factor = game.player[attacker->get_player()]->knight_morale;
+    land_factor = game.players[attacker->get_player()]->get_knight_morale();
   }
 
   int morale = (0x400*exp_factor * land_factor) >> 16;
@@ -4500,7 +4499,7 @@ serf_t::set_fight_outcome(serf_t *attacker, serf_t *defender) {
   int def_exp_factor = 1 << (defender->get_type() - SERF_KNIGHT_0);
   int def_land_factor = 0x1000;
   if (defender->get_player() != MAP_OWNER(defender->pos)) {
-    def_land_factor = game.player[defender->get_player()]->knight_morale;
+    def_land_factor = game.players[defender->get_player()]->get_knight_morale();
   }
 
   int def_morale = (0x400*def_exp_factor * def_land_factor) >> 16;
@@ -4525,8 +4524,8 @@ serf_t::set_fight_outcome(serf_t *attacker, serf_t *defender) {
          morale, def_morale, r);
   }
 
-  game.player[player]->total_military_score -= value;
-  game.player[player]->serf_count[type] -= 1;
+  game.players[player]->decrease_military_score(value);
+  game.players[player]->decrease_serf_count(type);
   attacker->s.attacking.field_B = game_random_int() & 0x70;
 }
 

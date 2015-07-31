@@ -1858,7 +1858,7 @@ viewport_t::draw_active_serf(serf_t *serf, map_pos_t pos,
   int body = serf_get_body(serf);
 
   if (body > -1) {
-    int color = game.player[serf->get_player()]->color;
+    int color = game.players[serf->get_player()]->get_color();
     draw_row_serf(x, y, 1, color, body);
   }
 
@@ -1883,7 +1883,7 @@ viewport_t::draw_active_serf(serf_t *serf, map_pos_t pos,
       int body = serf_get_body(def_serf);
 
       if (body > -1) {
-        int color = game.player[def_serf->get_player()]->color;
+        int color = game.players[def_serf->get_player()]->get_color();
         draw_row_serf(x, y, 1, color, body);
       }
     }
@@ -1995,7 +1995,7 @@ viewport_t::draw_serf_row(map_pos_t pos, int y_base, int cols, int x_base) {
         body = arr_2[((game.tick + arr_1[pos & 0xf]) >> 3) & 0x7f];
       }
 
-      int color = game.player[MAP_OWNER(pos)]->color;
+      int color = game.players[MAP_OWNER(pos)]->get_color();
       draw_row_serf(x, y, 1, color, body);
     }
   }
@@ -2356,14 +2356,13 @@ viewport_t::handle_dbl_click(int x, int y, event_button_t button) {
     }
 
     if (MAP_OBJ(clk_pos) == MAP_OBJ_FLAG) {
-      if (BIT_TEST(game.split, 5) || /* Demo mode */
-          MAP_OWNER(clk_pos) == interface->get_player()->player_num) {
+      if (MAP_OWNER(clk_pos) == interface->get_player()->get_index()) {
         interface->open_popup(BOX_TRANSPORT_INFO);
       }
 
-      interface->get_player()->index = MAP_OBJ_INDEX(clk_pos);
+      interface->get_player()->temp_index = MAP_OBJ_INDEX(clk_pos);
     } else { /* Building */
-      if (MAP_OWNER(clk_pos) == interface->get_player()->player_num) {
+      if (MAP_OWNER(clk_pos) == interface->get_player()->get_index()) {
         building_t *building = game.buildings[MAP_OBJ_INDEX(clk_pos)];
         if (!building->is_done()) {
           interface->open_popup(BOX_ORDERED_BLD);
@@ -2385,7 +2384,7 @@ viewport_t::handle_dbl_click(int x, int y, event_button_t button) {
           interface->open_popup(BOX_BLD_STOCK);
         }
 
-        interface->get_player()->index = MAP_OBJ_INDEX(clk_pos);
+        interface->get_player()->temp_index = MAP_OBJ_INDEX(clk_pos);
       } else if (BIT_TEST(game.split, 5)) { /* Demo mode*/
         return false;
       } else { /* Foreign building */
@@ -2409,7 +2408,7 @@ viewport_t::handle_dbl_click(int x, int y, event_button_t button) {
           for (int i = 257; i >= 0; i--) {
             map_pos_t pos = MAP_POS_ADD(building->get_position(), p[257-i]);
             if (MAP_HAS_OWNER(pos) &&
-                MAP_OWNER(pos) == interface->get_player()->player_num) {
+                MAP_OWNER(pos) == interface->get_player()->get_index()) {
               found = 1;
               break;
             }
@@ -2432,11 +2431,10 @@ viewport_t::handle_dbl_click(int x, int y, event_button_t button) {
           default: NOT_REACHED(); break;
           }
 
-          int knights =
-                player_knights_available_for_attack(interface->get_player(),
-                                                    building->get_position());
+          int knights = interface->get_player()->
+                         knights_available_for_attack(building->get_position());
           interface->get_player()->knights_attacking =
-                                     std::min(knights, max_knights);
+                                                 std::min(knights, max_knights);
           interface->open_popup(BOX_START_ATTACK);
         }
       }

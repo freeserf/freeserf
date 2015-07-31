@@ -219,10 +219,6 @@ load_v0_game_state(FILE *f, v0_map_t *map) {
 /* Load player state from save game. */
 static int
 load_v0_player_state(FILE *f) {
-  const int default_player_colors[] = {
-    64, 72, 68, 76
-  };
-
   uint8_t *data = reinterpret_cast<uint8_t*>(malloc(8628));
   if (data == NULL) return -1;
 
@@ -235,113 +231,9 @@ load_v0_player_state(FILE *f) {
 
     if (!BIT_TEST(data[130], 6)) continue;
 
-    game.player[i] = reinterpret_cast<player_t*>(calloc(1, sizeof(player_t)));
-    if (game.player[i] == NULL) {
-      free(data);
-      return -1;
-    }
-
-    player_t *player = game.player[i];
-
-    for (int j = 0; j < 9; j++) {
-      player->tool_prio[j] = *reinterpret_cast<uint16_t*>(&data[2*j]);
-    }
-
-    for (int j = 0; j < 26; j++) {
-      player->resource_count[j] = data[18+j];
-      player->flag_prio[j] = data[44+j];
-    }
-
-    for (int j = 0; j < 27; j++) {
-      player->serf_count[j] = *reinterpret_cast<uint16_t*>(&data[70+2*j]);
-    }
-
-    for (int j = 0; j < 4; j++) {
-      player->knight_occupation[j] = data[124+j];
-    }
-
-    player->player_num = *reinterpret_cast<uint16_t*>(&data[128]);
-    player->color = default_player_colors[i];
-    player->flags = data[130];
-    player->build = data[131];
-
-    for (int j = 0; j < 23; j++) {
-      player->completed_building_count[j] =
-                                   *reinterpret_cast<uint16_t*>(&data[132+2*j]);
-      player->incomplete_building_count[j] =
-                                   *reinterpret_cast<uint16_t*>(&data[178+2*j]);
-    }
-
-    for (int j = 0; j < 26; j++) {
-      player->inventory_prio[j] = data[224+j];
-    }
-
-    for (int j = 0; j < 64; j++) {
-      player->attacking_buildings[j] =
-                                   *reinterpret_cast<uint16_t*>(&data[250+2*j]);
-    }
-
-    player->current_sett_5_item = *reinterpret_cast<uint16_t*>(&data[378]);
-    player->building = *reinterpret_cast<uint16_t*>(&data[388]);
-
-    player->castle_flag = *reinterpret_cast<uint16_t*>(&data[390]);
-    player->castle_inventory = *reinterpret_cast<uint16_t*>(&data[392]);
-
-    player->cont_search_after_non_optimal_find =
-                                       *reinterpret_cast<uint16_t*>(&data[394]);
-    player->knights_to_spawn = *reinterpret_cast<uint16_t*>(&data[396]);
-    /*player->field_110 = *(uint16_t *)&data[400];*/
-
-    player->total_building_score = *reinterpret_cast<uint32_t*>(&data[406]);
-    player->total_military_score = *reinterpret_cast<uint32_t*>(&data[410]);
-
-    player->last_tick = *reinterpret_cast<uint16_t*>(&data[414]);
-
-    player->reproduction_counter = *reinterpret_cast<uint16_t*>(&data[416]);
-    player->reproduction_reset = *reinterpret_cast<uint16_t*>(&data[418]);
-    player->serf_to_knight_rate = *reinterpret_cast<uint16_t*>(&data[420]);
-    player->serf_to_knight_counter = *reinterpret_cast<uint16_t*>(&data[422]);
-
-    player->attacking_building_count = *reinterpret_cast<uint16_t*>(&data[424]);
-    for (int j = 0; j < 4; j++) {
-      player->attacking_knights[j] =
-                                   *reinterpret_cast<uint16_t*>(&data[426+2*j]);
-    }
-    player->total_attacking_knights = *reinterpret_cast<uint16_t*>(&data[434]);
-    player->building_attacked = *reinterpret_cast<uint16_t*>(&data[436]);
-    player->knights_attacking = *reinterpret_cast<uint16_t*>(&data[438]);
-
-    player->analysis_goldore = *reinterpret_cast<uint16_t*>(&data[440]);
-    player->analysis_ironore = *reinterpret_cast<uint16_t*>(&data[442]);
-    player->analysis_coal = *reinterpret_cast<uint16_t*>(&data[444]);
-    player->analysis_stone = *reinterpret_cast<uint16_t*>(&data[446]);
-
-    player->food_stonemine = *reinterpret_cast<uint16_t*>(&data[448]);
-    player->food_coalmine = *reinterpret_cast<uint16_t*>(&data[450]);
-    player->food_ironmine = *reinterpret_cast<uint16_t*>(&data[452]);
-    player->food_goldmine = *reinterpret_cast<uint16_t*>(&data[454]);
-
-    player->planks_construction = *reinterpret_cast<uint16_t*>(&data[456]);
-    player->planks_boatbuilder = *reinterpret_cast<uint16_t*>(&data[458]);
-    player->planks_toolmaker = *reinterpret_cast<uint16_t*>(&data[460]);
-
-    player->steel_toolmaker = *reinterpret_cast<uint16_t*>(&data[462]);
-    player->steel_weaponsmith = *reinterpret_cast<uint16_t*>(&data[464]);
-
-    player->coal_steelsmelter = *reinterpret_cast<uint16_t*>(&data[466]);
-    player->coal_goldsmelter = *reinterpret_cast<uint16_t*>(&data[468]);
-    player->coal_weaponsmith = *reinterpret_cast<uint16_t*>(&data[470]);
-
-    player->wheat_pigfarm = *reinterpret_cast<uint16_t*>(&data[472]);
-    player->wheat_mill = *reinterpret_cast<uint16_t*>(&data[474]);
-
-    player->current_sett_6_item = *reinterpret_cast<uint16_t*>(&data[476]);
-
-    player->castle_score = *reinterpret_cast<uint16_t*>(&data[478]);
-
-    /* TODO */
-
-    player->timers_count = 0;
+    player_t *player = game.players.get_or_insert(i);
+    save_reader_binary_t reader(data, 8628);
+    reader >> *player;
   }
 
   free(data);
@@ -684,94 +576,6 @@ save_text_game_state(FILE *f) {
   return 0;
 }
 
-static int
-save_text_player_state(FILE *f) {
-  for (int i = 0; i < GAME_MAX_PLAYER_COUNT; i++) {
-    player_t *player = game.player[i];
-    if (!PLAYER_IS_ACTIVE(player)) continue;
-
-    fprintf(f, "[player %i]\n", i);
-
-    save_text_write_value(f, "flags", player->flags);
-    save_text_write_value(f, "build", player->build);
-    save_text_write_value(f, "color", player->color);
-    save_text_write_value(f, "face", player->face);
-
-    save_text_write_array(f, "tool_prio", player->tool_prio, 9);
-    save_text_write_array(f, "resource_count", player->resource_count, 26);
-    save_text_write_array(f, "flag_prio", player->flag_prio, 26);
-    save_text_write_array(f, "serf_count", player->serf_count, 27);
-    save_text_write_array(f, "knight_occupation", player->knight_occupation, 4);
-
-    save_text_write_array(f, "completed_building_count",
-                          player->completed_building_count, 23);
-    save_text_write_array(f, "incomplete_building_count",
-                          player->incomplete_building_count, 23);
-
-    save_text_write_array(f, "inventory_prio", player->inventory_prio, 26);
-    save_text_write_array(f, "attacking_buildings",
-                          player->attacking_buildings, 64);
-
-    save_text_write_value(f, "initial_supplies", player->initial_supplies);
-    save_text_write_value(f, "knights_to_spawn", player->knights_to_spawn);
-
-    save_text_write_value(f, "total_building_score",
-                          player->total_building_score);
-    save_text_write_value(f, "total_military_score",
-                          player->total_military_score);
-
-    save_text_write_value(f, "last_tick", player->last_tick);
-
-    save_text_write_value(f, "reproduction_counter",
-                          player->reproduction_counter);
-    save_text_write_value(f, "reproduction_reset", player->reproduction_reset);
-    save_text_write_value(f, "serf_to_knight_rate",
-                          player->serf_to_knight_rate);
-    save_text_write_value(f, "serf_to_knight_counter",
-                          player->serf_to_knight_counter);
-
-    save_text_write_value(f, "attacking_building_count",
-                          player->attacking_building_count);
-    save_text_write_array(f, "attacking_knights", player->attacking_knights, 4);
-    save_text_write_value(f, "total_attacking_knights",
-                          player->total_attacking_knights);
-    save_text_write_value(f, "building_attacked", player->building_attacked);
-    save_text_write_value(f, "knights_attacking", player->knights_attacking);
-
-    save_text_write_value(f, "food_stonemine", player->food_stonemine);
-    save_text_write_value(f, "food_coalmine", player->food_coalmine);
-    save_text_write_value(f, "food_ironmine", player->food_ironmine);
-    save_text_write_value(f, "food_goldmine", player->food_goldmine);
-
-    save_text_write_value(f, "planks_construction",
-                          player->planks_construction);
-    save_text_write_value(f, "planks_boatbuilder", player->planks_boatbuilder);
-    save_text_write_value(f, "planks_toolmaker", player->planks_toolmaker);
-
-    save_text_write_value(f, "steel_toolmaker", player->steel_toolmaker);
-    save_text_write_value(f, "steel_weaponsmith", player->steel_weaponsmith);
-
-    save_text_write_value(f, "coal_steelsmelter", player->coal_steelsmelter);
-    save_text_write_value(f, "coal_goldsmelter", player->coal_goldsmelter);
-    save_text_write_value(f, "coal_weaponsmith", player->coal_weaponsmith);
-
-    save_text_write_value(f, "wheat_pigfarm", player->wheat_pigfarm);
-    save_text_write_value(f, "wheat_mill", player->wheat_mill);
-
-    save_text_write_value(f, "castle_score", player->castle_score);
-
-    save_text_write_value(f, "castle_knights", player->castle_knights);
-    save_text_write_value(f, "castle_knights_wanted",
-                          player->castle_knights_wanted);
-
-    /* TODO */
-
-    fprintf(f, "\n");
-  }
-
-  return 0;
-}
-
 typedef std::map<std::string, save_writer_text_value_t> values_t;
 
 class save_writer_text_section_t : public save_writer_text_t {
@@ -808,6 +612,20 @@ class save_writer_text_section_t : public save_writer_text_t {
     return true;
   }
 };
+
+static bool
+save_text_player_state(FILE *f) {
+  int i = 0;
+  for (players_t::iterator p = game.players.begin();
+       p != game.players.end(); ++p) {
+    save_writer_text_section_t writer("player", i);
+    writer << **p;
+    writer.save(f);
+    i++;
+  }
+
+  return true;
+}
 
 static bool
 save_text_flag_state(flag_t *flag, FILE *f) {
@@ -1265,156 +1083,38 @@ load_text_game_state(list_t *sections) {
   return 0;
 }
 
+class save_reader_text_section_t : public save_reader_text_t {
+ protected:
+  section_t *section;
+
+ public:
+  explicit save_reader_text_section_t(section_t *section) {
+    this->section = section;
+  }
+
+  virtual save_reader_text_value_t value(std::string name) const {
+    list_elm_t *elm;
+    list_foreach(&section->settings, elm) {
+      setting_t *s = reinterpret_cast<setting_t*>(elm);
+      if (name == s->key) {
+        return save_reader_text_value_t(s->value);
+      }
+    }
+
+    return save_reader_text_value_t("");
+  }
+};
+
 static int
 load_text_player_section(section_t *section) {
   /* Parse player number. */
   int n = atoi(section->param);
-  if (n < 0 || n >= GAME_MAX_PLAYER_COUNT) return -1;
+  if (n < 0) return -1;
 
-  game.player[n] = reinterpret_cast<player_t*>(calloc(1, sizeof(player_t)));
-  if (game.player[n] == NULL) return -1;
+  player_t *player = game.players.get_or_insert(n);
 
-  player_t *player = game.player[n];
-  player->player_num = n;
-
-  /* Load the player state. */
-  list_elm_t *elm;
-  list_foreach(&section->settings, elm) {
-    setting_t *s = reinterpret_cast<setting_t*>(elm);
-    if (!strcmp(s->key, "flags")) {
-      player->flags = atoi(s->value);
-    } else if (!strcmp(s->key, "build")) {
-      player->build = atoi(s->value);
-    } else if (!strcmp(s->key, "color")) {
-      player->color = atoi(s->value);
-    } else if (!strcmp(s->key, "face")) {
-      player->face = atoi(s->value);
-    } else if (!strcmp(s->key, "tool_prio")) {
-      char *array = s->value;
-      for (int i = 0; i < 9 && array != NULL; i++) {
-        char *v = parse_array_value(&array);
-        player->tool_prio[i] = atoi(v);
-      }
-    } else if (!strcmp(s->key, "resource_count")) {
-      char *array = s->value;
-      for (int i = 0; i < 26 && array != NULL; i++) {
-        char *v = parse_array_value(&array);
-        player->resource_count[i] = atoi(v);
-      }
-    } else if (!strcmp(s->key, "flag_prio")) {
-      char *array = s->value;
-      for (int i = 0; i < 26 && array != NULL; i++) {
-        char *v = parse_array_value(&array);
-        player->flag_prio[i] = atoi(v);
-      }
-    } else if (!strcmp(s->key, "serf_count")) {
-      char *array = s->value;
-      for (int i = 0; i < 27 && array != NULL; i++) {
-        char *v = parse_array_value(&array);
-        player->serf_count[i] = atoi(v);
-      }
-    } else if (!strcmp(s->key, "knight_occupation")) {
-      char *array = s->value;
-      for (int i = 0; i < 4 && array != NULL; i++) {
-        char *v = parse_array_value(&array);
-        player->knight_occupation[i] = atoi(v);
-      }
-    } else if (!strcmp(s->key, "completed_building_count")) {
-      char *array = s->value;
-      for (int i = 0; i < 23 && array != NULL; i++) {
-        char *v = parse_array_value(&array);
-        player->completed_building_count[i] = atoi(v);
-      }
-    } else if (!strcmp(s->key, "incomplete_building_count")) {
-      char *array = s->value;
-      for (int i = 0; i < 23 && array != NULL; i++) {
-        char *v = parse_array_value(&array);
-        player->incomplete_building_count[i] = atoi(v);
-      }
-    } else if (!strcmp(s->key, "inventory_prio")) {
-      char *array = s->value;
-      for (int i = 0; i < 26 && array != NULL; i++) {
-        char *v = parse_array_value(&array);
-        player->inventory_prio[i] = atoi(v);
-      }
-    } else if (!strcmp(s->key, "attacking_buildings")) {
-      char *array = s->value;
-      for (int i = 0; i < 64 && array != NULL; i++) {
-        char *v = parse_array_value(&array);
-        player->attacking_buildings[i] = atoi(v);
-      }
-    } else if (!strcmp(s->key, "initial_supplies")) {
-      player->initial_supplies = atoi(s->value);
-    } else if (!strcmp(s->key, "knights_to_spawn")) {
-      player->knights_to_spawn = atoi(s->value);
-    } else if (!strcmp(s->key, "total_building_score")) {
-      player->total_building_score = atoi(s->value);
-    } else if (!strcmp(s->key, "total_military_score")) {
-      player->total_military_score = atoi(s->value);
-    } else if (!strcmp(s->key, "last_tick")) {
-      player->last_tick = atoi(s->value);
-    } else if (!strcmp(s->key, "reproduction_counter")) {
-      player->reproduction_counter = atoi(s->value);
-    } else if (!strcmp(s->key, "reproduction_reset")) {
-      player->reproduction_reset = atoi(s->value);
-    } else if (!strcmp(s->key, "serf_to_knight_rate")) {
-      player->serf_to_knight_rate = atoi(s->value);
-    } else if (!strcmp(s->key, "serf_to_knight_counter")) {
-      player->serf_to_knight_counter = atoi(s->value);
-    } else if (!strcmp(s->key, "attacking_building_count")) {
-      player->attacking_building_count = atoi(s->value);
-    } else if (!strcmp(s->key, "attacking_knights")) {
-      char *array = s->value;
-      for (int i = 0; i < 4 && array != NULL; i++) {
-        char *v = parse_array_value(&array);
-        player->attacking_knights[i] = atoi(v);
-      }
-    } else if (!strcmp(s->key, "total_attacking_knights")) {
-      player->total_attacking_knights = atoi(s->value);
-    } else if (!strcmp(s->key, "building_attacked")) {
-      player->building_attacked = atoi(s->value);
-    } else if (!strcmp(s->key, "knights_attacking")) {
-      player->knights_attacking = atoi(s->value);
-    } else if (!strcmp(s->key, "food_stonemine")) {
-      player->food_stonemine = atoi(s->value);
-    } else if (!strcmp(s->key, "food_coalmine")) {
-      player->food_coalmine = atoi(s->value);
-    } else if (!strcmp(s->key, "food_ironmine")) {
-      player->food_ironmine = atoi(s->value);
-    } else if (!strcmp(s->key, "food_goldmine")) {
-      player->food_goldmine = atoi(s->value);
-    } else if (!strcmp(s->key, "planks_construction")) {
-      player->planks_construction = atoi(s->value);
-    } else if (!strcmp(s->key, "planks_boatbuilder")) {
-      player->planks_boatbuilder = atoi(s->value);
-    } else if (!strcmp(s->key, "planks_toolmaker")) {
-      player->planks_toolmaker = atoi(s->value);
-    } else if (!strcmp(s->key, "steel_toolmaker")) {
-      player->steel_toolmaker = atoi(s->value);
-    } else if (!strcmp(s->key, "steel_weaponsmith")) {
-      player->steel_weaponsmith = atoi(s->value);
-    } else if (!strcmp(s->key, "coal_steelsmelter")) {
-      player->coal_steelsmelter = atoi(s->value);
-    } else if (!strcmp(s->key, "coal_goldsmelter")) {
-      player->coal_goldsmelter = atoi(s->value);
-    } else if (!strcmp(s->key, "coal_weaponsmith")) {
-      player->coal_weaponsmith = atoi(s->value);
-    } else if (!strcmp(s->key, "wheat_pigfarm")) {
-      player->wheat_pigfarm = atoi(s->value);
-    } else if (!strcmp(s->key, "wheat_mill")) {
-      player->wheat_mill = atoi(s->value);
-    } else if (!strcmp(s->key, "castle_score")) {
-      player->castle_score = atoi(s->value);
-    } else if (!strcmp(s->key, "castle_knights")) {
-      player->castle_knights = atoi(s->value);
-    } else if (!strcmp(s->key, "castle_knights_wanted")) {
-      player->castle_knights_wanted = atoi(s->value);
-    } else {
-      LOGD("savegame", "Unhandled player setting: `%s'.", s->key);
-    }
-  }
-
-  player->timers_count = 0;
+  save_reader_text_section_t reader(section);
+  reader >> *player;
 
   return 0;
 }
@@ -1432,27 +1132,6 @@ load_text_player_state(list_t *sections) {
 
   return 0;
 }
-
-class save_reader_text_section_t : public save_reader_text_t {
- protected:
-  section_t *section;
-
- public:
-  explicit save_reader_text_section_t(section_t *section) {
-    this->section = section; }
-
-  virtual save_reader_text_value_t value(std::string name) const {
-    list_elm_t *elm;
-    list_foreach(&section->settings, elm) {
-      setting_t *s = reinterpret_cast<setting_t*>(elm);
-      if (name == s->key) {
-        return save_reader_text_value_t(s->value);
-      }
-    }
-
-    return save_reader_text_value_t("");
-  }
-};
 
 static int
 load_text_flag_section(section_t *section) {
@@ -1505,16 +1184,7 @@ load_text_building_state(list_t *sections) {
     }
   }
 
-  for (buildings_t::iterator i = game.buildings.begin();
-       i != game.buildings.end(); ++i) {
-    /* Restore pointer to castle flag */
-    building_t *building = *i;
-    if (building->get_type() == BUILDING_CASTLE) {
-      game.player[building->get_player()]->castle_flag =
-                                                     building->get_flag_index();
-      break;
-    }
-  }
+  player_t::restore_castle_flag();
 
   return 0;
 }

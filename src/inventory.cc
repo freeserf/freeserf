@@ -294,19 +294,16 @@ inventory_t::promote_serf_to_knight(serf_t *serf) {
 
 serf_t*
 inventory_t::spawn_serf_generic() {
-  serf_t *serf = NULL;
-  int r = game.serfs.allocate(&serf, NULL);
-  if (r < 0) return NULL;
+  serf_t *serf = game.players[player_num]->spawn_serf_generic();
 
-  serf->init_generic(this);
+  if (serf != NULL) {
+    serf->init_generic(this);
 
-  generic_count++;
-  if (serfs[SERF_GENERIC] == 0) {
-    serfs[SERF_GENERIC] = serf->get_index();
+    generic_count++;
+    if (serfs[SERF_GENERIC] == 0) {
+      serfs[SERF_GENERIC] = serf->get_index();
+    }
   }
-
-  player_t *player = game.player[player_num];
-  player->serf_count[SERF_GENERIC] += 1;
 
   return serf;
 }

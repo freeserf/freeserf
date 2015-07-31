@@ -26,6 +26,7 @@
 #include "src/map.h"
 #include "src/resource.h"
 #include "src/misc.h"
+#include "src/serf.h"
 
 /* Max number of different types of resources accepted by buildings. */
 #define BUILDING_MAX_STOCK  2
@@ -249,7 +250,7 @@ class building_t {
   void update_castle();
   void update_military();
 
-  bool send_serf_to_building(building_t *building, int type,
+  bool send_serf_to_building(building_t *building, serf_type_t type,
                              resource_type_t res1, resource_type_t res2);
 };
 

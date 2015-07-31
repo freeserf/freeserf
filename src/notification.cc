@@ -68,8 +68,8 @@ notification_box_t::get_player_face_sprite(int face) {
 
 void
 notification_box_t::draw_player_face(int x, int y, int player) {
-  frame->fill_rect(8*x, y, 48, 72, game.player[player]->color);
-  draw_icon(x+1, y+4, get_player_face_sprite(game.player[player]->face));
+  frame->fill_rect(8*x, y, 48, 72, game.players[player]->get_color());
+  draw_icon(x+1, y+4, get_player_face_sprite(game.players[player]->get_face()));
 }
 
 #define NOTIFICATION_SHOW_OPPONENT 0
@@ -171,13 +171,14 @@ notification_box_t::draw_notification(notification_view_t *view) {
   draw_string(1, 10, view->text);
   switch (view->decoration) {
     case NOTIFICATION_SHOW_OPPONENT:
-      draw_player_face(18, 8, param);
+      draw_player_face(18, 8, message.data);
       break;
     case NOTIFICATION_SHOW_MINE:
-      draw_map_object(18, 8, map_building_sprite[BUILDING_STONEMINE] + param);
+      draw_map_object(18, 8, map_building_sprite[BUILDING_STONEMINE] +
+                             message.data);
       break;
     case NOTIFICATION_SHOW_BUILDING:
-      switch (param) {
+      switch (message.data) {
         case 0:
           draw_map_object(18, 8, map_building_sprite[BUILDING_HUT]);
           break;
@@ -199,7 +200,7 @@ notification_box_t::draw_notification(notification_view_t *view) {
       draw_icon(20, 14, view->icon);
       break;
     case NOTIFICATION_SHOW_MENU:
-      draw_icon(18, 8, map_menu_sprite[param]);
+      draw_icon(18, 8, map_menu_sprite[message.data]);
       break;
     default:
       break;
@@ -212,7 +213,7 @@ notification_box_t::internal_draw() {
   draw_icon(14, 128, 0x120); /* Checkbox */
 
   for (int i = 0; notification_views[i].type != NOTIFICATION_NONE; i++) {
-    if (notification_views[i].type == type) {
+    if (notification_views[i].type == message.type) {
       draw_notification(&notification_views[i]);
     }
   }
@@ -225,12 +226,9 @@ notification_box_t::handle_click_left(int x, int y) {
 }
 
 notification_box_t::notification_box_t() {
-  type = 0;
-  param = 0;
 }
 
-void notification_box_t::show(int type, int param) {
-  this->type = type;
-  this->param = param;
+void notification_box_t::show(const message_t &message) {
+  this->message = message;
   set_displayed(1);
 }

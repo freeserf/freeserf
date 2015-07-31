@@ -95,7 +95,7 @@ void
 panel_bar_t::draw_panel_buttons() {
   if (enabled) {
     /* Blinking message icon. */
-    if (interface->get_player()->msg_queue_type[0] != 0) {
+    if (interface->get_player()->has_notification()) {
       if (game.const_tick & 0x30) {
         draw_message_notify();
       }
@@ -305,14 +305,8 @@ panel_bar_t::handle_click_left(int x, int y) {
   } else if (x >= 301 && x < 313) {
     /* Timer bar click */
     if (BIT_TEST(game.svga, 3)) { /* Game has started */
-      if (interface->get_player()->timers_count >= 64) {
-        play_sound(SFX_NOT_ACCEPTED);
-        return false;
-      }
-
       /* Call to map position */
-      int timer_id = interface->get_player()->timers_count++;
-      int timer_length = -1;
+      unsigned int timer_length = 0;
 
       if (y < 7) {
         timer_length = 5*60;
@@ -326,10 +320,8 @@ panel_bar_t::handle_click_left(int x, int y) {
         timer_length = 60*60;
       }
 
-      interface->get_player()->timers[timer_id].timeout =
-                                                  timer_length*TICKS_PER_SEC;
-      interface->get_player()->timers[timer_id].pos =
-                                                interface->get_map_cursor_pos();
+      interface->get_player()->add_timer(timer_length * TICKS_PER_SEC,
+                                         interface->get_map_cursor_pos());
 
       play_sound(SFX_ACCEPTED);
     }
@@ -438,7 +430,7 @@ panel_bar_t::update() {
     switch (interface->get_map_cursor_type()) {
       case MAP_CURSOR_TYPE_NONE:
         panel_btns[0] = PANEL_BTN_BUILD_INACTIVE;
-        if (PLAYER_HAS_CASTLE(interface->get_player())) {
+        if (interface->get_player()->has_castle()) {
           panel_btns[1] = PANEL_BTN_DESTROY_INACTIVE;
         } else {
           panel_btns[1] = PANEL_BTN_GROUND_ANALYSIS;
@@ -467,7 +459,7 @@ panel_bar_t::update() {
         if (build_possibility == CAN_BUILD_NONE ||
             build_possibility == CAN_BUILD_FLAG) {
           panel_btns[0] = PANEL_BTN_BUILD_INACTIVE;
-          if (PLAYER_HAS_CASTLE(interface->get_player())) {
+          if (interface->get_player()->has_castle()) {
             panel_btns[1] = PANEL_BTN_DESTROY_INACTIVE;
           } else {
             panel_btns[1] = PANEL_BTN_GROUND_ANALYSIS;
@@ -483,7 +475,7 @@ panel_bar_t::update() {
         break;
       case MAP_CURSOR_TYPE_CLEAR:
         panel_btns[0] = button_type_with_build_possibility(build_possibility);
-        if (PLAYER_HAS_CASTLE(interface->get_player())) {
+        if (interface->get_player()->has_castle()) {
           panel_btns[1] = PANEL_BTN_DESTROY_INACTIVE;
         } else {
           panel_btns[1] = PANEL_BTN_GROUND_ANALYSIS;
