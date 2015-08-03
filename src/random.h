@@ -22,6 +22,8 @@
 #ifndef SRC_RANDOM_H_
 #define SRC_RANDOM_H_
 
+#include <string>
+
 #ifdef HAVE_CONFIG_H
 # include <config.h>
 #endif
@@ -30,10 +32,22 @@
 #include <stdint.h>
 #endif
 
-typedef struct {
+class random_state_t {
+ protected:
   uint16_t state[3];
-} random_state_t;
 
-uint16_t random_int(random_state_t *random);
+ public:
+  random_state_t();
+  explicit random_state_t(const uint16_t &value);
+  random_state_t(const random_state_t &random_state);
+  explicit random_state_t(const std::string &string);
+  random_state_t(uint16_t base_0, uint16_t base_1, uint16_t base_2);
+
+  uint16_t random();
+
+  operator std::string() const;
+  friend random_state_t& operator^=(random_state_t& left,
+                                    const random_state_t& right);
+};
 
 #endif  // SRC_RANDOM_H_

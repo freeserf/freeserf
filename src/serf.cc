@@ -1875,8 +1875,8 @@ serf_t::handle_serf_entering_building_state() {
             building->stock_init(1, RESOURCE_GOLDBAR, max_gold);
 
             /* Save amount of land and buildings for each player */
-            unsigned int land_before[GAME_MAX_PLAYER_COUNT] = {0};
-            unsigned int buildings_before[GAME_MAX_PLAYER_COUNT] = {0};
+            int land_before[GAME_MAX_PLAYER_COUNT] = {0};
+            int buildings_before[GAME_MAX_PLAYER_COUNT] = {0};
             for (players_t::iterator it = game.players.begin();
                  it != game.players.end(); ++it) {
               player_t *player = *it;

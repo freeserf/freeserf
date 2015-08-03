@@ -21,20 +21,63 @@
 
 #include "src/random.h"
 
-#include <cstdio>
-#include <cstdlib>
+#include <ctime>
+#include <sstream>
 
 #ifdef HAVE_CONFIG_H
 # include <config.h>
 #endif
 
-#ifdef HAVE_STDINT_H
-# include <stdint.h>
+#ifdef HAVE_CSTDINT
+# include <cstdint>
 #endif
 
-uint16_t
-random_int(random_state_t *random) {
-  uint16_t *rnd = random->state;
+random_state_t::random_state_t() {
+  srand((unsigned int)time(NULL));
+  state[0] = std::rand();
+  state[1] = std::rand();
+  state[2] = std::rand();
+  random();
+}
+
+random_state_t::random_state_t(const uint16_t &value) {
+  state[0] = value;
+  state[1] = value;
+  state[2] = value;
+}
+
+random_state_t::random_state_t(const random_state_t &random_state) {
+  state[0] = random_state.state[0];
+  state[1] = random_state.state[1];
+  state[2] = random_state.state[2];
+}
+
+random_state_t::random_state_t(const std::string &string) {
+  uint64_t tmp = 0;
+
+  for (int i = 15; i >= 0; i--) {
+    tmp <<= 3;
+    uint8_t c = string[i] - '0' - 1;
+    tmp |= c;
+  }
+
+  state[0] = tmp & 0xFFFF;
+  tmp >>= 16;
+  state[1] = tmp & 0xFFFF;
+  tmp >>= 16;
+  state[2] = tmp & 0xFFFF;
+}
+
+random_state_t::random_state_t(uint16_t base_0,
+                               uint16_t base_1,
+                               uint16_t base_2) {
+  state[0] = base_0;
+  state[1] = base_1;
+  state[2] = base_2;
+}
+
+uint16_t random_state_t::random() {
+  uint16_t *rnd = state;
   uint16_t r = (rnd[0] + rnd[1]) ^ rnd[2];
   rnd[2] += rnd[1];
   rnd[1] ^= rnd[2];
@@ -43,4 +86,34 @@ random_int(random_state_t *random) {
   rnd[0] = r;
 
   return r;
+}
+
+random_state_t::operator std::string() const {
+  uint64_t tmp0 = state[0];
+  uint64_t tmp1 = state[1];
+  uint64_t tmp2 = state[2];
+
+  std::stringstream ss;
+
+  uint64_t tmp = tmp0;
+  tmp |= tmp1 << 16;
+  tmp |= tmp2 << 32;
+
+  for (int i = 0; i < 16; i++) {
+    uint8_t c = tmp & 0x07;
+    c += '1';
+    ss << c;
+    tmp >>= 3;
+  }
+
+  return ss.str();
+}
+
+random_state_t&
+operator^=(random_state_t& left, const random_state_t& right) {  // NOLINT
+  left.state[0] ^= right.state[0];
+  left.state[1] ^= right.state[1];
+  left.state[2] ^= right.state[2];
+
+  return left;
 }

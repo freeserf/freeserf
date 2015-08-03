@@ -119,9 +119,9 @@ load_v0_game_state(FILE *f, v0_map_t *map) {
   game.game_stats_counter = 0;
   game.history_counter = 0;
 
-  game.rnd.state[0] = *reinterpret_cast<uint16_t*>(&data[84]);
-  game.rnd.state[1] = *reinterpret_cast<uint16_t*>(&data[86]);
-  game.rnd.state[2] = *reinterpret_cast<uint16_t*>(&data[88]);
+  game.rnd = random_state_t(*reinterpret_cast<uint16_t*>(&data[84]),
+                            *reinterpret_cast<uint16_t*>(&data[86]),
+                            *reinterpret_cast<uint16_t*>(&data[88]));
 
   max_flag_index = *reinterpret_cast<uint16_t*>(&data[90]);
   max_building_index = *reinterpret_cast<uint16_t*>(&data[92]);
@@ -544,10 +544,8 @@ save_text_game_state(FILE *f) {
   save_text_write_value(f, "game_stats_counter", game.game_stats_counter);
   save_text_write_value(f, "history_counter", game.history_counter);
 
-  int rnd[3] = { game.rnd.state[0],
-           game.rnd.state[1],
-           game.rnd.state[2] };
-  save_text_write_array(f, "rnd", rnd, 3);
+  std::string str = game.rnd;
+  save_text_write_string(f, "rnd", str.c_str());
 
   save_text_write_value(f, "next_index", game.next_index);
   save_text_write_value(f, "flag_search_counter", game.flag_search_counter);
@@ -1031,11 +1029,7 @@ load_text_game_state(list_t *sections) {
     } else if (!strcmp(s->key, "history_counter")) {
       game.history_counter = atoi(s->value);
     } else if (!strcmp(s->key, "rnd")) {
-      char *array = s->value;
-      for (int i = 0; i < 3 && array != NULL; i++) {
-        char *v = parse_array_value(&array);
-        game.rnd.state[i] = atoi(v);
-      }
+      game.rnd = random_state_t(s->value);
     } else if (!strcmp(s->key, "next_index")) {
       game.next_index = atoi(s->value);
     } else if (!strcmp(s->key, "flag_search_counter")) {

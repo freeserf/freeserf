@@ -737,7 +737,7 @@ viewport_t::draw_unharmed_building(building_t *building, int x, int y) {
         map_pos_t pos = building->get_position();
         if ((((game.tick +
                reinterpret_cast<uint8_t*>(&pos)[1]) >> 3) & 7) == 0
-            && random_int(random) < 40000) {
+            && random->random() < 40000) {
           play_sound(SFX_ELEVATOR);
         }
       }
@@ -753,7 +753,7 @@ viewport_t::draw_unharmed_building(building_t *building, int x, int y) {
     case BUILDING_PIGFARM:
       draw_shadow_and_building_sprite(x, y, map_building_sprite[type]);
       if (building->get_res_count_in_stock(1) > 0) {
-        if ((random_int(random) & 0x7f) <
+        if ((random->random() & 0x7f) <
             static_cast<int>(building->get_res_count_in_stock(1))) {
           play_sound(SFX_PIG_OINK);
         }

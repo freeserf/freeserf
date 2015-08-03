@@ -24,7 +24,8 @@
 
 #include "src/random.h"
 
-typedef struct {
+class mission_t {
+ public:
   random_state_t rnd;
   struct {
     int face;
@@ -33,10 +34,11 @@ typedef struct {
     int reproduction;
     struct { int col; int row; } castle;
   } player[4];
-} mission_t;
 
-extern mission_t mission[12];
-extern const int mission_count;
-void init_missions();
+  static mission_t mission[12];
+  static void init_missions();
+  static mission_t *get_mission(int mission);
+  static int get_mission_count();
+};
 
 #endif  // SRC_MISSION_H_

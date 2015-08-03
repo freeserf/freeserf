@@ -21,14 +21,13 @@
 
 #include "src/mission.h"
 
-mission_t mission[12] = {0};
+mission_t
+mission_t::mission[12];
 
 void
-init_missions() {
+mission_t::init_missions() {
   /* Mission 1: START */
-  mission[0].rnd.state[0] = 0x6d6f;
-  mission[0].rnd.state[1] = 0xf7f0;
-  mission[0].rnd.state[2] = 0xc8d4;
+  mission[0].rnd = random_state_t(0x6d6f, 0xf7f0, 0xc8d4);
 
   mission[0].player[0].supplies = 35,
   mission[0].player[0].reproduction = 30,
@@ -43,9 +42,7 @@ init_missions() {
   mission[0].player[1].castle.row = -1;
 
   /* Mission 2: STATION */
-  mission[1].rnd.state[0] = 0x60b9;
-  mission[1].rnd.state[1] = 0xe728;
-  mission[1].rnd.state[2] = 0xc484;
+  mission[1].rnd = random_state_t(0x60b9, 0xe728, 0xc484);
 
   mission[1].player[0].supplies = 30,
   mission[1].player[0].reproduction = 40,
@@ -66,10 +63,8 @@ init_missions() {
   mission[1].player[2].castle.col = -1;
   mission[1].player[2].castle.row = -1;
 
-    /* Mission 3: UNITY */
-  mission[2].rnd.state[0] = 0x12ab;
-  mission[2].rnd.state[1] = 0x7a4a;
-  mission[2].rnd.state[2] = 0xe483;
+  /* Mission 3: UNITY */
+  mission[2].rnd = random_state_t(0x12ab, 0x7a4a, 0xe483);
 
   mission[2].player[0].supplies = 30,
   mission[2].player[0].reproduction = 30,
@@ -91,9 +86,7 @@ init_missions() {
   mission[2].player[2].castle.row = -1;
 
   /* Mission 4 */
-  mission[3].rnd.state[0] = 0xacdf;
-  mission[3].rnd.state[1] = 0xee65;
-  mission[3].rnd.state[2] = 0x3701;
+  mission[3].rnd = random_state_t(0xacdf, 0xee65, 0x3701);
 
   mission[3].player[0].supplies = 25,
   mission[3].player[0].reproduction = 40,
@@ -108,9 +101,7 @@ init_missions() {
   mission[3].player[1].castle.row = -1;
 
   /* Mission 5 */
-  mission[4].rnd.state[0] = 0x3b8b;
-  mission[4].rnd.state[1] = 0xd867;
-  mission[4].rnd.state[2] = 0xd847;
+  mission[4].rnd = random_state_t(0x3b8b, 0xd867, 0xd847);
 
   mission[4].player[0].supplies = 30,
   mission[4].player[0].reproduction = 30,
@@ -132,9 +123,7 @@ init_missions() {
   mission[4].player[2].castle.row = -1;
 
   /* Mission 6 */
-  mission[5].rnd.state[0] = 0x4491;
-  mission[5].rnd.state[1] = 0x36fb;
-  mission[5].rnd.state[2] = 0xf9e1;
+  mission[5].rnd = random_state_t(0x4491, 0x36fb, 0xf9e1);
 
   mission[5].player[0].supplies = 30,
   mission[5].player[0].reproduction = 30,
@@ -156,9 +145,7 @@ init_missions() {
   mission[5].player[2].castle.row = -1;
 
   /* Mission 7 */
-  mission[6].rnd.state[0] = 0xca18;
-  mission[6].rnd.state[1] = 0x4221;
-  mission[6].rnd.state[2] = 0x7f96;
+  mission[6].rnd = random_state_t(0xca18, 0x4221, 0x7f96);
 
   mission[6].player[0].supplies = 30,
   mission[6].player[0].reproduction = 40,
@@ -173,9 +160,7 @@ init_missions() {
   mission[6].player[1].castle.row = -1;
 
   /* Mission 8 */
-  mission[7].rnd.state[0] = 0x88fe;
-  mission[7].rnd.state[1] = 0xe0db;
-  mission[7].rnd.state[2] = 0xed5c;
+  mission[7].rnd = random_state_t(0x88fe, 0xe0db, 0xed5c);
 
   mission[7].player[0].supplies = 25,
   mission[7].player[0].reproduction = 30,
@@ -197,9 +182,7 @@ init_missions() {
   mission[7].player[2].castle.row = -1;
 
   /* Mission 9 */
-  mission[8].rnd.state[0] = 0xe9c4;
-  mission[8].rnd.state[1] = 0x16fe;
-  mission[8].rnd.state[2] = 0x2ef0;
+  mission[8].rnd = random_state_t(0xe9c4, 0x16fe, 0x2ef0);
 
   mission[8].player[0].supplies = 25,
   mission[8].player[0].reproduction = 40,
@@ -228,9 +211,7 @@ init_missions() {
   mission[8].player[3].castle.row = -1;
 
   /* Mission 10 */
-  mission[9].rnd.state[0] = 0x15c2;
-  mission[9].rnd.state[1] = 0xf9d0;
-  mission[9].rnd.state[2] = 0x5fb1;
+  mission[9].rnd = random_state_t(0x15c2, 0xf9d0, 0x5fb1);
 
   mission[9].player[0].supplies = 20,
   mission[9].player[0].reproduction = 16,
@@ -245,9 +226,7 @@ init_missions() {
   mission[9].player[1].castle.row = 47;
 
   /* Mission 11 */
-  mission[10].rnd.state[0] = 0x9b93;
-  mission[10].rnd.state[1] = 0x6be1;
-  mission[10].rnd.state[2] = 0x79c0;
+  mission[10].rnd = random_state_t(0x9b93, 0x6be1, 0x79c0);
 
   mission[10].player[0].supplies = 16,
   mission[10].player[0].reproduction = 20,
@@ -269,9 +248,7 @@ init_missions() {
   mission[10].player[2].castle.row = 12;
 
   /* Mission 12 */
-  mission[11].rnd.state[0] = 0x4195;
-  mission[11].rnd.state[1] = 0x7dba;
-  mission[11].rnd.state[2] = 0xd884;
+  mission[11].rnd = random_state_t(0x4195, 0x7dba, 0xd884);
 
   mission[11].player[0].supplies = 23,
   mission[11].player[0].reproduction = 27,
@@ -300,4 +277,16 @@ init_missions() {
   mission[11].player[3].castle.row = 32;
 }
 
-const int mission_count = sizeof(mission) / sizeof(mission[0]);
+mission_t *
+mission_t::get_mission(int m) {
+  if (m >= get_mission_count()) {
+    return NULL;
+  }
+
+  return mission + m;
+}
+
+int
+mission_t::get_mission_count() {
+  return sizeof(mission) / sizeof(mission[0]);
+}

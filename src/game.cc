@@ -2433,36 +2433,36 @@ game_load_mission_map(int level) {
     64, 72, 68, 76
   };
 
-  memcpy(&game.init_map_rnd, &mission[level].rnd,
-         sizeof(random_state_t));
+  game_deinit();
+
+  mission_t *mission = mission_t::get_mission(level);
+
+  game.init_map_rnd = mission->rnd;
 
   game.mission_level = level;
   game.map_size = 3;
   game.map_preserve_bugs = 1;
 
-  game.init_map_rnd.state[0] ^= 0x5a5a;
-  game.init_map_rnd.state[1] ^= 0xa5a5;
-  game.init_map_rnd.state[2] ^= 0xc3c3;
+  game.init_map_rnd ^= random_state_t(0x5a5a, 0xa5a5, 0xc3c3);
 
   game_init_map();
   game_allocate_objects();
 
   /* Initialize player and build initial castle */
   for (int i = 0; i < GAME_MAX_PLAYER_COUNT; i++) {
-    const mission_t *m = &mission[level];
-    unsigned int face = (i == 0) ? 12 : m->player[i].face;
+    unsigned int face = (i == 0) ? 12 : mission->player[i].face;
     if (face == 0) continue;
 
     int n = game_add_player(face, default_player_colors[i],
-          m->player[i].supplies,
-          m->player[i].reproduction,
-          m->player[i].intelligence);
+                            mission->player[i].supplies,
+                            mission->player[i].reproduction,
+                            mission->player[i].intelligence);
     if (n < 0) return -1;
 
-    if (m->player[n].castle.col > -1 &&
-        m->player[n].castle.row > -1) {
-      map_pos_t pos = MAP_POS(m->player[n].castle.col,
-            m->player[n].castle.row);
+    if (mission->player[i].castle.col > -1 &&
+        mission->player[i].castle.row > -1) {
+      map_pos_t pos = MAP_POS(mission->player[i].castle.col,
+                              mission->player[i].castle.row);
       game_build_castle(pos, game.players[n]);
     }
   }
@@ -2521,5 +2521,5 @@ game_lose_resource(resource_type_t res) {
 
 uint16_t
 game_random_int() {
-  return random_int(&game.rnd);
+  return game.init_map_rnd.random();
 }

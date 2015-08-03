@@ -152,7 +152,7 @@ main(int argc, char *argv[]) {
   bool fullscreen = false;
   int map_generator = 0;
 
-  init_missions();
+  mission_t::init_missions();
 
   log_level_t log_level = DEFAULT_LOG_LEVEL;
 

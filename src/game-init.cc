@@ -126,19 +126,19 @@ game_init_box_t::internal_draw() {
       frame->fill_rect(80*i+84, 124-reproduction_, 4, reproduction_, 75);
     }
   } else {
-    int m = game_mission;
+    mission_t *mission = mission_t::get_mission(game_mission);
     for (int i = 0; i < GAME_MAX_PLAYER_COUNT; i++) {
-      int face = i == 0 ? 12 : mission[m].player[i].face;
+      int face = i == 0 ? 12 : mission->player[i].face;
       draw_box_icon(10*i+1, 48, get_player_face_sprite(face));
       draw_box_icon(10*i+6, 48, 282);
 
-      int intelligence = i == 0 ? 40 : mission[m].player[i].intelligence;
+      int intelligence = i == 0 ? 40 : mission->player[i].intelligence;
       frame->fill_rect(80*i+78, 124-intelligence, 4, intelligence, 30);
 
-      int supplies = mission[m].player[i].supplies;
+      int supplies = mission->player[i].supplies;
       frame->fill_rect(80*i+72, 124-supplies, 4, supplies, 67);
 
-      int reproduction = mission[m].player[i].reproduction;
+      int reproduction = mission->player[i].reproduction;
       frame->fill_rect(80*i+84, 124-reproduction, 4, reproduction, 75);
     }
   }
@@ -159,9 +159,8 @@ game_init_box_t::handle_action(int action) {
   case ACTION_START_GAME:
     game_init();
     if (game_mission < 0) {
-      random_state_t rnd = {{ 0x5a5a,
-                              (uint16_t)(time(NULL) >> 16),
-                              (uint16_t)time(NULL) }};
+      random_state_t rnd(0x5a5a, (uint16_t)(time(NULL) >> 16),
+                         (uint16_t)time(NULL));
       int r = game_load_random_map(map_size, &rnd);
       if (r < 0) return;
 
@@ -199,7 +198,7 @@ game_init_box_t::handle_action(int action) {
     if (game_mission < 0) {
       map_size = std::min(map_size+1, 10);
     } else {
-      game_mission = std::min(game_mission+1, mission_count-1);
+      game_mission = std::min(game_mission+1, mission_t::get_mission_count()-1);
     }
     break;
   case ACTION_DECREMENT:
