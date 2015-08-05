@@ -143,9 +143,9 @@ interface_t::get_map_cursor_type(const player_t *player, map_pos_t pos,
   if (game_can_build_castle(pos, player)) {
     *bld_possibility = CAN_BUILD_CASTLE;
   } else if (game_can_player_build(pos, player) &&
-       map_space_from_obj[MAP_OBJ(pos)] == MAP_SPACE_OPEN &&
-       (game_can_build_flag(MAP_MOVE_DOWN_RIGHT(pos), player) ||
-        MAP_HAS_FLAG(MAP_MOVE_DOWN_RIGHT(pos)))) {
+       map_t::map_space_from_obj[game.map->get_obj(pos)] == MAP_SPACE_OPEN &&
+       (game_can_build_flag(game.map->move_down_right(pos), player) ||
+        game.map->has_flag(game.map->move_down_right(pos)))) {
     if (game_can_build_mine(pos)) {
       *bld_possibility = CAN_BUILD_MINE;
     } else if (game_can_build_large(pos)) {
@@ -163,32 +163,32 @@ interface_t::get_map_cursor_type(const player_t *player, map_pos_t pos,
     *bld_possibility = CAN_BUILD_NONE;
   }
 
-  if (MAP_OBJ(pos) == MAP_OBJ_FLAG &&
-      MAP_OWNER(pos) == player->get_index()) {
+  if (game.map->get_obj(pos) == MAP_OBJ_FLAG &&
+      game.map->get_owner(pos) == player->get_index()) {
     if (game_can_demolish_flag(pos, player)) {
       *cursor_type = MAP_CURSOR_TYPE_REMOVABLE_FLAG;
     } else {
       *cursor_type = MAP_CURSOR_TYPE_FLAG;
     }
-  } else if (!MAP_HAS_BUILDING(pos) && !MAP_HAS_FLAG(pos)) {
-    int paths = MAP_PATHS(pos);
+  } else if (!game.map->has_building(pos) && !game.map->has_flag(pos)) {
+    int paths = game.map->paths(pos);
     if (paths == 0) {
-      if (MAP_OBJ(MAP_MOVE_DOWN_RIGHT(pos)) == MAP_OBJ_FLAG) {
+      if (game.map->get_obj(game.map->move_down_right(pos)) == MAP_OBJ_FLAG) {
         *cursor_type = MAP_CURSOR_TYPE_CLEAR_BY_FLAG;
-      } else if (MAP_PATHS(MAP_MOVE_DOWN_RIGHT(pos)) == 0) {
+      } else if (game.map->paths(game.map->move_down_right(pos)) == 0) {
         *cursor_type = MAP_CURSOR_TYPE_CLEAR;
       } else {
         *cursor_type = MAP_CURSOR_TYPE_CLEAR_BY_PATH;
       }
-    } else if (MAP_OWNER(pos) == player->get_index()) {
+    } else if (game.map->get_owner(pos) == player->get_index()) {
       *cursor_type = MAP_CURSOR_TYPE_PATH;
     } else {
       *cursor_type = MAP_CURSOR_TYPE_NONE;
     }
-  } else if ((MAP_OBJ(pos) == MAP_OBJ_SMALL_BUILDING ||
-              MAP_OBJ(pos) == MAP_OBJ_LARGE_BUILDING) &&
-             MAP_OWNER(pos) == player->get_index()) {
-    building_t *bld = game.buildings[MAP_OBJ_INDEX(pos)];
+  } else if ((game.map->get_obj(pos) == MAP_OBJ_SMALL_BUILDING ||
+              game.map->get_obj(pos) == MAP_OBJ_LARGE_BUILDING) &&
+             game.map->get_owner(pos) == player->get_index()) {
+    building_t *bld = game.buildings[game.map->get_obj_index(pos)];
     if (!bld->is_burning()) {
       *cursor_type = MAP_CURSOR_TYPE_BUILDING;
     } else {
@@ -213,7 +213,7 @@ interface_t::determine_map_cursor_type() {
 void
 interface_t::determine_map_cursor_type_road() {
   map_pos_t pos = map_cursor_pos;
-  int h = MAP_HEIGHT(pos);
+  int h = game.map->get_height(pos);
   int valid_dir = 0;
   int length = building_road_length;
 
@@ -224,20 +224,20 @@ interface_t::determine_map_cursor_type_road() {
         (building_road_dirs[length-1] == DIR_REVERSE(d))) {
       sprite = 45; /* undo */
       valid_dir |= BIT(d);
-    } else if (game_road_segment_valid(pos, (dir_t)d)) {
+    } else if (game.map->is_road_segment_valid(pos, (dir_t)d)) {
       /* Check that road does not cross itself. */
       map_pos_t road_pos = building_road_source;
       int crossing_self = 0;
       for (int i = 0; i < length; i++) {
-        road_pos = MAP_MOVE(road_pos, building_road_dirs[i]);
-        if (road_pos == MAP_MOVE(pos, d)) {
+        road_pos = game.map->move(road_pos, building_road_dirs[i]);
+        if (road_pos == game.map->move(pos, (dir_t)d)) {
           crossing_self = 1;
           break;
         }
       }
 
       if (!crossing_self) {
-        int h_diff = MAP_HEIGHT(MAP_MOVE(pos, d)) - h;
+        int h_diff = game.map->get_height(game.map->move(pos, (dir_t)d)) - h;
         sprite = 39 + h_diff; /* height indicators */
         valid_dir |= BIT(d);
       } else {
@@ -333,10 +333,10 @@ interface_t::set_player(unsigned int player) {
   this->player = game.players[player];
 
   /* Move viewport to initial position */
-  map_pos_t init_pos = MAP_POS(0, 0);
+  map_pos_t init_pos = game.map->pos(0, 0);
   if (this->player->get_castle_flag() != 0) {
     flag_t *flag = game.flags[this->player->get_castle_flag()];
-    init_pos = MAP_MOVE_UP_LEFT(flag->get_position());
+    init_pos = game.map->move_up_left(flag->get_position());
   }
 
   update_map_cursor_pos(init_pos);
@@ -410,7 +410,7 @@ interface_t::build_road_segment(dir_t dir) {
     return remove_road_segment();
   }
 
-  if (MAP_OBJ(dest) == MAP_OBJ_FLAG) {
+  if (game.map->get_obj(dest) == MAP_OBJ_FLAG) {
     /* Existing flag at destination, try to connect. */
     int r = game_build_road(building_road_source, building_road_dirs,
                             building_road_length, player);
@@ -422,7 +422,7 @@ interface_t::build_road_segment(dir_t dir) {
       update_map_cursor_pos(dest);
       return 1;
     }
-  } else if (MAP_PATHS(dest) == 0) {
+  } else if (game.map->paths(dest) == 0) {
     /* No existing paths at destination, build segment. */
     update_map_cursor_pos(dest);
 
@@ -483,7 +483,8 @@ interface_t::demolish_object() {
     play_sound(SFX_CLICK);
     game_demolish_flag(map_cursor_pos, player);
   } else if (map_cursor_type == MAP_CURSOR_TYPE_BUILDING) {
-    building_t *building = game.buildings[MAP_OBJ_INDEX(map_cursor_pos)];
+    building_t *building =
+                  game.buildings[game.map->get_obj_index(map_cursor_pos)];
 
     if (building->is_done() &&
         (building->get_type() == BUILDING_HUT ||
@@ -525,7 +526,7 @@ interface_t::build_building(building_type_t type) {
   close_popup();
 
   /* Move cursor to flag. */
-  map_pos_t flag_pos = MAP_MOVE_DOWN_RIGHT(map_cursor_pos);
+  map_pos_t flag_pos = game.map->move_down_right(map_cursor_pos);
   update_map_cursor_pos(flag_pos);
 }
 
@@ -630,7 +631,7 @@ interface_t::interface_t() {
   notification_box = new notification_box_t();
   add_float(notification_box, 0, 0);
 
-  map_cursor_pos = MAP_POS(0, 0);
+  map_cursor_pos = 0;
   map_cursor_type = (map_cursor_type_t)0;
   build_possibility = CAN_BUILD_NONE;
 
@@ -655,11 +656,6 @@ interface_t::interface_t() {
   map_cursor_sprites[6].sprite = 33;
 
   last_const_tick = 0;
-
-  /* Listen for updates to the map height */
-  game.update_map_height_cb =
-    reinterpret_cast<game_update_map_height_func*>(update_map_height);
-  game.update_map_height_data = this;
 }
 
 interface_t::~interface_t() {

@@ -2792,7 +2792,7 @@ popup_box_t::move_sett_5_6_item(int up, int to_end) {
 void
 popup_box_t::handle_send_geologist() {
   map_pos_t pos = interface->get_map_cursor_pos();
-  flag_t *flag = game.flags[MAP_OBJ_INDEX(pos)];
+  flag_t *flag = game.flags[game.map->get_obj_index(pos)];
 
   int r = game_send_geologist(flag);
   if (r < 0) {

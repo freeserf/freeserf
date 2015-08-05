@@ -246,31 +246,30 @@ main(int argc, char *argv[]) {
 
   game_init();
 
-  /* Initialize interface */
-  interface_t *interface = new interface_t();
-  interface->set_size(screen_width, screen_height);
-  interface->set_displayed(true);
-
+  int player_num = 0;
   /* Either load a save game if specified or
      start a new game. */
   if (!save_file.empty()) {
     int r = game_load_save_game(save_file.c_str());
     if (r < 0) exit(EXIT_FAILURE);
-
-    interface->set_player(0);
   } else {
-    int r = game_load_random_map(3, interface->get_random());
+    int r = game_load_random_map(3, random_state_t());
     if (r < 0) exit(EXIT_FAILURE);
 
     /* Add default player */
-    r = game_add_player(12, 64, 40, 40, 40);
-    if (r < 0) exit(EXIT_FAILURE);
-
-    interface->set_player(r);
-    interface->open_game_init();
+    player_num = game_add_player(12, 64, 40, 40, 40);
+    if (player_num < 0) exit(EXIT_FAILURE);
   }
 
-  interface->game_reset();
+  /* Initialize interface */
+  interface_t *interface = new interface_t();
+  interface->set_size(screen_width, screen_height);
+  interface->set_displayed(true);
+  interface->set_player(player_num);
+
+  if (save_file.empty()) {
+    interface->open_game_init();
+  }
 
   /* Init game loop */
   game_event_handler_t *handler = new game_event_handler_t();
@@ -285,7 +284,7 @@ main(int argc, char *argv[]) {
 
   /* Clean up */
   delete interface;
-  map_deinit();
+  game_deinit();
   delete audio;
   delete gfx;
   delete data;

@@ -39,16 +39,107 @@
 
 #include "src/map.h"
 
-#include <cstring>
+#include <cstdlib>
 #include <algorithm>
 
-#include "src/game.h"
-#include "src/random.h"
 #include "src/debug.h"
-#include "src/misc.h"
+#include "src/savegame.h"
+
+/* Facilitates quick lookup of offsets following a spiral pattern in the map data.
+ The columns following the second are filled out by setup_spiral_pattern(). */
+static int spiral_pattern[] = {
+  0, 0,
+  1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+  2, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+  2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+  3, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+  3, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+  3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+  4, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+  4, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+  4, 3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+  4, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+  5, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+  5, 3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+  5, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+  5, 4, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+  5, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+  6, 3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+  6, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+  6, 4, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+  6, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+  6, 5, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+  6, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+  7, 3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+  7, 4, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+  7, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+  7, 5, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+  7, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+  7, 6, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+  7, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+  8, 4, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+  8, 3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+  8, 5, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+  8, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+  8, 6, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+  8, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+  8, 7, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+  8, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+  9, 4, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+  9, 5, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+  9, 3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+  9, 6, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+  9, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+  9, 7, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+  9, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+  9, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+  16, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+  16, 8, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+  24, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+  24, 8, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+  24, 16, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
+};
+
+static int spiral_pattern_initialized = 0;
+
+/* Initialize the global spiral_pattern. */
+static void
+init_spiral_pattern() {
+  if (spiral_pattern_initialized) {
+    return;
+  }
+
+  static const int spiral_matrix[] = {
+    1,  0,  0,  1,
+    1,  1, -1,  0,
+    0,  1, -1, -1,
+    -1,  0,  0, -1,
+    -1, -1,  1,  0,
+    0, -1,  1,  1
+  };
+
+  for (int i = 0; i < 49; i++) {
+    int x = spiral_pattern[2 + 12*i];
+    int y = spiral_pattern[2 + 12*i + 1];
+
+    for (int j = 0; j < 6; j++) {
+      spiral_pattern[2+12*i+2*j] = x*spiral_matrix[4*j+0] +
+                                   y*spiral_matrix[4*j+2];
+      spiral_pattern[2+12*i+2*j+1] = x*spiral_matrix[4*j+1] +
+                                     y*spiral_matrix[4*j+3];
+    }
+  }
+
+  spiral_pattern_initialized = 1;
+}
+
+int *
+map_t::get_spiral_pattern() {
+  return spiral_pattern;
+}
 
 /* Map map_obj_t to map_space_t. */
-const map_space_t map_space_from_obj[] = {
+const map_space_t map_t::map_space_from_obj[] = {
   MAP_SPACE_OPEN,        // MAP_OBJ_NONE = 0,
   MAP_SPACE_FILLED,      // MAP_OBJ_FLAG,
   MAP_SPACE_IMPASSABLE,    // MAP_OBJ_SMALL_BUILDING,
@@ -198,36 +289,93 @@ const map_space_t map_space_from_obj[] = {
   MAP_SPACE_OPEN,        // MAP_OBJ_127
 };
 
+map_t::map_t() {
+  tiles = NULL;
+  minimap = NULL;
+  spiral_pos_pattern = NULL;
+}
+
+map_t::~map_t() {
+  if (tiles != NULL) {
+    delete[] tiles;
+    tiles = NULL;
+  }
+
+  if (minimap != NULL) {
+    delete[] minimap;
+    minimap = NULL;
+  }
+
+  if (spiral_pos_pattern != NULL) {
+    delete[] spiral_pos_pattern;
+    spiral_pos_pattern = NULL;
+  }
+}
+
+void
+map_t::init(unsigned int size) {
+  if (tiles != NULL) {
+    delete[] tiles;
+    tiles = NULL;
+  }
+
+  if (minimap != NULL) {
+    delete[] minimap;
+    minimap = NULL;
+  }
+
+  if (spiral_pos_pattern != NULL) {
+    delete[] spiral_pos_pattern;
+    spiral_pos_pattern = NULL;
+  }
+
+  max_lake_area = 14;
+  water_level = 20;
+
+  update_map_last_tick = 0;
+  update_map_counter = 0;
+  update_map_16_loop = 0;
+  update_map_initial_pos = 0;
+
+  this->size = size;
+
+  col_size = 5 + size/2;
+  row_size = 5 + (size - 1)/2;
+  cols = 1 << col_size;
+  rows = 1 << row_size;
+
+  init_dimensions();
+
+  regions = (cols >> 5) * (rows >> 5);
+}
 
 /* Return a random map position.
    Returned as map_pos_t and also as col and row if not NULL. */
-static map_pos_t
-get_rnd_map_coord(int *col, int *row) {
-  int c = game_random_int() & game.map.col_mask;
-  int r = game_random_int() & game.map.row_mask;
+map_pos_t
+map_t::get_rnd_coord(int *col, int *row) {
+  int c = random_int() & col_mask;
+  int r = random_int() & row_mask;
 
   if (col != NULL) *col = c;
   if (row != NULL) *row = r;
-  return MAP_POS(c, r);
+  return pos(c, r);
 }
 
 /* Midpoint displacement map generator. This function initialises the height
    values in the corners of 16x16 squares. */
-static void
-init_map_heights_squares() {
-  map_tile_t *tiles = game.map.tiles;
-
-  for (unsigned int y = 0; y < game.map.rows; y += 16) {
-    for (unsigned int x = 0; x < game.map.cols; x += 16) {
-      int rnd = game_random_int() & 0xff;
-      tiles[MAP_POS(x, y)].height = std::min(rnd, 250);
+void
+map_t::init_heights_squares() {
+  for (unsigned int y = 0; y < rows; y += 16) {
+    for (unsigned int x = 0; x < cols; x += 16) {
+      int rnd = random_int() & 0xff;
+      tiles[pos(x, y)].height = std::min(rnd, 250);
     }
   }
 }
 
-static int
-calc_height_displacement(int avg, int base, int offset) {
-  int r = game_random_int();
+int
+map_t::calc_height_displacement(int avg, int base, int offset) {
+  int r = random_int();
   int h = ((r * base) >> 16) - offset + avg;
 
   return std::max(0, std::min(h, 250));
@@ -237,10 +385,8 @@ calc_height_displacement(int avg, int base, int offset) {
 
 /* Calculate height values of the subdivisions in the
    midpoint displacement algorithm. */
-static void
-init_map_heights_midpoints() {
-  map_tile_t *tiles = game.map.tiles;
-
+void
+map_t::init_heights_midpoints() {
   /* This is the central part of the midpoint displacement algorithm.
      The initial 16x16 squares are subdivided into 8x8 then 4x4 and so on,
      until all positions in the map have a height value.
@@ -254,21 +400,21 @@ init_map_heights_midpoints() {
      spikyness will result in smooth mountains and sharp valleys.
   */
 
-  int rnd = game_random_int();
+  int rnd = random_int();
   int r1 = 0x80 + (rnd & 0x7f);
   int r2 = (r1 * TERRAIN_SPIKYNESS) >> 16;
 
   for (int i = 8; i > 0; i >>= 1) {
-    for (unsigned int y = 0; y < game.map.rows; y += 2*i) {
-      for (unsigned int x = 0; x < game.map.cols; x += 2*i) {
-        map_pos_t pos = MAP_POS(x, y);
-        int h = tiles[pos].height;
+    for (unsigned int y = 0; y < rows; y += 2*i) {
+      for (unsigned int x = 0; x < cols; x += 2*i) {
+        map_pos_t pos_ = pos(x, y);
+        int h = tiles[pos_].height;
 
-        map_pos_t pos_r = MAP_MOVE_RIGHT_N(pos, 2*i);
-        map_pos_t pos_mid_r = MAP_MOVE_RIGHT_N(pos, i);
+        map_pos_t pos_r = move_right_n(pos_, 2*i);
+        map_pos_t pos_mid_r = move_right_n(pos_, i);
         int h_r = tiles[pos_r].height;
 
-        if (game.map_preserve_bugs) {
+        if (preserve_bugs) {
           /* The intention was probably just to set h_r to the map height value,
              but the upper bits of rnd must be preserved in h_r in the first
              iteration to generate the same maps as the original game. */
@@ -277,13 +423,13 @@ init_map_heights_midpoints() {
 
         tiles[pos_mid_r].height = calc_height_displacement((h + h_r)/2, r1, r2);
 
-        map_pos_t pos_d = MAP_MOVE_DOWN_N(pos, 2*i);
-        map_pos_t pos_mid_d = MAP_MOVE_DOWN_N(pos, i);
+        map_pos_t pos_d = move_down_n(pos_, 2*i);
+        map_pos_t pos_mid_d = move_down_n(pos_, i);
         int h_d = tiles[pos_d].height;
         tiles[pos_mid_d].height = calc_height_displacement((h+h_d)/2, r1, r2);
 
-        map_pos_t pos_dr = MAP_MOVE_RIGHT_N(MAP_MOVE_DOWN_N(pos, 2*i), 2*i);
-        map_pos_t pos_mid_dr = MAP_MOVE_RIGHT_N(MAP_MOVE_DOWN_N(pos, i), i);
+        map_pos_t pos_dr = move_right_n(move_down_n(pos_, 2*i), 2*i);
+        map_pos_t pos_mid_dr = move_right_n(move_down_n(pos_, i), i);
         int h_dr = tiles[pos_dr].height;
         tiles[pos_mid_dr].height = calc_height_displacement((h+h_dr)/2, r1, r2);
       }
@@ -294,10 +440,8 @@ init_map_heights_midpoints() {
   }
 }
 
-static void
-init_map_heights_diamond_square() {
-  map_tile_t *tiles = game.map.tiles;
-
+void
+map_t::init_heights_diamond_square() {
   /* This is the central part of the diamond-square algorithm.
      The squares are first subdivided into four new squares and
      the height of the midpoint is calculated by averaging the corners and
@@ -313,58 +457,58 @@ init_map_heights_diamond_square() {
      spikyness will result in smooth mountains and sharp valleys.
   */
 
-  int rnd = game_random_int();
+  int rnd = random_int();
   int r1 = 0x80 + (rnd & 0x7f);
   int r2 = (r1 * TERRAIN_SPIKYNESS) >> 16;
 
   for (int i = 8; i > 0; i >>= 1) {
     /* Diamond step */
-    for (unsigned int y = 0; y < game.map.rows; y += 2*i) {
-      for (unsigned int x = 0; x < game.map.cols; x += 2*i) {
-        map_pos_t pos = MAP_POS(x, y);
-        int h = tiles[pos].height;
+    for (unsigned int y = 0; y < rows; y += 2*i) {
+      for (unsigned int x = 0; x < cols; x += 2*i) {
+        map_pos_t pos_ = pos(x, y);
+        int h = tiles[pos_].height;
 
-        map_pos_t pos_r = MAP_MOVE_RIGHT_N(pos, 2*i);
+        map_pos_t pos_r = move_right_n(pos_, 2*i);
         int h_r = tiles[pos_r].height;
 
-        map_pos_t pos_d = MAP_MOVE_DOWN_N(pos, 2*i);
+        map_pos_t pos_d = move_down_n(pos_, 2*i);
         int h_d = tiles[pos_d].height;
 
-        map_pos_t pos_dr = MAP_MOVE_RIGHT_N(MAP_MOVE_DOWN_N(pos, 2*i), 2*i);
+        map_pos_t pos_dr = move_right_n(move_down_n(pos_, 2*i), 2*i);
         int h_dr = tiles[pos_dr].height;
 
-        map_pos_t pos_mid_dr = MAP_MOVE_RIGHT_N(MAP_MOVE_DOWN_N(pos, i), i);
+        map_pos_t pos_mid_dr = move_right_n(move_down_n(pos_, i), i);
         int avg = (h + h_r + h_d + h_dr) / 4;
         tiles[pos_mid_dr].height = calc_height_displacement(avg, r1, r2);
       }
     }
 
     /* Square step */
-    for (unsigned int y = 0; y < game.map.rows; y += 2*i) {
-      for (unsigned int x = 0; x < game.map.cols; x += 2*i) {
-        map_pos_t pos = MAP_POS(x, y);
-        int h = tiles[pos].height;
+    for (unsigned int y = 0; y < rows; y += 2*i) {
+      for (unsigned int x = 0; x < cols; x += 2*i) {
+        map_pos_t pos_ = pos(x, y);
+        int h = tiles[pos_].height;
 
-        map_pos_t pos_r = MAP_MOVE_RIGHT_N(pos, 2*i);
+        map_pos_t pos_r = move_right_n(pos_, 2*i);
         int h_r = tiles[pos_r].height;
 
-        map_pos_t pos_d = MAP_MOVE_DOWN_N(pos, 2*i);
+        map_pos_t pos_d = move_down_n(pos_, 2*i);
         int h_d = tiles[pos_d].height;
 
-        map_pos_t pos_ur = MAP_MOVE_RIGHT_N(MAP_MOVE_DOWN_N(pos, -i), i);
+        map_pos_t pos_ur = move_right_n(move_down_n(pos_, -i), i);
         int h_ur = tiles[pos_ur].height;
 
-        map_pos_t pos_dr = MAP_MOVE_RIGHT_N(MAP_MOVE_DOWN_N(pos, i), i);
+        map_pos_t pos_dr = move_right_n(move_down_n(pos_, i), i);
         int h_dr = tiles[pos_dr].height;
 
-        map_pos_t pos_dl = MAP_MOVE_RIGHT_N(MAP_MOVE_DOWN_N(pos, i), -i);
+        map_pos_t pos_dl = move_right_n(move_down_n(pos_, i), -i);
         int h_dl = tiles[pos_dl].height;
 
-        map_pos_t pos_mid_r = MAP_MOVE_RIGHT_N(pos, i);
+        map_pos_t pos_mid_r = move_right_n(pos_, i);
         int avg_r = (h + h_r + h_ur + h_dr) / 4;
         tiles[pos_mid_r].height = calc_height_displacement(avg_r, r1, r2);
 
-        map_pos_t pos_mid_d = MAP_MOVE_DOWN_N(pos, i);
+        map_pos_t pos_mid_d = move_down_n(pos_, i);
         int avg_d = (h + h_d + h_dl + h_dr) / 4;
         tiles[pos_mid_d].height = calc_height_displacement(avg_d, r1, r2);
       }
@@ -375,51 +519,49 @@ init_map_heights_diamond_square() {
   }
 }
 
-static int
-adjust_map_height(int h1, int h2, map_tile_t *tile) {
+bool
+map_t::adjust_map_height(int h1, int h2, map_pos_t pos) {
   if (abs(h1 - h2) > 32) {
-    tile->height = h1 + ((h1 < h2) ? 32 : -32);
-    return 1;
+    tiles[pos].height = h1 + ((h1 < h2) ? 32 : -32);
+    return true;
   }
 
-  return 0;
+  return false;
 }
 
 /* Ensure that map heights of adjacent fields are not too far apart. */
-static void
-clamp_map_heights() {
-  map_tile_t *tiles = game.map.tiles;
-
-  int changed = 1;
+void
+map_t::clamp_heights() {
+  bool changed = true;
   while (changed) {
-    changed = 0;
-    for (unsigned int y = 0; y < game.map.rows; y++) {
-      for (unsigned int x = 0; x < game.map.cols; x++) {
-        map_pos_t pos = MAP_POS(x, y);
-        int h = tiles[pos].height;
+    changed = false;
+    for (unsigned int y = 0; y < rows; y++) {
+      for (unsigned int x = 0; x < cols; x++) {
+        map_pos_t pos_ = pos(x, y);
+        int h = tiles[pos_].height;
 
-        map_pos_t pos_d = MAP_MOVE_DOWN(pos);
+        map_pos_t pos_d = move_down(pos_);
         int h_d = tiles[pos_d].height;
-        changed |= adjust_map_height(h, h_d, &tiles[pos_d]);
+        changed |= adjust_map_height(h, h_d, pos_d);
 
-        map_pos_t pos_dr = MAP_MOVE_DOWN_RIGHT(pos);
+        map_pos_t pos_dr = move_down_right(pos_);
         int h_dr = tiles[pos_dr].height;
-        changed |= adjust_map_height(h, h_dr, &tiles[pos_dr]);
+        changed |= adjust_map_height(h, h_dr, pos_dr);
 
-        map_pos_t pos_r = MAP_MOVE_RIGHT(pos);
+        map_pos_t pos_r = move_right(pos_);
         int h_r = tiles[pos_r].height;
-        changed |= adjust_map_height(h, h_r, &tiles[pos_r]);
+        changed |= adjust_map_height(h, h_r, pos_r);
       }
     }
   }
 }
 
-static int
-map_expand_level_area(map_tile_t *tiles, map_pos_t pos, int limit, int r) {
+int
+map_t::expand_level_area(map_pos_t pos_, int limit, int r) {
   int flag = 0;
 
   for (int d = DIR_RIGHT; d <= DIR_UP; d++) {
-    map_pos_t new_pos = MAP_MOVE(pos, d);
+    map_pos_t new_pos = move(pos_, (dir_t)d);
     if (tiles[new_pos].height < 254) {
       if (tiles[new_pos].height > limit) return r;
     } else if (tiles[new_pos].height == 255) {
@@ -428,10 +570,10 @@ map_expand_level_area(map_tile_t *tiles, map_pos_t pos, int limit, int r) {
   }
 
   if (flag) {
-    tiles[pos].height = 255;
+    tiles[pos_].height = 255;
 
     for (int d = DIR_RIGHT; d <= DIR_UP; d++) {
-      map_pos_t new_pos = MAP_MOVE(pos, d);
+      map_pos_t new_pos = move(pos_, (dir_t)d);
       if (tiles[new_pos].height != 255) tiles[new_pos].height = 254;
     }
 
@@ -441,33 +583,33 @@ map_expand_level_area(map_tile_t *tiles, map_pos_t pos, int limit, int r) {
   return r;
 }
 
-static void
-map_init_level_area(map_tile_t *tiles, map_pos_t pos) {
-  int limit = game.map_water_level;
+void
+map_t::init_level_area(map_pos_t pos) {
+  int limit = water_level;
 
-  if (limit >= tiles[MAP_MOVE_RIGHT(pos)].height &&
-      limit >= tiles[MAP_MOVE_DOWN_RIGHT(pos)].height &&
-      limit >= tiles[MAP_MOVE_DOWN(pos)].height &&
-      limit >= tiles[MAP_MOVE_LEFT(pos)].height &&
-      limit >= tiles[MAP_MOVE_UP_LEFT(pos)].height &&
-      limit >= tiles[MAP_MOVE_UP(pos)].height) {
+  if (limit >= tiles[move_right(pos)].height &&
+      limit >= tiles[move_down_right(pos)].height &&
+      limit >= tiles[move_down(pos)].height &&
+      limit >= tiles[move_left(pos)].height &&
+      limit >= tiles[move_up_left(pos)].height &&
+      limit >= tiles[move_up(pos)].height) {
     tiles[pos].height = 255;
-    tiles[MAP_MOVE_RIGHT(pos)].height = 254;
-    tiles[MAP_MOVE_DOWN_RIGHT(pos)].height = 254;
-    tiles[MAP_MOVE_DOWN(pos)].height = 254;
-    tiles[MAP_MOVE_LEFT(pos)].height = 254;
-    tiles[MAP_MOVE_UP_LEFT(pos)].height = 254;
-    tiles[MAP_MOVE_UP(pos)].height = 254;
+    tiles[move_right(pos)].height = 254;
+    tiles[move_down_right(pos)].height = 254;
+    tiles[move_down(pos)].height = 254;
+    tiles[move_left(pos)].height = 254;
+    tiles[move_up_left(pos)].height = 254;
+    tiles[move_up(pos)].height = 254;
 
-    for (int i = 0; i < game.map_max_lake_area; i++) {
+    for (int i = 0; i < max_lake_area; i++) {
       int flag = 0;
 
-      map_pos_t new_pos = MAP_MOVE_RIGHT_N(pos, i+1);
+      map_pos_t new_pos = move_right_n(pos, i+1);
       for (int k = 0; k < 6; k++) {
         dir_t d = (dir_t)((k + DIR_DOWN) % 6);
         for (int j = 0; j <= i; j++) {
-          flag = map_expand_level_area(tiles, new_pos, limit, flag);
-          new_pos = MAP_MOVE(new_pos, d);
+          flag = expand_level_area(new_pos, limit, flag);
+          new_pos = move(new_pos, d);
         }
       }
 
@@ -476,13 +618,13 @@ map_init_level_area(map_tile_t *tiles, map_pos_t pos) {
 
     if (tiles[pos].height > 253) tiles[pos].height -= 2;
 
-    for (int i = 0; i < game.map_max_lake_area + 1; i++) {
-      map_pos_t new_pos = MAP_MOVE_RIGHT_N(pos, i+1);
+    for (int i = 0; i < max_lake_area + 1; i++) {
+      map_pos_t new_pos = move_right_n(pos, i+1);
       for (int k = 0; k < 6; k++) {
         dir_t d = (dir_t)((k + DIR_DOWN) % 6);
         for (int j = 0; j <= i; j++) {
           if (tiles[new_pos].height > 253) tiles[new_pos].height -= 2;
-          new_pos = MAP_MOVE(new_pos, d);
+          new_pos = move(new_pos, d);
         }
       }
     }
@@ -494,18 +636,16 @@ map_init_level_area(map_tile_t *tiles, map_pos_t pos) {
 /* Create level land that will later be filled with water.
    It is created in areas that are below a certain threshold.
    The areas are also limited in size. */
-static void
-map_init_sea_level() {
-  map_tile_t *tiles = game.map.tiles;
+void
+map_t::init_sea_level() {
+  if (water_level < 0) return;
 
-  if (game.map_water_level < 0) return;
-
-  for (int h = 0; h <= game.map_water_level; h++) {
-    for (unsigned int y = 0; y < game.map.rows; y++) {
-      for (unsigned int x = 0; x < game.map.cols; x++) {
-        map_pos_t pos = MAP_POS(x, y);
-        if (tiles[pos].height == h) {
-          map_init_level_area(tiles, pos);
+  for (int h = 0; h <= water_level; h++) {
+    for (unsigned int y = 0; y < rows; y++) {
+      for (unsigned int x = 0; x < cols; x++) {
+        map_pos_t pos_ = pos(x, y);
+        if (tiles[pos_].height == h) {
+          init_level_area(pos_);
         }
       }
     }
@@ -516,20 +656,20 @@ map_init_sea_level() {
      252: Land at water level.
      253: Water. */
 
-  for (unsigned int y = 0; y < game.map.rows; y++) {
-    for (unsigned int x = 0; x < game.map.cols; x++) {
-      map_pos_t pos = MAP_POS(x, y);
-      int h = tiles[pos].height;
+  for (unsigned int y = 0; y < rows; y++) {
+    for (unsigned int x = 0; x < cols; x++) {
+      map_pos_t pos_ = pos(x, y);
+      int h = tiles[pos_].height;
       switch (h) {
         case 0:
-          tiles[pos].height = game.map_water_level + 1;
+          tiles[pos_].height = water_level + 1;
           break;
         case 252:
-          tiles[pos].height = (uint8_t)game.map_water_level;
+          tiles[pos_].height = (uint8_t)water_level;
           break;
         case 253:
-          tiles[pos].height = game.map_water_level - 1;
-          tiles[pos].resource = game_random_int() & 7; /* Fish */
+          tiles[pos_].height = water_level - 1;
+          tiles[pos_].resource = random_int() & 7; /* Fish */
           break;
       }
     }
@@ -537,14 +677,13 @@ map_init_sea_level() {
 }
 
 /* Adjust heights so zero height is sea level. */
-static void
-map_heights_rebase() {
-  map_tile_t *tiles = game.map.tiles;
-  int h = game.map_water_level - 1;
+void
+map_t::heights_rebase() {
+  int h = water_level - 1;
 
-  for (unsigned int y = 0; y < game.map.rows; y++) {
-    for (unsigned int x = 0; x < game.map.cols; x++) {
-      tiles[MAP_POS(x, y)].height -= h;
+  for (unsigned int y = 0; y < rows; y++) {
+    for (unsigned int x = 0; x < cols; x++) {
+      tiles[pos(x, y)].height -= h;
     }
   }
 }
@@ -562,71 +701,65 @@ calc_map_type(int h_sum) {
 }
 
 /* Set type of map fields based on the height value. */
-static void
-init_map_types() {
-  map_tile_t *tiles = game.map.tiles;
-
-  for (unsigned int y = 0; y < game.map.rows; y++) {
-    for (unsigned int x = 0; x < game.map.cols; x++) {
-      map_pos_t pos = MAP_POS(x, y);
-      int h1 = tiles[pos].height;
-      int h2 = tiles[MAP_MOVE_RIGHT(pos)].height;
-      int h3 = tiles[MAP_MOVE_DOWN_RIGHT(pos)].height;
-      int h4 = tiles[MAP_MOVE_DOWN(pos)].height;
-      tiles[pos].type = (calc_map_type(h1 + h3 + h4) << 4) |
-                        calc_map_type(h1 + h2 + h3);
+void
+map_t::init_types() {
+  for (unsigned int y = 0; y < rows; y++) {
+    for (unsigned int x = 0; x < cols; x++) {
+      map_pos_t pos_ = pos(x, y);
+      int h1 = tiles[pos_].height;
+      int h2 = tiles[move_right(pos_)].height;
+      int h3 = tiles[move_down_right(pos_)].height;
+      int h4 = tiles[move_down(pos_)].height;
+      tiles[pos_].type = (calc_map_type(h1 + h3 + h4) << 4) |
+                          calc_map_type(h1 + h2 + h3);
     }
   }
 }
 
-static void
-init_map_types_2_sub() {
-  map_tile_t *tiles = game.map.tiles;
-
-  for (unsigned int y = 0; y < game.map.rows; y++) {
-    for (unsigned int x = 0; x < game.map.cols; x++) {
-      tiles[MAP_POS(x, y)].obj = 0;
+void
+map_t::init_types_2_sub() {
+  for (unsigned int y = 0; y < rows; y++) {
+    for (unsigned int x = 0; x < cols; x++) {
+      tiles[pos(x, y)].obj = 0;
     }
   }
 }
 
-static void
-init_map_types_2() {
-  init_map_types_2_sub();
+void
+map_t::init_types_2() {
+  init_types_2_sub();
 
-  map_tile_t *tiles = game.map.tiles;
+  for (unsigned int y = 0; y < rows; y++) {
+    for (unsigned int x = 0; x < cols; x++) {
+      map_pos_t pos_ = pos(x, y);
 
-  for (unsigned int y = 0; y < game.map.rows; y++) {
-    for (unsigned int x = 0; x < game.map.cols; x++) {
-      map_pos_t pos = MAP_POS(x, y);
+      if (tiles[pos_].height > 0) {
+        tiles[pos_].obj = 1;
 
-      if (tiles[pos].height > 0) {
-        tiles[pos].obj = 1;
-
-        int num = 0;
+        unsigned int num = 0;
         int changed = 1;
         while (changed) {
           changed = 0;
-          for (unsigned int y = 0; y < game.map.rows; y++) {
-            for (unsigned int x = 0; x < game.map.cols; x++) {
-              map_pos_t pos = MAP_POS(x, y);
+          for (unsigned int y = 0; y < rows; y++) {
+            for (unsigned int x = 0; x < cols; x++) {
+              map_pos_t pos_ = pos(x, y);
 
-              if (tiles[pos].obj == 1) {
+              if (tiles[pos_].obj == 1) {
                 num += 1;
-                tiles[pos].obj = 2;
+                tiles[pos_].obj = 2;
 
                 int flags = 0;
-                if (tiles[pos].type & 0xc) flags |= 3;
-                if (tiles[pos].type & 0xc0) flags |= 6;
-                if (tiles[MAP_MOVE_LEFT(pos)].type & 0xc) flags |= 0xc;
-                if (tiles[MAP_MOVE_UP_LEFT(pos)].type & 0xc0) flags |= 0x18;
-                if (tiles[MAP_MOVE_UP_LEFT(pos)].type & 0xc) flags |= 0x30;
-                if (tiles[MAP_MOVE_UP(pos)].type & 0xc0) flags |= 0x21;
+                if (tiles[pos_].type & 0xc) flags |= 3;
+                if (tiles[pos_].type & 0xc0) flags |= 6;
+                if (tiles[move_left(pos_)].type & 0xc) flags |= 0xc;
+                if (tiles[move_up_left(pos_)].type & 0xc0) flags |= 0x18;
+                if (tiles[move_up_left(pos_)].type & 0xc) flags |= 0x30;
+                if (tiles[move_up(pos_)].type & 0xc0) flags |= 0x21;
 
                 for (int d = DIR_RIGHT; d <= DIR_UP; d++) {
                   if (BIT_TEST(flags, d)) {
-                    if (tiles[MAP_MOVE(pos, d)].obj == 0) {
-                      tiles[MAP_MOVE(pos, d)].obj = 1;
+                    if (tiles[move(pos_, (dir_t)d)].obj == 0) {
+                      tiles[move(pos_, (dir_t)d)].obj = 1;
                       changed = 1;
                     }
                   }
@@ -636,160 +769,152 @@ init_map_types_2() {
           }
         }
 
-        if (4*num >= static_cast<int>(game.map.tile_count)) goto break_loop;
+        if (4*num >= tile_count) goto break_loop;
       }
     }
   }
 
   break_loop:
 
-  for (unsigned int y = 0; y < game.map.rows; y++) {
-    for (unsigned int x = 0; x < game.map.cols; x++) {
-      map_pos_t pos = MAP_POS(x, y);
+  for (unsigned int y = 0; y < rows; y++) {
+    for (unsigned int x = 0; x < cols; x++) {
+      map_pos_t pos_ = pos(x, y);
 
-      if (tiles[pos].height > 0 && tiles[pos].obj == 0) {
-        tiles[pos].height = 0;
-        tiles[pos].type = 0;
+      if (tiles[pos_].height > 0 && tiles[pos_].obj == 0) {
+        tiles[pos_].height = 0;
+        tiles[pos_].type = 0;
 
-        tiles[MAP_MOVE_LEFT(pos)].type &= 0xf0;
-        tiles[MAP_MOVE_UP_LEFT(pos)].type = 0;
-        tiles[MAP_MOVE_UP(pos)].type &= 0xf;
+        tiles[move_left(pos_)].type &= 0xf0;
+        tiles[move_up_left(pos_)].type = 0;
+        tiles[move_up(pos_)].type &= 0xf;
       }
     }
   }
 
-  init_map_types_2_sub();
+  init_types_2_sub();
 }
 
 /* Rescale height values to be in [0;31]. */
-static void
-map_heights_rescale() {
-  map_tile_t *tiles = game.map.tiles;
-
-  for (unsigned int y = 0; y < game.map.rows; y++) {
-    for (unsigned int x = 0; x < game.map.cols; x++) {
-      map_pos_t pos = MAP_POS(x, y);
-      tiles[pos].height = (tiles[pos].height + 6) >> 3;
+void
+map_t::heights_rescale() {
+  for (unsigned int y = 0; y < rows; y++) {
+    for (unsigned int x = 0; x < cols; x++) {
+      map_pos_t pos_ = pos(x, y);
+      tiles[pos_].height = (tiles[pos_].height + 6) >> 3;
     }
   }
 }
 
-static void
-init_map_types_shared_sub(int old, int seed, int new_) {
-  map_tile_t *tiles = game.map.tiles;
+void
+map_t::init_types_shared_sub(int old, int seed, int new_) {
+  for (unsigned int y = 0; y < rows; y++) {
+    for (unsigned int x = 0; x < cols; x++) {
+      map_pos_t pos_ = pos(x, y);
 
-  for (unsigned int y = 0; y < game.map.rows; y++) {
-    for (unsigned int x = 0; x < game.map.cols; x++) {
-      map_pos_t pos = MAP_POS(x, y);
-
-      if (MAP_TYPE_UP(pos) == old &&
-          (seed == MAP_TYPE_DOWN(MAP_MOVE_UP_LEFT(pos)) ||
-           seed == MAP_TYPE_UP(MAP_MOVE_UP_LEFT(pos)) ||
-           seed == MAP_TYPE_UP(MAP_MOVE_UP(pos)) ||
-           seed == MAP_TYPE_DOWN(MAP_MOVE_LEFT(pos)) ||
-           seed == MAP_TYPE_UP(MAP_MOVE_LEFT(pos)) ||
-           seed == MAP_TYPE_DOWN(pos) ||
-           seed == MAP_TYPE_UP(MAP_MOVE_RIGHT(pos)) ||
-           seed == MAP_TYPE_DOWN(MAP_MOVE_DOWN_LEFT(pos)) ||
-           seed == MAP_TYPE_DOWN(MAP_MOVE_DOWN(pos)) ||
-           seed == MAP_TYPE_UP(MAP_MOVE_DOWN(pos)) ||
-           seed == MAP_TYPE_DOWN(MAP_MOVE_DOWN_RIGHT(pos)) ||
-           seed == MAP_TYPE_UP(MAP_MOVE_DOWN_RIGHT(pos)))) {
-        tiles[pos].type = (new_ << 4) | (tiles[pos].type & 0xf);
+      if (type_up(pos_) == old &&
+          (seed == type_down(move_up_left(pos_)) ||
+           seed == type_up(move_up_left(pos_)) ||
+           seed == type_up(move_up(pos_)) ||
+           seed == type_down(move_left(pos_)) ||
+           seed == type_up(move_left(pos_)) ||
+           seed == type_down(pos_) ||
+           seed == type_up(move_right(pos_)) ||
+           seed == type_down(move_down_left(pos_)) ||
+           seed == type_down(move_down(pos_)) ||
+           seed == type_up(move_down(pos_)) ||
+           seed == type_down(move_down_right(pos_)) ||
+           seed == type_up(move_down_right(pos_)))) {
+        tiles[pos_].type = (new_ << 4) | (tiles[pos_].type & 0xf);
       }
 
-      if (MAP_TYPE_DOWN(pos) == old &&
-          (seed == MAP_TYPE_DOWN(MAP_MOVE_UP_LEFT(pos)) ||
-           seed == MAP_TYPE_UP(MAP_MOVE_UP_LEFT(pos)) ||
-           seed == MAP_TYPE_DOWN(MAP_MOVE_UP(pos)) ||
-           seed == MAP_TYPE_UP(MAP_MOVE_UP(pos)) ||
-           seed == MAP_TYPE_UP(MAP_MOVE_UP_RIGHT(pos)) ||
-           seed == MAP_TYPE_DOWN(MAP_MOVE_LEFT(pos)) ||
-           seed == MAP_TYPE_UP(pos) ||
-           seed == MAP_TYPE_DOWN(MAP_MOVE_RIGHT(pos)) ||
-           seed == MAP_TYPE_UP(MAP_MOVE_RIGHT(pos)) ||
-           seed == MAP_TYPE_DOWN(MAP_MOVE_DOWN(pos)) ||
-           seed == MAP_TYPE_DOWN(MAP_MOVE_DOWN_RIGHT(pos)) ||
-           seed == MAP_TYPE_UP(MAP_MOVE_DOWN_RIGHT(pos)))) {
-        tiles[pos].type = (tiles[pos].type & 0xf0) | new_;
+      if (type_down(pos_) == old &&
+          (seed == type_down(move_up_left(pos_)) ||
+           seed == type_up(move_up_left(pos_)) ||
+           seed == type_down(move_up(pos_)) ||
+           seed == type_up(move_up(pos_)) ||
+           seed == type_up(move_up_right(pos_)) ||
+           seed == type_down(move_left(pos_)) ||
+           seed == type_up(pos_) ||
+           seed == type_down(move_right(pos_)) ||
+           seed == type_up(move_right(pos_)) ||
+           seed == type_down(move_down(pos_)) ||
+           seed == type_down(move_down_right(pos_)) ||
+           seed == type_up(move_down_right(pos_)))) {
+        tiles[pos_].type = (tiles[pos_].type & 0xf0) | new_;
       }
     }
   }
 }
 
-static void
-init_map_lakes() {
-  init_map_types_shared_sub(0, 5, 3);
-  init_map_types_shared_sub(0, 3, 2);
-  init_map_types_shared_sub(0, 2, 1);
+void
+map_t::init_lakes() {
+  init_types_shared_sub(0, 5, 3);
+  init_types_shared_sub(0, 3, 2);
+  init_types_shared_sub(0, 2, 1);
 }
 
-static void
-init_map_types4() {
-  init_map_types_shared_sub(5, 3, 4);
+void
+map_t::init_types4() {
+  init_types_shared_sub(5, 3, 4);
 }
 
 /* Use spiral pattern to lookup a new position based on col, row. */
-static map_pos_t
-lookup_pattern(int col, int row, int index) {
-  return MAP_POS_ADD(MAP_POS(col, row),
-         game.spiral_pos_pattern[index]);
+map_pos_t
+map_t::lookup_pattern(int col, int row, int index) {
+  return pos_add(pos(col, row), spiral_pos_pattern[index]);
 }
 
-
-static int
-init_map_desert_sub1(map_pos_t pos) {
-  int type_d = MAP_TYPE_DOWN(pos);
-  int type_u = MAP_TYPE_UP(pos);
+int
+map_t::init_desert_sub1(map_pos_t pos_) {
+  int type_d = type_down(pos_);
+  int type_u = type_up(pos_);
 
   if (type_d != 5 && type_d != 10) return -1;
   if (type_u != 5 && type_u != 10) return -1;
 
-  type_d = MAP_TYPE_DOWN(MAP_MOVE_LEFT(pos));
+  type_d = type_down(move_left(pos_));
   if (type_d != 5 && type_d != 10) return -1;
 
-  type_d = MAP_TYPE_DOWN(MAP_MOVE_DOWN(pos));
+  type_d = type_down(move_down(pos_));
   if (type_d != 5 && type_d != 0xa) return -1;
 
   return 0;
 }
 
-static int
-init_map_desert_sub2(map_pos_t pos) {
-  int type_d = MAP_TYPE_DOWN(pos);
-  int type_u = MAP_TYPE_UP(pos);
+int
+map_t::init_desert_sub2(map_pos_t pos_) {
+  int type_d = type_down(pos_);
+  int type_u = type_up(pos_);
 
   if (type_d != 5 && type_d != 10) return -1;
   if (type_u != 5 && type_u != 10) return -1;
 
-  type_u = MAP_TYPE_UP(MAP_MOVE_RIGHT(pos));
+  type_u = type_up(move_right(pos_));
   if (type_u != 5 && type_u != 10) return -1;
 
-  type_u = MAP_TYPE_UP(MAP_MOVE_UP(pos));
+  type_u = type_up(move_up(pos_));
   if (type_u != 5 && type_u != 10) return -1;
 
   return 0;
 }
 
 /* Create deserts on the map. */
-static void
-init_map_desert() {
-  map_tile_t *tiles = game.map.tiles;
-
-  for (int i = 0; i < game.map_regions; i++) {
+void
+map_t::init_desert() {
+  for (int i = 0; i < regions; i++) {
     for (int try_ = 0; try_ < 200; try_++) {
       int col, row;
-      map_pos_t rnd_pos = get_rnd_map_coord(&col, &row);
+      map_pos_t rnd_pos = get_rnd_coord(&col, &row);
 
-      if (MAP_TYPE_UP(rnd_pos) == 5 &&
-          MAP_TYPE_DOWN(rnd_pos) == 5) {
+      if (type_up(rnd_pos) == 5 &&
+          type_down(rnd_pos) == 5) {
         for (int index = 255; index >= 0; index--) {
           map_pos_t pos = lookup_pattern(col, row, index);
 
-          int r = init_map_desert_sub1(pos);
+          int r = init_desert_sub1(pos);
           if (r == 0) tiles[pos].type = (10 << 4) | (tiles[pos].type & 0xf);
 
-          r = init_map_desert_sub2(pos);
+          r = init_desert_sub2(pos);
           if (r == 0) tiles[pos].type = (tiles[pos].type & 0xf0) | 10;
         }
         break;
@@ -798,54 +923,50 @@ init_map_desert() {
   }
 }
 
-static void
-init_map_desert_2_sub() {
-  map_tile_t *tiles = game.map.tiles;
-
-  for (unsigned int y = 0; y < game.map.rows; y++) {
-    for (unsigned int x = 0; x < game.map.cols; x++) {
-      map_pos_t pos = MAP_POS(x, y);
-      int type_d = MAP_TYPE_DOWN(pos);
-      int type_u = MAP_TYPE_UP(pos);
+void
+map_t::init_desert_2_sub() {
+  for (unsigned int y = 0; y < rows; y++) {
+    for (unsigned int x = 0; x < cols; x++) {
+      map_pos_t pos_ = pos(x, y);
+      int type_d = type_down(pos_);
+      int type_u = type_up(pos_);
 
       if (type_d >= 7 && type_d < 10) type_d = 5;
       if (type_u >= 7 && type_u < 10) type_u = 5;
 
-      tiles[pos].type = (type_u << 4) | type_d;
+      tiles[pos_].type = (type_u << 4) | type_d;
     }
   }
 }
 
-static void
-init_map_desert_2() {
-  init_map_types_shared_sub(10, 5, 7);
-  init_map_types_shared_sub(10, 7, 8);
-  init_map_types_shared_sub(10, 8, 9);
+void
+map_t::init_desert_2() {
+  init_types_shared_sub(10, 5, 7);
+  init_types_shared_sub(10, 7, 8);
+  init_types_shared_sub(10, 8, 9);
 
-  init_map_desert_2_sub();
+  init_desert_2_sub();
 
-  init_map_types_shared_sub(5, 10, 9);
-  init_map_types_shared_sub(5, 9, 8);
-  init_map_types_shared_sub(5, 8, 7);
+  init_types_shared_sub(5, 10, 9);
+  init_types_shared_sub(5, 9, 8);
+  init_types_shared_sub(5, 8, 7);
 }
 
 /* Put crosses on top of mountains. */
-static void
-init_map_crosses() {
-  map_tile_t *tiles = game.map.tiles;
-
-  for (unsigned int y = 0; y < game.map.rows; y++) {
-    for (unsigned int x = 0; x < game.map.cols; x++) {
-      map_pos_t pos = MAP_POS(x, y);
-      unsigned int h = MAP_HEIGHT(pos);
+void
+map_t::init_crosses() {
+  for (unsigned int y = 0; y < rows; y++) {
+    for (unsigned int x = 0; x < cols; x++) {
+      map_pos_t pos_ = pos(x, y);
+      unsigned int h = get_height(pos_);
       if (h >= 26 &&
-          h >= MAP_HEIGHT(MAP_MOVE_RIGHT(pos)) &&
-          h >= MAP_HEIGHT(MAP_MOVE_DOWN_RIGHT(pos)) &&
-          h >= MAP_HEIGHT(MAP_MOVE_DOWN(pos)) &&
-          h > MAP_HEIGHT(MAP_MOVE_LEFT(pos)) &&
-          h > MAP_HEIGHT(MAP_MOVE_UP_LEFT(pos)) &&
-          h > MAP_HEIGHT(MAP_MOVE_UP(pos))) {
-        tiles[pos].obj = MAP_OBJ_CROSS;
+          h >= get_height(move_right(pos_)) &&
+          h >= get_height(move_down_right(pos_)) &&
+          h >= get_height(move_down(pos_)) &&
+          h > get_height(move_left(pos_)) &&
+          h > get_height(move_up_left(pos_)) &&
+          h > get_height(move_up(pos_))) {
+        tiles[pos_].obj = MAP_OBJ_CROSS;
       }
     }
   }
@@ -854,28 +975,28 @@ init_map_crosses() {
 /* Check whether the hexagon at pos has triangles of types
    between min and max. Return -1 if not all triangles are
    in this range. */
-static int
-init_map_objects_shared_sub1(map_pos_t pos, int min, int max) {
-  int type_d = MAP_TYPE_DOWN(pos);
-  int type_u = MAP_TYPE_UP(pos);
+int
+map_t::init_objects_shared_sub1(map_pos_t pos_, int min, int max) {
+  int type_d = type_down(pos_);
+  int type_u = type_up(pos_);
 
   if (type_d < min || type_d >= max) return -1;
   if (type_u < min || type_u >= max) return -1;
 
-  type_d = MAP_TYPE_DOWN(MAP_MOVE_LEFT(pos));
+  type_d = type_down(move_left(pos_));
   if (type_d < min || type_d >= max) return -1;
 
-  type_d = MAP_TYPE_DOWN(MAP_MOVE_UP_LEFT(pos));
-  type_u = MAP_TYPE_UP(MAP_MOVE_UP_LEFT(pos));
+  type_d = type_down(move_up_left(pos_));
+  type_u = type_up(move_up_left(pos_));
   if (type_d < min || type_d >= max) return -1;
   if (type_u < min || type_u >= max) return -1;
 
   /* Should be checkeing the up tri type. */
-  if (game.map_preserve_bugs) {
-    type_d = MAP_TYPE_DOWN(MAP_MOVE_UP(pos));
+  if (preserve_bugs) {
+    type_d = type_down(move_up(pos_));
     if (type_d < min || type_d >= max) return -1;
   } else {
-    type_u = MAP_TYPE_UP(MAP_MOVE_UP(pos));
+    type_u = type_up(move_up(pos_));
     if (type_u < min || type_u >= max) return -1;
   }
 
@@ -883,28 +1004,26 @@ init_map_objects_shared_sub1(map_pos_t pos, int min, int max) {
 }
 
 /* Get a random position in the spiral pattern based at col, row. */
-static map_pos_t
-lookup_rnd_pattern(int col, int row, int mask) {
-  return lookup_pattern(col, row, game_random_int() & mask);
+map_pos_t
+map_t::lookup_rnd_pattern(int col, int row, int mask) {
+  return lookup_pattern(col, row, random_int() & mask);
 }
 
-static void
-init_map_objects_shared(int num_clusters, int objs_in_cluster, int pos_mask,
-                        int type_min, int type_max, int obj_base,
-                        int obj_mask) {
-  map_tile_t *tiles = game.map.tiles;
-
+void
+map_t::init_objects_shared(int num_clusters, int objs_in_cluster, int pos_mask,
+                           int type_min, int type_max, int obj_base,
+                           int obj_mask) {
   for (int i = 0; i < num_clusters; i++) {
     for (int try_ = 0; try_ < 100; try_++) {
       int col, row;
-      map_pos_t rnd_pos = get_rnd_map_coord(&col, &row);
-      int r = init_map_objects_shared_sub1(rnd_pos, type_min, type_max);
+      map_pos_t rnd_pos = get_rnd_coord(&col, &row);
+      int r = init_objects_shared_sub1(rnd_pos, type_min, type_max);
       if (r == 0) {
         for (int j = 0; j < objs_in_cluster; j++) {
-          map_pos_t pos = lookup_rnd_pattern(col, row, pos_mask);
-          int r = init_map_objects_shared_sub1(pos, type_min, type_max);
-          if (r == 0 && MAP_OBJ(pos) == MAP_OBJ_NONE) {
-            tiles[pos].obj = (game_random_int() & obj_mask) + obj_base;
+          map_pos_t pos_ = lookup_rnd_pattern(col, row, pos_mask);
+          int r = init_objects_shared_sub1(pos_, type_min, type_max);
+          if (r == 0 && get_obj(pos_) == MAP_OBJ_NONE) {
+            tiles[pos_].obj = (random_int() & obj_mask) + obj_base;
           }
         }
         break;
@@ -913,103 +1032,88 @@ init_map_objects_shared(int num_clusters, int objs_in_cluster, int pos_mask,
   }
 }
 
-static void
-init_map_trees_1() {
+void
+map_t::init_trees_1() {
   /* Add either tree or pine. */
-  init_map_objects_shared(game.map_regions << 3, 10, 0xff, 5, 7,
-                          MAP_OBJ_TREE_0, 0xf);
+  init_objects_shared(regions << 3, 10, 0xff, 5, 7, MAP_OBJ_TREE_0, 0xf);
 }
 
-static void
-init_map_trees_2() {
+void
+map_t::init_trees_2() {
   /* Add only trees. */
-  init_map_objects_shared(game.map_regions, 45, 0x3f, 5, 7,
-                          MAP_OBJ_TREE_0, 0x7);
+  init_objects_shared(regions, 45, 0x3f, 5, 7, MAP_OBJ_TREE_0, 0x7);
 }
 
-static void
-init_map_trees_3() {
+void
+map_t::init_trees_3() {
   /* Add only pines. */
-  init_map_objects_shared(game.map_regions, 30, 0x3f, 4, 7,
-                          MAP_OBJ_PINE_0, 0x7);
+  init_objects_shared(regions, 30, 0x3f, 4, 7, MAP_OBJ_PINE_0, 0x7);
 }
 
-static void
-init_map_trees_4() {
+void
+map_t::init_trees_4() {
   /* Add either tree or pine. */
-  init_map_objects_shared(game.map_regions, 20, 0x7f, 5, 7,
-                          MAP_OBJ_TREE_0, 0xf);
+  init_objects_shared(regions, 20, 0x7f, 5, 7, MAP_OBJ_TREE_0, 0xf);
 }
 
-static void
-init_map_stone_1() {
-  init_map_objects_shared(game.map_regions, 40, 0x3f, 5, 7,
-                          MAP_OBJ_STONE_0, 0x7);
+void
+map_t::init_stone_1() {
+  init_objects_shared(regions, 40, 0x3f, 5, 7, MAP_OBJ_STONE_0, 0x7);
 }
 
-static void
-init_map_stone_2() {
-  init_map_objects_shared(game.map_regions, 15, 0xff, 5, 7,
-                          MAP_OBJ_STONE_0, 0x7);
+void
+map_t::init_stone_2() {
+  init_objects_shared(regions, 15, 0xff, 5, 7, MAP_OBJ_STONE_0, 0x7);
 }
 
-static void
-init_map_dead_trees() {
-  init_map_objects_shared(game.map_regions, 2, 0xff, 5, 7,
-                          MAP_OBJ_DEAD_TREE, 0);
+void
+map_t::init_dead_trees() {
+  init_objects_shared(regions, 2, 0xff, 5, 7, MAP_OBJ_DEAD_TREE, 0);
 }
 
-static void
-init_map_large_boulders() {
-  init_map_objects_shared(game.map_regions, 6, 0xff, 5, 7,
-                          MAP_OBJ_SANDSTONE_0, 0x1);
+void
+map_t::init_large_boulders() {
+  init_objects_shared(regions, 6, 0xff, 5, 7, MAP_OBJ_SANDSTONE_0, 0x1);
 }
 
-static void
-init_map_water_trees() {
-  init_map_objects_shared(game.map_regions, 50, 0x7f, 2, 4,
-                          MAP_OBJ_WATER_TREE_0, 0x3);
+void
+map_t::init_water_trees() {
+  init_objects_shared(regions, 50, 0x7f, 2, 4, MAP_OBJ_WATER_TREE_0, 0x3);
 }
 
-static void
-init_map_stubs() {
-  init_map_objects_shared(game.map_regions, 5, 0xff, 5, 7,
-                          MAP_OBJ_STUB, 0);
+void
+map_t::init_stubs() {
+  init_objects_shared(regions, 5, 0xff, 5, 7, MAP_OBJ_STUB, 0);
 }
 
-static void
-init_map_small_boulders() {
-  init_map_objects_shared(game.map_regions, 10, 0xff, 5, 7,
-                          MAP_OBJ_STONE, 0x1);
+void
+map_t::init_small_boulders() {
+  init_objects_shared(regions, 10, 0xff, 5, 7, MAP_OBJ_STONE, 0x1);
 }
 
-static void
-init_map_cadavers() {
-  init_map_objects_shared(game.map_regions, 2, 0xf, 10, 11,
-                          MAP_OBJ_CADAVER_0, 0x1);
+void
+map_t::init_cadavers() {
+  init_objects_shared(regions, 2, 0xf, 10, 11, MAP_OBJ_CADAVER_0, 0x1);
 }
 
-static void
-init_map_cacti() {
-  init_map_objects_shared(game.map_regions, 6, 0x7f, 8, 11,
-                          MAP_OBJ_CACTUS_0, 0x1);
+void
+map_t::init_cacti() {
+  init_objects_shared(regions, 6, 0x7f, 8, 11, MAP_OBJ_CACTUS_0, 0x1);
 }
 
-static void
-init_map_water_stones() {
-  init_map_objects_shared(game.map_regions, 8, 0x7f, 0, 3,
-                          MAP_OBJ_WATER_STONE_0, 0x1);
+void
+map_t::init_water_stones() {
+  init_objects_shared(regions, 8, 0x7f, 0, 3, MAP_OBJ_WATER_STONE_0, 0x1);
 }
 
-static void
-init_map_palms() {
-  init_map_objects_shared(game.map_regions, 6, 0x3f, 10, 11,
-                          MAP_OBJ_PALM_0, 0x3);
+void
+map_t::init_palms() {
+  init_objects_shared(regions, 6, 0x3f, 10, 11, MAP_OBJ_PALM_0, 0x3);
 }
 
-static void
-init_map_resources_shared_sub(map_tile_t *tiles, int iters, int col, int row,
-                              int *index, int amount, ground_deposit_t type) {
+void
+map_t::init_resources_shared_sub(int iters, int col, int row, int *index,
+                                 int amount, ground_deposit_t type) {
   for (int i = 0; i < iters; i++) {
     map_pos_t pos = lookup_pattern(col, row, *index);
     *index += 1;
@@ -1021,44 +1125,38 @@ init_map_resources_shared_sub(map_tile_t *tiles, int iters, int col, int row,
   }
 }
 
-static void
-init_map_resources_shared(int num_clusters, ground_deposit_t type, int min,
-                          int max) {
-  map_tile_t *tiles = game.map.tiles;
-
+void
+map_t::init_resources_shared(int num_clusters, ground_deposit_t type,
+                             int min, int max) {
   for (int i = 0; i < num_clusters; i++) {
     for (int try_ = 0; try_ < 100; try_++) {
       int col, row;
-      map_pos_t pos = get_rnd_map_coord(&col, &row);
+      map_pos_t pos = get_rnd_coord(&col, &row);
 
-      if (init_map_objects_shared_sub1(pos, min, max) == 0) {
+      if (init_objects_shared_sub1(pos, min, max) == 0) {
         int index = 0;
-        int amount = 8 + (game_random_int() & 0xc);
-        init_map_resources_shared_sub(tiles, 1, col, row, &index, amount, type);
+        int amount = 8 + (random_int() & 0xc);
+        init_resources_shared_sub(1, col, row, &index, amount, type);
         amount -= 4;
         if (amount == 0) break;
 
-        init_map_resources_shared_sub(tiles, 6, col, row, &index, amount, type);
+        init_resources_shared_sub(6, col, row, &index, amount, type);
         amount -= 4;
         if (amount == 0) break;
 
-        init_map_resources_shared_sub(tiles, 12, col, row, &index, amount,
-                                      type);
+        init_resources_shared_sub(12, col, row, &index, amount, type);
         amount -= 4;
         if (amount == 0) break;
 
-        init_map_resources_shared_sub(tiles, 18, col, row, &index, amount,
-                                      type);
+        init_resources_shared_sub(18, col, row, &index, amount, type);
         amount -= 4;
         if (amount == 0) break;
 
-        init_map_resources_shared_sub(tiles, 24, col, row, &index, amount,
-                                      type);
+        init_resources_shared_sub(24, col, row, &index, amount, type);
         amount -= 4;
         if (amount == 0) break;
 
-        init_map_resources_shared_sub(tiles, 30, col, row, &index, amount,
-                                      type);
+        init_resources_shared_sub(30, col, row, &index, amount, type);
         break;
       }
     }
@@ -1066,31 +1164,29 @@ init_map_resources_shared(int num_clusters, ground_deposit_t type, int min,
 }
 
 /* Initialize resources in the ground. */
-static void
-init_map_resources() {
-  init_map_resources_shared(game.map_regions * 9, GROUND_DEPOSIT_COAL, 11, 15);
-  init_map_resources_shared(game.map_regions * 4, GROUND_DEPOSIT_IRON, 11, 15);
-  init_map_resources_shared(game.map_regions * 2, GROUND_DEPOSIT_GOLD, 11, 15);
-  init_map_resources_shared(game.map_regions * 2, GROUND_DEPOSIT_STONE, 11, 15);
+void
+map_t::init_resources() {
+  init_resources_shared(regions * 9, GROUND_DEPOSIT_COAL, 11, 15);
+  init_resources_shared(regions * 4, GROUND_DEPOSIT_IRON, 11, 15);
+  init_resources_shared(regions * 2, GROUND_DEPOSIT_GOLD, 11, 15);
+  init_resources_shared(regions * 2, GROUND_DEPOSIT_STONE, 11, 15);
 }
 
-static void
-init_map_clean_up() {
-  map_tile_t *tiles = game.map.tiles;
-
+void
+map_t::init_clean_up() {
   /* Make sure that it is always possible to walk around
      any impassable objects. This also clears water obstacles
      except in certain positions near the shore. */
-  for (unsigned int y = 0; y < game.map.rows; y++) {
-    for (unsigned int x = 0; x < game.map.cols; x++) {
-      map_pos_t pos = MAP_POS(x, y);
-      if (map_space_from_obj[MAP_OBJ(pos)] >= MAP_SPACE_IMPASSABLE) {
+  for (unsigned int y = 0; y < rows; y++) {
+    for (unsigned int x = 0; x < cols; x++) {
+      map_pos_t pos_ = pos(x, y);
+      if (map_t::map_space_from_obj[get_obj(pos_)] >=
+          MAP_SPACE_IMPASSABLE) {
         for (int d = DIR_LEFT; d <= DIR_UP; d++) {
-          map_pos_t other_pos = MAP_MOVE(pos, d);
-          map_space_t s = map_space_from_obj[MAP_OBJ(other_pos)];
-          if (MAP_IN_WATER(other_pos) ||
-              s >= MAP_SPACE_IMPASSABLE) {
-            tiles[pos].obj &= 0x80;
+          map_pos_t other_pos = move(pos_, (dir_t)d);
+          map_space_t s = map_t::map_space_from_obj[get_obj(other_pos)];
+          if (is_in_water(other_pos) || s >= MAP_SPACE_IMPASSABLE) {
+            tiles[pos_].obj &= 0x80;
             break;
           }
         }
@@ -1099,85 +1195,52 @@ init_map_clean_up() {
   }
 }
 
-static void
-init_map_sub() {
-  init_map_lakes();
-
-  /* draw_progress_bar(2); */
-
-  init_map_types4();
-
-  /* draw_progress_bar(1); */
-
-  init_map_desert();
-
-  /* draw_progress_bar(1); */
-
-  init_map_desert_2();
-
-  /* draw_progress_bar(3); */
-
-  init_map_crosses();
-
-  /* draw_progress_bar(1); */
-
-  init_map_trees_1();
-  init_map_trees_2();
-
-  /* draw_progress_bar(1); */
-
-  init_map_trees_3();
-  init_map_trees_4();
-
-  /* draw_progress_bar(1); */
-
-  init_map_stone_1();
-  init_map_stone_2();
-
-  /* draw_progress_bar(1); */
-
-  init_map_dead_trees();
-  init_map_large_boulders();
-  init_map_water_trees();
-  init_map_stubs();
-
-  /* draw_progress_bar(1); */
-
-  init_map_small_boulders();
-  init_map_cadavers();
-  init_map_cacti();
-  init_map_water_stones();
-  init_map_palms();
-
-  /* draw_progress_bar(1); */
-
-  init_map_resources();
-
-  /* draw_progress_bar(1); */
-
-  init_map_clean_up();
+void
+map_t::init_sub() {
+  init_lakes();
+  init_types4();
+  init_desert();
+  init_desert_2();
+  init_crosses();
+  init_trees_1();
+  init_trees_2();
+  init_trees_3();
+  init_trees_4();
+  init_stone_1();
+  init_stone_2();
+  init_dead_trees();
+  init_large_boulders();
+  init_water_trees();
+  init_stubs();
+  init_small_boulders();
+  init_cadavers();
+  init_cacti();
+  init_water_stones();
+  init_palms();
+  init_resources();
+  init_clean_up();
 }
 
 /* Initialize global count of gold deposits. */
-static void
-init_map_ground_gold_deposit() {
+void
+map_t::init_ground_gold_deposit() {
   int total_gold = 0;
 
-  for (unsigned int y = 0; y < game.map.rows; y++) {
-    for (unsigned int x = 0; x < game.map.cols; x++) {
-      map_pos_t pos = MAP_POS(x, y);
-      if (MAP_RES_TYPE(pos) == GROUND_DEPOSIT_GOLD) {
-        total_gold += MAP_RES_AMOUNT(pos);
+  for (unsigned int y = 0; y < rows; y++) {
+    for (unsigned int x = 0; x < cols; x++) {
+      map_pos_t pos_ = pos(x, y);
+      if (get_res_type(pos_) == GROUND_DEPOSIT_GOLD) {
+        total_gold += get_res_amount(pos_);
       }
     }
   }
 
-  game.map_gold_deposit = total_gold;
+  gold_deposit = total_gold;
 }
 
 /* Initialize minimap data. */
 void
-map_init_minimap() {
+map_t::init_minimap() {
   static const int color_offset[] = {
     0, 85, 102, 119, 17, 17, 17, 17,
     34, 34, 34, 51, 51, 51, 68, 68
@@ -1194,140 +1257,133 @@ map_init_minimap() {
     11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11
   };
 
-  if (game.minimap != NULL) {
-    free(game.minimap);
+  if (minimap != NULL) {
+    delete[] minimap;
+    minimap = NULL;
   }
-  game.minimap = reinterpret_cast<uint8_t*>(malloc(game.map.rows *
-                                                   game.map.cols));
-  if (game.minimap == NULL) abort();
+  minimap = new uint8_t[rows * cols];
+  if (minimap == NULL) abort();
 
-  map_tile_t *tiles = game.map.tiles;
-  uint8_t *minimap = game.minimap;
+  uint8_t *mpos = minimap;
+  for (unsigned int y = 0; y < rows; y++) {
+    for (unsigned int x = 0; x < cols; x++) {
+      map_pos_t pos_ = pos(x, y);
+      int type_off = color_offset[tiles[pos_].type >> 4];
 
-  for (unsigned int y = 0; y < game.map.rows; y++) {
-    for (unsigned int x = 0; x < game.map.cols; x++) {
-      map_pos_t pos = MAP_POS(x, y);
-      int type_off = color_offset[tiles[pos].type >> 4];
+      pos_ = move_right(pos_);
+      int h1 = get_height(pos_);
 
-      pos = MAP_MOVE_RIGHT(pos);
-      int h1 = MAP_HEIGHT(pos);
-
-      pos = MAP_MOVE_DOWN_LEFT(pos);
-      int h2 = MAP_HEIGHT(pos);
+      pos_ = move_down_left(pos_);
+      int h2 = get_height(pos_);
 
       int h_off = h2 - h1 + 8;
-      *(minimap++) = colors[type_off + h_off];
+      *(mpos++) = colors[type_off + h_off];
     }
+  }
+}
+
+uint8_t*
+map_t::get_minimap() {
+  if (minimap == NULL) {
+    init_minimap();
+  }
+
+  return minimap;
+}
+
+/* Initialize spiral_pos_pattern from spiral_pattern. */
+void
+map_t::init_spiral_pos_pattern() {
+  if (spiral_pos_pattern == NULL) {
+    spiral_pos_pattern = new map_pos_t[295];
+    if (spiral_pos_pattern == NULL) abort();
+  }
+
+  for (int i = 0; i < 295; i++) {
+    int x = spiral_pattern[2*i] & col_mask;
+    int y = spiral_pattern[2*i+1] & row_mask;
+
+    spiral_pos_pattern[i] = pos(x, y);
   }
 }
 
 /* Set all map fields except cols/rows and col/row_size
    which must be set. */
 void
-map_init_dimensions(map_t *map) {
-  map->tile_count = map->cols * map->rows;
+map_t::init_dimensions() {
+  /* Initialize global lookup tables */
+  init_spiral_pattern();
 
-  map->col_mask = (1 << map->col_size) - 1;
-  map->row_mask = (1 << map->row_size) - 1;
-  map->row_shift = map->col_size;
+  tile_count = cols * rows;
+
+  col_mask = (1 << col_size) - 1;
+  row_mask = (1 << row_size) - 1;
+  row_shift = col_size;
 
   /* Setup direction offsets. */
-  map->dirs[DIR_RIGHT] = 1 & map->col_mask;
-  map->dirs[DIR_LEFT] = -1 & map->col_mask;
-  map->dirs[DIR_DOWN] = (1 & map->row_mask) << map->row_shift;
-  map->dirs[DIR_UP] = (-1 & map->row_mask) << map->row_shift;
+  dirs[DIR_RIGHT] = 1 & col_mask;
+  dirs[DIR_LEFT] = -1 & col_mask;
+  dirs[DIR_DOWN] = (1 & row_mask) << row_shift;
+  dirs[DIR_UP] = (-1 & row_mask) << row_shift;
 
-  map->dirs[DIR_DOWN_RIGHT] = map->dirs[DIR_RIGHT] | map->dirs[DIR_DOWN];
-  map->dirs[DIR_UP_RIGHT] = map->dirs[DIR_RIGHT] | map->dirs[DIR_UP];
-  map->dirs[DIR_DOWN_LEFT] = map->dirs[DIR_LEFT] | map->dirs[DIR_DOWN];
-  map->dirs[DIR_UP_LEFT] = map->dirs[DIR_LEFT] | map->dirs[DIR_UP];
+  dirs[DIR_DOWN_RIGHT] = dirs[DIR_RIGHT] | dirs[DIR_DOWN];
+  dirs[DIR_UP_RIGHT] = dirs[DIR_RIGHT] | dirs[DIR_UP];
+  dirs[DIR_DOWN_LEFT] = dirs[DIR_LEFT] | dirs[DIR_DOWN];
+  dirs[DIR_UP_LEFT] = dirs[DIR_LEFT] | dirs[DIR_UP];
 
   /* Allocate map */
-  if (map->tiles != NULL) free(map->tiles);
-  map->tiles = reinterpret_cast<map_tile_t*>(calloc(map->tile_count,
-                                                    sizeof(map_tile_t)));
-  if (map->tiles == NULL) abort();
+  if (tiles != NULL) {
+    delete[] tiles;
+    tiles = NULL;
+  }
+  tiles = new map_tile_t[tile_count];
+  memset(tiles, 0, sizeof(map_tile_t) * tile_count);
+  if (tiles == NULL) abort();
+
+  init_spiral_pos_pattern();
 }
 
 void
-map_init() {
-  /* game.svga &= ~BIT(5); */
+map_t::generate(int generator, const random_state_t &rnd, bool preserve_bugs) {
+  this->rnd = rnd;
+  this->rnd ^= random_state_t(0x5a5a, 0xa5a5, 0xc3c3);
+  this->preserve_bugs = preserve_bugs;
 
-  /* initialize rnd state */
-  memcpy(&game.rnd, &game.init_map_rnd,
-         sizeof(random_state_t));
+  random_int();
+  random_int();
 
-  game_random_int();
-  game_random_int();
-  /* progress_reset(); */
-
-  /* draw_progress_bar(1); */
-
-  /* draw_progress_bar(1); */
-
-  init_map_heights_squares();
-  switch (game.map_generator) {
-  case 0:
-    init_map_heights_midpoints(); /* Midpoint displacement algorithm */
-    break;
-  case 1:
-    init_map_heights_diamond_square(); /* Diamond square algorithm */
-    break;
+  init_heights_squares();
+  switch (generator) {
+    case 0:
+      init_heights_midpoints(); /* Midpoint displacement algorithm */
+      break;
+    case 1:
+      init_heights_diamond_square(); /* Diamond square algorithm */
+      break;
+    default:
+      NOT_REACHED();
   }
 
-  /* draw_progress_bar(3); */
-
-  clamp_map_heights();
-
-  /* draw_progress_bar(4); */
-
-  map_init_sea_level();
-
-  /* draw_progress_bar(3); */
-
-  map_heights_rebase();
-
-  /* draw_progress_bar(1); */
-
-  init_map_types();
-
-  /* draw_progress_bar(1); */
-
-  init_map_types_2();
-
-  /* draw_progress_bar(5); */
-
-  map_heights_rescale();
-
-  /* draw_progress_bar(1); */
-
-  init_map_sub();
-  init_map_ground_gold_deposit();
-
-  /* draw_progress_bar(1); */
-
-  /* draw_progress_bar(1); */
-
-  /* game.svga |= BIT(5); */
-}
-
-void
-map_deinit() {
-  free(game.map.tiles);
-  free(game.minimap);
+  clamp_heights();
+  init_sea_level();
+  heights_rebase();
+  init_types();
+  init_types_2();
+  heights_rescale();
+  init_sub();
+  init_ground_gold_deposit();
 }
 
 /* Change the height of a map position. */
 void
-map_set_height(map_pos_t pos, int height) {
-  map_tile_t *tiles = game.map.tiles;
+map_t::set_height(map_pos_t pos, int height) {
   tiles[pos].height = (tiles[pos].height & 0xe0) | (height & 0x1f);
 
   /* Mark landscape dirty */
-  if (game.update_map_height_cb != NULL) {
-    for (int d = DIR_RIGHT; d <= DIR_UP; d++) {
-      game.update_map_height_cb(MAP_MOVE(pos, d),
-              game.update_map_height_data);
+  for (int d = DIR_RIGHT; d <= DIR_UP; d++) {
+    for (change_handlers_t::iterator it = change_handlers.begin();
+         it != change_handlers.end(); ++it) {
+      (*it)->changed_height(move(pos, (dir_t)d));
     }
   }
 }
@@ -1336,19 +1392,17 @@ map_set_height(map_pos_t pos, int height) {
    also change this. The index should be reset to zero when a flag or
    building is removed. */
 void
-map_set_object(map_pos_t pos, map_obj_t obj, int index) {
-  map_tile_t *tiles = game.map.tiles;
+map_t::set_object(map_pos_t pos, map_obj_t obj, int index) {
   tiles[pos].obj = (tiles[pos].obj & 0x80) | (obj & 0x7f);
   if (index >= 0) tiles[pos].obj_index = index;
 }
 
 /* Remove resources from the ground at a map position. */
 void
-map_remove_ground_deposit(map_pos_t pos, int amount) {
-  map_tile_t *tiles = game.map.tiles;
+map_t::remove_ground_deposit(map_pos_t pos, int amount) {
   tiles[pos].resource -= amount;
 
-  if (MAP_RES_AMOUNT(pos) == 0) {
+  if (get_res_amount(pos) == 0) {
     /* Also sets the ground deposit type to none. */
     tiles[pos].resource = 0;
   }
@@ -1356,28 +1410,28 @@ map_remove_ground_deposit(map_pos_t pos, int amount) {
 
 /* Remove fish at a map position (must be water). */
 void
-map_remove_fish(map_pos_t pos, int amount) {
-  map_tile_t *tiles = game.map.tiles;
+map_t::remove_fish(map_pos_t pos, int amount) {
   tiles[pos].resource -= amount;
 }
 
 /* Set the index of the serf occupying map position. */
 void
-map_set_serf_index(map_pos_t pos, int index) {
-  map_tile_t *tiles = game.map.tiles;
+map_t::set_serf_index(map_pos_t pos, int index) {
   tiles[pos].serf = index;
 
   /* TODO Mark dirty in viewport. */
 }
 
 /* Update public parts of the map data. */
-static void
-map_update_public(map_pos_t pos) {
+void
+map_t::update_public(map_pos_t pos) {
   /* Update other map objects */
   int r;
-  switch (MAP_OBJ(pos)) {
+  switch (get_obj(pos)) {
   case MAP_OBJ_STUB:
-    if ((game_random_int() & 3) == 0) map_set_object(pos, MAP_OBJ_NONE, -1);
+    if ((random_int() & 3) == 0) {
+      set_object(pos, MAP_OBJ_NONE, -1);
+    }
     break;
   case MAP_OBJ_FELLED_PINE_0: case MAP_OBJ_FELLED_PINE_1:
   case MAP_OBJ_FELLED_PINE_2: case MAP_OBJ_FELLED_PINE_3:
@@ -1385,19 +1439,19 @@ map_update_public(map_pos_t pos) {
   case MAP_OBJ_FELLED_TREE_0: case MAP_OBJ_FELLED_TREE_1:
   case MAP_OBJ_FELLED_TREE_2: case MAP_OBJ_FELLED_TREE_3:
   case MAP_OBJ_FELLED_TREE_4:
-    map_set_object(pos, MAP_OBJ_STUB, -1);
+    set_object(pos, MAP_OBJ_STUB, -1);
     break;
   case MAP_OBJ_NEW_PINE:
-    r = game_random_int();
-    if ((r & 0x300) == 0) map_set_object(pos,
-                                         (map_obj_t)(MAP_OBJ_PINE_0 + (r & 7)),
-                                         -1);
+    r = random_int();
+    if ((r & 0x300) == 0) {
+      set_object(pos, (map_obj_t)(MAP_OBJ_PINE_0 + (r & 7)), -1);
+    }
     break;
   case MAP_OBJ_NEW_TREE:
-    r = game_random_int();
-    if ((r & 0x300) == 0) map_set_object(pos,
-                                         (map_obj_t)(MAP_OBJ_TREE_0 + (r & 7)),
-                                         -1);
+    r = random_int();
+    if ((r & 0x300) == 0) {
+      set_object(pos, (map_obj_t)(MAP_OBJ_TREE_0 + (r & 7)), -1);
+    }
     break;
   case MAP_OBJ_SEEDS_0: case MAP_OBJ_SEEDS_1:
   case MAP_OBJ_SEEDS_2: case MAP_OBJ_SEEDS_3:
@@ -1405,25 +1459,25 @@ map_update_public(map_pos_t pos) {
   case MAP_OBJ_FIELD_0: case MAP_OBJ_FIELD_1:
   case MAP_OBJ_FIELD_2: case MAP_OBJ_FIELD_3:
   case MAP_OBJ_FIELD_4:
-    map_set_object(pos, (map_obj_t)(MAP_OBJ(pos) + 1), -1);
+    set_object(pos, (map_obj_t)(get_obj(pos) + 1), -1);
     break;
   case MAP_OBJ_SEEDS_5:
-    map_set_object(pos, MAP_OBJ_FIELD_0, -1);
+    set_object(pos, MAP_OBJ_FIELD_0, -1);
     break;
   case MAP_OBJ_FIELD_EXPIRED:
-    map_set_object(pos, MAP_OBJ_NONE, -1);
+    set_object(pos, MAP_OBJ_NONE, -1);
     break;
   case MAP_OBJ_SIGN_LARGE_GOLD: case MAP_OBJ_SIGN_SMALL_GOLD:
   case MAP_OBJ_SIGN_LARGE_IRON: case MAP_OBJ_SIGN_SMALL_IRON:
   case MAP_OBJ_SIGN_LARGE_COAL: case MAP_OBJ_SIGN_SMALL_COAL:
   case MAP_OBJ_SIGN_LARGE_STONE: case MAP_OBJ_SIGN_SMALL_STONE:
   case MAP_OBJ_SIGN_EMPTY:
-    if (game.update_map_16_loop == 0) {
-      map_set_object(pos, MAP_OBJ_NONE, -1);
+    if (update_map_16_loop == 0) {
+      set_object(pos, MAP_OBJ_NONE, -1);
     }
     break;
   case MAP_OBJ_FIELD_5:
-    map_set_object(pos, MAP_OBJ_FIELD_EXPIRED, -1);
+    set_object(pos, MAP_OBJ_FIELD_EXPIRED, -1);
     break;
   default:
     break;
@@ -1431,14 +1485,12 @@ map_update_public(map_pos_t pos) {
 }
 
 /* Update hidden parts of the map data. */
-static void
-map_update_hidden(map_pos_t pos) {
-  map_tile_t *tiles = game.map.tiles;
-
+void
+map_t::update_hidden(map_pos_t pos) {
   /* Update fish resources in water */
-  if (MAP_IN_WATER(pos) &&
+  if (is_in_water(pos) &&
       tiles[pos].resource > 0) {
-    int r = game_random_int();
+    int r = random_int();
 
     if (tiles[pos].resource < 10 && (r & 0x3f00)) {
       /* Spawn more fish. */
@@ -1448,14 +1500,14 @@ map_update_hidden(map_pos_t pos) {
     /* Move in a random direction of: right, down right, left, up left */
     map_pos_t adj_pos = pos;
     switch ((r >> 2) & 3) {
-    case 0: adj_pos = MAP_MOVE_RIGHT(adj_pos); break;
-    case 1: adj_pos = MAP_MOVE_DOWN_RIGHT(adj_pos); break;
-    case 2: adj_pos = MAP_MOVE_LEFT(adj_pos); break;
-    case 3: adj_pos = MAP_MOVE_UP_LEFT(adj_pos); break;
+    case 0: adj_pos = move_right(adj_pos); break;
+    case 1: adj_pos = move_down_right(adj_pos); break;
+    case 2: adj_pos = move_left(adj_pos); break;
+    case 3: adj_pos = move_up_left(adj_pos); break;
     default: NOT_REACHED(); break;
     }
 
-    if (MAP_IN_WATER(adj_pos)) {
+    if (is_in_water(adj_pos)) {
       /* Migrate a fish to adjacent water space. */
       tiles[pos].resource -= 1;
       tiles[adj_pos].resource += 1;
@@ -1465,35 +1517,358 @@ map_update_hidden(map_pos_t pos) {
 
 /* Update map data as part of the game progression. */
 void
-map_update() {
-  uint16_t delta = game.tick - game.update_map_last_tick;
-  game.update_map_last_tick = game.tick;
-  game.update_map_counter -= delta;
+map_t::update(unsigned int tick) {
+  uint16_t delta = tick - update_map_last_tick;
+  update_map_last_tick = tick;
+  update_map_counter -= delta;
 
   int iters = 0;
-  while (game.update_map_counter < 0) {
-    iters += game.map_regions;
-    game.update_map_counter += 20;
+  while (update_map_counter < 0) {
+    iters += regions;
+    update_map_counter += 20;
   }
 
-  map_pos_t pos = game.update_map_initial_pos;
+  map_pos_t pos = update_map_initial_pos;
 
   for (int i = 0; i < iters; i++) {
-    game.update_map_16_loop -= 1;
-    if (game.update_map_16_loop < 0) game.update_map_16_loop = 16;
+    update_map_16_loop -= 1;
+    if (update_map_16_loop < 0) update_map_16_loop = 16;
 
     /* Test if moving 23 positions right crosses map boundary. */
-    if (MAP_POS_COL(pos) + 23 < game.map.cols) {
-      pos = MAP_MOVE_RIGHT_N(pos, 23);
+    if (pos_col(pos) + 23 < static_cast<int>(cols)) {
+      pos = move_right_n(pos, 23);
     } else {
-      pos = MAP_MOVE_RIGHT_N(pos, 23);
-      pos = MAP_MOVE_DOWN(pos);
+      pos = move_right_n(pos, 23);
+      pos = move_down(pos);
     }
 
     /* Update map at position. */
-    map_update_hidden(pos);
-    map_update_public(pos);
+    update_hidden(pos);
+    update_public(pos);
   }
 
-  game.update_map_initial_pos = pos;
+  update_map_initial_pos = pos;
+}
+
+uint16_t
+map_t::random_int() {
+  return rnd.random();
+}
+
+/* Return non-zero if the road segment from pos in direction dir
+ can be successfully constructed at the current time. */
+bool
+map_t::is_road_segment_valid(map_pos_t pos, dir_t dir) {
+  map_pos_t other_pos = move(pos, dir);
+
+  map_obj_t obj = get_obj(other_pos);
+  if ((paths(other_pos) != 0 && obj != MAP_OBJ_FLAG) ||
+      map_t::map_space_from_obj[obj] >= MAP_SPACE_SEMIPASSABLE) {
+    return false;
+  }
+
+  if (!has_owner(other_pos) ||
+      get_owner(other_pos) != get_owner(pos)) {
+    return false;
+  }
+
+  if (is_in_water(pos) != is_in_water(other_pos) &&
+      !(has_flag(pos) || has_flag(other_pos))) {
+    return false;
+  }
+
+  return true;
+}
+
+/* Actually place road segments */
+bool
+map_t::place_road_segments(map_pos_t source, const dir_t *dirs,
+                           unsigned int length) {
+  map_pos_t pos_ = source;
+  for (unsigned int i = 0; i < length; i++) {
+    dir_t dir = dirs[i];
+    dir_t rev_dir = DIR_REVERSE(dir);
+
+    if (!is_road_segment_valid(pos_, dir)) {
+      /* Not valid after all. Backtrack and abort.
+       This is needed to check that the road
+       does not cross itself. */
+      for (int j = i-1; j >= 0; j--) {
+        dir_t rev_dir = dirs[j];
+        dir_t dir = DIR_REVERSE(rev_dir);
+
+        tiles[pos_].paths &= ~BIT(dir);
+        tiles[move(pos_, dir)].paths &= ~BIT(rev_dir);
+
+        pos_ = move(pos_, dir);
+      }
+
+      return false;
+    }
+
+    tiles[pos_].paths |= BIT(dir);
+    tiles[move(pos_, dir)].paths |= BIT(rev_dir);
+
+    pos_ = move(pos_, dir);
+  }
+
+  return true;
+}
+
+bool
+map_t::remove_road_backref_until_flag(map_pos_t pos_, dir_t dir) {
+  while (1) {
+    pos_ = move(pos_, dir);
+
+    /* Clear backreference */
+    tiles[pos_].paths &= ~BIT(DIR_REVERSE(dir));
+
+    if (get_obj(pos_) == MAP_OBJ_FLAG) break;
+
+    /* Find next direction of path. */
+    dir = DIR_NONE;
+    for (int d = DIR_RIGHT; d <= DIR_UP; d++) {
+      if (BIT_TEST(paths(pos_), d)) {
+        dir = (dir_t)d;
+        break;
+      }
+    }
+
+    if (dir == -1) return false;
+  }
+
+  return true;
+}
+
+bool
+map_t::remove_road_backrefs(map_pos_t pos_) {
+  if (paths(pos_) == 0) return false;
+
+  /* Find directions of path segments to be split. */
+  dir_t path_1_dir = DIR_NONE;
+  for (int d = DIR_RIGHT; d <= DIR_UP; d++) {
+    if (BIT_TEST(paths(pos_), d)) {
+      path_1_dir = (dir_t)d;
+      break;
+    }
+  }
+
+  dir_t path_2_dir = DIR_NONE;
+  for (int d = path_1_dir+1; d <= DIR_UP; d++) {
+    if (BIT_TEST(paths(pos_), d)) {
+      path_2_dir = (dir_t)d;
+      break;
+    }
+  }
+
+  if (path_1_dir == -1 || path_2_dir == -1) return false;
+
+  if (!remove_road_backref_until_flag(pos_, path_1_dir)) return false;
+  if (!remove_road_backref_until_flag(pos_, path_2_dir)) return false;
+
+  return true;
+}
+
+dir_t
+map_t::remove_road_segment(map_pos_t *pos, dir_t dir) {
+  /* Clear forward reference. */
+  tiles[*pos].paths &= ~BIT(dir);
+  *pos = move(*pos, dir);
+
+  /* Clear backreference. */
+  tiles[*pos].paths &= ~BIT(DIR_REVERSE(dir));
+
+  /* Find next direction of path. */
+  dir = DIR_NONE;
+  for (int d = DIR_RIGHT; d <= DIR_UP; d++) {
+    if (BIT_TEST(paths(*pos), d)) {
+      dir = (dir_t)d;
+      break;
+    }
+  }
+
+  return dir;
+}
+
+bool
+map_t::road_segment_in_water(map_pos_t pos_, dir_t dir) {
+  if (dir > DIR_DOWN) {
+    pos_ = move(pos_, dir);
+    dir = DIR_REVERSE(dir);
+  }
+
+  bool water = false;
+
+  switch (dir) {
+    case DIR_RIGHT:
+      if (type_down(pos_) < 4 && type_up(move_up(pos_)) < 4) {
+        water = true;
+      }
+      break;
+    case DIR_DOWN_RIGHT:
+      if (type_up(pos_) < 4 && type_down(pos_) < 4) {
+        water = true;
+      }
+      break;
+    case DIR_DOWN:
+      if (type_up(pos_) < 4 && type_down(move_left(pos_)) < 4) {
+        water = true;
+      }
+      break;
+    default:
+      NOT_REACHED();
+      break;
+  }
+
+  return water;
+}
+
+void
+map_t::add_change_handler(update_map_height_handler_t *handler) {
+  change_handlers.push_back(handler);
+}
+
+void
+map_t::del_change_handler(update_map_height_handler_t *handler) {
+  change_handlers.remove(handler);
+}
+
+bool
+map_t::types_within(map_pos_t pos, unsigned int low, unsigned int high) {
+  if ((type_up(pos) >= low &&
+       type_up(pos) <= high) &&
+      (type_down(pos) >= low &&
+       type_down(pos) <= high) &&
+      (type_down(move_left(pos)) >= low &&
+       type_down(move_left(pos)) <= high) &&
+      (type_up(move_up_left(pos)) >= low &&
+       type_up(move_up_left(pos)) <= high) &&
+      (type_down(move_up_left(pos)) >= low &&
+       type_down(move_up_left(pos)) <= high) &&
+      (type_up(move_up(pos)) >= low &&
+       type_up(move_up(pos)) <= high)) {
+    return true;
+  }
+
+  return false;
+}
+
+save_reader_binary_t&
+operator >> (save_reader_binary_t &reader, map_t &map) {
+  uint8_t v8;
+  uint16_t v16;
+
+  for (unsigned int y = 0; y < map.rows; y++) {
+    for (unsigned int x = 0; x < map.cols; x++) {
+      map_pos_t pos = map.pos(x, y);
+      reader >> v8;
+      map.tiles[pos].paths = v8 & 0x3f;
+      reader >> v8;
+      map.tiles[pos].height = v8;
+      reader >> v8;
+      map.tiles[pos].type = v8;
+      reader >> v8;
+      map.tiles[pos].obj = v8 & 0x7f;
+    }
+    for (unsigned int x = 0; x < map.cols; x++) {
+      map_pos_t pos = map.pos(x, y);
+      if (map.get_obj(pos) >= MAP_OBJ_FLAG &&
+          map.get_obj(pos) <= MAP_OBJ_CASTLE) {
+        map.tiles[pos].resource = 0;
+        reader >> v16;
+        map.tiles[pos].obj_index = v16;
+      } else {
+        reader >> v8;
+        map.tiles[pos].resource = v8;
+        reader >> v8;
+        map.tiles[pos].obj_index = 0;
+      }
+
+      reader >> v16;
+      map.tiles[pos].serf = v16;
+    }
+  }
+
+  return reader;
+}
+
+#define SAVE_MAP_TILE_SIZE (16)
+
+save_reader_text_t&
+operator >> (save_reader_text_t &reader, map_t &map) {
+  int x = 0;
+  int y = 0;
+  reader.value("pos")[0] >> x;
+  reader.value("pos")[1] >> y;
+  map_pos_t pos = map.pos(x, y);
+
+  for (int y = 0; y < SAVE_MAP_TILE_SIZE; y++) {
+    for (int x = 0; x < SAVE_MAP_TILE_SIZE; x++) {
+      map_pos_t p = map.pos_add(pos, map.pos(x, y));
+      unsigned int val;
+
+      reader.value("paths")[y*SAVE_MAP_TILE_SIZE+x] >> val;
+      map.tiles[p].paths = val & 0x3f;
+
+      reader.value("height")[y*SAVE_MAP_TILE_SIZE+x] >> val;
+      map.tiles[p].height = val & 0x1f;
+
+      reader.value("type.up")[y*SAVE_MAP_TILE_SIZE+x] >> val;
+      map.tiles[p].type = ((val & 0xf) << 4) | (map.tiles[p].type & 0xf);
+
+      reader.value("type.down")[y*SAVE_MAP_TILE_SIZE+x] >> val;
+      map.tiles[p].type = (map.tiles[p].type & 0xf0) | (val & 0xf);
+
+      reader.value("object")[y*SAVE_MAP_TILE_SIZE+x] >> val;
+      map.tiles[p].obj = val & 0x7f;
+
+      reader.value("serf")[y*SAVE_MAP_TILE_SIZE+x] >> val;
+      map.tiles[p].serf = val;
+
+      reader.value("resource.type")[y*SAVE_MAP_TILE_SIZE+x] >> val;
+      map.tiles[p].resource = ((val & 7) << 5) | (map.tiles[p].resource & 0x1f);
+
+      reader.value("resource.amount")[y*SAVE_MAP_TILE_SIZE+x] >> val;
+      map.tiles[p].resource = (map.tiles[p].resource & 0xe0) | (val & 0x1f);
+    }
+  }
+
+  return reader;
+}
+
+save_writer_text_t&
+operator << (save_writer_text_t &writer, map_t &map) {
+  int i = 0;
+
+  for (unsigned int ty = 0; ty < map.get_rows(); ty += SAVE_MAP_TILE_SIZE) {
+    for (unsigned int tx = 0; tx < map.get_cols(); tx += SAVE_MAP_TILE_SIZE) {
+      save_writer_text_t &map_writer = writer.add_section("map", i++);
+
+      map_writer.value("pos") << tx;
+      map_writer.value("pos") << ty;
+
+      for (int y = 0; y < SAVE_MAP_TILE_SIZE; y++) {
+        for (int x = 0; x < SAVE_MAP_TILE_SIZE; x++) {
+          map_pos_t pos = map.pos(tx+x, ty+y);
+
+          map_writer.value("height") << map.get_height(pos);
+          map_writer.value("type.up") << map.type_up(pos);
+          map_writer.value("type.down") << map.type_down(pos);
+          map_writer.value("paths") << map.paths(pos);
+          map_writer.value("object") << map.get_obj(pos);
+          map_writer.value("serf") << map.get_serf_index(pos);
+
+          if (map.is_in_water(pos)) {
+            map_writer.value("resource.type") << 0;
+            map_writer.value("resource.amount") << map.get_res_fish(pos);
+          } else {
+            map_writer.value("resource.type") << map.get_res_type(pos);
+            map_writer.value("resource.amount") << map.get_res_amount(pos);
+          }
+        }
+      }
+    }
+  }
+
+  return writer;
 }

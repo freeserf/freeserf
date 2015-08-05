@@ -138,7 +138,7 @@ flag_t::del_path(dir_t dir) {
 
   if (serf_requested(dir)) {
     cancel_serf_request(dir);
-    int dest = MAP_OBJ_INDEX(pos);
+    int dest = game.map->get_obj_index(pos);
 
     for (serfs_t::iterator i = game.serfs.begin();
          i != game.serfs.end(); ++i) {
@@ -684,14 +684,14 @@ wake_transporter_on_path(map_pos_t pos) {
 
 void
 flag_t::fill_path_serf_info(map_pos_t pos, dir_t dir, serf_path_info_t *data) {
-  if (MAP_IDLE_SERF(pos)) wake_transporter_at_flag(pos);
+  if (game.map->get_idle_serf(pos)) wake_transporter_at_flag(pos);
 
   int serf_count = 0;
   int path_len = 0;
 
   /* Handle first position. */
-  if (MAP_SERF_INDEX(pos) != 0) {
-    serf_t *serf = game.serfs[MAP_SERF_INDEX(pos)];
+  if (game.map->get_serf_index(pos) != 0) {
+    serf_t *serf = game.serfs[game.map->get_serf_index(pos)];
     if (serf->get_state() == SERF_STATE_TRANSPORTING &&
         serf->get_walking_wait_counter() != -1) {
       int d = serf->get_walking_dir();
@@ -708,11 +708,11 @@ flag_t::fill_path_serf_info(map_pos_t pos, dir_t dir, serf_path_info_t *data) {
   int paths = 0;
   while (1) {
     path_len += 1;
-    pos = MAP_MOVE(pos, dir);
-    paths = MAP_PATHS(pos);
+    pos = game.map->move(pos, dir);
+    paths = game.map->paths(pos);
     paths &= ~BIT(DIR_REVERSE(dir));
 
-    if (MAP_HAS_FLAG(pos)) break;
+    if (game.map->has_flag(pos)) break;
 
     /* Find out which direction the path follows. */
     for (int d = DIR_RIGHT; d <= DIR_UP; d++) {
@@ -723,14 +723,14 @@ flag_t::fill_path_serf_info(map_pos_t pos, dir_t dir, serf_path_info_t *data) {
     }
 
     /* Check if there is a transporter waiting here. */
-    if (MAP_IDLE_SERF(pos)) {
+    if (game.map->get_idle_serf(pos)) {
       int index = wake_transporter_on_path(pos);
       if (index >= 0) data->serfs[serf_count++] = index;
     }
 
     /* Check if there is a serf occupying this space. */
-    if (MAP_SERF_INDEX(pos) != 0) {
-      serf_t *serf = game.serfs[MAP_SERF_INDEX(pos)];
+    if (game.map->get_serf_index(pos) != 0) {
+      serf_t *serf = game.serfs[game.map->get_serf_index(pos)];
       if (serf->get_state() == SERF_STATE_TRANSPORTING &&
           serf->get_walking_wait_counter() != -1) {
         serf->set_walking_wait_counter(0);
@@ -740,8 +740,8 @@ flag_t::fill_path_serf_info(map_pos_t pos, dir_t dir, serf_path_info_t *data) {
   }
 
   /* Handle last position. */
-  if (MAP_SERF_INDEX(pos) != 0) {
-    serf_t *serf = game.serfs[MAP_SERF_INDEX(pos)];
+  if (game.map->get_serf_index(pos) != 0) {
+    serf_t *serf = game.serfs[game.map->get_serf_index(pos)];
     if ((serf->get_state() == SERF_STATE_TRANSPORTING &&
          serf->get_walking_wait_counter() != -1) ||
         serf->get_state() == SERF_STATE_DELIVERING) {
@@ -758,7 +758,7 @@ flag_t::fill_path_serf_info(map_pos_t pos, dir_t dir, serf_path_info_t *data) {
   /* Fill the rest of the struct. */
   data->path_len = path_len;
   data->serf_count = serf_count;
-  data->flag_index = MAP_OBJ_INDEX(pos);
+  data->flag_index = game.map->get_obj_index(pos);
   data->flag_dir = DIR_REVERSE(dir);
 }
 
@@ -766,7 +766,7 @@ void
 flag_t::merge_paths(map_pos_t pos) {
   const int max_transporters[] = { 1, 2, 3, 4, 6, 8, 11, 15 };
 
-  if (!MAP_PATHS(pos)) {
+  if (!game.map->paths(pos)) {
     return;
   }
 
@@ -775,7 +775,7 @@ flag_t::merge_paths(map_pos_t pos) {
 
   /* Find first direction */
   for (int d = DIR_RIGHT; d <= DIR_UP; d++) {
-    if (BIT_TEST(MAP_PATHS(pos), d)) {
+    if (BIT_TEST(game.map->paths(pos), d)) {
       path_1_dir = (dir_t)d;
       break;
     }
@@ -783,7 +783,7 @@ flag_t::merge_paths(map_pos_t pos) {
 
   /* Find second direction */
   for (int d = DIR_UP; d >= DIR_RIGHT; d--) {
-    if (BIT_TEST(MAP_PATHS(pos), d)) {
+    if (BIT_TEST(game.map->paths(pos), d)) {
       path_2_dir = (dir_t)d;
       break;
     }
@@ -1112,7 +1112,7 @@ operator >> (save_reader_text_t &reader, flag_t &flag) {
   unsigned int y = 0;
   reader.value("pos")[0] >> x;
   reader.value("pos")[1] >> y;
-  flag.pos = MAP_POS(x, y);
+  flag.pos = game.map->pos(x, y);
   reader.value("search_num") >> flag.search_num;
   reader.value("search_dir") >> flag.search_dir;
   reader.value("path_con") >> flag.path_con;

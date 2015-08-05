@@ -354,14 +354,14 @@ player_t::available_knights_at_pos(map_pos_t pos, int index_, int dist) {
   const int min_level_tower[] = { 1, 2, 3, 4, 6 };
   const int min_level_fortress[] = { 1, 3, 6, 9, 12 };
 
-  if (MAP_OWNER(pos) != index ||
-      MAP_TYPE_UP(pos) < 4 || MAP_TYPE_DOWN(pos) < 4 ||
-      MAP_OBJ(pos) < MAP_OBJ_SMALL_BUILDING ||
-      MAP_OBJ(pos) > MAP_OBJ_CASTLE) {
+  if (game.map->get_owner(pos) != index ||
+      game.map->type_up(pos) < 4 || game.map->type_down(pos) < 4 ||
+      game.map->get_obj(pos) < MAP_OBJ_SMALL_BUILDING ||
+      game.map->get_obj(pos) > MAP_OBJ_CASTLE) {
     return index_;
   }
 
-  int bld_index = MAP_OBJ_INDEX(pos);
+  int bld_index = game.map->get_obj_index(pos);
   for (int i = 0; i < index_; i++) {
     if (attacking_buildings[i] == bld_index) {
       return index_;
@@ -405,30 +405,30 @@ player_t::knights_available_for_attack(map_pos_t pos) {
 
   /* Iterate each shell around the position.*/
   for (int i = 0; i < 32; i++) {
-    pos = MAP_MOVE_RIGHT(pos);
+    pos = game.map->move_right(pos);
     for (int j = 0; j < i+1; j++) {
       index = available_knights_at_pos(pos, index, i >> 3);
-      pos = MAP_MOVE_DOWN(pos);
+      pos = game.map->move_down(pos);
     }
     for (int j = 0; j < i+1; j++) {
       index = available_knights_at_pos(pos, index, i >> 3);
-      pos = MAP_MOVE_LEFT(pos);
+      pos = game.map->move_left(pos);
     }
     for (int j = 0; j < i+1; j++) {
       index = available_knights_at_pos(pos, index, i >> 3);
-      pos = MAP_MOVE_UP_LEFT(pos);
+      pos = game.map->move_up_left(pos);
     }
     for (int j = 0; j < i+1; j++) {
       index = available_knights_at_pos(pos, index, i >> 3);
-      pos = MAP_MOVE_UP(pos);
+      pos = game.map->move_up(pos);
     }
     for (int j = 0; j < i+1; j++) {
       index = available_knights_at_pos(pos, index, i >> 3);
-      pos = MAP_MOVE_RIGHT(pos);
+      pos = game.map->move_right(pos);
     }
     for (int j = 0; j < i+1; j++) {
       index = available_knights_at_pos(pos, index, i >> 3);
-      pos = MAP_MOVE_DOWN_RIGHT(pos);
+      pos = game.map->move_down_right(pos);
     }
   }
 
@@ -459,14 +459,14 @@ player_t::start_attack() {
     /* TODO building index may not be valid any more(?). */
     building_t *b = game.buildings[attacking_buildings[i]];
     if (b->is_burning() ||
-        MAP_OWNER(b->get_position()) != index) {
+        game.map->get_owner(b->get_position()) != index) {
       continue;
     }
 
-    map_pos_t flag_pos = MAP_MOVE_DOWN_RIGHT(b->get_position());
-    if (MAP_SERF_INDEX(flag_pos) != 0) {
+    map_pos_t flag_pos = game.map->move_down_right(b->get_position());
+    if (game.map->get_serf_index(flag_pos) != 0) {
       /* Check if building is under siege. */
-      serf_t *s = game.serfs[MAP_SERF_INDEX(flag_pos)];
+      serf_t *s = game.serfs[game.map->get_serf_index(flag_pos)];
       if (s->get_player() != index) continue;
     }
 
@@ -510,15 +510,19 @@ player_t::start_attack() {
       target->set_under_attack();
 
       /* Calculate distance to target. */
-      unsigned int dist_col = (MAP_POS_COL(target->get_position()) -
-                               MAP_POS_COL(def_serf->get_pos())) &
-                              game.map.col_mask;
-      if (dist_col >= (game.map.cols >> 1)) dist_col -= game.map.cols;
+      unsigned int dist_col = (game.map->pos_col(target->get_position()) -
+                      game.map->pos_col(def_serf->get_pos())) &
+                     game.map->get_col_mask();
+      if (dist_col >= (game.map->get_cols() >> 1)) {
+        dist_col -= game.map->get_cols();
+      }
 
-      unsigned int dist_row = (MAP_POS_ROW(target->get_position()) -
-                               MAP_POS_ROW(def_serf->get_pos())) &
-                              game.map.row_mask;
-      if (dist_row >= (game.map.rows >> 1)) dist_row -= game.map.rows;
+      unsigned int dist_row = (game.map->pos_row(target->get_position()) -
+                      game.map->pos_row(def_serf->get_pos())) &
+                     game.map->get_row_mask();
+      if (dist_row >= (game.map->get_rows() >> 1)) {
+        dist_row -= game.map->get_rows();
+      }
 
       /* Send this serf off to fight. */
       def_serf->send_off_to_fight(dist_col, dist_row);
@@ -719,7 +723,7 @@ player_t::create_initial_castle_serfs(building_t *castle) {
   inventory->specialize_serf(serf, SERF_TRANSPORTER_INVENTORY);
   serf->init_inventory_transporter(inventory);
 
-  map_set_serf_index(serf->get_pos(), serf->get_index());
+  game.map->set_serf_index(serf->get_pos(), serf->get_index());
 
   building_t *building = game.buildings[this->building];
   building->set_main_serf(serf->get_index());
@@ -906,7 +910,7 @@ player_t::update_knight_morale() {
   gold_deposited = inventory_gold + military_gold;
 
   /* Calculate according to gold collected. */
-  unsigned int map_gold = game.map_gold_deposit;
+  unsigned int map_gold = game.map->get_gold_deposit();
   if (map_gold != 0) {
     while (map_gold > 0xffff) {
       map_gold >>= 1;

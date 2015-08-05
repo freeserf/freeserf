@@ -52,18 +52,20 @@ static const unsigned int walk_cost[] = { 255, 319, 383, 447, 511 };
 static unsigned int
 heuristic_cost(map_pos_t start, map_pos_t end) {
   /* Calculate distance to target. */
-  int dist_col = (MAP_POS_COL(start) - MAP_POS_COL(end)) & game.map.col_mask;
-  if (dist_col >= static_cast<int>(game.map.cols/2.0)) {
-    dist_col -= game.map.cols;
+  int dist_col = (game.map->pos_col(start) - game.map->pos_col(end)) &
+                 game.map->get_col_mask();
+  if (dist_col >= static_cast<int>(game.map->get_cols()/2.0)) {
+    dist_col -= game.map->get_cols();
   }
 
-  int dist_row = (MAP_POS_ROW(start) - MAP_POS_ROW(end)) & game.map.row_mask;
-  if (dist_row >= static_cast<int>(game.map.rows/2.0)) {
-    dist_row -= game.map.rows;
+  int dist_row = (game.map->pos_row(start) - game.map->pos_row(end)) &
+                 game.map->get_row_mask();
+  if (dist_row >= static_cast<int>(game.map->get_rows()/2.0)) {
+    dist_row -= game.map->get_rows();
   }
 
-  int h_diff = abs(static_cast<int>(MAP_HEIGHT(start)) -
-                   static_cast<int>(MAP_HEIGHT(end)));
+  int h_diff = abs(static_cast<int>(game.map->get_height(start)) -
+                   static_cast<int>(game.map->get_height(end)));
   int dist = 0;
 
   if ((dist_col > 0 && dist_row > 0) ||
@@ -77,10 +79,10 @@ heuristic_cost(map_pos_t start, map_pos_t end) {
 }
 
 static unsigned int
-actual_cost(map_pos_t pos, dir_t dir) {
-  map_pos_t other_pos = MAP_MOVE(pos, dir);
-  int h_diff = abs(static_cast<int>(MAP_HEIGHT(pos)) -
-                   static_cast<int>(MAP_HEIGHT(other_pos)));
+actual_cost(map_pos_t pos, dir_t dir, map_t *map) {
+  map_pos_t other_pos = map->move(pos, dir);
+  int h_diff = abs(static_cast<int>(map->get_height(pos)) -
+                   static_cast<int>(map->get_height(other_pos)));
   return walk_cost[h_diff];
 }
 
@@ -139,12 +141,13 @@ pathfinder_map(map_pos_t start, map_pos_t end, unsigned int *length) {
     closed.push_front(node);
 
     for (int d = DIR_RIGHT; d <= DIR_UP; d++) {
-      map_pos_t new_pos = MAP_MOVE(node->pos, d);
-      unsigned int cost = actual_cost(node->pos, static_cast<dir_t>(d));
+      map_pos_t new_pos = game.map->move(node->pos, (dir_t)d);
+      unsigned int cost = actual_cost(node->pos, static_cast<dir_t>(d),
+                                      game.map);
 
       /* Check if neighbour is valid. */
-      if (!game_road_segment_valid(node->pos, static_cast<dir_t>(d)) ||
-          (MAP_OBJ(new_pos) == MAP_OBJ_FLAG && new_pos != end)) {
+      if (!game.map->is_road_segment_valid(node->pos, static_cast<dir_t>(d)) ||
+          (game.map->get_obj(new_pos) == MAP_OBJ_FLAG && new_pos != end)) {
         continue;
       }
 

@@ -34,15 +34,15 @@
 
 void
 minimap_t::draw_minimap_point(int col, int row, uint8_t color, int density) {
-  int map_width = game.map.cols * scale;
-  int map_height = game.map.rows * scale;
+  int map_width = game.map->get_cols() * scale;
+  int map_height = game.map->get_rows() * scale;
 
   if (0 == map_width || 0 == map_height) {
     return;
   }
 
   int mm_y = row*scale - offset_y;
-  col -= (game.map.rows/2) * static_cast<int>(mm_y / map_height);
+  col -= (game.map->get_rows()/2) * static_cast<int>(mm_y / map_height);
   mm_y = mm_y % map_height;
 
   while (mm_y < height) {
@@ -56,16 +56,16 @@ minimap_t::draw_minimap_point(int col, int row, uint8_t color, int density) {
         mm_x += map_width;
       }
     }
-    col -= game.map.rows/2;
+    col -= game.map->get_rows()/2;
     mm_y += map_height;
   }
 }
 
 void
 minimap_t::draw_minimap_map() {
-  uint8_t *color_data = game.minimap;
-  for (unsigned int row = 0; row < game.map.rows; row++) {
-    for (unsigned int col = 0; col < game.map.cols; col++) {
+  uint8_t *color_data = game.map->get_minimap();
+  for (unsigned int row = 0; row < game.map->get_rows(); row++) {
+    for (unsigned int col = 0; col < game.map->get_cols(); col++) {
       uint8_t color = *(color_data++);
       draw_minimap_point(col, row, color, scale);
     }
@@ -74,11 +74,11 @@ minimap_t::draw_minimap_map() {
 
 void
 minimap_t::draw_minimap_ownership(int density) {
-  for (unsigned int row = 0; row < game.map.rows; row++) {
-    for (unsigned int col = 0; col < game.map.cols; col++) {
-      map_pos_t pos = MAP_POS(col, row);
-      if (MAP_HAS_OWNER(pos)) {
-        int color = game.players[MAP_OWNER(pos)]->get_color();
+  for (unsigned int row = 0; row < game.map->get_rows(); row++) {
+    for (unsigned int col = 0; col < game.map->get_cols(); col++) {
+      map_pos_t pos = game.map->pos(col, row);
+      if (game.map->has_owner(pos)) {
+        int color = game.players[game.map->get_owner(pos)]->get_color();
         draw_minimap_point(col, row, color, density);
       }
     }
@@ -87,10 +87,10 @@ minimap_t::draw_minimap_ownership(int density) {
 
 void
 minimap_t::draw_minimap_roads() {
-  for (unsigned int row = 0; row < game.map.rows; row++) {
-    for (unsigned int col = 0; col < game.map.cols; col++) {
-      int pos = MAP_POS(col, row);
-      if (MAP_PATHS(pos)) {
+  for (unsigned int row = 0; row < game.map->get_rows(); row++) {
+    for (unsigned int col = 0; col < game.map->get_cols(); col++) {
+      int pos = game.map->pos(col, row);
+      if (game.map->paths(pos)) {
         draw_minimap_point(col, row, 1, scale);
       }
     }
@@ -111,14 +111,14 @@ minimap_t::draw_minimap_buildings() {
     BUILDING_GOLDSMELTER
   };
 
-  for (unsigned int row = 0; row < game.map.rows; row++) {
-    for (unsigned int col = 0; col < game.map.cols; col++) {
-      int pos = MAP_POS(col, row);
-      int obj = MAP_OBJ(pos);
+  for (unsigned int row = 0; row < game.map->get_rows(); row++) {
+    for (unsigned int col = 0; col < game.map->get_cols(); col++) {
+      int pos = game.map->pos(col, row);
+      int obj = game.map->get_obj(pos);
       if (obj > MAP_OBJ_FLAG && obj <= MAP_OBJ_CASTLE) {
-        int color = game.players[MAP_OWNER(pos)]->get_color();
+        int color = game.players[game.map->get_owner(pos)]->get_color();
         if (advanced > 0) {
-          building_t *bld = game.buildings[MAP_OBJ_INDEX(pos)];
+          building_t *bld = game.buildings[game.map->get_obj_index(pos)];
           if (bld->get_type() == building_remap[advanced]) {
             draw_minimap_point(col, row, color, scale);
           }
@@ -132,11 +132,11 @@ minimap_t::draw_minimap_buildings() {
 
 void
 minimap_t::draw_minimap_traffic() {
-  for (unsigned int row = 0; row < game.map.rows; row++) {
-    for (unsigned int col = 0; col < game.map.cols; col++) {
-      int pos = MAP_POS(col, row);
-      if (MAP_IDLE_SERF(pos)) {
-        int color = game.players[MAP_OWNER(pos)]->get_color();
+  for (unsigned int row = 0; row < game.map->get_rows(); row++) {
+    for (unsigned int col = 0; col < game.map->get_cols(); col++) {
+      int pos = game.map->pos(col, row);
+      if (game.map->get_idle_serf(pos)) {
+        int color = game.players[game.map->get_owner(pos)]->get_color();
         draw_minimap_point(col, row, color, scale);
       }
     }
@@ -145,12 +145,12 @@ minimap_t::draw_minimap_traffic() {
 
 void
 minimap_t::draw_minimap_grid() {
-  for (unsigned int y = 0; y < game.map.rows * scale; y += 2) {
+  for (unsigned int y = 0; y < game.map->get_rows() * scale; y += 2) {
     draw_minimap_point(0, y, 47, 1);
     draw_minimap_point(0, y+1, 1, 1);
   }
 
-  for (unsigned int x = 0; x < game.map.cols * scale; x += 2) {
+  for (unsigned int x = 0; x < game.map->get_cols() * scale; x += 2) {
     draw_minimap_point(x, 0, 47, 1);
     draw_minimap_point(x+1, 0, 1, 1);
   }
@@ -249,8 +249,8 @@ minimap_t::set_scale(int scale) {
 
 void
 minimap_t::screen_pix_from_map_pix(int mx, int my, int *sx, int *sy) {
-  int width = game.map.cols * scale;
-  int height = game.map.rows * scale;
+  int width = game.map->get_cols() * scale;
+  int height = game.map->get_rows() * scale;
 
   *sx = mx - offset_x;
   *sy = my - offset_y;
@@ -271,11 +271,11 @@ minimap_t::screen_pix_from_map_pix(int mx, int my, int *sx, int *sy) {
 
 void
 minimap_t::map_pix_from_map_coord(map_pos_t pos, int *mx, int *my) {
-  int width = game.map.cols * scale;
-  int height = game.map.rows * scale;
+  int width = game.map->get_cols() * scale;
+  int height = game.map->get_rows() * scale;
 
-  *mx = scale*MAP_POS_COL(pos) - (scale*MAP_POS_ROW(pos))/2;
-  *my = scale*MAP_POS_ROW(pos);
+  *mx = scale * game.map->pos_col(pos) - (scale * game.map->pos_row(pos))/2;
+  *my = scale * game.map->pos_row(pos);
 
   if (*my < 0) {
     *mx -= height/2;
@@ -291,10 +291,10 @@ minimap_t::map_pos_from_screen_pix(int x, int y) {
   int mx = x + offset_x;
   int my = y + offset_y;
 
-  int col = ((my/2 + mx)/scale) & game.map.col_mask;
-  int row = (my/scale) & game.map.row_mask;
+  int col = ((my/2 + mx)/scale) & game.map->get_col_mask();
+  int row = (my/scale) & game.map->get_row_mask();
 
-  return MAP_POS(col, row);
+  return game.map->pos(col, row);
 }
 
 map_pos_t
@@ -307,8 +307,8 @@ minimap_t::move_to_map_pos(map_pos_t pos) {
   int mx, my;
   map_pix_from_map_coord(pos, &mx, &my);
 
-  int map_width = game.map.cols*scale;
-  int map_height = game.map.rows*scale;
+  int map_width = game.map->get_cols()*scale;
+  int map_height = game.map->get_rows()*scale;
 
   /* Center view */
   mx -= width/2;
@@ -330,8 +330,8 @@ minimap_t::move_to_map_pos(map_pos_t pos) {
 
 void
 minimap_t::move_by_pixels(int dx, int dy) {
-  int width = game.map.cols * scale;
-  int height = game.map.rows * scale;
+  int width = game.map->get_cols() * scale;
+  int height = game.map->get_rows() * scale;
 
   offset_x += dx;
   offset_y += dy;

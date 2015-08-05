@@ -45,7 +45,7 @@ typedef collection_t<serf_t> serfs_t;
 typedef collection_t<player_t> players_t;
 
 typedef struct {
-  map_t map; /* ADDITION */
+  map_t *map; /* ADDITION */
   /* 0 */
   /* MOVED to map_t
   uint32_t map_index_mask;
@@ -82,9 +82,7 @@ typedef struct {
   /* 78 */
   /*interface_t *interface;*/
   /* 80 */
-  int *spiral_pattern;
   /*void *player_map_rows[2];*/ /* OBSOLETE */
-  uint8_t *minimap;
   /* 90 */
   /*int **map_serf_rows_left;*/ /* OBSOLETE */
   /*int **map_serf_rows_right;*/ /* OBSOLETE */
@@ -97,7 +95,6 @@ typedef struct {
   flag_t **flag_queue_black;
   flag_t **flag_queue_white; */
   /* C4 */
-  map_pos_t *spiral_pos_pattern;
   /* F0 */
   /* 108 */
   /*frame_t *frame;*/
@@ -211,7 +208,7 @@ int game_add_player(unsigned int face, unsigned int color,
                     unsigned int supplies, unsigned int reproduction,
                     unsigned int intelligence);
 int game_load_mission_map(int m);
-int game_load_random_map(int size, const random_state_t *rnd);
+int game_load_random_map(int size, const random_state_t &rnd);
 int game_load_save_game(const char *path);
 void game_allocate_objects();
 
@@ -222,8 +219,6 @@ void game_prepare_ground_analysis(map_pos_t pos, int estimates[5]);
 int game_send_geologist(flag_t *dest);
 
 int game_get_leveling_height(map_pos_t pos);
-
-int game_road_segment_valid(map_pos_t pos, dir_t dir);
 
 int game_can_build_military(map_pos_t pos);
 int game_can_build_small(map_pos_t pos);
@@ -270,5 +265,7 @@ uint16_t game_random_int();
 
 int game_send_serf_to_flag(flag_t *dest, serf_type_t type, resource_type_t res1,
                            resource_type_t res2);
+
+void game_deinit();
 
 #endif  // SRC_GAME_H_

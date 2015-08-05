@@ -49,12 +49,6 @@ static unsigned int max_inventory_index = 0;
 static unsigned int max_building_index = 0;
 static unsigned int max_serf_index = 0;
 
-static map_pos_t
-load_v0_map_pos(const v0_map_t *map, uint32_t value) {
-  return MAP_POS((value >> 2) & (map->cols-1),
-           (value >> (2 + map->row_shift)) & (map->rows-1));
-}
-
 /* Load main game state from save game. */
 static int
 load_v0_game_state(FILE *f, v0_map_t *map) {
@@ -69,18 +63,13 @@ load_v0_game_state(FILE *f, v0_map_t *map) {
 
   /* Load these first so map dimensions can be reconstructed.
      This is necessary to load map positions. */
-  game.map_size = *reinterpret_cast<uint16_t*>(&data[190]);
+  unsigned int size = *reinterpret_cast<uint16_t*>(&data[190]);
+  game.map->init(size);
 
   map->row_shift = *reinterpret_cast<uint16_t*>(&data[42]);
   map->cols = *reinterpret_cast<uint16_t*>(&data[62]);
   map->rows = *reinterpret_cast<uint16_t*>(&data[64]);
-
-  /* Init the rest of map dimensions. */
-  game.map.col_size = 5 + game.map_size/2;
-  game.map.row_size = 5 + (game.map_size - 1)/2;
-  game.map.cols = 1 << game.map.col_size;
-  game.map.rows = 1 << game.map.row_size;
-  map_init_dimensions(&game.map);
+  game.map->init_dimensions();
 
   /* Allocate game objects */
 //  const int max_map_size = 10;
@@ -111,8 +100,8 @@ load_v0_game_state(FILE *f, v0_map_t *map) {
 
   game.split = *reinterpret_cast<uint8_t*>(&data[66]);
   /* game.field_37F = *(uint8_t *)&data[67]; */
-  game.update_map_initial_pos = load_v0_map_pos(map,
-                                       *reinterpret_cast<uint32_t*>(&data[68]));
+//  game.map.update_map_initial_pos =
+//                                 load_v0_map_pos(map, *(uint32_t *)&data[68]);
 
   game.game_type = *reinterpret_cast<uint16_t*>(&data[74]);
   game.tick = *reinterpret_cast<uint32_t*>(&data[76]);
@@ -129,8 +118,8 @@ load_v0_game_state(FILE *f, v0_map_t *map) {
 
   game.next_index = *reinterpret_cast<uint16_t*>(&data[96]);
   game.flag_search_counter = *reinterpret_cast<uint16_t*>(&data[98]);
-  game.update_map_last_tick = *reinterpret_cast<uint16_t*>(&data[100]);
-  game.update_map_counter = *reinterpret_cast<uint16_t*>(&data[102]);
+//  game.map.update_map_last_tick = *(uint16_t *)&data[100];
+//  game.map.update_map_counter = *(uint16_t *)&data[102];
 
   for (int i = 0; i < 4; i++) {
     game.player_history_index[i] =
@@ -144,7 +133,7 @@ load_v0_game_state(FILE *f, v0_map_t *map) {
 
   game.resource_history_index = *reinterpret_cast<uint16_t*>(&data[118]);
 
-  game.map_regions = *reinterpret_cast<uint16_t*>(&data[120]);
+//  game.map.regions = *(uint16_t *)&data[120];
 
   if (0/*game.game_type == GAME_TYPE_TUTORIAL*/) {
     game.tutorial_level = *reinterpret_cast<uint16_t*>(&data[122]);
@@ -188,8 +177,8 @@ load_v0_game_state(FILE *f, v0_map_t *map) {
   /* game.max_stock_buildings = *(uint16_t *)&data[178]; */
   game.max_next_index = *reinterpret_cast<uint16_t*>(&data[180]);
 //  game.max_serfs_from_land = *(uint16_t *)&data[182];
-  game.map_gold_deposit = *reinterpret_cast<uint32_t*>(&data[184]);
-  game.update_map_16_loop = *reinterpret_cast<uint16_t*>(&data[188]);
+//  game.map.gold_deposit = *(uint32_t *)&data[184];
+//  game.map.update_map_16_loop = *(uint16_t *)&data[188];
 
   /*
   game.map_field_52 = *(uint16_t *)&data[192];
@@ -255,32 +244,8 @@ load_v0_map_state(FILE *f, const v0_map_t *map) {
     return -1;
   }
 
-  map_tile_t *tiles = game.map.tiles;
-
-  for (unsigned int y = 0; y < game.map.rows; y++) {
-    for (unsigned int x = 0; x < game.map.cols; x++) {
-      map_pos_t pos = MAP_POS(x, y);
-      uint8_t *field_1_data = &data[4*(x + (y << map->row_shift))];
-      uint8_t *field_2_data = &data[4*(x + (y << map->row_shift)) +
-                                    4*map->cols];
-
-      tiles[pos].paths = field_1_data[0] & 0x3f;
-      tiles[pos].height = field_1_data[1] & 0x1f;
-      tiles[pos].type = field_1_data[2];
-      tiles[pos].obj = field_1_data[3] & 0x7f;
-
-      if (MAP_OBJ(pos) >= MAP_OBJ_FLAG &&
-          MAP_OBJ(pos) <= MAP_OBJ_CASTLE) {
-        tiles[pos].resource = 0;
-        tiles[pos].obj_index = *reinterpret_cast<uint16_t*>(&field_2_data[0]);
-      } else {
-        tiles[pos].resource = field_2_data[0];
-        tiles[pos].obj_index = 0;
-      }
-
-      tiles[pos].serf = *reinterpret_cast<uint16_t*>(&field_2_data[2]);
-    }
-  }
+  save_reader_binary_t reader(data, 8*tile_count);
+  reader >> *game.map;
 
   free(data);
 
@@ -368,11 +333,11 @@ load_v0_flag_state(FILE *f) {
   free(flag_bitmap);
 
   /* Set flag positions. */
-  for (unsigned int y = 0; y < game.map.rows; y++) {
-    for (unsigned int x = 0; x < game.map.cols; x++) {
-      map_pos_t pos = MAP_POS(x, y);
-      if (MAP_OBJ(pos) == MAP_OBJ_FLAG) {
-        flag_t *flag = game.flags[MAP_OBJ_INDEX(pos)];
+  for (unsigned int y = 0; y < game.map->get_rows(); y++) {
+    for (unsigned int x = 0; x < game.map->get_cols(); x++) {
+      map_pos_t pos = game.map->pos(x, y);
+      if (game.map->get_obj(pos) == MAP_OBJ_FLAG) {
+        flag_t *flag = game.flags[game.map->get_obj_index(pos)];
         flag->set_position(pos);
       }
     }
@@ -512,7 +477,7 @@ save_text_write_string(FILE *f, const char *name, const char *value) {
 static void
 save_text_write_map_pos(FILE *f, const char *name, map_pos_t pos) {
   fprintf(f, "%s=%u,%u\n", name,
-    MAP_POS_COL(pos), MAP_POS_ROW(pos));
+    game.map->pos_col(pos), game.map->pos_row(pos));
 }
 
 static void
@@ -532,12 +497,12 @@ save_text_game_state(FILE *f) {
 
   save_text_write_string(f, "version", FREESERF_VERSION);
 
-  save_text_write_value(f, "map.col_size", game.map.col_size);
-  save_text_write_value(f, "map.row_size", game.map.row_size);
+//  save_text_write_value(f, "map.col_size", game.map.col_size);
+//  save_text_write_value(f, "map.row_size", game.map.row_size);
 
   save_text_write_value(f, "split", game.split);
-  save_text_write_map_pos(f, "update_map_initial_pos",
-                          game.update_map_initial_pos);
+//  save_text_write_map_pos(f, "update_map_initial_pos",
+//                                             game.map.update_map_initial_pos);
 
   save_text_write_value(f, "game_type", game.game_type);
   save_text_write_value(f, "tick", game.tick);
@@ -549,8 +514,9 @@ save_text_game_state(FILE *f) {
 
   save_text_write_value(f, "next_index", game.next_index);
   save_text_write_value(f, "flag_search_counter", game.flag_search_counter);
-  save_text_write_value(f, "update_map_last_tick", game.update_map_last_tick);
-  save_text_write_value(f, "update_map_counter", game.update_map_counter);
+//  save_text_write_value(f, "update_map_last_tick",
+//                                               game.map.update_map_last_tick);
+//  save_text_write_value(f, "update_map_counter", game.map.update_map_counter);
 
   save_text_write_array(f, "player_history_index",
                         game.player_history_index, 4);
@@ -559,11 +525,11 @@ save_text_game_state(FILE *f) {
   save_text_write_value(f, "resource_history_index",
                         game.resource_history_index);
 
-  save_text_write_value(f, "map.regions", game.map_regions);
+//  save_text_write_value(f, "map.regions", game.map.regions);
 
   save_text_write_value(f, "max_next_index", game.max_next_index);
-  save_text_write_value(f, "map.gold_deposit", game.map_gold_deposit);
-  save_text_write_value(f, "update_map_16_loop", game.update_map_16_loop);
+//  save_text_write_value(f, "map.gold_deposit", game.map.gold_deposit);
+//  save_text_write_value(f, "update_map_16_loop", game.map.update_map_16_loop);
 
   save_text_write_value(f, "map.gold_morale_factor",
                         game.map_gold_morale_factor);
@@ -672,9 +638,11 @@ save_text_map_state(FILE *f) {
   int resources[SAVE_MAP_TILE_COUNT];
   int resource_type[SAVE_MAP_TILE_COUNT];
 
-  for (unsigned int ty = 0; ty < game.map.rows; ty += SAVE_MAP_TILE_SIZE) {
-    for (unsigned int tx = 0; tx < game.map.cols; tx += SAVE_MAP_TILE_SIZE) {
-      map_pos_t pos = MAP_POS(tx, ty);
+  for (unsigned int ty = 0; ty < game.map->get_rows();
+       ty += SAVE_MAP_TILE_SIZE) {
+    for (unsigned int tx = 0; tx < game.map->get_cols();
+         tx += SAVE_MAP_TILE_SIZE) {
+      map_pos_t pos = game.map->pos(tx, ty);
 
       fprintf(f, "[map]\n");
 
@@ -682,21 +650,21 @@ save_text_map_state(FILE *f) {
 
       for (int y = 0; y < SAVE_MAP_TILE_SIZE; y++) {
         for (int x = 0; x < SAVE_MAP_TILE_SIZE; x++) {
-          map_pos_t pos = MAP_POS(tx+x, ty+y);
+          map_pos_t pos = game.map->pos(tx+x, ty+y);
           int i = y*SAVE_MAP_TILE_SIZE + x;
-          height[i] = MAP_HEIGHT(pos);
-          type_up[i] = MAP_TYPE_UP(pos);
-          type_down[i] = MAP_TYPE_DOWN(pos);
-          paths[i] = MAP_PATHS(pos);
-          obj[i] = MAP_OBJ(pos);
-          serfs[i] = MAP_SERF_INDEX(pos);
+          height[i] = game.map->get_height(pos);
+          type_up[i] = game.map->type_up(pos);
+          type_down[i] = game.map->type_down(pos);
+          paths[i] = game.map->paths(pos);
+          obj[i] = game.map->get_obj(pos);
+          serfs[i] = game.map->get_serf_index(pos);
 
-          if (MAP_IN_WATER(pos)) {
+          if (game.map->is_in_water(pos)) {
             resource_type[i] = 0;
-            resources[i] = MAP_RES_FISH(pos);
+            resources[i] = game.map->get_res_fish(pos);
           } else {
-            resource_type[i] = MAP_RES_TYPE(pos);
-            resources[i] = MAP_RES_AMOUNT(pos);
+            resource_type[i] = game.map->get_res_type(pos);
+            resources[i] = game.map->get_res_amount(pos);
           }
         }
       }
@@ -950,17 +918,6 @@ load_text_get_setting(const section_t *section, const char *key) {
   return NULL;
 }
 
-static map_pos_t
-parse_map_pos(char *str) {
-  char *s = strchr(str, ',');
-  if (s == NULL) return 0;
-
-  s[0] = '\0';
-  s += 1;
-
-  return MAP_POS(atoi(str), atoi(s));
-}
-
 static char *
 parse_array_value(char **str) {
   char *value = *str;
@@ -995,18 +952,16 @@ load_text_game_state(list_t *sections) {
      so that map positions can be loaded properly. */
   value = load_text_get_setting(section, "map.col_size");
   if (value == NULL) return -1;
-  game.map.col_size = atoi(value);
+  unsigned int col_size = atoi(value);
 
   value = load_text_get_setting(section, "map.row_size");
   if (value == NULL) return -1;
-  game.map.row_size = atoi(value);
+  unsigned int row_size = atoi(value);
 
-  game.map_size = (game.map.col_size + game.map.row_size) - 9;
+  unsigned int size = (col_size + row_size) - 9;
 
   /* Initialize remaining map dimensions. */
-  game.map.cols = 1 << game.map.col_size;
-  game.map.rows = 1 << game.map.row_size;
-  map_init_dimensions(&game.map);
+  game.map->init(size);
 
   /* Load the remaining game state. */
   list_foreach(&section->settings, elm) {
@@ -1019,7 +974,7 @@ load_text_game_state(list_t *sections) {
     } else if (!strcmp(s->key, "split")) {
       game.split = atoi(s->value);
     } else if (!strcmp(s->key, "update_map_initial_pos")) {
-      game.update_map_initial_pos = parse_map_pos(s->value);
+//      game.map.update_map_initial_pos = parse_map_pos(s->value);
     } else if (!strcmp(s->key, "game_type")) {
       game.game_type = atoi(s->value);
     } else if (!strcmp(s->key, "tick")) {
@@ -1035,9 +990,9 @@ load_text_game_state(list_t *sections) {
     } else if (!strcmp(s->key, "flag_search_counter")) {
       game.flag_search_counter = atoi(s->value);
     } else if (!strcmp(s->key, "update_map_last_tick")) {
-      game.update_map_last_tick = atoi(s->value);
+//      game.map.update_map_last_tick = atoi(s->value);
     } else if (!strcmp(s->key, "update_map_counter")) {
-      game.update_map_counter = atoi(s->value);
+//      game.map.update_map_counter = atoi(s->value);
     } else if (!strcmp(s->key, "player_history_index")) {
       char *array = s->value;
       for (int i = 0; i < 4 && array != NULL; i++) {
@@ -1053,13 +1008,13 @@ load_text_game_state(list_t *sections) {
     } else if (!strcmp(s->key, "resource_history_index")) {
       game.resource_history_index = atoi(s->value);
     } else if (!strcmp(s->key, "map.regions")) {
-      game.map_regions = atoi(s->value);
+//      game.map.regions = atoi(s->value);
     } else if (!strcmp(s->key, "max_next_index")) {
       game.max_next_index = atoi(s->value);
     } else if (!strcmp(s->key, "map.gold_deposit")) {
-      game.map_gold_deposit = atoi(s->value);
+//      game.map.gold_deposit = atoi(s->value);
     } else if (!strcmp(s->key, "update_map_16_loop")) {
-      game.update_map_16_loop = atoi(s->value);
+//      game.map.update_map_16_loop = atoi(s->value);
     } else if (!strcmp(s->key, "map.gold_morale_factor")) {
       game.map_gold_morale_factor = atoi(s->value);
     } else if (!strcmp(s->key, "winning_player")) {
@@ -1239,103 +1194,8 @@ load_text_serf_state(list_t *sections) {
 
 static int
 load_text_map_section(section_t *section) {
-  char *value = load_text_get_setting(section, "pos");
-  if (value == NULL) return -1;
-
-  map_pos_t pos = parse_map_pos(value);
-
-  map_tile_t *tiles = game.map.tiles;
-
-  /* Load the map tile. */
-  list_elm_t *elm;
-  list_foreach(&section->settings, elm) {
-    setting_t *s = reinterpret_cast<setting_t*>(elm);
-    if (!strcmp(s->key, "pos")) {
-      /* Already handled */
-    } else if (!strcmp(s->key, "paths")) {
-      char *array = s->value;
-      for (int y = 0; y < SAVE_MAP_TILE_SIZE; y++) {
-        for (int x = 0; x < SAVE_MAP_TILE_SIZE; x++) {
-          if (array == NULL) return -1;
-          map_pos_t p = MAP_POS_ADD(pos, MAP_POS(x, y));
-          char *v = parse_array_value(&array);
-          tiles[p].paths = atoi(v) & 0x3f;
-        }
-      }
-    } else if (!strcmp(s->key, "height")) {
-      char *array = s->value;
-      for (int y = 0; y < SAVE_MAP_TILE_SIZE; y++) {
-        for (int x = 0; x < SAVE_MAP_TILE_SIZE; x++) {
-          if (array == NULL) return -1;
-          map_pos_t p = MAP_POS_ADD(pos, MAP_POS(x, y));
-          char *v = parse_array_value(&array);
-          tiles[p].height = atoi(v) & 0x1f;
-        }
-      }
-    } else if (!strcmp(s->key, "type.up")) {
-      char *array = s->value;
-      for (int y = 0; y < SAVE_MAP_TILE_SIZE; y++) {
-        for (int x = 0; x < SAVE_MAP_TILE_SIZE; x++) {
-          if (array == NULL) return -1;
-          map_pos_t p = MAP_POS_ADD(pos, MAP_POS(x, y));
-          char *v = parse_array_value(&array);
-          tiles[p].type = ((atoi(v) & 0xf) << 4) | (tiles[p].type & 0xf);
-        }
-      }
-    } else if (!strcmp(s->key, "type.down")) {
-      char *array = s->value;
-      for (int y = 0; y < SAVE_MAP_TILE_SIZE; y++) {
-        for (int x = 0; x < SAVE_MAP_TILE_SIZE; x++) {
-          if (array == NULL) return -1;
-          map_pos_t p = MAP_POS_ADD(pos, MAP_POS(x, y));
-          char *v = parse_array_value(&array);
-          tiles[p].type = (tiles[p].type & 0xf0) | (atoi(v) & 0xf);
-        }
-      }
-    } else if (!strcmp(s->key, "object")) {
-      char *array = s->value;
-      for (int y = 0; y < SAVE_MAP_TILE_SIZE; y++) {
-        for (int x = 0; x < SAVE_MAP_TILE_SIZE; x++) {
-          if (array == NULL) return -1;
-          map_pos_t p = MAP_POS_ADD(pos, MAP_POS(x, y));
-          char *v = parse_array_value(&array);
-          tiles[p].obj = atoi(v) & 0x7f;
-        }
-      }
-    } else if (!strcmp(s->key, "serf")) {
-      char *array = s->value;
-      for (int y = 0; y < SAVE_MAP_TILE_SIZE; y++) {
-        for (int x = 0; x < SAVE_MAP_TILE_SIZE; x++) {
-          if (array == NULL) return -1;
-          map_pos_t p = MAP_POS_ADD(pos, MAP_POS(x, y));
-          char *v = parse_array_value(&array);
-          tiles[p].serf = atoi(v);
-        }
-      }
-    } else if (!strcmp(s->key, "resource.type")) {
-      char *array = s->value;
-      for (int y = 0; y < SAVE_MAP_TILE_SIZE; y++) {
-        for (int x = 0; x < SAVE_MAP_TILE_SIZE; x++) {
-          if (array == NULL) return -1;
-          map_pos_t p = MAP_POS_ADD(pos, MAP_POS(x, y));
-          char *v = parse_array_value(&array);
-          tiles[p].resource = ((atoi(v) & 7) << 5) | (tiles[p].resource & 0x1f);
-        }
-      }
-    } else if (!strcmp(s->key, "resource.amount")) {
-      char *array = s->value;
-      for (int y = 0; y < SAVE_MAP_TILE_SIZE; y++) {
-        for (int x = 0; x < SAVE_MAP_TILE_SIZE; x++) {
-          if (array == NULL) return -1;
-          map_pos_t p = MAP_POS_ADD(pos, MAP_POS(x, y));
-          char *v = parse_array_value(&array);
-          tiles[p].resource = (tiles[p].resource & 0xe0) | (atoi(v) & 0x1f);
-        }
-      }
-    } else {
-      LOGD("savegame", "Unhandled map setting: `%s'.", s->key);
-    }
-  }
+  save_reader_text_section_t reader(section);
+  reader >> *game.map;
 
   return 0;
 }
@@ -1357,7 +1217,7 @@ load_text_map_state(list_t *sections) {
     serf_t *serf = *i;
     if (serf->get_state() == SERF_STATE_IDLE_ON_PATH ||
         serf->get_state() == SERF_STATE_WAIT_IDLE_ON_PATH) {
-      game.map.tiles[serf->get_pos()].obj |= BIT(7);
+      game.map->set_idle_serf(serf->get_pos());
     }
   }
 
@@ -1365,12 +1225,12 @@ load_text_map_state(list_t *sections) {
   for (buildings_t::iterator i = game.buildings.begin();
        i != game.buildings.end(); ++i) {
     building_t *building = *i;
-    if (MAP_OBJ(building->get_position()) < MAP_OBJ_SMALL_BUILDING ||
-        MAP_OBJ(building->get_position()) > MAP_OBJ_CASTLE) {
+    if (game.map->get_obj(building->get_position()) < MAP_OBJ_SMALL_BUILDING ||
+        game.map->get_obj(building->get_position()) > MAP_OBJ_CASTLE) {
       return -1;
     }
 
-    game.map.tiles[building->get_position()].obj_index = building->get_index();
+    game.map->set_obj_index(building->get_position(), building->get_index());
   }
 
   /* Restore flag index */
@@ -1378,11 +1238,11 @@ load_text_map_state(list_t *sections) {
        i != game.flags.end(); ++i) {
     flag_t *flag = *i;
 
-    if (MAP_OBJ(flag->get_position()) != MAP_OBJ_FLAG) {
+    if (game.map->get_obj(flag->get_position()) != MAP_OBJ_FLAG) {
       return false;
     }
 
-    game.map.tiles[flag->get_position()].obj_index = flag->get_index();
+    game.map->set_obj_index(flag->get_position(), flag->get_index());
   }
 
   return 0;

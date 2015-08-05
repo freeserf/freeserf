@@ -161,7 +161,7 @@ game_init_box_t::handle_action(int action) {
     if (game_mission < 0) {
       random_state_t rnd(0x5a5a, (uint16_t)(time(NULL) >> 16),
                          (uint16_t)time(NULL));
-      int r = game_load_random_map(map_size, &rnd);
+      int r = game_load_random_map(map_size, rnd);
       if (r < 0) return;
 
       for (int i = 0; i < GAME_MAX_PLAYER_COUNT; i++) {
@@ -307,3 +307,4 @@ game_init_box_t::game_init_box_t(interface_t *interface) {
   supplies[1] = 30;
   reproduction[1] = 40;
 }
+

@@ -276,7 +276,7 @@ building_t::update(unsigned int tick) {
     if (serf_index >= delta) {
       serf_index -= delta;
     } else {
-      map_set_object(pos, MAP_OBJ_NONE, 0);
+      game.map->set_object(pos, MAP_OBJ_NONE, 0);
       game.buildings.erase(get_index());
     }
   } else {
@@ -505,10 +505,12 @@ building_t::update() {
           }
 
           /* TODO Following code looks like a hack */
-          map_pos_t flag_pos = MAP_MOVE_DOWN_RIGHT(pos);
-          if (MAP_SERF_INDEX(flag_pos) != 0) {
-            serf_t *serf = game.serfs[MAP_SERF_INDEX(flag_pos)];
-            if (serf->get_pos() != flag_pos) map_set_serf_index(flag_pos, 0);
+          map_pos_t flag_pos = game.map->move_down_right(pos);
+          if (game.map->get_serf_index(flag_pos) != 0) {
+            serf_t *serf = game.serfs[game.map->get_serf_index(flag_pos)];
+            if (serf->get_pos() != flag_pos) {
+              game.map->set_serf_index(flag_pos, 0);
+            }
           }
         }
         break;
@@ -825,8 +827,8 @@ building_t::update_unfinished_adv() {
   int need_leveling = 0;
   int height = game_get_leveling_height(pos);
   for (int i = 0; i < 7; i++) {
-    map_pos_t pos = MAP_POS_ADD(this->pos, game.spiral_pos_pattern[i]);
-    if (MAP_HEIGHT(pos) != height) {
+    map_pos_t pos = game.map->pos_add_spirally(this->pos, i);
+    if (game.map->get_height(pos) != height) {
       need_leveling = 1;
       break;
     }
@@ -941,10 +943,10 @@ building_t::update_castle() {
     }
   }
 
-  map_pos_t flag_pos = MAP_MOVE_DOWN_RIGHT(pos);
-  if (MAP_SERF_INDEX(flag_pos) != 0) {
-    serf_t *serf = game.serfs[MAP_SERF_INDEX(flag_pos)];
-    if (serf->get_pos() != flag_pos) map_set_serf_index(flag_pos, 0);
+  map_pos_t flag_pos = game.map->move_down_right(pos);
+  if (game.map->get_serf_index(flag_pos) != 0) {
+    serf_t *serf = game.serfs[game.map->get_serf_index(flag_pos)];
+    if (serf->get_pos() != flag_pos) game.map->set_serf_index(flag_pos, 0);
   }
 }
 
@@ -998,7 +1000,7 @@ building_t::update_military() {
       if (!r) serf |= BIT(2);
     }
   } else if (needed_occupants < present_knights &&
-             MAP_SERF_INDEX(MAP_MOVE_DOWN_RIGHT(pos)) == 0) {
+             game.map->get_serf_index(game.map->move_down_right(pos)) == 0) {
     /* Kick least trained knight out. */
     serf_t *leaving_serf = NULL;
     int serf_index = this->serf_index;
@@ -1194,7 +1196,7 @@ operator >> (save_reader_text_t &reader, building_t &building) {
   unsigned int y = 0;
   reader.value("pos")[0] >> x;
   reader.value("pos")[1] >> y;
-  building.pos = MAP_POS(x, y);
+  building.pos = game.map->pos(x, y);
   reader.value("type") >> building.type;
   reader.value("bld") >> building.bld;
   reader.value("serf") >> building.serf;

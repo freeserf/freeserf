@@ -41,88 +41,6 @@
 
 game_t game = {0};
 
-/* Facilitates quick lookup of offsets following a spiral pattern in the map data.
- The columns following the second are filled out by setup_spiral_pattern(). */
-static int spiral_pattern[] = {
-  0, 0,
-  1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-  2, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-  2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-  3, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-  3, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-  3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-  4, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-  4, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-  4, 3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-  4, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-  5, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-  5, 3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-  5, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-  5, 4, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-  5, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-  6, 3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-  6, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-  6, 4, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-  6, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-  6, 5, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-  6, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-  7, 3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-  7, 4, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-  7, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-  7, 5, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-  7, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-  7, 6, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-  7, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-  8, 4, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-  8, 3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-  8, 5, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-  8, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-  8, 6, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-  8, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-  8, 7, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-  8, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-  9, 4, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-  9, 5, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-  9, 3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-  9, 6, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-  9, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-  9, 7, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-  9, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-  9, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-  16, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-  16, 8, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-  24, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-  24, 8, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-  24, 16, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
-};
-
-/* Initialize the global spiral_pattern. */
-static void
-init_spiral_pattern() {
-  static const int spiral_matrix[] = {
-    1,  0,  0,  1,
-    1,  1, -1,  0,
-    0,  1, -1, -1,
-    -1,  0,  0, -1,
-    -1, -1,  1,  0,
-    0, -1,  1,  1
-  };
-
-  game.spiral_pattern = spiral_pattern;
-
-  for (int i = 0; i < 49; i++) {
-    int x = spiral_pattern[2 + 12*i];
-    int y = spiral_pattern[2 + 12*i + 1];
-
-    for (int j = 0; j < 6; j++) {
-      spiral_pattern[2+12*i+2*j] = x*spiral_matrix[4*j+0] +
-                                   y*spiral_matrix[4*j+2];
-      spiral_pattern[2+12*i+2*j+1] = x*spiral_matrix[4*j+1] +
-                                     y*spiral_matrix[4*j+3];
-    }
-  }
-}
-
 /* Clear the serf request bit of all flags and buildings.
    This allows the flag or building to try and request a
    serf again. */
@@ -662,7 +580,7 @@ game_update() {
   game.tick_diff = game.tick - game.last_tick;
 
   clear_serf_request_failure();
-  map_update();
+  game.map->update(game.tick);
 
   /* Update players */
   for (players_t::iterator it = game.players.begin();
@@ -729,11 +647,11 @@ game_pause(int enable) {
 /* Generate an estimate of the amount of resources in the ground at map pos.*/
 static void
 get_resource_estimate(map_pos_t pos, int weight, int estimates[5]) {
-  if ((MAP_OBJ(pos) == MAP_OBJ_NONE ||
-       MAP_OBJ(pos) >= MAP_OBJ_TREE_0) &&
-       MAP_RES_TYPE(pos) != GROUND_DEPOSIT_NONE) {
-    int value = weight*MAP_RES_AMOUNT(pos);
-    estimates[MAP_RES_TYPE(pos)] += value;
+  if ((game.map->get_obj(pos) == MAP_OBJ_NONE ||
+       game.map->get_obj(pos) >= MAP_OBJ_TREE_0) &&
+       game.map->get_res_type(pos) != GROUND_DEPOSIT_NONE) {
+    int value = weight * game.map->get_res_amount(pos);
+    estimates[game.map->get_res_type(pos)] += value;
   }
 }
 
@@ -749,36 +667,36 @@ game_prepare_ground_analysis(map_pos_t pos, int estimates[5]) {
      The weighting of the samples attenuates linearly
      with the distance to the center. */
   for (int i = 0; i < GROUND_ANALYSIS_RADIUS-1; i++) {
-    pos = MAP_MOVE_RIGHT(pos);
+    pos = game.map->move_right(pos);
 
     for (int j = 0; j < i+1; j++) {
       get_resource_estimate(pos, GROUND_ANALYSIS_RADIUS-i, estimates);
-      pos = MAP_MOVE_DOWN(pos);
+      pos = game.map->move_down(pos);
     }
 
     for (int j = 0; j < i+1; j++) {
       get_resource_estimate(pos, GROUND_ANALYSIS_RADIUS-i, estimates);
-      pos = MAP_MOVE_LEFT(pos);
+      pos = game.map->move_left(pos);
     }
 
     for (int j = 0; j < i+1; j++) {
       get_resource_estimate(pos, GROUND_ANALYSIS_RADIUS-i, estimates);
-      pos = MAP_MOVE_UP_LEFT(pos);
+      pos = game.map->move_up_left(pos);
     }
 
     for (int j = 0; j < i+1; j++) {
       get_resource_estimate(pos, GROUND_ANALYSIS_RADIUS-i, estimates);
-      pos = MAP_MOVE_UP(pos);
+      pos = game.map->move_up(pos);
     }
 
     for (int j = 0; j < i+1; j++) {
       get_resource_estimate(pos, GROUND_ANALYSIS_RADIUS-i, estimates);
-      pos = MAP_MOVE_RIGHT(pos);
+      pos = game.map->move_right(pos);
     }
 
     for (int j = 0; j < i+1; j++) {
       get_resource_estimate(pos, GROUND_ANALYSIS_RADIUS-i, estimates);
-      pos = MAP_MOVE_DOWN_RIGHT(pos);
+      pos = game.map->move_down_right(pos);
     }
   }
 
@@ -789,35 +707,10 @@ game_prepare_ground_analysis(map_pos_t pos, int estimates[5]) {
   }
 }
 
-/* Return non-zero if the road segment from pos in direction dir
-can be successfully constructed at the current time. */
-int
-game_road_segment_valid(map_pos_t pos, dir_t dir) {
-  map_pos_t other_pos = MAP_MOVE(pos, dir);
-
-  map_obj_t obj = MAP_OBJ(other_pos);
-  if ((MAP_PATHS(other_pos) != 0 && obj != MAP_OBJ_FLAG) ||
-    map_space_from_obj[obj] >= MAP_SPACE_SEMIPASSABLE) {
-    return 0;
-  }
-
-  if (!MAP_HAS_OWNER(other_pos) ||
-    MAP_OWNER(other_pos) != MAP_OWNER(pos)) {
-    return 0;
-  }
-
-  if (MAP_IN_WATER(pos) != MAP_IN_WATER(other_pos) &&
-    !(MAP_HAS_FLAG(pos) || MAP_HAS_FLAG(other_pos))) {
-    return 0;
-  }
-
-  return 1;
-}
-
 static int
 road_segment_in_water(map_pos_t pos, dir_t dir) {
   if (dir > DIR_DOWN) {
-    pos = MAP_MOVE(pos, dir);
+    pos = game.map->move(pos, dir);
     dir = DIR_REVERSE(dir);
   }
 
@@ -825,20 +718,20 @@ road_segment_in_water(map_pos_t pos, dir_t dir) {
 
   switch (dir) {
   case DIR_RIGHT:
-    if (MAP_TYPE_DOWN(pos) < 4 &&
-        MAP_TYPE_UP(MAP_MOVE_UP(pos)) < 4) {
+    if (game.map->type_down(pos) < 4 &&
+        game.map->type_up(game.map->move_up(pos)) < 4) {
       water = 1;
     }
     break;
   case DIR_DOWN_RIGHT:
-    if (MAP_TYPE_UP(pos) < 4 &&
-        MAP_TYPE_DOWN(pos) < 4) {
+    if (game.map->type_up(pos) < 4 &&
+        game.map->type_down(pos) < 4) {
       water = 1;
     }
     break;
   case DIR_DOWN:
-    if (MAP_TYPE_UP(pos) < 4 &&
-        MAP_TYPE_DOWN(MAP_MOVE_LEFT(pos)) < 4) {
+    if (game.map->type_up(pos) < 4 &&
+        game.map->type_down(game.map->move_left(pos)) < 4) {
       water = 1;
     }
     break;
@@ -863,15 +756,16 @@ game_can_build_road(map_pos_t source, const dir_t dirs[], unsigned int length,
   map_pos_t pos = source;
   int test = 0;
 
-  if (!MAP_HAS_OWNER(pos) || MAP_OWNER(pos) != player->get_index() ||
-      !MAP_HAS_FLAG(pos)) {
+  if (!game.map->has_owner(pos) ||
+      game.map->get_owner(pos) != player->get_index() ||
+      !game.map->has_flag(pos)) {
     return 0;
   }
 
   for (unsigned int i = 0; i < length; i++) {
     dir_t dir = dirs[i];
 
-    if (!game_road_segment_valid(pos, dir)) {
+    if (!game.map->is_road_segment_valid(pos, dir)) {
       return -1;
     }
 
@@ -881,12 +775,13 @@ game_can_build_road(map_pos_t source, const dir_t dirs[], unsigned int length,
       test |= BIT(0);
     }
 
-    pos = MAP_MOVE(pos, dir);
+    pos = game.map->move(pos, dir);
 
     /* Check that owner is correct, and that only the destination
        has a flag. */
-    if (!MAP_HAS_OWNER(pos) || MAP_OWNER(pos) != player->get_index() ||
-        (MAP_HAS_FLAG(pos) && i != length-1)) {
+    if (!game.map->has_owner(pos) ||
+        game.map->get_owner(pos) != player->get_index() ||
+        (game.map->has_flag(pos) && i != length-1)) {
       return 0;
     }
   }
@@ -919,45 +814,17 @@ game_build_road(map_pos_t source, const dir_t dirs[], unsigned int length,
   int r = game_can_build_road(source, dirs, length,
             player, &dest, &water_path);
   if (!r) return -1;
-  if (!MAP_HAS_FLAG(dest)) return -1;
-
-  map_tile_t *tiles = game.map.tiles;
+  if (!game.map->has_flag(dest)) return -1;
 
   dir_t out_dir = dirs[0];
   dir_t in_dir = DIR_REVERSE(dirs[length-1]);
 
   /* Actually place road segments */
-  map_pos_t pos = source;
-  for (unsigned int i = 0; i < length; i++) {
-    dir_t dir = dirs[i];
-    dir_t rev_dir = DIR_REVERSE(dir);
-
-    if (!game_road_segment_valid(pos, dir)) {
-      /* Not valid after all. Backtrack and abort.
-         This is needed to check that the road
-         does not cross itself. */
-      for (int j = i-1; j >= 0; j--) {
-        dir_t rev_dir = dirs[j];
-        dir_t dir = DIR_REVERSE(rev_dir);
-
-        tiles[pos].paths &= ~BIT(dir);
-        tiles[MAP_MOVE(pos, dir)].paths &= ~BIT(rev_dir);
-
-        pos = MAP_MOVE(pos, dir);
-      }
-
-      return -1;
-    }
-
-    tiles[pos].paths |= BIT(dir);
-    tiles[MAP_MOVE(pos, dir)].paths |= BIT(rev_dir);
-
-    pos = MAP_MOVE(pos, dir);
-  }
+  if (!game.map->place_road_segments(source, dirs, length)) return -1;
 
   /* Connect flags */
-  flag_t *src_flag = game.flags[MAP_OBJ_INDEX(source)];
-  flag_t *dest_flag = game.flags[MAP_OBJ_INDEX(dest)];
+  flag_t *src_flag = game.flags[game.map->get_obj_index(source)];
+  flag_t *dest_flag = game.flags[game.map->get_obj_index(dest)];
 
   src_flag->link_with_flag(dest_flag, water_path == 1, length, in_dir, out_dir);
 
@@ -998,65 +865,6 @@ building_remove_player_refs(building_t *building) {
 }
 
 static int
-remove_road_backref_until_flag(map_pos_t pos, dir_t dir) {
-  map_tile_t *tiles = game.map.tiles;
-
-  while (1) {
-    pos = MAP_MOVE(pos, dir);
-
-    /* Clear backreference */
-    tiles[pos].paths &= ~BIT(DIR_REVERSE(dir));
-
-    if (MAP_OBJ(pos) == MAP_OBJ_FLAG) break;
-
-    /* Find next direction of path. */
-    dir = DIR_NONE;
-    for (int d = DIR_RIGHT; d <= DIR_UP; d++) {
-      if (BIT_TEST(MAP_PATHS(pos), d)) {
-        dir = (dir_t)d;
-        break;
-      }
-    }
-
-    if (dir == -1) return -1;
-  }
-
-  return 0;
-}
-
-static int
-remove_road_backrefs(map_pos_t pos) {
-  if (MAP_PATHS(pos) == 0) return -1;
-
-  /* Find directions of path segments to be split. */
-  dir_t path_1_dir = DIR_NONE;
-  for (int d = DIR_RIGHT; d <= DIR_UP; d++) {
-    if (BIT_TEST(MAP_PATHS(pos), d)) {
-      path_1_dir = (dir_t)d;
-      break;
-    }
-  }
-
-  dir_t path_2_dir = DIR_NONE;
-  for (int d = path_1_dir+1; d <= DIR_UP; d++) {
-    if (BIT_TEST(MAP_PATHS(pos), d)) {
-      path_2_dir = (dir_t)d;
-      break;
-    }
-  }
-
-  if (path_1_dir == -1 || path_2_dir == -1) return -1;
-
-  int r = remove_road_backref_until_flag(pos, path_1_dir);
-  if (r < 0) return -1;
-
-  r = remove_road_backref_until_flag(pos, path_2_dir);
-  if (r < 0) return -1;
-
-  return 0;
-}
-
-static int
 path_serf_idle_to_wait_state(map_pos_t pos) {
   /* Look through serf array for the corresponding serf. */
   for (serfs_t::iterator i = game.serfs.begin();
@@ -1072,17 +880,16 @@ path_serf_idle_to_wait_state(map_pos_t pos) {
 
 static void
 remove_road_forwards(map_pos_t pos, dir_t dir) {
-  map_tile_t *tiles = game.map.tiles;
   dir_t in_dir = DIR_NONE;
 
   while (1) {
-    if (MAP_IDLE_SERF(pos)) {
+    if (game.map->get_idle_serf(pos)) {
       path_serf_idle_to_wait_state(pos);
     }
 
-    if (MAP_SERF_INDEX(pos) != 0) {
-      serf_t *serf = game.serfs[MAP_SERF_INDEX(pos)];
-      if (!MAP_HAS_FLAG(pos)) {
+    if (game.map->get_serf_index(pos) != 0) {
+      serf_t *serf = game.serfs[game.map->get_serf_index(pos)];
+      if (!game.map->has_flag(pos)) {
         serf->set_lost_state();
       } else {
         /* Handle serf close to flag, where
@@ -1096,8 +903,8 @@ remove_road_forwards(map_pos_t pos, dir_t dir) {
       }
     }
 
-    if (MAP_HAS_FLAG(pos)) {
-      flag_t *flag = game.flags[MAP_OBJ_INDEX(pos)];
+    if (game.map->has_flag(pos)) {
+      flag_t *flag = game.flags[game.map->get_obj_index(pos)];
       dir_t rev_dir = DIR_REVERSE(in_dir);
 
       flag->del_path(rev_dir);
@@ -1105,22 +912,7 @@ remove_road_forwards(map_pos_t pos, dir_t dir) {
       break;
     }
 
-    /* Clear forward reference. */
-    tiles[pos].paths &= ~BIT(dir);
-    pos = MAP_MOVE(pos, dir);
-    in_dir = dir;
-
-    /* Clear backreference. */
-    tiles[pos].paths &= ~BIT(DIR_REVERSE(dir));
-
-    /* Find next direction of path. */
-    dir = DIR_NONE;
-    for (int d = DIR_RIGHT; d <= DIR_UP; d++) {
-      if (BIT_TEST(MAP_PATHS(pos), d)) {
-        dir = (dir_t)d;
-        break;
-      }
-    }
+    in_dir = game.map->remove_road_segment(&pos, dir);
   }
 }
 
@@ -1131,8 +923,7 @@ demolish_road(map_pos_t pos) {
   game.player[1]->flags |= BIT(4);
   */
 
-  int r = remove_road_backrefs(pos);
-  if (r < 0) {
+  if (!game.map->remove_road_backrefs(pos)) {
     /* TODO */
     return -1;
   }
@@ -1140,7 +931,7 @@ demolish_road(map_pos_t pos) {
   /* Find directions of path segments to be split. */
   dir_t path_1_dir = DIR_NONE;
   for (int d = DIR_RIGHT; d <= DIR_UP; d++) {
-    if (BIT_TEST(MAP_PATHS(pos), d)) {
+    if (BIT_TEST(game.map->paths(pos), d)) {
       path_1_dir = (dir_t)d;
       break;
     }
@@ -1148,7 +939,7 @@ demolish_road(map_pos_t pos) {
 
   dir_t path_2_dir = DIR_NONE;
   for (int d = path_1_dir+1; d <= DIR_UP; d++) {
-    if (BIT_TEST(MAP_PATHS(pos), d)) {
+    if (BIT_TEST(game.map->paths(pos), d)) {
       path_2_dir = (dir_t)d;
       break;
     }
@@ -1157,7 +948,7 @@ demolish_road(map_pos_t pos) {
   /* If last segment direction is UP LEFT it could
      be to a building and the real path is at UP. */
   if (path_2_dir == DIR_UP_LEFT &&
-      BIT_TEST(MAP_PATHS(pos), DIR_UP)) {
+      BIT_TEST(game.map->paths(pos), DIR_UP)) {
     path_2_dir = DIR_UP;
   }
 
@@ -1181,7 +972,7 @@ build_flag_split_path(map_pos_t pos) {
   /* Find directions of path segments to be split. */
   dir_t path_1_dir = DIR_NONE;
   for (int d = DIR_RIGHT; d <= DIR_UP; d++) {
-    if (BIT_TEST(MAP_PATHS(pos), d)) {
+    if (BIT_TEST(game.map->paths(pos), d)) {
       path_1_dir = (dir_t)d;
       break;
     }
@@ -1189,7 +980,7 @@ build_flag_split_path(map_pos_t pos) {
 
   dir_t path_2_dir = DIR_NONE;
   for (int d = path_1_dir+1; d <= DIR_UP; d++) {
-    if (BIT_TEST(MAP_PATHS(pos), d)) {
+    if (BIT_TEST(game.map->paths(pos), d)) {
       path_2_dir = (dir_t)d;
       break;
     }
@@ -1198,7 +989,7 @@ build_flag_split_path(map_pos_t pos) {
   /* If last segment direction is UP LEFT it could
      be to a building and the real path is at UP. */
   if (path_2_dir == DIR_UP_LEFT &&
-      BIT_TEST(MAP_PATHS(pos), DIR_UP)) {
+      BIT_TEST(game.map->paths(pos), DIR_UP)) {
     path_2_dir = DIR_UP;
   }
 
@@ -1230,7 +1021,7 @@ build_flag_split_path(map_pos_t pos) {
     selected_flag->cancel_serf_request(path_data->flag_dir);
   }
 
-  flag_t *flag = game.flags[MAP_OBJ_INDEX(pos)];
+  flag_t *flag = game.flags[game.map->get_obj_index(pos)];
 
   flag->restore_path_serf_info(path_1_dir, &path_1_data);
   flag->restore_path_serf_info(path_2_dir, &path_2_data);
@@ -1240,29 +1031,29 @@ build_flag_split_path(map_pos_t pos) {
 int
 game_can_build_flag(map_pos_t pos, const player_t *player) {
   /* Check owner of land */
-  if (!MAP_HAS_OWNER(pos) ||
-      MAP_OWNER(pos) != player->get_index()) {
+  if (!game.map->has_owner(pos) ||
+      game.map->get_owner(pos) != player->get_index()) {
     return 0;
   }
 
   /* Check that land is clear */
-  if (map_space_from_obj[MAP_OBJ(pos)] != MAP_SPACE_OPEN) {
+  if (map_t::map_space_from_obj[game.map->get_obj(pos)] != MAP_SPACE_OPEN) {
     return 0;
   }
 
   /* Check whether cursor is in water */
-  if (MAP_TYPE_UP(pos) < 4 &&
-      MAP_TYPE_DOWN(pos) < 4 &&
-      MAP_TYPE_DOWN(MAP_MOVE_LEFT(pos)) < 4 &&
-      MAP_TYPE_UP(MAP_MOVE_UP_LEFT(pos)) < 4 &&
-      MAP_TYPE_DOWN(MAP_MOVE_UP_LEFT(pos)) < 4 &&
-      MAP_TYPE_UP(MAP_MOVE_UP(pos)) < 4) {
+  if (game.map->type_up(pos) < 4 &&
+      game.map->type_down(pos) < 4 &&
+      game.map->type_down(game.map->move_left(pos)) < 4 &&
+      game.map->type_up(game.map->move_up_left(pos)) < 4 &&
+      game.map->type_down(game.map->move_up_left(pos)) < 4 &&
+      game.map->type_up(game.map->move_up(pos)) < 4) {
     return 0;
   }
 
   /* Check that no flags are nearby */
   for (int d = DIR_RIGHT; d <= DIR_UP; d++) {
-    if (MAP_OBJ(MAP_MOVE(pos, d)) == MAP_OBJ_FLAG) {
+    if (game.map->get_obj(game.map->move(pos, (dir_t)d)) == MAP_OBJ_FLAG) {
       return 0;
     }
   }
@@ -1281,9 +1072,9 @@ game_build_flag(map_pos_t pos, player_t *player) {
 
   flag->set_player(player->get_index());
   flag->set_position(pos);
-  map_set_object(pos, MAP_OBJ_FLAG, flg_index);
+  game.map->set_object(pos, MAP_OBJ_FLAG, flg_index);
 
-  if (MAP_PATHS(pos) != 0) {
+  if (game.map->paths(pos) != 0) {
     build_flag_split_path(pos);
   }
 
@@ -1295,10 +1086,10 @@ int
 game_can_build_military(map_pos_t pos) {
   /* Check that no military buildings are nearby */
   for (int i = 0; i < 1+6+12; i++) {
-    map_pos_t p = MAP_POS_ADD(pos, game.spiral_pos_pattern[i]);
-    if (MAP_OBJ(p) >= MAP_OBJ_SMALL_BUILDING &&
-        MAP_OBJ(p) <= MAP_OBJ_CASTLE) {
-      building_t *bld = game.buildings[MAP_OBJ_INDEX(p)];
+    map_pos_t p = game.map->pos_add_spirally(pos, i);
+    if (game.map->get_obj(p) >= MAP_OBJ_SMALL_BUILDING &&
+        game.map->get_obj(p) <= MAP_OBJ_CASTLE) {
+      building_t *bld = game.buildings[game.map->get_obj_index(p)];
       if (bld->is_military()) {
         return 0;
       }
@@ -1316,17 +1107,17 @@ game_get_leveling_height(map_pos_t pos) {
   int h_min = 31;
   int h_max = 0;
   for (int i = 0; i < 12; i++) {
-    map_pos_t p = MAP_POS_ADD(pos, game.spiral_pos_pattern[7+i]);
-    int h = MAP_HEIGHT(p);
+    map_pos_t p = game.map->pos_add_spirally(pos, 7+i);
+    int h = game.map->get_height(p);
     if (h_min > h) h_min = h;
     if (h_max < h) h_max = h;
   }
 
   /* Adjust for height of adjacent unleveled buildings */
   for (int i = 0; i < 18; i++) {
-    map_pos_t p = MAP_POS_ADD(pos, game.spiral_pos_pattern[19+i]);
-    if (MAP_OBJ(p) == MAP_OBJ_LARGE_BUILDING) {
-      building_t *bld = game.buildings[MAP_OBJ_INDEX(p)];
+    map_pos_t p = game.map->pos_add_spirally(pos, 19+i);
+    if (game.map->get_obj(p) == MAP_OBJ_LARGE_BUILDING) {
+      building_t *bld = game.buildings[game.map->get_obj_index(p)];
       if (bld->is_leveling()) { /* Leveling in progress */
         int h = bld->get_level();
         if (h_min > h) h_min = h;
@@ -1339,10 +1130,10 @@ game_get_leveling_height(map_pos_t pos) {
   if (h_max - h_min >= 9) return -1;
 
   /* Calculate "mean" height. Height of center is added twice. */
-  int h_mean = MAP_HEIGHT(pos);
+  int h_mean = game.map->get_height(pos);
   for (int i = 0; i < 7; i++) {
-    map_pos_t p = MAP_POS_ADD(pos, game.spiral_pos_pattern[i]);
-    h_mean += MAP_HEIGHT(p);
+    map_pos_t p = game.map->pos_add_spirally(pos, i);
+    h_mean += game.map->get_height(p);
   }
   h_mean >>= 3;
 
@@ -1356,18 +1147,18 @@ game_get_leveling_height(map_pos_t pos) {
 
 static int
 map_types_within(map_pos_t pos, unsigned int low, unsigned int high) {
-  if ((MAP_TYPE_UP(pos) >= low &&
-       MAP_TYPE_UP(pos) <= high) &&
-      (MAP_TYPE_DOWN(pos) >= low &&
-       MAP_TYPE_DOWN(pos) <= high) &&
-      (MAP_TYPE_DOWN(MAP_MOVE_LEFT(pos)) >= low &&
-       MAP_TYPE_DOWN(MAP_MOVE_LEFT(pos)) <= high) &&
-      (MAP_TYPE_UP(MAP_MOVE_UP_LEFT(pos)) >= low &&
-       MAP_TYPE_UP(MAP_MOVE_UP_LEFT(pos)) <= high) &&
-      (MAP_TYPE_DOWN(MAP_MOVE_UP_LEFT(pos)) >= low &&
-       MAP_TYPE_DOWN(MAP_MOVE_UP_LEFT(pos)) <= high) &&
-      (MAP_TYPE_UP(MAP_MOVE_UP(pos)) >= low &&
-       MAP_TYPE_UP(MAP_MOVE_UP(pos)) <= high)) {
+  if ((game.map->type_up(pos) >= low &&
+       game.map->type_up(pos) <= high) &&
+      (game.map->type_down(pos) >= low &&
+       game.map->type_down(pos) <= high) &&
+      (game.map->type_down(game.map->move_left(pos)) >= low &&
+       game.map->type_down(game.map->move_left(pos)) <= high) &&
+      (game.map->type_up(game.map->move_up_left(pos)) >= low &&
+       game.map->type_up(game.map->move_up_left(pos)) <= high) &&
+      (game.map->type_down(game.map->move_up_left(pos)) >= low &&
+       game.map->type_down(game.map->move_up_left(pos)) <= high) &&
+      (game.map->type_up(game.map->move_up(pos)) >= low &&
+       game.map->type_up(game.map->move_up(pos)) <= high)) {
     return 1;
   }
 
@@ -1391,27 +1182,27 @@ int
 game_can_build_large(map_pos_t pos) {
   /* Check that surroundings are passable by serfs. */
   for (int i = 0; i < 6; i++) {
-    map_pos_t p = MAP_POS_ADD(pos, game.spiral_pos_pattern[1+i]);
-    map_space_t s = map_space_from_obj[MAP_OBJ(p)];
+    map_pos_t p = game.map->pos_add_spirally(pos, 1+i);
+    map_space_t s = map_t::map_space_from_obj[game.map->get_obj(p)];
     if (s >= MAP_SPACE_SEMIPASSABLE) return 0;
   }
 
   /* Check that buildings in the second shell aren't large or castle. */
   for (int i = 0; i < 12; i++) {
-    map_pos_t p = MAP_POS_ADD(pos, game.spiral_pos_pattern[7+i]);
-    if (MAP_OBJ(p) >= MAP_OBJ_LARGE_BUILDING &&
-        MAP_OBJ(p) <= MAP_OBJ_CASTLE) {
+    map_pos_t p = game.map->pos_add_spirally(pos, 7+i);
+    if (game.map->get_obj(p) >= MAP_OBJ_LARGE_BUILDING &&
+        game.map->get_obj(p) <= MAP_OBJ_CASTLE) {
       return 0;
     }
   }
 
   /* Check if center hexagon is not type grass. */
-  if (MAP_TYPE_UP(pos) != 5 ||
-      MAP_TYPE_DOWN(pos) != 5 ||
-      MAP_TYPE_DOWN(MAP_MOVE_LEFT(pos)) != 5 ||
-      MAP_TYPE_UP(MAP_MOVE_UP_LEFT(pos)) != 5 ||
-      MAP_TYPE_DOWN(MAP_MOVE_UP_LEFT(pos)) != 5 ||
-      MAP_TYPE_UP(MAP_MOVE_UP(pos)) != 5) {
+  if (game.map->type_up(pos) != 5 ||
+      game.map->type_down(pos) != 5 ||
+      game.map->type_down(game.map->move_left(pos)) != 5 ||
+      game.map->type_up(game.map->move_up_left(pos)) != 5 ||
+      game.map->type_down(game.map->move_up_left(pos)) != 5 ||
+      game.map->type_up(game.map->move_up(pos)) != 5) {
     return 0;
   }
 
@@ -1429,21 +1220,21 @@ game_can_build_castle(map_pos_t pos, const player_t *player) {
 
   /* Check owner of land around position */
   for (int i = 0; i < 7; i++) {
-    map_pos_t p = MAP_POS_ADD(pos, game.spiral_pos_pattern[i]);
-    if (MAP_HAS_OWNER(p)) return 0;
+    map_pos_t p = game.map->pos_add_spirally(pos, i);
+    if (game.map->has_owner(p)) return 0;
   }
 
   /* Check that land is clear at position */
-  if (map_space_from_obj[MAP_OBJ(pos)] != MAP_SPACE_OPEN ||
-      MAP_PATHS(pos) != 0) {
+  if (map_t::map_space_from_obj[game.map->get_obj(pos)] != MAP_SPACE_OPEN ||
+      game.map->paths(pos) != 0) {
     return 0;
   }
 
-  map_pos_t flag_pos = MAP_MOVE_DOWN_RIGHT(pos);
+  map_pos_t flag_pos = game.map->move_down_right(pos);
 
   /* Check that land is clear at position */
-  if (map_space_from_obj[MAP_OBJ(flag_pos)] != MAP_SPACE_OPEN ||
-      MAP_PATHS(flag_pos) != 0) {
+  if (map_t::map_space_from_obj[game.map->get_obj(flag_pos)] !=
+        MAP_SPACE_OPEN || game.map->paths(flag_pos) != 0) {
     return 0;
   }
 
@@ -1466,25 +1257,25 @@ game_can_player_build(map_pos_t pos, const player_t *player) {
 
   /* Check owner of land around position */
   for (int i = 0; i < 7; i++) {
-    map_pos_t p = MAP_POS_ADD(pos, game.spiral_pos_pattern[i]);
-    if (!MAP_HAS_OWNER(p) ||
-        MAP_OWNER(p) != player->get_index()) {
+    map_pos_t p = game.map->pos_add_spirally(pos, i);
+    if (!game.map->has_owner(p) ||
+        game.map->get_owner(p) != player->get_index()) {
       return 0;
     }
   }
 
   /* Check whether cursor is in water */
-  if (MAP_TYPE_UP(pos) < 4 &&
-      MAP_TYPE_DOWN(pos) < 4 &&
-      MAP_TYPE_DOWN(MAP_MOVE_LEFT(pos)) < 4 &&
-      MAP_TYPE_UP(MAP_MOVE_UP_LEFT(pos)) < 4 &&
-      MAP_TYPE_DOWN(MAP_MOVE_UP_LEFT(pos)) < 4 &&
-      MAP_TYPE_UP(MAP_MOVE_UP(pos)) < 4) {
+  if (game.map->type_up(pos) < 4 &&
+      game.map->type_down(pos) < 4 &&
+      game.map->type_down(game.map->move_left(pos)) < 4 &&
+      game.map->type_up(game.map->move_up_left(pos)) < 4 &&
+      game.map->type_down(game.map->move_up_left(pos)) < 4 &&
+      game.map->type_up(game.map->move_up(pos)) < 4) {
     return 0;
   }
 
   /* Check that no paths are blocking. */
-  if (MAP_PATHS(pos) != 0) return 0;
+  if (game.map->paths(pos) != 0) return 0;
 
   return 1;
 }
@@ -1497,12 +1288,14 @@ game_can_build_building(map_pos_t pos, building_type_t type,
   if (!game_can_player_build(pos, player)) return 0;
 
   /* Check that space is clear */
-  if (map_space_from_obj[MAP_OBJ(pos)] != MAP_SPACE_OPEN) return 0;
+  if (map_t::map_space_from_obj[game.map->get_obj(pos)] != MAP_SPACE_OPEN) {
+    return 0;
+  }
 
   /* Check that building flag is possible if it
      doesn't already exist. */
-  map_pos_t flag_pos = MAP_MOVE_DOWN_RIGHT(pos);
-  if (!MAP_HAS_FLAG(flag_pos) &&
+  map_pos_t flag_pos = game.map->move_down_right(pos);
+  if (!game.map->has_flag(flag_pos) &&
       !game_can_build_flag(flag_pos, player)) {
     return 0;
   }
@@ -1569,14 +1362,12 @@ game_build_building(map_pos_t pos, building_type_t type, player_t *player) {
 
   flag_t *flag = NULL;
   unsigned int flg_index = 0;
-  if (MAP_OBJ(MAP_MOVE_DOWN_RIGHT(pos)) != MAP_OBJ_FLAG) {
+  if (game.map->get_obj(game.map->move_down_right(pos)) != MAP_OBJ_FLAG) {
     if (!game.flags.allocate(&flag, &flg_index)) {
       game.buildings.erase(bld_index);
       return -1;
     }
   }
-
-  map_tile_t *tiles = game.map.tiles;
 
   bld->set_level(game_get_leveling_height(pos));
   bld->set_position(pos);
@@ -1584,32 +1375,33 @@ game_build_building(map_pos_t pos, building_type_t type, player_t *player) {
   player->building_founded(bld);
 
   int split_path = 0;
-  if (MAP_OBJ(MAP_MOVE_DOWN_RIGHT(pos)) != MAP_OBJ_FLAG) {
+  if (game.map->get_obj(game.map->move_down_right(pos)) != MAP_OBJ_FLAG) {
     flag->set_player(player->get_index());
-    if (MAP_PATHS(MAP_MOVE_DOWN_RIGHT(pos)) != 0) split_path = 1;
+    if (game.map->paths(game.map->move_down_right(pos)) != 0) split_path = 1;
   } else {
-    flg_index = MAP_OBJ_INDEX(MAP_MOVE_DOWN_RIGHT(pos));
+    flg_index = game.map->get_obj_index(game.map->move_down_right(pos));
     flag = game.flags[flg_index];
   }
 
-  flag->set_position(MAP_MOVE_DOWN_RIGHT(pos));
+  flag->set_position(game.map->move_down_right(pos));
 
   bld->link_flag(flg_index);
   flag->link_building(bld);
 
   flag->clear_flags();
 
-  tiles[pos].obj &= ~BIT(7);
+  game.map->clear_idle_serf(pos);
 
-  map_set_object(pos, map_obj, bld_index);
-  tiles[pos].paths |= BIT(1);
+  game.map->set_object(pos, map_obj, bld_index);
+  game.map->add_path(pos, DIR_DOWN_RIGHT);
 
-  if (MAP_OBJ(MAP_MOVE_DOWN_RIGHT(pos)) != MAP_OBJ_FLAG) {
-    map_set_object(MAP_MOVE_DOWN_RIGHT(pos), MAP_OBJ_FLAG, flg_index);
-    tiles[MAP_MOVE_DOWN_RIGHT(pos)].paths |= BIT(4);
+  if (game.map->get_obj(game.map->move_down_right(pos)) != MAP_OBJ_FLAG) {
+    game.map->set_object(game.map->move_down_right(pos), MAP_OBJ_FLAG,
+                         flg_index);
+    game.map->add_path(game.map->move_down_right(pos), DIR_UP_LEFT);
   }
 
-  if (split_path) build_flag_split_path(MAP_MOVE_DOWN_RIGHT(pos));
+  if (split_path) build_flag_split_path(game.map->move_down_right(pos));
 
   return 0;
 }
@@ -1647,11 +1439,11 @@ game_build_castle(map_pos_t pos, player_t *player) {
   inventory->set_player_num(player->get_index());
   inventory->apply_supplies_preset(player->get_initial_supplies());
 
-  game.map_gold_deposit += inventory->get_count_of(RESOURCE_GOLDBAR);
-  game.map_gold_deposit += inventory->get_count_of(RESOURCE_GOLDORE);
+  game.map->add_gold_deposit(inventory->get_count_of(RESOURCE_GOLDBAR));
+  game.map->add_gold_deposit(inventory->get_count_of(RESOURCE_GOLDORE));
 
   castle->set_position(pos);
-  flag->set_position(MAP_MOVE_DOWN_RIGHT(pos));
+  flag->set_position(game.map->move_down_right(pos));
   castle->set_player(player->get_index());
   castle->start_building(BUILDING_CASTLE);
 
@@ -1662,18 +1454,17 @@ game_build_castle(map_pos_t pos, player_t *player) {
   castle->link_flag(flg_index);
   flag->link_building(castle);
 
-  map_tile_t *tiles = game.map.tiles;
-  map_set_object(pos, MAP_OBJ_CASTLE, bld_index);
-  tiles[pos].paths |= BIT(1);
+  game.map->set_object(pos, MAP_OBJ_CASTLE, bld_index);
+  game.map->add_path(pos, DIR_DOWN_RIGHT);
 
-  map_set_object(MAP_MOVE_DOWN_RIGHT(pos), MAP_OBJ_FLAG, flg_index);
-  tiles[MAP_MOVE_DOWN_RIGHT(pos)].paths |= BIT(4);
+  game.map->set_object(game.map->move_down_right(pos), MAP_OBJ_FLAG, flg_index);
+  game.map->add_path(game.map->move_down_right(pos), DIR_UP_LEFT);
 
   /* Level land in hexagon below castle */
   int h = game_get_leveling_height(pos);
-  map_set_height(pos, h);
+  game.map->set_height(pos, h);
   for (int d = DIR_RIGHT; d <= DIR_UP; d++) {
-    map_set_height(MAP_MOVE(pos, d), h);
+    game.map->set_height(game.map->move(pos, (dir_t)d), h);
   }
 
   game_update_land_ownership(pos);
@@ -1698,14 +1489,14 @@ flag_remove_player_refs(flag_t *flag) {
 /* Check whether road can be demolished. */
 int
 game_can_demolish_road(map_pos_t pos, const player_t *player) {
-  if (!MAP_HAS_OWNER(pos) ||
-      MAP_OWNER(pos) != player->get_index()) {
+  if (!game.map->has_owner(pos) ||
+      game.map->get_owner(pos) != player->get_index()) {
     return 0;
   }
 
-  if (MAP_PATHS(pos) == 0 ||
-      MAP_HAS_FLAG(pos) ||
-      MAP_HAS_BUILDING(pos)) {
+  if (game.map->paths(pos) == 0 ||
+      game.map->has_flag(pos) ||
+      game.map->has_building(pos)) {
     return 0;
   }
 
@@ -1715,17 +1506,18 @@ game_can_demolish_road(map_pos_t pos, const player_t *player) {
 /* Check whether flag can be demolished. */
 bool
 game_can_demolish_flag(map_pos_t pos, const player_t *player) {
-  if (MAP_OBJ(pos) != MAP_OBJ_FLAG) return false;
+  if (game.map->get_obj(pos) != MAP_OBJ_FLAG) return false;
 
-  if (BIT_TEST(MAP_PATHS(pos), DIR_UP_LEFT) &&
-      MAP_OBJ(MAP_MOVE_UP_LEFT(pos)) >= MAP_OBJ_SMALL_BUILDING &&
-      MAP_OBJ(MAP_MOVE_UP_LEFT(pos)) <= MAP_OBJ_CASTLE) {
+  if (BIT_TEST(game.map->paths(pos), DIR_UP_LEFT) &&
+      game.map->get_obj(game.map->move_up_left(pos)) >=
+        MAP_OBJ_SMALL_BUILDING &&
+      game.map->get_obj(game.map->move_up_left(pos)) <= MAP_OBJ_CASTLE) {
     return false;
   }
 
-  if (MAP_PATHS(pos) == 0) return true;
+  if (game.map->paths(pos) == 0) return true;
 
-  flag_t *flag = game.flags[MAP_OBJ_INDEX(pos)];
+  flag_t *flag = game.flags[game.map->get_obj_index(pos)];
 
   if (flag->get_player() != player->get_index()) return false;
 
@@ -1735,12 +1527,12 @@ game_can_demolish_flag(map_pos_t pos, const player_t *player) {
 static int
 demolish_flag(map_pos_t pos) {
   /* Handle any serf at pos. */
-  if (MAP_SERF_INDEX(pos) != 0) {
-    serf_t *serf = game.serfs[MAP_SERF_INDEX(pos)];
+  if (game.map->get_serf_index(pos) != 0) {
+    serf_t *serf = game.serfs[game.map->get_serf_index(pos)];
     serf->flag_deleted(pos);
   }
 
-  flag_t *flag = game.flags[MAP_OBJ_INDEX(pos)];
+  flag_t *flag = game.flags[game.map->get_obj_index(pos)];
   assert(!flag->has_building());
 
   flag_remove_player_refs(flag);
@@ -1755,7 +1547,7 @@ demolish_flag(map_pos_t pos) {
     serf->path_merged(flag);
   }
 
-  map_set_object(pos, MAP_OBJ_NONE, 0);
+  game.map->set_object(pos, MAP_OBJ_NONE, 0);
 
   /* Remove resources from flag. */
   flag->remove_all_resources();
@@ -1775,20 +1567,19 @@ game_demolish_flag(map_pos_t pos, player_t *player) {
 
 static int
 demolish_building(map_pos_t pos) {
-  building_t *building = game.buildings[MAP_OBJ_INDEX(pos)];
+  building_t *building = game.buildings[game.map->get_obj_index(pos)];
 
   if (building->is_burning()) return 0;
 
   building_remove_player_refs(building);
 
   player_t *player = game.players[building->get_player()];
-  map_tile_t *tiles = game.map.tiles;
 
   building->burnup();
 
   /* Remove path to building. */
-  tiles[pos].paths &= ~BIT(1);
-  tiles[MAP_MOVE_DOWN_RIGHT(pos)].paths &= ~BIT(4);
+  game.map->del_path(pos, DIR_DOWN_RIGHT);
+  game.map->del_path(game.map->move_down_right(pos), DIR_UP_LEFT);
 
   /* Disconnect flag. */
   flag_t *flag = game.flags[building->get_flag_index()];
@@ -1802,7 +1593,7 @@ demolish_building(map_pos_t pos) {
        building->get_type() == BUILDING_FORTRESS ||
        building->get_type() == BUILDING_GOLDSMELTER)) {
     int gold_stock = building->get_res_count_in_stock(1);
-    game.map_gold_deposit -= gold_stock;
+    game.map->add_gold_deposit(-gold_stock);
   }
 
   /* Update land owner ship if the building is military. */
@@ -1822,8 +1613,8 @@ demolish_building(map_pos_t pos) {
 
       inventory->lose_queue();
 
-      game.map_gold_deposit -= inventory->get_count_of(RESOURCE_GOLDBAR);
-      game.map_gold_deposit -= inventory->get_count_of(RESOURCE_GOLDORE);
+      game.map->add_gold_deposit(-inventory->get_count_of(RESOURCE_GOLDBAR));
+      game.map->add_gold_deposit(-inventory->get_count_of(RESOURCE_GOLDORE));
 
       game.inventories.erase(inventory->get_index());
     }
@@ -1885,9 +1676,9 @@ demolish_building(map_pos_t pos) {
     }
   }
 
-  map_pos_t flag_pos = MAP_MOVE_DOWN_RIGHT(pos);
-  if (MAP_PATHS(flag_pos) == 0 &&
-      MAP_OBJ(flag_pos) == MAP_OBJ_FLAG) {
+  map_pos_t flag_pos = game.map->move_down_right(pos);
+  if (game.map->paths(flag_pos) == 0 &&
+      game.map->get_obj(flag_pos) == MAP_OBJ_FLAG) {
     game_demolish_flag(flag_pos, player);
   }
 
@@ -1897,7 +1688,7 @@ demolish_building(map_pos_t pos) {
 /* Demolish building at pos. */
 int
 game_demolish_building(map_pos_t pos, player_t *player) {
-  building_t *building = game.buildings[MAP_OBJ_INDEX(pos)];
+  building_t *building = game.buildings[game.map->get_obj_index(pos)];
 
   if (building->get_player() != player->get_index()) return -1;
   if (building->is_burning()) return -1;
@@ -1929,10 +1720,10 @@ game_calculate_military_flag_state(building_t *building) {
   for (f = 3, k = 0; f > 0; f--) {
     int offset;
     while ((offset = border_check_offsets[k++]) >= 0) {
-      map_pos_t check_pos = MAP_POS_ADD(building->get_position(),
-                                        game.spiral_pos_pattern[offset]);
-      if (MAP_HAS_OWNER(check_pos) &&
-          MAP_OWNER(check_pos) != building->get_player()) {
+      map_pos_t check_pos = game.map->pos_add_spirally(building->get_position(),
+                                                       offset);
+      if (game.map->has_owner(check_pos) &&
+          game.map->get_owner(check_pos) != building->get_player()) {
         goto break_loops;
       }
     }
@@ -1946,34 +1737,34 @@ break_loops:
 static void
 game_surrender_land(map_pos_t pos) {
   /* Remove building. */
-  if (MAP_OBJ(pos) >= MAP_OBJ_SMALL_BUILDING &&
-      MAP_OBJ(pos) <= MAP_OBJ_CASTLE) {
+  if (game.map->get_obj(pos) >= MAP_OBJ_SMALL_BUILDING &&
+      game.map->get_obj(pos) <= MAP_OBJ_CASTLE) {
     demolish_building(pos);
   }
 
-  if (!MAP_HAS_FLAG(pos) && MAP_PATHS(pos) != 0) {
+  if (!game.map->has_flag(pos) && game.map->paths(pos) != 0) {
     demolish_road(pos);
   }
 
-  int remove_roads = MAP_HAS_FLAG(pos);
+  int remove_roads = game.map->has_flag(pos);
 
   /* Remove roads and building around pos. */
   for (int d = DIR_RIGHT; d <= DIR_UP; d++) {
-    map_pos_t p = MAP_MOVE(pos, d);
+    map_pos_t p = game.map->move(pos, (dir_t)d);
 
-    if (MAP_OBJ(p) >= MAP_OBJ_SMALL_BUILDING &&
-        MAP_OBJ(p) <= MAP_OBJ_CASTLE) {
+    if (game.map->get_obj(p) >= MAP_OBJ_SMALL_BUILDING &&
+        game.map->get_obj(p) <= MAP_OBJ_CASTLE) {
       demolish_building(p);
     }
 
     if (remove_roads &&
-        (MAP_PATHS(p) & BIT(DIR_REVERSE(d)))) {
+        (game.map->paths(p) & BIT(DIR_REVERSE(d)))) {
       demolish_road(p);
     }
   }
 
   /* Remove flag. */
-  if (MAP_OBJ(pos) == MAP_OBJ_FLAG) {
+  if (game.map->get_obj(pos) == MAP_OBJ_FLAG) {
     demolish_flag(pos);
   }
 }
@@ -2039,15 +1830,16 @@ game_update_land_ownership(map_pos_t init_pos) {
        i <= influence_radius+calculate_radius; i++) {
     for (int j = -(influence_radius+calculate_radius);
          j <= influence_radius+calculate_radius; j++) {
-      map_pos_t pos = MAP_POS_ADD(init_pos,
-                MAP_POS(j & game.map.col_mask,
-                  i & game.map.row_mask));
+      map_pos_t pos = game.map->pos_add(init_pos,
+                                   game.map->pos(j & game.map->get_col_mask(),
+                                                 i & game.map->get_row_mask()));
 
-      if (MAP_OBJ(pos) >= MAP_OBJ_SMALL_BUILDING &&
-          MAP_OBJ(pos) <= MAP_OBJ_CASTLE &&
-          BIT_TEST(MAP_PATHS(pos), DIR_DOWN_RIGHT)) {  // TODO(_): Why wouldn't
-                                                       //          this be set?
-        building_t *building = game.buildings[MAP_OBJ_INDEX(pos)];
+      if (game.map->get_obj(pos) >= MAP_OBJ_SMALL_BUILDING &&
+          game.map->get_obj(pos) <= MAP_OBJ_CASTLE &&
+          BIT_TEST(game.map->paths(pos), DIR_DOWN_RIGHT)) {  // TODO(_): Why
+                                                             // wouldn't this be
+                                                             // set?
+        building_t *building = game.buildings[game.map->get_obj_index(pos)];
         int mil_type = -1;
 
         if (building->get_type() == BUILDING_CASTLE) {
@@ -2089,8 +1881,6 @@ game_update_land_ownership(map_pos_t init_pos) {
     }
   }
 
-  map_tile_t *tiles = game.map.tiles;
-
   /* Update owner of 17*17 square. */
   for (int i = -calculate_radius; i <= calculate_radius; i++) {
     for (int j = -calculate_radius; j <= calculate_radius; j++) {
@@ -2106,11 +1896,11 @@ game_update_land_ownership(map_pos_t init_pos) {
         }
       }
 
-      map_pos_t pos = MAP_POS_ADD(init_pos,
-                MAP_POS(j & game.map.col_mask,
-                  i & game.map.row_mask));
+      map_pos_t pos = game.map->pos_add(init_pos,
+                                   game.map->pos(j & game.map->get_col_mask(),
+                                                 i & game.map->get_row_mask()));
       int old_player = -1;
-      if (MAP_HAS_OWNER(pos)) old_player = MAP_OWNER(pos);
+      if (game.map->has_owner(pos)) old_player = game.map->get_owner(pos);
 
       if (old_player >= 0 && player != old_player) {
         game.players[old_player]->decrease_land_area();
@@ -2120,10 +1910,10 @@ game_update_land_ownership(map_pos_t init_pos) {
       if (player >= 0) {
         if (player != old_player) {
           game.players[player]->increase_land_area();
-          tiles[pos].height = (1 << 7) | (player << 5) | MAP_HEIGHT(pos);
+          game.map->set_owner(pos, player);
         }
       } else {
-        tiles[pos].height = (0 << 7) | (0 << 5) | MAP_HEIGHT(pos);
+        game.map->del_owner(pos);
       }
     }
   }
@@ -2133,14 +1923,14 @@ game_update_land_ownership(map_pos_t init_pos) {
   /* Update military building flag state. */
   for (int i = -25; i <= 25; i++) {
     for (int j = -25; j <= 25; j++) {
-      map_pos_t pos = MAP_POS_ADD(init_pos,
-                MAP_POS(i & game.map.col_mask,
-                  j & game.map.row_mask));
+      map_pos_t pos = game.map->pos_add(init_pos,
+                                   game.map->pos(i & game.map->get_col_mask(),
+                                                 j & game.map->get_row_mask()));
 
-      if (MAP_OBJ(pos) >= MAP_OBJ_SMALL_BUILDING &&
-          MAP_OBJ(pos) <= MAP_OBJ_CASTLE &&
-          BIT_TEST(MAP_PATHS(pos), DIR_DOWN_RIGHT)) {
-        building_t *building = game.buildings[MAP_OBJ_INDEX(pos)];
+      if (game.map->get_obj(pos) >= MAP_OBJ_SMALL_BUILDING &&
+          game.map->get_obj(pos) <= MAP_OBJ_CASTLE &&
+          BIT_TEST(game.map->paths(pos), DIR_DOWN_RIGHT)) {
+        building_t *building = game.buildings[game.map->get_obj_index(pos)];
         if (building->is_done() && building->is_military()) {
           game_calculate_military_flag_state(building);
         }
@@ -2151,20 +1941,20 @@ game_update_land_ownership(map_pos_t init_pos) {
 
 static void
 game_demolish_flag_and_roads(map_pos_t pos) {
-  if (MAP_HAS_FLAG(pos)) {
+  if (game.map->has_flag(pos)) {
     /* Remove roads around pos. */
     for (int d = DIR_RIGHT; d <= DIR_UP; d++) {
-      map_pos_t p = MAP_MOVE(pos, d);
+      map_pos_t p = game.map->move(pos, (dir_t)d);
 
-      if (MAP_PATHS(p) & BIT(DIR_REVERSE(d))) {
+      if (game.map->paths(p) & BIT(DIR_REVERSE(d))) {
         demolish_road(p);
       }
     }
 
-    if (MAP_OBJ(pos) == MAP_OBJ_FLAG) {
+    if (game.map->get_obj(pos) == MAP_OBJ_FLAG) {
       demolish_flag(pos);
     }
-  } else if (MAP_PATHS(pos) != 0) {
+  } else if (game.map->paths(pos) != 0) {
     demolish_road(pos);
   }
 }
@@ -2186,23 +1976,20 @@ game_occupy_enemy_building(building_t *building, int player_num) {
 
     /* Demolish nearby buildings. */
     for (int i = 0; i < 12; i++) {
-      map_pos_t pos = MAP_POS_ADD(building->get_position(),
-                                  game.spiral_pos_pattern[7+i]);
-      if (MAP_OBJ(pos) >= MAP_OBJ_SMALL_BUILDING &&
-          MAP_OBJ(pos) <= MAP_OBJ_CASTLE) {
+      map_pos_t pos = game.map->pos_add_spirally(building->get_position(), 7+i);
+      if (game.map->get_obj(pos) >= MAP_OBJ_SMALL_BUILDING &&
+          game.map->get_obj(pos) <= MAP_OBJ_CASTLE) {
         demolish_building(pos);
       }
     }
 
     /* Change owner of land and remove roads and flags
        except the flag associated with the building. */
-    map_tile_t *tiles = game.map.tiles;
-    tiles[building->get_position()].height = (1 << 7) | (player_num << 5) |
-      MAP_HEIGHT(building->get_position());
+    game.map->set_owner(building->get_position(), player_num);
 
     for (int d = DIR_RIGHT; d <= DIR_UP; d++) {
-      map_pos_t pos = MAP_MOVE(building->get_position(), d);
-      tiles[pos].height = (1 << 7) | (player_num << 5) | MAP_HEIGHT(pos);
+      map_pos_t pos = game.map->move(building->get_position(), (dir_t)d);
+      game.map->set_owner(pos, player_num);
       if (pos != flag->get_position()) {
         game_demolish_flag_and_roads(pos);
       }
@@ -2217,7 +2004,7 @@ game_occupy_enemy_building(building_t *building, int player_num) {
     /* Remove paths from flag. */
     for (int d = DIR_RIGHT; d <= DIR_UP; d++) {
       if (flag->has_path((dir_t)d)) {
-        demolish_road(MAP_MOVE(flag->get_position(), d));
+        demolish_road(game.map->move(flag->get_position(), (dir_t)d));
       }
     }
 
@@ -2307,8 +2094,6 @@ game_add_player(unsigned int face, unsigned int color, unsigned int supplies,
 void
 game_init() {
   /* Initialize global lookup tables */
-  init_spiral_pattern();
-
   game.svga |= BIT(3); /* Game has started. */
   game.game_speed = DEFAULT_GAME_SPEED;
 
@@ -2339,49 +2124,15 @@ game_init() {
 
 /* Initialize spiral_pos_pattern from spiral_pattern. */
 static void
-init_spiral_pos_pattern() {
-  int *pattern = game.spiral_pattern;
-
-  if (game.spiral_pos_pattern == NULL) {
-    game.spiral_pos_pattern =
-                    reinterpret_cast<map_pos_t*>(malloc(295*sizeof(map_pos_t)));
-    if (game.spiral_pos_pattern == NULL) abort();
+game_init_map(int size, const random_state_t &rnd, bool preserve_bugs) {
+  if (game.map != NULL) {
+    delete game.map;
+    game.map = NULL;
   }
 
-  for (int i = 0; i < 295; i++) {
-    int x = pattern[2*i] & game.map.col_mask;
-    int y = pattern[2*i+1] & game.map.row_mask;
-
-    game.spiral_pos_pattern[i] = MAP_POS(x, y);
-  }
-}
-
-static void
-game_init_map() {
-  game.map.col_size = 5 + game.map_size/2;
-  game.map.row_size = 5 + (game.map_size - 1)/2;
-  game.map.cols = 1 << game.map.col_size;
-  game.map.rows = 1 << game.map.row_size;
-
-  /* game.split |= BIT(3); */
-
-  if (game.map.cols < 64 || game.map.rows < 64) {
-    /* game.split &= ~BIT(3); */
-  }
-
-  map_init_dimensions(&game.map);
-
-  game.map_regions = (game.map.cols >> 5) * (game.map.rows >> 5);
-
-  game.map_gold_morale_factor = 0;
-
-  init_spiral_pos_pattern();
-  map_init();
-  map_init_minimap();
-
-  game.winning_player = -1;
-  /* game.show_game_end = 0; */
-  game.max_next_index = 33;
+  game.map = new map_t();
+  game.map->init(size);
+  game.map->generate(game.map_generator, rnd, preserve_bugs);
 }
 
 void
@@ -2409,6 +2160,11 @@ game_deinit() {
   while (game.players.size()) {
     players_t::iterator it = game.players.begin();
     game.players.erase((*it)->get_index());
+  }
+
+  if (game.map != NULL) {
+    delete game.map;
+    game.map = NULL;
   }
 }
 
@@ -2440,12 +2196,8 @@ game_load_mission_map(int level) {
   game.init_map_rnd = mission->rnd;
 
   game.mission_level = level;
-  game.map_size = 3;
-  game.map_preserve_bugs = 1;
 
-  game.init_map_rnd ^= random_state_t(0x5a5a, 0xa5a5, 0xc3c3);
-
-  game_init_map();
+  game_init_map(3, mission[level].rnd, true);
   game_allocate_objects();
 
   /* Initialize player and build initial castle */
@@ -2461,8 +2213,8 @@ game_load_mission_map(int level) {
 
     if (mission->player[i].castle.col > -1 &&
         mission->player[i].castle.row > -1) {
-      map_pos_t pos = MAP_POS(mission->player[i].castle.col,
-                              mission->player[i].castle.row);
+      map_pos_t pos = game.map->pos(mission->player[i].castle.col,
+                                    mission->player[i].castle.row);
       game_build_castle(pos, game.players[n]);
     }
   }
@@ -2471,15 +2223,10 @@ game_load_mission_map(int level) {
 }
 
 int
-game_load_random_map(int size, const random_state_t *rnd) {
+game_load_random_map(int size, const random_state_t &rnd) {
   if (size < 3 || size > 10) return -1;
 
-  game.map_size = size;
-  game.map_preserve_bugs = 0;
-
-  memcpy(&game.init_map_rnd, rnd, sizeof(random_state_t));
-
-  game_init_map();
+  game_init_map(size, rnd, false);
   game_allocate_objects();
 
   return 0;
@@ -2490,9 +2237,7 @@ game_load_save_game(const char *path) {
   int r = load_state(path);
   if (r < 0) return -1;
 
-  init_spiral_pos_pattern();
   game_init_land_ownership();
-  map_init_minimap();
 
   return 0;
 }
@@ -2515,7 +2260,7 @@ void
 game_lose_resource(resource_type_t res) {
   if (res == RESOURCE_GOLDORE ||
       res == RESOURCE_GOLDBAR) {
-    game.map_gold_deposit -= 1;
+    game.map->add_gold_deposit(-1);
   }
 }
 
