@@ -41,7 +41,7 @@
 			<Tool
 				Name="VCCLCompilerTool"
 				Optimization="0"
-				AdditionalIncludeDirectories="$(ProjectDir)"
+				AdditionalIncludeDirectories="$(ProjectDir);$(SDL2_INCLUDE);$(SDL2_MIXER_INCLUDE)"
 				PreprocessorDefinitions="WIN32;_DEBUG;_WINDOWS;HAVE_CONFIG_H;_CRT_SECURE_NO_WARNINGS"
 				MinimalRebuild="true"
 				BasicRuntimeChecks="3"
@@ -62,6 +62,7 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
+				AdditionalLibraryDirectories="$(SDL2_LIB);$(SDL2_MIXER_LIB)"
 				AdditionalDependencies="SDL2.lib SDL2main.lib SDL2_mixer.lib"
 				LinkIncremental="2"
 				IgnoreDefaultLibraryNames="msvcrt.lib"
@@ -118,7 +119,7 @@
 			/>
 			<Tool
 				Name="VCCLCompilerTool"
-				AdditionalIncludeDirectories="$(ProjectDir)"
+				AdditionalIncludeDirectories="$(ProjectDir);$(SDL2_INCLUDE);$(SDL2_MIXER_INCLUDE)"
 				PreprocessorDefinitions="WIN32;NDEBUG;_WINDOWS;HAVE_CONFIG_H;_CRT_SECURE_NO_WARNINGS"
 				RuntimeLibrary="2"
 				UsePrecompiledHeader="0"
@@ -136,6 +137,7 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
+				AdditionalLibraryDirectories="$(SDL2_LIB);$(SDL2_MIXER_LIB)"
 				AdditionalDependencies="SDL2.lib SDL2main.lib SDL2_mixer.lib"
 				LinkIncremental="1"
 				GenerateDebugInformation="true"
