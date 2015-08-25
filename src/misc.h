@@ -22,6 +22,14 @@
 #ifndef _MISC_H
 #define _MISC_H
 
+#ifdef _MSC_VER
+# define BEGIN_EXT_C
+# define END_EXT_C
+#else
+# define BEGIN_EXT_C  extern "C" {
+# define END_EXT_C    }
+#endif
+
 #define BIT(n)            (1 << (n))
 #define BIT_TEST(x, n)    ((x) & BIT(n))
 #define BIT_INVERT(x, n)  ((x) ^= 1 << (n))

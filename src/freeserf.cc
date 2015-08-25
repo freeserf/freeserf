@@ -19,7 +19,9 @@
  * along with freeserf.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-extern "C" {
+#include "misc.h"
+
+BEGIN_EXT_C
   #include "freeserf.h"
   #include "interface.h"
   #include "gfx.h"
@@ -34,7 +36,7 @@ extern "C" {
   #ifdef HAVE_CONFIG_H
   # include <config.h>
   #endif
-}
+END_EXT_C
 
 #include <cstdio>
 #include <cstdlib>

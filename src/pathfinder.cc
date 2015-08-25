@@ -19,10 +19,12 @@
  * along with freeserf.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-extern "C" {
+#include "misc.h"
+
+BEGIN_EXT_C
   #include "pathfinder.h"
   #include "game.h"
-}
+END_EXT_C
 
 #include <cstdlib>
 #include <list>
