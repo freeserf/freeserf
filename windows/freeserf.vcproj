@@ -232,16 +232,8 @@
 				</FileConfiguration>
 			</File>
 			<File
-				RelativePath="..\src\freeserf.c"
+				RelativePath="..\src\freeserf.cc"
 				>
-				<FileConfiguration
-					Name="Debug|Win32"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-						CompileAs="2"
-					/>
-				</FileConfiguration>
 			</File>
 			<File
 				RelativePath="..\src\game-init.c"
@@ -388,16 +380,8 @@
 				</FileConfiguration>
 			</File>
 			<File
-				RelativePath="..\src\pathfinder.c"
+				RelativePath="..\src\pathfinder.cc"
 				>
-				<FileConfiguration
-					Name="Debug|Win32"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-						CompileAs="2"
-					/>
-				</FileConfiguration>
 			</File>
 			<File
 				RelativePath="..\src\player.c"
