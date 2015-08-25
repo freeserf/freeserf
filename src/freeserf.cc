@@ -46,7 +46,10 @@ END_EXT_C
 #ifdef HAVE_UNISTD_H
 #include <unistd.h>
 #endif
+
+#ifdef HAVE_STDINT_H
 #include <stdint.h>
+#endif
 
 #define DEFAULT_SCREEN_WIDTH  800
 #define DEFAULT_SCREEN_HEIGHT 600
