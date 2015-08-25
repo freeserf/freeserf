@@ -20,3 +20,15 @@ install:
 
 build_script:
   - msbuild windows\freeserf.sln
+
+after_build:
+  - ps: |
+      $ZIP_BASE = "freeserf-VC-$env:CONFIGURATION-$env:APPVEYOR_BUILD_NUMBER"
+      $ZIP_FILE = "$($ZIP_BASE).zip"
+      md $ZIP_BASE
+      Copy-Item -Path windows\$env:CONFIGURATION\freeserf.exe -Destination $ZIP_BASE\
+      Copy-Item -Path README.md -Destination $ZIP_BASE\README.txt
+      Copy-Item -Path $env:SDL2_LIB\SDL2.dll -Destination $ZIP_BASE\
+      Copy-Item -Path $env:SDL2_MIXER_LIB\SDL2_mixer.dll -Destination $ZIP_BASE\
+      7z a $ZIP_FILE $ZIP_BASE\*
+      Push-AppveyorArtifact $ZIP_FILE
