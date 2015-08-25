@@ -29,6 +29,14 @@ extern "C" {
 #include <vector>
 #include <algorithm>
 
+#ifdef min
+# undef min
+#endif
+
+#ifdef max
+# undef max
+#endif
+
 typedef struct search_node search_node_t;
 
 struct search_node {
