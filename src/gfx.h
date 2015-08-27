@@ -22,38 +22,27 @@
 #ifndef _GFX_H
 #define _GFX_H
 
-#include "misc.h"
+#include "data.h"
 
-#include "SDL.h"
-
-#define MAP_TILE_WIDTH   32
-#define MAP_TILE_HEIGHT  20
-
+typedef struct {
+	int x;
+	int y;
+	int w;
+	int h;
+} rect_t;
 
 /* Frame. Keeps track of a specific rectangular area of a surface.
    Multiple frames can refer to the same surface. */
 typedef struct {
-	SDL_Surface *surf;
-	SDL_Rect clip;
+	uint width;
+	uint height;
+	void *surf;
 } frame_t;
 
-/* Sprite object. Immediately followed by RGBA data. */
 typedef struct {
-       int delta_x;
-       int delta_y;
-       int offset_x;
-       int offset_y;
-       uint width;
-       uint height;
-} sprite_t;
-
-typedef struct {
-	uint8_t r;
-	uint8_t g;
-	uint8_t b;
-	uint8_t a;
-} color_t;
-
+	sprite_t *sprite;
+	void *native_image;
+} image_t;
 
 int gfx_init(int width, int height, int fullscreen);
 void gfx_deinit();
@@ -63,23 +52,37 @@ void gfx_draw_sprite(int x, int y, uint sprite, frame_t *dest);
 void gfx_draw_transp_sprite(int x, int y, uint sprite, int use_off, int y_off, int color_off, frame_t *dest);
 void gfx_draw_masked_sprite(int x, int y, uint mask, uint sprite, frame_t *dest);
 void gfx_draw_overlay_sprite(int x, int y, uint sprite, int y_off, frame_t *dest);
-void gfx_draw_waves_sprite(int x, int y, uint mask, uint sprite, int mask_off, frame_t *dest);
+void gfx_draw_waves_sprite(int x, int y, uint mask, uint sprite, frame_t *dest);
+void gfx_get_sprite_size(int sprite, uint *width, uint *height);
+void gfx_get_sprite_offset(int sprite, int *dx, int *dy);
 
 /* Graphics functions */
 void gfx_draw_rect(int x, int y, int width, int height, int color, frame_t *dest);
 void gfx_fill_rect(int x, int y, int width, int height, int color, frame_t *dest);
+
+/* Image functions */
+image_t *gfx_image_from_sprite(sprite_t *sprite);
+void gfx_image_free(image_t *image);
+void gfx_draw_image_to_frame(image_t *image, frame_t *frame, int x, int y, int y_offset);
 
 /* Text functions */
 void gfx_draw_string(int x, int y, int color, int shadow, frame_t *dest, const char *str);
 void gfx_draw_number(int x, int y, int color, int shadow, frame_t *dest, int n);
 
 /* Frame functions */
-void gfx_frame_init(frame_t *frame, int x, int y, int width, int height, frame_t *dest);
-void gfx_frame_deinit(frame_t *frame);
+frame_t *gfx_frame_create(int width, int height);
+void gfx_frame_destroy(frame_t *frame);
 void gfx_draw_frame(int dx, int dy, frame_t *dest, int sx, int sy, frame_t *src, int w, int h);
 
 /* Screen functions */
+void gfx_get_resolution(int *width, int *height);
 int gfx_set_fullscreen(int enable);
 int gfx_is_fullscreen();
+int gfx_is_fullscreen_possible();
+
+/* Image caching functions */
+void gfx_add_image_to_cache(int sprite, int mask, int offset, image_t *image);
+image_t *gfx_get_image_from_cache(int sprite, int mask, int offset);
+void gfx_clear_cache();
 
 #endif /* ! _GFX_H */

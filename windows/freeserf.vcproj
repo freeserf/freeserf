@@ -192,6 +192,10 @@
 				>
 			</File>
 			<File
+				RelativePath="..\src\data.c"
+				>
+			</File>
+			<File
 				RelativePath="..\src\flag.c"
 				>
 			</File>
@@ -205,6 +209,10 @@
 			</File>
 			<File
 				RelativePath="..\src\game.c"
+				>
+			</File>
+			<File
+				RelativePath="..\src\gfx-cache.cc"
 				>
 			</File>
 			<File
@@ -272,7 +280,7 @@
 				>
 			</File>
 			<File
-				RelativePath="..\src\sdl-video.c"
+				RelativePath="..\src\video-sdl.c"
 				>
 			</File>
 			<File
@@ -406,7 +414,7 @@
 				>
 			</File>
 			<File
-				RelativePath="..\src\sdl-video.h"
+				RelativePath="..\src\video.h"
 				>
 			</File>
 			<File

@@ -29,6 +29,8 @@
 #include "SDL.h"
 #include "SDL_mixer.h"
 
+#include <string.h>
+
 /* Play sound. */
 
 typedef struct {
@@ -55,6 +57,8 @@ static void midi_track_finished();
 int
 audio_init()
 {
+	SDL_InitSubSystem(SDL_INIT_AUDIO);
+
 	LOGI("audio-sdlmixer", "Initializing audio driver `sdlmixer'.");
 
 	list_init(&sfx_clips_to_play);

@@ -60,6 +60,15 @@ typedef struct {
 	uint32_t offset;
 } spae_entry_t;
 
+/* Sprite header. In the data file this is immediately followed by sprite data. */
+typedef struct {
+	int8_t b_x;
+	int8_t b_y;
+	uint16_t w;
+	uint16_t h;
+	int16_t x;
+	int16_t y;
+} dos_sprite_t;
 
 static void *sprites;
 static int mapped = 0;
@@ -67,6 +76,35 @@ static size_t sprites_size;
 static uint entry_count;
 
 static void data_fixup();
+
+#define MAX_DATA_PATH      1024
+
+int
+data_check(const char *path, char **load_path)
+{
+	const char *default_data_file[] = {
+		"SPAE.PA", /* English */
+		"SPAF.PA", /* French */
+		"SPAD.PA", /* German */
+		"SPAU.PA", /* Engish (US) */
+		NULL
+	};
+
+	char cp[MAX_DATA_PATH];
+
+	for (const char **df = default_data_file; *df != NULL; df++) {
+		snprintf(cp, MAX_DATA_PATH, "%s/%s", path, *df);
+		LOGI("data", "Looking for game data in '%s'...", cp);
+		int r = data_check_file(cp);
+		if (r >= 0) {
+			*load_path = (char*)malloc(strlen(cp)+1);
+			strcpy(*load_path, cp);
+			return 0;
+		}
+	}
+
+	return -1;
+}
 
 /* Load data file at path and let the global variable sprites refer to the memory
  with the data file content. */
@@ -180,7 +218,7 @@ data_load(const char *path)
 
 /* Free the loaded data file. */
 void
-data_unload()
+data_deinit()
 {
 #ifdef HAVE_MMAP
 	if (mapped) {
@@ -213,12 +251,6 @@ data_get_object(uint index, size_t *size)
 	return &bytes[offset];
 }
 
-const dos_sprite_t *
-data_get_dos_sprite(uint index)
-{
-	return (const dos_sprite_t *)data_get_object(index, NULL);
-}
-
 /* Perform various fixups of the data file entries. */
 static void
 data_fixup()
@@ -249,4 +281,188 @@ data_fixup()
 		entries[1613+i].size = entries[1602].size;
 		entries[1613+i].offset = entries[1602].offset;
 	}
+}
+
+typedef void (*data_unpacker_t) (uint8_t *src, uint8_t *src_end, uint8_t *dst, uint8_t *palette, uint8_t value);
+
+sprite_t *
+data_unpack_sprite_for_index(uint index, data_unpacker_t unpacker, uint8_t value)
+{
+	size_t size = 0;
+	uint8_t *palette = (uint8_t*)data_get_object(DATA_PALETTE_GAME, &size);
+	if (palette == NULL) {
+		return NULL;
+	}
+
+	dos_sprite_t *data = (dos_sprite_t*)data_get_object(index, &size);
+	if (data == NULL) {
+		return NULL;
+	}
+
+	sprite_t *sprite = (sprite_t*)malloc(sizeof(sprite_t));
+	sprite->width = le16toh(data->w);
+	sprite->height = le16toh(data->h);
+	sprite->offset_x = le16toh(data->x);
+	sprite->offset_y = le16toh(data->y);
+	sprite->delta_x = data->b_x;
+	sprite->delta_y = data->b_y;
+	sprite->data = malloc(data->w * data->h * 4);
+
+	uint8_t *src = (uint8_t*)data + sizeof(dos_sprite_t);
+	uint8_t *src_end = src + size - sizeof(dos_sprite_t);
+	uint8_t *dst = (uint8_t*)sprite->data;
+
+	unpacker(src, src_end, dst, palette, value);
+
+	return sprite;
+}
+
+void
+data_sprite_unpacker(uint8_t *src, uint8_t *src_end, uint8_t *dst, uint8_t *palette, uint8_t value)
+{
+	while (src < src_end) {
+		uint8_t color = *(src++);
+		dst[3] = 0xFF;
+		dst[2] = palette[color*3+0];
+		dst[1] = palette[color*3+1];
+		dst[0] = palette[color*3+2];
+		dst += 4;
+	}
+}
+
+sprite_t *
+data_sprite_for_index(uint index)
+{
+	return data_unpack_sprite_for_index(index, data_sprite_unpacker, 0);
+}
+
+void
+data_transparent_sprite_unpacker(uint8_t *src, uint8_t *src_end, uint8_t *dst, uint8_t *palette, uint8_t value)
+{
+	while (src < src_end) {
+		size_t offset = *(src++);
+		for (size_t i = 0; i < offset; i++) {
+			dst[3] = 0x00;
+			dst[2] = 0x00;
+			dst[1] = 0x00;
+			dst[0] = 0x00;
+			dst += 4;
+		}
+		size_t count = *(src++);
+		for (size_t i = 0; i < count; i++) {
+			uint8_t color = *(src++) + value;
+			dst[3] = 0xFF;
+			dst[2] = palette[color*3+0];
+			dst[1] = palette[color*3+1];
+			dst[0] = palette[color*3+2];
+			dst += 4;
+		}
+	}
+}
+
+sprite_t *
+data_transparent_sprite_for_index(uint index, int color_offset)
+{
+	return data_unpack_sprite_for_index(index, data_transparent_sprite_unpacker, color_offset);
+}
+
+void
+data_overlay_sprite_unpacker(uint8_t *src, uint8_t *src_end, uint8_t *dst, uint8_t *palette, uint8_t value)
+{
+	while (src < src_end) {
+		size_t drop = *(src++);
+		for (size_t i = 0; i < drop; i++) {
+			dst[3] = 0x00;
+			dst[2] = 0x00;
+			dst[1] = 0x00;
+			dst[0] = 0x00;
+			dst += 4;
+		}
+		size_t fill = *(src++);
+		for (size_t i = 0; i < fill; i++) {
+			uint8_t color = value;
+			dst[3] = value;
+			dst[2] = palette[color*3+0];
+			dst[1] = palette[color*3+1];
+			dst[0] = palette[color*3+2];
+			dst += 4;
+		}
+	}
+}
+
+sprite_t *
+data_overlay_sprite_for_index(uint index)
+{
+	return data_unpack_sprite_for_index(index, data_overlay_sprite_unpacker, 0x80);
+}
+
+void
+data_mask_sprite_unpacker(uint8_t *src, uint8_t *src_end, uint8_t *dst, uint8_t *palette, uint8_t value)
+{
+	while (src < src_end) {
+		size_t drop = *(src++);
+		for (size_t i = 0; i < drop; i++) {
+			dst[3] = 0x00;
+			dst[2] = 0x00;
+			dst[1] = 0x00;
+			dst[0] = 0x00;
+			dst += 4;
+		}
+		size_t fill = *(src++);
+		for (size_t i = 0; i < fill; i++) {
+			dst[3] = 0xFF;
+			dst[2] = 0xFF;
+			dst[1] = 0xFF;
+			dst[0] = 0xFF;
+			dst += 4;
+		}
+	}
+}
+
+sprite_t *
+data_mask_sprite_for_index(uint index)
+{
+	return data_unpack_sprite_for_index(index, data_mask_sprite_unpacker, 0);
+}
+
+color_t
+data_get_color(uint index)
+{
+	color_t color = {0};
+
+	size_t size = 0;
+	uint8_t *palette = (uint8_t*)data_get_object(DATA_PALETTE_GAME, &size);
+	if (palette != NULL) {
+		color.r = palette[index*3+0];
+		color.g = palette[index*3+1];
+		color.b = palette[index*3+2];
+		color.a = 0xFF;
+	}
+
+	return color;
+}
+
+void
+data_get_sprite_size(int sprite, uint *width, uint *height)
+{
+	dos_sprite_t *spr = (dos_sprite_t*)data_get_object(sprite, NULL);
+	if (spr != NULL) {
+		*width = le16toh(spr->w);
+		*height = le16toh(spr->h);
+	}
+}
+
+void
+data_get_sprite_offset(int sprite, int *dx, int *dy)
+{
+	dos_sprite_t *spr = (dos_sprite_t*)data_get_object(sprite, NULL);
+	if (spr != NULL) {
+		*dx = spr->b_x;
+		*dy = spr->b_y;
+	}
+}
+
+sprite_t *data_get_cursor()
+{
+	return data_transparent_sprite_for_index(DATA_CURSOR, 0);
 }

@@ -31,6 +31,9 @@
 
 #include <assert.h>
 
+#define MAP_TILE_WIDTH   32
+#define MAP_TILE_HEIGHT  20
+
 #define MAP_TILE_TEXTURES  33
 #define MAP_TILE_MASKS     81
 
@@ -39,7 +42,7 @@
 
 /* Cache prerendered tiles of the landscape. */
 typedef struct {
-	frame_t frame;
+	frame_t *frame;
 	int dirty;
 } landscape_tile_t;
 
@@ -260,9 +263,10 @@ viewport_map_deinit()
 {
 	if (landscape_tile != NULL) {
 		for (uint i = 0; i < landscape_tile_count; i++) {
-			gfx_frame_deinit(&landscape_tile[i].frame);
+			gfx_frame_destroy(landscape_tile[i].frame);
 		}
 		free(landscape_tile);
+		landscape_tile = NULL;
 	}
 }
 
@@ -288,8 +292,7 @@ viewport_map_reinit()
 	     tile_width, tile_height);
 
 	for (uint i = 0; i < landscape_tile_count; i++) {
-		gfx_frame_init(&landscape_tile[i].frame, 0, 0, tile_width, tile_height, NULL);
-		gfx_fill_rect(0, 0, tile_width, tile_height, 0, &landscape_tile[i].frame);
+		landscape_tile[i].frame = NULL;
 		landscape_tile[i].dirty = 1;
 	}
 }
@@ -340,8 +343,8 @@ draw_landscape(viewport_t *viewport, frame_t *frame)
 		int ty = my % tile_height;
 
 		int x = 0;
+		int mx = (viewport->offset_x + x_base) % map_width;
 		while (x < viewport->obj.width) {
-			int mx = (viewport->offset_x + x_base + x) % map_width;
 			int tx = mx % tile_width;
 
 			int tc = (mx / tile_width) % horiz_tiles;
@@ -350,6 +353,11 @@ draw_landscape(viewport_t *viewport, frame_t *frame)
 
 			/* Redraw tile if marked dirty */
 			if (landscape_tile[tid].dirty) {
+				if (landscape_tile[tid].frame == NULL) {
+					landscape_tile[tid].frame = gfx_frame_create(tile_width, tile_height);
+					gfx_fill_rect(0, 0, tile_width, tile_height, 0, landscape_tile[tid].frame);
+				}
+
 				int col = (tc*MAP_TILE_COLS + (tr*MAP_TILE_ROWS)/2) % game.map.cols;
 				int row = tr*MAP_TILE_ROWS;
 				map_pos_t pos = MAP_POS(col, row);
@@ -360,9 +368,9 @@ draw_landscape(viewport_t *viewport, frame_t *frame)
 				   map tile on both right and left side.. */
 				for (int col = 0; col < MAP_TILE_COLS+1; col++) {
 					draw_up_tile_col(pos, x_base, 0, tile_height,
-							 &landscape_tile[tid].frame);
-					draw_down_tile_col(pos, x_base + 16, 0, tile_height,
-							   &landscape_tile[tid].frame);
+							 landscape_tile[tid].frame);
+					draw_down_tile_col(pos, x_base + MAP_TILE_WIDTH/2, 0, tile_height,
+							   landscape_tile[tid].frame);
 
 					pos = MAP_MOVE_RIGHT(pos);
 					x_base += MAP_TILE_WIDTH;
@@ -371,17 +379,26 @@ draw_landscape(viewport_t *viewport, frame_t *frame)
 #if 0
 				/* Draw a border around the tile for debug. */
 				gfx_draw_rect(0, 0, tile_width, tile_height,
-					      76, &landscape_tile[tid].frame);
+					      76, landscape_tile[tid].frame);
 #endif
 
 				landscape_tile[tid].dirty = 0;
 			}
 
-			gfx_draw_frame(x, y, frame, tx, ty,
-				       &landscape_tile[tid].frame,
-				       viewport->obj.width - x,
-				       viewport->obj.height - y);
+			int w = tile_width - tx;
+			if (x+w > viewport->obj.width) {
+				w = viewport->obj.width - x;
+			}
+			int h = tile_height - ty;
+			if (y+h > viewport->obj.height) {
+				h = viewport->obj.height - y;
+			}
+
+			gfx_draw_frame(x, y, frame,
+			               tx, ty, landscape_tile[tid].frame,
+			               w, h);
 			x += tile_width - tx;
+			mx += tile_width - tx;
 		}
 
 		y += tile_height - ty;
@@ -593,15 +610,16 @@ draw_game_sprite(int x, int y, int index, frame_t *frame)
 static void
 draw_serf(int x, int y, int color, int head, int body, frame_t *frame)
 {
-	const dos_sprite_t *s_arms = data_get_dos_sprite(DATA_SERF_ARMS_BASE + body);
 	gfx_draw_transp_sprite(x, y, DATA_SERF_ARMS_BASE + body,
 			       1, 0, 0, frame);
 	gfx_draw_transp_sprite(x, y, DATA_SERF_TORSO_BASE + body,
 			       1, 0, color, frame);
 
 	if (head >= 0) {
-		x += s_arms->b_x;
-		y += s_arms->b_y;
+		int ax, ay;
+		gfx_get_sprite_offset(DATA_SERF_ARMS_BASE + body, &ax, &ay);
+		x += ax;
+		y += ay;
 		gfx_draw_transp_sprite(x, y, DATA_SERF_HEAD_BASE + head,
 				       1, 0, 0, frame);
 	}
@@ -619,9 +637,10 @@ draw_shadow_and_building_sprite(int x, int y, int index, frame_t *frame)
 static void
 draw_shadow_and_building_unfinished(int x, int y, int index, int progress, frame_t *frame)
 {
-	const dos_sprite_t *building = data_get_dos_sprite(DATA_MAP_OBJECT_BASE + index);
-	int h = ((building->h * progress) >> 16) + 1;
-	int y_off = building->h - h;
+	uint bw, bh;
+	gfx_get_sprite_size(DATA_MAP_OBJECT_BASE + index, &bw, &bh);
+	int h = ((bh * progress) >> 16) + 1;
+	int y_off = bh - h;
 
 	gfx_draw_overlay_sprite(x, y, DATA_MAP_SHADOW_BASE + index,
 				y_off, frame);
@@ -1142,13 +1161,14 @@ draw_water_waves(map_pos_t pos, int x, int y, frame_t *frame)
 	int sprite = DATA_MAP_WAVES_BASE + (((pos ^ 5) + (game.tick >> 3)) & 0xf);
 
 	if (MAP_TYPE_DOWN(pos) < 4 && MAP_TYPE_UP(pos) < 4) {
-		gfx_draw_waves_sprite(x - 16, y, 0, sprite, 0, frame);
-	} else if (MAP_TYPE_DOWN(pos) < 4) {
-		int mask = DATA_MAP_MASK_DOWN_BASE + 40;
-		gfx_draw_waves_sprite(x, y, mask, sprite, 16, frame);
-	} else {
+		gfx_draw_waves_sprite(x - 16, y, 0, sprite, frame);
+	}
+	else if (MAP_TYPE_DOWN(pos) < 4) {
+		gfx_draw_waves_sprite(x, y, 0, sprite, frame);
+	}
+	else {
 		int mask = DATA_MAP_MASK_UP_BASE + 40;
-		gfx_draw_waves_sprite(x - 16, y, mask, sprite, 0, frame);
+		gfx_draw_waves_sprite(x - 16, y, mask, sprite, frame);
 	}
 }
 
