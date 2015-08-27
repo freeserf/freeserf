@@ -19,15 +19,25 @@
  * along with freeserf.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-extern "C" {
+#include "misc.h"
+
+BEGIN_EXT_C
   #include "pathfinder.h"
   #include "game.h"
-}
+END_EXT_C
 
 #include <cstdlib>
 #include <list>
 #include <vector>
 #include <algorithm>
+
+#ifdef min
+# undef min
+#endif
+
+#ifdef max
+# undef max
+#endif
 
 typedef struct search_node search_node_t;
 

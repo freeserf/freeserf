@@ -1,0 +1,34 @@
+version: '{build}'
+configuration:
+  - Debug
+  - Release
+
+install:
+  # SDL2
+  - ps: Start-FileDownload https://libsdl.org/release/SDL2-devel-2.0.3-VC.zip
+  - ps: 7z x SDL2-devel-2.0.3-VC.zip -oC:\
+
+  - ps: $env:SDL2_INCLUDE = "C:\SDL2-2.0.3\include"
+  - ps: $env:SDL2_LIB = "C:\SDL2-2.0.3\lib\x86"
+
+  # SDL2_mixer
+  - ps: Start-FileDownload https://www.libsdl.org/projects/SDL_mixer/release/SDL2_mixer-devel-2.0.0-VC.zip
+  - ps: 7z x SDL2_mixer-devel-2.0.0-VC.zip -oC:\
+
+  - ps: $env:SDL2_MIXER_INCLUDE = "C:\SDL2_mixer-2.0.0\include"
+  - ps: $env:SDL2_MIXER_LIB = "C:\SDL2_mixer-2.0.0\lib\x86"
+
+build_script:
+  - msbuild windows\freeserf.sln
+
+after_build:
+  - ps: |
+      $ZIP_BASE = "freeserf-VC-$env:CONFIGURATION-$env:APPVEYOR_BUILD_NUMBER"
+      $ZIP_FILE = "$($ZIP_BASE).zip"
+      md $ZIP_BASE
+      Copy-Item -Path windows\$env:CONFIGURATION\freeserf.exe -Destination $ZIP_BASE\
+      Copy-Item -Path README.md -Destination $ZIP_BASE\README.txt
+      Copy-Item -Path $env:SDL2_LIB\SDL2.dll -Destination $ZIP_BASE\
+      Copy-Item -Path $env:SDL2_MIXER_LIB\SDL2_mixer.dll -Destination $ZIP_BASE\
+      7z a $ZIP_FILE $ZIP_BASE\*
+      Push-AppveyorArtifact $ZIP_FILE
