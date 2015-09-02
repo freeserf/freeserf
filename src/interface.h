@@ -31,10 +31,6 @@
 #include "popup.h"
 #include "random.h"
 
-/* The length between game updates in miliseconds. */
-#define TICK_LENGTH  20
-#define TICKS_PER_SEC  (1000/TICK_LENGTH)
-
 #define MAX_ROAD_LENGTH  256
 
 static const int map_building_sprite[] = {

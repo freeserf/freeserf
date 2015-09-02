@@ -34,7 +34,9 @@ freeserf_SOURCES = \
 	src/freeserf_endian.h \
 	src/version.c src/version.h src/version-vcs.h \
 	src/data-source-dos.c \
-	src/tpwm.c src/tpwm.h
+	src/tpwm.c src/tpwm.h \
+	src/event_loop.cc src/event_loop.h \
+	src/event_loop-sdl.cc src/event_loop-sdl.h
 
 AM_CFLAGS = $(SDL2_CFLAGS) -I$(top_builddir)/src
 AM_CXXFLAGS = $(SDL2_CFLAGS) -I$(top_builddir)/src
