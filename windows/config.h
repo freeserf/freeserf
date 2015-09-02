@@ -52,8 +52,6 @@ inline int c99_snprintf(char* str, size_t size, const char* format, ...)
 	return count;
 }
 
-#		define strdup _strdup
-
 #		endif
 #	endif
 #endif
