@@ -41,7 +41,7 @@
 			<Tool
 				Name="VCCLCompilerTool"
 				Optimization="0"
-				AdditionalIncludeDirectories="$(ProjectDir);$(SDL2_INCLUDE);$(SDL2_MIXER_INCLUDE)"
+				AdditionalIncludeDirectories="$(ProjectDir);$(ProjectDir)\..;$(SDL2_INCLUDE);$(SDL2_MIXER_INCLUDE)"
 				PreprocessorDefinitions="WIN32;_DEBUG;_WINDOWS;HAVE_CONFIG_H;_CRT_SECURE_NO_WARNINGS;_SCL_SECURE_NO_WARNINGS"
 				MinimalRebuild="true"
 				BasicRuntimeChecks="3"
@@ -119,7 +119,7 @@
 			/>
 			<Tool
 				Name="VCCLCompilerTool"
-				AdditionalIncludeDirectories="$(ProjectDir);$(SDL2_INCLUDE);$(SDL2_MIXER_INCLUDE)"
+				AdditionalIncludeDirectories="$(ProjectDir);$(ProjectDir)\..;$(SDL2_INCLUDE);$(SDL2_MIXER_INCLUDE)"
 				PreprocessorDefinitions="WIN32;NDEBUG;_WINDOWS;HAVE_CONFIG_H;_CRT_SECURE_NO_WARNINGS;_SCL_SECURE_NO_WARNINGS;"
 				RuntimeLibrary="2"
 				UsePrecompiledHeader="0"

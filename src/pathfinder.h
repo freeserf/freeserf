@@ -19,11 +19,14 @@
  * along with freeserf.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef _PATHFINDER_H
-#define _PATHFINDER_H
+#ifndef SRC_PATHFINDER_H_
+#define SRC_PATHFINDER_H_
 
-#include "map.h"
+#include "src/map.h"
+#include "src/misc.h"
 
-dir_t *pathfinder_map(map_pos_t start, map_pos_t end, uint *length);
+BEGIN_EXT_C
+  dir_t *pathfinder_map(map_pos_t start, map_pos_t end, uint *length);
+END_EXT_C
 
-#endif /* !_PATHFINDER_H */
+#endif  // SRC_PATHFINDER_H_

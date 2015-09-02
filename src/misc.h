@@ -22,7 +22,7 @@
 #ifndef _MISC_H
 #define _MISC_H
 
-#ifdef _MSC_VER
+#if !defined(__cplusplus) || defined(_MSC_VER)
 # define BEGIN_EXT_C
 # define END_EXT_C
 #else
