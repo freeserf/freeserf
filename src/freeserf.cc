@@ -19,37 +19,39 @@
  * along with freeserf.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "misc.h"
-
-BEGIN_EXT_C
-  #include "freeserf.h"
-  #include "interface.h"
-  #include "gfx.h"
-  #include "data.h"
-  #include "sdl-video.h"
-  #include "log.h"
-  #include "audio.h"
-  #include "savegame.h"
-  #include "mission.h"
-  #include "version.h"
-
-  #ifdef HAVE_CONFIG_H
-  # include <config.h>
-  #endif
-END_EXT_C
+#include "src/freeserf.h"
 
 #include <cstdio>
 #include <cstdlib>
 #include <ctime>
 #include <cstring>
+#include <string>
+
+#ifdef HAVE_CONFIG_H
+# include <config.h>
+#endif
 
 #ifdef HAVE_UNISTD_H
-#include <unistd.h>
+# include <unistd.h>
 #endif
 
 #ifdef HAVE_STDINT_H
-#include <stdint.h>
+# include <stdint.h>
 #endif
+
+#include "src/misc.h"
+
+BEGIN_EXT_C
+  #include "src/interface.h"
+  #include "src/gfx.h"
+  #include "src/data.h"
+  #include "src/sdl-video.h"
+  #include "src/log.h"
+  #include "src/audio.h"
+  #include "src/savegame.h"
+  #include "src/mission.h"
+  #include "src/version.h"
+END_EXT_C
 
 #define DEFAULT_SCREEN_WIDTH  800
 #define DEFAULT_SCREEN_HEIGHT 600
@@ -79,8 +81,7 @@ static interface_t interface;
 
 /* In target, replace any character from needle with replacement character. */
 static void
-strreplace(char *target, const char *needle, char replace)
-{
+strreplace(char *target, const char *needle, char replace) {
   for (int i = 0; target[i] != '\0'; i++) {
     for (int j = 0; needle[j] != '\0'; j++) {
       if (needle[j] == target[i]) {
@@ -92,8 +93,7 @@ strreplace(char *target, const char *needle, char replace)
 }
 
 static int
-save_game(int autosave)
-{
+save_game(int autosave) {
   size_t r;
 
   /* Build filename including time stamp. */
@@ -132,8 +132,7 @@ save_game(int autosave)
 
 
 void
-game_loop_quit()
-{
+game_loop_quit() {
   game_loop_run = 0;
 }
 
@@ -141,8 +140,7 @@ game_loop_quit()
    The code for one iteration of the original game_loop is
    in game_loop_iter. */
 static void
-game_loop()
-{
+game_loop() {
   /* FPS */
   float fps = 0;
   float fps_ema = 0;
@@ -178,7 +176,8 @@ game_loop()
             ev.x = event.button.x;
             ev.y = event.button.y;
             ev.button = drag_button;
-            gui_object_handle_event(reinterpret_cast<gui_object_t*>(&interface), &ev);
+            gui_object_handle_event(reinterpret_cast<gui_object_t*>(&interface),
+                                    &ev);
 
             drag_button = 0;
           }
@@ -187,26 +186,35 @@ game_loop()
           ev.x = event.button.x;
           ev.y = event.button.y;
           ev.button = event.button.button;
-          gui_object_handle_event(reinterpret_cast<gui_object_t*>(&interface), &ev);
+          gui_object_handle_event(reinterpret_cast<gui_object_t*>(&interface),
+                                  &ev);
 
           if (event.button.button <= 3 &&
-              current_ticks - last_down[event.button.button-1] < MOUSE_TIME_SENSITIVITY) {
+              current_ticks - last_down[event.button.button-1] <
+                MOUSE_TIME_SENSITIVITY) {
             ev.type = GUI_EVENT_TYPE_CLICK;
             ev.x = event.button.x;
             ev.y = event.button.y;
             ev.button = event.button.button;
-            gui_object_handle_event(reinterpret_cast<gui_object_t*>(&interface), &ev);
+            gui_object_handle_event(reinterpret_cast<gui_object_t*>(&interface),
+                                    &ev);
 
-            if (current_ticks - last_click[event.button.button-1] < MOUSE_TIME_SENSITIVITY &&
-                event.button.x >= static_cast<int>(last_click_x - MOUSE_MOVE_SENSITIVITY) &&
-                event.button.x <= static_cast<int>(last_click_x + MOUSE_MOVE_SENSITIVITY) &&
-                event.button.y >= static_cast<int>(last_click_y - MOUSE_MOVE_SENSITIVITY) &&
-                event.button.y <= static_cast<int>(last_click_y + MOUSE_MOVE_SENSITIVITY)) {
+            if (current_ticks - last_click[event.button.button-1] <
+                  MOUSE_TIME_SENSITIVITY &&
+                event.button.x >= static_cast<int>(last_click_x -
+                  MOUSE_MOVE_SENSITIVITY) &&
+                event.button.x <= static_cast<int>(last_click_x +
+                  MOUSE_MOVE_SENSITIVITY) &&
+                event.button.y >= static_cast<int>(last_click_y -
+                  MOUSE_MOVE_SENSITIVITY) &&
+                event.button.y <= static_cast<int>(last_click_y +
+                  MOUSE_MOVE_SENSITIVITY)) {
               ev.type = GUI_EVENT_TYPE_DBL_CLICK;
               ev.x = event.button.x;
               ev.y = event.button.y;
               ev.button = event.button.button;
-              gui_object_handle_event(reinterpret_cast<gui_object_t *>(&interface), &ev);
+              gui_object_handle_event(
+                reinterpret_cast<gui_object_t *>(&interface), &ev);
             }
 
             last_click[event.button.button-1] = current_ticks;
@@ -219,9 +227,12 @@ game_loop()
           ev.x = event.button.x;
           ev.y = event.button.y;
           ev.button = event.button.button;
-          gui_object_handle_event(reinterpret_cast<gui_object_t*>(&interface), &ev);
+          gui_object_handle_event(
+            reinterpret_cast<gui_object_t*>(&interface), &ev);
 
-          if (event.button.button <= 3) last_down[event.button.button-1] = current_ticks;
+          if (event.button.button <= 3) {
+            last_down[event.button.button-1] = current_ticks;
+          }
           break;
         case SDL_MOUSEMOTION:
           for (int button = 1; button <= 3; button++) {
@@ -235,14 +246,16 @@ game_loop()
                 ev.x = event.motion.x;
                 ev.y = event.motion.y;
                 ev.button = drag_button;
-                gui_object_handle_event(reinterpret_cast<gui_object_t*>(&interface), &ev);
+                gui_object_handle_event(
+                  reinterpret_cast<gui_object_t*>(&interface), &ev);
               }
 
               ev.type = GUI_EVENT_TYPE_DRAG_MOVE;
               ev.x = event.motion.x - drag_x;
               ev.y = event.motion.y - drag_y;
               ev.button = drag_button;
-              gui_object_handle_event(reinterpret_cast<gui_object_t*>(&interface), &ev);
+              gui_object_handle_event(
+                reinterpret_cast<gui_object_t*>(&interface), &ev);
 
               sdl_warp_mouse(drag_x, drag_y);
 
@@ -332,8 +345,7 @@ game_loop()
               LOGI("main", "Game speed: %u", game.game_speed);
               break;
             case SDLK_p:
-              if (game.game_speed == 0) game_pause(0);
-              else game_pause(1);
+              game_pause(game.game_speed == 0 ? 0 : 1);
               break;
 
               /* Audio */
@@ -364,10 +376,13 @@ game_loop()
 
               /* Debug */
             case SDLK_g:
-              interface.viewport.layers = static_cast<viewport_layer_t>(interface.viewport.layers ^ VIEWPORT_LAYER_GRID);
+              interface.viewport.layers =
+                static_cast<viewport_layer_t>(interface.viewport.layers ^
+                                              VIEWPORT_LAYER_GRID);
               break;
             case SDLK_b:
-              interface.viewport.show_possible_build = !interface.viewport.show_possible_build;
+              interface.viewport.show_possible_build =
+                !interface.viewport.show_possible_build;
               break;
             case SDLK_j: {
               int current = 0;
@@ -405,12 +420,13 @@ game_loop()
           game_loop_quit();
           break;
         case SDL_WINDOWEVENT:
-          if (SDL_WINDOWEVENT_SIZE_CHANGED == event.window.event){
+          if (SDL_WINDOWEVENT_SIZE_CHANGED == event.window.event) {
             int width = 0;
             int height = 0;
             sdl_get_resolution(&width, &height);
             sdl_set_resolution(width, height, gfx_is_fullscreen());
-            gui_object_set_size(reinterpret_cast<gui_object_t*>(&interface), width, height);
+            gui_object_set_size(reinterpret_cast<gui_object_t*>(&interface),
+                                width, height);
           }
           break;
       }
@@ -469,8 +485,7 @@ game_loop()
 /* Load data file from path is non-NULL, otherwise search in
    various standard paths. */
 static int
-load_data_file(const char *path)
-{
+load_data_file(const char *path) {
   const char *default_data_file[] = {
     "SPAE.PA", /* English */
     "SPAF.PA", /* French */
@@ -537,7 +552,7 @@ load_data_file(const char *path)
       char *end = strchr(begin, ':');
       if (end == NULL) end = strchr(begin, '\0');
 
-      int len = (int)(end - begin);
+      int len = end - begin;
       if (len > 0) {
         for (const char **df = default_data_file; *df != NULL; df++) {
           snprintf(cp, sizeof(cp),
@@ -581,27 +596,26 @@ load_data_file(const char *path)
 }
 
 
-#define USAGE					\
+#define USAGE                                               \
   "Usage: %s [-g DATA-FILE]\n"
-#define HELP                                                            \
-  USAGE                                                                 \
-      " -d NUM\t\tSet debug output level\n"				\
-      " -f\t\tFullscreen mode (CTRL-q to exit)\n"			\
-      " -g DATA-FILE\tUse specified data file\n"			\
-      " -h\t\tShow this help text\n"					\
-      " -l FILE\tLoad saved game\n"					\
-      " -r RES\t\tSet display resolution (e.g. 800x600)\n"		\
-      " -t GEN\t\tMap generator (0 or 1)\n"				\
-      "\n"								\
+#define HELP                                                \
+  USAGE                                                     \
+      " -d NUM\t\tSet debug output level\n"                 \
+      " -f\t\tFullscreen mode (CTRL-q to exit)\n"           \
+      " -g DATA-FILE\tUse specified data file\n"            \
+      " -h\t\tShow this help text\n"                        \
+      " -l FILE\tLoad saved game\n"                         \
+      " -r RES\t\tSet display resolution (e.g. 800x600)\n"  \
+      " -t GEN\t\tMap generator (0 or 1)\n"                 \
+      "\n"                                                  \
       "Please report bugs to <" PACKAGE_BUGREPORT ">\n"
 
 int
-main(int argc, char *argv[])
-{
+main(int argc, char *argv[]) {
   int r;
 
-  char *data_file = NULL;
-  char *save_file = NULL;
+  std::string data_file;
+  std::string save_file;
 
   int screen_width = DEFAULT_SCREEN_WIDTH;
   int screen_height = DEFAULT_SCREEN_HEIGHT;
@@ -631,18 +645,14 @@ main(int argc, char *argv[])
         fullscreen = 1;
         break;
       case 'g':
-        data_file = static_cast<char*>(malloc(strlen(optarg)+1));
-        if (data_file == NULL) exit(EXIT_FAILURE);
-        strcpy(data_file, optarg);
+        data_file = optarg;
         break;
       case 'h':
         fprintf(stdout, HELP, argv[0]);
         exit(EXIT_SUCCESS);
         break;
       case 'l':
-        save_file = static_cast<char*>(malloc(strlen(optarg)+1));
-        if (save_file == NULL) exit(EXIT_FAILURE);
-        strcpy(save_file, optarg);
+        save_file = optarg;
         break;
       case 'r':
         {
@@ -672,13 +682,11 @@ main(int argc, char *argv[])
 
   LOGI("main", "freeserf %s", FREESERF_VERSION);
 
-  r = load_data_file(data_file);
+  r = load_data_file(data_file.c_str());
   if (r < 0) {
     LOGE("main", "Could not load game data.");
     exit(EXIT_FAILURE);
   }
-
-  free(data_file);
 
   LOGI("main", "Initialize graphics...");
 
@@ -702,10 +710,9 @@ main(int argc, char *argv[])
 
   /* Either load a save game if specified or
      start a new game. */
-  if (save_file != NULL) {
-    int r = game_load_save_game(save_file);
+  if (!save_file.empty()) {
+    int r = game_load_save_game(save_file.c_str());
     if (r < 0) exit(EXIT_FAILURE);
-    free(save_file);
 
     interface_set_player(&interface, 0);
   } else {
@@ -721,7 +728,7 @@ main(int argc, char *argv[])
 
   viewport_map_reinit();
 
-  if (save_file != NULL) {
+  if (!save_file.empty()) {
     interface_close_game_init(&interface);
   }
 

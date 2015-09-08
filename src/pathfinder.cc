@@ -19,17 +19,14 @@
  * along with freeserf.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "misc.h"
-
-BEGIN_EXT_C
-  #include "pathfinder.h"
-  #include "game.h"
-END_EXT_C
+#include "src/pathfinder.h"
 
 #include <cstdlib>
 #include <list>
 #include <vector>
 #include <algorithm>
+
+#include "src/misc.h"
 
 #ifdef min
 # undef min
@@ -38,6 +35,10 @@ END_EXT_C
 #ifdef max
 # undef max
 #endif
+
+BEGIN_EXT_C
+  #include "src/game.h"
+END_EXT_C
 
 typedef struct search_node search_node_t;
 
@@ -50,8 +51,7 @@ struct search_node {
 };
 
 static bool
-search_node_less(const search_node_t* left, const search_node_t* right)
-{
+search_node_less(const search_node_t* left, const search_node_t* right) {
   // A search node is considered less than the other if
   // it has a larger f-score. This means that in the max-heap
   // the lower score will go to the top.
@@ -62,16 +62,20 @@ search_node_less(const search_node_t* left, const search_node_t* right)
 static const uint walk_cost[] = { 255, 319, 383, 447, 511 };
 
 static uint
-heuristic_cost(map_pos_t start, map_pos_t end)
-{
+heuristic_cost(map_pos_t start, map_pos_t end) {
   /* Calculate distance to target. */
   int dist_col = (MAP_POS_COL(start) - MAP_POS_COL(end)) & game.map.col_mask;
-  if (dist_col >= static_cast<int>(game.map.cols/2.0)) dist_col -= game.map.cols;
+  if (dist_col >= static_cast<int>(game.map.cols/2.0)) {
+    dist_col -= game.map.cols;
+  }
 
   int dist_row = (MAP_POS_ROW(start) - MAP_POS_ROW(end)) & game.map.row_mask;
-  if (dist_row >= static_cast<int>(game.map.rows/2.0)) dist_row -= game.map.rows;
+  if (dist_row >= static_cast<int>(game.map.rows/2.0)) {
+    dist_row -= game.map.rows;
+  }
 
-  int h_diff = abs(MAP_HEIGHT(start) - MAP_HEIGHT(end));
+  int h_diff = abs(static_cast<int>(MAP_HEIGHT(start)) -
+                   static_cast<int>(MAP_HEIGHT(end)));
   int dist = 0;
 
   if ((dist_col > 0 && dist_row > 0) ||
@@ -85,10 +89,10 @@ heuristic_cost(map_pos_t start, map_pos_t end)
 }
 
 static uint
-actual_cost(map_pos_t pos, dir_t dir)
-{
+actual_cost(map_pos_t pos, dir_t dir) {
   map_pos_t other_pos = MAP_MOVE(pos, dir);
-  int h_diff = abs(MAP_HEIGHT(pos) - MAP_HEIGHT(other_pos));
+  int h_diff = abs(static_cast<int>(MAP_HEIGHT(pos)) -
+                   static_cast<int>(MAP_HEIGHT(other_pos)));
   return walk_cost[h_diff];
 }
 
@@ -97,8 +101,7 @@ actual_cost(map_pos_t pos, dir_t dir)
    should be minimized. Returns a malloc'ed array of directions and
    the size of this array in length. */
 dir_t *
-pathfinder_map(map_pos_t start, map_pos_t end, uint *length)
-{
+pathfinder_map(map_pos_t start, map_pos_t end, uint *length) {
   // Unfortunately the STL priority_queue cannot be used since we
   // would need access to the underlying sequence to determine if
   // a node is already in the open list. We keep instead open as

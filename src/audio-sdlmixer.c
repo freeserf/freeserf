@@ -29,6 +29,8 @@
 #include "SDL.h"
 #include "SDL_mixer.h"
 
+#include <string.h>
+
 /* Play sound. */
 
 typedef struct {

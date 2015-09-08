@@ -19,9 +19,12 @@
  * along with freeserf.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef _FREESERF_H
-#define _FREESERF_H
+#ifndef SRC_FREESERF_H_
+#define SRC_FREESERF_H_
 
-void game_loop_quit();
+#include "src/misc.h"
+BEGIN_EXT_C
+  void game_loop_quit();
+END_EXT_C
 
-#endif /* ! _FREESERF_H */
+#endif  // SRC_FREESERF_H_

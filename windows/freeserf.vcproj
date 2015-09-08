@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="windows-1251"?>
 <VisualStudioProject
 	ProjectType="Visual C++"
-	Version="9,00"
+	Version="9.00"
 	Name="freeserf"
 	ProjectGUID="{EBB0FC72-5E05-4213-BA0E-590BECC6B7C9}"
 	RootNamespace="freeserf"
@@ -41,8 +41,8 @@
 			<Tool
 				Name="VCCLCompilerTool"
 				Optimization="0"
-				AdditionalIncludeDirectories="$(ProjectDir);$(SDL2_INCLUDE);$(SDL2_MIXER_INCLUDE)"
-				PreprocessorDefinitions="WIN32;_DEBUG;_WINDOWS;HAVE_CONFIG_H;_CRT_SECURE_NO_WARNINGS"
+				AdditionalIncludeDirectories="$(ProjectDir);$(ProjectDir)\..;$(SDL2_INCLUDE);$(SDL2_MIXER_INCLUDE)"
+				PreprocessorDefinitions="WIN32;_DEBUG;_WINDOWS;HAVE_CONFIG_H;_CRT_SECURE_NO_WARNINGS;_SCL_SECURE_NO_WARNINGS"
 				MinimalRebuild="true"
 				BasicRuntimeChecks="3"
 				RuntimeLibrary="3"
@@ -62,9 +62,9 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalLibraryDirectories="$(SDL2_LIB);$(SDL2_MIXER_LIB)"
 				AdditionalDependencies="SDL2.lib SDL2main.lib SDL2_mixer.lib"
 				LinkIncremental="2"
+				AdditionalLibraryDirectories="$(SDL2_LIB);$(SDL2_MIXER_LIB)"
 				IgnoreDefaultLibraryNames="msvcrt.lib"
 				GenerateDebugInformation="true"
 				SubSystem="2"
@@ -119,8 +119,8 @@
 			/>
 			<Tool
 				Name="VCCLCompilerTool"
-				AdditionalIncludeDirectories="$(ProjectDir);$(SDL2_INCLUDE);$(SDL2_MIXER_INCLUDE)"
-				PreprocessorDefinitions="WIN32;NDEBUG;_WINDOWS;HAVE_CONFIG_H;_CRT_SECURE_NO_WARNINGS"
+				AdditionalIncludeDirectories="$(ProjectDir);$(ProjectDir)\..;$(SDL2_INCLUDE);$(SDL2_MIXER_INCLUDE)"
+				PreprocessorDefinitions="WIN32;NDEBUG;_WINDOWS;HAVE_CONFIG_H;_CRT_SECURE_NO_WARNINGS;_SCL_SECURE_NO_WARNINGS;"
 				RuntimeLibrary="2"
 				UsePrecompiledHeader="0"
 				WarningLevel="3"
@@ -137,9 +137,9 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalLibraryDirectories="$(SDL2_LIB);$(SDL2_MIXER_LIB)"
 				AdditionalDependencies="SDL2.lib SDL2main.lib SDL2_mixer.lib"
 				LinkIncremental="1"
+				AdditionalLibraryDirectories="$(SDL2_LIB);$(SDL2_MIXER_LIB)"
 				GenerateDebugInformation="true"
 				SubSystem="2"
 				OptimizeReferences="2"
