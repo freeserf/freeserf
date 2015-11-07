@@ -25,6 +25,7 @@
 #include "data.h"
 #include "debug.h"
 #include "freeserf_endian.h"
+#include "freeserf.h"
 
 #include <time.h>
 #include <assert.h>

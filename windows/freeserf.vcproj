@@ -192,6 +192,14 @@
 				>
 			</File>
 			<File
+				RelativePath="..\src\event_loop-sdl.cc"
+				>
+			</File>
+			<File
+				RelativePath="..\src\event_loop.cc"
+				>
+			</File>
+			<File
 				RelativePath="..\src\flag.c"
 				>
 			</File>
@@ -315,6 +323,14 @@
 			</File>
 			<File
 				RelativePath="..\src\debug.h"
+				>
+			</File>
+			<File
+				RelativePath="..\src\event_loop-sdl.h"
+				>
+			</File>
+			<File
+				RelativePath="..\src\event_loop.h"
 				>
 			</File>
 			<File
