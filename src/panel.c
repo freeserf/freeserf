@@ -23,6 +23,7 @@
 #include "interface.h"
 #include "data.h"
 #include "audio.h"
+#include "freeserf.h"
 
 /* Draw the frame around action buttons. */
 static void
