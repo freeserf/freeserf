@@ -40,10 +40,10 @@
 #endif
 
 #include "src/event_loop-sdl.h"
+#include "src/interface.h"
 #include "src/misc.h"
 
 BEGIN_EXT_C
-  #include "src/interface.h"
   #include "src/gfx.h"
   #include "src/data.h"
   #include "src/sdl-video.h"

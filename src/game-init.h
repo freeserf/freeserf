@@ -19,27 +19,30 @@
  * along with freeserf.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef _GAME_INIT_H
-#define _GAME_INIT_H
+#ifndef SRC_GAME_INIT_H_
+#define SRC_GAME_INIT_H_
 
-#include "gui.h"
-#include "game.h"
+#include "src/gui.h"
+#include "src/misc.h"
+BEGIN_EXT_C
+  #include "src/game.h"
+END_EXT_C
 
 struct interface;
 
 typedef struct {
-	gui_object_t obj;
-	struct interface *interface;
+  gui_object_t obj;
+  struct interface *interface;
 
-	int map_size;
-	int game_mission;
+  int map_size;
+  int game_mission;
 
-	uint face[GAME_MAX_PLAYER_COUNT];
-	uint intelligence[GAME_MAX_PLAYER_COUNT];
-	uint supplies[GAME_MAX_PLAYER_COUNT];
-	uint reproduction[GAME_MAX_PLAYER_COUNT];
+  uint face[GAME_MAX_PLAYER_COUNT];
+  uint intelligence[GAME_MAX_PLAYER_COUNT];
+  uint supplies[GAME_MAX_PLAYER_COUNT];
+  uint reproduction[GAME_MAX_PLAYER_COUNT];
 } game_init_box_t;
 
 void game_init_box_init(game_init_box_t *box, struct interface *interface);
 
-#endif /* !_GAME_INIT_H */
+#endif  // SRC_GAME_INIT_H_

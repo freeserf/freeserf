@@ -19,20 +19,20 @@
  * along with freeserf.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef _NOTIFICATION_H
-#define _NOTIFICATION_H
+#ifndef SRC_NOTIFICATION_H_
+#define SRC_NOTIFICATION_H_
 
-#include "gui.h"
+#include "src/gui.h"
 
 typedef struct {
-	gui_object_t obj;
-	struct interface *interface;
+  gui_object_t obj;
+  struct interface *interface;
 
-	int type;
-	int param;
+  int type;
+  int param;
 } notification_box_t;
 
 void notification_box_init(notification_box_t *box,
-			   struct interface *interface);
+                           struct interface *interface);
 
-#endif /* !_NOTIFICATION_H */
+#endif  // SRC_NOTIFICATION_H_

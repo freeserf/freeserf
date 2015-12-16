@@ -19,21 +19,24 @@
  * along with freeserf.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef _MINIMAP_H
-#define _MINIMAP_H
+#ifndef SRC_MINIMAP_H_
+#define SRC_MINIMAP_H_
 
-#include "gui.h"
-#include "map.h"
+#include "src/gui.h"
+#include "src/misc.h"
+BEGIN_EXT_C
+  #include "src/map.h"
+END_EXT_C
 
 typedef struct {
-	gui_object_t obj;
-	struct interface *interface;
+  gui_object_t obj;
+  struct interface *interface;
 
-	int offset_x, offset_y;
-	int scale;
+  int offset_x, offset_y;
+  int scale;
 
-	int advanced;
-	int flags;
+  int advanced;
+  int flags;
 } minimap_t;
 
 
@@ -45,8 +48,9 @@ void minimap_move_to_map_pos(minimap_t *minimap, map_pos_t pos);
 void minimap_move_by_pixels(minimap_t *minimap, int x, int y);
 map_pos_t minimap_get_current_map_pos(minimap_t *minimap);
 
-void minimap_screen_pix_from_map_pos(minimap_t *minimap, map_pos_t pos, int *sx, int *sy);
+void minimap_screen_pix_from_map_pos(minimap_t *minimap, map_pos_t pos,
+                                     int *sx, int *sy);
 map_pos_t minimap_map_pos_from_screen_pix(minimap_t *minimap, int x, int y);
 
 
-#endif /* !_MINIMAP_H */
+#endif  // SRC_MINIMAP_H_

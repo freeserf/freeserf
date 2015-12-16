@@ -62,7 +62,9 @@ typedef struct {
 
 
 static void *sprites;
+#ifdef HAVE_MMAP
 static int mapped = 0;
+#endif
 static size_t sprites_size;
 static uint entry_count;
 
@@ -124,12 +126,12 @@ data_load(const char *path)
 #endif
 
 	/* Check that data file is decompressed. */
-	if (tpwm_is_compressed(sprites, sprites_size) >= 0) {
+	if (tpwm_is_compressed(sprites, (unsigned int)sprites_size) >= 0) {
 		LOGV("data", "Data file is compressed");
 		void *uncompressed = NULL;
 		unsigned int uncmpsd_size = 0;
 		char *error = NULL;
-		if (tpwm_uncompress(sprites, sprites_size,
+		if (tpwm_uncompress(sprites, (unsigned int)sprites_size,
 		                    &uncompressed, &uncmpsd_size,
 		                    &error) < 0) {
 			LOGE("tpwm", error);
