@@ -50,27 +50,28 @@ typedef enum {
 } action_t;
 
 
-static void
-draw_box_icon(int x, int y, int sprite, frame_t *frame) {
+void
+game_init_box_t::draw_box_icon(int x, int y, int sprite, frame_t *frame) {
   gfx_draw_sprite(8*x+20, y+16, DATA_ICON_BASE + sprite, frame);
 }
 
-static void
-draw_box_string(int x, int y, frame_t *frame, const char *str) {
+void
+game_init_box_t::draw_box_string(int x, int y, frame_t *frame,
+                                 const char *str) {
   gfx_draw_string(8*x+20, y+16, 31, 1, frame, str);
 }
 
 /* Get the sprite number for a face. */
-static int
-get_player_face_sprite(int face) {
+int
+game_init_box_t::get_player_face_sprite(int face) {
   if (face != 0) return 0x10b + face;
   return 0x119; /* sprite_face_none */
 }
 
-static void
-game_init_box_draw(game_init_box_t *box, frame_t *frame) {
+void
+game_init_box_t::draw(frame_t *frame) {
   /* Background */
-  gfx_fill_rect(0, 0, box->obj.width, box->obj.height, 1, frame);
+  gfx_fill_rect(0, 0, width, height, 1, frame);
 
   const int layout[] = {
     251, 0, 40, 252, 0, 112, 253, 0, 48,
@@ -93,20 +94,20 @@ game_init_box_draw(game_init_box_t *box, frame_t *frame) {
   }
 
   /* Game type settings */
-  if (box->game_mission < 0) {
+  if (game_mission < 0) {
     draw_box_icon(5, 0, 263, frame);
 
-    char map_size[4] = {0};
-    snprintf(map_size, sizeof(map_size), "%d", box->map_size);
+    char str_map_size[4] = {0};
+    snprintf(str_map_size, sizeof(map_size), "%d", map_size);
 
     draw_box_string(10, 0, frame, "Start new game");
     draw_box_string(10, 14, frame, "Map size:");
-    draw_box_string(20, 14, frame, map_size);
+    draw_box_string(20, 14, frame, str_map_size);
   } else {
     draw_box_icon(5, 0, 260, frame);
 
     char level[4] = {0};
-    snprintf(level, sizeof(level), "%d", box->game_mission+1);
+    snprintf(level, sizeof(level), "%d", game_mission+1);
 
     draw_box_string(10, 0, frame, "Start mission");
     draw_box_string(10, 14, frame, "Mission:");
@@ -117,25 +118,25 @@ game_init_box_draw(game_init_box_t *box, frame_t *frame) {
   draw_box_icon(28, 16, 240, frame);
 
   /* Game info */
-  if (box->game_mission < 0) {
+  if (game_mission < 0) {
     for (int i = 0; i < GAME_MAX_PLAYER_COUNT; i++) {
-      int face = box->face[i];
-      draw_box_icon(10*i+1, 48, get_player_face_sprite(face), frame);
+      int face_ = face[i];
+      draw_box_icon(10*i+1, 48, get_player_face_sprite(face_), frame);
       draw_box_icon(10*i+6, 48, 282, frame);
 
-      if (face == 0) continue;
+      if (face_ == 0) continue;
 
-      int intelligence = box->intelligence[i];
-      gfx_fill_rect(80*i+78, 124-intelligence, 4, intelligence, 30, frame);
+      int intelligence_ = intelligence[i];
+      gfx_fill_rect(80*i+78, 124-intelligence_, 4, intelligence_, 30, frame);
 
-      int supplies = box->supplies[i];
-      gfx_fill_rect(80*i+72, 124-supplies, 4, supplies, 67, frame);
+      int supplies_ = supplies[i];
+      gfx_fill_rect(80*i+72, 124-supplies_, 4, supplies_, 67, frame);
 
-      int reproduction = box->reproduction[i];
-      gfx_fill_rect(80*i+84, 124-reproduction, 4, reproduction, 75, frame);
+      int reproduction_ = reproduction[i];
+      gfx_fill_rect(80*i+84, 124-reproduction_, 4, reproduction_, 75, frame);
     }
   } else {
-    int m = box->game_mission;
+    int m = game_mission;
     for (int i = 0; i < GAME_MAX_PLAYER_COUNT; i++) {
       int face = i == 0 ? 12 : mission[m].player[i].face;
       draw_box_icon(10*i+1, 48, get_player_face_sprite(face), frame);
@@ -155,8 +156,8 @@ game_init_box_draw(game_init_box_t *box, frame_t *frame) {
   draw_box_icon(38, 128, 60, frame); /* exit */
 }
 
-static void
-handle_action(game_init_box_t *box, int action) {
+void
+game_init_box_t::handle_action(int action) {
   const uint default_player_colors[] = {
     64, 72, 68, 76
   };
@@ -164,37 +165,37 @@ handle_action(game_init_box_t *box, int action) {
   switch (action) {
   case ACTION_START_GAME:
     game_init();
-    if (box->game_mission < 0) {
+    if (game_mission < 0) {
       random_state_t rnd = {{ 0x5a5a,
                               (uint16_t)(time(NULL) >> 16),
                               (uint16_t)time(NULL) }};
-      int r = game_load_random_map(box->map_size, &rnd);
+      int r = game_load_random_map(map_size, &rnd);
       if (r < 0) return;
 
       for (int i = 0; i < GAME_MAX_PLAYER_COUNT; i++) {
-        if (box->face[i] == 0) continue;
-        int p = game_add_player(box->face[i],
+        if (face[i] == 0) continue;
+        int p = game_add_player(face[i],
               default_player_colors[i],
-              box->supplies[i],
-              box->reproduction[i],
-              box->intelligence[i]);
+              supplies[i],
+              reproduction[i],
+              intelligence[i]);
         if (p < 0) return;
       }
     } else {
-      int r = game_load_mission_map(box->game_mission);
+      int r = game_load_mission_map(game_mission);
       if (r < 0) return;
     }
 
-    viewport_map_reinit();
-    interface_set_player(box->interface, 0);
-    interface_close_game_init(box->interface);
+    interface->get_top_viewport()->map_reinit();
+    interface->set_player(0);
+    interface->close_game_init();
     break;
   case ACTION_TOGGLE_GAME_TYPE:
-    if (box->game_mission < 0) {
-      box->game_mission = 0;
+    if (game_mission < 0) {
+      game_mission = 0;
     } else {
-      box->game_mission = -1;
-      box->map_size = 3;
+      game_mission = -1;
+      map_size = 3;
     }
     break;
   case ACTION_SHOW_OPTIONS:
@@ -202,29 +203,29 @@ handle_action(game_init_box_t *box, int action) {
   case ACTION_SHOW_LOAD_GAME:
     break;
   case ACTION_INCREMENT:
-    if (box->game_mission < 0) {
-      box->map_size = std::min(box->map_size+1, 10);
+    if (game_mission < 0) {
+      map_size = std::min(map_size+1, 10);
     } else {
-      box->game_mission = std::min(box->game_mission+1, mission_count-1);
+      game_mission = std::min(game_mission+1, mission_count-1);
     }
     break;
   case ACTION_DECREMENT:
-    if (box->game_mission < 0) {
-      box->map_size = std::max(3, box->map_size-1);
+    if (game_mission < 0) {
+      map_size = std::max(3, map_size-1);
     } else {
-      box->game_mission = std::max(0, box->game_mission-1);
+      game_mission = std::max(0, game_mission-1);
     }
     break;
   case ACTION_CLOSE:
-    interface_close_game_init(box->interface);
+    interface->close_game_init();
     break;
   default:
     break;
   }
 }
 
-static int
-game_init_box_handle_event_click(game_init_box_t *box, int x, int y) {
+int
+game_init_box_t::handle_event_click(int x, int y) {
   const int clickmap[] = {
     ACTION_START_GAME, 20, 16, 32, 32,
     ACTION_TOGGLE_GAME_TYPE, 60, 16, 32, 32,
@@ -240,7 +241,7 @@ game_init_box_handle_event_click(game_init_box_t *box, int x, int y) {
   while (i[0] >= 0) {
     if (x >= i[1] && x < i[1]+i[3] &&
         y >= i[2] && y < i[2]+i[4]) {
-      handle_action(box, i[0]);
+      handle_action(i[0]);
       break;
     }
     i += 5;
@@ -255,15 +256,15 @@ game_init_box_handle_event_click(game_init_box_t *box, int x, int y) {
         /* Face */
         int in_use = 0;
         do {
-          box->face[i] = (box->face[i] + 1) % 14;
+          face[i] = (face[i] + 1) % 14;
 
           /* Check that face is not already in use
              by another player */
           in_use = 0;
           for (int j = 0; j < GAME_MAX_PLAYER_COUNT; j++) {
             if (i != j &&
-                box->face[i] != 0 &&
-                box->face[j] == box->face[i]) {
+                face[i] != 0 &&
+                face[j] == face[i]) {
               in_use = 1;
               break;
             }
@@ -274,13 +275,13 @@ game_init_box_handle_event_click(game_init_box_t *box, int x, int y) {
         /* TODO */
       } else if (x >= 52 && x < 52+4 && y >= 84 && y < 124) {
         /* Supplies */
-        box->supplies[i] = clamp(0, 124 - y, 40);
+        supplies[i] = clamp(0, 124 - y, 40);
       } else if (x >= 58 && x < 58+4 && y >= 84 && y < 124) {
         /* Intelligence */
-        box->intelligence[i] = clamp(0, 124 - y, 40);
+        intelligence[i] = clamp(0, 124 - y, 40);
       } else if (x >= 64 && x < 64+4 && y >= 84 && y < 124) {
         /* Reproduction */
-        box->reproduction[i] = clamp(0, 124 - y, 40);
+        reproduction[i] = clamp(0, 124 - y, 40);
       }
       break;
     }
@@ -289,12 +290,12 @@ game_init_box_handle_event_click(game_init_box_t *box, int x, int y) {
   return 0;
 }
 
-static int
-game_init_box_handle_event(game_init_box_t *box, const gui_event_t *event) {
+int
+game_init_box_t::handle_event(const gui_event_t *event) {
   switch (event->type) {
   case GUI_EVENT_TYPE_CLICK:
     if (event->button == GUI_EVENT_BUTTON_LEFT) {
-      return game_init_box_handle_event_click(box, event->x, event->y);
+      return handle_event_click(event->x, event->y);
     }
   default:
     break;
@@ -303,33 +304,27 @@ game_init_box_handle_event(game_init_box_t *box, const gui_event_t *event) {
   return 0;
 }
 
-void
-game_init_box_init(game_init_box_t *box, interface_t *interface) {
-  gui_object_init(reinterpret_cast<gui_object_t*>(box));
-  box->obj.draw = reinterpret_cast<gui_draw_func*>(game_init_box_draw);
-  box->obj.handle_event =
-    reinterpret_cast<gui_handle_event_func*>(game_init_box_handle_event);
-
-  box->interface = interface;
-  box->map_size = 3;
-  box->game_mission = -1;
+game_init_box_t::game_init_box_t(interface_t *interface) {
+  this->interface = interface;
+  map_size = 3;
+  game_mission = -1;
 
   /* Clear player settings */
   for (int i = 0; i < GAME_MAX_PLAYER_COUNT; i++) {
-    box->face[i] = 0;
-    box->intelligence[i] = 0;
-    box->supplies[i] = 0;
-    box->reproduction[i] = 0;
+    face[i] = 0;
+    intelligence[i] = 0;
+    supplies[i] = 0;
+    reproduction[i] = 0;
   }
 
   /* Create default game setup */
-  box->face[0] = 12;
-  box->intelligence[0] = 40;
-  box->supplies[0] = 40;
-  box->reproduction[0] = 40;
+  face[0] = 12;
+  intelligence[0] = 40;
+  supplies[0] = 40;
+  reproduction[0] = 40;
 
-  box->face[1] = 1;
-  box->intelligence[1] = 20;
-  box->supplies[1] = 30;
-  box->reproduction[1] = 40;
+  face[1] = 1;
+  intelligence[1] = 20;
+  supplies[1] = 30;
+  reproduction[1] = 40;
 }

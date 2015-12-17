@@ -28,10 +28,6 @@ BEGIN_EXT_C
   #include "list.h"
 END_EXT_C
 
-#define GUI_OBJECT(obj)     (reinterpret_cast<gui_object_t*>(obj))
-#define GUI_CONTAINER(obj)  (reinterpret_cast<gui_container_t*>(obj))
-
-
 typedef enum {
   GUI_EVENT_TYPE_CLICK,
   GUI_EVENT_TYPE_DBL_CLICK,
@@ -54,55 +50,44 @@ typedef struct {
   int button;
 } gui_event_t;
 
-typedef struct gui_object gui_object_t;
-typedef struct gui_container gui_container_t;
+class gui_container_t;
 
-typedef void gui_draw_func(gui_object_t *obj, frame_t *frame);
-typedef int gui_handle_event_func(gui_object_t *obj, const gui_event_t *event);
-typedef void gui_set_size_func(gui_object_t *obj, int width, int height);
-
-struct gui_object {
+class gui_object_t {
+ protected:
   int width, height;
   int displayed;
   int enabled;
-  int redraw;
+  int need_redraw;
   gui_container_t *parent;
 
-  gui_draw_func *draw;
-  gui_handle_event_func *handle_event;
-  gui_set_size_func *set_size;
+ public:
+  gui_object_t();
+
+  int get_displayed() const { return displayed; }
+  void set_displayed(int displayed);
+  int get_enabled() const { return enabled; }
+  void set_enabled(int enabled);
+  void set_redraw();
+  int get_width() const { return width; }
+  int get_height() const { return height; }
+  gui_container_t *get_parent() const { return parent; }
+  void set_parent(gui_container_t *parent) { this->parent = parent; }
+
+  void redraw(frame_t *frame);
+
+  virtual void draw(frame_t *frame) = 0;
+  virtual int handle_event(const gui_event_t *event) { return 0; }
+  virtual void set_size(int width, int height);
 };
 
-typedef void gui_set_redraw_child_func(gui_container_t *cont,
-                                       gui_object_t *child);
-typedef int gui_get_child_position_func(gui_container_t *cont,
-                                        gui_object_t *child,
-                                        int *x, int *t);
+class gui_container_t : public gui_object_t {
+ public:
+  gui_container_t();
 
-struct gui_container {
-  gui_object_t obj;
-
-  gui_set_redraw_child_func *set_redraw_child;
-  gui_get_child_position_func *get_child_position;
+  virtual void set_redraw_child(gui_object_t *child);
+  virtual int get_child_position(gui_object_t *child, int *x, int *t) = 0;
 };
-
 
 int gui_get_slider_click_value(int x);
-
-
-void gui_object_init(gui_object_t *obj);
-void gui_object_redraw(gui_object_t *obj, frame_t *frame);
-int gui_object_handle_event(gui_object_t *obj, const gui_event_t *event);
-void gui_object_set_size(gui_object_t *obj, int width, int height);
-void gui_object_set_displayed(gui_object_t *obj, int displayed);
-void gui_object_set_enabled(gui_object_t *obj, int enabled);
-void gui_object_set_redraw(gui_object_t *obj);
-
-void gui_container_init(gui_container_t *cont);
-void gui_container_set_redraw_child(gui_container_t *cont,
-                                    gui_object_t *child);
-int gui_container_get_child_position(gui_container_t *cont,
-                                     gui_object_t *child,
-                                     int *x, int *y);
 
 #endif  // SRC_GUI_H_

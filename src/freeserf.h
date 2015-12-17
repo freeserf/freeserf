@@ -22,11 +22,6 @@
 #ifndef SRC_FREESERF_H_
 #define SRC_FREESERF_H_
 
-#include "src/misc.h"
-BEGIN_EXT_C
-  void game_loop_quit();
-END_EXT_C
-
 /* The length between game updates in miliseconds. */
 #define TICK_LENGTH  20
 #define TICKS_PER_SEC  (1000/TICK_LENGTH)

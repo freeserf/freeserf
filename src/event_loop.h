@@ -63,8 +63,10 @@ typedef std::list<event_handler_t*> event_handlers_t;
 class event_loop_t {
  protected:
   event_handlers_t event_handlers;
+  static event_loop_t *instance;
 
  public:
+  static event_loop_t *get_instance();
   virtual ~event_loop_t() {}
 
   virtual void run() = 0;

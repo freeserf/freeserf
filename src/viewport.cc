@@ -46,23 +46,11 @@ END_EXT_C
 #define MAP_TILE_TEXTURES  33
 #define MAP_TILE_MASKS     81
 
-#define VIEWPORT_COLS(viewport)  (2*((viewport)->obj.width / \
-                                  MAP_TILE_WIDTH) + 1)
-
-
-/* Cache prerendered tiles of the landscape. */
-typedef struct {
-  frame_t frame;
-  int dirty;
-} landscape_tile_t;
+#define VIEWPORT_COLS(viewport)  (2*((viewport)->width / MAP_TILE_WIDTH) + 1)
 
 /* Number of cols,rows in each landscape tile */
 #define MAP_TILE_COLS  16
 #define MAP_TILE_ROWS  16
-
-static uint landscape_tile_count;
-static landscape_tile_t *landscape_tile;
-
 
 static const uint8_t tri_spr[] = {
   32, 32, 32, 32, 32, 32, 32, 32,
@@ -83,9 +71,9 @@ static const uint8_t tri_spr[] = {
   16, 17, 18, 19, 20, 21, 22, 23
 };
 
-static void
-draw_triangle_up(int x, int y, int m, int left, int right,
-                 map_pos_t pos, frame_t *frame) {
+void
+viewport_t::draw_triangle_up(int x, int y, int m, int left, int right,
+                             map_pos_t pos, frame_t *frame) {
   static const int8_t tri_mask[] = {
      0,  1,  3,  6,  7, -1, -1, -1, -1,
      0,  1,  2,  5,  6,  7, -1, -1, -1,
@@ -116,9 +104,9 @@ draw_triangle_up(int x, int y, int m, int left, int right,
                          frame);
 }
 
-static void
-draw_triangle_down(int x, int y, int m, int left, int right,
-                   map_pos_t pos, frame_t *frame) {
+void
+viewport_t::draw_triangle_down(int x, int y, int m, int left, int right,
+                               map_pos_t pos, frame_t *frame) {
   static const int8_t tri_mask[] = {
      0,  0,  0,  0,  0, -1, -1, -1, -1,
      1,  1,  1,  1,  1,  0, -1, -1, -1,
@@ -149,9 +137,9 @@ draw_triangle_down(int x, int y, int m, int left, int right,
 }
 
 /* Draw a column (vertical) of tiles, starting at an up pointing tile. */
-static void
-draw_up_tile_col(map_pos_t pos, int x_base, int y_base, int max_y,
-                 frame_t *frame) {
+void
+viewport_t::draw_up_tile_col(map_pos_t pos, int x_base, int y_base, int max_y,
+                             frame_t *frame) {
   int m = MAP_HEIGHT(pos);
   int left, right;
 
@@ -208,9 +196,9 @@ draw_up_tile_col(map_pos_t pos, int x_base, int y_base, int max_y,
 }
 
 /* Draw a column (vertical) of tiles, starting at a down pointing tile. */
-static void
-draw_down_tile_col(map_pos_t pos, int x_base, int y_base, int max_y,
-                   frame_t *frame) {
+void
+viewport_t::draw_down_tile_col(map_pos_t pos, int x_base, int y_base, int max_y,
+                               frame_t *frame) {
   int left = MAP_HEIGHT(pos);
   int right = MAP_HEIGHT(MAP_MOVE_RIGHT(pos));
   int m;
@@ -269,7 +257,7 @@ draw_down_tile_col(map_pos_t pos, int x_base, int y_base, int max_y,
 
 /* Deallocate global allocations for landscape tiles */
 void
-viewport_map_deinit() {
+viewport_t::map_deinit() {
   if (landscape_tile != NULL) {
     for (uint i = 0; i < landscape_tile_count; i++) {
       gfx_frame_deinit(&landscape_tile[i].frame);
@@ -280,8 +268,8 @@ viewport_map_deinit() {
 
 /* Reinitialize landscape tiles */
 void
-viewport_map_reinit() {
-  viewport_map_deinit();
+viewport_t::map_reinit() {
+  map_deinit();
 
   int horiz_tiles = game.map.cols/MAP_TILE_COLS;
   int vert_tiles = game.map.rows/MAP_TILE_ROWS;
@@ -309,12 +297,11 @@ viewport_map_reinit() {
 }
 
 void
-viewport_redraw_map_pos(viewport_t *viewport, map_pos_t pos) {
+viewport_t::redraw_map_pos(map_pos_t pos) {
   if (landscape_tile == NULL) return;
 
   int mx, my;
-  viewport_map_pix_from_map_coord(viewport, pos, MAP_HEIGHT(pos),
-          &mx, &my);
+  map_pix_from_map_coord(pos, MAP_HEIGHT(pos), &mx, &my);
 
   int horiz_tiles = game.map.cols/MAP_TILE_COLS;
   int vert_tiles = game.map.rows/MAP_TILE_ROWS;
@@ -329,8 +316,8 @@ viewport_redraw_map_pos(viewport_t *viewport, map_pos_t pos) {
   landscape_tile[tid].dirty = 1;
 }
 
-static void
-draw_landscape(viewport_t *viewport, frame_t *frame) {
+void
+viewport_t::draw_landscape(frame_t *frame) {
   int horiz_tiles = game.map.cols/MAP_TILE_COLS;
   int vert_tiles = game.map.rows/MAP_TILE_ROWS;
 
@@ -340,10 +327,10 @@ draw_landscape(viewport_t *viewport, frame_t *frame) {
   int map_width = game.map.cols*MAP_TILE_WIDTH;
   int map_height = game.map.rows*MAP_TILE_HEIGHT;
 
-  int my = viewport->offset_y;
+  int my = offset_y;
   int y = 0;
   int x_base = 0;
-  while (y < viewport->obj.height) {
+  while (y < height) {
     while (my >= map_height) {
       my -= map_height;
       x_base += (game.map.rows*MAP_TILE_WIDTH)/2;
@@ -352,8 +339,8 @@ draw_landscape(viewport_t *viewport, frame_t *frame) {
     int ty = my % tile_height;
 
     int x = 0;
-    while (x < viewport->obj.width) {
-      int mx = (viewport->offset_x + x_base + x) % map_width;
+    while (x < width) {
+      int mx = (offset_x + x_base + x) % map_width;
       int tx = mx % tile_width;
 
       int tc = (mx / tile_width) % horiz_tiles;
@@ -389,10 +376,8 @@ draw_landscape(viewport_t *viewport, frame_t *frame) {
         landscape_tile[tid].dirty = 0;
       }
 
-      gfx_draw_frame(x, y, frame, tx, ty,
-               &landscape_tile[tid].frame,
-               viewport->obj.width - x,
-               viewport->obj.height - y);
+      gfx_draw_frame(x, y, frame, tx, ty, &landscape_tile[tid].frame,
+                     width - x, height - y);
       x += tile_width - tx;
     }
 
@@ -402,8 +387,9 @@ draw_landscape(viewport_t *viewport, frame_t *frame) {
 }
 
 
-static void
-draw_path_segment(int x, int y, map_pos_t pos, dir_t dir, frame_t *frame) {
+void
+viewport_t::draw_path_segment(int x, int y, map_pos_t pos, dir_t dir,
+                              frame_t *frame) {
   int h1 = MAP_HEIGHT(pos);
   int h2 = MAP_HEIGHT(MAP_MOVE(pos, dir));
   int h_diff = h1 - h2;
@@ -467,8 +453,9 @@ draw_path_segment(int x, int y, map_pos_t pos, dir_t dir, frame_t *frame) {
                          frame);
 }
 
-static void
-draw_border_segment(int x, int y, map_pos_t pos, dir_t dir, frame_t *frame) {
+void
+viewport_t::draw_border_segment(int x, int y, map_pos_t pos, dir_t dir,
+                                frame_t *frame) {
   int h1 = MAP_HEIGHT(pos);
   int h2 = MAP_HEIGHT(MAP_MOVE(pos, dir));
   int h_diff = h2 - h1;
@@ -531,18 +518,17 @@ draw_border_segment(int x, int y, map_pos_t pos, dir_t dir, frame_t *frame) {
              0, 0, 0, frame);
 }
 
-static void
-draw_paths_and_borders(viewport_t *viewport, frame_t *frame) {
-  int x_off = -(viewport->offset_x + 16*(viewport->offset_y/20)) % 32;
-  int y_off = -viewport->offset_y % 20;
+void
+viewport_t::draw_paths_and_borders(frame_t *frame) {
+  int x_off = -(offset_x + 16*(offset_y/20)) % 32;
+  int y_off = -offset_y % 20;
 
-  int col_0 = (viewport->offset_x/16 + viewport->offset_y/20)/2 &
-              game.map.col_mask;
-  int row_0 = (viewport->offset_y/MAP_TILE_HEIGHT) & game.map.row_mask;
+  int col_0 = (offset_x/16 + offset_y/20)/2 & game.map.col_mask;
+  int row_0 = (offset_y/MAP_TILE_HEIGHT) & game.map.row_mask;
   map_pos_t base_pos = MAP_POS(col_0, row_0);
 
   for (int x_base = x_off;
-       x_base < viewport->obj.width + MAP_TILE_WIDTH;
+       x_base < width + MAP_TILE_WIDTH;
        x_base += MAP_TILE_WIDTH) {
     map_pos_t pos = base_pos;
     int y_base = y_off;
@@ -557,7 +543,7 @@ draw_paths_and_borders(viewport_t *viewport, frame_t *frame) {
       }
 
       int y = y_base - 4*MAP_HEIGHT(pos);
-      if (y >= viewport->obj.height) break;
+      if (y >= height) break;
 
       /* For each direction right, down right and down,
          draw the corresponding paths and borders. */
@@ -588,11 +574,10 @@ draw_paths_and_borders(viewport_t *viewport, frame_t *frame) {
 
   /* If we're in road construction mode, also draw
      the temporarily placed roads. */
-  interface_t *interface = viewport->interface;
-  if (interface->building_road) {
-    map_pos_t pos = interface->building_road_source;
-    for (int i = 0; i < interface->building_road_length; i++) {
-      dir_t dir = interface->building_road_dirs[i];
+  if (interface->is_building_road()) {
+    map_pos_t pos = interface->get_building_road_source();
+    for (int i = 0; i < interface->get_building_road_length(); i++) {
+      dir_t dir = interface->get_building_road_dir(i);
 
       map_pos_t draw_pos = pos;
       dir_t draw_dir = dir;
@@ -602,63 +587,59 @@ draw_paths_and_borders(viewport_t *viewport, frame_t *frame) {
       }
 
       int mx, my;
-      viewport_map_pix_from_map_coord(viewport, draw_pos,
-              MAP_HEIGHT(draw_pos),
-              &mx, &my);
+      map_pix_from_map_coord(draw_pos, MAP_HEIGHT(draw_pos), &mx, &my);
 
       int sx, sy;
-      viewport_screen_pix_from_map_pix(viewport, mx, my, &sx, &sy);
+      screen_pix_from_map_pix(mx, my, &sx, &sy);
 
-      draw_path_segment(sx, sy + 4*MAP_HEIGHT(draw_pos), draw_pos,
-            draw_dir, frame);
+      draw_path_segment(sx, sy + 4*MAP_HEIGHT(draw_pos), draw_pos, draw_dir,
+                        frame);
 
       pos = MAP_MOVE(pos, dir);
     }
   }
 }
 
-static void
-draw_game_sprite(int x, int y, int index, frame_t *frame) {
+void
+viewport_t::draw_game_sprite(int x, int y, int index, frame_t *frame) {
   gfx_draw_transp_sprite(x, y, DATA_GAME_OBJECT_BASE + index,
                          1, 0, 0, frame);
 }
 
-static void
-draw_serf(int x, int y, int color, int head, int body, frame_t *frame) {
+void
+viewport_t::draw_serf(int x, int y, int color, int head, int body,
+                      frame_t *frame) {
   const dos_sprite_t *s_arms = data_get_dos_sprite(DATA_SERF_ARMS_BASE + body);
-  gfx_draw_transp_sprite(x, y, DATA_SERF_ARMS_BASE + body,
-                         1, 0, 0, frame);
-  gfx_draw_transp_sprite(x, y, DATA_SERF_TORSO_BASE + body,
-                         1, 0, color, frame);
+  gfx_draw_transp_sprite(x, y, DATA_SERF_ARMS_BASE + body, 1, 0, 0, frame);
+  gfx_draw_transp_sprite(x, y, DATA_SERF_TORSO_BASE + body, 1, 0, color, frame);
 
   if (head >= 0) {
     x += s_arms->b_x;
     y += s_arms->b_y;
-    gfx_draw_transp_sprite(x, y, DATA_SERF_HEAD_BASE + head,
-                           1, 0, 0, frame);
+    gfx_draw_transp_sprite(x, y, DATA_SERF_HEAD_BASE + head, 1, 0, 0, frame);
   }
 }
 
-static void
-draw_shadow_and_building_sprite(int x, int y, int index, frame_t *frame) {
+void
+viewport_t::draw_shadow_and_building_sprite(int x, int y, int index,
+                                            frame_t *frame) {
   gfx_draw_overlay_sprite(x, y, DATA_MAP_SHADOW_BASE + index,
                           0, frame);
   gfx_draw_transp_sprite(x, y, DATA_MAP_OBJECT_BASE + index,
                          1, 0, 0, frame);
 }
 
-static void
-draw_shadow_and_building_unfinished(int x, int y, int index, int progress,
-                                    frame_t *frame) {
+void
+viewport_t::draw_shadow_and_building_unfinished(int x, int y, int index,
+                                                int progress, frame_t *frame) {
   const dos_sprite_t *building = data_get_dos_sprite(DATA_MAP_OBJECT_BASE +
                                                      index);
   int h = ((building->h * progress) >> 16) + 1;
   int y_off = building->h - h;
 
-  gfx_draw_overlay_sprite(x, y, DATA_MAP_SHADOW_BASE + index,
-        y_off, frame);
-  gfx_draw_transp_sprite(x, y, DATA_MAP_OBJECT_BASE + index,
-             1, y_off, 0, frame);
+  gfx_draw_overlay_sprite(x, y, DATA_MAP_SHADOW_BASE + index, y_off, frame);
+  gfx_draw_transp_sprite(x, y, DATA_MAP_OBJECT_BASE + index, 1, y_off, 0,
+                         frame);
 }
 
 static const int map_building_frame_sprite[] = {
@@ -668,9 +649,10 @@ static const int map_building_frame_sprite[] = {
   0xb7, 0xb5, 0xb6, 0xb0, 0xb8, 0xb3, 0xaf, 0xb4
 };
 
-static void
-draw_building_unfinished(building_t *building, building_type_t bld_type,
-                         int x, int y, frame_t *frame) {
+void
+viewport_t::draw_building_unfinished(building_t *building,
+                                     building_type_t bld_type,
+                                     int x, int y, frame_t *frame) {
   if (building->progress == 0) { /* Draw cross */
     draw_shadow_and_building_sprite(x, y, 0x90, frame);
   } else {
@@ -703,10 +685,10 @@ draw_building_unfinished(building_t *building, building_type_t bld_type,
   }
 }
 
-static void
-draw_unharmed_building(viewport_t *viewport, building_t *building,
-                       int x, int y, frame_t *frame) {
-  random_state_t *random = &viewport->interface->random;
+void
+viewport_t::draw_unharmed_building(building_t *building, int x, int y,
+                                   frame_t *frame) {
+  random_state_t *random = interface->get_random();
 
   static const int pigfarm_anim[] = {
     0xa2, 0, 0xa2, 0, 0xa2, 0, 0xa2, 0, 0xa2, 0, 0xa3, 0,
@@ -922,9 +904,9 @@ draw_unharmed_building(viewport_t *viewport, building_t *building,
   }
 }
 
-static void
-draw_burning_building(viewport_t *viewport, building_t *building,
-                      int x, int y, frame_t *frame) {
+void
+viewport_t::draw_burning_building(building_t *building, int x, int y,
+                                  frame_t *frame) {
   const int building_anim_offset_from_type[] = {
     0, 10, 26, 39, 49, 62, 78, 97, 97, 116,
     129, 157, 167, 198, 211, 236, 255, 277, 305, 324,
@@ -1149,7 +1131,7 @@ draw_burning_building(viewport_t *viewport, building_t *building,
   if (building->serf_index >= delta) {
     building->serf_index -= delta;  // TODO(jonls): this is also done in
                                     // update_buildings().
-    draw_unharmed_building(viewport, building, x, y, frame);
+    draw_unharmed_building(building, x, y, frame);
 
     int type = 0;
     if (BUILDING_IS_DONE(building) ||
@@ -1170,20 +1152,19 @@ draw_burning_building(viewport_t *viewport, building_t *building,
   }
 }
 
-static void
-draw_building(viewport_t *viewport, map_pos_t pos, int x, int y,
-              frame_t *frame) {
+void
+viewport_t::draw_building(map_pos_t pos, int x, int y, frame_t *frame) {
   building_t *building = game_get_building(MAP_OBJ_INDEX(pos));
 
   if (BUILDING_IS_BURNING(building)) {
-    draw_burning_building(viewport, building, x, y, frame);
+    draw_burning_building(building, x, y, frame);
   } else {
-    draw_unharmed_building(viewport, building, x, y, frame);
+    draw_unharmed_building(building, x, y, frame);
   }
 }
 
-static void
-draw_water_waves(map_pos_t pos, int x, int y, frame_t *frame) {
+void
+viewport_t::draw_water_waves(map_pos_t pos, int x, int y, frame_t *frame) {
   int sprite = DATA_MAP_WAVES_BASE + (((pos ^ 5) + (game.tick >> 3)) & 0xf);
 
   if (MAP_TYPE_DOWN(pos) < 4 && MAP_TYPE_UP(pos) < 4) {
@@ -1197,9 +1178,9 @@ draw_water_waves(map_pos_t pos, int x, int y, frame_t *frame) {
   }
 }
 
-static void
-draw_water_waves_row(map_pos_t pos, int y_base, int cols, int x_base,
-                     frame_t *frame) {
+void
+viewport_t::draw_water_waves_row(map_pos_t pos, int y_base, int cols,
+                                 int x_base, frame_t *frame) {
   for (int i = 0; i < cols; i++, x_base += MAP_TILE_WIDTH,
        pos = MAP_MOVE_RIGHT(pos)) {
     if (MAP_TYPE_UP(pos) < 4 || MAP_TYPE_DOWN(pos) < 4) {
@@ -1209,8 +1190,8 @@ draw_water_waves_row(map_pos_t pos, int y_base, int cols, int x_base,
   }
 }
 
-static void
-draw_flag_and_res(map_pos_t pos, int x, int y, frame_t *frame) {
+void
+viewport_t::draw_flag_and_res(map_pos_t pos, int x, int y, frame_t *frame) {
   flag_t *flag = game_get_flag(MAP_OBJ_INDEX(pos));
 
   if (flag->slot[0].type != RESOURCE_NONE) {
@@ -1245,9 +1226,9 @@ draw_flag_and_res(map_pos_t pos, int x, int y, frame_t *frame) {
   }
 }
 
-static void
-draw_map_objects_row(viewport_t *viewport, map_pos_t pos, int y_base,
-                     int cols, int x_base, frame_t *frame) {
+void
+viewport_t::draw_map_objects_row(map_pos_t pos, int y_base, int cols,
+                                 int x_base, frame_t *frame) {
   for (int i = 0; i < cols; i++, x_base += MAP_TILE_WIDTH,
        pos = MAP_MOVE_RIGHT(pos)) {
     if (MAP_OBJ(pos) == MAP_OBJ_NONE) continue;
@@ -1257,7 +1238,7 @@ draw_map_objects_row(viewport_t *viewport, map_pos_t pos, int y_base,
       if (MAP_OBJ(pos) == MAP_OBJ_FLAG) {
         draw_flag_and_res(pos, x_base, y, frame);
       } else if (MAP_OBJ(pos) <= MAP_OBJ_CASTLE) {
-        draw_building(viewport, pos, x_base, y, frame);
+        draw_building(pos, x_base, y, frame);
       }
     } else {
       int sprite = MAP_OBJ(pos) - MAP_OBJ_TREE_0;
@@ -1281,8 +1262,9 @@ draw_map_objects_row(viewport_t *viewport, map_pos_t pos, int y_base,
 }
 
 /* Draw one individual serf in the row. */
-static void
-draw_row_serf(int x, int y, int shadow, int color, int body, frame_t *frame) {
+void
+viewport_t::draw_row_serf(int x, int y, int shadow, int color, int body,
+                          frame_t *frame) {
   const int index1[] = {
     0, 0, 48, 6, 96, -1, 48, 24,
     240, -1, 48, 30, 248, -1, 48, 12,
@@ -1384,8 +1366,8 @@ draw_row_serf(int x, int y, int shadow, int color, int body, frame_t *frame) {
 
 /* Extracted from obsolete update_map_serf_rows(). */
 /* Translate serf type into the corresponding sprite code. */
-static int
-serf_get_body(serf_t *serf, uint32_t *animation_table) {
+int
+viewport_t::serf_get_body(serf_t *serf, uint32_t *animation_table) {
   const int transporter_type[] = {
     0, 0x3000, 0x3500, 0x3b00, 0x4100, 0x4600, 0x4b00, 0x1400,
     0x700, 0x5100, 0x800, 0x1c00, 0x1d00, 0x1e00, 0x1a00, 0x1b00,
@@ -1886,9 +1868,10 @@ serf_get_body(serf_t *serf, uint32_t *animation_table) {
   return t;
 }
 
-static void
-draw_active_serf(serf_t *serf, map_pos_t pos, int x_base, int y_base,
-                 uint32_t *animation_table, frame_t *frame) {
+void
+viewport_t::draw_active_serf(serf_t *serf, map_pos_t pos,
+                             int x_base, int y_base, uint32_t *animation_table,
+                             frame_t *frame) {
   const int arr_4[] = {
     9, 5, 10, 7, 10, 2, 8, 6,
     11, 8, 9, 6, 9, 8, 0, 0,
@@ -1972,9 +1955,9 @@ draw_active_serf(serf_t *serf, map_pos_t pos, int x_base, int y_base,
    sprites (arm, torso, possibly head). A shadow is also drawn if appropriate.
    Note that idle serfs do not have their serf_t object linked from the map
    so they are drawn seperately from active serfs. */
-static void
-draw_serf_row(map_pos_t pos, int y_base, int cols, int x_base,
-              uint32_t *animation_table, frame_t *frame) {
+void
+viewport_t::draw_serf_row(map_pos_t pos, int y_base, int cols, int x_base,
+                          uint32_t *animation_table, frame_t *frame) {
   const int arr_1[] = {
     0x240, 0x40, 0x380, 0x140, 0x300, 0x80, 0x180, 0x200,
     0, 0x340, 0x280, 0x100, 0x1c0, 0x2c0, 0x3c0, 0xc0
@@ -2057,9 +2040,10 @@ draw_serf_row(map_pos_t pos, int y_base, int cols, int x_base,
 
 /* Draw serfs that should appear behind the building at their
    current position. */
-static void
-draw_serf_row_behind(map_pos_t pos, int y_base, int cols, int x_base,
-                     uint32_t *animation_table, frame_t *frame) {
+void
+viewport_t::draw_serf_row_behind(map_pos_t pos, int y_base, int cols,
+                                 int x_base, uint32_t *animation_table,
+                                 frame_t *frame) {
   for (int i = 0; i < cols;
        i++, x_base += MAP_TILE_WIDTH, pos = MAP_MOVE_RIGHT(pos)) {
     /* Active serf */
@@ -2078,8 +2062,8 @@ draw_serf_row_behind(map_pos_t pos, int y_base, int cols, int x_base,
   }
 }
 
-static void
-draw_game_objects(viewport_t *viewport, int layers, frame_t *frame) {
+void
+viewport_t::draw_game_objects(int layers, frame_t *frame) {
   /*player->water_in_view = 0;
   player->trees_in_view = 0;*/
 
@@ -2088,19 +2072,18 @@ draw_game_objects(viewport_t *viewport, int layers, frame_t *frame) {
   int draw_serfs = layers & VIEWPORT_LAYER_SERFS;
   if (!draw_landscape && !draw_objects && !draw_serfs) return;
 
-  int cols = VIEWPORT_COLS(viewport);
+  int cols = VIEWPORT_COLS(this);
   int short_row_len = ((cols + 1) >> 1) + 1;
   int long_row_len = ((cols + 2) >> 1) + 1;
 
-  int x = -(viewport->offset_x + 16*(viewport->offset_y/20)) % 32;
-  int y = -(viewport->offset_y) % 20;
+  int x = -(offset_x + 16*(offset_y/20)) % 32;
+  int y = -(offset_y) % 20;
 
-  int col_0 = (viewport->offset_x/16 + viewport->offset_y/20)/2 &
-              game.map.col_mask;
-  int row_0 = (viewport->offset_y/MAP_TILE_HEIGHT) & game.map.row_mask;
+  int col_0 = (offset_x/16 + offset_y/20)/2 & game.map.col_mask;
+  int row_0 = (offset_y/MAP_TILE_HEIGHT) & game.map.row_mask;
   map_pos_t pos = MAP_POS(col_0, row_0);
 
-  uint32_t *animation_table = viewport->interface->serf_animation_table;
+  uint32_t *animation_table = interface->get_animation_table();
 
   /* Loop until objects drawn fall outside the frame. */
   while (1) {
@@ -2110,14 +2093,14 @@ draw_game_objects(viewport_t *viewport, int layers, frame_t *frame) {
       draw_serf_row_behind(pos, y, short_row_len, x, animation_table, frame);
     }
     if (draw_objects) {
-      draw_map_objects_row(viewport, pos, y, short_row_len, x, frame);
+      draw_map_objects_row(pos, y, short_row_len, x, frame);
     }
     if (draw_serfs) {
       draw_serf_row(pos, y, short_row_len, x, animation_table, frame);
     }
 
     y += MAP_TILE_HEIGHT;
-    if (y >= viewport->obj.height + 6*MAP_TILE_HEIGHT) break;
+    if (y >= height + 6*MAP_TILE_HEIGHT) break;
 
     pos = MAP_MOVE_DOWN(pos);
 
@@ -2130,43 +2113,40 @@ draw_game_objects(viewport_t *viewport, int layers, frame_t *frame) {
                            frame);
     }
     if (draw_objects) {
-      draw_map_objects_row(viewport, pos, y, long_row_len, x - 16, frame);
+      draw_map_objects_row(pos, y, long_row_len, x - 16, frame);
     }
     if (draw_serfs) {
       draw_serf_row(pos, y, long_row_len, x - 16, animation_table, frame);
     }
 
     y += MAP_TILE_HEIGHT;
-    if (y >= viewport->obj.height + 6*MAP_TILE_HEIGHT) break;
+    if (y >= height + 6*MAP_TILE_HEIGHT) break;
 
     pos = MAP_MOVE_DOWN_RIGHT(pos);
   }
 }
 
-static void
-draw_map_cursor_sprite(viewport_t *viewport, map_pos_t pos, int sprite,
-                       frame_t *frame) {
+void
+viewport_t::draw_map_cursor_sprite(map_pos_t pos, int sprite, frame_t *frame) {
   int mx, my;
-  viewport_map_pix_from_map_coord(viewport, pos, MAP_HEIGHT(pos), &mx, &my);
+  map_pix_from_map_coord(pos, MAP_HEIGHT(pos), &mx, &my);
 
   int sx, sy;
-  viewport_screen_pix_from_map_pix(viewport, mx, my, &sx, &sy);
+  screen_pix_from_map_pix(mx, my, &sx, &sy);
 
   draw_game_sprite(sx, sy, sprite, frame);
 }
 
-static void
-draw_map_cursor_possible_build(viewport_t *viewport, interface_t *interface,
-                               frame_t *frame) {
-  int x_off = -(viewport->offset_x + 16*(viewport->offset_y/20)) % 32;
-  int y_off = -viewport->offset_y % 20;
+void
+viewport_t::draw_map_cursor_possible_build(frame_t *frame) {
+  int x_off = -(offset_x + 16*(offset_y/20)) % 32;
+  int y_off = -offset_y % 20;
 
-  int col_0 = (viewport->offset_x/16 + viewport->offset_y/20)/2 &
-              game.map.col_mask;
-  int row_0 = (viewport->offset_y/MAP_TILE_HEIGHT) & game.map.row_mask;
+  int col_0 = (offset_x/16 + offset_y/20)/2 & game.map.col_mask;
+  int row_0 = (offset_y/MAP_TILE_HEIGHT) & game.map.row_mask;
   map_pos_t base_pos = MAP_POS(col_0, row_0);
 
-  for (int x_base = x_off; x_base < viewport->obj.width + MAP_TILE_WIDTH;
+  for (int x_base = x_off; x_base < width + MAP_TILE_WIDTH;
        x_base += MAP_TILE_WIDTH) {
     map_pos_t pos = base_pos;
     int y_base = y_off;
@@ -2181,15 +2161,16 @@ draw_map_cursor_possible_build(viewport_t *viewport, interface_t *interface,
       }
 
       int y = y_base - 4*MAP_HEIGHT(pos);
-      if (y >= viewport->obj.height) break;
+      if (y >= height) break;
 
       /* Draw possible building */
       int sprite = -1;
-      if (game_can_build_castle(pos, interface->player)) {
+      if (game_can_build_castle(pos, interface->get_player())) {
         sprite = 50;
-      } else if (game_can_player_build(pos, interface->player) &&
+      } else if (game_can_player_build(pos, interface->get_player()) &&
            map_space_from_obj[MAP_OBJ(pos)] == MAP_SPACE_OPEN &&
-           (game_can_build_flag(MAP_MOVE_DOWN_RIGHT(pos), interface->player) ||
+           (game_can_build_flag(MAP_MOVE_DOWN_RIGHT(pos),
+                                interface->get_player()) ||
             MAP_HAS_FLAG(MAP_MOVE_DOWN_RIGHT(pos)))) {
         if (game_can_build_mine(pos)) {
           sprite = 48;
@@ -2218,47 +2199,46 @@ draw_map_cursor_possible_build(viewport_t *viewport, interface_t *interface,
   }
 }
 
-static void
-draw_map_cursor(viewport_t *viewport, interface_t *interface, frame_t *frame) {
-  if (viewport->show_possible_build) {
-    draw_map_cursor_possible_build(viewport, interface, frame);
+void
+viewport_t::draw_map_cursor(frame_t *frame) {
+  if (layers & VIEWPORT_LAYER_BUILDS) {
+    draw_map_cursor_possible_build(frame);
   }
 
-  draw_map_cursor_sprite(viewport, interface->map_cursor_pos,
-             interface->map_cursor_sprites[0].sprite, frame);
+  draw_map_cursor_sprite(interface->get_map_cursor_pos(),
+                         interface->get_map_cursor_sprite(0), frame);
 
   for (int d = 0; d < 6; d++) {
-    draw_map_cursor_sprite(viewport, MAP_MOVE(interface->map_cursor_pos, d),
-               interface->map_cursor_sprites[1+d].sprite, frame);
+    draw_map_cursor_sprite(MAP_MOVE(interface->get_map_cursor_pos(), d),
+                           interface->get_map_cursor_sprite(1+d), frame);
   }
 }
 
-static void
-draw_base_grid_overlay(viewport_t *viewport, int color, frame_t *frame) {
-  int x_base = -(viewport->offset_x + 16*(viewport->offset_y/20)) % 32;
-  int y_base = -viewport->offset_y % 20;
+void
+viewport_t::draw_base_grid_overlay(int color, frame_t *frame) {
+  int x_base = -(offset_x + 16*(offset_y/20)) % 32;
+  int y_base = -offset_y % 20;
 
   int row = 0;
-  for (int y = y_base; y < viewport->obj.height; y += MAP_TILE_HEIGHT, row++) {
-    gfx_fill_rect(0, y, viewport->obj.width, 1, color, frame);
+  for (int y = y_base; y < height; y += MAP_TILE_HEIGHT, row++) {
+    gfx_fill_rect(0, y, width, 1, color, frame);
     for (int x = x_base + ((row % 2 == 0) ? 0 : -MAP_TILE_WIDTH/2);
-         x < viewport->obj.width; x += MAP_TILE_WIDTH) {
+         x < width; x += MAP_TILE_WIDTH) {
       gfx_fill_rect(x, y + y - 2, 1, 5, color, frame);
     }
   }
 }
 
-static void
-draw_height_grid_overlay(viewport_t *viewport, int color, frame_t *frame) {
-  int x_off = -(viewport->offset_x + 16*(viewport->offset_y/20)) % 32;
-  int y_off = -viewport->offset_y % 20;
+void
+viewport_t::draw_height_grid_overlay(int color, frame_t *frame) {
+  int x_off = -(offset_x + 16*(offset_y/20)) % 32;
+  int y_off = -offset_y % 20;
 
-  int col_0 = (viewport->offset_x/16 + viewport->offset_y/20)/2 &
-              game.map.col_mask;
-  int row_0 = (viewport->offset_y/MAP_TILE_HEIGHT) & game.map.row_mask;
+  int col_0 = (offset_x/16 + offset_y/20)/2 & game.map.col_mask;
+  int row_0 = (offset_y/MAP_TILE_HEIGHT) & game.map.row_mask;
   map_pos_t base_pos = MAP_POS(col_0, row_0);
 
-  for (int x_base = x_off; x_base < viewport->obj.width + MAP_TILE_WIDTH;
+  for (int x_base = x_off; x_base < width + MAP_TILE_WIDTH;
        x_base += MAP_TILE_WIDTH) {
     map_pos_t pos = base_pos;
     int y_base = y_off;
@@ -2273,7 +2253,7 @@ draw_height_grid_overlay(viewport_t *viewport, int color, frame_t *frame) {
       }
 
       int y = y_base - 4*MAP_HEIGHT(pos);
-      if (y >= viewport->obj.height) break;
+      if (y >= height) break;
 
       /* Draw cross. */
       if (pos != MAP_POS(0, 0)) {
@@ -2298,38 +2278,34 @@ draw_height_grid_overlay(viewport_t *viewport, int color, frame_t *frame) {
   }
 }
 
-static void
-viewport_draw(viewport_t *viewport, frame_t *frame) {
-  unsigned int layers = viewport->layers;
-  if (layers & VIEWPORT_LAYER_LANDSCAPE) draw_landscape(viewport, frame);
+void
+viewport_t::draw(frame_t *frame) {
+  if (layers & VIEWPORT_LAYER_LANDSCAPE) draw_landscape(frame);
   if (layers & VIEWPORT_LAYER_GRID) {
-    draw_base_grid_overlay(viewport, 72, frame);
-    draw_height_grid_overlay(viewport, 76, frame);
+    draw_base_grid_overlay(72, frame);
+    draw_height_grid_overlay(76, frame);
   }
-  if (layers & VIEWPORT_LAYER_PATHS) draw_paths_and_borders(viewport, frame);
-  draw_game_objects(viewport, layers, frame);
+  if (layers & VIEWPORT_LAYER_PATHS) draw_paths_and_borders(frame);
+  draw_game_objects(layers, frame);
   if (layers & VIEWPORT_LAYER_CURSOR) {
-    draw_map_cursor(viewport, viewport->interface, frame);
+    draw_map_cursor(frame);
   }
 }
 
-static int
-viewport_handle_event_click(viewport_t *viewport, int x, int y,
-                            gui_event_button_t button) {
+int
+viewport_t::handle_event_click(int x, int y, gui_event_button_t button) {
   if (button != GUI_EVENT_BUTTON_LEFT) return 0;
 
-  gui_object_set_redraw(reinterpret_cast<gui_object_t*>(viewport));
+  set_redraw();
 
-  interface_t *interface = viewport->interface;
-
-  map_pos_t clk_pos = viewport_map_pos_from_screen_pix(viewport, x, y);
+  map_pos_t clk_pos = map_pos_from_screen_pix(x, y);
   int clk_col = MAP_POS_COL(clk_pos);
   int clk_row = MAP_POS_ROW(clk_pos);
 
-  if (interface->building_road) {
-    int x = (clk_col - MAP_POS_COL(interface->map_cursor_pos) + 1) &
+  if (interface->is_building_road()) {
+    int x = (clk_col - MAP_POS_COL(interface->get_map_cursor_pos()) + 1) &
             game.map.col_mask;
-    int y = (clk_row - MAP_POS_ROW(interface->map_cursor_pos) + 1) &
+    int y = (clk_row - MAP_POS_ROW(interface->get_map_cursor_pos()) + 1) &
             game.map.row_mask;
     int dir = -1;
 
@@ -2344,14 +2320,14 @@ viewport_handle_event_click(viewport_t *viewport, int x, int y,
       else if (y == 2) dir = DIR_DOWN_RIGHT;
     }
 
-    if (BIT_TEST(interface->building_road_valid_dir, dir)) {
-      int length = interface->building_road_length;
+    if (interface->build_roid_is_valid_dir((dir_t)dir)) {
+      int length = interface->get_building_road_length();
       dir_t last_dir = DIR_RIGHT;
-      if (length > 0) last_dir = interface->building_road_dirs[length-1];
+      if (length > 0) last_dir = interface->get_building_road_dir(length-1);
 
       if (length > 0 && DIR_REVERSE(last_dir) == dir) {
         /* Delete existing path */
-        int r = interface_remove_road_segment(interface);
+        int r = interface->remove_road_segment();
         if (r < 0) {
           sfx_play_clip(SFX_NOT_ACCEPTED);
         } else {
@@ -2359,7 +2335,7 @@ viewport_handle_event_click(viewport_t *viewport, int x, int y,
         }
       } else {
         /* Build new road segment */
-        int r = interface_build_road_segment(interface, (dir_t)dir);
+        int r = interface->build_road_segment((dir_t)dir);
         if (r < 0) {
           sfx_play_clip(SFX_NOT_ACCEPTED);
         } else if (r == 0) {
@@ -2370,7 +2346,7 @@ viewport_handle_event_click(viewport_t *viewport, int x, int y,
       }
     }
   } else {
-    interface_update_map_cursor_pos(viewport->interface, clk_pos);
+    interface->update_map_cursor_pos(clk_pos);
     sfx_play_clip(SFX_CLICK);
   }
 
@@ -2378,24 +2354,21 @@ viewport_handle_event_click(viewport_t *viewport, int x, int y,
 }
 
 int
-viewport_handle_event_dbl_click(viewport_t *viewport, int x, int y,
-        gui_event_button_t button) {
+viewport_t::handle_event_dbl_click(int x, int y, gui_event_button_t button) {
   if (button != GUI_EVENT_BUTTON_LEFT) return 0;
 
-  gui_object_set_redraw(reinterpret_cast<gui_object_t*>(viewport));
+  set_redraw();
 
-  interface_t *interface = viewport->interface;
+  map_pos_t clk_pos = map_pos_from_screen_pix(x, y);
 
-  map_pos_t clk_pos = viewport_map_pos_from_screen_pix(viewport, x, y);
-
-  if (interface->building_road) {
-    if (clk_pos != interface->map_cursor_pos) {
-      map_pos_t pos = interface->building_road_source;
+  if (interface->is_building_road()) {
+    if (clk_pos != interface->get_map_cursor_pos()) {
+      map_pos_t pos = interface->get_building_road_source();
       uint length;
       dir_t *dirs = pathfinder_map(pos, clk_pos, &length);
       if (dirs != NULL) {
-        interface->building_road_length = 0;
-        int r = interface_extend_road(interface, dirs, length);
+        interface->build_road_reset();
+        int r = interface->extend_road(dirs, length);
         if (r < 0) {
           sfx_play_clip(SFX_NOT_ACCEPTED);
         } else if (r == 1) {
@@ -2408,23 +2381,12 @@ viewport_handle_event_dbl_click(viewport_t *viewport, int x, int y,
         sfx_play_clip(SFX_NOT_ACCEPTED);
       }
     } else {
-      int r = game_build_flag(interface->map_cursor_pos,
-            interface->player);
+      int r = game_build_flag(interface->get_map_cursor_pos(),
+                              interface->get_player());
       if (r < 0) {
         sfx_play_clip(SFX_NOT_ACCEPTED);
       } else {
-        r = game_build_road(interface->building_road_source,
-                interface->building_road_dirs,
-                interface->building_road_length,
-                interface->player);
-        if (r < 0) {
-          sfx_play_clip(SFX_NOT_ACCEPTED);
-          game_demolish_flag(interface->map_cursor_pos,
-                 interface->player);
-        } else {
-          sfx_play_clip(SFX_ACCEPTED);
-          interface_build_road_end(interface);
-        }
+        interface->build_road();
       }
     }
   } else {
@@ -2435,42 +2397,42 @@ viewport_handle_event_dbl_click(viewport_t *viewport, int x, int y,
 
     if (MAP_OBJ(clk_pos) == MAP_OBJ_FLAG) {
       if (BIT_TEST(game.split, 5) || /* Demo mode */
-          MAP_OWNER(clk_pos) == interface->player->player_num) {
-        interface_open_popup(interface, BOX_TRANSPORT_INFO);
+          MAP_OWNER(clk_pos) == interface->get_player()->player_num) {
+        interface->open_popup(BOX_TRANSPORT_INFO);
       }
 
-      interface->player->index = MAP_OBJ_INDEX(clk_pos);
+      interface->get_player()->index = MAP_OBJ_INDEX(clk_pos);
     } else { /* Building */
       if (BIT_TEST(game.split, 5) || /* Demo mode */
-          MAP_OWNER(clk_pos) == interface->player->player_num) {
+          MAP_OWNER(clk_pos) == interface->get_player()->player_num) {
         building_t *building = game_get_building(MAP_OBJ_INDEX(clk_pos));
         if (!BUILDING_IS_DONE(building)) {
-          interface_open_popup(interface, BOX_ORDERED_BLD);
+          interface->open_popup(BOX_ORDERED_BLD);
           } else if (BUILDING_TYPE(building) == BUILDING_CASTLE) {
-          interface_open_popup(interface, BOX_CASTLE_RES);
+          interface->open_popup(BOX_CASTLE_RES);
         } else if (BUILDING_TYPE(building) == BUILDING_STOCK) {
           if (!BUILDING_IS_ACTIVE(building)) return 0;
-          interface_open_popup(interface, BOX_CASTLE_RES);
+          interface->open_popup(BOX_CASTLE_RES);
         } else if (BUILDING_TYPE(building) == BUILDING_HUT ||
              BUILDING_TYPE(building) == BUILDING_TOWER ||
              BUILDING_TYPE(building) == BUILDING_FORTRESS) {
-          interface_open_popup(interface, BOX_DEFENDERS);
+          interface->open_popup(BOX_DEFENDERS);
         } else if (BUILDING_TYPE(building) == BUILDING_STONEMINE ||
              BUILDING_TYPE(building) == BUILDING_COALMINE ||
              BUILDING_TYPE(building) == BUILDING_IRONMINE ||
              BUILDING_TYPE(building) == BUILDING_GOLDMINE) {
-          interface_open_popup(interface, BOX_MINE_OUTPUT);
+          interface->open_popup(BOX_MINE_OUTPUT);
         } else {
-          interface_open_popup(interface, BOX_BLD_STOCK);
+          interface->open_popup(BOX_BLD_STOCK);
         }
 
-        interface->player->index = MAP_OBJ_INDEX(clk_pos);
+        interface->get_player()->index = MAP_OBJ_INDEX(clk_pos);
       } else if (BIT_TEST(game.split, 5)) { /* Demo mode*/
         return 0;
       } else { /* Foreign building */
         /* TODO handle coop mode*/
         building_t *building = game_get_building(MAP_OBJ_INDEX(clk_pos));
-        interface->player->building_attacked = BUILDING_INDEX(building);
+        interface->get_player()->building_attacked = BUILDING_INDEX(building);
 
         if (BUILDING_IS_DONE(building) &&
             (BUILDING_TYPE(building) == BUILDING_HUT ||
@@ -2491,7 +2453,7 @@ viewport_handle_event_dbl_click(viewport_t *viewport, int x, int y,
           for (int i = 257; i >= 0; i--) {
             map_pos_t pos = MAP_POS_ADD(building->pos, p[257-i]);
             if (MAP_HAS_OWNER(pos) &&
-                MAP_OWNER(pos) == interface->player->player_num) {
+                MAP_OWNER(pos) == interface->get_player()->player_num) {
               found = 1;
               break;
             }
@@ -2514,59 +2476,55 @@ viewport_handle_event_dbl_click(viewport_t *viewport, int x, int y,
           default: NOT_REACHED(); break;
           }
 
-          int knights = player_knights_available_for_attack(interface->player,
-                        building->pos);
-          interface->player->knights_attacking = std::min(knights, max_knights);
-          interface_open_popup(interface, BOX_START_ATTACK);
+          int knights =
+                player_knights_available_for_attack(interface->get_player(),
+                                                    building->pos);
+          interface->get_player()->knights_attacking = std::min(knights,
+                                                                max_knights);
+          interface->open_popup(BOX_START_ATTACK);
         }
       }
     }
 
-    interface->panel_btns[0] = PANEL_BTN_BUILD_INACTIVE;
-    interface->panel_btns[1] = PANEL_BTN_DESTROY_INACTIVE;
-    interface->panel_btns[2] = PANEL_BTN_MAP_INACTIVE;
-    interface->panel_btns[3] = PANEL_BTN_STATS_INACTIVE;
-    interface->panel_btns[4] = PANEL_BTN_SETT_INACTIVE;
+    interface->set_panel_btn(0, PANEL_BTN_BUILD_INACTIVE);
+    interface->set_panel_btn(1, PANEL_BTN_DESTROY_INACTIVE);
+    interface->set_panel_btn(2, PANEL_BTN_MAP_INACTIVE);
+    interface->set_panel_btn(3, PANEL_BTN_STATS_INACTIVE);
+    interface->set_panel_btn(4, PANEL_BTN_SETT_INACTIVE);
   }
 
   return 0;
 }
 
-static int
-viewport_handle_drag(viewport_t *viewport, int x, int y,
-                     gui_event_button_t button) {
-  if (button == GUI_EVENT_BUTTON_RIGHT ||
-      button == GUI_EVENT_BUTTON_LEFT) {
+int
+viewport_t::handle_drag(int x, int y, gui_event_button_t button) {
+  if (button == GUI_EVENT_BUTTON_RIGHT || button == GUI_EVENT_BUTTON_LEFT) {
     if (x != 0 || y != 0) {
-      viewport_move_by_pixels(viewport, x, y);
+      move_by_pixels(x, y);
     }
   }
 
   return 0;
 }
 
-static int
-viewport_handle_event(viewport_t *viewport, const gui_event_t *event) {
+int
+viewport_t::handle_event(const gui_event_t *event) {
   int x = event->x;
   int y = event->y;
 
   switch (event->type) {
   case GUI_EVENT_TYPE_CLICK:
-    return viewport_handle_event_click(viewport, x, y,
-               (gui_event_button_t)event->button);
+    return handle_event_click(x, y, (gui_event_button_t)event->button);
   case GUI_EVENT_TYPE_DBL_CLICK:
-    return viewport_handle_event_dbl_click(viewport, x, y,
-                   (gui_event_button_t)event->button);
+    return handle_event_dbl_click(x, y, (gui_event_button_t)event->button);
     break;
   case GUI_EVENT_TYPE_DRAG_START:
-    viewport->interface->cursor_lock_target =
-      reinterpret_cast<gui_object_t*>(viewport);
+    interface->set_cursor_lock_target(this);
     return 0;
   case GUI_EVENT_TYPE_DRAG_MOVE:
-    return viewport_handle_drag(viewport, x, y,
-              (gui_event_button_t)event->button);
+    return handle_drag(x, y, (gui_event_button_t)event->button);
   case GUI_EVENT_TYPE_DRAG_END:
-    viewport->interface->cursor_lock_target = NULL;
+    interface->set_cursor_lock_target(NULL);
     return 0;
   default:
     break;
@@ -2575,18 +2533,12 @@ viewport_handle_event(viewport_t *viewport, const gui_event_t *event) {
   return 0;
 }
 
-void
-viewport_init(viewport_t *viewport, interface_t *interface) {
-  gui_object_init(reinterpret_cast<gui_object_t*>(viewport));
-  viewport->obj.draw = reinterpret_cast<gui_draw_func*>(viewport_draw);
-  viewport->obj.handle_event =
-    reinterpret_cast<gui_handle_event_func*>(viewport_handle_event);
+viewport_t::viewport_t(interface_t *interface) {
+  this->interface = interface;
+  layers = VIEWPORT_LAYER_ALL;
+  landscape_tile = NULL;
 
-  viewport->interface = interface;
-  viewport->layers = VIEWPORT_LAYER_ALL;
-
-  viewport->last_tick = 0;
-  viewport->show_possible_build = 0;
+  last_tick = 0;
 }
 
 /* Space transformations. */
@@ -2628,13 +2580,12 @@ viewport_init(viewport_t *viewport, interface_t *interface) {
    map pixel space.
 */
 void
-viewport_screen_pix_from_map_pix(viewport_t *viewport, int mx, int my,
-                                 int *sx, int *sy) {
+viewport_t::screen_pix_from_map_pix(int mx, int my, int *sx, int *sy) {
   int width = game.map.cols*MAP_TILE_WIDTH;
   int height = game.map.rows*MAP_TILE_HEIGHT;
 
-  *sx = mx - viewport->offset_x;
-  *sy = my - viewport->offset_y;
+  *sx = mx - offset_x;
+  *sy = my - offset_y;
 
   while (*sy < 0) {
     *sx -= (game.map.rows*MAP_TILE_WIDTH)/2;
@@ -2651,8 +2602,7 @@ viewport_screen_pix_from_map_pix(viewport_t *viewport, int mx, int my,
 }
 
 void
-viewport_map_pix_from_map_coord(viewport_t *viewport, map_pos_t pos, int h,
-                                int *mx, int *my) {
+viewport_t::map_pix_from_map_coord(map_pos_t pos, int h, int *mx, int *my) {
   int width = game.map.cols*MAP_TILE_WIDTH;
   int height = game.map.rows*MAP_TILE_HEIGHT;
 
@@ -2669,13 +2619,13 @@ viewport_map_pix_from_map_coord(viewport_t *viewport, map_pos_t pos, int h,
 }
 
 map_pos_t
-viewport_map_pos_from_screen_pix(viewport_t *viewport, int sx, int sy) {
-  int x_off = -(viewport->offset_x + 16*(viewport->offset_y/20)) % 32;
-  int y_off = -viewport->offset_y % 20;
+viewport_t::map_pos_from_screen_pix(int sx, int sy) {
+  int x_off = -(offset_x + 16*(offset_y/20)) % 32;
+  int y_off = -offset_y % 20;
 
-  int col = (viewport->offset_x/16 + viewport->offset_y/20)/2 &
+  int col = (offset_x/16 + offset_y/20)/2 &
             game.map.col_mask;
-  int row = (viewport->offset_y/MAP_TILE_HEIGHT) & game.map.row_mask;
+  int row = (offset_y/MAP_TILE_HEIGHT) & game.map.row_mask;
 
   sx -= x_off;
   sy -= y_off;
@@ -2712,25 +2662,21 @@ viewport_map_pos_from_screen_pix(viewport_t *viewport, int sx, int sy) {
 }
 
 map_pos_t
-viewport_get_current_map_pos(viewport_t *viewport) {
-  return viewport_map_pos_from_screen_pix(viewport,
-            viewport->obj.width/2,
-            viewport->obj.height/2);
+viewport_t::get_current_map_pos() {
+  return map_pos_from_screen_pix(width/2, height/2);
 }
 
 void
-viewport_move_to_map_pos(viewport_t *viewport, map_pos_t pos) {
+viewport_t::move_to_map_pos(map_pos_t pos) {
   int mx, my;
-  viewport_map_pix_from_map_coord(viewport, pos,
-          MAP_HEIGHT(pos),
-          &mx, &my);
+  map_pix_from_map_coord(pos, MAP_HEIGHT(pos), &mx, &my);
 
   int map_width = game.map.cols*MAP_TILE_WIDTH;
   int map_height = game.map.rows*MAP_TILE_HEIGHT;
 
   /* Center screen. */
-  mx -= viewport->obj.width/2;
-  my -= viewport->obj.height/2;
+  mx -= width/2;
+  my -= height/2;
 
   if (my < 0) {
     mx -= (game.map.rows*MAP_TILE_WIDTH)/2;
@@ -2740,43 +2686,43 @@ viewport_move_to_map_pos(viewport_t *viewport, map_pos_t pos) {
   if (mx < 0) mx += map_width;
   else if (mx >= map_width) mx -= map_width;
 
-  viewport->offset_x = mx;
-  viewport->offset_y = my;
+  offset_x = mx;
+  offset_y = my;
 
-  gui_object_set_redraw(reinterpret_cast<gui_object_t*>(viewport));
+  set_redraw();
 }
 
 void
-viewport_move_by_pixels(viewport_t *viewport, int x, int y) {
+viewport_t::move_by_pixels(int x, int y) {
   int width = game.map.cols*MAP_TILE_WIDTH;
   int height = game.map.rows*MAP_TILE_HEIGHT;
 
-  viewport->offset_x += x;
-  viewport->offset_y += y;
+  offset_x += x;
+  offset_y += y;
 
-  if (viewport->offset_y < 0) {
-    viewport->offset_y += height;
-    viewport->offset_x -= (game.map.rows*MAP_TILE_WIDTH)/2;
-  } else if (viewport->offset_y >= height) {
-    viewport->offset_y -= height;
-    viewport->offset_x += (game.map.rows*MAP_TILE_WIDTH)/2;
+  if (offset_y < 0) {
+    offset_y += height;
+    offset_x -= (game.map.rows*MAP_TILE_WIDTH)/2;
+  } else if (offset_y >= height) {
+    offset_y -= height;
+    offset_x += (game.map.rows*MAP_TILE_WIDTH)/2;
   }
 
-  if (viewport->offset_x >= width) viewport->offset_x -= width;
-  else if (viewport->offset_x < 0) viewport->offset_x += width;
+  if (offset_x >= width) offset_x -= width;
+  else if (offset_x < 0) offset_x += width;
 
-  gui_object_set_redraw(reinterpret_cast<gui_object_t*>(viewport));
+  set_redraw();
 }
 
 
 /* Called periodically when the game progresses. */
 void
-viewport_update(viewport_t *viewport) {
-  int tick_xor = game.tick ^ viewport->last_tick;
-  viewport->last_tick = game.tick;
+viewport_t::update() {
+  int tick_xor = game.tick ^ last_tick;
+  last_tick = game.tick;
 
   /* Viewport animation does not care about low bits in anim */
   if (tick_xor >= 1 << 3) {
-    gui_object_set_redraw(reinterpret_cast<gui_object_t*>(viewport));
+    set_redraw();
   }
 }

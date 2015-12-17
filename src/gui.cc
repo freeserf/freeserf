@@ -39,83 +39,54 @@ gui_get_slider_click_value(int x) {
   return 1310 * clamp(0, x - 7, 50);
 }
 
-static void
-gui_object_set_size_default(gui_object_t *obj, int width, int height) {
-  obj->width = width;
-  obj->height = height;
+void
+gui_object_t::set_size(int width, int height) {
+  this->width = width;
+  this->height = height;
+}
+
+gui_object_t::gui_object_t() {
+  width = 0;
+  height = 0;
+  displayed = 0;
+  enabled = 1;
+  need_redraw = 0;
+  parent = NULL;
 }
 
 void
-gui_object_init(gui_object_t *obj) {
-  obj->width = 0;
-  obj->height = 0;
-  obj->displayed = 0;
-  obj->enabled = 1;
-  obj->redraw = 0;
-  obj->parent = NULL;
-
-  obj->set_size = gui_object_set_size_default;
+gui_object_t::redraw(frame_t *frame) {
+  draw(frame);
+  need_redraw = 0;
 }
 
 void
-gui_object_redraw(gui_object_t *obj, frame_t *frame) {
-  obj->draw(obj, frame);
-  obj->redraw = 0;
-}
-
-int
-gui_object_handle_event(gui_object_t *obj, const gui_event_t *event) {
-  if (!obj->enabled) return 0;
-  return obj->handle_event(obj, event);
-}
-
-void
-gui_object_set_size(gui_object_t *obj, int width, int height) {
-  obj->set_size(obj, width, height);
-}
-
-void
-gui_object_set_displayed(gui_object_t *obj, int displayed) {
-  obj->displayed = displayed;
+gui_object_t::set_displayed(int displayed) {
+  this->displayed = displayed;
   if (displayed) {
-    gui_object_set_redraw(obj);
-  } else if (obj->parent != NULL) {
-    gui_object_set_redraw(GUI_OBJECT(obj->parent));
+    set_redraw();
+  } else if (parent != NULL) {
+    parent->set_redraw();
   }
 }
 
 void
-gui_object_set_enabled(gui_object_t *obj, int enabled) {
-  obj->enabled = enabled;
+gui_object_t::set_enabled(int enabled) {
+  this->enabled = enabled;
 }
 
 void
-gui_object_set_redraw(gui_object_t *obj) {
-  obj->redraw = 1;
-  if (obj->parent != NULL) {
-    gui_container_set_redraw_child(obj->parent, obj);
+gui_object_t::set_redraw() {
+  need_redraw = 1;
+  if (parent != NULL) {
+    parent->set_redraw_child(this);
   }
 }
 
-static void
-gui_container_set_redraw_child_default(gui_container_t *cont,
-                                       gui_object_t *child) {
-  gui_object_set_redraw(GUI_OBJECT(cont));
+gui_container_t::gui_container_t() {
 }
 
 void
-gui_container_init(gui_container_t *cont) {
-  gui_object_init(GUI_OBJECT(cont));
-  cont->set_redraw_child = gui_container_set_redraw_child_default;
-}
-
-void
-gui_container_set_redraw_child(gui_container_t *cont, gui_object_t *child) {
-  cont->set_redraw_child(cont, child);
-}
-
-int
-gui_container_get_child_position(gui_container_t *cont, gui_object_t *child,
-                                 int *x, int *y) {
-  return cont->get_child_position(cont, child, x, y);
+gui_container_t::set_redraw_child(gui_object_t *child) {
+  set_redraw();
 }

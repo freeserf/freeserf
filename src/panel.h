@@ -52,13 +52,27 @@ typedef enum {
   PANEL_BTN_BUILD_ROAD_STARRED
 } panel_btn_t;
 
-typedef struct {
-  gui_object_t obj;
-  struct interface *interface;
-} panel_bar_t;
+class interface_t;
 
-void panel_bar_init(panel_bar_t *panel, struct interface *interface);
+class panel_bar_t : public gui_object_t {
+ protected:
+  interface_t *interface;
 
-void panel_bar_activate_button(panel_bar_t *panel, int button);
+ public:
+  explicit panel_bar_t(interface_t *interface);
+
+  void activate_button(int button);
+
+  virtual void draw(frame_t *frame);
+  virtual int handle_event(const gui_event_t *event);
+
+ protected:
+  void draw_panel_frame(frame_t *frame);
+  void draw_message_notify(frame_t *frame);
+  void draw_return_arrow(frame_t *frame);
+  void draw_panel_buttons(frame_t *frame);
+  void button_click(int button);
+  int handle_event_click(int x, int y);
+};
 
 #endif  // SRC_PANEL_H_

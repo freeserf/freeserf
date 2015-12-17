@@ -25,6 +25,18 @@
 
 #include "src/event_loop-sdl.h"
 
+event_loop_t *
+event_loop_t::instance = NULL;
+
+event_loop_t *
+event_loop_t::get_instance() {
+  if (instance == NULL) {
+    instance = new event_loop_sdl_t();
+  }
+
+  return instance;
+}
+
 event_loop_t::event_loop_t() {
 }
 

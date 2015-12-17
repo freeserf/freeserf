@@ -26,6 +26,8 @@
 #include "src/misc.h"
 BEGIN_EXT_C
   #include "src/map.h"
+  #include "src/building.h"
+  #include "src/serf.h"
 END_EXT_C
 
 typedef enum {
@@ -34,38 +36,107 @@ typedef enum {
   VIEWPORT_LAYER_OBJECTS = 1<<2,
   VIEWPORT_LAYER_SERFS = 1<<3,
   VIEWPORT_LAYER_CURSOR = 1<<4,
-  VIEWPORT_LAYER_ALL = (1<<5)-1,
-
-  VIEWPORT_LAYER_GRID = 1<<5
+  VIEWPORT_LAYER_GRID = 1<<5,
+  VIEWPORT_LAYER_BUILDS = 1<<6,
+  VIEWPORT_LAYER_ALL = (VIEWPORT_LAYER_LANDSCAPE |
+                        VIEWPORT_LAYER_PATHS |
+                        VIEWPORT_LAYER_OBJECTS |
+                        VIEWPORT_LAYER_SERFS |
+                        VIEWPORT_LAYER_CURSOR),
 } viewport_layer_t;
 
-typedef struct {
-  gui_object_t obj;
+class interface_t;
+
+class viewport_t : public gui_object_t {
+ protected:
+  /* Cache prerendered tiles of the landscape. */
+  typedef struct {
+    frame_t frame;
+    int dirty;
+  } landscape_tile_t;
+
+  uint landscape_tile_count;
+  landscape_tile_t *landscape_tile;
+
   int offset_x, offset_y;
   unsigned int layers;
-  struct interface *interface;
+  interface_t *interface;
   uint last_tick;
-  int show_possible_build;
-} viewport_t;
 
+ public:
+  explicit viewport_t(interface_t *interface);
 
-void viewport_init(viewport_t *viewport, struct interface *interface);
+  void switch_layer(viewport_layer_t layer) { layers ^= layer; }
 
-void viewport_move_to_map_pos(viewport_t *viewport, map_pos_t pos);
-void viewport_move_by_pixels(viewport_t *viewport, int x, int y);
-map_pos_t viewport_get_current_map_pos(viewport_t *viewport);
+  void move_to_map_pos(map_pos_t pos);
+  void move_by_pixels(int x, int y);
+  map_pos_t get_current_map_pos();
 
-void viewport_screen_pix_from_map_pix(viewport_t *viewport, int mx, int my,
-                                      int *sx, int *sy);
-void viewport_map_pix_from_map_coord(viewport_t *viewport, map_pos_t pos, int h,
-                                     int *mx, int *my);
-map_pos_t viewport_map_pos_from_screen_pix(viewport_t *viewport, int x, int y);
+  void screen_pix_from_map_pix(int mx, int my, int *sx, int *sy);
+  void map_pix_from_map_coord(map_pos_t pos, int h, int *mx, int *my);
+  map_pos_t map_pos_from_screen_pix(int x, int y);
 
-void viewport_map_reinit();
-void viewport_map_deinit();
-void viewport_redraw_map_pos(viewport_t *viewport, map_pos_t pos);
+  void map_reinit();
+  void map_deinit();
+  void redraw_map_pos(map_pos_t pos);
 
-void viewport_update(viewport_t *viewport);
+  void update();
 
+  virtual void draw(frame_t *frame);
+  virtual int handle_event(const gui_event_t *event);
+
+ protected:
+  void draw_triangle_up(int x, int y, int m, int left, int right,
+                        map_pos_t pos, frame_t *frame);
+  void draw_triangle_down(int x, int y, int m, int left, int right,
+                          map_pos_t pos, frame_t *frame);
+  void draw_up_tile_col(map_pos_t pos, int x_base, int y_base, int max_y,
+                        frame_t *frame);
+  void draw_down_tile_col(map_pos_t pos, int x_base, int y_base, int max_y,
+                          frame_t *frame);
+  void draw_landscape(frame_t *frame);
+  void draw_path_segment(int x, int y, map_pos_t pos, dir_t dir,
+                         frame_t *frame);
+  void draw_border_segment(int x, int y, map_pos_t pos, dir_t dir,
+                           frame_t *frame);
+  void draw_paths_and_borders(frame_t *frame);
+  void draw_game_sprite(int x, int y, int index, frame_t *frame);
+  void draw_serf(int x, int y, int color, int head, int body, frame_t *frame);
+  void draw_shadow_and_building_sprite(int x, int y, int index, frame_t *frame);
+  void draw_shadow_and_building_unfinished(int x, int y, int index,
+                                           int progress, frame_t *frame);
+  void draw_building_unfinished(building_t *building, building_type_t bld_type,
+                                int x, int y, frame_t *frame);
+  void draw_unharmed_building(building_t *building, int x, int y,
+                              frame_t *frame);
+  void draw_burning_building(building_t *building, int x, int y,
+                             frame_t *frame);
+  void draw_building(map_pos_t pos, int x, int y, frame_t *frame);
+  void draw_water_waves(map_pos_t pos, int x, int y, frame_t *frame);
+  void draw_water_waves_row(map_pos_t pos, int y_base, int cols, int x_base,
+                            frame_t *frame);
+  void draw_flag_and_res(map_pos_t pos, int x, int y, frame_t *frame);
+  void draw_map_objects_row(map_pos_t pos, int y_base, int cols, int x_base,
+                            frame_t *frame);
+  void draw_row_serf(int x, int y, int shadow, int color, int body,
+                     frame_t *frame);
+  int serf_get_body(serf_t *serf, uint32_t *animation_table);
+  void draw_active_serf(serf_t *serf, map_pos_t pos, int x_base, int y_base,
+                        uint32_t *animation_table, frame_t *frame);
+  void draw_serf_row(map_pos_t pos, int y_base, int cols, int x_base,
+                     uint32_t *animation_table, frame_t *frame);
+  void draw_serf_row_behind(map_pos_t pos, int y_base, int cols,
+                            int x_base, uint32_t *animation_table,
+                            frame_t *frame);
+  void draw_game_objects(int layers, frame_t *frame);
+  void draw_map_cursor_sprite(map_pos_t pos, int sprite, frame_t *frame);
+  void draw_map_cursor_possible_build(frame_t *frame);
+  void draw_map_cursor(frame_t *frame);
+  void draw_base_grid_overlay(int color, frame_t *frame);
+  void draw_height_grid_overlay(int color, frame_t *frame);
+  int handle_event_click(int x, int y, gui_event_button_t button);
+  int handle_event_dbl_click(int x, int y, gui_event_button_t button);
+  int handle_drag(int x, int y, gui_event_button_t button);
+};
 
 #endif  // SRC_VIEWPORT_H_

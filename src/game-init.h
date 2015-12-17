@@ -28,11 +28,11 @@ BEGIN_EXT_C
   #include "src/game.h"
 END_EXT_C
 
-struct interface;
+class interface_t;
 
-typedef struct {
-  gui_object_t obj;
-  struct interface *interface;
+class game_init_box_t : public gui_object_t {
+ protected:
+  interface_t *interface;
 
   int map_size;
   int game_mission;
@@ -41,8 +41,18 @@ typedef struct {
   uint intelligence[GAME_MAX_PLAYER_COUNT];
   uint supplies[GAME_MAX_PLAYER_COUNT];
   uint reproduction[GAME_MAX_PLAYER_COUNT];
-} game_init_box_t;
 
-void game_init_box_init(game_init_box_t *box, struct interface *interface);
+  void draw_box_icon(int x, int y, int sprite, frame_t *frame);
+  void draw_box_string(int x, int y, frame_t *frame, const char *str);
+  int get_player_face_sprite(int face);
+  void handle_action(int action);
+  int handle_event_click(int x, int y);
+
+  virtual void draw(frame_t *frame);
+  virtual int handle_event(const gui_event_t *event);
+
+ public:
+  explicit game_init_box_t(interface_t *interface);
+};
 
 #endif  // SRC_GAME_INIT_H_

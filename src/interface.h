@@ -54,10 +54,8 @@ typedef struct {
   int x, y;
 } sprite_loc_t;
 
-typedef struct interface interface_t;
-
-struct interface {
-  gui_container_t cont;
+class interface_t : public gui_container_t {
+ protected:
   gui_object_t *top;
   int redraw_top;
   list_t floats;
@@ -80,7 +78,7 @@ struct interface {
 
   uint last_const_tick;
 
-  int building_road;
+  bool building_road;
   map_pos_t building_road_source;
   dir_t building_road_dirs[MAX_ROAD_LENGTH];
   int building_road_length;
@@ -104,47 +102,97 @@ struct interface {
 
   int return_timeout;
   int return_pos;
+
+ public:
+  interface_t();
+
+  viewport_t *get_top_viewport();
+  panel_bar_t *get_panel_bar();
+  popup_box_t *get_popup_box();
+  notification_box_t *get_notification_box() { return &notification_box; }
+
+  bool get_config(int i) const { return (BIT_TEST(config, i) != 0); }
+  void set_config(int i) { config |= BIT(i); }
+  void switch_config(int i) { BIT_INVERT(config, i); }
+
+  map_pos_t get_map_cursor_pos() const { return map_cursor_pos; }
+  map_cursor_type_t get_map_cursor_type() const { return map_cursor_type; }
+  int get_map_cursor_sprite(int i) const {
+    return map_cursor_sprites[i].sprite; }
+
+  random_state_t *get_random() { return &random; }
+
+  bool get_msg_flag(int i) const { return (BIT_TEST(msg_flags, i) != 0); }
+  void set_msg_flag(int i) { msg_flags |= BIT(i); }
+
+  int get_current_stat_8_mode() const { return current_stat_8_mode; }
+  void set_current_stat_8_mode(int mode) { current_stat_8_mode = mode; }
+  int get_current_stat_7_item() const { return current_stat_7_item; }
+  void set_current_stat_7_item(int item) { current_stat_7_item = item; }
+
+  int get_panel_btn(int i) const { return panel_btns[i]; }
+  void set_panel_btn(int i, int val) { panel_btns[i] = val; }
+
+  uint32_t *get_animation_table() const { return serf_animation_table; }
+
+  void set_cursor_lock_target(gui_object_t *object) {
+    cursor_lock_target = object; }
+
+  void open_popup(int box);
+  void close_popup();
+
+  void open_game_init();
+  void close_game_init();
+
+  void open_message();
+  void return_from_message();
+  void close_message();
+
+  player_t *get_player() const { return player; }
+  void set_player(uint player);
+  void update_map_cursor_pos(map_pos_t pos);
+
+  bool is_building_road() const { return building_road; }
+  map_pos_t get_building_road_source() const { return building_road_source; }
+  int get_building_road_length() const { return building_road_length; }
+  dir_t get_building_road_dir(int i) const { return building_road_dirs[i]; }
+  void build_road_begin();
+  void build_road_end();
+  void build_road_reset() { building_road_length = 0; }
+  int build_road_segment(dir_t dir);
+  int remove_road_segment();
+  int extend_road(dir_t *dirs, uint length);
+  bool build_roid_is_valid_dir(dir_t dir) {
+    return (BIT_TEST(building_road_valid_dir, dir) != 0); }
+
+  void demolish_object();
+
+  void build_flag();
+  void build_building(building_type_t type);
+  void build_castle();
+  void build_road();
+
+  void init();
+  void set_top(gui_object_t *obj);
+  void add_float(gui_object_t *obj, int x, int y, int width, int height);
+
+  void update();
+
+  virtual void draw(frame_t *frame);
+  virtual int handle_event(const gui_event_t *event);
+  virtual void set_size(int width, int height);
+  virtual void set_redraw_child(gui_object_t *child);
+  virtual int get_child_position(gui_object_t *child, int *x, int *y);
+
+ protected:
+  void get_map_cursor_type(const player_t *player, map_pos_t pos,
+                           panel_btn_t *panel_btn,
+                           map_cursor_type_t *cursor_type);
+  void determine_map_cursor_type();
+  void determine_map_cursor_type_road();
+  void update_interface();
+  static void update_map_height(map_pos_t pos, void *data);
+  void load_serf_animation_table();
 };
-
-
-viewport_t *interface_get_top_viewport(interface_t *interface);
-panel_bar_t *interface_get_panel_bar(interface_t *interface);
-popup_box_t *interface_get_popup_box(interface_t *interface);
-
-
-void interface_open_popup(interface_t *interface, int box);
-void interface_close_popup(interface_t *interface);
-
-void interface_open_game_init(interface_t *interface);
-void interface_close_game_init(interface_t *interface);
-
-void interface_open_message(interface_t *interface);
-void interface_return_from_message(interface_t *interface);
-void interface_close_message(interface_t *interface);
-
-void interface_set_player(interface_t *interface, uint player);
-void interface_update_map_cursor_pos(interface_t *interface, map_pos_t pos);
-
-void interface_build_road_begin(interface_t *interface);
-void interface_build_road_end(interface_t *interface);
-int interface_build_road_segment(interface_t *interface, dir_t dir);
-int interface_remove_road_segment(interface_t *interface);
-int interface_extend_road(interface_t *interface, dir_t *dirs, uint length);
-
-void interface_demolish_object(interface_t *interface);
-
-void interface_build_flag(interface_t *interface);
-void interface_build_building(interface_t *interface, building_type_t type);
-void interface_build_castle(interface_t *interface);
-
-
-
-void interface_init(interface_t *interface);
-void interface_set_top(interface_t *interface, gui_object_t *obj);
-void interface_add_float(interface_t *interface, gui_object_t *obj,
-       int x, int y, int width, int height);
-
-
-void interface_update(interface_t *interface);
 
 #endif  // SRC_INTERFACE_H_

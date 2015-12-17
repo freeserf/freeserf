@@ -31,13 +31,14 @@ BEGIN_EXT_C
   #include "src/debug.h"
 END_EXT_C
 
-static void
-draw_icon(int x, int y, int sprite, frame_t *frame) {
+void
+notification_box_t::draw_icon(int x, int y, int sprite, frame_t *frame) {
   gfx_draw_sprite(8*x, y, DATA_ICON_BASE + sprite, frame);
 }
 
-static void
-draw_background(int width, int height, int sprite, frame_t *frame) {
+void
+notification_box_t::draw_background(int width, int height, int sprite,
+                                    frame_t *frame) {
   for (int y = 0; y < height; y += 16) {
     for (int x = 0; x < width; x += 16) {
       gfx_draw_sprite(x, y, DATA_ICON_BASE + sprite, frame);
@@ -45,72 +46,75 @@ draw_background(int width, int height, int sprite, frame_t *frame) {
   }
 }
 
-static void
-draw_string(int x, int y, frame_t *frame, const char *str) {
+void
+notification_box_t::draw_string(int x, int y, frame_t *frame, const char *str) {
   gfx_draw_string(8*x, y, 31, 0, frame, str);
 }
 
-static void
-draw_map_object(int x, int y, int sprite, frame_t *frame) {
+void
+notification_box_t::draw_map_object(int x, int y, int sprite, frame_t *frame) {
   gfx_draw_transp_sprite(8*x, y, DATA_MAP_OBJECT_BASE + sprite,
              0, 0, 0, frame);
 }
 
-static int
-get_player_face_sprite(int face) {
+int
+notification_box_t::get_player_face_sprite(int face) {
   if (face != 0) return 0x10b + face;
   return 0x119; /* sprite_face_none */
 }
 
-static void
-draw_player_face(int x, int y, int player, frame_t *frame) {
+void
+notification_box_t::draw_player_face(int x, int y, int player, frame_t *frame) {
   gfx_fill_rect(8*x, y, 48, 72, game.player[player]->color, frame);
   draw_icon(x+1, y+4, get_player_face_sprite(game.player[player]->face), frame);
 }
 
 
 /* Messages boxes */
-static void
-draw_under_attack_message_box(frame_t *frame, int opponent) {
+void
+notification_box_t::draw_under_attack_message_box(frame_t *frame,
+                                                  int opponent) {
   draw_string(1, 10, frame, "Your settlement");
   draw_string(1, 20, frame, "is under attack");
   draw_player_face(18, 8, opponent, frame);
 }
 
-static void
-draw_lost_fight_message_box(frame_t *frame, int opponent) {
+void
+notification_box_t::draw_lost_fight_message_box(frame_t *frame, int opponent) {
   draw_string(1, 10, frame, "Your knights");
   draw_string(1, 20, frame, "just lost the");
   draw_string(1, 30, frame, "fight");
   draw_player_face(18, 8, opponent, frame);
 }
 
-static void
-draw_victory_fight_message_box(frame_t *frame, int opponent) {
+void
+notification_box_t::draw_victory_fight_message_box(frame_t *frame,
+                                                   int opponent) {
   draw_string(1, 10, frame, "You gained");
   draw_string(1, 20, frame, "a victory here");
   draw_player_face(18, 8, opponent, frame);
 }
 
-static void
-draw_mine_empty_message_box(frame_t *frame, int mine) {
+void
+notification_box_t::draw_mine_empty_message_box(frame_t *frame, int mine) {
   draw_string(1, 10, frame, "This mine hauls");
   draw_string(1, 20, frame, "no more raw");
   draw_string(1, 30, frame, "materials");
-  draw_map_object(18, 8, map_building_sprite[BUILDING_STONEMINE] + mine,
-      frame);
+  draw_map_object(18, 8, map_building_sprite[BUILDING_STONEMINE] + mine, frame);
 }
 
-static void
-draw_call_to_location_message_box(frame_t *frame, int param) {
+void
+notification_box_t::draw_call_to_location_message_box(frame_t *frame,
+                                                      int param) {
   draw_string(1, 10, frame, "You wanted me");
   draw_string(1, 20, frame, "to call you to");
   draw_string(1, 30, frame, "this location");
   draw_map_object(20, 14, 0x90, frame);
 }
 
-static void
-draw_knight_occupied_message_box(frame_t *frame, int building) {
+void
+notification_box_t::draw_knight_occupied_message_box(frame_t *frame,
+                                                     int building) {
   draw_string(1, 10, frame, "A knight has");
   draw_string(1, 20, frame, "occupied this");
   draw_string(1, 30, frame, "new building");
@@ -137,15 +141,15 @@ draw_knight_occupied_message_box(frame_t *frame, int building) {
   }
 }
 
-static void
-draw_new_stock_message_box(frame_t *frame, int param) {
+void
+notification_box_t::draw_new_stock_message_box(frame_t *frame, int param) {
   draw_string(1, 10, frame, "A new stock");
   draw_string(1, 20, frame, "has been built");
   draw_map_object(16, 8, map_building_sprite[BUILDING_STOCK], frame);
 }
 
-static void
-draw_lost_land_message_box(frame_t *frame, int opponent) {
+void
+notification_box_t::draw_lost_land_message_box(frame_t *frame, int opponent) {
   draw_string(1, 10, frame, "Because of this");
   draw_string(1, 20, frame, "enemy building");
   draw_string(1, 30, frame, "you lost some");
@@ -153,8 +157,9 @@ draw_lost_land_message_box(frame_t *frame, int opponent) {
   draw_player_face(18, 8, opponent, frame);
 }
 
-static void
-draw_lost_buildings_message_box(frame_t *frame, int opponent) {
+void
+notification_box_t::draw_lost_buildings_message_box(frame_t *frame,
+                                                    int opponent) {
   draw_string(1, 10, frame, "Because of this");
   draw_string(1, 20, frame, "enemy building");
   draw_string(1, 30, frame, "you lost some");
@@ -163,52 +168,54 @@ draw_lost_buildings_message_box(frame_t *frame, int opponent) {
   draw_player_face(18, 8, opponent, frame);
 }
 
-static void
-draw_emergency_active_message_box(frame_t *frame, int param) {
+void
+notification_box_t::draw_emergency_active_message_box(frame_t *frame,
+                                                      int param) {
   draw_string(1, 10, frame, "Emergency");
   draw_string(1, 20, frame, "program");
   draw_string(1, 30, frame, "activated");
   draw_map_object(18, 8, map_building_sprite[BUILDING_CASTLE] + 1, frame);
 }
 
-static void
-draw_emergency_neutral_message_box(frame_t *frame, int param) {
+void
+notification_box_t::draw_emergency_neutral_message_box(frame_t *frame,
+                                                       int param) {
   draw_string(1, 10, frame, "Emergency");
   draw_string(1, 20, frame, "program");
   draw_string(1, 30, frame, "neutralized");
   draw_map_object(16, 8, map_building_sprite[BUILDING_CASTLE], frame);
 }
 
-static void
-draw_found_gold_message_box(frame_t *frame, int param) {
+void
+notification_box_t::draw_found_gold_message_box(frame_t *frame, int param) {
   draw_string(1, 10, frame, "A geologist");
   draw_string(1, 20, frame, "has found gold");
   draw_icon(20, 14, 0x2f, frame);
 }
 
-static void
-draw_found_iron_message_box(frame_t *frame, int param) {
+void
+notification_box_t::draw_found_iron_message_box(frame_t *frame, int param) {
   draw_string(1, 10, frame, "A geologist");
   draw_string(1, 20, frame, "has found iron");
   draw_icon(20, 14, 0x2c, frame);
 }
 
-static void
-draw_found_coal_message_box(frame_t *frame, int param) {
+void
+notification_box_t::draw_found_coal_message_box(frame_t *frame, int param) {
   draw_string(1, 10, frame, "A geologist");
   draw_string(1, 20, frame, "has found coal");
   draw_icon(20, 14, 0x2e, frame);
 }
 
-static void
-draw_found_stone_message_box(frame_t *frame, int param) {
+void
+notification_box_t::draw_found_stone_message_box(frame_t *frame, int param) {
   draw_string(1, 10, frame, "A geologist");
   draw_string(1, 20, frame, "has found stone");
   draw_icon(20, 14, 0x2b, frame);
 }
 
-static void
-draw_call_to_menu_message_box(frame_t *frame, int menu) {
+void
+notification_box_t::draw_call_to_menu_message_box(frame_t *frame, int menu) {
   const int map_menu_sprite[] = {
     0xe6, 0xe7, 0xe8, 0xe9,
     0xea, 0xeb, 0x12a, 0x12b
@@ -220,38 +227,36 @@ draw_call_to_menu_message_box(frame_t *frame, int menu) {
   draw_icon(18, 8, map_menu_sprite[menu], frame);
 }
 
-static void
-draw_30m_since_save_message_box(frame_t *frame, int param) {
+void
+notification_box_t::draw_30m_since_save_message_box(frame_t *frame, int param) {
   draw_string(1, 10, frame, "30 min. passed");
   draw_string(1, 20, frame, "since the last");
   draw_string(1, 30, frame, "saving");
   draw_icon(20, 14, 0x5d, frame);
 }
 
-static void
-draw_1h_since_save_message_box(frame_t *frame, int param) {
+void
+notification_box_t::draw_1h_since_save_message_box(frame_t *frame, int param) {
   draw_string(1, 10, frame, "One hour passed");
   draw_string(1, 20, frame, "since the last");
   draw_string(1, 30, frame, "saving");
   draw_icon(20, 14, 0x5d, frame);
 }
 
-static void
-draw_call_to_stock_message_box(frame_t *frame, int param) {
+void
+notification_box_t::draw_call_to_stock_message_box(frame_t *frame, int param) {
   draw_string(1, 10, frame, "You wanted me");
   draw_string(1, 20, frame, "to call you");
   draw_string(1, 30, frame, "to this stock");
   draw_map_object(16, 8, map_building_sprite[BUILDING_STOCK], frame);
 }
 
-static void
-notification_box_draw(notification_box_t *box, frame_t *frame) {
-  draw_background(box->obj.width, box->obj.height,
-      0x13a, frame);
+void
+notification_box_t::draw(frame_t *frame) {
+  draw_background(width, height, 0x13a, frame);
   draw_icon(14, 128, 0x120, frame); /* Checkbox */
 
-  int param = box->param;
-  switch (box->type) {
+  switch (type) {
   case 1:
     draw_under_attack_message_box(frame, param);
     break;
@@ -315,19 +320,18 @@ notification_box_draw(notification_box_t *box, frame_t *frame) {
   }
 }
 
-static int
-notification_box_handle_event_click(notification_box_t *box, int x, int y) {
-  gui_object_set_displayed(reinterpret_cast<gui_object_t*>(box), 0);
+int
+notification_box_t::handle_event_click(int x, int y) {
+  set_displayed(0);
   return 0;
 }
 
-static int
-notification_box_handle_event(notification_box_t *box,
-                              const gui_event_t *event) {
+int
+notification_box_t::handle_event(const gui_event_t *event) {
   switch (event->type) {
   case GUI_EVENT_TYPE_CLICK:
     if (event->button == GUI_EVENT_BUTTON_LEFT) {
-      return notification_box_handle_event_click(box, event->x, event->y);
+      return handle_event_click(event->x, event->y);
     }
   default:
     break;
@@ -336,14 +340,14 @@ notification_box_handle_event(notification_box_t *box,
   return 0;
 }
 
-void
-notification_box_init(notification_box_t *box, interface_t *interface) {
-  gui_object_init(reinterpret_cast<gui_object_t*>(box));
-  box->obj.draw = reinterpret_cast<gui_draw_func*>(notification_box_draw);
-  box->obj.handle_event =
-    reinterpret_cast<gui_handle_event_func*>(notification_box_handle_event);
+notification_box_t::notification_box_t(interface_t *interface) {
+  this->interface = interface;
+  type = 0;
+  param = 0;
+}
 
-  box->interface = interface;
-  box->type = 0;
-  box->param = 0;
+void notification_box_t::show(int type, int param) {
+  this->type = type;
+  this->param = param;
+  set_displayed(1);
 }
