@@ -252,7 +252,7 @@ notification_box_t::draw_call_to_stock_message_box(frame_t *frame, int param) {
 }
 
 void
-notification_box_t::draw(frame_t *frame) {
+notification_box_t::internal_draw() {
   draw_background(width, height, 0x13a, frame);
   draw_icon(14, 128, 0x120, frame); /* Checkbox */
 
@@ -320,24 +320,10 @@ notification_box_t::draw(frame_t *frame) {
   }
 }
 
-int
-notification_box_t::handle_event_click(int x, int y) {
+bool
+notification_box_t::handle_click_left(int x, int y) {
   set_displayed(0);
-  return 0;
-}
-
-int
-notification_box_t::handle_event(const gui_event_t *event) {
-  switch (event->type) {
-  case GUI_EVENT_TYPE_CLICK:
-    if (event->button == GUI_EVENT_BUTTON_LEFT) {
-      return handle_event_click(event->x, event->y);
-    }
-  default:
-    break;
-  }
-
-  return 0;
+  return true;
 }
 
 notification_box_t::notification_box_t(interface_t *interface) {

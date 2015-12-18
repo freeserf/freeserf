@@ -35,6 +35,8 @@ BEGIN_EXT_C
 END_EXT_C
 #include "src/interface.h"
 #include "src/event_loop.h"
+#include "src/minimap.h"
+#include "src/viewport.h"
 
 #ifdef min
 # undef min
@@ -296,7 +298,7 @@ typedef enum {
 
 /* Draw the frame around the popup box. */
 void
-popup_box_t::draw_popup_box_frame(frame_t *frame) {
+popup_box_t::draw_popup_box_frame() {
   gfx_draw_sprite(0, 0, DATA_FRAME_POPUP_BASE+0, frame);
   gfx_draw_sprite(0, 153, DATA_FRAME_POPUP_BASE+1, frame);
   gfx_draw_sprite(0, 9, DATA_FRAME_POPUP_BASE+2, frame);
@@ -305,47 +307,47 @@ popup_box_t::draw_popup_box_frame(frame_t *frame) {
 
 /* Draw icon in a popup frame. */
 void
-popup_box_t::draw_popup_icon(int x, int y, int sprite, frame_t *frame) {
+popup_box_t::draw_popup_icon(int x, int y, int sprite) {
   gfx_draw_sprite(8*x+8, y+9, DATA_ICON_BASE + sprite, frame);
 }
 
 /* Draw building in a popup frame. */
 void
-popup_box_t::draw_popup_building(int x, int y, int sprite, frame_t *frame) {
+popup_box_t::draw_popup_building(int x, int y, int sprite) {
   gfx_draw_transp_sprite(8*x+8, y+9, DATA_MAP_OBJECT_BASE + sprite,
                          0, 0, 0, frame);
 }
 
 /* Fill the background of a popup frame. */
 void
-popup_box_t::draw_box_background(int sprite, frame_t *frame) {
+popup_box_t::draw_box_background(int sprite) {
   for (int y = 0; y < 144; y += 16) {
     for (int x = 0; x < 16; x += 2) {
-      draw_popup_icon(x, y, sprite, frame);
+      draw_popup_icon(x, y, sprite);
     }
   }
 }
 
 /* Fill one row of a popup frame. */
 void
-popup_box_t::draw_box_row(int sprite, int y, frame_t *frame) {
-  for (int x = 0; x < 16; x += 2) draw_popup_icon(x, y, sprite, frame);
+popup_box_t::draw_box_row(int sprite, int y) {
+  for (int x = 0; x < 16; x += 2) draw_popup_icon(x, y, sprite);
 }
 
 /* Draw a green string in a popup frame. */
 void
-popup_box_t::draw_green_string(int x, int y, frame_t *frame, const char *str) {
+popup_box_t::draw_green_string(int x, int y, const char *str) {
   gfx_draw_string(8*x+8, y+9, 31, 0, frame, str);
 }
 
 /* Draw a green number in a popup frame.
    n must be non-negative. If > 999 simply draw ">999" (three characters). */
 void
-popup_box_t::draw_green_number(int x, int y, frame_t *frame, int n) {
+popup_box_t::draw_green_number(int x, int y, int n) {
   if (n >= 1000) {
-    draw_popup_icon(x, y, 0xd5, frame); /* Draw >999 */
-    draw_popup_icon(x+1, y, 0xd6, frame);
-    draw_popup_icon(x+2, y, 0xd7, frame);
+    draw_popup_icon(x, y, 0xd5); /* Draw >999 */
+    draw_popup_icon(x+1, y, 0xd6);
+    draw_popup_icon(x+2, y, 0xd7);
   } else {
     /* Not the same sprites as are used to draw numbers
        in gfx_draw_number(). */
@@ -353,7 +355,7 @@ popup_box_t::draw_green_number(int x, int y, frame_t *frame, int n) {
     if (n >= 100) {
       int n100 = static_cast<int>(floor(n / 100.f));
       n -= n100 * 100;
-      draw_popup_icon(x, y, 0x4e + n100, frame);
+      draw_popup_icon(x, y, 0x4e + n100);
       x += 1;
       draw_zero = 1;
     }
@@ -361,26 +363,26 @@ popup_box_t::draw_green_number(int x, int y, frame_t *frame, int n) {
     if (n >= 10 || draw_zero) {
       int n10 = static_cast<int>(floor(n / 10.f));
       n -= n10 * 10;
-      draw_popup_icon(x, y, 0x4e + n10, frame);
+      draw_popup_icon(x, y, 0x4e + n10);
       x += 1;
       draw_zero = 1;
     }
 
-    draw_popup_icon(x, y, 0x4e + n, frame);
+    draw_popup_icon(x, y, 0x4e + n);
   }
 }
 
 /* Draw a green number in a popup frame.
    No limits on n. */
 void
-popup_box_t::draw_green_large_number(int x, int y, frame_t *frame, int n) {
+popup_box_t::draw_green_large_number(int x, int y, int n) {
   gfx_draw_number(8*x+8, 9+y, 31, 0, frame, n);
 }
 
 /* Draw small green number. */
 void
-popup_box_t::draw_additional_number(int x, int y, frame_t *frame, int n) {
-  if (n > 0) draw_popup_icon(x, y, 240 + std::min(n, 10), frame);
+popup_box_t::draw_additional_number(int x, int y, int n) {
+  if (n > 0) draw_popup_icon(x, y, 240 + std::min(n, 10));
 }
 
 /* Get the sprite number for a face. */
@@ -392,7 +394,7 @@ popup_box_t::get_player_face_sprite(int face) {
 
 /* Draw player face in popup frame. */
 void
-popup_box_t::draw_player_face(int x, int y, int player, frame_t *frame) {
+popup_box_t::draw_player_face(int x, int y, int player) {
   int color = 0;
   int face = 0;
   if (PLAYER_IS_ACTIVE(game.player[player])) {
@@ -401,12 +403,12 @@ popup_box_t::draw_player_face(int x, int y, int player, frame_t *frame) {
   }
 
   gfx_fill_rect(8*x, y+5, 48, 72, color, frame);
-  draw_popup_icon(x, y, get_player_face_sprite(face), frame);
+  draw_popup_icon(x, y, get_player_face_sprite(face));
 }
 
 /* Draw a layout of buildings in a popup box. */
 void
-popup_box_t::draw_custom_bld_box(const int sprites[], frame_t *frame) {
+popup_box_t::draw_custom_bld_box(const int sprites[]) {
   while (sprites[0] > 0) {
     int x = sprites[1];
     int y = sprites[2];
@@ -418,9 +420,9 @@ popup_box_t::draw_custom_bld_box(const int sprites[], frame_t *frame) {
 
 /* Draw a layout of icons in a popup box. */
 void
-popup_box_t::draw_custom_icon_box(const int sprites[], frame_t *frame) {
+popup_box_t::draw_custom_icon_box(const int sprites[]) {
   while (sprites[0] > 0) {
-    draw_popup_icon(sprites[1], sprites[2], sprites[0], frame);
+    draw_popup_icon(sprites[1], sprites[2], sprites[0]);
     sprites += 3;
   }
 }
@@ -441,34 +443,27 @@ popup_box_t::prepare_res_amount_text(int amount) {
 }
 
 void
-popup_box_t::draw_map_box(frame_t *frame) {
+popup_box_t::draw_map_box() {
   /* Icons */
-  draw_popup_icon(0, 128, minimap->get_flags() & 3, frame); /* Mode */
-  draw_popup_icon(4, 128, BIT_TEST(minimap->get_flags(), 2) ? 3 : 4,
-                  frame); /* Roads */
+  draw_popup_icon(0, 128, minimap->get_flags() & 3); /* Mode */
+  draw_popup_icon(4, 128,
+                  BIT_TEST(minimap->get_flags(), 2) ? 3 : 4); /* Roads */
   if (minimap->get_advanced() >= 0) {
-    draw_popup_icon(8, 128, minimap->get_advanced() == 0 ? 306 : 305,
-                    frame); /* Unknown mode */
+    draw_popup_icon(8, 128,
+                  minimap->get_advanced() == 0 ? 306 : 305); /* Unknown mode */
   } else {
-    draw_popup_icon(8, 128, BIT_TEST(minimap->get_flags(), 3) ? 5 : 6,
-                    frame); /* Buildings */
+    draw_popup_icon(8, 128,
+                  BIT_TEST(minimap->get_flags(), 3) ? 5 : 6); /* Buildings */
   }
-  draw_popup_icon(12, 128, BIT_TEST(minimap->get_flags(), 4) ? 7 : 8,
-                  frame); /* Grid */
-  draw_popup_icon(14, 128, BIT_TEST(minimap->get_flags(), 5) ? 91 : 92,
-                  frame); /* Scale */
-
-  /* Draw minimap */
-  frame_t minimap_frame;
-  gfx_frame_init(&minimap_frame, frame->clip.x + 8, frame->clip.y + 9,
-                 128, 128, frame);
-
-  minimap->redraw(&minimap_frame);
+  draw_popup_icon(12, 128,
+                  BIT_TEST(minimap->get_flags(), 4) ? 7 : 8); /* Grid */
+  draw_popup_icon(14, 128,
+                  BIT_TEST(minimap->get_flags(), 5) ? 91 : 92); /* Scale */
 }
 
 /* Draw building mine popup box. */
 void
-popup_box_t::draw_mine_building_box(frame_t *frame) {
+popup_box_t::draw_mine_building_box() {
   const int layout[] = {
     0xa3, 2, 8,
     0xa4, 8, 8,
@@ -477,20 +472,19 @@ popup_box_t::draw_mine_building_box(frame_t *frame) {
     -1
   };
 
-  draw_box_background(0x83, frame);
+  draw_box_background(0x83);
 
   if (game_can_build_flag(interface->get_map_cursor_pos(),
                           interface->get_player())) {
-    draw_popup_building(2, 114, 0x80+4*interface->get_player()->player_num,
-                        frame);
+    draw_popup_building(2, 114, 0x80+4*interface->get_player()->player_num);
   }
 
-  draw_custom_bld_box(layout, frame);
+  draw_custom_bld_box(layout);
 }
 
 /* Draw .. popup box... */
 void
-popup_box_t::draw_basic_building_box(frame_t *frame, int flip) {
+popup_box_t::draw_basic_building_box(int flip) {
   const int layout[] = {
     0xab, 10, 13, /* hut */
     0xa9, 2, 13,
@@ -502,26 +496,25 @@ popup_box_t::draw_basic_building_box(frame_t *frame, int flip) {
     -1
   };
 
-  draw_box_background(0x83, frame);
+  draw_box_background(0x83);
 
   const int *l = layout;
   if (!game_can_build_military(interface->get_map_cursor_pos())) {
     l += 3; /* Skip hut */
   }
 
-  draw_custom_bld_box(l, frame);
+  draw_custom_bld_box(l);
 
   if (game_can_build_flag(interface->get_map_cursor_pos(),
                           interface->get_player())) {
-    draw_popup_building(8, 108, 0x80+4*interface->get_player()->player_num,
-                        frame);
+    draw_popup_building(8, 108, 0x80+4*interface->get_player()->player_num);
   }
 
-  if (flip) draw_popup_icon(0, 128, 0x3d, frame);
+  if (flip) draw_popup_icon(0, 128, 0x3d);
 }
 
 void
-popup_box_t::draw_adv_1_building_box(frame_t *frame) {
+popup_box_t::draw_adv_1_building_box() {
   const int layout[] = {
     0x9c, 0, 15,
     0x9d, 8, 15,
@@ -532,13 +525,13 @@ popup_box_t::draw_adv_1_building_box(frame_t *frame) {
     -1
   };
 
-  draw_box_background(0x83, frame);
-  draw_custom_bld_box(layout, frame);
-  draw_popup_icon(0, 128, 0x3d, frame);
+  draw_box_background(0x83);
+  draw_custom_bld_box(layout);
+  draw_popup_icon(0, 128, 0x3d);
 }
 
 void
-popup_box_t::draw_adv_2_building_box(frame_t *frame) {
+popup_box_t::draw_adv_2_building_box() {
   const int layout[] = {
     0x9e, 2, 99, /* tower */
     0x98, 8, 84, /* fortress */
@@ -554,14 +547,14 @@ popup_box_t::draw_adv_2_building_box(frame_t *frame) {
     l += 2*3; /* Skip tower and fortress */
   }
 
-  draw_box_background(0x83, frame);
-  draw_custom_bld_box(l, frame);
-  draw_popup_icon(0, 128, 0x3d, frame);
+  draw_box_background(0x83);
+  draw_custom_bld_box(l);
+  draw_popup_icon(0, 128, 0x3d);
 }
 
 /* Draw generic popup box of resources. */
 void
-popup_box_t::draw_resources_box(frame_t *frame, const int resources[]) {
+popup_box_t::draw_resources_box(const int resources[]) {
   const int layout[] = {
     0x28, 1, 0, /* resources */
     0x29, 1, 16,
@@ -592,44 +585,44 @@ popup_box_t::draw_resources_box(frame_t *frame, const int resources[]) {
     -1
   };
 
-  draw_custom_icon_box(layout, frame);
+  draw_custom_icon_box(layout);
 
   /* First column */
-  draw_green_number(3, 4, frame, resources[RESOURCE_LUMBER]);
-  draw_green_number(3, 20, frame, resources[RESOURCE_PLANK]);
-  draw_green_number(3, 36, frame, resources[RESOURCE_BOAT]);
-  draw_green_number(3, 52, frame, resources[RESOURCE_STONE]);
-  draw_green_number(3, 68, frame, resources[RESOURCE_COAL]);
-  draw_green_number(3, 84, frame, resources[RESOURCE_IRONORE]);
-  draw_green_number(3, 100, frame, resources[RESOURCE_STEEL]);
-  draw_green_number(3, 116, frame, resources[RESOURCE_GOLDORE]);
-  draw_green_number(3, 132, frame, resources[RESOURCE_GOLDBAR]);
+  draw_green_number(3, 4, resources[RESOURCE_LUMBER]);
+  draw_green_number(3, 20, resources[RESOURCE_PLANK]);
+  draw_green_number(3, 36, resources[RESOURCE_BOAT]);
+  draw_green_number(3, 52, resources[RESOURCE_STONE]);
+  draw_green_number(3, 68, resources[RESOURCE_COAL]);
+  draw_green_number(3, 84, resources[RESOURCE_IRONORE]);
+  draw_green_number(3, 100, resources[RESOURCE_STEEL]);
+  draw_green_number(3, 116, resources[RESOURCE_GOLDORE]);
+  draw_green_number(3, 132, resources[RESOURCE_GOLDBAR]);
 
   /* Second column */
-  draw_green_number(8, 4, frame, resources[RESOURCE_SHOVEL]);
-  draw_green_number(8, 20, frame, resources[RESOURCE_HAMMER]);
-  draw_green_number(8, 36, frame, resources[RESOURCE_AXE]);
-  draw_green_number(8, 52, frame, resources[RESOURCE_SAW]);
-  draw_green_number(8, 68, frame, resources[RESOURCE_SCYTHE]);
-  draw_green_number(8, 84, frame, resources[RESOURCE_PICK]);
-  draw_green_number(8, 100, frame, resources[RESOURCE_PINCER]);
-  draw_green_number(8, 116, frame, resources[RESOURCE_CLEAVER]);
-  draw_green_number(8, 132, frame, resources[RESOURCE_ROD]);
+  draw_green_number(8, 4, resources[RESOURCE_SHOVEL]);
+  draw_green_number(8, 20, resources[RESOURCE_HAMMER]);
+  draw_green_number(8, 36, resources[RESOURCE_AXE]);
+  draw_green_number(8, 52, resources[RESOURCE_SAW]);
+  draw_green_number(8, 68, resources[RESOURCE_SCYTHE]);
+  draw_green_number(8, 84, resources[RESOURCE_PICK]);
+  draw_green_number(8, 100, resources[RESOURCE_PINCER]);
+  draw_green_number(8, 116, resources[RESOURCE_CLEAVER]);
+  draw_green_number(8, 132, resources[RESOURCE_ROD]);
 
   /* Third column */
-  draw_green_number(13, 4, frame, resources[RESOURCE_SWORD]);
-  draw_green_number(13, 20, frame, resources[RESOURCE_SHIELD]);
-  draw_green_number(13, 36, frame, resources[RESOURCE_FISH]);
-  draw_green_number(13, 52, frame, resources[RESOURCE_PIG]);
-  draw_green_number(13, 68, frame, resources[RESOURCE_MEAT]);
-  draw_green_number(13, 84, frame, resources[RESOURCE_WHEAT]);
-  draw_green_number(13, 100, frame, resources[RESOURCE_FLOUR]);
-  draw_green_number(13, 116, frame, resources[RESOURCE_BREAD]);
+  draw_green_number(13, 4, resources[RESOURCE_SWORD]);
+  draw_green_number(13, 20, resources[RESOURCE_SHIELD]);
+  draw_green_number(13, 36, resources[RESOURCE_FISH]);
+  draw_green_number(13, 52, resources[RESOURCE_PIG]);
+  draw_green_number(13, 68, resources[RESOURCE_MEAT]);
+  draw_green_number(13, 84, resources[RESOURCE_WHEAT]);
+  draw_green_number(13, 100, resources[RESOURCE_FLOUR]);
+  draw_green_number(13, 116, resources[RESOURCE_BREAD]);
 }
 
 /* Draw generic popup box of serfs. */
 void
-popup_box_t::draw_serfs_box(frame_t *frame, const int serfs[], int total) {
+popup_box_t::draw_serfs_box(const int serfs[], int total) {
   const int layout[] = {
     0x9, 1, 0, /* serfs */
     0xa, 1, 16,
@@ -660,47 +653,47 @@ popup_box_t::draw_serfs_box(frame_t *frame, const int serfs[], int total) {
     -1
   };
 
-  draw_custom_icon_box(layout, frame);
+  draw_custom_icon_box(layout);
 
   /* First column */
-  draw_green_number(3, 4, frame, serfs[SERF_TRANSPORTER]);
-  draw_green_number(3, 20, frame, serfs[SERF_SAILOR]);
-  draw_green_number(3, 36, frame, serfs[SERF_DIGGER]);
-  draw_green_number(3, 52, frame, serfs[SERF_BUILDER]);
-  draw_green_number(3, 68, frame, serfs[SERF_KNIGHT_4]);
-  draw_green_number(3, 84, frame, serfs[SERF_KNIGHT_3]);
-  draw_green_number(3, 100, frame, serfs[SERF_KNIGHT_2]);
-  draw_green_number(3, 116, frame, serfs[SERF_KNIGHT_1]);
-  draw_green_number(3, 132, frame, serfs[SERF_KNIGHT_0]);
+  draw_green_number(3, 4, serfs[SERF_TRANSPORTER]);
+  draw_green_number(3, 20, serfs[SERF_SAILOR]);
+  draw_green_number(3, 36, serfs[SERF_DIGGER]);
+  draw_green_number(3, 52, serfs[SERF_BUILDER]);
+  draw_green_number(3, 68, serfs[SERF_KNIGHT_4]);
+  draw_green_number(3, 84, serfs[SERF_KNIGHT_3]);
+  draw_green_number(3, 100, serfs[SERF_KNIGHT_2]);
+  draw_green_number(3, 116, serfs[SERF_KNIGHT_1]);
+  draw_green_number(3, 132, serfs[SERF_KNIGHT_0]);
 
   /* Second column */
-  draw_green_number(8, 4, frame, serfs[SERF_LUMBERJACK]);
-  draw_green_number(8, 20, frame, serfs[SERF_SAWMILLER]);
-  draw_green_number(8, 36, frame, serfs[SERF_SMELTER]);
-  draw_green_number(8, 52, frame, serfs[SERF_STONECUTTER]);
-  draw_green_number(8, 68, frame, serfs[SERF_FORESTER]);
-  draw_green_number(8, 84, frame, serfs[SERF_MINER]);
-  draw_green_number(8, 100, frame, serfs[SERF_BOATBUILDER]);
-  draw_green_number(8, 116, frame, serfs[SERF_TOOLMAKER]);
-  draw_green_number(8, 132, frame, serfs[SERF_WEAPONSMITH]);
+  draw_green_number(8, 4, serfs[SERF_LUMBERJACK]);
+  draw_green_number(8, 20, serfs[SERF_SAWMILLER]);
+  draw_green_number(8, 36, serfs[SERF_SMELTER]);
+  draw_green_number(8, 52, serfs[SERF_STONECUTTER]);
+  draw_green_number(8, 68, serfs[SERF_FORESTER]);
+  draw_green_number(8, 84, serfs[SERF_MINER]);
+  draw_green_number(8, 100, serfs[SERF_BOATBUILDER]);
+  draw_green_number(8, 116, serfs[SERF_TOOLMAKER]);
+  draw_green_number(8, 132, serfs[SERF_WEAPONSMITH]);
 
   /* Third column */
-  draw_green_number(13, 4, frame, serfs[SERF_FISHER]);
-  draw_green_number(13, 20, frame, serfs[SERF_PIGFARMER]);
-  draw_green_number(13, 36, frame, serfs[SERF_BUTCHER]);
-  draw_green_number(13, 52, frame, serfs[SERF_FARMER]);
-  draw_green_number(13, 68, frame, serfs[SERF_MILLER]);
-  draw_green_number(13, 84, frame, serfs[SERF_BAKER]);
-  draw_green_number(13, 100, frame, serfs[SERF_GEOLOGIST]);
-  draw_green_number(13, 116, frame, serfs[SERF_GENERIC]);
+  draw_green_number(13, 4, serfs[SERF_FISHER]);
+  draw_green_number(13, 20, serfs[SERF_PIGFARMER]);
+  draw_green_number(13, 36, serfs[SERF_BUTCHER]);
+  draw_green_number(13, 52, serfs[SERF_FARMER]);
+  draw_green_number(13, 68, serfs[SERF_MILLER]);
+  draw_green_number(13, 84, serfs[SERF_BAKER]);
+  draw_green_number(13, 100, serfs[SERF_GEOLOGIST]);
+  draw_green_number(13, 116, serfs[SERF_GENERIC]);
 
   if (total >= 0) {
-    draw_green_large_number(11, 132, frame, total);
+    draw_green_large_number(11, 132, total);
   }
 }
 
 void
-popup_box_t::draw_stat_select_box(frame_t *frame) {
+popup_box_t::draw_stat_select_box() {
   const int layout[] = {
     72, 1, 12,
     73, 6, 12,
@@ -715,13 +708,13 @@ popup_box_t::draw_stat_select_box(frame_t *frame) {
     -1
   };
 
-  draw_box_background(129, frame);
-  draw_custom_icon_box(layout, frame);
+  draw_box_background(129);
+  draw_custom_icon_box(layout);
 }
 
 void
-popup_box_t::draw_stat_4_box(frame_t *frame) {
-  draw_box_background(129, frame);
+popup_box_t::draw_stat_4_box() {
+  draw_box_background(129);
 
   int resources[26];
   memset(resources, '\0', 26*sizeof(int));
@@ -738,21 +731,20 @@ popup_box_t::draw_stat_4_box(frame_t *frame) {
     }
   }
 
-  draw_resources_box(frame, resources);
+  draw_resources_box(resources);
 
-  draw_popup_icon(14, 128, 60, frame); /* exit */
+  draw_popup_icon(14, 128, 60); /* exit */
 }
 
 void
-popup_box_t::draw_building_count(int x, int y, int type, frame_t *frame) {
+popup_box_t::draw_building_count(int x, int y, int type) {
   player_t *player = interface->get_player();
-  draw_green_number(x, y, frame, player->completed_building_count[type]);
-  draw_additional_number(x+1, y, frame,
-                         player->incomplete_building_count[type]);
+  draw_green_number(x, y, player->completed_building_count[type]);
+  draw_additional_number(x+1, y, player->incomplete_building_count[type]);
 }
 
 void
-popup_box_t::draw_stat_bld_1_box(frame_t *frame) {
+popup_box_t::draw_stat_bld_1_box() {
   const int bld_layout[] = {
     192, 0, 5,
     171, 2, 77,
@@ -761,21 +753,21 @@ popup_box_t::draw_stat_bld_1_box(frame_t *frame) {
     -1
   };
 
-  draw_box_background(129, frame);
+  draw_box_background(129);
 
-  draw_custom_bld_box(bld_layout, frame);
+  draw_custom_bld_box(bld_layout);
 
-  draw_building_count(2, 105, BUILDING_HUT, frame);
-  draw_building_count(10, 53, BUILDING_TOWER, frame);
-  draw_building_count(9, 130, BUILDING_FORTRESS, frame);
-  draw_building_count(4, 61, BUILDING_STOCK, frame);
+  draw_building_count(2, 105, BUILDING_HUT);
+  draw_building_count(10, 53, BUILDING_TOWER);
+  draw_building_count(9, 130, BUILDING_FORTRESS);
+  draw_building_count(4, 61, BUILDING_STOCK);
 
-  draw_popup_icon(0, 128, 61, frame); /* flip */
-  draw_popup_icon(14, 128, 60, frame); /* exit */
+  draw_popup_icon(0, 128, 61); /* flip */
+  draw_popup_icon(14, 128, 60); /* exit */
 }
 
 void
-popup_box_t::draw_stat_bld_2_box(frame_t *frame) {
+popup_box_t::draw_stat_bld_2_box() {
   const int bld_layout[] = {
     153, 0, 4,
     160, 8, 6,
@@ -787,24 +779,24 @@ popup_box_t::draw_stat_bld_2_box(frame_t *frame) {
     -1
   };
 
-  draw_box_background(129, frame);
+  draw_box_background(129);
 
-  draw_custom_bld_box(bld_layout, frame);
+  draw_custom_bld_box(bld_layout);
 
-  draw_building_count(3, 54, BUILDING_TOOLMAKER, frame);
-  draw_building_count(10, 48, BUILDING_SAWMILL, frame);
-  draw_building_count(3, 95, BUILDING_WEAPONSMITH, frame);
-  draw_building_count(8, 95, BUILDING_STONECUTTER, frame);
-  draw_building_count(12, 95, BUILDING_BOATBUILDER, frame);
-  draw_building_count(5, 132, BUILDING_FORESTER, frame);
-  draw_building_count(9, 132, BUILDING_LUMBERJACK, frame);
+  draw_building_count(3, 54, BUILDING_TOOLMAKER);
+  draw_building_count(10, 48, BUILDING_SAWMILL);
+  draw_building_count(3, 95, BUILDING_WEAPONSMITH);
+  draw_building_count(8, 95, BUILDING_STONECUTTER);
+  draw_building_count(12, 95, BUILDING_BOATBUILDER);
+  draw_building_count(5, 132, BUILDING_FORESTER);
+  draw_building_count(9, 132, BUILDING_LUMBERJACK);
 
-  draw_popup_icon(0, 128, 61, frame); /* flip */
-  draw_popup_icon(14, 128, 60, frame); /* exit */
+  draw_popup_icon(0, 128, 61); /* flip */
+  draw_popup_icon(14, 128, 60); /* exit */
 }
 
 void
-popup_box_t::draw_stat_bld_3_box(frame_t *frame) {
+popup_box_t::draw_stat_bld_3_box() {
   const int bld_layout[] = {
     155, 0, 2,
     154, 8, 3,
@@ -815,23 +807,23 @@ popup_box_t::draw_stat_bld_3_box(frame_t *frame) {
     -1
   };
 
-  draw_box_background(129, frame);
+  draw_box_background(129);
 
-  draw_custom_bld_box(bld_layout, frame);
+  draw_custom_bld_box(bld_layout);
 
-  draw_building_count(3, 48, BUILDING_PIGFARM, frame);
-  draw_building_count(11, 48, BUILDING_FARM, frame);
-  draw_building_count(0, 92, BUILDING_FISHER, frame);
-  draw_building_count(11, 87, BUILDING_BUTCHER, frame);
-  draw_building_count(5, 134, BUILDING_MILL, frame);
-  draw_building_count(10, 134, BUILDING_BAKER, frame);
+  draw_building_count(3, 48, BUILDING_PIGFARM);
+  draw_building_count(11, 48, BUILDING_FARM);
+  draw_building_count(0, 92, BUILDING_FISHER);
+  draw_building_count(11, 87, BUILDING_BUTCHER);
+  draw_building_count(5, 134, BUILDING_MILL);
+  draw_building_count(10, 134, BUILDING_BAKER);
 
-  draw_popup_icon(0, 128, 61, frame); /* flip */
-  draw_popup_icon(14, 128, 60, frame); /* exit */
+  draw_popup_icon(0, 128, 61); /* flip */
+  draw_popup_icon(14, 128, 60); /* exit */
 }
 
 void
-popup_box_t::draw_stat_bld_4_box(frame_t *frame) {
+popup_box_t::draw_stat_bld_4_box() {
   const int bld_layout[] = {
     163, 0, 4,
     164, 4, 4,
@@ -842,24 +834,23 @@ popup_box_t::draw_stat_bld_4_box(frame_t *frame) {
     -1
   };
 
-  draw_box_background(129, frame);
+  draw_box_background(129);
 
-  draw_custom_bld_box(bld_layout, frame);
+  draw_custom_bld_box(bld_layout);
 
-  draw_building_count(0, 71, BUILDING_STONEMINE, frame);
-  draw_building_count(4, 71, BUILDING_COALMINE, frame);
-  draw_building_count(8, 71, BUILDING_IRONMINE, frame);
-  draw_building_count(12, 71, BUILDING_GOLDMINE, frame);
-  draw_building_count(4, 130, BUILDING_STEELSMELTER, frame);
-  draw_building_count(9, 130, BUILDING_GOLDSMELTER, frame);
+  draw_building_count(0, 71, BUILDING_STONEMINE);
+  draw_building_count(4, 71, BUILDING_COALMINE);
+  draw_building_count(8, 71, BUILDING_IRONMINE);
+  draw_building_count(12, 71, BUILDING_GOLDMINE);
+  draw_building_count(4, 130, BUILDING_STEELSMELTER);
+  draw_building_count(9, 130, BUILDING_GOLDSMELTER);
 
-  draw_popup_icon(0, 128, 61, frame); /* flip */
-  draw_popup_icon(14, 128, 60, frame); /* exit */
+  draw_popup_icon(0, 128, 61); /* flip */
+  draw_popup_icon(14, 128, 60); /* exit */
 }
 
 void
-popup_box_t::draw_player_stat_chart(const int *data, int index, int color,
-                                    frame_t *frame) {
+popup_box_t::draw_player_stat_chart(const int *data, int index, int color) {
   int x = 8;
   int y = 9;
   int width = 112;
@@ -876,21 +867,21 @@ popup_box_t::draw_player_stat_chart(const int *data, int index, int color,
         int diff = value - prev_value;
         int h = diff/2;
         gfx_fill_rect(x + width - i, y + height - h - prev_value,
-                1, h, color, frame);
+                      1, h, color, frame);
         diff -= h;
         gfx_fill_rect(x + width - i - 1, y + height - value,
-                1, diff, color, frame);
+                      1, diff, color, frame);
       } else if (value == prev_value) {
         gfx_fill_rect(x + width - i - 1, y + height - value,
-                2, 1, color, frame);
+                      2, 1, color, frame);
       } else {
         int diff = prev_value - value;
         int h = diff/2;
         gfx_fill_rect(x + width - i, y + height - prev_value,
-                1, h, color, frame);
+                      1, h, color, frame);
         diff -= h;
         gfx_fill_rect(x + width - i - 1, y + height - value - diff,
-                1, diff, color, frame);
+                      1, diff, color, frame);
       }
     }
 
@@ -899,7 +890,7 @@ popup_box_t::draw_player_stat_chart(const int *data, int index, int color,
 }
 
 void
-popup_box_t::draw_stat_8_box(frame_t *frame) {
+popup_box_t::draw_stat_8_box() {
   const int layout[] = {
     0x58, 14, 0,
     0x59, 0, 100,
@@ -922,33 +913,31 @@ popup_box_t::draw_stat_8_box(frame_t *frame) {
   int scale = mode & 3;
 
   /* Draw background */
-  draw_box_row(132+aspect, 0, frame);
-  draw_box_row(132+aspect, 16, frame);
-  draw_box_row(132+aspect, 32, frame);
-  draw_box_row(132+aspect, 48, frame);
-  draw_box_row(132+aspect, 64, frame);
-  draw_box_row(132+aspect, 80, frame);
-  draw_box_row(132+aspect, 96, frame);
+  draw_box_row(132+aspect, 0);
+  draw_box_row(132+aspect, 16);
+  draw_box_row(132+aspect, 32);
+  draw_box_row(132+aspect, 48);
+  draw_box_row(132+aspect, 64);
+  draw_box_row(132+aspect, 80);
+  draw_box_row(132+aspect, 96);
 
-  draw_box_row(136, 108, frame);
-  draw_box_row(129, 116, frame);
-  draw_box_row(137, 132, frame);
+  draw_box_row(136, 108);
+  draw_box_row(129, 116);
+  draw_box_row(137, 132);
 
-  draw_custom_icon_box(layout, frame);
+  draw_custom_icon_box(layout);
 
   /* Draw checkmarks to indicate current settings. */
   draw_popup_icon(!BIT_TEST(aspect, 0) ? 1 : 6,
-      !BIT_TEST(aspect, 1) ? 116 : 132,
-      106, frame); /* checkmark */
+                  !BIT_TEST(aspect, 1) ? 116 : 132, 106); /* checkmark */
 
   draw_popup_icon(!BIT_TEST(scale, 0) ? 7 : 12,
-      !BIT_TEST(scale, 1) ? 116 : 132,
-      106, frame); /* checkmark */
+                  !BIT_TEST(scale, 1) ? 116 : 132, 106); /* checkmark */
 
   /* Correct numbers on time scale. */
-  draw_popup_icon(2, 103, 94 + 3*scale + 0, frame);
-  draw_popup_icon(6, 103, 94 + 3*scale + 1, frame);
-  draw_popup_icon(10, 103, 94 + 3*scale + 2, frame);
+  draw_popup_icon(2, 103, 94 + 3*scale + 0);
+  draw_popup_icon(6, 103, 94 + 3*scale + 1);
+  draw_popup_icon(10, 103, 94 + 3*scale + 2);
 
   /* Draw chart */
   int index = game.player_history_index[scale];
@@ -956,13 +945,13 @@ popup_box_t::draw_stat_8_box(frame_t *frame) {
     if (PLAYER_IS_ACTIVE(game.player[GAME_MAX_PLAYER_COUNT-i-1])) {
       player_t *player = game.player[GAME_MAX_PLAYER_COUNT-i-1];
       draw_player_stat_chart(player->player_stat_history[mode], index,
-                 player->color, frame);
+                             player->color);
     }
   }
 }
 
 void
-popup_box_t::draw_stat_7_box(frame_t *frame) {
+popup_box_t::draw_stat_7_box() {
   const int layout[] = {
     0x81, 6, 80,
     0x81, 8, 80,
@@ -1003,18 +992,18 @@ popup_box_t::draw_stat_7_box(frame_t *frame) {
     -1
   };
 
-  draw_box_row(129, 64, frame);
-  draw_box_row(129, 112, frame);
-  draw_box_row(129, 128, frame);
+  draw_box_row(129, 64);
+  draw_box_row(129, 112);
+  draw_box_row(129, 128);
 
-  draw_custom_icon_box(layout, frame);
+  draw_custom_icon_box(layout);
 
   int item = interface->get_current_stat_7_item()-1;
 
   /* Draw background of chart */
   for (int y = 0; y < 64; y += 16) {
     for (int x = 0; x < 14; x += 2) {
-      draw_popup_icon(x, y, 138 + item, frame);
+      draw_popup_icon(x, y, 138 + item);
     }
   }
 
@@ -1084,7 +1073,7 @@ popup_box_t::draw_stat_7_box(frame_t *frame) {
 
   /* Draw axis icons */
   for (int i = 0; i < 4; i++) {
-    draw_popup_icon(14, i*16, axis_icons[i], frame);
+    draw_popup_icon(14, i*16, axis_icons[i]);
   }
 
   /* Draw chart */
@@ -1097,8 +1086,7 @@ popup_box_t::draw_stat_7_box(frame_t *frame) {
 }
 
 void
-popup_box_t::draw_gauge_balance(int x, int y, uint value, uint count,
-                                frame_t *frame) {
+popup_box_t::draw_gauge_balance(int x, int y, uint value, uint count) {
   int sprite = -1;
   if (count > 0) {
     uint v = (16*value)/count;
@@ -1129,12 +1117,11 @@ popup_box_t::draw_gauge_balance(int x, int y, uint value, uint count,
     sprite = 0xd3;
   }
 
-  draw_popup_icon(x, y, sprite, frame);
+  draw_popup_icon(x, y, sprite);
 }
 
 void
-popup_box_t::draw_gauge_full(int x, int y, uint value, uint count,
-                             frame_t *frame) {
+popup_box_t::draw_gauge_full(int x, int y, uint value, uint count) {
   int sprite = -1;
   if (count > 0) {
     uint v = (16*value)/count;
@@ -1165,7 +1152,7 @@ popup_box_t::draw_gauge_full(int x, int y, uint value, uint count,
     sprite = 0xc7;
   }
 
-  draw_popup_icon(x, y, sprite, frame);
+  draw_popup_icon(x, y, sprite);
 }
 
 static void
@@ -1196,7 +1183,7 @@ calculate_gauge_values(player_t *player,
 }
 
 void
-popup_box_t::draw_stat_1_box(frame_t *frame) {
+popup_box_t::draw_stat_1_box() {
   const int layout[] = {
     0x18, 0, 0, /* baker */
     0xb4, 0, 16,
@@ -1250,33 +1237,33 @@ popup_box_t::draw_stat_1_box(frame_t *frame) {
     -1
   };
 
-  draw_box_background(129, frame);
+  draw_box_background(129);
 
-  draw_custom_icon_box(layout, frame);
+  draw_custom_icon_box(layout);
 
   uint values[24][BUILDING_MAX_STOCK][2] = {{{0}}};
   calculate_gauge_values(interface->get_player(), values);
 
   draw_gauge_balance(10, 0, values[BUILDING_MILL][0][0],
-                     values[BUILDING_MILL][0][1], frame);
+                     values[BUILDING_MILL][0][1]);
   draw_gauge_balance(2, 0, values[BUILDING_BAKER][0][0],
-                     values[BUILDING_BAKER][0][1], frame);
+                     values[BUILDING_BAKER][0][1]);
   draw_gauge_full(10, 32, values[BUILDING_PIGFARM][0][0],
-                  values[BUILDING_PIGFARM][0][1], frame);
+                  values[BUILDING_PIGFARM][0][1]);
   draw_gauge_balance(2, 32, values[BUILDING_BUTCHER][0][0],
-                     values[BUILDING_BUTCHER][0][1], frame);
+                     values[BUILDING_BUTCHER][0][1]);
   draw_gauge_full(10, 56, values[BUILDING_GOLDMINE][0][0],
-                  values[BUILDING_GOLDMINE][0][1], frame);
+                  values[BUILDING_GOLDMINE][0][1]);
   draw_gauge_full(10, 80, values[BUILDING_COALMINE][0][0],
-                  values[BUILDING_COALMINE][0][1], frame);
+                  values[BUILDING_COALMINE][0][1]);
   draw_gauge_full(10, 104, values[BUILDING_IRONMINE][0][0],
-                  values[BUILDING_IRONMINE][0][1], frame);
+                  values[BUILDING_IRONMINE][0][1]);
   draw_gauge_full(10, 128, values[BUILDING_STONEMINE][0][0],
-                  values[BUILDING_STONEMINE][0][1], frame);
+                  values[BUILDING_STONEMINE][0][1]);
 }
 
 void
-popup_box_t::draw_stat_2_box(frame_t *frame) {
+popup_box_t::draw_stat_2_box() {
   const int layout[] = {
     0x11, 0, 0, /* miner */
     0x11, 0, 24, /* miner */
@@ -1326,53 +1313,53 @@ popup_box_t::draw_stat_2_box(frame_t *frame) {
     -1
   };
 
-  draw_box_background(129, frame);
+  draw_box_background(129);
 
-  draw_custom_icon_box(layout, frame);
+  draw_custom_icon_box(layout);
 
   uint values[24][BUILDING_MAX_STOCK][2] = {{{0}}};
   calculate_gauge_values(interface->get_player(), values);
 
   draw_gauge_balance(6, 0, values[BUILDING_GOLDSMELTER][1][0],
-                     values[BUILDING_GOLDSMELTER][1][1], frame);
+                     values[BUILDING_GOLDSMELTER][1][1]);
   draw_gauge_balance(6, 16, values[BUILDING_GOLDSMELTER][0][0],
-                     values[BUILDING_GOLDSMELTER][0][1], frame);
+                     values[BUILDING_GOLDSMELTER][0][1]);
   draw_gauge_balance(6, 40, values[BUILDING_STEELSMELTER][0][0],
-                     values[BUILDING_STEELSMELTER][0][1], frame);
+                     values[BUILDING_STEELSMELTER][0][1]);
   draw_gauge_balance(6, 56, values[BUILDING_STEELSMELTER][1][0],
-                     values[BUILDING_STEELSMELTER][1][1], frame);
+                     values[BUILDING_STEELSMELTER][1][1]);
 
   draw_gauge_balance(6, 80, values[BUILDING_SAWMILL][1][0],
-                     values[BUILDING_SAWMILL][1][1], frame);
+                     values[BUILDING_SAWMILL][1][1]);
 
   uint gold_value = values[BUILDING_HUT][1][0] +
-    values[BUILDING_TOWER][1][0] +
-    values[BUILDING_FORTRESS][1][0];
+                    values[BUILDING_TOWER][1][0] +
+                    values[BUILDING_FORTRESS][1][0];
   uint gold_count = values[BUILDING_HUT][1][1] +
-    values[BUILDING_TOWER][1][1] +
-    values[BUILDING_FORTRESS][1][1];
-  draw_gauge_full(12, 0, gold_value, gold_count, frame);
+                    values[BUILDING_TOWER][1][1] +
+                    values[BUILDING_FORTRESS][1][1];
+  draw_gauge_full(12, 0, gold_value, gold_count);
 
   draw_gauge_balance(12, 20, values[BUILDING_WEAPONSMITH][0][0],
-                     values[BUILDING_WEAPONSMITH][0][1], frame);
+                     values[BUILDING_WEAPONSMITH][0][1]);
   draw_gauge_balance(12, 36, values[BUILDING_WEAPONSMITH][1][0],
-                     values[BUILDING_WEAPONSMITH][1][1], frame);
+                     values[BUILDING_WEAPONSMITH][1][1]);
 
   draw_gauge_balance(12, 56, values[BUILDING_TOOLMAKER][1][0],
-                     values[BUILDING_TOOLMAKER][1][1], frame);
+                     values[BUILDING_TOOLMAKER][1][1]);
   draw_gauge_balance(12, 72, values[BUILDING_TOOLMAKER][0][0],
-                     values[BUILDING_TOOLMAKER][0][1], frame);
+                     values[BUILDING_TOOLMAKER][0][1]);
 
   draw_gauge_balance(12, 92, values[BUILDING_BOATBUILDER][0][0],
-                     values[BUILDING_BOATBUILDER][0][1], frame);
+                     values[BUILDING_BOATBUILDER][0][1]);
 
-  draw_gauge_full(12, 112, values[0][0][0], values[0][0][1], frame);
-  draw_gauge_full(12, 128, values[0][1][0], values[0][1][1], frame);
+  draw_gauge_full(12, 112, values[0][0][0], values[0][0][1]);
+  draw_gauge_full(12, 128, values[0][1][0], values[0][1][1]);
 }
 
 void
-popup_box_t::draw_stat_6_box(frame_t *frame) {
-  draw_box_background(129, frame);
+popup_box_t::draw_stat_6_box() {
+  draw_box_background(129);
 
   int total = 0;
   for (int i = 0; i < 27; i++) {
@@ -1381,13 +1368,13 @@ popup_box_t::draw_stat_6_box(frame_t *frame) {
     }
   }
 
-  draw_serfs_box(frame, interface->get_player()->serf_count, total);
+  draw_serfs_box(interface->get_player()->serf_count, total);
 
-  draw_popup_icon(14, 128, 60, frame); /* exit */
+  draw_popup_icon(14, 128, 60); /* exit */
 }
 
 void
-popup_box_t::draw_stat_3_meter(int x, int y, int value, frame_t *frame) {
+popup_box_t::draw_stat_3_meter(int x, int y, int value) {
   int sprite = -1;
   if (value < 1) {
     sprite = 0xbc;
@@ -1408,12 +1395,12 @@ popup_box_t::draw_stat_3_meter(int x, int y, int value, frame_t *frame) {
   } else {
     sprite = 0xc6;
   }
-  draw_popup_icon(x, y, sprite, frame);
+  draw_popup_icon(x, y, sprite);
 }
 
 void
-popup_box_t::draw_stat_3_box(frame_t *frame) {
-  draw_box_background(129, frame);
+popup_box_t::draw_stat_3_box() {
+  draw_box_background(129);
 
   int serfs[27];
   memset(serfs, '\0', 27*sizeof(int));
@@ -1509,53 +1496,53 @@ popup_box_t::draw_stat_3_box(frame_t *frame) {
     -1
   };
 
-  draw_custom_icon_box(layout, frame);
+  draw_custom_icon_box(layout);
 
   /* First column */
-  draw_stat_3_meter(3, 4, serfs[SERF_TRANSPORTER], frame);
-  draw_stat_3_meter(3, 20, serfs[SERF_SAILOR], frame);
-  draw_stat_3_meter(3, 36, serfs[SERF_DIGGER], frame);
-  draw_stat_3_meter(3, 52, serfs[SERF_BUILDER], frame);
-  draw_stat_3_meter(3, 68, serfs[SERF_KNIGHT_4], frame);
-  draw_stat_3_meter(3, 84, serfs[SERF_KNIGHT_3], frame);
-  draw_stat_3_meter(3, 100, serfs[SERF_KNIGHT_2], frame);
-  draw_stat_3_meter(3, 116, serfs[SERF_KNIGHT_1], frame);
-  draw_stat_3_meter(3, 132, serfs[SERF_KNIGHT_0], frame);
+  draw_stat_3_meter(3, 4, serfs[SERF_TRANSPORTER]);
+  draw_stat_3_meter(3, 20, serfs[SERF_SAILOR]);
+  draw_stat_3_meter(3, 36, serfs[SERF_DIGGER]);
+  draw_stat_3_meter(3, 52, serfs[SERF_BUILDER]);
+  draw_stat_3_meter(3, 68, serfs[SERF_KNIGHT_4]);
+  draw_stat_3_meter(3, 84, serfs[SERF_KNIGHT_3]);
+  draw_stat_3_meter(3, 100, serfs[SERF_KNIGHT_2]);
+  draw_stat_3_meter(3, 116, serfs[SERF_KNIGHT_1]);
+  draw_stat_3_meter(3, 132, serfs[SERF_KNIGHT_0]);
 
   /* Second column */
-  draw_stat_3_meter(8, 4, serfs[SERF_LUMBERJACK], frame);
-  draw_stat_3_meter(8, 20, serfs[SERF_SAWMILLER], frame);
-  draw_stat_3_meter(8, 36, serfs[SERF_SMELTER], frame);
-  draw_stat_3_meter(8, 52, serfs[SERF_STONECUTTER], frame);
-  draw_stat_3_meter(8, 68, serfs[SERF_FORESTER], frame);
-  draw_stat_3_meter(8, 84, serfs[SERF_MINER], frame);
-  draw_stat_3_meter(8, 100, serfs[SERF_BOATBUILDER], frame);
-  draw_stat_3_meter(8, 116, serfs[SERF_TOOLMAKER], frame);
-  draw_stat_3_meter(8, 132, serfs[SERF_WEAPONSMITH], frame);
+  draw_stat_3_meter(8, 4, serfs[SERF_LUMBERJACK]);
+  draw_stat_3_meter(8, 20, serfs[SERF_SAWMILLER]);
+  draw_stat_3_meter(8, 36, serfs[SERF_SMELTER]);
+  draw_stat_3_meter(8, 52, serfs[SERF_STONECUTTER]);
+  draw_stat_3_meter(8, 68, serfs[SERF_FORESTER]);
+  draw_stat_3_meter(8, 84, serfs[SERF_MINER]);
+  draw_stat_3_meter(8, 100, serfs[SERF_BOATBUILDER]);
+  draw_stat_3_meter(8, 116, serfs[SERF_TOOLMAKER]);
+  draw_stat_3_meter(8, 132, serfs[SERF_WEAPONSMITH]);
 
   /* Third column */
-  draw_stat_3_meter(13, 4, serfs[SERF_FISHER], frame);
-  draw_stat_3_meter(13, 20, serfs[SERF_PIGFARMER], frame);
-  draw_stat_3_meter(13, 36, serfs[SERF_BUTCHER], frame);
-  draw_stat_3_meter(13, 52, serfs[SERF_FARMER], frame);
-  draw_stat_3_meter(13, 68, serfs[SERF_MILLER], frame);
-  draw_stat_3_meter(13, 84, serfs[SERF_BAKER], frame);
-  draw_stat_3_meter(13, 100, serfs[SERF_GEOLOGIST], frame);
-  draw_stat_3_meter(13, 116, serfs[SERF_GENERIC], frame);
+  draw_stat_3_meter(13, 4, serfs[SERF_FISHER]);
+  draw_stat_3_meter(13, 20, serfs[SERF_PIGFARMER]);
+  draw_stat_3_meter(13, 36, serfs[SERF_BUTCHER]);
+  draw_stat_3_meter(13, 52, serfs[SERF_FARMER]);
+  draw_stat_3_meter(13, 68, serfs[SERF_MILLER]);
+  draw_stat_3_meter(13, 84, serfs[SERF_BAKER]);
+  draw_stat_3_meter(13, 100, serfs[SERF_GEOLOGIST]);
+  draw_stat_3_meter(13, 116, serfs[SERF_GENERIC]);
 
-  draw_popup_icon(14, 128, 60, frame); /* exit */
+  draw_popup_icon(14, 128, 60); /* exit */
 }
 
 void
-popup_box_t::draw_start_attack_redraw_box(frame_t *frame) {
+popup_box_t::draw_start_attack_redraw_box() {
   /* TODO Should overwrite the previously drawn number.
      Just use fill_rect(), perhaps? */
-  draw_green_string(6, 116, frame, "    ");
-  draw_green_number(7, 116, frame, interface->get_player()->knights_attacking);
+  draw_green_string(6, 116, "    ");
+  draw_green_number(7, 116, interface->get_player()->knights_attacking);
 }
 
 void
-popup_box_t::draw_start_attack_box(frame_t *frame) {
+popup_box_t::draw_start_attack_box() {
   const int building_layout[] = {
     0x0, 2, 33,
     0xa, 6, 30,
@@ -1582,11 +1569,11 @@ popup_box_t::draw_start_attack_box(frame_t *frame) {
     -1
   };
 
-  draw_box_background(131, frame);
+  draw_box_background(131);
 
   for (int i = 0; building_layout[i] >= 0; i += 3) {
     draw_popup_building(building_layout[i+1], building_layout[i+2],
-            building_layout[i], frame);
+                        building_layout[i]);
   }
 
   building_t *building =
@@ -1601,21 +1588,19 @@ popup_box_t::draw_start_attack_box(frame_t *frame) {
   default: NOT_REACHED(); break;
   }
 
-  draw_popup_building(0, y, map_building_sprite[BUILDING_TYPE(building)],
-                      frame);
-  draw_custom_icon_box(icon_layout, frame);
+  draw_popup_building(0, y, map_building_sprite[BUILDING_TYPE(building)]);
+  draw_custom_icon_box(icon_layout);
 
   /* Draw number of knight at each distance. */
   for (int i = 0; i < 4; i++) {
-    draw_green_number(1+4*i, 96, frame,
-                      interface->get_player()->attacking_knights[i]);
+    draw_green_number(1+4*i, 96, interface->get_player()->attacking_knights[i]);
   }
 
-  draw_start_attack_redraw_box(frame);
+  draw_start_attack_redraw_box();
 }
 
 void
-popup_box_t::draw_ground_analysis_box(frame_t *frame) {
+popup_box_t::draw_ground_analysis_box() {
   const int layout[] = {
     0x1c, 7, 10,
     0x2f, 1, 50,
@@ -1629,30 +1614,30 @@ popup_box_t::draw_ground_analysis_box(frame_t *frame) {
   map_pos_t pos = interface->get_map_cursor_pos();
   int estimates[5];
 
-  draw_box_background(0x81, frame);
-  draw_custom_icon_box(layout, frame);
+  draw_box_background(0x81);
+  draw_custom_icon_box(layout);
   game_prepare_ground_analysis(pos, estimates);
-  draw_green_string(0, 30, frame, "GROUND-ANALYSIS:");
+  draw_green_string(0, 30, "GROUND-ANALYSIS:");
 
   /* Gold */
   const char *s = prepare_res_amount_text(2*estimates[GROUND_DEPOSIT_GOLD]);
-  draw_green_string(3, 54, frame, s);
+  draw_green_string(3, 54, s);
 
   /* Iron */
   s = prepare_res_amount_text(estimates[GROUND_DEPOSIT_IRON]);
-  draw_green_string(3, 74, frame, s);
+  draw_green_string(3, 74, s);
 
   /* Coal */
   s = prepare_res_amount_text(estimates[GROUND_DEPOSIT_COAL]);
-  draw_green_string(3, 94, frame, s);
+  draw_green_string(3, 94, s);
 
   /* Stone */
   s = prepare_res_amount_text(2*estimates[GROUND_DEPOSIT_STONE]);
-  draw_green_string(3, 114, frame, s);
+  draw_green_string(3, 114, s);
 }
 
 void
-popup_box_t::draw_sett_select_box(frame_t *frame) {
+popup_box_t::draw_sett_select_box() {
   const int layout[] = {
     230, 1, 8,
     231, 6, 8,
@@ -1671,14 +1656,14 @@ popup_box_t::draw_sett_select_box(frame_t *frame) {
     -1
   };
 
-  draw_box_background(311, frame);
-  draw_custom_icon_box(layout, frame);
+  draw_box_background(311);
+  draw_custom_icon_box(layout);
 }
 
 /* Draw slide bar in a popup box. */
 void
-popup_box_t::draw_slide_bar(int x, int y, int value, frame_t *frame) {
-  draw_popup_icon(x, y, 236, frame);
+popup_box_t::draw_slide_bar(int x, int y, int value) {
+  draw_popup_icon(x, y, 236);
 
   int width = value/1310;
   if (width > 0) {
@@ -1687,7 +1672,7 @@ popup_box_t::draw_slide_bar(int x, int y, int value, frame_t *frame) {
 }
 
 void
-popup_box_t::draw_sett_1_box(frame_t *frame) {
+popup_box_t::draw_sett_1_box() {
   const int bld_layout[] = {
     163, 12, 21,
     164, 8, 41,
@@ -1705,18 +1690,20 @@ popup_box_t::draw_sett_1_box(frame_t *frame) {
     -1
   };
 
-  draw_box_background(311, frame);
-  draw_custom_bld_box(bld_layout, frame);
-  draw_custom_icon_box(layout, frame);
+  draw_box_background(311);
+  draw_custom_bld_box(bld_layout);
+  draw_custom_icon_box(layout);
 
-  draw_slide_bar(4, 21, interface->get_player()->food_stonemine, frame);
-  draw_slide_bar(0, 41, interface->get_player()->food_coalmine, frame);
-  draw_slide_bar(8, 114, interface->get_player()->food_ironmine, frame);
-  draw_slide_bar(4, 133, interface->get_player()->food_goldmine, frame);
+  player_t *player = interface->get_player();
+
+  draw_slide_bar(4, 21, player->food_stonemine);
+  draw_slide_bar(0, 41, player->food_coalmine);
+  draw_slide_bar(8, 114, player->food_ironmine);
+  draw_slide_bar(4, 133, player->food_goldmine);
 }
 
 void
-popup_box_t::draw_sett_2_box(frame_t *frame) {
+popup_box_t::draw_sett_2_box() {
   const int bld_layout[] = {
     186, 2, 0,
     174, 2, 41,
@@ -1733,19 +1720,21 @@ popup_box_t::draw_sett_2_box(frame_t *frame) {
     -1
   };
 
-  draw_box_background(311, frame);
-  draw_custom_bld_box(bld_layout, frame);
-  draw_custom_icon_box(layout, frame);
+  draw_box_background(311);
+  draw_custom_bld_box(bld_layout);
+  draw_custom_icon_box(layout);
 
-  draw_slide_bar(0, 26, interface->get_player()->planks_construction, frame);
-  draw_slide_bar(0, 36, interface->get_player()->planks_boatbuilder, frame);
-  draw_slide_bar(8, 44, interface->get_player()->planks_toolmaker, frame);
-  draw_slide_bar(8, 103, interface->get_player()->steel_toolmaker, frame);
-  draw_slide_bar(0, 130, interface->get_player()->steel_weaponsmith, frame);
+  player_t *player = interface->get_player();
+
+  draw_slide_bar(0, 26, player->planks_construction);
+  draw_slide_bar(0, 36, player->planks_boatbuilder);
+  draw_slide_bar(8, 44, player->planks_toolmaker);
+  draw_slide_bar(8, 103, player->steel_toolmaker);
+  draw_slide_bar(0, 130, player->steel_weaponsmith);
 }
 
 void
-popup_box_t::draw_sett_3_box(frame_t *frame) {
+popup_box_t::draw_sett_3_box() {
   const int bld_layout[] = {
     161, 0, 1,
     159, 10, 0,
@@ -1763,19 +1752,21 @@ popup_box_t::draw_sett_3_box(frame_t *frame) {
     -1
   };
 
-  draw_box_background(311, frame);
-  draw_custom_bld_box(bld_layout, frame);
-  draw_custom_icon_box(layout, frame);
+  draw_box_background(311);
+  draw_custom_bld_box(bld_layout);
+  draw_custom_icon_box(layout);
 
-  draw_slide_bar(0, 39, interface->get_player()->coal_steelsmelter, frame);
-  draw_slide_bar(8, 39, interface->get_player()->coal_goldsmelter, frame);
-  draw_slide_bar(4, 47, interface->get_player()->coal_weaponsmith, frame);
-  draw_slide_bar(0, 92, interface->get_player()->wheat_pigfarm, frame);
-  draw_slide_bar(8, 118, interface->get_player()->wheat_mill, frame);
+  player_t *player = interface->get_player();
+
+  draw_slide_bar(0, 39, player->coal_steelsmelter);
+  draw_slide_bar(8, 39, player->coal_goldsmelter);
+  draw_slide_bar(4, 47, player->coal_weaponsmith);
+  draw_slide_bar(0, 92, player->wheat_pigfarm);
+  draw_slide_bar(8, 118, player->wheat_mill);
 }
 
 void
-popup_box_t::draw_knight_level_box(frame_t *frame) {
+popup_box_t::draw_knight_level_box() {
   const char *level_str[] = {
     "Minimum", "Weak", "Medium", "Good", "Full"
   };
@@ -1807,31 +1798,27 @@ popup_box_t::draw_knight_level_box(frame_t *frame) {
     -1
   };
 
-  draw_box_background(311, frame);
+  draw_box_background(311);
 
   player_t *player = interface->get_player();
-  draw_green_string(8, 8, frame,
-        level_str[player->knight_occupation[3] & 0xf]);
-  draw_green_string(8, 19, frame,
-        level_str[(player->knight_occupation[3] >> 4) & 0xf]);
-  draw_green_string(8, 42, frame,
-        level_str[player->knight_occupation[2] & 0xf]);
-  draw_green_string(8, 53, frame,
-        level_str[(player->knight_occupation[2] >> 4) & 0xf]);
-  draw_green_string(8, 76, frame,
-        level_str[player->knight_occupation[1] & 0xf]);
-  draw_green_string(8, 87, frame,
-        level_str[(player->knight_occupation[1] >> 4) & 0xf]);
-  draw_green_string(8, 110, frame,
-        level_str[player->knight_occupation[0] & 0xf]);
-  draw_green_string(8, 121, frame,
-        level_str[(player->knight_occupation[0] >> 4) & 0xf]);
+  draw_green_string(8, 8, level_str[player->knight_occupation[3] & 0xf]);
+  draw_green_string(8, 19,
+                    level_str[(player->knight_occupation[3] >> 4) & 0xf]);
+  draw_green_string(8, 42, level_str[player->knight_occupation[2] & 0xf]);
+  draw_green_string(8, 53,
+                    level_str[(player->knight_occupation[2] >> 4) & 0xf]);
+  draw_green_string(8, 76, level_str[player->knight_occupation[1] & 0xf]);
+  draw_green_string(8, 87,
+                    level_str[(player->knight_occupation[1] >> 4) & 0xf]);
+  draw_green_string(8, 110, level_str[player->knight_occupation[0] & 0xf]);
+  draw_green_string(8, 121,
+                    level_str[(player->knight_occupation[0] >> 4) & 0xf]);
 
-  draw_custom_icon_box(layout, frame);
+  draw_custom_icon_box(layout);
 }
 
 void
-popup_box_t::draw_sett_4_box(frame_t *frame) {
+popup_box_t::draw_sett_4_box() {
   const int layout[] = {
     49, 1, 0, /* shovel */
     50, 1, 16, /* hammer */
@@ -1848,24 +1835,24 @@ popup_box_t::draw_sett_4_box(frame_t *frame) {
     -1
   };
 
-  draw_box_background(311, frame);
-  draw_custom_icon_box(layout, frame);
+  draw_box_background(311);
+  draw_custom_icon_box(layout);
 
   player_t *player = interface->get_player();
-  draw_slide_bar(4, 4, player->tool_prio[0], frame); /* shovel */
-  draw_slide_bar(4, 20, player->tool_prio[1], frame); /* hammer */
-  draw_slide_bar(4, 36, player->tool_prio[5], frame); /* axe */
-  draw_slide_bar(4, 52, player->tool_prio[6], frame); /* saw */
-  draw_slide_bar(4, 68, player->tool_prio[4], frame); /* scythe */
-  draw_slide_bar(4, 84, player->tool_prio[7], frame); /* pick */
-  draw_slide_bar(4, 100, player->tool_prio[8], frame); /* pincer */
-  draw_slide_bar(4, 116, player->tool_prio[3], frame); /* cleaver */
-  draw_slide_bar(4, 132, player->tool_prio[2], frame); /* rod */
+  draw_slide_bar(4, 4, player->tool_prio[0]); /* shovel */
+  draw_slide_bar(4, 20, player->tool_prio[1]); /* hammer */
+  draw_slide_bar(4, 36, player->tool_prio[5]); /* axe */
+  draw_slide_bar(4, 52, player->tool_prio[6]); /* saw */
+  draw_slide_bar(4, 68, player->tool_prio[4]); /* scythe */
+  draw_slide_bar(4, 84, player->tool_prio[7]); /* pick */
+  draw_slide_bar(4, 100, player->tool_prio[8]); /* pincer */
+  draw_slide_bar(4, 116, player->tool_prio[3]); /* cleaver */
+  draw_slide_bar(4, 132, player->tool_prio[2]); /* rod */
 }
 
 /* Draw generic popup box of resource stairs. */
 void
-popup_box_t::draw_popup_resource_stairs(int order[], frame_t *frame) {
+popup_box_t::draw_popup_resource_stairs(int order[]) {
   const int spiral_layout[] = {
     5, 4,
     7, 6,
@@ -1897,12 +1884,12 @@ popup_box_t::draw_popup_resource_stairs(int order[], frame_t *frame) {
 
   for (int i = 0; i < 26; i++) {
     int pos = 26 - order[i];
-    draw_popup_icon(spiral_layout[2*pos], spiral_layout[2*pos+1], 34+i, frame);
+    draw_popup_icon(spiral_layout[2*pos], spiral_layout[2*pos+1], 34+i);
   }
 }
 
 void
-popup_box_t::draw_sett_5_box(frame_t *frame) {
+popup_box_t::draw_sett_5_box() {
   const int layout[] = {
     237, 1, 120, /* up */
     238, 3, 120, /* smallup */
@@ -1913,22 +1900,21 @@ popup_box_t::draw_sett_5_box(frame_t *frame) {
     -1
   };
 
-  draw_box_background(311, frame);
-  draw_custom_icon_box(layout, frame);
-  draw_popup_resource_stairs(interface->get_player()->flag_prio, frame);
+  draw_box_background(311);
+  draw_custom_icon_box(layout);
+  draw_popup_resource_stairs(interface->get_player()->flag_prio);
 
-  draw_popup_icon(6, 120, 33+interface->get_player()->current_sett_5_item,
-                  frame);
+  draw_popup_icon(6, 120, 33+interface->get_player()->current_sett_5_item);
 }
 
 void
-popup_box_t::draw_quit_confirm_box(frame_t *frame) {
-  draw_box_background(310, frame);
+popup_box_t::draw_quit_confirm_box() {
+  draw_box_background(310);
 
-  draw_green_string(0, 10, frame, "   Do you want");
-  draw_green_string(0, 20, frame, "     to quit");
-  draw_green_string(0, 30, frame, "   this game?");
-  draw_green_string(0, 45, frame, "  Yes       No");
+  draw_green_string(0, 10, "   Do you want");
+  draw_green_string(0, 20, "     to quit");
+  draw_green_string(0, 30, "   this game?");
+  draw_green_string(0, 45, "  Yes       No");
 
   /* wait_x_timer_ticks(8); */
 
@@ -1936,38 +1922,38 @@ popup_box_t::draw_quit_confirm_box(frame_t *frame) {
 }
 
 void
-popup_box_t::draw_no_save_quit_confirm_box(frame_t *frame) {
-  draw_green_string(0, 70, frame, "The game has not");
-  draw_green_string(0, 80, frame, "   been saved");
-  draw_green_string(0, 90, frame, "   recently.");
-  draw_green_string(0, 100, frame, "    Are you");
-  draw_green_string(0, 110, frame, "     sure?");
-  draw_green_string(0, 125, frame, "  Yes       No");
+popup_box_t::draw_no_save_quit_confirm_box() {
+  draw_green_string(0, 70, "The game has not");
+  draw_green_string(0, 80, "   been saved");
+  draw_green_string(0, 90, "   recently.");
+  draw_green_string(0, 100, "    Are you");
+  draw_green_string(0, 110, "     sure?");
+  draw_green_string(0, 125, "  Yes       No");
 }
 
 void
-popup_box_t::draw_options_box(frame_t *frame) {
-  draw_box_background(310, frame);
+popup_box_t::draw_options_box() {
+  draw_box_background(310);
 
-  draw_green_string(1, 14, frame, "Music");
-  draw_green_string(1, 30, frame, "Sound");
-  draw_green_string(1, 39, frame, "effects");
-  draw_green_string(1, 54, frame, "Volume");
+  draw_green_string(1, 14, "Music");
+  draw_green_string(1, 30, "Sound");
+  draw_green_string(1, 39, "effects");
+  draw_green_string(1, 54, "Volume");
 
-  draw_popup_icon(13, 10, midi_is_enabled() ? 288 : 220, frame); /* Music */
-  draw_popup_icon(13, 30, sfx_is_enabled() ? 288 : 220, frame); /* Sfx */
-  draw_popup_icon(11, 50, 220, frame); /* Volume minus */
-  draw_popup_icon(13, 50, 221, frame); /* Volume plus */
+  draw_popup_icon(13, 10, midi_is_enabled() ? 288 : 220); /* Music */
+  draw_popup_icon(13, 30, sfx_is_enabled() ? 288 : 220); /* Sfx */
+  draw_popup_icon(11, 50, 220); /* Volume minus */
+  draw_popup_icon(13, 50, 221); /* Volume plus */
 
   char volume[4] = {0};
   snprintf(volume, sizeof(volume), "%d", audio_volume());
-  draw_green_string(8, 54, frame, volume);
+  draw_green_string(8, 54, volume);
 
-  draw_green_string(1, 70, frame, "Fullscreen");
-  draw_green_string(1, 79, frame, "video");
+  draw_green_string(1, 70, "Fullscreen");
+  draw_green_string(1, 79, "video");
 
-  draw_popup_icon(13, 70, gfx_is_fullscreen() ? 288 : 220,
-                  frame); /* Fullscreen mode */
+  draw_popup_icon(13, 70,
+                  gfx_is_fullscreen() ? 288 : 220); /* Fullscreen mode */
 
   const char *value = "All";
   if (!interface->get_config(3)) {
@@ -1979,22 +1965,22 @@ popup_box_t::draw_options_box(frame_t *frame) {
       }
     }
   }
-  draw_green_string(1, 94, frame, "Messages");
-  draw_green_string(11, 94, frame, value);
+  draw_green_string(1, 94, "Messages");
+  draw_green_string(11, 94, value);
 
-  draw_popup_icon(14, 128, 60, frame); /* exit */
+  draw_popup_icon(14, 128, 60); /* exit */
 }
 
 void
-popup_box_t::draw_castle_res_box(frame_t *frame) {
+popup_box_t::draw_castle_res_box() {
   const int layout[] = {
     0x3d, 12, 128, /* flip */
     0x3c, 14, 128, /* exit */
     -1
   };
 
-  draw_box_background(0x138, frame);
-  draw_custom_icon_box(layout, frame);
+  draw_box_background(0x138);
+  draw_custom_icon_box(layout);
 
   if (interface->get_player()->index == 0) {
     interface->close_popup();
@@ -2014,12 +2000,12 @@ popup_box_t::draw_castle_res_box(frame_t *frame) {
   }
 
   inventory_t *inventory = building->u.inventory;
-  draw_resources_box(frame, inventory->resources);
+  draw_resources_box(inventory->resources);
 }
 
 void
-popup_box_t::draw_mine_output_box(frame_t *frame) {
-  draw_box_background(0x138, frame);
+popup_box_t::draw_mine_output_box() {
+  draw_box_background(0x138);
 
   if (interface->get_player()->index == 0) {
     interface->close_popup();
@@ -2043,13 +2029,13 @@ popup_box_t::draw_mine_output_box(frame_t *frame) {
   }
 
   /* Draw building */
-  draw_popup_building(6, 60, map_building_sprite[type], frame);
+  draw_popup_building(6, 60, map_building_sprite[type]);
 
   /* Draw serf icon */
   int sprite = 0xdc; /* minus box */
   if (BUILDING_HAS_SERF(building)) sprite = 0x11; /* miner */
 
-  draw_popup_icon(10, 75, sprite, frame);
+  draw_popup_icon(10, 75, sprite);
 
   /* Draw food present at mine */
   int stock = building->stock[0].available;
@@ -2058,14 +2044,14 @@ popup_box_t::draw_mine_output_box(frame_t *frame) {
 
   /* Left column */
   for (int i = 0; i < stock_left_col; i++) {
-    draw_popup_icon(1, 90 - 8*stock_left_col + i*16, 0x24,
-                    frame); /* meat (food) sprite */
+    draw_popup_icon(1, 90 - 8*stock_left_col + i*16,
+                    0x24); /* meat (food) sprite */
   }
 
   /* Right column */
   for (int i = 0; i < stock_right_col; i++) {
-    draw_popup_icon(13, 90 - 8*stock_right_col + i*16, 0x24,
-                    frame); /* meat (food) sprite */
+    draw_popup_icon(13, 90 - 8*stock_right_col + i*16,
+                    0x24); /* meat (food) sprite */
   }
 
   /* Calculate output percentage (simple WMA) */
@@ -2080,19 +2066,19 @@ popup_box_t::draw_mine_output_box(frame_t *frame) {
   int x = 7;
   if (output >= 100) x += 1;
   if (output >= 10) x += 1;
-  draw_green_string(x, 38, frame, "%");
-  draw_green_number(6, 38, frame, output);
+  draw_green_string(x, 38, "%");
+  draw_green_number(6, 38, output);
 
-  draw_green_string(1, 14, frame, "MINING");
-  draw_green_string(1, 24, frame, "OUTPUT:");
+  draw_green_string(1, 14, "MINING");
+  draw_green_string(1, 24, "OUTPUT:");
 
   /* Exit box */
-  draw_popup_icon(14, 128, 0x3c, frame);
+  draw_popup_icon(14, 128, 0x3c);
 }
 
 void
-popup_box_t::draw_ordered_building_box(frame_t *frame) {
-  draw_box_background(0x138, frame);
+popup_box_t::draw_ordered_building_box() {
+  draw_box_background(0x138);
 
   if (interface->get_player()->index == 0) {
     interface->close_popup();
@@ -2110,27 +2096,27 @@ popup_box_t::draw_ordered_building_box(frame_t *frame) {
   int sprite = map_building_sprite[type];
   int x = 6;
   if (sprite == 0xc0 /*stock*/ || sprite >= 0x9e /*tower*/) x = 4;
-  draw_popup_building(x, 40, sprite, frame);
+  draw_popup_building(x, 40, sprite);
 
-  draw_green_string(2, 4, frame, "Ordered");
-  draw_green_string(2, 14, frame, "Building");
+  draw_green_string(2, 4, "Ordered");
+  draw_green_string(2, 14, "Building");
 
   if (BUILDING_HAS_SERF(building)) {
     if (building->progress == 0) {
-      draw_popup_icon(2, 100, 0xb, frame); /* Digger */
+      draw_popup_icon(2, 100, 0xb); /* Digger */
     } else {
-      draw_popup_icon(2, 100, 0xc, frame); /* Builder */
+      draw_popup_icon(2, 100, 0xc); /* Builder */
     }
   } else {
-    draw_popup_icon(2, 100, 0xdc, frame); /* Minus box */
+    draw_popup_icon(2, 100, 0xdc); /* Minus box */
   }
 
-  draw_popup_icon(14, 128, 0x3c, frame); /* Exit box */
+  draw_popup_icon(14, 128, 0x3c); /* Exit box */
 }
 
 void
-popup_box_t::draw_defenders_box(frame_t *frame) {
-  draw_box_background(0x138, frame);
+popup_box_t::draw_defenders_box() {
+  draw_box_background(0x138);
 
   if (interface->get_player()->index == 0) {
     interface->close_popup();
@@ -2166,40 +2152,40 @@ popup_box_t::draw_defenders_box(frame_t *frame) {
   default: NOT_REACHED(); break;
   }
 
-  draw_popup_building(x, y, sprite, frame);
+  draw_popup_building(x, y, sprite);
 
   /* Draw gold stock */
   if (building->stock[1].available > 0) {
     int left = (building->stock[1].available + 1) / 2;
     for (int i = 0; i < left; i++) {
-      draw_popup_icon(1, 32 - 8*left + 16*i, 0x30, frame);
+      draw_popup_icon(1, 32 - 8*left + 16*i, 0x30);
     }
 
     int right = building->stock[1].available / 2;
     for (int i = 0; i < right; i++) {
-      draw_popup_icon(13, 32 - 8*right + 16*i, 0x30, frame);
+      draw_popup_icon(13, 32 - 8*right + 16*i, 0x30);
     }
   }
 
   /* Draw heading string */
-  draw_green_string(3, 62, frame, "Defenders:");
+  draw_green_string(3, 62, "Defenders:");
 
   /* Draw knights */
   int next_knight = building->serf_index;
   for (int i = 0; next_knight != 0; i++) {
     serf_t *serf = game_get_serf(next_knight);
-    draw_popup_icon(3 + 4*(i%3), 72 + 16*(i/3), 7 + SERF_TYPE(serf), frame);
+    draw_popup_icon(3 + 4*(i%3), 72 + 16*(i/3), 7 + SERF_TYPE(serf));
     next_knight = serf->s.defending.next_knight;
   }
 
-  draw_green_string(0, 128, frame, "State:");
-  draw_green_number(7, 128, frame, BUILDING_STATE(building));
+  draw_green_string(0, 128, "State:");
+  draw_green_number(7, 128, BUILDING_STATE(building));
 
-  draw_popup_icon(14, 128, 0x3c, frame); /* Exit box */
+  draw_popup_icon(14, 128, 0x3c); /* Exit box */
 }
 
 void
-popup_box_t::draw_transport_info_box(frame_t *frame) {
+popup_box_t::draw_transport_info_box() {
   const int layout[] = {
     9, 24,
     5, 24,
@@ -2209,10 +2195,10 @@ popup_box_t::draw_transport_info_box(frame_t *frame) {
     11, 44
   };
 
-  draw_box_background(0x138, frame);
+  draw_box_background(0x138);
 
   /* TODO show path merge button. */
-  /* if (r == 0) draw_popup_icon(7, 51, 0x135, frame); */
+  /* if (r == 0) draw_popup_icon(7, 51, 0x135); */
 
   if (interface->get_player()->index == 0) {
     interface->close_popup();
@@ -2223,12 +2209,6 @@ popup_box_t::draw_transport_info_box(frame_t *frame) {
 
 #if 1
   /* Draw viewport of flag */
-  frame_t flag_frame;
-  gfx_frame_init(&flag_frame,
-           frame->clip.x + 8,
-           frame->clip.y + 24,
-           128, 64, frame);
-
   viewport_t flag_view(interface);
   flag_view.switch_layer(VIEWPORT_LAYER_LANDSCAPE);
   flag_view.switch_layer(VIEWPORT_LAYER_SERFS);
@@ -2240,11 +2220,11 @@ popup_box_t::draw_transport_info_box(frame_t *frame) {
   flag_view.move_to_map_pos(flag->pos);
   flag_view.move_by_pixels(0, -10);
 
-  flag_view.redraw(&flag_frame);
+  flag_view.move_to(8, 24);
+  flag_view.draw(frame);
 #else
   /* Static flag */
-  draw_popup_building(8, 40, 0x80 + 4*popup->interface->player->player_num,
-                      frame);
+  draw_popup_building(8, 40, 0x80 + 4*popup->interface->player->player_num);
 #endif
 
   for (int i = 0; i < 6; i++) {
@@ -2253,28 +2233,27 @@ popup_box_t::draw_transport_info_box(frame_t *frame) {
     if (FLAG_HAS_PATH(flag, 5-i)) {
       int sprite = 0xdc; /* Minus box */
       if (FLAG_HAS_TRANSPORTER(flag, 5-i)) sprite = 0x120; /* Check box */
-      draw_popup_icon(x, y, sprite, frame);
+      draw_popup_icon(x, y, sprite);
     }
   }
 
-  draw_green_string(0, 4, frame, "Transport Info:");
-  draw_popup_icon(2, 96, 0x1c, frame); /* Geologist */
-  draw_popup_icon(14, 128, 0x3c, frame); /* Exit box */
+  draw_green_string(0, 4, "Transport Info:");
+  draw_popup_icon(2, 96, 0x1c); /* Geologist */
+  draw_popup_icon(14, 128, 0x3c); /* Exit box */
 
   /* Draw list of resources */
   for (int i = 0; i < FLAG_MAX_RES_COUNT; i++) {
     if (flag->slot[i].type != RESOURCE_NONE) {
-      draw_popup_icon(7 + 2*(i&3), 88 + 16*(i>>2), 0x22 + flag->slot[i].type,
-                      frame);
+      draw_popup_icon(7 + 2*(i&3), 88 + 16*(i>>2), 0x22 + flag->slot[i].type);
     }
   }
 
-  draw_green_string(0, 128, frame, "Index:");
-  draw_green_number(7, 128, frame, FLAG_INDEX(flag));
+  draw_green_string(0, 128, "Index:");
+  draw_green_number(7, 128, FLAG_INDEX(flag));
 }
 
 void
-popup_box_t::draw_castle_serf_box(frame_t *frame) {
+popup_box_t::draw_castle_serf_box() {
   const int layout[] = {
     0x3d, 12, 128, /* flip */
     0x3c, 14, 128, /* exit */
@@ -2284,8 +2263,8 @@ popup_box_t::draw_castle_serf_box(frame_t *frame) {
   int serfs[27];
   memset(serfs, 0, 27*sizeof(int));
 
-  draw_box_background(0x138, frame);
-  draw_custom_icon_box(layout, frame);
+  draw_box_background(0x138);
+  draw_custom_icon_box(layout);
 
   if (interface->get_player()->index == 0) {
     interface->close_popup();
@@ -2316,11 +2295,11 @@ popup_box_t::draw_castle_serf_box(frame_t *frame) {
     }
   }
 
-  draw_serfs_box(frame, serfs, -1);
+  draw_serfs_box(serfs, -1);
 }
 
 void
-popup_box_t::draw_resdir_box(frame_t *frame) {
+popup_box_t::draw_resdir_box() {
   const int layout[] = {
     0x128, 4, 16,
     0x129, 4, 80,
@@ -2344,8 +2323,8 @@ popup_box_t::draw_resdir_box(frame_t *frame) {
     -1
   };
 
-  draw_box_background(0x138, frame);
-  draw_custom_icon_box(layout, frame);
+  draw_box_background(0x138);
+  draw_custom_icon_box(layout);
 
   if (interface->get_player()->index == 0) {
     interface->close_popup();
@@ -2361,7 +2340,7 @@ popup_box_t::draw_resdir_box(frame_t *frame) {
   building_type_t type = BUILDING_TYPE(building);
   if (type == BUILDING_CASTLE) {
     int knights[] = { 0, 0, 0, 0, 0 };
-    draw_custom_icon_box(knights_layout, frame);
+    draw_custom_icon_box(knights_layout);
 
     /* Follow linked list of knights on duty */
     int serf_index = building->serf_index;
@@ -2373,11 +2352,11 @@ popup_box_t::draw_resdir_box(frame_t *frame) {
       serf_index = serf->s.defending.next_knight;
     }
 
-    draw_green_number(14, 20, frame, knights[4]);
-    draw_green_number(14, 40, frame, knights[3]);
-    draw_green_number(14, 60, frame, knights[2]);
-    draw_green_number(14, 80, frame, knights[1]);
-    draw_green_number(14, 100, frame, knights[0]);
+    draw_green_number(14, 20, knights[4]);
+    draw_green_number(14, 40, knights[3]);
+    draw_green_number(14, 60, knights[2]);
+    draw_green_number(14, 80, knights[1]);
+    draw_green_number(14, 100, knights[0]);
   } else if (type != BUILDING_STOCK) {
     interface->close_popup();
     return;
@@ -2387,26 +2366,26 @@ popup_box_t::draw_resdir_box(frame_t *frame) {
   inventory_t *inventory = building->u.inventory;
   int res_mode = inventory->res_dir & 3;
   if (res_mode == 0) {
-    draw_popup_icon(9, 16, 0x120, frame); /* in */
+    draw_popup_icon(9, 16, 0x120); /* in */
   } else if (res_mode == 1) {
-    draw_popup_icon(9, 32, 0x120, frame); /* stop */
+    draw_popup_icon(9, 32, 0x120); /* stop */
   } else {
-    draw_popup_icon(9, 48, 0x120, frame); /* out */
+    draw_popup_icon(9, 48, 0x120); /* out */
   }
 
   /* Draw serf mode checkbox */
   int serf_mode = (inventory->res_dir >> 2) & 3;
   if (serf_mode == 0) {
-    draw_popup_icon(9, 80, 0x120, frame); /* in */
+    draw_popup_icon(9, 80, 0x120); /* in */
   } else if (serf_mode == 1) {
-    draw_popup_icon(9, 96, 0x120, frame); /* stop */
+    draw_popup_icon(9, 96, 0x120); /* stop */
   } else {
-    draw_popup_icon(9, 112, 0x120, frame); /* out */
+    draw_popup_icon(9, 112, 0x120); /* out */
   }
 }
 
 void
-popup_box_t::draw_sett_8_box(frame_t *frame) {
+popup_box_t::draw_sett_8_box() {
   const int layout[] = {
     9, 2, 8,
     29, 12, 8,
@@ -2426,24 +2405,24 @@ popup_box_t::draw_sett_8_box(frame_t *frame) {
     -1
   };
 
-  draw_box_background(311, frame);
-  draw_custom_icon_box(layout, frame);
+  draw_box_background(311);
+  draw_custom_icon_box(layout);
 
   player_t *player = interface->get_player();
 
-  draw_slide_bar(4, 12, player->serf_to_knight_rate, frame);
-  draw_green_string(8, 63, frame, "%");
-  draw_green_number(6, 63, frame, (100*player->knight_morale)/0x1000);
+  draw_slide_bar(4, 12, player->serf_to_knight_rate);
+  draw_green_string(8, 63, "%");
+  draw_green_number(6, 63, (100*player->knight_morale)/0x1000);
 
-  draw_green_large_number(6, 73, frame, player->gold_deposited);
+  draw_green_large_number(6, 73, player->gold_deposited);
 
-  draw_green_number(6, 119, frame, player->castle_knights_wanted);
-  draw_green_number(6, 129, frame, player->castle_knights);
+  draw_green_number(6, 119, player->castle_knights_wanted);
+  draw_green_number(6, 129, player->castle_knights);
 
   if (!PLAYER_SEND_STRONGEST(player)) {
-    draw_popup_icon(6, 84, 288, frame); /* checkbox */
+    draw_popup_icon(6, 84, 288); /* checkbox */
   } else {
-    draw_popup_icon(6, 100, 288, frame); /* checkbox */
+    draw_popup_icon(6, 100, 288); /* checkbox */
   }
 
   int convertible_to_knights = 0;
@@ -2458,11 +2437,11 @@ popup_box_t::draw_sett_8_box(frame_t *frame) {
     }
   }
 
-  draw_green_number(12, 40, frame, convertible_to_knights);
+  draw_green_number(12, 40, convertible_to_knights);
 }
 
 void
-popup_box_t::draw_sett_6_box(frame_t *frame) {
+popup_box_t::draw_sett_6_box() {
   const int layout[] = {
     237, 1, 120,
     238, 3, 120,
@@ -2474,16 +2453,15 @@ popup_box_t::draw_sett_6_box(frame_t *frame) {
     -1
   };
 
-  draw_box_background(311, frame);
-  draw_custom_icon_box(layout, frame);
-  draw_popup_resource_stairs(interface->get_player()->inventory_prio, frame);
+  draw_box_background(311);
+  draw_custom_icon_box(layout);
+  draw_popup_resource_stairs(interface->get_player()->inventory_prio);
 
-  draw_popup_icon(6, 120, 33+interface->get_player()->current_sett_6_item,
-                  frame);
+  draw_popup_icon(6, 120, 33+interface->get_player()->current_sett_6_item);
 }
 
 void
-popup_box_t::draw_bld_1_box(frame_t *frame) {
+popup_box_t::draw_bld_1_box() {
   const int layout[] = {
     0xc0, 0, 5, /* stock */
     0xab, 2, 77, /* hut */
@@ -2492,18 +2470,17 @@ popup_box_t::draw_bld_1_box(frame_t *frame) {
     -1
   };
 
-  draw_box_background(313, frame);
+  draw_box_background(313);
 
-  draw_popup_building(4, 112, 0x80 + 4*interface->get_player()->player_num,
-                      frame);
-  draw_custom_bld_box(layout, frame);
+  draw_popup_building(4, 112, 0x80 + 4*interface->get_player()->player_num);
+  draw_custom_bld_box(layout);
 
-  draw_popup_icon(0, 128, 0x3d, frame); /* flipbox */
-  draw_popup_icon(14, 128, 0x3c, frame); /* exit */
+  draw_popup_icon(0, 128, 0x3d); /* flipbox */
+  draw_popup_icon(14, 128, 0x3c); /* exit */
 }
 
 void
-popup_box_t::draw_bld_2_box(frame_t *frame) {
+popup_box_t::draw_bld_2_box() {
   const int layout[] = {
     153, 0, 4,
     160, 8, 6,
@@ -2515,16 +2492,16 @@ popup_box_t::draw_bld_2_box(frame_t *frame) {
     -1
   };
 
-  draw_box_background(313, frame);
+  draw_box_background(313);
 
-  draw_custom_bld_box(layout, frame);
+  draw_custom_bld_box(layout);
 
-  draw_popup_icon(0, 128, 0x3d, frame); /* flipbox */
-  draw_popup_icon(14, 128, 0x3c, frame); /* exit */
+  draw_popup_icon(0, 128, 0x3d); /* flipbox */
+  draw_popup_icon(14, 128, 0x3c); /* exit */
 }
 
 void
-popup_box_t::draw_bld_3_box(frame_t *frame) {
+popup_box_t::draw_bld_3_box() {
   const int layout[] = {
     155, 0, 2,
     154, 8, 3,
@@ -2535,16 +2512,16 @@ popup_box_t::draw_bld_3_box(frame_t *frame) {
     -1
   };
 
-  draw_box_background(313, frame);
+  draw_box_background(313);
 
-  draw_custom_bld_box(layout, frame);
+  draw_custom_bld_box(layout);
 
-  draw_popup_icon(0, 128, 0x3d, frame); /* flipbox */
-  draw_popup_icon(14, 128, 0x3c, frame); /* exit */
+  draw_popup_icon(0, 128, 0x3d); /* flipbox */
+  draw_popup_icon(14, 128, 0x3c); /* exit */
 }
 
 void
-popup_box_t::draw_bld_4_box(frame_t *frame) {
+popup_box_t::draw_bld_4_box() {
   const int layout[] = {
     163, 0, 4,
     164, 4, 4,
@@ -2555,17 +2532,17 @@ popup_box_t::draw_bld_4_box(frame_t *frame) {
     -1
   };
 
-  draw_box_background(313, frame);
+  draw_box_background(313);
 
-  draw_custom_bld_box(layout, frame);
+  draw_custom_bld_box(layout);
 
-  draw_popup_icon(0, 128, 0x3d, frame); /* flipbox */
-  draw_popup_icon(14, 128, 0x3c, frame); /* exit */
+  draw_popup_icon(0, 128, 0x3d); /* flipbox */
+  draw_popup_icon(14, 128, 0x3c); /* exit */
 }
 
 void
-popup_box_t::draw_building_stock_box(frame_t *frame) {
-  draw_box_background(0x138, frame);
+popup_box_t::draw_building_stock_box() {
+  draw_box_background(0x138);
 
   if (interface->get_player()->index == 0) {
     interface->close_popup();
@@ -2585,10 +2562,10 @@ popup_box_t::draw_building_stock_box(frame_t *frame) {
       if (stock > 0) {
         int sprite = 34 + building->stock[j].type;
         for (int i = 0; i < stock; i++) {
-          draw_popup_icon(8-stock+2*i, 110 - j*20, sprite, frame);
+          draw_popup_icon(8-stock+2*i, 110 - j*20, sprite);
         }
       } else {
-        draw_popup_icon(7, 110 - j*20, 0xdc, frame); /* minus box */
+        draw_popup_icon(7, 110 - j*20, 0xdc); /* minus box */
       }
     }
   }
@@ -2609,190 +2586,190 @@ popup_box_t::draw_building_stock_box(frame_t *frame) {
     serf_sprite = map_building_serf_sprite[BUILDING_TYPE(building)];
   }
 
-  draw_popup_icon(1, 36, serf_sprite, frame);
+  draw_popup_icon(1, 36, serf_sprite);
 
   /* Draw building */
   int bld_sprite = map_building_sprite[BUILDING_TYPE(building)];
   int x = 6;
   if (bld_sprite == 0xc0 /*stock*/ || bld_sprite >= 0x9e /*tower*/) x = 4;
-  draw_popup_building(x, 30, bld_sprite, frame);
+  draw_popup_building(x, 30, bld_sprite);
 
-  draw_green_string(1, 4, frame, "Stock of");
-  draw_green_string(1, 14, frame, "this building:");
+  draw_green_string(1, 4, "Stock of");
+  draw_green_string(1, 14, "this building:");
 
-  draw_popup_icon(14, 128, 0x3c, frame); /* exit box */
+  draw_popup_icon(14, 128, 0x3c); /* exit box */
 }
 
 void
-popup_box_t::draw_player_faces_box(frame_t *frame) {
-  draw_box_background(129, frame);
+popup_box_t::draw_player_faces_box() {
+  draw_box_background(129);
 
-  draw_player_face(2, 4, 0, frame);
-  draw_player_face(10, 4, 1, frame);
-  draw_player_face(2, 76, 2, frame);
-  draw_player_face(10, 76, 3, frame);
+  draw_player_face(2, 4, 0);
+  draw_player_face(10, 4, 1);
+  draw_player_face(2, 76, 2);
+  draw_player_face(10, 76, 3);
 }
 
 void
-popup_box_t::draw_demolish_box(frame_t *frame) {
-  draw_box_background(314, frame);
+popup_box_t::draw_demolish_box() {
+  draw_box_background(314);
 
-  draw_popup_icon(14, 128, 60, frame); /* Exit */
-  draw_popup_icon(7, 45, 288, frame); /* Checkbox */
+  draw_popup_icon(14, 128, 60); /* Exit */
+  draw_popup_icon(7, 45, 288); /* Checkbox */
 
-  draw_green_string(0, 10, frame, "    Demolish:");
-  draw_green_string(0, 30, frame, "   Click here");
-  draw_green_string(0, 68, frame, "   if you are");
-  draw_green_string(0, 86, frame, "      sure");
+  draw_green_string(0, 10, "    Demolish:");
+  draw_green_string(0, 30, "   Click here");
+  draw_green_string(0, 68, "   if you are");
+  draw_green_string(0, 86, "      sure");
 }
 
 void
-popup_box_t::draw(frame_t *frame) {
-  draw_popup_box_frame(frame);
+popup_box_t::internal_draw() {
+  draw_popup_box_frame();
 
   /* Dispatch to one of the popup box functions above. */
   switch (box) {
   case BOX_MAP:
-    draw_map_box(frame);
+    draw_map_box();
     break;
   case BOX_MINE_BUILDING:
-    draw_mine_building_box(frame);
+    draw_mine_building_box();
     break;
   case BOX_BASIC_BLD:
-    draw_basic_building_box(frame, 0);
+    draw_basic_building_box(0);
     break;
   case BOX_BASIC_BLD_FLIP:
-    draw_basic_building_box(frame, 1);
+    draw_basic_building_box(1);
     break;
   case BOX_ADV_1_BLD:
-    draw_adv_1_building_box(frame);
+    draw_adv_1_building_box();
     break;
   case BOX_ADV_2_BLD:
-    draw_adv_2_building_box(frame);
+    draw_adv_2_building_box();
     break;
   case BOX_STAT_SELECT:
-    draw_stat_select_box(frame);
+    draw_stat_select_box();
     break;
   case BOX_STAT_4:
-    draw_stat_4_box(frame);
+    draw_stat_4_box();
     break;
   case BOX_STAT_BLD_1:
-    draw_stat_bld_1_box(frame);
+    draw_stat_bld_1_box();
     break;
   case BOX_STAT_BLD_2:
-    draw_stat_bld_2_box(frame);
+    draw_stat_bld_2_box();
     break;
   case BOX_STAT_BLD_3:
-    draw_stat_bld_3_box(frame);
+    draw_stat_bld_3_box();
     break;
   case BOX_STAT_BLD_4:
-    draw_stat_bld_4_box(frame);
+    draw_stat_bld_4_box();
     break;
   case BOX_STAT_8:
-    draw_stat_8_box(frame);
+    draw_stat_8_box();
     break;
   case BOX_STAT_7:
-    draw_stat_7_box(frame);
+    draw_stat_7_box();
     break;
   case BOX_STAT_1:
-    draw_stat_1_box(frame);
+    draw_stat_1_box();
     break;
   case BOX_STAT_2:
-    draw_stat_2_box(frame);
+    draw_stat_2_box();
     break;
   case BOX_STAT_6:
-    draw_stat_6_box(frame);
+    draw_stat_6_box();
     break;
   case BOX_STAT_3:
-    draw_stat_3_box(frame);
+    draw_stat_3_box();
     break;
   case BOX_START_ATTACK:
-    draw_start_attack_box(frame);
+    draw_start_attack_box();
     break;
   case BOX_START_ATTACK_REDRAW:
-    draw_start_attack_redraw_box(frame);
+    draw_start_attack_redraw_box();
     break;
   case BOX_GROUND_ANALYSIS:
-    draw_ground_analysis_box(frame);
+    draw_ground_analysis_box();
     break;
     /* TODO */
   case BOX_SETT_SELECT:
-    draw_sett_select_box(frame);
+    draw_sett_select_box();
     break;
   case BOX_SETT_1:
-    draw_sett_1_box(frame);
+    draw_sett_1_box();
     break;
   case BOX_SETT_2:
-    draw_sett_2_box(frame);
+    draw_sett_2_box();
     break;
   case BOX_SETT_3:
-    draw_sett_3_box(frame);
+    draw_sett_3_box();
     break;
   case BOX_KNIGHT_LEVEL:
-    draw_knight_level_box(frame);
+    draw_knight_level_box();
     break;
   case BOX_SETT_4:
-    draw_sett_4_box(frame);
+    draw_sett_4_box();
     break;
   case BOX_SETT_5:
-    draw_sett_5_box(frame);
+    draw_sett_5_box();
     break;
   case BOX_QUIT_CONFIRM:
-    draw_quit_confirm_box(frame);
+    draw_quit_confirm_box();
     break;
   case BOX_NO_SAVE_QUIT_CONFIRM:
-    draw_no_save_quit_confirm_box(frame);
+    draw_no_save_quit_confirm_box();
     break;
   case BOX_OPTIONS:
-    draw_options_box(frame);
+    draw_options_box();
     break;
   case BOX_CASTLE_RES:
-    draw_castle_res_box(frame);
+    draw_castle_res_box();
     break;
   case BOX_MINE_OUTPUT:
-    draw_mine_output_box(frame);
+    draw_mine_output_box();
     break;
   case BOX_ORDERED_BLD:
-    draw_ordered_building_box(frame);
+    draw_ordered_building_box();
     break;
   case BOX_DEFENDERS:
-    draw_defenders_box(frame);
+    draw_defenders_box();
     break;
   case BOX_TRANSPORT_INFO:
-    draw_transport_info_box(frame);
+    draw_transport_info_box();
     break;
   case BOX_CASTLE_SERF:
-    draw_castle_serf_box(frame);
+    draw_castle_serf_box();
     break;
   case BOX_RESDIR:
-    draw_resdir_box(frame);
+    draw_resdir_box();
     break;
   case BOX_SETT_8:
-    draw_sett_8_box(frame);
+    draw_sett_8_box();
     break;
   case BOX_SETT_6:
-    draw_sett_6_box(frame);
+    draw_sett_6_box();
     break;
   case BOX_BLD_1:
-    draw_bld_1_box(frame);
+    draw_bld_1_box();
     break;
   case BOX_BLD_2:
-    draw_bld_2_box(frame);
+    draw_bld_2_box();
     break;
   case BOX_BLD_3:
-    draw_bld_3_box(frame);
+    draw_bld_3_box();
     break;
   case BOX_BLD_4:
-    draw_bld_4_box(frame);
+    draw_bld_4_box();
     break;
   case BOX_BLD_STOCK:
-    draw_building_stock_box(frame);
+    draw_building_stock_box();
     break;
   case BOX_PLAYER_FACES:
-    draw_player_faces_box(frame);
+    draw_player_faces_box();
     break;
   case BOX_DEMOLISH:
-    draw_demolish_box(frame);
+    draw_demolish_box();
     break;
   default:
     break;
@@ -2801,7 +2778,7 @@ popup_box_t::draw(frame_t *frame) {
 
 void
 popup_box_t::activate_sett_5_6_item(int index) {
-  if (interface->get_popup_box()->box == BOX_SETT_5) {
+  if (box == BOX_SETT_5) {
     int i;
     for (i = 0; i < 26; i++) {
       if (interface->get_player()->flag_prio[i] == index) break;
@@ -2821,7 +2798,7 @@ popup_box_t::move_sett_5_6_item(int up, int to_end) {
   int *prio = NULL;
   int cur = -1;
 
-  if (interface->get_popup_box()->box == BOX_SETT_5) {
+  if (box == BOX_SETT_5) {
     prio = interface->get_player()->flag_prio;
     cur = interface->get_player()->current_sett_5_item-1;
   } else {
@@ -2907,12 +2884,12 @@ popup_box_t::handle_action(int action, int x, int y) {
     if (mode != 3) {
       minimap->set_flags(minimap->get_flags() | mode);
     }
-    box = BOX_MAP;
+    set_box(BOX_MAP);
     break;
   }
   case ACTION_MINIMAP_ROADS:
     minimap->set_flags(minimap->get_flags() ^ 4);
-    box = BOX_MAP;
+    set_box(BOX_MAP);
     break;
   case ACTION_MINIMAP_BUILDINGS:
     if (minimap->get_advanced() >= 0) {
@@ -2921,20 +2898,20 @@ popup_box_t::handle_action(int action, int x, int y) {
     } else {
       minimap->set_flags(minimap->get_flags() ^ 8);
     }
-    box = BOX_MAP;
+    set_box(BOX_MAP);
 
     /* TODO on double click */
 #if 0
     if (minimap.advanced >= 0) {
       minimap.advanced = -1;
     } else {
-      box = BOX_BLD_1;
+      set_box(BOX_BLD_1);
     }
 #endif
     break;
   case ACTION_MINIMAP_GRID:
     minimap->set_flags(minimap->get_flags() ^ 16);
-    box = BOX_MAP;
+    set_box(BOX_MAP);
     break;
   case ACTION_BUILD_STONEMINE:
     interface->build_building(BUILDING_STONEMINE);
@@ -3127,7 +3104,7 @@ popup_box_t::handle_action(int action, int x, int y) {
     }
     break;
   case ACTION_CLOSE_ATTACK_BOX:
-      interface->close_popup();
+    interface->close_popup();
     break;
     /* TODO */
   case ACTION_SHOW_SETT_1:
@@ -3526,20 +3503,20 @@ popup_box_t::handle_action(int action, int x, int y) {
   case ACTION_MINIMAP_BLD_23:
     minimap->set_advanced(action - ACTION_MINIMAP_BLD_1 + 1);
     minimap->set_flags(minimap->get_flags() | BIT(3));
-    box = BOX_MAP;
+    set_box(BOX_MAP);
     break;
   case ACTION_MINIMAP_BLD_FLAG:
     minimap->set_advanced(0);
-    box = BOX_MAP;
+    set_box(BOX_MAP);
     break;
   case ACTION_MINIMAP_BLD_NEXT:
-    box = (box_t)(box + 1);
+    set_box((box_t)(box + 1));
     if (box > BOX_BLD_4) {
-      box = BOX_BLD_1;
+      set_box(BOX_BLD_1);
     }
     break;
   case ACTION_MINIMAP_BLD_EXIT:
-    box = BOX_MAP;
+    set_box(BOX_MAP);
     break;
   case ACTION_DEFAULT_SETT_4:
     interface->open_popup(BOX_SETT_4);
@@ -3551,7 +3528,7 @@ popup_box_t::handle_action(int action, int x, int y) {
   case ACTION_MINIMAP_SCALE: {
     minimap->set_flags(minimap->get_flags() ^ BIT(5));
     minimap->set_scale(minimap->get_scale() == 1 ? 2 : 1);
-    box = BOX_MAP;
+    set_box(BOX_MAP);
   }
     break;
     /* TODO */
@@ -4202,8 +4179,8 @@ popup_box_t::handle_box_bld_4(int x, int y) {
   handle_clickmap(x, y, clkmap);
 }
 
-int
-popup_box_t::handle_event_click(int x, int y) {
+bool
+popup_box_t::handle_click_left(int x, int y) {
   x -= 8;
   y -= 8;
 
@@ -4345,45 +4322,7 @@ popup_box_t::handle_event_click(int x, int y) {
     break;
   }
 
-  return 0;
-}
-
-int
-popup_box_t::handle_event(const gui_event_t *event) {
-  int x = event->x;
-  int y = event->y;
-
-  /* Pass event on to minimap */
-  if (box == BOX_MAP && x >= 8 && x < 128+8 && y >= 9 && y < 128+9) {
-    gui_event_t minimap_event;
-    minimap_event.type = event->type;
-    minimap_event.x = event->x - 8;
-    minimap_event.y = event->y - 9;
-    minimap_event.button = event->button;
-    return minimap->handle_event(&minimap_event);
-  }
-
-  switch (event->type) {
-  case GUI_EVENT_TYPE_CLICK:
-    if (event->button == GUI_EVENT_BUTTON_LEFT) {
-      return handle_event_click(x, y);
-    }
-  default:
-    break;
-  }
-
-  return 0;
-}
-
-int
-popup_box_t::get_child_position(gui_object_t *child, int *x, int *y) {
-  if (child == reinterpret_cast<gui_object_t*>(minimap)) {
-    *x = 8;
-    *y = 9;
-    return 0;
-  }
-
-  return -1;
+  return true;
 }
 
 popup_box_t::popup_box_t(interface_t *interface) {
@@ -4391,9 +4330,10 @@ popup_box_t::popup_box_t(interface_t *interface) {
 
   /* Initialize minimap */
   minimap = new minimap_t(interface);
-  minimap->set_displayed(1);
+  minimap->set_displayed(false);
   minimap->set_parent(this);
   minimap->set_size(128, 128);
+  add_float(minimap, 8, 9);
 }
 
 popup_box_t::~popup_box_t() {
@@ -4404,11 +4344,22 @@ popup_box_t::~popup_box_t() {
 }
 
 void popup_box_t::show(box_t box) {
-  this->box = box;
-  set_displayed(1);
+  set_box(box);
+  set_displayed(true);
 }
 
 void popup_box_t::hide() {
-  this->box = (box_t)0;
-  set_displayed(0);
+  set_box((box_t)0);
+  set_displayed(false);
+}
+
+void
+popup_box_t::set_box(box_t box) {
+  this->box = box;
+  if (box == BOX_MAP) {
+    minimap->set_displayed(true);
+  } else {
+    minimap->set_displayed(false);
+  }
+  set_redraw();
 }

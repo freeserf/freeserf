@@ -22,12 +22,15 @@
 #ifndef SRC_INTERFACE_H_
 #define SRC_INTERFACE_H_
 
+#include "src/misc.h"
+BEGIN_EXT_C
+  #include "src/random.h"
+  #include "src/map.h"
+  #include "src/player.h"
+  #include "src/building.h"
+END_EXT_C
 #include "src/gui.h"
-#include "src/viewport.h"
 #include "src/panel.h"
-#include "src/game-init.h"
-#include "src/notification.h"
-#include "src/popup.h"
 
 #define MAX_ROAD_LENGTH  256
 
@@ -54,23 +57,23 @@ typedef struct {
   int x, y;
 } sprite_loc_t;
 
-class interface_t : public gui_container_t {
+class viewport_t;
+class panel_bar_t;
+class popup_box_t;
+class game_init_box_t;
+class notification_box_t;
+
+class interface_t : public gui_object_t {
  protected:
-  gui_object_t *top;
-  int redraw_top;
-  list_t floats;
-
-  gui_object_t *cursor_lock_target;
-
   uint32_t *serf_animation_table;
 
   random_state_t random;
 
-  viewport_t viewport;
-  panel_bar_t panel;
-  popup_box_t popup;
-  game_init_box_t init_box;
-  notification_box_t notification_box;
+  viewport_t *viewport;
+  panel_bar_t *panel;
+  popup_box_t *popup;
+  game_init_box_t *init_box;
+  notification_box_t *notification_box;
 
   map_pos_t map_cursor_pos;
   map_cursor_type_t map_cursor_type;
@@ -105,11 +108,12 @@ class interface_t : public gui_container_t {
 
  public:
   interface_t();
+  virtual ~interface_t();
 
-  viewport_t *get_top_viewport();
+  viewport_t *get_viewport();
   panel_bar_t *get_panel_bar();
   popup_box_t *get_popup_box();
-  notification_box_t *get_notification_box() { return &notification_box; }
+  notification_box_t *get_notification_box() { return notification_box; }
 
   bool get_config(int i) const { return (BIT_TEST(config, i) != 0); }
   void set_config(int i) { config |= BIT(i); }
@@ -134,9 +138,6 @@ class interface_t : public gui_container_t {
   void set_panel_btn(int i, int val) { panel_btns[i] = val; }
 
   uint32_t *get_animation_table() const { return serf_animation_table; }
-
-  void set_cursor_lock_target(gui_object_t *object) {
-    cursor_lock_target = object; }
 
   void open_popup(int box);
   void close_popup();
@@ -172,17 +173,10 @@ class interface_t : public gui_container_t {
   void build_castle();
   void build_road();
 
-  void init();
-  void set_top(gui_object_t *obj);
-  void add_float(gui_object_t *obj, int x, int y, int width, int height);
-
+  void game_reset();
   void update();
 
-  virtual void draw(frame_t *frame);
-  virtual int handle_event(const gui_event_t *event);
-  virtual void set_size(int width, int height);
-  virtual void set_redraw_child(gui_object_t *child);
-  virtual int get_child_position(gui_object_t *child, int *x, int *y);
+  virtual bool handle_event(const event_t *event);
 
  protected:
   void get_map_cursor_type(const player_t *player, map_pos_t pos,
@@ -193,6 +187,10 @@ class interface_t : public gui_container_t {
   void update_interface();
   static void update_map_height(map_pos_t pos, void *data);
   void load_serf_animation_table();
+
+  virtual void internal_draw();
+  virtual void layout();
+  virtual bool handle_key_pressed(char key, int modifier);
 };
 
 #endif  // SRC_INTERFACE_H_

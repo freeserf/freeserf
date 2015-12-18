@@ -40,53 +40,197 @@ gui_get_slider_click_value(int x) {
 }
 
 void
-gui_object_t::set_size(int width, int height) {
-  this->width = width;
-  this->height = height;
+gui_object_t::layout() {
 }
+
+gui_object_t *gui_object_t::focused_object = NULL;
 
 gui_object_t::gui_object_t() {
+  x = 0;
+  y = 0;
   width = 0;
   height = 0;
-  displayed = 0;
-  enabled = 1;
-  need_redraw = 0;
+  displayed = false;
+  enabled = true;
+  redraw = true;
   parent = NULL;
+  frame = NULL;
+  focused = false;
+}
+
+gui_object_t::~gui_object_t() {
+  delete_frame();
 }
 
 void
-gui_object_t::redraw(frame_t *frame) {
-  draw(frame);
-  need_redraw = 0;
-}
-
-void
-gui_object_t::set_displayed(int displayed) {
-  this->displayed = displayed;
-  if (displayed) {
-    set_redraw();
-  } else if (parent != NULL) {
-    parent->set_redraw();
+gui_object_t::delete_frame() {
+  if (frame != NULL) {
+    delete frame;
+    frame = NULL;
   }
 }
 
 void
-gui_object_t::set_enabled(int enabled) {
+gui_object_t::draw(frame_t *frame) {
+  if (!displayed) {
+    return;
+  }
+
+  if (this->frame == NULL) {
+    this->frame = new frame_t;
+    gfx_frame_init(this->frame, 0, 0, width, height, NULL);
+  }
+
+  if (redraw) {
+    internal_draw();
+
+    float_list_t::iterator fl = floats.begin();
+    for ( ; fl != floats.end() ; fl++) {
+      (*fl)->draw(this->frame);
+    }
+
+    redraw = false;
+  }
+  gfx_draw_frame(x, y, frame, 0, 0, this->frame, width, height);
+}
+
+bool
+gui_object_t::handle_event(const event_t *event) {
+  if (!enabled || !displayed) {
+    return false;
+  }
+
+  int event_x = event->x;
+  int event_y = event->y;
+  if (event->type == EVENT_TYPE_CLICK ||
+      event->type == EVENT_TYPE_DBL_CLICK ||
+      event->type == EVENT_TYPE_DRAG) {
+    event_x = event->x - x;
+    event_y = event->y - y;
+    if (event_x < 0 || event_y < 0 || event_x > width || event_y > height) {
+      return false;
+    }
+  }
+
+  event_t internal_event;
+  internal_event.type = event->type;
+  internal_event.x = event_x;
+  internal_event.y = event_y;
+  internal_event.dx = event->dx;
+  internal_event.dy = event->dy;
+  internal_event.button = event->button;
+
+  /* Find the corresponding float element if any */
+  float_list_t::reverse_iterator fl = floats.rbegin();
+  for ( ; fl != floats.rend() ; fl++) {
+    bool result = (*fl)->handle_event(&internal_event);
+    if (result != 0) {
+      return result;
+    }
+  }
+
+  bool result = false;
+  switch (event->type) {
+    case EVENT_TYPE_CLICK:
+      if (event->button == EVENT_BUTTON_LEFT) {
+        result = handle_click_left(event_x, event_y);
+      }
+      break;
+    case EVENT_TYPE_DRAG:
+      result = handle_drag(event->dx, event->dy);
+      break;
+    case EVENT_TYPE_DBL_CLICK:
+      result = handle_dbl_click(event->x, event->y, event->button);
+      break;
+    case EVENT_KEY_PRESSED:
+      result = handle_key_pressed(event->dx, event->dy);
+      break;
+    default:
+      break;
+  }
+
+  if ((result != 0) && (focused_object != NULL)) {
+    if (focused_object != this) {
+      focused_object->handle_focus_loose();
+      focused_object = NULL;
+    }
+  }
+
+  return result;
+}
+
+void
+gui_object_t::move_to(int x, int y) {
+  this->x = x;
+  this->y = y;
+  set_redraw();
+}
+
+void
+gui_object_t::get_position(int *x, int *y) {
+  if (x != NULL) {
+    *x = this->x;
+  }
+  if (y != NULL) {
+    *y = this->y;
+  }
+}
+
+void
+gui_object_t::set_size(int width, int height) {
+  delete_frame();
+  this->width = width;
+  this->height = height;
+  layout();
+  set_redraw();
+}
+
+void
+gui_object_t::get_size(int *width, int *height) {
+  if (width != NULL) {
+    *width = this->width;
+  }
+  if (height != NULL) {
+    *height = this->height;
+  }
+}
+
+void
+gui_object_t::set_displayed(bool displayed) {
+  this->displayed = displayed;
+  set_redraw();
+}
+
+void
+gui_object_t::set_enabled(bool enabled) {
   this->enabled = enabled;
 }
 
 void
 gui_object_t::set_redraw() {
-  need_redraw = 1;
+  redraw = true;
   if (parent != NULL) {
-    parent->set_redraw_child(this);
+    parent->set_redraw();
   }
 }
 
-gui_container_t::gui_container_t() {
+bool
+gui_object_t::point_inside(int point_x, int point_y) {
+  return (point_x >= x && point_y >= y &&
+          point_x < x + width && point_y < y + height);
 }
 
 void
-gui_container_t::set_redraw_child(gui_object_t *child) {
+gui_object_t::add_float(gui_object_t *obj, int x, int y) {
+  obj->set_parent(this);
+  floats.push_back(obj);
+  obj->move_to(x, y);
+  set_redraw();
+}
+
+void
+gui_object_t::del_float(gui_object_t *obj) {
+  obj->set_parent(NULL);
+  floats.remove(obj);
   set_redraw();
 }

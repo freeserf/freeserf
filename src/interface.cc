@@ -30,44 +30,38 @@ BEGIN_EXT_C
   #include "src/data.h"
   #include "src/debug.h"
 END_EXT_C
-#include "src/gfx.h"
 #include "src/freeserf_endian.h"
 #include "src/freeserf.h"
-
-typedef struct {
-  list_elm_t elm;
-  gui_object_t *obj;
-  int x, y;
-  int redraw;
-} interface_float_t;
-
+#include "src/popup.h"
+#include "src/game-init.h"
+#include "src/viewport.h"
+#include "src/notification.h"
 
 viewport_t *
-interface_t::get_top_viewport() {
-  return &viewport;
+interface_t::get_viewport() {
+  return viewport;
 }
 
 panel_bar_t *
 interface_t::get_panel_bar() {
-  return &panel;
+  return panel;
 }
 
 popup_box_t *
 interface_t::get_popup_box() {
-  return &popup;
+  return popup;
 }
-
 
 /* Open popup box */
 void
 interface_t::open_popup(int box) {
-  popup.show((box_t)box);
+  popup->show((box_t)box);
 }
 
 /* Close the current popup. */
 void
 interface_t::close_popup() {
-  popup.hide();
+  popup->hide();
   panel_btns[2] = PANEL_BTN_MAP;
   panel_btns[3] = PANEL_BTN_STATS;
   panel_btns[4] = PANEL_BTN_SETT;
@@ -78,16 +72,18 @@ interface_t::close_popup() {
 /* Open box for starting a new game */
 void
 interface_t::open_game_init() {
-  init_box.set_displayed(1);
-  panel.set_enabled(0);
-  viewport.set_enabled(0);
+  init_box->set_displayed(true);
+  init_box->set_enabled(true);
+  panel->set_displayed(false);
+  viewport->set_enabled(false);
 }
 
 void
 interface_t::close_game_init() {
-  init_box.set_displayed(0);
-  panel.set_enabled(1);
-  viewport.set_enabled(1);
+  init_box->set_displayed(false);
+  panel->set_displayed(true);
+  panel->set_enabled(true);
+  viewport->set_enabled(true);
 
   update_map_cursor_pos(map_cursor_pos);
 }
@@ -101,7 +97,6 @@ interface_t::open_message() {
   } else if (!BIT_TEST(msg_flags, 3)) {
     msg_flags |= BIT(4);
     msg_flags |= BIT(3);
-    viewport_t *viewport = get_top_viewport();
     map_pos_t pos = viewport->get_current_map_pos();
     return_pos = pos;
   }
@@ -113,13 +108,12 @@ interface_t::open_message() {
   }
 
   int param = (player->msg_queue_type[0] >> 5) & 7;
-  notification_box.show(type, param);
+  notification_box->show(type, param);
 
   if (BIT_TEST(0x8f3fe, type)) {
     /* Move screen to new position */
     map_pos_t new_pos = player->msg_queue_pos[0];
 
-    viewport_t *viewport = get_top_viewport();
     viewport->move_to_map_pos(new_pos);
     update_map_cursor_pos(new_pos);
   }
@@ -144,17 +138,16 @@ interface_t::return_from_message() {
     msg_flags &= ~BIT(3);
 
     return_timeout = 0;
-    viewport_t *viewport = get_top_viewport();
     viewport->move_to_map_pos(return_pos);
 
-    if (popup.get_box() == BOX_MESSAGE) close_popup();
+    if (popup->get_box() == BOX_MESSAGE) close_popup();
     sfx_play_clip(SFX_CLICK);
   }
 }
 
 void
 interface_t::close_message() {
-  notification_box.set_displayed(0);
+  notification_box->set_displayed(false);
 }
 
 
@@ -396,7 +389,7 @@ interface_t::set_player(uint player) {
   }
 
   update_map_cursor_pos(init_pos);
-  viewport.move_to_map_pos(map_cursor_pos);
+  viewport->move_to_map_pos(map_cursor_pos);
 }
 
 void
@@ -621,190 +614,49 @@ interface_t::build_road() {
   }
 }
 
-
 void
 interface_t::update_map_height(map_pos_t pos, void *data) {
   interface_t *interface = reinterpret_cast<interface_t*>(data);
-  interface->viewport.redraw_map_pos(pos);
+  interface->viewport->redraw_map_pos(pos);
 }
 
 void
-interface_t::draw(frame_t *frame) {
-  int redraw_above = need_redraw;
-
-  if (top->get_displayed() &&
-      (redraw_top || redraw_above)) {
-    top->redraw(frame);
-    redraw_top = 0;
-    redraw_above = 1;
-  }
-
-  list_elm_t *elm;
-  list_foreach(&floats, elm) {
-    interface_float_t *fl = reinterpret_cast<interface_float_t*>(elm);
-    if (fl->obj->get_displayed() && (fl->redraw || redraw_above)) {
-      frame_t float_frame;
-      gfx_frame_init(&float_frame,
-                     frame->clip.x + fl->x,
-                     frame->clip.y + fl->y,
-                     fl->obj->get_width(), fl->obj->get_height(), frame);
-      fl->obj->redraw(&float_frame);
-      fl->redraw = 0;
-      redraw_above = 1;
-    }
-  }
-}
-
-int
-interface_t::handle_event(const gui_event_t *event) {
-  /* Handle locked cursor */
-  if (cursor_lock_target != NULL) {
-    if (cursor_lock_target == top) {
-      return top->handle_event(event);
-    } else {
-      if (event->type == GUI_EVENT_TYPE_DRAG_MOVE) {
-        return cursor_lock_target->handle_event(event);
-      }
-      gui_event_t float_event;
-      float_event.type = event->type;
-      float_event.x = event->x;
-      float_event.y = event->y;
-      float_event.button = event->button;
-      gui_object_t *obj = cursor_lock_target;
-      while (obj->get_parent() != NULL) {
-        int x, y;
-        int r = obj->get_parent()->get_child_position(obj, &x, &y);
-        if (r < 0) return -1;
-
-        float_event.x -= x;
-        float_event.y -= y;
-
-        obj = obj->get_parent();
-      }
-
-      if (obj != this) return -1;
-      return cursor_lock_target->handle_event(&float_event);
-    }
-  }
-
-  /* Find the corresponding float element if any */
-  list_elm_t *elm;
-  list_foreach_reverse(&floats, elm) {
-    interface_float_t *fl = reinterpret_cast<interface_float_t*>(elm);
-    if (fl->obj->get_displayed() &&
-        event->x >= fl->x && event->y >= fl->y &&
-        event->x < fl->x + fl->obj->get_width() &&
-        event->y < fl->y + fl->obj->get_height()) {
-      gui_event_t float_event;
-      float_event.type = event->type;
-      float_event.x = event->x - fl->x;
-      float_event.y = event->y - fl->y;
-      float_event.button = event->button;
-      return fl->obj->handle_event(&float_event);
-    }
-  }
-
-  return top->handle_event(event);
+interface_t::internal_draw() {
 }
 
 void
-interface_t::set_size(int width, int height) {
-  this->width = width;
-  this->height = height;
-
+interface_t::layout() {
   int panel_width = 352;
   int panel_height = 40;
   int panel_x = (width - panel_width) / 2;
   int panel_y = height - panel_height;
+  panel->move_to(panel_x, panel_y);
+  panel->set_size(panel_width, panel_height);
 
   int popup_width = 144;
   int popup_height = 160;
   int popup_x = (width - popup_width) / 2;
   int popup_y = (height - popup_height) / 2;
+  popup->move_to(popup_x, popup_y);
+  popup->set_size(popup_width, popup_height);
 
   int init_box_width = 360;
   int init_box_height = 174;
   int init_box_x = (width - init_box_width) / 2;
   int init_box_y = (height - init_box_height) / 2;
+  init_box->move_to(init_box_x, init_box_y);
+  init_box->set_size(init_box_width, init_box_height);
 
   int notification_box_width = 200;
   int notification_box_height = 88;
   int notification_box_x = panel_x + 40;
   int notification_box_y = panel_y - notification_box_height;
+  notification_box->move_to(notification_box_x, notification_box_y);
+  notification_box->set_size(notification_box_width, notification_box_height);
 
-  top->set_size(width, height);
-  redraw_top = 1;
-
-  /* Reassign position of floats. */
-  list_elm_t *elm;
-  list_foreach(&floats, elm) {
-    interface_float_t *fl = reinterpret_cast<interface_float_t*>(elm);
-    if (fl->obj == &popup) {
-      fl->x = popup_x;
-      fl->y = popup_y;
-      fl->redraw = 1;
-      fl->obj->set_size(popup_width, popup_height);
-    } else if (fl->obj == &panel) {
-      fl->x = panel_x;
-      fl->y = panel_y;
-      fl->redraw = 1;
-      fl->obj->set_size(panel_width, panel_height);
-    } else if (fl->obj == &init_box) {
-      fl->x = init_box_x;
-      fl->y = init_box_y;
-      fl->redraw = 1;
-      fl->obj->set_size(init_box_width, init_box_height);
-    } else if (fl->obj == &notification_box) {
-      fl->x = notification_box_x;
-      fl->y = notification_box_y;
-      fl->redraw = 1;
-      fl->obj->set_size(notification_box_width, notification_box_height);
-    }
-  }
+  viewport->set_size(width, height);
 
   set_redraw();
-}
-
-void
-interface_t::set_redraw_child(gui_object_t *child) {
-  if (parent != NULL) {
-    parent->set_redraw_child(this);
-  }
-
-  if (top == child) {
-    redraw_top = 1;
-    return;
-  }
-
-  list_elm_t *elm;
-  list_foreach(&floats, elm) {
-    interface_float_t *fl = reinterpret_cast<interface_float_t*>(elm);
-    if (fl->obj == child) {
-      fl->redraw = 1;
-      break;
-    }
-  }
-}
-
-int
-interface_t::get_child_position(gui_object_t *child, int *x, int *y) {
-  if (top == child) {
-    *x = 0;
-    *y = 0;
-    return 0;
-  }
-
-  list_elm_t *elm;
-  list_foreach(&floats, elm) {
-    interface_float_t *fl = reinterpret_cast<interface_float_t*>(elm);
-    if (fl->obj == child) {
-      *x = fl->x;
-      *y = fl->y;
-      return 0;
-    }
-  }
-
-  return -1;
 }
 
 void
@@ -833,36 +685,35 @@ interface_t::load_serf_animation_table() {
   }
 }
 
-interface_t::interface_t()
-  : panel(this)
-  , popup(this)
-  , viewport(this)
-  , notification_box(this)
-  , init_box(this) {
-  top = NULL;
-  redraw_top = 0;
-  list_init(&floats);
-
+interface_t::interface_t() {
   load_serf_animation_table();
 
+  displayed = true;
+
   /* Viewport */
-  viewport.set_displayed(1);
+  viewport = new viewport_t(this);
+  viewport->set_displayed(true);
 
   /* Panel bar */
-  panel.set_displayed(1);
+  panel = new panel_bar_t(this);
+  panel->set_displayed(true);
+
+  /* Popup box */
+  popup = new popup_box_t(this);
 
   /* Add objects to interface container. */
-  set_top(&viewport);
-
-  add_float(&popup, 0, 0, 0, 0);
-  add_float(&panel, 0, 0, 0, 0);
+  add_float(viewport, 0, 0);
+  add_float(popup, 0, 0);
+  add_float(panel, 0, 0);
 
   /* Game init box */
-  init_box.set_displayed(1);
-  add_float(&init_box, 0, 0, 0, 0);
+  init_box = new game_init_box_t(this);
+  init_box->set_displayed(true);
+  add_float(init_box, 0, 0);
 
   /* Notification box */
-  add_float(&notification_box, 0, 0, 0, 0);
+  notification_box = new notification_box_t(this);
+  add_float(notification_box, 0, 0);
 
   map_cursor_pos = MAP_POS(0, 0);
   map_cursor_type = (map_cursor_type_t)0;
@@ -909,31 +760,17 @@ interface_t::interface_t()
   game.update_map_height_data = this;
 }
 
-void
-interface_t::set_top(gui_object_t *obj) {
-  top = obj;
-  obj->set_parent(this);
-  top->set_size(width, height);
-  redraw_top = 1;
-  set_redraw();
+interface_t::~interface_t() {
+  delete viewport;
+  delete panel;
+  delete popup;
+  delete init_box;
+  delete notification_box;
 }
 
 void
-interface_t::add_float(gui_object_t *obj, int x, int y, int width, int height) {
-  interface_float_t *fl =
-    reinterpret_cast<interface_float_t*>(malloc(sizeof(interface_float_t)));
-  if (fl == NULL) abort();
-
-  /* Store currect location with object. */
-  fl->obj = obj;
-  fl->x = x;
-  fl->y = y;
-  fl->redraw = 1;
-
-  obj->set_parent(this);
-  list_append(&floats, reinterpret_cast<list_elm_t*>(fl));
-  obj->set_size(width, height);
-  set_redraw();
+interface_t::game_reset() {
+  viewport->map_reinit();
 }
 
 /* Called periodically when the game progresses. */
@@ -1016,5 +853,157 @@ interface_t::update() {
     }
   }
 
-  viewport.update();
+  viewport->update();
+  set_redraw();
+}
+
+bool
+interface_t::handle_key_pressed(char key, int modifier) {
+  switch (key) {
+    /* Panel click shortcuts */
+    case '1': {
+      panel->activate_button(0);
+      break;
+    }
+    case '2': {
+      panel->activate_button(1);
+      break;
+    }
+    case '3': {
+      panel->activate_button(2);
+      break;
+    }
+    case '4': {
+      panel->activate_button(3);
+    }
+      break;
+    case '5': {
+      panel->activate_button(4);
+      break;
+    }
+
+    /* Interface control */
+    case '\t': {
+      if (modifier & 2) {
+        return_from_message();
+      } else {
+        open_message();
+      }
+      break;
+    }
+    case '\033': {
+      if (notification_box->is_displayed()) {
+        close_message();
+      } else if (popup->is_displayed()) {
+        close_popup();
+      } else if (building_road) {
+        build_road_end();
+      }
+      break;
+    }
+
+    /* Game speed */
+    case '+': {
+      if (game.game_speed < 40) game.game_speed += 1;
+      LOGI("game", "Game speed: %u", game.game_speed);
+      break;
+    }
+    case '-': {
+      if (game.game_speed >= 1) game.game_speed -= 1;
+      LOGI("game", "Game speed: %u", game.game_speed);
+      break;
+    }
+    case '0': {
+      game.game_speed = DEFAULT_GAME_SPEED;
+      LOGI("game", "Game speed: %u", game.game_speed);
+      break;
+    }
+    case 'p': {
+      game_pause((game.game_speed == 0) ? 0 : 1);
+      break;
+    }
+
+    /* Audio */
+    case 's': {
+      sfx_enable(!sfx_is_enabled());
+      break;
+    }
+    case 'm': {
+      midi_enable(!midi_is_enabled());
+      break;
+    }
+
+    /* Debug */
+    case 'g': {
+      viewport->switch_layer(VIEWPORT_LAYER_GRID);
+      break;
+    }
+
+    /* Game control */
+    case 'b': {
+      viewport->switch_layer(VIEWPORT_LAYER_BUILDS);
+      break;
+    }
+    case 'j': {
+      int current = 0;
+      for (int i = 0; i < GAME_MAX_PLAYER_COUNT; i++) {
+        if (get_player() == game.player[i]) {
+          current = i;
+          break;
+        }
+      }
+
+      for (int i = (current+1) % GAME_MAX_PLAYER_COUNT;
+           i != current; i = (i+1) % GAME_MAX_PLAYER_COUNT) {
+        if (PLAYER_IS_ACTIVE(game.player[i])) {
+          set_player(i);
+          LOGD("main", "Switched to player %i.", i);
+          break;
+        }
+      }
+      break;
+    }
+    case 'z':
+      if (modifier & 1) {
+        save_game(0);
+      }
+      break;
+    case 'n':
+      if (modifier & 1) {
+        open_game_init();
+      }
+      break;
+    case 'c':
+      if (modifier & 1) {
+        open_popup(BOX_QUIT_CONFIRM);
+      }
+      break;
+
+    default:
+      return false;
+  }
+
+  return true;
+}
+
+bool
+interface_t::handle_event(const event_t *event) {
+  switch (event->type) {
+    case EVENT_RESIZE:
+      set_size(event->dx, event->dy);
+      break;
+    case EVENT_UPDATE:
+      panel->set_redraw();
+      update();
+      break;
+    case EVENT_DRAW:
+      draw(reinterpret_cast<frame_t*>(event->object));
+      break;
+
+    default:
+      return gui_object_t::handle_event(event);
+      break;
+  }
+
+  return true;
 }

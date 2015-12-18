@@ -63,16 +63,15 @@ class panel_bar_t : public gui_object_t {
 
   void activate_button(int button);
 
-  virtual void draw(frame_t *frame);
-  virtual int handle_event(const gui_event_t *event);
-
  protected:
+  virtual void internal_draw();
+  virtual bool handle_click_left(int x, int y);
+
   void draw_panel_frame(frame_t *frame);
   void draw_message_notify(frame_t *frame);
   void draw_return_arrow(frame_t *frame);
   void draw_panel_buttons(frame_t *frame);
   void button_click(int button);
-  int handle_event_click(int x, int y);
 };
 
 #endif  // SRC_PANEL_H_

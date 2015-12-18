@@ -23,7 +23,6 @@
 #define SRC_POPUP_H_
 
 #include "src/gui.h"
-#include "src/minimap.h"
 
 typedef enum {
   BOX_MAP = 1,
@@ -89,8 +88,9 @@ typedef enum {
 } box_t;
 
 class interface_t;
+class minimap_t;
 
-class popup_box_t : public gui_container_t {
+class popup_box_t : public gui_object_t {
  protected:
   interface_t *interface;
   minimap_t *minimap;
@@ -107,81 +107,76 @@ class popup_box_t : public gui_container_t {
   void show(box_t box);
   void hide();
 
-  virtual void draw(frame_t *frame);
-  virtual int handle_event(const gui_event_t *event);
-  virtual int get_child_position(gui_object_t *child, int *x, int *y);
-
  protected:
-  void draw_popup_box_frame(frame_t *frame);
-  void draw_popup_icon(int x, int y, int sprite, frame_t *frame);
-  void draw_popup_building(int x, int y, int sprite, frame_t *frame);
-  void draw_box_background(int sprite, frame_t *frame);
-  void draw_box_row(int sprite, int y, frame_t *frame);
-  void draw_green_string(int x, int y, frame_t *frame, const char *str);
-  void draw_green_number(int x, int y, frame_t *frame, int n);
-  void draw_green_large_number(int x, int y, frame_t *frame, int n);
-  void draw_additional_number(int x, int y, frame_t *frame, int n);
+  void draw_popup_box_frame();
+  void draw_popup_icon(int x, int y, int sprite);
+  void draw_popup_building(int x, int y, int sprite);
+  void draw_box_background(int sprite);
+  void draw_box_row(int sprite, int y);
+  void draw_green_string(int x, int y, const char *str);
+  void draw_green_number(int x, int y, int n);
+  void draw_green_large_number(int x, int y, int n);
+  void draw_additional_number(int x, int y, int n);
   int get_player_face_sprite(int face);
-  void draw_player_face(int x, int y, int player, frame_t *frame);
-  void draw_custom_bld_box(const int sprites[], frame_t *frame);
-  void draw_custom_icon_box(const int sprites[], frame_t *frame);
+  void draw_player_face(int x, int y, int player);
+  void draw_custom_bld_box(const int sprites[]);
+  void draw_custom_icon_box(const int sprites[]);
   const char *prepare_res_amount_text(int amount);
-  void draw_map_box(frame_t *frame);
-  void draw_mine_building_box(frame_t *frame);
-  void draw_basic_building_box(frame_t *frame, int flip);
-  void draw_adv_1_building_box(frame_t *frame);
-  void draw_adv_2_building_box(frame_t *frame);
-  void draw_resources_box(frame_t *frame, const int resources[]);
-  void draw_serfs_box(frame_t *frame, const int serfs[], int total);
-  void draw_stat_select_box(frame_t *frame);
-  void draw_stat_4_box(frame_t *frame);
-  void draw_building_count(int x, int y, int type, frame_t *frame);
-  void draw_stat_bld_1_box(frame_t *frame);
-  void draw_stat_bld_2_box(frame_t *frame);
-  void draw_stat_bld_3_box(frame_t *frame);
-  void draw_stat_bld_4_box(frame_t *frame);
-  void draw_player_stat_chart(const int *data, int index, int color,
-                              frame_t *frame);
-  void draw_stat_8_box(frame_t *frame);
-  void draw_stat_7_box(frame_t *frame);
-  void draw_gauge_balance(int x, int y, uint value, uint count, frame_t *frame);
-  void draw_gauge_full(int x, int y, uint value, uint count, frame_t *frame);
-  void draw_stat_1_box(frame_t *frame);
-  void draw_stat_2_box(frame_t *frame);
-  void draw_stat_6_box(frame_t *frame);
-  void draw_stat_3_meter(int x, int y, int value, frame_t *frame);
-  void draw_stat_3_box(frame_t *frame);
-  void draw_start_attack_redraw_box(frame_t *frame);
-  void draw_start_attack_box(frame_t *frame);
-  void draw_ground_analysis_box(frame_t *frame);
-  void draw_sett_select_box(frame_t *frame);
-  void draw_slide_bar(int x, int y, int value, frame_t *frame);
-  void draw_sett_1_box(frame_t *frame);
-  void draw_sett_2_box(frame_t *frame);
-  void draw_sett_3_box(frame_t *frame);
-  void draw_knight_level_box(frame_t *frame);
-  void draw_sett_4_box(frame_t *frame);
-  void draw_popup_resource_stairs(int order[], frame_t *frame);
-  void draw_sett_5_box(frame_t *frame);
-  void draw_quit_confirm_box(frame_t *frame);
-  void draw_no_save_quit_confirm_box(frame_t *frame);
-  void draw_options_box(frame_t *frame);
-  void draw_castle_res_box(frame_t *frame);
-  void draw_mine_output_box(frame_t *frame);
-  void draw_ordered_building_box(frame_t *frame);
-  void draw_defenders_box(frame_t *frame);
-  void draw_transport_info_box(frame_t *frame);
-  void draw_castle_serf_box(frame_t *frame);
-  void draw_resdir_box(frame_t *frame);
-  void draw_sett_8_box(frame_t *frame);
-  void draw_sett_6_box(frame_t *frame);
-  void draw_bld_1_box(frame_t *frame);
-  void draw_bld_2_box(frame_t *frame);
-  void draw_bld_3_box(frame_t *frame);
-  void draw_bld_4_box(frame_t *frame);
-  void draw_building_stock_box(frame_t *frame);
-  void draw_player_faces_box(frame_t *frame);
-  void draw_demolish_box(frame_t *frame);
+  void draw_map_box();
+  void draw_mine_building_box();
+  void draw_basic_building_box(int flip);
+  void draw_adv_1_building_box();
+  void draw_adv_2_building_box();
+  void draw_resources_box(const int resources[]);
+  void draw_serfs_box(const int serfs[], int total);
+  void draw_stat_select_box();
+  void draw_stat_4_box();
+  void draw_building_count(int x, int y, int type);
+  void draw_stat_bld_1_box();
+  void draw_stat_bld_2_box();
+  void draw_stat_bld_3_box();
+  void draw_stat_bld_4_box();
+  void draw_player_stat_chart(const int *data, int index, int color);
+  void draw_stat_8_box();
+  void draw_stat_7_box();
+  void draw_gauge_balance(int x, int y, uint value, uint count);
+  void draw_gauge_full(int x, int y, uint value, uint count);
+  void draw_stat_1_box();
+  void draw_stat_2_box();
+  void draw_stat_6_box();
+  void draw_stat_3_meter(int x, int y, int value);
+  void draw_stat_3_box();
+  void draw_start_attack_redraw_box();
+  void draw_start_attack_box();
+  void draw_ground_analysis_box();
+  void draw_sett_select_box();
+  void draw_slide_bar(int x, int y, int value);
+  void draw_sett_1_box();
+  void draw_sett_2_box();
+  void draw_sett_3_box();
+  void draw_knight_level_box();
+  void draw_sett_4_box();
+  void draw_popup_resource_stairs(int order[]);
+  void draw_sett_5_box();
+  void draw_quit_confirm_box();
+  void draw_no_save_quit_confirm_box();
+  void draw_options_box();
+  void draw_castle_res_box();
+  void draw_mine_output_box();
+  void draw_ordered_building_box();
+  void draw_defenders_box();
+  void draw_transport_info_box();
+  void draw_castle_serf_box();
+  void draw_resdir_box();
+  void draw_sett_8_box();
+  void draw_sett_6_box();
+  void draw_bld_1_box();
+  void draw_bld_2_box();
+  void draw_bld_3_box();
+  void draw_bld_4_box();
+  void draw_building_stock_box();
+  void draw_player_faces_box();
+  void draw_demolish_box();
   void activate_sett_5_6_item(int index);
   void move_sett_5_6_item(int up, int to_end);
   void handle_send_geologist();
@@ -228,7 +223,11 @@ class popup_box_t : public gui_container_t {
   void handle_box_bld_2(int x, int y);
   void handle_box_bld_3(int x, int y);
   void handle_box_bld_4(int x, int y);
-  int handle_event_click(int x, int y);
+
+  void set_box(box_t box);
+
+  virtual void internal_draw();
+  virtual bool handle_click_left(int x, int y);
 };
 
 #endif  // SRC_POPUP_H_

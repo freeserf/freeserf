@@ -38,9 +38,6 @@ class notification_box_t : public gui_object_t {
 
   void show(int type, int param);
 
-  virtual void draw(frame_t *frame);
-  virtual int handle_event(const gui_event_t *event);
-
  protected:
   void draw_icon(int x, int y, int sprite, frame_t *frame);
   void draw_background(int width, int height, int sprite, frame_t *frame);
@@ -67,7 +64,9 @@ class notification_box_t : public gui_object_t {
   void draw_30m_since_save_message_box(frame_t *frame, int param);
   void draw_1h_since_save_message_box(frame_t *frame, int param);
   void draw_call_to_stock_message_box(frame_t *frame, int param);
-  int handle_event_click(int x, int y);
+
+  virtual void internal_draw();
+  virtual bool handle_click_left(int x, int y);
 };
 
 #endif  // SRC_NOTIFICATION_H_

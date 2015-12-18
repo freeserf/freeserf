@@ -42,17 +42,17 @@ class game_init_box_t : public gui_object_t {
   uint supplies[GAME_MAX_PLAYER_COUNT];
   uint reproduction[GAME_MAX_PLAYER_COUNT];
 
-  void draw_box_icon(int x, int y, int sprite, frame_t *frame);
-  void draw_box_string(int x, int y, frame_t *frame, const char *str);
-  int get_player_face_sprite(int face);
-  void handle_action(int action);
-  int handle_event_click(int x, int y);
-
-  virtual void draw(frame_t *frame);
-  virtual int handle_event(const gui_event_t *event);
-
  public:
   explicit game_init_box_t(interface_t *interface);
+
+ protected:
+  void draw_box_icon(int x, int y, int sprite);
+  void draw_box_string(int x, int y, const char *str);
+  int get_player_face_sprite(int face);
+  void handle_action(int action);
+
+  virtual void internal_draw();
+  virtual bool handle_click_left(int x, int y);
 };
 
 #endif  // SRC_GAME_INIT_H_

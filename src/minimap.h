@@ -57,24 +57,22 @@ class minimap_t : public gui_object_t {
   void screen_pix_from_map_pos(map_pos_t pos, int *sx, int *sy);
   map_pos_t map_pos_from_screen_pix(int x, int y);
 
-  virtual void draw(frame_t *frame);
-  virtual int handle_event(const gui_event_t *event);
-
  protected:
-  void draw_minimap_point(int col, int row, uint8_t color, int density,
-                          frame_t *frame);
-  void draw_minimap_map(frame_t *frame);
-  void draw_minimap_ownership(int density, frame_t *frame);
-  void draw_minimap_roads(frame_t *frame);
-  void draw_minimap_buildings(frame_t *frame);
-  void draw_minimap_traffic(frame_t *frame);
-  void draw_minimap_grid(frame_t *frame);
-  void draw_minimap_rect(frame_t *frame);
-  int handle_event_click(int x, int y);
+  void draw_minimap_point(int col, int row, uint8_t color, int density);
+  void draw_minimap_map();
+  void draw_minimap_ownership(int density);
+  void draw_minimap_roads();
+  void draw_minimap_buildings();
+  void draw_minimap_traffic();
+  void draw_minimap_grid();
+  void draw_minimap_rect();
   int handle_scroll(int up);
-  int handle_drag(int x, int y, gui_event_button_t button);
   void screen_pix_from_map_pix(int mx, int my, int *sx, int *sy);
   void map_pix_from_map_coord(map_pos_t pos, int *mx, int *my);
+
+  virtual void internal_draw();
+  virtual bool handle_click_left(int x, int y);
+  virtual bool handle_drag(int dx, int dy);
 };
 
 #endif  // SRC_MINIMAP_H_

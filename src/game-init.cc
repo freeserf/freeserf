@@ -25,11 +25,12 @@
 #include <cstdio>
 #include <algorithm>
 
-#include "src/interface.h"
+#include "src/misc.h"
 BEGIN_EXT_C
   #include "src/mission.h"
   #include "src/data.h"
 END_EXT_C
+#include "src/interface.h"
 
 #ifdef min
 # undef min
@@ -51,13 +52,12 @@ typedef enum {
 
 
 void
-game_init_box_t::draw_box_icon(int x, int y, int sprite, frame_t *frame) {
+game_init_box_t::draw_box_icon(int x, int y, int sprite) {
   gfx_draw_sprite(8*x+20, y+16, DATA_ICON_BASE + sprite, frame);
 }
 
 void
-game_init_box_t::draw_box_string(int x, int y, frame_t *frame,
-                                 const char *str) {
+game_init_box_t::draw_box_string(int x, int y, const char *str) {
   gfx_draw_string(8*x+20, y+16, 31, 1, frame, str);
 }
 
@@ -69,7 +69,7 @@ game_init_box_t::get_player_face_sprite(int face) {
 }
 
 void
-game_init_box_t::draw(frame_t *frame) {
+game_init_box_t::internal_draw() {
   /* Background */
   gfx_fill_rect(0, 0, width, height, 1, frame);
 
@@ -89,40 +89,40 @@ game_init_box_t::draw(frame_t *frame) {
 
   const int *i = layout;
   while (i[0] >= 0) {
-    draw_box_icon(i[1], i[2], i[0], frame);
+    draw_box_icon(i[1], i[2], i[0]);
     i += 3;
   }
 
   /* Game type settings */
   if (game_mission < 0) {
-    draw_box_icon(5, 0, 263, frame);
+    draw_box_icon(5, 0, 263);
 
     char str_map_size[4] = {0};
     snprintf(str_map_size, sizeof(map_size), "%d", map_size);
 
-    draw_box_string(10, 0, frame, "Start new game");
-    draw_box_string(10, 14, frame, "Map size:");
-    draw_box_string(20, 14, frame, str_map_size);
+    draw_box_string(10, 0, "Start new game");
+    draw_box_string(10, 14, "Map size:");
+    draw_box_string(20, 14, str_map_size);
   } else {
-    draw_box_icon(5, 0, 260, frame);
+    draw_box_icon(5, 0, 260);
 
     char level[4] = {0};
     snprintf(level, sizeof(level), "%d", game_mission+1);
 
-    draw_box_string(10, 0, frame, "Start mission");
-    draw_box_string(10, 14, frame, "Mission:");
-    draw_box_string(20, 14, frame, level);
+    draw_box_string(10, 0, "Start mission");
+    draw_box_string(10, 14, "Mission:");
+    draw_box_string(20, 14, level);
   }
 
-  draw_box_icon(28, 0, 237, frame);
-  draw_box_icon(28, 16, 240, frame);
+  draw_box_icon(28, 0, 237);
+  draw_box_icon(28, 16, 240);
 
   /* Game info */
   if (game_mission < 0) {
     for (int i = 0; i < GAME_MAX_PLAYER_COUNT; i++) {
       int face_ = face[i];
-      draw_box_icon(10*i+1, 48, get_player_face_sprite(face_), frame);
-      draw_box_icon(10*i+6, 48, 282, frame);
+      draw_box_icon(10*i+1, 48, get_player_face_sprite(face_));
+      draw_box_icon(10*i+6, 48, 282);
 
       if (face_ == 0) continue;
 
@@ -139,8 +139,8 @@ game_init_box_t::draw(frame_t *frame) {
     int m = game_mission;
     for (int i = 0; i < GAME_MAX_PLAYER_COUNT; i++) {
       int face = i == 0 ? 12 : mission[m].player[i].face;
-      draw_box_icon(10*i+1, 48, get_player_face_sprite(face), frame);
-      draw_box_icon(10*i+6, 48, 282, frame);
+      draw_box_icon(10*i+1, 48, get_player_face_sprite(face));
+      draw_box_icon(10*i+6, 48, 282);
 
       int intelligence = i == 0 ? 40 : mission[m].player[i].intelligence;
       gfx_fill_rect(80*i+78, 124-intelligence, 4, intelligence, 30, frame);
@@ -153,7 +153,7 @@ game_init_box_t::draw(frame_t *frame) {
     }
   }
 
-  draw_box_icon(38, 128, 60, frame); /* exit */
+  draw_box_icon(38, 128, 60); /* exit */
 }
 
 void
@@ -186,7 +186,7 @@ game_init_box_t::handle_action(int action) {
       if (r < 0) return;
     }
 
-    interface->get_top_viewport()->map_reinit();
+    interface->game_reset();
     interface->set_player(0);
     interface->close_game_init();
     break;
@@ -224,8 +224,8 @@ game_init_box_t::handle_action(int action) {
   }
 }
 
-int
-game_init_box_t::handle_event_click(int x, int y) {
+bool
+game_init_box_t::handle_click_left(int x, int y) {
   const int clickmap[] = {
     ACTION_START_GAME, 20, 16, 32, 32,
     ACTION_TOGGLE_GAME_TYPE, 60, 16, 32, 32,
@@ -239,10 +239,10 @@ game_init_box_t::handle_event_click(int x, int y) {
 
   const int *i = clickmap;
   while (i[0] >= 0) {
-    if (x >= i[1] && x < i[1]+i[3] &&
-        y >= i[2] && y < i[2]+i[4]) {
+    if (x >= i[1] && x < i[1]+i[3] && y >= i[2] && y < i[2]+i[4]) {
       handle_action(i[0]);
-      break;
+      set_redraw();
+      return true;
     }
     i += 5;
   }
@@ -283,25 +283,13 @@ game_init_box_t::handle_event_click(int x, int y) {
         /* Reproduction */
         reproduction[i] = clamp(0, 124 - y, 40);
       }
+      set_redraw();
+      return true;
       break;
     }
   }
 
-  return 0;
-}
-
-int
-game_init_box_t::handle_event(const gui_event_t *event) {
-  switch (event->type) {
-  case GUI_EVENT_TYPE_CLICK:
-    if (event->button == GUI_EVENT_BUTTON_LEFT) {
-      return handle_event_click(event->x, event->y);
-    }
-  default:
-    break;
-  }
-
-  return 0;
+  return true;
 }
 
 game_init_box_t::game_init_box_t(interface_t *interface) {

@@ -21,10 +21,7 @@
 
 #include "src/freeserf.h"
 
-#include <cstdio>
-#include <cstdlib>
 #include <ctime>
-#include <cstring>
 #include <string>
 
 #ifdef HAVE_CONFIG_H
@@ -81,7 +78,7 @@ strreplace(char *target, const char *needle, char replace) {
   }
 }
 
-static int
+int
 save_game(int autosave) {
   size_t r;
 
@@ -119,173 +116,18 @@ save_game(int autosave) {
   return 0;
 }
 
-static interface_t *interface = NULL;
-
 class game_event_handler_t : public event_handler_t {
  public:
   virtual bool handle_event(const event_t *event) {
-    gui_event_t ev;
-
     switch (event->type) {
-      case EVENT_TYPE_CLICK:
-        ev.type = GUI_EVENT_TYPE_CLICK;
-        ev.x = event->x;
-        ev.y = event->y;
-        ev.button = event->button;
-        interface->handle_event(&ev);
-        break;
-      case EVENT_TYPE_DBL_CLICK:
-        ev.type = GUI_EVENT_TYPE_DBL_CLICK;
-        ev.x = event->x;
-        ev.y = event->y;
-        ev.button = event->button;
-        interface->handle_event(&ev);
-        break;
-      case EVENT_TYPE_DRAG:
-        ev.type = GUI_EVENT_TYPE_DRAG_MOVE;
-        ev.x = event->dx;
-        ev.y = event->dy;
-        ev.button = event->button;
-        interface->handle_event(&ev);
-        break;
-      case EVENT_KEY_PRESSED:
-        switch (event->dx) {
-          /* Panel click shortcuts */
-          case '1': {
-            panel_bar_t *panel = interface->get_panel_bar();
-            panel->activate_button(0);
-            break;
-          }
-          case '2': {
-            panel_bar_t *panel = interface->get_panel_bar();
-            panel->activate_button(1);
-            break;
-          }
-          case '3': {
-            panel_bar_t *panel = interface->get_panel_bar();
-            panel->activate_button(2);
-            break;
-          }
-          case '4': {
-            panel_bar_t *panel = interface->get_panel_bar();
-            panel->activate_button(3);
-            break;
-          }
-          case '5': {
-            panel_bar_t *panel = interface->get_panel_bar();
-            panel->activate_button(4);
-            break;
-          }
-          case '\t':
-            if (event->dy & 2) {
-              interface->return_from_message();
-            } else {
-              interface->open_message();
-            }
-            break;
-
-          /* Game speed */
-          case '+':
-            if (game.game_speed < 40) game.game_speed += 1;
-            LOGI("main", "Game speed: %u", game.game_speed);
-            break;
-          case '-':
-            if (game.game_speed >= 1) game.game_speed -= 1;
-            LOGI("main", "Game speed: %u", game.game_speed);
-            break;
-          case '0':
-            game.game_speed = DEFAULT_GAME_SPEED;
-            LOGI("main", "Game speed: %u", game.game_speed);
-            break;
-          case 'p':
-            game_pause(game.game_speed == 0 ? 0 : 1);
-            break;
-
-          /* Audio */
-          case 's':
-            sfx_enable(!sfx_is_enabled());
-            break;
-          case 'm':
-            midi_enable(!midi_is_enabled());
-            break;
-
-          /* Misc */
-          case 27:
-            if (interface->get_notification_box()->get_displayed()) {
-              interface->close_message();
-            } else if (interface->get_popup_box()->get_displayed()) {
-              interface->close_popup();
-            } else if (interface->is_building_road()) {
-              interface->build_road_end();
-            }
-            break;
-
-          /* Debug */
-          case 'g':
-            interface->get_top_viewport()->switch_layer(VIEWPORT_LAYER_GRID);
-            break;
-          case 'b':
-            interface->get_top_viewport()->switch_layer(VIEWPORT_LAYER_BUILDS);
-            break;
-          case 'j': {
-            int current = 0;
-            for (int i = 0; i < GAME_MAX_PLAYER_COUNT; i++) {
-              if (interface->get_player() == game.player[i]) {
-                current = i;
-                break;
-              }
-            }
-
-            for (int i = (current+1) % GAME_MAX_PLAYER_COUNT;
-                 i != current; i = (i+1) % GAME_MAX_PLAYER_COUNT) {
-              if (PLAYER_IS_ACTIVE(game.player[i])) {
-                interface->set_player(i);
-                LOGD("main", "Switched to player %i.", i);
-                break;
-              }
-            }
-            break;
-          }
-          case 'z':
-            if (event->dy == 1) {
-              save_game(0);
-            }
-            break;
-          case 'n':
-            interface->open_game_init();
-            break;
-          case 'c':
-            if (event->dy == 1) {
-              interface->open_popup(BOX_QUIT_CONFIRM);
-            }
-          default:
-            break;
-        }
-        break;
-      case EVENT_RESIZE:
-        interface->set_size(event->dx, event->dy);
-        break;
       case EVENT_UPDATE:
         game_update();
-
-        /* Autosave periodically */
-        if ((game.const_tick % AUTOSAVE_INTERVAL) == 0 &&
-            game.game_speed > 0) {
-          int r = save_game(1);
-          if (r < 0) LOGW("main", "Autosave failed.");
-        }
+        return true;
         break;
-      case EVENT_DRAW: {
-        interface->update();
-        frame_t *screen = static_cast<frame_t*>(event->object);
-        interface->redraw(screen);
-        break;
-      }
       default:
         break;
     }
-
-    return true;
+    return false;
   }
 };
 
@@ -428,7 +270,7 @@ main(int argc, char *argv[]) {
 
   int screen_width = DEFAULT_SCREEN_WIDTH;
   int screen_height = DEFAULT_SCREEN_HEIGHT;
-  int fullscreen = 0;
+  bool fullscreen = false;
   int map_generator = 0;
 
   init_missions();
@@ -516,9 +358,9 @@ main(int argc, char *argv[]) {
   game_init();
 
   /* Initialize interface */
-  interface = new interface_t();
+  interface_t *interface = new interface_t();
   interface->set_size(screen_width, screen_height);
-  interface->set_displayed(1);
+  interface->set_displayed(true);
 
   /* Either load a save game if specified or
      start a new game. */
@@ -536,18 +378,16 @@ main(int argc, char *argv[]) {
     if (r < 0) exit(EXIT_FAILURE);
 
     interface->set_player(r);
+    interface->open_game_init();
   }
 
-  interface->get_top_viewport()->map_reinit();
-
-  if (!save_file.empty()) {
-    interface->close_game_init();
-  }
+  interface->game_reset();
 
   /* Init game loop */
   game_event_handler_t *handler = new game_event_handler_t();
   event_loop_t *event_loop = event_loop_t::get_instance();
   event_loop->add_handler(handler);
+  event_loop->add_handler(interface);
 
   /* Start game loop */
   event_loop->run();
@@ -555,12 +395,11 @@ main(int argc, char *argv[]) {
   LOGI("main", "Cleaning up...");
 
   /* Clean up */
+  delete interface;
   map_deinit();
-  interface->get_top_viewport()->map_deinit();
   audio_deinit();
   gfx_deinit();
   data_unload();
-  delete interface;
   delete event_loop;
 
   return EXIT_SUCCESS;

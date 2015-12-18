@@ -22,70 +22,63 @@
 #ifndef SRC_GUI_H_
 #define SRC_GUI_H_
 
+#include <list>
+
 #include "src/misc.h"
 BEGIN_EXT_C
   #include "gfx.h"
-  #include "list.h"
 END_EXT_C
+#include "src/event_loop.h"
 
-typedef enum {
-  GUI_EVENT_TYPE_CLICK,
-  GUI_EVENT_TYPE_DBL_CLICK,
-  GUI_EVENT_TYPE_BUTTON_UP,
-  GUI_EVENT_TYPE_BUTTON_DOWN,
-  GUI_EVENT_TYPE_DRAG_START,
-  GUI_EVENT_TYPE_DRAG_MOVE,
-  GUI_EVENT_TYPE_DRAG_END
-} gui_event_type_t;
+class gui_object_t : public event_handler_t {
+ private:
+  typedef std::list<gui_object_t*> float_list_t;
+  float_list_t floats;
 
-typedef enum {
-  GUI_EVENT_BUTTON_LEFT = 1,
-  GUI_EVENT_BUTTON_MIDDLE,
-  GUI_EVENT_BUTTON_RIGHT
-} gui_event_button_t;
-
-typedef struct {
-  gui_event_type_t type;
-  int x, y;
-  int button;
-} gui_event_t;
-
-class gui_container_t;
-
-class gui_object_t {
  protected:
+  int x, y;
   int width, height;
-  int displayed;
-  int enabled;
-  int need_redraw;
-  gui_container_t *parent;
+  bool displayed;
+  bool enabled;
+  bool redraw;
+  gui_object_t *parent;
+  frame_t *frame;
+  static gui_object_t *focused_object;
+  bool focused;
+
+  virtual void internal_draw() = 0;
+  virtual void layout();
+
+  virtual bool handle_click_left(int x, int y) { return 0; }
+  virtual bool handle_dbl_click(int x, int y, event_button_t button) {
+    return 0; }
+  virtual bool handle_drag(int dx, int dy) { return 0; }
+  virtual bool handle_key_pressed(char key, int modifier) { return 0; }
+  virtual bool handle_focus_loose() { return 0; }
+
+  void delete_frame();
 
  public:
   gui_object_t();
+  virtual ~gui_object_t();
 
-  int get_displayed() const { return displayed; }
-  void set_displayed(int displayed);
-  int get_enabled() const { return enabled; }
-  void set_enabled(int enabled);
+  void draw(frame_t *frame);
+  void move_to(int x, int y);
+  void get_position(int *x, int *y);
+  void set_size(int width, int height);
+  void get_size(int *width, int *height);
+  void set_displayed(bool displayed);
+  void set_enabled(bool enabled);
   void set_redraw();
-  int get_width() const { return width; }
-  int get_height() const { return height; }
-  gui_container_t *get_parent() const { return parent; }
-  void set_parent(gui_container_t *parent) { this->parent = parent; }
+  bool is_displayed() { return displayed; }
+  gui_object_t *get_parent() { return parent; }
+  void set_parent(gui_object_t *parent) { this->parent = parent; }
+  bool point_inside(int point_x, int point_y);
 
-  void redraw(frame_t *frame);
+  void add_float(gui_object_t *obj, int x, int y);
+  void del_float(gui_object_t *obj);
 
-  virtual void draw(frame_t *frame) = 0;
-  virtual int handle_event(const gui_event_t *event) { return 0; }
-  virtual void set_size(int width, int height);
-};
-
-class gui_container_t : public gui_object_t {
- public:
-  gui_container_t();
-
-  virtual void set_redraw_child(gui_object_t *child);
-  virtual int get_child_position(gui_object_t *child, int *x, int *t) = 0;
+  virtual bool handle_event(const event_t *event);
 };
 
 int gui_get_slider_click_value(int x);

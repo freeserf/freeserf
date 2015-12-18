@@ -25,9 +25,13 @@
 BEGIN_EXT_C
   #include "src/data.h"
   #include "src/audio.h"
+  #include "src/game.h"
 END_EXT_C
 #include "src/interface.h"
+#include "src/popup.h"
+#include "src/viewport.h"
 #include "src/freeserf.h"
+#include "src/minimap.h"
 
 /* Draw the frame around action buttons. */
 void
@@ -123,7 +127,7 @@ panel_bar_t::draw_panel_buttons(frame_t *frame) {
 }
 
 void
-panel_bar_t::draw(frame_t *frame) {
+panel_bar_t::internal_draw() {
   draw_panel_frame(frame);
   draw_panel_buttons(frame);
 }
@@ -135,7 +139,7 @@ panel_bar_t::button_click(int button) {
   case PANEL_BTN_MAP:
   case PANEL_BTN_MAP_STARRED:
     sfx_play_clip(SFX_CLICK);
-    if (interface->get_popup_box()->get_displayed()) {
+    if (interface->get_popup_box()->is_displayed()) {
       interface->close_popup();
     } else {
       interface->set_panel_btn(0, PANEL_BTN_BUILD_INACTIVE);
@@ -145,7 +149,7 @@ panel_bar_t::button_click(int button) {
       interface->set_panel_btn(4, PANEL_BTN_SETT_INACTIVE);
 
       /* Synchronize minimap window with viewport. */
-      viewport_t *viewport = interface->get_top_viewport();
+      viewport_t *viewport = interface->get_viewport();
       popup_box_t *popup = interface->get_popup_box();
       minimap_t *minimap = popup->get_minimap();
       if (minimap != NULL) {
@@ -159,7 +163,7 @@ panel_bar_t::button_click(int button) {
   case PANEL_BTN_SETT:
   case PANEL_BTN_SETT_STARRED:
     sfx_play_clip(SFX_CLICK);
-    if (interface->get_popup_box()->get_displayed()) {
+    if (interface->get_popup_box()->is_displayed()) {
       interface->close_popup();
     } else {
       interface->set_panel_btn(0, PANEL_BTN_BUILD_INACTIVE);
@@ -173,7 +177,7 @@ panel_bar_t::button_click(int button) {
   case PANEL_BTN_STATS:
   case PANEL_BTN_STATS_STARRED:
     sfx_play_clip(SFX_CLICK);
-    if (interface->get_popup_box()->get_displayed()) {
+    if (interface->get_popup_box()->is_displayed()) {
       interface->close_popup();
     } else {
       interface->set_panel_btn(0, PANEL_BTN_BUILD_INACTIVE);
@@ -200,7 +204,7 @@ panel_bar_t::button_click(int button) {
   case PANEL_BTN_BUILD_SMALL:
   case PANEL_BTN_BUILD_SMALL_STARRED:
     sfx_play_clip(SFX_CLICK);
-    if (interface->get_popup_box()->get_displayed()) {
+    if (interface->get_popup_box()->is_displayed()) {
       interface->close_popup();
     } else {
       interface->set_panel_btn(0, PANEL_BTN_BUILD_SMALL_STARRED);
@@ -214,7 +218,7 @@ panel_bar_t::button_click(int button) {
   case PANEL_BTN_BUILD_LARGE:
   case PANEL_BTN_BUILD_LARGE_STARRED:
     sfx_play_clip(SFX_CLICK);
-    if (interface->get_popup_box()->get_displayed()) {
+    if (interface->get_popup_box()->is_displayed()) {
       interface->close_popup();
     } else {
       interface->set_panel_btn(0, PANEL_BTN_BUILD_LARGE_STARRED);
@@ -228,7 +232,7 @@ panel_bar_t::button_click(int button) {
   case PANEL_BTN_BUILD_MINE:
   case PANEL_BTN_BUILD_MINE_STARRED:
     sfx_play_clip(SFX_CLICK);
-    if (interface->get_popup_box()->get_displayed()) {
+    if (interface->get_popup_box()->is_displayed()) {
       interface->close_popup();
     } else {
       interface->set_panel_btn(0, PANEL_BTN_BUILD_MINE_STARRED);
@@ -268,7 +272,7 @@ panel_bar_t::button_click(int button) {
   case PANEL_BTN_GROUND_ANALYSIS:
   case PANEL_BTN_GROUND_ANALYSIS_STARRED:
     sfx_play_clip(SFX_CLICK);
-    if (interface->get_popup_box()->get_displayed()) {
+    if (interface->get_popup_box()->is_displayed()) {
       interface->close_popup();
     } else {
       interface->set_panel_btn(0, PANEL_BTN_BUILD_INACTIVE);
@@ -282,8 +286,8 @@ panel_bar_t::button_click(int button) {
   }
 }
 
-int
-panel_bar_t::handle_event_click(int x, int y) {
+bool
+panel_bar_t::handle_click_left(int x, int y) {
   set_redraw();
 
   if (x >= 41 && x < 53) {
@@ -302,7 +306,7 @@ panel_bar_t::handle_event_click(int x, int y) {
     if (BIT_TEST(game.svga, 3)) { /* Game has started */
       if (interface->get_player()->timers_count >= 64) {
         sfx_play_clip(SFX_NOT_ACCEPTED);
-        return 0;
+        return false;
       }
 
       /* Call to map position */
@@ -338,34 +342,17 @@ panel_bar_t::handle_event_click(int x, int y) {
         if (button < 5) {
           break;
         } else {
-          return 0;
+          return false;
         }
       }
       button += 1;
-      if (x < 48) return 0;
+      if (x < 48) return false;
       x -= 48;
     }
     button_click(button);
   }
 
-  return 0;
-}
-
-int
-panel_bar_t::handle_event(const gui_event_t *event) {
-  int x = event->x;
-  int y = event->y;
-
-  switch (event->type) {
-  case GUI_EVENT_TYPE_CLICK:
-    if (event->button == GUI_EVENT_BUTTON_LEFT) {
-      return handle_event_click(x, y);
-    }
-  default:
-    break;
-  }
-
-  return 0;
+  return true;
 }
 
 panel_bar_t::panel_bar_t(interface_t *interface) {
