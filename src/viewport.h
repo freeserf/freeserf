@@ -88,8 +88,8 @@ class viewport_t : public gui_object_t {
   void update();
 
  protected:
-  void draw_triangle_up(int x, int y, int m, int left, int right,
-                        map_pos_t pos, frame_t *frame);
+  void draw_triangle_up(int x, int y, int m, int left, int right, map_pos_t pos,
+                        frame_t *frame);
   void draw_triangle_down(int x, int y, int m, int left, int right,
                           map_pos_t pos, frame_t *frame);
   void draw_up_tile_col(map_pos_t pos, int x_base, int y_base, int max_y,
@@ -118,8 +118,7 @@ class viewport_t : public gui_object_t {
   int serf_get_body(serf_t *serf);
   void draw_active_serf(serf_t *serf, map_pos_t pos, int x_base, int y_base);
   void draw_serf_row(map_pos_t pos, int y_base, int cols, int x_base);
-  void draw_serf_row_behind(map_pos_t pos, int y_base, int cols,
-                            int x_base);
+  void draw_serf_row_behind(map_pos_t pos, int y_base, int cols, int x_base);
   void draw_game_objects(int layers);
   void draw_map_cursor_sprite(map_pos_t pos, int sprite);
   void draw_map_cursor_possible_build();

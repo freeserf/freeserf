@@ -642,14 +642,14 @@ interface_t::interface_t() {
   add_float(init_box, 0, 0);
 
   /* Notification box */
-  notification_box = new notification_box_t(this);
+  notification_box = new notification_box_t();
   add_float(notification_box, 0, 0);
 
   map_cursor_pos = MAP_POS(0, 0);
   map_cursor_type = (map_cursor_type_t)0;
   build_possibility = CAN_BUILD_NONE;
 
-  building_road = 0;
+  building_road = false;
 
   player = NULL;
 

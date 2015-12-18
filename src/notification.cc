@@ -21,7 +21,8 @@
 
 #include "src/notification.h"
 
-#include <cstdlib>
+#include <strstream>
+#include <string>
 
 #include "src/interface.h"
 #include "src/misc.h"
@@ -32,13 +33,12 @@ BEGIN_EXT_C
 END_EXT_C
 
 void
-notification_box_t::draw_icon(int x, int y, int sprite, frame_t *frame) {
+notification_box_t::draw_icon(int x, int y, int sprite) {
   gfx_draw_sprite(8*x, y, DATA_ICON_BASE + sprite, frame);
 }
 
 void
-notification_box_t::draw_background(int width, int height, int sprite,
-                                    frame_t *frame) {
+notification_box_t::draw_background(int width, int height, int sprite) {
   for (int y = 0; y < height; y += 16) {
     for (int x = 0; x < width; x += 16) {
       gfx_draw_sprite(x, y, DATA_ICON_BASE + sprite, frame);
@@ -47,14 +47,20 @@ notification_box_t::draw_background(int width, int height, int sprite,
 }
 
 void
-notification_box_t::draw_string(int x, int y, frame_t *frame, const char *str) {
-  gfx_draw_string(8*x, y, 31, 0, frame, str);
+notification_box_t::draw_string(int x, int y, const char *str) {
+  std::strstream sin;
+  sin << str;
+  std::string line;
+  int cy = y;
+  while (std::getline(sin, line)) {
+    gfx_draw_string(x*8, cy, 31, 0, frame, line.c_str());
+    cy += 10;
+  }
 }
 
 void
-notification_box_t::draw_map_object(int x, int y, int sprite, frame_t *frame) {
-  gfx_draw_transp_sprite(8*x, y, DATA_MAP_OBJECT_BASE + sprite,
-             0, 0, 0, frame);
+notification_box_t::draw_map_object(int x, int y, int sprite) {
+  gfx_draw_transp_sprite(8*x, y, DATA_MAP_OBJECT_BASE + sprite, 0, 0, 0, frame);
 }
 
 int
@@ -64,259 +70,154 @@ notification_box_t::get_player_face_sprite(int face) {
 }
 
 void
-notification_box_t::draw_player_face(int x, int y, int player, frame_t *frame) {
+notification_box_t::draw_player_face(int x, int y, int player) {
   gfx_fill_rect(8*x, y, 48, 72, game.player[player]->color, frame);
-  draw_icon(x+1, y+4, get_player_face_sprite(game.player[player]->face), frame);
+  draw_icon(x+1, y+4, get_player_face_sprite(game.player[player]->face));
 }
 
+#define NOTIFICATION_SHOW_OPPONENT 0
+#define NOTIFICATION_SHOW_MINE 1
+#define NOTIFICATION_SHOW_BUILDING 2
+#define NOTIFICATION_SHOW_MAP_OBJECT 3
+#define NOTIFICATION_SHOW_ICON 4
+#define NOTIFICATION_SHOW_MENU 5
+
+notification_view_t notification_views[] = {
+  { NOTIFICATION_UNDER_ATTACK,
+      NOTIFICATION_SHOW_OPPONENT,
+      0,
+      "Your settlement\nis under attack" },
+  { NOTIFICATION_LOST_FIGHT,
+      NOTIFICATION_SHOW_OPPONENT,
+      0,
+      "Your knights\njust lost the\nfight" },
+  { NOTIFICATION_VICTORY_FIGHT,
+      NOTIFICATION_SHOW_OPPONENT,
+      0,
+      "You gained\na victory here" },
+  { NOTIFICATION_MINE_EMPTY,
+      NOTIFICATION_SHOW_MINE,
+      0,
+      "This mine hauls\nno more raw\nmaterials" },
+  { NOTIFICATION_CALL_TO_LOCATION,
+      NOTIFICATION_SHOW_MAP_OBJECT,
+      0x90,
+      "You wanted me\nto call you to\nthis location" },
+  { NOTIFICATION_KNIGHT_OCCUPIED,
+      NOTIFICATION_SHOW_BUILDING,
+      0,
+      "A knight has\noccupied this\nnew building" },
+  { NOTIFICATION_NEW_STOCK,
+      NOTIFICATION_SHOW_MAP_OBJECT,
+      map_building_sprite[BUILDING_STOCK],
+      "A new stock\nhas been built" },
+  { NOTIFICATION_LOST_LAND,
+      NOTIFICATION_SHOW_OPPONENT,
+      0,
+      "Because of this\nenemy building\nyou lost some\nland" },
+  { NOTIFICATION_LOST_BUILDINGS,
+      NOTIFICATION_SHOW_OPPONENT,
+      0,
+      "Because of this\nenemy building\nyou lost some\n"
+      "land and\nsome buildings" },
+  { NOTIFICATION_EMERGENCY_ACTIVE,
+      NOTIFICATION_SHOW_MAP_OBJECT,
+      map_building_sprite[BUILDING_CASTLE] + 1,
+      "Emergency\nprogram\nactivated" },
+  { NOTIFICATION_EMERGENCY_NEUTRAL,
+      NOTIFICATION_SHOW_MAP_OBJECT,
+      map_building_sprite[BUILDING_CASTLE],
+      "Emergency\nprogram\nneutralized" },
+  { NOTIFICATION_FOUND_GOLD,
+      NOTIFICATION_SHOW_ICON,
+      0x2f,
+      "A geologist\nhas found gold" },
+  { NOTIFICATION_FOUND_IRON,
+      NOTIFICATION_SHOW_ICON,
+      0x2c,
+      "A geologist\nhas found iron" },
+  { NOTIFICATION_FOUND_COAL,
+      NOTIFICATION_SHOW_ICON,
+      0x2e,
+      "A geologist\nhas found coal" },
+  { NOTIFICATION_FOUND_STONE,
+      NOTIFICATION_SHOW_ICON,
+      0x2b,
+      "A geologist\nhas found stone" },
+  { NOTIFICATION_CALL_TO_MENU,
+      NOTIFICATION_SHOW_MENU,
+      0,
+      "You wanted me\nto call you\nto this menu" },
+  { NOTIFICATION_30M_SINCE_SAVE,
+      NOTIFICATION_SHOW_ICON,
+      0x5d,
+      "30 min. passed\nsince the last\nsaving" },
+  { NOTIFICATION_1H_SINCE_SAVE,
+      NOTIFICATION_SHOW_ICON,
+      0x5d,
+      "One hour passed\nsince the last\nsaving" },
+  { NOTIFICATION_CALL_TO_STOCK,
+      NOTIFICATION_SHOW_MAP_OBJECT,
+      map_building_sprite[BUILDING_STOCK],
+      "You wanted me\nto call you\nto this stock" },
+  { NOTIFICATION_NONE, 0, 0, NULL }
+};
 
 /* Messages boxes */
 void
-notification_box_t::draw_under_attack_message_box(frame_t *frame,
-                                                  int opponent) {
-  draw_string(1, 10, frame, "Your settlement");
-  draw_string(1, 20, frame, "is under attack");
-  draw_player_face(18, 8, opponent, frame);
-}
-
-void
-notification_box_t::draw_lost_fight_message_box(frame_t *frame, int opponent) {
-  draw_string(1, 10, frame, "Your knights");
-  draw_string(1, 20, frame, "just lost the");
-  draw_string(1, 30, frame, "fight");
-  draw_player_face(18, 8, opponent, frame);
-}
-
-void
-notification_box_t::draw_victory_fight_message_box(frame_t *frame,
-                                                   int opponent) {
-  draw_string(1, 10, frame, "You gained");
-  draw_string(1, 20, frame, "a victory here");
-  draw_player_face(18, 8, opponent, frame);
-}
-
-void
-notification_box_t::draw_mine_empty_message_box(frame_t *frame, int mine) {
-  draw_string(1, 10, frame, "This mine hauls");
-  draw_string(1, 20, frame, "no more raw");
-  draw_string(1, 30, frame, "materials");
-  draw_map_object(18, 8, map_building_sprite[BUILDING_STONEMINE] + mine, frame);
-}
-
-void
-notification_box_t::draw_call_to_location_message_box(frame_t *frame,
-                                                      int param) {
-  draw_string(1, 10, frame, "You wanted me");
-  draw_string(1, 20, frame, "to call you to");
-  draw_string(1, 30, frame, "this location");
-  draw_map_object(20, 14, 0x90, frame);
-}
-
-void
-notification_box_t::draw_knight_occupied_message_box(frame_t *frame,
-                                                     int building) {
-  draw_string(1, 10, frame, "A knight has");
-  draw_string(1, 20, frame, "occupied this");
-  draw_string(1, 30, frame, "new building");
-
-  switch (building) {
-  case 0:
-    draw_map_object(18, 8,
-        map_building_sprite[BUILDING_HUT],
-        frame);
-    break;
-  case 1:
-    draw_map_object(18, 8,
-        map_building_sprite[BUILDING_TOWER],
-        frame);
-    break;
-  case 2:
-    draw_map_object(16, 8,
-        map_building_sprite[BUILDING_FORTRESS],
-        frame);
-    break;
-  default:
-    NOT_REACHED();
-    break;
-  }
-}
-
-void
-notification_box_t::draw_new_stock_message_box(frame_t *frame, int param) {
-  draw_string(1, 10, frame, "A new stock");
-  draw_string(1, 20, frame, "has been built");
-  draw_map_object(16, 8, map_building_sprite[BUILDING_STOCK], frame);
-}
-
-void
-notification_box_t::draw_lost_land_message_box(frame_t *frame, int opponent) {
-  draw_string(1, 10, frame, "Because of this");
-  draw_string(1, 20, frame, "enemy building");
-  draw_string(1, 30, frame, "you lost some");
-  draw_string(1, 40, frame, "land");
-  draw_player_face(18, 8, opponent, frame);
-}
-
-void
-notification_box_t::draw_lost_buildings_message_box(frame_t *frame,
-                                                    int opponent) {
-  draw_string(1, 10, frame, "Because of this");
-  draw_string(1, 20, frame, "enemy building");
-  draw_string(1, 30, frame, "you lost some");
-  draw_string(1, 40, frame, "land and");
-  draw_string(1, 50, frame, "some buildings");
-  draw_player_face(18, 8, opponent, frame);
-}
-
-void
-notification_box_t::draw_emergency_active_message_box(frame_t *frame,
-                                                      int param) {
-  draw_string(1, 10, frame, "Emergency");
-  draw_string(1, 20, frame, "program");
-  draw_string(1, 30, frame, "activated");
-  draw_map_object(18, 8, map_building_sprite[BUILDING_CASTLE] + 1, frame);
-}
-
-void
-notification_box_t::draw_emergency_neutral_message_box(frame_t *frame,
-                                                       int param) {
-  draw_string(1, 10, frame, "Emergency");
-  draw_string(1, 20, frame, "program");
-  draw_string(1, 30, frame, "neutralized");
-  draw_map_object(16, 8, map_building_sprite[BUILDING_CASTLE], frame);
-}
-
-void
-notification_box_t::draw_found_gold_message_box(frame_t *frame, int param) {
-  draw_string(1, 10, frame, "A geologist");
-  draw_string(1, 20, frame, "has found gold");
-  draw_icon(20, 14, 0x2f, frame);
-}
-
-void
-notification_box_t::draw_found_iron_message_box(frame_t *frame, int param) {
-  draw_string(1, 10, frame, "A geologist");
-  draw_string(1, 20, frame, "has found iron");
-  draw_icon(20, 14, 0x2c, frame);
-}
-
-void
-notification_box_t::draw_found_coal_message_box(frame_t *frame, int param) {
-  draw_string(1, 10, frame, "A geologist");
-  draw_string(1, 20, frame, "has found coal");
-  draw_icon(20, 14, 0x2e, frame);
-}
-
-void
-notification_box_t::draw_found_stone_message_box(frame_t *frame, int param) {
-  draw_string(1, 10, frame, "A geologist");
-  draw_string(1, 20, frame, "has found stone");
-  draw_icon(20, 14, 0x2b, frame);
-}
-
-void
-notification_box_t::draw_call_to_menu_message_box(frame_t *frame, int menu) {
+notification_box_t::draw_notification(notification_view_t *view) {
   const int map_menu_sprite[] = {
     0xe6, 0xe7, 0xe8, 0xe9,
     0xea, 0xeb, 0x12a, 0x12b
   };
 
-  draw_string(1, 10, frame, "You wanted me");
-  draw_string(1, 20, frame, "to call you");
-  draw_string(1, 30, frame, "to this menu");
-  draw_icon(18, 8, map_menu_sprite[menu], frame);
-}
-
-void
-notification_box_t::draw_30m_since_save_message_box(frame_t *frame, int param) {
-  draw_string(1, 10, frame, "30 min. passed");
-  draw_string(1, 20, frame, "since the last");
-  draw_string(1, 30, frame, "saving");
-  draw_icon(20, 14, 0x5d, frame);
-}
-
-void
-notification_box_t::draw_1h_since_save_message_box(frame_t *frame, int param) {
-  draw_string(1, 10, frame, "One hour passed");
-  draw_string(1, 20, frame, "since the last");
-  draw_string(1, 30, frame, "saving");
-  draw_icon(20, 14, 0x5d, frame);
-}
-
-void
-notification_box_t::draw_call_to_stock_message_box(frame_t *frame, int param) {
-  draw_string(1, 10, frame, "You wanted me");
-  draw_string(1, 20, frame, "to call you");
-  draw_string(1, 30, frame, "to this stock");
-  draw_map_object(16, 8, map_building_sprite[BUILDING_STOCK], frame);
+  draw_string(1, 10, view->text);
+  switch (view->decoration) {
+    case NOTIFICATION_SHOW_OPPONENT:
+      draw_player_face(18, 8, param);
+      break;
+    case NOTIFICATION_SHOW_MINE:
+      draw_map_object(18, 8, map_building_sprite[BUILDING_STONEMINE] + param);
+      break;
+    case NOTIFICATION_SHOW_BUILDING:
+      switch (param) {
+        case 0:
+          draw_map_object(18, 8, map_building_sprite[BUILDING_HUT]);
+          break;
+        case 1:
+          draw_map_object(18, 8, map_building_sprite[BUILDING_TOWER]);
+          break;
+        case 2:
+          draw_map_object(16, 8, map_building_sprite[BUILDING_FORTRESS]);
+          break;
+        default:
+          NOT_REACHED();
+          break;
+      }
+      break;
+    case NOTIFICATION_SHOW_MAP_OBJECT:
+      draw_map_object(16, 8, view->icon);
+      break;
+    case NOTIFICATION_SHOW_ICON:
+      draw_icon(20, 14, view->icon);
+      break;
+    case NOTIFICATION_SHOW_MENU:
+      draw_icon(18, 8, map_menu_sprite[param]);
+      break;
+    default:
+      break;
+  }
 }
 
 void
 notification_box_t::internal_draw() {
-  draw_background(width, height, 0x13a, frame);
-  draw_icon(14, 128, 0x120, frame); /* Checkbox */
+  draw_background(width, height, 0x13a);
+  draw_icon(14, 128, 0x120); /* Checkbox */
 
-  switch (type) {
-  case 1:
-    draw_under_attack_message_box(frame, param);
-    break;
-  case 2:
-    draw_lost_fight_message_box(frame, param);
-    break;
-  case 3:
-    draw_victory_fight_message_box(frame, param);
-    break;
-  case 4:
-    draw_mine_empty_message_box(frame, param);
-    break;
-  case 5:
-    draw_call_to_location_message_box(frame, param);
-    break;
-  case 6:
-    draw_knight_occupied_message_box(frame, param);
-    break;
-  case 7:
-    draw_new_stock_message_box(frame, param);
-    break;
-  case 8:
-    draw_lost_land_message_box(frame, param);
-    break;
-  case 9:
-    draw_lost_buildings_message_box(frame, param);
-    break;
-  case 10:
-    draw_emergency_active_message_box(frame, param);
-    break;
-  case 11:
-    draw_emergency_neutral_message_box(frame, param);
-    break;
-  case 12:
-    draw_found_gold_message_box(frame, param);
-    break;
-  case 13:
-    draw_found_iron_message_box(frame, param);
-    break;
-  case 14:
-    draw_found_coal_message_box(frame, param);
-    break;
-  case 15:
-    draw_found_stone_message_box(frame, param);
-    break;
-  case 16:
-    draw_call_to_menu_message_box(frame, param);
-    break;
-  case 17:
-    draw_30m_since_save_message_box(frame, param);
-    break;
-  case 18:
-    draw_1h_since_save_message_box(frame, param);
-    break;
-  case 19:
-    draw_call_to_stock_message_box(frame, param);
-    break;
-  default:
-    NOT_REACHED();
-    break;
+  for (int i = 0; notification_views[i].type != NOTIFICATION_NONE; i++) {
+    if (notification_views[i].type == type) {
+      draw_notification(&notification_views[i]);
+    }
   }
 }
 
@@ -326,8 +227,7 @@ notification_box_t::handle_click_left(int x, int y) {
   return true;
 }
 
-notification_box_t::notification_box_t(interface_t *interface) {
-  this->interface = interface;
+notification_box_t::notification_box_t() {
   type = 0;
   param = 0;
 }
