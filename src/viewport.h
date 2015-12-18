@@ -22,6 +22,8 @@
 #ifndef SRC_VIEWPORT_H_
 #define SRC_VIEWPORT_H_
 
+#include <map>
+
 #include "src/gui.h"
 #include "src/misc.h"
 BEGIN_EXT_C
@@ -56,13 +58,8 @@ class viewport_t : public gui_object_t {
   } animation_t;
 
   /* Cache prerendered tiles of the landscape. */
-  typedef struct {
-    frame_t frame;
-    int dirty;
-  } landscape_tile_t;
-
-  uint landscape_tile_count;
-  landscape_tile_t *landscape_tile;
+  typedef std::map<uint, frame_t*> tiles_map_t;
+  tiles_map_t landscape_tiles;
 
   int offset_x, offset_y;
   unsigned int layers;
@@ -138,6 +135,8 @@ class viewport_t : public gui_object_t {
 
   void load_serf_animation_table();
   animation_t *get_animation(int animation, int phase);
+
+  frame_t *get_tile_frame(uint tid, int tc, int tr);
 };
 
 #endif  // SRC_VIEWPORT_H_
