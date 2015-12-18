@@ -49,6 +49,12 @@ class interface_t;
 
 class viewport_t : public gui_object_t {
  protected:
+  typedef struct {
+    uint8_t time;
+    int8_t x;
+    int8_t y;
+  } animation_t;
+
   /* Cache prerendered tiles of the landscape. */
   typedef struct {
     frame_t frame;
@@ -62,6 +68,7 @@ class viewport_t : public gui_object_t {
   unsigned int layers;
   interface_t *interface;
   uint last_tick;
+  uint32_t *serf_animation_table;
 
  public:
   explicit viewport_t(interface_t *interface);
@@ -111,13 +118,11 @@ class viewport_t : public gui_object_t {
   void draw_flag_and_res(map_pos_t pos, int x, int y);
   void draw_map_objects_row(map_pos_t pos, int y_base, int cols, int x_base);
   void draw_row_serf(int x, int y, int shadow, int color, int body);
-  int serf_get_body(serf_t *serf, uint32_t *animation_table);
-  void draw_active_serf(serf_t *serf, map_pos_t pos, int x_base, int y_base,
-                        uint32_t *animation_table);
-  void draw_serf_row(map_pos_t pos, int y_base, int cols, int x_base,
-                     uint32_t *animation_table);
+  int serf_get_body(serf_t *serf);
+  void draw_active_serf(serf_t *serf, map_pos_t pos, int x_base, int y_base);
+  void draw_serf_row(map_pos_t pos, int y_base, int cols, int x_base);
   void draw_serf_row_behind(map_pos_t pos, int y_base, int cols,
-                            int x_base, uint32_t *animation_table);
+                            int x_base);
   void draw_game_objects(int layers);
   void draw_map_cursor_sprite(map_pos_t pos, int sprite);
   void draw_map_cursor_possible_build();
@@ -130,6 +135,9 @@ class viewport_t : public gui_object_t {
   virtual bool handle_click_left(int x, int y);
   virtual bool handle_dbl_click(int x, int y, event_button_t button);
   virtual bool handle_drag(int x, int y);
+
+  void load_serf_animation_table();
+  animation_t *get_animation(int animation, int phase);
 };
 
 #endif  // SRC_VIEWPORT_H_

@@ -73,8 +73,6 @@ class notification_box_t;
 
 class interface_t : public gui_object_t {
  protected:
-  uint32_t *serf_animation_table;
-
   random_state_t random;
 
   viewport_t *viewport;
@@ -140,8 +138,6 @@ class interface_t : public gui_object_t {
   int get_current_stat_7_item() const { return current_stat_7_item; }
   void set_current_stat_7_item(int item) { current_stat_7_item = item; }
 
-  uint32_t *get_animation_table() const { return serf_animation_table; }
-
   build_possibility_t get_build_possibility() const {
     return build_possibility; }
 
@@ -192,7 +188,6 @@ class interface_t : public gui_object_t {
   void determine_map_cursor_type_road();
   void update_interface();
   static void update_map_height(map_pos_t pos, void *data);
-  void load_serf_animation_table();
 
   virtual void internal_draw();
   virtual void layout();

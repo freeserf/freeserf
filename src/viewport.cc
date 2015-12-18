@@ -36,6 +36,7 @@ END_EXT_C
 #include "src/interface.h"
 #include "src/popup.h"
 #include "src/pathfinder.h"
+#include "src/freeserf_endian.h"
 
 #ifdef min
 # undef min
@@ -1349,7 +1350,7 @@ viewport_t::draw_row_serf(int x, int y, int shadow, int color, int body) {
 /* Extracted from obsolete update_map_serf_rows(). */
 /* Translate serf type into the corresponding sprite code. */
 int
-viewport_t::serf_get_body(serf_t *serf, uint32_t *animation_table) {
+viewport_t::serf_get_body(serf_t *serf) {
   const int transporter_type[] = {
     0, 0x3000, 0x3500, 0x3b00, 0x4100, 0x4600, 0x4b00, 0x1400,
     0x700, 0x5100, 0x800, 0x1c00, 0x1d00, 0x1e00, 0x1a00, 0x1b00,
@@ -1364,10 +1365,8 @@ viewport_t::serf_get_body(serf_t *serf, uint32_t *animation_table) {
     0x7600, 0x5f00, 0x6000, 0, 0, 0, 0, 0
   };
 
-  uint8_t *tbl_ptr = reinterpret_cast<uint8_t*>(animation_table) +
-    animation_table[serf->animation] +
-    3*(serf->counter >> 3);
-  int t = tbl_ptr[0];
+  animation_t *animation = get_animation(serf->animation, serf->counter >> 3);
+  int t = animation->time;
 
   switch (SERF_TYPE(serf)) {
   case SERF_TRANSPORTER:
@@ -1852,8 +1851,7 @@ viewport_t::serf_get_body(serf_t *serf, uint32_t *animation_table) {
 
 void
 viewport_t::draw_active_serf(serf_t *serf, map_pos_t pos,
-                             int x_base, int y_base,
-                             uint32_t *animation_table) {
+                             int x_base, int y_base) {
   const int arr_4[] = {
     9, 5, 10, 7, 10, 2, 8, 6,
     11, 8, 9, 6, 9, 8, 0, 0,
@@ -1862,13 +1860,11 @@ viewport_t::draw_active_serf(serf_t *serf, map_pos_t pos,
     5, 8, 0, 0, 0, 0, 0, 0
   };
 
-  uint8_t *tbl_ptr = reinterpret_cast<uint8_t*>(animation_table) +
-    animation_table[serf->animation] +
-    3*(serf->counter >> 3);
+  animation_t *animation = get_animation(serf->animation, serf->counter >> 3);
 
-  int x = x_base + reinterpret_cast<int8_t*>(tbl_ptr)[1];
-  int y = y_base + reinterpret_cast<int8_t*>(tbl_ptr)[2] - 4*MAP_HEIGHT(pos);
-  int body = serf_get_body(serf, animation_table);
+  int x = x_base + animation->x;
+  int y = y_base + animation->y - 4*MAP_HEIGHT(pos);
+  int body = serf_get_body(serf);
 
   if (body > -1) {
     int color = game.player[SERF_PLAYER(serf)]->color;
@@ -1887,14 +1883,12 @@ viewport_t::draw_active_serf(serf_t *serf, map_pos_t pos,
     if (index != 0) {
       serf_t *def_serf = game_get_serf(index);
 
-      uint8_t *tbl_ptr = reinterpret_cast<uint8_t*>(animation_table) +
-        animation_table[def_serf->animation] +
-        3*(def_serf->counter >> 3);
+      animation_t *animation = get_animation(def_serf->animation,
+                                             def_serf->counter >> 3);
 
-      int x = x_base + reinterpret_cast<int8_t*>(tbl_ptr)[1];
-      int y = y_base + reinterpret_cast<int8_t*>(tbl_ptr)[2] -
-              4*MAP_HEIGHT(pos);
-      int body = serf_get_body(def_serf, animation_table);
+      int x = x_base + animation->x;
+      int y = y_base + animation->y - 4*MAP_HEIGHT(pos);
+      int body = serf_get_body(def_serf);
 
       if (body > -1) {
         int color = game.player[SERF_PLAYER(def_serf)]->color;
@@ -1906,7 +1900,7 @@ viewport_t::draw_active_serf(serf_t *serf, map_pos_t pos,
   /* Draw extra objects for fight */
   if ((serf->state == SERF_STATE_KNIGHT_ATTACKING ||
        serf->state == SERF_STATE_KNIGHT_ATTACKING_FREE) &&
-      tbl_ptr[0] >= 0x80 && tbl_ptr[0] < 0xc0) {
+      animation->time >= 0x80 && animation->time < 0xc0) {
     int index = serf->s.attacking.def_index;
     if (index != 0) {
       serf_t *def_serf = game_get_serf(index);
@@ -1936,8 +1930,7 @@ viewport_t::draw_active_serf(serf_t *serf, map_pos_t pos,
    Note that idle serfs do not have their serf_t object linked from the map
    so they are drawn seperately from active serfs. */
 void
-viewport_t::draw_serf_row(map_pos_t pos, int y_base, int cols, int x_base,
-                          uint32_t *animation_table) {
+viewport_t::draw_serf_row(map_pos_t pos, int y_base, int cols, int x_base) {
   const int arr_1[] = {
     0x240, 0x40, 0x380, 0x140, 0x300, 0x80, 0x180, 0x200,
     0, 0x340, 0x280, 0x100, 0x1c0, 0x2c0, 0x3c0, 0xc0
@@ -1994,7 +1987,7 @@ viewport_t::draw_serf_row(map_pos_t pos, int y_base, int cols, int x_base,
            serf->s.mining.substate != 4 &&
            serf->s.mining.substate != 9 &&
            serf->s.mining.substate != 10)) {
-        draw_active_serf(serf, pos, x_base, y_base, animation_table);
+        draw_active_serf(serf, pos, x_base, y_base);
       }
     }
 
@@ -2021,7 +2014,7 @@ viewport_t::draw_serf_row(map_pos_t pos, int y_base, int cols, int x_base,
    current position. */
 void
 viewport_t::draw_serf_row_behind(map_pos_t pos, int y_base, int cols,
-                                 int x_base, uint32_t *animation_table) {
+                                 int x_base) {
   for (int i = 0; i < cols;
        i++, x_base += MAP_TILE_WIDTH, pos = MAP_MOVE_RIGHT(pos)) {
     /* Active serf */
@@ -2033,7 +2026,7 @@ viewport_t::draw_serf_row_behind(map_pos_t pos, int y_base, int cols,
            serf->s.mining.substate == 4 ||
            serf->s.mining.substate == 9 ||
            serf->s.mining.substate == 10)) {
-        draw_active_serf(serf, pos, x_base, y_base, animation_table);
+        draw_active_serf(serf, pos, x_base, y_base);
       }
     }
   }
@@ -2060,20 +2053,18 @@ viewport_t::draw_game_objects(int layers) {
   int row_0 = (offset_y/MAP_TILE_HEIGHT) & game.map.row_mask;
   map_pos_t pos = MAP_POS(col_0, row_0);
 
-  uint32_t *animation_table = interface->get_animation_table();
-
   /* Loop until objects drawn fall outside the frame. */
   while (1) {
     /* short row */
     if (draw_landscape) draw_water_waves_row(pos, y, short_row_len, x);
     if (draw_serfs) {
-      draw_serf_row_behind(pos, y, short_row_len, x, animation_table);
+      draw_serf_row_behind(pos, y, short_row_len, x);
     }
     if (draw_objects) {
       draw_map_objects_row(pos, y, short_row_len, x);
     }
     if (draw_serfs) {
-      draw_serf_row(pos, y, short_row_len, x, animation_table);
+      draw_serf_row(pos, y, short_row_len, x);
     }
 
     y += MAP_TILE_HEIGHT;
@@ -2086,13 +2077,13 @@ viewport_t::draw_game_objects(int layers) {
       draw_water_waves_row(pos, y, long_row_len, x - 16);
     }
     if (draw_serfs) {
-      draw_serf_row_behind(pos, y, long_row_len, x - 16, animation_table);
+      draw_serf_row_behind(pos, y, long_row_len, x - 16);
     }
     if (draw_objects) {
       draw_map_objects_row(pos, y, long_row_len, x - 16);
     }
     if (draw_serfs) {
-      draw_serf_row(pos, y, long_row_len, x - 16, animation_table);
+      draw_serf_row(pos, y, long_row_len, x - 16);
     }
 
     y += MAP_TILE_HEIGHT;
@@ -2483,6 +2474,8 @@ viewport_t::viewport_t(interface_t *interface) {
   landscape_tile = NULL;
 
   last_tick = 0;
+
+  load_serf_animation_table();
 }
 
 viewport_t::~viewport_t() {
@@ -2672,4 +2665,51 @@ viewport_t::update() {
   if (tick_xor >= 1 << 3) {
     set_redraw();
   }
+}
+
+void
+viewport_t::load_serf_animation_table() {
+  /* The serf animation table is stored in big endian
+   order in the data file.
+
+   * The first uint32 is the byte length of the rest
+   of the table.
+   * Next is 199 uint32s that are offsets from the start
+   of this table to an animation table (one for each
+   animation).
+   * The animation tables are of varying lengths.
+   Each entry in the animation table is three bytes
+   long. First byte is used to determine the serf body
+   sprite. Second byte is a signed horizontal sprite
+   offset. Third byte is a signed vertical offset.
+   */
+
+  size_t size = 0;
+  serf_animation_table =
+    reinterpret_cast<uint32_t*>(data_get_object(DATA_SERF_ANIMATION_TABLE,
+                                                &size));
+  if (NULL == serf_animation_table) {
+    return;
+  }
+
+  if (serf_animation_table[0] != 0xFFFFFFFF) {
+    if (size != be32toh(serf_animation_table[0])) {
+      // TODO(digger): report and assert
+    }
+    serf_animation_table[0] = 0xFFFFFFFF;
+    serf_animation_table++;
+
+    /* Endianess convert from big endian. */
+    for (int i = 0; i < 200; i++) {
+      serf_animation_table[i] = be32toh(serf_animation_table[i]);
+    }
+  }
+}
+
+viewport_t::animation_t*
+viewport_t::get_animation(int animation, int phase) {
+  uint8_t *tbl_ptr = reinterpret_cast<uint8_t*>(serf_animation_table) +
+                     serf_animation_table[animation] +
+                     (3 * phase);
+  return reinterpret_cast<animation_t*>(tbl_ptr);
 }
