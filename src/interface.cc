@@ -36,6 +36,7 @@ END_EXT_C
 #include "src/game-init.h"
 #include "src/viewport.h"
 #include "src/notification.h"
+#include "src/panel.h"
 
 viewport_t *
 interface_t::get_viewport() {
@@ -56,17 +57,15 @@ interface_t::get_popup_box() {
 void
 interface_t::open_popup(int box) {
   popup->show((box_t)box);
+  panel->update();
 }
 
 /* Close the current popup. */
 void
 interface_t::close_popup() {
   popup->hide();
-  panel_btns[2] = PANEL_BTN_MAP;
-  panel_btns[3] = PANEL_BTN_STATS;
-  panel_btns[4] = PANEL_BTN_SETT;
-
   update_map_cursor_pos(map_cursor_pos);
+  panel->update();
 }
 
 /* Open box for starting a new game */
@@ -150,33 +149,32 @@ interface_t::close_message() {
   notification_box->set_displayed(false);
 }
 
-
 /* Return the cursor type and various related values of a map_pos_t. */
 void
 interface_t::get_map_cursor_type(const player_t *player, map_pos_t pos,
-                                 panel_btn_t *panel_btn,
+                                 build_possibility_t *bld_possibility,
                                  map_cursor_type_t *cursor_type) {
   if (game_can_build_castle(pos, player)) {
-    *panel_btn = PANEL_BTN_BUILD_CASTLE;
+    *bld_possibility = CAN_BUILD_CASTLE;
   } else if (game_can_player_build(pos, player) &&
        map_space_from_obj[MAP_OBJ(pos)] == MAP_SPACE_OPEN &&
        (game_can_build_flag(MAP_MOVE_DOWN_RIGHT(pos), player) ||
         MAP_HAS_FLAG(MAP_MOVE_DOWN_RIGHT(pos)))) {
     if (game_can_build_mine(pos)) {
-      *panel_btn = PANEL_BTN_BUILD_MINE;
+      *bld_possibility = CAN_BUILD_MINE;
     } else if (game_can_build_large(pos)) {
-      *panel_btn = PANEL_BTN_BUILD_LARGE;
+      *bld_possibility = CAN_BUILD_LARGE;
     } else if (game_can_build_small(pos)) {
-      *panel_btn = PANEL_BTN_BUILD_SMALL;
+      *bld_possibility = CAN_BUILD_SMALL;
     } else if (game_can_build_flag(pos, player)) {
-      *panel_btn = PANEL_BTN_BUILD_FLAG;
+      *bld_possibility = CAN_BUILD_FLAG;
     } else {
-      *panel_btn = PANEL_BTN_BUILD_INACTIVE;
+      *bld_possibility = CAN_BUILD_NONE;
     }
   } else if (game_can_build_flag(pos, player)) {
-    *panel_btn = PANEL_BTN_BUILD_FLAG;
+    *bld_possibility = CAN_BUILD_FLAG;
   } else {
-    *panel_btn = PANEL_BTN_BUILD_INACTIVE;
+    *bld_possibility = CAN_BUILD_NONE;
   }
 
   if (MAP_OBJ(pos) == MAP_OBJ_FLAG &&
@@ -219,8 +217,8 @@ interface_t::get_map_cursor_type(const player_t *player, map_pos_t pos,
    in get_map_cursor_type(). */
 void
 interface_t::determine_map_cursor_type() {
-  map_pos_t cursor_pos = map_cursor_pos;
-  get_map_cursor_type(player, cursor_pos, &panel_btn_type, &map_cursor_type);
+  get_map_cursor_type(player, map_cursor_pos, &build_possibility,
+                      &map_cursor_type);
 }
 
 /* Update the interface_t object with the information returned
@@ -271,72 +269,44 @@ interface_t::determine_map_cursor_type_road() {
 /* Set the appropriate sprites for the panel buttons and the map cursor. */
 void
 interface_t::update_interface() {
-  if (building_road) {
-    panel_btns[0] = PANEL_BTN_BUILD_ROAD_STARRED;
-    panel_btns[1] = PANEL_BTN_BUILD_INACTIVE;
-  } else {
+  if (!building_road) {
     switch (map_cursor_type) {
     case MAP_CURSOR_TYPE_NONE:
-      panel_btns[0] = PANEL_BTN_BUILD_INACTIVE;
-      if (PLAYER_HAS_CASTLE(player)) {
-        panel_btns[1] = PANEL_BTN_DESTROY_INACTIVE;
-      } else {
-        panel_btns[1] = PANEL_BTN_GROUND_ANALYSIS;
-      }
       map_cursor_sprites[0].sprite = 32;
       map_cursor_sprites[2].sprite = 33;
       break;
     case MAP_CURSOR_TYPE_FLAG:
-      panel_btns[0] = PANEL_BTN_BUILD_ROAD;
-      panel_btns[1] = PANEL_BTN_DESTROY_INACTIVE;
       map_cursor_sprites[0].sprite = 51;
       map_cursor_sprites[2].sprite = 33;
       break;
     case MAP_CURSOR_TYPE_REMOVABLE_FLAG:
-      panel_btns[0] = PANEL_BTN_BUILD_ROAD;
-      panel_btns[1] = PANEL_BTN_DESTROY;
       map_cursor_sprites[0].sprite = 51;
       map_cursor_sprites[2].sprite = 33;
       break;
     case MAP_CURSOR_TYPE_BUILDING:
-      panel_btns[0] = panel_btn_type;
-      panel_btns[1] = PANEL_BTN_DESTROY;
       map_cursor_sprites[0].sprite = 32;
       map_cursor_sprites[2].sprite = 33;
       break;
     case MAP_CURSOR_TYPE_PATH:
-      panel_btns[0] = PANEL_BTN_BUILD_INACTIVE;
-      panel_btns[1] = PANEL_BTN_DESTROY_ROAD;
       map_cursor_sprites[0].sprite = 52;
       map_cursor_sprites[2].sprite = 33;
-      if (panel_btn_type != PANEL_BTN_BUILD_INACTIVE) {
-        panel_btns[0] = PANEL_BTN_BUILD_FLAG;
+      if (build_possibility != CAN_BUILD_NONE) {
         map_cursor_sprites[0].sprite = 47;
       }
       break;
     case MAP_CURSOR_TYPE_CLEAR_BY_FLAG:
-      if (panel_btn_type < PANEL_BTN_BUILD_MINE) {
-        panel_btns[0] = PANEL_BTN_BUILD_INACTIVE;
-        if (PLAYER_HAS_CASTLE(player)) {
-          panel_btns[1] = PANEL_BTN_DESTROY_INACTIVE;
-        } else {
-          panel_btns[1] = PANEL_BTN_GROUND_ANALYSIS;
-        }
+      if (build_possibility < CAN_BUILD_MINE) {
         map_cursor_sprites[0].sprite = 32;
         map_cursor_sprites[2].sprite = 33;
       } else {
-        panel_btns[0] = panel_btn_type;
-        panel_btns[1] = PANEL_BTN_DESTROY_INACTIVE;
-        map_cursor_sprites[0].sprite = 46 + panel_btn_type;
+        map_cursor_sprites[0].sprite = 46 + build_possibility;
         map_cursor_sprites[2].sprite = 33;
       }
       break;
     case MAP_CURSOR_TYPE_CLEAR_BY_PATH:
-      panel_btns[0] = panel_btn_type;
-      panel_btns[1] = PANEL_BTN_DESTROY_INACTIVE;
-      if (panel_btn_type != PANEL_BTN_BUILD_INACTIVE) {
-        map_cursor_sprites[0].sprite = 46 + panel_btn_type;
-        if (panel_btn_type == PANEL_BTN_BUILD_FLAG) {
+      if (build_possibility != CAN_BUILD_NONE) {
+        map_cursor_sprites[0].sprite = 46 + build_possibility;
+        if (build_possibility == CAN_BUILD_FLAG) {
           map_cursor_sprites[2].sprite = 33;
         } else {
           map_cursor_sprites[2].sprite = 47;
@@ -347,19 +317,13 @@ interface_t::update_interface() {
       }
       break;
     case MAP_CURSOR_TYPE_CLEAR:
-      panel_btns[0] = panel_btn_type;
-      if (PLAYER_HAS_CASTLE(player)) {
-        panel_btns[1] = PANEL_BTN_DESTROY_INACTIVE;
-      } else {
-        panel_btns[1] = PANEL_BTN_GROUND_ANALYSIS;
-      }
-      if (panel_btn_type) {
-        if (panel_btn_type == PANEL_BTN_BUILD_CASTLE) {
+      if (build_possibility) {
+        if (build_possibility == CAN_BUILD_CASTLE) {
           map_cursor_sprites[0].sprite = 50;
         } else {
-          map_cursor_sprites[0].sprite = 46 + panel_btn_type;
+          map_cursor_sprites[0].sprite = 46 + build_possibility;
         }
-        if (panel_btn_type == PANEL_BTN_BUILD_FLAG) {
+        if (build_possibility == CAN_BUILD_FLAG) {
           map_cursor_sprites[2].sprite = 33;
         } else {
           map_cursor_sprites[2].sprite = 47;
@@ -374,6 +338,8 @@ interface_t::update_interface() {
       break;
     }
   }
+
+  panel->update();
 }
 
 void
@@ -414,26 +380,18 @@ interface_t::build_road_begin() {
     return;
   }
 
-  panel_btns[0] = PANEL_BTN_BUILD_ROAD_STARRED;
-  panel_btns[1] = PANEL_BTN_BUILD_INACTIVE;
-  panel_btns[2] = PANEL_BTN_MAP_INACTIVE;
-  panel_btns[3] = PANEL_BTN_STATS_INACTIVE;
-  panel_btns[4] = PANEL_BTN_SETT_INACTIVE;
-
   building_road = 1;
   building_road_length = 0;
   building_road_source = map_cursor_pos;
 
   update_map_cursor_pos(map_cursor_pos);
+
+  panel->update();
 }
 
 /* End road construction mode for player interface. */
 void
 interface_t::build_road_end() {
-  panel_btns[2] = PANEL_BTN_MAP;
-  panel_btns[3] = PANEL_BTN_STATS;
-  panel_btns[4] = PANEL_BTN_SETT;
-
   map_cursor_sprites[1].sprite = 33;
   map_cursor_sprites[2].sprite = 33;
   map_cursor_sprites[3].sprite = 33;
@@ -443,6 +401,8 @@ interface_t::build_road_end() {
 
   building_road = 0;
   update_map_cursor_pos(map_cursor_pos);
+
+  panel->update();
 }
 
 /* Build a single road segment. Return -1 on fail, 0 on successful
@@ -534,13 +494,11 @@ void
 interface_t::demolish_object() {
   determine_map_cursor_type();
 
-  map_pos_t cursor_pos = map_cursor_pos;
-
   if (map_cursor_type == MAP_CURSOR_TYPE_REMOVABLE_FLAG) {
     sfx_play_clip(SFX_CLICK);
-    game_demolish_flag(cursor_pos, player);
+    game_demolish_flag(map_cursor_pos, player);
   } else if (map_cursor_type == MAP_CURSOR_TYPE_BUILDING) {
-    building_t *building = game_get_building(MAP_OBJ_INDEX(cursor_pos));
+    building_t *building = game_get_building(MAP_OBJ_INDEX(map_cursor_pos));
 
     if (BUILDING_IS_DONE(building) &&
         (BUILDING_TYPE(building) == BUILDING_HUT ||
@@ -550,7 +508,7 @@ interface_t::demolish_object() {
     }
 
     sfx_play_clip(SFX_AHHH);
-    game_demolish_building(cursor_pos, player);
+    game_demolish_building(map_cursor_pos, player);
   } else {
     sfx_play_clip(SFX_NOT_ACCEPTED);
     update_interface();
@@ -717,7 +675,7 @@ interface_t::interface_t() {
 
   map_cursor_pos = MAP_POS(0, 0);
   map_cursor_type = (map_cursor_type_t)0;
-  panel_btn_type = (panel_btn_t)0;
+  build_possibility = CAN_BUILD_NONE;
 
   building_road = 0;
 
@@ -727,12 +685,6 @@ interface_t::interface_t() {
   config = 0x39;
   msg_flags = 0;
   return_timeout = 0;
-
-  panel_btns[0] = PANEL_BTN_BUILD_INACTIVE;
-  panel_btns[1] = PANEL_BTN_DESTROY_INACTIVE;
-  panel_btns[2] = PANEL_BTN_MAP;
-  panel_btns[3] = PANEL_BTN_STATS;
-  panel_btns[4] = PANEL_BTN_SETT;
 
   current_stat_8_mode = 0;
   current_stat_7_item = 7;
@@ -993,7 +945,6 @@ interface_t::handle_event(const event_t *event) {
       set_size(event->dx, event->dy);
       break;
     case EVENT_UPDATE:
-      panel->set_redraw();
       update();
       break;
     case EVENT_DRAW:

@@ -30,7 +30,6 @@ BEGIN_EXT_C
   #include "src/building.h"
 END_EXT_C
 #include "src/gui.h"
-#include "src/panel.h"
 
 #define MAX_ROAD_LENGTH  256
 
@@ -51,6 +50,15 @@ typedef enum {
   MAP_CURSOR_TYPE_CLEAR_BY_PATH,
   MAP_CURSOR_TYPE_CLEAR
 } map_cursor_type_t;
+
+typedef enum {
+  CAN_BUILD_NONE = 0,
+  CAN_BUILD_FLAG,
+  CAN_BUILD_MINE,
+  CAN_BUILD_SMALL,
+  CAN_BUILD_LARGE,
+  CAN_BUILD_CASTLE,
+} build_possibility_t;
 
 typedef struct {
   int sprite;
@@ -77,7 +85,7 @@ class interface_t : public gui_object_t {
 
   map_pos_t map_cursor_pos;
   map_cursor_type_t map_cursor_type;
-  panel_btn_t panel_btn_type;
+  build_possibility_t build_possibility;
 
   uint last_const_tick;
 
@@ -88,8 +96,6 @@ class interface_t : public gui_object_t {
   int building_road_valid_dir;
 
   int sfx_queue[4];
-
-  int panel_btns[5];
 
   player_t *player;
   int config;
@@ -134,10 +140,10 @@ class interface_t : public gui_object_t {
   int get_current_stat_7_item() const { return current_stat_7_item; }
   void set_current_stat_7_item(int item) { current_stat_7_item = item; }
 
-  int get_panel_btn(int i) const { return panel_btns[i]; }
-  void set_panel_btn(int i, int val) { panel_btns[i] = val; }
-
   uint32_t *get_animation_table() const { return serf_animation_table; }
+
+  build_possibility_t get_build_possibility() const {
+    return build_possibility; }
 
   void open_popup(int box);
   void close_popup();
@@ -180,7 +186,7 @@ class interface_t : public gui_object_t {
 
  protected:
   void get_map_cursor_type(const player_t *player, map_pos_t pos,
-                           panel_btn_t *panel_btn,
+                           build_possibility_t *bld_possibility,
                            map_cursor_type_t *cursor_type);
   void determine_map_cursor_type();
   void determine_map_cursor_type_road();

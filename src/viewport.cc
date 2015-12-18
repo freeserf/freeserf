@@ -2463,12 +2463,6 @@ viewport_t::handle_dbl_click(int x, int y, event_button_t button) {
         }
       }
     }
-
-    interface->set_panel_btn(0, PANEL_BTN_BUILD_INACTIVE);
-    interface->set_panel_btn(1, PANEL_BTN_DESTROY_INACTIVE);
-    interface->set_panel_btn(2, PANEL_BTN_MAP_INACTIVE);
-    interface->set_panel_btn(3, PANEL_BTN_STATS_INACTIVE);
-    interface->set_panel_btn(4, PANEL_BTN_SETT_INACTIVE);
   }
 
   return false;

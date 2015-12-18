@@ -2984,39 +2984,37 @@ popup_box_t::handle_action(int action, int x, int y) {
     interface->build_building(BUILDING_PIGFARM);
     break;
   case ACTION_BLD_FLIP_PAGE:
-    interface->open_popup((box + 1 <= BOX_ADV_2_BLD) ?
-                          (box + 1) : BOX_BASIC_BLD_FLIP);
+    set_box((box + 1 <= BOX_ADV_2_BLD) ? (box_t)(box + 1) : BOX_BASIC_BLD_FLIP);
     break;
   case ACTION_SHOW_STAT_1:
-    interface->open_popup(BOX_STAT_1);
+    set_box(BOX_STAT_1);
     break;
   case ACTION_SHOW_STAT_2:
-    interface->open_popup(BOX_STAT_2);
+    set_box(BOX_STAT_2);
     break;
   case ACTION_SHOW_STAT_8:
-    interface->open_popup(BOX_STAT_8);
+    set_box(BOX_STAT_8);
     break;
   case ACTION_SHOW_STAT_BLD:
-    interface->open_popup(BOX_STAT_BLD_1);
+    set_box(BOX_STAT_BLD_1);
     break;
   case ACTION_SHOW_STAT_6:
-    interface->open_popup(BOX_STAT_6);
+    set_box(BOX_STAT_6);
     break;
   case ACTION_SHOW_STAT_7:
-    interface->open_popup(BOX_STAT_7);
+    set_box(BOX_STAT_7);
     break;
   case ACTION_SHOW_STAT_4:
-    interface->open_popup(BOX_STAT_4);
+    set_box(BOX_STAT_4);
     break;
   case ACTION_SHOW_STAT_3:
-    interface->open_popup(BOX_STAT_3);
+    set_box(BOX_STAT_3);
     break;
   case ACTION_SHOW_STAT_SELECT:
-    interface->open_popup(BOX_STAT_SELECT);
+    set_box(BOX_STAT_SELECT);
     break;
   case ACTION_STAT_BLD_FLIP:
-    interface->open_popup((box + 1 <= BOX_STAT_BLD_4) ?
-                          (box + 1) : BOX_STAT_BLD_1);
+    set_box((box + 1 <= BOX_STAT_BLD_4) ? (box_t)(box + 1) : BOX_STAT_BLD_1);
     break;
   case ACTION_CLOSE_BOX:
   case ACTION_CLOSE_SETT_BOX:
@@ -3108,181 +3106,181 @@ popup_box_t::handle_action(int action, int x, int y) {
     break;
     /* TODO */
   case ACTION_SHOW_SETT_1:
-    interface->open_popup(BOX_SETT_1);
+    set_box(BOX_SETT_1);
     break;
   case ACTION_SHOW_SETT_2:
-    interface->open_popup(BOX_SETT_2);
+    set_box(BOX_SETT_2);
     break;
   case ACTION_SHOW_SETT_3:
-    interface->open_popup(BOX_SETT_3);
+    set_box(BOX_SETT_3);
     break;
   case ACTION_SHOW_SETT_7:
-    interface->open_popup(BOX_KNIGHT_LEVEL);
+    set_box(BOX_KNIGHT_LEVEL);
     break;
   case ACTION_SHOW_SETT_4:
-    interface->open_popup(BOX_SETT_4);
+    set_box(BOX_SETT_4);
     break;
   case ACTION_SHOW_SETT_5:
-    interface->open_popup(BOX_SETT_5);
+    set_box(BOX_SETT_5);
     break;
   case ACTION_SHOW_SETT_SELECT:
-    interface->open_popup(BOX_SETT_SELECT);
+    set_box(BOX_SETT_SELECT);
     break;
   case ACTION_SETT_1_ADJUST_STONEMINE:
-    interface->open_popup(BOX_SETT_1);
+    set_box(BOX_SETT_1);
     interface->get_player()->food_stonemine = gui_get_slider_click_value(x);
     break;
   case ACTION_SETT_1_ADJUST_COALMINE:
-    interface->open_popup(BOX_SETT_1);
+    set_box(BOX_SETT_1);
     interface->get_player()->food_coalmine = gui_get_slider_click_value(x);
     break;
   case ACTION_SETT_1_ADJUST_IRONMINE:
-    interface->open_popup(BOX_SETT_1);
+    set_box(BOX_SETT_1);
     interface->get_player()->food_ironmine = gui_get_slider_click_value(x);
     break;
   case ACTION_SETT_1_ADJUST_GOLDMINE:
-    interface->open_popup(BOX_SETT_1);
+    set_box(BOX_SETT_1);
     interface->get_player()->food_goldmine = gui_get_slider_click_value(x);
     break;
   case ACTION_SETT_2_ADJUST_CONSTRUCTION:
-    interface->open_popup(BOX_SETT_2);
+    set_box(BOX_SETT_2);
     interface->get_player()->planks_construction =
                                                   gui_get_slider_click_value(x);
     break;
   case ACTION_SETT_2_ADJUST_BOATBUILDER:
-    interface->open_popup(BOX_SETT_2);
+    set_box(BOX_SETT_2);
     interface->get_player()->planks_boatbuilder = gui_get_slider_click_value(x);
     break;
   case ACTION_SETT_2_ADJUST_TOOLMAKER_PLANKS:
-    interface->open_popup(BOX_SETT_2);
+    set_box(BOX_SETT_2);
     interface->get_player()->planks_toolmaker = gui_get_slider_click_value(x);
     break;
   case ACTION_SETT_2_ADJUST_TOOLMAKER_STEEL:
-    interface->open_popup(BOX_SETT_2);
+    set_box(BOX_SETT_2);
     interface->get_player()->steel_toolmaker = gui_get_slider_click_value(x);
     break;
   case ACTION_SETT_2_ADJUST_WEAPONSMITH:
-    interface->open_popup(BOX_SETT_2);
+    set_box(BOX_SETT_2);
     interface->get_player()->steel_weaponsmith = gui_get_slider_click_value(x);
     break;
   case ACTION_SETT_3_ADJUST_STEELSMELTER:
-    interface->open_popup(BOX_SETT_3);
+    set_box(BOX_SETT_3);
     interface->get_player()->coal_steelsmelter = gui_get_slider_click_value(x);
     break;
   case ACTION_SETT_3_ADJUST_GOLDSMELTER:
-    interface->open_popup(BOX_SETT_3);
+    set_box(BOX_SETT_3);
     interface->get_player()->coal_goldsmelter = gui_get_slider_click_value(x);
     break;
   case ACTION_SETT_3_ADJUST_WEAPONSMITH:
-    interface->open_popup(BOX_SETT_3);
+    set_box(BOX_SETT_3);
     interface->get_player()->coal_weaponsmith = gui_get_slider_click_value(x);
     break;
   case ACTION_SETT_3_ADJUST_PIGFARM:
-    interface->open_popup(BOX_SETT_3);
+    set_box(BOX_SETT_3);
     interface->get_player()->wheat_pigfarm = gui_get_slider_click_value(x);
     break;
   case ACTION_SETT_3_ADJUST_MILL:
-    interface->open_popup(BOX_SETT_3);
+    set_box(BOX_SETT_3);
     interface->get_player()->wheat_mill = gui_get_slider_click_value(x);
     break;
   case ACTION_KNIGHT_LEVEL_CLOSEST_MIN_DEC:
     player_change_knight_occupation(interface->get_player(), 3, 0, -1);
-    interface->open_popup(BOX_KNIGHT_LEVEL);
+    set_box(BOX_KNIGHT_LEVEL);
     break;
   case ACTION_KNIGHT_LEVEL_CLOSEST_MIN_INC:
     player_change_knight_occupation(interface->get_player(), 3, 0, 1);
-    interface->open_popup(BOX_KNIGHT_LEVEL);
+    set_box(BOX_KNIGHT_LEVEL);
     break;
   case ACTION_KNIGHT_LEVEL_CLOSEST_MAX_DEC:
     player_change_knight_occupation(interface->get_player(), 3, 1, -1);
-    interface->open_popup(BOX_KNIGHT_LEVEL);
+    set_box(BOX_KNIGHT_LEVEL);
     break;
   case ACTION_KNIGHT_LEVEL_CLOSEST_MAX_INC:
     player_change_knight_occupation(interface->get_player(), 3, 1, 1);
-    interface->open_popup(BOX_KNIGHT_LEVEL);
+    set_box(BOX_KNIGHT_LEVEL);
     break;
   case ACTION_KNIGHT_LEVEL_CLOSE_MIN_DEC:
     player_change_knight_occupation(interface->get_player(), 2, 0, -1);
-    interface->open_popup(BOX_KNIGHT_LEVEL);
+    set_box(BOX_KNIGHT_LEVEL);
     break;
   case ACTION_KNIGHT_LEVEL_CLOSE_MIN_INC:
     player_change_knight_occupation(interface->get_player(), 2, 0, 1);
-    interface->open_popup(BOX_KNIGHT_LEVEL);
+    set_box(BOX_KNIGHT_LEVEL);
     break;
   case ACTION_KNIGHT_LEVEL_CLOSE_MAX_DEC:
     player_change_knight_occupation(interface->get_player(), 2, 1, -1);
-    interface->open_popup(BOX_KNIGHT_LEVEL);
+    set_box(BOX_KNIGHT_LEVEL);
     break;
   case ACTION_KNIGHT_LEVEL_CLOSE_MAX_INC:
     player_change_knight_occupation(interface->get_player(), 2, 1, 1);
-    interface->open_popup(BOX_KNIGHT_LEVEL);
+    set_box(BOX_KNIGHT_LEVEL);
     break;
   case ACTION_KNIGHT_LEVEL_FAR_MIN_DEC:
     player_change_knight_occupation(interface->get_player(), 1, 0, -1);
-    interface->open_popup(BOX_KNIGHT_LEVEL);
+    set_box(BOX_KNIGHT_LEVEL);
     break;
   case ACTION_KNIGHT_LEVEL_FAR_MIN_INC:
     player_change_knight_occupation(interface->get_player(), 1, 0, 1);
-    interface->open_popup(BOX_KNIGHT_LEVEL);
+    set_box(BOX_KNIGHT_LEVEL);
     break;
   case ACTION_KNIGHT_LEVEL_FAR_MAX_DEC:
     player_change_knight_occupation(interface->get_player(), 1, 1, -1);
-    interface->open_popup(BOX_KNIGHT_LEVEL);
+    set_box(BOX_KNIGHT_LEVEL);
     break;
   case ACTION_KNIGHT_LEVEL_FAR_MAX_INC:
     player_change_knight_occupation(interface->get_player(), 1, 1, 1);
-    interface->open_popup(BOX_KNIGHT_LEVEL);
+    set_box(BOX_KNIGHT_LEVEL);
     break;
   case ACTION_KNIGHT_LEVEL_FARTHEST_MIN_DEC:
     player_change_knight_occupation(interface->get_player(), 0, 0, -1);
-    interface->open_popup(BOX_KNIGHT_LEVEL);
+    set_box(BOX_KNIGHT_LEVEL);
     break;
   case ACTION_KNIGHT_LEVEL_FARTHEST_MIN_INC:
     player_change_knight_occupation(interface->get_player(), 0, 0, 1);
-    interface->open_popup(BOX_KNIGHT_LEVEL);
+    set_box(BOX_KNIGHT_LEVEL);
     break;
   case ACTION_KNIGHT_LEVEL_FARTHEST_MAX_DEC:
     player_change_knight_occupation(interface->get_player(), 0, 1, -1);
-    interface->open_popup(BOX_KNIGHT_LEVEL);
+    set_box(BOX_KNIGHT_LEVEL);
     break;
   case ACTION_KNIGHT_LEVEL_FARTHEST_MAX_INC:
     player_change_knight_occupation(interface->get_player(), 0, 1, 1);
-    interface->open_popup(BOX_KNIGHT_LEVEL);
+    set_box(BOX_KNIGHT_LEVEL);
     break;
   case ACTION_SETT_4_ADJUST_SHOVEL:
-    interface->open_popup(BOX_SETT_4);
+    set_box(BOX_SETT_4);
     interface->get_player()->tool_prio[0] = gui_get_slider_click_value(x);
     break;
   case ACTION_SETT_4_ADJUST_HAMMER:
-    interface->open_popup(BOX_SETT_4);
+    set_box(BOX_SETT_4);
     interface->get_player()->tool_prio[1] = gui_get_slider_click_value(x);
     break;
   case ACTION_SETT_4_ADJUST_AXE:
-    interface->open_popup(BOX_SETT_4);
+    set_box(BOX_SETT_4);
     interface->get_player()->tool_prio[5] = gui_get_slider_click_value(x);
     break;
   case ACTION_SETT_4_ADJUST_SAW:
-    interface->open_popup(BOX_SETT_4);
+    set_box(BOX_SETT_4);
     interface->get_player()->tool_prio[6] = gui_get_slider_click_value(x);
     break;
   case ACTION_SETT_4_ADJUST_SCYTHE:
-    interface->open_popup(BOX_SETT_4);
+    set_box(BOX_SETT_4);
     interface->get_player()->tool_prio[4] = gui_get_slider_click_value(x);
     break;
   case ACTION_SETT_4_ADJUST_PICK:
-    interface->open_popup(BOX_SETT_4);
+    set_box(BOX_SETT_4);
     interface->get_player()->tool_prio[7] = gui_get_slider_click_value(x);
     break;
   case ACTION_SETT_4_ADJUST_PINCER:
-    interface->open_popup(BOX_SETT_4);
+    set_box(BOX_SETT_4);
     interface->get_player()->tool_prio[8] = gui_get_slider_click_value(x);
     break;
   case ACTION_SETT_4_ADJUST_CLEAVER:
-    interface->open_popup(BOX_SETT_4);
+    set_box(BOX_SETT_4);
     interface->get_player()->tool_prio[3] = gui_get_slider_click_value(x);
     break;
   case ACTION_SETT_4_ADJUST_ROD:
-    interface->open_popup(BOX_SETT_4);
+    set_box(BOX_SETT_4);
     interface->get_player()->tool_prio[2] = gui_get_slider_click_value(x);
     break;
   case ACTION_SETT_5_6_ITEM_1:
@@ -3327,7 +3325,7 @@ popup_box_t::handle_action(int action, int x, int y) {
     break;
   case ACTION_QUIT_CONFIRM:
     if (0/* TODO suggest save game*/) {
-      interface->open_popup(BOX_NO_SAVE_QUIT_CONFIRM);
+      set_box(BOX_NO_SAVE_QUIT_CONFIRM);
     } else {
       sfx_play_clip(SFX_AHHH);
       event_loop_t::get_instance()->quit();
@@ -3342,13 +3340,9 @@ popup_box_t::handle_action(int action, int x, int y) {
     event_loop_t::get_instance()->quit();
     break;
   case ACTION_SHOW_QUIT:
-    interface->set_panel_btn(3, PANEL_BTN_STATS_INACTIVE);
-    interface->set_panel_btn(4, PANEL_BTN_SETT_INACTIVE);
     interface->open_popup(BOX_QUIT_CONFIRM);
     break;
   case ACTION_SHOW_OPTIONS:
-    interface->set_panel_btn(3, PANEL_BTN_STATS_INACTIVE);
-    interface->set_panel_btn(4, PANEL_BTN_SETT_INACTIVE);
     interface->open_popup(BOX_OPTIONS);
     break;
     /* TODO */
@@ -3375,11 +3369,11 @@ popup_box_t::handle_action(int action, int x, int y) {
     }
     break;
   case ACTION_DEFAULT_SETT_1:
-    interface->open_popup(BOX_SETT_1);
+    set_box(BOX_SETT_1);
     player_reset_food_priority(interface->get_player());
     break;
   case ACTION_DEFAULT_SETT_2:
-    interface->open_popup(BOX_SETT_2);
+    set_box(BOX_SETT_2);
     player_reset_planks_priority(interface->get_player());
     player_reset_steel_priority(interface->get_player());
     break;
@@ -3400,13 +3394,13 @@ popup_box_t::handle_action(int action, int x, int y) {
     interface->build_building(BUILDING_STOCK);
     break;
   case ACTION_SHOW_CASTLE_SERF:
-    interface->open_popup(BOX_CASTLE_SERF);
+    set_box(BOX_CASTLE_SERF);
     break;
   case ACTION_SHOW_RESDIR:
-    interface->open_popup(BOX_RESDIR);
+    set_box(BOX_RESDIR);
     break;
   case ACTION_SHOW_CASTLE_RES:
-    interface->open_popup(BOX_CASTLE_RES);
+    set_box(BOX_CASTLE_RES);
     break;
   case ACTION_SEND_GEOLOGIST:
     handle_send_geologist();
@@ -3422,10 +3416,10 @@ popup_box_t::handle_action(int action, int x, int y) {
     set_inventory_serf_mode(action - ACTION_SERF_MODE_IN);
     break;
   case ACTION_SHOW_SETT_8:
-    interface->open_popup(BOX_SETT_8);
+    set_box(BOX_SETT_8);
     break;
   case ACTION_SHOW_SETT_6:
-    interface->open_popup(BOX_SETT_6);
+    set_box(BOX_SETT_6);
     break;
   case ACTION_SETT_8_ADJUST_RATE:
     interface->get_player()->serf_to_knight_rate =
@@ -3444,7 +3438,7 @@ popup_box_t::handle_action(int action, int x, int y) {
     sett_8_train(100);
     break;
   case ACTION_DEFAULT_SETT_3:
-    interface->open_popup(BOX_SETT_3);
+    set_box(BOX_SETT_3);
     player_reset_coal_priority(interface->get_player());
     player_reset_wheat_priority(interface->get_player());
     break;
@@ -3519,11 +3513,11 @@ popup_box_t::handle_action(int action, int x, int y) {
     set_box(BOX_MAP);
     break;
   case ACTION_DEFAULT_SETT_4:
-    interface->open_popup(BOX_SETT_4);
+    set_box(BOX_SETT_4);
     player_reset_tool_priority(interface->get_player());
     break;
   case ACTION_SHOW_PLAYER_FACES:
-    interface->open_popup(BOX_PLAYER_FACES);
+    set_box(BOX_PLAYER_FACES);
     break;
   case ACTION_MINIMAP_SCALE: {
     minimap->set_flags(minimap->get_flags() ^ BIT(5));
