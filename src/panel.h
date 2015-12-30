@@ -19,46 +19,63 @@
  * along with freeserf.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef _PANEL_H
-#define _PANEL_H
+#ifndef SRC_PANEL_H_
+#define SRC_PANEL_H_
 
-#include "gui.h"
+#include "src/gui.h"
 
-typedef enum {
-	PANEL_BTN_BUILD_INACTIVE = 0,
-	PANEL_BTN_BUILD_FLAG,
-	PANEL_BTN_BUILD_MINE,
-	PANEL_BTN_BUILD_SMALL,
-	PANEL_BTN_BUILD_LARGE,
-	PANEL_BTN_BUILD_CASTLE,
-	PANEL_BTN_DESTROY,
-	PANEL_BTN_DESTROY_INACTIVE,
-	PANEL_BTN_BUILD_ROAD,
-	PANEL_BTN_MAP_INACTIVE,
-	PANEL_BTN_MAP,
-	PANEL_BTN_STATS_INACTIVE,
-	PANEL_BTN_STATS,
-	PANEL_BTN_SETT_INACTIVE,
-	PANEL_BTN_SETT,
-	PANEL_BTN_DESTROY_ROAD,
-	PANEL_BTN_GROUND_ANALYSIS,
-	PANEL_BTN_BUILD_SMALL_STARRED,
-	PANEL_BTN_BUILD_LARGE_STARRED,
-	PANEL_BTN_MAP_STARRED,
-	PANEL_BTN_STATS_STARRED,
-	PANEL_BTN_SETT_STARRED,
-	PANEL_BTN_GROUND_ANALYSIS_STARRED,
-	PANEL_BTN_BUILD_MINE_STARRED,
-	PANEL_BTN_BUILD_ROAD_STARRED
-} panel_btn_t;
+class interface_t;
 
-typedef struct {
-	gui_object_t obj;
-	struct interface *interface;
-} panel_bar_t;
+class panel_bar_t : public gui_object_t {
+ protected:
+  typedef enum {
+    PANEL_BTN_BUILD_INACTIVE = 0,
+    PANEL_BTN_BUILD_FLAG,
+    PANEL_BTN_BUILD_MINE,
+    PANEL_BTN_BUILD_SMALL,
+    PANEL_BTN_BUILD_LARGE,
+    PANEL_BTN_BUILD_CASTLE,
+    PANEL_BTN_DESTROY,
+    PANEL_BTN_DESTROY_INACTIVE,
+    PANEL_BTN_BUILD_ROAD,
+    PANEL_BTN_MAP_INACTIVE,
+    PANEL_BTN_MAP,
+    PANEL_BTN_STATS_INACTIVE,
+    PANEL_BTN_STATS,
+    PANEL_BTN_SETT_INACTIVE,
+    PANEL_BTN_SETT,
+    PANEL_BTN_DESTROY_ROAD,
+    PANEL_BTN_GROUND_ANALYSIS,
+    PANEL_BTN_BUILD_SMALL_STARRED,
+    PANEL_BTN_BUILD_LARGE_STARRED,
+    PANEL_BTN_MAP_STARRED,
+    PANEL_BTN_STATS_STARRED,
+    PANEL_BTN_SETT_STARRED,
+    PANEL_BTN_GROUND_ANALYSIS_STARRED,
+    PANEL_BTN_BUILD_MINE_STARRED,
+    PANEL_BTN_BUILD_ROAD_STARRED
+  } panel_btn_t;
 
-void panel_bar_init(panel_bar_t *panel, struct interface *interface);
+  interface_t *interface;
+  int panel_btns[5];
 
-void panel_bar_activate_button(panel_bar_t *panel, int button);
+ public:
+  explicit panel_bar_t(interface_t *interface);
 
-#endif /* !_PANEL_H */
+  void activate_button(int button);
+
+  void update();
+
+ protected:
+  void draw_panel_frame();
+  void draw_message_notify();
+  void draw_return_arrow();
+  void draw_panel_buttons();
+  void button_click(int button);
+  panel_btn_t button_type_with_build_possibility(int build_possibility);
+
+  virtual void internal_draw();
+  virtual bool handle_click_left(int x, int y);
+};
+
+#endif  // SRC_PANEL_H_

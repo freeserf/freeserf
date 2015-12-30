@@ -19,27 +19,40 @@
  * along with freeserf.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef _GAME_INIT_H
-#define _GAME_INIT_H
+#ifndef SRC_GAME_INIT_H_
+#define SRC_GAME_INIT_H_
 
-#include "gui.h"
-#include "game.h"
+#include "src/gui.h"
+#include "src/misc.h"
+BEGIN_EXT_C
+  #include "src/game.h"
+END_EXT_C
 
-struct interface;
+class interface_t;
 
-typedef struct {
-	gui_object_t obj;
-	struct interface *interface;
+class game_init_box_t : public gui_object_t {
+ protected:
+  interface_t *interface;
 
-	int map_size;
-	int game_mission;
+  int map_size;
+  int game_mission;
 
-	uint face[GAME_MAX_PLAYER_COUNT];
-	uint intelligence[GAME_MAX_PLAYER_COUNT];
-	uint supplies[GAME_MAX_PLAYER_COUNT];
-	uint reproduction[GAME_MAX_PLAYER_COUNT];
-} game_init_box_t;
+  uint face[GAME_MAX_PLAYER_COUNT];
+  uint intelligence[GAME_MAX_PLAYER_COUNT];
+  uint supplies[GAME_MAX_PLAYER_COUNT];
+  uint reproduction[GAME_MAX_PLAYER_COUNT];
 
-void game_init_box_init(game_init_box_t *box, struct interface *interface);
+ public:
+  explicit game_init_box_t(interface_t *interface);
 
-#endif /* !_GAME_INIT_H */
+ protected:
+  void draw_box_icon(int x, int y, int sprite);
+  void draw_box_string(int x, int y, const char *str);
+  int get_player_face_sprite(int face);
+  void handle_action(int action);
+
+  virtual void internal_draw();
+  virtual bool handle_click_left(int x, int y);
+};
+
+#endif  // SRC_GAME_INIT_H_

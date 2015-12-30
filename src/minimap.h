@@ -19,34 +19,60 @@
  * along with freeserf.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef _MINIMAP_H
-#define _MINIMAP_H
+#ifndef SRC_MINIMAP_H_
+#define SRC_MINIMAP_H_
 
-#include "gui.h"
-#include "map.h"
+#include "src/gui.h"
+#include "src/misc.h"
+BEGIN_EXT_C
+  #include "src/map.h"
+END_EXT_C
 
-typedef struct {
-	gui_object_t obj;
-	struct interface *interface;
+class interface_t;
 
-	int offset_x, offset_y;
-	int scale;
+class minimap_t : public gui_object_t {
+ protected:
+  interface_t *interface;
 
-	int advanced;
-	int flags;
-} minimap_t;
+  int offset_x, offset_y;
+  int scale;
 
+  int advanced;
+  int flags;
 
-void minimap_init(minimap_t *minimap, struct interface *interface);
+ public:
+  explicit minimap_t(interface_t *interface);
 
-void minimap_set_scale(minimap_t *minimap, int scale);
+  int get_flags() const { return flags; }
+  void set_flags(int flags) { this->flags = flags; }
+  int get_advanced() const { return advanced; }
+  void set_advanced(int advanced) { this->advanced = advanced; }
+  int get_scale() const { return scale; }
+  void set_scale(int scale);
 
-void minimap_move_to_map_pos(minimap_t *minimap, map_pos_t pos);
-void minimap_move_by_pixels(minimap_t *minimap, int x, int y);
-map_pos_t minimap_get_current_map_pos(minimap_t *minimap);
+  void move_to_map_pos(map_pos_t pos);
+  void move_by_pixels(int x, int y);
+  map_pos_t get_current_map_pos();
 
-void minimap_screen_pix_from_map_pos(minimap_t *minimap, map_pos_t pos, int *sx, int *sy);
-map_pos_t minimap_map_pos_from_screen_pix(minimap_t *minimap, int x, int y);
+  void screen_pix_from_map_pos(map_pos_t pos, int *sx, int *sy);
+  map_pos_t map_pos_from_screen_pix(int x, int y);
 
+ protected:
+  void draw_minimap_point(int col, int row, uint8_t color, int density);
+  void draw_minimap_map();
+  void draw_minimap_ownership(int density);
+  void draw_minimap_roads();
+  void draw_minimap_buildings();
+  void draw_minimap_traffic();
+  void draw_minimap_grid();
+  void draw_minimap_rect();
+  int handle_scroll(int up);
+  void screen_pix_from_map_pix(int mx, int my, int *sx, int *sy);
+  void map_pix_from_map_coord(map_pos_t pos, int *mx, int *my);
 
-#endif /* !_MINIMAP_H */
+  virtual void internal_draw();
+  virtual bool handle_click_left(int x, int y);
+  virtual bool handle_drag(int dx, int dy);
+};
+
+#endif  // SRC_MINIMAP_H_

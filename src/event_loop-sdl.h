@@ -1,7 +1,7 @@
 /*
- * freeserf.h - Various definitions.
+ * event_loop-sdl.h - User and system events handling
  *
- * Copyright (C) 2013  Jon Lund Steffensen <jonlst@gmail.com>
+ * Copyright (C) 2012-2014  Jon Lund Steffensen <jonlst@gmail.com>
  *
  * This file is part of freeserf.
  *
@@ -19,13 +19,17 @@
  * along with freeserf.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef SRC_FREESERF_H_
-#define SRC_FREESERF_H_
+#ifndef SRC_EVENT_LOOP_SDL_H_
+#define SRC_EVENT_LOOP_SDL_H_
 
-/* The length between game updates in miliseconds. */
-#define TICK_LENGTH  20
-#define TICKS_PER_SEC  (1000/TICK_LENGTH)
+#include "src/event_loop.h"
 
-int save_game(int autosave);
+class event_loop_sdl_t : public event_loop_t {
+ public:
+  event_loop_sdl_t();
 
-#endif  // SRC_FREESERF_H_
+  virtual void quit();
+  virtual void run();
+};
+
+#endif  // SRC_EVENT_LOOP_SDL_H_

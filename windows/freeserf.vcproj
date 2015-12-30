@@ -192,6 +192,14 @@
 				>
 			</File>
 			<File
+				RelativePath="..\src\event_loop-sdl.cc"
+				>
+			</File>
+			<File
+				RelativePath="..\src\event_loop.cc"
+				>
+			</File>
+			<File
 				RelativePath="..\src\flag.c"
 				>
 			</File>
@@ -200,7 +208,7 @@
 				>
 			</File>
 			<File
-				RelativePath="..\src\game-init.c"
+				RelativePath="..\src\game-init.cc"
 				>
 			</File>
 			<File
@@ -212,11 +220,11 @@
 				>
 			</File>
 			<File
-				RelativePath="..\src\gui.c"
+				RelativePath="..\src\gui.cc"
 				>
 			</File>
 			<File
-				RelativePath="..\src\interface.c"
+				RelativePath="..\src\interface.cc"
 				>
 			</File>
 			<File
@@ -232,7 +240,7 @@
 				>
 			</File>
 			<File
-				RelativePath="..\src\minimap.c"
+				RelativePath="..\src\minimap.cc"
 				>
 			</File>
 			<File
@@ -240,11 +248,11 @@
 				>
 			</File>
 			<File
-				RelativePath="..\src\notification.c"
+				RelativePath="..\src\notification.cc"
 				>
 			</File>
 			<File
-				RelativePath="..\src\panel.c"
+				RelativePath="..\src\panel.cc"
 				>
 			</File>
 			<File
@@ -256,7 +264,7 @@
 				>
 			</File>
 			<File
-				RelativePath="..\src\popup.c"
+				RelativePath="..\src\popup.cc"
 				>
 			</File>
 			<File
@@ -288,7 +296,7 @@
 				>
 			</File>
 			<File
-				RelativePath="..\src\viewport.c"
+				RelativePath="..\src\viewport.cc"
 				>
 			</File>
 		</Filter>
@@ -315,6 +323,14 @@
 			</File>
 			<File
 				RelativePath="..\src\debug.h"
+				>
+			</File>
+			<File
+				RelativePath="..\src\event_loop-sdl.h"
+				>
+			</File>
+			<File
+				RelativePath="..\src\event_loop.h"
 				>
 			</File>
 			<File
