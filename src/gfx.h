@@ -1,7 +1,7 @@
 /*
  * gfx.h - General graphics and data file functions
  *
- * Copyright (C) 2012-2014  Jon Lund Steffensen <jonlst@gmail.com>
+ * Copyright (C) 2012-2015  Jon Lund Steffensen <jonlst@gmail.com>
  *
  * This file is part of freeserf.
  *
@@ -26,11 +26,48 @@
 
 class video_t;
 class video_frame_t;
+class video_image_t;
+class sprite_t;
+
+class image_t {
+ protected:
+  int delta_x;
+  int delta_y;
+  int offset_x;
+  int offset_y;
+  unsigned int width;
+  unsigned int height;
+  video_t *video;
+  video_image_t *video_image;
+
+  typedef std::map<uint64_t, image_t*> image_cache_t;
+  static image_cache_t image_cache;
+
+ public:
+  image_t(video_t *video, sprite_t *sprite);
+  virtual ~image_t();
+
+  unsigned int get_width() const { return width; }
+  unsigned int get_height() const { return height; }
+  int get_delta_x() const { return delta_x; }
+  int get_delta_y() const { return delta_y; }
+  int get_offset_x() const { return offset_x; }
+  int get_offset_y() const { return offset_y; }
+
+  void set_offset(int x, int y) { offset_x = x; offset_y = y; }
+  void set_delta(int x, int y) { delta_x = x; delta_y = y; }
+
+  static void cache_image(uint64_t id, image_t *image);
+  static image_t *get_cached_image(uint64_t id);
+  static void clear_cache();
+
+  video_image_t *get_video_image() const { return video_image; }
+};
 
 /* Frame. Keeps track of a specific rectangular area of a surface.
    Multiple frames can refer to the same surface. */
 class frame_t {
- public:
+ protected:
   video_t *video;
   video_frame_t *video_frame;
   bool owner;
@@ -76,9 +113,6 @@ class sprite_t {
   unsigned int height;
   uint8_t *data;
 
-  typedef std::map<uint64_t, sprite_t*> sprite_cache_t;
-  static sprite_cache_t sprite_cache;
-
  public:
   sprite_t(unsigned int width, unsigned int height);
   virtual ~sprite_t();
@@ -94,12 +128,10 @@ class sprite_t {
   void set_offset(int x, int y) { offset_x = x; offset_y = y; }
   void set_delta(int x, int y) { delta_x = x; delta_y = y; }
 
+  sprite_t *get_masked(sprite_t *mask);
+
   static uint64_t create_sprite_id(uint64_t sprite, uint64_t mask,
                                    uint64_t offset);
-  static void cache_sprite(uint64_t id, sprite_t *sprite);
-  static sprite_t *get_cached_sprite(uint64_t id);
-
-  sprite_t *get_masked(sprite_t *mask);
 };
 
 class gfx_t {
@@ -107,8 +139,9 @@ class gfx_t {
   static gfx_t *instance;
   video_t *video;
 
+  gfx_t();
+
  public:
-  gfx_t(unsigned int width, unsigned int height, bool fullscreen);
   virtual ~gfx_t();
 
   static gfx_t *get_instance();

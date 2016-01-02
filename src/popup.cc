@@ -365,7 +365,6 @@ popup_box_t::draw_green_number(int x, int y, int n) {
       n -= n10 * 10;
       draw_popup_icon(x, y, 0x4e + n10);
       x += 1;
-      draw_zero = 1;
     }
 
     draw_popup_icon(x, y, 0x4e + n);

@@ -394,7 +394,7 @@ viewport_t::draw_landscape() {
         h = height - y;
       }
 
-      frame->draw_frame(x, y, tx, ty, tile_frame, width - x, height - y);
+      frame->draw_frame(x, y, tx, ty, tile_frame, w, h);
       x += tile_width - tx;
       mx += tile_width - tx;
     }

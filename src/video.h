@@ -40,8 +40,10 @@ class video_t {
  protected:
   static video_t *instance;
 
+  video_t();
+
  public:
-  virtual ~video_t() {}
+  virtual ~video_t();
 
   static video_t *get_instance();
 
@@ -62,8 +64,8 @@ class video_t {
 
   virtual void warp_mouse(int x, int y) = 0;
 
-  virtual void draw_sprite(const video_image_t *image, int x, int y,
-                           int y_offset, video_frame_t *dest) = 0;
+  virtual void draw_image(const video_image_t *image, int x, int y,
+                          int y_offset, video_frame_t *dest) = 0;
   virtual void draw_frame(int dx, int dy, video_frame_t *dest, int sx, int sy,
                           video_frame_t *src, int w, int h) = 0;
   virtual void draw_rect(int x, int y, unsigned int width, unsigned int height,

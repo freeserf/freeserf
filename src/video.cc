@@ -21,14 +21,14 @@
 
 #include "src/video.h"
 
-#include "src/video-sdl.h"
+#include <cstdlib>
 
 video_t *video_t::instance = NULL;
 
-video_t *
-video_t::get_instance() {
-  if (instance == NULL) {
-    instance = new video_sdl_t();
-  }
-  return instance;
+video_t::video_t() {
+  instance = this;
+}
+
+video_t::~video_t() {
+  instance = NULL;
 }

@@ -1,7 +1,7 @@
 /*
  * video-sdl.h - SDL graphics rendering
  *
- * Copyright (C) 2012-2014  Jon Lund Steffensen <jonlst@gmail.com>
+ * Copyright (C) 2012-2015  Jon Lund Steffensen <jonlst@gmail.com>
  *
  * This file is part of freeserf.
  *
@@ -32,18 +32,18 @@
 
 class video_frame_t {
  public:
-  SDL_Surface *surf;
+  SDL_Texture *texture;
 
-  video_frame_t() : surf(NULL) {}
+  video_frame_t() : texture(NULL) {}
 };
 
 class video_image_t {
  public:
   unsigned int w;
   unsigned int h;
-  SDL_Surface *surf;
+  SDL_Texture *texture;
 
-  video_image_t() : surf(NULL), w(0), h(0) {}
+  video_image_t() : texture(NULL), w(0), h(0) {}
 };
 
 class video_sdl_t : public video_t {
@@ -60,7 +60,6 @@ class video_sdl_t : public video_t {
   SDL_Texture *screen_texture;
   video_frame_t *screen;
   bool fullscreen;
-  SDL_Color pal_colors[256];
   SDL_Cursor *cursor;
 
  public:
@@ -83,7 +82,7 @@ class video_sdl_t : public video_t {
 
   virtual void warp_mouse(int x, int y);
 
-  virtual void draw_sprite(const video_image_t *image, int x, int y,
+  virtual void draw_image(const video_image_t *image, int x, int y,
                            int y_offset, video_frame_t *dest);
   virtual void draw_frame(int dx, int dy, video_frame_t *dest, int sx, int sy,
                           video_frame_t *src, int w, int h);
@@ -98,6 +97,8 @@ class video_sdl_t : public video_t {
  protected:
   SDL_Surface *create_surface(int width, int height);
   SDL_Surface *create_surface_from_data(void *data, int width, int height);
+  SDL_Texture *create_texture(int width, int height);
+  SDL_Texture *create_texture_from_data(void *data, int width, int height);
 };
 
 #endif  // SRC_VIDEO_SDL_H_

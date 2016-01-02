@@ -345,7 +345,8 @@ main(int argc, char *argv[]) {
 
   LOGI("main", "Initialize graphics...");
 
-  gfx_t *gfx = new gfx_t(screen_width, screen_height, fullscreen);
+  gfx_t *gfx = gfx_t::get_instance();
+  gfx->set_resolution(screen_width, screen_height, fullscreen);
 
   /* TODO move to right place */
   audio_init();
