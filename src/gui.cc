@@ -77,8 +77,7 @@ gui_object_t::draw(frame_t *frame) {
   }
 
   if (this->frame == NULL) {
-    this->frame = new frame_t;
-    gfx_frame_init(this->frame, 0, 0, width, height, NULL);
+    this->frame = gfx_t::get_instance()->create_frame(width, height);
   }
 
   if (redraw) {
@@ -91,7 +90,7 @@ gui_object_t::draw(frame_t *frame) {
 
     redraw = false;
   }
-  gfx_draw_frame(x, y, frame, 0, 0, this->frame, width, height);
+  frame->draw_frame(x, y, 0, 0, this->frame, width, height);
 }
 
 bool

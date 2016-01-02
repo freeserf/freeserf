@@ -53,12 +53,12 @@ typedef enum {
 
 void
 game_init_box_t::draw_box_icon(int x, int y, int sprite) {
-  gfx_draw_sprite(8*x+20, y+16, DATA_ICON_BASE + sprite, frame);
+  frame->draw_sprite(8*x+20, y+16, DATA_ICON_BASE + sprite);
 }
 
 void
 game_init_box_t::draw_box_string(int x, int y, const char *str) {
-  gfx_draw_string(8*x+20, y+16, 31, 1, frame, str);
+  frame->draw_string(8*x+20, y+16, 31, 1, str);
 }
 
 /* Get the sprite number for a face. */
@@ -71,7 +71,7 @@ game_init_box_t::get_player_face_sprite(int face) {
 void
 game_init_box_t::internal_draw() {
   /* Background */
-  gfx_fill_rect(0, 0, width, height, 1, frame);
+  frame->fill_rect(0, 0, width, height, 1);
 
   const int layout[] = {
     251, 0, 40, 252, 0, 112, 253, 0, 48,
@@ -127,13 +127,13 @@ game_init_box_t::internal_draw() {
       if (face_ == 0) continue;
 
       int intelligence_ = intelligence[i];
-      gfx_fill_rect(80*i+78, 124-intelligence_, 4, intelligence_, 30, frame);
+      frame->fill_rect(80*i+78, 124-intelligence_, 4, intelligence_, 30);
 
       int supplies_ = supplies[i];
-      gfx_fill_rect(80*i+72, 124-supplies_, 4, supplies_, 67, frame);
+      frame->fill_rect(80*i+72, 124-supplies_, 4, supplies_, 67);
 
       int reproduction_ = reproduction[i];
-      gfx_fill_rect(80*i+84, 124-reproduction_, 4, reproduction_, 75, frame);
+      frame->fill_rect(80*i+84, 124-reproduction_, 4, reproduction_, 75);
     }
   } else {
     int m = game_mission;
@@ -143,13 +143,13 @@ game_init_box_t::internal_draw() {
       draw_box_icon(10*i+6, 48, 282);
 
       int intelligence = i == 0 ? 40 : mission[m].player[i].intelligence;
-      gfx_fill_rect(80*i+78, 124-intelligence, 4, intelligence, 30, frame);
+      frame->fill_rect(80*i+78, 124-intelligence, 4, intelligence, 30);
 
       int supplies = mission[m].player[i].supplies;
-      gfx_fill_rect(80*i+72, 124-supplies, 4, supplies, 67, frame);
+      frame->fill_rect(80*i+72, 124-supplies, 4, supplies, 67);
 
       int reproduction = mission[m].player[i].reproduction;
-      gfx_fill_rect(80*i+84, 124-reproduction, 4, reproduction, 75, frame);
+      frame->fill_rect(80*i+84, 124-reproduction, 4, reproduction, 75);
     }
   }
 

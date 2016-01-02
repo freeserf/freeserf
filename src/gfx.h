@@ -24,15 +24,43 @@
 
 #include <SDL.h>
 
-#define MAP_TILE_WIDTH   32
-#define MAP_TILE_HEIGHT  20
+class video_sdl_t;
 
 /* Frame. Keeps track of a specific rectangular area of a surface.
    Multiple frames can refer to the same surface. */
-typedef struct {
+class frame_t {
+ public:
+  video_sdl_t *video;
   SDL_Surface *surf;
-  SDL_Rect clip;
-} frame_t;
+
+ public:
+  frame_t(video_sdl_t *video, unsigned int width, unsigned int height);
+  virtual ~frame_t();
+
+  /* Sprite functions */
+  void draw_sprite(int x, int y, unsigned int sprite);
+  void draw_transp_sprite(int x, int y, unsigned int sprite, int use_off,
+                          int y_off, int color_off);
+  void draw_masked_sprite(int x, int y, unsigned int mask,
+                          unsigned int sprite);
+  void draw_overlay_sprite(int x, int y, unsigned int sprite, int y_off);
+  void draw_waves_sprite(int x, int y, unsigned int mask, unsigned int sprite,
+                         int mask_off);
+
+  /* Drawing functions */
+  void draw_rect(int x, int y, int width, int height, int color);
+  void fill_rect(int x, int y, int width, int height, int color);
+
+  /* Text functions */
+  void draw_string(int x, int y, int color, int shadow, const char *str);
+  void draw_number(int x, int y, int color, int shadow, int n);
+
+  /* Frame functions */
+  void draw_frame(int dx, int dy, int sx, int sy, frame_t *src, int w, int h);
+
+ protected:
+  void draw_char_sprite(int x, int y, uint c, int color, int shadow);
+};
 
 /* Sprite object. Immediately followed by RGBA data. */
 typedef struct {
@@ -51,40 +79,28 @@ typedef struct {
   uint8_t a;
 } color_t;
 
-int gfx_init(int width, int height, int fullscreen);
-void gfx_deinit();
+class gfx_t {
+ protected:
+  static gfx_t *instance;
+  video_sdl_t *video;
 
-/* Sprite functions */
-void gfx_draw_sprite(int x, int y, unsigned int sprite, frame_t *dest);
-void gfx_draw_transp_sprite(int x, int y, unsigned int sprite, int use_off,
-                            int y_off, int color_off, frame_t *dest);
-void gfx_draw_masked_sprite(int x, int y, unsigned int mask,
-                            unsigned int sprite, frame_t *dest);
-void gfx_draw_overlay_sprite(int x, int y, unsigned int sprite, int y_off,
-                             frame_t *dest);
-void gfx_draw_waves_sprite(int x, int y, unsigned int mask, unsigned int sprite,
-                           int mask_off, frame_t *dest);
+ public:
+  gfx_t(unsigned int width, unsigned int height, bool fullscreen);
+  virtual ~gfx_t();
 
-/* Graphics functions */
-void gfx_draw_rect(int x, int y, int width, int height, int color,
-                   frame_t *dest);
-void gfx_fill_rect(int x, int y, int width, int height, int color,
-                   frame_t *dest);
+  static gfx_t *get_instance();
 
-/* Text functions */
-void gfx_draw_string(int x, int y, int color, int shadow, frame_t *dest,
-                     const char *str);
-void gfx_draw_number(int x, int y, int color, int shadow, frame_t *dest, int n);
+  /* Frame functions */
+  frame_t *create_frame(unsigned int width, unsigned int height);
 
-/* Frame functions */
-void gfx_frame_init(frame_t *frame, int x, int y, int width, int height,
-                    frame_t *dest);
-void gfx_frame_deinit(frame_t *frame);
-void gfx_draw_frame(int dx, int dy, frame_t *dest, int sx, int sy, frame_t *src,
-                    int w, int h);
+  /* Screen functions */
+  frame_t *get_screen_frame();
+  void set_resolution(unsigned int width, unsigned int height, bool fullscreen);
+  void get_resolution(unsigned int *width, unsigned int *height);
+  bool set_fullscreen(bool enable);
+  bool is_fullscreen();
 
-/* Screen functions */
-int gfx_set_fullscreen(int enable);
-int gfx_is_fullscreen();
+  void swap_buffers();
+};
 
 #endif  // SRC_GFX_H_

@@ -345,8 +345,7 @@ main(int argc, char *argv[]) {
 
   LOGI("main", "Initialize graphics...");
 
-  r = gfx_init(screen_width, screen_height, fullscreen);
-  if (r < 0) exit(EXIT_FAILURE);
+  gfx_t *gfx = new gfx_t(screen_width, screen_height, fullscreen);
 
   /* TODO move to right place */
   audio_init();
@@ -398,7 +397,7 @@ main(int argc, char *argv[]) {
   delete interface;
   map_deinit();
   audio_deinit();
-  gfx_deinit();
+  delete gfx;
   data_unload();
   delete event_loop;
 

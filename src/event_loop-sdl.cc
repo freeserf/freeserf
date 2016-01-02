@@ -92,6 +92,7 @@ event_loop_sdl_t::run() {
 
   SDL_Event event;
 
+  gfx_t *gfx = gfx_t::get_instance();
   frame_t *screen = NULL;
 
   while (SDL_WaitEvent(&event)) {
@@ -196,7 +197,7 @@ event_loop_sdl_t::run() {
             /* Video */
           case SDLK_f:
             if (event.key.keysym.mod & KMOD_CTRL) {
-              gfx_set_fullscreen(!gfx_is_fullscreen());
+              gfx->set_fullscreen(!gfx->is_fullscreen());
             }
             break;
 
@@ -217,28 +218,37 @@ event_loop_sdl_t::run() {
         break;
       case SDL_WINDOWEVENT:
         if (SDL_WINDOWEVENT_SIZE_CHANGED == event.window.event) {
-          int width = 0;
-          int height = 0;
-          sdl_get_resolution(&width, &height);
-          sdl_set_resolution(width, height, gfx_is_fullscreen());
+          unsigned int width = 0;
+          unsigned int height = 0;
+          gfx->get_resolution(&width, &height);
+          gfx->set_resolution(width, height, gfx->is_fullscreen());
           notify_resize(width, height);
         }
         break;
       case SDL_USEREVENT:
         if (event.user.code == SDL_QUIT) {
+          if (screen != NULL) {
+            delete screen;
+          }
           return;
         }
 
         /* Update and draw interface */
         notify_update();
 
-        screen = sdl_get_screen_frame();
+        if (screen == NULL) {
+          screen = gfx->get_screen_frame();
+        }
         notify_draw(screen);
 
         /* Swap video buffers */
-        sdl_swap_buffers();
+        gfx->swap_buffers();
 
         break;
     }
+  }
+
+  if (screen != NULL) {
+    delete screen;
   }
 }

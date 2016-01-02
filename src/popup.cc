@@ -300,23 +300,22 @@ typedef enum {
 /* Draw the frame around the popup box. */
 void
 popup_box_t::draw_popup_box_frame() {
-  gfx_draw_sprite(0, 0, DATA_FRAME_POPUP_BASE+0, frame);
-  gfx_draw_sprite(0, 153, DATA_FRAME_POPUP_BASE+1, frame);
-  gfx_draw_sprite(0, 9, DATA_FRAME_POPUP_BASE+2, frame);
-  gfx_draw_sprite(136, 9, DATA_FRAME_POPUP_BASE+3, frame);
+  frame->draw_sprite(0, 0, DATA_FRAME_POPUP_BASE+0);
+  frame->draw_sprite(0, 153, DATA_FRAME_POPUP_BASE+1);
+  frame->draw_sprite(0, 9, DATA_FRAME_POPUP_BASE+2);
+  frame->draw_sprite(136, 9, DATA_FRAME_POPUP_BASE+3);
 }
 
 /* Draw icon in a popup frame. */
 void
 popup_box_t::draw_popup_icon(int x, int y, int sprite) {
-  gfx_draw_sprite(8*x+8, y+9, DATA_ICON_BASE + sprite, frame);
+  frame->draw_sprite(8*x+8, y+9, DATA_ICON_BASE + sprite);
 }
 
 /* Draw building in a popup frame. */
 void
 popup_box_t::draw_popup_building(int x, int y, int sprite) {
-  gfx_draw_transp_sprite(8*x+8, y+9, DATA_MAP_OBJECT_BASE + sprite,
-                         0, 0, 0, frame);
+  frame->draw_transp_sprite(8*x+8, y+9, DATA_MAP_OBJECT_BASE + sprite, 0, 0, 0);
 }
 
 /* Fill the background of a popup frame. */
@@ -338,7 +337,7 @@ popup_box_t::draw_box_row(int sprite, int y) {
 /* Draw a green string in a popup frame. */
 void
 popup_box_t::draw_green_string(int x, int y, const char *str) {
-  gfx_draw_string(8*x+8, y+9, 31, 0, frame, str);
+  frame->draw_string(8*x+8, y+9, 31, 0, str);
 }
 
 /* Draw a green number in a popup frame.
@@ -377,7 +376,7 @@ popup_box_t::draw_green_number(int x, int y, int n) {
    No limits on n. */
 void
 popup_box_t::draw_green_large_number(int x, int y, int n) {
-  gfx_draw_number(8*x+8, 9+y, 31, 0, frame, n);
+  frame->draw_number(8*x+8, 9+y, 31, 0, n);
 }
 
 /* Draw small green number. */
@@ -403,7 +402,7 @@ popup_box_t::draw_player_face(int x, int y, int player) {
     face = game.player[player]->face;
   }
 
-  gfx_fill_rect(8*x, y+5, 48, 72, color, frame);
+  frame->fill_rect(8*x, y+5, 48, 72, color);
   draw_popup_icon(x, y, get_player_face_sprite(face));
 }
 
@@ -413,8 +412,8 @@ popup_box_t::draw_custom_bld_box(const int sprites[]) {
   while (sprites[0] > 0) {
     int x = sprites[1];
     int y = sprites[2];
-    gfx_draw_transp_sprite(8*x+8, y+9, DATA_MAP_OBJECT_BASE + sprites[0],
-               0, 0, 0, frame);
+    frame->draw_transp_sprite(8*x+8, y+9, DATA_MAP_OBJECT_BASE + sprites[0],
+                              0, 0, 0);
     sprites += 3;
   }
 }
@@ -867,22 +866,19 @@ popup_box_t::draw_player_stat_chart(const int *data, int index, int color) {
       if (value > prev_value) {
         int diff = value - prev_value;
         int h = diff/2;
-        gfx_fill_rect(x + width - i, y + height - h - prev_value,
-                      1, h, color, frame);
+        frame->fill_rect(x + width - i, y + height - h - prev_value, 1, h,
+                         color);
         diff -= h;
-        gfx_fill_rect(x + width - i - 1, y + height - value,
-                      1, diff, color, frame);
+        frame->fill_rect(x + width - i - 1, y + height - value, 1, diff, color);
       } else if (value == prev_value) {
-        gfx_fill_rect(x + width - i - 1, y + height - value,
-                      2, 1, color, frame);
+        frame->fill_rect(x + width - i - 1, y + height - value, 2, 1, color);
       } else {
         int diff = prev_value - value;
         int h = diff/2;
-        gfx_fill_rect(x + width - i, y + height - prev_value,
-                      1, h, color, frame);
+        frame->fill_rect(x + width - i, y + height - prev_value, 1, h, color);
         diff -= h;
-        gfx_fill_rect(x + width - i - 1, y + height - value - diff,
-                      1, diff, color, frame);
+        frame->fill_rect(x + width - i - 1, y + height - value - diff, 1, diff,
+                         color);
       }
     }
 
@@ -1081,7 +1077,7 @@ popup_box_t::draw_stat_7_box() {
   for (int i = 0; i < 112; i++) {
     int value = std::min((historical_data[i]*multiplier) >> 16, 64);
     if (value > 0) {
-      gfx_fill_rect(119 - i, 73 - value, 1, value, 72, frame);
+      frame->fill_rect(119 - i, 73 - value, 1, value, 72);
     }
   }
 }
@@ -1668,7 +1664,7 @@ popup_box_t::draw_slide_bar(int x, int y, int value) {
 
   int width = value/1310;
   if (width > 0) {
-    gfx_fill_rect(8*x+15, y+11, width, 4, 30, frame);
+    frame->fill_rect(8*x+15, y+11, width, 4, 30);
   }
 }
 
@@ -1953,8 +1949,8 @@ popup_box_t::draw_options_box() {
   draw_green_string(1, 70, "Fullscreen");
   draw_green_string(1, 79, "video");
 
-  draw_popup_icon(13, 70,
-                  gfx_is_fullscreen() ? 288 : 220); /* Fullscreen mode */
+  draw_popup_icon(13, 70,   /* Fullscreen mode */
+                  gfx_t::get_instance()->is_fullscreen() ? 288 : 220);
 
   const char *value = "All";
   if (!interface->get_config(3)) {
@@ -3544,7 +3540,8 @@ popup_box_t::handle_action(int action, int x, int y) {
     sfx_play_clip(SFX_CLICK);
     break;
   case ACTION_OPTIONS_FULLSCREEN:
-    gfx_set_fullscreen(!gfx_is_fullscreen());
+    gfx_t::get_instance()->set_fullscreen(
+                                      !gfx_t::get_instance()->is_fullscreen());
     sfx_play_clip(SFX_CLICK);
     break;
   case ACTION_OPTIONS_VOLUME_MINUS:

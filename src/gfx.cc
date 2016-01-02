@@ -1,7 +1,7 @@
 /*
  * gfx.cc - General graphics and data file functions
  *
- * Copyright (C) 2013-2014  Jon Lund Steffensen <jonlst@gmail.com>
+ * Copyright (C) 2013-2015  Jon Lund Steffensen <jonlst@gmail.com>
  *
  * This file is part of freeserf.
  *
@@ -331,38 +331,43 @@ gfx_mask_waves_sprite(const sprite_t *sprite, const sprite_t *mask, int x_off) {
   return s;
 }
 
+gfx_t *gfx_t::instance = NULL;
 
-int
-gfx_init(int width, int height, int fullscreen) {
-  int r = sdl_init();
-  if (r < 0) return -1;
+gfx_t::gfx_t(unsigned int width, unsigned int height, bool fullscreen) {
+  video = new video_sdl_t();
 
   LOGI("graphics", "Setting resolution to %ix%i...", width, height);
 
-  r = sdl_set_resolution(width, height, fullscreen);
-  if (r < 0) return -1;
+  bool r = video->set_resolution(width, height, fullscreen);
+  assert(r);
 
   const dos_sprite_t *cursor = data_get_dos_sprite(DATA_CURSOR);
   sprite_t *sprite = gfx_create_transparent_sprite(cursor, 0);
-  sdl_set_cursor(sprite);
+  video->set_cursor(sprite);
   gfx_free_sprite(sprite);
 
   /* Init sprite cache */
   sprite_ht_init(&sprite_cache, 10240);
 
-  return 0;
+  gfx_t::instance = this;
 }
 
-void
-gfx_deinit() {
-  sdl_deinit();
+gfx_t::~gfx_t() {
+  if (video != NULL) {
+    delete video;
+    video = NULL;
+  }
 }
 
+gfx_t*
+gfx_t::get_instance() {
+  return instance;
+}
 
 /* Draw the opaque sprite with data file index of
    sprite at x, y in dest frame. */
 void
-gfx_draw_sprite(int x, int y, uint sprite, frame_t *dest) {
+frame_t::draw_sprite(int x, int y, uint sprite) {
   const dos_sprite_t *spr = data_get_dos_sprite(sprite);
   assert(spr != NULL);
 
@@ -379,14 +384,14 @@ gfx_draw_sprite(int x, int y, uint sprite, frame_t *dest) {
 
   x += entry->value->offset_x;
   y += entry->value->offset_y;
-  sdl_draw_sprite(entry->value, x, y, 0, dest);
+  video->draw_sprite(entry->value, x, y, 0, this);
 }
 
 /* Draw the transparent sprite with data file index of
    sprite at x, y in dest frame.*/
 void
-gfx_draw_transp_sprite(int x, int y, uint sprite, int use_off,
-                       int y_off, int color_off, frame_t *dest) {
+frame_t::draw_transp_sprite(int x, int y, uint sprite, int use_off,
+                            int y_off, int color_off) {
   const dos_sprite_t *spr = data_get_dos_sprite(sprite);
   assert(spr != NULL);
 
@@ -405,13 +410,13 @@ gfx_draw_transp_sprite(int x, int y, uint sprite, int use_off,
     x += entry->value->offset_x;
     y += entry->value->offset_y;
   }
-  sdl_draw_sprite(entry->value, x, y, y_off, dest);
+  video->draw_sprite(entry->value, x, y, y_off, this);
 }
 
 /* Draw the masked sprite with given mask and sprite
    indices at x, y in dest frame. */
 void
-gfx_draw_masked_sprite(int x, int y, uint mask, uint sprite, frame_t *dest) {
+frame_t::draw_masked_sprite(int x, int y, uint mask, uint sprite) {
   const dos_sprite_t *spr = data_get_dos_sprite(sprite);
   assert(spr != NULL);
 
@@ -441,7 +446,7 @@ gfx_draw_masked_sprite(int x, int y, uint mask, uint sprite, frame_t *dest) {
 
   x += entry->value->offset_x;
   y += entry->value->offset_y;
-  sdl_draw_sprite(entry->value, x, y, 0, dest);
+  video->draw_sprite(entry->value, x, y, 0, this);
 }
 
 /* Draw the overlay sprite with data file index of
@@ -449,7 +454,7 @@ gfx_draw_masked_sprite(int x, int y, uint mask, uint sprite, frame_t *dest) {
    offset in the vertical axis from y_off in the
    sprite. */
 void
-gfx_draw_overlay_sprite(int x, int y, uint sprite, int y_off, frame_t *dest) {
+frame_t::draw_overlay_sprite(int x, int y, uint sprite, int y_off) {
   const dos_sprite_t *spr = data_get_dos_sprite(sprite);
   assert(spr != NULL);
 
@@ -466,14 +471,13 @@ gfx_draw_overlay_sprite(int x, int y, uint sprite, int y_off, frame_t *dest) {
 
   x += entry->value->offset_x;
   y += entry->value->offset_y;
-  sdl_draw_sprite(entry->value, x, y, y_off, dest);
+  video->draw_sprite(entry->value, x, y, y_off, this);
 }
 
 /* Draw the waves sprite with given mask and sprite
    indices at x, y in dest frame. */
 void
-gfx_draw_waves_sprite(int x, int y, uint mask, uint sprite,
-                      int mask_off, frame_t *dest) {
+frame_t::draw_waves_sprite(int x, int y, uint mask, uint sprite, int mask_off) {
   const dos_sprite_t *spr = data_get_dos_sprite(sprite);
   assert(spr != NULL);
 
@@ -511,14 +515,13 @@ gfx_draw_waves_sprite(int x, int y, uint mask, uint sprite,
 
   x += entry->value->offset_x;
   y += entry->value->offset_y;
-  sdl_draw_sprite(entry->value, x, y, 0, dest);
+  video->draw_sprite(entry->value, x, y, 0, this);
 }
 
 
 /* Draw a character at x, y in the dest frame. */
-static void
-gfx_draw_char_sprite(int x, int y, uint c, int color, int shadow,
-                     frame_t *dest) {
+void
+frame_t::draw_char_sprite(int x, int y, uint c, int color, int shadow) {
   static const int sprite_offset_from_ascii[] = {
     -1, -1, -1, -1, -1, -1, -1, -1,
     -1, -1, -1, -1, -1, -1, -1, -1,
@@ -559,38 +562,35 @@ gfx_draw_char_sprite(int x, int y, uint c, int color, int shadow,
   if (s < 0) return;
 
   if (shadow) {
-    gfx_draw_transp_sprite(x, y, DATA_FONT_SHADOW_BASE + s,
-               0, 0, shadow, dest);
+    draw_transp_sprite(x, y, DATA_FONT_SHADOW_BASE + s, 0, 0, shadow);
   }
-  gfx_draw_transp_sprite(x, y, DATA_FONT_BASE + s, 0, 0,
-             color, dest);
+  draw_transp_sprite(x, y, DATA_FONT_BASE + s, 0, 0, color);
 }
 
 /* Draw the string str at x, y in the dest frame. */
 void
-gfx_draw_string(int x, int y, int color, int shadow, frame_t *dest,
-                const char *str) {
+frame_t::draw_string(int x, int y, int color, int shadow, const char *str) {
   for (; *str != 0; x += 8) {
     if (/*string_bg*/ 0) {
-      gfx_fill_rect(x, y, 8, 8, 0, dest);
+      fill_rect(x, y, 8, 8, 0);
     }
 
     unsigned char c = *str++;
-    gfx_draw_char_sprite(x, y, c, color, shadow, dest);
+    draw_char_sprite(x, y, c, color, shadow);
   }
 }
 
 /* Draw the number n at x, y in the dest frame. */
 void
-gfx_draw_number(int x, int y, int color, int shadow, frame_t *dest, int n) {
+frame_t::draw_number(int x, int y, int color, int shadow, int n) {
   if (n < 0) {
-    gfx_draw_char_sprite(x, y, '-', color, shadow, dest);
+    draw_char_sprite(x, y, '-', color, shadow);
     x += 8;
     n *= -1;
   }
 
   if (n == 0) {
-    gfx_draw_char_sprite(x, y, '0', color, shadow, dest);
+    draw_char_sprite(x, y, '0', color, shadow);
     return;
   }
 
@@ -598,14 +598,14 @@ gfx_draw_number(int x, int y, int color, int shadow, frame_t *dest, int n) {
   for (int i = n; i > 0; i /= 10) digits += 1;
 
   for (int i = digits-1; i >= 0; i--) {
-    gfx_draw_char_sprite(x+8*i, y, '0'+(n % 10), color, shadow, dest);
+    draw_char_sprite(x+8*i, y, '0'+(n % 10), color, shadow);
     n /= 10;
   }
 }
 
 /* Draw a rectangle with color at x, y in the dest frame. */
 void
-gfx_draw_rect(int x, int y, int width, int height, int color, frame_t *dest) {
+frame_t::draw_rect(int x, int y, int width, int height, int color) {
   uint8_t *palette =
            reinterpret_cast<uint8_t*>(data_get_object(DATA_PALETTE_GAME, NULL));
   color_t c = { palette[3*color+0],
@@ -613,12 +613,12 @@ gfx_draw_rect(int x, int y, int width, int height, int color, frame_t *dest) {
                 palette[3*color+2],
                 0xff };
 
-  sdl_draw_rect(x, y, width, height, &c, dest);
+  video->draw_rect(x, y, width, height, &c, this);
 }
 
 /* Draw a rectangle with color at x, y in the dest frame. */
 void
-gfx_fill_rect(int x, int y, int width, int height, int color, frame_t *dest) {
+frame_t::fill_rect(int x, int y, int width, int height, int color) {
   uint8_t *palette =
            reinterpret_cast<uint8_t*>(data_get_object(DATA_PALETTE_GAME, NULL));
   color_t c = { palette[3*color+0],
@@ -626,42 +626,63 @@ gfx_fill_rect(int x, int y, int width, int height, int color, frame_t *dest) {
                 palette[3*color+2],
                 0xff };
 
-  sdl_fill_rect(x, y, width, height, &c, dest);
+  video->fill_rect(x, y, width, height, &c, this);
 }
-
 
 /* Initialize new graphics frame. If dest is NULL a new
    backing surface is created, otherwise the same surface
    as dest is used. */
-void
-gfx_frame_init(frame_t *frame, int x, int y, int width, int height,
-               frame_t *dest) {
-  sdl_frame_init(frame, x, y, width, height, dest);
+frame_t::frame_t(video_sdl_t *video, unsigned int width, unsigned int height) {
+  this->video = video;
+  video->frame_init(this, width, height);
 }
 
 /* Deinitialize frame and backing surface. */
-void
-gfx_frame_deinit(frame_t *frame) {
-  sdl_frame_deinit(frame);
+frame_t::~frame_t() {
+  video->frame_deinit(this);
 }
 
 /* Draw source frame from rectangle at sx, sy with given
    width and height, to destination frame at dx, dy. */
 void
-gfx_draw_frame(int dx, int dy, frame_t *dest, int sx, int sy, frame_t *src,
-               int w, int h) {
-  sdl_draw_frame(dx, dy, dest, sx, sy, src, w, h);
+frame_t::draw_frame(int dx, int dy, int sx, int sy, frame_t *src,
+                    int w, int h) {
+  video->draw_frame(dx, dy, this, sx, sy, src, w, h);
 }
 
+frame_t *
+gfx_t::create_frame(unsigned int width, unsigned int height) {
+  return new frame_t(video, width, height);
+}
 
 /* Enable or disable fullscreen mode */
-int
-gfx_set_fullscreen(int enable) {
-  return sdl_set_fullscreen(enable);
+bool
+gfx_t::set_fullscreen(bool enable) {
+  return video->set_fullscreen(enable);
 }
 
 /* Check whether fullscreen mode is enabled */
-int
-gfx_is_fullscreen() {
-  return sdl_is_fullscreen();
+bool
+gfx_t::is_fullscreen() {
+  return video->is_fullscreen();
+}
+
+frame_t *
+gfx_t::get_screen_frame() {
+  return video->get_screen_frame();
+}
+
+void
+gfx_t::set_resolution(unsigned int width, unsigned int height,
+                      bool fullscreen) {
+  video->set_resolution(width, height, fullscreen);
+}
+
+void
+gfx_t::get_resolution(unsigned int *width, unsigned int *height) {
+}
+
+void
+gfx_t::swap_buffers() {
+  video->swap_buffers();
 }
