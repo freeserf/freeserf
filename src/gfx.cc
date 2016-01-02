@@ -40,92 +40,30 @@ END_EXT_C
 # undef max
 #endif
 
-/* Unique identifier for a sprite. */
-typedef struct {
-  const dos_sprite_t *sprite;
-  const dos_sprite_t *mask;
-  uint offset;
-} sprite_id_t;
-
-typedef struct sprite_ht_entry sprite_ht_entry_t;
-
-/* Entry in the hashtable of sprites. */
-struct sprite_ht_entry {
-  sprite_ht_entry_t *next;
-  sprite_id_t id;
-  sprite_t *value;
-};
-
-/* Hashtable of sprites, used as sprite cache. */
-typedef struct {
-  size_t size;
-  uint entry_count;
-  sprite_ht_entry_t **entries;
-} sprite_ht_t;
-
-
 /* Sprite cache hash table */
-static sprite_ht_t sprite_cache;
-
+std::map<uint64_t, sprite_t*> sprite_t::sprite_cache;
 
 /* Calculate hash of sprite identifier. */
-static uint32_t
-sprite_id_hash(const sprite_id_t *id) {
-  const uint8_t *s = reinterpret_cast<const uint8_t*>(id);
+uint64_t sprite_t::create_sprite_id(uint64_t sprite, uint64_t mask,
+                                    uint64_t offset) {
+  uint64_t result = sprite + (mask << 32) + (offset << 48);
+  return result;
+}
 
-  /* FNV-1 */
-  uint32_t hash = 2166136261;
-  for (int i = 0; i < sizeof(sprite_id_t); i++) {
-    hash *= 16777619;
-    hash ^= s[i];
+/* Return a pointer to the sprite pointer associated with id. */
+sprite_t *
+sprite_t::get_cached_sprite(uint64_t id) {
+  sprite_cache_t::iterator result = sprite_cache.find(id);
+  if (result == sprite_cache.end()) {
+    return NULL;
   }
-
-  return hash;
+  return result->second;
 }
 
-/* Intialize sprite hashtable. */
-static int
-sprite_ht_init(sprite_ht_t *ht, size_t size) {
-  ht->size = size;
-  ht->entries = reinterpret_cast<sprite_ht_entry_t**>(calloc(size,
-                                                  sizeof(sprite_ht_entry_t *)));
-  if (ht->entries == NULL) return -1;
-
-  ht->entry_count = 0;
-
-  return 0;
+void
+sprite_t::cache_sprite(uint64_t id, sprite_t *sprite) {
+  sprite_cache[id] = sprite;
 }
-
-/* Return a pointer to the surface pointer associated with
-   id. If it does not exist in the table it a new entry is
-   created. */
-static sprite_ht_entry_t *
-sprite_ht_store(sprite_ht_t *ht, const sprite_id_t *id) {
-  uint32_t hash = sprite_id_hash(id);
-  sprite_ht_entry_t *entry =
-            reinterpret_cast<sprite_ht_entry_t*>(&ht->entries[hash % ht->size]);
-
-  /* The first entry pointed to is not really an
-     entry but a sentinel. */
-  while (entry->next != NULL) {
-    entry = entry->next;
-    if (memcmp(id, &entry->id, sizeof(sprite_id_t)) == 0) {
-      return entry;
-    }
-  }
-
-  sprite_ht_entry_t *new_entry = reinterpret_cast<sprite_ht_entry_t*>(calloc(1,
-                                                    sizeof(sprite_ht_entry_t)));
-  if (new_entry == NULL) return NULL;
-
-  ht->entry_count += 1;
-
-  entry->next = new_entry;
-  memcpy(&new_entry->id, id, sizeof(sprite_id_t));
-
-  return new_entry;
-}
-
 
 /* There are different types of sprites:
    - Non-packed, rectangular sprites: These are simple called sprites here.
@@ -136,20 +74,27 @@ sprite_ht_store(sprite_ht_t *ht, const sprite_id_t *id) {
    or mask parts of other sprites completely (mask sprites).
 */
 
+sprite_t::sprite_t(unsigned int width, unsigned int height) {
+  this->width = width;
+  this->height = height;
+  size_t size = width * height * 4;
+  data = new uint8_t[size];
+  memset(data, 0, size);
+}
+
+sprite_t::~sprite_t() {
+  if (data != NULL) {
+    delete[] data;
+    data = NULL;
+  }
+}
+
 /* Create empty sprite object */
 static sprite_t *
 gfx_create_empty_sprite(const dos_sprite_t *sprite) {
-  sprite_t *s = new sprite_t;
-  size_t size = sprite->w * sprite->h * 4;
-  s->data = new uint8_t[size];
-  memset(s->data, 0, size);
-  s->delta_x = sprite->b_x;
-  s->delta_y = sprite->b_y;
-  s->offset_x = sprite->x;
-  s->offset_y = sprite->y;
-  s->width = sprite->w;
-  s->height = sprite->h;
-
+  sprite_t *s = new sprite_t(sprite->w, sprite->h);
+  s->set_delta(sprite->b_x, sprite->b_y);
+  s->set_offset(sprite->x, sprite->y);
   return s;
 }
 
@@ -164,10 +109,10 @@ gfx_create_sprite(const dos_sprite_t *sprite) {
 
   const uint8_t *src = reinterpret_cast<const uint8_t*>(sprite) +
                        sizeof(dos_sprite_t);
-  uint8_t *dest = reinterpret_cast<uint8_t*>(s->data);
-  uint size = sprite->w * sprite->h;
+  uint8_t *dest = s->get_data();
+  size_t size = sprite->w * sprite->h;
 
-  for (uint i = 0; i < size; i++) {
+  for (size_t i = 0; i < size; i++) {
     dest[4*i+0] = palette[3*src[i]+0]; /* Red */
     dest[4*i+1] = palette[3*src[i]+1]; /* Green */
     dest[4*i+2] = palette[3*src[i]+2]; /* Blue */
@@ -188,11 +133,11 @@ gfx_create_transparent_sprite(const dos_sprite_t *sprite, int color_off) {
 
   const uint8_t *src = reinterpret_cast<const uint8_t*>(sprite) +
                        sizeof(dos_sprite_t);
-  uint8_t *dest = reinterpret_cast<uint8_t*>(s->data);
-  uint size = sprite->w * sprite->h;
+  uint8_t *dest = s->get_data();
+  size_t size = sprite->w * sprite->h;
 
-  uint i = 0;
-  uint j = 0;
+  size_t i = 0;
+  size_t j = 0;
   while (j < size) {
     j += src[i];
     int n = src[i+1];
@@ -219,11 +164,11 @@ gfx_create_bitmap_sprite(const dos_sprite_t *sprite, uint value) {
 
   const uint8_t *src = reinterpret_cast<const uint8_t*>(sprite) +
                        sizeof(dos_sprite_t);
-  uint8_t *dest = reinterpret_cast<uint8_t*>(s->data);
-  uint size = sprite->w * sprite->h;
+  uint8_t *dest = s->get_data();
+  size_t size = sprite->w * sprite->h;
 
-  uint i = 0;
-  uint j = 0;
+  size_t i = 0;
+  size_t j = 0;
   while (j < size) {
     j += src[i];
     int n = src[i+1];
@@ -237,89 +182,33 @@ gfx_create_bitmap_sprite(const dos_sprite_t *sprite, uint value) {
   return s;
 }
 
-/* Free sprite object */
-static void
-gfx_free_sprite(sprite_t *sprite) {
-  delete[] reinterpret_cast<uint8_t*>(sprite->data);
-  delete sprite;
-}
-
 /* Apply mask to map tile sprite
    The resulting sprite will be extended to the height of the mask
    by repeating lines from the top of the sprite. The width of the
    mask and the sprite must be identical. */
-static sprite_t *
-gfx_mask_map_tile_sprite(const sprite_t *sprite, const sprite_t *mask) {
-  size_t size = mask->width * mask->height * 4;
-  sprite_t *s = new sprite_t;
-  s->data = new uint8_t[size];
-  s->delta_x = mask->delta_x;
-  s->delta_y = mask->delta_y;
-  s->offset_x = mask->offset_x;
-  s->offset_y = mask->offset_y;
-  s->width = mask->width;
-  s->height = mask->height;
+sprite_t *
+sprite_t::get_masked(sprite_t *mask) {
+  sprite_t *s = new sprite_t(mask->get_width(), mask->get_height());
+  s->set_delta(mask->get_delta_x(), mask->get_delta_y());
+  s->set_offset(mask->get_offset_x(), mask->get_offset_y());
 
-  const uint8_t *src_data = reinterpret_cast<const uint8_t*>(sprite->data);
-  uint8_t *dest_data = reinterpret_cast<uint8_t*>(s->data);
-  size_t to_copy = size;
+  uint8_t *dest_data = s->get_data();
+  size_t to_copy = mask->get_width() * mask->get_height() * 4;
 
   /* Copy extended data to new sprite */
   while (to_copy > 0) {
-    size_t s = std::min(to_copy, size_t(sprite->width * sprite->height * 4));
-    memcpy(dest_data, src_data, s);
+    size_t s = std::min(to_copy, size_t(width * height * 4));
+    memcpy(dest_data, data, s);
     to_copy -= s;
     dest_data += s;
   }
 
   /* Apply mask from mask sprite */
-  uint8_t *s_data = reinterpret_cast<uint8_t*>(s->data);
-  const uint8_t *m_data = reinterpret_cast<const uint8_t*>(mask->data);
-  for (uint y = 0; y < mask->height; y++) {
-    for (uint x = 0; x < mask->width; x++) {
-      int alpha_index = 4*(y * mask->width + x) + 3;
-      s_data[alpha_index] &= m_data[alpha_index];
-    }
-  }
-
-  return s;
-}
-
-/* Apply mask to waves sprite
-   The mask will be applied at a horizontal offset on the
-   sprite, and the resulting sprite will be limited by the
-   size of the mask, and the height of the sprite. The sprite
-   must be at least as wide as the mask plus the mask offset. */
-static sprite_t *
-gfx_mask_waves_sprite(const sprite_t *sprite, const sprite_t *mask, int x_off) {
-  unsigned int height = std::min(mask->height, sprite->height);
-  size_t size = mask->width * height * 4;
-  sprite_t *s = new sprite_t;
-  s->data = new uint8_t[size];
-  s->delta_x = sprite->delta_x;
-  s->delta_y = sprite->delta_y;
-  s->offset_x = sprite->offset_x;
-  s->offset_y = sprite->offset_y;
-  s->width = mask->width;
-  s->height = height;
-
-  const uint8_t *src_data = reinterpret_cast<const uint8_t*>(sprite->data) +
-                            4*x_off;
-  uint8_t *dest_data = reinterpret_cast<uint8_t*>(s->data);
-
-  /* Copy data to new sprite */
-  for (uint i = 0; i < height; i++) {
-    memcpy(dest_data, src_data, mask->width * 4);
-    src_data += 4*sprite->width;
-    dest_data += 4*mask->width;
-  }
-
-  /* Apply mask from mask sprite */
-  uint8_t *s_data = reinterpret_cast<uint8_t*>(s->data);
-  const uint8_t *m_data = reinterpret_cast<const uint8_t*>(mask->data);
-  for (uint y = 0; y < s->height; y++) {
-    for (uint x = 0; x < s->width; x++) {
-      int alpha_index = 4*(y * s->width + x) + 3;
+  uint8_t *s_data = s->get_data();
+  const uint8_t *m_data = mask->get_data();
+  for (size_t y = 0; y < mask->get_height(); y++) {
+    for (size_t x = 0; x < mask->get_width(); x++) {
+      size_t alpha_index = 4*(y * mask->get_width() + x) + 3;
       s_data[alpha_index] &= m_data[alpha_index];
     }
   }
@@ -339,11 +228,9 @@ gfx_t::gfx_t(unsigned int width, unsigned int height, bool fullscreen) {
 
   const dos_sprite_t *cursor = data_get_dos_sprite(DATA_CURSOR);
   sprite_t *sprite = gfx_create_transparent_sprite(cursor, 0);
-  video->set_cursor(sprite->data, sprite->width, sprite->height);
-  gfx_free_sprite(sprite);
-
-  /* Init sprite cache */
-  sprite_ht_init(&sprite_cache, 10240);
+  video->set_cursor(sprite->get_data(), sprite->get_width(),
+                    sprite->get_height());
+  delete sprite;
 
   gfx_t::instance = this;
 }
@@ -363,26 +250,23 @@ gfx_t::get_instance() {
 /* Draw the opaque sprite with data file index of
    sprite at x, y in dest frame. */
 void
-frame_t::draw_sprite(int x, int y, uint sprite) {
-  const dos_sprite_t *spr = data_get_dos_sprite(sprite);
-  assert(spr != NULL);
+frame_t::draw_sprite(int x, int y, unsigned int sprite) {
+  uint64_t id = sprite_t::create_sprite_id(sprite, 0, 0);
+  sprite_t *s = sprite_t::get_cached_sprite(id);
+  if (s == NULL) {
+    const dos_sprite_t *spr = data_get_dos_sprite(sprite);
+    assert(spr != NULL);
 
-  sprite_id_t id;
-  id.sprite = spr;
-  id.mask = NULL;
-  id.offset = 0;
-  sprite_ht_entry_t *entry = sprite_ht_store(&sprite_cache, &id);
-  if (entry->value == NULL) {
-    sprite_t *s = gfx_create_sprite(spr);
+    s = gfx_create_sprite(spr);
     assert(s != NULL);
-    entry->value = s;
+    sprite_t::cache_sprite(id, s);
   }
 
-  x += entry->value->offset_x;
-  y += entry->value->offset_y;
-  video_image_t *image = video->create_image(entry->value->data,
-                                             entry->value->width,
-                                             entry->value->height);
+  x += s->get_offset_x();
+  y += s->get_offset_y();
+  video_image_t *image = video->create_image(s->get_data(),
+                                             s->get_width(),
+                                             s->get_height());
   video->draw_sprite(image, x, y, 0, video_frame);
   video->destroy_image(image);
 }
@@ -390,29 +274,26 @@ frame_t::draw_sprite(int x, int y, uint sprite) {
 /* Draw the transparent sprite with data file index of
    sprite at x, y in dest frame.*/
 void
-frame_t::draw_transp_sprite(int x, int y, uint sprite, int use_off,
+frame_t::draw_transp_sprite(int x, int y, unsigned int sprite, int use_off,
                             int y_off, int color_off) {
-  const dos_sprite_t *spr = data_get_dos_sprite(sprite);
-  assert(spr != NULL);
+  uint64_t id = sprite_t::create_sprite_id(sprite, 0, color_off);
+  sprite_t *s = sprite_t::get_cached_sprite(id);
+  if (s == NULL) {
+    const dos_sprite_t *spr = data_get_dos_sprite(sprite);
+    assert(spr != NULL);
 
-  sprite_id_t id;
-  id.sprite = spr;
-  id.mask = NULL;
-  id.offset = color_off;
-  sprite_ht_entry_t *entry = sprite_ht_store(&sprite_cache, &id);
-  if (entry->value == NULL) {
-    sprite_t *s = gfx_create_transparent_sprite(spr, color_off);
+    s = gfx_create_transparent_sprite(spr, color_off);
     assert(s != NULL);
-    entry->value = s;
+    sprite_t::cache_sprite(id, s);
   }
 
   if (use_off) {
-    x += entry->value->offset_x;
-    y += entry->value->offset_y;
+    x += s->get_offset_x();
+    y += s->get_offset_y();
   }
-  video_image_t *image = video->create_image(entry->value->data,
-                                             entry->value->width,
-                                             entry->value->height);
+  video_image_t *image = video->create_image(s->get_data(),
+                                             s->get_width(),
+                                             s->get_height());
   video->draw_sprite(image, x, y, y_off, video_frame);
   video->destroy_image(image);
 }
@@ -420,39 +301,38 @@ frame_t::draw_transp_sprite(int x, int y, uint sprite, int use_off,
 /* Draw the masked sprite with given mask and sprite
    indices at x, y in dest frame. */
 void
-frame_t::draw_masked_sprite(int x, int y, uint mask, uint sprite) {
-  const dos_sprite_t *spr = data_get_dos_sprite(sprite);
-  assert(spr != NULL);
+frame_t::draw_masked_sprite(int x, int y, unsigned int mask,
+                            unsigned int sprite) {
+  uint64_t id = sprite_t::create_sprite_id(sprite, mask, 0);
+  sprite_t *s = sprite_t::get_cached_sprite(id);
+  if (s == NULL) {
+    const dos_sprite_t *spr = data_get_dos_sprite(sprite);
+    assert(spr != NULL);
 
-  const dos_sprite_t *msk = data_get_dos_sprite(mask);
-  assert(msk != NULL);
+    const dos_sprite_t *msk = data_get_dos_sprite(mask);
+    assert(msk != NULL);
 
-  sprite_id_t id;
-  id.sprite = spr;
-  id.mask = msk;
-  id.offset = 0;
-  sprite_ht_entry_t *entry = sprite_ht_store(&sprite_cache, &id);
-  if (entry->value == NULL) {
-    sprite_t *s = gfx_create_sprite(spr);
+    s = gfx_create_sprite(spr);
     assert(s != NULL);
 
     sprite_t *m = gfx_create_bitmap_sprite(msk, 0xff);
     assert(m != NULL);
 
-    sprite_t *masked = gfx_mask_map_tile_sprite(s, m);
+    sprite_t *masked = s->get_masked(m);
     assert(masked != NULL);
 
-    entry->value = masked;
+    delete s;
+    delete m;
 
-    gfx_free_sprite(s);
-    gfx_free_sprite(m);
+    s = masked;
+    sprite_t::cache_sprite(id, s);
   }
 
-  x += entry->value->offset_x;
-  y += entry->value->offset_y;
-  video_image_t *image = video->create_image(entry->value->data,
-                                             entry->value->width,
-                                             entry->value->height);
+  x += s->get_offset_x();
+  y += s->get_offset_y();
+  video_image_t *image = video->create_image(s->get_data(),
+                                             s->get_width(),
+                                             s->get_height());
   video->draw_sprite(image, x, y, 0, video_frame);
   video->destroy_image(image);
 }
@@ -463,25 +343,22 @@ frame_t::draw_masked_sprite(int x, int y, uint mask, uint sprite) {
    sprite. */
 void
 frame_t::draw_overlay_sprite(int x, int y, uint sprite, int y_off) {
-  const dos_sprite_t *spr = data_get_dos_sprite(sprite);
-  assert(spr != NULL);
+  uint64_t id = sprite_t::create_sprite_id(sprite, 0, 0);
+  sprite_t *s = sprite_t::get_cached_sprite(id);
+  if (s == NULL) {
+    const dos_sprite_t *spr = data_get_dos_sprite(sprite);
+    assert(spr != NULL);
 
-  sprite_id_t id;
-  id.sprite = spr;
-  id.mask = NULL;
-  id.offset = 0;
-  sprite_ht_entry_t *entry = sprite_ht_store(&sprite_cache, &id);
-  if (entry->value == NULL) {
-    sprite_t *s = gfx_create_bitmap_sprite(spr, 0x80);
+    s = gfx_create_bitmap_sprite(spr, 0x80);
     assert(s != NULL);
-    entry->value = s;
+    sprite_t::cache_sprite(id, s);
   }
 
-  x += entry->value->offset_x;
-  y += entry->value->offset_y;
-  video_image_t *image = video->create_image(entry->value->data,
-                                             entry->value->width,
-                                             entry->value->height);
+  x += s->get_offset_x();
+  y += s->get_offset_y();
+  video_image_t *image = video->create_image(s->get_data(),
+                                             s->get_width(),
+                                             s->get_height());
   video->draw_sprite(image, x, y, y_off, video_frame);
   video->destroy_image(image);
 }
@@ -489,47 +366,40 @@ frame_t::draw_overlay_sprite(int x, int y, uint sprite, int y_off) {
 /* Draw the waves sprite with given mask and sprite
    indices at x, y in dest frame. */
 void
-frame_t::draw_waves_sprite(int x, int y, uint mask, uint sprite, int mask_off) {
-  const dos_sprite_t *spr = data_get_dos_sprite(sprite);
-  assert(spr != NULL);
+frame_t::draw_waves_sprite(int x, int y, uint mask, uint sprite) {
+  uint64_t id = sprite_t::create_sprite_id(sprite, mask, 0);
+  sprite_t *s = sprite_t::get_cached_sprite(id);
+  if (s == NULL) {
+    const dos_sprite_t *spr = data_get_dos_sprite(sprite);
+    assert(spr != NULL);
 
-  const dos_sprite_t *msk = NULL;
-  if (mask > 0) {
-    msk = data_get_dos_sprite(mask);
-    assert(msk != NULL);
-  }
-
-  sprite_id_t id;
-  id.sprite = spr;
-  id.mask = msk;
-  id.offset = mask_off;
-  sprite_ht_entry_t *entry = sprite_ht_store(&sprite_cache, &id);
-  if (entry->value == NULL) {
-    sprite_t *s = gfx_create_transparent_sprite(spr, 0);
+    s = gfx_create_transparent_sprite(spr, 0);
     assert(s != NULL);
 
-    sprite_t *m = NULL;
-    if (msk != NULL) {
-      m = gfx_create_bitmap_sprite(msk, 0xff);
+    if (mask > 0) {
+      const dos_sprite_t *msk = data_get_dos_sprite(mask);
+      assert(msk != NULL);
+
+      sprite_t *m = gfx_create_bitmap_sprite(msk, 0xff);
       assert(m != NULL);
 
-      sprite_t *masked = gfx_mask_waves_sprite(s, m, mask_off);
+      sprite_t *masked = s->get_masked(m);
       assert(masked != NULL);
 
-      gfx_free_sprite(s);
-      gfx_free_sprite(m);
+      delete s;
+      delete m;
 
-      entry->value = masked;
-    } else {
-      entry->value = s;
+      s = masked;
     }
+
+    sprite_t::cache_sprite(id, s);
   }
 
-  x += entry->value->offset_x;
-  y += entry->value->offset_y;
-  video_image_t *image = video->create_image(entry->value->data,
-                                             entry->value->width,
-                                             entry->value->height);
+  x += s->get_offset_x();
+  y += s->get_offset_y();
+  video_image_t *image = video->create_image(s->get_data(),
+                                             s->get_width(),
+                                             s->get_height());
   video->draw_sprite(image, x, y, 0, video_frame);
   video->destroy_image(image);
 }

@@ -22,6 +22,8 @@
 #ifndef SRC_GFX_H_
 #define SRC_GFX_H_
 
+#include <map>
+
 class video_t;
 class video_frame_t;
 
@@ -45,8 +47,7 @@ class frame_t {
   void draw_masked_sprite(int x, int y, unsigned int mask,
                           unsigned int sprite);
   void draw_overlay_sprite(int x, int y, unsigned int sprite, int y_off);
-  void draw_waves_sprite(int x, int y, unsigned int mask, unsigned int sprite,
-                         int mask_off);
+  void draw_waves_sprite(int x, int y, unsigned int mask, unsigned int sprite);
 
   /* Drawing functions */
   void draw_rect(int x, int y, int width, int height, unsigned int color);
@@ -66,14 +67,39 @@ class frame_t {
 
 /* Sprite object. Contains RGBA data. */
 class sprite_t {
- public:
+ protected:
   int delta_x;
   int delta_y;
   int offset_x;
   int offset_y;
   unsigned int width;
   unsigned int height;
-  void *data;
+  uint8_t *data;
+
+  typedef std::map<uint64_t, sprite_t*> sprite_cache_t;
+  static sprite_cache_t sprite_cache;
+
+ public:
+  sprite_t(unsigned int width, unsigned int height);
+  virtual ~sprite_t();
+
+  uint8_t *get_data() const { return data; }
+  unsigned int get_width() const { return width; }
+  unsigned int get_height() const { return height; }
+  int get_delta_x() const { return delta_x; }
+  int get_delta_y() const { return delta_y; }
+  int get_offset_x() const { return offset_x; }
+  int get_offset_y() const { return offset_y; }
+
+  void set_offset(int x, int y) { offset_x = x; offset_y = y; }
+  void set_delta(int x, int y) { delta_x = x; delta_y = y; }
+
+  static uint64_t create_sprite_id(uint64_t sprite, uint64_t mask,
+                                   uint64_t offset);
+  static void cache_sprite(uint64_t id, sprite_t *sprite);
+  static sprite_t *get_cached_sprite(uint64_t id);
+
+  sprite_t *get_masked(sprite_t *mask);
 };
 
 class gfx_t {

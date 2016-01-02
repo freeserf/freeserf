@@ -1157,13 +1157,13 @@ viewport_t::draw_water_waves(map_pos_t pos, int x, int y) {
   int sprite = DATA_MAP_WAVES_BASE + (((pos ^ 5) + (game.tick >> 3)) & 0xf);
 
   if (MAP_TYPE_DOWN(pos) < 4 && MAP_TYPE_UP(pos) < 4) {
-    frame->draw_waves_sprite(x - 16, y, 0, sprite, 0);
+    frame->draw_waves_sprite(x - 16, y, 0, sprite);
   } else if (MAP_TYPE_DOWN(pos) < 4) {
     int mask = DATA_MAP_MASK_DOWN_BASE + 40;
-    frame->draw_waves_sprite(x, y, mask, sprite, 16);
+    frame->draw_waves_sprite(x, y + 16, mask, sprite);
   } else {
     int mask = DATA_MAP_MASK_UP_BASE + 40;
-    frame->draw_waves_sprite(x - 16, y, mask, sprite, 0);
+    frame->draw_waves_sprite(x - 16, y, mask, sprite);
   }
 }
 
