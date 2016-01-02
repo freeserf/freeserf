@@ -186,7 +186,7 @@ gfx_create_transparent_sprite(const dos_sprite_t *sprite, int color_off) {
 
 /* Create overlay sprite object */
 static sprite_t *
-gfx_create_bitmap_sprite(const dos_sprite_t *sprite, uint value) {
+gfx_create_bitmap_sprite(const dos_sprite_t *sprite, unsigned int value) {
   sprite_t *s = gfx_create_empty_sprite(sprite);
   if (s == NULL) return NULL;
 
@@ -303,9 +303,10 @@ frame_t::draw_sprite(int x, int y, unsigned int sprite) {
 
 /* Draw the transparent sprite with data file index of
    sprite at x, y in dest frame.*/
+
 void
-frame_t::draw_transp_sprite(int x, int y, unsigned int sprite, int use_off,
-                            int y_off, int color_off) {
+frame_t::draw_transp_sprite(int x, int y, unsigned int sprite, bool use_off,
+                            unsigned char color_off, float progress) {
   uint64_t id = sprite_t::create_sprite_id(sprite, 0, color_off);
   image_t *image = image_t::get_cached_image(id);
   if (image == NULL) {
@@ -325,7 +326,37 @@ frame_t::draw_transp_sprite(int x, int y, unsigned int sprite, int use_off,
     x += image->get_offset_x();
     y += image->get_offset_y();
   }
+  int y_off = image->get_height() - static_cast<int>(image->get_height() *
+                                                     progress);
   video->draw_image(image->get_video_image(), x, y, y_off, video_frame);
+}
+
+
+void
+frame_t::draw_transp_sprite(int x, int y, unsigned int sprite, bool use_off) {
+  draw_transp_sprite(x, y, sprite, use_off, 0, 1.f);
+}
+
+void
+frame_t::draw_transp_sprite(int x, int y, unsigned int sprite, bool use_off,
+                            float progress) {
+  draw_transp_sprite(x, y, sprite, use_off, 0, progress);
+}
+
+void
+frame_t::draw_transp_sprite(int x, int y, unsigned int sprite, bool use_off,
+                            unsigned char color_offs) {
+  draw_transp_sprite(x, y, sprite, use_off, color_offs, 1.f);
+}
+
+void
+frame_t::draw_transp_sprite_relatively(int x, int y, unsigned int sprite,
+                                       unsigned int offs_sprite) {
+  const dos_sprite_t *spr = data_get_dos_sprite(offs_sprite);
+  x += spr->b_x;
+  y += spr->b_y;
+
+  draw_transp_sprite(x, y, sprite, true, 0, 1.f);
 }
 
 /* Draw the masked sprite with given mask and sprite
@@ -372,7 +403,13 @@ frame_t::draw_masked_sprite(int x, int y, unsigned int mask,
    offset in the vertical axis from y_off in the
    sprite. */
 void
-frame_t::draw_overlay_sprite(int x, int y, uint sprite, int y_off) {
+frame_t::draw_overlay_sprite(int x, int y, unsigned int sprite) {
+  draw_overlay_sprite(x, y, sprite, 1.f);
+}
+
+void
+frame_t::draw_overlay_sprite(int x, int y, unsigned int sprite,
+                             float progress) {
   uint64_t id = sprite_t::create_sprite_id(sprite, 0, 0);
   image_t *image = image_t::get_cached_image(id);
   if (image == NULL) {
@@ -390,13 +427,18 @@ frame_t::draw_overlay_sprite(int x, int y, uint sprite, int y_off) {
 
   x += image->get_offset_x();
   y += image->get_offset_y();
+
+  int y_off = image->get_height() - static_cast<int>(image->get_height() *
+                                                     progress);
+
   video->draw_image(image->get_video_image(), x, y, y_off, video_frame);
 }
 
 /* Draw the waves sprite with given mask and sprite
    indices at x, y in dest frame. */
 void
-frame_t::draw_waves_sprite(int x, int y, uint mask, uint sprite) {
+frame_t::draw_waves_sprite(int x, int y, unsigned int mask,
+                           unsigned int sprite) {
   uint64_t id = sprite_t::create_sprite_id(sprite, mask, 0);
   image_t *image = image_t::get_cached_image(id);
   if (image == NULL) {
@@ -435,7 +477,8 @@ frame_t::draw_waves_sprite(int x, int y, uint mask, uint sprite) {
 
 /* Draw a character at x, y in the dest frame. */
 void
-frame_t::draw_char_sprite(int x, int y, uint c, int color, int shadow) {
+frame_t::draw_char_sprite(int x, int y, unsigned char c, unsigned char color,
+                          unsigned char shadow) {
   static const int sprite_offset_from_ascii[] = {
     -1, -1, -1, -1, -1, -1, -1, -1,
     -1, -1, -1, -1, -1, -1, -1, -1,
@@ -476,14 +519,14 @@ frame_t::draw_char_sprite(int x, int y, uint c, int color, int shadow) {
   if (s < 0) return;
 
   if (shadow) {
-    draw_transp_sprite(x, y, DATA_FONT_SHADOW_BASE + s, 0, 0, shadow);
+    draw_transp_sprite(x, y, DATA_FONT_SHADOW_BASE + s, false, shadow);
   }
-  draw_transp_sprite(x, y, DATA_FONT_BASE + s, 0, 0, color);
+  draw_transp_sprite(x, y, DATA_FONT_BASE + s, false, color);
 }
 
 /* Draw the string str at x, y in the dest frame. */
 void
-frame_t::draw_string(int x, int y, unsigned int color, int shadow,
+frame_t::draw_string(int x, int y, unsigned char color, int shadow,
                      const char *str) {
   for (; *str != 0; x += 8) {
     if (/*string_bg*/ 0) {
@@ -497,7 +540,7 @@ frame_t::draw_string(int x, int y, unsigned int color, int shadow,
 
 /* Draw the number n at x, y in the dest frame. */
 void
-frame_t::draw_number(int x, int y, unsigned int color, int shadow, int n) {
+frame_t::draw_number(int x, int y, unsigned char color, int shadow, int n) {
   if (n < 0) {
     draw_char_sprite(x, y, '-', color, shadow);
     x += 8;
@@ -520,7 +563,7 @@ frame_t::draw_number(int x, int y, unsigned int color, int shadow, int n) {
 
 /* Draw a rectangle with color at x, y in the dest frame. */
 void
-frame_t::draw_rect(int x, int y, int width, int height, unsigned int color) {
+frame_t::draw_rect(int x, int y, int width, int height, unsigned char color) {
   uint8_t *palette =
            reinterpret_cast<uint8_t*>(data_get_object(DATA_PALETTE_GAME, NULL));
   color_t c = { palette[3*color+0],
@@ -533,7 +576,7 @@ frame_t::draw_rect(int x, int y, int width, int height, unsigned int color) {
 
 /* Draw a rectangle with color at x, y in the dest frame. */
 void
-frame_t::fill_rect(int x, int y, int width, int height, unsigned int color) {
+frame_t::fill_rect(int x, int y, int width, int height, unsigned char color) {
   uint8_t *palette =
            reinterpret_cast<uint8_t*>(data_get_object(DATA_PALETTE_GAME, NULL));
   color_t c = { palette[3*color+0],

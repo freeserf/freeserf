@@ -171,7 +171,7 @@ void
 minimap_t::draw_minimap_rect() {
   int y = height/2;
   int x = width/2;
-  frame->draw_transp_sprite(x, y, 354, 1, 0, 0);
+  frame->draw_transp_sprite(x, y, 354, true);
 }
 
 void

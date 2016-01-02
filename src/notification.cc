@@ -60,7 +60,7 @@ notification_box_t::draw_string(int x, int y, const char *str) {
 
 void
 notification_box_t::draw_map_object(int x, int y, int sprite) {
-  frame->draw_transp_sprite(8*x, y, DATA_MAP_OBJECT_BASE + sprite, 0, 0, 0);
+  frame->draw_transp_sprite(8*x, y, DATA_MAP_OBJECT_BASE + sprite, false);
 }
 
 int

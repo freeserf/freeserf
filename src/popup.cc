@@ -315,7 +315,7 @@ popup_box_t::draw_popup_icon(int x, int y, int sprite) {
 /* Draw building in a popup frame. */
 void
 popup_box_t::draw_popup_building(int x, int y, int sprite) {
-  frame->draw_transp_sprite(8*x+8, y+9, DATA_MAP_OBJECT_BASE + sprite, 0, 0, 0);
+  frame->draw_transp_sprite(8*x+8, y+9, DATA_MAP_OBJECT_BASE + sprite, false);
 }
 
 /* Fill the background of a popup frame. */
@@ -412,7 +412,7 @@ popup_box_t::draw_custom_bld_box(const int sprites[]) {
     int x = sprites[1];
     int y = sprites[2];
     frame->draw_transp_sprite(8*x+8, y+9, DATA_MAP_OBJECT_BASE + sprites[0],
-                              0, 0, 0);
+                              false);
     sprites += 3;
   }
 }

@@ -101,7 +101,7 @@ class viewport_t : public gui_object_t {
   void draw_border_segment(int x, int y, map_pos_t pos, dir_t dir);
   void draw_paths_and_borders();
   void draw_game_sprite(int x, int y, int index);
-  void draw_serf(int x, int y, int color, int head, int body);
+  void draw_serf(int x, int y, unsigned char color, int head, int body);
   void draw_shadow_and_building_sprite(int x, int y, int index);
   void draw_shadow_and_building_unfinished(int x, int y, int index,
                                            int progress);

@@ -529,7 +529,7 @@ viewport_t::draw_border_segment(int x, int y, map_pos_t pos, dir_t dir) {
     sprite += 3;
   }
 
-  frame->draw_transp_sprite(x, y, DATA_MAP_BORDER_BASE + sprite, 0, 0, 0);
+  frame->draw_transp_sprite(x, y, DATA_MAP_BORDER_BASE + sprite, false);
 }
 
 void
@@ -614,38 +614,32 @@ viewport_t::draw_paths_and_borders() {
 
 void
 viewport_t::draw_game_sprite(int x, int y, int index) {
-  frame->draw_transp_sprite(x, y, DATA_GAME_OBJECT_BASE + index, 1, 0, 0);
+  frame->draw_transp_sprite(x, y, DATA_GAME_OBJECT_BASE + index, true);
 }
 
 void
-viewport_t::draw_serf(int x, int y, int color, int head, int body) {
-  const dos_sprite_t *s_arms = data_get_dos_sprite(DATA_SERF_ARMS_BASE + body);
-  frame->draw_transp_sprite(x, y, DATA_SERF_ARMS_BASE + body, 1, 0, 0);
-  frame->draw_transp_sprite(x, y, DATA_SERF_TORSO_BASE + body, 1, 0, color);
+viewport_t::draw_serf(int x, int y, unsigned char color, int head, int body) {
+  frame->draw_transp_sprite(x, y, DATA_SERF_ARMS_BASE + body, true);
+  frame->draw_transp_sprite(x, y, DATA_SERF_TORSO_BASE + body, true, color);
 
   if (head >= 0) {
-    x += s_arms->b_x;
-    y += s_arms->b_y;
-    frame->draw_transp_sprite(x, y, DATA_SERF_HEAD_BASE + head, 1, 0, 0);
+    frame->draw_transp_sprite_relatively(x, y, DATA_SERF_HEAD_BASE + head,
+                                         DATA_SERF_ARMS_BASE + body);
   }
 }
 
 void
 viewport_t::draw_shadow_and_building_sprite(int x, int y, int index) {
-  frame->draw_overlay_sprite(x, y, DATA_MAP_SHADOW_BASE + index, 0);
-  frame->draw_transp_sprite(x, y, DATA_MAP_OBJECT_BASE + index, 1, 0, 0);
+  frame->draw_overlay_sprite(x, y, DATA_MAP_SHADOW_BASE + index);
+  frame->draw_transp_sprite(x, y, DATA_MAP_OBJECT_BASE + index, true);
 }
 
 void
 viewport_t::draw_shadow_and_building_unfinished(int x, int y, int index,
                                                 int progress) {
-  const dos_sprite_t *building = data_get_dos_sprite(DATA_MAP_OBJECT_BASE +
-                                                     index);
-  int h = ((building->h * progress) >> 16) + 1;
-  int y_off = building->h - h;
-
-  frame->draw_overlay_sprite(x, y, DATA_MAP_SHADOW_BASE + index, y_off);
-  frame->draw_transp_sprite(x, y, DATA_MAP_OBJECT_BASE + index, 1, y_off, 0);
+  float p = static_cast<float>(progress) / static_cast<float>(0xFFFF);
+  frame->draw_overlay_sprite(x, y, DATA_MAP_SHADOW_BASE + index, p);
+  frame->draw_transp_sprite(x, y, DATA_MAP_OBJECT_BASE + index, true, p);
 }
 
 static const int map_building_frame_sprite[] = {
@@ -1333,7 +1327,7 @@ viewport_t::draw_row_serf(int x, int y, int shadow, int color, int body) {
 
   /* Shadow */
   if (shadow) {
-    frame->draw_overlay_sprite(x, y, DATA_SERF_SHADOW, 0);
+    frame->draw_overlay_sprite(x, y, DATA_SERF_SHADOW);
   }
 
   int hi = ((body >> 8) & 0xff) * 2;

@@ -79,27 +79,35 @@ class frame_t {
 
   /* Sprite functions */
   void draw_sprite(int x, int y, unsigned int sprite);
-  void draw_transp_sprite(int x, int y, unsigned int sprite, int use_off,
-                          int y_off, int color_off);
-  void draw_masked_sprite(int x, int y, unsigned int mask,
-                          unsigned int sprite);
-  void draw_overlay_sprite(int x, int y, unsigned int sprite, int y_off);
+  void draw_transp_sprite(int x, int y, unsigned int sprite, bool use_off);
+  void draw_transp_sprite(int x, int y, unsigned int sprite, bool use_off,
+                          float progress);
+  void draw_transp_sprite(int x, int y, unsigned int sprite, bool use_off,
+                          unsigned char color_offs);
+  void draw_transp_sprite_relatively(int x, int y, unsigned int sprite,
+                                     unsigned int offs_sprite);
+  void draw_masked_sprite(int x, int y, unsigned int mask, unsigned int sprite);
+  void draw_overlay_sprite(int x, int y, unsigned int sprite);
+  void draw_overlay_sprite(int x, int y, unsigned int sprite, float progress);
   void draw_waves_sprite(int x, int y, unsigned int mask, unsigned int sprite);
 
   /* Drawing functions */
-  void draw_rect(int x, int y, int width, int height, unsigned int color);
-  void fill_rect(int x, int y, int width, int height, unsigned int color);
+  void draw_rect(int x, int y, int width, int height, unsigned char color);
+  void fill_rect(int x, int y, int width, int height, unsigned char color);
 
   /* Text functions */
-  void draw_string(int x, int y, unsigned int color, int shadow,
+  void draw_string(int x, int y, unsigned char color, int shadow,
                    const char *str);
-  void draw_number(int x, int y, unsigned int color, int shadow, int n);
+  void draw_number(int x, int y, unsigned char color, int shadow, int n);
 
   /* Frame functions */
   void draw_frame(int dx, int dy, int sx, int sy, frame_t *src, int w, int h);
 
  protected:
-  void draw_char_sprite(int x, int y, unsigned int c, int color, int shadow);
+  void draw_char_sprite(int x, int y, unsigned char c, unsigned char color,
+                        unsigned char shadow);
+  void draw_transp_sprite(int x, int y, unsigned int sprite, bool use_off,
+                          unsigned char color_off, float progress);
 };
 
 /* Sprite object. Contains RGBA data. */
