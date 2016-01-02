@@ -216,7 +216,7 @@
 				>
 			</File>
 			<File
-				RelativePath="..\src\gfx.c"
+				RelativePath="..\src\gfx.cc"
 				>
 			</File>
 			<File
@@ -280,7 +280,7 @@
 				>
 			</File>
 			<File
-				RelativePath="..\src\sdl-video.c"
+				RelativePath="..\src\video-sdl.cc"
 				>
 			</File>
 			<File
@@ -422,7 +422,7 @@
 				>
 			</File>
 			<File
-				RelativePath="..\src\sdl-video.h"
+				RelativePath="..\src\video-sdl.h"
 				>
 			</File>
 			<File

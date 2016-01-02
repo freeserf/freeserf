@@ -38,9 +38,7 @@
 
 #include "src/misc.h"
 BEGIN_EXT_C
-  #include "src/gfx.h"
   #include "src/data.h"
-  #include "src/sdl-video.h"
   #include "src/log.h"
   #include "src/audio.h"
   #include "src/savegame.h"
@@ -48,6 +46,8 @@ BEGIN_EXT_C
   #include "src/version.h"
   #include "src/game.h"
 END_EXT_C
+#include "src/gfx.h"
+#include "src/video-sdl.h"
 #include "src/event_loop.h"
 #include "src/interface.h"
 

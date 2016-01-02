@@ -1,5 +1,5 @@
 /*
- * sdl-video.h - SDL graphics rendering
+ * video-sdl.h - SDL graphics rendering
  *
  * Copyright (C) 2012-2014  Jon Lund Steffensen <jonlst@gmail.com>
  *
@@ -19,15 +19,14 @@
  * along with freeserf.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef _SDL_VIDEO_H
-#define _SDL_VIDEO_H
+#ifndef SRC_VIDEO_SDL_H_
+#define SRC_VIDEO_SDL_H_
 
 #ifdef HAVE_STDINT_H
 #include <stdint.h>
 #endif
 
-#include "gfx.h"
-
+#include "src/gfx.h"
 
 int sdl_init();
 void sdl_deinit();
@@ -37,18 +36,23 @@ int sdl_set_fullscreen(int enable);
 int sdl_is_fullscreen();
 
 frame_t *sdl_get_screen_frame();
-void sdl_frame_init(frame_t *frame, int x, int y, int width, int height, frame_t *dest);
+void sdl_frame_init(frame_t *frame, int x, int y, int width, int height,
+                    frame_t *dest);
 void sdl_frame_deinit(frame_t *frame);
 int sdl_frame_get_width(const frame_t *frame);
 int sdl_frame_get_height(const frame_t *frame);
 void sdl_warp_mouse(int x, int y);
 
-void sdl_draw_sprite(const sprite_t *sprite, int x, int y, int y_offset, frame_t *dest);
-void sdl_draw_frame(int dx, int dy, frame_t *dest, int sx, int sy, frame_t *src, int w, int h);
-void sdl_draw_rect(int x, int y, int width, int height, const color_t *color, frame_t *dest);
-void sdl_fill_rect(int x, int y, int width, int height, const color_t *color, frame_t *dest);
+void sdl_draw_sprite(const sprite_t *sprite, int x, int y, int y_offset,
+                     frame_t *dest);
+void sdl_draw_frame(int dx, int dy, frame_t *dest, int sx, int sy, frame_t *src,
+                    int w, int h);
+void sdl_draw_rect(int x, int y, int width, int height, const color_t *color,
+                   frame_t *dest);
+void sdl_fill_rect(int x, int y, int width, int height, const color_t *color,
+                   frame_t *dest);
 void sdl_swap_buffers();
 
 void sdl_set_cursor(const sprite_t *sprite);
 
-#endif /* ! _SDL_VIDEO_H */
+#endif  // SRC_VIDEO_SDL_H_

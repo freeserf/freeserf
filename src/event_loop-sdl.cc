@@ -21,15 +21,15 @@
 
 #include "src/event_loop-sdl.h"
 
-#include "src/freeserf.h"
+#include <SDL.h>
 
+#include "src/misc.h"
 BEGIN_EXT_C
-  #include "src/gfx.h"
   #include "src/log.h"
-  #include "src/sdl-video.h"
 END_EXT_C
-
-#include "SDL.h"
+#include "src/gfx.h"
+#include "src/freeserf.h"
+#include "src/video-sdl.h"
 
 event_loop_t *
 create_event_loop() {

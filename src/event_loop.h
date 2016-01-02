@@ -24,10 +24,7 @@
 
 #include <list>
 
-#include "src/misc.h"
-BEGIN_EXT_C
-  #include "src/gfx.h"
-END_EXT_C
+#include "src/gfx.h"
 
 typedef enum {
   EVENT_TYPE_CLICK,
