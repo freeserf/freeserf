@@ -24,6 +24,7 @@ freeserf_SOURCES = \
 	src/map.c src/map.h \
 	src/player.c src/player.h \
 	src/video-sdl.cc src/video-sdl.h \
+	src/video.cc src/video.h \
 	src/audio.h \
 	src/savegame.c src/savegame.h \
 	src/list.c src/list.h \

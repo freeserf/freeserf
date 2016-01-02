@@ -22,19 +22,20 @@
 #ifndef SRC_GFX_H_
 #define SRC_GFX_H_
 
-#include <SDL.h>
-
-class video_sdl_t;
+class video_t;
+class video_frame_t;
 
 /* Frame. Keeps track of a specific rectangular area of a surface.
    Multiple frames can refer to the same surface. */
 class frame_t {
  public:
-  video_sdl_t *video;
-  SDL_Surface *surf;
+  video_t *video;
+  video_frame_t *video_frame;
+  bool owner;
 
  public:
-  frame_t(video_sdl_t *video, unsigned int width, unsigned int height);
+  frame_t(video_t *video, unsigned int width, unsigned int height);
+  frame_t(video_t *video, video_frame_t *video_frame);
   virtual ~frame_t();
 
   /* Sprite functions */
@@ -48,41 +49,37 @@ class frame_t {
                          int mask_off);
 
   /* Drawing functions */
-  void draw_rect(int x, int y, int width, int height, int color);
-  void fill_rect(int x, int y, int width, int height, int color);
+  void draw_rect(int x, int y, int width, int height, unsigned int color);
+  void fill_rect(int x, int y, int width, int height, unsigned int color);
 
   /* Text functions */
-  void draw_string(int x, int y, int color, int shadow, const char *str);
-  void draw_number(int x, int y, int color, int shadow, int n);
+  void draw_string(int x, int y, unsigned int color, int shadow,
+                   const char *str);
+  void draw_number(int x, int y, unsigned int color, int shadow, int n);
 
   /* Frame functions */
   void draw_frame(int dx, int dy, int sx, int sy, frame_t *src, int w, int h);
 
  protected:
-  void draw_char_sprite(int x, int y, uint c, int color, int shadow);
+  void draw_char_sprite(int x, int y, unsigned int c, int color, int shadow);
 };
 
-/* Sprite object. Immediately followed by RGBA data. */
-typedef struct {
+/* Sprite object. Contains RGBA data. */
+class sprite_t {
+ public:
   int delta_x;
   int delta_y;
   int offset_x;
   int offset_y;
   unsigned int width;
   unsigned int height;
-} sprite_t;
-
-typedef struct {
-  uint8_t r;
-  uint8_t g;
-  uint8_t b;
-  uint8_t a;
-} color_t;
+  void *data;
+};
 
 class gfx_t {
  protected:
   static gfx_t *instance;
-  video_sdl_t *video;
+  video_t *video;
 
  public:
   gfx_t(unsigned int width, unsigned int height, bool fullscreen);

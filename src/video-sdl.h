@@ -26,9 +26,27 @@
 #include <stdint.h>
 #endif
 
-#include "src/gfx.h"
+#include <SDL.h>
 
-class video_sdl_t {
+#include "src/video.h"
+
+class video_frame_t {
+ public:
+  SDL_Surface *surf;
+
+  video_frame_t() : surf(NULL) {}
+};
+
+class video_image_t {
+ public:
+  unsigned int w;
+  unsigned int h;
+  SDL_Surface *surf;
+
+  video_image_t() : surf(NULL), w(0), h(0) {}
+};
+
+class video_sdl_t : public video_t {
  protected:
   static int bpp;
   static Uint32 Rmask;
@@ -40,7 +58,7 @@ class video_sdl_t {
   SDL_Window *window;
   SDL_Renderer *renderer;
   SDL_Texture *screen_texture;
-  frame_t *screen;
+  video_frame_t *screen;
   bool fullscreen;
   SDL_Color pal_colors[256];
   SDL_Cursor *cursor;
@@ -49,33 +67,37 @@ class video_sdl_t {
   video_sdl_t();
   virtual ~video_sdl_t();
 
-  bool set_resolution(int width, int height, int fullscreen);
-  void get_resolution(int *width, int *height);
-  bool set_fullscreen(int enable);
-  bool is_fullscreen();
+  virtual bool set_resolution(unsigned int width, unsigned int height,
+                              bool fullscreen);
+  virtual void get_resolution(unsigned int *width, unsigned int *height);
+  virtual bool set_fullscreen(bool enable);
+  virtual bool is_fullscreen();
 
-  frame_t *get_screen_frame();
-  void frame_init(frame_t *frame, int width, int height);
-  void frame_deinit(frame_t *frame);
-  void warp_mouse(int x, int y);
+  virtual video_frame_t *get_screen_frame();
+  virtual video_frame_t *create_frame(unsigned int width, unsigned int height);
+  virtual void destroy_frame(video_frame_t *frame);
 
-  void draw_sprite(const sprite_t *sprite, int x, int y, int y_offset,
-                   frame_t *dest);
-  void draw_frame(int dx, int dy, frame_t *dest, int sx, int sy, frame_t *src,
-                  int w, int h);
-  void draw_rect(int x, int y, int width, int height, const color_t *color,
-                 frame_t *dest);
-  void fill_rect(int x, int y, int width, int height, const color_t *color,
-                 frame_t *dest);
-  void swap_buffers();
+  virtual video_image_t *create_image(void *data, unsigned int width,
+                                      unsigned int height);
+  virtual void destroy_image(video_image_t *image);
 
-  void set_cursor(const sprite_t *sprite);
+  virtual void warp_mouse(int x, int y);
+
+  virtual void draw_sprite(const video_image_t *image, int x, int y,
+                           int y_offset, video_frame_t *dest);
+  virtual void draw_frame(int dx, int dy, video_frame_t *dest, int sx, int sy,
+                          video_frame_t *src, int w, int h);
+  virtual void draw_rect(int x, int y, unsigned int width, unsigned int height,
+                         const color_t *color, video_frame_t *dest);
+  virtual void fill_rect(int x, int y, unsigned int width, unsigned int height,
+                         const color_t *color, video_frame_t *dest);
+  virtual void swap_buffers();
+
+  virtual void set_cursor(void *data, unsigned int width, unsigned int height);
 
  protected:
   SDL_Surface *create_surface(int width, int height);
   SDL_Surface *create_surface_from_data(void *data, int width, int height);
-  SDL_Surface *create_surface_from_sprite(const sprite_t *sprite);
-  void set_palette(const uint8_t *palette);
 };
 
 #endif  // SRC_VIDEO_SDL_H_

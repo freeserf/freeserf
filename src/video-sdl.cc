@@ -100,7 +100,11 @@ video_sdl_t::video_sdl_t() {
 }
 
 video_sdl_t::~video_sdl_t() {
-  set_cursor(NULL);
+  if (screen != NULL) {
+    delete screen;
+    screen = NULL;
+  }
+  set_cursor(NULL, 0, 0);
   SDL_Quit();
 }
 
@@ -117,7 +121,8 @@ video_sdl_t::create_surface(int width, int height) {
 }
 
 bool
-video_sdl_t::set_resolution(int width, int height, int fullscreen) {
+video_sdl_t::set_resolution(unsigned int width, unsigned int height,
+                            bool fullscreen) {
   /* Set fullscreen mode */
   int r = SDL_SetWindowFullscreen(window,
                                   fullscreen ? SDL_WINDOW_FULLSCREEN_DESKTOP :
@@ -128,7 +133,7 @@ video_sdl_t::set_resolution(int width, int height, int fullscreen) {
   }
 
   if (screen == NULL) {
-    screen = new frame_t(this, 100, 100);
+    screen = new video_frame_t();
   }
 
   /* Allocate new screen surface and texture */
@@ -137,10 +142,12 @@ video_sdl_t::set_resolution(int width, int height, int fullscreen) {
   }
   screen->surf = create_surface(width, height);
 
-  if (screen_texture != NULL) SDL_DestroyTexture(screen_texture);
+  if (screen_texture != NULL) {
+    SDL_DestroyTexture(screen_texture);
+  }
   screen_texture = SDL_CreateTexture(renderer, pixel_format,
-             SDL_TEXTUREACCESS_STREAMING,
-             width, height);
+                                     SDL_TEXTUREACCESS_STREAMING,
+                                     width, height);
   if (screen_texture == NULL) {
     LOGE("sdl-video", "Unable to create SDL texture: %s.", SDL_GetError());
     return false;
@@ -159,12 +166,20 @@ video_sdl_t::set_resolution(int width, int height, int fullscreen) {
 }
 
 void
-video_sdl_t::get_resolution(int *width, int *height) {
-  SDL_GL_GetDrawableSize(window, width, height);
+video_sdl_t::get_resolution(unsigned int *width, unsigned int *height) {
+  int w = 0;
+  int h = 0;
+  SDL_GL_GetDrawableSize(window, &w, &h);
+  if (width != NULL) {
+    *width = w;
+  }
+  if (height != NULL) {
+    *height = h;
+  }
 }
 
 bool
-video_sdl_t::set_fullscreen(int enable) {
+video_sdl_t::set_fullscreen(bool enable) {
   int width = 0;
   int height = 0;
   SDL_GL_GetDrawableSize(window, &width, &height);
@@ -176,26 +191,43 @@ video_sdl_t::is_fullscreen() {
   return fullscreen;
 }
 
-frame_t *
+video_frame_t *
 video_sdl_t::get_screen_frame() {
   return screen;
 }
 
-void
-video_sdl_t::frame_init(frame_t *frame, int width, int height) {
+video_frame_t *
+video_sdl_t::create_frame(unsigned int width, unsigned int height) {
+  video_frame_t *frame = new video_frame_t;
   frame->surf = create_surface(width, height);
+  return frame;
 }
 
 void
-video_sdl_t::frame_deinit(frame_t *frame) {
+video_sdl_t::destroy_frame(video_frame_t *frame) {
   SDL_FreeSurface(frame->surf);
+  delete frame;
+}
+
+video_image_t *
+video_sdl_t::create_image(void *data, unsigned int width, unsigned int height) {
+  video_image_t *image = new video_image_t();
+  image->w = width;
+  image->h = height;
+  image->surf = create_surface_from_data(data, width, height);
+  return image;
+}
+
+void
+video_sdl_t::destroy_image(video_image_t *image) {
+  SDL_FreeSurface(image->surf);
+  delete image;
 }
 
 void
 video_sdl_t::warp_mouse(int x, int y) {
   SDL_WarpMouseInWindow(NULL, x, y);
 }
-
 
 SDL_Surface *
 video_sdl_t::create_surface_from_data(void *data, int width, int height) {
@@ -210,7 +242,7 @@ video_sdl_t::create_surface_from_data(void *data, int width, int height) {
   }
 
   /* Covert to screen format */
-  SDL_Surface *surf_screen = SDL_ConvertSurface(surf, screen->surf->format, 0);
+  SDL_Surface *surf_screen = SDL_ConvertSurfaceFormat(surf, pixel_format, 0);
   if (surf_screen == NULL) {
     LOGE("sdl-video", "Unable to convert sprite surface: %s.", SDL_GetError());
     exit(EXIT_FAILURE);
@@ -221,43 +253,27 @@ video_sdl_t::create_surface_from_data(void *data, int width, int height) {
   return surf_screen;
 }
 
-SDL_Surface *
-video_sdl_t::create_surface_from_sprite(const sprite_t *sprite) {
-  const void *data = reinterpret_cast<const uint8_t*>(sprite) +
-                     sizeof(sprite_t);
-
-  uint width = sprite->width;
-  uint height = sprite->height;
-
-  return create_surface_from_data(const_cast<void*>(data), width, height);
-}
-
 void
-video_sdl_t::draw_sprite(const sprite_t *sprite, int x, int y, int y_offset,
-                         frame_t *dest) {
-  SDL_Surface *surf = create_surface_from_sprite(sprite);
-
-  SDL_Rect src_rect = { 0, y_offset, surf->w, surf->h - y_offset };
+video_sdl_t::draw_sprite(const video_image_t *image, int x, int y, int y_offset,
+                         video_frame_t *dest) {
+  SDL_Rect src_rect = { 0, y_offset, image->w, image->h - y_offset };
   SDL_Rect dest_rect = { x, y + y_offset, 0, 0 };
 
   /* Blit sprite */
-  int r = SDL_BlitSurface(surf, &src_rect, dest->surf, &dest_rect);
+  int r = SDL_BlitSurface(image->surf, &src_rect, dest->surf, &dest_rect);
   if (r < 0) {
     LOGE("sdl-video", "BlitSurface error: %s.", SDL_GetError());
   }
 
-  /* Clean up */
-  SDL_FreeSurface(surf);
-
 #if 0
   /* Bounding box */
-  sdl_draw_rect(x, y + y_off, surf->w, surf->h - y_off, 72, dest);
+  draw_rect(x, y + y_off, surf->w, surf->h - y_off, 72, dest);
 #endif
 }
 
 void
-video_sdl_t::draw_frame(int dx, int dy, frame_t *dest, int sx, int sy,
-                        frame_t *src, int w, int h) {
+video_sdl_t::draw_frame(int dx, int dy, video_frame_t *dest, int sx, int sy,
+                        video_frame_t *src, int w, int h) {
   int x = dx;
   int y = dy;
 
@@ -271,8 +287,8 @@ video_sdl_t::draw_frame(int dx, int dy, frame_t *dest, int sx, int sy,
 }
 
 void
-video_sdl_t::draw_rect(int x, int y, int width, int height,
-                       const color_t *color, frame_t *dest) {
+video_sdl_t::draw_rect(int x, int y, unsigned int width, unsigned int height,
+                       const color_t *color, video_frame_t *dest) {
   /* Draw rectangle. */
   fill_rect(x, y, width, 1, color, dest);
   fill_rect(x, y+height-1, width, 1, color, dest);
@@ -281,8 +297,8 @@ video_sdl_t::draw_rect(int x, int y, int width, int height,
 }
 
 void
-video_sdl_t::fill_rect(int x, int y, int width, int height,
-                       const color_t *color, frame_t *dest) {
+video_sdl_t::fill_rect(int x, int y, unsigned int width, unsigned int height,
+                       const color_t *color, video_frame_t *dest) {
   SDL_Rect rect = { x, y, width, height };
 
   /* Fill rectangle */
@@ -305,27 +321,16 @@ video_sdl_t::swap_buffers() {
 }
 
 void
-video_sdl_t::set_palette(const uint8_t *palette) {
-  /* Fill palette */
-  for (int i = 0; i < 256; i++) {
-    pal_colors[i].r = palette[i*3];
-    pal_colors[i].g = palette[i*3+1];
-    pal_colors[i].b = palette[i*3+2];
-    pal_colors[i].a = SDL_ALPHA_OPAQUE;
-  }
-}
-
-void
-video_sdl_t::set_cursor(const sprite_t *sprite) {
+video_sdl_t::set_cursor(void *data, unsigned int width, unsigned int height) {
   if (cursor != NULL) {
     SDL_SetCursor(NULL);
     SDL_FreeCursor(cursor);
     cursor = NULL;
   }
 
-  if (sprite == NULL) return;
+  if (data == NULL) return;
 
-  SDL_Surface *surface = create_surface_from_sprite(sprite);
+  SDL_Surface *surface = create_surface_from_data(data, width, height);
   cursor = SDL_CreateColorCursor(surface, 8, 8);
   SDL_SetCursor(cursor);
 }

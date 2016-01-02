@@ -280,6 +280,10 @@
 				>
 			</File>
 			<File
+				RelativePath="..\src\video.cc"
+				>
+			</File>
+			<File
 				RelativePath="..\src\video-sdl.cc"
 				>
 			</File>
@@ -419,6 +423,10 @@
 			</File>
 			<File
 				RelativePath="..\src\savegame.h"
+				>
+			</File>
+			<File
+				RelativePath="..\src\video.h"
 				>
 			</File>
 			<File

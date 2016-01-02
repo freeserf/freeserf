@@ -139,8 +139,8 @@ class popup_box_t : public gui_object_t {
   void draw_player_stat_chart(const int *data, int index, int color);
   void draw_stat_8_box();
   void draw_stat_7_box();
-  void draw_gauge_balance(int x, int y, uint value, uint count);
-  void draw_gauge_full(int x, int y, uint value, uint count);
+  void draw_gauge_balance(int x, int y, unsigned int value, unsigned int count);
+  void draw_gauge_full(int x, int y, unsigned int value, unsigned int count);
   void draw_stat_1_box();
   void draw_stat_2_box();
   void draw_stat_6_box();
