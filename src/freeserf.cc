@@ -40,12 +40,12 @@
 BEGIN_EXT_C
   #include "src/data.h"
   #include "src/log.h"
-  #include "src/audio.h"
   #include "src/savegame.h"
   #include "src/mission.h"
   #include "src/version.h"
   #include "src/game.h"
 END_EXT_C
+#include "src/audio.h"
 #include "src/gfx.h"
 #include "src/video-sdl.h"
 #include "src/event_loop.h"

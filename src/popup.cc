@@ -30,9 +30,9 @@
 BEGIN_EXT_C
   #include "src/data.h"
   #include "src/game.h"
-  #include "src/audio.h"
   #include "src/debug.h"
 END_EXT_C
+#include "src/audio.h"
 #include "src/gfx.h"
 #include "src/interface.h"
 #include "src/event_loop.h"

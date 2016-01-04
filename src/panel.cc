@@ -24,10 +24,10 @@
 #include "src/misc.h"
 BEGIN_EXT_C
   #include "src/data.h"
-  #include "src/audio.h"
   #include "src/game.h"
   #include "src/debug.h"
 END_EXT_C
+#include "src/audio.h"
 #include "src/interface.h"
 #include "src/popup.h"
 #include "src/viewport.h"
