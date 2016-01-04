@@ -355,9 +355,12 @@ main(int argc, char *argv[]) {
   }
 
   /* TODO move to right place */
-  audio_init();
-  audio_set_volume(75);
-  midi_play_track(MIDI_TRACK_0);
+  audio_t *audio = audio_t::get_instance();
+  audio->set_volume(.75f);
+  audio_player_t *player = audio->get_music_player();
+  if (player) {
+    player->play_track(MIDI_TRACK_0);
+  }
 
   game.map_generator = map_generator;
 
@@ -403,7 +406,7 @@ main(int argc, char *argv[]) {
   /* Clean up */
   delete interface;
   map_deinit();
-  audio_deinit();
+  delete audio;
   delete gfx;
   data_unload();
   delete event_loop;

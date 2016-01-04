@@ -23,8 +23,8 @@
 
 #include <cmath>
 #include <cassert>
-#include <cstring>
 #include <algorithm>
+#include <strstream>
 
 #include "src/misc.h"
 BEGIN_EXT_C
@@ -1936,14 +1936,20 @@ popup_box_t::draw_options_box() {
   draw_green_string(1, 39, "effects");
   draw_green_string(1, 54, "Volume");
 
-  draw_popup_icon(13, 10, midi_is_enabled() ? 288 : 220); /* Music */
-  draw_popup_icon(13, 30, sfx_is_enabled() ? 288 : 220); /* Sfx */
+  audio_t *audio = audio_t::get_instance();
+  audio_player_t *player = audio->get_music_player();
+  draw_popup_icon(13, 10, ((player != NULL) && player->is_enabled()) ? 288 :
+                  220); /* Music */
+  player = audio->get_sound_player();
+  draw_popup_icon(13, 30, ((player != NULL) && player->is_enabled()) ? 288 :
+                  220); /* Sfx */
   draw_popup_icon(11, 50, 220); /* Volume minus */
   draw_popup_icon(13, 50, 221); /* Volume plus */
 
-  char volume[4] = {0};
-  snprintf(volume, sizeof(volume), "%d", audio_volume());
-  draw_green_string(8, 54, volume);
+  int volume = 99.f * audio->get_volume();
+  std::strstream str;
+  str << volume;
+  draw_green_string(8, 54, str.str());
 
   draw_green_string(1, 70, "Fullscreen");
   draw_green_string(1, 79, "video");
@@ -2836,9 +2842,9 @@ popup_box_t::handle_send_geologist() {
 
   int r = game_send_geologist(flag);
   if (r < 0) {
-    sfx_play_clip(SFX_NOT_ACCEPTED);
+    play_sound(SFX_NOT_ACCEPTED);
   } else {
-    sfx_play_clip(SFX_ACCEPTED);
+    play_sound(SFX_ACCEPTED);
     interface->close_popup();
   }
 }
@@ -2848,9 +2854,9 @@ popup_box_t::sett_8_train(int number) {
   int r = player_promote_serfs_to_knights(interface->get_player(), number);
 
   if (r == 0) {
-    sfx_play_clip(SFX_NOT_ACCEPTED);
+    play_sound(SFX_NOT_ACCEPTED);
   } else {
-    sfx_play_clip(SFX_ACCEPTED);
+    play_sound(SFX_ACCEPTED);
   }
 }
 
@@ -3089,12 +3095,12 @@ popup_box_t::handle_action(int action, int x, int y) {
   case ACTION_START_ATTACK:
     if (interface->get_player()->knights_attacking > 0) {
       if (interface->get_player()->attacking_building_count > 0) {
-        sfx_play_clip(SFX_ACCEPTED);
+        play_sound(SFX_ACCEPTED);
         player_start_attack(interface->get_player());
       }
       interface->close_popup();
     } else {
-      sfx_play_clip(SFX_NOT_ACCEPTED);
+      play_sound(SFX_NOT_ACCEPTED);
     }
     break;
   case ACTION_CLOSE_ATTACK_BOX:
@@ -3323,7 +3329,7 @@ popup_box_t::handle_action(int action, int x, int y) {
     if (0/* TODO suggest save game*/) {
       set_box(BOX_NO_SAVE_QUIT_CONFIRM);
     } else {
-      sfx_play_clip(SFX_AHHH);
+      play_sound(SFX_AHHH);
       event_loop_t::get_instance()->quit();
     }
     break;
@@ -3332,7 +3338,7 @@ popup_box_t::handle_action(int action, int x, int y) {
     interface->close_popup();
     break;
   case ACTION_NO_SAVE_QUIT_CONFIRM:
-    sfx_play_clip(SFX_AHHH);
+    play_sound(SFX_AHHH);
     event_loop_t::get_instance()->quit();
     break;
   case ACTION_SHOW_QUIT:
@@ -3344,7 +3350,7 @@ popup_box_t::handle_action(int action, int x, int y) {
     /* TODO */
   case ACTION_SETT_8_CYCLE:
     player_cycle_knights(interface->get_player());
-    sfx_play_clip(SFX_ACCEPTED);
+    play_sound(SFX_ACCEPTED);
     break;
   case ACTION_CLOSE_OPTIONS:
     interface->close_popup();
@@ -3440,11 +3446,11 @@ popup_box_t::handle_action(int action, int x, int y) {
     break;
   case ACTION_SETT_8_SET_COMBAT_MODE_WEAK:
     interface->get_player()->flags &= ~BIT(1);
-    sfx_play_clip(SFX_ACCEPTED);
+    play_sound(SFX_ACCEPTED);
     break;
   case ACTION_SETT_8_SET_COMBAT_MODE_STRONG:
     interface->get_player()->flags |= BIT(1);
-    sfx_play_clip(SFX_ACCEPTED);
+    play_sound(SFX_ACCEPTED);
     break;
   case ACTION_ATTACKING_SELECT_ALL_1:
     interface->get_player()->knights_attacking =
@@ -3530,27 +3536,41 @@ popup_box_t::handle_action(int action, int x, int y) {
     interface->get_player()->castle_knights_wanted =
       std::min(interface->get_player()->castle_knights_wanted+1, 99);
     break;
-  case ACTION_OPTIONS_MUSIC:
-    midi_enable(!midi_is_enabled());
-    sfx_play_clip(SFX_CLICK);
+  case ACTION_OPTIONS_MUSIC: {
+    audio_t *audio = audio_t::get_instance();
+    audio_player_t *player = audio->get_music_player();
+    if (player != NULL) {
+      player->enable(!player->is_enabled());
+    }
+    play_sound(SFX_CLICK);
     break;
-  case ACTION_OPTIONS_SFX:
-    sfx_enable(!sfx_is_enabled());
-    sfx_play_clip(SFX_CLICK);
+  }
+  case ACTION_OPTIONS_SFX: {
+    audio_t *audio = audio_t::get_instance();
+    audio_player_t *player = audio->get_sound_player();
+    if (player != NULL) {
+      player->enable(!player->is_enabled());
+    }
+    play_sound(SFX_CLICK);
     break;
+  }
   case ACTION_OPTIONS_FULLSCREEN:
     gfx_t::get_instance()->set_fullscreen(
                                       !gfx_t::get_instance()->is_fullscreen());
-    sfx_play_clip(SFX_CLICK);
+    play_sound(SFX_CLICK);
     break;
-  case ACTION_OPTIONS_VOLUME_MINUS:
-    audio_volume_down();
-    sfx_play_clip(SFX_CLICK);
+  case ACTION_OPTIONS_VOLUME_MINUS: {
+    audio_t *audio = audio_t::get_instance();
+    audio->volume_down();
+    play_sound(SFX_CLICK);
     break;
-  case ACTION_OPTIONS_VOLUME_PLUS:
-    audio_volume_up();
-    sfx_play_clip(SFX_CLICK);
+  }
+  case ACTION_OPTIONS_VOLUME_PLUS: {
+    audio_t *audio = audio_t::get_instance();
+    audio->volume_up();
+    play_sound(SFX_CLICK);
     break;
+  }
   case ACTION_DEMOLISH:
     interface->demolish_object();
     interface->close_popup();
@@ -3569,7 +3589,7 @@ popup_box_t::handle_clickmap(int x, int y, const int clkmap[]) {
   while (clkmap[0] >= 0) {
     if (clkmap[1] <= x && x < clkmap[1] + clkmap[3] &&
         clkmap[2] <= y && y < clkmap[2] + clkmap[4]) {
-      sfx_play_clip(SFX_CLICK);
+      play_sound(SFX_CLICK);
 
       action_t action = (action_t)clkmap[0];
       handle_action(action, x-clkmap[1], y-clkmap[2]);

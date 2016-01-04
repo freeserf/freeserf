@@ -24,6 +24,7 @@
 #include <algorithm>
 
 #include "src/misc.h"
+#include "src/audio.h"
 
 #ifdef min
 # undef min
@@ -232,4 +233,13 @@ gui_object_t::del_float(gui_object_t *obj) {
   obj->set_parent(NULL);
   floats.remove(obj);
   set_redraw();
+}
+
+void
+gui_object_t::play_sound(int sound) {
+  audio_t *audio = audio_t::get_instance();
+  audio_player_t *player = audio->get_sound_player();
+  if (player != NULL) {
+    player->play_track(sound);
+  }
 }

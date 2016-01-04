@@ -23,6 +23,9 @@
 #ifndef SRC_AUDIO_H_
 #define SRC_AUDIO_H_
 
+#include <map>
+#include <SDL_mixer.h>
+
 typedef enum {
   SFX_MESSAGE = 1,
   SFX_ACCEPTED = 2,
@@ -73,22 +76,125 @@ typedef enum {
   MIDI_TRACK_3 = 4,
 } midi_t;
 
-/* Common audio. */
-int audio_init();
-void audio_deinit();
-int audio_volume();
-void audio_set_volume(int volume);
-void audio_volume_up();
-void audio_volume_down();
+class audio_volume_controller_t {
+ public:
+  virtual float get_volume() = 0;
+  virtual void set_volume(float volume) = 0;
+  virtual void volume_up() = 0;
+  virtual void volume_down() = 0;
+};
 
-/* Play sound. */
-void sfx_play_clip(sfx_t sfx);
-void sfx_enable(int enable);
-int sfx_is_enabled();
+class audio_track_t {
+public:
+  virtual ~audio_track_t() {}
 
-/* Play music. */
-void midi_play_track(midi_t midi);
-void midi_enable(int enable);
-int midi_is_enabled();
+  virtual void play() = 0;
+};
+
+class audio_player_t {
+ protected:
+  typedef std::map<int, audio_track_t*> track_cache_t;
+  track_cache_t track_cache;
+  bool enabled;
+
+ public:
+  audio_player_t();
+  virtual ~audio_player_t();
+
+  virtual void play_track(int track_id);
+  virtual void enable(bool enable) = 0;
+  virtual bool is_enabled() const { return enabled; }
+  virtual audio_volume_controller_t *get_volume_controller() = 0;
+
+ protected:
+  virtual audio_track_t *create_track(int track_id) = 0;
+  virtual void stop() = 0;
+};
+
+class sfx_track_t : public audio_track_t {
+ protected:
+  Mix_Chunk *chunk;
+
+ public:
+  explicit sfx_track_t(Mix_Chunk *chunk);
+  virtual ~sfx_track_t();
+
+  virtual void play();
+};
+
+class sfx_player_t : public audio_player_t, public audio_volume_controller_t {
+ // audio_player_t
+ public:
+  virtual void enable(bool enable);
+  virtual audio_volume_controller_t *get_volume_controller() { return this; }
+
+ protected:
+  virtual audio_track_t *create_track(int track_id);
+  virtual void stop();
+
+ // audio_volume_controller_t
+ public:
+  virtual float get_volume();
+  virtual void set_volume(float volume);
+  virtual void volume_up();
+  virtual void volume_down();
+};
+
+class midi_track_t : public audio_track_t {
+ protected:
+  Mix_Music *chunk;
+
+ public:
+  explicit midi_track_t(Mix_Music *chunk);
+  virtual ~midi_track_t();
+
+  virtual void play();
+};
+
+class midi_player_t : public audio_player_t, public audio_volume_controller_t {
+ // audio_player_t
+ public:
+  virtual void enable(bool enable);
+  virtual audio_volume_controller_t *get_volume_controller() { return this; }
+
+ protected:
+  virtual audio_track_t *create_track(int track_id);
+  virtual void stop();
+
+ // audio_volume_controller_t
+ public:
+  virtual float get_volume();
+  virtual void set_volume(float volume);
+  virtual void volume_up();
+  virtual void volume_down();
+};
+
+class audio_t : public audio_volume_controller_t {
+ protected:
+  static audio_t *instance;
+
+  audio_player_t *sfx_player;
+  audio_player_t *midi_player;
+
+  float volume;
+
+ public:
+  /* Common audio. */
+  audio_t();
+  virtual ~audio_t();
+
+  static audio_t *get_instance();
+
+  audio_volume_controller_t *get_volume_controller() { return this; }
+  audio_player_t *get_sound_player() { return sfx_player; }
+  audio_player_t *get_music_player() { return midi_player; }
+
+ // audio_volume_controller_t
+ public:
+  virtual float get_volume();
+  virtual void set_volume(float volume);
+  virtual void volume_up();
+  virtual void volume_down();
+};
 
 #endif  // SRC_AUDIO_H_

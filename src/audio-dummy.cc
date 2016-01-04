@@ -27,62 +27,43 @@ BEGIN_EXT_C
 END_EXT_C
 
 /* Common audio. */
-int
-audio_init() {
+audio_t::audio_t() {
   LOGI("audio-dummy", "Initializing audio driver `dummy'.");
-  return 0;
+  sfx_player = NULL;
+  midi_player = NULL;
+  volume = 0.f;
+}
+
+audio_t::~audio_t() {
+}
+
+audio_t *audio_t::instance = NULL;
+
+audio_t *
+audio_t::get_instance() {
+  if (instance == NULL) {
+    instance = new audio_t();
+  }
+
+  return instance;
+}
+
+float
+audio_t::get_volume() {
+  return 0.f;
 }
 
 void
-audio_deinit() {
-}
-
-int
-audio_volume() {
-  return 0;
-}
-
-void
-audio_set_volume(int volume) {
+audio_t::set_volume(float volume) {
   LOGV("audio-dummy", "Request to set volume to %i", volume);
 }
 
 void
-audio_volume_up() {
+audio_t::volume_up() {
   LOGV("audio-dummy", "Request to increase volume");
 }
 
 void
-audio_volume_down() {
+audio_t::volume_down() {
   LOGV("audio-dummy", "Request to decrease volume");
-}
-
-/* Play sound. */
-void
-sfx_play_clip(sfx_t sfx) {
-  LOGV("audio-dummy", "Request to play SFX clip %i", sfx);
-}
-
-void
-sfx_enable(int enable) {
-}
-
-int
-sfx_is_enabled() {
-  return 0;
-}
-
-/* Play music. */
-void
-midi_play_track(midi_t midi) {
-  LOGV("audio-dummy", "Request to play MIDI track %i", midi);
-}
-
-void
-midi_enable(int enable) {
-}
-
-int
-midi_is_enabled() {
-  return 0;
 }

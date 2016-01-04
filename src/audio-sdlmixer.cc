@@ -22,6 +22,7 @@
 #include "src/audio.h"
 
 #include <cstring>
+#include <cassert>
 
 #include <SDL.h>
 #include <SDL_mixer.h>
@@ -35,107 +36,101 @@ BEGIN_EXT_C
   #include "src/freeserf_endian.h"
 END_EXT_C
 
-/* Play sound. */
 
-typedef struct {
-  list_elm_t elm;
-  int num;
-  Mix_Chunk *chunk;
-} audio_clip_t;
+audio_t *audio_t::instance = NULL;
 
-typedef struct {
-  list_elm_t elm;
-  int num;
-  Mix_Music *music;
-} track_t;
-
-static list_t sfx_clips_to_play;
-static list_t midi_tracks;
-static int sfx_enabled = 1;
-static int midi_enabled = 1;
-static midi_t current_track = MIDI_TRACK_NONE;
-
-static void midi_track_finished();
-
-int
-audio_init() {
+audio_t::audio_t() {
   LOGI("audio-sdlmixer", "Initializing audio driver `sdlmixer'.");
-
-  list_init(&sfx_clips_to_play);
-  list_init(&midi_tracks);
 
   int r = Mix_Init(0);
   if (r != 0) {
     LOGE("audio-sdlmixer", "Could not init SDL_mixer: %s.", Mix_GetError());
-    return -1;
+    assert(false);
   }
 
   r = Mix_OpenAudio(8000, MIX_DEFAULT_FORMAT, MIX_DEFAULT_CHANNELS, 512);
   if (r < 0) {
     LOGE("audio-sdlmixer", "Could not open audio device: %s.", Mix_GetError());
-    return -1;
+    assert(false);
   }
 
   r = Mix_AllocateChannels(16);
   if (r != 16) {
     LOGE("audio-sdlmixer", "Failed to allocate channels: %s.", Mix_GetError());
-    return -1;
+    assert(false);
   }
-
+/*
   Mix_HookMusicFinished(midi_track_finished);
+*/
+  volume = 1.f;
 
-  return 0;
+  sfx_player = new sfx_player_t();
+  midi_player = new midi_player_t();
 }
 
-void
-audio_deinit() {
-  while (!list_is_empty(&sfx_clips_to_play)) {
-    list_elm_t *elm = list_remove_head(&sfx_clips_to_play);
-    audio_clip_t *audio_clip = reinterpret_cast<audio_clip_t*>(elm);
-    Mix_FreeChunk(audio_clip->chunk);
-    free(elm);
+audio_t::~audio_t() {
+  if (sfx_player != NULL) {
+    delete sfx_player;
+    sfx_player = NULL;
   }
 
-  while (!list_is_empty(&midi_tracks)) {
-    list_elm_t *elm = list_remove_head(&midi_tracks);
-    track_t *track = reinterpret_cast<track_t*>(elm);
-    Mix_FreeMusic(track->music);
-    free(elm);
+  if (midi_player != NULL) {
+    delete midi_player;
+    midi_player = NULL;
   }
 
   Mix_CloseAudio();
   Mix_Quit();
 }
 
-int
-audio_volume() {
-  return static_cast<int>(static_cast<float>(Mix_Volume(-1, -1)) /
-                          static_cast<float>(MIX_MAX_VOLUME) * 99.f + 0.5f);
+audio_t *
+audio_t::get_instance() {
+  if (instance == NULL) {
+    instance = new audio_t();
+  }
+  return instance;
+}
+
+float
+audio_t::get_volume() {
+  return volume;
 }
 
 void
-audio_set_volume(int volume) {
-  /* TODO Increment by one only works for MIX_MAX_VALUE > 50*/
-  volume = static_cast<int>(static_cast<float>(volume) /
-                            static_cast<float>(MIX_MAX_VOLUME) * 99.f + 0.5f);
-  Mix_Volume(-1, volume);
-  Mix_VolumeMusic(volume);
+audio_t::set_volume(float volume) {
+  this->volume = volume;
+
+  if (midi_player != NULL) {
+    audio_volume_controller_t *volume_controller =
+                                           midi_player->get_volume_controller();
+    if (volume_controller != NULL) {
+      volume_controller->set_volume(volume_controller->get_volume() * volume);
+    }
+  }
+
+  if (sfx_player != NULL) {
+    audio_volume_controller_t *volume_controller =
+                                            sfx_player->get_volume_controller();
+    if (volume_controller != NULL) {
+      volume_controller->set_volume(volume_controller->get_volume() * volume);
+    }
+  }
 }
 
 void
-audio_volume_up() {
-  int volume = audio_volume();
-  audio_set_volume(volume + 1);
+audio_t::volume_up() {
+  float volume = get_volume();
+  set_volume(volume + 0.1f);
 }
 
 void
-audio_volume_down() {
-  int volume = audio_volume();
-  audio_set_volume(volume - 1);
+audio_t::volume_down() {
+  float volume = get_volume();
+  set_volume(volume - 0.1f);
 }
 
 static char *
-sfx_produce_wav(char* data, uint32_t size, size_t *new_size) {
+sfx_produce_wav(void* data, size_t size, size_t *new_size) {
 #define WRITE_DATA_WG(X) { memcpy(current, &X, sizeof(X)); \
                            current+=sizeof(X); };
 #define WRITE_BE32_WG(X) { uint32_t val = X; \
@@ -152,6 +147,8 @@ sfx_produce_wav(char* data, uint32_t size, size_t *new_size) {
                            WRITE_DATA_WG(val); }
 #define WRITE_BYTE_WG(X) { *current = (uint8_t)X; \
                            current++; }
+
+  char *bytes = reinterpret_cast<char*>(data);
 
   *new_size = 44 + size*2;
 
@@ -177,9 +174,9 @@ sfx_produce_wav(char* data, uint32_t size, size_t *new_size) {
 
   /* Subchunk #2 */
   WRITE_BE32_WG(0x64617461);  /* 'data' */
-  WRITE_LE32_WG(size*2);        /* Data size */
+  WRITE_LE32_WG(static_cast<uint32_t>(size*2));        /* Data size */
   for (uint32_t i = 0; i < size; i++) {
-    int value = *(data + i);
+    int value = *(bytes + i);
     value = value - 0x20;
     WRITE_BE16_WG(value*0xFF);
   }
@@ -187,60 +184,115 @@ sfx_produce_wav(char* data, uint32_t size, size_t *new_size) {
   return result;
 }
 
+audio_player_t::audio_player_t() {
+  enabled = true;
+}
+
+audio_player_t::~audio_player_t() {
+  while (track_cache.size()) {
+    audio_track_t *track = track_cache.begin()->second;
+    track_cache.erase(track_cache.begin());
+    delete track;
+  }
+}
+
 void
-sfx_play_clip(sfx_t sfx) {
-  if (0 == sfx_enabled) {
+audio_player_t::play_track(int track_id) {
+  if (!is_enabled()) {
     return;
   }
 
-  audio_clip_t *audio_clip = NULL;
-  list_elm_t *elm;
-  list_foreach(&sfx_clips_to_play, elm) {
-    if (sfx == reinterpret_cast<audio_clip_t*>(elm)->num) {
-      audio_clip = reinterpret_cast<audio_clip_t*>(elm);
+  audio_track_t *track = NULL;
+  track_cache_t::iterator it = track_cache.find(track_id);
+  if (it == track_cache.end()) {
+    track = create_track(track_id);
+    if (track != NULL) {
+      track_cache[track_id] = track;
     }
+  } else {
+    track = it->second;
   }
 
-  if (NULL == audio_clip) {
-    audio_clip = reinterpret_cast<audio_clip_t*>(malloc(sizeof(audio_clip_t)));
-    if (audio_clip == NULL) abort();
-    audio_clip->num = sfx;
+  if (track != NULL) {
+    track->play();
+  }
+}
 
-    size_t size = 0;
-    char *data = reinterpret_cast<char*>(data_get_object(DATA_SFX_BASE + sfx,
-                                                         &size));
-
-    char *wav = sfx_produce_wav(data, static_cast<int>(size), &size);
-
-    SDL_RWops *rw = SDL_RWFromMem(wav, static_cast<int>(size));
-    audio_clip->chunk = Mix_LoadWAV_RW(rw, 0);
-    free(wav);
-    if (!audio_clip->chunk) {
-      LOGE("audio-sdlmixer", "Mix_LoadWAV_RW: %s.", Mix_GetError());
-      free(audio_clip);
-      return;
-    }
-
-    list_prepend(&sfx_clips_to_play, reinterpret_cast<list_elm_t*>(audio_clip));
+audio_track_t *
+sfx_player_t::create_track(int track_id) {
+  size_t size = 0;
+  void *data = data_get_object(DATA_SFX_BASE + track_id, &size);
+  if (data == NULL) {
+    return NULL;
   }
 
-  int r = Mix_PlayChannel(-1, audio_clip->chunk, 0);
+  void *wav = sfx_produce_wav(data, size, &size);
+  if (wav == NULL) {
+    return NULL;
+  }
+
+  SDL_RWops *rw = SDL_RWFromMem(wav, static_cast<int>(size));
+  Mix_Chunk *chunk = Mix_LoadWAV_RW(rw, 0);
+  free(wav);
+  if (chunk == NULL) {
+    LOGE("audio-sdlmixer", "Mix_LoadWAV_RW: %s.", Mix_GetError());
+    return NULL;
+  }
+
+  return new sfx_track_t(chunk);
+}
+
+void
+sfx_player_t::enable(bool enable) {
+  enabled = enable;
+  if (!enabled) {
+    stop();
+  }
+}
+
+void
+sfx_player_t::stop() {
+  Mix_HaltChannel(-1);
+}
+
+float
+sfx_player_t::get_volume() {
+  return static_cast<float>(Mix_Volume(-1, -1)) /
+         static_cast<float>(MIX_MAX_VOLUME);
+}
+
+void
+sfx_player_t::set_volume(float volume) {
+  volume = std::max(std::min(0.f, volume), 1.f);
+  int mix_volume = static_cast<float>(MIX_MAX_VOLUME) * volume;
+  Mix_Volume(-1, mix_volume);
+}
+
+void
+sfx_player_t::volume_up() {
+  set_volume(get_volume() + 0.1f);
+}
+
+void
+sfx_player_t::volume_down() {
+  set_volume(get_volume() - 0.1f);
+}
+
+sfx_track_t::sfx_track_t(Mix_Chunk *chunk) {
+  this->chunk = chunk;
+}
+
+sfx_track_t::~sfx_track_t() {
+  Mix_FreeChunk(chunk);
+}
+
+void
+sfx_track_t::play() {
+  int r = Mix_PlayChannel(-1, chunk, 0);
   if (r < 0) {
     LOGE("audio-sdlmixer", "Could not play SFX clip: %s.", Mix_GetError());
-    return;
   }
 }
-
-void
-sfx_enable(int enable) {
-  sfx_enabled = enable;
-}
-
-int
-sfx_is_enabled() {
-  return sfx_enabled;
-}
-
 
 /* Play music. */
 
@@ -575,87 +627,94 @@ midi_produce(midi_file_t *midi, size_t *size) {
   return midi->data;
 }
 
-void
-midi_play_track(midi_t midi) {
-  if (0 == midi_enabled) {
-    return;
+audio_track_t *
+midi_player_t::create_track(int track_id) {
+  size_t size = 0;
+  void *data = data_get_object(DATA_MUSIC_GAME + track_id, &size);
+  if (NULL == data) {
+    return NULL;
   }
 
-  track_t *track = NULL;
-  list_elm_t *elm;
-  list_foreach(&midi_tracks, elm) {
-    if (midi == reinterpret_cast<track_t*>(elm)->num) {
-      track = reinterpret_cast<track_t*>(elm);
-    }
+  midi_file_t midi_file;
+  pqueue_init(&midi_file.nodes, 16*1024,
+              reinterpret_cast<pqueue_less_func*>(midi_node_less));
+  midi_file.tempo = 0;
+  midi_file.data = NULL;
+  midi_file.size = 0;
+
+  xmi_process_subchunks(reinterpret_cast<char*>(data), static_cast<int>(size),
+                        &midi_file);
+  data = midi_produce(&midi_file, &size);
+
+  pqueue_deinit(&midi_file.nodes);
+
+  SDL_RWops *rw = SDL_RWFromMem(data, static_cast<int>(size));
+  Mix_Music *music = Mix_LoadMUS_RW(rw, 0);
+  free(data);
+  if (music == NULL) {
+    return NULL;
   }
 
-  current_track = midi;
-
-  if (NULL == track) {
-    track = reinterpret_cast<track_t*>(malloc(sizeof(track_t)));
-    if (track == NULL) abort();
-
-    track->num = midi;
-
-    size_t size = 0;
-    char *data = reinterpret_cast<char*>(data_get_object(DATA_MUSIC_GAME + midi,
-                                                         &size));
-    if (NULL == data) {
-      free(track);
-      return;
-    }
-
-    midi_file_t midi_file;
-    pqueue_init(&midi_file.nodes, 16*1024,
-                reinterpret_cast<pqueue_less_func*>(midi_node_less));
-    midi_file.tempo = 0;
-    midi_file.data = NULL;
-    midi_file.size = 0;
-
-    xmi_process_subchunks(data, static_cast<int>(size), &midi_file);
-    data = reinterpret_cast<char*>(midi_produce(&midi_file, &size));
-
-    pqueue_deinit(&midi_file.nodes);
-
-    SDL_RWops *rw = SDL_RWFromMem(data, static_cast<int>(size));
-    track->music = Mix_LoadMUS_RW(rw, 0);
-    if (NULL == track->music) {
-      free(track);
-      return;
-    }
-
-    list_append(&midi_tracks, reinterpret_cast<list_elm_t*>(track));
-  }
-
-  int r = Mix_PlayMusic(track->music, 0);
-  if (r < 0) {
-    LOGW("audio-sdlmixer", "Could not play MIDI track: %s\n", Mix_GetError());
-    return;
-  }
-
-  return;
+  return new midi_track_t(music);
 }
 
 void
-midi_enable(int enable) {
-  midi_enabled = enable;
-  if (0 != enable) {
-    if (current_track != -1) {
-      midi_play_track(current_track);
-    }
-  } else {
-    Mix_HaltMusic();
+midi_player_t::enable(bool enable) {
+  enabled = enable;
+  if (!enabled) {
+    stop();
   }
 }
 
-int
-midi_is_enabled() {
-  return midi_enabled;
+void
+midi_player_t::stop() {
+  Mix_HaltMusic();
 }
 
+float
+midi_player_t::get_volume() {
+  return static_cast<float>(Mix_VolumeMusic(-1)) /
+         static_cast<float>(MIX_MAX_VOLUME);
+}
+
+void
+midi_player_t::set_volume(float volume) {
+  volume = std::max(std::min(0.f, volume), 1.f);
+  int mix_volume = static_cast<float>(MIX_MAX_VOLUME) * volume;
+  Mix_VolumeMusic(mix_volume);
+}
+
+void
+midi_player_t::volume_up() {
+  set_volume(get_volume() + 0.1f);
+}
+
+void
+midi_player_t::volume_down() {
+  set_volume(get_volume() - 0.1f);
+}
+
+/*
 static void
 midi_track_finished() {
   if (midi_enabled) {
     midi_play_track(current_track);
+  }
+}
+*/
+
+midi_track_t::midi_track_t(Mix_Music *chunk) {
+  this->chunk = chunk;
+}
+
+midi_track_t::~midi_track_t() {
+  Mix_FreeMusic(chunk);
+}
+
+void
+midi_track_t::play() {
+  int r = Mix_PlayMusic(chunk, 0);
+  if (r < 0) {
+    LOGW("audio-sdlmixer", "Could not play MIDI track: %s\n", Mix_GetError());
   }
 }
