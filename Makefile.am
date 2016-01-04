@@ -47,7 +47,10 @@ if ENABLE_SDL2_MIXER
 AM_CFLAGS += $(SDL2_mixer_CFLAGS)
 AM_CXXFLAGS += $(SDL2_mixer_CFLAGS)
 freeserf_LDADD += $(SDL2_mixer_LIBS)
-freeserf_SOURCES += src/audio-sdlmixer.c
+freeserf_SOURCES += \
+	src/audio-sdlmixer.c \
+	src/sfx2wav.cc src/sfx2wav.h \
+	src/xmi2mid.cc src/xmi2mid.h
 else
 freeserf_SOURCES += src/audio-dummy.c
 endif

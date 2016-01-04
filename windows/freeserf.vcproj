@@ -282,6 +282,10 @@
 				>
 			</File>
 			<File
+				RelativePath="..\src\sfx2wav.cc"
+				>
+			</File>
+			<File
 				RelativePath="..\src\video.cc"
 				>
 			</File>
@@ -303,6 +307,10 @@
 			</File>
 			<File
 				RelativePath="..\src\viewport.cc"
+				>
+			</File>
+			<File
+				RelativePath="..\src\xmi2mid.cc"
 				>
 			</File>
 		</Filter>
@@ -428,6 +436,10 @@
 				>
 			</File>
 			<File
+				RelativePath="..\src\sfx2wav.h"
+				>
+			</File>
+			<File
 				RelativePath="..\src\video.h"
 				>
 			</File>
@@ -453,6 +465,10 @@
 			</File>
 			<File
 				RelativePath="..\src\viewport.h"
+				>
+			</File>
+			<File
+				RelativePath="..\src\xmi2mid.h"
 				>
 			</File>
 		</Filter>
