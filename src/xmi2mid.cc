@@ -25,6 +25,14 @@
 #include <queue>
 #include <vector>
 
+#ifdef HAVE_CONFIG_H
+# include <config.h>
+#endif
+
+#ifdef HAVE_STDINT_H
+# include <stdint.h>
+#endif
+
 #include "src/freeserf_endian.h"
 #include "src/misc.h"
 BEGIN_EXT_C

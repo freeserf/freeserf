@@ -25,7 +25,7 @@ freeserf_SOURCES = \
 	src/player.c src/player.h \
 	src/video-sdl.cc src/video-sdl.h \
 	src/video.cc src/video.h \
-	src/audio.h \
+	src/audio.cc src/audio.h \
 	src/savegame.c src/savegame.h \
 	src/list.c src/list.h \
 	src/pqueue.c src/pqueue.h \
@@ -48,11 +48,11 @@ AM_CFLAGS += $(SDL2_mixer_CFLAGS)
 AM_CXXFLAGS += $(SDL2_mixer_CFLAGS)
 freeserf_LDADD += $(SDL2_mixer_LIBS)
 freeserf_SOURCES += \
-	src/audio-sdlmixer.c \
+	src/audio-sdlmixer.cc src/audio-sdlmixer.h \
 	src/sfx2wav.cc src/sfx2wav.h \
 	src/xmi2mid.cc src/xmi2mid.h
 else
-freeserf_SOURCES += src/audio-dummy.c
+freeserf_SOURCES += src/audio-dummy.cc src/audio-dummy.h
 endif
 
 VCS_VERSION_FILE = src/version-vcs.h

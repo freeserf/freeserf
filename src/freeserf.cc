@@ -86,7 +86,7 @@ save_game(int autosave) {
   char name[128];
   time_t t = time(NULL);
 
-  struct tm *tm = localtime(&t);
+  struct tm *tm = std::localtime(&t);
   if (tm == NULL) return -1;
 
   if (!autosave) {
@@ -356,7 +356,10 @@ main(int argc, char *argv[]) {
 
   /* TODO move to right place */
   audio_t *audio = audio_t::get_instance();
-  audio->set_volume(.75f);
+  audio_volume_controller_t *volume_controller = audio->get_volume_controller();
+  if (volume_controller != NULL) {
+    volume_controller->set_volume(.75f);
+  }
   audio_player_t *player = audio->get_music_player();
   if (player) {
     player->play_track(MIDI_TRACK_0);

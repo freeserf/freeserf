@@ -19,10 +19,11 @@
  * along with freeserf.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "src/audio.h"
+#include "src/audio-sdlmixer.h"
 
 #include <cstring>
 #include <cassert>
+#include <algorithm>
 
 #include <SDL.h>
 #include <SDL_mixer.h>
@@ -35,9 +36,23 @@ END_EXT_C
 #include "src/sfx2wav.h"
 #include "src/xmi2mid.h"
 
-audio_t *audio_t::instance = NULL;
+#ifdef min
+# undef min
+#endif
 
-audio_t::audio_t() {
+#ifdef max
+# undef max
+#endif
+
+audio_t *
+audio_t::get_instance() {
+  if (instance == NULL) {
+    instance = new audio_sdlmixer_t();
+  }
+  return instance;
+}
+
+audio_sdlmixer_t::audio_sdlmixer_t() {
   LOGI("audio-sdlmixer", "Initializing audio driver `sdlmixer'.");
 
   int r = Mix_Init(0);
@@ -66,7 +81,7 @@ audio_t::audio_t() {
   midi_player = new midi_player_t();
 }
 
-audio_t::~audio_t() {
+audio_sdlmixer_t::~audio_sdlmixer_t() {
   if (sfx_player != NULL) {
     delete sfx_player;
     sfx_player = NULL;
@@ -81,21 +96,13 @@ audio_t::~audio_t() {
   Mix_Quit();
 }
 
-audio_t *
-audio_t::get_instance() {
-  if (instance == NULL) {
-    instance = new audio_t();
-  }
-  return instance;
-}
-
 float
-audio_t::get_volume() {
+audio_sdlmixer_t::get_volume() {
   return volume;
 }
 
 void
-audio_t::set_volume(float volume) {
+audio_sdlmixer_t::set_volume(float volume) {
   this->volume = volume;
 
   if (midi_player != NULL) {
@@ -116,49 +123,15 @@ audio_t::set_volume(float volume) {
 }
 
 void
-audio_t::volume_up() {
+audio_sdlmixer_t::volume_up() {
   float volume = get_volume();
   set_volume(volume + 0.1f);
 }
 
 void
-audio_t::volume_down() {
+audio_sdlmixer_t::volume_down() {
   float volume = get_volume();
   set_volume(volume - 0.1f);
-}
-
-audio_player_t::audio_player_t() {
-  enabled = true;
-}
-
-audio_player_t::~audio_player_t() {
-  while (track_cache.size()) {
-    audio_track_t *track = track_cache.begin()->second;
-    track_cache.erase(track_cache.begin());
-    delete track;
-  }
-}
-
-void
-audio_player_t::play_track(int track_id) {
-  if (!is_enabled()) {
-    return;
-  }
-
-  audio_track_t *track = NULL;
-  track_cache_t::iterator it = track_cache.find(track_id);
-  if (it == track_cache.end()) {
-    track = create_track(track_id);
-    if (track != NULL) {
-      track_cache[track_id] = track;
-    }
-  } else {
-    track = it->second;
-  }
-
-  if (track != NULL) {
-    track->play();
-  }
 }
 
 audio_track_t *
@@ -207,8 +180,8 @@ sfx_player_t::get_volume() {
 void
 sfx_player_t::set_volume(float volume) {
   volume = std::max(std::min(0.f, volume), 1.f);
-  int mix_volume = static_cast<float>(MIX_MAX_VOLUME) * volume;
-  Mix_Volume(-1, mix_volume);
+  float mix_volume = static_cast<float>(MIX_MAX_VOLUME) * volume;
+  Mix_Volume(-1, static_cast<int>(mix_volume));
 }
 
 void
@@ -278,8 +251,8 @@ midi_player_t::get_volume() {
 void
 midi_player_t::set_volume(float volume) {
   volume = std::max(std::min(0.f, volume), 1.f);
-  int mix_volume = static_cast<float>(MIX_MAX_VOLUME) * volume;
-  Mix_VolumeMusic(mix_volume);
+  float mix_volume = static_cast<float>(MIX_MAX_VOLUME) * volume;
+  Mix_VolumeMusic(static_cast<int>(mix_volume));
 }
 
 void

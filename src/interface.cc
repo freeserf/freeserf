@@ -21,6 +21,7 @@
 
 #include "src/interface.h"
 
+#include <cstdlib>
 #include <ctime>
 #include <cassert>
 
@@ -670,10 +671,10 @@ interface_t::interface_t() {
   map_cursor_sprites[6].sprite = 33;
 
   /* Randomness for interface */
-  srand((uint)time(NULL));
-  random.state[0] = rand();
-  random.state[1] = rand();
-  random.state[2] = rand();
+  std::srand((uint)std::time(NULL));
+  random.state[0] = std::rand();
+  random.state[1] = std::rand();
+  random.state[2] = std::rand();
   random_int(&random);
 
   last_const_tick = 0;

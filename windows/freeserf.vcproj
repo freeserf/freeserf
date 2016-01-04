@@ -182,7 +182,11 @@
 			UniqueIdentifier="{4FC737F1-C7A5-4376-A066-2A32D752A2FF}"
 			>
 			<File
-				RelativePath="..\src\audio-sdlmixer.c"
+				RelativePath="..\src\audio.cc"
+				>
+			</File>
+			<File
+				RelativePath="..\src\audio-sdlmixer.cc"
 				>
 			</File>
 			<File
@@ -321,6 +325,10 @@
 			>
 			<File
 				RelativePath="..\src\audio.h"
+				>
+			</File>
+			<File
+				RelativePath="..\src\audio-sdlmixer.h"
 				>
 			</File>
 			<File

@@ -715,8 +715,7 @@ void
 popup_box_t::draw_stat_4_box() {
   draw_box_background(129);
 
-  int resources[26];
-  memset(resources, '\0', 26*sizeof(int));
+  int resources[26] = {0};
 
   /* Sum up resources of all inventories. */
   for (uint i = 0; i < game.max_inventory_index; i++) {
@@ -1398,8 +1397,7 @@ void
 popup_box_t::draw_stat_3_box() {
   draw_box_background(129);
 
-  int serfs[27];
-  memset(serfs, '\0', 27*sizeof(int));
+  int serfs[27] = {0};
 
   /* Sum up all existing serfs. */
   for (uint i = 1; i < game.max_serf_index; i++) {
@@ -1946,7 +1944,11 @@ popup_box_t::draw_options_box() {
   draw_popup_icon(11, 50, 220); /* Volume minus */
   draw_popup_icon(13, 50, 221); /* Volume plus */
 
-  int volume = 99.f * audio->get_volume();
+  float volume = 0.f;
+  audio_volume_controller_t *volume_controller = audio->get_volume_controller();
+  if (volume_controller != NULL) {
+    volume = 99.f * volume_controller->get_volume();
+  }
   std::strstream str;
   str << volume;
   draw_green_string(8, 54, str.str());
@@ -2262,8 +2264,7 @@ popup_box_t::draw_castle_serf_box() {
     -1
   };
 
-  int serfs[27];
-  memset(serfs, 0, 27*sizeof(int));
+  int serfs[27] = {0};
 
   draw_box_background(0x138);
   draw_custom_icon_box(layout);
@@ -3561,13 +3562,21 @@ popup_box_t::handle_action(int action, int x, int y) {
     break;
   case ACTION_OPTIONS_VOLUME_MINUS: {
     audio_t *audio = audio_t::get_instance();
-    audio->volume_down();
+    audio_volume_controller_t *volume_controller =
+                                 audio->get_volume_controller();
+    if (volume_controller != NULL) {
+      volume_controller->volume_down();
+    }
     play_sound(SFX_CLICK);
     break;
   }
   case ACTION_OPTIONS_VOLUME_PLUS: {
     audio_t *audio = audio_t::get_instance();
-    audio->volume_up();
+    audio_volume_controller_t *volume_controller =
+                                 audio->get_volume_controller();
+    if (volume_controller != NULL) {
+      volume_controller->volume_up();
+    }
     play_sound(SFX_CLICK);
     break;
   }

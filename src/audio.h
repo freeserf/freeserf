@@ -1,5 +1,5 @@
 /*
- * audio.h - Music and sound effects playback.
+ * audio.h - Music and sound effects playback base.
  *
  * Copyright (C) 2012-2015  Wicked_Digger <wicked_digger@mail.ru>
  *
@@ -24,7 +24,6 @@
 #define SRC_AUDIO_H_
 
 #include <map>
-#include <SDL_mixer.h>
 
 typedef enum {
   SFX_MESSAGE = 1,
@@ -85,7 +84,7 @@ class audio_volume_controller_t {
 };
 
 class audio_track_t {
-public:
+ public:
   virtual ~audio_track_t() {}
 
   virtual void play() = 0;
@@ -111,90 +110,21 @@ class audio_player_t {
   virtual void stop() = 0;
 };
 
-class sfx_track_t : public audio_track_t {
- protected:
-  Mix_Chunk *chunk;
-
- public:
-  explicit sfx_track_t(Mix_Chunk *chunk);
-  virtual ~sfx_track_t();
-
-  virtual void play();
-};
-
-class sfx_player_t : public audio_player_t, public audio_volume_controller_t {
- // audio_player_t
- public:
-  virtual void enable(bool enable);
-  virtual audio_volume_controller_t *get_volume_controller() { return this; }
-
- protected:
-  virtual audio_track_t *create_track(int track_id);
-  virtual void stop();
-
- // audio_volume_controller_t
- public:
-  virtual float get_volume();
-  virtual void set_volume(float volume);
-  virtual void volume_up();
-  virtual void volume_down();
-};
-
-class midi_track_t : public audio_track_t {
- protected:
-  Mix_Music *chunk;
-
- public:
-  explicit midi_track_t(Mix_Music *chunk);
-  virtual ~midi_track_t();
-
-  virtual void play();
-};
-
-class midi_player_t : public audio_player_t, public audio_volume_controller_t {
- // audio_player_t
- public:
-  virtual void enable(bool enable);
-  virtual audio_volume_controller_t *get_volume_controller() { return this; }
-
- protected:
-  virtual audio_track_t *create_track(int track_id);
-  virtual void stop();
-
- // audio_volume_controller_t
- public:
-  virtual float get_volume();
-  virtual void set_volume(float volume);
-  virtual void volume_up();
-  virtual void volume_down();
-};
-
-class audio_t : public audio_volume_controller_t {
+class audio_t {
  protected:
   static audio_t *instance;
-
-  audio_player_t *sfx_player;
-  audio_player_t *midi_player;
 
   float volume;
 
  public:
   /* Common audio. */
-  audio_t();
-  virtual ~audio_t();
+  virtual ~audio_t() {}
 
   static audio_t *get_instance();
 
-  audio_volume_controller_t *get_volume_controller() { return this; }
-  audio_player_t *get_sound_player() { return sfx_player; }
-  audio_player_t *get_music_player() { return midi_player; }
-
- // audio_volume_controller_t
- public:
-  virtual float get_volume();
-  virtual void set_volume(float volume);
-  virtual void volume_up();
-  virtual void volume_down();
+  virtual audio_volume_controller_t *get_volume_controller() = 0;
+  virtual audio_player_t *get_sound_player() = 0;
+  virtual audio_player_t *get_music_player() = 0;
 };
 
 #endif  // SRC_AUDIO_H_
