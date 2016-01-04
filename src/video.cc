@@ -22,10 +22,34 @@
 #include "src/video.h"
 
 #include <cstdlib>
+#include <strstream>
+
+Video_Exception::Video_Exception(const std::string &description) throw() {
+  this->description = description;
+}
+
+Video_Exception::~Video_Exception() throw() {
+}
+
+const char*
+Video_Exception::what() const throw() {
+  std::strstream str;
+  str << "[" << get_platform() << "] " << get_description();
+  return str.str();
+}
+
+const char*
+Video_Exception::get_description() const {
+  return description.c_str();
+}
 
 video_t *video_t::instance = NULL;
 
-video_t::video_t() {
+video_t::video_t() throw(Video_Exception) {
+  if (instance != NULL) {
+    throw Video_Exception("Unable to create second instance.");
+  }
+
   instance = this;
 }
 

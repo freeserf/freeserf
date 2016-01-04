@@ -22,9 +22,8 @@
 #ifndef SRC_VIDEO_SDL_H_
 #define SRC_VIDEO_SDL_H_
 
-#ifdef HAVE_STDINT_H
-#include <stdint.h>
-#endif
+#include <exception>
+#include <string>
 
 #include <SDL.h>
 
@@ -46,6 +45,18 @@ class video_image_t {
   video_image_t() : texture(NULL), w(0), h(0) {}
 };
 
+class SDL_Exception : public Video_Exception {
+ protected:
+  std::string sdl_error;
+
+ public:
+  explicit SDL_Exception(const std::string &description) throw();
+  virtual ~SDL_Exception() throw();
+
+  virtual const char *get_description() const;
+  virtual const char *get_platform() const;
+};
+
 class video_sdl_t : public video_t {
  protected:
   static int bpp;
@@ -63,13 +74,13 @@ class video_sdl_t : public video_t {
   SDL_Cursor *cursor;
 
  public:
-  video_sdl_t();
+  video_sdl_t() throw(Video_Exception);
   virtual ~video_sdl_t();
 
-  virtual bool set_resolution(unsigned int width, unsigned int height,
-                              bool fullscreen);
+  virtual void set_resolution(unsigned int width, unsigned int height,
+                              bool fullscreen) throw(Video_Exception);
   virtual void get_resolution(unsigned int *width, unsigned int *height);
-  virtual bool set_fullscreen(bool enable);
+  virtual void set_fullscreen(bool enable) throw(Video_Exception);
   virtual bool is_fullscreen();
 
   virtual video_frame_t *get_screen_frame();

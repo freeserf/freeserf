@@ -345,8 +345,14 @@ main(int argc, char *argv[]) {
 
   LOGI("main", "Initialize graphics...");
 
-  gfx_t *gfx = gfx_t::get_instance();
-  gfx->set_resolution(screen_width, screen_height, fullscreen);
+  gfx_t *gfx = NULL;
+  try {
+    gfx = gfx_t::get_instance();
+    gfx->set_resolution(screen_width, screen_height, fullscreen);
+  } catch (Freeserf_Exception e) {
+    LOGE(e.get_system(), e.what());
+    return -1;
+  }
 
   /* TODO move to right place */
   audio_init();

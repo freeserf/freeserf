@@ -22,9 +22,8 @@
 #ifndef SRC_VIDEO_H_
 #define SRC_VIDEO_H_
 
-#ifdef HAVE_STDINT_H
-#include <stdint.h>
-#endif
+#include <exception>
+#include <string>
 
 typedef struct {
   unsigned char r;
@@ -33,6 +32,19 @@ typedef struct {
   unsigned char a;
 } color_t;
 
+class Video_Exception : public std::exception {
+ protected:
+  std::string description;
+
+ public:
+  explicit Video_Exception(const std::string &description) throw();
+  virtual ~Video_Exception() throw();
+
+  virtual const char* what() const throw();
+  virtual const char* get_description() const;
+  virtual const char* get_platform() const { return "Abstract"; }
+};
+
 class video_frame_t;
 class video_image_t;
 
@@ -40,17 +52,17 @@ class video_t {
  protected:
   static video_t *instance;
 
-  video_t();
+  video_t() throw(Video_Exception);
 
  public:
   virtual ~video_t();
 
   static video_t *get_instance();
 
-  virtual bool set_resolution(unsigned int width, unsigned int height,
-                              bool fullscreen) = 0;
+  virtual void set_resolution(unsigned int width, unsigned int height,
+                              bool fullscreen) throw(Video_Exception) = 0;
   virtual void get_resolution(unsigned int *width, unsigned int *height) = 0;
-  virtual bool set_fullscreen(bool enable) = 0;
+  virtual void set_fullscreen(bool enable) throw(Video_Exception) = 0;
   virtual bool is_fullscreen() = 0;
 
   virtual video_frame_t *get_screen_frame() = 0;

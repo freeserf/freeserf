@@ -22,6 +22,8 @@
 #ifndef SRC_POPUP_H_
 #define SRC_POPUP_H_
 
+#include <string>
+
 #include "src/gui.h"
 
 typedef enum {
@@ -113,7 +115,7 @@ class popup_box_t : public gui_object_t {
   void draw_popup_building(int x, int y, int sprite);
   void draw_box_background(int sprite);
   void draw_box_row(int sprite, int y);
-  void draw_green_string(int x, int y, const char *str);
+  void draw_green_string(int x, int y, const std::string &str);
   void draw_green_number(int x, int y, int n);
   void draw_green_large_number(int x, int y, int n);
   void draw_additional_number(int x, int y, int n);
@@ -121,7 +123,7 @@ class popup_box_t : public gui_object_t {
   void draw_player_face(int x, int y, int player);
   void draw_custom_bld_box(const int sprites[]);
   void draw_custom_icon_box(const int sprites[]);
-  const char *prepare_res_amount_text(int amount);
+  const std::string prepare_res_amount_text(int amount) const;
   void draw_map_box();
   void draw_mine_building_box();
   void draw_basic_building_box(int flip);

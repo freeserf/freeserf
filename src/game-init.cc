@@ -57,7 +57,7 @@ game_init_box_t::draw_box_icon(int x, int y, int sprite) {
 }
 
 void
-game_init_box_t::draw_box_string(int x, int y, const char *str) {
+game_init_box_t::draw_box_string(int x, int y, const std::string &str) {
   frame->draw_string(8*x+20, y+16, 31, 1, str);
 }
 

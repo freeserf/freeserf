@@ -336,7 +336,7 @@ popup_box_t::draw_box_row(int sprite, int y) {
 
 /* Draw a green string in a popup frame. */
 void
-popup_box_t::draw_green_string(int x, int y, const char *str) {
+popup_box_t::draw_green_string(int x, int y, const std::string &str) {
   frame->draw_string(8*x+8, y+9, 31, 0, str);
 }
 
@@ -427,8 +427,8 @@ popup_box_t::draw_custom_icon_box(const int sprites[]) {
 }
 
 /* Translate resource amount to text. */
-const char *
-popup_box_t::prepare_res_amount_text(int amount) {
+const std::string
+popup_box_t::prepare_res_amount_text(int amount) const {
   if (amount == 0) return "Not Present";
   else if (amount < 100) return "Minimum";
   else if (amount < 180) return "Very Few";
@@ -1616,7 +1616,7 @@ popup_box_t::draw_ground_analysis_box() {
   draw_green_string(0, 30, "GROUND-ANALYSIS:");
 
   /* Gold */
-  const char *s = prepare_res_amount_text(2*estimates[GROUND_DEPOSIT_GOLD]);
+  std::string s = prepare_res_amount_text(2*estimates[GROUND_DEPOSIT_GOLD]);
   draw_green_string(3, 54, s);
 
   /* Iron */

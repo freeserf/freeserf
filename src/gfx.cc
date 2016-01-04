@@ -21,7 +21,6 @@
 
 #include "src/gfx.h"
 
-#include <cassert>
 #include <cstring>
 #include <algorithm>
 
@@ -39,6 +38,30 @@ END_EXT_C
 #ifdef max
 # undef max
 #endif
+
+Freeserf_Exception::Freeserf_Exception(const std::string &description) throw() {
+  this->description = description;
+}
+
+Freeserf_Exception::~Freeserf_Exception() throw() {
+}
+
+const char*
+Freeserf_Exception::what() const throw() {
+  return get_description();
+}
+
+const char*
+Freeserf_Exception::get_description() const {
+  return description.c_str();
+}
+
+GFX_Exception::GFX_Exception(const std::string &description) throw()
+  : Freeserf_Exception(description) {
+}
+
+GFX_Exception::~GFX_Exception() throw() {
+}
 
 image_t::image_t(video_t *video, sprite_t *sprite) {
   this->video = video;
@@ -246,8 +269,16 @@ sprite_t::get_masked(sprite_t *mask) {
 
 gfx_t *gfx_t::instance = NULL;
 
-gfx_t::gfx_t() {
-  video = video_t::get_instance();
+gfx_t::gfx_t() throw(Freeserf_Exception) {
+  if (instance != NULL) {
+    throw GFX_Exception("Unable to create second instance.");
+  }
+
+  try {
+    video = video_t::get_instance();
+  } catch (Video_Exception e) {
+    throw GFX_Exception(e.what());
+  }
 
   const dos_sprite_t *cursor = data_get_dos_sprite(DATA_CURSOR);
   sprite_t *sprite = gfx_create_transparent_sprite(cursor, 0);
@@ -285,10 +316,16 @@ frame_t::draw_sprite(int x, int y, unsigned int sprite) {
   image_t *image = image_t::get_cached_image(id);
   if (image == NULL) {
     const dos_sprite_t *spr = data_get_dos_sprite(sprite);
-    assert(spr != NULL);
+    if (spr == NULL) {
+      LOGW("graphics", "Failed to extract sprite #%i", sprite);
+      return;
+    }
 
     sprite_t *s = gfx_create_sprite(spr);
-    assert(s != NULL);
+    if (s == NULL) {
+      LOGW("graphics", "Failed to decode sprite #%i", sprite);
+      return;
+    }
 
     image = new image_t(video, s);
     image_t::cache_image(id, image);
@@ -311,10 +348,16 @@ frame_t::draw_transp_sprite(int x, int y, unsigned int sprite, bool use_off,
   image_t *image = image_t::get_cached_image(id);
   if (image == NULL) {
     const dos_sprite_t *spr = data_get_dos_sprite(sprite);
-    assert(spr != NULL);
+    if (spr == NULL) {
+      LOGW("graphics", "Failed to extract sprite #%i", sprite);
+      return;
+    }
 
     sprite_t *s = gfx_create_transparent_sprite(spr, color_off);
-    assert(s != NULL);
+    if (s == NULL) {
+      LOGW("graphics", "Failed to decode sprite #%i", sprite);
+      return;
+    }
 
     image = new image_t(video, s);
     image_t::cache_image(id, image);
@@ -368,19 +411,35 @@ frame_t::draw_masked_sprite(int x, int y, unsigned int mask,
   image_t *image = image_t::get_cached_image(id);
   if (image == NULL) {
     const dos_sprite_t *spr = data_get_dos_sprite(sprite);
-    assert(spr != NULL);
+    if (spr == NULL) {
+      LOGW("graphics", "Failed to extract sprite #%i", sprite);
+      return;
+    }
 
     const dos_sprite_t *msk = data_get_dos_sprite(mask);
-    assert(msk != NULL);
+    if (msk == NULL) {
+      LOGW("graphics", "Failed to extract sprite #%i", mask);
+      return;
+    }
 
     sprite_t *s = gfx_create_sprite(spr);
-    assert(s != NULL);
+    if (s == NULL) {
+      LOGW("graphics", "Failed to decode sprite #%i", sprite);
+      return;
+    }
 
     sprite_t *m = gfx_create_bitmap_sprite(msk, 0xff);
-    assert(m != NULL);
+    if (m == NULL) {
+      LOGW("graphics", "Failed to decode sprite #%i", mask);
+      delete s;
+      return;
+    }
 
     sprite_t *masked = s->get_masked(m);
-    assert(masked != NULL);
+    if (masked == NULL) {
+      LOGW("graphics", "Failed to apply mask #%i to sprite #%i", mask, sprite);
+      return;
+    }
 
     delete s;
     delete m;
@@ -414,10 +473,16 @@ frame_t::draw_overlay_sprite(int x, int y, unsigned int sprite,
   image_t *image = image_t::get_cached_image(id);
   if (image == NULL) {
     const dos_sprite_t *spr = data_get_dos_sprite(sprite);
-    assert(spr != NULL);
+    if (spr == NULL) {
+      LOGW("graphics", "Failed to extract sprite #%i", sprite);
+      return;
+    }
 
     sprite_t *s = gfx_create_bitmap_sprite(spr, 0x80);
-    assert(s != NULL);
+    if (s == NULL) {
+      LOGW("graphics", "Failed to decode sprite #%i", sprite);
+      return;
+    }
 
     image = new image_t(video, s);
     image_t::cache_image(id, image);
@@ -443,20 +508,36 @@ frame_t::draw_waves_sprite(int x, int y, unsigned int mask,
   image_t *image = image_t::get_cached_image(id);
   if (image == NULL) {
     const dos_sprite_t *spr = data_get_dos_sprite(sprite);
-    assert(spr != NULL);
+    if (spr == NULL) {
+      LOGW("graphics", "Failed to extract sprite #%i", sprite);
+      return;
+    }
 
     sprite_t *s = gfx_create_transparent_sprite(spr, 0);
-    assert(s != NULL);
+    if (s == NULL) {
+      LOGW("graphics", "Failed to decode sprite #%i", sprite);
+      return;
+    }
 
     if (mask > 0) {
       const dos_sprite_t *msk = data_get_dos_sprite(mask);
-      assert(msk != NULL);
+      if (msk == NULL) {
+        LOGW("graphics", "Failed to extract sprite #%i", mask);
+        return;
+      }
 
       sprite_t *m = gfx_create_bitmap_sprite(msk, 0xff);
-      assert(m != NULL);
+      if (m == NULL) {
+        LOGW("graphics", "Failed to decode sprite #%i", sprite);
+        return;
+      }
 
       sprite_t *masked = s->get_masked(m);
-      assert(masked != NULL);
+      if (masked == NULL) {
+        LOGW("graphics", "Failed to apply mask #%i to sprite #%i",
+             mask, sprite);
+        return;
+      }
 
       delete s;
       delete m;
@@ -527,14 +608,15 @@ frame_t::draw_char_sprite(int x, int y, unsigned char c, unsigned char color,
 /* Draw the string str at x, y in the dest frame. */
 void
 frame_t::draw_string(int x, int y, unsigned char color, int shadow,
-                     const char *str) {
-  for (; *str != 0; x += 8) {
+                     const std::string &str) {
+  for (std::string::const_iterator it = str.begin(); it != str.end(); ++it) {
     if (/*string_bg*/ 0) {
       fill_rect(x, y, 8, 8, 0);
     }
 
-    unsigned char c = *str++;
-    draw_char_sprite(x, y, c, color, shadow);
+    draw_char_sprite(x, y, *it, color, shadow);
+
+    x += 8;
   }
 }
 
@@ -624,9 +706,9 @@ gfx_t::create_frame(unsigned int width, unsigned int height) {
 }
 
 /* Enable or disable fullscreen mode */
-bool
+void
 gfx_t::set_fullscreen(bool enable) {
-  return video->set_fullscreen(enable);
+  video->set_fullscreen(enable);
 }
 
 /* Check whether fullscreen mode is enabled */

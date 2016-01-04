@@ -21,24 +21,32 @@
 
 #include "src/video-sdl.h"
 
-#include <cstdio>
-#include <cstdlib>
-#ifdef HAVE_STDINT_H
-#include <stdint.h>
-#endif
-#include <cstring>
-#include <csignal>
-#include <cassert>
+#include <strstream>
 
 #include <SDL.h>
 
-#include "src/misc.h"
-BEGIN_EXT_C
-  #include "src/log.h"
-  #include "src/data.h"
-END_EXT_C
-#include "src/gfx.h"
 #include "src/version.h"
+
+SDL_Exception::SDL_Exception(const std::string &description) throw()
+  : Video_Exception(description) {
+  sdl_error = SDL_GetError();
+}
+
+SDL_Exception::~SDL_Exception() throw() {
+}
+
+const char *
+SDL_Exception::get_description() const {
+  std::strstream str;
+  str << Video_Exception::get_description();
+  str << "(" << sdl_error << ")";
+  return str.str();
+}
+
+const char *
+SDL_Exception::get_platform() const {
+  return "SDL";
+}
 
 int video_sdl_t::bpp = 32;
 Uint32 video_sdl_t::Rmask = 0xFF000000;
@@ -47,7 +55,7 @@ Uint32 video_sdl_t::Bmask = 0x0000FF00;
 Uint32 video_sdl_t::Amask = 0x000000FF;
 Uint32 video_sdl_t::pixel_format = SDL_PIXELFORMAT_RGBA8888;
 
-video_sdl_t::video_sdl_t() {
+video_sdl_t::video_sdl_t() throw(Video_Exception) {
   screen = NULL;
   screen_texture = NULL;
   cursor = NULL;
@@ -55,30 +63,27 @@ video_sdl_t::video_sdl_t() {
 
   /* Initialize defaults and Video subsystem */
   if (SDL_Init(SDL_INIT_VIDEO) < 0) {
-    LOGE("sdl-video", "Unable to initialize SDL: %s.", SDL_GetError());
-    assert(false);
+    throw SDL_Exception("Unable to initialize SDL video");
   }
 
   /* Display program name and version in caption */
-  char caption[64];
-  snprintf(caption, sizeof(caption), "freeserf %s", FREESERF_VERSION);
+  std::strstream caption;
+  caption << "freeserf " << FREESERF_VERSION;
 
   /* Create window and renderer */
-  window = SDL_CreateWindow(caption,
+  window = SDL_CreateWindow(caption.str(),
                             SDL_WINDOWPOS_UNDEFINED,
                             SDL_WINDOWPOS_UNDEFINED,
                             800, 600, SDL_WINDOW_RESIZABLE);
   if (window == NULL) {
-    LOGE("sdl-video", "Unable to create SDL window: %s.", SDL_GetError());
-    assert(false);
+    throw SDL_Exception("Unable to create SDL window");
   }
 
   /* Create renderer for window */
   renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED |
                                             SDL_RENDERER_TARGETTEXTURE);
   if (renderer == NULL) {
-    LOGE("sdl-video", "Unable to create SDL renderer: %s.", SDL_GetError());
-    assert(false);
+    throw SDL_Exception("Unable to create SDL renderer");
   }
 
   /* Determine optimal pixel format for current window */
@@ -97,10 +102,6 @@ video_sdl_t::video_sdl_t() {
 
   /* Set scaling mode */
   SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY, "linear");
-
-  /* Exit on signals */
-  signal(SIGINT, exit);
-  signal(SIGTERM, exit);
 }
 
 video_sdl_t::~video_sdl_t() {
@@ -125,23 +126,21 @@ video_sdl_t::create_surface(int width, int height) {
   SDL_Surface *surf = SDL_CreateRGBSurface(0, width, height, bpp,
                                            Rmask, Gmask, Bmask, Amask);
   if (surf == NULL) {
-    LOGE("sdl-video", "Unable to create SDL surface: %s.", SDL_GetError());
-    exit(EXIT_FAILURE);
+    throw SDL_Exception("Unable to create SDL surface");
   }
 
   return surf;
 }
 
-bool
+void
 video_sdl_t::set_resolution(unsigned int width, unsigned int height,
-                            bool fullscreen) {
+                            bool fullscreen) throw(Video_Exception) {
   /* Set fullscreen mode */
   int r = SDL_SetWindowFullscreen(window,
                                   fullscreen ? SDL_WINDOW_FULLSCREEN_DESKTOP :
                                                0);
   if (r < 0) {
-    LOGE("sdl-video", "Unable to set window fullscreen: %s.", SDL_GetError());
-    return false;
+    throw SDL_Exception("Unable to set window fullscreen");
   }
 
   if (screen == NULL) {
@@ -161,20 +160,16 @@ video_sdl_t::set_resolution(unsigned int width, unsigned int height,
                                      SDL_TEXTUREACCESS_STREAMING,
                                      width, height);
   if (screen_texture == NULL) {
-    LOGE("sdl-video", "Unable to create SDL texture: %s.", SDL_GetError());
-    return false;
+    throw SDL_Exception("Unable to create SDL texture");
   }
 
   /* Set logical size of screen */
   r = SDL_RenderSetLogicalSize(renderer, width, height);
   if (r < 0) {
-    LOGE("sdl-video", "Unable to set logical size: %s.", SDL_GetError());
-    return false;
+    throw SDL_Exception("Unable to set logical size");
   }
 
   this->fullscreen = fullscreen;
-
-  return true;
 }
 
 void
@@ -190,12 +185,12 @@ video_sdl_t::get_resolution(unsigned int *width, unsigned int *height) {
   }
 }
 
-bool
-video_sdl_t::set_fullscreen(bool enable) {
+void
+video_sdl_t::set_fullscreen(bool enable) throw(Video_Exception) {
   int width = 0;
   int height = 0;
   SDL_GetRendererOutputSize(renderer, &width, &height);
-  return set_resolution(width, height, enable);
+  set_resolution(width, height, enable);
 }
 
 bool
@@ -249,15 +244,13 @@ video_sdl_t::create_surface_from_data(void *data, int width, int height) {
                                                0xff, 0xff00, 0xff0000,
                                                0xff000000);
   if (surf == NULL) {
-    LOGE("sdl-video", "Unable to create sprite surface: %s.", SDL_GetError());
-    exit(EXIT_FAILURE);
+    throw SDL_Exception("Unable to create sprite surface");
   }
 
   /* Covert to screen format */
   SDL_Surface *surf_screen = SDL_ConvertSurfaceFormat(surf, pixel_format, 0);
   if (surf_screen == NULL) {
-    LOGE("sdl-video", "Unable to convert sprite surface: %s.", SDL_GetError());
-    exit(EXIT_FAILURE);
+    throw SDL_Exception("Unable to convert sprite surface");
   }
 
   SDL_FreeSurface(surf);
@@ -272,7 +265,7 @@ video_sdl_t::create_texture(int width, int height) {
                                            width, height);
 
   if (texture == NULL) {
-    LOGE("sdl-video", "Unable to create SDL texture: %s.", SDL_GetError());
+    throw SDL_Exception("Unable to create SDL texture");
   }
 
   SDL_SetRenderTarget(renderer, texture);
@@ -292,7 +285,7 @@ video_sdl_t::create_texture_from_data(void *data, int width, int height) {
 
   SDL_Texture *texture = SDL_CreateTextureFromSurface(renderer, surf);
   if (texture == NULL) {
-    LOGE("sdl-video", "Unable to create SDL texture: %s.", SDL_GetError());
+    throw SDL_Exception("Unable to create SDL texture from data");
   }
 
   SDL_FreeSurface(surf);
@@ -315,7 +308,7 @@ video_sdl_t::draw_image(const video_image_t *image, int x, int y, int y_offset,
   SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
   int r = SDL_RenderCopy(renderer, image->texture, &src_rect, &dest_rect);
   if (r < 0) {
-    LOGE("sdl-video", "RenderCopy error: %s.", SDL_GetError());
+    throw SDL_Exception("RenderCopy error");
   }
 }
 
@@ -329,7 +322,7 @@ video_sdl_t::draw_frame(int dx, int dy, video_frame_t *dest, int sx, int sy,
   SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
   int r = SDL_RenderCopy(renderer, src->texture, &src_rect, &dest_rect);
   if (r < 0) {
-    LOGE("sdl-video", "RenderCopy error: %s", SDL_GetError());
+    throw SDL_Exception("RenderCopy error");
   }
 }
 
@@ -353,7 +346,7 @@ video_sdl_t::fill_rect(int x, int y, unsigned int width, unsigned int height,
   SDL_SetRenderDrawColor(renderer, color->r, color->g, color->b, 0xff);
   int r = SDL_RenderFillRect(renderer, &rect);
   if (r < 0) {
-    LOGE("sdl-video", "RenderFillRect error: %s.", SDL_GetError());
+    throw SDL_Exception("RenderFillRect error");
   }
 }
 

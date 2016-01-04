@@ -47,13 +47,13 @@ notification_box_t::draw_background(int width, int height, int sprite) {
 }
 
 void
-notification_box_t::draw_string(int x, int y, const char *str) {
+notification_box_t::draw_string(int x, int y, const std::string &str) {
   std::strstream sin;
   sin << str;
   std::string line;
   int cy = y;
   while (std::getline(sin, line)) {
-    frame->draw_string(x*8, cy, 31, 0, line.c_str());
+    frame->draw_string(x*8, cy, 31, 0, line);
     cy += 10;
   }
 }

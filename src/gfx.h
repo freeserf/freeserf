@@ -23,6 +23,38 @@
 #define SRC_GFX_H_
 
 #include <map>
+#include <string>
+
+#include "src/misc.h"
+
+#ifdef HAVE_CONFIG_H
+# include "config.h"
+#endif
+
+#ifdef HAVE_STDINT_H
+# include <stdint.h>
+#endif
+
+class Freeserf_Exception : public std::exception {
+ protected:
+  std::string description;
+
+ public:
+  explicit Freeserf_Exception(const std::string &description) throw();
+  virtual ~Freeserf_Exception() throw();
+
+  virtual const char* what() const throw();
+  virtual const char* get_description() const;
+  virtual const char* get_system() const { return "Unspecified"; }
+};
+
+class GFX_Exception : public Freeserf_Exception {
+ public:
+  explicit GFX_Exception(const std::string &description) throw();
+  virtual ~GFX_Exception() throw();
+
+  virtual const char* get_system() const { return "graphics"; }
+};
 
 class video_t;
 class video_frame_t;
@@ -97,7 +129,7 @@ class frame_t {
 
   /* Text functions */
   void draw_string(int x, int y, unsigned char color, int shadow,
-                   const char *str);
+                   const std::string &str);
   void draw_number(int x, int y, unsigned char color, int shadow, int n);
 
   /* Frame functions */
@@ -147,7 +179,7 @@ class gfx_t {
   static gfx_t *instance;
   video_t *video;
 
-  gfx_t();
+  gfx_t() throw(Freeserf_Exception);
 
  public:
   virtual ~gfx_t();
@@ -161,7 +193,7 @@ class gfx_t {
   frame_t *get_screen_frame();
   void set_resolution(unsigned int width, unsigned int height, bool fullscreen);
   void get_resolution(unsigned int *width, unsigned int *height);
-  bool set_fullscreen(bool enable);
+  void set_fullscreen(bool enable);
   bool is_fullscreen();
 
   void swap_buffers();
