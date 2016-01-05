@@ -25,8 +25,6 @@
 
 #include <SDL.h>
 
-#include "src/version.h"
-
 SDL_Exception::SDL_Exception(const std::string &description) throw()
   : Video_Exception(description) {
   sdl_error = SDL_GetError();
@@ -66,12 +64,8 @@ video_sdl_t::video_sdl_t() throw(Video_Exception) {
     throw SDL_Exception("Unable to initialize SDL video");
   }
 
-  /* Display program name and version in caption */
-  std::strstream caption;
-  caption << "freeserf " << FREESERF_VERSION;
-
   /* Create window and renderer */
-  window = SDL_CreateWindow(caption.str(),
+  window = SDL_CreateWindow("freeserf",
                             SDL_WINDOWPOS_UNDEFINED,
                             SDL_WINDOWPOS_UNDEFINED,
                             800, 600, SDL_WINDOW_RESIZABLE);

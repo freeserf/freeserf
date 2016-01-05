@@ -31,6 +31,7 @@ BEGIN_EXT_C
   #include "src/data.h"
 END_EXT_C
 #include "src/interface.h"
+#include "src/version.h"
 
 #ifdef min
 # undef min
@@ -152,6 +153,9 @@ game_init_box_t::internal_draw() {
       frame->fill_rect(80*i+84, 124-reproduction, 4, reproduction, 75);
     }
   }
+
+  /* Display program name and version in caption */
+  draw_box_string(0, 132, FREESERF_VERSION);
 
   draw_box_icon(38, 128, 60); /* exit */
 }
