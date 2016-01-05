@@ -76,17 +76,17 @@ static void data_fixup();
 
 /* Load data file at path and let the global variable sprites refer to the memory
  with the data file content. */
-int
-data_load(const char *path) {
+bool
+data_load(const std::string &path) {
   int r;
 
 #ifdef HAVE_MMAP
   int fd = open(path, O_RDONLY);
-  if (fd < 0) return -1;
+  if (fd < 0) return false;
 
   struct stat sb;
   r = fstat(fd, &sb);
-  if (r < 0) return -1;
+  if (r < 0) return false;
 
   sprites_size = sb.st_size;
   sprites = mmap(NULL, sprites_size, PROT_READ | PROT_WRITE,
@@ -95,35 +95,35 @@ data_load(const char *path) {
     int errsv = errno;
     close(fd);
     errno = errsv;
-    return -1;
+    return false;
   }
 
   close(fd);
 
   mapped = 1;
 #else /* ! HAVE_MMAP */
-  FILE *f = fopen(path, "rb");
-  if (f == NULL) return -1;
+  FILE *f = fopen(path.c_str(), "rb");
+  if (f == NULL) return false;
 
   r = fseek(f, 0, SEEK_END);
-  if (r < 0) return -1;
+  if (r < 0) return false;
 
   sprites_size = ftell(f);
-  if (sprites_size == (size_t)-1) return -1;
+  if (sprites_size == (size_t)-1) return false;
 
   r = fseek(f, 0, SEEK_SET);
-  if (r < 0) return -1;
+  if (r < 0) return false;
 
   sprites = malloc(sprites_size);
   if (sprites == NULL) {
     int errsv = errno;
     fclose(f);
     errno = errsv;
-    return -1;
+    return false;
   }
 
   size_t rd = fread(sprites, sprites_size, 1, f);
-  if (rd < 1) return -1;
+  if (rd < 1) return false;
 
   fclose(f);
 #endif
@@ -138,7 +138,7 @@ data_load(const char *path) {
                         &error)) {
       LOGE("tpwm", error);
       LOGE("data", "Data file is broken!");
-      return -1;
+      return false;
     }
 #ifdef HAVE_MMAP
     if (mapped) {
@@ -180,7 +180,7 @@ data_load(const char *path) {
 
   data_fixup();
 
-  return 0;
+  return true;
 }
 
 /* Free the loaded data file. */

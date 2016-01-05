@@ -22,6 +22,8 @@
 #ifndef SRC_DATA_H_
 #define SRC_DATA_H_
 
+#include <string>
+
 #include "src/misc.h"
 
 #ifdef HAVE_CONFIG_H
@@ -250,11 +252,62 @@ typedef struct {
   int16_t y;
 } dos_sprite_t;
 
+/* Sprite object. Contains RGBA data. */
+class sprite_t {
+ protected:
+  int delta_x;
+  int delta_y;
+  int offset_x;
+  int offset_y;
+  unsigned int width;
+  unsigned int height;
+  uint8_t *data;
 
-int data_load(const char *path);
+ public:
+  sprite_t(unsigned int width, unsigned int height);
+  virtual ~sprite_t();
+
+  uint8_t *get_data() const { return data; }
+  unsigned int get_width() const { return width; }
+  unsigned int get_height() const { return height; }
+  int get_delta_x() const { return delta_x; }
+  int get_delta_y() const { return delta_y; }
+  int get_offset_x() const { return offset_x; }
+  int get_offset_y() const { return offset_y; }
+
+  void set_offset(int x, int y) { offset_x = x; offset_y = y; }
+  void set_delta(int x, int y) { delta_x = x; delta_y = y; }
+
+  sprite_t *get_masked(sprite_t *mask);
+
+  static uint64_t create_sprite_id(uint64_t sprite, uint64_t mask,
+                                   uint64_t offset);
+};
+
+class animation_t {
+ public:
+  uint8_t time;
+  int8_t x;
+  int8_t y;
+};
+
+bool load_data_file(const std::string &path);
+
+bool data_load(const std::string &path);
 void data_unload();
 
 void *data_get_object(uint index, size_t *size);
 const dos_sprite_t *data_get_dos_sprite(uint index);
+
+sprite_t *data_create_sprite(const dos_sprite_t *sprite);
+sprite_t *data_create_transparent_sprite(const dos_sprite_t *sprite,
+                                         int color_off);
+sprite_t *data_create_bitmap_sprite(const dos_sprite_t *sprite,
+                                    unsigned int value);
+
+void *data_get_wav(unsigned int index, size_t *size);
+void *data_get_midi(unsigned int index, size_t *size);
+
+animation_t *data_get_animation(unsigned int animation, unsigned int phase);
 
 #endif  // SRC_DATA_H_

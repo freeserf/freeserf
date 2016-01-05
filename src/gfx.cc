@@ -22,7 +22,6 @@
 #include "src/gfx.h"
 
 #include <cstring>
-#include <algorithm>
 
 #include "src/misc.h"
 BEGIN_EXT_C
@@ -116,157 +115,6 @@ image_t::clear_cache() {
   }
 }
 
-/* There are different types of sprites:
-   - Non-packed, rectangular sprites: These are simple called sprites here.
-   - Transparent sprites, "transp": These are e.g. buldings/serfs.
-   The transparent regions are RLE encoded.
-   - Bitmap sprites: Conceptually these contain either 0 or 1 at each pixel.
-   This is used to either modify the alpha level of another sprite (shadows)
-   or mask parts of other sprites completely (mask sprites).
-*/
-
-sprite_t::sprite_t(unsigned int width, unsigned int height) {
-  this->width = width;
-  this->height = height;
-  size_t size = width * height * 4;
-  data = new uint8_t[size];
-  memset(data, 0, size);
-}
-
-sprite_t::~sprite_t() {
-  if (data != NULL) {
-    delete[] data;
-    data = NULL;
-  }
-}
-
-/* Create empty sprite object */
-static sprite_t *
-gfx_create_empty_sprite(const dos_sprite_t *sprite) {
-  sprite_t *s = new sprite_t(sprite->w, sprite->h);
-  s->set_delta(sprite->b_x, sprite->b_y);
-  s->set_offset(sprite->x, sprite->y);
-  return s;
-}
-
-/* Create sprite object */
-static sprite_t *
-gfx_create_sprite(const dos_sprite_t *sprite) {
-  sprite_t *s = gfx_create_empty_sprite(sprite);
-  if (s == NULL) return NULL;
-
-  uint8_t *palette =
-           reinterpret_cast<uint8_t*>(data_get_object(DATA_PALETTE_GAME, NULL));
-
-  const uint8_t *src = reinterpret_cast<const uint8_t*>(sprite) +
-                       sizeof(dos_sprite_t);
-  uint8_t *dest = s->get_data();
-  size_t size = sprite->w * sprite->h;
-
-  for (size_t i = 0; i < size; i++) {
-    dest[4*i+0] = palette[3*src[i]+0]; /* Red */
-    dest[4*i+1] = palette[3*src[i]+1]; /* Green */
-    dest[4*i+2] = palette[3*src[i]+2]; /* Blue */
-    dest[4*i+3] = 0xff; /* Alpha */
-  }
-
-  return s;
-}
-
-/* Create transparent sprite object */
-static sprite_t *
-gfx_create_transparent_sprite(const dos_sprite_t *sprite, int color_off) {
-  sprite_t *s = gfx_create_empty_sprite(sprite);
-  if (s == NULL) return NULL;
-
-  uint8_t *palette =
-           reinterpret_cast<uint8_t*>(data_get_object(DATA_PALETTE_GAME, NULL));
-
-  const uint8_t *src = reinterpret_cast<const uint8_t*>(sprite) +
-                       sizeof(dos_sprite_t);
-  uint8_t *dest = s->get_data();
-  size_t size = sprite->w * sprite->h;
-
-  size_t i = 0;
-  size_t j = 0;
-  while (j < size) {
-    j += src[i];
-    int n = src[i+1];
-
-    for (int k = 0; k < n; k++) {
-      uint p_index = src[i+2+k] + color_off;
-      dest[4*(j+k)+0] = palette[3*p_index+0]; /* Red */
-      dest[4*(j+k)+1] = palette[3*p_index+1]; /* Green */
-      dest[4*(j+k)+2] = palette[3*p_index+2]; /* Blue */
-      dest[4*(j+k)+3] = 0xff; /* Alpha */
-    }
-    i += n + 2;
-    j += n;
-  }
-
-  return s;
-}
-
-/* Create overlay sprite object */
-static sprite_t *
-gfx_create_bitmap_sprite(const dos_sprite_t *sprite, unsigned int value) {
-  sprite_t *s = gfx_create_empty_sprite(sprite);
-  if (s == NULL) return NULL;
-
-  const uint8_t *src = reinterpret_cast<const uint8_t*>(sprite) +
-                       sizeof(dos_sprite_t);
-  uint8_t *dest = s->get_data();
-  size_t size = sprite->w * sprite->h;
-
-  size_t i = 0;
-  size_t j = 0;
-  while (j < size) {
-    j += src[i];
-    int n = src[i+1];
-    for (int k = 0; k < n && j + k < size; k++) {
-      dest[4*(j+k)+3] = value; /* Alpha */
-    }
-    i += 2;
-    j += n;
-  }
-
-  return s;
-}
-
-/* Apply mask to map tile sprite
-   The resulting sprite will be extended to the height of the mask
-   by repeating lines from the top of the sprite. The width of the
-   mask and the sprite must be identical. */
-sprite_t *
-sprite_t::get_masked(sprite_t *mask) {
-  sprite_t *s = new sprite_t(mask->get_width(), mask->get_height());
-  s->set_delta(mask->get_delta_x(), mask->get_delta_y());
-  s->set_offset(mask->get_offset_x(), mask->get_offset_y());
-
-  uint8_t *dest_data = s->get_data();
-  size_t to_copy = mask->get_width() * mask->get_height() * 4;
-
-  /* Copy extended data to new sprite */
-  while (to_copy > 0) {
-    size_t s = std::min(to_copy, size_t(width * height * 4));
-    memcpy(dest_data, data, s);
-    to_copy -= s;
-    dest_data += s;
-  }
-
-  /* Apply mask from mask sprite */
-  uint8_t *s_data = s->get_data();
-  const uint8_t *m_data = mask->get_data();
-  for (size_t y = 0; y < mask->get_height(); y++) {
-    for (size_t x = 0; x < mask->get_width(); x++) {
-      size_t alpha_index = 4*(y * mask->get_width() + x) + 3;
-      s_data[alpha_index] &= m_data[alpha_index];
-    }
-  }
-
-  return s;
-}
-
 gfx_t *gfx_t::instance = NULL;
 
 gfx_t::gfx_t() throw(Freeserf_Exception) {
@@ -281,7 +129,7 @@ gfx_t::gfx_t() throw(Freeserf_Exception) {
   }
 
   const dos_sprite_t *cursor = data_get_dos_sprite(DATA_CURSOR);
-  sprite_t *sprite = gfx_create_transparent_sprite(cursor, 0);
+  sprite_t *sprite = data_create_transparent_sprite(cursor, 0);
   video->set_cursor(sprite->get_data(), sprite->get_width(),
                     sprite->get_height());
   delete sprite;
@@ -321,7 +169,7 @@ frame_t::draw_sprite(int x, int y, unsigned int sprite) {
       return;
     }
 
-    sprite_t *s = gfx_create_sprite(spr);
+    sprite_t *s = data_create_sprite(spr);
     if (s == NULL) {
       LOGW("graphics", "Failed to decode sprite #%i", sprite);
       return;
@@ -353,7 +201,7 @@ frame_t::draw_transp_sprite(int x, int y, unsigned int sprite, bool use_off,
       return;
     }
 
-    sprite_t *s = gfx_create_transparent_sprite(spr, color_off);
+    sprite_t *s = data_create_transparent_sprite(spr, color_off);
     if (s == NULL) {
       LOGW("graphics", "Failed to decode sprite #%i", sprite);
       return;
@@ -422,13 +270,13 @@ frame_t::draw_masked_sprite(int x, int y, unsigned int mask,
       return;
     }
 
-    sprite_t *s = gfx_create_sprite(spr);
+    sprite_t *s = data_create_sprite(spr);
     if (s == NULL) {
       LOGW("graphics", "Failed to decode sprite #%i", sprite);
       return;
     }
 
-    sprite_t *m = gfx_create_bitmap_sprite(msk, 0xff);
+    sprite_t *m = data_create_bitmap_sprite(msk, 0xff);
     if (m == NULL) {
       LOGW("graphics", "Failed to decode sprite #%i", mask);
       delete s;
@@ -478,7 +326,7 @@ frame_t::draw_overlay_sprite(int x, int y, unsigned int sprite,
       return;
     }
 
-    sprite_t *s = gfx_create_bitmap_sprite(spr, 0x80);
+    sprite_t *s = data_create_bitmap_sprite(spr, 0x80);
     if (s == NULL) {
       LOGW("graphics", "Failed to decode sprite #%i", sprite);
       return;
@@ -513,7 +361,7 @@ frame_t::draw_waves_sprite(int x, int y, unsigned int mask,
       return;
     }
 
-    sprite_t *s = gfx_create_transparent_sprite(spr, 0);
+    sprite_t *s = data_create_transparent_sprite(spr, 0);
     if (s == NULL) {
       LOGW("graphics", "Failed to decode sprite #%i", sprite);
       return;
@@ -526,7 +374,7 @@ frame_t::draw_waves_sprite(int x, int y, unsigned int mask,
         return;
       }
 
-      sprite_t *m = gfx_create_bitmap_sprite(msk, 0xff);
+      sprite_t *m = data_create_bitmap_sprite(msk, 0xff);
       if (m == NULL) {
         LOGW("graphics", "Failed to decode sprite #%i", sprite);
         return;

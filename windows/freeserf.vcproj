@@ -194,6 +194,10 @@
 				>
 			</File>
 			<File
+				RelativePath="..\src\data.cc"
+				>
+			</File>
+			<File
 				RelativePath="..\src\data-source-dos.cc"
 				>
 			</File>

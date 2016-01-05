@@ -36,7 +36,6 @@ END_EXT_C
 #include "src/interface.h"
 #include "src/popup.h"
 #include "src/pathfinder.h"
-#include "src/freeserf_endian.h"
 
 #ifdef min
 # undef min
@@ -1364,7 +1363,8 @@ viewport_t::serf_get_body(serf_t *serf) {
     0x7600, 0x5f00, 0x6000, 0, 0, 0, 0, 0
   };
 
-  animation_t *animation = get_animation(serf->animation, serf->counter >> 3);
+  animation_t *animation = data_get_animation(serf->animation,
+                                              serf->counter >> 3);
   int t = animation->time;
 
   switch (SERF_TYPE(serf)) {
@@ -1859,7 +1859,8 @@ viewport_t::draw_active_serf(serf_t *serf, map_pos_t pos,
     5, 8, 0, 0, 0, 0, 0, 0
   };
 
-  animation_t *animation = get_animation(serf->animation, serf->counter >> 3);
+  animation_t *animation = data_get_animation(serf->animation,
+                                              serf->counter >> 3);
 
   int x = x_base + animation->x;
   int y = y_base + animation->y - 4*MAP_HEIGHT(pos);
@@ -1882,8 +1883,8 @@ viewport_t::draw_active_serf(serf_t *serf, map_pos_t pos,
     if (index != 0) {
       serf_t *def_serf = game_get_serf(index);
 
-      animation_t *animation = get_animation(def_serf->animation,
-                                             def_serf->counter >> 3);
+      animation_t *animation = data_get_animation(def_serf->animation,
+                                                  def_serf->counter >> 3);
 
       int x = x_base + animation->x;
       int y = y_base + animation->y - 4*MAP_HEIGHT(pos);
@@ -2472,8 +2473,6 @@ viewport_t::viewport_t(interface_t *interface) {
   layers = VIEWPORT_LAYER_ALL;
 
   last_tick = 0;
-
-  load_serf_animation_table();
 }
 
 viewport_t::~viewport_t() {
@@ -2663,51 +2662,4 @@ viewport_t::update() {
   if (tick_xor >= 1 << 3) {
     set_redraw();
   }
-}
-
-void
-viewport_t::load_serf_animation_table() {
-  /* The serf animation table is stored in big endian
-   order in the data file.
-
-   * The first uint32 is the byte length of the rest
-   of the table.
-   * Next is 199 uint32s that are offsets from the start
-   of this table to an animation table (one for each
-   animation).
-   * The animation tables are of varying lengths.
-   Each entry in the animation table is three bytes
-   long. First byte is used to determine the serf body
-   sprite. Second byte is a signed horizontal sprite
-   offset. Third byte is a signed vertical offset.
-   */
-
-  size_t size = 0;
-  serf_animation_table =
-    reinterpret_cast<uint32_t*>(data_get_object(DATA_SERF_ANIMATION_TABLE,
-                                                &size));
-  if (NULL == serf_animation_table) {
-    return;
-  }
-
-  if (serf_animation_table[0] != 0xFFFFFFFF) {
-    if (size != be32toh(serf_animation_table[0])) {
-      // TODO(digger): report and assert
-    }
-    serf_animation_table[0] = 0xFFFFFFFF;
-    serf_animation_table++;
-
-    /* Endianess convert from big endian. */
-    for (int i = 0; i < 200; i++) {
-      serf_animation_table[i] = be32toh(serf_animation_table[i]);
-    }
-  }
-}
-
-viewport_t::animation_t*
-viewport_t::get_animation(int animation, int phase) {
-  uint8_t *tbl_ptr = reinterpret_cast<uint8_t*>(serf_animation_table) +
-                     serf_animation_table[animation] +
-                     (3 * phase);
-  return reinterpret_cast<animation_t*>(tbl_ptr);
 }

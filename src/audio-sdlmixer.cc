@@ -33,8 +33,6 @@ BEGIN_EXT_C
   #include "src/log.h"
 END_EXT_C
 #include "src/data.h"
-#include "src/sfx2wav.h"
-#include "src/xmi2mid.h"
 
 #ifdef min
 # undef min
@@ -140,12 +138,7 @@ audio_sdlmixer_t::volume_down() {
 audio_track_t *
 sfx_player_t::create_track(int track_id) {
   size_t size = 0;
-  void *data = data_get_object(DATA_SFX_BASE + track_id, &size);
-  if (data == NULL) {
-    return NULL;
-  }
-
-  void *wav = sfx2wav(data, size, &size, -0x20);
+  void *wav = data_get_wav(track_id, &size);
   if (wav == NULL) {
     return NULL;
   }
@@ -230,12 +223,11 @@ midi_player_t::~midi_player_t() {
 audio_track_t *
 midi_player_t::create_track(int track_id) {
   size_t size = 0;
-  void *data = data_get_object(DATA_MUSIC_GAME + track_id, &size);
-  if (NULL == data) {
+  void *midi = data_get_midi(track_id, &size);
+  if (midi == NULL) {
     return NULL;
   }
 
-  void *midi = xmi2mid(data, size, &size);
   SDL_RWops *rw = SDL_RWFromMem(midi, static_cast<int>(size));
   Mix_Music *music = Mix_LoadMUS_RW(rw, 0);
   free(midi);

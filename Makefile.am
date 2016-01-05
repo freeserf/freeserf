@@ -4,7 +4,8 @@ bin_PROGRAMS = freeserf
 
 freeserf_SOURCES = \
 	src/freeserf.cc src/freeserf.h \
-	src/data.h src/resource.h \
+	src/data.cc src/data.h \
+	src/resource.h \
 	src/mission.c src/mission.h \
 	src/game.c src/game.h \
 	src/serf.c src/serf.h \
@@ -37,7 +38,9 @@ freeserf_SOURCES = \
 	src/data-source-dos.cc \
 	src/tpwm.cc src/tpwm.h \
 	src/event_loop.cc src/event_loop.h \
-	src/event_loop-sdl.cc src/event_loop-sdl.h
+	src/event_loop-sdl.cc src/event_loop-sdl.h \
+	src/sfx2wav.cc src/sfx2wav.h \
+	src/xmi2mid.cc src/xmi2mid.h
 
 AM_CFLAGS = $(SDL2_CFLAGS) -I$(top_builddir)/src
 AM_CXXFLAGS = $(SDL2_CFLAGS) -I$(top_builddir)/src
@@ -47,10 +50,7 @@ if ENABLE_SDL2_MIXER
 AM_CFLAGS += $(SDL2_mixer_CFLAGS)
 AM_CXXFLAGS += $(SDL2_mixer_CFLAGS)
 freeserf_LDADD += $(SDL2_mixer_LIBS)
-freeserf_SOURCES += \
-	src/audio-sdlmixer.cc src/audio-sdlmixer.h \
-	src/sfx2wav.cc src/sfx2wav.h \
-	src/xmi2mid.cc src/xmi2mid.h
+freeserf_SOURCES += src/audio-sdlmixer.cc src/audio-sdlmixer.h
 else
 freeserf_SOURCES += src/audio-dummy.cc src/audio-dummy.h
 endif

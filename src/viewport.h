@@ -51,12 +51,6 @@ class interface_t;
 
 class viewport_t : public gui_object_t {
  protected:
-  typedef struct {
-    uint8_t time;
-    int8_t x;
-    int8_t y;
-  } animation_t;
-
   /* Cache prerendered tiles of the landscape. */
   typedef std::map<uint, frame_t*> tiles_map_t;
   tiles_map_t landscape_tiles;
@@ -65,7 +59,6 @@ class viewport_t : public gui_object_t {
   unsigned int layers;
   interface_t *interface;
   uint last_tick;
-  uint32_t *serf_animation_table;
 
  public:
   explicit viewport_t(interface_t *interface);
@@ -131,9 +124,6 @@ class viewport_t : public gui_object_t {
   virtual bool handle_click_left(int x, int y);
   virtual bool handle_dbl_click(int x, int y, event_button_t button);
   virtual bool handle_drag(int x, int y);
-
-  void load_serf_animation_table();
-  animation_t *get_animation(int animation, int phase);
 
   frame_t *get_tile_frame(uint tid, int tc, int tr);
 };
