@@ -3562,6 +3562,8 @@ popup_box_t::handle_action(int action, int x, int y) {
     LOGW("popup", "unhandled action %i", action);
     break;
   }
+
+  set_redraw();
 }
 
 /* Generic handler for clicks in popup boxes. */
