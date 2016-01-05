@@ -27,8 +27,8 @@
 #include "src/misc.h"
 BEGIN_EXT_C
   #include "src/game.h"
-  #include "src/data.h"
 END_EXT_C
+#include "src/data.h"
 #include "src/gfx.h"
 #include "src/interface.h"
 #include "src/viewport.h"

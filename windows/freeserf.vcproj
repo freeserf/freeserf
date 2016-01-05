@@ -194,7 +194,7 @@
 				>
 			</File>
 			<File
-				RelativePath="..\src\data-source-dos.c"
+				RelativePath="..\src\data-source-dos.cc"
 				>
 			</File>
 			<File
@@ -302,7 +302,7 @@
 				>
 			</File>
 			<File
-				RelativePath="..\src\tpwm.c"
+				RelativePath="..\src\tpwm.cc"
 				>
 			</File>
 			<File

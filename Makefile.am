@@ -34,8 +34,8 @@ freeserf_SOURCES = \
 	src/debug.h \
 	src/freeserf_endian.h \
 	src/version.c src/version.h src/version-vcs.h \
-	src/data-source-dos.c \
-	src/tpwm.c src/tpwm.h \
+	src/data-source-dos.cc \
+	src/tpwm.cc src/tpwm.h \
 	src/event_loop.cc src/event_loop.h \
 	src/event_loop-sdl.cc src/event_loop-sdl.h
 

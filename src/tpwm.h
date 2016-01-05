@@ -19,12 +19,14 @@
  * along with freeserf.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef _TPWM_H
-#define _TPWM_H
+#ifndef SRC_TPWM_H_
+#define SRC_TPWM_H_
 
-int tpwm_is_compressed(void *src_data, unsigned int src_size);
-int tpwm_uncompress(void *src_data, unsigned int src_size,
-                    void **res_data, unsigned int *res_size,
-                    char **error);
+#include <cstdlib>
 
-#endif /* !_TPWM_H */
+bool tpwm_is_compressed(void *src_data, size_t src_size);
+bool tpwm_uncompress(void *src_data, size_t src_size,
+                     void **res_data, size_t *res_size,
+                     const char **error);
+
+#endif  // SRC_TPWM_H_

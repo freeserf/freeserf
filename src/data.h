@@ -1,7 +1,7 @@
 /*
  * data.h - Definitions for data file access.
  *
- * Copyright (C) 2012-2014  Jon Lund Steffensen <jonlst@gmail.com>
+ * Copyright (C) 2012-2015  Jon Lund Steffensen <jonlst@gmail.com>
  *
  * This file is part of freeserf.
  *
@@ -19,10 +19,10 @@
  * along with freeserf.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef _DATA_H
-#define _DATA_H
+#ifndef SRC_DATA_H_
+#define SRC_DATA_H_
 
-#include "misc.h"
+#include "src/misc.h"
 
 #ifdef HAVE_CONFIG_H
 # include <config.h>
@@ -239,14 +239,15 @@
 #define DATA_CURSOR  3999
 
 
-/* Sprite header. In the data file this is immediately followed by sprite data. */
+/* Sprite header. In the data file this is immediately followed
+ by sprite data. */
 typedef struct {
-	int8_t b_x;
-	int8_t b_y;
-	uint16_t w;
-	uint16_t h;
-	int16_t x;
-	int16_t y;
+  int8_t b_x;
+  int8_t b_y;
+  uint16_t w;
+  uint16_t h;
+  int16_t x;
+  int16_t y;
 } dos_sprite_t;
 
 
@@ -256,4 +257,4 @@ void data_unload();
 void *data_get_object(uint index, size_t *size);
 const dos_sprite_t *data_get_dos_sprite(uint index);
 
-#endif /* ! _DATA_H */
+#endif  // SRC_DATA_H_
