@@ -98,9 +98,9 @@ class video_sdl_t : public video_t {
   virtual void draw_frame(int dx, int dy, video_frame_t *dest, int sx, int sy,
                           video_frame_t *src, int w, int h);
   virtual void draw_rect(int x, int y, unsigned int width, unsigned int height,
-                         const color_t *color, video_frame_t *dest);
+                         const video_color_t color, video_frame_t *dest);
   virtual void fill_rect(int x, int y, unsigned int width, unsigned int height,
-                         const color_t *color, video_frame_t *dest);
+                         const video_color_t color, video_frame_t *dest);
   virtual void swap_buffers();
 
   virtual void set_cursor(void *data, unsigned int width, unsigned int height);

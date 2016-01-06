@@ -84,7 +84,7 @@ save_game(int autosave) {
 
   /* Build filename including time stamp. */
   char name[128];
-  time_t t = time(NULL);
+  std::time_t t = time(NULL);
 
   struct tm *tm = std::localtime(&t);
   if (tm == NULL) return -1;
@@ -219,7 +219,9 @@ main(int argc, char *argv[]) {
 
   LOGI("main", "freeserf %s", FREESERF_VERSION);
 
-  if (!load_data_file(data_file)) {
+  data_t *data = data_t::get_instance();
+  if (!data->load(data_file)) {
+    delete data;
     LOGE("main", "Could not load game data.");
     exit(EXIT_FAILURE);
   }
@@ -292,7 +294,7 @@ main(int argc, char *argv[]) {
   map_deinit();
   delete audio;
   delete gfx;
-  data_unload();
+  delete data;
   delete event_loop;
 
   return EXIT_SUCCESS;

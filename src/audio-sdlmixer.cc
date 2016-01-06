@@ -33,6 +33,7 @@ BEGIN_EXT_C
   #include "src/log.h"
 END_EXT_C
 #include "src/data.h"
+#include "src/data-source-dos.h"
 
 #ifdef min
 # undef min
@@ -137,8 +138,11 @@ audio_sdlmixer_t::volume_down() {
 
 audio_track_t *
 sfx_player_t::create_track(int track_id) {
+  data_t *data = data_t::get_instance();
+  data_source_t *data_source = data->get_data_source();
+
   size_t size = 0;
-  void *wav = data_get_wav(track_id, &size);
+  void *wav = data_source->get_sound(track_id, &size);
   if (wav == NULL) {
     return NULL;
   }
@@ -222,8 +226,11 @@ midi_player_t::~midi_player_t() {
 
 audio_track_t *
 midi_player_t::create_track(int track_id) {
+  data_t *data = data_t::get_instance();
+  data_source_t *data_source = data->get_data_source();
+
   size_t size = 0;
-  void *midi = data_get_midi(track_id, &size);
+  void *midi = data_source->get_music(track_id, &size);
   if (midi == NULL) {
     return NULL;
   }

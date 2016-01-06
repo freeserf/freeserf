@@ -322,7 +322,7 @@ video_sdl_t::draw_frame(int dx, int dy, video_frame_t *dest, int sx, int sy,
 
 void
 video_sdl_t::draw_rect(int x, int y, unsigned int width, unsigned int height,
-                       const color_t *color, video_frame_t *dest) {
+                       const video_color_t color, video_frame_t *dest) {
   /* Draw rectangle. */
   fill_rect(x, y, width, 1, color, dest);
   fill_rect(x, y+height-1, width, 1, color, dest);
@@ -332,12 +332,12 @@ video_sdl_t::draw_rect(int x, int y, unsigned int width, unsigned int height,
 
 void
 video_sdl_t::fill_rect(int x, int y, unsigned int width, unsigned int height,
-                       const color_t *color, video_frame_t *dest) {
+                       const video_color_t color, video_frame_t *dest) {
   SDL_Rect rect = { x, y, static_cast<int>(width), static_cast<int>(height) };
 
   /* Fill rectangle */
   SDL_SetRenderTarget(renderer, dest->texture);
-  SDL_SetRenderDrawColor(renderer, color->r, color->g, color->b, 0xff);
+  SDL_SetRenderDrawColor(renderer, color.r, color.g, color.b, 0xff);
   int r = SDL_RenderFillRect(renderer, &rect);
   if (r < 0) {
     throw SDL_Exception("RenderFillRect error");

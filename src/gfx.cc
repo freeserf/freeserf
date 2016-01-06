@@ -29,6 +29,7 @@ BEGIN_EXT_C
 END_EXT_C
 #include "src/data.h"
 #include "src/video.h"
+#include "src/data-source-dos.h"
 
 #ifdef min
 # undef min
@@ -81,13 +82,6 @@ image_t::~image_t() {
   video = NULL;
 }
 
-/* Calculate hash of sprite identifier. */
-uint64_t sprite_t::create_sprite_id(uint64_t sprite, uint64_t mask,
-                                    uint64_t offset) {
-  uint64_t result = sprite + (mask << 32) + (offset << 48);
-  return result;
-}
-
 /* Sprite cache hash table */
 image_t::image_cache_t image_t::image_cache;
 
@@ -128,8 +122,9 @@ gfx_t::gfx_t() throw(Freeserf_Exception) {
     throw GFX_Exception(e.what());
   }
 
-  const dos_sprite_t *cursor = data_get_dos_sprite(DATA_CURSOR);
-  sprite_t *sprite = data_create_transparent_sprite(cursor, 0);
+  data_t *data = data_t::get_instance();
+  data_source_t *data_source = data->get_data_source();
+  sprite_t *sprite = data_source->get_transparent_sprite(DATA_CURSOR, 0);
   video->set_cursor(sprite->get_data(), sprite->get_width(),
                     sprite->get_height());
   delete sprite;
@@ -163,13 +158,7 @@ frame_t::draw_sprite(int x, int y, unsigned int sprite) {
   uint64_t id = sprite_t::create_sprite_id(sprite, 0, 0);
   image_t *image = image_t::get_cached_image(id);
   if (image == NULL) {
-    const dos_sprite_t *spr = data_get_dos_sprite(sprite);
-    if (spr == NULL) {
-      LOGW("graphics", "Failed to extract sprite #%i", sprite);
-      return;
-    }
-
-    sprite_t *s = data_create_sprite(spr);
+    sprite_t *s = data_source->get_sprite(sprite);
     if (s == NULL) {
       LOGW("graphics", "Failed to decode sprite #%i", sprite);
       return;
@@ -195,13 +184,7 @@ frame_t::draw_transp_sprite(int x, int y, unsigned int sprite, bool use_off,
   uint64_t id = sprite_t::create_sprite_id(sprite, 0, color_off);
   image_t *image = image_t::get_cached_image(id);
   if (image == NULL) {
-    const dos_sprite_t *spr = data_get_dos_sprite(sprite);
-    if (spr == NULL) {
-      LOGW("graphics", "Failed to extract sprite #%i", sprite);
-      return;
-    }
-
-    sprite_t *s = data_create_transparent_sprite(spr, color_off);
+    sprite_t *s = data_source->get_transparent_sprite(sprite, color_off);
     if (s == NULL) {
       LOGW("graphics", "Failed to decode sprite #%i", sprite);
       return;
@@ -243,9 +226,9 @@ frame_t::draw_transp_sprite(int x, int y, unsigned int sprite, bool use_off,
 void
 frame_t::draw_transp_sprite_relatively(int x, int y, unsigned int sprite,
                                        unsigned int offs_sprite) {
-  const dos_sprite_t *spr = data_get_dos_sprite(offs_sprite);
-  x += spr->b_x;
-  y += spr->b_y;
+  sprite_t *s = data_source->get_empty_sprite(offs_sprite);
+  x += s->get_delta_x();
+  y += s->get_delta_y();
 
   draw_transp_sprite(x, y, sprite, true, 0, 1.f);
 }
@@ -258,25 +241,13 @@ frame_t::draw_masked_sprite(int x, int y, unsigned int mask,
   uint64_t id = sprite_t::create_sprite_id(sprite, mask, 0);
   image_t *image = image_t::get_cached_image(id);
   if (image == NULL) {
-    const dos_sprite_t *spr = data_get_dos_sprite(sprite);
-    if (spr == NULL) {
-      LOGW("graphics", "Failed to extract sprite #%i", sprite);
-      return;
-    }
-
-    const dos_sprite_t *msk = data_get_dos_sprite(mask);
-    if (msk == NULL) {
-      LOGW("graphics", "Failed to extract sprite #%i", mask);
-      return;
-    }
-
-    sprite_t *s = data_create_sprite(spr);
+    sprite_t *s = data_source->get_sprite(sprite);
     if (s == NULL) {
       LOGW("graphics", "Failed to decode sprite #%i", sprite);
       return;
     }
 
-    sprite_t *m = data_create_bitmap_sprite(msk, 0xff);
+    sprite_t *m = data_source->get_mask_sprite(mask);
     if (m == NULL) {
       LOGW("graphics", "Failed to decode sprite #%i", mask);
       delete s;
@@ -320,13 +291,7 @@ frame_t::draw_overlay_sprite(int x, int y, unsigned int sprite,
   uint64_t id = sprite_t::create_sprite_id(sprite, 0, 0);
   image_t *image = image_t::get_cached_image(id);
   if (image == NULL) {
-    const dos_sprite_t *spr = data_get_dos_sprite(sprite);
-    if (spr == NULL) {
-      LOGW("graphics", "Failed to extract sprite #%i", sprite);
-      return;
-    }
-
-    sprite_t *s = data_create_bitmap_sprite(spr, 0x80);
+    sprite_t *s = data_source->get_overlay_sprite(sprite);
     if (s == NULL) {
       LOGW("graphics", "Failed to decode sprite #%i", sprite);
       return;
@@ -355,26 +320,14 @@ frame_t::draw_waves_sprite(int x, int y, unsigned int mask,
   uint64_t id = sprite_t::create_sprite_id(sprite, mask, 0);
   image_t *image = image_t::get_cached_image(id);
   if (image == NULL) {
-    const dos_sprite_t *spr = data_get_dos_sprite(sprite);
-    if (spr == NULL) {
-      LOGW("graphics", "Failed to extract sprite #%i", sprite);
-      return;
-    }
-
-    sprite_t *s = data_create_transparent_sprite(spr, 0);
+    sprite_t *s = data_source->get_transparent_sprite(sprite, 0);
     if (s == NULL) {
       LOGW("graphics", "Failed to decode sprite #%i", sprite);
       return;
     }
 
     if (mask > 0) {
-      const dos_sprite_t *msk = data_get_dos_sprite(mask);
-      if (msk == NULL) {
-        LOGW("graphics", "Failed to extract sprite #%i", mask);
-        return;
-      }
-
-      sprite_t *m = data_create_bitmap_sprite(msk, 0xff);
+      sprite_t *m = data_source->get_mask_sprite(mask);
       if (m == NULL) {
         LOGW("graphics", "Failed to decode sprite #%i", sprite);
         return;
@@ -494,27 +447,17 @@ frame_t::draw_number(int x, int y, unsigned char color, int shadow, int n) {
 /* Draw a rectangle with color at x, y in the dest frame. */
 void
 frame_t::draw_rect(int x, int y, int width, int height, unsigned char color) {
-  uint8_t *palette =
-           reinterpret_cast<uint8_t*>(data_get_object(DATA_PALETTE_GAME, NULL));
-  color_t c = { palette[3*color+0],
-                palette[3*color+1],
-                palette[3*color+2],
-                0xff };
-
-  video->draw_rect(x, y, width, height, &c, video_frame);
+  color_t col = data_source->get_color(color);
+  video_color_t c = { col.red, col.green, col.blue, col.alpha };
+  video->draw_rect(x, y, width, height, c, video_frame);
 }
 
 /* Draw a rectangle with color at x, y in the dest frame. */
 void
 frame_t::fill_rect(int x, int y, int width, int height, unsigned char color) {
-  uint8_t *palette =
-           reinterpret_cast<uint8_t*>(data_get_object(DATA_PALETTE_GAME, NULL));
-  color_t c = { palette[3*color+0],
-                palette[3*color+1],
-                palette[3*color+2],
-                0xff };
-
-  video->fill_rect(x, y, width, height, &c, video_frame);
+  color_t col = data_source->get_color(color);
+  video_color_t c = { col.red, col.green, col.blue, col.alpha };
+  video->fill_rect(x, y, width, height, c, video_frame);
 }
 
 /* Initialize new graphics frame. If dest is NULL a new
@@ -524,12 +467,16 @@ frame_t::frame_t(video_t *video, unsigned int width, unsigned int height) {
   this->video = video;
   video_frame = video->create_frame(width, height);
   owner = true;
+  data_t *data = data_t::get_instance();
+  data_source = data->get_data_source();
 }
 
 frame_t::frame_t(video_t *video, video_frame_t *video_frame) {
   this->video = video;
   this->video_frame = video_frame;
   owner = false;
+  data_t *data = data_t::get_instance();
+  data_source = data->get_data_source();
 }
 
 /* Deinitialize frame and backing surface. */

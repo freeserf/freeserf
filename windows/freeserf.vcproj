@@ -348,6 +348,10 @@
 				>
 			</File>
 			<File
+				RelativePath="..\src\data-source-dos.h"
+				>
+			</File>
+			<File
 				RelativePath="..\src\debug.h"
 				>
 			</File>

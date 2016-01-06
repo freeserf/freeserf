@@ -48,17 +48,19 @@ typedef enum {
 } viewport_layer_t;
 
 class interface_t;
+class data_source_t;
 
 class viewport_t : public gui_object_t {
  protected:
   /* Cache prerendered tiles of the landscape. */
-  typedef std::map<uint, frame_t*> tiles_map_t;
+  typedef std::map<unsigned int, frame_t*> tiles_map_t;
   tiles_map_t landscape_tiles;
 
   int offset_x, offset_y;
   unsigned int layers;
   interface_t *interface;
-  uint last_tick;
+  unsigned int last_tick;
+  data_source_t *data_source;
 
  public:
   explicit viewport_t(interface_t *interface);
@@ -125,7 +127,7 @@ class viewport_t : public gui_object_t {
   virtual bool handle_dbl_click(int x, int y, event_button_t button);
   virtual bool handle_drag(int x, int y);
 
-  frame_t *get_tile_frame(uint tid, int tc, int tr);
+  frame_t *get_tile_frame(unsigned int tid, int tc, int tr);
 };
 
 #endif  // SRC_VIEWPORT_H_

@@ -36,6 +36,7 @@ END_EXT_C
 #include "src/interface.h"
 #include "src/popup.h"
 #include "src/pathfinder.h"
+#include "src/data-source-dos.h"
 
 #ifdef min
 # undef min
@@ -1363,8 +1364,8 @@ viewport_t::serf_get_body(serf_t *serf) {
     0x7600, 0x5f00, 0x6000, 0, 0, 0, 0, 0
   };
 
-  animation_t *animation = data_get_animation(serf->animation,
-                                              serf->counter >> 3);
+  animation_t *animation = data_source->get_animation(serf->animation,
+                                                      serf->counter >> 3);
   int t = animation->time;
 
   switch (SERF_TYPE(serf)) {
@@ -1859,8 +1860,8 @@ viewport_t::draw_active_serf(serf_t *serf, map_pos_t pos,
     5, 8, 0, 0, 0, 0, 0, 0
   };
 
-  animation_t *animation = data_get_animation(serf->animation,
-                                              serf->counter >> 3);
+  animation_t *animation = data_source->get_animation(serf->animation,
+                                                      serf->counter >> 3);
 
   int x = x_base + animation->x;
   int y = y_base + animation->y - 4*MAP_HEIGHT(pos);
@@ -1883,8 +1884,8 @@ viewport_t::draw_active_serf(serf_t *serf, map_pos_t pos,
     if (index != 0) {
       serf_t *def_serf = game_get_serf(index);
 
-      animation_t *animation = data_get_animation(def_serf->animation,
-                                                  def_serf->counter >> 3);
+      animation_t *animation = data_source->get_animation(def_serf->animation,
+                                                        def_serf->counter >> 3);
 
       int x = x_base + animation->x;
       int y = y_base + animation->y - 4*MAP_HEIGHT(pos);
@@ -2473,6 +2474,9 @@ viewport_t::viewport_t(interface_t *interface) {
   layers = VIEWPORT_LAYER_ALL;
 
   last_tick = 0;
+
+  data_t *data = data_t::get_instance();
+  data_source = data->get_data_source();
 }
 
 viewport_t::~viewport_t() {

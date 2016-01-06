@@ -24,17 +24,6 @@
 
 #include <string>
 
-#include "src/misc.h"
-
-#ifdef HAVE_CONFIG_H
-# include <config.h>
-#endif
-
-#ifdef HAVE_STDINT_H
-#include <stdint.h>
-#endif
-#include <sys/types.h>
-
 /* Index 0 is undefined (entry 0 in the data file
    contains a header with the size and total
    number of entries in the file). */
@@ -190,14 +179,17 @@
 #define DATA_MAP_OBJECT_FLAG          (DATA_MAP_OBJECT_BASE+128)
 #define DATA_MAP_OBJECT_CROSS         (DATA_MAP_OBJECT_BASE+144)
 #define DATA_MAP_OBJECT_CORNER_STONE  (DATA_MAP_OBJECT_BASE+145)
+#define DATA_MAP_OBJECT_COUNT         194
 
 /* undefined: 1444-1499 */
 
-#define DATA_MAP_SHADOW_BASE  1500
+#define DATA_MAP_SHADOW_BASE   1500
+#define DATA_MAP_SHADOW_COUNT  (DATA_MAP_OBJECT_COUNT)
 
 /* undefined: 1694-1749 */
 
-#define DATA_FRAME_BUTTON_BASE  1750
+#define DATA_PANEL_BUTTON_BASE  1750
+#define DATA_PANEL_BUTTON_COUNT 17
 
 /* undefined: 1775-1779 */
 
@@ -240,74 +232,23 @@
 
 #define DATA_CURSOR  3999
 
+class data_source_t;
 
-/* Sprite header. In the data file this is immediately followed
- by sprite data. */
-typedef struct {
-  int8_t b_x;
-  int8_t b_y;
-  uint16_t w;
-  uint16_t h;
-  int16_t x;
-  int16_t y;
-} dos_sprite_t;
-
-/* Sprite object. Contains RGBA data. */
-class sprite_t {
+class data_t {
  protected:
-  int delta_x;
-  int delta_y;
-  int offset_x;
-  int offset_y;
-  unsigned int width;
-  unsigned int height;
-  uint8_t *data;
+  static data_t *instance;
+  data_source_t *data_source;
+
+  data_t();
 
  public:
-  sprite_t(unsigned int width, unsigned int height);
-  virtual ~sprite_t();
+  virtual ~data_t();
 
-  uint8_t *get_data() const { return data; }
-  unsigned int get_width() const { return width; }
-  unsigned int get_height() const { return height; }
-  int get_delta_x() const { return delta_x; }
-  int get_delta_y() const { return delta_y; }
-  int get_offset_x() const { return offset_x; }
-  int get_offset_y() const { return offset_y; }
+  static data_t *get_instance();
 
-  void set_offset(int x, int y) { offset_x = x; offset_y = y; }
-  void set_delta(int x, int y) { delta_x = x; delta_y = y; }
+  bool load(const std::string &path);
 
-  sprite_t *get_masked(sprite_t *mask);
-
-  static uint64_t create_sprite_id(uint64_t sprite, uint64_t mask,
-                                   uint64_t offset);
+  data_source_t *get_data_source() const { return data_source; }
 };
-
-class animation_t {
- public:
-  uint8_t time;
-  int8_t x;
-  int8_t y;
-};
-
-bool load_data_file(const std::string &path);
-
-bool data_load(const std::string &path);
-void data_unload();
-
-void *data_get_object(uint index, size_t *size);
-const dos_sprite_t *data_get_dos_sprite(uint index);
-
-sprite_t *data_create_sprite(const dos_sprite_t *sprite);
-sprite_t *data_create_transparent_sprite(const dos_sprite_t *sprite,
-                                         int color_off);
-sprite_t *data_create_bitmap_sprite(const dos_sprite_t *sprite,
-                                    unsigned int value);
-
-void *data_get_wav(unsigned int index, size_t *size);
-void *data_get_midi(unsigned int index, size_t *size);
-
-animation_t *data_get_animation(unsigned int animation, unsigned int phase);
 
 #endif  // SRC_DATA_H_

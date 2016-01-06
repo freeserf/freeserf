@@ -60,6 +60,7 @@ class video_t;
 class video_frame_t;
 class video_image_t;
 class sprite_t;
+class data_source_t;
 
 class image_t {
  protected:
@@ -103,6 +104,7 @@ class frame_t {
   video_t *video;
   video_frame_t *video_frame;
   bool owner;
+  data_source_t *data_source;
 
  public:
   frame_t(video_t *video, unsigned int width, unsigned int height);

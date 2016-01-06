@@ -121,7 +121,7 @@ panel_bar_t::draw_panel_buttons() {
 
     int x = 64 + i*48;
     int y = 4;
-    int sprite = DATA_FRAME_BUTTON_BASE + button;
+    int sprite = DATA_PANEL_BUTTON_BASE + button;
 
     frame->draw_sprite(x, y, sprite);
   }
