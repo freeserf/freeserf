@@ -26,10 +26,10 @@
 
 #include "src/misc.h"
 BEGIN_EXT_C
-  #include "src/gfx.h"
   #include "src/game.h"
   #include "src/data.h"
 END_EXT_C
+#include "src/gfx.h"
 #include "src/interface.h"
 #include "src/viewport.h"
 
@@ -62,7 +62,7 @@ minimap_t::draw_minimap_point(int col, int row, uint8_t color, int density) {
       mm_x = mm_x % map_width;
       while (mm_x < width) {
         if (mm_x >= -density) {
-          gfx_fill_rect(mm_x, mm_y, density, density, color, frame);
+          frame->fill_rect(mm_x, mm_y, density, density, color);
         }
         mm_x += map_width;
       }
@@ -171,13 +171,13 @@ void
 minimap_t::draw_minimap_rect() {
   int y = height/2;
   int x = width/2;
-  gfx_draw_transp_sprite(x, y, 354, 1, 0, 0, frame);
+  frame->draw_transp_sprite(x, y, 354, true);
 }
 
 void
 minimap_t::internal_draw() {
   if (BIT_TEST(flags, 1)) {
-    gfx_fill_rect(0, 0, 128, 128, 1, frame);
+    frame->fill_rect(0, 0, 128, 128, 1);
     draw_minimap_ownership(2);
   } else {
     draw_minimap_map();

@@ -38,9 +38,7 @@
 
 #include "src/misc.h"
 BEGIN_EXT_C
-  #include "src/gfx.h"
   #include "src/data.h"
-  #include "src/sdl-video.h"
   #include "src/log.h"
   #include "src/audio.h"
   #include "src/savegame.h"
@@ -48,6 +46,8 @@ BEGIN_EXT_C
   #include "src/version.h"
   #include "src/game.h"
 END_EXT_C
+#include "src/gfx.h"
+#include "src/video-sdl.h"
 #include "src/event_loop.h"
 #include "src/interface.h"
 
@@ -345,8 +345,14 @@ main(int argc, char *argv[]) {
 
   LOGI("main", "Initialize graphics...");
 
-  r = gfx_init(screen_width, screen_height, fullscreen);
-  if (r < 0) exit(EXIT_FAILURE);
+  gfx_t *gfx = NULL;
+  try {
+    gfx = gfx_t::get_instance();
+    gfx->set_resolution(screen_width, screen_height, fullscreen);
+  } catch (Freeserf_Exception e) {
+    LOGE(e.get_system(), e.what());
+    return -1;
+  }
 
   /* TODO move to right place */
   audio_init();
@@ -398,7 +404,7 @@ main(int argc, char *argv[]) {
   delete interface;
   map_deinit();
   audio_deinit();
-  gfx_deinit();
+  delete gfx;
   data_unload();
   delete event_loop;
 

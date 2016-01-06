@@ -22,6 +22,8 @@
 #ifndef SRC_NOTIFICATION_H_
 #define SRC_NOTIFICATION_H_
 
+#include <string>
+
 #include "src/gui.h"
 
 typedef enum {
@@ -69,7 +71,7 @@ class notification_box_t : public gui_object_t {
 
   void draw_icon(int x, int y, int sprite);
   void draw_background(int width, int height, int sprite);
-  void draw_string(int x, int y, const char *str);
+  void draw_string(int x, int y, const std::string &str);
   void draw_map_object(int x, int y, int sprite);
   int get_player_face_sprite(int face);
   void draw_player_face(int x, int y, int player);

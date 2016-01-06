@@ -34,33 +34,33 @@ END_EXT_C
 
 void
 notification_box_t::draw_icon(int x, int y, int sprite) {
-  gfx_draw_sprite(8*x, y, DATA_ICON_BASE + sprite, frame);
+  frame->draw_sprite(8*x, y, DATA_ICON_BASE + sprite);
 }
 
 void
 notification_box_t::draw_background(int width, int height, int sprite) {
   for (int y = 0; y < height; y += 16) {
     for (int x = 0; x < width; x += 16) {
-      gfx_draw_sprite(x, y, DATA_ICON_BASE + sprite, frame);
+      frame->draw_sprite(x, y, DATA_ICON_BASE + sprite);
     }
   }
 }
 
 void
-notification_box_t::draw_string(int x, int y, const char *str) {
+notification_box_t::draw_string(int x, int y, const std::string &str) {
   std::strstream sin;
   sin << str;
   std::string line;
   int cy = y;
   while (std::getline(sin, line)) {
-    gfx_draw_string(x*8, cy, 31, 0, frame, line.c_str());
+    frame->draw_string(x*8, cy, 31, 0, line);
     cy += 10;
   }
 }
 
 void
 notification_box_t::draw_map_object(int x, int y, int sprite) {
-  gfx_draw_transp_sprite(8*x, y, DATA_MAP_OBJECT_BASE + sprite, 0, 0, 0, frame);
+  frame->draw_transp_sprite(8*x, y, DATA_MAP_OBJECT_BASE + sprite, false);
 }
 
 int
@@ -71,7 +71,7 @@ notification_box_t::get_player_face_sprite(int face) {
 
 void
 notification_box_t::draw_player_face(int x, int y, int player) {
-  gfx_fill_rect(8*x, y, 48, 72, game.player[player]->color, frame);
+  frame->fill_rect(8*x, y, 48, 72, game.player[player]->color);
   draw_icon(x+1, y+4, get_player_face_sprite(game.player[player]->face));
 }
 

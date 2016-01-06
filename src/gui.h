@@ -24,10 +24,7 @@
 
 #include <list>
 
-#include "src/misc.h"
-BEGIN_EXT_C
-  #include "gfx.h"
-END_EXT_C
+#include "src/gfx.h"
 #include "src/event_loop.h"
 
 class gui_object_t : public event_handler_t {

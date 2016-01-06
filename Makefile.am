@@ -12,7 +12,7 @@ freeserf_SOURCES = \
 	src/building.c src/building.h \
 	src/random.c src/random.h \
 	src/pathfinder.cc src/pathfinder.h \
-	src/gfx.c src/gfx.h \
+	src/gfx.cc src/gfx.h \
 	src/viewport.cc src/viewport.h \
 	src/minimap.cc src/minimap.h \
 	src/interface.cc src/interface.h \
@@ -23,7 +23,8 @@ freeserf_SOURCES = \
 	src/panel.cc src/panel.h \
 	src/map.c src/map.h \
 	src/player.c src/player.h \
-	src/sdl-video.c src/sdl-video.h \
+	src/video-sdl.cc src/video-sdl.h \
+	src/video.cc src/video.h \
 	src/audio.h \
 	src/savegame.c src/savegame.h \
 	src/list.c src/list.h \

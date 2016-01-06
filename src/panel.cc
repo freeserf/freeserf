@@ -73,7 +73,7 @@ panel_bar_t::draw_panel_frame() {
 
   /* Draw layout */
   for (int i = 0; layout[i] != -1; i += 3) {
-    gfx_draw_sprite(layout[i+1], layout[i+2], layout[i], frame);
+    frame->draw_sprite(layout[i+1], layout[i+2], layout[i]);
   }
 }
 
@@ -81,13 +81,13 @@ panel_bar_t::draw_panel_frame() {
 void
 panel_bar_t::draw_message_notify() {
   interface->set_msg_flag(2);
-  gfx_draw_sprite(40, 4, DATA_FRAME_BOTTOM_NOTIFY, frame);
+  frame->draw_sprite(40, 4, DATA_FRAME_BOTTOM_NOTIFY);
 }
 
 /* Draw return arrow icon in action panel. */
 void
 panel_bar_t::draw_return_arrow() {
-  gfx_draw_sprite(40, 28, DATA_FRAME_BOTTOM_ARROW, frame);
+  frame->draw_sprite(40, 28, DATA_FRAME_BOTTOM_ARROW);
 }
 
 /* Draw buttons in action panel. */
@@ -123,7 +123,7 @@ panel_bar_t::draw_panel_buttons() {
     int y = 4;
     int sprite = DATA_FRAME_BUTTON_BASE + button;
 
-    gfx_draw_sprite(x, y, sprite, frame);
+    frame->draw_sprite(x, y, sprite);
   }
 }
 

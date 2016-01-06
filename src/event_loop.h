@@ -24,11 +24,6 @@
 
 #include <list>
 
-#include "src/misc.h"
-BEGIN_EXT_C
-  #include "src/gfx.h"
-END_EXT_C
-
 typedef enum {
   EVENT_TYPE_CLICK,
   EVENT_TYPE_DBL_CLICK,
@@ -52,6 +47,8 @@ typedef struct {
   void *object;
   event_button_t button;
 } event_t;
+
+class frame_t;
 
 class event_handler_t {
  public:

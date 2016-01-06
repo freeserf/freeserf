@@ -22,6 +22,8 @@
 #ifndef SRC_GAME_INIT_H_
 #define SRC_GAME_INIT_H_
 
+#include <string>
+
 #include "src/gui.h"
 #include "src/misc.h"
 BEGIN_EXT_C
@@ -47,7 +49,7 @@ class game_init_box_t : public gui_object_t {
 
  protected:
   void draw_box_icon(int x, int y, int sprite);
-  void draw_box_string(int x, int y, const char *str);
+  void draw_box_string(int x, int y, const std::string &str);
   int get_player_face_sprite(int face);
   void handle_action(int action);
 

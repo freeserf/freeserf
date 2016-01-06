@@ -50,6 +50,7 @@
 				WarningLevel="3"
 				DebugInformationFormat="4"
 				CompileAs="2"
+				DisableSpecificWarnings="4290"
 			/>
 			<Tool
 				Name="VCManagedResourceCompilerTool"
@@ -125,6 +126,7 @@
 				UsePrecompiledHeader="0"
 				WarningLevel="3"
 				CompileAs="2"
+				DisableSpecificWarnings="4290"
 			/>
 			<Tool
 				Name="VCManagedResourceCompilerTool"
@@ -216,7 +218,7 @@
 				>
 			</File>
 			<File
-				RelativePath="..\src\gfx.c"
+				RelativePath="..\src\gfx.cc"
 				>
 			</File>
 			<File
@@ -280,7 +282,11 @@
 				>
 			</File>
 			<File
-				RelativePath="..\src\sdl-video.c"
+				RelativePath="..\src\video.cc"
+				>
+			</File>
+			<File
+				RelativePath="..\src\video-sdl.cc"
 				>
 			</File>
 			<File
@@ -422,7 +428,11 @@
 				>
 			</File>
 			<File
-				RelativePath="..\src\sdl-video.h"
+				RelativePath="..\src\video.h"
+				>
+			</File>
+			<File
+				RelativePath="..\src\video-sdl.h"
 				>
 			</File>
 			<File
