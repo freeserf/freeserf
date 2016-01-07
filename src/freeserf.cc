@@ -160,14 +160,12 @@ main(int argc, char *argv[]) {
   log_level_t log_level = DEFAULT_LOG_LEVEL;
 
 #ifdef HAVE_UNISTD_H
-  char opt;
-  while (1) {
-    opt = getopt(argc, argv, "d:fg:hl:r:t:");
+  while (true) {
+    char opt = getopt(argc, argv, "d:fg:hl:r:t:");
     if (opt < 0) break;
 
     switch (opt) {
-      case 'd':
-        {
+      case 'd': {
           int d = atoi(optarg);
           if (d >= 0 && d < LOG_LEVEL_MAX) {
             log_level = static_cast<log_level_t>(d);
@@ -175,7 +173,7 @@ main(int argc, char *argv[]) {
         }
         break;
       case 'f':
-        fullscreen = 1;
+        fullscreen = true;
         break;
       case 'g':
         if (strlen(optarg) > 0) {
@@ -191,8 +189,7 @@ main(int argc, char *argv[]) {
           save_file = optarg;
         }
         break;
-      case 'r':
-        {
+      case 'r': {
           char *hstr = strchr(optarg, 'x');
           if (hstr == NULL) {
             fprintf(stderr, USAGE, argv[0]);
@@ -232,7 +229,7 @@ main(int argc, char *argv[]) {
   try {
     gfx = gfx_t::get_instance();
     gfx->set_resolution(screen_width, screen_height, fullscreen);
-  } catch (Freeserf_Exception e) {
+  } catch (Freeserf_Exception &e) {
     LOGE(e.get_system(), e.what());
     return -1;
   }

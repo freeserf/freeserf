@@ -23,6 +23,7 @@
 #define SRC_DATA_H_
 
 #include <string>
+#include <list>
 
 /* Index 0 is undefined (entry 0 in the data file
    contains a header with the size and total
@@ -238,6 +239,7 @@ class data_t {
  protected:
   static data_t *instance;
   data_source_t *data_source;
+  std::list<std::string> search_paths;
 
   data_t();
 
@@ -249,6 +251,9 @@ class data_t {
   bool load(const std::string &path);
 
   data_source_t *get_data_source() const { return data_source; }
+
+ protected:
+  void add_to_search_paths(const char *path, const char *suffix);
 };
 
 #endif  // SRC_DATA_H_

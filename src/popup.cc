@@ -1762,7 +1762,7 @@ popup_box_t::draw_sett_3_box() {
 void
 popup_box_t::draw_knight_level_box() {
   const char *level_str[] = {
-    "Minimum", "Weak", "Medium", "Good", "Full"
+    "Minimum", "Weak", "Medium", "Good", "Full", "ERROR", "ERROR",
   };
 
   const int layout[] = {
@@ -1795,18 +1795,18 @@ popup_box_t::draw_knight_level_box() {
   draw_box_background(311);
 
   player_t *player = interface->get_player();
-  draw_green_string(8, 8, level_str[player->knight_occupation[3] & 0xf]);
+  draw_green_string(8, 8, level_str[player->knight_occupation[3] & 0x7]);
   draw_green_string(8, 19,
-                    level_str[(player->knight_occupation[3] >> 4) & 0xf]);
-  draw_green_string(8, 42, level_str[player->knight_occupation[2] & 0xf]);
+                    level_str[(player->knight_occupation[3] >> 4) & 0x7]);
+  draw_green_string(8, 42, level_str[player->knight_occupation[2] & 0x7]);
   draw_green_string(8, 53,
-                    level_str[(player->knight_occupation[2] >> 4) & 0xf]);
-  draw_green_string(8, 76, level_str[player->knight_occupation[1] & 0xf]);
+                    level_str[(player->knight_occupation[2] >> 4) & 0x7]);
+  draw_green_string(8, 76, level_str[player->knight_occupation[1] & 0x7]);
   draw_green_string(8, 87,
-                    level_str[(player->knight_occupation[1] >> 4) & 0xf]);
-  draw_green_string(8, 110, level_str[player->knight_occupation[0] & 0xf]);
+                    level_str[(player->knight_occupation[1] >> 4) & 0x7]);
+  draw_green_string(8, 110, level_str[player->knight_occupation[0] & 0x7]);
   draw_green_string(8, 121,
-                    level_str[(player->knight_occupation[0] >> 4) & 0xf]);
+                    level_str[(player->knight_occupation[0] >> 4) & 0x7]);
 
   draw_custom_icon_box(layout);
 }
@@ -2099,7 +2099,7 @@ popup_box_t::draw_ordered_building_box() {
 
   int sprite = map_building_sprite[type];
   int x = 6;
-  if (sprite == 0xc0 /*stock*/ || sprite >= 0x9e /*tower*/) x = 4;
+  if (sprite == 0xc0 /*stock*/ || sprite < 0x9e /*tower*/) x = 4;
   draw_popup_building(x, 40, sprite);
 
   draw_green_string(2, 4, "Ordered");
@@ -2594,7 +2594,7 @@ popup_box_t::draw_building_stock_box() {
   /* Draw building */
   int bld_sprite = map_building_sprite[BUILDING_TYPE(building)];
   int x = 6;
-  if (bld_sprite == 0xc0 /*stock*/ || bld_sprite >= 0x9e /*tower*/) x = 4;
+  if (bld_sprite == 0xc0 /*stock*/ || bld_sprite < 0x9e /*tower*/) x = 4;
   draw_popup_building(x, 30, bld_sprite);
 
   draw_green_string(1, 4, "Stock of");

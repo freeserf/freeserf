@@ -54,122 +54,85 @@ data_t::get_instance() {
   return instance;
 }
 
+void
+data_t::add_to_search_paths(const char *path,
+                            const char *suffix) {
+  if (path == NULL) {
+    return;
+  }
+
+  std::string res_path = path;
+  if (suffix != NULL) {
+    res_path += '/';
+    res_path += suffix;
+  }
+
+  search_paths.push_back(res_path);
+}
+
 #define MAX_DATA_PATH      1024
 
-/* Load data file from path is non-NULL, otherwise search in
- various standard paths. */
 bool
 data_t::load(const std::string &path) {
-  const char *default_data_file[] = {
-    "SPAE.PA", /* English */
-    "SPAF.PA", /* French */
-    "SPAD.PA", /* German */
-    "SPAU.PA", /* Engish (US) */
-    NULL
-  };
-
-  data_source = new data_source_t();
+  /* If it possible, prefer DOS game data. */
+  data_source_t *data_sources[] = { new data_source_t(),
+                                    NULL, };
 
   /* Use specified path. If something was specified
-   but not found, this function should fail without
-   looking anywhere else. */
-  if (!path.empty()) {
-    LOGI("main", "Looking for game data in `%s'...", path.c_str());
-    return data_source->load(path);
-  }
+     but not found, this function should fail without
+     looking anywhere else. */
+  add_to_search_paths(path.c_str(), NULL);
 
   /* If a path is not specified (path is NULL) then
-   the configuration file is searched for in the directories
-   specified by the XDG Base Directory Specification
-   <http://standards.freedesktop.org/basedir-spec/basedir-spec-latest.html>.
+     the configuration file is searched for in the directories
+     specified by the XDG Base Directory Specification
+     <http://standards.freedesktop.org/basedir-spec/basedir-spec-latest.html>.
 
-   On windows platforms the %localappdata% is used in place of XDG_CONFIG_HOME.
-   */
-
-  char cp[MAX_DATA_PATH];
-  char *env;
+     On windows platforms the %localappdata% is used in place of XDG_CONFIG_HOME.
+  */
 
   /* Look in home */
-  if ((env = getenv("XDG_DATA_HOME")) != NULL &&
-      env[0] != '\0') {
-    for (const char **df = default_data_file; *df != NULL; df++) {
-      snprintf(cp, sizeof(cp), "%s/freeserf/%s", env, *df);
-      LOGI("main", "Looking for game data in `%s'...", cp);
-      if (data_source->load(cp)) {
-        return true;
-      }
-    }
-  } else if ((env = getenv("HOME")) != NULL && env[0] != '\0') {
-    for (const char **df = default_data_file; *df != NULL; df++) {
-      snprintf(cp, sizeof(cp), "%s/.local/share/freeserf/%s", env, *df);
-      LOGI("main", "Looking for game data in `%s'...", cp);
-      if (data_source->load(cp)) {
-        return true;
-      }
-    }
-  }
-
+  add_to_search_paths(std::getenv("XDG_DATA_HOME"), "freeserf");
+  add_to_search_paths(std::getenv("HOME"), ".local/share/freeserf");
 #ifdef _WIN32
-  if ((env = getenv("userprofile")) != NULL && env[0] != '\0') {
-    for (const char **df = default_data_file; *df != NULL; df++) {
-      snprintf(cp, sizeof(cp), "%s/.local/share/freeserf/%s", env, *df);
-      LOGI("main", "Looking for game data in `%s'...", cp);
-      if (data_source->load(cp)) {
-        return true;
-      }
-    }
-  }
+  add_to_search_paths(std::getenv("userprofile"), ".local/share/freeserf");
+  add_to_search_paths(std::getenv("LOCALAPPDATA"), "/freeserf");
 #endif
 
-  if ((env = getenv("XDG_DATA_DIRS")) != NULL && env[0] != '\0') {
-    char *begin = env;
-    while (1) {
-      char *end = strchr(begin, ':');
-      if (end == NULL) end = strchr(begin, '\0');
+  char *env = std::getenv("XDG_DATA_DIRS");
+  std::string dirs = (env == NULL) ? std::string() : env;
+  while (!dirs.empty()) {
+    size_t pos = dirs.find(':');
+    std::string dir = dirs.substr(0, pos);
+    dirs.replace(0, (pos == std::string::npos) ? pos : pos + 1, std::string());
+    add_to_search_paths(dir.c_str(), "freeserf");
+  }
 
-      int len = static_cast<int>(end - begin);
-      if (len > 0) {
-        for (const char **df = default_data_file; *df != NULL; df++) {
-          snprintf(cp, sizeof(cp), "%.*s/freeserf/%s", len, begin, *df);
-          LOGI("main", "Looking for game data in `%s'...", cp);
-          if (data_source->load(cp)) {
-            return true;
-          }
+  add_to_search_paths("/usr/local/share", "freeserf");
+  add_to_search_paths("/usr/share", "freeserf");
+
+  for (int i = 0; data_sources[i] != NULL; i++) {
+    std::list<std::string>::iterator it = search_paths.begin();
+    for (; it != search_paths.end(); ++it) {
+      std::string res_path;
+      if (data_sources[i]->check(*it, &res_path)) {
+        LOGI("data", "Game data found in '%s'...", res_path.c_str());
+        if (data_sources[i]->load(res_path)) {
+          data_source = data_sources[i];
+          break;
         }
       }
-
-      if (end[0] == '\0') break;
-      begin = end + 1;
     }
-  } else {
-    /* Look in /usr/local/share and /usr/share per XDG spec. */
-    for (const char **df = default_data_file; *df != NULL; df++) {
-      snprintf(cp, sizeof(cp), "/usr/local/share/freeserf/%s", *df);
-      LOGI("main", "Looking for game data in `%s'...", cp);
-      if (data_source->load(cp)) {
-        return true;
-      }
-    }
-
-    for (const char **df = default_data_file; *df != NULL; df++) {
-      snprintf(cp, sizeof(cp), "/usr/share/freeserf/%s", *df);
-      LOGI("main", "Looking for game data in `%s'...", cp);
-      if (data_source->load(cp)) {
-        return true;
-      }
+    if (data_source != NULL) {
+      break;
     }
   }
 
-  /* Look in current directory */
-  for (const char **df = default_data_file; *df != NULL; df++) {
-    LOGI("main", "Looking for game data in `%s'...", *df);
-    if (data_source->load(cp)) {
-      return true;
+  for (int i = 0; data_sources[i] != NULL; i++) {
+    if (data_sources[i] != data_source) {
+      delete data_sources[i];
     }
   }
 
-  delete data_source;
-  data_source = NULL;
-
-  return false;
+  return (data_source != NULL);
 }

@@ -33,9 +33,6 @@
 				Name="VCXMLDataGeneratorTool"
 			/>
 			<Tool
-				Name="VCWebServiceProxyGeneratorTool"
-			/>
-			<Tool
 				Name="VCMIDLTool"
 			/>
 			<Tool
@@ -111,9 +108,6 @@
 			/>
 			<Tool
 				Name="VCXMLDataGeneratorTool"
-			/>
-			<Tool
-				Name="VCWebServiceProxyGeneratorTool"
 			/>
 			<Tool
 				Name="VCMIDLTool"
@@ -278,10 +272,6 @@
 				>
 			</File>
 			<File
-				RelativePath="..\src\pqueue.c"
-				>
-			</File>
-			<File
 				RelativePath="..\src\random.c"
 				>
 			</File>
@@ -437,10 +427,6 @@
 			</File>
 			<File
 				RelativePath="..\src\popup.h"
-				>
-			</File>
-			<File
-				RelativePath="..\src\pqueue.h"
 				>
 			</File>
 			<File

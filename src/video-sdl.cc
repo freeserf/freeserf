@@ -47,9 +47,9 @@ SDL_Exception::get_platform() const {
 }
 
 int video_sdl_t::bpp = 32;
-Uint32 video_sdl_t::Rmask = 0xFF000000;
+Uint32 video_sdl_t::Rmask = 0x0000FF00;
 Uint32 video_sdl_t::Gmask = 0x00FF0000;
-Uint32 video_sdl_t::Bmask = 0x0000FF00;
+Uint32 video_sdl_t::Bmask = 0xFF000000;
 Uint32 video_sdl_t::Amask = 0x000000FF;
 Uint32 video_sdl_t::pixel_format = SDL_PIXELFORMAT_RGBA8888;
 
@@ -235,8 +235,8 @@ video_sdl_t::create_surface_from_data(void *data, int width, int height) {
   /* Create sprite surface */
   SDL_Surface *surf = SDL_CreateRGBSurfaceFrom(data, width, height, 32,
                                                4 * width,
-                                               0xff, 0xff00, 0xff0000,
-                                               0xff000000);
+                                               0x00FF0000, 0x0000FF00,
+                                               0x000000FF, 0xFF000000);
   if (surf == NULL) {
     throw SDL_Exception("Unable to create sprite surface");
   }

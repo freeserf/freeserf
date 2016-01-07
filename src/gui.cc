@@ -85,7 +85,7 @@ gui_object_t::draw(frame_t *frame) {
     internal_draw();
 
     float_list_t::iterator fl = floats.begin();
-    for ( ; fl != floats.end() ; fl++) {
+    for ( ; fl != floats.end() ; ++fl) {
       (*fl)->draw(this->frame);
     }
 
@@ -122,7 +122,7 @@ gui_object_t::handle_event(const event_t *event) {
 
   /* Find the corresponding float element if any */
   float_list_t::reverse_iterator fl = floats.rbegin();
-  for ( ; fl != floats.rend() ; fl++) {
+  for ( ; fl != floats.rend() ; ++fl) {
     bool result = (*fl)->handle_event(&internal_event);
     if (result != 0) {
       return result;

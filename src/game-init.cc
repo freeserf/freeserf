@@ -289,7 +289,6 @@ game_init_box_t::handle_click_left(int x, int y) {
       }
       set_redraw();
       return true;
-      break;
     }
   }
 

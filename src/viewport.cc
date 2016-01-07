@@ -306,48 +306,47 @@ viewport_t::redraw_map_pos(map_pos_t pos) {
 
 frame_t *
 viewport_t::get_tile_frame(uint tid, int tc, int tr) {
-  frame_t *tile_frame = NULL;
+  tiles_map_t::iterator it = landscape_tiles.find(tid);
+  if (it != landscape_tiles.end()) {
+    return it->second;
+  }
 
   int tile_width = MAP_TILE_COLS*MAP_TILE_WIDTH;
   int tile_height = MAP_TILE_ROWS*MAP_TILE_HEIGHT;
 
-  tiles_map_t::iterator it = landscape_tiles.find(tid);
-  if (it != landscape_tiles.end()) {
-    tile_frame = it->second;
-  } else {
-    tile_frame = gfx_t::get_instance()->create_frame(tile_width, tile_height);
-    tile_frame->fill_rect(0, 0, tile_width, tile_height, 0);
+  frame_t *tile_frame = gfx_t::get_instance()->create_frame(tile_width,
+                                                            tile_height);
+  tile_frame->fill_rect(0, 0, tile_width, tile_height, 0);
 
-    int col = (tc*MAP_TILE_COLS + (tr*MAP_TILE_ROWS)/2) % game.map.cols;
-    int row = tr*MAP_TILE_ROWS;
-    map_pos_t pos = MAP_POS(col, row);
+  int col = (tc*MAP_TILE_COLS + (tr*MAP_TILE_ROWS)/2) % game.map.cols;
+  int row = tr*MAP_TILE_ROWS;
+  map_pos_t pos = MAP_POS(col, row);
 
-    int x_base = -(MAP_TILE_WIDTH/2);
+  int x_base = -(MAP_TILE_WIDTH/2);
 
-    /* Draw one extra column as half a column will be outside the
-       map tile on both right and left side.. */
-    for (int col = 0; col < MAP_TILE_COLS+1; col++) {
-      draw_up_tile_col(pos, x_base, 0, tile_height, tile_frame);
-      draw_down_tile_col(pos, x_base + MAP_TILE_WIDTH/2, 0, tile_height,
-                         tile_frame);
+  /* Draw one extra column as half a column will be outside the
+   map tile on both right and left side.. */
+  for (int col = 0; col < MAP_TILE_COLS+1; col++) {
+    draw_up_tile_col(pos, x_base, 0, tile_height, tile_frame);
+    draw_down_tile_col(pos, x_base + MAP_TILE_WIDTH/2, 0, tile_height,
+                       tile_frame);
 
-      pos = MAP_MOVE_RIGHT(pos);
-      x_base += MAP_TILE_WIDTH;
-    }
+    pos = MAP_MOVE_RIGHT(pos);
+    x_base += MAP_TILE_WIDTH;
+  }
 
 #if 0
-    /* Draw a border around the tile for debug. */
-    tile_frame->draw_rect(0, 0, tile_width, tile_height, 76);
+  /* Draw a border around the tile for debug. */
+  tile_frame->draw_rect(0, 0, tile_width, tile_height, 76);
 #endif
 
-    LOGV("viewport", "map: %i,%i, cols,rows: %i,%i, tc,tr: %i,%i, tw,th: %i,%i",
-         game.map.cols*MAP_TILE_WIDTH, game.map.rows*MAP_TILE_HEIGHT,
-         game.map.cols, game.map.rows,
-         tc, tr,
-         tile_width, tile_height);
+  LOGV("viewport", "map: %i,%i, cols,rows: %i,%i, tc,tr: %i,%i, tw,th: %i,%i",
+       game.map.cols*MAP_TILE_WIDTH, game.map.rows*MAP_TILE_HEIGHT,
+       game.map.cols, game.map.rows,
+       tc, tr,
+       tile_width, tile_height);
 
-    landscape_tiles[tid] = tile_frame;
-  }
+  landscape_tiles[tid] = tile_frame;
 
   return tile_frame;
 }

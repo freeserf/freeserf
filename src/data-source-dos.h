@@ -24,40 +24,107 @@
 
 #include <string>
 
-#ifdef HAVE_CONFIG_H
-# include <config.h>
-#endif
-
-/* Sprite object. Contains RGBA data. */
+/* Sprite object. Contains BGRA data. */
 class sprite_t {
+ public:
+  virtual ~sprite_t() {}
+
+  virtual uint8_t *get_data() const = 0;
+  virtual unsigned int get_width() const = 0;
+  virtual unsigned int get_height() const = 0;
+  virtual int get_delta_x() const = 0;
+  virtual int get_delta_y() const = 0;
+  virtual int get_offset_x() const = 0;
+  virtual int get_offset_y() const = 0;
+
+  virtual sprite_t *get_masked(sprite_t *mask) = 0;
+
+  static uint64_t create_sprite_id(uint64_t sprite, uint64_t mask,
+                                   uint64_t offset);
+};
+
+class sprite_dos_empty_t : public sprite_t {
  protected:
+  /* Sprite header. In the data file this is
+   * immediately followed by sprite data. */
+  typedef struct {
+    int8_t b_x;
+    int8_t b_y;
+    uint16_t w;
+    uint16_t h;
+    int16_t x;
+    int16_t y;
+  } dos_sprite_header_t;
+
   int delta_x;
   int delta_y;
   int offset_x;
   int offset_y;
   unsigned int width;
   unsigned int height;
-  uint8_t *data;
 
  public:
-  sprite_t(unsigned int width, unsigned int height);
-  virtual ~sprite_t();
+  sprite_dos_empty_t() {}
+  sprite_dos_empty_t(void *data, size_t size);
+  virtual ~sprite_dos_empty_t() {}
 
-  uint8_t *get_data() const { return data; }
-  unsigned int get_width() const { return width; }
-  unsigned int get_height() const { return height; }
-  int get_delta_x() const { return delta_x; }
-  int get_delta_y() const { return delta_y; }
-  int get_offset_x() const { return offset_x; }
-  int get_offset_y() const { return offset_y; }
+  virtual uint8_t *get_data() const { return NULL; }
+  virtual unsigned int get_width() const { return width; }
+  virtual unsigned int get_height() const { return height; }
+  virtual int get_delta_x() const { return delta_x; }
+  virtual int get_delta_y() const { return delta_y; }
+  virtual int get_offset_x() const { return offset_x; }
+  virtual int get_offset_y() const { return offset_y; }
 
-  void set_offset(int x, int y) { offset_x = x; offset_y = y; }
-  void set_delta(int x, int y) { delta_x = x; delta_y = y; }
-
-  sprite_t *get_masked(sprite_t *mask);
+  virtual sprite_t *get_masked(sprite_t *mask) { return NULL; }
 
   static uint64_t create_sprite_id(uint64_t sprite, uint64_t mask,
                                    uint64_t offset);
+};
+
+typedef struct {
+  unsigned char r;
+  unsigned char g;
+  unsigned char b;
+} color_dos_t;
+
+class sprite_dos_base_t : public sprite_dos_empty_t {
+ protected:
+  uint8_t *data;
+
+ public:
+  sprite_dos_base_t(void *data, size_t size);
+  explicit sprite_dos_base_t(sprite_t *base);
+  virtual ~sprite_dos_base_t();
+
+  virtual uint8_t *get_data() const { return data; }
+  virtual sprite_t *get_masked(sprite_t *mask);
+};
+
+class sprite_dos_solid_t : public sprite_dos_base_t {
+ public:
+  sprite_dos_solid_t(void *data, size_t size, color_dos_t *palette);
+  virtual ~sprite_dos_solid_t() {}
+};
+
+class sprite_dos_transparent_t : public sprite_dos_base_t {
+ public:
+  sprite_dos_transparent_t(void *data, size_t size, color_dos_t *palette,
+                           int color_off);
+  virtual ~sprite_dos_transparent_t() {}
+};
+
+class sprite_dos_overlay_t : public sprite_dos_base_t {
+ public:
+  sprite_dos_overlay_t(void *data, size_t size, color_dos_t *palette,
+                       unsigned char value);
+  virtual ~sprite_dos_overlay_t() {}
+};
+
+class sprite_dos_mask_t : public sprite_dos_base_t {
+ public:
+  sprite_dos_mask_t(void *data, size_t size);
+  virtual ~sprite_dos_mask_t() {}
 };
 
 class animation_t {
@@ -82,35 +149,16 @@ class data_source_t {
     uint32_t offset;
   } spae_entry_t;
 
-  /* Sprite header. In the data file this is
-   * immediately followed by sprite data. */
-  typedef struct {
-    int8_t b_x;
-    int8_t b_y;
-    uint16_t w;
-    uint16_t h;
-    int16_t x;
-    int16_t y;
-  } sprite_dos_t;
-
-  typedef struct {
-    unsigned char r;
-    unsigned char g;
-    unsigned char b;
-  } color_dos_t;
-
   void *sprites;
-#ifdef HAVE_MMAP
-  int mapped;
-#endif
   size_t sprites_size;
   size_t entry_count;
-  uint32_t *serf_animation_table;
+  animation_t **animation_table;
 
  public:
   data_source_t();
   virtual ~data_source_t();
 
+  bool check(const std::string &path, std::string *load_path);
   bool load(const std::string &path);
 
   void *get_object(unsigned int index, size_t *size);
@@ -128,12 +176,13 @@ class data_source_t {
   void *get_sound(unsigned int index, size_t *size);
   void *get_music(unsigned int index, size_t *size);
 
+  static bool check_file(const std::string &path);
+  void *file_read(const std::string &path, size_t *size);
+
  protected:
-  sprite_t *create_empty_sprite(unsigned int index, uint8_t **source);
   void fixup();
   bool load_animation_table();
   color_dos_t *get_palette(unsigned int index);
-  sprite_t *get_bitmap_sprite(unsigned int index, unsigned int value);
 };
 
 #endif  // SRC_DATA_SOURCE_DOS_H_

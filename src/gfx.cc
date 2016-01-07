@@ -118,7 +118,7 @@ gfx_t::gfx_t() throw(Freeserf_Exception) {
 
   try {
     video = video_t::get_instance();
-  } catch (Video_Exception e) {
+  } catch (Video_Exception &e) {
     throw GFX_Exception(e.what());
   }
 

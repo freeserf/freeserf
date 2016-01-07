@@ -21,30 +21,9 @@
 
 #include "src/data-source-dos.h"
 
-#include <cerrno>
 #include <cassert>
 #include <algorithm>
-
-#ifdef HAVE_CONFIG_H
-# include <config.h>
-#endif
-
-#ifdef HAVE_UNISTD_H
-# include <unistd.h>
-#endif
-
-#ifdef HAVE_STDINT_H
-# include <stdint.h>
-#endif
-
-#ifdef HAVE_SYS_MMAN_H
-# include <sys/mman.h>
-#endif
-
-#ifdef HAVE_MMAP
-# include <fcntl.h>
-# include <sys/stat.h>
-#endif
+#include <fstream>
 
 #include "src/misc.h"
 BEGIN_EXT_C
@@ -55,6 +34,14 @@ END_EXT_C
 #include "src/data.h"
 #include "src/sfx2wav.h"
 #include "src/xmi2mid.h"
+
+#ifdef min
+# undef min
+#endif
+
+#ifdef max
+# undef max
+#endif
 
 /* There are different types of sprites:
  - Non-packed, rectangular sprites: These are simple called sprites here.
@@ -67,67 +54,96 @@ END_EXT_C
 
 data_source_t::data_source_t() {
   sprites = NULL;
-#ifdef HAVE_MMAP
-  mapped = 0;
-#endif
   sprites_size = 0;
   entry_count = 0;
-  serf_animation_table = NULL;
+  animation_table = NULL;
 }
 
-/* Load data file at path and let the global variable sprites refer to the memory
- with the data file content. */
+data_source_t::~data_source_t() {
+  if (sprites != NULL) {
+    free(sprites);
+    sprites = NULL;
+  }
+
+  if (animation_table != NULL) {
+    delete[] animation_table;
+    animation_table = NULL;
+  }
+}
+
+bool
+data_source_t::check_file(const std::string &path) {
+  std::ifstream ifile(path.c_str());
+  if (ifile.good()) {
+    ifile.close();
+    return true;
+  }
+
+  return false;
+}
+
+void*
+data_source_t::file_read(const std::string &path, size_t *size) {
+  char *data = NULL;
+  *size = 0;
+
+  do {
+    std::ifstream file(path.c_str(), std::ifstream::binary |
+                                     std::ifstream::ate);
+    if (!file.good()) {
+      break;
+    }
+
+    *size = (size_t)file.tellg();
+    if (*size == 0) {
+      break;
+    }
+
+    file.seekg(0, file.beg);
+
+    data = reinterpret_cast<char*>(malloc(*size));
+    if (data == NULL) {
+      *size = 0;
+      break;
+    }
+
+    file.read(data, *size);
+    file.close();
+  } while (false);
+
+  return data;
+}
+
+bool
+data_source_t::check(const std::string &path, std::string *load_path) {
+  const char *default_data_file[] = {
+    "SPAE.PA", /* English */
+    "SPAF.PA", /* French */
+    "SPAD.PA", /* German */
+    "SPAU.PA", /* Engish (US) */
+    NULL
+  };
+
+  for (const char **df = default_data_file; *df != NULL; df++) {
+    std::string file_path = path + '/' + *df;
+    LOGI("data", "Looking for game data in '%s'...", file_path.c_str());
+    if (check_file(file_path)) {
+      if (load_path != NULL) {
+        *load_path = file_path;
+      }
+      return true;
+    }
+  }
+
+  return false;
+}
+
 bool
 data_source_t::load(const std::string &path) {
-  int r;
-
-#ifdef HAVE_MMAP
-  int fd = open(path.c_str(), O_RDONLY);
-  if (fd < 0) return false;
-
-  struct stat sb;
-  r = fstat(fd, &sb);
-  if (r < 0) return false;
-
-  sprites_size = sb.st_size;
-  sprites = mmap(NULL, sprites_size, PROT_READ | PROT_WRITE,
-                 MAP_PRIVATE, fd, 0);
-  if (sprites == MAP_FAILED) {
-    int errsv = errno;
-    close(fd);
-    errno = errsv;
-    return false;
-  }
-
-  close(fd);
-
-  mapped = 1;
-#else /* ! HAVE_MMAP */
-  FILE *f = fopen(path.c_str(), "rb");
-  if (f == NULL) return false;
-
-  r = fseek(f, 0, SEEK_END);
-  if (r < 0) return false;
-
-  sprites_size = ftell(f);
-  if (sprites_size == (size_t)-1) return false;
-
-  r = fseek(f, 0, SEEK_SET);
-  if (r < 0) return false;
-
-  sprites = malloc(sprites_size);
+  sprites = file_read(path, &sprites_size);
   if (sprites == NULL) {
-    int errsv = errno;
-    fclose(f);
-    errno = errsv;
     return false;
   }
-
-  size_t rd = fread(sprites, sprites_size, 1, f);
-  if (rd < 1) return false;
-
-  fclose(f);
-#endif
 
   /* Check that data file is decompressed. */
   if (tpwm_is_compressed(sprites, sprites_size)) {
@@ -135,67 +151,26 @@ data_source_t::load(const std::string &path) {
     void *uncompressed = NULL;
     size_t uncmpsd_size = 0;
     const char *error = NULL;
-    if (tpwm_uncompress(sprites, sprites_size, &uncompressed, &uncmpsd_size,
-                        &error)) {
+    if (!tpwm_uncompress(sprites, sprites_size,
+                         &uncompressed, &uncmpsd_size,
+                         &error)) {
       LOGE("tpwm", error);
       LOGE("data", "Data file is broken!");
       return false;
     }
-#ifdef HAVE_MMAP
-    if (mapped) {
-      munmap(sprites, sprites_size);
-      mapped = 0;
-    } else {
-      free(sprites);
-    }
-#else /* ! HAVE_MMAP */
     free(sprites);
-#endif
     sprites = uncompressed;
     sprites_size = uncmpsd_size;
   }
 
   /* Read the number of entries in the index table.
      Some entries are undefined (size and offset are zero). */
-  entry_count = le32toh(*(reinterpret_cast<uint32_t*>(sprites) + 1)) + 1;
-
-#if 0
-  /* Print list of undefined entries. */
-  int run_start = 0;
-  spae_entry_t *entries = sprites;
-  for (int i = 1; i < entry_count; i++) {
-    if (run_start > 0) {
-      if (entries[i].offset == 0) continue;
-      int length = i - run_start;
-      if (length > 1) {
-        LOGD("gfx", "empty: %i-%i", run_start, i-1);
-      } else {
-        LOGD("gfx", "empty: %i", i-1);
-      }
-      run_start = 0;
-    } else if (entries[i].offset == 0) {
-      run_start = i;
-    }
-  }
-#endif
+  entry_count = *(reinterpret_cast<uint32_t*>(sprites) + 1);
+  entry_count = le32toh(entry_count) + 1;
 
   fixup();
 
   return load_animation_table();
-}
-
-/* Free the loaded data file. */
-data_source_t::~data_source_t() {
-#ifdef HAVE_MMAP
-  if (mapped) {
-    munmap(sprites, sprites_size);
-  } else {
-    free(sprites);
-  }
-#else /* ! HAVE_MMAP */
-  free(sprites);
-#endif
-  sprites = NULL;
 }
 
 /* Return a pointer to the data object at index.
@@ -203,15 +178,25 @@ data_source_t::~data_source_t() {
  (There's no guarantee that size is correct!). */
 void *
 data_source_t::get_object(unsigned int index, size_t *size) {
-  assert(index > 0 && index < entry_count);
+  if (size != NULL) {
+    *size = 0;
+  }
+
+  if (index <= 0 && index >= entry_count) {
+    return NULL;
+  }
 
   spae_entry_t *entries = reinterpret_cast<spae_entry_t*>(sprites);
   uint8_t *bytes = reinterpret_cast<uint8_t*>(sprites);
 
   size_t offset = le32toh(entries[index].offset);
-  assert(offset != 0);
+  if (offset == 0) {
+    return NULL;
+  }
 
-  if (size) *size = le32toh(entries[index].size);
+  if (size != NULL) {
+    *size = le32toh(entries[index].size);
+  }
 
   return &bytes[offset];
 }
@@ -247,6 +232,283 @@ data_source_t::fixup() {
   }
 }
 
+/* Calculate hash of sprite identifier. */
+uint64_t
+sprite_t::create_sprite_id(uint64_t sprite, uint64_t mask, uint64_t offset) {
+  uint64_t result = sprite + (mask << 32) + (offset << 48);
+  return result;
+}
+
+/* There are different types of sprites:
+ - Non-packed, rectangular sprites: These are simple called sprites here.
+ - Transparent sprites, "transp": These are e.g. buldings/serfs.
+ The transparent regions are RLE encoded.
+ - Bitmap sprites: Conceptually these contain either 0 or 1 at each pixel.
+ This is used to either modify the alpha level of another sprite (shadows)
+ or mask parts of other sprites completely (mask sprites).
+ */
+
+/* Create sprite object */
+sprite_t *
+data_source_t::get_sprite(unsigned int index) {
+  size_t size = 0;
+  void *data = get_object(index, &size);
+  if (data == NULL) {
+    return NULL;
+  }
+
+  color_dos_t *palette = get_palette(DATA_PALETTE_GAME);
+  if (palette == NULL) {
+    return NULL;
+  }
+
+  return new sprite_dos_solid_t(data, size, palette);
+}
+
+sprite_dos_solid_t::sprite_dos_solid_t(void *data, size_t size,
+                                       color_dos_t *palette)
+  : sprite_dos_base_t(data, size) {
+  size -= sizeof(dos_sprite_header_t);
+  if (size != width * height) {
+    assert(0);
+  }
+
+  uint8_t *src = reinterpret_cast<uint8_t*>(data) + sizeof(dos_sprite_header_t);
+  uint8_t *end = src + size;
+  uint8_t *dest = this->data;
+
+  while (src < end) {
+    color_dos_t color = palette[*src++];
+    *dest++ = color.b; /* Blue */
+    *dest++ = color.g; /* Green */
+    *dest++ = color.r; /* Red */
+    *dest++ = 0xff;    /* Alpha */
+  }
+}
+
+sprite_t *
+data_source_t::get_empty_sprite(unsigned int index) {
+  size_t size = 0;
+  void *data = get_object(index, &size);
+  if (data == NULL) {
+    return NULL;
+  }
+
+  return new sprite_dos_empty_t(data, size);
+}
+
+/* Create transparent sprite object */
+sprite_t *
+data_source_t::get_transparent_sprite(unsigned int index, int color_off) {
+  size_t size = 0;
+  void *data = get_object(index, &size);
+  if (data == NULL) {
+    return NULL;
+  }
+
+  color_dos_t *palette = get_palette(DATA_PALETTE_GAME);
+  if (palette == NULL) {
+    return NULL;
+  }
+
+  return new sprite_dos_transparent_t(data, size, palette, color_off);
+}
+
+sprite_dos_transparent_t::sprite_dos_transparent_t(void *data, size_t size,
+                                                   color_dos_t *palette,
+                                                   int color_off)
+  : sprite_dos_base_t(data, size) {
+  size -= sizeof(dos_sprite_header_t);
+  uint8_t *src = reinterpret_cast<uint8_t*>(data) + sizeof(dos_sprite_header_t);
+  uint8_t *end = src + size;
+  uint8_t *dest = this->data;
+
+  while (src < end) {
+    size_t drop = *src++;
+    for (size_t i = 0; i < drop; i++) {
+      *dest++ = 0x00; /* Blue */
+      *dest++ = 0x00; /* Green */
+      *dest++ = 0x00; /* Red */
+      *dest++ = 0x00; /* Alpha */
+    }
+
+    size_t fill = *src++;
+    for (size_t i = 0; i < fill; i++) {
+      uint p_index = *src++ + color_off;
+      color_dos_t color = palette[p_index];
+      *dest++ = color.b; /* Blue */
+      *dest++ = color.g; /* Green */
+      *dest++ = color.r; /* Red */
+      *dest++ = 0xff;    /* Alpha */
+    }
+  }
+}
+
+sprite_t *
+data_source_t::get_overlay_sprite(unsigned int index) {
+  size_t size = 0;
+  void *data = get_object(index, &size);
+  if (data == NULL) {
+    return NULL;
+  }
+
+  color_dos_t *palette = get_palette(DATA_PALETTE_GAME);
+  if (palette == NULL) {
+    return NULL;
+  }
+
+  return new sprite_dos_overlay_t(data, size, palette, 0x80);
+}
+
+sprite_dos_overlay_t::sprite_dos_overlay_t(void *data, size_t size,
+                                           color_dos_t *palette,
+                                           unsigned char value)
+  : sprite_dos_base_t(data, size) {
+  size -= sizeof(dos_sprite_header_t);
+  uint8_t *src = reinterpret_cast<uint8_t*>(data) + sizeof(dos_sprite_header_t);
+  uint8_t *end = src + size;
+  uint8_t *dest = this->data;
+
+  while (src < end) {
+    size_t drop = *src++;
+    for (size_t i = 0; i < drop; i++) {
+      *dest++ = 0x00; /* Blue */
+      *dest++ = 0x00; /* Green */
+      *dest++ = 0x00; /* Red */
+      *dest++ = 0x00; /* Alpha */
+    }
+
+    size_t fill = *src++;
+    for (size_t i = 0; i < fill; i++) {
+      color_dos_t color = palette[value];
+      *dest++ = color.b; /* Blue */
+      *dest++ = color.g; /* Green */
+      *dest++ = color.r; /* Red */
+      *dest++ = value;   /* Alpha */
+    }
+  }
+}
+
+sprite_t *
+data_source_t::get_mask_sprite(unsigned int index) {
+  size_t size = 0;
+  void *data = get_object(index, &size);
+  if (data == NULL) {
+    return NULL;
+  }
+
+  return new sprite_dos_mask_t(data, size);
+}
+
+sprite_dos_mask_t::sprite_dos_mask_t(void *data, size_t size)
+  : sprite_dos_base_t(data, size) {
+  size -= sizeof(dos_sprite_header_t);
+  uint8_t *src = reinterpret_cast<uint8_t*>(data) + sizeof(dos_sprite_header_t);
+  uint8_t *end = src + size;
+  uint8_t *dest = this->data;
+
+  while (src < end) {
+    size_t drop = *src++;
+    for (size_t i = 0; i < drop; i++) {
+      *dest++ = 0x00; /* Blue */
+      *dest++ = 0x00; /* Green */
+      *dest++ = 0x00; /* Red */
+      *dest++ = 0x00; /* Alpha */
+    }
+
+    size_t fill = *src++;
+    for (size_t i = 0; i < fill; i++) {
+      *dest++ = 0xFF; /* Blue */
+      *dest++ = 0xFF; /* Green */
+      *dest++ = 0xFF; /* Red */
+      *dest++ = 0xFF; /* Alpha */
+    }
+  }
+}
+
+
+sprite_dos_empty_t::sprite_dos_empty_t(void *data, size_t size) {
+  if (size < sizeof(dos_sprite_header_t)) {
+    assert(0);
+  }
+
+  dos_sprite_header_t *sprite = reinterpret_cast<dos_sprite_header_t*>(data);
+  delta_x = sprite->b_x;
+  delta_y = sprite->b_y;
+  offset_x = sprite->x;
+  offset_y = sprite->y;
+  width = sprite->w;
+  height = sprite->h;
+}
+
+/* Apply mask to map tile sprite
+ The resulting sprite will be extended to the height of the mask
+ by repeating lines from the top of the sprite. The width of the
+ mask and the sprite must be identical. */
+sprite_t *
+sprite_dos_base_t::get_masked(sprite_t *mask) {
+  if (mask->get_width() > width) {
+    assert(0);
+  }
+
+  sprite_t *masked = new sprite_dos_base_t(mask);
+
+  uint8_t *pos = masked->get_data();
+
+  uint8_t *s_pos = data;
+  uint8_t *s_end = s_pos + (width * height * 4);
+  size_t s_delta = (width - masked->get_width())*4;
+
+  uint8_t *m_pos = mask->get_data();
+
+  for (size_t y = 0; y < masked->get_height(); y++) {
+    for (size_t x = 0; x < masked->get_width(); x++) {
+      if (s_pos > s_end) {
+        s_pos = data;
+      }
+      *pos++ = *s_pos++ & *m_pos++;
+      *pos++ = *s_pos++ & *m_pos++;
+      *pos++ = *s_pos++ & *m_pos++;
+      *pos++ = *s_pos++ & *m_pos++;
+    }
+    s_pos += s_delta;
+  }
+
+  return masked;
+}
+
+sprite_dos_base_t::sprite_dos_base_t(void *data, size_t size)
+  : sprite_dos_empty_t(data, size) {
+  this->data = new uint8_t[width * height * 4];
+}
+
+sprite_dos_base_t::sprite_dos_base_t(sprite_t *base) {
+  width = base->get_width();
+  height = base->get_height();
+  delta_x = 0;
+  delta_y = 0;
+  offset_x = base->get_offset_x();
+  offset_y = base->get_offset_y();
+  data = new uint8_t[width * height * 4];
+}
+
+sprite_dos_base_t::~sprite_dos_base_t() {
+  if (data != NULL) {
+    delete[] data;
+    data = NULL;
+  }
+}
+
+color_t
+data_source_t::get_color(unsigned int index) {
+  color_dos_t *palette = get_palette(DATA_PALETTE_GAME);
+  color_t color = { palette[index].r,
+                    palette[index].g,
+                    palette[index].b,
+                    0xff };
+  return color;
+}
+
 bool
 data_source_t::load_animation_table() {
   /* The serf animation table is stored in big endian
@@ -265,251 +527,82 @@ data_source_t::load_animation_table() {
    */
 
   size_t size = 0;
-  serf_animation_table =
-  reinterpret_cast<uint32_t*>(get_object(DATA_SERF_ANIMATION_TABLE, &size));
-  if (NULL == serf_animation_table) {
+  uint32_t *animation_block =
+    reinterpret_cast<uint32_t*>(get_object(DATA_SERF_ANIMATION_TABLE, &size));
+  if (animation_block == NULL) {
     return false;
   }
 
-  if (serf_animation_table[0] != 0xFFFFFFFF) {
-    if (size != be32toh(serf_animation_table[0])) {
-      // TODO(digger): report and assert
-    }
-    serf_animation_table[0] = 0xFFFFFFFF;
-    serf_animation_table++;
+  if (size != be32toh(animation_block[0])) {
+    LOGE("data", "Could not extract animation table.");
+    return false;
+  }
+  animation_block++;
 
-    /* Endianess convert from big endian. */
-    for (int i = 0; i < 200; i++) {
-      serf_animation_table[i] = be32toh(serf_animation_table[i]);
-    }
+  animation_table = new animation_t*[200];
+  /* Endianess convert from big endian. */
+  for (int i = 0; i < 200; i++) {
+    int offset = be32toh(animation_block[i]);
+    animation_table[i] =
+      reinterpret_cast<animation_t*>(
+        reinterpret_cast<char*>(animation_block) + offset);
   }
 
   return true;
 }
 
-/* Calculate hash of sprite identifier. */
-uint64_t
-sprite_t::create_sprite_id(uint64_t sprite, uint64_t mask, uint64_t offset) {
-  uint64_t result = sprite + (mask << 32) + (offset << 48);
-  return result;
-}
+animation_t*
+data_source_t::get_animation(unsigned int animation, unsigned int phase) {
+  animation_t *animation_phase = animation_table[animation] + (phase >> 3);
 
-/* There are different types of sprites:
- - Non-packed, rectangular sprites: These are simple called sprites here.
- - Transparent sprites, "transp": These are e.g. buldings/serfs.
- The transparent regions are RLE encoded.
- - Bitmap sprites: Conceptually these contain either 0 or 1 at each pixel.
- This is used to either modify the alpha level of another sprite (shadows)
- or mask parts of other sprites completely (mask sprites).
- */
-
-/* Create empty sprite object */
-sprite_t *
-data_source_t::create_empty_sprite(unsigned int index, uint8_t **source) {
-  size_t size;
-  sprite_dos_t *sprite = reinterpret_cast<sprite_dos_t*>(get_object(index,
-                                                                    &size));
-  if (sprite == NULL) {
-    return NULL;
-  }
-
-  sprite_t *s = new sprite_t(sprite->w, sprite->h);
-  s->set_delta(sprite->b_x, sprite->b_y);
-  s->set_offset(sprite->x, sprite->y);
-
-  *source = reinterpret_cast<uint8_t*>(sprite) + sizeof(sprite_dos_t);
-
-  return s;
-}
-
-/* Create sprite object */
-sprite_t *
-data_source_t::get_sprite(unsigned int index) {
-  uint8_t *src = NULL;
-  sprite_t *s = create_empty_sprite(index, &src);
-  if (s == NULL) return NULL;
-
-  color_dos_t *palette = get_palette(DATA_PALETTE_GAME);
-
-  uint8_t *dest = s->get_data();
-  size_t size = s->get_width() * s->get_height();
-
-  for (size_t i = 0; i < size; i++) {
-    color_dos_t color = palette[src[i]];
-    dest[4*i+0] = color.r; /* Red */
-    dest[4*i+1] = color.g; /* Green */
-    dest[4*i+2] = color.b; /* Blue */
-    dest[4*i+3] = 0xff; /* Alpha */
-  }
-
-  return s;
-}
-
-sprite_t *
-data_source_t::get_empty_sprite(unsigned int index) {
-  uint8_t *src = NULL;
-  sprite_t *s = create_empty_sprite(index, &src);
-  return s;
-}
-
-/* Create transparent sprite object */
-sprite_t *
-data_source_t::get_transparent_sprite(unsigned int index, int color_off) {
-  uint8_t *src = NULL;
-  sprite_t *s = create_empty_sprite(index, &src);
-  if (s == NULL) return NULL;
-
-  color_dos_t *palette = get_palette(DATA_PALETTE_GAME);
-
-  uint8_t *dest = s->get_data();
-  size_t size = s->get_width() * s->get_height();
-
-  size_t i = 0;
-  size_t j = 0;
-  while (j < size) {
-    j += src[i];
-    int n = src[i+1];
-
-    for (int k = 0; k < n; k++) {
-      uint p_index = src[i+2+k] + color_off;
-      color_dos_t color = palette[p_index];
-      dest[4*(j+k)+0] = color.r; /* Red */
-      dest[4*(j+k)+1] = color.g; /* Green */
-      dest[4*(j+k)+2] = color.b; /* Blue */
-      dest[4*(j+k)+3] = 0xff; /* Alpha */
-    }
-    i += n + 2;
-    j += n;
-  }
-
-  return s;
-}
-
-/* Create bitmap sprite object */
-sprite_t *
-data_source_t::get_bitmap_sprite(unsigned int index, unsigned int value) {
-  uint8_t *src = NULL;
-  sprite_t *s = create_empty_sprite(index, &src);
-  if (s == NULL) return NULL;
-
-  uint8_t *dest = s->get_data();
-  size_t size = s->get_width() * s->get_height();
-
-  size_t i = 0;
-  size_t j = 0;
-  while (j < size) {
-    j += src[i];
-    int n = src[i+1];
-    for (int k = 0; k < n && j + k < size; k++) {
-      dest[4*(j+k)+3] = value; /* Alpha */
-    }
-    i += 2;
-    j += n;
-  }
-
-  return s;
-}
-
-sprite_t *
-data_source_t::get_overlay_sprite(unsigned int index) {
-  return get_bitmap_sprite(index, 0x80);
-}
-
-sprite_t *
-data_source_t::get_mask_sprite(unsigned int index) {
-  return get_bitmap_sprite(index, 0xFF);
-}
-
-sprite_t::sprite_t(unsigned int width, unsigned int height) {
-  this->width = width;
-  this->height = height;
-  size_t size = width * height * 4;
-  data = new uint8_t[size];
-  memset(data, 0, size);
-}
-
-sprite_t::~sprite_t() {
-  if (data != NULL) {
-    delete[] data;
-    data = NULL;
-  }
-}
-
-/* Apply mask to map tile sprite
- The resulting sprite will be extended to the height of the mask
- by repeating lines from the top of the sprite. The width of the
- mask and the sprite must be identical. */
-sprite_t *
-sprite_t::get_masked(sprite_t *mask) {
-  sprite_t *s = new sprite_t(mask->get_width(), mask->get_height());
-  s->set_delta(mask->get_delta_x(), mask->get_delta_y());
-  s->set_offset(mask->get_offset_x(), mask->get_offset_y());
-
-  uint8_t *dest_data = s->get_data();
-  size_t to_copy = mask->get_width() * mask->get_height() * 4;
-
-  /* Copy extended data to new sprite */
-  while (to_copy > 0) {
-    size_t s = std::min(to_copy, size_t(width * height * 4));
-    memcpy(dest_data, data, s);
-    to_copy -= s;
-    dest_data += s;
-  }
-
-  /* Apply mask from mask sprite */
-  uint8_t *s_data = s->get_data();
-  const uint8_t *m_data = mask->get_data();
-  for (size_t y = 0; y < mask->get_height(); y++) {
-    for (size_t x = 0; x < mask->get_width(); x++) {
-      size_t alpha_index = 4*(y * mask->get_width() + x) + 3;
-      s_data[alpha_index] &= m_data[alpha_index];
-    }
-  }
-
-  return s;
+  return animation_phase;
 }
 
 void *
 data_source_t::get_sound(unsigned int index, size_t *size) {
-  size_t data_size = 0;
-  void *data = get_object(DATA_SFX_BASE + index, &data_size);
+  if (size != NULL) {
+    *size = 0;
+  }
+
+  size_t sfx_size = 0;
+  void *data = get_object(DATA_SFX_BASE + index, &sfx_size);
   if (data == NULL) {
+    LOGE("data", "Could not extract SFX clip: #%d.", index);
     return NULL;
   }
 
-  return sfx2wav(data, data_size, size, -0x20);
+  void *wav = sfx2wav(data, sfx_size, size, -0x20);
+  if (wav == NULL) {
+    LOGE("data", "Could not convert SFX clip to WAV: #%d.", index);
+    return NULL;
+  }
+
+  return wav;
 }
 
 void *
 data_source_t::get_music(unsigned int index, size_t *size) {
-  size_t data_size = 0;
-  void *data = get_object(DATA_MUSIC_GAME + index, &data_size);
-  if (NULL == data) {
+  if (size != NULL) {
+    *size = 0;
+  }
+
+  size_t xmi_size = 0;
+  void *data = get_object(DATA_MUSIC_GAME + index, &xmi_size);
+  if (data == NULL) {
+    LOGE("data", "Could not extract XMI clip: #%d.", index);
     return NULL;
   }
 
-  return xmi2mid(data, data_size, size);
+  void *mid = xmi2mid(data, xmi_size, size);
+  if (mid == NULL) {
+    LOGE("data", "Could not convert XMI clip to MID: #%d.", index);
+    return NULL;
+  }
+
+  return mid;
 }
 
-animation_t*
-data_source_t::get_animation(unsigned int animation, unsigned int phase) {
-  uint8_t *tbl_ptr = reinterpret_cast<uint8_t*>(serf_animation_table) +
-  serf_animation_table[animation] +
-  (3 * phase);
-  return reinterpret_cast<animation_t*>(tbl_ptr);
-}
-
-color_t
-data_source_t::get_color(unsigned int index) {
-  color_dos_t *palette = get_palette(DATA_PALETTE_GAME);
-  color_t color = { palette[index].r,
-                    palette[index].g,
-                    palette[index].b,
-                    0xff };
-  return color;
-}
-
-data_source_t::color_dos_t *
+color_dos_t *
 data_source_t::get_palette(unsigned int index) {
   size_t size = 0;
   void *data = get_object(index, &size);
