@@ -268,7 +268,7 @@ event_loop_sdl_t::run() {
             deferred_callee_t *deferred_callee =
               reinterpret_cast<deferred_callee_t*>(event.user.data1);
             if (deferred_callee != NULL) {
-              deferred_callee->deffered_call(event.user.data2);
+              deferred_callee->deferred_call(event.user.data2);
             }
             break;
           }

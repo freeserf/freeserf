@@ -33,7 +33,7 @@ BEGIN_EXT_C
   #include "src/log.h"
 END_EXT_C
 #include "src/data.h"
-#include "src/data-source-dos.h"
+#include "src/data-source.h"
 
 #ifdef min
 # undef min
@@ -301,7 +301,7 @@ midi_player_t::music_finished_hook() {
 }
 
 void
-midi_player_t::deffered_call(void *data) {
+midi_player_t::deferred_call(void *data) {
   music_finished();
 }
 

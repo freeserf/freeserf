@@ -75,7 +75,7 @@ data_t::add_to_search_paths(const char *path,
 bool
 data_t::load(const std::string &path) {
   /* If it possible, prefer DOS game data. */
-  data_source_t *data_sources[] = { new data_source_t(),
+  data_source_t *data_sources[] = { new data_source_dos_t(),
                                     NULL, };
 
   /* Use specified path. If something was specified

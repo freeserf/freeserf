@@ -29,18 +29,18 @@ freeserf_SOURCES = \
 	src/audio.cc src/audio.h \
 	src/savegame.c src/savegame.h \
 	src/list.c src/list.h \
-	src/pqueue.c src/pqueue.h \
 	src/log.c src/log.h \
 	src/misc.h \
 	src/debug.h \
 	src/freeserf_endian.h \
 	src/version.c src/version.h src/version-vcs.h \
-	src/data-source-dos.cc \
+	src/data-source-dos.cc src/data-source-dos.h\
 	src/tpwm.cc src/tpwm.h \
 	src/event_loop.cc src/event_loop.h \
 	src/event_loop-sdl.cc src/event_loop-sdl.h \
 	src/sfx2wav.cc src/sfx2wav.h \
-	src/xmi2mid.cc src/xmi2mid.h
+	src/xmi2mid.cc src/xmi2mid.h \
+	src/data-source.cc src/data-source.h
 
 AM_CFLAGS = $(SDL2_CFLAGS) -I$(top_builddir)/src
 AM_CXXFLAGS = $(SDL2_CFLAGS) -I$(top_builddir)/src

@@ -24,24 +24,7 @@
 
 #include <string>
 
-/* Sprite object. Contains BGRA data. */
-class sprite_t {
- public:
-  virtual ~sprite_t() {}
-
-  virtual uint8_t *get_data() const = 0;
-  virtual unsigned int get_width() const = 0;
-  virtual unsigned int get_height() const = 0;
-  virtual int get_delta_x() const = 0;
-  virtual int get_delta_y() const = 0;
-  virtual int get_offset_x() const = 0;
-  virtual int get_offset_y() const = 0;
-
-  virtual sprite_t *get_masked(sprite_t *mask) = 0;
-
-  static uint64_t create_sprite_id(uint64_t sprite, uint64_t mask,
-                                   uint64_t offset);
-};
+#include "src/data-source.h"
 
 class sprite_dos_empty_t : public sprite_t {
  protected:
@@ -77,9 +60,6 @@ class sprite_dos_empty_t : public sprite_t {
   virtual int get_offset_y() const { return offset_y; }
 
   virtual sprite_t *get_masked(sprite_t *mask) { return NULL; }
-
-  static uint64_t create_sprite_id(uint64_t sprite, uint64_t mask,
-                                   uint64_t offset);
 };
 
 typedef struct {
@@ -127,21 +107,7 @@ class sprite_dos_mask_t : public sprite_dos_base_t {
   virtual ~sprite_dos_mask_t() {}
 };
 
-class animation_t {
- public:
-  uint8_t time;
-  int8_t x;
-  int8_t y;
-};
-
-typedef struct {
-  unsigned char red;
-  unsigned char green;
-  unsigned char blue;
-  unsigned char alpha;
-} color_t;
-
-class data_source_t {
+class data_source_dos_t : public data_source_t {
  protected:
   /* These entries follow the 8 byte header of the data file. */
   typedef struct {
@@ -155,31 +121,28 @@ class data_source_t {
   animation_t **animation_table;
 
  public:
-  data_source_t();
-  virtual ~data_source_t();
+  data_source_dos_t();
+  virtual ~data_source_dos_t();
 
-  bool check(const std::string &path, std::string *load_path);
-  bool load(const std::string &path);
+  virtual bool check(const std::string &path, std::string *load_path);
+  virtual bool load(const std::string &path);
 
-  void *get_object(unsigned int index, size_t *size);
+  virtual sprite_t *get_sprite(unsigned int index);
+  virtual sprite_t *get_empty_sprite(unsigned int index);
+  virtual sprite_t *get_transparent_sprite(unsigned int index, int color_off);
+  virtual sprite_t *get_overlay_sprite(unsigned int index);
+  virtual sprite_t *get_mask_sprite(unsigned int index);
 
-  sprite_t *get_sprite(unsigned int index);
-  sprite_t *get_empty_sprite(unsigned int index);
-  sprite_t *get_transparent_sprite(unsigned int index, int color_off);
-  sprite_t *get_overlay_sprite(unsigned int index);
-  sprite_t *get_mask_sprite(unsigned int index);
+  virtual color_t get_color(unsigned int index);
 
-  color_t get_color(unsigned int index);
+  virtual animation_t *get_animation(unsigned int animation,
+                                     unsigned int phase);
 
-  animation_t *get_animation(unsigned int animation, unsigned int phase);
-
-  void *get_sound(unsigned int index, size_t *size);
-  void *get_music(unsigned int index, size_t *size);
-
-  static bool check_file(const std::string &path);
-  void *file_read(const std::string &path, size_t *size);
+  virtual void *get_sound(unsigned int index, size_t *size);
+  virtual void *get_music(unsigned int index, size_t *size);
 
  protected:
+  void *get_object(unsigned int index, size_t *size);
   void fixup();
   bool load_animation_table();
   color_dos_t *get_palette(unsigned int index);

@@ -91,7 +91,7 @@ class midi_player_t : public audio_player_t, public audio_volume_controller_t,
   virtual void volume_down();
 
  public:
-  virtual void deffered_call(void *data);
+  virtual void deferred_call(void *data);
 
  protected:
   static midi_player_t *current_midi_player;

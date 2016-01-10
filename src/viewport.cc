@@ -36,7 +36,7 @@ END_EXT_C
 #include "src/interface.h"
 #include "src/popup.h"
 #include "src/pathfinder.h"
-#include "src/data-source-dos.h"
+#include "src/data-source.h"
 
 #ifdef min
 # undef min
@@ -1364,7 +1364,7 @@ viewport_t::serf_get_body(serf_t *serf) {
   };
 
   animation_t *animation = data_source->get_animation(serf->animation,
-                                                      serf->counter >> 3);
+                                                      serf->counter);
   int t = animation->time;
 
   switch (SERF_TYPE(serf)) {
@@ -1860,7 +1860,7 @@ viewport_t::draw_active_serf(serf_t *serf, map_pos_t pos,
   };
 
   animation_t *animation = data_source->get_animation(serf->animation,
-                                                      serf->counter >> 3);
+                                                      serf->counter);
 
   int x = x_base + animation->x;
   int y = y_base + animation->y - 4*MAP_HEIGHT(pos);
@@ -1884,7 +1884,7 @@ viewport_t::draw_active_serf(serf_t *serf, map_pos_t pos,
       serf_t *def_serf = game_get_serf(index);
 
       animation_t *animation = data_source->get_animation(def_serf->animation,
-                                                        def_serf->counter >> 3);
+                                                          def_serf->counter);
 
       int x = x_base + animation->x;
       int y = y_base + animation->y - 4*MAP_HEIGHT(pos);

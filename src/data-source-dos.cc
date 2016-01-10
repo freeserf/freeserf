@@ -52,14 +52,14 @@ END_EXT_C
  or mask parts of other sprites completely (mask sprites).
  */
 
-data_source_t::data_source_t() {
+data_source_dos_t::data_source_dos_t() {
   sprites = NULL;
   sprites_size = 0;
   entry_count = 0;
   animation_table = NULL;
 }
 
-data_source_t::~data_source_t() {
+data_source_dos_t::~data_source_dos_t() {
   if (sprites != NULL) {
     free(sprites);
     sprites = NULL;
@@ -72,50 +72,7 @@ data_source_t::~data_source_t() {
 }
 
 bool
-data_source_t::check_file(const std::string &path) {
-  std::ifstream ifile(path.c_str());
-  if (ifile.good()) {
-    ifile.close();
-    return true;
-  }
-
-  return false;
-}
-
-void*
-data_source_t::file_read(const std::string &path, size_t *size) {
-  char *data = NULL;
-  *size = 0;
-
-  do {
-    std::ifstream file(path.c_str(), std::ifstream::binary |
-                                     std::ifstream::ate);
-    if (!file.good()) {
-      break;
-    }
-
-    *size = (size_t)file.tellg();
-    if (*size == 0) {
-      break;
-    }
-
-    file.seekg(0, file.beg);
-
-    data = reinterpret_cast<char*>(malloc(*size));
-    if (data == NULL) {
-      *size = 0;
-      break;
-    }
-
-    file.read(data, *size);
-    file.close();
-  } while (false);
-
-  return data;
-}
-
-bool
-data_source_t::check(const std::string &path, std::string *load_path) {
+data_source_dos_t::check(const std::string &path, std::string *load_path) {
   const char *default_data_file[] = {
     "SPAE.PA", /* English */
     "SPAF.PA", /* French */
@@ -139,7 +96,7 @@ data_source_t::check(const std::string &path, std::string *load_path) {
 }
 
 bool
-data_source_t::load(const std::string &path) {
+data_source_dos_t::load(const std::string &path) {
   sprites = file_read(path, &sprites_size);
   if (sprites == NULL) {
     return false;
@@ -177,7 +134,7 @@ data_source_t::load(const std::string &path) {
  If size is non-NULL it will be set to the size of the data object.
  (There's no guarantee that size is correct!). */
 void *
-data_source_t::get_object(unsigned int index, size_t *size) {
+data_source_dos_t::get_object(unsigned int index, size_t *size) {
   if (size != NULL) {
     *size = 0;
   }
@@ -203,7 +160,7 @@ data_source_t::get_object(unsigned int index, size_t *size) {
 
 /* Perform various fixups of the data file entries. */
 void
-data_source_t::fixup() {
+data_source_dos_t::fixup() {
   spae_entry_t *entries = reinterpret_cast<spae_entry_t*>(sprites);
 
   /* Fill out some undefined spaces in the index from other
@@ -232,13 +189,6 @@ data_source_t::fixup() {
   }
 }
 
-/* Calculate hash of sprite identifier. */
-uint64_t
-sprite_t::create_sprite_id(uint64_t sprite, uint64_t mask, uint64_t offset) {
-  uint64_t result = sprite + (mask << 32) + (offset << 48);
-  return result;
-}
-
 /* There are different types of sprites:
  - Non-packed, rectangular sprites: These are simple called sprites here.
  - Transparent sprites, "transp": These are e.g. buldings/serfs.
@@ -250,7 +200,7 @@ sprite_t::create_sprite_id(uint64_t sprite, uint64_t mask, uint64_t offset) {
 
 /* Create sprite object */
 sprite_t *
-data_source_t::get_sprite(unsigned int index) {
+data_source_dos_t::get_sprite(unsigned int index) {
   size_t size = 0;
   void *data = get_object(index, &size);
   if (data == NULL) {
@@ -287,7 +237,7 @@ sprite_dos_solid_t::sprite_dos_solid_t(void *data, size_t size,
 }
 
 sprite_t *
-data_source_t::get_empty_sprite(unsigned int index) {
+data_source_dos_t::get_empty_sprite(unsigned int index) {
   size_t size = 0;
   void *data = get_object(index, &size);
   if (data == NULL) {
@@ -299,7 +249,7 @@ data_source_t::get_empty_sprite(unsigned int index) {
 
 /* Create transparent sprite object */
 sprite_t *
-data_source_t::get_transparent_sprite(unsigned int index, int color_off) {
+data_source_dos_t::get_transparent_sprite(unsigned int index, int color_off) {
   size_t size = 0;
   void *data = get_object(index, &size);
   if (data == NULL) {
@@ -345,7 +295,7 @@ sprite_dos_transparent_t::sprite_dos_transparent_t(void *data, size_t size,
 }
 
 sprite_t *
-data_source_t::get_overlay_sprite(unsigned int index) {
+data_source_dos_t::get_overlay_sprite(unsigned int index) {
   size_t size = 0;
   void *data = get_object(index, &size);
   if (data == NULL) {
@@ -390,7 +340,7 @@ sprite_dos_overlay_t::sprite_dos_overlay_t(void *data, size_t size,
 }
 
 sprite_t *
-data_source_t::get_mask_sprite(unsigned int index) {
+data_source_dos_t::get_mask_sprite(unsigned int index) {
   size_t size = 0;
   void *data = get_object(index, &size);
   if (data == NULL) {
@@ -500,7 +450,7 @@ sprite_dos_base_t::~sprite_dos_base_t() {
 }
 
 color_t
-data_source_t::get_color(unsigned int index) {
+data_source_dos_t::get_color(unsigned int index) {
   color_dos_t *palette = get_palette(DATA_PALETTE_GAME);
   color_t color = { palette[index].r,
                     palette[index].g,
@@ -510,7 +460,7 @@ data_source_t::get_color(unsigned int index) {
 }
 
 bool
-data_source_t::load_animation_table() {
+data_source_dos_t::load_animation_table() {
   /* The serf animation table is stored in big endian
    order in the data file.
 
@@ -552,14 +502,14 @@ data_source_t::load_animation_table() {
 }
 
 animation_t*
-data_source_t::get_animation(unsigned int animation, unsigned int phase) {
+data_source_dos_t::get_animation(unsigned int animation, unsigned int phase) {
   animation_t *animation_phase = animation_table[animation] + (phase >> 3);
 
   return animation_phase;
 }
 
 void *
-data_source_t::get_sound(unsigned int index, size_t *size) {
+data_source_dos_t::get_sound(unsigned int index, size_t *size) {
   if (size != NULL) {
     *size = 0;
   }
@@ -581,7 +531,7 @@ data_source_t::get_sound(unsigned int index, size_t *size) {
 }
 
 void *
-data_source_t::get_music(unsigned int index, size_t *size) {
+data_source_dos_t::get_music(unsigned int index, size_t *size) {
   if (size != NULL) {
     *size = 0;
   }
@@ -603,7 +553,7 @@ data_source_t::get_music(unsigned int index, size_t *size) {
 }
 
 color_dos_t *
-data_source_t::get_palette(unsigned int index) {
+data_source_dos_t::get_palette(unsigned int index) {
   size_t size = 0;
   void *data = get_object(index, &size);
   if ((data == NULL) || (size != sizeof(color_dos_t)*256)) {

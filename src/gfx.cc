@@ -29,7 +29,7 @@ BEGIN_EXT_C
 END_EXT_C
 #include "src/data.h"
 #include "src/video.h"
-#include "src/data-source-dos.h"
+#include "src/data-source.h"
 
 #ifdef min
 # undef min
