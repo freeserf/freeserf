@@ -41,7 +41,8 @@ freeserf_SOURCES = \
 	src/xmi2mid.cc src/xmi2mid.h \
 	src/data-source.cc src/data-source.h \
 	src/objects.h \
-	src/inventory.cc src/inventory.h
+	src/inventory.cc src/inventory.h \
+	src/text-input.cc src/text-input.h
 
 AM_CFLAGS = $(SDL2_CFLAGS) -I$(top_builddir)/src
 AM_CXXFLAGS = $(SDL2_CFLAGS) -I$(top_builddir)/src
