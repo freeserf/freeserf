@@ -27,6 +27,8 @@
 
 #include <SDL_mixer.h>
 
+#include "src/event_loop.h"
+
 class sfx_track_t : public audio_track_t {
  protected:
   Mix_Chunk *chunk;
@@ -65,8 +67,16 @@ class midi_track_t : public audio_track_t {
   virtual void play();
 };
 
-class midi_player_t : public audio_player_t, public audio_volume_controller_t {
+class midi_player_t : public audio_player_t, public audio_volume_controller_t,
+                      public deferred_callee_t {
+ protected:
+  midi_t current_track;
+
  public:
+  midi_player_t();
+  virtual ~midi_player_t();
+
+  virtual void play_track(int track_id);
   virtual void enable(bool enable);
   virtual audio_volume_controller_t *get_volume_controller() { return this; }
 
@@ -79,6 +89,14 @@ class midi_player_t : public audio_player_t, public audio_volume_controller_t {
   virtual void set_volume(float volume);
   virtual void volume_up();
   virtual void volume_down();
+
+ public:
+  virtual void deffered_call(void *data);
+
+ protected:
+  static midi_player_t *current_midi_player;
+  static void music_finished_hook();
+  void music_finished();
 };
 
 class audio_sdlmixer_t : public audio_t, public audio_volume_controller_t {

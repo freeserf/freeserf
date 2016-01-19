@@ -46,11 +46,17 @@ create_event_loop() {
 event_loop_sdl_t::event_loop_sdl_t() {
 }
 
+typedef enum {
+  USER_EVENT_STEP,
+  USER_EVENT_QUIT,
+  USER_EVENT_CALL,
+} USER_EVENT_TYPE;
+
 Uint32 timer_callback(Uint32 interval, void *param) {
   SDL_Event event;
   event.type = SDL_USEREVENT;
   event.user.type = SDL_USEREVENT;
-  event.user.code = 0;
+  event.user.code = USER_EVENT_STEP;
   event.user.data1 = 0;
   event.user.data2 = 0;
   SDL_PushEvent(&event);
@@ -63,9 +69,21 @@ event_loop_sdl_t::quit() {
   SDL_Event event;
   event.type = SDL_USEREVENT;
   event.user.type = SDL_USEREVENT;
-  event.user.code = SDL_QUIT;
+  event.user.code = USER_EVENT_QUIT;
   event.user.data1 = 0;
   event.user.data2 = 0;
+  SDL_PushEvent(&event);
+}
+
+void
+event_loop_sdl_t::deferred_call(deferred_callee_t *deferred_callee,
+                                void *data) {
+  SDL_Event event;
+  event.type = SDL_USEREVENT;
+  event.user.type = SDL_USEREVENT;
+  event.user.code = USER_EVENT_CALL;
+  event.user.data1 = deferred_callee;
+  event.user.data2 = data;
   SDL_PushEvent(&event);
 }
 
@@ -226,29 +244,44 @@ event_loop_sdl_t::run() {
         }
         break;
       case SDL_USEREVENT:
-        if (event.user.code == SDL_QUIT) {
-          if (screen != NULL) {
-            delete screen;
+        switch (event.user.code) {
+          case USER_EVENT_QUIT:
+            SDL_RemoveTimer(timer_id);
+            if (screen != NULL) {
+              delete screen;
+              screen = NULL;
+            }
+            return;
+          case USER_EVENT_STEP:
+            /* Update and draw interface */
+            notify_update();
+
+            if (screen == NULL) {
+              screen = gfx->get_screen_frame();
+            }
+            notify_draw(screen);
+
+            /* Swap video buffers */
+            gfx->swap_buffers();
+            break;
+          case USER_EVENT_CALL: {
+            deferred_callee_t *deferred_callee =
+              reinterpret_cast<deferred_callee_t*>(event.user.data1);
+            if (deferred_callee != NULL) {
+              deferred_callee->deffered_call(event.user.data2);
+            }
+            break;
           }
-          return;
+          default:
+            break;
         }
-
-        /* Update and draw interface */
-        notify_update();
-
-        if (screen == NULL) {
-          screen = gfx->get_screen_frame();
-        }
-        notify_draw(screen);
-
-        /* Swap video buffers */
-        gfx->swap_buffers();
-
         break;
     }
   }
 
+  SDL_RemoveTimer(timer_id);
   if (screen != NULL) {
     delete screen;
+    screen = NULL;
   }
 }

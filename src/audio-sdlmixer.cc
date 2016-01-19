@@ -55,6 +55,11 @@ audio_t::get_instance() {
 audio_sdlmixer_t::audio_sdlmixer_t() {
   LOGI("audio-sdlmixer", "Initializing audio driver `sdlmixer'.");
 
+  if (SDL_Init(SDL_INIT_AUDIO | SDL_INIT_TIMER) != 0) {
+    LOGE("audio-sdlmixer", "Could not init SDL audio: %s.", SDL_GetError());
+    assert(false);
+  }
+
   int r = Mix_Init(0);
   if (r != 0) {
     LOGE("audio-sdlmixer", "Could not init SDL_mixer: %s.", Mix_GetError());
@@ -72,9 +77,7 @@ audio_sdlmixer_t::audio_sdlmixer_t() {
     LOGE("audio-sdlmixer", "Failed to allocate channels: %s.", Mix_GetError());
     assert(false);
   }
-/*
-  Mix_HookMusicFinished(midi_track_finished);
-*/
+
   volume = 1.f;
 
   sfx_player = new sfx_player_t();
@@ -210,6 +213,20 @@ sfx_track_t::play() {
   }
 }
 
+midi_player_t::midi_player_t() {
+  if (current_midi_player != NULL) {
+    LOGE("audio-sdlmixer", "Only one midi player is allowed.");
+    assert(0);
+  }
+  current_track = MIDI_TRACK_NONE;
+  current_midi_player = this;
+  Mix_HookMusicFinished(music_finished_hook);
+}
+
+midi_player_t::~midi_player_t() {
+  Mix_HookMusicFinished(NULL);
+}
+
 audio_track_t *
 midi_player_t::create_track(int track_id) {
   size_t size = 0;
@@ -227,6 +244,15 @@ midi_player_t::create_track(int track_id) {
   }
 
   return new midi_track_t(music);
+}
+
+void
+midi_player_t::play_track(int track_id) {
+  if ((track_id <= MIDI_TRACK_NONE) || (track_id > MIDI_TRACK_LAST)) {
+    track_id = MIDI_TRACK_0;
+  }
+  current_track = static_cast<midi_t>(track_id);
+  audio_player_t::play_track(track_id);
 }
 
 void
@@ -265,14 +291,27 @@ midi_player_t::volume_down() {
   set_volume(get_volume() - 0.1f);
 }
 
-/*
-static void
-midi_track_finished() {
-  if (midi_enabled) {
-    midi_play_track(current_track);
+midi_player_t *midi_player_t::current_midi_player = NULL;
+
+void
+midi_player_t::music_finished_hook() {
+  if (current_midi_player != NULL) {
+    event_loop_t *event_loop = event_loop_t::get_instance();
+    event_loop->deferred_call(current_midi_player, NULL);
   }
 }
-*/
+
+void
+midi_player_t::deffered_call(void *data) {
+  music_finished();
+}
+
+void
+midi_player_t::music_finished() {
+  if (is_enabled()) {
+    play_track(current_track + 1);
+  }
+}
 
 midi_track_t::midi_track_t(Mix_Music *chunk) {
   this->chunk = chunk;

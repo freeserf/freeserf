@@ -73,6 +73,7 @@ typedef enum {
   MIDI_TRACK_1 = 1,
   MIDI_TRACK_2 = 2,
   MIDI_TRACK_3 = 4,
+  MIDI_TRACK_LAST = MIDI_TRACK_3,
 } midi_t;
 
 class audio_volume_controller_t {
