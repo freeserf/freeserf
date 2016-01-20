@@ -21,15 +21,16 @@
 
 #include "src/interface.h"
 
+#include <cstdlib>
 #include <ctime>
 #include <cassert>
 
 #include "src/misc.h"
 BEGIN_EXT_C
-  #include "src/audio.h"
   #include "src/data.h"
   #include "src/debug.h"
 END_EXT_C
+#include "src/audio.h"
 #include "src/freeserf_endian.h"
 #include "src/freeserf.h"
 #include "src/popup.h"
@@ -91,7 +92,7 @@ interface_t::close_game_init() {
 void
 interface_t::open_message() {
   if (player->msg_queue_type[0] == 0) {
-    sfx_play_clip(SFX_CLICK);
+    play_sound(SFX_CLICK);
     return;
   } else if (!BIT_TEST(msg_flags, 3)) {
     msg_flags |= BIT(4);
@@ -127,7 +128,7 @@ interface_t::open_message() {
 
   msg_flags |= BIT(1);
   return_timeout = 60*TICKS_PER_SEC;
-  sfx_play_clip(SFX_CLICK);
+  play_sound(SFX_CLICK);
 }
 
 void
@@ -140,7 +141,7 @@ interface_t::return_from_message() {
     viewport->move_to_map_pos(return_pos);
 
     if (popup->get_box() == BOX_MESSAGE) close_popup();
-    sfx_play_clip(SFX_CLICK);
+    play_sound(SFX_CLICK);
   }
 }
 
@@ -495,7 +496,7 @@ interface_t::demolish_object() {
   determine_map_cursor_type();
 
   if (map_cursor_type == MAP_CURSOR_TYPE_REMOVABLE_FLAG) {
-    sfx_play_clip(SFX_CLICK);
+    play_sound(SFX_CLICK);
     game_demolish_flag(map_cursor_pos, player);
   } else if (map_cursor_type == MAP_CURSOR_TYPE_BUILDING) {
     building_t *building = game_get_building(MAP_OBJ_INDEX(map_cursor_pos));
@@ -507,10 +508,10 @@ interface_t::demolish_object() {
       /* TODO */
     }
 
-    sfx_play_clip(SFX_AHHH);
+    play_sound(SFX_AHHH);
     game_demolish_building(map_cursor_pos, player);
   } else {
-    sfx_play_clip(SFX_NOT_ACCEPTED);
+    play_sound(SFX_NOT_ACCEPTED);
     update_interface();
   }
 }
@@ -520,7 +521,7 @@ void
 interface_t::build_flag() {
   int r = game_build_flag(map_cursor_pos, player);
   if (r < 0) {
-    sfx_play_clip(SFX_NOT_ACCEPTED);
+    play_sound(SFX_NOT_ACCEPTED);
     return;
   }
 
@@ -532,11 +533,11 @@ void
 interface_t::build_building(building_type_t type) {
   int r = game_build_building(map_cursor_pos, type, player);
   if (r < 0) {
-    sfx_play_clip(SFX_NOT_ACCEPTED);
+    play_sound(SFX_NOT_ACCEPTED);
     return;
   }
 
-  sfx_play_clip(SFX_ACCEPTED);
+  play_sound(SFX_ACCEPTED);
   close_popup();
 
   /* Move cursor to flag. */
@@ -549,11 +550,11 @@ void
 interface_t::build_castle() {
   int r = game_build_castle(map_cursor_pos, player);
   if (r < 0) {
-    sfx_play_clip(SFX_NOT_ACCEPTED);
+    play_sound(SFX_NOT_ACCEPTED);
     return;
   }
 
-  sfx_play_clip(SFX_ACCEPTED);
+  play_sound(SFX_ACCEPTED);
   update_map_cursor_pos(map_cursor_pos);
 }
 
@@ -564,10 +565,10 @@ interface_t::build_road() {
                           building_road_length,
                           player);
   if (r < 0) {
-    sfx_play_clip(SFX_NOT_ACCEPTED);
+    play_sound(SFX_NOT_ACCEPTED);
     game_demolish_flag(map_cursor_pos, player);
   } else {
-    sfx_play_clip(SFX_ACCEPTED);
+    play_sound(SFX_ACCEPTED);
     build_road_end();
   }
 }
@@ -670,10 +671,10 @@ interface_t::interface_t() {
   map_cursor_sprites[6].sprite = 33;
 
   /* Randomness for interface */
-  srand((uint)time(NULL));
-  random.state[0] = rand();
-  random.state[1] = rand();
-  random.state[2] = rand();
+  std::srand((uint)std::time(NULL));
+  random.state[0] = std::rand();
+  random.state[1] = std::rand();
+  random.state[2] = std::rand();
   random_int(&random);
 
   last_const_tick = 0;
@@ -741,7 +742,7 @@ interface_t::update() {
     while (player->msg_queue_type[0] != 0) {
       int type = player->msg_queue_type[0] & 0x1f;
       if (BIT_TEST(config, msg_category[type])) {
-        sfx_play_clip(SFX_MESSAGE);
+        play_sound(SFX_MESSAGE);
         msg_flags |= BIT(0);
         break;
       }
@@ -849,11 +850,19 @@ interface_t::handle_key_pressed(char key, int modifier) {
 
     /* Audio */
     case 's': {
-      sfx_enable(!sfx_is_enabled());
+      audio_t *audio = audio_t::get_instance();
+      audio_player_t *player = audio->get_sound_player();
+      if (player != NULL) {
+        player->enable(!player->is_enabled());
+      }
       break;
     }
     case 'm': {
-      midi_enable(!midi_is_enabled());
+      audio_t *audio = audio_t::get_instance();
+      audio_player_t *player = audio->get_music_player();
+      if (player != NULL) {
+        player->enable(!player->is_enabled());
+      }
       break;
     }
 

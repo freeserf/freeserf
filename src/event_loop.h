@@ -57,6 +57,11 @@ class event_handler_t {
 
 typedef std::list<event_handler_t*> event_handlers_t;
 
+class deferred_callee_t {
+ public:
+  virtual void deffered_call(void *data) = 0;
+};
+
 class event_loop_t {
  protected:
   event_handlers_t event_handlers;
@@ -68,6 +73,8 @@ class event_loop_t {
 
   virtual void run() = 0;
   virtual void quit() = 0;
+  virtual void deferred_call(deferred_callee_t *deferred_callee,
+                             void *data) = 0;
 
   void add_handler(event_handler_t *handler);
   void del_handler(event_handler_t *handler);

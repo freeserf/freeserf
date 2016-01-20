@@ -76,6 +76,8 @@ class gui_object_t : public event_handler_t {
   void del_float(gui_object_t *obj);
 
   virtual bool handle_event(const event_t *event);
+
+  void play_sound(int sound);
 };
 
 int gui_get_slider_click_value(int x);

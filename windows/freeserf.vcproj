@@ -182,7 +182,11 @@
 			UniqueIdentifier="{4FC737F1-C7A5-4376-A066-2A32D752A2FF}"
 			>
 			<File
-				RelativePath="..\src\audio-sdlmixer.c"
+				RelativePath="..\src\audio.cc"
+				>
+			</File>
+			<File
+				RelativePath="..\src\audio-sdlmixer.cc"
 				>
 			</File>
 			<File
@@ -282,6 +286,10 @@
 				>
 			</File>
 			<File
+				RelativePath="..\src\sfx2wav.cc"
+				>
+			</File>
+			<File
 				RelativePath="..\src\video.cc"
 				>
 			</File>
@@ -305,6 +313,10 @@
 				RelativePath="..\src\viewport.cc"
 				>
 			</File>
+			<File
+				RelativePath="..\src\xmi2mid.cc"
+				>
+			</File>
 		</Filter>
 		<Filter
 			Name="Header Files"
@@ -313,6 +325,10 @@
 			>
 			<File
 				RelativePath="..\src\audio.h"
+				>
+			</File>
+			<File
+				RelativePath="..\src\audio-sdlmixer.h"
 				>
 			</File>
 			<File
@@ -428,6 +444,10 @@
 				>
 			</File>
 			<File
+				RelativePath="..\src\sfx2wav.h"
+				>
+			</File>
+			<File
 				RelativePath="..\src\video.h"
 				>
 			</File>
@@ -453,6 +473,10 @@
 			</File>
 			<File
 				RelativePath="..\src\viewport.h"
+				>
+			</File>
+			<File
+				RelativePath="..\src\xmi2mid.h"
 				>
 			</File>
 		</Filter>

@@ -30,8 +30,8 @@ BEGIN_EXT_C
   #include "src/game.h"
   #include "src/log.h"
   #include "src/debug.h"
-  #include "src/audio.h"
 END_EXT_C
+#include "src/audio.h"
 #include "src/gfx.h"
 #include "src/interface.h"
 #include "src/popup.h"
@@ -747,7 +747,7 @@ viewport_t::draw_unharmed_building(building_t *building, int x, int y) {
         if ((((game.tick +
                reinterpret_cast<uint8_t*>(&building->pos)[1]) >> 3) & 7) == 0
             && random_int(random) < 40000) {
-          sfx_play_clip(SFX_ELEVATOR);
+          play_sound(SFX_ELEVATOR);
         }
       }
       draw_shadow_and_building_sprite(x, y, map_building_sprite[type]);
@@ -763,7 +763,7 @@ viewport_t::draw_unharmed_building(building_t *building, int x, int y) {
       draw_shadow_and_building_sprite(x, y, map_building_sprite[type]);
       if (building->stock[1].available > 0) {
         if ((random_int(random) & 0x7f) < building->stock[1].available) {
-          sfx_play_clip(SFX_PIG_OINK);
+          play_sound(SFX_PIG_OINK);
         }
 
         if (building->stock[1].available >= 6) {
@@ -811,7 +811,7 @@ viewport_t::draw_unharmed_building(building_t *building, int x, int y) {
           building->serf &= ~BIT(3);
         } else if (!BUILDING_PLAYING_SFX(building)) {
           building->serf |= BIT(3);
-          sfx_play_clip(SFX_MILL_GRINDING);
+          play_sound(SFX_MILL_GRINDING);
         }
         draw_shadow_and_building_sprite(x, y, map_building_sprite[type] +
                                         ((game.tick >> 4) & 3));
@@ -831,7 +831,7 @@ viewport_t::draw_unharmed_building(building_t *building, int x, int y) {
         int i = (game.tick >> 3) & 7;
         if (i == 0 || (i == 7 && !BUILDING_PLAYING_SFX(building))) {
           building->serf |= BIT(3);
-          sfx_play_clip(SFX_GOLD_BOILS);
+          play_sound(SFX_GOLD_BOILS);
         } else if (i != 7) {
           building->serf &= ~BIT(3);
         }
@@ -867,7 +867,7 @@ viewport_t::draw_unharmed_building(building_t *building, int x, int y) {
         int i = (game.tick >> 3) & 7;
         if (i == 0 || (i == 7 && !BUILDING_PLAYING_SFX(building))) {
           building->serf |= BIT(3);
-          sfx_play_clip(SFX_GOLD_BOILS);
+          play_sound(SFX_GOLD_BOILS);
         } else if (i != 7) {
           building->serf &= ~BIT(3);
         }
@@ -1103,7 +1103,7 @@ viewport_t::draw_burning_building(building_t *building, int x, int y) {
   if (((building->serf_index >> 3) & 3) == 3 &&
       !BUILDING_PLAYING_SFX(building)) {
     building->serf |= BIT(3);
-    sfx_play_clip(SFX_BURNING);
+    play_sound(SFX_BURNING);
   } else {
     building->serf &= ~BIT(3);
   }
@@ -1382,7 +1382,7 @@ viewport_t::serf_get_body(serf_t *serf) {
       if (((t & 7) == 4 && !BIT_TEST(serf->type, 7)) ||
           (t & 7) == 3) {
         serf->type |= BIT(7);
-        sfx_play_clip(SFX_ROWING);
+        play_sound(SFX_ROWING);
       } else {
         serf->type &= ~BIT(7);
       }
@@ -1396,7 +1396,7 @@ viewport_t::serf_get_body(serf_t *serf) {
         if (((t & 7) == 4 && !BIT_TEST(serf->type, 7)) ||
             (t & 7) == 3) {
           serf->type |= BIT(7);
-          sfx_play_clip(SFX_ROWING);
+          play_sound(SFX_ROWING);
         } else {
           serf->type &= ~BIT(7);
         }
@@ -1414,7 +1414,7 @@ viewport_t::serf_get_body(serf_t *serf) {
     } else if (t == 0x83 || t == 0x84) {
       if (t == 0x83 || !BIT_TEST(serf->type, 7)) {
         serf->type |= BIT(7);
-        sfx_play_clip(SFX_DIGGING);
+        play_sound(SFX_DIGGING);
       }
       t += 0x380;
     } else {
@@ -1428,7 +1428,7 @@ viewport_t::serf_get_body(serf_t *serf) {
     } else if ((t & 7) == 4 || (t & 7) == 5) {
       if ((t & 7) == 4 || !BIT_TEST(serf->type, 7)) {
         serf->type |= BIT(7);
-        sfx_play_clip(SFX_HAMMER_BLOW);
+        play_sound(SFX_HAMMER_BLOW);
       }
       t += 0x580;
     } else {
@@ -1478,12 +1478,12 @@ viewport_t::serf_get_body(serf_t *serf) {
     } else if ((t == 0x86 && !BIT_TEST(serf->type, 7)) ||
          t == 0x85) {
       serf->type |= BIT(7);
-      sfx_play_clip(SFX_AX_BLOW);
+      play_sound(SFX_AX_BLOW);
       /* TODO Dangerous reference to unknown state vars.
          It is probably free walking. */
       if (serf->s.free_walking.neg_dist2 == 0 &&
           serf->counter < 64) {
-        sfx_play_clip(SFX_TREE_FALL);
+        play_sound(SFX_TREE_FALL);
       }
       t += 0xe80;
     } else if (t != 0x86) {
@@ -1505,7 +1505,7 @@ viewport_t::serf_get_body(serf_t *serf) {
           (!BIT_TEST(serf->type, 7) && (t == 0xb7 || t == 0xbf ||
                 t == 0xc7 || t == 0xcf))) {
         serf->type |= BIT(7);
-        sfx_play_clip(SFX_SAWING);
+        play_sound(SFX_SAWING);
       } else if (t != 0xb7 && t != 0xbf && t != 0xc7 && t != 0xcf) {
         serf->type &= ~BIT(7);
       }
@@ -1525,7 +1525,7 @@ viewport_t::serf_get_body(serf_t *serf) {
       }
     } else if (t == 0x85 || (t == 0x86 && !BIT_TEST(serf->type, 7))) {
       serf->type |= BIT(7);
-      sfx_play_clip(SFX_PICK_BLOW);
+      play_sound(SFX_PICK_BLOW);
       t += 0x1280;
     } else if (t != 0x86) {
       serf->type &= ~BIT(7);
@@ -1537,7 +1537,7 @@ viewport_t::serf_get_body(serf_t *serf) {
       t += 0xe00;
     } else if (t == 0x86 || (t == 0x87 && !BIT_TEST(serf->type, 7))) {
       serf->type |= BIT(7);
-      sfx_play_clip(SFX_PLANTING);
+      play_sound(SFX_PLANTING);
       t += 0x1080;
     } else if (t != 0x87) {
       serf->type &= ~BIT(7);
@@ -1607,7 +1607,7 @@ viewport_t::serf_get_body(serf_t *serf) {
       }
     } else {
       if (t != 0x80 && t != 0x87 && t != 0x88 && t != 0x8f) {
-        sfx_play_clip(SFX_FISHING_ROD_REEL);
+        play_sound(SFX_FISHING_ROD_REEL);
       }
 
       /* TODO no check for state */
@@ -1643,7 +1643,7 @@ viewport_t::serf_get_body(serf_t *serf) {
       if ((t == 0xb2 || t == 0xba || t == 0xc2 || t == 0xca) &&
           !BIT_TEST(serf->type, 7)) {
         serf->type |= BIT(7);
-        sfx_play_clip(SFX_BACKSWORD_BLOW);
+        play_sound(SFX_BACKSWORD_BLOW);
       } else if (t != 0xb2 && t != 0xba && t != 0xc2 && t != 0xca) {
         serf->type  &= ~BIT(7);
       }
@@ -1665,7 +1665,7 @@ viewport_t::serf_get_body(serf_t *serf) {
         t += 0x3d80;
       } else if (t == 0x83 || (t == 0x84 && !BIT_TEST(serf->type, 7))) {
         serf->type |= BIT(7);
-        sfx_play_clip(SFX_MOWING);
+        play_sound(SFX_MOWING);
         t += 0x3e80;
       } else if (t != 0x83 && t != 0x84) {
         serf->type &= ~BIT(7);
@@ -1710,7 +1710,7 @@ viewport_t::serf_get_body(serf_t *serf) {
     } else if (t == 0x84 || t == 0x85) {
       if (t == 0x84 || !BIT_TEST(serf->type, 7)) {
         serf->type |= BIT(7);
-        sfx_play_clip(SFX_WOOD_HAMMERING);
+        play_sound(SFX_WOOD_HAMMERING);
       }
       t += 0x4e80;
     } else {
@@ -1741,10 +1741,10 @@ viewport_t::serf_get_body(serf_t *serf) {
       /* edi10 += 4; */
       if (t == 0x83 || (t == 0xb2 && !BIT_TEST(serf->type, 7))) {
         serf->type |= BIT(7);
-        sfx_play_clip(SFX_SAWING);
+        play_sound(SFX_SAWING);
       } else if (t == 0x87 || (t == 0xb6 && !BIT_TEST(serf->type, 7))) {
         serf->type |= BIT(7);
-        sfx_play_clip(SFX_WOOD_HAMMERING);
+        play_sound(SFX_WOOD_HAMMERING);
       } else if (t != 0xb2 && t != 0xb6) {
         serf->type &= ~BIT(7);
       }
@@ -1767,7 +1767,7 @@ viewport_t::serf_get_body(serf_t *serf) {
       /* edi10 += 4; */
       if (t == 0x83 || (t == 0x84 && !BIT_TEST(serf->type, 7))) {
         serf->type |= BIT(7);
-        sfx_play_clip(SFX_METAL_HAMMERING);
+        play_sound(SFX_METAL_HAMMERING);
       } else if (t != 0x84) {
         serf->type &= ~BIT(7);
       }
@@ -1780,13 +1780,13 @@ viewport_t::serf_get_body(serf_t *serf) {
     } else if (t == 0x83 || t == 0x84 || t == 0x86) {
       if (t == 0x83 || !BIT_TEST(serf->type, 7)) {
         serf->type |= BIT(7);
-        sfx_play_clip(SFX_GEOLOGIST_SAMPLING);
+        play_sound(SFX_GEOLOGIST_SAMPLING);
       }
       t += 0x4c80;
     } else if (t == 0x8c || t == 0x8d) {
       if (t == 0x8c || !BIT_TEST(serf->type, 7)) {
         serf->type |= BIT(7);
-        sfx_play_clip(SFX_RESOURCE_FOUND);
+        play_sound(SFX_RESOURCE_FOUND);
       }
       t += 0x4c80;
     } else {
@@ -1813,12 +1813,12 @@ viewport_t::serf_get_body(serf_t *serf) {
           serf->type |= BIT(7);
           if (serf->s.attacking.field_D == 0 ||
               serf->s.attacking.field_D == 4) {
-            sfx_play_clip(SFX_FIGHT_01);
+            play_sound(SFX_FIGHT_01);
           } else if (serf->s.attacking.field_D == 2) {
             /* TODO when is SFX_FIGHT_02 played? */
-            sfx_play_clip(SFX_FIGHT_03);
+            play_sound(SFX_FIGHT_03);
           } else {
-            sfx_play_clip(SFX_FIGHT_04);
+            play_sound(SFX_FIGHT_04);
           }
         }
       }
@@ -1834,7 +1834,7 @@ viewport_t::serf_get_body(serf_t *serf) {
          (t == 2 || t == 5)) ||
         (t == 1 || t == 4)) {
       serf->type |= BIT(7);
-      sfx_play_clip(SFX_SERF_DYING);
+      play_sound(SFX_SERF_DYING);
     } else {
       serf->type &= ~BIT(7);
     }
@@ -2297,25 +2297,25 @@ viewport_t::handle_click_left(int x, int y) {
         /* Delete existing path */
         int r = interface->remove_road_segment();
         if (r < 0) {
-          sfx_play_clip(SFX_NOT_ACCEPTED);
+          play_sound(SFX_NOT_ACCEPTED);
         } else {
-          sfx_play_clip(SFX_CLICK);
+          play_sound(SFX_CLICK);
         }
       } else {
         /* Build new road segment */
         int r = interface->build_road_segment((dir_t)dir);
         if (r < 0) {
-          sfx_play_clip(SFX_NOT_ACCEPTED);
+          play_sound(SFX_NOT_ACCEPTED);
         } else if (r == 0) {
-          sfx_play_clip(SFX_CLICK);
+          play_sound(SFX_CLICK);
         } else {
-          sfx_play_clip(SFX_ACCEPTED);
+          play_sound(SFX_ACCEPTED);
         }
       }
     }
   } else {
     interface->update_map_cursor_pos(clk_pos);
-    sfx_play_clip(SFX_CLICK);
+    play_sound(SFX_CLICK);
   }
 
   return true;
@@ -2338,21 +2338,21 @@ viewport_t::handle_dbl_click(int x, int y, event_button_t button) {
         interface->build_road_reset();
         int r = interface->extend_road(dirs, length);
         if (r < 0) {
-          sfx_play_clip(SFX_NOT_ACCEPTED);
+          play_sound(SFX_NOT_ACCEPTED);
         } else if (r == 1) {
-          sfx_play_clip(SFX_ACCEPTED);
+          play_sound(SFX_ACCEPTED);
         } else {
-          sfx_play_clip(SFX_CLICK);
+          play_sound(SFX_CLICK);
         }
         free(dirs);
       } else {
-        sfx_play_clip(SFX_NOT_ACCEPTED);
+        play_sound(SFX_NOT_ACCEPTED);
       }
     } else {
       int r = game_build_flag(interface->get_map_cursor_pos(),
                               interface->get_player());
       if (r < 0) {
-        sfx_play_clip(SFX_NOT_ACCEPTED);
+        play_sound(SFX_NOT_ACCEPTED);
       } else {
         interface->build_road();
       }
@@ -2412,7 +2412,7 @@ viewport_t::handle_dbl_click(int x, int y, event_button_t button) {
             /* It is not allowed to attack
                if currently not occupied or
                is too far from the border. */
-            sfx_play_clip(SFX_NOT_ACCEPTED);
+            play_sound(SFX_NOT_ACCEPTED);
             return false;
           }
 
@@ -2428,12 +2428,12 @@ viewport_t::handle_dbl_click(int x, int y, event_button_t button) {
           }
 
           if (!found) {
-            sfx_play_clip(SFX_NOT_ACCEPTED);
+            play_sound(SFX_NOT_ACCEPTED);
             return false;
           }
 
           /* Action accepted */
-          sfx_play_clip(SFX_CLICK);
+          play_sound(SFX_CLICK);
 
           int max_knights = 0;
           switch (BUILDING_TYPE(building)) {

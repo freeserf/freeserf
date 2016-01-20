@@ -1,7 +1,7 @@
 /*
- * event_loop-sdl.h - User and system events handling
+ * audio-dummy.cc - Music and sound without playback.
  *
- * Copyright (C) 2012-2014  Jon Lund Steffensen <jonlst@gmail.com>
+ * Copyright (C) 2013-2015  Jon Lund Steffensen <jonlst@gmail.com>
  *
  * This file is part of freeserf.
  *
@@ -19,18 +19,12 @@
  * along with freeserf.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef SRC_EVENT_LOOP_SDL_H_
-#define SRC_EVENT_LOOP_SDL_H_
+#include "src/audio-dummy.h"
 
-#include "src/event_loop.h"
-
-class event_loop_sdl_t : public event_loop_t {
- public:
-  event_loop_sdl_t();
-
-  virtual void quit();
-  virtual void run();
-  virtual void deferred_call(deferred_callee_t *deferred_callee, void *data);
-};
-
-#endif  // SRC_EVENT_LOOP_SDL_H_
+audio_t *
+audio_t::get_instance() {
+  if (instance == NULL) {
+    instance = new audio_dummy_t();
+  }
+  return instance;
+}
