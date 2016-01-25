@@ -26,6 +26,7 @@
 #include <string>
 #include <cstdint>
 
+#include "src/data.h"
 #include "src/debug.h"
 #include "src/video.h"
 
@@ -90,18 +91,23 @@ class Frame {
   virtual ~Frame();
 
   /* Sprite functions */
-  void draw_sprite(int x, int y, unsigned int sprite);
-  void draw_transp_sprite(int x, int y, unsigned int sprite, bool use_off);
-  void draw_transp_sprite(int x, int y, unsigned int sprite, bool use_off,
-                          float progress);
-  void draw_transp_sprite(int x, int y, unsigned int sprite, bool use_off,
-                          unsigned char color_offs);
-  void draw_transp_sprite_relatively(int x, int y, unsigned int sprite,
-                                     unsigned int offs_sprite);
-  void draw_masked_sprite(int x, int y, unsigned int mask, unsigned int sprite);
-  void draw_overlay_sprite(int x, int y, unsigned int sprite);
-  void draw_overlay_sprite(int x, int y, unsigned int sprite, float progress);
-  void draw_waves_sprite(int x, int y, unsigned int mask, unsigned int sprite);
+  void draw_sprite(int x, int y, Data::Resource res, unsigned int index);
+  void draw_sprite(int x, int y, Data::Resource res, unsigned int index,
+                   bool use_off);
+  void draw_sprite(int x, int y, Data::Resource res, unsigned int index,
+                   bool use_off, float progress);
+  void draw_sprite(int x, int y, Data::Resource res, unsigned int index,
+                   bool use_off, unsigned char color_offs);
+  void draw_sprite_relatively(int x, int y, Data::Resource res,
+                              unsigned int index,
+                              Data::Resource relative_to_res,
+                              unsigned int relative_to_index);
+  void draw_masked_sprite(int x, int y, Data::Resource mask_res,
+                          unsigned int mask_index, Data::Resource res,
+                          unsigned int index);
+  void draw_waves_sprite(int x, int y, Data::Resource mask_res,
+                         unsigned int mask_index, Data::Resource res,
+                         unsigned int index);
 
   /* Drawing functions */
   void draw_rect(int x, int y, int width, int height, unsigned char color);
@@ -118,8 +124,8 @@ class Frame {
  protected:
   void draw_char_sprite(int x, int y, unsigned char c, unsigned char color,
                         unsigned char shadow);
-  void draw_transp_sprite(int x, int y, unsigned int sprite, bool use_off,
-                          unsigned char color_off, float progress);
+  void draw_sprite(int x, int y, Data::Resource res, unsigned int index,
+                   bool use_off, unsigned char color_off, float progress);
 };
 
 class Graphics {

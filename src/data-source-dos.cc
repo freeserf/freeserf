@@ -1,7 +1,7 @@
 /*
  * data-source-dos.cc - DOS game resources file functions
  *
- * Copyright (C) 2014  Jon Lund Steffensen <jonlst@gmail.com>
+ * Copyright (C) 2014-2016  Jon Lund Steffensen <jonlst@gmail.com>
  *
  * This file is part of freeserf.
  *
@@ -32,6 +32,15 @@
 #include "src/sfx2wav.h"
 #include "src/xmi2mid.h"
 
+#define DATA_SERF_ANIMATION_TABLE  2
+#define DATA_PALETTE_GAME          3
+#define DATA_SERF_ARMS             1850  // 3, dos_sprite_type_transparent
+/* Sound effects (index 0 is undefined). */
+#define DATA_SFX_BASE              3900
+/* XMI music (similar to MIDI). */
+#define DATA_MUSIC_GAME            3990
+#define DATA_MUSIC_ENDING          3992
+
 /* There are different types of sprites:
  - Non-packed, rectangular sprites: These are simple called sprites here.
  - Transparent sprites, "transp": These are e.g. buldings/serfs.
@@ -40,6 +49,44 @@
  This is used to either modify the alpha level of another sprite (shadows)
  or mask parts of other sprites completely (mask sprites).
  */
+
+DataSourceDOS::Resource dos_resources[] = {
+  {   0, 0,    DataSourceDOS::SpriteTypeUnknown     },  // none
+  {   1, 3997, DataSourceDOS::SpriteTypeSolid       },  // art_landscape
+  {   2, 0,    DataSourceDOS::SpriteTypeUnknown     },  // animation
+  {   4, 3,    DataSourceDOS::SpriteTypeOverlay     },  // serf_shadow
+  {   5, 3,    DataSourceDOS::SpriteTypeSolid       },  // dotted_lines
+  {  15, 3997, DataSourceDOS::SpriteTypeSolid       },  // art_flag
+  {  25, 3,    DataSourceDOS::SpriteTypeSolid       },  // art_box
+  {  40, 3998, DataSourceDOS::SpriteTypeSolid       },  // credits_bg
+  {  41, 3998, DataSourceDOS::SpriteTypeSolid       },  // logo
+  {  42, 3,    DataSourceDOS::SpriteTypeSolid       },  // symbol
+  {  60, 3,    DataSourceDOS::SpriteTypeMask        },  // map_mask_up
+  { 141, 3,    DataSourceDOS::SpriteTypeMask        },  // map_mask_down
+  { 230, 3,    DataSourceDOS::SpriteTypeMask        },  // path_mask
+  { 260, 3,    DataSourceDOS::SpriteTypeSolid       },  // map_ground
+  { 300, 3,    DataSourceDOS::SpriteTypeSolid       },  // path_ground
+  { 321, 3,    DataSourceDOS::SpriteTypeTransparent },  // game_object
+  { 600, 3,    DataSourceDOS::SpriteTypeSolid       },  // frame_top
+  { 610, 3,    DataSourceDOS::SpriteTypeTransparent },  // map_border
+  { 630, 3,    DataSourceDOS::SpriteTypeTransparent },  // map_waves
+  { 660, 3,    DataSourceDOS::SpriteTypeSolid       },  // frame_popup
+  { 670, 3,    DataSourceDOS::SpriteTypeSolid       },  // indicator
+  { 750, 3,    DataSourceDOS::SpriteTypeTransparent },  // font
+  { 810, 3,    DataSourceDOS::SpriteTypeTransparent },  // font_shadow
+  { 870, 3,    DataSourceDOS::SpriteTypeSolid       },  // icon
+  {1250, 3,    DataSourceDOS::SpriteTypeTransparent },  // map_object
+  {1500, 3,    DataSourceDOS::SpriteTypeOverlay     },  // map_shadow
+  {1750, 3,    DataSourceDOS::SpriteTypeSolid       },  // panel_button
+  {1780, 3,    DataSourceDOS::SpriteTypeSolid       },  // frame_bottom
+  {2500, 3,    DataSourceDOS::SpriteTypeTransparent },  // serf_torso
+  {3150, 3,    DataSourceDOS::SpriteTypeTransparent },  // serf_head
+  {3880, 3,    DataSourceDOS::SpriteTypeSolid       },  // frame_split
+  {3900, 0,    DataSourceDOS::SpriteTypeUnknown     },  // sound
+  {3990, 0,    DataSourceDOS::SpriteTypeUnknown     },  // music
+  {3999, 3,    DataSourceDOS::SpriteTypeTransparent },  // cursor
+  {   3, 0,    DataSourceDOS::SpriteTypeUnknown     }   // palette
+};
 
 DataSourceDOS::DataSourceDOS() {
   sprites = NULL;
@@ -191,19 +238,60 @@ DataSourceDOS::fixup() {
 
 /* Create sprite object */
 Sprite *
-DataSourceDOS::get_sprite(unsigned int index) {
-  size_t size = 0;
-  void *data = get_object(index, &size);
-  if (data == NULL) {
+DataSourceDOS::get_sprite(Data::Resource res, unsigned int index,
+                          int color_off) {
+  if (index >= Data::get_resource_count(res)) {
     return NULL;
   }
 
-  Color *palette = get_palette(DATA_PALETTE_GAME);
+  Resource &dos_res = dos_resources[res];
+
+  Color *palette = get_dos_palette(dos_res.dos_palette);
   if (palette == NULL) {
     return NULL;
   }
 
-  return new SpriteDosSolid(data, size, palette);
+  if (res == Data::AssetSerfTorso) {
+    size_t size = 0;
+    void *data = get_object(dos_res.index + index, &size);
+    SpriteDosBase *torso = new SpriteDosTransparent(data, size, palette,
+                                                    color_off);
+    data = get_object(DATA_SERF_ARMS + index, &size);
+    SpriteDosBase *arms = new SpriteDosTransparent(data, size, palette, 0);
+    torso->stick(arms, 0, 0);
+    delete arms;
+    return torso;
+  }
+
+  size_t size = 0;
+  void *data = get_object(dos_res.index + index, &size);
+  if (data == NULL) {
+    return NULL;
+  }
+
+  Sprite *sprite = NULL;
+  switch (dos_res.sprite_type) {
+    case SpriteTypeSolid: {
+      sprite = new SpriteDosSolid(data, size, palette);
+      break;
+    }
+    case SpriteTypeTransparent: {
+      sprite = new SpriteDosTransparent(data, size, palette, color_off);
+      break;
+    }
+    case SpriteTypeOverlay: {
+      sprite = new SpriteDosOverlay(data, size, palette, 0x80);
+      break;
+    }
+    case SpriteTypeMask: {
+      sprite = new SpriteDosMask(data, size);
+      break;
+    }
+    default:
+      return NULL;
+  }
+
+  return sprite;
 }
 
 DataSourceDOS::SpriteDosSolid::SpriteDosSolid(void *data, size_t size,
@@ -247,7 +335,7 @@ DataSourceDOS::get_transparent_sprite(unsigned int index, int color_off) {
     return NULL;
   }
 
-  Color *palette = get_palette(DATA_PALETTE_GAME);
+  Color *palette = get_dos_palette(DATA_PALETTE_GAME);
   if (palette == NULL) {
     return NULL;
   }
@@ -294,7 +382,7 @@ DataSourceDOS::get_overlay_sprite(unsigned int index) {
     return NULL;
   }
 
-  Color *palette = get_palette(DATA_PALETTE_GAME);
+  Color *palette = get_dos_palette(DATA_PALETTE_GAME);
   if (palette == NULL) {
     return NULL;
   }
@@ -441,12 +529,39 @@ DataSourceDOS::SpriteDosBase::~SpriteDosBase() {
 
 ::Color
 DataSourceDOS::get_color(unsigned int index) {
-  DataSourceDOS::Color *palette = get_palette(DATA_PALETTE_GAME);
-  ::Color color = { palette[index].r,
+  DataSourceDOS::Color *palette = get_dos_palette(DATA_PALETTE_GAME);
+  ::Color color = { palette[index].b,
                     palette[index].g,
-                    palette[index].b,
+                    palette[index].r,
                     0xff };
   return color;
+}
+
+void
+DataSourceDOS::SpriteDosBase::stick(DataSourceDOS::SpriteDosBase *sticker,
+                                    unsigned int x, unsigned int y) {
+  if ((width != sticker->width) || (height != sticker->height)) {
+    assert(0);
+    return;
+  }
+
+  uint32_t *base = reinterpret_cast<uint32_t*>(data);
+  uint32_t *stkr = reinterpret_cast<uint32_t*>(sticker->data);
+
+  base += y * width;
+  for (size_t y = 0; y < sticker->height; y++) {
+    base += x;
+    for (size_t x = 0; x < sticker->width; x++) {
+      uint32_t pixel = *stkr++;
+      if ((pixel & 0xFF000000) != 0) {
+        *base = pixel;
+      }
+      base++;
+    }
+  }
+
+  delta_x = sticker->delta_x;
+  delta_y = sticker->delta_y;
 }
 
 bool
@@ -546,7 +661,7 @@ DataSourceDOS::get_music(unsigned int index, size_t *size) {
 }
 
 DataSourceDOS::Color *
-DataSourceDOS::get_palette(unsigned int index) {
+DataSourceDOS::get_dos_palette(unsigned int index) {
   size_t size = 0;
   void *data = get_object(index, &size);
   if ((data == NULL) || (size != sizeof(Color)*256)) {
@@ -554,4 +669,34 @@ DataSourceDOS::get_palette(unsigned int index) {
   }
 
   return reinterpret_cast<Color*>(data);
+}
+
+DataSourceDOS::PaletteDOS::PaletteDOS(DataSourceDOS::Color *_palette_dos) {
+  palette_dos = _palette_dos;
+}
+
+Color
+DataSourceDOS::PaletteDOS::get_color(size_t index) const {
+  ::Color color = {0, 0, 0, 0};
+
+  if (index < 256) {
+    color.red = palette_dos[index].r;
+    color.green = palette_dos[index].g;
+    color.blue = palette_dos[index].b;
+  }
+
+  return color;
+}
+
+Palette *
+DataSourceDOS::get_palette(unsigned int index) {
+  if (index > 2) {
+    return NULL;
+  }
+
+  unsigned int palettes[3] = { 3,
+                               3997,
+                               3998 };
+
+  return new PaletteDOS(get_dos_palette(palettes[index]));
 }

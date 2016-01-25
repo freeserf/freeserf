@@ -60,32 +60,32 @@ PanelBar::~PanelBar() {
 void
 PanelBar::draw_panel_frame() {
   const int bottom_svga_layout[] = {
-    DATA_FRAME_BOTTOM_SHIELD, 0, 0,
-    DATA_FRAME_BOTTOM_BASE+0, 40, 0,
-    DATA_FRAME_BOTTOM_BASE+20, 48, 0,
+    6, 0, 0,
+    0, 40, 0,
+    20, 48, 0,
 
-    DATA_FRAME_BOTTOM_BASE+7, 64, 0,
-    DATA_FRAME_BOTTOM_BASE+8, 64, 36,
-    DATA_FRAME_BOTTOM_BASE+21, 96, 0,
+    7, 64, 0,
+    8, 64, 36,
+    21, 96, 0,
 
-    DATA_FRAME_BOTTOM_BASE+9, 112, 0,
-    DATA_FRAME_BOTTOM_BASE+10, 112, 36,
-    DATA_FRAME_BOTTOM_BASE+22, 144, 0,
+    9, 112, 0,
+    10, 112, 36,
+    22, 144, 0,
 
-    DATA_FRAME_BOTTOM_BASE+11, 160, 0,
-    DATA_FRAME_BOTTOM_BASE+12, 160, 36,
-    DATA_FRAME_BOTTOM_BASE+23, 192, 0,
+    11, 160, 0,
+    12, 160, 36,
+    23, 192, 0,
 
-    DATA_FRAME_BOTTOM_BASE+13, 208, 0,
-    DATA_FRAME_BOTTOM_BASE+14, 208, 36,
-    DATA_FRAME_BOTTOM_BASE+24, 240, 0,
+    13, 208, 0,
+    14, 208, 36,
+    24, 240, 0,
 
-    DATA_FRAME_BOTTOM_BASE+15, 256, 0,
-    DATA_FRAME_BOTTOM_BASE+16, 256, 36,
-    DATA_FRAME_BOTTOM_BASE+25, 288, 0,
+    15, 256, 0,
+    16, 256, 36,
+    25, 288, 0,
 
-    DATA_FRAME_BOTTOM_TIMERS, 304, 0,
-    DATA_FRAME_BOTTOM_SHIELD, 312, 0,
+    1, 304, 0,
+    6, 312, 0,
     -1
   };
 
@@ -95,7 +95,8 @@ PanelBar::draw_panel_frame() {
 
   /* Draw layout */
   for (int i = 0; layout[i] != -1; i += 3) {
-    frame->draw_sprite(layout[i+1], layout[i+2], layout[i]);
+    frame->draw_sprite(layout[i+1], layout[i+2], Data::AssetFrameBottom,
+                       layout[i]);
   }
 }
 
@@ -103,13 +104,13 @@ PanelBar::draw_panel_frame() {
 void
 PanelBar::draw_message_notify() {
   interface->set_msg_flag(2);
-  frame->draw_sprite(40, 4, DATA_FRAME_BOTTOM_NOTIFY);
+  frame->draw_sprite(40, 4, Data::AssetFrameBottom, 2);
 }
 
 /* Draw return arrow icon in action panel. */
 void
 PanelBar::draw_return_arrow() {
-  frame->draw_sprite(40, 28, DATA_FRAME_BOTTOM_ARROW);
+  frame->draw_sprite(40, 28, Data::AssetFrameBottom, 4);
 }
 
 /* Draw buttons in action panel. */
@@ -144,9 +145,7 @@ PanelBar::draw_panel_buttons() {
 
     int x = 64 + i*48;
     int y = 4;
-    int sprite = DATA_PANEL_BUTTON_BASE + button;
-
-    frame->draw_sprite(x, y, sprite);
+    frame->draw_sprite(x, y, Data::AssetPanelButton, button);
   }
 }
 

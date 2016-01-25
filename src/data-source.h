@@ -1,7 +1,7 @@
 /*
  * data-source.h - Game resources file functions
  *
- * Copyright (C) 2015  Wicked_Digger <wicked_digger@mail.ru>
+ * Copyright (C) 2015-2016  Wicked_Digger <wicked_digger@mail.ru>
  *
  * This file is part of freeserf.
  *
@@ -25,6 +25,8 @@
 #include <string>
 #include <cstdint>
 
+#include "src/data.h"
+
 /* Sprite object. Contains BGRA data. */
 class Sprite {
  public:
@@ -40,7 +42,8 @@ class Sprite {
 
   virtual Sprite *get_masked(Sprite *mask) = 0;
 
-  static uint64_t create_sprite_id(uint64_t sprite, uint64_t mask,
+  static uint64_t create_sprite_id(uint64_t resource, uint64_t index,
+                                   uint64_t mask_resource, uint64_t mask_index,
                                    uint64_t offset);
 };
 
@@ -52,11 +55,19 @@ class Animation {
 };
 
 typedef struct Color {
-  unsigned char red;
-  unsigned char green;
   unsigned char blue;
+  unsigned char green;
+  unsigned char red;
   unsigned char alpha;
 } Color;
+
+class Palette {
+ public:
+  virtual ~Palette() {}
+
+  virtual size_t get_size() const = 0;
+  virtual Color get_color(size_t index) const = 0;
+};
 
 class DataSource {
  public:
@@ -65,12 +76,8 @@ class DataSource {
   virtual bool check(const std::string &path, std::string *load_path) = 0;
   virtual bool load(const std::string &path) = 0;
 
-  virtual Sprite *get_sprite(unsigned int index) = 0;
-  virtual Sprite *get_empty_sprite(unsigned int index) = 0;
-  virtual Sprite *get_transparent_sprite(unsigned int index,
-                                         int color_off) = 0;
-  virtual Sprite *get_overlay_sprite(unsigned int index) = 0;
-  virtual Sprite *get_mask_sprite(unsigned int index) = 0;
+  virtual Sprite *get_sprite(Data::Resource res, unsigned int index,
+                             int color_off) = 0;
 
   virtual Color get_color(unsigned int index) = 0;
 
@@ -80,8 +87,11 @@ class DataSource {
   virtual void *get_sound(unsigned int index, size_t *size) = 0;
   virtual void *get_music(unsigned int index, size_t *size) = 0;
 
+  virtual Palette *get_palette(unsigned int index) = 0;
+
   bool check_file(const std::string &path);
   void *file_read(const std::string &path, size_t *size);
+  bool file_write(const std::string &path, void *data, size_t size);
 };
 
 #endif  // SRC_DATA_SOURCE_H_

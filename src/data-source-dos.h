@@ -1,7 +1,7 @@
 /*
  * data-source-dos.h - DOS game resources file functions
  *
- * Copyright (C) 2015  Wicked_Digger <wicked_digger@mail.ru>
+ * Copyright (C) 2015-2016  Wicked_Digger <wicked_digger@mail.ru>
  *
  * This file is part of freeserf.
  *
@@ -24,15 +24,43 @@
 
 #include <string>
 
+#include "src/data.h"
 #include "src/data-source.h"
 
 class DataSourceDOS : public DataSource {
+ public:
+  typedef enum SpriteType {
+    SpriteTypeUnknown = 0,
+    SpriteTypeSolid,
+    SpriteTypeTransparent,
+    SpriteTypeOverlay,
+    SpriteTypeMask,
+  } SpriteType;
+
+  typedef struct Resource {
+    unsigned int index;
+    unsigned int dos_palette;
+    SpriteType sprite_type;
+  } Resource;
+
  protected:
   typedef struct Color {
     unsigned char r;
     unsigned char g;
     unsigned char b;
   } Color;
+
+  class PaletteDOS : public Palette {
+   protected:
+    Color *palette_dos;
+
+   public:
+    explicit PaletteDOS(Color *palette_dos);
+    virtual ~PaletteDOS() {}
+
+    virtual size_t get_size() const { return 256; }
+    virtual ::Color get_color(size_t index) const;
+  };
 
   class SpriteDosEmpty : public Sprite {
    protected:
@@ -67,7 +95,7 @@ class DataSourceDOS : public DataSource {
     virtual int get_offset_x() const { return offset_x; }
     virtual int get_offset_y() const { return offset_y; }
 
-    virtual Sprite *get_masked(Sprite *mask) { return NULL; }
+    virtual Sprite *get_masked(Sprite * /*mask*/) { return NULL; }
   };
 
   class SpriteDosBase : public SpriteDosEmpty {
@@ -81,6 +109,7 @@ class DataSourceDOS : public DataSource {
 
     virtual uint8_t *get_data() const { return data; }
     virtual Sprite *get_masked(Sprite *mask);
+    void stick(SpriteDosBase *sticker, unsigned int x, unsigned int y);
   };
 
   class SpriteDosSolid : public SpriteDosBase {
@@ -128,11 +157,8 @@ class DataSourceDOS : public DataSource {
   virtual bool check(const std::string &path, std::string *load_path);
   virtual bool load(const std::string &path);
 
-  virtual Sprite *get_sprite(unsigned int index);
-  virtual Sprite *get_empty_sprite(unsigned int index);
-  virtual Sprite *get_transparent_sprite(unsigned int index, int color_off);
-  virtual Sprite *get_overlay_sprite(unsigned int index);
-  virtual Sprite *get_mask_sprite(unsigned int index);
+  virtual Sprite *get_sprite(Data::Resource res, unsigned int index,
+                             int color_off);
 
   virtual ::Color get_color(unsigned int index);
 
@@ -142,11 +168,18 @@ class DataSourceDOS : public DataSource {
   virtual void *get_sound(unsigned int index, size_t *size);
   virtual void *get_music(unsigned int index, size_t *size);
 
+  virtual Palette *get_palette(unsigned int index);
+
  protected:
+  virtual Sprite *get_empty_sprite(unsigned int index);
+  virtual Sprite *get_transparent_sprite(unsigned int index, int color_off);
+  virtual Sprite *get_overlay_sprite(unsigned int index);
+  virtual Sprite *get_mask_sprite(unsigned int index);
+
   void *get_object(unsigned int index, size_t *size);
   void fixup();
   bool load_animation_table();
-  Color *get_palette(unsigned int index);
+  Color *get_dos_palette(unsigned int index);
 };
 
 #endif  // SRC_DATA_SOURCE_DOS_H_

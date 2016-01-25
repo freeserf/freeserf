@@ -290,22 +290,22 @@ typedef enum Action {
 /* Draw the frame around the popup box. */
 void
 PopupBox::draw_popup_box_frame() {
-  frame->draw_sprite(0, 0, DATA_FRAME_POPUP_BASE+0);
-  frame->draw_sprite(0, 153, DATA_FRAME_POPUP_BASE+1);
-  frame->draw_sprite(0, 9, DATA_FRAME_POPUP_BASE+2);
-  frame->draw_sprite(136, 9, DATA_FRAME_POPUP_BASE+3);
+  frame->draw_sprite(0, 0, Data::AssetFramePopup, 0);
+  frame->draw_sprite(0, 153, Data::AssetFramePopup, 1);
+  frame->draw_sprite(0, 9, Data::AssetFramePopup, 2);
+  frame->draw_sprite(136, 9, Data::AssetFramePopup, 3);
 }
 
 /* Draw icon in a popup frame. */
 void
 PopupBox::draw_popup_icon(int x, int y, int sprite) {
-  frame->draw_sprite(8*x+8, y+9, DATA_ICON_BASE + sprite);
+  frame->draw_sprite(8*x+8, y+9, Data::AssetIcon, sprite);
 }
 
 /* Draw building in a popup frame. */
 void
 PopupBox::draw_popup_building(int x, int y, int sprite) {
-  frame->draw_transp_sprite(8*x+8, y+9, DATA_MAP_OBJECT_BASE + sprite, false);
+  frame->draw_sprite(8*x+8, y+9, Data::AssetMapObject, sprite);
 }
 
 /* Fill the background of a popup frame. */
@@ -404,8 +404,7 @@ PopupBox::draw_custom_bld_box(const int sprites[]) {
   while (sprites[0] > 0) {
     int x = sprites[1];
     int y = sprites[2];
-    frame->draw_transp_sprite(8*x+8, y+9, DATA_MAP_OBJECT_BASE + sprites[0],
-                              false);
+    frame->draw_sprite(8*x+8, y+9, Data::AssetMapObject, sprites[0], false);
     sprites += 3;
   }
 }

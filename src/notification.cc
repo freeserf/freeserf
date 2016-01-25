@@ -31,14 +31,14 @@
 
 void
 NotificationBox::draw_icon(int x, int y, int sprite) {
-  frame->draw_sprite(8*x, y, DATA_ICON_BASE + sprite);
+  frame->draw_sprite(8*x, y, Data::AssetIcon, sprite);
 }
 
 void
 NotificationBox::draw_background(int width, int height, int sprite) {
   for (int y = 0; y < height; y += 16) {
     for (int x = 0; x < width; x += 16) {
-      frame->draw_sprite(x, y, DATA_ICON_BASE + sprite);
+      frame->draw_sprite(x, y, Data::AssetIcon, sprite);
     }
   }
 }
@@ -57,7 +57,7 @@ NotificationBox::draw_string(int x, int y, const std::string &str) {
 
 void
 NotificationBox::draw_map_object(int x, int y, int sprite) {
-  frame->draw_transp_sprite(8*x, y, DATA_MAP_OBJECT_BASE + sprite, false);
+  frame->draw_sprite(8*x, y, Data::AssetMapObject, sprite);
 }
 
 unsigned int

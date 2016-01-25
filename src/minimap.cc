@@ -219,7 +219,7 @@ void
 Minimap::draw_minimap_rect() {
   int y = height/2;
   int x = width/2;
-  frame->draw_transp_sprite(x, y, 354, true);
+  frame->draw_sprite(x, y, Data::AssetGameObject, 33, true);
 }
 
 void

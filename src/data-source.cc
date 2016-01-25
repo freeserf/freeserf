@@ -1,7 +1,7 @@
 /*
  * data-source.cc - Game resources file functions
  *
- * Copyright (C) 2015  Wicked_Digger <wicked_digger@mail.ru>
+ * Copyright (C) 2015-2016  Wicked_Digger <wicked_digger@mail.ru>
  *
  * This file is part of freeserf.
  *
@@ -57,8 +57,7 @@ DataSource::file_read(const std::string &path, size_t *size) {
   *size = 0;
 
   do {
-    std::ifstream file(path.c_str(), std::ifstream::binary |
-                                     std::ifstream::ate);
+    std::ifstream file(path.c_str(), std::ios::binary | std::ios::ate);
     if (!file.good()) {
       break;
     }
@@ -83,9 +82,28 @@ DataSource::file_read(const std::string &path, size_t *size) {
   return data;
 }
 
+bool
+DataSource::file_write(const std::string &path, void *data, size_t size) {
+  std::ofstream file(path.c_str(), std::ios::binary | std::ios::trunc);
+  if (!file.good()) {
+    return false;
+  }
+
+  file.write(reinterpret_cast<char*>(data), size);
+  file.close();
+
+  return true;
+}
+
 /* Calculate hash of sprite identifier. */
 uint64_t
-Sprite::create_sprite_id(uint64_t sprite, uint64_t mask, uint64_t offset) {
-  uint64_t result = sprite + (mask << 32) + (offset << 48);
+Sprite::create_sprite_id(uint64_t resource, uint64_t index,
+                         uint64_t mask_resource, uint64_t mask_index,
+                         uint64_t offset) {
+  uint64_t result = (resource & 0xFF) << 56;  // 0xFF00000000000000
+  result |= (index & 0xFFFF) << 40;           // 0x00FFFF0000000000
+  result |= (mask_resource & 0xFF) << 32;     // 0x000000FF00000000
+  result |= (mask_index & 0xFFFF) << 16;      // 0x00000000FFFF0000
+  result |= (offset & 0xFFFF);                // 0x000000000000FFFF
   return result;
 }

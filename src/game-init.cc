@@ -88,7 +88,7 @@ class RandomInput : public TextInput {
 
 void
 GameInitBox::draw_box_icon(int x, int y, int sprite) {
-  frame->draw_sprite(8*x+20, y+16, DATA_ICON_BASE + sprite);
+  frame->draw_sprite(8*x+20, y+16, Data::AssetIcon, sprite);
 }
 
 void
@@ -102,7 +102,7 @@ GameInitBox::draw_background() {
   unsigned int icon = 290;
   for (int y = 0; y < height; y += 8) {
     for (int x = 0; x < width; x += 40) {
-      frame->draw_sprite(x, y, DATA_ICON_BASE + icon);
+      frame->draw_sprite(x, y, Data::AssetIcon, icon);
     }
     icon--;
     if (icon < 290) {

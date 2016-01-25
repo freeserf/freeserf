@@ -97,9 +97,8 @@ Viewport::draw_triangle_up(int x, int y, int m, int left, int right,
 
   int sprite = tri_spr[index];
 
-  frame->draw_masked_sprite(x, y,
-                            DATA_MAP_MASK_UP_BASE + mask,
-                            DATA_MAP_GROUND_BASE + sprite);
+  frame->draw_masked_sprite(x, y, Data::AssetMapMaskUp, mask,
+                            Data::AssetMapGround, sprite);
 }
 
 void
@@ -130,8 +129,8 @@ Viewport::draw_triangle_down(int x, int y, int m, int left, int right,
   int sprite = tri_spr[index];
 
   frame->draw_masked_sprite(x, y + MAP_TILE_HEIGHT,
-                            DATA_MAP_MASK_DOWN_BASE + mask,
-                            DATA_MAP_GROUND_BASE + sprite);
+                            Data::AssetMapMaskDown, mask,
+                            Data::AssetMapGround, sprite);
 }
 
 /* Draw a column (vertical) of tiles, starting at an up pointing tile. */
@@ -439,8 +438,8 @@ Viewport::draw_path_segment(int x, int y, MapPos pos, Direction dir) {
   }
 
   frame->draw_masked_sprite(x, y,
-                            DATA_PATH_MASK_BASE + mask,
-                            DATA_PATH_GROUND_BASE + sprite);
+                            Data::AssetPathMask, mask,
+                            Data::AssetPathGround, sprite);
 }
 
 void
@@ -504,7 +503,7 @@ Viewport::draw_border_segment(int x, int y, MapPos pos, Direction dir) {
     sprite += 3;
   }
 
-  frame->draw_transp_sprite(x, y, DATA_MAP_BORDER_BASE + sprite, false);
+  frame->draw_sprite(x, y, Data::AssetMapBorder, sprite, false);
 }
 
 void
@@ -588,32 +587,31 @@ Viewport::draw_paths_and_borders() {
 
 void
 Viewport::draw_game_sprite(int x, int y, int index) {
-  frame->draw_transp_sprite(x, y, DATA_GAME_OBJECT_BASE + index, true);
+  frame->draw_sprite(x, y, Data::AssetGameObject, index-1, true);
 }
 
 void
 Viewport::draw_serf(int x, int y, unsigned char color, int head, int body) {
-  frame->draw_transp_sprite(x, y, DATA_SERF_ARMS_BASE + body, true);
-  frame->draw_transp_sprite(x, y, DATA_SERF_TORSO_BASE + body, true, color);
+  frame->draw_sprite(x, y, Data::AssetSerfTorso, body, true, color);
 
   if (head >= 0) {
-    frame->draw_transp_sprite_relatively(x, y, DATA_SERF_HEAD_BASE + head,
-                                         DATA_SERF_ARMS_BASE + body);
+    frame->draw_sprite_relatively(x, y, Data::AssetSerfHead, head,
+                                  Data::AssetSerfTorso, body);
   }
 }
 
 void
 Viewport::draw_shadow_and_building_sprite(int x, int y, int index) {
-  frame->draw_overlay_sprite(x, y, DATA_MAP_SHADOW_BASE + index);
-  frame->draw_transp_sprite(x, y, DATA_MAP_OBJECT_BASE + index, true);
+  frame->draw_sprite(x, y, Data::AssetMapShadow, index, true);
+  frame->draw_sprite(x, y, Data::AssetMapObject, index, true);
 }
 
 void
 Viewport::draw_shadow_and_building_unfinished(int x, int y, int index,
                                                 int progress) {
   float p = static_cast<float>(progress) / static_cast<float>(0xFFFF);
-  frame->draw_overlay_sprite(x, y, DATA_MAP_SHADOW_BASE + index, p);
-  frame->draw_transp_sprite(x, y, DATA_MAP_OBJECT_BASE + index, true, p);
+  frame->draw_sprite(x, y, Data::AssetMapShadow, index, true, p);
+  frame->draw_sprite(x, y, Data::AssetMapObject, index, true, p);
 }
 
 static const int map_building_frame_sprite[] = {
@@ -1131,18 +1129,17 @@ Viewport::draw_building(MapPos pos, int x, int y) {
 
 void
 Viewport::draw_water_waves(MapPos pos, int x, int y) {
-  int sprite = DATA_MAP_WAVES_BASE +
-               (((pos ^ 5) + (interface->get_game()->get_tick() >> 3)) & 0xf);
+  int sprite = (((pos ^ 5) + (interface->get_game()->get_tick() >> 3)) & 0xf);
 
-  if (map->type_down(pos) <= Map::TerrainWater3 &&
-      map->type_up(pos) <= Map::TerrainWater3) {
-    frame->draw_waves_sprite(x - 16, y, 0, sprite);
-  } else if (map->type_down(pos) <= Map::TerrainWater3) {
-    int mask = DATA_MAP_MASK_DOWN_BASE + 40;
-    frame->draw_waves_sprite(x, y + 16, mask, sprite);
+  if (map->type_down(pos) < 4 && map->type_up(pos) < 4) {
+    frame->draw_waves_sprite(x - 16, y, Data::AssetNone, 0,
+                             Data::AssetMapWaves, sprite);
+  } else if (map->type_down(pos) < 4) {
+    frame->draw_waves_sprite(x, y + 16, Data::AssetMapMaskDown, 40,
+                             Data::AssetMapWaves, sprite);
   } else {
-    int mask = DATA_MAP_MASK_UP_BASE + 40;
-    frame->draw_waves_sprite(x - 16, y, mask, sprite);
+    frame->draw_waves_sprite(x - 16, y, Data::AssetMapMaskUp, 40,
+                             Data::AssetMapWaves, sprite);
   }
 }
 
@@ -1233,7 +1230,7 @@ Viewport::draw_map_objects_row(MapPos pos, int y_base,
 
 /* Draw one individual serf in the row. */
 void
-Viewport::draw_row_serf(int x, int y, int shadow, int color, int body) {
+Viewport::draw_row_serf(int x, int y, bool shadow, int color, int body) {
   const int index1[] = {
     0, 0, 48, 6, 96, -1, 48, 24,
     240, -1, 48, 30, 248, -1, 48, 12,
@@ -1314,7 +1311,7 @@ Viewport::draw_row_serf(int x, int y, int shadow, int color, int body) {
 
   /* Shadow */
   if (shadow) {
-    frame->draw_overlay_sprite(x, y, DATA_SERF_SHADOW);
+    frame->draw_sprite(x, y, Data::AssetSerfShadow, 0, true);
   }
 
   int hi = ((body >> 8) & 0xff) * 2;
@@ -1868,7 +1865,7 @@ Viewport::draw_active_serf(Serf *serf, MapPos pos,
   if (body > -1) {
     int color =
              interface->get_game()->get_player(serf->get_player())->get_color();
-    draw_row_serf(x, y, 1, color, body);
+    draw_row_serf(x, y, true, color, body);
   }
 
   /* Draw additional serf */
@@ -1894,7 +1891,7 @@ Viewport::draw_active_serf(Serf *serf, MapPos pos,
       if (body > -1) {
         int color =
          interface->get_game()->get_player(def_serf->get_player())->get_color();
-        draw_row_serf(x, y, 1, color, body);
+        draw_row_serf(x, y, true, color, body);
       }
     }
   }
@@ -2008,7 +2005,7 @@ Viewport::draw_serf_row(MapPos pos, int y_base, int cols, int x_base) {
 
       int color =
             interface->get_game()->get_player(map->get_owner(pos))->get_color();
-      draw_row_serf(x, y, 1, color, body);
+      draw_row_serf(x, y, true, color, body);
     }
   }
 }
