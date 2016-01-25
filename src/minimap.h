@@ -23,10 +23,7 @@
 #define SRC_MINIMAP_H_
 
 #include "src/gui.h"
-#include "src/misc.h"
-BEGIN_EXT_C
-  #include "src/map.h"
-END_EXT_C
+#include "src/map.h"
 
 class interface_t;
 

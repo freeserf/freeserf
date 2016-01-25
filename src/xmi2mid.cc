@@ -21,7 +21,6 @@
 
 #include "src/xmi2mid.h"
 
-#include <cstring>
 #include <queue>
 #include <vector>
 
@@ -34,10 +33,7 @@
 #endif
 
 #include "src/freeserf_endian.h"
-#include "src/misc.h"
-BEGIN_EXT_C
-  #include "src/log.h"
-END_EXT_C
+#include "src/log.h"
 
 /* Midi node. */
 typedef struct {

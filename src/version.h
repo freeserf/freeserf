@@ -19,9 +19,9 @@
  * along with freeserf.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef _FREESERF_VERSION_H
-#define _FREESERF_VERSION_H
+#ifndef SRC_VERSION_H_
+#define SRC_VERSION_H_
 
 extern const char FREESERF_VERSION[];
 
-#endif /* ! _FREESERF_VERSION_H */
+#endif  // SRC_VERSION_H_

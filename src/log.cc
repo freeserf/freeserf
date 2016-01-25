@@ -1,5 +1,5 @@
 /*
- * building.c - Building related functions.
+ * log.cc - Logging
  *
  * Copyright (C) 2012  Jon Lund Steffensen <jonlst@gmail.com>
  *
@@ -19,16 +19,37 @@
  * along with freeserf.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "building.h"
+#include "src/log.h"
 
-int
-building_get_score_from_type(building_type_t type)
-{
-	const int building_score_from_type[] = {
-		2, 2, 2, 2, 5, 5, 5, 5, 2, 10,
-		3, 6, 4, 6, 5, 4, 7, 7, 9, 4,
-		8, 15, 6, 20
-	};
+#include <cstdarg>
 
-	return building_score_from_type[type-1];
+static log_level_t log_level = LOG_LEVEL_DEBUG;
+static FILE *log_file = NULL;
+
+void
+log_set_file(FILE *file) {
+  log_file = file;
+}
+
+void
+log_set_level(log_level_t level) {
+  log_level = level;
+}
+
+static void
+log_msg_va(log_level_t level, const char *system, const char *format,
+           va_list ap) {
+  if (level >= log_level) {
+    if (system != NULL) fprintf(log_file, "[%s] ", system);
+    vfprintf(log_file, format, ap);
+    fprintf(log_file, "\n");
+  }
+}
+
+void
+log_msg(log_level_t level, const char *system, const char *format, ...) {
+  va_list ap;
+  va_start(ap, format);
+  log_msg_va(level, system, format, ap);
+  va_end(ap);
 }

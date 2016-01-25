@@ -25,11 +25,9 @@
 #include <algorithm>
 
 #include "src/misc.h"
-BEGIN_EXT_C
-  #include "src/game.h"
-  #include "src/log.h"
-  #include "src/debug.h"
-END_EXT_C
+#include "src/game.h"
+#include "src/log.h"
+#include "src/debug.h"
 #include "src/data.h"
 #include "src/audio.h"
 #include "src/gfx.h"
@@ -37,14 +35,6 @@ END_EXT_C
 #include "src/popup.h"
 #include "src/pathfinder.h"
 #include "src/data-source.h"
-
-#ifdef min
-# undef min
-#endif
-
-#ifdef max
-# undef max
-#endif
 
 #define MAP_TILE_WIDTH   32
 #define MAP_TILE_HEIGHT  20
@@ -305,7 +295,7 @@ viewport_t::redraw_map_pos(map_pos_t pos) {
 }
 
 frame_t *
-viewport_t::get_tile_frame(uint tid, int tc, int tr) {
+viewport_t::get_tile_frame(unsigned int tid, int tc, int tr) {
   tiles_map_t::iterator it = landscape_tiles.find(tid);
   if (it != landscape_tiles.end()) {
     return it->second;
@@ -1979,8 +1969,7 @@ viewport_t::draw_serf_row(map_pos_t pos, int y_base, int cols, int x_base) {
     if (MAP_SERF_INDEX(pos) != 0) {
       serf_t *serf = game_get_serf(MAP_SERF_INDEX(pos));
       int color = game.player[SERF_PLAYER(serf)]->color;
-      gfx_fill_rect(x_base - 2, y_base - 4*MAP_HEIGHT(pos) - 2, 4, 4,
-                    color, frame);
+      frame->fill_rect(x_base - 2, y_base - 4*MAP_HEIGHT(pos) - 2, 4, 4, color);
     }
 #endif
 
@@ -2339,7 +2328,7 @@ viewport_t::handle_dbl_click(int x, int y, event_button_t button) {
   if (interface->is_building_road()) {
     if (clk_pos != interface->get_map_cursor_pos()) {
       map_pos_t pos = interface->get_building_road_source();
-      uint length;
+      unsigned int length;
       dir_t *dirs = pathfinder_map(pos, clk_pos, &length);
       if (dirs != NULL) {
         interface->build_road_reset();

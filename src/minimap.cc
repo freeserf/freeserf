@@ -21,25 +21,14 @@
 
 #include "src/minimap.h"
 
-#include <cstdlib>
 #include <algorithm>
 
 #include "src/misc.h"
-BEGIN_EXT_C
-  #include "src/game.h"
-END_EXT_C
+#include "src/game.h"
 #include "src/data.h"
 #include "src/gfx.h"
 #include "src/interface.h"
 #include "src/viewport.h"
-
-#ifdef min
-# undef min
-#endif
-
-#ifdef max
-# undef max
-#endif
 
 #define MINIMAP_MAX_SCALE  8
 
@@ -75,8 +64,8 @@ minimap_t::draw_minimap_point(int col, int row, uint8_t color, int density) {
 void
 minimap_t::draw_minimap_map() {
   uint8_t *color_data = game.minimap;
-  for (uint row = 0; row < game.map.rows; row++) {
-    for (uint col = 0; col < game.map.cols; col++) {
+  for (unsigned int row = 0; row < game.map.rows; row++) {
+    for (unsigned int col = 0; col < game.map.cols; col++) {
       uint8_t color = *(color_data++);
       draw_minimap_point(col, row, color, scale);
     }
@@ -85,8 +74,8 @@ minimap_t::draw_minimap_map() {
 
 void
 minimap_t::draw_minimap_ownership(int density) {
-  for (uint row = 0; row < game.map.rows; row++) {
-    for (uint col = 0; col < game.map.cols; col++) {
+  for (unsigned int row = 0; row < game.map.rows; row++) {
+    for (unsigned int col = 0; col < game.map.cols; col++) {
       map_pos_t pos = MAP_POS(col, row);
       if (MAP_HAS_OWNER(pos)) {
         int color = game.player[MAP_OWNER(pos)]->color;
@@ -98,8 +87,8 @@ minimap_t::draw_minimap_ownership(int density) {
 
 void
 minimap_t::draw_minimap_roads() {
-  for (uint row = 0; row < game.map.rows; row++) {
-    for (uint col = 0; col < game.map.cols; col++) {
+  for (unsigned int row = 0; row < game.map.rows; row++) {
+    for (unsigned int col = 0; col < game.map.cols; col++) {
       int pos = MAP_POS(col, row);
       if (MAP_PATHS(pos)) {
         draw_minimap_point(col, row, 1, scale);
@@ -122,8 +111,8 @@ minimap_t::draw_minimap_buildings() {
     BUILDING_GOLDSMELTER
   };
 
-  for (uint row = 0; row < game.map.rows; row++) {
-    for (uint col = 0; col < game.map.cols; col++) {
+  for (unsigned int row = 0; row < game.map.rows; row++) {
+    for (unsigned int col = 0; col < game.map.cols; col++) {
       int pos = MAP_POS(col, row);
       int obj = MAP_OBJ(pos);
       if (obj > MAP_OBJ_FLAG && obj <= MAP_OBJ_CASTLE) {
@@ -143,8 +132,8 @@ minimap_t::draw_minimap_buildings() {
 
 void
 minimap_t::draw_minimap_traffic() {
-  for (uint row = 0; row < game.map.rows; row++) {
-    for (uint col = 0; col < game.map.cols; col++) {
+  for (unsigned int row = 0; row < game.map.rows; row++) {
+    for (unsigned int col = 0; col < game.map.cols; col++) {
       int pos = MAP_POS(col, row);
       if (MAP_IDLE_SERF(pos)) {
         int color = game.player[MAP_OWNER(pos)]->color;
@@ -156,12 +145,12 @@ minimap_t::draw_minimap_traffic() {
 
 void
 minimap_t::draw_minimap_grid() {
-  for (uint y = 0; y < game.map.rows * scale; y += 2) {
+  for (unsigned int y = 0; y < game.map.rows * scale; y += 2) {
     draw_minimap_point(0, y, 47, 1);
     draw_minimap_point(0, y+1, 1, 1);
   }
 
-  for (uint x = 0; x < game.map.cols * scale; x += 2) {
+  for (unsigned int x = 0; x < game.map.cols * scale; x += 2) {
     draw_minimap_point(x, 0, 47, 1);
     draw_minimap_point(x+1, 0, 1, 1);
   }

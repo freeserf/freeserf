@@ -27,10 +27,8 @@
 #include <strstream>
 
 #include "src/misc.h"
-BEGIN_EXT_C
-  #include "src/game.h"
-  #include "src/debug.h"
-END_EXT_C
+#include "src/game.h"
+#include "src/debug.h"
 #include "src/data.h"
 #include "src/audio.h"
 #include "src/gfx.h"
@@ -38,14 +36,6 @@ END_EXT_C
 #include "src/event_loop.h"
 #include "src/minimap.h"
 #include "src/viewport.h"
-
-#ifdef min
-# undef min
-#endif
-
-#ifdef max
-# undef max
-#endif
 
 /* Action types that can be fired from
    clicks in the popup window. */
@@ -718,7 +708,7 @@ popup_box_t::draw_stat_4_box() {
   int resources[26] = {0};
 
   /* Sum up resources of all inventories. */
-  for (uint i = 0; i < game.max_inventory_index; i++) {
+  for (unsigned int i = 0; i < game.max_inventory_index; i++) {
     if (INVENTORY_ALLOCATED(i)) {
       inventory_t *inventory = game_get_inventory(i);
       if (inventory->player_num == interface->get_player()->player_num) {
@@ -1081,10 +1071,11 @@ popup_box_t::draw_stat_7_box() {
 }
 
 void
-popup_box_t::draw_gauge_balance(int x, int y, uint value, uint count) {
+popup_box_t::draw_gauge_balance(int x, int y, unsigned int value,
+                                unsigned int count) {
   int sprite = -1;
   if (count > 0) {
-    uint v = (16*value)/count;
+    unsigned int v = (16*value)/count;
     if (v >= 230) {
       sprite = 0xd2;
     } else if (v >= 207) {
@@ -1116,10 +1107,11 @@ popup_box_t::draw_gauge_balance(int x, int y, uint value, uint count) {
 }
 
 void
-popup_box_t::draw_gauge_full(int x, int y, uint value, uint count) {
+popup_box_t::draw_gauge_full(int x, int y, unsigned int value,
+                             unsigned int count) {
   int sprite = -1;
   if (count > 0) {
-    uint v = (16*value)/count;
+    unsigned int v = (16*value)/count;
     if (v >= 230) {
       sprite = 0xc6;
     } else if (v >= 207) {
@@ -1152,8 +1144,8 @@ popup_box_t::draw_gauge_full(int x, int y, uint value, uint count) {
 
 static void
 calculate_gauge_values(player_t *player,
-                       uint values[24][BUILDING_MAX_STOCK][2]) {
-  for (uint i = 1; i < game.max_building_index; i++) {
+                       unsigned int values[24][BUILDING_MAX_STOCK][2]) {
+  for (unsigned int i = 1; i < game.max_building_index; i++) {
     if (!BUILDING_ALLOCATED(i)) continue;
 
     building_t *building = game_get_building(i);
@@ -1236,7 +1228,7 @@ popup_box_t::draw_stat_1_box() {
 
   draw_custom_icon_box(layout);
 
-  uint values[24][BUILDING_MAX_STOCK][2] = {{{0}}};
+  unsigned int values[24][BUILDING_MAX_STOCK][2] = {{{0}}};
   calculate_gauge_values(interface->get_player(), values);
 
   draw_gauge_balance(10, 0, values[BUILDING_MILL][0][0],
@@ -1312,7 +1304,7 @@ popup_box_t::draw_stat_2_box() {
 
   draw_custom_icon_box(layout);
 
-  uint values[24][BUILDING_MAX_STOCK][2] = {{{0}}};
+  unsigned int values[24][BUILDING_MAX_STOCK][2] = {{{0}}};
   calculate_gauge_values(interface->get_player(), values);
 
   draw_gauge_balance(6, 0, values[BUILDING_GOLDSMELTER][1][0],
@@ -1327,12 +1319,12 @@ popup_box_t::draw_stat_2_box() {
   draw_gauge_balance(6, 80, values[BUILDING_SAWMILL][1][0],
                      values[BUILDING_SAWMILL][1][1]);
 
-  uint gold_value = values[BUILDING_HUT][1][0] +
-                    values[BUILDING_TOWER][1][0] +
-                    values[BUILDING_FORTRESS][1][0];
-  uint gold_count = values[BUILDING_HUT][1][1] +
-                    values[BUILDING_TOWER][1][1] +
-                    values[BUILDING_FORTRESS][1][1];
+  unsigned int gold_value = values[BUILDING_HUT][1][0] +
+                            values[BUILDING_TOWER][1][0] +
+                            values[BUILDING_FORTRESS][1][0];
+  unsigned int gold_count = values[BUILDING_HUT][1][1] +
+                            values[BUILDING_TOWER][1][1] +
+                            values[BUILDING_FORTRESS][1][1];
   draw_gauge_full(12, 0, gold_value, gold_count);
 
   draw_gauge_balance(12, 20, values[BUILDING_WEAPONSMITH][0][0],
@@ -1400,7 +1392,7 @@ popup_box_t::draw_stat_3_box() {
   int serfs[27] = {0};
 
   /* Sum up all existing serfs. */
-  for (uint i = 1; i < game.max_serf_index; i++) {
+  for (unsigned int i = 1; i < game.max_serf_index; i++) {
     if (SERF_ALLOCATED(i)) {
       serf_t *serf = game_get_serf(i);
       if (SERF_PLAYER(serf) == interface->get_player()->player_num &&
@@ -1411,7 +1403,7 @@ popup_box_t::draw_stat_3_box() {
   }
 
   /* Sum up potential serfs of all inventories. */
-  for (uint i = 0; i < game.max_inventory_index; i++) {
+  for (unsigned int i = 0; i < game.max_inventory_index; i++) {
     if (INVENTORY_ALLOCATED(i)) {
       inventory_t *inventory = game_get_inventory(i);
       if (inventory->player_num == interface->get_player()->player_num &&
@@ -2288,7 +2280,7 @@ popup_box_t::draw_castle_serf_box() {
 
   inventory_t *inventory = building->u.inventory;
 
-  for (uint i = 1; i < game.max_serf_index; i++) {
+  for (unsigned int i = 1; i < game.max_serf_index; i++) {
     if (SERF_ALLOCATED(i)) {
       serf_t *serf = game_get_serf(i);
       if (serf->state == SERF_STATE_IDLE_IN_STOCK &&
@@ -2429,7 +2421,7 @@ popup_box_t::draw_sett_8_box() {
   }
 
   int convertible_to_knights = 0;
-  for (uint i = 0; i < game.max_inventory_index; i++) {
+  for (unsigned int i = 0; i < game.max_inventory_index; i++) {
     if (INVENTORY_ALLOCATED(i)) {
       inventory_t *inv = game_get_inventory(i);
       if (inv->player_num == player->player_num) {

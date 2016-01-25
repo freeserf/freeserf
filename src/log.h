@@ -32,20 +32,20 @@
    - VERBOSE: Log any other information that a _developer_ might
    be interested in. */
 
-#ifndef _FREESERF_LOG_H
-#define _FREESERF_LOG_H
+#ifndef SRC_LOG_H_
+#define SRC_LOG_H_
 
-#include <stdio.h>
+#include <cstdio>
 
 /* Log levels */
 typedef enum {
-	LOG_LEVEL_VERBOSE = 0,
-	LOG_LEVEL_DEBUG,
-	LOG_LEVEL_INFO,
-	LOG_LEVEL_WARN,
-	LOG_LEVEL_ERROR,
+  LOG_LEVEL_VERBOSE = 0,
+  LOG_LEVEL_DEBUG,
+  LOG_LEVEL_INFO,
+  LOG_LEVEL_WARN,
+  LOG_LEVEL_ERROR,
 
-	LOG_LEVEL_MAX
+  LOG_LEVEL_MAX
 } log_level_t;
 
 
@@ -54,11 +54,16 @@ typedef enum {
 
 # define LOG_TAG "freeserf"
 
-# define LOGV(system, ...)  __android_log_print(ANDROID_LOG_VERBOSE, LOG_TAG, __VA_ARGS__)
-# define LOGD(system, ...)  __android_log_print(ANDROID_LOG_DEBUG, LOG_TAG ,__VA_ARGS__)
-# define LOGI(system, ...)  __android_log_print(ANDROID_LOG_INFO, LOG_TAG, __VA_ARGS__)
-# define LOGW(system, ...)  __android_log_print(ANDROID_LOG_WARN, LOG_TAG, __VA_ARGS__)
-# define LOGE(system, ...)  __android_log_print(ANDROID_LOG_ERROR, LOG_TAG, __VA_ARGS__)
+# define LOGV(system, ...)  __android_log_print(ANDROID_LOG_VERBOSE, LOG_TAG, \
+                                                __VA_ARGS__)
+# define LOGD(system, ...)  __android_log_print(ANDROID_LOG_DEBUG, LOG_TAG, \
+                                                __VA_ARGS__)
+# define LOGI(system, ...)  __android_log_print(ANDROID_LOG_INFO, LOG_TAG, \
+                                                __VA_ARGS__)
+# define LOGW(system, ...)  __android_log_print(ANDROID_LOG_WARN, LOG_TAG, \
+                                                __VA_ARGS__)
+# define LOGE(system, ...)  __android_log_print(ANDROID_LOG_ERROR, LOG_TAG, \
+                                                __VA_ARGS__)
 
 #else
 
@@ -74,4 +79,4 @@ void log_set_file(FILE *file);
 void log_set_level(log_level_t level);
 void log_msg(log_level_t level, const char *system, const char *format, ...);
 
-#endif /* !_FREESERF_LOG_H */
+#endif  // SRC_LOG_H_

@@ -26,26 +26,14 @@
 #include <vector>
 #include <algorithm>
 
-#include "src/misc.h"
-
-#ifdef min
-# undef min
-#endif
-
-#ifdef max
-# undef max
-#endif
-
-BEGIN_EXT_C
-  #include "src/game.h"
-END_EXT_C
+#include "src/game.h"
 
 typedef struct search_node search_node_t;
 
 struct search_node {
   map_pos_t pos;
-  uint g_score;
-  uint f_score;
+  unsigned int g_score;
+  unsigned int f_score;
   search_node_t *parent;
   dir_t dir;
 };
@@ -59,9 +47,9 @@ search_node_less(const search_node_t* left, const search_node_t* right) {
 }
 
 
-static const uint walk_cost[] = { 255, 319, 383, 447, 511 };
+static const unsigned int walk_cost[] = { 255, 319, 383, 447, 511 };
 
-static uint
+static unsigned int
 heuristic_cost(map_pos_t start, map_pos_t end) {
   /* Calculate distance to target. */
   int dist_col = (MAP_POS_COL(start) - MAP_POS_COL(end)) & game.map.col_mask;
@@ -88,7 +76,7 @@ heuristic_cost(map_pos_t start, map_pos_t end) {
   return dist > 0 ? dist*walk_cost[h_diff/dist] : 0;
 }
 
-static uint
+static unsigned int
 actual_cost(map_pos_t pos, dir_t dir) {
   map_pos_t other_pos = MAP_MOVE(pos, dir);
   int h_diff = abs(static_cast<int>(MAP_HEIGHT(pos)) -
@@ -101,7 +89,7 @@ actual_cost(map_pos_t pos, dir_t dir) {
    should be minimized. Returns a malloc'ed array of directions and
    the size of this array in length. */
 dir_t *
-pathfinder_map(map_pos_t start, map_pos_t end, uint *length) {
+pathfinder_map(map_pos_t start, map_pos_t end, unsigned int *length) {
   // Unfortunately the STL priority_queue cannot be used since we
   // would need access to the underlying sequence to determine if
   // a node is already in the open list. We keep instead open as
@@ -152,7 +140,7 @@ pathfinder_map(map_pos_t start, map_pos_t end, uint *length) {
 
     for (int d = DIR_RIGHT; d <= DIR_UP; d++) {
       map_pos_t new_pos = MAP_MOVE(node->pos, d);
-      uint cost = actual_cost(node->pos, static_cast<dir_t>(d));
+      unsigned int cost = actual_cost(node->pos, static_cast<dir_t>(d));
 
       /* Check if neighbour is valid. */
       if (!game_road_segment_valid(node->pos, static_cast<dir_t>(d)) ||

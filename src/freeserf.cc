@@ -28,22 +28,19 @@
 # include <config.h>
 #endif
 
-#ifdef HAVE_UNISTD_H
-# include <unistd.h>
+#ifdef HAVE_GETOPT_H
+# include <getopt.h>
 #endif
 
 #ifdef HAVE_STDINT_H
 # include <stdint.h>
 #endif
 
-#include "src/misc.h"
-BEGIN_EXT_C
-  #include "src/log.h"
-  #include "src/savegame.h"
-  #include "src/mission.h"
-  #include "src/version.h"
-  #include "src/game.h"
-END_EXT_C
+#include "src/log.h"
+#include "src/savegame.h"
+#include "src/mission.h"
+#include "src/version.h"
+#include "src/game.h"
 #include "src/data.h"
 #include "src/audio.h"
 #include "src/gfx.h"
@@ -159,7 +156,7 @@ main(int argc, char *argv[]) {
 
   log_level_t log_level = DEFAULT_LOG_LEVEL;
 
-#ifdef HAVE_UNISTD_H
+#ifdef HAVE_GETOPT_H
   while (true) {
     char opt = getopt(argc, argv, "d:fg:hl:r:t:");
     if (opt < 0) break;

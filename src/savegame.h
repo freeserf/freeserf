@@ -19,10 +19,10 @@
  * along with freeserf.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef _SAVEGAME_H
-#define _SAVEGAME_H
+#ifndef SRC_SAVEGAME_H_
+#define SRC_SAVEGAME_H_
 
-#include <stdio.h>
+#include <cstdio>
 
 /* Original game format */
 int load_v0_state(FILE *f);
@@ -36,4 +36,4 @@ int load_text_state(FILE *f);
 int save_state(const char *path);
 int load_state(const char *path);
 
-#endif /* !_SAVEGAME_H */
+#endif  // SRC_SAVEGAME_H_

@@ -19,66 +19,67 @@
  * along with freeserf.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef _RESOURCE_H
-#define _RESOURCE_H
+#ifndef SRC_RESOURCE_H_
+#define SRC_RESOURCE_H_
 
 typedef enum {
-	RESOURCE_NONE = -1,
+  RESOURCE_NONE = -1,
 
-	RESOURCE_FISH = 0,
-	RESOURCE_PIG,
-	RESOURCE_MEAT,
-	RESOURCE_WHEAT,
-	RESOURCE_FLOUR,
-	RESOURCE_BREAD,
-	RESOURCE_LUMBER,
-	RESOURCE_PLANK,
-	RESOURCE_BOAT,
-	RESOURCE_STONE,
-	RESOURCE_IRONORE,
-	RESOURCE_STEEL,
-	RESOURCE_COAL,
-	RESOURCE_GOLDORE,
-	RESOURCE_GOLDBAR,
-	RESOURCE_SHOVEL,
-	RESOURCE_HAMMER,
-	RESOURCE_ROD,
-	RESOURCE_CLEAVER,
-	RESOURCE_SCYTHE,
-	RESOURCE_AXE,
-	RESOURCE_SAW,
-	RESOURCE_PICK,
-	RESOURCE_PINCER,
-	RESOURCE_SWORD,
-	RESOURCE_SHIELD,
+  RESOURCE_FISH = 0,
+  RESOURCE_PIG,
+  RESOURCE_MEAT,
+  RESOURCE_WHEAT,
+  RESOURCE_FLOUR,
+  RESOURCE_BREAD,
+  RESOURCE_LUMBER,
+  RESOURCE_PLANK,
+  RESOURCE_BOAT,
+  RESOURCE_STONE,
+  RESOURCE_IRONORE,
+  RESOURCE_STEEL,
+  RESOURCE_COAL,
+  RESOURCE_GOLDORE,
+  RESOURCE_GOLDBAR,
+  RESOURCE_SHOVEL,
+  RESOURCE_HAMMER,
+  RESOURCE_ROD,
+  RESOURCE_CLEAVER,
+  RESOURCE_SCYTHE,
+  RESOURCE_AXE,
+  RESOURCE_SAW,
+  RESOURCE_PICK,
+  RESOURCE_PINCER,
+  RESOURCE_SWORD,
+  RESOURCE_SHIELD,
 
-	RESOURCE_GROUP_FOOD
+  RESOURCE_GROUP_FOOD
 } resource_type_t;
 
 
 typedef struct {
-	int player_num;
-	int res_dir;
-	/* Index of flag connected to this inventory */
-	int flag;
-	/* Index of building containing this inventory */
-	int building;
-	/* Count of resources */
-	int resources[26];
-	/* Resources waiting to be moved out */
-	struct {
-		resource_type_t type;
-		uint dest;
-	} out_queue[2];
-	/* Count of serfs waiting to move out */
-	uint serfs_out;
-	/* Count of generic serfs */
-	int generic_count;
-	/* Indices to serfs of each type */
-	int serfs[27];
+  int player_num;
+  int res_dir;
+  /* Index of flag connected to this inventory */
+  int flag;
+  /* Index of building containing this inventory */
+  int building;
+  /* Count of resources */
+  int resources[26];
+  /* Resources waiting to be moved out */
+  struct {
+    resource_type_t type;
+    unsigned int dest;
+  } out_queue[2];
+  /* Count of serfs waiting to move out */
+  unsigned int serfs_out;
+  /* Count of generic serfs */
+  int generic_count;
+  /* Indices to serfs of each type */
+  int serfs[27];
 } inventory_t;
 
-#define INVENTORY_INDEX(ptr)  ((int)((ptr) - game.inventories))
-#define INVENTORY_ALLOCATED(i)  BIT_TEST(game.inventory_bitmap[(i)>>3], 7-((i)&7))
+#define INVENTORY_INDEX(ptr)  (static_cast<int>((ptr) - game.inventories))
+#define INVENTORY_ALLOCATED(i)  \
+                            BIT_TEST(game.inventory_bitmap[(i) >> 3], 7-((i)&7))
 
-#endif /* ! _RESOURCE_H */
+#endif  // SRC_RESOURCE_H_

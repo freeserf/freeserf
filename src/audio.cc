@@ -21,15 +21,10 @@
 
 #include "src/audio.h"
 
-#include <cstring>
-#include <cassert>
 #include <algorithm>
 #include <strstream>
 
-#include "src/misc.h"
-BEGIN_EXT_C
-  #include "src/log.h"
-END_EXT_C
+#include "src/log.h"
 
 audio_t *audio_t::instance = NULL;
 

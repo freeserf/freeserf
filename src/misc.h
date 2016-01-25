@@ -19,31 +19,13 @@
  * along with freeserf.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef _MISC_H
-#define _MISC_H
-
-#if !defined(__cplusplus) || defined(_MSC_VER)
-# define BEGIN_EXT_C
-# define END_EXT_C
-#else
-# define BEGIN_EXT_C  extern "C" {
-# define END_EXT_C    }
-#endif
+#ifndef SRC_MISC_H_
+#define SRC_MISC_H_
 
 #define BIT(n)            (1 << (n))
 #define BIT_TEST(x, n)    ((x) & BIT(n))
 #define BIT_INVERT(x, n)  ((x) ^= 1 << (n))
 
-#if defined(__cplusplus) && !defined(_MSC_VER)
-# define clamp(l,x,h)  (std::max((l),std::min((x),(h))))
-#else
-# define max(x,y)      (((x) > (y)) ? (x) : (y))
-# define min(x,y)      (((x) < (y)) ? (x) : (y))
-# define MAX(x,y)      (((x) > (y)) ? (x) : (y))
-# define MIN(x,y)      (((x) < (y)) ? (x) : (y))
-# define clamp(l,x,h)  (MAX((l),MIN((x),(h))))
-#endif
+#define clamp(l, x, h)  (std::max((l), std::min((x), (h))))
 
-typedef unsigned int uint;
-
-#endif /* ! _MISC_H */
+#endif  // SRC_MISC_H_

@@ -19,8 +19,8 @@
  * along with freeserf.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef _RANDOM_H
-#define _RANDOM_H
+#ifndef SRC_RANDOM_H_
+#define SRC_RANDOM_H_
 
 #ifdef HAVE_CONFIG_H
 # include <config.h>
@@ -31,9 +31,9 @@
 #endif
 
 typedef struct {
-	uint16_t state[3];
+  uint16_t state[3];
 } random_state_t;
 
 uint16_t random_int(random_state_t *random);
 
-#endif /* ! _RANDOM_H */
+#endif  // SRC_RANDOM_H_

@@ -21,7 +21,6 @@
 
 #include "src/video.h"
 
-#include <cstdlib>
 #include <strstream>
 
 Video_Exception::Video_Exception(const std::string &description) throw() {

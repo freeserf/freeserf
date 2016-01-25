@@ -26,9 +26,7 @@
 #include <cassert>
 
 #include "src/misc.h"
-BEGIN_EXT_C
-  #include "src/debug.h"
-END_EXT_C
+#include "src/debug.h"
 #include "src/data.h"
 #include "src/audio.h"
 #include "src/freeserf_endian.h"
@@ -344,7 +342,7 @@ interface_t::update_interface() {
 }
 
 void
-interface_t::set_player(uint player) {
+interface_t::set_player(unsigned int player) {
   assert(PLAYER_IS_ACTIVE(game.player[player]));
   this->player = game.player[player];
 
@@ -473,8 +471,8 @@ interface_t::remove_road_segment() {
 
 /* Extend currently constructed road with an array of directions. */
 int
-interface_t::extend_road(dir_t *dirs, uint length) {
-  for (uint i = 0; i < length; i++) {
+interface_t::extend_road(dir_t *dirs, unsigned int length) {
+  for (unsigned int i = 0; i < length; i++) {
     dir_t dir = dirs[i];
     int r = build_road_segment(dir);
     if (r < 0) {
@@ -671,7 +669,7 @@ interface_t::interface_t() {
   map_cursor_sprites[6].sprite = 33;
 
   /* Randomness for interface */
-  std::srand((uint)std::time(NULL));
+  std::srand((unsigned int)std::time(NULL));
   random.state[0] = std::rand();
   random.state[1] = std::rand();
   random.state[2] = std::rand();

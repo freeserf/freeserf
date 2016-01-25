@@ -21,27 +21,15 @@
 
 #include "src/audio-sdlmixer.h"
 
-#include <cstring>
 #include <cassert>
 #include <algorithm>
 
 #include <SDL.h>
 #include <SDL_mixer.h>
 
-#include "src/misc.h"
-BEGIN_EXT_C
-  #include "src/log.h"
-END_EXT_C
+#include "src/log.h"
 #include "src/data.h"
 #include "src/data-source.h"
-
-#ifdef min
-# undef min
-#endif
-
-#ifdef max
-# undef max
-#endif
 
 audio_t *
 audio_t::get_instance() {

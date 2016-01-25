@@ -10,8 +10,6 @@ AM_INIT_AUTOMAKE([foreign subdir-objects dist-xz])
 m4_ifdef([AM_SILENT_RULES], [AM_SILENT_RULES([yes])])
 
 # Checks for programs.
-AC_PROG_CC_C99
-AM_PROG_CC_C_O
 AC_PROG_CXX
 
 # Checks for libraries.
@@ -20,8 +18,7 @@ PKG_CHECK_MODULES([SDL2_mixer], [SDL2_mixer], [have_sdl2_mixer=yes], [have_sdl2_
 
 # Checks for header files.
 AC_HEADER_ASSERT
-AC_HEADER_STDC
-AC_CHECK_HEADERS([byteswap.h endian.h fcntl.h stdint.h stdlib.h string.h unistd.h sys/endian.h sys/mman.h])
+AC_CHECK_HEADERS([byteswap.h endian.h stdint.h getopt.h sys/endian.h])
 
 # Checks for typedefs, structures, and compiler characteristics.
 AC_C_CONST
@@ -35,11 +32,6 @@ AC_TYPE_INT32_T
 AC_TYPE_UINT8_T
 AC_TYPE_UINT16_T
 AC_TYPE_UINT32_T
-
-# Checks for library functions.
-AC_FUNC_MMAP
-AC_TYPE_SIGNAL
-AC_CHECK_FUNCS([atexit memset munmap strtol])
 
 # Check SDL2_mixer support
 AC_MSG_CHECKING([whether to enable SDL2_mixer support])
@@ -70,15 +62,11 @@ debug_default="no"
 AC_ARG_ENABLE([debug], [AC_HELP_STRING([--enable-debug],
 	[enable debug mode])],,[enable_debug=$debug_default])
 AS_IF([test "x$enable_debug" != xno], [
-	CFLAGS="$CFLAGS -pedantic -Wall -ggdb"
 	CXXFLAGS="$CXXFLAGS -ggdb -Wall"
-	AC_SUBST([CFLAGS])
 	AC_SUBST([CXXFLAGS])
 	AC_MSG_RESULT([yes])
 	], [
-	CFLAGS="$CFLAGS -DNDEBUG"
 	CXXFLAGS="$CXXFLAGS -DNDEBUG"
-	AC_SUBST([CFLAGS])
 	AC_SUBST([CXXFLAGS])
 	AC_MSG_RESULT([no])])
 
@@ -88,10 +76,8 @@ profile_default="no"
 AC_ARG_ENABLE([profile], [AC_HELP_STRING([--enable-profile],
 	[enable profile mode])],,[enable_profile=$profile_default])
 AS_IF([test "x$enable_profile" != xno], [
-	CFLAGS="$CFLAGS -p"
 	CXXFLAGS="$CXXFLAGS -p"
 	LDFLAGS="$LDFLAGS -pg"
-	AC_SUBST([CFLAGS])
 	AC_SUBST([CXXFLAGS])
 	AC_MSG_RESULT([yes])
 	], [
@@ -107,9 +93,7 @@ echo "
  $PACKAGE_NAME $VERSION
 
     prefix:		${prefix}
-    compiler:		${CC}
     compiler (c++):	${CXX}
-    cflags:		${CFLAGS}
     cxxflags:		${CXXFLAGS}
     ldflags:		${LDFLAGS}
 

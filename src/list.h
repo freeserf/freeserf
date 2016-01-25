@@ -19,26 +19,26 @@
  * along with freeserf.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef _LIST_H
-#define _LIST_H
+#ifndef SRC_LIST_H_
+#define SRC_LIST_H_
 
 
 #define LIST_INIT(list)  \
-  { .head = (list_elm_t *)&((list).null), \
+  { .head = reinterpret_cast<list_elm_t*>(&((list).null)), \
     .null = NULL, \
-    .tail = (list_elm_t *)&((list).head) }
+    .tail = reinterpret_cast<list_elm_t*>(&((list).head)) }
 
-#define list_foreach(list,elm)  \
+#define list_foreach(list, elm)  \
   for ((elm) = (list)->head; \
        (elm)->next != NULL; \
        (elm) = (elm)->next)
 
-#define list_foreach_reverse(list,elm)  \
+#define list_foreach_reverse(list, elm)  \
   for ((elm) = (list)->tail; \
        (elm)->prev != NULL; \
        (elm) = (elm)->prev)
 
-#define list_foreach_safe(list,elm,tmpelm)  \
+#define list_foreach_safe(list, elm, tmpelm)  \
   for ((elm) = (list)->head, (tmpelm) = (elm)->next; \
        (tmpelm) != NULL; \
        (elm) = (tmpelm), (tmpelm) = (elm)->next)
@@ -53,14 +53,14 @@ typedef int list_pred_func(const list_elm_t *elm);
 
 /* List */
 struct list {
-	list_elm_t *head;
-	list_elm_t *null;
-	list_elm_t *tail;
+  list_elm_t *head;
+  list_elm_t *null;
+  list_elm_t *tail;
 };
 
 struct list_elm {
-	list_elm_t *next;
-	list_elm_t *prev;
+  list_elm_t *next;
+  list_elm_t *prev;
 };
 
 /* List functions */
@@ -72,11 +72,11 @@ void list_append(list_t *list, list_elm_t *elm);
 void list_prepend(list_t *list, list_elm_t *elm);
 void list_insert_before(list_elm_t *elm, list_elm_t *newelm);
 void list_insert_sorted(list_t *list, list_elm_t *newelm,
-			list_less_func *compare); /* O(n) */
+                        list_less_func *compare); /* O(n) */
 void list_elm_remove(list_elm_t *elm);
 list_elm_t *list_remove_head(list_t *list);
 list_elm_t *list_remove_tail(list_t *list);
 int list_is_empty(list_t *list);
 
 
-#endif /* ! _LIST_H */
+#endif  // SRC_LIST_H_

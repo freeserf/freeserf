@@ -19,15 +19,16 @@
  * along with freeserf.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef _DEBUG_H
-#define _DEBUG_H
+#ifndef SRC_DEBUG_H_
+#define SRC_DEBUG_H_
 
-#include "log.h"
+#include "src/log.h"
 
 #ifndef NDEBUG
-# define NOT_REACHED()  do { LOGE("debug", "NOT_REACHED at line %i of %s.", __LINE__, __FILE__); abort(); } while (0)
+# define NOT_REACHED()  do { LOGE("debug", "NOT_REACHED at line %i of %s.", \
+                                  __LINE__, __FILE__); abort(); } while (0)
 #else
 # define NOT_REACHED()  do { } while (0)
 #endif
 
-#endif /* ! _DEBUG_H */
+#endif  // SRC_DEBUG_H_

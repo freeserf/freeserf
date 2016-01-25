@@ -25,12 +25,9 @@
 #include <map>
 
 #include "src/gui.h"
-#include "src/misc.h"
-BEGIN_EXT_C
-  #include "src/map.h"
-  #include "src/building.h"
-  #include "src/serf.h"
-END_EXT_C
+#include "src/map.h"
+#include "src/building.h"
+#include "src/serf.h"
 
 typedef enum {
   VIEWPORT_LAYER_LANDSCAPE = 1<<0,

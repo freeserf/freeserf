@@ -1,5 +1,5 @@
 /*
- * mission.h - Predefined game mission maps
+ * random.cc - Random number generator
  *
  * Copyright (C) 2013  Jon Lund Steffensen <jonlst@gmail.com>
  *
@@ -19,24 +19,28 @@
  * along with freeserf.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef SRC_MISSION_H_
-#define SRC_MISSION_H_
-
 #include "src/random.h"
 
-typedef struct {
-  random_state_t rnd;
-  struct {
-    int face;
-    int supplies;
-    int intelligence;
-    int reproduction;
-    struct { int col; int row; } castle;
-  } player[4];
-} mission_t;
+#include <cstdio>
+#include <cstdlib>
 
-extern mission_t mission[12];
-extern const int mission_count;
-void init_missions();
+#ifdef HAVE_CONFIG_H
+# include <config.h>
+#endif
 
-#endif  // SRC_MISSION_H_
+#ifdef HAVE_STDINT_H
+# include <stdint.h>
+#endif
+
+uint16_t
+random_int(random_state_t *random) {
+  uint16_t *rnd = random->state;
+  uint16_t r = (rnd[0] + rnd[1]) ^ rnd[2];
+  rnd[2] += rnd[1];
+  rnd[1] ^= rnd[2];
+  rnd[1] = (rnd[1] >> 1) | (rnd[1] << 15);
+  rnd[2] = (rnd[2] >> 1) | (rnd[2] << 15);
+  rnd[0] = r;
+
+  return r;
+}

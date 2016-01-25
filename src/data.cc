@@ -23,10 +23,7 @@
 
 #include <cstdlib>
 
-#include "src/misc.h"
-BEGIN_EXT_C
-  #include "src/log.h"
-END_EXT_C
+#include "src/log.h"
 #include "src/data-source-dos.h"
 
 data_t *data_t::instance = NULL;

@@ -1,7 +1,7 @@
 /*
- * random.c - Random number generator
+ * building.cc - Building related functions.
  *
- * Copyright (C) 2013  Jon Lund Steffensen <jonlst@gmail.com>
+ * Copyright (C) 2012  Jon Lund Steffensen <jonlst@gmail.com>
  *
  * This file is part of freeserf.
  *
@@ -19,24 +19,15 @@
  * along with freeserf.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <stdio.h>
-#include <stdlib.h>
-#ifdef HAVE_STDINT_H
-#include <stdint.h>
-#endif
+#include "src/building.h"
 
-#include "random.h"
+int
+building_get_score_from_type(building_type_t type) {
+  const int building_score_from_type[] = {
+    2, 2, 2, 2, 5, 5, 5, 5, 2, 10,
+    3, 6, 4, 6, 5, 4, 7, 7, 9, 4,
+    8, 15, 6, 20
+  };
 
-uint16_t
-random_int(random_state_t *random)
-{
-	uint16_t *rnd = random->state;
-	uint16_t r = (rnd[0] + rnd[1]) ^ rnd[2];
-	rnd[2] += rnd[1];
-	rnd[1] ^= rnd[2];
-	rnd[1] = (rnd[1] >> 1) | (rnd[1] << 15);
-	rnd[2] = (rnd[2] >> 1) | (rnd[2] << 15);
-	rnd[0] = r;
-
-	return r;
+  return building_score_from_type[type-1];
 }

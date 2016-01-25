@@ -32,7 +32,6 @@
 # include <stdint.h>
 #endif
 
-#include "src/misc.h"
 #include "src/freeserf_endian.h"
 
 void *

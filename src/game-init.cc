@@ -22,24 +22,13 @@
 #include "src/game-init.h"
 
 #include <ctime>
-#include <cstdio>
 #include <algorithm>
 
 #include "src/misc.h"
-BEGIN_EXT_C
-  #include "src/mission.h"
-END_EXT_C
+#include "src/mission.h"
 #include "src/data.h"
 #include "src/interface.h"
 #include "src/version.h"
-
-#ifdef min
-# undef min
-#endif
-
-#ifdef max
-# undef max
-#endif
 
 typedef enum {
   ACTION_START_GAME,
@@ -162,7 +151,7 @@ game_init_box_t::internal_draw() {
 
 void
 game_init_box_t::handle_action(int action) {
-  const uint default_player_colors[] = {
+  const unsigned int default_player_colors[] = {
     64, 72, 68, 76
   };
 

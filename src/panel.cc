@@ -21,11 +21,11 @@
 
 #include "src/panel.h"
 
+#include <cstdlib>
+
 #include "src/misc.h"
-BEGIN_EXT_C
-  #include "src/game.h"
-  #include "src/debug.h"
-END_EXT_C
+#include "src/game.h"
+#include "src/debug.h"
 #include "src/data.h"
 #include "src/audio.h"
 #include "src/interface.h"
