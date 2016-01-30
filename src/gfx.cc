@@ -22,14 +22,14 @@
 #include "src/gfx.h"
 
 #include <cstring>
-#include <algorithm>
 
 #include "src/misc.h"
 BEGIN_EXT_C
-  #include "src/data.h"
   #include "src/log.h"
 END_EXT_C
+#include "src/data.h"
 #include "src/video.h"
+#include "src/data-source.h"
 
 #ifdef min
 # undef min
@@ -82,13 +82,6 @@ image_t::~image_t() {
   video = NULL;
 }
 
-/* Calculate hash of sprite identifier. */
-uint64_t sprite_t::create_sprite_id(uint64_t sprite, uint64_t mask,
-                                    uint64_t offset) {
-  uint64_t result = sprite + (mask << 32) + (offset << 48);
-  return result;
-}
-
 /* Sprite cache hash table */
 image_t::image_cache_t image_t::image_cache;
 
@@ -116,157 +109,6 @@ image_t::clear_cache() {
   }
 }
 
-/* There are different types of sprites:
-   - Non-packed, rectangular sprites: These are simple called sprites here.
-   - Transparent sprites, "transp": These are e.g. buldings/serfs.
-   The transparent regions are RLE encoded.
-   - Bitmap sprites: Conceptually these contain either 0 or 1 at each pixel.
-   This is used to either modify the alpha level of another sprite (shadows)
-   or mask parts of other sprites completely (mask sprites).
-*/
-
-sprite_t::sprite_t(unsigned int width, unsigned int height) {
-  this->width = width;
-  this->height = height;
-  size_t size = width * height * 4;
-  data = new uint8_t[size];
-  memset(data, 0, size);
-}
-
-sprite_t::~sprite_t() {
-  if (data != NULL) {
-    delete[] data;
-    data = NULL;
-  }
-}
-
-/* Create empty sprite object */
-static sprite_t *
-gfx_create_empty_sprite(const dos_sprite_t *sprite) {
-  sprite_t *s = new sprite_t(sprite->w, sprite->h);
-  s->set_delta(sprite->b_x, sprite->b_y);
-  s->set_offset(sprite->x, sprite->y);
-  return s;
-}
-
-/* Create sprite object */
-static sprite_t *
-gfx_create_sprite(const dos_sprite_t *sprite) {
-  sprite_t *s = gfx_create_empty_sprite(sprite);
-  if (s == NULL) return NULL;
-
-  uint8_t *palette =
-           reinterpret_cast<uint8_t*>(data_get_object(DATA_PALETTE_GAME, NULL));
-
-  const uint8_t *src = reinterpret_cast<const uint8_t*>(sprite) +
-                       sizeof(dos_sprite_t);
-  uint8_t *dest = s->get_data();
-  size_t size = sprite->w * sprite->h;
-
-  for (size_t i = 0; i < size; i++) {
-    dest[4*i+0] = palette[3*src[i]+0]; /* Red */
-    dest[4*i+1] = palette[3*src[i]+1]; /* Green */
-    dest[4*i+2] = palette[3*src[i]+2]; /* Blue */
-    dest[4*i+3] = 0xff; /* Alpha */
-  }
-
-  return s;
-}
-
-/* Create transparent sprite object */
-static sprite_t *
-gfx_create_transparent_sprite(const dos_sprite_t *sprite, int color_off) {
-  sprite_t *s = gfx_create_empty_sprite(sprite);
-  if (s == NULL) return NULL;
-
-  uint8_t *palette =
-           reinterpret_cast<uint8_t*>(data_get_object(DATA_PALETTE_GAME, NULL));
-
-  const uint8_t *src = reinterpret_cast<const uint8_t*>(sprite) +
-                       sizeof(dos_sprite_t);
-  uint8_t *dest = s->get_data();
-  size_t size = sprite->w * sprite->h;
-
-  size_t i = 0;
-  size_t j = 0;
-  while (j < size) {
-    j += src[i];
-    int n = src[i+1];
-
-    for (int k = 0; k < n; k++) {
-      uint p_index = src[i+2+k] + color_off;
-      dest[4*(j+k)+0] = palette[3*p_index+0]; /* Red */
-      dest[4*(j+k)+1] = palette[3*p_index+1]; /* Green */
-      dest[4*(j+k)+2] = palette[3*p_index+2]; /* Blue */
-      dest[4*(j+k)+3] = 0xff; /* Alpha */
-    }
-    i += n + 2;
-    j += n;
-  }
-
-  return s;
-}
-
-/* Create overlay sprite object */
-static sprite_t *
-gfx_create_bitmap_sprite(const dos_sprite_t *sprite, unsigned int value) {
-  sprite_t *s = gfx_create_empty_sprite(sprite);
-  if (s == NULL) return NULL;
-
-  const uint8_t *src = reinterpret_cast<const uint8_t*>(sprite) +
-                       sizeof(dos_sprite_t);
-  uint8_t *dest = s->get_data();
-  size_t size = sprite->w * sprite->h;
-
-  size_t i = 0;
-  size_t j = 0;
-  while (j < size) {
-    j += src[i];
-    int n = src[i+1];
-    for (int k = 0; k < n && j + k < size; k++) {
-      dest[4*(j+k)+3] = value; /* Alpha */
-    }
-    i += 2;
-    j += n;
-  }
-
-  return s;
-}
-
-/* Apply mask to map tile sprite
-   The resulting sprite will be extended to the height of the mask
-   by repeating lines from the top of the sprite. The width of the
-   mask and the sprite must be identical. */
-sprite_t *
-sprite_t::get_masked(sprite_t *mask) {
-  sprite_t *s = new sprite_t(mask->get_width(), mask->get_height());
-  s->set_delta(mask->get_delta_x(), mask->get_delta_y());
-  s->set_offset(mask->get_offset_x(), mask->get_offset_y());
-
-  uint8_t *dest_data = s->get_data();
-  size_t to_copy = mask->get_width() * mask->get_height() * 4;
-
-  /* Copy extended data to new sprite */
-  while (to_copy > 0) {
-    size_t s = std::min(to_copy, size_t(width * height * 4));
-    memcpy(dest_data, data, s);
-    to_copy -= s;
-    dest_data += s;
-  }
-
-  /* Apply mask from mask sprite */
-  uint8_t *s_data = s->get_data();
-  const uint8_t *m_data = mask->get_data();
-  for (size_t y = 0; y < mask->get_height(); y++) {
-    for (size_t x = 0; x < mask->get_width(); x++) {
-      size_t alpha_index = 4*(y * mask->get_width() + x) + 3;
-      s_data[alpha_index] &= m_data[alpha_index];
-    }
-  }
-
-  return s;
-}
-
 gfx_t *gfx_t::instance = NULL;
 
 gfx_t::gfx_t() throw(Freeserf_Exception) {
@@ -276,12 +118,13 @@ gfx_t::gfx_t() throw(Freeserf_Exception) {
 
   try {
     video = video_t::get_instance();
-  } catch (Video_Exception e) {
+  } catch (Video_Exception &e) {
     throw GFX_Exception(e.what());
   }
 
-  const dos_sprite_t *cursor = data_get_dos_sprite(DATA_CURSOR);
-  sprite_t *sprite = gfx_create_transparent_sprite(cursor, 0);
+  data_t *data = data_t::get_instance();
+  data_source_t *data_source = data->get_data_source();
+  sprite_t *sprite = data_source->get_transparent_sprite(DATA_CURSOR, 0);
   video->set_cursor(sprite->get_data(), sprite->get_width(),
                     sprite->get_height());
   delete sprite;
@@ -315,13 +158,7 @@ frame_t::draw_sprite(int x, int y, unsigned int sprite) {
   uint64_t id = sprite_t::create_sprite_id(sprite, 0, 0);
   image_t *image = image_t::get_cached_image(id);
   if (image == NULL) {
-    const dos_sprite_t *spr = data_get_dos_sprite(sprite);
-    if (spr == NULL) {
-      LOGW("graphics", "Failed to extract sprite #%i", sprite);
-      return;
-    }
-
-    sprite_t *s = gfx_create_sprite(spr);
+    sprite_t *s = data_source->get_sprite(sprite);
     if (s == NULL) {
       LOGW("graphics", "Failed to decode sprite #%i", sprite);
       return;
@@ -347,13 +184,7 @@ frame_t::draw_transp_sprite(int x, int y, unsigned int sprite, bool use_off,
   uint64_t id = sprite_t::create_sprite_id(sprite, 0, color_off);
   image_t *image = image_t::get_cached_image(id);
   if (image == NULL) {
-    const dos_sprite_t *spr = data_get_dos_sprite(sprite);
-    if (spr == NULL) {
-      LOGW("graphics", "Failed to extract sprite #%i", sprite);
-      return;
-    }
-
-    sprite_t *s = gfx_create_transparent_sprite(spr, color_off);
+    sprite_t *s = data_source->get_transparent_sprite(sprite, color_off);
     if (s == NULL) {
       LOGW("graphics", "Failed to decode sprite #%i", sprite);
       return;
@@ -395,9 +226,9 @@ frame_t::draw_transp_sprite(int x, int y, unsigned int sprite, bool use_off,
 void
 frame_t::draw_transp_sprite_relatively(int x, int y, unsigned int sprite,
                                        unsigned int offs_sprite) {
-  const dos_sprite_t *spr = data_get_dos_sprite(offs_sprite);
-  x += spr->b_x;
-  y += spr->b_y;
+  sprite_t *s = data_source->get_empty_sprite(offs_sprite);
+  x += s->get_delta_x();
+  y += s->get_delta_y();
 
   draw_transp_sprite(x, y, sprite, true, 0, 1.f);
 }
@@ -410,25 +241,13 @@ frame_t::draw_masked_sprite(int x, int y, unsigned int mask,
   uint64_t id = sprite_t::create_sprite_id(sprite, mask, 0);
   image_t *image = image_t::get_cached_image(id);
   if (image == NULL) {
-    const dos_sprite_t *spr = data_get_dos_sprite(sprite);
-    if (spr == NULL) {
-      LOGW("graphics", "Failed to extract sprite #%i", sprite);
-      return;
-    }
-
-    const dos_sprite_t *msk = data_get_dos_sprite(mask);
-    if (msk == NULL) {
-      LOGW("graphics", "Failed to extract sprite #%i", mask);
-      return;
-    }
-
-    sprite_t *s = gfx_create_sprite(spr);
+    sprite_t *s = data_source->get_sprite(sprite);
     if (s == NULL) {
       LOGW("graphics", "Failed to decode sprite #%i", sprite);
       return;
     }
 
-    sprite_t *m = gfx_create_bitmap_sprite(msk, 0xff);
+    sprite_t *m = data_source->get_mask_sprite(mask);
     if (m == NULL) {
       LOGW("graphics", "Failed to decode sprite #%i", mask);
       delete s;
@@ -472,13 +291,7 @@ frame_t::draw_overlay_sprite(int x, int y, unsigned int sprite,
   uint64_t id = sprite_t::create_sprite_id(sprite, 0, 0);
   image_t *image = image_t::get_cached_image(id);
   if (image == NULL) {
-    const dos_sprite_t *spr = data_get_dos_sprite(sprite);
-    if (spr == NULL) {
-      LOGW("graphics", "Failed to extract sprite #%i", sprite);
-      return;
-    }
-
-    sprite_t *s = gfx_create_bitmap_sprite(spr, 0x80);
+    sprite_t *s = data_source->get_overlay_sprite(sprite);
     if (s == NULL) {
       LOGW("graphics", "Failed to decode sprite #%i", sprite);
       return;
@@ -507,26 +320,14 @@ frame_t::draw_waves_sprite(int x, int y, unsigned int mask,
   uint64_t id = sprite_t::create_sprite_id(sprite, mask, 0);
   image_t *image = image_t::get_cached_image(id);
   if (image == NULL) {
-    const dos_sprite_t *spr = data_get_dos_sprite(sprite);
-    if (spr == NULL) {
-      LOGW("graphics", "Failed to extract sprite #%i", sprite);
-      return;
-    }
-
-    sprite_t *s = gfx_create_transparent_sprite(spr, 0);
+    sprite_t *s = data_source->get_transparent_sprite(sprite, 0);
     if (s == NULL) {
       LOGW("graphics", "Failed to decode sprite #%i", sprite);
       return;
     }
 
     if (mask > 0) {
-      const dos_sprite_t *msk = data_get_dos_sprite(mask);
-      if (msk == NULL) {
-        LOGW("graphics", "Failed to extract sprite #%i", mask);
-        return;
-      }
-
-      sprite_t *m = gfx_create_bitmap_sprite(msk, 0xff);
+      sprite_t *m = data_source->get_mask_sprite(mask);
       if (m == NULL) {
         LOGW("graphics", "Failed to decode sprite #%i", sprite);
         return;
@@ -646,27 +447,17 @@ frame_t::draw_number(int x, int y, unsigned char color, int shadow, int n) {
 /* Draw a rectangle with color at x, y in the dest frame. */
 void
 frame_t::draw_rect(int x, int y, int width, int height, unsigned char color) {
-  uint8_t *palette =
-           reinterpret_cast<uint8_t*>(data_get_object(DATA_PALETTE_GAME, NULL));
-  color_t c = { palette[3*color+0],
-                palette[3*color+1],
-                palette[3*color+2],
-                0xff };
-
-  video->draw_rect(x, y, width, height, &c, video_frame);
+  color_t col = data_source->get_color(color);
+  video_color_t c = { col.red, col.green, col.blue, col.alpha };
+  video->draw_rect(x, y, width, height, c, video_frame);
 }
 
 /* Draw a rectangle with color at x, y in the dest frame. */
 void
 frame_t::fill_rect(int x, int y, int width, int height, unsigned char color) {
-  uint8_t *palette =
-           reinterpret_cast<uint8_t*>(data_get_object(DATA_PALETTE_GAME, NULL));
-  color_t c = { palette[3*color+0],
-                palette[3*color+1],
-                palette[3*color+2],
-                0xff };
-
-  video->fill_rect(x, y, width, height, &c, video_frame);
+  color_t col = data_source->get_color(color);
+  video_color_t c = { col.red, col.green, col.blue, col.alpha };
+  video->fill_rect(x, y, width, height, c, video_frame);
 }
 
 /* Initialize new graphics frame. If dest is NULL a new
@@ -676,12 +467,16 @@ frame_t::frame_t(video_t *video, unsigned int width, unsigned int height) {
   this->video = video;
   video_frame = video->create_frame(width, height);
   owner = true;
+  data_t *data = data_t::get_instance();
+  data_source = data->get_data_source();
 }
 
 frame_t::frame_t(video_t *video, video_frame_t *video_frame) {
   this->video = video;
   this->video_frame = video_frame;
   owner = false;
+  data_t *data = data_t::get_instance();
+  data_source = data->get_data_source();
 }
 
 /* Deinitialize frame and backing surface. */

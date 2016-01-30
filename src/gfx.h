@@ -60,6 +60,7 @@ class video_t;
 class video_frame_t;
 class video_image_t;
 class sprite_t;
+class data_source_t;
 
 class image_t {
  protected:
@@ -103,6 +104,7 @@ class frame_t {
   video_t *video;
   video_frame_t *video_frame;
   bool owner;
+  data_source_t *data_source;
 
  public:
   frame_t(video_t *video, unsigned int width, unsigned int height);
@@ -140,38 +142,6 @@ class frame_t {
                         unsigned char shadow);
   void draw_transp_sprite(int x, int y, unsigned int sprite, bool use_off,
                           unsigned char color_off, float progress);
-};
-
-/* Sprite object. Contains RGBA data. */
-class sprite_t {
- protected:
-  int delta_x;
-  int delta_y;
-  int offset_x;
-  int offset_y;
-  unsigned int width;
-  unsigned int height;
-  uint8_t *data;
-
- public:
-  sprite_t(unsigned int width, unsigned int height);
-  virtual ~sprite_t();
-
-  uint8_t *get_data() const { return data; }
-  unsigned int get_width() const { return width; }
-  unsigned int get_height() const { return height; }
-  int get_delta_x() const { return delta_x; }
-  int get_delta_y() const { return delta_y; }
-  int get_offset_x() const { return offset_x; }
-  int get_offset_y() const { return offset_y; }
-
-  void set_offset(int x, int y) { offset_x = x; offset_y = y; }
-  void set_delta(int x, int y) { delta_x = x; delta_y = y; }
-
-  sprite_t *get_masked(sprite_t *mask);
-
-  static uint64_t create_sprite_id(uint64_t sprite, uint64_t mask,
-                                   uint64_t offset);
 };
 
 class gfx_t {

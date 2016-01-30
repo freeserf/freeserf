@@ -103,8 +103,8 @@ event_loop_sdl_t::run() {
   int drag_x = 0;
   int drag_y = 0;
 
-  unsigned int last_down[3] = {0};
-  unsigned int last_click[3] = {0};
+  unsigned int last_down[6] = {0};
+  unsigned int last_click[6] = {0};
   int last_click_x = 0;
   int last_click_y = 0;
 
@@ -126,7 +126,7 @@ event_loop_sdl_t::run() {
           notify_click(event.button.x, event.button.y,
                        (event_button_t)event.button.button);
 
-          if (current_ticks - last_click[event.button.button-1] <
+          if (current_ticks - last_click[event.button.button] <
                 MOUSE_TIME_SENSITIVITY &&
               event.button.x >= (last_click_x - MOUSE_MOVE_SENSITIVITY) &&
               event.button.x <= (last_click_x + MOUSE_MOVE_SENSITIVITY) &&
@@ -136,14 +136,14 @@ event_loop_sdl_t::run() {
                              (event_button_t)event.button.button);
           }
 
-          last_click[event.button.button-1] = current_ticks;
+          last_click[event.button.button] = current_ticks;
           last_click_x = event.button.x;
           last_click_y = event.button.y;
         }
         break;
       case SDL_MOUSEBUTTONDOWN:
         if (event.button.button <= 3) {
-          last_down[event.button.button-1] = current_ticks;
+          last_down[event.button.button] = current_ticks;
         }
         break;
       case SDL_MOUSEMOTION:
@@ -268,7 +268,7 @@ event_loop_sdl_t::run() {
             deferred_callee_t *deferred_callee =
               reinterpret_cast<deferred_callee_t*>(event.user.data1);
             if (deferred_callee != NULL) {
-              deferred_callee->deffered_call(event.user.data2);
+              deferred_callee->deferred_call(event.user.data2);
             }
             break;
           }

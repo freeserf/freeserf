@@ -344,6 +344,9 @@ midi_produce(midi_file_t *midi, size_t *size) {
   while (!midi->nodes.empty()) {
     i++;
     midi_node_t *node = midi->nodes.top();
+    if (node == NULL) {
+      continue;
+    }
     midi->nodes.pop();
     midi_write_variable_size(midi, &current, node->time - time);
     time = node->time;

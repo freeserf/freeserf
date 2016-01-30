@@ -30,7 +30,7 @@ typedef struct {
   unsigned char g;
   unsigned char b;
   unsigned char a;
-} color_t;
+} video_color_t;
 
 class Video_Exception : public std::exception {
  protected:
@@ -81,9 +81,9 @@ class video_t {
   virtual void draw_frame(int dx, int dy, video_frame_t *dest, int sx, int sy,
                           video_frame_t *src, int w, int h) = 0;
   virtual void draw_rect(int x, int y, unsigned int width, unsigned int height,
-                         const color_t *color, video_frame_t *dest) = 0;
+                         const video_color_t color, video_frame_t *dest) = 0;
   virtual void fill_rect(int x, int y, unsigned int width, unsigned int height,
-                         const color_t *color, video_frame_t *dest) = 0;
+                         const video_color_t color, video_frame_t *dest) = 0;
   virtual void swap_buffers() = 0;
 
   virtual void set_cursor(void *data, unsigned int width,

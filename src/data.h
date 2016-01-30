@@ -1,7 +1,7 @@
 /*
  * data.h - Definitions for data file access.
  *
- * Copyright (C) 2012-2014  Jon Lund Steffensen <jonlst@gmail.com>
+ * Copyright (C) 2012-2015  Jon Lund Steffensen <jonlst@gmail.com>
  *
  * This file is part of freeserf.
  *
@@ -19,19 +19,11 @@
  * along with freeserf.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef _DATA_H
-#define _DATA_H
+#ifndef SRC_DATA_H_
+#define SRC_DATA_H_
 
-#include "misc.h"
-
-#ifdef HAVE_CONFIG_H
-# include <config.h>
-#endif
-
-#ifdef HAVE_STDINT_H
-#include <stdint.h>
-#endif
-#include <sys/types.h>
+#include <string>
+#include <list>
 
 /* Index 0 is undefined (entry 0 in the data file
    contains a header with the size and total
@@ -188,14 +180,17 @@
 #define DATA_MAP_OBJECT_FLAG          (DATA_MAP_OBJECT_BASE+128)
 #define DATA_MAP_OBJECT_CROSS         (DATA_MAP_OBJECT_BASE+144)
 #define DATA_MAP_OBJECT_CORNER_STONE  (DATA_MAP_OBJECT_BASE+145)
+#define DATA_MAP_OBJECT_COUNT         194
 
 /* undefined: 1444-1499 */
 
-#define DATA_MAP_SHADOW_BASE  1500
+#define DATA_MAP_SHADOW_BASE   1500
+#define DATA_MAP_SHADOW_COUNT  (DATA_MAP_OBJECT_COUNT)
 
 /* undefined: 1694-1749 */
 
-#define DATA_FRAME_BUTTON_BASE  1750
+#define DATA_PANEL_BUTTON_BASE  1750
+#define DATA_PANEL_BUTTON_COUNT 17
 
 /* undefined: 1775-1779 */
 
@@ -238,22 +233,27 @@
 
 #define DATA_CURSOR  3999
 
+class data_source_t;
 
-/* Sprite header. In the data file this is immediately followed by sprite data. */
-typedef struct {
-	int8_t b_x;
-	int8_t b_y;
-	uint16_t w;
-	uint16_t h;
-	int16_t x;
-	int16_t y;
-} dos_sprite_t;
+class data_t {
+ protected:
+  static data_t *instance;
+  data_source_t *data_source;
+  std::list<std::string> search_paths;
 
+  data_t();
 
-int data_load(const char *path);
-void data_unload();
+ public:
+  virtual ~data_t();
 
-void *data_get_object(uint index, size_t *size);
-const dos_sprite_t *data_get_dos_sprite(uint index);
+  static data_t *get_instance();
 
-#endif /* ! _DATA_H */
+  bool load(const std::string &path);
+
+  data_source_t *get_data_source() const { return data_source; }
+
+ protected:
+  void add_to_search_paths(const char *path, const char *suffix);
+};
+
+#endif  // SRC_DATA_H_

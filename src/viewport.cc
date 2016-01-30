@@ -26,17 +26,17 @@
 
 #include "src/misc.h"
 BEGIN_EXT_C
-  #include "src/data.h"
   #include "src/game.h"
   #include "src/log.h"
   #include "src/debug.h"
 END_EXT_C
+#include "src/data.h"
 #include "src/audio.h"
 #include "src/gfx.h"
 #include "src/interface.h"
 #include "src/popup.h"
 #include "src/pathfinder.h"
-#include "src/freeserf_endian.h"
+#include "src/data-source.h"
 
 #ifdef min
 # undef min
@@ -306,48 +306,47 @@ viewport_t::redraw_map_pos(map_pos_t pos) {
 
 frame_t *
 viewport_t::get_tile_frame(uint tid, int tc, int tr) {
-  frame_t *tile_frame = NULL;
+  tiles_map_t::iterator it = landscape_tiles.find(tid);
+  if (it != landscape_tiles.end()) {
+    return it->second;
+  }
 
   int tile_width = MAP_TILE_COLS*MAP_TILE_WIDTH;
   int tile_height = MAP_TILE_ROWS*MAP_TILE_HEIGHT;
 
-  tiles_map_t::iterator it = landscape_tiles.find(tid);
-  if (it != landscape_tiles.end()) {
-    tile_frame = it->second;
-  } else {
-    tile_frame = gfx_t::get_instance()->create_frame(tile_width, tile_height);
-    tile_frame->fill_rect(0, 0, tile_width, tile_height, 0);
+  frame_t *tile_frame = gfx_t::get_instance()->create_frame(tile_width,
+                                                            tile_height);
+  tile_frame->fill_rect(0, 0, tile_width, tile_height, 0);
 
-    int col = (tc*MAP_TILE_COLS + (tr*MAP_TILE_ROWS)/2) % game.map.cols;
-    int row = tr*MAP_TILE_ROWS;
-    map_pos_t pos = MAP_POS(col, row);
+  int col = (tc*MAP_TILE_COLS + (tr*MAP_TILE_ROWS)/2) % game.map.cols;
+  int row = tr*MAP_TILE_ROWS;
+  map_pos_t pos = MAP_POS(col, row);
 
-    int x_base = -(MAP_TILE_WIDTH/2);
+  int x_base = -(MAP_TILE_WIDTH/2);
 
-    /* Draw one extra column as half a column will be outside the
-       map tile on both right and left side.. */
-    for (int col = 0; col < MAP_TILE_COLS+1; col++) {
-      draw_up_tile_col(pos, x_base, 0, tile_height, tile_frame);
-      draw_down_tile_col(pos, x_base + MAP_TILE_WIDTH/2, 0, tile_height,
-                         tile_frame);
+  /* Draw one extra column as half a column will be outside the
+   map tile on both right and left side.. */
+  for (int col = 0; col < MAP_TILE_COLS+1; col++) {
+    draw_up_tile_col(pos, x_base, 0, tile_height, tile_frame);
+    draw_down_tile_col(pos, x_base + MAP_TILE_WIDTH/2, 0, tile_height,
+                       tile_frame);
 
-      pos = MAP_MOVE_RIGHT(pos);
-      x_base += MAP_TILE_WIDTH;
-    }
+    pos = MAP_MOVE_RIGHT(pos);
+    x_base += MAP_TILE_WIDTH;
+  }
 
 #if 0
-    /* Draw a border around the tile for debug. */
-    tile_frame->draw_rect(0, 0, tile_width, tile_height, 76);
+  /* Draw a border around the tile for debug. */
+  tile_frame->draw_rect(0, 0, tile_width, tile_height, 76);
 #endif
 
-    LOGV("viewport", "map: %i,%i, cols,rows: %i,%i, tc,tr: %i,%i, tw,th: %i,%i",
-         game.map.cols*MAP_TILE_WIDTH, game.map.rows*MAP_TILE_HEIGHT,
-         game.map.cols, game.map.rows,
-         tc, tr,
-         tile_width, tile_height);
+  LOGV("viewport", "map: %i,%i, cols,rows: %i,%i, tc,tr: %i,%i, tw,th: %i,%i",
+       game.map.cols*MAP_TILE_WIDTH, game.map.rows*MAP_TILE_HEIGHT,
+       game.map.cols, game.map.rows,
+       tc, tr,
+       tile_width, tile_height);
 
-    landscape_tiles[tid] = tile_frame;
-  }
+  landscape_tiles[tid] = tile_frame;
 
   return tile_frame;
 }
@@ -1364,7 +1363,8 @@ viewport_t::serf_get_body(serf_t *serf) {
     0x7600, 0x5f00, 0x6000, 0, 0, 0, 0, 0
   };
 
-  animation_t *animation = get_animation(serf->animation, serf->counter >> 3);
+  animation_t *animation = data_source->get_animation(serf->animation,
+                                                      serf->counter);
   int t = animation->time;
 
   switch (SERF_TYPE(serf)) {
@@ -1859,7 +1859,8 @@ viewport_t::draw_active_serf(serf_t *serf, map_pos_t pos,
     5, 8, 0, 0, 0, 0, 0, 0
   };
 
-  animation_t *animation = get_animation(serf->animation, serf->counter >> 3);
+  animation_t *animation = data_source->get_animation(serf->animation,
+                                                      serf->counter);
 
   int x = x_base + animation->x;
   int y = y_base + animation->y - 4*MAP_HEIGHT(pos);
@@ -1882,8 +1883,8 @@ viewport_t::draw_active_serf(serf_t *serf, map_pos_t pos,
     if (index != 0) {
       serf_t *def_serf = game_get_serf(index);
 
-      animation_t *animation = get_animation(def_serf->animation,
-                                             def_serf->counter >> 3);
+      animation_t *animation = data_source->get_animation(def_serf->animation,
+                                                          def_serf->counter);
 
       int x = x_base + animation->x;
       int y = y_base + animation->y - 4*MAP_HEIGHT(pos);
@@ -2473,7 +2474,8 @@ viewport_t::viewport_t(interface_t *interface) {
 
   last_tick = 0;
 
-  load_serf_animation_table();
+  data_t *data = data_t::get_instance();
+  data_source = data->get_data_source();
 }
 
 viewport_t::~viewport_t() {
@@ -2663,51 +2665,4 @@ viewport_t::update() {
   if (tick_xor >= 1 << 3) {
     set_redraw();
   }
-}
-
-void
-viewport_t::load_serf_animation_table() {
-  /* The serf animation table is stored in big endian
-   order in the data file.
-
-   * The first uint32 is the byte length of the rest
-   of the table.
-   * Next is 199 uint32s that are offsets from the start
-   of this table to an animation table (one for each
-   animation).
-   * The animation tables are of varying lengths.
-   Each entry in the animation table is three bytes
-   long. First byte is used to determine the serf body
-   sprite. Second byte is a signed horizontal sprite
-   offset. Third byte is a signed vertical offset.
-   */
-
-  size_t size = 0;
-  serf_animation_table =
-    reinterpret_cast<uint32_t*>(data_get_object(DATA_SERF_ANIMATION_TABLE,
-                                                &size));
-  if (NULL == serf_animation_table) {
-    return;
-  }
-
-  if (serf_animation_table[0] != 0xFFFFFFFF) {
-    if (size != be32toh(serf_animation_table[0])) {
-      // TODO(digger): report and assert
-    }
-    serf_animation_table[0] = 0xFFFFFFFF;
-    serf_animation_table++;
-
-    /* Endianess convert from big endian. */
-    for (int i = 0; i < 200; i++) {
-      serf_animation_table[i] = be32toh(serf_animation_table[i]);
-    }
-  }
-}
-
-viewport_t::animation_t*
-viewport_t::get_animation(int animation, int phase) {
-  uint8_t *tbl_ptr = reinterpret_cast<uint8_t*>(serf_animation_table) +
-                     serf_animation_table[animation] +
-                     (3 * phase);
-  return reinterpret_cast<animation_t*>(tbl_ptr);
 }

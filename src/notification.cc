@@ -28,9 +28,9 @@
 #include "src/misc.h"
 BEGIN_EXT_C
   #include "src/game.h"
-  #include "src/data.h"
   #include "src/debug.h"
 END_EXT_C
+#include "src/data.h"
 
 void
 notification_box_t::draw_icon(int x, int y, int sprite) {

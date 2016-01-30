@@ -48,16 +48,22 @@ sfx2wav(void* sfx, size_t sfx_size, size_t *wav_size, int level, bool invert) {
                           WRITE_DATA_WG(val);}
 #define WRITE_BYTE_WG(X) {*current = (uint8_t)X; current++;}
 
-  *wav_size = 44 + sfx_size*2;
+  if (wav_size != NULL) {
+    *wav_size = 0;
+  }
 
-  char *result = reinterpret_cast<char*>(malloc(*wav_size));
-  if (result == NULL) abort();
+  size_t size = 44 + sfx_size * 2;
+
+  char *result = reinterpret_cast<char*>(malloc(size));
+  if (result == NULL) {
+    return NULL;
+  }
 
   char *current = result;
 
   /* WAVE header */
   WRITE_BE32_WG(0x52494646);              /* 'RIFF' */
-  WRITE_LE32_WG((uint32_t)*wav_size - 8); /* Chunks size */
+  WRITE_LE32_WG((uint32_t)size - 8);      /* Chunks size */
   WRITE_BE32_WG(0x57415645);              /* 'WAVE' */
 
   /* Subchunk #1 */
@@ -83,6 +89,10 @@ sfx2wav(void* sfx, size_t sfx_size, size_t *wav_size, int level, bool invert) {
     }
     WRITE_BE16_WG(value*0xFF);
     sfx_size--;
+  }
+
+  if (wav_size != NULL) {
+    *wav_size = size;
   }
 
   return result;
