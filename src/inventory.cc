@@ -37,9 +37,8 @@
 #include "src/game.h"
 #include "src/serf.h"
 
-inventory_t::inventory_t(unsigned int index) {
-  this->index = index;
-
+inventory_t::inventory_t(game_t *game, unsigned int index)
+  : game_object_t(game, index) {
   player_num = 0;
   res_dir = 0;
   flag = 0;
@@ -125,8 +124,8 @@ inventory_t::lose_queue() {
     resource_type_t res = out_queue[i].type;
     int dest = out_queue[i].dest;
 
-    game_cancel_transported_resource(res, dest);
-    game_lose_resource(res);
+    game->cancel_transported_resource(res, dest);
+    game->lose_resource(res);
   }
 }
 
@@ -185,12 +184,12 @@ inventory_t::call_transporter(bool water) {
 
   if (water) {
     if (serfs[SERF_SAILOR] != 0) {
-      serf = game.serfs[serfs[SERF_SAILOR]];
+      serf = game->get_serf(serfs[SERF_SAILOR]);
       serfs[SERF_SAILOR] = 0;
     } else {
       if ((serfs[SERF_GENERIC] != 0) &&
           (resources[RESOURCE_BOAT] > 0)) {
-        serf = game.serfs[serfs[SERF_GENERIC]];
+        serf = game->get_serf(serfs[SERF_GENERIC]);
         serfs[SERF_GENERIC] = 0;
         resources[RESOURCE_BOAT]--;
         serf->set_type(SERF_SAILOR);
@@ -201,11 +200,11 @@ inventory_t::call_transporter(bool water) {
     }
   } else {
     if (serfs[SERF_TRANSPORTER] != 0) {
-      serf = game.serfs[serfs[SERF_TRANSPORTER]];
+      serf = game->get_serf(serfs[SERF_TRANSPORTER]);
       serfs[SERF_TRANSPORTER] = 0;
     } else {
       if (serfs[SERF_GENERIC] != 0) {
-        serf = game.serfs[serfs[SERF_GENERIC]];
+        serf = game->get_serf(serfs[SERF_GENERIC]);
         serfs[SERF_GENERIC] = 0;
         serf->set_type(SERF_TRANSPORTER);
         generic_count -= 1;
@@ -240,7 +239,7 @@ inventory_t::call_out_serf(serf_type_t type) {
     return NULL;
   }
 
-  serf_t *serf = game.serfs[serfs[type]];
+  serf_t *serf = game->get_serf(serfs[type]);
   if (!call_out_serf(serf)) {
     return NULL;
   }
@@ -265,7 +264,7 @@ inventory_t::call_internal(serf_type_t type) {
     return NULL;
   }
 
-  serf_t *serf = game.serfs[serfs[type]];
+  serf_t *serf = game->get_serf(serfs[type]);
   serfs[type] = 0;
 
   return serf;
@@ -294,7 +293,7 @@ inventory_t::promote_serf_to_knight(serf_t *serf) {
 
 serf_t*
 inventory_t::spawn_serf_generic() {
-  serf_t *serf = game.players[player_num]->spawn_serf_generic();
+  serf_t *serf = game->get_player(player_num)->spawn_serf_generic();
 
   if (serf != NULL) {
     serf->init_generic(this);
@@ -383,7 +382,7 @@ inventory_t::specialize_free_serf(serf_type_t type) {
     return NULL;
   }
 
-  serf_t *serf = game.serfs[serfs[SERF_GENERIC]];
+  serf_t *serf = game->get_serf(serfs[SERF_GENERIC]);
 
   if (!specialize_serf(serf, type)) {
     return NULL;

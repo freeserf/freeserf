@@ -33,25 +33,14 @@
 # include <stdint.h>
 #endif
 
-class Freeserf_Exception : public std::exception {
- protected:
-  std::string description;
-
- public:
-  explicit Freeserf_Exception(const std::string &description) throw();
-  virtual ~Freeserf_Exception() throw();
-
-  virtual const char* what() const throw();
-  virtual const char* get_description() const;
-  virtual const char* get_system() const { return "Unspecified"; }
-};
+#include "src/debug.h"
 
 class GFX_Exception : public Freeserf_Exception {
  public:
   explicit GFX_Exception(const std::string &description) throw();
   virtual ~GFX_Exception() throw();
 
-  virtual const char* get_system() const { return "graphics"; }
+  virtual std::string get_system() const { return "graphics"; }
 };
 
 class video_t;

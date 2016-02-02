@@ -95,8 +95,9 @@ void
 panel_bar_t::draw_panel_buttons() {
   if (enabled) {
     /* Blinking message icon. */
-    if (interface->get_player()->has_notification()) {
-      if (game.const_tick & 0x30) {
+    if ((interface->get_player() != NULL) &&
+        interface->get_player()->has_notification()) {
+      if (interface->get_player()->get_game()->get_const_tick() & 0x30) {
         draw_message_notify();
       }
     }
@@ -140,7 +141,8 @@ panel_bar_t::button_click(int button) {
   case PANEL_BTN_MAP:
   case PANEL_BTN_MAP_STARRED:
     play_sound(SFX_CLICK);
-    if (interface->get_popup_box()->is_displayed()) {
+    if ((interface->get_popup_box() != NULL) &&
+        interface->get_popup_box()->is_displayed()) {
       interface->close_popup();
     } else {
       panel_btns[0] = PANEL_BTN_BUILD_INACTIVE;
@@ -148,6 +150,8 @@ panel_bar_t::button_click(int button) {
       panel_btns[2] = PANEL_BTN_MAP_STARRED;
       panel_btns[3] = PANEL_BTN_STATS_INACTIVE;
       panel_btns[4] = PANEL_BTN_SETT_INACTIVE;
+
+      interface->open_popup(BOX_MAP);
 
       /* Synchronize minimap window with viewport. */
       viewport_t *viewport = interface->get_viewport();
@@ -157,14 +161,13 @@ panel_bar_t::button_click(int button) {
         map_pos_t pos = viewport->get_current_map_pos();
         minimap->move_to_map_pos(pos);
       }
-
-      interface->open_popup(BOX_MAP);
     }
     break;
   case PANEL_BTN_SETT:
   case PANEL_BTN_SETT_STARRED:
     play_sound(SFX_CLICK);
-    if (interface->get_popup_box()->is_displayed()) {
+    if ((interface->get_popup_box() != NULL) &&
+        interface->get_popup_box()->is_displayed()) {
       interface->close_popup();
     } else {
       panel_btns[0] = PANEL_BTN_BUILD_INACTIVE;
@@ -178,7 +181,8 @@ panel_bar_t::button_click(int button) {
   case PANEL_BTN_STATS:
   case PANEL_BTN_STATS_STARRED:
     play_sound(SFX_CLICK);
-    if (interface->get_popup_box()->is_displayed()) {
+    if ((interface->get_popup_box() != NULL) &&
+        interface->get_popup_box()->is_displayed()) {
       interface->close_popup();
     } else {
       panel_btns[0] = PANEL_BTN_BUILD_INACTIVE;
@@ -205,7 +209,8 @@ panel_bar_t::button_click(int button) {
   case PANEL_BTN_BUILD_SMALL:
   case PANEL_BTN_BUILD_SMALL_STARRED:
     play_sound(SFX_CLICK);
-    if (interface->get_popup_box()->is_displayed()) {
+    if ((interface->get_popup_box() != NULL) &&
+        interface->get_popup_box()->is_displayed()) {
       interface->close_popup();
     } else {
       panel_btns[0] = PANEL_BTN_BUILD_SMALL_STARRED;
@@ -219,7 +224,8 @@ panel_bar_t::button_click(int button) {
   case PANEL_BTN_BUILD_LARGE:
   case PANEL_BTN_BUILD_LARGE_STARRED:
     play_sound(SFX_CLICK);
-    if (interface->get_popup_box()->is_displayed()) {
+    if ((interface->get_popup_box() != NULL) &&
+        interface->get_popup_box()->is_displayed()) {
       interface->close_popup();
     } else {
       panel_btns[0] = PANEL_BTN_BUILD_LARGE_STARRED;
@@ -233,7 +239,8 @@ panel_bar_t::button_click(int button) {
   case PANEL_BTN_BUILD_MINE:
   case PANEL_BTN_BUILD_MINE_STARRED:
     play_sound(SFX_CLICK);
-    if (interface->get_popup_box()->is_displayed()) {
+    if ((interface->get_popup_box() != NULL) &&
+        interface->get_popup_box()->is_displayed()) {
       interface->close_popup();
     } else {
       panel_btns[0] = PANEL_BTN_BUILD_MINE_STARRED;
@@ -260,9 +267,10 @@ panel_bar_t::button_click(int button) {
     interface->build_castle();
     break;
   case PANEL_BTN_DESTROY_ROAD: {
-    int r = game_demolish_road(interface->get_map_cursor_pos(),
-                               interface->get_player());
-    if (r < 0) {
+    bool r = interface->get_player()->get_game()->demolish_road(
+                                                interface->get_map_cursor_pos(),
+                                                       interface->get_player());
+    if (!r) {
       play_sound(SFX_NOT_ACCEPTED);
       interface->update_map_cursor_pos(interface->get_map_cursor_pos());
     } else {
@@ -273,7 +281,8 @@ panel_bar_t::button_click(int button) {
   case PANEL_BTN_GROUND_ANALYSIS:
   case PANEL_BTN_GROUND_ANALYSIS_STARRED:
     play_sound(SFX_CLICK);
-    if (interface->get_popup_box()->is_displayed()) {
+    if ((interface->get_popup_box() != NULL) &&
+        interface->get_popup_box()->is_displayed()) {
       interface->close_popup();
     } else {
       panel_btns[0] = PANEL_BTN_BUILD_INACTIVE;
@@ -293,38 +302,34 @@ panel_bar_t::handle_click_left(int x, int y) {
 
   if (x >= 41 && x < 53) {
     /* Message bar click */
-    if (BIT_TEST(game.svga, 3)) { /* Game has started */
-      if (y < 16) {
-        /* Message icon */
-        interface->open_message();
-      } else if (y >= 28) {
-        /* Return arrow */
-        interface->return_from_message();
-      }
+    if (y < 16) {
+      /* Message icon */
+      interface->open_message();
+    } else if (y >= 28) {
+      /* Return arrow */
+      interface->return_from_message();
     }
   } else if (x >= 301 && x < 313) {
     /* Timer bar click */
-    if (BIT_TEST(game.svga, 3)) { /* Game has started */
-      /* Call to map position */
-      unsigned int timer_length = 0;
+    /* Call to map position */
+    unsigned int timer_length = 0;
 
-      if (y < 7) {
-        timer_length = 5*60;
-      } else if (y < 14) {
-        timer_length = 10*60;
-      } else if (y < 21) {
-        timer_length = 20*60;
-      } else if (y < 28) {
-        timer_length = 30*60;
-      } else {
-        timer_length = 60*60;
-      }
-
-      interface->get_player()->add_timer(timer_length * TICKS_PER_SEC,
-                                         interface->get_map_cursor_pos());
-
-      play_sound(SFX_ACCEPTED);
+    if (y < 7) {
+      timer_length = 5*60;
+    } else if (y < 14) {
+      timer_length = 10*60;
+    } else if (y < 21) {
+      timer_length = 20*60;
+    } else if (y < 28) {
+      timer_length = 30*60;
+    } else {
+      timer_length = 60*60;
     }
+
+    interface->get_player()->add_timer(timer_length * TICKS_PER_SEC,
+                                       interface->get_map_cursor_pos());
+
+    play_sound(SFX_ACCEPTED);
   } else if (y >= 4 && y < 36 && x >= 64) {
     x -= 64;
 
@@ -348,6 +353,17 @@ panel_bar_t::handle_click_left(int x, int y) {
   return true;
 }
 
+bool
+panel_bar_t::handle_key_pressed(char key, int modifier) {
+  if (key < '1' || key > '5') {
+    return false;
+  }
+
+  button_click(key - '1');
+
+  return true;
+}
+
 panel_bar_t::panel_bar_t(interface_t *interface) {
   this->interface = interface;
 
@@ -356,11 +372,6 @@ panel_bar_t::panel_bar_t(interface_t *interface) {
   panel_btns[2] = PANEL_BTN_MAP;
   panel_btns[3] = PANEL_BTN_STATS;
   panel_btns[4] = PANEL_BTN_SETT;
-}
-
-void
-panel_bar_t::activate_button(int button) {
-  button_click(button);
 }
 
 panel_bar_t::panel_btn_t
@@ -393,7 +404,8 @@ panel_bar_t::button_type_with_build_possibility(int build_possibility) {
 
 void
 panel_bar_t::update() {
-  if (interface->get_popup_box()->is_displayed()) {
+  if ((interface->get_popup_box() != NULL) &&
+      interface->get_popup_box()->is_displayed()) {
     switch (interface->get_popup_box()->get_box()) {
       case BOX_TRANSPORT_INFO:
       case BOX_ORDERED_BLD:
@@ -475,7 +487,8 @@ panel_bar_t::update() {
         break;
       case MAP_CURSOR_TYPE_CLEAR:
         panel_btns[0] = button_type_with_build_possibility(build_possibility);
-        if (interface->get_player()->has_castle()) {
+        if ((interface->get_player() != NULL) &&
+            interface->get_player()->has_castle()) {
           panel_btns[1] = PANEL_BTN_DESTROY_INACTIVE;
         } else {
           panel_btns[1] = PANEL_BTN_GROUND_ANALYSIS;

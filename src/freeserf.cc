@@ -75,8 +75,8 @@ strreplace(char *target, const char *needle, char replace) {
   }
 }
 
-int
-save_game(int autosave) {
+bool
+save_game(int autosave, game_t *game) {
   size_t r;
 
   /* Build filename including time stamp. */
@@ -84,14 +84,14 @@ save_game(int autosave) {
   std::time_t t = time(NULL);
 
   struct tm *tm = std::localtime(&t);
-  if (tm == NULL) return -1;
+  if (tm == NULL) return false;
 
   if (!autosave) {
     r = strftime(name, sizeof(name), "%c.save", tm);
-    if (r == 0) return -1;
+    if (r == 0) return false;
   } else {
     r = strftime(name, sizeof(name), "autosave-%c.save", tm);
-    if (r == 0) return -1;
+    if (r == 0) return false;
   }
 
   /* Substitute problematic characters. These are problematic
@@ -101,32 +101,16 @@ save_game(int autosave) {
   strreplace(name, "\\/:*?\"<>| ", '_');
 
   FILE *f = fopen(name, "wb");
-  if (f == NULL) return -1;
+  if (f == NULL) return false;
 
-  int r1 = save_text_state(f);
-  if (r1 < 0) return -1;
+  if (!save_text_state(f, game)) return false;
 
   fclose(f);
 
   LOGI("main", "Game saved to `%s'.", name);
 
-  return 0;
+  return true;
 }
-
-class game_event_handler_t : public event_handler_t {
- public:
-  virtual bool handle_event(const event_t *event) {
-    switch (event->type) {
-      case EVENT_UPDATE:
-        game_update();
-        return true;
-        break;
-      default:
-        break;
-    }
-    return false;
-  }
-};
 
 #define USAGE                                               \
   "Usage: %s [-g DATA-FILE]\n"
@@ -227,7 +211,7 @@ main(int argc, char *argv[]) {
     gfx = gfx_t::get_instance();
     gfx->set_resolution(screen_width, screen_height, fullscreen);
   } catch (Freeserf_Exception &e) {
-    LOGE(e.get_system(), e.what());
+    LOGE(e.get_system().c_str(), e.what());
     return -1;
   }
 
@@ -242,49 +226,44 @@ main(int argc, char *argv[]) {
     player->play_track(MIDI_TRACK_0);
   }
 
-  game.map_generator = map_generator;
+  game_t *game = new game_t(map_generator);
+  game->init();
 
-  game_init();
-
-  int player_num = 0;
   /* Either load a save game if specified or
      start a new game. */
   if (!save_file.empty()) {
-    int r = game_load_save_game(save_file.c_str());
-    if (r < 0) exit(EXIT_FAILURE);
+    if (!game->load_save_game(save_file)) exit(EXIT_FAILURE);
   } else {
-    int r = game_load_random_map(3, random_state_t());
-    if (r < 0) exit(EXIT_FAILURE);
-
-    /* Add default player */
-    player_num = game_add_player(12, 64, 40, 40, 40);
-    if (player_num < 0) exit(EXIT_FAILURE);
+    if (!game->load_random_map(3, random_state_t())) exit(EXIT_FAILURE);
   }
 
   /* Initialize interface */
   interface_t *interface = new interface_t();
   interface->set_size(screen_width, screen_height);
   interface->set_displayed(true);
-  interface->set_player(player_num);
+  interface->set_game(game);
+  interface->set_player(0);
 
   if (save_file.empty()) {
     interface->open_game_init();
   }
 
   /* Init game loop */
-  game_event_handler_t *handler = new game_event_handler_t();
   event_loop_t *event_loop = event_loop_t::get_instance();
-  event_loop->add_handler(handler);
+  event_loop->add_handler(game);
   event_loop->add_handler(interface);
 
   /* Start game loop */
   event_loop->run();
 
+  event_loop->del_handler(interface);
+  event_loop->del_handler(game);
+
   LOGI("main", "Cleaning up...");
 
   /* Clean up */
   delete interface;
-  game_deinit();
+  delete game;
   delete audio;
   delete gfx;
   delete data;

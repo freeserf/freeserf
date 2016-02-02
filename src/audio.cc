@@ -22,7 +22,6 @@
 #include "src/audio.h"
 
 #include <algorithm>
-#include <strstream>
 
 #include "src/log.h"
 

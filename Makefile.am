@@ -28,10 +28,9 @@ freeserf_SOURCES = \
 	src/video.cc src/video.h \
 	src/audio.cc src/audio.h \
 	src/savegame.cc src/savegame.h \
-	src/list.cc src/list.h \
 	src/log.cc src/log.h \
 	src/misc.h \
-	src/debug.h \
+	src/debug.cc src/debug.h \
 	src/freeserf_endian.h \
 	src/version.cc src/version.h src/version-vcs.h \
 	src/data-source-dos.cc src/data-source-dos.h\

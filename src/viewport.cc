@@ -88,7 +88,7 @@ viewport_t::draw_triangle_up(int x, int y, int m, int left, int right,
   int mask = 4 + m - left + 9*(4 + m - right);
   assert(tri_mask[mask] >= 0);
 
-  int type = game.map->type_up(game.map->move_up(pos));
+  int type = map->type_up(map->move_up(pos));
   int index = (type << 3) | tri_mask[mask];
   assert(index < 128);
 
@@ -120,7 +120,7 @@ viewport_t::draw_triangle_down(int x, int y, int m, int left, int right,
   int mask = 4 + left - m + 9*(4 + right - m);
   assert(tri_mask[mask] >= 0);
 
-  int type = game.map->type_down(game.map->move_up_left(pos));
+  int type = map->type_down(map->move_up_left(pos));
   int index = (type << 3) | tri_mask[mask];
   assert(index < 128);
 
@@ -135,16 +135,16 @@ viewport_t::draw_triangle_down(int x, int y, int m, int left, int right,
 void
 viewport_t::draw_up_tile_col(map_pos_t pos, int x_base, int y_base, int max_y,
                              frame_t *frame) {
-  int m = game.map->get_height(pos);
+  int m = map->get_height(pos);
   int left, right;
 
   /* Loop until a tile is inside the frame (y >= 0). */
   while (1) {
     /* move down */
-    pos = game.map->move_down(pos);
+    pos = map->move_down(pos);
 
-    left = game.map->get_height(pos);
-    right = game.map->get_height(game.map->move_right(pos));
+    left = map->get_height(pos);
+    right = map->get_height(map->move_right(pos));
 
     int t = std::min(left, right);
     /*if (left == right) t -= 1;*/ /* TODO ? */
@@ -154,9 +154,9 @@ viewport_t::draw_up_tile_col(map_pos_t pos, int x_base, int y_base, int max_y,
     y_base += MAP_TILE_HEIGHT;
 
     /* move down right */
-    pos = game.map->move_down_right(pos);
+    pos = map->move_down_right(pos);
 
-    m = game.map->get_height(pos);
+    m = map->get_height(pos);
 
     if (y_base + MAP_TILE_HEIGHT - 4*m >= 0) goto down;
 
@@ -172,8 +172,8 @@ viewport_t::draw_up_tile_col(map_pos_t pos, int x_base, int y_base, int max_y,
     y_base += MAP_TILE_HEIGHT;
 
     /* move down right */
-    pos = game.map->move_down_right(pos);
-    m = game.map->get_height(pos);
+    pos = map->move_down_right(pos);
+    m = map->get_height(pos);
 
     if (y_base - 2*MAP_TILE_HEIGHT - 4*std::max(left, right) >= max_y) break;
 
@@ -183,10 +183,10 @@ viewport_t::draw_up_tile_col(map_pos_t pos, int x_base, int y_base, int max_y,
     y_base += MAP_TILE_HEIGHT;
 
     /* move down */
-    pos = game.map->move_down(pos);
+    pos = map->move_down(pos);
 
-    left = game.map->get_height(pos);
-    right = game.map->get_height(game.map->move_right(pos));
+    left = map->get_height(pos);
+    right = map->get_height(map->move_right(pos));
   }
 }
 
@@ -194,26 +194,26 @@ viewport_t::draw_up_tile_col(map_pos_t pos, int x_base, int y_base, int max_y,
 void
 viewport_t::draw_down_tile_col(map_pos_t pos, int x_base, int y_base,
                                int max_y, frame_t *frame) {
-  int left = game.map->get_height(pos);
-  int right = game.map->get_height(game.map->move_right(pos));
+  int left = map->get_height(pos);
+  int right = map->get_height(map->move_right(pos));
   int m;
 
   /* Loop until a tile is inside the frame (y >= 0). */
-  while (1) {
+  while (true) {
     /* move down right */
-    pos = game.map->move_down_right(pos);
+    pos = map->move_down_right(pos);
 
-    m = game.map->get_height(pos);
+    m = map->get_height(pos);
 
     if (y_base + MAP_TILE_HEIGHT - 4*m >= 0) goto down;
 
     y_base += MAP_TILE_HEIGHT;
 
     /* move down */
-    pos = game.map->move_down(pos);
+    pos = map->move_down(pos);
 
-    left = game.map->get_height(pos);
-    right = game.map->get_height(game.map->move_right(pos));
+    left = map->get_height(pos);
+    right = map->get_height(map->move_right(pos));
 
     int t = std::min(left, right);
     /*if (left == right) t -= 1;*/ /* TODO ? */
@@ -232,8 +232,8 @@ viewport_t::draw_down_tile_col(map_pos_t pos, int x_base, int y_base,
     y_base += MAP_TILE_HEIGHT;
 
     /* move down right */
-    pos = game.map->move_down_right(pos);
-    m = game.map->get_height(pos);
+    pos = map->move_down_right(pos);
+    m = map->get_height(pos);
 
     if (y_base - 2*MAP_TILE_HEIGHT - 4*std::max(left, right) >= max_y) break;
 
@@ -243,44 +243,24 @@ viewport_t::draw_down_tile_col(map_pos_t pos, int x_base, int y_base,
     y_base += MAP_TILE_HEIGHT;
 
     /* move down */
-    pos = game.map->move_down(pos);
+    pos = map->move_down(pos);
 
-    left = game.map->get_height(pos);
-    right = game.map->get_height(game.map->move_right(pos));
+    left = map->get_height(pos);
+    right = map->get_height(map->move_right(pos));
   }
-}
-
-/* Deallocate global allocations for landscape tiles */
-void
-viewport_t::map_deinit() {
-  game.map->del_change_handler(this);
-  while (landscape_tiles.size()) {
-    tiles_map_t::iterator it = landscape_tiles.begin();
-    delete it->second;
-    landscape_tiles.erase(it);
-  }
-}
-
-/* Reinitialize landscape tiles */
-void
-viewport_t::map_reinit() {
-  /* Listen for updates to the map height */
-  map_deinit();
-  game.map->add_change_handler(this);
 }
 
 void
 viewport_t::layout() {
-  map_deinit();
 }
 
 void
 viewport_t::redraw_map_pos(map_pos_t pos) {
   int mx, my;
-  map_pix_from_map_coord(pos, game.map->get_height(pos), &mx, &my);
+  map_pix_from_map_coord(pos, map->get_height(pos), &mx, &my);
 
-  int horiz_tiles = game.map->get_cols()/MAP_TILE_COLS;
-  int vert_tiles = game.map->get_rows()/MAP_TILE_ROWS;
+  int horiz_tiles = map->get_cols()/MAP_TILE_COLS;
+  int vert_tiles = map->get_rows()/MAP_TILE_ROWS;
 
   int tile_width = MAP_TILE_COLS*MAP_TILE_WIDTH;
   int tile_height = MAP_TILE_ROWS*MAP_TILE_HEIGHT;
@@ -311,9 +291,9 @@ viewport_t::get_tile_frame(unsigned int tid, int tc, int tr) {
                                                             tile_height);
   tile_frame->fill_rect(0, 0, tile_width, tile_height, 0);
 
-  int col = (tc*MAP_TILE_COLS + (tr*MAP_TILE_ROWS)/2) % game.map->get_cols();
+  int col = (tc*MAP_TILE_COLS + (tr*MAP_TILE_ROWS)/2) % map->get_cols();
   int row = tr*MAP_TILE_ROWS;
-  map_pos_t pos = game.map->pos(col, row);
+  map_pos_t pos = map->pos(col, row);
 
   int x_base = -(MAP_TILE_WIDTH/2);
 
@@ -324,7 +304,7 @@ viewport_t::get_tile_frame(unsigned int tid, int tc, int tr) {
     draw_down_tile_col(pos, x_base + MAP_TILE_WIDTH/2, 0, tile_height,
                        tile_frame);
 
-    pos = game.map->move_right(pos);
+    pos = map->move_right(pos);
     x_base += MAP_TILE_WIDTH;
   }
 
@@ -334,9 +314,9 @@ viewport_t::get_tile_frame(unsigned int tid, int tc, int tr) {
 #endif
 
   LOGV("viewport", "map: %i,%i, cols,rows: %i,%i, tc,tr: %i,%i, tw,th: %i,%i",
-       game.map->get_cols()*MAP_TILE_WIDTH,
-       game.map->get_rows()*MAP_TILE_HEIGHT,
-       game.map->get_cols(), game.map->get_rows(),
+       map->get_cols()*MAP_TILE_WIDTH,
+       map->get_rows()*MAP_TILE_HEIGHT,
+       map->get_cols(), map->get_rows(),
        tc, tr,
        tile_width, tile_height);
 
@@ -347,14 +327,14 @@ viewport_t::get_tile_frame(unsigned int tid, int tc, int tr) {
 
 void
 viewport_t::draw_landscape() {
-  int horiz_tiles = game.map->get_cols()/MAP_TILE_COLS;
-  int vert_tiles = game.map->get_rows()/MAP_TILE_ROWS;
+  int horiz_tiles = map->get_cols()/MAP_TILE_COLS;
+  int vert_tiles = map->get_rows()/MAP_TILE_ROWS;
 
   int tile_width = MAP_TILE_COLS*MAP_TILE_WIDTH;
   int tile_height = MAP_TILE_ROWS*MAP_TILE_HEIGHT;
 
-  int map_width = game.map->get_cols()*MAP_TILE_WIDTH;
-  int map_height = game.map->get_rows()*MAP_TILE_HEIGHT;
+  int map_width = map->get_cols()*MAP_TILE_WIDTH;
+  int map_height = map->get_rows()*MAP_TILE_HEIGHT;
 
   int my = offset_y;
   int y = 0;
@@ -362,7 +342,7 @@ viewport_t::draw_landscape() {
   while (y < height) {
     while (my >= map_height) {
       my -= map_height;
-      x_base += (game.map->get_rows()*MAP_TILE_WIDTH)/2;
+      x_base += (map->get_rows()*MAP_TILE_WIDTH)/2;
     }
 
     int ty = my % tile_height;
@@ -400,8 +380,8 @@ viewport_t::draw_landscape() {
 
 void
 viewport_t::draw_path_segment(int x, int y, map_pos_t pos, dir_t dir) {
-  int h1 = game.map->get_height(pos);
-  int h2 = game.map->get_height(game.map->move(pos, dir));
+  int h1 = map->get_height(pos);
+  int h2 = map->get_height(map->move(pos, dir));
   int h_diff = h1 - h2;
 
   int t1, t2, h3, h4, h_diff_2;
@@ -409,27 +389,27 @@ viewport_t::draw_path_segment(int x, int y, map_pos_t pos, dir_t dir) {
   switch (dir) {
   case DIR_RIGHT:
     y -= 4*std::max(h1, h2) + 2;
-    t1 = game.map->type_down(pos);
-    t2 = game.map->type_up(game.map->move_up(pos));
-    h3 = game.map->get_height(game.map->move_up(pos));
-    h4 = game.map->get_height(game.map->move_down_right(pos));
+    t1 = map->type_down(pos);
+    t2 = map->type_up(map->move_up(pos));
+    h3 = map->get_height(map->move_up(pos));
+    h4 = map->get_height(map->move_down_right(pos));
     h_diff_2 = (h3 - h4) - 4*h_diff;
     break;
   case DIR_DOWN_RIGHT:
     y -= 4*h1 + 2;
-    t1 = game.map->type_up(pos);
-    t2 = game.map->type_down(pos);
-    h3 = game.map->get_height(game.map->move_right(pos));
-    h4 = game.map->get_height(game.map->move_down(pos));
+    t1 = map->type_up(pos);
+    t2 = map->type_down(pos);
+    h3 = map->get_height(map->move_right(pos));
+    h4 = map->get_height(map->move_down(pos));
     h_diff_2 = 2*(h3 - h4);
     break;
   case DIR_DOWN:
     x -= MAP_TILE_WIDTH/2;
     y -= 4*h1 + 2;
-    t1 = game.map->type_up(pos);
-    t2 = game.map->type_down(game.map->move_left(pos));
-    h3 = game.map->get_height(game.map->move_left(pos));
-    h4 = game.map->get_height(game.map->move_down(pos));
+    t1 = map->type_up(pos);
+    t2 = map->type_down(map->move_left(pos));
+    h3 = map->get_height(map->move_left(pos));
+    h4 = map->get_height(map->move_down(pos));
     h_diff_2 = 4*h_diff - h3 + h4;
     break;
   default:
@@ -464,8 +444,8 @@ viewport_t::draw_path_segment(int x, int y, map_pos_t pos, dir_t dir) {
 
 void
 viewport_t::draw_border_segment(int x, int y, map_pos_t pos, dir_t dir) {
-  int h1 = game.map->get_height(pos);
-  int h2 = game.map->get_height(game.map->move(pos, dir));
+  int h1 = map->get_height(pos);
+  int h2 = map->get_height(map->move(pos, dir));
   int h_diff = h2 - h1;
 
   int t1, t2, h3, h4, h_diff_2;
@@ -474,28 +454,28 @@ viewport_t::draw_border_segment(int x, int y, map_pos_t pos, dir_t dir) {
   case DIR_RIGHT:
     x += MAP_TILE_WIDTH/2;
     y -= 2*(h1 + h2) + 4;
-    t1 = game.map->type_down(pos);
-    t2 = game.map->type_up(game.map->move_up(pos));
-    h3 = game.map->get_height(game.map->move_up(pos));
-    h4 = game.map->get_height(game.map->move_down_right(pos));
+    t1 = map->type_down(pos);
+    t2 = map->type_up(map->move_up(pos));
+    h3 = map->get_height(map->move_up(pos));
+    h4 = map->get_height(map->move_down_right(pos));
     h_diff_2 = h3 - h4 + 4*h_diff;
     break;
   case DIR_DOWN_RIGHT:
     x += MAP_TILE_WIDTH/4;
     y -= 2*(h1 + h2) - 6;
-    t1 = game.map->type_up(pos);
-    t2 = game.map->type_down(pos);
-    h3 = game.map->get_height(game.map->move_right(pos));
-    h4 = game.map->get_height(game.map->move_down(pos));
+    t1 = map->type_up(pos);
+    t2 = map->type_down(pos);
+    h3 = map->get_height(map->move_right(pos));
+    h4 = map->get_height(map->move_down(pos));
     h_diff_2 = 2*(h3 - h4);
     break;
   case DIR_DOWN:
     x -= MAP_TILE_WIDTH/4;
     y -= 2*(h1 + h2) - 6;
-    t1 = game.map->type_up(pos);
-    t2 = game.map->type_down(game.map->move_left(pos));
-    h3 = game.map->get_height(game.map->move_left(pos));
-    h4 = game.map->get_height(game.map->move_down(pos));
+    t1 = map->type_up(pos);
+    t2 = map->type_down(map->move_left(pos));
+    h3 = map->get_height(map->move_left(pos));
+    h4 = map->get_height(map->move_down(pos));
     h_diff_2 = 4*h_diff - h3 + h4;
     break;
   default:
@@ -530,9 +510,9 @@ viewport_t::draw_paths_and_borders() {
   int x_off = -(offset_x + 16*(offset_y/20)) % 32;
   int y_off = -offset_y % 20;
 
-  int col_0 = (offset_x/16 + offset_y/20)/2 & game.map->get_col_mask();
-  int row_0 = (offset_y/MAP_TILE_HEIGHT) & game.map->get_row_mask();
-  map_pos_t base_pos = game.map->pos(col_0, row_0);
+  int col_0 = (offset_x/16 + offset_y/20)/2 & map->get_col_mask();
+  int row_0 = (offset_y/MAP_TILE_HEIGHT) & map->get_row_mask();
+  map_pos_t base_pos = map->pos(col_0, row_0);
 
   for (int x_base = x_off; x_base < width + MAP_TILE_WIDTH;
        x_base += MAP_TILE_WIDTH) {
@@ -548,33 +528,33 @@ viewport_t::draw_paths_and_borders() {
         x = x_base - MAP_TILE_WIDTH/2;
       }
 
-      int y = y_base - 4* game.map->get_height(pos);
+      int y = y_base - 4* map->get_height(pos);
       if (y >= height) break;
 
       /* For each direction right, down right and down,
          draw the corresponding paths and borders. */
       for (int d = DIR_RIGHT; d <= DIR_DOWN; d++) {
-        map_pos_t other_pos = game.map->move(pos, (dir_t)d);
+        map_pos_t other_pos = map->move(pos, (dir_t)d);
 
-        if (game.map->has_path(pos, (dir_t)d)) {
+        if (map->has_path(pos, (dir_t)d)) {
           draw_path_segment(x, y_base, pos, (dir_t)d);
-        } else if (game.map->has_owner(pos) != game.map->has_owner(other_pos) ||
-                   game.map->get_owner(pos) != game.map->get_owner(other_pos)) {
+        } else if (map->has_owner(pos) != map->has_owner(other_pos) ||
+                   map->get_owner(pos) != map->get_owner(other_pos)) {
           draw_border_segment(x, y_base, pos, (dir_t)d);
         }
       }
 
       if (row % 2 == 0) {
-        pos = game.map->move_down(pos);
+        pos = map->move_down(pos);
       } else {
-        pos = game.map->move_down_right(pos);
+        pos = map->move_down_right(pos);
       }
 
       y_base += MAP_TILE_HEIGHT;
       row += 1;
     }
 
-    base_pos = game.map->move_right(base_pos);
+    base_pos = map->move_right(base_pos);
   }
 
   /* If we're in road construction mode, also draw
@@ -587,21 +567,20 @@ viewport_t::draw_paths_and_borders() {
       map_pos_t draw_pos = pos;
       dir_t draw_dir = dir;
       if (draw_dir > DIR_DOWN) {
-        draw_pos = game.map->move(pos, dir);
+        draw_pos = map->move(pos, dir);
         draw_dir = DIR_REVERSE(dir);
       }
 
       int mx, my;
-      map_pix_from_map_coord(draw_pos, game.map->get_height(draw_pos),
-                             &mx, &my);
+      map_pix_from_map_coord(draw_pos, map->get_height(draw_pos), &mx, &my);
 
       int sx, sy;
       screen_pix_from_map_pix(mx, my, &sx, &sy);
 
-      draw_path_segment(sx, sy + 4* game.map->get_height(draw_pos), draw_pos,
+      draw_path_segment(sx, sy + 4* map->get_height(draw_pos), draw_pos,
                         draw_dir);
 
-      pos = game.map->move(pos, dir);
+      pos = map->move(pos, dir);
     }
   }
 }
@@ -740,7 +719,7 @@ viewport_t::draw_unharmed_building(building_t *building, int x, int y) {
       if (building->playing_sfx()) { /* Draw elevator down */
         draw_game_sprite(x-6, y-39, 153);
         map_pos_t pos = building->get_position();
-        if ((((game.tick +
+        if ((((interface->get_game()->get_tick() +
                reinterpret_cast<uint8_t*>(&pos)[1]) >> 3) & 7) == 0
             && random->random() < 40000) {
           play_sound(SFX_ELEVATOR);
@@ -752,7 +731,8 @@ viewport_t::draw_unharmed_building(building_t *building, int x, int y) {
       draw_shadow_and_building_sprite(x, y, map_building_sprite[type]);
       if (building->has_main_serf()) {
         draw_game_sprite(x-14, y+2 - 2*building->get_knight_count(),
-             182 + ((game.tick >> 3) & 3) + 4*building->get_state());
+             182 + ((interface->get_game()->get_tick() >> 3) & 3) +
+                         4*building->get_state());
       }
       break;
     case BUILDING_PIGFARM:
@@ -766,54 +746,54 @@ viewport_t::draw_unharmed_building(building_t *building, int x, int y) {
         int pigs_count = building->get_res_count_in_stock(1);
 
         if (pigs_count >= 6) {
-          int i = (140 + (game.tick >> 3)) & 0xfe;
+          int i = (140 + (interface->get_game()->get_tick() >> 3)) & 0xfe;
           draw_game_sprite(x + pigfarm_anim[i+1] - 2, y+6, pigfarm_anim[i]);
         }
 
         if (pigs_count >= 5) {
-          int i = (280 + (game.tick >> 3)) & 0xfe;
+          int i = (280 + (interface->get_game()->get_tick() >> 3)) & 0xfe;
           draw_game_sprite(x + pigfarm_anim[i+1] + 8, y+8, pigfarm_anim[i]);
         }
 
         if (pigs_count >= 3) {
-          int i = (420 + (game.tick >> 3)) & 0xfe;
+          int i = (420 + (interface->get_game()->get_tick() >> 3)) & 0xfe;
           draw_game_sprite(x + pigfarm_anim[i+1] - 11, y+8, pigfarm_anim[i]);
         }
 
-        int i = (40 + (game.tick >> 3)) & 0xfe;
+        int i = (40 + (interface->get_game()->get_tick() >> 3)) & 0xfe;
         draw_game_sprite(x + pigfarm_anim[i+1] + 2, y+11, pigfarm_anim[i]);
 
         if (pigs_count >= 7) {
-          int i = (180 + (game.tick >> 3)) & 0xfe;
+          int i = (180 + (interface->get_game()->get_tick() >> 3)) & 0xfe;
           draw_game_sprite(x + pigfarm_anim[i+1] - 8, y+13, pigfarm_anim[i]);
         }
 
         if (pigs_count >= 8) {
-          int i = (320 + (game.tick >> 3)) & 0xfe;
+          int i = (320 + (interface->get_game()->get_tick() >> 3)) & 0xfe;
           draw_game_sprite(x + pigfarm_anim[i+1] + 13, y+14, pigfarm_anim[i]);
         }
 
         if (pigs_count >= 2) {
-          int i = (460 + (game.tick >> 3)) & 0xfe;
+          int i = (460 + (interface->get_game()->get_tick() >> 3)) & 0xfe;
           draw_game_sprite(x + pigfarm_anim[i+1], y+17, pigfarm_anim[i]);
         }
 
         if (pigs_count >= 4) {
-          int i = (90 + (game.tick >> 3)) & 0xfe;
+          int i = (90 + (interface->get_game()->get_tick() >> 3)) & 0xfe;
           draw_game_sprite(x + pigfarm_anim[i+1] - 11, y+19, pigfarm_anim[i]);
         }
       }
       break;
     case BUILDING_MILL:
       if (building->is_active()) {
-        if ((game.tick >> 4) & 3) {
+        if ((interface->get_game()->get_tick() >> 4) & 3) {
           building->stop_playing_sfx();
         } else if (!building->playing_sfx()) {
           building->start_playing_sfx();
           play_sound(SFX_MILL_GRINDING);
         }
         draw_shadow_and_building_sprite(x, y, map_building_sprite[type] +
-                                        ((game.tick >> 4) & 3));
+                                ((interface->get_game()->get_tick() >> 4) & 3));
       } else {
         draw_shadow_and_building_sprite(x, y, map_building_sprite[type]);
       }
@@ -821,13 +801,14 @@ viewport_t::draw_unharmed_building(building_t *building, int x, int y) {
     case BUILDING_BAKER:
       draw_shadow_and_building_sprite(x, y, map_building_sprite[type]);
       if (building->is_active()) {
-        draw_game_sprite(x + 5, y-21, 154 + ((game.tick >> 3) & 7));
+        draw_game_sprite(x + 5, y-21,
+                         154 + ((interface->get_game()->get_tick() >> 3) & 7));
       }
       break;
     case BUILDING_STEELSMELTER:
       draw_shadow_and_building_sprite(x, y, map_building_sprite[type]);
       if (building->is_active()) {
-        int i = (game.tick >> 3) & 7;
+        int i = (interface->get_game()->get_tick() >> 3) & 7;
         if (i == 0 || (i == 7 && !building->playing_sfx())) {
           building->start_playing_sfx();
           play_sound(SFX_GOLD_BOILS);
@@ -841,29 +822,33 @@ viewport_t::draw_unharmed_building(building_t *building, int x, int y) {
     case BUILDING_WEAPONSMITH:
       draw_shadow_and_building_sprite(x, y, map_building_sprite[type]);
       if (building->is_active()) {
-        draw_game_sprite(x-16, y-21, 128 + ((game.tick >> 3) & 7));
+        draw_game_sprite(x-16, y-21,
+                         128 + ((interface->get_game()->get_tick() >> 3) & 7));
       }
       break;
     case BUILDING_TOWER:
       draw_shadow_and_building_sprite(x, y, map_building_sprite[type]);
       if (building->has_main_serf()) {
         draw_game_sprite(x+13, y - 18 - building->get_knight_count(),
-                     182 + ((game.tick >> 3) & 3) + 4*building->get_state());
+                     182 + ((interface->get_game()->get_tick() >> 3) & 3) +
+                         4*building->get_state());
       }
       break;
     case BUILDING_FORTRESS:
       draw_shadow_and_building_sprite(x, y, map_building_sprite[type]);
       if (building->has_main_serf()) {
         draw_game_sprite(x-12, y - 21 - building->get_knight_count()/2,
-             182 + ((game.tick >> 3) & 3) + 4*building->get_state());
+             182 + ((interface->get_game()->get_tick() >> 3) & 3) +
+                         4*building->get_state());
         draw_game_sprite(x+22, y - 34 - (building->get_knight_count()+1)/2,
-             182 + (((game.tick >> 3) + 2) & 3) + 4*building->get_state());
+             182 + (((interface->get_game()->get_tick() >> 3) + 2) & 3) +
+                         4*building->get_state());
       }
       break;
     case BUILDING_GOLDSMELTER:
       draw_shadow_and_building_sprite(x, y, map_building_sprite[type]);
       if (building->is_active()) {
-        int i = (game.tick >> 3) & 7;
+        int i = (interface->get_game()->get_tick() >> 3) & 7;
         if (i == 0 || (i == 7 && !building->playing_sfx())) {
           building->start_playing_sfx();
           play_sound(SFX_GOLD_BOILS);
@@ -1107,8 +1092,8 @@ viewport_t::draw_burning_building(building_t *building, int x, int y) {
     building->stop_playing_sfx();
   }
 
-  uint16_t delta = game.tick - building->get_tick();
-  building->set_tick(game.tick);
+  uint16_t delta = interface->get_game()->get_tick() - building->get_tick();
+  building->set_tick(interface->get_game()->get_tick());
 
   if (building->get_burning_counter() >= delta) {
     building->decrease_burning_counter(delta);  // TODO(jonls): this is also
@@ -1136,7 +1121,7 @@ viewport_t::draw_burning_building(building_t *building, int x, int y) {
 
 void
 viewport_t::draw_building(map_pos_t pos, int x, int y) {
-  building_t *building = game.buildings[game.map->get_obj_index(pos)];
+  building_t *building = interface->get_game()->get_building_at_pos(pos);
 
   if (building->is_burning()) {
     draw_burning_building(building, x, y);
@@ -1147,11 +1132,12 @@ viewport_t::draw_building(map_pos_t pos, int x, int y) {
 
 void
 viewport_t::draw_water_waves(map_pos_t pos, int x, int y) {
-  int sprite = DATA_MAP_WAVES_BASE + (((pos ^ 5) + (game.tick >> 3)) & 0xf);
+  int sprite = DATA_MAP_WAVES_BASE +
+               (((pos ^ 5) + (interface->get_game()->get_tick() >> 3)) & 0xf);
 
-  if (game.map->type_down(pos) < 4 && game.map->type_up(pos) < 4) {
+  if (map->type_down(pos) < 4 && map->type_up(pos) < 4) {
     frame->draw_waves_sprite(x - 16, y, 0, sprite);
-  } else if (game.map->type_down(pos) < 4) {
+  } else if (map->type_down(pos) < 4) {
     int mask = DATA_MAP_MASK_DOWN_BASE + 40;
     frame->draw_waves_sprite(x, y + 16, mask, sprite);
   } else {
@@ -1164,8 +1150,8 @@ void
 viewport_t::draw_water_waves_row(map_pos_t pos, int y_base, int cols,
                                  int x_base) {
   for (int i = 0; i < cols; i++, x_base += MAP_TILE_WIDTH,
-       pos = game.map->move_right(pos)) {
-    if (game.map->type_up(pos) < 4 || game.map->type_down(pos) < 4) {
+       pos = map->move_right(pos)) {
+    if (map->type_up(pos) < 4 || map->type_down(pos) < 4) {
       /*player->water_in_view += 1;*/
       draw_water_waves(pos, x_base, y_base);
     }
@@ -1174,7 +1160,7 @@ viewport_t::draw_water_waves_row(map_pos_t pos, int y_base, int cols,
 
 void
 viewport_t::draw_flag_and_res(map_pos_t pos, int x, int y) {
-  flag_t *flag = game.flags[game.map->get_obj_index(pos)];
+  flag_t *flag = interface->get_game()->get_flag_at_pos(pos);
 
   if (flag->get_resource_at_slot(0) != RESOURCE_NONE) {
     draw_game_sprite(x+6 , y-4, flag->get_resource_at_slot(0) + 1);
@@ -1187,7 +1173,8 @@ viewport_t::draw_flag_and_res(map_pos_t pos, int x, int y) {
   }
 
   int pl_num = flag->get_player();
-  int spr = 0x80 + (pl_num << 2) + ((game.tick >> 3) & 3);
+  int spr = 0x80 + (pl_num << 2) +
+            ((interface->get_game()->get_tick() >> 3) & 3);
 
   draw_shadow_and_building_sprite(x, y, spr);
 
@@ -1212,18 +1199,18 @@ void
 viewport_t::draw_map_objects_row(map_pos_t pos, int y_base,
                                  int cols, int x_base) {
   for (int i = 0; i < cols;
-       i++, x_base += MAP_TILE_WIDTH, pos = game.map->move_right(pos)) {
-    if (game.map->get_obj(pos) == MAP_OBJ_NONE) continue;
+       i++, x_base += MAP_TILE_WIDTH, pos = map->move_right(pos)) {
+    if (map->get_obj(pos) == MAP_OBJ_NONE) continue;
 
-    int y = y_base - 4* game.map->get_height(pos);
-    if (game.map->get_obj(pos) < MAP_OBJ_TREE_0) {
-      if (game.map->get_obj(pos) == MAP_OBJ_FLAG) {
+    int y = y_base - 4 * map->get_height(pos);
+    if (map->get_obj(pos) < MAP_OBJ_TREE_0) {
+      if (map->get_obj(pos) == MAP_OBJ_FLAG) {
         draw_flag_and_res(pos, x_base, y);
-      } else if (game.map->get_obj(pos) <= MAP_OBJ_CASTLE) {
+      } else if (map->get_obj(pos) <= MAP_OBJ_CASTLE) {
         draw_building(pos, x_base, y);
       }
     } else {
-      int sprite = game.map->get_obj(pos) - MAP_OBJ_TREE_0;
+      int sprite = map->get_obj(pos) - MAP_OBJ_TREE_0;
       if (sprite < 24) {
         /* Trees */
         /*player->trees_in_view += 1;*/
@@ -1231,7 +1218,7 @@ viewport_t::draw_map_objects_row(map_pos_t pos, int y_base,
         /* Adding sprite number to animation ensures
            that the tree animation won't be synchronized
            for all trees on the map. */
-        int tree_anim = (game.tick + sprite) >> 4;
+        int tree_anim = (interface->get_game()->get_tick() + sprite) >> 4;
         if (sprite < 16) {
           sprite = (sprite & ~7) + (tree_anim & 7);
         } else {
@@ -1859,11 +1846,12 @@ viewport_t::draw_active_serf(serf_t *serf, map_pos_t pos,
                                                       serf->get_counter());
 
   int x = x_base + animation->x;
-  int y = y_base + animation->y - 4* game.map->get_height(pos);
+  int y = y_base + animation->y - 4 * map->get_height(pos);
   int body = serf_get_body(serf);
 
   if (body > -1) {
-    int color = game.players[serf->get_player()]->get_color();
+    int color =
+             interface->get_game()->get_player(serf->get_player())->get_color();
     draw_row_serf(x, y, 1, color, body);
   }
 
@@ -1877,18 +1865,19 @@ viewport_t::draw_active_serf(serf_t *serf, map_pos_t pos,
       serf->get_state() == SERF_STATE_KNIGHT_ATTACKING_DEFEAT_FREE) {
     int index = serf->get_attacking_def_index();
     if (index != 0) {
-      serf_t *def_serf = game.serfs[index];
+      serf_t *def_serf = interface->get_game()->get_serf(index);
 
       animation_t *animation =
                            data_source->get_animation(def_serf->get_animation(),
                                                       def_serf->get_counter());
 
       int x = x_base + animation->x;
-      int y = y_base + animation->y - 4* game.map->get_height(pos);
+      int y = y_base + animation->y - 4 * map->get_height(pos);
       int body = serf_get_body(def_serf);
 
       if (body > -1) {
-        int color = game.players[def_serf->get_player()]->get_color();
+        int color =
+         interface->get_game()->get_player(def_serf->get_player())->get_color();
         draw_row_serf(x, y, 1, color, body);
       }
     }
@@ -1900,7 +1889,7 @@ viewport_t::draw_active_serf(serf_t *serf, map_pos_t pos,
       animation->time >= 0x80 && animation->time < 0xc0) {
     int index = serf->get_attacking_def_index();
     if (index != 0) {
-      serf_t *def_serf = game.serfs[index];
+      serf_t *def_serf = interface->get_game()->get_serf(index);
 
       if (serf->get_animation() >= 146 &&
           serf->get_animation() < 156) {
@@ -1964,19 +1953,19 @@ viewport_t::draw_serf_row(map_pos_t pos, int y_base, int cols, int x_base) {
   };
 
   for (int i = 0; i < cols;
-       i++, x_base += MAP_TILE_WIDTH, pos = game.map->move_right(pos)) {
+       i++, x_base += MAP_TILE_WIDTH, pos = map->move_right(pos)) {
 #if 0
     /* Draw serf marker */
-    if (MAP_SERF_INDEX(pos) != 0) {
-      serf_t *serf = game_get_serf(MAP_SERF_INDEX(pos));
+    if (map->get_serf_index(pos) != 0) {
+      serf_t *serf = game->get_serf_at_pos(pos);
       int color = game.player[map->get_owner(pos)]->color;
       frame->fill_rect(x_base - 2, y_base - 4*MAP_HEIGHT(pos) - 2, 4, 4, color);
     }
 #endif
 
     /* Active serf */
-    if (game.map->get_serf_index(pos) != 0) {
-      serf_t *serf = game.serfs[game.map->get_serf_index(pos)];
+    if (map->get_serf_index(pos) != 0) {
+      serf_t *serf = interface->get_game()->get_serf_at_pos(pos);
 
       if (serf->get_state() != SERF_STATE_MINING ||
           (serf->get_mining_substate() != 3 &&
@@ -1988,20 +1977,22 @@ viewport_t::draw_serf_row(map_pos_t pos, int y_base, int cols, int x_base) {
     }
 
     /* Idle serf */
-    if (game.map->get_idle_serf(pos)) {
+    if (map->get_idle_serf(pos)) {
       int x, y, body;
-      if (game.map->is_in_water(pos)) { /* Sailor */
+      if (map->is_in_water(pos)) { /* Sailor */
         x = x_base;
-        y = y_base - 4* game.map->get_height(pos);
+        y = y_base - 4 * map->get_height(pos);
         body = 0x203;
       } else { /* Transporter */
-        x = x_base + arr_3[2* game.map->paths(pos)];
-        y = y_base - 4* game.map->get_height(pos) +
-            arr_3[2* game.map->paths(pos)+1];
-        body = arr_2[((game.tick + arr_1[pos & 0xf]) >> 3) & 0x7f];
+        x = x_base + arr_3[2* map->paths(pos)];
+        y = y_base - 4 * map->get_height(pos) +
+            arr_3[2 * map->paths(pos) + 1];
+        body = arr_2[((interface->get_game()->get_tick() +
+                       arr_1[pos & 0xf]) >> 3) & 0x7f];
       }
 
-      int color = game.players[game.map->get_owner(pos)]->get_color();
+      int color =
+            interface->get_game()->get_player(map->get_owner(pos))->get_color();
       draw_row_serf(x, y, 1, color, body);
     }
   }
@@ -2013,10 +2004,10 @@ void
 viewport_t::draw_serf_row_behind(map_pos_t pos, int y_base, int cols,
                                  int x_base) {
   for (int i = 0; i < cols;
-       i++, x_base += MAP_TILE_WIDTH, pos = game.map->move_right(pos)) {
+       i++, x_base += MAP_TILE_WIDTH, pos = map->move_right(pos)) {
     /* Active serf */
-    if (game.map->get_serf_index(pos) != 0) {
-      serf_t *serf = game.serfs[game.map->get_serf_index(pos)];
+    if (map->get_serf_index(pos) != 0) {
+      serf_t *serf = interface->get_game()->get_serf_at_pos(pos);
 
       if (serf->get_state() == SERF_STATE_MINING &&
           (serf->get_mining_substate() == 3 ||
@@ -2046,9 +2037,9 @@ viewport_t::draw_game_objects(int layers) {
   int x = -(offset_x + 16*(offset_y/20)) % 32;
   int y = -(offset_y) % 20;
 
-  int col_0 = (offset_x/16 + offset_y/20)/2 & game.map->get_col_mask();
-  int row_0 = (offset_y/MAP_TILE_HEIGHT) & game.map->get_row_mask();
-  map_pos_t pos = game.map->pos(col_0, row_0);
+  int col_0 = (offset_x/16 + offset_y/20)/2 & map->get_col_mask();
+  int row_0 = (offset_y/MAP_TILE_HEIGHT) & map->get_row_mask();
+  map_pos_t pos = map->pos(col_0, row_0);
 
   /* Loop until objects drawn fall outside the frame. */
   while (1) {
@@ -2067,7 +2058,7 @@ viewport_t::draw_game_objects(int layers) {
     y += MAP_TILE_HEIGHT;
     if (y >= height + 6*MAP_TILE_HEIGHT) break;
 
-    pos = game.map->move_down(pos);
+    pos = map->move_down(pos);
 
     /* long row */
     if (draw_landscape) {
@@ -2086,14 +2077,14 @@ viewport_t::draw_game_objects(int layers) {
     y += MAP_TILE_HEIGHT;
     if (y >= height + 6*MAP_TILE_HEIGHT) break;
 
-    pos = game.map->move_down_right(pos);
+    pos = map->move_down_right(pos);
   }
 }
 
 void
 viewport_t::draw_map_cursor_sprite(map_pos_t pos, int sprite) {
   int mx, my;
-  map_pix_from_map_coord(pos, game.map->get_height(pos), &mx, &my);
+  map_pix_from_map_coord(pos, map->get_height(pos), &mx, &my);
 
   int sx, sy;
   screen_pix_from_map_pix(mx, my, &sx, &sy);
@@ -2106,9 +2097,9 @@ viewport_t::draw_map_cursor_possible_build() {
   int x_off = -(offset_x + 16*(offset_y/20)) % 32;
   int y_off = -offset_y % 20;
 
-  int col_0 = (offset_x/16 + offset_y/20)/2 & game.map->get_col_mask();
-  int row_0 = (offset_y/MAP_TILE_HEIGHT) & game.map->get_row_mask();
-  map_pos_t base_pos = game.map->pos(col_0, row_0);
+  int col_0 = (offset_x/16 + offset_y/20)/2 & map->get_col_mask();
+  int row_0 = (offset_y/MAP_TILE_HEIGHT) & map->get_row_mask();
+  map_pos_t base_pos = map->pos(col_0, row_0);
 
   for (int x_base = x_off; x_base < width + MAP_TILE_WIDTH;
        x_base += MAP_TILE_WIDTH) {
@@ -2124,24 +2115,26 @@ viewport_t::draw_map_cursor_possible_build() {
         x = x_base - MAP_TILE_WIDTH/2;
       }
 
-      int y = y_base - 4* game.map->get_height(pos);
+      int y = y_base - 4 * map->get_height(pos);
       if (y >= height) break;
 
       /* Draw possible building */
       int sprite = -1;
-      if (game_can_build_castle(pos, interface->get_player())) {
+      if (interface->get_game()->can_build_castle(pos,
+                                                  interface->get_player())) {
         sprite = 50;
-      } else if (game_can_player_build(pos, interface->get_player()) &&
-                 map_t::map_space_from_obj[game.map->get_obj(pos)] ==
+      } else if (interface->get_game()->can_player_build(pos,
+                                                     interface->get_player()) &&
+                 map_t::map_space_from_obj[map->get_obj(pos)] ==
                    MAP_SPACE_OPEN &&
-                 (game_can_build_flag(game.map->move_down_right(pos),
+               (interface->get_game()->can_build_flag(map->move_down_right(pos),
                                       interface->get_player()) ||
-                 game.map->has_flag(game.map->move_down_right(pos)))) {
-        if (game_can_build_mine(pos)) {
+                 map->has_flag(map->move_down_right(pos)))) {
+        if (interface->get_game()->can_build_mine(pos)) {
           sprite = 48;
-        } else if (game_can_build_large(pos)) {
+        } else if (interface->get_game()->can_build_large(pos)) {
           sprite = 50;
-        } else if (game_can_build_small(pos)) {
+        } else if (interface->get_game()->can_build_small(pos)) {
           sprite = 49;
         }
       }
@@ -2151,16 +2144,16 @@ viewport_t::draw_map_cursor_possible_build() {
       }
 
       if (row % 2 == 0) {
-        pos = game.map->move_down(pos);
+        pos = map->move_down(pos);
       } else {
-        pos = game.map->move_down_right(pos);
+        pos = map->move_down_right(pos);
       }
 
       y_base += MAP_TILE_HEIGHT;
       row += 1;
     }
 
-    base_pos = game.map->move_right(base_pos);
+    base_pos = map->move_right(base_pos);
   }
 }
 
@@ -2174,8 +2167,7 @@ viewport_t::draw_map_cursor() {
                          interface->get_map_cursor_sprite(0));
 
   for (int d = 0; d < 6; d++) {
-    draw_map_cursor_sprite(game.map->move(interface->get_map_cursor_pos(),
-                                          (dir_t)d),
+    draw_map_cursor_sprite(map->move(interface->get_map_cursor_pos(), (dir_t)d),
                            interface->get_map_cursor_sprite(1+d));
   }
 }
@@ -2200,9 +2192,9 @@ viewport_t::draw_height_grid_overlay(int color) {
   int x_off = -(offset_x + 16*(offset_y/20)) % 32;
   int y_off = -offset_y % 20;
 
-  int col_0 = (offset_x/16 + offset_y/20)/2 & game.map->get_col_mask();
-  int row_0 = (offset_y/MAP_TILE_HEIGHT) & game.map->get_row_mask();
-  map_pos_t base_pos = game.map->pos(col_0, row_0);
+  int col_0 = (offset_x/16 + offset_y/20)/2 & map->get_col_mask();
+  int row_0 = (offset_y/MAP_TILE_HEIGHT) & map->get_row_mask();
+  map_pos_t base_pos = map->pos(col_0, row_0);
 
   for (int x_base = x_off; x_base < width + MAP_TILE_WIDTH;
        x_base += MAP_TILE_WIDTH) {
@@ -2218,11 +2210,11 @@ viewport_t::draw_height_grid_overlay(int color) {
         x = x_base - MAP_TILE_WIDTH/2;
       }
 
-      int y = y_base - 4* game.map->get_height(pos);
+      int y = y_base - 4 * map->get_height(pos);
       if (y >= height) break;
 
       /* Draw cross. */
-      if (pos != game.map->pos(0, 0)) {
+      if (pos != map->pos(0, 0)) {
         frame->fill_rect(x, y - 1, 1, 3, color);
         frame->fill_rect(x - 1, y, 3, 1, color);
       } else {
@@ -2231,21 +2223,25 @@ viewport_t::draw_height_grid_overlay(int color) {
       }
 
       if (row % 2 == 0) {
-        pos = game.map->move_down(pos);
+        pos = map->move_down(pos);
       } else {
-        pos = game.map->move_down_right(pos);
+        pos = map->move_down_right(pos);
       }
 
       y_base += MAP_TILE_HEIGHT;
       row += 1;
     }
 
-    base_pos = game.map->move_right(base_pos);
+    base_pos = map->move_right(base_pos);
   }
 }
 
 void
 viewport_t::internal_draw() {
+  if (map == NULL) {
+    return;
+  }
+
   if (layers & VIEWPORT_LAYER_LANDSCAPE) {
     draw_landscape();
   }
@@ -2267,15 +2263,15 @@ viewport_t::handle_click_left(int x, int y) {
   set_redraw();
 
   map_pos_t clk_pos = map_pos_from_screen_pix(x, y);
-  int clk_col = game.map->pos_col(clk_pos);
-  int clk_row = game.map->pos_row(clk_pos);
+  int clk_col = map->pos_col(clk_pos);
+  int clk_row = map->pos_row(clk_pos);
 
   if (interface->is_building_road()) {
-    int x = (clk_col - game.map->pos_col(interface->get_map_cursor_pos()) + 1) &
-             game.map->get_col_mask();
-    int y = (clk_row - game.map->pos_row(interface->get_map_cursor_pos()) + 1) &
-             game.map->get_row_mask();
-    int dir = -1;
+    int x = (clk_col - map->pos_col(interface->get_map_cursor_pos()) + 1) &
+             map->get_col_mask();
+    int y = (clk_row - map->pos_row(interface->get_map_cursor_pos()) + 1) &
+             map->get_row_mask();
+    dir_t dir = DIR_NONE;
 
     if (x == 0) {
       if (y == 1) dir = DIR_LEFT;
@@ -2288,7 +2284,7 @@ viewport_t::handle_click_left(int x, int y) {
       else if (y == 2) dir = DIR_DOWN_RIGHT;
     }
 
-    if (interface->build_roid_is_valid_dir((dir_t)dir)) {
+    if (interface->build_roid_is_valid_dir(dir)) {
       int length = interface->get_building_road_length();
       dir_t last_dir = DIR_RIGHT;
       if (length > 0) last_dir = interface->get_building_road_dir(length-1);
@@ -2333,7 +2329,7 @@ viewport_t::handle_dbl_click(int x, int y, event_button_t button) {
     if (clk_pos != interface->get_map_cursor_pos()) {
       map_pos_t pos = interface->get_building_road_source();
       unsigned int length = 0;
-      dir_t *dirs = pathfinder_map(pos, clk_pos, &length);
+      dir_t *dirs = pathfinder_map(map, pos, clk_pos, &length);
       if (dirs != NULL) {
         interface->build_road_reset();
         int r = interface->extend_road(dirs, length);
@@ -2349,8 +2345,8 @@ viewport_t::handle_dbl_click(int x, int y, event_button_t button) {
         play_sound(SFX_NOT_ACCEPTED);
       }
     } else {
-      int r = game_build_flag(interface->get_map_cursor_pos(),
-                              interface->get_player());
+      int r = interface->get_game()->build_flag(interface->get_map_cursor_pos(),
+                                                interface->get_player());
       if (r < 0) {
         play_sound(SFX_NOT_ACCEPTED);
       } else {
@@ -2358,22 +2354,21 @@ viewport_t::handle_dbl_click(int x, int y, event_button_t button) {
       }
     }
   } else {
-    if (game.map->get_obj(clk_pos) == MAP_OBJ_NONE ||
-        game.map->get_obj(clk_pos) > MAP_OBJ_CASTLE) {
+    if (map->get_obj(clk_pos) == MAP_OBJ_NONE ||
+        map->get_obj(clk_pos) > MAP_OBJ_CASTLE) {
       return false;
     }
 
-    if (game.map->get_obj(clk_pos) == MAP_OBJ_FLAG) {
-      if (game.map->get_owner(clk_pos) ==
-            interface->get_player()->get_index()) {
+    if (map->get_obj(clk_pos) == MAP_OBJ_FLAG) {
+      if (map->get_owner(clk_pos) == interface->get_player()->get_index()) {
         interface->open_popup(BOX_TRANSPORT_INFO);
       }
 
-      interface->get_player()->temp_index = game.map->get_obj_index(clk_pos);
+      interface->get_player()->temp_index = map->get_obj_index(clk_pos);
     } else { /* Building */
-      if (game.map->get_owner(clk_pos) ==
-            interface->get_player()->get_index()) {
-        building_t *building = game.buildings[game.map->get_obj_index(clk_pos)];
+      if (map->get_owner(clk_pos) == interface->get_player()->get_index()) {
+        building_t *building =
+                  interface->get_game()->get_building_at_pos(clk_pos);
         if (!building->is_done()) {
           interface->open_popup(BOX_ORDERED_BLD);
           } else if (building->get_type() == BUILDING_CASTLE) {
@@ -2394,12 +2389,11 @@ viewport_t::handle_dbl_click(int x, int y, event_button_t button) {
           interface->open_popup(BOX_BLD_STOCK);
         }
 
-        interface->get_player()->temp_index = game.map->get_obj_index(clk_pos);
-      } else if (BIT_TEST(game.split, 5)) { /* Demo mode*/
-        return false;
+        interface->get_player()->temp_index = map->get_obj_index(clk_pos);
       } else { /* Foreign building */
         /* TODO handle coop mode*/
-        building_t *building = game.buildings[game.map->get_obj_index(clk_pos)];
+        building_t *building =
+                  interface->get_game()->get_building_at_pos(clk_pos);
         interface->get_player()->building_attacked = building->get_index();
 
         if (building->is_done() &&
@@ -2415,11 +2409,10 @@ viewport_t::handle_dbl_click(int x, int y, event_button_t button) {
 
           int found = 0;
           for (int i = 257; i >= 0; i--) {
-            map_pos_t pos = game.map->pos_add_spirally(building->get_position(),
+            map_pos_t pos = map->pos_add_spirally(building->get_position(),
                                                        7+257-i);
-            if (game.map->has_owner(pos) &&
-                game.map->get_owner(pos) ==
-                  interface->get_player()->get_index()) {
+            if (map->has_owner(pos) &&
+                map->get_owner(pos) == interface->get_player()->get_index()) {
               found = 1;
               break;
             }
@@ -2464,20 +2457,25 @@ viewport_t::handle_drag(int x, int y) {
   return true;
 }
 
-viewport_t::viewport_t(interface_t *interface) {
+viewport_t::viewport_t(interface_t *interface, map_t *map) {
   this->interface = interface;
+  this->map = map;
+  map->add_change_handler(this);
   layers = VIEWPORT_LAYER_ALL;
 
   last_tick = 0;
 
   data_t *data = data_t::get_instance();
   data_source = data->get_data_source();
-
-  map_reinit();
 }
 
 viewport_t::~viewport_t() {
-  map_deinit();
+  map->del_change_handler(this);
+  while (landscape_tiles.size()) {
+    tiles_map_t::iterator it = landscape_tiles.begin();
+    delete it->second;
+    landscape_tiles.erase(it);
+  }
 }
 
 void
@@ -2526,19 +2524,19 @@ viewport_t::changed_height(map_pos_t pos) {
 */
 void
 viewport_t::screen_pix_from_map_pix(int mx, int my, int *sx, int *sy) {
-  int width = game.map->get_cols()*MAP_TILE_WIDTH;
-  int height = game.map->get_rows()*MAP_TILE_HEIGHT;
+  int width = map->get_cols()*MAP_TILE_WIDTH;
+  int height = map->get_rows()*MAP_TILE_HEIGHT;
 
   *sx = mx - offset_x;
   *sy = my - offset_y;
 
   while (*sy < 0) {
-    *sx -= (game.map->get_rows()*MAP_TILE_WIDTH)/2;
+    *sx -= (map->get_rows()*MAP_TILE_WIDTH)/2;
     *sy += height;
   }
 
   while (*sy >= height) {
-    *sx += (game.map->get_rows()*MAP_TILE_WIDTH)/2;
+    *sx += (map->get_rows()*MAP_TILE_WIDTH)/2;
     *sy -= height;
   }
 
@@ -2548,15 +2546,15 @@ viewport_t::screen_pix_from_map_pix(int mx, int my, int *sx, int *sy) {
 
 void
 viewport_t::map_pix_from_map_coord(map_pos_t pos, int h, int *mx, int *my) {
-  int width = game.map->get_cols()*MAP_TILE_WIDTH;
-  int height = game.map->get_rows()*MAP_TILE_HEIGHT;
+  int width = map->get_cols()*MAP_TILE_WIDTH;
+  int height = map->get_rows()*MAP_TILE_HEIGHT;
 
-  *mx = MAP_TILE_WIDTH * game.map->pos_col(pos) -
-        (MAP_TILE_WIDTH/2)*game.map->pos_row(pos);
-  *my = MAP_TILE_HEIGHT * game.map->pos_row(pos) - 4*h;
+  *mx = MAP_TILE_WIDTH * map->pos_col(pos) -
+        (MAP_TILE_WIDTH/2) * map->pos_row(pos);
+  *my = MAP_TILE_HEIGHT * map->pos_row(pos) - 4*h;
 
   if (*my < 0) {
-    *mx -= (game.map->get_rows()*MAP_TILE_WIDTH)/2;
+    *mx -= (map->get_rows()*MAP_TILE_WIDTH)/2;
     *my += height;
   }
 
@@ -2569,8 +2567,8 @@ viewport_t::map_pos_from_screen_pix(int sx, int sy) {
   int x_off = -(offset_x + 16*(offset_y/20)) % 32;
   int y_off = -offset_y % 20;
 
-  int col = (offset_x/16 + offset_y/20)/2 & game.map->get_col_mask();
-  int row = (offset_y/MAP_TILE_HEIGHT) & game.map->get_row_mask();
+  int col = (offset_x/16 + offset_y/20)/2 & map->get_col_mask();
+  int row = (offset_y/MAP_TILE_HEIGHT) & map->get_row_mask();
 
   sx -= x_off;
   sy -= y_off;
@@ -2582,28 +2580,28 @@ viewport_t::map_pos_from_screen_pix(int sx, int sy) {
     y_base = 16;
   }
 
-  col = (col + col_offset) & game.map->get_col_mask();
-  row = row & game.map->get_row_mask();
+  col = (col + col_offset) & map->get_col_mask();
+  row = row & map->get_row_mask();
 
   int y;
   int last_y = -100;
 
   while (1) {
-    y = y_base - 4* game.map->get_height(game.map->pos(col, row));
+    y = y_base - 4* map->get_height(map->pos(col, row));
     if (sy < y) break;
 
     last_y = y;
-    col = (col + 1) & game.map->get_col_mask();
-    row = (row + 2) & game.map->get_row_mask();
+    col = (col + 1) & map->get_col_mask();
+    row = (row + 2) & map->get_row_mask();
     y_base += 2*MAP_TILE_HEIGHT;
   }
 
   if (sy < (y + last_y)/2) {
-    col = (col - 1) & game.map->get_col_mask();
-    row = (row - 2) & game.map->get_row_mask();
+    col = (col - 1) & map->get_col_mask();
+    row = (row - 2) & map->get_row_mask();
   }
 
-  return game.map->pos(col, row);
+  return map->pos(col, row);
 }
 
 map_pos_t
@@ -2614,17 +2612,17 @@ viewport_t::get_current_map_pos() {
 void
 viewport_t::move_to_map_pos(map_pos_t pos) {
   int mx, my;
-  map_pix_from_map_coord(pos, game.map->get_height(pos), &mx, &my);
+  map_pix_from_map_coord(pos, map->get_height(pos), &mx, &my);
 
-  int map_width = game.map->get_cols()*MAP_TILE_WIDTH;
-  int map_height = game.map->get_rows()*MAP_TILE_HEIGHT;
+  int map_width = map->get_cols()*MAP_TILE_WIDTH;
+  int map_height = map->get_rows()*MAP_TILE_HEIGHT;
 
   /* Center screen. */
   mx -= width/2;
   my -= height/2;
 
   if (my < 0) {
-    mx -= (game.map->get_rows()*MAP_TILE_WIDTH)/2;
+    mx -= (map->get_rows()*MAP_TILE_WIDTH)/2;
     my += map_height;
   }
 
@@ -2639,18 +2637,18 @@ viewport_t::move_to_map_pos(map_pos_t pos) {
 
 void
 viewport_t::move_by_pixels(int x, int y) {
-  int width = game.map->get_cols()*MAP_TILE_WIDTH;
-  int height = game.map->get_rows()*MAP_TILE_HEIGHT;
+  int width = map->get_cols()*MAP_TILE_WIDTH;
+  int height = map->get_rows()*MAP_TILE_HEIGHT;
 
   offset_x += x;
   offset_y += y;
 
   if (offset_y < 0) {
     offset_y += height;
-    offset_x -= (game.map->get_rows()*MAP_TILE_WIDTH)/2;
+    offset_x -= (map->get_rows()*MAP_TILE_WIDTH)/2;
   } else if (offset_y >= height) {
     offset_y -= height;
-    offset_x += (game.map->get_rows()*MAP_TILE_WIDTH)/2;
+    offset_x += (map->get_rows()*MAP_TILE_WIDTH)/2;
   }
 
   if (offset_x >= width) offset_x -= width;
@@ -2663,8 +2661,8 @@ viewport_t::move_by_pixels(int x, int y) {
 /* Called periodically when the game progresses. */
 void
 viewport_t::update() {
-  int tick_xor = game.tick ^ last_tick;
-  last_tick = game.tick;
+  int tick_xor = interface->get_game()->get_tick() ^ last_tick;
+  last_tick = interface->get_game()->get_tick();
 
   /* Viewport animation does not care about low bits in anim */
   if (tick_xor >= 1 << 3) {

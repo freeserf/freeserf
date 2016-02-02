@@ -27,6 +27,21 @@
 #include <set>
 #include <climits>
 
+class game_t;
+
+class game_object_t {
+ protected:
+  unsigned int index;
+  game_t *game;
+
+ public:
+  game_object_t(game_t *game, unsigned int index) : index(index), game(game) {}
+  virtual ~game_object_t() {}
+
+  game_t *get_game() const { return game; }
+  unsigned int get_index() const { return index; }
+};
+
 template<class object_t>
 class collection_t {
  protected:
@@ -35,14 +50,16 @@ class collection_t {
   objects_t objects;
   unsigned int last_object_index;
   std::set<unsigned int> free_object_indexes;
+  game_t *game;
 
  public:
-  collection_t() {
+  explicit collection_t(game_t *game) {
+    this->game = game;
     last_object_index = 0;
   }
 
-  bool
-  allocate(object_t **object, unsigned int *index) {
+  object_t *
+  allocate() {
     unsigned int new_index = 0;
 
     if (!free_object_indexes.empty()) {
@@ -50,24 +67,17 @@ class collection_t {
       free_object_indexes.erase(free_object_indexes.begin());
     } else {
       if (last_object_index == UINT_MAX) {
-        return false;
+        return NULL;
       }
 
       new_index = last_object_index;
       last_object_index++;
     }
 
-    object_t *new_object = new object_t(new_index);
+    object_t *new_object = new object_t(game, new_index);
     objects[new_index] = new_object;
 
-    if (object != NULL) {
-      *object = new_object;
-    }
-    if (index != NULL) {
-      *index = new_index;
-    }
-
-    return true;
+    return new_object;
   }
 
   bool
@@ -82,7 +92,7 @@ class collection_t {
     if (exists(index)) {
       object = objects[index];
     } else {
-      object = new object_t(index);
+      object = new object_t(game, index);
       objects[index] = object;
 
       std::set<unsigned int>::iterator i = free_object_indexes.find(index);

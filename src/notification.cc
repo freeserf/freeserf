@@ -21,7 +21,7 @@
 
 #include "src/notification.h"
 
-#include <strstream>
+#include <sstream>
 #include <string>
 
 #include "src/interface.h"
@@ -45,7 +45,7 @@ notification_box_t::draw_background(int width, int height, int sprite) {
 
 void
 notification_box_t::draw_string(int x, int y, const std::string &str) {
-  std::strstream sin;
+  std::stringstream sin;
   sin << str;
   std::string line;
   int cy = y;
@@ -68,8 +68,10 @@ notification_box_t::get_player_face_sprite(int face) {
 
 void
 notification_box_t::draw_player_face(int x, int y, int player) {
-  frame->fill_rect(8*x, y, 48, 72, game.players[player]->get_color());
-  draw_icon(x+1, y+4, get_player_face_sprite(game.players[player]->get_face()));
+  player_t *p = interface->get_game()->get_player(player);
+  frame->fill_rect(8*x, y, 48, 72, p->get_color());
+  draw_icon(x+1, y+4,
+    get_player_face_sprite(p->get_face()));
 }
 
 #define NOTIFICATION_SHOW_OPPONENT 0
@@ -225,7 +227,8 @@ notification_box_t::handle_click_left(int x, int y) {
   return true;
 }
 
-notification_box_t::notification_box_t() {
+notification_box_t::notification_box_t(interface_t *interface) {
+  this->interface = interface;
 }
 
 void notification_box_t::show(const message_t &message) {

@@ -21,6 +21,7 @@
 
 #include "src/xmi2mid.h"
 
+#include <cstring>
 #include <queue>
 #include <vector>
 
@@ -50,13 +51,13 @@ typedef midi_node_t* midi_node_p;
 class compare_by_time {
  public:
   /* Return true if first midi node should come before second. */
-  bool operator()(const midi_node_p &m1, const midi_node_p &m2) const {
-    if (m1->time != m2->time) {
-      return m1->time > m2->time;
+  bool operator()(const midi_node_t &m1, const midi_node_t &m2) const {
+    if (m1.time != m2.time) {
+      return m1.time > m2.time;
     }
 
-    if (m1->index != m2->index) {
-      return m1->index > m2->index;
+    if (m1.index != m2.index) {
+      return m1.index > m2.index;
     }
 
     return false;
@@ -64,7 +65,7 @@ class compare_by_time {
 };
 
 typedef struct {
-  std::priority_queue<midi_node_t*, std::vector<midi_node_t*>,
+  std::priority_queue<midi_node_t, std::vector<midi_node_t>,
                       compare_by_time> nodes;
   uint32_t tempo;
   uint8_t *data;
@@ -190,14 +191,11 @@ xmi_process_EVNT(char *data, size_t length, midi_file_t *midi) {
     READ_DATA(type);
 
     if (type & 0x80) {
-      midi_node_t *node =
-        reinterpret_cast<midi_node_t*>(malloc(sizeof(midi_node_t)));
-      if (node == NULL) abort();
-
-      node->time = time;
-      node->index = time_index++;
-      node->type = type;
-      node->buffer = NULL;
+      midi_node_t node;
+      node.time = time;
+      node.index = time_index++;
+      node.type = type;
+      node.buffer = NULL;
 
       switch (type & 0xF0) {
         case 0x80:
@@ -205,16 +203,14 @@ xmi_process_EVNT(char *data, size_t length, midi_file_t *midi) {
         case 0xA0:
         case 0xB0:
         case 0xE0:
-          READ_DATA(node->data1);
-          READ_DATA(node->data2);
+          READ_DATA(node.data1);
+          READ_DATA(node.data2);
           if (0x90 == (type & 0xF0)) {
-            uint8_t data1 = node->data1;
+            uint8_t data1 = node.data1;
             midi->nodes.push(node);
 
-            node = reinterpret_cast<midi_node_t*>(malloc(sizeof(midi_node_t)));
-            if (node == NULL) abort();
-
-            node->type = type;
+            midi_node_t subnode;
+            subnode.type = type;
 
             /* Decode variable length duration. */
             uint64_t length = 0;
@@ -227,27 +223,28 @@ xmi_process_EVNT(char *data, size_t length, midi_file_t *midi) {
 
             /* Generate on note with velocity zero
              corresponding to off note. */
-            node->time = time + length;
-            node->index = time_index++;
-            node->data1 = data1;
-            node->data2 = 0;
+            subnode.time = time + length;
+            subnode.index = time_index++;
+            subnode.data1 = data1;
+            subnode.data2 = 0;
+            node = subnode;
           }
           break;
         case 0xC0:
         case 0xD0:
-          READ_DATA(node->data1);
-          node->data2 = 0;
+          READ_DATA(node.data1);
+          node.data2 = 0;
           break;
         case 0xF0:
           if (0xFF == type) {
             /* Meta message */
-            READ_DATA(node->data1);
-            READ_DATA(node->data2);
-            node->buffer = data;
-            if (0x51 == node->data1) {
-              node->buffer = data;
+            READ_DATA(node.data1);
+            READ_DATA(node.data2);
+            node.buffer = data;
+            if (0x51 == node.data1) {
+              node.buffer = data;
               uint32_t tempo = 0;
-              for (int i = 0; i < node->data2; i++) {
+              for (int i = 0; i < node.data2; i++) {
                 tempo = tempo << 8;
                 uint8_t byte = 0;
                 READ_DATA(byte);
@@ -258,8 +255,8 @@ xmi_process_EVNT(char *data, size_t length, midi_file_t *midi) {
                 midi->tempo = tempo;
               }
             } else {
-              data += node->data2;
-              balance -= node->data2;
+              data += node.data2;
+              balance -= node.data2;
             }
           }
           break;
@@ -336,31 +333,25 @@ midi_produce(midi_file_t *midi, size_t *size) {
   WRITE_BE32(0);          /* Size reserved */
 
   uint64_t time = 0;
-  int i = 0;
   while (!midi->nodes.empty()) {
-    i++;
-    midi_node_t *node = midi->nodes.top();
-    if (node == NULL) {
-      continue;
-    }
+    midi_node_t node = midi->nodes.top();
     midi->nodes.pop();
-    midi_write_variable_size(midi, &current, node->time - time);
-    time = node->time;
-    WRITE_BYTE(node->type);
-    WRITE_BYTE(node->data1);
-    if (((node->type & 0xF0) != 0xC0) && ((node->type & 0xF0) != 0xD0)) {
-      WRITE_BYTE(node->data2);
-      if (node->type == 0xFF) {
-        if (node->data2 > 0) {
-          if (midi->size <= (uint64_t)((current-midi->data) + node->data2)) {
+    midi_write_variable_size(midi, &current, node.time - time);
+    time = node.time;
+    WRITE_BYTE(node.type);
+    WRITE_BYTE(node.data1);
+    if (((node.type & 0xF0) != 0xC0) && ((node.type & 0xF0) != 0xD0)) {
+      WRITE_BYTE(node.data2);
+      if (node.type == 0xFF) {
+        if (node.data2 > 0) {
+          if (midi->size <= (uint64_t)((current-midi->data) + node.data2)) {
             midi_grow(midi, &current);
           }
-          memcpy(current, node->buffer, node->data2);
-          current += node->data2;
+          memcpy(current, node.buffer, node.data2);
+          current += node.data2;
         }
       }
     }
-    free(node);
   }
 
   *size = (uint32_t)(current - midi->data);

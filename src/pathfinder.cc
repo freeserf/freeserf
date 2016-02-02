@@ -26,8 +26,6 @@
 #include <vector>
 #include <algorithm>
 
-#include "src/game.h"
-
 typedef struct search_node search_node_t;
 
 struct search_node {
@@ -50,22 +48,22 @@ search_node_less(const search_node_t* left, const search_node_t* right) {
 static const unsigned int walk_cost[] = { 255, 319, 383, 447, 511 };
 
 static unsigned int
-heuristic_cost(map_pos_t start, map_pos_t end) {
+heuristic_cost(map_t *map, map_pos_t start, map_pos_t end) {
   /* Calculate distance to target. */
-  int dist_col = (game.map->pos_col(start) - game.map->pos_col(end)) &
-                 game.map->get_col_mask();
-  if (dist_col >= static_cast<int>(game.map->get_cols()/2.0)) {
-    dist_col -= game.map->get_cols();
+  int dist_col = (map->pos_col(start) - map->pos_col(end)) &
+                 map->get_col_mask();
+  if (dist_col >= static_cast<int>(map->get_cols()/2.0)) {
+    dist_col -= map->get_cols();
   }
 
-  int dist_row = (game.map->pos_row(start) - game.map->pos_row(end)) &
-                 game.map->get_row_mask();
-  if (dist_row >= static_cast<int>(game.map->get_rows()/2.0)) {
-    dist_row -= game.map->get_rows();
+  int dist_row = (map->pos_row(start) - map->pos_row(end)) &
+                 map->get_row_mask();
+  if (dist_row >= static_cast<int>(map->get_rows()/2.0)) {
+    dist_row -= map->get_rows();
   }
 
-  int h_diff = abs(static_cast<int>(game.map->get_height(start)) -
-                   static_cast<int>(game.map->get_height(end)));
+  int h_diff = abs(static_cast<int>(map->get_height(start)) -
+                   static_cast<int>(map->get_height(end)));
   int dist = 0;
 
   if ((dist_col > 0 && dist_row > 0) ||
@@ -79,7 +77,7 @@ heuristic_cost(map_pos_t start, map_pos_t end) {
 }
 
 static unsigned int
-actual_cost(map_pos_t pos, dir_t dir, map_t *map) {
+actual_cost(map_t *map, map_pos_t pos, dir_t dir) {
   map_pos_t other_pos = map->move(pos, dir);
   int h_diff = abs(static_cast<int>(map->get_height(pos)) -
                    static_cast<int>(map->get_height(other_pos)));
@@ -91,7 +89,8 @@ actual_cost(map_pos_t pos, dir_t dir, map_t *map) {
    should be minimized. Returns a malloc'ed array of directions and
    the size of this array in length. */
 dir_t *
-pathfinder_map(map_pos_t start, map_pos_t end, unsigned int *length) {
+pathfinder_map(map_t *map, map_pos_t start, map_pos_t end,
+               unsigned int *length) {
   // Unfortunately the STL priority_queue cannot be used since we
   // would need access to the underlying sequence to determine if
   // a node is already in the open list. We keep instead open as
@@ -106,7 +105,7 @@ pathfinder_map(map_pos_t start, map_pos_t end, unsigned int *length) {
   search_node_t *node = new search_node_t;
   node->pos = start;
   node->g_score = 0;
-  node->f_score = heuristic_cost(start, end);
+  node->f_score = heuristic_cost(map, start, end);
   node->parent = NULL;
 
   open.push_back(node);
@@ -141,13 +140,13 @@ pathfinder_map(map_pos_t start, map_pos_t end, unsigned int *length) {
     closed.push_front(node);
 
     for (int d = DIR_RIGHT; d <= DIR_UP; d++) {
-      map_pos_t new_pos = game.map->move(node->pos, (dir_t)d);
-      unsigned int cost = actual_cost(node->pos, static_cast<dir_t>(d),
-                                      game.map);
+      map_pos_t new_pos = map->move(node->pos, (dir_t)d);
+      unsigned int cost = actual_cost(map, node->pos, static_cast<dir_t>(d));
 
       /* Check if neighbour is valid. */
-      if (!game.map->is_road_segment_valid(node->pos, static_cast<dir_t>(d)) ||
-          (game.map->get_obj(new_pos) == MAP_OBJ_FLAG && new_pos != end)) {
+      if (!map->is_road_segment_valid(node->pos, static_cast<dir_t>(d)) ||
+          (
+            map->get_obj(new_pos) == MAP_OBJ_FLAG && new_pos != end)) {
         continue;
       }
 
@@ -172,7 +171,7 @@ pathfinder_map(map_pos_t start, map_pos_t end, unsigned int *length) {
           in_open = true;
           if (n->g_score >= node->g_score + cost) {
             n->g_score = node->g_score + cost;
-            n->f_score = n->g_score + heuristic_cost(new_pos, end);
+            n->f_score = n->g_score + heuristic_cost(map, new_pos, end);
             n->parent = node;
             n->dir = static_cast<dir_t>(d);
 
@@ -190,7 +189,8 @@ pathfinder_map(map_pos_t start, map_pos_t end, unsigned int *length) {
 
         new_node->pos = new_pos;
         new_node->g_score = node->g_score + cost;
-        new_node->f_score = new_node->g_score + heuristic_cost(new_pos, end);
+        new_node->f_score = new_node->g_score +
+                            heuristic_cost(map, new_pos, end);
         new_node->parent = node;
         new_node->dir = static_cast<dir_t>(d);
 

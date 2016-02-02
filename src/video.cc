@@ -21,25 +21,18 @@
 
 #include "src/video.h"
 
-#include <strstream>
+#include <sstream>
 
-Video_Exception::Video_Exception(const std::string &description) throw() {
-  this->description = description;
+Video_Exception::Video_Exception(const std::string &description) throw() :
+  Freeserf_Exception(description) {
 }
 
 Video_Exception::~Video_Exception() throw() {
 }
 
-const char*
-Video_Exception::what() const throw() {
-  std::strstream str;
-  str << "[" << get_platform() << "] " << get_description();
-  return str.str();
-}
-
-const char*
+std::string
 Video_Exception::get_description() const {
-  return description.c_str();
+  return "[" + get_system() + ":" + get_platform() + "] " + description.c_str();
 }
 
 video_t *video_t::instance = NULL;

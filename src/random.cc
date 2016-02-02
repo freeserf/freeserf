@@ -22,6 +22,7 @@
 #include "src/random.h"
 
 #include <ctime>
+#include <cstdlib>
 #include <sstream>
 
 #ifdef HAVE_CONFIG_H

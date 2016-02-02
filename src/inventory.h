@@ -24,6 +24,7 @@
 
 #include "src/resource.h"
 #include "src/serf.h"
+#include "src/objects.h"
 
 class flag_t;
 class save_reader_binary_t;
@@ -36,10 +37,8 @@ typedef enum {
   mode_out = 3,   // 11
 } inventory_mode_t;
 
-class inventory_t {
+class inventory_t : public game_object_t {
  protected:
-  unsigned int index;
-
   int player_num;
   /* Index of flag connected to this inventory */
   int flag;
@@ -61,9 +60,7 @@ class inventory_t {
   int serfs[27];
 
  public:
-  explicit inventory_t(unsigned int index);
-
-  unsigned int get_index() { return index; }
+  inventory_t(game_t *game, unsigned int index);
 
   int get_player_num() { return player_num; }
   void set_player_num(int player_num) { this->player_num = player_num; }

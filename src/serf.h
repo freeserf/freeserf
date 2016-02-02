@@ -25,6 +25,7 @@
 #include "src/map.h"
 #include "src/resource.h"
 #include "src/misc.h"
+#include "src/objects.h"
 
 #define serf_log_state_change(serf, new_state)  \
   LOGV("serf", "serf %i (%s): state %s -> %s (%s:%i)", serf->get_index(), \
@@ -157,9 +158,8 @@ class save_reader_binary_t;
 class save_reader_text_t;
 class save_writer_text_t;
 
-class serf_t {
+class serf_t : public game_object_t {
  protected:
-  unsigned int index;
   unsigned int owner;
   serf_type_t type;
   bool sound;
@@ -362,9 +362,7 @@ class serf_t {
   } s;
 
  public:
-  explicit serf_t(unsigned int index);
-
-  unsigned int get_index() { return index; }
+  serf_t(game_t *game, unsigned int index);
 
   unsigned int get_player() { return owner; }
   void set_player(unsigned int player_num) { owner = player_num; }
@@ -393,6 +391,7 @@ class serf_t {
   bool path_splited(unsigned int flag_1, dir_t dir_1,
                     unsigned int flag_2, dir_t dir_2,
                     int *select);
+  bool is_related_to(unsigned int dest, dir_t dir);
   void path_deleted(unsigned int dest, dir_t dir);
   void path_merged(flag_t *flag);
   void path_merged2(unsigned int flag_1, dir_t dir_1,

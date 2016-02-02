@@ -40,6 +40,7 @@
 #include "src/map.h"
 
 #include <cstdlib>
+#include <cstring>
 #include <algorithm>
 
 #include "src/debug.h"

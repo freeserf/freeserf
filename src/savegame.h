@@ -22,8 +22,8 @@
 #ifndef SRC_SAVEGAME_H_
 #define SRC_SAVEGAME_H_
 
-#include <cstdio>
 #include <string>
+#include <list>
 
 #ifdef HAVE_CONFIG_H
 # include <config.h>
@@ -37,20 +37,21 @@
 #include "src/resource.h"
 #include "src/building.h"
 #include "src/serf.h"
+#include "src/debug.h"
 
 /* Original game format */
-int load_v0_state(FILE *f);
+bool load_v0_state(FILE *f);
 
 /* Text format */
-int save_text_state(FILE *f);
-int load_text_state(FILE *f);
+bool save_text_state(FILE *f, game_t *game);
+bool load_text_state(FILE *f, game_t *game);
 
 /* Generic save/load function that will try to detect the right
    format on load and save to the best format on write. */
-int save_state(const char *path);
-int load_state(const char *path);
+bool save_state(const std::string &path, game_t *game);
+bool load_state(const std::string &path, game_t *game);
 
-int save_game(int autosave);
+bool save_game(int autosave, game_t *game);
 
 class save_reader_binary_t {
  protected:
@@ -107,14 +108,24 @@ class save_writer_text_value_t {
   std::string &get_value() { return value; }
 };
 
+class save_reader_text_t;
+
+typedef std::list<save_reader_text_t*> readers_t;
+
 class save_reader_text_t {
  public:
-  virtual save_reader_text_value_t value(std::string name) const = 0;
+  virtual std::string get_name() const = 0;
+  virtual unsigned int get_number() const = 0;
+  virtual save_reader_text_value_t value(const std::string &name) const
+            throw(Freeserf_Exception) = 0;
+  virtual readers_t get_sections(const std::string &name) = 0;
 };
 
 class save_writer_text_t {
  public:
-  virtual save_writer_text_value_t &value(std::string name) = 0;
+  virtual save_writer_text_value_t &value(const std::string &name) = 0;
+  virtual save_writer_text_t &add_section(const std::string &name,
+                                          unsigned int number) = 0;
 };
 
 #endif  // SRC_SAVEGAME_H_

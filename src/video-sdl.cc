@@ -21,29 +21,14 @@
 
 #include "src/video-sdl.h"
 
-#include <strstream>
+#include <sstream>
 
 #include <SDL.h>
 
 SDL_Exception::SDL_Exception(const std::string &description) throw()
   : Video_Exception(description) {
   sdl_error = SDL_GetError();
-}
-
-SDL_Exception::~SDL_Exception() throw() {
-}
-
-const char *
-SDL_Exception::get_description() const {
-  std::strstream str;
-  str << Video_Exception::get_description();
-  str << "(" << sdl_error << ")";
-  return str.str();
-}
-
-const char *
-SDL_Exception::get_platform() const {
-  return "SDL";
+  this->description += " (" + sdl_error + ")";
 }
 
 int video_sdl_t::bpp = 32;

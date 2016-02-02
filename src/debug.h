@@ -22,7 +22,22 @@
 #ifndef SRC_DEBUG_H_
 #define SRC_DEBUG_H_
 
+#include <string>
+
 #include "src/log.h"
+
+class Freeserf_Exception : public std::exception {
+ protected:
+  std::string description;
+
+ public:
+  explicit Freeserf_Exception(const std::string &description) throw();
+  virtual ~Freeserf_Exception() throw();
+
+  virtual const char* what() const throw();
+  virtual std::string get_description() const;
+  virtual std::string get_system() const { return "Unspecified"; }
+};
 
 #ifndef NDEBUG
 # define NOT_REACHED()  do { LOGE("debug", "NOT_REACHED at line %i of %s.", \

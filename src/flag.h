@@ -24,9 +24,9 @@
 
 #include <vector>
 
-#include "src/list.h"
 #include "src/building.h"
 #include "src/misc.h"
+#include "src/objects.h"
 
 typedef struct {
   int path_len;
@@ -52,10 +52,8 @@ class resource_slot_t {
   int dest;
 };
 
-class flag_t {
+class flag_t : public game_object_t {
  protected:
-  unsigned int index;
-
   map_pos_t pos; /* ADDITION */
   int path_con;
   int endpoint;
@@ -76,7 +74,7 @@ class flag_t {
   int bld2_flags;
 
  public:
-  explicit flag_t(unsigned int index);
+  flag_t(game_t *game, unsigned int index);
 
   unsigned int get_index() { return index; }
 
@@ -195,12 +193,13 @@ class flag_t {
 
   void set_search_dir(dir_t dir) { search_dir = dir; }
   dir_t get_search_dir() { return search_dir; }
+  void clear_search_id() { search_num = 0; }
 
   bool can_demolish();
 
   void merge_paths(map_pos_t pos);
 
-  static void fill_path_serf_info(map_pos_t pos, dir_t dir,
+  static void fill_path_serf_info(game_t *game, map_pos_t pos, dir_t dir,
                                   serf_path_info_t *data);
 
  protected:
@@ -217,11 +216,12 @@ typedef bool flag_search_func(flag_t *flag, void *data);
 
 class flag_search_t {
  protected:
+  game_t *game;
   std::vector<flag_t*> queue;
   int id;
 
  public:
-  flag_search_t();
+  explicit flag_search_t(game_t *game);
 
   int get_id() { return id; }
   void add_source(flag_t *flag);
@@ -230,9 +230,6 @@ class flag_search_t {
 
   static bool single(flag_t *src, flag_search_func *callback,
                      bool land, bool transporter, void *data);
-
- protected:
-  int next_search_id();
 };
 
 #endif  // SRC_FLAG_H_

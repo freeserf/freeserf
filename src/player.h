@@ -22,12 +22,12 @@
 #ifndef SRC_PLAYER_H_
 #define SRC_PLAYER_H_
 
-#include <cstdlib>
 #include <queue>
 #include <vector>
 
 #include "src/map.h"
 #include "src/serf.h"
+#include "src/objects.h"
 
 class serf_t;
 class inventory_t;
@@ -44,15 +44,15 @@ class message_t {
 };
 typedef std::queue<message_t> messages_t;
 
-class timer_t {
+class pos_timer_t {
  public:
   int timeout;
   map_pos_t pos;
 };
-typedef std::vector<timer_t> timers_t;
+typedef std::vector<pos_timer_t> timers_t;
 
 /* player_t object. Holds the game state of a player. */
-class player_t {
+class player_t : public game_object_t {
  protected:
   int tool_prio[9];
   int resource_count[26];
@@ -60,7 +60,6 @@ class player_t {
   int serf_count[27];
   int knight_occupation[4];
 
-  unsigned int index;
   unsigned int color; /* ADDED */
   unsigned int face;
   int flags;
@@ -74,7 +73,6 @@ class player_t {
   timers_t timers;
 
   int building;
-  int castle_flag;
   int castle_inventory;
   int cont_search_after_non_optimal_find;
   int knights_to_spawn;
@@ -142,7 +140,7 @@ class player_t {
   int temp_index;
 
  public:
-  explicit player_t(unsigned int index);
+  player_t(game_t *game, unsigned int index);
 
   void init(unsigned int number, unsigned int face, unsigned int color,
             unsigned int supplies, unsigned int reproduction,
@@ -219,7 +217,7 @@ class player_t {
 
   void create_initial_castle_serfs(building_t *castle);
   serf_t *spawn_serf_generic();
-  int spawn_serf(serf_t **serf, inventory_t **inventory, int want_knight);
+  int spawn_serf(serf_t **serf, inventory_t **inventory, bool want_knight);
   bool tick_send_generic_delay();
   bool tick_send_knight_delay();
   serf_type_t get_cycling_sert_type(serf_type_t type) const;
@@ -247,8 +245,7 @@ class player_t {
   int get_inventory_prio(int type) const { return inventory_prio[type]; }
   int *get_inventory_prio() { return inventory_prio; }
 
-  int get_castle_flag() const { return castle_flag; }
-  static void restore_castle_flag();
+  int get_total_military_score() { return total_military_score; }
 
   void update();
   void update_stats(int res);

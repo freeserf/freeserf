@@ -71,6 +71,8 @@ class notification_box_t;
 
 class interface_t : public gui_object_t {
  protected:
+  game_t *game;
+
   random_state_t random;
 
   viewport_t *viewport;
@@ -111,6 +113,9 @@ class interface_t : public gui_object_t {
  public:
   interface_t();
   virtual ~interface_t();
+
+  game_t *get_game() { return game; }
+  void set_game(game_t *game);
 
   viewport_t *get_viewport();
   panel_bar_t *get_panel_bar();
@@ -173,7 +178,6 @@ class interface_t : public gui_object_t {
   void build_castle();
   void build_road();
 
-  void game_reset();
   void update();
 
   virtual bool handle_event(const event_t *event);

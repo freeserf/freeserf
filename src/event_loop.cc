@@ -21,6 +21,8 @@
 
 #include "src/event_loop.h"
 
+#include <cstddef>
+
 event_loop_t *
 event_loop_t::instance = NULL;
 

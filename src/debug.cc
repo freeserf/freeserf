@@ -1,7 +1,7 @@
 /*
- * pathfinder.h - Path finder functions
+ * debug.cc - Definitions to ease debugging.
  *
- * Copyright (C) 2012  Jon Lund Steffensen <jonlst@gmail.com>
+ * Copyright (C) 2016  Wicked_Digger <wicked_digger@mail.ru>
  *
  * This file is part of freeserf.
  *
@@ -19,12 +19,21 @@
  * along with freeserf.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef SRC_PATHFINDER_H_
-#define SRC_PATHFINDER_H_
+#include "src/debug.h"
 
-#include "src/map.h"
+Freeserf_Exception::Freeserf_Exception(const std::string &description) throw() {
+  this->description = description;
+}
 
-dir_t *pathfinder_map(map_t *map, map_pos_t start, map_pos_t end,
-                      unsigned int *length);
+Freeserf_Exception::~Freeserf_Exception() throw() {
+}
 
-#endif  // SRC_PATHFINDER_H_
+const char*
+Freeserf_Exception::what() const throw() {
+  return get_description().c_str();
+}
+
+std::string
+Freeserf_Exception::get_description() const {
+  return "[" + get_system() + "] " + description;
+}

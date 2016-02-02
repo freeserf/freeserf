@@ -25,6 +25,8 @@
 #include <exception>
 #include <string>
 
+#include "src/debug.h"
+
 typedef struct {
   unsigned char r;
   unsigned char g;
@@ -32,17 +34,14 @@ typedef struct {
   unsigned char a;
 } video_color_t;
 
-class Video_Exception : public std::exception {
- protected:
-  std::string description;
-
+class Video_Exception : public Freeserf_Exception {
  public:
   explicit Video_Exception(const std::string &description) throw();
   virtual ~Video_Exception() throw();
 
-  virtual const char* what() const throw();
-  virtual const char* get_description() const;
-  virtual const char* get_platform() const { return "Abstract"; }
+  virtual std::string get_description() const;
+  virtual std::string get_platform() const { return "Abstract"; }
+  virtual std::string get_system() const { return "video"; }
 };
 
 class video_frame_t;

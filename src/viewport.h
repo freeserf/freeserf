@@ -59,8 +59,10 @@ class viewport_t : public gui_object_t, public update_map_height_handler_t {
   unsigned int last_tick;
   data_source_t *data_source;
 
+  map_t *map;
+
  public:
-  explicit viewport_t(interface_t *interface);
+  viewport_t(interface_t *interface, map_t *map);
   virtual ~viewport_t();
 
   void switch_layer(viewport_layer_t layer) { layers ^= layer; }
@@ -73,8 +75,6 @@ class viewport_t : public gui_object_t, public update_map_height_handler_t {
   void map_pix_from_map_coord(map_pos_t pos, int h, int *mx, int *my);
   map_pos_t map_pos_from_screen_pix(int x, int y);
 
-  void map_reinit();
-  void map_deinit();
   void redraw_map_pos(map_pos_t pos);
 
   void update();

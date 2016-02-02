@@ -27,6 +27,7 @@
 #include "src/resource.h"
 #include "src/misc.h"
 #include "src/serf.h"
+#include "src/objects.h"
 
 /* Max number of different types of resources accepted by buildings. */
 #define BUILDING_MAX_STOCK  2
@@ -74,10 +75,8 @@ class save_reader_binary_t;
 class save_reader_text_t;
 class save_writer_text_t;
 
-class building_t {
+class building_t : public game_object_t {
  protected:
-  unsigned int index;
-
   /* Map position of building */
   map_pos_t pos;
   /* Type of building */
@@ -98,7 +97,7 @@ class building_t {
   } u;
 
  public:
-  explicit building_t(unsigned int index);
+  building_t(game_t *game, unsigned int index);
 
   unsigned int get_index() { return index; }
 
