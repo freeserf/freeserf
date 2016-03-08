@@ -244,8 +244,8 @@ game_init_box_t::handle_click_left(int x, int y) {
   const int *i = clickmap;
   while (i[0] >= 0) {
     if (x >= i[1] && x < i[1]+i[3] && y >= i[2] && y < i[2]+i[4]) {
-      handle_action(i[0]);
       set_redraw();
+      handle_action(i[0]);
       return true;
     }
     i += 5;
