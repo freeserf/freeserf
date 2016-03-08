@@ -105,13 +105,14 @@ audio_sdlmixer_t::get_volume() {
 
 void
 audio_sdlmixer_t::set_volume(float volume) {
+  volume = std::max(0.f, std::min(volume, 1.f));
   this->volume = volume;
 
   if (midi_player != NULL) {
     audio_volume_controller_t *volume_controller =
                                            midi_player->get_volume_controller();
     if (volume_controller != NULL) {
-      volume_controller->set_volume(volume_controller->get_volume() * volume);
+      volume_controller->set_volume(volume);
     }
   }
 
@@ -119,7 +120,7 @@ audio_sdlmixer_t::set_volume(float volume) {
     audio_volume_controller_t *volume_controller =
                                             sfx_player->get_volume_controller();
     if (volume_controller != NULL) {
-      volume_controller->set_volume(volume_controller->get_volume() * volume);
+      volume_controller->set_volume(volume);
     }
   }
 }
@@ -179,7 +180,7 @@ sfx_player_t::get_volume() {
 
 void
 sfx_player_t::set_volume(float volume) {
-  volume = std::max(std::min(0.f, volume), 1.f);
+  volume = std::max(0.f, std::min(volume, 1.f));
   float mix_volume = static_cast<float>(MIX_MAX_VOLUME) * volume;
   Mix_Volume(-1, static_cast<int>(mix_volume));
 }
@@ -275,7 +276,7 @@ midi_player_t::get_volume() {
 
 void
 midi_player_t::set_volume(float volume) {
-  volume = std::max(std::min(0.f, volume), 1.f);
+  volume = std::max(0.f, std::min(volume, 1.f));
   float mix_volume = static_cast<float>(MIX_MAX_VOLUME) * volume;
   Mix_VolumeMusic(static_cast<int>(mix_volume));
 }

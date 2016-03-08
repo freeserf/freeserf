@@ -1950,7 +1950,7 @@ popup_box_t::draw_options_box() {
     volume = 99.f * volume_controller->get_volume();
   }
   std::strstream str;
-  str << volume;
+  str << static_cast<int>(volume);
   draw_green_string(8, 54, str.str());
 
   draw_green_string(1, 70, "Fullscreen");
@@ -2877,6 +2877,8 @@ popup_box_t::set_inventory_serf_mode(int mode) {
 
 void
 popup_box_t::handle_action(int action, int x, int y) {
+  set_redraw();
+
   switch (action) {
   case ACTION_MINIMAP_CLICK:
     /* Not handled here, event is passed to minimap. */
@@ -3588,9 +3590,7 @@ popup_box_t::handle_action(int action, int x, int y) {
     LOGW("popup", "unhandled action %i", action);
     break;
   }
-
-  set_redraw();
-}
+}  // NOLINT(readability/fn_size)
 
 /* Generic handler for clicks in popup boxes. */
 int
