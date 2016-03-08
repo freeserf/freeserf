@@ -503,6 +503,9 @@ data_source_dos_t::load_animation_table() {
 
 animation_t*
 data_source_dos_t::get_animation(unsigned int animation, unsigned int phase) {
+  if (animation > 199) {
+    return NULL;
+  }
   animation_t *animation_phase = animation_table[animation] + (phase >> 3);
 
   return animation_phase;
