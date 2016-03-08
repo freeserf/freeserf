@@ -1715,7 +1715,7 @@ handle_serf_digging_state(serf_t *serf)
 				serf->s.leaving_building.field_B = -2;
 				serf->s.leaving_building.dir = 0;
 				serf->s.leaving_building.next_state = SERF_STATE_WALKING;
-				/* handle_serf_ready_to_leave_state(serf); */ /* TODO why isn't a state switch enough? */
+				handle_serf_ready_to_leave_state(serf);  /* TODO why isn't a state switch enough? */
 				return;
 			}
 		}

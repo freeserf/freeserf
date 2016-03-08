@@ -1859,6 +1859,12 @@ viewport_t::draw_active_serf(serf_t *serf, map_pos_t pos,
     5, 8, 0, 0, 0, 0, 0, 0
   };
 
+  if ((serf->animation < 0) || (serf->animation > 199) || (serf->counter < 0)) {
+    LOGE("viewport", "bad animation for serf #%i (%s): %d,%d", SERF_INDEX(serf),
+         serf_get_state_name(serf->state), serf->animation, serf->counter);
+    return;
+  }
+
   animation_t *animation = data_source->get_animation(serf->animation,
                                                       serf->counter);
 
