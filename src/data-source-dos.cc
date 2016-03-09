@@ -403,22 +403,20 @@ sprite_dos_base_t::get_masked(sprite_t *mask) {
 
   sprite_t *masked = new sprite_dos_base_t(mask);
 
-  uint8_t *pos = masked->get_data();
+  uint32_t *pos = reinterpret_cast<uint32_t*>(masked->get_data());
 
-  uint8_t *s_pos = data;
-  uint8_t *s_end = s_pos + (width * height * 4);
-  size_t s_delta = (width - masked->get_width())*4;
+  uint32_t *s_beg = reinterpret_cast<uint32_t*>(data);
+  uint32_t *s_pos = s_beg;
+  uint32_t *s_end = s_beg + (width * height);
+  size_t s_delta = width - masked->get_width();
 
-  uint8_t *m_pos = mask->get_data();
+  uint32_t *m_pos = reinterpret_cast<uint32_t*>(mask->get_data());
 
   for (size_t y = 0; y < masked->get_height(); y++) {
     for (size_t x = 0; x < masked->get_width(); x++) {
-      if (s_pos > s_end) {
-        s_pos = data;
+      if (s_pos >= s_end) {
+        s_pos = s_beg;
       }
-      *pos++ = *s_pos++ & *m_pos++;
-      *pos++ = *s_pos++ & *m_pos++;
-      *pos++ = *s_pos++ & *m_pos++;
       *pos++ = *s_pos++ & *m_pos++;
     }
     s_pos += s_delta;
