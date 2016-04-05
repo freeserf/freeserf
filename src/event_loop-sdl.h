@@ -31,6 +31,9 @@ class event_loop_sdl_t : public event_loop_t {
   virtual void quit();
   virtual void run();
   virtual void deferred_call(deferred_callee_t *deferred_callee, void *data);
+
+ protected:
+  void zoom(float delta);
 };
 
 #endif  // SRC_EVENT_LOOP_SDL_H_

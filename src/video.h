@@ -88,6 +88,9 @@ class video_t {
 
   virtual void set_cursor(void *data, unsigned int width,
                           unsigned int height) = 0;
+
+  virtual float get_zoom_factor() = 0;
+  virtual bool set_zoom_factor(float factor) = 0;
 };
 
 #endif  // SRC_VIDEO_H_

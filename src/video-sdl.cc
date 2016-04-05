@@ -58,6 +58,7 @@ video_sdl_t::video_sdl_t() throw(Video_Exception) {
   screen_texture = NULL;
   cursor = NULL;
   fullscreen = false;
+  zoom_factor = 1.f;
 
   /* Initialize defaults and Video subsystem */
   if (SDL_Init(SDL_INIT_VIDEO) < 0) {
@@ -364,4 +365,22 @@ video_sdl_t::set_cursor(void *data, unsigned int width, unsigned int height) {
   SDL_Surface *surface = create_surface_from_data(data, width, height);
   cursor = SDL_CreateColorCursor(surface, 8, 8);
   SDL_SetCursor(cursor);
+}
+
+bool
+video_sdl_t::set_zoom_factor(float factor) {
+  if ((factor < 0.2f) || (factor > 1.f)) {
+    return false;
+  }
+
+  unsigned int width = 0;
+  unsigned int height = 0;
+  get_resolution(&width, &height);
+  zoom_factor = factor;
+
+  width = (unsigned int)(static_cast<float>(width) * zoom_factor);
+  height = (unsigned int)(static_cast<float>(height) * zoom_factor);
+  set_resolution(width, height, is_fullscreen());
+
+  return true;
 }

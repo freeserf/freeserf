@@ -72,6 +72,7 @@ class video_sdl_t : public video_t {
   video_frame_t *screen;
   bool fullscreen;
   SDL_Cursor *cursor;
+  float zoom_factor;
 
  public:
   video_sdl_t() throw(Video_Exception);
@@ -104,6 +105,9 @@ class video_sdl_t : public video_t {
   virtual void swap_buffers();
 
   virtual void set_cursor(void *data, unsigned int width, unsigned int height);
+
+  virtual float get_zoom_factor() { return zoom_factor; }
+  virtual bool set_zoom_factor(float factor);
 
  protected:
   SDL_Surface *create_surface(int width, int height);

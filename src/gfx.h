@@ -167,6 +167,9 @@ class gfx_t {
   bool is_fullscreen();
 
   void swap_buffers();
+
+  float get_zoom_factor();
+  bool set_zoom_factor(float factor);
 };
 
 #endif  // SRC_GFX_H_
