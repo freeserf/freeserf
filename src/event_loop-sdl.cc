@@ -236,9 +236,8 @@ event_loop_sdl_t::run() {
         break;
       case SDL_WINDOWEVENT:
         if (SDL_WINDOWEVENT_SIZE_CHANGED == event.window.event) {
-          unsigned int width = 0;
-          unsigned int height = 0;
-          gfx->get_resolution(&width, &height);
+          unsigned int width = event.window.data1;
+          unsigned int height = event.window.data2;
           gfx->set_resolution(width, height, gfx->is_fullscreen());
           notify_resize(width, height);
         }
