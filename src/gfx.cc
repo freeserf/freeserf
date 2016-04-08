@@ -532,3 +532,13 @@ void
 gfx_t::swap_buffers() {
   video->swap_buffers();
 }
+
+float
+gfx_t::get_zoom_factor() {
+  return video->get_zoom_factor();
+}
+
+bool
+gfx_t::set_zoom_factor(float factor) {
+  return video->set_zoom_factor(factor);
+}

@@ -27,6 +27,7 @@ Other keyboard controls:
 * `m`: Enable/disable music playback
 * CTRL+`f`: Switch fullscreen mode on/off.
 * CTRL+`z`: Save game in current directory.
+* `[`/`]`: Zoom -/+
 
 
 Audio

@@ -123,8 +123,11 @@ event_loop_sdl_t::run() {
         }
 
         if (event.button.button <= 3) {
-          notify_click(event.button.x, event.button.y,
-                       (event_button_t)event.button.button);
+          int x = static_cast<int>(static_cast<float>(event.button.x) *
+                                   gfx->get_zoom_factor());
+          int y = static_cast<int>(static_cast<float>(event.button.y) *
+                                   gfx->get_zoom_factor());
+          notify_click(x, y, (event_button_t)event.button.button);
 
           if (current_ticks - last_click[event.button.button] <
                 MOUSE_TIME_SENSITIVITY &&
@@ -132,8 +135,7 @@ event_loop_sdl_t::run() {
               event.button.x <= (last_click_x + MOUSE_MOVE_SENSITIVITY) &&
               event.button.y >= (last_click_y - MOUSE_MOVE_SENSITIVITY) &&
               event.button.y <= (last_click_y + MOUSE_MOVE_SENSITIVITY)) {
-            notify_dbl_click(event.button.x, event.button.y,
-                             (event_button_t)event.button.button);
+            notify_dbl_click(x, y, (event_button_t)event.button.button);
           }
 
           last_click[event.button.button] = current_ticks;
@@ -165,6 +167,13 @@ event_loop_sdl_t::run() {
           }
         }
         break;
+      case SDL_MOUSEWHEEL: {
+        SDL_Keymod mod = SDL_GetModState();
+        if ((mod & KMOD_CTRL) != 0) {
+          zoom(0.2f * static_cast<float>(event.wheel.y));
+        }
+        break;
+      }
       case SDL_KEYDOWN: {
         if (event.key.keysym.sym == SDLK_q &&
             (event.key.keysym.mod & KMOD_CTRL)) {
@@ -218,6 +227,12 @@ event_loop_sdl_t::run() {
               gfx->set_fullscreen(!gfx->is_fullscreen());
             }
             break;
+          case SDLK_RIGHTBRACKET:
+            zoom(-0.2f);
+            break;
+          case SDLK_LEFTBRACKET:
+            zoom(0.2f);
+            break;
 
             /* Misc */
           case SDLK_F10:
@@ -236,9 +251,8 @@ event_loop_sdl_t::run() {
         break;
       case SDL_WINDOWEVENT:
         if (SDL_WINDOWEVENT_SIZE_CHANGED == event.window.event) {
-          unsigned int width = 0;
-          unsigned int height = 0;
-          gfx->get_resolution(&width, &height);
+          unsigned int width = event.window.data1;
+          unsigned int height = event.window.data2;
           gfx->set_resolution(width, height, gfx->is_fullscreen());
           notify_resize(width, height);
         }
@@ -283,5 +297,17 @@ event_loop_sdl_t::run() {
   if (screen != NULL) {
     delete screen;
     screen = NULL;
+  }
+}
+
+void
+event_loop_sdl_t::zoom(float delta) {
+  gfx_t *gfx = gfx_t::get_instance();
+  float factor = gfx->get_zoom_factor();
+  if (gfx->set_zoom_factor(factor + delta)) {
+    unsigned int width = 0;
+    unsigned int height = 0;
+    gfx->get_resolution(&width, &height);
+    notify_resize(width, height);
   }
 }
