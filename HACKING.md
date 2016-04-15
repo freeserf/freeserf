@@ -39,27 +39,6 @@ Dependencies
 Coding style
 ------------
 
-The code is currently in a transition phase because we are gradually
-moving towards using C++. In the meantime we have some parts that are
-implemented as C code and some parts have been ported to C++ code.
-
-### C code
-
-The C code follows roughly the Linux coding style
-<http://www.kernel.org/doc/Documentation/CodingStyle>. Some specific
-rules to note are:
-
-* Lines should not be much longer than 80 chars but this is not strictly
-  enforced. If lines are much longer than this the code could likely be improved
-  by moving some parts to a smaller function.
-* All structures are typedef'ed.
-* Avoid Yoda conditions; they make the logic unnecessarily hard to comprehend.
-* Avoid multiline if-statements without braces; either use a single line or add
-  the braces.
-* Use only C-style comments (`/* */`).
-
-### C++ code
-
 For the C++ code we are following the Google C++ Style Guide
 <https://google-styleguide.googlecode.com/svn/trunk/cppguide.html>.
 
