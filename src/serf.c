@@ -3520,15 +3520,28 @@ handle_serf_planning_farming_state(serf_t *serf)
 	serf->counter -= delta;
 
 	while (serf->counter < 0) {
-		int index = ((game_random_int() >> 2) & 0x1f) + 7;
-		map_pos_t dest = MAP_POS_ADD(serf->pos,
-					     game.spiral_pos_pattern[index]);
+                uint16_t rand_num = game_random_int();
+                int index = ((rand_num >> 2) & 0x1f) + 7;
+                map_pos_t dest = MAP_POS_ADD(serf->pos,
+                                                game.spiral_pos_pattern[index]);
+                int enabled = 0;
+                map_pos_t Loaded_dest = serf->farmer.farm_pos[rand_num % 3].pos;
+                int Loaded_enabled = serf->farmer.farm_pos[rand_num % 3].enabled;
+                if ( Loaded_enabled == 1 &&
+                        ( ( MAP_OBJ(Loaded_dest) == MAP_OBJ_SEEDS_5 ) ||
+                        (MAP_OBJ(Loaded_dest) >= MAP_OBJ_FIELD_0 &&
+                        MAP_OBJ(Loaded_dest) <= MAP_OBJ_FIELD_5) ) ) {
+                        dest = Loaded_dest;
+                        enabled = Loaded_enabled;
+                        index = serf->farmer.farm_pos[rand_num % 3].index;
+                }
 
 		/* If destination doesn't have an object it must be
 		   of the correct type and the surrounding spaces
 		   must not be occupied by large buildings.
 		   If it _has_ an object it must be an existing field. */
-		if ((MAP_OBJ(dest) == MAP_OBJ_NONE &&
+		if ((serf->farmer.farm_counter < 3 &&
+			MAP_OBJ(dest) == MAP_OBJ_NONE &&
 		     (MAP_TYPE_UP(dest) == 5 && MAP_TYPE_DOWN(dest) == 5 &&
 		      MAP_PATHS(dest) == 0 &&
 		      MAP_OBJ(MAP_MOVE_RIGHT(dest)) != MAP_OBJ_LARGE_BUILDING &&
@@ -3550,6 +3563,21 @@ handle_serf_planning_farming_state(serf_t *serf)
 		    MAP_OBJ(dest) == MAP_OBJ_SEEDS_5 ||
 		    (MAP_OBJ(dest) >= MAP_OBJ_FIELD_0 &&
 		     MAP_OBJ(dest) <= MAP_OBJ_FIELD_5)) {
+                        for (int i = 0; i < 3; i++) {
+                                if (enabled == 1) {
+                                        break;
+                                }
+                                else if (serf->farmer.farm_pos[i].enabled == 0) {
+                                        serf->farmer.farm_pos[i].enabled = 1;
+                                        serf->farmer.farm_pos[i].pos = dest;
+                                        serf->farmer.farm_pos[i].index = index;
+                                        if ( serf->farmer.farm_counter < 0 ) {
+                                                serf->farmer.farm_counter = 0;
+                                        }
+                                        serf->farmer.farm_counter++;
+                                        break;
+                                }
+                        }
 			serf_log_state_change(serf, SERF_STATE_READY_TO_LEAVE);
 			serf->state = SERF_STATE_READY_TO_LEAVE;
 			serf->s.leaving_building.field_B = game.spiral_pattern[2*index] - 1;
@@ -3599,6 +3627,28 @@ handle_serf_farming_state(serf_t *serf)
 	serf->s.free_walking.neg_dist1 = -128;
 	serf->s.free_walking.flags = 0;
 	serf->counter = 0;
+}
+
+void handle_farm_serf_field(serf_t *serf) {
+        for (int i = 0; i < 3; i++) {
+                if (serf->farmer.farm_pos[i].enabled == 1 &&
+                        MAP_OBJ(serf->farmer.farm_pos[i].pos) == MAP_OBJ_FIELD_EXPIRED ) {
+                        LOGI("farm", "serf->farmer.farm_counter: %d", serf->farmer.farm_counter);
+                        LOGI("farm", "remove farm_enabled[%d]: %d", i, serf->farmer.farm_pos[i].enabled);
+                        LOGI("farm", "remove farm_pos[%d]: %d", i, serf->farmer.farm_pos[i].pos);
+                        LOGI("farm", "remove farm_index[%d]: %d", i, serf->farmer.farm_pos[i].index);
+                        LOGI("farm", "remove farm_counter: %d", i, serf->farmer.farm_counter);
+                        serf->farmer.farm_pos[i].enabled = 0;
+                        serf->farmer.farm_pos[i].pos = -1;
+                        serf->farmer.farm_pos[i].index = -1;
+                        serf->farmer.farm_counter --;
+                        if ( serf->farmer.farm_counter < 0 ) {
+                                serf->farmer.farm_counter = 0;
+                        }
+                        LOGI("farm", "serf->farmer.farm_counter: %d", serf->farmer.farm_counter);
+                        break;
+                }
+        }
 }
 
 static void
@@ -5088,10 +5138,12 @@ update_serf(serf_t *serf)
 		handle_serf_fishing_state(serf);
 		break;
 	case SERF_STATE_PLANNING_FARMING:
+                handle_farm_serf_field(serf);
 		handle_serf_planning_farming_state(serf);
 		break;
 	case SERF_STATE_FARMING:
 		handle_serf_farming_state(serf);
+                handle_farm_serf_field(serf);
 		break;
 	case SERF_STATE_MILLING: /* 35 */
 		handle_serf_milling_state(serf);
