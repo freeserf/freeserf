@@ -62,8 +62,6 @@ class panel_bar_t : public gui_object_t {
  public:
   explicit panel_bar_t(interface_t *interface);
 
-  void activate_button(int button);
-
   void update();
 
  protected:
@@ -76,6 +74,7 @@ class panel_bar_t : public gui_object_t {
 
   virtual void internal_draw();
   virtual bool handle_click_left(int x, int y);
+  virtual bool handle_key_pressed(char key, int modifier);
 };
 
 #endif  // SRC_PANEL_H_

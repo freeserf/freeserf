@@ -23,6 +23,7 @@
 #define SRC_POPUP_H_
 
 #include <string>
+#include <vector>
 
 #include "src/gui.h"
 
@@ -99,6 +100,11 @@ class popup_box_t : public gui_object_t {
 
   box_t box;
 
+  int current_sett_5_item;
+  int current_sett_6_item;
+  int current_stat_7_item;
+  int current_stat_8_mode;
+
  public:
   explicit popup_box_t(interface_t *interface);
   virtual ~popup_box_t();
@@ -129,7 +135,7 @@ class popup_box_t : public gui_object_t {
   void draw_basic_building_box(int flip);
   void draw_adv_1_building_box();
   void draw_adv_2_building_box();
-  void draw_resources_box(const int resources[]);
+  void draw_resources_box(const std::vector<int> &resources);
   void draw_serfs_box(const int serfs[], int total);
   void draw_stat_select_box();
   void draw_stat_4_box();

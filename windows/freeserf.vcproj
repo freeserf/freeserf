@@ -25,6 +25,7 @@
 			>
 			<Tool
 				Name="VCPreBuildEventTool"
+				CommandLine="set VCS_VERSION_FILE=$(SolutionDir)..\src\version-vcs.h&#x0D;&#x0A;&#x0D;&#x0A;git --version&#x0D;&#x0A;if errorlevel 1 goto noGit&#x0D;&#x0A;for /f &quot;delims=&quot; %%i in (&apos;git describe --always --tags --dirty&apos;) do set VCS_VERSION=%%i&#x0D;&#x0A;goto withGit&#x0D;&#x0A;:noGit&#x0D;&#x0A;set VCS_VERSION=unversioned&#x0D;&#x0A;:withGit&#x0D;&#x0A;&#x0D;&#x0A;(echo #ifndef SRC_VERSION_VCS_H_) &gt; %VCS_VERSION_FILE%&#x0D;&#x0A;(echo #define SRC_VERSION_VCS_H_) &gt;&gt; %VCS_VERSION_FILE%&#x0D;&#x0A;(echo.) &gt;&gt; %VCS_VERSION_FILE%&#x0D;&#x0A;(echo #define VERSION_VCS &quot;%VCS_VERSION%&quot;) &gt;&gt; %VCS_VERSION_FILE%&#x0D;&#x0A;(echo.) &gt;&gt; %VCS_VERSION_FILE%&#x0D;&#x0A;(echo #endif  // SRC_VERSION_VCS_H_) &gt;&gt; %VCS_VERSION_FILE%&#x0D;&#x0A;"
 			/>
 			<Tool
 				Name="VCCustomBuildTool"
@@ -46,7 +47,6 @@
 				UsePrecompiledHeader="0"
 				WarningLevel="3"
 				DebugInformationFormat="4"
-				CompileAs="2"
 				DisableSpecificWarnings="4290"
 			/>
 			<Tool
@@ -102,6 +102,7 @@
 			>
 			<Tool
 				Name="VCPreBuildEventTool"
+				CommandLine="set VCS_VERSION_FILE=$(SolutionDir)..\src\version-vcs.h&#x0D;&#x0A;&#x0D;&#x0A;git --version&#x0D;&#x0A;if errorlevel 1 goto noGit&#x0D;&#x0A;for /f &quot;delims=&quot; %%i in (&apos;git describe --always --tags --dirty&apos;) do set VCS_VERSION=%%i&#x0D;&#x0A;goto withGit&#x0D;&#x0A;:noGit&#x0D;&#x0A;set VCS_VERSION=unversioned&#x0D;&#x0A;:withGit&#x0D;&#x0A;&#x0D;&#x0A;(echo #ifndef SRC_VERSION_VCS_H_) &gt; %VCS_VERSION_FILE%&#x0D;&#x0A;(echo #define SRC_VERSION_VCS_H_) &gt;&gt; %VCS_VERSION_FILE%&#x0D;&#x0A;(echo.) &gt;&gt; %VCS_VERSION_FILE%&#x0D;&#x0A;(echo #define VERSION_VCS &quot;%VCS_VERSION%&quot;) &gt;&gt; %VCS_VERSION_FILE%&#x0D;&#x0A;(echo.) &gt;&gt; %VCS_VERSION_FILE%&#x0D;&#x0A;(echo #endif  // SRC_VERSION_VCS_H_) &gt;&gt; %VCS_VERSION_FILE%&#x0D;&#x0A;"
 			/>
 			<Tool
 				Name="VCCustomBuildTool"
@@ -119,7 +120,6 @@
 				RuntimeLibrary="2"
 				UsePrecompiledHeader="0"
 				WarningLevel="3"
-				CompileAs="2"
 				DisableSpecificWarnings="4290"
 			/>
 			<Tool
@@ -184,7 +184,7 @@
 				>
 			</File>
 			<File
-				RelativePath="..\src\building.c"
+				RelativePath="..\src\building.cc"
 				>
 			</File>
 			<File
@@ -200,6 +200,10 @@
 				>
 			</File>
 			<File
+				RelativePath="..\src\debug.cc"
+				>
+			</File>
+			<File
 				RelativePath="..\src\event_loop-sdl.cc"
 				>
 			</File>
@@ -208,7 +212,7 @@
 				>
 			</File>
 			<File
-				RelativePath="..\src\flag.c"
+				RelativePath="..\src\flag.cc"
 				>
 			</File>
 			<File
@@ -220,7 +224,7 @@
 				>
 			</File>
 			<File
-				RelativePath="..\src\game.c"
+				RelativePath="..\src\game.cc"
 				>
 			</File>
 			<File
@@ -236,15 +240,15 @@
 				>
 			</File>
 			<File
-				RelativePath="..\src\list.c"
+				RelativePath="..\src\inventory.cc"
 				>
 			</File>
 			<File
-				RelativePath="..\src\log.c"
+				RelativePath="..\src\log.cc"
 				>
 			</File>
 			<File
-				RelativePath="..\src\map.c"
+				RelativePath="..\src\map.cc"
 				>
 			</File>
 			<File
@@ -252,7 +256,7 @@
 				>
 			</File>
 			<File
-				RelativePath="..\src\mission.c"
+				RelativePath="..\src\mission.cc"
 				>
 			</File>
 			<File
@@ -268,7 +272,7 @@
 				>
 			</File>
 			<File
-				RelativePath="..\src\player.c"
+				RelativePath="..\src\player.cc"
 				>
 			</File>
 			<File
@@ -276,11 +280,11 @@
 				>
 			</File>
 			<File
-				RelativePath="..\src\random.c"
+				RelativePath="..\src\random.cc"
 				>
 			</File>
 			<File
-				RelativePath="..\src\savegame.c"
+				RelativePath="..\src\savegame.cc"
 				>
 			</File>
 			<File
@@ -296,7 +300,7 @@
 				>
 			</File>
 			<File
-				RelativePath="..\src\serf.c"
+				RelativePath="..\src\serf.cc"
 				>
 			</File>
 			<File
@@ -304,7 +308,7 @@
 				>
 			</File>
 			<File
-				RelativePath="..\src\version.c"
+				RelativePath="..\src\version.cc"
 				>
 			</File>
 			<File
@@ -394,7 +398,7 @@
 				>
 			</File>
 			<File
-				RelativePath="..\src\list.h"
+				RelativePath="..\src\inventory.h"
 				>
 			</File>
 			<File
@@ -422,6 +426,10 @@
 				>
 			</File>
 			<File
+				RelativePath="..\src\objects.h"
+				>
+			</File>
+			<File
 				RelativePath="..\src\panel.h"
 				>
 			</File>
@@ -439,6 +447,10 @@
 			</File>
 			<File
 				RelativePath="..\src\random.h"
+				>
+			</File>
+			<File
+				RelativePath="..\src\resource.h"
 				>
 			</File>
 			<File

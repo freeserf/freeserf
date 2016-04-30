@@ -21,27 +21,15 @@
 
 #include "src/data-source.h"
 
-#include <cassert>
 #include <algorithm>
 #include <fstream>
 
-#include "src/misc.h"
-BEGIN_EXT_C
-  #include "src/freeserf_endian.h"
-  #include "src/log.h"
-END_EXT_C
+#include "src/freeserf_endian.h"
+#include "src/log.h"
 #include "src/tpwm.h"
 #include "src/data.h"
 #include "src/sfx2wav.h"
 #include "src/xmi2mid.h"
-
-#ifdef min
-# undef min
-#endif
-
-#ifdef max
-# undef max
-#endif
 
 /* There are different types of sprites:
  - Non-packed, rectangular sprites: These are simple called sprites here.

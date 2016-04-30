@@ -26,14 +26,6 @@
 #include "src/misc.h"
 #include "src/audio.h"
 
-#ifdef min
-# undef min
-#endif
-
-#ifdef max
-# undef max
-#endif
-
 /* Get the resulting value from a click on a slider bar. */
 int
 gui_get_slider_click_value(int x) {

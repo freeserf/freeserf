@@ -1,7 +1,7 @@
 /*
- * random.c - Random number generator
+ * debug.cc - Definitions to ease debugging.
  *
- * Copyright (C) 2013  Jon Lund Steffensen <jonlst@gmail.com>
+ * Copyright (C) 2016  Wicked_Digger <wicked_digger@mail.ru>
  *
  * This file is part of freeserf.
  *
@@ -19,24 +19,21 @@
  * along with freeserf.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <stdio.h>
-#include <stdlib.h>
-#ifdef HAVE_STDINT_H
-#include <stdint.h>
-#endif
+#include "src/debug.h"
 
-#include "random.h"
+Freeserf_Exception::Freeserf_Exception(const std::string &description) throw() {
+  this->description = description;
+}
 
-uint16_t
-random_int(random_state_t *random)
-{
-	uint16_t *rnd = random->state;
-	uint16_t r = (rnd[0] + rnd[1]) ^ rnd[2];
-	rnd[2] += rnd[1];
-	rnd[1] ^= rnd[2];
-	rnd[1] = (rnd[1] >> 1) | (rnd[1] << 15);
-	rnd[2] = (rnd[2] >> 1) | (rnd[2] << 15);
-	rnd[0] = r;
+Freeserf_Exception::~Freeserf_Exception() throw() {
+}
 
-	return r;
+const char*
+Freeserf_Exception::what() const throw() {
+  return get_description().c_str();
+}
+
+std::string
+Freeserf_Exception::get_description() const {
+  return "[" + get_system() + "] " + description;
 }

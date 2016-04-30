@@ -25,11 +25,9 @@
 #include <algorithm>
 
 #include "src/misc.h"
-BEGIN_EXT_C
-  #include "src/game.h"
-  #include "src/log.h"
-  #include "src/debug.h"
-END_EXT_C
+#include "src/game.h"
+#include "src/log.h"
+#include "src/debug.h"
 #include "src/data.h"
 #include "src/audio.h"
 #include "src/gfx.h"
@@ -37,14 +35,6 @@ END_EXT_C
 #include "src/popup.h"
 #include "src/pathfinder.h"
 #include "src/data-source.h"
-
-#ifdef min
-# undef min
-#endif
-
-#ifdef max
-# undef max
-#endif
 
 #define MAP_TILE_WIDTH   32
 #define MAP_TILE_HEIGHT  20
@@ -98,7 +88,7 @@ viewport_t::draw_triangle_up(int x, int y, int m, int left, int right,
   int mask = 4 + m - left + 9*(4 + m - right);
   assert(tri_mask[mask] >= 0);
 
-  int type = MAP_TYPE_UP(MAP_MOVE_UP(pos));
+  int type = map->type_up(map->move_up(pos));
   int index = (type << 3) | tri_mask[mask];
   assert(index < 128);
 
@@ -130,7 +120,7 @@ viewport_t::draw_triangle_down(int x, int y, int m, int left, int right,
   int mask = 4 + left - m + 9*(4 + right - m);
   assert(tri_mask[mask] >= 0);
 
-  int type = MAP_TYPE_DOWN(MAP_MOVE_UP_LEFT(pos));
+  int type = map->type_down(map->move_up_left(pos));
   int index = (type << 3) | tri_mask[mask];
   assert(index < 128);
 
@@ -145,16 +135,16 @@ viewport_t::draw_triangle_down(int x, int y, int m, int left, int right,
 void
 viewport_t::draw_up_tile_col(map_pos_t pos, int x_base, int y_base, int max_y,
                              frame_t *frame) {
-  int m = MAP_HEIGHT(pos);
+  int m = map->get_height(pos);
   int left, right;
 
   /* Loop until a tile is inside the frame (y >= 0). */
   while (1) {
     /* move down */
-    pos = MAP_MOVE_DOWN(pos);
+    pos = map->move_down(pos);
 
-    left = MAP_HEIGHT(pos);
-    right = MAP_HEIGHT(MAP_MOVE_RIGHT(pos));
+    left = map->get_height(pos);
+    right = map->get_height(map->move_right(pos));
 
     int t = std::min(left, right);
     /*if (left == right) t -= 1;*/ /* TODO ? */
@@ -164,9 +154,9 @@ viewport_t::draw_up_tile_col(map_pos_t pos, int x_base, int y_base, int max_y,
     y_base += MAP_TILE_HEIGHT;
 
     /* move down right */
-    pos = MAP_MOVE_DOWN_RIGHT(pos);
+    pos = map->move_down_right(pos);
 
-    m = MAP_HEIGHT(pos);
+    m = map->get_height(pos);
 
     if (y_base + MAP_TILE_HEIGHT - 4*m >= 0) goto down;
 
@@ -182,8 +172,8 @@ viewport_t::draw_up_tile_col(map_pos_t pos, int x_base, int y_base, int max_y,
     y_base += MAP_TILE_HEIGHT;
 
     /* move down right */
-    pos = MAP_MOVE_DOWN_RIGHT(pos);
-    m = MAP_HEIGHT(pos);
+    pos = map->move_down_right(pos);
+    m = map->get_height(pos);
 
     if (y_base - 2*MAP_TILE_HEIGHT - 4*std::max(left, right) >= max_y) break;
 
@@ -193,10 +183,10 @@ viewport_t::draw_up_tile_col(map_pos_t pos, int x_base, int y_base, int max_y,
     y_base += MAP_TILE_HEIGHT;
 
     /* move down */
-    pos = MAP_MOVE_DOWN(pos);
+    pos = map->move_down(pos);
 
-    left = MAP_HEIGHT(pos);
-    right = MAP_HEIGHT(MAP_MOVE_RIGHT(pos));
+    left = map->get_height(pos);
+    right = map->get_height(map->move_right(pos));
   }
 }
 
@@ -204,26 +194,26 @@ viewport_t::draw_up_tile_col(map_pos_t pos, int x_base, int y_base, int max_y,
 void
 viewport_t::draw_down_tile_col(map_pos_t pos, int x_base, int y_base,
                                int max_y, frame_t *frame) {
-  int left = MAP_HEIGHT(pos);
-  int right = MAP_HEIGHT(MAP_MOVE_RIGHT(pos));
+  int left = map->get_height(pos);
+  int right = map->get_height(map->move_right(pos));
   int m;
 
   /* Loop until a tile is inside the frame (y >= 0). */
-  while (1) {
+  while (true) {
     /* move down right */
-    pos = MAP_MOVE_DOWN_RIGHT(pos);
+    pos = map->move_down_right(pos);
 
-    m = MAP_HEIGHT(pos);
+    m = map->get_height(pos);
 
     if (y_base + MAP_TILE_HEIGHT - 4*m >= 0) goto down;
 
     y_base += MAP_TILE_HEIGHT;
 
     /* move down */
-    pos = MAP_MOVE_DOWN(pos);
+    pos = map->move_down(pos);
 
-    left = MAP_HEIGHT(pos);
-    right = MAP_HEIGHT(MAP_MOVE_RIGHT(pos));
+    left = map->get_height(pos);
+    right = map->get_height(map->move_right(pos));
 
     int t = std::min(left, right);
     /*if (left == right) t -= 1;*/ /* TODO ? */
@@ -242,8 +232,8 @@ viewport_t::draw_down_tile_col(map_pos_t pos, int x_base, int y_base,
     y_base += MAP_TILE_HEIGHT;
 
     /* move down right */
-    pos = MAP_MOVE_DOWN_RIGHT(pos);
-    m = MAP_HEIGHT(pos);
+    pos = map->move_down_right(pos);
+    m = map->get_height(pos);
 
     if (y_base - 2*MAP_TILE_HEIGHT - 4*std::max(left, right) >= max_y) break;
 
@@ -253,41 +243,24 @@ viewport_t::draw_down_tile_col(map_pos_t pos, int x_base, int y_base,
     y_base += MAP_TILE_HEIGHT;
 
     /* move down */
-    pos = MAP_MOVE_DOWN(pos);
+    pos = map->move_down(pos);
 
-    left = MAP_HEIGHT(pos);
-    right = MAP_HEIGHT(MAP_MOVE_RIGHT(pos));
+    left = map->get_height(pos);
+    right = map->get_height(map->move_right(pos));
   }
-}
-
-/* Deallocate global allocations for landscape tiles */
-void
-viewport_t::map_deinit() {
-  while (landscape_tiles.size()) {
-    tiles_map_t::iterator it = landscape_tiles.begin();
-    delete it->second;
-    landscape_tiles.erase(it);
-  }
-}
-
-/* Reinitialize landscape tiles */
-void
-viewport_t::map_reinit() {
-  map_deinit();
 }
 
 void
 viewport_t::layout() {
-  map_deinit();
 }
 
 void
 viewport_t::redraw_map_pos(map_pos_t pos) {
   int mx, my;
-  map_pix_from_map_coord(pos, MAP_HEIGHT(pos), &mx, &my);
+  map_pix_from_map_coord(pos, map->get_height(pos), &mx, &my);
 
-  int horiz_tiles = game.map.cols/MAP_TILE_COLS;
-  int vert_tiles = game.map.rows/MAP_TILE_ROWS;
+  int horiz_tiles = map->get_cols()/MAP_TILE_COLS;
+  int vert_tiles = map->get_rows()/MAP_TILE_ROWS;
 
   int tile_width = MAP_TILE_COLS*MAP_TILE_WIDTH;
   int tile_height = MAP_TILE_ROWS*MAP_TILE_HEIGHT;
@@ -305,7 +278,7 @@ viewport_t::redraw_map_pos(map_pos_t pos) {
 }
 
 frame_t *
-viewport_t::get_tile_frame(uint tid, int tc, int tr) {
+viewport_t::get_tile_frame(unsigned int tid, int tc, int tr) {
   tiles_map_t::iterator it = landscape_tiles.find(tid);
   if (it != landscape_tiles.end()) {
     return it->second;
@@ -318,9 +291,9 @@ viewport_t::get_tile_frame(uint tid, int tc, int tr) {
                                                             tile_height);
   tile_frame->fill_rect(0, 0, tile_width, tile_height, 0);
 
-  int col = (tc*MAP_TILE_COLS + (tr*MAP_TILE_ROWS)/2) % game.map.cols;
+  int col = (tc*MAP_TILE_COLS + (tr*MAP_TILE_ROWS)/2) % map->get_cols();
   int row = tr*MAP_TILE_ROWS;
-  map_pos_t pos = MAP_POS(col, row);
+  map_pos_t pos = map->pos(col, row);
 
   int x_base = -(MAP_TILE_WIDTH/2);
 
@@ -331,7 +304,7 @@ viewport_t::get_tile_frame(uint tid, int tc, int tr) {
     draw_down_tile_col(pos, x_base + MAP_TILE_WIDTH/2, 0, tile_height,
                        tile_frame);
 
-    pos = MAP_MOVE_RIGHT(pos);
+    pos = map->move_right(pos);
     x_base += MAP_TILE_WIDTH;
   }
 
@@ -341,8 +314,9 @@ viewport_t::get_tile_frame(uint tid, int tc, int tr) {
 #endif
 
   LOGV("viewport", "map: %i,%i, cols,rows: %i,%i, tc,tr: %i,%i, tw,th: %i,%i",
-       game.map.cols*MAP_TILE_WIDTH, game.map.rows*MAP_TILE_HEIGHT,
-       game.map.cols, game.map.rows,
+       map->get_cols()*MAP_TILE_WIDTH,
+       map->get_rows()*MAP_TILE_HEIGHT,
+       map->get_cols(), map->get_rows(),
        tc, tr,
        tile_width, tile_height);
 
@@ -353,14 +327,14 @@ viewport_t::get_tile_frame(uint tid, int tc, int tr) {
 
 void
 viewport_t::draw_landscape() {
-  int horiz_tiles = game.map.cols/MAP_TILE_COLS;
-  int vert_tiles = game.map.rows/MAP_TILE_ROWS;
+  int horiz_tiles = map->get_cols()/MAP_TILE_COLS;
+  int vert_tiles = map->get_rows()/MAP_TILE_ROWS;
 
   int tile_width = MAP_TILE_COLS*MAP_TILE_WIDTH;
   int tile_height = MAP_TILE_ROWS*MAP_TILE_HEIGHT;
 
-  int map_width = game.map.cols*MAP_TILE_WIDTH;
-  int map_height = game.map.rows*MAP_TILE_HEIGHT;
+  int map_width = map->get_cols()*MAP_TILE_WIDTH;
+  int map_height = map->get_rows()*MAP_TILE_HEIGHT;
 
   int my = offset_y;
   int y = 0;
@@ -368,7 +342,7 @@ viewport_t::draw_landscape() {
   while (y < height) {
     while (my >= map_height) {
       my -= map_height;
-      x_base += (game.map.rows*MAP_TILE_WIDTH)/2;
+      x_base += (map->get_rows()*MAP_TILE_WIDTH)/2;
     }
 
     int ty = my % tile_height;
@@ -406,8 +380,8 @@ viewport_t::draw_landscape() {
 
 void
 viewport_t::draw_path_segment(int x, int y, map_pos_t pos, dir_t dir) {
-  int h1 = MAP_HEIGHT(pos);
-  int h2 = MAP_HEIGHT(MAP_MOVE(pos, dir));
+  int h1 = map->get_height(pos);
+  int h2 = map->get_height(map->move(pos, dir));
   int h_diff = h1 - h2;
 
   int t1, t2, h3, h4, h_diff_2;
@@ -415,27 +389,27 @@ viewport_t::draw_path_segment(int x, int y, map_pos_t pos, dir_t dir) {
   switch (dir) {
   case DIR_RIGHT:
     y -= 4*std::max(h1, h2) + 2;
-    t1 = MAP_TYPE_DOWN(pos);
-    t2 = MAP_TYPE_UP(MAP_MOVE_UP(pos));
-    h3 = MAP_HEIGHT(MAP_MOVE_UP(pos));
-    h4 = MAP_HEIGHT(MAP_MOVE_DOWN_RIGHT(pos));
+    t1 = map->type_down(pos);
+    t2 = map->type_up(map->move_up(pos));
+    h3 = map->get_height(map->move_up(pos));
+    h4 = map->get_height(map->move_down_right(pos));
     h_diff_2 = (h3 - h4) - 4*h_diff;
     break;
   case DIR_DOWN_RIGHT:
     y -= 4*h1 + 2;
-    t1 = MAP_TYPE_UP(pos);
-    t2 = MAP_TYPE_DOWN(pos);
-    h3 = MAP_HEIGHT(MAP_MOVE_RIGHT(pos));
-    h4 = MAP_HEIGHT(MAP_MOVE_DOWN(pos));
+    t1 = map->type_up(pos);
+    t2 = map->type_down(pos);
+    h3 = map->get_height(map->move_right(pos));
+    h4 = map->get_height(map->move_down(pos));
     h_diff_2 = 2*(h3 - h4);
     break;
   case DIR_DOWN:
     x -= MAP_TILE_WIDTH/2;
     y -= 4*h1 + 2;
-    t1 = MAP_TYPE_UP(pos);
-    t2 = MAP_TYPE_DOWN(MAP_MOVE_LEFT(pos));
-    h3 = MAP_HEIGHT(MAP_MOVE_LEFT(pos));
-    h4 = MAP_HEIGHT(MAP_MOVE_DOWN(pos));
+    t1 = map->type_up(pos);
+    t2 = map->type_down(map->move_left(pos));
+    h3 = map->get_height(map->move_left(pos));
+    h4 = map->get_height(map->move_down(pos));
     h_diff_2 = 4*h_diff - h3 + h4;
     break;
   default:
@@ -470,8 +444,8 @@ viewport_t::draw_path_segment(int x, int y, map_pos_t pos, dir_t dir) {
 
 void
 viewport_t::draw_border_segment(int x, int y, map_pos_t pos, dir_t dir) {
-  int h1 = MAP_HEIGHT(pos);
-  int h2 = MAP_HEIGHT(MAP_MOVE(pos, dir));
+  int h1 = map->get_height(pos);
+  int h2 = map->get_height(map->move(pos, dir));
   int h_diff = h2 - h1;
 
   int t1, t2, h3, h4, h_diff_2;
@@ -480,28 +454,28 @@ viewport_t::draw_border_segment(int x, int y, map_pos_t pos, dir_t dir) {
   case DIR_RIGHT:
     x += MAP_TILE_WIDTH/2;
     y -= 2*(h1 + h2) + 4;
-    t1 = MAP_TYPE_DOWN(pos);
-    t2 = MAP_TYPE_UP(MAP_MOVE_UP(pos));
-    h3 = MAP_HEIGHT(MAP_MOVE_UP(pos));
-    h4 = MAP_HEIGHT(MAP_MOVE_DOWN_RIGHT(pos));
+    t1 = map->type_down(pos);
+    t2 = map->type_up(map->move_up(pos));
+    h3 = map->get_height(map->move_up(pos));
+    h4 = map->get_height(map->move_down_right(pos));
     h_diff_2 = h3 - h4 + 4*h_diff;
     break;
   case DIR_DOWN_RIGHT:
     x += MAP_TILE_WIDTH/4;
     y -= 2*(h1 + h2) - 6;
-    t1 = MAP_TYPE_UP(pos);
-    t2 = MAP_TYPE_DOWN(pos);
-    h3 = MAP_HEIGHT(MAP_MOVE_RIGHT(pos));
-    h4 = MAP_HEIGHT(MAP_MOVE_DOWN(pos));
+    t1 = map->type_up(pos);
+    t2 = map->type_down(pos);
+    h3 = map->get_height(map->move_right(pos));
+    h4 = map->get_height(map->move_down(pos));
     h_diff_2 = 2*(h3 - h4);
     break;
   case DIR_DOWN:
     x -= MAP_TILE_WIDTH/4;
     y -= 2*(h1 + h2) - 6;
-    t1 = MAP_TYPE_UP(pos);
-    t2 = MAP_TYPE_DOWN(MAP_MOVE_LEFT(pos));
-    h3 = MAP_HEIGHT(MAP_MOVE_LEFT(pos));
-    h4 = MAP_HEIGHT(MAP_MOVE_DOWN(pos));
+    t1 = map->type_up(pos);
+    t2 = map->type_down(map->move_left(pos));
+    h3 = map->get_height(map->move_left(pos));
+    h4 = map->get_height(map->move_down(pos));
     h_diff_2 = 4*h_diff - h3 + h4;
     break;
   default:
@@ -536,9 +510,9 @@ viewport_t::draw_paths_and_borders() {
   int x_off = -(offset_x + 16*(offset_y/20)) % 32;
   int y_off = -offset_y % 20;
 
-  int col_0 = (offset_x/16 + offset_y/20)/2 & game.map.col_mask;
-  int row_0 = (offset_y/MAP_TILE_HEIGHT) & game.map.row_mask;
-  map_pos_t base_pos = MAP_POS(col_0, row_0);
+  int col_0 = (offset_x/16 + offset_y/20)/2 & map->get_col_mask();
+  int row_0 = (offset_y/MAP_TILE_HEIGHT) & map->get_row_mask();
+  map_pos_t base_pos = map->pos(col_0, row_0);
 
   for (int x_base = x_off; x_base < width + MAP_TILE_WIDTH;
        x_base += MAP_TILE_WIDTH) {
@@ -554,34 +528,33 @@ viewport_t::draw_paths_and_borders() {
         x = x_base - MAP_TILE_WIDTH/2;
       }
 
-      int y = y_base - 4*MAP_HEIGHT(pos);
+      int y = y_base - 4* map->get_height(pos);
       if (y >= height) break;
 
       /* For each direction right, down right and down,
          draw the corresponding paths and borders. */
       for (int d = DIR_RIGHT; d <= DIR_DOWN; d++) {
-        map_tile_t *tiles = game.map.tiles;
-        map_pos_t other_pos = MAP_MOVE(pos, d);
+        map_pos_t other_pos = map->move(pos, (dir_t)d);
 
-        if (BIT_TEST(tiles[pos].paths, d)) {
+        if (map->has_path(pos, (dir_t)d)) {
           draw_path_segment(x, y_base, pos, (dir_t)d);
-        } else if (MAP_HAS_OWNER(pos) != MAP_HAS_OWNER(other_pos) ||
-             MAP_OWNER(pos) != MAP_OWNER(other_pos)) {
+        } else if (map->has_owner(pos) != map->has_owner(other_pos) ||
+                   map->get_owner(pos) != map->get_owner(other_pos)) {
           draw_border_segment(x, y_base, pos, (dir_t)d);
         }
       }
 
       if (row % 2 == 0) {
-        pos = MAP_MOVE_DOWN(pos);
+        pos = map->move_down(pos);
       } else {
-        pos = MAP_MOVE_DOWN_RIGHT(pos);
+        pos = map->move_down_right(pos);
       }
 
       y_base += MAP_TILE_HEIGHT;
       row += 1;
     }
 
-    base_pos = MAP_MOVE_RIGHT(base_pos);
+    base_pos = map->move_right(base_pos);
   }
 
   /* If we're in road construction mode, also draw
@@ -594,19 +567,20 @@ viewport_t::draw_paths_and_borders() {
       map_pos_t draw_pos = pos;
       dir_t draw_dir = dir;
       if (draw_dir > DIR_DOWN) {
-        draw_pos = MAP_MOVE(pos, dir);
+        draw_pos = map->move(pos, dir);
         draw_dir = DIR_REVERSE(dir);
       }
 
       int mx, my;
-      map_pix_from_map_coord(draw_pos, MAP_HEIGHT(draw_pos), &mx, &my);
+      map_pix_from_map_coord(draw_pos, map->get_height(draw_pos), &mx, &my);
 
       int sx, sy;
       screen_pix_from_map_pix(mx, my, &sx, &sy);
 
-      draw_path_segment(sx, sy + 4*MAP_HEIGHT(draw_pos), draw_pos, draw_dir);
+      draw_path_segment(sx, sy + 4* map->get_height(draw_pos), draw_pos,
+                        draw_dir);
 
-      pos = MAP_MOVE(pos, dir);
+      pos = map->move(pos, dir);
     }
   }
 }
@@ -652,32 +626,32 @@ void
 viewport_t::draw_building_unfinished(building_t *building,
                                      building_type_t bld_type,
                                      int x, int y) {
-  if (building->progress == 0) { /* Draw cross */
+  if (building->get_progress() == 0) { /* Draw cross */
     draw_shadow_and_building_sprite(x, y, 0x90);
   } else {
     /* Stone waiting */
-    int stone = building->stock[1].available;
+    int stone = building->waiting_stone();
     for (int i = 0; i < stone; i++) {
       draw_game_sprite(x+10 - i*3, y-8 + i, 1 + RESOURCE_STONE);
     }
 
     /* Planks waiting */
-    int planks = building->stock[0].available;
+    int planks = building->waiting_planks();
     for (int i = 0; i < planks; i++) {
       draw_game_sprite(x+12 - i*3, y-6 + i, 1 + RESOURCE_PLANK);
     }
 
-    if (BIT_TEST(building->progress, 15)) { /* Frame finished */
+    if (BIT_TEST(building->get_progress(), 15)) { /* Frame finished */
       draw_shadow_and_building_sprite(x, y,
                                       map_building_frame_sprite[bld_type]);
       draw_shadow_and_building_unfinished(x, y, map_building_sprite[bld_type],
-                                          2*(building->progress & 0x7fff));
+                                         2*(building->get_progress() & 0x7fff));
     } else {
       draw_shadow_and_building_sprite(x, y, 0x91); /* corner stone */
-      if (building->progress > 1) {
+      if (building->get_progress() > 1) {
         draw_shadow_and_building_unfinished(x, y,
                                             map_building_frame_sprite[bld_type],
-                                            2*building->progress);
+                                            2*building->get_progress());
       }
     }
   }
@@ -712,9 +686,9 @@ viewport_t::draw_unharmed_building(building_t *building, int x, int y) {
     0xa2, 0, 0xa2, 0
   };
 
-  if (BUILDING_IS_DONE(building)) {
-    building_type_t type = building->type;
-    switch (building->type) {
+  if (building->is_done()) {
+    building_type_t type = building->get_type();
+    switch (type) {
     case BUILDING_FISHER:
     case BUILDING_LUMBERJACK:
     case BUILDING_STONECUTTER:
@@ -729,23 +703,25 @@ viewport_t::draw_unharmed_building(building_t *building, int x, int y) {
       break;
     case BUILDING_BOATBUILDER:
       draw_shadow_and_building_sprite(x, y, map_building_sprite[type]);
-      if (building->stock[1].available > 0) {
+      if (building->get_res_count_in_stock(1) > 0) {
         /* TODO x might not be correct */
-        draw_game_sprite(x+3, y + 13, 174 + building->stock[1].available);
+        draw_game_sprite(x+3, y + 13,
+                         174 + building->get_res_count_in_stock(1));
       }
       break;
     case BUILDING_STONEMINE:
     case BUILDING_COALMINE:
     case BUILDING_IRONMINE:
     case BUILDING_GOLDMINE:
-      if (BUILDING_IS_ACTIVE(building)) { /* Draw elevator up */
+      if (building->is_active()) { /* Draw elevator up */
         draw_game_sprite(x-6, y-39, 152);
       }
-      if (BUILDING_PLAYING_SFX(building)) { /* Draw elevator down */
+      if (building->playing_sfx()) { /* Draw elevator down */
         draw_game_sprite(x-6, y-39, 153);
-        if ((((game.tick +
-               reinterpret_cast<uint8_t*>(&building->pos)[1]) >> 3) & 7) == 0
-            && random_int(random) < 40000) {
+        map_pos_t pos = building->get_position();
+        if ((((interface->get_game()->get_tick() +
+               reinterpret_cast<uint8_t*>(&pos)[1]) >> 3) & 7) == 0
+            && random->random() < 40000) {
           play_sound(SFX_ELEVATOR);
         }
       }
@@ -753,86 +729,91 @@ viewport_t::draw_unharmed_building(building_t *building, int x, int y) {
       break;
     case BUILDING_HUT:
       draw_shadow_and_building_sprite(x, y, map_building_sprite[type]);
-      if (building->serf_index != 0) {
-        draw_game_sprite(x-14, y+2 - 2*building->stock[0].available,
-             182 + ((game.tick >> 3) & 3) + 4*BUILDING_STATE(building));
+      if (building->has_main_serf()) {
+        draw_game_sprite(x-14, y+2 - 2*building->get_knight_count(),
+             182 + ((interface->get_game()->get_tick() >> 3) & 3) +
+                         4*building->get_state());
       }
       break;
     case BUILDING_PIGFARM:
       draw_shadow_and_building_sprite(x, y, map_building_sprite[type]);
-      if (building->stock[1].available > 0) {
-        if ((random_int(random) & 0x7f) < building->stock[1].available) {
+      if (building->get_res_count_in_stock(1) > 0) {
+        if ((random->random() & 0x7f) <
+            static_cast<int>(building->get_res_count_in_stock(1))) {
           play_sound(SFX_PIG_OINK);
         }
 
-        if (building->stock[1].available >= 6) {
-          int i = (140 + (game.tick >> 3)) & 0xfe;
+        int pigs_count = building->get_res_count_in_stock(1);
+
+        if (pigs_count >= 6) {
+          int i = (140 + (interface->get_game()->get_tick() >> 3)) & 0xfe;
           draw_game_sprite(x + pigfarm_anim[i+1] - 2, y+6, pigfarm_anim[i]);
         }
 
-        if (building->stock[1].available >= 5) {
-          int i = (280 + (game.tick >> 3)) & 0xfe;
+        if (pigs_count >= 5) {
+          int i = (280 + (interface->get_game()->get_tick() >> 3)) & 0xfe;
           draw_game_sprite(x + pigfarm_anim[i+1] + 8, y+8, pigfarm_anim[i]);
         }
 
-        if (building->stock[1].available >= 3) {
-          int i = (420 + (game.tick >> 3)) & 0xfe;
+        if (pigs_count >= 3) {
+          int i = (420 + (interface->get_game()->get_tick() >> 3)) & 0xfe;
           draw_game_sprite(x + pigfarm_anim[i+1] - 11, y+8, pigfarm_anim[i]);
         }
 
-        int i = (40 + (game.tick >> 3)) & 0xfe;
+        int i = (40 + (interface->get_game()->get_tick() >> 3)) & 0xfe;
         draw_game_sprite(x + pigfarm_anim[i+1] + 2, y+11, pigfarm_anim[i]);
 
-        if (building->stock[1].available >= 7) {
-          int i = (180 + (game.tick >> 3)) & 0xfe;
+        if (pigs_count >= 7) {
+          int i = (180 + (interface->get_game()->get_tick() >> 3)) & 0xfe;
           draw_game_sprite(x + pigfarm_anim[i+1] - 8, y+13, pigfarm_anim[i]);
         }
 
-        if (building->stock[1].available >= 8) {
-          int i = (320 + (game.tick >> 3)) & 0xfe;
+        if (pigs_count >= 8) {
+          int i = (320 + (interface->get_game()->get_tick() >> 3)) & 0xfe;
           draw_game_sprite(x + pigfarm_anim[i+1] + 13, y+14, pigfarm_anim[i]);
         }
 
-        if (building->stock[1].available >= 2) {
-          int i = (460 + (game.tick >> 3)) & 0xfe;
+        if (pigs_count >= 2) {
+          int i = (460 + (interface->get_game()->get_tick() >> 3)) & 0xfe;
           draw_game_sprite(x + pigfarm_anim[i+1], y+17, pigfarm_anim[i]);
         }
 
-        if (building->stock[1].available >= 4) {
-          int i = (90 + (game.tick >> 3)) & 0xfe;
+        if (pigs_count >= 4) {
+          int i = (90 + (interface->get_game()->get_tick() >> 3)) & 0xfe;
           draw_game_sprite(x + pigfarm_anim[i+1] - 11, y+19, pigfarm_anim[i]);
         }
       }
       break;
     case BUILDING_MILL:
-      if (BUILDING_IS_ACTIVE(building)) {
-        if ((game.tick >> 4) & 3) {
-          building->serf &= ~BIT(3);
-        } else if (!BUILDING_PLAYING_SFX(building)) {
-          building->serf |= BIT(3);
+      if (building->is_active()) {
+        if ((interface->get_game()->get_tick() >> 4) & 3) {
+          building->stop_playing_sfx();
+        } else if (!building->playing_sfx()) {
+          building->start_playing_sfx();
           play_sound(SFX_MILL_GRINDING);
         }
         draw_shadow_and_building_sprite(x, y, map_building_sprite[type] +
-                                        ((game.tick >> 4) & 3));
+                                ((interface->get_game()->get_tick() >> 4) & 3));
       } else {
         draw_shadow_and_building_sprite(x, y, map_building_sprite[type]);
       }
       break;
     case BUILDING_BAKER:
       draw_shadow_and_building_sprite(x, y, map_building_sprite[type]);
-      if (BUILDING_IS_ACTIVE(building)) {
-        draw_game_sprite(x + 5, y-21, 154 + ((game.tick >> 3) & 7));
+      if (building->is_active()) {
+        draw_game_sprite(x + 5, y-21,
+                         154 + ((interface->get_game()->get_tick() >> 3) & 7));
       }
       break;
     case BUILDING_STEELSMELTER:
       draw_shadow_and_building_sprite(x, y, map_building_sprite[type]);
-      if (BUILDING_IS_ACTIVE(building)) {
-        int i = (game.tick >> 3) & 7;
-        if (i == 0 || (i == 7 && !BUILDING_PLAYING_SFX(building))) {
-          building->serf |= BIT(3);
+      if (building->is_active()) {
+        int i = (interface->get_game()->get_tick() >> 3) & 7;
+        if (i == 0 || (i == 7 && !building->playing_sfx())) {
+          building->start_playing_sfx();
           play_sound(SFX_GOLD_BOILS);
         } else if (i != 7) {
-          building->serf &= ~BIT(3);
+          building->stop_playing_sfx();
         }
 
         draw_game_sprite(x+6, y-32, 128+i);
@@ -840,35 +821,39 @@ viewport_t::draw_unharmed_building(building_t *building, int x, int y) {
       break;
     case BUILDING_WEAPONSMITH:
       draw_shadow_and_building_sprite(x, y, map_building_sprite[type]);
-      if (BUILDING_IS_ACTIVE(building)) {
-        draw_game_sprite(x-16, y-21, 128 + ((game.tick >> 3) & 7));
+      if (building->is_active()) {
+        draw_game_sprite(x-16, y-21,
+                         128 + ((interface->get_game()->get_tick() >> 3) & 7));
       }
       break;
     case BUILDING_TOWER:
       draw_shadow_and_building_sprite(x, y, map_building_sprite[type]);
-      if (building->serf_index != 0) {
-        draw_game_sprite(x+13, y - 18 - building->stock[0].available,
-                     182 + ((game.tick >> 3) & 3) + 4*BUILDING_STATE(building));
+      if (building->has_main_serf()) {
+        draw_game_sprite(x+13, y - 18 - building->get_knight_count(),
+                     182 + ((interface->get_game()->get_tick() >> 3) & 3) +
+                         4*building->get_state());
       }
       break;
     case BUILDING_FORTRESS:
       draw_shadow_and_building_sprite(x, y, map_building_sprite[type]);
-      if (building->serf_index != 0) {
-        draw_game_sprite(x-12, y - 21 - building->stock[0].available/2,
-             182 + ((game.tick >> 3) & 3) + 4*BUILDING_STATE(building));
-        draw_game_sprite(x+22, y - 34 - (building->stock[0].available+1)/2,
-             182 + (((game.tick >> 3) + 2) & 3) + 4*BUILDING_STATE(building));
+      if (building->has_main_serf()) {
+        draw_game_sprite(x-12, y - 21 - building->get_knight_count()/2,
+             182 + ((interface->get_game()->get_tick() >> 3) & 3) +
+                         4*building->get_state());
+        draw_game_sprite(x+22, y - 34 - (building->get_knight_count()+1)/2,
+             182 + (((interface->get_game()->get_tick() >> 3) + 2) & 3) +
+                         4*building->get_state());
       }
       break;
     case BUILDING_GOLDSMELTER:
       draw_shadow_and_building_sprite(x, y, map_building_sprite[type]);
-      if (BUILDING_IS_ACTIVE(building)) {
-        int i = (game.tick >> 3) & 7;
-        if (i == 0 || (i == 7 && !BUILDING_PLAYING_SFX(building))) {
-          building->serf |= BIT(3);
+      if (building->is_active()) {
+        int i = (interface->get_game()->get_tick() >> 3) & 7;
+        if (i == 0 || (i == 7 && !building->playing_sfx())) {
+          building->start_playing_sfx();
           play_sound(SFX_GOLD_BOILS);
         } else if (i != 7) {
-          building->serf &= ~BIT(3);
+          building->stop_playing_sfx();
         }
 
         draw_game_sprite(x-7, y-33, 128+i);
@@ -879,10 +864,10 @@ viewport_t::draw_unharmed_building(building_t *building, int x, int y) {
       break;
     }
   } else { /* unfinished building */
-    if (building->type != BUILDING_CASTLE) {
-      draw_building_unfinished(building, building->type, x, y);
+    if (building->get_type() != BUILDING_CASTLE) {
+      draw_building_unfinished(building, building->get_type(), x, y);
     } else {
-      draw_shadow_and_building_unfinished(x, y, 0xb2, building->progress);
+      draw_shadow_and_building_unfinished(x, y, 0xb2, building->get_progress());
     }
   }
 }
@@ -1099,29 +1084,29 @@ viewport_t::draw_burning_building(building_t *building, int x, int y) {
   };
 
   /* Play sound effect. */
-  if (((building->serf_index >> 3) & 3) == 3 &&
-      !BUILDING_PLAYING_SFX(building)) {
-    building->serf |= BIT(3);
+  if (((building->get_burning_counter() >> 3) & 3) == 3 &&
+      !building->playing_sfx()) {
+    building->start_playing_sfx();
     play_sound(SFX_BURNING);
   } else {
-    building->serf &= ~BIT(3);
+    building->stop_playing_sfx();
   }
 
-  uint16_t delta = game.tick - building->u.tick;
-  building->u.tick = game.tick;
+  uint16_t delta = interface->get_game()->get_tick() - building->get_tick();
+  building->set_tick(interface->get_game()->get_tick());
 
-  if (building->serf_index >= delta) {
-    building->serf_index -= delta;  // TODO(jonls): this is also done in
-                                    // update_buildings().
+  if (building->get_burning_counter() >= delta) {
+    building->decrease_burning_counter(delta);  // TODO(jonls): this is also
+                                                // done in update_buildings().
     draw_unharmed_building(building, x, y);
 
     int type = 0;
-    if (BUILDING_IS_DONE(building) ||
-        building->progress >= 16000) {
-      type = BUILDING_TYPE(building);
+    if (building->is_done() ||
+        building->get_progress() >= 16000) {
+      type = building->get_type();
     }
 
-    int offset = ((building->serf_index >> 3) & 7) ^ 7;
+    int offset = ((building->get_burning_counter() >> 3) & 7) ^ 7;
     const int *anim = building_burn_animation +
                       building_anim_offset_from_type[type];
     while (anim[0] >= 0) {
@@ -1130,15 +1115,15 @@ viewport_t::draw_burning_building(building_t *building, int x, int y) {
       anim += 3;
     }
   } else {
-    building->serf_index = 0;
+    building->set_burning_counter(0);
   }
 }
 
 void
 viewport_t::draw_building(map_pos_t pos, int x, int y) {
-  building_t *building = game_get_building(MAP_OBJ_INDEX(pos));
+  building_t *building = interface->get_game()->get_building_at_pos(pos);
 
-  if (BUILDING_IS_BURNING(building)) {
+  if (building->is_burning()) {
     draw_burning_building(building, x, y);
   } else {
     draw_unharmed_building(building, x, y);
@@ -1147,11 +1132,12 @@ viewport_t::draw_building(map_pos_t pos, int x, int y) {
 
 void
 viewport_t::draw_water_waves(map_pos_t pos, int x, int y) {
-  int sprite = DATA_MAP_WAVES_BASE + (((pos ^ 5) + (game.tick >> 3)) & 0xf);
+  int sprite = DATA_MAP_WAVES_BASE +
+               (((pos ^ 5) + (interface->get_game()->get_tick() >> 3)) & 0xf);
 
-  if (MAP_TYPE_DOWN(pos) < 4 && MAP_TYPE_UP(pos) < 4) {
+  if (map->type_down(pos) < 4 && map->type_up(pos) < 4) {
     frame->draw_waves_sprite(x - 16, y, 0, sprite);
-  } else if (MAP_TYPE_DOWN(pos) < 4) {
+  } else if (map->type_down(pos) < 4) {
     int mask = DATA_MAP_MASK_DOWN_BASE + 40;
     frame->draw_waves_sprite(x, y + 16, mask, sprite);
   } else {
@@ -1164,8 +1150,8 @@ void
 viewport_t::draw_water_waves_row(map_pos_t pos, int y_base, int cols,
                                  int x_base) {
   for (int i = 0; i < cols; i++, x_base += MAP_TILE_WIDTH,
-       pos = MAP_MOVE_RIGHT(pos)) {
-    if (MAP_TYPE_UP(pos) < 4 || MAP_TYPE_DOWN(pos) < 4) {
+       pos = map->move_right(pos)) {
+    if (map->type_up(pos) < 4 || map->type_down(pos) < 4) {
       /*player->water_in_view += 1;*/
       draw_water_waves(pos, x_base, y_base);
     }
@@ -1174,56 +1160,57 @@ viewport_t::draw_water_waves_row(map_pos_t pos, int y_base, int cols,
 
 void
 viewport_t::draw_flag_and_res(map_pos_t pos, int x, int y) {
-  flag_t *flag = game_get_flag(MAP_OBJ_INDEX(pos));
+  flag_t *flag = interface->get_game()->get_flag_at_pos(pos);
 
-  if (flag->slot[0].type != RESOURCE_NONE) {
-    draw_game_sprite(x+6, y-4, flag->slot[0].type + 1);
+  if (flag->get_resource_at_slot(0) != RESOURCE_NONE) {
+    draw_game_sprite(x+6 , y-4, flag->get_resource_at_slot(0) + 1);
   }
-  if (flag->slot[1].type != RESOURCE_NONE) {
-    draw_game_sprite(x+10, y-2, flag->slot[1].type + 1);
+  if (flag->get_resource_at_slot(1) != RESOURCE_NONE) {
+    draw_game_sprite(x+10, y-2, flag->get_resource_at_slot(1) + 1);
   }
-  if (flag->slot[2].type != RESOURCE_NONE) {
-    draw_game_sprite(x-4, y-4, flag->slot[2].type + 1);
+  if (flag->get_resource_at_slot(2) != RESOURCE_NONE) {
+    draw_game_sprite(x-4 , y-4, flag->get_resource_at_slot(2) + 1);
   }
 
-  int pl_num = FLAG_PLAYER(flag);
-  int spr = 0x80 + (pl_num << 2) + ((game.tick >> 3) & 3);
+  int pl_num = flag->get_player();
+  int spr = 0x80 + (pl_num << 2) +
+            ((interface->get_game()->get_tick() >> 3) & 3);
 
   draw_shadow_and_building_sprite(x, y, spr);
 
-  if (flag->slot[3].type != RESOURCE_NONE) {
-    draw_game_sprite(x+10, y+2, flag->slot[3].type + 1);
+  if (flag->get_resource_at_slot(3) != RESOURCE_NONE) {
+    draw_game_sprite(x+10, y+2, flag->get_resource_at_slot(3) + 1);
   }
-  if (flag->slot[4].type != RESOURCE_NONE) {
-    draw_game_sprite(x-8, y-2, flag->slot[4].type + 1);
+  if (flag->get_resource_at_slot(4) != RESOURCE_NONE) {
+    draw_game_sprite(x-8 , y-2, flag->get_resource_at_slot(4) + 1);
   }
-  if (flag->slot[5].type != RESOURCE_NONE) {
-    draw_game_sprite(x+6, y+4, flag->slot[5].type + 1);
+  if (flag->get_resource_at_slot(5) != RESOURCE_NONE) {
+    draw_game_sprite(x+6 , y+4, flag->get_resource_at_slot(5) + 1);
   }
-  if (flag->slot[6].type != RESOURCE_NONE) {
-    draw_game_sprite(x-8, y+2, flag->slot[6].type + 1);
+  if (flag->get_resource_at_slot(6) != RESOURCE_NONE) {
+    draw_game_sprite(x-8 , y+2, flag->get_resource_at_slot(6) + 1);
   }
-  if (flag->slot[7].type != RESOURCE_NONE) {
-    draw_game_sprite(x-4, y+4, flag->slot[7].type + 1);
+  if (flag->get_resource_at_slot(7) != RESOURCE_NONE) {
+    draw_game_sprite(x-4 , y+4, flag->get_resource_at_slot(7) + 1);
   }
 }
 
 void
-viewport_t::draw_map_objects_row(map_pos_t pos, int y_base, int cols,
-                                 int x_base) {
-  for (int i = 0; i < cols; i++, x_base += MAP_TILE_WIDTH,
-       pos = MAP_MOVE_RIGHT(pos)) {
-    if (MAP_OBJ(pos) == MAP_OBJ_NONE) continue;
+viewport_t::draw_map_objects_row(map_pos_t pos, int y_base,
+                                 int cols, int x_base) {
+  for (int i = 0; i < cols;
+       i++, x_base += MAP_TILE_WIDTH, pos = map->move_right(pos)) {
+    if (map->get_obj(pos) == MAP_OBJ_NONE) continue;
 
-    int y = y_base - 4*MAP_HEIGHT(pos);
-    if (MAP_OBJ(pos) < MAP_OBJ_TREE_0) {
-      if (MAP_OBJ(pos) == MAP_OBJ_FLAG) {
+    int y = y_base - 4 * map->get_height(pos);
+    if (map->get_obj(pos) < MAP_OBJ_TREE_0) {
+      if (map->get_obj(pos) == MAP_OBJ_FLAG) {
         draw_flag_and_res(pos, x_base, y);
-      } else if (MAP_OBJ(pos) <= MAP_OBJ_CASTLE) {
+      } else if (map->get_obj(pos) <= MAP_OBJ_CASTLE) {
         draw_building(pos, x_base, y);
       }
     } else {
-      int sprite = MAP_OBJ(pos) - MAP_OBJ_TREE_0;
+      int sprite = map->get_obj(pos) - MAP_OBJ_TREE_0;
       if (sprite < 24) {
         /* Trees */
         /*player->trees_in_view += 1;*/
@@ -1231,7 +1218,7 @@ viewport_t::draw_map_objects_row(map_pos_t pos, int y_base, int cols,
         /* Adding sprite number to animation ensures
            that the tree animation won't be synchronized
            for all trees on the map. */
-        int tree_anim = (game.tick + sprite) >> 4;
+        int tree_anim = (interface->get_game()->get_tick() + sprite) >> 4;
         if (sprite < 16) {
           sprite = (sprite & ~7) + (tree_anim & 7);
         } else {
@@ -1363,47 +1350,48 @@ viewport_t::serf_get_body(serf_t *serf) {
     0x7600, 0x5f00, 0x6000, 0, 0, 0, 0, 0
   };
 
-  animation_t *animation = data_source->get_animation(serf->animation,
-                                                      serf->counter);
+  animation_t *animation = data_source->get_animation(serf->get_animation(),
+                                                      serf->get_counter());
   int t = animation->time;
 
-  switch (SERF_TYPE(serf)) {
+  switch (serf->get_type()) {
   case SERF_TRANSPORTER:
   case SERF_GENERIC:
-    if (serf->state == SERF_STATE_IDLE_ON_PATH) {
+    if (serf->get_state() == SERF_STATE_IDLE_ON_PATH) {
       return -1;
-    } else if ((serf->state == SERF_STATE_TRANSPORTING ||
-        serf->state == SERF_STATE_DELIVERING) && serf->s.walking.res != 0) {
-      t += transporter_type[serf->s.walking.res];
+    } else if ((serf->get_state() == SERF_STATE_TRANSPORTING ||
+                serf->get_state() == SERF_STATE_DELIVERING) &&
+               serf->get_delivery() != 0) {
+      t += transporter_type[serf->get_delivery()];
     }
     break;
   case SERF_SAILOR:
-    if (serf->state == SERF_STATE_TRANSPORTING && t < 0x80) {
-      if (((t & 7) == 4 && !BIT_TEST(serf->type, 7)) ||
+    if (serf->get_state() == SERF_STATE_TRANSPORTING && t < 0x80) {
+      if (((t & 7) == 4 && !serf->playing_sfx()) ||
           (t & 7) == 3) {
-        serf->type |= BIT(7);
+        serf->start_playing_sfx();
         play_sound(SFX_ROWING);
       } else {
-        serf->type &= ~BIT(7);
+        serf->stop_playing_sfx();
       }
     }
 
-    if ((serf->state == SERF_STATE_TRANSPORTING &&
-         serf->s.walking.res == 0) ||
-        serf->state == SERF_STATE_LOST_SAILOR ||
-        serf->state == SERF_STATE_FREE_SAILING) {
+    if ((serf->get_state() == SERF_STATE_TRANSPORTING &&
+         serf->get_delivery() == 0) ||
+        serf->get_state() == SERF_STATE_LOST_SAILOR ||
+        serf->get_state() == SERF_STATE_FREE_SAILING) {
       if (t < 0x80) {
-        if (((t & 7) == 4 && !BIT_TEST(serf->type, 7)) ||
+        if (((t & 7) == 4 && !serf->playing_sfx()) ||
             (t & 7) == 3) {
-          serf->type |= BIT(7);
+          serf->start_playing_sfx();
           play_sound(SFX_ROWING);
         } else {
-          serf->type &= ~BIT(7);
+          serf->stop_playing_sfx();
         }
       }
       t += 0x200;
-    } else if (serf->state == SERF_STATE_TRANSPORTING) {
-      t += sailor_type[serf->s.walking.res];
+    } else if (serf->get_state() == SERF_STATE_TRANSPORTING) {
+      t += sailor_type[serf->get_delivery()];
     } else {
       t += 0x100;
     }
@@ -1412,13 +1400,13 @@ viewport_t::serf_get_body(serf_t *serf) {
     if (t < 0x80) {
       t += 0x300;
     } else if (t == 0x83 || t == 0x84) {
-      if (t == 0x83 || !BIT_TEST(serf->type, 7)) {
-        serf->type |= BIT(7);
+      if (t == 0x83 || !serf->playing_sfx()) {
+        serf->start_playing_sfx();
         play_sound(SFX_DIGGING);
       }
       t += 0x380;
     } else {
-      serf->type &= ~BIT(7);
+      serf->stop_playing_sfx();
       t += 0x380;
     }
     break;
@@ -1426,75 +1414,54 @@ viewport_t::serf_get_body(serf_t *serf) {
     if (t < 0x80) {
       t += 0x500;
     } else if ((t & 7) == 4 || (t & 7) == 5) {
-      if ((t & 7) == 4 || !BIT_TEST(serf->type, 7)) {
-        serf->type |= BIT(7);
+      if ((t & 7) == 4 || !serf->playing_sfx()) {
+        serf->start_playing_sfx();
         play_sound(SFX_HAMMER_BLOW);
       }
       t += 0x580;
     } else {
-      serf->type &= ~BIT(7);
+      serf->stop_playing_sfx();
       t += 0x580;
     }
     break;
   case SERF_TRANSPORTER_INVENTORY:
-    if (serf->state == SERF_STATE_BUILDING_CASTLE) {
+    if (serf->get_state() == SERF_STATE_BUILDING_CASTLE) {
       return -1;
     } else {
-      int res = -1;
-      switch (serf->state) {
-      case SERF_STATE_ENTERING_BUILDING:
-        res = serf->s.entering_building.field_B;
-        break;
-      case SERF_STATE_LEAVING_BUILDING:
-        res = serf->s.leaving_building.field_B;
-        break;
-      case SERF_STATE_READY_TO_ENTER:
-        res = serf->s.ready_to_enter.field_B;
-        break;
-      case SERF_STATE_MOVE_RESOURCE_OUT:
-      case SERF_STATE_DROP_RESOURCE_OUT:
-        res = serf->s.move_resource_out.res;
-        break;
-      case SERF_STATE_WAIT_FOR_RESOURCE_OUT:
-        res = 0; /* TODO */
-        break;
-      default:
-        NOT_REACHED();
-        break;
-      }
-
+      int res = serf->get_delivery();
       t += transporter_type[res];
     }
     break;
   case SERF_LUMBERJACK:
     if (t < 0x80) {
-      if (serf->state == SERF_STATE_FREE_WALKING &&
-          serf->s.free_walking.neg_dist1 == -128 &&
-          serf->s.free_walking.neg_dist2 == 1) {
+      if (serf->get_state() == SERF_STATE_FREE_WALKING &&
+          serf->get_free_walking_neg_dist1() == -128 &&
+          serf->get_free_walking_neg_dist2() == 1) {
         t += 0x1000;
       } else {
         t += 0xb00;
       }
-    } else if ((t == 0x86 && !BIT_TEST(serf->type, 7)) ||
+    } else if ((t == 0x86 && !serf->playing_sfx()) ||
          t == 0x85) {
-      serf->type |= BIT(7);
+      serf->start_playing_sfx();
       play_sound(SFX_AX_BLOW);
       /* TODO Dangerous reference to unknown state vars.
          It is probably free walking. */
-      if (serf->s.free_walking.neg_dist2 == 0 &&
-          serf->counter < 64) {
+      if (serf->get_free_walking_neg_dist2() == 0 &&
+          serf->get_counter() < 64) {
         play_sound(SFX_TREE_FALL);
       }
       t += 0xe80;
     } else if (t != 0x86) {
-      serf->type &= ~BIT(7);
+      serf->stop_playing_sfx();
       t += 0xe80;
     }
     break;
   case SERF_SAWMILLER:
     if (t < 0x80) {
-      if (serf->state == SERF_STATE_LEAVING_BUILDING &&
-          serf->s.leaving_building.next_state == SERF_STATE_DROP_RESOURCE_OUT) {
+      if (serf->get_state() == SERF_STATE_LEAVING_BUILDING &&
+          serf->get_leaving_building_next_state() ==
+            SERF_STATE_DROP_RESOURCE_OUT) {
         t += 0x1700;
       } else {
         t += 0xc00;
@@ -1502,65 +1469,65 @@ viewport_t::serf_get_body(serf_t *serf) {
     } else {
       /* player_num += 4; ??? */
       if (t == 0xb3 || t == 0xbb || t == 0xc3 || t == 0xcb ||
-          (!BIT_TEST(serf->type, 7) && (t == 0xb7 || t == 0xbf ||
+          (!serf->playing_sfx() && (t == 0xb7 || t == 0xbf ||
                 t == 0xc7 || t == 0xcf))) {
-        serf->type |= BIT(7);
+        serf->start_playing_sfx();
         play_sound(SFX_SAWING);
       } else if (t != 0xb7 && t != 0xbf && t != 0xc7 && t != 0xcf) {
-        serf->type &= ~BIT(7);
+        serf->stop_playing_sfx();
       }
       t += 0x1580;
     }
     break;
   case SERF_STONECUTTER:
     if (t < 0x80) {
-      if ((serf->state == SERF_STATE_FREE_WALKING &&
-           serf->s.free_walking.neg_dist1 == -128 &&
-           serf->s.free_walking.neg_dist2 == 1) ||
-          (serf->state == SERF_STATE_STONECUTTING &&
-           serf->s.free_walking.neg_dist1 == 2)) {
+      if ((serf->get_state() == SERF_STATE_FREE_WALKING &&
+           serf->get_free_walking_neg_dist1() == -128 &&
+           serf->get_free_walking_neg_dist2() == 1) ||
+          (serf->get_state() == SERF_STATE_STONECUTTING &&
+           serf->get_free_walking_neg_dist1() == 2)) {
         t += 0x1200;
       } else {
         t += 0xd00;
       }
-    } else if (t == 0x85 || (t == 0x86 && !BIT_TEST(serf->type, 7))) {
-      serf->type |= BIT(7);
+    } else if (t == 0x85 || (t == 0x86 && !serf->playing_sfx())) {
+      serf->start_playing_sfx();
       play_sound(SFX_PICK_BLOW);
       t += 0x1280;
     } else if (t != 0x86) {
-      serf->type &= ~BIT(7);
+      serf->stop_playing_sfx();
       t += 0x1280;
     }
     break;
   case SERF_FORESTER:
     if (t < 0x80) {
       t += 0xe00;
-    } else if (t == 0x86 || (t == 0x87 && !BIT_TEST(serf->type, 7))) {
-      serf->type |= BIT(7);
+    } else if (t == 0x86 || (t == 0x87 && !serf->playing_sfx())) {
+      serf->start_playing_sfx();
       play_sound(SFX_PLANTING);
       t += 0x1080;
     } else if (t != 0x87) {
-      serf->type &= ~BIT(7);
+      serf->stop_playing_sfx();
       t += 0x1080;
     }
     break;
   case SERF_MINER:
     if (t < 0x80) {
-      if ((serf->state != SERF_STATE_MINING ||
-           serf->s.mining.res == 0) &&
-          (serf->state != SERF_STATE_LEAVING_BUILDING ||
-           serf->s.leaving_building.next_state !=
-             SERF_STATE_DROP_RESOURCE_OUT)) {
+      if ((serf->get_state() != SERF_STATE_MINING ||
+           serf->get_mining_res() == 0) &&
+          (serf->get_state() != SERF_STATE_LEAVING_BUILDING ||
+           serf->get_leaving_building_next_state() !=
+           SERF_STATE_DROP_RESOURCE_OUT)) {
         t += 0x1800;
       } else {
         resource_type_t res = RESOURCE_NONE;
 
-        switch (serf->state) {
+        switch (serf->get_state()) {
         case SERF_STATE_MINING:
-          res = (resource_type_t)(serf->s.mining.res - 1);
+          res = (resource_type_t)(serf->get_mining_res() - 1);
           break;
         case SERF_STATE_LEAVING_BUILDING:
-          res = (resource_type_t)(serf->s.leaving_building.field_B - 1);
+          res = (resource_type_t)(serf->get_leaving_building_field_B() - 1);
           break;
         default:
           NOT_REACHED();
@@ -1581,9 +1548,10 @@ viewport_t::serf_get_body(serf_t *serf) {
     break;
   case SERF_SMELTER:
     if (t < 0x80) {
-      if (serf->state == SERF_STATE_LEAVING_BUILDING &&
-          serf->s.leaving_building.next_state == SERF_STATE_DROP_RESOURCE_OUT) {
-        if (serf->s.leaving_building.field_B == 1+RESOURCE_STEEL) {
+      if (serf->get_state() == SERF_STATE_LEAVING_BUILDING &&
+          serf->get_leaving_building_next_state() ==
+          SERF_STATE_DROP_RESOURCE_OUT) {
+        if (serf->get_leaving_building_field_B() == 1+RESOURCE_STEEL) {
           t += 0x2900;
         } else {
           t += 0x2800;
@@ -1598,9 +1566,9 @@ viewport_t::serf_get_body(serf_t *serf) {
     break;
   case SERF_FISHER:
     if (t < 0x80) {
-      if (serf->state == SERF_STATE_FREE_WALKING &&
-          serf->s.free_walking.neg_dist1 == -128 &&
-          serf->s.free_walking.neg_dist2 == 1) {
+      if (serf->get_state() == SERF_STATE_FREE_WALKING &&
+          serf->get_free_walking_neg_dist1() == -128 &&
+          serf->get_free_walking_neg_dist2() == 1) {
         t += 0x2f00;
       } else {
         t += 0x2c00;
@@ -1611,7 +1579,7 @@ viewport_t::serf_get_body(serf_t *serf) {
       }
 
       /* TODO no check for state */
-      if (serf->s.free_walking.neg_dist2 == 1) {
+      if (serf->get_free_walking_neg_dist2() == 1) {
         t += 0x2d80;
       } else {
         t += 0x2c80;
@@ -1620,8 +1588,9 @@ viewport_t::serf_get_body(serf_t *serf) {
     break;
   case SERF_PIGFARMER:
     if (t < 0x80) {
-      if (serf->state == SERF_STATE_LEAVING_BUILDING &&
-          serf->s.leaving_building.next_state == SERF_STATE_DROP_RESOURCE_OUT) {
+      if (serf->get_state() == SERF_STATE_LEAVING_BUILDING &&
+          serf->get_leaving_building_next_state() ==
+            SERF_STATE_DROP_RESOURCE_OUT) {
         t += 0x3400;
       } else {
         t += 0x3200;
@@ -1632,8 +1601,9 @@ viewport_t::serf_get_body(serf_t *serf) {
     break;
   case SERF_BUTCHER:
     if (t < 0x80) {
-      if (serf->state == SERF_STATE_LEAVING_BUILDING &&
-          serf->s.leaving_building.next_state == SERF_STATE_DROP_RESOURCE_OUT) {
+      if (serf->get_state() == SERF_STATE_LEAVING_BUILDING &&
+          serf->get_leaving_building_next_state() ==
+            SERF_STATE_DROP_RESOURCE_OUT) {
         t += 0x3a00;
       } else {
         t += 0x3700;
@@ -1641,42 +1611,43 @@ viewport_t::serf_get_body(serf_t *serf) {
     } else {
       /* edi10 += 4; */
       if ((t == 0xb2 || t == 0xba || t == 0xc2 || t == 0xca) &&
-          !BIT_TEST(serf->type, 7)) {
-        serf->type |= BIT(7);
+          !serf->playing_sfx()) {
+        serf->start_playing_sfx();
         play_sound(SFX_BACKSWORD_BLOW);
       } else if (t != 0xb2 && t != 0xba && t != 0xc2 && t != 0xca) {
-        serf->type  &= ~BIT(7);
+        serf->stop_playing_sfx();
       }
       t += 0x3780;
     }
     break;
   case SERF_FARMER:
     if (t < 0x80) {
-      if (serf->state == SERF_STATE_FREE_WALKING &&
-          serf->s.free_walking.neg_dist1 == -128 &&
-          serf->s.free_walking.neg_dist2 == 1) {
+      if (serf->get_state() == SERF_STATE_FREE_WALKING &&
+          serf->get_free_walking_neg_dist1() == -128 &&
+          serf->get_free_walking_neg_dist2() == 1) {
         t += 0x4000;
       } else {
         t += 0x3d00;
       }
     } else {
       /* TODO access to state without state check */
-      if (serf->s.free_walking.neg_dist1 == 0) {
+      if (serf->get_free_walking_neg_dist1() == 0) {
         t += 0x3d80;
-      } else if (t == 0x83 || (t == 0x84 && !BIT_TEST(serf->type, 7))) {
-        serf->type |= BIT(7);
+      } else if (t == 0x83 || (t == 0x84 && !serf->playing_sfx())) {
+        serf->start_playing_sfx();
         play_sound(SFX_MOWING);
         t += 0x3e80;
       } else if (t != 0x83 && t != 0x84) {
-        serf->type &= ~BIT(7);
+        serf->stop_playing_sfx();
         t += 0x3e80;
       }
     }
     break;
   case SERF_MILLER:
     if (t < 0x80) {
-      if (serf->state == SERF_STATE_LEAVING_BUILDING &&
-          serf->s.leaving_building.next_state == SERF_STATE_DROP_RESOURCE_OUT) {
+      if (serf->get_state() == SERF_STATE_LEAVING_BUILDING &&
+          serf->get_leaving_building_next_state() ==
+            SERF_STATE_DROP_RESOURCE_OUT) {
         t += 0x4500;
       } else {
         t += 0x4300;
@@ -1688,8 +1659,9 @@ viewport_t::serf_get_body(serf_t *serf) {
     break;
   case SERF_BAKER:
     if (t < 0x80) {
-      if (serf->state == SERF_STATE_LEAVING_BUILDING &&
-          serf->s.leaving_building.next_state == SERF_STATE_DROP_RESOURCE_OUT) {
+      if (serf->get_state() == SERF_STATE_LEAVING_BUILDING &&
+          serf->get_leaving_building_next_state() ==
+            SERF_STATE_DROP_RESOURCE_OUT) {
         t += 0x4a00;
       } else {
         t += 0x4800;
@@ -1701,28 +1673,30 @@ viewport_t::serf_get_body(serf_t *serf) {
     break;
   case SERF_BOATBUILDER:
     if (t < 0x80) {
-      if (serf->state == SERF_STATE_LEAVING_BUILDING &&
-          serf->s.leaving_building.next_state == SERF_STATE_DROP_RESOURCE_OUT) {
+      if (serf->get_state() == SERF_STATE_LEAVING_BUILDING &&
+          serf->get_leaving_building_next_state() ==
+            SERF_STATE_DROP_RESOURCE_OUT) {
         t += 0x5000;
       } else {
         t += 0x4e00;
       }
     } else if (t == 0x84 || t == 0x85) {
-      if (t == 0x84 || !BIT_TEST(serf->type, 7)) {
-        serf->type |= BIT(7);
+      if (t == 0x84 || !serf->playing_sfx()) {
+        serf->start_playing_sfx();
         play_sound(SFX_WOOD_HAMMERING);
       }
       t += 0x4e80;
     } else {
-      serf->type &= ~BIT(7);
+      serf->stop_playing_sfx();
       t += 0x4e80;
     }
     break;
   case SERF_TOOLMAKER:
     if (t < 0x80) {
-      if (serf->state == SERF_STATE_LEAVING_BUILDING &&
-          serf->s.leaving_building.next_state == SERF_STATE_DROP_RESOURCE_OUT) {
-        switch (serf->s.leaving_building.field_B-1) {
+      if (serf->get_state() == SERF_STATE_LEAVING_BUILDING &&
+          serf->get_leaving_building_next_state() ==
+            SERF_STATE_DROP_RESOURCE_OUT) {
+        switch (serf->get_leaving_building_field_B() - 1) {
         case RESOURCE_SHOVEL: t += 0x5a00; break;
         case RESOURCE_HAMMER: t += 0x5b00; break;
         case RESOURCE_ROD: t += 0x5c00; break;
@@ -1739,23 +1713,24 @@ viewport_t::serf_get_body(serf_t *serf) {
       }
     } else {
       /* edi10 += 4; */
-      if (t == 0x83 || (t == 0xb2 && !BIT_TEST(serf->type, 7))) {
-        serf->type |= BIT(7);
+      if (t == 0x83 || (t == 0xb2 && !serf->playing_sfx())) {
+        serf->start_playing_sfx();
         play_sound(SFX_SAWING);
-      } else if (t == 0x87 || (t == 0xb6 && !BIT_TEST(serf->type, 7))) {
-        serf->type |= BIT(7);
+      } else if (t == 0x87 || (t == 0xb6 && !serf->playing_sfx())) {
+        serf->start_playing_sfx();
         play_sound(SFX_WOOD_HAMMERING);
       } else if (t != 0xb2 && t != 0xb6) {
-        serf->type &= ~BIT(7);
+        serf->stop_playing_sfx();
       }
       t += 0x5880;
     }
     break;
   case SERF_WEAPONSMITH:
     if (t < 0x80) {
-      if (serf->state == SERF_STATE_LEAVING_BUILDING &&
-          serf->s.leaving_building.next_state == SERF_STATE_DROP_RESOURCE_OUT) {
-        if (serf->s.leaving_building.field_B == 1+RESOURCE_SWORD) {
+      if (serf->get_state() == SERF_STATE_LEAVING_BUILDING &&
+          serf->get_leaving_building_next_state() ==
+            SERF_STATE_DROP_RESOURCE_OUT) {
+        if (serf->get_leaving_building_field_B() == 1+RESOURCE_SWORD) {
           t += 0x5500;
         } else {
           t += 0x5400;
@@ -1765,11 +1740,11 @@ viewport_t::serf_get_body(serf_t *serf) {
       }
     } else {
       /* edi10 += 4; */
-      if (t == 0x83 || (t == 0x84 && !BIT_TEST(serf->type, 7))) {
-        serf->type |= BIT(7);
+      if (t == 0x83 || (t == 0x84 && !serf->playing_sfx())) {
+        serf->start_playing_sfx();
         play_sound(SFX_METAL_HAMMERING);
       } else if (t != 0x84) {
-        serf->type &= ~BIT(7);
+        serf->stop_playing_sfx();
       }
       t += 0x5280;
     }
@@ -1778,19 +1753,19 @@ viewport_t::serf_get_body(serf_t *serf) {
     if (t < 0x80) {
       t += 0x3900;
     } else if (t == 0x83 || t == 0x84 || t == 0x86) {
-      if (t == 0x83 || !BIT_TEST(serf->type, 7)) {
-        serf->type |= BIT(7);
+      if (t == 0x83 || !serf->playing_sfx()) {
+        serf->start_playing_sfx();
         play_sound(SFX_GEOLOGIST_SAMPLING);
       }
       t += 0x4c80;
     } else if (t == 0x8c || t == 0x8d) {
-      if (t == 0x8c || !BIT_TEST(serf->type, 7)) {
-        serf->type |= BIT(7);
+      if (t == 0x8c || !serf->playing_sfx()) {
+        serf->start_playing_sfx();
         play_sound(SFX_RESOURCE_FOUND);
       }
       t += 0x4c80;
     } else {
-      serf->type &= ~BIT(7);
+      serf->stop_playing_sfx();
       t += 0x4c80;
     }
     break;
@@ -1800,21 +1775,21 @@ viewport_t::serf_get_body(serf_t *serf) {
   case SERF_KNIGHT_3:
   case SERF_KNIGHT_4:
   {
-    int k = SERF_TYPE(serf) - SERF_KNIGHT_0;
+    int k = serf->get_type() - SERF_KNIGHT_0;
 
     if (t < 0x80) {
       t += 0x7800 + 0x100*k;
     } else if (t < 0xc0) {
-      if (serf->state == SERF_STATE_KNIGHT_ATTACKING ||
-          serf->state == SERF_STATE_KNIGHT_ATTACKING_FREE) {
-        if (serf->counter >= 24 || serf->counter < 8) {
-          serf->type &= ~BIT(7);
-        } else if (!BIT_TEST(serf->type, 7)) {
-          serf->type |= BIT(7);
-          if (serf->s.attacking.field_D == 0 ||
-              serf->s.attacking.field_D == 4) {
+      if (serf->get_state() == SERF_STATE_KNIGHT_ATTACKING ||
+          serf->get_state() == SERF_STATE_KNIGHT_ATTACKING_FREE) {
+        if (serf->get_counter() >= 24 || serf->get_counter() < 8) {
+          serf->stop_playing_sfx();
+        } else if (!serf->playing_sfx()) {
+          serf->start_playing_sfx();
+          if (serf->get_attacking_field_D() == 0 ||
+              serf->get_attacking_field_D() == 4) {
             play_sound(SFX_FIGHT_01);
-          } else if (serf->s.attacking.field_D == 2) {
+          } else if (serf->get_attacking_field_D() == 2) {
             /* TODO when is SFX_FIGHT_02 played? */
             play_sound(SFX_FIGHT_03);
           } else {
@@ -1830,13 +1805,13 @@ viewport_t::serf_get_body(serf_t *serf) {
   }
     break;
   case SERF_DEAD:
-    if ((!BIT_TEST(serf->type, 7) &&
+    if ((!serf->playing_sfx() &&
          (t == 2 || t == 5)) ||
         (t == 1 || t == 4)) {
-      serf->type |= BIT(7);
+      serf->start_playing_sfx();
       play_sound(SFX_SERF_DYING);
     } else {
-      serf->type &= ~BIT(7);
+      serf->stop_playing_sfx();
     }
     t += 0x8700;
     break;
@@ -1859,71 +1834,76 @@ viewport_t::draw_active_serf(serf_t *serf, map_pos_t pos,
     5, 8, 0, 0, 0, 0, 0, 0
   };
 
-  if ((serf->animation < 0) || (serf->animation > 199) || (serf->counter < 0)) {
-    LOGE("viewport", "bad animation for serf #%i (%s): %d,%d", SERF_INDEX(serf),
-         serf_get_state_name(serf->state), serf->animation, serf->counter);
+  if ((serf->get_animation() < 0) || (serf->get_animation() > 199) ||
+      (serf->get_counter() < 0)) {
+    LOGE("viewport", "bad animation for serf #%i (%s): %d,%d",
+         serf->get_index(), serf_t::get_state_name(serf->get_state()),
+         serf->get_animation(), serf->get_counter());
     return;
   }
 
-  animation_t *animation = data_source->get_animation(serf->animation,
-                                                      serf->counter);
+  animation_t *animation = data_source->get_animation(serf->get_animation(),
+                                                      serf->get_counter());
 
   int x = x_base + animation->x;
-  int y = y_base + animation->y - 4*MAP_HEIGHT(pos);
+  int y = y_base + animation->y - 4 * map->get_height(pos);
   int body = serf_get_body(serf);
 
   if (body > -1) {
-    int color = game.player[SERF_PLAYER(serf)]->color;
+    int color =
+             interface->get_game()->get_player(serf->get_player())->get_color();
     draw_row_serf(x, y, 1, color, body);
   }
 
   /* Draw additional serf */
-  if (serf->state == SERF_STATE_KNIGHT_ENGAGING_BUILDING ||
-      serf->state == SERF_STATE_KNIGHT_PREPARE_ATTACKING ||
-      serf->state == SERF_STATE_KNIGHT_ATTACKING ||
-      serf->state == SERF_STATE_KNIGHT_PREPARE_ATTACKING_FREE ||
-      serf->state == SERF_STATE_KNIGHT_ATTACKING_FREE ||
-      serf->state == SERF_STATE_KNIGHT_ATTACKING_VICTORY_FREE ||
-      serf->state == SERF_STATE_KNIGHT_ATTACKING_DEFEAT_FREE) {
-    int index = serf->s.attacking.def_index;
+  if (serf->get_state() == SERF_STATE_KNIGHT_ENGAGING_BUILDING ||
+      serf->get_state() == SERF_STATE_KNIGHT_PREPARE_ATTACKING ||
+      serf->get_state() == SERF_STATE_KNIGHT_ATTACKING ||
+      serf->get_state() == SERF_STATE_KNIGHT_PREPARE_ATTACKING_FREE ||
+      serf->get_state() == SERF_STATE_KNIGHT_ATTACKING_FREE ||
+      serf->get_state() == SERF_STATE_KNIGHT_ATTACKING_VICTORY_FREE ||
+      serf->get_state() == SERF_STATE_KNIGHT_ATTACKING_DEFEAT_FREE) {
+    int index = serf->get_attacking_def_index();
     if (index != 0) {
-      serf_t *def_serf = game_get_serf(index);
+      serf_t *def_serf = interface->get_game()->get_serf(index);
 
-      animation_t *animation = data_source->get_animation(def_serf->animation,
-                                                          def_serf->counter);
+      animation_t *animation =
+                           data_source->get_animation(def_serf->get_animation(),
+                                                      def_serf->get_counter());
 
       int x = x_base + animation->x;
-      int y = y_base + animation->y - 4*MAP_HEIGHT(pos);
+      int y = y_base + animation->y - 4 * map->get_height(pos);
       int body = serf_get_body(def_serf);
 
       if (body > -1) {
-        int color = game.player[SERF_PLAYER(def_serf)]->color;
+        int color =
+         interface->get_game()->get_player(def_serf->get_player())->get_color();
         draw_row_serf(x, y, 1, color, body);
       }
     }
   }
 
   /* Draw extra objects for fight */
-  if ((serf->state == SERF_STATE_KNIGHT_ATTACKING ||
-       serf->state == SERF_STATE_KNIGHT_ATTACKING_FREE) &&
+  if ((serf->get_state() == SERF_STATE_KNIGHT_ATTACKING ||
+       serf->get_state() == SERF_STATE_KNIGHT_ATTACKING_FREE) &&
       animation->time >= 0x80 && animation->time < 0xc0) {
-    int index = serf->s.attacking.def_index;
+    int index = serf->get_attacking_def_index();
     if (index != 0) {
-      serf_t *def_serf = game_get_serf(index);
+      serf_t *def_serf = interface->get_game()->get_serf(index);
 
-      if (serf->animation >= 146 &&
-          serf->animation < 156) {
-        if ((serf->s.attacking.field_D == 0 ||
-             serf->s.attacking.field_D == 4) &&
-            serf->counter < 32) {
+      if (serf->get_animation() >= 146 &&
+          serf->get_animation() < 156) {
+        if ((serf->get_attacking_field_D() == 0 ||
+             serf->get_attacking_field_D() == 4) &&
+            serf->get_counter() < 32) {
           int anim = -1;
-          if (serf->s.attacking.field_D == 0) {
-            anim = serf->animation - 147;
+          if (serf->get_attacking_field_D() == 0) {
+            anim = serf->get_animation() - 147;
           } else {
-            anim = def_serf->animation - 147;
+            anim = def_serf->get_animation() - 147;
           }
 
-          int sprite = 198 + ((serf->counter >> 3) ^ 3);
+          int sprite = 198 + ((serf->get_counter() >> 3) ^ 3);
           draw_game_sprite(x + arr_4[2*anim], y - arr_4[2*anim+1], sprite);
         }
       }
@@ -1973,44 +1953,46 @@ viewport_t::draw_serf_row(map_pos_t pos, int y_base, int cols, int x_base) {
   };
 
   for (int i = 0; i < cols;
-       i++, x_base += MAP_TILE_WIDTH, pos = MAP_MOVE_RIGHT(pos)) {
+       i++, x_base += MAP_TILE_WIDTH, pos = map->move_right(pos)) {
 #if 0
     /* Draw serf marker */
-    if (MAP_SERF_INDEX(pos) != 0) {
-      serf_t *serf = game_get_serf(MAP_SERF_INDEX(pos));
-      int color = game.player[SERF_PLAYER(serf)]->color;
-      gfx_fill_rect(x_base - 2, y_base - 4*MAP_HEIGHT(pos) - 2, 4, 4,
-                    color, frame);
+    if (map->get_serf_index(pos) != 0) {
+      serf_t *serf = game->get_serf_at_pos(pos);
+      int color = game.player[map->get_owner(pos)]->color;
+      frame->fill_rect(x_base - 2, y_base - 4*MAP_HEIGHT(pos) - 2, 4, 4, color);
     }
 #endif
 
     /* Active serf */
-    if (MAP_SERF_INDEX(pos) != 0) {
-      serf_t *serf = game_get_serf(MAP_SERF_INDEX(pos));
+    if (map->get_serf_index(pos) != 0) {
+      serf_t *serf = interface->get_game()->get_serf_at_pos(pos);
 
-      if (serf->state != SERF_STATE_MINING ||
-          (serf->s.mining.substate != 3 &&
-           serf->s.mining.substate != 4 &&
-           serf->s.mining.substate != 9 &&
-           serf->s.mining.substate != 10)) {
-        draw_active_serf(serf, pos, x_base, y_base);
-      }
+      if (serf->get_state() != SERF_STATE_MINING ||
+          (serf->get_mining_substate() != 3 &&
+           serf->get_mining_substate() != 4 &&
+           serf->get_mining_substate() != 9 &&
+           serf->get_mining_substate() != 10)) {
+            draw_active_serf(serf, pos, x_base, y_base);
+          }
     }
 
     /* Idle serf */
-    if (MAP_IDLE_SERF(pos)) {
+    if (map->get_idle_serf(pos)) {
       int x, y, body;
-      if (MAP_IN_WATER(pos)) { /* Sailor */
+      if (map->is_in_water(pos)) { /* Sailor */
         x = x_base;
-        y = y_base - 4*MAP_HEIGHT(pos);
+        y = y_base - 4 * map->get_height(pos);
         body = 0x203;
       } else { /* Transporter */
-        x = x_base + arr_3[2*MAP_PATHS(pos)];
-        y = y_base - 4*MAP_HEIGHT(pos) + arr_3[2*MAP_PATHS(pos)+1];
-        body = arr_2[((game.tick + arr_1[pos & 0xf]) >> 3) & 0x7f];
+        x = x_base + arr_3[2* map->paths(pos)];
+        y = y_base - 4 * map->get_height(pos) +
+            arr_3[2 * map->paths(pos) + 1];
+        body = arr_2[((interface->get_game()->get_tick() +
+                       arr_1[pos & 0xf]) >> 3) & 0x7f];
       }
 
-      int color = game.player[MAP_OWNER(pos)]->color;
+      int color =
+            interface->get_game()->get_player(map->get_owner(pos))->get_color();
       draw_row_serf(x, y, 1, color, body);
     }
   }
@@ -2022,18 +2004,18 @@ void
 viewport_t::draw_serf_row_behind(map_pos_t pos, int y_base, int cols,
                                  int x_base) {
   for (int i = 0; i < cols;
-       i++, x_base += MAP_TILE_WIDTH, pos = MAP_MOVE_RIGHT(pos)) {
+       i++, x_base += MAP_TILE_WIDTH, pos = map->move_right(pos)) {
     /* Active serf */
-    if (MAP_SERF_INDEX(pos) != 0) {
-      serf_t *serf = game_get_serf(MAP_SERF_INDEX(pos));
+    if (map->get_serf_index(pos) != 0) {
+      serf_t *serf = interface->get_game()->get_serf_at_pos(pos);
 
-      if (serf->state == SERF_STATE_MINING &&
-          (serf->s.mining.substate == 3 ||
-           serf->s.mining.substate == 4 ||
-           serf->s.mining.substate == 9 ||
-           serf->s.mining.substate == 10)) {
-        draw_active_serf(serf, pos, x_base, y_base);
-      }
+      if (serf->get_state() == SERF_STATE_MINING &&
+          (serf->get_mining_substate() == 3 ||
+           serf->get_mining_substate() == 4 ||
+           serf->get_mining_substate() == 9 ||
+           serf->get_mining_substate() == 10)) {
+            draw_active_serf(serf, pos, x_base, y_base);
+          }
     }
   }
 }
@@ -2055,9 +2037,9 @@ viewport_t::draw_game_objects(int layers) {
   int x = -(offset_x + 16*(offset_y/20)) % 32;
   int y = -(offset_y) % 20;
 
-  int col_0 = (offset_x/16 + offset_y/20)/2 & game.map.col_mask;
-  int row_0 = (offset_y/MAP_TILE_HEIGHT) & game.map.row_mask;
-  map_pos_t pos = MAP_POS(col_0, row_0);
+  int col_0 = (offset_x/16 + offset_y/20)/2 & map->get_col_mask();
+  int row_0 = (offset_y/MAP_TILE_HEIGHT) & map->get_row_mask();
+  map_pos_t pos = map->pos(col_0, row_0);
 
   /* Loop until objects drawn fall outside the frame. */
   while (1) {
@@ -2076,7 +2058,7 @@ viewport_t::draw_game_objects(int layers) {
     y += MAP_TILE_HEIGHT;
     if (y >= height + 6*MAP_TILE_HEIGHT) break;
 
-    pos = MAP_MOVE_DOWN(pos);
+    pos = map->move_down(pos);
 
     /* long row */
     if (draw_landscape) {
@@ -2095,14 +2077,14 @@ viewport_t::draw_game_objects(int layers) {
     y += MAP_TILE_HEIGHT;
     if (y >= height + 6*MAP_TILE_HEIGHT) break;
 
-    pos = MAP_MOVE_DOWN_RIGHT(pos);
+    pos = map->move_down_right(pos);
   }
 }
 
 void
 viewport_t::draw_map_cursor_sprite(map_pos_t pos, int sprite) {
   int mx, my;
-  map_pix_from_map_coord(pos, MAP_HEIGHT(pos), &mx, &my);
+  map_pix_from_map_coord(pos, map->get_height(pos), &mx, &my);
 
   int sx, sy;
   screen_pix_from_map_pix(mx, my, &sx, &sy);
@@ -2115,9 +2097,9 @@ viewport_t::draw_map_cursor_possible_build() {
   int x_off = -(offset_x + 16*(offset_y/20)) % 32;
   int y_off = -offset_y % 20;
 
-  int col_0 = (offset_x/16 + offset_y/20)/2 & game.map.col_mask;
-  int row_0 = (offset_y/MAP_TILE_HEIGHT) & game.map.row_mask;
-  map_pos_t base_pos = MAP_POS(col_0, row_0);
+  int col_0 = (offset_x/16 + offset_y/20)/2 & map->get_col_mask();
+  int row_0 = (offset_y/MAP_TILE_HEIGHT) & map->get_row_mask();
+  map_pos_t base_pos = map->pos(col_0, row_0);
 
   for (int x_base = x_off; x_base < width + MAP_TILE_WIDTH;
        x_base += MAP_TILE_WIDTH) {
@@ -2133,23 +2115,26 @@ viewport_t::draw_map_cursor_possible_build() {
         x = x_base - MAP_TILE_WIDTH/2;
       }
 
-      int y = y_base - 4*MAP_HEIGHT(pos);
+      int y = y_base - 4 * map->get_height(pos);
       if (y >= height) break;
 
       /* Draw possible building */
       int sprite = -1;
-      if (game_can_build_castle(pos, interface->get_player())) {
+      if (interface->get_game()->can_build_castle(pos,
+                                                  interface->get_player())) {
         sprite = 50;
-      } else if (game_can_player_build(pos, interface->get_player()) &&
-           map_space_from_obj[MAP_OBJ(pos)] == MAP_SPACE_OPEN &&
-           (game_can_build_flag(MAP_MOVE_DOWN_RIGHT(pos),
-                                interface->get_player()) ||
-            MAP_HAS_FLAG(MAP_MOVE_DOWN_RIGHT(pos)))) {
-        if (game_can_build_mine(pos)) {
+      } else if (interface->get_game()->can_player_build(pos,
+                                                     interface->get_player()) &&
+                 map_t::map_space_from_obj[map->get_obj(pos)] ==
+                   MAP_SPACE_OPEN &&
+               (interface->get_game()->can_build_flag(map->move_down_right(pos),
+                                      interface->get_player()) ||
+                 map->has_flag(map->move_down_right(pos)))) {
+        if (interface->get_game()->can_build_mine(pos)) {
           sprite = 48;
-        } else if (game_can_build_large(pos)) {
+        } else if (interface->get_game()->can_build_large(pos)) {
           sprite = 50;
-        } else if (game_can_build_small(pos)) {
+        } else if (interface->get_game()->can_build_small(pos)) {
           sprite = 49;
         }
       }
@@ -2159,16 +2144,16 @@ viewport_t::draw_map_cursor_possible_build() {
       }
 
       if (row % 2 == 0) {
-        pos = MAP_MOVE_DOWN(pos);
+        pos = map->move_down(pos);
       } else {
-        pos = MAP_MOVE_DOWN_RIGHT(pos);
+        pos = map->move_down_right(pos);
       }
 
       y_base += MAP_TILE_HEIGHT;
       row += 1;
     }
 
-    base_pos = MAP_MOVE_RIGHT(base_pos);
+    base_pos = map->move_right(base_pos);
   }
 }
 
@@ -2182,7 +2167,7 @@ viewport_t::draw_map_cursor() {
                          interface->get_map_cursor_sprite(0));
 
   for (int d = 0; d < 6; d++) {
-    draw_map_cursor_sprite(MAP_MOVE(interface->get_map_cursor_pos(), d),
+    draw_map_cursor_sprite(map->move(interface->get_map_cursor_pos(), (dir_t)d),
                            interface->get_map_cursor_sprite(1+d));
   }
 }
@@ -2207,9 +2192,9 @@ viewport_t::draw_height_grid_overlay(int color) {
   int x_off = -(offset_x + 16*(offset_y/20)) % 32;
   int y_off = -offset_y % 20;
 
-  int col_0 = (offset_x/16 + offset_y/20)/2 & game.map.col_mask;
-  int row_0 = (offset_y/MAP_TILE_HEIGHT) & game.map.row_mask;
-  map_pos_t base_pos = MAP_POS(col_0, row_0);
+  int col_0 = (offset_x/16 + offset_y/20)/2 & map->get_col_mask();
+  int row_0 = (offset_y/MAP_TILE_HEIGHT) & map->get_row_mask();
+  map_pos_t base_pos = map->pos(col_0, row_0);
 
   for (int x_base = x_off; x_base < width + MAP_TILE_WIDTH;
        x_base += MAP_TILE_WIDTH) {
@@ -2225,11 +2210,11 @@ viewport_t::draw_height_grid_overlay(int color) {
         x = x_base - MAP_TILE_WIDTH/2;
       }
 
-      int y = y_base - 4*MAP_HEIGHT(pos);
+      int y = y_base - 4 * map->get_height(pos);
       if (y >= height) break;
 
       /* Draw cross. */
-      if (pos != MAP_POS(0, 0)) {
+      if (pos != map->pos(0, 0)) {
         frame->fill_rect(x, y - 1, 1, 3, color);
         frame->fill_rect(x - 1, y, 3, 1, color);
       } else {
@@ -2238,21 +2223,25 @@ viewport_t::draw_height_grid_overlay(int color) {
       }
 
       if (row % 2 == 0) {
-        pos = MAP_MOVE_DOWN(pos);
+        pos = map->move_down(pos);
       } else {
-        pos = MAP_MOVE_DOWN_RIGHT(pos);
+        pos = map->move_down_right(pos);
       }
 
       y_base += MAP_TILE_HEIGHT;
       row += 1;
     }
 
-    base_pos = MAP_MOVE_RIGHT(base_pos);
+    base_pos = map->move_right(base_pos);
   }
 }
 
 void
 viewport_t::internal_draw() {
+  if (map == NULL) {
+    return;
+  }
+
   if (layers & VIEWPORT_LAYER_LANDSCAPE) {
     draw_landscape();
   }
@@ -2274,15 +2263,15 @@ viewport_t::handle_click_left(int x, int y) {
   set_redraw();
 
   map_pos_t clk_pos = map_pos_from_screen_pix(x, y);
-  int clk_col = MAP_POS_COL(clk_pos);
-  int clk_row = MAP_POS_ROW(clk_pos);
+  int clk_col = map->pos_col(clk_pos);
+  int clk_row = map->pos_row(clk_pos);
 
   if (interface->is_building_road()) {
-    int x = (clk_col - MAP_POS_COL(interface->get_map_cursor_pos()) + 1) &
-            game.map.col_mask;
-    int y = (clk_row - MAP_POS_ROW(interface->get_map_cursor_pos()) + 1) &
-            game.map.row_mask;
-    int dir = -1;
+    int x = (clk_col - map->pos_col(interface->get_map_cursor_pos()) + 1) &
+             map->get_col_mask();
+    int y = (clk_row - map->pos_row(interface->get_map_cursor_pos()) + 1) &
+             map->get_row_mask();
+    dir_t dir = DIR_NONE;
 
     if (x == 0) {
       if (y == 1) dir = DIR_LEFT;
@@ -2295,7 +2284,7 @@ viewport_t::handle_click_left(int x, int y) {
       else if (y == 2) dir = DIR_DOWN_RIGHT;
     }
 
-    if (interface->build_roid_is_valid_dir((dir_t)dir)) {
+    if (interface->build_roid_is_valid_dir(dir)) {
       int length = interface->get_building_road_length();
       dir_t last_dir = DIR_RIGHT;
       if (length > 0) last_dir = interface->get_building_road_dir(length-1);
@@ -2339,8 +2328,8 @@ viewport_t::handle_dbl_click(int x, int y, event_button_t button) {
   if (interface->is_building_road()) {
     if (clk_pos != interface->get_map_cursor_pos()) {
       map_pos_t pos = interface->get_building_road_source();
-      uint length;
-      dir_t *dirs = pathfinder_map(pos, clk_pos, &length);
+      unsigned int length = 0;
+      dir_t *dirs = pathfinder_map(map, pos, clk_pos, &length);
       if (dirs != NULL) {
         interface->build_road_reset();
         int r = interface->extend_road(dirs, length);
@@ -2356,8 +2345,8 @@ viewport_t::handle_dbl_click(int x, int y, event_button_t button) {
         play_sound(SFX_NOT_ACCEPTED);
       }
     } else {
-      int r = game_build_flag(interface->get_map_cursor_pos(),
-                              interface->get_player());
+      int r = interface->get_game()->build_flag(interface->get_map_cursor_pos(),
+                                                interface->get_player());
       if (r < 0) {
         play_sound(SFX_NOT_ACCEPTED);
       } else {
@@ -2365,57 +2354,52 @@ viewport_t::handle_dbl_click(int x, int y, event_button_t button) {
       }
     }
   } else {
-    if (MAP_OBJ(clk_pos) == MAP_OBJ_NONE ||
-        MAP_OBJ(clk_pos) > MAP_OBJ_CASTLE) {
+    if (map->get_obj(clk_pos) == MAP_OBJ_NONE ||
+        map->get_obj(clk_pos) > MAP_OBJ_CASTLE) {
       return false;
     }
 
-    if (MAP_OBJ(clk_pos) == MAP_OBJ_FLAG) {
-      if (BIT_TEST(game.split, 5) || /* Demo mode */
-          MAP_OWNER(clk_pos) == interface->get_player()->player_num) {
+    if (map->get_obj(clk_pos) == MAP_OBJ_FLAG) {
+      if (map->get_owner(clk_pos) == interface->get_player()->get_index()) {
         interface->open_popup(BOX_TRANSPORT_INFO);
       }
 
-      interface->get_player()->index = MAP_OBJ_INDEX(clk_pos);
+      interface->get_player()->temp_index = map->get_obj_index(clk_pos);
     } else { /* Building */
-      if (BIT_TEST(game.split, 5) || /* Demo mode */
-          MAP_OWNER(clk_pos) == interface->get_player()->player_num) {
-        building_t *building = game_get_building(MAP_OBJ_INDEX(clk_pos));
-        if (!BUILDING_IS_DONE(building)) {
+      if (map->get_owner(clk_pos) == interface->get_player()->get_index()) {
+        building_t *building =
+                  interface->get_game()->get_building_at_pos(clk_pos);
+        if (!building->is_done()) {
           interface->open_popup(BOX_ORDERED_BLD);
-          } else if (BUILDING_TYPE(building) == BUILDING_CASTLE) {
+          } else if (building->get_type() == BUILDING_CASTLE) {
           interface->open_popup(BOX_CASTLE_RES);
-        } else if (BUILDING_TYPE(building) == BUILDING_STOCK) {
-          if (!BUILDING_IS_ACTIVE(building)) return 0;
+        } else if (building->get_type() == BUILDING_STOCK) {
+          if (!building->is_active()) return 0;
           interface->open_popup(BOX_CASTLE_RES);
-        } else if (BUILDING_TYPE(building) == BUILDING_HUT ||
-             BUILDING_TYPE(building) == BUILDING_TOWER ||
-             BUILDING_TYPE(building) == BUILDING_FORTRESS) {
+        } else if (building->get_type() == BUILDING_HUT ||
+             building->get_type() == BUILDING_TOWER ||
+             building->get_type() == BUILDING_FORTRESS) {
           interface->open_popup(BOX_DEFENDERS);
-        } else if (BUILDING_TYPE(building) == BUILDING_STONEMINE ||
-             BUILDING_TYPE(building) == BUILDING_COALMINE ||
-             BUILDING_TYPE(building) == BUILDING_IRONMINE ||
-             BUILDING_TYPE(building) == BUILDING_GOLDMINE) {
+        } else if (building->get_type() == BUILDING_STONEMINE ||
+             building->get_type() == BUILDING_COALMINE ||
+             building->get_type() == BUILDING_IRONMINE ||
+             building->get_type() == BUILDING_GOLDMINE) {
           interface->open_popup(BOX_MINE_OUTPUT);
         } else {
           interface->open_popup(BOX_BLD_STOCK);
         }
 
-        interface->get_player()->index = MAP_OBJ_INDEX(clk_pos);
-      } else if (BIT_TEST(game.split, 5)) { /* Demo mode*/
-        return false;
+        interface->get_player()->temp_index = map->get_obj_index(clk_pos);
       } else { /* Foreign building */
         /* TODO handle coop mode*/
-        building_t *building = game_get_building(MAP_OBJ_INDEX(clk_pos));
-        interface->get_player()->building_attacked = BUILDING_INDEX(building);
+        building_t *building =
+                  interface->get_game()->get_building_at_pos(clk_pos);
+        interface->get_player()->building_attacked = building->get_index();
 
-        if (BUILDING_IS_DONE(building) &&
-            (BUILDING_TYPE(building) == BUILDING_HUT ||
-             BUILDING_TYPE(building) == BUILDING_TOWER ||
-             BUILDING_TYPE(building) == BUILDING_FORTRESS ||
-             BUILDING_TYPE(building) == BUILDING_CASTLE)) {
-          if (!BUILDING_IS_ACTIVE(building) ||
-              BUILDING_STATE(building) != 3) {
+        if (building->is_done() &&
+            building->is_military()) {
+          if (!building->is_active() ||
+              building->get_state() != 3) {
             /* It is not allowed to attack
                if currently not occupied or
                is too far from the border. */
@@ -2423,12 +2407,12 @@ viewport_t::handle_dbl_click(int x, int y, event_button_t button) {
             return false;
           }
 
-          const map_pos_t *p = &game.spiral_pos_pattern[7];
           int found = 0;
           for (int i = 257; i >= 0; i--) {
-            map_pos_t pos = MAP_POS_ADD(building->pos, p[257-i]);
-            if (MAP_HAS_OWNER(pos) &&
-                MAP_OWNER(pos) == interface->get_player()->player_num) {
+            map_pos_t pos = map->pos_add_spirally(building->get_position(),
+                                                       7+257-i);
+            if (map->has_owner(pos) &&
+                map->get_owner(pos) == interface->get_player()->get_index()) {
               found = 1;
               break;
             }
@@ -2443,7 +2427,7 @@ viewport_t::handle_dbl_click(int x, int y, event_button_t button) {
           play_sound(SFX_CLICK);
 
           int max_knights = 0;
-          switch (BUILDING_TYPE(building)) {
+          switch (building->get_type()) {
           case BUILDING_HUT: max_knights = 3; break;
           case BUILDING_TOWER: max_knights = 6; break;
           case BUILDING_FORTRESS: max_knights = 12; break;
@@ -2451,11 +2435,10 @@ viewport_t::handle_dbl_click(int x, int y, event_button_t button) {
           default: NOT_REACHED(); break;
           }
 
-          int knights =
-                player_knights_available_for_attack(interface->get_player(),
-                                                    building->pos);
-          interface->get_player()->knights_attacking = std::min(knights,
-                                                                max_knights);
+          int knights = interface->get_player()->
+                         knights_available_for_attack(building->get_position());
+          interface->get_player()->knights_attacking =
+                                                 std::min(knights, max_knights);
           interface->open_popup(BOX_START_ATTACK);
         }
       }
@@ -2474,8 +2457,10 @@ viewport_t::handle_drag(int x, int y) {
   return true;
 }
 
-viewport_t::viewport_t(interface_t *interface) {
+viewport_t::viewport_t(interface_t *interface, map_t *map) {
   this->interface = interface;
+  this->map = map;
+  map->add_change_handler(this);
   layers = VIEWPORT_LAYER_ALL;
 
   last_tick = 0;
@@ -2485,8 +2470,19 @@ viewport_t::viewport_t(interface_t *interface) {
 }
 
 viewport_t::~viewport_t() {
-  map_deinit();
+  map->del_change_handler(this);
+  while (landscape_tiles.size()) {
+    tiles_map_t::iterator it = landscape_tiles.begin();
+    delete it->second;
+    landscape_tiles.erase(it);
+  }
 }
+
+void
+viewport_t::changed_height(map_pos_t pos) {
+  redraw_map_pos(pos);
+}
+
 
 /* Space transformations. */
 /* The game world space is a three dimensional space with the axes
@@ -2528,19 +2524,19 @@ viewport_t::~viewport_t() {
 */
 void
 viewport_t::screen_pix_from_map_pix(int mx, int my, int *sx, int *sy) {
-  int width = game.map.cols*MAP_TILE_WIDTH;
-  int height = game.map.rows*MAP_TILE_HEIGHT;
+  int width = map->get_cols()*MAP_TILE_WIDTH;
+  int height = map->get_rows()*MAP_TILE_HEIGHT;
 
   *sx = mx - offset_x;
   *sy = my - offset_y;
 
   while (*sy < 0) {
-    *sx -= (game.map.rows*MAP_TILE_WIDTH)/2;
+    *sx -= (map->get_rows()*MAP_TILE_WIDTH)/2;
     *sy += height;
   }
 
   while (*sy >= height) {
-    *sx += (game.map.rows*MAP_TILE_WIDTH)/2;
+    *sx += (map->get_rows()*MAP_TILE_WIDTH)/2;
     *sy -= height;
   }
 
@@ -2550,14 +2546,15 @@ viewport_t::screen_pix_from_map_pix(int mx, int my, int *sx, int *sy) {
 
 void
 viewport_t::map_pix_from_map_coord(map_pos_t pos, int h, int *mx, int *my) {
-  int width = game.map.cols*MAP_TILE_WIDTH;
-  int height = game.map.rows*MAP_TILE_HEIGHT;
+  int width = map->get_cols()*MAP_TILE_WIDTH;
+  int height = map->get_rows()*MAP_TILE_HEIGHT;
 
-  *mx = MAP_TILE_WIDTH*MAP_POS_COL(pos) - (MAP_TILE_WIDTH/2)*MAP_POS_ROW(pos);
-  *my = MAP_TILE_HEIGHT*MAP_POS_ROW(pos) - 4*h;
+  *mx = MAP_TILE_WIDTH * map->pos_col(pos) -
+        (MAP_TILE_WIDTH/2) * map->pos_row(pos);
+  *my = MAP_TILE_HEIGHT * map->pos_row(pos) - 4*h;
 
   if (*my < 0) {
-    *mx -= (game.map.rows*MAP_TILE_WIDTH)/2;
+    *mx -= (map->get_rows()*MAP_TILE_WIDTH)/2;
     *my += height;
   }
 
@@ -2570,8 +2567,8 @@ viewport_t::map_pos_from_screen_pix(int sx, int sy) {
   int x_off = -(offset_x + 16*(offset_y/20)) % 32;
   int y_off = -offset_y % 20;
 
-  int col = (offset_x/16 + offset_y/20)/2 & game.map.col_mask;
-  int row = (offset_y/MAP_TILE_HEIGHT) & game.map.row_mask;
+  int col = (offset_x/16 + offset_y/20)/2 & map->get_col_mask();
+  int row = (offset_y/MAP_TILE_HEIGHT) & map->get_row_mask();
 
   sx -= x_off;
   sy -= y_off;
@@ -2583,28 +2580,28 @@ viewport_t::map_pos_from_screen_pix(int sx, int sy) {
     y_base = 16;
   }
 
-  col = (col + col_offset) & game.map.col_mask;
-  row = row & game.map.row_mask;
+  col = (col + col_offset) & map->get_col_mask();
+  row = row & map->get_row_mask();
 
   int y;
   int last_y = -100;
 
   while (1) {
-    y = y_base - 4*MAP_HEIGHT(MAP_POS(col, row));
+    y = y_base - 4* map->get_height(map->pos(col, row));
     if (sy < y) break;
 
     last_y = y;
-    col = (col + 1) & game.map.col_mask;
-    row = (row + 2) & game.map.row_mask;
+    col = (col + 1) & map->get_col_mask();
+    row = (row + 2) & map->get_row_mask();
     y_base += 2*MAP_TILE_HEIGHT;
   }
 
   if (sy < (y + last_y)/2) {
-    col = (col - 1) & game.map.col_mask;
-    row = (row - 2) & game.map.row_mask;
+    col = (col - 1) & map->get_col_mask();
+    row = (row - 2) & map->get_row_mask();
   }
 
-  return MAP_POS(col, row);
+  return map->pos(col, row);
 }
 
 map_pos_t
@@ -2615,17 +2612,17 @@ viewport_t::get_current_map_pos() {
 void
 viewport_t::move_to_map_pos(map_pos_t pos) {
   int mx, my;
-  map_pix_from_map_coord(pos, MAP_HEIGHT(pos), &mx, &my);
+  map_pix_from_map_coord(pos, map->get_height(pos), &mx, &my);
 
-  int map_width = game.map.cols*MAP_TILE_WIDTH;
-  int map_height = game.map.rows*MAP_TILE_HEIGHT;
+  int map_width = map->get_cols()*MAP_TILE_WIDTH;
+  int map_height = map->get_rows()*MAP_TILE_HEIGHT;
 
   /* Center screen. */
   mx -= width/2;
   my -= height/2;
 
   if (my < 0) {
-    mx -= (game.map.rows*MAP_TILE_WIDTH)/2;
+    mx -= (map->get_rows()*MAP_TILE_WIDTH)/2;
     my += map_height;
   }
 
@@ -2640,18 +2637,18 @@ viewport_t::move_to_map_pos(map_pos_t pos) {
 
 void
 viewport_t::move_by_pixels(int x, int y) {
-  int width = game.map.cols*MAP_TILE_WIDTH;
-  int height = game.map.rows*MAP_TILE_HEIGHT;
+  int width = map->get_cols()*MAP_TILE_WIDTH;
+  int height = map->get_rows()*MAP_TILE_HEIGHT;
 
   offset_x += x;
   offset_y += y;
 
   if (offset_y < 0) {
     offset_y += height;
-    offset_x -= (game.map.rows*MAP_TILE_WIDTH)/2;
+    offset_x -= (map->get_rows()*MAP_TILE_WIDTH)/2;
   } else if (offset_y >= height) {
     offset_y -= height;
-    offset_x += (game.map.rows*MAP_TILE_WIDTH)/2;
+    offset_x += (map->get_rows()*MAP_TILE_WIDTH)/2;
   }
 
   if (offset_x >= width) offset_x -= width;
@@ -2664,8 +2661,8 @@ viewport_t::move_by_pixels(int x, int y) {
 /* Called periodically when the game progresses. */
 void
 viewport_t::update() {
-  int tick_xor = game.tick ^ last_tick;
-  last_tick = game.tick;
+  int tick_xor = interface->get_game()->get_tick() ^ last_tick;
+  last_tick = interface->get_game()->get_tick();
 
   /* Viewport animation does not care about low bits in anim */
   if (tick_xor >= 1 << 3) {

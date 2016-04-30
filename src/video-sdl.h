@@ -51,10 +51,9 @@ class SDL_Exception : public Video_Exception {
 
  public:
   explicit SDL_Exception(const std::string &description) throw();
-  virtual ~SDL_Exception() throw();
+  virtual ~SDL_Exception() throw() {}
 
-  virtual const char *get_description() const;
-  virtual const char *get_platform() const;
+  virtual std::string get_platform() const { return "SDL"; }
 };
 
 class video_sdl_t : public video_t {

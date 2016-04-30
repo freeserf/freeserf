@@ -23,12 +23,10 @@
 #define SRC_INTERFACE_H_
 
 #include "src/misc.h"
-BEGIN_EXT_C
-  #include "src/random.h"
-  #include "src/map.h"
-  #include "src/player.h"
-  #include "src/building.h"
-END_EXT_C
+#include "src/random.h"
+#include "src/map.h"
+#include "src/player.h"
+#include "src/building.h"
 #include "src/gui.h"
 
 #define MAX_ROAD_LENGTH  256
@@ -73,6 +71,8 @@ class notification_box_t;
 
 class interface_t : public gui_object_t {
  protected:
+  game_t *game;
+
   random_state_t random;
 
   viewport_t *viewport;
@@ -85,7 +85,7 @@ class interface_t : public gui_object_t {
   map_cursor_type_t map_cursor_type;
   build_possibility_t build_possibility;
 
-  uint last_const_tick;
+  unsigned int last_const_tick;
 
   bool building_road;
   map_pos_t building_road_source;
@@ -113,6 +113,9 @@ class interface_t : public gui_object_t {
  public:
   interface_t();
   virtual ~interface_t();
+
+  game_t *get_game() { return game; }
+  void set_game(game_t *game);
 
   viewport_t *get_viewport();
   panel_bar_t *get_panel_bar();
@@ -152,7 +155,7 @@ class interface_t : public gui_object_t {
   void close_message();
 
   player_t *get_player() const { return player; }
-  void set_player(uint player);
+  void set_player(unsigned int player);
   void update_map_cursor_pos(map_pos_t pos);
 
   bool is_building_road() const { return building_road; }
@@ -164,7 +167,7 @@ class interface_t : public gui_object_t {
   void build_road_reset() { building_road_length = 0; }
   int build_road_segment(dir_t dir);
   int remove_road_segment();
-  int extend_road(dir_t *dirs, uint length);
+  int extend_road(dir_t *dirs, unsigned int length);
   bool build_roid_is_valid_dir(dir_t dir) {
     return (BIT_TEST(building_road_valid_dir, dir) != 0); }
 
@@ -175,7 +178,6 @@ class interface_t : public gui_object_t {
   void build_castle();
   void build_road();
 
-  void game_reset();
   void update();
 
   virtual bool handle_event(const event_t *event);

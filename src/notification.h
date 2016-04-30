@@ -25,6 +25,7 @@
 #include <string>
 
 #include "src/gui.h"
+#include "src/player.h"
 
 typedef enum {
   NOTIFICATION_NONE = 0,
@@ -56,15 +57,17 @@ typedef struct {
   const char *text;
 } notification_view_t;
 
+class interface_t;
+
 class notification_box_t : public gui_object_t {
  protected:
-  int type;
-  int param;
+  message_t message;
+  interface_t *interface;
 
  public:
-  notification_box_t();
+  explicit notification_box_t(interface_t *interface);
 
-  void show(int type, int param);
+  void show(const message_t &message);
 
  protected:
   void draw_notification(notification_view_t *view);

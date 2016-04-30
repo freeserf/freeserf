@@ -21,40 +21,10 @@
 
 #include "src/gfx.h"
 
-#include <cstring>
-
-#include "src/misc.h"
-BEGIN_EXT_C
-  #include "src/log.h"
-END_EXT_C
+#include "src/log.h"
 #include "src/data.h"
 #include "src/video.h"
 #include "src/data-source.h"
-
-#ifdef min
-# undef min
-#endif
-
-#ifdef max
-# undef max
-#endif
-
-Freeserf_Exception::Freeserf_Exception(const std::string &description) throw() {
-  this->description = description;
-}
-
-Freeserf_Exception::~Freeserf_Exception() throw() {
-}
-
-const char*
-Freeserf_Exception::what() const throw() {
-  return get_description();
-}
-
-const char*
-Freeserf_Exception::get_description() const {
-  return description.c_str();
-}
 
 GFX_Exception::GFX_Exception(const std::string &description) throw()
   : Freeserf_Exception(description) {

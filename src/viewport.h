@@ -25,12 +25,9 @@
 #include <map>
 
 #include "src/gui.h"
-#include "src/misc.h"
-BEGIN_EXT_C
-  #include "src/map.h"
-  #include "src/building.h"
-  #include "src/serf.h"
-END_EXT_C
+#include "src/map.h"
+#include "src/building.h"
+#include "src/serf.h"
 
 typedef enum {
   VIEWPORT_LAYER_LANDSCAPE = 1<<0,
@@ -50,7 +47,7 @@ typedef enum {
 class interface_t;
 class data_source_t;
 
-class viewport_t : public gui_object_t {
+class viewport_t : public gui_object_t, public update_map_height_handler_t {
  protected:
   /* Cache prerendered tiles of the landscape. */
   typedef std::map<unsigned int, frame_t*> tiles_map_t;
@@ -62,8 +59,10 @@ class viewport_t : public gui_object_t {
   unsigned int last_tick;
   data_source_t *data_source;
 
+  map_t *map;
+
  public:
-  explicit viewport_t(interface_t *interface);
+  viewport_t(interface_t *interface, map_t *map);
   virtual ~viewport_t();
 
   void switch_layer(viewport_layer_t layer) { layers ^= layer; }
@@ -76,8 +75,6 @@ class viewport_t : public gui_object_t {
   void map_pix_from_map_coord(map_pos_t pos, int h, int *mx, int *my);
   map_pos_t map_pos_from_screen_pix(int x, int y);
 
-  void map_reinit();
-  void map_deinit();
   void redraw_map_pos(map_pos_t pos);
 
   void update();
@@ -128,6 +125,9 @@ class viewport_t : public gui_object_t {
   virtual bool handle_drag(int x, int y);
 
   frame_t *get_tile_frame(unsigned int tid, int tc, int tr);
+
+ public:
+  void changed_height(map_pos_t pos);
 };
 
 #endif  // SRC_VIEWPORT_H_

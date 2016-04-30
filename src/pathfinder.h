@@ -23,10 +23,8 @@
 #define SRC_PATHFINDER_H_
 
 #include "src/map.h"
-#include "src/misc.h"
 
-BEGIN_EXT_C
-  dir_t *pathfinder_map(map_pos_t start, map_pos_t end, uint *length);
-END_EXT_C
+dir_t *pathfinder_map(map_t *map, map_pos_t start, map_pos_t end,
+                      unsigned int *length);
 
 #endif  // SRC_PATHFINDER_H_

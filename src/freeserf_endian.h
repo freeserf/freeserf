@@ -1,5 +1,5 @@
 /*
- * endian.h - Endianness conversions
+ * freeserf_endian.h - Endianness conversions
  *
  * Copyright (C) 2007-2012  Jon Lund Steffensen <jonlst@gmail.com>
  *
@@ -19,8 +19,8 @@
  * along with freeserf.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef _FREESERF_ENDIAN_H
-#define _FREESERF_ENDIAN_H
+#ifndef SRC_FREESERF_ENDIAN_H_
+#define SRC_FREESERF_ENDIAN_H_
 
 
 #ifdef HAVE_CONFIG_H
@@ -72,7 +72,7 @@
 # else /* ! WORDS_BIGENDIAN */
 #  define be16toh(x)  bswap16((uint16_t)(x))
 #  define be32toh(x)  bswap32((uint32_t)(x))
-#  define be64toh(x)  bswap64((uint64_t)(x)) 
+#  define be64toh(x)  bswap64((uint64_t)(x))
 #  define le16toh(x)  (x)
 #  define le32toh(x)  (x)
 #  define le64toh(x)  (x)
@@ -88,4 +88,4 @@
 #endif /* HAVE_SYS_ENDIAN_H */
 
 
-#endif /* ! _FREESERF_ENDIAN_H */
+#endif  // SRC_FREESERF_ENDIAN_H_

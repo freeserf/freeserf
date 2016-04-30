@@ -25,10 +25,7 @@
 #include <string>
 
 #include "src/gui.h"
-#include "src/misc.h"
-BEGIN_EXT_C
-  #include "src/game.h"
-END_EXT_C
+#include "src/game.h"
 
 class interface_t;
 
@@ -39,10 +36,10 @@ class game_init_box_t : public gui_object_t {
   int map_size;
   int game_mission;
 
-  uint face[GAME_MAX_PLAYER_COUNT];
-  uint intelligence[GAME_MAX_PLAYER_COUNT];
-  uint supplies[GAME_MAX_PLAYER_COUNT];
-  uint reproduction[GAME_MAX_PLAYER_COUNT];
+  unsigned int face[GAME_MAX_PLAYER_COUNT];
+  unsigned int intelligence[GAME_MAX_PLAYER_COUNT];
+  unsigned int supplies[GAME_MAX_PLAYER_COUNT];
+  unsigned int reproduction[GAME_MAX_PLAYER_COUNT];
 
  public:
   explicit game_init_box_t(interface_t *interface);

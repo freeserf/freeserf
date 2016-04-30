@@ -19,24 +19,26 @@
  * along with freeserf.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef _MISSION_H
-#define _MISSION_H
+#ifndef SRC_MISSION_H_
+#define SRC_MISSION_H_
 
-#include "random.h"
+#include "src/random.h"
 
-typedef struct {
-	random_state_t rnd;
-	struct {
-		int face;
-		int supplies;
-		int intelligence;
-		int reproduction;
-		struct { int col; int row; } castle;
-	} player[4];
-} mission_t;
+class mission_t {
+ public:
+  random_state_t rnd;
+  struct {
+    int face;
+    int supplies;
+    int intelligence;
+    int reproduction;
+    struct { int col; int row; } castle;
+  } player[4];
 
-extern mission_t mission[12];
-extern const int mission_count;
-void init_missions();
+  static mission_t mission[12];
+  static void init_missions();
+  static mission_t *get_mission(int mission);
+  static int get_mission_count();
+};
 
-#endif /* !_MISSION_H */
+#endif  // SRC_MISSION_H_

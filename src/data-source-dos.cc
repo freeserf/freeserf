@@ -25,23 +25,12 @@
 #include <algorithm>
 #include <fstream>
 
-#include "src/misc.h"
-BEGIN_EXT_C
-  #include "src/freeserf_endian.h"
-  #include "src/log.h"
-END_EXT_C
+#include "src/freeserf_endian.h"
+#include "src/log.h"
 #include "src/tpwm.h"
 #include "src/data.h"
 #include "src/sfx2wav.h"
 #include "src/xmi2mid.h"
-
-#ifdef min
-# undef min
-#endif
-
-#ifdef max
-# undef max
-#endif
 
 /* There are different types of sprites:
  - Non-packed, rectangular sprites: These are simple called sprites here.
@@ -284,7 +273,7 @@ sprite_dos_transparent_t::sprite_dos_transparent_t(void *data, size_t size,
 
     size_t fill = *src++;
     for (size_t i = 0; i < fill; i++) {
-      uint p_index = *src++ + color_off;
+      unsigned int p_index = *src++ + color_off;
       color_dos_t color = palette[p_index];
       *dest++ = color.b; /* Blue */
       *dest++ = color.g; /* Green */

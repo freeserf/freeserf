@@ -1,5 +1,5 @@
 /*
- * version.c - Version definition
+ * version.cc - Version definition
  *
  * Copyright (C) 2012  Jon Lund Steffensen <jonlst@gmail.com>
  *
@@ -19,7 +19,7 @@
  * along with freeserf.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "version.h"
-#include "version-vcs.h"
+#include "src/version.h"
+#include "src/version-vcs.h"
 
 const char FREESERF_VERSION[] = VERSION_VCS;

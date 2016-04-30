@@ -23,13 +23,19 @@
 
 #include <SDL.h>
 
-#include "src/misc.h"
-BEGIN_EXT_C
-  #include "src/log.h"
-END_EXT_C
+#include "src/log.h"
 #include "src/gfx.h"
 #include "src/freeserf.h"
 #include "src/video-sdl.h"
+
+event_loop_t *
+event_loop_t::get_instance() {
+  if (instance == NULL) {
+    instance = new event_loop_sdl_t();
+  }
+
+  return instance;
+}
 
 event_loop_t *
 create_event_loop() {

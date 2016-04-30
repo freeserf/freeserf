@@ -23,16 +23,14 @@
 #define SRC_MINIMAP_H_
 
 #include "src/gui.h"
-#include "src/misc.h"
-BEGIN_EXT_C
-  #include "src/map.h"
-END_EXT_C
+#include "src/map.h"
 
 class interface_t;
 
 class minimap_t : public gui_object_t {
  protected:
   interface_t *interface;
+  map_t *map;
 
   int offset_x, offset_y;
   int scale;
@@ -41,7 +39,7 @@ class minimap_t : public gui_object_t {
   int flags;
 
  public:
-  explicit minimap_t(interface_t *interface);
+  explicit minimap_t(interface_t *interface, map_t *map);
 
   int get_flags() const { return flags; }
   void set_flags(int flags) { this->flags = flags; }
