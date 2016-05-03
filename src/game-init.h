@@ -1,7 +1,7 @@
 /*
  * game-init.h - Game initialization GUI component header
  *
- * Copyright (C) 2013  Jon Lund Steffensen <jonlst@gmail.com>
+ * Copyright (C) 2013-2015  Jon Lund Steffensen <jonlst@gmail.com>
  *
  * This file is part of freeserf.
  *
@@ -26,8 +26,11 @@
 
 #include "src/gui.h"
 #include "src/game.h"
+#include "src/mission.h"
 
 class interface_t;
+class random_input_t;
+class minimap_t;
 
 class game_init_box_t : public gui_object_t {
  protected:
@@ -36,19 +39,27 @@ class game_init_box_t : public gui_object_t {
   int map_size;
   int game_mission;
 
-  unsigned int face[GAME_MAX_PLAYER_COUNT];
-  unsigned int intelligence[GAME_MAX_PLAYER_COUNT];
-  unsigned int supplies[GAME_MAX_PLAYER_COUNT];
-  unsigned int reproduction[GAME_MAX_PLAYER_COUNT];
+  mission_t custom_mission;
+  mission_t *mission;
+
+  random_input_t *field;
+  map_t *map;
+  minimap_t *minimap;
 
  public:
   explicit game_init_box_t(interface_t *interface);
+  virtual ~game_init_box_t();
 
  protected:
   void draw_box_icon(int x, int y, int sprite);
   void draw_box_string(int x, int y, const std::string &str);
+  void draw_player_box(int player, int x, int y);
+  void draw_backgraund();
   int get_player_face_sprite(int face);
   void handle_action(int action);
+  bool handle_player_click(int player, int x, int y);
+  void apply_random(random_state_t rnd);
+  void generate_map_priview();
 
   virtual void internal_draw();
   virtual bool handle_click_left(int x, int y);

@@ -4287,7 +4287,7 @@ popup_box_t::popup_box_t(interface_t *interface) {
   current_stat_8_mode = 0;
 
   /* Initialize minimap */
-  minimap = new minimap_t(interface, interface->get_game()->get_map());
+  minimap = new game_minimap_t(interface, interface->get_game());
   minimap->set_displayed(false);
   minimap->set_parent(this);
   minimap->set_size(128, 128);

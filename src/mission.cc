@@ -29,6 +29,7 @@ mission_t::init_missions() {
   /* Mission 1: START */
   mission[0].rnd = random_state_t(0x6d6f, 0xf7f0, 0xc8d4);
 
+  mission[0].player[0].face = 12,
   mission[0].player[0].supplies = 35,
   mission[0].player[0].reproduction = 30,
   mission[0].player[0].castle.col = -1;
@@ -44,6 +45,7 @@ mission_t::init_missions() {
   /* Mission 2: STATION */
   mission[1].rnd = random_state_t(0x60b9, 0xe728, 0xc484);
 
+  mission[1].player[0].face = 12,
   mission[1].player[0].supplies = 30,
   mission[1].player[0].reproduction = 40,
   mission[1].player[0].castle.col = -1;
@@ -66,6 +68,7 @@ mission_t::init_missions() {
   /* Mission 3: UNITY */
   mission[2].rnd = random_state_t(0x12ab, 0x7a4a, 0xe483);
 
+  mission[2].player[0].face = 12,
   mission[2].player[0].supplies = 30,
   mission[2].player[0].reproduction = 30,
   mission[2].player[0].castle.col = -1;
@@ -88,6 +91,7 @@ mission_t::init_missions() {
   /* Mission 4 */
   mission[3].rnd = random_state_t(0xacdf, 0xee65, 0x3701);
 
+  mission[3].player[0].face = 12,
   mission[3].player[0].supplies = 25,
   mission[3].player[0].reproduction = 40,
   mission[3].player[0].castle.col = -1;
@@ -103,6 +107,7 @@ mission_t::init_missions() {
   /* Mission 5 */
   mission[4].rnd = random_state_t(0x3b8b, 0xd867, 0xd847);
 
+  mission[4].player[0].face = 12,
   mission[4].player[0].supplies = 30,
   mission[4].player[0].reproduction = 30,
   mission[4].player[0].castle.col = -1;
@@ -125,6 +130,7 @@ mission_t::init_missions() {
   /* Mission 6 */
   mission[5].rnd = random_state_t(0x4491, 0x36fb, 0xf9e1);
 
+  mission[5].player[0].face = 12,
   mission[5].player[0].supplies = 30,
   mission[5].player[0].reproduction = 30,
   mission[5].player[0].castle.col = -1;
@@ -147,6 +153,7 @@ mission_t::init_missions() {
   /* Mission 7 */
   mission[6].rnd = random_state_t(0xca18, 0x4221, 0x7f96);
 
+  mission[6].player[0].face = 12,
   mission[6].player[0].supplies = 30,
   mission[6].player[0].reproduction = 40,
   mission[6].player[0].castle.col = -1;
@@ -162,6 +169,7 @@ mission_t::init_missions() {
   /* Mission 8 */
   mission[7].rnd = random_state_t(0x88fe, 0xe0db, 0xed5c);
 
+  mission[7].player[0].face = 12,
   mission[7].player[0].supplies = 25,
   mission[7].player[0].reproduction = 30,
   mission[7].player[0].castle.col = -1;
@@ -184,6 +192,7 @@ mission_t::init_missions() {
   /* Mission 9 */
   mission[8].rnd = random_state_t(0xe9c4, 0x16fe, 0x2ef0);
 
+  mission[8].player[0].face = 12,
   mission[8].player[0].supplies = 25,
   mission[8].player[0].reproduction = 40,
   mission[8].player[0].castle.col = -1;
@@ -213,6 +222,7 @@ mission_t::init_missions() {
   /* Mission 10 */
   mission[9].rnd = random_state_t(0x15c2, 0xf9d0, 0x5fb1);
 
+  mission[9].player[0].face = 12,
   mission[9].player[0].supplies = 20,
   mission[9].player[0].reproduction = 16,
   mission[9].player[0].castle.col = 28;
@@ -228,6 +238,7 @@ mission_t::init_missions() {
   /* Mission 11 */
   mission[10].rnd = random_state_t(0x9b93, 0x6be1, 0x79c0);
 
+  mission[10].player[0].face = 12,
   mission[10].player[0].supplies = 16,
   mission[10].player[0].reproduction = 20,
   mission[10].player[0].castle.col = 16;
@@ -250,6 +261,7 @@ mission_t::init_missions() {
   /* Mission 12 */
   mission[11].rnd = random_state_t(0x4195, 0x7dba, 0xd884);
 
+  mission[11].player[0].face = 12,
   mission[11].player[0].supplies = 23,
   mission[11].player[0].reproduction = 27,
   mission[11].player[0].castle.col = 0x35;

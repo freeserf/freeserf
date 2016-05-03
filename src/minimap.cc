@@ -73,7 +73,7 @@ minimap_t::draw_minimap_map() {
 }
 
 void
-minimap_t::draw_minimap_ownership(int density) {
+game_minimap_t::draw_minimap_ownership(int density) {
   for (unsigned int row = 0; row < map->get_rows(); row++) {
     for (unsigned int col = 0; col < map->get_cols(); col++) {
       map_pos_t pos = map->pos(col, row);
@@ -87,7 +87,7 @@ minimap_t::draw_minimap_ownership(int density) {
 }
 
 void
-minimap_t::draw_minimap_roads() {
+game_minimap_t::draw_minimap_roads() {
   for (unsigned int row = 0; row < map->get_rows(); row++) {
     for (unsigned int col = 0; col < map->get_cols(); col++) {
       int pos = map->pos(col, row);
@@ -99,7 +99,7 @@ minimap_t::draw_minimap_roads() {
 }
 
 void
-minimap_t::draw_minimap_buildings() {
+game_minimap_t::draw_minimap_buildings() {
   const int building_remap[] = {
     BUILDING_CASTLE,
     BUILDING_STOCK, BUILDING_TOWER, BUILDING_HUT,
@@ -133,7 +133,7 @@ minimap_t::draw_minimap_buildings() {
 }
 
 void
-minimap_t::draw_minimap_traffic() {
+game_minimap_t::draw_minimap_traffic() {
   for (unsigned int row = 0; row < map->get_rows(); row++) {
     for (unsigned int col = 0; col < map->get_cols(); col++) {
       int pos = map->pos(col, row);
@@ -168,44 +168,13 @@ minimap_t::draw_minimap_rect() {
 
 void
 minimap_t::internal_draw() {
-  if (BIT_TEST(flags, 1)) {
-    frame->fill_rect(0, 0, 128, 128, 1);
-    draw_minimap_ownership(2);
-  } else {
-    draw_minimap_map();
-    if (BIT_TEST(flags, 0)) {
-      draw_minimap_ownership(1);
-    }
+  if (map == NULL) {
+    frame->fill_rect(0, 0, width, height, 1);
+    return;
   }
 
-  if (BIT_TEST(flags, 2)) {
-    draw_minimap_roads();
-  }
-
-  if (BIT_TEST(flags, 3)) {
-    draw_minimap_buildings();
-  }
-
-  if (BIT_TEST(flags, 4)) {
-    draw_minimap_grid();
-  }
-
-  if (advanced > 0) {
-    draw_minimap_traffic();
-  }
-
-  draw_minimap_rect();
-}
-
-bool
-minimap_t::handle_click_left(int x, int y) {
-  map_pos_t pos = map_pos_from_screen_pix(x, y);
-  interface->get_viewport()->move_to_map_pos(pos);
-
-  interface->update_map_cursor_pos(pos);
-  interface->close_popup();
-
-  return true;
+  draw_minimap_map();
+  draw_minimap_grid();
 }
 
 int
@@ -223,22 +192,29 @@ minimap_t::handle_scroll(int up) {
 
 bool
 minimap_t::handle_drag(int dx, int dy) {
-  if (x != 0 || y != 0) {
-    move_by_pixels(x, y);
+  if (dx != 0 || dy != 0) {
+    move_by_pixels(dx, dy);
   }
 
   return true;
 }
 
-minimap_t::minimap_t(interface_t *interface, map_t *map) {
-  this->interface = interface;
-  this->map = map;
+minimap_t::minimap_t(map_t *map) {
   offset_x = 0;
   offset_y = 0;
   scale = 1;
 
   advanced = -1;
   flags = 8;
+
+  this->map = map;
+}
+
+void
+minimap_t::set_map(map_t *map) {
+  this->map = map;
+
+  set_redraw();
 }
 
 /* Set the scale of the map (zoom). Must be positive. */
@@ -352,4 +328,52 @@ minimap_t::move_by_pixels(int dx, int dy) {
   else if (offset_x < 0) offset_x += width;
 
   set_redraw();
+}
+
+game_minimap_t::game_minimap_t(interface_t *interface, game_t *game)
+  : minimap_t(game->get_map()) {
+  this->interface = interface;
+  this->game = game;
+}
+
+void
+game_minimap_t::internal_draw() {
+  if (BIT_TEST(flags, 1)) {
+    frame->fill_rect(0, 0, 128, 128, 1);
+    draw_minimap_ownership(2);
+  } else {
+    draw_minimap_map();
+    if (BIT_TEST(flags, 0)) {
+      draw_minimap_ownership(1);
+    }
+  }
+
+  if (BIT_TEST(flags, 2)) {
+    draw_minimap_roads();
+  }
+
+  if (BIT_TEST(flags, 3)) {
+    draw_minimap_buildings();
+  }
+
+  if (BIT_TEST(flags, 4)) {
+    draw_minimap_grid();
+  }
+
+  if (advanced > 0) {
+    draw_minimap_traffic();
+  }
+
+  draw_minimap_rect();
+}
+
+bool
+game_minimap_t::handle_click_left(int x, int y) {
+  map_pos_t pos = map_pos_from_screen_pix(x, y);
+  interface->get_viewport()->move_to_map_pos(pos);
+
+  interface->update_map_cursor_pos(pos);
+  interface->close_popup();
+
+  return true;
 }

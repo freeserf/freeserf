@@ -102,8 +102,10 @@ interface_t::close_game_init() {
     delete init_box;
     init_box = NULL;
   }
-  panel->set_displayed(true);
-  panel->set_enabled(true);
+  if (panel != NULL) {
+    panel->set_displayed(true);
+    panel->set_enabled(true);
+  }
   viewport->set_enabled(true);
   layout();
 
@@ -692,7 +694,7 @@ interface_t::layout() {
 
   if (init_box != NULL) {
     int init_box_width = 360;
-    int init_box_height = 174;
+    int init_box_height = 256;
     int init_box_x = (width - init_box_width) / 2;
     int init_box_y = (height - init_box_height) / 2;
     init_box->move_to(init_box_x, init_box_y);
