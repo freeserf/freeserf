@@ -26,14 +26,26 @@ The project can be rebuilt at any time by running `make` again.
 
 ### MS Visual Studio
 
+Setup Environment Variables
+`SDL2_INCLUDE`, `SDL2_LIB`, `SDL2_MIXER_INCLUDE`, `SDL2_MIXER_LIB`
+
+For example:
+``` shell
+set SDL_BASE="c:\sdl"
+setx SDL2_INCLUDE "%SDL_BASE%\SDL2-2.0.4\include"
+setx SDL2_LIB "%SDL_BASE%\SDL2-2.0.4\lib"
+setx SDL2_MIXER_INCLUDE "%SDL_BASE%\SDL2_mixer-2.0.1\include"
+setx SDL2_MIXER_LIB "%SDL_BASE%\SDL2_mixer-2.0.1\lib"
+```
+
 Open `windows/freeserf.sln`, build, run or debug.
 
 
 Dependencies
 ------------
 
-* SDL2
-* SDL2_mixer (Optional; for audio playback)
+* SDL2 <https://www.libsdl.org/download-2.0.php> (Development Libraries)
+* SDL2_mixer (Optional; for audio playback) <https://www.libsdl.org/projects/SDL_mixer/> (Development Libraries)
 
 
 Coding style
