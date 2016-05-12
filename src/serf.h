@@ -22,6 +22,8 @@
 #ifndef SRC_SERF_H_
 #define SRC_SERF_H_
 
+#include <map>
+
 #include "src/map.h"
 #include "src/resource.h"
 #include "src/misc.h"
@@ -65,6 +67,8 @@ typedef enum {
   SERF_KNIGHT_4,
   SERF_DEAD
 } serf_type_t;
+
+typedef std::map<serf_type_t, unsigned int> serf_map_t;
 
 /* The term FREE is used loosely in the following
    names to denote a state where the serf is not

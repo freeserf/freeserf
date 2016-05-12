@@ -956,6 +956,60 @@ player_t::get_score() const {
   return total_building_score + ((total_land_area + mil_score) >> 4);
 }
 
+resource_map_t
+player_t::get_stats_resources() {
+  resource_map_t resources;
+
+  list_inventories_t invs = game->get_player_inventories(this);
+
+  /* Sum up resources of all inventories. */
+  for (list_inventories_t::iterator i = invs.begin(); i != invs.end(); ++i) {
+    inventory_t *inventory = *i;
+    for (int j = 0; j < 26; j++) {
+      resources[(resource_type_t)j] +=
+                                    inventory->get_count_of((resource_type_t)j);
+    }
+  }
+
+  return resources;
+}
+
+serf_map_t
+player_t::get_stats_serfs_idle() {
+  serf_map_t res;
+
+  list_serfs_t serfs = game->get_player_serfs(this);
+
+  /* Sum up all existing serfs. */
+  for (list_serfs_t::iterator i = serfs.begin(); i != serfs.end(); ++i) {
+    serf_t *serf = *i;
+    if (serf->get_state() == SERF_STATE_IDLE_IN_STOCK) {
+      res[serf->get_type()] += 1;
+    }
+  }
+
+  return res;
+}
+
+serf_map_t
+player_t::get_stats_serfs_potential() {
+  serf_map_t res;
+
+  list_inventories_t invs = game->get_player_inventories(this);
+
+  /* Sum up potential serfs of all inventories. */
+  for (list_inventories_t::iterator i = invs.begin(); i != invs.end(); ++i) {
+    inventory_t *inventory = *i;
+    if (inventory->free_serf_count() > 0) {
+      for (int i = 0; i < 27; i++) {
+        res[(serf_type_t)i] += inventory->serf_potencial_count((serf_type_t)i);
+      }
+    }
+  }
+
+  return res;
+}
+
 save_reader_binary_t&
 operator >> (save_reader_binary_t &reader, player_t &player)  {
   const int default_player_colors[] = {

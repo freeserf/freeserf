@@ -549,7 +549,7 @@ popup_box_t::draw_adv_2_building_box() {
 
 /* Draw generic popup box of resources. */
 void
-popup_box_t::draw_resources_box(const std::vector<int> &resources) {
+popup_box_t::draw_resources_box(const resource_map_t &resources) {
   const int layout[] = {
     0x28, 1, 0, /* resources */
     0x29, 1, 16,
@@ -582,37 +582,44 @@ popup_box_t::draw_resources_box(const std::vector<int> &resources) {
 
   draw_custom_icon_box(layout);
 
-  /* First column */
-  draw_green_number(3, 4, resources[RESOURCE_LUMBER]);
-  draw_green_number(3, 20, resources[RESOURCE_PLANK]);
-  draw_green_number(3, 36, resources[RESOURCE_BOAT]);
-  draw_green_number(3, 52, resources[RESOURCE_STONE]);
-  draw_green_number(3, 68, resources[RESOURCE_COAL]);
-  draw_green_number(3, 84, resources[RESOURCE_IRONORE]);
-  draw_green_number(3, 100, resources[RESOURCE_STEEL]);
-  draw_green_number(3, 116, resources[RESOURCE_GOLDORE]);
-  draw_green_number(3, 132, resources[RESOURCE_GOLDBAR]);
+  const int layout_res[] = {
+     3,   4, RESOURCE_LUMBER,
+     3,  20, RESOURCE_PLANK,
+     3,  36, RESOURCE_BOAT,
+     3,  52, RESOURCE_STONE,
+     3,  68, RESOURCE_COAL,
+     3,  84, RESOURCE_IRONORE,
+     3, 100, RESOURCE_STEEL,
+     3, 116, RESOURCE_GOLDORE,
+     3, 132, RESOURCE_GOLDBAR,
+     8,   4, RESOURCE_SHOVEL,
+     8,  20, RESOURCE_HAMMER,
+     8,  36, RESOURCE_AXE,
+     8,  52, RESOURCE_SAW,
+     8,  68, RESOURCE_SCYTHE,
+     8,  84, RESOURCE_PICK,
+     8, 100, RESOURCE_PINCER,
+     8, 116, RESOURCE_CLEAVER,
+     8, 132, RESOURCE_ROD,
+    13,   4, RESOURCE_SWORD,
+    13,  20, RESOURCE_SHIELD,
+    13,  36, RESOURCE_FISH,
+    13,  52, RESOURCE_PIG,
+    13,  68, RESOURCE_MEAT,
+    13,  84, RESOURCE_WHEAT,
+    13, 100, RESOURCE_FLOUR,
+    13, 116, RESOURCE_BREAD
+  };
 
-  /* Second column */
-  draw_green_number(8, 4, resources[RESOURCE_SHOVEL]);
-  draw_green_number(8, 20, resources[RESOURCE_HAMMER]);
-  draw_green_number(8, 36, resources[RESOURCE_AXE]);
-  draw_green_number(8, 52, resources[RESOURCE_SAW]);
-  draw_green_number(8, 68, resources[RESOURCE_SCYTHE]);
-  draw_green_number(8, 84, resources[RESOURCE_PICK]);
-  draw_green_number(8, 100, resources[RESOURCE_PINCER]);
-  draw_green_number(8, 116, resources[RESOURCE_CLEAVER]);
-  draw_green_number(8, 132, resources[RESOURCE_ROD]);
-
-  /* Third column */
-  draw_green_number(13, 4, resources[RESOURCE_SWORD]);
-  draw_green_number(13, 20, resources[RESOURCE_SHIELD]);
-  draw_green_number(13, 36, resources[RESOURCE_FISH]);
-  draw_green_number(13, 52, resources[RESOURCE_PIG]);
-  draw_green_number(13, 68, resources[RESOURCE_MEAT]);
-  draw_green_number(13, 84, resources[RESOURCE_WHEAT]);
-  draw_green_number(13, 100, resources[RESOURCE_FLOUR]);
-  draw_green_number(13, 116, resources[RESOURCE_BREAD]);
+  for (int i = 0; i < sizeof(layout_res)/sizeof(layout_res[0])/3; i++) {
+    resource_type_t res_type = (resource_type_t)layout_res[i*3+2];
+    resource_map_t::const_iterator it = resources.find(res_type);
+    int value = 0;
+    if (it != resources.end()) {
+      value = static_cast<int>(it->second);
+    }
+    draw_green_number(layout_res[i*3], layout_res[i*3+1], value);
+  }
 }
 
 /* Draw generic popup box of serfs. */
@@ -711,11 +718,8 @@ void
 popup_box_t::draw_stat_4_box() {
   draw_box_background(129);
 
-  std::vector<int> resources;
-
   /* Sum up resources of all inventories. */
-  interface->get_game()->get_stats_resources_all(interface->get_player(),
-                                                 &resources);
+  resource_map_t resources = interface->get_player()->get_stats_resources();
 
   draw_resources_box(resources);
 
@@ -1387,15 +1391,11 @@ void
 popup_box_t::draw_stat_3_box() {
   draw_box_background(129);
 
-  int *serfs = NULL;
-  interface->get_game()->get_stats_serfs_idle(interface->get_player(), &serfs);
-
-  int *serfs_potential = NULL;
-  interface->get_game()->get_stats_serfs_potential(interface->get_player(),
-                                                   &serfs_potential);
-
+  serf_map_t serfs = interface->get_player()->get_stats_serfs_idle();
+  serf_map_t serfs_potential =
+                           interface->get_player()->get_stats_serfs_potential();
   for (int i = 0; i < 27; ++i) {
-    serfs[i] += serfs_potential[i];
+    serfs[(serf_type_t)i] += serfs_potential[(serf_type_t)i];
   }
 
   const int layout[] = {
@@ -1936,9 +1936,7 @@ popup_box_t::draw_castle_res_box() {
   }
 
   inventory_t *inventory = building->get_inventory();
-  std::vector<int> resources;
-  resources.assign(inventory->get_all_resources(),
-                   inventory->get_all_resources() + 26);
+  resource_map_t resources = inventory->get_all_resources();
   draw_resources_box(resources);
 }
 
@@ -2192,7 +2190,7 @@ popup_box_t::draw_transport_info_box() {
   }
 
   draw_green_string(0, 128, "Index:");
-  draw_green_number(7, 128, flag->get_index());
+  draw_green_number(7, 128, static_cast<int>(flag->get_index()));
 }
 
 void
@@ -2366,18 +2364,19 @@ popup_box_t::draw_sett_8_box() {
     draw_popup_icon(6, 100, 288); /* checkbox */
   }
 
-  int convertible_to_knights = 0;
+  size_t convertible_to_knights = 0;
   list_inventories_t inventories =
                           interface->get_game()->get_player_inventories(player);
   for (list_inventories_t::iterator i = inventories.begin();
        i != inventories.end(); ++i) {
     inventory_t *inv = *i;
-    int c = std::min(inv->get_count_of(RESOURCE_SWORD),
-                     inv->get_count_of(RESOURCE_SHIELD));
-    convertible_to_knights += std::max(0, std::min(c, inv->free_serf_count()));
+    size_t c = std::min(inv->get_count_of(RESOURCE_SWORD),
+                        inv->get_count_of(RESOURCE_SHIELD));
+    convertible_to_knights += std::max((size_t)0,
+                                       std::min(c, inv->free_serf_count()));
   }
 
-  draw_green_number(12, 40, convertible_to_knights);
+  draw_green_number(12, 40, static_cast<int>(convertible_to_knights));
 }
 
 void

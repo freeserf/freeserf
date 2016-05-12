@@ -348,7 +348,7 @@ game_t::send_serf_to_flag_search_cb(flag_t *flag, void *d) {
 /* Dispatch serf from (nearest?) inventory to flag. */
 bool
 game_t::send_serf_to_flag(flag_t *dest, serf_type_t type, resource_type_t res1,
-                        resource_type_t res2) {
+                          resource_type_t res2) {
   building_t *building = NULL;
   if (dest->has_building()) {
     building = dest->get_building();
@@ -2267,63 +2267,6 @@ game_t::handle_event(const event_t *event) {
       break;
   }
   return false;
-}
-
-bool
-game_t::get_stats_resources_all(player_t *player, std::vector<int> *res) {
-  if (res == NULL) {
-    return false;
-  }
-
-  res->resize(26, 0);
-
-  /* Sum up resources of all inventories. */
-  for (inventories_t::iterator i = inventories.begin();
-       i != inventories.end(); ++i) {
-    inventory_t *inventory = *i;
-    if (inventory->get_owner() == player->get_index()) {
-      for (int j = 0; j < 26; j++) {
-        (*res)[j] += inventory->get_count_of((resource_type_t)j);
-      }
-    }
-  }
-
-  return true;
-}
-
-bool
-game_t::get_stats_serfs_idle(player_t *player, int **res) {
-  *res = new int[27];
-
-  /* Sum up all existing serfs. */
-  for (serfs_t::iterator i = serfs.begin(); i != serfs.end(); ++i) {
-    serf_t *serf = *i;
-    if (serf->get_player() == player->get_index() &&
-        serf->get_state() == SERF_STATE_IDLE_IN_STOCK) {
-      (*res)[serf->get_type()] += 1;
-    }
-  }
-
-  return true;
-}
-
-bool
-game_t::get_stats_serfs_potential(player_t *player, int **res) {
-  *res = new int[27];
-
-  /* Sum up potential serfs of all inventories. */
-  for (inventories_t::iterator i = inventories.begin();
-       i != inventories.end(); ++i) {
-    inventory_t *inventory = *i;
-    if (inventory->get_owner() == player->get_index() &&
-        inventory->free_serf_count() > 0) {
-      for (int i = 0; i < 27; i++) {
-        (*res)[i] += inventory->serf_potencial_count((serf_type_t)i);
-      }
-    }
-  }
-
-  return true;
 }
 
 int

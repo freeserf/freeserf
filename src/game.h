@@ -178,10 +178,6 @@ class game_t : public event_handler_t {
   bool send_serf_to_flag(flag_t *dest, serf_type_t type, resource_type_t res1,
                          resource_type_t res2);
 
-  bool get_stats_resources_all(player_t *player, std::vector<int> *res);
-  bool get_stats_serfs_idle(player_t *player, int **res);
-  bool get_stats_serfs_potential(player_t *player, int **res);
-
   int get_player_history_index(size_t scale) const {
     return player_history_index[scale]; }
   int get_resource_history_index() const { return resource_history_index; }

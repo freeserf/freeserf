@@ -45,7 +45,7 @@ class inventory_t : public game_object_t {
   /* Index of building containing this inventory */
   unsigned int building;
   /* Count of resources */
-  int resources[26];
+  resource_map_t resources;
   /* Resources waiting to be moved out */
   struct {
     resource_type_t type;
@@ -57,7 +57,7 @@ class inventory_t : public game_object_t {
   int generic_count;
   int res_dir;
   /* Indices to serfs of each type */
-  unsigned int serfs[27];
+  serf_map_t serfs;
 
  public:
   inventory_t(game_t *game, unsigned int index);
@@ -87,11 +87,11 @@ class inventory_t : public game_object_t {
   bool call_internal(serf_t *serf);
   serf_t *call_internal(serf_type_t type);
   void serf_come_back() { generic_count++; }
-  int free_serf_count() { return generic_count; }
+  size_t free_serf_count() { return generic_count; }
   bool have_serf(serf_type_t type) { return (serfs[type] != 0); }
 
-  int get_count_of(resource_type_t resource) { return resources[resource]; }
-  int *get_all_resources() { return resources; }
+  size_t get_count_of(resource_type_t resource) { return resources[resource]; }
+  resource_map_t get_all_resources() { return resources; }
   void pop_resource(resource_type_t resource) { resources[resource]--; }
   void push_resource(resource_type_t resource);
 
@@ -119,7 +119,7 @@ class inventory_t : public game_object_t {
   serf_t *spawn_serf_generic();
   bool specialize_serf(serf_t *serf, serf_type_t type);
   serf_t *specialize_free_serf(serf_type_t type);
-  int serf_potencial_count(serf_type_t type);
+  size_t serf_potencial_count(serf_type_t type);
 
   void serf_idle_in_stock(serf_t *serf);
   void knight_training(serf_t *serf, int p);

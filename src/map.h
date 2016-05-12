@@ -349,7 +349,7 @@ class map_t {
   void set_serf_index(map_pos_t pos, int index);
 
   unsigned int get_gold_deposit() const { return gold_deposit; }
-  void add_gold_deposit(int delta) { gold_deposit += delta; }
+  void add_gold_deposit(size_t delta) { gold_deposit += delta; }
 
   void init(unsigned int size);
   void init_dimensions();

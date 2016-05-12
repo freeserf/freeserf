@@ -49,11 +49,6 @@ inventory_t::inventory_t(game_t *game, unsigned int index)
   }
   serfs_out = 0;
   generic_count = 0;
-  for (int i = 0; i < 26; i++) {
-    resources[i] = 0;
-    serfs[i] = 0;
-  }
-  serfs[26] = 0;
 }
 
 void
@@ -174,7 +169,7 @@ inventory_t::apply_supplies_preset(size_t supplies) {
     int t1 = template_1[i];
     size_t n = (template_2[i] - template_1[i]) * (supplies * 6554);
     if (n >= 0x8000) t1 += 1;
-    resources[i] = static_cast<int>(t1 + (n >> 16));
+    resources[(resource_type_t)i] = t1 + (n >> 16);
   }
 }
 
@@ -391,9 +386,9 @@ inventory_t::specialize_free_serf(serf_type_t type) {
   return serf;
 }
 
-int
+size_t
 inventory_t::serf_potencial_count(serf_type_t type) {
-  int count = generic_count;
+  size_t count = generic_count;
 
   if (res_needed[type*2] != RESOURCE_NONE) {
     count = std::min(count, resources[res_needed[type*2]]);
@@ -434,7 +429,7 @@ operator >> (save_reader_binary_t &reader, inventory_t &inventory) {
 
   for (int j = 0; j < 26; j++) {
     reader >> word;  // 6 + 2*j
-    inventory.resources[j] = word;
+    inventory.resources[(resource_type_t)j] = word;
   }
 
   for (int j = 0; j < 2; j++) {
@@ -452,7 +447,7 @@ operator >> (save_reader_binary_t &reader, inventory_t &inventory) {
 
   for (int j = 0; j < 27; j++) {
     reader >> word;  // 66 + 2*j
-    inventory.serfs[j] = word;
+    inventory.serfs[(serf_type_t)j] = word;
   }
 
   return reader;
@@ -473,10 +468,10 @@ operator >> (save_reader_text_t &reader, inventory_t &inventory) {
   reader.value("generic_count") >> inventory.generic_count;
 
   for (int i = 0; i < 26; i++) {
-    reader.value("resources")[i] >> inventory.resources[i];
-    reader.value("serfs")[i] >> inventory.serfs[i];
+    reader.value("resources")[i] >> inventory.resources[(resource_type_t)i];
+    reader.value("serfs")[i] >> inventory.serfs[(serf_type_t)i];
   }
-  reader.value("serfs")[26] >> inventory.serfs[26];
+  reader.value("serfs")[26] >> inventory.serfs[(serf_type_t)26];
 
   return reader;
 }
@@ -496,10 +491,10 @@ operator << (save_writer_text_t &writer, inventory_t &inventory) {
   writer.value("generic_count") << inventory.generic_count;
 
   for (int i = 0; i < 26; i++) {
-    writer.value("resources") << inventory.resources[i];
-    writer.value("serfs") << inventory.serfs[i];
+    writer.value("resources") << inventory.resources[(resource_type_t)i];
+    writer.value("serfs") << inventory.serfs[(serf_type_t)i];
   }
-  writer.value("serfs") << inventory.serfs[26];
+  writer.value("serfs") << inventory.serfs[(serf_type_t)26];
 
   return writer;
 }
