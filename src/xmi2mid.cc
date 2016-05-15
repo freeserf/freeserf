@@ -114,7 +114,7 @@ xmi_process_single(char *data, size_t length, midi_file_t *midi) {
 
   data += 4;
   int processed = 0;
-  for (int i = 0; i < (sizeof(xmi_processors)/sizeof(chunk_info_t)); i++) {
+  for (size_t i = 0; i < (sizeof(xmi_processors)/sizeof(chunk_info_t)); i++) {
     if (xmi_processors[i].name == (uint32_t)name) {
       if (NULL != xmi_processors[i].processor) {
         size = xmi_processors[i].processor(data, length-4, midi);
@@ -158,15 +158,15 @@ xmi_process_INFO(char *data, size_t /*length*/, midi_file_t * /*midi*/) {
 
 static size_t
 xmi_process_TIMB(char *data, size_t /*length*/, midi_file_t * /*midi*/) {
-  uint32_t size = *reinterpret_cast<uint32_t*>(data);
+  size_t size = *reinterpret_cast<uint32_t*>(data);
   data += 4;
   size = be32toh(size);
-  uint16_t count = *reinterpret_cast<uint16_t*>(data);
+  size_t count = *reinterpret_cast<uint16_t*>(data);
   data += 2;
   if (count*2 + 2 != size) {
     LOGD("xmi2mid", "\tInconsistent TIMB block.");
   } else {
-    for (int i = 0; i < count; i++) {
+    for (size_t i = 0; i < count; i++) {
       uint8_t num = *data++;
       uint8_t bank = *data++;
       LOGV("xmi2mid", "\tTIMB entry %02d: %d, %d", i, (int)num, (int)bank);

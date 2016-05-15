@@ -326,7 +326,7 @@ serf_t::add_to_defending_queue(unsigned int next_knight_index, bool pause) {
 void
 serf_t::init_generic(inventory_t *inventory) {
   set_type(SERF_GENERIC);
-  set_player(inventory->get_player_num());
+  set_player(inventory->get_owner());
   building_t *building = game->get_building(inventory->get_building_index());
   pos = building->get_position();
   tick = game->get_tick();
@@ -623,7 +623,7 @@ serf_t::restore_path_serf_info() {
 }
 
 void
-serf_t::clear_destination(int dest) {
+serf_t::clear_destination(unsigned int dest) {
   switch (state) {
     case SERF_STATE_WALKING:
       if (s.walking.dest == dest &&
@@ -654,7 +654,7 @@ serf_t::clear_destination(int dest) {
 }
 
 void
-serf_t::clear_destination2(int dest) {
+serf_t::clear_destination2(unsigned int dest) {
   switch (state) {
     case SERF_STATE_TRANSPORTING:
       if (s.walking.dest == dest) {
@@ -1850,7 +1850,7 @@ serf_t::handle_serf_entering_building_state() {
             s.defending.next_knight = building->get_main_serf();
             building->set_main_serf(get_index());
 
-            game->get_player(building->get_player())->increase_castle_knights();
+            game->get_player(building->get_owner())->increase_castle_knights();
             return;
           }
 
@@ -1905,7 +1905,7 @@ serf_t::handle_serf_entering_building_state() {
               break;
             }
 
-            game->get_player(building->get_player())->add_notification(6,
+            game->get_player(building->get_owner())->add_notification(6,
                                                        building->get_position(),
                                                                    mil_type);
 
@@ -2094,7 +2094,8 @@ serf_t::handle_serf_digging_state() {
         int h = h_diff[s.digging.h_index] + s.digging.target_h;
         if (s.digging.dig_pos >= 0 && h >= 0 && h < 32) {
           if (s.digging.dig_pos == 0) {
-            if (game->get_map()->get_height(pos) != h) {
+            int height = game->get_map()->get_height(pos);
+            if (height != h) {
               s.digging.dig_pos -= 1;
               continue;
             }
@@ -2109,7 +2110,8 @@ serf_t::handle_serf_digging_state() {
           } else {
             dir_t dir = (dir_t)(6-s.digging.dig_pos);
             map_pos_t new_pos = game->get_map()->move(pos, dir);
-            if (game->get_map()->get_height(new_pos) != h) {
+            int new_height = game->get_map()->get_height(new_pos);
+            if (new_height != h) {
               s.digging.dig_pos -= 1;
               continue;
             }
@@ -3739,7 +3741,7 @@ serf_t::handle_serf_mining_state() {
           /* TODO Burn building. */
         }
 
-        game->get_player(building->get_player())->add_notification(4,
+        game->get_player(building->get_owner())->add_notification(4,
                                                        building->get_position(),
                                      building->get_type() - BUILDING_STONEMINE);
       }
@@ -4513,10 +4515,10 @@ serf_t::handle_serf_knight_engaging_building_state() {
                                            game->get_map()->move_up_left(pos)));
       if (building->is_done() &&
           building->is_military() &&
-          building->get_player() != get_player() &&
+          building->get_owner() != get_player() &&
           building->has_main_serf()) {
         if (building->is_under_attack()) {
-          game->get_player(building->get_player())->add_notification(1,
+          game->get_player(building->get_owner())->add_notification(1,
                                                        building->get_position(),
                                                                  get_player());
         }
@@ -4783,7 +4785,7 @@ serf_t::handle_knight_occupy_enemy_building() {
                        game->get_building(game->get_map()->get_obj_index(pos_));
       if (!building->is_burning() &&
           building->is_military()) {
-        if (building->get_player() == get_player()) {
+        if (building->get_owner() == get_player()) {
           /* Enter building if there is space. */
           if (building->get_type() != BUILDING_CASTLE) {
             if (building->is_enough_place_for_knight()) {
@@ -5585,7 +5587,7 @@ operator >> (save_reader_binary_t &reader, serf_t &serf) {
   uint32_t v32;
   reader >> v32;  // 4
   serf.pos = v32;
-  if (serf.pos != -1) {
+  if (serf.pos != 0xFFFFFFFF) {
     v32 = v32 >> 2;
     int x = v32 & serf.game->get_map()->get_col_mask();
     v32 = v32 >> (serf.game->get_map()->get_row_shift() + 1);

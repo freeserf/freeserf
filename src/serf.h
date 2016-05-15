@@ -193,7 +193,7 @@ class serf_t : public game_object_t {
        leave_for_fight */
     struct {
       int field_B; /* B */
-      int dest; /* C */
+      unsigned int dest; /* C */
       int dest2; /* D */
       int dir; /* E */
       serf_state_t next_state; /* F */
@@ -401,8 +401,8 @@ class serf_t : public game_object_t {
   void castle_deleted(map_pos_t castle_pos, bool transporter);
   bool change_transporter_state_at_pos(map_pos_t pos, serf_state_t state);
   void restore_path_serf_info();
-  void clear_destination(int dest);
-  void clear_destination2(int dest);
+  void clear_destination(unsigned int dest);
+  void clear_destination2(unsigned int dest);
   bool idle_to_wait_state(map_pos_t pos);
 
   int get_delivery() const;
@@ -419,12 +419,13 @@ class serf_t : public game_object_t {
   void set_walking_wait_counter(int counter) {
     s.walking.wait_counter = counter; }
   int get_walking_dir() const { return s.walking.dir; }
-  int get_idle_in_stock_inv_index() const { return s.idle_in_stock.inv_index; }
+  unsigned int get_idle_in_stock_inv_index() const {
+                                             return s.idle_in_stock.inv_index; }
   int get_mining_substate() const { return s.mining.substate; }
 
   serf_t *extract_last_knight_from_list();
   void insert_before(serf_t *knight);
-  int get_next() const { return s.defending.next_knight; }
+  unsigned int get_next() const { return s.defending.next_knight; }
   void set_next(int next) { s.defending.next_knight = next; }
 
   // Commands

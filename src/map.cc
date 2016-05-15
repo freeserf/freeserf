@@ -807,7 +807,8 @@ map_t::heights_rescale() {
 }
 
 void
-map_t::init_types_shared_sub(int old, int seed, int new_) {
+map_t::init_types_shared_sub(unsigned int old, unsigned int seed,
+                             unsigned int new_) {
   for (unsigned int y = 0; y < rows; y++) {
     for (unsigned int x = 0; x < cols; x++) {
       map_pos_t pos_ = pos(x, y);

@@ -39,7 +39,7 @@
 
 inventory_t::inventory_t(game_t *game, unsigned int index)
   : game_object_t(game, index) {
-  player_num = 0;
+  owner = 0;
   res_dir = 0;
   flag = 0;
   building = 0;
@@ -293,7 +293,7 @@ inventory_t::promote_serf_to_knight(serf_t *serf) {
 
 serf_t*
 inventory_t::spawn_serf_generic() {
-  serf_t *serf = game->get_player(player_num)->spawn_serf_generic();
+  serf_t *serf = game->get_player(owner)->spawn_serf_generic();
 
   if (serf != NULL) {
     serf->init_generic(this);
@@ -423,7 +423,7 @@ save_reader_binary_t&
 operator >> (save_reader_binary_t &reader, inventory_t &inventory) {
   uint8_t byte;
   reader >> byte;
-  inventory.player_num = byte;  // 0
+  inventory.owner = byte;  // 0
   reader >> byte;
   inventory.res_dir = byte;  // 1
   uint16_t word;
@@ -460,7 +460,7 @@ operator >> (save_reader_binary_t &reader, inventory_t &inventory) {
 
 save_reader_text_t&
 operator >> (save_reader_text_t &reader, inventory_t &inventory) {
-  reader.value("player") >> inventory.player_num;
+  reader.value("player") >> inventory.owner;
   reader.value("res_dir") >> inventory.res_dir;
   reader.value("flag") >> inventory.flag;
   reader.value("building") >> inventory.building;
@@ -483,7 +483,7 @@ operator >> (save_reader_text_t &reader, inventory_t &inventory) {
 
 save_writer_text_t&
 operator << (save_writer_text_t &writer, inventory_t &inventory) {
-  writer.value("player") << inventory.player_num;
+  writer.value("player") << inventory.owner;
   writer.value("res_dir") << inventory.res_dir;
   writer.value("flag") << inventory.flag;
   writer.value("building") << inventory.building;

@@ -1172,7 +1172,7 @@ viewport_t::draw_flag_and_res(map_pos_t pos, int x, int y) {
     draw_game_sprite(x-4 , y-4, flag->get_resource_at_slot(2) + 1);
   }
 
-  int pl_num = flag->get_player();
+  int pl_num = flag->get_owner();
   int spr = 0x80 + (pl_num << 2) +
             ((interface->get_game()->get_tick() >> 3) & 3);
 

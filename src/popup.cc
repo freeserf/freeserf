@@ -2069,7 +2069,7 @@ popup_box_t::draw_defenders_box() {
     return;
   }
 
-  if (building->get_player() != interface->get_player()->get_index()) {
+  if (building->get_owner() != interface->get_player()->get_index()) {
     interface->close_popup();
     return;
   }

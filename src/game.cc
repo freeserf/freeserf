@@ -172,7 +172,7 @@ game_t::update_inventories() {
       for (inventories_t::iterator i = inventories.begin();
            i != inventories.end(); ++i) {
         inventory_t *inventory = *i;
-        if (inventory->get_player_num() == (*it)->get_index() &&
+        if (inventory->get_owner() == (*it)->get_index() &&
             !inventory->is_queue_full()) {
           inventory_mode_t res_dir = inventory->get_res_mode();
           if (res_dir == mode_in || res_dir == mode_stop) {  // In mode,
@@ -233,7 +233,8 @@ game_t::update_inventories() {
           resource_type_t res = (resource_type_t)arr[0];
 
           building_t *dest_bld = flags_[i]->get_building();
-          assert(dest_bld->add_requested_resource(res, false));
+          bool r = dest_bld->add_requested_resource(res, false);
+          assert(r);
 
           /* Put resource in out queue */
           inventory_t *src_inv = invs[i];
@@ -355,7 +356,7 @@ game_t::send_serf_to_flag(flag_t *dest, serf_type_t type, resource_type_t res1,
 
   /* If type is negative, building is non-NULL. */
   if ((type < 0) && (building != NULL)) {
-    player_t *player = players[building->get_player()];
+    player_t *player = players[building->get_owner()];
     type = player->get_cycling_sert_type(type);
   }
 
@@ -1083,7 +1084,7 @@ game_t::build_flag(map_pos_t pos, player_t *player) {
   flag_t *flag = flags.allocate();
   if (flag == NULL) return -1;
 
-  flag->set_player(player->get_index());
+  flag->set_owner(player->get_index());
   flag->set_position(pos);
   map->set_object(pos, MAP_OBJ_FLAG, flag->get_index());
 
@@ -1389,7 +1390,7 @@ game_t::build_building(map_pos_t pos, building_type_t type, player_t *player) {
 
   bool split_path = false;
   if (map->get_obj(map->move_down_right(pos)) != MAP_OBJ_FLAG) {
-    flag->set_player(player->get_index());
+    flag->set_owner(player->get_index());
     split_path = (map->paths(map->move_down_right(pos)) != 0);
   } else {
     flg_index = map->get_obj_index(map->move_down_right(pos));
@@ -1445,7 +1446,7 @@ game_t::build_castle(map_pos_t pos, player_t *player) {
 
   inventory->set_building_index(castle->get_index());
   inventory->set_flag_index(flag->get_index());
-  inventory->set_player_num(player->get_index());
+  inventory->set_owner(player->get_index());
   inventory->apply_supplies_preset(player->get_initial_supplies());
 
   map->add_gold_deposit(inventory->get_count_of(RESOURCE_GOLDBAR));
@@ -1453,10 +1454,10 @@ game_t::build_castle(map_pos_t pos, player_t *player) {
 
   castle->set_position(pos);
   flag->set_position(map->move_down_right(pos));
-  castle->set_player(player->get_index());
+  castle->set_owner(player->get_index());
   castle->start_building(BUILDING_CASTLE);
 
-  flag->set_player(player->get_index());
+  flag->set_owner(player->get_index());
   flag->set_accepts_serfs(true);
   flag->set_has_inventory();
   flag->set_accepts_resources(true);
@@ -1525,7 +1526,7 @@ game_t::can_demolish_flag(map_pos_t pos, const player_t *player) {
 
   flag_t *flag = flags[map->get_obj_index(pos)];
 
-  if (flag->get_player() != player->get_index()) return false;
+  if (flag->get_owner() != player->get_index()) return false;
 
   return flag->can_demolish();
 }
@@ -1578,7 +1579,7 @@ game_t::demolish_building_(map_pos_t pos) {
 
   building_remove_player_refs(building);
 
-  player_t *player = players[building->get_player()];
+  player_t *player = players[building->get_owner()];
 
   building->burnup();
 
@@ -1693,7 +1694,7 @@ bool
 game_t::demolish_building(map_pos_t pos, player_t *player) {
   building_t *building = buildings[map->get_obj_index(pos)];
 
-  if (building->get_player() != player->get_index()) return false;
+  if (building->get_owner() != player->get_index()) return false;
   if (building->is_burning()) return false;
 
   return demolish_building_(pos);
@@ -1726,7 +1727,7 @@ game_t::calculate_military_flag_state(building_t *building) {
       map_pos_t check_pos = map->pos_add_spirally(building->get_position(),
                                                   offset);
       if (map->has_owner(check_pos) &&
-          map->get_owner(check_pos) != building->get_player()) {
+          map->get_owner(check_pos) != building->get_owner()) {
         goto break_loops;
       }
     }
@@ -1861,7 +1862,7 @@ game_t::update_land_ownership(map_pos_t init_pos) {
           const int *closeness = map_closeness +
             influence_diameter*std::max(-i, 0) + std::max(-j, 0);
           int *arr = temp_arr +
-            (building->get_player() * calculate_diameter*calculate_diameter) +
+            (building->get_owner() * calculate_diameter*calculate_diameter) +
             calculate_diameter * std::max(i, 0) + std::max(j, 0);
 
           for (int k = 0; k < influence_diameter - abs(i); k++) {
@@ -1995,7 +1996,7 @@ game_t::occupy_enemy_building(building_t *building, int player_num) {
     }
 
     /* Change owner of flag. */
-    flag->set_player(player_num);
+    flag->set_owner(player_num);
 
     /* Reset destination of stolen resources. */
     flag->reset_destination_of_stolen_resources();
@@ -2280,7 +2281,7 @@ game_t::get_stats_resources_all(player_t *player, std::vector<int> *res) {
   for (inventories_t::iterator i = inventories.begin();
        i != inventories.end(); ++i) {
     inventory_t *inventory = *i;
-    if (inventory->get_player_num() == player->get_index()) {
+    if (inventory->get_owner() == player->get_index()) {
       for (int j = 0; j < 26; j++) {
         (*res)[j] += inventory->get_count_of((resource_type_t)j);
       }
@@ -2314,7 +2315,7 @@ game_t::get_stats_serfs_potential(player_t *player, int **res) {
   for (inventories_t::iterator i = inventories.begin();
        i != inventories.end(); ++i) {
     inventory_t *inventory = *i;
-    if (inventory->get_player_num() == player->get_index() &&
+    if (inventory->get_owner() == player->get_index() &&
         inventory->free_serf_count() > 0) {
       for (int i = 0; i < 27; i++) {
         (*res)[i] += inventory->serf_potencial_count((serf_type_t)i);
@@ -2406,7 +2407,7 @@ game_t::get_player_buildings(player_t *player) {
 
   for (buildings_t::iterator i = buildings.begin(); i != buildings.end(); ++i) {
     building_t *building = *i;
-    if (building->get_player() == player->get_index()) {
+    if (building->get_owner() == player->get_index()) {
       player_buildings.push_back(building);
     }
   }
@@ -2421,7 +2422,7 @@ game_t::get_player_inventories(player_t *player) {
   for (inventories_t::iterator i = inventories.begin();
        i != inventories.end(); ++i) {
     inventory_t *inventory = *i;
-    if (inventory->get_player_num() == player->get_index()) {
+    if (inventory->get_owner() == player->get_index()) {
       player_inventories.push_back(inventory);
     }
   }
@@ -2523,10 +2524,10 @@ game_t::building_captured(building_t *building) {
     player_t *player = *it;
     if (buildings_before[player->get_index()] > player->get_building_score()) {
       player->add_notification(9, building->get_position(),
-                               building->get_player());
+                               building->get_owner());
     } else if (land_before[player->get_index()] > player->get_land_area()) {
       player->add_notification(8, building->get_position(),
-                               building->get_player());
+                               building->get_owner());
     }
   }
 }

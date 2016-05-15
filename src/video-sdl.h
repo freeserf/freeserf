@@ -42,7 +42,7 @@ class video_image_t {
   unsigned int h;
   SDL_Texture *texture;
 
-  video_image_t() : texture(NULL), w(0), h(0) {}
+  video_image_t() : w(0), h(0), texture(NULL) {}
 };
 
 class SDL_Exception : public Video_Exception {
