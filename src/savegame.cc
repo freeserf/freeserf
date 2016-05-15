@@ -36,10 +36,11 @@ load_v0_state(FILE *f) {
   if (fseek(f, 0, SEEK_END) != 0) {
     return false;
   }
-  size_t size = ftell(f);
-  if (size == -1) {
+  int last = ftell(f);
+  if (last == -1) {
     return false;
   }
+  size_t size = last;
   if (fseek(f, 0, SEEK_SET) != 0) {
     return false;
   }

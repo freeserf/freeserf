@@ -295,7 +295,8 @@ flag_t::schedule_slot_to_unknown_dest(int slot_num) {
            index, slot, data.flag->get_index());
       building_t *dest_bld = data.flag->other_endpoint.b[DIR_UP_LEFT];
 
-      assert(dest_bld->add_requested_resource(res, true));
+      bool r = dest_bld->add_requested_resource(res, true);
+      assert(r);
 
       slot[slot_num].dest = dest_bld->get_flag_index();
       endpoint |= BIT(7);
@@ -307,7 +308,7 @@ flag_t::schedule_slot_to_unknown_dest(int slot_num) {
    other than an inventory or such destination could not be
    found. Send to inventory instead. */
   int r = find_nearest_inventory_for_resource();
-  if (r < 0 || r == index) {
+  if (r < 0 || r == static_cast<int>(index)) {
     /* No path to inventory was found, or
      resource is already at destination.
      In the latter case we need to move it
@@ -405,7 +406,7 @@ flag_t::schedule_known_dest_cb_(flag_t *src, flag_t *dest, int _slot) {
         src->other_end_dir[this->search_dir] =
           BIT(7) | (src->other_end_dir[this->search_dir] & 0x78) | _slot;
       } else {
-        player_t *player = game->get_player(this->get_player());
+        player_t *player = game->get_player(this->get_owner());
         int other_dir = src->other_end_dir[this->search_dir];
         int prio_old = player->get_flag_prio(src->slot[other_dir & 7].type);
         int prio_new = player->get_flag_prio(src->slot[_slot].type);
@@ -983,7 +984,7 @@ flag_t::reset_transport(flag_t *other) {
 
       if (other->slot[slot_].dir != DIR_NONE) {
         dir_t dir = other->slot[slot_].dir;
-        player_t *player = game->get_player(other->get_player());
+        player_t *player = game->get_player(other->get_owner());
         other->prioritize_pickup(dir, player);
       }
     }

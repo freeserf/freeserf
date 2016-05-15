@@ -557,7 +557,7 @@ player_t::decrease_castle_knights_wanted() {
 
 void
 player_t::building_founded(building_t *building) {
-  building->set_player(index);
+  building->set_owner(index);
 
   if (building->get_type() == BUILDING_CASTLE) {
     flags |= BIT(0); /* Has castle */
@@ -582,7 +582,7 @@ player_t::building_built(building_t *building) {
 
 void
 player_t::building_captured(building_t *building) {
-  player_t *def_player = game->get_player(building->get_player());
+  player_t *def_player = game->get_player(building->get_owner());
 
   def_player->add_notification(2, building->get_position(), index);
   add_notification(3, building->get_position(), index);
@@ -601,7 +601,7 @@ player_t::building_captured(building_t *building) {
     completed_building_count[building->get_type()] += 1;
 
     /* Change owner of building */
-    building->set_player(index);
+    building->set_owner(index);
 
     if (is_ai()) {
       /* TODO AI */
@@ -930,7 +930,7 @@ player_t::update_knight_morale() {
     player_score >>= 1;
     enemy_score >>= 1;
   }
-
+/*
   player_score >>= 1;
   unsigned int frac_score = 0;
   if (player_score != 0 && enemy_score != 0) {
@@ -940,7 +940,7 @@ player_t::update_knight_morale() {
       frac_score = (player_score * 0x10000) / enemy_score;
     }
   }
-
+*/
   military_max_gold = 0;
 }
 

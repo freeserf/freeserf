@@ -39,11 +39,11 @@ typedef enum {
 
 class inventory_t : public game_object_t {
  protected:
-  int player_num;
+  unsigned int owner;
   /* Index of flag connected to this inventory */
-  int flag;
+  unsigned int flag;
   /* Index of building containing this inventory */
-  int building;
+  unsigned int building;
   /* Count of resources */
   int resources[26];
   /* Resources waiting to be moved out */
@@ -57,13 +57,13 @@ class inventory_t : public game_object_t {
   int generic_count;
   int res_dir;
   /* Indices to serfs of each type */
-  int serfs[27];
+  unsigned int serfs[27];
 
  public:
   inventory_t(game_t *game, unsigned int index);
 
-  int get_player_num() { return player_num; }
-  void set_player_num(int player_num) { this->player_num = player_num; }
+  unsigned int get_owner() { return owner; }
+  void set_owner(unsigned int owner) { this->owner = owner; }
 
   int get_flag_index() { return flag; }
   void set_flag_index(int flag_index) { flag = flag_index; }

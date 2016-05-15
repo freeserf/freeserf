@@ -110,7 +110,7 @@ serf_t*
 building_t::call_defender_out() {
   /* Remove knight from stats of defending building */
   if (has_inventory()) { /* Castle */
-    game->get_player(get_player())->decrease_castle_knights();
+    game->get_player(get_owner())->decrease_castle_knights();
   } else {
     stock[0].available -= 1;
     stock[0].requested += 1;
@@ -365,7 +365,7 @@ building_t::update() {
           if (r < 0) serf |= BIT(2);
         }
         if (has_serf()) {
-          player_t *player = game->get_player(get_player());
+          player_t *player = game->get_player(get_owner());
           int total_tree = stock[0].requested + stock[0].available;
           if (total_tree < stock[0].maximum) {
             stock[0].prio =
@@ -395,7 +395,7 @@ building_t::update() {
         if (has_serf()) {
           int total_food = stock[0].requested + stock[0].available;
           if (total_food < stock[0].maximum) {
-            player_t *player = game->get_player(get_player());
+            player_t *player = game->get_player(get_owner());
             stock[0].prio = player->get_food_stonemine() >> (8 + total_food);
           } else {
             stock[0].prio = 0;
@@ -413,7 +413,7 @@ building_t::update() {
         if (has_serf()) {
           int total_food = stock[0].requested + stock[0].available;
           if (total_food < stock[0].maximum) {
-            player_t *player = game->get_player(get_player());
+            player_t *player = game->get_player(get_owner());
             stock[0].prio = player->get_food_coalmine() >> (8 + total_food);
           } else {
             stock[0].prio = 0;
@@ -431,7 +431,7 @@ building_t::update() {
         if (has_serf()) {
           int total_food = stock[0].requested + stock[0].available;
           if (total_food < stock[0].maximum) {
-            player_t *player = game->get_player(get_player());
+            player_t *player = game->get_player(get_owner());
             stock[0].prio = player->get_food_ironmine() >> (8 + total_food);
           } else {
             stock[0].prio = 0;
@@ -449,7 +449,7 @@ building_t::update() {
         if (has_serf()) {
           int total_food = stock[0].requested + stock[0].available;
           if (total_food < stock[0].maximum) {
-            player_t *player = game->get_player(get_player());
+            player_t *player = game->get_player(get_owner());
             stock[0].prio = player->get_food_goldmine() >> (8 + total_food);
           } else {
             stock[0].prio = 0;
@@ -470,7 +470,7 @@ building_t::update() {
           inventory_t *inv = game->create_inventory();
           if (inv == NULL) return;
 
-          inv->set_player_num(get_player());
+          inv->set_owner(get_owner());
           inv->set_building_index(get_index());
           inv->set_flag_index(flag);
 
@@ -481,7 +481,7 @@ building_t::update() {
           stock[1].available = 0xff;
           serf |= BIT(4);
 
-          game->get_player(get_player())->add_notification(7, pos, 0);
+          game->get_player(get_owner())->add_notification(7, pos, 0);
         } else {
           if (!serf_request_fail() &&
               !has_serf() &&
@@ -490,7 +490,7 @@ building_t::update() {
                                   RESOURCE_NONE, RESOURCE_NONE);
           }
 
-          player_t *player = game->get_player(get_player());
+          player_t *player = game->get_player(get_owner());
           inventory_t *inv = u.inventory;
           if (has_serf() &&
               !inv->have_any_out_mode() == 0 && /* Not serf or res OUT mode */
@@ -555,7 +555,7 @@ building_t::update() {
           /* Request more wheat. */
           int total_stock = stock[0].requested + stock[0].available;
           if (total_stock < stock[0].maximum) {
-            player_t *player = game->get_player(get_player());
+            player_t *player = game->get_player(get_owner());
             stock[0].prio = player->get_wheat_pigfarm() >> (8 + total_stock);
           } else {
             stock[0].prio = 0;
@@ -574,7 +574,7 @@ building_t::update() {
           /* Request more wheat. */
           int total_stock = stock[0].requested + stock[0].available;
           if (total_stock < stock[0].maximum) {
-            player_t *player = game->get_player(get_player());
+            player_t *player = game->get_player(get_owner());
             stock[0].prio = player->get_wheat_mill() >> (8 + total_stock);
           } else {
             stock[0].prio = 0;
@@ -629,7 +629,7 @@ building_t::update() {
           /* Request more coal */
           int total_coal = stock[0].requested + stock[0].available;
           if (total_coal < stock[0].maximum) {
-            player_t *player = game->get_player(get_player());
+            player_t *player = game->get_player(get_owner());
             stock[0].prio = player->get_coal_steelsmelter() >> (8 + total_coal);
           } else {
             stock[0].prio = 0;
@@ -654,7 +654,7 @@ building_t::update() {
         }
         if (has_serf()) {
           /* Request more planks. */
-          player_t *player = game->get_player(get_player());
+          player_t *player = game->get_player(get_owner());
           int total_tree = stock[0].requested + stock[0].available;
           if (total_tree < stock[0].maximum) {
             stock[0].prio = player->get_planks_toolmaker() >> (8 + total_tree);
@@ -681,7 +681,7 @@ building_t::update() {
         }
         if (has_serf()) {
           /* Request more coal. */
-          player_t *player = game->get_player(get_player());
+          player_t *player = game->get_player(get_owner());
           int total_coal = stock[0].requested + stock[0].available;
           if (total_coal < stock[0].maximum) {
             stock[0].prio = player->get_coal_weaponsmith() >> (8 + total_coal);
@@ -709,7 +709,7 @@ building_t::update() {
         }
         if (has_serf()) {
           /* Request more coal. */
-          player_t *player = game->get_player(get_player());
+          player_t *player = game->get_player(get_owner());
           int total_coal = stock[0].requested + stock[0].available;
           if (total_coal < stock[0].maximum) {
             stock[0].prio = player->get_coal_goldsmelter() >> (8 + total_coal);
@@ -775,7 +775,7 @@ building_t::update() {
 /* Update unfinished building as part of the game progression. */
 void
 building_t::update_unfinished() {
-  player_t *player = game->get_player(get_player());
+  player_t *player = game->get_player(get_owner());
 
   /* Request builder serf */
   if (!serf_request_fail() &&
@@ -822,7 +822,7 @@ building_t::update_unfinished_adv() {
 
   /* Check whether building needs leveling */
   int need_leveling = 0;
-  int height = game->get_leveling_height(pos);
+  unsigned int height = game->get_leveling_height(pos);
   for (int i = 0; i < 7; i++) {
     map_pos_t pos = game->get_map()->pos_add_spirally(this->pos, i);
     if (game->get_map()->get_height(pos) != height) {
@@ -857,7 +857,7 @@ building_t::send_serf_to_building(building_t *building, serf_type_t type,
 /* Update castle as part of the game progression. */
 void
 building_t::update_castle() {
-  player_t *player = game->get_player(get_player());
+  player_t *player = game->get_player(get_owner());
   if (player->get_castle_knights() == player->get_castle_knights_wanted()) {
     serf_t *best_knight = NULL;
     serf_t *last_knight = NULL;
@@ -967,7 +967,7 @@ building_t::update_military() {
     1, 2, 4, 6, 8
   };
 
-  player_t *player = game->get_player(get_player());
+  player_t *player = game->get_player(get_owner());
   int max_occ_level = (player->get_knight_occupation(get_state()) >> 4) & 0xf;
   if (player->reduced_knight_level()) max_occ_level += 5;
   if (max_occ_level > 9) max_occ_level = 9;

@@ -290,7 +290,8 @@ class map_t {
   void del_path(map_pos_t pos, dir_t dir) { tiles[pos].paths &= ~BIT(dir); }
 
   bool has_owner(map_pos_t pos) const { return ((tiles[pos].height >> 7) & 1); }
-  int get_owner(map_pos_t pos) const { return ((tiles[pos].height >> 5) & 3); }
+  unsigned int get_owner(map_pos_t pos) const {
+                                        return ((tiles[pos].height >> 5) & 3); }
   void set_owner(map_pos_t pos, unsigned int player) {
     tiles[pos].height = (1 << 7) | (player << 5) | get_height(pos); }
   void del_owner(map_pos_t pos) { tiles[pos].height &= 0x1f; }
@@ -401,7 +402,8 @@ class map_t {
   void init_types_2_sub();
   void init_types_2();
   void heights_rescale();
-  void init_types_shared_sub(int old, int seed, int new_);
+  void init_types_shared_sub(unsigned int old, unsigned int seed,
+                             unsigned int new_);
   void init_lakes();
   void init_types4();
   map_pos_t lookup_pattern(int col, int row, int index);

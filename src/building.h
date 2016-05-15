@@ -88,7 +88,7 @@ class building_t : public game_object_t {
   int flag;
   /* Stock of this building */
   building_stock_t stock[BUILDING_MAX_STOCK];
-  int serf_index; /* Also used for burning building counter. */
+  unsigned int serf_index; /* Also used for burning building counter. */
   int progress;
   union {
     inventory_t *inventory;
@@ -98,8 +98,6 @@ class building_t : public game_object_t {
 
  public:
   building_t(game_t *game, unsigned int index);
-
-  unsigned int get_index() { return index; }
 
   map_pos_t get_position() { return pos; }
   void set_position(map_pos_t position) { pos = position; }
@@ -123,8 +121,8 @@ class building_t : public game_object_t {
                               (type == BUILDING_FORTRESS) ||
                               (type == BUILDING_CASTLE); }
   /* Owning player of the building. */
-  int get_player() { return (bld & 3); }
-  void set_player(int player_num) { bld = (bld & 0xfc) | player_num; }
+  unsigned int get_owner() { return (bld & 3); }
+  void set_owner(unsigned int owner) { bld = (bld & 0xfc) | owner; }
   /* Whether construction of the building is finished. */
   bool is_done() { return !((bld >> 7) & 1); }
   bool is_leveling() { return (!is_done() && progress == 0); }

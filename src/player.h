@@ -137,7 +137,7 @@ class player_t : public game_object_t {
   int attacking_building_count;
   int attacking_knights[4];
   int total_attacking_knights;
-  int temp_index;
+  unsigned int temp_index;
 
  public:
   player_t(game_t *game, unsigned int index);
@@ -146,7 +146,6 @@ class player_t : public game_object_t {
             unsigned int supplies, unsigned int reproduction,
             unsigned int intelligence);
 
-  unsigned int get_index() const { return index; }
   int get_color() const { return color; }
   unsigned int get_face() const { return face; }
 

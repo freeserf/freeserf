@@ -49,7 +49,7 @@ class resource_slot_t {
  public:
   resource_type_t type;
   dir_t dir;
-  int dest;
+  unsigned int dest;
 };
 
 class flag_t : public game_object_t {
@@ -76,8 +76,6 @@ class flag_t : public game_object_t {
  public:
   flag_t(game_t *game, unsigned int index);
 
-  unsigned int get_index() { return index; }
-
   map_pos_t get_position() { return pos; }
   void set_position(map_pos_t pos) { this->pos = pos; }
 
@@ -91,8 +89,8 @@ class flag_t : public game_object_t {
   void prioritize_pickup(dir_t dir, player_t *player);
 
   /* Owner of this flag. */
-  int get_player() { return (path_con >> 6) & 3; }
-  void set_player(int player_num) { path_con = (player_num << 6) |
+  unsigned int get_owner() { return (path_con >> 6) & 3; }
+  void set_owner(unsigned int owner) { path_con = (owner << 6) |
                                                (path_con & 0x3f); }
 
   /* Bitmap showing whether the outgoing paths are land paths. */

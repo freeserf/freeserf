@@ -109,7 +109,6 @@ event_loop_sdl_t::run() {
   int drag_x = 0;
   int drag_y = 0;
 
-  unsigned int last_down[6] = {0};
   unsigned int last_click[6] = {0};
   int last_click_x = 0;
   int last_click_y = 0;
@@ -150,9 +149,6 @@ event_loop_sdl_t::run() {
         }
         break;
       case SDL_MOUSEBUTTONDOWN:
-        if (event.button.button <= 3) {
-          last_down[event.button.button] = current_ticks;
-        }
         break;
       case SDL_MOUSEMOTION:
         for (int button = 1; button <= 3; button++) {
