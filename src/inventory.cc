@@ -58,7 +58,7 @@ inventory_t::inventory_t(game_t *game, unsigned int index)
 
 void
 inventory_t::push_resource(resource_type_t resource) {
-  resources[resource] += (resources[resource] < 50000) ? 0 : 1;
+  resources[resource] += (resources[resource] < 50000) ? 1 : 0;
 }
 
 void
