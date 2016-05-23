@@ -25,18 +25,27 @@
 #include "src/random.h"
 
 class mission_t {
- public:
-  random_state_t rnd;
-  struct {
-    int face;
-    int supplies;
-    int intelligence;
-    int reproduction;
-    struct { int col; int row; } castle;
-  } player[4];
+ protected:
+  static mission_t mission[];
 
-  static mission_t mission[12];
-  static void init_missions();
+ public:
+  typedef struct {
+    int col;
+    int row;
+  } pos_preset_t;
+
+  typedef struct {
+    size_t face;
+    size_t intelligence;
+    size_t supplies;
+    size_t reproduction;
+    pos_preset_t castle;
+  } player_preset_t;
+
+  const char *name;
+  random_state_t rnd;
+  player_preset_t player[4];
+
   static mission_t *get_mission(int mission);
   static int get_mission_count();
 };
