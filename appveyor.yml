@@ -28,7 +28,7 @@ after_build:
       md $ZIP_BASE
       Copy-Item -Path windows\$env:CONFIGURATION\freeserf.exe -Destination $ZIP_BASE\
       Copy-Item -Path README.md -Destination $ZIP_BASE\README.txt
-      Copy-Item -Path $env:SDL2_LIB\SDL2.dll -Destination $ZIP_BASE\
-      Copy-Item -Path $env:SDL2_MIXER_LIB\SDL2_mixer.dll -Destination $ZIP_BASE\
+      Copy-Item -Path windows\$env:CONFIGURATION\SDL2.dll -Destination $ZIP_BASE\
+      Copy-Item -Path windows\$env:CONFIGURATION\SDL2_mixer.dll -Destination $ZIP_BASE\
       7z a $ZIP_FILE $ZIP_BASE\*
       Push-AppveyorArtifact $ZIP_FILE

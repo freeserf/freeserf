@@ -24,270 +24,371 @@
 mission_t
 mission_t::mission[12];
 
-void
-mission_t::init_missions() {
-  /* Mission 1: START */
-  mission[0].rnd = random_state_t(0x6d6f, 0xf7f0, 0xc8d4);
+mission_t tutorials[] = {
+  {
+    "",
+    random_state_t(0xD372, 0x5192, 0xF9C2),
+    {
+      {12, 40, 30, 30, {-1, -1}},
+      { 0,  0,  0,  0, {-1, -1}},
+      { 0,  0,  0,  0, {-1, -1}},
+      { 0,  0,  0,  0, {-1, -1}}
+    }
+  },
+  {
+    "",
+    random_state_t(0x0A28, 0x763C, 0x1BB5),
+    {
+      {12, 40, 30, 30, {-1, -1}},
+      { 0,  0,  0,  0, {-1, -1}},
+      { 0,  0,  0,  0, {-1, -1}},
+      { 0,  0,  0,  0, {-1, -1}}
+    }
+  },
+  {
+    "",
+    random_state_t(0x4E19, 0xD3CE, 0xE017),
+    {
+      {12, 40, 30, 30, {-1, -1}},
+      { 0,  0,  0,  0, {-1, -1}},
+      { 0,  0,  0,  0, {-1, -1}},
+      { 0,  0,  0,  0, {-1, -1}}
+    }
+  },
+  {
+    "",
+    random_state_t(0x271B, 0xD849, 0xF2BB),
+    {
+      {12, 40, 30, 30, {-1, -1}},
+      { 0,  0,  0,  0, {-1, -1}},
+      { 0,  0,  0,  0, {-1, -1}},
+      { 0,  0,  0,  0, {-1, -1}}
+    }
+  },
+  {
+    "",
+    random_state_t(0x074B, 0x505C, 0x2983),
+    {
+      {12, 40, 30, 30, {-1, -1}},
+      { 0,  0,  0,  0, {-1, -1}},
+      { 0,  0,  0,  0, {-1, -1}},
+      { 0,  0,  0,  0, {-1, -1}}
+    }
+  },
+  {
+    "",
+    random_state_t(0x1DD9, 0xA702, 0xFC8A),
+    {
+      {12, 40, 30, 30, {-1, -1}},
+      { 0,  0,  0,  0, {-1, -1}},
+      { 0,  0,  0,  0, {-1, -1}},
+      { 0,  0,  0,  0, {-1, -1}}
+    }
+  }
+};
 
-  mission[0].player[0].face = 12,
-  mission[0].player[0].supplies = 35,
-  mission[0].player[0].reproduction = 30,
-  mission[0].player[0].castle.col = -1;
-  mission[0].player[0].castle.row = -1;
-
-  mission[0].player[1].face = 1,
-  mission[0].player[1].intelligence = 10,
-  mission[0].player[1].supplies = 5,
-  mission[0].player[1].reproduction = 30,
-  mission[0].player[1].castle.col = -1;
-  mission[0].player[1].castle.row = -1;
-
-  /* Mission 2: STATION */
-  mission[1].rnd = random_state_t(0x60b9, 0xe728, 0xc484);
-
-  mission[1].player[0].face = 12,
-  mission[1].player[0].supplies = 30,
-  mission[1].player[0].reproduction = 40,
-  mission[1].player[0].castle.col = -1;
-  mission[1].player[0].castle.row = -1;
-
-  mission[1].player[1].face = 2,
-  mission[1].player[1].intelligence = 12,
-  mission[1].player[1].supplies = 15,
-  mission[1].player[1].reproduction = 30,
-  mission[1].player[1].castle.col = -1;
-  mission[1].player[1].castle.row = -1;
-
-  mission[1].player[2].face = 3,
-  mission[1].player[2].intelligence = 14,
-  mission[1].player[2].supplies = 15,
-  mission[1].player[2].reproduction = 30,
-  mission[1].player[2].castle.col = -1;
-  mission[1].player[2].castle.row = -1;
-
-  /* Mission 3: UNITY */
-  mission[2].rnd = random_state_t(0x12ab, 0x7a4a, 0xe483);
-
-  mission[2].player[0].face = 12,
-  mission[2].player[0].supplies = 30,
-  mission[2].player[0].reproduction = 30,
-  mission[2].player[0].castle.col = -1;
-  mission[2].player[0].castle.row = -1;
-
-  mission[2].player[1].face = 2,
-  mission[2].player[1].intelligence = 18,
-  mission[2].player[1].supplies = 10,
-  mission[2].player[1].reproduction = 25,
-  mission[2].player[1].castle.col = -1;
-  mission[2].player[1].castle.row = -1;
-
-  mission[2].player[2].face = 4,
-  mission[2].player[2].intelligence = 18,
-  mission[2].player[2].supplies = 10,
-  mission[2].player[2].reproduction = 25,
-  mission[2].player[2].castle.col = -1;
-  mission[2].player[2].castle.row = -1;
-
-  /* Mission 4 */
-  mission[3].rnd = random_state_t(0xacdf, 0xee65, 0x3701);
-
-  mission[3].player[0].face = 12,
-  mission[3].player[0].supplies = 25,
-  mission[3].player[0].reproduction = 40,
-  mission[3].player[0].castle.col = -1;
-  mission[3].player[0].castle.row = -1;
-
-  mission[3].player[1].face = 2,
-  mission[3].player[1].intelligence = 15,
-  mission[3].player[1].supplies = 20,
-  mission[3].player[1].reproduction = 30,
-  mission[3].player[1].castle.col = -1;
-  mission[3].player[1].castle.row = -1;
-
-  /* Mission 5 */
-  mission[4].rnd = random_state_t(0x3b8b, 0xd867, 0xd847);
-
-  mission[4].player[0].face = 12,
-  mission[4].player[0].supplies = 30,
-  mission[4].player[0].reproduction = 30,
-  mission[4].player[0].castle.col = -1;
-  mission[4].player[0].castle.row = -1;
-
-  mission[4].player[1].face = 3,
-  mission[4].player[1].intelligence = 16,
-  mission[4].player[1].supplies = 25,
-  mission[4].player[1].reproduction = 20,
-  mission[4].player[1].castle.col = -1;
-  mission[4].player[1].castle.row = -1;
-
-  mission[4].player[2].face = 4,
-  mission[4].player[2].intelligence = 16,
-  mission[4].player[2].supplies = 25,
-  mission[4].player[2].reproduction = 20,
-  mission[4].player[2].castle.col = -1;
-  mission[4].player[2].castle.row = -1;
-
-  /* Mission 6 */
-  mission[5].rnd = random_state_t(0x4491, 0x36fb, 0xf9e1);
-
-  mission[5].player[0].face = 12,
-  mission[5].player[0].supplies = 30,
-  mission[5].player[0].reproduction = 30,
-  mission[5].player[0].castle.col = -1;
-  mission[5].player[0].castle.row = -1;
-
-  mission[5].player[1].face = 3,
-  mission[5].player[1].intelligence = 20,
-  mission[5].player[1].supplies = 12,
-  mission[5].player[1].reproduction = 14,
-  mission[5].player[1].castle.col = -1;
-  mission[5].player[1].castle.row = -1;
-
-  mission[5].player[2].face = 5,
-  mission[5].player[2].intelligence = 20,
-  mission[5].player[2].supplies = 12,
-  mission[5].player[2].reproduction = 14,
-  mission[5].player[2].castle.col = -1;
-  mission[5].player[2].castle.row = -1;
-
-  /* Mission 7 */
-  mission[6].rnd = random_state_t(0xca18, 0x4221, 0x7f96);
-
-  mission[6].player[0].face = 12,
-  mission[6].player[0].supplies = 30,
-  mission[6].player[0].reproduction = 40,
-  mission[6].player[0].castle.col = -1;
-  mission[6].player[0].castle.row = -1;
-
-  mission[6].player[1].face = 3,
-  mission[6].player[1].intelligence = 22,
-  mission[6].player[1].supplies = 30,
-  mission[6].player[1].reproduction = 30,
-  mission[6].player[1].castle.col = -1;
-  mission[6].player[1].castle.row = -1;
-
-  /* Mission 8 */
-  mission[7].rnd = random_state_t(0x88fe, 0xe0db, 0xed5c);
-
-  mission[7].player[0].face = 12,
-  mission[7].player[0].supplies = 25,
-  mission[7].player[0].reproduction = 30,
-  mission[7].player[0].castle.col = -1;
-  mission[7].player[0].castle.row = -1;
-
-  mission[7].player[1].face = 4,
-  mission[7].player[1].intelligence = 23,
-  mission[7].player[1].supplies = 25,
-  mission[7].player[1].reproduction = 30,
-  mission[7].player[1].castle.col = -1;
-  mission[7].player[1].castle.row = -1;
-
-  mission[7].player[2].face = 6,
-  mission[7].player[2].intelligence = 24,
-  mission[7].player[2].supplies = 25,
-  mission[7].player[2].reproduction = 30,
-  mission[7].player[2].castle.col = -1;
-  mission[7].player[2].castle.row = -1;
-
-  /* Mission 9 */
-  mission[8].rnd = random_state_t(0xe9c4, 0x16fe, 0x2ef0);
-
-  mission[8].player[0].face = 12,
-  mission[8].player[0].supplies = 25,
-  mission[8].player[0].reproduction = 40,
-  mission[8].player[0].castle.col = -1;
-  mission[8].player[0].castle.row = -1;
-
-  mission[8].player[1].face = 4,
-  mission[8].player[1].intelligence = 26,
-  mission[8].player[1].supplies = 13,
-  mission[8].player[1].reproduction = 30,
-  mission[8].player[1].castle.col = -1;
-  mission[8].player[1].castle.row = -1;
-
-  mission[8].player[2].face = 5,
-  mission[8].player[2].intelligence = 28,
-  mission[8].player[2].supplies = 13,
-  mission[8].player[2].reproduction = 30,
-  mission[8].player[2].castle.col = -1;
-  mission[8].player[2].castle.row = -1;
-
-  mission[8].player[3].face = 6,
-  mission[8].player[3].intelligence = 30,
-  mission[8].player[3].supplies = 13,
-  mission[8].player[3].reproduction = 30,
-  mission[8].player[3].castle.col = -1;
-  mission[8].player[3].castle.row = -1;
-
-  /* Mission 10 */
-  mission[9].rnd = random_state_t(0x15c2, 0xf9d0, 0x5fb1);
-
-  mission[9].player[0].face = 12,
-  mission[9].player[0].supplies = 20,
-  mission[9].player[0].reproduction = 16,
-  mission[9].player[0].castle.col = 28;
-  mission[9].player[0].castle.row = 14;
-
-  mission[9].player[1].face = 4,
-  mission[9].player[1].intelligence = 30,
-  mission[9].player[1].supplies = 19,
-  mission[9].player[1].reproduction = 20,
-  mission[9].player[1].castle.col = 5;
-  mission[9].player[1].castle.row = 47;
-
-  /* Mission 11 */
-  mission[10].rnd = random_state_t(0x9b93, 0x6be1, 0x79c0);
-
-  mission[10].player[0].face = 12,
-  mission[10].player[0].supplies = 16,
-  mission[10].player[0].reproduction = 20,
-  mission[10].player[0].castle.col = 16;
-  mission[10].player[0].castle.row = 42;
-
-  mission[10].player[1].face = 5,
-  mission[10].player[1].intelligence = 33,
-  mission[10].player[1].supplies = 10,
-  mission[10].player[1].reproduction = 20,
-  mission[10].player[1].castle.col = 0x34;
-  mission[10].player[1].castle.row = 0x19;
-
-  mission[10].player[2].face = 7,
-  mission[10].player[2].intelligence = 34,
-  mission[10].player[2].supplies = 13,
-  mission[10].player[2].reproduction = 20,
-  mission[10].player[2].castle.col = 0x17;
-  mission[10].player[2].castle.row = 12;
-
-  /* Mission 12 */
-  mission[11].rnd = random_state_t(0x4195, 0x7dba, 0xd884);
-
-  mission[11].player[0].face = 12,
-  mission[11].player[0].supplies = 23,
-  mission[11].player[0].reproduction = 27,
-  mission[11].player[0].castle.col = 0x35;
-  mission[11].player[0].castle.row = 13;
-
-  mission[11].player[1].face = 5,
-  mission[11].player[1].intelligence = 27,
-  mission[11].player[1].supplies = 17,
-  mission[11].player[1].reproduction = 24,
-  mission[11].player[1].castle.col = 0x1b;
-  mission[11].player[1].castle.row = 10;
-
-  mission[11].player[2].face = 6,
-  mission[11].player[2].intelligence = 27,
-  mission[11].player[2].supplies = 13,
-  mission[11].player[2].reproduction = 24,
-  mission[11].player[2].castle.col = 0x1d;
-  mission[11].player[2].castle.row = 0x26;
-
-  mission[11].player[3].face = 7,
-  mission[11].player[3].intelligence = 27,
-  mission[11].player[3].supplies = 13,
-  mission[11].player[3].reproduction = 24,
-  mission[11].player[3].castle.col = 15;
-  mission[11].player[3].castle.row = 32;
-}
+mission_t missions[] = {
+  {
+    "START",
+    random_state_t("8667715887436237"),
+    {
+      {12, 40, 35, 30, {-1, -1}},
+      { 1, 10,  5, 30, {-1, -1}},
+      { 0,  0,  0,  0, {-1, -1}},
+      { 0,  0,  0,  0, {-1, -1}}
+    }
+  },
+  {
+    "STATION",
+    random_state_t("2831713285431227"),
+    {
+      {12, 40, 30, 40, {-1, -1}},
+      { 2, 12, 15, 30, {-1, -1}},
+      { 3, 14, 15, 30, {-1, -1}},
+      { 0,  0,  0,  0, {-1, -1}}
+    }
+  },
+  {
+    "UNITY",
+    random_state_t("4632253338621228"),
+    {
+      {12, 40, 30, 30, {-1, -1}},
+      { 2, 18, 10, 25, {-1, -1}},
+      { 4, 18, 10, 25, {-1, -1}},
+      { 0,  0,  0,  0, {-1, -1}}
+    }
+  },
+  {
+    "WAVE",
+    random_state_t("8447342476811762"),
+    {
+      {12, 40, 25, 40, {-1, -1}},
+      { 2, 16, 20, 30, {-1, -1}},
+      { 0,  0,  0,  0, {-1, -1}},
+      { 0,  0,  0,  0, {-1, -1}}
+    }
+  },
+  {
+    "EXPORT",
+    random_state_t("4276472414845177"),
+    {
+      {12, 40, 30, 30, {-1, -1}},
+      { 3, 16, 25, 20, {-1, -1}},
+      { 4, 16, 25, 20, {-1, -1}},
+      { 0,  0,  0,  0, {-1, -1}}
+    }
+  },
+  {
+    "OPTION",
+    random_state_t("2333577877517478"),
+    {
+      {12, 40, 30, 30, {-1, -1}},
+      { 3, 20, 12, 14, {-1, -1}},
+      { 5, 20, 12, 14, {-1, -1}},
+      { 0,  0,  0,  0, {-1, -1}}
+    }
+  },
+  {
+    "RECORD",
+    random_state_t("1416541231242884"),
+    {
+      {12, 40, 30, 40, {-1, -1}},
+      { 3, 22, 30, 30, {-1, -1}},
+      { 0,  0,  0,  0, {-1, -1}},
+      { 0,  0,  0,  0, {-1, -1}}
+    }
+  },
+  {
+    "SCALE",
+    random_state_t("7845187715476348"),
+    {
+      {12, 40, 25, 30, {-1, -1}},
+      { 4, 23, 25, 30, {-1, -1}},
+      { 6, 24, 25, 30, {-1, -1}},
+      { 0,  0,  0,  0, {-1, -1}}
+    }
+  },
+  {
+    "SIGN",
+    random_state_t("5185768873118642"),
+    {
+      {12, 40, 25, 40, {-1, -1}},
+      { 4, 26, 13, 30, {-1, -1}},
+      { 5, 28, 13, 30, {-1, -1}},
+      { 6, 30, 13, 30, {-1, -1}}
+    }
+  },
+  {
+    "ACORN",
+    random_state_t("3183215728814883"),
+    {
+      {12, 40, 20, 16, {28, 14}},
+      { 4, 30, 19, 20, { 5, 47}},
+      { 0,  0,  0,  0, {-1, -1}},
+      { 0,  0,  0,  0, {-1, -1}}
+    }
+  },
+  {
+    "CHOPPER",
+    random_state_t("4376241846215474"),
+    {
+      {12, 40, 16, 20, {16, 42}},
+      { 5, 33, 10, 20, {52, 25}},
+      { 7, 34, 13, 20, {23, 12}},
+      { 0,  0,  0,  0, {-1, -1}}
+    }
+  },
+  {
+    "GATE",
+    random_state_t("6371557668231277"),
+    {
+      {12, 40, 23, 27, {53, 13}},
+      { 5, 27, 17, 24, {27, 10}},
+      { 6, 27, 13, 24, {29, 38}},
+      { 7, 27, 13, 24, {15, 32}}
+    }
+  },
+  {
+    "ISLAND",
+    random_state_t("8473352672411117"),
+    {
+      {12, 40, 24, 20, { 7, 26}},
+      { 5, 20, 30, 20, { 2, 10}},
+      { 0,  0,  0,  0, {-1, -1}},
+      { 0,  0,  0,  0, {-1, -1}}
+    }
+  },
+  {
+    "LEGION",
+    random_state_t("1167854231884464"),
+    {
+      {12, 40, 20, 23, {19,  3}},
+      { 6, 28, 16, 20, {55,  7}},
+      { 8, 28, 16, 20, {55, 46}},
+      { 0,  0,  0,  0, {-1, -1}}
+    }
+  },
+  {
+    "PIECE",
+    random_state_t("2571462671725414"),
+    {
+      {12, 40, 20, 17, {41,  5}},
+      { 6, 40, 23, 20, {19, 49}},
+      { 7, 37, 20, 20, {58, 52}},
+      { 8, 40, 15, 15, {43, 31}}
+    }
+  },
+  {
+    "RIVAL",
+    random_state_t("4563653871271587"),
+    {
+      {12, 40, 26, 23, {36, 63}},
+      { 6, 28, 29, 40, {14, 15}},
+      { 0,  0,  0,  0, {-1, -1}},
+      { 0,  0,  0,  0, {-1, -1}}
+    }
+  },
+  {
+    "SAVAGE",
+    random_state_t("7212145428156114"),
+    {
+      {12, 40, 25, 12, {63, 59}},
+      { 7, 29, 17, 10, {29, 24}},
+      { 8, 29, 17, 10, {39, 26}},
+      { 9, 32, 17, 10, {42, 49}}
+    }
+  },
+  {
+    "XAVER",
+    random_state_t("4276472414435177"),
+    {
+      {12, 40, 25, 40, {15,  0}},
+      { 7, 40, 30, 35, {34, 48}},
+      { 9, 30, 30, 35, {58,  5}},
+      { 0,  0,  0,  0, {-1, -1}}
+    }
+  },
+  {
+    "BLADE",
+    random_state_t("7142748441424786"),
+    {
+      {12, 40, 30, 20, {13, 37}},
+      { 7, 40, 20, 20, {32, 34}},
+      { 0,  0,  0,  0, {-1, -1}},
+      { 0,  0,  0,  0, {-1, -1}}
+    }
+  },
+  {
+    "BEACON",
+    random_state_t("6882188351133886"),
+    {
+      {12, 40,  9, 10, {14, 42}},
+      { 8, 40, 16, 22, {62,  1}},
+      { 9, 40, 16, 23, {32, 14}},
+      { 0,  0,  0,  0, {-1, -1}}
+    }
+  },
+  {
+    "PASTURE",
+    random_state_t("7742136435163436"),
+    {
+      {12, 40, 20, 11, {38, 17}},
+      { 8, 30, 22, 13, {32, 51}},
+      { 9, 30, 23, 13, { 1, 50}},
+      {10, 30, 21, 13, { 4,  9}}
+    }
+  },
+  {
+    "OMNUS",
+    random_state_t("6764387728224725"),
+    {
+      {12, 40, 20, 40, {42, 20}},
+      { 8, 36, 25, 40, {48, 47}},
+      { 0,  0,  0,  0, {-1, -1}},
+      { 0,  0,  0,  0, {-1, -1}}
+    }
+  },
+  {
+    "TRIBUTE",
+    random_state_t("5848744734731253"),
+    {
+      {12, 40,  5, 11, {53,  1}},
+      { 9, 35, 30, 10, {20,  2}},
+      {10, 37, 30, 10, {16, 55}},
+      { 0,  0,  0,  0, {-1, -1}}
+    }
+  },
+  {
+    "FOUNTAIN",
+    random_state_t("6183541838474434"),
+    {
+      {12, 40, 20, 12, { 3, 34}},
+      { 9, 30, 25, 10, {47, 41}},
+      {10, 30, 26, 10, {42, 52}},
+      { 0,  0,  0,  0, {-1, -1}}
+    }
+  },
+  {
+    "CHUDE",
+    random_state_t("7633126817245833"),
+    {
+      {12, 40, 20, 40, {23, 38}},
+      { 9, 40, 25, 40, {57, 52}},
+      { 0,  0,  0,  0, {-1, -1}},
+      { 0,  0,  0,  0, {-1, -1}}
+    }
+  },
+  {
+    "TRAILER",
+    random_state_t("5554144773646312"),
+    {
+      {12, 40, 20, 30, {29, 11}},
+      {10, 38, 30, 35, {15, 40}},
+      { 0,  0,  0,  0, {-1, -1}},
+      { 0,  0,  0,  0, {-1, -1}}
+    }
+  },
+  {
+    "CANYON",
+    random_state_t("3122431112682557"),
+    {
+      {12, 40, 18, 28, {49, 53}},
+      {10, 39, 25, 40, {14, 53}},
+      { 0,  0,  0,  0, {-1, -1}},
+      { 0,  0,  0,  0, {-1, -1}}
+    }
+  },
+  {
+    "REPRESS",
+    random_state_t("2568412624848266"),
+    {
+      {12, 40, 20, 40, {44, 39}},
+      {10, 39, 25, 40, {44, 63}},
+      { 0,  0,  0,  0, {-1, -1}},
+      { 0,  0,  0,  0, {-1, -1}}
+    }
+  },
+  {
+    "YOKI",
+    random_state_t("3736685353284538"),
+    {
+      {12, 40,  5, 22, {53,  8}},
+      {11, 40, 15, 20, {30, 22}},
+      { 0,  0,  0,  0, {-1, -1}},
+      { 0,  0,  0,  0, {-1, -1}}
+    }
+  },
+  {
+    "PASSIVE",
+    random_state_t("5471458635555317"),
+    {
+      {12, 40,  5, 20, {25, 46}},
+      {11, 40, 20, 20, {51, 42}},
+      { 0,  0,  0,  0, {-1, -1}},
+      { 0,  0,  0,  0, {-1, -1}}
+    }
+  }
+};
 
 mission_t *
 mission_t::get_mission(int m) {
@@ -295,10 +396,10 @@ mission_t::get_mission(int m) {
     return NULL;
   }
 
-  return mission + m;
+  return missions + m;
 }
 
 int
 mission_t::get_mission_count() {
-  return sizeof(mission) / sizeof(mission[0]);
+  return sizeof(missions) / sizeof(missions[0]);
 }
