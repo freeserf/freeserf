@@ -116,8 +116,8 @@ class game_t : public event_handler_t {
 
   /* External interface */
   void init();
-  int add_player(unsigned int face, unsigned int color, unsigned int supplies,
-                 unsigned int reproduction, unsigned int intelligence);
+  int add_player(size_t face, unsigned int color, size_t supplies,
+                 size_t reproduction, size_t intelligence);
   bool load_mission_map(int m);
   bool load_random_map(int size, const random_state_t &rnd);
   bool load_save_game(const std::string &path);

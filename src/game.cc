@@ -2070,8 +2070,8 @@ game_t::set_inventory_serf_mode(inventory_t *inventory, int mode) {
 /* Add new player to the game. Returns the player number
    or negative on error. */
 int
-game_t::add_player(unsigned int face, unsigned int color, unsigned int supplies,
-                   unsigned int reproduction, unsigned int intelligence) {
+game_t::add_player(size_t face, unsigned int color, size_t supplies,
+                   size_t reproduction, size_t intelligence) {
   /* Allocate object */
   player_t *player = players.allocate();
   if (player == NULL) abort();
@@ -2188,7 +2188,7 @@ game_t::load_mission_map(int level) {
 
   /* Initialize player and build initial castle */
   for (int i = 0; i < GAME_MAX_PLAYER_COUNT; i++) {
-    unsigned int face = (i == 0) ? 12 : mission->player[i].face;
+    size_t face = (i == 0) ? 12 : mission->player[i].face;
     if (face == 0) continue;
 
     int n = add_player(face, default_player_colors[i],

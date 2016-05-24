@@ -34,9 +34,9 @@ player_t::player_t(game_t *game, unsigned int index)
 }
 
 void
-player_t::init(unsigned int number, unsigned int face, unsigned int color,
-               unsigned int supplies, unsigned int reproduction,
-               unsigned int intelligence) {
+player_t::init(unsigned int number, size_t face, unsigned int color,
+               size_t supplies, size_t reproduction,
+               size_t intelligence) {
   flags = 0;
 
   if (face == 0) return;
@@ -96,7 +96,7 @@ player_t::init(unsigned int number, unsigned int face, unsigned int color,
 
   if (is_ai()) init_ai_values(face);
 
-  reproduction_counter = reproduction_reset;
+  reproduction_counter = static_cast<int>(reproduction_reset);
   castle_score = 0;
 
   for (int i = 0; i < 26; i++) {
@@ -131,7 +131,7 @@ player_t::init(unsigned int number, unsigned int face, unsigned int color,
 
 /* Initialize AI parameters. */
 void
-player_t::init_ai_values(int face) {
+player_t::init_ai_values(size_t face) {
   const int ai_values_0[] = { 13, 10, 16, 9, 10, 8, 6, 10, 12, 5, 8 };
   const int ai_values_1[] = { 10000, 13000, 16000, 16000, 18000, 20000,
                               19000, 18000, 30000, 23000, 26000 };
@@ -846,7 +846,7 @@ player_t::update() {
         }
       }
 
-      reproduction_counter += reproduction_reset;
+      reproduction_counter += static_cast<int>(reproduction_reset);
     }
   }
 

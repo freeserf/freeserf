@@ -83,6 +83,9 @@ class save_reader_text_value_t {
 
   save_reader_text_value_t& operator >> (int &val);
   save_reader_text_value_t& operator >> (unsigned int &val);
+#if defined(_M_AMD64) || defined(__x86_64__)
+  save_reader_text_value_t& operator >> (size_t &val);
+#endif  // defined(_M_AMD64) || defined(__x86_64__)
   save_reader_text_value_t& operator >> (dir_t &val);
   save_reader_text_value_t& operator >> (resource_type_t &val);
   save_reader_text_value_t& operator >> (building_type_t &val);
@@ -101,6 +104,9 @@ class save_writer_text_value_t {
 
   save_writer_text_value_t& operator << (int val);
   save_writer_text_value_t& operator << (unsigned int val);
+#if defined(_M_AMD64) || defined(__x86_64__)
+  save_writer_text_value_t& operator << (size_t val);
+#endif  // defined(_M_AMD64) || defined(__x86_64__)
   save_writer_text_value_t& operator << (dir_t val);
   save_writer_text_value_t& operator << (resource_type_t val);
   save_writer_text_value_t& operator << (const std::string &val);

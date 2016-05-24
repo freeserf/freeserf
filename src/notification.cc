@@ -60,9 +60,11 @@ notification_box_t::draw_map_object(int x, int y, int sprite) {
   frame->draw_transp_sprite(8*x, y, DATA_MAP_OBJECT_BASE + sprite, false);
 }
 
-int
-notification_box_t::get_player_face_sprite(int face) {
-  if (face != 0) return 0x10b + face;
+unsigned int
+notification_box_t::get_player_face_sprite(size_t face) {
+  if (face != 0) {
+    return static_cast<unsigned int>(0x10b + face);
+  }
   return 0x119; /* sprite_face_none */
 }
 

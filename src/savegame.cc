@@ -365,6 +365,16 @@ save_reader_text_value_t::operator >> (unsigned int &val) {
   return *this;
 }
 
+#if defined(_M_AMD64) || defined(__x86_64__)
+save_reader_text_value_t&
+save_reader_text_value_t::operator >> (size_t &val) {
+  int result = atoi(value.c_str());
+  val = result;
+
+  return *this;
+}
+#endif  // defined(_M_AMD64) || defined(__x86_64__)
+
 save_reader_text_value_t&
 save_reader_text_value_t::operator >> (dir_t &val) {
   int result = atoi(value.c_str());
@@ -452,6 +462,21 @@ save_writer_text_value_t::operator << (unsigned int val) {
 
   return *this;
 }
+
+#if defined(_M_AMD64) || defined(__x86_64__)
+save_writer_text_value_t&
+save_writer_text_value_t::operator << (size_t val) {
+  if (!value.empty()) {
+    value += ",";
+  }
+
+  std::ostringstream ss;
+  ss << val;
+  value += ss.str();
+
+  return *this;
+}
+#endif  // defined(_M_AMD64) || defined(__x86_64__)
 
 save_writer_text_value_t&
 save_writer_text_value_t::operator << (dir_t val) {
