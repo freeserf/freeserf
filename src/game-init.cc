@@ -122,9 +122,11 @@ game_init_box_t::draw_backgraund() {
 }
 
 /* Get the sprite number for a face. */
-int
-game_init_box_t::get_player_face_sprite(int face) {
-  if (face != 0) return 0x10b + face;
+unsigned int
+game_init_box_t::get_player_face_sprite(size_t face) {
+  if (face != 0) {
+    return static_cast<unsigned int>(0x10b + face);
+  }
   return 0x119; /* sprite_face_none */
 }
 
@@ -215,13 +217,13 @@ game_init_box_t::draw_player_box(int player, int x, int y) {
   x *= 8;
 
   if (mission->player[player].face != 0) {
-    int supplies = mission->player[player].supplies;
+    int supplies = static_cast<int>(mission->player[player].supplies);
     frame->fill_rect(x + 64, y + 76 - supplies, 4, supplies, 67);
 
-    int intelligence = mission->player[player].intelligence;
+    int intelligence = static_cast<int>(mission->player[player].intelligence);
     frame->fill_rect(x + 70, y + 76 - intelligence, 4, intelligence, 30);
 
-    int reproduction = mission->player[player].reproduction;
+    int reproduction = static_cast<int>(mission->player[player].reproduction);
     frame->fill_rect(x + 76, y + 76 - reproduction, 4, reproduction, 75);
   }
 }

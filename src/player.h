@@ -61,7 +61,7 @@ class player_t : public game_object_t {
   int knight_occupation[4];
 
   unsigned int color; /* ADDED */
-  unsigned int face;
+  size_t face;
   int flags;
   int build;
   int completed_building_count[24];
@@ -82,7 +82,7 @@ class player_t : public game_object_t {
   uint16_t last_tick;
 
   int reproduction_counter;
-  int reproduction_reset;
+  size_t reproduction_reset;
   int serf_to_knight_rate;
   uint16_t serf_to_knight_counter; /* Overflow is important */
   int analysis_goldore;
@@ -109,7 +109,7 @@ class player_t : public game_object_t {
      -1 for own castle lost. */
   int castle_score;
   int send_generic_delay;
-  int initial_supplies;
+  size_t initial_supplies;
   int serf_index;
   int knight_cycle_counter;
   int send_knight_delay;
@@ -125,7 +125,7 @@ class player_t : public game_object_t {
   int ai_value_3;
   int ai_value_4;
   int ai_value_5;
-  int ai_intelligence;
+  size_t ai_intelligence;
 
   int player_stat_history[16][112];
   int resource_count_history[26][120];
@@ -142,12 +142,12 @@ class player_t : public game_object_t {
  public:
   player_t(game_t *game, unsigned int index);
 
-  void init(unsigned int number, unsigned int face, unsigned int color,
-            unsigned int supplies, unsigned int reproduction,
-            unsigned int intelligence);
+  void init(unsigned int number, size_t face, unsigned int color,
+            size_t supplies, size_t reproduction,
+            size_t intelligence);
 
   int get_color() const { return color; }
-  unsigned int get_face() const { return face; }
+  size_t get_face() const { return face; }
 
   /* Whether player has built the initial castle. */
   bool has_castle() const { return (flags & 1); }
@@ -260,7 +260,7 @@ class player_t : public game_object_t {
   void decrease_military_score(int val) { total_military_score -= val; }
   void increase_military_max_gold(int val) { military_max_gold += val; }
   int get_score() const;
-  int get_initial_supplies() const { return initial_supplies; }
+  size_t get_initial_supplies() const { return initial_supplies; }
   int *get_resource_count_history(resource_type_t type) {
     return resource_count_history[type]; }
   void set_player_stat_history(int mode, int index, int val) {
@@ -307,7 +307,7 @@ class player_t : public game_object_t {
     operator << (save_writer_text_t &writer, player_t &player);
 
  protected:
-  void init_ai_values(int face);
+  void init_ai_values(size_t face);
 
   int available_knights_at_pos(map_pos_t pos, int index, int dist);
 };

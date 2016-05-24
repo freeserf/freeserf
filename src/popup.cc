@@ -376,9 +376,11 @@ popup_box_t::draw_additional_number(int x, int y, int n) {
 }
 
 /* Get the sprite number for a face. */
-int
-popup_box_t::get_player_face_sprite(int face) {
-  if (face != 0) return 0x10b + face;
+unsigned int
+popup_box_t::get_player_face_sprite(size_t face) {
+  if (face != 0) {
+    return static_cast<unsigned int>(0x10b + face);
+  }
   return 0x119; /* sprite_face_none */
 }
 
@@ -386,7 +388,7 @@ popup_box_t::get_player_face_sprite(int face) {
 void
 popup_box_t::draw_player_face(int x, int y, int player) {
   int color = 0;
-  int face = 0;
+  size_t face = 0;
   player_t *p = interface->get_game()->get_player(player);
   if (p != NULL) {
     color = p->get_color();

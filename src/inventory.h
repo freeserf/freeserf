@@ -110,7 +110,7 @@ class inventory_t : public game_object_t {
   void add_to_queue(resource_type_t type, unsigned int dest);
 
   /* Create initial resources */
-  void apply_supplies_preset(int supplies);
+  void apply_supplies_preset(size_t supplies);
 
   serf_t *call_transporter(bool water);
 

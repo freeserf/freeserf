@@ -12,32 +12,23 @@
 		<Platform
 			Name="Win32"
 		/>
+		<Platform
+			Name="x64"
+		/>
 	</Platforms>
 	<ToolFiles>
 	</ToolFiles>
 	<Configurations>
 		<Configuration
 			Name="Debug|Win32"
-			OutputDirectory="$(SolutionDir)$(ConfigurationName)"
-			IntermediateDirectory="$(ConfigurationName)"
+			OutputDirectory="$(SolutionDir)$(PlatformName)\$(ConfigurationName)"
+			IntermediateDirectory="$(PlatformName)\$(ConfigurationName)"
 			ConfigurationType="1"
 			CharacterSet="1"
 			>
 			<Tool
 				Name="VCPreBuildEventTool"
 				CommandLine="set VCS_VERSION_FILE=&quot;$(SolutionDir)..\src\version-vcs.h&quot;&#x0D;&#x0A;&#x0D;&#x0A;git --version&#x0D;&#x0A;if errorlevel 1 goto noGit&#x0D;&#x0A;for /f &quot;delims=&quot; %%i in (&apos;git describe --always --tags --dirty&apos;) do set VCS_VERSION=%%i&#x0D;&#x0A;goto withGit&#x0D;&#x0A;:noGit&#x0D;&#x0A;set VCS_VERSION=unversioned&#x0D;&#x0A;:withGit&#x0D;&#x0A;&#x0D;&#x0A;(echo #ifndef SRC_VERSION_VCS_H_) &gt; %VCS_VERSION_FILE%&#x0D;&#x0A;(echo #define SRC_VERSION_VCS_H_) &gt;&gt; %VCS_VERSION_FILE%&#x0D;&#x0A;(echo.) &gt;&gt; %VCS_VERSION_FILE%&#x0D;&#x0A;(echo #define VERSION_VCS &quot;%VCS_VERSION%&quot;) &gt;&gt; %VCS_VERSION_FILE%&#x0D;&#x0A;(echo.) &gt;&gt; %VCS_VERSION_FILE%&#x0D;&#x0A;(echo #endif  // SRC_VERSION_VCS_H_) &gt;&gt; %VCS_VERSION_FILE%&#x0D;&#x0A;"
-			/>
-			<Tool
-				Name="VCCustomBuildTool"
-			/>
-			<Tool
-				Name="VCXMLDataGeneratorTool"
-			/>
-			<Tool
-				Name="VCWebServiceProxyGeneratorTool"
-			/>
-			<Tool
-				Name="VCMIDLTool"
 			/>
 			<Tool
 				Name="VCCLCompilerTool"
@@ -53,15 +44,6 @@
 				DisableSpecificWarnings="4290"
 			/>
 			<Tool
-				Name="VCManagedResourceCompilerTool"
-			/>
-			<Tool
-				Name="VCResourceCompilerTool"
-			/>
-			<Tool
-				Name="VCPreLinkEventTool"
-			/>
-			<Tool
 				Name="VCLinkerTool"
 				AdditionalDependencies="SDL2.lib SDL2main.lib SDL2_mixer.lib"
 				LinkIncremental="2"
@@ -74,32 +56,59 @@
 				TargetMachine="1"
 			/>
 			<Tool
-				Name="VCALinkTool"
+				Name="VCPostBuildEventTool"
+				CommandLine="copy /Y /B &quot;$(SDL2_LIB)\x86\SDL2.dll&quot; &quot;$(OutDir)\SDL2.dll&quot;&#x0D;&#x0A;copy /Y /B &quot;$(SDL2_MIXER_LIB)\x86\SDL2_mixer.dll&quot; &quot;$(OutDir)\SDL2_mixer.dll&quot;&#x0D;&#x0A;"
+			/>
+		</Configuration>
+		<Configuration
+			Name="Debug|x64"
+			OutputDirectory="$(SolutionDir)$(PlatformName)\$(ConfigurationName)"
+			IntermediateDirectory="$(PlatformName)\$(ConfigurationName)"
+			ConfigurationType="1"
+			CharacterSet="1"
+			>
+			<Tool
+				Name="VCPreBuildEventTool"
+				CommandLine="set VCS_VERSION_FILE=&quot;$(SolutionDir)..\src\version-vcs.h&quot;&#x0D;&#x0A;&#x0D;&#x0A;git --version&#x0D;&#x0A;if errorlevel 1 goto noGit&#x0D;&#x0A;for /f &quot;delims=&quot; %%i in (&apos;git describe --always --tags --dirty&apos;) do set VCS_VERSION=%%i&#x0D;&#x0A;goto withGit&#x0D;&#x0A;:noGit&#x0D;&#x0A;set VCS_VERSION=unversioned&#x0D;&#x0A;:withGit&#x0D;&#x0A;&#x0D;&#x0A;(echo #ifndef SRC_VERSION_VCS_H_) &gt; %VCS_VERSION_FILE%&#x0D;&#x0A;(echo #define SRC_VERSION_VCS_H_) &gt;&gt; %VCS_VERSION_FILE%&#x0D;&#x0A;(echo.) &gt;&gt; %VCS_VERSION_FILE%&#x0D;&#x0A;(echo #define VERSION_VCS &quot;%VCS_VERSION%&quot;) &gt;&gt; %VCS_VERSION_FILE%&#x0D;&#x0A;(echo.) &gt;&gt; %VCS_VERSION_FILE%&#x0D;&#x0A;(echo #endif  // SRC_VERSION_VCS_H_) &gt;&gt; %VCS_VERSION_FILE%&#x0D;&#x0A;"
 			/>
 			<Tool
-				Name="VCManifestTool"
+				Name="VCMIDLTool"
+				TargetEnvironment="3"
 			/>
 			<Tool
-				Name="VCXDCMakeTool"
+				Name="VCCLCompilerTool"
+				Optimization="0"
+				AdditionalIncludeDirectories="$(ProjectDir);$(ProjectDir)\..;$(SDL2_INCLUDE);$(SDL2_MIXER_INCLUDE)"
+				PreprocessorDefinitions="WIN32;_DEBUG;_WINDOWS;HAVE_CONFIG_H;_CRT_SECURE_NO_WARNINGS;_SCL_SECURE_NO_WARNINGS"
+				MinimalRebuild="true"
+				BasicRuntimeChecks="3"
+				RuntimeLibrary="3"
+				UsePrecompiledHeader="0"
+				WarningLevel="3"
+				DebugInformationFormat="3"
+				DisableSpecificWarnings="4290"
 			/>
 			<Tool
-				Name="VCBscMakeTool"
-			/>
-			<Tool
-				Name="VCFxCopTool"
-			/>
-			<Tool
-				Name="VCAppVerifierTool"
+				Name="VCLinkerTool"
+				AdditionalDependencies="SDL2.lib SDL2main.lib SDL2_mixer.lib"
+				LinkIncremental="2"
+				AdditionalLibraryDirectories="&quot;$(SDL2_LIB)\x64&quot;;&quot;$(SDL2_MIXER_LIB)\x64&quot;"
+				IgnoreDefaultLibraryNames="msvcrt.lib"
+				GenerateDebugInformation="true"
+				SubSystem="2"
+				RandomizedBaseAddress="1"
+				DataExecutionPrevention="0"
+				TargetMachine="17"
 			/>
 			<Tool
 				Name="VCPostBuildEventTool"
-				CommandLine="copy /Y /B &quot;$(SDL2_LIB)\x86\SDL2.dll&quot; &quot;$(OutDir)\SDL2.dll&quot;&#x0D;&#x0A;copy /Y /B &quot;$(SDL2_MIXER_LIB)\x86\SDL2_mixer.dll&quot; &quot;$(OutDir)\SDL2_mixer.dll&quot;"
+				CommandLine="copy /Y /B &quot;$(SDL2_LIB)\x64\SDL2.dll&quot; &quot;$(OutDir)\SDL2.dll&quot;&#x0D;&#x0A;copy /Y /B &quot;$(SDL2_MIXER_LIB)\x64\SDL2_mixer.dll&quot; &quot;$(OutDir)\SDL2_mixer.dll&quot;&#x0D;&#x0A;"
 			/>
 		</Configuration>
 		<Configuration
 			Name="Release|Win32"
-			OutputDirectory="$(SolutionDir)$(ConfigurationName)"
-			IntermediateDirectory="$(ConfigurationName)"
+			OutputDirectory="$(SolutionDir)$(PlatformName)\$(ConfigurationName)"
+			IntermediateDirectory="$(PlatformName)\$(ConfigurationName)"
 			ConfigurationType="1"
 			CharacterSet="1"
 			WholeProgramOptimization="1"
@@ -109,18 +118,6 @@
 				CommandLine="set VCS_VERSION_FILE=&quot;$(SolutionDir)..\src\version-vcs.h&quot;&#x0D;&#x0A;&#x0D;&#x0A;git --version&#x0D;&#x0A;if errorlevel 1 goto noGit&#x0D;&#x0A;for /f &quot;delims=&quot; %%i in (&apos;git describe --always --tags --dirty&apos;) do set VCS_VERSION=%%i&#x0D;&#x0A;goto withGit&#x0D;&#x0A;:noGit&#x0D;&#x0A;set VCS_VERSION=unversioned&#x0D;&#x0A;:withGit&#x0D;&#x0A;&#x0D;&#x0A;(echo #ifndef SRC_VERSION_VCS_H_) &gt; %VCS_VERSION_FILE%&#x0D;&#x0A;(echo #define SRC_VERSION_VCS_H_) &gt;&gt; %VCS_VERSION_FILE%&#x0D;&#x0A;(echo.) &gt;&gt; %VCS_VERSION_FILE%&#x0D;&#x0A;(echo #define VERSION_VCS &quot;%VCS_VERSION%&quot;) &gt;&gt; %VCS_VERSION_FILE%&#x0D;&#x0A;(echo.) &gt;&gt; %VCS_VERSION_FILE%&#x0D;&#x0A;(echo #endif  // SRC_VERSION_VCS_H_) &gt;&gt; %VCS_VERSION_FILE%&#x0D;&#x0A;"
 			/>
 			<Tool
-				Name="VCCustomBuildTool"
-			/>
-			<Tool
-				Name="VCXMLDataGeneratorTool"
-			/>
-			<Tool
-				Name="VCWebServiceProxyGeneratorTool"
-			/>
-			<Tool
-				Name="VCMIDLTool"
-			/>
-			<Tool
 				Name="VCCLCompilerTool"
 				AdditionalIncludeDirectories="$(ProjectDir);$(ProjectDir)\..;$(SDL2_INCLUDE);$(SDL2_MIXER_INCLUDE)"
 				PreprocessorDefinitions="WIN32;NDEBUG;_WINDOWS;HAVE_CONFIG_H;_CRT_SECURE_NO_WARNINGS;_SCL_SECURE_NO_WARNINGS;"
@@ -128,15 +125,6 @@
 				UsePrecompiledHeader="0"
 				WarningLevel="3"
 				DisableSpecificWarnings="4290"
-			/>
-			<Tool
-				Name="VCManagedResourceCompilerTool"
-			/>
-			<Tool
-				Name="VCResourceCompilerTool"
-			/>
-			<Tool
-				Name="VCPreLinkEventTool"
 			/>
 			<Tool
 				Name="VCLinkerTool"
@@ -152,26 +140,51 @@
 				TargetMachine="1"
 			/>
 			<Tool
-				Name="VCALinkTool"
+				Name="VCPostBuildEventTool"
+				CommandLine="copy /Y /B &quot;$(SDL2_LIB)\x86\SDL2.dll&quot; &quot;$(OutDir)\SDL2.dll&quot;&#x0D;&#x0A;copy /Y /B &quot;$(SDL2_MIXER_LIB)\x86\SDL2_mixer.dll&quot; &quot;$(OutDir)\SDL2_mixer.dll&quot;&#x0D;&#x0A;"
+			/>
+		</Configuration>
+		<Configuration
+			Name="Release|x64"
+			OutputDirectory="$(SolutionDir)$(PlatformName)\$(ConfigurationName)"
+			IntermediateDirectory="$(PlatformName)\$(ConfigurationName)"
+			ConfigurationType="1"
+			CharacterSet="1"
+			WholeProgramOptimization="1"
+			>
+			<Tool
+				Name="VCPreBuildEventTool"
+				CommandLine="set VCS_VERSION_FILE=&quot;$(SolutionDir)..\src\version-vcs.h&quot;&#x0D;&#x0A;&#x0D;&#x0A;git --version&#x0D;&#x0A;if errorlevel 1 goto noGit&#x0D;&#x0A;for /f &quot;delims=&quot; %%i in (&apos;git describe --always --tags --dirty&apos;) do set VCS_VERSION=%%i&#x0D;&#x0A;goto withGit&#x0D;&#x0A;:noGit&#x0D;&#x0A;set VCS_VERSION=unversioned&#x0D;&#x0A;:withGit&#x0D;&#x0A;&#x0D;&#x0A;(echo #ifndef SRC_VERSION_VCS_H_) &gt; %VCS_VERSION_FILE%&#x0D;&#x0A;(echo #define SRC_VERSION_VCS_H_) &gt;&gt; %VCS_VERSION_FILE%&#x0D;&#x0A;(echo.) &gt;&gt; %VCS_VERSION_FILE%&#x0D;&#x0A;(echo #define VERSION_VCS &quot;%VCS_VERSION%&quot;) &gt;&gt; %VCS_VERSION_FILE%&#x0D;&#x0A;(echo.) &gt;&gt; %VCS_VERSION_FILE%&#x0D;&#x0A;(echo #endif  // SRC_VERSION_VCS_H_) &gt;&gt; %VCS_VERSION_FILE%&#x0D;&#x0A;"
 			/>
 			<Tool
-				Name="VCManifestTool"
+				Name="VCMIDLTool"
+				TargetEnvironment="3"
 			/>
 			<Tool
-				Name="VCXDCMakeTool"
+				Name="VCCLCompilerTool"
+				AdditionalIncludeDirectories="$(ProjectDir);$(ProjectDir)\..;$(SDL2_INCLUDE);$(SDL2_MIXER_INCLUDE)"
+				PreprocessorDefinitions="WIN32;NDEBUG;_WINDOWS;HAVE_CONFIG_H;_CRT_SECURE_NO_WARNINGS;_SCL_SECURE_NO_WARNINGS;"
+				RuntimeLibrary="2"
+				UsePrecompiledHeader="0"
+				WarningLevel="3"
+				DisableSpecificWarnings="4290"
 			/>
 			<Tool
-				Name="VCBscMakeTool"
-			/>
-			<Tool
-				Name="VCFxCopTool"
-			/>
-			<Tool
-				Name="VCAppVerifierTool"
+				Name="VCLinkerTool"
+				AdditionalDependencies="SDL2.lib SDL2main.lib SDL2_mixer.lib"
+				LinkIncremental="1"
+				AdditionalLibraryDirectories="$(SDL2_LIB)\x64;$(SDL2_MIXER_LIB)\x64"
+				GenerateDebugInformation="true"
+				SubSystem="2"
+				OptimizeReferences="2"
+				EnableCOMDATFolding="2"
+				RandomizedBaseAddress="1"
+				DataExecutionPrevention="0"
+				TargetMachine="17"
 			/>
 			<Tool
 				Name="VCPostBuildEventTool"
-				CommandLine="copy /Y /B &quot;$(SDL2_LIB)\x86\SDL2.dll&quot; &quot;$(OutDir)\SDL2.dll&quot;&#x0D;&#x0A;copy /Y /B &quot;$(SDL2_MIXER_LIB)\x86\SDL2_mixer.dll&quot; &quot;$(OutDir)\SDL2_mixer.dll&quot;"
+				CommandLine="copy /Y /B &quot;$(SDL2_LIB)\x64\SDL2.dll&quot; &quot;$(OutDir)\SDL2.dll&quot;&#x0D;&#x0A;copy /Y /B &quot;$(SDL2_MIXER_LIB)\x64\SDL2_mixer.dll&quot; &quot;$(OutDir)\SDL2_mixer.dll&quot;&#x0D;&#x0A;"
 			/>
 		</Configuration>
 	</Configurations>

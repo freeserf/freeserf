@@ -45,8 +45,8 @@ mac/version_vcs.h
 .DS_Store
 
 # windows specific
-windows/Debug
-windows/Release
+windows/Win32
+windows/x64
 !windows/config.h
 *.ncb
 *.suo

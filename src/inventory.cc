@@ -130,7 +130,7 @@ inventory_t::lose_queue() {
 }
 
 void
-inventory_t::apply_supplies_preset(int supplies) {
+inventory_t::apply_supplies_preset(size_t supplies) {
   const int supplies_template_0[] = {  0,  0,  0,  0,  0,  0,  0,   7,  0,
                                        2,  0,   0,  0,  0,  0,  1,  6,  1,
                                        0,  0,  1,  2,  3,  0,  10,  10 };
@@ -172,9 +172,9 @@ inventory_t::apply_supplies_preset(int supplies) {
 
   for (int i = 0; i < 26; i++) {
     int t1 = template_1[i];
-    int n = (template_2[i] - template_1[i]) * (supplies * 6554);
+    size_t n = (template_2[i] - template_1[i]) * (supplies * 6554);
     if (n >= 0x8000) t1 += 1;
-    resources[i] = t1 + (n >> 16);
+    resources[i] = static_cast<int>(t1 + (n >> 16));
   }
 }
 

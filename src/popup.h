@@ -125,7 +125,7 @@ class popup_box_t : public gui_object_t {
   void draw_green_number(int x, int y, int n);
   void draw_green_large_number(int x, int y, int n);
   void draw_additional_number(int x, int y, int n);
-  int get_player_face_sprite(int face);
+  unsigned int get_player_face_sprite(size_t face);
   void draw_player_face(int x, int y, int player);
   void draw_custom_bld_box(const int sprites[]);
   void draw_custom_icon_box(const int sprites[]);

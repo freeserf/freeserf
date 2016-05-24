@@ -1,4 +1,9 @@
 version: '{build}'
+
+platform:
+  - Win32
+  - x64
+
 configuration:
   - Debug
   - Release
@@ -23,12 +28,12 @@ build_script:
 
 after_build:
   - ps: |
-      $ZIP_BASE = "freeserf-VC-$env:CONFIGURATION-$env:APPVEYOR_BUILD_NUMBER"
+      $ZIP_BASE = "freeserf-VC-$env:PLATFORM-$env:CONFIGURATION-$env:APPVEYOR_BUILD_NUMBER"
       $ZIP_FILE = "$($ZIP_BASE).zip"
       md $ZIP_BASE
-      Copy-Item -Path windows\$env:CONFIGURATION\freeserf.exe -Destination $ZIP_BASE\
+      Copy-Item -Path windows\$env:PLATFORM\$env:CONFIGURATION\freeserf.exe -Destination $ZIP_BASE\
       Copy-Item -Path README.md -Destination $ZIP_BASE\README.txt
-      Copy-Item -Path windows\$env:CONFIGURATION\SDL2.dll -Destination $ZIP_BASE\
-      Copy-Item -Path windows\$env:CONFIGURATION\SDL2_mixer.dll -Destination $ZIP_BASE\
+      Copy-Item -Path windows\$env:PLATFORM\$env:CONFIGURATION\SDL2.dll -Destination $ZIP_BASE\
+      Copy-Item -Path windows\$env:PLATFORM\$env:CONFIGURATION\SDL2_mixer.dll -Destination $ZIP_BASE\
       7z a $ZIP_FILE $ZIP_BASE\*
       Push-AppveyorArtifact $ZIP_FILE
