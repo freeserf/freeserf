@@ -23,6 +23,7 @@
 #define SRC_MAP_H_
 
 #include <list>
+#include <limits>
 
 #include "src/misc.h"
 #include "src/random.h"
@@ -177,6 +178,35 @@ typedef enum {
    uniquely identifies a vertex in the map space. It is also used
    directly as index to map data arrays. */
 typedef unsigned int map_pos_t;
+const map_pos_t bad_map_pos = std::numeric_limits<unsigned int>::max();
+class map_t;
+
+class road_t {
+ public:
+  typedef std::list<dir_t> dirs_t;
+
+ protected:
+  map_pos_t begin;
+  dirs_t dirs;
+
+  static const size_t max_length = 256;
+
+ public:
+  road_t() { begin = bad_map_pos; }
+
+  bool is_valid() const { return (begin != bad_map_pos); }
+  void invalidate() { begin = bad_map_pos; }
+  void start(map_pos_t start) { begin = start; }
+  map_pos_t get_source() const { return begin; }
+  dirs_t get_dirs() const { return dirs; }
+  size_t get_length() const { return dirs.size(); }
+  dir_t get_last() const { return dirs.back(); }
+  bool is_extandable() const { return (dirs.size() < max_length); }
+  bool is_valid_extension(map_t *map, dir_t dir) const;
+  bool is_undo(dir_t dir) const;
+  bool extand(dir_t dir);
+  map_pos_t get_end(map_t *map) const;
+};
 
 class save_reader_binary_t;
 class save_reader_text_t;
@@ -365,8 +395,7 @@ class map_t {
   static int *get_spiral_pattern();
 
   /* Actually place road segments */
-  bool place_road_segments(map_pos_t source, const dir_t *dirs,
-                           unsigned int length);
+  bool place_road_segments(const road_t &road);
   bool remove_road_backref_until_flag(map_pos_t pos, dir_t dir);
   bool remove_road_backrefs(map_pos_t pos);
   dir_t remove_road_segment(map_pos_t *pos, dir_t dir);

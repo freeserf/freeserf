@@ -40,7 +40,7 @@ freeserf_SOURCES = \
 	src/sfx2wav.cc src/sfx2wav.h \
 	src/xmi2mid.cc src/xmi2mid.h \
 	src/data-source.cc src/data-source.h \
-	src/objects.h \
+	src/objects.h src/smart_ptr.h \
 	src/inventory.cc src/inventory.h \
 	src/text-input.cc src/text-input.h
 

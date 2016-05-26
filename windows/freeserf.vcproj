@@ -491,6 +491,10 @@
 				>
 			</File>
 			<File
+				RelativePath="..\src\smart_ptr.h"
+				>
+			</File>
+			<File
 				RelativePath="..\src\text-input.h"
 				>
 			</File>

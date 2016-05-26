@@ -62,7 +62,7 @@ class flag_t : public game_object_t {
   int search_num;
   dir_t search_dir;
   int transporter;
-  int length[6];
+  size_t length[6];
   union {
     building_t *b[6];
     flag_t *f[6];
@@ -178,14 +178,14 @@ class flag_t : public game_object_t {
   int find_nearest_inventory_for_resource();
   int find_nearest_inventory_for_serf();
 
-  void link_with_flag(flag_t *dest_flag, bool water_path, int length,
+  void link_with_flag(flag_t *dest_flag, bool water_path, size_t length,
                       dir_t in_dir, dir_t out_dir);
 
   void update();
 
   /* Get road length category value for real length.
    Determines number of serfs servicing the path segment.(?) */
-  static int get_road_length_value(int length);
+  static size_t get_road_length_value(size_t length);
 
   void restore_path_serf_info(dir_t dir, serf_path_info_t *data);
 
