@@ -577,7 +577,7 @@ viewport_t::draw_paths_and_borders() {
       int sx, sy;
       screen_pix_from_map_pix(mx, my, &sx, &sy);
 
-      draw_path_segment(sx, sy + 4* map->get_height(draw_pos), draw_pos,
+      draw_path_segment(sx, sy + 4 * map->get_height(draw_pos), draw_pos,
                         draw_dir);
 
       pos = map->move(pos, dir);
