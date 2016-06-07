@@ -65,6 +65,7 @@ class deferred_callee_t {
 class event_loop_t {
  protected:
   event_handlers_t event_handlers;
+  event_handlers_t removed;
   static event_loop_t *instance;
 
  public:

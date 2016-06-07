@@ -22,6 +22,7 @@
 #include "src/event_loop.h"
 
 #include <cstddef>
+#include <algorithm>
 
 event_loop_t *
 event_loop_t::instance = NULL;
@@ -35,6 +36,7 @@ void event_loop_t::add_handler(event_handler_t *handler) {
 
 void event_loop_t::del_handler(event_handler_t *handler) {
   event_handlers.remove(handler);
+  removed.push_back(handler);
 }
 
 bool
@@ -48,8 +50,13 @@ event_loop_t::notify_handlers(event_t *event) {
   event_handlers_t handlers = event_handlers;
   for (event_handlers_t::iterator it = handlers.begin();
        it != handlers.end(); ++it) {
-    result |= (*it)->handle_event(event);
+    event_handler_t *handler = *it;
+    if (std::find(removed.begin(), removed.end(), handler) == removed.end()) {
+      result |= (*it)->handle_event(event);
+    }
   }
+
+  removed.clear();
 
   return result;
 }

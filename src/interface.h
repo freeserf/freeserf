@@ -29,8 +29,6 @@
 #include "src/building.h"
 #include "src/gui.h"
 
-#define MAX_ROAD_LENGTH  256
-
 static const unsigned int map_building_sprite[] = {
   0, 0xa7, 0xa8, 0xae, 0xa9,
   0xa3, 0xa4, 0xa5, 0xa6,
@@ -87,10 +85,7 @@ class interface_t : public gui_object_t {
 
   unsigned int last_const_tick;
 
-  bool building_road;
-  map_pos_t building_road_source;
-  dir_t building_road_dirs[MAX_ROAD_LENGTH];
-  int building_road_length;
+  road_t building_road;
   int building_road_valid_dir;
 
   int sfx_queue[4];
@@ -158,16 +153,14 @@ class interface_t : public gui_object_t {
   void set_player(unsigned int player);
   void update_map_cursor_pos(map_pos_t pos);
 
-  bool is_building_road() const { return building_road; }
-  map_pos_t get_building_road_source() const { return building_road_source; }
-  int get_building_road_length() const { return building_road_length; }
-  dir_t get_building_road_dir(int i) const { return building_road_dirs[i]; }
+  bool is_building_road() const { return building_road.is_valid(); }
+  const road_t &get_building_road() const { return building_road; }
   void build_road_begin();
   void build_road_end();
-  void build_road_reset() { building_road_length = 0; }
+  void build_road_reset() { build_road_end(); build_road_begin(); }
   int build_road_segment(dir_t dir);
   int remove_road_segment();
-  int extend_road(dir_t *dirs, unsigned int length);
+  int extend_road(const road_t &road);
   bool build_roid_is_valid_dir(dir_t dir) {
     return (BIT_TEST(building_road_valid_dir, dir) != 0); }
 

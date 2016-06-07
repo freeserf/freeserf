@@ -22,6 +22,9 @@
 #ifndef SRC_RESOURCE_H_
 #define SRC_RESOURCE_H_
 
+#include <cstddef>
+#include <map>
+
 typedef enum {
   RESOURCE_NONE = -1,
 
@@ -54,5 +57,7 @@ typedef enum {
 
   RESOURCE_GROUP_FOOD
 } resource_type_t;
+
+typedef std::map<resource_type_t, size_t> resource_map_t;
 
 #endif  // SRC_RESOURCE_H_

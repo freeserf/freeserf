@@ -267,6 +267,10 @@ class player_t : public game_object_t {
     player_stat_history[mode][index] = val; }
   int *get_player_stat_history(int mode) { return player_stat_history[mode]; }
 
+  resource_map_t get_stats_resources();
+  serf_map_t get_stats_serfs_idle();
+  serf_map_t get_stats_serfs_potential();
+
   // Settings
   int get_serf_to_knight_rate() const { return serf_to_knight_rate; }
   void set_serf_to_knight_rate(int rate) { serf_to_knight_rate = rate; }

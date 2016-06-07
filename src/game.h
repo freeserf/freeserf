@@ -116,8 +116,8 @@ class game_t : public event_handler_t {
 
   /* External interface */
   void init();
-  int add_player(size_t face, unsigned int color, size_t supplies,
-                 size_t reproduction, size_t intelligence);
+  unsigned int add_player(size_t face, unsigned int color, size_t supplies,
+                          size_t reproduction, size_t intelligence);
   bool load_mission_map(int m);
   bool load_random_map(int size, const random_state_t &rnd);
   bool load_save_game(const std::string &path);
@@ -143,18 +143,17 @@ class game_t : public event_handler_t {
   bool can_build_flag(map_pos_t pos, const player_t *player);
   bool can_player_build(map_pos_t pos, const player_t *player);
 
-  int can_build_road(map_pos_t source, const dir_t dirs[], unsigned int length,
-                     const player_t *player, map_pos_t *dest, int *water);
+  int can_build_road(const road_t &road, const player_t *player,
+                     map_pos_t *dest, bool *water);
 
   bool can_demolish_flag(map_pos_t pos, const player_t *player);
   bool can_demolish_road(map_pos_t pos, const player_t *player);
 
-  int build_road(map_pos_t source, const dir_t dirs[],
-                 unsigned int length, const player_t *player);
+  bool build_road(const road_t &road, const player_t *player);
 
-  int build_flag(map_pos_t pos, player_t *player);
-  int build_building(map_pos_t pos, building_type_t type, player_t *player);
-  int build_castle(map_pos_t pos, player_t *player);
+  bool build_flag(map_pos_t pos, player_t *player);
+  bool build_building(map_pos_t pos, building_type_t type, player_t *player);
+  bool build_castle(map_pos_t pos, player_t *player);
 
   bool demolish_road(map_pos_t pos, player_t *player);
   bool demolish_flag(map_pos_t pos, player_t *player);
@@ -177,10 +176,6 @@ class game_t : public event_handler_t {
 
   bool send_serf_to_flag(flag_t *dest, serf_type_t type, resource_type_t res1,
                          resource_type_t res2);
-
-  bool get_stats_resources_all(player_t *player, std::vector<int> *res);
-  bool get_stats_serfs_idle(player_t *player, int **res);
-  bool get_stats_serfs_potential(player_t *player, int **res);
 
   int get_player_history_index(size_t scale) const {
     return player_history_index[scale]; }

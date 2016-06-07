@@ -201,6 +201,7 @@ frame_t::draw_transp_sprite_relatively(int x, int y, unsigned int sprite,
   y += s->get_delta_y();
 
   draw_transp_sprite(x, y, sprite, true, 0, 1.f);
+  delete s;
 }
 
 /* Draw the masked sprite with given mask and sprite

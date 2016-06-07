@@ -536,8 +536,8 @@ flag_t::invalidate_resource_path(dir_t dir) {
 
 /* Get road length category value for real length.
  Determines number of serfs servicing the path segment.(?) */
-int
-flag_t::get_road_length_value(int length) {
+size_t
+flag_t::get_road_length_value(size_t length) {
   if (length >= 24) return 7;
   else if (length >= 18) return 6;
   else if (length >= 13) return 5;
@@ -549,8 +549,8 @@ flag_t::get_road_length_value(int length) {
 }
 
 void
-flag_t::link_with_flag(flag_t *dest_flag, bool water_path,
-                       int length, dir_t in_dir, dir_t out_dir) {
+flag_t::link_with_flag(flag_t *dest_flag, bool water_path, size_t length,
+                       dir_t in_dir, dir_t out_dir) {
   dest_flag->add_path(in_dir, water_path);
   add_path(out_dir, water_path);
 
@@ -558,7 +558,7 @@ flag_t::link_with_flag(flag_t *dest_flag, bool water_path,
     (dest_flag->other_end_dir[in_dir] & 0xc7) | (out_dir << 3);
   other_end_dir[out_dir] = (other_end_dir[out_dir] & 0xc7) | (in_dir << 3);
 
-  int len = get_road_length_value(length);
+  size_t len = get_road_length_value(length);
 
   dest_flag->length[in_dir] = len << 4;
   this->length[out_dir] = len << 4;
@@ -578,7 +578,7 @@ flag_t::restore_path_serf_info(dir_t dir, serf_path_info_t *data) {
 
   other_flag->transporter &= ~BIT(other_dir);
 
-  int len = flag_t::get_road_length_value(data->path_len);
+  size_t len = flag_t::get_road_length_value(data->path_len);
 
   length[dir] = len << 4;
   other_flag->length[other_dir] =
@@ -796,8 +796,8 @@ flag_t::merge_paths(map_pos_t pos) {
   flag_1->transporter &= ~BIT(dir_1);
   flag_2->transporter &= ~BIT(dir_2);
 
-  int len = flag_t::get_road_length_value(path_1_data.path_len +
-                                          path_2_data.path_len);
+  size_t len = flag_t::get_road_length_value(path_1_data.path_len +
+                                             path_2_data.path_len);
   flag_1->length[dir_1] = len << 4;
   flag_2->length[dir_2] = len << 4;
 
@@ -1107,7 +1107,9 @@ operator >> (save_reader_text_t &reader, flag_t &flag) {
   reader.value("transporter") >> flag.transporter;
 
   for (int i = 0; i < 6; i++) {
-    reader.value("length")[i] >> flag.length[i];
+    int len;
+    reader.value("length")[i] >> len;
+    flag.length[i] = len;
     unsigned int obj_index;
     reader.value("other_endpoint")[i] >> obj_index;
     if (flag.has_building() && (i == DIR_UP_LEFT)) {
@@ -1146,7 +1148,7 @@ operator << (save_writer_text_t &writer, flag_t &flag) {
   writer.value("transporter") << flag.transporter;
 
   for (int d = DIR_RIGHT; d <= DIR_UP; d++) {
-    writer.value("length") << flag.length[d];
+    writer.value("length") << static_cast<int>(flag.length[d]);
     if (d == DIR_UP_LEFT && flag.has_building()) {
       writer.value("other_endpoint") <<
         flag.other_endpoint.b[DIR_UP_LEFT]->get_index();

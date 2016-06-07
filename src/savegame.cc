@@ -36,7 +36,7 @@ load_v0_state(FILE *f) {
   if (fseek(f, 0, SEEK_END) != 0) {
     return false;
   }
-  int last = ftell(f);
+  int last = static_cast<int>(ftell(f));
   if (last == -1) {
     return false;
   }

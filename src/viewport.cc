@@ -560,9 +560,12 @@ viewport_t::draw_paths_and_borders() {
   /* If we're in road construction mode, also draw
      the temporarily placed roads. */
   if (interface->is_building_road()) {
-    map_pos_t pos = interface->get_building_road_source();
-    for (int i = 0; i < interface->get_building_road_length(); i++) {
-      dir_t dir = interface->get_building_road_dir(i);
+    road_t road = interface->get_building_road();
+    map_pos_t pos = road.get_source();
+    road_t::dirs_t dirs = road.get_dirs();
+    road_t::dirs_t::const_iterator it = dirs.begin();
+    for (; it != dirs.end(); ++it) {
+      dir_t dir = *it;
 
       map_pos_t draw_pos = pos;
       dir_t draw_dir = dir;
@@ -577,7 +580,7 @@ viewport_t::draw_paths_and_borders() {
       int sx, sy;
       screen_pix_from_map_pix(mx, my, &sx, &sy);
 
-      draw_path_segment(sx, sy + 4* map->get_height(draw_pos), draw_pos,
+      draw_path_segment(sx, sy + 4 * map->get_height(draw_pos), draw_pos,
                         draw_dir);
 
       pos = map->move(pos, dir);
@@ -2285,9 +2288,11 @@ viewport_t::handle_click_left(int x, int y) {
     }
 
     if (interface->build_roid_is_valid_dir(dir)) {
-      int length = interface->get_building_road_length();
+      road_t road = interface->get_building_road();
+      road_t::dirs_t dirs = road.get_dirs();
       dir_t last_dir = DIR_RIGHT;
-      if (length > 0) last_dir = interface->get_building_road_dir(length-1);
+      size_t length = road.get_length();
+      if (length > 0) last_dir = dirs.back();
 
       if (length > 0 && DIR_REVERSE(last_dir) == dir) {
         /* Delete existing path */
@@ -2327,12 +2332,10 @@ viewport_t::handle_dbl_click(int x, int y, event_button_t button) {
 
   if (interface->is_building_road()) {
     if (clk_pos != interface->get_map_cursor_pos()) {
-      map_pos_t pos = interface->get_building_road_source();
-      unsigned int length = 0;
-      dir_t *dirs = pathfinder_map(map, pos, clk_pos, &length);
-      if (dirs != NULL) {
-        interface->build_road_reset();
-        int r = interface->extend_road(dirs, length);
+      map_pos_t pos = interface->get_building_road().get_end(map);
+      road_t road = pathfinder_map(map, pos, clk_pos);
+      if (road.get_length() != 0) {
+        int r = interface->extend_road(road);
         if (r < 0) {
           play_sound(SFX_NOT_ACCEPTED);
         } else if (r == 1) {
@@ -2340,17 +2343,17 @@ viewport_t::handle_dbl_click(int x, int y, event_button_t button) {
         } else {
           play_sound(SFX_CLICK);
         }
-        free(dirs);
       } else {
         play_sound(SFX_NOT_ACCEPTED);
       }
     } else {
-      int r = interface->get_game()->build_flag(interface->get_map_cursor_pos(),
-                                                interface->get_player());
-      if (r < 0) {
-        play_sound(SFX_NOT_ACCEPTED);
-      } else {
+      bool r = interface->get_game()->build_flag(
+                                                interface->get_map_cursor_pos(),
+                                                 interface->get_player());
+      if (r) {
         interface->build_road();
+      } else {
+        play_sound(SFX_NOT_ACCEPTED);
       }
     }
   } else {

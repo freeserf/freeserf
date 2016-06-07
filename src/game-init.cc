@@ -263,6 +263,9 @@ game_init_box_t::handle_action(int action) {
 
       event_loop_t::get_instance()->add_handler(game);
       interface->set_game(game);
+      if (old_game != NULL) {
+        delete old_game;
+      }
       interface->set_player(0);
       interface->close_game_init();
       break;

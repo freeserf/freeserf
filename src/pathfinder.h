@@ -24,7 +24,6 @@
 
 #include "src/map.h"
 
-dir_t *pathfinder_map(map_t *map, map_pos_t start, map_pos_t end,
-                      unsigned int *length);
+road_t pathfinder_map(map_t *map, map_pos_t start, map_pos_t end);
 
 #endif  // SRC_PATHFINDER_H_

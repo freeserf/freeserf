@@ -1584,19 +1584,20 @@ map_t::is_road_segment_valid(map_pos_t pos, dir_t dir) {
 
 /* Actually place road segments */
 bool
-map_t::place_road_segments(map_pos_t source, const dir_t *dirs,
-                           unsigned int length) {
-  map_pos_t pos_ = source;
-  for (unsigned int i = 0; i < length; i++) {
-    dir_t dir = dirs[i];
-    dir_t rev_dir = DIR_REVERSE(dir);
+map_t::place_road_segments(const road_t &road) {
+  map_pos_t pos_ = road.get_source();
+  road_t::dirs_t dirs = road.get_dirs();
+  road_t::dirs_t::const_iterator it = dirs.begin();
+  for (; it != dirs.end(); ++it) {
+    dir_t rev_dir = DIR_REVERSE(*it);
 
-    if (!is_road_segment_valid(pos_, dir)) {
+    if (!is_road_segment_valid(pos_, *it)) {
       /* Not valid after all. Backtrack and abort.
        This is needed to check that the road
        does not cross itself. */
-      for (int j = i-1; j >= 0; j--) {
-        dir_t rev_dir = dirs[j];
+      for (; it != dirs.begin();) {
+        --it;
+        dir_t rev_dir = *it;
         dir_t dir = DIR_REVERSE(rev_dir);
 
         tiles[pos_].paths &= ~BIT(dir);
@@ -1608,10 +1609,10 @@ map_t::place_road_segments(map_pos_t source, const dir_t *dirs,
       return false;
     }
 
-    tiles[pos_].paths |= BIT(dir);
-    tiles[move(pos_, dir)].paths |= BIT(rev_dir);
+    tiles[pos_].paths |= BIT(*it);
+    tiles[move(pos_, *it)].paths |= BIT(rev_dir);
 
-    pos_ = move(pos_, dir);
+    pos_ = move(pos_, *it);
   }
 
   return true;
@@ -1873,4 +1874,53 @@ operator << (save_writer_text_t &writer, map_t &map) {
   }
 
   return writer;
+}
+
+map_pos_t
+road_t::get_end(map_t *map) const {
+  map_pos_t result = begin;
+  dirs_t::const_iterator it = dirs.begin();
+  for (; it != dirs.end(); ++it) {
+    result = map->move(result, *it);
+  }
+  return result;
+}
+
+bool
+road_t::is_valid_extension(map_t *map, dir_t dir) const {
+  if (is_undo(dir)) {
+    return false;
+  }
+
+  /* Check that road does not cross itself. */
+  map_pos_t extended_end = map->move(get_end(map), dir);
+  map_pos_t pos = begin;
+  bool valid = true;
+  dirs_t::const_iterator last = dirs.end();
+  --last;
+  for (dirs_t::const_iterator it = dirs.begin(); it != last; ++it) {
+    pos = map->move(pos, *it);
+    if (pos == extended_end) {
+      valid = false;
+      break;
+    }
+  }
+
+  return valid;
+}
+
+bool
+road_t::is_undo(dir_t dir) const {
+  return (dirs.size() > 0) && (dirs.back() == DIR_REVERSE(dir));
+}
+
+bool
+road_t::extand(dir_t dir) {
+  if (begin == bad_map_pos) {
+    return false;
+  }
+
+  dirs.push_back(dir);
+
+  return true;
 }

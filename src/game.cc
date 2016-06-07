@@ -348,7 +348,7 @@ game_t::send_serf_to_flag_search_cb(flag_t *flag, void *d) {
 /* Dispatch serf from (nearest?) inventory to flag. */
 bool
 game_t::send_serf_to_flag(flag_t *dest, serf_type_t type, resource_type_t res1,
-                        resource_type_t res2) {
+                          resource_type_t res2) {
   building_t *building = NULL;
   if (dest->has_building()) {
     building = dest->get_building();
@@ -775,12 +775,11 @@ game_t::road_segment_in_water(map_pos_t pos, dir_t dir) {
    This will return success even if the destination does _not_ contain
    a flag, and therefore partial paths can be validated with this function. */
 int
-game_t::can_build_road(map_pos_t source, const dir_t dirs[],
-                       unsigned int length, const player_t *player,
-                       map_pos_t *dest, int *water) {
+game_t::can_build_road(const road_t &road, const player_t *player,
+                       map_pos_t *dest, bool *water) {
   /* Follow along path to other flag. Test along the way
      whether the path is on ground or in water. */
-  map_pos_t pos = source;
+  map_pos_t pos = road.get_source();
   int test = 0;
 
   if (!map->has_owner(pos) || map->get_owner(pos) != player->get_index() ||
@@ -788,26 +787,24 @@ game_t::can_build_road(map_pos_t source, const dir_t dirs[],
     return 0;
   }
 
-  for (unsigned int i = 0; i < length; i++) {
-    dir_t dir = dirs[i];
-
-    if (!map->is_road_segment_valid(pos, dir)) {
+  road_t::dirs_t dirs = road.get_dirs();
+  road_t::dirs_t::const_iterator it = dirs.begin();
+  for (; it != dirs.end(); ++it) {
+    if (!map->is_road_segment_valid(pos, *it)) {
       return -1;
     }
 
-    if (road_segment_in_water(pos, dir)) {
+    if (map->road_segment_in_water(pos, *it)) {
       test |= BIT(1);
     } else {
       test |= BIT(0);
     }
 
-    pos = map->move(pos, dir);
+    pos = map->move(pos, *it);
 
-    /* Check that owner is correct, and that only the destination
-       has a flag. */
-    if (!map->has_owner(pos) ||
-        map->get_owner(pos) != player->get_index() ||
-        (map->has_flag(pos) && i != length-1)) {
+    /* Check that owner is correct, and that only the destination has a flag. */
+    if (!map->has_owner(pos) || map->get_owner(pos) != player->get_index() ||
+        (map->has_flag(pos) && it != --dirs.end())) {
       return 0;
     }
   }
@@ -818,9 +815,9 @@ game_t::can_build_road(map_pos_t source, const dir_t dirs[],
   /* Bit 0 indicates a ground path, bit 1 indicates
      water path. Abort if path went through both
      ground and water. */
-  int w = 0;
+  bool w = false;
   if (BIT_TEST(test, 1)) {
-    w = 1;
+    w = true;
     if (BIT_TEST(test, 0)) return 0;
   }
   if (water != NULL) *water = w;
@@ -828,32 +825,33 @@ game_t::can_build_road(map_pos_t source, const dir_t dirs[],
   return 1;
 }
 
-/* Construct a road spefified by a source and a list
-   of directions. */
-int
-game_t::build_road(map_pos_t source, const dir_t dirs[], unsigned int length,
-                   const player_t *player) {
-  if (length < 1) return -1;
+/* Construct a road spefified by a source and a list of directions. */
+bool
+game_t::build_road(const road_t &road, const player_t *player) {
+  if (road.get_length() == 0) return false;
 
-  map_pos_t dest = 0;
-  int water_path = 0;
-  int r = can_build_road(source, dirs, length, player, &dest, &water_path);
-  if (!r) return -1;
-  if (!map->has_flag(dest)) return -1;
+  map_pos_t dest;
+  bool water_path;
+  if (!can_build_road(road, player, &dest, &water_path)) {
+    return false;
+  }
+  if (!map->has_flag(dest)) return false;
 
-  dir_t out_dir = dirs[0];
-  dir_t in_dir = DIR_REVERSE(dirs[length-1]);
+  road_t::dirs_t dirs = road.get_dirs();
+  dir_t out_dir = dirs.front();
+  dir_t in_dir = DIR_REVERSE(dirs.back());
 
   /* Actually place road segments */
-  if (!map->place_road_segments(source, dirs, length)) return -1;
+  if (!map->place_road_segments(road)) return false;
 
   /* Connect flags */
-  flag_t *src_flag = flags[map->get_obj_index(source)];
-  flag_t *dest_flag = flags[map->get_obj_index(dest)];
+  flag_t *src_flag = get_flag_at_pos(road.get_source());
+  flag_t *dest_flag = get_flag_at_pos(dest);
 
-  src_flag->link_with_flag(dest_flag, water_path != 0, length, in_dir, out_dir);
+  src_flag->link_with_flag(dest_flag, water_path, road.get_length(),
+                           in_dir, out_dir);
 
-  return 0;
+  return true;
 }
 
 void
@@ -1077,12 +1075,14 @@ game_t::can_build_flag(map_pos_t pos, const player_t *player) {
 }
 
 /* Build flag at pos. */
-int
+bool
 game_t::build_flag(map_pos_t pos, player_t *player) {
-  if (!can_build_flag(pos, player)) return -1;
+  if (!can_build_flag(pos, player)) {
+    return false;
+  }
 
   flag_t *flag = flags.allocate();
-  if (flag == NULL) return -1;
+  if (flag == NULL) return false;
 
   flag->set_owner(player->get_index());
   flag->set_position(pos);
@@ -1092,7 +1092,7 @@ game_t::build_flag(map_pos_t pos, player_t *player) {
     build_flag_split_path(pos);
   }
 
-  return 0;
+  return true;
 }
 
 /* Check whether military buildings are allowed at pos. */
@@ -1361,16 +1361,20 @@ game_t::can_build_building(map_pos_t pos, building_type_t type,
 }
 
 /* Build building at position. */
-int
+bool
 game_t::build_building(map_pos_t pos, building_type_t type, player_t *player) {
-  if (!can_build_building(pos, type, player)) return -1;
+  if (!can_build_building(pos, type, player)) {
+    return false;
+  }
 
   if (type == BUILDING_STOCK) {
     /* TODO Check that more stocks are allowed to be built */
   }
 
   building_t *bld = buildings.allocate();
-  if (bld == NULL) return -1;
+  if (bld == NULL) {
+    return false;
+  }
 
   flag_t *flag = NULL;
   unsigned int flg_index = 0;
@@ -1378,7 +1382,7 @@ game_t::build_building(map_pos_t pos, building_type_t type, player_t *player) {
     flag = flags.allocate();
     if (flag == NULL) {
       buildings.erase(bld->get_index());
-      return -1;
+      return false;
     }
     flg_index = flag->get_index();
   }
@@ -1416,28 +1420,32 @@ game_t::build_building(map_pos_t pos, building_type_t type, player_t *player) {
 
   if (split_path) build_flag_split_path(map->move_down_right(pos));
 
-  return 0;
+  return true;
 }
 
 /* Build castle at position. */
-int
+bool
 game_t::build_castle(map_pos_t pos, player_t *player) {
-  if (!can_build_castle(pos, player)) return -1;
+  if (!can_build_castle(pos, player)) {
+    return false;
+  }
 
   inventory_t *inventory = inventories.allocate();
-  if (inventory == NULL) return -1;
+  if (inventory == NULL) {
+    return false;
+  }
 
   building_t *castle = buildings.allocate();
   if (castle == NULL) {
     inventories.erase(inventory->get_index());
-    return -1;
+    return false;
   }
 
   flag_t *flag = flags.allocate();
   if (flag == NULL) {
     buildings.erase(castle->get_index());
     inventories.erase(inventory->get_index());
-    return -1;
+    return false;
   }
 
   castle->start_activity();
@@ -1483,7 +1491,7 @@ game_t::build_castle(map_pos_t pos, player_t *player) {
 
   calculate_military_flag_state(castle);
 
-  return 0;
+  return true;
 }
 
 void
@@ -2069,7 +2077,7 @@ game_t::set_inventory_serf_mode(inventory_t *inventory, int mode) {
 
 /* Add new player to the game. Returns the player number
    or negative on error. */
-int
+unsigned int
 game_t::add_player(size_t face, unsigned int color, size_t supplies,
                    size_t reproduction, size_t intelligence) {
   /* Allocate object */
@@ -2267,63 +2275,6 @@ game_t::handle_event(const event_t *event) {
       break;
   }
   return false;
-}
-
-bool
-game_t::get_stats_resources_all(player_t *player, std::vector<int> *res) {
-  if (res == NULL) {
-    return false;
-  }
-
-  res->resize(26, 0);
-
-  /* Sum up resources of all inventories. */
-  for (inventories_t::iterator i = inventories.begin();
-       i != inventories.end(); ++i) {
-    inventory_t *inventory = *i;
-    if (inventory->get_owner() == player->get_index()) {
-      for (int j = 0; j < 26; j++) {
-        (*res)[j] += inventory->get_count_of((resource_type_t)j);
-      }
-    }
-  }
-
-  return true;
-}
-
-bool
-game_t::get_stats_serfs_idle(player_t *player, int **res) {
-  *res = new int[27];
-
-  /* Sum up all existing serfs. */
-  for (serfs_t::iterator i = serfs.begin(); i != serfs.end(); ++i) {
-    serf_t *serf = *i;
-    if (serf->get_player() == player->get_index() &&
-        serf->get_state() == SERF_STATE_IDLE_IN_STOCK) {
-      (*res)[serf->get_type()] += 1;
-    }
-  }
-
-  return true;
-}
-
-bool
-game_t::get_stats_serfs_potential(player_t *player, int **res) {
-  *res = new int[27];
-
-  /* Sum up potential serfs of all inventories. */
-  for (inventories_t::iterator i = inventories.begin();
-       i != inventories.end(); ++i) {
-    inventory_t *inventory = *i;
-    if (inventory->get_owner() == player->get_index() &&
-        inventory->free_serf_count() > 0) {
-      for (int i = 0; i < 27; i++) {
-        (*res)[i] += inventory->serf_potencial_count((serf_type_t)i);
-      }
-    }
-  }
-
-  return true;
 }
 
 int

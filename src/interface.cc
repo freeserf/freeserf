@@ -268,28 +268,15 @@ interface_t::determine_map_cursor_type_road() {
   map_pos_t pos = map_cursor_pos;
   int h = game->get_map()->get_height(pos);
   int valid_dir = 0;
-  int length = building_road_length;
 
   for (int d = DIR_RIGHT; d <= DIR_UP; d++) {
     int sprite = 0;
 
-    if ((length > 0) &&
-        (building_road_dirs[length-1] == DIR_REVERSE(d))) {
+    if (building_road.is_undo((dir_t)d)) {
       sprite = 45; /* undo */
       valid_dir |= BIT(d);
     } else if (game->get_map()->is_road_segment_valid(pos, (dir_t)d)) {
-      /* Check that road does not cross itself. */
-      map_pos_t road_pos = building_road_source;
-      int crossing_self = 0;
-      for (int i = 0; i < length; i++) {
-        road_pos = game->get_map()->move(road_pos, building_road_dirs[i]);
-        if (road_pos == game->get_map()->move(pos, (dir_t)d)) {
-          crossing_self = 1;
-          break;
-        }
-      }
-
-      if (!crossing_self) {
+      if (building_road.is_valid_extension(game->get_map(), (dir_t)d)) {
         int h_diff =
           game->get_map()->get_height(game->get_map()->move(pos, (dir_t)d)) - h;
         sprite = 39 + h_diff; /* height indicators */
@@ -309,7 +296,7 @@ interface_t::determine_map_cursor_type_road() {
 /* Set the appropriate sprites for the panel buttons and the map cursor. */
 void
 interface_t::update_interface() {
-  if (!building_road) {
+  if (!building_road.is_valid()) {
     switch (map_cursor_type) {
     case MAP_CURSOR_TYPE_NONE:
       map_cursor_sprites[0].sprite = 32;
@@ -448,7 +435,7 @@ interface_t::set_player(unsigned int player) {
 void
 interface_t::update_map_cursor_pos(map_pos_t pos) {
   map_cursor_pos = pos;
-  if (building_road) {
+  if (building_road.is_valid()) {
     determine_map_cursor_type_road();
   } else {
     determine_map_cursor_type();
@@ -467,10 +454,8 @@ interface_t::build_road_begin() {
     return;
   }
 
-  building_road = 1;
-  building_road_length = 0;
-  building_road_source = map_cursor_pos;
-
+  building_road.invalidate();
+  building_road.start(map_cursor_pos);
   update_map_cursor_pos(map_cursor_pos);
 
   panel->update();
@@ -486,7 +471,7 @@ interface_t::build_road_end() {
   map_cursor_sprites[5].sprite = 33;
   map_cursor_sprites[6].sprite = 33;
 
-  building_road = 0;
+  building_road.invalidate();
   update_map_cursor_pos(map_cursor_pos);
 
   panel->update();
@@ -496,17 +481,15 @@ interface_t::build_road_end() {
    construction, and 1 if this segment completed the path. */
 int
 interface_t::build_road_segment(dir_t dir) {
-  if (building_road_length+1 >= MAX_ROAD_LENGTH) {
+  if (!building_road.is_extandable()) {
     /* Max length reached */
     return -1;
   }
 
-  building_road_dirs[building_road_length] = dir;
-  building_road_length += 1;
+  building_road.extand(dir);
 
   map_pos_t dest;
-  int r = game->can_build_road(building_road_source, building_road_dirs,
-                               building_road_length, player, &dest, NULL);
+  int r = game->can_build_road(building_road, player, &dest, NULL);
   if (!r) {
     /* Invalid construction, undo. */
     return remove_road_segment();
@@ -514,8 +497,7 @@ interface_t::build_road_segment(dir_t dir) {
 
   if (game->get_map()->get_obj(dest) == MAP_OBJ_FLAG) {
     /* Existing flag at destination, try to connect. */
-    int r = game->build_road(building_road_source, building_road_dirs,
-                             building_road_length, player);
+    int r = game->build_road(building_road, player);
     if (r < 0) {
       build_road_end();
       return -1;
@@ -539,11 +521,8 @@ interface_t::build_road_segment(dir_t dir) {
 
 int
 interface_t::remove_road_segment() {
-  building_road_length -= 1;
-
   map_pos_t dest;
-  int r = game->can_build_road(building_road_source, building_road_dirs,
-                               building_road_length, player, &dest, NULL);
+  int r = game->can_build_road(building_road, player, &dest, NULL);
   if (!r) {
     /* Road construction is no longer valid, abort. */
     build_road_end();
@@ -559,15 +538,15 @@ interface_t::remove_road_segment() {
 
 /* Extend currently constructed road with an array of directions. */
 int
-interface_t::extend_road(dir_t *dirs, unsigned int length) {
-  for (unsigned int i = 0; i < length; i++) {
-    dir_t dir = dirs[i];
+interface_t::extend_road(const road_t &road) {
+  road_t old_road = building_road;
+  road_t::dirs_t dirs = road.get_dirs();
+  road_t::dirs_t::const_iterator it = dirs.begin();
+  for (; it != dirs.end(); ++it) {
+    dir_t dir = *it;
     int r = build_road_segment(dir);
     if (r < 0) {
-      /* Backtrack */
-      for (int j = i-1; j >= 0; j--) {
-        remove_road_segment();
-      }
+      building_road = old_road;
       return -1;
     } else if (r == 1) {
       return 1;
@@ -605,8 +584,7 @@ interface_t::demolish_object() {
 /* Build new flag. */
 void
 interface_t::build_flag() {
-  int r = game->build_flag(map_cursor_pos, player);
-  if (r < 0) {
+  if (!game->build_flag(map_cursor_pos, player)) {
     play_sound(SFX_NOT_ACCEPTED);
     return;
   }
@@ -617,8 +595,7 @@ interface_t::build_flag() {
 /* Build a new building. */
 void
 interface_t::build_building(building_type_t type) {
-  int r = game->build_building(map_cursor_pos, type, player);
-  if (r < 0) {
+  if (!game->build_building(map_cursor_pos, type, player)) {
     play_sound(SFX_NOT_ACCEPTED);
     return;
   }
@@ -634,8 +611,7 @@ interface_t::build_building(building_type_t type) {
 /* Build castle. */
 void
 interface_t::build_castle() {
-  int r = game->build_castle(map_cursor_pos, player);
-  if (r < 0) {
+  if (!game->build_castle(map_cursor_pos, player)) {
     play_sound(SFX_NOT_ACCEPTED);
     return;
   }
@@ -646,11 +622,8 @@ interface_t::build_castle() {
 
 void
 interface_t::build_road() {
-  int r = game->build_road(building_road_source,
-                           building_road_dirs,
-                           building_road_length,
-                           player);
-  if (r < 0) {
+  bool r = game->build_road(building_road, player);
+  if (!r) {
     play_sound(SFX_NOT_ACCEPTED);
     game->demolish_flag(map_cursor_pos, player);
   } else {
@@ -725,8 +698,6 @@ interface_t::interface_t() {
   map_cursor_pos = 0;
   map_cursor_type = (map_cursor_type_t)0;
   build_possibility = CAN_BUILD_NONE;
-
-  building_road = false;
 
   player = NULL;
 
@@ -846,7 +817,7 @@ interface_t::handle_key_pressed(char key, int modifier) {
         close_message();
       } else if ((popup != NULL) && popup->is_displayed()) {
         close_popup();
-      } else if (building_road) {
+      } else if (building_road.is_valid()) {
         build_road_end();
       }
       break;

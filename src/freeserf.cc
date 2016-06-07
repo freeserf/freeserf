@@ -260,8 +260,13 @@ main(int argc, char *argv[]) {
   LOGI("main", "Cleaning up...");
 
   /* Clean up */
+  game = interface->get_game();
   delete interface;
-  delete game;
+  if (game != NULL) {
+    event_loop_t::get_instance()->del_handler(game);
+    delete game;
+    game = NULL;
+  }
   delete audio;
   delete gfx;
   delete data;

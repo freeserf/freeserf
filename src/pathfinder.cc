@@ -26,24 +26,28 @@
 #include <vector>
 #include <algorithm>
 
-typedef struct search_node search_node_t;
+#include "src/smart_ptr.h"
 
-struct search_node {
+class search_node_t;
+
+typedef smart_ptr_t<search_node_t> search_node_p;
+
+class search_node_t {
+ public:
   map_pos_t pos;
   unsigned int g_score;
   unsigned int f_score;
-  search_node_t *parent;
+  search_node_p parent;
   dir_t dir;
 };
 
 static bool
-search_node_less(const search_node_t* left, const search_node_t* right) {
+search_node_less(const search_node_p &left, const search_node_p &right) {
   // A search node is considered less than the other if
   // it has a larger f-score. This means that in the max-heap
   // the lower score will go to the top.
   return left->f_score > right->f_score;
 }
-
 
 static const unsigned int walk_cost[] = { 255, 319, 383, 447, 511 };
 
@@ -88,25 +92,21 @@ actual_cost(map_t *map, map_pos_t pos, dir_t dir) {
    the walking time for a serf walking in any direction of the path
    should be minimized. Returns a malloc'ed array of directions and
    the size of this array in length. */
-dir_t *
-pathfinder_map(map_t *map, map_pos_t start, map_pos_t end,
-               unsigned int *length) {
+road_t
+pathfinder_map(map_t *map, map_pos_t start, map_pos_t end) {
   // Unfortunately the STL priority_queue cannot be used since we
   // would need access to the underlying sequence to determine if
   // a node is already in the open list. We keep instead open as
   // a vector and apply std::pop_heap and std::push_heap to keep
   // it heapified.
-  std::vector<search_node_t*> open;
-  std::list<search_node_t*> closed;
-
-  dir_t *solution = NULL;
+  std::vector<search_node_p> open;
+  std::list<search_node_p> closed;
 
   /* Create start node */
-  search_node_t *node = new search_node_t;
-  node->pos = start;
+  search_node_p node(new search_node_t);
+  node->pos = end;
   node->g_score = 0;
   node->f_score = heuristic_cost(map, start, end);
-  node->parent = NULL;
 
   open.push_back(node);
 
@@ -115,25 +115,19 @@ pathfinder_map(map_t *map, map_pos_t start, map_pos_t end,
     node = open.back();
     open.pop_back();
 
-    if (node->pos == end) {
+    if (node->pos == start) {
       /* Construct solution */
-      *length = 0;
-      search_node_t *n = node;
-      while (n->parent != NULL) {
-        *length += 1;
-        n = n->parent;
-      }
+      road_t solution;
+      solution.start(start);
 
-      if (*length == 0) break;
-
-      solution = static_cast<dir_t*>(malloc(*length*sizeof(dir_t)));
-      if (solution == NULL) abort();
-
-      for (int i = *length-1; i >= 0; i--) {
-        solution[i] = node->dir;
+      std::list<dir_t> dirs;
+      while (node->parent != NULL) {
+        dir_t dir = node->dir;
+        solution.extand(DIR_REVERSE(dir));
         node = node->parent;
       }
-      break;
+
+      return solution;
     }
 
     /* Put current node on closed list. */
@@ -145,14 +139,13 @@ pathfinder_map(map_t *map, map_pos_t start, map_pos_t end,
 
       /* Check if neighbour is valid. */
       if (!map->is_road_segment_valid(node->pos, static_cast<dir_t>(d)) ||
-          (
-            map->get_obj(new_pos) == MAP_OBJ_FLAG && new_pos != end)) {
+          (map->get_obj(new_pos) == MAP_OBJ_FLAG && new_pos != start)) {
         continue;
       }
 
       /* Check if neighbour is in closed list. */
       bool in_closed = false;
-      for (std::list<search_node_t*>::iterator it = closed.begin();
+      for (std::list<search_node_p>::iterator it = closed.begin();
            it != closed.end(); ++it) {
         if ((*it)->pos == new_pos) {
           in_closed = true;
@@ -164,14 +157,14 @@ pathfinder_map(map_t *map, map_pos_t start, map_pos_t end,
 
       /* See if neighbour is already in open list. */
       bool in_open = false;
-      for (std::vector<search_node_t*>::iterator it = open.begin();
+      for (std::vector<search_node_p>::iterator it = open.begin();
            it != open.end(); ++it) {
-        search_node_t *n = *it;
+        search_node_p n = *it;
         if (n->pos == new_pos) {
           in_open = true;
           if (n->g_score >= node->g_score + cost) {
             n->g_score = node->g_score + cost;
-            n->f_score = n->g_score + heuristic_cost(map, new_pos, end);
+            n->f_score = n->g_score + heuristic_cost(map, new_pos, start);
             n->parent = node;
             n->dir = static_cast<dir_t>(d);
 
@@ -185,12 +178,12 @@ pathfinder_map(map_t *map, map_pos_t start, map_pos_t end,
 
       /* If not found in the open set, create a new node. */
       if (!in_open) {
-        search_node_t *new_node = new search_node_t;
+        search_node_p new_node(new search_node_t);
 
         new_node->pos = new_pos;
         new_node->g_score = node->g_score + cost;
         new_node->f_score = new_node->g_score +
-                            heuristic_cost(map, new_pos, end);
+                            heuristic_cost(map, new_pos, start);
         new_node->parent = node;
         new_node->dir = static_cast<dir_t>(d);
 
@@ -200,16 +193,5 @@ pathfinder_map(map_t *map, map_pos_t start, map_pos_t end,
     }
   }
 
-  /* Clean up */
-  for (std::vector<search_node_t*>::iterator it = open.begin();
-       it != open.end(); ++it) {
-    delete *it;
-  }
-
-  for (std::list<search_node_t*>::iterator it = closed.begin();
-       it != closed.end(); ++it) {
-    delete *it;
-  }
-
-  return solution;
+  return road_t();
 }
