@@ -172,7 +172,6 @@ class Game : public EventLoop::Handler {
 
 
   /* Internal interface */
-  void calculate_military_flag_state(Building *building);
   void init_land_ownership();
   void update_land_ownership(MapPos pos);
   void occupy_enemy_building(Building *building, int player);
@@ -195,6 +194,7 @@ class Game : public EventLoop::Handler {
   void delete_serf(Serf *serf);
   Flag *create_flag(int index = -1);
   Inventory *create_inventory(int index = -1);
+  void delete_inventory(Inventory *inventory);
   Building *create_building(int index = -1);
   void delete_building(Building *building);
 

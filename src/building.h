@@ -68,6 +68,7 @@ class Building : public GameObject {
     TypeCastle
   } Type;
 
+ protected:
   typedef struct Stock {
     Resource::Type type;
     int prio;
@@ -76,19 +77,28 @@ class Building : public GameObject {
     int maximum;
   } Stock;
 
- protected:
   /* Map position of building */
   MapPos pos;
   /* Type of building */
   Type type;
+  /* Building owner */
+  unsigned int owner;
+  /* Building under construction */
+  bool constructing;
   /* Flags */
-  int bld;
-  int serf;
+  size_t threat_level;
+  bool playing_sfx;
+  bool serf_request_failed;
+  bool serf_requested;
+  bool burning;
+  bool active;
+  bool holder;
   /* Index of flag connected to this building */
-  int flag;
+  unsigned int flag;
   /* Stock of this building */
   Stock stock[BUILDING_MAX_STOCK];
-  unsigned int serf_index; /* Also used for burning building counter. */
+  unsigned int first_knight;
+  int burning_counter;
   int progress;
   union u {
     Inventory *inventory;
@@ -105,64 +115,56 @@ class Building : public GameObject {
   unsigned int get_flag_index() const { return flag; }
   void link_flag(unsigned int flag_index) { flag = flag_index; }
 
-  bool has_main_serf() const { return (serf_index != 0); }
-  unsigned int get_main_serf() const { return serf_index; }
-  void set_main_serf(unsigned int serf) { serf_index = serf; }
+  bool has_knight() const { return (first_knight != 0); }
+  unsigned int get_first_knight() const { return first_knight; }
+  void set_first_knight(unsigned int serf);
 
-  int get_burning_counter() const { return serf_index; }
-  void set_burning_counter(int counter) { serf_index = counter; }
-  void decrease_burning_counter(int delta) { serf_index -= delta; }
+  int get_burning_counter() const { return burning_counter; }
+  void set_burning_counter(int counter) { burning_counter = counter; }
+  void decrease_burning_counter(int delta) { burning_counter -= delta; }
 
   /* Type of building. */
   Type get_type() const { return type; }
-  void set_type(Type type) { this->type = type; }
   bool is_military() const { return (type == TypeHut) ||
                                     (type == TypeTower) ||
                                     (type == TypeFortress) ||
                                     (type == TypeCastle); }
   /* Owning player of the building. */
-  unsigned int get_owner() const { return (bld & 3); }
-  void set_owner(unsigned int owner) { bld = (bld & 0xfc) | owner; }
+  unsigned int get_owner() const { return owner; }
+  void set_owner(unsigned int new_owner) { owner = new_owner; }
   /* Whether construction of the building is finished. */
-  bool is_done() const { return !((bld >> 7) & 1); }
+  bool is_done() const { return !constructing; }
   bool is_leveling() const { return (!is_done() && progress == 0); }
-  void done_build() { bld &= ~BIT(7); }
-  void done_leveling() { progress = 1; }
+  void done_leveling();
   Map::Object start_building(Type type);
   int get_progress() const { return progress; }
-  void increase_progress(int delta) { progress += delta; }
-  void increase_mining() { progress = (progress << 1) & 0xffff; }
-  void drop_progress() { progress = 0; }
+  bool build_progress();
+  void increase_mining(int res);
   void set_under_attack() { progress |= BIT(0); }
   bool is_under_attack() const { return BIT_TEST(progress, 0); }
 
-  /* The military state of the building. Higher values mean that
+  /* The threat level of the building. Higher values mean that
    the building is closer to the enemy. */
-  int get_state() const { return (serf & 3); }
-  void set_state(int state) { serf = (serf & 0xfc) | state; }
+  size_t get_threat_level() const { return threat_level; }
   /* Building is currently playing back a sound effect. */
-  bool playing_sfx() const { return (BIT_TEST(serf, 3) != 0); }
-  void start_playing_sfx() { serf |= BIT(3); }
-  void stop_playing_sfx() { serf &= ~BIT(3); }
+  bool is_playing_sfx() const { return playing_sfx; }
+  void start_playing_sfx() { playing_sfx = true; }
+  void stop_playing_sfx() { playing_sfx = false; }
   /* Building is active (specifics depend on building type). */
-  bool is_active() const { return (BIT_TEST(serf, 4) != 0); }
-  void start_activity() { serf |= BIT(4); }
-  void stop_activity() { serf &= ~BIT(4); }
+  bool is_active() const { return active; }
+  void start_activity() { active = true; }
+  void stop_activity() { active = false; }
   /* Building is burning. */
-  bool is_burning() const { return (BIT_TEST(serf, 5) != 0); }
-  void burnup() { serf |= BIT(5); }
+  bool is_burning() const { return burning; }
+  bool burnup();
   /* Building has an associated serf. */
-  bool has_serf() const { return (BIT_TEST(serf, 6) != 0); }
-  void serf_arrive() { serf |= BIT(6); }
-  void serf_gone() { serf &= ~BIT(6); }
+  bool has_serf() const { return holder; }
   /* Building has succesfully requested a serf. */
-  bool serf_requested() const { return (BIT_TEST(serf, 7) != 0); }
-  void serf_request_complete() { serf &= ~BIT(7); }
-  void serf_request_failed() { serf &= ~BIT(7); }
-  void request_serf() { serf |= BIT(7); }
+  void serf_request_granted() { serf_requested = true; }
+  void requested_serf_lost();
+  void requested_serf_reached(Serf *serf);
   /* Building has requested a serf but none was available. */
-  bool serf_request_fail() const { return (BIT_TEST(serf, 2) != 0); }
-  void clear_serf_request_failure() { serf &= ~BIT(2); }
+  void clear_serf_request_failure() { serf_request_failed = false; }
   void knight_request_granted();
 
   /* Building has inventory and the inventory pointer is valid. */
@@ -234,6 +236,8 @@ class Building : public GameObject {
   bool knight_come_back_from_fight(Serf *knight);
   void knight_occupy();
 
+  void update_military_flag_state();
+
   void update(unsigned int tick);
 
   friend SaveReaderBinary&
@@ -250,8 +254,10 @@ class Building : public GameObject {
   void update_castle();
   void update_military();
 
-  bool send_serf_to_building(Building *building, Serf::Type type,
-                             Resource::Type res1, Resource::Type res2);
+  void request_serf_if_needed();
+
+  bool send_serf_to_building(Serf::Type type, Resource::Type res1,
+                             Resource::Type res2);
 };
 
 

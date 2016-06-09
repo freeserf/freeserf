@@ -661,6 +661,15 @@ Viewport::draw_building_unfinished(Building *building, Building::Type bld_type,
 }
 
 void
+Viewport::draw_ocupation_flag(Building *building, int x, int y, float mul) {
+  if (building->has_knight()) {
+    draw_game_sprite(x, y - (mul * building->get_knight_count()),
+                     182 + ((interface->get_game()->get_tick() >> 3) & 3) +
+                     4 * static_cast<int>(building->get_threat_level()));
+  }
+}
+
+void
 Viewport::draw_unharmed_building(Building *building, int x, int y) {
   Random *random = interface->get_random();
 
@@ -719,7 +728,7 @@ Viewport::draw_unharmed_building(Building *building, int x, int y) {
       if (building->is_active()) { /* Draw elevator up */
         draw_game_sprite(x-6, y-39, 152);
       }
-      if (building->playing_sfx()) { /* Draw elevator down */
+      if (building->is_playing_sfx()) { /* Draw elevator down */
         draw_game_sprite(x-6, y-39, 153);
         MapPos pos = building->get_position();
         if ((((interface->get_game()->get_tick() +
@@ -732,11 +741,7 @@ Viewport::draw_unharmed_building(Building *building, int x, int y) {
       break;
     case Building::TypeHut:
       draw_shadow_and_building_sprite(x, y, map_building_sprite[type]);
-      if (building->has_main_serf()) {
-        draw_game_sprite(x-14, y+2 - 2*building->get_knight_count(),
-             182 + ((interface->get_game()->get_tick() >> 3) & 3) +
-                         4*building->get_state());
-      }
+      draw_ocupation_flag(building, x - 14, y + 2, 2);
       break;
     case Building::TypePigFarm:
       draw_shadow_and_building_sprite(x, y, map_building_sprite[type]);
@@ -791,7 +796,7 @@ Viewport::draw_unharmed_building(Building *building, int x, int y) {
       if (building->is_active()) {
         if ((interface->get_game()->get_tick() >> 4) & 3) {
           building->stop_playing_sfx();
-        } else if (!building->playing_sfx()) {
+        } else if (!building->is_playing_sfx()) {
           building->start_playing_sfx();
           play_sound(Audio::TypeSfxMillGrinding);
         }
@@ -812,7 +817,7 @@ Viewport::draw_unharmed_building(Building *building, int x, int y) {
       draw_shadow_and_building_sprite(x, y, map_building_sprite[type]);
       if (building->is_active()) {
         int i = (interface->get_game()->get_tick() >> 3) & 7;
-        if (i == 0 || (i == 7 && !building->playing_sfx())) {
+        if (i == 0 || (i == 7 && !building->is_playing_sfx())) {
           building->start_playing_sfx();
           play_sound(Audio::TypeSfxGoldBoils);
         } else if (i != 7) {
@@ -831,28 +836,22 @@ Viewport::draw_unharmed_building(Building *building, int x, int y) {
       break;
     case Building::TypeTower:
       draw_shadow_and_building_sprite(x, y, map_building_sprite[type]);
-      if (building->has_main_serf()) {
-        draw_game_sprite(x+13, y - 18 - building->get_knight_count(),
-                     182 + ((interface->get_game()->get_tick() >> 3) & 3) +
-                         4*building->get_state());
-      }
+      draw_ocupation_flag(building, x + 13, y - 18, 1.f);
       break;
     case Building::TypeFortress:
       draw_shadow_and_building_sprite(x, y, map_building_sprite[type]);
-      if (building->has_main_serf()) {
-        draw_game_sprite(x-12, y - 21 - building->get_knight_count()/2,
-             182 + ((interface->get_game()->get_tick() >> 3) & 3) +
-                         4*building->get_state());
+      draw_ocupation_flag(building, x - 12, y - 21, 0.5f);
+      if (building->has_knight()) {
         draw_game_sprite(x+22, y - 34 - (building->get_knight_count()+1)/2,
-             182 + (((interface->get_game()->get_tick() >> 3) + 2) & 3) +
-                         4*building->get_state());
+                    182 + (((interface->get_game()->get_tick() >> 3) + 2) & 3) +
+                         4 * static_cast<int>(building->get_threat_level()));
       }
       break;
     case Building::TypeGoldSmelter:
       draw_shadow_and_building_sprite(x, y, map_building_sprite[type]);
       if (building->is_active()) {
         int i = (interface->get_game()->get_tick() >> 3) & 7;
-        if (i == 0 || (i == 7 && !building->playing_sfx())) {
+        if (i == 0 || (i == 7 && !building->is_playing_sfx())) {
           building->start_playing_sfx();
           play_sound(Audio::TypeSfxGoldBoils);
         } else if (i != 7) {
@@ -1088,7 +1087,7 @@ Viewport::draw_burning_building(Building *building, int x, int y) {
 
   /* Play sound effect. */
   if (((building->get_burning_counter() >> 3) & 3) == 3 &&
-      !building->playing_sfx()) {
+      !building->is_playing_sfx()) {
     building->start_playing_sfx();
     play_sound(Audio::TypeSfxBurning);
   } else {
@@ -1831,11 +1830,26 @@ void
 Viewport::draw_active_serf(Serf *serf, MapPos pos,
                              int x_base, int y_base) {
   const int arr_4[] = {
-    9, 5, 10, 7, 10, 2, 8, 6,
-    11, 8, 9, 6, 9, 8, 0, 0,
-    0, 0, 0, 0, 5, 5, 4, 7,
-    4, 2, 7, 5, 3, 8, 5, 6,
-    5, 8, 0, 0, 0, 0, 0, 0
+     9, 5,
+    10, 7,
+    10, 2,
+     8, 6,
+    11, 8,
+     9, 6,
+     9, 8,
+     0, 0,
+     0, 0,
+     0, 0,
+     5, 5,
+     4, 7,
+     4, 2,
+     7, 5,
+     3, 8,
+     5, 6,
+     5, 8,
+     0, 0,
+     0, 0,
+     0, 0
   };
 
   if ((serf->get_animation() < 0) || (serf->get_animation() > 199) ||
@@ -1896,8 +1910,7 @@ Viewport::draw_active_serf(Serf *serf, MapPos pos,
     if (index != 0) {
       Serf *def_serf = interface->get_game()->get_serf(index);
 
-      if (serf->get_animation() >= 146 &&
-          serf->get_animation() < 156) {
+      if (serf->get_animation() >= 146 && serf->get_animation() < 156) {
         if ((serf->get_attacking_field_D() == 0 ||
              serf->get_attacking_field_D() == 4) &&
             serf->get_counter() < 32) {
@@ -2412,7 +2425,7 @@ Viewport::handle_dbl_click(int x, int y, Event::Button button) {
         if (building->is_done() &&
             building->is_military()) {
           if (!building->is_active() ||
-              building->get_state() != 3) {
+              building->get_threat_level() != 3) {
             /* It is not allowed to attack
                if currently not occupied or
                is too far from the border. */

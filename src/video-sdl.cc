@@ -40,7 +40,6 @@ Uint32 VideoSDL::pixel_format = SDL_PIXELFORMAT_RGBA8888;
 
 VideoSDL::VideoSDL() throw(ExceptionVideo) {
   screen = NULL;
-  screen_texture = NULL;
   cursor = NULL;
   fullscreen = false;
   zoom_factor = 1.f;
@@ -132,16 +131,6 @@ VideoSDL::set_resolution(unsigned int width, unsigned int height,
     SDL_DestroyTexture(screen->texture);
   }
   screen->texture = create_texture(width, height);
-
-  if (screen_texture != NULL) {
-    SDL_DestroyTexture(screen_texture);
-  }
-  screen_texture = SDL_CreateTexture(renderer, pixel_format,
-                                     SDL_TEXTUREACCESS_STREAMING,
-                                     width, height);
-  if (screen_texture == NULL) {
-    throw ExceptionSDL("Unable to create SDL texture");
-  }
 
   /* Set logical size of screen */
   r = SDL_RenderSetLogicalSize(renderer, width, height);

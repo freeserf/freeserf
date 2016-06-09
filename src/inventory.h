@@ -62,6 +62,7 @@ class Inventory : public GameObject {
 
  public:
   Inventory(Game *game, unsigned int index);
+  virtual ~Inventory();
 
   unsigned int get_owner() { return owner; }
   void set_owner(unsigned int owner) { this->owner = owner; }
@@ -98,11 +99,9 @@ class Inventory : public GameObject {
 
   bool has_resource_in_queue() {
     return (out_queue[0].type != Resource::TypeNone); }
-  bool is_queue_full() {
-    return (out_queue[1].type != Resource::TypeNone); }
+  bool is_queue_full() { return (out_queue[1].type != Resource::TypeNone); }
   void get_resource_from_queue(Resource::Type *res, int *dest);
   void reset_queue_for_dest(Flag *flag);
-  void lose_queue();
 
   bool has_food() { return (resources[Resource::TypeFish] != 0 ||
                             resources[Resource::TypeMeat] != 0 ||
