@@ -1924,3 +1924,18 @@ road_t::extand(dir_t dir) {
 
   return true;
 }
+
+bool
+road_t::undo() {
+  if (begin == bad_map_pos) {
+    return false;
+  }
+
+  dirs.pop_back();
+  if (dirs.size() == 0) {
+    begin = bad_map_pos;
+  }
+
+  return true;
+}
+

@@ -611,7 +611,7 @@ popup_box_t::draw_resources_box(const resource_map_t &resources) {
     13, 116, RESOURCE_BREAD
   };
 
-  for (int i = 0; i < sizeof(layout_res)/sizeof(layout_res[0])/3; i++) {
+  for (size_t i = 0; i < sizeof(layout_res)/sizeof(layout_res[0])/3; i++) {
     resource_type_t res_type = (resource_type_t)layout_res[i*3+2];
     resource_map_t::const_iterator it = resources.find(res_type);
     int value = 0;
@@ -1146,7 +1146,7 @@ popup_box_t::draw_gauge_full(int x, int y, unsigned int value,
   draw_popup_icon(x, y, sprite);
 }
 
-void
+static void
 calculate_gauge_values(player_t *player,
                        unsigned int values[24][BUILDING_MAX_STOCK][2]) {
   list_buildings_t buildings = player->get_game()->get_player_buildings(player);
@@ -3273,12 +3273,12 @@ popup_box_t::handle_action(int action, int x, int y) {
     move_sett_5_6_item(0, 1);
     break;
   case ACTION_QUIT_CONFIRM:
-    if (0/* TODO suggest save game*/) {
-      set_box(BOX_NO_SAVE_QUIT_CONFIRM);
-    } else {
+//    if (0/* TODO suggest save game*/) {
+//      set_box(BOX_NO_SAVE_QUIT_CONFIRM);
+//    } else {
       play_sound(SFX_AHHH);
       event_loop_t::get_instance()->quit();
-    }
+//    }
     break;
   case ACTION_QUIT_CANCEL:
     interface->close_popup();
