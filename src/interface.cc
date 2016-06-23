@@ -521,19 +521,21 @@ interface_t::build_road_segment(dir_t dir) {
 
 int
 interface_t::remove_road_segment() {
-  map_pos_t dest;
-  int r = game->can_build_road(building_road, player, &dest, NULL);
-  if (!r) {
+  map_pos_t dest = building_road.get_source();
+  int res = 0;
+  building_road.undo();
+  if (building_road.get_length() == 0 ||
+      game->can_build_road(building_road, player, &dest, NULL) == 0) {
     /* Road construction is no longer valid, abort. */
     build_road_end();
-    return -1;
+    res = -1;
   }
 
   update_map_cursor_pos(dest);
 
   /* TODO Pathway scrolling */
 
-  return 0;
+  return res;
 }
 
 /* Extend currently constructed road with an array of directions. */
@@ -549,6 +551,7 @@ interface_t::extend_road(const road_t &road) {
       building_road = old_road;
       return -1;
     } else if (r == 1) {
+      building_road.invalidate();
       return 1;
     }
   }

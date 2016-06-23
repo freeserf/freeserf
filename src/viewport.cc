@@ -2270,31 +2270,26 @@ viewport_t::handle_click_left(int x, int y) {
   int clk_row = map->pos_row(clk_pos);
 
   if (interface->is_building_road()) {
-    int x = (clk_col - map->pos_col(interface->get_map_cursor_pos()) + 1) &
-             map->get_col_mask();
-    int y = (clk_row - map->pos_row(interface->get_map_cursor_pos()) + 1) &
-             map->get_row_mask();
+    int dx = (clk_col - map->pos_col(interface->get_map_cursor_pos()) + 1) &
+              map->get_col_mask();
+    int dy = (clk_row - map->pos_row(interface->get_map_cursor_pos()) + 1) &
+              map->get_row_mask();
     dir_t dir = DIR_NONE;
 
-    if (x == 0) {
-      if (y == 1) dir = DIR_LEFT;
-      else if (y == 0) dir = DIR_UP_LEFT;
-    } else if (x == 1) {
-      if (y == 2) dir = DIR_DOWN;
-      else if (y == 0) dir = DIR_UP;
-    } else if (x == 2) {
-      if (y == 1) dir = DIR_RIGHT;
-      else if (y == 2) dir = DIR_DOWN_RIGHT;
+    if (dx == 0) {
+      if (dy == 1) dir = DIR_LEFT;
+      else if (dy == 0) dir = DIR_UP_LEFT;
+    } else if (dx == 1) {
+      if (dy == 2) dir = DIR_DOWN;
+      else if (dy == 0) dir = DIR_UP;
+    } else if (dx == 2) {
+      if (dy == 1) dir = DIR_RIGHT;
+      else if (dy == 2) dir = DIR_DOWN_RIGHT;
     }
 
     if (interface->build_roid_is_valid_dir(dir)) {
       road_t road = interface->get_building_road();
-      road_t::dirs_t dirs = road.get_dirs();
-      dir_t last_dir = DIR_RIGHT;
-      size_t length = road.get_length();
-      if (length > 0) last_dir = dirs.back();
-
-      if (length > 0 && DIR_REVERSE(last_dir) == dir) {
+      if (road.is_undo(dir)) {
         /* Delete existing path */
         int r = interface->remove_road_segment();
         if (r < 0) {

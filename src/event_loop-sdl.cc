@@ -37,11 +37,6 @@ event_loop_t::get_instance() {
   return instance;
 }
 
-event_loop_t *
-create_event_loop() {
-  return new event_loop_sdl_t();
-}
-
 /* How fast consequtive mouse events need to be generated
  in order to be interpreted as click and double click. */
 #define MOUSE_TIME_SENSITIVITY  600
@@ -58,7 +53,8 @@ typedef enum {
   USER_EVENT_CALL,
 } USER_EVENT_TYPE;
 
-Uint32 timer_callback(Uint32 interval, void *param) {
+static Uint32
+timer_callback(Uint32 interval, void *param) {
   SDL_Event event;
   event.type = SDL_USEREVENT;
   event.user.type = SDL_USEREVENT;

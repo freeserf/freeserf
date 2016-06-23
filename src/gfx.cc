@@ -382,9 +382,11 @@ void
 frame_t::draw_string(int x, int y, unsigned char color, int shadow,
                      const std::string &str) {
   for (std::string::const_iterator it = str.begin(); it != str.end(); ++it) {
-    if (/*string_bg*/ 0) {
+/*
+    if (string_bg) {
       fill_rect(x, y, 8, 8, 0);
     }
+*/
 
     draw_char_sprite(x, y, *it, color, shadow);
 

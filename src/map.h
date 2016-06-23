@@ -195,7 +195,7 @@ class road_t {
   road_t() { begin = bad_map_pos; }
 
   bool is_valid() const { return (begin != bad_map_pos); }
-  void invalidate() { begin = bad_map_pos; }
+  void invalidate() { begin = bad_map_pos; dirs.clear(); }
   void start(map_pos_t start) { begin = start; }
   map_pos_t get_source() const { return begin; }
   dirs_t get_dirs() const { return dirs; }
@@ -205,6 +205,7 @@ class road_t {
   bool is_valid_extension(map_t *map, dir_t dir) const;
   bool is_undo(dir_t dir) const;
   bool extand(dir_t dir);
+  bool undo();
   map_pos_t get_end(map_t *map) const;
 };
 
