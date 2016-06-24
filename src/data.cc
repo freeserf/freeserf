@@ -70,7 +70,7 @@ data_t::add_to_search_paths(const char *path,
 #define MAX_DATA_PATH      1024
 
 bool
-data_t::load(const std::string &path) {
+data_t::load(const std::string &path, const char * appFileName) {
   /* If it possible, prefer DOS game data. */
   data_source_t *data_sources[] = { new data_source_dos_t(),
                                     NULL, };
@@ -92,6 +92,7 @@ data_t::load(const std::string &path) {
   add_to_search_paths(std::getenv("XDG_DATA_HOME"), "freeserf");
   add_to_search_paths(std::getenv("HOME"), ".local/share/freeserf");
 #ifdef _WIN32
+  add_to_search_paths(appFileName, "/../");
   add_to_search_paths(std::getenv("userprofile"), ".local/share/freeserf");
   add_to_search_paths(std::getenv("LOCALAPPDATA"), "/freeserf");
 #endif

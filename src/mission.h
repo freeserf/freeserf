@@ -47,7 +47,10 @@ class mission_t {
   player_preset_t player[4];
 
   static mission_t *get_mission(int mission);
+  static mission_t *get_tutorial(int mission);
+  
   static int get_mission_count();
+  static int get_tutorials_count();
 };
 
 #endif  // SRC_MISSION_H_

@@ -399,7 +399,21 @@ mission_t::get_mission(int m) {
   return missions + m;
 }
 
+mission_t *
+mission_t::get_tutorial(int m) {
+	if (m >= get_tutorials_count()) {
+		return NULL;
+	}
+
+	return tutorials + m;
+}
+
 int
 mission_t::get_mission_count() {
   return sizeof(missions) / sizeof(missions[0]);
+}
+
+int
+mission_t::get_tutorials_count() {
+	return sizeof(tutorials) / sizeof(tutorials[0]);
 }

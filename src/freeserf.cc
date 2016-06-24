@@ -196,7 +196,7 @@ main(int argc, char *argv[]) {
   LOGI("main", "freeserf %s", FREESERF_VERSION);
 
   data_t *data = data_t::get_instance();
-  if (!data->load(data_file)) {
+  if (!data->load(data_file, argv[0])) {
     delete data;
     LOGE("main", "Could not load game data.");
     exit(EXIT_FAILURE);

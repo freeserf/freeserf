@@ -2191,7 +2191,7 @@ game_t::load_mission_map(int level) {
 
   mission_level = level;
 
-  init_map(3, mission[level].rnd, true);
+  init_map(3, mission->rnd, true);
   allocate_objects();
 
   /* Initialize player and build initial castle */

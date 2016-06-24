@@ -248,7 +248,7 @@ class data_t {
 
   static data_t *get_instance();
 
-  bool load(const std::string &path);
+  bool load(const std::string &path, const char * appFileName);
 
   data_source_t *get_data_source() const { return data_source; }
 

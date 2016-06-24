@@ -148,29 +148,52 @@ game_init_box_t::internal_draw() {
   }
 
   /* Game type settings */
-  if (game_mission < 0) {
-    draw_box_icon(5, 0, 263);
+  switch (game_type)
+  {
+  case game_types::GAMETYPE_FREE:
+  {
+	  draw_box_icon(5, 0, 263);
 
-    std::stringstream str_map_size;
-    str_map_size << map_size;
+	  std::stringstream str_map_size;
+	  str_map_size << map_size;
 
-    draw_box_string(10, 2, "New game");
-    draw_box_string(10, 18, "Mapsize:");
-    draw_box_string(18, 18, str_map_size.str());
+	  draw_box_string(10, 2, "New game");
+	  draw_box_string(10, 18, "Mapsize:");
+	  draw_box_string(18, 18, str_map_size.str());
 
-    draw_box_icon(20, 0, 265);
-  } else {
-    draw_box_icon(5, 0, 260);
+	  draw_box_icon(20, 0, 265);
+	  break;
+  }
+  case game_types::GAMETYPE_MISSION:
+  {
+	  draw_box_icon(5, 0, 260);
 
-    std::stringstream level;
-    level << (game_mission+1);
+	  std::stringstream level;
+	  level << (game_mission + 1);
 
-    draw_box_string(10, 2, "Start mission");
-    draw_box_string(10, 18, "Mission:");
-    draw_box_string(20, 18, level.str());
+	  draw_box_string(10, 2, "Start mission");
+	  draw_box_string(10, 18, "Mission:");
+	  draw_box_string(20, 18, level.str());
 
-    draw_box_icon(28, 0, 237);
-    draw_box_icon(28, 16, 240);
+	  draw_box_icon(28, 0, 237);
+	  draw_box_icon(28, 16, 240);
+	  break;
+  }
+  case game_types::GAMETYPE_TUTORIAL:
+  {
+	  draw_box_icon(5, 0, 261);
+
+	  std::stringstream level;
+	  level << (game_mission + 1);
+
+	  draw_box_string(10, 2, "Start training");
+	  draw_box_string(10, 18, "Tutorial:");
+	  draw_box_string(20, 18, level.str());
+
+	  draw_box_icon(28, 0, 237);
+	  draw_box_icon(28, 16, 240);
+	  break;
+  }
   }
 
   /* Game info */
@@ -271,51 +294,90 @@ game_init_box_t::handle_action(int action) {
       break;
     }
     case ACTION_TOGGLE_GAME_TYPE:
-      if (game_mission < 0) {
-        game_mission = 0;
-        mission = mission_t::get_mission(game_mission);
-        field->set_displayed(false);
-        generate_map_priview();
-      } else {
-        game_mission = -1;
-        map_size = 3;
-        mission = &custom_mission;
-        field->set_displayed(true);
-        field->set_random(custom_mission.rnd);
-        generate_map_priview();
-      }
+		switch (game_type)
+		{
+		case 0:
+			game_type = game_types::GAMETYPE_MISSION;
+			game_mission = 0;
+			mission = mission_t::get_mission(game_mission);
+			field->set_displayed(false);
+			generate_map_priview();
+			break;
+
+		case 1:
+			game_type = game_types::GAMETYPE_TUTORIAL;
+			game_mission = 0;
+			mission = mission_t::get_tutorial(game_mission);
+			field->set_displayed(false);
+			generate_map_priview();
+			break;
+
+		case 2:
+		default:
+			game_type = game_types::GAMETYPE_FREE;
+			map_size = 3;
+			mission = &custom_mission;
+			field->set_displayed(true);
+			field->set_random(custom_mission.rnd);
+			generate_map_priview();
+		}
+
       break;
     case ACTION_SHOW_OPTIONS:
       break;
     case ACTION_SHOW_LOAD_GAME:
       break;
     case ACTION_INCREMENT:
-      if (game_mission < 0) {
-        map_size = std::min(10, map_size+1);
-      } else {
-        game_mission = std::min(game_mission+1,
-                                mission_t::get_mission_count()-1);
-        mission = mission_t::get_mission(game_mission);
-      }
+		switch (game_type)
+		{
+		case game_types::GAMETYPE_FREE:
+			map_size = std::min(10, map_size + 1);
+			break;
+		case game_types::GAMETYPE_MISSION:
+			game_mission = std::min(game_mission + 1, mission_t::get_mission_count() - 1);
+			mission = mission_t::get_mission(game_mission);
+			break;
+		case game_types::GAMETYPE_TUTORIAL:
+			game_mission = std::min(game_mission + 1, mission_t::get_tutorials_count() - 1);
+			mission = mission_t::get_tutorial(game_mission);
+			break;
+		}
+      
       generate_map_priview();
       break;
+
     case ACTION_DECREMENT:
-      if (game_mission < 0) {
-        map_size = std::max(3, map_size-1);
-      } else {
-        game_mission = std::max(0, game_mission-1);
-        mission = mission_t::get_mission(game_mission);
-      }
-      generate_map_priview();
-      break;
+
+		switch (game_type)
+		{
+		case game_types::GAMETYPE_FREE:
+			map_size = std::max(3, map_size - 1);
+			break;
+
+		case game_types::GAMETYPE_MISSION:
+			game_mission = std::max(0, game_mission - 1);
+			mission = mission_t::get_mission(game_mission);
+			break;
+
+		case game_types::GAMETYPE_TUTORIAL:
+			game_mission = std::max(0, game_mission - 1);
+			mission = mission_t::get_tutorial(game_mission);
+			break;
+		}
+
+		generate_map_priview();
+		break;
+
     case ACTION_CLOSE:
       interface->close_game_init();
       break;
+
     case ACTION_GEN_RANDOM: {
       field->set_random(random_state_t());
       set_redraw();
       break;
     }
+
     case ACTION_APPLY_RANDOM: {
       std::string str = field->get_text();
       if (str.length() == 16) {
@@ -514,7 +576,8 @@ game_init_box_t::apply_random(random_state_t rnd) {
 game_init_box_t::game_init_box_t(interface_t *interface) {
   this->interface = interface;
   map_size = 3;
-  game_mission = -1;
+  game_mission = 0;
+  game_type = game_types::GAMETYPE_FREE;
 
   set_size(360, 254);
 
