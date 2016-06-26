@@ -1896,14 +1896,14 @@ road_t::is_valid_extension(map_t *map, dir_t dir) const {
   map_pos_t extended_end = map->move(get_end(map), dir);
   map_pos_t pos = begin;
   bool valid = true;
-  dirs_t::const_iterator last = dirs.end();
-  --last;
-  for (dirs_t::const_iterator it = dirs.begin(); it != last; ++it) {
+  dirs_t::const_iterator it = dirs.begin();
+  for (int i = dirs.size(); i > 0; i--) {
     pos = map->move(pos, *it);
     if (pos == extended_end) {
       valid = false;
       break;
     }
+    it++;
   }
 
   return valid;
