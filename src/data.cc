@@ -26,6 +26,12 @@
 #include "src/log.h"
 #include "src/data-source-dos.h"
 
+#ifdef _WIN32
+// need for GetModuleFileName
+#include <Windows.h>
+#endif
+
+
 data_t *data_t::instance = NULL;
 
 data_t::data_t() {
@@ -88,18 +94,33 @@ data_t::load(const std::string &path) {
      On windows platforms the %localappdata% is used in place of XDG_CONFIG_HOME.
   */
 
+  // Look in current directory
+  add_to_search_paths(".", NULL);
   /* Look in home */
   add_to_search_paths(std::getenv("XDG_DATA_HOME"), "freeserf");
   add_to_search_paths(std::getenv("HOME"), ".local/share/freeserf");
 #ifdef _WIN32
+  // to find the data within the same directory as the freeserf.exe app.
+  char app_path[MAX_PATH + 1];
+  GetModuleFileNameA(NULL, app_path, MAX_PATH);
+  add_to_search_paths(app_path, "/../");
+
   add_to_search_paths(std::getenv("userprofile"), ".local/share/freeserf");
   add_to_search_paths(std::getenv("LOCALAPPDATA"), "/freeserf");
 #endif
 
+  // search in preference base directories
+#ifdef _WIN32
+  char *env = std::getenv("PATH");
+  #define PATH_SEPERATING_CHAR ';'
+#else
   char *env = std::getenv("XDG_DATA_DIRS");
+  #define PATH_SEPERATING_CHAR ':'
+#endif
+
   std::string dirs = (env == NULL) ? std::string() : env;
   while (!dirs.empty()) {
-    size_t pos = dirs.find(':');
+    size_t pos = dirs.find(PATH_SEPERATING_CHAR);
     std::string dir = dirs.substr(0, pos);
     dirs.replace(0, (pos == std::string::npos) ? pos : pos + 1, std::string());
     add_to_search_paths(dir.c_str(), "freeserf");
