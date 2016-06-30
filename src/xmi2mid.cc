@@ -24,6 +24,7 @@
 #include <cstring>
 #include <queue>
 #include <vector>
+#include <algorithm>    // use for std::sort
 
 #ifdef HAVE_CONFIG_H
 # include <config.h>
@@ -55,18 +56,12 @@ class compare_by_time {
     if (m1.time != m2.time) {
       return m1.time > m2.time;
     }
-
-    if (m1.index != m2.index) {
-      return m1.index > m2.index;
-    }
-
     return false;
   }
 };
 
 typedef struct {
-  std::priority_queue<midi_node_t, std::vector<midi_node_t>,
-                      compare_by_time> nodes;
+  std::vector<midi_node_t> nodes;
   uint32_t tempo;
   uint8_t *data;
   uint64_t size;
@@ -207,7 +202,7 @@ xmi_process_EVNT(char *data, size_t length, midi_file_t *midi) {
           READ_DATA(node.data2);
           if (0x90 == (type & 0xF0)) {
             uint8_t data1 = node.data1;
-            midi->nodes.push(node);
+            midi->nodes.push_back(node);
 
             midi_node_t subnode;
             subnode.type = type;
@@ -262,7 +257,7 @@ xmi_process_EVNT(char *data, size_t length, midi_file_t *midi) {
           break;
       }
 
-      midi->nodes.push(node);
+      midi->nodes.push_back(node);
     } else {
       time += type;
     }
@@ -332,10 +327,15 @@ midi_produce(midi_file_t *midi, size_t *size) {
   uint64_t size_pos = current - midi->data;
   WRITE_BE32(0);          /* Size reserved */
 
+
+  // sort the midi->nodes
+  std::sort(midi->nodes.begin(), midi->nodes.end(), compare_by_time());
+
   uint64_t time = 0;
   while (!midi->nodes.empty()) {
-    midi_node_t node = midi->nodes.top();
-    midi->nodes.pop();
+    midi_node_t node = midi->nodes.back();
+    midi->nodes.pop_back();
+
     midi_write_variable_size(midi, &current, node.time - time);
     time = node.time;
     WRITE_BYTE(node.type);
