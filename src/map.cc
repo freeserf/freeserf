@@ -1897,7 +1897,7 @@ road_t::is_valid_extension(map_t *map, dir_t dir) const {
   map_pos_t pos = begin;
   bool valid = true;
   dirs_t::const_iterator it = dirs.begin();
-  for (int i = dirs.size(); i > 0; i--) {
+  for (size_t i = dirs.size(); i > 0; i--) {
     pos = map->move(pos, *it);
     if (pos == extended_end) {
       valid = false;
