@@ -21,8 +21,8 @@
 
 #include "src/mission.h"
 
-mission_t
-mission_t::mission[12];
+//mission_t
+//mission_t::mission[12];
 
 mission_t tutorials[] = {
   {
@@ -33,7 +33,13 @@ mission_t tutorials[] = {
       { 0,  0,  0,  0, {-1, -1}},
       { 0,  0,  0,  0, {-1, -1}},
       { 0,  0,  0,  0, {-1, -1}}
-    }
+    },
+	{
+	  {mission_t::VICTORY_BUILDING_HUT , 1},
+	  {mission_t::VICTORY_BUILDING_TOWER , 1},
+	  {mission_t::VICTORY_BUILDING_FORTRESS , 1},
+	  {mission_t::VICTORY_NO_CONDITION , 0}
+	}
   },
   {
     "",
@@ -43,7 +49,13 @@ mission_t tutorials[] = {
       { 0,  0,  0,  0, {-1, -1}},
       { 0,  0,  0,  0, {-1, -1}},
       { 0,  0,  0,  0, {-1, -1}}
-    }
+    },
+	{
+      {mission_t::VICTORY_RESOURCE_PLANK, 5},
+      {mission_t::VICTORY_RESOURCE_STONE, 5},
+      {mission_t::VICTORY_NO_CONDITION, 0},
+      {mission_t::VICTORY_NO_CONDITION, 0}
+	}
   },
   {
     "",
@@ -53,7 +65,13 @@ mission_t tutorials[] = {
       { 0,  0,  0,  0, {-1, -1}},
       { 0,  0,  0,  0, {-1, -1}},
       { 0,  0,  0,  0, {-1, -1}}
-    }
+    },
+	{
+      {mission_t::VICTORY_RESOURCE_FISH, 5},
+      {mission_t::VICTORY_RESOURCE_BREAD, 5},
+      {mission_t::VICTORY_RESOURCE_MEAT, 5},
+      {mission_t::VICTORY_NO_CONDITION, 0}
+	}
   },
   {
     "",
@@ -63,7 +81,13 @@ mission_t tutorials[] = {
       { 0,  0,  0,  0, {-1, -1}},
       { 0,  0,  0,  0, {-1, -1}},
       { 0,  0,  0,  0, {-1, -1}}
-    }
+    },
+	{
+      {mission_t::VICTORY_RESOURCE_GOLDBAR, 5},
+      {mission_t::VICTORY_RESOURCE_STEEL, 5},
+      {mission_t::VICTORY_NO_CONDITION, 0},
+      {mission_t::VICTORY_NO_CONDITION, 0}
+	}
   },
   {
     "",
@@ -73,17 +97,29 @@ mission_t tutorials[] = {
       { 0,  0,  0,  0, {-1, -1}},
       { 0,  0,  0,  0, {-1, -1}},
       { 0,  0,  0,  0, {-1, -1}}
-    }
+    },
+	{
+      {mission_t::VICTORY_RESOURCE_BOAT, 5},
+      {mission_t::VICTORY_SPECIAL_TOOLS, 10},
+      {mission_t::VICTORY_SPECIAL_WEAPONS, 10},
+      {mission_t::VICTORY_NO_CONDITION, 0}
+	}
   },
   {
     "",
     random_state_t(0x1DD9, 0xA702, 0xFC8A),
     {
-      {12, 40, 30, 30, {-1, -1}},
+	  {12, 40, 30, 30, {-1, -1}},
       { 0,  0,  0,  0, {-1, -1}},
       { 0,  0,  0,  0, {-1, -1}},
       { 0,  0,  0,  0, {-1, -1}}
-    }
+    },
+	{
+      {mission_t::VICTORY_NO_CONDITION, 0},
+      {mission_t::VICTORY_NO_CONDITION, 0},
+      {mission_t::VICTORY_NO_CONDITION, 0},
+      {mission_t::VICTORY_NO_CONDITION, 0}
+	}
   }
 };
 
@@ -96,7 +132,13 @@ mission_t missions[] = {
       { 1, 10,  5, 30, {-1, -1}},
       { 0,  0,  0,  0, {-1, -1}},
       { 0,  0,  0,  0, {-1, -1}}
-    }
+    },
+	{
+      {mission_t::VICTORY_NO_CONDITION, 0},
+      {mission_t::VICTORY_NO_CONDITION, 0},
+      {mission_t::VICTORY_NO_CONDITION, 0},
+      {mission_t::VICTORY_NO_CONDITION, 0}
+	}
   },
   {
     "STATION",
@@ -106,7 +148,13 @@ mission_t missions[] = {
       { 2, 12, 15, 30, {-1, -1}},
       { 3, 14, 15, 30, {-1, -1}},
       { 0,  0,  0,  0, {-1, -1}}
-    }
+    },
+	{
+      {mission_t::VICTORY_NO_CONDITION, 0},
+      {mission_t::VICTORY_NO_CONDITION, 0},
+      {mission_t::VICTORY_NO_CONDITION, 0},
+      {mission_t::VICTORY_NO_CONDITION, 0}
+	}
   },
   {
     "UNITY",
@@ -116,7 +164,13 @@ mission_t missions[] = {
       { 2, 18, 10, 25, {-1, -1}},
       { 4, 18, 10, 25, {-1, -1}},
       { 0,  0,  0,  0, {-1, -1}}
-    }
+    },
+	{
+      {mission_t::VICTORY_NO_CONDITION, 0},
+      {mission_t::VICTORY_NO_CONDITION, 0},
+      {mission_t::VICTORY_NO_CONDITION, 0},
+      {mission_t::VICTORY_NO_CONDITION, 0}
+	}
   },
   {
     "WAVE",
@@ -126,7 +180,13 @@ mission_t missions[] = {
       { 2, 16, 20, 30, {-1, -1}},
       { 0,  0,  0,  0, {-1, -1}},
       { 0,  0,  0,  0, {-1, -1}}
-    }
+    },
+	{
+      {mission_t::VICTORY_NO_CONDITION, 0},
+      {mission_t::VICTORY_NO_CONDITION, 0},
+      {mission_t::VICTORY_NO_CONDITION, 0},
+      {mission_t::VICTORY_NO_CONDITION, 0}
+	}
   },
   {
     "EXPORT",
@@ -136,7 +196,13 @@ mission_t missions[] = {
       { 3, 16, 25, 20, {-1, -1}},
       { 4, 16, 25, 20, {-1, -1}},
       { 0,  0,  0,  0, {-1, -1}}
-    }
+    },
+	{
+      {mission_t::VICTORY_NO_CONDITION, 0},
+      {mission_t::VICTORY_NO_CONDITION, 0},
+      {mission_t::VICTORY_NO_CONDITION, 0},
+      {mission_t::VICTORY_NO_CONDITION, 0}
+	}
   },
   {
     "OPTION",
@@ -146,7 +212,13 @@ mission_t missions[] = {
       { 3, 20, 12, 14, {-1, -1}},
       { 5, 20, 12, 14, {-1, -1}},
       { 0,  0,  0,  0, {-1, -1}}
-    }
+    },
+	{
+      {mission_t::VICTORY_NO_CONDITION, 0},
+      {mission_t::VICTORY_NO_CONDITION, 0},
+      {mission_t::VICTORY_NO_CONDITION, 0},
+      {mission_t::VICTORY_NO_CONDITION, 0}
+	}
   },
   {
     "RECORD",
@@ -156,7 +228,13 @@ mission_t missions[] = {
       { 3, 22, 30, 30, {-1, -1}},
       { 0,  0,  0,  0, {-1, -1}},
       { 0,  0,  0,  0, {-1, -1}}
-    }
+    },
+	{
+      {mission_t::VICTORY_NO_CONDITION, 0},
+      {mission_t::VICTORY_NO_CONDITION, 0},
+      {mission_t::VICTORY_NO_CONDITION, 0},
+      {mission_t::VICTORY_NO_CONDITION, 0}
+	}
   },
   {
     "SCALE",
@@ -166,7 +244,13 @@ mission_t missions[] = {
       { 4, 23, 25, 30, {-1, -1}},
       { 6, 24, 25, 30, {-1, -1}},
       { 0,  0,  0,  0, {-1, -1}}
-    }
+    },
+	{
+      {mission_t::VICTORY_NO_CONDITION, 0},
+      {mission_t::VICTORY_NO_CONDITION, 0},
+      {mission_t::VICTORY_NO_CONDITION, 0},
+      {mission_t::VICTORY_NO_CONDITION, 0}
+	}
   },
   {
     "SIGN",
@@ -176,7 +260,13 @@ mission_t missions[] = {
       { 4, 26, 13, 30, {-1, -1}},
       { 5, 28, 13, 30, {-1, -1}},
       { 6, 30, 13, 30, {-1, -1}}
-    }
+    },
+	{
+      {mission_t::VICTORY_NO_CONDITION, 0},
+      {mission_t::VICTORY_NO_CONDITION, 0},
+      {mission_t::VICTORY_NO_CONDITION, 0},
+      {mission_t::VICTORY_NO_CONDITION, 0}
+	}
   },
   {
     "ACORN",
@@ -186,7 +276,13 @@ mission_t missions[] = {
       { 4, 30, 19, 20, { 5, 47}},
       { 0,  0,  0,  0, {-1, -1}},
       { 0,  0,  0,  0, {-1, -1}}
-    }
+    },
+	{
+      {mission_t::VICTORY_NO_CONDITION, 0},
+      {mission_t::VICTORY_NO_CONDITION, 0},
+      {mission_t::VICTORY_NO_CONDITION, 0},
+      {mission_t::VICTORY_NO_CONDITION, 0}
+	}
   },
   {
     "CHOPPER",
@@ -196,7 +292,13 @@ mission_t missions[] = {
       { 5, 33, 10, 20, {52, 25}},
       { 7, 34, 13, 20, {23, 12}},
       { 0,  0,  0,  0, {-1, -1}}
-    }
+    },
+	{
+      {mission_t::VICTORY_NO_CONDITION, 0},
+      {mission_t::VICTORY_NO_CONDITION, 0},
+      {mission_t::VICTORY_NO_CONDITION, 0},
+      {mission_t::VICTORY_NO_CONDITION, 0}
+	}
   },
   {
     "GATE",
@@ -206,7 +308,13 @@ mission_t missions[] = {
       { 5, 27, 17, 24, {27, 10}},
       { 6, 27, 13, 24, {29, 38}},
       { 7, 27, 13, 24, {15, 32}}
-    }
+    },
+	{
+      {mission_t::VICTORY_NO_CONDITION, 0},
+      {mission_t::VICTORY_NO_CONDITION, 0},
+      {mission_t::VICTORY_NO_CONDITION, 0},
+      {mission_t::VICTORY_NO_CONDITION, 0}
+	}
   },
   {
     "ISLAND",
@@ -216,7 +324,13 @@ mission_t missions[] = {
       { 5, 20, 30, 20, { 2, 10}},
       { 0,  0,  0,  0, {-1, -1}},
       { 0,  0,  0,  0, {-1, -1}}
-    }
+    },
+	{
+      {mission_t::VICTORY_NO_CONDITION, 0},
+      {mission_t::VICTORY_NO_CONDITION, 0},
+      {mission_t::VICTORY_NO_CONDITION, 0},
+      {mission_t::VICTORY_NO_CONDITION, 0}
+	}
   },
   {
     "LEGION",
@@ -226,7 +340,13 @@ mission_t missions[] = {
       { 6, 28, 16, 20, {55,  7}},
       { 8, 28, 16, 20, {55, 46}},
       { 0,  0,  0,  0, {-1, -1}}
-    }
+    },
+	{
+      {mission_t::VICTORY_NO_CONDITION, 0},
+      {mission_t::VICTORY_NO_CONDITION, 0},
+      {mission_t::VICTORY_NO_CONDITION, 0},
+      {mission_t::VICTORY_NO_CONDITION, 0}
+	}
   },
   {
     "PIECE",
@@ -236,7 +356,13 @@ mission_t missions[] = {
       { 6, 40, 23, 20, {19, 49}},
       { 7, 37, 20, 20, {58, 52}},
       { 8, 40, 15, 15, {43, 31}}
-    }
+    },
+	{
+      {mission_t::VICTORY_NO_CONDITION, 0},
+      {mission_t::VICTORY_NO_CONDITION, 0},
+      {mission_t::VICTORY_NO_CONDITION, 0},
+      {mission_t::VICTORY_NO_CONDITION, 0}
+	}
   },
   {
     "RIVAL",
@@ -246,7 +372,13 @@ mission_t missions[] = {
       { 6, 28, 29, 40, {14, 15}},
       { 0,  0,  0,  0, {-1, -1}},
       { 0,  0,  0,  0, {-1, -1}}
-    }
+    },
+	{
+      {mission_t::VICTORY_NO_CONDITION, 0},
+      {mission_t::VICTORY_NO_CONDITION, 0},
+      {mission_t::VICTORY_NO_CONDITION, 0},
+      {mission_t::VICTORY_NO_CONDITION, 0}
+	}
   },
   {
     "SAVAGE",
@@ -256,7 +388,13 @@ mission_t missions[] = {
       { 7, 29, 17, 10, {29, 24}},
       { 8, 29, 17, 10, {39, 26}},
       { 9, 32, 17, 10, {42, 49}}
-    }
+    },
+	{
+      {mission_t::VICTORY_NO_CONDITION, 0},
+      {mission_t::VICTORY_NO_CONDITION, 0},
+      {mission_t::VICTORY_NO_CONDITION, 0},
+      {mission_t::VICTORY_NO_CONDITION, 0}
+	}
   },
   {
     "XAVER",
@@ -266,7 +404,13 @@ mission_t missions[] = {
       { 7, 40, 30, 35, {34, 48}},
       { 9, 30, 30, 35, {58,  5}},
       { 0,  0,  0,  0, {-1, -1}}
-    }
+    },
+	{
+      {mission_t::VICTORY_NO_CONDITION, 0},
+      {mission_t::VICTORY_NO_CONDITION, 0},
+      {mission_t::VICTORY_NO_CONDITION, 0},
+      {mission_t::VICTORY_NO_CONDITION, 0}
+	}
   },
   {
     "BLADE",
@@ -276,7 +420,13 @@ mission_t missions[] = {
       { 7, 40, 20, 20, {32, 34}},
       { 0,  0,  0,  0, {-1, -1}},
       { 0,  0,  0,  0, {-1, -1}}
-    }
+    },
+	{
+      {mission_t::VICTORY_NO_CONDITION, 0},
+      {mission_t::VICTORY_NO_CONDITION, 0},
+      {mission_t::VICTORY_NO_CONDITION, 0},
+      {mission_t::VICTORY_NO_CONDITION, 0}
+	}
   },
   {
     "BEACON",
@@ -286,7 +436,13 @@ mission_t missions[] = {
       { 8, 40, 16, 22, {62,  1}},
       { 9, 40, 16, 23, {32, 14}},
       { 0,  0,  0,  0, {-1, -1}}
-    }
+    },
+	{
+      {mission_t::VICTORY_NO_CONDITION, 0},
+      {mission_t::VICTORY_NO_CONDITION, 0},
+      {mission_t::VICTORY_NO_CONDITION, 0},
+      {mission_t::VICTORY_NO_CONDITION, 0}
+	}
   },
   {
     "PASTURE",
@@ -296,7 +452,13 @@ mission_t missions[] = {
       { 8, 30, 22, 13, {32, 51}},
       { 9, 30, 23, 13, { 1, 50}},
       {10, 30, 21, 13, { 4,  9}}
-    }
+    },
+	{
+      {mission_t::VICTORY_NO_CONDITION, 0},
+      {mission_t::VICTORY_NO_CONDITION, 0},
+      {mission_t::VICTORY_NO_CONDITION, 0},
+      {mission_t::VICTORY_NO_CONDITION, 0}
+	}
   },
   {
     "OMNUS",
@@ -306,7 +468,13 @@ mission_t missions[] = {
       { 8, 36, 25, 40, {48, 47}},
       { 0,  0,  0,  0, {-1, -1}},
       { 0,  0,  0,  0, {-1, -1}}
-    }
+    },
+	{
+      {mission_t::VICTORY_NO_CONDITION, 0},
+      {mission_t::VICTORY_NO_CONDITION, 0},
+      {mission_t::VICTORY_NO_CONDITION, 0},
+      {mission_t::VICTORY_NO_CONDITION, 0}
+	}
   },
   {
     "TRIBUTE",
@@ -316,7 +484,13 @@ mission_t missions[] = {
       { 9, 35, 30, 10, {20,  2}},
       {10, 37, 30, 10, {16, 55}},
       { 0,  0,  0,  0, {-1, -1}}
-    }
+    },
+	{
+      {mission_t::VICTORY_NO_CONDITION, 0},
+      {mission_t::VICTORY_NO_CONDITION, 0},
+      {mission_t::VICTORY_NO_CONDITION, 0},
+      {mission_t::VICTORY_NO_CONDITION, 0}
+	}
   },
   {
     "FOUNTAIN",
@@ -326,7 +500,13 @@ mission_t missions[] = {
       { 9, 30, 25, 10, {47, 41}},
       {10, 30, 26, 10, {42, 52}},
       { 0,  0,  0,  0, {-1, -1}}
-    }
+    },
+	{
+      {mission_t::VICTORY_NO_CONDITION, 0},
+      {mission_t::VICTORY_NO_CONDITION, 0},
+      {mission_t::VICTORY_NO_CONDITION, 0},
+      {mission_t::VICTORY_NO_CONDITION, 0}
+	}
   },
   {
     "CHUDE",
@@ -336,7 +516,13 @@ mission_t missions[] = {
       { 9, 40, 25, 40, {57, 52}},
       { 0,  0,  0,  0, {-1, -1}},
       { 0,  0,  0,  0, {-1, -1}}
-    }
+    },
+	{
+      {mission_t::VICTORY_NO_CONDITION, 0},
+      {mission_t::VICTORY_NO_CONDITION, 0},
+      {mission_t::VICTORY_NO_CONDITION, 0},
+      {mission_t::VICTORY_NO_CONDITION, 0}
+	}
   },
   {
     "TRAILER",
@@ -346,7 +532,13 @@ mission_t missions[] = {
       {10, 38, 30, 35, {15, 40}},
       { 0,  0,  0,  0, {-1, -1}},
       { 0,  0,  0,  0, {-1, -1}}
-    }
+    },
+	{
+      {mission_t::VICTORY_NO_CONDITION, 0},
+      {mission_t::VICTORY_NO_CONDITION, 0},
+      {mission_t::VICTORY_NO_CONDITION, 0},
+      {mission_t::VICTORY_NO_CONDITION, 0}
+	}
   },
   {
     "CANYON",
@@ -356,7 +548,13 @@ mission_t missions[] = {
       {10, 39, 25, 40, {14, 53}},
       { 0,  0,  0,  0, {-1, -1}},
       { 0,  0,  0,  0, {-1, -1}}
-    }
+    },
+	{
+      {mission_t::VICTORY_NO_CONDITION, 0},
+      {mission_t::VICTORY_NO_CONDITION, 0},
+      {mission_t::VICTORY_NO_CONDITION, 0},
+      {mission_t::VICTORY_NO_CONDITION, 0}
+	}
   },
   {
     "REPRESS",
@@ -366,7 +564,13 @@ mission_t missions[] = {
       {10, 39, 25, 40, {44, 63}},
       { 0,  0,  0,  0, {-1, -1}},
       { 0,  0,  0,  0, {-1, -1}}
-    }
+    },
+	{
+      {mission_t::VICTORY_NO_CONDITION, 0},
+      {mission_t::VICTORY_NO_CONDITION, 0},
+      {mission_t::VICTORY_NO_CONDITION, 0},
+      {mission_t::VICTORY_NO_CONDITION, 0}
+	}
   },
   {
     "YOKI",
@@ -376,7 +580,13 @@ mission_t missions[] = {
       {11, 40, 15, 20, {30, 22}},
       { 0,  0,  0,  0, {-1, -1}},
       { 0,  0,  0,  0, {-1, -1}}
-    }
+    },
+	{
+      {mission_t::VICTORY_NO_CONDITION, 0},
+      {mission_t::VICTORY_NO_CONDITION, 0},
+      {mission_t::VICTORY_NO_CONDITION, 0},
+      {mission_t::VICTORY_NO_CONDITION, 0}
+	}
   },
   {
     "PASSIVE",
@@ -386,7 +596,13 @@ mission_t missions[] = {
       {11, 40, 20, 20, {51, 42}},
       { 0,  0,  0,  0, {-1, -1}},
       { 0,  0,  0,  0, {-1, -1}}
-    }
+    },
+	{
+      {mission_t::VICTORY_NO_CONDITION, 0},
+      {mission_t::VICTORY_NO_CONDITION, 0},
+      {mission_t::VICTORY_NO_CONDITION, 0},
+      {mission_t::VICTORY_NO_CONDITION, 0}
+	}
   }
 };
 
@@ -395,11 +611,23 @@ mission_t::get_mission(int m) {
   if (m >= get_mission_count()) {
     return NULL;
   }
-
   return missions + m;
+}
+
+mission_t *
+mission_t::get_tutorial(int m) {
+  if (m >= get_tutorials_count()) {
+    return NULL;
+  }
+  return tutorials + m;
 }
 
 int
 mission_t::get_mission_count() {
   return sizeof(missions) / sizeof(missions[0]);
+}
+
+int
+mission_t::get_tutorials_count() {
+  return sizeof(tutorials) / sizeof(tutorials[0]);
 }
