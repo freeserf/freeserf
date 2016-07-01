@@ -1457,8 +1457,10 @@ game_t::build_castle(map_pos_t pos, player_t *player) {
   inventory->set_owner(player->get_index());
   inventory->apply_supplies_preset(player->get_initial_supplies());
 
-  map->add_gold_deposit(inventory->get_count_of(RESOURCE_GOLDBAR));
-  map->add_gold_deposit(inventory->get_count_of(RESOURCE_GOLDORE));
+  map->add_gold_deposit(static_cast<int>(
+                                    inventory->get_count_of(RESOURCE_GOLDBAR)));
+  map->add_gold_deposit(static_cast<int>(
+                                    inventory->get_count_of(RESOURCE_GOLDORE)));
 
   castle->set_position(pos);
   flag->set_position(map->move_down_right(pos));
