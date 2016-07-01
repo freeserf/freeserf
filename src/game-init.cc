@@ -260,23 +260,34 @@ game_init_box_t::handle_action(int action) {
     case ACTION_START_GAME: {
       game_t *game = new game_t(0);
       game->init();
-      if (game_mission < 0) {
-        random_state_t rnd(0x5a5a, (uint16_t)(time(NULL) >> 16),
-                           (uint16_t)time(NULL));
-        if (!game->load_random_map(map_size, rnd)) return;
 
-        for (int i = 0; i < GAME_MAX_PLAYER_COUNT; i++) {
-          if (mission->player[i].face == 0) continue;
-          int p = game->add_player(mission->player[i].face,
-                                   default_player_colors[i],
-                                   mission->player[i].supplies,
-                                   mission->player[i].reproduction,
-                                   mission->player[i].intelligence);
-          if (p < 0) return;
-        }
-      } else {
-        if (!game->load_mission_map(game_mission)) return;
-      }
+	  switch (game_type) {
+		  case GAMETYPE_FREE:
+		  {
+			  random_state_t rnd(0x5a5a, (uint16_t)(time(NULL) >> 16),
+				  (uint16_t)time(NULL));
+			  if (!game->load_random_map(map_size, rnd)) return;
+
+			  for (int i = 0; i < GAME_MAX_PLAYER_COUNT; i++) {
+				  if (mission->player[i].face == 0) continue;
+				  int p = game->add_player(mission->player[i].face,
+					  default_player_colors[i],
+					  mission->player[i].supplies,
+					  mission->player[i].reproduction,
+					  mission->player[i].intelligence);
+				  if (p < 0) return;
+			  }
+		  }
+		  break;
+
+		  case GAMETYPE_MISSION:
+			  if (!game->load_mission_map(game_mission, false)) return;
+			  break;
+
+		  case GAMETYPE_TUTORIAL:
+			  if (!game->load_mission_map(game_mission, true)) return;
+			  break;
+	  }
 
       game_t *old_game = interface->get_game();
       if (old_game != NULL) {
@@ -589,6 +600,12 @@ game_init_box_t::game_init_box_t(interface_t *interface) {
   custom_mission.player[1].reproduction = 40;
 
   custom_mission.rnd = random_state_t();
+
+  for (int i = 0; i < GAME_MAX_VICTORY_CONDITION_COUNT; i++) {
+    custom_mission.victory[i].condition = mission_t::VICTORY_NO_CONDITION;
+	custom_mission.victory[i].amount = 0;
+  }
+
 
   mission = &custom_mission;
 

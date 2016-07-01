@@ -101,6 +101,7 @@ player_t::init(unsigned int number, size_t face, unsigned int color,
 
   for (int i = 0; i < 26; i++) {
     resource_count[i] = 0;
+	resource_count_total[i] = 0;
   }
 
   for (int i = 0; i < 24; i++) {
@@ -567,6 +568,7 @@ player_t::building_founded(building_t *building) {
     this->building = building->get_index();
     create_initial_castle_serfs(building);
     last_tick = game->get_tick();
+	player_castle = building;
   } else {
     incomplete_building_count[building->get_type()] += 1;
   }
@@ -804,6 +806,8 @@ player_t::update() {
   if (total_building_score > 0xffff0000) total_building_score = 0;
 
   if (is_ai()) {
+	  //game->pause();
+	ai->tick();
     /*if (player->field_1B2 != 0) player->field_1B2 -= 1;*/
     /*if (player->field_1B0 != 0) player->field_1B0 -= 1;*/
   }
@@ -868,6 +872,7 @@ player_t::update() {
 void
 player_t::update_stats(int res) {
   resource_count_history[res][index] = resource_count[res];
+  resource_count_total[res] += resource_count[res];
   resource_count[res] = 0;
 }
 

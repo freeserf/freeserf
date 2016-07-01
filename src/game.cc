@@ -480,6 +480,55 @@ game_t::calculate_clear_winner(const values_t &values) {
   return -1;
 }
 
+// Check if the player satisfy the conditions of this mission
+bool
+game_t::player_check_victory_conditions(mission_t * mission, player_t * player) {
+
+	for (int c = 0; c < GAME_MAX_VICTORY_CONDITION_COUNT; c++) {
+		if (mission->victory[c].condition != mission_t::VICTORY_NO_CONDITION) {
+
+			// is this a building condition?
+			if ((mission->victory[c].condition & mission_t::VICTORY_IS_BUILDING_CONDITION) == mission_t::VICTORY_IS_BUILDING_CONDITION) {
+				int building_type = mission->victory[c].condition - mission_t::VICTORY_IS_BUILDING_CONDITION;
+
+				if (player->get_completed_building_count(building_type) < mission->victory[c].amount) return false;
+			}
+			// is this a building resource condition?
+			else if ((mission->victory[c].condition & mission_t::VICTORY_IS_RESOURCE_CONDITION) == mission_t::VICTORY_IS_RESOURCE_CONDITION) {
+				int resource_type = mission->victory[c].condition - mission_t::VICTORY_IS_RESOURCE_CONDITION;
+
+				if (player->get_resource_count_total((resource_type_t)resource_type) < mission->victory[c].amount) return false;
+			}
+			// is this a building resource condition?
+			else if ((mission->victory[c].condition & mission_t::VICTORY_IS_SPECIAL_CONDITION) == mission_t::VICTORY_IS_SPECIAL_CONDITION) {
+
+				int sum = 0;
+				switch (mission->victory[c].condition) {
+					case mission_t::VICTORY_SPECIAL_WEAPONS:
+						sum += player->get_resource_count_total(resource_type_t::RESOURCE_SWORD);
+						sum += player->get_resource_count_total(resource_type_t::RESOURCE_SHIELD);
+						break;
+					case mission_t::VICTORY_SPECIAL_TOOLS:
+						sum += player->get_resource_count_total(resource_type_t::RESOURCE_SHOVEL);
+						sum += player->get_resource_count_total(resource_type_t::RESOURCE_HAMMER);
+						sum += player->get_resource_count_total(resource_type_t::RESOURCE_ROD);
+						sum += player->get_resource_count_total(resource_type_t::RESOURCE_CLEAVER);
+						sum += player->get_resource_count_total(resource_type_t::RESOURCE_SCYTHE);
+						sum += player->get_resource_count_total(resource_type_t::RESOURCE_AXE);
+						sum += player->get_resource_count_total(resource_type_t::RESOURCE_SAW);
+						sum += player->get_resource_count_total(resource_type_t::RESOURCE_PICK);
+						sum += player->get_resource_count_total(resource_type_t::RESOURCE_PINCER);
+						break;
+				}
+
+				if (sum < mission->victory[c].amount) return false;
+			}
+		}
+	}
+	return true;
+	
+}
+
 /* Update statistics of the game. */
 void
 game_t::update_game_stats() {
@@ -488,7 +537,10 @@ game_t::update_game_stats() {
   } else {
     game_stats_counter += 1500 - tick_diff;
 
-    player_score_leader = 0;
+	player_score_leader = 0;
+    int player_score_leader_land = -1;
+	int player_score_leader_minitary = -1;
+	int player_score_victory_condition = -1;
 
     int update_level = 0;
 
@@ -534,7 +586,7 @@ game_t::update_game_stats() {
       values[(*it)->get_index()] = (*it)->get_land_area();
     }
     record_player_history(update_level, 1, player_history_index, values);
-    player_score_leader |= BIT(calculate_clear_winner(values));
+	player_score_leader_land = calculate_clear_winner(values);
 
     /* Store building stats in history. */
     for (players_t::iterator it = players.begin(); it != players.end(); ++it) {
@@ -547,15 +599,51 @@ game_t::update_game_stats() {
       values[(*it)->get_index()] = (*it)->get_military_score();
     }
     record_player_history(update_level, 3, player_history_index, values);
-    player_score_leader |= BIT(calculate_clear_winner(values)) << 4;
+	player_score_leader_minitary = calculate_clear_winner(values);
 
     /* Store condensed score of all aspects in history. */
     for (players_t::iterator it = players.begin(); it != players.end(); ++it) {
       values[(*it)->get_index()] = (*it)->get_score();
     }
     record_player_history(update_level, 0, player_history_index, values);
+	
 
-    /* TODO Determine winner based on game.player_score_leader */
+	// check victory conditions set by the mission
+	if (mission_level > -1) {
+      mission_t *mission;
+
+      if (mission_is_tutorial) {
+        mission = mission_t::get_tutorial(mission_level);
+      }
+      else {
+        mission = mission_t::get_mission(mission_level);
+      }
+
+	  // are ther special victory conditions?
+      if (mission->victory[0].condition != mission_t::VICTORY_NO_CONDITION) {
+        // delete the other conditions
+        player_score_leader_land = -1;
+        player_score_leader_minitary = -1;
+
+        for (players_t::iterator it = players.begin(); it != players.end(); ++it) {
+          if (player_check_victory_conditions(mission, (*it))) player_score_victory_condition = (*it)->get_index();
+        }
+      }
+	}
+
+
+	// Determine winner based on "player_scores" values
+	if ((player_score_leader_land >= 0) || (player_score_leader_minitary >= 0) || (player_score_victory_condition >= 0)) {
+
+      int winner = player_score_leader_land;
+      if (player_score_leader_minitary >= 0) winner = player_score_leader_minitary;
+      if (player_score_victory_condition >= 0) winner = player_score_victory_condition;
+
+	  // TODO show victory screen
+      printf("Player %i win!", winner);
+	}
+
+
   }
 
   if (static_cast<int>(history_counter) > tick_diff) {
@@ -1627,10 +1715,8 @@ game_t::demolish_building_(map_pos_t pos) {
 
       inventory->lose_queue();
 
-      map->add_gold_deposit(-static_cast< int >(
-                           inventory->get_count_of(RESOURCE_GOLDBAR)));
-      map->add_gold_deposit(-static_cast< int >(
-                           inventory->get_count_of(RESOURCE_GOLDORE)));
+      map->add_gold_deposit(-static_cast< int >(inventory->get_count_of(RESOURCE_GOLDBAR)));
+      map->add_gold_deposit(-static_cast< int >(inventory->get_count_of(RESOURCE_GOLDORE)));
 
       inventories.erase(inventory->get_index());
     }
@@ -2104,7 +2190,7 @@ game_t::init() {
   update_map_counter = 0;
   update_map_16_loop = 0;
   update_map_initial_pos = 0;
-  next_index = 0;
+  //next_index = 0;
 
   memset(player_history_index, '\0', sizeof(player_history_index));
   memset(player_history_counter, '\0', sizeof(player_history_counter));
@@ -2119,6 +2205,9 @@ game_t::init() {
 
   knight_morale_counter = 0;
   inventory_schedule_counter = 0;
+
+  mission_level = -1;
+  mission_is_tutorial = false;
 }
 
 /* Initialize spiral_pos_pattern from spiral_pattern. */
@@ -2180,18 +2269,27 @@ game_t::allocate_objects() {
 }
 
 bool
-game_t::load_mission_map(int level) {
+game_t::load_mission_map(int level, bool load_tutorial) {
   const unsigned int default_player_colors[] = {
     64, 72, 68, 76
   };
 
   deinit();
 
-  mission_t *mission = mission_t::get_mission(level);
+  mission_t *mission;
+
+  if (load_tutorial) {
+    mission = mission_t::get_tutorial(level);
+  }
+  else {
+    mission = mission_t::get_mission(level);
+  }
+  
 
   init_map_rnd = mission->rnd;
 
   mission_level = level;
+  mission_is_tutorial = load_tutorial;
 
   init_map(3, mission->rnd, true);
   allocate_objects();
@@ -2524,7 +2622,7 @@ operator >> (save_reader_binary_t &reader, game_t &game) {
   int max_serf_index = v16;
 
   reader >> v16;  // 96
-  game.next_index = v16;
+  //game.next_index = v16;
   reader >> v16;  // 98
   game.flag_search_counter = v16;
 
@@ -2757,7 +2855,7 @@ operator >> (save_reader_text_t &reader, game_t &game) {
     ss >> r1 >> c >> r2 >> c >> r3;
     game.rnd = random_state_t(r1, r2, r3);
   }
-  game_reader->value("next_index") >> game.next_index;
+  //game_reader->value("next_index") >> game.next_index;
   game_reader->value("flag_search_counter") >> game.flag_search_counter;
   for (int i = 0; i < 4; i++) {
     game_reader->value("player_history_index")[i] >>
@@ -2862,7 +2960,7 @@ operator << (save_writer_text_t &writer, game_t &game) {
   writer.value("history_counter") << game.history_counter;
   writer.value("random") << (std::string)game.rnd;
 
-  writer.value("next_index") << game.next_index;
+  //writer.value("next_index") << game.next_index;
   writer.value("flag_search_counter") << game.flag_search_counter;
 
   for (int i = 0; i < 4; i++) {

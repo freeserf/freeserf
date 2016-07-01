@@ -129,6 +129,7 @@ class player_t : public game_object_t {
 
   int player_stat_history[16][112];
   int resource_count_history[26][120];
+  int resource_count_total[26];
 
  public:
   // TODO(Digger): remove it to UI
@@ -225,7 +226,7 @@ class player_t : public game_object_t {
   void decrease_serf_count(int type) { serf_count[type]--; }
   int *get_serfs() { return reinterpret_cast<int*>(serf_count); }
 
-  void increase_res_count(int type) { serf_count[type]++; }
+  void increase_res_count(int type) { serf_count[type]++; resource_count[type]++; }
   void decrease_res_count(int type) { serf_count[type]--; }
 
   void building_founded(building_t *building);
@@ -263,6 +264,9 @@ class player_t : public game_object_t {
   size_t get_initial_supplies() const { return initial_supplies; }
   int *get_resource_count_history(resource_type_t type) {
     return resource_count_history[type]; }
+  int get_resource_count_total(resource_type_t type) {
+	return resource_count_total[type];
+  }
   void set_player_stat_history(int mode, int index, int val) {
     player_stat_history[mode][index] = val; }
   int *get_player_stat_history(int mode) { return player_stat_history[mode]; }
