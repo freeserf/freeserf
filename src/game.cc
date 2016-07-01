@@ -1627,8 +1627,10 @@ game_t::demolish_building_(map_pos_t pos) {
 
       inventory->lose_queue();
 
-      map->add_gold_deposit(-inventory->get_count_of(RESOURCE_GOLDBAR));
-      map->add_gold_deposit(-inventory->get_count_of(RESOURCE_GOLDORE));
+      map->add_gold_deposit(-static_cast< int >(
+                           inventory->get_count_of(RESOURCE_GOLDBAR)));
+      map->add_gold_deposit(-static_cast< int >(
+                           inventory->get_count_of(RESOURCE_GOLDORE)));
 
       inventories.erase(inventory->get_index());
     }
@@ -2191,7 +2193,7 @@ game_t::load_mission_map(int level) {
 
   mission_level = level;
 
-  init_map(3, mission[level].rnd, true);
+  init_map(3, mission->rnd, true);
   allocate_objects();
 
   /* Initialize player and build initial castle */
