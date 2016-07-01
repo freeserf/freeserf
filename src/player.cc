@@ -568,7 +568,6 @@ player_t::building_founded(building_t *building) {
     this->building = building->get_index();
     create_initial_castle_serfs(building);
     last_tick = game->get_tick();
-	player_castle = building;
   } else {
     incomplete_building_count[building->get_type()] += 1;
   }
@@ -805,12 +804,6 @@ player_t::update() {
   if (total_military_score > 0xffff0000) total_military_score = 0;
   if (total_building_score > 0xffff0000) total_building_score = 0;
 
-  if (is_ai()) {
-	  //game->pause();
-	ai->tick();
-    /*if (player->field_1B2 != 0) player->field_1B2 -= 1;*/
-    /*if (player->field_1B0 != 0) player->field_1B0 -= 1;*/
-  }
 
   if (cycling_knight()) {
     knight_cycle_counter -= delta;
