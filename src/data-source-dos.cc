@@ -127,8 +127,8 @@ data_source_dos_t::get_object(unsigned int index, size_t *size) {
   if (size != NULL) {
     *size = 0;
   }
-
-  if (index <= 0 && index >= entry_count) {
+  // first entry is whole file itself
+  if (index <= 0 || index >= entry_count) {
     return NULL;
   }
 

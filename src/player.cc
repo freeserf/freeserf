@@ -101,6 +101,7 @@ player_t::init(unsigned int number, size_t face, unsigned int color,
 
   for (int i = 0; i < 26; i++) {
     resource_count[i] = 0;
+	resource_produced_count[i] = 0;
   }
 
   for (int i = 0; i < 24; i++) {
@@ -151,9 +152,28 @@ player_t::init_ai_values(size_t face) {
   ai_value_5 = ai_values_5[face-1];
 }
 
+
+bool 
+player_t::has_popup() {
+	return popup != BOX_NO_BOX;
+}
+
+box_t
+player_t::get_popup() {
+	box_t tmp = popup;
+	popup = BOX_NO_BOX;
+	return tmp;
+}
+
+void
+player_t::set_popup(box_t type) {
+	popup = type;
+}
+
+
 /* Enqueue a new notification message for player. */
 void
-player_t::add_notification(int type, map_pos_t pos, unsigned int data) {
+player_t::add_notification(notification_type_t type, map_pos_t pos, unsigned int data) {
   flags |= BIT(3); /* Message in queue. */
   message_t new_message;
   new_message.type = type;
@@ -178,6 +198,21 @@ message_t
 player_t::peek_notification() {
   message_t message = messages.front();
   return message;
+}
+
+char *
+player_t::get_game_win_or_lose_text() {
+  char * text;
+
+  if (index == get_game()->get_winner()) {
+	text = get_game()->get_game_win_text();
+    if (text == NULL) text = "$a00";
+  }
+  else {
+	text = get_game()->get_game_lose_text();
+    if (text == NULL) text = "$a01";
+  }
+  return text;
 }
 
 void
@@ -584,8 +619,8 @@ void
 player_t::building_captured(building_t *building) {
   player_t *def_player = game->get_player(building->get_owner());
 
-  def_player->add_notification(2, building->get_position(), index);
-  add_notification(3, building->get_position(), index);
+  def_player->add_notification(NOTIFICATION_LOST_FIGHT, building->get_position(), index);
+  add_notification(NOTIFICATION_VICTORY_FIGHT, building->get_position(), index);
 
   if (building->get_type() == BUILDING_CASTLE) {
     castle_score += 1;
@@ -857,7 +892,7 @@ player_t::update() {
     if (it->timeout < 0) {
       /* Timer has expired. */
       /* TODO box (+ pos) timer */
-      add_notification(5, it->pos, 0);
+      add_notification(NOTIFICATION_CALL_TO_LOCATION, it->pos, 0);
       it = timers.erase(it);
     } else {
       ++it;

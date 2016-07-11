@@ -115,6 +115,7 @@ class data_source_dos_t : public data_source_t {
     uint32_t offset;
   } spae_entry_t;
 
+  // Pointer to file data of sprites file
   void *sprites;
   size_t sprites_size;
   size_t entry_count;

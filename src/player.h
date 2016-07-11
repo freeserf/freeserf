@@ -22,12 +22,13 @@
 #ifndef SRC_PLAYER_H_
 #define SRC_PLAYER_H_
 
-#include <queue>
 #include <vector>
 
 #include "src/map.h"
 #include "src/serf.h"
 #include "src/objects.h"
+#include "src/notification.h"
+#include "src/popup.h"
 
 class serf_t;
 class inventory_t;
@@ -36,26 +37,16 @@ class save_reader_binary_t;
 class save_reader_text_t;
 class save_writer_text_t;
 
-class message_t {
- public:
-  int type;
-  map_pos_t pos;
-  unsigned int data;
-};
-typedef std::queue<message_t> messages_t;
 
-class pos_timer_t {
- public:
-  int timeout;
-  map_pos_t pos;
-};
-typedef std::vector<pos_timer_t> timers_t;
 
 /* player_t object. Holds the game state of a player. */
 class player_t : public game_object_t {
  protected:
   int tool_prio[9];
+  // available resources
   int resource_count[26];
+  // produced resources
+  int resource_produced_count[26];
   int flag_prio[26];
   int serf_count[27];
   int knight_occupation[4];
@@ -71,6 +62,7 @@ class player_t : public game_object_t {
 
   messages_t messages;
   timers_t timers;
+  box_t popup = BOX_NO_BOX;
 
   int building;
   int castle_inventory;
@@ -167,7 +159,8 @@ class player_t : public game_object_t {
   bool cycling_second() const { return ((flags >> 5) & 1); }
   /* Whether this player is a computer controlled opponent. */
   bool is_ai() const { return ((flags >> 7) & 1); }
-
+  // return the winning or losing text
+  char * get_game_win_or_lose_text();
   /* Whether player is prohibited from building military
    buildings at current position. */
   bool allow_military() const { return !(build & 1); }
@@ -180,10 +173,15 @@ class player_t : public game_object_t {
   unsigned int get_serf_count(int type) const { return serf_count[type]; }
   int get_flag_prio(int res) const { return flag_prio[res]; }
 
-  void add_notification(int type, map_pos_t pos, unsigned int data);
+  void add_notification(notification_type_t type, map_pos_t pos, unsigned int data);
   bool has_notification();
   message_t pop_notification();
   message_t peek_notification();
+
+
+  bool has_popup();
+  box_t get_popup();
+  void set_popup(box_t type);
 
   void add_timer(int timeout, map_pos_t pos);
 
@@ -225,8 +223,8 @@ class player_t : public game_object_t {
   void decrease_serf_count(int type) { serf_count[type]--; }
   int *get_serfs() { return reinterpret_cast<int*>(serf_count); }
 
-  void increase_res_count(int type) { serf_count[type]++; }
-  void decrease_res_count(int type) { serf_count[type]--; }
+  void increase_res_count(int type) { resource_count[type]++; resource_produced_count[type]++; }
+  void decrease_res_count(int type) { resource_count[type]--; }
 
   void building_founded(building_t *building);
   void building_built(building_t *building);
@@ -263,6 +261,9 @@ class player_t : public game_object_t {
   size_t get_initial_supplies() const { return initial_supplies; }
   int *get_resource_count_history(resource_type_t type) {
     return resource_count_history[type]; }
+  int get_resource_produced_count(resource_type_t type) {
+	return resource_produced_count[type];
+  }
   void set_player_stat_history(int mode, int index, int val) {
     player_stat_history[mode][index] = val; }
   int *get_player_stat_history(int mode) { return player_stat_history[mode]; }

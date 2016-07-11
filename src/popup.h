@@ -29,6 +29,7 @@
 #include "src/resource.h"
 
 typedef enum {
+  BOX_NO_BOX = 0,
   BOX_MAP = 1,
   BOX_MAP_OVERLAY, /* UNUSED */
   BOX_MINE_BUILDING,
@@ -83,6 +84,8 @@ typedef enum {
   BOX_BLD_STOCK,
   BOX_PLAYER_FACES,
   BOX_GAME_END,
+  BOX_GAME_TASK,
+  BOX_GAME_WIN_LOSE,
   BOX_DEMOLISH,
   BOX_JS_CALIB,
   BOX_JS_CALIB_UPLEFT,
@@ -105,6 +108,7 @@ class popup_box_t : public gui_object_t {
   int current_sett_6_item;
   int current_stat_7_item;
   int current_stat_8_mode;
+  int page = 0;
 
  public:
   explicit popup_box_t(interface_t *interface);
@@ -117,17 +121,59 @@ class popup_box_t : public gui_object_t {
   void hide();
 
  protected:
+  enum box_background_pattern {
+    PATTERN_STRIPED_GREEN = 129,     // \\\.
+    PATTERN_DIAGONAL_GREEN = 310,    // xxx
+    PATTERN_CHECKERD_DIAGONAL_BROWN = 311, // xxx
+    PATTERN_PLAID_ALONG_GREEN = 312, // ###
+    PATTERN_STARES_GREEN = 313,       // * *
+    PATTERN_SQUARES_GREEN = 314,
+	PATTERN_CONSTRUCTION = 131, // many dots
+	PATTERN_OVERALL_COMPARISON = 132, // sward + building + land
+	PATTERN_RURAL_PROPERTIES = 133, // land
+	PATTERN_BUILDINGS = 134, // buildings
+	PATTERN_COMBAT_POWER = 135, // sward
+	PATTERN_FISH = 138, //
+	PATTERN_PIG = 139, //
+	PATTERN_MEAT = 140, //
+	PATTERN_WHEAT = 141, //
+	PATTERN_FLOUR = 142, //
+	PATTERN_BREAD = 143, //
+	PATTERN_LUMBER = 144, //
+	PATTERN_PLANK = 145, //
+	PATTERN_BOAT = 146, //
+	PATTERN_STONE = 147, //
+	PATTERN_IRONORE = 148, //
+	PATTERN_STEEL = 149, //
+	PATTERN_COAL = 150, //
+	PATTERN_GOLDORE = 151, //
+	PATTERN_GOLDBAR = 152, //
+	PATTERN_SHOVEL = 153, //
+	PATTERN_HAMMER = 154, //
+	PATTERN_ROD = 155, //
+	PATTERN_CLEAVER = 156, //
+	PATTERN_SCYTHE = 157, //
+	PATTERN_AXE = 158, //
+	PATTERN_SAW = 159, //
+	PATTERN_PICK = 160, //
+	PATTERN_PINCER = 161, //
+	PATTERN_SWORD = 162, //
+	PATTERN_SHIELD = 163 //
+  };
+
   void draw_popup_box_frame();
   void draw_popup_icon(int x, int y, int sprite);
   void draw_popup_building(int x, int y, int sprite);
-  void draw_box_background(int sprite);
+  void draw_box_background(box_background_pattern sprite);
+  void draw_art_box(int art_index);
+  void draw_game_task_box(char * msg);
   void draw_box_row(int sprite, int y);
   void draw_green_string(int x, int y, const std::string &str);
   void draw_green_number(int x, int y, int n);
   void draw_green_large_number(int x, int y, int n);
   void draw_additional_number(int x, int y, int n);
   unsigned int get_player_face_sprite(size_t face);
-  void draw_player_face(int x, int y, int player);
+  void draw_player_face(int x, int y, int player, bool draw_player_color = true);
   void draw_custom_bld_box(const int sprites[]);
   void draw_custom_icon_box(const int sprites[]);
   const std::string prepare_res_amount_text(int amount) const;
@@ -226,6 +272,9 @@ class popup_box_t : public gui_object_t {
   void handle_sett_8_click(int x, int y);
   void handle_message_clk(int x, int y);
   void handle_player_faces_click(int x, int y);
+  void handle_game_end_click(int x, int y);
+  void handle_game_task_click(int x, int y);
+  void handle_game_win_lose_click(int x, int y);
   void handle_box_demolish_clk(int x, int y);
   void handle_minimap_clk(int x, int y);
   void handle_box_bld_1(int x, int y);
