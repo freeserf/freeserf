@@ -97,12 +97,12 @@ enum notification {
 const notification_view_t notification_box_t::notification_views[] = {
   // NOTIFICATION_NONE
   { 0, 0, NULL, 0 },
-  //NOTIFICATION_UNDER_ATTACK
+  // NOTIFICATION_UNDER_ATTACK
   { NOTIFICATION_SHOW_OPPONENT,
       0,
       "Your settlement\nis under attack",
     -1},
-  //NOTIFICATION_LOST_FIGHT
+  // NOTIFICATION_LOST_FIGHT
   { NOTIFICATION_SHOW_OPPONENT,
       0,
       "Your knights\njust lost the\nfight",

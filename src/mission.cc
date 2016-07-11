@@ -21,9 +21,6 @@
 
 #include "src/mission.h"
 
-//mission_t
-//mission_t::mission[12];
-
 mission_t tutorials[] = {
   {
     "",

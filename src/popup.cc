@@ -1850,7 +1850,7 @@ popup_box_t::draw_art_box(int art_index) {
   frame->draw_sprite(8, 8, DATA_ART_BOX_BASE + art_index);
 }
 
-void 
+void
 popup_box_t::draw_game_task_box(const char * msg) {
   if (msg == NULL) return;
   char buffer[4] = {0, 0, 0, 0};
@@ -1877,12 +1877,10 @@ popup_box_t::draw_game_task_box(const char * msg) {
       if (x != 0) {
         y += 10;
         x = 0;
-      }
-      else {
+      } else {
         // this is an empty line
         y += 7;
       }
-      
     }
     else if (*msg == '$') {
       msg++;
@@ -1895,40 +1893,44 @@ popup_box_t::draw_game_task_box(const char * msg) {
       value += ((*msg) - '0') * 1;
 
       switch (cmd_type) {
-      case 'b': // building image
+      case 'b':  // building image
         draw_popup_building(x, y, map_building_sprite[value]);
         break;
-      case 'i': // interface icon
+
+      case 'i':  // interface icon
         draw_popup_icon(x, y, value);
         break;
+
       case 'u':
         // userinterface
         frame->draw_sprite(8 * x + 8, y + 9, DATA_PANEL_BUTTON_BASE + value);
         break;
-      case 's':
-        // symboles
+
+      case 's':  // symboles
         frame->draw_sprite(8 * x + 8, y + 9, DATA_GAME_OBJECT_BASE + value);
         break;
-      case 'o':
-        // symboles
+
+      case 'o':  // symboles
         frame->draw_transp_sprite(8 * x + 8, y + 9, DATA_MAP_OBJECT_BASE + value, false);
         break;
-      case 'a':
-        // art
+
+      case 'a':  // art
         frame->draw_sprite(8, 8, DATA_ART_BOX_BASE + value);
         break;
-      case 'f': // faces icon
+
+      case 'f':  // faces icon
         draw_player_face(x, y, value, false);
         break;
-      case 'x': // move x
+
+      case 'x':  // move x
         x += value;
         break;
+
       case 'y': // move y
         y += value;
         break;
       }
-    }
-    else {
+    } else {
       buffer[0] = *msg;
       draw_green_string(x, y, buffer);
       x += 1;

@@ -215,8 +215,7 @@ class game_t : public event_handler_t {
 
   int get_winner() { return game_winner; }
   const char * get_game_task_text() { return game_mission->start_text; }
-  const char * get_game_win_text() {
-	  return game_mission->win_text; }
+  const char * get_game_win_text()  { return game_mission->win_text; }
   const char * get_game_lose_text() { return game_mission->lose_text; }
 
  protected:

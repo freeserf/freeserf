@@ -486,39 +486,38 @@ game_t::player_check_victory_conditions(mission_t * mission, player_t * player) 
   for (int c = 0; c < GAME_MAX_VICTORY_CONDITION_COUNT; c++) {
     if (mission->victory[c].condition != mission_t::VICTORY_NO_CONDITION) {
 
-      // is this a building condition?
       if ((mission->victory[c].condition & mission_t::VICTORY_IS_BUILDING_CONDITION) == mission_t::VICTORY_IS_BUILDING_CONDITION) {
+        // is this a building condition?
         int building_type = mission->victory[c].condition - mission_t::VICTORY_IS_BUILDING_CONDITION;
 
         if (player->get_completed_building_count(building_type) < mission->victory[c].amount) return false;
       }
-      // is this a building resource condition?
       else if ((mission->victory[c].condition & mission_t::VICTORY_IS_RESOURCE_CONDITION) == mission_t::VICTORY_IS_RESOURCE_CONDITION) {
+        // is this a building resource condition?
         int resource_type = mission->victory[c].condition - mission_t::VICTORY_IS_RESOURCE_CONDITION;
 
         if (player->get_resource_produced_count((resource_type_t)resource_type) < mission->victory[c].amount) return false;
       }
-      // is this a building resource condition?
       else if ((mission->victory[c].condition & mission_t::VICTORY_IS_SPECIAL_CONDITION) == mission_t::VICTORY_IS_SPECIAL_CONDITION) {
-
+        // is this a building resource condition?
         int sum = 0;
         switch (mission->victory[c].condition) {
           case mission_t::VICTORY_SPECIAL_WEAPONS:
             // sum up all weapons
-            sum += player->get_resource_produced_count(resource_type_t::RESOURCE_SWORD);
-            sum += player->get_resource_produced_count(resource_type_t::RESOURCE_SHIELD);
+            sum += player->get_resource_produced_count(RESOURCE_SWORD);
+            sum += player->get_resource_produced_count(RESOURCE_SHIELD);
             break;
           case mission_t::VICTORY_SPECIAL_TOOLS:
             // sum up all tools
-            sum += player->get_resource_produced_count(resource_type_t::RESOURCE_SHOVEL);
-            sum += player->get_resource_produced_count(resource_type_t::RESOURCE_HAMMER);
-            sum += player->get_resource_produced_count(resource_type_t::RESOURCE_ROD);
-            sum += player->get_resource_produced_count(resource_type_t::RESOURCE_CLEAVER);
-            sum += player->get_resource_produced_count(resource_type_t::RESOURCE_SCYTHE);
-            sum += player->get_resource_produced_count(resource_type_t::RESOURCE_AXE);
-            sum += player->get_resource_produced_count(resource_type_t::RESOURCE_SAW);
-            sum += player->get_resource_produced_count(resource_type_t::RESOURCE_PICK);
-            sum += player->get_resource_produced_count(resource_type_t::RESOURCE_PINCER);
+            sum += player->get_resource_produced_count(RESOURCE_SHOVEL);
+            sum += player->get_resource_produced_count(RESOURCE_HAMMER);
+            sum += player->get_resource_produced_count(RESOURCE_ROD);
+            sum += player->get_resource_produced_count(RESOURCE_CLEAVER);
+            sum += player->get_resource_produced_count(RESOURCE_SCYTHE);
+            sum += player->get_resource_produced_count(RESOURCE_AXE);
+            sum += player->get_resource_produced_count(RESOURCE_SAW);
+            sum += player->get_resource_produced_count(RESOURCE_PICK);
+            sum += player->get_resource_produced_count(RESOURCE_PINCER);
             break;
         }
         if (sum < mission->victory[c].amount) return false;
@@ -2299,11 +2298,9 @@ game_t::load_mission_map(mission_t *mission) {
                        mission->player[i].intelligence);
     if (n < 0) return false;
 
-  map_pos_t pos = NULL;
-
     if (mission->player[i].castle.col > -1 &&
         mission->player[i].castle.row > -1) {
-      pos = map->pos(mission->player[i].castle.col,
+      map_pos_t pos = map->pos(mission->player[i].castle.col,
                                mission->player[i].castle.row);
       build_castle(pos, players[n]);
     }

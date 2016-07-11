@@ -61,16 +61,16 @@ typedef struct {
 
 class message_t {
 public:
-	notification_type_t type;
-	map_pos_t pos;
-	unsigned int data;
+  notification_type_t type;
+  map_pos_t pos;
+  unsigned int data;
 };
 typedef std::queue<message_t> messages_t;
 
 class pos_timer_t {
 public:
-	int timeout;
-	map_pos_t pos;
+  int timeout;
+  map_pos_t pos;
 };
 typedef std::vector<pos_timer_t> timers_t;
 
