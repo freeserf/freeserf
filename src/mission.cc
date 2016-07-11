@@ -34,17 +34,17 @@ mission_t tutorials[] = {
       { 0,  0,  0,  0, {-1, -1}},
       { 0,  0,  0,  0, {-1, -1}}
     },
-	{
-	  {mission_t::VICTORY_BUILDING_HUT , 1},
-	  {mission_t::VICTORY_BUILDING_TOWER , 1},
-	  {mission_t::VICTORY_BUILDING_FORTRESS , 1},
-	  {mission_t::VICTORY_NO_CONDITION , 0}
-	},
-	"Welcome Knight!\nFirst, you need\nto build your\ncastle $y02$b24#"
-		"Click on the \n ground. If you\n find a  $y08$s50\n you can select\n $y04 $u05\n$y28 to found your\n kingdom.#"
-		"Your Orders:\n have your set-\n tlers construct\n a guard hut,\n   $b11 $y20 \n a watch tower \n   $b21 #"
-		"\n and a castle.\n   $b22 \n$y60 Good luck.",
-	"$a00 #   Well done.\n You Completed\n This Tutorial\n     Game.\n\n\n      $f00"
+  {
+    {mission_t::VICTORY_BUILDING_HUT , 1},
+    {mission_t::VICTORY_BUILDING_TOWER , 1},
+    {mission_t::VICTORY_BUILDING_FORTRESS , 1},
+    {mission_t::VICTORY_NO_CONDITION , 0}
+  },
+  "Welcome Knight!\nFirst, you need\nto build your\ncastle $y02$b24#"
+    "Click on the \n ground. If you\n find a  $y08$s50\n you can select\n $y04 $u05\n$y28 to found your\n kingdom.#"
+    "Your Orders:\n have your set-\n tlers construct\n a guard hut,\n   $b11 $y20 \n a watch tower \n   $b21 #"
+    "\n and a castle.\n   $b22 \n$y60 Good luck.",
+  "$a00 #   Well done.\n You Completed\n This Tutorial\n     Game.\n\n\n      $f00"
   },
   {
     "",
@@ -52,21 +52,21 @@ mission_t tutorials[] = {
     {
       {12, 40, 30, 30, {-1, -1}},
       { 0,  0,  0,  0, {-1, -1}},
-	  { 0,  0,  0,  0, {-1, -1}},
+    { 0,  0,  0,  0, {-1, -1}},
       { 0,  0,  0,  0, {-1, -1}}
     },
-	{
+  {
       {mission_t::VICTORY_RESOURCE_PLANK, 5},
       {mission_t::VICTORY_RESOURCE_STONE, 5},
       {mission_t::VICTORY_NO_CONDITION, 0},
       {mission_t::VICTORY_NO_CONDITION, 0}
-	},
-	"Construction\n  materials\n\nTo construction\nnew buildings\nyou need planks\n and stone.#"
-	"Lumberjacks cut\n    $b02 $y25 \ndown trees that\nare processed\nto boards in\nthe sawmill\n    $b17 $y30#"
-	"The Quarry man \n $b04 $y25 \ncollects stone\nfrom a stone\ndeposits nearby\n $o64 #"
-	"Your Orders:\n\n Fabricate at\n least 5 units\n of wood and\n 5 units of\n stone.",
-	"$a00 #   Well done.\n You Completed\n   the second\n  Tutorial Game.\n\n\n      $f00",
-	NULL
+  },
+  "Construction\n  materials\n\nTo construction\nnew buildings\nyou need planks\n and stone.#"
+  "Lumberjacks cut\n    $b02 $y25 \ndown trees that\nare processed\nto boards in\nthe sawmill\n    $b17 $y30#"
+  "The Quarry man \n $b04 $y25 \ncollects stone\nfrom a stone\ndeposits nearby\n $o64 #"
+  "Your Orders:\n\n Fabricate at\n least 5 units\n of wood and\n 5 units of\n stone.",
+  "$a00 #   Well done.\n You Completed\n   the second\n  Tutorial Game.\n\n\n      $f00",
+  NULL
   },
   {
     "",
@@ -77,15 +77,15 @@ mission_t tutorials[] = {
       { 0,  0,  0,  0, {-1, -1 }},
       { 0,  0,  0,  0, {-1, -1 }},
     },
-	{
+  {
       {mission_t::VICTORY_RESOURCE_FISH, 5},
       {mission_t::VICTORY_RESOURCE_BREAD, 5},
       {mission_t::VICTORY_RESOURCE_MEAT, 5},
       {mission_t::VICTORY_NO_CONDITION, 0}
-	},
-	"Food \n Objective: Fabricate 5 units of each of the following foods: fish, meat, and bread.",
-	NULL,
-	NULL
+  },
+  "Food \n Objective: Fabricate 5 units of each of the following foods: fish, meat, and bread.",
+  NULL,
+  NULL
   },
   {
     "",
@@ -96,15 +96,15 @@ mission_t tutorials[] = {
       { 0,  0,  0,  0, {-1, -1}},
       { 0,  0,  0,  0, {-1, -1}},
     },
-	{
+  {
       {mission_t::VICTORY_RESOURCE_GOLDBAR, 5},
       {mission_t::VICTORY_RESOURCE_STEEL, 5},
       {mission_t::VICTORY_NO_CONDITION, 0},
       {mission_t::VICTORY_NO_CONDITION, 0}
-	},
-	"Mining \nObjective: Search for the underground riches and find at least 5 units of gold and of iron",
-	NULL,
-	NULL
+  },
+  "Mining \nObjective: Search for the underground riches and find at least 5 units of gold and of iron",
+  NULL,
+  NULL
   },
   {
     "",
@@ -115,34 +115,34 @@ mission_t tutorials[] = {
       { 0,  0,  0,  0, {-1, -1}},
       { 0,  0,  0,  0, {-1, -1}}
     },
-	{
+  {
       {mission_t::VICTORY_RESOURCE_BOAT, 5},
       {mission_t::VICTORY_SPECIAL_TOOLS, 10},
       {mission_t::VICTORY_SPECIAL_WEAPONS, 10},
       {mission_t::VICTORY_NO_CONDITION, 0}
-	},
-	"Making tools and weapons\n Objective: Make at least 10 weapons, 10 tools and 5 boats.",
-	NULL,
-	NULL
+  },
+  "Making tools and weapons\n Objective: Make at least 10 weapons, 10 tools and 5 boats.",
+  NULL,
+  NULL
   },
   {
-	"",
-	random_state_t(0x1DD9, 0xA702, 0xFC8A),
-	{
-	  {12, 40, 30, 30, {-1, -1}},
-	  { 0,  0,  0,  0, {-1, -1}}, /* {{BUILDING_HUT, 20, 26},{BUILDING_HUT, 25, 34},{BUILDING_HUT, 30, 38},{BUILDING_HUT, 20, 26}} */
-	  { 0,  0,  0,  0, {-1, -1}},
-	  { 0,  0,  0,  0, {-1, -1}}
-	},
-	{
-	  {mission_t::VICTORY_NO_CONDITION, 0},
-	  {mission_t::VICTORY_NO_CONDITION, 0},
-	  {mission_t::VICTORY_NO_CONDITION, 0},
-	  {mission_t::VICTORY_NO_CONDITION, 0}
-	},
-	"Attack\n Objective: The conquest of several enemy buildings",
-	NULL,
-	NULL
+  "",
+  random_state_t(0x1DD9, 0xA702, 0xFC8A),
+  {
+    {12, 40, 30, 30, {-1, -1}},
+    { 0,  0,  0,  0, {-1, -1}}, /* {{BUILDING_HUT, 20, 26},{BUILDING_HUT, 25, 34},{BUILDING_HUT, 30, 38},{BUILDING_HUT, 20, 26}} */
+    { 0,  0,  0,  0, {-1, -1}},
+    { 0,  0,  0,  0, {-1, -1}}
+  },
+  {
+    {mission_t::VICTORY_NO_CONDITION, 0},
+    {mission_t::VICTORY_NO_CONDITION, 0},
+    {mission_t::VICTORY_NO_CONDITION, 0},
+    {mission_t::VICTORY_NO_CONDITION, 0}
+  },
+  "Attack\n Objective: The conquest of several enemy buildings",
+  NULL,
+  NULL
   }
 };
 
@@ -156,15 +156,15 @@ mission_t missions[] = {
       { 0,  0,  0,  0, {-1, -1}},
       { 0,  0,  0,  0, {-1, -1}}
     },
-	{
+  {
       {mission_t::VICTORY_NO_CONDITION, 0},
       {mission_t::VICTORY_NO_CONDITION, 0},
       {mission_t::VICTORY_NO_CONDITION, 0},
       {mission_t::VICTORY_NO_CONDITION, 0}
-	},
-	NULL,
-	NULL,
-	NULL
+  },
+  NULL,
+  NULL,
+  NULL
   },
   {
     "STATION",
@@ -175,15 +175,15 @@ mission_t missions[] = {
       { 3, 14, 15, 30, {-1, -1}},
       { 0,  0,  0,  0, {-1, -1}}
     },
-	{
+  {
       {mission_t::VICTORY_NO_CONDITION, 0},
       {mission_t::VICTORY_NO_CONDITION, 0},
       {mission_t::VICTORY_NO_CONDITION, 0},
       {mission_t::VICTORY_NO_CONDITION, 0}
-	},
-	NULL,
-	NULL,
-	NULL
+  },
+  NULL,
+  NULL,
+  NULL
   },
   {
     "UNITY",
@@ -194,15 +194,15 @@ mission_t missions[] = {
       { 4, 18, 10, 25, {-1, -1}},
       { 0,  0,  0,  0, {-1, -1}}
     },
-	{
+  {
       {mission_t::VICTORY_NO_CONDITION, 0},
       {mission_t::VICTORY_NO_CONDITION, 0},
       {mission_t::VICTORY_NO_CONDITION, 0},
       {mission_t::VICTORY_NO_CONDITION, 0}
-	},
-	NULL,
-	NULL,
-	NULL
+  },
+  NULL,
+  NULL,
+  NULL
   },
   {
     "WAVE",
@@ -213,15 +213,15 @@ mission_t missions[] = {
       { 0,  0,  0,  0, {-1, -1}},
       { 0,  0,  0,  0, {-1, -1}}
     },
-	{
+  {
       {mission_t::VICTORY_NO_CONDITION, 0},
       {mission_t::VICTORY_NO_CONDITION, 0},
       {mission_t::VICTORY_NO_CONDITION, 0},
       {mission_t::VICTORY_NO_CONDITION, 0}
-	},
-	NULL,
-	NULL,
-	NULL
+  },
+  NULL,
+  NULL,
+  NULL
   },
   {
     "EXPORT",
@@ -232,15 +232,15 @@ mission_t missions[] = {
       { 4, 16, 25, 20, {-1, -1}},
       { 0,  0,  0,  0, {-1, -1}}
     },
-	{
+  {
       {mission_t::VICTORY_NO_CONDITION, 0},
       {mission_t::VICTORY_NO_CONDITION, 0},
       {mission_t::VICTORY_NO_CONDITION, 0},
       {mission_t::VICTORY_NO_CONDITION, 0}
-	},
-	NULL,
-	NULL,
-	NULL
+  },
+  NULL,
+  NULL,
+  NULL
   },
   {
     "OPTION",
@@ -251,12 +251,12 @@ mission_t missions[] = {
       { 5, 20, 12, 14, {-1, -1}},
       { 0,  0,  0,  0, {-1, -1}}
     },
-	{
+  {
       {mission_t::VICTORY_NO_CONDITION, 0},
       {mission_t::VICTORY_NO_CONDITION, 0},
       {mission_t::VICTORY_NO_CONDITION, 0},
       {mission_t::VICTORY_NO_CONDITION, 0}
-	},
+  },
     NULL,
     NULL,
     NULL
@@ -270,15 +270,15 @@ mission_t missions[] = {
       { 0,  0,  0,  0, {-1, -1}},
       { 0,  0,  0,  0, {-1, -1}}
     },
-	{
+  {
       {mission_t::VICTORY_NO_CONDITION, 0},
       {mission_t::VICTORY_NO_CONDITION, 0},
       {mission_t::VICTORY_NO_CONDITION, 0},
       {mission_t::VICTORY_NO_CONDITION, 0}
-	},
+  },
     NULL,
     NULL,
-	NULL
+  NULL
   },
   {
     "SCALE",
@@ -289,15 +289,15 @@ mission_t missions[] = {
       { 6, 24, 25, 30, {-1, -1}},
       { 0,  0,  0,  0, {-1, -1}}
     },
-	{
+  {
       {mission_t::VICTORY_NO_CONDITION, 0},
       {mission_t::VICTORY_NO_CONDITION, 0},
       {mission_t::VICTORY_NO_CONDITION, 0},
       {mission_t::VICTORY_NO_CONDITION, 0}
-	},
+  },
     NULL,
-	NULL,
-	NULL
+  NULL,
+  NULL
   },
   {
     "SIGN",
@@ -308,15 +308,15 @@ mission_t missions[] = {
       { 5, 28, 13, 30, {-1, -1}},
       { 6, 30, 13, 30, {-1, -1}}
     },
-	{
+  {
       {mission_t::VICTORY_NO_CONDITION, 0},
       {mission_t::VICTORY_NO_CONDITION, 0},
       {mission_t::VICTORY_NO_CONDITION, 0},
       {mission_t::VICTORY_NO_CONDITION, 0}
-	},
-	NULL,
-	NULL,
-	NULL
+  },
+  NULL,
+  NULL,
+  NULL
   },
   {
     "ACORN",
@@ -327,15 +327,15 @@ mission_t missions[] = {
       { 0,  0,  0,  0, {-1, -1}},
       { 0,  0,  0,  0, {-1, -1}}
     },
-	{
+  {
       {mission_t::VICTORY_NO_CONDITION, 0},
       {mission_t::VICTORY_NO_CONDITION, 0},
       {mission_t::VICTORY_NO_CONDITION, 0},
       {mission_t::VICTORY_NO_CONDITION, 0}
-	},
-	NULL,
-	NULL,
-	NULL
+  },
+  NULL,
+  NULL,
+  NULL
   },
   {
     "CHOPPER",
@@ -346,15 +346,15 @@ mission_t missions[] = {
       { 7, 34, 13, 20, {23, 12}},
       { 0,  0,  0,  0, {-1, -1}}
     },
-	{
+  {
       {mission_t::VICTORY_NO_CONDITION, 0},
       {mission_t::VICTORY_NO_CONDITION, 0},
       {mission_t::VICTORY_NO_CONDITION, 0},
       {mission_t::VICTORY_NO_CONDITION, 0}
-	},
-	NULL,
-	NULL,
-	NULL
+  },
+  NULL,
+  NULL,
+  NULL
   },
   {
     "GATE",
@@ -365,15 +365,15 @@ mission_t missions[] = {
       { 6, 27, 13, 24, {29, 38}},
       { 7, 27, 13, 24, {15, 32}}
     },
-	{
+  {
       {mission_t::VICTORY_NO_CONDITION, 0},
       {mission_t::VICTORY_NO_CONDITION, 0},
       {mission_t::VICTORY_NO_CONDITION, 0},
       {mission_t::VICTORY_NO_CONDITION, 0}
-	},
-	NULL,
-	NULL,
-	NULL
+  },
+  NULL,
+  NULL,
+  NULL
   },
   {
     "ISLAND",
@@ -384,15 +384,15 @@ mission_t missions[] = {
       { 0,  0,  0,  0, {-1, -1}},
       { 0,  0,  0,  0, {-1, -1}}
     },
-	{
+  {
       {mission_t::VICTORY_NO_CONDITION, 0},
       {mission_t::VICTORY_NO_CONDITION, 0},
       {mission_t::VICTORY_NO_CONDITION, 0},
       {mission_t::VICTORY_NO_CONDITION, 0}
-	},
-	NULL,
-	NULL,
-	NULL
+  },
+  NULL,
+  NULL,
+  NULL
   },
   {
     "LEGION",
@@ -403,15 +403,15 @@ mission_t missions[] = {
       { 8, 28, 16, 20, {55, 46}},
       { 0,  0,  0,  0, {-1, -1}}
     },
-	{
+  {
       {mission_t::VICTORY_NO_CONDITION, 0},
       {mission_t::VICTORY_NO_CONDITION, 0},
       {mission_t::VICTORY_NO_CONDITION, 0},
       {mission_t::VICTORY_NO_CONDITION, 0}
-	},
-	NULL,
-	NULL,
-	NULL
+  },
+  NULL,
+  NULL,
+  NULL
   },
   {
     "PIECE",
@@ -422,15 +422,15 @@ mission_t missions[] = {
       { 7, 37, 20, 20, {58, 52}},
       { 8, 40, 15, 15, {43, 31}}
     },
-	{
+  {
       {mission_t::VICTORY_NO_CONDITION, 0},
       {mission_t::VICTORY_NO_CONDITION, 0},
       {mission_t::VICTORY_NO_CONDITION, 0},
       {mission_t::VICTORY_NO_CONDITION, 0}
-	},
-	NULL,
-	NULL,
-	NULL
+  },
+  NULL,
+  NULL,
+  NULL
   },
   {
     "RIVAL",
@@ -441,15 +441,15 @@ mission_t missions[] = {
       { 0,  0,  0,  0, {-1, -1}},
       { 0,  0,  0,  0, {-1, -1}}
     },
-	{
+  {
       {mission_t::VICTORY_NO_CONDITION, 0},
       {mission_t::VICTORY_NO_CONDITION, 0},
       {mission_t::VICTORY_NO_CONDITION, 0},
       {mission_t::VICTORY_NO_CONDITION, 0}
-	},
-	NULL,
-	NULL,
-	NULL
+  },
+  NULL,
+  NULL,
+  NULL
   },
   {
     "SAVAGE",
@@ -460,15 +460,15 @@ mission_t missions[] = {
       { 8, 29, 17, 10, {39, 26}},
       { 9, 32, 17, 10, {42, 49}}
     },
-	{
+  {
       {mission_t::VICTORY_NO_CONDITION, 0},
       {mission_t::VICTORY_NO_CONDITION, 0},
       {mission_t::VICTORY_NO_CONDITION, 0},
       {mission_t::VICTORY_NO_CONDITION, 0}
-	},
-	NULL,
-	NULL,
-	NULL
+  },
+  NULL,
+  NULL,
+  NULL
   },
   {
     "XAVER",
@@ -479,15 +479,15 @@ mission_t missions[] = {
       { 9, 30, 30, 35, {58,  5}},
       { 0,  0,  0,  0, {-1, -1}}
     },
-	{
+  {
       {mission_t::VICTORY_NO_CONDITION, 0},
       {mission_t::VICTORY_NO_CONDITION, 0},
       {mission_t::VICTORY_NO_CONDITION, 0},
       {mission_t::VICTORY_NO_CONDITION, 0}
-	},
-	NULL,
-	NULL,
-	NULL
+  },
+  NULL,
+  NULL,
+  NULL
   },
   {
     "BLADE",
@@ -498,15 +498,15 @@ mission_t missions[] = {
       { 0,  0,  0,  0, {-1, -1}},
       { 0,  0,  0,  0, {-1, -1}}
     },
-	{
+  {
       {mission_t::VICTORY_NO_CONDITION, 0},
       {mission_t::VICTORY_NO_CONDITION, 0},
       {mission_t::VICTORY_NO_CONDITION, 0},
       {mission_t::VICTORY_NO_CONDITION, 0}
-	},
-	NULL,
-	NULL,
-	NULL
+  },
+  NULL,
+  NULL,
+  NULL
   },
   {
     "BEACON",
@@ -517,15 +517,15 @@ mission_t missions[] = {
       { 9, 40, 16, 23, {32, 14}},
       { 0,  0,  0,  0, {-1, -1}}
     },
-	{
+  {
       {mission_t::VICTORY_NO_CONDITION, 0},
       {mission_t::VICTORY_NO_CONDITION, 0},
       {mission_t::VICTORY_NO_CONDITION, 0},
       {mission_t::VICTORY_NO_CONDITION, 0}
-	},
-	NULL,
-	NULL,
-	NULL
+  },
+  NULL,
+  NULL,
+  NULL
   },
   {
     "PASTURE",
@@ -536,15 +536,15 @@ mission_t missions[] = {
       { 9, 30, 23, 13, { 1, 50}},
       {10, 30, 21, 13, { 4,  9}}
     },
-	{
+  {
       {mission_t::VICTORY_NO_CONDITION, 0},
       {mission_t::VICTORY_NO_CONDITION, 0},
       {mission_t::VICTORY_NO_CONDITION, 0},
       {mission_t::VICTORY_NO_CONDITION, 0}
-	},
-	NULL,
-	NULL,
-	NULL
+  },
+  NULL,
+  NULL,
+  NULL
   },
   {
     "OMNUS",
@@ -555,15 +555,15 @@ mission_t missions[] = {
       { 0,  0,  0,  0, {-1, -1}},
       { 0,  0,  0,  0, {-1, -1}}
     },
-	{
+  {
       {mission_t::VICTORY_NO_CONDITION, 0},
       {mission_t::VICTORY_NO_CONDITION, 0},
       {mission_t::VICTORY_NO_CONDITION, 0},
       {mission_t::VICTORY_NO_CONDITION, 0}
-	},
-	NULL,
-	NULL,
-	NULL
+  },
+  NULL,
+  NULL,
+  NULL
   },
   {
     "TRIBUTE",
@@ -574,15 +574,15 @@ mission_t missions[] = {
       {10, 37, 30, 10, {16, 55}},
       { 0,  0,  0,  0, {-1, -1}}
     },
-	{
+  {
       {mission_t::VICTORY_NO_CONDITION, 0},
       {mission_t::VICTORY_NO_CONDITION, 0},
       {mission_t::VICTORY_NO_CONDITION, 0},
       {mission_t::VICTORY_NO_CONDITION, 0}
-	},
-	NULL,
-	NULL,
-	NULL
+  },
+  NULL,
+  NULL,
+  NULL
   },
   {
     "FOUNTAIN",
@@ -593,15 +593,15 @@ mission_t missions[] = {
       {10, 30, 26, 10, {42, 52}},
       { 0,  0,  0,  0, {-1, -1}}
     },
-	{
+  {
       {mission_t::VICTORY_NO_CONDITION, 0},
       {mission_t::VICTORY_NO_CONDITION, 0},
       {mission_t::VICTORY_NO_CONDITION, 0},
       {mission_t::VICTORY_NO_CONDITION, 0}
-	},
-	NULL,
-	NULL,
-	NULL
+  },
+  NULL,
+  NULL,
+  NULL
   },
   {
     "CHUDE",
@@ -612,15 +612,15 @@ mission_t missions[] = {
       { 0,  0,  0,  0, {-1, -1}},
       { 0,  0,  0,  0, {-1, -1}}
     },
-	{
+  {
       {mission_t::VICTORY_NO_CONDITION, 0},
       {mission_t::VICTORY_NO_CONDITION, 0},
       {mission_t::VICTORY_NO_CONDITION, 0},
       {mission_t::VICTORY_NO_CONDITION, 0}
-	},
-	NULL,
-	NULL,
-	NULL
+  },
+  NULL,
+  NULL,
+  NULL
   },
   {
     "TRAILER",
@@ -631,15 +631,15 @@ mission_t missions[] = {
       { 0,  0,  0,  0, {-1, -1}},
       { 0,  0,  0,  0, {-1, -1}}
     },
-	{
+  {
       {mission_t::VICTORY_NO_CONDITION, 0},
       {mission_t::VICTORY_NO_CONDITION, 0},
       {mission_t::VICTORY_NO_CONDITION, 0},
       {mission_t::VICTORY_NO_CONDITION, 0}
-	},
-	NULL,
-	NULL,
-	NULL
+  },
+  NULL,
+  NULL,
+  NULL
   },
   {
     "CANYON",
@@ -650,15 +650,15 @@ mission_t missions[] = {
       { 0,  0,  0,  0, {-1, -1}},
       { 0,  0,  0,  0, {-1, -1}}
     },
-	{
+  {
       {mission_t::VICTORY_NO_CONDITION, 0},
       {mission_t::VICTORY_NO_CONDITION, 0},
       {mission_t::VICTORY_NO_CONDITION, 0},
       {mission_t::VICTORY_NO_CONDITION, 0}
-	},
-	NULL,
-	NULL,
-	NULL
+  },
+  NULL,
+  NULL,
+  NULL
   },
   {
     "REPRESS",
@@ -669,15 +669,15 @@ mission_t missions[] = {
       { 0,  0,  0,  0, {-1, -1}},
       { 0,  0,  0,  0, {-1, -1}}
     },
-	{
+  {
       {mission_t::VICTORY_NO_CONDITION, 0},
       {mission_t::VICTORY_NO_CONDITION, 0},
       {mission_t::VICTORY_NO_CONDITION, 0},
       {mission_t::VICTORY_NO_CONDITION, 0}
-	},
-	NULL,
-	NULL,
-	NULL
+  },
+  NULL,
+  NULL,
+  NULL
   },
   {
     "YOKI",
@@ -688,15 +688,15 @@ mission_t missions[] = {
       { 0,  0,  0,  0, {-1, -1}},
       { 0,  0,  0,  0, {-1, -1}}
     },
-	{
+  {
       {mission_t::VICTORY_NO_CONDITION, 0},
       {mission_t::VICTORY_NO_CONDITION, 0},
       {mission_t::VICTORY_NO_CONDITION, 0},
       {mission_t::VICTORY_NO_CONDITION, 0}
-	},
-	NULL,
-	NULL,
-	NULL
+  },
+  NULL,
+  NULL,
+  NULL
   },
   {
     "PASSIVE",
@@ -707,15 +707,15 @@ mission_t missions[] = {
       { 0,  0,  0,  0, {-1, -1}},
       { 0,  0,  0,  0, {-1, -1}}
     },
-	{
+  {
       {mission_t::VICTORY_NO_CONDITION, 0},
       {mission_t::VICTORY_NO_CONDITION, 0},
       {mission_t::VICTORY_NO_CONDITION, 0},
       {mission_t::VICTORY_NO_CONDITION, 0}
-	},
-	NULL,
-	NULL,
-	NULL
+  },
+  NULL,
+  NULL,
+  NULL
   }
 };
 

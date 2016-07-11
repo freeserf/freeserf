@@ -84,13 +84,13 @@ notification_box_t::draw_player_face(int x, int y, int player) {
 #define NOTIFICATION_SHOW_MENU 5
 
 enum notification {
-	NOTIFICATION_CATEGORY_ALL = -1,
-	NOTIFICATION_CATEGORY_0 = 0,
-	NOTIFICATION_CATEGORY_1 = 1,
-	NOTIFICATION_CATEGORY_2 = 2,
-	NOTIFICATION_CATEGORY_3 = 3,
-	NOTIFICATION_CATEGORY_4 = 4,
-	NOTIFICATION_CATEGORY_5 = 5,
+  NOTIFICATION_CATEGORY_ALL = -1,
+  NOTIFICATION_CATEGORY_0 = 0,
+  NOTIFICATION_CATEGORY_1 = 1,
+  NOTIFICATION_CATEGORY_2 = 2,
+  NOTIFICATION_CATEGORY_3 = 3,
+  NOTIFICATION_CATEGORY_4 = 4,
+  NOTIFICATION_CATEGORY_5 = 5,
 };
 
 
@@ -101,98 +101,98 @@ const notification_view_t notification_box_t::notification_views[] = {
   { NOTIFICATION_SHOW_OPPONENT,
       0,
       "Your settlement\nis under attack",
-	  -1},
+    -1},
   //NOTIFICATION_LOST_FIGHT
   { NOTIFICATION_SHOW_OPPONENT,
       0,
       "Your knights\njust lost the\nfight",
-	  5},
+    5},
   // NOTIFICATION_VICTORY_FIGHT
   { NOTIFICATION_SHOW_OPPONENT,
       0,
       "You gained\na victory here",
-	  5},
+    5},
   // NOTIFICATION_MINE_EMPTY    
   { NOTIFICATION_SHOW_MINE,
       0,
       "This mine hauls\nno more raw\nmaterials",
-	  5},
+    5},
   // NOTIFICATION_CALL_TO_LOCATION
   { NOTIFICATION_SHOW_MAP_OBJECT,
       0x90,
       "You wanted me\nto call you to\nthis location",
-	  4},
+    4},
   // NOTIFICATION_KNIGHT_OCCUPIED
   { NOTIFICATION_SHOW_BUILDING,
       0,
       "A knight has\noccupied this\nnew building",
-	  0},
+    0},
   // NOTIFICATION_NEW_STOCK
   { NOTIFICATION_SHOW_MAP_OBJECT,
       map_building_sprite[BUILDING_STOCK],
       "A new stock\nhas been built",
-	  4},
+    4},
   // NOTIFICATION_LOST_LAND
   { NOTIFICATION_SHOW_OPPONENT,
       0,
       "Because of this\nenemy building\nyou lost some\nland",
-	  3},
+    3},
   // NOTIFICATION_LOST_BUILDINGS
   { NOTIFICATION_SHOW_OPPONENT,
       0,
       "Because of this\nenemy building\nyou lost some\n"
       "land and\nsome buildings",
-	  4},
+    4},
   // NOTIFICATION_EMERGENCY_ACTIVE
   { NOTIFICATION_SHOW_MAP_OBJECT,
       map_building_sprite[BUILDING_CASTLE] + 1,
       "Emergency\nprogram\nactivated",
-	  5},
+    5},
   // NOTIFICATION_EMERGENCY_NEUTRAL
   { NOTIFICATION_SHOW_MAP_OBJECT,
       map_building_sprite[BUILDING_CASTLE],
       "Emergency\nprogram\nneutralized",
-	  5},
+    5},
   // NOTIFICATION_FOUND_GOLD
   { NOTIFICATION_SHOW_ICON,
       0x2f,
       "A geologist\nhas found gold",
-	  5},
+    5},
   // NOTIFICATION_FOUND_IRON
   { NOTIFICATION_SHOW_ICON,
       0x2c,
       "A geologist\nhas found iron",
-	  4},
+    4},
   // NOTIFICATION_FOUND_COAL
   { NOTIFICATION_SHOW_ICON,
       0x2e,
       "A geologist\nhas found coal",
-	  4},
+    4},
   // NOTIFICATION_FOUND_STONE
   { NOTIFICATION_SHOW_ICON,
       0x2b,
       "A geologist\nhas found stone",
-	  4},
+    4},
   // NOTIFICATION_CALL_TO_MENU
   { NOTIFICATION_SHOW_MENU,
       0,
       "You wanted me\nto call you\nto this menu",
-	  4},
+    4},
   // NOTIFICATION_30M_SINCE_SAVE
   { NOTIFICATION_SHOW_ICON,
       0x5d,
       "30 min. passed\nsince the last\nsaving",
-	  0},
+    0},
   // NOTIFICATION_1H_SINCE_SAVE
   { NOTIFICATION_SHOW_ICON,
       0x5d,
       "One hour passed\nsince the last\nsaving",
-	  0},
+    0},
   // NOTIFICATION_CALL_TO_STOCK
   { NOTIFICATION_SHOW_MAP_OBJECT,
       map_building_sprite[BUILDING_STOCK],
       "You wanted me\nto call you\nto this stock",
-	  0},
+    0},
 };
 
 /* Messages boxes */

@@ -62,7 +62,7 @@ class player_t : public game_object_t {
 
   messages_t messages;
   timers_t timers;
-  box_t popup = BOX_NO_BOX;
+  box_t popup;
 
   int building;
   int castle_inventory;
@@ -160,7 +160,7 @@ class player_t : public game_object_t {
   /* Whether this player is a computer controlled opponent. */
   bool is_ai() const { return ((flags >> 7) & 1); }
   // return the winning or losing text
-  char * get_game_win_or_lose_text();
+  const char * get_game_win_or_lose_text();
   /* Whether player is prohibited from building military
    buildings at current position. */
   bool allow_military() const { return !(build & 1); }
@@ -262,7 +262,7 @@ class player_t : public game_object_t {
   int *get_resource_count_history(resource_type_t type) {
     return resource_count_history[type]; }
   int get_resource_produced_count(resource_type_t type) {
-	return resource_produced_count[type];
+    return resource_produced_count[type];
   }
   void set_player_stat_history(int mode, int index, int val) {
     player_stat_history[mode][index] = val; }

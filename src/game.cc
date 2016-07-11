@@ -483,52 +483,49 @@ game_t::calculate_clear_winner(const values_t &values) {
 // Check if the player satisfy the conditions of this mission
 bool
 game_t::player_check_victory_conditions(mission_t * mission, player_t * player) {
+  for (int c = 0; c < GAME_MAX_VICTORY_CONDITION_COUNT; c++) {
+    if (mission->victory[c].condition != mission_t::VICTORY_NO_CONDITION) {
 
-	for (int c = 0; c < GAME_MAX_VICTORY_CONDITION_COUNT; c++) {
-		if (mission->victory[c].condition != mission_t::VICTORY_NO_CONDITION) {
+      // is this a building condition?
+      if ((mission->victory[c].condition & mission_t::VICTORY_IS_BUILDING_CONDITION) == mission_t::VICTORY_IS_BUILDING_CONDITION) {
+        int building_type = mission->victory[c].condition - mission_t::VICTORY_IS_BUILDING_CONDITION;
 
-			// is this a building condition?
-			if ((mission->victory[c].condition & mission_t::VICTORY_IS_BUILDING_CONDITION) == mission_t::VICTORY_IS_BUILDING_CONDITION) {
-				int building_type = mission->victory[c].condition - mission_t::VICTORY_IS_BUILDING_CONDITION;
+        if (player->get_completed_building_count(building_type) < mission->victory[c].amount) return false;
+      }
+      // is this a building resource condition?
+      else if ((mission->victory[c].condition & mission_t::VICTORY_IS_RESOURCE_CONDITION) == mission_t::VICTORY_IS_RESOURCE_CONDITION) {
+        int resource_type = mission->victory[c].condition - mission_t::VICTORY_IS_RESOURCE_CONDITION;
 
-				if (player->get_completed_building_count(building_type) < mission->victory[c].amount) return false;
-			}
-			// is this a building resource condition?
-			else if ((mission->victory[c].condition & mission_t::VICTORY_IS_RESOURCE_CONDITION) == mission_t::VICTORY_IS_RESOURCE_CONDITION) {
-				int resource_type = mission->victory[c].condition - mission_t::VICTORY_IS_RESOURCE_CONDITION;
+        if (player->get_resource_produced_count((resource_type_t)resource_type) < mission->victory[c].amount) return false;
+      }
+      // is this a building resource condition?
+      else if ((mission->victory[c].condition & mission_t::VICTORY_IS_SPECIAL_CONDITION) == mission_t::VICTORY_IS_SPECIAL_CONDITION) {
 
-				if (player->get_resource_produced_count((resource_type_t)resource_type) < mission->victory[c].amount) return false;
-			}
-			// is this a building resource condition?
-			else if ((mission->victory[c].condition & mission_t::VICTORY_IS_SPECIAL_CONDITION) == mission_t::VICTORY_IS_SPECIAL_CONDITION) {
-
-				int sum = 0;
-				switch (mission->victory[c].condition) {
-					case mission_t::VICTORY_SPECIAL_WEAPONS:
-						// sum up all weapons
-						sum += player->get_resource_produced_count(resource_type_t::RESOURCE_SWORD);
-						sum += player->get_resource_produced_count(resource_type_t::RESOURCE_SHIELD);
-						break;
-					case mission_t::VICTORY_SPECIAL_TOOLS:
-						// sum up all tools
-						sum += player->get_resource_produced_count(resource_type_t::RESOURCE_SHOVEL);
-						sum += player->get_resource_produced_count(resource_type_t::RESOURCE_HAMMER);
-						sum += player->get_resource_produced_count(resource_type_t::RESOURCE_ROD);
-						sum += player->get_resource_produced_count(resource_type_t::RESOURCE_CLEAVER);
-						sum += player->get_resource_produced_count(resource_type_t::RESOURCE_SCYTHE);
-						sum += player->get_resource_produced_count(resource_type_t::RESOURCE_AXE);
-						sum += player->get_resource_produced_count(resource_type_t::RESOURCE_SAW);
-						sum += player->get_resource_produced_count(resource_type_t::RESOURCE_PICK);
-						sum += player->get_resource_produced_count(resource_type_t::RESOURCE_PINCER);
-						break;
-				}
-
-				if (sum < mission->victory[c].amount) return false;
-			}
-		}
-	}
-	return true;
-	
+        int sum = 0;
+        switch (mission->victory[c].condition) {
+          case mission_t::VICTORY_SPECIAL_WEAPONS:
+            // sum up all weapons
+            sum += player->get_resource_produced_count(resource_type_t::RESOURCE_SWORD);
+            sum += player->get_resource_produced_count(resource_type_t::RESOURCE_SHIELD);
+            break;
+          case mission_t::VICTORY_SPECIAL_TOOLS:
+            // sum up all tools
+            sum += player->get_resource_produced_count(resource_type_t::RESOURCE_SHOVEL);
+            sum += player->get_resource_produced_count(resource_type_t::RESOURCE_HAMMER);
+            sum += player->get_resource_produced_count(resource_type_t::RESOURCE_ROD);
+            sum += player->get_resource_produced_count(resource_type_t::RESOURCE_CLEAVER);
+            sum += player->get_resource_produced_count(resource_type_t::RESOURCE_SCYTHE);
+            sum += player->get_resource_produced_count(resource_type_t::RESOURCE_AXE);
+            sum += player->get_resource_produced_count(resource_type_t::RESOURCE_SAW);
+            sum += player->get_resource_produced_count(resource_type_t::RESOURCE_PICK);
+            sum += player->get_resource_produced_count(resource_type_t::RESOURCE_PINCER);
+            break;
+        }
+        if (sum < mission->victory[c].amount) return false;
+      }
+    }
+  }
+  return true; 
 }
 
 /* Update statistics of the game. */
@@ -539,10 +536,10 @@ game_t::update_game_stats() {
   } else {
     game_stats_counter += 1500 - tick_diff;
 
-	player_score_leader = 0;
+  player_score_leader = 0;
     int player_score_leader_land = -1;
-	int player_score_leader_minitary = -1;
-	int player_score_victory_condition = -1;
+  int player_score_leader_minitary = -1;
+  int player_score_victory_condition = -1;
 
     int update_level = 0;
 
@@ -588,7 +585,7 @@ game_t::update_game_stats() {
       values[(*it)->get_index()] = (*it)->get_land_area();
     }
     record_player_history(update_level, 1, player_history_index, values);
-	player_score_leader_land = calculate_clear_winner(values);
+  player_score_leader_land = calculate_clear_winner(values);
 
     /* Store building stats in history. */
     for (players_t::iterator it = players.begin(); it != players.end(); ++it) {
@@ -601,14 +598,14 @@ game_t::update_game_stats() {
       values[(*it)->get_index()] = (*it)->get_military_score();
     }
     record_player_history(update_level, 3, player_history_index, values);
-	player_score_leader_minitary = calculate_clear_winner(values);
+  player_score_leader_minitary = calculate_clear_winner(values);
 
     /* Store condensed score of all aspects in history. */
     for (players_t::iterator it = players.begin(); it != players.end(); ++it) {
       values[(*it)->get_index()] = (*it)->get_score();
     }
     record_player_history(update_level, 0, player_history_index, values);
-	
+  
     // if no one has already won this match
     if (game_winner < 0) {
       // check victory conditions set by the mission
@@ -628,8 +625,9 @@ game_t::update_game_stats() {
 
 
       // Determine winner based on "player_scores" values
-      if ((player_score_leader_land >= 0) || (player_score_leader_minitary >= 0) || (player_score_victory_condition >= 0)) {
-
+      if ((player_score_leader_land >= 0) ||
+          (player_score_leader_minitary >= 0) ||
+          (player_score_victory_condition >= 0)) {
         int winner = player_score_leader_land;
         if (player_score_leader_minitary >= 0) winner = player_score_leader_minitary;
         if (player_score_victory_condition >= 0) winner = player_score_victory_condition;
@@ -642,7 +640,6 @@ game_t::update_game_stats() {
         }
       }
     }
-
   }
 
   if (static_cast<int>(history_counter) > tick_diff) {
@@ -2302,7 +2299,7 @@ game_t::load_mission_map(mission_t *mission) {
                        mission->player[i].intelligence);
     if (n < 0) return false;
 
-	map_pos_t pos = NULL;
+  map_pos_t pos = NULL;
 
     if (mission->player[i].castle.col > -1 &&
         mission->player[i].castle.row > -1) {
@@ -2311,7 +2308,7 @@ game_t::load_mission_map(mission_t *mission) {
       build_castle(pos, players[n]);
     }
 
-	if (mission->start_text != NULL) players[n]->set_popup(BOX_GAME_TASK);
+  if (mission->start_text != NULL) players[n]->set_popup(BOX_GAME_TASK);
   }
 
   return true;
@@ -2575,11 +2572,11 @@ game_t::building_captured(building_t *building) {
   for (players_t::iterator it = players.begin(); it != players.end(); ++it) {
     player_t *player = *it;
     if (buildings_before[player->get_index()] > player->get_building_score()) {
-      player->add_notification(NOTIFICATION_LOST_BUILDINGS, building->get_position(),
-                               building->get_owner());
+      player->add_notification(NOTIFICATION_LOST_BUILDINGS,
+                               building->get_position(), building->get_owner());
     } else if (land_before[player->get_index()] > player->get_land_area()) {
-      player->add_notification(NOTIFICATION_LOST_LAND, building->get_position(),
-                               building->get_owner());
+      player->add_notification(NOTIFICATION_LOST_LAND,
+                               building->get_position(), building->get_owner());
     }
   }
 }

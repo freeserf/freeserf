@@ -399,7 +399,7 @@ popup_box_t::draw_player_face(int x, int y, int player, bool draw_player_color) 
   }
 
   if (draw_player_color) {
-	  frame->fill_rect(8 * x, y + 5, 48, 72, color);
+    frame->fill_rect(8 * x, y + 5, 48, 72, color);
   }
   draw_popup_icon(x, y, get_player_face_sprite(face));
 }
@@ -1844,100 +1844,100 @@ popup_box_t::draw_sett_5_box() {
 
 void
 popup_box_t::draw_art_box(int art_index) {
-	if (art_index < 0) art_index = 0;
-	if (art_index > DATA_ART_BOX_COUNT) art_index = DATA_ART_BOX_COUNT - 1;
+  if (art_index < 0) art_index = 0;
+  if (art_index > DATA_ART_BOX_COUNT) art_index = DATA_ART_BOX_COUNT - 1;
 
-	frame->draw_sprite(8, 8, DATA_ART_BOX_BASE + art_index);
+  frame->draw_sprite(8, 8, DATA_ART_BOX_BASE + art_index);
 }
 
 void 
-popup_box_t::draw_game_task_box(char * msg) {
-	if (msg == NULL) return;
-	char buffer[4] = {0, 0, 0, 0};
+popup_box_t::draw_game_task_box(const char * msg) {
+  if (msg == NULL) return;
+  char buffer[4] = {0, 0, 0, 0};
 
-	draw_box_background(PATTERN_STRIPED_GREEN);
+  draw_box_background(PATTERN_STRIPED_GREEN);
 
-	int p = page - 1;
-	while (p > 0) {
-		if (*msg == '\0') {
-			page = 0;
-			return;
-		}
-		if (*msg == '#') {
-			p--;
-		}
-		msg++;
-	}
+  int p = page - 1;
+  while (p > 0) {
+    if (*msg == '\0') {
+      page = 0;
+      return;
+    }
+    if (*msg == '#') {
+      p--;
+    }
+    msg++;
+  }
 
-	int y = 10;
-	int x = 0;
+  int y = 10;
+  int x = 0;
 
-	while ((*msg != '\0') && (*msg != '#')) {
-		if (*msg == '\n') {
-			if (x != 0) {
-				y += 10;
-				x = 0;
-			}
-			else {
-			  // this is an empty line
-			  y += 7;
-			}
-			
-		}
-		else if (*msg == '$') {
-			msg++;
+  while ((*msg != '\0') && (*msg != '#')) {
+    if (*msg == '\n') {
+      if (x != 0) {
+        y += 10;
+        x = 0;
+      }
+      else {
+        // this is an empty line
+        y += 7;
+      }
+      
+    }
+    else if (*msg == '$') {
+      msg++;
 
-			int cmd_type = *msg;
-			msg++;
+      int cmd_type = *msg;
+      msg++;
 
-			int value = 0;
-			value += ((*msg++) - '0') * 10;
-			value += ((*msg) - '0') * 1;
+      int value = 0;
+      value += ((*msg++) - '0') * 10;
+      value += ((*msg) - '0') * 1;
 
-			switch (cmd_type) {
-			case 'b': // building image
-				draw_popup_building(x, y, map_building_sprite[value]);
-				break;
-			case 'i': // interface icon
-				draw_popup_icon(x, y, value);
-				break;
-			case 'u':
-				// userinterface
-				frame->draw_sprite(8 * x + 8, y + 9, DATA_PANEL_BUTTON_BASE + value);
-				break;
-			case 's':
-				// symboles
-				frame->draw_sprite(8 * x + 8, y + 9, DATA_GAME_OBJECT_BASE + value);
-				break;
-			case 'o':
-				// symboles
-				frame->draw_transp_sprite(8 * x + 8, y + 9, DATA_MAP_OBJECT_BASE + value, false);
-				break;
-			case 'a':
-				// art
-				frame->draw_sprite(8, 8, DATA_ART_BOX_BASE + value);
-				break;
-			case 'f': // faces icon
-				draw_player_face(x, y, value, false);
-				break;
-			case 'x': // move x
-				x += value;
-				break;
-			case 'y': // move y
-				y += value;
-				break;
-			}
-		}
-		else {
-			buffer[0] = *msg;
-			draw_green_string(x, y, buffer);
-			x += 1;
-		}
-		msg++;
-	}
+      switch (cmd_type) {
+      case 'b': // building image
+        draw_popup_building(x, y, map_building_sprite[value]);
+        break;
+      case 'i': // interface icon
+        draw_popup_icon(x, y, value);
+        break;
+      case 'u':
+        // userinterface
+        frame->draw_sprite(8 * x + 8, y + 9, DATA_PANEL_BUTTON_BASE + value);
+        break;
+      case 's':
+        // symboles
+        frame->draw_sprite(8 * x + 8, y + 9, DATA_GAME_OBJECT_BASE + value);
+        break;
+      case 'o':
+        // symboles
+        frame->draw_transp_sprite(8 * x + 8, y + 9, DATA_MAP_OBJECT_BASE + value, false);
+        break;
+      case 'a':
+        // art
+        frame->draw_sprite(8, 8, DATA_ART_BOX_BASE + value);
+        break;
+      case 'f': // faces icon
+        draw_player_face(x, y, value, false);
+        break;
+      case 'x': // move x
+        x += value;
+        break;
+      case 'y': // move y
+        y += value;
+        break;
+      }
+    }
+    else {
+      buffer[0] = *msg;
+      draw_green_string(x, y, buffer);
+      x += 1;
+    }
+    msg++;
+  }
 
-	// no more pages
-	if (*msg == '\0') page = 0;
+  // no more pages
+  if (*msg == '\0') page = 0;
 }
 
 void
@@ -2825,8 +2825,8 @@ popup_box_t::internal_draw() {
     draw_game_task_box(interface->get_player()->get_game()->get_game_task_text());
     break;
   case BOX_GAME_WIN_LOSE:
-	  draw_game_task_box(interface->get_player()->get_game_win_or_lose_text());
-	break;
+    draw_game_task_box(interface->get_player()->get_game_win_or_lose_text());
+  break;
   case BOX_DEMOLISH:
     draw_demolish_box();
     break;
@@ -3587,14 +3587,14 @@ popup_box_t::handle_action(int action, int x, int y) {
     set_box(BOX_PLAYER_FACES);
     break;
   case ACTION_SHOW_GAME_END:
-	set_box(BOX_GAME_END);
-	break;
+  set_box(BOX_GAME_END);
+  break;
   case ACTION_SHOW_GAME_TASK_PAGE:
-	  set_box(BOX_GAME_TASK);
-	  break;
+    set_box(BOX_GAME_TASK);
+    break;
   case ACTION_SHOW_GAME_WIN_LOSE_PAGE:
-	  set_box(BOX_GAME_WIN_LOSE);
-	  break;
+    set_box(BOX_GAME_WIN_LOSE);
+    break;
   case ACTION_MINIMAP_SCALE: {
     minimap->set_flags(minimap->get_flags() ^ BIT(5));
     minimap->set_scale(minimap->get_scale() == 1 ? 2 : 1);
@@ -4170,49 +4170,49 @@ popup_box_t::handle_player_faces_click(int x, int y) {
 
 void
 popup_box_t::handle_game_end_click(int x, int y) {
-	const int clkmap[] = {
-		ACTION_CLOSE_BOX, 0, 0, 128, 144,
-		-1
-	};
-	handle_clickmap(x, y, clkmap);
+  const int clkmap[] = {
+    ACTION_CLOSE_BOX, 0, 0, 128, 144,
+    -1
+  };
+  handle_clickmap(x, y, clkmap);
 }
 
 void
 popup_box_t::handle_game_task_click(int x, int y) {
-	if (page <= 0) {
-		const int clkmap[] = {
-			ACTION_CLOSE_BOX, 0, 0, 128, 144,
-			-1
-		};
-		handle_clickmap(x, y, clkmap);
-	}
-	else {
-		page++;
-		const int clkmap[] = {
-			ACTION_SHOW_GAME_TASK_PAGE, 0, 0, 128, 144,
-			-1
-		};
-		handle_clickmap(x, y, clkmap);
-	}
+  if (page <= 0) {
+    const int clkmap[] = {
+      ACTION_CLOSE_BOX, 0, 0, 128, 144,
+      -1
+    };
+    handle_clickmap(x, y, clkmap);
+  }
+  else {
+    page++;
+    const int clkmap[] = {
+      ACTION_SHOW_GAME_TASK_PAGE, 0, 0, 128, 144,
+      -1
+    };
+    handle_clickmap(x, y, clkmap);
+  }
 }
 
 void
 popup_box_t::handle_game_win_lose_click(int x, int y) {
-	if (page <= 0) {
-		const int clkmap[] = {
-			ACTION_SHOW_QUIT, 0, 0, 128, 144,
-			-1
-		};
-		handle_clickmap(x, y, clkmap);
-	}
-	else {
-		page++;
-		const int clkmap[] = {
-			ACTION_SHOW_GAME_WIN_LOSE_PAGE, 0, 0, 128, 144,
-			-1
-		};
-		handle_clickmap(x, y, clkmap);
-	}
+  if (page <= 0) {
+    const int clkmap[] = {
+      ACTION_SHOW_QUIT, 0, 0, 128, 144,
+      -1
+    };
+    handle_clickmap(x, y, clkmap);
+  }
+  else {
+    page++;
+    const int clkmap[] = {
+      ACTION_SHOW_GAME_WIN_LOSE_PAGE, 0, 0, 128, 144,
+      -1
+    };
+    handle_clickmap(x, y, clkmap);
+  }
 }
 
 
@@ -4445,14 +4445,14 @@ popup_box_t::handle_click_left(int x, int y) {
     handle_player_faces_click(x, y);
     break;
   case BOX_GAME_END:
-	handle_game_end_click(x, y);
-	break;
+  handle_game_end_click(x, y);
+  break;
   case BOX_GAME_TASK:
-	handle_game_task_click(x, y);
-	break;
+  handle_game_task_click(x, y);
+  break;
   case BOX_GAME_WIN_LOSE:
-	handle_game_win_lose_click(x, y);
-	break;
+  handle_game_win_lose_click(x, y);
+  break;
   case BOX_DEMOLISH:
     handle_box_demolish_clk(x, y);
     break;
@@ -4466,6 +4466,8 @@ popup_box_t::handle_click_left(int x, int y) {
 
 popup_box_t::popup_box_t(interface_t *interface) {
   this->interface = interface;
+
+  page = 0;
 
   current_sett_5_item = 8;
   current_sett_6_item = 15;

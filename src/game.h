@@ -98,7 +98,7 @@ class game_t : public event_handler_t {
   int map_preserve_bugs;
   int player_score_leader;
 
-  int game_winner = -1;
+  int game_winner;
 
   int knight_morale_counter;
   int inventory_schedule_counter;
@@ -214,10 +214,11 @@ class game_t : public event_handler_t {
   void clear_search_id();
 
   int get_winner() { return game_winner; }
-  char * get_game_task_text() { return game_mission->start_text; }
-  char * get_game_win_text() {
+  const char * get_game_task_text() { return game_mission->start_text; }
+  const char * get_game_win_text() {
 	  return game_mission->win_text; }
-  char * get_game_lose_text() { return game_mission->lose_text; }
+  const char * get_game_lose_text() { return game_mission->lose_text; }
+
  protected:
   void allocate_objects();
   void deinit();

@@ -108,7 +108,7 @@ class popup_box_t : public gui_object_t {
   int current_sett_6_item;
   int current_stat_7_item;
   int current_stat_8_mode;
-  int page = 0;
+  int page;
 
  public:
   explicit popup_box_t(interface_t *interface);
@@ -128,37 +128,37 @@ class popup_box_t : public gui_object_t {
     PATTERN_PLAID_ALONG_GREEN = 312, // ###
     PATTERN_STARES_GREEN = 313,       // * *
     PATTERN_SQUARES_GREEN = 314,
-	PATTERN_CONSTRUCTION = 131, // many dots
-	PATTERN_OVERALL_COMPARISON = 132, // sward + building + land
-	PATTERN_RURAL_PROPERTIES = 133, // land
-	PATTERN_BUILDINGS = 134, // buildings
-	PATTERN_COMBAT_POWER = 135, // sward
-	PATTERN_FISH = 138, //
-	PATTERN_PIG = 139, //
-	PATTERN_MEAT = 140, //
-	PATTERN_WHEAT = 141, //
-	PATTERN_FLOUR = 142, //
-	PATTERN_BREAD = 143, //
-	PATTERN_LUMBER = 144, //
-	PATTERN_PLANK = 145, //
-	PATTERN_BOAT = 146, //
-	PATTERN_STONE = 147, //
-	PATTERN_IRONORE = 148, //
-	PATTERN_STEEL = 149, //
-	PATTERN_COAL = 150, //
-	PATTERN_GOLDORE = 151, //
-	PATTERN_GOLDBAR = 152, //
-	PATTERN_SHOVEL = 153, //
-	PATTERN_HAMMER = 154, //
-	PATTERN_ROD = 155, //
-	PATTERN_CLEAVER = 156, //
-	PATTERN_SCYTHE = 157, //
-	PATTERN_AXE = 158, //
-	PATTERN_SAW = 159, //
-	PATTERN_PICK = 160, //
-	PATTERN_PINCER = 161, //
-	PATTERN_SWORD = 162, //
-	PATTERN_SHIELD = 163 //
+    PATTERN_CONSTRUCTION = 131, // many dots
+    PATTERN_OVERALL_COMPARISON = 132, // sward + building + land
+    PATTERN_RURAL_PROPERTIES = 133, // land
+    PATTERN_BUILDINGS = 134, // buildings
+    PATTERN_COMBAT_POWER = 135, // sward
+    PATTERN_FISH = 138, //
+    PATTERN_PIG = 139, //
+    PATTERN_MEAT = 140, //
+    PATTERN_WHEAT = 141, //
+    PATTERN_FLOUR = 142, //
+    PATTERN_BREAD = 143, //
+    PATTERN_LUMBER = 144, //
+    PATTERN_PLANK = 145, //
+    PATTERN_BOAT = 146, //
+    PATTERN_STONE = 147, //
+    PATTERN_IRONORE = 148, //
+    PATTERN_STEEL = 149, //
+    PATTERN_COAL = 150, //
+    PATTERN_GOLDORE = 151, //
+    PATTERN_GOLDBAR = 152, //
+    PATTERN_SHOVEL = 153, //
+    PATTERN_HAMMER = 154, //
+    PATTERN_ROD = 155, //
+    PATTERN_CLEAVER = 156, //
+    PATTERN_SCYTHE = 157, //
+    PATTERN_AXE = 158, //
+    PATTERN_SAW = 159, //
+    PATTERN_PICK = 160, //
+    PATTERN_PINCER = 161, //
+    PATTERN_SWORD = 162, //
+    PATTERN_SHIELD = 163 //
   };
 
   void draw_popup_box_frame();
@@ -166,7 +166,7 @@ class popup_box_t : public gui_object_t {
   void draw_popup_building(int x, int y, int sprite);
   void draw_box_background(box_background_pattern sprite);
   void draw_art_box(int art_index);
-  void draw_game_task_box(char * msg);
+  void draw_game_task_box(const char * msg);
   void draw_box_row(int sprite, int y);
   void draw_green_string(int x, int y, const std::string &str);
   void draw_green_number(int x, int y, int n);
