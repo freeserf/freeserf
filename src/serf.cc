@@ -30,6 +30,7 @@
 #include "src/debug.h"
 #include "src/misc.h"
 #include "src/inventory.h"
+#include "src/notification.h"
 #include "src/savegame.h"
 
 static const int counter_from_animation[] = {
@@ -4482,8 +4483,25 @@ serf_t::handle_serf_sampling_geo_spot_state() {
 
         /* Create notification for found resource. */
         if (show_notification) {
-          game->get_player(get_player())->add_notification(12, pos,
-                                          game->get_map()->get_res_type(pos)-1);
+          notification_type_t type;
+          switch (game->get_map()->get_res_type(pos)) {
+            case GROUND_DEPOSIT_COAL:
+              type = NOTIFICATION_FOUND_COAL;
+              break;
+            case GROUND_DEPOSIT_IRON:
+              type = NOTIFICATION_FOUND_IRON;
+              break;
+            case GROUND_DEPOSIT_GOLD:
+              type = NOTIFICATION_FOUND_GOLD;
+              break;
+            case GROUND_DEPOSIT_STONE:
+              type = NOTIFICATION_FOUND_STONE;
+              break;
+            default:
+              NOT_REACHED();
+          }
+          game->get_player(get_player())->add_notification(
+            type, pos, game->get_map()->get_res_type(pos)-1);
         }
 
         counter += 64;
