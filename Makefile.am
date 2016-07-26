@@ -82,3 +82,7 @@ gitversion:
 	fi )
 
 $(VCS_VERSION_FILE): gitversion
+
+dist-osx:
+	$(MAKE) all
+	VERSION=$(VERSION) sh ./mac/deploy.sh ./freeserf FreeSerf

@@ -1,7 +1,16 @@
 language: cpp
+
+matrix:
+  include:
+    - os: linux
+      compiler: gcc
+    - os: osx
+      compiler: clang
+
 before_install:
   - sed -i -e 's|AC_PREREQ(\[2.69\])|AC_PREREQ([2.68])|' configure.ac
-  - sudo apt-get update -qq
+  - if [[ $TRAVIS_OS_NAME == 'linux' ]]; then sudo apt-get update -qq; fi
+
 install:
   - mkdir sdl_root
   - export SDL_PREFIX="$PWD/sdl_root"
@@ -13,9 +22,8 @@ install:
   - (cd SDL2_mixer-2.0.0 && ./configure --prefix=$SDL_PREFIX && make -j5 && make install)
   - git clone https://github.com/google/styleguide.git ./styleguide
   - export CPPLINT_PATH="$PWD/styleguide/cpplint"
+
 script:
   - $CPPLINT_PATH/cpplint.py ./src/*.cc ./src/*.h ./windows/*.cc ./windows/*.h
-  - ./bootstrap && ./configure --enable-sdl2-mixer && make -j5 distcheck
-compiler:
-  - gcc
-  - clang
+  - ./bootstrap && ./configure --enable-sdl2-mixer
+  - if [[ $TRAVIS_OS_NAME == 'osx' ]]; then make dist-osx; else make -j5 distcheck; fi

@@ -42,6 +42,7 @@
 #include <cstdlib>
 #include <cstring>
 #include <algorithm>
+#include <utility>
 
 #include "src/debug.h"
 #include "src/savegame.h"
