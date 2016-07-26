@@ -127,7 +127,7 @@ interface_t::open_message() {
 
   message_t message = player->pop_notification();
 
-  if (message.type == 16) {
+  if (message.type == NOTIFICATION_CALL_TO_MENU) {
     /* TODO */
   }
 
@@ -766,17 +766,14 @@ interface_t::update() {
     return_timeout -= tick_diff;
   }
 
-  const int msg_category[] = {
-    -1, 5, 5, 5, 4, 0, 4, 3, 4, 5,
-    5, 5, 4, 4, 4, 4, 0, 0, 0, 0
-  };
 
   /* Handle newly enqueued messages */
   if ((player != NULL) && player->has_message()) {
     player->drop_message();
     while (player->has_notification()) {
       message_t message = player->peek_notification();
-      if (BIT_TEST(config, msg_category[message.type])) {
+	  
+      if (BIT_TEST(config, notification_box_t::notification_views[message.type].category)) {
         play_sound(SFX_MESSAGE);
         msg_flags |= BIT(0);
         break;
@@ -792,14 +789,20 @@ interface_t::update() {
         msg_flags &= ~BIT(0);
         break;
       }
-
       message_t message = player->peek_notification();
-      if (BIT_TEST(config, msg_category[message.type])) break;
+      if (BIT_TEST(config, notification_box_t::notification_views[message.type].category)) break;
       player->pop_notification();
     }
   }
 
   viewport->update();
+
+  // Handle newly box popup events
+  if ((player != NULL) && player->has_popup()) {
+	  open_popup(player->get_popup());
+  }
+
+
   set_redraw();
 }
 

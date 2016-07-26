@@ -2165,12 +2165,12 @@ viewport_t::draw_map_cursor() {
   if (layers & VIEWPORT_LAYER_BUILDS) {
     draw_map_cursor_possible_build();
   }
+  map_pos_t cursor_pos = interface->get_map_cursor_pos();
 
-  draw_map_cursor_sprite(interface->get_map_cursor_pos(),
-                         interface->get_map_cursor_sprite(0));
+  draw_map_cursor_sprite(cursor_pos, interface->get_map_cursor_sprite(0));
 
   for (int d = 0; d < 6; d++) {
-    draw_map_cursor_sprite(map->move(interface->get_map_cursor_pos(), (dir_t)d),
+    draw_map_cursor_sprite(map->move(cursor_pos, (dir_t)d),
                            interface->get_map_cursor_sprite(1+d));
   }
 }
@@ -2185,7 +2185,7 @@ viewport_t::draw_base_grid_overlay(int color) {
     frame->fill_rect(0, y, width, 1, color);
     for (int x = x_base + ((row % 2 == 0) ? 0 : -MAP_TILE_WIDTH/2);
          x < width; x += MAP_TILE_WIDTH) {
-      frame->fill_rect(x, y + y - 2, 1, 5, color);
+      frame->fill_rect(x, y - 2, 1, 5, color);
     }
   }
 }

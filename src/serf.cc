@@ -1905,7 +1905,7 @@ serf_t::handle_serf_entering_building_state() {
               break;
             }
 
-            game->get_player(building->get_owner())->add_notification(6,
+            game->get_player(building->get_owner())->add_notification(NOTIFICATION_KNIGHT_OCCUPIED,
                                                        building->get_position(),
                                                                    mil_type);
 
@@ -3741,7 +3741,7 @@ serf_t::handle_serf_mining_state() {
           /* TODO Burn building. */
         }
 
-        game->get_player(building->get_owner())->add_notification(4,
+        game->get_player(building->get_owner())->add_notification(NOTIFICATION_MINE_EMPTY,
                                                        building->get_position(),
                                      building->get_type() - BUILDING_STONEMINE);
       }
@@ -4482,7 +4482,7 @@ serf_t::handle_serf_sampling_geo_spot_state() {
 
         /* Create notification for found resource. */
         if (show_notification) {
-          game->get_player(get_player())->add_notification(12, pos,
+          game->get_player(get_player())->add_notification(NOTIFICATION_FOUND_GOLD, pos,
                                           game->get_map()->get_res_type(pos)-1);
         }
 
@@ -4518,7 +4518,7 @@ serf_t::handle_serf_knight_engaging_building_state() {
           building->get_owner() != get_player() &&
           building->has_main_serf()) {
         if (building->is_under_attack()) {
-          game->get_player(building->get_owner())->add_notification(1,
+          game->get_player(building->get_owner())->add_notification(NOTIFICATION_UNDER_ATTACK,
                                                        building->get_position(),
                                                                  get_player());
         }

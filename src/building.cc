@@ -481,7 +481,7 @@ building_t::update() {
           stock[1].available = 0xff;
           serf |= BIT(4);
 
-          game->get_player(get_owner())->add_notification(7, pos, 0);
+          game->get_player(get_owner())->add_notification(NOTIFICATION_NEW_STOCK, pos, 0);
         } else {
           if (!serf_request_fail() &&
               !has_serf() &&

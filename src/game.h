@@ -34,10 +34,12 @@
 #include "src/random.h"
 #include "src/objects.h"
 #include "src/event_loop.h"
+#include "src/mission.h"
 
 #define DEFAULT_GAME_SPEED  2
 
 #define GAME_MAX_PLAYER_COUNT  4
+#define GAME_MAX_VICTORY_CONDITION_COUNT  4
 
 typedef collection_t<flag_t> flags_t;
 typedef collection_t<inventory_t> inventories_t;
@@ -90,12 +92,13 @@ class game_t : public event_handler_t {
   uint16_t field_340;
   uint16_t field_342;
   inventory_t *field_344;
-  int game_type;
-  int tutorial_level;
-  int mission_level;
+  int game_type; // not used
+  mission_t *game_mission;
   int map_generator;
   int map_preserve_bugs;
   int player_score_leader;
+
+  int game_winner;
 
   int knight_morale_counter;
   int inventory_schedule_counter;
@@ -118,7 +121,7 @@ class game_t : public event_handler_t {
   void init();
   unsigned int add_player(size_t face, unsigned int color, size_t supplies,
                           size_t reproduction, size_t intelligence);
-  bool load_mission_map(int m);
+  bool load_mission_map(mission_t *mission);
   bool load_random_map(int size, const random_state_t &rnd);
   bool load_save_game(const std::string &path);
 
@@ -210,6 +213,11 @@ class game_t : public event_handler_t {
   void building_captured(building_t *building);
   void clear_search_id();
 
+  int get_winner() { return game_winner; }
+  const char * get_game_task_text() { return game_mission->start_text; }
+  const char * get_game_win_text()  { return game_mission->win_text; }
+  const char * get_game_lose_text() { return game_mission->lose_text; }
+
  protected:
   void allocate_objects();
   void deinit();
@@ -225,6 +233,7 @@ class game_t : public event_handler_t {
   void record_player_history(int max_level, int aspect,
                              const int history_index[], const values_t &values);
   int calculate_clear_winner(const values_t &values);
+  bool player_check_victory_conditions(mission_t * mission, player_t * player);
   void update_game_stats();
   void get_resource_estimate(map_pos_t pos, int weight, int estimates[5]);
   int road_segment_in_water(map_pos_t pos, dir_t dir);

@@ -33,11 +33,19 @@ class random_input_t;
 class minimap_t;
 
 class game_init_box_t : public gui_object_t {
+ public:
+  enum game_types {
+    GAMETYPE_FREE = 0,
+    GAMETYPE_MISSION = 1,
+    GAMETYPE_TUTORIAL = 2
+  };
+
  protected:
   interface_t *interface;
 
   int map_size;
   int game_mission;
+  game_types game_type;
 
   mission_t custom_mission;
   mission_t *mission;

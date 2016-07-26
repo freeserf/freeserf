@@ -23,9 +23,10 @@
 #define SRC_NOTIFICATION_H_
 
 #include <string>
+#include <queue>
 
 #include "src/gui.h"
-#include "src/player.h"
+#include "src/map.h"
 
 typedef enum {
   NOTIFICATION_NONE = 0,
@@ -47,15 +48,32 @@ typedef enum {
   NOTIFICATION_CALL_TO_MENU = 16,
   NOTIFICATION_30M_SINCE_SAVE = 17,
   NOTIFICATION_1H_SINCE_SAVE = 18,
-  NOTIFICATION_CALL_TO_STOCK = 19,
+  NOTIFICATION_CALL_TO_STOCK = 19
 } notification_type_t;
 
 typedef struct {
-  notification_type_t type;
   unsigned int decoration;
   unsigned int icon;
   const char *text;
+  int category;
 } notification_view_t;
+
+
+class message_t {
+public:
+  notification_type_t type;
+  map_pos_t pos;
+  unsigned int data;
+};
+typedef std::queue<message_t> messages_t;
+
+class pos_timer_t {
+public:
+  int timeout;
+  map_pos_t pos;
+};
+typedef std::vector<pos_timer_t> timers_t;
+
 
 class interface_t;
 
@@ -67,10 +85,12 @@ class notification_box_t : public gui_object_t {
  public:
   explicit notification_box_t(interface_t *interface);
 
+  static const notification_view_t notification_views[];
+
   void show(const message_t &message);
 
  protected:
-  void draw_notification(notification_view_t *view);
+  void draw_notification(const notification_view_t *view);
 
   void draw_icon(int x, int y, int sprite);
   void draw_background(int width, int height, int sprite);
