@@ -16,10 +16,10 @@ install:
   - export SDL_PREFIX="$PWD/sdl_root"
   - export PATH="$SDL_PREFIX/bin:$PATH"
   - export PKG_CONFIG_PATH="$SDL_PREFIX/lib/pkgconfig:$PKG_CONFIG_PATH"
-  - wget https://www.libsdl.org/release/SDL2-2.0.3.tar.gz -O - | tar -xz
-  - (cd SDL2-2.0.3 && ./configure --prefix=$SDL_PREFIX && make -j5 && make install)
-  - wget https://www.libsdl.org/projects/SDL_mixer/release/SDL2_mixer-2.0.0.tar.gz -O - | tar -xz
-  - (cd SDL2_mixer-2.0.0 && ./configure --prefix=$SDL_PREFIX && make -j5 && make install)
+  - wget https://www.libsdl.org/release/SDL2-2.0.4.tar.gz -O - | tar -xz
+  - (cd SDL2-2.0.4 && ./configure --prefix=$SDL_PREFIX && make -j5 && make install)
+  - wget https://www.libsdl.org/projects/SDL_mixer/release/SDL2_mixer-2.0.1.tar.gz -O - | tar -xz
+  - (cd SDL2_mixer-2.0.1 && ./configure --prefix=$SDL_PREFIX && make -j5 && make install)
   - git clone https://github.com/google/styleguide.git ./styleguide
   - export CPPLINT_PATH="$PWD/styleguide/cpplint"
 

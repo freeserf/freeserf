@@ -88,6 +88,8 @@ function create_info_plist()
   <integer>'${major_version}'</integer>
   <key>IFMinorVersion</key>
   <integer>'${minor_version}'</integer>
+  <key>NSHighResolutionCapable</key>
+  <true/>
 </dict>
 </plist>
   ' > "${1}/Contents/Info.plist"
@@ -112,19 +114,17 @@ function create_app()
   deploy_dependencies $target
 }
 
-mkdir -p $DEPLOY_PATH
+function create_disk_image()
+{
+  mkdir -p "${1}/.background"
+  cp "./mac/background.png" "${1}/.background/background.png"
+  cp "./README.md" "${1}/README.txt"
 
-create_app ${2} ${1}
-
-mkdir -p "${DEPLOY_PATH}/.background"
-cp "./mac/background.png" "${DEPLOY_PATH}/.background/background.png"
-
-hdiutil create -srcfolder "${DEPLOY_PATH}" -volname "${2}" -fs HFS+ -fsargs "-c c=64,a=16,e=16" -format UDRW -size 10m ./temp.dmg
-#rm -rf ${DEPLOY_PATH}
-device=$(hdiutil attach -readwrite -noverify -noautoopen "./temp.dmg" | egrep '^/dev/' | sed 1q | awk '{print $1}')
-echo '
-   tell application "Finder"
-     tell disk "'${2}'"
+  hdiutil create -srcfolder "${1}" -volname "${2}" -fs HFS+ -fsargs "-c c=64,a=16,e=16" -format UDRW -size 10m ./temp.dmg
+  local device=$(hdiutil attach -readwrite -noverify -noautoopen "./temp.dmg" | egrep '^/dev/' | sed 1q | awk '{print $1}')
+  echo '
+    tell application "Finder"
+      tell disk "'${2}'"
            open
            set current view of container window to icon view
            set toolbar visible of container window to false
@@ -136,16 +136,25 @@ echo '
            set background picture of theViewOptions to file ".background:'background.png'"
            make new alias file at container window to POSIX file "/Applications" with properties {name:"Applications"}
            set position of item "'${2}'" of container window to {100, 100}
+           set extension hidden of item "'${2}'" of container window to true
            set position of item "Applications" of container window to {375, 100}
+           set position of item "README.txt" of container window to {250, 200}
+           set extension hidden of item "README.txt" of container window to true
            update without registering applications
            delay 5
            close
-     end tell
-   end tell
-' | osascript
-chmod -Rf go-w /Volumes/"${2}"
-sync
-sync
-hdiutil detach ${device}
-hdiutil convert "./temp.dmg" -format UDZO -imagekey zlib-level=9 -o "./${2}.dmg"
-rm -f ./temp.dmg
+      end tell
+    end tell
+  ' | osascript
+  chmod -Rf go-w /Volumes/"${2}"
+  sync
+  sync
+  hdiutil detach ${device}
+  hdiutil convert "./temp.dmg" -format UDZO -imagekey zlib-level=9 -o "./${2}.dmg"
+  rm -f ./temp.dmg
+}
+
+mkdir -p ${DEPLOY_PATH}
+create_app ${2} ${1}
+create_disk_image ${DEPLOY_PATH} ${2}
+rm -rf ${DEPLOY_PATH}

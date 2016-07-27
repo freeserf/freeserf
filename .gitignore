@@ -43,6 +43,7 @@ src/.dirstamp
 xcuserdata
 mac/version_vcs.h
 .DS_Store
+FreeSerf.dmg
 
 # windows specific
 windows/Win32

@@ -12,18 +12,20 @@ install:
   - ps: iex ((new-object net.webclient).DownloadString('https://raw.githubusercontent.com/appveyor/ci/master/scripts/enable-http-proxy.ps1'))
 
   # SDL2
-  - ps: Start-FileDownload https://libsdl.org/release/SDL2-devel-2.0.3-VC.zip
-  - ps: 7z x SDL2-devel-2.0.3-VC.zip -oC:\
-
-  - ps: $env:SDL2_INCLUDE = "C:\SDL2-2.0.3\include"
-  - ps: $env:SDL2_LIB = "C:\SDL2-2.0.3\lib"
+  - ps: |
+      $SDL_VERSION = "2.0.4"
+      Start-FileDownload https://libsdl.org/release/SDL2-devel-$SDL_VERSION-VC.zip
+      7z x SDL2-devel-$SDL_VERSION-VC.zip -oC:\
+      $env:SDL2_INCLUDE = "C:\SDL2-$SDL_VERSION\include"
+      $env:SDL2_LIB = "C:\SDL2-$SDL_VERSION\lib"
 
   # SDL2_mixer
-  - ps: Start-FileDownload https://www.libsdl.org/projects/SDL_mixer/release/SDL2_mixer-devel-2.0.0-VC.zip
-  - ps: 7z x SDL2_mixer-devel-2.0.0-VC.zip -oC:\
-
-  - ps: $env:SDL2_MIXER_INCLUDE = "C:\SDL2_mixer-2.0.0\include"
-  - ps: $env:SDL2_MIXER_LIB = "C:\SDL2_mixer-2.0.0\lib"
+  - ps: |
+      $SDL_MIXER_VERSION = "2.0.1"
+      Start-FileDownload https://www.libsdl.org/projects/SDL_mixer/release/SDL2_mixer-devel-$SDL_MIXER_VERSION-VC.zip
+      7z x SDL2_mixer-devel-$SDL_MIXER_VERSION-VC.zip -oC:\
+      $env:SDL2_MIXER_INCLUDE = "C:\SDL2_mixer-$SDL_MIXER_VERSION\include"
+      $env:SDL2_MIXER_LIB = "C:\SDL2_mixer-$SDL_MIXER_VERSION\lib"
 
 build_script:
   - msbuild windows\freeserf.sln
