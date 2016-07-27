@@ -454,11 +454,11 @@ class map_t {
 
  public:
   uint16_t random_int();
+  map_pos_t get_rnd_coord(int *col, int *row, random_state_t *rnd);
 
  protected:
   void init_minimap();
 
-  map_pos_t get_rnd_coord(int *col, int *row);
   void init_heights_squares();
   int calc_height_displacement(int avg, int base, int offset);
   void init_heights_midpoints();

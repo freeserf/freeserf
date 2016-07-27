@@ -380,9 +380,9 @@ map_t::init(unsigned int size) {
 /* Return a random map position.
    Returned as map_pos_t and also as col and row if not NULL. */
 map_pos_t
-map_t::get_rnd_coord(int *col, int *row) {
-  int c = random_int() & col_mask;
-  int r = random_int() & row_mask;
+map_t::get_rnd_coord(int *col, int *row, random_state_t *rnd) {
+  int c = rnd->random() & col_mask;
+  int r = rnd->random() & row_mask;
 
   if (col != NULL) *col = c;
   if (row != NULL) *row = r;
@@ -965,7 +965,7 @@ map_t::init_desert() {
   for (int i = 0; i < regions; i++) {
     for (int try_ = 0; try_ < 200; try_++) {
       int col, row;
-      map_pos_t rnd_pos = get_rnd_coord(&col, &row);
+      map_pos_t rnd_pos = get_rnd_coord(&col, &row, rnd);
 
       if (type_up(rnd_pos) == MAP_TERRAIN_GRASS_1 &&
           type_down(rnd_pos) == MAP_TERRAIN_GRASS_1) {
@@ -1111,7 +1111,7 @@ map_t::init_objects_shared(int num_clusters, int objs_in_cluster, int pos_mask,
   for (int i = 0; i < num_clusters; i++) {
     for (int try_ = 0; try_ < 100; try_++) {
       int col, row;
-      map_pos_t rnd_pos = get_rnd_coord(&col, &row);
+      map_pos_t rnd_pos = get_rnd_coord(&col, &row, rnd);
       if (hexagon_types_in_range(rnd_pos, type_min, type_max)) {
         for (int j = 0; j < objs_in_cluster; j++) {
           map_pos_t pos_ = lookup_rnd_pattern(col, row, pos_mask);
@@ -1261,7 +1261,7 @@ map_t::init_resources_shared(int num_clusters, ground_deposit_t type,
   for (int i = 0; i < num_clusters; i++) {
     for (int try_ = 0; try_ < 100; try_++) {
       int col, row;
-      map_pos_t pos = get_rnd_coord(&col, &row);
+      map_pos_t pos = get_rnd_coord(&col, &row, rnd);
 
       if (hexagon_types_in_range(pos, min, max)) {
         int index = 0;
