@@ -239,9 +239,7 @@ game_init_box_t::handle_action(int action) {
       game_t *game = new game_t(0);
       game->init();
       if (game_mission < 0) {
-        random_state_t rnd(0x5a5a, (uint16_t)(time(NULL) >> 16),
-                           (uint16_t)time(NULL));
-        if (!game->load_random_map(map_size, rnd)) return;
+        if (!game->load_random_map(map_size, mission->rnd)) return;
 
         for (int i = 0; i < GAME_MAX_PLAYER_COUNT; i++) {
           if (mission->player[i].face == 0) continue;
