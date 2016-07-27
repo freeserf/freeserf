@@ -1398,6 +1398,14 @@ void
 map_t::set_object(map_pos_t pos, map_obj_t obj, int index) {
   tiles[pos].obj = (tiles[pos].obj & 0x80) | (obj & 0x7f);
   if (index >= 0) tiles[pos].obj_index = index;
+
+  /* Notify about object change */
+  for (int d = DIR_RIGHT; d <= DIR_UP; d++) {
+    for (change_handlers_t::iterator it = change_handlers.begin();
+         it != change_handlers.end(); ++it) {
+      (*it)->changed_object(pos);
+    }
+  }
 }
 
 /* Remove resources from the ground at a map position. */

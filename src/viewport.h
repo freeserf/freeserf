@@ -27,7 +27,6 @@
 #include "src/gui.h"
 #include "src/map.h"
 #include "src/building.h"
-#include "src/serf.h"
 
 typedef enum {
   VIEWPORT_LAYER_LANDSCAPE = 1<<0,
@@ -127,7 +126,8 @@ class viewport_t : public gui_object_t, public update_map_height_handler_t {
   frame_t *get_tile_frame(unsigned int tid, int tc, int tr);
 
  public:
-  void changed_height(map_pos_t pos);
+  virtual void changed_height(map_pos_t pos);
+  virtual void changed_object(map_pos_t pos);
 };
 
 #endif  // SRC_VIEWPORT_H_
