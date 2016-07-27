@@ -447,12 +447,22 @@ game_init_box_t::generate_map_preview() {
   }
 
   map = new map_t();
-  map->init(map_size);
-  {
-    ClassicMapGenerator generator(map, mission->rnd);
-    generator.init(0, true);
-    generator.generate();
-    map->init_tiles(generator);
+  if (game_mission < 0) {
+    map->init(map_size);
+    {
+      ClassicMapGenerator generator(map, mission->rnd);
+      generator.init(0, true);
+      generator.generate();
+      map->init_tiles(generator);
+    }
+  } else {
+    map->init(3);
+    {
+      ClassicMissionMapGenerator generator(map, mission->rnd);
+      generator.init();
+      generator.generate();
+      map->init_tiles(generator);
+    }
   }
 
   minimap->set_map(map);
