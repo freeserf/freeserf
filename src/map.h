@@ -29,6 +29,25 @@
 #include "src/misc.h"
 #include "src/random.h"
 
+/* Map directions
+
+      A ______ B
+       /\    /
+      /  \  /
+   C /____\/ D
+
+   Six standard directions:
+   RIGHT: A to B
+   DOWN_RIGHT: A to D
+   DOWN: A to C
+   LEFT: D to C
+   UP_LEFT: D to A
+   UP: D to B
+
+   Non-standard directions:
+   UP_RIGHT: C to B
+   DOWN_LEFT: B to C
+*/
 typedef enum {
   DIR_NONE = -1,
 
@@ -43,6 +62,7 @@ typedef enum {
   DIR_DOWN_LEFT
 } dir_t;
 
+/* Reverse direction (only works on the six standard directions) */
 #define DIR_REVERSE(dir)  ((dir_t)(((dir) + 3) % 6))
 
 typedef enum {
