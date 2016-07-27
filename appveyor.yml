@@ -9,6 +9,8 @@ configuration:
   - Release
 
 install:
+  - ps: iex ((new-object net.webclient).DownloadString('https://raw.githubusercontent.com/appveyor/ci/master/scripts/enable-http-proxy.ps1'))
+
   # SDL2
   - ps: Start-FileDownload https://libsdl.org/release/SDL2-devel-2.0.3-VC.zip
   - ps: 7z x SDL2-devel-2.0.3-VC.zip -oC:\
