@@ -54,12 +54,12 @@ class game_init_box_t : public gui_object_t {
   void draw_box_icon(int x, int y, int sprite);
   void draw_box_string(int x, int y, const std::string &str);
   void draw_player_box(int player, int x, int y);
-  void draw_backgraund();
+  void draw_background();
   unsigned int get_player_face_sprite(size_t face);
   void handle_action(int action);
   bool handle_player_click(int player, int x, int y);
   void apply_random(random_state_t rnd);
-  void generate_map_priview();
+  void generate_map_preview();
 
   virtual void internal_draw();
   virtual bool handle_click_left(int x, int y);
