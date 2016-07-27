@@ -1,7 +1,7 @@
 /*
  * event_loop-sdl.cc - User and system events handling
  *
- * Copyright (C) 2012-2014  Jon Lund Steffensen <jonlst@gmail.com>
+ * Copyright (C) 2012-2016  Jon Lund Steffensen <jonlst@gmail.com>
  *
  * This file is part of freeserf.
  *
@@ -308,4 +308,45 @@ event_loop_sdl_t::zoom(float delta) {
     gfx->get_resolution(&width, &height);
     notify_resize(width, height);
   }
+}
+
+class timer_sdl_t : public fs_timer_t {
+ protected:
+  SDL_TimerID timer_id;
+
+ public:
+  timer_sdl_t(unsigned int _id, unsigned int _interval,
+              timer_handler_t *_handler)
+    : fs_timer_t(_id, _interval, _handler), timer_id(0) {}
+
+  virtual ~timer_sdl_t() {
+    stop();
+  }
+
+  virtual void run() {
+    if (timer_id == 0) {
+      timer_id = SDL_AddTimer(interval, timer_sdl_t::callback, this);
+    }
+  }
+
+  virtual void stop() {
+    if (timer_id != 0) {
+      SDL_RemoveTimer(timer_id);
+      timer_id = 0;
+    }
+  }
+
+  static Uint32 callback(Uint32 interval, void *param) {
+    timer_sdl_t *timer = reinterpret_cast<timer_sdl_t*>(param);
+    if (timer->handler != NULL) {
+      timer->handler->on_timer_fired(timer->id);
+    }
+    return interval;
+  }
+};
+
+fs_timer_t *
+fs_timer_t::create(unsigned int _id, unsigned int _interval,
+                timer_handler_t *_handler) {
+  return new timer_sdl_t(_id, _interval, _handler);
 }

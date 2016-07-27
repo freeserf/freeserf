@@ -26,7 +26,7 @@
 
 class interface_t;
 
-class panel_bar_t : public gui_object_t {
+class panel_bar_t : public gui_object_t, public timer_handler_t {
  protected:
   typedef enum {
     PANEL_BTN_BUILD_INACTIVE = 0,
@@ -58,9 +58,12 @@ class panel_bar_t : public gui_object_t {
 
   interface_t *interface;
   int panel_btns[5];
+  fs_timer_t *blink_timer;
+  bool blink_trigger;
 
  public:
   explicit panel_bar_t(interface_t *interface);
+  virtual ~panel_bar_t();
 
   void update();
 
@@ -75,6 +78,9 @@ class panel_bar_t : public gui_object_t {
   virtual void internal_draw();
   virtual bool handle_click_left(int x, int y);
   virtual bool handle_key_pressed(char key, int modifier);
+
+  // timer_handler_t
+  virtual void on_timer_fired(unsigned int id);
 };
 
 #endif  // SRC_PANEL_H_

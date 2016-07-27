@@ -1,7 +1,7 @@
 /*
  * panel.cc - Panel GUI component
  *
- * Copyright (C) 2013  Jon Lund Steffensen <jonlst@gmail.com>
+ * Copyright (C) 2013-2016  Jon Lund Steffensen <jonlst@gmail.com>
  *
  * This file is part of freeserf.
  *
@@ -23,7 +23,6 @@
 
 #include <cstdlib>
 
-#include "src/misc.h"
 #include "src/game.h"
 #include "src/debug.h"
 #include "src/data.h"
@@ -33,6 +32,29 @@
 #include "src/viewport.h"
 #include "src/freeserf.h"
 #include "src/minimap.h"
+
+panel_bar_t::panel_bar_t(interface_t *_interface) {
+  interface = _interface;
+
+  panel_btns[0] = PANEL_BTN_BUILD_INACTIVE;
+  panel_btns[1] = PANEL_BTN_DESTROY_INACTIVE;
+  panel_btns[2] = PANEL_BTN_MAP;
+  panel_btns[3] = PANEL_BTN_STATS;
+  panel_btns[4] = PANEL_BTN_SETT;
+
+  blink_timer = fs_timer_t::create(1, 700, this);
+  if (blink_timer != NULL) {
+    blink_timer->run();
+  }
+  blink_trigger = false;
+}
+
+panel_bar_t::~panel_bar_t() {
+  if (blink_timer != NULL) {
+    delete blink_timer;
+    blink_timer = NULL;
+  }
+}
 
 /* Draw the frame around action buttons. */
 void
@@ -94,10 +116,10 @@ panel_bar_t::draw_return_arrow() {
 void
 panel_bar_t::draw_panel_buttons() {
   if (enabled) {
+    player_t *player = interface->get_player();
     /* Blinking message icon. */
-    if ((interface->get_player() != NULL) &&
-        interface->get_player()->has_notification()) {
-      if (interface->get_player()->get_game()->get_const_tick() & 0x30) {
+    if ((player != NULL) && player->has_notification()) {
+      if (blink_trigger) {
         draw_message_notify();
       }
     }
@@ -364,16 +386,6 @@ panel_bar_t::handle_key_pressed(char key, int modifier) {
   return true;
 }
 
-panel_bar_t::panel_bar_t(interface_t *interface) {
-  this->interface = interface;
-
-  panel_btns[0] = PANEL_BTN_BUILD_INACTIVE;
-  panel_btns[1] = PANEL_BTN_DESTROY_INACTIVE;
-  panel_btns[2] = PANEL_BTN_MAP;
-  panel_btns[3] = PANEL_BTN_STATS;
-  panel_btns[4] = PANEL_BTN_SETT;
-}
-
 panel_bar_t::panel_btn_t
 panel_bar_t::button_type_with_build_possibility(int build_possibility) {
   panel_btn_t result;
@@ -499,5 +511,11 @@ panel_bar_t::update() {
         break;
     }
   }
+  set_redraw();
+}
+
+void
+panel_bar_t::on_timer_fired(unsigned int id) {
+  blink_trigger = !blink_trigger;
   set_redraw();
 }

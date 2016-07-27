@@ -1,7 +1,7 @@
 /*
  * event_loop.h - User and system events handling
  *
- * Copyright (C) 2012-2014  Jon Lund Steffensen <jonlst@gmail.com>
+ * Copyright (C) 2012-2016  Jon Lund Steffensen <jonlst@gmail.com>
  *
  * This file is part of freeserf.
  *
@@ -49,6 +49,31 @@ typedef struct {
 } event_t;
 
 class frame_t;
+
+class timer_handler_t {
+ public:
+  virtual void on_timer_fired(unsigned int id) = 0;
+};
+
+class fs_timer_t {
+ protected:
+  unsigned int id;
+  unsigned int interval;
+  timer_handler_t *handler;
+
+  fs_timer_t(unsigned int _id, unsigned int _interval,
+             timer_handler_t *_handler)
+    : id(_id), interval(_interval), handler(_handler) {}
+
+ public:
+  virtual ~fs_timer_t() {}
+
+  virtual void run() = 0;
+  virtual void stop() = 0;
+
+  static fs_timer_t *create(unsigned int _id, unsigned int _interval,
+                            timer_handler_t *_handler);
+};
 
 class event_handler_t {
  public:
