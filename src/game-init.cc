@@ -107,7 +107,7 @@ game_init_box_t::draw_box_string(int x, int y, const std::string &str) {
 }
 
 void
-game_init_box_t::draw_backgraund() {
+game_init_box_t::draw_background() {
   // Background
   unsigned int icon = 290;
   for (int y = 0; y < height; y += 8) {
@@ -132,7 +132,7 @@ game_init_box_t::get_player_face_sprite(size_t face) {
 
 void
 game_init_box_t::internal_draw() {
-  draw_backgraund();
+  draw_background();
 
   const int layout[] = {
     266, 0, 0,
@@ -273,14 +273,14 @@ game_init_box_t::handle_action(int action) {
         game_mission = 0;
         mission = mission_t::get_mission(game_mission);
         field->set_displayed(false);
-        generate_map_priview();
+        generate_map_preview();
       } else {
         game_mission = -1;
         map_size = 3;
         mission = &custom_mission;
         field->set_displayed(true);
         field->set_random(custom_mission.rnd);
-        generate_map_priview();
+        generate_map_preview();
       }
       break;
     case ACTION_SHOW_OPTIONS:
@@ -295,7 +295,7 @@ game_init_box_t::handle_action(int action) {
                                 mission_t::get_mission_count()-1);
         mission = mission_t::get_mission(game_mission);
       }
-      generate_map_priview();
+      generate_map_preview();
       break;
     case ACTION_DECREMENT:
       if (game_mission < 0) {
@@ -304,7 +304,7 @@ game_init_box_t::handle_action(int action) {
         game_mission = std::max(0, game_mission-1);
         mission = mission_t::get_mission(game_mission);
       }
-      generate_map_priview();
+      generate_map_preview();
       break;
     case ACTION_CLOSE:
       interface->close_game_init();
@@ -318,7 +318,7 @@ game_init_box_t::handle_action(int action) {
       std::string str = field->get_text();
       if (str.length() == 16) {
         apply_random(field->get_random());
-        generate_map_priview();
+        generate_map_preview();
       }
       break;
     }
@@ -439,7 +439,7 @@ game_init_box_t::handle_player_click(int player, int x, int y) {
 }
 
 void
-game_init_box_t::generate_map_priview() {
+game_init_box_t::generate_map_preview() {
   if (map != NULL) {
     delete map;
     map = NULL;
@@ -545,7 +545,7 @@ game_init_box_t::game_init_box_t(interface_t *interface) {
   add_float(minimap, 190, 55);
 
   map = NULL;
-  generate_map_priview();
+  generate_map_preview();
 
   field = new random_input_t();
   field->set_random(custom_mission.rnd);
@@ -569,4 +569,3 @@ game_init_box_t::~game_init_box_t() {
     minimap = NULL;
   }
 }
-
