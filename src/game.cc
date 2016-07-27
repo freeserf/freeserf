@@ -588,7 +588,7 @@ game_t::update() {
   tick_diff = tick - last_tick;
 
   clear_serf_request_failure();
-  map->update(tick);
+  map->update(tick, &init_map_rnd);
 
   /* Update players */
   for (players_t::iterator it = players.begin(); it != players.end(); ++it) {

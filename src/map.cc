@@ -1570,12 +1570,12 @@ map_t::set_serf_index(map_pos_t pos, int index) {
 
 /* Update public parts of the map data. */
 void
-map_t::update_public(map_pos_t pos) {
+map_t::update_public(map_pos_t pos, random_state_t *rnd) {
   /* Update other map objects */
   int r;
   switch (get_obj(pos)) {
   case MAP_OBJ_STUB:
-    if ((random_int() & 3) == 0) {
+    if ((rnd->random() & 3) == 0) {
       set_object(pos, MAP_OBJ_NONE, -1);
     }
     break;
@@ -1588,13 +1588,13 @@ map_t::update_public(map_pos_t pos) {
     set_object(pos, MAP_OBJ_STUB, -1);
     break;
   case MAP_OBJ_NEW_PINE:
-    r = random_int();
+    r = rnd->random();
     if ((r & 0x300) == 0) {
       set_object(pos, (map_obj_t)(MAP_OBJ_PINE_0 + (r & 7)), -1);
     }
     break;
   case MAP_OBJ_NEW_TREE:
-    r = random_int();
+    r = rnd->random();
     if ((r & 0x300) == 0) {
       set_object(pos, (map_obj_t)(MAP_OBJ_TREE_0 + (r & 7)), -1);
     }
@@ -1632,11 +1632,11 @@ map_t::update_public(map_pos_t pos) {
 
 /* Update hidden parts of the map data. */
 void
-map_t::update_hidden(map_pos_t pos) {
+map_t::update_hidden(map_pos_t pos, random_state_t *rnd) {
   /* Update fish resources in water */
   if (is_in_water(pos) &&
       tiles[pos].resource > 0) {
-    int r = random_int();
+    int r = rnd->random();
 
     if (tiles[pos].resource < 10 && (r & 0x3f00)) {
       /* Spawn more fish. */
@@ -1663,7 +1663,7 @@ map_t::update_hidden(map_pos_t pos) {
 
 /* Update map data as part of the game progression. */
 void
-map_t::update(unsigned int tick) {
+map_t::update(unsigned int tick, random_state_t *rnd) {
   uint16_t delta = tick - update_map_last_tick;
   update_map_last_tick = tick;
   update_map_counter -= delta;
@@ -1689,8 +1689,8 @@ map_t::update(unsigned int tick) {
     }
 
     /* Update map at position. */
-    update_hidden(pos);
-    update_public(pos);
+    update_hidden(pos, rnd);
+    update_public(pos, rnd);
   }
 
   update_map_initial_pos = pos;

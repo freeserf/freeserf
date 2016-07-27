@@ -430,7 +430,7 @@ class map_t {
 
   void generate(int generator, const random_state_t &rnd, bool preserve_bugs);
 
-  void update(unsigned int tick);
+  void update(unsigned int tick, random_state_t *rnd);
 
   void add_change_handler(update_map_height_handler_t *handler);
   void del_change_handler(update_map_height_handler_t *handler);
@@ -516,8 +516,8 @@ class map_t {
   void init_ground_gold_deposit();
   void init_spiral_pos_pattern();
 
-  void update_public(map_pos_t pos);
-  void update_hidden(map_pos_t pos);
+  void update_public(map_pos_t pos, random_state_t *rnd);
+  void update_hidden(map_pos_t pos, random_state_t *rnd);
 };
 
 #endif  // SRC_MAP_H_
