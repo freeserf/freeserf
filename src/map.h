@@ -317,6 +317,7 @@ class map_t {
   unsigned int get_col_mask() const { return col_mask; }
   unsigned int get_row_mask() const { return row_mask; }
   unsigned int get_row_shift() const { return row_shift; }
+  unsigned int get_region_count() const { return regions; }
 
   /* Extract col and row from map_pos_t */
   int pos_col(int pos) const { return (pos & col_mask); }
