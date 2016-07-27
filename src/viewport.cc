@@ -2481,6 +2481,12 @@ viewport_t::changed_height(map_pos_t pos) {
   redraw_map_pos(pos);
 }
 
+void
+viewport_t::changed_object(map_pos_t pos) {
+  if (interface->get_map_cursor_pos() == pos) {
+    interface->update_map_cursor_pos(pos);
+  }
+}
 
 /* Space transformations. */
 /* The game world space is a three dimensional space with the axes

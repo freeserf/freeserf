@@ -217,6 +217,7 @@ class save_writer_text_t;
 class update_map_height_handler_t {
  public:
   virtual void changed_height(map_pos_t pos) = 0;
+  virtual void changed_object(map_pos_t pos) = 0;
 };
 
 class map_t {
