@@ -273,6 +273,10 @@
 				>
 			</File>
 			<File
+				RelativePath="..\src\map-generator.cc"
+				>
+			</File>
+			<File
 				RelativePath="..\src\minimap.cc"
 				>
 			</File>
@@ -432,6 +436,10 @@
 			</File>
 			<File
 				RelativePath="..\src\map.h"
+				>
+			</File>
+			<File
+				RelativePath="..\src\map-generator.h"
 				>
 			</File>
 			<File

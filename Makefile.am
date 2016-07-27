@@ -42,7 +42,8 @@ freeserf_SOURCES = \
 	src/data-source.cc src/data-source.h \
 	src/objects.h src/smart_ptr.h \
 	src/inventory.cc src/inventory.h \
-	src/text-input.cc src/text-input.h
+	src/text-input.cc src/text-input.h \
+	src/map-generator.cc src/map-generator.h
 
 AM_CFLAGS = $(SDL2_CFLAGS) -I$(top_builddir)/src
 AM_CXXFLAGS = $(SDL2_CFLAGS) -I$(top_builddir)/src

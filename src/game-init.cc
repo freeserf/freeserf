@@ -33,6 +33,7 @@
 #include "src/version.h"
 #include "src/text-input.h"
 #include "src/minimap.h"
+#include "src/map-generator.h"
 
 class random_input_t : public text_input_t {
  protected:
@@ -447,7 +448,12 @@ game_init_box_t::generate_map_preview() {
 
   map = new map_t();
   map->init(map_size);
-  map->generate(0, mission->rnd, true);
+  {
+    ClassicMapGenerator generator(map, mission->rnd);
+    generator.init(0, true);
+    generator.generate();
+    map->init_tiles(generator);
+  }
 
   minimap->set_map(map);
 

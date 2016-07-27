@@ -1,7 +1,7 @@
 /*
- * map.h - Map generators and map update functions
+ * map.h - Map data and map update functions
  *
- * Copyright (C) 2013  Jon Lund Steffensen <jonlst@gmail.com>
+ * Copyright (C) 2013-2016  Jon Lund Steffensen <jonlst@gmail.com>
  *
  * This file is part of freeserf.
  *
@@ -259,6 +259,17 @@ class update_map_height_handler_t {
   virtual void changed_object(map_pos_t pos) = 0;
 };
 
+class MapGenerator;
+
+/* Map data.
+   Initialization of a new map_t takes three steps:
+
+   1. Construct map_t and call init() to have basic size fields initialized.
+   2. Constuct a MapGenerator subclass based on the map_t object and use it
+      to generate the map data.
+   3. Call init_tiles() on the map_t supplying the MapGenerator object to
+      copy the new tile data into map_t.
+*/
 class map_t {
  protected:
   typedef struct {
@@ -285,16 +296,9 @@ class map_t {
 
   uint8_t *minimap;
 
-  int16_t water_level;
-  int16_t max_lake_area;
-
-  bool preserve_bugs;
-
   uint16_t regions;
 
   uint32_t gold_deposit;
-
-  random_state_t rnd;
 
   int16_t update_map_16_loop;
   uint16_t update_map_last_tick;
@@ -332,6 +336,9 @@ class map_t {
                (pos_row(pos_) + pos_row(off)) & row_mask); }
   map_pos_t pos_add_spirally(map_pos_t pos_, unsigned int off) const {
     return pos_add(pos_, spiral_pos_pattern[off]); }
+
+  /* Get random position */
+  map_pos_t get_rnd_coord(int *col, int *row, random_state_t *rnd);
 
   /* Movement of map position according to directions. */
   map_pos_t move(map_pos_t pos, dir_t dir) const {
@@ -429,7 +436,7 @@ class map_t {
   void init_dimensions();
   uint8_t *get_minimap();
 
-  void generate(int generator, const random_state_t &rnd, bool preserve_bugs);
+  void init_tiles(const MapGenerator &generator);
 
   void update(unsigned int tick, random_state_t *rnd);
 
@@ -453,67 +460,9 @@ class map_t {
   friend save_writer_text_t&
     operator << (save_writer_text_t &writer, map_t &map);
 
- public:
-  uint16_t random_int();
-  map_pos_t get_rnd_coord(int *col, int *row, random_state_t *rnd);
-
  protected:
   void init_minimap();
 
-  void init_heights_squares();
-  int calc_height_displacement(int avg, int base, int offset);
-  void init_heights_midpoints();
-  void init_heights_diamond_square();
-  bool adjust_map_height(int h1, int h2, map_pos_t pos);
-  void clamp_heights();
-
-  int expand_level_area(map_pos_t pos, int limit, int r);
-  void init_level_area(map_pos_t pos);
-  void init_sea_level();
-  void heights_rebase();
-  void init_types();
-  void init_types_2_sub();
-  void init_types_2();
-  void heights_rescale();
-  void init_types_shared_sub(map_terrain_t old, map_terrain_t seed,
-                             map_terrain_t new_);
-  void init_lakes();
-  void init_types4();
-  map_pos_t lookup_pattern(int col, int row, int index);
-  int init_desert_sub1(map_pos_t pos);
-  int init_desert_sub2(map_pos_t pos);
-  void init_desert();
-  void init_desert_2_sub();
-  void init_desert_2();
-  void init_crosses();
-  bool hexagon_types_in_range(map_pos_t pos, map_terrain_t min,
-                              map_terrain_t max);
-  map_pos_t lookup_rnd_pattern(int col, int row, int mask);
-  void init_objects_shared(int num_clusters, int objs_in_cluster, int pos_mask,
-                           map_terrain_t type_min, map_terrain_t type_max,
-                           int obj_base, int obj_mask);
-  void init_trees_1();
-  void init_trees_2();
-  void init_trees_3();
-  void init_trees_4();
-  void init_stone_1();
-  void init_stone_2();
-  void init_dead_trees();
-  void init_large_boulders();
-  void init_water_trees();
-  void init_stubs();
-  void init_small_boulders();
-  void init_cadavers();
-  void init_cacti();
-  void init_water_stones();
-  void init_palms();
-  void init_resources_shared_sub(int iters, int col, int row, int *index,
-                                 int amount, ground_deposit_t type);
-  void init_resources_shared(int num_clusters, ground_deposit_t type,
-                             map_terrain_t min, map_terrain_t max);
-  void init_resources();
-  void init_clean_up();
-  void init_sub();
   void init_ground_gold_deposit();
   void init_spiral_pos_pattern();
 
