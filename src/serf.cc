@@ -290,7 +290,7 @@ serf_t::set_type(serf_type_t new_type) {
 
   /* Register this type as transporter */
   if (new_type == SERF_TRANSPORTER_INVENTORY) new_type = SERF_TRANSPORTER;
-  if (old_type == SERF_TRANSPORTER_INVENTORY) new_type = SERF_TRANSPORTER;
+  if (old_type == SERF_TRANSPORTER_INVENTORY) old_type = SERF_TRANSPORTER;
 
   player_t *player = game->get_player(get_player());
   player->decrease_serf_count(old_type);
