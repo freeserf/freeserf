@@ -35,7 +35,33 @@
    "down" (a,b,d). A serf can move on the perimeter of any of these
    triangles. Each vertex has various properties associated with it,
    among others a height value which means that the 3D landscape is
-   defined by these points in (col, row, height)-space. */
+   defined by these points in (col, row, height)-space.
+
+   Map elevation and type
+   ----------------------
+   The type of terrain is determined by either the elevation or the adjacency
+   to other terrain types when the map is generated. The type is encoded
+   separately from the elevation so it is only the map generator enforcing this
+   correlation. The elevation (height) values range in 0-31 while the type
+   ranges in 0-15.
+
+   Terrain types:
+   - 0-3: Water (range encodes adjacency to shore)
+   - 4-7: Grass (4=adjacency to water, 5=only tile that allows large buildings,
+                 6-7=elevation based)
+   - 8-10: Desert (range encodes adjacency to grass)
+   - 11-13: Tundra (elevation based)
+   - 14-15: Snow (elevation based)
+
+   For water tiles, desert tiles and grass tile 4, the ranges of values are
+   used to encode distance to other terrains. For example, type 4 grass is
+   adjacent to at least one water tile and type 3 water is adjacent to at
+   least one grass tile. Type 2 water is adjacent to at least one type 3 water,
+   type 1 water is adjacent to at least one type 2 water, and so on. The lower
+   desert tiles (8) are close to grass while the higher (10) are at the center
+   of the desert. The higher grass tiles (5-7), tundra tiles, and snow tiles
+   are determined by elevation and _not_ be adjacency.
+*/
 
 #include "src/map.h"
 
@@ -1947,4 +1973,3 @@ road_t::undo() {
 
   return true;
 }
-
