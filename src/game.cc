@@ -2269,7 +2269,7 @@ game_t::lose_resource(resource_type_t res) {
 
 uint16_t
 game_t::random_int() {
-  return init_map_rnd.random();
+  return rnd.random();
 }
 
 bool
