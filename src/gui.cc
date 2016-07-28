@@ -33,12 +33,12 @@ gui_get_slider_click_value(int x) {
 }
 
 void
-gui_object_t::layout() {
+GuiObject::layout() {
 }
 
-gui_object_t *gui_object_t::focused_object = NULL;
+GuiObject *GuiObject::focused_object = NULL;
 
-gui_object_t::gui_object_t() {
+GuiObject::GuiObject() {
   x = 0;
   y = 0;
   width = 0;
@@ -51,12 +51,12 @@ gui_object_t::gui_object_t() {
   focused = false;
 }
 
-gui_object_t::~gui_object_t() {
+GuiObject::~GuiObject() {
   delete_frame();
 }
 
 void
-gui_object_t::delete_frame() {
+GuiObject::delete_frame() {
   if (frame != NULL) {
     delete frame;
     frame = NULL;
@@ -64,13 +64,13 @@ gui_object_t::delete_frame() {
 }
 
 void
-gui_object_t::draw(frame_t *frame) {
+GuiObject::draw(Frame *frame) {
   if (!displayed) {
     return;
   }
 
   if (this->frame == NULL) {
-    this->frame = gfx_t::get_instance()->create_frame(width, height);
+    this->frame = Graphics::get_instance()->create_frame(width, height);
   }
 
   if (redraw) {
@@ -87,16 +87,16 @@ gui_object_t::draw(frame_t *frame) {
 }
 
 bool
-gui_object_t::handle_event(const event_t *event) {
+GuiObject::handle_event(const Event *event) {
   if (!enabled || !displayed) {
     return false;
   }
 
   int event_x = event->x;
   int event_y = event->y;
-  if (event->type == EVENT_TYPE_CLICK ||
-      event->type == EVENT_TYPE_DBL_CLICK ||
-      event->type == EVENT_TYPE_DRAG) {
+  if (event->type == Event::TypeClick ||
+      event->type == Event::TypeDoubleClick ||
+      event->type == Event::TypeDrag) {
     event_x = event->x - x;
     event_y = event->y - y;
     if (event_x < 0 || event_y < 0 || event_x > width || event_y > height) {
@@ -104,7 +104,7 @@ gui_object_t::handle_event(const event_t *event) {
     }
   }
 
-  event_t internal_event;
+  Event internal_event;
   internal_event.type = event->type;
   internal_event.x = event_x;
   internal_event.y = event_y;
@@ -123,18 +123,18 @@ gui_object_t::handle_event(const event_t *event) {
 
   bool result = false;
   switch (event->type) {
-    case EVENT_TYPE_CLICK:
-      if (event->button == EVENT_BUTTON_LEFT) {
+    case Event::TypeClick:
+      if (event->button == Event::ButtonLeft) {
         result = handle_click_left(event_x, event_y);
       }
       break;
-    case EVENT_TYPE_DRAG:
+    case Event::TypeDrag:
       result = handle_drag(event->dx, event->dy);
       break;
-    case EVENT_TYPE_DBL_CLICK:
+    case Event::TypeDoubleClick:
       result = handle_dbl_click(event->x, event->y, event->button);
       break;
-    case EVENT_KEY_PRESSED:
+    case Event::TypeKeyPressed:
       result = handle_key_pressed(event->dx, event->dy);
       break;
     default:
@@ -152,14 +152,14 @@ gui_object_t::handle_event(const event_t *event) {
 }
 
 void
-gui_object_t::move_to(int x, int y) {
+GuiObject::move_to(int x, int y) {
   this->x = x;
   this->y = y;
   set_redraw();
 }
 
 void
-gui_object_t::get_position(int *x, int *y) {
+GuiObject::get_position(int *x, int *y) {
   if (x != NULL) {
     *x = this->x;
   }
@@ -169,7 +169,7 @@ gui_object_t::get_position(int *x, int *y) {
 }
 
 void
-gui_object_t::set_size(int width, int height) {
+GuiObject::set_size(int width, int height) {
   delete_frame();
   this->width = width;
   this->height = height;
@@ -178,7 +178,7 @@ gui_object_t::set_size(int width, int height) {
 }
 
 void
-gui_object_t::get_size(int *width, int *height) {
+GuiObject::get_size(int *width, int *height) {
   if (width != NULL) {
     *width = this->width;
   }
@@ -188,18 +188,18 @@ gui_object_t::get_size(int *width, int *height) {
 }
 
 void
-gui_object_t::set_displayed(bool displayed) {
+GuiObject::set_displayed(bool displayed) {
   this->displayed = displayed;
   set_redraw();
 }
 
 void
-gui_object_t::set_enabled(bool enabled) {
+GuiObject::set_enabled(bool enabled) {
   this->enabled = enabled;
 }
 
 void
-gui_object_t::set_redraw() {
+GuiObject::set_redraw() {
   redraw = true;
   if (parent != NULL) {
     parent->set_redraw();
@@ -207,13 +207,13 @@ gui_object_t::set_redraw() {
 }
 
 bool
-gui_object_t::point_inside(int point_x, int point_y) {
+GuiObject::point_inside(int point_x, int point_y) {
   return (point_x >= x && point_y >= y &&
           point_x < x + width && point_y < y + height);
 }
 
 void
-gui_object_t::add_float(gui_object_t *obj, int x, int y) {
+GuiObject::add_float(GuiObject *obj, int x, int y) {
   obj->set_parent(this);
   floats.push_back(obj);
   obj->move_to(x, y);
@@ -221,16 +221,16 @@ gui_object_t::add_float(gui_object_t *obj, int x, int y) {
 }
 
 void
-gui_object_t::del_float(gui_object_t *obj) {
+GuiObject::del_float(GuiObject *obj) {
   obj->set_parent(NULL);
   floats.remove(obj);
   set_redraw();
 }
 
 void
-gui_object_t::play_sound(int sound) {
-  audio_t *audio = audio_t::get_instance();
-  audio_player_t *player = audio->get_sound_player();
+GuiObject::play_sound(int sound) {
+  Audio *audio = Audio::get_instance();
+  Audio::Player *player = audio->get_sound_player();
   if (player != NULL) {
     player->play_track(sound);
   }

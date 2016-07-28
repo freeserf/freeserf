@@ -49,8 +49,8 @@ load_v0_state(FILE *f) {
     return false;
   }
 
-  save_reader_binary_t reader(data, 8628);
-  game_t *game = new game_t(0);
+  SaveReaderBinary reader(data, 8628);
+  Game *game = new Game(0);
   reader >> *game;
 
   delete[] data;
@@ -59,10 +59,10 @@ load_v0_state(FILE *f) {
 }
 
 
-class save_writer_text_section_t : public save_writer_text_t {
+class SaveWriterTextSection : public SaveWriterText {
  protected:
-  typedef std::map<std::string, save_writer_text_value_t> values_t;
-  typedef std::vector<save_writer_text_section_t*> sections_t;
+  typedef std::map<std::string, SaveWriterTextValue> values_t;
+  typedef std::vector<SaveWriterTextSection*> sections_t;
 
  protected:
   std::string name;
@@ -71,18 +71,18 @@ class save_writer_text_section_t : public save_writer_text_t {
   sections_t sections;
 
  public:
-  save_writer_text_section_t(std::string name, unsigned int number) {
+  SaveWriterTextSection(std::string name, unsigned int number) {
     this->name = name;
     this->number = number;
   }
 
-  virtual save_writer_text_value_t &value(const std::string &name) {
+  virtual SaveWriterTextValue &value(const std::string &name) {
     values_t::iterator i = values.find(name);
     if (i != values.end()) {
       return i->second;
     }
 
-    values[name] = save_writer_text_value_t();
+    values[name] = SaveWriterTextValue();
     i = values.find(name);
     return i->second;
   }
@@ -103,10 +103,9 @@ class save_writer_text_section_t : public save_writer_text_t {
     return true;
   }
 
-  save_writer_text_t &add_section(const std::string &name,
-                                  unsigned int number) {
-    save_writer_text_section_t *new_section =
-                                   new save_writer_text_section_t(name, number);
+  SaveWriterText &add_section(const std::string &name, unsigned int number) {
+    SaveWriterTextSection *new_section =
+                                   new SaveWriterTextSection(name, number);
 
     sections.push_back(new_section);
 
@@ -115,24 +114,24 @@ class save_writer_text_section_t : public save_writer_text_t {
 };
 
 bool
-save_text_state(FILE *f, game_t *game) {
-  save_writer_text_section_t writer("game", 0);
+save_text_state(FILE *f, Game *game) {
+  SaveWriterTextSection writer("game", 0);
 
   writer << *game;
 
   return writer.save(f);
 }
 
-class save_reader_text_section_t : public save_reader_text_t {
+class SaveReaderTextSection : public SaveReaderText {
  protected:
   typedef std::map<std::string, std::string> values_t;
   std::string name;
   int number;
   values_t values;
-  readers_t readers_stub;
+  Readers readers_stub;
 
  public:
-  explicit save_reader_text_section_t(const std::string &header) {
+  explicit SaveReaderTextSection(const std::string &header) {
     name = header.substr(1, header.length() - 2);
     size_t pos = name.find(' ');
     if (pos != std::string::npos) {
@@ -152,25 +151,25 @@ class save_reader_text_section_t : public save_reader_text_t {
     return number;
   }
 
-  virtual save_reader_text_value_t
-  value(const std::string &name) const throw(Freeserf_Exception) {
+  virtual SaveReaderTextValue
+  value(const std::string &name) const throw(ExceptionFreeserf) {
     values_t::const_iterator it = values.find(name);
     if (it == values.end()) {
-      throw Freeserf_Exception("failed to load value");
+      throw ExceptionFreeserf("failed to load value");
     }
 
-    return save_reader_text_value_t(it->second);
+    return SaveReaderTextValue(it->second);
   }
 
-  virtual readers_t get_sections(const std::string &name) {
-    throw Freeserf_Exception("Recursive sections are not allowed");
+  virtual Readers get_sections(const std::string &name) {
+    throw ExceptionFreeserf("Recursive sections are not allowed");
     return readers_stub;
   }
 
   void add_value(std::string line) {
     size_t pos = line.find('=');
     if (pos == std::string::npos) {
-      throw Freeserf_Exception("Wrong save file format");
+      throw ExceptionFreeserf("Wrong save file format");
     }
     std::string name = line.substr(0, pos);
     std::string value = line.substr(pos + 1, line.length() - pos - 1);
@@ -178,16 +177,16 @@ class save_reader_text_section_t : public save_reader_text_t {
   }
 };
 
-typedef std::list<save_reader_text_section_t*> reader_sections_t;
+typedef std::list<SaveReaderTextSection*> reader_sections_t;
 
-class save_reader_text_file_t : public save_reader_text_t {
+class SaveReaderTextFile : public SaveReaderText {
  protected:
   reader_sections_t sections;
 
  public:
-  explicit save_reader_text_file_t(std::istream *file) {
-    save_reader_text_section_t *section =
-                                       new save_reader_text_section_t("[main]");
+  explicit SaveReaderTextFile(std::istream *file) {
+    SaveReaderTextSection *section =
+                                       new SaveReaderTextSection("[main]");
     sections.push_back(section);
     while (!file->eof()) {
       char c = file->peek();
@@ -200,7 +199,7 @@ class save_reader_text_file_t : public save_reader_text_t {
       getline(*file, line);
 
       if (c == '[') {
-        section = new save_reader_text_section_t(line);
+        section = new SaveReaderTextSection(line);
         sections.push_back(section);
       } else {
         if (line.length() != 0) {
@@ -218,8 +217,8 @@ class save_reader_text_file_t : public save_reader_text_t {
     return 0;
   }
 
-  virtual save_reader_text_value_t
-  value(const std::string &name) const throw(Freeserf_Exception) {
+  virtual SaveReaderTextValue
+  value(const std::string &name) const throw(ExceptionFreeserf) {
     reader_sections_t result;
 
     reader_sections_t::const_iterator it = sections.begin();
@@ -229,13 +228,13 @@ class save_reader_text_file_t : public save_reader_text_t {
       }
     }
 
-    throw Freeserf_Exception("Value \"" + name + "\" not found");
+    throw ExceptionFreeserf("Value \"" + name + "\" not found");
 
-    return save_reader_text_value_t("");
+    return SaveReaderTextValue("");
   }
 
-  virtual readers_t get_sections(const std::string &name) {
-    readers_t result;
+  virtual Readers get_sections(const std::string &name) {
+    Readers result;
 
     reader_sections_t::const_iterator it = sections.begin();
     for (; it != sections.end(); ++it) {
@@ -249,7 +248,7 @@ class save_reader_text_file_t : public save_reader_text_t {
 };
 
 bool
-load_state(const std::string &path, game_t *game) {
+load_state(const std::string &path, Game *game) {
   std::ifstream file;
   file.open(path.c_str());
 
@@ -259,7 +258,7 @@ load_state(const std::string &path, game_t *game) {
   }
 
   try {
-    save_reader_text_file_t reader_text(&file);
+    SaveReaderTextFile reader_text(&file);
     reader_text >> *game;
     file.close();
   } catch (...) {
@@ -268,7 +267,7 @@ load_state(const std::string &path, game_t *game) {
     std::ifstream input(path.c_str(), std::ios::binary);
     std::vector<char> buffer((std::istreambuf_iterator<char>(input)),
                              (std::istreambuf_iterator<char>()));
-    save_reader_binary_t reader(&buffer[0], buffer.size());
+    SaveReaderBinary reader(&buffer[0], buffer.size());
     try {
       reader >> *game;
     } catch (...) {
@@ -281,7 +280,7 @@ load_state(const std::string &path, game_t *game) {
 }
 
 bool
-save_state(const std::string &path, game_t *game) {
+save_state(const std::string &path, Game *game) {
   FILE *f = fopen(path.c_str(), "wb");
   if (f == NULL) return false;
 
@@ -291,52 +290,55 @@ save_state(const std::string &path, game_t *game) {
   return r;
 }
 
-save_reader_binary_t::save_reader_binary_t(const save_reader_binary_t &reader) {
+SaveReaderBinary::SaveReaderBinary(const SaveReaderBinary &reader) {
   start = reader.start;
   current = reader.current;
   end = reader.end;
 }
 
-save_reader_binary_t::save_reader_binary_t(void *data, size_t size) {
+SaveReaderBinary::SaveReaderBinary(void *data, size_t size) {
   start = current = reinterpret_cast<uint8_t*>(data);
   end = start + size;
 }
 
-save_reader_binary_t& save_reader_binary_t::operator >> (uint8_t &val) {
+SaveReaderBinary&
+SaveReaderBinary::operator >> (uint8_t &val) {
   val = *current;
   current++;
   return *this;
 }
 
-save_reader_binary_t& save_reader_binary_t::operator >> (uint16_t &val) {
+SaveReaderBinary&
+SaveReaderBinary::operator >> (uint16_t &val) {
   val = *reinterpret_cast<uint16_t*>(current);
   current += 2;
   return *this;
 }
 
-save_reader_binary_t& save_reader_binary_t::operator >> (uint32_t &val) {
+SaveReaderBinary&
+SaveReaderBinary::operator >> (uint32_t &val) {
   val = *reinterpret_cast<uint32_t*>(current);
   current += 4;
   return *this;
 }
 
-save_reader_binary_t&
-save_reader_binary_t::operator = (const save_reader_binary_t& other) {
+SaveReaderBinary&
+SaveReaderBinary::operator = (const SaveReaderBinary& other) {
   start = other.start;
   current = other.current;
   end = other.end;
   return *this;
 }
 
-save_reader_binary_t
-save_reader_binary_t::extract(size_t size) {
-  save_reader_binary_t new_reader(current, size);
+SaveReaderBinary
+SaveReaderBinary::extract(size_t size) {
+  SaveReaderBinary new_reader(current, size);
   current += size;
   return new_reader;
 }
 
 uint8_t *
-save_reader_binary_t::read(size_t size) {
+SaveReaderBinary::read(size_t size) {
   if (current + size > end) {
     return NULL;
   }
@@ -345,20 +347,20 @@ save_reader_binary_t::read(size_t size) {
   return data;
 }
 
-save_reader_text_value_t::save_reader_text_value_t(std::string value) {
+SaveReaderTextValue::SaveReaderTextValue(std::string value) {
   this->value = value;
 }
 
-save_reader_text_value_t&
-save_reader_text_value_t::operator >> (int &val) {
+SaveReaderTextValue&
+SaveReaderTextValue::operator >> (int &val) {
   int result = atoi(value.c_str());
   val = result;
 
   return *this;
 }
 
-save_reader_text_value_t&
-save_reader_text_value_t::operator >> (unsigned int &val) {
+SaveReaderTextValue&
+SaveReaderTextValue::operator >> (unsigned int &val) {
   int result = atoi(value.c_str());
   val = result;
 
@@ -366,8 +368,8 @@ save_reader_text_value_t::operator >> (unsigned int &val) {
 }
 
 #if defined(_M_AMD64) || defined(__x86_64__)
-save_reader_text_value_t&
-save_reader_text_value_t::operator >> (size_t &val) {
+SaveReaderTextValue&
+SaveReaderTextValue::operator >> (size_t &val) {
   int result = atoi(value.c_str());
   val = result;
 
@@ -375,54 +377,54 @@ save_reader_text_value_t::operator >> (size_t &val) {
 }
 #endif  // defined(_M_AMD64) || defined(__x86_64__)
 
-save_reader_text_value_t&
-save_reader_text_value_t::operator >> (dir_t &val) {
+SaveReaderTextValue&
+SaveReaderTextValue::operator >> (Direction &val) {
   int result = atoi(value.c_str());
-  val = (dir_t)result;
+  val = (Direction)result;
 
   return *this;
 }
 
-save_reader_text_value_t&
-save_reader_text_value_t::operator >> (resource_type_t &val) {
+SaveReaderTextValue&
+SaveReaderTextValue::operator >> (Resource::Type &val) {
   int result = atoi(value.c_str());
-  val = (resource_type_t)result;
+  val = (Resource::Type)result;
 
   return *this;
 }
 
-save_reader_text_value_t&
-save_reader_text_value_t::operator >> (building_type_t &val) {
+SaveReaderTextValue&
+SaveReaderTextValue::operator >> (Building::Type &val) {
   int result = atoi(value.c_str());
-  val = (building_type_t)result;
+  val = (Building::Type)result;
 
   return *this;
 }
 
-save_reader_text_value_t&
-save_reader_text_value_t::operator >> (serf_state_t &val) {
+SaveReaderTextValue&
+SaveReaderTextValue::operator >> (Serf::State &val) {
   int result = atoi(value.c_str());
-  val = (serf_state_t)result;
+  val = (Serf::State)result;
 
   return *this;
 }
 
-save_reader_text_value_t&
-save_reader_text_value_t::operator >> (uint16_t &val) {
+SaveReaderTextValue&
+SaveReaderTextValue::operator >> (uint16_t &val) {
   int result = atoi(value.c_str());
   val = (uint16_t)result;
 
   return *this;
 }
 
-save_reader_text_value_t&
-save_reader_text_value_t::operator >> (std::string &val) {
+SaveReaderTextValue&
+SaveReaderTextValue::operator >> (std::string &val) {
   val = value;
   return *this;
 }
 
-save_reader_text_value_t
-save_reader_text_value_t::operator[] (size_t pos) {
+SaveReaderTextValue
+SaveReaderTextValue::operator[] (size_t pos) {
   std::vector<std::string> parts;
   std::istringstream iss(value);
   std::string item;
@@ -431,14 +433,14 @@ save_reader_text_value_t::operator[] (size_t pos) {
   }
 
   if (pos >= parts.size()) {
-    return save_reader_text_value_t("");
+    return SaveReaderTextValue("");
   }
 
-  return save_reader_text_value_t(parts[pos]);
+  return SaveReaderTextValue(parts[pos]);
 }
 
-save_writer_text_value_t&
-save_writer_text_value_t::operator << (int val) {
+SaveWriterTextValue&
+SaveWriterTextValue::operator << (int val) {
   if (!value.empty()) {
     value += ",";
   }
@@ -450,8 +452,8 @@ save_writer_text_value_t::operator << (int val) {
   return *this;
 }
 
-save_writer_text_value_t&
-save_writer_text_value_t::operator << (unsigned int val) {
+SaveWriterTextValue&
+SaveWriterTextValue::operator << (unsigned int val) {
   if (!value.empty()) {
     value += ",";
   }
@@ -464,8 +466,8 @@ save_writer_text_value_t::operator << (unsigned int val) {
 }
 
 #if defined(_M_AMD64) || defined(__x86_64__)
-save_writer_text_value_t&
-save_writer_text_value_t::operator << (size_t val) {
+SaveWriterTextValue&
+SaveWriterTextValue::operator << (size_t val) {
   if (!value.empty()) {
     value += ",";
   }
@@ -478,8 +480,8 @@ save_writer_text_value_t::operator << (size_t val) {
 }
 #endif  // defined(_M_AMD64) || defined(__x86_64__)
 
-save_writer_text_value_t&
-save_writer_text_value_t::operator << (dir_t val) {
+SaveWriterTextValue&
+SaveWriterTextValue::operator << (Direction val) {
   if (!value.empty()) {
     value += ",";
   }
@@ -491,8 +493,8 @@ save_writer_text_value_t::operator << (dir_t val) {
   return *this;
 }
 
-save_writer_text_value_t&
-save_writer_text_value_t::operator << (resource_type_t val) {
+SaveWriterTextValue&
+SaveWriterTextValue::operator << (Resource::Type val) {
   if (!value.empty()) {
     value += ",";
   }
@@ -504,8 +506,8 @@ save_writer_text_value_t::operator << (resource_type_t val) {
   return *this;
 }
 
-save_writer_text_value_t&
-save_writer_text_value_t::operator << (const std::string &val) {
+SaveWriterTextValue&
+SaveWriterTextValue::operator << (const std::string &val) {
   if (!value.empty()) {
     value += ",";
   }

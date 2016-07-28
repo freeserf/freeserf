@@ -27,38 +27,38 @@
 #include <set>
 #include <climits>
 
-class game_t;
+class Game;
 
-class game_object_t {
+class GameObject {
  protected:
   unsigned int index;
-  game_t *game;
+  Game *game;
 
  public:
-  game_object_t(game_t *game, unsigned int index) : index(index), game(game) {}
-  virtual ~game_object_t() {}
+  GameObject(Game *game, unsigned int index) : index(index), game(game) {}
+  virtual ~GameObject() {}
 
-  game_t *get_game() const { return game; }
+  Game *get_game() const { return game; }
   unsigned int get_index() const { return index; }
 };
 
-template<class object_t>
-class collection_t {
+template<class T>
+class Collection {
  protected:
-  typedef std::map<unsigned int, object_t*> objects_t;
+  typedef std::map<unsigned int, T*> Objects;
 
-  objects_t objects;
+  Objects objects;
   unsigned int last_object_index;
   std::set<unsigned int> free_object_indexes;
-  game_t *game;
+  Game *game;
 
  public:
-  explicit collection_t(game_t *game) {
+  explicit Collection(Game *game) {
     this->game = game;
     last_object_index = 0;
   }
 
-  object_t *
+  T*
   allocate() {
     unsigned int new_index = 0;
 
@@ -74,7 +74,7 @@ class collection_t {
       last_object_index++;
     }
 
-    object_t *new_object = new object_t(game, new_index);
+    T *new_object = new T(game, new_index);
     objects[new_index] = new_object;
 
     return new_object;
@@ -85,14 +85,14 @@ class collection_t {
     return (objects.end() != objects.find(index));
   }
 
-  object_t*
+  T*
   get_or_insert(unsigned int index) {
-    object_t *object = NULL;
+    T *object = NULL;
 
     if (exists(index)) {
       object = objects[index];
     } else {
-      object = new object_t(game, index);
+      object = new T(game, index);
       objects[index] = object;
 
       std::set<unsigned int>::iterator i = free_object_indexes.find(index);
@@ -111,7 +111,7 @@ class collection_t {
     return object;
   }
 
-  object_t*
+  T*
   operator[] (unsigned int index) {
     if (!exists(index)) {
       return NULL;
@@ -119,55 +119,55 @@ class collection_t {
     return objects[index];
   }
 
-  class iterator {
+  class Iterator {
    protected:
-    typename objects_t::iterator internal_iterator;
+    typename Objects::iterator internal_iterator;
 
    public:
-    explicit iterator(typename objects_t::iterator internal_iterator) {
+    explicit Iterator(typename Objects::iterator internal_iterator) {
       this->internal_iterator = internal_iterator;
     }
 
-    iterator&
+    Iterator&
     operator++() {
       internal_iterator++;
       return (*this);
     }
 
     bool
-    operator==(const iterator& right) const {
+    operator==(const Iterator& right) const {
       return (internal_iterator == right.internal_iterator);
     }
 
     bool
-    operator!=(const iterator& right) const {
+    operator!=(const Iterator& right) const {
       return (!(*this == right));
     }
 
-    object_t*
+    T*
     operator*() const {
       return internal_iterator->second;
     }
   };
 
-  iterator
+  Iterator
   begin() {
-    return iterator(objects.begin());
+    return Iterator(objects.begin());
   }
 
-  iterator
+  Iterator
   end() {
-    return iterator(objects.end());
+    return Iterator(objects.end());
   }
 
   void
   erase(unsigned int index) {
     /* Decrement max_flag_index as much as possible. */
-    typename objects_t::iterator i = objects.find(index);
+    typename Objects::iterator i = objects.find(index);
     if (i == objects.end()) {
       return;
     }
-    object_t *object = i->second;
+    T *object = i->second;
     objects.erase(i);
     delete object;
 

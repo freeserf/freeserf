@@ -42,7 +42,7 @@
 
 #define GROUND_ANALYSIS_RADIUS  25
 
-game_t::game_t(int map_generator)
+Game::Game(int map_generator)
   : players(this)
   , flags(this)
   , inventories(this)
@@ -53,7 +53,7 @@ game_t::game_t(int map_generator)
   allocate_objects();
 }
 
-game_t::~game_t() {
+Game::~Game() {
   deinit();
 }
 
@@ -61,39 +61,39 @@ game_t::~game_t() {
    This allows the flag or building to try and request a
    serf again. */
 void
-game_t::clear_serf_request_failure() {
-  for (buildings_t::iterator i = buildings.begin(); i != buildings.end(); ++i) {
-    building_t *building = *i;
+Game::clear_serf_request_failure() {
+  for (Buildings::Iterator i = buildings.begin(); i != buildings.end(); ++i) {
+    Building *building = *i;
     building->clear_serf_request_failure();
   }
 
-  for (flags_t::iterator i = flags.begin(); i != flags.end(); ++i) {
-    flag_t *flag = *i;
+  for (Flags::Iterator i = flags.begin(); i != flags.end(); ++i) {
+    Flag *flag = *i;
     flag->serf_request_clear();
   }
 }
 
 void
-game_t::update_knight_morale() {
-  for (players_t::iterator it = players.begin(); it != players.end(); ++it) {
-    player_t *player = *it;
+Game::update_knight_morale() {
+  for (Players::Iterator it = players.begin(); it != players.end(); ++it) {
+    Player *player = *it;
     player->update_knight_morale();
   }
 }
 
-typedef struct {
-  resource_type_t resource;
+typedef struct UpdateInventoriesData {
+  Resource::Type resource;
   int *max_prio;
-  flag_t **flags;
-} update_inventories_data_t;
+  Flag **flags;
+} UpdateInventoriesData;
 
 bool
-game_t::update_inventories_cb(flag_t *flag, void *d) {
-  update_inventories_data_t *data =
-                                reinterpret_cast<update_inventories_data_t*>(d);
+Game::update_inventories_cb(Flag *flag, void *d) {
+  UpdateInventoriesData *data =
+                                reinterpret_cast<UpdateInventoriesData*>(d);
   int inv = flag->get_search_dir();
   if (data->max_prio[inv] < 255 && flag->has_building()) {
-    building_t *building = flag->get_building();
+    Building *building = flag->get_building();
 
     int bld_prio = building->get_max_priority_for_resource(data->resource, 16);
     if (bld_prio > data->max_prio[inv]) {
@@ -108,77 +108,76 @@ game_t::update_inventories_cb(flag_t *flag, void *d) {
 /* Update inventories as part of the game progression. Moves the appropriate
    resources that are needed outside of the inventory into the out queue. */
 void
-game_t::update_inventories() {
-  const resource_type_t arr_1[] = {
-    RESOURCE_PLANK,
-    RESOURCE_STONE,
-    RESOURCE_STEEL,
-    RESOURCE_COAL,
-    RESOURCE_LUMBER,
-    RESOURCE_IRONORE,
-    RESOURCE_GROUP_FOOD,
-    RESOURCE_PIG,
-    RESOURCE_FLOUR,
-    RESOURCE_WHEAT,
-    RESOURCE_GOLDBAR,
-    RESOURCE_GOLDORE,
-    RESOURCE_NONE,
+Game::update_inventories() {
+  const Resource::Type arr_1[] = {
+    Resource::TypePlank,
+    Resource::TypeStone,
+    Resource::TypeSteel,
+    Resource::TypeCoal,
+    Resource::TypeLumber,
+    Resource::TypeIronOre,
+    Resource::GroupFood,
+    Resource::TypePig,
+    Resource::TypeFlour,
+    Resource::TypeWheat,
+    Resource::TypeGoldBar,
+    Resource::TypeGoldOre,
+    Resource::TypeNone,
   };
 
-  const resource_type_t arr_2[] = {
-    RESOURCE_STONE,
-    RESOURCE_IRONORE,
-    RESOURCE_GOLDORE,
-    RESOURCE_COAL,
-    RESOURCE_STEEL,
-    RESOURCE_GOLDBAR,
-    RESOURCE_GROUP_FOOD,
-    RESOURCE_PIG,
-    RESOURCE_FLOUR,
-    RESOURCE_WHEAT,
-    RESOURCE_LUMBER,
-    RESOURCE_PLANK,
-    RESOURCE_NONE,
+  const Resource::Type arr_2[] = {
+    Resource::TypeStone,
+    Resource::TypeIronOre,
+    Resource::TypeGoldOre,
+    Resource::TypeCoal,
+    Resource::TypeSteel,
+    Resource::TypeGoldBar,
+    Resource::GroupFood,
+    Resource::TypePig,
+    Resource::TypeFlour,
+    Resource::TypeWheat,
+    Resource::TypeLumber,
+    Resource::TypePlank,
+    Resource::TypeNone,
   };
 
-  const resource_type_t arr_3[] = {
-    RESOURCE_GROUP_FOOD,
-    RESOURCE_WHEAT,
-    RESOURCE_PIG,
-    RESOURCE_FLOUR,
-    RESOURCE_GOLDBAR,
-    RESOURCE_STONE,
-    RESOURCE_PLANK,
-    RESOURCE_STEEL,
-    RESOURCE_COAL,
-    RESOURCE_LUMBER,
-    RESOURCE_GOLDORE,
-    RESOURCE_IRONORE,
-    RESOURCE_NONE,
+  const Resource::Type arr_3[] = {
+    Resource::GroupFood,
+    Resource::TypeWheat,
+    Resource::TypePig,
+    Resource::TypeFlour,
+    Resource::TypeGoldBar,
+    Resource::TypeStone,
+    Resource::TypePlank,
+    Resource::TypeSteel,
+    Resource::TypeCoal,
+    Resource::TypeLumber,
+    Resource::TypeGoldOre,
+    Resource::TypeIronOre,
+    Resource::TypeNone,
   };
 
   /* AI: TODO */
 
-  const resource_type_t *arr = NULL;
+  const Resource::Type *arr = NULL;
   switch (random_int() & 7) {
     case 0: arr = arr_2; break;
     case 1: arr = arr_3; break;
     default: arr = arr_1; break;
   }
 
-  while (arr[0] != RESOURCE_NONE) {
-    for (players_t::iterator it = players.begin(); it != players.end(); ++it) {
-      inventory_t *invs[256];
+  while (arr[0] != Resource::TypeNone) {
+    for (Players::Iterator it = players.begin(); it != players.end(); ++it) {
+      Inventory *invs[256];
       int n = 0;
-      for (inventories_t::iterator i = inventories.begin();
+      for (Inventories::Iterator i = inventories.begin();
            i != inventories.end(); ++i) {
-        inventory_t *inventory = *i;
+        Inventory *inventory = *i;
         if (inventory->get_owner() == (*it)->get_index() &&
             !inventory->is_queue_full()) {
-          inventory_mode_t res_dir = inventory->get_res_mode();
-          if (res_dir == mode_in || res_dir == mode_stop) {  // In mode,
-                                                             // stop mode
-            if (arr[0] == RESOURCE_GROUP_FOOD) {
+          Inventory::Mode res_dir = inventory->get_res_mode();
+          if (res_dir == Inventory::ModeIn || res_dir == Inventory::ModeStop) {
+            if (arr[0] == Resource::GroupFood) {
               if (inventory->has_food()) {
                 invs[n++] = inventory;
                 if (n == 256) break;
@@ -188,19 +187,19 @@ game_t::update_inventories() {
               if (n == 256) break;
             }
           } else { /* Out mode */
-            player_t *player = *it;
+            Player *player = *it;
 
             int prio = 0;
-            resource_type_t type = RESOURCE_NONE;
+            Resource::Type type = Resource::TypeNone;
             for (int i = 0; i < 26; i++) {
-              if (inventory->get_count_of((resource_type_t)i) != 0 &&
+              if (inventory->get_count_of((Resource::Type)i) != 0 &&
                   player->get_inventory_prio(i) >= prio) {
                 prio = player->get_inventory_prio(i);
-                type = (resource_type_t)i;
+                type = (Resource::Type)i;
               }
             }
 
-            if (type != RESOURCE_NONE) {
+            if (type != Resource::TypeNone) {
               inventory->add_to_queue(type, 0);
             }
           }
@@ -209,20 +208,20 @@ game_t::update_inventories() {
 
       if (n == 0) continue;
 
-      flag_search_t search(this);
+      FlagSearch search(this);
 
       int max_prio[256];
-      flag_t *flags_[256];
+      Flag *flags_[256];
 
       for (int i = 0; i < n; i++) {
         max_prio[i] = 0;
         flags_[i] = NULL;
-        flag_t *flag = flags[invs[i]->get_flag_index()];
-        flag->set_search_dir((dir_t)i);
+        Flag *flag = flags[invs[i]->get_flag_index()];
+        flag->set_search_dir((Direction)i);
         search.add_source(flag);
       }
 
-      update_inventories_data_t data;
+      UpdateInventoriesData data;
       data.resource = arr[0];
       data.max_prio = max_prio;
       data.flags = flags_;
@@ -231,14 +230,14 @@ game_t::update_inventories() {
       for (int i = 0; i < n; i++) {
         if (max_prio[i] > 0) {
           LOGV("game", " dest for inventory %i found", i);
-          resource_type_t res = (resource_type_t)arr[0];
+          Resource::Type res = (Resource::Type)arr[0];
 
-          building_t *dest_bld = flags_[i]->get_building();
+          Building *dest_bld = flags_[i]->get_building();
           bool r = dest_bld->add_requested_resource(res, false);
           assert(r);
 
           /* Put resource in out queue */
-          inventory_t *src_inv = invs[i];
+          Inventory *src_inv = invs[i];
           src_inv->add_to_queue(res, dest_bld->get_flag_index());
         }
       }
@@ -249,40 +248,40 @@ game_t::update_inventories() {
 
 /* Update flags as part of the game progression. */
 void
-game_t::update_flags() {
-  for (flags_t::iterator i = flags.begin(); i != flags.end(); ++i) {
-    flag_t *flag = *i;
+Game::update_flags() {
+  for (Flags::Iterator i = flags.begin(); i != flags.end(); ++i) {
+    Flag *flag = *i;
     flag->update();
   }
 }
 
-typedef struct {
-  inventory_t *inventory;
-  building_t *building;
+typedef struct SendSerfToFlagData {
+  Inventory *inventory;
+  Building *building;
   int serf_type;
   int dest_index;
-  resource_type_t res1;
-  resource_type_t res2;
-} send_serf_to_flag_data_t;
+  Resource::Type res1;
+  Resource::Type res2;
+} SendSerfToFlagData;
 
 bool
-game_t::send_serf_to_flag_search_cb(flag_t *flag, void *d) {
+Game::send_serf_to_flag_search_cb(Flag *flag, void *d) {
   if (!flag->has_inventory()) {
     return false;
   }
 
-  send_serf_to_flag_data_t *data =
-                       reinterpret_cast<send_serf_to_flag_data_t*>(d);
+  SendSerfToFlagData *data =
+                       reinterpret_cast<SendSerfToFlagData*>(d);
 
   /* Inventory reached */
-  building_t *building = flag->get_building();
-  inventory_t *inv = building->get_inventory();
+  Building *building = flag->get_building();
+  Inventory *inv = building->get_inventory();
 
   int type = data->serf_type;
   if (type < 0) {
     int knight_type = -1;
     for (int i = 4; i >= -type-1; i--) {
-      if (inv->have_serf((serf_type_t)(SERF_KNIGHT_0+i))) {
+      if (inv->have_serf((Serf::Type)(Serf::TypeKnight0+i))) {
         knight_type = i;
         break;
       }
@@ -290,8 +289,8 @@ game_t::send_serf_to_flag_search_cb(flag_t *flag, void *d) {
 
     if (knight_type >= 0) {
       /* Knight of appropriate type was found. */
-      serf_t *serf =
-                  inv->call_out_serf((serf_type_t)(SERF_KNIGHT_0+knight_type));
+      Serf *serf =
+              inv->call_out_serf((Serf::Type)(Serf::TypeKnight0+knight_type));
 
       data->building->knight_request_granted();
 
@@ -301,26 +300,26 @@ game_t::send_serf_to_flag_search_cb(flag_t *flag, void *d) {
       return true;
     } else if (type == -1) {
       /* See if a knight can be created here. */
-      if (inv->have_serf(SERF_GENERIC) &&
-          inv->get_count_of(RESOURCE_SWORD) > 0 &&
-          inv->get_count_of(RESOURCE_SHIELD) > 0) {
+      if (inv->have_serf(Serf::TypeGeneric) &&
+          inv->get_count_of(Resource::TypeSword) > 0 &&
+          inv->get_count_of(Resource::TypeShield) > 0) {
         data->inventory = inv;
         return true;
       }
     }
   } else {
-    if (inv->have_serf((serf_type_t)type)) {
-      if (type != SERF_GENERIC || inv->free_serf_count() > 4) {
-        serf_t *serf = inv->call_out_serf((serf_type_t)type);
+    if (inv->have_serf((Serf::Type)type)) {
+      if (type != Serf::TypeGeneric || inv->free_serf_count() > 4) {
+        Serf *serf = inv->call_out_serf((Serf::Type)type);
 
         int mode = 0;
 
-        if (type == SERF_GENERIC) {
+        if (type == Serf::TypeGeneric) {
           mode = -2;
-        } else if (type == SERF_GEOLOGIST) {
+        } else if (type == Serf::TypeGeologist) {
           mode = 6;
         } else {
-          building_t *dest_bld =
+          Building *dest_bld =
                     flag->get_game()->flags[data->dest_index]->get_building();
           dest_bld->request_serf();
           mode = -1;
@@ -332,7 +331,7 @@ game_t::send_serf_to_flag_search_cb(flag_t *flag, void *d) {
       }
     } else {
       if (data->inventory == NULL &&
-          inv->have_serf(SERF_GENERIC) &&
+          inv->have_serf(Serf::TypeGeneric) &&
           (data->res1 == -1 || inv->get_count_of(data->res1) > 0) &&
           (data->res2 == -1 || inv->get_count_of(data->res2) > 0)) {
         data->inventory = inv;
@@ -348,20 +347,20 @@ game_t::send_serf_to_flag_search_cb(flag_t *flag, void *d) {
 
 /* Dispatch serf from (nearest?) inventory to flag. */
 bool
-game_t::send_serf_to_flag(flag_t *dest, serf_type_t type, resource_type_t res1,
-                          resource_type_t res2) {
-  building_t *building = NULL;
+Game::send_serf_to_flag(Flag *dest, Serf::Type type, Resource::Type res1,
+                        Resource::Type res2) {
+  Building *building = NULL;
   if (dest->has_building()) {
     building = dest->get_building();
   }
 
   /* If type is negative, building is non-NULL. */
   if ((type < 0) && (building != NULL)) {
-    player_t *player = players[building->get_owner()];
+    Player *player = players[building->get_owner()];
     type = player->get_cycling_sert_type(type);
   }
 
-  send_serf_to_flag_data_t data;
+  SendSerfToFlagData data;
   data.inventory = NULL;
   data.building = building;
   data.serf_type = type;
@@ -369,30 +368,30 @@ game_t::send_serf_to_flag(flag_t *dest, serf_type_t type, resource_type_t res1,
   data.res1 = res1;
   data.res2 = res2;
 
-  bool r = flag_search_t::single(dest, send_serf_to_flag_search_cb, true, false,
-                                 &data);
+  bool r = FlagSearch::single(dest, send_serf_to_flag_search_cb, true, false,
+                              &data);
   if (!r) {
     return true;
   } else if (data.inventory != NULL) {
-    inventory_t *inventory = data.inventory;
-    serf_t *serf = inventory->call_out_serf(SERF_GENERIC);
+    Inventory *inventory = data.inventory;
+    Serf *serf = inventory->call_out_serf(Serf::TypeGeneric);
 
     if ((type < 0) && (building != NULL)) {
       /* Knight */
       building->knight_request_granted();
 
-      serf->set_type(SERF_KNIGHT_0);
+      serf->set_type(Serf::TypeKnight0);
       serf->go_out_from_inventory(inventory->get_index(),
                                   building->get_flag_index(), -1);
 
-      inventory->pop_resource(RESOURCE_SWORD);
-      inventory->pop_resource(RESOURCE_SHIELD);
+      inventory->pop_resource(Resource::TypeSword);
+      inventory->pop_resource(Resource::TypeShield);
     } else {
-      serf->set_type((serf_type_t)type);
+      serf->set_type((Serf::Type)type);
 
       int mode = 0;
 
-      if (type == SERF_GEOLOGIST) {
+      if (type == Serf::TypeGeologist) {
         mode = 6;
       } else {
         building->request_serf();
@@ -402,8 +401,8 @@ game_t::send_serf_to_flag(flag_t *dest, serf_type_t type, resource_type_t res1,
       serf->go_out_from_inventory(inventory->get_index(), dest->get_index(),
                                   mode);
 
-      if (res1 != RESOURCE_NONE) inventory->pop_resource(res1);
-      if (res2 != RESOURCE_NONE) inventory->pop_resource(res2);
+      if (res1 != Resource::TypeNone) inventory->pop_resource(res1);
+      if (res2 != Resource::TypeNone) inventory->pop_resource(res2);
     }
 
     return true;
@@ -414,17 +413,17 @@ game_t::send_serf_to_flag(flag_t *dest, serf_type_t type, resource_type_t res1,
 
 /* Dispatch geologist to flag. */
 bool
-game_t::send_geologist(flag_t *dest) {
-  return send_serf_to_flag(dest, SERF_GEOLOGIST, RESOURCE_HAMMER,
-                           RESOURCE_NONE);
+Game::send_geologist(Flag *dest) {
+  return send_serf_to_flag(dest, Serf::TypeGeologist, Resource::TypeHammer,
+                           Resource::TypeNone);
 }
 
 /* Update buildings as part of the game progression. */
 void
-game_t::update_buildings() {
-  buildings_t::iterator i = buildings.begin();
+Game::update_buildings() {
+  Buildings::Iterator i = buildings.begin();
   while (i != buildings.end()) {
-    building_t *building = *i;
+    Building *building = *i;
     ++i;
     building->update(tick);
   }
@@ -432,16 +431,16 @@ game_t::update_buildings() {
 
 /* Update serfs as part of the game progression. */
 void
-game_t::update_serfs() {
-  for (serfs_t::iterator i = serfs.begin(); i != serfs.end(); ++i) {
-    serf_t *serf = *i;
+Game::update_serfs() {
+  for (Serfs::Iterator i = serfs.begin(); i != serfs.end(); ++i) {
+    Serf *serf = *i;
     serf->update();
   }
 }
 
 /* Update historical player statistics for one measure. */
 void
-game_t::record_player_history(int max_level, int aspect,
+Game::record_player_history(int max_level, int aspect,
                               const int history_index[],
                               const values_t &values) {
   unsigned int total = 0;
@@ -466,7 +465,7 @@ game_t::record_player_history(int max_level, int aspect,
    considered a clear winner regarding one aspect.
    Return -1 if there is no clear winner. */
 int
-game_t::calculate_clear_winner(const values_t &values) {
+Game::calculate_clear_winner(const values_t &values) {
   int total = 0;
   for (values_t::const_iterator it = values.begin(); it != values.end(); ++it) {
     total += it->second;
@@ -483,7 +482,7 @@ game_t::calculate_clear_winner(const values_t &values) {
 
 /* Update statistics of the game. */
 void
-game_t::update_game_stats() {
+Game::update_game_stats() {
   if (static_cast<int>(game_stats_counter) > tick_diff) {
     game_stats_counter -= tick_diff;
   } else {
@@ -531,27 +530,27 @@ game_t::update_game_stats() {
     std::map<unsigned int, unsigned int> values;
 
     /* Store land area stats in history. */
-    for (players_t::iterator it = players.begin(); it != players.end(); ++it) {
+    for (Players::Iterator it = players.begin(); it != players.end(); ++it) {
       values[(*it)->get_index()] = (*it)->get_land_area();
     }
     record_player_history(update_level, 1, player_history_index, values);
     player_score_leader |= BIT(calculate_clear_winner(values));
 
     /* Store building stats in history. */
-    for (players_t::iterator it = players.begin(); it != players.end(); ++it) {
+    for (Players::Iterator it = players.begin(); it != players.end(); ++it) {
       values[(*it)->get_index()] = (*it)->get_building_score();
     }
     record_player_history(update_level, 2, player_history_index, values);
 
     /* Store military stats in history. */
-    for (players_t::iterator it = players.begin(); it != players.end(); ++it) {
+    for (Players::Iterator it = players.begin(); it != players.end(); ++it) {
       values[(*it)->get_index()] = (*it)->get_military_score();
     }
     record_player_history(update_level, 3, player_history_index, values);
     player_score_leader |= BIT(calculate_clear_winner(values)) << 4;
 
     /* Store condensed score of all aspects in history. */
-    for (players_t::iterator it = players.begin(); it != players.end(); ++it) {
+    for (Players::Iterator it = players.begin(); it != players.end(); ++it) {
       values[(*it)->get_index()] = (*it)->get_score();
     }
     record_player_history(update_level, 0, player_history_index, values);
@@ -567,7 +566,7 @@ game_t::update_game_stats() {
     int index = resource_history_index;
 
     for (int res = 0; res < 26; res++) {
-      for (players_t::iterator it = players.begin();
+      for (Players::Iterator it = players.begin();
            it != players.end(); ++it) {
         (*it)->update_stats(res);
       }
@@ -579,7 +578,7 @@ game_t::update_game_stats() {
 
 /* Update game state after tick increment. */
 void
-game_t::update() {
+Game::update() {
   /* Increment tick counters */
   const_tick += 1;
 
@@ -592,7 +591,7 @@ game_t::update() {
   map->update(tick, &init_map_rnd);
 
   /* Update players */
-  for (players_t::iterator it = players.begin(); it != players.end(); ++it) {
+  for (Players::Iterator it = players.begin(); it != players.end(); ++it) {
     (*it)->update();
   }
 
@@ -641,7 +640,7 @@ game_t::update() {
 
 /* Pause or unpause the game. */
 void
-game_t::pause() {
+Game::pause() {
   if (game_speed != 0) {
     game_speed_save = game_speed;
     game_speed = 0;
@@ -653,7 +652,7 @@ game_t::pause() {
 }
 
 void
-game_t::speed_increase() {
+Game::speed_increase() {
   if (game_speed < 40) {
     game_speed += 1;
     LOGI("game", "Game speed: %u", game_speed);
@@ -661,7 +660,7 @@ game_t::speed_increase() {
 }
 
 void
-game_t::speed_decrease() {
+Game::speed_decrease() {
   if (game_speed >= 1) {
     game_speed -= 1;
     LOGI("game", "Game speed: %u", game_speed);
@@ -669,17 +668,17 @@ game_t::speed_decrease() {
 }
 
 void
-game_t::speed_reset() {
+Game::speed_reset() {
   game_speed = DEFAULT_GAME_SPEED;
   LOGI("game", "Game speed: %u", game_speed);
 }
 
 /* Generate an estimate of the amount of resources in the ground at map pos.*/
 void
-game_t::get_resource_estimate(map_pos_t pos, int weight, int estimates[5]) {
-  if ((map->get_obj(pos) == MAP_OBJ_NONE ||
-       map->get_obj(pos) >= MAP_OBJ_TREE_0) &&
-       map->get_res_type(pos) != GROUND_DEPOSIT_NONE) {
+Game::get_resource_estimate(MapPos pos, int weight, int estimates[5]) {
+  if ((map->get_obj(pos) == Map::ObjectNone ||
+       map->get_obj(pos) >= Map::ObjectTree0) &&
+       map->get_res_type(pos) != Map::MineralsNone) {
     int value = weight * map->get_res_amount(pos);
     estimates[map->get_res_type(pos)] += value;
   }
@@ -687,7 +686,7 @@ game_t::get_resource_estimate(map_pos_t pos, int weight, int estimates[5]) {
 
 /* Prepare a ground analysis at position. */
 void
-game_t::prepare_ground_analysis(map_pos_t pos, int estimates[5]) {
+Game::prepare_ground_analysis(MapPos pos, int estimates[5]) {
   for (int i = 0; i < 5; i++) estimates[i] = 0;
 
   /* Sample the cursor position with maximum weighting. */
@@ -738,8 +737,8 @@ game_t::prepare_ground_analysis(map_pos_t pos, int estimates[5]) {
 }
 
 int
-game_t::road_segment_in_water(map_pos_t pos, dir_t dir) {
-  if (dir > DIR_DOWN) {
+Game::road_segment_in_water(MapPos pos, Direction dir) {
+  if (dir > DirectionDown) {
     pos = map->move(pos, dir);
     dir = DIR_REVERSE(dir);
   }
@@ -747,27 +746,27 @@ game_t::road_segment_in_water(map_pos_t pos, dir_t dir) {
   int water = 0;
 
   switch (dir) {
-  case DIR_RIGHT:
-    if (map->type_down(pos) <= MAP_TERRAIN_WATER_3 &&
-        map->type_up(map->move_up(pos)) <= MAP_TERRAIN_WATER_3) {
-      water = 1;
-    }
-    break;
-  case DIR_DOWN_RIGHT:
-    if (map->type_up(pos) <= MAP_TERRAIN_WATER_3 &&
-        map->type_down(pos) <= MAP_TERRAIN_WATER_3) {
-      water = 1;
-    }
-    break;
-  case DIR_DOWN:
-    if (map->type_up(pos) <= MAP_TERRAIN_WATER_3 &&
-        map->type_down(map->move_left(pos)) <= MAP_TERRAIN_WATER_3) {
-      water = 1;
-    }
-    break;
-  default:
-    NOT_REACHED();
-    break;
+    case DirectionRight:
+      if (map->type_down(pos) <= Map::TerrainWater3 &&
+          map->type_up(map->move_up(pos)) <= Map::TerrainWater3) {
+        water = 1;
+      }
+      break;
+    case DirectionDownRight:
+      if (map->type_up(pos) <= Map::TerrainWater3 &&
+          map->type_down(pos) <= Map::TerrainWater3) {
+        water = 1;
+      }
+      break;
+    case DirectionDown:
+      if (map->type_up(pos) <= Map::TerrainWater3 &&
+          map->type_down(map->move_left(pos)) <= Map::TerrainWater3) {
+        water = 1;
+      }
+      break;
+    default:
+      NOT_REACHED();
+      break;
   }
 
   return water;
@@ -779,11 +778,11 @@ game_t::road_segment_in_water(map_pos_t pos, dir_t dir) {
    This will return success even if the destination does _not_ contain
    a flag, and therefore partial paths can be validated with this function. */
 int
-game_t::can_build_road(const road_t &road, const player_t *player,
-                       map_pos_t *dest, bool *water) {
+Game::can_build_road(const Road &road, const Player *player, MapPos *dest,
+                     bool *water) {
   /* Follow along path to other flag. Test along the way
      whether the path is on ground or in water. */
-  map_pos_t pos = road.get_source();
+  MapPos pos = road.get_source();
   int test = 0;
 
   if (!map->has_owner(pos) || map->get_owner(pos) != player->get_index() ||
@@ -791,8 +790,8 @@ game_t::can_build_road(const road_t &road, const player_t *player,
     return 0;
   }
 
-  road_t::dirs_t dirs = road.get_dirs();
-  road_t::dirs_t::const_iterator it = dirs.begin();
+  Road::Dirs dirs = road.get_dirs();
+  Road::Dirs::const_iterator it = dirs.begin();
   for (; it != dirs.end(); ++it) {
     if (!map->is_road_segment_valid(pos, *it)) {
       return -1;
@@ -813,7 +812,7 @@ game_t::can_build_road(const road_t &road, const player_t *player,
     }
   }
 
-  map_pos_t d = pos;
+  MapPos d = pos;
   if (dest != NULL) *dest = d;
 
   /* Bit 0 indicates a ground path, bit 1 indicates
@@ -831,26 +830,26 @@ game_t::can_build_road(const road_t &road, const player_t *player,
 
 /* Construct a road spefified by a source and a list of directions. */
 bool
-game_t::build_road(const road_t &road, const player_t *player) {
+Game::build_road(const Road &road, const Player *player) {
   if (road.get_length() == 0) return false;
 
-  map_pos_t dest;
+  MapPos dest;
   bool water_path;
   if (!can_build_road(road, player, &dest, &water_path)) {
     return false;
   }
   if (!map->has_flag(dest)) return false;
 
-  road_t::dirs_t dirs = road.get_dirs();
-  dir_t out_dir = dirs.front();
-  dir_t in_dir = DIR_REVERSE(dirs.back());
+  Road::Dirs dirs = road.get_dirs();
+  Direction out_dir = dirs.front();
+  Direction in_dir = DIR_REVERSE(dirs.back());
 
   /* Actually place road segments */
   if (!map->place_road_segments(road)) return false;
 
   /* Connect flags */
-  flag_t *src_flag = get_flag_at_pos(road.get_source());
-  flag_t *dest_flag = get_flag_at_pos(dest);
+  Flag *src_flag = get_flag_at_pos(road.get_source());
+  Flag *dest_flag = get_flag_at_pos(dest);
 
   src_flag->link_with_flag(dest_flag, water_path, road.get_length(),
                            in_dir, out_dir);
@@ -859,29 +858,29 @@ game_t::build_road(const road_t &road, const player_t *player) {
 }
 
 void
-game_t::flag_reset_transport(flag_t *flag) {
+Game::flag_reset_transport(Flag *flag) {
   /* Clear destination for any serf with resources for this flag. */
-  for (serfs_t::iterator i = serfs.begin(); i != serfs.end(); ++i) {
-    serf_t *serf = *i;
+  for (Serfs::Iterator i = serfs.begin(); i != serfs.end(); ++i) {
+    Serf *serf = *i;
     serf->reset_transport(flag);
   }
 
   /* Flag. */
-  for (flags_t::iterator i = flags.begin(); i != flags.end(); ++i) {
+  for (Flags::Iterator i = flags.begin(); i != flags.end(); ++i) {
     flag->reset_transport(*i);
   }
 
   /* Inventories. */
-  for (inventories_t::iterator i = inventories.begin();
+  for (Inventories::Iterator i = inventories.begin();
        i != inventories.end(); ++i) {
-    inventory_t *inventory = *i;
+    Inventory *inventory = *i;
     inventory->reset_queue_for_dest(flag);
   }
 }
 
 void
-game_t::building_remove_player_refs(building_t *building) {
-  for (players_t::iterator it = players.begin(); it != players.end(); ++it) {
+Game::building_remove_player_refs(Building *building) {
+  for (Players::Iterator it = players.begin(); it != players.end(); ++it) {
     if ((*it)->temp_index == building->get_index()) {
       (*it)->temp_index = 0;
     }
@@ -889,10 +888,10 @@ game_t::building_remove_player_refs(building_t *building) {
 }
 
 bool
-game_t::path_serf_idle_to_wait_state(map_pos_t pos) {
+Game::path_serf_idle_to_wait_state(MapPos pos) {
   /* Look through serf array for the corresponding serf. */
-  for (serfs_t::iterator i = serfs.begin(); i != serfs.end(); ++i) {
-    serf_t *serf = *i;
+  for (Serfs::Iterator i = serfs.begin(); i != serfs.end(); ++i) {
+    Serf *serf = *i;
     if (serf->idle_to_wait_state(pos)) {
       return true;
     }
@@ -902,8 +901,8 @@ game_t::path_serf_idle_to_wait_state(map_pos_t pos) {
 }
 
 void
-game_t::remove_road_forwards(map_pos_t pos, dir_t dir) {
-  dir_t in_dir = DIR_NONE;
+Game::remove_road_forwards(MapPos pos, Direction dir) {
+  Direction in_dir = DirectionNone;
 
   while (true) {
     if (map->get_idle_serf(pos)) {
@@ -911,7 +910,7 @@ game_t::remove_road_forwards(map_pos_t pos, dir_t dir) {
     }
 
     if (map->get_serf_index(pos) != 0) {
-      serf_t *serf = serfs[map->get_serf_index(pos)];
+      Serf *serf = serfs[map->get_serf_index(pos)];
       if (!map->has_flag(pos)) {
         serf->set_lost_state();
       } else {
@@ -927,7 +926,7 @@ game_t::remove_road_forwards(map_pos_t pos, dir_t dir) {
     }
 
     if (map->has_flag(pos)) {
-      flag_t *flag = flags[map->get_obj_index(pos)];
+      Flag *flag = flags[map->get_obj_index(pos)];
       flag->del_path(DIR_REVERSE(in_dir));
       break;
     }
@@ -938,7 +937,7 @@ game_t::remove_road_forwards(map_pos_t pos, dir_t dir) {
 }
 
 bool
-game_t::demolish_road_(map_pos_t pos) {
+Game::demolish_road_(MapPos pos) {
   /* TODO necessary?
   game.player[0]->flags |= BIT(4);
   game.player[1]->flags |= BIT(4);
@@ -950,26 +949,26 @@ game_t::demolish_road_(map_pos_t pos) {
   }
 
   /* Find directions of path segments to be split. */
-  dir_t path_1_dir = DIR_NONE;
-  for (int d = DIR_RIGHT; d <= DIR_UP; d++) {
+  Direction path_1_dir = DirectionNone;
+  for (int d = DirectionRight; d <= DirectionUp; d++) {
     if (BIT_TEST(map->paths(pos), d)) {
-      path_1_dir = (dir_t)d;
+      path_1_dir = (Direction)d;
       break;
     }
   }
 
-  dir_t path_2_dir = DIR_NONE;
-  for (int d = path_1_dir+1; d <= DIR_UP; d++) {
+  Direction path_2_dir = DirectionNone;
+  for (int d = path_1_dir+1; d <= DirectionUp; d++) {
     if (BIT_TEST(map->paths(pos), d)) {
-      path_2_dir = (dir_t)d;
+      path_2_dir = (Direction)d;
       break;
     }
   }
 
   /* If last segment direction is UP LEFT it could
      be to a building and the real path is at UP. */
-  if (path_2_dir == DIR_UP_LEFT && BIT_TEST(map->paths(pos), DIR_UP)) {
-    path_2_dir = DIR_UP;
+  if (path_2_dir == DirectionUpLeft && BIT_TEST(map->paths(pos), DirectionUp)) {
+    path_2_dir = DirectionUp;
   }
 
   remove_road_forwards(pos, path_1_dir);
@@ -980,7 +979,7 @@ game_t::demolish_road_(map_pos_t pos) {
 
 /* Demolish road at position. */
 bool
-game_t::demolish_road(map_pos_t pos, player_t *player) {
+Game::demolish_road(MapPos pos, Player *player) {
   if (!can_demolish_road(pos, player)) return false;
 
   return demolish_road_(pos);
@@ -988,43 +987,43 @@ game_t::demolish_road(map_pos_t pos, player_t *player) {
 
 /* Build flag on existing path. Path must be split in two segments. */
 void
-game_t::build_flag_split_path(map_pos_t pos) {
+Game::build_flag_split_path(MapPos pos) {
   /* Find directions of path segments to be split. */
-  dir_t path_1_dir = DIR_NONE;
-  for (int d = DIR_RIGHT; d <= DIR_UP; d++) {
+  Direction path_1_dir = DirectionNone;
+  for (int d = DirectionRight; d <= DirectionUp; d++) {
     if (BIT_TEST(map->paths(pos), d)) {
-      path_1_dir = (dir_t)d;
+      path_1_dir = (Direction)d;
       break;
     }
   }
 
-  dir_t path_2_dir = DIR_NONE;
-  for (int d = path_1_dir+1; d <= DIR_UP; d++) {
+  Direction path_2_dir = DirectionNone;
+  for (int d = path_1_dir+1; d <= DirectionUp; d++) {
     if (BIT_TEST(map->paths(pos), d)) {
-      path_2_dir = (dir_t)d;
+      path_2_dir = (Direction)d;
       break;
     }
   }
 
   /* If last segment direction is UP LEFT it could
      be to a building and the real path is at UP. */
-  if (path_2_dir == DIR_UP_LEFT && BIT_TEST(map->paths(pos), DIR_UP)) {
-    path_2_dir = DIR_UP;
+  if (path_2_dir == DirectionUpLeft && BIT_TEST(map->paths(pos), DirectionUp)) {
+    path_2_dir = DirectionUp;
   }
 
-  serf_path_info_t path_1_data;
-  serf_path_info_t path_2_data;
+  SerfPathInfo path_1_data;
+  SerfPathInfo path_2_data;
 
-  flag_t::fill_path_serf_info(this, pos, path_1_dir, &path_1_data);
-  flag_t::fill_path_serf_info(this, pos, path_2_dir, &path_2_data);
+  Flag::fill_path_serf_info(this, pos, path_1_dir, &path_1_data);
+  Flag::fill_path_serf_info(this, pos, path_2_dir, &path_2_data);
 
-  flag_t *flag_2 = flags[path_2_data.flag_index];
-  dir_t dir_2 = path_2_data.flag_dir;
+  Flag *flag_2 = flags[path_2_data.flag_index];
+  Direction dir_2 = path_2_data.flag_dir;
 
   int select = -1;
   if (flag_2->serf_requested(dir_2)) {
-    for (serfs_t::iterator i = serfs.begin(); i != serfs.end(); ++i) {
-      serf_t *serf = *i;
+    for (Serfs::Iterator i = serfs.begin(); i != serfs.end(); ++i) {
+      Serf *serf = *i;
       if (serf->path_splited(path_1_data.flag_index, path_1_data.flag_dir,
                              path_2_data.flag_index, path_2_data.flag_dir,
                              &select)) {
@@ -1032,14 +1031,14 @@ game_t::build_flag_split_path(map_pos_t pos) {
       }
     }
 
-    serf_path_info_t *path_data = &path_1_data;
+    SerfPathInfo *path_data = &path_1_data;
     if (select == 0) path_data = &path_2_data;
 
-    flag_t *selected_flag = flags[path_data->flag_index];
+    Flag *selected_flag = flags[path_data->flag_index];
     selected_flag->cancel_serf_request(path_data->flag_dir);
   }
 
-  flag_t *flag = flags[map->get_obj_index(pos)];
+  Flag *flag = flags[map->get_obj_index(pos)];
 
   flag->restore_path_serf_info(path_1_dir, &path_1_data);
   flag->restore_path_serf_info(path_2_dir, &path_2_data);
@@ -1047,30 +1046,30 @@ game_t::build_flag_split_path(map_pos_t pos) {
 
 /* Check whether player can build flag at pos. */
 bool
-game_t::can_build_flag(map_pos_t pos, const player_t *player) {
+Game::can_build_flag(MapPos pos, const Player *player) {
   /* Check owner of land */
   if (!map->has_owner(pos) || map->get_owner(pos) != player->get_index()) {
     return false;
   }
 
   /* Check that land is clear */
-  if (map_t::map_space_from_obj[map->get_obj(pos)] != MAP_SPACE_OPEN) {
+  if (Map::map_space_from_obj[map->get_obj(pos)] != Map::SpaceOpen) {
     return false;
   }
 
   /* Check whether cursor is in water */
-  if (map->type_up(pos) <= MAP_TERRAIN_WATER_3 &&
-      map->type_down(pos) <= MAP_TERRAIN_WATER_3 &&
-      map->type_down(map->move_left(pos)) <= MAP_TERRAIN_WATER_3 &&
-      map->type_up(map->move_up_left(pos)) <= MAP_TERRAIN_WATER_3 &&
-      map->type_down(map->move_up_left(pos)) <= MAP_TERRAIN_WATER_3 &&
-      map->type_up(map->move_up(pos)) <= MAP_TERRAIN_WATER_3) {
+  if (map->type_up(pos) <= Map::TerrainWater3 &&
+      map->type_down(pos) <= Map::TerrainWater3 &&
+      map->type_down(map->move_left(pos)) <= Map::TerrainWater3 &&
+      map->type_up(map->move_up_left(pos)) <= Map::TerrainWater3 &&
+      map->type_down(map->move_up_left(pos)) <= Map::TerrainWater3 &&
+      map->type_up(map->move_up(pos)) <= Map::TerrainWater3) {
     return false;
   }
 
   /* Check that no flags are nearby */
-  for (int d = DIR_RIGHT; d <= DIR_UP; d++) {
-    if (map->get_obj(map->move(pos, (dir_t)d)) == MAP_OBJ_FLAG) {
+  for (int d = DirectionRight; d <= DirectionUp; d++) {
+    if (map->get_obj(map->move(pos, (Direction)d)) == Map::ObjectFlag) {
       return false;
     }
   }
@@ -1080,17 +1079,17 @@ game_t::can_build_flag(map_pos_t pos, const player_t *player) {
 
 /* Build flag at pos. */
 bool
-game_t::build_flag(map_pos_t pos, player_t *player) {
+Game::build_flag(MapPos pos, Player *player) {
   if (!can_build_flag(pos, player)) {
     return false;
   }
 
-  flag_t *flag = flags.allocate();
+  Flag *flag = flags.allocate();
   if (flag == NULL) return false;
 
   flag->set_owner(player->get_index());
   flag->set_position(pos);
-  map->set_object(pos, MAP_OBJ_FLAG, flag->get_index());
+  map->set_object(pos, Map::ObjectFlag, flag->get_index());
 
   if (map->paths(pos) != 0) {
     build_flag_split_path(pos);
@@ -1101,13 +1100,13 @@ game_t::build_flag(map_pos_t pos, player_t *player) {
 
 /* Check whether military buildings are allowed at pos. */
 bool
-game_t::can_build_military(map_pos_t pos) {
+Game::can_build_military(MapPos pos) {
   /* Check that no military buildings are nearby */
   for (int i = 0; i < 1+6+12; i++) {
-    map_pos_t p = map->pos_add_spirally(pos, i);
-    if (map->get_obj(p) >= MAP_OBJ_SMALL_BUILDING &&
-        map->get_obj(p) <= MAP_OBJ_CASTLE) {
-      building_t *bld = buildings[map->get_obj_index(p)];
+    MapPos p = map->pos_add_spirally(pos, i);
+    if (map->get_obj(p) >= Map::ObjectSmallBuilding &&
+        map->get_obj(p) <= Map::ObjectCastle) {
+      Building *bld = buildings[map->get_obj_index(p)];
       if (bld->is_military()) {
         return false;
       }
@@ -1120,12 +1119,12 @@ game_t::can_build_military(map_pos_t pos) {
 /* Return the height that is needed before a large building can be built.
    Returns negative if the needed height cannot be reached. */
 int
-game_t::get_leveling_height(map_pos_t pos) {
+Game::get_leveling_height(MapPos pos) {
   /* Find min and max height */
   int h_min = 31;
   int h_max = 0;
   for (int i = 0; i < 12; i++) {
-    map_pos_t p = map->pos_add_spirally(pos, 7+i);
+    MapPos p = map->pos_add_spirally(pos, 7+i);
     int h = map->get_height(p);
     if (h_min > h) h_min = h;
     if (h_max < h) h_max = h;
@@ -1133,9 +1132,9 @@ game_t::get_leveling_height(map_pos_t pos) {
 
   /* Adjust for height of adjacent unleveled buildings */
   for (int i = 0; i < 18; i++) {
-    map_pos_t p = map->pos_add_spirally(pos, 19+i);
-    if (map->get_obj(p) == MAP_OBJ_LARGE_BUILDING) {
-      building_t *bld = buildings[map->get_obj_index(p)];
+    MapPos p = map->pos_add_spirally(pos, 19+i);
+    if (map->get_obj(p) == Map::ObjectLargeBuilding) {
+      Building *bld = buildings[map->get_obj_index(p)];
       if (bld->is_leveling()) { /* Leveling in progress */
         int h = bld->get_level();
         if (h_min > h) h_min = h;
@@ -1150,7 +1149,7 @@ game_t::get_leveling_height(map_pos_t pos) {
   /* Calculate "mean" height. Height of center is added twice. */
   int h_mean = map->get_height(pos);
   for (int i = 0; i < 7; i++) {
-    map_pos_t p = map->pos_add_spirally(pos, i);
+    MapPos p = map->pos_add_spirally(pos, i);
     h_mean += map->get_height(p);
   }
   h_mean >>= 3;
@@ -1164,8 +1163,7 @@ game_t::get_leveling_height(map_pos_t pos) {
 }
 
 bool
-game_t::map_types_within(
-    map_pos_t pos, map_terrain_t low, map_terrain_t high) {
+Game::map_types_within(MapPos pos, Map::Terrain low, Map::Terrain high) {
   if ((map->type_up(pos) >= low &&
        map->type_up(pos) <= high) &&
       (map->type_down(pos) >= low &&
@@ -1186,42 +1184,42 @@ game_t::map_types_within(
 
 /* Checks whether a small building is possible at position.*/
 bool
-game_t::can_build_small(map_pos_t pos) {
-  return map_types_within(pos, MAP_TERRAIN_GRASS_0, MAP_TERRAIN_GRASS_3);
+Game::can_build_small(MapPos pos) {
+  return map_types_within(pos, Map::TerrainGrass0, Map::TerrainGrass3);
 }
 
 /* Checks whether a mine is possible at position. */
 bool
-game_t::can_build_mine(map_pos_t pos) {
-  return map_types_within(pos, MAP_TERRAIN_TUNDRA_0, MAP_TERRAIN_SNOW_0);
+Game::can_build_mine(MapPos pos) {
+  return map_types_within(pos, Map::TerrainTundra0, Map::TerrainSnow0);
 }
 
 /* Checks whether a large building is possible at position. */
 bool
-game_t::can_build_large(map_pos_t pos) {
+Game::can_build_large(MapPos pos) {
   /* Check that surroundings are passable by serfs. */
   for (int i = 0; i < 6; i++) {
-    map_pos_t p = map->pos_add_spirally(pos, 1+i);
-    map_space_t s = map_t::map_space_from_obj[map->get_obj(p)];
-    if (s >= MAP_SPACE_SEMIPASSABLE) return false;
+    MapPos p = map->pos_add_spirally(pos, 1+i);
+    Map::Space s = Map::map_space_from_obj[map->get_obj(p)];
+    if (s >= Map::SpaceSemipassable) return false;
   }
 
   /* Check that buildings in the second shell aren't large or castle. */
   for (int i = 0; i < 12; i++) {
-    map_pos_t p = map->pos_add_spirally(pos, 7+i);
-    if (map->get_obj(p) >= MAP_OBJ_LARGE_BUILDING &&
-        map->get_obj(p) <= MAP_OBJ_CASTLE) {
+    MapPos p = map->pos_add_spirally(pos, 7+i);
+    if (map->get_obj(p) >= Map::ObjectLargeBuilding &&
+        map->get_obj(p) <= Map::ObjectCastle) {
       return false;
     }
   }
 
   /* Check if center hexagon is not type grass. */
-  if (map->type_up(pos) != MAP_TERRAIN_GRASS_1 ||
-      map->type_down(pos) != MAP_TERRAIN_GRASS_1 ||
-      map->type_down(map->move_left(pos)) != MAP_TERRAIN_GRASS_1 ||
-      map->type_up(map->move_up_left(pos)) != MAP_TERRAIN_GRASS_1 ||
-      map->type_down(map->move_up_left(pos)) != MAP_TERRAIN_GRASS_1 ||
-      map->type_up(map->move_up(pos)) != MAP_TERRAIN_GRASS_1) {
+  if (map->type_up(pos) != Map::TerrainGrass1 ||
+      map->type_down(pos) != Map::TerrainGrass1 ||
+      map->type_down(map->move_left(pos)) != Map::TerrainGrass1 ||
+      map->type_up(map->move_up_left(pos)) != Map::TerrainGrass1 ||
+      map->type_down(map->move_up_left(pos)) != Map::TerrainGrass1 ||
+      map->type_up(map->move_up(pos)) != Map::TerrainGrass1) {
     return false;
   }
 
@@ -1234,25 +1232,25 @@ game_t::can_build_large(map_pos_t pos) {
 
 /* Checks whether a castle can be built by player at position. */
 bool
-game_t::can_build_castle(map_pos_t pos, const player_t *player) {
+Game::can_build_castle(MapPos pos, const Player *player) {
   if (player->has_castle()) return false;
 
   /* Check owner of land around position */
   for (int i = 0; i < 7; i++) {
-    map_pos_t p = map->pos_add_spirally(pos, i);
+    MapPos p = map->pos_add_spirally(pos, i);
     if (map->has_owner(p)) return false;
   }
 
   /* Check that land is clear at position */
-  if (map_t::map_space_from_obj[map->get_obj(pos)] != MAP_SPACE_OPEN ||
+  if (Map::map_space_from_obj[map->get_obj(pos)] != Map::SpaceOpen ||
       map->paths(pos) != 0) {
     return false;
   }
 
-  map_pos_t flag_pos = map->move_down_right(pos);
+  MapPos flag_pos = map->move_down_right(pos);
 
   /* Check that land is clear at position */
-  if (map_t::map_space_from_obj[map->get_obj(flag_pos)] != MAP_SPACE_OPEN ||
+  if (Map::map_space_from_obj[map->get_obj(flag_pos)] != Map::SpaceOpen ||
       map->paths(flag_pos) != 0) {
     return false;
   }
@@ -1271,24 +1269,24 @@ game_t::can_build_castle(map_pos_t pos, const player_t *player) {
    can be built after the existing building has been
    demolished. */
 bool
-game_t::can_player_build(map_pos_t pos, const player_t *player) {
+Game::can_player_build(MapPos pos, const Player *player) {
   if (!player->has_castle()) return false;
 
   /* Check owner of land around position */
   for (int i = 0; i < 7; i++) {
-    map_pos_t p = map->pos_add_spirally(pos, i);
+    MapPos p = map->pos_add_spirally(pos, i);
     if (!map->has_owner(p) || map->get_owner(p) != player->get_index()) {
       return false;
     }
   }
 
   /* Check whether cursor is in water */
-  if (map->type_up(pos) <= MAP_TERRAIN_WATER_3 &&
-      map->type_down(pos) <= MAP_TERRAIN_WATER_3 &&
-      map->type_down(map->move_left(pos)) <= MAP_TERRAIN_WATER_3 &&
-      map->type_up(map->move_up_left(pos)) <= MAP_TERRAIN_WATER_3 &&
-      map->type_down(map->move_up_left(pos)) <= MAP_TERRAIN_WATER_3 &&
-      map->type_up(map->move_up(pos)) <= MAP_TERRAIN_WATER_3) {
+  if (map->type_up(pos) <= Map::TerrainWater3 &&
+      map->type_down(pos) <= Map::TerrainWater3 &&
+      map->type_down(map->move_left(pos)) <= Map::TerrainWater3 &&
+      map->type_up(map->move_up_left(pos)) <= Map::TerrainWater3 &&
+      map->type_down(map->move_up_left(pos)) <= Map::TerrainWater3 &&
+      map->type_up(map->move_up(pos)) <= Map::TerrainWater3) {
     return false;
   }
 
@@ -1301,18 +1299,18 @@ game_t::can_player_build(map_pos_t pos, const player_t *player) {
 /* Checks whether a building of the specified type is possible at
    position. */
 bool
-game_t::can_build_building(map_pos_t pos, building_type_t type,
-                           const player_t *player) {
+Game::can_build_building(MapPos pos, Building::Type type,
+                         const Player *player) {
   if (!can_player_build(pos, player)) return false;
 
   /* Check that space is clear */
-  if (map_t::map_space_from_obj[map->get_obj(pos)] != MAP_SPACE_OPEN) {
+  if (Map::map_space_from_obj[map->get_obj(pos)] != Map::SpaceOpen) {
     return false;
   }
 
   /* Check that building flag is possible if it
      doesn't already exist. */
-  map_pos_t flag_pos = map->move_down_right(pos);
+  MapPos flag_pos = map->move_down_right(pos);
   if (!map->has_flag(flag_pos) &&
       !can_build_flag(flag_pos, player)) {
     return false;
@@ -1320,44 +1318,44 @@ game_t::can_build_building(map_pos_t pos, building_type_t type,
 
   /* Check if building size is possible. */
   switch (type) {
-  case BUILDING_FISHER:
-  case BUILDING_LUMBERJACK:
-  case BUILDING_BOATBUILDER:
-  case BUILDING_STONECUTTER:
-  case BUILDING_FORESTER:
-  case BUILDING_HUT:
-  case BUILDING_MILL:
-    if (!can_build_small(pos)) return false;
-    break;
-  case BUILDING_STONEMINE:
-  case BUILDING_COALMINE:
-  case BUILDING_IRONMINE:
-  case BUILDING_GOLDMINE:
-    if (!can_build_mine(pos)) return false;
-    break;
-  case BUILDING_STOCK:
-  case BUILDING_FARM:
-  case BUILDING_BUTCHER:
-  case BUILDING_PIGFARM:
-  case BUILDING_BAKER:
-  case BUILDING_SAWMILL:
-  case BUILDING_STEELSMELTER:
-  case BUILDING_TOOLMAKER:
-  case BUILDING_WEAPONSMITH:
-  case BUILDING_TOWER:
-  case BUILDING_FORTRESS:
-  case BUILDING_GOLDSMELTER:
-    if (!can_build_large(pos)) return false;
-    break;
-  default:
-    NOT_REACHED();
-    break;
+    case Building::TypeFisher:
+    case Building::TypeLumberjack:
+    case Building::TypeBoatbuilder:
+    case Building::TypeStonecutter:
+    case Building::TypeForester:
+    case Building::TypeHut:
+    case Building::TypeMill:
+      if (!can_build_small(pos)) return false;
+      break;
+    case Building::TypeStoneMine:
+    case Building::TypeCoalMine:
+    case Building::TypeIronMine:
+    case Building::TypeGoldMine:
+      if (!can_build_mine(pos)) return false;
+      break;
+    case Building::TypeStock:
+    case Building::TypeFarm:
+    case Building::TypeButcher:
+    case Building::TypePigFarm:
+    case Building::TypeBaker:
+    case Building::TypeSawmill:
+    case Building::TypeSteelSmelter:
+    case Building::TypeToolMaker:
+    case Building::TypeWeaponSmith:
+    case Building::TypeTower:
+    case Building::TypeFortress:
+    case Building::TypeGoldSmelter:
+      if (!can_build_large(pos)) return false;
+      break;
+    default:
+      NOT_REACHED();
+      break;
   }
 
   /* Check if military building is possible */
-  if ((type == BUILDING_HUT ||
-       type == BUILDING_TOWER ||
-       type == BUILDING_FORTRESS) &&
+  if ((type == Building::TypeHut ||
+       type == Building::TypeTower ||
+       type == Building::TypeFortress) &&
       !can_build_military(pos)) {
     return false;
   }
@@ -1367,23 +1365,23 @@ game_t::can_build_building(map_pos_t pos, building_type_t type,
 
 /* Build building at position. */
 bool
-game_t::build_building(map_pos_t pos, building_type_t type, player_t *player) {
+Game::build_building(MapPos pos, Building::Type type, Player *player) {
   if (!can_build_building(pos, type, player)) {
     return false;
   }
 
-  if (type == BUILDING_STOCK) {
+  if (type == Building::TypeStock) {
     /* TODO Check that more stocks are allowed to be built */
   }
 
-  building_t *bld = buildings.allocate();
+  Building *bld = buildings.allocate();
   if (bld == NULL) {
     return false;
   }
 
-  flag_t *flag = NULL;
+  Flag *flag = NULL;
   unsigned int flg_index = 0;
-  if (map->get_obj(map->move_down_right(pos)) != MAP_OBJ_FLAG) {
+  if (map->get_obj(map->move_down_right(pos)) != Map::ObjectFlag) {
     flag = flags.allocate();
     if (flag == NULL) {
       buildings.erase(bld->get_index());
@@ -1394,11 +1392,11 @@ game_t::build_building(map_pos_t pos, building_type_t type, player_t *player) {
 
   bld->set_level(get_leveling_height(pos));
   bld->set_position(pos);
-  map_obj_t map_obj = bld->start_building(type);
+  Map::Object map_obj = bld->start_building(type);
   player->building_founded(bld);
 
   bool split_path = false;
-  if (map->get_obj(map->move_down_right(pos)) != MAP_OBJ_FLAG) {
+  if (map->get_obj(map->move_down_right(pos)) != Map::ObjectFlag) {
     flag->set_owner(player->get_index());
     split_path = (map->paths(map->move_down_right(pos)) != 0);
   } else {
@@ -1416,11 +1414,11 @@ game_t::build_building(map_pos_t pos, building_type_t type, player_t *player) {
   map->clear_idle_serf(pos);
 
   map->set_object(pos, map_obj, bld->get_index());
-  map->add_path(pos, DIR_DOWN_RIGHT);
+  map->add_path(pos, DirectionDownRight);
 
-  if (map->get_obj(map->move_down_right(pos)) != MAP_OBJ_FLAG) {
-    map->set_object(map->move_down_right(pos), MAP_OBJ_FLAG, flg_index);
-    map->add_path(map->move_down_right(pos), DIR_UP_LEFT);
+  if (map->get_obj(map->move_down_right(pos)) != Map::ObjectFlag) {
+    map->set_object(map->move_down_right(pos), Map::ObjectFlag, flg_index);
+    map->add_path(map->move_down_right(pos), DirectionUpLeft);
   }
 
   if (split_path) build_flag_split_path(map->move_down_right(pos));
@@ -1430,23 +1428,23 @@ game_t::build_building(map_pos_t pos, building_type_t type, player_t *player) {
 
 /* Build castle at position. */
 bool
-game_t::build_castle(map_pos_t pos, player_t *player) {
+Game::build_castle(MapPos pos, Player *player) {
   if (!can_build_castle(pos, player)) {
     return false;
   }
 
-  inventory_t *inventory = inventories.allocate();
+  Inventory *inventory = inventories.allocate();
   if (inventory == NULL) {
     return false;
   }
 
-  building_t *castle = buildings.allocate();
+  Building *castle = buildings.allocate();
   if (castle == NULL) {
     inventories.erase(inventory->get_index());
     return false;
   }
 
-  flag_t *flag = flags.allocate();
+  Flag *flag = flags.allocate();
   if (flag == NULL) {
     buildings.erase(castle->get_index());
     inventories.erase(inventory->get_index());
@@ -1463,14 +1461,14 @@ game_t::build_castle(map_pos_t pos, player_t *player) {
   inventory->apply_supplies_preset(player->get_initial_supplies());
 
   map->add_gold_deposit(static_cast<int>(
-                                    inventory->get_count_of(RESOURCE_GOLDBAR)));
+                               inventory->get_count_of(Resource::TypeGoldBar)));
   map->add_gold_deposit(static_cast<int>(
-                                    inventory->get_count_of(RESOURCE_GOLDORE)));
+                               inventory->get_count_of(Resource::TypeGoldOre)));
 
   castle->set_position(pos);
   flag->set_position(map->move_down_right(pos));
   castle->set_owner(player->get_index());
-  castle->start_building(BUILDING_CASTLE);
+  castle->start_building(Building::TypeCastle);
 
   flag->set_owner(player->get_index());
   flag->set_accepts_serfs(true);
@@ -1479,17 +1477,18 @@ game_t::build_castle(map_pos_t pos, player_t *player) {
   castle->link_flag(flag->get_index());
   flag->link_building(castle);
 
-  map->set_object(pos, MAP_OBJ_CASTLE, castle->get_index());
-  map->add_path(pos, DIR_DOWN_RIGHT);
+  map->set_object(pos, Map::ObjectCastle, castle->get_index());
+  map->add_path(pos, DirectionDownRight);
 
-  map->set_object(map->move_down_right(pos), MAP_OBJ_FLAG, flag->get_index());
-  map->add_path(map->move_down_right(pos), DIR_UP_LEFT);
+  map->set_object(map->move_down_right(pos), Map::ObjectFlag,
+                  flag->get_index());
+  map->add_path(map->move_down_right(pos), DirectionUpLeft);
 
   /* Level land in hexagon below castle */
   int h = get_leveling_height(pos);
   map->set_height(pos, h);
-  for (int d = DIR_RIGHT; d <= DIR_UP; d++) {
-    map->set_height(map->move(pos, (dir_t)d), h);
+  for (int d = DirectionRight; d <= DirectionUp; d++) {
+    map->set_height(map->move(pos, (Direction)d), h);
   }
 
   update_land_ownership(pos);
@@ -1502,8 +1501,8 @@ game_t::build_castle(map_pos_t pos, player_t *player) {
 }
 
 void
-game_t::flag_remove_player_refs(flag_t *flag) {
-  for (players_t::iterator it = players.begin(); it != players.end(); ++it) {
+Game::flag_remove_player_refs(Flag *flag) {
+  for (Players::Iterator it = players.begin(); it != players.end(); ++it) {
     if ((*it)->temp_index == flag->get_index()) {
       (*it)->temp_index = 0;
     }
@@ -1512,7 +1511,7 @@ game_t::flag_remove_player_refs(flag_t *flag) {
 
 /* Check whether road can be demolished. */
 bool
-game_t::can_demolish_road(map_pos_t pos, const player_t *player) {
+Game::can_demolish_road(MapPos pos, const Player *player) {
   if (!map->has_owner(pos) || map->get_owner(pos) != player->get_index()) {
     return false;
   }
@@ -1528,18 +1527,18 @@ game_t::can_demolish_road(map_pos_t pos, const player_t *player) {
 
 /* Check whether flag can be demolished. */
 bool
-game_t::can_demolish_flag(map_pos_t pos, const player_t *player) {
-  if (map->get_obj(pos) != MAP_OBJ_FLAG) return false;
+Game::can_demolish_flag(MapPos pos, const Player *player) {
+  if (map->get_obj(pos) != Map::ObjectFlag) return false;
 
-  if (BIT_TEST(map->paths(pos), DIR_UP_LEFT) &&
-      map->get_obj(map->move_up_left(pos)) >= MAP_OBJ_SMALL_BUILDING &&
-      map->get_obj(map->move_up_left(pos)) <= MAP_OBJ_CASTLE) {
+  if (BIT_TEST(map->paths(pos), DirectionUpLeft) &&
+      map->get_obj(map->move_up_left(pos)) >= Map::ObjectSmallBuilding &&
+      map->get_obj(map->move_up_left(pos)) <= Map::ObjectCastle) {
     return false;
   }
 
   if (map->paths(pos) == 0) return true;
 
-  flag_t *flag = flags[map->get_obj_index(pos)];
+  Flag *flag = flags[map->get_obj_index(pos)];
 
   if (flag->get_owner() != player->get_index()) return false;
 
@@ -1547,14 +1546,14 @@ game_t::can_demolish_flag(map_pos_t pos, const player_t *player) {
 }
 
 bool
-game_t::demolish_flag_(map_pos_t pos) {
+Game::demolish_flag_(MapPos pos) {
   /* Handle any serf at pos. */
   if (map->get_serf_index(pos) != 0) {
-    serf_t *serf = serfs[map->get_serf_index(pos)];
+    Serf *serf = serfs[map->get_serf_index(pos)];
     serf->flag_deleted(pos);
   }
 
-  flag_t *flag = flags[map->get_obj_index(pos)];
+  Flag *flag = flags[map->get_obj_index(pos)];
   assert(!flag->has_building());
 
   flag_remove_player_refs(flag);
@@ -1563,12 +1562,12 @@ game_t::demolish_flag_(map_pos_t pos) {
   flag->merge_paths(pos);
 
   /* Update serfs with reference to this flag. */
-  for (serfs_t::iterator i = serfs.begin(); i != serfs.end(); ++i) {
-    serf_t *serf = *i;
+  for (Serfs::Iterator i = serfs.begin(); i != serfs.end(); ++i) {
+    Serf *serf = *i;
     serf->path_merged(flag);
   }
 
-  map->set_object(pos, MAP_OBJ_NONE, 0);
+  map->set_object(pos, Map::ObjectNone, 0);
 
   /* Remove resources from flag. */
   flag->remove_all_resources();
@@ -1580,39 +1579,39 @@ game_t::demolish_flag_(map_pos_t pos) {
 
 /* Demolish flag at pos. */
 bool
-game_t::demolish_flag(map_pos_t pos, player_t *player) {
+Game::demolish_flag(MapPos pos, Player *player) {
   if (!can_demolish_flag(pos, player)) return false;
 
   return demolish_flag_(pos);
 }
 
 bool
-game_t::demolish_building_(map_pos_t pos) {
-  building_t *building = buildings[map->get_obj_index(pos)];
+Game::demolish_building_(MapPos pos) {
+  Building *building = buildings[map->get_obj_index(pos)];
 
   if (building->is_burning()) return false;
 
   building_remove_player_refs(building);
 
-  player_t *player = players[building->get_owner()];
+  Player *player = players[building->get_owner()];
 
   building->burnup();
 
   /* Remove path to building. */
-  map->del_path(pos, DIR_DOWN_RIGHT);
-  map->del_path(map->move_down_right(pos), DIR_UP_LEFT);
+  map->del_path(pos, DirectionDownRight);
+  map->del_path(map->move_down_right(pos), DirectionUpLeft);
 
   /* Disconnect flag. */
-  flag_t *flag = flags[building->get_flag_index()];
+  Flag *flag = flags[building->get_flag_index()];
   flag->unlink_building();
   flag_reset_transport(flag);
 
   /* Remove lost gold stock from total count. */
   if (building->is_done() &&
-      (building->get_type() == BUILDING_HUT ||
-       building->get_type() == BUILDING_TOWER ||
-       building->get_type() == BUILDING_FORTRESS ||
-       building->get_type() == BUILDING_GOLDSMELTER)) {
+      (building->get_type() == Building::TypeHut ||
+       building->get_type() == Building::TypeTower ||
+       building->get_type() == Building::TypeFortress ||
+       building->get_type() == Building::TypeGoldSmelter)) {
     int gold_stock = building->get_res_count_in_stock(1);
     map->add_gold_deposit(-gold_stock);
   }
@@ -1625,27 +1624,27 @@ game_t::demolish_building_(map_pos_t pos) {
   }
 
   if (building->is_done() &&
-      (building->get_type() == BUILDING_CASTLE ||
-       building->get_type() == BUILDING_STOCK)) {
+      (building->get_type() == Building::TypeCastle ||
+       building->get_type() == Building::TypeStock)) {
     /* Cancel resources in the out queue and remove gold
        from map total. */
     if (building->is_active()) {
-      inventory_t *inventory = building->get_inventory();
+      Inventory *inventory = building->get_inventory();
 
       inventory->lose_queue();
 
       map->add_gold_deposit(-static_cast< int >(
-                           inventory->get_count_of(RESOURCE_GOLDBAR)));
+                           inventory->get_count_of(Resource::TypeGoldBar)));
       map->add_gold_deposit(-static_cast< int >(
-                           inventory->get_count_of(RESOURCE_GOLDORE)));
+                           inventory->get_count_of(Resource::TypeGoldOre)));
 
       inventories.erase(inventory->get_index());
     }
 
     /* Let some serfs escape while the building is burning. */
     int escaping_serfs = 0;
-    for (serfs_t::iterator i = serfs.begin(); i != serfs.end(); ++i) {
-      serf_t *serf = *i;
+    for (Serfs::Iterator i = serfs.begin(); i != serfs.end(); ++i) {
+      Serf *serf = *i;
       if (serf->building_deleted(building->get_position(),
                                  escaping_serfs < 12)) {
         escaping_serfs++;
@@ -1670,11 +1669,11 @@ game_t::demolish_building_(map_pos_t pos) {
     building->serf_gone();
 
     if (building->is_done() &&
-        building->get_type() == BUILDING_CASTLE) {
+        building->get_type() == Building::TypeCastle) {
       building->set_burning_counter(8191);
 
-      for (serfs_t::iterator i = serfs.begin(); i != serfs.end(); ++i) {
-        serf_t *serf = *i;
+      for (Serfs::Iterator i = serfs.begin(); i != serfs.end(); ++i) {
+        Serf *serf = *i;
         serf->castle_deleted(building->get_position(), true);
       }
     }
@@ -1682,24 +1681,24 @@ game_t::demolish_building_(map_pos_t pos) {
     if (building->is_done() &&
         building->is_military()) {
       while (serf_index != 0) {
-        serf_t *serf = serfs[serf_index];
+        Serf *serf = serfs[serf_index];
         serf_index = serf->get_next();
 
         serf->castle_deleted(building->get_position(), false);
       }
     } else {
-      serf_t *serf = serfs[serf_index];
-      if (serf->get_type() == SERF_TRANSPORTER_INVENTORY) {
-        serf->set_type(SERF_TRANSPORTER);
+      Serf *serf = serfs[serf_index];
+      if (serf->get_type() == Serf::TypeTransporterInventory) {
+        serf->set_type(Serf::TypeTransporter);
       }
 
       serf->castle_deleted(building->get_position(), false);
     }
   }
 
-  map_pos_t flag_pos = map->move_down_right(pos);
+  MapPos flag_pos = map->move_down_right(pos);
   if (map->paths(flag_pos) == 0 &&
-      map->get_obj(flag_pos) == MAP_OBJ_FLAG) {
+      map->get_obj(flag_pos) == Map::ObjectFlag) {
     demolish_flag(flag_pos, player);
   }
 
@@ -1708,8 +1707,8 @@ game_t::demolish_building_(map_pos_t pos) {
 
 /* Demolish building at pos. */
 bool
-game_t::demolish_building(map_pos_t pos, player_t *player) {
-  building_t *building = buildings[map->get_obj_index(pos)];
+Game::demolish_building(MapPos pos, Player *player) {
+  Building *building = buildings[map->get_obj_index(pos)];
 
   if (building->get_owner() != player->get_index()) return false;
   if (building->is_burning()) return false;
@@ -1719,7 +1718,7 @@ game_t::demolish_building(map_pos_t pos, player_t *player) {
 
 /* Calculate the flag state of military buildings (distance to enemy). */
 void
-game_t::calculate_military_flag_state(building_t *building) {
+Game::calculate_military_flag_state(Building *building) {
   const int border_check_offsets[] = {
     31,  32,  33,  34,  35,  36,  37,  38,  39,  40,  41,  42,
     100, 101, 102, 103, 104, 105, 106, 107, 108,
@@ -1741,7 +1740,7 @@ game_t::calculate_military_flag_state(building_t *building) {
   for (f = 3, k = 0; f > 0; f--) {
     int offset;
     while ((offset = border_check_offsets[k++]) >= 0) {
-      map_pos_t check_pos = map->pos_add_spirally(building->get_position(),
+      MapPos check_pos = map->pos_add_spirally(building->get_position(),
                                                   offset);
       if (map->has_owner(check_pos) &&
           map->get_owner(check_pos) != building->get_owner()) {
@@ -1756,10 +1755,10 @@ break_loops:
 
 /* Map pos is lost to the owner, demolish everything. */
 void
-game_t::surrender_land(map_pos_t pos) {
+Game::surrender_land(MapPos pos) {
   /* Remove building. */
-  if (map->get_obj(pos) >= MAP_OBJ_SMALL_BUILDING &&
-      map->get_obj(pos) <= MAP_OBJ_CASTLE) {
+  if (map->get_obj(pos) >= Map::ObjectSmallBuilding &&
+      map->get_obj(pos) <= Map::ObjectCastle) {
     demolish_building_(pos);
   }
 
@@ -1770,11 +1769,11 @@ game_t::surrender_land(map_pos_t pos) {
   int remove_roads = map->has_flag(pos);
 
   /* Remove roads and building around pos. */
-  for (int d = DIR_RIGHT; d <= DIR_UP; d++) {
-    map_pos_t p = map->move(pos, (dir_t)d);
+  for (int d = DirectionRight; d <= DirectionUp; d++) {
+    MapPos p = map->move(pos, (Direction)d);
 
-    if (map->get_obj(p) >= MAP_OBJ_SMALL_BUILDING &&
-        map->get_obj(p) <= MAP_OBJ_CASTLE) {
+    if (map->get_obj(p) >= Map::ObjectSmallBuilding &&
+        map->get_obj(p) <= Map::ObjectCastle) {
       demolish_building_(p);
     }
 
@@ -1785,16 +1784,16 @@ game_t::surrender_land(map_pos_t pos) {
   }
 
   /* Remove flag. */
-  if (map->get_obj(pos) == MAP_OBJ_FLAG) {
+  if (map->get_obj(pos) == Map::ObjectFlag) {
     demolish_flag_(pos);
   }
 }
 
 /* Initialize land ownership for whole map. */
 void
-game_t::init_land_ownership() {
-  for (buildings_t::iterator i = buildings.begin(); i != buildings.end(); ++i) {
-    building_t *building = *i;
+Game::init_land_ownership() {
+  for (Buildings::Iterator i = buildings.begin(); i != buildings.end(); ++i) {
+    Building *building = *i;
     if (building->is_military()) {
       update_land_ownership(building->get_position());
     }
@@ -1803,7 +1802,7 @@ game_t::init_land_ownership() {
 
 /* Update land ownership around map position. */
 void
-game_t::update_land_ownership(map_pos_t init_pos) {
+Game::update_land_ownership(MapPos init_pos) {
   /* Currently the below algorithm will only work when
      both influence_radius and calculate_radius are 8. */
   const int influence_radius = 8;
@@ -1850,26 +1849,25 @@ game_t::update_land_ownership(map_pos_t init_pos) {
        i <= influence_radius+calculate_radius; i++) {
     for (int j = -(influence_radius+calculate_radius);
          j <= influence_radius+calculate_radius; j++) {
-      map_pos_t pos = map->pos_add(init_pos, map->pos(j & map->get_col_mask(),
+      MapPos pos = map->pos_add(init_pos, map->pos(j & map->get_col_mask(),
                                                       i & map->get_row_mask()));
 
-      if (map->get_obj(pos) >= MAP_OBJ_SMALL_BUILDING &&
-          map->get_obj(pos) <= MAP_OBJ_CASTLE &&
-          BIT_TEST(map->paths(pos), DIR_DOWN_RIGHT)) {  // TODO(_): Why wouldn't
-                                                        //          this be set?
-        building_t *building = buildings[map->get_obj_index(pos)];
+      if (map->get_obj(pos) >= Map::ObjectSmallBuilding &&
+          map->get_obj(pos) <= Map::ObjectCastle &&
+          BIT_TEST(map->paths(pos),
+                   DirectionDownRight)) {  // TODO(_): Why wouldn't this be set?
+        Building *building = buildings[map->get_obj_index(pos)];
         int mil_type = -1;
 
-        if (building->get_type() == BUILDING_CASTLE) {
+        if (building->get_type() == Building::TypeCastle) {
           /* Castle has military influence even when not done. */
           mil_type = 2;
-        } else if (building->is_done() &&
-                   building->is_active()) {
+        } else if (building->is_done() && building->is_active()) {
           switch (building->get_type()) {
-          case BUILDING_HUT: mil_type = 0; break;
-          case BUILDING_TOWER: mil_type = 1; break;
-          case BUILDING_FORTRESS: mil_type = 2; break;
-          default: break;
+            case Building::TypeHut: mil_type = 0; break;
+            case Building::TypeTower: mil_type = 1; break;
+            case Building::TypeFortress: mil_type = 2; break;
+            default: break;
           }
         }
 
@@ -1904,7 +1902,7 @@ game_t::update_land_ownership(map_pos_t init_pos) {
     for (int j = -calculate_radius; j <= calculate_radius; j++) {
       int max_val = 0;
       int player = -1;
-      for (players_t::iterator it = players.begin();
+      for (Players::Iterator it = players.begin();
            it != players.end(); ++it) {
         int *arr = temp_arr +
           (*it)->get_index()*calculate_diameter*calculate_diameter +
@@ -1915,7 +1913,7 @@ game_t::update_land_ownership(map_pos_t init_pos) {
         }
       }
 
-      map_pos_t pos = map->pos_add(init_pos, map->pos(j & map->get_col_mask(),
+      MapPos pos = map->pos_add(init_pos, map->pos(j & map->get_col_mask(),
                                                       i & map->get_row_mask()));
       int old_player = -1;
       if (map->has_owner(pos)) old_player = map->get_owner(pos);
@@ -1941,13 +1939,13 @@ game_t::update_land_ownership(map_pos_t init_pos) {
   /* Update military building flag state. */
   for (int i = -25; i <= 25; i++) {
     for (int j = -25; j <= 25; j++) {
-      map_pos_t pos = map->pos_add(init_pos, map->pos(i & map->get_col_mask(),
+      MapPos pos = map->pos_add(init_pos, map->pos(i & map->get_col_mask(),
                                                       j & map->get_row_mask()));
 
-      if (map->get_obj(pos) >= MAP_OBJ_SMALL_BUILDING &&
-          map->get_obj(pos) <= MAP_OBJ_CASTLE &&
-          BIT_TEST(map->paths(pos), DIR_DOWN_RIGHT)) {
-        building_t *building = buildings[map->get_obj_index(pos)];
+      if (map->get_obj(pos) >= Map::ObjectSmallBuilding &&
+          map->get_obj(pos) <= Map::ObjectCastle &&
+          BIT_TEST(map->paths(pos), DirectionDownRight)) {
+        Building *building = buildings[map->get_obj_index(pos)];
         if (building->is_done() && building->is_military()) {
           calculate_military_flag_state(building);
         }
@@ -1957,18 +1955,18 @@ game_t::update_land_ownership(map_pos_t init_pos) {
 }
 
 void
-game_t::demolish_flag_and_roads(map_pos_t pos) {
+Game::demolish_flag_and_roads(MapPos pos) {
   if (map->has_flag(pos)) {
     /* Remove roads around pos. */
-    for (int d = DIR_RIGHT; d <= DIR_UP; d++) {
-      map_pos_t p = map->move(pos, (dir_t)d);
+    for (int d = DirectionRight; d <= DirectionUp; d++) {
+      MapPos p = map->move(pos, (Direction)d);
 
       if (map->paths(p) & BIT(DIR_REVERSE(d))) {
         demolish_road_(p);
       }
     }
 
-    if (map->get_obj(pos) == MAP_OBJ_FLAG) {
+    if (map->get_obj(pos) == Map::ObjectFlag) {
       demolish_flag_(pos);
     }
   } else if (map->paths(pos) != 0) {
@@ -1979,23 +1977,23 @@ game_t::demolish_flag_and_roads(map_pos_t pos) {
 /* The given building has been defeated and is being
    occupied by player. */
 void
-game_t::occupy_enemy_building(building_t *building, int player_num) {
+Game::occupy_enemy_building(Building *building, int player_num) {
   /* Take the building. */
-  player_t *player = players[player_num];
+  Player *player = players[player_num];
 
   player->building_captured(building);
 
-  if (building->get_type() == BUILDING_CASTLE) {
+  if (building->get_type() == Building::TypeCastle) {
     demolish_building_(building->get_position());
   } else {
-    flag_t *flag = flags[building->get_flag_index()];
+    Flag *flag = flags[building->get_flag_index()];
     flag_reset_transport(flag);
 
     /* Demolish nearby buildings. */
     for (int i = 0; i < 12; i++) {
-      map_pos_t pos = map->pos_add_spirally(building->get_position(), 7+i);
-      if (map->get_obj(pos) >= MAP_OBJ_SMALL_BUILDING &&
-          map->get_obj(pos) <= MAP_OBJ_CASTLE) {
+      MapPos pos = map->pos_add_spirally(building->get_position(), 7+i);
+      if (map->get_obj(pos) >= Map::ObjectSmallBuilding &&
+          map->get_obj(pos) <= Map::ObjectCastle) {
         demolish_building_(pos);
       }
     }
@@ -2004,8 +2002,8 @@ game_t::occupy_enemy_building(building_t *building, int player_num) {
        except the flag associated with the building. */
     map->set_owner(building->get_position(), player_num);
 
-    for (int d = DIR_RIGHT; d <= DIR_UP; d++) {
-      map_pos_t pos = map->move(building->get_position(), (dir_t)d);
+    for (int d = DirectionRight; d <= DirectionUp; d++) {
+      MapPos pos = map->move(building->get_position(), (Direction)d);
       map->set_owner(pos, player_num);
       if (pos != flag->get_position()) {
         demolish_flag_and_roads(pos);
@@ -2019,9 +2017,9 @@ game_t::occupy_enemy_building(building_t *building, int player_num) {
     flag->reset_destination_of_stolen_resources();
 
     /* Remove paths from flag. */
-    for (int d = DIR_RIGHT; d <= DIR_UP; d++) {
-      if (flag->has_path((dir_t)d)) {
-        demolish_road_(map->move(flag->get_position(), (dir_t)d));
+    for (int d = DirectionRight; d <= DirectionUp; d++) {
+      if (flag->has_path((Direction)d)) {
+        demolish_road_(map->move(flag->get_position(), (Direction)d));
       }
     }
 
@@ -2031,15 +2029,15 @@ game_t::occupy_enemy_building(building_t *building, int player_num) {
 
 /* mode: 0: IN, 1: STOP, 2: OUT */
 void
-game_t::set_inventory_resource_mode(inventory_t *inventory, int mode) {
-  flag_t *flag = flags[inventory->get_flag_index()];
+Game::set_inventory_resource_mode(Inventory *inventory, int mode) {
+  Flag *flag = flags[inventory->get_flag_index()];
 
   if (mode == 0) {
-    inventory->set_res_mode(mode_in);
+    inventory->set_res_mode(Inventory::ModeIn);
   } else if (mode == 1) {
-    inventory->set_res_mode(mode_stop);
+    inventory->set_res_mode(Inventory::ModeStop);
   } else {
-    inventory->set_res_mode(mode_out);
+    inventory->set_res_mode(Inventory::ModeOut);
   }
 
   if (mode > 0) {
@@ -2048,8 +2046,8 @@ game_t::set_inventory_resource_mode(inventory_t *inventory, int mode) {
     /* Clear destination of serfs with resources destined
        for this inventory. */
     int dest = flag->get_index();
-    for (serfs_t::iterator i = serfs.begin(); i != serfs.end(); ++i) {
-      serf_t *serf = *i;
+    for (Serfs::Iterator i = serfs.begin(); i != serfs.end(); ++i) {
+      Serf *serf = *i;
       serf->clear_destination2(dest);
     }
   } else {
@@ -2059,15 +2057,15 @@ game_t::set_inventory_resource_mode(inventory_t *inventory, int mode) {
 
 /* mode: 0: IN, 1: STOP, 2: OUT */
 void
-game_t::set_inventory_serf_mode(inventory_t *inventory, int mode) {
-  flag_t *flag = flags[inventory->get_flag_index()];
+Game::set_inventory_serf_mode(Inventory *inventory, int mode) {
+  Flag *flag = flags[inventory->get_flag_index()];
 
   if (mode == 0) {
-    inventory->set_serf_mode(mode_in);
+    inventory->set_serf_mode(Inventory::ModeIn);
   } else if (mode == 1) {
-    inventory->set_serf_mode(mode_stop);
+    inventory->set_serf_mode(Inventory::ModeStop);
   } else {
-    inventory->set_serf_mode(mode_out);
+    inventory->set_serf_mode(Inventory::ModeOut);
   }
 
   if (mode > 0) {
@@ -2075,8 +2073,8 @@ game_t::set_inventory_serf_mode(inventory_t *inventory, int mode) {
 
     /* Clear destination of serfs destined for this inventory. */
     int dest = flag->get_index();
-    for (serfs_t::iterator i = serfs.begin(); i != serfs.end(); ++i) {
-      serf_t *serf = *i;
+    for (Serfs::Iterator i = serfs.begin(); i != serfs.end(); ++i) {
+      Serf *serf = *i;
       serf->clear_destination(dest);
     }
   } else {
@@ -2087,10 +2085,10 @@ game_t::set_inventory_serf_mode(inventory_t *inventory, int mode) {
 /* Add new player to the game. Returns the player number
    or negative on error. */
 unsigned int
-game_t::add_player(size_t face, unsigned int color, size_t supplies,
+Game::add_player(size_t face, unsigned int color, size_t supplies,
                    size_t reproduction, size_t intelligence) {
   /* Allocate object */
-  player_t *player = players.allocate();
+  Player *player = players.allocate();
   if (player == NULL) abort();
 
   player->init(player->get_index(), face, color, supplies, reproduction,
@@ -2103,7 +2101,7 @@ game_t::add_player(size_t face, unsigned int color, size_t supplies,
 }
 
 void
-game_t::init() {
+Game::init() {
   /* Initialize global lookup tables */
   game_speed = DEFAULT_GAME_SPEED;
 
@@ -2130,45 +2128,45 @@ game_t::init() {
 
 /* Initialize spiral_pos_pattern from spiral_pattern. */
 void
-game_t::init_map(int size) {
+Game::init_map(int size) {
   if (map != NULL) {
     delete map;
     map = NULL;
   }
 
-  map = new map_t();
+  map = new Map();
   map->init(size);
 }
 
 void
-game_t::init_map_data(const MapGenerator& generator) {
+Game::init_map_data(const MapGenerator& generator) {
   this->map->init_tiles(generator);
 }
 
 void
-game_t::deinit() {
+Game::deinit() {
   while (serfs.size()) {
-    serfs_t::iterator it = serfs.begin();
+    Serfs::Iterator it = serfs.begin();
     serfs.erase((*it)->get_index());
   }
 
   while (buildings.size()) {
-    buildings_t::iterator it = buildings.begin();
+    Buildings::Iterator it = buildings.begin();
     buildings.erase((*it)->get_index());
   }
 
   while (inventories.size()) {
-    inventories_t::iterator it = inventories.begin();
+    Inventories::Iterator it = inventories.begin();
     inventories.erase((*it)->get_index());
   }
 
   while (flags.size()) {
-    flags_t::iterator it = flags.begin();
+    Flags::Iterator it = flags.begin();
     flags.erase((*it)->get_index());
   }
 
   while (players.size()) {
-    players_t::iterator it = players.begin();
+    Players::Iterator it = players.begin();
     players.erase((*it)->get_index());
   }
 
@@ -2179,7 +2177,7 @@ game_t::deinit() {
 }
 
 void
-game_t::allocate_objects() {
+Game::allocate_objects() {
   /* Create NULL-serf */
   serfs.allocate();
 
@@ -2191,14 +2189,14 @@ game_t::allocate_objects() {
 }
 
 bool
-game_t::load_mission_map(int level) {
+Game::load_mission_map(int level) {
   const unsigned int default_player_colors[] = {
     64, 72, 68, 76
   };
 
   deinit();
 
-  mission_t *mission = mission_t::get_mission(level);
+  Mission *mission = Mission::get_mission(level);
 
   init_map_rnd = mission->rnd;
 
@@ -2227,7 +2225,7 @@ game_t::load_mission_map(int level) {
 
     if (mission->player[i].castle.col > -1 &&
         mission->player[i].castle.row > -1) {
-      map_pos_t pos = map->pos(mission->player[i].castle.col,
+      MapPos pos = map->pos(mission->player[i].castle.col,
                                mission->player[i].castle.row);
       build_castle(pos, players[n]);
     }
@@ -2237,7 +2235,7 @@ game_t::load_mission_map(int level) {
 }
 
 bool
-game_t::load_random_map(int size, const random_state_t &rnd) {
+Game::load_random_map(int size, const Random &rnd) {
   if (size < 3 || size > 10) return false;
 
   init_map(size);
@@ -2254,7 +2252,7 @@ game_t::load_random_map(int size, const random_state_t &rnd) {
 }
 
 bool
-game_t::load_save_game(const std::string &path) {
+Game::load_save_game(const std::string &path) {
   if (!load_state(path, this)) {
     return false;
   }
@@ -2267,34 +2265,33 @@ game_t::load_save_game(const std::string &path) {
 /* Cancel a resource being transported to destination. This
    ensures that the destination can request a new resource. */
 void
-game_t::cancel_transported_resource(resource_type_t res, unsigned int dest) {
+Game::cancel_transported_resource(Resource::Type res, unsigned int dest) {
   if (dest == 0) return;
 
-  flag_t *flag = flags[dest];
+  Flag *flag = flags[dest];
   assert(flag->has_building());
-  building_t *building = flag->get_building();
+  Building *building = flag->get_building();
   building->cancel_transported_resource(res);
 }
 
 /* Called when a resource is lost forever from the game. This will
    update any global state keeping track of that resource. */
 void
-game_t::lose_resource(resource_type_t res) {
-  if (res == RESOURCE_GOLDORE ||
-      res == RESOURCE_GOLDBAR) {
+Game::lose_resource(Resource::Type res) {
+  if (res == Resource::TypeGoldOre || res == Resource::TypeGoldBar) {
     map->add_gold_deposit(-1);
   }
 }
 
 uint16_t
-game_t::random_int() {
+Game::random_int() {
   return rnd.random();
 }
 
 bool
-game_t::handle_event(const event_t *event) {
+Game::handle_event(const Event *event) {
   switch (event->type) {
-    case EVENT_UPDATE:
+    case Event::TypeUpdate:
       update();
       return true;
       break;
@@ -2305,7 +2302,7 @@ game_t::handle_event(const event_t *event) {
 }
 
 int
-game_t::next_search_id() {
+Game::next_search_id() {
   flag_search_counter += 1;
 
   /* If we're back at zero the counter has overflown,
@@ -2318,8 +2315,8 @@ game_t::next_search_id() {
   return flag_search_counter;
 }
 
-serf_t *
-game_t::create_serf(int index) {
+Serf *
+Game::create_serf(int index) {
   if (index == -1) {
     return serfs.allocate();
   } else {
@@ -2328,12 +2325,12 @@ game_t::create_serf(int index) {
 }
 
 void
-game_t::delete_serf(serf_t *serf) {
+Game::delete_serf(Serf *serf) {
   serfs.erase(serf->get_index());
 }
 
-flag_t *
-game_t::create_flag(int index) {
+Flag *
+Game::create_flag(int index) {
   if (index == -1) {
     return flags.allocate();
   } else {
@@ -2341,8 +2338,8 @@ game_t::create_flag(int index) {
   }
 }
 
-inventory_t *
-game_t::create_inventory(int index) {
+Inventory *
+Game::create_inventory(int index) {
   if (index == -1) {
     return inventories.allocate();
   } else {
@@ -2350,8 +2347,8 @@ game_t::create_inventory(int index) {
   }
 }
 
-building_t *
-game_t::create_building(int index) {
+Building *
+Game::create_building(int index) {
   if (index == -1) {
     return buildings.allocate();
   } else {
@@ -2360,17 +2357,17 @@ game_t::create_building(int index) {
 }
 
 void
-game_t::delete_building(building_t *building) {
-  map->set_object(building->get_position(), MAP_OBJ_NONE, 0);
+Game::delete_building(Building *building) {
+  map->set_object(building->get_position(), Map::ObjectNone, 0);
   buildings.erase(building->get_index());
 }
 
-list_serfs_t
-game_t::get_player_serfs(player_t *player) {
-  list_serfs_t player_serfs;
+Game::ListSerfs
+Game::get_player_serfs(Player *player) {
+  ListSerfs player_serfs;
 
-  for (serfs_t::iterator i = serfs.begin(); i != serfs.end(); ++i) {
-    serf_t *serf = *i;
+  for (Serfs::Iterator i = serfs.begin(); i != serfs.end(); ++i) {
+    Serf *serf = *i;
     if (serf->get_player() == player->get_index()) {
       player_serfs.push_back(serf);
     }
@@ -2379,12 +2376,12 @@ game_t::get_player_serfs(player_t *player) {
   return player_serfs;
 }
 
-list_buildings_t
-game_t::get_player_buildings(player_t *player) {
-  list_buildings_t player_buildings;
+Game::ListBuildings
+Game::get_player_buildings(Player *player) {
+  ListBuildings player_buildings;
 
-  for (buildings_t::iterator i = buildings.begin(); i != buildings.end(); ++i) {
-    building_t *building = *i;
+  for (Buildings::Iterator i = buildings.begin(); i != buildings.end(); ++i) {
+    Building *building = *i;
     if (building->get_owner() == player->get_index()) {
       player_buildings.push_back(building);
     }
@@ -2393,13 +2390,13 @@ game_t::get_player_buildings(player_t *player) {
   return player_buildings;
 }
 
-list_inventories_t
-game_t::get_player_inventories(player_t *player) {
-  list_inventories_t player_inventories;
+Game::ListInventories
+Game::get_player_inventories(Player *player) {
+  ListInventories player_inventories;
 
-  for (inventories_t::iterator i = inventories.begin();
+  for (Inventories::Iterator i = inventories.begin();
        i != inventories.end(); ++i) {
-    inventory_t *inventory = *i;
+    Inventory *inventory = *i;
     if (inventory->get_owner() == player->get_index()) {
       player_inventories.push_back(inventory);
     }
@@ -2408,12 +2405,12 @@ game_t::get_player_inventories(player_t *player) {
   return player_inventories;
 }
 
-list_serfs_t
-game_t::get_serfs_at_pos(map_pos_t pos) {
-  list_serfs_t result;
+Game::ListSerfs
+Game::get_serfs_at_pos(MapPos pos) {
+  ListSerfs result;
 
-  for (serfs_t::iterator i = serfs.begin(); i != serfs.end(); ++i) {
-    serf_t *serf = *i;
+  for (Serfs::Iterator i = serfs.begin(); i != serfs.end(); ++i) {
+    Serf *serf = *i;
     if (serf->get_pos() == pos) {
       result.push_back(serf);
     }
@@ -2422,13 +2419,13 @@ game_t::get_serfs_at_pos(map_pos_t pos) {
   return result;
 }
 
-list_serfs_t
-game_t::get_serfs_in_inventory(inventory_t *inventory) {
-  list_serfs_t result;
+Game::ListSerfs
+Game::get_serfs_in_inventory(Inventory *inventory) {
+  ListSerfs result;
 
-  for (serfs_t::iterator i = serfs.begin(); i != serfs.end(); ++i) {
-    serf_t *serf = *i;
-    if (serf->get_state() == SERF_STATE_IDLE_IN_STOCK &&
+  for (Serfs::Iterator i = serfs.begin(); i != serfs.end(); ++i) {
+    Serf *serf = *i;
+    if (serf->get_state() == Serf::StateIdleInStock &&
         inventory->get_index() == serf->get_idle_in_stock_inv_index()) {
       result.push_back(serf);
     }
@@ -2437,12 +2434,12 @@ game_t::get_serfs_in_inventory(inventory_t *inventory) {
   return result;
 }
 
-list_serfs_t
-game_t::get_serfs_related_to(unsigned int dest, dir_t dir) {
-  list_serfs_t result;
+Game::ListSerfs
+Game::get_serfs_related_to(unsigned int dest, Direction dir) {
+  ListSerfs result;
 
-  for (serfs_t::iterator it = serfs.begin(); it != serfs.end(); ++it) {
-    serf_t *serf = *it;
+  for (Serfs::Iterator it = serfs.begin(); it != serfs.end(); ++it) {
+    Serf *serf = *it;
     if (serf->is_related_to(dest, dir)) {
       result.push_back(serf);
     }
@@ -2451,14 +2448,14 @@ game_t::get_serfs_related_to(unsigned int dest, dir_t dir) {
   return result;
 }
 
-flag_t *
-game_t::gat_flag_at_pos(map_pos_t pos) {
+Flag *
+Game::gat_flag_at_pos(MapPos pos) {
   return flags[map->get_obj_index(pos)];
 }
 
-player_t *
-game_t::get_next_player(player_t *player) {
-  players_t::iterator p = players.begin();
+Player *
+Game::get_next_player(Player *player) {
+  Players::Iterator p = players.begin();
   while (*p != player) {
     ++p;
   }
@@ -2471,10 +2468,10 @@ game_t::get_next_player(player_t *player) {
 }
 
 unsigned int
-game_t::get_enemy_score(player_t *player) {
+Game::get_enemy_score(Player *player) {
   unsigned int enemy_score = 0;
 
-  for (players_t::iterator it = players.begin(); it != players.end(); ++it) {
+  for (Players::Iterator it = players.begin(); it != players.end(); ++it) {
     if (player->get_index() != (*it)->get_index()) {
       enemy_score += (*it)->get_total_military_score();
     }
@@ -2484,12 +2481,12 @@ game_t::get_enemy_score(player_t *player) {
 }
 
 void
-game_t::building_captured(building_t *building) {
+Game::building_captured(Building *building) {
   /* Save amount of land and buildings for each player */
   std::map<int, int> land_before;
   std::map<int, int> buildings_before;
-  for (players_t::iterator it = players.begin(); it != players.end(); ++it) {
-    player_t *player = *it;
+  for (Players::Iterator it = players.begin(); it != players.end(); ++it) {
+    Player *player = *it;
     land_before[player->get_index()] = player->get_land_area();
     buildings_before[player->get_index()] = player->get_building_score();
   }
@@ -2498,8 +2495,8 @@ game_t::building_captured(building_t *building) {
   update_land_ownership(building->get_position());
 
   /* Create notfications for lost land and buildings */
-  for (players_t::iterator it = players.begin(); it != players.end(); ++it) {
-    player_t *player = *it;
+  for (Players::Iterator it = players.begin(); it != players.end(); ++it) {
+    Player *player = *it;
     if (buildings_before[player->get_index()] > player->get_building_score()) {
       player->add_notification(9, building->get_position(),
                                building->get_owner());
@@ -2511,15 +2508,15 @@ game_t::building_captured(building_t *building) {
 }
 
 void
-game_t::clear_search_id() {
-  for (flags_t::iterator i = flags.begin(); i != flags.end(); ++i) {
-    flag_t *flag = *i;
+Game::clear_search_id() {
+  for (Flags::Iterator i = flags.begin(); i != flags.end(); ++i) {
+    Flag *flag = *i;
     flag->clear_search_id();
   }
 }
 
-save_reader_binary_t&
-operator >> (save_reader_binary_t &reader, game_t &game) {
+SaveReaderBinary&
+operator >> (SaveReaderBinary &reader, Game &game) {
   /* Load these first so map dimensions can be reconstructed.
    This is necessary to load map positions. */
 
@@ -2539,7 +2536,7 @@ operator >> (save_reader_binary_t &reader, game_t &game) {
   reader >> r1;  // 84
   reader >> r2;  // 86
   reader >> r3;  // 88
-  game.rnd = random_state_t(r1, r2, r3);
+  game.rnd = Random(r1, r2, r3);
 
   reader >> v16;  // 90
   int max_flag_index = v16;
@@ -2568,9 +2565,9 @@ operator >> (save_reader_binary_t &reader, game_t &game) {
   reader >> v16;  // 118
   game.resource_history_index = v16;
 
-//  if (0/*game.game_type == GAME_TYPE_TUTORIAL*/) {
+//  if (0/*game.Gameype == GameYPE_TUTORIAL*/) {
 //    game.tutorial_level = *reinterpret_cast<uint16_t*>(&data[122]);
-//  } else if (0/*game.game_type == GAME_TYPE_MISSION*/) {
+//  } else if (0/*game.Gameype == GameYPE_MISSION*/) {
 //    game.mission_level = *reinterpret_cast<uint16_t*>(&data[124]);
 //  }
 
@@ -2585,7 +2582,7 @@ operator >> (save_reader_binary_t &reader, game_t &game) {
 
   reader.skip(8);
   reader >> v16;  // 190
-  game.map = new map_t();
+  game.map = new Map();
   game.map->init(v16);
 
   reader.skip(8);
@@ -2600,19 +2597,19 @@ operator >> (save_reader_binary_t &reader, game_t &game) {
 
   /* Load players state from save game. */
   for (int i = 0; i < 4; i++) {
-    save_reader_binary_t player_reader = reader.extract(8628);
+    SaveReaderBinary player_reader = reader.extract(8628);
     player_reader.skip(130);
     player_reader >> v8;
     if (BIT_TEST(v8, 6)) {
       player_reader.reset();
-      player_t *player = game.players.get_or_insert(i);
+      Player *player = game.players.get_or_insert(i);
       player_reader >> *player;
     }
   }
 
   /* Load map state from save game. */
   unsigned int tile_count = game.map->get_cols() * game.map->get_rows();
-  save_reader_binary_t map_reader = reader.extract(8 * tile_count);
+  SaveReaderBinary map_reader = reader.extract(8 * tile_count);
   map_reader >> *(game.map);
 
   game.load_serfs(&reader, max_serf_index);
@@ -2628,7 +2625,7 @@ operator >> (save_reader_binary_t &reader, game_t &game) {
 
 /* Load serf state from save game. */
 bool
-game_t::load_serfs(save_reader_binary_t *reader, int max_serf_index) {
+Game::load_serfs(SaveReaderBinary *reader, int max_serf_index) {
   /* Load serf bitmap. */
   int bitmap_size = 4*((max_serf_index + 31)/32);
   uint8_t *bitmap = reader->read(bitmap_size);
@@ -2636,9 +2633,9 @@ game_t::load_serfs(save_reader_binary_t *reader, int max_serf_index) {
 
   /* Load serf data. */
   for (int i = 0; i < max_serf_index; i++) {
-    save_reader_binary_t serf_reader = reader->extract(16);
+    SaveReaderBinary serf_reader = reader->extract(16);
     if (BIT_TEST(bitmap[(i)>>3], 7-((i)&7))) {
-      serf_t *serf = serfs.get_or_insert(i);
+      Serf *serf = serfs.get_or_insert(i);
       serf_reader >> *serf;
     }
   }
@@ -2648,7 +2645,7 @@ game_t::load_serfs(save_reader_binary_t *reader, int max_serf_index) {
 
 /* Load flags state from save game. */
 bool
-game_t::load_flags(save_reader_binary_t *reader, int max_flag_index) {
+Game::load_flags(SaveReaderBinary *reader, int max_flag_index) {
   /* Load flag bitmap. */
   int bitmap_size = 4*((max_flag_index + 31)/32);
   uint8_t *bitmap = reader->read(bitmap_size);
@@ -2656,9 +2653,9 @@ game_t::load_flags(save_reader_binary_t *reader, int max_flag_index) {
 
   /* Load flag data. */
   for (int i = 0; i < max_flag_index; i++) {
-    save_reader_binary_t flag_reader = reader->extract(70);
+    SaveReaderBinary flag_reader = reader->extract(70);
     if (BIT_TEST(bitmap[(i)>>3], 7-((i)&7))) {
-      flag_t *flag = flags.get_or_insert(i);
+      Flag *flag = flags.get_or_insert(i);
       flag_reader >> *flag;
     }
   }
@@ -2666,9 +2663,9 @@ game_t::load_flags(save_reader_binary_t *reader, int max_flag_index) {
   /* Set flag positions. */
   for (unsigned int y = 0; y < map->get_rows(); y++) {
     for (unsigned int x = 0; x < map->get_cols(); x++) {
-      map_pos_t pos = map->pos(x, y);
-      if (map->get_obj(pos) == MAP_OBJ_FLAG) {
-        flag_t *flag = flags[map->get_obj_index(pos)];
+      MapPos pos = map->pos(x, y);
+      if (map->get_obj(pos) == Map::ObjectFlag) {
+        Flag *flag = flags[map->get_obj_index(pos)];
         flag->set_position(pos);
       }
     }
@@ -2679,7 +2676,7 @@ game_t::load_flags(save_reader_binary_t *reader, int max_flag_index) {
 
 /* Load buildings state from save game. */
 bool
-game_t::load_buildings(save_reader_binary_t *reader, int max_building_index) {
+Game::load_buildings(SaveReaderBinary *reader, int max_building_index) {
   /* Load building bitmap. */
   int bitmap_size = 4*((max_building_index + 31)/32);
   uint8_t *bitmap = reader->read(bitmap_size);
@@ -2687,9 +2684,9 @@ game_t::load_buildings(save_reader_binary_t *reader, int max_building_index) {
 
   /* Load building data. */
   for (int i = 0; i < max_building_index; i++) {
-    save_reader_binary_t building_reader = reader->extract(18);
+    SaveReaderBinary building_reader = reader->extract(18);
     if (BIT_TEST(bitmap[(i)>>3], 7-((i)&7))) {
-      building_t *building = buildings.get_or_insert(i);
+      Building *building = buildings.get_or_insert(i);
       building_reader >> *building;
     }
   }
@@ -2699,8 +2696,7 @@ game_t::load_buildings(save_reader_binary_t *reader, int max_building_index) {
 
 /* Load inventories state from save game. */
 bool
-game_t::load_inventories(save_reader_binary_t *reader,
-                         int max_inventory_index) {
+Game::load_inventories(SaveReaderBinary *reader, int max_inventory_index) {
   /* Load inventory bitmap. */
   int bitmap_size = 4*((max_inventory_index + 31)/32);
   uint8_t *bitmap = reader->read(bitmap_size);
@@ -2708,9 +2704,9 @@ game_t::load_inventories(save_reader_binary_t *reader,
 
   /* Load inventory data. */
   for (int i = 0; i < max_inventory_index; i++) {
-    save_reader_binary_t inventory_reader = reader->extract(120);
+    SaveReaderBinary inventory_reader = reader->extract(120);
     if (BIT_TEST(bitmap[(i)>>3], 7-((i)&7))) {
-      inventory_t *inventory = inventories.get_or_insert(i);
+      Inventory *inventory = inventories.get_or_insert(i);
       inventory_reader >> *inventory;
     }
   }
@@ -2718,27 +2714,27 @@ game_t::load_inventories(save_reader_binary_t *reader,
   return true;
 }
 
-building_t *
-game_t::get_building_at_pos(map_pos_t pos) {
+Building *
+Game::get_building_at_pos(MapPos pos) {
   return buildings[map->get_obj_index(pos)];
 }
 
-flag_t *
-game_t::get_flag_at_pos(map_pos_t pos) {
+Flag *
+Game::get_flag_at_pos(MapPos pos) {
   return flags[map->get_obj_index(pos)];
 }
 
-serf_t *
-game_t::get_serf_at_pos(map_pos_t pos) {
+Serf *
+Game::get_serf_at_pos(MapPos pos) {
   return serfs[map->get_serf_index(pos)];
 }
 
-save_reader_text_t&
-operator >> (save_reader_text_t &reader, game_t &game) {
+SaveReaderText&
+operator >> (SaveReaderText &reader, Game &game) {
   /* Load essential values for calculating map positions
    so that map positions can be loaded properly. */
-  readers_t sections = reader.get_sections("game");
-  save_reader_text_t *game_reader = sections.front();
+  Readers sections = reader.get_sections("game");
+  SaveReaderText *game_reader = sections.front();
 
   unsigned int size = 0;
   try {
@@ -2752,12 +2748,11 @@ operator >> (save_reader_text_t &reader, game_t &game) {
   }
 
   /* Initialize remaining map dimensions. */
-  game.map = new map_t();
+  game.map = new Map();
   game.map->init(size);
   game.map->init_dimensions();
   sections = reader.get_sections("map");
-  for (readers_t::iterator it = sections.begin();
-       it != sections.end(); ++it) {
+  for (Readers::iterator it = sections.begin(); it != sections.end(); ++it) {
     **it >> *game.map;
   }
 
@@ -2772,7 +2767,7 @@ operator >> (save_reader_text_t &reader, game_t &game) {
   std::string rnd_str;
   try {
     game_reader->value("random") >> rnd_str;
-    game.rnd = random_state_t(rnd_str);
+    game.rnd = Random(rnd_str);
   } catch (...) {
     game_reader->value("rnd") >> rnd_str;
     std::stringstream ss;
@@ -2780,7 +2775,7 @@ operator >> (save_reader_text_t &reader, game_t &game) {
     uint16_t r1, r2, r3;
     char c;
     ss >> r1 >> c >> r2 >> c >> r3;
-    game.rnd = random_state_t(r1, r2, r3);
+    game.rnd = Random(r1, r2, r3);
   }
   game_reader->value("next_index") >> game.next_index;
   game_reader->value("flag_search_counter") >> game.flag_search_counter;
@@ -2801,72 +2796,70 @@ operator >> (save_reader_text_t &reader, game_t &game) {
   game.allocate_objects();
 
   sections = reader.get_sections("player");
-  for (readers_t::iterator it = sections.begin();
-       it != sections.end(); ++it) {
-    player_t *p = game.players.get_or_insert((*it)->get_number());
+  for (Readers::iterator it = sections.begin(); it != sections.end(); ++it) {
+    Player *p = game.players.get_or_insert((*it)->get_number());
     **it >> *p;
   }
 
   sections = reader.get_sections("flag");
-  for (readers_t::iterator it = sections.begin();
-       it != sections.end(); ++it) {
-    flag_t *p = game.flags.get_or_insert((*it)->get_number());
+  for (Readers::iterator it = sections.begin(); it != sections.end(); ++it) {
+    Flag *p = game.flags.get_or_insert((*it)->get_number());
     **it >> *p;
   }
 
   sections = reader.get_sections("building");
-  for (readers_t::iterator it = sections.begin();
-       it != sections.end(); ++it) {
-    building_t *p = game.buildings.get_or_insert((*it)->get_number());
+  for (Readers::iterator it = sections.begin(); it != sections.end(); ++it) {
+    Building *p = game.buildings.get_or_insert((*it)->get_number());
     **it >> *p;
   }
 
   sections = reader.get_sections("inventory");
-  for (readers_t::iterator it = sections.begin();
-       it != sections.end(); ++it) {
-    inventory_t *p = game.inventories.get_or_insert((*it)->get_number());
+  for (Readers::iterator it = sections.begin(); it != sections.end(); ++it) {
+    Inventory *p = game.inventories.get_or_insert((*it)->get_number());
     **it >> *p;
   }
 
   sections = reader.get_sections("serf");
-  for (readers_t::iterator it = sections.begin();
-       it != sections.end(); ++it) {
-    serf_t *p = game.serfs.get_or_insert((*it)->get_number());
+  for (Readers::iterator it = sections.begin(); it != sections.end(); ++it) {
+    Serf *p = game.serfs.get_or_insert((*it)->get_number());
     **it >> *p;
   }
 
   /* Restore idle serf flag */
-  for (serfs_t::iterator i = game.serfs.begin(); i != game.serfs.end(); ++i) {
-    serf_t *serf = *i;
+  for (Game::Serfs::Iterator i = game.serfs.begin();
+       i != game.serfs.end(); ++i) {
+    Serf *serf = *i;
     if (serf->get_index() == 0) continue;
 
-    if (serf->get_state() == SERF_STATE_IDLE_ON_PATH ||
-        serf->get_state() == SERF_STATE_WAIT_IDLE_ON_PATH) {
+    if (serf->get_state() == Serf::StateIdleOnPath ||
+        serf->get_state() == Serf::StateWaitIdleOnPath) {
       game.map->set_idle_serf(serf->get_pos());
     }
   }
 
   /* Restore building index */
-  for (buildings_t::iterator i = game.buildings.begin();
+  for (Game::Buildings::Iterator i = game.buildings.begin();
        i != game.buildings.end(); ++i) {
-    building_t *building = *i;
+    Building *building = *i;
     if (building->get_index() == 0) continue;
 
-    if (game.map->get_obj(building->get_position()) < MAP_OBJ_SMALL_BUILDING ||
-        game.map->get_obj(building->get_position()) > MAP_OBJ_CASTLE) {
-      throw Freeserf_Exception("Data integrity is broken");
+    if (game.map->get_obj(building->get_position()) <
+          Map::ObjectSmallBuilding ||
+        game.map->get_obj(building->get_position()) > Map::ObjectCastle) {
+      throw ExceptionFreeserf("Data integrity is broken");
     }
 
     game.map->set_obj_index(building->get_position(), building->get_index());
   }
 
   /* Restore flag index */
-  for (flags_t::iterator i = game.flags.begin(); i != game.flags.end(); ++i) {
-    flag_t *flag = *i;
+  for (Game::Flags::Iterator i = game.flags.begin();
+       i != game.flags.end(); ++i) {
+    Flag *flag = *i;
     if (flag->get_index() == 0) continue;
 
-    if (game.map->get_obj(flag->get_position()) != MAP_OBJ_FLAG) {
-      throw Freeserf_Exception("Data integrity is broken");
+    if (game.map->get_obj(flag->get_position()) != Map::ObjectFlag) {
+      throw ExceptionFreeserf("Data integrity is broken");
     }
 
     game.map->set_obj_index(flag->get_position(), flag->get_index());
@@ -2878,8 +2871,8 @@ operator >> (save_reader_text_t &reader, game_t &game) {
   return reader;
 }
 
-save_writer_text_t&
-operator << (save_writer_text_t &writer, game_t &game) {
+SaveWriterText&
+operator << (SaveWriterText &writer, Game &game) {
   writer.value("map.size") << game.map->get_size();
   writer.value("game_type") << game.game_type;
   writer.value("tick") << game.tick;
@@ -2902,39 +2895,40 @@ operator << (save_writer_text_t &writer, game_t &game) {
   writer.value("map.gold_morale_factor") << game.map_gold_morale_factor;
   writer.value("player_score_leader") << game.player_score_leader;
 
-  for (players_t::iterator p = game.players.begin();
+  for (Game::Players::Iterator p = game.players.begin();
        p != game.players.end(); ++p) {
-    save_writer_text_t &player_writer = writer.add_section("player",
-                                                           (*p)->get_index());
+    SaveWriterText &player_writer = writer.add_section("player",
+                                                       (*p)->get_index());
     player_writer << **p;
   }
 
-  for (flags_t::iterator f = game.flags.begin(); f != game.flags.end(); ++f) {
+  for (Game::Flags::Iterator f = game.flags.begin();
+       f != game.flags.end(); ++f) {
     if ((*f)->get_index() == 0) continue;
-    save_writer_text_t &flag_writer = writer.add_section("flag",
-                                                         (*f)->get_index());
+    SaveWriterText &flag_writer = writer.add_section("flag",
+                                                     (*f)->get_index());
     flag_writer << **f;
   }
 
-  for (buildings_t::iterator b = game.buildings.begin();
+  for (Game::Buildings::Iterator b = game.buildings.begin();
        b != game.buildings.end(); ++b) {
     if ((*b)->get_index() == 0) continue;
-    save_writer_text_t &building_writer = writer.add_section("building",
-                                                             (*b)->get_index());
+    SaveWriterText &building_writer = writer.add_section("building",
+                                                         (*b)->get_index());
     building_writer << **b;
   }
 
-  for (inventories_t::iterator i = game.inventories.begin();
+  for (Game::Inventories::Iterator i = game.inventories.begin();
        i != game.inventories.end(); ++i) {
-    save_writer_text_t &inventory_writer = writer.add_section("inventory",
-                                                             (*i)->get_index());
+    SaveWriterText &inventory_writer = writer.add_section("inventory",
+                                                          (*i)->get_index());
     inventory_writer << **i;
   }
 
-  for (serfs_t::iterator s = game.serfs.begin(); s != game.serfs.end(); ++s) {
+  for (Game::Serfs::Iterator s = game.serfs.begin();
+       s != game.serfs.end(); ++s) {
     if ((*s)->get_index() == 0) continue;
-    save_writer_text_t &serf_writer = writer.add_section("serf",
-                                                         (*s)->get_index());
+    SaveWriterText &serf_writer = writer.add_section("serf", (*s)->get_index());
     serf_writer << **s;
   }
 

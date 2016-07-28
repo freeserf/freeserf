@@ -35,28 +35,28 @@
 #include "src/minimap.h"
 #include "src/map-generator.h"
 
-class random_input_t : public text_input_t {
+class RandomInput : public TextInput {
  protected:
   std::string saved_text;
 
  public:
-  random_input_t() {
+  RandomInput() {
     set_filter(text_input_filter);
     set_size(34, 34);
     set_max_length(16);
   }
 
-  void set_random(const random_state_t &rnd) {
+  void set_random(const Random &rnd) {
     std::string str = rnd;
     set_text(str.c_str());
   }
-  random_state_t get_random() {
-    return random_state_t(text);
+  Random get_random() {
+    return Random(text);
   }
 
  protected:
   static bool
-  text_input_filter(const char key, text_input_t *text_input) {
+  text_input_filter(const char key, TextInput *text_input) {
     if (key < '1' || key > '8') {
       return false;
     }
@@ -69,14 +69,14 @@ class random_input_t : public text_input_t {
   }
 
   virtual bool handle_click_left(int x, int y) {
-    text_input_t::handle_click_left(x, y);
+    TextInput::handle_click_left(x, y);
     saved_text = text;
     text.clear();
     return true;
   }
 
   virtual bool handle_focus_loose() {
-    text_input_t::handle_focus_loose();
+    TextInput::handle_focus_loose();
     if ((text.length() < 16) && (saved_text.length() == 16)) {
       text = saved_text;
       saved_text.clear();
@@ -85,30 +85,18 @@ class random_input_t : public text_input_t {
   }
 };
 
-typedef enum {
-  ACTION_START_GAME,
-  ACTION_TOGGLE_GAME_TYPE,
-  ACTION_SHOW_OPTIONS,
-  ACTION_SHOW_LOAD_GAME,
-  ACTION_INCREMENT,
-  ACTION_DECREMENT,
-  ACTION_CLOSE,
-  ACTION_GEN_RANDOM,
-  ACTION_APPLY_RANDOM,
-} action_t;
-
 void
-game_init_box_t::draw_box_icon(int x, int y, int sprite) {
+GameInitBox::draw_box_icon(int x, int y, int sprite) {
   frame->draw_sprite(8*x+20, y+16, DATA_ICON_BASE + sprite);
 }
 
 void
-game_init_box_t::draw_box_string(int x, int y, const std::string &str) {
+GameInitBox::draw_box_string(int x, int y, const std::string &str) {
   frame->draw_string(8*x+20, y+16, 31, 1, str);
 }
 
 void
-game_init_box_t::draw_background() {
+GameInitBox::draw_background() {
   // Background
   unsigned int icon = 290;
   for (int y = 0; y < height; y += 8) {
@@ -124,7 +112,7 @@ game_init_box_t::draw_background() {
 
 /* Get the sprite number for a face. */
 unsigned int
-game_init_box_t::get_player_face_sprite(size_t face) {
+GameInitBox::get_player_face_sprite(size_t face) {
   if (face != 0) {
     return static_cast<unsigned int>(0x10b + face);
   }
@@ -132,7 +120,7 @@ game_init_box_t::get_player_face_sprite(size_t face) {
 }
 
 void
-game_init_box_t::internal_draw() {
+GameInitBox::internal_draw() {
   draw_background();
 
   const int layout[] = {
@@ -193,7 +181,7 @@ game_init_box_t::internal_draw() {
 }
 
 void
-game_init_box_t::draw_player_box(int player, int x, int y) {
+GameInitBox::draw_player_box(int player, int x, int y) {
   const int layout[] = {
     251, 0, 0,
     252, 0, 72,
@@ -230,14 +218,14 @@ game_init_box_t::draw_player_box(int player, int x, int y) {
 }
 
 void
-game_init_box_t::handle_action(int action) {
+GameInitBox::handle_action(int action) {
   const unsigned int default_player_colors[] = {
     64, 72, 68, 76
   };
 
   switch (action) {
-    case ACTION_START_GAME: {
-      game_t *game = new game_t(0);
+    case ActionStartGame: {
+      Game *game = new Game(0);
       game->init();
       if (game_mission < 0) {
         if (!game->load_random_map(map_size, mission->rnd)) return;
@@ -255,12 +243,12 @@ game_init_box_t::handle_action(int action) {
         if (!game->load_mission_map(game_mission)) return;
       }
 
-      game_t *old_game = interface->get_game();
+      Game *old_game = interface->get_game();
       if (old_game != NULL) {
-        event_loop_t::get_instance()->del_handler(old_game);
+        EventLoop::get_instance()->del_handler(old_game);
       }
 
-      event_loop_t::get_instance()->add_handler(game);
+      EventLoop::get_instance()->add_handler(game);
       interface->set_game(game);
       if (old_game != NULL) {
         delete old_game;
@@ -269,10 +257,10 @@ game_init_box_t::handle_action(int action) {
       interface->close_game_init();
       break;
     }
-    case ACTION_TOGGLE_GAME_TYPE:
+    case ActionToggleGameType:
       if (game_mission < 0) {
         game_mission = 0;
-        mission = mission_t::get_mission(game_mission);
+        mission = Mission::get_mission(game_mission);
         field->set_displayed(false);
         generate_map_preview();
       } else {
@@ -284,38 +272,38 @@ game_init_box_t::handle_action(int action) {
         generate_map_preview();
       }
       break;
-    case ACTION_SHOW_OPTIONS:
+    case ActionShowOptions:
       break;
-    case ACTION_SHOW_LOAD_GAME:
+    case ActionShowLoadGame:
       break;
-    case ACTION_INCREMENT:
+    case ActionIncrement:
       if (game_mission < 0) {
         map_size = std::min(10, map_size+1);
       } else {
         game_mission = std::min(game_mission+1,
-                                mission_t::get_mission_count()-1);
-        mission = mission_t::get_mission(game_mission);
+                                Mission::get_mission_count()-1);
+        mission = Mission::get_mission(game_mission);
       }
       generate_map_preview();
       break;
-    case ACTION_DECREMENT:
+    case ActionDecrement:
       if (game_mission < 0) {
         map_size = std::max(3, map_size-1);
       } else {
         game_mission = std::max(0, game_mission-1);
-        mission = mission_t::get_mission(game_mission);
+        mission = Mission::get_mission(game_mission);
       }
       generate_map_preview();
       break;
-    case ACTION_CLOSE:
+    case ActionClose:
       interface->close_game_init();
       break;
-    case ACTION_GEN_RANDOM: {
-      field->set_random(random_state_t());
+    case ActionGenRandom: {
+      field->set_random(Random());
       set_redraw();
       break;
     }
-    case ACTION_APPLY_RANDOM: {
+    case ActionApplyRandom: {
       std::string str = field->get_text();
       if (str.length() == 16) {
         apply_random(field->get_random());
@@ -329,28 +317,28 @@ game_init_box_t::handle_action(int action) {
 }
 
 bool
-game_init_box_t::handle_click_left(int x, int y) {
+GameInitBox::handle_click_left(int x, int y) {
   const int clickmap_mission[] = {
-    ACTION_START_GAME,        20,  16, 32, 32,
-    ACTION_TOGGLE_GAME_TYPE,  60,  16, 32, 32,
-    ACTION_SHOW_OPTIONS,     268,  16, 32, 32,
-    ACTION_SHOW_LOAD_GAME,   308,  16, 32, 32,
-    ACTION_INCREMENT,        244,  16, 16, 16,
-    ACTION_DECREMENT,        244,  32, 16, 16,
-    ACTION_CLOSE,            324, 216, 16, 16,
+    ActionStartGame,        20,  16, 32, 32,
+    ActionToggleGameType,  60,  16, 32, 32,
+    ActionShowOptions,     268,  16, 32, 32,
+    ActionShowLoadGame,   308,  16, 32, 32,
+    ActionIncrement,        244,  16, 16, 16,
+    ActionDecrement,        244,  32, 16, 16,
+    ActionClose,            324, 216, 16, 16,
     -1
   };
 
   const int clickmap_custom[] = {
-    ACTION_START_GAME,        20,  16, 32, 32,
-    ACTION_TOGGLE_GAME_TYPE,  60,  16, 32, 32,
-    ACTION_SHOW_OPTIONS,     268,  16, 32, 32,
-    ACTION_SHOW_LOAD_GAME,   308,  16, 32, 32,
-    ACTION_INCREMENT,        180,  24, 24, 24,
-    ACTION_DECREMENT,        180,  16,  8,  8,
-    ACTION_GEN_RANDOM,       204,  16, 16,  8,
-    ACTION_APPLY_RANDOM ,    204,  24, 16, 24,
-    ACTION_CLOSE,            324, 216, 16, 16,
+    ActionStartGame,        20,  16, 32, 32,
+    ActionToggleGameType,  60,  16, 32, 32,
+    ActionShowOptions,     268,  16, 32, 32,
+    ActionShowLoadGame,   308,  16, 32, 32,
+    ActionIncrement,        180,  24, 24, 24,
+    ActionDecrement,        180,  16,  8,  8,
+    ActionGenRandom,       204,  16, 16,  8,
+    ActionApplyRandom ,    204,  24, 16, 24,
+    ActionClose,            324, 216, 16, 16,
     -1
   };
 
@@ -391,7 +379,7 @@ game_init_box_t::handle_click_left(int x, int y) {
 }
 
 bool
-game_init_box_t::handle_player_click(int player, int x, int y) {
+GameInitBox::handle_player_click(int player, int x, int y) {
   if (x < 8 || x > 8 + 64 || y < 8 || y > 76) {
     return false;
   }
@@ -440,13 +428,13 @@ game_init_box_t::handle_player_click(int player, int x, int y) {
 }
 
 void
-game_init_box_t::generate_map_preview() {
+GameInitBox::generate_map_preview() {
   if (map != NULL) {
     delete map;
     map = NULL;
   }
 
-  map = new map_t();
+  map = new Map();
   if (game_mission < 0) {
     map->init(map_size);
     {
@@ -471,9 +459,9 @@ game_init_box_t::generate_map_preview() {
 }
 
 void
-game_init_box_t::apply_random(random_state_t rnd) {
+GameInitBox::apply_random(Random rnd) {
   custom_mission.rnd = rnd;
-  custom_mission.rnd ^= random_state_t(0x5A5A, 0xA5A5, 0xC3C3);
+  custom_mission.rnd ^= Random(0x5A5A, 0xA5A5, 0xC3C3);
 
   for (int i = 3; i >= 0; i--) {
     uint32_t face = rnd.random();
@@ -525,7 +513,7 @@ game_init_box_t::apply_random(random_state_t rnd) {
   custom_mission.player[0].intelligence = 40;
 }
 
-game_init_box_t::game_init_box_t(interface_t *interface) {
+GameInitBox::GameInitBox(Interface *interface) {
   this->interface = interface;
   map_size = 3;
   game_mission = -1;
@@ -551,11 +539,11 @@ game_init_box_t::game_init_box_t(interface_t *interface) {
   custom_mission.player[1].supplies = 30;
   custom_mission.player[1].reproduction = 40;
 
-  custom_mission.rnd = random_state_t();
+  custom_mission.rnd = Random();
 
   mission = &custom_mission;
 
-  minimap = new minimap_t(NULL);
+  minimap = new Minimap(NULL);
   minimap->set_displayed(true);
   minimap->set_size(150, 160);
   add_float(minimap, 190, 55);
@@ -563,13 +551,13 @@ game_init_box_t::game_init_box_t(interface_t *interface) {
   map = NULL;
   generate_map_preview();
 
-  field = new random_input_t();
+  field = new RandomInput();
   field->set_random(custom_mission.rnd);
   field->set_displayed(true);
   add_float(field, 19 + 26*8, 15);
 }
 
-game_init_box_t::~game_init_box_t() {
+GameInitBox::~GameInitBox() {
   if (field != NULL) {
     delete field;
     field = NULL;

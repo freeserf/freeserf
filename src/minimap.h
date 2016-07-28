@@ -26,11 +26,11 @@
 #include "src/map.h"
 #include "src/game.h"
 
-class interface_t;
+class Interface;
 
-class minimap_t : public gui_object_t {
+class Minimap : public GuiObject {
  protected:
-  map_t *map;
+  Map *map;
 
   int offset_x, offset_y;
   int scale;
@@ -39,9 +39,9 @@ class minimap_t : public gui_object_t {
   int flags;
 
  public:
-  explicit minimap_t(map_t *map);
+  explicit Minimap(Map *map);
 
-  void set_map(map_t *map);
+  void set_map(Map *map);
 
   int get_flags() const { return flags; }
   void set_flags(int flags) { this->flags = flags; }
@@ -50,12 +50,12 @@ class minimap_t : public gui_object_t {
   int get_scale() const { return scale; }
   void set_scale(int scale);
 
-  void move_to_map_pos(map_pos_t pos);
+  void move_to_map_pos(MapPos pos);
   void move_by_pixels(int x, int y);
-  map_pos_t get_current_map_pos();
+  MapPos get_current_map_pos();
 
-  void screen_pix_from_map_pos(map_pos_t pos, int *sx, int *sy);
-  map_pos_t map_pos_from_screen_pix(int x, int y);
+  void screen_pix_from_map_pos(MapPos pos, int *sx, int *sy);
+  MapPos map_pos_from_screen_pix(int x, int y);
 
  protected:
   void draw_minimap_point(int col, int row, uint8_t color, int density);
@@ -64,20 +64,20 @@ class minimap_t : public gui_object_t {
   void draw_minimap_rect();
   int handle_scroll(int up);
   void screen_pix_from_map_pix(int mx, int my, int *sx, int *sy);
-  void map_pix_from_map_coord(map_pos_t pos, int *mx, int *my);
+  void map_pix_from_map_coord(MapPos pos, int *mx, int *my);
 
   virtual void internal_draw();
   virtual bool handle_drag(int dx, int dy);
 };
 
-class game_minimap_t : public minimap_t {
+class MinimapGame : public Minimap {
  protected:
-  interface_t *interface;
+  Interface *interface;
 
-  game_t *game;
+  Game *game;
 
  public:
-  game_minimap_t(interface_t *interface, game_t *game);
+  MinimapGame(Interface *interface, Game *game);
 
  protected:
   void draw_minimap_ownership(int density);

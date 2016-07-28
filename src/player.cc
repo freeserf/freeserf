@@ -29,12 +29,12 @@
 #include "src/savegame.h"
 #include "src/building.h"
 
-player_t::player_t(game_t *game, unsigned int index)
-  : game_object_t(game, index) {
+Player::Player(Game *game, unsigned int index)
+  : GameObject(game, index) {
 }
 
 void
-player_t::init(unsigned int number, size_t face, unsigned int color,
+Player::init(unsigned int number, size_t face, unsigned int color,
                size_t supplies, size_t reproduction,
                size_t intelligence) {
   flags = 0;
@@ -131,7 +131,7 @@ player_t::init(unsigned int number, size_t face, unsigned int color,
 
 /* Initialize AI parameters. */
 void
-player_t::init_ai_values(size_t face) {
+Player::init_ai_values(size_t face) {
   const int ai_values_0[] = { 13, 10, 16, 9, 10, 8, 6, 10, 12, 5, 8 };
   const int ai_values_1[] = { 10000, 13000, 16000, 16000, 18000, 20000,
                               19000, 18000, 30000, 23000, 26000 };
@@ -153,9 +153,9 @@ player_t::init_ai_values(size_t face) {
 
 /* Enqueue a new notification message for player. */
 void
-player_t::add_notification(int type, map_pos_t pos, unsigned int data) {
+Player::add_notification(int type, MapPos pos, unsigned int data) {
   flags |= BIT(3); /* Message in queue. */
-  message_t new_message;
+  Message new_message;
   new_message.type = type;
   new_message.pos = pos;
   new_message.data = data;
@@ -163,26 +163,26 @@ player_t::add_notification(int type, map_pos_t pos, unsigned int data) {
 }
 
 bool
-player_t::has_notification() {
+Player::has_notification() {
   return (messages.size() > 0);
 }
 
-message_t
-player_t::pop_notification() {
-  message_t message = messages.front();
+Message
+Player::pop_notification() {
+  Message message = messages.front();
   messages.pop();
   return message;
 }
 
-message_t
-player_t::peek_notification() {
-  message_t message = messages.front();
+Message
+Player::peek_notification() {
+  Message message = messages.front();
   return message;
 }
 
 void
-player_t::add_timer(int timeout, map_pos_t pos) {
-  pos_timer_t new_timer;
+Player::add_timer(int timeout, MapPos pos) {
+  PosTimer new_timer;
   new_timer.timeout = timeout;
   new_timer.pos = pos;
   timers.push_back(new_timer);
@@ -190,7 +190,7 @@ player_t::add_timer(int timeout, map_pos_t pos) {
 
 /* Set defaults for food distribution priorities. */
 void
-player_t::reset_food_priority() {
+Player::reset_food_priority() {
   food_stonemine = 13100;
   food_coalmine = 45850;
   food_ironmine = 45850;
@@ -199,7 +199,7 @@ player_t::reset_food_priority() {
 
 /* Set defaults for planks distribution priorities. */
 void
-player_t::reset_planks_priority() {
+Player::reset_planks_priority() {
   planks_construction = 65500;
   planks_boatbuilder = 3275;
   planks_toolmaker = 19650;
@@ -207,14 +207,14 @@ player_t::reset_planks_priority() {
 
 /* Set defaults for steel distribution priorities. */
 void
-player_t::reset_steel_priority() {
+Player::reset_steel_priority() {
   steel_toolmaker = 45850;
   steel_weaponsmith = 65500;
 }
 
 /* Set defaults for coal distribution priorities. */
 void
-player_t::reset_coal_priority() {
+Player::reset_coal_priority() {
   coal_steelsmelter = 32750;
   coal_goldsmelter = 65500;
   coal_weaponsmith = 52400;
@@ -222,14 +222,14 @@ player_t::reset_coal_priority() {
 
 /* Set defaults for coal distribution priorities. */
 void
-player_t::reset_wheat_priority() {
+Player::reset_wheat_priority() {
   wheat_pigfarm = 65500;
   wheat_mill = 32750;
 }
 
 /* Set defaults for tool production priorities. */
 void
-player_t::reset_tool_priority() {
+Player::reset_tool_priority() {
   tool_prio[0] = 9825; /* SHOVEL */
   tool_prio[1] = 65500; /* HAMMER */
   tool_prio[2] = 13100; /* ROD */
@@ -243,76 +243,76 @@ player_t::reset_tool_priority() {
 
 /* Set defaults for flag priorities. */
 void
-player_t::reset_flag_priority() {
-  flag_prio[RESOURCE_GOLDORE] = 1;
-  flag_prio[RESOURCE_GOLDBAR] = 2;
-  flag_prio[RESOURCE_WHEAT] = 3;
-  flag_prio[RESOURCE_FLOUR] = 4;
-  flag_prio[RESOURCE_PIG] = 5;
+Player::reset_flag_priority() {
+  flag_prio[Resource::TypeGoldOre] = 1;
+  flag_prio[Resource::TypeGoldBar] = 2;
+  flag_prio[Resource::TypeWheat] = 3;
+  flag_prio[Resource::TypeFlour] = 4;
+  flag_prio[Resource::TypePig] = 5;
 
-  flag_prio[RESOURCE_BOAT] = 6;
-  flag_prio[RESOURCE_PINCER] = 7;
-  flag_prio[RESOURCE_SCYTHE] = 8;
-  flag_prio[RESOURCE_ROD] = 9;
-  flag_prio[RESOURCE_CLEAVER] = 10;
+  flag_prio[Resource::TypeBoat] = 6;
+  flag_prio[Resource::TypePincer] = 7;
+  flag_prio[Resource::TypeScythe] = 8;
+  flag_prio[Resource::TypeRod] = 9;
+  flag_prio[Resource::TypeCleaver] = 10;
 
-  flag_prio[RESOURCE_SAW] = 11;
-  flag_prio[RESOURCE_AXE] = 12;
-  flag_prio[RESOURCE_PICK] = 13;
-  flag_prio[RESOURCE_SHOVEL] = 14;
-  flag_prio[RESOURCE_HAMMER] = 15;
+  flag_prio[Resource::TypeSaw] = 11;
+  flag_prio[Resource::TypeAxe] = 12;
+  flag_prio[Resource::TypePick] = 13;
+  flag_prio[Resource::TypeShovel] = 14;
+  flag_prio[Resource::TypeHammer] = 15;
 
-  flag_prio[RESOURCE_SHIELD] = 16;
-  flag_prio[RESOURCE_SWORD] = 17;
-  flag_prio[RESOURCE_BREAD] = 18;
-  flag_prio[RESOURCE_MEAT] = 19;
-  flag_prio[RESOURCE_FISH] = 20;
+  flag_prio[Resource::TypeShield] = 16;
+  flag_prio[Resource::TypeSword] = 17;
+  flag_prio[Resource::TypeBread] = 18;
+  flag_prio[Resource::TypeMeat] = 19;
+  flag_prio[Resource::TypeFish] = 20;
 
-  flag_prio[RESOURCE_IRONORE] = 21;
-  flag_prio[RESOURCE_LUMBER] = 22;
-  flag_prio[RESOURCE_COAL] = 23;
-  flag_prio[RESOURCE_STEEL] = 24;
-  flag_prio[RESOURCE_STONE] = 25;
-  flag_prio[RESOURCE_PLANK] = 26;
+  flag_prio[Resource::TypeIronOre] = 21;
+  flag_prio[Resource::TypeLumber] = 22;
+  flag_prio[Resource::TypeCoal] = 23;
+  flag_prio[Resource::TypeSteel] = 24;
+  flag_prio[Resource::TypeStone] = 25;
+  flag_prio[Resource::TypePlank] = 26;
 }
 
 /* Set defaults for inventory priorities. */
 void
-player_t::reset_inventory_priority() {
-  inventory_prio[RESOURCE_WHEAT] = 1;
-  inventory_prio[RESOURCE_FLOUR] = 2;
-  inventory_prio[RESOURCE_PIG] = 3;
-  inventory_prio[RESOURCE_BREAD] = 4;
-  inventory_prio[RESOURCE_FISH] = 5;
+Player::reset_inventory_priority() {
+  inventory_prio[Resource::TypeWheat] = 1;
+  inventory_prio[Resource::TypeFlour] = 2;
+  inventory_prio[Resource::TypePig] = 3;
+  inventory_prio[Resource::TypeBread] = 4;
+  inventory_prio[Resource::TypeFish] = 5;
 
-  inventory_prio[RESOURCE_MEAT] = 6;
-  inventory_prio[RESOURCE_LUMBER] = 7;
-  inventory_prio[RESOURCE_PLANK] = 8;
-  inventory_prio[RESOURCE_BOAT] = 9;
-  inventory_prio[RESOURCE_STONE] = 10;
+  inventory_prio[Resource::TypeMeat] = 6;
+  inventory_prio[Resource::TypeLumber] = 7;
+  inventory_prio[Resource::TypePlank] = 8;
+  inventory_prio[Resource::TypeBoat] = 9;
+  inventory_prio[Resource::TypeStone] = 10;
 
-  inventory_prio[RESOURCE_COAL] = 11;
-  inventory_prio[RESOURCE_IRONORE] = 12;
-  inventory_prio[RESOURCE_STEEL] = 13;
-  inventory_prio[RESOURCE_SHOVEL] = 14;
-  inventory_prio[RESOURCE_HAMMER] = 15;
+  inventory_prio[Resource::TypeCoal] = 11;
+  inventory_prio[Resource::TypeIronOre] = 12;
+  inventory_prio[Resource::TypeSteel] = 13;
+  inventory_prio[Resource::TypeShovel] = 14;
+  inventory_prio[Resource::TypeHammer] = 15;
 
-  inventory_prio[RESOURCE_ROD] = 16;
-  inventory_prio[RESOURCE_CLEAVER] = 17;
-  inventory_prio[RESOURCE_SCYTHE] = 18;
-  inventory_prio[RESOURCE_AXE] = 19;
-  inventory_prio[RESOURCE_SAW] = 20;
+  inventory_prio[Resource::TypeRod] = 16;
+  inventory_prio[Resource::TypeCleaver] = 17;
+  inventory_prio[Resource::TypeScythe] = 18;
+  inventory_prio[Resource::TypeAxe] = 19;
+  inventory_prio[Resource::TypeSaw] = 20;
 
-  inventory_prio[RESOURCE_PICK] = 21;
-  inventory_prio[RESOURCE_PINCER] = 22;
-  inventory_prio[RESOURCE_SHIELD] = 23;
-  inventory_prio[RESOURCE_SWORD] = 24;
-  inventory_prio[RESOURCE_GOLDORE] = 25;
-  inventory_prio[RESOURCE_GOLDBAR] = 26;
+  inventory_prio[Resource::TypePick] = 21;
+  inventory_prio[Resource::TypePincer] = 22;
+  inventory_prio[Resource::TypeShield] = 23;
+  inventory_prio[Resource::TypeSword] = 24;
+  inventory_prio[Resource::TypeGoldOre] = 25;
+  inventory_prio[Resource::TypeGoldBar] = 26;
 }
 
 void
-player_t::change_knight_occupation(int index, int adjust_max, int delta) {
+Player::change_knight_occupation(int index, int adjust_max, int delta) {
   int max = (knight_occupation[index] >> 4) & 0xf;
   int min = knight_occupation[index] & 0xf;
 
@@ -327,17 +327,16 @@ player_t::change_knight_occupation(int index, int adjust_max, int delta) {
 
 /* Turn a number of serfs into knight for the given player. */
 int
-player_t::promote_serfs_to_knights(int number) {
+Player::promote_serfs_to_knights(int number) {
   int promoted = 0;
 
-  list_serfs_t serfs = game->get_player_serfs(this);
+  Game::ListSerfs serfs = game->get_player_serfs(this);
 
-  for (list_serfs_t::iterator i = serfs.begin(); i != serfs.end(); ++i) {
-    serf_t *serf = *i;
-    if (serf->get_state() == SERF_STATE_IDLE_IN_STOCK &&
-        serf->get_type() == SERF_GENERIC) {
-      inventory_t *inv =
-                       game->get_inventory(serf->get_idle_in_stock_inv_index());
+  for (Game::ListSerfs::iterator i = serfs.begin(); i != serfs.end(); ++i) {
+    Serf *serf = *i;
+    if (serf->get_state() == Serf::StateIdleInStock &&
+        serf->get_type() == Serf::TypeGeneric) {
+      Inventory *inv = game->get_inventory(serf->get_idle_in_stock_inv_index());
       if (inv->promote_serf_to_knight(serf)) {
         promoted += 1;
         number -= 1;
@@ -349,16 +348,16 @@ player_t::promote_serfs_to_knights(int number) {
 }
 
 int
-player_t::available_knights_at_pos(map_pos_t pos, int index_, int dist) {
+Player::available_knights_at_pos(MapPos pos, int index_, int dist) {
   const int min_level_hut[] = { 1, 1, 2, 2, 3 };
   const int min_level_tower[] = { 1, 2, 3, 4, 6 };
   const int min_level_fortress[] = { 1, 3, 6, 9, 12 };
 
   if (game->get_map()->get_owner(pos) != index ||
-      game->get_map()->type_up(pos) <= MAP_TERRAIN_WATER_3 ||
-      game->get_map()->type_down(pos) <= MAP_TERRAIN_WATER_3 ||
-      game->get_map()->get_obj(pos) < MAP_OBJ_SMALL_BUILDING ||
-      game->get_map()->get_obj(pos) > MAP_OBJ_CASTLE) {
+      game->get_map()->type_up(pos) <= Map::TerrainWater3 ||
+      game->get_map()->type_down(pos) <= Map::TerrainWater3 ||
+      game->get_map()->get_obj(pos) < Map::ObjectSmallBuilding ||
+      game->get_map()->get_obj(pos) > Map::ObjectCastle) {
     return index_;
   }
 
@@ -369,7 +368,7 @@ player_t::available_knights_at_pos(map_pos_t pos, int index_, int dist) {
     }
   }
 
-  building_t *building = game->get_building(bld_index);
+  Building *building = game->get_building(bld_index);
   if (!building->is_done() ||
       building->is_burning()) {
     return index_;
@@ -377,9 +376,9 @@ player_t::available_knights_at_pos(map_pos_t pos, int index_, int dist) {
 
   const int *min_level = NULL;
   switch (building->get_type()) {
-  case BUILDING_HUT: min_level = min_level_hut; break;
-  case BUILDING_TOWER: min_level = min_level_tower; break;
-  case BUILDING_FORTRESS: min_level = min_level_fortress; break;
+  case Building::TypeHut: min_level = min_level_hut; break;
+  case Building::TypeTower: min_level = min_level_tower; break;
+  case Building::TypeFortress: min_level = min_level_fortress; break;
   default: return index; break;
   }
 
@@ -398,7 +397,7 @@ player_t::available_knights_at_pos(map_pos_t pos, int index_, int dist) {
 }
 
 int
-player_t::knights_available_for_attack(map_pos_t pos) {
+Player::knights_available_for_attack(MapPos pos) {
   /* Reset counters. */
   for (int i = 0; i < 4; i++) attacking_knights[i] = 0;
 
@@ -444,12 +443,12 @@ player_t::knights_available_for_attack(map_pos_t pos) {
 }
 
 void
-player_t::start_attack() {
+Player::start_attack() {
   const int min_level_hut[] = { 1, 1, 2, 2, 3 };
   const int min_level_tower[] = { 1, 2, 3, 4, 6 };
   const int min_level_fortress[] = { 1, 3, 6, 9, 12 };
 
-  building_t *target = game->get_building(building_attacked);
+  Building *target = game->get_building(building_attacked);
   if (!target->is_done() || !target->is_military() ||
       !target->is_active() ||
       target->get_state() != 3) {
@@ -458,24 +457,24 @@ player_t::start_attack() {
 
   for (int i = 0; i < attacking_building_count; i++) {
     /* TODO building index may not be valid any more(?). */
-    building_t *b = game->get_building(attacking_buildings[i]);
+    Building *b = game->get_building(attacking_buildings[i]);
     if (b->is_burning() ||
         game->get_map()->get_owner(b->get_position()) != index) {
       continue;
     }
 
-    map_pos_t flag_pos = game->get_map()->move_down_right(b->get_position());
+    MapPos flag_pos = game->get_map()->move_down_right(b->get_position());
     if (game->get_map()->get_serf_index(flag_pos) != 0) {
       /* Check if building is under siege. */
-      serf_t *s = game->get_serf_at_pos(flag_pos);
+      Serf *s = game->get_serf_at_pos(flag_pos);
       if (s->get_player() != index) continue;
     }
 
     const int *min_level = NULL;
     switch (b->get_type()) {
-    case BUILDING_HUT: min_level = min_level_hut; break;
-    case BUILDING_TOWER: min_level = min_level_tower; break;
-    case BUILDING_FORTRESS: min_level = min_level_fortress; break;
+    case Building::TypeHut: min_level = min_level_hut; break;
+    case Building::TypeTower: min_level = min_level_tower; break;
+    case Building::TypeFortress: min_level = min_level_fortress; break;
     default: continue; break;
     }
 
@@ -485,12 +484,13 @@ player_t::start_attack() {
 
     for (int j = 0; j < to_send; j++) {
       /* Find most approriate knight to send according to player settings. */
-      int best_type = send_strongest() ? SERF_KNIGHT_0 : SERF_KNIGHT_4;
+      int best_type = send_strongest() ? Serf::TypeKnight0:
+                                         Serf::TypeKnight4;
       int best_index = -1;
 
       int knight_index = b->get_main_serf();
       while (knight_index != 0) {
-        serf_t *knight = game->get_serf(knight_index);
+        Serf *knight = game->get_serf(knight_index);
         if (send_strongest()) {
           if (knight->get_type() >= best_type) {
             best_index = knight_index;
@@ -506,7 +506,7 @@ player_t::start_attack() {
         knight_index = knight->get_next();
       }
 
-      serf_t *def_serf = b->call_attacker_out(best_index);
+      Serf *def_serf = b->call_attacker_out(best_index);
 
       target->set_under_attack();
 
@@ -540,29 +540,29 @@ player_t::start_attack() {
    to inventories. The knights can then be replaced by more experienced
    knights. */
 void
-player_t::cycle_knights() {
+Player::cycle_knights() {
   flags |= BIT(2) | BIT(4);
   knight_cycle_counter = 2400;
 }
 
 void
-player_t::increase_castle_knights_wanted() {
+Player::increase_castle_knights_wanted() {
   castle_knights_wanted = std::min(castle_knights_wanted+1, 99);
 }
 
 void
-player_t::decrease_castle_knights_wanted() {
+Player::decrease_castle_knights_wanted() {
   castle_knights_wanted = std::max(1, castle_knights_wanted-1);
 }
 
 void
-player_t::building_founded(building_t *building) {
+Player::building_founded(Building *building) {
   building->set_owner(index);
 
-  if (building->get_type() == BUILDING_CASTLE) {
+  if (building->get_type() == Building::TypeCastle) {
     flags |= BIT(0); /* Has castle */
     build |= BIT(3);
-    total_building_score += building_get_score_from_type(BUILDING_CASTLE);
+    total_building_score += building_get_score_from_type(Building::TypeCastle);
     castle_inventory = building->get_inventory()->get_index();
     this->building = building->get_index();
     create_initial_castle_serfs(building);
@@ -573,21 +573,21 @@ player_t::building_founded(building_t *building) {
 }
 
 void
-player_t::building_built(building_t *building) {
-  building_type_t type = building->get_type();
+Player::building_built(Building *building) {
+  Building::Type type = building->get_type();
   total_building_score += building_get_score_from_type(type);
   completed_building_count[type] += 1;
   incomplete_building_count[type] -= 1;
 }
 
 void
-player_t::building_captured(building_t *building) {
-  player_t *def_player = game->get_player(building->get_owner());
+Player::building_captured(Building *building) {
+  Player *def_player = game->get_player(building->get_owner());
 
   def_player->add_notification(2, building->get_position(), index);
   add_notification(3, building->get_position(), index);
 
-  if (building->get_type() == BUILDING_CASTLE) {
+  if (building->get_type() == Building::TypeCastle) {
     castle_score += 1;
   } else {
     /* Update player scores. */
@@ -610,12 +610,12 @@ player_t::building_captured(building_t *building) {
 }
 
 void
-player_t::building_demolished(building_t *building) {
+Player::building_demolished(Building *building) {
   /* Update player fields. */
   if (building->is_done()) {
     total_building_score -= building_get_score_from_type(building->get_type());
 
-    if (building->get_type() != BUILDING_CASTLE) {
+    if (building->get_type() != Building::TypeCastle) {
       completed_building_count[building->get_type()] -= 1;
     } else {
       build &= ~BIT(3);
@@ -626,14 +626,14 @@ player_t::building_demolished(building_t *building) {
   }
 }
 
-serf_t*
-player_t::spawn_serf_generic() {
-  serf_t *serf = game->create_serf();
+Serf*
+Player::spawn_serf_generic() {
+  Serf *serf = game->create_serf();
   if (serf == NULL) return NULL;
 
   serf->set_player(index);
 
-  serf_count[SERF_GENERIC] += 1;
+  serf_count[Serf::TypeGeneric] += 1;
 
   return serf;
 }
@@ -641,21 +641,21 @@ player_t::spawn_serf_generic() {
 /* Spawn new serf. Returns 0 on success.
  The serf_t object and inventory are returned if non-NULL. */
 int
-player_t::spawn_serf(serf_t **serf, inventory_t **inventory, bool want_knight) {
+Player::spawn_serf(Serf **serf, Inventory **inventory, bool want_knight) {
   if (!can_spawn()) return -1;
 
-  list_inventories_t inventories = game->get_player_inventories(this);
+  Game::ListInventories inventories = game->get_player_inventories(this);
   if (inventories.size() < 1) {
     return -1;
   }
 
-  inventory_t *inv = NULL;
-  for (list_inventories_t::iterator i = inventories.begin();
+  Inventory *inv = NULL;
+  for (Game::ListInventories::iterator i = inventories.begin();
        i != inventories.end(); ++i) {
-    inventory_t *loop_inv = *i;
-    if (loop_inv->get_serf_mode() == mode_in) {
-      if (want_knight && (loop_inv->get_count_of(RESOURCE_SWORD) == 0 ||
-                          loop_inv->get_count_of(RESOURCE_SHIELD) == 0)) {
+    Inventory *loop_inv = *i;
+    if (loop_inv->get_serf_mode() == Inventory::ModeIn) {
+      if (want_knight && (loop_inv->get_count_of(Resource::TypeSword) == 0 ||
+                          loop_inv->get_count_of(Resource::TypeShield) == 0)) {
         continue;
       } else if (loop_inv->free_serf_count() == 0) {
         inv = loop_inv;
@@ -675,7 +675,7 @@ player_t::spawn_serf(serf_t **serf, inventory_t **inventory, bool want_knight) {
     }
   }
 
-  serf_t *s = inv->spawn_serf_generic();
+  Serf *s = inv->spawn_serf_generic();
   if (s == NULL) {
     return -1;
   }
@@ -687,7 +687,7 @@ player_t::spawn_serf(serf_t **serf, inventory_t **inventory, bool want_knight) {
 }
 
 bool
-player_t::tick_send_generic_delay() {
+Player::tick_send_generic_delay() {
   send_generic_delay -= 1;
   if (send_generic_delay < 0) {
     send_generic_delay = 5;
@@ -697,7 +697,7 @@ player_t::tick_send_generic_delay() {
 }
 
 bool
-player_t::tick_send_knight_delay() {
+Player::tick_send_knight_delay() {
   send_knight_delay -= 1;
   if (send_knight_delay < 0) {
     send_knight_delay = 5;
@@ -706,29 +706,29 @@ player_t::tick_send_knight_delay() {
   return false;
 }
 
-serf_type_t
-player_t::get_cycling_sert_type(serf_type_t type) const {
+Serf::Type
+Player::get_cycling_sert_type(Serf::Type type) const {
   if (cycling_second()) {
-    type = (serf_type_t)-((knight_cycle_counter >> 8) + 1);
+    type = (Serf::Type)-((knight_cycle_counter >> 8) + 1);
   }
   return type;
 }
 
 /* Create the initial serfs that occupies the castle. */
 void
-player_t::create_initial_castle_serfs(building_t *castle) {
+Player::create_initial_castle_serfs(Building *castle) {
   build |= BIT(2);
 
   /* Spawn serf 4 */
-  inventory_t *inventory = castle->get_inventory();
-  serf_t *serf = inventory->spawn_serf_generic();
+  Inventory *inventory = castle->get_inventory();
+  Serf *serf = inventory->spawn_serf_generic();
   if (serf == NULL) return;
-  inventory->specialize_serf(serf, SERF_TRANSPORTER_INVENTORY);
+  inventory->specialize_serf(serf, Serf::TypeTransporterInventory);
   serf->init_inventory_transporter(inventory);
 
   game->get_map()->set_serf_index(serf->get_pos(), serf->get_index());
 
-  building_t *building = game->get_building(this->building);
+  Building *building = game->get_building(this->building);
   building->set_main_serf(serf->get_index());
 
   /* Spawn generic serfs */
@@ -746,56 +746,56 @@ player_t::create_initial_castle_serfs(building_t *castle) {
   /* Spawn toolmaker */
   serf = inventory->spawn_serf_generic();
   if (serf == NULL) return;
-  inventory->specialize_serf(serf, SERF_TOOLMAKER);
+  inventory->specialize_serf(serf, Serf::TypeToolmaker);
 
   /* Spawn timberman */
   serf = inventory->spawn_serf_generic();
   if (serf == NULL) return;
-  inventory->specialize_serf(serf, SERF_LUMBERJACK);
+  inventory->specialize_serf(serf, Serf::TypeLumberjack);
 
   /* Spawn sawmiller */
   serf = inventory->spawn_serf_generic();
   if (serf == NULL) return;
-  inventory->specialize_serf(serf, SERF_SAWMILLER);
+  inventory->specialize_serf(serf, Serf::TypeSawmiller);
 
   /* Spawn stonecutter */
   serf = inventory->spawn_serf_generic();
   if (serf == NULL) return;
-  inventory->specialize_serf(serf, SERF_STONECUTTER);
+  inventory->specialize_serf(serf, Serf::TypeStonecutter);
 
   /* Spawn digger */
   serf = inventory->spawn_serf_generic();
   if (serf == NULL) return;
-  inventory->specialize_serf(serf, SERF_DIGGER);
+  inventory->specialize_serf(serf, Serf::TypeDigger);
 
   /* Spawn builder */
   serf = inventory->spawn_serf_generic();
   if (serf == NULL) return;
-  inventory->specialize_serf(serf, SERF_BUILDER);
+  inventory->specialize_serf(serf, Serf::TypeBuilder);
 
   /* Spawn fisherman */
   serf = inventory->spawn_serf_generic();
   if (serf == NULL) return;
-  inventory->specialize_serf(serf, SERF_FISHER);
+  inventory->specialize_serf(serf, Serf::TypeFisher);
 
   /* Spawn two geologists */
   for (int i = 0; i < 2; i++) {
     serf = inventory->spawn_serf_generic();
     if (serf == NULL) return;
-    inventory->specialize_serf(serf, SERF_GEOLOGIST);
+    inventory->specialize_serf(serf, Serf::TypeGeologist);
   }
 
   /* Spawn two miners */
   for (int i = 0; i < 2; i++) {
     serf = inventory->spawn_serf_generic();
     if (serf == NULL) return;
-    inventory->specialize_serf(serf, SERF_MINER);
+    inventory->specialize_serf(serf, Serf::TypeMiner);
   }
 }
 
 /* Update player game state as part of the game progression. */
 void
-player_t::update() {
+Player::update() {
   uint16_t delta = game->get_tick() - last_tick;
   last_tick = game->get_tick();
 
@@ -834,14 +834,14 @@ player_t::update() {
         spawn_serf(NULL, NULL, false);
       } else {
         /* Create knight serf */
-        serf_t *serf = NULL;
-        inventory_t *inventory = NULL;
+        Serf *serf = NULL;
+        Inventory *inventory = NULL;
         int r = spawn_serf(&serf, &inventory, true);
         if (r >= 0) {
-          if (inventory->get_count_of(RESOURCE_SWORD) != 0 &&
-              inventory->get_count_of(RESOURCE_SHIELD) != 0) {
+          if (inventory->get_count_of(Resource::TypeSword) != 0 &&
+              inventory->get_count_of(Resource::TypeShield) != 0) {
             knights_to_spawn -= 1;
-            inventory->specialize_serf(serf, SERF_KNIGHT_0);
+            inventory->specialize_serf(serf, Serf::TypeKnight0);
           }
         }
       }
@@ -851,7 +851,7 @@ player_t::update() {
   }
 
   /* Update timers */
-  timers_t::iterator it = timers.begin();
+  PosTimers::iterator it = timers.begin();
   while (it != timers.end()) {
     it->timeout -= delta;
     if (it->timeout < 0) {
@@ -866,29 +866,29 @@ player_t::update() {
 }
 
 void
-player_t::update_stats(int res) {
+Player::update_stats(int res) {
   resource_count_history[res][index] = resource_count[res];
   resource_count[res] = 0;
 }
 
 void
-player_t::update_knight_morale() {
+Player::update_knight_morale() {
   unsigned int inventory_gold = 0;
   unsigned int military_gold = 0;
 
   /* Sum gold collected in inventories */
-  list_inventories_t inventories = game->get_player_inventories(this);
-  for (list_inventories_t::iterator i = inventories.begin();
+  Game::ListInventories inventories = game->get_player_inventories(this);
+  for (Game::ListInventories::iterator i = inventories.begin();
        i != inventories.end(); ++i) {
-    inventory_t *inventory = *i;
-    inventory_gold += inventory->get_count_of(RESOURCE_GOLDBAR);
+    Inventory *inventory = *i;
+    inventory_gold += inventory->get_count_of(Resource::TypeGoldBar);
   }
 
   /* Sum gold deposited in military buildings */
-  list_buildings_t buildings = game->get_player_buildings(this);
-  for (list_buildings_t::iterator i = buildings.begin();
+  Game::ListBuildings buildings = game->get_player_buildings(this);
+  for (Game::ListBuildings::iterator i = buildings.begin();
        i != buildings.end(); ++i) {
-    building_t *building = *i;
+    Building *building = *i;
     military_gold += building->military_gold_count();
   }
 
@@ -946,44 +946,44 @@ player_t::update_knight_morale() {
 
 /* Calculate condensed score from military score and knight morale. */
 int
-player_t::get_military_score() const {
+Player::get_military_score() const {
   return (2048 + (knight_morale >> 1)) * (total_military_score << 6);
 }
 
 int
-player_t::get_score() const {
+Player::get_score() const {
   int mil_score = get_military_score();
   return total_building_score + ((total_land_area + mil_score) >> 4);
 }
 
 resource_map_t
-player_t::get_stats_resources() {
+Player::get_stats_resources() {
   resource_map_t resources;
 
-  list_inventories_t invs = game->get_player_inventories(this);
+  Game::ListInventories invs = game->get_player_inventories(this);
 
   /* Sum up resources of all inventories. */
-  for (list_inventories_t::iterator i = invs.begin(); i != invs.end(); ++i) {
-    inventory_t *inventory = *i;
+  for (Game::ListInventories::iterator i = invs.begin(); i != invs.end(); ++i) {
+    Inventory *inventory = *i;
     for (int j = 0; j < 26; j++) {
-      resources[(resource_type_t)j] +=
-                                    inventory->get_count_of((resource_type_t)j);
+      resources[(Resource::Type)j] +=
+                                     inventory->get_count_of((Resource::Type)j);
     }
   }
 
   return resources;
 }
 
-serf_map_t
-player_t::get_stats_serfs_idle() {
-  serf_map_t res;
+Serf::SerfMap
+Player::get_stats_serfs_idle() {
+  Serf::SerfMap res;
 
-  list_serfs_t serfs = game->get_player_serfs(this);
+  Game::ListSerfs serfs = game->get_player_serfs(this);
 
   /* Sum up all existing serfs. */
-  for (list_serfs_t::iterator i = serfs.begin(); i != serfs.end(); ++i) {
-    serf_t *serf = *i;
-    if (serf->get_state() == SERF_STATE_IDLE_IN_STOCK) {
+  for (Game::ListSerfs::iterator i = serfs.begin(); i != serfs.end(); ++i) {
+    Serf *serf = *i;
+    if (serf->get_state() == Serf::StateIdleInStock) {
       res[serf->get_type()] += 1;
     }
   }
@@ -991,18 +991,18 @@ player_t::get_stats_serfs_idle() {
   return res;
 }
 
-serf_map_t
-player_t::get_stats_serfs_potential() {
-  serf_map_t res;
+Serf::SerfMap
+Player::get_stats_serfs_potential() {
+  Serf::SerfMap res;
 
-  list_inventories_t invs = game->get_player_inventories(this);
+  Game::ListInventories invs = game->get_player_inventories(this);
 
   /* Sum up potential serfs of all inventories. */
-  for (list_inventories_t::iterator i = invs.begin(); i != invs.end(); ++i) {
-    inventory_t *inventory = *i;
+  for (Game::ListInventories::iterator i = invs.begin(); i != invs.end(); ++i) {
+    Inventory *inventory = *i;
     if (inventory->free_serf_count() > 0) {
       for (int i = 0; i < 27; i++) {
-        res[(serf_type_t)i] += inventory->serf_potencial_count((serf_type_t)i);
+        res[(Serf::Type)i] += inventory->serf_potencial_count((Serf::Type)i);
       }
     }
   }
@@ -1010,8 +1010,8 @@ player_t::get_stats_serfs_potential() {
   return res;
 }
 
-save_reader_binary_t&
-operator >> (save_reader_binary_t &reader, player_t &player)  {
+SaveReaderBinary&
+operator >> (SaveReaderBinary &reader, Player &player)  {
   const int default_player_colors[] = {
     64, 72, 68, 76
   };
@@ -1176,8 +1176,8 @@ operator >> (save_reader_binary_t &reader, player_t &player)  {
   return reader;
 }
 
-save_reader_text_t&
-operator >> (save_reader_text_t &reader, player_t &player) {
+SaveReaderText&
+operator >> (SaveReaderText &reader, Player &player) {
   reader.value("flags") >> player.flags;
   reader.value("build") >> player.build;
   reader.value("color") >> player.color;
@@ -1239,8 +1239,8 @@ operator >> (save_reader_text_t &reader, player_t &player) {
   return reader;
 }
 
-save_writer_text_t&
-operator << (save_writer_text_t &writer, player_t &player) {
+SaveWriterText&
+operator << (SaveWriterText &writer, Player &player) {
   writer.value("flags") << player.flags;
   writer.value("build") << player.build;
   writer.value("color") << player.color;

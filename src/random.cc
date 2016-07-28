@@ -33,7 +33,7 @@
 # include <cstdint>
 #endif
 
-random_state_t::random_state_t() {
+Random::Random() {
   srand((unsigned int)time(NULL));
   state[0] = std::rand();
   state[1] = std::rand();
@@ -41,19 +41,19 @@ random_state_t::random_state_t() {
   random();
 }
 
-random_state_t::random_state_t(const uint16_t &value) {
+Random::Random(const uint16_t &value) {
   state[0] = value;
   state[1] = value;
   state[2] = value;
 }
 
-random_state_t::random_state_t(const random_state_t &random_state) {
+Random::Random(const Random &random_state) {
   state[0] = random_state.state[0];
   state[1] = random_state.state[1];
   state[2] = random_state.state[2];
 }
 
-random_state_t::random_state_t(const std::string &string) {
+Random::Random(const std::string &string) {
   uint64_t tmp = 0;
 
   for (int i = 15; i >= 0; i--) {
@@ -69,15 +69,14 @@ random_state_t::random_state_t(const std::string &string) {
   state[2] = tmp & 0xFFFF;
 }
 
-random_state_t::random_state_t(uint16_t base_0,
-                               uint16_t base_1,
-                               uint16_t base_2) {
+Random::Random(uint16_t base_0, uint16_t base_1, uint16_t base_2) {
   state[0] = base_0;
   state[1] = base_1;
   state[2] = base_2;
 }
 
-uint16_t random_state_t::random() {
+uint16_t
+Random::random() {
   uint16_t *rnd = state;
   uint16_t r = (rnd[0] + rnd[1]) ^ rnd[2];
   rnd[2] += rnd[1];
@@ -89,7 +88,7 @@ uint16_t random_state_t::random() {
   return r;
 }
 
-random_state_t::operator std::string() const {
+Random::operator std::string() const {
   uint64_t tmp0 = state[0];
   uint64_t tmp1 = state[1];
   uint64_t tmp2 = state[2];
@@ -110,8 +109,8 @@ random_state_t::operator std::string() const {
   return ss.str();
 }
 
-random_state_t&
-operator^=(random_state_t& left, const random_state_t& right) {  // NOLINT
+Random&
+operator^=(Random& left, const Random& right) {  // NOLINT
   left.state[0] ^= right.state[0];
   left.state[1] ^= right.state[1];
   left.state[2] ^= right.state[2];

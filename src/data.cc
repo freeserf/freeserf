@@ -32,14 +32,15 @@
 #endif
 
 
-data_t *data_t::instance = NULL;
+Data *
+Data::instance = NULL;
 
-data_t::data_t() {
+Data::Data() {
   data_source = NULL;
   instance = this;
 }
 
-data_t::~data_t() {
+Data::~Data() {
   if (data_source != NULL) {
     delete data_source;
     data_source = NULL;
@@ -48,17 +49,17 @@ data_t::~data_t() {
   instance = NULL;
 }
 
-data_t *
-data_t::get_instance() {
+Data *
+Data::get_instance() {
   if (instance == NULL) {
-    instance = new data_t();
+    instance = new Data();
   }
 
   return instance;
 }
 
 void
-data_t::add_to_search_paths(const char *path,
+Data::add_to_search_paths(const char *path,
                             const char *suffix) {
   if (path == NULL) {
     return;
@@ -76,10 +77,10 @@ data_t::add_to_search_paths(const char *path,
 #define MAX_DATA_PATH      1024
 
 bool
-data_t::load(const std::string &path) {
+Data::load(const std::string &path) {
   /* If it possible, prefer DOS game data. */
-  data_source_t *data_sources[] = { new data_source_dos_t(),
-                                    NULL, };
+  DataSource *data_sources[] = { new DataSourceDOS(),
+                                 NULL, };
 
   /* Use specified path. If something was specified
      but not found, this function should fail without

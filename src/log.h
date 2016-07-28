@@ -37,16 +37,24 @@
 
 #include <cstdio>
 
-/* Log levels */
-typedef enum {
-  LOG_LEVEL_VERBOSE = 0,
-  LOG_LEVEL_DEBUG,
-  LOG_LEVEL_INFO,
-  LOG_LEVEL_WARN,
-  LOG_LEVEL_ERROR,
+class Log {
+ public:
+  /* Log levels */
+  typedef enum Level {
+    LevelVerbose = 0,
+    LevelDebug,
+    LevelInfo,
+    LevelWarn,
+    LevelError,
 
-  LOG_LEVEL_MAX
-} log_level_t;
+    LevelMax
+  } Level;
+
+  static void set_file(FILE *file);
+  static void set_level(Log::Level level);
+  static void msg(Log::Level level, const char *system,
+                  const char *format, ...);
+};
 
 
 #ifdef __ANDROID__ /* Bypass normal logging on Android. */
@@ -67,16 +75,12 @@ typedef enum {
 
 #else
 
-# define LOGV(system, ...)  log_msg(LOG_LEVEL_VERBOSE, system, __VA_ARGS__)
-# define LOGD(system, ...)  log_msg(LOG_LEVEL_DEBUG, system, __VA_ARGS__)
-# define LOGI(system, ...)  log_msg(LOG_LEVEL_INFO, system, __VA_ARGS__)
-# define LOGW(system, ...)  log_msg(LOG_LEVEL_WARN, system, __VA_ARGS__)
-# define LOGE(system, ...)  log_msg(LOG_LEVEL_ERROR, system, __VA_ARGS__)
+# define LOGV(system, ...)  Log::msg(Log::LevelVerbose, system, __VA_ARGS__)
+# define LOGD(system, ...)  Log::msg(Log::LevelDebug, system, __VA_ARGS__)
+# define LOGI(system, ...)  Log::msg(Log::LevelInfo, system, __VA_ARGS__)
+# define LOGW(system, ...)  Log::msg(Log::LevelWarn, system, __VA_ARGS__)
+# define LOGE(system, ...)  Log::msg(Log::LevelError, system, __VA_ARGS__)
 
 #endif
-
-void log_set_file(FILE *file);
-void log_set_level(log_level_t level);
-void log_msg(log_level_t level, const char *system, const char *format, ...);
 
 #endif  // SRC_LOG_H_

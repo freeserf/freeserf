@@ -23,7 +23,7 @@
    rows and columns, except that the grid is actually sheared like this:
    http://mathworld.wolfram.com/Polyrhomb.html
    This is the foundational 2D grid for the map, where each vertex can be
-   identified by an integer col and row (commonly encoded as map_pos_t).
+   identified by an integer col and row (commonly encoded as MapPos).
 
    Each tile has the shape of a rhombus:
       A ______ B
@@ -163,168 +163,169 @@ init_spiral_pattern() {
 }
 
 int *
-map_t::get_spiral_pattern() {
+Map::get_spiral_pattern() {
   return spiral_pattern;
 }
 
-/* Map map_obj_t to map_space_t. */
-const map_space_t map_t::map_space_from_obj[] = {
-  MAP_SPACE_OPEN,        // MAP_OBJ_NONE = 0,
-  MAP_SPACE_FILLED,      // MAP_OBJ_FLAG,
-  MAP_SPACE_IMPASSABLE,    // MAP_OBJ_SMALL_BUILDING,
-  MAP_SPACE_IMPASSABLE,    // MAP_OBJ_LARGE_BUILDING,
-  MAP_SPACE_IMPASSABLE,    // MAP_OBJ_CASTLE,
-  MAP_SPACE_OPEN,
-  MAP_SPACE_OPEN,
-  MAP_SPACE_OPEN,
+/* Map Object to Space. */
+const Map::Space
+Map::map_space_from_obj[] = {
+  SpaceOpen,        // ObjectNone = 0,
+  SpaceFilled,      // ObjectFlag,
+  SpaceImpassable,    // ObjectSmallBuilding,
+  SpaceImpassable,    // ObjectLargeBuilding,
+  SpaceImpassable,    // ObjectCastle,
+  SpaceOpen,
+  SpaceOpen,
+  SpaceOpen,
 
-  MAP_SPACE_FILLED,      // MAP_OBJ_TREE_0 = 8,
-  MAP_SPACE_FILLED,      // MAP_OBJ_TREE_1,
-  MAP_SPACE_FILLED,      // MAP_OBJ_TREE_2, /* 10 */
-  MAP_SPACE_FILLED,      // MAP_OBJ_TREE_3,
-  MAP_SPACE_FILLED,      // MAP_OBJ_TREE_4,
-  MAP_SPACE_FILLED,      // MAP_OBJ_TREE_5,
-  MAP_SPACE_FILLED,      // MAP_OBJ_TREE_6,
-  MAP_SPACE_FILLED,      // MAP_OBJ_TREE_7, /* 15 */
+  SpaceFilled,      // ObjectTree0 = 8,
+  SpaceFilled,      // ObjectTree1,
+  SpaceFilled,      // ObjectTree2, /* 10 */
+  SpaceFilled,      // ObjectTree3,
+  SpaceFilled,      // ObjectTree4,
+  SpaceFilled,      // ObjectTree5,
+  SpaceFilled,      // ObjectTree6,
+  SpaceFilled,      // ObjectTree7, /* 15 */
 
-  MAP_SPACE_FILLED,      // MAP_OBJ_PINE_0,
-  MAP_SPACE_FILLED,      // MAP_OBJ_PINE_1,
-  MAP_SPACE_FILLED,      // MAP_OBJ_PINE_2,
-  MAP_SPACE_FILLED,      // MAP_OBJ_PINE_3,
-  MAP_SPACE_FILLED,      // MAP_OBJ_PINE_4, /* 20 */
-  MAP_SPACE_FILLED,      // MAP_OBJ_PINE_5,
-  MAP_SPACE_FILLED,      // MAP_OBJ_PINE_6,
-  MAP_SPACE_FILLED,      // MAP_OBJ_PINE_7,
+  SpaceFilled,      // ObjectPine0,
+  SpaceFilled,      // ObjectPine1,
+  SpaceFilled,      // ObjectPine2,
+  SpaceFilled,      // ObjectPine3,
+  SpaceFilled,      // ObjectPine4, /* 20 */
+  SpaceFilled,      // ObjectPine5,
+  SpaceFilled,      // ObjectPine6,
+  SpaceFilled,      // ObjectPine7,
 
-  MAP_SPACE_FILLED,      // MAP_OBJ_PALM_0,
-  MAP_SPACE_FILLED,      // MAP_OBJ_PALM_1, /* 25 */
-  MAP_SPACE_FILLED,      // MAP_OBJ_PALM_2,
-  MAP_SPACE_FILLED,      // MAP_OBJ_PALM_3,
+  SpaceFilled,      // ObjectPalm0,
+  SpaceFilled,      // ObjectPalm1, /* 25 */
+  SpaceFilled,      // ObjectPalm2,
+  SpaceFilled,      // ObjectPalm3,
 
-  MAP_SPACE_IMPASSABLE,    // MAP_OBJ_WATER_TREE_0,
-  MAP_SPACE_IMPASSABLE,    // MAP_OBJ_WATER_TREE_1,
-  MAP_SPACE_IMPASSABLE,    // MAP_OBJ_WATER_TREE_2, /* 30 */
-  MAP_SPACE_IMPASSABLE,    // MAP_OBJ_WATER_TREE_3,
-  MAP_SPACE_OPEN,
-  MAP_SPACE_OPEN,
-  MAP_SPACE_OPEN,
-  MAP_SPACE_OPEN,
-  MAP_SPACE_OPEN,
-  MAP_SPACE_OPEN,
-  MAP_SPACE_OPEN,
-  MAP_SPACE_OPEN,
-  MAP_SPACE_OPEN,
-  MAP_SPACE_OPEN,
-  MAP_SPACE_OPEN,
-  MAP_SPACE_OPEN,
-  MAP_SPACE_OPEN,
-  MAP_SPACE_OPEN,
-  MAP_SPACE_OPEN,
-  MAP_SPACE_OPEN,
-  MAP_SPACE_OPEN,
-  MAP_SPACE_OPEN,
-  MAP_SPACE_OPEN,
-  MAP_SPACE_OPEN,
-  MAP_SPACE_OPEN,
-  MAP_SPACE_OPEN,
-  MAP_SPACE_OPEN,
-  MAP_SPACE_OPEN,
-  MAP_SPACE_OPEN,
-  MAP_SPACE_OPEN,
-  MAP_SPACE_OPEN,
-  MAP_SPACE_OPEN,
-  MAP_SPACE_OPEN,
-  MAP_SPACE_OPEN,
-  MAP_SPACE_OPEN,
-  MAP_SPACE_OPEN,
-  MAP_SPACE_OPEN,
-  MAP_SPACE_OPEN,
-  MAP_SPACE_OPEN,
-  MAP_SPACE_OPEN,
-  MAP_SPACE_OPEN,
-  MAP_SPACE_OPEN,
-  MAP_SPACE_OPEN,
-  MAP_SPACE_OPEN,
+  SpaceImpassable,    // ObjectWaterTree0,
+  SpaceImpassable,    // ObjectWaterTree1,
+  SpaceImpassable,    // ObjectWaterTree2, /* 30 */
+  SpaceImpassable,    // ObjectWaterTree3,
+  SpaceOpen,
+  SpaceOpen,
+  SpaceOpen,
+  SpaceOpen,
+  SpaceOpen,
+  SpaceOpen,
+  SpaceOpen,
+  SpaceOpen,
+  SpaceOpen,
+  SpaceOpen,
+  SpaceOpen,
+  SpaceOpen,
+  SpaceOpen,
+  SpaceOpen,
+  SpaceOpen,
+  SpaceOpen,
+  SpaceOpen,
+  SpaceOpen,
+  SpaceOpen,
+  SpaceOpen,
+  SpaceOpen,
+  SpaceOpen,
+  SpaceOpen,
+  SpaceOpen,
+  SpaceOpen,
+  SpaceOpen,
+  SpaceOpen,
+  SpaceOpen,
+  SpaceOpen,
+  SpaceOpen,
+  SpaceOpen,
+  SpaceOpen,
+  SpaceOpen,
+  SpaceOpen,
+  SpaceOpen,
+  SpaceOpen,
+  SpaceOpen,
+  SpaceOpen,
+  SpaceOpen,
+  SpaceOpen,
 
-  MAP_SPACE_IMPASSABLE,    // MAP_OBJ_STONE_0 = 72,
-  MAP_SPACE_IMPASSABLE,    // MAP_OBJ_STONE_1,
-  MAP_SPACE_IMPASSABLE,    // MAP_OBJ_STONE_2,
-  MAP_SPACE_IMPASSABLE,    // MAP_OBJ_STONE_3, /* 75 */
-  MAP_SPACE_IMPASSABLE,    // MAP_OBJ_STONE_4,
-  MAP_SPACE_IMPASSABLE,    // MAP_OBJ_STONE_5,
-  MAP_SPACE_IMPASSABLE,    // MAP_OBJ_STONE_6,
-  MAP_SPACE_IMPASSABLE,    // MAP_OBJ_STONE_7,
+  SpaceImpassable,    // ObjectStone0 = 72,
+  SpaceImpassable,    // ObjectStone1,
+  SpaceImpassable,    // ObjectStone2,
+  SpaceImpassable,    // ObjectStone3, /* 75 */
+  SpaceImpassable,    // ObjectStone4,
+  SpaceImpassable,    // ObjectStone5,
+  SpaceImpassable,    // ObjectStone6,
+  SpaceImpassable,    // ObjectStone7,
 
-  MAP_SPACE_IMPASSABLE,    // MAP_OBJ_SANDSTONE_0, /* 80 */
-  MAP_SPACE_IMPASSABLE,    // MAP_OBJ_SANDSTONE_1,
+  SpaceImpassable,    // ObjectSandstone0, /* 80 */
+  SpaceImpassable,    // ObjectSandstone1,
 
-  MAP_SPACE_FILLED,      // MAP_OBJ_CROSS,
-  MAP_SPACE_OPEN,        // MAP_OBJ_STUB,
+  SpaceFilled,      // ObjectCross,
+  SpaceOpen,        // ObjectStub,
 
-  MAP_SPACE_OPEN,        // MAP_OBJ_STONE,
-  MAP_SPACE_OPEN,        // MAP_OBJ_SANDSTONE_3, /* 85 */
+  SpaceOpen,        // ObjectStone,
+  SpaceOpen,        // ObjectSandstone3, /* 85 */
 
-  MAP_SPACE_OPEN,        // MAP_OBJ_CADAVER_0,
-  MAP_SPACE_OPEN,        // MAP_OBJ_CADAVER_1,
+  SpaceOpen,        // ObjectCadaver0,
+  SpaceOpen,        // ObjectCadaver1,
 
-  MAP_SPACE_IMPASSABLE,    // MAP_OBJ_WATER_STONE_0,
-  MAP_SPACE_IMPASSABLE,    // MAP_OBJ_WATER_STONE_1,
+  SpaceImpassable,    // ObjectWaterStone0,
+  SpaceImpassable,    // ObjectWaterStone1,
 
-  MAP_SPACE_FILLED,      // MAP_OBJ_CACTUS_0, /* 90 */
-  MAP_SPACE_FILLED,      // MAP_OBJ_CACTUS_1,
+  SpaceFilled,      // ObjectCactus0, /* 90 */
+  SpaceFilled,      // ObjectCactus1,
 
-  MAP_SPACE_FILLED,      // MAP_OBJ_DEAD_TREE,
+  SpaceFilled,      // ObjectDeadTree,
 
-  MAP_SPACE_FILLED,      // MAP_OBJ_FELLED_PINE_0,
-  MAP_SPACE_FILLED,      // MAP_OBJ_FELLED_PINE_1,
-  MAP_SPACE_FILLED,      // MAP_OBJ_FELLED_PINE_2, /* 95 */
-  MAP_SPACE_FILLED,      // MAP_OBJ_FELLED_PINE_3,
-  MAP_SPACE_OPEN,        // MAP_OBJ_FELLED_PINE_4,
+  SpaceFilled,      // ObjectFelledPine0,
+  SpaceFilled,      // ObjectFelledPine1,
+  SpaceFilled,      // ObjectFelledPine2, /* 95 */
+  SpaceFilled,      // ObjectFelledPine3,
+  SpaceOpen,        // ObjectFelledPine4,
 
-  MAP_SPACE_FILLED,      // MAP_OBJ_FELLED_TREE_0,
-  MAP_SPACE_FILLED,      // MAP_OBJ_FELLED_TREE_1,
-  MAP_SPACE_FILLED,      // MAP_OBJ_FELLED_TREE_2, /* 100 */
-  MAP_SPACE_FILLED,      // MAP_OBJ_FELLED_TREE_3,
-  MAP_SPACE_OPEN,        // MAP_OBJ_FELLED_TREE_4,
+  SpaceFilled,      // ObjectFelledTree0,
+  SpaceFilled,      // ObjectFelledTree1,
+  SpaceFilled,      // ObjectFelledTree2, /* 100 */
+  SpaceFilled,      // ObjectFelledTree3,
+  SpaceOpen,        // ObjectFelledTree4,
 
-  MAP_SPACE_FILLED,      // MAP_OBJ_NEW_PINE,
-  MAP_SPACE_FILLED,      // MAP_OBJ_NEW_TREE,
+  SpaceFilled,      // ObjectNewPine,
+  SpaceFilled,      // ObjectNewTree,
 
-  MAP_SPACE_SEMIPASSABLE,    // MAP_OBJ_SEEDS_0, /* 105 */
-  MAP_SPACE_SEMIPASSABLE,    // MAP_OBJ_SEEDS_1,
-  MAP_SPACE_SEMIPASSABLE,    // MAP_OBJ_SEEDS_2,
-  MAP_SPACE_SEMIPASSABLE,    // MAP_OBJ_SEEDS_3,
-  MAP_SPACE_SEMIPASSABLE,    // MAP_OBJ_SEEDS_4,
-  MAP_SPACE_SEMIPASSABLE,    // MAP_OBJ_SEEDS_5, /* 110 */
-  MAP_SPACE_OPEN,        // MAP_OBJ_FIELD_EXPIRED,
+  SpaceSemipassable,    // ObjectSeeds0, /* 105 */
+  SpaceSemipassable,    // ObjectSeeds1,
+  SpaceSemipassable,    // ObjectSeeds2,
+  SpaceSemipassable,    // ObjectSeeds3,
+  SpaceSemipassable,    // ObjectSeeds4,
+  SpaceSemipassable,    // ObjectSeeds5, /* 110 */
+  SpaceOpen,        // ObjectFieldExpired,
 
-  MAP_SPACE_OPEN,        // MAP_OBJ_SIGN_LARGE_GOLD,
-  MAP_SPACE_OPEN,        // MAP_OBJ_SIGN_SMALL_GOLD,
-  MAP_SPACE_OPEN,        // MAP_OBJ_SIGN_LARGE_IRON,
-  MAP_SPACE_OPEN,        // MAP_OBJ_SIGN_SMALL_IRON, /* 115 */
-  MAP_SPACE_OPEN,        // MAP_OBJ_SIGN_LARGE_COAL,
-  MAP_SPACE_OPEN,        // MAP_OBJ_SIGN_SMALL_COAL,
-  MAP_SPACE_OPEN,        // MAP_OBJ_SIGN_LARGE_STONE,
-  MAP_SPACE_OPEN,        // MAP_OBJ_SIGN_SMALL_STONE,
+  SpaceOpen,        // ObjectSignLargeGold,
+  SpaceOpen,        // ObjectSignSmallGold,
+  SpaceOpen,        // ObjectSignLargeIron,
+  SpaceOpen,        // ObjectSignSmallIron, /* 115 */
+  SpaceOpen,        // ObjectSignLargeCoal,
+  SpaceOpen,        // ObjectSignSmallCoal,
+  SpaceOpen,        // ObjectSignLargeStone,
+  SpaceOpen,        // ObjectSignSmallStone,
 
-  MAP_SPACE_OPEN,        // MAP_OBJ_SIGN_EMPTY, /* 120 */
+  SpaceOpen,        // ObjectSignEmpty, /* 120 */
 
-  MAP_SPACE_SEMIPASSABLE,    // MAP_OBJ_FIELD_0,
-  MAP_SPACE_SEMIPASSABLE,    // MAP_OBJ_FIELD_1,
-  MAP_SPACE_SEMIPASSABLE,    // MAP_OBJ_FIELD_2,
-  MAP_SPACE_SEMIPASSABLE,    // MAP_OBJ_FIELD_3,
-  MAP_SPACE_SEMIPASSABLE,    // MAP_OBJ_FIELD_4, /* 125 */
-  MAP_SPACE_SEMIPASSABLE,    // MAP_OBJ_FIELD_5,
-  MAP_SPACE_OPEN,        // MAP_OBJ_127
+  SpaceSemipassable,    // ObjectField0,
+  SpaceSemipassable,    // ObjectField1,
+  SpaceSemipassable,    // ObjectField2,
+  SpaceSemipassable,    // ObjectField3,
+  SpaceSemipassable,    // ObjectField4, /* 125 */
+  SpaceSemipassable,    // ObjectField5,
+  SpaceOpen,        // Object127
 };
 
-map_t::map_t() {
+Map::Map() {
   tiles = NULL;
   minimap = NULL;
   spiral_pos_pattern = NULL;
 }
 
-map_t::~map_t() {
+Map::~Map() {
   if (tiles != NULL) {
     delete[] tiles;
     tiles = NULL;
@@ -342,7 +343,7 @@ map_t::~map_t() {
 }
 
 void
-map_t::init(unsigned int size) {
+Map::init(unsigned int size) {
   if (tiles != NULL) {
     delete[] tiles;
     tiles = NULL;
@@ -377,8 +378,8 @@ map_t::init(unsigned int size) {
 
 /* Return a random map position.
    Returned as map_pos_t and also as col and row if not NULL. */
-map_pos_t
-map_t::get_rnd_coord(int *col, int *row, random_state_t *rnd) {
+MapPos
+Map::get_rnd_coord(int *col, int *row, Random *rnd) {
   int c = rnd->random() & col_mask;
   int r = rnd->random() & row_mask;
 
@@ -389,13 +390,13 @@ map_t::get_rnd_coord(int *col, int *row, random_state_t *rnd) {
 
 /* Initialize global count of gold deposits. */
 void
-map_t::init_ground_gold_deposit() {
+Map::init_ground_gold_deposit() {
   int total_gold = 0;
 
   for (unsigned int y = 0; y < rows; y++) {
     for (unsigned int x = 0; x < cols; x++) {
-      map_pos_t pos_ = pos(x, y);
-      if (get_res_type(pos_) == GROUND_DEPOSIT_GOLD) {
+      MapPos pos_ = pos(x, y);
+      if (get_res_type(pos_) == MineralsGold) {
         total_gold += get_res_amount(pos_);
       }
     }
@@ -406,7 +407,7 @@ map_t::init_ground_gold_deposit() {
 
 /* Initialize minimap data. */
 void
-map_t::init_minimap() {
+Map::init_minimap() {
   static const int color_offset[] = {
     0, 85, 102, 119, 17, 17, 17, 17,
     34, 34, 34, 51, 51, 51, 68, 68
@@ -433,7 +434,7 @@ map_t::init_minimap() {
   uint8_t *mpos = minimap;
   for (unsigned int y = 0; y < rows; y++) {
     for (unsigned int x = 0; x < cols; x++) {
-      map_pos_t pos_ = pos(x, y);
+      MapPos pos_ = pos(x, y);
       int type_off = color_offset[tiles[pos_].type >> 4];
 
       pos_ = move_right(pos_);
@@ -449,7 +450,7 @@ map_t::init_minimap() {
 }
 
 uint8_t*
-map_t::get_minimap() {
+Map::get_minimap() {
   if (minimap == NULL) {
     init_minimap();
   }
@@ -459,9 +460,9 @@ map_t::get_minimap() {
 
 /* Initialize spiral_pos_pattern from spiral_pattern. */
 void
-map_t::init_spiral_pos_pattern() {
+Map::init_spiral_pos_pattern() {
   if (spiral_pos_pattern == NULL) {
-    spiral_pos_pattern = new map_pos_t[295];
+    spiral_pos_pattern = new MapPos[295];
     if (spiral_pos_pattern == NULL) abort();
   }
 
@@ -476,7 +477,7 @@ map_t::init_spiral_pos_pattern() {
 /* Set all map fields except cols/rows and col/row_size
    which must be set. */
 void
-map_t::init_dimensions() {
+Map::init_dimensions() {
   /* Initialize global lookup tables */
   init_spiral_pattern();
 
@@ -487,22 +488,22 @@ map_t::init_dimensions() {
   row_shift = col_size;
 
   /* Setup direction offsets. */
-  dirs[DIR_RIGHT] = 1 & col_mask;
-  dirs[DIR_LEFT] = -1 & col_mask;
-  dirs[DIR_DOWN] = (1 & row_mask) << row_shift;
-  dirs[DIR_UP] = (-1 & row_mask) << row_shift;
+  dirs[DirectionRight] = 1 & col_mask;
+  dirs[DirectionLeft] = -1 & col_mask;
+  dirs[DirectionDown] = (1 & row_mask) << row_shift;
+  dirs[DirectionUp] = (-1 & row_mask) << row_shift;
 
-  dirs[DIR_DOWN_RIGHT] = dirs[DIR_RIGHT] | dirs[DIR_DOWN];
-  dirs[DIR_UP_RIGHT] = dirs[DIR_RIGHT] | dirs[DIR_UP];
-  dirs[DIR_DOWN_LEFT] = dirs[DIR_LEFT] | dirs[DIR_DOWN];
-  dirs[DIR_UP_LEFT] = dirs[DIR_LEFT] | dirs[DIR_UP];
+  dirs[DirectionDownRight] = dirs[DirectionRight] | dirs[DirectionDown];
+  dirs[DirectionUpRight] = dirs[DirectionRight] | dirs[DirectionUp];
+  dirs[DirectionDownLeft] = dirs[DirectionLeft] | dirs[DirectionDown];
+  dirs[DirectionUpLeft] = dirs[DirectionLeft] | dirs[DirectionUp];
 
   /* Allocate map */
   if (tiles != NULL) {
     delete[] tiles;
     tiles = NULL;
   }
-  tiles = new map_tile_t[tile_count]();
+  tiles = new Tile[tile_count]();
   if (tiles == NULL) abort();
 
   init_spiral_pos_pattern();
@@ -510,15 +511,15 @@ map_t::init_dimensions() {
 
 /* Copy tile data from map generator into map tile data. */
 void
-map_t::init_tiles(const MapGenerator &generator) {
+Map::init_tiles(const MapGenerator &generator) {
   for (unsigned int y = 0; y < rows; y++) {
     for (unsigned int x = 0; x < cols; x++) {
-      map_pos_t pos_ = pos(x, y);
+      MapPos pos_ = pos(x, y);
       tiles[pos_].height = generator.get_height(pos_) & 0x1f;
       tiles[pos_].type = (generator.get_type_up(pos_) & 0xf) << 4 |
         (generator.get_type_down(pos_) & 0xf);
       tiles[pos_].obj = generator.get_obj(pos_) & 0x7f;
-      if (generator.get_resource_type(pos_) != GROUND_DEPOSIT_NONE) {
+      if (generator.get_resource_type(pos_) != MineralsNone) {
         tiles[pos_].resource = (generator.get_resource_type(pos_) & 7) << 5 |
           (generator.get_resource_amount(pos_) & 0x1f);
       } else {
@@ -532,14 +533,14 @@ map_t::init_tiles(const MapGenerator &generator) {
 
 /* Change the height of a map position. */
 void
-map_t::set_height(map_pos_t pos, int height) {
+Map::set_height(MapPos pos, int height) {
   tiles[pos].height = (tiles[pos].height & 0xe0) | (height & 0x1f);
 
   /* Mark landscape dirty */
-  for (int d = DIR_RIGHT; d <= DIR_UP; d++) {
+  for (int d = DirectionRight; d <= DirectionUp; d++) {
     for (change_handlers_t::iterator it = change_handlers.begin();
          it != change_handlers.end(); ++it) {
-      (*it)->changed_height(move(pos, (dir_t)d));
+      (*it)->on_height_changed(move(pos, (Direction)d));
     }
   }
 }
@@ -548,22 +549,22 @@ map_t::set_height(map_pos_t pos, int height) {
    also change this. The index should be reset to zero when a flag or
    building is removed. */
 void
-map_t::set_object(map_pos_t pos, map_obj_t obj, int index) {
+Map::set_object(MapPos pos, Object obj, int index) {
   tiles[pos].obj = (tiles[pos].obj & 0x80) | (obj & 0x7f);
   if (index >= 0) tiles[pos].obj_index = index;
 
   /* Notify about object change */
-  for (int d = DIR_RIGHT; d <= DIR_UP; d++) {
+  for (int d = DirectionRight; d <= DirectionUp; d++) {
     for (change_handlers_t::iterator it = change_handlers.begin();
          it != change_handlers.end(); ++it) {
-      (*it)->changed_object(pos);
+      (*it)->on_object_changed(pos);
     }
   }
 }
 
 /* Remove resources from the ground at a map position. */
 void
-map_t::remove_ground_deposit(map_pos_t pos, int amount) {
+Map::remove_ground_deposit(MapPos pos, int amount) {
   tiles[pos].resource -= amount;
 
   if (get_res_amount(pos) == 0) {
@@ -574,13 +575,13 @@ map_t::remove_ground_deposit(map_pos_t pos, int amount) {
 
 /* Remove fish at a map position (must be water). */
 void
-map_t::remove_fish(map_pos_t pos, int amount) {
+Map::remove_fish(MapPos pos, int amount) {
   tiles[pos].resource -= amount;
 }
 
 /* Set the index of the serf occupying map position. */
 void
-map_t::set_serf_index(map_pos_t pos, int index) {
+Map::set_serf_index(MapPos pos, int index) {
   tiles[pos].serf = index;
 
   /* TODO Mark dirty in viewport. */
@@ -588,60 +589,60 @@ map_t::set_serf_index(map_pos_t pos, int index) {
 
 /* Update public parts of the map data. */
 void
-map_t::update_public(map_pos_t pos, random_state_t *rnd) {
+Map::update_public(MapPos pos, Random *rnd) {
   /* Update other map objects */
   int r;
   switch (get_obj(pos)) {
-  case MAP_OBJ_STUB:
+  case ObjectStub:
     if ((rnd->random() & 3) == 0) {
-      set_object(pos, MAP_OBJ_NONE, -1);
+      set_object(pos, ObjectNone, -1);
     }
     break;
-  case MAP_OBJ_FELLED_PINE_0: case MAP_OBJ_FELLED_PINE_1:
-  case MAP_OBJ_FELLED_PINE_2: case MAP_OBJ_FELLED_PINE_3:
-  case MAP_OBJ_FELLED_PINE_4:
-  case MAP_OBJ_FELLED_TREE_0: case MAP_OBJ_FELLED_TREE_1:
-  case MAP_OBJ_FELLED_TREE_2: case MAP_OBJ_FELLED_TREE_3:
-  case MAP_OBJ_FELLED_TREE_4:
-    set_object(pos, MAP_OBJ_STUB, -1);
+  case ObjectFelledPine0: case ObjectFelledPine1:
+  case ObjectFelledPine2: case ObjectFelledPine3:
+  case ObjectFelledPine4:
+  case ObjectFelledTree0: case ObjectFelledTree1:
+  case ObjectFelledTree2: case ObjectFelledTree3:
+  case ObjectFelledTree4:
+    set_object(pos, ObjectStub, -1);
     break;
-  case MAP_OBJ_NEW_PINE:
+  case ObjectNewPine:
     r = rnd->random();
     if ((r & 0x300) == 0) {
-      set_object(pos, (map_obj_t)(MAP_OBJ_PINE_0 + (r & 7)), -1);
+      set_object(pos, (Object)(ObjectPine0 + (r & 7)), -1);
     }
     break;
-  case MAP_OBJ_NEW_TREE:
+  case ObjectNewTree:
     r = rnd->random();
     if ((r & 0x300) == 0) {
-      set_object(pos, (map_obj_t)(MAP_OBJ_TREE_0 + (r & 7)), -1);
+      set_object(pos, (Object)(ObjectTree0 + (r & 7)), -1);
     }
     break;
-  case MAP_OBJ_SEEDS_0: case MAP_OBJ_SEEDS_1:
-  case MAP_OBJ_SEEDS_2: case MAP_OBJ_SEEDS_3:
-  case MAP_OBJ_SEEDS_4:
-  case MAP_OBJ_FIELD_0: case MAP_OBJ_FIELD_1:
-  case MAP_OBJ_FIELD_2: case MAP_OBJ_FIELD_3:
-  case MAP_OBJ_FIELD_4:
-    set_object(pos, (map_obj_t)(get_obj(pos) + 1), -1);
+  case ObjectSeeds0: case ObjectSeeds1:
+  case ObjectSeeds2: case ObjectSeeds3:
+  case ObjectSeeds4:
+  case ObjectField0: case ObjectField1:
+  case ObjectField2: case ObjectField3:
+  case ObjectField4:
+    set_object(pos, (Object)(get_obj(pos) + 1), -1);
     break;
-  case MAP_OBJ_SEEDS_5:
-    set_object(pos, MAP_OBJ_FIELD_0, -1);
+  case ObjectSeeds5:
+    set_object(pos, ObjectField0, -1);
     break;
-  case MAP_OBJ_FIELD_EXPIRED:
-    set_object(pos, MAP_OBJ_NONE, -1);
+  case ObjectFieldExpired:
+    set_object(pos, ObjectNone, -1);
     break;
-  case MAP_OBJ_SIGN_LARGE_GOLD: case MAP_OBJ_SIGN_SMALL_GOLD:
-  case MAP_OBJ_SIGN_LARGE_IRON: case MAP_OBJ_SIGN_SMALL_IRON:
-  case MAP_OBJ_SIGN_LARGE_COAL: case MAP_OBJ_SIGN_SMALL_COAL:
-  case MAP_OBJ_SIGN_LARGE_STONE: case MAP_OBJ_SIGN_SMALL_STONE:
-  case MAP_OBJ_SIGN_EMPTY:
+  case ObjectSignLargeGold: case ObjectSignSmallGold:
+  case ObjectSignLargeIron: case ObjectSignSmallIron:
+  case ObjectSignLargeCoal: case ObjectSignSmallCoal:
+  case ObjectSignLargeStone: case ObjectSignSmallStone:
+  case ObjectSignEmpty:
     if (update_map_16_loop == 0) {
-      set_object(pos, MAP_OBJ_NONE, -1);
+      set_object(pos, ObjectNone, -1);
     }
     break;
-  case MAP_OBJ_FIELD_5:
-    set_object(pos, MAP_OBJ_FIELD_EXPIRED, -1);
+  case ObjectField5:
+    set_object(pos, ObjectFieldExpired, -1);
     break;
   default:
     break;
@@ -650,7 +651,7 @@ map_t::update_public(map_pos_t pos, random_state_t *rnd) {
 
 /* Update hidden parts of the map data. */
 void
-map_t::update_hidden(map_pos_t pos, random_state_t *rnd) {
+Map::update_hidden(MapPos pos, Random *rnd) {
   /* Update fish resources in water */
   if (is_in_water(pos) &&
       tiles[pos].resource > 0) {
@@ -662,7 +663,7 @@ map_t::update_hidden(map_pos_t pos, random_state_t *rnd) {
     }
 
     /* Move in a random direction of: right, down right, left, up left */
-    map_pos_t adj_pos = pos;
+    MapPos adj_pos = pos;
     switch ((r >> 2) & 3) {
     case 0: adj_pos = move_right(adj_pos); break;
     case 1: adj_pos = move_down_right(adj_pos); break;
@@ -681,7 +682,7 @@ map_t::update_hidden(map_pos_t pos, random_state_t *rnd) {
 
 /* Update map data as part of the game progression. */
 void
-map_t::update(unsigned int tick, random_state_t *rnd) {
+Map::update(unsigned int tick, Random *rnd) {
   uint16_t delta = tick - update_map_last_tick;
   update_map_last_tick = tick;
   update_map_counter -= delta;
@@ -692,7 +693,7 @@ map_t::update(unsigned int tick, random_state_t *rnd) {
     update_map_counter += 20;
   }
 
-  map_pos_t pos = update_map_initial_pos;
+  MapPos pos = update_map_initial_pos;
 
   for (int i = 0; i < iters; i++) {
     update_map_16_loop -= 1;
@@ -717,12 +718,12 @@ map_t::update(unsigned int tick, random_state_t *rnd) {
 /* Return non-zero if the road segment from pos in direction dir
  can be successfully constructed at the current time. */
 bool
-map_t::is_road_segment_valid(map_pos_t pos, dir_t dir) {
-  map_pos_t other_pos = move(pos, dir);
+Map::is_road_segment_valid(MapPos pos, Direction dir) {
+  MapPos other_pos = move(pos, dir);
 
-  map_obj_t obj = get_obj(other_pos);
-  if ((paths(other_pos) != 0 && obj != MAP_OBJ_FLAG) ||
-      map_t::map_space_from_obj[obj] >= MAP_SPACE_SEMIPASSABLE) {
+  Object obj = get_obj(other_pos);
+  if ((paths(other_pos) != 0 && obj != ObjectFlag) ||
+      Map::map_space_from_obj[obj] >= SpaceSemipassable) {
     return false;
   }
 
@@ -741,12 +742,12 @@ map_t::is_road_segment_valid(map_pos_t pos, dir_t dir) {
 
 /* Actually place road segments */
 bool
-map_t::place_road_segments(const road_t &road) {
-  map_pos_t pos_ = road.get_source();
-  road_t::dirs_t dirs = road.get_dirs();
-  road_t::dirs_t::const_iterator it = dirs.begin();
+Map::place_road_segments(const Road &road) {
+  MapPos pos_ = road.get_source();
+  Road::Dirs dirs = road.get_dirs();
+  Road::Dirs::const_iterator it = dirs.begin();
   for (; it != dirs.end(); ++it) {
-    dir_t rev_dir = DIR_REVERSE(*it);
+    Direction rev_dir = DIR_REVERSE(*it);
 
     if (!is_road_segment_valid(pos_, *it)) {
       /* Not valid after all. Backtrack and abort.
@@ -754,8 +755,8 @@ map_t::place_road_segments(const road_t &road) {
        does not cross itself. */
       for (; it != dirs.begin();) {
         --it;
-        dir_t rev_dir = *it;
-        dir_t dir = DIR_REVERSE(rev_dir);
+        Direction rev_dir = *it;
+        Direction dir = DIR_REVERSE(rev_dir);
 
         tiles[pos_].paths &= ~BIT(dir);
         tiles[move(pos_, dir)].paths &= ~BIT(rev_dir);
@@ -776,20 +777,20 @@ map_t::place_road_segments(const road_t &road) {
 }
 
 bool
-map_t::remove_road_backref_until_flag(map_pos_t pos_, dir_t dir) {
+Map::remove_road_backref_until_flag(MapPos pos_, Direction dir) {
   while (1) {
     pos_ = move(pos_, dir);
 
     /* Clear backreference */
     tiles[pos_].paths &= ~BIT(DIR_REVERSE(dir));
 
-    if (get_obj(pos_) == MAP_OBJ_FLAG) break;
+    if (get_obj(pos_) == ObjectFlag) break;
 
     /* Find next direction of path. */
-    dir = DIR_NONE;
-    for (int d = DIR_RIGHT; d <= DIR_UP; d++) {
+    dir = DirectionNone;
+    for (int d = DirectionRight; d <= DirectionUp; d++) {
       if (BIT_TEST(paths(pos_), d)) {
-        dir = (dir_t)d;
+        dir = (Direction)d;
         break;
       }
     }
@@ -801,22 +802,22 @@ map_t::remove_road_backref_until_flag(map_pos_t pos_, dir_t dir) {
 }
 
 bool
-map_t::remove_road_backrefs(map_pos_t pos_) {
+Map::remove_road_backrefs(MapPos pos_) {
   if (paths(pos_) == 0) return false;
 
   /* Find directions of path segments to be split. */
-  dir_t path_1_dir = DIR_NONE;
-  for (int d = DIR_RIGHT; d <= DIR_UP; d++) {
+  Direction path_1_dir = DirectionNone;
+  for (int d = DirectionRight; d <= DirectionUp; d++) {
     if (BIT_TEST(paths(pos_), d)) {
-      path_1_dir = (dir_t)d;
+      path_1_dir = (Direction)d;
       break;
     }
   }
 
-  dir_t path_2_dir = DIR_NONE;
-  for (int d = path_1_dir+1; d <= DIR_UP; d++) {
+  Direction path_2_dir = DirectionNone;
+  for (int d = path_1_dir+1; d <= DirectionUp; d++) {
     if (BIT_TEST(paths(pos_), d)) {
-      path_2_dir = (dir_t)d;
+      path_2_dir = (Direction)d;
       break;
     }
   }
@@ -829,8 +830,8 @@ map_t::remove_road_backrefs(map_pos_t pos_) {
   return true;
 }
 
-dir_t
-map_t::remove_road_segment(map_pos_t *pos, dir_t dir) {
+Direction
+Map::remove_road_segment(MapPos *pos, Direction dir) {
   /* Clear forward reference. */
   tiles[*pos].paths &= ~BIT(dir);
   *pos = move(*pos, dir);
@@ -839,10 +840,10 @@ map_t::remove_road_segment(map_pos_t *pos, dir_t dir) {
   tiles[*pos].paths &= ~BIT(DIR_REVERSE(dir));
 
   /* Find next direction of path. */
-  dir = DIR_NONE;
-  for (int d = DIR_RIGHT; d <= DIR_UP; d++) {
+  dir = DirectionNone;
+  for (int d = DirectionRight; d <= DirectionUp; d++) {
     if (BIT_TEST(paths(*pos), d)) {
-      dir = (dir_t)d;
+      dir = (Direction)d;
       break;
     }
   }
@@ -851,8 +852,8 @@ map_t::remove_road_segment(map_pos_t *pos, dir_t dir) {
 }
 
 bool
-map_t::road_segment_in_water(map_pos_t pos_, dir_t dir) {
-  if (dir > DIR_DOWN) {
+Map::road_segment_in_water(MapPos pos_, Direction dir) {
+  if (dir > DirectionDown) {
     pos_ = move(pos_, dir);
     dir = DIR_REVERSE(dir);
   }
@@ -860,21 +861,21 @@ map_t::road_segment_in_water(map_pos_t pos_, dir_t dir) {
   bool water = false;
 
   switch (dir) {
-    case DIR_RIGHT:
-      if (type_down(pos_) <= MAP_TERRAIN_WATER_3 &&
-          type_up(move_up(pos_)) <= MAP_TERRAIN_WATER_3) {
+    case DirectionRight:
+      if (type_down(pos_) <= TerrainWater3 &&
+          type_up(move_up(pos_)) <= TerrainWater3) {
         water = true;
       }
       break;
-    case DIR_DOWN_RIGHT:
-      if (type_up(pos_) <= MAP_TERRAIN_WATER_3 &&
-          type_down(pos_) <= MAP_TERRAIN_WATER_3) {
+    case DirectionDownRight:
+      if (type_up(pos_) <= TerrainWater3 &&
+          type_down(pos_) <= TerrainWater3) {
         water = true;
       }
       break;
-    case DIR_DOWN:
-      if (type_up(pos_) <= MAP_TERRAIN_WATER_3 &&
-          type_down(move_left(pos_)) <= MAP_TERRAIN_WATER_3) {
+    case DirectionDown:
+      if (type_up(pos_) <= TerrainWater3 &&
+          type_down(move_left(pos_)) <= TerrainWater3) {
         water = true;
       }
       break;
@@ -887,17 +888,17 @@ map_t::road_segment_in_water(map_pos_t pos_, dir_t dir) {
 }
 
 void
-map_t::add_change_handler(update_map_height_handler_t *handler) {
+Map::add_change_handler(Handler *handler) {
   change_handlers.push_back(handler);
 }
 
 void
-map_t::del_change_handler(update_map_height_handler_t *handler) {
+Map::del_change_handler(Handler *handler) {
   change_handlers.remove(handler);
 }
 
 bool
-map_t::types_within(map_pos_t pos, map_terrain_t low, map_terrain_t high) {
+Map::types_within(MapPos pos, Terrain low, Terrain high) {
   if ((type_up(pos) >= low &&
        type_up(pos) <= high) &&
       (type_down(pos) >= low &&
@@ -916,14 +917,14 @@ map_t::types_within(map_pos_t pos, map_terrain_t low, map_terrain_t high) {
   return false;
 }
 
-save_reader_binary_t&
-operator >> (save_reader_binary_t &reader, map_t &map) {
+SaveReaderBinary&
+operator >> (SaveReaderBinary &reader, Map &map) {
   uint8_t v8;
   uint16_t v16;
 
   for (unsigned int y = 0; y < map.rows; y++) {
     for (unsigned int x = 0; x < map.cols; x++) {
-      map_pos_t pos = map.pos(x, y);
+      MapPos pos = map.pos(x, y);
       reader >> v8;
       map.tiles[pos].paths = v8 & 0x3f;
       reader >> v8;
@@ -934,9 +935,9 @@ operator >> (save_reader_binary_t &reader, map_t &map) {
       map.tiles[pos].obj = v8 & 0x7f;
     }
     for (unsigned int x = 0; x < map.cols; x++) {
-      map_pos_t pos = map.pos(x, y);
-      if (map.get_obj(pos) >= MAP_OBJ_FLAG &&
-          map.get_obj(pos) <= MAP_OBJ_CASTLE) {
+      MapPos pos = map.pos(x, y);
+      if (map.get_obj(pos) >= Map::ObjectFlag &&
+          map.get_obj(pos) <= Map::ObjectCastle) {
         map.tiles[pos].resource = 0;
         reader >> v16;
         map.tiles[pos].obj_index = v16;
@@ -957,17 +958,17 @@ operator >> (save_reader_binary_t &reader, map_t &map) {
 
 #define SAVE_MAP_TILE_SIZE (16)
 
-save_reader_text_t&
-operator >> (save_reader_text_t &reader, map_t &map) {
+SaveReaderText&
+operator >> (SaveReaderText &reader, Map &map) {
   int x = 0;
   int y = 0;
   reader.value("pos")[0] >> x;
   reader.value("pos")[1] >> y;
-  map_pos_t pos = map.pos(x, y);
+  MapPos pos = map.pos(x, y);
 
   for (int y = 0; y < SAVE_MAP_TILE_SIZE; y++) {
     for (int x = 0; x < SAVE_MAP_TILE_SIZE; x++) {
-      map_pos_t p = map.pos_add(pos, map.pos(x, y));
+      MapPos p = map.pos_add(pos, map.pos(x, y));
       unsigned int val;
 
       reader.value("paths")[y*SAVE_MAP_TILE_SIZE+x] >> val;
@@ -999,20 +1000,20 @@ operator >> (save_reader_text_t &reader, map_t &map) {
   return reader;
 }
 
-save_writer_text_t&
-operator << (save_writer_text_t &writer, map_t &map) {
+SaveWriterText&
+operator << (SaveWriterText &writer, Map &map) {
   int i = 0;
 
   for (unsigned int ty = 0; ty < map.get_rows(); ty += SAVE_MAP_TILE_SIZE) {
     for (unsigned int tx = 0; tx < map.get_cols(); tx += SAVE_MAP_TILE_SIZE) {
-      save_writer_text_t &map_writer = writer.add_section("map", i++);
+      SaveWriterText &map_writer = writer.add_section("map", i++);
 
       map_writer.value("pos") << tx;
       map_writer.value("pos") << ty;
 
       for (int y = 0; y < SAVE_MAP_TILE_SIZE; y++) {
         for (int x = 0; x < SAVE_MAP_TILE_SIZE; x++) {
-          map_pos_t pos = map.pos(tx+x, ty+y);
+          MapPos pos = map.pos(tx+x, ty+y);
 
           map_writer.value("height") << map.get_height(pos);
           map_writer.value("type.up") << map.type_up(pos);
@@ -1036,10 +1037,10 @@ operator << (save_writer_text_t &writer, map_t &map) {
   return writer;
 }
 
-map_pos_t
-road_t::get_end(map_t *map) const {
-  map_pos_t result = begin;
-  dirs_t::const_iterator it = dirs.begin();
+MapPos
+Road::get_end(Map *map) const {
+  MapPos result = begin;
+  Dirs::const_iterator it = dirs.begin();
   for (; it != dirs.end(); ++it) {
     result = map->move(result, *it);
   }
@@ -1047,16 +1048,16 @@ road_t::get_end(map_t *map) const {
 }
 
 bool
-road_t::is_valid_extension(map_t *map, dir_t dir) const {
+Road::is_valid_extension(Map *map, Direction dir) const {
   if (is_undo(dir)) {
     return false;
   }
 
   /* Check that road does not cross itself. */
-  map_pos_t extended_end = map->move(get_end(map), dir);
-  map_pos_t pos = begin;
+  MapPos extended_end = map->move(get_end(map), dir);
+  MapPos pos = begin;
   bool valid = true;
-  dirs_t::const_iterator it = dirs.begin();
+  Dirs::const_iterator it = dirs.begin();
   for (size_t i = dirs.size(); i > 0; i--) {
     pos = map->move(pos, *it);
     if (pos == extended_end) {
@@ -1070,12 +1071,12 @@ road_t::is_valid_extension(map_t *map, dir_t dir) const {
 }
 
 bool
-road_t::is_undo(dir_t dir) const {
+Road::is_undo(Direction dir) const {
   return (dirs.size() > 0) && (dirs.back() == DIR_REVERSE(dir));
 }
 
 bool
-road_t::extand(dir_t dir) {
+Road::extand(Direction dir) {
   if (begin == bad_map_pos) {
     return false;
   }
@@ -1086,7 +1087,7 @@ road_t::extand(dir_t dir) {
 }
 
 bool
-road_t::undo() {
+Road::undo() {
   if (begin == bad_map_pos) {
     return false;
   }

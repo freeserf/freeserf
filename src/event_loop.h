@@ -24,99 +24,103 @@
 
 #include <list>
 
-typedef enum {
-  EVENT_TYPE_CLICK,
-  EVENT_TYPE_DBL_CLICK,
-  EVENT_TYPE_DRAG,
-  EVENT_KEY_PRESSED,
-  EVENT_RESIZE,
-  EVENT_UPDATE,
-  EVENT_DRAW,
-} event_type_t;
+class Event {
+ public:
+  typedef enum Type {
+    TypeClick,
+    TypeDoubleClick,
+    TypeDrag,
+    TypeKeyPressed,
+    TypeResize,
+    TypeUpdate,
+    TypeDraw,
+  } Type;
 
-typedef enum {
-  EVENT_BUTTON_LEFT = 1,
-  EVENT_BUTTON_MIDDLE,
-  EVENT_BUTTON_RIGHT
-} event_button_t;
+  typedef enum Button {
+    ButtonLeft = 1,
+    ButtonMiddle,
+    ButtonRight
+  } Button;
 
-typedef struct {
-  event_type_t type;
+ public:
+  Type type;
   int x, y;
   int dx, dy;
   void *object;
-  event_button_t button;
-} event_t;
-
-class frame_t;
-
-class timer_handler_t {
- public:
-  virtual void on_timer_fired(unsigned int id) = 0;
+  Button button;
 };
 
-class fs_timer_t {
+class Frame;
+
+class Timer {
+ public:
+  class Handler {
+   public:
+    virtual void on_timer_fired(unsigned int id) = 0;
+  };
+
  protected:
   unsigned int id;
   unsigned int interval;
-  timer_handler_t *handler;
+  Handler *handler;
 
-  fs_timer_t(unsigned int _id, unsigned int _interval,
-             timer_handler_t *_handler)
+  Timer(unsigned int _id, unsigned int _interval, Handler *_handler)
     : id(_id), interval(_interval), handler(_handler) {}
 
  public:
-  virtual ~fs_timer_t() {}
+  virtual ~Timer() {}
 
   virtual void run() = 0;
   virtual void stop() = 0;
 
-  static fs_timer_t *create(unsigned int _id, unsigned int _interval,
-                            timer_handler_t *_handler);
+  static Timer *create(unsigned int _id, unsigned int _interval,
+                       Handler *_handler);
 };
 
-class event_handler_t {
- public:
-  virtual bool handle_event(const event_t *event) = 0;
-};
-
-typedef std::list<event_handler_t*> event_handlers_t;
-
-class deferred_callee_t {
+class DeferredCallee {
  public:
   virtual void deferred_call(void *data) = 0;
 };
 
-class event_loop_t {
+class EventLoop {
+ public:
+  class Handler {
+   public:
+    virtual bool handle_event(const Event *event) = 0;
+  };
+
  protected:
-  event_handlers_t event_handlers;
-  event_handlers_t removed;
-  static event_loop_t *instance;
+  typedef std::list<Handler*> Handlers;
+
+ protected:
+  Handlers event_handlers;
+  Handlers removed;
+  static EventLoop *instance;
 
  public:
-  static event_loop_t *get_instance();
-  virtual ~event_loop_t() {}
+  static EventLoop *get_instance();
+  virtual ~EventLoop() {}
 
   virtual void run() = 0;
   virtual void quit() = 0;
-  virtual void deferred_call(deferred_callee_t *deferred_callee,
+  virtual void deferred_call(DeferredCallee *deferred_callee,
                              void *data) = 0;
 
-  void add_handler(event_handler_t *handler);
-  void del_handler(event_handler_t *handler);
+  void add_handler(Handler *handler);
+  void del_handler(Handler *handler);
 
  protected:
-  event_loop_t();
+  EventLoop();
 
-  bool notify_handlers(event_t *event);
+  bool notify_handlers(Event *event);
 
-  bool notify_click(int x, int y, event_button_t button);
-  bool notify_dbl_click(int x, int y, event_button_t button);
-  bool notify_drag(int x, int y, int dx, int dy, event_button_t button);
+  bool notify_click(int x, int y, Event::Button button);
+  bool notify_dbl_click(int x, int y, Event::Button button);
+  bool notify_drag(int x, int y, int dx, int dy, Event::Button button);
   bool notify_key_pressed(unsigned char key, unsigned char morifier);
   bool notify_resize(unsigned int width, unsigned int height);
   bool notify_update();
-  bool notify_draw(frame_t *frame);
+  bool notify_draw(Frame *frame);
 };
 
 #endif  // SRC_EVENT_LOOP_H_

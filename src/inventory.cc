@@ -37,14 +37,14 @@
 #include "src/game.h"
 #include "src/serf.h"
 
-inventory_t::inventory_t(game_t *game, unsigned int index)
-  : game_object_t(game, index) {
+Inventory::Inventory(Game *game, unsigned int index)
+  : GameObject(game, index) {
   owner = 0;
   res_dir = 0;
   flag = 0;
   building = 0;
   for (int i = 0; i < 2; i++) {
-    out_queue[i].type = RESOURCE_NONE;
+    out_queue[i].type = Resource::TypeNone;
     out_queue[i].dest = 0;
   }
   serfs_out = 0;
@@ -52,43 +52,43 @@ inventory_t::inventory_t(game_t *game, unsigned int index)
 }
 
 void
-inventory_t::push_resource(resource_type_t resource) {
+Inventory::push_resource(Resource::Type resource) {
   resources[resource] += (resources[resource] < 50000) ? 1 : 0;
 }
 
 void
-inventory_t::get_resource_from_queue(resource_type_t *res, int *dest) {
+Inventory::get_resource_from_queue(Resource::Type *res, int *dest) {
   *res = out_queue[0].type;
   *dest = out_queue[0].dest;
 
   out_queue[0].type = out_queue[1].type;
   out_queue[0].dest = out_queue[1].dest;
 
-  out_queue[1].type = RESOURCE_NONE;
+  out_queue[1].type = Resource::TypeNone;
   out_queue[1].dest = 0;
 }
 
 void
-inventory_t::add_to_queue(resource_type_t type, unsigned int dest) {
-  if (type == RESOURCE_GROUP_FOOD) {
+Inventory::add_to_queue(Resource::Type type, unsigned int dest) {
+  if (type == Resource::GroupFood) {
     /* Select the food resource with highest amount available */
-    if (resources[RESOURCE_MEAT] > resources[RESOURCE_BREAD]) {
-      if (resources[RESOURCE_MEAT] > resources[RESOURCE_FISH]) {
-        type = RESOURCE_MEAT;
+    if (resources[Resource::TypeMeat] > resources[Resource::TypeBread]) {
+      if (resources[Resource::TypeMeat] > resources[Resource::TypeFish]) {
+        type = Resource::TypeMeat;
       } else {
-        type = RESOURCE_FISH;
+        type = Resource::TypeFish;
       }
-    } else if (resources[RESOURCE_BREAD] > resources[RESOURCE_FISH]) {
-      type = RESOURCE_BREAD;
+    } else if (resources[Resource::TypeBread] > resources[Resource::TypeFish]) {
+      type = Resource::TypeBread;
     } else {
-      type = RESOURCE_FISH;
+      type = Resource::TypeFish;
     }
   }
 
   assert(resources[type] != 0);
 
   resources[type] -= 1;
-  if (out_queue[0].type == RESOURCE_NONE) {
+  if (out_queue[0].type == Resource::TypeNone) {
     out_queue[0].type = type;
     out_queue[0].dest = dest;
   } else {
@@ -98,25 +98,25 @@ inventory_t::add_to_queue(resource_type_t type, unsigned int dest) {
 }
 
 void
-inventory_t::reset_queue_for_dest(flag_t *flag) {
-  if (out_queue[1].type != RESOURCE_NONE &&
+Inventory::reset_queue_for_dest(Flag *flag) {
+  if (out_queue[1].type != Resource::TypeNone &&
       out_queue[1].dest == flag->get_index()) {
     push_resource(out_queue[1].type);
-    out_queue[1].type = RESOURCE_NONE;
+    out_queue[1].type = Resource::TypeNone;
   }
-  if (out_queue[0].type != RESOURCE_NONE &&
+  if (out_queue[0].type != Resource::TypeNone &&
       out_queue[0].dest == flag->get_index()) {
     push_resource(out_queue[0].type);
     out_queue[0].type = out_queue[1].type;
     out_queue[0].dest = out_queue[1].dest;
-    out_queue[1].type = RESOURCE_NONE;
+    out_queue[1].type = Resource::TypeNone;
   }
 }
 
 void
-inventory_t::lose_queue() {
-  for (int i = 0; i < 2 && out_queue[i].type != RESOURCE_NONE; i++) {
-    resource_type_t res = out_queue[i].type;
+Inventory::lose_queue() {
+  for (int i = 0; i < 2 && out_queue[i].type != Resource::TypeNone; i++) {
+    Resource::Type res = out_queue[i].type;
     int dest = out_queue[i].dest;
 
     game->cancel_transported_resource(res, dest);
@@ -125,7 +125,7 @@ inventory_t::lose_queue() {
 }
 
 void
-inventory_t::apply_supplies_preset(size_t supplies) {
+Inventory::apply_supplies_preset(size_t supplies) {
   const int supplies_template_0[] = {  0,  0,  0,  0,  0,  0,  0,   7,  0,
                                        2,  0,   0,  0,  0,  0,  1,  6,  1,
                                        0,  0,  1,  2,  3,  0,  10,  10 };
@@ -169,39 +169,39 @@ inventory_t::apply_supplies_preset(size_t supplies) {
     int t1 = template_1[i];
     size_t n = (template_2[i] - template_1[i]) * (supplies * 6554);
     if (n >= 0x8000) t1 += 1;
-    resources[(resource_type_t)i] = t1 + (n >> 16);
+    resources[(Resource::Type)i] = t1 + (n >> 16);
   }
 }
 
-serf_t*
-inventory_t::call_transporter(bool water) {
-  serf_t *serf = NULL;
+Serf*
+Inventory::call_transporter(bool water) {
+  Serf *serf = NULL;
 
   if (water) {
-    if (serfs[SERF_SAILOR] != 0) {
-      serf = game->get_serf(serfs[SERF_SAILOR]);
-      serfs[SERF_SAILOR] = 0;
+    if (serfs[Serf::TypeSailor] != 0) {
+      serf = game->get_serf(serfs[Serf::TypeSailor]);
+      serfs[Serf::TypeSailor] = 0;
     } else {
-      if ((serfs[SERF_GENERIC] != 0) &&
-          (resources[RESOURCE_BOAT] > 0)) {
-        serf = game->get_serf(serfs[SERF_GENERIC]);
-        serfs[SERF_GENERIC] = 0;
-        resources[RESOURCE_BOAT]--;
-        serf->set_type(SERF_SAILOR);
+      if ((serfs[Serf::TypeGeneric] != 0) &&
+          (resources[Resource::TypeBoat] > 0)) {
+        serf = game->get_serf(serfs[Serf::TypeGeneric]);
+        serfs[Serf::TypeGeneric] = 0;
+        resources[Resource::TypeBoat]--;
+        serf->set_type(Serf::TypeSailor);
         generic_count -= 1;
       } else {
         return NULL;
       }
     }
   } else {
-    if (serfs[SERF_TRANSPORTER] != 0) {
-      serf = game->get_serf(serfs[SERF_TRANSPORTER]);
-      serfs[SERF_TRANSPORTER] = 0;
+    if (serfs[Serf::TypeTransporter] != 0) {
+      serf = game->get_serf(serfs[Serf::TypeTransporter]);
+      serfs[Serf::TypeTransporter] = 0;
     } else {
-      if (serfs[SERF_GENERIC] != 0) {
-        serf = game->get_serf(serfs[SERF_GENERIC]);
-        serfs[SERF_GENERIC] = 0;
-        serf->set_type(SERF_TRANSPORTER);
+      if (serfs[Serf::TypeGeneric] != 0) {
+        serf = game->get_serf(serfs[Serf::TypeGeneric]);
+        serfs[Serf::TypeGeneric] = 0;
+        serf->set_type(Serf::TypeTransporter);
         generic_count -= 1;
       } else {
         return NULL;
@@ -215,26 +215,26 @@ inventory_t::call_transporter(bool water) {
 }
 
 bool
-inventory_t::call_out_serf(serf_t *serf) {
+Inventory::call_out_serf(Serf *serf) {
   if (serfs[serf->get_type()] != serf->get_index()) {
     return false;
   }
 
   serfs[serf->get_type()] = 0;
-  if (serf->get_type() == SERF_GENERIC) {
+  if (serf->get_type() == Serf::TypeGeneric) {
     generic_count--;
   }
   serfs_out++;
   return true;
 }
 
-serf_t*
-inventory_t::call_out_serf(serf_type_t type) {
+Serf*
+Inventory::call_out_serf(Serf::Type type) {
   if (serfs[type] == 0) {
     return NULL;
   }
 
-  serf_t *serf = game->get_serf(serfs[type]);
+  Serf *serf = game->get_serf(serfs[type]);
   if (!call_out_serf(serf)) {
     return NULL;
   }
@@ -243,7 +243,7 @@ inventory_t::call_out_serf(serf_type_t type) {
 }
 
 bool
-inventory_t::call_internal(serf_t *serf) {
+Inventory::call_internal(Serf *serf) {
   if (serfs[serf->get_type()] != serf->get_index()) {
     return false;
   }
@@ -253,89 +253,89 @@ inventory_t::call_internal(serf_t *serf) {
   return true;
 }
 
-serf_t*
-inventory_t::call_internal(serf_type_t type) {
+Serf*
+Inventory::call_internal(Serf::Type type) {
   if (serfs[type] == 0) {
     return NULL;
   }
 
-  serf_t *serf = game->get_serf(serfs[type]);
+  Serf *serf = game->get_serf(serfs[type]);
   serfs[type] = 0;
 
   return serf;
 }
 
 bool
-inventory_t::promote_serf_to_knight(serf_t *serf) {
-  if (serf->get_type() != SERF_GENERIC) {
+Inventory::promote_serf_to_knight(Serf *serf) {
+  if (serf->get_type() != Serf::TypeGeneric) {
     return false;
   }
 
-  if (resources[RESOURCE_SWORD] == 0 ||
-      resources[RESOURCE_SHIELD] == 0) {
+  if (resources[Resource::TypeSword] == 0 ||
+      resources[Resource::TypeShield] == 0) {
     return false;
   }
 
-  pop_resource(RESOURCE_SWORD);
-  pop_resource(RESOURCE_SHIELD);
+  pop_resource(Resource::TypeSword);
+  pop_resource(Resource::TypeShield);
   generic_count--;
-  serfs[SERF_GENERIC] = 0;
+  serfs[Serf::TypeGeneric] = 0;
 
-  serf->set_type(SERF_KNIGHT_0);
+  serf->set_type(Serf::TypeKnight0);
 
   return true;
 }
 
-serf_t*
-inventory_t::spawn_serf_generic() {
-  serf_t *serf = game->get_player(owner)->spawn_serf_generic();
+Serf*
+Inventory::spawn_serf_generic() {
+  Serf *serf = game->get_player(owner)->spawn_serf_generic();
 
   if (serf != NULL) {
     serf->init_generic(this);
 
     generic_count++;
-    if (serfs[SERF_GENERIC] == 0) {
-      serfs[SERF_GENERIC] = serf->get_index();
+    if (serfs[Serf::TypeGeneric] == 0) {
+      serfs[Serf::TypeGeneric] = serf->get_index();
     }
   }
 
   return serf;
 }
 
-resource_type_t res_needed[] = {
-  RESOURCE_NONE,    RESOURCE_NONE,    // SERF_TRANSPORTER = 0,
-  RESOURCE_BOAT,    RESOURCE_NONE,    // SERF_SAILOR,
-  RESOURCE_SHOVEL,  RESOURCE_NONE,    // SERF_DIGGER,
-  RESOURCE_HAMMER,  RESOURCE_NONE,    // SERF_BUILDER,
-  RESOURCE_NONE,    RESOURCE_NONE,    // SERF_TRANSPORTER_INVENTORY,
-  RESOURCE_AXE,     RESOURCE_NONE,    // SERF_LUMBERJACK,
-  RESOURCE_SAW,     RESOURCE_NONE,    // SERF_SAWMILLER,
-  RESOURCE_PICK,    RESOURCE_NONE,    // SERF_STONECUTTER,
-  RESOURCE_NONE,    RESOURCE_NONE,    // SERF_FORESTER,
-  RESOURCE_PICK,    RESOURCE_NONE,    // SERF_MINER,
-  RESOURCE_NONE,    RESOURCE_NONE,    // SERF_SMELTER,
-  RESOURCE_ROD,     RESOURCE_NONE,    // SERF_FISHER,
-  RESOURCE_NONE,    RESOURCE_NONE,    // SERF_PIGFARMER,
-  RESOURCE_CLEAVER, RESOURCE_NONE,    // SERF_BUTCHER,
-  RESOURCE_SCYTHE,  RESOURCE_NONE,    // SERF_FARMER,
-  RESOURCE_NONE,    RESOURCE_NONE,    // SERF_MILLER,
-  RESOURCE_NONE,    RESOURCE_NONE,    // SERF_BAKER,
-  RESOURCE_HAMMER,  RESOURCE_NONE,    // SERF_BOATBUILDER,
-  RESOURCE_HAMMER,  RESOURCE_SAW,     // SERF_TOOLMAKER,
-  RESOURCE_HAMMER,  RESOURCE_PINCER,  // SERF_WEAPONSMITH,
-  RESOURCE_HAMMER,  RESOURCE_NONE,    // SERF_GEOLOGIST,
-  RESOURCE_NONE,    RESOURCE_NONE,    // SERF_GENERIC,
-  RESOURCE_SWORD,   RESOURCE_SHIELD,  // SERF_KNIGHT_0,
-  RESOURCE_NONE,    RESOURCE_NONE,    // SERF_KNIGHT_1,
-  RESOURCE_NONE,    RESOURCE_NONE,    // SERF_KNIGHT_2,
-  RESOURCE_NONE,    RESOURCE_NONE,    // SERF_KNIGHT_3,
-  RESOURCE_NONE,    RESOURCE_NONE,    // SERF_KNIGHT_4,
-  RESOURCE_NONE,    RESOURCE_NONE,    // SERF_DEAD
+Resource::Type res_needed[] = {
+  Resource::TypeNone,    Resource::TypeNone,    // SERF_TRANSPORTER = 0,
+  Resource::TypeBoat,    Resource::TypeNone,    // SERF_SAILOR,
+  Resource::TypeShovel,  Resource::TypeNone,    // SERF_DIGGER,
+  Resource::TypeHammer,  Resource::TypeNone,    // SERF_BUILDER,
+  Resource::TypeNone,    Resource::TypeNone,    // SERF_TRANSPORTER_INVENTORY,
+  Resource::TypeAxe,     Resource::TypeNone,    // SERF_LUMBERJACK,
+  Resource::TypeSaw,     Resource::TypeNone,    // TypeSawmiller,
+  Resource::TypePick,    Resource::TypeNone,    // TypeStonecutter,
+  Resource::TypeNone,    Resource::TypeNone,    // TypeForester,
+  Resource::TypePick,    Resource::TypeNone,    // TypeMiner,
+  Resource::TypeNone,    Resource::TypeNone,    // TypeSmelter,
+  Resource::TypeRod,     Resource::TypeNone,    // TypeFisher,
+  Resource::TypeNone,    Resource::TypeNone,    // TypePigFarmer,
+  Resource::TypeCleaver, Resource::TypeNone,    // TypeButcher,
+  Resource::TypeScythe,  Resource::TypeNone,    // TypeFarmer,
+  Resource::TypeNone,    Resource::TypeNone,    // TypeMiller,
+  Resource::TypeNone,    Resource::TypeNone,    // TypeBaker,
+  Resource::TypeHammer,  Resource::TypeNone,    // TypeBoatBuilder,
+  Resource::TypeHammer,  Resource::TypeSaw,     // TypeToolmaker,
+  Resource::TypeHammer,  Resource::TypePincer,  // TypeWeaponSmith,
+  Resource::TypeHammer,  Resource::TypeNone,    // TypeGeologist,
+  Resource::TypeNone,    Resource::TypeNone,    // TypeGeneric,
+  Resource::TypeSword,   Resource::TypeShield,  // TypeKnight0,
+  Resource::TypeNone,    Resource::TypeNone,    // TypeKnight1,
+  Resource::TypeNone,    Resource::TypeNone,    // TypeKnight2,
+  Resource::TypeNone,    Resource::TypeNone,    // TypeKnight3,
+  Resource::TypeNone,    Resource::TypeNone,    // TypeKnight4,
+  Resource::TypeNone,    Resource::TypeNone,    // TypeDead
 };
 
 bool
-inventory_t::specialize_serf(serf_t *serf, serf_type_t type) {
-  if (serf->get_type() != SERF_GENERIC) {
+Inventory::specialize_serf(Serf *serf, Serf::Type type) {
+  if (serf->get_type() != Serf::TypeGeneric) {
     return false;
   }
 
@@ -343,24 +343,24 @@ inventory_t::specialize_serf(serf_t *serf, serf_type_t type) {
     return false;
   }
 
-  if ((res_needed[type*2] != RESOURCE_NONE)
+  if ((res_needed[type*2] != Resource::TypeNone)
       && (resources[res_needed[type*2]] == 0)) {
     return false;
   }
-  if ((res_needed[type*2+1] != RESOURCE_NONE)
+  if ((res_needed[type*2+1] != Resource::TypeNone)
       && (resources[res_needed[type*2+1]] == 0)) {
     return false;
   }
 
-  if (serfs[SERF_GENERIC] == serf->get_index()) {
-    serfs[SERF_GENERIC] = 0;
+  if (serfs[Serf::TypeGeneric] == serf->get_index()) {
+    serfs[Serf::TypeGeneric] = 0;
   }
   generic_count--;
 
-  if (res_needed[type*2] != RESOURCE_NONE) {
+  if (res_needed[type*2] != Resource::TypeNone) {
     resources[res_needed[type*2]]--;
   }
-  if (res_needed[type*2+1] != RESOURCE_NONE) {
+  if (res_needed[type*2+1] != Resource::TypeNone) {
     resources[res_needed[type*2+1]]--;
   }
 
@@ -371,13 +371,13 @@ inventory_t::specialize_serf(serf_t *serf, serf_type_t type) {
   return true;
 }
 
-serf_t*
-inventory_t::specialize_free_serf(serf_type_t type) {
-  if (serfs[SERF_GENERIC] == 0) {
+Serf*
+Inventory::specialize_free_serf(Serf::Type type) {
+  if (serfs[Serf::TypeGeneric] == 0) {
     return NULL;
   }
 
-  serf_t *serf = game->get_serf(serfs[SERF_GENERIC]);
+  Serf *serf = game->get_serf(serfs[Serf::TypeGeneric]);
 
   if (!specialize_serf(serf, type)) {
     return NULL;
@@ -387,13 +387,13 @@ inventory_t::specialize_free_serf(serf_type_t type) {
 }
 
 size_t
-inventory_t::serf_potencial_count(serf_type_t type) {
+Inventory::serf_potencial_count(Serf::Type type) {
   size_t count = generic_count;
 
-  if (res_needed[type*2] != RESOURCE_NONE) {
+  if (res_needed[type*2] != Resource::TypeNone) {
     count = std::min(count, resources[res_needed[type*2]]);
   }
-  if (res_needed[type*2+1] != RESOURCE_NONE) {
+  if (res_needed[type*2+1] != Resource::TypeNone) {
     count = std::min(count, resources[res_needed[type*2+1]]);
   }
 
@@ -401,21 +401,21 @@ inventory_t::serf_potencial_count(serf_type_t type) {
 }
 
 void
-inventory_t::serf_idle_in_stock(serf_t *serf) {
+Inventory::serf_idle_in_stock(Serf *serf) {
   serfs[serf->get_type()] = serf->get_index();
 }
 
 void
-inventory_t::knight_training(serf_t *serf, int p) {
-  serf_type_t old_type = serf->get_type();
+Inventory::knight_training(Serf *serf, int p) {
+  Serf::Type old_type = serf->get_type();
   int r = serf->train_knight(p);
   if (r == 0) serfs[old_type] = 0;
 
   serf_idle_in_stock(serf);
 }
 
-save_reader_binary_t&
-operator >> (save_reader_binary_t &reader, inventory_t &inventory) {
+SaveReaderBinary&
+operator >> (SaveReaderBinary &reader, Inventory &inventory) {
   uint8_t byte;
   reader >> byte;
   inventory.owner = byte;  // 0
@@ -429,12 +429,12 @@ operator >> (save_reader_binary_t &reader, inventory_t &inventory) {
 
   for (int j = 0; j < 26; j++) {
     reader >> word;  // 6 + 2*j
-    inventory.resources[(resource_type_t)j] = word;
+    inventory.resources[(Resource::Type)j] = word;
   }
 
   for (int j = 0; j < 2; j++) {
     reader >> byte;  // 58 + j
-    inventory.out_queue[j].type = (resource_type_t)(byte-1);
+    inventory.out_queue[j].type = (Resource::Type)(byte-1);
   }
 
   for (int j = 0; j < 2; j++) {
@@ -447,14 +447,14 @@ operator >> (save_reader_binary_t &reader, inventory_t &inventory) {
 
   for (int j = 0; j < 27; j++) {
     reader >> word;  // 66 + 2*j
-    inventory.serfs[(serf_type_t)j] = word;
+    inventory.serfs[(Serf::Type)j] = word;
   }
 
   return reader;
 }
 
-save_reader_text_t&
-operator >> (save_reader_text_t &reader, inventory_t &inventory) {
+SaveReaderText&
+operator >> (SaveReaderText &reader, Inventory &inventory) {
   reader.value("player") >> inventory.owner;
   reader.value("res_dir") >> inventory.res_dir;
   reader.value("flag") >> inventory.flag;
@@ -468,16 +468,16 @@ operator >> (save_reader_text_t &reader, inventory_t &inventory) {
   reader.value("generic_count") >> inventory.generic_count;
 
   for (int i = 0; i < 26; i++) {
-    reader.value("resources")[i] >> inventory.resources[(resource_type_t)i];
-    reader.value("serfs")[i] >> inventory.serfs[(serf_type_t)i];
+    reader.value("resources")[i] >> inventory.resources[(Resource::Type)i];
+    reader.value("serfs")[i] >> inventory.serfs[(Serf::Type)i];
   }
-  reader.value("serfs")[26] >> inventory.serfs[(serf_type_t)26];
+  reader.value("serfs")[26] >> inventory.serfs[(Serf::Type)26];
 
   return reader;
 }
 
-save_writer_text_t&
-operator << (save_writer_text_t &writer, inventory_t &inventory) {
+SaveWriterText&
+operator << (SaveWriterText &writer, Inventory &inventory) {
   writer.value("player") << inventory.owner;
   writer.value("res_dir") << inventory.res_dir;
   writer.value("flag") << inventory.flag;
@@ -491,10 +491,10 @@ operator << (save_writer_text_t &writer, inventory_t &inventory) {
   writer.value("generic_count") << inventory.generic_count;
 
   for (int i = 0; i < 26; i++) {
-    writer.value("resources") << inventory.resources[(resource_type_t)i];
-    writer.value("serfs") << inventory.serfs[(serf_type_t)i];
+    writer.value("resources") << inventory.resources[(Resource::Type)i];
+    writer.value("serfs") << inventory.serfs[(Serf::Type)i];
   }
-  writer.value("serfs") << inventory.serfs[(serf_type_t)26];
+  writer.value("serfs") << inventory.serfs[(Serf::Type)26];
 
   return writer;
 }

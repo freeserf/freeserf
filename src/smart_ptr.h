@@ -22,9 +22,9 @@
 #ifndef SRC_SMART_PTR_H_
 #define SRC_SMART_PTR_H_
 
-template <typename T> class smart_ptr_t {
+template <typename T> class SmartPtr {
  private:
-  class ref_counter_t {
+  class RefCounter {
    private:
     size_t count;
 
@@ -38,26 +38,26 @@ template <typename T> class smart_ptr_t {
     }
   };
 
-  ref_counter_t *ref_counter;
+  RefCounter *ref_counter;
   T *pointer;
 
  public:
-  smart_ptr_t() : pointer(NULL), ref_counter(NULL) {
-    ref_counter = new ref_counter_t();
+  SmartPtr() : pointer(NULL), ref_counter(NULL) {
+    ref_counter = new RefCounter();
     ref_counter->retain();
   }
 
-  explicit smart_ptr_t(T* pValue) : pointer(pValue), ref_counter(NULL) {
-    ref_counter = new ref_counter_t();
+  explicit SmartPtr(T* pValue) : pointer(pValue), ref_counter(NULL) {
+    ref_counter = new RefCounter();
     ref_counter->retain();
   }
 
-  smart_ptr_t(const smart_ptr_t<T> &smart_ptr)
+  SmartPtr(const SmartPtr<T> &smart_ptr)
     : pointer(smart_ptr.pointer), ref_counter(smart_ptr.ref_counter) {
     ref_counter->retain();
   }
 
-  virtual ~smart_ptr_t() {
+  virtual ~SmartPtr() {
     if (ref_counter->release() == 0) {
       delete pointer;
       delete ref_counter;
@@ -80,10 +80,10 @@ template <typename T> class smart_ptr_t {
     return pointer;
   }
 
-  smart_ptr_t<T>& operator = (const smart_ptr_t<T>& smart_ptr) {
+  SmartPtr<T>& operator = (const SmartPtr<T>& smart_ptr) {
     if (this != &smart_ptr) {
       T *old_pointer = NULL;
-      ref_counter_t *old_ref_counter = NULL;
+      RefCounter *old_ref_counter = NULL;
 
       if (ref_counter->release() == 0) {
         old_pointer = pointer;
@@ -105,11 +105,11 @@ template <typename T> class smart_ptr_t {
     return *this;
   }
 
-  friend bool operator==(const smart_ptr_t<T> &smart_ptr, const T *pointer) {
+  friend bool operator==(const SmartPtr<T> &smart_ptr, const T *pointer) {
     return (smart_ptr.pointer == pointer);
   }
 
-  friend bool operator!=(const smart_ptr_t<T> &smart_ptr, const T *pointer) {
+  friend bool operator!=(const SmartPtr<T> &smart_ptr, const T *pointer) {
     return !(smart_ptr.pointer == pointer);
   }
 };

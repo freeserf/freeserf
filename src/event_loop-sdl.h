@@ -24,13 +24,20 @@
 
 #include "src/event_loop.h"
 
-class event_loop_sdl_t : public event_loop_t {
+class EventLoopSDL : public EventLoop {
  public:
-  event_loop_sdl_t();
+  typedef enum EventUserType {
+    EventUserTypeStep,
+    EventUserTypeQuit,
+    EventUserTypeCall,
+  } EventUserType;
+
+ public:
+  EventLoopSDL();
 
   virtual void quit();
   virtual void run();
-  virtual void deferred_call(deferred_callee_t *deferred_callee, void *data);
+  virtual void deferred_call(DeferredCallee *deferred_callee, void *data);
 
  protected:
   void zoom(float delta);

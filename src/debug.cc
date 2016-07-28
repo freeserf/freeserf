@@ -21,19 +21,19 @@
 
 #include "src/debug.h"
 
-Freeserf_Exception::Freeserf_Exception(const std::string &description) throw() {
+ExceptionFreeserf::ExceptionFreeserf(const std::string &description) throw() {
   this->description = description;
 }
 
-Freeserf_Exception::~Freeserf_Exception() throw() {
+ExceptionFreeserf::~ExceptionFreeserf() throw() {
 }
 
 const char*
-Freeserf_Exception::what() const throw() {
+ExceptionFreeserf::what() const throw() {
   return get_description().c_str();
 }
 
 std::string
-Freeserf_Exception::get_description() const {
+ExceptionFreeserf::get_description() const {
   return "[" + get_system() + "] " + description;
 }

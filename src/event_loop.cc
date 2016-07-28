@@ -24,33 +24,35 @@
 #include <cstddef>
 #include <algorithm>
 
-event_loop_t *
-event_loop_t::instance = NULL;
+EventLoop *
+EventLoop::instance = NULL;
 
-event_loop_t::event_loop_t() {
+EventLoop::EventLoop() {
 }
 
-void event_loop_t::add_handler(event_handler_t *handler) {
+void
+EventLoop::add_handler(Handler *handler) {
   event_handlers.push_back(handler);
 }
 
-void event_loop_t::del_handler(event_handler_t *handler) {
+void
+EventLoop::del_handler(Handler *handler) {
   event_handlers.remove(handler);
   removed.push_back(handler);
 }
 
 bool
-event_loop_t::notify_handlers(event_t *event) {
+EventLoop::notify_handlers(Event *event) {
   if (event_handlers.empty()) {
     return false;
   }
 
   bool result = false;
 
-  event_handlers_t handlers = event_handlers;
-  for (event_handlers_t::iterator it = handlers.begin();
+  Handlers handlers = event_handlers;
+  for (Handlers::iterator it = handlers.begin();
        it != handlers.end(); ++it) {
-    event_handler_t *handler = *it;
+    Handler *handler = *it;
     if (std::find(removed.begin(), removed.end(), handler) == removed.end()) {
       result |= (*it)->handle_event(event);
     }
@@ -62,9 +64,9 @@ event_loop_t::notify_handlers(event_t *event) {
 }
 
 bool
-event_loop_t::notify_click(int x, int y, event_button_t button) {
-  event_t event;
-  event.type = EVENT_TYPE_CLICK;
+EventLoop::notify_click(int x, int y, Event::Button button) {
+  Event event;
+  event.type = Event::TypeClick;
   event.x = x;
   event.y = y;
   event.button = button;
@@ -72,9 +74,9 @@ event_loop_t::notify_click(int x, int y, event_button_t button) {
 }
 
 bool
-event_loop_t::notify_dbl_click(int x, int y, event_button_t button) {
-  event_t event;
-  event.type = EVENT_TYPE_DBL_CLICK;
+EventLoop::notify_dbl_click(int x, int y, Event::Button button) {
+  Event event;
+  event.type = Event::TypeDoubleClick;
   event.x = x;
   event.y = y;
   event.button = button;
@@ -82,9 +84,9 @@ event_loop_t::notify_dbl_click(int x, int y, event_button_t button) {
 }
 
 bool
-event_loop_t::notify_drag(int x, int y, int dx, int dy, event_button_t button) {
-  event_t event;
-  event.type = EVENT_TYPE_DRAG;
+EventLoop::notify_drag(int x, int y, int dx, int dy, Event::Button button) {
+  Event event;
+  event.type = Event::TypeDrag;
   event.x = x;
   event.y = y;
   event.dx = dx;
@@ -94,9 +96,9 @@ event_loop_t::notify_drag(int x, int y, int dx, int dy, event_button_t button) {
 }
 
 bool
-event_loop_t::notify_key_pressed(unsigned char key, unsigned char morifier) {
-  event_t event;
-  event.type = EVENT_KEY_PRESSED;
+EventLoop::notify_key_pressed(unsigned char key, unsigned char morifier) {
+  Event event;
+  event.type = Event::TypeKeyPressed;
   event.x = 0;
   event.y = 0;
   event.dx = key;
@@ -105,9 +107,9 @@ event_loop_t::notify_key_pressed(unsigned char key, unsigned char morifier) {
 }
 
 bool
-event_loop_t::notify_resize(unsigned int width, unsigned int height) {
-  event_t event;
-  event.type = EVENT_RESIZE;
+EventLoop::notify_resize(unsigned int width, unsigned int height) {
+  Event event;
+  event.type = Event::TypeResize;
   event.x = 0;
   event.y = 0;
   event.dx = width;
@@ -116,18 +118,18 @@ event_loop_t::notify_resize(unsigned int width, unsigned int height) {
 }
 
 bool
-event_loop_t::notify_update() {
-  event_t event;
-  event.type = EVENT_UPDATE;
+EventLoop::notify_update() {
+  Event event;
+  event.type = Event::TypeUpdate;
   event.x = 0;
   event.y = 0;
   return notify_handlers(&event);
 }
 
 bool
-event_loop_t::notify_draw(frame_t *frame) {
-  event_t event;
-  event.type = EVENT_DRAW;
+EventLoop::notify_draw(Frame *frame) {
+  Event event;
+  event.type = Event::TypeDraw;
   event.x = 0;
   event.y = 0;
   event.object = frame;

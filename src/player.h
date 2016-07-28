@@ -29,30 +29,54 @@
 #include "src/serf.h"
 #include "src/objects.h"
 
-class serf_t;
-class inventory_t;
-class building_t;
-class save_reader_binary_t;
-class save_reader_text_t;
-class save_writer_text_t;
+class Serf;
+class Inventory;
+class Building;
+class SaveReaderBinary;
+class SaveReaderText;
+class SaveWriterText;
 
-class message_t {
+class Message {
+ public:
+  typedef enum Type {
+    TypeNone = 0,
+    TypeUnderAttack = 1,
+    TypeLoseFight = 2,
+    TypeWinFight = 3,
+    TypeMineEmpty = 4,
+    TypeCallToLocation = 5,
+    TypeKnightOccupied = 6,
+    TypeNewStock = 7,
+    TypeLostLand = 8,
+    TypeLostBuildings = 9,
+    TypeEmergencyActive = 10,
+    TypeEmergencyNeutral = 11,
+    TypeFoundGold = 12,
+    TypeFoundIron = 13,
+    TypeFoundCoal = 14,
+    TypeFoundStone = 15,
+    TypeCallToMenu = 16,
+    Type30MSinceSave = 17,
+    Type1HSinceSave = 18,
+    TypeCallToStock = 19,
+  } Type;
+
  public:
   int type;
-  map_pos_t pos;
+  MapPos pos;
   unsigned int data;
 };
-typedef std::queue<message_t> messages_t;
+typedef std::queue<Message> Messages;
 
-class pos_timer_t {
+class PosTimer {
  public:
   int timeout;
-  map_pos_t pos;
+  MapPos pos;
 };
-typedef std::vector<pos_timer_t> timers_t;
+typedef std::vector<PosTimer> PosTimers;
 
-/* player_t object. Holds the game state of a player. */
-class player_t : public game_object_t {
+/* Player object. Holds the game state of a player. */
+class Player : public GameObject {
  protected:
   int tool_prio[9];
   int resource_count[26];
@@ -69,8 +93,8 @@ class player_t : public game_object_t {
   int inventory_prio[26];
   int attacking_buildings[64];
 
-  messages_t messages;
-  timers_t timers;
+  Messages messages;
+  PosTimers timers;
 
   int building;
   int castle_inventory;
@@ -140,7 +164,7 @@ class player_t : public game_object_t {
   unsigned int temp_index;
 
  public:
-  player_t(game_t *game, unsigned int index);
+  Player(Game *game, unsigned int index);
 
   void init(unsigned int number, size_t face, unsigned int color,
             size_t supplies, size_t reproduction,
@@ -180,12 +204,12 @@ class player_t : public game_object_t {
   unsigned int get_serf_count(int type) const { return serf_count[type]; }
   int get_flag_prio(int res) const { return flag_prio[res]; }
 
-  void add_notification(int type, map_pos_t pos, unsigned int data);
+  void add_notification(int type, MapPos pos, unsigned int data);
   bool has_notification();
-  message_t pop_notification();
-  message_t peek_notification();
+  Message pop_notification();
+  Message peek_notification();
 
-  void add_timer(int timeout, map_pos_t pos);
+  void add_timer(int timeout, MapPos pos);
 
   void reset_food_priority();
   void reset_planks_priority();
@@ -210,16 +234,16 @@ class player_t : public game_object_t {
   int get_gold_deposited() const { return gold_deposited; }
 
   int promote_serfs_to_knights(int number);
-  int knights_available_for_attack(map_pos_t pos);
+  int knights_available_for_attack(MapPos pos);
   void start_attack();
   void cycle_knights();
 
-  void create_initial_castle_serfs(building_t *castle);
-  serf_t *spawn_serf_generic();
-  int spawn_serf(serf_t **serf, inventory_t **inventory, bool want_knight);
+  void create_initial_castle_serfs(Building *castle);
+  Serf *spawn_serf_generic();
+  int spawn_serf(Serf **serf, Inventory **inventory, bool want_knight);
   bool tick_send_generic_delay();
   bool tick_send_knight_delay();
-  serf_type_t get_cycling_sert_type(serf_type_t type) const;
+  Serf::Type get_cycling_sert_type(Serf::Type type) const;
 
   void increase_serf_count(int type) { serf_count[type]++; }
   void decrease_serf_count(int type) { serf_count[type]--; }
@@ -228,10 +252,10 @@ class player_t : public game_object_t {
   void increase_res_count(int type) { serf_count[type]++; }
   void decrease_res_count(int type) { serf_count[type]--; }
 
-  void building_founded(building_t *building);
-  void building_built(building_t *building);
-  void building_captured(building_t *building);
-  void building_demolished(building_t *building);
+  void building_founded(Building *building);
+  void building_built(Building *building);
+  void building_captured(Building *building);
+  void building_demolished(Building *building);
   int get_completed_building_count(int type) const {
     return completed_building_count[type]; }
   int get_incomplete_building_count(int type) const {
@@ -261,15 +285,15 @@ class player_t : public game_object_t {
   void increase_military_max_gold(int val) { military_max_gold += val; }
   int get_score() const;
   size_t get_initial_supplies() const { return initial_supplies; }
-  int *get_resource_count_history(resource_type_t type) {
+  int *get_resource_count_history(Resource::Type type) {
     return resource_count_history[type]; }
   void set_player_stat_history(int mode, int index, int val) {
     player_stat_history[mode][index] = val; }
   int *get_player_stat_history(int mode) { return player_stat_history[mode]; }
 
   resource_map_t get_stats_resources();
-  serf_map_t get_stats_serfs_idle();
-  serf_map_t get_stats_serfs_potential();
+  Serf::SerfMap get_stats_serfs_idle();
+  Serf::SerfMap get_stats_serfs_potential();
 
   // Settings
   int get_serf_to_knight_rate() const { return serf_to_knight_rate; }
@@ -303,17 +327,17 @@ class player_t : public game_object_t {
   int get_wheat_mill() const { return wheat_mill; }
   void set_wheat_mill(int val) { wheat_mill = val; }
 
-  friend save_reader_binary_t&
-    operator >> (save_reader_binary_t &reader, player_t &player);
-  friend save_reader_text_t&
-    operator >> (save_reader_text_t &reader, player_t &player);
-  friend save_writer_text_t&
-    operator << (save_writer_text_t &writer, player_t &player);
+  friend SaveReaderBinary&
+    operator >> (SaveReaderBinary &reader, Player &player);
+  friend SaveReaderText&
+    operator >> (SaveReaderText &reader, Player &player);
+  friend SaveWriterText&
+    operator << (SaveWriterText &writer, Player &player);
 
  protected:
   void init_ai_values(size_t face);
 
-  int available_knights_at_pos(map_pos_t pos, int index, int dist);
+  int available_knights_at_pos(MapPos pos, int index, int dist);
 };
 
 #endif  // SRC_PLAYER_H_

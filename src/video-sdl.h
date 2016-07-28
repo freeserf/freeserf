@@ -29,34 +29,34 @@
 
 #include "src/video.h"
 
-class video_frame_t {
+class Video::Frame {
  public:
   SDL_Texture *texture;
 
-  video_frame_t() : texture(NULL) {}
+  Frame() : texture(NULL) {}
 };
 
-class video_image_t {
+class Video::Image {
  public:
   unsigned int w;
   unsigned int h;
   SDL_Texture *texture;
 
-  video_image_t() : w(0), h(0), texture(NULL) {}
+  Image() : w(0), h(0), texture(NULL) {}
 };
 
-class SDL_Exception : public Video_Exception {
+class ExceptionSDL : public ExceptionVideo {
  protected:
   std::string sdl_error;
 
  public:
-  explicit SDL_Exception(const std::string &description) throw();
-  virtual ~SDL_Exception() throw() {}
+  explicit ExceptionSDL(const std::string &description) throw();
+  virtual ~ExceptionSDL() throw() {}
 
   virtual std::string get_platform() const { return "SDL"; }
 };
 
-class video_sdl_t : public video_t {
+class VideoSDL : public Video {
  protected:
   static int bpp;
   static Uint32 Rmask;
@@ -68,39 +68,39 @@ class video_sdl_t : public video_t {
   SDL_Window *window;
   SDL_Renderer *renderer;
   SDL_Texture *screen_texture;
-  video_frame_t *screen;
+  Video::Frame *screen;
   bool fullscreen;
   SDL_Cursor *cursor;
   float zoom_factor;
 
  public:
-  video_sdl_t() throw(Video_Exception);
-  virtual ~video_sdl_t();
+  VideoSDL() throw(ExceptionVideo);
+  virtual ~VideoSDL();
 
   virtual void set_resolution(unsigned int width, unsigned int height,
-                              bool fullscreen) throw(Video_Exception);
+                              bool fullscreen) throw(ExceptionVideo);
   virtual void get_resolution(unsigned int *width, unsigned int *height);
-  virtual void set_fullscreen(bool enable) throw(Video_Exception);
+  virtual void set_fullscreen(bool enable) throw(ExceptionVideo);
   virtual bool is_fullscreen();
 
-  virtual video_frame_t *get_screen_frame();
-  virtual video_frame_t *create_frame(unsigned int width, unsigned int height);
-  virtual void destroy_frame(video_frame_t *frame);
+  virtual Video::Frame *get_screen_frame();
+  virtual Video::Frame *create_frame(unsigned int width, unsigned int height);
+  virtual void destroy_frame(Video::Frame *frame);
 
-  virtual video_image_t *create_image(void *data, unsigned int width,
-                                      unsigned int height);
-  virtual void destroy_image(video_image_t *image);
+  virtual Video::Image *create_image(void *data, unsigned int width,
+                                     unsigned int height);
+  virtual void destroy_image(Video::Image *image);
 
   virtual void warp_mouse(int x, int y);
 
-  virtual void draw_image(const video_image_t *image, int x, int y,
-                           int y_offset, video_frame_t *dest);
-  virtual void draw_frame(int dx, int dy, video_frame_t *dest, int sx, int sy,
-                          video_frame_t *src, int w, int h);
+  virtual void draw_image(const Video::Image *image, int x, int y,
+                           int y_offset, Video::Frame *dest);
+  virtual void draw_frame(int dx, int dy, Video::Frame *dest, int sx, int sy,
+                          Video::Frame *src, int w, int h);
   virtual void draw_rect(int x, int y, unsigned int width, unsigned int height,
-                         const video_color_t color, video_frame_t *dest);
+                         const Video::Color color, Video::Frame *dest);
   virtual void fill_rect(int x, int y, unsigned int width, unsigned int height,
-                         const video_color_t color, video_frame_t *dest);
+                         const Video::Color color, Video::Frame *dest);
   virtual void swap_buffers();
 
   virtual void set_cursor(void *data, unsigned int width, unsigned int height);

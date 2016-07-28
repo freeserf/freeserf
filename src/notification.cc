@@ -30,12 +30,12 @@
 #include "src/data.h"
 
 void
-notification_box_t::draw_icon(int x, int y, int sprite) {
+NotificationBox::draw_icon(int x, int y, int sprite) {
   frame->draw_sprite(8*x, y, DATA_ICON_BASE + sprite);
 }
 
 void
-notification_box_t::draw_background(int width, int height, int sprite) {
+NotificationBox::draw_background(int width, int height, int sprite) {
   for (int y = 0; y < height; y += 16) {
     for (int x = 0; x < width; x += 16) {
       frame->draw_sprite(x, y, DATA_ICON_BASE + sprite);
@@ -44,7 +44,7 @@ notification_box_t::draw_background(int width, int height, int sprite) {
 }
 
 void
-notification_box_t::draw_string(int x, int y, const std::string &str) {
+NotificationBox::draw_string(int x, int y, const std::string &str) {
   std::stringstream sin;
   sin << str;
   std::string line;
@@ -56,12 +56,12 @@ notification_box_t::draw_string(int x, int y, const std::string &str) {
 }
 
 void
-notification_box_t::draw_map_object(int x, int y, int sprite) {
+NotificationBox::draw_map_object(int x, int y, int sprite) {
   frame->draw_transp_sprite(8*x, y, DATA_MAP_OBJECT_BASE + sprite, false);
 }
 
 unsigned int
-notification_box_t::get_player_face_sprite(size_t face) {
+NotificationBox::get_player_face_sprite(size_t face) {
   if (face != 0) {
     return static_cast<unsigned int>(0x10b + face);
   }
@@ -69,8 +69,8 @@ notification_box_t::get_player_face_sprite(size_t face) {
 }
 
 void
-notification_box_t::draw_player_face(int x, int y, int player) {
-  player_t *p = interface->get_game()->get_player(player);
+NotificationBox::draw_player_face(int x, int y, int player) {
+  Player *p = interface->get_game()->get_player(player);
   frame->fill_rect(8*x, y, 48, 72, p->get_color());
   draw_icon(x+1, y+4,
     get_player_face_sprite(p->get_face()));
@@ -83,90 +83,90 @@ notification_box_t::draw_player_face(int x, int y, int player) {
 #define NOTIFICATION_SHOW_ICON 4
 #define NOTIFICATION_SHOW_MENU 5
 
-notification_view_t notification_views[] = {
-  { NOTIFICATION_UNDER_ATTACK,
+NotificationBox::NotificationView notification_views[] = {
+  { Message::TypeUnderAttack,
       NOTIFICATION_SHOW_OPPONENT,
       0,
       "Your settlement\nis under attack" },
-  { NOTIFICATION_LOST_FIGHT,
+  { Message::TypeLoseFight,
       NOTIFICATION_SHOW_OPPONENT,
       0,
       "Your knights\njust lost the\nfight" },
-  { NOTIFICATION_VICTORY_FIGHT,
+  { Message::TypeWinFight,
       NOTIFICATION_SHOW_OPPONENT,
       0,
       "You gained\na victory here" },
-  { NOTIFICATION_MINE_EMPTY,
+  { Message::TypeMineEmpty,
       NOTIFICATION_SHOW_MINE,
       0,
       "This mine hauls\nno more raw\nmaterials" },
-  { NOTIFICATION_CALL_TO_LOCATION,
+  { Message::TypeCallToLocation,
       NOTIFICATION_SHOW_MAP_OBJECT,
       0x90,
       "You wanted me\nto call you to\nthis location" },
-  { NOTIFICATION_KNIGHT_OCCUPIED,
+  { Message::TypeKnightOccupied,
       NOTIFICATION_SHOW_BUILDING,
       0,
       "A knight has\noccupied this\nnew building" },
-  { NOTIFICATION_NEW_STOCK,
+  { Message::TypeNewStock,
       NOTIFICATION_SHOW_MAP_OBJECT,
-      map_building_sprite[BUILDING_STOCK],
+      map_building_sprite[Building::TypeStock],
       "A new stock\nhas been built" },
-  { NOTIFICATION_LOST_LAND,
+  { Message::TypeLostLand,
       NOTIFICATION_SHOW_OPPONENT,
       0,
       "Because of this\nenemy building\nyou lost some\nland" },
-  { NOTIFICATION_LOST_BUILDINGS,
+  { Message::TypeLostBuildings,
       NOTIFICATION_SHOW_OPPONENT,
       0,
       "Because of this\nenemy building\nyou lost some\n"
       "land and\nsome buildings" },
-  { NOTIFICATION_EMERGENCY_ACTIVE,
+  { Message::TypeEmergencyActive,
       NOTIFICATION_SHOW_MAP_OBJECT,
-      map_building_sprite[BUILDING_CASTLE] + 1,
+      map_building_sprite[Building::TypeCastle] + 1,
       "Emergency\nprogram\nactivated" },
-  { NOTIFICATION_EMERGENCY_NEUTRAL,
+  { Message::TypeEmergencyNeutral,
       NOTIFICATION_SHOW_MAP_OBJECT,
-      map_building_sprite[BUILDING_CASTLE],
+      map_building_sprite[Building::TypeCastle],
       "Emergency\nprogram\nneutralized" },
-  { NOTIFICATION_FOUND_GOLD,
+  { Message::TypeFoundGold,
       NOTIFICATION_SHOW_ICON,
       0x2f,
       "A geologist\nhas found gold" },
-  { NOTIFICATION_FOUND_IRON,
+  { Message::TypeFoundIron,
       NOTIFICATION_SHOW_ICON,
       0x2c,
       "A geologist\nhas found iron" },
-  { NOTIFICATION_FOUND_COAL,
+  { Message::TypeFoundCoal,
       NOTIFICATION_SHOW_ICON,
       0x2e,
       "A geologist\nhas found coal" },
-  { NOTIFICATION_FOUND_STONE,
+  { Message::TypeFoundStone,
       NOTIFICATION_SHOW_ICON,
       0x2b,
       "A geologist\nhas found stone" },
-  { NOTIFICATION_CALL_TO_MENU,
+  { Message::TypeCallToMenu,
       NOTIFICATION_SHOW_MENU,
       0,
       "You wanted me\nto call you\nto this menu" },
-  { NOTIFICATION_30M_SINCE_SAVE,
+  { Message::Type30MSinceSave,
       NOTIFICATION_SHOW_ICON,
       0x5d,
       "30 min. passed\nsince the last\nsaving" },
-  { NOTIFICATION_1H_SINCE_SAVE,
+  { Message::Type1HSinceSave,
       NOTIFICATION_SHOW_ICON,
       0x5d,
       "One hour passed\nsince the last\nsaving" },
-  { NOTIFICATION_CALL_TO_STOCK,
+  { Message::TypeCallToStock,
       NOTIFICATION_SHOW_MAP_OBJECT,
-      map_building_sprite[BUILDING_STOCK],
+      map_building_sprite[Building::TypeStock],
       "You wanted me\nto call you\nto this stock" },
-  { NOTIFICATION_NONE, 0, 0, NULL }
+  { Message::TypeNone, 0, 0, NULL }
 };
 
 /* Messages boxes */
 void
-notification_box_t::draw_notification(notification_view_t *view) {
+NotificationBox::draw_notification(NotificationView *view) {
   const int map_menu_sprite[] = {
     0xe6, 0xe7, 0xe8, 0xe9,
     0xea, 0xeb, 0x12a, 0x12b
@@ -178,19 +178,19 @@ notification_box_t::draw_notification(notification_view_t *view) {
       draw_player_face(18, 8, message.data);
       break;
     case NOTIFICATION_SHOW_MINE:
-      draw_map_object(18, 8, map_building_sprite[BUILDING_STONEMINE] +
+      draw_map_object(18, 8, map_building_sprite[Building::TypeStoneMine] +
                              message.data);
       break;
     case NOTIFICATION_SHOW_BUILDING:
       switch (message.data) {
         case 0:
-          draw_map_object(18, 8, map_building_sprite[BUILDING_HUT]);
+          draw_map_object(18, 8, map_building_sprite[Building::TypeHut]);
           break;
         case 1:
-          draw_map_object(18, 8, map_building_sprite[BUILDING_TOWER]);
+          draw_map_object(18, 8, map_building_sprite[Building::TypeTower]);
           break;
         case 2:
-          draw_map_object(16, 8, map_building_sprite[BUILDING_FORTRESS]);
+          draw_map_object(16, 8, map_building_sprite[Building::TypeFortress]);
           break;
         default:
           NOT_REACHED();
@@ -212,11 +212,11 @@ notification_box_t::draw_notification(notification_view_t *view) {
 }
 
 void
-notification_box_t::internal_draw() {
+NotificationBox::internal_draw() {
   draw_background(width, height, 0x13a);
   draw_icon(14, 128, 0x120); /* Checkbox */
 
-  for (int i = 0; notification_views[i].type != NOTIFICATION_NONE; i++) {
+  for (int i = 0; notification_views[i].type != Message::TypeNone; i++) {
     if (notification_views[i].type == message.type) {
       draw_notification(&notification_views[i]);
     }
@@ -224,16 +224,17 @@ notification_box_t::internal_draw() {
 }
 
 bool
-notification_box_t::handle_click_left(int x, int y) {
+NotificationBox::handle_click_left(int x, int y) {
   set_displayed(0);
   return true;
 }
 
-notification_box_t::notification_box_t(interface_t *interface) {
-  this->interface = interface;
+NotificationBox::NotificationBox(Interface *_interface) {
+  interface = _interface;
 }
 
-void notification_box_t::show(const message_t &message) {
-  this->message = message;
+void
+NotificationBox::show(const Message &_message) {
+  message = _message;
   set_displayed(1);
 }

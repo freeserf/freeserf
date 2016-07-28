@@ -26,13 +26,13 @@
 
 #include "src/log.h"
 
-class Freeserf_Exception : public std::exception {
+class ExceptionFreeserf : public std::exception {
  protected:
   std::string description;
 
  public:
-  explicit Freeserf_Exception(const std::string &description) throw();
-  virtual ~Freeserf_Exception() throw();
+  explicit ExceptionFreeserf(const std::string &description) throw();
+  virtual ~ExceptionFreeserf() throw();
 
   virtual const char* what() const throw();
   virtual std::string get_description() const;

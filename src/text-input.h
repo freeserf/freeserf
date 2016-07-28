@@ -26,28 +26,29 @@
 
 #include "src/gui.h"
 
-class text_input_t;
+class TextInput;
 
-typedef bool (*text_input_filter_t)(const char key, text_input_t *text_input);
+class TextInput : public GuiObject {
+ public:
+  typedef bool(*Filter)(const char key, TextInput *text_input);
 
-class text_input_t : public gui_object_t {
  protected:
   std::string text;
   unsigned int max_length;
-  text_input_filter_t filter;
+  Filter filter;
   unsigned char color_focus;
   unsigned char color_text;
   unsigned char color_background;
   bool draw_focus;
 
  public:
-  text_input_t();
+  TextInput();
 
   void set_text(const char *text);
   std::string get_text();
   unsigned int get_max_length() { return max_length; }
   void set_max_length(unsigned int max_length);
-  void set_filter(text_input_filter_t filter) { this->filter = filter; }
+  void set_filter(Filter _filter) { filter = _filter; }
 
  protected:
   virtual void internal_draw();

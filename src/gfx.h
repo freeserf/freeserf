@@ -34,22 +34,20 @@
 #endif
 
 #include "src/debug.h"
+#include "src/video.h"
 
-class GFX_Exception : public Freeserf_Exception {
+class ExceptionGFX : public ExceptionFreeserf {
  public:
-  explicit GFX_Exception(const std::string &description) throw();
-  virtual ~GFX_Exception() throw();
+  explicit ExceptionGFX(const std::string &description) throw();
+  virtual ~ExceptionGFX() throw();
 
   virtual std::string get_system() const { return "graphics"; }
 };
 
-class video_t;
-class video_frame_t;
-class video_image_t;
-class sprite_t;
-class data_source_t;
+class Sprite;
+class DataSource;
 
-class image_t {
+class Image {
  protected:
   int delta_x;
   int delta_y;
@@ -57,15 +55,15 @@ class image_t {
   int offset_y;
   unsigned int width;
   unsigned int height;
-  video_t *video;
-  video_image_t *video_image;
+  Video *video;
+  Video::Image *video_image;
 
-  typedef std::map<uint64_t, image_t*> image_cache_t;
-  static image_cache_t image_cache;
+  typedef std::map<uint64_t, Image*> ImageCache;
+  static ImageCache image_cache;
 
  public:
-  image_t(video_t *video, sprite_t *sprite);
-  virtual ~image_t();
+  Image(Video *video, Sprite *sprite);
+  virtual ~Image();
 
   unsigned int get_width() const { return width; }
   unsigned int get_height() const { return height; }
@@ -77,26 +75,26 @@ class image_t {
   void set_offset(int x, int y) { offset_x = x; offset_y = y; }
   void set_delta(int x, int y) { delta_x = x; delta_y = y; }
 
-  static void cache_image(uint64_t id, image_t *image);
-  static image_t *get_cached_image(uint64_t id);
+  static void cache_image(uint64_t id, Image *image);
+  static Image *get_cached_image(uint64_t id);
   static void clear_cache();
 
-  video_image_t *get_video_image() const { return video_image; }
+  Video::Image *get_video_image() const { return video_image; }
 };
 
 /* Frame. Keeps track of a specific rectangular area of a surface.
    Multiple frames can refer to the same surface. */
-class frame_t {
+class Frame {
  protected:
-  video_t *video;
-  video_frame_t *video_frame;
+  Video *video;
+  Video::Frame *video_frame;
   bool owner;
-  data_source_t *data_source;
+  DataSource *data_source;
 
  public:
-  frame_t(video_t *video, unsigned int width, unsigned int height);
-  frame_t(video_t *video, video_frame_t *video_frame);
-  virtual ~frame_t();
+  Frame(Video *video, unsigned int width, unsigned int height);
+  Frame(Video *video, Video::Frame *video_frame);
+  virtual ~Frame();
 
   /* Sprite functions */
   void draw_sprite(int x, int y, unsigned int sprite);
@@ -122,7 +120,7 @@ class frame_t {
   void draw_number(int x, int y, unsigned char color, int shadow, int n);
 
   /* Frame functions */
-  void draw_frame(int dx, int dy, int sx, int sy, frame_t *src, int w, int h);
+  void draw_frame(int dx, int dy, int sx, int sy, Frame *src, int w, int h);
 
  protected:
   void draw_char_sprite(int x, int y, unsigned char c, unsigned char color,
@@ -131,23 +129,23 @@ class frame_t {
                           unsigned char color_off, float progress);
 };
 
-class gfx_t {
+class Graphics {
  protected:
-  static gfx_t *instance;
-  video_t *video;
+  static Graphics *instance;
+  Video *video;
 
-  gfx_t() throw(Freeserf_Exception);
+  Graphics() throw(ExceptionFreeserf);
 
  public:
-  virtual ~gfx_t();
+  virtual ~Graphics();
 
-  static gfx_t *get_instance();
+  static Graphics *get_instance();
 
   /* Frame functions */
-  frame_t *create_frame(unsigned int width, unsigned int height);
+  Frame *create_frame(unsigned int width, unsigned int height);
 
   /* Screen functions */
-  frame_t *get_screen_frame();
+  Frame *get_screen_frame();
   void set_resolution(unsigned int width, unsigned int height, bool fullscreen);
   void get_resolution(unsigned int *width, unsigned int *height);
   void set_fullscreen(bool enable);

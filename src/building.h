@@ -32,75 +32,75 @@
 /* Max number of different types of resources accepted by buildings. */
 #define BUILDING_MAX_STOCK  2
 
-typedef enum {
-  BUILDING_NONE = 0,
-  BUILDING_FISHER,
-  BUILDING_LUMBERJACK,
-  BUILDING_BOATBUILDER,
-  BUILDING_STONECUTTER,
-  BUILDING_STONEMINE,
-  BUILDING_COALMINE,
-  BUILDING_IRONMINE,
-  BUILDING_GOLDMINE,
-  BUILDING_FORESTER,
-  BUILDING_STOCK,
-  BUILDING_HUT,
-  BUILDING_FARM,
-  BUILDING_BUTCHER,
-  BUILDING_PIGFARM,
-  BUILDING_MILL,
-  BUILDING_BAKER,
-  BUILDING_SAWMILL,
-  BUILDING_STEELSMELTER,
-  BUILDING_TOOLMAKER,
-  BUILDING_WEAPONSMITH,
-  BUILDING_TOWER,
-  BUILDING_FORTRESS,
-  BUILDING_GOLDSMELTER,
-  BUILDING_CASTLE
-} building_type_t;
+class Inventory;
+class Serf;
+class SaveReaderBinary;
+class SaveReaderText;
+class SaveWriterText;
 
+class Building : public GameObject {
+ public:
+  typedef enum Type {
+    TypeNone = 0,
+    TypeFisher,
+    TypeLumberjack,
+    TypeBoatbuilder,
+    TypeStonecutter,
+    TypeStoneMine,
+    TypeCoalMine,
+    TypeIronMine,
+    TypeGoldMine,
+    TypeForester,
+    TypeStock,
+    TypeHut,
+    TypeFarm,
+    TypeButcher,
+    TypePigFarm,
+    TypeMill,
+    TypeBaker,
+    TypeSawmill,
+    TypeSteelSmelter,
+    TypeToolMaker,
+    TypeWeaponSmith,
+    TypeTower,
+    TypeFortress,
+    TypeGoldSmelter,
+    TypeCastle
+  } Type;
 
-typedef struct {
-  resource_type_t type;
-  int prio;
-  int available;
-  int requested;
-  int maximum;
-} building_stock_t;
+  typedef struct Stock {
+    Resource::Type type;
+    int prio;
+    int available;
+    int requested;
+    int maximum;
+  } Stock;
 
-class inventory_t;
-class serf_t;
-class save_reader_binary_t;
-class save_reader_text_t;
-class save_writer_text_t;
-
-class building_t : public game_object_t {
  protected:
   /* Map position of building */
-  map_pos_t pos;
+  MapPos pos;
   /* Type of building */
-  building_type_t type;
+  Type type;
   /* Flags */
   int bld;
   int serf;
   /* Index of flag connected to this building */
   int flag;
   /* Stock of this building */
-  building_stock_t stock[BUILDING_MAX_STOCK];
+  Stock stock[BUILDING_MAX_STOCK];
   unsigned int serf_index; /* Also used for burning building counter. */
   int progress;
-  union {
-    inventory_t *inventory;
+  union u {
+    Inventory *inventory;
     unsigned int tick; /* Used for burning building. */
     unsigned int level;
   } u;
 
  public:
-  building_t(game_t *game, unsigned int index);
+  Building(Game *game, unsigned int index);
 
-  map_pos_t get_position() { return pos; }
-  void set_position(map_pos_t position) { pos = position; }
+  MapPos get_position() { return pos; }
+  void set_position(MapPos position) { pos = position; }
 
   unsigned int get_flag_index() { return flag; }
   void link_flag(unsigned int flag_index) { flag = flag_index; }
@@ -114,12 +114,12 @@ class building_t : public game_object_t {
   void decrease_burning_counter(int delta) { serf_index -= delta; }
 
   /* Type of building. */
-  building_type_t get_type() { return type; }
-  void set_type(building_type_t type) { this->type = type; }
-  bool is_military() { return (type == BUILDING_HUT) ||
-                              (type == BUILDING_TOWER) ||
-                              (type == BUILDING_FORTRESS) ||
-                              (type == BUILDING_CASTLE); }
+  Type get_type() { return type; }
+  void set_type(Type type) { this->type = type; }
+  bool is_military() { return (type == TypeHut) ||
+                              (type == TypeTower) ||
+                              (type == TypeFortress) ||
+                              (type == TypeCastle); }
   /* Owning player of the building. */
   unsigned int get_owner() { return (bld & 3); }
   void set_owner(unsigned int owner) { bld = (bld & 0xfc) | owner; }
@@ -128,7 +128,7 @@ class building_t : public game_object_t {
   bool is_leveling() { return (!is_done() && progress == 0); }
   void done_build() { bld &= ~BIT(7); }
   void done_leveling() { progress = 1; }
-  map_obj_t start_building(building_type_t type);
+  Map::Object start_building(Type type);
   int get_progress() { return progress; }
   void increase_progress(int delta) { progress += delta; }
   void increase_mining() { progress = (progress << 1) & 0xffff; }
@@ -167,8 +167,8 @@ class building_t : public game_object_t {
 
   /* Building has inventory and the inventory pointer is valid. */
   bool has_inventory() { return (stock[0].requested == 0xff); }
-  inventory_t *get_inventory() { return u.inventory; }
-  void set_inventory(inventory_t *inventory) { u.inventory = inventory; }
+  Inventory *get_inventory() { return u.inventory; }
+  void set_inventory(Inventory *inventory) { u.inventory = inventory; }
 
   unsigned int get_level() { return u.level; }
   void set_level(unsigned int level) { u.level = level; }
@@ -184,21 +184,21 @@ class building_t : public game_object_t {
     return stock[0].available; }  // Planks allways in stock #0
   unsigned int military_gold_count();
 
-  void cancel_transported_resource(resource_type_t res);
+  void cancel_transported_resource(Resource::Type res);
 
-  serf_t *call_defender_out();
-  serf_t *call_attacker_out(int knight_index);
+  Serf *call_defender_out();
+  Serf *call_attacker_out(int knight_index);
 
-  bool add_requested_resource(resource_type_t res, bool fix_priority);
+  bool add_requested_resource(Resource::Type res, bool fix_priority);
   bool is_stock_active(int stock_num) { return (stock[stock_num].type > 0); }
   unsigned int get_res_count_in_stock(int stock_num) {
     return stock[stock_num].available; }
-  resource_type_t get_res_type_in_stock(int stock_num) {
+  Resource::Type get_res_type_in_stock(int stock_num) {
     return stock[stock_num].type; }
-  void stock_init(unsigned int stock_num, resource_type_t type,
+  void stock_init(unsigned int stock_num, Resource::Type type,
                   unsigned int maximum);
   void remove_stock();
-  int get_max_priority_for_resource(resource_type_t resource, int minimum = 0);
+  int get_max_priority_for_resource(Resource::Type resource, int minimum = 0);
   int get_maximum_in_stock(int stock_num) { return stock[stock_num].maximum; }
   int get_requested_in_stock(int stock_num) {
     return stock[stock_num].requested; }
@@ -206,7 +206,7 @@ class building_t : public game_object_t {
     stock[stock_num].prio = priority; }
   void set_initial_res_in_stock(int stock_num, int count) {
     stock[stock_num].available = count; }
-  void requested_resource_delivered(resource_type_t resource);
+  void requested_resource_delivered(Resource::Type resource);
   void plank_used_for_build() {
     stock[0].available -= 1; stock[0].maximum -= 1; }
   void stone_used_for_build() {
@@ -228,17 +228,17 @@ class building_t : public game_object_t {
   void requested_knight_defeat_on_walk() {
     if (!has_inventory()) stock[0].requested -= 1; }
   bool is_enough_place_for_knight();
-  bool knight_come_back_from_fight(serf_t *knight);
+  bool knight_come_back_from_fight(Serf *knight);
   void knight_occupy();
 
   void update(unsigned int tick);
 
-  friend save_reader_binary_t&
-    operator >> (save_reader_binary_t &reader, building_t &building);
-  friend save_reader_text_t&
-    operator >> (save_reader_text_t &reader, building_t &building);
-  friend save_writer_text_t&
-    operator << (save_writer_text_t &writer, building_t &building);
+  friend SaveReaderBinary&
+    operator >> (SaveReaderBinary &reader, Building &building);
+  friend SaveReaderText&
+    operator >> (SaveReaderText &reader, Building &building);
+  friend SaveWriterText&
+    operator << (SaveWriterText &writer, Building &building);
 
  private:
   void update();
@@ -247,12 +247,12 @@ class building_t : public game_object_t {
   void update_castle();
   void update_military();
 
-  bool send_serf_to_building(building_t *building, serf_type_t type,
-                             resource_type_t res1, resource_type_t res2);
+  bool send_serf_to_building(Building *building, Serf::Type type,
+                             Resource::Type res1, Resource::Type res2);
 };
 
 
-int building_get_score_from_type(building_type_t type);
+int building_get_score_from_type(Building::Type type);
 
 
 #endif  // SRC_BUILDING_H_

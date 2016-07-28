@@ -27,9 +27,9 @@
 #include "src/gfx.h"
 #include "src/event_loop.h"
 
-class gui_object_t : public event_handler_t {
+class GuiObject : public EventLoop::Handler {
  private:
-  typedef std::list<gui_object_t*> float_list_t;
+  typedef std::list<GuiObject*> float_list_t;
   float_list_t floats;
 
  protected:
@@ -38,16 +38,16 @@ class gui_object_t : public event_handler_t {
   bool displayed;
   bool enabled;
   bool redraw;
-  gui_object_t *parent;
-  frame_t *frame;
-  static gui_object_t *focused_object;
+  GuiObject *parent;
+  Frame *frame;
+  static GuiObject *focused_object;
   bool focused;
 
   virtual void internal_draw() = 0;
   virtual void layout();
 
   virtual bool handle_click_left(int x, int y) { return 0; }
-  virtual bool handle_dbl_click(int x, int y, event_button_t button) {
+  virtual bool handle_dbl_click(int x, int y, Event::Button button) {
     return 0; }
   virtual bool handle_drag(int dx, int dy) { return 0; }
   virtual bool handle_key_pressed(char key, int modifier) { return 0; }
@@ -56,10 +56,10 @@ class gui_object_t : public event_handler_t {
   void delete_frame();
 
  public:
-  gui_object_t();
-  virtual ~gui_object_t();
+  GuiObject();
+  virtual ~GuiObject();
 
-  void draw(frame_t *frame);
+  void draw(Frame *frame);
   void move_to(int x, int y);
   void get_position(int *x, int *y);
   void set_size(int width, int height);
@@ -68,14 +68,14 @@ class gui_object_t : public event_handler_t {
   void set_enabled(bool enabled);
   void set_redraw();
   bool is_displayed() { return displayed; }
-  gui_object_t *get_parent() { return parent; }
-  void set_parent(gui_object_t *parent) { this->parent = parent; }
+  GuiObject *get_parent() { return parent; }
+  void set_parent(GuiObject *parent) { this->parent = parent; }
   bool point_inside(int point_x, int point_y);
 
-  void add_float(gui_object_t *obj, int x, int y);
-  void del_float(gui_object_t *obj);
+  void add_float(GuiObject *obj, int x, int y);
+  void del_float(GuiObject *obj);
 
-  virtual bool handle_event(const event_t *event);
+  virtual bool handle_event(const Event *event);
 
   void play_sound(int sound);
 };
