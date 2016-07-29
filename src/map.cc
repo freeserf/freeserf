@@ -1048,36 +1048,43 @@ map_t::init_crosses() {
   }
 }
 
-/* Check whether the hexagon at pos has triangles of types
-   between min and max. Return -1 if not all triangles are
-   in this range. */
-int
-map_t::init_objects_shared_sub1(
+/* Check that hexagon has tile types in range.
+
+   Check whether the hexagon at pos has triangles of types between min and max,
+   both inclusive. Return false if not all triangles are in this range,
+   otherwise true.
+
+   NOTE: This function has a quirk which is enabled by preserve_bugs. When this
+   quirk is enabled, one of the tiles that is checked is not in the hexagon but
+   is instead an adjacent tile. This is necessary to generate original game
+   maps. */
+bool
+map_t::hexagon_types_in_range(
     map_pos_t pos_, map_terrain_t min, map_terrain_t max) {
   map_terrain_t type_d = type_down(pos_);
   map_terrain_t type_u = type_up(pos_);
 
-  if (type_d < min || type_d >= max) return -1;
-  if (type_u < min || type_u >= max) return -1;
+  if (type_d < min || type_d > max) return false;
+  if (type_u < min || type_u > max) return false;
 
   type_d = type_down(move_left(pos_));
-  if (type_d < min || type_d >= max) return -1;
+  if (type_d < min || type_d > max) return false;
 
   type_d = type_down(move_up_left(pos_));
   type_u = type_up(move_up_left(pos_));
-  if (type_d < min || type_d >= max) return -1;
-  if (type_u < min || type_u >= max) return -1;
+  if (type_d < min || type_d > max) return false;
+  if (type_u < min || type_u > max) return false;
 
   /* Should be checkeing the up tri type. */
   if (preserve_bugs) {
     type_d = type_down(move_up(pos_));
-    if (type_d < min || type_d >= max) return -1;
+    if (type_d < min || type_d > max) return false;
   } else {
     type_u = type_up(move_up(pos_));
-    if (type_u < min || type_u >= max) return -1;
+    if (type_u < min || type_u > max) return false;
   }
 
-  return 0;
+  return true;
 }
 
 /* Get a random position in the spiral pattern based at col, row. */
@@ -1086,6 +1093,17 @@ map_t::lookup_rnd_pattern(int col, int row, int mask) {
   return lookup_pattern(col, row, random_int() & mask);
 }
 
+/* Create clusters of map objects.
+
+   Tries to create num_clusters of objects in random locations on the map.
+   Each cluster has up to objs_in_cluster objects. The pos_mask is used in
+   the call to lookup_rnd_pattern to determine the max cluster size. The
+   type_min and type_max determine the range (both inclusive) of terrain
+   types that must appear around a position to be elegible for placement of
+   an object. The obj_base determines the first object type that can be placed
+   and the obj_mask specifies a mask on a random integer that is added to the
+   base to obtain the final object type.
+*/
 void
 map_t::init_objects_shared(int num_clusters, int objs_in_cluster, int pos_mask,
                            map_terrain_t type_min, map_terrain_t type_max,
@@ -1094,12 +1112,11 @@ map_t::init_objects_shared(int num_clusters, int objs_in_cluster, int pos_mask,
     for (int try_ = 0; try_ < 100; try_++) {
       int col, row;
       map_pos_t rnd_pos = get_rnd_coord(&col, &row);
-      int r = init_objects_shared_sub1(rnd_pos, type_min, type_max);
-      if (r == 0) {
+      if (hexagon_types_in_range(rnd_pos, type_min, type_max)) {
         for (int j = 0; j < objs_in_cluster; j++) {
           map_pos_t pos_ = lookup_rnd_pattern(col, row, pos_mask);
-          int r = init_objects_shared_sub1(pos_, type_min, type_max);
-          if (r == 0 && get_obj(pos_) == MAP_OBJ_NONE) {
+          if (hexagon_types_in_range(pos_, type_min, type_max) &&
+              get_obj(pos_) == MAP_OBJ_NONE) {
             tiles[pos_].obj = (random_int() & obj_mask) + obj_base;
           }
         }
@@ -1113,7 +1130,7 @@ void
 map_t::init_trees_1() {
   /* Add either tree or pine. */
   init_objects_shared(
-    regions << 3, 10, 0xff, MAP_TERRAIN_GRASS_1, MAP_TERRAIN_GRASS_3,
+    regions << 3, 10, 0xff, MAP_TERRAIN_GRASS_1, MAP_TERRAIN_GRASS_2,
     MAP_OBJ_TREE_0, 0xf);
 }
 
@@ -1121,7 +1138,7 @@ void
 map_t::init_trees_2() {
   /* Add only trees. */
   init_objects_shared(
-    regions, 45, 0x3f, MAP_TERRAIN_GRASS_1, MAP_TERRAIN_GRASS_3,
+    regions, 45, 0x3f, MAP_TERRAIN_GRASS_1, MAP_TERRAIN_GRASS_2,
     MAP_OBJ_TREE_0, 0x7);
 }
 
@@ -1129,7 +1146,7 @@ void
 map_t::init_trees_3() {
   /* Add only pines. */
   init_objects_shared(
-    regions, 30, 0x3f, MAP_TERRAIN_GRASS_0, MAP_TERRAIN_GRASS_3,
+    regions, 30, 0x3f, MAP_TERRAIN_GRASS_0, MAP_TERRAIN_GRASS_2,
     MAP_OBJ_PINE_0, 0x7);
 }
 
@@ -1137,84 +1154,84 @@ void
 map_t::init_trees_4() {
   /* Add either tree or pine. */
   init_objects_shared(
-    regions, 20, 0x7f, MAP_TERRAIN_GRASS_1, MAP_TERRAIN_GRASS_3,
+    regions, 20, 0x7f, MAP_TERRAIN_GRASS_1, MAP_TERRAIN_GRASS_2,
     MAP_OBJ_TREE_0, 0xf);
 }
 
 void
 map_t::init_stone_1() {
   init_objects_shared(
-    regions, 40, 0x3f, MAP_TERRAIN_GRASS_1, MAP_TERRAIN_GRASS_3,
+    regions, 40, 0x3f, MAP_TERRAIN_GRASS_1, MAP_TERRAIN_GRASS_2,
     MAP_OBJ_STONE_0, 0x7);
 }
 
 void
 map_t::init_stone_2() {
   init_objects_shared(
-    regions, 15, 0xff, MAP_TERRAIN_GRASS_1, MAP_TERRAIN_GRASS_3,
+    regions, 15, 0xff, MAP_TERRAIN_GRASS_1, MAP_TERRAIN_GRASS_2,
     MAP_OBJ_STONE_0, 0x7);
 }
 
 void
 map_t::init_dead_trees() {
   init_objects_shared(
-    regions, 2, 0xff, MAP_TERRAIN_GRASS_1, MAP_TERRAIN_GRASS_3,
+    regions, 2, 0xff, MAP_TERRAIN_GRASS_1, MAP_TERRAIN_GRASS_2,
     MAP_OBJ_DEAD_TREE, 0);
 }
 
 void
 map_t::init_large_boulders() {
   init_objects_shared(
-    regions, 6, 0xff, MAP_TERRAIN_GRASS_1, MAP_TERRAIN_GRASS_3,
+    regions, 6, 0xff, MAP_TERRAIN_GRASS_1, MAP_TERRAIN_GRASS_2,
     MAP_OBJ_SANDSTONE_0, 0x1);
 }
 
 void
 map_t::init_water_trees() {
   init_objects_shared(
-    regions, 50, 0x7f, MAP_TERRAIN_WATER_2, MAP_TERRAIN_GRASS_0,
+    regions, 50, 0x7f, MAP_TERRAIN_WATER_2, MAP_TERRAIN_WATER_3,
     MAP_OBJ_WATER_TREE_0, 0x3);
 }
 
 void
 map_t::init_stubs() {
   init_objects_shared(
-    regions, 5, 0xff, MAP_TERRAIN_GRASS_1, MAP_TERRAIN_GRASS_3,
+    regions, 5, 0xff, MAP_TERRAIN_GRASS_1, MAP_TERRAIN_GRASS_2,
     MAP_OBJ_STUB, 0);
 }
 
 void
 map_t::init_small_boulders() {
   init_objects_shared(
-    regions, 10, 0xff, MAP_TERRAIN_GRASS_1, MAP_TERRAIN_GRASS_3,
+    regions, 10, 0xff, MAP_TERRAIN_GRASS_1, MAP_TERRAIN_GRASS_2,
     MAP_OBJ_STONE, 0x1);
 }
 
 void
 map_t::init_cadavers() {
   init_objects_shared(
-    regions, 2, 0xf, MAP_TERRAIN_DESERT_2, MAP_TERRAIN_TUNDRA_0,
+    regions, 2, 0xf, MAP_TERRAIN_DESERT_2, MAP_TERRAIN_DESERT_2,
     MAP_OBJ_CADAVER_0, 0x1);
 }
 
 void
 map_t::init_cacti() {
   init_objects_shared(
-    regions, 6, 0x7f, MAP_TERRAIN_DESERT_0, MAP_TERRAIN_TUNDRA_0,
+    regions, 6, 0x7f, MAP_TERRAIN_DESERT_0, MAP_TERRAIN_DESERT_2,
     MAP_OBJ_CACTUS_0, 0x1);
 }
 
 void
 map_t::init_water_stones() {
   init_objects_shared(
-    regions, 8, 0x7f, MAP_TERRAIN_WATER_0, MAP_TERRAIN_WATER_3,
+    regions, 8, 0x7f, MAP_TERRAIN_WATER_0, MAP_TERRAIN_WATER_2,
     MAP_OBJ_WATER_STONE_0, 0x1);
 }
 
 void
 map_t::init_palms() {
   init_objects_shared(
-    regions, 6, 0x3f, MAP_TERRAIN_DESERT_2, MAP_TERRAIN_TUNDRA_0,
+    regions, 6, 0x3f, MAP_TERRAIN_DESERT_2, MAP_TERRAIN_DESERT_2,
     MAP_OBJ_PALM_0, 0x3);
 }
 
@@ -1232,6 +1249,12 @@ map_t::init_resources_shared_sub(int iters, int col, int row, int *index,
   }
 }
 
+/* Create clusters of ground resources.
+
+   Tries to create num_clusters of ground resources of the given type. The
+   terrain type around a position must be in the min, max range
+   (both inclusive) for a resource to be deposited.
+*/
 void
 map_t::init_resources_shared(int num_clusters, ground_deposit_t type,
                              map_terrain_t min, map_terrain_t max) {
@@ -1240,7 +1263,7 @@ map_t::init_resources_shared(int num_clusters, ground_deposit_t type,
       int col, row;
       map_pos_t pos = get_rnd_coord(&col, &row);
 
-      if (init_objects_shared_sub1(pos, min, max) == 0) {
+      if (hexagon_types_in_range(pos, min, max)) {
         int index = 0;
         int amount = 8 + (random_int() & 0xc);
         init_resources_shared_sub(1, col, row, &index, amount, type);
@@ -1275,16 +1298,16 @@ void
 map_t::init_resources() {
   init_resources_shared(
     regions * 9, GROUND_DEPOSIT_COAL,
-    MAP_TERRAIN_TUNDRA_0, MAP_TERRAIN_SNOW_1);
+    MAP_TERRAIN_TUNDRA_0, MAP_TERRAIN_SNOW_0);
   init_resources_shared(
     regions * 4, GROUND_DEPOSIT_IRON,
-    MAP_TERRAIN_TUNDRA_0, MAP_TERRAIN_SNOW_1);
+    MAP_TERRAIN_TUNDRA_0, MAP_TERRAIN_SNOW_0);
   init_resources_shared(
     regions * 2, GROUND_DEPOSIT_GOLD,
-    MAP_TERRAIN_TUNDRA_0, MAP_TERRAIN_SNOW_1);
+    MAP_TERRAIN_TUNDRA_0, MAP_TERRAIN_SNOW_0);
   init_resources_shared(
     regions * 2, GROUND_DEPOSIT_STONE,
-    MAP_TERRAIN_TUNDRA_0, MAP_TERRAIN_SNOW_1);
+    MAP_TERRAIN_TUNDRA_0, MAP_TERRAIN_SNOW_0);
 }
 
 void

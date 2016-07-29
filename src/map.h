@@ -485,8 +485,8 @@ class map_t {
   void init_desert_2_sub();
   void init_desert_2();
   void init_crosses();
-  int init_objects_shared_sub1(map_pos_t pos, map_terrain_t min,
-                               map_terrain_t max);
+  bool hexagon_types_in_range(map_pos_t pos, map_terrain_t min,
+                              map_terrain_t max);
   map_pos_t lookup_rnd_pattern(int col, int row, int mask);
   void init_objects_shared(int num_clusters, int objs_in_cluster, int pos_mask,
                            map_terrain_t type_min, map_terrain_t type_max,
