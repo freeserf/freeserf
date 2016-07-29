@@ -7,19 +7,41 @@ matrix:
     - os: osx
       compiler: clang
 
+cache:
+  directories:
+    - $HOME/sdl_root
+
 before_install:
   - sed -i -e 's|AC_PREREQ(\[2.69\])|AC_PREREQ([2.68])|' configure.ac
   - if [[ $TRAVIS_OS_NAME == 'linux' ]]; then sudo apt-get update -qq; fi
 
 install:
-  - mkdir sdl_root
-  - export SDL_PREFIX="$PWD/sdl_root"
-  - export PATH="$SDL_PREFIX/bin:$PATH"
+  - export SDL_VERSION="2.0.4"
+  - export SDL_PREFIX="$HOME/sdl_root/${TRAVIS_OS_NAME}/SDL_${SDL_VERSION}"
   - export PKG_CONFIG_PATH="$SDL_PREFIX/lib/pkgconfig:$PKG_CONFIG_PATH"
-  - wget https://www.libsdl.org/release/SDL2-2.0.4.tar.gz -O - | tar -xz
-  - (cd SDL2-2.0.4 && ./configure --prefix=$SDL_PREFIX && make -j5 && make install)
-  - wget https://www.libsdl.org/projects/SDL_mixer/release/SDL2_mixer-2.0.1.tar.gz -O - | tar -xz
-  - (cd SDL2_mixer-2.0.1 && ./configure --prefix=$SDL_PREFIX && make -j5 && make install)
+  - export PATH="$SDL_PREFIX/bin:$PATH"
+  - |
+    if [ ! -d "$SDL_PREFIX" ]; then
+      mkdir -p "$SDL_PREFIX" && \
+        wget https://www.libsdl.org/release/SDL2-${SDL_VERSION}.tar.gz -O - | tar -xz && \
+        (cd SDL2-${SDL_VERSION} && \
+          ./configure --prefix=$SDL_PREFIX && \
+          make -j5 && make install)
+    fi
+
+  - export SDL_MIXER_VERSION="2.0.1"
+  - export SDL_MIXER_PREFIX="$HOME/sdl_root/${TRAVIS_OS_NAME}/SDL_mixer_${SDL_MIXER_VERSION}"
+  - export PKG_CONFIG_PATH="$SDL_MIXER_PREFIX/lib/pkgconfig:$PKG_CONFIG_PATH"
+  - export PATH="$SDL_MIXER_PREFIX/bin:$PATH"
+  - |
+    if [ ! -d "$SDL_MIXER_PREFIX" ]; then
+      mkdir -p "$SDL_MIXER_PREFIX" && \
+        wget https://www.libsdl.org/projects/SDL_mixer/release/SDL2_mixer-${SDL_MIXER_VERSION}.tar.gz -O - | tar -xz && \
+        (cd SDL2_mixer-${SDL_MIXER_VERSION} && \
+          ./configure --prefix=$SDL_MIXER_PREFIX && \
+          make -j5 && make install)
+    fi
+
   - git clone https://github.com/google/styleguide.git ./styleguide
   - export CPPLINT_PATH="$PWD/styleguide/cpplint"
 
