@@ -41,7 +41,7 @@
  */
 
 bool
-data_source_t::check_file(const std::string &path) {
+DataSource::check_file(const std::string &path) {
   std::ifstream ifile(path.c_str());
   if (ifile.good()) {
     ifile.close();
@@ -52,7 +52,7 @@ data_source_t::check_file(const std::string &path) {
 }
 
 void*
-data_source_t::file_read(const std::string &path, size_t *size) {
+DataSource::file_read(const std::string &path, size_t *size) {
   char *data = NULL;
   *size = 0;
 
@@ -85,7 +85,7 @@ data_source_t::file_read(const std::string &path, size_t *size) {
 
 /* Calculate hash of sprite identifier. */
 uint64_t
-sprite_t::create_sprite_id(uint64_t sprite, uint64_t mask, uint64_t offset) {
+Sprite::create_sprite_id(uint64_t sprite, uint64_t mask, uint64_t offset) {
   uint64_t result = sprite + (mask << 32) + (offset << 48);
   return result;
 }

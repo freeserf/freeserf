@@ -23,8 +23,7 @@
 
 #include <cstdlib>
 
-text_input_t::text_input_t()
-  : gui_object_t() {
+TextInput::TextInput() : GuiObject() {
   max_length = 0;
   filter = NULL;
   draw_focus = true;
@@ -34,18 +33,18 @@ text_input_t::text_input_t()
 }
 
 void
-text_input_t::set_text(const char *text) {
+TextInput::set_text(const char *text) {
   this->text = text;
   set_redraw();
 }
 
 std::string
-text_input_t::get_text() {
+TextInput::get_text() {
   return text;
 }
 
 void
-text_input_t::internal_draw() {
+TextInput::internal_draw() {
   frame->fill_rect(0, 0, width, height, color_background);
   if (draw_focus && focused) {
     frame->draw_rect(0, 0, width, height, color_focus);
@@ -67,7 +66,7 @@ text_input_t::internal_draw() {
 }
 
 bool
-text_input_t::handle_click_left(int x, int y) {
+TextInput::handle_click_left(int x, int y) {
   focused_object = this;
   focused = true;
   set_redraw();
@@ -75,7 +74,7 @@ text_input_t::handle_click_left(int x, int y) {
 }
 
 bool
-text_input_t::handle_key_pressed(char key, int modifier) {
+TextInput::handle_key_pressed(char key, int modifier) {
   if (!focused) {
     return false;
   }
@@ -104,14 +103,14 @@ text_input_t::handle_key_pressed(char key, int modifier) {
 }
 
 bool
-text_input_t::handle_focus_loose() {
+TextInput::handle_focus_loose() {
   focused = false;
   set_redraw();
   return true;
 }
 
 void
-text_input_t::set_max_length(unsigned int max_length) {
+TextInput::set_max_length(unsigned int max_length) {
   this->max_length = max_length;
   if (max_length != 0) {
     if (text.length() > max_length) {

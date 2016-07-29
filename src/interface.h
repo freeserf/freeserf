@@ -36,65 +36,67 @@ static const unsigned int map_building_sprite[] = {
   0xa2, 0xa0, 0xa1, 0x99, 0x9d, 0x9e, 0x98, 0x9f, 0xb2
 };
 
-typedef enum {
-  MAP_CURSOR_TYPE_NONE = 0,
-  MAP_CURSOR_TYPE_FLAG,
-  MAP_CURSOR_TYPE_REMOVABLE_FLAG,
-  MAP_CURSOR_TYPE_BUILDING,
-  MAP_CURSOR_TYPE_PATH,
-  MAP_CURSOR_TYPE_CLEAR_BY_FLAG,
-  MAP_CURSOR_TYPE_CLEAR_BY_PATH,
-  MAP_CURSOR_TYPE_CLEAR
-} map_cursor_type_t;
+class Viewport;
+class PanelBar;
+class PopupBox;
+class GameInitBox;
+class NotificationBox;
 
-typedef enum {
-  CAN_BUILD_NONE = 0,
-  CAN_BUILD_FLAG,
-  CAN_BUILD_MINE,
-  CAN_BUILD_SMALL,
-  CAN_BUILD_LARGE,
-  CAN_BUILD_CASTLE,
-} build_possibility_t;
+class Interface : public GuiObject {
+ public:
+  typedef enum CursorType {
+    CursorTypeNone = 0,
+    CursorTypeFlag,
+    CursorTypeRemovableFlag,
+    CursorTypeBuilding,
+    CursorTypePath,
+    CursorTypeClearByFlag,
+    CursorTypeClearByPath,
+    CursorTypeClear
+  } CursorType;
 
-typedef struct {
-  int sprite;
-  int x, y;
-} sprite_loc_t;
+  typedef enum BuildPossibility {
+    BuildPossibilityNone = 0,
+    BuildPossibilityFlag,
+    BuildPossibilityMine,
+    BuildPossibilitySmall,
+    BuildPossibilityLarge,
+    BuildPossibilityCastle,
+  } BuildPossibility;
 
-class viewport_t;
-class panel_bar_t;
-class popup_box_t;
-class game_init_box_t;
-class notification_box_t;
-
-class interface_t : public gui_object_t {
  protected:
-  game_t *game;
+  typedef struct SpriteLoc {
+    int sprite;
+    int x, y;
+  } SpriteLoc;
 
-  random_state_t random;
+ protected:
+  Game *game;
 
-  viewport_t *viewport;
-  panel_bar_t *panel;
-  popup_box_t *popup;
-  game_init_box_t *init_box;
-  notification_box_t *notification_box;
+  Random random;
 
-  map_pos_t map_cursor_pos;
-  map_cursor_type_t map_cursor_type;
-  build_possibility_t build_possibility;
+  Viewport *viewport;
+  PanelBar *panel;
+  PopupBox *popup;
+  GameInitBox *init_box;
+  NotificationBox *notification_box;
+
+  MapPos map_cursor_pos;
+  CursorType map_cursor_type;
+  BuildPossibility build_possibility;
 
   unsigned int last_const_tick;
 
-  road_t building_road;
+  Road building_road;
   int building_road_valid_dir;
 
   int sfx_queue[4];
 
-  player_t *player;
+  Player *player;
   int config;
   int msg_flags;
 
-  sprite_loc_t map_cursor_sprites[7];
+  SpriteLoc map_cursor_sprites[7];
 
   int current_stat_8_mode;
   int current_stat_7_item;
@@ -106,27 +108,27 @@ class interface_t : public gui_object_t {
   int return_pos;
 
  public:
-  interface_t();
-  virtual ~interface_t();
+  Interface();
+  virtual ~Interface();
 
-  game_t *get_game() { return game; }
-  void set_game(game_t *game);
+  Game *get_game() { return game; }
+  void set_game(Game *game);
 
-  viewport_t *get_viewport();
-  panel_bar_t *get_panel_bar();
-  popup_box_t *get_popup_box();
-  notification_box_t *get_notification_box() { return notification_box; }
+  Viewport *get_viewport();
+  PanelBar *get_panel_bar();
+  PopupBox *get_popup_box();
+  NotificationBox *get_notification_box() { return notification_box; }
 
   bool get_config(int i) const { return (BIT_TEST(config, i) != 0); }
   void set_config(int i) { config |= BIT(i); }
   void switch_config(int i) { BIT_INVERT(config, i); }
 
-  map_pos_t get_map_cursor_pos() const { return map_cursor_pos; }
-  map_cursor_type_t get_map_cursor_type() const { return map_cursor_type; }
+  MapPos get_map_cursor_pos() const { return map_cursor_pos; }
+  CursorType get_map_cursor_type() const { return map_cursor_type; }
   int get_map_cursor_sprite(int i) const {
     return map_cursor_sprites[i].sprite; }
 
-  random_state_t *get_random() { return &random; }
+  Random *get_random() { return &random; }
 
   bool get_msg_flag(int i) const { return (BIT_TEST(msg_flags, i) != 0); }
   void set_msg_flag(int i) { msg_flags |= BIT(i); }
@@ -136,8 +138,7 @@ class interface_t : public gui_object_t {
   int get_current_stat_7_item() const { return current_stat_7_item; }
   void set_current_stat_7_item(int item) { current_stat_7_item = item; }
 
-  build_possibility_t get_build_possibility() const {
-    return build_possibility; }
+  BuildPossibility get_build_possibility() const { return build_possibility; }
 
   void open_popup(int box);
   void close_popup();
@@ -149,40 +150,40 @@ class interface_t : public gui_object_t {
   void return_from_message();
   void close_message();
 
-  player_t *get_player() const { return player; }
+  Player *get_player() const { return player; }
   void set_player(unsigned int player);
-  void update_map_cursor_pos(map_pos_t pos);
+  void update_map_cursor_pos(MapPos pos);
 
   bool is_building_road() const { return building_road.is_valid(); }
-  const road_t &get_building_road() const { return building_road; }
+  const Road &get_building_road() const { return building_road; }
   void build_road_begin();
   void build_road_end();
   void build_road_reset() { build_road_end(); build_road_begin(); }
-  int build_road_segment(dir_t dir);
+  int build_road_segment(Direction dir);
   int remove_road_segment();
-  int extend_road(const road_t &road);
-  bool build_roid_is_valid_dir(dir_t dir) {
+  int extend_road(const Road &road);
+  bool build_roid_is_valid_dir(Direction dir) {
     return (BIT_TEST(building_road_valid_dir, dir) != 0); }
 
   void demolish_object();
 
   void build_flag();
-  void build_building(building_type_t type);
+  void build_building(Building::Type type);
   void build_castle();
   void build_road();
 
   void update();
 
-  virtual bool handle_event(const event_t *event);
+  virtual bool handle_event(const Event *event);
 
  protected:
-  void get_map_cursor_type(const player_t *player, map_pos_t pos,
-                           build_possibility_t *bld_possibility,
-                           map_cursor_type_t *cursor_type);
+  void get_map_cursor_type(const Player *player, MapPos pos,
+                           BuildPossibility *bld_possibility,
+                           CursorType *cursor_type);
   void determine_map_cursor_type();
   void determine_map_cursor_type_road();
   void update_interface();
-  static void update_map_height(map_pos_t pos, void *data);
+  static void update_map_height(MapPos pos, void *data);
 
   virtual void internal_draw();
   virtual void layout();

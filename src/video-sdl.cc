@@ -25,20 +25,20 @@
 
 #include <SDL.h>
 
-SDL_Exception::SDL_Exception(const std::string &description) throw()
-  : Video_Exception(description) {
+ExceptionSDL::ExceptionSDL(const std::string &description) throw()
+  : ExceptionVideo(description) {
   sdl_error = SDL_GetError();
   this->description += " (" + sdl_error + ")";
 }
 
-int video_sdl_t::bpp = 32;
-Uint32 video_sdl_t::Rmask = 0x0000FF00;
-Uint32 video_sdl_t::Gmask = 0x00FF0000;
-Uint32 video_sdl_t::Bmask = 0xFF000000;
-Uint32 video_sdl_t::Amask = 0x000000FF;
-Uint32 video_sdl_t::pixel_format = SDL_PIXELFORMAT_RGBA8888;
+int VideoSDL::bpp = 32;
+Uint32 VideoSDL::Rmask = 0x0000FF00;
+Uint32 VideoSDL::Gmask = 0x00FF0000;
+Uint32 VideoSDL::Bmask = 0xFF000000;
+Uint32 VideoSDL::Amask = 0x000000FF;
+Uint32 VideoSDL::pixel_format = SDL_PIXELFORMAT_RGBA8888;
 
-video_sdl_t::video_sdl_t() throw(Video_Exception) {
+VideoSDL::VideoSDL() throw(ExceptionVideo) {
   screen = NULL;
   screen_texture = NULL;
   cursor = NULL;
@@ -47,7 +47,7 @@ video_sdl_t::video_sdl_t() throw(Video_Exception) {
 
   /* Initialize defaults and Video subsystem */
   if (SDL_Init(SDL_INIT_VIDEO) < 0) {
-    throw SDL_Exception("Unable to initialize SDL video");
+    throw ExceptionSDL("Unable to initialize SDL video");
   }
 
   /* Create window and renderer */
@@ -56,14 +56,14 @@ video_sdl_t::video_sdl_t() throw(Video_Exception) {
                             SDL_WINDOWPOS_UNDEFINED,
                             800, 600, SDL_WINDOW_RESIZABLE);
   if (window == NULL) {
-    throw SDL_Exception("Unable to create SDL window");
+    throw ExceptionSDL("Unable to create SDL window");
   }
 
   /* Create renderer for window */
   renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED |
                                             SDL_RENDERER_TARGETTEXTURE);
   if (renderer == NULL) {
-    throw SDL_Exception("Unable to create SDL renderer");
+    throw ExceptionSDL("Unable to create SDL renderer");
   }
 
   /* Determine optimal pixel format for current window */
@@ -84,7 +84,7 @@ video_sdl_t::video_sdl_t() throw(Video_Exception) {
   SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY, "linear");
 }
 
-video_sdl_t::~video_sdl_t() {
+VideoSDL::~VideoSDL() {
   if (screen != NULL) {
     delete screen;
     screen = NULL;
@@ -93,38 +93,38 @@ video_sdl_t::~video_sdl_t() {
   SDL_Quit();
 }
 
-video_t *
-video_t::get_instance() {
+Video *
+Video::get_instance() {
   if (instance == NULL) {
-    instance = new video_sdl_t();
+    instance = new VideoSDL();
   }
   return instance;
 }
 
 SDL_Surface *
-video_sdl_t::create_surface(int width, int height) {
+VideoSDL::create_surface(int width, int height) {
   SDL_Surface *surf = SDL_CreateRGBSurface(0, width, height, bpp,
                                            Rmask, Gmask, Bmask, Amask);
   if (surf == NULL) {
-    throw SDL_Exception("Unable to create SDL surface");
+    throw ExceptionSDL("Unable to create SDL surface");
   }
 
   return surf;
 }
 
 void
-video_sdl_t::set_resolution(unsigned int width, unsigned int height,
-                            bool fullscreen) throw(Video_Exception) {
+VideoSDL::set_resolution(unsigned int width, unsigned int height,
+                            bool fullscreen) throw(ExceptionVideo) {
   /* Set fullscreen mode */
   int r = SDL_SetWindowFullscreen(window,
                                   fullscreen ? SDL_WINDOW_FULLSCREEN_DESKTOP :
                                                0);
   if (r < 0) {
-    throw SDL_Exception("Unable to set window fullscreen");
+    throw ExceptionSDL("Unable to set window fullscreen");
   }
 
   if (screen == NULL) {
-    screen = new video_frame_t();
+    screen = new Video::Frame();
   }
 
   /* Allocate new screen surface and texture */
@@ -140,20 +140,20 @@ video_sdl_t::set_resolution(unsigned int width, unsigned int height,
                                      SDL_TEXTUREACCESS_STREAMING,
                                      width, height);
   if (screen_texture == NULL) {
-    throw SDL_Exception("Unable to create SDL texture");
+    throw ExceptionSDL("Unable to create SDL texture");
   }
 
   /* Set logical size of screen */
   r = SDL_RenderSetLogicalSize(renderer, width, height);
   if (r < 0) {
-    throw SDL_Exception("Unable to set logical size");
+    throw ExceptionSDL("Unable to set logical size");
   }
 
   this->fullscreen = fullscreen;
 }
 
 void
-video_sdl_t::get_resolution(unsigned int *width, unsigned int *height) {
+VideoSDL::get_resolution(unsigned int *width, unsigned int *height) {
   int w = 0;
   int h = 0;
   SDL_GetRendererOutputSize(renderer, &w, &h);
@@ -166,7 +166,7 @@ video_sdl_t::get_resolution(unsigned int *width, unsigned int *height) {
 }
 
 void
-video_sdl_t::set_fullscreen(bool enable) throw(Video_Exception) {
+VideoSDL::set_fullscreen(bool enable) throw(ExceptionVideo) {
   int width = 0;
   int height = 0;
   SDL_GetRendererOutputSize(renderer, &width, &height);
@@ -174,31 +174,31 @@ video_sdl_t::set_fullscreen(bool enable) throw(Video_Exception) {
 }
 
 bool
-video_sdl_t::is_fullscreen() {
+VideoSDL::is_fullscreen() {
   return fullscreen;
 }
 
-video_frame_t *
-video_sdl_t::get_screen_frame() {
+Video::Frame *
+VideoSDL::get_screen_frame() {
   return screen;
 }
 
-video_frame_t *
-video_sdl_t::create_frame(unsigned int width, unsigned int height) {
-  video_frame_t *frame = new video_frame_t;
+Video::Frame *
+VideoSDL::create_frame(unsigned int width, unsigned int height) {
+  Video::Frame *frame = new Video::Frame;
   frame->texture = create_texture(width, height);
   return frame;
 }
 
 void
-video_sdl_t::destroy_frame(video_frame_t *frame) {
+VideoSDL::destroy_frame(Video::Frame *frame) {
   SDL_DestroyTexture(frame->texture);
   delete frame;
 }
 
-video_image_t *
-video_sdl_t::create_image(void *data, unsigned int width, unsigned int height) {
-  video_image_t *image = new video_image_t();
+Video::Image *
+VideoSDL::create_image(void *data, unsigned int width, unsigned int height) {
+  Video::Image *image = new Video::Image();
   image->w = width;
   image->h = height;
   image->texture = create_texture_from_data(data, width, height);
@@ -206,31 +206,31 @@ video_sdl_t::create_image(void *data, unsigned int width, unsigned int height) {
 }
 
 void
-video_sdl_t::destroy_image(video_image_t *image) {
+VideoSDL::destroy_image(Video::Image *image) {
   SDL_DestroyTexture(image->texture);
   delete image;
 }
 
 void
-video_sdl_t::warp_mouse(int x, int y) {
+VideoSDL::warp_mouse(int x, int y) {
   SDL_WarpMouseInWindow(NULL, x, y);
 }
 
 SDL_Surface *
-video_sdl_t::create_surface_from_data(void *data, int width, int height) {
+VideoSDL::create_surface_from_data(void *data, int width, int height) {
   /* Create sprite surface */
   SDL_Surface *surf = SDL_CreateRGBSurfaceFrom(data, width, height, 32,
                                                4 * width,
                                                0x00FF0000, 0x0000FF00,
                                                0x000000FF, 0xFF000000);
   if (surf == NULL) {
-    throw SDL_Exception("Unable to create sprite surface");
+    throw ExceptionSDL("Unable to create sprite surface");
   }
 
   /* Covert to screen format */
   SDL_Surface *surf_screen = SDL_ConvertSurfaceFormat(surf, pixel_format, 0);
   if (surf_screen == NULL) {
-    throw SDL_Exception("Unable to convert sprite surface");
+    throw ExceptionSDL("Unable to convert sprite surface");
   }
 
   SDL_FreeSurface(surf);
@@ -239,13 +239,13 @@ video_sdl_t::create_surface_from_data(void *data, int width, int height) {
 }
 
 SDL_Texture *
-video_sdl_t::create_texture(int width, int height) {
+VideoSDL::create_texture(int width, int height) {
   SDL_Texture *texture = SDL_CreateTexture(renderer, pixel_format,
                                            SDL_TEXTUREACCESS_TARGET,
                                            width, height);
 
   if (texture == NULL) {
-    throw SDL_Exception("Unable to create SDL texture");
+    throw ExceptionSDL("Unable to create SDL texture");
   }
 
   SDL_SetRenderTarget(renderer, texture);
@@ -257,7 +257,7 @@ video_sdl_t::create_texture(int width, int height) {
 }
 
 SDL_Texture *
-video_sdl_t::create_texture_from_data(void *data, int width, int height) {
+VideoSDL::create_texture_from_data(void *data, int width, int height) {
   SDL_Surface *surf = create_surface_from_data(data, width, height);
   if (surf == NULL) {
     return NULL;
@@ -265,7 +265,7 @@ video_sdl_t::create_texture_from_data(void *data, int width, int height) {
 
   SDL_Texture *texture = SDL_CreateTextureFromSurface(renderer, surf);
   if (texture == NULL) {
-    throw SDL_Exception("Unable to create SDL texture from data");
+    throw ExceptionSDL("Unable to create SDL texture from data");
   }
 
   SDL_FreeSurface(surf);
@@ -274,8 +274,8 @@ video_sdl_t::create_texture_from_data(void *data, int width, int height) {
 }
 
 void
-video_sdl_t::draw_image(const video_image_t *image, int x, int y, int y_offset,
-                        video_frame_t *dest) {
+VideoSDL::draw_image(const Video::Image *image, int x, int y, int y_offset,
+                        Video::Frame *dest) {
   SDL_Rect dest_rect = { x, y + y_offset,
                          static_cast<int>(image->w),
                          static_cast<int>(image->h - y_offset) };
@@ -288,13 +288,13 @@ video_sdl_t::draw_image(const video_image_t *image, int x, int y, int y_offset,
   SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
   int r = SDL_RenderCopy(renderer, image->texture, &src_rect, &dest_rect);
   if (r < 0) {
-    throw SDL_Exception("RenderCopy error");
+    throw ExceptionSDL("RenderCopy error");
   }
 }
 
 void
-video_sdl_t::draw_frame(int dx, int dy, video_frame_t *dest, int sx, int sy,
-                        video_frame_t *src, int w, int h) {
+VideoSDL::draw_frame(int dx, int dy, Video::Frame *dest, int sx, int sy,
+                        Video::Frame *src, int w, int h) {
   SDL_Rect dest_rect = { dx, dy, w, h };
   SDL_Rect src_rect = { sx, sy, w, h };
 
@@ -302,13 +302,13 @@ video_sdl_t::draw_frame(int dx, int dy, video_frame_t *dest, int sx, int sy,
   SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
   int r = SDL_RenderCopy(renderer, src->texture, &src_rect, &dest_rect);
   if (r < 0) {
-    throw SDL_Exception("RenderCopy error");
+    throw ExceptionSDL("RenderCopy error");
   }
 }
 
 void
-video_sdl_t::draw_rect(int x, int y, unsigned int width, unsigned int height,
-                       const video_color_t color, video_frame_t *dest) {
+VideoSDL::draw_rect(int x, int y, unsigned int width, unsigned int height,
+                       const Video::Color color, Video::Frame *dest) {
   /* Draw rectangle. */
   fill_rect(x, y, width, 1, color, dest);
   fill_rect(x, y+height-1, width, 1, color, dest);
@@ -317,8 +317,8 @@ video_sdl_t::draw_rect(int x, int y, unsigned int width, unsigned int height,
 }
 
 void
-video_sdl_t::fill_rect(int x, int y, unsigned int width, unsigned int height,
-                       const video_color_t color, video_frame_t *dest) {
+VideoSDL::fill_rect(int x, int y, unsigned int width, unsigned int height,
+                       const Video::Color color, Video::Frame *dest) {
   SDL_Rect rect = { x, y, static_cast<int>(width), static_cast<int>(height) };
 
   /* Fill rectangle */
@@ -326,19 +326,19 @@ video_sdl_t::fill_rect(int x, int y, unsigned int width, unsigned int height,
   SDL_SetRenderDrawColor(renderer, color.r, color.g, color.b, 0xff);
   int r = SDL_RenderFillRect(renderer, &rect);
   if (r < 0) {
-    throw SDL_Exception("RenderFillRect error");
+    throw ExceptionSDL("RenderFillRect error");
   }
 }
 
 void
-video_sdl_t::swap_buffers() {
+VideoSDL::swap_buffers() {
   SDL_SetRenderTarget(renderer, NULL);
   SDL_RenderCopy(renderer, screen->texture, NULL, NULL);
   SDL_RenderPresent(renderer);
 }
 
 void
-video_sdl_t::set_cursor(void *data, unsigned int width, unsigned int height) {
+VideoSDL::set_cursor(void *data, unsigned int width, unsigned int height) {
   if (cursor != NULL) {
     SDL_SetCursor(NULL);
     SDL_FreeCursor(cursor);
@@ -353,7 +353,7 @@ video_sdl_t::set_cursor(void *data, unsigned int width, unsigned int height) {
 }
 
 bool
-video_sdl_t::set_zoom_factor(float factor) {
+VideoSDL::set_zoom_factor(float factor) {
   if ((factor < 0.2f) || (factor > 1.f)) {
     return false;
   }

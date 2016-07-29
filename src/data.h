@@ -233,24 +233,24 @@
 
 #define DATA_CURSOR  3999
 
-class data_source_t;
+class DataSource;
 
-class data_t {
+class Data {
  protected:
-  static data_t *instance;
-  data_source_t *data_source;
+  static Data *instance;
+  DataSource *data_source;
   std::list<std::string> search_paths;
 
-  data_t();
+  Data();
 
  public:
-  virtual ~data_t();
+  virtual ~Data();
 
-  static data_t *get_instance();
+  static Data *get_instance();
 
   bool load(const std::string &path);
 
-  data_source_t *get_data_source() const { return data_source; }
+  DataSource *get_data_source() const { return data_source; }
 
  protected:
   void add_to_search_paths(const char *path, const char *suffix);

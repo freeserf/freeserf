@@ -33,9 +33,9 @@
 #endif
 
 /* Sprite object. Contains BGRA data. */
-class sprite_t {
+class Sprite {
  public:
-  virtual ~sprite_t() {}
+  virtual ~Sprite() {}
 
   virtual uint8_t *get_data() const = 0;
   virtual unsigned int get_width() const = 0;
@@ -45,44 +45,44 @@ class sprite_t {
   virtual int get_offset_x() const = 0;
   virtual int get_offset_y() const = 0;
 
-  virtual sprite_t *get_masked(sprite_t *mask) = 0;
+  virtual Sprite *get_masked(Sprite *mask) = 0;
 
   static uint64_t create_sprite_id(uint64_t sprite, uint64_t mask,
                                    uint64_t offset);
 };
 
-class animation_t {
+class Animation {
  public:
   uint8_t time;
   int8_t x;
   int8_t y;
 };
 
-typedef struct {
+typedef struct Color {
   unsigned char red;
   unsigned char green;
   unsigned char blue;
   unsigned char alpha;
-} color_t;
+} Color;
 
-class data_source_t {
+class DataSource {
  public:
-  virtual ~data_source_t() {}
+  virtual ~DataSource() {}
 
   virtual bool check(const std::string &path, std::string *load_path) = 0;
   virtual bool load(const std::string &path) = 0;
 
-  virtual sprite_t *get_sprite(unsigned int index) = 0;
-  virtual sprite_t *get_empty_sprite(unsigned int index) = 0;
-  virtual sprite_t *get_transparent_sprite(unsigned int index,
-                                           int color_off) = 0;
-  virtual sprite_t *get_overlay_sprite(unsigned int index) = 0;
-  virtual sprite_t *get_mask_sprite(unsigned int index) = 0;
+  virtual Sprite *get_sprite(unsigned int index) = 0;
+  virtual Sprite *get_empty_sprite(unsigned int index) = 0;
+  virtual Sprite *get_transparent_sprite(unsigned int index,
+                                         int color_off) = 0;
+  virtual Sprite *get_overlay_sprite(unsigned int index) = 0;
+  virtual Sprite *get_mask_sprite(unsigned int index) = 0;
 
-  virtual color_t get_color(unsigned int index) = 0;
+  virtual Color get_color(unsigned int index) = 0;
 
-  virtual animation_t *get_animation(unsigned int animation,
-                                     unsigned int phase) = 0;
+  virtual Animation *get_animation(unsigned int animation,
+                                   unsigned int phase) = 0;
 
   virtual void *get_sound(unsigned int index, size_t *size) = 0;
   virtual void *get_music(unsigned int index, size_t *size) = 0;

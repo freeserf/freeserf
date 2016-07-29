@@ -28,15 +28,14 @@
 #include "src/debug.h"
 #include "src/savegame.h"
 
-building_t::building_t(game_t *game, unsigned int index)
-  : game_object_t(game, index) {
-  type = BUILDING_NONE;
+Building::Building(Game *game, unsigned int index) : GameObject(game, index) {
+  type = TypeNone;
   bld = BIT(7); /* bit 7: Unfinished building */
   flag = 0;
   serf = 0;
 
   for (int j = 0; j < BUILDING_MAX_STOCK; j++) {
-    stock[j].type = RESOURCE_NONE;
+    stock[j].type = Resource::TypeNone;
     stock[j].prio = 0;
     stock[j].available = 0;
     stock[j].requested = 0;
@@ -46,8 +45,8 @@ building_t::building_t(game_t *game, unsigned int index)
   serf_index = 0;
 }
 
-map_obj_t
-building_t::start_building(building_type_t type) {
+Map::Object
+Building::start_building(Type type) {
   const int construction_cost[] = {
     0, 0, 2, 0, 2, 0, 3, 0, 2, 0,
     4, 1, 5, 0, 5, 0, 5, 0,
@@ -55,50 +54,50 @@ building_t::start_building(building_type_t type) {
     3, 2, 3, 2, 3, 3, 2, 1, 2, 3, 5, 5, 4, 1
   };
 
-  const map_obj_t obj_types[] = {
-    MAP_OBJ_NONE,            // BUILDING_NONE
-    MAP_OBJ_SMALL_BUILDING,  // BUILDING_FISHER
-    MAP_OBJ_SMALL_BUILDING,  // BUILDING_LUMBERJACK
-    MAP_OBJ_SMALL_BUILDING,  // BUILDING_BOATBUILDER
-    MAP_OBJ_SMALL_BUILDING,  // BUILDING_STONECUTTER
-    MAP_OBJ_SMALL_BUILDING,  // BUILDING_STONEMINE
-    MAP_OBJ_SMALL_BUILDING,  // BUILDING_COALMINE
-    MAP_OBJ_SMALL_BUILDING,  // BUILDING_IRONMINE
-    MAP_OBJ_SMALL_BUILDING,  // BUILDING_GOLDMINE
-    MAP_OBJ_SMALL_BUILDING,  // BUILDING_FORESTER
-    MAP_OBJ_LARGE_BUILDING,  // BUILDING_STOCK
-    MAP_OBJ_SMALL_BUILDING,  // BUILDING_HUT
-    MAP_OBJ_LARGE_BUILDING,  // BUILDING_FARM
-    MAP_OBJ_LARGE_BUILDING,  // BUILDING_BUTCHER
-    MAP_OBJ_LARGE_BUILDING,  // BUILDING_PIGFARM
-    MAP_OBJ_SMALL_BUILDING,  // BUILDING_MILL
-    MAP_OBJ_LARGE_BUILDING,  // BUILDING_BAKER
-    MAP_OBJ_LARGE_BUILDING,  // BUILDING_SAWMILL
-    MAP_OBJ_LARGE_BUILDING,  // BUILDING_STEELSMELTER
-    MAP_OBJ_LARGE_BUILDING,  // BUILDING_TOOLMAKER
-    MAP_OBJ_LARGE_BUILDING,  // BUILDING_WEAPONSMITH
-    MAP_OBJ_LARGE_BUILDING,  // BUILDING_TOWER
-    MAP_OBJ_LARGE_BUILDING,  // BUILDING_FORTRESS
-    MAP_OBJ_LARGE_BUILDING,  // BUILDING_GOLDSMELTER
-    MAP_OBJ_CASTLE,          // BUILDING_CASTLE
+  const Map::Object obj_types[] = {
+    Map::ObjectNone,            // BUILDING_NONE
+    Map::ObjectSmallBuilding,  // BUILDING_FISHER
+    Map::ObjectSmallBuilding,  // BUILDING_LUMBERJACK
+    Map::ObjectSmallBuilding,  // BUILDING_BOATBUILDER
+    Map::ObjectSmallBuilding,  // BUILDING_STONECUTTER
+    Map::ObjectSmallBuilding,  // BUILDING_STONEMINE
+    Map::ObjectSmallBuilding,  // BUILDING_COALMINE
+    Map::ObjectSmallBuilding,  // BUILDING_IRONMINE
+    Map::ObjectSmallBuilding,  // BUILDING_GOLDMINE
+    Map::ObjectSmallBuilding,  // BUILDING_FORESTER
+    Map::ObjectLargeBuilding,  // BUILDING_STOCK
+    Map::ObjectSmallBuilding,  // BUILDING_HUT
+    Map::ObjectLargeBuilding,  // BUILDING_FARM
+    Map::ObjectLargeBuilding,  // BUILDING_BUTCHER
+    Map::ObjectLargeBuilding,  // BUILDING_PIGFARM
+    Map::ObjectSmallBuilding,  // BUILDING_MILL
+    Map::ObjectLargeBuilding,  // BUILDING_BAKER
+    Map::ObjectLargeBuilding,  // BUILDING_SAWMILL
+    Map::ObjectLargeBuilding,  // BUILDING_STEELSMELTER
+    Map::ObjectLargeBuilding,  // BUILDING_TOOLMAKER
+    Map::ObjectLargeBuilding,  // BUILDING_WEAPONSMITH
+    Map::ObjectLargeBuilding,  // BUILDING_TOWER
+    Map::ObjectLargeBuilding,  // BUILDING_FORTRESS
+    Map::ObjectLargeBuilding,  // BUILDING_GOLDSMELTER
+    Map::ObjectCastle,          // BUILDING_CASTLE
   };
 
-  map_obj_t map_obj = obj_types[type];
+  Map::Object map_obj = obj_types[type];
 
   set_type(type);
   progress = 0;
-  if (map_obj != MAP_OBJ_LARGE_BUILDING) progress = 1;
+  if (map_obj != Map::ObjectLargeBuilding) progress = 1;
 
-  if (type == BUILDING_CASTLE) {
+  if (type == TypeCastle) {
     stock[0].available = 0xff;
     stock[0].requested = 0xff;
     stock[1].available = 0xff;
     stock[1].requested = 0xff;
   } else {
-    stock[0].type = RESOURCE_PLANK;
+    stock[0].type = Resource::TypePlank;
     stock[0].prio = 0;
     stock[0].maximum = construction_cost[2*type];
-    stock[1].type = RESOURCE_STONE;
+    stock[1].type = Resource::TypeStone;
     stock[1].prio = 0;
     stock[1].maximum = construction_cost[2*type+1];
   }
@@ -106,8 +105,8 @@ building_t::start_building(building_type_t type) {
   return map_obj;
 }
 
-serf_t*
-building_t::call_defender_out() {
+Serf*
+Building::call_defender_out() {
   /* Remove knight from stats of defending building */
   if (has_inventory()) { /* Castle */
     game->get_player(get_owner())->decrease_castle_knights();
@@ -117,8 +116,8 @@ building_t::call_defender_out() {
   }
 
   /* The last knight in the list has to defend. */
-  serf_t *first_serf = game->get_serf(serf_index);
-  serf_t *def_serf = first_serf->extract_last_knight_from_list();
+  Serf *first_serf = game->get_serf(serf_index);
+  Serf *def_serf = first_serf->extract_last_knight_from_list();
 
   if (def_serf->get_index() == serf_index) {
     serf_index = 0;
@@ -127,13 +126,13 @@ building_t::call_defender_out() {
   return def_serf;
 }
 
-serf_t*
-building_t::call_attacker_out(int knight_index) {
+Serf*
+Building::call_attacker_out(int knight_index) {
   stock[0].available -= 1;
 
   /* Unlink knight from list. */
-  serf_t *first_serf = game->get_serf(serf_index);
-  serf_t *def_serf = first_serf->extract_last_knight_from_list();
+  Serf *first_serf = game->get_serf(serf_index);
+  Serf *def_serf = first_serf->extract_last_knight_from_list();
 
   if (def_serf->get_index() == serf_index) {
     serf_index = 0;
@@ -143,14 +142,14 @@ building_t::call_attacker_out(int knight_index) {
 }
 
 unsigned int
-building_t::military_gold_count() {
+Building::military_gold_count() {
   unsigned int count = 0;
 
-  if (get_type() == BUILDING_HUT ||
-      get_type() == BUILDING_TOWER ||
-      get_type() == BUILDING_FORTRESS) {
+  if (get_type() == TypeHut ||
+      get_type() == TypeTower ||
+      get_type() == TypeFortress) {
     for (int j = 0; j < BUILDING_MAX_STOCK; j++) {
-      if (stock[j].type == RESOURCE_GOLDBAR) {
+      if (stock[j].type == Resource::TypeGoldBar) {
         count += stock[j].available;
       }
     }
@@ -160,11 +159,11 @@ building_t::military_gold_count() {
 }
 
 void
-building_t::cancel_transported_resource(resource_type_t res) {
-  if (res == RESOURCE_FISH ||
-      res == RESOURCE_MEAT ||
-      res == RESOURCE_BREAD) {
-    res = RESOURCE_GROUP_FOOD;
+Building::cancel_transported_resource(Resource::Type res) {
+  if (res == Resource::TypeFish ||
+      res == Resource::TypeMeat ||
+      res == Resource::TypeBread) {
+    res = Resource::GroupFood;
   }
 
   int in_stock = -1;
@@ -184,7 +183,7 @@ building_t::cancel_transported_resource(resource_type_t res) {
 }
 
 bool
-building_t::add_requested_resource(resource_type_t res, bool fix_priority) {
+Building::add_requested_resource(Resource::Type res, bool fix_priority) {
   for (int j = 0; j < BUILDING_MAX_STOCK; j++) {
     if (stock[j].type == res) {
       if (fix_priority) {
@@ -203,7 +202,7 @@ building_t::add_requested_resource(resource_type_t res, bool fix_priority) {
 }
 
 void
-building_t::stock_init(unsigned int stock_num, resource_type_t type,
+Building::stock_init(unsigned int stock_num, Resource::Type type,
                        unsigned int maximum) {
   stock[stock_num].type = type;
   stock[stock_num].prio = 0;
@@ -211,7 +210,7 @@ building_t::stock_init(unsigned int stock_num, resource_type_t type,
 }
 
 void
-building_t::requested_resource_delivered(resource_type_t resource) {
+Building::requested_resource_delivered(Resource::Type resource) {
   for (int i = 0; i < BUILDING_MAX_STOCK; i++) {
     if (stock[i].type == resource) {
       stock[i].available += 1;
@@ -225,18 +224,18 @@ building_t::requested_resource_delivered(resource_type_t resource) {
 }
 
 void
-building_t::requested_knight_arrived() {
+Building::requested_knight_arrived() {
   stock[0].available += 1;
   stock[0].requested -= 1;
 }
 
 bool
-building_t::is_enough_place_for_knight() {
+Building::is_enough_place_for_knight() {
   int max_capacity = -1;
   switch (get_type()) {
-    case BUILDING_HUT: max_capacity = 3; break;
-    case BUILDING_TOWER: max_capacity = 6; break;
-    case BUILDING_FORTRESS: max_capacity = 12; break;
+    case TypeHut: max_capacity = 3; break;
+    case TypeTower: max_capacity = 6; break;
+    case TypeFortress: max_capacity = 12; break;
     default: NOT_REACHED(); break;
   }
 
@@ -245,10 +244,10 @@ building_t::is_enough_place_for_knight() {
 }
 
 bool
-building_t::knight_come_back_from_fight(serf_t *knight) {
+Building::knight_come_back_from_fight(Serf *knight) {
   if (is_enough_place_for_knight()) {
     stock[0].available += 1;
-    serf_t *serf = game->get_serf(serf_index);
+    Serf *serf = game->get_serf(serf_index);
     knight->insert_before(serf);
     set_main_serf(knight->get_index());
     return true;
@@ -258,7 +257,7 @@ building_t::knight_come_back_from_fight(serf_t *knight) {
 }
 
 void
-building_t::knight_occupy() {
+Building::knight_occupy() {
   if (!has_main_serf()) {
     stock[0].available = 0;
     stock[0].requested = 1;
@@ -268,7 +267,7 @@ building_t::knight_occupy() {
 }
 
 void
-building_t::update(unsigned int tick) {
+Building::update(unsigned int tick) {
   if (is_burning()) {
     uint16_t delta = tick - u.tick;
     u.tick = tick;
@@ -283,13 +282,13 @@ building_t::update(unsigned int tick) {
 }
 
 void
-building_t::knight_request_granted() {
+Building::knight_request_granted() {
   stock[0].requested += 1;
   serf_request_complete();
 }
 
 void
-building_t::remove_stock() {
+Building::remove_stock() {
   stock[0].available = 0;
   stock[0].requested = 0;
   stock[1].available = 0;
@@ -297,8 +296,7 @@ building_t::remove_stock() {
 }
 
 int
-building_t::get_max_priority_for_resource(resource_type_t resource,
-                                          int minimum) {
+Building::get_max_priority_for_resource(Resource::Type resource, int minimum) {
   int max_prio = -1;
 
   for (int i = 0; i < BUILDING_MAX_STOCK; i++) {
@@ -313,7 +311,7 @@ building_t::get_max_priority_for_resource(resource_type_t resource,
 }
 
 bool
-building_t::use_resource_in_stock(int stock_num) {
+Building::use_resource_in_stock(int stock_num) {
   if (stock[stock_num].available > 0) {
     stock[stock_num].available -= 1;
     return true;
@@ -322,7 +320,7 @@ building_t::use_resource_in_stock(int stock_num) {
 }
 
 bool
-building_t::use_resources_in_stocks() {
+Building::use_resources_in_stocks() {
   if (stock[0].available > 0 &&
       stock[1].available > 0) {
     stock[0].available -= 1;
@@ -333,39 +331,39 @@ building_t::use_resources_in_stocks() {
 }
 
 void
-building_t::update() {
+Building::update() {
   if (is_done()) {
     switch (get_type()) {
-      case BUILDING_NONE:
+      case TypeNone:
         break;
-      case BUILDING_FISHER:
+      case TypeFisher:
         if (!serf_request_fail() &&
             !has_serf() &&
             !serf_requested()) {
-          int r = send_serf_to_building(this, SERF_FISHER,
-                                        RESOURCE_ROD, RESOURCE_NONE);
+          int r = send_serf_to_building(this, Serf::TypeFisher,
+                                        Resource::TypeRod, Resource::TypeNone);
           if (r < 0) serf |= BIT(2);
         }
         break;
-      case BUILDING_LUMBERJACK:
+      case TypeLumberjack:
         if (!serf_request_fail() &&
             !has_serf() &&
             !serf_requested()) {
-          int r = send_serf_to_building(this, SERF_LUMBERJACK,
-                                        RESOURCE_AXE, RESOURCE_NONE);
+          int r = send_serf_to_building(this, Serf::TypeLumberjack,
+                                        Resource::TypeAxe, Resource::TypeNone);
           if (r < 0) serf |= BIT(2);
         }
         break;
-      case BUILDING_BOATBUILDER:
+      case TypeBoatbuilder:
         if (!serf_request_fail() &&
             !has_serf() &&
             !serf_requested()) {
-          int r = send_serf_to_building(this, SERF_BOATBUILDER,
-                                        RESOURCE_HAMMER, RESOURCE_NONE);
+          int r = send_serf_to_building(this, Serf::TypeBoatBuilder,
+                                      Resource::TypeHammer, Resource::TypeNone);
           if (r < 0) serf |= BIT(2);
         }
         if (has_serf()) {
-          player_t *player = game->get_player(get_owner());
+          Player *player = game->get_player(get_owner());
           int total_tree = stock[0].requested + stock[0].available;
           if (total_tree < stock[0].maximum) {
             stock[0].prio =
@@ -375,99 +373,99 @@ building_t::update() {
           }
         }
         break;
-      case BUILDING_STONECUTTER:
+      case TypeStonecutter:
         if (!serf_request_fail() &&
             !has_serf() &&
             !serf_requested()) {
-          int r = send_serf_to_building(this, SERF_STONECUTTER,
-                                        RESOURCE_PICK, RESOURCE_NONE);
+          int r = send_serf_to_building(this, Serf::TypeStonecutter,
+                                        Resource::TypePick, Resource::TypeNone);
           if (r < 0) serf |= BIT(2);
         }
         break;
-      case BUILDING_STONEMINE:
+      case TypeStoneMine:
         if (!serf_request_fail() &&
             !has_serf() &&
             !serf_requested()) {
-          int r = send_serf_to_building(this, SERF_MINER,
-                                        RESOURCE_PICK, RESOURCE_NONE);
+          int r = send_serf_to_building(this, Serf::TypeMiner,
+                                        Resource::TypePick, Resource::TypeNone);
           if (r < 0) serf |= BIT(2);
         }
         if (has_serf()) {
           int total_food = stock[0].requested + stock[0].available;
           if (total_food < stock[0].maximum) {
-            player_t *player = game->get_player(get_owner());
+            Player *player = game->get_player(get_owner());
             stock[0].prio = player->get_food_stonemine() >> (8 + total_food);
           } else {
             stock[0].prio = 0;
           }
         }
         break;
-      case BUILDING_COALMINE:
+      case TypeCoalMine:
         if (!serf_request_fail() &&
             !has_serf() &&
             !serf_requested()) {
-          int r = send_serf_to_building(this, SERF_MINER,
-                                        RESOURCE_PICK, RESOURCE_NONE);
+          int r = send_serf_to_building(this, Serf::TypeMiner,
+                                        Resource::TypePick, Resource::TypeNone);
           if (r < 0) serf |= BIT(2);
         }
         if (has_serf()) {
           int total_food = stock[0].requested + stock[0].available;
           if (total_food < stock[0].maximum) {
-            player_t *player = game->get_player(get_owner());
+            Player *player = game->get_player(get_owner());
             stock[0].prio = player->get_food_coalmine() >> (8 + total_food);
           } else {
             stock[0].prio = 0;
           }
         }
         break;
-      case BUILDING_IRONMINE:
+      case TypeIronMine:
         if (!serf_request_fail() &&
             !has_serf() &&
             !serf_requested()) {
-          int r = send_serf_to_building(this, SERF_MINER,
-                                        RESOURCE_PICK, RESOURCE_NONE);
+          int r = send_serf_to_building(this, Serf::TypeMiner,
+                                        Resource::TypePick, Resource::TypeNone);
           if (r < 0) serf |= BIT(2);
         }
         if (has_serf()) {
           int total_food = stock[0].requested + stock[0].available;
           if (total_food < stock[0].maximum) {
-            player_t *player = game->get_player(get_owner());
+            Player *player = game->get_player(get_owner());
             stock[0].prio = player->get_food_ironmine() >> (8 + total_food);
           } else {
             stock[0].prio = 0;
           }
         }
         break;
-      case BUILDING_GOLDMINE:
+      case TypeGoldMine:
         if (!serf_request_fail() &&
             !has_serf() &&
             !serf_requested()) {
-          int r = send_serf_to_building(this, SERF_MINER,
-                                        RESOURCE_PICK, RESOURCE_NONE);
+          int r = send_serf_to_building(this, Serf::TypeMiner,
+                                        Resource::TypePick, Resource::TypeNone);
           if (r < 0) serf |= BIT(2);
         }
         if (has_serf()) {
           int total_food = stock[0].requested + stock[0].available;
           if (total_food < stock[0].maximum) {
-            player_t *player = game->get_player(get_owner());
+            Player *player = game->get_player(get_owner());
             stock[0].prio = player->get_food_goldmine() >> (8 + total_food);
           } else {
             stock[0].prio = 0;
           }
         }
         break;
-      case BUILDING_FORESTER:
+      case TypeForester:
         if (!serf_request_fail() &&
             !has_serf() &&
             !serf_requested()) {
-          int r = send_serf_to_building(this, SERF_FORESTER,
-                                        RESOURCE_NONE, RESOURCE_NONE);
+          int r = send_serf_to_building(this, Serf::TypeForester,
+                                        Resource::TypeNone, Resource::TypeNone);
           if (r < 0) serf |= BIT(2);
         }
         break;
-      case BUILDING_STOCK:
+      case TypeStock:
         if (!is_active()) {
-          inventory_t *inv = game->create_inventory();
+          Inventory *inv = game->create_inventory();
           if (inv == NULL) return;
 
           inv->set_owner(get_owner());
@@ -486,51 +484,51 @@ building_t::update() {
           if (!serf_request_fail() &&
               !has_serf() &&
               !serf_requested()) {
-            send_serf_to_building(this, SERF_TRANSPORTER,
-                                  RESOURCE_NONE, RESOURCE_NONE);
+            send_serf_to_building(this, Serf::TypeTransporter,
+                                  Resource::TypeNone, Resource::TypeNone);
           }
 
-          player_t *player = game->get_player(get_owner());
-          inventory_t *inv = u.inventory;
+          Player *player = game->get_player(get_owner());
+          Inventory *inv = u.inventory;
           if (has_serf() &&
               !inv->have_any_out_mode() == 0 && /* Not serf or res OUT mode */
               inv->free_serf_count() == 0) {
             if (player->tick_send_generic_delay()) {
-              send_serf_to_building(this, SERF_GENERIC,
-                                    RESOURCE_NONE, RESOURCE_NONE);
+              send_serf_to_building(this, Serf::TypeGeneric,
+                                    Resource::TypeNone, Resource::TypeNone);
             }
           }
 
           /* TODO Following code looks like a hack */
-          map_pos_t flag_pos = game->get_map()->move_down_right(pos);
+          MapPos flag_pos = game->get_map()->move_down_right(pos);
           if (game->get_map()->get_serf_index(flag_pos) != 0) {
-            serf_t *serf = game->get_serf_at_pos(flag_pos);
+            Serf *serf = game->get_serf_at_pos(flag_pos);
             if (serf->get_pos() != flag_pos) {
               game->get_map()->set_serf_index(flag_pos, 0);
             }
           }
         }
         break;
-      case BUILDING_HUT:
-      case BUILDING_TOWER:
-      case BUILDING_FORTRESS:
+      case TypeHut:
+      case TypeTower:
+      case TypeFortress:
         update_military();
         break;
-      case BUILDING_FARM:
+      case TypeFarm:
         if (!serf_request_fail() &&
             !has_serf() &&
             !serf_requested()) {
-          int r = send_serf_to_building(this, SERF_FARMER,
-                                        RESOURCE_SCYTHE, RESOURCE_NONE);
+          int r = send_serf_to_building(this, Serf::TypeFarmer,
+                                      Resource::TypeScythe, Resource::TypeNone);
           if (r < 0) serf |= BIT(2);
         }
         break;
-      case BUILDING_BUTCHER:
+      case TypeButcher:
         if (!serf_request_fail() &&
             !has_serf() &&
             !serf_requested()) {
-          int r = send_serf_to_building(this, SERF_BUTCHER,
-                                        RESOURCE_CLEAVER, RESOURCE_NONE);
+          int r = send_serf_to_building(this, Serf::TypeButcher,
+                                     Resource::TypeCleaver, Resource::TypeNone);
           if (r < 0) serf |= BIT(2);
         }
         if (has_serf()) {
@@ -543,50 +541,50 @@ building_t::update() {
           }
         }
         break;
-      case BUILDING_PIGFARM:
+      case TypePigFarm:
         if (!serf_request_fail() &&
             !has_serf() &&
             !serf_requested()) {
-          int r = send_serf_to_building(this, SERF_PIGFARMER,
-                                        RESOURCE_NONE, RESOURCE_NONE);
+          int r = send_serf_to_building(this, Serf::TypePigFarmer,
+                                        Resource::TypeNone, Resource::TypeNone);
           if (r < 0) serf |= BIT(2);
         }
         if (has_serf()) {
           /* Request more wheat. */
           int total_stock = stock[0].requested + stock[0].available;
           if (total_stock < stock[0].maximum) {
-            player_t *player = game->get_player(get_owner());
+            Player *player = game->get_player(get_owner());
             stock[0].prio = player->get_wheat_pigfarm() >> (8 + total_stock);
           } else {
             stock[0].prio = 0;
           }
         }
         break;
-      case BUILDING_MILL:
+      case TypeMill:
         if (!serf_request_fail() &&
             !has_serf() &&
             !serf_requested()) {
-          int r = send_serf_to_building(this, SERF_MILLER,
-                                        RESOURCE_NONE, RESOURCE_NONE);
+          int r = send_serf_to_building(this, Serf::TypeMiller,
+                                        Resource::TypeNone, Resource::TypeNone);
           if (r < 0) serf |= BIT(2);
         }
         if (has_serf()) {
           /* Request more wheat. */
           int total_stock = stock[0].requested + stock[0].available;
           if (total_stock < stock[0].maximum) {
-            player_t *player = game->get_player(get_owner());
+            Player *player = game->get_player(get_owner());
             stock[0].prio = player->get_wheat_mill() >> (8 + total_stock);
           } else {
             stock[0].prio = 0;
           }
         }
         break;
-      case BUILDING_BAKER:
+      case TypeBaker:
         if (!serf_request_fail() &&
             !has_serf() &&
             !serf_requested()) {
-          int r = send_serf_to_building(this, SERF_BAKER,
-                                        RESOURCE_NONE, RESOURCE_NONE);
+          int r = send_serf_to_building(this, Serf::TypeBaker,
+                                        Resource::TypeNone, Resource::TypeNone);
           if (r < 0) serf |= BIT(2);
         }
         if (has_serf()) {
@@ -599,12 +597,12 @@ building_t::update() {
           }
         }
         break;
-      case BUILDING_SAWMILL:
+      case TypeSawmill:
         if (!serf_request_fail() &&
             !has_serf() &&
             !serf_requested()) {
-          int r = send_serf_to_building(this, SERF_SAWMILLER,
-                                        RESOURCE_SAW, RESOURCE_NONE);
+          int r = send_serf_to_building(this, Serf::TypeSawmiller,
+                                        Resource::TypeSaw, Resource::TypeNone);
           if (r < 0) serf |= BIT(2);
         }
         if (has_serf()) {
@@ -617,19 +615,19 @@ building_t::update() {
           }
         }
         break;
-      case BUILDING_STEELSMELTER:
+      case TypeSteelSmelter:
         if (!serf_request_fail() &&
             !has_serf() &&
             !serf_requested()) {
-          int r = send_serf_to_building(this, SERF_SMELTER,
-                                        RESOURCE_NONE, RESOURCE_NONE);
+          int r = send_serf_to_building(this, Serf::TypeSmelter,
+                                        Resource::TypeNone, Resource::TypeNone);
           if (r < 0) serf |= BIT(2);
         }
         if (has_serf()) {
           /* Request more coal */
           int total_coal = stock[0].requested + stock[0].available;
           if (total_coal < stock[0].maximum) {
-            player_t *player = game->get_player(get_owner());
+            Player *player = game->get_player(get_owner());
             stock[0].prio = player->get_coal_steelsmelter() >> (8 + total_coal);
           } else {
             stock[0].prio = 0;
@@ -644,17 +642,17 @@ building_t::update() {
           }
         }
         break;
-      case BUILDING_TOOLMAKER:
+      case TypeToolMaker:
         if (!serf_request_fail() &&
             !has_serf() &&
             !serf_requested()) {
-          int r = send_serf_to_building(this, SERF_TOOLMAKER,
-                                        RESOURCE_HAMMER, RESOURCE_SAW);
+          int r = send_serf_to_building(this, Serf::TypeToolmaker,
+                                       Resource::TypeHammer, Resource::TypeSaw);
           if (r < 0) serf |= BIT(2);
         }
         if (has_serf()) {
           /* Request more planks. */
-          player_t *player = game->get_player(get_owner());
+          Player *player = game->get_player(get_owner());
           int total_tree = stock[0].requested + stock[0].available;
           if (total_tree < stock[0].maximum) {
             stock[0].prio = player->get_planks_toolmaker() >> (8 + total_tree);
@@ -671,17 +669,17 @@ building_t::update() {
           }
         }
         break;
-      case BUILDING_WEAPONSMITH:
+      case TypeWeaponSmith:
         if (!serf_request_fail() &&
             !has_serf() &&
             !serf_requested()) {
-          int r = send_serf_to_building(this, SERF_WEAPONSMITH,
-                                        RESOURCE_HAMMER, RESOURCE_PINCER);
+          int r = send_serf_to_building(this, Serf::TypeWeaponSmith,
+                                    Resource::TypeHammer, Resource::TypePincer);
           if (r < 0) serf |= BIT(2);
         }
         if (has_serf()) {
           /* Request more coal. */
-          player_t *player = game->get_player(get_owner());
+          Player *player = game->get_player(get_owner());
           int total_coal = stock[0].requested + stock[0].available;
           if (total_coal < stock[0].maximum) {
             stock[0].prio = player->get_coal_weaponsmith() >> (8 + total_coal);
@@ -699,17 +697,17 @@ building_t::update() {
           }
         }
         break;
-      case BUILDING_GOLDSMELTER:
+      case TypeGoldSmelter:
         if (!serf_request_fail() &&
             !has_serf() &&
             !serf_requested()) {
-          int r = send_serf_to_building(this, SERF_SMELTER,
-                                        RESOURCE_NONE, RESOURCE_NONE);
+          int r = send_serf_to_building(this, Serf::TypeSmelter,
+                                        Resource::TypeNone, Resource::TypeNone);
           if (r < 0) serf |= BIT(2);
         }
         if (has_serf()) {
           /* Request more coal. */
-          player_t *player = game->get_player(get_owner());
+          Player *player = game->get_player(get_owner());
           int total_coal = stock[0].requested + stock[0].available;
           if (total_coal < stock[0].maximum) {
             stock[0].prio = player->get_coal_goldsmelter() >> (8 + total_coal);
@@ -726,7 +724,7 @@ building_t::update() {
           }
         }
         break;
-      case BUILDING_CASTLE:
+      case TypeCastle:
         update_castle();
         break;
       default:
@@ -735,34 +733,34 @@ building_t::update() {
     }
   } else { /* Unfinished */
     switch (type) {
-      case BUILDING_NONE:
-      case BUILDING_CASTLE:
+      case TypeNone:
+      case TypeCastle:
         break;
-      case BUILDING_FISHER:
-      case BUILDING_LUMBERJACK:
-      case BUILDING_BOATBUILDER:
-      case BUILDING_STONECUTTER:
-      case BUILDING_STONEMINE:
-      case BUILDING_COALMINE:
-      case BUILDING_IRONMINE:
-      case BUILDING_GOLDMINE:
-      case BUILDING_FORESTER:
-      case BUILDING_HUT:
-      case BUILDING_MILL:
+      case TypeFisher:
+      case TypeLumberjack:
+      case TypeBoatbuilder:
+      case TypeStonecutter:
+      case TypeStoneMine:
+      case TypeCoalMine:
+      case TypeIronMine:
+      case TypeGoldMine:
+      case TypeForester:
+      case TypeHut:
+      case TypeMill:
         update_unfinished();
         break;
-      case BUILDING_STOCK:
-      case BUILDING_FARM:
-      case BUILDING_BUTCHER:
-      case BUILDING_PIGFARM:
-      case BUILDING_BAKER:
-      case BUILDING_SAWMILL:
-      case BUILDING_STEELSMELTER:
-      case BUILDING_TOOLMAKER:
-      case BUILDING_WEAPONSMITH:
-      case BUILDING_TOWER:
-      case BUILDING_FORTRESS:
-      case BUILDING_GOLDSMELTER:
+      case TypeStock:
+      case TypeFarm:
+      case TypeButcher:
+      case TypePigFarm:
+      case TypeBaker:
+      case TypeSawmill:
+      case TypeSteelSmelter:
+      case TypeToolMaker:
+      case TypeWeaponSmith:
+      case TypeTower:
+      case TypeFortress:
+      case TypeGoldSmelter:
         update_unfinished_adv();
         break;
       default:
@@ -774,16 +772,16 @@ building_t::update() {
 
 /* Update unfinished building as part of the game progression. */
 void
-building_t::update_unfinished() {
-  player_t *player = game->get_player(get_owner());
+Building::update_unfinished() {
+  Player *player = game->get_player(get_owner());
 
   /* Request builder serf */
   if (!serf_request_fail() &&
       !has_serf() &&
       !serf_requested()) {
     progress = 1;
-    int r = send_serf_to_building(this, SERF_BUILDER,
-                                  RESOURCE_HAMMER, RESOURCE_NONE);
+    int r = send_serf_to_building(this, Serf::TypeBuilder,
+                                  Resource::TypeHammer, Resource::TypeNone);
     if (r < 0) serf |= BIT(2);
   }
 
@@ -809,7 +807,7 @@ building_t::update_unfinished() {
 }
 
 void
-building_t::update_unfinished_adv() {
+Building::update_unfinished_adv() {
   if (progress > 0) {
     update_unfinished();
     return;
@@ -824,7 +822,7 @@ building_t::update_unfinished_adv() {
   int need_leveling = 0;
   unsigned int height = game->get_leveling_height(pos);
   for (int i = 0; i < 7; i++) {
-    map_pos_t pos = game->get_map()->pos_add_spirally(this->pos, i);
+    MapPos pos = game->get_map()->pos_add_spirally(this->pos, i);
     if (game->get_map()->get_height(pos) != height) {
       need_leveling = 1;
       break;
@@ -840,30 +838,30 @@ building_t::update_unfinished_adv() {
 
   /* Request digger */
   if (!serf_request_fail()) {
-    bool r = send_serf_to_building(this, SERF_DIGGER,
-                                   RESOURCE_SHOVEL, RESOURCE_NONE);
+    bool r = send_serf_to_building(this, Serf::TypeDigger,
+                                   Resource::TypeShovel, Resource::TypeNone);
     if (!r) serf |= BIT(2);
   }
 }
 
 /* Dispatch serf to building. */
 bool
-building_t::send_serf_to_building(building_t *building, serf_type_t type,
-                                  resource_type_t res1, resource_type_t res2) {
-  flag_t *dest = game->get_flag(building->flag);
+Building::send_serf_to_building(Building *building, Serf::Type type,
+                                Resource::Type res1, Resource::Type res2) {
+  Flag *dest = game->get_flag(building->flag);
   return game->send_serf_to_flag(dest, type, res1, res2);
 }
 
 /* Update castle as part of the game progression. */
 void
-building_t::update_castle() {
-  player_t *player = game->get_player(get_owner());
+Building::update_castle() {
+  Player *player = game->get_player(get_owner());
   if (player->get_castle_knights() == player->get_castle_knights_wanted()) {
-    serf_t *best_knight = NULL;
-    serf_t *last_knight = NULL;
+    Serf *best_knight = NULL;
+    Serf *last_knight = NULL;
     int next_serf_index = this->serf_index;
     while (next_serf_index != 0) {
-      serf_t *serf = game->get_serf(next_serf_index);
+      Serf *serf = game->get_serf(next_serf_index);
       assert(serf != NULL);
       if (best_knight == NULL ||
           serf->get_type() < best_knight->get_type()) {
@@ -874,25 +872,25 @@ building_t::update_castle() {
     }
 
     if (best_knight != NULL) {
-      inventory_t *inventory = u.inventory;
+      Inventory *inventory = u.inventory;
       int type = best_knight->get_type();
-      for (int t = SERF_KNIGHT_0; t <= SERF_KNIGHT_4; t++) {
+      for (int t = Serf::TypeKnight0; t <= Serf::TypeKnight4; t++) {
         if (type > t) {
           inventory->call_internal(best_knight);
         }
       }
 
       /* Switch types */
-      serf_type_t tmp = best_knight->get_type();
+      Serf::Type tmp = best_knight->get_type();
       best_knight->set_type(last_knight->get_type());
       last_knight->set_type(tmp);
     }
   } else if (player->get_castle_knights() <
              player->get_castle_knights_wanted()) {
-    inventory_t *inventory = u.inventory;
+    Inventory *inventory = u.inventory;
     int type = -1;
-    for (int t = SERF_KNIGHT_4; t >= SERF_KNIGHT_0; t--) {
-      if (inventory->have_serf((serf_type_t)t)) {
+    for (int t = Serf::TypeKnight4; t >= Serf::TypeKnight0; t--) {
+      if (inventory->have_serf((Serf::Type)t)) {
         type = t;
         break;
       }
@@ -900,10 +898,10 @@ building_t::update_castle() {
 
     if (type < 0) {
       /* None found */
-      if (inventory->have_serf(SERF_GENERIC) &&
-          inventory->get_count_of(RESOURCE_SWORD) != 0 &&
-          inventory->get_count_of(RESOURCE_SHIELD) != 0) {
-        serf_t *serf = inventory->specialize_free_serf(SERF_KNIGHT_0);
+      if (inventory->have_serf(Serf::TypeGeneric) &&
+          inventory->get_count_of(Resource::TypeSword) != 0 &&
+          inventory->get_count_of(Resource::TypeShield) != 0) {
+        Serf *serf = inventory->specialize_free_serf(Serf::TypeKnight0);
         inventory->call_internal(serf);
 
         serf->add_to_defending_queue(serf_index, false);
@@ -911,12 +909,13 @@ building_t::update_castle() {
         player->increase_castle_knights();
       } else {
         if (player->tick_send_knight_delay()) {
-          send_serf_to_building(this, SERF_NONE, RESOURCE_NONE, RESOURCE_NONE);
+          send_serf_to_building(this, Serf::TypeNone,
+                                Resource::TypeNone, Resource::TypeNone);
         }
       }
     } else {
       /* Prepend to knights list */
-      serf_t *serf = inventory->call_internal((serf_type_t)type);
+      Serf *serf = inventory->call_internal((Serf::Type)type);
       serf->add_to_defending_queue(serf_index, true);
       serf_index = serf->get_index();
       player->increase_castle_knights();
@@ -925,25 +924,26 @@ building_t::update_castle() {
     player->decrease_castle_knights();
 
     int serf_index = this->serf_index;
-    serf_t *serf = game->get_serf(serf_index);
+    Serf *serf = game->get_serf(serf_index);
     this->serf_index = serf->get_next();
 
     serf->stay_idle_in_stock(u.inventory->get_index());
   }
 
-  inventory_t *inventory = u.inventory;
+  Inventory *inventory = u.inventory;
 
   if (has_serf() &&
       !inventory->have_any_out_mode() && /* Not serf or res OUT mode */
       inventory->free_serf_count() == 0) {
     if (player->tick_send_generic_delay()) {
-      send_serf_to_building(this, SERF_GENERIC, RESOURCE_NONE, RESOURCE_NONE);
+      send_serf_to_building(this, Serf::TypeGeneric, Resource::TypeNone,
+                            Resource::TypeNone);
     }
   }
 
-  map_pos_t flag_pos = game->get_map()->move_down_right(pos);
+  MapPos flag_pos = game->get_map()->move_down_right(pos);
   if (game->get_map()->get_serf_index(flag_pos) != 0) {
-    serf_t *serf = game->get_serf(game->get_map()->get_serf_index(flag_pos));
+    Serf *serf = game->get_serf(game->get_map()->get_serf_index(flag_pos));
     if (serf->get_pos() != flag_pos) {
       game->get_map()->set_serf_index(flag_pos, 0);
     }
@@ -951,7 +951,7 @@ building_t::update_castle() {
 }
 
 void
-building_t::update_military() {
+Building::update_military() {
   const int hut_occupants_from_level[] = {
     1, 1, 2, 2, 3,
     1, 1, 1, 1, 2
@@ -967,7 +967,7 @@ building_t::update_military() {
     1, 2, 4, 6, 8
   };
 
-  player_t *player = game->get_player(get_owner());
+  Player *player = game->get_player(get_owner());
   int max_occ_level = (player->get_knight_occupation(get_state()) >> 4) & 0xf;
   if (player->reduced_knight_level()) max_occ_level += 5;
   if (max_occ_level > 9) max_occ_level = 9;
@@ -975,15 +975,15 @@ building_t::update_military() {
   int needed_occupants = -1;
   int max_gold = -1;
   switch (get_type()) {
-    case BUILDING_HUT:
+    case TypeHut:
       needed_occupants = hut_occupants_from_level[max_occ_level];
       max_gold = 2;
       break;
-    case BUILDING_TOWER:
+    case TypeTower:
       needed_occupants = tower_occupants_from_level[max_occ_level];
       max_gold = 4;
       break;
-    case BUILDING_FORTRESS:
+    case TypeFortress:
       needed_occupants = fortress_occupants_from_level[max_occ_level];
       max_gold = 8;
       break;
@@ -996,18 +996,18 @@ building_t::update_military() {
   int present_knights = stock[0].available;
   if (total_knights < needed_occupants) {
     if (!serf_request_fail()) {
-      bool r = send_serf_to_building(this, SERF_NONE,
-                                     RESOURCE_NONE, RESOURCE_NONE);
+      bool r = send_serf_to_building(this, Serf::TypeNone,
+                                     Resource::TypeNone, Resource::TypeNone);
       if (!r) serf |= BIT(2);
     }
   } else if (needed_occupants < present_knights &&
              game->get_map()->get_serf_index(
                                   game->get_map()->move_down_right(pos)) == 0) {
     /* Kick least trained knight out. */
-    serf_t *leaving_serf = NULL;
+    Serf *leaving_serf = NULL;
     int serf_index = this->serf_index;
     while (serf_index != 0) {
-      serf_t *serf = game->get_serf(serf_index);
+      Serf *serf = game->get_serf(serf_index);
       assert(serf != NULL);
       if (leaving_serf == NULL ||
           serf->get_type() < leaving_serf->get_type()) {
@@ -1023,7 +1023,7 @@ building_t::update_military() {
       } else {
         serf_index = this->serf_index;
         while (serf_index != 0) {
-          serf_t *serf = game->get_serf(serf_index);
+          Serf *serf = game->get_serf(serf_index);
           if (serf->get_next() == leaving_serf->get_index()) {
             serf->set_next(leaving_serf->get_next());
             break;
@@ -1053,7 +1053,7 @@ building_t::update_military() {
 }
 
 int
-building_get_score_from_type(building_type_t type) {
+building_get_score_from_type(Building::Type type) {
   const int building_score_from_type[] = {
     2, 2, 2, 2, 5, 5, 5, 5, 2, 10,
     3, 6, 4, 6, 5, 4, 7, 7, 9, 4,
@@ -1063,15 +1063,15 @@ building_get_score_from_type(building_type_t type) {
   return building_score_from_type[type-1];
 }
 
-save_reader_binary_t&
-operator >> (save_reader_binary_t &reader, building_t &building) {
+SaveReaderBinary&
+operator >> (SaveReaderBinary &reader, Building &building) {
   uint32_t v32;
   reader >> v32;
   building.pos = v32;
 
   uint8_t v8;
   reader >> v8;  // 4
-  building.type = (building_type_t)((v8 >> 2) & 0x1f);
+  building.type = (Building::Type)((v8 >> 2) & 0x1f);
   building.bld = v8 & 0x83;
 
   reader >> v8;  // 5
@@ -1083,7 +1083,7 @@ operator >> (save_reader_binary_t &reader, building_t &building) {
 
   for (int i = 0; i < 2; i++) {
     reader >> v8;  // 8, 9
-    building.stock[i].type = RESOURCE_NONE;
+    building.stock[i].type = Resource::TypeNone;
     building.stock[i].available = 0;
     building.stock[i].requested = 0;
     if (v8 != 0xFF) {
@@ -1099,8 +1099,8 @@ operator >> (save_reader_binary_t &reader, building_t &building) {
 
   if (!building.is_burning() &&
       building.is_done() &&
-      (building.get_type() == BUILDING_STOCK ||
-      building.get_type() == BUILDING_CASTLE)) {
+      (building.get_type() == Building::TypeStock ||
+      building.get_type() == Building::TypeCastle)) {
     reader >> v32;  // 14
     int offset = v32;
     building.u.inventory = building.game->create_inventory(offset/120);
@@ -1112,79 +1112,79 @@ operator >> (save_reader_binary_t &reader, building_t &building) {
   }
 
   if (!building.is_done()) {
-    building.stock[0].type = RESOURCE_PLANK;
+    building.stock[0].type = Resource::TypePlank;
     reader >> v8;  // 16
     building.stock[0].maximum = v8;
-    building.stock[1].type = RESOURCE_STONE;
+    building.stock[1].type = Resource::TypeStone;
     reader >> v8;  // 17
     building.stock[1].maximum = v8;
   } else if (building.has_serf()) {
     switch (building.get_type()) {
-      case BUILDING_BOATBUILDER:
-        building.stock[0].type = RESOURCE_PLANK;
+      case Building::TypeBoatbuilder:
+        building.stock[0].type = Resource::TypePlank;
         building.stock[0].maximum = 8;
         break;
-      case BUILDING_STONEMINE:
-      case BUILDING_COALMINE:
-      case BUILDING_IRONMINE:
-      case BUILDING_GOLDMINE:
-        building.stock[0].type = RESOURCE_GROUP_FOOD;
+      case Building::TypeStoneMine:
+      case Building::TypeCoalMine:
+      case Building::TypeIronMine:
+      case Building::TypeGoldMine:
+        building.stock[0].type = Resource::GroupFood;
         building.stock[0].maximum = 8;
         break;
-      case BUILDING_HUT:
-        building.stock[1].type = RESOURCE_GOLDBAR;
+      case Building::TypeHut:
+        building.stock[1].type = Resource::TypeGoldBar;
         building.stock[1].maximum = 2;
         break;
-      case BUILDING_TOWER:
-        building.stock[1].type = RESOURCE_GOLDBAR;
+      case Building::TypeTower:
+        building.stock[1].type = Resource::TypeGoldBar;
         building.stock[1].maximum = 4;
         break;
-      case BUILDING_FORTRESS:
-        building.stock[1].type = RESOURCE_GOLDBAR;
+      case Building::TypeFortress:
+        building.stock[1].type = Resource::TypeGoldBar;
         building.stock[1].maximum = 8;
         break;
-      case BUILDING_BUTCHER:
-        building.stock[0].type = RESOURCE_PIG;
+      case Building::TypeButcher:
+        building.stock[0].type = Resource::TypePig;
         building.stock[0].maximum = 8;
         break;
-      case BUILDING_PIGFARM:
-        building.stock[0].type = RESOURCE_WHEAT;
+      case Building::TypePigFarm:
+        building.stock[0].type = Resource::TypeWheat;
         building.stock[0].maximum = 8;
         break;
-      case BUILDING_MILL:
-        building.stock[0].type = RESOURCE_WHEAT;
+      case Building::TypeMill:
+        building.stock[0].type = Resource::TypeWheat;
         building.stock[0].maximum = 8;
         break;
-      case BUILDING_BAKER:
-        building.stock[0].type = RESOURCE_FLOUR;
+      case Building::TypeBaker:
+        building.stock[0].type = Resource::TypeFlour;
         building.stock[0].maximum = 8;
         break;
-      case BUILDING_SAWMILL:
-        building.stock[1].type = RESOURCE_LUMBER;
+      case Building::TypeSawmill:
+        building.stock[1].type = Resource::TypeLumber;
         building.stock[1].maximum = 8;
         break;
-      case BUILDING_STEELSMELTER:
-        building.stock[0].type = RESOURCE_COAL;
+      case Building::TypeSteelSmelter:
+        building.stock[0].type = Resource::TypeCoal;
         building.stock[0].maximum = 8;
-        building.stock[1].type = RESOURCE_IRONORE;
+        building.stock[1].type = Resource::TypeIronOre;
         building.stock[1].maximum = 8;
         break;
-      case BUILDING_TOOLMAKER:
-        building.stock[0].type = RESOURCE_PLANK;
+      case Building::TypeToolMaker:
+        building.stock[0].type = Resource::TypePlank;
         building.stock[0].maximum = 8;
-        building.stock[1].type = RESOURCE_STEEL;
+        building.stock[1].type = Resource::TypeSteel;
         building.stock[1].maximum = 8;
         break;
-      case BUILDING_WEAPONSMITH:
-        building.stock[0].type = RESOURCE_COAL;
+      case Building::TypeWeaponSmith:
+        building.stock[0].type = Resource::TypeCoal;
         building.stock[0].maximum = 8;
-        building.stock[1].type = RESOURCE_STEEL;
+        building.stock[1].type = Resource::TypeSteel;
         building.stock[1].maximum = 8;
         break;
-      case BUILDING_GOLDSMELTER:
-        building.stock[0].type = RESOURCE_COAL;
+      case Building::TypeGoldSmelter:
+        building.stock[0].type = Resource::TypeCoal;
         building.stock[0].maximum = 8;
-        building.stock[1].type = RESOURCE_GOLDORE;
+        building.stock[1].type = Resource::TypeGoldOre;
         building.stock[1].maximum = 8;
         break;
       default:
@@ -1195,8 +1195,8 @@ operator >> (save_reader_binary_t &reader, building_t &building) {
   return reader;
 }
 
-save_reader_text_t&
-operator >> (save_reader_text_t &reader, building_t &building) {
+SaveReaderText&
+operator >> (SaveReaderText &reader, Building &building) {
   unsigned int x = 0;
   unsigned int y = 0;
   reader.value("pos")[0] >> x;
@@ -1225,10 +1225,9 @@ operator >> (save_reader_text_t &reader, building_t &building) {
   /* Load various values that depend on the building type. */
   /* TODO Check validity of pointers when loading. */
   if (!building.is_burning() &&
-      (building.is_done() ||
-       building.get_type() == BUILDING_CASTLE)) {
-    if (building.get_type() == BUILDING_STOCK ||
-        building.get_type() == BUILDING_CASTLE) {
+      (building.is_done() || building.get_type() == Building::TypeCastle)) {
+    if (building.get_type() == Building::TypeStock ||
+        building.get_type() == Building::TypeCastle) {
       unsigned int inventory;
       reader.value("inventory") >> inventory;
       building.u.inventory = building.game->create_inventory(inventory);
@@ -1242,8 +1241,8 @@ operator >> (save_reader_text_t &reader, building_t &building) {
   return reader;
 }
 
-save_writer_text_t&
-operator << (save_writer_text_t &writer, building_t &building) {
+SaveWriterText&
+operator << (SaveWriterText &writer, Building &building) {
   writer.value("pos") << building.game->get_map()->pos_col(building.pos);
   writer.value("pos") << building.game->get_map()->pos_row(building.pos);
   writer.value("type") << building.type;
@@ -1268,10 +1267,9 @@ operator << (save_writer_text_t &writer, building_t &building) {
   writer.value("progress") << building.progress;
 
   if (!building.is_burning() &&
-      (building.is_done() ||
-       building.get_type() == BUILDING_CASTLE)) {
-    if (building.get_type() == BUILDING_STOCK ||
-        building.get_type() == BUILDING_CASTLE) {
+      (building.is_done() || building.get_type() == Building::TypeCastle)) {
+    if (building.get_type() == Building::TypeStock ||
+        building.get_type() == Building::TypeCastle) {
       writer.value("inventory") << building.u.inventory->get_index();
     }
   } else if (building.is_burning()) {

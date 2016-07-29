@@ -28,78 +28,79 @@
 #include "src/gui.h"
 #include "src/resource.h"
 
-typedef enum {
-  BOX_MAP = 1,
-  BOX_MAP_OVERLAY, /* UNUSED */
-  BOX_MINE_BUILDING,
-  BOX_BASIC_BLD,
-  BOX_BASIC_BLD_FLIP,
-  BOX_ADV_1_BLD,
-  BOX_ADV_2_BLD,
-  BOX_STAT_SELECT,
-  BOX_STAT_4,
-  BOX_STAT_BLD_1,
-  BOX_STAT_BLD_2,
-  BOX_STAT_BLD_3,
-  BOX_STAT_BLD_4,
-  BOX_STAT_8,
-  BOX_STAT_7,
-  BOX_STAT_1,
-  BOX_STAT_2,
-  BOX_STAT_6,
-  BOX_STAT_3,
-  BOX_START_ATTACK,
-  BOX_START_ATTACK_REDRAW,
-  BOX_GROUND_ANALYSIS,
-  BOX_LOAD_ARCHIVE,
-  BOX_LOAD_SAVE,
-  BOX_25,
-  BOX_DISK_MSG,
-  BOX_SETT_SELECT,
-  BOX_SETT_1,
-  BOX_SETT_2,
-  BOX_SETT_3,
-  BOX_KNIGHT_LEVEL,
-  BOX_SETT_4,
-  BOX_SETT_5,
-  BOX_QUIT_CONFIRM,
-  BOX_NO_SAVE_QUIT_CONFIRM,
-  BOX_SETT_SELECT_FILE, /* UNUSED */
-  BOX_OPTIONS,
-  BOX_CASTLE_RES,
-  BOX_MINE_OUTPUT,
-  BOX_ORDERED_BLD,
-  BOX_DEFENDERS,
-  BOX_TRANSPORT_INFO,
-  BOX_CASTLE_SERF,
-  BOX_RESDIR,
-  BOX_SETT_8,
-  BOX_SETT_6,
-  BOX_BLD_1,
-  BOX_BLD_2,
-  BOX_BLD_3,
-  BOX_BLD_4,
-  BOX_MESSAGE,
-  BOX_BLD_STOCK,
-  BOX_PLAYER_FACES,
-  BOX_GAME_END,
-  BOX_DEMOLISH,
-  BOX_JS_CALIB,
-  BOX_JS_CALIB_UPLEFT,
-  BOX_JS_CALIB_DOWNRIGHT,
-  BOX_JS_CALIB_CENTER,
-  BOX_CTRLS_INFO
-} box_t;
+class Interface;
+class MinimapGame;
 
-class interface_t;
-class game_minimap_t;
+class PopupBox : public GuiObject {
+ public:
+  typedef enum Type {
+    TypeMap = 1,
+    TypeMapOverlay, /* UNUSED */
+    TypeMineBuilding,
+    TypeBasicBld,
+    TypeBasicBldFlip,
+    TypeAdv1Bld,
+    TypeAdv2Bld,
+    TypeStatSelect,
+    TypeStat4,
+    TypeStatBld1,
+    TypeStatBld2,
+    TypeStatBld3,
+    TypeStatBld4,
+    TypeStat8,
+    TypeStat7,
+    TypeStat1,
+    TypeStat2,
+    TypeStat6,
+    TypeStat3,
+    TypeStartAttack,
+    TypeStartAttackRedraw,
+    TypeGroundAnalysis,
+    TypeLoadArchive,
+    TypeLoadSave,
+    Type25,
+    TypeDiskMsg,
+    TypeSettSelect,
+    TypeSett1,
+    TypeSett2,
+    TypeSett3,
+    TypeKnightLevel,
+    TypeSett4,
+    TypeSett5,
+    TypeQuitConfirm,
+    TypeNoSaveQuitConfirm,
+    TypeSettSelectFile, /* UNUSED */
+    TypeOptions,
+    TypeCastleRes,
+    TypeMineOutput,
+    TypeOrderedBld,
+    TypeDefenders,
+    TypeTransportInfo,
+    TypeCastleSerf,
+    TypeResDir,
+    TypeSett8,
+    TypeSett6,
+    TypeBld1,
+    TypeBld2,
+    TypeBld3,
+    TypeBld4,
+    TypeMessage,
+    TypeBldStock,
+    TypePlayerFaces,
+    TypeGameEnd,
+    TypeDemolish,
+    TypeJsCalib,
+    TypeJsCalibUpLeft,
+    TypeJsCalibDownRight,
+    TypeJsCalibCenter,
+    TypeCtrlsInfo
+  } Type;
 
-class popup_box_t : public gui_object_t {
  protected:
-  interface_t *interface;
-  game_minimap_t *minimap;
+  Interface *interface;
+  MinimapGame *minimap;
 
-  box_t box;
+  Type box;
 
   int current_sett_5_item;
   int current_sett_6_item;
@@ -107,13 +108,13 @@ class popup_box_t : public gui_object_t {
   int current_stat_8_mode;
 
  public:
-  explicit popup_box_t(interface_t *interface);
-  virtual ~popup_box_t();
+  explicit PopupBox(Interface *interface);
+  virtual ~PopupBox();
 
-  box_t get_box() const { return box; }
-  game_minimap_t *get_minimap() { return minimap; }
+  Type get_box() const { return box; }
+  MinimapGame *get_minimap() { return minimap; }
 
-  void show(box_t box);
+  void show(Type box);
   void hide();
 
  protected:
@@ -233,7 +234,7 @@ class popup_box_t : public gui_object_t {
   void handle_box_bld_3(int x, int y);
   void handle_box_bld_4(int x, int y);
 
-  void set_box(box_t box);
+  void set_box(Type box);
 
   virtual void internal_draw();
   virtual bool handle_click_left(int x, int y);

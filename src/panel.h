@@ -24,46 +24,46 @@
 
 #include "src/gui.h"
 
-class interface_t;
+class Interface;
 
-class panel_bar_t : public gui_object_t, public timer_handler_t {
+class PanelBar : public GuiObject, public Timer::Handler {
  protected:
-  typedef enum {
-    PANEL_BTN_BUILD_INACTIVE = 0,
-    PANEL_BTN_BUILD_FLAG,
-    PANEL_BTN_BUILD_MINE,
-    PANEL_BTN_BUILD_SMALL,
-    PANEL_BTN_BUILD_LARGE,
-    PANEL_BTN_BUILD_CASTLE,
-    PANEL_BTN_DESTROY,
-    PANEL_BTN_DESTROY_INACTIVE,
-    PANEL_BTN_BUILD_ROAD,
-    PANEL_BTN_MAP_INACTIVE,
-    PANEL_BTN_MAP,
-    PANEL_BTN_STATS_INACTIVE,
-    PANEL_BTN_STATS,
-    PANEL_BTN_SETT_INACTIVE,
-    PANEL_BTN_SETT,
-    PANEL_BTN_DESTROY_ROAD,
-    PANEL_BTN_GROUND_ANALYSIS,
-    PANEL_BTN_BUILD_SMALL_STARRED,
-    PANEL_BTN_BUILD_LARGE_STARRED,
-    PANEL_BTN_MAP_STARRED,
-    PANEL_BTN_STATS_STARRED,
-    PANEL_BTN_SETT_STARRED,
-    PANEL_BTN_GROUND_ANALYSIS_STARRED,
-    PANEL_BTN_BUILD_MINE_STARRED,
-    PANEL_BTN_BUILD_ROAD_STARRED
-  } panel_btn_t;
+  typedef enum Button {
+    ButtonBuildInactive = 0,
+    ButtonBuildFlag,
+    ButtonBuildMine,
+    ButtonBuildSmall,
+    ButtonBuildLarge,
+    ButtonBuildCastle,
+    ButtonDestroy,
+    ButtonDestroyInactive,
+    ButtonBuildRoad,
+    ButtonMapInactive,
+    ButtonMap,
+    ButtonStatsInactive,
+    ButtonStats,
+    ButtonSettInactive,
+    ButtonSett,
+    ButtonDestroyRoad,
+    ButtonGroundAnalysis,
+    ButtonBuildSmallStarred,
+    ButtonBuildLargeStarred,
+    ButtonMapStarred,
+    ButtonStatsStarred,
+    ButtonSettStarred,
+    ButtonGroundAnalysisStarred,
+    ButtonBuildMineStarred,
+    ButtonBuildRoadStarred
+  } Button;
 
-  interface_t *interface;
+  Interface *interface;
   int panel_btns[5];
-  fs_timer_t *blink_timer;
+  Timer *blink_timer;
   bool blink_trigger;
 
  public:
-  explicit panel_bar_t(interface_t *interface);
-  virtual ~panel_bar_t();
+  explicit PanelBar(Interface *interface);
+  virtual ~PanelBar();
 
   void update();
 
@@ -73,7 +73,7 @@ class panel_bar_t : public gui_object_t, public timer_handler_t {
   void draw_return_arrow();
   void draw_panel_buttons();
   void button_click(int button);
-  panel_btn_t button_type_with_build_possibility(int build_possibility);
+  Button button_type_with_build_possibility(int build_possibility);
 
   virtual void internal_draw();
   virtual bool handle_click_left(int x, int y);

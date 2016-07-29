@@ -29,91 +29,92 @@
 
 #include "src/event_loop.h"
 
-class sfx_track_t : public audio_track_t {
+class AudioSDL : public Audio, public Audio::VolumeController {
  protected:
-  Mix_Chunk *chunk;
+  class TrackSFX : public Audio::Track {
+   protected:
+    Mix_Chunk *chunk;
 
- public:
-  explicit sfx_track_t(Mix_Chunk *chunk);
-  virtual ~sfx_track_t();
+   public:
+    explicit TrackSFX(Mix_Chunk *chunk);
+    virtual ~TrackSFX();
 
-  virtual void play();
-};
+    virtual void play();
+  };
 
-class sfx_player_t : public audio_player_t, public audio_volume_controller_t {
- public:
-  virtual void enable(bool enable);
-  virtual audio_volume_controller_t *get_volume_controller() { return this; }
+  class PlayerSFX : public Audio::Player, public Audio::VolumeController {
+   public:
+    virtual void enable(bool enable);
+    virtual Audio::VolumeController *get_volume_controller() { return this; }
+
+   protected:
+    virtual Audio::Track *create_track(int track_id);
+    virtual void stop();
+
+   public:
+    virtual float get_volume();
+    virtual void set_volume(float volume);
+    virtual void volume_up();
+    virtual void volume_down();
+  };
+
+  class TrackMIDI : public Audio::Track {
+   protected:
+    Mix_Music *chunk;
+
+   public:
+    explicit TrackMIDI(Mix_Music *chunk);
+    virtual ~TrackMIDI();
+
+    virtual void play();
+  };
+
+  class PlayerMIDI : public Audio::Player, public Audio::VolumeController,
+                     public DeferredCallee {
+   protected:
+    TypeMidi current_track;
+
+   public:
+    PlayerMIDI();
+    virtual ~PlayerMIDI();
+
+    virtual void play_track(int track_id);
+    virtual void enable(bool enable);
+    virtual Audio::VolumeController *get_volume_controller() { return this; }
+
+   protected:
+    virtual Audio::Track *create_track(int track_id);
+    virtual void stop();
+
+   public:
+    virtual float get_volume();
+    virtual void set_volume(float volume);
+    virtual void volume_up();
+    virtual void volume_down();
+
+   public:
+    virtual void deferred_call(void *data);
+
+   protected:
+    static PlayerMIDI *current_midi_player;
+    static void music_finished_hook();
+    void music_finished();
+  };
 
  protected:
-  virtual audio_track_t *create_track(int track_id);
-  virtual void stop();
-
- public:
-  virtual float get_volume();
-  virtual void set_volume(float volume);
-  virtual void volume_up();
-  virtual void volume_down();
-};
-
-class midi_track_t : public audio_track_t {
- protected:
-  Mix_Music *chunk;
-
- public:
-  explicit midi_track_t(Mix_Music *chunk);
-  virtual ~midi_track_t();
-
-  virtual void play();
-};
-
-class midi_player_t : public audio_player_t, public audio_volume_controller_t,
-                      public deferred_callee_t {
- protected:
-  midi_t current_track;
-
- public:
-  midi_player_t();
-  virtual ~midi_player_t();
-
-  virtual void play_track(int track_id);
-  virtual void enable(bool enable);
-  virtual audio_volume_controller_t *get_volume_controller() { return this; }
-
- protected:
-  virtual audio_track_t *create_track(int track_id);
-  virtual void stop();
-
- public:
-  virtual float get_volume();
-  virtual void set_volume(float volume);
-  virtual void volume_up();
-  virtual void volume_down();
-
- public:
-  virtual void deferred_call(void *data);
-
- protected:
-  static midi_player_t *current_midi_player;
-  static void music_finished_hook();
-  void music_finished();
-};
-
-class audio_sdlmixer_t : public audio_t, public audio_volume_controller_t {
- protected:
-  audio_player_t *sfx_player;
-  audio_player_t *midi_player;
+  Audio::Player *sfx_player;
+  Audio::Player *midi_player;
 
   float volume;
 
  public:
   /* Common audio. */
-  audio_sdlmixer_t();
-  virtual ~audio_sdlmixer_t();
+  AudioSDL();
+  virtual ~AudioSDL();
 
-  virtual audio_volume_controller_t *get_volume_controller() { return this; }
-  virtual audio_player_t *get_sound_player() { return sfx_player; }
-  virtual audio_player_t *get_music_player() { return midi_player; }
+  virtual Audio::VolumeController *get_volume_controller() { return this; }
+  virtual Audio::Player *get_sound_player() { return sfx_player; }
+  virtual Audio::Player *get_music_player() { return midi_player; }
 
  public:
   virtual float get_volume();

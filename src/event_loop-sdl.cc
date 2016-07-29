@@ -28,10 +28,10 @@
 #include "src/freeserf.h"
 #include "src/video-sdl.h"
 
-event_loop_t *
-event_loop_t::get_instance() {
+EventLoop *
+EventLoop::get_instance() {
   if (instance == NULL) {
-    instance = new event_loop_sdl_t();
+    instance = new EventLoopSDL();
   }
 
   return instance;
@@ -44,21 +44,15 @@ event_loop_t::get_instance() {
  considered as a double click. */
 #define MOUSE_MOVE_SENSITIVITY  8
 
-event_loop_sdl_t::event_loop_sdl_t() {
+EventLoopSDL::EventLoopSDL() {
 }
-
-typedef enum {
-  USER_EVENT_STEP,
-  USER_EVENT_QUIT,
-  USER_EVENT_CALL,
-} USER_EVENT_TYPE;
 
 static Uint32
 timer_callback(Uint32 interval, void *param) {
   SDL_Event event;
   event.type = SDL_USEREVENT;
   event.user.type = SDL_USEREVENT;
-  event.user.code = USER_EVENT_STEP;
+  event.user.code = EventLoopSDL::EventUserTypeStep;
   event.user.data1 = 0;
   event.user.data2 = 0;
   SDL_PushEvent(&event);
@@ -67,23 +61,22 @@ timer_callback(Uint32 interval, void *param) {
 }
 
 void
-event_loop_sdl_t::quit() {
+EventLoopSDL::quit() {
   SDL_Event event;
   event.type = SDL_USEREVENT;
   event.user.type = SDL_USEREVENT;
-  event.user.code = USER_EVENT_QUIT;
+  event.user.code = EventUserTypeQuit;
   event.user.data1 = 0;
   event.user.data2 = 0;
   SDL_PushEvent(&event);
 }
 
 void
-event_loop_sdl_t::deferred_call(deferred_callee_t *deferred_callee,
-                                void *data) {
+EventLoopSDL::deferred_call(DeferredCallee *deferred_callee, void *data) {
   SDL_Event event;
   event.type = SDL_USEREVENT;
   event.user.type = SDL_USEREVENT;
-  event.user.code = USER_EVENT_CALL;
+  event.user.code = EventUserTypeCall;
   event.user.data1 = deferred_callee;
   event.user.data2 = data;
   SDL_PushEvent(&event);
@@ -93,7 +86,7 @@ event_loop_sdl_t::deferred_call(deferred_callee_t *deferred_callee,
  The code for one iteration of the original game_loop is
  in game_loop_iter. */
 void
-event_loop_sdl_t::run() {
+EventLoopSDL::run() {
   SDL_InitSubSystem(SDL_INIT_EVENTS | SDL_INIT_TIMER);
 
   SDL_TimerID timer_id = SDL_AddTimer(TICK_LENGTH, timer_callback, 0);
@@ -111,8 +104,8 @@ event_loop_sdl_t::run() {
 
   SDL_Event event;
 
-  gfx_t *gfx = gfx_t::get_instance();
-  frame_t *screen = NULL;
+  Graphics *gfx = Graphics::get_instance();
+  Frame *screen = NULL;
 
   while (SDL_WaitEvent(&event)) {
     unsigned int current_ticks = SDL_GetTicks();
@@ -128,7 +121,7 @@ event_loop_sdl_t::run() {
                                    gfx->get_zoom_factor());
           int y = static_cast<int>(static_cast<float>(event.button.y) *
                                    gfx->get_zoom_factor());
-          notify_click(x, y, (event_button_t)event.button.button);
+          notify_click(x, y, (Event::Button)event.button.button);
 
           if (current_ticks - last_click[event.button.button] <
                 MOUSE_TIME_SENSITIVITY &&
@@ -136,7 +129,7 @@ event_loop_sdl_t::run() {
               event.button.x <= (last_click_x + MOUSE_MOVE_SENSITIVITY) &&
               event.button.y >= (last_click_y - MOUSE_MOVE_SENSITIVITY) &&
               event.button.y <= (last_click_y + MOUSE_MOVE_SENSITIVITY)) {
-            notify_dbl_click(x, y, (event_button_t)event.button.button);
+            notify_dbl_click(x, y, (Event::Button)event.button.button);
           }
 
           last_click[event.button.button] = current_ticks;
@@ -157,7 +150,7 @@ event_loop_sdl_t::run() {
 
             notify_drag(drag_x, drag_y,
                         event.motion.x - drag_x, event.motion.y - drag_y,
-                        (event_button_t)drag_button);
+                        (Event::Button)drag_button);
 
             SDL_WarpMouseInWindow(NULL, drag_x, drag_y);
 
@@ -193,19 +186,19 @@ event_loop_sdl_t::run() {
         switch (event.key.keysym.sym) {
           /* Map scroll */
           case SDLK_UP: {
-            notify_drag(0, 0, 0, -32, EVENT_BUTTON_LEFT);
+            notify_drag(0, 0, 0, -32, Event::ButtonLeft);
             break;
           }
           case SDLK_DOWN: {
-            notify_drag(0, 0, 0, 32, EVENT_BUTTON_LEFT);
+            notify_drag(0, 0, 0, 32, Event::ButtonLeft);
             break;
           }
           case SDLK_LEFT: {
-            notify_drag(0, 0, -32, 0, EVENT_BUTTON_LEFT);
+            notify_drag(0, 0, -32, 0, Event::ButtonLeft);
             break;
           }
           case SDLK_RIGHT: {
-            notify_drag(0, 0, 32, 0, EVENT_BUTTON_LEFT);
+            notify_drag(0, 0, 32, 0, Event::ButtonLeft);
             break;
           }
 
@@ -257,14 +250,14 @@ event_loop_sdl_t::run() {
         break;
       case SDL_USEREVENT:
         switch (event.user.code) {
-          case USER_EVENT_QUIT:
+          case EventUserTypeQuit:
             SDL_RemoveTimer(timer_id);
             if (screen != NULL) {
               delete screen;
               screen = NULL;
             }
             return;
-          case USER_EVENT_STEP:
+          case EventUserTypeStep:
             /* Update and draw interface */
             notify_update();
 
@@ -276,9 +269,9 @@ event_loop_sdl_t::run() {
             /* Swap video buffers */
             gfx->swap_buffers();
             break;
-          case USER_EVENT_CALL: {
-            deferred_callee_t *deferred_callee =
-              reinterpret_cast<deferred_callee_t*>(event.user.data1);
+          case EventUserTypeCall: {
+            DeferredCallee *deferred_callee =
+                            reinterpret_cast<DeferredCallee*>(event.user.data1);
             if (deferred_callee != NULL) {
               deferred_callee->deferred_call(event.user.data2);
             }
@@ -299,8 +292,8 @@ event_loop_sdl_t::run() {
 }
 
 void
-event_loop_sdl_t::zoom(float delta) {
-  gfx_t *gfx = gfx_t::get_instance();
+EventLoopSDL::zoom(float delta) {
+  Graphics *gfx = Graphics::get_instance();
   float factor = gfx->get_zoom_factor();
   if (gfx->set_zoom_factor(factor + delta)) {
     unsigned int width = 0;
@@ -310,22 +303,21 @@ event_loop_sdl_t::zoom(float delta) {
   }
 }
 
-class timer_sdl_t : public fs_timer_t {
+class TimerSDL : public Timer {
  protected:
   SDL_TimerID timer_id;
 
  public:
-  timer_sdl_t(unsigned int _id, unsigned int _interval,
-              timer_handler_t *_handler)
-    : fs_timer_t(_id, _interval, _handler), timer_id(0) {}
+  TimerSDL(unsigned int _id, unsigned int _interval, Timer::Handler *_handler)
+    : Timer(_id, _interval, _handler), timer_id(0) {}
 
-  virtual ~timer_sdl_t() {
+  virtual ~TimerSDL() {
     stop();
   }
 
   virtual void run() {
     if (timer_id == 0) {
-      timer_id = SDL_AddTimer(interval, timer_sdl_t::callback, this);
+      timer_id = SDL_AddTimer(interval, TimerSDL::callback, this);
     }
   }
 
@@ -337,7 +329,7 @@ class timer_sdl_t : public fs_timer_t {
   }
 
   static Uint32 callback(Uint32 interval, void *param) {
-    timer_sdl_t *timer = reinterpret_cast<timer_sdl_t*>(param);
+    TimerSDL *timer = reinterpret_cast<TimerSDL*>(param);
     if (timer->handler != NULL) {
       timer->handler->on_timer_fired(timer->id);
     }
@@ -345,8 +337,8 @@ class timer_sdl_t : public fs_timer_t {
   }
 };
 
-fs_timer_t *
-fs_timer_t::create(unsigned int _id, unsigned int _interval,
-                timer_handler_t *_handler) {
-  return new timer_sdl_t(_id, _interval, _handler);
+Timer *
+Timer::create(unsigned int _id, unsigned int _interval,
+              Timer::Handler *_handler) {
+  return new TimerSDL(_id, _interval, _handler);
 }

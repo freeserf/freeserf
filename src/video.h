@@ -27,62 +27,63 @@
 
 #include "src/debug.h"
 
-typedef struct {
-  unsigned char r;
-  unsigned char g;
-  unsigned char b;
-  unsigned char a;
-} video_color_t;
-
-class Video_Exception : public Freeserf_Exception {
+class ExceptionVideo : public ExceptionFreeserf {
  public:
-  explicit Video_Exception(const std::string &description) throw();
-  virtual ~Video_Exception() throw();
+  explicit ExceptionVideo(const std::string &description) throw();
+  virtual ~ExceptionVideo() throw();
 
   virtual std::string get_description() const;
   virtual std::string get_platform() const { return "Abstract"; }
   virtual std::string get_system() const { return "video"; }
 };
 
-class video_frame_t;
-class video_image_t;
+class Video {
+ public:
+  typedef struct Color {
+    unsigned char r;
+    unsigned char g;
+    unsigned char b;
+    unsigned char a;
+  } Color;
 
-class video_t {
+  class Frame;
+  class Image;
+
  protected:
-  static video_t *instance;
+  static Video *instance;
 
-  video_t() throw(Video_Exception);
+  Video() throw(ExceptionVideo);
 
  public:
-  virtual ~video_t();
+  virtual ~Video();
 
-  static video_t *get_instance();
+  static Video *get_instance();
 
   virtual void set_resolution(unsigned int width, unsigned int height,
-                              bool fullscreen) throw(Video_Exception) = 0;
+                              bool fullscreen) throw(ExceptionVideo) = 0;
   virtual void get_resolution(unsigned int *width, unsigned int *height) = 0;
-  virtual void set_fullscreen(bool enable) throw(Video_Exception) = 0;
+  virtual void set_fullscreen(bool enable) throw(ExceptionVideo) = 0;
   virtual bool is_fullscreen() = 0;
 
-  virtual video_frame_t *get_screen_frame() = 0;
-  virtual video_frame_t *create_frame(unsigned int width,
+  virtual Frame *get_screen_frame() = 0;
+  virtual Frame *create_frame(unsigned int width,
                                       unsigned int height) = 0;
-  virtual void destroy_frame(video_frame_t *frame) = 0;
+  virtual void destroy_frame(Frame *frame) = 0;
 
-  virtual video_image_t *create_image(void *data, unsigned int width,
+  virtual Image *create_image(void *data, unsigned int width,
                                       unsigned int height) = 0;
-  virtual void destroy_image(video_image_t *image) = 0;
+  virtual void destroy_image(Image *image) = 0;
 
   virtual void warp_mouse(int x, int y) = 0;
 
-  virtual void draw_image(const video_image_t *image, int x, int y,
-                          int y_offset, video_frame_t *dest) = 0;
-  virtual void draw_frame(int dx, int dy, video_frame_t *dest, int sx, int sy,
-                          video_frame_t *src, int w, int h) = 0;
+  virtual void draw_image(const Image *image, int x, int y,
+                          int y_offset, Frame *dest) = 0;
+  virtual void draw_frame(int dx, int dy, Frame *dest, int sx, int sy,
+                          Frame *src, int w, int h) = 0;
   virtual void draw_rect(int x, int y, unsigned int width, unsigned int height,
-                         const video_color_t color, video_frame_t *dest) = 0;
+                         const Video::Color color, Frame *dest) = 0;
   virtual void fill_rect(int x, int y, unsigned int width, unsigned int height,
-                         const video_color_t color, video_frame_t *dest) = 0;
+                         const Video::Color color, Frame *dest) = 0;
   virtual void swap_buffers() = 0;
 
   virtual void set_cursor(void *data, unsigned int width,

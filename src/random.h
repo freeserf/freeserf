@@ -32,22 +32,21 @@
 #include <stdint.h>
 #endif
 
-class random_state_t {
+class Random {
  protected:
   uint16_t state[3];
 
  public:
-  random_state_t();
-  explicit random_state_t(const uint16_t &value);
-  random_state_t(const random_state_t &random_state);
-  explicit random_state_t(const std::string &string);
-  random_state_t(uint16_t base_0, uint16_t base_1, uint16_t base_2);
+  Random();
+  explicit Random(const uint16_t &value);
+  Random(const Random &random_state);
+  explicit Random(const std::string &string);
+  Random(uint16_t base_0, uint16_t base_1, uint16_t base_2);
 
   uint16_t random();
 
   operator std::string() const;
-  friend random_state_t& operator^=(random_state_t& left,
-                                    const random_state_t& right);
+  friend Random& operator^=(Random& left, const Random& right);
 };
 
 #endif  // SRC_RANDOM_H_

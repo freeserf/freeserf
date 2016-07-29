@@ -25,28 +25,29 @@
 
 #include "src/log.h"
 
-audio_t *audio_t::instance = NULL;
+Audio *
+Audio::instance = NULL;
 
-audio_player_t::audio_player_t() {
+Audio::Player::Player() {
   enabled = true;
 }
 
-audio_player_t::~audio_player_t() {
+Audio::Player::~Player() {
   while (track_cache.size()) {
-    audio_track_t *track = track_cache.begin()->second;
+    Audio::Track *track = track_cache.begin()->second;
     track_cache.erase(track_cache.begin());
     delete track;
   }
 }
 
 void
-audio_player_t::play_track(int track_id) {
+Audio::Player::play_track(int track_id) {
   if (!is_enabled()) {
     return;
   }
 
-  audio_track_t *track = NULL;
-  track_cache_t::iterator it = track_cache.find(track_id);
+  Audio::Track *track = NULL;
+  TrackCache::iterator it = track_cache.find(track_id);
   if (it == track_cache.end()) {
     track = create_track(track_id);
     if (track != NULL) {

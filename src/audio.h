@@ -25,107 +25,108 @@
 
 #include <map>
 
-typedef enum {
-  SFX_MESSAGE = 1,
-  SFX_ACCEPTED = 2,
-  SFX_NOT_ACCEPTED = 4,
-  SFX_UNDO = 6,
-  SFX_CLICK = 8,
-  SFX_FIGHT_01 = 10,
-  SFX_FIGHT_02 = 14,
-  SFX_FIGHT_03 = 18,
-  SFX_FIGHT_04 = 22,
-  SFX_RESOURCE_FOUND = 26,
-  SFX_PICK_BLOW = 28,
-  SFX_METAL_HAMMERING = 30,
-  SFX_AX_BLOW = 32,
-  SFX_TREE_FALL = 34,
-  SFX_WOOD_HAMMERING = 36,
-  SFX_ELEVATOR = 38,
-  SFX_HAMMER_BLOW = 40,
-  SFX_SAWING = 42,
-  SFX_MILL_GRINDING = 43,
-  SFX_BACKSWORD_BLOW = 44,
-  SFX_GEOLOGIST_SAMPLING = 46,
-  SFX_PLANTING = 48,
-  SFX_DIGGING = 50,
-  SFX_MOWING = 52,
-  SFX_FISHING_ROD_REEL = 54,
-  SFX_UNKNOWN_21 = 58,
-  SFX_PIG_OINK = 60,
-  SFX_GOLD_BOILS = 62,
-  SFX_ROWING = 64,
-  SFX_UNKNOWN_25 = 66,
-  SFX_SERF_DYING = 69,
-  SFX_BIRD_CHIRP_0 = 70,
-  SFX_BIRD_CHIRP_1 = 74,
-  SFX_AHHH = 76,
-  SFX_BIRD_CHIRP_2 = 78,
-  SFX_BIRD_CHIRP_3 = 82,
-  SFX_BURNING = 84,
-  SFX_UNKNOWN_28 = 86,
-  SFX_UNKNOWN_29 = 88,
-} sfx_t;
-
-typedef enum {
-  MIDI_TRACK_NONE = -1,
-  MIDI_TRACK_0 = 0,
-  MIDI_TRACK_1 = 1,
-  MIDI_TRACK_2 = 2,
-  MIDI_TRACK_3 = 4,
-  MIDI_TRACK_LAST = MIDI_TRACK_3,
-} midi_t;
-
-class audio_volume_controller_t {
+class Audio {
  public:
-  virtual float get_volume() = 0;
-  virtual void set_volume(float volume) = 0;
-  virtual void volume_up() = 0;
-  virtual void volume_down() = 0;
-};
+  typedef enum TypeSfx {
+    TypeSfxMessage = 1,
+    TypeSfxAccepted = 2,
+    TypeSfxNotAccepted = 4,
+    TypeSfxUndo = 6,
+    TypeSfxClick = 8,
+    TypeSfxFight01 = 10,
+    TypeSfxFight02 = 14,
+    TypeSfxFight03 = 18,
+    TypeSfxFight04 = 22,
+    TypeSfxResourceFound = 26,
+    TypeSfxPickBlow = 28,
+    TypeSfxMetalHammering = 30,
+    TypeSfxAxBlow = 32,
+    TypeSfxTreeFall = 34,
+    TypeSfxWoodHammering = 36,
+    TypeSfxElevator = 38,
+    TypeSfxHammerBlow = 40,
+    TypeSfxSawing = 42,
+    TypeSfxMillGrinding = 43,
+    TypeSfxBackswordBlow = 44,
+    TypeSfxGeologistSampling = 46,
+    TypeSfxPlanting = 48,
+    TypeSfxDigging = 50,
+    TypeSfxMowing = 52,
+    TypeSfxFishingRodReel = 54,
+    TypeSfxUnknown21 = 58,
+    TypeSfxPigOink = 60,
+    TypeSfxGoldBoils = 62,
+    TypeSfxRowing = 64,
+    TypeSfxUnknown25 = 66,
+    TypeSfxSerfDying = 69,
+    TypeSfxBirdChirp0 = 70,
+    TypeSfxBirdChirp1 = 74,
+    TypeSfxAhhh = 76,
+    TypeSfxBirdChirp2 = 78,
+    TypeSfxBirdChirp3 = 82,
+    TypeSfxBurning = 84,
+    TypeSfxUnknown28 = 86,
+    TypeSfxUnknown29 = 88,
+  } TypeSfx;
 
-class audio_track_t {
- public:
-  virtual ~audio_track_t() {}
+  typedef enum TypeMidi {
+    TypeMidiNone = -1,
+    TypeMidiTrack0 = 0,
+    TypeMidiTrack1 = 1,
+    TypeMidiTrack2 = 2,
+    TypeMidiTrack3 = 4,
+    TypeMidiTrackLast = TypeMidiTrack3,
+  } TypeMidi;
 
-  virtual void play() = 0;
-};
+  class VolumeController {
+   public:
+    virtual float get_volume() = 0;
+    virtual void set_volume(float volume) = 0;
+    virtual void volume_up() = 0;
+    virtual void volume_down() = 0;
+  };
 
-class audio_player_t {
+  class Track {
+   public:
+    virtual ~Track() {}
+
+    virtual void play() = 0;
+  };
+
+  class Player {
+   protected:
+    typedef std::map<int, Track*> TrackCache;
+    TrackCache track_cache;
+    bool enabled;
+
+   public:
+    Player();
+    virtual ~Player();
+
+    virtual void play_track(int track_id);
+    virtual void enable(bool enable) = 0;
+    virtual bool is_enabled() const { return enabled; }
+    virtual VolumeController *get_volume_controller() = 0;
+
+   protected:
+    virtual Track *create_track(int track_id) = 0;
+    virtual void stop() = 0;
+  };
+
  protected:
-  typedef std::map<int, audio_track_t*> track_cache_t;
-  track_cache_t track_cache;
-  bool enabled;
-
- public:
-  audio_player_t();
-  virtual ~audio_player_t();
-
-  virtual void play_track(int track_id);
-  virtual void enable(bool enable) = 0;
-  virtual bool is_enabled() const { return enabled; }
-  virtual audio_volume_controller_t *get_volume_controller() = 0;
-
- protected:
-  virtual audio_track_t *create_track(int track_id) = 0;
-  virtual void stop() = 0;
-};
-
-class audio_t {
- protected:
-  static audio_t *instance;
+  static Audio *instance;
 
   float volume;
 
  public:
   /* Common audio. */
-  virtual ~audio_t() {}
+  virtual ~Audio() {}
 
-  static audio_t *get_instance();
+  static Audio *get_instance();
 
-  virtual audio_volume_controller_t *get_volume_controller() = 0;
-  virtual audio_player_t *get_sound_player() = 0;
-  virtual audio_player_t *get_music_player() = 0;
+  virtual VolumeController *get_volume_controller() = 0;
+  virtual Player *get_sound_player() = 0;
+  virtual Player *get_music_player() = 0;
 };
 
 #endif  // SRC_AUDIO_H_

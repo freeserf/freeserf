@@ -27,50 +27,28 @@
 #include "src/gui.h"
 #include "src/player.h"
 
-typedef enum {
-  NOTIFICATION_NONE = 0,
-  NOTIFICATION_UNDER_ATTACK = 1,
-  NOTIFICATION_LOST_FIGHT = 2,
-  NOTIFICATION_VICTORY_FIGHT = 3,
-  NOTIFICATION_MINE_EMPTY = 4,
-  NOTIFICATION_CALL_TO_LOCATION = 5,
-  NOTIFICATION_KNIGHT_OCCUPIED = 6,
-  NOTIFICATION_NEW_STOCK = 7,
-  NOTIFICATION_LOST_LAND = 8,
-  NOTIFICATION_LOST_BUILDINGS = 9,
-  NOTIFICATION_EMERGENCY_ACTIVE = 10,
-  NOTIFICATION_EMERGENCY_NEUTRAL = 11,
-  NOTIFICATION_FOUND_GOLD = 12,
-  NOTIFICATION_FOUND_IRON = 13,
-  NOTIFICATION_FOUND_COAL = 14,
-  NOTIFICATION_FOUND_STONE = 15,
-  NOTIFICATION_CALL_TO_MENU = 16,
-  NOTIFICATION_30M_SINCE_SAVE = 17,
-  NOTIFICATION_1H_SINCE_SAVE = 18,
-  NOTIFICATION_CALL_TO_STOCK = 19,
-} notification_type_t;
+class Interface;
 
-typedef struct {
-  notification_type_t type;
-  unsigned int decoration;
-  unsigned int icon;
-  const char *text;
-} notification_view_t;
+class NotificationBox : public GuiObject {
+ public:
+  typedef struct NotificationView {
+    Message::Type type;
+    unsigned int decoration;
+    unsigned int icon;
+    const char *text;
+  } NotificationView;
 
-class interface_t;
-
-class notification_box_t : public gui_object_t {
  protected:
-  message_t message;
-  interface_t *interface;
+  Message message;
+  Interface *interface;
 
  public:
-  explicit notification_box_t(interface_t *interface);
+  explicit NotificationBox(Interface *interface);
 
-  void show(const message_t &message);
+  void show(const Message &message);
 
  protected:
-  void draw_notification(notification_view_t *view);
+  void draw_notification(NotificationView *view);
 
   void draw_icon(int x, int y, int sprite);
   void draw_background(int width, int height, int sprite);

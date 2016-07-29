@@ -25,39 +25,42 @@
 #include <cstddef>
 #include <map>
 
-typedef enum {
-  RESOURCE_NONE = -1,
+class Resource {
+ public:
+  typedef enum Type {
+    TypeNone = -1,
 
-  RESOURCE_FISH = 0,
-  RESOURCE_PIG,
-  RESOURCE_MEAT,
-  RESOURCE_WHEAT,
-  RESOURCE_FLOUR,
-  RESOURCE_BREAD,
-  RESOURCE_LUMBER,
-  RESOURCE_PLANK,
-  RESOURCE_BOAT,
-  RESOURCE_STONE,
-  RESOURCE_IRONORE,
-  RESOURCE_STEEL,
-  RESOURCE_COAL,
-  RESOURCE_GOLDORE,
-  RESOURCE_GOLDBAR,
-  RESOURCE_SHOVEL,
-  RESOURCE_HAMMER,
-  RESOURCE_ROD,
-  RESOURCE_CLEAVER,
-  RESOURCE_SCYTHE,
-  RESOURCE_AXE,
-  RESOURCE_SAW,
-  RESOURCE_PICK,
-  RESOURCE_PINCER,
-  RESOURCE_SWORD,
-  RESOURCE_SHIELD,
+    TypeFish = 0,
+    TypePig,
+    TypeMeat,
+    TypeWheat,
+    TypeFlour,
+    TypeBread,
+    TypeLumber,
+    TypePlank,
+    TypeBoat,
+    TypeStone,
+    TypeIronOre,
+    TypeSteel,
+    TypeCoal,
+    TypeGoldOre,
+    TypeGoldBar,
+    TypeShovel,
+    TypeHammer,
+    TypeRod,
+    TypeCleaver,
+    TypeScythe,
+    TypeAxe,
+    TypeSaw,
+    TypePick,
+    TypePincer,
+    TypeSword,
+    TypeShield,
 
-  RESOURCE_GROUP_FOOD
-} resource_type_t;
+    GroupFood
+  } Type;
+};
 
-typedef std::map<resource_type_t, size_t> resource_map_t;
+typedef std::map<Resource::Type, size_t> resource_map_t;
 
 #endif  // SRC_RESOURCE_H_

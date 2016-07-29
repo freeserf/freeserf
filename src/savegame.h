@@ -43,95 +43,95 @@
 bool load_v0_state(FILE *f);
 
 /* Text format */
-bool save_text_state(FILE *f, game_t *game);
-bool load_text_state(FILE *f, game_t *game);
+bool save_text_state(FILE *f, Game *game);
+bool load_text_state(FILE *f, Game *game);
 
 /* Generic save/load function that will try to detect the right
    format on load and save to the best format on write. */
-bool save_state(const std::string &path, game_t *game);
-bool load_state(const std::string &path, game_t *game);
+bool save_state(const std::string &path, Game *game);
+bool load_state(const std::string &path, Game *game);
 
-bool save_game(int autosave, game_t *game);
+bool save_game(int autosave, Game *game);
 
-class save_reader_binary_t {
+class SaveReaderBinary {
  protected:
   uint8_t *start;
   uint8_t *current;
   uint8_t *end;
 
  public:
-  save_reader_binary_t(const save_reader_binary_t &reader);
-  save_reader_binary_t(void *data, size_t size);
+  SaveReaderBinary(const SaveReaderBinary &reader);
+  SaveReaderBinary(void *data, size_t size);
 
-  save_reader_binary_t& operator >> (uint8_t &val);
-  save_reader_binary_t& operator >> (uint16_t &val);
-  save_reader_binary_t& operator >> (uint32_t &val);
-  save_reader_binary_t& operator = (const save_reader_binary_t& other);
+  SaveReaderBinary& operator >> (uint8_t &val);
+  SaveReaderBinary& operator >> (uint16_t &val);
+  SaveReaderBinary& operator >> (uint32_t &val);
+  SaveReaderBinary& operator = (const SaveReaderBinary& other);
 
   void reset() { current = start; }
   void skip(size_t count) { current += count; }
-  save_reader_binary_t extract(size_t size);
+  SaveReaderBinary extract(size_t size);
   uint8_t *read(size_t size);
 };
 
-class save_reader_text_value_t {
+class SaveReaderTextValue {
  protected:
   std::string value;
 
  public:
-  explicit save_reader_text_value_t(std::string value);
+  explicit SaveReaderTextValue(std::string value);
 
-  save_reader_text_value_t& operator >> (int &val);
-  save_reader_text_value_t& operator >> (unsigned int &val);
+  SaveReaderTextValue& operator >> (int &val);
+  SaveReaderTextValue& operator >> (unsigned int &val);
 #if defined(_M_AMD64) || defined(__x86_64__)
-  save_reader_text_value_t& operator >> (size_t &val);
+  SaveReaderTextValue& operator >> (size_t &val);
 #endif  // defined(_M_AMD64) || defined(__x86_64__)
-  save_reader_text_value_t& operator >> (dir_t &val);
-  save_reader_text_value_t& operator >> (resource_type_t &val);
-  save_reader_text_value_t& operator >> (building_type_t &val);
-  save_reader_text_value_t& operator >> (serf_state_t &val);
-  save_reader_text_value_t& operator >> (uint16_t &val);
-  save_reader_text_value_t& operator >> (std::string &val);
-  save_reader_text_value_t operator[] (size_t pos);
+  SaveReaderTextValue& operator >> (Direction &val);
+  SaveReaderTextValue& operator >> (Resource::Type &val);
+  SaveReaderTextValue& operator >> (Building::Type &val);
+  SaveReaderTextValue& operator >> (Serf::State &val);
+  SaveReaderTextValue& operator >> (uint16_t &val);
+  SaveReaderTextValue& operator >> (std::string &val);
+  SaveReaderTextValue operator[] (size_t pos);
 };
 
-class save_writer_text_value_t {
+class SaveWriterTextValue {
  protected:
   std::string value;
 
  public:
-  save_writer_text_value_t() {}
+  SaveWriterTextValue() {}
 
-  save_writer_text_value_t& operator << (int val);
-  save_writer_text_value_t& operator << (unsigned int val);
+  SaveWriterTextValue& operator << (int val);
+  SaveWriterTextValue& operator << (unsigned int val);
 #if defined(_M_AMD64) || defined(__x86_64__)
-  save_writer_text_value_t& operator << (size_t val);
+  SaveWriterTextValue& operator << (size_t val);
 #endif  // defined(_M_AMD64) || defined(__x86_64__)
-  save_writer_text_value_t& operator << (dir_t val);
-  save_writer_text_value_t& operator << (resource_type_t val);
-  save_writer_text_value_t& operator << (const std::string &val);
+  SaveWriterTextValue& operator << (Direction val);
+  SaveWriterTextValue& operator << (Resource::Type val);
+  SaveWriterTextValue& operator << (const std::string &val);
 
   std::string &get_value() { return value; }
 };
 
-class save_reader_text_t;
+class SaveReaderText;
 
-typedef std::list<save_reader_text_t*> readers_t;
+typedef std::list<SaveReaderText*> Readers;
 
-class save_reader_text_t {
+class SaveReaderText {
  public:
   virtual std::string get_name() const = 0;
   virtual unsigned int get_number() const = 0;
-  virtual save_reader_text_value_t value(const std::string &name) const
-            throw(Freeserf_Exception) = 0;
-  virtual readers_t get_sections(const std::string &name) = 0;
+  virtual SaveReaderTextValue value(const std::string &name) const
+            throw(ExceptionFreeserf) = 0;
+  virtual Readers get_sections(const std::string &name) = 0;
 };
 
-class save_writer_text_t {
+class SaveWriterText {
  public:
-  virtual save_writer_text_value_t &value(const std::string &name) = 0;
-  virtual save_writer_text_t &add_section(const std::string &name,
-                                          unsigned int number) = 0;
+  virtual SaveWriterTextValue &value(const std::string &name) = 0;
+  virtual SaveWriterText &add_section(const std::string &name,
+                                      unsigned int number) = 0;
 };
 
 #endif  // SRC_SAVEGAME_H_

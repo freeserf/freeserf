@@ -31,22 +31,22 @@
 
 #define SEARCH_MAX_DEPTH  0x10000
 
-flag_search_t::flag_search_t(game_t *game) {
+FlagSearch::FlagSearch(Game *game) {
   this->game = game;
   id = game->next_search_id();
 }
 
 void
-flag_search_t::add_source(flag_t *flag) {
+FlagSearch::add_source(Flag *flag) {
   queue.push_back(flag);
   flag->search_num = id;
 }
 
 bool
-flag_search_t::execute(flag_search_func *callback, bool land,
-                       bool transporter, void *data) {
+FlagSearch::execute(flag_search_func *callback, bool land,
+                    bool transporter, void *data) {
   for (int i = 0; i < SEARCH_MAX_DEPTH && !queue.empty(); i++) {
-    flag_t *flag = queue.front();
+    Flag *flag = queue.front();
     queue.erase(queue.begin());
 
     if (callback(flag, data)) {
@@ -56,12 +56,12 @@ flag_search_t::execute(flag_search_func *callback, bool land,
     }
 
     for (int i = 0; i < 6; i++) {
-      if ((!land || !flag->is_water_path((dir_t)(5-i))) &&
-          (!transporter || flag->has_transporter((dir_t)(5-i))) &&
+      if ((!land || !flag->is_water_path((Direction)(5-i))) &&
+          (!transporter || flag->has_transporter((Direction)(5-i))) &&
           flag->other_endpoint.f[5-i]->search_num != id) {
         flag->other_endpoint.f[5-i]->search_num = id;
         flag->other_endpoint.f[5-i]->search_dir = flag->search_dir;
-        flag_t *other_flag = flag->other_endpoint.f[5-i];
+        Flag *other_flag = flag->other_endpoint.f[5-i];
         queue.push_back(other_flag);
       }
     }
@@ -74,22 +74,22 @@ flag_search_t::execute(flag_search_func *callback, bool land,
 }
 
 bool
-flag_search_t::single(flag_t *src, flag_search_func *callback,
-                      bool land, bool transporter, void *data) {
-  flag_search_t search(src->get_game());
+FlagSearch::single(Flag *src, flag_search_func *callback, bool land,
+                   bool transporter, void *data) {
+  FlagSearch search(src->get_game());
   search.add_source(src);
   return search.execute(callback, land, transporter, data);
 }
 
-flag_t::flag_t(game_t *game, unsigned int index) : game_object_t(game, index) {
+Flag::Flag(Game *game, unsigned int index) : GameObject(game, index) {
   pos = 0;
   search_num = 0;
-  search_dir = DIR_RIGHT;
+  search_dir = DirectionRight;
   path_con = 0;
   endpoint = 0;
   transporter = 0;
   for (int j = 0; j < FLAG_MAX_RES_COUNT; j++) {
-    slot[j].type = RESOURCE_NONE;
+    slot[j].type = Resource::TypeNone;
   }
   bld_flags = 0;
   bld2_flags = 0;
@@ -101,7 +101,7 @@ flag_t::flag_t(game_t *game, unsigned int index) : game_object_t(game, index) {
 }
 
 void
-flag_t::add_path(dir_t dir, bool water) {
+Flag::add_path(Direction dir, bool water) {
   path_con |= BIT(dir);
   if (water) {
     endpoint &= ~BIT(dir);
@@ -112,7 +112,7 @@ flag_t::add_path(dir_t dir, bool water) {
 }
 
 void
-flag_t::del_path(dir_t dir) {
+Flag::del_path(Direction dir) {
   path_con &= ~BIT(dir);
   endpoint &= ~BIT(dir);
   transporter &= ~BIT(dir);
@@ -120,10 +120,10 @@ flag_t::del_path(dir_t dir) {
   if (serf_requested(dir)) {
     cancel_serf_request(dir);
     unsigned int dest = game->get_map()->get_obj_index(pos);
-    list_serfs_t serfs = game->get_serfs_related_to(dest, dir);
+    Game::ListSerfs serfs = game->get_serfs_related_to(dest, dir);
 
-    for (list_serfs_t::iterator i = serfs.begin(); i != serfs.end(); ++i) {
-      serf_t *serf = *i;
+    for (Game::ListSerfs::iterator i = serfs.begin(); i != serfs.end(); ++i) {
+      Serf *serf = *i;
       serf->path_deleted(dest, dir);
     }
   }
@@ -137,15 +137,15 @@ flag_t::del_path(dir_t dir) {
 }
 
 bool
-flag_t::pick_up_resource(int slot, resource_type_t *res, unsigned int *dest) {
-  if (this->slot[slot].type == RESOURCE_NONE) {
+Flag::pick_up_resource(int slot, Resource::Type *res, unsigned int *dest) {
+  if (this->slot[slot].type == Resource::TypeNone) {
     return false;
   }
 
   *res = this->slot[slot].type;
   *dest = this->slot[slot].dest;
-  this->slot[slot].type = RESOURCE_NONE;
-  this->slot[slot].dir = DIR_NONE;
+  this->slot[slot].type = Resource::TypeNone;
+  this->slot[slot].dir = DirectionNone;
 
   fix_scheduled();
 
@@ -153,12 +153,12 @@ flag_t::pick_up_resource(int slot, resource_type_t *res, unsigned int *dest) {
 }
 
 bool
-flag_t::drop_resource(resource_type_t res, unsigned int dest) {
+Flag::drop_resource(Resource::Type res, unsigned int dest) {
   for (int i = 0; i < FLAG_MAX_RES_COUNT; i++) {
-    if (slot[i].type == RESOURCE_NONE) {
+    if (slot[i].type == Resource::TypeNone) {
       slot[i].type = res;
       slot[i].dest = dest;
-      slot[i].dir = DIR_NONE;
+      slot[i].dir = DirectionNone;
       endpoint |= BIT(7);
       return true;
     }
@@ -168,10 +168,10 @@ flag_t::drop_resource(resource_type_t res, unsigned int dest) {
 }
 
 bool
-flag_t::has_empty_slot() {
+Flag::has_empty_slot() {
   int scheduled_slots = 0;
   for (int i = 0; i < FLAG_MAX_RES_COUNT; i++) {
-    if (slot[i].type != RESOURCE_NONE) {
+    if (slot[i].type != Resource::TypeNone) {
       scheduled_slots++;
     }
   }
@@ -180,27 +180,27 @@ flag_t::has_empty_slot() {
 }
 
 void
-flag_t::remove_all_resources() {
+Flag::remove_all_resources() {
   for (int i = 0; i < FLAG_MAX_RES_COUNT; i++) {
-    if (slot[i].type != RESOURCE_NONE) {
+    if (slot[i].type != Resource::TypeNone) {
       int res = slot[i].type;
       unsigned int dest = slot[i].dest;
-      game->cancel_transported_resource((resource_type_t)res, dest);
-      game->lose_resource((resource_type_t)res);
+      game->cancel_transported_resource((Resource::Type)res, dest);
+      game->lose_resource((Resource::Type)res);
     }
   }
 }
 
-resource_type_t
-flag_t::get_resource_at_slot(int slot_) {
+Resource::Type
+Flag::get_resource_at_slot(int slot_) {
   return slot[slot_].type;
 }
 
 void
-flag_t::fix_scheduled() {
+Flag::fix_scheduled() {
   int scheduled_slots = 0;
   for (int i = 0; i < FLAG_MAX_RES_COUNT; i++) {
-    if (slot[i].type != RESOURCE_NONE) {
+    if (slot[i].type != Resource::TypeNone) {
       scheduled_slots++;
     }
   }
@@ -212,18 +212,18 @@ flag_t::fix_scheduled() {
   }
 }
 
-typedef struct {
-  resource_type_t resource;
+typedef struct ScheduleUnknownDestData {
+  Resource::Type resource;
   int max_prio;
-  flag_t *flag;
-} schedule_unknown_dest_data_t;
+  Flag *flag;
+} ScheduleUnknownDestData;
 
 static bool
-schedule_unknown_dest_cb(flag_t *flag, void *data) {
-  schedule_unknown_dest_data_t *dest_data =
-    static_cast<schedule_unknown_dest_data_t*>(data);
+schedule_unknown_dest_cb(Flag *flag, void *data) {
+  ScheduleUnknownDestData *dest_data =
+    static_cast<ScheduleUnknownDestData*>(data);
   if (flag->has_building()) {
-    building_t *building = flag->get_building();
+    Building *building = flag->get_building();
 
     int bld_prio = building->get_max_priority_for_resource(dest_data->resource);
     if (bld_prio > dest_data->max_prio) {
@@ -238,7 +238,7 @@ schedule_unknown_dest_cb(flag_t *flag, void *data) {
 }
 
 void
-flag_t::schedule_slot_to_unknown_dest(int slot_num) {
+Flag::schedule_slot_to_unknown_dest(int slot_num) {
   /* Resources which should be routed directly to
    buildings requesting them. Resources not listed
    here will simply be moved to an inventory. */
@@ -272,19 +272,19 @@ flag_t::schedule_slot_to_unknown_dest(int slot_num) {
     0,  // RESOURCE_GROUP_FOOD
   };
 
-  resource_type_t res = slot[slot_num].type;
+  Resource::Type res = slot[slot_num].type;
   if (routable[res]) {
-    flag_search_t search(game);
+    FlagSearch search(game);
     search.add_source(this);
 
     /* Handle food as one resource group */
-    if (res == RESOURCE_MEAT ||
-        res == RESOURCE_FISH ||
-        res == RESOURCE_BREAD) {
-      res = RESOURCE_GROUP_FOOD;
+    if (res == Resource::TypeMeat ||
+        res == Resource::TypeFish ||
+        res == Resource::TypeBread) {
+      res = Resource::GroupFood;
     }
 
-    schedule_unknown_dest_data_t data;
+    ScheduleUnknownDestData data;
     data.resource = res;
     data.flag = NULL;
     data.max_prio = 0;
@@ -293,7 +293,7 @@ flag_t::schedule_slot_to_unknown_dest(int slot_num) {
     if (data.flag != NULL) {
       LOGV("game", "dest for flag %u res %i found: flag %u",
            index, slot, data.flag->get_index());
-      building_t *dest_bld = data.flag->other_endpoint.b[DIR_UP_LEFT];
+      Building *dest_bld = data.flag->other_endpoint.b[DirectionUpLeft];
 
       bool r = dest_bld->add_requested_resource(res, true);
       assert(r);
@@ -317,9 +317,9 @@ flag_t::schedule_slot_to_unknown_dest(int slot_num) {
       endpoint |= BIT(7);
     } else {
       int dir = -1;
-      for (int i = DIR_RIGHT; i <= DIR_UP; i++) {
-        int d = DIR_UP - i;
-        if (has_transporter((dir_t)d)) {
+      for (int i = DirectionRight; i <= DirectionUp; i++) {
+        int d = DirectionUp - i;
+        if (has_transporter((Direction)d)) {
           dir = d;
           break;
         }
@@ -327,11 +327,11 @@ flag_t::schedule_slot_to_unknown_dest(int slot_num) {
 
       assert(dir >= 0);
 
-      if (!is_scheduled((dir_t)dir)) {
+      if (!is_scheduled((Direction)dir)) {
         other_end_dir[dir] = BIT(7) |
         (other_end_dir[dir] & 0x38) | slot_num;
       }
-      slot[slot_num].dir = (dir_t)dir;
+      slot[slot_num].dir = (Direction)dir;
     }
   } else {
     this->slot[slot_num].dest = r;
@@ -340,8 +340,8 @@ flag_t::schedule_slot_to_unknown_dest(int slot_num) {
 }
 
 static bool
-find_nearest_inventory_search_cb(flag_t *flag, void *data) {
-  flag_t **dest = reinterpret_cast<flag_t**>(data);
+find_nearest_inventory_search_cb(Flag *flag, void *data) {
+  Flag **dest = reinterpret_cast<Flag**>(data);
   if (flag->accepts_resources()) {
     *dest = flag;
     return true;
@@ -351,20 +351,20 @@ find_nearest_inventory_search_cb(flag_t *flag, void *data) {
 
 /* Return the flag index of the inventory nearest to flag. */
 int
-flag_t::find_nearest_inventory_for_resource() {
-  flag_t *dest = NULL;
-  flag_search_t::single(this, find_nearest_inventory_search_cb,
-                        false, true, &dest);
+Flag::find_nearest_inventory_for_resource() {
+  Flag *dest = NULL;
+  FlagSearch::single(this, find_nearest_inventory_search_cb, false, true,
+                     &dest);
   if (dest != NULL) return dest->get_index();
 
   return -1;
 }
 
 static bool
-flag_search_inventory_search_cb(flag_t *flag, void *data) {
+flag_search_inventory_search_cb(Flag *flag, void *data) {
   int *dest_index = static_cast<int*>(data);
   if (flag->accepts_serfs()) {
-    building_t *building = flag->get_building();
+    Building *building = flag->get_building();
     *dest_index = building->get_flag_index();
     return true;
   }
@@ -373,31 +373,31 @@ flag_search_inventory_search_cb(flag_t *flag, void *data) {
 }
 
 int
-flag_t::find_nearest_inventory_for_serf() {
+Flag::find_nearest_inventory_for_serf() {
   int dest_index = -1;
-  flag_search_t::single(this, flag_search_inventory_search_cb,
-                        true, false, &dest_index);
+  FlagSearch::single(this, flag_search_inventory_search_cb, true, false,
+                     &dest_index);
 
   return dest_index;
 }
 
-typedef struct {
-  flag_t *src;
-  flag_t *dest;
+typedef struct ScheduleKnownDestData {
+  Flag *src;
+  Flag *dest;
   int slot;
-} schedule_known_dest_data_t;
+} ScheduleKnownDestData;
 
 static bool
-schedule_known_dest_cb(flag_t *flag, void *data) {
-  schedule_known_dest_data_t *dest_data =
-    static_cast<schedule_known_dest_data_t*>(data);
+schedule_known_dest_cb(Flag *flag, void *data) {
+  ScheduleKnownDestData *dest_data =
+    static_cast<ScheduleKnownDestData*>(data);
   return (flag->schedule_known_dest_cb_(dest_data->src,
                                         dest_data->dest,
                                         dest_data->slot) != 0);
 }
 
 int
-flag_t::schedule_known_dest_cb_(flag_t *src, flag_t *dest, int _slot) {
+Flag::schedule_known_dest_cb_(Flag *src, Flag *dest, int _slot) {
   if (this == dest) {
     /* Destination found */
     if (this->search_dir != 6) {
@@ -406,7 +406,7 @@ flag_t::schedule_known_dest_cb_(flag_t *src, flag_t *dest, int _slot) {
         src->other_end_dir[this->search_dir] =
           BIT(7) | (src->other_end_dir[this->search_dir] & 0x78) | _slot;
       } else {
-        player_t *player = game->get_player(this->get_owner());
+        Player *player = game->get_player(this->get_owner());
         int other_dir = src->other_end_dir[this->search_dir];
         int prio_old = player->get_flag_prio(src->slot[other_dir & 7].type);
         int prio_new = player->get_flag_prio(src->slot[_slot].type);
@@ -425,11 +425,11 @@ flag_t::schedule_known_dest_cb_(flag_t *src, flag_t *dest, int _slot) {
 }
 
 void
-flag_t::schedule_slot_to_known_dest(int slot, unsigned int res_waiting[4]) {
-  flag_search_t search(game);
+Flag::schedule_slot_to_known_dest(int slot, unsigned int res_waiting[4]) {
+  FlagSearch search(game);
 
   search_num = search.get_id();
-  search_dir = DIR_UP_RIGHT;
+  search_dir = DirectionUpRight;
   int tr = transporters();
 
   int sources = 0;
@@ -441,9 +441,9 @@ flag_t::schedule_slot_to_known_dest(int slot, unsigned int res_waiting[4]) {
     for (int k = 0; k < 6; k++) {
       if (BIT_TEST(flags, 5-k)) {
         tr &= ~BIT(5-k);
-        flag_t *other_flag = other_endpoint.f[5-k];
+        Flag *other_flag = other_endpoint.f[5-k];
         if (other_flag->search_num != search.get_id()) {
-          other_flag->search_dir = (dir_t)(5-k);
+          other_flag->search_dir = (Direction)(5-k);
           search.add_source(other_flag);
           sources += 1;
         }
@@ -457,9 +457,9 @@ flag_t::schedule_slot_to_known_dest(int slot, unsigned int res_waiting[4]) {
       for (int k = 0; k < 6; k++) {
         if (BIT_TEST(flags, 5-k)) {
           tr &= ~BIT(5-k);
-          flag_t *other_flag = other_endpoint.f[5-k];
+          Flag *other_flag = other_endpoint.f[5-k];
           if (other_flag->search_num != search.get_id()) {
-            other_flag->search_dir = (dir_t)(5-k);
+            other_flag->search_dir = (Direction)(5-k);
             search.add_source(other_flag);
             sources += 1;
           }
@@ -472,9 +472,9 @@ flag_t::schedule_slot_to_known_dest(int slot, unsigned int res_waiting[4]) {
       for (int k = 0; k < 6; k++) {
         if (BIT_TEST(flags, 5-k)) {
           tr &= ~BIT(5-k);
-          flag_t *other_flag = other_endpoint.f[5-k];
+          Flag *other_flag = other_endpoint.f[5-k];
           if (other_flag->search_num != search.get_id()) {
-            other_flag->search_dir = (dir_t)(5-k);
+            other_flag->search_dir = (Direction)(5-k);
             search.add_source(other_flag);
             sources += 1;
           }
@@ -485,7 +485,7 @@ flag_t::schedule_slot_to_known_dest(int slot, unsigned int res_waiting[4]) {
   }
 
   if (sources > 0) {
-    schedule_known_dest_data_t data;
+    ScheduleKnownDestData data;
     data.src = this;
     data.dest = game->get_flag(this->slot[slot].dest);
     data.slot = slot;
@@ -503,15 +503,15 @@ flag_t::schedule_slot_to_known_dest(int slot, unsigned int res_waiting[4]) {
 }
 
 void
-flag_t::prioritize_pickup(dir_t dir, player_t *player) {
+Flag::prioritize_pickup(Direction dir, Player *player) {
   int res_next = -1;
   int res_prio = -1;
 
   for (int i = 0; i < FLAG_MAX_RES_COUNT; i++) {
-    if (slot[i].type != RESOURCE_NONE) {
+    if (slot[i].type != Resource::TypeNone) {
       /* Use flag_prio to prioritize resource pickup. */
-      dir_t res_dir = slot[i].dir;
-      resource_type_t res_type = slot[i].type;
+      Direction res_dir = slot[i].dir;
+      Resource::Type res_type = slot[i].type;
       if (res_dir == dir && player->get_flag_prio(res_type) > res_prio) {
         res_next = i;
         res_prio = player->get_flag_prio(res_type);
@@ -524,11 +524,10 @@ flag_t::prioritize_pickup(dir_t dir, player_t *player) {
 }
 
 void
-flag_t::invalidate_resource_path(dir_t dir) {
+Flag::invalidate_resource_path(Direction dir) {
   for (int i = 0; i < FLAG_MAX_RES_COUNT; i++) {
-    if (slot[i].type != RESOURCE_NONE &&
-        slot[i].dir == dir) {
-      slot[i].dir = DIR_NONE;
+    if (slot[i].type != Resource::TypeNone && slot[i].dir == dir) {
+      slot[i].dir = DirectionNone;
       endpoint |= BIT(7);
     }
   }
@@ -537,7 +536,7 @@ flag_t::invalidate_resource_path(dir_t dir) {
 /* Get road length category value for real length.
  Determines number of serfs servicing the path segment.(?) */
 size_t
-flag_t::get_road_length_value(size_t length) {
+Flag::get_road_length_value(size_t length) {
   if (length >= 24) return 7;
   else if (length >= 18) return 6;
   else if (length >= 13) return 5;
@@ -549,8 +548,8 @@ flag_t::get_road_length_value(size_t length) {
 }
 
 void
-flag_t::link_with_flag(flag_t *dest_flag, bool water_path, size_t length,
-                       dir_t in_dir, dir_t out_dir) {
+Flag::link_with_flag(Flag *dest_flag, bool water_path, size_t length,
+                       Direction in_dir, Direction out_dir) {
   dest_flag->add_path(in_dir, water_path);
   add_path(out_dir, water_path);
 
@@ -568,17 +567,17 @@ flag_t::link_with_flag(flag_t *dest_flag, bool water_path, size_t length,
 }
 
 void
-flag_t::restore_path_serf_info(dir_t dir, serf_path_info_t *data) {
+Flag::restore_path_serf_info(Direction dir, SerfPathInfo *data) {
   const int max_path_serfs[] = { 1, 2, 3, 4, 6, 8, 11, 15 };
 
-  flag_t *other_flag = game->get_flag(data->flag_index);
-  dir_t other_dir = data->flag_dir;
+  Flag *other_flag = game->get_flag(data->flag_index);
+  Direction other_dir = data->flag_dir;
 
   add_path(dir, other_flag->is_water_path(other_dir));
 
   other_flag->transporter &= ~BIT(other_dir);
 
-  size_t len = flag_t::get_road_length_value(data->path_len);
+  size_t len = Flag::get_road_length_value(data->path_len);
 
   length[dir] = len << 4;
   other_flag->length[other_dir] =
@@ -600,7 +599,7 @@ flag_t::restore_path_serf_info(dir_t dir, serf_path_info_t *data) {
 
   if (data->serf_count > max_serfs) {
     for (int i = 0; i < data->serf_count - max_serfs; i++) {
-      serf_t *serf = game->get_serf(data->serfs[i]);
+      Serf *serf = game->get_serf(data->serfs[i]);
       serf->restore_path_serf_info();
     }
   }
@@ -616,13 +615,13 @@ flag_t::restore_path_serf_info(dir_t dir, serf_path_info_t *data) {
 }
 
 bool
-flag_t::can_demolish() {
+Flag::can_demolish() {
   int connected = 0;
   void *other_end = NULL;
 
-  for (int d = DIR_RIGHT; d <= DIR_UP; d++) {
-    if (has_path((dir_t)d)) {
-      if (is_water_path((dir_t)d)) return false;
+  for (int d = DirectionRight; d <= DirectionUp; d++) {
+    if (has_path((Direction)d)) {
+      if (is_water_path((Direction)d)) return false;
 
       connected += 1;
 
@@ -643,11 +642,11 @@ flag_t::can_demolish() {
 
 /* Find a transporter at pos and change it to state. */
 static int
-change_transporter_state_at_pos(game_t *game, map_pos_t pos,
-                                serf_state_t state) {
-  list_serfs_t serfs = game->get_serfs_at_pos(pos);
-  for (list_serfs_t::iterator i = serfs.begin(); i != serfs.end(); ++i) {
-    serf_t *serf = *i;
+change_transporter_state_at_pos(Game *game, MapPos pos,
+                                Serf::State state) {
+  Game::ListSerfs serfs = game->get_serfs_at_pos(pos);
+  for (Game::ListSerfs::iterator i = serfs.begin(); i != serfs.end(); ++i) {
+    Serf *serf = *i;
     if (serf->change_transporter_state_at_pos(pos, state)) {
       return serf->get_index();
     }
@@ -657,18 +656,18 @@ change_transporter_state_at_pos(game_t *game, map_pos_t pos,
 }
 
 static int
-wake_transporter_at_flag(game_t *game, map_pos_t pos) {
-  return change_transporter_state_at_pos(game, pos, SERF_STATE_WAKE_AT_FLAG);
+wake_transporter_at_flag(Game *game, MapPos pos) {
+  return change_transporter_state_at_pos(game, pos, Serf::StateWakeAtFlag);
 }
 
 static int
-wake_transporter_on_path(game_t *game, map_pos_t pos) {
-  return change_transporter_state_at_pos(game, pos, SERF_STATE_WAKE_ON_PATH);
+wake_transporter_on_path(Game *game, MapPos pos) {
+  return change_transporter_state_at_pos(game, pos, Serf::StateWakeOnPath);
 }
 
 void
-flag_t::fill_path_serf_info(game_t *game, map_pos_t pos, dir_t dir,
-                            serf_path_info_t *data) {
+Flag::fill_path_serf_info(Game *game, MapPos pos, Direction dir,
+                          SerfPathInfo *data) {
   if (game->get_map()->get_idle_serf(pos)) wake_transporter_at_flag(game, pos);
 
   int serf_count = 0;
@@ -676,8 +675,8 @@ flag_t::fill_path_serf_info(game_t *game, map_pos_t pos, dir_t dir,
 
   /* Handle first position. */
   if (game->get_map()->get_serf_index(pos) != 0) {
-    serf_t *serf = game->get_serf_at_pos(pos);
-    if (serf->get_state() == SERF_STATE_TRANSPORTING &&
+    Serf *serf = game->get_serf_at_pos(pos);
+    if (serf->get_state() == Serf::StateTransporting &&
         serf->get_walking_wait_counter() != -1) {
       int d = serf->get_walking_dir();
       if (d < 0) d += 6;
@@ -700,9 +699,9 @@ flag_t::fill_path_serf_info(game_t *game, map_pos_t pos, dir_t dir,
     if (game->get_map()->has_flag(pos)) break;
 
     /* Find out which direction the path follows. */
-    for (int d = DIR_RIGHT; d <= DIR_UP; d++) {
+    for (int d = DirectionRight; d <= DirectionUp; d++) {
       if (BIT_TEST(paths, d)) {
-        dir = (dir_t)d;
+        dir = (Direction)d;
         break;
       }
     }
@@ -715,8 +714,8 @@ flag_t::fill_path_serf_info(game_t *game, map_pos_t pos, dir_t dir,
 
     /* Check if there is a serf occupying this space. */
     if (game->get_map()->get_serf_index(pos) != 0) {
-      serf_t *serf = game->get_serf_at_pos(pos);
-      if (serf->get_state() == SERF_STATE_TRANSPORTING &&
+      Serf *serf = game->get_serf_at_pos(pos);
+      if (serf->get_state() == Serf::StateTransporting &&
           serf->get_walking_wait_counter() != -1) {
         serf->set_walking_wait_counter(0);
         data->serfs[serf_count++] = serf->get_index();
@@ -726,10 +725,10 @@ flag_t::fill_path_serf_info(game_t *game, map_pos_t pos, dir_t dir,
 
   /* Handle last position. */
   if (game->get_map()->get_serf_index(pos) != 0) {
-    serf_t *serf = game->get_serf_at_pos(pos);
-    if ((serf->get_state() == SERF_STATE_TRANSPORTING &&
+    Serf *serf = game->get_serf_at_pos(pos);
+    if ((serf->get_state() == Serf::StateTransporting &&
          serf->get_walking_wait_counter() != -1) ||
-        serf->get_state() == SERF_STATE_DELIVERING) {
+        serf->get_state() == Serf::StateDelivering) {
       int d = serf->get_walking_dir();
       if (d < 0) d += 6;
 
@@ -748,42 +747,42 @@ flag_t::fill_path_serf_info(game_t *game, map_pos_t pos, dir_t dir,
 }
 
 void
-flag_t::merge_paths(map_pos_t pos) {
+Flag::merge_paths(MapPos pos) {
   const int max_transporters[] = { 1, 2, 3, 4, 6, 8, 11, 15 };
 
   if (!game->get_map()->paths(pos)) {
     return;
   }
 
-  dir_t path_1_dir = DIR_RIGHT;
-  dir_t path_2_dir = DIR_RIGHT;
+  Direction path_1_dir = DirectionRight;
+  Direction path_2_dir = DirectionRight;
 
   /* Find first direction */
-  for (int d = DIR_RIGHT; d <= DIR_UP; d++) {
+  for (int d = DirectionRight; d <= DirectionUp; d++) {
     if (BIT_TEST(game->get_map()->paths(pos), d)) {
-      path_1_dir = (dir_t)d;
+      path_1_dir = (Direction)d;
       break;
     }
   }
 
   /* Find second direction */
-  for (int d = DIR_UP; d >= DIR_RIGHT; d--) {
+  for (int d = DirectionUp; d >= DirectionRight; d--) {
     if (BIT_TEST(game->get_map()->paths(pos), d)) {
-      path_2_dir = (dir_t)d;
+      path_2_dir = (Direction)d;
       break;
     }
   }
 
-  serf_path_info_t path_1_data;
-  serf_path_info_t path_2_data;
+  SerfPathInfo path_1_data;
+  SerfPathInfo path_2_data;
 
   fill_path_serf_info(game, pos, path_1_dir, &path_1_data);
   fill_path_serf_info(game, pos, path_2_dir, &path_2_data);
 
-  flag_t *flag_1 = game->get_flag(path_1_data.flag_index);
-  flag_t *flag_2 = game->get_flag(path_2_data.flag_index);
-  dir_t dir_1 = path_1_data.flag_dir;
-  dir_t dir_2 = path_2_data.flag_dir;
+  Flag *flag_1 = game->get_flag(path_1_data.flag_index);
+  Flag *flag_2 = game->get_flag(path_2_data.flag_index);
+  Direction dir_1 = path_1_data.flag_dir;
+  Direction dir_2 = path_2_data.flag_dir;
 
   flag_1->other_end_dir[dir_1] =
     (flag_1->other_end_dir[dir_1] & 0xc7) | (dir_2 << 3);
@@ -796,7 +795,7 @@ flag_t::merge_paths(map_pos_t pos) {
   flag_1->transporter &= ~BIT(dir_1);
   flag_2->transporter &= ~BIT(dir_2);
 
-  size_t len = flag_t::get_road_length_value(path_1_data.path_len +
+  size_t len = Flag::get_road_length_value(path_1_data.path_len +
                                              path_2_data.path_len);
   flag_1->length[dir_1] = len << 4;
   flag_2->length[dir_2] = len << 4;
@@ -816,27 +815,28 @@ flag_t::merge_paths(map_pos_t pos) {
   }
 
   /* Update serfs with reference to this flag. */
-  list_serfs_t serfs = game->get_serfs_related_to(flag_1->get_index(), dir_1);
-  list_serfs_t serfs2 = game->get_serfs_related_to(flag_2->get_index(), dir_2);
+  Game::ListSerfs serfs = game->get_serfs_related_to(flag_1->get_index(),
+                                                     dir_1);
+  Game::ListSerfs serfs2 = game->get_serfs_related_to(flag_2->get_index(),
+                                                      dir_2);
   serfs.insert(serfs.end(), serfs2.begin(), serfs2.end());
-  for (list_serfs_t::iterator i = serfs.begin(); i != serfs.end(); ++i) {
-    serf_t *serf = *i;
+  for (Game::ListSerfs::iterator i = serfs.begin(); i != serfs.end(); ++i) {
+    Serf *serf = *i;
     serf->path_merged2(flag_1->get_index(), dir_1,
                        flag_2->get_index(), dir_2);
   }
 }
 
 void
-flag_t::update() {
+Flag::update() {
   const int max_transporters[] = { 1, 2, 3, 4, 6, 8, 11, 15 };
 
   /* Count and store in bitfield which directions
    have strictly more than 0,1,2,3 slots waiting. */
   unsigned int res_waiting[4] = {0};
   for (int j = 0; j < FLAG_MAX_RES_COUNT; j++) {
-    if (slot[j].type != RESOURCE_NONE &&
-        slot[j].dir != DIR_NONE) {
-      dir_t res_dir = slot[j].dir;
+    if (slot[j].type != Resource::TypeNone && slot[j].dir != DirectionNone) {
+      Direction res_dir = slot[j].dir;
       for (int k = 0; k < 4; k++) {
         if (!BIT_TEST(res_waiting[k], res_dir)) {
           res_waiting[k] |= BIT(res_dir);
@@ -852,7 +852,7 @@ flag_t::update() {
   if (has_resources()) {
     endpoint &= ~BIT(7);
     for (int slot_ = 0; slot_ < FLAG_MAX_RES_COUNT; slot_++) {
-      if (slot[slot_].type != RESOURCE_NONE) {
+      if (slot[slot_].type != Resource::TypeNone) {
         waiting_count += 1;
 
         /* Only schedule the slot if it has not already
@@ -873,22 +873,22 @@ flag_t::update() {
 
   /* Update transporter flags, decide if serf needs to be sent to road */
   for (int j = 0; j < 6; j++) {
-    if (has_path((dir_t)(5-j))) {
-      if (serf_requested((dir_t)(5-j))) {
+    if (has_path((Direction)(5-j))) {
+      if (serf_requested((Direction)(5-j))) {
         if (BIT_TEST(res_waiting[2], 5-j)) {
           if (waiting_count >= 7) {
             transporter &= BIT(5-j);
           }
-        } else if (free_transporter_count((dir_t)(5-j)) != 0) {
+        } else if (free_transporter_count((Direction)(5-j)) != 0) {
           transporter |= BIT(5-j);
         }
-      } else if (free_transporter_count((dir_t)(5-j)) == 0 ||
+      } else if (free_transporter_count((Direction)(5-j)) == 0 ||
                  BIT_TEST(res_waiting[2], 5-j)) {
-        int max_tr = max_transporters[length_category((dir_t)(5-j))];
-        if (free_transporter_count((dir_t)(5-j)) < (unsigned int)max_tr &&
+        int max_tr = max_transporters[length_category((Direction)(5-j))];
+        if (free_transporter_count((Direction)(5-j)) < (unsigned int)max_tr &&
             !serf_request_fail()) {
-          bool r = call_transporter((dir_t)(5-j),
-                                    is_water_path((dir_t)(5-j)));
+          bool r = call_transporter((Direction)(5-j),
+                                    is_water_path((Direction)(5-j)));
           if (!r) transporter |= BIT(7);
         }
         if (waiting_count >= 7) {
@@ -901,33 +901,35 @@ flag_t::update() {
   }
 }
 
-typedef struct {
-  inventory_t *inventory;
+typedef struct SendSerfToRoadData {
+  Inventory *inventory;
   int water;
-} send_serf_to_road_data_t;
+} SendSerfToRoadData;
 
 static bool
-send_serf_to_road_search_cb(flag_t *flag, void *data) {
-  send_serf_to_road_data_t *road_data =
-    static_cast<send_serf_to_road_data_t*>(data);
+send_serf_to_road_search_cb(Flag *flag, void *data) {
+  SendSerfToRoadData *road_data =
+    static_cast<SendSerfToRoadData*>(data);
   if (flag->has_inventory()) {
     /* Inventory reached */
-    building_t *building = flag->get_building();
-    inventory_t *inventory = building->get_inventory();
+    Building *building = flag->get_building();
+    Inventory *inventory = building->get_inventory();
     if (!road_data->water) {
-      if (inventory->have_serf(SERF_TRANSPORTER)) {
+      if (inventory->have_serf(Serf::TypeTransporter)) {
         road_data->inventory = inventory;
         return true;
       }
     } else {
-      if (inventory->have_serf(SERF_SAILOR)) {
+      if (inventory->have_serf(Serf::TypeSailor)) {
         road_data->inventory = inventory;
         return true;
       }
     }
 
-    if (road_data->inventory == NULL && inventory->have_serf(SERF_GENERIC) &&
-        (!road_data->water || inventory->get_count_of(RESOURCE_BOAT) > 0)) {
+    if (road_data->inventory == NULL &&
+        inventory->have_serf(Serf::TypeGeneric) &&
+        (!road_data->water ||
+         inventory->get_count_of(Resource::TypeBoat) > 0)) {
       road_data->inventory = inventory;
     }
   }
@@ -936,34 +938,34 @@ send_serf_to_road_search_cb(flag_t *flag, void *data) {
 }
 
 bool
-flag_t::call_transporter(dir_t dir, bool water) {
-  flag_t *src_2 = other_endpoint.f[dir];
-  dir_t dir_2 = get_other_end_dir(dir);
+Flag::call_transporter(Direction dir, bool water) {
+  Flag *src_2 = other_endpoint.f[dir];
+  Direction dir_2 = get_other_end_dir(dir);
 
-  search_dir = DIR_RIGHT;
-  src_2->search_dir = DIR_DOWN_RIGHT;
+  search_dir = DirectionRight;
+  src_2->search_dir = DirectionDownRight;
 
-  flag_search_t search(game);
+  FlagSearch search(game);
   search.add_source(this);
   search.add_source(src_2);
 
-  send_serf_to_road_data_t data;
+  SendSerfToRoadData data;
   data.inventory = NULL;
   data.water = water;
   search.execute(send_serf_to_road_search_cb, true, false, &data);
-  inventory_t *inventory = data.inventory;
+  Inventory *inventory = data.inventory;
   if (inventory == NULL) {
     return false;
   }
 
-  serf_t *serf = data.inventory->call_transporter(water);
+  Serf *serf = data.inventory->call_transporter(water);
 
-  flag_t *dest_flag = game->get_flag(inventory->get_flag_index());
+  Flag *dest_flag = game->get_flag(inventory->get_flag_index());
 
   length[dir] |= BIT(7);
   src_2->length[dir_2] |= BIT(7);
 
-  flag_t *src = this;
+  Flag *src = this;
   if (dest_flag->search_dir == src_2->search_dir) {
     src = src_2;
     dir = dir_2;
@@ -975,16 +977,16 @@ flag_t::call_transporter(dir_t dir, bool water) {
 }
 
 void
-flag_t::reset_transport(flag_t *other) {
+Flag::reset_transport(Flag *other) {
   for (int slot_ = 0; slot_ < FLAG_MAX_RES_COUNT; slot_++) {
-    if (other->slot[slot_].type != RESOURCE_NONE &&
+    if (other->slot[slot_].type != Resource::TypeNone &&
         other->slot[slot_].dest == index) {
       other->slot[slot_].dest = 0;
       other->endpoint |= BIT(7);
 
-      if (other->slot[slot_].dir != DIR_NONE) {
-        dir_t dir = other->slot[slot_].dir;
-        player_t *player = game->get_player(other->get_owner());
+      if (other->slot[slot_].dir != DirectionNone) {
+        Direction dir = other->slot[slot_].dir;
+        Player *player = game->get_player(other->get_owner());
         other->prioritize_pickup(dir, player);
       }
     }
@@ -992,10 +994,10 @@ flag_t::reset_transport(flag_t *other) {
 }
 
 void
-flag_t::reset_destination_of_stolen_resources() {
+Flag::reset_destination_of_stolen_resources() {
   for (int i = 0; i < FLAG_MAX_RES_COUNT; i++) {
-    if (slot[i].type != RESOURCE_NONE) {
-      resource_type_t res = slot[i].type;
+    if (slot[i].type != Resource::TypeNone) {
+      Resource::Type res = slot[i].type;
       game->cancel_transported_resource(res, slot[i].dest);
       slot[i].dest = 0;
     }
@@ -1003,20 +1005,20 @@ flag_t::reset_destination_of_stolen_resources() {
 }
 
 void
-flag_t::link_building(building_t *building) {
-  other_endpoint.b[DIR_UP_LEFT] = building;
+Flag::link_building(Building *building) {
+  other_endpoint.b[DirectionUpLeft] = building;
   endpoint |= BIT(6);
 }
 
 void
-flag_t::unlink_building() {
-  other_endpoint.b[DIR_UP_LEFT] = NULL;
+Flag::unlink_building() {
+  other_endpoint.b[DirectionUpLeft] = NULL;
   endpoint &= ~BIT(6);
   clear_flags();
 }
 
-save_reader_binary_t&
-operator >> (save_reader_binary_t &reader, flag_t &flag) {
+SaveReaderBinary&
+operator >> (SaveReaderBinary &reader, Flag &flag) {
   flag.pos = 0; /* Set correctly later. */
   uint16_t val16;
   reader >> val16;  // 0
@@ -1024,7 +1026,7 @@ operator >> (save_reader_binary_t &reader, flag_t &flag) {
 
   uint8_t val8;
   reader >> val8;  // 2
-  flag.search_dir = (dir_t)val8;
+  flag.search_dir = (Direction)val8;
 
   reader >> val8;  // 3
   flag.path_con = val8;
@@ -1042,8 +1044,8 @@ operator >> (save_reader_binary_t &reader, flag_t &flag) {
 
   for (int j = 0; j < 8; j++) {
     reader >> val8;  // 12+j
-    flag.slot[j].type = (resource_type_t)((val8 & 0x1f)-1);
-    flag.slot[j].dir = (dir_t)(((val8 >> 5) & 7)-1);
+    flag.slot[j].type = (Resource::Type)((val8 & 0x1f)-1);
+    flag.slot[j].dir = (Direction)(((val8 >> 5) & 7)-1);
   }
   for (int j = 0; j < 8; j++) {
     reader >> val16;  // 20+j*2
@@ -1079,7 +1081,7 @@ operator >> (save_reader_binary_t &reader, flag_t &flag) {
 
   reader >> val8;  // 67
   if (flag.has_building()) {
-    flag.other_endpoint.b[DIR_UP_LEFT]->set_priority_in_stock(0, val8);
+    flag.other_endpoint.b[DirectionUpLeft]->set_priority_in_stock(0, val8);
   }
 
   reader >> val8;  // 68
@@ -1087,14 +1089,14 @@ operator >> (save_reader_binary_t &reader, flag_t &flag) {
 
   reader >> val8;  // 69
   if (flag.has_building()) {
-    flag.other_endpoint.b[DIR_UP_LEFT]->set_priority_in_stock(1, val8);
+    flag.other_endpoint.b[DirectionUpLeft]->set_priority_in_stock(1, val8);
   }
 
   return reader;
 }
 
-save_reader_text_t&
-operator >> (save_reader_text_t &reader, flag_t &flag) {
+SaveReaderText&
+operator >> (SaveReaderText &reader, Flag &flag) {
   unsigned int x = 0;
   unsigned int y = 0;
   reader.value("pos")[0] >> x;
@@ -1112,11 +1114,11 @@ operator >> (save_reader_text_t &reader, flag_t &flag) {
     flag.length[i] = len;
     unsigned int obj_index;
     reader.value("other_endpoint")[i] >> obj_index;
-    if (flag.has_building() && (i == DIR_UP_LEFT)) {
-      flag.other_endpoint.b[DIR_UP_LEFT] =
+    if (flag.has_building() && (i == DirectionUpLeft)) {
+      flag.other_endpoint.b[DirectionUpLeft] =
                                     flag.get_game()->create_building(obj_index);
     } else {
-      flag_t *other_flag = NULL;
+      Flag *other_flag = NULL;
       if (obj_index != 0) {
         other_flag = flag.get_game()->create_flag(obj_index);
       }
@@ -1137,8 +1139,8 @@ operator >> (save_reader_text_t &reader, flag_t &flag) {
   return reader;
 }
 
-save_writer_text_t&
-operator << (save_writer_text_t &writer, flag_t &flag) {
+SaveWriterText&
+operator << (SaveWriterText &writer, Flag &flag) {
   writer.value("pos") << flag.game->get_map()->pos_col(flag.pos);
   writer.value("pos") << flag.game->get_map()->pos_row(flag.pos);
   writer.value("search_num") << flag.search_num;
@@ -1147,13 +1149,13 @@ operator << (save_writer_text_t &writer, flag_t &flag) {
   writer.value("endpoints") << flag.endpoint;
   writer.value("transporter") << flag.transporter;
 
-  for (int d = DIR_RIGHT; d <= DIR_UP; d++) {
+  for (int d = DirectionRight; d <= DirectionUp; d++) {
     writer.value("length") << static_cast<int>(flag.length[d]);
-    if (d == DIR_UP_LEFT && flag.has_building()) {
+    if (d == DirectionUpLeft && flag.has_building()) {
       writer.value("other_endpoint") <<
-        flag.other_endpoint.b[DIR_UP_LEFT]->get_index();
+        flag.other_endpoint.b[DirectionUpLeft]->get_index();
     } else {
-      if (flag.has_path((dir_t)d)) {
+      if (flag.has_path((Direction)d)) {
         writer.value("other_endpoint") << flag.other_endpoint.f[d]->get_index();
       } else {
         writer.value("other_endpoint") << 0;

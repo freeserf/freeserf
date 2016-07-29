@@ -53,9 +53,9 @@
 
 #ifndef DEFAULT_LOG_LEVEL
 # ifndef NDEBUG
-#  define DEFAULT_LOG_LEVEL  LOG_LEVEL_DEBUG
+#  define DEFAULT_LOG_LEVEL  Log::LevelDebug
 # else
-#  define DEFAULT_LOG_LEVEL  LOG_LEVEL_INFO
+#  define DEFAULT_LOG_LEVEL  Log::LevelInfo
 # endif
 #endif
 
@@ -76,7 +76,7 @@ strreplace(char *target, const char *needle, char replace) {
 }
 
 bool
-save_game(int autosave, game_t *game) {
+save_game(int autosave, Game *game) {
   size_t r;
 
   /* Build filename including time stamp. */
@@ -136,7 +136,7 @@ main(int argc, char *argv[]) {
   bool fullscreen = false;
   int map_generator = 0;
 
-  log_level_t log_level = DEFAULT_LOG_LEVEL;
+  Log::Level log_level = DEFAULT_LOG_LEVEL;
 
 #ifdef HAVE_GETOPT_H
   while (true) {
@@ -146,8 +146,8 @@ main(int argc, char *argv[]) {
     switch (opt) {
       case 'd': {
           int d = atoi(optarg);
-          if (d >= 0 && d < LOG_LEVEL_MAX) {
-            log_level = static_cast<log_level_t>(d);
+          if (d >= 0 && d < Log::LevelMax) {
+            log_level = static_cast<Log::Level>(d);
           }
         }
         break;
@@ -190,12 +190,12 @@ main(int argc, char *argv[]) {
 #endif
 
   /* Set up logging */
-  log_set_file(stdout);
-  log_set_level(log_level);
+  Log::set_file(stdout);
+  Log::set_level(log_level);
 
   LOGI("main", "freeserf %s", FREESERF_VERSION);
 
-  data_t *data = data_t::get_instance();
+  Data *data = Data::get_instance();
   if (!data->load(data_file)) {
     delete data;
     LOGE("main", "Could not load game data.");
@@ -204,27 +204,27 @@ main(int argc, char *argv[]) {
 
   LOGI("main", "Initialize graphics...");
 
-  gfx_t *gfx = NULL;
+  Graphics *gfx = NULL;
   try {
-    gfx = gfx_t::get_instance();
+    gfx = Graphics::get_instance();
     gfx->set_resolution(screen_width, screen_height, fullscreen);
-  } catch (Freeserf_Exception &e) {
+  } catch (ExceptionFreeserf &e) {
     LOGE(e.get_system().c_str(), e.what());
     return -1;
   }
 
   /* TODO move to right place */
-  audio_t *audio = audio_t::get_instance();
-  audio_volume_controller_t *volume_controller = audio->get_volume_controller();
+  Audio *audio = Audio::get_instance();
+  Audio::VolumeController *volume_controller = audio->get_volume_controller();
   if (volume_controller != NULL) {
     volume_controller->set_volume(.75f);
   }
-  audio_player_t *player = audio->get_music_player();
+  Audio::Player *player = audio->get_music_player();
   if (player) {
-    player->play_track(MIDI_TRACK_0);
+    player->play_track(Audio::TypeMidiTrack0);
   }
 
-  game_t *game = new game_t(map_generator);
+  Game *game = new Game(map_generator);
   game->init();
 
   /* Either load a save game if specified or
@@ -232,11 +232,11 @@ main(int argc, char *argv[]) {
   if (!save_file.empty()) {
     if (!game->load_save_game(save_file)) exit(EXIT_FAILURE);
   } else {
-    if (!game->load_random_map(3, random_state_t())) exit(EXIT_FAILURE);
+    if (!game->load_random_map(3, Random())) exit(EXIT_FAILURE);
   }
 
   /* Initialize interface */
-  interface_t *interface = new interface_t();
+  Interface *interface = new Interface();
   interface->set_size(screen_width, screen_height);
   interface->set_displayed(true);
   interface->set_game(game);
@@ -247,7 +247,7 @@ main(int argc, char *argv[]) {
   }
 
   /* Init game loop */
-  event_loop_t *event_loop = event_loop_t::get_instance();
+  EventLoop *event_loop = EventLoop::get_instance();
   event_loop->add_handler(game);
   event_loop->add_handler(interface);
 
@@ -263,7 +263,7 @@ main(int argc, char *argv[]) {
   game = interface->get_game();
   delete interface;
   if (game != NULL) {
-    event_loop_t::get_instance()->del_handler(game);
+    EventLoop::get_instance()->del_handler(game);
     delete game;
     game = NULL;
   }

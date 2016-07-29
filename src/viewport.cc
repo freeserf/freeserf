@@ -68,8 +68,8 @@ static const uint8_t tri_spr[] = {
 };
 
 void
-viewport_t::draw_triangle_up(int x, int y, int m, int left, int right,
-                             map_pos_t pos, frame_t *frame) {
+Viewport::draw_triangle_up(int x, int y, int m, int left, int right,
+                           MapPos pos, Frame *frame) {
   static const int8_t tri_mask[] = {
      0,  1,  3,  6,  7, -1, -1, -1, -1,
      0,  1,  2,  5,  6,  7, -1, -1, -1,
@@ -88,7 +88,7 @@ viewport_t::draw_triangle_up(int x, int y, int m, int left, int right,
   int mask = 4 + m - left + 9*(4 + m - right);
   assert(tri_mask[mask] >= 0);
 
-  map_terrain_t type = map->type_up(map->move_up(pos));
+  Map::Terrain type = map->type_up(map->move_up(pos));
   int index = (type << 3) | tri_mask[mask];
   assert(index < 128);
 
@@ -100,8 +100,8 @@ viewport_t::draw_triangle_up(int x, int y, int m, int left, int right,
 }
 
 void
-viewport_t::draw_triangle_down(int x, int y, int m, int left, int right,
-                               map_pos_t pos, frame_t *frame) {
+Viewport::draw_triangle_down(int x, int y, int m, int left, int right,
+                             MapPos pos, Frame *frame) {
   static const int8_t tri_mask[] = {
      0,  0,  0,  0,  0, -1, -1, -1, -1,
      1,  1,  1,  1,  1,  0, -1, -1, -1,
@@ -133,8 +133,8 @@ viewport_t::draw_triangle_down(int x, int y, int m, int left, int right,
 
 /* Draw a column (vertical) of tiles, starting at an up pointing tile. */
 void
-viewport_t::draw_up_tile_col(map_pos_t pos, int x_base, int y_base, int max_y,
-                             frame_t *frame) {
+Viewport::draw_up_tile_col(MapPos pos, int x_base, int y_base, int max_y,
+                           Frame *frame) {
   int m = map->get_height(pos);
   int left, right;
 
@@ -192,8 +192,8 @@ viewport_t::draw_up_tile_col(map_pos_t pos, int x_base, int y_base, int max_y,
 
 /* Draw a column (vertical) of tiles, starting at a down pointing tile. */
 void
-viewport_t::draw_down_tile_col(map_pos_t pos, int x_base, int y_base,
-                               int max_y, frame_t *frame) {
+Viewport::draw_down_tile_col(MapPos pos, int x_base, int y_base,
+                             int max_y, Frame *frame) {
   int left = map->get_height(pos);
   int right = map->get_height(map->move_right(pos));
   int m;
@@ -251,11 +251,11 @@ viewport_t::draw_down_tile_col(map_pos_t pos, int x_base, int y_base,
 }
 
 void
-viewport_t::layout() {
+Viewport::layout() {
 }
 
 void
-viewport_t::redraw_map_pos(map_pos_t pos) {
+Viewport::redraw_map_pos(MapPos pos) {
   int mx, my;
   map_pix_from_map_coord(pos, map->get_height(pos), &mx, &my);
 
@@ -271,14 +271,14 @@ viewport_t::redraw_map_pos(map_pos_t pos) {
 
   tiles_map_t::iterator it = landscape_tiles.find(tid);
   if (it != landscape_tiles.end()) {
-    frame_t *frame = it->second;
+    Frame *frame = it->second;
     landscape_tiles.erase(tid);
     delete frame;
   }
 }
 
-frame_t *
-viewport_t::get_tile_frame(unsigned int tid, int tc, int tr) {
+Frame *
+Viewport::get_tile_frame(unsigned int tid, int tc, int tr) {
   tiles_map_t::iterator it = landscape_tiles.find(tid);
   if (it != landscape_tiles.end()) {
     return it->second;
@@ -287,13 +287,13 @@ viewport_t::get_tile_frame(unsigned int tid, int tc, int tr) {
   int tile_width = MAP_TILE_COLS*MAP_TILE_WIDTH;
   int tile_height = MAP_TILE_ROWS*MAP_TILE_HEIGHT;
 
-  frame_t *tile_frame = gfx_t::get_instance()->create_frame(tile_width,
-                                                            tile_height);
+  Frame *tile_frame = Graphics::get_instance()->create_frame(tile_width,
+                                                             tile_height);
   tile_frame->fill_rect(0, 0, tile_width, tile_height, 0);
 
   int col = (tc*MAP_TILE_COLS + (tr*MAP_TILE_ROWS)/2) % map->get_cols();
   int row = tr*MAP_TILE_ROWS;
-  map_pos_t pos = map->pos(col, row);
+  MapPos pos = map->pos(col, row);
 
   int x_base = -(MAP_TILE_WIDTH/2);
 
@@ -326,7 +326,7 @@ viewport_t::get_tile_frame(unsigned int tid, int tc, int tr) {
 }
 
 void
-viewport_t::draw_landscape() {
+Viewport::draw_landscape() {
   int horiz_tiles = map->get_cols()/MAP_TILE_COLS;
   int vert_tiles = map->get_rows()/MAP_TILE_ROWS;
 
@@ -356,7 +356,7 @@ viewport_t::draw_landscape() {
       int tr = (my / tile_height) % vert_tiles;
       int tid = tc + horiz_tiles*tr;
 
-      frame_t *tile_frame = get_tile_frame(tid, tc, tr);
+      Frame *tile_frame = get_tile_frame(tid, tc, tr);
 
       int w = tile_width - tx;
       if (x+w > width) {
@@ -379,16 +379,16 @@ viewport_t::draw_landscape() {
 
 
 void
-viewport_t::draw_path_segment(int x, int y, map_pos_t pos, dir_t dir) {
+Viewport::draw_path_segment(int x, int y, MapPos pos, Direction dir) {
   int h1 = map->get_height(pos);
   int h2 = map->get_height(map->move(pos, dir));
   int h_diff = h1 - h2;
 
-  map_terrain_t t1, t2;
+  Map::Terrain t1, t2;
   int h3, h4, h_diff_2;
 
   switch (dir) {
-  case DIR_RIGHT:
+  case DirectionRight:
     y -= 4*std::max(h1, h2) + 2;
     t1 = map->type_down(pos);
     t2 = map->type_up(map->move_up(pos));
@@ -396,7 +396,7 @@ viewport_t::draw_path_segment(int x, int y, map_pos_t pos, dir_t dir) {
     h4 = map->get_height(map->move_down_right(pos));
     h_diff_2 = (h3 - h4) - 4*h_diff;
     break;
-  case DIR_DOWN_RIGHT:
+  case DirectionDownRight:
     y -= 4*h1 + 2;
     t1 = map->type_up(pos);
     t2 = map->type_down(pos);
@@ -404,7 +404,7 @@ viewport_t::draw_path_segment(int x, int y, map_pos_t pos, dir_t dir) {
     h4 = map->get_height(map->move_down(pos));
     h_diff_2 = 2*(h3 - h4);
     break;
-  case DIR_DOWN:
+  case DirectionDown:
     x -= MAP_TILE_WIDTH/2;
     y -= 4*h1 + 2;
     t1 = map->type_up(pos);
@@ -420,7 +420,7 @@ viewport_t::draw_path_segment(int x, int y, map_pos_t pos, dir_t dir) {
 
   int mask = h_diff + 4 + dir*9;
   int sprite = 0;
-  map_terrain_t type = std::max(t1, t2);
+  Map::Terrain type = std::max(t1, t2);
 
   if (h_diff_2 > 4) {
     sprite = 0;
@@ -430,11 +430,11 @@ viewport_t::draw_path_segment(int x, int y, map_pos_t pos, dir_t dir) {
     sprite = 2;
   }
 
-  if (type <= MAP_TERRAIN_WATER_3) {
+  if (type <= Map::TerrainWater3) {
     sprite = 9;
-  } else if (type >= MAP_TERRAIN_SNOW_0) {
+  } else if (type >= Map::TerrainSnow0) {
     sprite += 6;
-  } else if (type >= MAP_TERRAIN_DESERT_0) {
+  } else if (type >= Map::TerrainDesert0) {
     sprite += 3;
   }
 
@@ -444,16 +444,16 @@ viewport_t::draw_path_segment(int x, int y, map_pos_t pos, dir_t dir) {
 }
 
 void
-viewport_t::draw_border_segment(int x, int y, map_pos_t pos, dir_t dir) {
+Viewport::draw_border_segment(int x, int y, MapPos pos, Direction dir) {
   int h1 = map->get_height(pos);
   int h2 = map->get_height(map->move(pos, dir));
   int h_diff = h2 - h1;
 
-  map_terrain_t t1, t2;
+  Map::Terrain t1, t2;
   int h3, h4, h_diff_2;
 
   switch (dir) {
-  case DIR_RIGHT:
+  case DirectionRight:
     x += MAP_TILE_WIDTH/2;
     y -= 2*(h1 + h2) + 4;
     t1 = map->type_down(pos);
@@ -462,7 +462,7 @@ viewport_t::draw_border_segment(int x, int y, map_pos_t pos, dir_t dir) {
     h4 = map->get_height(map->move_down_right(pos));
     h_diff_2 = h3 - h4 + 4*h_diff;
     break;
-  case DIR_DOWN_RIGHT:
+  case DirectionDownRight:
     x += MAP_TILE_WIDTH/4;
     y -= 2*(h1 + h2) - 6;
     t1 = map->type_up(pos);
@@ -471,7 +471,7 @@ viewport_t::draw_border_segment(int x, int y, map_pos_t pos, dir_t dir) {
     h4 = map->get_height(map->move_down(pos));
     h_diff_2 = 2*(h3 - h4);
     break;
-  case DIR_DOWN:
+  case DirectionDown:
     x -= MAP_TILE_WIDTH/4;
     y -= 2*(h1 + h2) - 6;
     t1 = map->type_up(pos);
@@ -486,7 +486,7 @@ viewport_t::draw_border_segment(int x, int y, map_pos_t pos, dir_t dir) {
   }
 
   int sprite = 0;
-  map_terrain_t type = std::max(t1, t2);
+  Map::Terrain type = std::max(t1, t2);
 
   if (h_diff_2 > 1) {
     sprite = 0;
@@ -496,11 +496,11 @@ viewport_t::draw_border_segment(int x, int y, map_pos_t pos, dir_t dir) {
     sprite = 2;
   }
 
-  if (type <= MAP_TERRAIN_WATER_3) {
+  if (type <= Map::TerrainWater3) {
     sprite = 9; /* Bouy */
-  } else if (type >= MAP_TERRAIN_SNOW_0) {
+  } else if (type >= Map::TerrainSnow0) {
     sprite += 6;
-  } else if (type >= MAP_TERRAIN_DESERT_0) {
+  } else if (type >= Map::TerrainDesert0) {
     sprite += 3;
   }
 
@@ -508,17 +508,17 @@ viewport_t::draw_border_segment(int x, int y, map_pos_t pos, dir_t dir) {
 }
 
 void
-viewport_t::draw_paths_and_borders() {
+Viewport::draw_paths_and_borders() {
   int x_off = -(offset_x + 16*(offset_y/20)) % 32;
   int y_off = -offset_y % 20;
 
   int col_0 = (offset_x/16 + offset_y/20)/2 & map->get_col_mask();
   int row_0 = (offset_y/MAP_TILE_HEIGHT) & map->get_row_mask();
-  map_pos_t base_pos = map->pos(col_0, row_0);
+  MapPos base_pos = map->pos(col_0, row_0);
 
   for (int x_base = x_off; x_base < width + MAP_TILE_WIDTH;
        x_base += MAP_TILE_WIDTH) {
-    map_pos_t pos = base_pos;
+    MapPos pos = base_pos;
     int y_base = y_off;
     int row = 0;
 
@@ -535,14 +535,14 @@ viewport_t::draw_paths_and_borders() {
 
       /* For each direction right, down right and down,
          draw the corresponding paths and borders. */
-      for (int d = DIR_RIGHT; d <= DIR_DOWN; d++) {
-        map_pos_t other_pos = map->move(pos, (dir_t)d);
+      for (int d = DirectionRight; d <= DirectionDown; d++) {
+        MapPos other_pos = map->move(pos, (Direction)d);
 
-        if (map->has_path(pos, (dir_t)d)) {
-          draw_path_segment(x, y_base, pos, (dir_t)d);
+        if (map->has_path(pos, (Direction)d)) {
+          draw_path_segment(x, y_base, pos, (Direction)d);
         } else if (map->has_owner(pos) != map->has_owner(other_pos) ||
                    map->get_owner(pos) != map->get_owner(other_pos)) {
-          draw_border_segment(x, y_base, pos, (dir_t)d);
+          draw_border_segment(x, y_base, pos, (Direction)d);
         }
       }
 
@@ -562,16 +562,16 @@ viewport_t::draw_paths_and_borders() {
   /* If we're in road construction mode, also draw
      the temporarily placed roads. */
   if (interface->is_building_road()) {
-    road_t road = interface->get_building_road();
-    map_pos_t pos = road.get_source();
-    road_t::dirs_t dirs = road.get_dirs();
-    road_t::dirs_t::const_iterator it = dirs.begin();
+    Road road = interface->get_building_road();
+    MapPos pos = road.get_source();
+    Road::Dirs dirs = road.get_dirs();
+    Road::Dirs::const_iterator it = dirs.begin();
     for (; it != dirs.end(); ++it) {
-      dir_t dir = *it;
+      Direction dir = *it;
 
-      map_pos_t draw_pos = pos;
-      dir_t draw_dir = dir;
-      if (draw_dir > DIR_DOWN) {
+      MapPos draw_pos = pos;
+      Direction draw_dir = dir;
+      if (draw_dir > DirectionDown) {
         draw_pos = map->move(pos, dir);
         draw_dir = DIR_REVERSE(dir);
       }
@@ -591,12 +591,12 @@ viewport_t::draw_paths_and_borders() {
 }
 
 void
-viewport_t::draw_game_sprite(int x, int y, int index) {
+Viewport::draw_game_sprite(int x, int y, int index) {
   frame->draw_transp_sprite(x, y, DATA_GAME_OBJECT_BASE + index, true);
 }
 
 void
-viewport_t::draw_serf(int x, int y, unsigned char color, int head, int body) {
+Viewport::draw_serf(int x, int y, unsigned char color, int head, int body) {
   frame->draw_transp_sprite(x, y, DATA_SERF_ARMS_BASE + body, true);
   frame->draw_transp_sprite(x, y, DATA_SERF_TORSO_BASE + body, true, color);
 
@@ -607,13 +607,13 @@ viewport_t::draw_serf(int x, int y, unsigned char color, int head, int body) {
 }
 
 void
-viewport_t::draw_shadow_and_building_sprite(int x, int y, int index) {
+Viewport::draw_shadow_and_building_sprite(int x, int y, int index) {
   frame->draw_overlay_sprite(x, y, DATA_MAP_SHADOW_BASE + index);
   frame->draw_transp_sprite(x, y, DATA_MAP_OBJECT_BASE + index, true);
 }
 
 void
-viewport_t::draw_shadow_and_building_unfinished(int x, int y, int index,
+Viewport::draw_shadow_and_building_unfinished(int x, int y, int index,
                                                 int progress) {
   float p = static_cast<float>(progress) / static_cast<float>(0xFFFF);
   frame->draw_overlay_sprite(x, y, DATA_MAP_SHADOW_BASE + index, p);
@@ -628,22 +628,21 @@ static const int map_building_frame_sprite[] = {
 };
 
 void
-viewport_t::draw_building_unfinished(building_t *building,
-                                     building_type_t bld_type,
-                                     int x, int y) {
+Viewport::draw_building_unfinished(Building *building, Building::Type bld_type,
+                                   int x, int y) {
   if (building->get_progress() == 0) { /* Draw cross */
     draw_shadow_and_building_sprite(x, y, 0x90);
   } else {
     /* Stone waiting */
     int stone = building->waiting_stone();
     for (int i = 0; i < stone; i++) {
-      draw_game_sprite(x+10 - i*3, y-8 + i, 1 + RESOURCE_STONE);
+      draw_game_sprite(x+10 - i*3, y-8 + i, 1 + Resource::TypeStone);
     }
 
     /* Planks waiting */
     int planks = building->waiting_planks();
     for (int i = 0; i < planks; i++) {
-      draw_game_sprite(x+12 - i*3, y-6 + i, 1 + RESOURCE_PLANK);
+      draw_game_sprite(x+12 - i*3, y-6 + i, 1 + Resource::TypePlank);
     }
 
     if (BIT_TEST(building->get_progress(), 15)) { /* Frame finished */
@@ -663,8 +662,8 @@ viewport_t::draw_building_unfinished(building_t *building,
 }
 
 void
-viewport_t::draw_unharmed_building(building_t *building, int x, int y) {
-  random_state_t *random = interface->get_random();
+Viewport::draw_unharmed_building(Building *building, int x, int y) {
+  Random *random = interface->get_random();
 
   static const int pigfarm_anim[] = {
     0xa2, 0, 0xa2, 0, 0xa2, 0, 0xa2, 0, 0xa2, 0, 0xa3, 0,
@@ -692,21 +691,21 @@ viewport_t::draw_unharmed_building(building_t *building, int x, int y) {
   };
 
   if (building->is_done()) {
-    building_type_t type = building->get_type();
+    Building::Type type = building->get_type();
     switch (type) {
-    case BUILDING_FISHER:
-    case BUILDING_LUMBERJACK:
-    case BUILDING_STONECUTTER:
-    case BUILDING_FORESTER:
-    case BUILDING_STOCK:
-    case BUILDING_FARM:
-    case BUILDING_BUTCHER:
-    case BUILDING_SAWMILL:
-    case BUILDING_TOOLMAKER:
-    case BUILDING_CASTLE:
+    case Building::TypeFisher:
+    case Building::TypeLumberjack:
+    case Building::TypeStonecutter:
+    case Building::TypeForester:
+    case Building::TypeStock:
+    case Building::TypeFarm:
+    case Building::TypeButcher:
+    case Building::TypeSawmill:
+    case Building::TypeToolMaker:
+    case Building::TypeCastle:
       draw_shadow_and_building_sprite(x, y, map_building_sprite[type]);
       break;
-    case BUILDING_BOATBUILDER:
+    case Building::TypeBoatbuilder:
       draw_shadow_and_building_sprite(x, y, map_building_sprite[type]);
       if (building->get_res_count_in_stock(1) > 0) {
         /* TODO x might not be correct */
@@ -714,25 +713,25 @@ viewport_t::draw_unharmed_building(building_t *building, int x, int y) {
                          174 + building->get_res_count_in_stock(1));
       }
       break;
-    case BUILDING_STONEMINE:
-    case BUILDING_COALMINE:
-    case BUILDING_IRONMINE:
-    case BUILDING_GOLDMINE:
+    case Building::TypeStoneMine:
+    case Building::TypeCoalMine:
+    case Building::TypeIronMine:
+    case Building::TypeGoldMine:
       if (building->is_active()) { /* Draw elevator up */
         draw_game_sprite(x-6, y-39, 152);
       }
       if (building->playing_sfx()) { /* Draw elevator down */
         draw_game_sprite(x-6, y-39, 153);
-        map_pos_t pos = building->get_position();
+        MapPos pos = building->get_position();
         if ((((interface->get_game()->get_tick() +
                reinterpret_cast<uint8_t*>(&pos)[1]) >> 3) & 7) == 0
             && random->random() < 40000) {
-          play_sound(SFX_ELEVATOR);
+          play_sound(Audio::TypeSfxElevator);
         }
       }
       draw_shadow_and_building_sprite(x, y, map_building_sprite[type]);
       break;
-    case BUILDING_HUT:
+    case Building::TypeHut:
       draw_shadow_and_building_sprite(x, y, map_building_sprite[type]);
       if (building->has_main_serf()) {
         draw_game_sprite(x-14, y+2 - 2*building->get_knight_count(),
@@ -740,12 +739,12 @@ viewport_t::draw_unharmed_building(building_t *building, int x, int y) {
                          4*building->get_state());
       }
       break;
-    case BUILDING_PIGFARM:
+    case Building::TypePigFarm:
       draw_shadow_and_building_sprite(x, y, map_building_sprite[type]);
       if (building->get_res_count_in_stock(1) > 0) {
         if ((random->random() & 0x7f) <
             static_cast<int>(building->get_res_count_in_stock(1))) {
-          play_sound(SFX_PIG_OINK);
+          play_sound(Audio::TypeSfxPigOink);
         }
 
         int pigs_count = building->get_res_count_in_stock(1);
@@ -789,13 +788,13 @@ viewport_t::draw_unharmed_building(building_t *building, int x, int y) {
         }
       }
       break;
-    case BUILDING_MILL:
+    case Building::TypeMill:
       if (building->is_active()) {
         if ((interface->get_game()->get_tick() >> 4) & 3) {
           building->stop_playing_sfx();
         } else if (!building->playing_sfx()) {
           building->start_playing_sfx();
-          play_sound(SFX_MILL_GRINDING);
+          play_sound(Audio::TypeSfxMillGrinding);
         }
         draw_shadow_and_building_sprite(x, y, map_building_sprite[type] +
                                 ((interface->get_game()->get_tick() >> 4) & 3));
@@ -803,20 +802,20 @@ viewport_t::draw_unharmed_building(building_t *building, int x, int y) {
         draw_shadow_and_building_sprite(x, y, map_building_sprite[type]);
       }
       break;
-    case BUILDING_BAKER:
+    case Building::TypeBaker:
       draw_shadow_and_building_sprite(x, y, map_building_sprite[type]);
       if (building->is_active()) {
         draw_game_sprite(x + 5, y-21,
                          154 + ((interface->get_game()->get_tick() >> 3) & 7));
       }
       break;
-    case BUILDING_STEELSMELTER:
+    case Building::TypeSteelSmelter:
       draw_shadow_and_building_sprite(x, y, map_building_sprite[type]);
       if (building->is_active()) {
         int i = (interface->get_game()->get_tick() >> 3) & 7;
         if (i == 0 || (i == 7 && !building->playing_sfx())) {
           building->start_playing_sfx();
-          play_sound(SFX_GOLD_BOILS);
+          play_sound(Audio::TypeSfxGoldBoils);
         } else if (i != 7) {
           building->stop_playing_sfx();
         }
@@ -824,14 +823,14 @@ viewport_t::draw_unharmed_building(building_t *building, int x, int y) {
         draw_game_sprite(x+6, y-32, 128+i);
       }
       break;
-    case BUILDING_WEAPONSMITH:
+    case Building::TypeWeaponSmith:
       draw_shadow_and_building_sprite(x, y, map_building_sprite[type]);
       if (building->is_active()) {
         draw_game_sprite(x-16, y-21,
                          128 + ((interface->get_game()->get_tick() >> 3) & 7));
       }
       break;
-    case BUILDING_TOWER:
+    case Building::TypeTower:
       draw_shadow_and_building_sprite(x, y, map_building_sprite[type]);
       if (building->has_main_serf()) {
         draw_game_sprite(x+13, y - 18 - building->get_knight_count(),
@@ -839,7 +838,7 @@ viewport_t::draw_unharmed_building(building_t *building, int x, int y) {
                          4*building->get_state());
       }
       break;
-    case BUILDING_FORTRESS:
+    case Building::TypeFortress:
       draw_shadow_and_building_sprite(x, y, map_building_sprite[type]);
       if (building->has_main_serf()) {
         draw_game_sprite(x-12, y - 21 - building->get_knight_count()/2,
@@ -850,13 +849,13 @@ viewport_t::draw_unharmed_building(building_t *building, int x, int y) {
                          4*building->get_state());
       }
       break;
-    case BUILDING_GOLDSMELTER:
+    case Building::TypeGoldSmelter:
       draw_shadow_and_building_sprite(x, y, map_building_sprite[type]);
       if (building->is_active()) {
         int i = (interface->get_game()->get_tick() >> 3) & 7;
         if (i == 0 || (i == 7 && !building->playing_sfx())) {
           building->start_playing_sfx();
-          play_sound(SFX_GOLD_BOILS);
+          play_sound(Audio::TypeSfxGoldBoils);
         } else if (i != 7) {
           building->stop_playing_sfx();
         }
@@ -869,7 +868,7 @@ viewport_t::draw_unharmed_building(building_t *building, int x, int y) {
       break;
     }
   } else { /* unfinished building */
-    if (building->get_type() != BUILDING_CASTLE) {
+    if (building->get_type() != Building::TypeCastle) {
       draw_building_unfinished(building, building->get_type(), x, y);
     } else {
       draw_shadow_and_building_unfinished(x, y, 0xb2, building->get_progress());
@@ -878,7 +877,7 @@ viewport_t::draw_unharmed_building(building_t *building, int x, int y) {
 }
 
 void
-viewport_t::draw_burning_building(building_t *building, int x, int y) {
+Viewport::draw_burning_building(Building *building, int x, int y) {
   const int building_anim_offset_from_type[] = {
     0, 10, 26, 39, 49, 62, 78, 97, 97, 116,
     129, 157, 167, 198, 211, 236, 255, 277, 305, 324,
@@ -1092,7 +1091,7 @@ viewport_t::draw_burning_building(building_t *building, int x, int y) {
   if (((building->get_burning_counter() >> 3) & 3) == 3 &&
       !building->playing_sfx()) {
     building->start_playing_sfx();
-    play_sound(SFX_BURNING);
+    play_sound(Audio::TypeSfxBurning);
   } else {
     building->stop_playing_sfx();
   }
@@ -1125,8 +1124,8 @@ viewport_t::draw_burning_building(building_t *building, int x, int y) {
 }
 
 void
-viewport_t::draw_building(map_pos_t pos, int x, int y) {
-  building_t *building = interface->get_game()->get_building_at_pos(pos);
+Viewport::draw_building(MapPos pos, int x, int y) {
+  Building *building = interface->get_game()->get_building_at_pos(pos);
 
   if (building->is_burning()) {
     draw_burning_building(building, x, y);
@@ -1136,14 +1135,14 @@ viewport_t::draw_building(map_pos_t pos, int x, int y) {
 }
 
 void
-viewport_t::draw_water_waves(map_pos_t pos, int x, int y) {
+Viewport::draw_water_waves(MapPos pos, int x, int y) {
   int sprite = DATA_MAP_WAVES_BASE +
                (((pos ^ 5) + (interface->get_game()->get_tick() >> 3)) & 0xf);
 
-  if (map->type_down(pos) <= MAP_TERRAIN_WATER_3 &&
-      map->type_up(pos) <= MAP_TERRAIN_WATER_3) {
+  if (map->type_down(pos) <= Map::TerrainWater3 &&
+      map->type_up(pos) <= Map::TerrainWater3) {
     frame->draw_waves_sprite(x - 16, y, 0, sprite);
-  } else if (map->type_down(pos) <= MAP_TERRAIN_WATER_3) {
+  } else if (map->type_down(pos) <= Map::TerrainWater3) {
     int mask = DATA_MAP_MASK_DOWN_BASE + 40;
     frame->draw_waves_sprite(x, y + 16, mask, sprite);
   } else {
@@ -1153,12 +1152,12 @@ viewport_t::draw_water_waves(map_pos_t pos, int x, int y) {
 }
 
 void
-viewport_t::draw_water_waves_row(map_pos_t pos, int y_base, int cols,
+Viewport::draw_water_waves_row(MapPos pos, int y_base, int cols,
                                  int x_base) {
   for (int i = 0; i < cols; i++, x_base += MAP_TILE_WIDTH,
        pos = map->move_right(pos)) {
-    if (map->type_up(pos) <= MAP_TERRAIN_WATER_3 ||
-        map->type_down(pos) <= MAP_TERRAIN_WATER_3) {
+    if (map->type_up(pos) <= Map::TerrainWater3 ||
+        map->type_down(pos) <= Map::TerrainWater3) {
       /*player->water_in_view += 1;*/
       draw_water_waves(pos, x_base, y_base);
     }
@@ -1166,16 +1165,16 @@ viewport_t::draw_water_waves_row(map_pos_t pos, int y_base, int cols,
 }
 
 void
-viewport_t::draw_flag_and_res(map_pos_t pos, int x, int y) {
-  flag_t *flag = interface->get_game()->get_flag_at_pos(pos);
+Viewport::draw_flag_and_res(MapPos pos, int x, int y) {
+  Flag *flag = interface->get_game()->get_flag_at_pos(pos);
 
-  if (flag->get_resource_at_slot(0) != RESOURCE_NONE) {
+  if (flag->get_resource_at_slot(0) != Resource::TypeNone) {
     draw_game_sprite(x+6 , y-4, flag->get_resource_at_slot(0) + 1);
   }
-  if (flag->get_resource_at_slot(1) != RESOURCE_NONE) {
+  if (flag->get_resource_at_slot(1) != Resource::TypeNone) {
     draw_game_sprite(x+10, y-2, flag->get_resource_at_slot(1) + 1);
   }
-  if (flag->get_resource_at_slot(2) != RESOURCE_NONE) {
+  if (flag->get_resource_at_slot(2) != Resource::TypeNone) {
     draw_game_sprite(x-4 , y-4, flag->get_resource_at_slot(2) + 1);
   }
 
@@ -1185,39 +1184,39 @@ viewport_t::draw_flag_and_res(map_pos_t pos, int x, int y) {
 
   draw_shadow_and_building_sprite(x, y, spr);
 
-  if (flag->get_resource_at_slot(3) != RESOURCE_NONE) {
+  if (flag->get_resource_at_slot(3) != Resource::TypeNone) {
     draw_game_sprite(x+10, y+2, flag->get_resource_at_slot(3) + 1);
   }
-  if (flag->get_resource_at_slot(4) != RESOURCE_NONE) {
+  if (flag->get_resource_at_slot(4) != Resource::TypeNone) {
     draw_game_sprite(x-8 , y-2, flag->get_resource_at_slot(4) + 1);
   }
-  if (flag->get_resource_at_slot(5) != RESOURCE_NONE) {
+  if (flag->get_resource_at_slot(5) != Resource::TypeNone) {
     draw_game_sprite(x+6 , y+4, flag->get_resource_at_slot(5) + 1);
   }
-  if (flag->get_resource_at_slot(6) != RESOURCE_NONE) {
+  if (flag->get_resource_at_slot(6) != Resource::TypeNone) {
     draw_game_sprite(x-8 , y+2, flag->get_resource_at_slot(6) + 1);
   }
-  if (flag->get_resource_at_slot(7) != RESOURCE_NONE) {
+  if (flag->get_resource_at_slot(7) != Resource::TypeNone) {
     draw_game_sprite(x-4 , y+4, flag->get_resource_at_slot(7) + 1);
   }
 }
 
 void
-viewport_t::draw_map_objects_row(map_pos_t pos, int y_base,
-                                 int cols, int x_base) {
+Viewport::draw_map_objects_row(MapPos pos, int y_base,
+                               int cols, int x_base) {
   for (int i = 0; i < cols;
        i++, x_base += MAP_TILE_WIDTH, pos = map->move_right(pos)) {
-    if (map->get_obj(pos) == MAP_OBJ_NONE) continue;
+    if (map->get_obj(pos) == Map::ObjectNone) continue;
 
     int y = y_base - 4 * map->get_height(pos);
-    if (map->get_obj(pos) < MAP_OBJ_TREE_0) {
-      if (map->get_obj(pos) == MAP_OBJ_FLAG) {
+    if (map->get_obj(pos) < Map::ObjectTree0) {
+      if (map->get_obj(pos) == Map::ObjectFlag) {
         draw_flag_and_res(pos, x_base, y);
-      } else if (map->get_obj(pos) <= MAP_OBJ_CASTLE) {
+      } else if (map->get_obj(pos) <= Map::ObjectCastle) {
         draw_building(pos, x_base, y);
       }
     } else {
-      int sprite = map->get_obj(pos) - MAP_OBJ_TREE_0;
+      int sprite = map->get_obj(pos) - Map::ObjectTree0;
       if (sprite < 24) {
         /* Trees */
         /*player->trees_in_view += 1;*/
@@ -1239,7 +1238,7 @@ viewport_t::draw_map_objects_row(map_pos_t pos, int y_base,
 
 /* Draw one individual serf in the row. */
 void
-viewport_t::draw_row_serf(int x, int y, int shadow, int color, int body) {
+Viewport::draw_row_serf(int x, int y, int shadow, int color, int body) {
   const int index1[] = {
     0, 0, 48, 6, 96, -1, 48, 24,
     240, -1, 48, 30, 248, -1, 48, 12,
@@ -1342,7 +1341,7 @@ viewport_t::draw_row_serf(int x, int y, int shadow, int color, int body) {
 /* Extracted from obsolete update_map_serf_rows(). */
 /* Translate serf type into the corresponding sprite code. */
 int
-viewport_t::serf_get_body(serf_t *serf) {
+Viewport::serf_get_body(Serf *serf) {
   const int transporter_type[] = {
     0, 0x3000, 0x3500, 0x3b00, 0x4100, 0x4600, 0x4b00, 0x1400,
     0x700, 0x5100, 0x800, 0x1c00, 0x1d00, 0x1e00, 0x1a00, 0x1b00,
@@ -1357,59 +1356,59 @@ viewport_t::serf_get_body(serf_t *serf) {
     0x7600, 0x5f00, 0x6000, 0, 0, 0, 0, 0
   };
 
-  animation_t *animation = data_source->get_animation(serf->get_animation(),
+  Animation *animation = data_source->get_animation(serf->get_animation(),
                                                       serf->get_counter());
   int t = animation->time;
 
   switch (serf->get_type()) {
-  case SERF_TRANSPORTER:
-  case SERF_GENERIC:
-    if (serf->get_state() == SERF_STATE_IDLE_ON_PATH) {
+  case Serf::TypeTransporter:
+  case Serf::TypeGeneric:
+    if (serf->get_state() == Serf::StateIdleOnPath) {
       return -1;
-    } else if ((serf->get_state() == SERF_STATE_TRANSPORTING ||
-                serf->get_state() == SERF_STATE_DELIVERING) &&
+    } else if ((serf->get_state() == Serf::StateTransporting ||
+                serf->get_state() == Serf::StateDelivering) &&
                serf->get_delivery() != 0) {
       t += transporter_type[serf->get_delivery()];
     }
     break;
-  case SERF_SAILOR:
-    if (serf->get_state() == SERF_STATE_TRANSPORTING && t < 0x80) {
+  case Serf::TypeSailor:
+    if (serf->get_state() == Serf::StateTransporting && t < 0x80) {
       if (((t & 7) == 4 && !serf->playing_sfx()) ||
           (t & 7) == 3) {
         serf->start_playing_sfx();
-        play_sound(SFX_ROWING);
+        play_sound(Audio::TypeSfxRowing);
       } else {
         serf->stop_playing_sfx();
       }
     }
 
-    if ((serf->get_state() == SERF_STATE_TRANSPORTING &&
+    if ((serf->get_state() == Serf::StateTransporting &&
          serf->get_delivery() == 0) ||
-        serf->get_state() == SERF_STATE_LOST_SAILOR ||
-        serf->get_state() == SERF_STATE_FREE_SAILING) {
+        serf->get_state() == Serf::StateLostSailor ||
+        serf->get_state() == Serf::StateFreeSailing) {
       if (t < 0x80) {
         if (((t & 7) == 4 && !serf->playing_sfx()) ||
             (t & 7) == 3) {
           serf->start_playing_sfx();
-          play_sound(SFX_ROWING);
+          play_sound(Audio::TypeSfxRowing);
         } else {
           serf->stop_playing_sfx();
         }
       }
       t += 0x200;
-    } else if (serf->get_state() == SERF_STATE_TRANSPORTING) {
+    } else if (serf->get_state() == Serf::StateTransporting) {
       t += sailor_type[serf->get_delivery()];
     } else {
       t += 0x100;
     }
     break;
-  case SERF_DIGGER:
+  case Serf::TypeDigger:
     if (t < 0x80) {
       t += 0x300;
     } else if (t == 0x83 || t == 0x84) {
       if (t == 0x83 || !serf->playing_sfx()) {
         serf->start_playing_sfx();
-        play_sound(SFX_DIGGING);
+        play_sound(Audio::TypeSfxDigging);
       }
       t += 0x380;
     } else {
@@ -1417,13 +1416,13 @@ viewport_t::serf_get_body(serf_t *serf) {
       t += 0x380;
     }
     break;
-  case SERF_BUILDER:
+  case Serf::TypeBuilder:
     if (t < 0x80) {
       t += 0x500;
     } else if ((t & 7) == 4 || (t & 7) == 5) {
       if ((t & 7) == 4 || !serf->playing_sfx()) {
         serf->start_playing_sfx();
-        play_sound(SFX_HAMMER_BLOW);
+        play_sound(Audio::TypeSfxHammerBlow);
       }
       t += 0x580;
     } else {
@@ -1431,17 +1430,17 @@ viewport_t::serf_get_body(serf_t *serf) {
       t += 0x580;
     }
     break;
-  case SERF_TRANSPORTER_INVENTORY:
-    if (serf->get_state() == SERF_STATE_BUILDING_CASTLE) {
+  case Serf::TypeTransporterInventory:
+    if (serf->get_state() == Serf::StateBuildingCastle) {
       return -1;
     } else {
       int res = serf->get_delivery();
       t += transporter_type[res];
     }
     break;
-  case SERF_LUMBERJACK:
+  case Serf::TypeLumberjack:
     if (t < 0x80) {
-      if (serf->get_state() == SERF_STATE_FREE_WALKING &&
+      if (serf->get_state() == Serf::StateFreeWalking &&
           serf->get_free_walking_neg_dist1() == -128 &&
           serf->get_free_walking_neg_dist2() == 1) {
         t += 0x1000;
@@ -1451,12 +1450,12 @@ viewport_t::serf_get_body(serf_t *serf) {
     } else if ((t == 0x86 && !serf->playing_sfx()) ||
          t == 0x85) {
       serf->start_playing_sfx();
-      play_sound(SFX_AX_BLOW);
+      play_sound(Audio::TypeSfxAxBlow);
       /* TODO Dangerous reference to unknown state vars.
          It is probably free walking. */
       if (serf->get_free_walking_neg_dist2() == 0 &&
           serf->get_counter() < 64) {
-        play_sound(SFX_TREE_FALL);
+        play_sound(Audio::TypeSfxTreeFall);
       }
       t += 0xe80;
     } else if (t != 0x86) {
@@ -1464,11 +1463,11 @@ viewport_t::serf_get_body(serf_t *serf) {
       t += 0xe80;
     }
     break;
-  case SERF_SAWMILLER:
+  case Serf::TypeSawmiller:
     if (t < 0x80) {
-      if (serf->get_state() == SERF_STATE_LEAVING_BUILDING &&
+      if (serf->get_state() == Serf::StateLeavingBuilding &&
           serf->get_leaving_building_next_state() ==
-            SERF_STATE_DROP_RESOURCE_OUT) {
+            Serf::StateDropResourceOut) {
         t += 0x1700;
       } else {
         t += 0xc00;
@@ -1479,19 +1478,19 @@ viewport_t::serf_get_body(serf_t *serf) {
           (!serf->playing_sfx() && (t == 0xb7 || t == 0xbf ||
                 t == 0xc7 || t == 0xcf))) {
         serf->start_playing_sfx();
-        play_sound(SFX_SAWING);
+        play_sound(Audio::TypeSfxSawing);
       } else if (t != 0xb7 && t != 0xbf && t != 0xc7 && t != 0xcf) {
         serf->stop_playing_sfx();
       }
       t += 0x1580;
     }
     break;
-  case SERF_STONECUTTER:
+  case Serf::TypeStonecutter:
     if (t < 0x80) {
-      if ((serf->get_state() == SERF_STATE_FREE_WALKING &&
+      if ((serf->get_state() == Serf::StateFreeWalking &&
            serf->get_free_walking_neg_dist1() == -128 &&
            serf->get_free_walking_neg_dist2() == 1) ||
-          (serf->get_state() == SERF_STATE_STONECUTTING &&
+          (serf->get_state() == Serf::StateStoneCutting &&
            serf->get_free_walking_neg_dist1() == 2)) {
         t += 0x1200;
       } else {
@@ -1499,42 +1498,42 @@ viewport_t::serf_get_body(serf_t *serf) {
       }
     } else if (t == 0x85 || (t == 0x86 && !serf->playing_sfx())) {
       serf->start_playing_sfx();
-      play_sound(SFX_PICK_BLOW);
+      play_sound(Audio::TypeSfxPickBlow);
       t += 0x1280;
     } else if (t != 0x86) {
       serf->stop_playing_sfx();
       t += 0x1280;
     }
     break;
-  case SERF_FORESTER:
+  case Serf::TypeForester:
     if (t < 0x80) {
       t += 0xe00;
     } else if (t == 0x86 || (t == 0x87 && !serf->playing_sfx())) {
       serf->start_playing_sfx();
-      play_sound(SFX_PLANTING);
+      play_sound(Audio::TypeSfxPlanting);
       t += 0x1080;
     } else if (t != 0x87) {
       serf->stop_playing_sfx();
       t += 0x1080;
     }
     break;
-  case SERF_MINER:
+  case Serf::TypeMiner:
     if (t < 0x80) {
-      if ((serf->get_state() != SERF_STATE_MINING ||
+      if ((serf->get_state() != Serf::StateMining ||
            serf->get_mining_res() == 0) &&
-          (serf->get_state() != SERF_STATE_LEAVING_BUILDING ||
+          (serf->get_state() != Serf::StateLeavingBuilding ||
            serf->get_leaving_building_next_state() !=
-           SERF_STATE_DROP_RESOURCE_OUT)) {
+           Serf::StateDropResourceOut)) {
         t += 0x1800;
       } else {
-        resource_type_t res = RESOURCE_NONE;
+        Resource::Type res = Resource::TypeNone;
 
         switch (serf->get_state()) {
-        case SERF_STATE_MINING:
-          res = (resource_type_t)(serf->get_mining_res() - 1);
+        case Serf::StateMining:
+          res = (Resource::Type)(serf->get_mining_res() - 1);
           break;
-        case SERF_STATE_LEAVING_BUILDING:
-          res = (resource_type_t)(serf->get_leaving_building_field_B() - 1);
+        case Serf::StateLeavingBuilding:
+          res = (Resource::Type)(serf->get_leaving_building_field_B() - 1);
           break;
         default:
           NOT_REACHED();
@@ -1542,23 +1541,23 @@ viewport_t::serf_get_body(serf_t *serf) {
         }
 
         switch (res) {
-        case RESOURCE_STONE: t += 0x2700; break;
-        case RESOURCE_IRONORE: t += 0x2500; break;
-        case RESOURCE_COAL: t += 0x2600; break;
-        case RESOURCE_GOLDORE: t += 0x2400; break;
-        default: NOT_REACHED(); break;
+          case Resource::TypeStone: t += 0x2700; break;
+          case Resource::TypeIronOre: t += 0x2500; break;
+          case Resource::TypeCoal: t += 0x2600; break;
+          case Resource::TypeGoldOre: t += 0x2400; break;
+          default: NOT_REACHED(); break;
         }
       }
     } else {
       t += 0x2a80;
     }
     break;
-  case SERF_SMELTER:
+  case Serf::TypeSmelter:
     if (t < 0x80) {
-      if (serf->get_state() == SERF_STATE_LEAVING_BUILDING &&
+      if (serf->get_state() == Serf::StateLeavingBuilding &&
           serf->get_leaving_building_next_state() ==
-          SERF_STATE_DROP_RESOURCE_OUT) {
-        if (serf->get_leaving_building_field_B() == 1+RESOURCE_STEEL) {
+          Serf::StateDropResourceOut) {
+        if (serf->get_leaving_building_field_B() == 1 + Resource::TypeSteel) {
           t += 0x2900;
         } else {
           t += 0x2800;
@@ -1571,9 +1570,9 @@ viewport_t::serf_get_body(serf_t *serf) {
       t += 0x2980;
     }
     break;
-  case SERF_FISHER:
+  case Serf::TypeFisher:
     if (t < 0x80) {
-      if (serf->get_state() == SERF_STATE_FREE_WALKING &&
+      if (serf->get_state() == Serf::StateFreeWalking &&
           serf->get_free_walking_neg_dist1() == -128 &&
           serf->get_free_walking_neg_dist2() == 1) {
         t += 0x2f00;
@@ -1582,7 +1581,7 @@ viewport_t::serf_get_body(serf_t *serf) {
       }
     } else {
       if (t != 0x80 && t != 0x87 && t != 0x88 && t != 0x8f) {
-        play_sound(SFX_FISHING_ROD_REEL);
+        play_sound(Audio::TypeSfxFishingRodReel);
       }
 
       /* TODO no check for state */
@@ -1593,11 +1592,11 @@ viewport_t::serf_get_body(serf_t *serf) {
       }
     }
     break;
-  case SERF_PIGFARMER:
+  case Serf::TypePigFarmer:
     if (t < 0x80) {
-      if (serf->get_state() == SERF_STATE_LEAVING_BUILDING &&
+      if (serf->get_state() == Serf::StateLeavingBuilding &&
           serf->get_leaving_building_next_state() ==
-            SERF_STATE_DROP_RESOURCE_OUT) {
+            Serf::StateDropResourceOut) {
         t += 0x3400;
       } else {
         t += 0x3200;
@@ -1606,11 +1605,11 @@ viewport_t::serf_get_body(serf_t *serf) {
       t += 0x3280;
     }
     break;
-  case SERF_BUTCHER:
+  case Serf::TypeButcher:
     if (t < 0x80) {
-      if (serf->get_state() == SERF_STATE_LEAVING_BUILDING &&
+      if (serf->get_state() == Serf::StateLeavingBuilding &&
           serf->get_leaving_building_next_state() ==
-            SERF_STATE_DROP_RESOURCE_OUT) {
+            Serf::StateDropResourceOut) {
         t += 0x3a00;
       } else {
         t += 0x3700;
@@ -1620,16 +1619,16 @@ viewport_t::serf_get_body(serf_t *serf) {
       if ((t == 0xb2 || t == 0xba || t == 0xc2 || t == 0xca) &&
           !serf->playing_sfx()) {
         serf->start_playing_sfx();
-        play_sound(SFX_BACKSWORD_BLOW);
+        play_sound(Audio::TypeSfxBackswordBlow);
       } else if (t != 0xb2 && t != 0xba && t != 0xc2 && t != 0xca) {
         serf->stop_playing_sfx();
       }
       t += 0x3780;
     }
     break;
-  case SERF_FARMER:
+  case Serf::TypeFarmer:
     if (t < 0x80) {
-      if (serf->get_state() == SERF_STATE_FREE_WALKING &&
+      if (serf->get_state() == Serf::StateFreeWalking &&
           serf->get_free_walking_neg_dist1() == -128 &&
           serf->get_free_walking_neg_dist2() == 1) {
         t += 0x4000;
@@ -1642,7 +1641,7 @@ viewport_t::serf_get_body(serf_t *serf) {
         t += 0x3d80;
       } else if (t == 0x83 || (t == 0x84 && !serf->playing_sfx())) {
         serf->start_playing_sfx();
-        play_sound(SFX_MOWING);
+        play_sound(Audio::TypeSfxMowing);
         t += 0x3e80;
       } else if (t != 0x83 && t != 0x84) {
         serf->stop_playing_sfx();
@@ -1650,11 +1649,11 @@ viewport_t::serf_get_body(serf_t *serf) {
       }
     }
     break;
-  case SERF_MILLER:
+  case Serf::TypeMiller:
     if (t < 0x80) {
-      if (serf->get_state() == SERF_STATE_LEAVING_BUILDING &&
+      if (serf->get_state() == Serf::StateLeavingBuilding &&
           serf->get_leaving_building_next_state() ==
-            SERF_STATE_DROP_RESOURCE_OUT) {
+            Serf::StateDropResourceOut) {
         t += 0x4500;
       } else {
         t += 0x4300;
@@ -1664,11 +1663,11 @@ viewport_t::serf_get_body(serf_t *serf) {
       t += 0x4380;
     }
     break;
-  case SERF_BAKER:
+  case Serf::TypeBaker:
     if (t < 0x80) {
-      if (serf->get_state() == SERF_STATE_LEAVING_BUILDING &&
+      if (serf->get_state() == Serf::StateLeavingBuilding &&
           serf->get_leaving_building_next_state() ==
-            SERF_STATE_DROP_RESOURCE_OUT) {
+            Serf::StateDropResourceOut) {
         t += 0x4a00;
       } else {
         t += 0x4800;
@@ -1678,11 +1677,11 @@ viewport_t::serf_get_body(serf_t *serf) {
       t += 0x4880;
     }
     break;
-  case SERF_BOATBUILDER:
+  case Serf::TypeBoatBuilder:
     if (t < 0x80) {
-      if (serf->get_state() == SERF_STATE_LEAVING_BUILDING &&
+      if (serf->get_state() == Serf::StateLeavingBuilding &&
           serf->get_leaving_building_next_state() ==
-            SERF_STATE_DROP_RESOURCE_OUT) {
+            Serf::StateDropResourceOut) {
         t += 0x5000;
       } else {
         t += 0x4e00;
@@ -1690,7 +1689,7 @@ viewport_t::serf_get_body(serf_t *serf) {
     } else if (t == 0x84 || t == 0x85) {
       if (t == 0x84 || !serf->playing_sfx()) {
         serf->start_playing_sfx();
-        play_sound(SFX_WOOD_HAMMERING);
+        play_sound(Audio::TypeSfxWoodHammering);
       }
       t += 0x4e80;
     } else {
@@ -1698,22 +1697,22 @@ viewport_t::serf_get_body(serf_t *serf) {
       t += 0x4e80;
     }
     break;
-  case SERF_TOOLMAKER:
+  case Serf::TypeToolmaker:
     if (t < 0x80) {
-      if (serf->get_state() == SERF_STATE_LEAVING_BUILDING &&
+      if (serf->get_state() == Serf::StateLeavingBuilding &&
           serf->get_leaving_building_next_state() ==
-            SERF_STATE_DROP_RESOURCE_OUT) {
+            Serf::StateDropResourceOut) {
         switch (serf->get_leaving_building_field_B() - 1) {
-        case RESOURCE_SHOVEL: t += 0x5a00; break;
-        case RESOURCE_HAMMER: t += 0x5b00; break;
-        case RESOURCE_ROD: t += 0x5c00; break;
-        case RESOURCE_CLEAVER: t += 0x5d00; break;
-        case RESOURCE_SCYTHE: t += 0x5e00; break;
-        case RESOURCE_AXE: t += 0x6100; break;
-        case RESOURCE_SAW: t += 0x6200; break;
-        case RESOURCE_PICK: t += 0x6300; break;
-        case RESOURCE_PINCER: t += 0x6400; break;
-        default: NOT_REACHED(); break;
+          case Resource::TypeShovel: t += 0x5a00; break;
+          case Resource::TypeHammer: t += 0x5b00; break;
+          case Resource::TypeRod: t += 0x5c00; break;
+          case Resource::TypeCleaver: t += 0x5d00; break;
+          case Resource::TypeScythe: t += 0x5e00; break;
+          case Resource::TypeAxe: t += 0x6100; break;
+          case Resource::TypeSaw: t += 0x6200; break;
+          case Resource::TypePick: t += 0x6300; break;
+          case Resource::TypePincer: t += 0x6400; break;
+          default: NOT_REACHED(); break;
         }
       } else {
         t += 0x5800;
@@ -1722,22 +1721,22 @@ viewport_t::serf_get_body(serf_t *serf) {
       /* edi10 += 4; */
       if (t == 0x83 || (t == 0xb2 && !serf->playing_sfx())) {
         serf->start_playing_sfx();
-        play_sound(SFX_SAWING);
+        play_sound(Audio::TypeSfxSawing);
       } else if (t == 0x87 || (t == 0xb6 && !serf->playing_sfx())) {
         serf->start_playing_sfx();
-        play_sound(SFX_WOOD_HAMMERING);
+        play_sound(Audio::TypeSfxWoodHammering);
       } else if (t != 0xb2 && t != 0xb6) {
         serf->stop_playing_sfx();
       }
       t += 0x5880;
     }
     break;
-  case SERF_WEAPONSMITH:
+  case Serf::TypeWeaponSmith:
     if (t < 0x80) {
-      if (serf->get_state() == SERF_STATE_LEAVING_BUILDING &&
+      if (serf->get_state() == Serf::StateLeavingBuilding &&
           serf->get_leaving_building_next_state() ==
-            SERF_STATE_DROP_RESOURCE_OUT) {
-        if (serf->get_leaving_building_field_B() == 1+RESOURCE_SWORD) {
+            Serf::StateDropResourceOut) {
+        if (serf->get_leaving_building_field_B() == 1+Resource::TypeSword) {
           t += 0x5500;
         } else {
           t += 0x5400;
@@ -1749,26 +1748,26 @@ viewport_t::serf_get_body(serf_t *serf) {
       /* edi10 += 4; */
       if (t == 0x83 || (t == 0x84 && !serf->playing_sfx())) {
         serf->start_playing_sfx();
-        play_sound(SFX_METAL_HAMMERING);
+        play_sound(Audio::TypeSfxMetalHammering);
       } else if (t != 0x84) {
         serf->stop_playing_sfx();
       }
       t += 0x5280;
     }
     break;
-  case SERF_GEOLOGIST:
+  case Serf::TypeGeologist:
     if (t < 0x80) {
       t += 0x3900;
     } else if (t == 0x83 || t == 0x84 || t == 0x86) {
       if (t == 0x83 || !serf->playing_sfx()) {
         serf->start_playing_sfx();
-        play_sound(SFX_GEOLOGIST_SAMPLING);
+        play_sound(Audio::TypeSfxGeologistSampling);
       }
       t += 0x4c80;
     } else if (t == 0x8c || t == 0x8d) {
       if (t == 0x8c || !serf->playing_sfx()) {
         serf->start_playing_sfx();
-        play_sound(SFX_RESOURCE_FOUND);
+        play_sound(Audio::TypeSfxResourceFound);
       }
       t += 0x4c80;
     } else {
@@ -1776,31 +1775,30 @@ viewport_t::serf_get_body(serf_t *serf) {
       t += 0x4c80;
     }
     break;
-  case SERF_KNIGHT_0:
-  case SERF_KNIGHT_1:
-  case SERF_KNIGHT_2:
-  case SERF_KNIGHT_3:
-  case SERF_KNIGHT_4:
-  {
-    int k = serf->get_type() - SERF_KNIGHT_0;
+  case Serf::TypeKnight0:
+  case Serf::TypeKnight1:
+  case Serf::TypeKnight2:
+  case Serf::TypeKnight3:
+  case Serf::TypeKnight4: {
+    int k = serf->get_type() - Serf::TypeKnight0;
 
     if (t < 0x80) {
       t += 0x7800 + 0x100*k;
     } else if (t < 0xc0) {
-      if (serf->get_state() == SERF_STATE_KNIGHT_ATTACKING ||
-          serf->get_state() == SERF_STATE_KNIGHT_ATTACKING_FREE) {
+      if (serf->get_state() == Serf::StateKnightAttacking ||
+          serf->get_state() == Serf::StateKnightAttackingFree) {
         if (serf->get_counter() >= 24 || serf->get_counter() < 8) {
           serf->stop_playing_sfx();
         } else if (!serf->playing_sfx()) {
           serf->start_playing_sfx();
           if (serf->get_attacking_field_D() == 0 ||
               serf->get_attacking_field_D() == 4) {
-            play_sound(SFX_FIGHT_01);
+            play_sound(Audio::TypeSfxFight01);
           } else if (serf->get_attacking_field_D() == 2) {
-            /* TODO when is SFX_FIGHT_02 played? */
-            play_sound(SFX_FIGHT_03);
+            /* TODO when is TypeSfxFight02 played? */
+            play_sound(Audio::TypeSfxFight03);
           } else {
-            play_sound(SFX_FIGHT_04);
+            play_sound(Audio::TypeSfxFight04);
           }
         }
       }
@@ -1811,12 +1809,12 @@ viewport_t::serf_get_body(serf_t *serf) {
     }
   }
     break;
-  case SERF_DEAD:
+  case Serf::TypeDead:
     if ((!serf->playing_sfx() &&
          (t == 2 || t == 5)) ||
         (t == 1 || t == 4)) {
       serf->start_playing_sfx();
-      play_sound(SFX_SERF_DYING);
+      play_sound(Audio::TypeSfxSerfDying);
     } else {
       serf->stop_playing_sfx();
     }
@@ -1831,7 +1829,7 @@ viewport_t::serf_get_body(serf_t *serf) {
 }
 
 void
-viewport_t::draw_active_serf(serf_t *serf, map_pos_t pos,
+Viewport::draw_active_serf(Serf *serf, MapPos pos,
                              int x_base, int y_base) {
   const int arr_4[] = {
     9, 5, 10, 7, 10, 2, 8, 6,
@@ -1844,13 +1842,13 @@ viewport_t::draw_active_serf(serf_t *serf, map_pos_t pos,
   if ((serf->get_animation() < 0) || (serf->get_animation() > 199) ||
       (serf->get_counter() < 0)) {
     LOGE("viewport", "bad animation for serf #%i (%s): %d,%d",
-         serf->get_index(), serf_t::get_state_name(serf->get_state()),
+         serf->get_index(), Serf::get_state_name(serf->get_state()),
          serf->get_animation(), serf->get_counter());
     return;
   }
 
-  animation_t *animation = data_source->get_animation(serf->get_animation(),
-                                                      serf->get_counter());
+  Animation *animation = data_source->get_animation(serf->get_animation(),
+                                                    serf->get_counter());
 
   int x = x_base + animation->x;
   int y = y_base + animation->y - 4 * map->get_height(pos);
@@ -1863,18 +1861,18 @@ viewport_t::draw_active_serf(serf_t *serf, map_pos_t pos,
   }
 
   /* Draw additional serf */
-  if (serf->get_state() == SERF_STATE_KNIGHT_ENGAGING_BUILDING ||
-      serf->get_state() == SERF_STATE_KNIGHT_PREPARE_ATTACKING ||
-      serf->get_state() == SERF_STATE_KNIGHT_ATTACKING ||
-      serf->get_state() == SERF_STATE_KNIGHT_PREPARE_ATTACKING_FREE ||
-      serf->get_state() == SERF_STATE_KNIGHT_ATTACKING_FREE ||
-      serf->get_state() == SERF_STATE_KNIGHT_ATTACKING_VICTORY_FREE ||
-      serf->get_state() == SERF_STATE_KNIGHT_ATTACKING_DEFEAT_FREE) {
+  if (serf->get_state() == Serf::StateKnightEngagingBuilding ||
+      serf->get_state() == Serf::StateKnightPrepareAttacking ||
+      serf->get_state() == Serf::StateKnightAttacking ||
+      serf->get_state() == Serf::StateKnightPrepareAttackingFree ||
+      serf->get_state() == Serf::StateKnightAttackingFree ||
+      serf->get_state() == Serf::StateKnightAttackingVictoryFree ||
+      serf->get_state() == Serf::StateKnightAttackingDefeatFree) {
     int index = serf->get_attacking_def_index();
     if (index != 0) {
-      serf_t *def_serf = interface->get_game()->get_serf(index);
+      Serf *def_serf = interface->get_game()->get_serf(index);
 
-      animation_t *animation =
+      Animation *animation =
                            data_source->get_animation(def_serf->get_animation(),
                                                       def_serf->get_counter());
 
@@ -1891,12 +1889,12 @@ viewport_t::draw_active_serf(serf_t *serf, map_pos_t pos,
   }
 
   /* Draw extra objects for fight */
-  if ((serf->get_state() == SERF_STATE_KNIGHT_ATTACKING ||
-       serf->get_state() == SERF_STATE_KNIGHT_ATTACKING_FREE) &&
+  if ((serf->get_state() == Serf::StateKnightAttacking ||
+       serf->get_state() == Serf::StateKnightAttackingFree) &&
       animation->time >= 0x80 && animation->time < 0xc0) {
     int index = serf->get_attacking_def_index();
     if (index != 0) {
-      serf_t *def_serf = interface->get_game()->get_serf(index);
+      Serf *def_serf = interface->get_game()->get_serf(index);
 
       if (serf->get_animation() >= 146 &&
           serf->get_animation() < 156) {
@@ -1923,7 +1921,7 @@ viewport_t::draw_active_serf(serf_t *serf, map_pos_t pos,
    Note that idle serfs do not have their serf_t object linked from the map
    so they are drawn seperately from active serfs. */
 void
-viewport_t::draw_serf_row(map_pos_t pos, int y_base, int cols, int x_base) {
+Viewport::draw_serf_row(MapPos pos, int y_base, int cols, int x_base) {
   const int arr_1[] = {
     0x240, 0x40, 0x380, 0x140, 0x300, 0x80, 0x180, 0x200,
     0, 0x340, 0x280, 0x100, 0x1c0, 0x2c0, 0x3c0, 0xc0
@@ -1972,9 +1970,9 @@ viewport_t::draw_serf_row(map_pos_t pos, int y_base, int cols, int x_base) {
 
     /* Active serf */
     if (map->get_serf_index(pos) != 0) {
-      serf_t *serf = interface->get_game()->get_serf_at_pos(pos);
+      Serf *serf = interface->get_game()->get_serf_at_pos(pos);
 
-      if (serf->get_state() != SERF_STATE_MINING ||
+      if (serf->get_state() != Serf::StateMining ||
           (serf->get_mining_substate() != 3 &&
            serf->get_mining_substate() != 4 &&
            serf->get_mining_substate() != 9 &&
@@ -2008,15 +2006,15 @@ viewport_t::draw_serf_row(map_pos_t pos, int y_base, int cols, int x_base) {
 /* Draw serfs that should appear behind the building at their
    current position. */
 void
-viewport_t::draw_serf_row_behind(map_pos_t pos, int y_base, int cols,
+Viewport::draw_serf_row_behind(MapPos pos, int y_base, int cols,
                                  int x_base) {
   for (int i = 0; i < cols;
        i++, x_base += MAP_TILE_WIDTH, pos = map->move_right(pos)) {
     /* Active serf */
     if (map->get_serf_index(pos) != 0) {
-      serf_t *serf = interface->get_game()->get_serf_at_pos(pos);
+      Serf *serf = interface->get_game()->get_serf_at_pos(pos);
 
-      if (serf->get_state() == SERF_STATE_MINING &&
+      if (serf->get_state() == Serf::StateMining &&
           (serf->get_mining_substate() == 3 ||
            serf->get_mining_substate() == 4 ||
            serf->get_mining_substate() == 9 ||
@@ -2028,13 +2026,13 @@ viewport_t::draw_serf_row_behind(map_pos_t pos, int y_base, int cols,
 }
 
 void
-viewport_t::draw_game_objects(int layers) {
+Viewport::draw_game_objects(int layers) {
   /*player->water_in_view = 0;
   player->trees_in_view = 0;*/
 
-  int draw_landscape = layers & VIEWPORT_LAYER_LANDSCAPE;
-  int draw_objects = layers & VIEWPORT_LAYER_OBJECTS;
-  int draw_serfs = layers & VIEWPORT_LAYER_SERFS;
+  int draw_landscape = layers & LayerLandscape;
+  int draw_objects = layers & LayerObjects;
+  int draw_serfs = layers & LayerSerfs;
   if (!draw_landscape && !draw_objects && !draw_serfs) return;
 
   int cols = VIEWPORT_COLS(this);
@@ -2046,7 +2044,7 @@ viewport_t::draw_game_objects(int layers) {
 
   int col_0 = (offset_x/16 + offset_y/20)/2 & map->get_col_mask();
   int row_0 = (offset_y/MAP_TILE_HEIGHT) & map->get_row_mask();
-  map_pos_t pos = map->pos(col_0, row_0);
+  MapPos pos = map->pos(col_0, row_0);
 
   /* Loop until objects drawn fall outside the frame. */
   while (1) {
@@ -2089,7 +2087,7 @@ viewport_t::draw_game_objects(int layers) {
 }
 
 void
-viewport_t::draw_map_cursor_sprite(map_pos_t pos, int sprite) {
+Viewport::draw_map_cursor_sprite(MapPos pos, int sprite) {
   int mx, my;
   map_pix_from_map_coord(pos, map->get_height(pos), &mx, &my);
 
@@ -2100,17 +2098,17 @@ viewport_t::draw_map_cursor_sprite(map_pos_t pos, int sprite) {
 }
 
 void
-viewport_t::draw_map_cursor_possible_build() {
+Viewport::draw_map_cursor_possible_build() {
   int x_off = -(offset_x + 16*(offset_y/20)) % 32;
   int y_off = -offset_y % 20;
 
   int col_0 = (offset_x/16 + offset_y/20)/2 & map->get_col_mask();
   int row_0 = (offset_y/MAP_TILE_HEIGHT) & map->get_row_mask();
-  map_pos_t base_pos = map->pos(col_0, row_0);
+  MapPos base_pos = map->pos(col_0, row_0);
 
   for (int x_base = x_off; x_base < width + MAP_TILE_WIDTH;
        x_base += MAP_TILE_WIDTH) {
-    map_pos_t pos = base_pos;
+    MapPos pos = base_pos;
     int y_base = y_off;
     int row = 0;
 
@@ -2132,8 +2130,8 @@ viewport_t::draw_map_cursor_possible_build() {
         sprite = 50;
       } else if (interface->get_game()->can_player_build(pos,
                                                      interface->get_player()) &&
-                 map_t::map_space_from_obj[map->get_obj(pos)] ==
-                   MAP_SPACE_OPEN &&
+                 Map::map_space_from_obj[map->get_obj(pos)] ==
+                   Map::SpaceOpen &&
                (interface->get_game()->can_build_flag(map->move_down_right(pos),
                                       interface->get_player()) ||
                  map->has_flag(map->move_down_right(pos)))) {
@@ -2165,8 +2163,8 @@ viewport_t::draw_map_cursor_possible_build() {
 }
 
 void
-viewport_t::draw_map_cursor() {
-  if (layers & VIEWPORT_LAYER_BUILDS) {
+Viewport::draw_map_cursor() {
+  if (layers & LayerBuilds) {
     draw_map_cursor_possible_build();
   }
 
@@ -2174,13 +2172,14 @@ viewport_t::draw_map_cursor() {
                          interface->get_map_cursor_sprite(0));
 
   for (int d = 0; d < 6; d++) {
-    draw_map_cursor_sprite(map->move(interface->get_map_cursor_pos(), (dir_t)d),
+    draw_map_cursor_sprite(map->move(interface->get_map_cursor_pos(),
+                                     (Direction)d),
                            interface->get_map_cursor_sprite(1+d));
   }
 }
 
 void
-viewport_t::draw_base_grid_overlay(int color) {
+Viewport::draw_base_grid_overlay(int color) {
   int x_base = -(offset_x + 16*(offset_y/20)) % 32;
   int y_base = -offset_y % 20;
 
@@ -2195,17 +2194,17 @@ viewport_t::draw_base_grid_overlay(int color) {
 }
 
 void
-viewport_t::draw_height_grid_overlay(int color) {
+Viewport::draw_height_grid_overlay(int color) {
   int x_off = -(offset_x + 16*(offset_y/20)) % 32;
   int y_off = -offset_y % 20;
 
   int col_0 = (offset_x/16 + offset_y/20)/2 & map->get_col_mask();
   int row_0 = (offset_y/MAP_TILE_HEIGHT) & map->get_row_mask();
-  map_pos_t base_pos = map->pos(col_0, row_0);
+  MapPos base_pos = map->pos(col_0, row_0);
 
   for (int x_base = x_off; x_base < width + MAP_TILE_WIDTH;
        x_base += MAP_TILE_WIDTH) {
-    map_pos_t pos = base_pos;
+    MapPos pos = base_pos;
     int y_base = y_off;
     int row = 0;
 
@@ -2244,32 +2243,32 @@ viewport_t::draw_height_grid_overlay(int color) {
 }
 
 void
-viewport_t::internal_draw() {
+Viewport::internal_draw() {
   if (map == NULL) {
     return;
   }
 
-  if (layers & VIEWPORT_LAYER_LANDSCAPE) {
+  if (layers & LayerLandscape) {
     draw_landscape();
   }
-  if (layers & VIEWPORT_LAYER_GRID) {
+  if (layers & LayerGrid) {
     draw_base_grid_overlay(72);
     draw_height_grid_overlay(76);
   }
-  if (layers & VIEWPORT_LAYER_PATHS) {
+  if (layers & LayerPaths) {
     draw_paths_and_borders();
   }
   draw_game_objects(layers);
-  if (layers & VIEWPORT_LAYER_CURSOR) {
+  if (layers & LayerCursor) {
     draw_map_cursor();
   }
 }
 
 bool
-viewport_t::handle_click_left(int x, int y) {
+Viewport::handle_click_left(int x, int y) {
   set_redraw();
 
-  map_pos_t clk_pos = map_pos_from_screen_pix(x, y);
+  MapPos clk_pos = map_pos_from_screen_pix(x, y);
   int clk_col = map->pos_col(clk_pos);
   int clk_row = map->pos_row(clk_pos);
 
@@ -2278,72 +2277,72 @@ viewport_t::handle_click_left(int x, int y) {
               map->get_col_mask();
     int dy = (clk_row - map->pos_row(interface->get_map_cursor_pos()) + 1) &
               map->get_row_mask();
-    dir_t dir = DIR_NONE;
+    Direction dir = DirectionNone;
 
     if (dx == 0) {
-      if (dy == 1) dir = DIR_LEFT;
-      else if (dy == 0) dir = DIR_UP_LEFT;
+      if (dy == 1) dir = DirectionLeft;
+      else if (dy == 0) dir = DirectionUpLeft;
     } else if (dx == 1) {
-      if (dy == 2) dir = DIR_DOWN;
-      else if (dy == 0) dir = DIR_UP;
+      if (dy == 2) dir = DirectionDown;
+      else if (dy == 0) dir = DirectionUp;
     } else if (dx == 2) {
-      if (dy == 1) dir = DIR_RIGHT;
-      else if (dy == 2) dir = DIR_DOWN_RIGHT;
+      if (dy == 1) dir = DirectionRight;
+      else if (dy == 2) dir = DirectionDownRight;
     }
 
     if (interface->build_roid_is_valid_dir(dir)) {
-      road_t road = interface->get_building_road();
+      Road road = interface->get_building_road();
       if (road.is_undo(dir)) {
         /* Delete existing path */
         int r = interface->remove_road_segment();
         if (r < 0) {
-          play_sound(SFX_NOT_ACCEPTED);
+          play_sound(Audio::TypeSfxNotAccepted);
         } else {
-          play_sound(SFX_CLICK);
+          play_sound(Audio::TypeSfxClick);
         }
       } else {
         /* Build new road segment */
-        int r = interface->build_road_segment((dir_t)dir);
+        int r = interface->build_road_segment((Direction)dir);
         if (r < 0) {
-          play_sound(SFX_NOT_ACCEPTED);
+          play_sound(Audio::TypeSfxNotAccepted);
         } else if (r == 0) {
-          play_sound(SFX_CLICK);
+          play_sound(Audio::TypeSfxClick);
         } else {
-          play_sound(SFX_ACCEPTED);
+          play_sound(Audio::TypeSfxAccepted);
         }
       }
     }
   } else {
     interface->update_map_cursor_pos(clk_pos);
-    play_sound(SFX_CLICK);
+    play_sound(Audio::TypeSfxClick);
   }
 
   return true;
 }
 
 bool
-viewport_t::handle_dbl_click(int x, int y, event_button_t button) {
-  if (button != EVENT_BUTTON_LEFT) return 0;
+Viewport::handle_dbl_click(int x, int y, Event::Button button) {
+  if (button != Event::ButtonLeft) return 0;
 
   set_redraw();
 
-  map_pos_t clk_pos = map_pos_from_screen_pix(x, y);
+  MapPos clk_pos = map_pos_from_screen_pix(x, y);
 
   if (interface->is_building_road()) {
     if (clk_pos != interface->get_map_cursor_pos()) {
-      map_pos_t pos = interface->get_building_road().get_end(map);
-      road_t road = pathfinder_map(map, pos, clk_pos);
+      MapPos pos = interface->get_building_road().get_end(map);
+      Road road = pathfinder_map(map, pos, clk_pos);
       if (road.get_length() != 0) {
         int r = interface->extend_road(road);
         if (r < 0) {
-          play_sound(SFX_NOT_ACCEPTED);
+          play_sound(Audio::TypeSfxNotAccepted);
         } else if (r == 1) {
-          play_sound(SFX_ACCEPTED);
+          play_sound(Audio::TypeSfxAccepted);
         } else {
-          play_sound(SFX_CLICK);
+          play_sound(Audio::TypeSfxClick);
         }
       } else {
-        play_sound(SFX_NOT_ACCEPTED);
+        play_sound(Audio::TypeSfxNotAccepted);
       }
     } else {
       bool r = interface->get_game()->build_flag(
@@ -2352,49 +2351,49 @@ viewport_t::handle_dbl_click(int x, int y, event_button_t button) {
       if (r) {
         interface->build_road();
       } else {
-        play_sound(SFX_NOT_ACCEPTED);
+        play_sound(Audio::TypeSfxNotAccepted);
       }
     }
   } else {
-    if (map->get_obj(clk_pos) == MAP_OBJ_NONE ||
-        map->get_obj(clk_pos) > MAP_OBJ_CASTLE) {
+    if (map->get_obj(clk_pos) == Map::ObjectNone ||
+        map->get_obj(clk_pos) > Map::ObjectCastle) {
       return false;
     }
 
-    if (map->get_obj(clk_pos) == MAP_OBJ_FLAG) {
+    if (map->get_obj(clk_pos) == Map::ObjectFlag) {
       if (map->get_owner(clk_pos) == interface->get_player()->get_index()) {
-        interface->open_popup(BOX_TRANSPORT_INFO);
+        interface->open_popup(PopupBox::TypeTransportInfo);
       }
 
       interface->get_player()->temp_index = map->get_obj_index(clk_pos);
     } else { /* Building */
       if (map->get_owner(clk_pos) == interface->get_player()->get_index()) {
-        building_t *building =
-                  interface->get_game()->get_building_at_pos(clk_pos);
+        Building *building =
+                            interface->get_game()->get_building_at_pos(clk_pos);
         if (!building->is_done()) {
-          interface->open_popup(BOX_ORDERED_BLD);
-          } else if (building->get_type() == BUILDING_CASTLE) {
-          interface->open_popup(BOX_CASTLE_RES);
-        } else if (building->get_type() == BUILDING_STOCK) {
+          interface->open_popup(PopupBox::TypeOrderedBld);
+        } else if (building->get_type() == Building::TypeCastle) {
+          interface->open_popup(PopupBox::TypeCastleRes);
+        } else if (building->get_type() == Building::TypeStock) {
           if (!building->is_active()) return 0;
-          interface->open_popup(BOX_CASTLE_RES);
-        } else if (building->get_type() == BUILDING_HUT ||
-             building->get_type() == BUILDING_TOWER ||
-             building->get_type() == BUILDING_FORTRESS) {
-          interface->open_popup(BOX_DEFENDERS);
-        } else if (building->get_type() == BUILDING_STONEMINE ||
-             building->get_type() == BUILDING_COALMINE ||
-             building->get_type() == BUILDING_IRONMINE ||
-             building->get_type() == BUILDING_GOLDMINE) {
-          interface->open_popup(BOX_MINE_OUTPUT);
+          interface->open_popup(PopupBox::TypeCastleRes);
+        } else if (building->get_type() == Building::TypeHut ||
+                   building->get_type() == Building::TypeTower ||
+                   building->get_type() == Building::TypeFortress) {
+          interface->open_popup(PopupBox::TypeDefenders);
+        } else if (building->get_type() == Building::TypeStoneMine ||
+                   building->get_type() == Building::TypeCoalMine ||
+                   building->get_type() == Building::TypeIronMine ||
+                   building->get_type() == Building::TypeGoldMine) {
+          interface->open_popup(PopupBox::TypeMineOutput);
         } else {
-          interface->open_popup(BOX_BLD_STOCK);
+          interface->open_popup(PopupBox::TypeBldStock);
         }
 
         interface->get_player()->temp_index = map->get_obj_index(clk_pos);
       } else { /* Foreign building */
         /* TODO handle coop mode*/
-        building_t *building =
+        Building *building =
                   interface->get_game()->get_building_at_pos(clk_pos);
         interface->get_player()->building_attacked = building->get_index();
 
@@ -2405,13 +2404,13 @@ viewport_t::handle_dbl_click(int x, int y, event_button_t button) {
             /* It is not allowed to attack
                if currently not occupied or
                is too far from the border. */
-            play_sound(SFX_NOT_ACCEPTED);
+            play_sound(Audio::TypeSfxNotAccepted);
             return false;
           }
 
           int found = 0;
           for (int i = 257; i >= 0; i--) {
-            map_pos_t pos = map->pos_add_spirally(building->get_position(),
+            MapPos pos = map->pos_add_spirally(building->get_position(),
                                                        7+257-i);
             if (map->has_owner(pos) &&
                 map->get_owner(pos) == interface->get_player()->get_index()) {
@@ -2421,27 +2420,27 @@ viewport_t::handle_dbl_click(int x, int y, event_button_t button) {
           }
 
           if (!found) {
-            play_sound(SFX_NOT_ACCEPTED);
+            play_sound(Audio::TypeSfxNotAccepted);
             return false;
           }
 
           /* Action accepted */
-          play_sound(SFX_CLICK);
+          play_sound(Audio::TypeSfxClick);
 
           int max_knights = 0;
           switch (building->get_type()) {
-          case BUILDING_HUT: max_knights = 3; break;
-          case BUILDING_TOWER: max_knights = 6; break;
-          case BUILDING_FORTRESS: max_knights = 12; break;
-          case BUILDING_CASTLE: max_knights = 20; break;
-          default: NOT_REACHED(); break;
+            case Building::TypeHut: max_knights = 3; break;
+            case Building::TypeTower: max_knights = 6; break;
+            case Building::TypeFortress: max_knights = 12; break;
+            case Building::TypeCastle: max_knights = 20; break;
+            default: NOT_REACHED(); break;
           }
 
           int knights = interface->get_player()->
                          knights_available_for_attack(building->get_position());
           interface->get_player()->knights_attacking =
                                                  std::min(knights, max_knights);
-          interface->open_popup(BOX_START_ATTACK);
+          interface->open_popup(PopupBox::TypeStartAttack);
         }
       }
     }
@@ -2451,7 +2450,7 @@ viewport_t::handle_dbl_click(int x, int y, event_button_t button) {
 }
 
 bool
-viewport_t::handle_drag(int x, int y) {
+Viewport::handle_drag(int x, int y) {
   if (x != 0 || y != 0) {
     move_by_pixels(x, y);
   }
@@ -2459,19 +2458,19 @@ viewport_t::handle_drag(int x, int y) {
   return true;
 }
 
-viewport_t::viewport_t(interface_t *interface, map_t *map) {
-  this->interface = interface;
-  this->map = map;
+Viewport::Viewport(Interface *_interface, Map *_map) {
+  interface = _interface;
+  map = _map;
   map->add_change_handler(this);
-  layers = VIEWPORT_LAYER_ALL;
+  layers = LayerAll;
 
   last_tick = 0;
 
-  data_t *data = data_t::get_instance();
+  Data *data = Data::get_instance();
   data_source = data->get_data_source();
 }
 
-viewport_t::~viewport_t() {
+Viewport::~Viewport() {
   map->del_change_handler(this);
   while (landscape_tiles.size()) {
     tiles_map_t::iterator it = landscape_tiles.begin();
@@ -2481,12 +2480,12 @@ viewport_t::~viewport_t() {
 }
 
 void
-viewport_t::changed_height(map_pos_t pos) {
+Viewport::on_height_changed(MapPos pos) {
   redraw_map_pos(pos);
 }
 
 void
-viewport_t::changed_object(map_pos_t pos) {
+Viewport::on_object_changed(MapPos pos) {
   if (interface->get_map_cursor_pos() == pos) {
     interface->update_map_cursor_pos(pos);
   }
@@ -2495,7 +2494,7 @@ viewport_t::changed_object(map_pos_t pos) {
 /* Space transformations. */
 /* The game world space is a three dimensional space with the axes
    named "column", "row" and "height". The (column, row) coordinate
-   can be encoded as a map_pos_t.
+   can be encoded as a MapPos.
 
    The landscape is composed of a mesh of vertices in the game world
    space. There is one vertex for each integer position in the
@@ -2531,7 +2530,7 @@ viewport_t::changed_object(map_pos_t pos) {
    map pixel space.
 */
 void
-viewport_t::screen_pix_from_map_pix(int mx, int my, int *sx, int *sy) {
+Viewport::screen_pix_from_map_pix(int mx, int my, int *sx, int *sy) {
   int width = map->get_cols()*MAP_TILE_WIDTH;
   int height = map->get_rows()*MAP_TILE_HEIGHT;
 
@@ -2553,7 +2552,7 @@ viewport_t::screen_pix_from_map_pix(int mx, int my, int *sx, int *sy) {
 }
 
 void
-viewport_t::map_pix_from_map_coord(map_pos_t pos, int h, int *mx, int *my) {
+Viewport::map_pix_from_map_coord(MapPos pos, int h, int *mx, int *my) {
   int width = map->get_cols()*MAP_TILE_WIDTH;
   int height = map->get_rows()*MAP_TILE_HEIGHT;
 
@@ -2570,8 +2569,8 @@ viewport_t::map_pix_from_map_coord(map_pos_t pos, int h, int *mx, int *my) {
   else if (*mx >= width) *mx -= width;
 }
 
-map_pos_t
-viewport_t::map_pos_from_screen_pix(int sx, int sy) {
+MapPos
+Viewport::map_pos_from_screen_pix(int sx, int sy) {
   int x_off = -(offset_x + 16*(offset_y/20)) % 32;
   int y_off = -offset_y % 20;
 
@@ -2612,13 +2611,13 @@ viewport_t::map_pos_from_screen_pix(int sx, int sy) {
   return map->pos(col, row);
 }
 
-map_pos_t
-viewport_t::get_current_map_pos() {
+MapPos
+Viewport::get_current_map_pos() {
   return map_pos_from_screen_pix(width/2, height/2);
 }
 
 void
-viewport_t::move_to_map_pos(map_pos_t pos) {
+Viewport::move_to_map_pos(MapPos pos) {
   int mx, my;
   map_pix_from_map_coord(pos, map->get_height(pos), &mx, &my);
 
@@ -2644,7 +2643,7 @@ viewport_t::move_to_map_pos(map_pos_t pos) {
 }
 
 void
-viewport_t::move_by_pixels(int x, int y) {
+Viewport::move_by_pixels(int x, int y) {
   int width = map->get_cols()*MAP_TILE_WIDTH;
   int height = map->get_rows()*MAP_TILE_HEIGHT;
 
@@ -2668,7 +2667,7 @@ viewport_t::move_by_pixels(int x, int y) {
 
 /* Called periodically when the game progresses. */
 void
-viewport_t::update() {
+Viewport::update() {
   int tick_xor = interface->get_game()->get_tick() ^ last_tick;
   last_tick = interface->get_game()->get_tick();
 

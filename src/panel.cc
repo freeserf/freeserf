@@ -33,23 +33,23 @@
 #include "src/freeserf.h"
 #include "src/minimap.h"
 
-panel_bar_t::panel_bar_t(interface_t *_interface) {
+PanelBar::PanelBar(Interface *_interface) {
   interface = _interface;
 
-  panel_btns[0] = PANEL_BTN_BUILD_INACTIVE;
-  panel_btns[1] = PANEL_BTN_DESTROY_INACTIVE;
-  panel_btns[2] = PANEL_BTN_MAP;
-  panel_btns[3] = PANEL_BTN_STATS;
-  panel_btns[4] = PANEL_BTN_SETT;
+  panel_btns[0] = ButtonBuildInactive;
+  panel_btns[1] = ButtonDestroyInactive;
+  panel_btns[2] = ButtonMap;
+  panel_btns[3] = ButtonStats;
+  panel_btns[4] = ButtonSett;
 
-  blink_timer = fs_timer_t::create(1, 700, this);
+  blink_timer = Timer::create(1, 700, this);
   if (blink_timer != NULL) {
     blink_timer->run();
   }
   blink_trigger = false;
 }
 
-panel_bar_t::~panel_bar_t() {
+PanelBar::~PanelBar() {
   if (blink_timer != NULL) {
     delete blink_timer;
     blink_timer = NULL;
@@ -58,7 +58,7 @@ panel_bar_t::~panel_bar_t() {
 
 /* Draw the frame around action buttons. */
 void
-panel_bar_t::draw_panel_frame() {
+PanelBar::draw_panel_frame() {
   const int bottom_svga_layout[] = {
     DATA_FRAME_BOTTOM_SHIELD, 0, 0,
     DATA_FRAME_BOTTOM_BASE+0, 40, 0,
@@ -101,22 +101,22 @@ panel_bar_t::draw_panel_frame() {
 
 /* Draw notification icon in action panel. */
 void
-panel_bar_t::draw_message_notify() {
+PanelBar::draw_message_notify() {
   interface->set_msg_flag(2);
   frame->draw_sprite(40, 4, DATA_FRAME_BOTTOM_NOTIFY);
 }
 
 /* Draw return arrow icon in action panel. */
 void
-panel_bar_t::draw_return_arrow() {
+PanelBar::draw_return_arrow() {
   frame->draw_sprite(40, 28, DATA_FRAME_BOTTOM_ARROW);
 }
 
 /* Draw buttons in action panel. */
 void
-panel_bar_t::draw_panel_buttons() {
+PanelBar::draw_panel_buttons() {
   if (enabled) {
-    player_t *player = interface->get_player();
+    Player *player = interface->get_player();
     /* Blinking message icon. */
     if ((player != NULL) && player->has_notification()) {
       if (blink_trigger) {
@@ -131,11 +131,11 @@ panel_bar_t::draw_panel_buttons() {
   }
 
   const int inactive_buttons[] = {
-    PANEL_BTN_BUILD_INACTIVE,
-    PANEL_BTN_DESTROY_INACTIVE,
-    PANEL_BTN_MAP_INACTIVE,
-    PANEL_BTN_STATS_INACTIVE,
-    PANEL_BTN_SETT_INACTIVE
+    ButtonBuildInactive,
+    ButtonDestroyInactive,
+    ButtonMapInactive,
+    ButtonStatsInactive,
+    ButtonSettInactive
   };
 
   for (int i = 0; i < 5; i++) {
@@ -151,175 +151,176 @@ panel_bar_t::draw_panel_buttons() {
 }
 
 void
-panel_bar_t::internal_draw() {
+PanelBar::internal_draw() {
   draw_panel_frame();
   draw_panel_buttons();
 }
 
 /* Handle a click on the panel buttons. */
 void
-panel_bar_t::button_click(int button) {
+PanelBar::button_click(int button) {
   switch (panel_btns[button]) {
-  case PANEL_BTN_MAP:
-  case PANEL_BTN_MAP_STARRED:
-    play_sound(SFX_CLICK);
+  case ButtonMap:
+  case ButtonMapStarred:
+    play_sound(Audio::TypeSfxClick);
     if ((interface->get_popup_box() != NULL) &&
         interface->get_popup_box()->is_displayed()) {
       interface->close_popup();
     } else {
-      panel_btns[0] = PANEL_BTN_BUILD_INACTIVE;
-      panel_btns[1] = PANEL_BTN_DESTROY_INACTIVE;
-      panel_btns[2] = PANEL_BTN_MAP_STARRED;
-      panel_btns[3] = PANEL_BTN_STATS_INACTIVE;
-      panel_btns[4] = PANEL_BTN_SETT_INACTIVE;
+      panel_btns[0] = ButtonBuildInactive;
+      panel_btns[1] = ButtonDestroyInactive;
+      panel_btns[2] = ButtonMapStarred;
+      panel_btns[3] = ButtonStatsInactive;
+      panel_btns[4] = ButtonSettInactive;
 
-      interface->open_popup(BOX_MAP);
+      interface->open_popup(PopupBox::TypeMap);
 
       /* Synchronize minimap window with viewport. */
-      viewport_t *viewport = interface->get_viewport();
-      popup_box_t *popup = interface->get_popup_box();
-      minimap_t *minimap = popup->get_minimap();
+      Viewport *viewport = interface->get_viewport();
+      PopupBox *popup = interface->get_popup_box();
+      Minimap *minimap = popup->get_minimap();
       if (minimap != NULL) {
-        map_pos_t pos = viewport->get_current_map_pos();
+        MapPos pos = viewport->get_current_map_pos();
         minimap->move_to_map_pos(pos);
       }
     }
     break;
-  case PANEL_BTN_SETT:
-  case PANEL_BTN_SETT_STARRED:
-    play_sound(SFX_CLICK);
+  case ButtonSett:
+  case ButtonSettStarred:
+    play_sound(Audio::TypeSfxClick);
     if ((interface->get_popup_box() != NULL) &&
         interface->get_popup_box()->is_displayed()) {
       interface->close_popup();
     } else {
-      panel_btns[0] = PANEL_BTN_BUILD_INACTIVE;
-      panel_btns[1] = PANEL_BTN_DESTROY_INACTIVE;
-      panel_btns[2] = PANEL_BTN_MAP_INACTIVE;
-      panel_btns[3] = PANEL_BTN_STATS_INACTIVE;
-      panel_btns[4] = PANEL_BTN_SETT_STARRED;
-      interface->open_popup(BOX_SETT_SELECT);
+      panel_btns[0] = ButtonBuildInactive;
+      panel_btns[1] = ButtonDestroyInactive;
+      panel_btns[2] = ButtonMapInactive;
+      panel_btns[3] = ButtonStatsInactive;
+      panel_btns[4] = ButtonSettStarred;
+      interface->open_popup(PopupBox::TypeSettSelect);
     }
     break;
-  case PANEL_BTN_STATS:
-  case PANEL_BTN_STATS_STARRED:
-    play_sound(SFX_CLICK);
+  case ButtonStats:
+  case ButtonStatsStarred:
+    play_sound(Audio::TypeSfxClick);
     if ((interface->get_popup_box() != NULL) &&
         interface->get_popup_box()->is_displayed()) {
       interface->close_popup();
     } else {
-      panel_btns[0] = PANEL_BTN_BUILD_INACTIVE;
-      panel_btns[1] = PANEL_BTN_DESTROY_INACTIVE;
-      panel_btns[2] = PANEL_BTN_MAP_INACTIVE;
-      panel_btns[3] = PANEL_BTN_STATS_STARRED;
-      panel_btns[4] = PANEL_BTN_SETT_INACTIVE;
-      interface->open_popup(BOX_STAT_SELECT);
+      panel_btns[0] = ButtonBuildInactive;
+      panel_btns[1] = ButtonDestroyInactive;
+      panel_btns[2] = ButtonMapInactive;
+      panel_btns[3] = ButtonStatsStarred;
+      panel_btns[4] = ButtonSettInactive;
+      interface->open_popup(PopupBox::TypeStatSelect);
     }
     break;
-  case PANEL_BTN_BUILD_ROAD:
-  case PANEL_BTN_BUILD_ROAD_STARRED:
-    play_sound(SFX_CLICK);
+  case ButtonBuildRoad:
+  case ButtonBuildRoadStarred:
+    play_sound(Audio::TypeSfxClick);
     if (interface->is_building_road()) {
       interface->build_road_end();
     } else {
       interface->build_road_begin();
     }
     break;
-  case PANEL_BTN_BUILD_FLAG:
-    play_sound(SFX_CLICK);
+  case ButtonBuildFlag:
+    play_sound(Audio::TypeSfxClick);
     interface->build_flag();
     break;
-  case PANEL_BTN_BUILD_SMALL:
-  case PANEL_BTN_BUILD_SMALL_STARRED:
-    play_sound(SFX_CLICK);
+  case ButtonBuildSmall:
+  case ButtonBuildSmallStarred:
+    play_sound(Audio::TypeSfxClick);
     if ((interface->get_popup_box() != NULL) &&
         interface->get_popup_box()->is_displayed()) {
       interface->close_popup();
     } else {
-      panel_btns[0] = PANEL_BTN_BUILD_SMALL_STARRED;
-      panel_btns[1] = PANEL_BTN_DESTROY_INACTIVE;
-      panel_btns[2] = PANEL_BTN_MAP_INACTIVE;
-      panel_btns[3] = PANEL_BTN_STATS_INACTIVE;
-      panel_btns[4] = PANEL_BTN_SETT_INACTIVE;
-      interface->open_popup(BOX_BASIC_BLD);
+      panel_btns[0] = ButtonBuildSmallStarred;
+      panel_btns[1] = ButtonDestroyInactive;
+      panel_btns[2] = ButtonMapInactive;
+      panel_btns[3] = ButtonStatsInactive;
+      panel_btns[4] = ButtonSettInactive;
+      interface->open_popup(PopupBox::TypeBasicBld);
     }
     break;
-  case PANEL_BTN_BUILD_LARGE:
-  case PANEL_BTN_BUILD_LARGE_STARRED:
-    play_sound(SFX_CLICK);
+  case ButtonBuildLarge:
+  case ButtonBuildLargeStarred:
+    play_sound(Audio::TypeSfxClick);
     if ((interface->get_popup_box() != NULL) &&
         interface->get_popup_box()->is_displayed()) {
       interface->close_popup();
     } else {
-      panel_btns[0] = PANEL_BTN_BUILD_LARGE_STARRED;
-      panel_btns[1] = PANEL_BTN_DESTROY_INACTIVE;
-      panel_btns[2] = PANEL_BTN_MAP_INACTIVE;
-      panel_btns[3] = PANEL_BTN_STATS_INACTIVE;
-      panel_btns[4] = PANEL_BTN_SETT_INACTIVE;
-      interface->open_popup(BOX_BASIC_BLD_FLIP);
+      panel_btns[0] = ButtonBuildLargeStarred;
+      panel_btns[1] = ButtonDestroyInactive;
+      panel_btns[2] = ButtonMapInactive;
+      panel_btns[3] = ButtonStatsInactive;
+      panel_btns[4] = ButtonSettInactive;
+      interface->open_popup(PopupBox::TypeBasicBldFlip);
     }
     break;
-  case PANEL_BTN_BUILD_MINE:
-  case PANEL_BTN_BUILD_MINE_STARRED:
-    play_sound(SFX_CLICK);
+  case ButtonBuildMine:
+  case ButtonBuildMineStarred:
+    play_sound(Audio::TypeSfxClick);
     if ((interface->get_popup_box() != NULL) &&
         interface->get_popup_box()->is_displayed()) {
       interface->close_popup();
     } else {
-      panel_btns[0] = PANEL_BTN_BUILD_MINE_STARRED;
-      panel_btns[1] = PANEL_BTN_DESTROY_INACTIVE;
-      panel_btns[2] = PANEL_BTN_MAP_INACTIVE;
-      panel_btns[3] = PANEL_BTN_STATS_INACTIVE;
-      panel_btns[4] = PANEL_BTN_SETT_INACTIVE;
-      interface->open_popup(BOX_MINE_BUILDING);
+      panel_btns[0] = ButtonBuildMineStarred;
+      panel_btns[1] = ButtonDestroyInactive;
+      panel_btns[2] = ButtonMapInactive;
+      panel_btns[3] = ButtonStatsInactive;
+      panel_btns[4] = ButtonSettInactive;
+      interface->open_popup(PopupBox::TypeMineBuilding);
     }
     break;
-  case PANEL_BTN_DESTROY:
-    if (interface->get_map_cursor_type() == MAP_CURSOR_TYPE_REMOVABLE_FLAG) {
+  case ButtonDestroy:
+    if (interface->get_map_cursor_type() ==
+        Interface::CursorTypeRemovableFlag) {
       interface->demolish_object();
     } else {
-      panel_btns[0] = PANEL_BTN_BUILD_INACTIVE;
-      panel_btns[1] = PANEL_BTN_DESTROY_INACTIVE;
-      panel_btns[2] = PANEL_BTN_MAP_INACTIVE;
-      panel_btns[3] = PANEL_BTN_STATS_INACTIVE;
-      panel_btns[4] = PANEL_BTN_SETT_INACTIVE;
-      interface->open_popup(BOX_DEMOLISH);
+      panel_btns[0] = ButtonBuildInactive;
+      panel_btns[1] = ButtonDestroyInactive;
+      panel_btns[2] = ButtonMapInactive;
+      panel_btns[3] = ButtonStatsInactive;
+      panel_btns[4] = ButtonSettInactive;
+      interface->open_popup(PopupBox::TypeDemolish);
     }
     break;
-  case PANEL_BTN_BUILD_CASTLE:
+  case ButtonBuildCastle:
     interface->build_castle();
     break;
-  case PANEL_BTN_DESTROY_ROAD: {
+  case ButtonDestroyRoad: {
     bool r = interface->get_player()->get_game()->demolish_road(
                                                 interface->get_map_cursor_pos(),
                                                        interface->get_player());
     if (!r) {
-      play_sound(SFX_NOT_ACCEPTED);
+      play_sound(Audio::TypeSfxNotAccepted);
       interface->update_map_cursor_pos(interface->get_map_cursor_pos());
     } else {
-      play_sound(SFX_ACCEPTED);
+      play_sound(Audio::TypeSfxAccepted);
     }
   }
     break;
-  case PANEL_BTN_GROUND_ANALYSIS:
-  case PANEL_BTN_GROUND_ANALYSIS_STARRED:
-    play_sound(SFX_CLICK);
+  case ButtonGroundAnalysis:
+  case ButtonGroundAnalysisStarred:
+    play_sound(Audio::TypeSfxClick);
     if ((interface->get_popup_box() != NULL) &&
         interface->get_popup_box()->is_displayed()) {
       interface->close_popup();
     } else {
-      panel_btns[0] = PANEL_BTN_BUILD_INACTIVE;
-      panel_btns[1] = PANEL_BTN_GROUND_ANALYSIS_STARRED;
-      panel_btns[2] = PANEL_BTN_MAP_INACTIVE;
-      panel_btns[3] = PANEL_BTN_STATS_INACTIVE;
-      panel_btns[4] = PANEL_BTN_SETT_INACTIVE;
-      interface->open_popup(BOX_GROUND_ANALYSIS);
+      panel_btns[0] = ButtonBuildInactive;
+      panel_btns[1] = ButtonGroundAnalysisStarred;
+      panel_btns[2] = ButtonMapInactive;
+      panel_btns[3] = ButtonStatsInactive;
+      panel_btns[4] = ButtonSettInactive;
+      interface->open_popup(PopupBox::TypeGroundAnalysis);
     }
     break;
   }
 }
 
 bool
-panel_bar_t::handle_click_left(int x, int y) {
+PanelBar::handle_click_left(int x, int y) {
   set_redraw();
 
   if (x >= 41 && x < 53) {
@@ -351,7 +352,7 @@ panel_bar_t::handle_click_left(int x, int y) {
     interface->get_player()->add_timer(timer_length * TICKS_PER_SEC,
                                        interface->get_map_cursor_pos());
 
-    play_sound(SFX_ACCEPTED);
+    play_sound(Audio::TypeSfxAccepted);
   } else if (y >= 4 && y < 36 && x >= 64) {
     x -= 64;
 
@@ -376,7 +377,7 @@ panel_bar_t::handle_click_left(int x, int y) {
 }
 
 bool
-panel_bar_t::handle_key_pressed(char key, int modifier) {
+PanelBar::handle_key_pressed(char key, int modifier) {
   if (key < '1' || key > '5') {
     return false;
   }
@@ -386,28 +387,28 @@ panel_bar_t::handle_key_pressed(char key, int modifier) {
   return true;
 }
 
-panel_bar_t::panel_btn_t
-panel_bar_t::button_type_with_build_possibility(int build_possibility) {
-  panel_btn_t result;
+PanelBar::Button
+PanelBar::button_type_with_build_possibility(int build_possibility) {
+  Button result;
 
   switch (build_possibility) {
-    case CAN_BUILD_CASTLE:
-      result = PANEL_BTN_BUILD_CASTLE;
+    case Interface::BuildPossibilityCastle:
+      result = ButtonBuildCastle;
       break;
-    case CAN_BUILD_MINE:
-      result = PANEL_BTN_BUILD_MINE;
+    case Interface::BuildPossibilityMine:
+      result = ButtonBuildMine;
       break;
-    case CAN_BUILD_LARGE:
-      result = PANEL_BTN_BUILD_LARGE;
+    case Interface::BuildPossibilityLarge:
+      result = ButtonBuildLarge;
       break;
-    case CAN_BUILD_SMALL:
-      result = PANEL_BTN_BUILD_SMALL;
+    case Interface::BuildPossibilitySmall:
+      result = ButtonBuildSmall;
       break;
-    case CAN_BUILD_FLAG:
-      result = PANEL_BTN_BUILD_FLAG;
+    case Interface::BuildPossibilityFlag:
+      result = ButtonBuildFlag;
       break;
     default:
-      result = PANEL_BTN_BUILD_INACTIVE;
+      result = ButtonBuildInactive;
       break;
   }
 
@@ -415,95 +416,96 @@ panel_bar_t::button_type_with_build_possibility(int build_possibility) {
 }
 
 void
-panel_bar_t::update() {
+PanelBar::update() {
   if ((interface->get_popup_box() != NULL) &&
       interface->get_popup_box()->is_displayed()) {
     switch (interface->get_popup_box()->get_box()) {
-      case BOX_TRANSPORT_INFO:
-      case BOX_ORDERED_BLD:
-      case BOX_CASTLE_RES:
-      case BOX_DEFENDERS:
-      case BOX_MINE_OUTPUT:
-      case BOX_BLD_STOCK:
-      case BOX_START_ATTACK:
-      case BOX_QUIT_CONFIRM:
-      case BOX_OPTIONS: {
-        panel_btns[0] = PANEL_BTN_BUILD_INACTIVE;
-        panel_btns[1] = PANEL_BTN_DESTROY_INACTIVE;
-        panel_btns[2] = PANEL_BTN_MAP_INACTIVE;
-        panel_btns[3] = PANEL_BTN_STATS_INACTIVE;
-        panel_btns[4] = PANEL_BTN_SETT_INACTIVE;
+      case PopupBox::TypeTransportInfo:
+      case PopupBox::TypeOrderedBld:
+      case PopupBox::TypeCastleRes:
+      case PopupBox::TypeDefenders:
+      case PopupBox::TypeMineOutput:
+      case PopupBox::TypeBldStock:
+      case PopupBox::TypeStartAttack:
+      case PopupBox::TypeQuitConfirm:
+      case PopupBox::TypeOptions: {
+        panel_btns[0] = ButtonBuildInactive;
+        panel_btns[1] = ButtonDestroyInactive;
+        panel_btns[2] = ButtonMapInactive;
+        panel_btns[3] = ButtonStatsInactive;
+        panel_btns[4] = ButtonSettInactive;
         break;
       }
       default:
         break;
     }
   } else if (interface->is_building_road()) {
-    panel_btns[0] = PANEL_BTN_BUILD_ROAD_STARRED;
-    panel_btns[1] = PANEL_BTN_BUILD_INACTIVE;
-    panel_btns[2] = PANEL_BTN_MAP_INACTIVE;
-    panel_btns[3] = PANEL_BTN_STATS_INACTIVE;
-    panel_btns[4] = PANEL_BTN_SETT_INACTIVE;
+    panel_btns[0] = ButtonBuildRoadStarred;
+    panel_btns[1] = ButtonBuildInactive;
+    panel_btns[2] = ButtonMapInactive;
+    panel_btns[3] = ButtonStatsInactive;
+    panel_btns[4] = ButtonSettInactive;
   } else {
-    panel_btns[2] = PANEL_BTN_MAP;
-    panel_btns[3] = PANEL_BTN_STATS;
-    panel_btns[4] = PANEL_BTN_SETT;
+    panel_btns[2] = ButtonMap;
+    panel_btns[3] = ButtonStats;
+    panel_btns[4] = ButtonSett;
 
-    build_possibility_t build_possibility = interface->get_build_possibility();
+    Interface::BuildPossibility build_possibility =
+                                             interface->get_build_possibility();
 
     switch (interface->get_map_cursor_type()) {
-      case MAP_CURSOR_TYPE_NONE:
-        panel_btns[0] = PANEL_BTN_BUILD_INACTIVE;
+      case Interface::CursorTypeNone:
+        panel_btns[0] = ButtonBuildInactive;
         if (interface->get_player()->has_castle()) {
-          panel_btns[1] = PANEL_BTN_DESTROY_INACTIVE;
+          panel_btns[1] = ButtonDestroyInactive;
         } else {
-          panel_btns[1] = PANEL_BTN_GROUND_ANALYSIS;
+          panel_btns[1] = ButtonGroundAnalysis;
         }
         break;
-      case MAP_CURSOR_TYPE_FLAG:
-        panel_btns[0] = PANEL_BTN_BUILD_ROAD;
-        panel_btns[1] = PANEL_BTN_DESTROY_INACTIVE;
+      case Interface::CursorTypeFlag:
+        panel_btns[0] = ButtonBuildRoad;
+        panel_btns[1] = ButtonDestroyInactive;
         break;
-      case MAP_CURSOR_TYPE_REMOVABLE_FLAG:
-        panel_btns[0] = PANEL_BTN_BUILD_ROAD;
-        panel_btns[1] = PANEL_BTN_DESTROY;
+      case Interface::CursorTypeRemovableFlag:
+        panel_btns[0] = ButtonBuildRoad;
+        panel_btns[1] = ButtonDestroy;
         break;
-      case MAP_CURSOR_TYPE_BUILDING:
+      case Interface::CursorTypeBuilding:
         panel_btns[0] = button_type_with_build_possibility(build_possibility);
-        panel_btns[1] = PANEL_BTN_DESTROY;
+        panel_btns[1] = ButtonDestroy;
         break;
-      case MAP_CURSOR_TYPE_PATH:
-        panel_btns[0] = PANEL_BTN_BUILD_INACTIVE;
-        panel_btns[1] = PANEL_BTN_DESTROY_ROAD;
-        if (build_possibility != CAN_BUILD_NONE) {
-          panel_btns[0] = PANEL_BTN_BUILD_FLAG;
+      case Interface::CursorTypePath:
+        panel_btns[0] = ButtonBuildInactive;
+        panel_btns[1] = ButtonDestroyRoad;
+        if (build_possibility != Interface::BuildPossibilityNone) {
+          panel_btns[0] = ButtonBuildFlag;
         }
         break;
-      case MAP_CURSOR_TYPE_CLEAR_BY_FLAG:
-        if (build_possibility == CAN_BUILD_NONE ||
-            build_possibility == CAN_BUILD_FLAG) {
-          panel_btns[0] = PANEL_BTN_BUILD_INACTIVE;
+      case Interface::CursorTypeClearByFlag:
+        if (build_possibility == Interface::BuildPossibilityNone ||
+            build_possibility == Interface::BuildPossibilityFlag) {
+          panel_btns[0] = ButtonBuildInactive;
           if (interface->get_player()->has_castle()) {
-            panel_btns[1] = PANEL_BTN_DESTROY_INACTIVE;
+            panel_btns[1] = ButtonDestroyInactive;
           } else {
-            panel_btns[1] = PANEL_BTN_GROUND_ANALYSIS;
+            panel_btns[1] = ButtonGroundAnalysis;
           }
         } else {
           panel_btns[0] = button_type_with_build_possibility(build_possibility);
-          panel_btns[1] = PANEL_BTN_DESTROY_INACTIVE;
+          panel_btns[1] = ButtonDestroyInactive;
         }
         break;
-      case MAP_CURSOR_TYPE_CLEAR_BY_PATH:
+      case Interface::CursorTypeClearByPath:
         panel_btns[0] = button_type_with_build_possibility(build_possibility);
-        panel_btns[1] = PANEL_BTN_DESTROY_INACTIVE;
+        panel_btns[1] = ButtonDestroyInactive;
         break;
-      case MAP_CURSOR_TYPE_CLEAR:
+      case Interface::CursorTypeClear:
         panel_btns[0] = button_type_with_build_possibility(build_possibility);
         if ((interface->get_player() != NULL) &&
             interface->get_player()->has_castle()) {
-          panel_btns[1] = PANEL_BTN_DESTROY_INACTIVE;
+          panel_btns[1] = ButtonDestroyInactive;
         } else {
-          panel_btns[1] = PANEL_BTN_GROUND_ANALYSIS;
+          panel_btns[1] = ButtonGroundAnalysis;
         }
         break;
       default:
@@ -515,7 +517,7 @@ panel_bar_t::update() {
 }
 
 void
-panel_bar_t::on_timer_fired(unsigned int id) {
+PanelBar::on_timer_fired(unsigned int id) {
   blink_trigger = !blink_trigger;
   set_redraw();
 }

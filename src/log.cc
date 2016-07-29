@@ -23,21 +23,21 @@
 
 #include <cstdarg>
 
-static log_level_t log_level = LOG_LEVEL_DEBUG;
+static Log::Level log_level = Log::LevelDebug;
 static FILE *log_file = NULL;
 
 void
-log_set_file(FILE *file) {
+Log::set_file(FILE *file) {
   log_file = file;
 }
 
 void
-log_set_level(log_level_t level) {
+Log::set_level(Log::Level level) {
   log_level = level;
 }
 
 static void
-log_msg_va(log_level_t level, const char *system, const char *format,
+log_msg_va(Log::Level level, const char *system, const char *format,
            va_list ap) {
   if (level >= log_level) {
     if (system != NULL) fprintf(log_file, "[%s] ", system);
@@ -47,7 +47,7 @@ log_msg_va(log_level_t level, const char *system, const char *format,
 }
 
 void
-log_msg(log_level_t level, const char *system, const char *format, ...) {
+Log::msg(Log::Level level, const char *system, const char *format, ...) {
   va_list ap;
   va_start(ap, format);
   log_msg_va(level, system, format, ap);

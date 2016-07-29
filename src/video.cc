@@ -23,28 +23,28 @@
 
 #include <sstream>
 
-Video_Exception::Video_Exception(const std::string &description) throw() :
-  Freeserf_Exception(description) {
+ExceptionVideo::ExceptionVideo(const std::string &description) throw() :
+  ExceptionFreeserf(description) {
 }
 
-Video_Exception::~Video_Exception() throw() {
+ExceptionVideo::~ExceptionVideo() throw() {
 }
 
 std::string
-Video_Exception::get_description() const {
+ExceptionVideo::get_description() const {
   return "[" + get_system() + ":" + get_platform() + "] " + description.c_str();
 }
 
-video_t *video_t::instance = NULL;
+Video *Video::instance = NULL;
 
-video_t::video_t() throw(Video_Exception) {
+Video::Video() throw(ExceptionVideo) {
   if (instance != NULL) {
-    throw Video_Exception("Unable to create second instance.");
+    throw ExceptionVideo("Unable to create second instance.");
   }
 
   instance = this;
 }
 
-video_t::~video_t() {
+Video::~Video() {
   instance = NULL;
 }

@@ -31,15 +31,15 @@
 #include "src/data.h"
 #include "src/data-source.h"
 
-audio_t *
-audio_t::get_instance() {
+Audio *
+Audio::get_instance() {
   if (instance == NULL) {
-    instance = new audio_sdlmixer_t();
+    instance = new AudioSDL();
   }
   return instance;
 }
 
-audio_sdlmixer_t::audio_sdlmixer_t() {
+AudioSDL::AudioSDL() {
   LOGI("audio-sdlmixer", "Initializing audio driver `sdlmixer'.");
 
   if (SDL_Init(SDL_INIT_AUDIO | SDL_INIT_TIMER) != 0) {
@@ -67,11 +67,11 @@ audio_sdlmixer_t::audio_sdlmixer_t() {
 
   volume = 1.f;
 
-  sfx_player = new sfx_player_t();
-  midi_player = new midi_player_t();
+  sfx_player = new AudioSDL::PlayerSFX();
+  midi_player = new AudioSDL::PlayerMIDI();
 }
 
-audio_sdlmixer_t::~audio_sdlmixer_t() {
+AudioSDL::~AudioSDL() {
   if (sfx_player != NULL) {
     delete sfx_player;
     sfx_player = NULL;
@@ -87,17 +87,17 @@ audio_sdlmixer_t::~audio_sdlmixer_t() {
 }
 
 float
-audio_sdlmixer_t::get_volume() {
+AudioSDL::get_volume() {
   return volume;
 }
 
 void
-audio_sdlmixer_t::set_volume(float volume) {
+AudioSDL::set_volume(float volume) {
   volume = std::max(0.f, std::min(volume, 1.f));
   this->volume = volume;
 
   if (midi_player != NULL) {
-    audio_volume_controller_t *volume_controller =
+    Audio::VolumeController *volume_controller =
                                            midi_player->get_volume_controller();
     if (volume_controller != NULL) {
       volume_controller->set_volume(volume);
@@ -105,7 +105,7 @@ audio_sdlmixer_t::set_volume(float volume) {
   }
 
   if (sfx_player != NULL) {
-    audio_volume_controller_t *volume_controller =
+    Audio::VolumeController *volume_controller =
                                             sfx_player->get_volume_controller();
     if (volume_controller != NULL) {
       volume_controller->set_volume(volume);
@@ -114,21 +114,21 @@ audio_sdlmixer_t::set_volume(float volume) {
 }
 
 void
-audio_sdlmixer_t::volume_up() {
+AudioSDL::volume_up() {
   float volume = get_volume();
   set_volume(volume + 0.1f);
 }
 
 void
-audio_sdlmixer_t::volume_down() {
+AudioSDL::volume_down() {
   float volume = get_volume();
   set_volume(volume - 0.1f);
 }
 
-audio_track_t *
-sfx_player_t::create_track(int track_id) {
-  data_t *data = data_t::get_instance();
-  data_source_t *data_source = data->get_data_source();
+Audio::Track *
+AudioSDL::PlayerSFX::create_track(int track_id) {
+  Data *data = Data::get_instance();
+  DataSource *data_source = data->get_data_source();
 
   size_t size = 0;
   void *wav = data_source->get_sound(track_id, &size);
@@ -144,11 +144,11 @@ sfx_player_t::create_track(int track_id) {
     return NULL;
   }
 
-  return new sfx_track_t(chunk);
+  return new AudioSDL::TrackSFX(chunk);
 }
 
 void
-sfx_player_t::enable(bool enable) {
+AudioSDL::PlayerSFX::enable(bool enable) {
   enabled = enable;
   if (!enabled) {
     stop();
@@ -156,67 +156,67 @@ sfx_player_t::enable(bool enable) {
 }
 
 void
-sfx_player_t::stop() {
+AudioSDL::PlayerSFX::stop() {
   Mix_HaltChannel(-1);
 }
 
 float
-sfx_player_t::get_volume() {
+AudioSDL::PlayerSFX::get_volume() {
   return static_cast<float>(Mix_Volume(-1, -1)) /
          static_cast<float>(MIX_MAX_VOLUME);
 }
 
 void
-sfx_player_t::set_volume(float volume) {
+AudioSDL::PlayerSFX::set_volume(float volume) {
   volume = std::max(0.f, std::min(volume, 1.f));
   float mix_volume = static_cast<float>(MIX_MAX_VOLUME) * volume;
   Mix_Volume(-1, static_cast<int>(mix_volume));
 }
 
 void
-sfx_player_t::volume_up() {
+AudioSDL::PlayerSFX::volume_up() {
   set_volume(get_volume() + 0.1f);
 }
 
 void
-sfx_player_t::volume_down() {
+AudioSDL::PlayerSFX::volume_down() {
   set_volume(get_volume() - 0.1f);
 }
 
-sfx_track_t::sfx_track_t(Mix_Chunk *chunk) {
+AudioSDL::TrackSFX::TrackSFX(Mix_Chunk *chunk) {
   this->chunk = chunk;
 }
 
-sfx_track_t::~sfx_track_t() {
+AudioSDL::TrackSFX::~TrackSFX() {
   Mix_FreeChunk(chunk);
 }
 
 void
-sfx_track_t::play() {
+AudioSDL::TrackSFX::play() {
   int r = Mix_PlayChannel(-1, chunk, 0);
   if (r < 0) {
     LOGE("audio-sdlmixer", "Could not play SFX clip: %s.", Mix_GetError());
   }
 }
 
-midi_player_t::midi_player_t() {
+AudioSDL::PlayerMIDI::PlayerMIDI() {
   if (current_midi_player != NULL) {
     LOGE("audio-sdlmixer", "Only one midi player is allowed.");
     assert(0);
   }
-  current_track = MIDI_TRACK_NONE;
+  current_track = TypeMidiNone;
   current_midi_player = this;
   Mix_HookMusicFinished(music_finished_hook);
 }
 
-midi_player_t::~midi_player_t() {
+AudioSDL::PlayerMIDI::~PlayerMIDI() {
   Mix_HookMusicFinished(NULL);
 }
 
-audio_track_t *
-midi_player_t::create_track(int track_id) {
-  data_t *data = data_t::get_instance();
-  data_source_t *data_source = data->get_data_source();
+Audio::Track *
+AudioSDL::PlayerMIDI::create_track(int track_id) {
+  Data *data = Data::get_instance();
+  DataSource *data_source = data->get_data_source();
 
   size_t size = 0;
   void *midi = data_source->get_music(track_id, &size);
@@ -231,20 +231,20 @@ midi_player_t::create_track(int track_id) {
     return NULL;
   }
 
-  return new midi_track_t(music);
+  return new AudioSDL::TrackMIDI(music);
 }
 
 void
-midi_player_t::play_track(int track_id) {
-  if ((track_id <= MIDI_TRACK_NONE) || (track_id > MIDI_TRACK_LAST)) {
-    track_id = MIDI_TRACK_0;
+AudioSDL::PlayerMIDI::play_track(int track_id) {
+  if ((track_id <= TypeMidiNone) || (track_id > TypeMidiTrackLast)) {
+    track_id = TypeMidiTrack0;
   }
-  current_track = static_cast<midi_t>(track_id);
-  audio_player_t::play_track(track_id);
+  current_track = static_cast<TypeMidi>(track_id);
+  Audio::Player::play_track(track_id);
 }
 
 void
-midi_player_t::enable(bool enable) {
+AudioSDL::PlayerMIDI::enable(bool enable) {
   enabled = enable;
   if (!enabled) {
     stop();
@@ -252,65 +252,66 @@ midi_player_t::enable(bool enable) {
 }
 
 void
-midi_player_t::stop() {
+AudioSDL::PlayerMIDI::stop() {
   Mix_HaltMusic();
 }
 
 float
-midi_player_t::get_volume() {
+AudioSDL::PlayerMIDI::get_volume() {
   return static_cast<float>(Mix_VolumeMusic(-1)) /
          static_cast<float>(MIX_MAX_VOLUME);
 }
 
 void
-midi_player_t::set_volume(float volume) {
+AudioSDL::PlayerMIDI::set_volume(float volume) {
   volume = std::max(0.f, std::min(volume, 1.f));
   float mix_volume = static_cast<float>(MIX_MAX_VOLUME) * volume;
   Mix_VolumeMusic(static_cast<int>(mix_volume));
 }
 
 void
-midi_player_t::volume_up() {
+AudioSDL::PlayerMIDI::volume_up() {
   set_volume(get_volume() + 0.1f);
 }
 
 void
-midi_player_t::volume_down() {
+AudioSDL::PlayerMIDI::volume_down() {
   set_volume(get_volume() - 0.1f);
 }
 
-midi_player_t *midi_player_t::current_midi_player = NULL;
+AudioSDL::PlayerMIDI *
+AudioSDL::PlayerMIDI::current_midi_player = NULL;
 
 void
-midi_player_t::music_finished_hook() {
+AudioSDL::PlayerMIDI::music_finished_hook() {
   if (current_midi_player != NULL) {
-    event_loop_t *event_loop = event_loop_t::get_instance();
+    EventLoop *event_loop = EventLoop::get_instance();
     event_loop->deferred_call(current_midi_player, NULL);
   }
 }
 
 void
-midi_player_t::deferred_call(void *data) {
+AudioSDL::PlayerMIDI::deferred_call(void *data) {
   music_finished();
 }
 
 void
-midi_player_t::music_finished() {
+AudioSDL::PlayerMIDI::music_finished() {
   if (is_enabled()) {
     play_track(current_track + 1);
   }
 }
 
-midi_track_t::midi_track_t(Mix_Music *chunk) {
+AudioSDL::TrackMIDI::TrackMIDI(Mix_Music *chunk) {
   this->chunk = chunk;
 }
 
-midi_track_t::~midi_track_t() {
+AudioSDL::TrackMIDI::~TrackMIDI() {
   Mix_FreeMusic(chunk);
 }
 
 void
-midi_track_t::play() {
+AudioSDL::TrackMIDI::play() {
   int r = Mix_PlayMusic(chunk, 0);
   if (r < 0) {
     LOGW("audio-sdlmixer", "Could not play MIDI track: %s\n", Mix_GetError());

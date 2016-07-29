@@ -28,27 +28,40 @@
 #include "src/game.h"
 #include "src/mission.h"
 
-class interface_t;
-class random_input_t;
-class minimap_t;
+class Interface;
+class RandomInput;
+class Minimap;
 
-class game_init_box_t : public gui_object_t {
+class GameInitBox : public GuiObject {
  protected:
-  interface_t *interface;
+  typedef enum Action {
+    ActionStartGame,
+    ActionToggleGameType,
+    ActionShowOptions,
+    ActionShowLoadGame,
+    ActionIncrement,
+    ActionDecrement,
+    ActionClose,
+    ActionGenRandom,
+    ActionApplyRandom,
+  } Action;
+
+ protected:
+  Interface *interface;
 
   int map_size;
   int game_mission;
 
-  mission_t custom_mission;
-  mission_t *mission;
+  Mission custom_mission;
+  Mission *mission;
 
-  random_input_t *field;
-  map_t *map;
-  minimap_t *minimap;
+  RandomInput *field;
+  Map *map;
+  Minimap *minimap;
 
  public:
-  explicit game_init_box_t(interface_t *interface);
-  virtual ~game_init_box_t();
+  explicit GameInitBox(Interface *interface);
+  virtual ~GameInitBox();
 
  protected:
   void draw_box_icon(int x, int y, int sprite);
@@ -58,7 +71,7 @@ class game_init_box_t : public gui_object_t {
   unsigned int get_player_face_sprite(size_t face);
   void handle_action(int action);
   bool handle_player_click(int player, int x, int y);
-  void apply_random(random_state_t rnd);
+  void apply_random(Random rnd);
   void generate_map_preview();
 
   virtual void internal_draw();

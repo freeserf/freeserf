@@ -26,14 +26,14 @@
 #include "src/video.h"
 #include "src/data-source.h"
 
-GFX_Exception::GFX_Exception(const std::string &description) throw()
-  : Freeserf_Exception(description) {
+ExceptionGFX::ExceptionGFX(const std::string &description) throw()
+  : ExceptionFreeserf(description) {
 }
 
-GFX_Exception::~GFX_Exception() throw() {
+ExceptionGFX::~ExceptionGFX() throw() {
 }
 
-image_t::image_t(video_t *video, sprite_t *sprite) {
+Image::Image(Video *video, Sprite *sprite) {
   this->video = video;
   width = sprite->get_width();
   height = sprite->get_height();
@@ -44,7 +44,7 @@ image_t::image_t(video_t *video, sprite_t *sprite) {
   video_image = video->create_image(sprite->get_data(), width, height);
 }
 
-image_t::~image_t() {
+Image::~Image() {
   if (video_image != NULL) {
     video->destroy_image(video_image);
     video_image = NULL;
@@ -53,17 +53,17 @@ image_t::~image_t() {
 }
 
 /* Sprite cache hash table */
-image_t::image_cache_t image_t::image_cache;
+Image::ImageCache Image::image_cache;
 
 void
-image_t::cache_image(uint64_t id, image_t *image) {
+Image::cache_image(uint64_t id, Image *image) {
   image_cache[id] = image;
 }
 
 /* Return a pointer to the sprite pointer associated with id. */
-image_t *
-image_t::get_cached_image(uint64_t id) {
-  image_cache_t::iterator result = image_cache.find(id);
+Image *
+Image::get_cached_image(uint64_t id) {
+  ImageCache::iterator result = image_cache.find(id);
   if (result == image_cache.end()) {
     return NULL;
   }
@@ -71,52 +71,52 @@ image_t::get_cached_image(uint64_t id) {
 }
 
 void
-image_t::clear_cache() {
+Image::clear_cache() {
   while (!image_cache.empty()) {
-    image_t *image = image_cache.begin()->second;
+    Image *image = image_cache.begin()->second;
     image_cache.erase(image_cache.begin());
     delete image;
   }
 }
 
-gfx_t *gfx_t::instance = NULL;
+Graphics *Graphics::instance = NULL;
 
-gfx_t::gfx_t() throw(Freeserf_Exception) {
+Graphics::Graphics() throw(ExceptionFreeserf) {
   if (instance != NULL) {
-    throw GFX_Exception("Unable to create second instance.");
+    throw ExceptionGFX("Unable to create second instance.");
   }
 
   try {
-    video = video_t::get_instance();
-  } catch (Video_Exception &e) {
-    throw GFX_Exception(e.what());
+    video = Video::get_instance();
+  } catch (ExceptionVideo &e) {
+    throw ExceptionGFX(e.what());
   }
 
-  data_t *data = data_t::get_instance();
-  data_source_t *data_source = data->get_data_source();
-  sprite_t *sprite = data_source->get_transparent_sprite(DATA_CURSOR, 0);
+  Data *data = Data::get_instance();
+  DataSource *data_source = data->get_data_source();
+  Sprite *sprite = data_source->get_transparent_sprite(DATA_CURSOR, 0);
   video->set_cursor(sprite->get_data(), sprite->get_width(),
                     sprite->get_height());
   delete sprite;
 
-  gfx_t::instance = this;
+  Graphics::instance = this;
 }
 
-gfx_t::~gfx_t() {
-  image_t::clear_cache();
+Graphics::~Graphics() {
+  Image::clear_cache();
 
   if (video != NULL) {
     delete video;
     video = NULL;
   }
 
-  gfx_t::instance = NULL;
+  Graphics::instance = NULL;
 }
 
-gfx_t*
-gfx_t::get_instance() {
+Graphics*
+Graphics::get_instance() {
   if (instance == NULL) {
-    instance = new gfx_t();
+    instance = new Graphics();
   }
   return instance;
 }
@@ -124,18 +124,18 @@ gfx_t::get_instance() {
 /* Draw the opaque sprite with data file index of
    sprite at x, y in dest frame. */
 void
-frame_t::draw_sprite(int x, int y, unsigned int sprite) {
-  uint64_t id = sprite_t::create_sprite_id(sprite, 0, 0);
-  image_t *image = image_t::get_cached_image(id);
+Frame::draw_sprite(int x, int y, unsigned int sprite) {
+  uint64_t id = Sprite::create_sprite_id(sprite, 0, 0);
+  Image *image = Image::get_cached_image(id);
   if (image == NULL) {
-    sprite_t *s = data_source->get_sprite(sprite);
+    Sprite *s = data_source->get_sprite(sprite);
     if (s == NULL) {
       LOGW("graphics", "Failed to decode sprite #%i", sprite);
       return;
     }
 
-    image = new image_t(video, s);
-    image_t::cache_image(id, image);
+    image = new Image(video, s);
+    Image::cache_image(id, image);
 
     delete s;
   }
@@ -149,19 +149,19 @@ frame_t::draw_sprite(int x, int y, unsigned int sprite) {
    sprite at x, y in dest frame.*/
 
 void
-frame_t::draw_transp_sprite(int x, int y, unsigned int sprite, bool use_off,
+Frame::draw_transp_sprite(int x, int y, unsigned int sprite, bool use_off,
                             unsigned char color_off, float progress) {
-  uint64_t id = sprite_t::create_sprite_id(sprite, 0, color_off);
-  image_t *image = image_t::get_cached_image(id);
+  uint64_t id = Sprite::create_sprite_id(sprite, 0, color_off);
+  Image *image = Image::get_cached_image(id);
   if (image == NULL) {
-    sprite_t *s = data_source->get_transparent_sprite(sprite, color_off);
+    Sprite *s = data_source->get_transparent_sprite(sprite, color_off);
     if (s == NULL) {
       LOGW("graphics", "Failed to decode sprite #%i", sprite);
       return;
     }
 
-    image = new image_t(video, s);
-    image_t::cache_image(id, image);
+    image = new Image(video, s);
+    Image::cache_image(id, image);
 
     delete s;
   }
@@ -177,26 +177,26 @@ frame_t::draw_transp_sprite(int x, int y, unsigned int sprite, bool use_off,
 
 
 void
-frame_t::draw_transp_sprite(int x, int y, unsigned int sprite, bool use_off) {
+Frame::draw_transp_sprite(int x, int y, unsigned int sprite, bool use_off) {
   draw_transp_sprite(x, y, sprite, use_off, 0, 1.f);
 }
 
 void
-frame_t::draw_transp_sprite(int x, int y, unsigned int sprite, bool use_off,
-                            float progress) {
+Frame::draw_transp_sprite(int x, int y, unsigned int sprite, bool use_off,
+                          float progress) {
   draw_transp_sprite(x, y, sprite, use_off, 0, progress);
 }
 
 void
-frame_t::draw_transp_sprite(int x, int y, unsigned int sprite, bool use_off,
-                            unsigned char color_offs) {
+Frame::draw_transp_sprite(int x, int y, unsigned int sprite, bool use_off,
+                          unsigned char color_offs) {
   draw_transp_sprite(x, y, sprite, use_off, color_offs, 1.f);
 }
 
 void
-frame_t::draw_transp_sprite_relatively(int x, int y, unsigned int sprite,
-                                       unsigned int offs_sprite) {
-  sprite_t *s = data_source->get_empty_sprite(offs_sprite);
+Frame::draw_transp_sprite_relatively(int x, int y, unsigned int sprite,
+                                     unsigned int offs_sprite) {
+  Sprite *s = data_source->get_empty_sprite(offs_sprite);
   x += s->get_delta_x();
   y += s->get_delta_y();
 
@@ -207,25 +207,25 @@ frame_t::draw_transp_sprite_relatively(int x, int y, unsigned int sprite,
 /* Draw the masked sprite with given mask and sprite
    indices at x, y in dest frame. */
 void
-frame_t::draw_masked_sprite(int x, int y, unsigned int mask,
-                            unsigned int sprite) {
-  uint64_t id = sprite_t::create_sprite_id(sprite, mask, 0);
-  image_t *image = image_t::get_cached_image(id);
+Frame::draw_masked_sprite(int x, int y, unsigned int mask,
+                          unsigned int sprite) {
+  uint64_t id = Sprite::create_sprite_id(sprite, mask, 0);
+  Image *image = Image::get_cached_image(id);
   if (image == NULL) {
-    sprite_t *s = data_source->get_sprite(sprite);
+    Sprite *s = data_source->get_sprite(sprite);
     if (s == NULL) {
       LOGW("graphics", "Failed to decode sprite #%i", sprite);
       return;
     }
 
-    sprite_t *m = data_source->get_mask_sprite(mask);
+    Sprite *m = data_source->get_mask_sprite(mask);
     if (m == NULL) {
       LOGW("graphics", "Failed to decode sprite #%i", mask);
       delete s;
       return;
     }
 
-    sprite_t *masked = s->get_masked(m);
+    Sprite *masked = s->get_masked(m);
     if (masked == NULL) {
       LOGW("graphics", "Failed to apply mask #%i to sprite #%i", mask, sprite);
       return;
@@ -236,8 +236,8 @@ frame_t::draw_masked_sprite(int x, int y, unsigned int mask,
 
     s = masked;
 
-    image = new image_t(video, s);
-    image_t::cache_image(id, image);
+    image = new Image(video, s);
+    Image::cache_image(id, image);
 
     delete s;
   }
@@ -252,24 +252,24 @@ frame_t::draw_masked_sprite(int x, int y, unsigned int mask,
    offset in the vertical axis from y_off in the
    sprite. */
 void
-frame_t::draw_overlay_sprite(int x, int y, unsigned int sprite) {
+Frame::draw_overlay_sprite(int x, int y, unsigned int sprite) {
   draw_overlay_sprite(x, y, sprite, 1.f);
 }
 
 void
-frame_t::draw_overlay_sprite(int x, int y, unsigned int sprite,
+Frame::draw_overlay_sprite(int x, int y, unsigned int sprite,
                              float progress) {
-  uint64_t id = sprite_t::create_sprite_id(sprite, 0, 0);
-  image_t *image = image_t::get_cached_image(id);
+  uint64_t id = Sprite::create_sprite_id(sprite, 0, 0);
+  Image *image = Image::get_cached_image(id);
   if (image == NULL) {
-    sprite_t *s = data_source->get_overlay_sprite(sprite);
+    Sprite *s = data_source->get_overlay_sprite(sprite);
     if (s == NULL) {
       LOGW("graphics", "Failed to decode sprite #%i", sprite);
       return;
     }
 
-    image = new image_t(video, s);
-    image_t::cache_image(id, image);
+    image = new Image(video, s);
+    Image::cache_image(id, image);
 
     delete s;
   }
@@ -286,25 +286,24 @@ frame_t::draw_overlay_sprite(int x, int y, unsigned int sprite,
 /* Draw the waves sprite with given mask and sprite
    indices at x, y in dest frame. */
 void
-frame_t::draw_waves_sprite(int x, int y, unsigned int mask,
-                           unsigned int sprite) {
-  uint64_t id = sprite_t::create_sprite_id(sprite, mask, 0);
-  image_t *image = image_t::get_cached_image(id);
+Frame::draw_waves_sprite(int x, int y, unsigned int mask, unsigned int sprite) {
+  uint64_t id = Sprite::create_sprite_id(sprite, mask, 0);
+  Image *image = Image::get_cached_image(id);
   if (image == NULL) {
-    sprite_t *s = data_source->get_transparent_sprite(sprite, 0);
+    Sprite *s = data_source->get_transparent_sprite(sprite, 0);
     if (s == NULL) {
       LOGW("graphics", "Failed to decode sprite #%i", sprite);
       return;
     }
 
     if (mask > 0) {
-      sprite_t *m = data_source->get_mask_sprite(mask);
+      Sprite *m = data_source->get_mask_sprite(mask);
       if (m == NULL) {
         LOGW("graphics", "Failed to decode sprite #%i", sprite);
         return;
       }
 
-      sprite_t *masked = s->get_masked(m);
+      Sprite *masked = s->get_masked(m);
       if (masked == NULL) {
         LOGW("graphics", "Failed to apply mask #%i to sprite #%i",
              mask, sprite);
@@ -317,8 +316,8 @@ frame_t::draw_waves_sprite(int x, int y, unsigned int mask,
       s = masked;
     }
 
-    image = new image_t(video, s);
-    image_t::cache_image(id, image);
+    image = new Image(video, s);
+    Image::cache_image(id, image);
 
     delete s;
   }
@@ -330,8 +329,8 @@ frame_t::draw_waves_sprite(int x, int y, unsigned int mask,
 
 /* Draw a character at x, y in the dest frame. */
 void
-frame_t::draw_char_sprite(int x, int y, unsigned char c, unsigned char color,
-                          unsigned char shadow) {
+Frame::draw_char_sprite(int x, int y, unsigned char c, unsigned char color,
+                        unsigned char shadow) {
   static const int sprite_offset_from_ascii[] = {
     -1, -1, -1, -1, -1, -1, -1, -1,
     -1, -1, -1, -1, -1, -1, -1, -1,
@@ -379,8 +378,8 @@ frame_t::draw_char_sprite(int x, int y, unsigned char c, unsigned char color,
 
 /* Draw the string str at x, y in the dest frame. */
 void
-frame_t::draw_string(int x, int y, unsigned char color, int shadow,
-                     const std::string &str) {
+Frame::draw_string(int x, int y, unsigned char color, int shadow,
+                   const std::string &str) {
   for (std::string::const_iterator it = str.begin(); it != str.end(); ++it) {
 /*
     if (string_bg) {
@@ -396,7 +395,7 @@ frame_t::draw_string(int x, int y, unsigned char color, int shadow,
 
 /* Draw the number n at x, y in the dest frame. */
 void
-frame_t::draw_number(int x, int y, unsigned char color, int shadow, int n) {
+Frame::draw_number(int x, int y, unsigned char color, int shadow, int n) {
   if (n < 0) {
     draw_char_sprite(x, y, '-', color, shadow);
     x += 8;
@@ -419,41 +418,41 @@ frame_t::draw_number(int x, int y, unsigned char color, int shadow, int n) {
 
 /* Draw a rectangle with color at x, y in the dest frame. */
 void
-frame_t::draw_rect(int x, int y, int width, int height, unsigned char color) {
-  color_t col = data_source->get_color(color);
-  video_color_t c = { col.red, col.green, col.blue, col.alpha };
+Frame::draw_rect(int x, int y, int width, int height, unsigned char color) {
+  Color col = data_source->get_color(color);
+  Video::Color c = { col.red, col.green, col.blue, col.alpha };
   video->draw_rect(x, y, width, height, c, video_frame);
 }
 
 /* Draw a rectangle with color at x, y in the dest frame. */
 void
-frame_t::fill_rect(int x, int y, int width, int height, unsigned char color) {
-  color_t col = data_source->get_color(color);
-  video_color_t c = { col.red, col.green, col.blue, col.alpha };
+Frame::fill_rect(int x, int y, int width, int height, unsigned char color) {
+  Color col = data_source->get_color(color);
+  Video::Color c = { col.red, col.green, col.blue, col.alpha };
   video->fill_rect(x, y, width, height, c, video_frame);
 }
 
 /* Initialize new graphics frame. If dest is NULL a new
    backing surface is created, otherwise the same surface
    as dest is used. */
-frame_t::frame_t(video_t *video, unsigned int width, unsigned int height) {
+Frame::Frame(Video *video, unsigned int width, unsigned int height) {
   this->video = video;
   video_frame = video->create_frame(width, height);
   owner = true;
-  data_t *data = data_t::get_instance();
+  Data *data = Data::get_instance();
   data_source = data->get_data_source();
 }
 
-frame_t::frame_t(video_t *video, video_frame_t *video_frame) {
+Frame::Frame(Video *video, Video::Frame *video_frame) {
   this->video = video;
   this->video_frame = video_frame;
   owner = false;
-  data_t *data = data_t::get_instance();
+  Data *data = Data::get_instance();
   data_source = data->get_data_source();
 }
 
 /* Deinitialize frame and backing surface. */
-frame_t::~frame_t() {
+Frame::~Frame() {
   if (owner) {
     video->destroy_frame(video_frame);
   }
@@ -463,55 +462,55 @@ frame_t::~frame_t() {
 /* Draw source frame from rectangle at sx, sy with given
    width and height, to destination frame at dx, dy. */
 void
-frame_t::draw_frame(int dx, int dy, int sx, int sy, frame_t *src,
-                    int w, int h) {
+Frame::draw_frame(int dx, int dy, int sx, int sy, Frame *src,
+                  int w, int h) {
   video->draw_frame(dx, dy, video_frame, sx, sy, src->video_frame, w, h);
 }
 
-frame_t *
-gfx_t::create_frame(unsigned int width, unsigned int height) {
-  return new frame_t(video, width, height);
+Frame *
+Graphics::create_frame(unsigned int width, unsigned int height) {
+  return new Frame(video, width, height);
 }
 
 /* Enable or disable fullscreen mode */
 void
-gfx_t::set_fullscreen(bool enable) {
+Graphics::set_fullscreen(bool enable) {
   video->set_fullscreen(enable);
 }
 
 /* Check whether fullscreen mode is enabled */
 bool
-gfx_t::is_fullscreen() {
+Graphics::is_fullscreen() {
   return video->is_fullscreen();
 }
 
-frame_t *
-gfx_t::get_screen_frame() {
-  return new frame_t(video, video->get_screen_frame());
+Frame *
+Graphics::get_screen_frame() {
+  return new Frame(video, video->get_screen_frame());
 }
 
 void
-gfx_t::set_resolution(unsigned int width, unsigned int height,
+Graphics::set_resolution(unsigned int width, unsigned int height,
                       bool fullscreen) {
   video->set_resolution(width, height, fullscreen);
 }
 
 void
-gfx_t::get_resolution(unsigned int *width, unsigned int *height) {
+Graphics::get_resolution(unsigned int *width, unsigned int *height) {
   video->get_resolution(width, height);
 }
 
 void
-gfx_t::swap_buffers() {
+Graphics::swap_buffers() {
   video->swap_buffers();
 }
 
 float
-gfx_t::get_zoom_factor() {
+Graphics::get_zoom_factor() {
   return video->get_zoom_factor();
 }
 
 bool
-gfx_t::set_zoom_factor(float factor) {
+Graphics::set_zoom_factor(float factor) {
   return video->set_zoom_factor(factor);
 }
