@@ -21,9 +21,9 @@ install:
       if (!(Test-Path -Path $SDL_PREFIX)) {
         Start-FileDownload https://libsdl.org/release/SDL2-devel-$SDL_VERSION-VC.zip
         7z x SDL2-devel-$SDL_VERSION-VC.zip -oC:\sdl_root\
-        $env:SDL2_INCLUDE = "$SDL_PREFIX\include"
-        $env:SDL2_LIB = "$SDL_PREFIX\lib"
       }
+      $env:SDL2_INCLUDE = "$SDL_PREFIX\include"
+      $env:SDL2_LIB = "$SDL_PREFIX\lib"
 
   # SDL2_mixer
   - ps: |
@@ -32,9 +32,9 @@ install:
       if (!(Test-Path -Path $SDL_MIXER_PREFIX)) {
         Start-FileDownload https://www.libsdl.org/projects/SDL_mixer/release/SDL2_mixer-devel-$SDL_MIXER_VERSION-VC.zip
         7z x SDL2_mixer-devel-$SDL_MIXER_VERSION-VC.zip -oC:\sdl_root\
-        $env:SDL2_MIXER_INCLUDE = "$SDL_MIXER_PREFIX\include"
-        $env:SDL2_MIXER_LIB = "$SDL_MIXER_PREFIX\lib"
       }
+      $env:SDL2_MIXER_INCLUDE = "$SDL_MIXER_PREFIX\include"
+      $env:SDL2_MIXER_LIB = "$SDL_MIXER_PREFIX\lib"
 
 build_script:
   - msbuild windows\freeserf.sln
