@@ -747,17 +747,20 @@ game_t::road_segment_in_water(map_pos_t pos, dir_t dir) {
 
   switch (dir) {
   case DIR_RIGHT:
-    if (map->type_down(pos) < 4 && map->type_up(map->move_up(pos)) < 4) {
+    if (map->type_down(pos) <= MAP_TERRAIN_WATER_3 &&
+        map->type_up(map->move_up(pos)) <= MAP_TERRAIN_WATER_3) {
       water = 1;
     }
     break;
   case DIR_DOWN_RIGHT:
-    if (map->type_up(pos) < 4 && map->type_down(pos) < 4) {
+    if (map->type_up(pos) <= MAP_TERRAIN_WATER_3 &&
+        map->type_down(pos) <= MAP_TERRAIN_WATER_3) {
       water = 1;
     }
     break;
   case DIR_DOWN:
-    if (map->type_up(pos) < 4 && map->type_down(map->move_left(pos)) < 4) {
+    if (map->type_up(pos) <= MAP_TERRAIN_WATER_3 &&
+        map->type_down(map->move_left(pos)) <= MAP_TERRAIN_WATER_3) {
       water = 1;
     }
     break;
@@ -1055,12 +1058,12 @@ game_t::can_build_flag(map_pos_t pos, const player_t *player) {
   }
 
   /* Check whether cursor is in water */
-  if (map->type_up(pos) < 4 &&
-      map->type_down(pos) < 4 &&
-      map->type_down(map->move_left(pos)) < 4 &&
-      map->type_up(map->move_up_left(pos)) < 4 &&
-      map->type_down(map->move_up_left(pos)) < 4 &&
-      map->type_up(map->move_up(pos)) < 4) {
+  if (map->type_up(pos) <= MAP_TERRAIN_WATER_3 &&
+      map->type_down(pos) <= MAP_TERRAIN_WATER_3 &&
+      map->type_down(map->move_left(pos)) <= MAP_TERRAIN_WATER_3 &&
+      map->type_up(map->move_up_left(pos)) <= MAP_TERRAIN_WATER_3 &&
+      map->type_down(map->move_up_left(pos)) <= MAP_TERRAIN_WATER_3 &&
+      map->type_up(map->move_up(pos)) <= MAP_TERRAIN_WATER_3) {
     return false;
   }
 
@@ -1160,7 +1163,8 @@ game_t::get_leveling_height(map_pos_t pos) {
 }
 
 bool
-game_t::map_types_within(map_pos_t pos, unsigned int low, unsigned int high) {
+game_t::map_types_within(
+    map_pos_t pos, map_terrain_t low, map_terrain_t high) {
   if ((map->type_up(pos) >= low &&
        map->type_up(pos) <= high) &&
       (map->type_down(pos) >= low &&
@@ -1182,13 +1186,13 @@ game_t::map_types_within(map_pos_t pos, unsigned int low, unsigned int high) {
 /* Checks whether a small building is possible at position.*/
 bool
 game_t::can_build_small(map_pos_t pos) {
-  return map_types_within(pos, 4, 7);
+  return map_types_within(pos, MAP_TERRAIN_GRASS_0, MAP_TERRAIN_GRASS_3);
 }
 
 /* Checks whether a mine is possible at position. */
 bool
 game_t::can_build_mine(map_pos_t pos) {
-  return map_types_within(pos, 11, 14);
+  return map_types_within(pos, MAP_TERRAIN_TUNDRA_0, MAP_TERRAIN_SNOW_0);
 }
 
 /* Checks whether a large building is possible at position. */
@@ -1211,12 +1215,12 @@ game_t::can_build_large(map_pos_t pos) {
   }
 
   /* Check if center hexagon is not type grass. */
-  if (map->type_up(pos) != 5 ||
-      map->type_down(pos) != 5 ||
-      map->type_down(map->move_left(pos)) != 5 ||
-      map->type_up(map->move_up_left(pos)) != 5 ||
-      map->type_down(map->move_up_left(pos)) != 5 ||
-      map->type_up(map->move_up(pos)) != 5) {
+  if (map->type_up(pos) != MAP_TERRAIN_GRASS_1 ||
+      map->type_down(pos) != MAP_TERRAIN_GRASS_1 ||
+      map->type_down(map->move_left(pos)) != MAP_TERRAIN_GRASS_1 ||
+      map->type_up(map->move_up_left(pos)) != MAP_TERRAIN_GRASS_1 ||
+      map->type_down(map->move_up_left(pos)) != MAP_TERRAIN_GRASS_1 ||
+      map->type_up(map->move_up(pos)) != MAP_TERRAIN_GRASS_1) {
     return false;
   }
 
@@ -1278,12 +1282,12 @@ game_t::can_player_build(map_pos_t pos, const player_t *player) {
   }
 
   /* Check whether cursor is in water */
-  if (map->type_up(pos) < 4 &&
-      map->type_down(pos) < 4 &&
-      map->type_down(map->move_left(pos)) < 4 &&
-      map->type_up(map->move_up_left(pos)) < 4 &&
-      map->type_down(map->move_up_left(pos)) < 4 &&
-      map->type_up(map->move_up(pos)) < 4) {
+  if (map->type_up(pos) <= MAP_TERRAIN_WATER_3 &&
+      map->type_down(pos) <= MAP_TERRAIN_WATER_3 &&
+      map->type_down(map->move_left(pos)) <= MAP_TERRAIN_WATER_3 &&
+      map->type_up(map->move_up_left(pos)) <= MAP_TERRAIN_WATER_3 &&
+      map->type_down(map->move_up_left(pos)) <= MAP_TERRAIN_WATER_3 &&
+      map->type_up(map->move_up(pos)) <= MAP_TERRAIN_WATER_3) {
     return false;
   }
 
