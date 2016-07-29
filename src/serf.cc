@@ -2633,16 +2633,14 @@ serf_t::handle_serf_free_walking_state_dest_reached() {
       s.free_walking.dist2 = s.free_walking.neg_dist2;
 
       int a = -1;
-      if (game->get_map()->paths(pos) == 0) {
-        if ((game->get_map()->type_down(pos) & 0xc) == 0 &&
-            (game->get_map()->type_up(game->get_map()->move_up_left(pos)) &
-             0xc) != 0) {
+      map_t *map = game->get_map();
+      if (map->paths(pos) == 0) {
+        if (map->type_down(pos) <= MAP_TERRAIN_WATER_3 &&
+            map->type_up(map->move_up_left(pos)) >= MAP_TERRAIN_GRASS_0) {
           a = 132;
-        } else if ((game->get_map()->type_down(game->get_map()->move_left(pos))
-                    & 0xc) ==
-                   0 &&
-             (game->get_map()->type_up(game->get_map()->move_up(pos)) & 0xc) !=
-                   0) {
+        } else if (
+            map->type_down(map->move_left(pos)) <= MAP_TERRAIN_WATER_3 &&
+            map->type_up(map->move_up(pos)) >= MAP_TERRAIN_GRASS_0) {
           a = 131;
         }
       }
@@ -3277,15 +3275,16 @@ serf_t::handle_serf_planning_planting_state() {
   tick = game->get_tick();
   counter -= delta;
 
+  map_t *map = game->get_map();
   while (counter < 0) {
     int index = (game->random_int() & 0x7f) + 1;
-    map_pos_t pos_ = game->get_map()->pos_add_spirally(pos, index);
-    if (game->get_map()->paths(pos_) == 0 &&
-        game->get_map()->get_obj(pos_) == MAP_OBJ_NONE &&
-        game->get_map()->type_up(pos_) == 5 &&
-        game->get_map()->type_down(pos_) == 5 &&
-        game->get_map()->type_up(game->get_map()->move_up_left(pos_)) == 5 &&
-        game->get_map()->type_down(game->get_map()->move_up_left(pos_)) == 5) {
+    map_pos_t pos_ = map->pos_add_spirally(pos, index);
+    if (map->paths(pos_) == 0 &&
+        map->get_obj(pos_) == MAP_OBJ_NONE &&
+        map->type_up(pos_) == MAP_TERRAIN_GRASS_1 &&
+        map->type_down(pos_) == MAP_TERRAIN_GRASS_1 &&
+        map->type_up(map->move_up_left(pos_)) == MAP_TERRAIN_GRASS_1 &&
+        map->type_down(map->move_up_left(pos_)) == MAP_TERRAIN_GRASS_1) {
       serf_log_state_change(this, SERF_STATE_READY_TO_LEAVE);
       state = SERF_STATE_READY_TO_LEAVE;
       s.leaving_building.field_B = map_t::get_spiral_pattern()[2*index] - 1;
@@ -3845,19 +3844,17 @@ serf_t::handle_serf_planning_fishing_state() {
   tick = game->get_tick();
   counter -= delta;
 
+  map_t *map = game->get_map();
   while (counter < 0) {
     int index = ((game->random_int() >> 2) & 0x3f) + 1;
-    map_pos_t dest = game->get_map()->pos_add_spirally(pos, index);
+    map_pos_t dest = map->pos_add_spirally(pos, index);
 
-    if (game->get_map()->get_obj(dest) == MAP_OBJ_NONE &&
-        game->get_map()->paths(dest) == 0 &&
-        (((game->get_map()->type_down(dest) & 0xc) == 0 &&
-          (game->get_map()->type_up(
-                            game->get_map()->move_up_left(dest)) & 0xc) != 0) ||
-         ((game->get_map()->type_down(
-                                game->get_map()->move_left(dest)) & 0xc) == 0 &&
-          (game->get_map()->type_up(
-                                game->get_map()->move_up(dest)) & 0xc) != 0))) {
+    if (map->get_obj(dest) == MAP_OBJ_NONE &&
+        map->paths(dest) == 0 &&
+        ((map->type_down(dest) <= MAP_TERRAIN_WATER_3 &&
+          map->type_up(map->move_up_left(dest)) >= MAP_TERRAIN_GRASS_0) ||
+         (map->type_down(map->move_left(dest)) <= MAP_TERRAIN_WATER_3 &&
+          map->type_up(map->move_up(dest)) >= MAP_TERRAIN_GRASS_0))) {
       serf_log_state_change(this, SERF_STATE_READY_TO_LEAVE);
       state = SERF_STATE_READY_TO_LEAVE;
       s.leaving_building.field_B = map_t::get_spiral_pattern()[2*index] - 1;
@@ -3934,49 +3931,38 @@ serf_t::handle_serf_planning_farming_state() {
   tick = game->get_tick();
   counter -= delta;
 
+  map_t *map = game->get_map();
   while (counter < 0) {
     int index = ((game->random_int() >> 2) & 0x1f) + 7;
-    map_pos_t dest = game->get_map()->pos_add_spirally(pos, index);
+    map_pos_t dest = map->pos_add_spirally(pos, index);
 
     /* If destination doesn't have an object it must be
        of the correct type and the surrounding spaces
        must not be occupied by large buildings.
        If it _has_ an object it must be an existing field. */
-    if ((game->get_map()->get_obj(dest) == MAP_OBJ_NONE &&
-         (game->get_map()->type_up(dest) == 5 &&
-          game->get_map()->type_down(dest) == 5 &&
-          game->get_map()->paths(dest) == 0 &&
-          game->get_map()->get_obj(game->get_map()->move_right(dest)) !=
-            MAP_OBJ_LARGE_BUILDING &&
-          game->get_map()->get_obj(game->get_map()->move_right(dest)) !=
-            MAP_OBJ_CASTLE &&
-          game->get_map()->get_obj(game->get_map()->move_down_right(dest)) !=
-            MAP_OBJ_LARGE_BUILDING &&
-          game->get_map()->get_obj(game->get_map()->move_down_right(dest)) !=
-            MAP_OBJ_CASTLE &&
-          game->get_map()->get_obj(game->get_map()->move_down(dest)) !=
-            MAP_OBJ_LARGE_BUILDING &&
-          game->get_map()->get_obj(game->get_map()->move_down(dest)) !=
-            MAP_OBJ_CASTLE &&
-          game->get_map()->type_down(game->get_map()->move_left(dest)) == 5 &&
-          game->get_map()->get_obj(game->get_map()->move_left(dest)) !=
-            MAP_OBJ_LARGE_BUILDING &&
-          game->get_map()->get_obj(game->get_map()->move_left(dest)) !=
-            MAP_OBJ_CASTLE &&
-          game->get_map()->type_up(game->get_map()->move_up_left(dest)) == 5 &&
-         game->get_map()->type_down(game->get_map()->move_up_left(dest)) == 5 &&
-          game->get_map()->get_obj(game->get_map()->move_up_left(dest)) !=
-            MAP_OBJ_LARGE_BUILDING &&
-          game->get_map()->get_obj(game->get_map()->move_up_left(dest)) !=
-            MAP_OBJ_CASTLE &&
-          game->get_map()->type_up(game->get_map()->move_up(dest)) == 5 &&
-          game->get_map()->get_obj(game->get_map()->move_up(dest)) !=
-            MAP_OBJ_LARGE_BUILDING &&
-          game->get_map()->get_obj(game->get_map()->move_up(dest)) !=
-            MAP_OBJ_CASTLE)) ||
-        game->get_map()->get_obj(dest) == MAP_OBJ_SEEDS_5 ||
-        (game->get_map()->get_obj(dest) >= MAP_OBJ_FIELD_0 &&
-         game->get_map()->get_obj(dest) <= MAP_OBJ_FIELD_5)) {
+    if ((map->get_obj(dest) == MAP_OBJ_NONE &&
+         (map->type_up(dest) == MAP_TERRAIN_GRASS_1 &&
+          map->type_down(dest) == MAP_TERRAIN_GRASS_1 &&
+          map->paths(dest) == 0 &&
+          map->get_obj(map->move_right(dest)) != MAP_OBJ_LARGE_BUILDING &&
+          map->get_obj(map->move_right(dest)) != MAP_OBJ_CASTLE &&
+          map->get_obj(map->move_down_right(dest)) != MAP_OBJ_LARGE_BUILDING &&
+          map->get_obj(map->move_down_right(dest)) != MAP_OBJ_CASTLE &&
+          map->get_obj(map->move_down(dest)) != MAP_OBJ_LARGE_BUILDING &&
+          map->get_obj(map->move_down(dest)) != MAP_OBJ_CASTLE &&
+          map->type_down(map->move_left(dest)) == MAP_TERRAIN_GRASS_1 &&
+          map->get_obj(map->move_left(dest)) != MAP_OBJ_LARGE_BUILDING &&
+          map->get_obj(map->move_left(dest)) != MAP_OBJ_CASTLE &&
+          map->type_up(map->move_up_left(dest)) == MAP_TERRAIN_GRASS_1 &&
+          map->type_down(map->move_up_left(dest)) == MAP_TERRAIN_GRASS_1 &&
+          map->get_obj(map->move_up_left(dest)) != MAP_OBJ_LARGE_BUILDING &&
+          map->get_obj(map->move_up_left(dest)) != MAP_OBJ_CASTLE &&
+          map->type_up(map->move_up(dest)) == MAP_TERRAIN_GRASS_1 &&
+          map->get_obj(map->move_up(dest)) != MAP_OBJ_LARGE_BUILDING &&
+          map->get_obj(map->move_up(dest)) != MAP_OBJ_CASTLE)) ||
+        map->get_obj(dest) == MAP_OBJ_SEEDS_5 ||
+        (map->get_obj(dest) >= MAP_OBJ_FIELD_0 &&
+         map->get_obj(dest) <= MAP_OBJ_FIELD_5)) {
       serf_log_state_change(this, SERF_STATE_READY_TO_LEAVE);
       state = SERF_STATE_READY_TO_LEAVE;
       s.leaving_building.field_B = map_t::get_spiral_pattern()[2*index] - 1;
@@ -4407,18 +4393,21 @@ serf_t::handle_serf_building_boat_state() {
 void
 serf_t::handle_serf_looking_for_geo_spot_state() {
   int tries = 2;
+  map_t *map = game->get_map();
   for (int i = 0; i < 8; i++) {
     int index = ((game->random_int() >> 2) & 0x3f) + 1;
-    map_pos_t dest = game->get_map()->pos_add_spirally(pos, index);
+    map_pos_t dest = map->pos_add_spirally(pos, index);
 
-    int obj = game->get_map()->get_obj(dest);
+    int obj = map->get_obj(dest);
     if (obj == MAP_OBJ_NONE) {
-      int t1 = game->get_map()->type_down(dest);
-      int t2 = game->get_map()->type_up(dest);
-      int t3 = game->get_map()->type_down(game->get_map()->move_up_left(dest));
-      int t4 = game->get_map()->type_up(game->get_map()->move_up_left(dest));
-      if ((t1 >= 11 && t1 < 15) || (t2 >= 11 && t2 < 15) ||
-          (t3 >= 11 && t3 < 15) || (t4 >= 11 && t4 < 15)) {
+      map_terrain_t t1 = map->type_down(dest);
+      map_terrain_t t2 = map->type_up(dest);
+      map_terrain_t t3 = map->type_down(map->move_up_left(dest));
+      map_terrain_t t4 = map->type_up(map->move_up_left(dest));
+      if ((t1 >= MAP_TERRAIN_TUNDRA_0 && t1 <= MAP_TERRAIN_SNOW_0) ||
+          (t2 >= MAP_TERRAIN_TUNDRA_0 && t2 <= MAP_TERRAIN_SNOW_0) ||
+          (t3 >= MAP_TERRAIN_TUNDRA_0 && t3 <= MAP_TERRAIN_SNOW_0) ||
+          (t4 >= MAP_TERRAIN_TUNDRA_0 && t4 <= MAP_TERRAIN_SNOW_0)) {
         serf_log_state_change(this, SERF_STATE_FREE_WALKING);
         state = SERF_STATE_FREE_WALKING;
         s.free_walking.dist1 = map_t::get_spiral_pattern()[2*index];

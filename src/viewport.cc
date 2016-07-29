@@ -88,7 +88,7 @@ viewport_t::draw_triangle_up(int x, int y, int m, int left, int right,
   int mask = 4 + m - left + 9*(4 + m - right);
   assert(tri_mask[mask] >= 0);
 
-  int type = map->type_up(map->move_up(pos));
+  map_terrain_t type = map->type_up(map->move_up(pos));
   int index = (type << 3) | tri_mask[mask];
   assert(index < 128);
 
@@ -384,7 +384,8 @@ viewport_t::draw_path_segment(int x, int y, map_pos_t pos, dir_t dir) {
   int h2 = map->get_height(map->move(pos, dir));
   int h_diff = h1 - h2;
 
-  int t1, t2, h3, h4, h_diff_2;
+  map_terrain_t t1, t2;
+  int h3, h4, h_diff_2;
 
   switch (dir) {
   case DIR_RIGHT:
@@ -419,7 +420,7 @@ viewport_t::draw_path_segment(int x, int y, map_pos_t pos, dir_t dir) {
 
   int mask = h_diff + 4 + dir*9;
   int sprite = 0;
-  int type = std::max(t1, t2);
+  map_terrain_t type = std::max(t1, t2);
 
   if (h_diff_2 > 4) {
     sprite = 0;
@@ -429,11 +430,11 @@ viewport_t::draw_path_segment(int x, int y, map_pos_t pos, dir_t dir) {
     sprite = 2;
   }
 
-  if (type < 4) {
+  if (type <= MAP_TERRAIN_WATER_3) {
     sprite = 9;
-  } else if (type > 13) {
+  } else if (type >= MAP_TERRAIN_SNOW_0) {
     sprite += 6;
-  } else if (type > 7) {
+  } else if (type >= MAP_TERRAIN_DESERT_0) {
     sprite += 3;
   }
 
@@ -448,7 +449,8 @@ viewport_t::draw_border_segment(int x, int y, map_pos_t pos, dir_t dir) {
   int h2 = map->get_height(map->move(pos, dir));
   int h_diff = h2 - h1;
 
-  int t1, t2, h3, h4, h_diff_2;
+  map_terrain_t t1, t2;
+  int h3, h4, h_diff_2;
 
   switch (dir) {
   case DIR_RIGHT:
@@ -484,7 +486,7 @@ viewport_t::draw_border_segment(int x, int y, map_pos_t pos, dir_t dir) {
   }
 
   int sprite = 0;
-  int type = std::max(t1, t2);
+  map_terrain_t type = std::max(t1, t2);
 
   if (h_diff_2 > 1) {
     sprite = 0;
@@ -494,11 +496,11 @@ viewport_t::draw_border_segment(int x, int y, map_pos_t pos, dir_t dir) {
     sprite = 2;
   }
 
-  if (type < 4) {
+  if (type <= MAP_TERRAIN_WATER_3) {
     sprite = 9; /* Bouy */
-  } else if (type > 13) {
+  } else if (type >= MAP_TERRAIN_SNOW_0) {
     sprite += 6;
-  } else if (type > 7) {
+  } else if (type >= MAP_TERRAIN_DESERT_0) {
     sprite += 3;
   }
 
@@ -1138,9 +1140,10 @@ viewport_t::draw_water_waves(map_pos_t pos, int x, int y) {
   int sprite = DATA_MAP_WAVES_BASE +
                (((pos ^ 5) + (interface->get_game()->get_tick() >> 3)) & 0xf);
 
-  if (map->type_down(pos) < 4 && map->type_up(pos) < 4) {
+  if (map->type_down(pos) <= MAP_TERRAIN_WATER_3 &&
+      map->type_up(pos) <= MAP_TERRAIN_WATER_3) {
     frame->draw_waves_sprite(x - 16, y, 0, sprite);
-  } else if (map->type_down(pos) < 4) {
+  } else if (map->type_down(pos) <= MAP_TERRAIN_WATER_3) {
     int mask = DATA_MAP_MASK_DOWN_BASE + 40;
     frame->draw_waves_sprite(x, y + 16, mask, sprite);
   } else {
@@ -1154,7 +1157,8 @@ viewport_t::draw_water_waves_row(map_pos_t pos, int y_base, int cols,
                                  int x_base) {
   for (int i = 0; i < cols; i++, x_base += MAP_TILE_WIDTH,
        pos = map->move_right(pos)) {
-    if (map->type_up(pos) < 4 || map->type_down(pos) < 4) {
+    if (map->type_up(pos) <= MAP_TERRAIN_WATER_3 ||
+        map->type_down(pos) <= MAP_TERRAIN_WATER_3) {
       /*player->water_in_view += 1;*/
       draw_water_waves(pos, x_base, y_base);
     }

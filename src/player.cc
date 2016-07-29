@@ -355,8 +355,8 @@ player_t::available_knights_at_pos(map_pos_t pos, int index_, int dist) {
   const int min_level_fortress[] = { 1, 3, 6, 9, 12 };
 
   if (game->get_map()->get_owner(pos) != index ||
-      game->get_map()->type_up(pos) < 4 ||
-      game->get_map()->type_down(pos) < 4 ||
+      game->get_map()->type_up(pos) <= MAP_TERRAIN_WATER_3 ||
+      game->get_map()->type_down(pos) <= MAP_TERRAIN_WATER_3 ||
       game->get_map()->get_obj(pos) < MAP_OBJ_SMALL_BUILDING ||
       game->get_map()->get_obj(pos) > MAP_OBJ_CASTLE) {
     return index_;

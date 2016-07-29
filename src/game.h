@@ -234,7 +234,7 @@ class game_t : public event_handler_t {
   void remove_road_forwards(map_pos_t pos, dir_t dir);
   bool demolish_road_(map_pos_t pos);
   void build_flag_split_path(map_pos_t pos);
-  bool map_types_within(map_pos_t pos, unsigned int low, unsigned int high);
+  bool map_types_within(map_pos_t pos, map_terrain_t low, map_terrain_t high);
   void flag_remove_player_refs(flag_t *flag);
   bool demolish_flag_(map_pos_t pos);
   bool demolish_building_(map_pos_t pos);

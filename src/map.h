@@ -172,6 +172,25 @@ typedef enum {
   MAP_OBJ_127
 } map_obj_t;
 
+typedef enum {
+  MAP_TERRAIN_WATER_0 = 0,
+  MAP_TERRAIN_WATER_1,
+  MAP_TERRAIN_WATER_2,
+  MAP_TERRAIN_WATER_3,
+  MAP_TERRAIN_GRASS_0,  // 4
+  MAP_TERRAIN_GRASS_1,
+  MAP_TERRAIN_GRASS_2,
+  MAP_TERRAIN_GRASS_3,
+  MAP_TERRAIN_DESERT_0,  // 8
+  MAP_TERRAIN_DESERT_1,
+  MAP_TERRAIN_DESERT_2,
+  MAP_TERRAIN_TUNDRA_0,  // 11
+  MAP_TERRAIN_TUNDRA_1,
+  MAP_TERRAIN_TUNDRA_2,
+  MAP_TERRAIN_SNOW_0,  // 14
+  MAP_TERRAIN_SNOW_1
+} map_terrain_t;
+
 
 /* A map space can be OPEN which means that
    a building can be constructed in the space.
@@ -351,11 +370,11 @@ class map_t {
   unsigned int get_height(map_pos_t pos) const {
     return (tiles[pos].height & 0x1f); }
 
-  unsigned int type_up(map_pos_t pos) const {
-    return ((tiles[pos].type >> 4) & 0xf); }
-  unsigned int type_down(map_pos_t pos) const {
-    return (tiles[pos].type & 0xf); }
-  bool types_within(map_pos_t pos, unsigned int low, unsigned int high);
+  map_terrain_t type_up(map_pos_t pos) const {
+    return static_cast<map_terrain_t>(((tiles[pos].type >> 4) & 0xf)); }
+  map_terrain_t type_down(map_pos_t pos) const {
+    return static_cast<map_terrain_t>(tiles[pos].type & 0xf); }
+  bool types_within(map_pos_t pos, map_terrain_t low, map_terrain_t high);
 
   map_obj_t get_obj(map_pos_t pos) const {
     return (map_obj_t)(tiles[pos].obj & 0x7f); }
@@ -382,15 +401,16 @@ class map_t {
                                                    MAP_OBJ_CASTLE); }
 
   /* Whether any of the two up/down tiles at this pos are water. */
-  bool is_water_tile(map_pos_t pos) const { return (type_down(pos) < 4 &&
-                                                    type_up(pos) < 4); }
+  bool is_water_tile(map_pos_t pos) const {
+    return (type_down(pos) <= MAP_TERRAIN_WATER_3 &&
+            type_up(pos) <= MAP_TERRAIN_WATER_3); }
 
   /* Whether the position is completely surrounded by water. */
   bool is_in_water(map_pos_t pos) const {
     return (is_water_tile(pos) &&
             is_water_tile(move_up_left(pos)) &&
-            type_down(move_left(pos)) < 4 &&
-            type_up(move_up(pos)) < 4); }
+            type_down(move_left(pos)) <= MAP_TERRAIN_WATER_3 &&
+            type_up(move_up(pos)) <= MAP_TERRAIN_WATER_3); }
 
   /* Mapping from map_obj_t to map_space_t. */
   static const map_space_t map_space_from_obj[128];
@@ -454,8 +474,8 @@ class map_t {
   void init_types_2_sub();
   void init_types_2();
   void heights_rescale();
-  void init_types_shared_sub(unsigned int old, unsigned int seed,
-                             unsigned int new_);
+  void init_types_shared_sub(map_terrain_t old, map_terrain_t seed,
+                             map_terrain_t new_);
   void init_lakes();
   void init_types4();
   map_pos_t lookup_pattern(int col, int row, int index);
@@ -465,11 +485,12 @@ class map_t {
   void init_desert_2_sub();
   void init_desert_2();
   void init_crosses();
-  int init_objects_shared_sub1(map_pos_t pos, int min, int max);
+  int init_objects_shared_sub1(map_pos_t pos, map_terrain_t min,
+                               map_terrain_t max);
   map_pos_t lookup_rnd_pattern(int col, int row, int mask);
   void init_objects_shared(int num_clusters, int objs_in_cluster, int pos_mask,
-                           int type_min, int type_max, int obj_base,
-                           int obj_mask);
+                           map_terrain_t type_min, map_terrain_t type_max,
+                           int obj_base, int obj_mask);
   void init_trees_1();
   void init_trees_2();
   void init_trees_3();
@@ -488,7 +509,7 @@ class map_t {
   void init_resources_shared_sub(int iters, int col, int row, int *index,
                                  int amount, ground_deposit_t type);
   void init_resources_shared(int num_clusters, ground_deposit_t type,
-                             int min, int max);
+                             map_terrain_t min, map_terrain_t max);
   void init_resources();
   void init_clean_up();
   void init_sub();
