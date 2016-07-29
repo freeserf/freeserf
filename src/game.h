@@ -240,7 +240,8 @@ class game_t : public event_handler_t {
   bool demolish_building_(map_pos_t pos);
   void surrender_land(map_pos_t pos);
   void demolish_flag_and_roads(map_pos_t pos);
-  void init_map(int size, const random_state_t &rnd, bool preserve_bugs);
+  void init_map(int size);
+  void init_map_data(const MapGenerator &generator);
 
  public:
   virtual bool handle_event(const event_t *event);

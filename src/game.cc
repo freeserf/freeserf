@@ -38,6 +38,7 @@
 #include "src/log.h"
 #include "src/misc.h"
 #include "src/inventory.h"
+#include "src/map-generator.h"
 
 #define GROUND_ANALYSIS_RADIUS  25
 
@@ -588,7 +589,7 @@ game_t::update() {
   tick_diff = tick - last_tick;
 
   clear_serf_request_failure();
-  map->update(tick);
+  map->update(tick, &init_map_rnd);
 
   /* Update players */
   for (players_t::iterator it = players.begin(); it != players.end(); ++it) {
@@ -2129,7 +2130,7 @@ game_t::init() {
 
 /* Initialize spiral_pos_pattern from spiral_pattern. */
 void
-game_t::init_map(int size, const random_state_t &rnd, bool preserve_bugs) {
+game_t::init_map(int size) {
   if (map != NULL) {
     delete map;
     map = NULL;
@@ -2137,7 +2138,11 @@ game_t::init_map(int size, const random_state_t &rnd, bool preserve_bugs) {
 
   map = new map_t();
   map->init(size);
-  map->generate(map_generator, rnd, preserve_bugs);
+}
+
+void
+game_t::init_map_data(const MapGenerator& generator) {
+  this->map->init_tiles(generator);
 }
 
 void
@@ -2199,7 +2204,14 @@ game_t::load_mission_map(int level) {
 
   mission_level = level;
 
-  init_map(3, mission->rnd, true);
+  init_map(3);
+  {
+    ClassicMissionMapGenerator generator(this->map, init_map_rnd);
+    generator.init();
+    generator.generate();
+    init_map_data(generator);
+  }
+
   allocate_objects();
 
   /* Initialize player and build initial castle */
@@ -2228,7 +2240,14 @@ bool
 game_t::load_random_map(int size, const random_state_t &rnd) {
   if (size < 3 || size > 10) return false;
 
-  init_map(size, rnd, false);
+  init_map(size);
+  {
+    ClassicMapGenerator generator(this->map, rnd);
+    generator.init(0, false);
+    generator.generate();
+    init_map_data(generator);
+  }
+
   allocate_objects();
 
   return true;
