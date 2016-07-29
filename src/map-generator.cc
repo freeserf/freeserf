@@ -341,7 +341,7 @@ ClassicMapGenerator::init_level_area(MapPos pos) {
 
       MapPos new_pos = map->move_right_n(pos, i+1);
       for (int k = 0; k < 6; k++) {
-        Direction d = (Direction)((k + DirectionDown) % 6);
+        Direction d = turn_direction(DirectionDown, k);
         for (int j = 0; j <= i; j++) {
           flag = expand_level_area(new_pos, limit, flag);
           new_pos = map->move(new_pos, d);
@@ -356,7 +356,7 @@ ClassicMapGenerator::init_level_area(MapPos pos) {
     for (int i = 0; i < max_lake_area + 1; i++) {
       MapPos new_pos = map->move_right_n(pos, i+1);
       for (int k = 0; k < 6; k++) {
-        Direction d = (Direction)((k + DirectionDown) % 6);
+        Direction d = turn_direction(DirectionDown, k);
         for (int j = 0; j <= i; j++) {
           if (tiles[new_pos].height > 253) tiles[new_pos].height -= 2;
           new_pos = map->move(new_pos, d);

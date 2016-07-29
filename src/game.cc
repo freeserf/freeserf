@@ -740,7 +740,7 @@ int
 Game::road_segment_in_water(MapPos pos, Direction dir) {
   if (dir > DirectionDown) {
     pos = map->move(pos, dir);
-    dir = DIR_REVERSE(dir);
+    dir = reverse_direction(dir);
   }
 
   int water = 0;
@@ -842,7 +842,7 @@ Game::build_road(const Road &road, const Player *player) {
 
   Road::Dirs dirs = road.get_dirs();
   Direction out_dir = dirs.front();
-  Direction in_dir = DIR_REVERSE(dirs.back());
+  Direction in_dir = reverse_direction(dirs.back());
 
   /* Actually place road segments */
   if (!map->place_road_segments(road)) return false;
@@ -919,7 +919,7 @@ Game::remove_road_forwards(MapPos pos, Direction dir) {
            in the wrong direction. */
         int d = serf->get_walking_dir();
         if (d < 0) d += 6;
-        if (d == DIR_REVERSE(dir)) {
+        if (d == reverse_direction(dir)) {
           serf->set_lost_state();
         }
       }
@@ -927,7 +927,7 @@ Game::remove_road_forwards(MapPos pos, Direction dir) {
 
     if (map->has_flag(pos)) {
       Flag *flag = flags[map->get_obj_index(pos)];
-      flag->del_path(DIR_REVERSE(in_dir));
+      flag->del_path(reverse_direction(in_dir));
       break;
     }
 
@@ -1778,7 +1778,7 @@ Game::surrender_land(MapPos pos) {
     }
 
     if (remove_roads &&
-        (map->paths(p) & BIT(DIR_REVERSE(d)))) {
+        (map->paths(p) & BIT(reverse_direction((Direction)d)))) {
       demolish_road_(p);
     }
   }
@@ -1961,7 +1961,7 @@ Game::demolish_flag_and_roads(MapPos pos) {
     for (int d = DirectionRight; d <= DirectionUp; d++) {
       MapPos p = map->move(pos, (Direction)d);
 
-      if (map->paths(p) & BIT(DIR_REVERSE(d))) {
+      if (map->paths(p) & BIT(reverse_direction((Direction)d))) {
         demolish_road_(p);
       }
     }

@@ -694,7 +694,7 @@ Flag::fill_path_serf_info(Game *game, MapPos pos, Direction dir,
     path_len += 1;
     pos = game->get_map()->move(pos, dir);
     paths = game->get_map()->paths(pos);
-    paths &= ~BIT(DIR_REVERSE(dir));
+    paths &= ~BIT(reverse_direction(dir));
 
     if (game->get_map()->has_flag(pos)) break;
 
@@ -732,7 +732,7 @@ Flag::fill_path_serf_info(Game *game, MapPos pos, Direction dir,
       int d = serf->get_walking_dir();
       if (d < 0) d += 6;
 
-      if (d == DIR_REVERSE(dir)) {
+      if (d == reverse_direction(dir)) {
         serf->set_walking_wait_counter(0);
         data->serfs[serf_count++] = serf->get_index();
       }
@@ -743,7 +743,7 @@ Flag::fill_path_serf_info(Game *game, MapPos pos, Direction dir,
   data->path_len = path_len;
   data->serf_count = serf_count;
   data->flag_index = game->get_map()->get_obj_index(pos);
-  data->flag_dir = DIR_REVERSE(dir);
+  data->flag_dir = reverse_direction(dir);
 }
 
 void

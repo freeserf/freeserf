@@ -573,7 +573,7 @@ Viewport::draw_paths_and_borders() {
       Direction draw_dir = dir;
       if (draw_dir > DirectionDown) {
         draw_pos = map->move(pos, dir);
-        draw_dir = DIR_REVERSE(dir);
+        draw_dir = reverse_direction(dir);
       }
 
       int mx, my;
