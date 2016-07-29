@@ -55,13 +55,13 @@ FlagSearch::execute(flag_search_func *callback, bool land,
       return true;
     }
 
-    for (int i = DirectionRight; i <= DirectionUp; i++) {
-      if ((!land || !flag->is_water_path((Direction)(5-i))) &&
-          (!transporter || flag->has_transporter((Direction)(5-i))) &&
-          flag->other_endpoint.f[5-i]->search_num != id) {
-        flag->other_endpoint.f[5-i]->search_num = id;
-        flag->other_endpoint.f[5-i]->search_dir = flag->search_dir;
-        Flag *other_flag = flag->other_endpoint.f[5-i];
+    for (Direction i : cycle_directions_ccw()) {
+      if ((!land || !flag->is_water_path(i)) &&
+          (!transporter || flag->has_transporter(i)) &&
+          flag->other_endpoint.f[i]->search_num != id) {
+        flag->other_endpoint.f[i]->search_num = id;
+        flag->other_endpoint.f[i]->search_dir = flag->search_dir;
+        Flag *other_flag = flag->other_endpoint.f[i];
         queue.push_back(other_flag);
       }
     }
@@ -93,7 +93,7 @@ Flag::Flag(Game *game, unsigned int index) : GameObject(game, index) {
   }
   bld_flags = 0;
   bld2_flags = 0;
-  for (int i = DirectionRight; i <= DirectionUp; i++) {
+  for (Direction i : cycle_directions_cw()) {
     length[i] = 0;
     other_end_dir[i] = 0;
     other_endpoint.f[i] = 0;
@@ -317,9 +317,9 @@ Flag::schedule_slot_to_unknown_dest(int slot_num) {
       endpoint |= BIT(7);
     } else {
       Direction dir = DirectionNone;
-      for (int d = DirectionUp; d >= DirectionRight; d--) {
-        if (has_transporter((Direction)d)) {
-          dir = (Direction)d;
+      for (Direction d : cycle_directions_ccw()) {
+        if (has_transporter(d)) {
+          dir = d;
           break;
         }
       }
@@ -328,7 +328,7 @@ Flag::schedule_slot_to_unknown_dest(int slot_num) {
 
       if (!is_scheduled(dir)) {
         other_end_dir[dir] = BIT(7) |
-        (other_end_dir[dir] & 0x38) | slot_num;
+          (other_end_dir[dir] & 0x38) | slot_num;
       }
       slot[slot_num].dir = dir;
     }
@@ -437,12 +437,12 @@ Flag::schedule_slot_to_known_dest(int slot, unsigned int res_waiting[4]) {
   int flags = (res_waiting[0] ^ 0x3f) & transporter;
 
   if (flags != 0) {
-    for (int k = DirectionRight; k <= DirectionUp; k++) {
-      if (BIT_TEST(flags, 5-k)) {
-        tr &= ~BIT(5-k);
-        Flag *other_flag = other_endpoint.f[5-k];
+    for (Direction k : cycle_directions_ccw()) {
+      if (BIT_TEST(flags, k)) {
+        tr &= ~BIT(k);
+        Flag *other_flag = other_endpoint.f[k];
         if (other_flag->search_num != search.get_id()) {
-          other_flag->search_dir = (Direction)(5-k);
+          other_flag->search_dir = k;
           search.add_source(other_flag);
           sources += 1;
         }
@@ -453,12 +453,12 @@ Flag::schedule_slot_to_known_dest(int slot, unsigned int res_waiting[4]) {
   if (tr != 0) {
     for (int j = 0; j < 3; j++) {
       flags = res_waiting[j] ^ res_waiting[j+1];
-      for (int k = DirectionRight; k <= DirectionUp; k++) {
-        if (BIT_TEST(flags, 5-k)) {
-          tr &= ~BIT(5-k);
-          Flag *other_flag = other_endpoint.f[5-k];
+      for (Direction k : cycle_directions_ccw()) {
+        if (BIT_TEST(flags, k)) {
+          tr &= ~BIT(k);
+          Flag *other_flag = other_endpoint.f[k];
           if (other_flag->search_num != search.get_id()) {
-            other_flag->search_dir = (Direction)(5-k);
+            other_flag->search_dir = k;
             search.add_source(other_flag);
             sources += 1;
           }
@@ -468,12 +468,12 @@ Flag::schedule_slot_to_known_dest(int slot, unsigned int res_waiting[4]) {
 
     if (tr != 0) {
       flags = res_waiting[3];
-      for (int k = DirectionRight; k <= DirectionUp; k++) {
-        if (BIT_TEST(flags, 5-k)) {
-          tr &= ~BIT(5-k);
-          Flag *other_flag = other_endpoint.f[5-k];
+      for (Direction k : cycle_directions_ccw()) {
+        if (BIT_TEST(flags, k)) {
+          tr &= ~BIT(k);
+          Flag *other_flag = other_endpoint.f[k];
           if (other_flag->search_num != search.get_id()) {
-            other_flag->search_dir = (Direction)(5-k);
+            other_flag->search_dir = k;
             search.add_source(other_flag);
             sources += 1;
           }
@@ -618,9 +618,9 @@ Flag::can_demolish() const {
   int connected = 0;
   void *other_end = NULL;
 
-  for (int d = DirectionRight; d <= DirectionUp; d++) {
-    if (has_path((Direction)d)) {
-      if (is_water_path((Direction)d)) return false;
+  for (Direction d : cycle_directions_cw()) {
+    if (has_path(d)) {
+      if (is_water_path(d)) return false;
 
       connected += 1;
 
@@ -698,9 +698,9 @@ Flag::fill_path_serf_info(Game *game, MapPos pos, Direction dir,
     if (game->get_map()->has_flag(pos)) break;
 
     /* Find out which direction the path follows. */
-    for (int d = DirectionRight; d <= DirectionUp; d++) {
+    for (Direction d : cycle_directions_cw()) {
       if (BIT_TEST(paths, d)) {
-        dir = (Direction)d;
+        dir = d;
         break;
       }
     }
@@ -757,17 +757,17 @@ Flag::merge_paths(MapPos pos) {
   Direction path_2_dir = DirectionRight;
 
   /* Find first direction */
-  for (int d = DirectionRight; d <= DirectionUp; d++) {
+  for (Direction d : cycle_directions_cw()) {
     if (BIT_TEST(game->get_map()->paths(pos), d)) {
-      path_1_dir = (Direction)d;
+      path_1_dir = d;
       break;
     }
   }
 
   /* Find second direction */
-  for (int d = DirectionUp; d >= DirectionRight; d--) {
+  for (Direction d : cycle_directions_ccw()) {
     if (BIT_TEST(game->get_map()->paths(pos), d)) {
-      path_2_dir = (Direction)d;
+      path_2_dir = d;
       break;
     }
   }
@@ -871,30 +871,29 @@ Flag::update() {
   }
 
   /* Update transporter flags, decide if serf needs to be sent to road */
-  for (int j = DirectionRight; j <= DirectionUp; j++) {
-    if (has_path((Direction)(5-j))) {
-      if (serf_requested((Direction)(5-j))) {
-        if (BIT_TEST(res_waiting[2], 5-j)) {
+  for (Direction j : cycle_directions_ccw()) {
+    if (has_path(j)) {
+      if (serf_requested(j)) {
+        if (BIT_TEST(res_waiting[2], j)) {
           if (waiting_count >= 7) {
-            transporter &= BIT(5-j);
+            transporter &= BIT(j);
           }
-        } else if (free_transporter_count((Direction)(5-j)) != 0) {
-          transporter |= BIT(5-j);
+        } else if (free_transporter_count(j) != 0) {
+          transporter |= BIT(j);
         }
-      } else if (free_transporter_count((Direction)(5-j)) == 0 ||
-                 BIT_TEST(res_waiting[2], 5-j)) {
-        int max_tr = max_transporters[length_category((Direction)(5-j))];
-        if (free_transporter_count((Direction)(5-j)) < (unsigned int)max_tr &&
+      } else if (free_transporter_count(j) == 0 ||
+                 BIT_TEST(res_waiting[2], j)) {
+        int max_tr = max_transporters[length_category(j)];
+        if (free_transporter_count(j) < (unsigned int)max_tr &&
             !serf_request_fail()) {
-          bool r = call_transporter((Direction)(5-j),
-                                    is_water_path((Direction)(5-j)));
+          bool r = call_transporter(j, is_water_path(j));
           if (!r) transporter |= BIT(7);
         }
         if (waiting_count >= 7) {
-          transporter &= BIT(5-j);
+          transporter &= BIT(j);
         }
       } else {
-        transporter |= BIT(5-j);
+        transporter |= BIT(j);
       }
     }
   }
@@ -1036,7 +1035,7 @@ operator >> (SaveReaderBinary &reader, Flag &flag) {
   reader >> val8;  // 5
   flag.transporter = val8;
 
-  for (int j = DirectionRight; j <= DirectionUp; j++) {
+  for (Direction j : cycle_directions_cw()) {
     reader >> val8;  // 6+j
     flag.length[j] = val8;
   }
@@ -1052,13 +1051,13 @@ operator >> (SaveReaderBinary &reader, Flag &flag) {
   }
 
   // base + 36
-  for (int j = DirectionRight; j <= DirectionUp; j++) {
+  for (Direction j : cycle_directions_cw()) {
     uint32_t val32;
     reader >> val32;
     int offset = val32;
 
     /* Other endpoint could be a building in direction up left. */
-    if (j == 4 && flag.has_building()) {
+    if (j == DirectionUpLeft && flag.has_building()) {
       flag.other_endpoint.b[j] = flag.get_game()->create_building(offset/18);
     } else {
       if (offset < 0) {
@@ -1070,7 +1069,7 @@ operator >> (SaveReaderBinary &reader, Flag &flag) {
   }
 
   // base + 60
-  for (int j = DirectionRight; j <= DirectionUp; j++) {
+  for (Direction j : cycle_directions_cw()) {
     reader >> val8;
     flag.other_end_dir[j] = val8;
   }
@@ -1107,7 +1106,7 @@ operator >> (SaveReaderText &reader, Flag &flag) {
   reader.value("endpoints") >> flag.endpoint;
   reader.value("transporter") >> flag.transporter;
 
-  for (int i = DirectionRight; i <= DirectionUp; i++) {
+  for (Direction i : cycle_directions_cw()) {
     int len;
     reader.value("length")[i] >> len;
     flag.length[i] = len;
@@ -1148,7 +1147,7 @@ operator << (SaveWriterText &writer, Flag &flag) {
   writer.value("endpoints") << flag.endpoint;
   writer.value("transporter") << flag.transporter;
 
-  for (int d = DirectionRight; d <= DirectionUp; d++) {
+  for (Direction d : cycle_directions_cw()) {
     writer.value("length") << static_cast<int>(flag.length[d]);
     if (d == DirectionUpLeft && flag.has_building()) {
       writer.value("other_endpoint") <<

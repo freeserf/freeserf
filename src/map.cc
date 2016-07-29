@@ -390,10 +390,10 @@ Map::set_height(MapPos pos, int height) {
   landscape_tiles[pos].height = height;
 
   /* Mark landscape dirty */
-  for (int d = DirectionRight; d <= DirectionUp; d++) {
+  for (Direction d : cycle_directions_cw()) {
     for (change_handlers_t::iterator it = change_handlers.begin();
          it != change_handlers.end(); ++it) {
-      (*it)->on_height_changed(move(pos, (Direction)d));
+      (*it)->on_height_changed(move(pos, d));
     }
   }
 }
@@ -407,10 +407,10 @@ Map::set_object(MapPos pos, Object obj, int index) {
   if (index >= 0) game_tiles[pos].obj_index = index;
 
   /* Notify about object change */
-  for (int d = DirectionRight; d <= DirectionUp; d++) {
+  for (Direction d : cycle_directions_cw()) {
     for (change_handlers_t::iterator it = change_handlers.begin();
          it != change_handlers.end(); ++it) {
-      (*it)->on_object_changed(move(pos, (Direction)d));
+      (*it)->on_object_changed(move(pos, d));
     }
   }
 }
@@ -642,9 +642,9 @@ Map::remove_road_backref_until_flag(MapPos pos_, Direction dir) {
 
     /* Find next direction of path. */
     dir = DirectionNone;
-    for (int d = DirectionRight; d <= DirectionUp; d++) {
+    for (Direction d : cycle_directions_cw()) {
       if (BIT_TEST(paths(pos_), d)) {
-        dir = (Direction)d;
+        dir = d;
         break;
       }
     }
@@ -661,17 +661,20 @@ Map::remove_road_backrefs(MapPos pos_) {
 
   /* Find directions of path segments to be split. */
   Direction path_1_dir = DirectionNone;
-  for (int d = DirectionRight; d <= DirectionUp; d++) {
-    if (BIT_TEST(paths(pos_), d)) {
-      path_1_dir = (Direction)d;
+  auto cycle = cycle_directions_cw();
+  auto it = cycle.begin();
+  for (; it != cycle.end(); ++it) {
+    if (BIT_TEST(paths(pos_), *it)) {
+      path_1_dir = *it;
       break;
     }
   }
 
   Direction path_2_dir = DirectionNone;
-  for (int d = path_1_dir+1; d <= DirectionUp; d++) {
-    if (BIT_TEST(paths(pos_), d)) {
-      path_2_dir = (Direction)d;
+  ++it;
+  for (; it != cycle.end(); ++it) {
+    if (BIT_TEST(paths(pos_), *it)) {
+      path_2_dir = *it;
       break;
     }
   }
@@ -695,9 +698,9 @@ Map::remove_road_segment(MapPos *pos, Direction dir) {
 
   /* Find next direction of path. */
   dir = DirectionNone;
-  for (int d = DirectionRight; d <= DirectionUp; d++) {
+  for (Direction d : cycle_directions_cw()) {
     if (BIT_TEST(paths(*pos), d)) {
-      dir = (Direction)d;
+      dir = d;
       break;
     }
   }

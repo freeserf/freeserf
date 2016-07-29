@@ -951,9 +951,9 @@ Game::demolish_road_(MapPos pos) {
 
   /* Find directions of path segments to be split. */
   Direction path_1_dir = DirectionNone;
-  for (int d = DirectionRight; d <= DirectionUp; d++) {
+  for (Direction d : cycle_directions_cw()) {
     if (BIT_TEST(map->paths(pos), d)) {
-      path_1_dir = (Direction)d;
+      path_1_dir = d;
       break;
     }
   }
@@ -991,17 +991,20 @@ void
 Game::build_flag_split_path(MapPos pos) {
   /* Find directions of path segments to be split. */
   Direction path_1_dir = DirectionNone;
-  for (int d = DirectionRight; d <= DirectionUp; d++) {
-    if (BIT_TEST(map->paths(pos), d)) {
-      path_1_dir = (Direction)d;
+  const auto cycle = cycle_directions_cw();
+  auto it = cycle.begin();
+  for (; it != cycle.end(); ++it) {
+    if (BIT_TEST(map->paths(pos), *it)) {
+      path_1_dir = *it;
       break;
     }
   }
 
   Direction path_2_dir = DirectionNone;
-  for (int d = path_1_dir+1; d <= DirectionUp; d++) {
-    if (BIT_TEST(map->paths(pos), d)) {
-      path_2_dir = (Direction)d;
+  ++it;
+  for (; it != cycle.end(); ++it) {
+    if (BIT_TEST(map->paths(pos), *it)) {
+      path_2_dir = *it;
       break;
     }
   }
@@ -1069,8 +1072,8 @@ Game::can_build_flag(MapPos pos, const Player *player) const {
   }
 
   /* Check that no flags are nearby */
-  for (int d = DirectionRight; d <= DirectionUp; d++) {
-    if (map->get_obj(map->move(pos, (Direction)d)) == Map::ObjectFlag) {
+  for (Direction d : cycle_directions_cw()) {
+    if (map->get_obj(map->move(pos, d)) == Map::ObjectFlag) {
       return false;
     }
   }
@@ -1506,8 +1509,8 @@ Game::build_castle(MapPos pos, Player *player) {
   /* Level land in hexagon below castle */
   int h = get_leveling_height(pos);
   map->set_height(pos, h);
-  for (int d = DirectionRight; d <= DirectionUp; d++) {
-    map->set_height(map->move(pos, (Direction)d), h);
+  for (Direction d : cycle_directions_cw()) {
+    map->set_height(map->move(pos, d), h);
   }
 
   update_land_ownership(pos);
@@ -1788,8 +1791,8 @@ Game::surrender_land(MapPos pos) {
   int remove_roads = map->has_flag(pos);
 
   /* Remove roads and building around pos. */
-  for (int d = DirectionRight; d <= DirectionUp; d++) {
-    MapPos p = map->move(pos, (Direction)d);
+  for (Direction d : cycle_directions_cw()) {
+    MapPos p = map->move(pos, d);
 
     if (map->get_obj(p) >= Map::ObjectSmallBuilding &&
         map->get_obj(p) <= Map::ObjectCastle) {
@@ -1797,7 +1800,7 @@ Game::surrender_land(MapPos pos) {
     }
 
     if (remove_roads &&
-        (map->paths(p) & BIT(reverse_direction((Direction)d)))) {
+        (map->paths(p) & BIT(reverse_direction(d)))) {
       demolish_road_(p);
     }
   }
@@ -1974,10 +1977,10 @@ void
 Game::demolish_flag_and_roads(MapPos pos) {
   if (map->has_flag(pos)) {
     /* Remove roads around pos. */
-    for (int d = DirectionRight; d <= DirectionUp; d++) {
-      MapPos p = map->move(pos, (Direction)d);
+    for (Direction d : cycle_directions_cw()) {
+      MapPos p = map->move(pos, d);
 
-      if (map->paths(p) & BIT(reverse_direction((Direction)d))) {
+      if (map->paths(p) & BIT(reverse_direction(d))) {
         demolish_road_(p);
       }
     }
@@ -2018,8 +2021,8 @@ Game::occupy_enemy_building(Building *building, int player_num) {
        except the flag associated with the building. */
     map->set_owner(building->get_position(), player_num);
 
-    for (int d = DirectionRight; d <= DirectionUp; d++) {
-      MapPos pos = map->move(building->get_position(), (Direction)d);
+    for (Direction d : cycle_directions_cw()) {
+      MapPos pos = map->move(building->get_position(), d);
       map->set_owner(pos, player_num);
       if (pos != flag->get_position()) {
         demolish_flag_and_roads(pos);
@@ -2033,9 +2036,9 @@ Game::occupy_enemy_building(Building *building, int player_num) {
     flag->reset_destination_of_stolen_resources();
 
     /* Remove paths from flag. */
-    for (int d = DirectionRight; d <= DirectionUp; d++) {
-      if (flag->has_path((Direction)d)) {
-        demolish_road_(map->move(flag->get_position(), (Direction)d));
+    for (Direction d : cycle_directions_cw()) {
+      if (flag->has_path(d)) {
+        demolish_road_(map->move(flag->get_position(), d));
       }
     }
 

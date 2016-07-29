@@ -1239,10 +1239,10 @@ Serf::handle_serf_walking_state() {
       } else {
         Flag *src = game->get_flag_at_pos(pos);
         FlagSearch search(game);
-        for (int i = DirectionRight; i <= DirectionUp; i++) {
-          if (!src->is_water_path((Direction)(5-i))) {
-            Flag *other_flag = src->get_other_end_flag((Direction)(5-i));
-            other_flag->set_search_dir((Direction)(5-i));
+        for (Direction i : cycle_directions_ccw()) {
+          if (!src->is_water_path(i)) {
+            Flag *other_flag = src->get_other_end_flag(i);
+            other_flag->set_search_dir(i);
             search.add_source(other_flag);
           }
         }
@@ -1255,9 +1255,9 @@ Serf::handle_serf_walking_state() {
       /* Serf is not at a flag. Just follow the road. */
       int paths = game->get_map()->paths(pos) & ~BIT(s.walking.dir);
       Direction dir = DirectionNone;
-      for (int d = DirectionRight; d <= DirectionUp; d++) {
+      for (Direction d : cycle_directions_cw()) {
         if (paths == BIT(d)) {
-          dir = (Direction)d;
+          dir = d;
           break;
         }
       }
@@ -1346,9 +1346,9 @@ Serf::handle_serf_transporting_state() {
     } else {
       int paths = game->get_map()->paths(pos) & ~BIT(s.walking.dir);
       Direction dir = DirectionNone;
-      for (int d = DirectionRight; d <= DirectionUp; d++) {
+      for (Direction d : cycle_directions_cw()) {
         if (paths == BIT(d)) {
-          dir = (Direction)d;
+          dir = d;
           break;
         }
       }
@@ -2691,16 +2691,16 @@ Serf::handle_serf_free_walking_switch_with_other() {
   MapPos new_pos = 0;
   Direction dir = DirectionNone;
   Serf *other_serf = NULL;
-  for (int i = DirectionRight; i <= DirectionUp; i++) {
-    new_pos = game->get_map()->move(pos, (Direction)i);
+  for (Direction i : cycle_directions_cw()) {
+    new_pos = game->get_map()->move(pos, i);
     if (game->get_map()->has_serf(new_pos)) {
       other_serf = game->get_serf_at_pos(new_pos);
       Direction other_dir;
 
       if (other_serf->is_waiting(&other_dir) &&
-          other_dir == reverse_direction((Direction)i) &&
+          other_dir == reverse_direction(i) &&
           other_serf->switch_waiting(other_dir)) {
-        dir = (Direction)i;
+        dir = i;
         break;
       }
     }
@@ -2842,13 +2842,13 @@ Serf::handle_free_walking_follow_edge() {
   const Direction *a0 = &dir_arr[6*dir_index];
   Direction i0 = DirectionNone;
   Direction dir = DirectionNone;
-  for (int i = DirectionRight; i <= DirectionUp; i++) {
+  for (Direction i : cycle_directions_cw()) {
     MapPos new_pos = game->get_map()->move(pos, a0[i]);
     if (((water && game->get_map()->get_obj(new_pos) == 0) ||
          (!water && !game->get_map()->is_in_water(new_pos) &&
           can_pass_map_pos(new_pos))) && !game->get_map()->has_serf(new_pos)) {
       dir = a0[i];
-      i0 = (Direction)i;
+      i0 = i;
       break;
     }
   }
@@ -4699,8 +4699,8 @@ Serf::handle_state_knight_free_walking() {
 
   while (counter < 0) {
     /* Check for enemy knights nearby. */
-    for (int d = DirectionRight; d <= DirectionUp; d++) {
-      MapPos pos_ = game->get_map()->move(pos, (Direction)d);
+    for (Direction d : cycle_directions_cw()) {
+      MapPos pos_ = game->get_map()->move(pos, d);
 
       if (game->get_map()->has_serf(pos_)) {
         Serf *other = game->get_serf_at_pos(pos_);
@@ -5119,7 +5119,7 @@ void
 Serf::handle_serf_wake_on_path_state() {
   set_state(StateWaitIdleOnPath);
 
-  for (int d = DirectionUp; d >= DirectionRight; d--) {
+  for (Direction d : cycle_directions_ccw()) {
     if (BIT_TEST(game->get_map()->paths(pos), d)) {
       s.idle_on_path.field_E = d;
       break;

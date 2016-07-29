@@ -306,8 +306,8 @@ bool
 ClassicMapGenerator::expand_water_position(MapPos pos_) {
   bool expanding = false;
 
-  for (int d = DirectionRight; d <= DirectionUp; d++) {
-    MapPos new_pos = map.move(pos_, (Direction)d);
+  for (Direction d : cycle_directions_cw()) {
+    MapPos new_pos = map.move(pos_, d);
     unsigned int height = tiles[new_pos].height;
     if (water_level < height && height < 254) {
       return false;
@@ -319,8 +319,8 @@ ClassicMapGenerator::expand_water_position(MapPos pos_) {
   if (expanding) {
     tiles[pos_].height = 255;
 
-    for (int d = DirectionRight; d <= DirectionUp; d++) {
-      MapPos new_pos = map.move(pos_, (Direction)d);
+    for (Direction d : cycle_directions_cw()) {
+      MapPos new_pos = map.move(pos_, d);
       if (tiles[new_pos].height != 255) tiles[new_pos].height = 254;
     }
   }
@@ -335,8 +335,8 @@ ClassicMapGenerator::expand_water_position(MapPos pos_) {
 void
 ClassicMapGenerator::expand_water_body(MapPos pos) {
   // Check whether it is possible to expand from this position.
-  for (int d = DirectionRight; d <= DirectionUp; d++) {
-    MapPos new_pos = map.move(pos, (Direction)d);
+  for (Direction d : cycle_directions_cw()) {
+    MapPos new_pos = map.move(pos, d);
     if (tiles[new_pos].height > water_level) {
       // Expanding water from this position was not possible. Just raise the
       // height to one above sea level.
@@ -347,8 +347,8 @@ ClassicMapGenerator::expand_water_body(MapPos pos) {
 
   // Initialize expansion
   tiles[pos].height = 255;
-  for (int d = DirectionRight; d <= DirectionUp; d++) {
-    MapPos new_pos = map.move(pos, (Direction)d);
+  for (Direction d : cycle_directions_cw()) {
+    MapPos new_pos = map.move(pos, d);
     tiles[new_pos].height = 254;
   }
 
@@ -358,8 +358,7 @@ ClassicMapGenerator::expand_water_body(MapPos pos) {
     bool expanded = false;
 
     MapPos new_pos = map.move_right_n(pos, i+1);
-    for (int k = DirectionRight; k <= DirectionUp; k++) {
-      Direction d = turn_direction(DirectionDown, k);
+    for (Direction d : cycle_directions_cw(DirectionDown)) {
       for (unsigned int j = 0; j <= i; j++) {
         expanded |= expand_water_position(new_pos);
         new_pos = map.move(new_pos, d);
@@ -377,8 +376,7 @@ ClassicMapGenerator::expand_water_body(MapPos pos) {
 
   for (unsigned int i = 0; i < max_lake_area + 1; i++) {
     MapPos new_pos = map.move_right_n(pos, i+1);
-    for (int k = DirectionRight; k <= DirectionUp; k++) {
-      Direction d = (Direction)((k + DirectionDown) % 6);
+    for (Direction d : cycle_directions_cw(DirectionDown)) {
       for (unsigned int j = 0; j <= i; j++) {
         if (tiles[new_pos].height > 253) tiles[new_pos].height -= 2;
         new_pos = map.move(new_pos, d);
@@ -527,10 +525,10 @@ ClassicMapGenerator::remove_islands() {
             }
 
             // Mark positions following any valid direction on land.
-            for (int d = DirectionRight; d <= DirectionUp; d++) {
+            for (Direction d : cycle_directions_cw()) {
               if (BIT_TEST(flags, d)) {
-                if (tags[map.move(pos_, (Direction)d)] == 0) {
-                  tags[map.move(pos_, (Direction)d)] = 1;
+                if (tags[map.move(pos_, d)] == 0) {
+                  tags[map.move(pos_, d)] = 1;
                   changed = true;
                 }
               }
@@ -1048,8 +1046,8 @@ ClassicMapGenerator::clean_up() {
       // under two particular conditions at the map edge:
       // 1) x == 0 && d == DirectionLeft
       // 2) y == 0 && (d == DirectionUp || d == DirectionUpLeft)
-      for (int d = DirectionLeft; d <= DirectionUp; d++) {
-        MapPos other_pos = map.move(pos_, (Direction)d);
+      for (Direction d : cycle_directions_cw(DirectionLeft, 3)) {
+        MapPos other_pos = map.move(pos_, d);
         Map::Space s = Map::map_space_from_obj[tiles[other_pos].obj];
 
         bool check_impassable = false;
