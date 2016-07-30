@@ -990,7 +990,7 @@ ClassicMapGenerator::init_resources_shared(
       int col, row;
       MapPos pos = map.get_rnd_coord(&col, &row, &rnd);
 
-      if (hexagon_types_in_range(pos, min, max) == 0) {
+      if (hexagon_types_in_range(pos, min, max)) {
         int index = 0;
         int amount = 8 + (random_int() & 0xc);
         init_resources_shared_sub(1, col, row, &index, amount, type);
