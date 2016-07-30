@@ -2,16 +2,25 @@
 # freeserf
 bin_PROGRAMS = freeserf
 
-freeserf_SOURCES = \
-	src/freeserf.cc src/freeserf.h \
-	src/data.cc src/data.h \
-	src/resource.h \
-	src/mission.cc src/mission.h \
-	src/game.cc src/game.h \
-	src/serf.cc src/serf.h \
-	src/flag.cc src/flag.h \
+GAME_SOURCES = \
 	src/building.cc src/building.h \
+	src/debug.cc src/debug.h \
+	src/flag.cc src/flag.h \
+	src/game.cc src/game.h \
+	src/inventory.cc src/inventory.h \
+	src/log.cc src/log.h \
+	src/map.cc src/map.h \
+	src/map-generator.cc src/map-generator.h \
+	src/mission.cc src/mission.h \
+	src/objects.h \
+	src/player.cc src/player.h \
 	src/random.cc src/random.h \
+	src/resource.h \
+	src/savegame.cc src/savegame.h \
+	src/serf.cc src/serf.h
+
+OTHER_SOURCES = \
+	src/data.cc src/data.h \
 	src/pathfinder.cc src/pathfinder.h \
 	src/gfx.cc src/gfx.h \
 	src/viewport.cc src/viewport.h \
@@ -22,15 +31,10 @@ freeserf_SOURCES = \
 	src/game-init.cc src/game-init.h \
 	src/notification.cc src/notification.h \
 	src/panel.cc src/panel.h \
-	src/map.cc src/map.h \
-	src/player.cc src/player.h \
 	src/video-sdl.cc src/video-sdl.h \
 	src/video.cc src/video.h \
 	src/audio.cc src/audio.h \
-	src/savegame.cc src/savegame.h \
-	src/log.cc src/log.h \
 	src/misc.h \
-	src/debug.cc src/debug.h \
 	src/freeserf_endian.h \
 	src/version.cc src/version.h src/version-vcs.h \
 	src/data-source-dos.cc src/data-source-dos.h\
@@ -40,10 +44,13 @@ freeserf_SOURCES = \
 	src/sfx2wav.cc src/sfx2wav.h \
 	src/xmi2mid.cc src/xmi2mid.h \
 	src/data-source.cc src/data-source.h \
-	src/objects.h src/smart_ptr.h \
-	src/inventory.cc src/inventory.h \
-	src/text-input.cc src/text-input.h \
-	src/map-generator.cc src/map-generator.h
+	src/smart_ptr.h \
+	src/text-input.cc src/text-input.h
+
+freeserf_SOURCES = \
+	src/freeserf.cc src/freeserf.h \
+	$(GAME_SOURCES) \
+	$(OTHER_SOURCES)
 
 AM_CFLAGS = $(SDL2_CFLAGS) -I$(top_builddir)/src
 AM_CXXFLAGS = $(SDL2_CFLAGS) -I$(top_builddir)/src
