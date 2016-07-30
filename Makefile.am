@@ -1,6 +1,7 @@
 
 # freeserf
 bin_PROGRAMS = freeserf
+noinst_PROGRAMS = tests/test_map
 
 GAME_SOURCES = \
 	src/building.cc src/building.h \
@@ -52,6 +53,10 @@ freeserf_SOURCES = \
 	$(GAME_SOURCES) \
 	$(OTHER_SOURCES)
 
+tests_test_map_SOURCES = \
+	tests/test_map.cc \
+	$(GAME_SOURCES)
+
 AM_CFLAGS = $(SDL2_CFLAGS) -I$(top_builddir)/src
 AM_CXXFLAGS = $(SDL2_CFLAGS) -I$(top_builddir)/src
 freeserf_LDADD = $(SDL2_LIBS) $(SDL2_CFLAGS) -lm
@@ -69,6 +74,15 @@ VCS_VERSION_FILE = src/version-vcs.h
 
 CLEANFILES = $(VCS_VERSION_FILE)
 
+
+# Tests
+LOG_DRIVER = env AM_TAP_AWK='$(AWK)' $(SHELL) \
+	$(top_srcdir)/tap-driver.sh
+TESTS = tests/test_map
+
+EXTRA_DIST = \
+	README.md HACKING.md \
+	tests/data/map-memdump-1
 
 all: gitversion
 

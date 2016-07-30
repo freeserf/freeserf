@@ -5,6 +5,7 @@ AC_PREREQ([2.69])
 AC_INIT([freeserf], [0.2], [https://github.com/freeserf/freeserf/issues])
 AC_CONFIG_SRCDIR([src/freeserf.cc])
 AC_CONFIG_HEADERS([config.h])
+AC_REQUIRE_AUX_FILE([tap-driver.sh])
 AM_INIT_AUTOMAKE([foreign subdir-objects dist-xz])
 
 m4_ifdef([AM_SILENT_RULES], [AM_SILENT_RULES([yes])])
