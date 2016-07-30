@@ -46,7 +46,7 @@ class ClassicMapGenerator : public MapGenerator {
   static const int default_water_level;
   static const int default_terrain_spikyness;
 
-  ClassicMapGenerator(Map *map, const Random &random);
+  ClassicMapGenerator(const Map &map, const Random &random);
   virtual ~ClassicMapGenerator();
   void init(int height_generator, bool preserve_bugs,
             int max_lake_area = default_max_lake_area,
@@ -75,7 +75,7 @@ class ClassicMapGenerator : public MapGenerator {
     int resource_amount;
   };
 
-  Map *map;
+  const Map &map;
   Random rnd;
 
   int tile_count;
@@ -150,7 +150,7 @@ class ClassicMapGenerator : public MapGenerator {
 /* Classic map generator that generates identical maps for missions. */
 class ClassicMissionMapGenerator : public ClassicMapGenerator {
  public:
-  ClassicMissionMapGenerator(Map *map, const Random &random);
+  ClassicMissionMapGenerator(const Map &map, const Random &random);
   void init();
 };
 

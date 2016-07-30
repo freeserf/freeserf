@@ -30,8 +30,8 @@ const int ClassicMapGenerator::default_max_lake_area = 14;
 const int ClassicMapGenerator::default_water_level = 20;
 const int ClassicMapGenerator::default_terrain_spikyness = 0x9999;
 
-ClassicMapGenerator::ClassicMapGenerator(Map* map, const Random& random) :
-  map(map), rnd(random) {}
+ClassicMapGenerator::ClassicMapGenerator(const Map& map, const Random& random)
+  : map(map), rnd(random) {}
 
 ClassicMapGenerator::~ClassicMapGenerator() {
   if (tiles != NULL) {
@@ -42,7 +42,7 @@ ClassicMapGenerator::~ClassicMapGenerator() {
 void ClassicMapGenerator::init(
     int height_generator, bool preserve_bugs, int max_lake_area,
     int water_level, int terrain_spikyness) {
-  tile_count = map->get_cols() * map->get_rows();
+  tile_count = map.get_cols() * map.get_rows();
   tiles = new MapTile[tile_count]();
 
   this->height_generator = height_generator;
@@ -61,9 +61,9 @@ bool ClassicMapGenerator::is_water_tile(MapPos pos) const {
 /* Whether the position is completely surrounded by water. */
 bool ClassicMapGenerator::is_in_water(MapPos pos) const {
   return (is_water_tile(pos) &&
-          is_water_tile(map->move_up_left(pos)) &&
-          tiles[map->move_left(pos)].type_down <= Map::TerrainWater3 &&
-          tiles[map->move_up(pos)].type_up <= Map::TerrainWater3);
+          is_water_tile(map.move_up_left(pos)) &&
+          tiles[map.move_left(pos)].type_down <= Map::TerrainWater3 &&
+          tiles[map.move_up(pos)].type_up <= Map::TerrainWater3);
 }
 
 void ClassicMapGenerator::generate() {
@@ -102,10 +102,10 @@ ClassicMapGenerator::random_int() {
    values in the corners of 16x16 squares. */
 void
 ClassicMapGenerator::init_heights_squares() {
-  for (unsigned int y = 0; y < map->get_rows(); y += 16) {
-    for (unsigned int x = 0; x < map->get_cols(); x += 16) {
+  for (unsigned int y = 0; y < map.get_rows(); y += 16) {
+    for (unsigned int x = 0; x < map.get_cols(); x += 16) {
       int rnd = random_int() & 0xff;
-      tiles[map->pos(x, y)].height = std::min(rnd, 250);
+      tiles[map.pos(x, y)].height = std::min(rnd, 250);
     }
   }
 }
@@ -140,13 +140,13 @@ ClassicMapGenerator::init_heights_midpoints() {
   int r2 = (r1 * terrain_spikyness) >> 16;
 
   for (int i = 8; i > 0; i >>= 1) {
-    for (unsigned int y = 0; y < map->get_rows(); y += 2*i) {
-      for (unsigned int x = 0; x < map->get_cols(); x += 2*i) {
-        MapPos pos_ = map->pos(x, y);
+    for (unsigned int y = 0; y < map.get_rows(); y += 2*i) {
+      for (unsigned int x = 0; x < map.get_cols(); x += 2*i) {
+        MapPos pos_ = map.pos(x, y);
         int h = tiles[pos_].height;
 
-        MapPos pos_r = map->move_right_n(pos_, 2*i);
-        MapPos pos_mid_r = map->move_right_n(pos_, i);
+        MapPos pos_r = map.move_right_n(pos_, 2*i);
+        MapPos pos_mid_r = map.move_right_n(pos_, i);
         int h_r = tiles[pos_r].height;
 
         if (preserve_bugs) {
@@ -158,13 +158,13 @@ ClassicMapGenerator::init_heights_midpoints() {
 
         tiles[pos_mid_r].height = calc_height_displacement((h + h_r)/2, r1, r2);
 
-        MapPos pos_d = map->move_down_n(pos_, 2*i);
-        MapPos pos_mid_d = map->move_down_n(pos_, i);
+        MapPos pos_d = map.move_down_n(pos_, 2*i);
+        MapPos pos_mid_d = map.move_down_n(pos_, i);
         int h_d = tiles[pos_d].height;
         tiles[pos_mid_d].height = calc_height_displacement((h+h_d)/2, r1, r2);
 
-        MapPos pos_dr = map->move_right_n(map->move_down_n(pos_, 2*i), 2*i);
-        MapPos pos_mid_dr = map->move_right_n(map->move_down_n(pos_, i), i);
+        MapPos pos_dr = map.move_right_n(map.move_down_n(pos_, 2*i), 2*i);
+        MapPos pos_mid_dr = map.move_right_n(map.move_down_n(pos_, i), i);
         int h_dr = tiles[pos_dr].height;
         tiles[pos_mid_dr].height = calc_height_displacement((h+h_dr)/2, r1, r2);
       }
@@ -198,52 +198,52 @@ ClassicMapGenerator::init_heights_diamond_square() {
 
   for (int i = 8; i > 0; i >>= 1) {
     /* Diamond step */
-    for (unsigned int y = 0; y < map->get_rows(); y += 2*i) {
-      for (unsigned int x = 0; x < map->get_cols(); x += 2*i) {
-        MapPos pos_ = map->pos(x, y);
+    for (unsigned int y = 0; y < map.get_rows(); y += 2*i) {
+      for (unsigned int x = 0; x < map.get_cols(); x += 2*i) {
+        MapPos pos_ = map.pos(x, y);
         int h = tiles[pos_].height;
 
-        MapPos pos_r = map->move_right_n(pos_, 2*i);
+        MapPos pos_r = map.move_right_n(pos_, 2*i);
         int h_r = tiles[pos_r].height;
 
-        MapPos pos_d = map->move_down_n(pos_, 2*i);
+        MapPos pos_d = map.move_down_n(pos_, 2*i);
         int h_d = tiles[pos_d].height;
 
-        MapPos pos_dr = map->move_right_n(map->move_down_n(pos_, 2*i), 2*i);
+        MapPos pos_dr = map.move_right_n(map.move_down_n(pos_, 2*i), 2*i);
         int h_dr = tiles[pos_dr].height;
 
-        MapPos pos_mid_dr = map->move_right_n(map->move_down_n(pos_, i), i);
+        MapPos pos_mid_dr = map.move_right_n(map.move_down_n(pos_, i), i);
         int avg = (h + h_r + h_d + h_dr) / 4;
         tiles[pos_mid_dr].height = calc_height_displacement(avg, r1, r2);
       }
     }
 
     /* Square step */
-    for (unsigned int y = 0; y < map->get_rows(); y += 2*i) {
-      for (unsigned int x = 0; x < map->get_cols(); x += 2*i) {
-        MapPos pos_ = map->pos(x, y);
+    for (unsigned int y = 0; y < map.get_rows(); y += 2*i) {
+      for (unsigned int x = 0; x < map.get_cols(); x += 2*i) {
+        MapPos pos_ = map.pos(x, y);
         int h = tiles[pos_].height;
 
-        MapPos pos_r = map->move_right_n(pos_, 2*i);
+        MapPos pos_r = map.move_right_n(pos_, 2*i);
         int h_r = tiles[pos_r].height;
 
-        MapPos pos_d = map->move_down_n(pos_, 2*i);
+        MapPos pos_d = map.move_down_n(pos_, 2*i);
         int h_d = tiles[pos_d].height;
 
-        MapPos pos_ur = map->move_right_n(map->move_down_n(pos_, -i), i);
+        MapPos pos_ur = map.move_right_n(map.move_down_n(pos_, -i), i);
         int h_ur = tiles[pos_ur].height;
 
-        MapPos pos_dr = map->move_right_n(map->move_down_n(pos_, i), i);
+        MapPos pos_dr = map.move_right_n(map.move_down_n(pos_, i), i);
         int h_dr = tiles[pos_dr].height;
 
-        MapPos pos_dl = map->move_right_n(map->move_down_n(pos_, i), -i);
+        MapPos pos_dl = map.move_right_n(map.move_down_n(pos_, i), -i);
         int h_dl = tiles[pos_dl].height;
 
-        MapPos pos_mid_r = map->move_right_n(pos_, i);
+        MapPos pos_mid_r = map.move_right_n(pos_, i);
         int avg_r = (h + h_r + h_ur + h_dr) / 4;
         tiles[pos_mid_r].height = calc_height_displacement(avg_r, r1, r2);
 
-        MapPos pos_mid_d = map->move_down_n(pos_, i);
+        MapPos pos_mid_d = map.move_down_n(pos_, i);
         int avg_d = (h + h_d + h_dl + h_dr) / 4;
         tiles[pos_mid_d].height = calc_height_displacement(avg_d, r1, r2);
       }
@@ -270,20 +270,20 @@ ClassicMapGenerator::clamp_heights() {
   bool changed = true;
   while (changed) {
     changed = false;
-    for (unsigned int y = 0; y < map->get_rows(); y++) {
-      for (unsigned int x = 0; x < map->get_cols(); x++) {
-        MapPos pos_ = map->pos(x, y);
+    for (unsigned int y = 0; y < map.get_rows(); y++) {
+      for (unsigned int x = 0; x < map.get_cols(); x++) {
+        MapPos pos_ = map.pos(x, y);
         int h = tiles[pos_].height;
 
-        MapPos pos_d = map->move_down(pos_);
+        MapPos pos_d = map.move_down(pos_);
         int h_d = tiles[pos_d].height;
         changed |= adjust_map_height(h, h_d, pos_d);
 
-        MapPos pos_dr = map->move_down_right(pos_);
+        MapPos pos_dr = map.move_down_right(pos_);
         int h_dr = tiles[pos_dr].height;
         changed |= adjust_map_height(h, h_dr, pos_dr);
 
-        MapPos pos_r = map->move_right(pos_);
+        MapPos pos_r = map.move_right(pos_);
         int h_r = tiles[pos_r].height;
         changed |= adjust_map_height(h, h_r, pos_r);
       }
@@ -296,7 +296,7 @@ ClassicMapGenerator::expand_level_area(MapPos pos_, int limit, int r) {
   int flag = 0;
 
   for (int d = DirectionRight; d <= DirectionUp; d++) {
-    MapPos new_pos = map->move(pos_, (Direction)d);
+    MapPos new_pos = map.move(pos_, (Direction)d);
     if (tiles[new_pos].height < 254) {
       if (tiles[new_pos].height > limit) return r;
     } else if (tiles[new_pos].height == 255) {
@@ -308,7 +308,7 @@ ClassicMapGenerator::expand_level_area(MapPos pos_, int limit, int r) {
     tiles[pos_].height = 255;
 
     for (int d = DirectionRight; d <= DirectionUp; d++) {
-      MapPos new_pos = map->move(pos_, (Direction)d);
+      MapPos new_pos = map.move(pos_, (Direction)d);
       if (tiles[new_pos].height != 255) tiles[new_pos].height = 254;
     }
 
@@ -322,29 +322,29 @@ void
 ClassicMapGenerator::init_level_area(MapPos pos) {
   int limit = water_level;
 
-  if (limit >= tiles[map->move_right(pos)].height &&
-      limit >= tiles[map->move_down_right(pos)].height &&
-      limit >= tiles[map->move_down(pos)].height &&
-      limit >= tiles[map->move_left(pos)].height &&
-      limit >= tiles[map->move_up_left(pos)].height &&
-      limit >= tiles[map->move_up(pos)].height) {
+  if (limit >= tiles[map.move_right(pos)].height &&
+      limit >= tiles[map.move_down_right(pos)].height &&
+      limit >= tiles[map.move_down(pos)].height &&
+      limit >= tiles[map.move_left(pos)].height &&
+      limit >= tiles[map.move_up_left(pos)].height &&
+      limit >= tiles[map.move_up(pos)].height) {
     tiles[pos].height = 255;
-    tiles[map->move_right(pos)].height = 254;
-    tiles[map->move_down_right(pos)].height = 254;
-    tiles[map->move_down(pos)].height = 254;
-    tiles[map->move_left(pos)].height = 254;
-    tiles[map->move_up_left(pos)].height = 254;
-    tiles[map->move_up(pos)].height = 254;
+    tiles[map.move_right(pos)].height = 254;
+    tiles[map.move_down_right(pos)].height = 254;
+    tiles[map.move_down(pos)].height = 254;
+    tiles[map.move_left(pos)].height = 254;
+    tiles[map.move_up_left(pos)].height = 254;
+    tiles[map.move_up(pos)].height = 254;
 
     for (int i = 0; i < max_lake_area; i++) {
       int flag = 0;
 
-      MapPos new_pos = map->move_right_n(pos, i+1);
+      MapPos new_pos = map.move_right_n(pos, i+1);
       for (int k = 0; k < 6; k++) {
         Direction d = turn_direction(DirectionDown, k);
         for (int j = 0; j <= i; j++) {
           flag = expand_level_area(new_pos, limit, flag);
-          new_pos = map->move(new_pos, d);
+          new_pos = map.move(new_pos, d);
         }
       }
 
@@ -354,12 +354,12 @@ ClassicMapGenerator::init_level_area(MapPos pos) {
     if (tiles[pos].height > 253) tiles[pos].height -= 2;
 
     for (int i = 0; i < max_lake_area + 1; i++) {
-      MapPos new_pos = map->move_right_n(pos, i+1);
+      MapPos new_pos = map.move_right_n(pos, i+1);
       for (int k = 0; k < 6; k++) {
         Direction d = turn_direction(DirectionDown, k);
         for (int j = 0; j <= i; j++) {
           if (tiles[new_pos].height > 253) tiles[new_pos].height -= 2;
-          new_pos = map->move(new_pos, d);
+          new_pos = map.move(new_pos, d);
         }
       }
     }
@@ -376,9 +376,9 @@ ClassicMapGenerator::init_sea_level() {
   if (water_level < 0) return;
 
   for (int h = 0; h <= water_level; h++) {
-    for (unsigned int y = 0; y < map->get_rows(); y++) {
-      for (unsigned int x = 0; x < map->get_cols(); x++) {
-        MapPos pos_ = map->pos(x, y);
+    for (unsigned int y = 0; y < map.get_rows(); y++) {
+      for (unsigned int x = 0; x < map.get_cols(); x++) {
+        MapPos pos_ = map.pos(x, y);
         if (tiles[pos_].height == h) {
           init_level_area(pos_);
         }
@@ -391,9 +391,9 @@ ClassicMapGenerator::init_sea_level() {
      252: Land at water level.
      253: Water. */
 
-  for (unsigned int y = 0; y < map->get_rows(); y++) {
-    for (unsigned int x = 0; x < map->get_cols(); x++) {
-      MapPos pos_ = map->pos(x, y);
+  for (unsigned int y = 0; y < map.get_rows(); y++) {
+    for (unsigned int x = 0; x < map.get_cols(); x++) {
+      MapPos pos_ = map.pos(x, y);
       int h = tiles[pos_].height;
       switch (h) {
         case 0:
@@ -417,9 +417,9 @@ void
 ClassicMapGenerator::heights_rebase() {
   int h = water_level - 1;
 
-  for (unsigned int y = 0; y < map->get_rows(); y++) {
-    for (unsigned int x = 0; x < map->get_cols(); x++) {
-      tiles[map->pos(x, y)].height -= h;
+  for (unsigned int y = 0; y < map.get_rows(); y++) {
+    for (unsigned int x = 0; x < map.get_cols(); x++) {
+      tiles[map.pos(x, y)].height -= h;
     }
   }
 }
@@ -439,13 +439,13 @@ calc_map_type(int h_sum) {
 /* Set type of map fields based on the height value. */
 void
 ClassicMapGenerator::init_types() {
-  for (unsigned int y = 0; y < map->get_rows(); y++) {
-    for (unsigned int x = 0; x < map->get_cols(); x++) {
-      MapPos pos_ = map->pos(x, y);
+  for (unsigned int y = 0; y < map.get_rows(); y++) {
+    for (unsigned int x = 0; x < map.get_cols(); x++) {
+      MapPos pos_ = map.pos(x, y);
       int h1 = tiles[pos_].height;
-      int h2 = tiles[map->move_right(pos_)].height;
-      int h3 = tiles[map->move_down_right(pos_)].height;
-      int h4 = tiles[map->move_down(pos_)].height;
+      int h2 = tiles[map.move_right(pos_)].height;
+      int h3 = tiles[map.move_down_right(pos_)].height;
+      int h4 = tiles[map.move_down(pos_)].height;
       tiles[pos_].type_up = calc_map_type(h1 + h3 + h4);
       tiles[pos_].type_down = calc_map_type(h1 + h2 + h3);
     }
@@ -454,9 +454,9 @@ ClassicMapGenerator::init_types() {
 
 void
 ClassicMapGenerator::init_types_2_sub() {
-  for (unsigned int y = 0; y < map->get_rows(); y++) {
-    for (unsigned int x = 0; x < map->get_cols(); x++) {
-      tiles[map->pos(x, y)].obj = Map::ObjectNone;
+  for (unsigned int y = 0; y < map.get_rows(); y++) {
+    for (unsigned int x = 0; x < map.get_cols(); x++) {
+      tiles[map.pos(x, y)].obj = Map::ObjectNone;
     }
   }
 }
@@ -465,9 +465,9 @@ void
 ClassicMapGenerator::init_types_2() {
   init_types_2_sub();
 
-  for (unsigned int y = 0; y < map->get_rows(); y++) {
-    for (unsigned int x = 0; x < map->get_cols(); x++) {
-      MapPos pos_ = map->pos(x, y);
+  for (unsigned int y = 0; y < map.get_rows(); y++) {
+    for (unsigned int x = 0; x < map.get_cols(); x++) {
+      MapPos pos_ = map.pos(x, y);
 
       if (tiles[pos_].height > 0) {
         tiles[pos_].obj = static_cast<Map::Object>(1);
@@ -476,9 +476,9 @@ ClassicMapGenerator::init_types_2() {
         int changed = 1;
         while (changed) {
           changed = 0;
-          for (unsigned int y = 0; y < map->get_rows(); y++) {
-            for (unsigned int x = 0; x < map->get_cols(); x++) {
-              MapPos pos_ = map->pos(x, y);
+          for (unsigned int y = 0; y < map.get_rows(); y++) {
+            for (unsigned int x = 0; x < map.get_cols(); x++) {
+              MapPos pos_ = map.pos(x, y);
 
               if (tiles[pos_].obj == 1) {
                 num += 1;
@@ -491,26 +491,26 @@ ClassicMapGenerator::init_types_2() {
                 if (tiles[pos_].type_up >= Map::TerrainGrass0) {
                   flags |= 6;
                 }
-                if (tiles[map->move_left(pos_)].type_down >=
+                if (tiles[map.move_left(pos_)].type_down >=
                     Map::TerrainGrass0) {
                   flags |= 0xc;
                 }
-                if (tiles[map->move_up_left(pos_)].type_up >=
+                if (tiles[map.move_up_left(pos_)].type_up >=
                     Map::TerrainGrass0) {
                   flags |= 0x18;
                 }
-                if (tiles[map->move_up_left(pos_)].type_down >=
+                if (tiles[map.move_up_left(pos_)].type_down >=
                     Map::TerrainGrass0) {
                   flags |= 0x30;
                 }
-                if (tiles[map->move_up(pos_)].type_up >= Map::TerrainGrass0) {
+                if (tiles[map.move_up(pos_)].type_up >= Map::TerrainGrass0) {
                   flags |= 0x21;
                 }
 
                 for (int d = DirectionRight; d <= DirectionUp; d++) {
                   if (BIT_TEST(flags, d)) {
-                    if (tiles[map->move(pos_, (Direction)d)].obj == 0) {
-                      tiles[map->move(pos_, (Direction)d)].obj =
+                    if (tiles[map.move(pos_, (Direction)d)].obj == 0) {
+                      tiles[map.move(pos_, (Direction)d)].obj =
                         static_cast<Map::Object>(1);
                       changed = 1;
                     }
@@ -528,19 +528,19 @@ ClassicMapGenerator::init_types_2() {
 
   break_loop:
 
-  for (unsigned int y = 0; y < map->get_rows(); y++) {
-    for (unsigned int x = 0; x < map->get_cols(); x++) {
-      MapPos pos_ = map->pos(x, y);
+  for (unsigned int y = 0; y < map.get_rows(); y++) {
+    for (unsigned int x = 0; x < map.get_cols(); x++) {
+      MapPos pos_ = map.pos(x, y);
 
       if (tiles[pos_].height > 0 && tiles[pos_].obj == 0) {
         tiles[pos_].height = 0;
         tiles[pos_].type_up = Map::TerrainWater0;
         tiles[pos_].type_up = Map::TerrainWater0;
 
-        tiles[map->move_left(pos_)].type_down = Map::TerrainWater0;
-        tiles[map->move_up_left(pos_)].type_up = Map::TerrainWater0;
-        tiles[map->move_up_left(pos_)].type_down = Map::TerrainWater0;
-        tiles[map->move_up(pos_)].type_up = Map::TerrainWater0;
+        tiles[map.move_left(pos_)].type_down = Map::TerrainWater0;
+        tiles[map.move_up_left(pos_)].type_up = Map::TerrainWater0;
+        tiles[map.move_up_left(pos_)].type_down = Map::TerrainWater0;
+        tiles[map.move_up(pos_)].type_up = Map::TerrainWater0;
       }
     }
   }
@@ -551,9 +551,9 @@ ClassicMapGenerator::init_types_2() {
 /* Rescale height values to be in [0;31]. */
 void
 ClassicMapGenerator::heights_rescale() {
-  for (unsigned int y = 0; y < map->get_rows(); y++) {
-    for (unsigned int x = 0; x < map->get_cols(); x++) {
-      MapPos pos_ = map->pos(x, y);
+  for (unsigned int y = 0; y < map.get_rows(); y++) {
+    for (unsigned int x = 0; x < map.get_cols(); x++) {
+      MapPos pos_ = map.pos(x, y);
       tiles[pos_].height = (tiles[pos_].height + 6) >> 3;
     }
   }
@@ -562,39 +562,39 @@ ClassicMapGenerator::heights_rescale() {
 void
 ClassicMapGenerator::init_types_shared_sub(Map::Terrain old, Map::Terrain seed,
                                            Map::Terrain new_) {
-  for (unsigned int y = 0; y < map->get_rows(); y++) {
-    for (unsigned int x = 0; x < map->get_cols(); x++) {
-      MapPos pos_ = map->pos(x, y);
+  for (unsigned int y = 0; y < map.get_rows(); y++) {
+    for (unsigned int x = 0; x < map.get_cols(); x++) {
+      MapPos pos_ = map.pos(x, y);
 
       if (tiles[pos_].type_up == old &&
-          (seed == tiles[map->move_up_left(pos_)].type_down ||
-           seed == tiles[map->move_up_left(pos_)].type_up ||
-           seed == tiles[map->move_up(pos_)].type_up ||
-           seed == tiles[map->move_left(pos_)].type_down ||
-           seed == tiles[map->move_left(pos_)].type_up ||
+          (seed == tiles[map.move_up_left(pos_)].type_down ||
+           seed == tiles[map.move_up_left(pos_)].type_up ||
+           seed == tiles[map.move_up(pos_)].type_up ||
+           seed == tiles[map.move_left(pos_)].type_down ||
+           seed == tiles[map.move_left(pos_)].type_up ||
            seed == tiles[pos_].type_down ||
-           seed == tiles[map->move_right(pos_)].type_up ||
-           seed == tiles[map->move_down_left(pos_)].type_down ||
-           seed == tiles[map->move_down(pos_)].type_down ||
-           seed == tiles[map->move_down(pos_)].type_up ||
-           seed == tiles[map->move_down_right(pos_)].type_down ||
-           seed == tiles[map->move_down_right(pos_)].type_up)) {
+           seed == tiles[map.move_right(pos_)].type_up ||
+           seed == tiles[map.move_down_left(pos_)].type_down ||
+           seed == tiles[map.move_down(pos_)].type_down ||
+           seed == tiles[map.move_down(pos_)].type_up ||
+           seed == tiles[map.move_down_right(pos_)].type_down ||
+           seed == tiles[map.move_down_right(pos_)].type_up)) {
         tiles[pos_].type_up = new_;
       }
 
       if (tiles[pos_].type_down == old &&
-          (seed == tiles[map->move_up_left(pos_)].type_down ||
-           seed == tiles[map->move_up_left(pos_)].type_up ||
-           seed == tiles[map->move_up(pos_)].type_down ||
-           seed == tiles[map->move_up(pos_)].type_up ||
-           seed == tiles[map->move_up_right(pos_)].type_up ||
-           seed == tiles[map->move_left(pos_)].type_down ||
+          (seed == tiles[map.move_up_left(pos_)].type_down ||
+           seed == tiles[map.move_up_left(pos_)].type_up ||
+           seed == tiles[map.move_up(pos_)].type_down ||
+           seed == tiles[map.move_up(pos_)].type_up ||
+           seed == tiles[map.move_up_right(pos_)].type_up ||
+           seed == tiles[map.move_left(pos_)].type_down ||
            seed == tiles[pos_].type_up ||
-           seed == tiles[map->move_right(pos_)].type_down ||
-           seed == tiles[map->move_right(pos_)].type_up ||
-           seed == tiles[map->move_down(pos_)].type_down ||
-           seed == tiles[map->move_down_right(pos_)].type_down ||
-           seed == tiles[map->move_down_right(pos_)].type_up)) {
+           seed == tiles[map.move_right(pos_)].type_down ||
+           seed == tiles[map.move_right(pos_)].type_up ||
+           seed == tiles[map.move_down(pos_)].type_down ||
+           seed == tiles[map.move_down_right(pos_)].type_down ||
+           seed == tiles[map.move_down_right(pos_)].type_up)) {
         tiles[pos_].type_down = new_;
       }
     }
@@ -620,7 +620,7 @@ ClassicMapGenerator::init_types4() {
 /* Use spiral pattern to lookup a new position based on col, row. */
 MapPos
 ClassicMapGenerator::lookup_pattern(int col, int row, int index) {
-  return map->pos_add_spirally(map->pos(col, row), index);
+  return map.pos_add_spirally(map.pos(col, row), index);
 }
 
 int
@@ -635,12 +635,12 @@ ClassicMapGenerator::init_desert_sub1(MapPos pos_) {
     return -1;
   }
 
-  type_d = tiles[map->move_left(pos_)].type_down;
+  type_d = tiles[map.move_left(pos_)].type_down;
   if (type_d != Map::TerrainGrass1 && type_d != Map::TerrainDesert2) {
     return -1;
   }
 
-  type_d = tiles[map->move_down(pos_)].type_down;
+  type_d = tiles[map.move_down(pos_)].type_down;
   if (type_d != Map::TerrainGrass1 && type_d != Map::TerrainDesert2) {
     return -1;
   }
@@ -660,12 +660,12 @@ ClassicMapGenerator::init_desert_sub2(MapPos pos_) {
     return -1;
   }
 
-  type_u = tiles[map->move_right(pos_)].type_up;
+  type_u = tiles[map.move_right(pos_)].type_up;
   if (type_u != Map::TerrainGrass1 && type_u != Map::TerrainDesert2) {
     return -1;
   }
 
-  type_u = tiles[map->move_up(pos_)].type_up;
+  type_u = tiles[map.move_up(pos_)].type_up;
   if (type_u != Map::TerrainGrass1 && type_u != Map::TerrainDesert2) {
     return -1;
   }
@@ -676,10 +676,10 @@ ClassicMapGenerator::init_desert_sub2(MapPos pos_) {
 /* Create deserts on the map. */
 void
 ClassicMapGenerator::init_desert() {
-  for (int i = 0; i < map->get_region_count(); i++) {
+  for (int i = 0; i < map.get_region_count(); i++) {
     for (int try_ = 0; try_ < 200; try_++) {
       int col, row;
-      MapPos rnd_pos = map->get_rnd_coord(&col, &row, &rnd);
+      MapPos rnd_pos = map.get_rnd_coord(&col, &row, &rnd);
 
       if (tiles[rnd_pos].type_up == Map::TerrainGrass1 &&
           tiles[rnd_pos].type_down == Map::TerrainGrass1) {
@@ -700,9 +700,9 @@ ClassicMapGenerator::init_desert() {
 
 void
 ClassicMapGenerator::init_desert_2_sub() {
-  for (unsigned int y = 0; y < map->get_rows(); y++) {
-    for (unsigned int x = 0; x < map->get_cols(); x++) {
-      MapPos pos_ = map->pos(x, y);
+  for (unsigned int y = 0; y < map.get_rows(); y++) {
+    for (unsigned int x = 0; x < map.get_cols(); x++) {
+      MapPos pos_ = map.pos(x, y);
       int type_d = tiles[pos_].type_down;
       int type_u = tiles[pos_].type_up;
 
@@ -738,17 +738,17 @@ ClassicMapGenerator::init_desert_2() {
 /* Put crosses on top of mountains. */
 void
 ClassicMapGenerator::init_crosses() {
-  for (unsigned int y = 0; y < map->get_rows(); y++) {
-    for (unsigned int x = 0; x < map->get_cols(); x++) {
-      MapPos pos_ = map->pos(x, y);
+  for (unsigned int y = 0; y < map.get_rows(); y++) {
+    for (unsigned int x = 0; x < map.get_cols(); x++) {
+      MapPos pos_ = map.pos(x, y);
       unsigned int h = tiles[pos_].height;
       if (h >= 26 &&
-          h >= tiles[map->move_right(pos_)].height &&
-          h >= tiles[map->move_down_right(pos_)].height &&
-          h >= tiles[map->move_down(pos_)].height &&
-          h > tiles[map->move_left(pos_)].height &&
-          h > tiles[map->move_up_left(pos_)].height &&
-          h > tiles[map->move_up(pos_)].height) {
+          h >= tiles[map.move_right(pos_)].height &&
+          h >= tiles[map.move_down_right(pos_)].height &&
+          h >= tiles[map.move_down(pos_)].height &&
+          h > tiles[map.move_left(pos_)].height &&
+          h > tiles[map.move_up_left(pos_)].height &&
+          h > tiles[map.move_up(pos_)].height) {
         tiles[pos_].obj = Map::ObjectCross;
       }
     }
@@ -774,20 +774,20 @@ ClassicMapGenerator::hexagon_types_in_range(MapPos pos_, Map::Terrain min,
   if (type_d < min || type_d > max) return false;
   if (type_u < min || type_u > max) return false;
 
-  type_d = tiles[map->move_left(pos_)].type_down;
+  type_d = tiles[map.move_left(pos_)].type_down;
   if (type_d < min || type_d > max) return false;
 
-  type_d = tiles[map->move_up_left(pos_)].type_down;
-  type_u = tiles[map->move_up_left(pos_)].type_up;
+  type_d = tiles[map.move_up_left(pos_)].type_down;
+  type_u = tiles[map.move_up_left(pos_)].type_up;
   if (type_d < min || type_d > max) return false;
   if (type_u < min || type_u > max) return false;
 
   /* Should be checkeing the up tri type. */
   if (preserve_bugs) {
-    type_d = tiles[map->move_up(pos_)].type_down;
+    type_d = tiles[map.move_up(pos_)].type_down;
     if (type_d < min || type_d > max) return false;
   } else {
-    type_u = tiles[map->move_up(pos_)].type_up;
+    type_u = tiles[map.move_up(pos_)].type_up;
     if (type_u < min || type_u > max) return false;
   }
 
@@ -819,7 +819,7 @@ ClassicMapGenerator::init_objects_shared(int num_clusters, int objs_in_cluster,
   for (int i = 0; i < num_clusters; i++) {
     for (int try_ = 0; try_ < 100; try_++) {
       int col, row;
-      MapPos rnd_pos = map->get_rnd_coord(&col, &row, &rnd);
+      MapPos rnd_pos = map.get_rnd_coord(&col, &row, &rnd);
       if (hexagon_types_in_range(rnd_pos, type_min, type_max)) {
         for (int j = 0; j < objs_in_cluster; j++) {
           MapPos pos_ = lookup_rnd_pattern(col, row, pos_mask);
@@ -838,7 +838,7 @@ ClassicMapGenerator::init_objects_shared(int num_clusters, int objs_in_cluster,
 void
 ClassicMapGenerator::init_trees_1() {
   /* Add either tree or pine. */
-  int clusters = map->get_region_count() << 3;
+  int clusters = map.get_region_count() << 3;
   init_objects_shared(
     clusters, 10, 0xff, Map::TerrainGrass1, Map::TerrainGrass2,
     Map::ObjectTree0, 0xf);
@@ -847,7 +847,7 @@ ClassicMapGenerator::init_trees_1() {
 void
 ClassicMapGenerator::init_trees_2() {
   /* Add only trees. */
-  int clusters = map->get_region_count();
+  int clusters = map.get_region_count();
   init_objects_shared(
     clusters, 45, 0x3f, Map::TerrainGrass1, Map::TerrainGrass2,
     Map::ObjectTree0, 0x7);
@@ -856,7 +856,7 @@ ClassicMapGenerator::init_trees_2() {
 void
 ClassicMapGenerator::init_trees_3() {
   /* Add only pines. */
-  int clusters = map->get_region_count();
+  int clusters = map.get_region_count();
   init_objects_shared(
     clusters, 30, 0x3f, Map::TerrainGrass0, Map::TerrainGrass2,
     Map::ObjectPine0, 0x7);
@@ -865,7 +865,7 @@ ClassicMapGenerator::init_trees_3() {
 void
 ClassicMapGenerator::init_trees_4() {
   /* Add either tree or pine. */
-  int clusters = map->get_region_count();
+  int clusters = map.get_region_count();
   init_objects_shared(
     clusters, 20, 0x7f, Map::TerrainGrass1, Map::TerrainGrass2,
     Map::ObjectTree0, 0xf);
@@ -873,7 +873,7 @@ ClassicMapGenerator::init_trees_4() {
 
 void
 ClassicMapGenerator::init_stone_1() {
-  int clusters = map->get_region_count();
+  int clusters = map.get_region_count();
   init_objects_shared(
     clusters, 40, 0x3f, Map::TerrainGrass1, Map::TerrainGrass2,
     Map::ObjectStone0, 0x7);
@@ -881,7 +881,7 @@ ClassicMapGenerator::init_stone_1() {
 
 void
 ClassicMapGenerator::init_stone_2() {
-  int clusters = map->get_region_count();
+  int clusters = map.get_region_count();
   init_objects_shared(
     clusters, 15, 0xff, Map::TerrainGrass1, Map::TerrainGrass2,
     Map::ObjectStone0, 0x7);
@@ -889,7 +889,7 @@ ClassicMapGenerator::init_stone_2() {
 
 void
 ClassicMapGenerator::init_dead_trees() {
-  int clusters = map->get_region_count();
+  int clusters = map.get_region_count();
   init_objects_shared(
     clusters, 2, 0xff, Map::TerrainGrass1, Map::TerrainGrass2,
     Map::ObjectDeadTree, 0);
@@ -897,7 +897,7 @@ ClassicMapGenerator::init_dead_trees() {
 
 void
 ClassicMapGenerator::init_large_boulders() {
-  int clusters = map->get_region_count();
+  int clusters = map.get_region_count();
   init_objects_shared(
     clusters, 6, 0xff, Map::TerrainGrass1, Map::TerrainGrass2,
     Map::ObjectSandstone0, 0x1);
@@ -905,7 +905,7 @@ ClassicMapGenerator::init_large_boulders() {
 
 void
 ClassicMapGenerator::init_water_trees() {
-  int clusters = map->get_region_count();
+  int clusters = map.get_region_count();
   init_objects_shared(
     clusters, 50, 0x7f, Map::TerrainWater2, Map::TerrainWater3,
     Map::ObjectWaterTree0, 0x3);
@@ -913,7 +913,7 @@ ClassicMapGenerator::init_water_trees() {
 
 void
 ClassicMapGenerator::init_stubs() {
-  int clusters = map->get_region_count();
+  int clusters = map.get_region_count();
   init_objects_shared(
     clusters, 5, 0xff, Map::TerrainGrass1, Map::TerrainGrass2,
     Map::ObjectStub, 0);
@@ -921,7 +921,7 @@ ClassicMapGenerator::init_stubs() {
 
 void
 ClassicMapGenerator::init_small_boulders() {
-  int clusters = map->get_region_count();
+  int clusters = map.get_region_count();
   init_objects_shared(
     clusters, 10, 0xff, Map::TerrainGrass1, Map::TerrainGrass2,
     Map::ObjectStone, 0x1);
@@ -929,7 +929,7 @@ ClassicMapGenerator::init_small_boulders() {
 
 void
 ClassicMapGenerator::init_cadavers() {
-  int clusters = map->get_region_count();
+  int clusters = map.get_region_count();
   init_objects_shared(
     clusters, 2, 0xf, Map::TerrainDesert2, Map::TerrainDesert2,
     Map::ObjectCadaver0, 0x1);
@@ -937,7 +937,7 @@ ClassicMapGenerator::init_cadavers() {
 
 void
 ClassicMapGenerator::init_cacti() {
-  int clusters = map->get_region_count();
+  int clusters = map.get_region_count();
   init_objects_shared(
     clusters, 6, 0x7f, Map::TerrainDesert0, Map::TerrainDesert2,
     Map::ObjectCactus0, 0x1);
@@ -945,7 +945,7 @@ ClassicMapGenerator::init_cacti() {
 
 void
 ClassicMapGenerator::init_water_stones() {
-  int clusters = map->get_region_count();
+  int clusters = map.get_region_count();
   init_objects_shared(
     clusters, 8, 0x7f, Map::TerrainWater0, Map::TerrainWater2,
     Map::ObjectWaterStone0, 0x1);
@@ -953,7 +953,7 @@ ClassicMapGenerator::init_water_stones() {
 
 void
 ClassicMapGenerator::init_palms() {
-  int clusters = map->get_region_count();
+  int clusters = map.get_region_count();
   init_objects_shared(
     clusters, 6, 0x3f, Map::TerrainDesert2, Map::TerrainDesert2,
     Map::ObjectPalm0, 0x3);
@@ -988,7 +988,7 @@ ClassicMapGenerator::init_resources_shared(
   for (int i = 0; i < num_clusters; i++) {
     for (int try_ = 0; try_ < 100; try_++) {
       int col, row;
-      MapPos pos = map->get_rnd_coord(&col, &row, &rnd);
+      MapPos pos = map.get_rnd_coord(&col, &row, &rnd);
 
       if (hexagon_types_in_range(pos, min, max) == 0) {
         int index = 0;
@@ -1023,7 +1023,7 @@ ClassicMapGenerator::init_resources_shared(
 /* Initialize resources in the ground. */
 void
 ClassicMapGenerator::init_resources() {
-  int regions = map->get_region_count();
+  int regions = map.get_region_count();
   init_resources_shared(
     regions * 9, Map::MineralsCoal,
     Map::TerrainTundra0, Map::TerrainSnow0);
@@ -1043,12 +1043,12 @@ ClassicMapGenerator::init_clean_up() {
   /* Make sure that it is always possible to walk around
      any impassable objects. This also clears water obstacles
      except in certain positions near the shore. */
-  for (unsigned int y = 0; y < map->get_rows(); y++) {
-    for (unsigned int x = 0; x < map->get_cols(); x++) {
-      MapPos pos_ = map->pos(x, y);
+  for (unsigned int y = 0; y < map.get_rows(); y++) {
+    for (unsigned int x = 0; x < map.get_cols(); x++) {
+      MapPos pos_ = map.pos(x, y);
       if (Map::map_space_from_obj[tiles[pos_].obj] >= Map::SpaceImpassable) {
         for (int d = DirectionLeft; d <= DirectionUp; d++) {
-          MapPos other_pos = map->move(pos_, (Direction)d);
+          MapPos other_pos = map.move(pos_, (Direction)d);
           Map::Space s = Map::map_space_from_obj[tiles[other_pos].obj];
           if (is_in_water(other_pos) || s >= Map::SpaceImpassable) {
             tiles[pos_].obj = Map::ObjectNone;
@@ -1087,7 +1087,7 @@ ClassicMapGenerator::init_sub() {
 }
 
 ClassicMissionMapGenerator::ClassicMissionMapGenerator(
-  Map *map, const Random &rnd) : ClassicMapGenerator(map, rnd) {}
+  const Map& map, const Random &rnd) : ClassicMapGenerator(map, rnd) {}
 
 void ClassicMissionMapGenerator::init() {
   ClassicMapGenerator::init(0, true);
