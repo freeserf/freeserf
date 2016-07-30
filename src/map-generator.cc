@@ -1047,10 +1047,26 @@ ClassicMapGenerator::init_clean_up() {
     for (unsigned int x = 0; x < map.get_cols(); x++) {
       MapPos pos_ = map.pos(x, y);
       if (Map::map_space_from_obj[tiles[pos_].obj] >= Map::SpaceImpassable) {
+        // Due to a quirk in the original game the three adjacent positions
+        // were not checked directly whether they were impassable but instead
+        // another flag was used to mark the position impassable. This flag
+        // was only initialzed for water positions before this loop and was
+        // initialized as part of this same loop for non-water positions. For
+        // this reason, the check for impassable spaces would never succeed
+        // under two particular conditions at the map edge:
+        // 1) x == 0 && d == DirectionLeft
+        // 2) y == 0 && (d == DirectionUp || d == DirectionUpLeft)
         for (int d = DirectionLeft; d <= DirectionUp; d++) {
           MapPos other_pos = map.move(pos_, (Direction)d);
           Map::Space s = Map::map_space_from_obj[tiles[other_pos].obj];
-          if (is_in_water(other_pos) || s >= Map::SpaceImpassable) {
+
+          bool check_impassable = false;
+          if (!(x == 0 && d == DirectionLeft) &&
+              !((d == DirectionUp || d == DirectionUpLeft) && y == 0)) {
+            check_impassable = s >= Map::SpaceImpassable;
+          }
+
+          if (is_in_water(other_pos) || check_impassable) {
             tiles[pos_].obj = Map::ObjectNone;
             break;
           }
