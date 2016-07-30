@@ -4,6 +4,8 @@ matrix:
   include:
     - os: linux
       compiler: gcc
+      sudo: required
+      dist: trusty
     - os: osx
       compiler: clang
 
