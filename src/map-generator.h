@@ -108,10 +108,12 @@ class ClassicMapGenerator : public MapGenerator {
   void init_types_2_sub();
   void init_types_2();
   void heights_rescale();
-  void init_types_shared_sub(Map::Terrain old, Map::Terrain seed,
-                             Map::Terrain new_);
-  void init_lakes();
-  void init_types4();
+
+  void seed_terrain_type(Map::Terrain old, Map::Terrain seed,
+                         Map::Terrain new_);
+  void change_shore_water_type();
+  void change_shore_grass_type();
+
   bool check_desert_down_triangle(MapPos pos);
   bool check_desert_up_triangle(MapPos pos);
   void init_desert();

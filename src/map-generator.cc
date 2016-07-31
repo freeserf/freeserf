@@ -559,13 +559,27 @@ ClassicMapGenerator::heights_rescale() {
   }
 }
 
+// Change terrain types based on a seed type in adjacent tiles.
+//
+// For every triangle, if the current type is old and any adjacent triangle
+// has type seed, then the triangle is changed into the new_ terrain type.
 void
-ClassicMapGenerator::init_types_shared_sub(Map::Terrain old, Map::Terrain seed,
-                                           Map::Terrain new_) {
+ClassicMapGenerator::seed_terrain_type(Map::Terrain old, Map::Terrain seed,
+                                       Map::Terrain new_) {
   for (unsigned int y = 0; y < map.get_rows(); y++) {
     for (unsigned int x = 0; x < map.get_cols(); x++) {
       MapPos pos_ = map.pos(x, y);
 
+      // Check that the central triangle is of type old (*), and that any
+      // adjacent triangle is of type seed:
+      //     ____
+      //    /\  /\
+      //   /__\/__\
+      //  /\  /\  /\
+      // /__\/*_\/__\
+      // \  /\  /\  /
+      //  \/__\/__\/
+      //
       if (tiles[pos_].type_up == old &&
           (seed == tiles[map.move_up_left(pos_)].type_down ||
            seed == tiles[map.move_up_left(pos_)].type_up ||
@@ -582,6 +596,16 @@ ClassicMapGenerator::init_types_shared_sub(Map::Terrain old, Map::Terrain seed,
         tiles[pos_].type_up = new_;
       }
 
+      // Check that the central triangle is of type old (*), and that any
+      // adjacent triangle is of type seed:
+      //   ________
+      //  /\  /\  /\
+      // /__\/__\/__\
+      // \  /\* /\  /
+      //  \/__\/__\/
+      //   \  /\  /
+      //    \/__\/
+      //
       if (tiles[pos_].type_down == old &&
           (seed == tiles[map.move_up_left(pos_)].type_down ||
            seed == tiles[map.move_up_left(pos_)].type_up ||
@@ -601,20 +625,29 @@ ClassicMapGenerator::init_types_shared_sub(Map::Terrain old, Map::Terrain seed,
   }
 }
 
+// Change water type based on closeness to shore.
+//
+// Change type from TerrainWater0 to higher water (1-3) types based on
+// closeness to the shore. The water closest to the shore will become
+// TerrainWater3.
 void
-ClassicMapGenerator::init_lakes() {
-  init_types_shared_sub(Map::TerrainWater0, Map::TerrainGrass1,
-                        Map::TerrainWater3);
-  init_types_shared_sub(Map::TerrainWater0, Map::TerrainWater3,
-                        Map::TerrainWater2);
-  init_types_shared_sub(Map::TerrainWater0, Map::TerrainWater2,
-                        Map::TerrainWater1);
+ClassicMapGenerator::change_shore_water_type() {
+  seed_terrain_type(
+    Map::TerrainWater0, Map::TerrainGrass1, Map::TerrainWater3);
+  seed_terrain_type(
+    Map::TerrainWater0, Map::TerrainWater3, Map::TerrainWater2);
+  seed_terrain_type(
+    Map::TerrainWater0, Map::TerrainWater2, Map::TerrainWater1);
 }
 
+// Change grass type of shore to TerrainGrass0.
+//
+// Change type from TerrainGrass1 to TerrainGrass0 where the tiles are
+// adjacent to water.
 void
-ClassicMapGenerator::init_types4() {
-  init_types_shared_sub(Map::TerrainGrass1, Map::TerrainWater3,
-                        Map::TerrainGrass0);
+ClassicMapGenerator::change_shore_grass_type() {
+  seed_terrain_type(
+    Map::TerrainGrass1, Map::TerrainWater3, Map::TerrainGrass0);
 }
 
 
@@ -737,20 +770,20 @@ ClassicMapGenerator::init_desert_2_sub() {
 
 void
 ClassicMapGenerator::init_desert_2() {
-  init_types_shared_sub(
+  seed_terrain_type(
     Map::TerrainDesert2, Map::TerrainGrass1, Map::TerrainGrass3);
-  init_types_shared_sub(
+  seed_terrain_type(
     Map::TerrainDesert2, Map::TerrainGrass3, Map::TerrainDesert0);
-  init_types_shared_sub(
+  seed_terrain_type(
     Map::TerrainDesert2, Map::TerrainDesert0, Map::TerrainDesert1);
 
   init_desert_2_sub();
 
-  init_types_shared_sub(
+  seed_terrain_type(
     Map::TerrainGrass1, Map::TerrainDesert2, Map::TerrainDesert1);
-  init_types_shared_sub(
+  seed_terrain_type(
     Map::TerrainGrass1, Map::TerrainDesert1, Map::TerrainDesert0);
-  init_types_shared_sub(
+  seed_terrain_type(
     Map::TerrainGrass1, Map::TerrainDesert0, Map::TerrainGrass3);
 }
 
@@ -1039,14 +1072,19 @@ ClassicMapGenerator::init_clean_up() {
 
 void
 ClassicMapGenerator::init_sub() {
-  init_lakes();
-  init_types4();
+  // Adjust terrain types on shores
+  change_shore_water_type();
+  change_shore_grass_type();
+
+  // Create deserts
   init_desert();
   init_desert_2();
 
+  // Create map objects (trees, boulders, etc.)
   create_objects();
 
   create_mineral_deposits();
+
   init_clean_up();
 }
 
