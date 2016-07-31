@@ -106,8 +106,8 @@ class ClassicMapGenerator : public MapGenerator {
 
   void heights_rebase();
   void init_types();
-  void init_types_2_sub();
-  void init_types_2();
+  void clear_all_objects();
+  void remove_islands();
   void heights_rescale();
 
   void seed_terrain_type(Map::Terrain old, Map::Terrain seed,

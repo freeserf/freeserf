@@ -88,7 +88,7 @@ void ClassicMapGenerator::generate() {
   create_water_bodies();
   heights_rebase();
   init_types();
-  init_types_2();
+  remove_islands();
   heights_rescale();
   init_sub();
 }
@@ -470,7 +470,7 @@ ClassicMapGenerator::init_types() {
 }
 
 void
-ClassicMapGenerator::init_types_2_sub() {
+ClassicMapGenerator::clear_all_objects() {
   for (unsigned int y = 0; y < map.get_rows(); y++) {
     for (unsigned int x = 0; x < map.get_cols(); x++) {
       tiles[map.pos(x, y)].obj = Map::ObjectNone;
@@ -478,21 +478,34 @@ ClassicMapGenerator::init_types_2_sub() {
   }
 }
 
+// Remove islands.
+//
+// Pick an initial map position, then search from there to see which other
+// positions on the map are reachable (over land) from that position. If the
+// reachable positions cover at least 1/4 of the map, then stop and convert any
+// position that was _not_ reached to water. Otherwise, keep trying new initial
+// positions.
+//
+// In most cases this will eliminate any island that covers less than 1/4 of
+// the map. However, since the markings are not reset after an initial
+// position has failed to expand to 1/4 of the map, it is still possible for
+// islands to survive if they by change happen to be in the area where the
+// first initial positions are chosen (around 0, 0).
 void
-ClassicMapGenerator::init_types_2() {
-  init_types_2_sub();
+ClassicMapGenerator::remove_islands() {
+  clear_all_objects();
 
   for (unsigned int y = 0; y < map.get_rows(); y++) {
     for (unsigned int x = 0; x < map.get_cols(); x++) {
       MapPos pos_ = map.pos(x, y);
 
-      if (tiles[pos_].height > 0) {
+      if (tiles[pos_].height > 0 && tiles[pos_].obj == 0) {
         tiles[pos_].obj = static_cast<Map::Object>(1);
 
         unsigned int num = 0;
-        int changed = 1;
+        bool changed = true;
         while (changed) {
-          changed = 0;
+          changed = false;
           for (unsigned int y = 0; y < map.get_rows(); y++) {
             for (unsigned int x = 0; x < map.get_cols(); x++) {
               MapPos pos_ = map.pos(x, y);
@@ -501,6 +514,8 @@ ClassicMapGenerator::init_types_2() {
                 num += 1;
                 tiles[pos_].obj = static_cast<Map::Object>(2);
 
+                // The i'th flag will indicate whether a path on land from
+                // pos_in direction i is possible.
                 int flags = 0;
                 if (tiles[pos_].type_down >= Map::TerrainGrass0) {
                   flags |= 3;
@@ -524,12 +539,13 @@ ClassicMapGenerator::init_types_2() {
                   flags |= 0x21;
                 }
 
+                // Mark positions following any valid direction on land.
                 for (int d = DirectionRight; d <= DirectionUp; d++) {
                   if (BIT_TEST(flags, d)) {
                     if (tiles[map.move(pos_, (Direction)d)].obj == 0) {
                       tiles[map.move(pos_, (Direction)d)].obj =
                         static_cast<Map::Object>(1);
-                      changed = 1;
+                      changed = true;
                     }
                   }
                 }
@@ -545,6 +561,7 @@ ClassicMapGenerator::init_types_2() {
 
   break_loop:
 
+  // Change every position that was not marked to water.
   for (unsigned int y = 0; y < map.get_rows(); y++) {
     for (unsigned int x = 0; x < map.get_cols(); x++) {
       MapPos pos_ = map.pos(x, y);
@@ -562,7 +579,7 @@ ClassicMapGenerator::init_types_2() {
     }
   }
 
-  init_types_2_sub();
+  clear_all_objects();
 }
 
 /* Rescale height values to be in [0;31]. */
