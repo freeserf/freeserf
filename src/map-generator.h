@@ -73,6 +73,7 @@ class ClassicMapGenerator : public MapGenerator {
     Map::Object obj;
     Map::Minerals resource_type;
     int resource_amount;
+    int tag;
   };
 
   const Map &map;
@@ -106,7 +107,7 @@ class ClassicMapGenerator : public MapGenerator {
 
   void heights_rebase();
   void init_types();
-  void clear_all_objects();
+  void clear_all_tags();
   void remove_islands();
   void heights_rescale();
 

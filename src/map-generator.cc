@@ -483,10 +483,10 @@ ClassicMapGenerator::init_types() {
 }
 
 void
-ClassicMapGenerator::clear_all_objects() {
+ClassicMapGenerator::clear_all_tags() {
   for (unsigned int y = 0; y < map.get_rows(); y++) {
     for (unsigned int x = 0; x < map.get_cols(); x++) {
-      tiles[map.pos(x, y)].obj = Map::ObjectNone;
+      tiles[map.pos(x, y)].tag = 0;
     }
   }
 }
@@ -506,14 +506,17 @@ ClassicMapGenerator::clear_all_objects() {
 // first initial positions are chosen (around 0, 0).
 void
 ClassicMapGenerator::remove_islands() {
-  clear_all_objects();
+  // Initially all positions are tagged with 0. When reached from another
+  // position the tag is changed to 1, and later when that position is
+  // itself expanded the tag is changed to 2.
+  clear_all_tags();
 
   for (unsigned int y = 0; y < map.get_rows(); y++) {
     for (unsigned int x = 0; x < map.get_cols(); x++) {
       MapPos pos_ = map.pos(x, y);
 
-      if (tiles[pos_].height > 0 && tiles[pos_].obj == 0) {
-        tiles[pos_].obj = static_cast<Map::Object>(1);
+      if (tiles[pos_].height > 0 && tiles[pos_].tag == 0) {
+        tiles[pos_].tag = 1;
 
         unsigned int num = 0;
         bool changed = true;
@@ -523,9 +526,9 @@ ClassicMapGenerator::remove_islands() {
             for (unsigned int x = 0; x < map.get_cols(); x++) {
               MapPos pos_ = map.pos(x, y);
 
-              if (tiles[pos_].obj == 1) {
+              if (tiles[pos_].tag == 1) {
                 num += 1;
-                tiles[pos_].obj = static_cast<Map::Object>(2);
+                tiles[pos_].tag = 2;
 
                 // The i'th flag will indicate whether a path on land from
                 // pos_in direction i is possible.
@@ -555,9 +558,8 @@ ClassicMapGenerator::remove_islands() {
                 // Mark positions following any valid direction on land.
                 for (int d = DirectionRight; d <= DirectionUp; d++) {
                   if (BIT_TEST(flags, d)) {
-                    if (tiles[map.move(pos_, (Direction)d)].obj == 0) {
-                      tiles[map.move(pos_, (Direction)d)].obj =
-                        static_cast<Map::Object>(1);
+                    if (tiles[map.move(pos_, (Direction)d)].tag == 0) {
+                      tiles[map.move(pos_, (Direction)d)].tag = 1;
                       changed = true;
                     }
                   }
@@ -574,12 +576,12 @@ ClassicMapGenerator::remove_islands() {
 
   break_loop:
 
-  // Change every position that was not marked to water.
+  // Change every position that was not tagged (i.e. tag is 0) to water.
   for (unsigned int y = 0; y < map.get_rows(); y++) {
     for (unsigned int x = 0; x < map.get_cols(); x++) {
       MapPos pos_ = map.pos(x, y);
 
-      if (tiles[pos_].height > 0 && tiles[pos_].obj == 0) {
+      if (tiles[pos_].height > 0 && tiles[pos_].tag == 0) {
         tiles[pos_].height = 0;
         tiles[pos_].type_up = Map::TerrainWater0;
         tiles[pos_].type_up = Map::TerrainWater0;
@@ -591,8 +593,6 @@ ClassicMapGenerator::remove_islands() {
       }
     }
   }
-
-  clear_all_objects();
 }
 
 /* Rescale height values to be in [0;31]. */
