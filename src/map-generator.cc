@@ -617,54 +617,78 @@ ClassicMapGenerator::init_types4() {
                         Map::TerrainGrass0);
 }
 
-int
-ClassicMapGenerator::init_desert_sub1(MapPos pos_) {
+
+// Check whether large down-triangle is suitable for desert.
+//
+// The large down-triangle at position A is made up of the following
+// triangular pieces. The method returns true only if all terrain types
+// within the triangle are either TerrainGrass1 or TerrainDesert2.
+//
+// __ A ___
+// \  /\  /
+//  \/__\/
+//   \  /
+//    \/
+//
+bool
+ClassicMapGenerator::check_desert_down_triangle(MapPos pos_) {
   Map::Terrain type_d = tiles[pos_].type_down;
   Map::Terrain type_u = tiles[pos_].type_up;
 
   if (type_d != Map::TerrainGrass1 && type_d != Map::TerrainDesert2) {
-    return -1;
+    return false;
   }
   if (type_u != Map::TerrainGrass1 && type_u != Map::TerrainDesert2) {
-    return -1;
+    return false;
   }
 
   type_d = tiles[map.move_left(pos_)].type_down;
   if (type_d != Map::TerrainGrass1 && type_d != Map::TerrainDesert2) {
-    return -1;
+    return false;
   }
 
   type_d = tiles[map.move_down(pos_)].type_down;
   if (type_d != Map::TerrainGrass1 && type_d != Map::TerrainDesert2) {
-    return -1;
+    return false;
   }
 
-  return 0;
+  return true;
 }
 
-int
-ClassicMapGenerator::init_desert_sub2(MapPos pos_) {
+// Check whether large up-triangle is suitable for desert.
+//
+// The large up-triangle at position A is made up of the following
+// triangular pieces. The method returns true only if all terrain types
+// within the triangle are either TerrainGrass1 or TerrainDesert2.
+//
+//      /\
+//   A /__\
+//    /\  /\
+//   /__\/__\
+//
+bool
+ClassicMapGenerator::check_desert_up_triangle(MapPos pos_) {
   Map::Terrain type_d = tiles[pos_].type_down;
   Map::Terrain type_u = tiles[pos_].type_up;
 
   if (type_d != Map::TerrainGrass1 && type_d != Map::TerrainDesert2) {
-    return -1;
+    return false;
   }
   if (type_u != Map::TerrainGrass1 && type_u != Map::TerrainDesert2) {
-    return -1;
+    return false;
   }
 
   type_u = tiles[map.move_right(pos_)].type_up;
   if (type_u != Map::TerrainGrass1 && type_u != Map::TerrainDesert2) {
-    return -1;
+    return false;
   }
 
   type_u = tiles[map.move_up(pos_)].type_up;
   if (type_u != Map::TerrainGrass1 && type_u != Map::TerrainDesert2) {
-    return -1;
+    return false;
   }
 
-  return 0;
+  return true;
 }
 
 /* Create deserts on the map. */
@@ -679,11 +703,13 @@ ClassicMapGenerator::init_desert() {
         for (int index = 255; index >= 0; index--) {
           MapPos pos = map.pos_add_spirally(rnd_pos, index);
 
-          int r = init_desert_sub1(pos);
-          if (r == 0) tiles[pos].type_up = Map::TerrainDesert2;
+          if (check_desert_down_triangle(pos)) {
+            tiles[pos].type_up = Map::TerrainDesert2;
+          }
 
-          r = init_desert_sub2(pos);
-          if (r == 0) tiles[pos].type_down = Map::TerrainDesert2;
+          if (check_desert_up_triangle(pos)) {
+            tiles[pos].type_down = Map::TerrainDesert2;
+          }
         }
         break;
       }

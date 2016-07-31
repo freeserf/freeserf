@@ -112,8 +112,8 @@ class ClassicMapGenerator : public MapGenerator {
                              Map::Terrain new_);
   void init_lakes();
   void init_types4();
-  int init_desert_sub1(MapPos pos);
-  int init_desert_sub2(MapPos pos);
+  bool check_desert_down_triangle(MapPos pos);
+  bool check_desert_up_triangle(MapPos pos);
   void init_desert();
   void init_desert_2_sub();
   void init_desert_2();
