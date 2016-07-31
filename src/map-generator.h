@@ -100,9 +100,10 @@ class ClassicMapGenerator : public MapGenerator {
   bool adjust_map_height(int h1, int h2, MapPos pos);
   void clamp_heights();
 
-  int expand_level_area(MapPos pos, int limit, int r);
-  void init_level_area(MapPos pos);
-  void init_sea_level();
+  bool expand_water_position(MapPos pos);
+  void expand_water_body(MapPos pos);
+  void create_water_bodies();
+
   void heights_rebase();
   void init_types();
   void init_types_2_sub();

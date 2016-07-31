@@ -85,7 +85,7 @@ void ClassicMapGenerator::generate() {
   }
 
   clamp_heights();
-  init_sea_level();
+  create_water_bodies();
   heights_rebase();
   init_types();
   init_types_2();
@@ -291,106 +291,123 @@ ClassicMapGenerator::clamp_heights() {
   }
 }
 
-int
-ClassicMapGenerator::expand_level_area(MapPos pos_, int limit, int r) {
-  int flag = 0;
+// Expand water around position.
+//
+// Expand water area by marking shores with 254 and water positions with 255.
+// Water (255) can only be expanded to a position where all six adjacent
+// positions are at or lower than the water level. When a position is marked
+// as water (255) the surrounding positions, that are not yet marked, are
+// changed to shore (254). Returns true only if the given position was
+// converted to water.
+bool
+ClassicMapGenerator::expand_water_position(MapPos pos_) {
+  bool expanding = false;
 
   for (int d = DirectionRight; d <= DirectionUp; d++) {
     MapPos new_pos = map.move(pos_, (Direction)d);
-    if (tiles[new_pos].height < 254) {
-      if (tiles[new_pos].height > limit) return r;
-    } else if (tiles[new_pos].height == 255) {
-      flag = 1;
+    int height = tiles[new_pos].height;
+    if (water_level < height && height < 254) {
+      return false;
+    } else if (height == 255) {
+      expanding = true;
     }
   }
 
-  if (flag) {
+  if (expanding) {
     tiles[pos_].height = 255;
 
     for (int d = DirectionRight; d <= DirectionUp; d++) {
       MapPos new_pos = map.move(pos_, (Direction)d);
       if (tiles[new_pos].height != 255) tiles[new_pos].height = 254;
     }
-
-    return 1;
   }
 
-  return r;
+  return expanding;
 }
 
+// Try to expand area around position into a water body.
+//
+// After expanding, the water body will be tagged with the heights 253 for
+// positions in water and 252 for positions on the shore.
 void
-ClassicMapGenerator::init_level_area(MapPos pos) {
-  int limit = water_level;
-
-  if (limit >= tiles[map.move_right(pos)].height &&
-      limit >= tiles[map.move_down_right(pos)].height &&
-      limit >= tiles[map.move_down(pos)].height &&
-      limit >= tiles[map.move_left(pos)].height &&
-      limit >= tiles[map.move_up_left(pos)].height &&
-      limit >= tiles[map.move_up(pos)].height) {
-    tiles[pos].height = 255;
-    tiles[map.move_right(pos)].height = 254;
-    tiles[map.move_down_right(pos)].height = 254;
-    tiles[map.move_down(pos)].height = 254;
-    tiles[map.move_left(pos)].height = 254;
-    tiles[map.move_up_left(pos)].height = 254;
-    tiles[map.move_up(pos)].height = 254;
-
-    for (int i = 0; i < max_lake_area; i++) {
-      int flag = 0;
-
-      MapPos new_pos = map.move_right_n(pos, i+1);
-      for (int k = 0; k < 6; k++) {
-        Direction d = turn_direction(DirectionDown, k);
-        for (int j = 0; j <= i; j++) {
-          flag = expand_level_area(new_pos, limit, flag);
-          new_pos = map.move(new_pos, d);
-        }
-      }
-
-      if (!flag) break;
+ClassicMapGenerator::expand_water_body(MapPos pos) {
+  // Check whether it is possible to expand from this position.
+  for (int d = DirectionRight; d <= DirectionUp; d++) {
+    MapPos new_pos = map.move(pos, (Direction)d);
+    if (tiles[new_pos].height > water_level) {
+      // Expanding water from this position was not possible. Just raise the
+      // height to one above sea level.
+      tiles[pos].height = 0;
+      return;
     }
+  }
 
-    if (tiles[pos].height > 253) tiles[pos].height -= 2;
+  // Initialize expansion
+  tiles[pos].height = 255;
+  for (int d = DirectionRight; d <= DirectionUp; d++) {
+    MapPos new_pos = map.move(pos, (Direction)d);
+    tiles[new_pos].height = 254;
+  }
 
-    for (int i = 0; i < max_lake_area + 1; i++) {
-      MapPos new_pos = map.move_right_n(pos, i+1);
-      for (int k = 0; k < 6; k++) {
-        Direction d = turn_direction(DirectionDown, k);
-        for (int j = 0; j <= i; j++) {
-          if (tiles[new_pos].height > 253) tiles[new_pos].height -= 2;
-          new_pos = map.move(new_pos, d);
-        }
+  // Expand water until we are unable to expand any more or until the max
+  // lake area limit has been reached.
+  for (int i = 0; i < max_lake_area; i++) {
+    bool expanded = false;
+
+    MapPos new_pos = map.move_right_n(pos, i+1);
+    for (int k = 0; k < 6; k++) {
+      Direction d = turn_direction(DirectionDown, k);
+      for (int j = 0; j <= i; j++) {
+        expanded |= expand_water_position(new_pos);
+        new_pos = map.move(new_pos, d);
       }
     }
-  } else {
-    tiles[pos].height = 0;
+
+    if (!expanded) break;
+  }
+
+  // Change the water encoding from 255,254 to 253,252. This change means that
+  // when expanding another lake, this area will look like an elevated plateau
+  // at heights 252/253 and the other lake will not be able to expand into this
+  // area. This keeps water bodies from growing larger than the max lake area.
+  tiles[pos].height -= 2;
+
+  for (int i = 0; i < max_lake_area + 1; i++) {
+    MapPos new_pos = map.move_right_n(pos, i+1);
+    for (int k = 0; k < 6; k++) {
+      Direction d = (Direction)((k + DirectionDown) % 6);
+      for (int j = 0; j <= i; j++) {
+        if (tiles[new_pos].height > 253) tiles[new_pos].height -= 2;
+        new_pos = map.move(new_pos, d);
+      }
+    }
   }
 }
 
-/* Create level land that will later be filled with water.
-   It is created in areas that are below a certain threshold.
-   The areas are also limited in size. */
+// Create water bodies on the map.
+//
+// Try to expand every position that is at or below the water level into a
+// body of water. After expanding bodies of water, the height of the positions
+// are changed such that the lowest points on the map are at water_level - 1
+// (marking water) and just above that the height is at water_level (marking
+// shore).
 void
-ClassicMapGenerator::init_sea_level() {
-  if (water_level < 0) return;
-
+ClassicMapGenerator::create_water_bodies() {
   for (int h = 0; h <= water_level; h++) {
     for (unsigned int y = 0; y < map.get_rows(); y++) {
       for (unsigned int x = 0; x < map.get_cols(); x++) {
         MapPos pos_ = map.pos(x, y);
         if (tiles[pos_].height == h) {
-          init_level_area(pos_);
+          expand_water_body(pos_);
         }
       }
     }
   }
 
-  /* Map positions are marked in the previous loop.
-     0: Above water level.
-     252: Land at water level.
-     253: Water. */
-
+  // Map positions are marked in the previous loop.
+  // 0: Above water level.
+  // 252: Land at water level.
+  // 253: Water.
   for (unsigned int y = 0; y < map.get_rows(); y++) {
     for (unsigned int x = 0; x < map.get_cols(); x++) {
       MapPos pos_ = map.pos(x, y);
@@ -400,7 +417,7 @@ ClassicMapGenerator::init_sea_level() {
           tiles[pos_].height = water_level + 1;
           break;
         case 252:
-          tiles[pos_].height = (uint8_t)water_level;
+          tiles[pos_].height = water_level;
           break;
         case 253:
           tiles[pos_].height = water_level - 1;
