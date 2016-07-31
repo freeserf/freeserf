@@ -1002,7 +1002,7 @@ Player::get_stats_serfs_potential() {
     Inventory *inventory = *i;
     if (inventory->free_serf_count() > 0) {
       for (int i = 0; i < 27; i++) {
-        res[(Serf::Type)i] += inventory->serf_potencial_count((Serf::Type)i);
+        res[(Serf::Type)i] += inventory->serf_potential_count((Serf::Type)i);
       }
     }
   }

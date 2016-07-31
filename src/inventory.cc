@@ -387,7 +387,7 @@ Inventory::specialize_free_serf(Serf::Type type) {
 }
 
 size_t
-Inventory::serf_potencial_count(Serf::Type type) {
+Inventory::serf_potential_count(Serf::Type type) {
   size_t count = generic_count;
 
   if (res_needed[type*2] != Resource::TypeNone) {
