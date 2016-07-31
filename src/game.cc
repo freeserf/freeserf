@@ -1191,7 +1191,27 @@ Game::can_build_small(MapPos pos) {
 /* Checks whether a mine is possible at position. */
 bool
 Game::can_build_mine(MapPos pos) {
-  return map_types_within(pos, Map::TerrainTundra0, Map::TerrainSnow0);
+  bool can_build = false;
+
+  Map::Terrain types[] = {
+    map->type_down(pos),
+    map->type_up(pos),
+    map->type_down(map->move_left(pos)),
+    map->type_up(map->move_up_left(pos)),
+    map->type_down(map->move_up_left(pos)),
+    map->type_up(map->move_up(pos))
+  };
+
+  for (int i = 0; i < 6; i++) {
+    if (types[i] >= Map::TerrainTundra0 && types[i] <= Map::TerrainSnow0) {
+      can_build = true;
+    } else if (!(types[i] >= Map::TerrainGrass0 &&
+                 types[i] <= Map::TerrainGrass3)) {
+      return false;
+    }
+  }
+
+  return can_build;
 }
 
 /* Checks whether a large building is possible at position. */
