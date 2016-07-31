@@ -805,10 +805,9 @@ ClassicMapGenerator::pos_add_spirally_random(MapPos pos, int mask) {
    base to obtain the final object type.
 */
 void
-ClassicMapGenerator::init_objects_shared(int num_clusters, int objs_in_cluster,
-                                         int pos_mask, Map::Terrain type_min,
-                                         Map::Terrain type_max, int obj_base,
-                                         int obj_mask) {
+ClassicMapGenerator::create_random_object_clusters(
+    int num_clusters, int objs_in_cluster, int pos_mask, Map::Terrain type_min,
+    Map::Terrain type_max, int obj_base, int obj_mask) {
   for (int i = 0; i < num_clusters; i++) {
     for (int try_ = 0; try_ < 100; try_++) {
       MapPos rnd_pos = map.get_rnd_coord(NULL, NULL, &rnd);
@@ -830,8 +829,8 @@ ClassicMapGenerator::init_objects_shared(int num_clusters, int objs_in_cluster,
 void
 ClassicMapGenerator::init_trees_1() {
   /* Add either tree or pine. */
-  int clusters = map.get_region_count() << 3;
-  init_objects_shared(
+  int clusters = map.get_region_count() * 8;
+  create_random_object_clusters(
     clusters, 10, 0xff, Map::TerrainGrass1, Map::TerrainGrass2,
     Map::ObjectTree0, 0xf);
 }
@@ -840,7 +839,7 @@ void
 ClassicMapGenerator::init_trees_2() {
   /* Add only trees. */
   int clusters = map.get_region_count();
-  init_objects_shared(
+  create_random_object_clusters(
     clusters, 45, 0x3f, Map::TerrainGrass1, Map::TerrainGrass2,
     Map::ObjectTree0, 0x7);
 }
@@ -849,7 +848,7 @@ void
 ClassicMapGenerator::init_trees_3() {
   /* Add only pines. */
   int clusters = map.get_region_count();
-  init_objects_shared(
+  create_random_object_clusters(
     clusters, 30, 0x3f, Map::TerrainGrass0, Map::TerrainGrass2,
     Map::ObjectPine0, 0x7);
 }
@@ -858,7 +857,7 @@ void
 ClassicMapGenerator::init_trees_4() {
   /* Add either tree or pine. */
   int clusters = map.get_region_count();
-  init_objects_shared(
+  create_random_object_clusters(
     clusters, 20, 0x7f, Map::TerrainGrass1, Map::TerrainGrass2,
     Map::ObjectTree0, 0xf);
 }
@@ -866,7 +865,7 @@ ClassicMapGenerator::init_trees_4() {
 void
 ClassicMapGenerator::init_stone_1() {
   int clusters = map.get_region_count();
-  init_objects_shared(
+  create_random_object_clusters(
     clusters, 40, 0x3f, Map::TerrainGrass1, Map::TerrainGrass2,
     Map::ObjectStone0, 0x7);
 }
@@ -874,7 +873,7 @@ ClassicMapGenerator::init_stone_1() {
 void
 ClassicMapGenerator::init_stone_2() {
   int clusters = map.get_region_count();
-  init_objects_shared(
+  create_random_object_clusters(
     clusters, 15, 0xff, Map::TerrainGrass1, Map::TerrainGrass2,
     Map::ObjectStone0, 0x7);
 }
@@ -882,7 +881,7 @@ ClassicMapGenerator::init_stone_2() {
 void
 ClassicMapGenerator::init_dead_trees() {
   int clusters = map.get_region_count();
-  init_objects_shared(
+  create_random_object_clusters(
     clusters, 2, 0xff, Map::TerrainGrass1, Map::TerrainGrass2,
     Map::ObjectDeadTree, 0);
 }
@@ -890,7 +889,7 @@ ClassicMapGenerator::init_dead_trees() {
 void
 ClassicMapGenerator::init_large_boulders() {
   int clusters = map.get_region_count();
-  init_objects_shared(
+  create_random_object_clusters(
     clusters, 6, 0xff, Map::TerrainGrass1, Map::TerrainGrass2,
     Map::ObjectSandstone0, 0x1);
 }
@@ -898,7 +897,7 @@ ClassicMapGenerator::init_large_boulders() {
 void
 ClassicMapGenerator::init_water_trees() {
   int clusters = map.get_region_count();
-  init_objects_shared(
+  create_random_object_clusters(
     clusters, 50, 0x7f, Map::TerrainWater2, Map::TerrainWater3,
     Map::ObjectWaterTree0, 0x3);
 }
@@ -906,7 +905,7 @@ ClassicMapGenerator::init_water_trees() {
 void
 ClassicMapGenerator::init_stubs() {
   int clusters = map.get_region_count();
-  init_objects_shared(
+  create_random_object_clusters(
     clusters, 5, 0xff, Map::TerrainGrass1, Map::TerrainGrass2,
     Map::ObjectStub, 0);
 }
@@ -914,7 +913,7 @@ ClassicMapGenerator::init_stubs() {
 void
 ClassicMapGenerator::init_small_boulders() {
   int clusters = map.get_region_count();
-  init_objects_shared(
+  create_random_object_clusters(
     clusters, 10, 0xff, Map::TerrainGrass1, Map::TerrainGrass2,
     Map::ObjectStone, 0x1);
 }
@@ -922,7 +921,7 @@ ClassicMapGenerator::init_small_boulders() {
 void
 ClassicMapGenerator::init_cadavers() {
   int clusters = map.get_region_count();
-  init_objects_shared(
+  create_random_object_clusters(
     clusters, 2, 0xf, Map::TerrainDesert2, Map::TerrainDesert2,
     Map::ObjectCadaver0, 0x1);
 }
@@ -930,7 +929,7 @@ ClassicMapGenerator::init_cadavers() {
 void
 ClassicMapGenerator::init_cacti() {
   int clusters = map.get_region_count();
-  init_objects_shared(
+  create_random_object_clusters(
     clusters, 6, 0x7f, Map::TerrainDesert0, Map::TerrainDesert2,
     Map::ObjectCactus0, 0x1);
 }
@@ -938,7 +937,7 @@ ClassicMapGenerator::init_cacti() {
 void
 ClassicMapGenerator::init_water_stones() {
   int clusters = map.get_region_count();
-  init_objects_shared(
+  create_random_object_clusters(
     clusters, 8, 0x7f, Map::TerrainWater0, Map::TerrainWater2,
     Map::ObjectWaterStone0, 0x1);
 }
@@ -946,7 +945,7 @@ ClassicMapGenerator::init_water_stones() {
 void
 ClassicMapGenerator::init_palms() {
   int clusters = map.get_region_count();
-  init_objects_shared(
+  create_random_object_clusters(
     clusters, 6, 0x3f, Map::TerrainDesert2, Map::TerrainDesert2,
     Map::ObjectPalm0, 0x3);
 }

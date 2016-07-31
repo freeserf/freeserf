@@ -119,9 +119,10 @@ class ClassicMapGenerator : public MapGenerator {
   void init_desert_2();
   void init_crosses();
   bool hexagon_types_in_range(MapPos pos, Map::Terrain min, Map::Terrain max);
-  void init_objects_shared(int num_clusters, int objs_in_cluster, int pos_mask,
-                           Map::Terrain type_min, Map::Terrain type_max,
-                           int obj_base, int obj_mask);
+  void create_random_object_clusters(int num_clusters, int objs_in_cluster,
+                                     int pos_mask, Map::Terrain type_min,
+                                     Map::Terrain type_max, int obj_base,
+                                     int obj_mask);
   void init_trees_1();
   void init_trees_2();
   void init_trees_3();
