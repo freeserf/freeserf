@@ -977,34 +977,21 @@ void
 ClassicMapGenerator::create_random_mineral_clusters(
     int num_clusters, Map::Minerals type,
     Map::Terrain min, Map::Terrain max) {
+  const int iterations[] = { 1, 6, 12, 18, 24, 30 };
+
   for (int i = 0; i < num_clusters; i++) {
     for (int try_ = 0; try_ < 100; try_++) {
       MapPos pos_ = map.get_rnd_coord(NULL, NULL, &rnd);
 
       if (hexagon_types_in_range(pos_, min, max)) {
         int index = 0;
-        int amount = 8 + (random_int() & 0xc);
-        expand_mineral_cluster(1, pos_, &index, amount, type);
-        amount -= 4;
-        if (amount == 0) break;
+        int count = 2 + ((random_int() >> 2) & 3);
 
-        expand_mineral_cluster(6, pos_, &index, amount, type);
-        amount -= 4;
-        if (amount == 0) break;
+        for (int j = 0; j < count; j++) {
+          int amount = 4 * (count - j);
+          expand_mineral_cluster(iterations[j], pos_, &index, amount, type);
+        }
 
-        expand_mineral_cluster(12, pos_, &index, amount, type);
-        amount -= 4;
-        if (amount == 0) break;
-
-        expand_mineral_cluster(18, pos_, &index, amount, type);
-        amount -= 4;
-        if (amount == 0) break;
-
-        expand_mineral_cluster(24, pos_, &index, amount, type);
-        amount -= 4;
-        if (amount == 0) break;
-
-        expand_mineral_cluster(30, pos_, &index, amount, type);
         break;
       }
     }
