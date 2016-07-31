@@ -355,7 +355,7 @@ class Map {
     return pos_add(pos_, spiral_pos_pattern[off]); }
 
   /* Get random position */
-  MapPos get_rnd_coord(int *col, int *row, Random *rnd);
+  MapPos get_rnd_coord(int *col, int *row, Random *rnd) const;
 
   /* Movement of map position according to directions. */
   MapPos move(MapPos pos, Direction dir) const {

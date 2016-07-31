@@ -379,7 +379,7 @@ Map::init(unsigned int size) {
 /* Return a random map position.
    Returned as map_pos_t and also as col and row if not NULL. */
 MapPos
-Map::get_rnd_coord(int *col, int *row, Random *rnd) {
+Map::get_rnd_coord(int *col, int *row, Random *rnd) const {
   int c = rnd->random() & col_mask;
   int r = rnd->random() & row_mask;
 

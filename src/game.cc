@@ -2204,7 +2204,7 @@ Game::load_mission_map(int level) {
 
   init_map(3);
   {
-    ClassicMissionMapGenerator generator(this->map, init_map_rnd);
+    ClassicMissionMapGenerator generator(*this->map, init_map_rnd);
     generator.init();
     generator.generate();
     init_map_data(generator);
@@ -2240,7 +2240,7 @@ Game::load_random_map(int size, const Random &rnd) {
 
   init_map(size);
   {
-    ClassicMapGenerator generator(this->map, rnd);
+    ClassicMapGenerator generator(*this->map, rnd);
     generator.init(0, false);
     generator.generate();
     init_map_data(generator);

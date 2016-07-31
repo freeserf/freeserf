@@ -438,7 +438,7 @@ GameInitBox::generate_map_preview() {
   if (game_mission < 0) {
     map->init(map_size);
     {
-      ClassicMapGenerator generator(map, mission->rnd);
+      ClassicMapGenerator generator(*map, mission->rnd);
       generator.init(0, true);
       generator.generate();
       map->init_tiles(generator);
@@ -446,7 +446,7 @@ GameInitBox::generate_map_preview() {
   } else {
     map->init(3);
     {
-      ClassicMissionMapGenerator generator(map, mission->rnd);
+      ClassicMissionMapGenerator generator(*map, mission->rnd);
       generator.init();
       generator.generate();
       map->init_tiles(generator);
