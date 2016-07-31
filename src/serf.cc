@@ -33,17 +33,20 @@
 #include "src/savegame.h"
 
 #define set_state(new_state)  \
-  LOGV("serf", "serf %i (%s): state %s -> %s (%s:%i)", index, \
-       Serf::get_type_name(get_type()), \
-       Serf::get_state_name(state),      \
-       Serf::get_state_name((new_state)), __FUNCTION__, __LINE__); \
+  Log::Verbose["serf"] << "serf " << index  \
+                       << " (" << Serf::get_type_name(get_type()) << "): " \
+                       << "state " << Serf::get_state_name(state) \
+                       << " -> " << Serf::get_state_name((new_state)) \
+                       << " (" << __FUNCTION__ << ":" << __LINE__ << ")"; \
   state = new_state;
 
 #define set_other_state(other_serf, new_state)  \
-  LOGV("serf", "serf %i (%s): state %s -> %s (%s:%i)", other_serf->index, \
-       Serf::get_type_name(other_serf->get_type()), \
-       Serf::get_state_name(other_serf->state),      \
-       Serf::get_state_name((new_state)), __FUNCTION__, __LINE__); \
+  Log::Verbose["serf"] << "serf " << other_serf->index \
+                       << " (" << Serf::get_type_name(other_serf->get_type()) \
+                       << "): state " \
+                       << Serf::get_state_name(other_serf->state) \
+                       << " -> " << Serf::get_state_name((new_state)) \
+                       << "(" << __FUNCTION__ << ":" << __LINE__ << ")"; \
   other_serf->state = new_state;
 
 
@@ -1009,7 +1012,7 @@ Serf::change_direction(Direction dir, int alt_end) {
     if (game->get_map()->has_flag(new_pos)) {
       counter = 0;
     } else {
-      LOGD("serf", "unhandled jump to 31B82.");
+      Log::Debug["serf"] << "unhandled jump to 31B82.";
     }
   }
 }
@@ -1059,7 +1062,7 @@ Serf::handle_serf_walking_state_search_cb(Flag *flag, void *data) {
   Serf *serf = static_cast<Serf*>(data);
   Flag *dest = flag->get_game()->get_flag(serf->s.walking.dest);
   if (flag == dest) {
-    LOGV("serf", " dest found: %i.", dest->get_search_dir());
+    Log::Verbose["serf"] << " dest found: " << dest->get_search_dir();
     serf->change_direction(dest->get_search_dir(), 0);
     return 1;
   }
@@ -1903,7 +1906,7 @@ Serf::handle_serf_leaving_building_state() {
     } else if (state == StateKnightPrepareDefending || state == StateScatter) {
       /* No state. */
     } else {
-      LOGD("serf", "unhandled next state when leaving building.");
+      Log::Debug["serf"] << "unhandled next state when leaving building.";
     }
   }
 }
@@ -1953,7 +1956,7 @@ Serf::handle_serf_digging_state() {
   while (counter < 0) {
     s.digging.substate -= 1;
     if (s.digging.substate < 0) {
-      LOGV("serf", "substate -1: wait for serf.");
+      Log::Verbose["serf"] << "substate -1: wait for serf.";
       int d = s.digging.dig_pos;
       Direction dir = (Direction)((d == 0) ? DirectionUp : 6-d);
       MapPos new_pos = game->get_map()->move(pos, dir);
@@ -2010,8 +2013,8 @@ Serf::handle_serf_digging_state() {
       /* 34CD6: Change height, head back to center */
       int h = game->get_map()->get_height(pos);
       h += (s.digging.h_index & 1) ? -1 : 1;
-      LOGV("serf", "substate 1: change height %s.",
-           (s.digging.h_index & 1) ? "down" : "up");
+      Log::Verbose["serf"] << "substate 1: change height "
+                           << ((s.digging.h_index & 1) ? "down." : "up.");
       game->get_map()->set_height(pos, h);
 
       if (s.digging.dig_pos == 0) {
@@ -2021,14 +2024,14 @@ Serf::handle_serf_digging_state() {
         start_walking(dir, 32, 1);
       }
     } else if (s.digging.substate > 1) {
-      LOGV("serf", "substate 2: dig.");
+      Log::Verbose["serf"] << "substate 2: dig.";
       /* 34E89 */
       animation = 88 - (s.digging.h_index & 1);
       counter += 383;
     } else {
       /* 34CDC: Looking for a place to dig */
-      LOGV("serf", "substate 0: looking for place to dig %i, %i.",
-             s.digging.dig_pos, s.digging.h_index);
+      Log::Verbose["serf"] << "substate 0: looking for place to dig "
+                           << s.digging.dig_pos << ", " << s.digging.h_index;
       do {
         int h = h_diff[s.digging.h_index] + s.digging.target_h;
         if (s.digging.dig_pos >= 0 && h >= 0 && h < 32) {
@@ -2054,7 +2057,7 @@ Serf::handle_serf_digging_state() {
               s.digging.dig_pos -= 1;
               continue;
             }
-            LOGV("serf", "  found at: %i.", s.digging.dig_pos);
+            Log::Verbose["serf"] << "  found at: " << s.digging.dig_pos << ".";
             /* Digging spot found */
             if (game->get_map()->get_serf_index(new_pos) != 0) {
               /* Occupied by other serf, wait */
@@ -2676,10 +2679,9 @@ Serf::handle_serf_free_walking_switch_on_dir(Direction dir) {
   int dx = ((dir < 3) ? 1 : -1)*((dir % 3) < 2);
   int dy = ((dir < 3) ? 1 : -1)*((dir % 3) > 0);
 
-  LOGV("serf", "serf %i: free walking: dest %i, %i, move %i, %i.",
-       index,
-       s.free_walking.dist1,
-       s.free_walking.dist2, dx, dy);
+  Log::Verbose["serf"] << "serf " << index << ": free walking: dest "
+                       << s.free_walking.dist1 << ", " << s.free_walking.dist2
+                       << ", move " << dx << ", " << dy;
 
   s.free_walking.dist1 -= dx;
   s.free_walking.dist2 -= dy;
@@ -2719,9 +2721,10 @@ Serf::handle_serf_free_walking_switch_with_other() {
     int dx = ((dir < 3) ? 1 : -1)*((dir % 3) < 2);
     int dy = ((dir < 3) ? 1 : -1)*((dir % 3) > 0);
 
-    LOGV("serf", "free walking (switch): dest %i, %i, move %i, %i.",
-         s.free_walking.dist1,
-         s.free_walking.dist2, dx, dy);
+    Log::Verbose["serf"] << "free walking (switch): dest "
+                         << s.free_walking.dist1 << ", "
+                         << s.free_walking.dist2 << ", move "
+                         << dx << ", " << dy;
 
     s.free_walking.dist1 -= dx;
     s.free_walking.dist2 -= dy;
@@ -3073,8 +3076,8 @@ Serf::handle_free_walking_common() {
               if (other_serf->s.walking.wait_counter != -1) {
                 int dir = other_serf->s.walking.dir;
                 if (dir < 0) dir += 6;
-                LOGD("serf", "TODO remove %i from path",
-                     other_serf->get_index());
+                Log::Debug["serf"] << "TODO remove " << other_serf->get_index()
+                                   << " from path";
               }
               other_serf->set_lost_state();
             }
@@ -3179,9 +3182,9 @@ Serf::handle_serf_planning_logging_state() {
       s.leaving_building.dest2 = -Map::get_spiral_pattern()[2*index] + 1;
       s.leaving_building.dir = -Map::get_spiral_pattern()[2*index+1] + 1;
       s.leaving_building.next_state = StateFreeWalking;
-      LOGV("serf", "planning logging: tree found, dist %i, %i.",
-           s.leaving_building.field_B,
-           s.leaving_building.dest);
+      Log::Verbose["serf"] << "planning logging: tree found, dist "
+                           << s.leaving_building.field_B << ", "
+                           << s.leaving_building.dest << ".";
       return;
     }
 
@@ -3211,9 +3214,9 @@ Serf::handle_serf_planning_planting_state() {
       s.leaving_building.dest2 = -Map::get_spiral_pattern()[2*index] + 1;
       s.leaving_building.dir = -Map::get_spiral_pattern()[2*index+1] + 1;
       s.leaving_building.next_state = StateFreeWalking;
-      LOGV("serf", "planning planting: free space found, dist %i, %i.",
-           s.leaving_building.field_B,
-           s.leaving_building.dest);
+      Log::Verbose["serf"] << "planning planting: free space found, dist "
+                           << s.leaving_building.field_B << ", "
+                           << s.leaving_building.dest << ".";
       return;
     }
 
@@ -3270,8 +3273,9 @@ Serf::handle_serf_planning_stonecutting() {
       s.leaving_building.dest2 = -Map::get_spiral_pattern()[2*index] + 1;
       s.leaving_building.dir = -Map::get_spiral_pattern()[2*index+1] + 1;
       s.leaving_building.next_state = StateStoneCutterFreeWalking;
-      LOGV("serf", "planning stonecutting: stone found, dist %i, %i.",
-           s.leaving_building.field_B, s.leaving_building.dest);
+      Log::Verbose["serf"] << "planning stonecutting: stone found, dist "
+                           << s.leaving_building.field_B << ", "
+                           << s.leaving_building.dest << ".";
       return;
     }
 
@@ -3554,10 +3558,9 @@ Serf::handle_serf_mining_state() {
     Building *building =
                         game->get_building(game->get_map()->get_obj_index(pos));
 
-    LOGV("serf", "mining substate: %i.", s.mining.substate);
+    Log::Verbose["serf"] << "mining substate: " << s.mining.substate << ".";
     switch (s.mining.substate) {
-    case 0:
-    {
+    case 0: {
       /* There is a small chance that the miner will
          not require food and skip to state 2. */
       int r = game->random_int();
@@ -3763,9 +3766,9 @@ Serf::handle_serf_planning_fishing_state() {
       s.leaving_building.dest2 = -Map::get_spiral_pattern()[2*index] + 1;
       s.leaving_building.dir = -Map::get_spiral_pattern()[2*index+1] + 1;
       s.leaving_building.next_state = StateFreeWalking;
-      LOGV("serf", "planning fishing: lake found, dist %i, %i.",
-           s.leaving_building.field_B,
-           s.leaving_building.dest);
+      Log::Verbose["serf"] << "planning fishing: lake found, dist "
+                           << s.leaving_building.field_B << ","
+                           << s.leaving_building.dest;
       return;
     }
 
@@ -3869,9 +3872,9 @@ Serf::handle_serf_planning_farming_state() {
       s.leaving_building.dest2 = -Map::get_spiral_pattern()[2*index] + 1;
       s.leaving_building.dir = -Map::get_spiral_pattern()[2*index+1] + 1;
       s.leaving_building.next_state = StateFreeWalking;
-      LOGV("serf", "planning farming: field spot found, dist %i, %i.",
-           s.leaving_building.field_B,
-           s.leaving_building.dest);
+      Log::Verbose["serf"] << "planning farming: field spot found, dist "
+                           << s.leaving_building.field_B << ", "
+                           << s.leaving_building.dest << ".";
       return;
     }
 
@@ -4299,9 +4302,9 @@ Serf::handle_serf_looking_for_geo_spot_state() {
         s.free_walking.neg_dist2 = -Map::get_spiral_pattern()[2*index+1];
         s.free_walking.flags = 0;
         tick = game->get_tick();
-        LOGV("serf", "looking for geo spot: found, dist %i, %i.",
-             s.free_walking.dist1,
-             s.free_walking.dist2);
+        Log::Verbose["serf"] << "looking for geo spot: found, dist "
+                             << s.free_walking.dist1 << ", "
+                             << s.free_walking.dist2 << ".";
         return;
       }
     } else if (obj >= Map::ObjectSignLargeGold &&
@@ -4466,15 +4469,15 @@ Serf::set_fight_outcome(Serf *attacker, Serf *defender) {
     value = def_exp_factor;
     type = defender->get_type();
     attacker->s.attacking.field_C = 1;
-    LOGD("serf", "Fight: %i vs %i (%i). Attacker winning.",
-         morale, def_morale, r);
+    Log::Debug["serf"] << "Fight: " << morale << " vs " << def_morale
+    << " (" << r << "). Attacker winning.";
   } else {
     player = attacker->get_player();
     value = exp_factor;
     type = attacker->get_type();
     attacker->s.attacking.field_C = 0;
-    LOGD("serf", "Fight: %i vs %i (%i). Defender winning.",
-         morale, def_morale, r);
+    Log::Debug["serf"] << "Fight: " << morale << " vs " << def_morale
+                       << " (" << r << "). Defender winning.";
   }
 
   game->get_player(player)->decrease_military_score(value);
@@ -5408,7 +5411,7 @@ Serf::update() {
     handle_serf_defending_castle_state();
     break;
   default:
-    LOGD("serf", "Serf state %d isn't processed", state);
+    Log::Debug["serf"] << "Serf state " << state << " isn't processed";
     state = StateNull;
   }
 }
@@ -5440,8 +5443,8 @@ operator >> (SaveReaderBinary &reader, Serf &serf) {
   reader >> v8;  // 10
   serf.state = (Serf::State)v8;
 
-  LOGV("savegame", "load serf %i: %s", serf.index,
-       Serf::get_state_name(serf.state));
+  Log::Verbose["savegame"] << "load serf " << serf.index << ": "
+                           << Serf::get_state_name(serf.state);
 
   switch (serf.state) {
     case Serf::StateIdleInStock:

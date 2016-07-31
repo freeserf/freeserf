@@ -135,7 +135,8 @@ Data::load(const std::string &path) {
     for (; it != search_paths.end(); ++it) {
       std::string res_path;
       if (data_sources[i]->check(*it, &res_path)) {
-        LOGI("data", "Game data found in '%s'...", res_path.c_str());
+        Log::Info["data"] << "Game data found in '"
+                          << res_path.c_str() << "'...";
         if (data_sources[i]->load(res_path)) {
           data_source = data_sources[i];
           break;

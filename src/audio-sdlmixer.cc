@@ -40,28 +40,32 @@ Audio::get_instance() {
 }
 
 AudioSDL::AudioSDL() {
-  LOGI("audio-sdlmixer", "Initializing audio driver `sdlmixer'.");
+  Log::Info["audio-sdlmixer"] << "Initializing audio driver `sdlmixer'.";
 
   if (SDL_Init(SDL_INIT_AUDIO | SDL_INIT_TIMER) != 0) {
-    LOGE("audio-sdlmixer", "Could not init SDL audio: %s.", SDL_GetError());
+    Log::Error["audio-sdlmixer"] << "Could not init SDL audio: "
+                                 << SDL_GetError();
     assert(false);
   }
 
   int r = Mix_Init(0);
   if (r != 0) {
-    LOGE("audio-sdlmixer", "Could not init SDL_mixer: %s.", Mix_GetError());
+    Log::Error["audio-sdlmixer"] << "Could not init SDL_mixer: "
+                                 << Mix_GetError();
     assert(false);
   }
 
   r = Mix_OpenAudio(8000, MIX_DEFAULT_FORMAT, MIX_DEFAULT_CHANNELS, 512);
   if (r < 0) {
-    LOGE("audio-sdlmixer", "Could not open audio device: %s.", Mix_GetError());
+    Log::Error["audio-sdlmixer"] << "Could not open audio device: "
+                                 << Mix_GetError();
     assert(false);
   }
 
   r = Mix_AllocateChannels(16);
   if (r != 16) {
-    LOGE("audio-sdlmixer", "Failed to allocate channels: %s.", Mix_GetError());
+    Log::Error["audio-sdlmixer"] << "Failed to allocate channels: %s."
+                                 << Mix_GetError();
     assert(false);
   }
 
@@ -140,7 +144,7 @@ AudioSDL::PlayerSFX::create_track(int track_id) {
   Mix_Chunk *chunk = Mix_LoadWAV_RW(rw, 0);
   free(wav);
   if (chunk == NULL) {
-    LOGE("audio-sdlmixer", "Mix_LoadWAV_RW: %s.", Mix_GetError());
+    Log::Error["audio-sdlmixer"] << "Mix_LoadWAV_RW: " << Mix_GetError();
     return NULL;
   }
 
@@ -195,13 +199,14 @@ void
 AudioSDL::TrackSFX::play() {
   int r = Mix_PlayChannel(-1, chunk, 0);
   if (r < 0) {
-    LOGE("audio-sdlmixer", "Could not play SFX clip: %s.", Mix_GetError());
+    Log::Error["audio-sdlmixer"] << "Could not play SFX clip: "
+                                 << Mix_GetError();
   }
 }
 
 AudioSDL::PlayerMIDI::PlayerMIDI() {
   if (current_midi_player != NULL) {
-    LOGE("audio-sdlmixer", "Only one midi player is allowed.");
+    Log::Error["audio-sdlmixer"] << "Only one midi player is allowed.";
     assert(0);
   }
   current_track = TypeMidiNone;
@@ -314,6 +319,7 @@ void
 AudioSDL::TrackMIDI::play() {
   int r = Mix_PlayMusic(chunk, 0);
   if (r < 0) {
-    LOGW("audio-sdlmixer", "Could not play MIDI track: %s\n", Mix_GetError());
+    Log::Warn["audio-sdlmixer"] << "Could not play MIDI track: "
+                                << Mix_GetError();
   }
 }

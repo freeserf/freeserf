@@ -1,7 +1,7 @@
 /*
  * log.h - Logging
  *
- * Copyright (C) 2012  Jon Lund Steffensen <jonlst@gmail.com>
+ * Copyright (C) 2012-2016  Jon Lund Steffensen <jonlst@gmail.com>
  *
  * This file is part of freeserf.
  *
@@ -35,7 +35,8 @@
 #ifndef SRC_LOG_H_
 #define SRC_LOG_H_
 
-#include <cstdio>
+#include <ostream>
+#include <string>
 
 class Log {
  public:
@@ -50,37 +51,46 @@ class Log {
     LevelMax
   } Level;
 
-  static void set_file(FILE *file);
+  class Logger {
+   protected:
+    Level level;
+    std::string prefix;
+    std::ostream *stream;
+    static std::ostream dummy;
+
+   public:
+    explicit Logger(Level _level, std::string _prefix)
+      : level(_level), prefix(_prefix) {
+      apply_level();
+    }
+
+    virtual std::ostream & operator[](std::string subsystem) {
+      *stream << std::endl;
+      *stream << prefix << ": [" << subsystem << "] ";
+      return *stream;
+    }
+
+    void apply_level() {
+      if (level < Log::level) {
+        stream = &dummy;
+      } else {
+        stream = Log::stream;
+      }
+    }
+  };
+
+  static void set_file(std::ostream *stream);
   static void set_level(Log::Level level);
-  static void msg(Log::Level level, const char *system,
-                  const char *format, ...);
+
+  static Logger Verbose;
+  static Logger Debug;
+  static Logger Info;
+  static Logger Warn;
+  static Logger Error;
+
+ protected:
+  static std::ostream *stream;
+  static Level level;
 };
-
-
-#ifdef __ANDROID__ /* Bypass normal logging on Android. */
-#include <android/log.h>
-
-# define LOG_TAG "freeserf"
-
-# define LOGV(system, ...)  __android_log_print(ANDROID_LOG_VERBOSE, LOG_TAG, \
-                                                __VA_ARGS__)
-# define LOGD(system, ...)  __android_log_print(ANDROID_LOG_DEBUG, LOG_TAG, \
-                                                __VA_ARGS__)
-# define LOGI(system, ...)  __android_log_print(ANDROID_LOG_INFO, LOG_TAG, \
-                                                __VA_ARGS__)
-# define LOGW(system, ...)  __android_log_print(ANDROID_LOG_WARN, LOG_TAG, \
-                                                __VA_ARGS__)
-# define LOGE(system, ...)  __android_log_print(ANDROID_LOG_ERROR, LOG_TAG, \
-                                                __VA_ARGS__)
-
-#else
-
-# define LOGV(system, ...)  Log::msg(Log::LevelVerbose, system, __VA_ARGS__)
-# define LOGD(system, ...)  Log::msg(Log::LevelDebug, system, __VA_ARGS__)
-# define LOGI(system, ...)  Log::msg(Log::LevelInfo, system, __VA_ARGS__)
-# define LOGW(system, ...)  Log::msg(Log::LevelWarn, system, __VA_ARGS__)
-# define LOGE(system, ...)  Log::msg(Log::LevelError, system, __VA_ARGS__)
-
-#endif
 
 #endif  // SRC_LOG_H_

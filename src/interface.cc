@@ -877,7 +877,7 @@ Interface::handle_key_pressed(char key, int modifier) {
     case 'j': {
       unsigned int index = game->get_next_player(player)->get_index();
       set_player(index);
-      LOGD("main", "Switched to player %u.", index);
+      Log::Debug["main"] << "Switched to player #" << index;
       break;
     }
     case 'z':
