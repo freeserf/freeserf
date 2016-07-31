@@ -117,9 +117,7 @@ class ClassicMapGenerator : public MapGenerator {
 
   bool check_desert_down_triangle(MapPos pos);
   bool check_desert_up_triangle(MapPos pos);
-  void init_desert();
-  void init_desert_2_sub();
-  void init_desert_2();
+  void create_deserts();
 
   void create_crosses();
   void create_objects();

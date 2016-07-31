@@ -758,9 +758,11 @@ ClassicMapGenerator::check_desert_up_triangle(MapPos pos_) {
   return true;
 }
 
-/* Create deserts on the map. */
+// Create deserts.
 void
-ClassicMapGenerator::init_desert() {
+ClassicMapGenerator::create_deserts() {
+  // Initialize random areas of desert based on spiral pattern.
+  // Only TerrainGrass1 triangles will be converted to desert.
   for (int i = 0; i < map.get_region_count(); i++) {
     for (int try_ = 0; try_ < 200; try_++) {
       MapPos rnd_pos = map.get_rnd_coord(NULL, NULL, &rnd);
@@ -782,10 +784,19 @@ ClassicMapGenerator::init_desert() {
       }
     }
   }
-}
 
-void
-ClassicMapGenerator::init_desert_2_sub() {
+  // Convert outer triangles in the desert areas into a gradual transition
+  // through TerrainGrass3, TerrainDesert0, TerrainDesert1 to TerrainDesert2.
+  seed_terrain_type(
+    Map::TerrainDesert2, Map::TerrainGrass1, Map::TerrainGrass3);
+  seed_terrain_type(
+    Map::TerrainDesert2, Map::TerrainGrass3, Map::TerrainDesert0);
+  seed_terrain_type(
+    Map::TerrainDesert2, Map::TerrainDesert0, Map::TerrainDesert1);
+
+  // Convert all triangles in the TerrainGrass3 - TerrainDesert1 range to
+  // TerrainGrass1. This reduces the size of the desert areas to the core
+  // that was made up of TerrainDesert2.
   for (unsigned int y = 0; y < map.get_rows(); y++) {
     for (unsigned int x = 0; x < map.get_cols(); x++) {
       MapPos pos_ = map.pos(x, y);
@@ -800,19 +811,9 @@ ClassicMapGenerator::init_desert_2_sub() {
       }
     }
   }
-}
 
-void
-ClassicMapGenerator::init_desert_2() {
-  seed_terrain_type(
-    Map::TerrainDesert2, Map::TerrainGrass1, Map::TerrainGrass3);
-  seed_terrain_type(
-    Map::TerrainDesert2, Map::TerrainGrass3, Map::TerrainDesert0);
-  seed_terrain_type(
-    Map::TerrainDesert2, Map::TerrainDesert0, Map::TerrainDesert1);
-
-  init_desert_2_sub();
-
+  // Restore the gradual transition from TerrainGrass3 to TerrainDesert2 around
+  // the desert.
   seed_terrain_type(
     Map::TerrainGrass1, Map::TerrainDesert2, Map::TerrainDesert1);
   seed_terrain_type(
@@ -1111,8 +1112,7 @@ ClassicMapGenerator::init_sub() {
   change_shore_grass_type();
 
   // Create deserts
-  init_desert();
-  init_desert_2();
+  create_deserts();
 
   // Create map objects (trees, boulders, etc.)
   create_objects();
