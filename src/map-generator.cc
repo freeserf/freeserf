@@ -617,12 +617,6 @@ ClassicMapGenerator::init_types4() {
                         Map::TerrainGrass0);
 }
 
-/* Use spiral pattern to lookup a new position based on col, row. */
-MapPos
-ClassicMapGenerator::lookup_pattern(int col, int row, int index) {
-  return map.pos_add_spirally(map.pos(col, row), index);
-}
-
 int
 ClassicMapGenerator::init_desert_sub1(MapPos pos_) {
   Map::Terrain type_d = tiles[pos_].type_down;
@@ -678,13 +672,12 @@ void
 ClassicMapGenerator::init_desert() {
   for (int i = 0; i < map.get_region_count(); i++) {
     for (int try_ = 0; try_ < 200; try_++) {
-      int col, row;
-      MapPos rnd_pos = map.get_rnd_coord(&col, &row, &rnd);
+      MapPos rnd_pos = map.get_rnd_coord(NULL, NULL, &rnd);
 
       if (tiles[rnd_pos].type_up == Map::TerrainGrass1 &&
           tiles[rnd_pos].type_down == Map::TerrainGrass1) {
         for (int index = 255; index >= 0; index--) {
-          MapPos pos = lookup_pattern(col, row, index);
+          MapPos pos = map.pos_add_spirally(rnd_pos, index);
 
           int r = init_desert_sub1(pos);
           if (r == 0) tiles[pos].type_up = Map::TerrainDesert2;
@@ -796,15 +789,15 @@ ClassicMapGenerator::hexagon_types_in_range(MapPos pos_, Map::Terrain min,
 
 /* Get a random position in the spiral pattern based at col, row. */
 MapPos
-ClassicMapGenerator::lookup_rnd_pattern(int col, int row, int mask) {
-  return lookup_pattern(col, row, random_int() & mask);
+ClassicMapGenerator::pos_add_spirally_random(MapPos pos, int mask) {
+  return map.pos_add_spirally(pos, random_int() & mask);
 }
 
 /* Create clusters of map objects.
 
    Tries to create num_clusters of objects in random locations on the map.
    Each cluster has up to objs_in_cluster objects. The pos_mask is used in
-   the call to lookup_rnd_pattern to determine the max cluster size. The
+   the call to pos_add_spirally_random to determine the max cluster size. The
    type_min and type_max determine the range (both inclusive) of terrain
    types that must appear around a position to be elegible for placement of
    an object. The obj_base determines the first object type that can be placed
@@ -818,11 +811,10 @@ ClassicMapGenerator::init_objects_shared(int num_clusters, int objs_in_cluster,
                                          int obj_mask) {
   for (int i = 0; i < num_clusters; i++) {
     for (int try_ = 0; try_ < 100; try_++) {
-      int col, row;
-      MapPos rnd_pos = map.get_rnd_coord(&col, &row, &rnd);
+      MapPos rnd_pos = map.get_rnd_coord(NULL, NULL, &rnd);
       if (hexagon_types_in_range(rnd_pos, type_min, type_max)) {
         for (int j = 0; j < objs_in_cluster; j++) {
-          MapPos pos_ = lookup_rnd_pattern(col, row, pos_mask);
+          MapPos pos_ = pos_add_spirally_random(rnd_pos, pos_mask);
           if (hexagon_types_in_range(pos_, type_min, type_max) &&
               tiles[pos_].obj == Map::ObjectNone) {
             tiles[pos_].obj = static_cast<Map::Object>(
@@ -961,10 +953,10 @@ ClassicMapGenerator::init_palms() {
 
 void
 ClassicMapGenerator::init_resources_shared_sub(
-    int iters, int col, int row, int *index, int amount,
+    int iters, MapPos init_pos, int *index, int amount,
     Map::Minerals type) {
   for (int i = 0; i < iters; i++) {
-    MapPos pos = lookup_pattern(col, row, *index);
+    MapPos pos = map.pos_add_spirally(init_pos, *index);
     *index += 1;
 
     if (tiles[pos].resource_type == Map::MineralsNone ||
@@ -987,33 +979,32 @@ ClassicMapGenerator::init_resources_shared(
     Map::Terrain min, Map::Terrain max) {
   for (int i = 0; i < num_clusters; i++) {
     for (int try_ = 0; try_ < 100; try_++) {
-      int col, row;
-      MapPos pos = map.get_rnd_coord(&col, &row, &rnd);
+      MapPos pos_ = map.get_rnd_coord(NULL, NULL, &rnd);
 
-      if (hexagon_types_in_range(pos, min, max)) {
+      if (hexagon_types_in_range(pos_, min, max)) {
         int index = 0;
         int amount = 8 + (random_int() & 0xc);
-        init_resources_shared_sub(1, col, row, &index, amount, type);
+        init_resources_shared_sub(1, pos_, &index, amount, type);
         amount -= 4;
         if (amount == 0) break;
 
-        init_resources_shared_sub(6, col, row, &index, amount, type);
+        init_resources_shared_sub(6, pos_, &index, amount, type);
         amount -= 4;
         if (amount == 0) break;
 
-        init_resources_shared_sub(12, col, row, &index, amount, type);
+        init_resources_shared_sub(12, pos_, &index, amount, type);
         amount -= 4;
         if (amount == 0) break;
 
-        init_resources_shared_sub(18, col, row, &index, amount, type);
+        init_resources_shared_sub(18, pos_, &index, amount, type);
         amount -= 4;
         if (amount == 0) break;
 
-        init_resources_shared_sub(24, col, row, &index, amount, type);
+        init_resources_shared_sub(24, pos_, &index, amount, type);
         amount -= 4;
         if (amount == 0) break;
 
-        init_resources_shared_sub(30, col, row, &index, amount, type);
+        init_resources_shared_sub(30, pos_, &index, amount, type);
         break;
       }
     }

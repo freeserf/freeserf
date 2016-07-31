@@ -88,6 +88,7 @@ class ClassicMapGenerator : public MapGenerator {
   int terrain_spikyness;
 
   uint16_t random_int();
+  MapPos pos_add_spirally_random(MapPos pos, int mask);
 
   bool is_water_tile(MapPos pos) const;
   bool is_in_water(MapPos pos) const;
@@ -111,7 +112,6 @@ class ClassicMapGenerator : public MapGenerator {
                              Map::Terrain new_);
   void init_lakes();
   void init_types4();
-  MapPos lookup_pattern(int col, int row, int index);
   int init_desert_sub1(MapPos pos);
   int init_desert_sub2(MapPos pos);
   void init_desert();
@@ -119,7 +119,6 @@ class ClassicMapGenerator : public MapGenerator {
   void init_desert_2();
   void init_crosses();
   bool hexagon_types_in_range(MapPos pos, Map::Terrain min, Map::Terrain max);
-  MapPos lookup_rnd_pattern(int col, int row, int mask);
   void init_objects_shared(int num_clusters, int objs_in_cluster, int pos_mask,
                            Map::Terrain type_min, Map::Terrain type_max,
                            int obj_base, int obj_mask);
@@ -138,7 +137,7 @@ class ClassicMapGenerator : public MapGenerator {
   void init_cacti();
   void init_water_stones();
   void init_palms();
-  void init_resources_shared_sub(int iters, int col, int row, int *index,
+  void init_resources_shared_sub(int iters, MapPos pos, int *index,
                                  int amount, Map::Minerals type);
   void init_resources_shared(int num_clusters, Map::Minerals type,
                              Map::Terrain min, Map::Terrain max);
