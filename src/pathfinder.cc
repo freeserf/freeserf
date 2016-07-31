@@ -123,7 +123,7 @@ pathfinder_map(Map *map, MapPos start, MapPos end) {
       std::list<Direction> dirs;
       while (node->parent != NULL) {
         Direction dir = node->dir;
-        solution.extend(DIR_REVERSE(dir));
+        solution.extend(reverse_direction(dir));
         node = node->parent;
       }
 

@@ -747,7 +747,7 @@ Map::place_road_segments(const Road &road) {
   Road::Dirs dirs = road.get_dirs();
   Road::Dirs::const_iterator it = dirs.begin();
   for (; it != dirs.end(); ++it) {
-    Direction rev_dir = DIR_REVERSE(*it);
+    Direction rev_dir = reverse_direction(*it);
 
     if (!is_road_segment_valid(pos_, *it)) {
       /* Not valid after all. Backtrack and abort.
@@ -756,7 +756,7 @@ Map::place_road_segments(const Road &road) {
       for (; it != dirs.begin();) {
         --it;
         Direction rev_dir = *it;
-        Direction dir = DIR_REVERSE(rev_dir);
+        Direction dir = reverse_direction(rev_dir);
 
         tiles[pos_].paths &= ~BIT(dir);
         tiles[move(pos_, dir)].paths &= ~BIT(rev_dir);
@@ -782,7 +782,7 @@ Map::remove_road_backref_until_flag(MapPos pos_, Direction dir) {
     pos_ = move(pos_, dir);
 
     /* Clear backreference */
-    tiles[pos_].paths &= ~BIT(DIR_REVERSE(dir));
+    tiles[pos_].paths &= ~BIT(reverse_direction(dir));
 
     if (get_obj(pos_) == ObjectFlag) break;
 
@@ -837,7 +837,7 @@ Map::remove_road_segment(MapPos *pos, Direction dir) {
   *pos = move(*pos, dir);
 
   /* Clear backreference. */
-  tiles[*pos].paths &= ~BIT(DIR_REVERSE(dir));
+  tiles[*pos].paths &= ~BIT(reverse_direction(dir));
 
   /* Find next direction of path. */
   dir = DirectionNone;
@@ -855,7 +855,7 @@ bool
 Map::road_segment_in_water(MapPos pos_, Direction dir) {
   if (dir > DirectionDown) {
     pos_ = move(pos_, dir);
-    dir = DIR_REVERSE(dir);
+    dir = reverse_direction(dir);
   }
 
   bool water = false;
@@ -1072,7 +1072,7 @@ Road::is_valid_extension(Map *map, Direction dir) const {
 
 bool
 Road::is_undo(Direction dir) const {
-  return (dirs.size() > 0) && (dirs.back() == DIR_REVERSE(dir));
+  return (dirs.size() > 0) && (dirs.back() == reverse_direction(dir));
 }
 
 bool

@@ -872,7 +872,7 @@ Serf::switch_waiting(Direction dir) {
   if ((state == StateTransporting || state == StateWalking ||
        state == StateDelivering) &&
       s.walking.dir < 0) {
-    s.walking.dir = DIR_REVERSE(dir);
+    s.walking.dir = reverse_direction(dir);
     return 1;
   } else if ((state == StateFreeWalking ||
               state == StateKnightFreeWalking ||
@@ -970,28 +970,28 @@ Serf::change_direction(Direction dir, int alt_end) {
     animation = get_walking_animation(game->get_map()->get_height(new_pos) -
                                game->get_map()->get_height(pos), (Direction)dir,
                                       0);
-    s.walking.dir = DIR_REVERSE(dir);
+    s.walking.dir = reverse_direction(dir);
   } else {
     /* Direction is occupied. */
     Serf *other_serf = game->get_serf_at_pos(new_pos);
     Direction other_dir;
 
     if (other_serf->is_waiting(&other_dir) &&
-        (other_dir == DIR_REVERSE(dir) || other_dir == DirectionNone) &&
-        other_serf->switch_waiting(DIR_REVERSE(dir))) {
+        (other_dir == reverse_direction(dir) || other_dir == DirectionNone) &&
+        other_serf->switch_waiting(reverse_direction(dir))) {
       /* Do the switch */
       other_serf->pos = pos;
       game->get_map()->set_serf_index(other_serf->pos, other_serf->get_index());
       other_serf->animation =
            get_walking_animation(game->get_map()->get_height(other_serf->pos) -
                                  game->get_map()->get_height(new_pos),
-                                 DIR_REVERSE(dir), 1);
+                                 reverse_direction(dir), 1);
       other_serf->counter = counter_from_animation[other_serf->animation];
 
       animation = get_walking_animation(game->get_map()->get_height(new_pos) -
                                         game->get_map()->get_height(pos),
                                         (Direction)dir, 1);
-      s.walking.dir = DIR_REVERSE(dir);
+      s.walking.dir = reverse_direction(dir);
     } else {
       /* Wait for other serf */
       animation = 81 + dir;
@@ -1182,7 +1182,7 @@ Serf::handle_serf_walking_state_waiting() {
         break;
       } else if (game->get_map()->get_serf_index(pos_) == index) {
         /* We have found a loop, try a different direction. */
-        change_direction(DIR_REVERSE(dir), 0);
+        change_direction(reverse_direction(dir), 0);
         return;
       }
 
@@ -1194,7 +1194,7 @@ Serf::handle_serf_walking_state_waiting() {
       }
 
       if (other_serf->s.walking.dir >= 0 ||
-          (other_serf->s.walking.dir + 6) == DIR_REVERSE(dir)) {
+          (other_serf->s.walking.dir + 6) == reverse_direction(dir)) {
         break;
       }
 
@@ -1373,7 +1373,7 @@ Serf::handle_serf_transporting_state() {
       }
 
       Flag *flag = game->get_flag_at_pos(game->get_map()->move(pos, dir));
-      Direction rev_dir = DIR_REVERSE(dir);
+      Direction rev_dir = reverse_direction(dir);
       Flag *other_flag = flag->get_other_end_flag(rev_dir);
       Direction other_dir = flag->get_other_end_dir(rev_dir);
 
@@ -1964,7 +1964,7 @@ Serf::handle_serf_digging_state() {
         Direction other_dir;
 
         if (other_serf->is_waiting(&other_dir) &&
-            other_dir == DIR_REVERSE(dir) &&
+            other_dir == reverse_direction(dir) &&
             other_serf->switch_waiting(other_dir)) {
           /* Do the switch */
           other_serf->pos = pos;
@@ -1973,7 +1973,7 @@ Serf::handle_serf_digging_state() {
           other_serf->animation =
             get_walking_animation(game->get_map()->get_height(other_serf->pos) -
                                   game->get_map()->get_height(new_pos),
-                                  DIR_REVERSE(dir), 1);
+                                  reverse_direction(dir), 1);
           other_serf->counter = counter_from_animation[other_serf->animation];
 
           if (d != 0) {
@@ -2017,7 +2017,7 @@ Serf::handle_serf_digging_state() {
       if (s.digging.dig_pos == 0) {
         s.digging.substate = 1;
       } else {
-        Direction dir = DIR_REVERSE(6-s.digging.dig_pos);
+        Direction dir = reverse_direction((Direction)(6-s.digging.dig_pos));
         start_walking(dir, 32, 1);
       }
     } else if (s.digging.substate > 1) {
@@ -2707,7 +2707,7 @@ Serf::handle_serf_free_walking_switch_with_other() {
       Direction other_dir;
 
       if (other_serf->is_waiting(&other_dir) &&
-          other_dir == DIR_REVERSE(i) &&
+          other_dir == reverse_direction((Direction)i) &&
           other_serf->switch_waiting(other_dir)) {
         dir = i;
         break;
@@ -2739,7 +2739,7 @@ Serf::handle_serf_free_walking_switch_with_other() {
     other_serf->animation = get_walking_animation(
                               game->get_map()->get_height(pos) -
                               game->get_map()->get_height(other_serf->pos),
-                              DIR_REVERSE(dir), 1);
+                              reverse_direction((Direction)dir), 1);
     animation = get_walking_animation(game->get_map()->get_height(new_pos) -
                                       game->get_map()->get_height(pos),
                                       (Direction)dir, 1);
@@ -3042,8 +3042,8 @@ Serf::handle_free_walking_common() {
       Direction other_dir;
 
       if (other_serf->is_waiting(&other_dir) &&
-          (other_dir == DIR_REVERSE(d) || other_dir == DirectionNone) &&
-          other_serf->switch_waiting(DIR_REVERSE(d))) {
+          (other_dir == reverse_direction(d) || other_dir == DirectionNone) &&
+          other_serf->switch_waiting(reverse_direction(d))) {
         /* Do the switch */
         other_serf->pos = pos;
         game->get_map()->set_serf_index(other_serf->pos,
@@ -3051,7 +3051,7 @@ Serf::handle_free_walking_common() {
         other_serf->animation =
           get_walking_animation(game->get_map()->get_height(other_serf->pos) -
                                 game->get_map()->get_height(new_pos),
-                                DIR_REVERSE(d), 1);
+                                reverse_direction(d), 1);
         other_serf->counter = counter_from_animation[other_serf->animation];
 
         animation = get_walking_animation(game->get_map()->get_height(new_pos) -
@@ -5019,7 +5019,7 @@ Serf::handle_serf_idle_on_path_state() {
     Flag *other_flag = flag->get_other_end_flag(rev_dir);
     Direction other_dir = flag->get_other_end_dir((Direction)rev_dir);
     if (other_flag && other_flag->is_scheduled(other_dir)) {
-      s.idle_on_path.field_E = DIR_REVERSE(rev_dir);
+      s.idle_on_path.field_E = reverse_direction(rev_dir);
     } else {
       return;
     }

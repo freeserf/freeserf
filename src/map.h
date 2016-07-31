@@ -62,8 +62,25 @@ typedef enum Direction {
   DirectionDownLeft
 } Direction;
 
-/* Reverse direction (only works on the six standard directions) */
-#define DIR_REVERSE(dir)  ((Direction)(((dir) + 3) % 6))
+/* Return the given direction turned clockwise a number of times.
+
+   Return the resulting direction from turning the given direction
+   clockwise in 60 degree increment the specified number of times.
+   If times is a negative number the direction will be turned counter
+   clockwise. NOTE: Only valid for the six standard directions. */
+inline Direction turn_direction(Direction d, int times) {
+  int td = (static_cast<int>(d) + times) % 6;
+  if (td < 0) td += 6;
+  return static_cast<Direction>(td);
+}
+
+/* Return the given direction reversed.
+
+   NOTE: Only valid for the six standard directions.
+*/
+inline Direction reverse_direction(Direction d) {
+  return turn_direction(d, 3);
+}
 
 /* MapPos is a compact composition of col and row values that
    uniquely identifies a vertex in the map space. It is also used
