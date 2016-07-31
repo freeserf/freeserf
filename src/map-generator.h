@@ -135,7 +135,6 @@ class ClassicMapGenerator : public MapGenerator {
   void create_mineral_deposits();
 
   void init_clean_up();
-  void init_sub();
 };
 
 /* Classic map generator that generates identical maps for missions. */

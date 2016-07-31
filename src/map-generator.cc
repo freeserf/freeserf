@@ -90,7 +90,20 @@ void ClassicMapGenerator::generate() {
   init_types();
   remove_islands();
   heights_rescale();
-  init_sub();
+
+  // Adjust terrain types on shores
+  change_shore_water_type();
+  change_shore_grass_type();
+
+  // Create deserts
+  create_deserts();
+
+  // Create map objects (trees, boulders, etc.)
+  create_objects();
+
+  create_mineral_deposits();
+
+  init_clean_up();
 }
 
 uint16_t
@@ -1105,22 +1118,6 @@ ClassicMapGenerator::init_clean_up() {
   }
 }
 
-void
-ClassicMapGenerator::init_sub() {
-  // Adjust terrain types on shores
-  change_shore_water_type();
-  change_shore_grass_type();
-
-  // Create deserts
-  create_deserts();
-
-  // Create map objects (trees, boulders, etc.)
-  create_objects();
-
-  create_mineral_deposits();
-
-  init_clean_up();
-}
 
 ClassicMissionMapGenerator::ClassicMissionMapGenerator(
   const Map& map, const Random &rnd) : ClassicMapGenerator(map, rnd) {}
