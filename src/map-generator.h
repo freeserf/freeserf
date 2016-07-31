@@ -134,7 +134,7 @@ class ClassicMapGenerator : public MapGenerator {
                                       Map::Terrain min, Map::Terrain max);
   void create_mineral_deposits();
 
-  void init_clean_up();
+  void clean_up();
 };
 
 /* Classic map generator that generates identical maps for missions. */

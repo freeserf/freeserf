@@ -103,7 +103,7 @@ void ClassicMapGenerator::generate() {
 
   create_mineral_deposits();
 
-  init_clean_up();
+  clean_up();
 }
 
 uint16_t
@@ -1081,7 +1081,7 @@ ClassicMapGenerator::create_mineral_deposits() {
 }
 
 void
-ClassicMapGenerator::init_clean_up() {
+ClassicMapGenerator::clean_up() {
   /* Make sure that it is always possible to walk around
      any impassable objects. This also clears water obstacles
      except in certain positions near the shore. */
