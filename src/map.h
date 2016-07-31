@@ -92,10 +92,10 @@ class Road {
   Dirs get_dirs() const { return dirs; }
   size_t get_length() const { return dirs.size(); }
   Direction get_last() const { return dirs.back(); }
-  bool is_extandable() const { return (dirs.size() < max_length); }
+  bool is_extendable() const { return (dirs.size() < max_length); }
   bool is_valid_extension(Map *map, Direction dir) const;
   bool is_undo(Direction dir) const;
-  bool extand(Direction dir);
+  bool extend(Direction dir);
   bool undo();
   MapPos get_end(Map *map) const;
 };

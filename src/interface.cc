@@ -482,12 +482,12 @@ Interface::build_road_end() {
    construction, and 1 if this segment completed the path. */
 int
 Interface::build_road_segment(Direction dir) {
-  if (!building_road.is_extandable()) {
+  if (!building_road.is_extendable()) {
     /* Max length reached */
     return -1;
   }
 
-  building_road.extand(dir);
+  building_road.extend(dir);
 
   MapPos dest;
   int r = game->can_build_road(building_road, player, &dest, NULL);

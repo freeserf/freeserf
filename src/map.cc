@@ -1076,7 +1076,7 @@ Road::is_undo(Direction dir) const {
 }
 
 bool
-Road::extand(Direction dir) {
+Road::extend(Direction dir) {
   if (begin == bad_map_pos) {
     return false;
   }
