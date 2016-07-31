@@ -117,32 +117,22 @@ class ClassicMapGenerator : public MapGenerator {
   void init_desert();
   void init_desert_2_sub();
   void init_desert_2();
-  void init_crosses();
+
+  void create_crosses();
+  void create_objects();
+
   bool hexagon_types_in_range(MapPos pos, Map::Terrain min, Map::Terrain max);
   void create_random_object_clusters(int num_clusters, int objs_in_cluster,
                                      int pos_mask, Map::Terrain type_min,
                                      Map::Terrain type_max, int obj_base,
                                      int obj_mask);
-  void init_trees_1();
-  void init_trees_2();
-  void init_trees_3();
-  void init_trees_4();
-  void init_stone_1();
-  void init_stone_2();
-  void init_dead_trees();
-  void init_large_boulders();
-  void init_water_trees();
-  void init_stubs();
-  void init_small_boulders();
-  void init_cadavers();
-  void init_cacti();
-  void init_water_stones();
-  void init_palms();
+
   void expand_mineral_cluster(int iters, MapPos pos, int *index,
                               int amount, Map::Minerals type);
   void create_random_mineral_clusters(int num_clusters, Map::Minerals type,
                                       Map::Terrain min, Map::Terrain max);
   void create_mineral_deposits();
+
   void init_clean_up();
   void init_sub();
 };

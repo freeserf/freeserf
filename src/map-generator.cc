@@ -730,7 +730,7 @@ ClassicMapGenerator::init_desert_2() {
 
 /* Put crosses on top of mountains. */
 void
-ClassicMapGenerator::init_crosses() {
+ClassicMapGenerator::create_crosses() {
   for (unsigned int y = 0; y < map.get_rows(); y++) {
     for (unsigned int x = 0; x < map.get_cols(); x++) {
       MapPos pos_ = map.pos(x, y);
@@ -827,126 +827,84 @@ ClassicMapGenerator::create_random_object_clusters(
 }
 
 void
-ClassicMapGenerator::init_trees_1() {
-  /* Add either tree or pine. */
-  int clusters = map.get_region_count() * 8;
-  create_random_object_clusters(
-    clusters, 10, 0xff, Map::TerrainGrass1, Map::TerrainGrass2,
-    Map::ObjectTree0, 0xf);
-}
+ClassicMapGenerator::create_objects() {
+  int regions = map.get_region_count();
 
-void
-ClassicMapGenerator::init_trees_2() {
-  /* Add only trees. */
-  int clusters = map.get_region_count();
+  create_crosses();
+
+  // Add either tree or pine.
   create_random_object_clusters(
-    clusters, 45, 0x3f, Map::TerrainGrass1, Map::TerrainGrass2,
+    regions * 8, 10, 0xff, Map::TerrainGrass1, Map::TerrainGrass2,
+    Map::ObjectTree0, 0xf);
+
+  // Add only trees.
+  create_random_object_clusters(
+    regions, 45, 0x3f, Map::TerrainGrass1, Map::TerrainGrass2,
     Map::ObjectTree0, 0x7);
-}
 
-void
-ClassicMapGenerator::init_trees_3() {
-  /* Add only pines. */
-  int clusters = map.get_region_count();
+  // Add only pines.
   create_random_object_clusters(
-    clusters, 30, 0x3f, Map::TerrainGrass0, Map::TerrainGrass2,
+    regions, 30, 0x3f, Map::TerrainGrass0, Map::TerrainGrass2,
     Map::ObjectPine0, 0x7);
-}
 
-void
-ClassicMapGenerator::init_trees_4() {
-  /* Add either tree or pine. */
-  int clusters = map.get_region_count();
+  // Add either tree or pine.
   create_random_object_clusters(
-    clusters, 20, 0x7f, Map::TerrainGrass1, Map::TerrainGrass2,
+    regions, 20, 0x7f, Map::TerrainGrass1, Map::TerrainGrass2,
     Map::ObjectTree0, 0xf);
-}
 
-void
-ClassicMapGenerator::init_stone_1() {
-  int clusters = map.get_region_count();
+  // Create dense clusters of stone.
   create_random_object_clusters(
-    clusters, 40, 0x3f, Map::TerrainGrass1, Map::TerrainGrass2,
+    regions, 40, 0x3f, Map::TerrainGrass1, Map::TerrainGrass2,
     Map::ObjectStone0, 0x7);
-}
 
-void
-ClassicMapGenerator::init_stone_2() {
-  int clusters = map.get_region_count();
+  // Create sparse clusters.
   create_random_object_clusters(
-    clusters, 15, 0xff, Map::TerrainGrass1, Map::TerrainGrass2,
+    regions, 15, 0xff, Map::TerrainGrass1, Map::TerrainGrass2,
     Map::ObjectStone0, 0x7);
-}
 
-void
-ClassicMapGenerator::init_dead_trees() {
-  int clusters = map.get_region_count();
+  // Create dead trees.
   create_random_object_clusters(
-    clusters, 2, 0xff, Map::TerrainGrass1, Map::TerrainGrass2,
+    regions, 2, 0xff, Map::TerrainGrass1, Map::TerrainGrass2,
     Map::ObjectDeadTree, 0);
-}
 
-void
-ClassicMapGenerator::init_large_boulders() {
-  int clusters = map.get_region_count();
+  // Create sandstone boulders.
   create_random_object_clusters(
-    clusters, 6, 0xff, Map::TerrainGrass1, Map::TerrainGrass2,
+    regions, 6, 0xff, Map::TerrainGrass1, Map::TerrainGrass2,
     Map::ObjectSandstone0, 0x1);
-}
 
-void
-ClassicMapGenerator::init_water_trees() {
-  int clusters = map.get_region_count();
+  // Create trees submerged in water.
   create_random_object_clusters(
-    clusters, 50, 0x7f, Map::TerrainWater2, Map::TerrainWater3,
+    regions, 50, 0x7f, Map::TerrainWater2, Map::TerrainWater3,
     Map::ObjectWaterTree0, 0x3);
-}
 
-void
-ClassicMapGenerator::init_stubs() {
-  int clusters = map.get_region_count();
+  // Create tree stubs.
   create_random_object_clusters(
-    clusters, 5, 0xff, Map::TerrainGrass1, Map::TerrainGrass2,
+    regions, 5, 0xff, Map::TerrainGrass1, Map::TerrainGrass2,
     Map::ObjectStub, 0);
-}
 
-void
-ClassicMapGenerator::init_small_boulders() {
-  int clusters = map.get_region_count();
+  // Create small boulders.
   create_random_object_clusters(
-    clusters, 10, 0xff, Map::TerrainGrass1, Map::TerrainGrass2,
+    regions, 10, 0xff, Map::TerrainGrass1, Map::TerrainGrass2,
     Map::ObjectStone, 0x1);
-}
 
-void
-ClassicMapGenerator::init_cadavers() {
-  int clusters = map.get_region_count();
+  // Create animal cadavers in desert.
   create_random_object_clusters(
-    clusters, 2, 0xf, Map::TerrainDesert2, Map::TerrainDesert2,
+    regions, 2, 0xf, Map::TerrainDesert2, Map::TerrainDesert2,
     Map::ObjectCadaver0, 0x1);
-}
 
-void
-ClassicMapGenerator::init_cacti() {
-  int clusters = map.get_region_count();
+  // Create cacti in desert.
   create_random_object_clusters(
-    clusters, 6, 0x7f, Map::TerrainDesert0, Map::TerrainDesert2,
+    regions, 6, 0x7f, Map::TerrainDesert0, Map::TerrainDesert2,
     Map::ObjectCactus0, 0x1);
-}
 
-void
-ClassicMapGenerator::init_water_stones() {
-  int clusters = map.get_region_count();
+  // Create boulders submerged in water.
   create_random_object_clusters(
-    clusters, 8, 0x7f, Map::TerrainWater0, Map::TerrainWater2,
+    regions, 8, 0x7f, Map::TerrainWater0, Map::TerrainWater2,
     Map::ObjectWaterStone0, 0x1);
-}
 
-void
-ClassicMapGenerator::init_palms() {
-  int clusters = map.get_region_count();
+  // Create palm trees in desert.
   create_random_object_clusters(
-    clusters, 6, 0x3f, Map::TerrainDesert2, Map::TerrainDesert2,
+    regions, 6, 0x3f, Map::TerrainDesert2, Map::TerrainDesert2,
     Map::ObjectPalm0, 0x3);
 }
 
@@ -1059,22 +1017,9 @@ ClassicMapGenerator::init_sub() {
   init_types4();
   init_desert();
   init_desert_2();
-  init_crosses();
-  init_trees_1();
-  init_trees_2();
-  init_trees_3();
-  init_trees_4();
-  init_stone_1();
-  init_stone_2();
-  init_dead_trees();
-  init_large_boulders();
-  init_water_trees();
-  init_stubs();
-  init_small_boulders();
-  init_cadavers();
-  init_cacti();
-  init_water_stones();
-  init_palms();
+
+  create_objects();
+
   create_mineral_deposits();
   init_clean_up();
 }
