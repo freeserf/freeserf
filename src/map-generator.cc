@@ -951,8 +951,9 @@ ClassicMapGenerator::init_palms() {
     Map::ObjectPalm0, 0x3);
 }
 
+// Expand a cluster of minerals.
 void
-ClassicMapGenerator::init_resources_shared_sub(
+ClassicMapGenerator::expand_mineral_cluster(
     int iters, MapPos init_pos, int *index, int amount,
     Map::Minerals type) {
   for (int i = 0; i < iters; i++) {
@@ -967,14 +968,13 @@ ClassicMapGenerator::init_resources_shared_sub(
   }
 }
 
-/* Create clusters of ground resources.
-
-   Tries to create num_clusters of ground resources of the given type. The
-   terrain type around a position must be in the min, max range
-   (both inclusive) for a resource to be deposited.
-*/
+// Create random clusters of mineral deposits.
+//
+// Tries to create num_clusters of minerals of the given type. The terrain type
+// around a position must be in the min, max range (both inclusive) for a
+// resource to be deposited.
 void
-ClassicMapGenerator::init_resources_shared(
+ClassicMapGenerator::create_random_mineral_clusters(
     int num_clusters, Map::Minerals type,
     Map::Terrain min, Map::Terrain max) {
   for (int i = 0; i < num_clusters; i++) {
@@ -984,47 +984,47 @@ ClassicMapGenerator::init_resources_shared(
       if (hexagon_types_in_range(pos_, min, max)) {
         int index = 0;
         int amount = 8 + (random_int() & 0xc);
-        init_resources_shared_sub(1, pos_, &index, amount, type);
+        expand_mineral_cluster(1, pos_, &index, amount, type);
         amount -= 4;
         if (amount == 0) break;
 
-        init_resources_shared_sub(6, pos_, &index, amount, type);
+        expand_mineral_cluster(6, pos_, &index, amount, type);
         amount -= 4;
         if (amount == 0) break;
 
-        init_resources_shared_sub(12, pos_, &index, amount, type);
+        expand_mineral_cluster(12, pos_, &index, amount, type);
         amount -= 4;
         if (amount == 0) break;
 
-        init_resources_shared_sub(18, pos_, &index, amount, type);
+        expand_mineral_cluster(18, pos_, &index, amount, type);
         amount -= 4;
         if (amount == 0) break;
 
-        init_resources_shared_sub(24, pos_, &index, amount, type);
+        expand_mineral_cluster(24, pos_, &index, amount, type);
         amount -= 4;
         if (amount == 0) break;
 
-        init_resources_shared_sub(30, pos_, &index, amount, type);
+        expand_mineral_cluster(30, pos_, &index, amount, type);
         break;
       }
     }
   }
 }
 
-/* Initialize resources in the ground. */
+// Initialize mineral deposits in the ground.
 void
-ClassicMapGenerator::init_resources() {
+ClassicMapGenerator::create_mineral_deposits() {
   int regions = map.get_region_count();
-  init_resources_shared(
+  create_random_mineral_clusters(
     regions * 9, Map::MineralsCoal,
     Map::TerrainTundra0, Map::TerrainSnow0);
-  init_resources_shared(
+  create_random_mineral_clusters(
     regions * 4, Map::MineralsIron,
     Map::TerrainTundra0, Map::TerrainSnow0);
-  init_resources_shared(
+  create_random_mineral_clusters(
     regions * 2, Map::MineralsGold,
     Map::TerrainTundra0, Map::TerrainSnow0);
-  init_resources_shared(
+  create_random_mineral_clusters(
     regions * 2, Map::MineralsStone,
     Map::TerrainTundra0, Map::TerrainSnow0);
 }
@@ -1089,7 +1089,7 @@ ClassicMapGenerator::init_sub() {
   init_cacti();
   init_water_stones();
   init_palms();
-  init_resources();
+  create_mineral_deposits();
   init_clean_up();
 }
 

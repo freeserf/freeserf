@@ -137,11 +137,11 @@ class ClassicMapGenerator : public MapGenerator {
   void init_cacti();
   void init_water_stones();
   void init_palms();
-  void init_resources_shared_sub(int iters, MapPos pos, int *index,
-                                 int amount, Map::Minerals type);
-  void init_resources_shared(int num_clusters, Map::Minerals type,
-                             Map::Terrain min, Map::Terrain max);
-  void init_resources();
+  void expand_mineral_cluster(int iters, MapPos pos, int *index,
+                              int amount, Map::Minerals type);
+  void create_random_mineral_clusters(int num_clusters, Map::Minerals type,
+                                      Map::Terrain min, Map::Terrain max);
+  void create_mineral_deposits();
   void init_clean_up();
   void init_sub();
 };
