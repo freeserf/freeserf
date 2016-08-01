@@ -901,7 +901,7 @@ Serf::switch_waiting(Direction dir) {
 
 int
 Serf::train_knight(int p) {
-  int delta = game->get_tick() - tick;
+  uint16_t delta = game->get_tick() - tick;
   tick = game->get_tick();
   counter -= delta;
 
