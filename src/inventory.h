@@ -81,7 +81,7 @@ class Inventory : public GameObject {
   bool have_any_out_mode() { return ((res_dir & 0x0A) != 0); }
 
   int get_serf_queue_length() { return serfs_out; }
-  void sers_away() { serfs_out--; }
+  void serf_away() { serfs_out--; }
   bool call_out_serf(Serf *serf);
   Serf *call_out_serf(Serf::Type type);
   bool call_internal(Serf *serf);
@@ -121,7 +121,7 @@ class Inventory : public GameObject {
   Serf *spawn_serf_generic();
   bool specialize_serf(Serf *serf, Serf::Type type);
   Serf *specialize_free_serf(Serf::Type type);
-  size_t serf_potencial_count(Serf::Type type);
+  size_t serf_potential_count(Serf::Type type);
 
   void serf_idle_in_stock(Serf *serf);
   void knight_training(Serf *serf, int p);

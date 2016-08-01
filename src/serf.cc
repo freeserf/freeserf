@@ -2398,7 +2398,7 @@ Serf::handle_serf_ready_to_leave_inventory_state() {
 
   Inventory *inventory =
                       game->get_inventory(s.ready_to_leave_inventory.inv_index);
-  inventory->sers_away();
+  inventory->serf_away();
 
   Serf::State next_state = StateWalking;
   if (s.ready_to_leave_inventory.mode == -3) {
