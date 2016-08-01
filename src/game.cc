@@ -663,7 +663,7 @@ void
 Game::speed_decrease() {
   if (game_speed >= 1) {
     game_speed -= 1;
-    Log::Info["game"] << "Game speed: %u" << game_speed;
+    Log::Info["game"] << "Game speed: " << game_speed;
   }
 }
 
