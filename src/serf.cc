@@ -1511,6 +1511,7 @@ Serf::handle_serf_entering_building_state() {
       } else {
         game->get_map()->set_serf_index(pos, 0);
         set_state(StatePlanningLogging);
+        s.planning.counter = 0;
       }
       break;
     case TypeSawmiller:
@@ -1536,6 +1537,7 @@ Serf::handle_serf_entering_building_state() {
       } else {
         game->get_map()->set_serf_index(pos, 0);
         set_state(StatePlanningStoneCutting);
+        s.planning.counter = 0;
       }
       break;
     case TypeForester:
@@ -1544,6 +1546,7 @@ Serf::handle_serf_entering_building_state() {
       } else {
         game->get_map()->set_serf_index(pos, 0);
         set_state(StatePlanningPlanting);
+        s.planning.counter = 0;
       }
       break;
     case TypeMiner:
@@ -1662,6 +1665,7 @@ Serf::handle_serf_entering_building_state() {
       } else {
         game->get_map()->set_serf_index(pos, 0);
         set_state(StatePlanningFarming);
+        s.planning.counter = 0;
       }
       break;
     case TypeMiller:
@@ -2462,7 +2466,13 @@ Serf::handle_serf_free_walking_state_dest_reached() {
   switch (get_type()) {
   case TypeLumberjack:
     if (s.free_walking.neg_dist1 == -128) {
+      Map *map = game->get_map();
+      Building *building = game->get_building(
+        map->get_obj_index(map->move_up_left(pos)));
+      building->increase_mining();
+
       if (s.free_walking.neg_dist2 > 0) {
+        building->increase_progress(1);
         drop_resource(Resource::TypeLumber);
       }
 
@@ -2492,7 +2502,13 @@ Serf::handle_serf_free_walking_state_dest_reached() {
     break;
   case TypeStonecutter:
     if (s.free_walking.neg_dist1 == -128) {
+      Map *map = game->get_map();
+      Building *building = game->get_building(
+        map->get_obj_index(map->move_up_left(pos)));
+      building->increase_mining();
+
       if (s.free_walking.neg_dist2 > 0) {
+        building->increase_progress(1);
         drop_resource(Resource::TypeStone);
       }
 
@@ -2547,7 +2563,13 @@ Serf::handle_serf_free_walking_state_dest_reached() {
     break;
   case TypeFisher:
     if (s.free_walking.neg_dist1 == -128) {
+      Map *map = game->get_map();
+      Building *building = game->get_building(
+        map->get_obj_index(map->move_up_left(pos)));
+      building->increase_mining();
+
       if (s.free_walking.neg_dist2 > 0) {
+        building->increase_progress(1);
         drop_resource(Resource::TypeFish);
       }
 
@@ -2589,7 +2611,13 @@ Serf::handle_serf_free_walking_state_dest_reached() {
     break;
   case TypeFarmer:
     if (s.free_walking.neg_dist1 == -128) {
+      Map *map = game->get_map();
+      Building *building = game->get_building(
+        map->get_obj_index(map->move_up_left(pos)));
+      building->increase_mining();
+
       if (s.free_walking.neg_dist2 > 0) {
+        building->increase_progress(1);
         drop_resource(Resource::TypeWheat);
       }
 
@@ -3171,7 +3199,15 @@ Serf::handle_serf_planning_logging_state() {
   tick = game->get_tick();
   counter -= delta;
 
+  Building *building = game->get_building(game->get_map()->get_obj_index(pos));
+
   while (counter < 0) {
+    s.planning.counter += 1;
+    if (s.planning.counter >= 5) {
+      building->increase_mining();
+      s.planning.counter = 0;
+    }
+
     int index = (game->random_int() & 0x7f) + 1;
     MapPos pos_ = game->get_map()->pos_add_spirally(pos, index);
     int obj = game->get_map()->get_obj(pos_);
@@ -3261,7 +3297,16 @@ Serf::handle_serf_planning_stonecutting() {
   tick = game->get_tick();
   counter -= delta;
 
+  Building *building = game->get_building(
+      game->get_map()->get_obj_index(pos));
+
   while (counter < 0) {
+    s.planning.counter += 1;
+    if (s.planning.counter >= 20) {
+      building->increase_mining();
+      s.planning.counter = 0;
+    }
+
     int index = (game->random_int() & 0x7f) + 1;
     MapPos pos_ = game->get_map()->pos_add_spirally(pos, index);
     int obj = game->get_map()->get_obj(game->get_map()->move_up_left(pos_));
@@ -3750,7 +3795,15 @@ Serf::handle_serf_planning_fishing_state() {
   counter -= delta;
 
   Map *map = game->get_map();
+  Building *building = game->get_building(map->get_obj_index(pos));
+
   while (counter < 0) {
+    s.planning.counter += 1;
+    if (s.planning.counter >= 20) {
+      building->increase_mining();
+      s.planning.counter = 0;
+    }
+
     int index = ((game->random_int() >> 2) & 0x3f) + 1;
     MapPos dest = map->pos_add_spirally(pos, index);
 
@@ -3835,7 +3888,15 @@ Serf::handle_serf_planning_farming_state() {
   counter -= delta;
 
   Map *map = game->get_map();
+  Building *building = game->get_building(map->get_obj_index(pos));
+
   while (counter < 0) {
+    s.planning.counter += 1;
+    if (s.planning.counter >= 4) {
+      building->increase_mining();
+      s.planning.counter = 0;
+    }
+
     int index = ((game->random_int() >> 2) & 0x1f) + 7;
     MapPos dest = map->pos_add_spirally(pos, index);
 
