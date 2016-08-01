@@ -25,15 +25,15 @@
 
 #include "src/audio.h"
 
-class audio_dummy_t : public audio_t {
+class AudioDummy : public Audio {
  public:
   /* Common audio. */
-  audio_dummy_t() {}
-  virtual ~audio_dummy_t() {}
+  AudioDummy() {}
+  virtual ~AudioDummy() {}
 
-  virtual audio_volume_controller_t *get_volume_controller() { return NULL; }
-  virtual audio_player_t *get_sound_player() { return NULL; }
-  virtual audio_player_t *get_music_player() { return NULL; }
+  virtual Audio::VolumeController *get_volume_controller() { return NULL; }
+  virtual Audio::Player *get_sound_player() { return NULL; }
+  virtual Audio::Player *get_music_player() { return NULL; }
 };
 
 #endif  // SRC_AUDIO_DUMMY_H_

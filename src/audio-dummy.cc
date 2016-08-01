@@ -21,10 +21,10 @@
 
 #include "src/audio-dummy.h"
 
-audio_t *
-audio_t::get_instance() {
+Audio *
+Audio::get_instance() {
   if (instance == NULL) {
-    instance = new audio_dummy_t();
+    instance = new AudioDummy();
   }
   return instance;
 }
