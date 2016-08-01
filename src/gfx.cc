@@ -130,7 +130,7 @@ Frame::draw_sprite(int x, int y, unsigned int sprite) {
   if (image == NULL) {
     Sprite *s = data_source->get_sprite(sprite);
     if (s == NULL) {
-      LOGW("graphics", "Failed to decode sprite #%i", sprite);
+      Log::Warn["graphics"] << "Failed to decode sprite #" << sprite;
       return;
     }
 
@@ -156,7 +156,7 @@ Frame::draw_transp_sprite(int x, int y, unsigned int sprite, bool use_off,
   if (image == NULL) {
     Sprite *s = data_source->get_transparent_sprite(sprite, color_off);
     if (s == NULL) {
-      LOGW("graphics", "Failed to decode sprite #%i", sprite);
+      Log::Warn["graphics"] << "Failed to decode sprite #" << sprite;
       return;
     }
 
@@ -214,20 +214,21 @@ Frame::draw_masked_sprite(int x, int y, unsigned int mask,
   if (image == NULL) {
     Sprite *s = data_source->get_sprite(sprite);
     if (s == NULL) {
-      LOGW("graphics", "Failed to decode sprite #%i", sprite);
+      Log::Warn["graphics"] << "Failed to decode sprite #" << sprite;
       return;
     }
 
     Sprite *m = data_source->get_mask_sprite(mask);
     if (m == NULL) {
-      LOGW("graphics", "Failed to decode sprite #%i", mask);
+      Log::Warn["graphics"] << "Failed to decode sprite #" << sprite;
       delete s;
       return;
     }
 
     Sprite *masked = s->get_masked(m);
     if (masked == NULL) {
-      LOGW("graphics", "Failed to apply mask #%i to sprite #%i", mask, sprite);
+      Log::Warn["graphics"] << "Failed to apply mask #" << mask
+                            << " to sprite #" << sprite;
       return;
     }
 
@@ -264,7 +265,7 @@ Frame::draw_overlay_sprite(int x, int y, unsigned int sprite,
   if (image == NULL) {
     Sprite *s = data_source->get_overlay_sprite(sprite);
     if (s == NULL) {
-      LOGW("graphics", "Failed to decode sprite #%i", sprite);
+      Log::Warn["graphics"] << "Failed to decode sprite #" << sprite;
       return;
     }
 
@@ -292,21 +293,21 @@ Frame::draw_waves_sprite(int x, int y, unsigned int mask, unsigned int sprite) {
   if (image == NULL) {
     Sprite *s = data_source->get_transparent_sprite(sprite, 0);
     if (s == NULL) {
-      LOGW("graphics", "Failed to decode sprite #%i", sprite);
+      Log::Warn["graphics"] << "Failed to decode sprite #" << sprite;
       return;
     }
 
     if (mask > 0) {
       Sprite *m = data_source->get_mask_sprite(mask);
       if (m == NULL) {
-        LOGW("graphics", "Failed to decode sprite #%i", sprite);
+        Log::Warn["graphics"] << "Failed to decode sprite #" << sprite;
         return;
       }
 
       Sprite *masked = s->get_masked(m);
       if (masked == NULL) {
-        LOGW("graphics", "Failed to apply mask #%i to sprite #%i",
-             mask, sprite);
+        Log::Warn["graphics"] << "Failed to apply mask #" << mask
+                              << " to sprite #" << sprite;
         return;
       }
 

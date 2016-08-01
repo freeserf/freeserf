@@ -104,8 +104,7 @@ xmi_process_single(char *data, size_t length, MidiFile *midi) {
   int name = be32toh(*reinterpret_cast<int*>(data));
   uint32_t string_ = htobe32(name);
 
-  LOGV("xmi2mid", "Processing XMI chunk: %.4s",
-       reinterpret_cast<char*>(&string_));
+  Log::Verbose["xmi2mid"] << "Processing XMI chunk: " << string_;
 
   data += 4;
   int processed = 0;
@@ -119,7 +118,8 @@ xmi_process_single(char *data, size_t length, MidiFile *midi) {
     }
   }
   if (0 == processed) {
-    LOGD("xmi2mid", "Unknown XMI chunk: %s (0x%X)", string_, name);
+    Log::Debug["xmi2mid"] << "Unknown XMI chunk: " << string_
+                          << " (0x" << name << ")";
   }
   return size+4;
 }
@@ -143,10 +143,10 @@ xmi_process_INFO(char *data, size_t /*length*/, MidiFile * /*midi*/) {
   data += 4;
   size = be32toh(size);
   if (size != 2) {
-    LOGD("xmi2mid", "\tInconsistent INFO block.");
+    Log::Debug["xmi2mid"] << "\tInconsistent INFO block.";
   } else {
     uint16_t track_count = *reinterpret_cast<uint16_t*>(data);
-    LOGV("xmi2mid", "\tXMI contains %d track(s)", track_count);
+    Log::Verbose["xmi2mid"] << "\tXMI contains " << track_count << " track(s)";
   }
   return size + 4;
 }
@@ -159,12 +159,13 @@ xmi_process_TIMB(char *data, size_t /*length*/, MidiFile * /*midi*/) {
   size_t count = *reinterpret_cast<uint16_t*>(data);
   data += 2;
   if (count*2 + 2 != size) {
-    LOGD("xmi2mid", "\tInconsistent TIMB block.");
+    Log::Debug["xmi2mid"] << "\tInconsistent TIMB block.";
   } else {
     for (size_t i = 0; i < count; i++) {
       uint8_t num = *data++;
       uint8_t bank = *data++;
-      LOGV("xmi2mid", "\tTIMB entry %02d: %d, %d", i, (int)num, (int)bank);
+      Log::Verbose["xmi2mid"] << "\tTIMB entry " << i << ": " << num
+                              << ", " << bank;
     }
   }
   return size + 4;

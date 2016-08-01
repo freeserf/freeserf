@@ -229,7 +229,7 @@ Game::update_inventories() {
 
       for (int i = 0; i < n; i++) {
         if (max_prio[i] > 0) {
-          LOGV("game", " dest for inventory %i found", i);
+          Log::Verbose["game"] << " dest for inventory " << i << "found";
           Resource::Type res = (Resource::Type)arr[0];
 
           Building *dest_bld = flags_[i]->get_building();
@@ -648,14 +648,14 @@ Game::pause() {
     game_speed = game_speed_save;
   }
 
-  LOGI("game", "Game speed: %u", game_speed);
+  Log::Info["game"] << "Game speed: " << game_speed;
 }
 
 void
 Game::speed_increase() {
   if (game_speed < 40) {
     game_speed += 1;
-    LOGI("game", "Game speed: %u", game_speed);
+    Log::Info["game"] << "Game speed: " << game_speed;
   }
 }
 
@@ -663,14 +663,14 @@ void
 Game::speed_decrease() {
   if (game_speed >= 1) {
     game_speed -= 1;
-    LOGI("game", "Game speed: %u", game_speed);
+    Log::Info["game"] << "Game speed: %u" << game_speed;
   }
 }
 
 void
 Game::speed_reset() {
   game_speed = DEFAULT_GAME_SPEED;
-  LOGI("game", "Game speed: %u", game_speed);
+  Log::Info["game"] << "Game speed: " << game_speed;
 }
 
 /* Generate an estimate of the amount of resources in the ground at map pos.*/

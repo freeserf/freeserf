@@ -51,14 +51,6 @@
 #define DEFAULT_SCREEN_WIDTH  800
 #define DEFAULT_SCREEN_HEIGHT 600
 
-#ifndef DEFAULT_LOG_LEVEL
-# ifndef NDEBUG
-#  define DEFAULT_LOG_LEVEL  Log::LevelDebug
-# else
-#  define DEFAULT_LOG_LEVEL  Log::LevelInfo
-# endif
-#endif
-
 /* Autosave interval */
 #define AUTOSAVE_INTERVAL  (10*60*TICKS_PER_SEC)
 
@@ -107,7 +99,7 @@ save_game(int autosave, Game *game) {
 
   fclose(f);
 
-  LOGI("main", "Game saved to `%s'.", name);
+  Log::Info["main"] << "Game saved to `" << name << "'.";
 
   return true;
 }
@@ -136,8 +128,6 @@ main(int argc, char *argv[]) {
   bool fullscreen = false;
   int map_generator = 0;
 
-  Log::Level log_level = DEFAULT_LOG_LEVEL;
-
 #ifdef HAVE_GETOPT_H
   while (true) {
     char opt = getopt(argc, argv, "d:fg:hl:r:t:");
@@ -147,7 +137,7 @@ main(int argc, char *argv[]) {
       case 'd': {
           int d = atoi(optarg);
           if (d >= 0 && d < Log::LevelMax) {
-            log_level = static_cast<Log::Level>(d);
+            Log::set_level(static_cast<Log::Level>(d));
           }
         }
         break;
@@ -189,27 +179,23 @@ main(int argc, char *argv[]) {
   }
 #endif
 
-  /* Set up logging */
-  Log::set_file(stdout);
-  Log::set_level(log_level);
-
-  LOGI("main", "freeserf %s", FREESERF_VERSION);
+  Log::Info["main"] << "freeserf " << FREESERF_VERSION;
 
   Data *data = Data::get_instance();
   if (!data->load(data_file)) {
     delete data;
-    LOGE("main", "Could not load game data.");
+    Log::Error["main"] << "Could not load game data.";
     exit(EXIT_FAILURE);
   }
 
-  LOGI("main", "Initialize graphics...");
+  Log::Info["main"] << "Initialize graphics...";
 
   Graphics *gfx = NULL;
   try {
     gfx = Graphics::get_instance();
     gfx->set_resolution(screen_width, screen_height, fullscreen);
   } catch (ExceptionFreeserf &e) {
-    LOGE(e.get_system().c_str(), e.what());
+    Log::Error[e.get_system().c_str()] << e.what();
     return -1;
   }
 
@@ -257,7 +243,7 @@ main(int argc, char *argv[]) {
   event_loop->del_handler(interface);
   event_loop->del_handler(game);
 
-  LOGI("main", "Cleaning up...");
+  Log::Info["main"] << "Cleaning up...";
 
   /* Clean up */
   game = interface->get_game();

@@ -291,8 +291,8 @@ Flag::schedule_slot_to_unknown_dest(int slot_num) {
 
     search.execute(schedule_unknown_dest_cb, false, true, &data);
     if (data.flag != NULL) {
-      LOGV("game", "dest for flag %u res %i found: flag %u",
-           index, slot, data.flag->get_index());
+      Log::Verbose["game"] << "dest for flag " << index << " res " << slot
+                           << " found: flag " << data.flag->get_index();
       Building *dest_bld = data.flag->other_endpoint.b[DirectionUpLeft];
 
       bool r = dest_bld->add_requested_resource(res, true);

@@ -72,7 +72,8 @@ DataSourceDOS::check(const std::string &path, std::string *load_path) {
 
   for (const char **df = default_data_file; *df != NULL; df++) {
     std::string file_path = path + '/' + *df;
-    LOGI("data", "Looking for game data in '%s'...", file_path.c_str());
+    Log::Info["data"] << "Looking for game data in '"
+                      << file_path.c_str() << "'...";
     if (check_file(file_path)) {
       if (load_path != NULL) {
         *load_path = file_path;
@@ -93,15 +94,15 @@ DataSourceDOS::load(const std::string &path) {
 
   /* Check that data file is decompressed. */
   if (tpwm_is_compressed(sprites, sprites_size)) {
-    LOGV("data", "Data file is compressed");
+    Log::Verbose["data"] << "Data file is compressed";
     void *uncompressed = NULL;
     size_t uncmpsd_size = 0;
     const char *error = NULL;
     if (!tpwm_uncompress(sprites, sprites_size,
                          &uncompressed, &uncmpsd_size,
                          &error)) {
-      LOGE("tpwm", error);
-      LOGE("data", "Data file is broken!");
+      Log::Error["tpwm"] << error;
+      Log::Error["data"] << "Data file is broken!";
       return false;
     }
     free(sprites);
@@ -472,7 +473,7 @@ DataSourceDOS::load_animation_table() {
   }
 
   if (size != be32toh(animation_block[0])) {
-    LOGE("data", "Could not extract animation table.");
+    Log::Error["data"] << "Could not extract animation table.";
     return false;
   }
   animation_block++;
@@ -508,13 +509,13 @@ DataSourceDOS::get_sound(unsigned int index, size_t *size) {
   size_t sfx_size = 0;
   void *data = get_object(DATA_SFX_BASE + index, &sfx_size);
   if (data == NULL) {
-    LOGE("data", "Could not extract SFX clip: #%d.", index);
+    Log::Error["data"] << "Could not extract SFX clip: #" << index;
     return NULL;
   }
 
   void *wav = sfx2wav(data, sfx_size, size, -0x20);
   if (wav == NULL) {
-    LOGE("data", "Could not convert SFX clip to WAV: #%d.", index);
+    Log::Error["data"] << "Could not convert SFX clip to WAV: #" << index;
     return NULL;
   }
 
@@ -530,13 +531,13 @@ DataSourceDOS::get_music(unsigned int index, size_t *size) {
   size_t xmi_size = 0;
   void *data = get_object(DATA_MUSIC_GAME + index, &xmi_size);
   if (data == NULL) {
-    LOGE("data", "Could not extract XMI clip: #%d.", index);
+    Log::Error["data"] << "Could not extract XMI clip: #" << index;
     return NULL;
   }
 
   void *mid = xmi2mid(data, xmi_size, size);
   if (mid == NULL) {
-    LOGE("data", "Could not convert XMI clip to MID: #%d.", index);
+    Log::Error["data"] << "Could not convert XMI clip to MID: #" << index;
     return NULL;
   }
 

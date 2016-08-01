@@ -313,12 +313,11 @@ Viewport::get_tile_frame(unsigned int tid, int tc, int tr) {
   tile_frame->draw_rect(0, 0, tile_width, tile_height, 76);
 #endif
 
-  LOGV("viewport", "map: %i,%i, cols,rows: %i,%i, tc,tr: %i,%i, tw,th: %i,%i",
-       map->get_cols()*MAP_TILE_WIDTH,
-       map->get_rows()*MAP_TILE_HEIGHT,
-       map->get_cols(), map->get_rows(),
-       tc, tr,
-       tile_width, tile_height);
+  Log::Verbose["viewport"] << "map: " << map->get_cols()*MAP_TILE_WIDTH << ","
+                           << map->get_rows()*MAP_TILE_HEIGHT << ", cols,rows: "
+                           << map->get_cols() << "," << map->get_rows()
+                           << ", tc,tr: " << tc << "," << tr << ", tw,th: "
+                           << tile_width << "," << tile_height;
 
   landscape_tiles[tid] = tile_frame;
 
@@ -1841,9 +1840,10 @@ Viewport::draw_active_serf(Serf *serf, MapPos pos,
 
   if ((serf->get_animation() < 0) || (serf->get_animation() > 199) ||
       (serf->get_counter() < 0)) {
-    LOGE("viewport", "bad animation for serf #%i (%s): %d,%d",
-         serf->get_index(), Serf::get_state_name(serf->get_state()),
-         serf->get_animation(), serf->get_counter());
+    Log::Error["viewport"] << "bad animation for serf #" << serf->get_index()
+                           << " (" << Serf::get_state_name(serf->get_state())
+                           << "): " << serf->get_animation()
+                           << "," << serf->get_counter();
     return;
   }
 

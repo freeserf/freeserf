@@ -3531,7 +3531,7 @@ PopupBox::handle_action(int action, int x, int y) {
     interface->close_popup();
     break;
   default:
-    LOGW("popup", "unhandled action %i", action);
+    Log::Warn["popup"] << "unhandled action " << action;
     break;
   }
 }  // NOLINT(readability/fn_size)
@@ -4275,7 +4275,7 @@ PopupBox::handle_click_left(int x, int y) {
     handle_box_demolish_clk(x, y);
     break;
   default:
-    LOGD("popup", "unhandled box: %i", box);
+    Log::Debug["popup"] << "unhandled box: " << box;
     break;
   }
 

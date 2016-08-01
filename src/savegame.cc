@@ -253,7 +253,7 @@ load_state(const std::string &path, Game *game) {
   file.open(path.c_str());
 
   if (!file.is_open()) {
-    LOGE("savegame", "Unable to open save game file: `%s'.", path.c_str());
+    Log::Error["savegame"] << "Unable to open save game file: '" << path << "'";
     return false;
   }
 
@@ -263,7 +263,8 @@ load_state(const std::string &path, Game *game) {
     file.close();
   } catch (...) {
     file.close();
-    LOGW("savegame", "Unable to load save game, trying compatability mode...");
+    Log::Warn["savegame"] << "Unable to load save game, "
+                          << "trying compatability mode...";
     std::ifstream input(path.c_str(), std::ios::binary);
     std::vector<char> buffer((std::istreambuf_iterator<char>(input)),
                              (std::istreambuf_iterator<char>()));
@@ -271,7 +272,7 @@ load_state(const std::string &path, Game *game) {
     try {
       reader >> *game;
     } catch (...) {
-      LOGE("savegame", "Failed to load save game.");
+      Log::Error["savegame"] << "Failed to load save game.";
       return false;
     }
   }
