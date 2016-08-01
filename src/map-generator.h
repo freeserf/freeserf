@@ -73,6 +73,7 @@ class ClassicMapGenerator : public MapGenerator {
     Map::Object obj;
     Map::Minerals resource_type;
     int resource_amount;
+    int tag;
   };
 
   const Map &map;
@@ -88,6 +89,7 @@ class ClassicMapGenerator : public MapGenerator {
   int terrain_spikyness;
 
   uint16_t random_int();
+  MapPos pos_add_spirally_random(MapPos pos, int mask);
 
   bool is_water_tile(MapPos pos) const;
   bool is_in_water(MapPos pos) const;
@@ -99,52 +101,41 @@ class ClassicMapGenerator : public MapGenerator {
   bool adjust_map_height(int h1, int h2, MapPos pos);
   void clamp_heights();
 
-  int expand_level_area(MapPos pos, int limit, int r);
-  void init_level_area(MapPos pos);
-  void init_sea_level();
+  bool expand_water_position(MapPos pos);
+  void expand_water_body(MapPos pos);
+  void create_water_bodies();
+
   void heights_rebase();
   void init_types();
-  void init_types_2_sub();
-  void init_types_2();
+  void clear_all_tags();
+  void remove_islands();
   void heights_rescale();
-  void init_types_shared_sub(Map::Terrain old, Map::Terrain seed,
-                             Map::Terrain new_);
-  void init_lakes();
-  void init_types4();
-  MapPos lookup_pattern(int col, int row, int index);
-  int init_desert_sub1(MapPos pos);
-  int init_desert_sub2(MapPos pos);
-  void init_desert();
-  void init_desert_2_sub();
-  void init_desert_2();
-  void init_crosses();
+
+  void seed_terrain_type(Map::Terrain old, Map::Terrain seed,
+                         Map::Terrain new_);
+  void change_shore_water_type();
+  void change_shore_grass_type();
+
+  bool check_desert_down_triangle(MapPos pos);
+  bool check_desert_up_triangle(MapPos pos);
+  void create_deserts();
+
+  void create_crosses();
+  void create_objects();
+
   bool hexagon_types_in_range(MapPos pos, Map::Terrain min, Map::Terrain max);
-  MapPos lookup_rnd_pattern(int col, int row, int mask);
-  void init_objects_shared(int num_clusters, int objs_in_cluster, int pos_mask,
-                           Map::Terrain type_min, Map::Terrain type_max,
-                           int obj_base, int obj_mask);
-  void init_trees_1();
-  void init_trees_2();
-  void init_trees_3();
-  void init_trees_4();
-  void init_stone_1();
-  void init_stone_2();
-  void init_dead_trees();
-  void init_large_boulders();
-  void init_water_trees();
-  void init_stubs();
-  void init_small_boulders();
-  void init_cadavers();
-  void init_cacti();
-  void init_water_stones();
-  void init_palms();
-  void init_resources_shared_sub(int iters, int col, int row, int *index,
-                                 int amount, Map::Minerals type);
-  void init_resources_shared(int num_clusters, Map::Minerals type,
-                             Map::Terrain min, Map::Terrain max);
-  void init_resources();
-  void init_clean_up();
-  void init_sub();
+  void create_random_object_clusters(int num_clusters, int objs_in_cluster,
+                                     int pos_mask, Map::Terrain type_min,
+                                     Map::Terrain type_max, int obj_base,
+                                     int obj_mask);
+
+  void expand_mineral_cluster(int iters, MapPos pos, int *index,
+                              int amount, Map::Minerals type);
+  void create_random_mineral_clusters(int num_clusters, Map::Minerals type,
+                                      Map::Terrain min, Map::Terrain max);
+  void create_mineral_deposits();
+
+  void clean_up();
 };
 
 /* Classic map generator that generates identical maps for missions. */

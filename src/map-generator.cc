@@ -85,12 +85,25 @@ void ClassicMapGenerator::generate() {
   }
 
   clamp_heights();
-  init_sea_level();
+  create_water_bodies();
   heights_rebase();
   init_types();
-  init_types_2();
+  remove_islands();
   heights_rescale();
-  init_sub();
+
+  // Adjust terrain types on shores
+  change_shore_water_type();
+  change_shore_grass_type();
+
+  // Create deserts
+  create_deserts();
+
+  // Create map objects (trees, boulders, etc.)
+  create_objects();
+
+  create_mineral_deposits();
+
+  clean_up();
 }
 
 uint16_t
@@ -291,106 +304,123 @@ ClassicMapGenerator::clamp_heights() {
   }
 }
 
-int
-ClassicMapGenerator::expand_level_area(MapPos pos_, int limit, int r) {
-  int flag = 0;
+// Expand water around position.
+//
+// Expand water area by marking shores with 254 and water positions with 255.
+// Water (255) can only be expanded to a position where all six adjacent
+// positions are at or lower than the water level. When a position is marked
+// as water (255) the surrounding positions, that are not yet marked, are
+// changed to shore (254). Returns true only if the given position was
+// converted to water.
+bool
+ClassicMapGenerator::expand_water_position(MapPos pos_) {
+  bool expanding = false;
 
   for (int d = DirectionRight; d <= DirectionUp; d++) {
     MapPos new_pos = map.move(pos_, (Direction)d);
-    if (tiles[new_pos].height < 254) {
-      if (tiles[new_pos].height > limit) return r;
-    } else if (tiles[new_pos].height == 255) {
-      flag = 1;
+    int height = tiles[new_pos].height;
+    if (water_level < height && height < 254) {
+      return false;
+    } else if (height == 255) {
+      expanding = true;
     }
   }
 
-  if (flag) {
+  if (expanding) {
     tiles[pos_].height = 255;
 
     for (int d = DirectionRight; d <= DirectionUp; d++) {
       MapPos new_pos = map.move(pos_, (Direction)d);
       if (tiles[new_pos].height != 255) tiles[new_pos].height = 254;
     }
-
-    return 1;
   }
 
-  return r;
+  return expanding;
 }
 
+// Try to expand area around position into a water body.
+//
+// After expanding, the water body will be tagged with the heights 253 for
+// positions in water and 252 for positions on the shore.
 void
-ClassicMapGenerator::init_level_area(MapPos pos) {
-  int limit = water_level;
-
-  if (limit >= tiles[map.move_right(pos)].height &&
-      limit >= tiles[map.move_down_right(pos)].height &&
-      limit >= tiles[map.move_down(pos)].height &&
-      limit >= tiles[map.move_left(pos)].height &&
-      limit >= tiles[map.move_up_left(pos)].height &&
-      limit >= tiles[map.move_up(pos)].height) {
-    tiles[pos].height = 255;
-    tiles[map.move_right(pos)].height = 254;
-    tiles[map.move_down_right(pos)].height = 254;
-    tiles[map.move_down(pos)].height = 254;
-    tiles[map.move_left(pos)].height = 254;
-    tiles[map.move_up_left(pos)].height = 254;
-    tiles[map.move_up(pos)].height = 254;
-
-    for (int i = 0; i < max_lake_area; i++) {
-      int flag = 0;
-
-      MapPos new_pos = map.move_right_n(pos, i+1);
-      for (int k = 0; k < 6; k++) {
-        Direction d = turn_direction(DirectionDown, k);
-        for (int j = 0; j <= i; j++) {
-          flag = expand_level_area(new_pos, limit, flag);
-          new_pos = map.move(new_pos, d);
-        }
-      }
-
-      if (!flag) break;
+ClassicMapGenerator::expand_water_body(MapPos pos) {
+  // Check whether it is possible to expand from this position.
+  for (int d = DirectionRight; d <= DirectionUp; d++) {
+    MapPos new_pos = map.move(pos, (Direction)d);
+    if (tiles[new_pos].height > water_level) {
+      // Expanding water from this position was not possible. Just raise the
+      // height to one above sea level.
+      tiles[pos].height = 0;
+      return;
     }
+  }
 
-    if (tiles[pos].height > 253) tiles[pos].height -= 2;
+  // Initialize expansion
+  tiles[pos].height = 255;
+  for (int d = DirectionRight; d <= DirectionUp; d++) {
+    MapPos new_pos = map.move(pos, (Direction)d);
+    tiles[new_pos].height = 254;
+  }
 
-    for (int i = 0; i < max_lake_area + 1; i++) {
-      MapPos new_pos = map.move_right_n(pos, i+1);
-      for (int k = 0; k < 6; k++) {
-        Direction d = turn_direction(DirectionDown, k);
-        for (int j = 0; j <= i; j++) {
-          if (tiles[new_pos].height > 253) tiles[new_pos].height -= 2;
-          new_pos = map.move(new_pos, d);
-        }
+  // Expand water until we are unable to expand any more or until the max
+  // lake area limit has been reached.
+  for (int i = 0; i < max_lake_area; i++) {
+    bool expanded = false;
+
+    MapPos new_pos = map.move_right_n(pos, i+1);
+    for (int k = 0; k < 6; k++) {
+      Direction d = turn_direction(DirectionDown, k);
+      for (int j = 0; j <= i; j++) {
+        expanded |= expand_water_position(new_pos);
+        new_pos = map.move(new_pos, d);
       }
     }
-  } else {
-    tiles[pos].height = 0;
+
+    if (!expanded) break;
+  }
+
+  // Change the water encoding from 255,254 to 253,252. This change means that
+  // when expanding another lake, this area will look like an elevated plateau
+  // at heights 252/253 and the other lake will not be able to expand into this
+  // area. This keeps water bodies from growing larger than the max lake area.
+  tiles[pos].height -= 2;
+
+  for (int i = 0; i < max_lake_area + 1; i++) {
+    MapPos new_pos = map.move_right_n(pos, i+1);
+    for (int k = 0; k < 6; k++) {
+      Direction d = (Direction)((k + DirectionDown) % 6);
+      for (int j = 0; j <= i; j++) {
+        if (tiles[new_pos].height > 253) tiles[new_pos].height -= 2;
+        new_pos = map.move(new_pos, d);
+      }
+    }
   }
 }
 
-/* Create level land that will later be filled with water.
-   It is created in areas that are below a certain threshold.
-   The areas are also limited in size. */
+// Create water bodies on the map.
+//
+// Try to expand every position that is at or below the water level into a
+// body of water. After expanding bodies of water, the height of the positions
+// are changed such that the lowest points on the map are at water_level - 1
+// (marking water) and just above that the height is at water_level (marking
+// shore).
 void
-ClassicMapGenerator::init_sea_level() {
-  if (water_level < 0) return;
-
+ClassicMapGenerator::create_water_bodies() {
   for (int h = 0; h <= water_level; h++) {
     for (unsigned int y = 0; y < map.get_rows(); y++) {
       for (unsigned int x = 0; x < map.get_cols(); x++) {
         MapPos pos_ = map.pos(x, y);
         if (tiles[pos_].height == h) {
-          init_level_area(pos_);
+          expand_water_body(pos_);
         }
       }
     }
   }
 
-  /* Map positions are marked in the previous loop.
-     0: Above water level.
-     252: Land at water level.
-     253: Water. */
-
+  // Map positions are marked in the previous loop.
+  // 0: Above water level.
+  // 252: Land at water level.
+  // 253: Water.
   for (unsigned int y = 0; y < map.get_rows(); y++) {
     for (unsigned int x = 0; x < map.get_cols(); x++) {
       MapPos pos_ = map.pos(x, y);
@@ -400,7 +430,7 @@ ClassicMapGenerator::init_sea_level() {
           tiles[pos_].height = water_level + 1;
           break;
         case 252:
-          tiles[pos_].height = (uint8_t)water_level;
+          tiles[pos_].height = water_level;
           break;
         case 253:
           tiles[pos_].height = water_level - 1;
@@ -453,37 +483,55 @@ ClassicMapGenerator::init_types() {
 }
 
 void
-ClassicMapGenerator::init_types_2_sub() {
+ClassicMapGenerator::clear_all_tags() {
   for (unsigned int y = 0; y < map.get_rows(); y++) {
     for (unsigned int x = 0; x < map.get_cols(); x++) {
-      tiles[map.pos(x, y)].obj = Map::ObjectNone;
+      tiles[map.pos(x, y)].tag = 0;
     }
   }
 }
 
+// Remove islands.
+//
+// Pick an initial map position, then search from there to see which other
+// positions on the map are reachable (over land) from that position. If the
+// reachable positions cover at least 1/4 of the map, then stop and convert any
+// position that was _not_ reached to water. Otherwise, keep trying new initial
+// positions.
+//
+// In most cases this will eliminate any island that covers less than 1/4 of
+// the map. However, since the markings are not reset after an initial
+// position has failed to expand to 1/4 of the map, it is still possible for
+// islands to survive if they by change happen to be in the area where the
+// first initial positions are chosen (around 0, 0).
 void
-ClassicMapGenerator::init_types_2() {
-  init_types_2_sub();
+ClassicMapGenerator::remove_islands() {
+  // Initially all positions are tagged with 0. When reached from another
+  // position the tag is changed to 1, and later when that position is
+  // itself expanded the tag is changed to 2.
+  clear_all_tags();
 
   for (unsigned int y = 0; y < map.get_rows(); y++) {
     for (unsigned int x = 0; x < map.get_cols(); x++) {
       MapPos pos_ = map.pos(x, y);
 
-      if (tiles[pos_].height > 0) {
-        tiles[pos_].obj = static_cast<Map::Object>(1);
+      if (tiles[pos_].height > 0 && tiles[pos_].tag == 0) {
+        tiles[pos_].tag = 1;
 
         unsigned int num = 0;
-        int changed = 1;
+        bool changed = true;
         while (changed) {
-          changed = 0;
+          changed = false;
           for (unsigned int y = 0; y < map.get_rows(); y++) {
             for (unsigned int x = 0; x < map.get_cols(); x++) {
               MapPos pos_ = map.pos(x, y);
 
-              if (tiles[pos_].obj == 1) {
+              if (tiles[pos_].tag == 1) {
                 num += 1;
-                tiles[pos_].obj = static_cast<Map::Object>(2);
+                tiles[pos_].tag = 2;
 
+                // The i'th flag will indicate whether a path on land from
+                // pos_in direction i is possible.
                 int flags = 0;
                 if (tiles[pos_].type_down >= Map::TerrainGrass0) {
                   flags |= 3;
@@ -507,12 +555,12 @@ ClassicMapGenerator::init_types_2() {
                   flags |= 0x21;
                 }
 
+                // Mark positions following any valid direction on land.
                 for (int d = DirectionRight; d <= DirectionUp; d++) {
                   if (BIT_TEST(flags, d)) {
-                    if (tiles[map.move(pos_, (Direction)d)].obj == 0) {
-                      tiles[map.move(pos_, (Direction)d)].obj =
-                        static_cast<Map::Object>(1);
-                      changed = 1;
+                    if (tiles[map.move(pos_, (Direction)d)].tag == 0) {
+                      tiles[map.move(pos_, (Direction)d)].tag = 1;
+                      changed = true;
                     }
                   }
                 }
@@ -528,11 +576,12 @@ ClassicMapGenerator::init_types_2() {
 
   break_loop:
 
+  // Change every position that was not tagged (i.e. tag is 0) to water.
   for (unsigned int y = 0; y < map.get_rows(); y++) {
     for (unsigned int x = 0; x < map.get_cols(); x++) {
       MapPos pos_ = map.pos(x, y);
 
-      if (tiles[pos_].height > 0 && tiles[pos_].obj == 0) {
+      if (tiles[pos_].height > 0 && tiles[pos_].tag == 0) {
         tiles[pos_].height = 0;
         tiles[pos_].type_up = Map::TerrainWater0;
         tiles[pos_].type_up = Map::TerrainWater0;
@@ -544,8 +593,6 @@ ClassicMapGenerator::init_types_2() {
       }
     }
   }
-
-  init_types_2_sub();
 }
 
 /* Rescale height values to be in [0;31]. */
@@ -559,13 +606,27 @@ ClassicMapGenerator::heights_rescale() {
   }
 }
 
+// Change terrain types based on a seed type in adjacent tiles.
+//
+// For every triangle, if the current type is old and any adjacent triangle
+// has type seed, then the triangle is changed into the new_ terrain type.
 void
-ClassicMapGenerator::init_types_shared_sub(Map::Terrain old, Map::Terrain seed,
-                                           Map::Terrain new_) {
+ClassicMapGenerator::seed_terrain_type(Map::Terrain old, Map::Terrain seed,
+                                       Map::Terrain new_) {
   for (unsigned int y = 0; y < map.get_rows(); y++) {
     for (unsigned int x = 0; x < map.get_cols(); x++) {
       MapPos pos_ = map.pos(x, y);
 
+      // Check that the central triangle is of type old (*), and that any
+      // adjacent triangle is of type seed:
+      //     ____
+      //    /\  /\
+      //   /__\/__\
+      //  /\  /\  /\
+      // /__\/*_\/__\
+      // \  /\  /\  /
+      //  \/__\/__\/
+      //
       if (tiles[pos_].type_up == old &&
           (seed == tiles[map.move_up_left(pos_)].type_down ||
            seed == tiles[map.move_up_left(pos_)].type_up ||
@@ -582,6 +643,16 @@ ClassicMapGenerator::init_types_shared_sub(Map::Terrain old, Map::Terrain seed,
         tiles[pos_].type_up = new_;
       }
 
+      // Check that the central triangle is of type old (*), and that any
+      // adjacent triangle is of type seed:
+      //   ________
+      //  /\  /\  /\
+      // /__\/__\/__\
+      // \  /\* /\  /
+      //  \/__\/__\/
+      //   \  /\  /
+      //    \/__\/
+      //
       if (tiles[pos_].type_down == old &&
           (seed == tiles[map.move_up_left(pos_)].type_down ||
            seed == tiles[map.move_up_left(pos_)].type_up ||
@@ -601,105 +672,144 @@ ClassicMapGenerator::init_types_shared_sub(Map::Terrain old, Map::Terrain seed,
   }
 }
 
+// Change water type based on closeness to shore.
+//
+// Change type from TerrainWater0 to higher water (1-3) types based on
+// closeness to the shore. The water closest to the shore will become
+// TerrainWater3.
 void
-ClassicMapGenerator::init_lakes() {
-  init_types_shared_sub(Map::TerrainWater0, Map::TerrainGrass1,
-                        Map::TerrainWater3);
-  init_types_shared_sub(Map::TerrainWater0, Map::TerrainWater3,
-                        Map::TerrainWater2);
-  init_types_shared_sub(Map::TerrainWater0, Map::TerrainWater2,
-                        Map::TerrainWater1);
+ClassicMapGenerator::change_shore_water_type() {
+  seed_terrain_type(
+    Map::TerrainWater0, Map::TerrainGrass1, Map::TerrainWater3);
+  seed_terrain_type(
+    Map::TerrainWater0, Map::TerrainWater3, Map::TerrainWater2);
+  seed_terrain_type(
+    Map::TerrainWater0, Map::TerrainWater2, Map::TerrainWater1);
 }
 
+// Change grass type of shore to TerrainGrass0.
+//
+// Change type from TerrainGrass1 to TerrainGrass0 where the tiles are
+// adjacent to water.
 void
-ClassicMapGenerator::init_types4() {
-  init_types_shared_sub(Map::TerrainGrass1, Map::TerrainWater3,
-                        Map::TerrainGrass0);
+ClassicMapGenerator::change_shore_grass_type() {
+  seed_terrain_type(
+    Map::TerrainGrass1, Map::TerrainWater3, Map::TerrainGrass0);
 }
 
-/* Use spiral pattern to lookup a new position based on col, row. */
-MapPos
-ClassicMapGenerator::lookup_pattern(int col, int row, int index) {
-  return map.pos_add_spirally(map.pos(col, row), index);
-}
 
-int
-ClassicMapGenerator::init_desert_sub1(MapPos pos_) {
+// Check whether large down-triangle is suitable for desert.
+//
+// The large down-triangle at position A is made up of the following
+// triangular pieces. The method returns true only if all terrain types
+// within the triangle are either TerrainGrass1 or TerrainDesert2.
+//
+// __ A ___
+// \  /\  /
+//  \/__\/
+//   \  /
+//    \/
+//
+bool
+ClassicMapGenerator::check_desert_down_triangle(MapPos pos_) {
   Map::Terrain type_d = tiles[pos_].type_down;
   Map::Terrain type_u = tiles[pos_].type_up;
 
   if (type_d != Map::TerrainGrass1 && type_d != Map::TerrainDesert2) {
-    return -1;
+    return false;
   }
   if (type_u != Map::TerrainGrass1 && type_u != Map::TerrainDesert2) {
-    return -1;
+    return false;
   }
 
   type_d = tiles[map.move_left(pos_)].type_down;
   if (type_d != Map::TerrainGrass1 && type_d != Map::TerrainDesert2) {
-    return -1;
+    return false;
   }
 
   type_d = tiles[map.move_down(pos_)].type_down;
   if (type_d != Map::TerrainGrass1 && type_d != Map::TerrainDesert2) {
-    return -1;
+    return false;
   }
 
-  return 0;
+  return true;
 }
 
-int
-ClassicMapGenerator::init_desert_sub2(MapPos pos_) {
+// Check whether large up-triangle is suitable for desert.
+//
+// The large up-triangle at position A is made up of the following
+// triangular pieces. The method returns true only if all terrain types
+// within the triangle are either TerrainGrass1 or TerrainDesert2.
+//
+//      /\
+//   A /__\
+//    /\  /\
+//   /__\/__\
+//
+bool
+ClassicMapGenerator::check_desert_up_triangle(MapPos pos_) {
   Map::Terrain type_d = tiles[pos_].type_down;
   Map::Terrain type_u = tiles[pos_].type_up;
 
   if (type_d != Map::TerrainGrass1 && type_d != Map::TerrainDesert2) {
-    return -1;
+    return false;
   }
   if (type_u != Map::TerrainGrass1 && type_u != Map::TerrainDesert2) {
-    return -1;
+    return false;
   }
 
   type_u = tiles[map.move_right(pos_)].type_up;
   if (type_u != Map::TerrainGrass1 && type_u != Map::TerrainDesert2) {
-    return -1;
+    return false;
   }
 
   type_u = tiles[map.move_up(pos_)].type_up;
   if (type_u != Map::TerrainGrass1 && type_u != Map::TerrainDesert2) {
-    return -1;
+    return false;
   }
 
-  return 0;
+  return true;
 }
 
-/* Create deserts on the map. */
+// Create deserts.
 void
-ClassicMapGenerator::init_desert() {
+ClassicMapGenerator::create_deserts() {
+  // Initialize random areas of desert based on spiral pattern.
+  // Only TerrainGrass1 triangles will be converted to desert.
   for (int i = 0; i < map.get_region_count(); i++) {
     for (int try_ = 0; try_ < 200; try_++) {
-      int col, row;
-      MapPos rnd_pos = map.get_rnd_coord(&col, &row, &rnd);
+      MapPos rnd_pos = map.get_rnd_coord(NULL, NULL, &rnd);
 
       if (tiles[rnd_pos].type_up == Map::TerrainGrass1 &&
           tiles[rnd_pos].type_down == Map::TerrainGrass1) {
         for (int index = 255; index >= 0; index--) {
-          MapPos pos = lookup_pattern(col, row, index);
+          MapPos pos = map.pos_add_spirally(rnd_pos, index);
 
-          int r = init_desert_sub1(pos);
-          if (r == 0) tiles[pos].type_up = Map::TerrainDesert2;
+          if (check_desert_down_triangle(pos)) {
+            tiles[pos].type_up = Map::TerrainDesert2;
+          }
 
-          r = init_desert_sub2(pos);
-          if (r == 0) tiles[pos].type_down = Map::TerrainDesert2;
+          if (check_desert_up_triangle(pos)) {
+            tiles[pos].type_down = Map::TerrainDesert2;
+          }
         }
         break;
       }
     }
   }
-}
 
-void
-ClassicMapGenerator::init_desert_2_sub() {
+  // Convert outer triangles in the desert areas into a gradual transition
+  // through TerrainGrass3, TerrainDesert0, TerrainDesert1 to TerrainDesert2.
+  seed_terrain_type(
+    Map::TerrainDesert2, Map::TerrainGrass1, Map::TerrainGrass3);
+  seed_terrain_type(
+    Map::TerrainDesert2, Map::TerrainGrass3, Map::TerrainDesert0);
+  seed_terrain_type(
+    Map::TerrainDesert2, Map::TerrainDesert0, Map::TerrainDesert1);
+
+  // Convert all triangles in the TerrainGrass3 - TerrainDesert1 range to
+  // TerrainGrass1. This reduces the size of the desert areas to the core
+  // that was made up of TerrainDesert2.
   for (unsigned int y = 0; y < map.get_rows(); y++) {
     for (unsigned int x = 0; x < map.get_cols(); x++) {
       MapPos pos_ = map.pos(x, y);
@@ -714,30 +824,20 @@ ClassicMapGenerator::init_desert_2_sub() {
       }
     }
   }
-}
 
-void
-ClassicMapGenerator::init_desert_2() {
-  init_types_shared_sub(
-    Map::TerrainDesert2, Map::TerrainGrass1, Map::TerrainGrass3);
-  init_types_shared_sub(
-    Map::TerrainDesert2, Map::TerrainGrass3, Map::TerrainDesert0);
-  init_types_shared_sub(
-    Map::TerrainDesert2, Map::TerrainDesert0, Map::TerrainDesert1);
-
-  init_desert_2_sub();
-
-  init_types_shared_sub(
+  // Restore the gradual transition from TerrainGrass3 to TerrainDesert2 around
+  // the desert.
+  seed_terrain_type(
     Map::TerrainGrass1, Map::TerrainDesert2, Map::TerrainDesert1);
-  init_types_shared_sub(
+  seed_terrain_type(
     Map::TerrainGrass1, Map::TerrainDesert1, Map::TerrainDesert0);
-  init_types_shared_sub(
+  seed_terrain_type(
     Map::TerrainGrass1, Map::TerrainDesert0, Map::TerrainGrass3);
 }
 
 /* Put crosses on top of mountains. */
 void
-ClassicMapGenerator::init_crosses() {
+ClassicMapGenerator::create_crosses() {
   for (unsigned int y = 0; y < map.get_rows(); y++) {
     for (unsigned int x = 0; x < map.get_cols(); x++) {
       MapPos pos_ = map.pos(x, y);
@@ -796,15 +896,15 @@ ClassicMapGenerator::hexagon_types_in_range(MapPos pos_, Map::Terrain min,
 
 /* Get a random position in the spiral pattern based at col, row. */
 MapPos
-ClassicMapGenerator::lookup_rnd_pattern(int col, int row, int mask) {
-  return lookup_pattern(col, row, random_int() & mask);
+ClassicMapGenerator::pos_add_spirally_random(MapPos pos, int mask) {
+  return map.pos_add_spirally(pos, random_int() & mask);
 }
 
 /* Create clusters of map objects.
 
    Tries to create num_clusters of objects in random locations on the map.
    Each cluster has up to objs_in_cluster objects. The pos_mask is used in
-   the call to lookup_rnd_pattern to determine the max cluster size. The
+   the call to pos_add_spirally_random to determine the max cluster size. The
    type_min and type_max determine the range (both inclusive) of terrain
    types that must appear around a position to be elegible for placement of
    an object. The obj_base determines the first object type that can be placed
@@ -812,17 +912,15 @@ ClassicMapGenerator::lookup_rnd_pattern(int col, int row, int mask) {
    base to obtain the final object type.
 */
 void
-ClassicMapGenerator::init_objects_shared(int num_clusters, int objs_in_cluster,
-                                         int pos_mask, Map::Terrain type_min,
-                                         Map::Terrain type_max, int obj_base,
-                                         int obj_mask) {
+ClassicMapGenerator::create_random_object_clusters(
+    int num_clusters, int objs_in_cluster, int pos_mask, Map::Terrain type_min,
+    Map::Terrain type_max, int obj_base, int obj_mask) {
   for (int i = 0; i < num_clusters; i++) {
     for (int try_ = 0; try_ < 100; try_++) {
-      int col, row;
-      MapPos rnd_pos = map.get_rnd_coord(&col, &row, &rnd);
+      MapPos rnd_pos = map.get_rnd_coord(NULL, NULL, &rnd);
       if (hexagon_types_in_range(rnd_pos, type_min, type_max)) {
         for (int j = 0; j < objs_in_cluster; j++) {
-          MapPos pos_ = lookup_rnd_pattern(col, row, pos_mask);
+          MapPos pos_ = pos_add_spirally_random(rnd_pos, pos_mask);
           if (hexagon_types_in_range(pos_, type_min, type_max) &&
               tiles[pos_].obj == Map::ObjectNone) {
             tiles[pos_].obj = static_cast<Map::Object>(
@@ -836,135 +934,94 @@ ClassicMapGenerator::init_objects_shared(int num_clusters, int objs_in_cluster,
 }
 
 void
-ClassicMapGenerator::init_trees_1() {
-  /* Add either tree or pine. */
-  int clusters = map.get_region_count() << 3;
-  init_objects_shared(
-    clusters, 10, 0xff, Map::TerrainGrass1, Map::TerrainGrass2,
-    Map::ObjectTree0, 0xf);
-}
+ClassicMapGenerator::create_objects() {
+  int regions = map.get_region_count();
 
-void
-ClassicMapGenerator::init_trees_2() {
-  /* Add only trees. */
-  int clusters = map.get_region_count();
-  init_objects_shared(
-    clusters, 45, 0x3f, Map::TerrainGrass1, Map::TerrainGrass2,
+  create_crosses();
+
+  // Add either tree or pine.
+  create_random_object_clusters(
+    regions * 8, 10, 0xff, Map::TerrainGrass1, Map::TerrainGrass2,
+    Map::ObjectTree0, 0xf);
+
+  // Add only trees.
+  create_random_object_clusters(
+    regions, 45, 0x3f, Map::TerrainGrass1, Map::TerrainGrass2,
     Map::ObjectTree0, 0x7);
-}
 
-void
-ClassicMapGenerator::init_trees_3() {
-  /* Add only pines. */
-  int clusters = map.get_region_count();
-  init_objects_shared(
-    clusters, 30, 0x3f, Map::TerrainGrass0, Map::TerrainGrass2,
+  // Add only pines.
+  create_random_object_clusters(
+    regions, 30, 0x3f, Map::TerrainGrass0, Map::TerrainGrass2,
     Map::ObjectPine0, 0x7);
-}
 
-void
-ClassicMapGenerator::init_trees_4() {
-  /* Add either tree or pine. */
-  int clusters = map.get_region_count();
-  init_objects_shared(
-    clusters, 20, 0x7f, Map::TerrainGrass1, Map::TerrainGrass2,
+  // Add either tree or pine.
+  create_random_object_clusters(
+    regions, 20, 0x7f, Map::TerrainGrass1, Map::TerrainGrass2,
     Map::ObjectTree0, 0xf);
-}
 
-void
-ClassicMapGenerator::init_stone_1() {
-  int clusters = map.get_region_count();
-  init_objects_shared(
-    clusters, 40, 0x3f, Map::TerrainGrass1, Map::TerrainGrass2,
+  // Create dense clusters of stone.
+  create_random_object_clusters(
+    regions, 40, 0x3f, Map::TerrainGrass1, Map::TerrainGrass2,
     Map::ObjectStone0, 0x7);
-}
 
-void
-ClassicMapGenerator::init_stone_2() {
-  int clusters = map.get_region_count();
-  init_objects_shared(
-    clusters, 15, 0xff, Map::TerrainGrass1, Map::TerrainGrass2,
+  // Create sparse clusters.
+  create_random_object_clusters(
+    regions, 15, 0xff, Map::TerrainGrass1, Map::TerrainGrass2,
     Map::ObjectStone0, 0x7);
-}
 
-void
-ClassicMapGenerator::init_dead_trees() {
-  int clusters = map.get_region_count();
-  init_objects_shared(
-    clusters, 2, 0xff, Map::TerrainGrass1, Map::TerrainGrass2,
+  // Create dead trees.
+  create_random_object_clusters(
+    regions, 2, 0xff, Map::TerrainGrass1, Map::TerrainGrass2,
     Map::ObjectDeadTree, 0);
-}
 
-void
-ClassicMapGenerator::init_large_boulders() {
-  int clusters = map.get_region_count();
-  init_objects_shared(
-    clusters, 6, 0xff, Map::TerrainGrass1, Map::TerrainGrass2,
+  // Create sandstone boulders.
+  create_random_object_clusters(
+    regions, 6, 0xff, Map::TerrainGrass1, Map::TerrainGrass2,
     Map::ObjectSandstone0, 0x1);
-}
 
-void
-ClassicMapGenerator::init_water_trees() {
-  int clusters = map.get_region_count();
-  init_objects_shared(
-    clusters, 50, 0x7f, Map::TerrainWater2, Map::TerrainWater3,
+  // Create trees submerged in water.
+  create_random_object_clusters(
+    regions, 50, 0x7f, Map::TerrainWater2, Map::TerrainWater3,
     Map::ObjectWaterTree0, 0x3);
-}
 
-void
-ClassicMapGenerator::init_stubs() {
-  int clusters = map.get_region_count();
-  init_objects_shared(
-    clusters, 5, 0xff, Map::TerrainGrass1, Map::TerrainGrass2,
+  // Create tree stubs.
+  create_random_object_clusters(
+    regions, 5, 0xff, Map::TerrainGrass1, Map::TerrainGrass2,
     Map::ObjectStub, 0);
-}
 
-void
-ClassicMapGenerator::init_small_boulders() {
-  int clusters = map.get_region_count();
-  init_objects_shared(
-    clusters, 10, 0xff, Map::TerrainGrass1, Map::TerrainGrass2,
+  // Create small boulders.
+  create_random_object_clusters(
+    regions, 10, 0xff, Map::TerrainGrass1, Map::TerrainGrass2,
     Map::ObjectStone, 0x1);
-}
 
-void
-ClassicMapGenerator::init_cadavers() {
-  int clusters = map.get_region_count();
-  init_objects_shared(
-    clusters, 2, 0xf, Map::TerrainDesert2, Map::TerrainDesert2,
+  // Create animal cadavers in desert.
+  create_random_object_clusters(
+    regions, 2, 0xf, Map::TerrainDesert2, Map::TerrainDesert2,
     Map::ObjectCadaver0, 0x1);
-}
 
-void
-ClassicMapGenerator::init_cacti() {
-  int clusters = map.get_region_count();
-  init_objects_shared(
-    clusters, 6, 0x7f, Map::TerrainDesert0, Map::TerrainDesert2,
+  // Create cacti in desert.
+  create_random_object_clusters(
+    regions, 6, 0x7f, Map::TerrainDesert0, Map::TerrainDesert2,
     Map::ObjectCactus0, 0x1);
-}
 
-void
-ClassicMapGenerator::init_water_stones() {
-  int clusters = map.get_region_count();
-  init_objects_shared(
-    clusters, 8, 0x7f, Map::TerrainWater0, Map::TerrainWater2,
+  // Create boulders submerged in water.
+  create_random_object_clusters(
+    regions, 8, 0x7f, Map::TerrainWater0, Map::TerrainWater2,
     Map::ObjectWaterStone0, 0x1);
-}
 
-void
-ClassicMapGenerator::init_palms() {
-  int clusters = map.get_region_count();
-  init_objects_shared(
-    clusters, 6, 0x3f, Map::TerrainDesert2, Map::TerrainDesert2,
+  // Create palm trees in desert.
+  create_random_object_clusters(
+    regions, 6, 0x3f, Map::TerrainDesert2, Map::TerrainDesert2,
     Map::ObjectPalm0, 0x3);
 }
 
+// Expand a cluster of minerals.
 void
-ClassicMapGenerator::init_resources_shared_sub(
-    int iters, int col, int row, int *index, int amount,
+ClassicMapGenerator::expand_mineral_cluster(
+    int iters, MapPos init_pos, int *index, int amount,
     Map::Minerals type) {
   for (int i = 0; i < iters; i++) {
-    MapPos pos = lookup_pattern(col, row, *index);
+    MapPos pos = map.pos_add_spirally(init_pos, *index);
     *index += 1;
 
     if (tiles[pos].resource_type == Map::MineralsNone ||
@@ -975,71 +1032,56 @@ ClassicMapGenerator::init_resources_shared_sub(
   }
 }
 
-/* Create clusters of ground resources.
-
-   Tries to create num_clusters of ground resources of the given type. The
-   terrain type around a position must be in the min, max range
-   (both inclusive) for a resource to be deposited.
-*/
+// Create random clusters of mineral deposits.
+//
+// Tries to create num_clusters of minerals of the given type. The terrain type
+// around a position must be in the min, max range (both inclusive) for a
+// resource to be deposited.
 void
-ClassicMapGenerator::init_resources_shared(
+ClassicMapGenerator::create_random_mineral_clusters(
     int num_clusters, Map::Minerals type,
     Map::Terrain min, Map::Terrain max) {
+  const int iterations[] = { 1, 6, 12, 18, 24, 30 };
+
   for (int i = 0; i < num_clusters; i++) {
     for (int try_ = 0; try_ < 100; try_++) {
-      int col, row;
-      MapPos pos = map.get_rnd_coord(&col, &row, &rnd);
+      MapPos pos_ = map.get_rnd_coord(NULL, NULL, &rnd);
 
-      if (hexagon_types_in_range(pos, min, max)) {
+      if (hexagon_types_in_range(pos_, min, max)) {
         int index = 0;
-        int amount = 8 + (random_int() & 0xc);
-        init_resources_shared_sub(1, col, row, &index, amount, type);
-        amount -= 4;
-        if (amount == 0) break;
+        int count = 2 + ((random_int() >> 2) & 3);
 
-        init_resources_shared_sub(6, col, row, &index, amount, type);
-        amount -= 4;
-        if (amount == 0) break;
+        for (int j = 0; j < count; j++) {
+          int amount = 4 * (count - j);
+          expand_mineral_cluster(iterations[j], pos_, &index, amount, type);
+        }
 
-        init_resources_shared_sub(12, col, row, &index, amount, type);
-        amount -= 4;
-        if (amount == 0) break;
-
-        init_resources_shared_sub(18, col, row, &index, amount, type);
-        amount -= 4;
-        if (amount == 0) break;
-
-        init_resources_shared_sub(24, col, row, &index, amount, type);
-        amount -= 4;
-        if (amount == 0) break;
-
-        init_resources_shared_sub(30, col, row, &index, amount, type);
         break;
       }
     }
   }
 }
 
-/* Initialize resources in the ground. */
+// Initialize mineral deposits in the ground.
 void
-ClassicMapGenerator::init_resources() {
+ClassicMapGenerator::create_mineral_deposits() {
   int regions = map.get_region_count();
-  init_resources_shared(
+  create_random_mineral_clusters(
     regions * 9, Map::MineralsCoal,
     Map::TerrainTundra0, Map::TerrainSnow0);
-  init_resources_shared(
+  create_random_mineral_clusters(
     regions * 4, Map::MineralsIron,
     Map::TerrainTundra0, Map::TerrainSnow0);
-  init_resources_shared(
+  create_random_mineral_clusters(
     regions * 2, Map::MineralsGold,
     Map::TerrainTundra0, Map::TerrainSnow0);
-  init_resources_shared(
+  create_random_mineral_clusters(
     regions * 2, Map::MineralsStone,
     Map::TerrainTundra0, Map::TerrainSnow0);
 }
 
 void
-ClassicMapGenerator::init_clean_up() {
+ClassicMapGenerator::clean_up() {
   /* Make sure that it is always possible to walk around
      any impassable objects. This also clears water obstacles
      except in certain positions near the shore. */
@@ -1076,31 +1118,6 @@ ClassicMapGenerator::init_clean_up() {
   }
 }
 
-void
-ClassicMapGenerator::init_sub() {
-  init_lakes();
-  init_types4();
-  init_desert();
-  init_desert_2();
-  init_crosses();
-  init_trees_1();
-  init_trees_2();
-  init_trees_3();
-  init_trees_4();
-  init_stone_1();
-  init_stone_2();
-  init_dead_trees();
-  init_large_boulders();
-  init_water_trees();
-  init_stubs();
-  init_small_boulders();
-  init_cadavers();
-  init_cacti();
-  init_water_stones();
-  init_palms();
-  init_resources();
-  init_clean_up();
-}
 
 ClassicMissionMapGenerator::ClassicMissionMapGenerator(
   const Map& map, const Random &rnd) : ClassicMapGenerator(map, rnd) {}
