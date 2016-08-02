@@ -311,8 +311,6 @@ class Map {
   unsigned int col_mask, row_mask;
   unsigned int row_shift;
 
-  uint8_t *minimap;
-
   uint16_t regions;
 
   uint32_t gold_deposit;
@@ -451,7 +449,6 @@ class Map {
 
   void init(unsigned int size);
   void init_dimensions();
-  uint8_t *get_minimap();
 
   void init_tiles(const MapGenerator &generator);
 
@@ -478,8 +475,6 @@ class Map {
     operator << (SaveWriterText &writer, Map &map);
 
  protected:
-  void init_minimap();
-
   void init_ground_gold_deposit();
   void init_spiral_pos_pattern();
 
