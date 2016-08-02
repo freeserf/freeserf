@@ -31,11 +31,18 @@ const int ClassicMapGenerator::default_water_level = 20;
 const int ClassicMapGenerator::default_terrain_spikyness = 0x9999;
 
 ClassicMapGenerator::ClassicMapGenerator(const Map& map, const Random& random)
-  : map(map), rnd(random) {}
+  : map(map), rnd(random) {
+  tiles = NULL;
+  tags = NULL;
+}
 
 ClassicMapGenerator::~ClassicMapGenerator() {
   if (tiles != NULL) {
     delete[] tiles;
+  }
+
+  if (tags != NULL) {
+    delete[] tags;
   }
 }
 
@@ -43,7 +50,8 @@ void ClassicMapGenerator::init(
     HeightGenerator height_generator, bool preserve_bugs, int max_lake_area,
     int water_level, int terrain_spikyness) {
   tile_count = map.get_cols() * map.get_rows();
-  tiles = new MapTile[tile_count]();
+  tiles = new Map::LandscapeTile[tile_count]();
+  tags = new int[tile_count];
 
   this->height_generator = height_generator;
   this->preserve_bugs = preserve_bugs;
@@ -434,7 +442,7 @@ ClassicMapGenerator::create_water_bodies() {
           break;
         case 253:
           tiles[pos_].height = water_level - 1;
-          tiles[pos_].resource_type = Map::MineralsNone;
+          tiles[pos_].mineral = Map::MineralsNone;
           tiles[pos_].resource_amount = random_int() & 7; /* Fish */
           break;
       }
@@ -486,7 +494,7 @@ void
 ClassicMapGenerator::clear_all_tags() {
   for (unsigned int y = 0; y < map.get_rows(); y++) {
     for (unsigned int x = 0; x < map.get_cols(); x++) {
-      tiles[map.pos(x, y)].tag = 0;
+      tags[map.pos(x, y)] = 0;
     }
   }
 }
@@ -515,8 +523,8 @@ ClassicMapGenerator::remove_islands() {
     for (unsigned int x = 0; x < map.get_cols(); x++) {
       MapPos pos_ = map.pos(x, y);
 
-      if (tiles[pos_].height > 0 && tiles[pos_].tag == 0) {
-        tiles[pos_].tag = 1;
+      if (tiles[pos_].height > 0 && tags[pos_] == 0) {
+        tags[pos_] = 1;
 
         unsigned int num = 0;
         bool changed = true;
@@ -526,9 +534,9 @@ ClassicMapGenerator::remove_islands() {
             for (unsigned int x = 0; x < map.get_cols(); x++) {
               MapPos pos_ = map.pos(x, y);
 
-              if (tiles[pos_].tag == 1) {
+              if (tags[pos_] == 1) {
                 num += 1;
-                tiles[pos_].tag = 2;
+                tags[pos_] = 2;
 
                 // The i'th flag will indicate whether a path on land from
                 // pos_in direction i is possible.
@@ -558,8 +566,8 @@ ClassicMapGenerator::remove_islands() {
                 // Mark positions following any valid direction on land.
                 for (int d = DirectionRight; d <= DirectionUp; d++) {
                   if (BIT_TEST(flags, d)) {
-                    if (tiles[map.move(pos_, (Direction)d)].tag == 0) {
-                      tiles[map.move(pos_, (Direction)d)].tag = 1;
+                    if (tags[map.move(pos_, (Direction)d)] == 0) {
+                      tags[map.move(pos_, (Direction)d)] = 1;
                       changed = true;
                     }
                   }
@@ -581,7 +589,7 @@ ClassicMapGenerator::remove_islands() {
     for (unsigned int x = 0; x < map.get_cols(); x++) {
       MapPos pos_ = map.pos(x, y);
 
-      if (tiles[pos_].height > 0 && tiles[pos_].tag == 0) {
+      if (tiles[pos_].height > 0 && tags[pos_] == 0) {
         tiles[pos_].height = 0;
         tiles[pos_].type_up = Map::TerrainWater0;
         tiles[pos_].type_up = Map::TerrainWater0;
@@ -1024,9 +1032,9 @@ ClassicMapGenerator::expand_mineral_cluster(
     MapPos pos = map.pos_add_spirally(init_pos, *index);
     *index += 1;
 
-    if (tiles[pos].resource_type == Map::MineralsNone ||
+    if (tiles[pos].mineral == Map::MineralsNone ||
         tiles[pos].resource_amount < amount) {
-      tiles[pos].resource_type = type;
+      tiles[pos].mineral = type;
       tiles[pos].resource_amount = amount;
     }
   }

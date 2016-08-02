@@ -43,6 +43,7 @@ class MapGenerator {
   virtual Map::Object get_obj(MapPos pos) const = 0;
   virtual Map::Minerals get_resource_type(MapPos pos) const = 0;
   virtual int get_resource_amount(MapPos pos) const = 0;
+  virtual Map::LandscapeTile *get_landscape() const = 0;
 };
 
 /* Classic map generator as in original game. */
@@ -67,26 +68,18 @@ class ClassicMapGenerator : public MapGenerator {
     return tiles[pos].type_down; }
   Map::Object get_obj(MapPos pos) const { return tiles[pos].obj; }
   Map::Minerals get_resource_type(MapPos pos) const {
-    return tiles[pos].resource_type; }
+    return tiles[pos].mineral; }
   int get_resource_amount(MapPos pos) const {
     return tiles[pos].resource_amount; }
+  virtual Map::LandscapeTile *get_landscape() const { return tiles; }
 
  protected:
-  struct MapTile {
-    int height;
-    Map::Terrain type_up;
-    Map::Terrain type_down;
-    Map::Object obj;
-    Map::Minerals resource_type;
-    int resource_amount;
-    int tag;
-  };
-
   const Map &map;
   Random rnd;
 
   int tile_count;
-  MapTile *tiles;
+  Map::LandscapeTile *tiles;
+  int *tags;
   HeightGenerator height_generator;
   bool preserve_bugs;
 

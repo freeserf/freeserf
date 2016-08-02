@@ -288,20 +288,30 @@ class Map {
     virtual void on_object_changed(MapPos pos) = 0;
   };
 
+  typedef struct LandscapeTile {
+    // Landscape filds
+    unsigned int height;
+    Terrain type_up;
+    Terrain type_down;
+    Minerals mineral;
+    int resource_amount;
+    // Mingled fields
+    Object obj;
+  } LandscapeTile;
+
  protected:
-  typedef struct Tile {
+  typedef struct GameTile {
     uint8_t paths;
-    uint8_t height;
-    uint8_t type;
-    uint8_t obj;
-    uint16_t obj_index;
-    uint8_t resource;
-    uint16_t serf;
-  } Tile;
+    unsigned int serf;
+    unsigned int owner;
+    bool idle_serf;
+    unsigned int obj_index;
+  } GameTile;
 
   /* Fundamentals */
   unsigned int size;
-  Tile *tiles;
+  LandscapeTile *landscape_tiles;
+  GameTile *game_tiles;
   unsigned int col_size, row_size;
 
   /* Derived */
@@ -378,44 +388,43 @@ class Map {
     return pos_add(pos, dirs[DirectionDown]*n); }
 
   /* Extractors for map data. */
-  unsigned int paths(MapPos pos) const { return (tiles[pos].paths & 0x3f); }
+  unsigned int paths(MapPos pos) const {
+    return (game_tiles[pos].paths & 0x3f); }
   bool has_path(MapPos pos, Direction dir) const {
-    return (BIT_TEST(tiles[pos].paths, dir) != 0); }
-  void add_path(MapPos pos, Direction dir) { tiles[pos].paths |= BIT(dir); }
-  void del_path(MapPos pos, Direction dir) { tiles[pos].paths &= ~BIT(dir); }
+    return (BIT_TEST(game_tiles[pos].paths, dir) != 0); }
+  void add_path(MapPos pos, Direction dir) {
+    game_tiles[pos].paths |= BIT(dir); }
+  void del_path(MapPos pos, Direction dir) {
+    game_tiles[pos].paths &= ~BIT(dir); }
 
-  bool has_owner(MapPos pos) const { return ((tiles[pos].height >> 7) & 1); }
-  unsigned int get_owner(MapPos pos) const {
-                                        return ((tiles[pos].height >> 5) & 3); }
-  void set_owner(MapPos pos, unsigned int player) {
-    tiles[pos].height = (1 << 7) | (player << 5) | get_height(pos); }
-  void del_owner(MapPos pos) { tiles[pos].height &= 0x1f; }
+  bool has_owner(MapPos pos) const { return (game_tiles[pos].owner != 0); }
+  unsigned int get_owner(MapPos pos) const { return game_tiles[pos].owner; }
+  void set_owner(MapPos pos, unsigned int _owner) {
+    game_tiles[pos].owner = _owner; }
+  void del_owner(MapPos pos) { game_tiles[pos].owner = 0; }
   unsigned int get_height(MapPos pos) const {
-    return (tiles[pos].height & 0x1f); }
+    return landscape_tiles[pos].height; }
 
-  Terrain type_up(MapPos pos) const {
-    return static_cast<Terrain>(((tiles[pos].type >> 4) & 0xf)); }
-  Terrain type_down(MapPos pos) const {
-    return static_cast<Terrain>(tiles[pos].type & 0xf); }
+  Terrain type_up(MapPos pos) const { return landscape_tiles[pos].type_up; }
+  Terrain type_down(MapPos pos) const { return landscape_tiles[pos].type_down; }
   bool types_within(MapPos pos, Terrain low, Terrain high);
 
-  Object get_obj(MapPos pos) const {
-    return (Object)(tiles[pos].obj & 0x7f); }
-  unsigned int get_idle_serf(MapPos pos) const {
-    return ((tiles[pos].obj >> 7) & 1); }
-  void set_idle_serf(MapPos pos) { tiles[pos].obj |= BIT(7); }
-  void clear_idle_serf(MapPos pos) { tiles[pos].obj &= ~BIT(7); }
+  Object get_obj(MapPos pos) const { return landscape_tiles[pos].obj; }
+  bool get_idle_serf(MapPos pos) const { return game_tiles[pos].idle_serf; }
+  void set_idle_serf(MapPos pos) { game_tiles[pos].idle_serf = true; }
+  void clear_idle_serf(MapPos pos) { game_tiles[pos].idle_serf = false; }
 
   unsigned int get_obj_index(MapPos pos) const {
-    return tiles[pos].obj_index; }
+    return game_tiles[pos].obj_index; }
   void set_obj_index(MapPos pos, unsigned int index) {
-    tiles[pos].obj_index = index; }
+    game_tiles[pos].obj_index = index; }
   Minerals get_res_type(MapPos pos) const {
-    return (Minerals)((tiles[pos].resource >> 5) & 7); }
+    return landscape_tiles[pos].mineral; }
   unsigned int get_res_amount(MapPos pos) const {
-    return (tiles[pos].resource & 0x1f); }
-  unsigned int get_res_fish(MapPos pos) const { return tiles[pos].resource; }
-  unsigned int get_serf_index(MapPos pos) const { return tiles[pos].serf; }
+    return landscape_tiles[pos].resource_amount; }
+  unsigned int get_res_fish(MapPos pos) const {
+    return landscape_tiles[pos].resource_amount; }
+  unsigned int get_serf_index(MapPos pos) const { return game_tiles[pos].serf; }
 
   bool has_flag(MapPos pos) const { return (get_obj(pos) == ObjectFlag); }
   bool has_building(MapPos pos) const { return (get_obj(pos) >=
@@ -475,6 +484,8 @@ class Map {
     operator << (SaveWriterText &writer, Map &map);
 
  protected:
+  void deinit();
+
   void init_ground_gold_deposit();
   void init_spiral_pos_pattern();
 
