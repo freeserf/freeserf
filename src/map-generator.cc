@@ -40,7 +40,7 @@ ClassicMapGenerator::~ClassicMapGenerator() {
 }
 
 void ClassicMapGenerator::init(
-    int height_generator, bool preserve_bugs, int max_lake_area,
+    HeightGenerator height_generator, bool preserve_bugs, int max_lake_area,
     int water_level, int terrain_spikyness) {
   tile_count = map.get_cols() * map.get_rows();
   tiles = new MapTile[tile_count]();
@@ -74,10 +74,10 @@ void ClassicMapGenerator::generate() {
 
   init_heights_squares();
   switch (height_generator) {
-    case 0:
+    case HeightGeneratorMidpoints:
       init_heights_midpoints(); /* Midpoint displacement algorithm */
       break;
-    case 1:
+    case HeightGeneratorDiamondSquare:
       init_heights_diamond_square(); /* Diamond square algorithm */
       break;
     default:
@@ -1123,5 +1123,5 @@ ClassicMissionMapGenerator::ClassicMissionMapGenerator(
   const Map& map, const Random &rnd) : ClassicMapGenerator(map, rnd) {}
 
 void ClassicMissionMapGenerator::init() {
-  ClassicMapGenerator::init(0, true);
+  ClassicMapGenerator::init(MapGenerator::HeightGeneratorMidpoints, true);
 }
