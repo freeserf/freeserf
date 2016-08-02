@@ -2261,7 +2261,7 @@ Game::load_random_map(int size, const Random &rnd) {
   init_map(size);
   {
     ClassicMapGenerator generator(*this->map, rnd);
-    generator.init(0, false);
+    generator.init(MapGenerator::HeightGeneratorMidpoints, false);
     generator.generate();
     init_map_data(generator);
   }

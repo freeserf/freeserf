@@ -28,6 +28,12 @@
 /* Interface for map generators. */
 class MapGenerator {
  public:
+  typedef enum HeightGenerator {
+    HeightGeneratorMidpoints = 0,
+    HeightGeneratorDiamondSquare
+  } HeightGenerator;
+
+ public:
   virtual ~MapGenerator() {}
   virtual void generate() = 0;
 
@@ -48,7 +54,7 @@ class ClassicMapGenerator : public MapGenerator {
 
   ClassicMapGenerator(const Map &map, const Random &random);
   virtual ~ClassicMapGenerator();
-  void init(int height_generator, bool preserve_bugs,
+  void init(HeightGenerator height_generator, bool preserve_bugs,
             int max_lake_area = default_max_lake_area,
             int water_level = default_water_level,
             int terrain_spikyness = default_terrain_spikyness);
@@ -81,7 +87,7 @@ class ClassicMapGenerator : public MapGenerator {
 
   int tile_count;
   MapTile *tiles;
-  int height_generator;
+  HeightGenerator height_generator;
   bool preserve_bugs;
 
   int16_t water_level;

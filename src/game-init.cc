@@ -439,7 +439,7 @@ GameInitBox::generate_map_preview() {
     map->init(map_size);
     {
       ClassicMapGenerator generator(*map, mission->rnd);
-      generator.init(0, true);
+      generator.init(MapGenerator::HeightGeneratorMidpoints, true);
       generator.generate();
       map->init_tiles(generator);
     }
