@@ -451,16 +451,13 @@ Map::init_tiles(const MapGenerator &generator) {
   for (unsigned int y = 0; y < rows; y++) {
     for (unsigned int x = 0; x < cols; x++) {
       MapPos pos_ = pos(x, y);
-      tiles[pos_].height = generator.get_height(pos_) & 0x1f;
-      tiles[pos_].type = (generator.get_type_up(pos_) & 0xf) << 4 |
-        (generator.get_type_down(pos_) & 0xf);
-      tiles[pos_].obj = generator.get_obj(pos_) & 0x7f;
-      if (generator.get_resource_type(pos_) != MineralsNone) {
-        tiles[pos_].resource = (generator.get_resource_type(pos_) & 7) << 5 |
-          (generator.get_resource_amount(pos_) & 0x1f);
-      } else {
-        tiles[pos_].resource = generator.get_resource_amount(pos_);
-      }
+      tiles[pos_].height = generator.get_height(pos_);
+      tiles[pos_].owner = 0;
+      tiles[pos_].type_up = generator.get_type_up(pos_);
+      tiles[pos_].type_down = generator.get_type_down(pos_);
+      tiles[pos_].obj = generator.get_obj(pos_);
+      tiles[pos_].mineral = generator.get_resource_type(pos_);
+      tiles[pos_].resource_amount = generator.get_resource_amount(pos_);
     }
   }
 
@@ -470,7 +467,7 @@ Map::init_tiles(const MapGenerator &generator) {
 /* Change the height of a map position. */
 void
 Map::set_height(MapPos pos, int height) {
-  tiles[pos].height = (tiles[pos].height & 0xe0) | (height & 0x1f);
+  tiles[pos].height = height;
 
   /* Mark landscape dirty */
   for (int d = DirectionRight; d <= DirectionUp; d++) {
@@ -486,7 +483,7 @@ Map::set_height(MapPos pos, int height) {
    building is removed. */
 void
 Map::set_object(MapPos pos, Object obj, int index) {
-  tiles[pos].obj = (tiles[pos].obj & 0x80) | (obj & 0x7f);
+  tiles[pos].obj = obj;
   if (index >= 0) tiles[pos].obj_index = index;
 
   /* Notify about object change */
@@ -501,18 +498,18 @@ Map::set_object(MapPos pos, Object obj, int index) {
 /* Remove resources from the ground at a map position. */
 void
 Map::remove_ground_deposit(MapPos pos, int amount) {
-  tiles[pos].resource -= amount;
+  tiles[pos].resource_amount -= amount;
 
-  if (get_res_amount(pos) == 0) {
+  if (tiles[pos].resource_amount <= 0) {
     /* Also sets the ground deposit type to none. */
-    tiles[pos].resource = 0;
+    tiles[pos].mineral = MineralsNone;
   }
 }
 
 /* Remove fish at a map position (must be water). */
 void
 Map::remove_fish(MapPos pos, int amount) {
-  tiles[pos].resource -= amount;
+  tiles[pos].resource_amount -= amount;
 }
 
 /* Set the index of the serf occupying map position. */
@@ -589,29 +586,28 @@ Map::update_public(MapPos pos, Random *rnd) {
 void
 Map::update_hidden(MapPos pos, Random *rnd) {
   /* Update fish resources in water */
-  if (is_in_water(pos) &&
-      tiles[pos].resource > 0) {
+  if (is_in_water(pos) && tiles[pos].resource_amount > 0) {
     int r = rnd->random();
 
-    if (tiles[pos].resource < 10 && (r & 0x3f00)) {
+    if (tiles[pos].resource_amount < 10 && (r & 0x3f00)) {
       /* Spawn more fish. */
-      tiles[pos].resource += 1;
+      tiles[pos].resource_amount += 1;
     }
 
     /* Move in a random direction of: right, down right, left, up left */
     MapPos adj_pos = pos;
     switch ((r >> 2) & 3) {
-    case 0: adj_pos = move_right(adj_pos); break;
-    case 1: adj_pos = move_down_right(adj_pos); break;
-    case 2: adj_pos = move_left(adj_pos); break;
-    case 3: adj_pos = move_up_left(adj_pos); break;
-    default: NOT_REACHED(); break;
+      case 0: adj_pos = move_right(adj_pos); break;
+      case 1: adj_pos = move_down_right(adj_pos); break;
+      case 2: adj_pos = move_left(adj_pos); break;
+      case 3: adj_pos = move_up_left(adj_pos); break;
+      default: NOT_REACHED(); break;
     }
 
     if (is_in_water(adj_pos)) {
       /* Migrate a fish to adjacent water space. */
-      tiles[pos].resource -= 1;
-      tiles[adj_pos].resource += 1;
+      tiles[pos].resource_amount -= 1;
+      tiles[adj_pos].resource_amount += 1;
     }
   }
 }
@@ -864,22 +860,27 @@ operator >> (SaveReaderBinary &reader, Map &map) {
       reader >> v8;
       map.tiles[pos].paths = v8 & 0x3f;
       reader >> v8;
-      map.tiles[pos].height = v8;
+      map.tiles[pos].height = v8 & 0x1f;
+      map.tiles[pos].owner = (v8 >> 5) & 0x07;
       reader >> v8;
-      map.tiles[pos].type = v8;
+      map.tiles[pos].type_up = (Map::Terrain)((v8 >> 4) & 0x0f);
+      map.tiles[pos].type_down = (Map::Terrain)(v8 & 0x0f);
       reader >> v8;
-      map.tiles[pos].obj = v8 & 0x7f;
+      map.tiles[pos].obj = (Map::Object)(v8 & 0x7f);
+      map.tiles[pos].idle_serf = BIT_TEST(v8, 7);
     }
     for (unsigned int x = 0; x < map.cols; x++) {
       MapPos pos = map.pos(x, y);
       if (map.get_obj(pos) >= Map::ObjectFlag &&
           map.get_obj(pos) <= Map::ObjectCastle) {
-        map.tiles[pos].resource = 0;
+        map.tiles[pos].mineral = Map::MineralsNone;
+        map.tiles[pos].resource_amount = 0;
         reader >> v16;
         map.tiles[pos].obj_index = v16;
       } else {
         reader >> v8;
-        map.tiles[pos].resource = v8;
+        map.tiles[pos].mineral = (Map::Minerals)((v8 >> 5) & 7);
+        map.tiles[pos].resource_amount = v8 & 0x1f;
         reader >> v8;
         map.tiles[pos].obj_index = 0;
       }
@@ -910,26 +911,41 @@ operator >> (SaveReaderText &reader, Map &map) {
       reader.value("paths")[y*SAVE_MAP_TILE_SIZE+x] >> val;
       map.tiles[p].paths = val & 0x3f;
 
-      reader.value("height")[y*SAVE_MAP_TILE_SIZE+x] >> val;
-      map.tiles[p].height = val & 0x1f;
+      try {
+        reader.value("owner")[y*SAVE_MAP_TILE_SIZE+x] >> val;
+        map.tiles[p].height = val;
+        reader.value("height")[y*SAVE_MAP_TILE_SIZE+x] >> map.tiles[p].owner;
+      } catch (...) {
+        reader.value("height")[y*SAVE_MAP_TILE_SIZE+x] >> val;
+        map.tiles[p].height = val & 0x1f;
+        map.tiles[p].owner = (val >> 5) & 0x07;
+      }
 
       reader.value("type.up")[y*SAVE_MAP_TILE_SIZE+x] >> val;
-      map.tiles[p].type = ((val & 0xf) << 4) | (map.tiles[p].type & 0xf);
+      map.tiles[p].type_up = (Map::Terrain)val;
 
       reader.value("type.down")[y*SAVE_MAP_TILE_SIZE+x] >> val;
-      map.tiles[p].type = (map.tiles[p].type & 0xf0) | (val & 0xf);
+      map.tiles[p].type_down = (Map::Terrain)val;
 
-      reader.value("object")[y*SAVE_MAP_TILE_SIZE+x] >> val;
-      map.tiles[p].obj = val & 0x7f;
+      try {
+        reader.value("idle_serf")[y*SAVE_MAP_TILE_SIZE+x] >> val;
+        map.tiles[p].idle_serf = val;
+        reader.value("object")[y*SAVE_MAP_TILE_SIZE+x] >> val;
+        map.tiles[p].obj = (Map::Object)val;
+      } catch (...) {
+        reader.value("object")[y*SAVE_MAP_TILE_SIZE+x] >> val;
+        map.tiles[p].obj = (Map::Object)(val & 0x7f);
+        map.tiles[p].idle_serf = BIT_TEST(val, 7);
+      }
 
       reader.value("serf")[y*SAVE_MAP_TILE_SIZE+x] >> val;
       map.tiles[p].serf = val;
 
       reader.value("resource.type")[y*SAVE_MAP_TILE_SIZE+x] >> val;
-      map.tiles[p].resource = ((val & 7) << 5) | (map.tiles[p].resource & 0x1f);
+      map.tiles[p].mineral = (Map::Minerals)val;
 
       reader.value("resource.amount")[y*SAVE_MAP_TILE_SIZE+x] >> val;
-      map.tiles[p].resource = (map.tiles[p].resource & 0xe0) | (val & 0x1f);
+      map.tiles[p].resource_amount = val;
     }
   }
 
@@ -952,11 +968,13 @@ operator << (SaveWriterText &writer, Map &map) {
           MapPos pos = map.pos(tx+x, ty+y);
 
           map_writer.value("height") << map.get_height(pos);
+          map_writer.value("owner") << map.get_owner(pos);
           map_writer.value("type.up") << map.type_up(pos);
           map_writer.value("type.down") << map.type_down(pos);
           map_writer.value("paths") << map.paths(pos);
           map_writer.value("object") << map.get_obj(pos);
           map_writer.value("serf") << map.get_serf_index(pos);
+          map_writer.value("idle_serf") << map.get_idle_serf(pos);
 
           if (map.is_in_water(pos)) {
             map_writer.value("resource.type") << 0;
