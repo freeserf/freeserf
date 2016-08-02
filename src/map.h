@@ -398,9 +398,10 @@ class Map {
     game_tiles[pos].paths &= ~BIT(dir); }
 
   bool has_owner(MapPos pos) const { return (game_tiles[pos].owner != 0); }
-  unsigned int get_owner(MapPos pos) const { return game_tiles[pos].owner; }
+  unsigned int get_owner(MapPos pos) const {
+    return game_tiles[pos].owner - 1; }
   void set_owner(MapPos pos, unsigned int _owner) {
-    game_tiles[pos].owner = _owner; }
+    game_tiles[pos].owner = _owner + 1; }
   void del_owner(MapPos pos) { game_tiles[pos].owner = 0; }
   unsigned int get_height(MapPos pos) const {
     return landscape_tiles[pos].height; }
