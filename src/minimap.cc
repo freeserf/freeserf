@@ -22,6 +22,7 @@
 #include "src/minimap.h"
 
 #include <algorithm>
+#include <cstring>
 
 #include "src/misc.h"
 #include "src/game.h"
@@ -31,6 +32,78 @@
 #include "src/viewport.h"
 
 #define MINIMAP_MAX_SCALE  8
+
+Minimap::Minimap(Map *_map) {
+  offset_x = 0;
+  offset_y = 0;
+  scale = 1;
+
+  advanced = -1;
+  flags = 8;
+
+  minimap = NULL;
+  set_map(_map);
+}
+
+Minimap::~Minimap() {
+  if (minimap != NULL) {
+    delete[] minimap;
+    minimap = NULL;
+  }
+}
+
+/* Initialize minimap data. */
+void
+Minimap::init_minimap() {
+  static const int color_offset[] = {
+    0, 85, 102, 119, 17, 17, 17, 17,
+    34, 34, 34, 51, 51, 51, 68, 68
+  };
+
+  static const int colors[] = {
+    8,  8,  8,  8,  8,  8,  8,  8,  8,  8,  8,  8,  8,  8,  8,  8,  8,
+    31, 31, 30, 29, 28, 27, 26, 25, 24, 23, 22, 21, 20, 19, 18, 17, 16,
+    63, 63, 62, 61, 61, 60, 59, 59, 58, 57, 57, 56, 55, 55, 54, 53, 53,
+    61, 61, 60, 60, 59, 59, 58, 57, 56, 55, 54, 53, 52, 51, 50, 49, 48,
+    47, 47, 46, 46, 45, 44, 43, 42, 41, 40, 39, 38, 37, 36, 35, 34, 33,
+    9,  9,  9,  9,  9,  9,  9,  9,  9,  9,  9,  9,  9,  9,  9,  9,  9,
+    10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10,
+    11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11
+  };
+
+  if (minimap != NULL) {
+    delete[] minimap;
+    minimap = NULL;
+  }
+
+  if (map == NULL) {
+    return;
+  }
+
+  size_t size = map->get_rows() * map->get_cols();
+  minimap = new uint8_t[size];
+  if (minimap == NULL) {
+    abort();
+  }
+  memset(minimap, 0, size);
+
+  uint8_t *mpos = minimap;
+  for (unsigned int y = 0; y < map->get_rows(); y++) {
+    for (unsigned int x = 0; x < map->get_cols(); x++) {
+      MapPos pos = map->pos(x, y);
+      int type_off = color_offset[map->type_up(pos)];
+
+      pos = map->move_right(pos);
+      int h1 = map->get_height(pos);
+
+      pos = map->move_down_left(pos);
+      int h2 = map->get_height(pos);
+
+      int h_off = h2 - h1 + 8;
+      *(mpos++) = colors[type_off + h_off];
+    }
+  }
+}
 
 void
 Minimap::draw_minimap_point(int col, int row, uint8_t color, int density) {
@@ -63,7 +136,7 @@ Minimap::draw_minimap_point(int col, int row, uint8_t color, int density) {
 
 void
 Minimap::draw_minimap_map() {
-  uint8_t *color_data = map->get_minimap();
+  uint8_t *color_data = minimap;
   for (unsigned int row = 0; row < map->get_rows(); row++) {
     for (unsigned int col = 0; col < map->get_cols(); col++) {
       uint8_t color = *(color_data++);
@@ -200,21 +273,10 @@ Minimap::handle_drag(int dx, int dy) {
   return true;
 }
 
-Minimap::Minimap(Map *map) {
-  offset_x = 0;
-  offset_y = 0;
-  scale = 1;
-
-  advanced = -1;
-  flags = 8;
-
-  this->map = map;
-}
-
 void
-Minimap::set_map(Map *map) {
-  this->map = map;
-
+Minimap::set_map(Map *_map) {
+  map = _map;
+  init_minimap();
   set_redraw();
 }
 

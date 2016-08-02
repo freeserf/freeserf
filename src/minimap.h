@@ -38,8 +38,11 @@ class Minimap : public GuiObject {
   int advanced;
   int flags;
 
+  uint8_t *minimap;
+
  public:
   explicit Minimap(Map *map);
+  virtual ~Minimap();
 
   void set_map(Map *map);
 
@@ -58,6 +61,8 @@ class Minimap : public GuiObject {
   MapPos map_pos_from_screen_pix(int x, int y);
 
  protected:
+  void init_minimap();
+
   void draw_minimap_point(int col, int row, uint8_t color, int density);
   void draw_minimap_map();
   void draw_minimap_grid();

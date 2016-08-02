@@ -321,7 +321,6 @@ Map::map_space_from_obj[] = {
 
 Map::Map() {
   tiles = NULL;
-  minimap = NULL;
   spiral_pos_pattern = NULL;
 }
 
@@ -329,11 +328,6 @@ Map::~Map() {
   if (tiles != NULL) {
     delete[] tiles;
     tiles = NULL;
-  }
-
-  if (minimap != NULL) {
-    delete[] minimap;
-    minimap = NULL;
   }
 
   if (spiral_pos_pattern != NULL) {
@@ -347,11 +341,6 @@ Map::init(unsigned int size) {
   if (tiles != NULL) {
     delete[] tiles;
     tiles = NULL;
-  }
-
-  if (minimap != NULL) {
-    delete[] minimap;
-    minimap = NULL;
   }
 
   if (spiral_pos_pattern != NULL) {
@@ -403,59 +392,6 @@ Map::init_ground_gold_deposit() {
   }
 
   gold_deposit = total_gold;
-}
-
-/* Initialize minimap data. */
-void
-Map::init_minimap() {
-  static const int color_offset[] = {
-    0, 85, 102, 119, 17, 17, 17, 17,
-    34, 34, 34, 51, 51, 51, 68, 68
-  };
-
-  static const int colors[] = {
-     8,  8,  8,  8,  8,  8,  8,  8,  8,  8,  8,  8,  8,  8,  8,  8,  8,
-    31, 31, 30, 29, 28, 27, 26, 25, 24, 23, 22, 21, 20, 19, 18, 17, 16,
-    63, 63, 62, 61, 61, 60, 59, 59, 58, 57, 57, 56, 55, 55, 54, 53, 53,
-    61, 61, 60, 60, 59, 59, 58, 57, 56, 55, 54, 53, 52, 51, 50, 49, 48,
-    47, 47, 46, 46, 45, 44, 43, 42, 41, 40, 39, 38, 37, 36, 35, 34, 33,
-     9,  9,  9,  9,  9,  9,  9,  9,  9,  9,  9,  9,  9,  9,  9,  9,  9,
-    10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10,
-    11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11
-  };
-
-  if (minimap != NULL) {
-    delete[] minimap;
-    minimap = NULL;
-  }
-  minimap = new uint8_t[rows * cols];
-  if (minimap == NULL) abort();
-
-  uint8_t *mpos = minimap;
-  for (unsigned int y = 0; y < rows; y++) {
-    for (unsigned int x = 0; x < cols; x++) {
-      MapPos pos_ = pos(x, y);
-      int type_off = color_offset[tiles[pos_].type >> 4];
-
-      pos_ = move_right(pos_);
-      int h1 = get_height(pos_);
-
-      pos_ = move_down_left(pos_);
-      int h2 = get_height(pos_);
-
-      int h_off = h2 - h1 + 8;
-      *(mpos++) = colors[type_off + h_off];
-    }
-  }
-}
-
-uint8_t*
-Map::get_minimap() {
-  if (minimap == NULL) {
-    init_minimap();
-  }
-
-  return minimap;
 }
 
 /* Initialize spiral_pos_pattern from spiral_pattern. */
