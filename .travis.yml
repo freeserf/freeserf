@@ -48,6 +48,6 @@ install:
   - export CPPLINT_PATH="$PWD/styleguide/cpplint"
 
 script:
-  - $CPPLINT_PATH/cpplint.py ./src/*.cc ./src/*.h ./windows/*.cc ./windows/*.h
+  - $CPPLINT_PATH/cpplint.py ./src/*.cc ./src/*.h ./tests/*.cc ./windows/*.cc ./windows/*.h
   - ./bootstrap && ./configure --enable-sdl2-mixer
   - if [[ $TRAVIS_OS_NAME == 'osx' ]]; then make dist-osx; else make -j5 distcheck; fi
