@@ -320,15 +320,13 @@ Map::map_space_from_obj[] = {
 };
 
 Map::Map() {
-  tiles = NULL;
+  landscape_tiles = NULL;
+  game_tiles = NULL;
   spiral_pos_pattern = NULL;
 }
 
 Map::~Map() {
-  if (tiles != NULL) {
-    delete[] tiles;
-    tiles = NULL;
-  }
+  deinit();
 
   if (spiral_pos_pattern != NULL) {
     delete[] spiral_pos_pattern;
@@ -338,10 +336,7 @@ Map::~Map() {
 
 void
 Map::init(unsigned int size) {
-  if (tiles != NULL) {
-    delete[] tiles;
-    tiles = NULL;
-  }
+  deinit();
 
   if (spiral_pos_pattern != NULL) {
     delete[] spiral_pos_pattern;
@@ -363,6 +358,19 @@ Map::init(unsigned int size) {
   init_dimensions();
 
   regions = (cols >> 5) * (rows >> 5);
+}
+
+void
+Map::deinit() {
+  if (landscape_tiles != NULL) {
+    delete[] landscape_tiles;
+    landscape_tiles = NULL;
+  }
+
+  if (game_tiles != NULL) {
+    delete[] game_tiles;
+    game_tiles = NULL;
+  }
 }
 
 /* Return a random map position.
@@ -435,12 +443,13 @@ Map::init_dimensions() {
   dirs[DirectionUpLeft] = dirs[DirectionLeft] | dirs[DirectionUp];
 
   /* Allocate map */
-  if (tiles != NULL) {
-    delete[] tiles;
-    tiles = NULL;
-  }
-  tiles = new Tile[tile_count]();
-  if (tiles == NULL) abort();
+  deinit();
+
+  game_tiles = new GameTile[tile_count]();
+  if (game_tiles == NULL) abort();
+
+  landscape_tiles = new LandscapeTile[tile_count]();
+  if (landscape_tiles == NULL) abort();
 
   init_spiral_pos_pattern();
 }
@@ -448,18 +457,8 @@ Map::init_dimensions() {
 /* Copy tile data from map generator into map tile data. */
 void
 Map::init_tiles(const MapGenerator &generator) {
-  for (unsigned int y = 0; y < rows; y++) {
-    for (unsigned int x = 0; x < cols; x++) {
-      MapPos pos_ = pos(x, y);
-      tiles[pos_].height = generator.get_height(pos_);
-      tiles[pos_].owner = 0;
-      tiles[pos_].type_up = generator.get_type_up(pos_);
-      tiles[pos_].type_down = generator.get_type_down(pos_);
-      tiles[pos_].obj = generator.get_obj(pos_);
-      tiles[pos_].mineral = generator.get_resource_type(pos_);
-      tiles[pos_].resource_amount = generator.get_resource_amount(pos_);
-    }
-  }
+  memcpy(landscape_tiles, generator.get_landscape(),
+         rows * cols * sizeof(LandscapeTile));
 
   init_ground_gold_deposit();
 }
@@ -467,7 +466,7 @@ Map::init_tiles(const MapGenerator &generator) {
 /* Change the height of a map position. */
 void
 Map::set_height(MapPos pos, int height) {
-  tiles[pos].height = height;
+  landscape_tiles[pos].height = height;
 
   /* Mark landscape dirty */
   for (int d = DirectionRight; d <= DirectionUp; d++) {
@@ -483,8 +482,8 @@ Map::set_height(MapPos pos, int height) {
    building is removed. */
 void
 Map::set_object(MapPos pos, Object obj, int index) {
-  tiles[pos].obj = obj;
-  if (index >= 0) tiles[pos].obj_index = index;
+  landscape_tiles[pos].obj = obj;
+  if (index >= 0) game_tiles[pos].obj_index = index;
 
   /* Notify about object change */
   for (int d = DirectionRight; d <= DirectionUp; d++) {
@@ -498,24 +497,24 @@ Map::set_object(MapPos pos, Object obj, int index) {
 /* Remove resources from the ground at a map position. */
 void
 Map::remove_ground_deposit(MapPos pos, int amount) {
-  tiles[pos].resource_amount -= amount;
+  landscape_tiles[pos].resource_amount -= amount;
 
-  if (tiles[pos].resource_amount <= 0) {
+  if (landscape_tiles[pos].resource_amount <= 0) {
     /* Also sets the ground deposit type to none. */
-    tiles[pos].mineral = MineralsNone;
+    landscape_tiles[pos].mineral = MineralsNone;
   }
 }
 
 /* Remove fish at a map position (must be water). */
 void
 Map::remove_fish(MapPos pos, int amount) {
-  tiles[pos].resource_amount -= amount;
+  landscape_tiles[pos].resource_amount -= amount;
 }
 
 /* Set the index of the serf occupying map position. */
 void
 Map::set_serf_index(MapPos pos, int index) {
-  tiles[pos].serf = index;
+  game_tiles[pos].serf = index;
 
   /* TODO Mark dirty in viewport. */
 }
@@ -586,12 +585,12 @@ Map::update_public(MapPos pos, Random *rnd) {
 void
 Map::update_hidden(MapPos pos, Random *rnd) {
   /* Update fish resources in water */
-  if (is_in_water(pos) && tiles[pos].resource_amount > 0) {
+  if (is_in_water(pos) && landscape_tiles[pos].resource_amount > 0) {
     int r = rnd->random();
 
-    if (tiles[pos].resource_amount < 10 && (r & 0x3f00)) {
+    if (landscape_tiles[pos].resource_amount < 10 && (r & 0x3f00)) {
       /* Spawn more fish. */
-      tiles[pos].resource_amount += 1;
+      landscape_tiles[pos].resource_amount += 1;
     }
 
     /* Move in a random direction of: right, down right, left, up left */
@@ -606,8 +605,8 @@ Map::update_hidden(MapPos pos, Random *rnd) {
 
     if (is_in_water(adj_pos)) {
       /* Migrate a fish to adjacent water space. */
-      tiles[pos].resource_amount -= 1;
-      tiles[adj_pos].resource_amount += 1;
+      landscape_tiles[pos].resource_amount -= 1;
+      landscape_tiles[adj_pos].resource_amount += 1;
     }
   }
 }
@@ -690,8 +689,8 @@ Map::place_road_segments(const Road &road) {
         Direction rev_dir = *it;
         Direction dir = reverse_direction(rev_dir);
 
-        tiles[pos_].paths &= ~BIT(dir);
-        tiles[move(pos_, dir)].paths &= ~BIT(rev_dir);
+        game_tiles[pos_].paths &= ~BIT(dir);
+        game_tiles[move(pos_, dir)].paths &= ~BIT(rev_dir);
 
         pos_ = move(pos_, dir);
       }
@@ -699,8 +698,8 @@ Map::place_road_segments(const Road &road) {
       return false;
     }
 
-    tiles[pos_].paths |= BIT(*it);
-    tiles[move(pos_, *it)].paths |= BIT(rev_dir);
+    game_tiles[pos_].paths |= BIT(*it);
+    game_tiles[move(pos_, *it)].paths |= BIT(rev_dir);
 
     pos_ = move(pos_, *it);
   }
@@ -714,7 +713,7 @@ Map::remove_road_backref_until_flag(MapPos pos_, Direction dir) {
     pos_ = move(pos_, dir);
 
     /* Clear backreference */
-    tiles[pos_].paths &= ~BIT(reverse_direction(dir));
+    game_tiles[pos_].paths &= ~BIT(reverse_direction(dir));
 
     if (get_obj(pos_) == ObjectFlag) break;
 
@@ -765,11 +764,11 @@ Map::remove_road_backrefs(MapPos pos_) {
 Direction
 Map::remove_road_segment(MapPos *pos, Direction dir) {
   /* Clear forward reference. */
-  tiles[*pos].paths &= ~BIT(dir);
+  game_tiles[*pos].paths &= ~BIT(dir);
   *pos = move(*pos, dir);
 
   /* Clear backreference. */
-  tiles[*pos].paths &= ~BIT(reverse_direction(dir));
+  game_tiles[*pos].paths &= ~BIT(reverse_direction(dir));
 
   /* Find next direction of path. */
   dir = DirectionNone;
@@ -858,35 +857,35 @@ operator >> (SaveReaderBinary &reader, Map &map) {
     for (unsigned int x = 0; x < map.cols; x++) {
       MapPos pos = map.pos(x, y);
       reader >> v8;
-      map.tiles[pos].paths = v8 & 0x3f;
+      map.game_tiles[pos].paths = v8 & 0x3f;
       reader >> v8;
-      map.tiles[pos].height = v8 & 0x1f;
-      map.tiles[pos].owner = (v8 >> 5) & 0x07;
+      map.landscape_tiles[pos].height = v8 & 0x1f;
+      map.game_tiles[pos].owner = (v8 >> 5) & 0x07;
       reader >> v8;
-      map.tiles[pos].type_up = (Map::Terrain)((v8 >> 4) & 0x0f);
-      map.tiles[pos].type_down = (Map::Terrain)(v8 & 0x0f);
+      map.landscape_tiles[pos].type_up = (Map::Terrain)((v8 >> 4) & 0x0f);
+      map.landscape_tiles[pos].type_down = (Map::Terrain)(v8 & 0x0f);
       reader >> v8;
-      map.tiles[pos].obj = (Map::Object)(v8 & 0x7f);
-      map.tiles[pos].idle_serf = BIT_TEST(v8, 7);
+      map.landscape_tiles[pos].obj = (Map::Object)(v8 & 0x7f);
+      map.game_tiles[pos].idle_serf = BIT_TEST(v8, 7);
     }
     for (unsigned int x = 0; x < map.cols; x++) {
       MapPos pos = map.pos(x, y);
       if (map.get_obj(pos) >= Map::ObjectFlag &&
           map.get_obj(pos) <= Map::ObjectCastle) {
-        map.tiles[pos].mineral = Map::MineralsNone;
-        map.tiles[pos].resource_amount = 0;
+        map.landscape_tiles[pos].mineral = Map::MineralsNone;
+        map.landscape_tiles[pos].resource_amount = 0;
         reader >> v16;
-        map.tiles[pos].obj_index = v16;
+        map.game_tiles[pos].obj_index = v16;
       } else {
         reader >> v8;
-        map.tiles[pos].mineral = (Map::Minerals)((v8 >> 5) & 7);
-        map.tiles[pos].resource_amount = v8 & 0x1f;
+        map.landscape_tiles[pos].mineral = (Map::Minerals)((v8 >> 5) & 7);
+        map.landscape_tiles[pos].resource_amount = v8 & 0x1f;
         reader >> v8;
-        map.tiles[pos].obj_index = 0;
+        map.game_tiles[pos].obj_index = 0;
       }
 
       reader >> v16;
-      map.tiles[pos].serf = v16;
+      map.game_tiles[pos].serf = v16;
     }
   }
 
@@ -909,43 +908,44 @@ operator >> (SaveReaderText &reader, Map &map) {
       unsigned int val;
 
       reader.value("paths")[y*SAVE_MAP_TILE_SIZE+x] >> val;
-      map.tiles[p].paths = val & 0x3f;
+      map.game_tiles[p].paths = val & 0x3f;
 
       try {
         reader.value("owner")[y*SAVE_MAP_TILE_SIZE+x] >> val;
-        map.tiles[p].height = val;
-        reader.value("height")[y*SAVE_MAP_TILE_SIZE+x] >> map.tiles[p].owner;
+        map.game_tiles[p].owner = val;
+        reader.value("height")[y*SAVE_MAP_TILE_SIZE+x] >> val;
+        map.landscape_tiles[p].height = val;
       } catch (...) {
         reader.value("height")[y*SAVE_MAP_TILE_SIZE+x] >> val;
-        map.tiles[p].height = val & 0x1f;
-        map.tiles[p].owner = (val >> 5) & 0x07;
+        map.landscape_tiles[p].height = val & 0x1f;
+        map.game_tiles[p].owner = (val >> 5) & 0x07;
       }
 
       reader.value("type.up")[y*SAVE_MAP_TILE_SIZE+x] >> val;
-      map.tiles[p].type_up = (Map::Terrain)val;
+      map.landscape_tiles[p].type_up = (Map::Terrain)val;
 
       reader.value("type.down")[y*SAVE_MAP_TILE_SIZE+x] >> val;
-      map.tiles[p].type_down = (Map::Terrain)val;
+      map.landscape_tiles[p].type_down = (Map::Terrain)val;
 
       try {
         reader.value("idle_serf")[y*SAVE_MAP_TILE_SIZE+x] >> val;
-        map.tiles[p].idle_serf = val;
+        map.game_tiles[p].idle_serf = val;
         reader.value("object")[y*SAVE_MAP_TILE_SIZE+x] >> val;
-        map.tiles[p].obj = (Map::Object)val;
+        map.landscape_tiles[p].obj = (Map::Object)val;
       } catch (...) {
         reader.value("object")[y*SAVE_MAP_TILE_SIZE+x] >> val;
-        map.tiles[p].obj = (Map::Object)(val & 0x7f);
-        map.tiles[p].idle_serf = BIT_TEST(val, 7);
+        map.landscape_tiles[p].obj = (Map::Object)(val & 0x7f);
+        map.game_tiles[p].idle_serf = BIT_TEST(val, 7);
       }
 
       reader.value("serf")[y*SAVE_MAP_TILE_SIZE+x] >> val;
-      map.tiles[p].serf = val;
+      map.game_tiles[p].serf = val;
 
       reader.value("resource.type")[y*SAVE_MAP_TILE_SIZE+x] >> val;
-      map.tiles[p].mineral = (Map::Minerals)val;
+      map.landscape_tiles[p].mineral = (Map::Minerals)val;
 
       reader.value("resource.amount")[y*SAVE_MAP_TILE_SIZE+x] >> val;
-      map.tiles[p].resource_amount = val;
+      map.landscape_tiles[p].resource_amount = val;
     }
   }
 
