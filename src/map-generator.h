@@ -144,4 +144,32 @@ class ClassicMissionMapGenerator : public ClassicMapGenerator {
   void init();
 };
 
+// Desert map generator.
+class DesertMapGenerator : public ClassicMapGenerator {
+ public:
+  static const int default_max_lake_area;
+  static const int default_water_level;
+
+  DesertMapGenerator(const Map& map, const Random& random);
+  void init(int max_lake_area = default_max_lake_area,
+            int water_level = default_water_level,
+            int terrain_spikyness = default_terrain_spikyness);
+  void generate();
+
+ protected:
+  void init_heights_squares();
+
+  void replace_all_types(Map::Terrain old, Map::Terrain new_);
+
+  void change_shore_water_type();
+  void change_shore_grass_type();
+
+  void create_oases();
+
+  void create_objects();
+
+  void create_link_patches();
+  void lower_desert_elevation();
+};
+
 #endif  // SRC_MAP_GENERATOR_H_

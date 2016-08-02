@@ -1084,9 +1084,320 @@ ClassicMapGenerator::clean_up() {
 }
 
 
+// Mission map generator
 ClassicMissionMapGenerator::ClassicMissionMapGenerator(
   const Map& map, const Random &rnd) : ClassicMapGenerator(map, rnd) {}
 
 void ClassicMissionMapGenerator::init() {
   ClassicMapGenerator::init(MapGenerator::HeightGeneratorMidpoints, true);
+}
+
+
+// Desert map generator
+const int DesertMapGenerator::default_max_lake_area = 5;
+const int DesertMapGenerator::default_water_level = 15;
+
+DesertMapGenerator::DesertMapGenerator(
+  const Map& map, const Random& rnd) : ClassicMapGenerator(map, rnd) {}
+
+void
+DesertMapGenerator::init(
+    int max_lake_area, int water_level, int terrain_spikyness) {
+  ClassicMapGenerator::init(
+    HeightGeneratorMidpoints, false, max_lake_area, water_level,
+    terrain_spikyness);
+}
+
+void
+DesertMapGenerator::generate() {
+  init_heights_squares();
+  init_heights_midpoints();
+
+  clamp_heights();
+  create_water_bodies();
+  heights_rebase();
+  init_types();
+  replace_all_types(Map::TerrainGrass1, Map::TerrainDesert2);
+  replace_all_types(Map::TerrainGrass2, Map::TerrainDesert2);
+
+  remove_islands();
+  heights_rescale();
+
+  // Adjust terrain types on shores
+  change_shore_water_type();
+  change_shore_grass_type();
+
+  // Create oases
+  create_oases();
+  lower_desert_elevation();
+
+  // Create map objects (trees, boulders, etc.)
+  create_objects();
+
+  create_link_patches();
+
+  create_mineral_deposits();
+
+  clean_up();
+}
+
+// Initialize height values in the corners of 16x16 squares.
+//
+// Each region is randomly assigned to be a high altitude or low altitude
+// region. Then, a random height is picked accordingly.
+void
+DesertMapGenerator::init_heights_squares() {
+  for (unsigned int y = 0; y < map.get_rows(); y += 16) {
+    for (unsigned int x = 0; x < map.get_cols(); x += 16) {
+      int rnd = random_int() & 0xff;
+      if ((random_int() & 3) == 0) {
+        tiles[map.pos(x, y)].height = 218 + (rnd & 0x1f);
+      } else {
+        tiles[map.pos(x, y)].height = std::min(rnd, 80);
+      }
+    }
+  }
+}
+
+void
+DesertMapGenerator::replace_all_types(Map::Terrain old, Map::Terrain new_) {
+  for (MapPos pos_ : map.geom()) {
+    if (tiles[pos_].type_up == old) tiles[pos_].type_up = new_;
+    if (tiles[pos_].type_down == old) tiles[pos_].type_down = new_;
+  }
+}
+
+// Change water type based on closeness to shore.
+//
+// Change type from TerrainWater0 to higher water (1-3) types based on
+// closeness to the shore. The water closest to the shore will become
+// TerrainWater3.
+void
+DesertMapGenerator::change_shore_water_type() {
+  seed_terrain_type(
+    Map::TerrainWater0, Map::TerrainDesert2, Map::TerrainWater3);
+  seed_terrain_type(
+    Map::TerrainWater0, Map::TerrainWater3, Map::TerrainWater2);
+  seed_terrain_type(
+    Map::TerrainWater0, Map::TerrainWater2, Map::TerrainWater1);
+}
+
+// Change grass type of shore to TerrainGrass0.
+//
+// Change type from TerrainDesert2 to TerrainGrass0 and TerrainGrass1 where the
+// tiles are adjacent to water.
+void
+DesertMapGenerator::change_shore_grass_type() {
+  seed_terrain_type(
+    Map::TerrainDesert2, Map::TerrainWater3, Map::TerrainGrass0);
+  seed_terrain_type(
+    Map::TerrainDesert2, Map::TerrainGrass0, Map::TerrainGrass1);
+  seed_terrain_type(
+    Map::TerrainDesert2, Map::TerrainGrass1, Map::TerrainGrass2);
+  replace_all_types(Map::TerrainGrass2, Map::TerrainGrass1);
+}
+
+// Create oases.
+//
+// Create large areas of grass around existing lakes and mountaneous regions.
+void
+DesertMapGenerator::create_oases() {
+  seed_terrain_type(
+    Map::TerrainDesert2, Map::TerrainTundra0, Map::TerrainGrass3);
+  seed_terrain_type(
+    Map::TerrainDesert2, Map::TerrainGrass3, Map::TerrainGrass2);
+
+  // Initialize random areas of grass.
+  for (int i = 0; i < 8 * map.get_region_count(); i++) {
+    for (int try_ = 0; try_ < 200; try_++) {
+      MapPos rnd_pos = map.get_rnd_coord(NULL, NULL, &rnd);
+
+      if ((tiles[rnd_pos].type_up >= Map::TerrainGrass1 &&
+           tiles[rnd_pos].type_down <= Map::TerrainGrass2) ||
+          (tiles[rnd_pos].type_up >= Map::TerrainGrass1 &&
+           tiles[rnd_pos].type_down <= Map::TerrainGrass2)) {
+        Map::Terrain type = tiles[rnd_pos].type_up;
+        int moisture = 10;
+        for (int index = 0; index < 256; index++) {
+          MapPos pos = map.pos_add_spirally(rnd_pos, index);
+
+          if (tiles[pos].type_up == Map::TerrainDesert2) {
+            tiles[pos].type_up = type;
+            moisture -= 1;
+          } else if (tiles[pos].type_up <= Map::TerrainWater3 ||
+                     tiles[pos].type_up >= Map::TerrainSnow0) {
+            moisture += 1;
+          }
+
+          if (tiles[pos].type_down == Map::TerrainDesert2) {
+            tiles[pos].type_down = type;
+            moisture -= 1;
+          } else if (tiles[pos].type_down <= Map::TerrainWater3 ||
+                     tiles[pos].type_down >= Map::TerrainSnow0) {
+            moisture += 1;
+          }
+
+          if (moisture <= 0) break;
+        }
+        break;
+      }
+    }
+  }
+
+  seed_terrain_type(
+    Map::TerrainDesert2, Map::TerrainGrass1, Map::TerrainDesert0);
+  seed_terrain_type(
+    Map::TerrainDesert2, Map::TerrainDesert0, Map::TerrainDesert1);
+  replace_all_types(Map::TerrainDesert1, Map::TerrainDesert0);
+  seed_terrain_type(
+    Map::TerrainDesert2, Map::TerrainDesert0, Map::TerrainDesert1);
+  replace_all_types(Map::TerrainDesert1, Map::TerrainDesert0);
+  seed_terrain_type(
+    Map::TerrainDesert2, Map::TerrainDesert0, Map::TerrainDesert1);
+}
+
+void
+DesertMapGenerator::lower_desert_elevation() {
+  // Do a number of sweeps where the desert elevation is reduced gradually.
+  for (int i = 0; i < 10; i++) {
+    for (MapPos pos_ : map.geom()) {
+      if (hexagon_types_in_range(pos_, Map::TerrainDesert0,
+                                 Map::TerrainDesert2)) {
+        unsigned int h = tiles[pos_].height;
+        for (int d = DirectionRight; d <= DirectionUp; d++) {
+          h = std::max(h, tiles[map.move(pos_, (Direction)d)].height);
+        }
+
+        if (h >= 3 && tiles[pos_].height > h - 1) {
+          tiles[pos_].height = h - 1;
+        }
+      }
+    }
+  }
+}
+
+void
+DesertMapGenerator::create_objects() {
+  int regions = map.get_region_count();
+
+  create_crosses();
+
+  // Add only trees.
+  create_random_object_clusters(
+    regions * 8, 10, 0xff, Map::TerrainGrass0, Map::TerrainGrass1,
+    Map::ObjectTree0, 0x7);
+
+  // Add only trees.
+  create_random_object_clusters(
+    regions, 45, 0x3f, Map::TerrainGrass0, Map::TerrainGrass1,
+    Map::ObjectTree0, 0x7);
+
+  // Add only pines.
+  create_random_object_clusters(
+    regions, 30, 0x3f, Map::TerrainGrass2, Map::TerrainGrass3,
+    Map::ObjectPine0, 0x7);
+
+  // Add only pine.
+  create_random_object_clusters(
+    regions, 20, 0x7f, Map::TerrainGrass2, Map::TerrainGrass3,
+    Map::ObjectPine0, 0x7);
+
+  // Create dense clusters of stone.
+  create_random_object_clusters(
+    regions, 40, 0x3f, Map::TerrainDesert0, Map::TerrainDesert1,
+    Map::ObjectStone0, 0x7);
+
+  // Create sparse clusters.
+  create_random_object_clusters(
+    regions, 15, 0xff, Map::TerrainDesert0, Map::TerrainDesert1,
+    Map::ObjectStone0, 0x7);
+
+  // Create dead trees.
+  create_random_object_clusters(
+    regions, 2, 0xff, Map::TerrainDesert0, Map::TerrainDesert0,
+    Map::ObjectDeadTree, 0);
+
+  // Create sandstone boulders.
+  create_random_object_clusters(
+    regions, 6, 0xff, Map::TerrainDesert2, Map::TerrainDesert2,
+    Map::ObjectSandstone0, 0x1);
+
+  // Create trees submerged in water.
+  create_random_object_clusters(
+    regions, 50, 0x7f, Map::TerrainWater2, Map::TerrainWater3,
+    Map::ObjectWaterTree0, 0x3);
+
+  // Create tree stubs.
+  create_random_object_clusters(
+    regions, 5, 0xff, Map::TerrainGrass1, Map::TerrainGrass2,
+    Map::ObjectStub, 0);
+
+  // Create small boulders.
+  create_random_object_clusters(
+    regions, 10, 0xff, Map::TerrainDesert0, Map::TerrainDesert2,
+    Map::ObjectStone, 0x1);
+
+  // Create animal cadavers in desert.
+  create_random_object_clusters(
+    4 * regions, 2, 0xf, Map::TerrainDesert2, Map::TerrainDesert2,
+    Map::ObjectCadaver0, 0x1);
+
+  // Create cacti in desert.
+  create_random_object_clusters(
+    4 * regions, 6, 0x7f, Map::TerrainDesert0, Map::TerrainDesert2,
+    Map::ObjectCactus0, 0x1);
+
+  // Create boulders submerged in water.
+  create_random_object_clusters(
+    regions, 8, 0x7f, Map::TerrainWater0, Map::TerrainWater2,
+    Map::ObjectWaterStone0, 0x1);
+
+  // Create palm trees in desert.
+  create_random_object_clusters(
+    4 * regions, 6, 0x3f, Map::TerrainDesert2, Map::TerrainDesert2,
+    Map::ObjectPalm0, 0x3);
+}
+
+// Create tiny patches of grass that allow large desert areas to be traversed.
+void
+DesertMapGenerator::create_link_patches() {
+  MapPos pos = map.pos(0, 0);
+  do {
+    if (hexagon_types_in_range(pos, Map::TerrainDesert0,
+                               Map::TerrainDesert2)) {
+      bool found_grass = false;
+      for (int i = 7; i < 91; i++) {
+        MapPos p = map.pos_add_spirally(pos, i);
+        if ((tiles[p].type_up >= Map::TerrainGrass0 &&
+             tiles[p].type_up <= Map::TerrainGrass3) ||
+            (tiles[p].type_down >= Map::TerrainGrass0 &&
+             tiles[p].type_down <= Map::TerrainGrass3)) {
+          found_grass = true;
+          break;
+        }
+      }
+
+      if (!found_grass) {
+        tiles[pos].type_down = Map::TerrainGrass1;
+        tiles[pos].type_up = Map::TerrainGrass1;
+        tiles[map.move_left(pos)].type_down = Map::TerrainGrass1;
+        tiles[map.move_up_left(pos)].type_up = Map::TerrainGrass1;
+        tiles[map.move_up_left(pos)].type_down = Map::TerrainGrass1;
+        tiles[map.move_up(pos)].type_up = Map::TerrainGrass1;
+
+        tiles[pos].obj = Map::ObjectNone;
+        for (int d = DirectionRight; d <= DirectionUp; d++) {
+          tiles[map.move(pos, (Direction)d)].obj = Map::ObjectNone;
+        }
+      }
+    }
+
+    /* Test if moving 23 positions right crosses map boundary. */
+    if (map.pos_col(pos) + 23 < static_cast<int>(map.get_cols())) {
+      pos = map.move_right_n(pos, 23);
+    } else {
+      pos = map.move_right_n(pos, 23);
+      pos = map.move_down(pos);
+    }
+  } while (pos != map.pos(0, 0));
 }
