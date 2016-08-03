@@ -270,8 +270,7 @@ Game::send_serf_to_flag_search_cb(Flag *flag, void *d) {
     return false;
   }
 
-  SendSerfToFlagData *data =
-                       reinterpret_cast<SendSerfToFlagData*>(d);
+  SendSerfToFlagData *data = reinterpret_cast<SendSerfToFlagData*>(d);
 
   /* Inventory reached */
   Building *building = flag->get_building();
@@ -371,7 +370,7 @@ Game::send_serf_to_flag(Flag *dest, Serf::Type type, Resource::Type res1,
   bool r = FlagSearch::single(dest, send_serf_to_flag_search_cb, true, false,
                               &data);
   if (!r) {
-    return true;
+    return false;
   } else if (data.inventory != NULL) {
     Inventory *inventory = data.inventory;
     Serf *serf = inventory->call_out_serf(Serf::TypeGeneric);
@@ -408,7 +407,7 @@ Game::send_serf_to_flag(Flag *dest, Serf::Type type, Resource::Type res1,
     return true;
   }
 
-  return false;
+  return true;
 }
 
 /* Dispatch geologist to flag. */
@@ -909,8 +908,8 @@ Game::remove_road_forwards(MapPos pos, Direction dir) {
       path_serf_idle_to_wait_state(pos);
     }
 
-    if (map->get_serf_index(pos) != 0) {
-      Serf *serf = serfs[map->get_serf_index(pos)];
+    if (map->has_serf(pos)) {
+      Serf *serf = get_serf_at_pos(pos);
       if (!map->has_flag(pos)) {
         serf->set_lost_state();
       } else {
@@ -1568,8 +1567,8 @@ Game::can_demolish_flag(MapPos pos, const Player *player) {
 bool
 Game::demolish_flag_(MapPos pos) {
   /* Handle any serf at pos. */
-  if (map->get_serf_index(pos) != 0) {
-    Serf *serf = serfs[map->get_serf_index(pos)];
+  if (map->has_serf(pos)) {
+    Serf *serf = get_serf_at_pos(pos);
     serf->flag_deleted(pos);
   }
 

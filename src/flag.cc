@@ -674,7 +674,7 @@ Flag::fill_path_serf_info(Game *game, MapPos pos, Direction dir,
   int path_len = 0;
 
   /* Handle first position. */
-  if (game->get_map()->get_serf_index(pos) != 0) {
+  if (game->get_map()->has_serf(pos)) {
     Serf *serf = game->get_serf_at_pos(pos);
     if (serf->get_state() == Serf::StateTransporting &&
         serf->get_walking_wait_counter() != -1) {
@@ -713,7 +713,7 @@ Flag::fill_path_serf_info(Game *game, MapPos pos, Direction dir,
     }
 
     /* Check if there is a serf occupying this space. */
-    if (game->get_map()->get_serf_index(pos) != 0) {
+    if (game->get_map()->has_serf(pos)) {
       Serf *serf = game->get_serf_at_pos(pos);
       if (serf->get_state() == Serf::StateTransporting &&
           serf->get_walking_wait_counter() != -1) {
@@ -724,7 +724,7 @@ Flag::fill_path_serf_info(Game *game, MapPos pos, Direction dir,
   }
 
   /* Handle last position. */
-  if (game->get_map()->get_serf_index(pos) != 0) {
+  if (game->get_map()->has_serf(pos)) {
     Serf *serf = game->get_serf_at_pos(pos);
     if ((serf->get_state() == Serf::StateTransporting &&
          serf->get_walking_wait_counter() != -1) ||

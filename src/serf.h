@@ -427,8 +427,7 @@ class Serf : public GameObject {
   void set_next(int next) { s.defending.next_knight = next; }
 
   // Commands
-  void go_out_from_inventory(unsigned int inventory,
-                             MapPos dest, int dir);
+  void go_out_from_inventory(unsigned int inventory, MapPos dest, int mode);
   void send_off_to_fight(int dist_col, int dist_row);
   void stay_idle_in_stock(unsigned int inventory);
   void go_out_from_building(MapPos dest, int dir, int field_B);

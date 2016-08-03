@@ -426,6 +426,8 @@ class Map {
   unsigned int get_res_fish(MapPos pos) const {
     return landscape_tiles[pos].resource_amount; }
   unsigned int get_serf_index(MapPos pos) const { return game_tiles[pos].serf; }
+  unsigned int has_serf(MapPos pos) const {
+    return (game_tiles[pos].serf != 0); }
 
   bool has_flag(MapPos pos) const { return (get_obj(pos) == ObjectFlag); }
   bool has_building(MapPos pos) const { return (get_obj(pos) >=
