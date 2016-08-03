@@ -90,7 +90,8 @@ class Inventory : public GameObject {
   size_t free_serf_count() { return generic_count; }
   bool have_serf(Serf::Type type) { return (serfs[type] != 0); }
 
-  size_t get_count_of(Resource::Type resource) { return resources[resource]; }
+  unsigned int get_count_of(Resource::Type resource) {
+    return resources[resource]; }
   resource_map_t get_all_resources() { return resources; }
   void pop_resource(Resource::Type resource) { resources[resource]--; }
   void push_resource(Resource::Type resource);
@@ -112,7 +113,7 @@ class Inventory : public GameObject {
   void add_to_queue(Resource::Type type, unsigned int dest);
 
   /* Create initial resources */
-  void apply_supplies_preset(size_t supplies);
+  void apply_supplies_preset(unsigned int supplies);
 
   Serf *call_transporter(bool water);
 
@@ -121,7 +122,7 @@ class Inventory : public GameObject {
   Serf *spawn_serf_generic();
   bool specialize_serf(Serf *serf, Serf::Type type);
   Serf *specialize_free_serf(Serf::Type type);
-  size_t serf_potential_count(Serf::Type type);
+  unsigned int serf_potential_count(Serf::Type type);
 
   void serf_idle_in_stock(Serf *serf);
   void knight_training(Serf *serf, int p);

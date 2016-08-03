@@ -118,8 +118,9 @@ class Game : public EventLoop::Handler {
 
   /* External interface */
   void init();
-  unsigned int add_player(size_t face, unsigned int color, size_t supplies,
-                          size_t reproduction, size_t intelligence);
+  unsigned int add_player(size_t face, unsigned int color,
+                          unsigned int supplies, size_t reproduction,
+                          size_t intelligence);
   bool load_mission_map(int m);
   bool load_random_map(int size, const Random &rnd);
   bool load_save_game(const std::string &path);

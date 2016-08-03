@@ -61,6 +61,6 @@ class Resource {
   } Type;
 };
 
-typedef std::map<Resource::Type, size_t> resource_map_t;
+typedef std::map<Resource::Type, unsigned int> resource_map_t;
 
 #endif  // SRC_RESOURCE_H_

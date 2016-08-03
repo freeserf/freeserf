@@ -125,25 +125,30 @@ Inventory::lose_queue() {
 }
 
 void
-Inventory::apply_supplies_preset(size_t supplies) {
-  const int supplies_template_0[] = {  0,  0,  0,  0,  0,  0,  0,   7,  0,
-                                       2,  0,   0,  0,  0,  0,  1,  6,  1,
-                                       0,  0,  1,  2,  3,  0,  10,  10 };
-  const int supplies_template_1[] = {  2,  1,  1,  3,  2,  1,  0,  25,  1,
-                                       8,  4,   3,   8,  2, 1,  3, 12,  2,
-                                       1,  1,  2,  3,  4,  1,  30,  30 };
-  const int supplies_template_2[] = {  3,  2,  2, 10,  3,  1,  0,  40,  2,
-                                      20, 12,   8,  20,  4, 2,  5, 20,  3,
-                                       1,  2,  3,  4,  6,  2,  60,  60 };
-  const int supplies_template_3[] = {  8,  4,  6, 20,  7,  5,  3,  80,  5,
-                                      40, 20,  40,  50,  8, 4, 10, 30,  5,
-                                       2,  4,  6,  6, 12,  4, 100, 100 };
-  const int supplies_template_4[] = { 30, 10, 30, 50, 10, 30, 10, 200, 10,
-                                     100, 30, 150, 100, 10, 5, 20, 50, 10,
-                                       5, 10, 20, 20, 50, 10, 200, 200 };
+Inventory::apply_supplies_preset(unsigned int supplies) {
+  const unsigned int supplies_template_0[] = {  0,  0,  0,  0,  0,  0,  0,  7,
+                                                0,  2,  0,  0,  0,  0,  0,  1,
+                                                6,  1,  0,  0,  1,  2,  3,  0,
+                                               10, 10 };
+  const unsigned int supplies_template_1[] = {  2,  1,  1,  3,  2,  1,  0, 25,
+                                                1,  8,  4,  3,  8,  2,  1,  3,
+                                               12,  2,  1,  1,  2,  3,  4,  1,
+                                               30, 30 };
+  const unsigned int supplies_template_2[] = {  3,  2,  2, 10,  3,  1,  0,  40,
+                                                2, 20, 12,  8, 20,  4,  2,  5,
+                                                20, 3,  1,  2,  3,  4,  6,  2,
+                                                60,  60 };
+  const unsigned int supplies_template_3[] = {  8,  4,  6, 20,  7,  5,  3,  80,
+                                                5, 40, 20,  40,  50,  8, 4, 10,
+                                               30,  5, 2,  4,  6,  6, 12,  4,
+                                                100, 100 };
+  const unsigned int supplies_template_4[] = { 30,  10, 30, 50, 10, 30, 10, 200,
+                                               10, 100, 30, 150, 100, 10, 5, 20,
+                                               50,  10, 5, 10, 20, 20, 50, 10,
+                                              200, 200 };
 
-  const int *template_1 = NULL;
-  const int *template_2 = NULL;
+  const unsigned int *template_1 = NULL;
+  const unsigned int *template_2 = NULL;
   if (supplies < 10) {
     template_1 = supplies_template_0;
     template_2 = supplies_template_1;
@@ -167,7 +172,7 @@ Inventory::apply_supplies_preset(size_t supplies) {
 
   for (int i = 0; i < 26; i++) {
     int t1 = template_1[i];
-    size_t n = (template_2[i] - template_1[i]) * (supplies * 6554);
+    unsigned int n = (template_2[i] - template_1[i]) * (supplies * 6554);
     if (n >= 0x8000) t1 += 1;
     resources[(Resource::Type)i] = t1 + (n >> 16);
   }
@@ -386,9 +391,9 @@ Inventory::specialize_free_serf(Serf::Type type) {
   return serf;
 }
 
-size_t
+unsigned int
 Inventory::serf_potential_count(Serf::Type type) {
-  size_t count = generic_count;
+  unsigned int count = generic_count;
 
   if (res_needed[type*2] != Resource::TypeNone) {
     count = std::min(count, resources[res_needed[type*2]]);

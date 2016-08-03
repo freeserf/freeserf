@@ -866,7 +866,7 @@ operator >> (SaveReaderBinary &reader, Map &map) {
       map.landscape_tiles[pos].type_down = (Map::Terrain)(v8 & 0x0f);
       reader >> v8;
       map.landscape_tiles[pos].obj = (Map::Object)(v8 & 0x7f);
-      map.game_tiles[pos].idle_serf = BIT_TEST(v8, 7);
+      map.game_tiles[pos].idle_serf = (BIT_TEST(v8, 7) != 0);
     }
     for (unsigned int x = 0; x < map.cols; x++) {
       MapPos pos = map.pos(x, y);
@@ -929,13 +929,13 @@ operator >> (SaveReaderText &reader, Map &map) {
 
       try {
         reader.value("idle_serf")[y*SAVE_MAP_TILE_SIZE+x] >> val;
-        map.game_tiles[p].idle_serf = val;
+        map.game_tiles[p].idle_serf = (val != 0);
         reader.value("object")[y*SAVE_MAP_TILE_SIZE+x] >> val;
         map.landscape_tiles[p].obj = (Map::Object)val;
       } catch (...) {
         reader.value("object")[y*SAVE_MAP_TILE_SIZE+x] >> val;
         map.landscape_tiles[p].obj = (Map::Object)(val & 0x7f);
-        map.game_tiles[p].idle_serf = BIT_TEST(val, 7);
+        map.game_tiles[p].idle_serf = (BIT_TEST(val, 7) != 0);
       }
 
       reader.value("serf")[y*SAVE_MAP_TILE_SIZE+x] >> val;

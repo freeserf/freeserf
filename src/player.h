@@ -133,7 +133,7 @@ class Player : public GameObject {
      -1 for own castle lost. */
   int castle_score;
   int send_generic_delay;
-  size_t initial_supplies;
+  unsigned int initial_supplies;
   int serf_index;
   int knight_cycle_counter;
   int send_knight_delay;
@@ -167,7 +167,7 @@ class Player : public GameObject {
   Player(Game *game, unsigned int index);
 
   void init(unsigned int number, size_t face, unsigned int color,
-            size_t supplies, size_t reproduction,
+            unsigned int supplies, size_t reproduction,
             size_t intelligence);
 
   int get_color() const { return color; }
@@ -284,7 +284,7 @@ class Player : public GameObject {
   void decrease_military_score(int val) { total_military_score -= val; }
   void increase_military_max_gold(int val) { military_max_gold += val; }
   int get_score() const;
-  size_t get_initial_supplies() const { return initial_supplies; }
+  unsigned int get_initial_supplies() const { return initial_supplies; }
   int *get_resource_count_history(Resource::Type type) {
     return resource_count_history[type]; }
   void set_player_stat_history(int mode, int index, int val) {

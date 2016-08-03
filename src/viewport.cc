@@ -2280,14 +2280,31 @@ Viewport::handle_click_left(int x, int y) {
     Direction dir = DirectionNone;
 
     if (dx == 0) {
-      if (dy == 1) dir = DirectionLeft;
-      else if (dy == 0) dir = DirectionUpLeft;
+      if (dy == 1) {
+        dir = DirectionLeft;
+      } else if (dy == 0) {
+        dir = DirectionUpLeft;
+      } else {
+        return false;
+      }
     } else if (dx == 1) {
-      if (dy == 2) dir = DirectionDown;
-      else if (dy == 0) dir = DirectionUp;
+      if (dy == 2) {
+        dir = DirectionDown;
+      } else if (dy == 0) {
+        dir = DirectionUp;
+      } else {
+        return false;
+      }
     } else if (dx == 2) {
-      if (dy == 1) dir = DirectionRight;
-      else if (dy == 2) dir = DirectionDownRight;
+      if (dy == 1) {
+        dir = DirectionRight;
+      } else if (dy == 2) {
+        dir = DirectionDownRight;
+      } else {
+        return false;
+      }
+    } else {
+      return false;
     }
 
     if (interface->build_roid_is_valid_dir(dir)) {

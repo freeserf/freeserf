@@ -35,8 +35,8 @@ Player::Player(Game *game, unsigned int index)
 
 void
 Player::init(unsigned int number, size_t face, unsigned int color,
-               size_t supplies, size_t reproduction,
-               size_t intelligence) {
+             unsigned int supplies, size_t reproduction,
+             size_t intelligence) {
   flags = 0;
 
   if (face == 0) return;

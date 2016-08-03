@@ -326,7 +326,7 @@ ClassicMapGenerator::expand_water_position(MapPos pos_) {
 
   for (int d = DirectionRight; d <= DirectionUp; d++) {
     MapPos new_pos = map.move(pos_, (Direction)d);
-    int height = tiles[new_pos].height;
+    unsigned int height = tiles[new_pos].height;
     if (water_level < height && height < 254) {
       return false;
     } else if (height == 255) {
@@ -372,13 +372,13 @@ ClassicMapGenerator::expand_water_body(MapPos pos) {
 
   // Expand water until we are unable to expand any more or until the max
   // lake area limit has been reached.
-  for (int i = 0; i < max_lake_area; i++) {
+  for (unsigned int i = 0; i < max_lake_area; i++) {
     bool expanded = false;
 
     MapPos new_pos = map.move_right_n(pos, i+1);
     for (int k = 0; k < 6; k++) {
       Direction d = turn_direction(DirectionDown, k);
-      for (int j = 0; j <= i; j++) {
+      for (unsigned int j = 0; j <= i; j++) {
         expanded |= expand_water_position(new_pos);
         new_pos = map.move(new_pos, d);
       }
@@ -393,11 +393,11 @@ ClassicMapGenerator::expand_water_body(MapPos pos) {
   // area. This keeps water bodies from growing larger than the max lake area.
   tiles[pos].height -= 2;
 
-  for (int i = 0; i < max_lake_area + 1; i++) {
+  for (unsigned int i = 0; i < max_lake_area + 1; i++) {
     MapPos new_pos = map.move_right_n(pos, i+1);
     for (int k = 0; k < 6; k++) {
       Direction d = (Direction)((k + DirectionDown) % 6);
-      for (int j = 0; j <= i; j++) {
+      for (unsigned int j = 0; j <= i; j++) {
         if (tiles[new_pos].height > 253) tiles[new_pos].height -= 2;
         new_pos = map.move(new_pos, d);
       }
@@ -414,7 +414,7 @@ ClassicMapGenerator::expand_water_body(MapPos pos) {
 // shore).
 void
 ClassicMapGenerator::create_water_bodies() {
-  for (int h = 0; h <= water_level; h++) {
+  for (unsigned int h = 0; h <= water_level; h++) {
     for (unsigned int y = 0; y < map.get_rows(); y++) {
       for (unsigned int x = 0; x < map.get_cols(); x++) {
         MapPos pos_ = map.pos(x, y);
@@ -784,7 +784,7 @@ void
 ClassicMapGenerator::create_deserts() {
   // Initialize random areas of desert based on spiral pattern.
   // Only TerrainGrass1 triangles will be converted to desert.
-  for (int i = 0; i < map.get_region_count(); i++) {
+  for (unsigned int i = 0; i < map.get_region_count(); i++) {
     for (int try_ = 0; try_ < 200; try_++) {
       MapPos rnd_pos = map.get_rnd_coord(NULL, NULL, &rnd);
 

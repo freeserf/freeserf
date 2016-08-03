@@ -35,10 +35,10 @@ class Mission {
   } PosPreset;
 
   typedef struct PlayerPreset {
-    size_t face;
-    size_t intelligence;
-    size_t supplies;
-    size_t reproduction;
+    unsigned int face;
+    unsigned int intelligence;
+    unsigned int supplies;
+    unsigned int reproduction;
     PosPreset castle;
   } PlayerPreset;
 
