@@ -148,7 +148,12 @@ EventLoopSDL::run() {
               drag_y = event.motion.y;
             }
 
-            notify_drag(drag_x, drag_y,
+            int x = static_cast<int>(static_cast<float>(drag_x) *
+                                     gfx->get_zoom_factor());
+            int y = static_cast<int>(static_cast<float>(drag_y) *
+                                     gfx->get_zoom_factor());
+
+            notify_drag(x, y,
                         event.motion.x - drag_x, event.motion.y - drag_y,
                         (Event::Button)drag_button);
 
