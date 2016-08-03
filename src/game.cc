@@ -2233,8 +2233,6 @@ Game::load_mission_map(int level) {
     init_map_data(generator);
   }
 
-  allocate_objects();
-
   /* Initialize player and build initial castle */
   for (int i = 0; i < GAME_MAX_PLAYER_COUNT; i++) {
     size_t face = (i == 0) ? 12 : mission->player[i].face;
@@ -2268,8 +2266,6 @@ Game::load_random_map(int size, const Random &rnd) {
     generator.generate();
     init_map_data(generator);
   }
-
-  allocate_objects();
 
   return true;
 }
@@ -2818,9 +2814,6 @@ operator >> (SaveReaderText &reader, Game &game) {
   game_reader->value("max_next_index") >> game.max_next_index;
   game_reader->value("map.gold_morale_factor") >> game.map_gold_morale_factor;
   game_reader->value("player_score_leader") >> game.player_score_leader;
-
-  /* Allocate game objects */
-  game.allocate_objects();
 
   sections = reader.get_sections("player");
   for (Readers::iterator it = sections.begin(); it != sections.end(); ++it) {
