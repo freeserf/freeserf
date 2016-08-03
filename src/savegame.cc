@@ -234,6 +234,18 @@ class SaveReaderTextFile : public SaveReaderText {
 };
 
 bool
+load_text_state(std::istream *is, Game *game) {
+  try {
+    SaveReaderTextFile reader_text(is);
+    reader_text >> *game;
+  } catch (...) {
+    return false;
+  }
+
+  return true;
+}
+
+bool
 load_state(const std::string &path, Game *game) {
   std::ifstream file;
   file.open(path.c_str());
