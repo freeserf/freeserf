@@ -22,6 +22,8 @@
 #include "src/freeserf.h"
 
 #include <ctime>
+#include <fstream>
+#include <iostream>
 #include <string>
 
 #ifdef HAVE_CONFIG_H
@@ -92,12 +94,12 @@ save_game(int autosave, Game *game) {
   /* TODO Possibly use PathCleanupSpec() when building for windows platform. */
   strreplace(name, "\\/:*?\"<>| ", '_');
 
-  FILE *f = fopen(name, "wb");
-  if (f == NULL) return false;
+  std::ofstream os(name, std::ios::binary);
+  if (!os.is_open()) return false;
 
-  if (!save_text_state(f, game)) return false;
+  if (!save_text_state(&os, game)) return false;
 
-  fclose(f);
+  os.close();
 
   Log::Info["main"] << "Game saved to `" << name << "'.";
 
