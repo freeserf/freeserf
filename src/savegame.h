@@ -22,6 +22,7 @@
 #ifndef SRC_SAVEGAME_H_
 #define SRC_SAVEGAME_H_
 
+#include <iostream>
 #include <string>
 #include <list>
 
@@ -40,11 +41,11 @@
 #include "src/debug.h"
 
 /* Original game format */
-bool load_v0_state(FILE *f);
+bool load_v0_state(std::istream *is);
 
 /* Text format */
-bool save_text_state(FILE *f, Game *game);
-bool load_text_state(FILE *f, Game *game);
+bool save_text_state(std::ostream *os, Game *game);
+bool load_text_state(std::istream *is, Game *game);
 
 /* Generic save/load function that will try to detect the right
    format on load and save to the best format on write. */

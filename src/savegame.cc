@@ -25,6 +25,7 @@
 #include <vector>
 #include <map>
 #include <fstream>
+#include <iostream>
 
 #include "src/game.h"
 #include "src/log.h"
@@ -32,28 +33,13 @@
 
 /* Load a save game. */
 bool
-load_v0_state(FILE *f) {
-  if (fseek(f, 0, SEEK_END) != 0) {
-    return false;
-  }
-  int last = static_cast<int>(ftell(f));
-  if (last == -1) {
-    return false;
-  }
-  size_t size = last;
-  if (fseek(f, 0, SEEK_SET) != 0) {
-    return false;
-  }
-  uint8_t *data = new uint8_t[size];
-  if (fread(data, 1, size, f) != size) {
-    return false;
-  }
+load_v0_state(std::istream *is) {
+  std::istreambuf_iterator<char> is_start(*is), is_end;
+  std::vector<char> data(is_start, is_end);
 
-  SaveReaderBinary reader(data, 8628);
+  SaveReaderBinary reader(&data[0], 8628);
   Game *game = new Game(0);
   reader >> *game;
-
-  delete[] data;
 
   return true;
 }
@@ -87,17 +73,17 @@ class SaveWriterTextSection : public SaveWriterText {
     return i->second;
   }
 
-  bool save(FILE *file) {
-    fprintf(file, "[%s %i]\n", name.c_str(), number);
+  bool save(std::ostream *os) {
+    *os << "[" << name << " " << number << "]\n";
 
     for (values_t::iterator i = values.begin(); i != values.end(); ++i) {
-      fprintf(file, "%s=%s\n", i->first.c_str(), i->second.get_value().c_str());
+      *os << i->first << "=" << i->second.get_value() << "\n";
     }
 
-    fprintf(file, "\n");
+    *os << "\n";
 
     for (sections_t::iterator i = sections.begin(); i != sections.end(); ++i) {
-      (*i)->save(file);
+      (*i)->save(os);
     }
 
     return true;
@@ -114,12 +100,12 @@ class SaveWriterTextSection : public SaveWriterText {
 };
 
 bool
-save_text_state(FILE *f, Game *game) {
+save_text_state(std::ostream *os, Game *game) {
   SaveWriterTextSection writer("game", 0);
 
   writer << *game;
 
-  return writer.save(f);
+  return writer.save(os);
 }
 
 class SaveReaderTextSection : public SaveReaderText {
@@ -282,11 +268,11 @@ load_state(const std::string &path, Game *game) {
 
 bool
 save_state(const std::string &path, Game *game) {
-  FILE *f = fopen(path.c_str(), "wb");
-  if (f == NULL) return false;
+  std::ofstream os(path.c_str(), std::ofstream::binary);
+  if (!os.is_open()) return false;
 
-  bool r = save_text_state(f, game);
-  fclose(f);
+  bool r = save_text_state(&os, game);
+  os.close();
 
   return r;
 }
