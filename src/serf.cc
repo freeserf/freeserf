@@ -3060,8 +3060,8 @@ Serf::handle_free_walking_common() {
           if (other_serf->state == StateTransporting) {
             if (game->get_map()->has_flag(new_pos)) {
               if (other_serf->s.walking.wait_counter != -1) {
-                int dir = other_serf->s.walking.dir;
-                if (dir < 0) dir += 6;
+//                int dir = other_serf->s.walking.dir;
+//                if (dir < 0) dir += 6;
                 Log::Debug["serf"] << "TODO remove " << other_serf->get_index()
                                    << " from path";
               }

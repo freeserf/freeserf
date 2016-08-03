@@ -42,14 +42,16 @@
 
 #define GROUND_ANALYSIS_RADIUS  25
 
-Game::Game(int map_generator)
-  : players(this)
-  , flags(this)
-  , inventories(this)
-  , buildings(this)
-  , serfs(this) {
+Game::Game(int _map_generator) {
   map = NULL;
-  this->map_generator = map_generator;
+  map_generator = _map_generator;
+
+  players = Players(this);
+  flags = Flags(this);
+  inventories = Inventories(this);
+  buildings = Buildings(this);
+  serfs = Serfs(this);
+
   allocate_objects();
 }
 
@@ -393,6 +395,9 @@ Game::send_serf_to_flag(Flag *dest, Serf::Type type, Resource::Type res1,
       if (type == Serf::TypeGeologist) {
         mode = 6;
       } else {
+        if (building == NULL) {
+          return false;
+        }
         building->request_serf();
         mode = -1;
       }
@@ -533,6 +538,7 @@ Game::update_game_stats() {
       values[(*it)->get_index()] = (*it)->get_land_area();
     }
     record_player_history(update_level, 1, player_history_index, values);
+    // ToDo (Digger): What is this? BIT(-1)?
     player_score_leader |= BIT(calculate_clear_winner(values));
 
     /* Store building stats in history. */
@@ -832,8 +838,8 @@ bool
 Game::build_road(const Road &road, const Player *player) {
   if (road.get_length() == 0) return false;
 
-  MapPos dest;
-  bool water_path;
+  MapPos dest = 0;
+  bool water_path = false;
   if (!can_build_road(road, player, &dest, &water_path)) {
     return false;
   }
@@ -1330,8 +1336,7 @@ Game::can_build_building(MapPos pos, Building::Type type,
   /* Check that building flag is possible if it
      doesn't already exist. */
   MapPos flag_pos = map->move_down_right(pos);
-  if (!map->has_flag(flag_pos) &&
-      !can_build_flag(flag_pos, player)) {
+  if (!map->has_flag(flag_pos) && !can_build_flag(flag_pos, player)) {
     return false;
   }
 
@@ -1398,16 +1403,15 @@ Game::build_building(MapPos pos, Building::Type type, Player *player) {
     return false;
   }
 
-  Flag *flag = NULL;
-  unsigned int flg_index = 0;
-  if (map->get_obj(map->move_down_right(pos)) != Map::ObjectFlag) {
-    flag = flags.allocate();
-    if (flag == NULL) {
+  Flag *flag = get_flag_at_pos(map->move_down_right(pos));
+  if (flag == NULL) {
+    if (!build_flag(map->move_down_right(pos), player)) {
       buildings.erase(bld->get_index());
       return false;
     }
-    flg_index = flag->get_index();
+    flag = get_flag_at_pos(map->move_down_right(pos));
   }
+  unsigned int flg_index = flag->get_index();
 
   bld->set_level(get_leveling_height(pos));
   bld->set_position(pos);
@@ -2104,8 +2108,8 @@ Game::set_inventory_serf_mode(Inventory *inventory, int mode) {
 /* Add new player to the game. Returns the player number
    or negative on error. */
 unsigned int
-Game::add_player(size_t face, unsigned int color, size_t supplies,
-                   size_t reproduction, size_t intelligence) {
+Game::add_player(size_t face, unsigned int color, unsigned int supplies,
+                 size_t reproduction, size_t intelligence) {
   /* Allocate object */
   Player *player = players.allocate();
   if (player == NULL) abort();
@@ -2740,6 +2744,10 @@ Game::get_building_at_pos(MapPos pos) {
 
 Flag *
 Game::get_flag_at_pos(MapPos pos) {
+  if (map->get_obj(pos) != Map::ObjectFlag) {
+    return NULL;
+  }
+
   return flags[map->get_obj_index(pos)];
 }
 

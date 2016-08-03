@@ -53,8 +53,13 @@ class Collection {
   Game *game;
 
  public:
-  explicit Collection(Game *game) {
-    this->game = game;
+  Collection() {
+    game = NULL;
+    last_object_index = 0;
+  }
+
+  explicit Collection(Game *_game) {
+    game = _game;
     last_object_index = 0;
   }
 

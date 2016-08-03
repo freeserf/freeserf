@@ -77,14 +77,14 @@ class ClassicMapGenerator : public MapGenerator {
   const Map &map;
   Random rnd;
 
-  int tile_count;
+  unsigned int tile_count;
   Map::LandscapeTile *tiles;
   int *tags;
   HeightGenerator height_generator;
   bool preserve_bugs;
 
-  int16_t water_level;
-  int16_t max_lake_area;
+  unsigned int water_level;
+  unsigned int max_lake_area;
   int terrain_spikyness;
 
   uint16_t random_int();
