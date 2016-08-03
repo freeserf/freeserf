@@ -464,7 +464,7 @@ Player::start_attack() {
     }
 
     MapPos flag_pos = game->get_map()->move_down_right(b->get_position());
-    if (game->get_map()->get_serf_index(flag_pos) != 0) {
+    if (game->get_map()->has_serf(flag_pos)) {
       /* Check if building is under siege. */
       Serf *s = game->get_serf_at_pos(flag_pos);
       if (s->get_player() != index) continue;

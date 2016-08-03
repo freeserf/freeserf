@@ -1961,7 +1961,7 @@ Viewport::draw_serf_row(MapPos pos, int y_base, int cols, int x_base) {
        i++, x_base += MAP_TILE_WIDTH, pos = map->move_right(pos)) {
 #if 0
     /* Draw serf marker */
-    if (map->get_serf_index(pos) != 0) {
+    if (map->has_serf(pos)) {
       serf_t *serf = game->get_serf_at_pos(pos);
       int color = game.player[map->get_owner(pos)]->color;
       frame->fill_rect(x_base - 2, y_base - 4*MAP_HEIGHT(pos) - 2, 4, 4, color);
@@ -1969,7 +1969,7 @@ Viewport::draw_serf_row(MapPos pos, int y_base, int cols, int x_base) {
 #endif
 
     /* Active serf */
-    if (map->get_serf_index(pos) != 0) {
+    if (map->has_serf(pos)) {
       Serf *serf = interface->get_game()->get_serf_at_pos(pos);
 
       if (serf->get_state() != Serf::StateMining ||
@@ -2011,7 +2011,7 @@ Viewport::draw_serf_row_behind(MapPos pos, int y_base, int cols,
   for (int i = 0; i < cols;
        i++, x_base += MAP_TILE_WIDTH, pos = map->move_right(pos)) {
     /* Active serf */
-    if (map->get_serf_index(pos) != 0) {
+    if (map->has_serf(pos)) {
       Serf *serf = interface->get_game()->get_serf_at_pos(pos);
 
       if (serf->get_state() == Serf::StateMining &&

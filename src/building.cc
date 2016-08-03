@@ -337,30 +337,27 @@ Building::update() {
       case TypeNone:
         break;
       case TypeFisher:
-        if (!serf_request_fail() &&
-            !has_serf() &&
-            !serf_requested()) {
-          int r = send_serf_to_building(this, Serf::TypeFisher,
-                                        Resource::TypeRod, Resource::TypeNone);
-          if (r < 0) serf |= BIT(2);
+        if (!serf_request_fail() && !has_serf() && !serf_requested()) {
+          bool r = send_serf_to_building(this, Serf::TypeFisher,
+                                         Resource::TypeRod,
+                                         Resource::TypeNone);
+          if (!r) serf |= BIT(2);
         }
         break;
       case TypeLumberjack:
-        if (!serf_request_fail() &&
-            !has_serf() &&
-            !serf_requested()) {
-          int r = send_serf_to_building(this, Serf::TypeLumberjack,
-                                        Resource::TypeAxe, Resource::TypeNone);
-          if (r < 0) serf |= BIT(2);
+        if (!serf_request_fail() && !has_serf() && !serf_requested()) {
+          bool r = send_serf_to_building(this, Serf::TypeLumberjack,
+                                         Resource::TypeAxe,
+                                         Resource::TypeNone);
+          if (!r) serf |= BIT(2);
         }
         break;
       case TypeBoatbuilder:
-        if (!serf_request_fail() &&
-            !has_serf() &&
-            !serf_requested()) {
-          int r = send_serf_to_building(this, Serf::TypeBoatBuilder,
-                                      Resource::TypeHammer, Resource::TypeNone);
-          if (r < 0) serf |= BIT(2);
+        if (!serf_request_fail() && !has_serf() && !serf_requested()) {
+          bool r = send_serf_to_building(this, Serf::TypeBoatBuilder,
+                                         Resource::TypeHammer,
+                                         Resource::TypeNone);
+          if (!r) serf |= BIT(2);
         }
         if (has_serf()) {
           Player *player = game->get_player(get_owner());
@@ -374,21 +371,19 @@ Building::update() {
         }
         break;
       case TypeStonecutter:
-        if (!serf_request_fail() &&
-            !has_serf() &&
-            !serf_requested()) {
-          int r = send_serf_to_building(this, Serf::TypeStonecutter,
-                                        Resource::TypePick, Resource::TypeNone);
-          if (r < 0) serf |= BIT(2);
+        if (!serf_request_fail() && !has_serf() && !serf_requested()) {
+          bool r = send_serf_to_building(this, Serf::TypeStonecutter,
+                                         Resource::TypePick,
+                                         Resource::TypeNone);
+          if (!r) serf |= BIT(2);
         }
         break;
       case TypeStoneMine:
-        if (!serf_request_fail() &&
-            !has_serf() &&
-            !serf_requested()) {
-          int r = send_serf_to_building(this, Serf::TypeMiner,
-                                        Resource::TypePick, Resource::TypeNone);
-          if (r < 0) serf |= BIT(2);
+        if (!serf_request_fail() && !has_serf() && !serf_requested()) {
+          bool r = send_serf_to_building(this, Serf::TypeMiner,
+                                         Resource::TypePick,
+                                         Resource::TypeNone);
+          if (!r) serf |= BIT(2);
         }
         if (has_serf()) {
           int total_food = stock[0].requested + stock[0].available;
@@ -401,12 +396,11 @@ Building::update() {
         }
         break;
       case TypeCoalMine:
-        if (!serf_request_fail() &&
-            !has_serf() &&
-            !serf_requested()) {
-          int r = send_serf_to_building(this, Serf::TypeMiner,
-                                        Resource::TypePick, Resource::TypeNone);
-          if (r < 0) serf |= BIT(2);
+        if (!serf_request_fail() && !has_serf() && !serf_requested()) {
+          bool r = send_serf_to_building(this, Serf::TypeMiner,
+                                         Resource::TypePick,
+                                         Resource::TypeNone);
+          if (!r) serf |= BIT(2);
         }
         if (has_serf()) {
           int total_food = stock[0].requested + stock[0].available;
@@ -419,12 +413,11 @@ Building::update() {
         }
         break;
       case TypeIronMine:
-        if (!serf_request_fail() &&
-            !has_serf() &&
-            !serf_requested()) {
-          int r = send_serf_to_building(this, Serf::TypeMiner,
-                                        Resource::TypePick, Resource::TypeNone);
-          if (r < 0) serf |= BIT(2);
+        if (!serf_request_fail() && !has_serf() && !serf_requested()) {
+          bool r = send_serf_to_building(this, Serf::TypeMiner,
+                                         Resource::TypePick,
+                                         Resource::TypeNone);
+          if (!r) serf |= BIT(2);
         }
         if (has_serf()) {
           int total_food = stock[0].requested + stock[0].available;
@@ -437,12 +430,11 @@ Building::update() {
         }
         break;
       case TypeGoldMine:
-        if (!serf_request_fail() &&
-            !has_serf() &&
-            !serf_requested()) {
-          int r = send_serf_to_building(this, Serf::TypeMiner,
-                                        Resource::TypePick, Resource::TypeNone);
-          if (r < 0) serf |= BIT(2);
+        if (!serf_request_fail() && !has_serf() && !serf_requested()) {
+          bool r = send_serf_to_building(this, Serf::TypeMiner,
+                                         Resource::TypePick,
+                                         Resource::TypeNone);
+          if (!r) serf |= BIT(2);
         }
         if (has_serf()) {
           int total_food = stock[0].requested + stock[0].available;
@@ -455,12 +447,11 @@ Building::update() {
         }
         break;
       case TypeForester:
-        if (!serf_request_fail() &&
-            !has_serf() &&
-            !serf_requested()) {
-          int r = send_serf_to_building(this, Serf::TypeForester,
-                                        Resource::TypeNone, Resource::TypeNone);
-          if (r < 0) serf |= BIT(2);
+        if (!serf_request_fail() && !has_serf() && !serf_requested()) {
+          bool r = send_serf_to_building(this, Serf::TypeForester,
+                                         Resource::TypeNone,
+                                         Resource::TypeNone);
+          if (!r) serf |= BIT(2);
         }
         break;
       case TypeStock:
@@ -481,9 +472,7 @@ Building::update() {
 
           game->get_player(get_owner())->add_notification(7, pos, 0);
         } else {
-          if (!serf_request_fail() &&
-              !has_serf() &&
-              !serf_requested()) {
+          if (!serf_request_fail() && !has_serf() && !serf_requested()) {
             send_serf_to_building(this, Serf::TypeTransporter,
                                   Resource::TypeNone, Resource::TypeNone);
           }
@@ -501,7 +490,7 @@ Building::update() {
 
           /* TODO Following code looks like a hack */
           MapPos flag_pos = game->get_map()->move_down_right(pos);
-          if (game->get_map()->get_serf_index(flag_pos) != 0) {
+          if (game->get_map()->has_serf(flag_pos)) {
             Serf *serf = game->get_serf_at_pos(flag_pos);
             if (serf->get_pos() != flag_pos) {
               game->get_map()->set_serf_index(flag_pos, 0);
@@ -515,21 +504,19 @@ Building::update() {
         update_military();
         break;
       case TypeFarm:
-        if (!serf_request_fail() &&
-            !has_serf() &&
-            !serf_requested()) {
-          int r = send_serf_to_building(this, Serf::TypeFarmer,
-                                      Resource::TypeScythe, Resource::TypeNone);
-          if (r < 0) serf |= BIT(2);
+        if (!serf_request_fail() && !has_serf() && !serf_requested()) {
+          bool r = send_serf_to_building(this, Serf::TypeFarmer,
+                                         Resource::TypeScythe,
+                                         Resource::TypeNone);
+          if (!r) serf |= BIT(2);
         }
         break;
       case TypeButcher:
-        if (!serf_request_fail() &&
-            !has_serf() &&
-            !serf_requested()) {
-          int r = send_serf_to_building(this, Serf::TypeButcher,
-                                     Resource::TypeCleaver, Resource::TypeNone);
-          if (r < 0) serf |= BIT(2);
+        if (!serf_request_fail() && !has_serf() && !serf_requested()) {
+          bool r = send_serf_to_building(this, Serf::TypeButcher,
+                                         Resource::TypeCleaver,
+                                         Resource::TypeNone);
+          if (!r) serf |= BIT(2);
         }
         if (has_serf()) {
           /* Request more of that delicious meat. */
@@ -542,12 +529,11 @@ Building::update() {
         }
         break;
       case TypePigFarm:
-        if (!serf_request_fail() &&
-            !has_serf() &&
-            !serf_requested()) {
-          int r = send_serf_to_building(this, Serf::TypePigFarmer,
-                                        Resource::TypeNone, Resource::TypeNone);
-          if (r < 0) serf |= BIT(2);
+        if (!serf_request_fail() && !has_serf() && !serf_requested()) {
+          bool r = send_serf_to_building(this, Serf::TypePigFarmer,
+                                         Resource::TypeNone,
+                                         Resource::TypeNone);
+          if (!r) serf |= BIT(2);
         }
         if (has_serf()) {
           /* Request more wheat. */
@@ -561,12 +547,11 @@ Building::update() {
         }
         break;
       case TypeMill:
-        if (!serf_request_fail() &&
-            !has_serf() &&
-            !serf_requested()) {
-          int r = send_serf_to_building(this, Serf::TypeMiller,
-                                        Resource::TypeNone, Resource::TypeNone);
-          if (r < 0) serf |= BIT(2);
+        if (!serf_request_fail() && !has_serf() && !serf_requested()) {
+          bool r = send_serf_to_building(this, Serf::TypeMiller,
+                                         Resource::TypeNone,
+                                         Resource::TypeNone);
+          if (!r) serf |= BIT(2);
         }
         if (has_serf()) {
           /* Request more wheat. */
@@ -580,12 +565,11 @@ Building::update() {
         }
         break;
       case TypeBaker:
-        if (!serf_request_fail() &&
-            !has_serf() &&
-            !serf_requested()) {
-          int r = send_serf_to_building(this, Serf::TypeBaker,
-                                        Resource::TypeNone, Resource::TypeNone);
-          if (r < 0) serf |= BIT(2);
+        if (!serf_request_fail() && !has_serf() && !serf_requested()) {
+          bool r = send_serf_to_building(this, Serf::TypeBaker,
+                                         Resource::TypeNone,
+                                         Resource::TypeNone);
+          if (!r) serf |= BIT(2);
         }
         if (has_serf()) {
           /* Request more flour. */
@@ -598,12 +582,11 @@ Building::update() {
         }
         break;
       case TypeSawmill:
-        if (!serf_request_fail() &&
-            !has_serf() &&
-            !serf_requested()) {
-          int r = send_serf_to_building(this, Serf::TypeSawmiller,
-                                        Resource::TypeSaw, Resource::TypeNone);
-          if (r < 0) serf |= BIT(2);
+        if (!serf_request_fail() && !has_serf() && !serf_requested()) {
+          bool r = send_serf_to_building(this, Serf::TypeSawmiller,
+                                         Resource::TypeSaw,
+                                         Resource::TypeNone);
+          if (!r) serf |= BIT(2);
         }
         if (has_serf()) {
           /* Request more lumber */
@@ -616,12 +599,11 @@ Building::update() {
         }
         break;
       case TypeSteelSmelter:
-        if (!serf_request_fail() &&
-            !has_serf() &&
-            !serf_requested()) {
-          int r = send_serf_to_building(this, Serf::TypeSmelter,
-                                        Resource::TypeNone, Resource::TypeNone);
-          if (r < 0) serf |= BIT(2);
+        if (!serf_request_fail() && !has_serf() && !serf_requested()) {
+          bool r = send_serf_to_building(this, Serf::TypeSmelter,
+                                         Resource::TypeNone,
+                                         Resource::TypeNone);
+          if (!r) serf |= BIT(2);
         }
         if (has_serf()) {
           /* Request more coal */
@@ -643,12 +625,11 @@ Building::update() {
         }
         break;
       case TypeToolMaker:
-        if (!serf_request_fail() &&
-            !has_serf() &&
-            !serf_requested()) {
-          int r = send_serf_to_building(this, Serf::TypeToolmaker,
-                                       Resource::TypeHammer, Resource::TypeSaw);
-          if (r < 0) serf |= BIT(2);
+        if (!serf_request_fail() && !has_serf() && !serf_requested()) {
+          bool r = send_serf_to_building(this, Serf::TypeToolmaker,
+                                         Resource::TypeHammer,
+                                         Resource::TypeSaw);
+          if (!r) serf |= BIT(2);
         }
         if (has_serf()) {
           /* Request more planks. */
@@ -670,12 +651,11 @@ Building::update() {
         }
         break;
       case TypeWeaponSmith:
-        if (!serf_request_fail() &&
-            !has_serf() &&
-            !serf_requested()) {
-          int r = send_serf_to_building(this, Serf::TypeWeaponSmith,
-                                    Resource::TypeHammer, Resource::TypePincer);
-          if (r < 0) serf |= BIT(2);
+        if (!serf_request_fail() && !has_serf() && !serf_requested()) {
+          bool r = send_serf_to_building(this, Serf::TypeWeaponSmith,
+                                         Resource::TypeHammer,
+                                         Resource::TypePincer);
+          if (!r) serf |= BIT(2);
         }
         if (has_serf()) {
           /* Request more coal. */
@@ -698,12 +678,11 @@ Building::update() {
         }
         break;
       case TypeGoldSmelter:
-        if (!serf_request_fail() &&
-            !has_serf() &&
-            !serf_requested()) {
-          int r = send_serf_to_building(this, Serf::TypeSmelter,
-                                        Resource::TypeNone, Resource::TypeNone);
-          if (r < 0) serf |= BIT(2);
+        if (!serf_request_fail() && !has_serf() && !serf_requested()) {
+          bool r = send_serf_to_building(this, Serf::TypeSmelter,
+                                         Resource::TypeNone,
+                                         Resource::TypeNone);
+          if (!r) serf |= BIT(2);
         }
         if (has_serf()) {
           /* Request more coal. */
@@ -780,9 +759,9 @@ Building::update_unfinished() {
       !has_serf() &&
       !serf_requested()) {
     progress = 1;
-    int r = send_serf_to_building(this, Serf::TypeBuilder,
-                                  Resource::TypeHammer, Resource::TypeNone);
-    if (r < 0) serf |= BIT(2);
+    bool r = send_serf_to_building(this, Serf::TypeBuilder,
+                                   Resource::TypeHammer, Resource::TypeNone);
+    if (!r) serf |= BIT(2);
   }
 
   /* Request planks */
@@ -942,8 +921,8 @@ Building::update_castle() {
   }
 
   MapPos flag_pos = game->get_map()->move_down_right(pos);
-  if (game->get_map()->get_serf_index(flag_pos) != 0) {
-    Serf *serf = game->get_serf(game->get_map()->get_serf_index(flag_pos));
+  if (game->get_map()->has_serf(flag_pos)) {
+    Serf *serf = game->get_serf_at_pos(flag_pos);
     if (serf->get_pos() != flag_pos) {
       game->get_map()->set_serf_index(flag_pos, 0);
     }
@@ -1001,8 +980,8 @@ Building::update_military() {
       if (!r) serf |= BIT(2);
     }
   } else if (needed_occupants < present_knights &&
-             game->get_map()->get_serf_index(
-                                  game->get_map()->move_down_right(pos)) == 0) {
+             !game->get_map()->has_serf(
+                                       game->get_map()->move_down_right(pos))) {
     /* Kick least trained knight out. */
     Serf *leaving_serf = NULL;
     int serf_index = this->serf_index;
