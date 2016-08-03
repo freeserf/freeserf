@@ -51,6 +51,30 @@ class Log {
     LevelMax
   } Level;
 
+  class Stream {
+   protected:
+    std::ostream *stream;
+
+   public:
+    explicit Stream(std::ostream *_stream) : stream(_stream) {}
+    ~Stream() {
+      *stream << std::endl;
+      stream->flush();
+    }
+
+    std::ostream *get_stream() { return stream; }
+
+    template <class T> Stream & operator << (const T &val) {
+      *stream << val;
+      return *this;
+    }
+
+    Stream & operator << (const char val[]) {
+      *stream << std::string(val);
+      return *this;
+    }
+  };
+
   class Logger {
    protected:
     Level level;
@@ -64,10 +88,9 @@ class Log {
       apply_level();
     }
 
-    virtual std::ostream & operator[](std::string subsystem) {
-      *stream << std::endl;
+    virtual Stream operator[](std::string subsystem) {
       *stream << prefix << ": [" << subsystem << "] ";
-      return *stream;
+      return Stream(stream);
     }
 
     void apply_level() {
