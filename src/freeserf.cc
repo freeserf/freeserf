@@ -21,7 +21,6 @@
 
 #include "src/freeserf.h"
 
-#include <ctime>
 #include <fstream>
 #include <iostream>
 #include <string>
@@ -52,59 +51,6 @@
 
 #define DEFAULT_SCREEN_WIDTH  800
 #define DEFAULT_SCREEN_HEIGHT 600
-
-/* Autosave interval */
-#define AUTOSAVE_INTERVAL  (10*60*TICKS_PER_SEC)
-
-/* In target, replace any character from needle with replacement character. */
-static void
-strreplace(char *target, const char *needle, char replace) {
-  for (int i = 0; target[i] != '\0'; i++) {
-    for (int j = 0; needle[j] != '\0'; j++) {
-      if (needle[j] == target[i]) {
-        target[i] = replace;
-        break;
-      }
-    }
-  }
-}
-
-bool
-save_game(int autosave, Game *game) {
-  size_t r;
-
-  /* Build filename including time stamp. */
-  char name[128];
-  std::time_t t = time(NULL);
-
-  struct tm *tm = std::localtime(&t);
-  if (tm == NULL) return false;
-
-  if (!autosave) {
-    r = strftime(name, sizeof(name), "%c.save", tm);
-    if (r == 0) return false;
-  } else {
-    r = strftime(name, sizeof(name), "autosave-%c.save", tm);
-    if (r == 0) return false;
-  }
-
-  /* Substitute problematic characters. These are problematic
-     particularly on windows platforms, but also in general on FAT
-     filesystems through any platform. */
-  /* TODO Possibly use PathCleanupSpec() when building for windows platform. */
-  strreplace(name, "\\/:*?\"<>| ", '_');
-
-  std::ofstream os(name, std::ios::binary);
-  if (!os.is_open()) return false;
-
-  if (!save_text_state(&os, game)) return false;
-
-  os.close();
-
-  Log::Info["main"] << "Game saved to `" << name << "'.";
-
-  return true;
-}
 
 #define USAGE                                               \
   "Usage: %s [-g DATA-FILE]\n"

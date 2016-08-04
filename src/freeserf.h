@@ -26,8 +26,5 @@
 #define TICK_LENGTH  20
 #define TICKS_PER_SEC  (1000/TICK_LENGTH)
 
-class Game;
-
-bool save_game(int autosave, Game *game);
 
 #endif  // SRC_FREESERF_H_
