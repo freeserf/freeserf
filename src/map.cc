@@ -852,6 +852,41 @@ Map::types_within(MapPos pos, Terrain low, Terrain high) {
   return false;
 }
 
+bool
+Map::operator == (const Map& rhs) const {
+  // Check fundamental properties
+  if (this->size != rhs.size ||
+      this->col_size != rhs.col_size ||
+      this->row_size != rhs.row_size ||
+      this->regions != rhs.regions ||
+      this->gold_deposit != rhs.gold_deposit ||
+      this->update_state != rhs.update_state) {
+    return false;
+  }
+
+  // Check all tiles
+  for (unsigned int y = 0; y < rows; y++) {
+    for (unsigned int x = 0; x < cols; x++) {
+      MapPos pos_ = pos(x, y);
+      if (pos_ != rhs.pos(x, y)) return false;
+
+      if (this->landscape_tiles[pos_] != rhs.landscape_tiles[pos_]) {
+        return false;
+      }
+      if (this->game_tiles[pos_] != rhs.game_tiles[pos_]) {
+        return false;
+      }
+    }
+  }
+
+  return true;
+}
+
+bool
+Map::operator != (const Map& rhs) const {
+  return !(*this == rhs);
+}
+
 SaveReaderBinary&
 operator >> (SaveReaderBinary &reader, Map &map) {
   uint8_t v8;
