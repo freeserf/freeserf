@@ -2815,6 +2815,21 @@ operator >> (SaveReaderText &reader, Game &game) {
   game_reader->value("map.gold_morale_factor") >> game.map_gold_morale_factor;
   game_reader->value("player_score_leader") >> game.player_score_leader;
 
+  int gold_deposit;
+  game_reader->value("gold_deposit") >> gold_deposit;
+  game.map->add_gold_deposit(gold_deposit);
+
+  Map::UpdateState update_state;
+  int x, y;
+  game_reader->value("update_state.remove_signs_counter") >>
+    update_state.remove_signs_counter;
+  game_reader->value("update_state.last_tick") >> update_state.last_tick;
+  game_reader->value("update_state.counter") >> update_state.counter;
+  game_reader->value("update_state.initial_pos")[0] >> x;
+  game_reader->value("update_state.initial_pos")[1] >> y;
+  update_state.initial_pos = game.map->pos(x, y);
+  game.map->set_update_state(update_state);
+
   sections = reader.get_sections("player");
   for (Readers::iterator it = sections.begin(); it != sections.end(); ++it) {
     Player *p = game.players.get_or_insert((*it)->get_number());
@@ -2914,6 +2929,18 @@ operator << (SaveWriterText &writer, Game &game) {
   writer.value("max_next_index") << game.max_next_index;
   writer.value("map.gold_morale_factor") << game.map_gold_morale_factor;
   writer.value("player_score_leader") << game.player_score_leader;
+
+  writer.value("gold_deposit") << game.map->get_gold_deposit();
+
+  const Map::UpdateState& update_state = game.map->get_update_state();
+  writer.value("update_state.remove_signs_counter") <<
+    update_state.remove_signs_counter;
+  writer.value("update_state.last_tick") << update_state.last_tick;
+  writer.value("update_state.counter") << update_state.counter;
+  writer.value("update_state.initial_pos") << game.map->pos_col(
+    update_state.initial_pos);
+  writer.value("update_state.initial_pos") << game.map->pos_row(
+    update_state.initial_pos);
 
   for (Game::Players::Iterator p = game.players.begin();
        p != game.players.end(); ++p) {
