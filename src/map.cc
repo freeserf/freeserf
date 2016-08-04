@@ -343,6 +343,8 @@ Map::init(unsigned int size) {
     spiral_pos_pattern = NULL;
   }
 
+  gold_deposit = 0;
+
   update_state.last_tick = 0;
   update_state.counter = 0;
   update_state.remove_signs_counter = 0;
