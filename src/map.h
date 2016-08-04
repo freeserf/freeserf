@@ -299,6 +299,13 @@ class Map {
     Object obj;
   } LandscapeTile;
 
+  struct UpdateState {
+    int remove_signs_counter;
+    uint16_t last_tick;
+    int counter;
+    MapPos initial_pos;
+  };
+
  protected:
   typedef struct GameTile {
     uint8_t paths;
@@ -325,10 +332,7 @@ class Map {
 
   uint32_t gold_deposit;
 
-  int16_t update_map_16_loop;
-  uint16_t update_map_last_tick;
-  int16_t update_map_counter;
-  MapPos update_map_initial_pos;
+  UpdateState update_state;
 
   /* Callback for map height changes */
   typedef std::list<Handler*> change_handlers_t;
