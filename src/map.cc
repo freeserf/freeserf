@@ -916,7 +916,7 @@ operator >> (SaveReaderText &reader, Map &map) {
 
       try {
         reader.value("owner")[y*SAVE_MAP_TILE_SIZE+x] >> val;
-        map.game_tiles[p].owner = val;
+        map.game_tiles[p].owner = val + 1;
         reader.value("height")[y*SAVE_MAP_TILE_SIZE+x] >> val;
         map.landscape_tiles[p].height = val;
       } catch (...) {
