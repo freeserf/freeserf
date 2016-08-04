@@ -469,6 +469,10 @@ class Map {
   void init_tiles(const MapGenerator &generator);
 
   void update(unsigned int tick, Random *rnd);
+  const UpdateState& get_update_state() const { return update_state; }
+  void set_update_state(const UpdateState& update_state_) {
+    update_state = update_state_;
+  }
 
   void add_change_handler(Handler *handler);
   void del_change_handler(Handler *handler);
