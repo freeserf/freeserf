@@ -225,7 +225,7 @@ GameInitBox::handle_action(int action) {
 
   switch (action) {
     case ActionStartGame: {
-      Game *game = new Game(0);
+      Game *game = new Game();
       game->init();
       if (game_mission < 0) {
         if (!game->load_random_map(map_size, mission->rnd)) return;

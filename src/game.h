@@ -95,7 +95,6 @@ class Game : public EventLoop::Handler {
   int game_type;
   int tutorial_level;
   int mission_level;
-  int map_generator;
   int map_preserve_bugs;
   int player_score_leader;
 
@@ -103,7 +102,7 @@ class Game : public EventLoop::Handler {
   int inventory_schedule_counter;
 
  public:
-  explicit Game(int map_generator);
+  Game();
   virtual ~Game();
 
   Map *get_map() { return map; }

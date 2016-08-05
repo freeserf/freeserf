@@ -38,7 +38,7 @@ load_v0_state(std::istream *is) {
   std::vector<char> data(is_start, is_end);
 
   SaveReaderBinary reader(&data[0], 8628);
-  Game *game = new Game(0);
+  Game *game = new Game();
   reader >> *game;
 
   return true;

@@ -74,11 +74,10 @@ main(int argc, char *argv[]) {
   int screen_width = DEFAULT_SCREEN_WIDTH;
   int screen_height = DEFAULT_SCREEN_HEIGHT;
   bool fullscreen = false;
-  int map_generator = 0;
 
 #ifdef HAVE_GETOPT_H
   while (true) {
-    char opt = getopt(argc, argv, "d:fg:hl:r:t:");
+    char opt = getopt(argc, argv, "d:fg:hl:r:");
     if (opt < 0) break;
 
     switch (opt) {
@@ -115,9 +114,6 @@ main(int argc, char *argv[]) {
           screen_width = atoi(optarg);
           screen_height = atoi(hstr+1);
         }
-        break;
-      case 't':
-        map_generator = atoi(optarg);
         break;
       default:
         fprintf(stderr, USAGE, argv[0]);
@@ -158,7 +154,7 @@ main(int argc, char *argv[]) {
     player->play_track(Audio::TypeMidiTrack0);
   }
 
-  Game *game = new Game(map_generator);
+  Game *game = new Game();
   game->init();
 
   /* Either load a save game if specified or

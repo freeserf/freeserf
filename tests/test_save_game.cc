@@ -32,7 +32,7 @@ main(int argc, char *argv[]) {
   std::cout << "1..4" << "\n";
 
   // Create random map game
-  Game *game = new Game(0);
+  Game *game = new Game();
   game->init();
   game->load_random_map(3, Random("8667715887436237"));
 
@@ -56,7 +56,7 @@ main(int argc, char *argv[]) {
 
   // Load the game state into a new game
   str.seekg(0, std::ios::beg);
-  Game *loaded_game = new Game(0);
+  Game *loaded_game = new Game();
   bool loaded = load_text_state(&str, loaded_game);
 
   if (loaded) {
