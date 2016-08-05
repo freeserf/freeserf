@@ -1482,10 +1482,10 @@ Game::build_castle(MapPos pos, Player *player) {
   inventory->set_owner(player->get_index());
   inventory->apply_supplies_preset(player->get_initial_supplies());
 
-  map->add_gold_deposit(static_cast<int>(
-                               inventory->get_count_of(Resource::TypeGoldBar)));
-  map->add_gold_deposit(static_cast<int>(
-                               inventory->get_count_of(Resource::TypeGoldOre)));
+  add_gold_total(static_cast<int>(
+    inventory->get_count_of(Resource::TypeGoldBar)));
+  add_gold_total(static_cast<int>(
+    inventory->get_count_of(Resource::TypeGoldOre)));
 
   castle->set_position(pos);
   flag->set_position(map->move_down_right(pos));
@@ -1635,7 +1635,7 @@ Game::demolish_building_(MapPos pos) {
        building->get_type() == Building::TypeFortress ||
        building->get_type() == Building::TypeGoldSmelter)) {
     int gold_stock = building->get_res_count_in_stock(1);
-    map->add_gold_deposit(-gold_stock);
+    add_gold_total(-gold_stock);
   }
 
   /* Update land owner ship if the building is military. */
@@ -1655,10 +1655,10 @@ Game::demolish_building_(MapPos pos) {
 
       inventory->lose_queue();
 
-      map->add_gold_deposit(-static_cast< int >(
-                           inventory->get_count_of(Resource::TypeGoldBar)));
-      map->add_gold_deposit(-static_cast< int >(
-                           inventory->get_count_of(Resource::TypeGoldOre)));
+      add_gold_total(-static_cast<int>(
+        inventory->get_count_of(Resource::TypeGoldBar)));
+      add_gold_total(-static_cast<int>(
+        inventory->get_count_of(Resource::TypeGoldOre)));
 
       inventories.erase(inventory->get_index());
     }
@@ -2163,6 +2163,7 @@ Game::init_map(int size) {
 void
 Game::init_map_data(const MapGenerator& generator) {
   this->map->init_tiles(generator);
+  gold_total = map->get_gold_deposit();
 }
 
 void
@@ -2297,7 +2298,7 @@ Game::cancel_transported_resource(Resource::Type res, unsigned int dest) {
 void
 Game::lose_resource(Resource::Type res) {
   if (res == Resource::TypeGoldOre || res == Resource::TypeGoldBar) {
-    map->add_gold_deposit(-1);
+    add_gold_total(-1);
   }
 }
 
@@ -2814,9 +2815,7 @@ operator >> (SaveReaderText &reader, Game &game) {
   game_reader->value("map.gold_morale_factor") >> game.map_gold_morale_factor;
   game_reader->value("player_score_leader") >> game.player_score_leader;
 
-  int gold_deposit;
-  game_reader->value("gold_deposit") >> gold_deposit;
-  game.map->add_gold_deposit(gold_deposit);
+  game_reader->value("gold_deposit") >> game.gold_total;
 
   Map::UpdateState update_state;
   int x, y;
@@ -2929,7 +2928,7 @@ operator << (SaveWriterText &writer, Game &game) {
   writer.value("map.gold_morale_factor") << game.map_gold_morale_factor;
   writer.value("player_score_leader") << game.player_score_leader;
 
-  writer.value("gold_deposit") << game.map->get_gold_deposit();
+  writer.value("gold_deposit") << game.gold_total;
 
   const Map::UpdateState& update_state = game.map->get_update_state();
   writer.value("update_state.remove_signs_counter") <<

@@ -22,6 +22,7 @@
 #ifndef SRC_GAME_H_
 #define SRC_GAME_H_
 
+#include <cassert>
 #include <vector>
 #include <map>
 #include <string>
@@ -61,6 +62,7 @@ class Game : public EventLoop::Handler {
 
   typedef std::map<unsigned int, unsigned int> values_t;
   int map_gold_morale_factor;
+  unsigned int gold_total;
 
   Players players;
   Flags flags;
@@ -110,6 +112,11 @@ class Game : public EventLoop::Handler {
   unsigned int get_tick() const { return tick; }
   unsigned int get_const_tick() const { return const_tick; }
   unsigned int get_gold_morale_factor() const { return map_gold_morale_factor; }
+  unsigned int get_gold_total() const { return gold_total; }
+  void add_gold_total(int delta) {
+    if (delta < 0) assert(gold_total >= -delta);
+    gold_total += delta;
+  }
 
   Building *get_building_at_pos(MapPos pos);
   Flag *get_flag_at_pos(MapPos pos);

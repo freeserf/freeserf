@@ -361,8 +361,6 @@ class Map {
 
   uint16_t regions;
 
-  uint32_t gold_deposit;
-
   UpdateState update_state;
 
   /* Callback for map height changes */
@@ -491,8 +489,7 @@ class Map {
   void remove_fish(MapPos pos, int amount);
   void set_serf_index(MapPos pos, int index);
 
-  unsigned int get_gold_deposit() const { return gold_deposit; }
-  void add_gold_deposit(int delta) { gold_deposit += delta; }
+  unsigned int get_gold_deposit() const;
 
   void init(unsigned int size);
   void init_dimensions();
@@ -531,7 +528,6 @@ class Map {
  protected:
   void deinit();
 
-  void init_ground_gold_deposit();
   void init_spiral_pos_pattern();
 
   void update_public(MapPos pos, Random *rnd);

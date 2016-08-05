@@ -896,14 +896,14 @@ Player::update_knight_morale() {
   gold_deposited = inventory_gold + military_gold;
 
   /* Calculate according to gold collected. */
-  unsigned int map_gold = game->get_map()->get_gold_deposit();
-  if (map_gold != 0) {
-    while (map_gold > 0xffff) {
-      map_gold >>= 1;
+  unsigned int total_gold = game->get_gold_total();
+  if (total_gold != 0) {
+    while (total_gold > 0xffff) {
+      total_gold >>= 1;
       depot >>= 1;
     }
-    depot = std::min(depot, map_gold-1);
-    knight_morale = 1024 + (game->get_gold_morale_factor() * depot)/map_gold;
+    depot = std::min(depot, total_gold-1);
+    knight_morale = 1024 + (game->get_gold_morale_factor() * depot)/total_gold;
   } else {
     knight_morale = 4096;
   }
