@@ -65,6 +65,7 @@
 
 #include "src/map.h"
 
+#include <cassert>
 #include <cstdlib>
 #include <cstring>
 #include <algorithm>
@@ -336,6 +337,10 @@ Map::~Map() {
 
 void
 Map::init(unsigned int size) {
+  // Some code may still assume that map has at least size 3. Above size 20
+  // the map positions can no longer fit in a 32-bit integer.
+  assert(3 <= size && size <= 20);
+
   deinit();
 
   if (spiral_pos_pattern != NULL) {
