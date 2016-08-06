@@ -343,8 +343,6 @@ Map::init(unsigned int size) {
     spiral_pos_pattern = NULL;
   }
 
-  gold_deposit = 0;
-
   update_state.last_tick = 0;
   update_state.counter = 0;
   update_state.remove_signs_counter = 0;
@@ -387,21 +385,21 @@ Map::get_rnd_coord(int *col, int *row, Random *rnd) const {
   return pos(c, r);
 }
 
-/* Initialize global count of gold deposits. */
-void
-Map::init_ground_gold_deposit() {
-  int total_gold = 0;
+// Get count of gold mineral deposits in the map.
+unsigned int
+Map::get_gold_deposit() const {
+  int count = 0;
 
   for (unsigned int y = 0; y < rows; y++) {
     for (unsigned int x = 0; x < cols; x++) {
       MapPos pos_ = pos(x, y);
       if (get_res_type(pos_) == MineralsGold) {
-        total_gold += get_res_amount(pos_);
+        count += get_res_amount(pos_);
       }
     }
   }
 
-  gold_deposit = total_gold;
+  return count;
 }
 
 /* Initialize spiral_pos_pattern from spiral_pattern. */
@@ -461,8 +459,6 @@ void
 Map::init_tiles(const MapGenerator &generator) {
   memcpy(landscape_tiles, generator.get_landscape(),
          rows * cols * sizeof(LandscapeTile));
-
-  init_ground_gold_deposit();
 }
 
 /* Change the height of a map position. */
@@ -859,7 +855,6 @@ Map::operator == (const Map& rhs) const {
       this->col_size != rhs.col_size ||
       this->row_size != rhs.row_size ||
       this->regions != rhs.regions ||
-      this->gold_deposit != rhs.gold_deposit ||
       this->update_state != rhs.update_state) {
     return false;
   }
