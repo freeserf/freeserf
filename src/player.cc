@@ -154,8 +154,7 @@ player_t::init_ai_values(size_t face) {
   ai_value_5 = ai_values_5[face-1];
 }
 
-
-bool 
+bool
 player_t::has_popup() {
   return popup != BOX_NO_BOX;
 }
@@ -209,8 +208,7 @@ player_t::get_game_win_or_lose_text() {
   if (index == get_game()->get_winner()) {
   text = get_game()->get_game_win_text();
     if (text == NULL) text = "$a00";
-  }
-  else {
+  } else {
   text = get_game()->get_game_lose_text();
     if (text == NULL) text = "$a01";
   }

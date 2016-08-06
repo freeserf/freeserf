@@ -22,6 +22,7 @@
 #ifndef SRC_NOTIFICATION_H_
 #define SRC_NOTIFICATION_H_
 
+#include <vector>
 #include <string>
 #include <queue>
 
@@ -60,7 +61,7 @@ typedef struct {
 
 
 class message_t {
-public:
+ public:
   notification_type_t type;
   map_pos_t pos;
   unsigned int data;
@@ -68,7 +69,7 @@ public:
 typedef std::queue<message_t> messages_t;
 
 class pos_timer_t {
-public:
+ public:
   int timeout;
   map_pos_t pos;
 };

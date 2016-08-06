@@ -22,10 +22,11 @@
 #ifndef SRC_MISSION_H_
 #define SRC_MISSION_H_
 
+#include <vector>
+
 #include "src/random.h"
 #include "src/resource.h"
 #include "src/building.h"
-#include <vector>
 
 class mission_t {
  public:

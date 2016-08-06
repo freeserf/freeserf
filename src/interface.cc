@@ -772,7 +772,7 @@ interface_t::update() {
     player->drop_message();
     while (player->has_notification()) {
       message_t message = player->peek_notification();
-	  
+ 
       if (BIT_TEST(config, notification_box_t::notification_views[message.type].category)) {
         play_sound(SFX_MESSAGE);
         msg_flags |= BIT(0);
@@ -799,9 +799,8 @@ interface_t::update() {
 
   // Handle newly box popup events
   if ((player != NULL) && player->has_popup()) {
-	  open_popup(player->get_popup());
+    open_popup(player->get_popup());
   }
-
 
   set_redraw();
 }

@@ -1881,8 +1881,7 @@ popup_box_t::draw_game_task_box(const char * msg) {
         // this is an empty line
         y += 7;
       }
-    }
-    else if (*msg == '$') {
+    } else if (*msg == '$') {
       msg++;
 
       int cmd_type = *msg;
@@ -1926,7 +1925,7 @@ popup_box_t::draw_game_task_box(const char * msg) {
         x += value;
         break;
 
-      case 'y': // move y
+      case 'y':  // move y
         y += value;
         break;
       }
@@ -2818,8 +2817,7 @@ popup_box_t::internal_draw() {
   case BOX_GAME_END:
     if (interface->get_player()->get_index() == interface->get_player()->get_game()->get_winner()) {
       draw_art_box(0);
-    }
-    else {
+    } else {
       draw_art_box(1);
     }
     break;
@@ -3589,8 +3587,8 @@ popup_box_t::handle_action(int action, int x, int y) {
     set_box(BOX_PLAYER_FACES);
     break;
   case ACTION_SHOW_GAME_END:
-  set_box(BOX_GAME_END);
-  break;
+    set_box(BOX_GAME_END);
+    break;
   case ACTION_SHOW_GAME_TASK_PAGE:
     set_box(BOX_GAME_TASK);
     break;
@@ -4187,8 +4185,7 @@ popup_box_t::handle_game_task_click(int x, int y) {
       -1
     };
     handle_clickmap(x, y, clkmap);
-  }
-  else {
+  } else {
     page++;
     const int clkmap[] = {
       ACTION_SHOW_GAME_TASK_PAGE, 0, 0, 128, 144,
@@ -4206,8 +4203,7 @@ popup_box_t::handle_game_win_lose_click(int x, int y) {
       -1
     };
     handle_clickmap(x, y, clkmap);
-  }
-  else {
+  } else {
     page++;
     const int clkmap[] = {
       ACTION_SHOW_GAME_WIN_LOSE_PAGE, 0, 0, 128, 144,

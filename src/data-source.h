@@ -88,7 +88,7 @@ class data_source_t {
   virtual void *get_music(unsigned int index, size_t *size) = 0;
 
   bool check_file(const std::string &path);
-  char *file_read(const std::string &path, size_t *size);
+  void *file_read(const std::string &path, size_t *size);
 };
 
 #endif  // SRC_DATA_SOURCE_H_

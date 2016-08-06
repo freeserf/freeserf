@@ -852,7 +852,7 @@ serf_t::is_waiting(dir_t *dir) {
   if ((state == SERF_STATE_TRANSPORTING ||
        state == SERF_STATE_WALKING ||
        state == SERF_STATE_DELIVERING) &&
-      s.walking.dir < 0) {
+       s.walking.dir < 0) {
     *dir = (dir_t)(s.walking.dir + 6);
     return 1;
   } else if ((state == SERF_STATE_FREE_WALKING ||

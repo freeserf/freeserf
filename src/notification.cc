@@ -112,7 +112,7 @@ const notification_view_t notification_box_t::notification_views[] = {
       0,
       "You gained\na victory here",
     5},
-  // NOTIFICATION_MINE_EMPTY    
+  // NOTIFICATION_MINE_EMPTY
   { NOTIFICATION_SHOW_MINE,
       0,
       "This mine hauls\nno more raw\nmaterials",

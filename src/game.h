@@ -92,7 +92,7 @@ class game_t : public event_handler_t {
   uint16_t field_340;
   uint16_t field_342;
   inventory_t *field_344;
-  int game_type; // not used
+  int game_type;  // not used
   mission_t *game_mission;
   int map_generator;
   int map_preserve_bugs;
@@ -214,9 +214,9 @@ class game_t : public event_handler_t {
   void clear_search_id();
 
   int get_winner() { return game_winner; }
-  const char * get_game_task_text() { return game_mission->start_text; }
-  const char * get_game_win_text()  { return game_mission->win_text; }
-  const char * get_game_lose_text() { return game_mission->lose_text; }
+  const char * get_game_task_text() { return (game_mission == NULL) ? NULL : game_mission->start_text; }
+  const char * get_game_win_text()  { return (game_mission == NULL) ? NULL : game_mission->win_text; }
+  const char * get_game_lose_text() { return (game_mission == NULL) ? NULL : game_mission->lose_text; }
 
  protected:
   void allocate_objects();
@@ -233,7 +233,7 @@ class game_t : public event_handler_t {
   void record_player_history(int max_level, int aspect,
                              const int history_index[], const values_t &values);
   int calculate_clear_winner(const values_t &values);
-  bool player_check_victory_conditions(mission_t * mission, player_t * player);
+  bool check_player_victory_conditions(mission_t * mission, player_t * player);
   void update_game_stats();
   void get_resource_estimate(map_pos_t pos, int weight, int estimates[5]);
   int road_segment_in_water(map_pos_t pos, dir_t dir);

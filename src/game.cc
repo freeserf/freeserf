@@ -482,7 +482,7 @@ game_t::calculate_clear_winner(const values_t &values) {
 
 // Check if the player satisfy the conditions of this mission
 bool
-game_t::player_check_victory_conditions(mission_t * mission, player_t * player) {
+game_t::check_player_victory_conditions(mission_t * mission, player_t * player) {
   for (int c = 0; c < GAME_MAX_VICTORY_CONDITION_COUNT; c++) {
     if (mission->victory[c].condition != mission_t::VICTORY_NO_CONDITION) {
 
@@ -536,7 +536,7 @@ game_t::update_game_stats() {
     game_stats_counter += 1500 - tick_diff;
 
   player_score_leader = 0;
-    int player_score_leader_land = -1;
+  int player_score_leader_land = -1;
   int player_score_leader_minitary = -1;
   int player_score_victory_condition = -1;
 
@@ -584,7 +584,7 @@ game_t::update_game_stats() {
       values[(*it)->get_index()] = (*it)->get_land_area();
     }
     record_player_history(update_level, 1, player_history_index, values);
-  player_score_leader_land = calculate_clear_winner(values);
+    player_score_leader_land = calculate_clear_winner(values);
 
     /* Store building stats in history. */
     for (players_t::iterator it = players.begin(); it != players.end(); ++it) {
@@ -597,7 +597,13 @@ game_t::update_game_stats() {
       values[(*it)->get_index()] = (*it)->get_military_score();
     }
     record_player_history(update_level, 3, player_history_index, values);
-  player_score_leader_minitary = calculate_clear_winner(values);
+    player_score_leader_minitary = calculate_clear_winner(values);
+
+	// check if all players have build a castle
+	bool every_player_has_a_castle = true;
+	for (players_t::iterator it = players.begin(); it != players.end(); ++it) {
+		if (!(*it)->has_castle()) every_player_has_a_castle = false;
+	}
 
     /* Store condensed score of all aspects in history. */
     for (players_t::iterator it = players.begin(); it != players.end(); ++it) {
@@ -617,16 +623,18 @@ game_t::update_game_stats() {
           player_score_leader_minitary = -1;
 
           for (players_t::iterator it = players.begin(); it != players.end(); ++it) {
-            if (player_check_victory_conditions(game_mission, (*it))) player_score_victory_condition = (*it)->get_index();
+            if (check_player_victory_conditions(game_mission, (*it))) player_score_victory_condition = (*it)->get_index();
           }
         }
       }
 
 
       // Determine winner based on "player_scores" values
-      if ((player_score_leader_land >= 0) ||
-          (player_score_leader_minitary >= 0) ||
-          (player_score_victory_condition >= 0)) {
+      if (every_player_has_a_castle &&
+          ((player_score_leader_land >= 0) ||
+           (player_score_leader_minitary >= 0) ||
+           (player_score_victory_condition >= 0))) {
+
         int winner = player_score_leader_land;
         if (player_score_leader_minitary >= 0) winner = player_score_leader_minitary;
         if (player_score_victory_condition >= 0) winner = player_score_victory_condition;
