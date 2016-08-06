@@ -944,16 +944,8 @@ operator >> (SaveReaderText &reader, Map &map) {
       reader.value("paths")[y*SAVE_MAP_TILE_SIZE+x] >> val;
       map.game_tiles[p].paths = val & 0x3f;
 
-      try {
-        reader.value("owner")[y*SAVE_MAP_TILE_SIZE+x] >> val;
-        map.game_tiles[p].owner = val + 1;
-        reader.value("height")[y*SAVE_MAP_TILE_SIZE+x] >> val;
-        map.landscape_tiles[p].height = val;
-      } catch (...) {
-        reader.value("height")[y*SAVE_MAP_TILE_SIZE+x] >> val;
-        map.landscape_tiles[p].height = val & 0x1f;
-        map.game_tiles[p].owner = (val >> 5) & 0x07;
-      }
+      reader.value("height")[y*SAVE_MAP_TILE_SIZE+x] >> val;
+      map.landscape_tiles[p].height = val & 0x1f;
 
       reader.value("type.up")[y*SAVE_MAP_TILE_SIZE+x] >> val;
       map.landscape_tiles[p].type_up = (Map::Terrain)val;
@@ -1002,7 +994,6 @@ operator << (SaveWriterText &writer, Map &map) {
           MapPos pos = map.pos(tx+x, ty+y);
 
           map_writer.value("height") << map.get_height(pos);
-          map_writer.value("owner") << map.get_owner(pos);
           map_writer.value("type.up") << map.type_up(pos);
           map_writer.value("type.down") << map.type_down(pos);
           map_writer.value("paths") << map.paths(pos);
