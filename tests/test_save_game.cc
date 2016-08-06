@@ -29,7 +29,7 @@
 int
 main(int argc, char *argv[]) {
   // Print number of tests for TAP
-  std::cout << "1..3" << "\n";
+  std::cout << "1..4" << "\n";
 
   // Create random map game
   Game *game = new Game(0);
@@ -67,5 +67,13 @@ main(int argc, char *argv[]) {
     return 0;
   }
 
+  // Check map
+  if (*game->get_map() == *loaded_game->get_map()) {
+    std::cout << "ok 4 - Maps are equal\n";
+  } else {
+    std::cout << "not ok 4 - Map equality test failed\n";
+  }
+
   delete game;
+  delete loaded_game;
 }

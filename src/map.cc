@@ -343,10 +343,12 @@ Map::init(unsigned int size) {
     spiral_pos_pattern = NULL;
   }
 
-  update_map_last_tick = 0;
-  update_map_counter = 0;
-  update_map_16_loop = 0;
-  update_map_initial_pos = 0;
+  gold_deposit = 0;
+
+  update_state.last_tick = 0;
+  update_state.counter = 0;
+  update_state.remove_signs_counter = 0;
+  update_state.initial_pos = 0;
 
   this->size = size;
 
@@ -569,7 +571,7 @@ Map::update_public(MapPos pos, Random *rnd) {
   case ObjectSignLargeCoal: case ObjectSignSmallCoal:
   case ObjectSignLargeStone: case ObjectSignSmallStone:
   case ObjectSignEmpty:
-    if (update_map_16_loop == 0) {
+    if (update_state.remove_signs_counter == 0) {
       set_object(pos, ObjectNone, -1);
     }
     break;
@@ -614,21 +616,23 @@ Map::update_hidden(MapPos pos, Random *rnd) {
 /* Update map data as part of the game progression. */
 void
 Map::update(unsigned int tick, Random *rnd) {
-  uint16_t delta = tick - update_map_last_tick;
-  update_map_last_tick = tick;
-  update_map_counter -= delta;
+  uint16_t delta = tick - update_state.last_tick;
+  update_state.last_tick = tick;
+  update_state.counter -= delta;
 
   int iters = 0;
-  while (update_map_counter < 0) {
+  while (update_state.counter < 0) {
     iters += regions;
-    update_map_counter += 20;
+    update_state.counter += 20;
   }
 
-  MapPos pos = update_map_initial_pos;
+  MapPos pos = update_state.initial_pos;
 
   for (int i = 0; i < iters; i++) {
-    update_map_16_loop -= 1;
-    if (update_map_16_loop < 0) update_map_16_loop = 16;
+    update_state.remove_signs_counter -= 1;
+    if (update_state.remove_signs_counter < 0) {
+      update_state.remove_signs_counter = 16;
+    }
 
     /* Test if moving 23 positions right crosses map boundary. */
     if (pos_col(pos) + 23 < static_cast<int>(cols)) {
@@ -643,7 +647,7 @@ Map::update(unsigned int tick, Random *rnd) {
     update_public(pos, rnd);
   }
 
-  update_map_initial_pos = pos;
+  update_state.initial_pos = pos;
 }
 
 /* Return non-zero if the road segment from pos in direction dir
@@ -848,6 +852,41 @@ Map::types_within(MapPos pos, Terrain low, Terrain high) {
   return false;
 }
 
+bool
+Map::operator == (const Map& rhs) const {
+  // Check fundamental properties
+  if (this->size != rhs.size ||
+      this->col_size != rhs.col_size ||
+      this->row_size != rhs.row_size ||
+      this->regions != rhs.regions ||
+      this->gold_deposit != rhs.gold_deposit ||
+      this->update_state != rhs.update_state) {
+    return false;
+  }
+
+  // Check all tiles
+  for (unsigned int y = 0; y < rows; y++) {
+    for (unsigned int x = 0; x < cols; x++) {
+      MapPos pos_ = pos(x, y);
+      if (pos_ != rhs.pos(x, y)) return false;
+
+      if (this->landscape_tiles[pos_] != rhs.landscape_tiles[pos_]) {
+        return false;
+      }
+      if (this->game_tiles[pos_] != rhs.game_tiles[pos_]) {
+        return false;
+      }
+    }
+  }
+
+  return true;
+}
+
+bool
+Map::operator != (const Map& rhs) const {
+  return !(*this == rhs);
+}
+
 SaveReaderBinary&
 operator >> (SaveReaderBinary &reader, Map &map) {
   uint8_t v8;
@@ -912,7 +951,7 @@ operator >> (SaveReaderText &reader, Map &map) {
 
       try {
         reader.value("owner")[y*SAVE_MAP_TILE_SIZE+x] >> val;
-        map.game_tiles[p].owner = val;
+        map.game_tiles[p].owner = val + 1;
         reader.value("height")[y*SAVE_MAP_TILE_SIZE+x] >> val;
         map.landscape_tiles[p].height = val;
       } catch (...) {

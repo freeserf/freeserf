@@ -297,7 +297,35 @@ class Map {
     int resource_amount;
     // Mingled fields
     Object obj;
+
+    bool operator == (const LandscapeTile& rhs) const {
+      return this->height == rhs.height &&
+        this->type_up == rhs.type_up &&
+        this->type_down == rhs.type_down &&
+        this->mineral == rhs.mineral &&
+        this->resource_amount == rhs.resource_amount &&
+        this->obj == rhs.obj;
+    }
+    bool operator != (const LandscapeTile& rhs) const {
+      return !(*this == rhs); }
   } LandscapeTile;
+
+  struct UpdateState {
+    int remove_signs_counter;
+    uint16_t last_tick;
+    int counter;
+    MapPos initial_pos;
+
+    bool operator == (const UpdateState& rhs) const {
+      return this->remove_signs_counter == rhs.remove_signs_counter &&
+        this->last_tick == rhs.last_tick &&
+        this->counter == rhs.counter &&
+        this->initial_pos == rhs.initial_pos;
+    }
+    bool operator != (const UpdateState& rhs) const {
+      return !(*this == rhs);
+    }
+  };
 
  protected:
   typedef struct GameTile {
@@ -306,6 +334,16 @@ class Map {
     unsigned int owner;
     bool idle_serf;
     unsigned int obj_index;
+
+    bool operator == (const GameTile& rhs) const {
+      return this->paths == rhs.paths &&
+        this->serf == rhs.serf &&
+        this->owner == rhs.owner &&
+        this->idle_serf == rhs.idle_serf &&
+        this->obj_index == rhs.obj_index;
+    }
+    bool operator != (const GameTile& rhs) const {
+      return !(*this == rhs); }
   } GameTile;
 
   /* Fundamentals */
@@ -325,10 +363,7 @@ class Map {
 
   uint32_t gold_deposit;
 
-  int16_t update_map_16_loop;
-  uint16_t update_map_last_tick;
-  int16_t update_map_counter;
-  MapPos update_map_initial_pos;
+  UpdateState update_state;
 
   /* Callback for map height changes */
   typedef std::list<Handler*> change_handlers_t;
@@ -465,6 +500,10 @@ class Map {
   void init_tiles(const MapGenerator &generator);
 
   void update(unsigned int tick, Random *rnd);
+  const UpdateState& get_update_state() const { return update_state; }
+  void set_update_state(const UpdateState& update_state_) {
+    update_state = update_state_;
+  }
 
   void add_change_handler(Handler *handler);
   void del_change_handler(Handler *handler);
@@ -478,6 +517,9 @@ class Map {
   Direction remove_road_segment(MapPos *pos, Direction dir);
   bool road_segment_in_water(MapPos pos, Direction dir);
   bool is_road_segment_valid(MapPos pos, Direction dir);
+
+  bool operator == (const Map& rhs) const;
+  bool operator != (const Map& rhs) const;
 
   friend SaveReaderBinary&
     operator >> (SaveReaderBinary &reader, Map &map);
