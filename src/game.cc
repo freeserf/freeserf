@@ -42,9 +42,8 @@
 
 #define GROUND_ANALYSIS_RADIUS  25
 
-Game::Game(int _map_generator) {
+Game::Game() {
   map = NULL;
-  map_generator = _map_generator;
 
   players = Players(this);
   flags = Flags(this);
