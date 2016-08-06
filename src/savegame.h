@@ -73,6 +73,7 @@ class SaveReaderBinary {
   void skip(size_t count) { current += count; }
   SaveReaderBinary extract(size_t size);
   uint8_t *read(size_t size);
+  bool has_data_left(size_t size) const { return current + size <= end; }
 };
 
 class SaveReaderTextValue {

@@ -302,6 +302,7 @@ SaveReaderBinary::SaveReaderBinary(void *data, size_t size) {
 
 SaveReaderBinary&
 SaveReaderBinary::operator >> (uint8_t &val) {
+  if (!has_data_left(1)) throw ExceptionFreeserf("Invalid read past end.");
   val = *current;
   current++;
   return *this;
@@ -309,6 +310,7 @@ SaveReaderBinary::operator >> (uint8_t &val) {
 
 SaveReaderBinary&
 SaveReaderBinary::operator >> (uint16_t &val) {
+  if (!has_data_left(2)) throw ExceptionFreeserf("Invalid read past end.");
   val = *reinterpret_cast<uint16_t*>(current);
   current += 2;
   return *this;
@@ -316,6 +318,7 @@ SaveReaderBinary::operator >> (uint16_t &val) {
 
 SaveReaderBinary&
 SaveReaderBinary::operator >> (uint32_t &val) {
+  if (!has_data_left(4)) throw ExceptionFreeserf("Invalid read past end.");
   val = *reinterpret_cast<uint32_t*>(current);
   current += 4;
   return *this;
@@ -331,6 +334,10 @@ SaveReaderBinary::operator = (const SaveReaderBinary& other) {
 
 SaveReaderBinary
 SaveReaderBinary::extract(size_t size) {
+  if (!has_data_left(size)) {
+    throw ExceptionFreeserf("Invalid extract past end.");
+  }
+
   SaveReaderBinary new_reader(current, size);
   current += size;
   return new_reader;
@@ -338,9 +345,7 @@ SaveReaderBinary::extract(size_t size) {
 
 uint8_t *
 SaveReaderBinary::read(size_t size) {
-  if (current + size > end) {
-    return NULL;
-  }
+  if (!has_data_left(size)) throw ExceptionFreeserf("Invalid read past end.");
   uint8_t *data = current;
   current += size;
   return data;
