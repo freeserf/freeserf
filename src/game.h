@@ -212,7 +212,6 @@ class Game : public EventLoop::Handler {
   ListInventories get_player_inventories(Player *player);
 
   ListSerfs get_serfs_at_pos(MapPos pos);
-  Flag *gat_flag_at_pos(MapPos pos);
 
   Player *get_next_player(Player *player);
   unsigned int get_enemy_score(Player *player);

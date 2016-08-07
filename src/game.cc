@@ -2465,11 +2465,6 @@ Game::get_serfs_related_to(unsigned int dest, Direction dir) {
   return result;
 }
 
-Flag *
-Game::gat_flag_at_pos(MapPos pos) {
-  return flags[map->get_obj_index(pos)];
-}
-
 Player *
 Game::get_next_player(Player *player) {
   Players::Iterator p = players.begin();
