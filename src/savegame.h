@@ -41,7 +41,7 @@
 #include "src/debug.h"
 
 /* Original game format */
-bool load_v0_state(std::istream *is);
+bool load_v0_state(std::istream *is, Game *game);
 
 /* Text format */
 bool save_text_state(std::ostream *os, Game *game);

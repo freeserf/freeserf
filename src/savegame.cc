@@ -33,13 +33,16 @@
 
 /* Load a save game. */
 bool
-load_v0_state(std::istream *is) {
+load_v0_state(std::istream *is, Game *game) {
   std::istreambuf_iterator<char> is_start(*is), is_end;
   std::vector<char> data(is_start, is_end);
 
-  SaveReaderBinary reader(&data[0], 8628);
-  Game *game = new Game();
-  reader >> *game;
+  SaveReaderBinary reader(&data[0], data.size());
+  try {
+    reader >> *game;
+  } catch (...) {
+    return false;
+  }
 
   return true;
 }
