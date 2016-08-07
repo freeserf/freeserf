@@ -261,19 +261,18 @@ load_state(const std::string &path, Game *game) {
   try {
     SaveReaderTextFile reader_text(&file);
     reader_text >> *game;
+  } catch (ExceptionFreeserf& e) {
     file.close();
-  } catch (...) {
-    file.close();
-    Log::Warn["savegame"] << "Unable to load save game, "
-                          << "trying compatability mode...";
+    Log::Warn["savegame"] << "Unable to load save game: " << e.what();
+    Log::Warn["savegame"] << "Trying compatability mode...";
     std::ifstream input(path.c_str(), std::ios::binary);
     std::vector<char> buffer((std::istreambuf_iterator<char>(input)),
                              (std::istreambuf_iterator<char>()));
     SaveReaderBinary reader(&buffer[0], buffer.size());
     try {
       reader >> *game;
-    } catch (...) {
-      Log::Error["savegame"] << "Failed to load save game.";
+    } catch (ExceptionFreeserf& e) {
+      Log::Error["savegame"] << "Failed to load save game: " << e.what();
       return false;
     }
   }
