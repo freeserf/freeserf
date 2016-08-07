@@ -153,7 +153,7 @@ Player::init_ai_values(size_t face) {
 
 /* Enqueue a new notification message for player. */
 void
-Player::add_notification(int type, MapPos pos, unsigned int data) {
+Player::add_notification(Message::Type type, MapPos pos, unsigned int data) {
   flags |= BIT(3); /* Message in queue. */
   Message new_message;
   new_message.type = type;
@@ -584,8 +584,10 @@ void
 Player::building_captured(Building *building) {
   Player *def_player = game->get_player(building->get_owner());
 
-  def_player->add_notification(2, building->get_position(), index);
-  add_notification(3, building->get_position(), index);
+  def_player->add_notification(Message::TypeLoseFight,
+                               building->get_position(), index);
+  add_notification(Message::TypeWinFight, building->get_position(),
+                                                                    index);
 
   if (building->get_type() == Building::TypeCastle) {
     castle_score += 1;
@@ -857,7 +859,7 @@ Player::update() {
     if (it->timeout < 0) {
       /* Timer has expired. */
       /* TODO box (+ pos) timer */
-      add_notification(5, it->pos, 0);
+      add_notification(Message::TypeCallToLocation, it->pos, 0);
       it = timers.erase(it);
     } else {
       ++it;

@@ -470,7 +470,8 @@ Building::update() {
           stock[1].available = 0xff;
           serf |= BIT(4);
 
-          game->get_player(get_owner())->add_notification(7, pos, 0);
+          game->get_player(get_owner())->add_notification(
+                                 Message::TypeNewStock, pos, 0);
         } else {
           if (!serf_request_fail() && !has_serf() && !serf_requested()) {
             send_serf_to_building(this, Serf::TypeTransporter,

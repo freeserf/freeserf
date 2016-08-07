@@ -129,7 +129,8 @@ DataSourceDOS::get_object(unsigned int index, size_t *size) {
     *size = 0;
   }
 
-  if (index <= 0 && index >= entry_count) {
+  // first entry is whole file itself
+  if ((index <= 0) || (index >= entry_count)) {
     return NULL;
   }
 

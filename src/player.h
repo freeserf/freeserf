@@ -58,11 +58,11 @@ class Message {
     TypeCallToMenu = 16,
     Type30MSinceSave = 17,
     Type1HSinceSave = 18,
-    TypeCallToStock = 19,
+    TypeCallToStock = 19
   } Type;
 
  public:
-  int type;
+  Type type;
   MapPos pos;
   unsigned int data;
 };
@@ -204,7 +204,7 @@ class Player : public GameObject {
   unsigned int get_serf_count(int type) const { return serf_count[type]; }
   int get_flag_prio(int res) const { return flag_prio[res]; }
 
-  void add_notification(int type, MapPos pos, unsigned int data);
+  void add_notification(Message::Type type, MapPos pos, unsigned int data);
   bool has_notification();
   Message pop_notification();
   Message peek_notification();

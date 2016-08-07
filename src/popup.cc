@@ -311,7 +311,7 @@ PopupBox::draw_popup_building(int x, int y, int sprite) {
 
 /* Fill the background of a popup frame. */
 void
-PopupBox::draw_box_background(int sprite) {
+PopupBox::draw_box_background(BackgroundPattern sprite) {
   for (int y = 0; y < 144; y += 16) {
     for (int x = 0; x < 16; x += 2) {
       draw_popup_icon(x, y, sprite);
@@ -465,7 +465,7 @@ PopupBox::draw_mine_building_box() {
     -1
   };
 
-  draw_box_background(0x83);
+  draw_box_background(PatternConstruction);
 
   if (interface->get_game()->can_build_flag(interface->get_map_cursor_pos(),
                                             interface->get_player())) {
@@ -489,7 +489,7 @@ PopupBox::draw_basic_building_box(int flip) {
     -1
   };
 
-  draw_box_background(0x83);
+  draw_box_background(PatternConstruction);
 
   const int *l = layout;
   if (!interface->get_game()->can_build_military(
@@ -519,7 +519,7 @@ PopupBox::draw_adv_1_building_box() {
     -1
   };
 
-  draw_box_background(0x83);
+  draw_box_background(PatternConstruction);
   draw_custom_bld_box(layout);
   draw_popup_icon(0, 128, 0x3d);
 }
@@ -542,7 +542,7 @@ PopupBox::draw_adv_2_building_box() {
     l += 2*3; /* Skip tower and fortress */
   }
 
-  draw_box_background(0x83);
+  draw_box_background(PatternConstruction);
   draw_custom_bld_box(l);
   draw_popup_icon(0, 128, 0x3d);
 }
@@ -710,13 +710,13 @@ PopupBox::draw_stat_select_box() {
     -1
   };
 
-  draw_box_background(129);
+  draw_box_background(PatternStripedGreen);
   draw_custom_icon_box(layout);
 }
 
 void
 PopupBox::draw_stat_4_box() {
-  draw_box_background(129);
+  draw_box_background(PatternStripedGreen);
 
   /* Sum up resources of all inventories. */
   resource_map_t resources = interface->get_player()->get_stats_resources();
@@ -745,7 +745,7 @@ PopupBox::draw_stat_bld_1_box() {
     -1
   };
 
-  draw_box_background(129);
+  draw_box_background(PatternStripedGreen);
 
   draw_custom_bld_box(bld_layout);
 
@@ -771,7 +771,7 @@ PopupBox::draw_stat_bld_2_box() {
     -1
   };
 
-  draw_box_background(129);
+  draw_box_background(PatternStripedGreen);
 
   draw_custom_bld_box(bld_layout);
 
@@ -799,7 +799,7 @@ PopupBox::draw_stat_bld_3_box() {
     -1
   };
 
-  draw_box_background(129);
+  draw_box_background(PatternStripedGreen);
 
   draw_custom_bld_box(bld_layout);
 
@@ -826,7 +826,7 @@ PopupBox::draw_stat_bld_4_box() {
     -1
   };
 
-  draw_box_background(129);
+  draw_box_background(PatternStripedGreen);
 
   draw_custom_bld_box(bld_layout);
 
@@ -1227,7 +1227,7 @@ PopupBox::draw_stat_1_box() {
     -1
   };
 
-  draw_box_background(129);
+  draw_box_background(PatternStripedGreen);
 
   draw_custom_icon_box(layout);
 
@@ -1303,7 +1303,7 @@ PopupBox::draw_stat_2_box() {
     -1
   };
 
-  draw_box_background(129);
+  draw_box_background(PatternStripedGreen);
 
   draw_custom_icon_box(layout);
 
@@ -1349,7 +1349,7 @@ PopupBox::draw_stat_2_box() {
 
 void
 PopupBox::draw_stat_6_box() {
-  draw_box_background(129);
+  draw_box_background(PatternStripedGreen);
 
   int total = 0;
   for (int i = 0; i < 27; i++) {
@@ -1390,7 +1390,7 @@ PopupBox::draw_stat_3_meter(int x, int y, int value) {
 
 void
 PopupBox::draw_stat_3_box() {
-  draw_box_background(129);
+  draw_box_background(PatternStripedGreen);
 
   Serf::SerfMap serfs = interface->get_player()->get_stats_serfs_idle();
   Serf::SerfMap serfs_potential =
@@ -1502,7 +1502,7 @@ PopupBox::draw_start_attack_box() {
     -1
   };
 
-  draw_box_background(131);
+  draw_box_background(PatternConstruction);
 
   for (int i = 0; building_layout[i] >= 0; i += 3) {
     draw_popup_building(building_layout[i+1], building_layout[i+2],
@@ -1547,7 +1547,7 @@ PopupBox::draw_ground_analysis_box() {
   MapPos pos = interface->get_map_cursor_pos();
   int estimates[5];
 
-  draw_box_background(0x81);
+  draw_box_background(PatternStripedGreen);
   draw_custom_icon_box(layout);
   interface->get_game()->prepare_ground_analysis(pos, estimates);
   draw_green_string(0, 30, "GROUND-ANALYSIS:");
@@ -1589,7 +1589,7 @@ PopupBox::draw_sett_select_box() {
     -1
   };
 
-  draw_box_background(311);
+  draw_box_background(PatternCheckerdDiagonalBrown);
   draw_custom_icon_box(layout);
 }
 
@@ -1623,7 +1623,7 @@ PopupBox::draw_sett_1_box() {
     -1
   };
 
-  draw_box_background(311);
+  draw_box_background(PatternCheckerdDiagonalBrown);
   draw_custom_bld_box(bld_layout);
   draw_custom_icon_box(layout);
 
@@ -1653,7 +1653,7 @@ PopupBox::draw_sett_2_box() {
     -1
   };
 
-  draw_box_background(311);
+  draw_box_background(PatternCheckerdDiagonalBrown);
   draw_custom_bld_box(bld_layout);
   draw_custom_icon_box(layout);
 
@@ -1685,7 +1685,7 @@ PopupBox::draw_sett_3_box() {
     -1
   };
 
-  draw_box_background(311);
+  draw_box_background(PatternCheckerdDiagonalBrown);
   draw_custom_bld_box(bld_layout);
   draw_custom_icon_box(layout);
 
@@ -1731,7 +1731,7 @@ PopupBox::draw_knight_level_box() {
     -1
   };
 
-  draw_box_background(311);
+  draw_box_background(PatternCheckerdDiagonalBrown);
 
   Player *player = interface->get_player();
 
@@ -1765,7 +1765,7 @@ PopupBox::draw_sett_4_box() {
     -1
   };
 
-  draw_box_background(311);
+  draw_box_background(PatternCheckerdDiagonalBrown);
   draw_custom_icon_box(layout);
 
   Player *player = interface->get_player();
@@ -1830,7 +1830,7 @@ PopupBox::draw_sett_5_box() {
     -1
   };
 
-  draw_box_background(311);
+  draw_box_background(PatternCheckerdDiagonalBrown);
   draw_custom_icon_box(layout);
   draw_popup_resource_stairs(interface->get_player()->get_flag_prio());
 
@@ -1839,7 +1839,7 @@ PopupBox::draw_sett_5_box() {
 
 void
 PopupBox::draw_quit_confirm_box() {
-  draw_box_background(310);
+  draw_box_background(PatternDiagonalGreen);
 
   draw_green_string(0, 10, "   Do you want");
   draw_green_string(0, 20, "     to quit");
@@ -1859,7 +1859,7 @@ PopupBox::draw_no_save_quit_confirm_box() {
 
 void
 PopupBox::draw_options_box() {
-  draw_box_background(310);
+  draw_box_background(PatternDiagonalGreen);
 
   draw_green_string(1, 14, "Music");
   draw_green_string(1, 30, "Sound");
@@ -1915,7 +1915,7 @@ PopupBox::draw_castle_res_box() {
     -1
   };
 
-  draw_box_background(0x138);
+  draw_box_background(PatternPlaidAlongGreen);
   draw_custom_icon_box(layout);
 
   if (interface->get_player()->temp_index == 0) {
@@ -1943,7 +1943,7 @@ PopupBox::draw_castle_res_box() {
 
 void
 PopupBox::draw_mine_output_box() {
-  draw_box_background(0x138);
+  draw_box_background(PatternPlaidAlongGreen);
 
   if (interface->get_player()->temp_index == 0) {
     interface->close_popup();
@@ -2017,7 +2017,7 @@ PopupBox::draw_mine_output_box() {
 
 void
 PopupBox::draw_ordered_building_box() {
-  draw_box_background(0x138);
+  draw_box_background(PatternPlaidAlongGreen);
 
   if (interface->get_player()->temp_index == 0) {
     interface->close_popup();
@@ -2056,7 +2056,7 @@ PopupBox::draw_ordered_building_box() {
 
 void
 PopupBox::draw_defenders_box() {
-  draw_box_background(0x138);
+  draw_box_background(PatternPlaidAlongGreen);
 
   if (interface->get_player()->temp_index == 0) {
     interface->close_popup();
@@ -2135,7 +2135,7 @@ PopupBox::draw_transport_info_box() {
     11, 44
   };
 
-  draw_box_background(0x138);
+  draw_box_background(PatternPlaidAlongGreen);
 
   /* TODO show path merge button. */
   /* if (r == 0) draw_popup_icon(7, 51, 0x135); */
@@ -2206,7 +2206,7 @@ PopupBox::draw_castle_serf_box() {
 
   int serfs[27] = {0};
 
-  draw_box_background(0x138);
+  draw_box_background(PatternPlaidAlongGreen);
   draw_custom_icon_box(layout);
 
   if (interface->get_player()->temp_index == 0) {
@@ -2265,7 +2265,7 @@ PopupBox::draw_resdir_box() {
     -1
   };
 
-  draw_box_background(0x138);
+  draw_box_background(PatternPlaidAlongGreen);
   draw_custom_icon_box(layout);
 
   if (interface->get_player()->temp_index == 0) {
@@ -2349,7 +2349,7 @@ PopupBox::draw_sett_8_box() {
     -1
   };
 
-  draw_box_background(311);
+  draw_box_background(PatternCheckerdDiagonalBrown);
   draw_custom_icon_box(layout);
 
   Player *player = interface->get_player();
@@ -2397,7 +2397,7 @@ PopupBox::draw_sett_6_box() {
     -1
   };
 
-  draw_box_background(311);
+  draw_box_background(PatternCheckerdDiagonalBrown);
   draw_custom_icon_box(layout);
   draw_popup_resource_stairs(interface->get_player()->get_inventory_prio());
 
@@ -2414,7 +2414,7 @@ PopupBox::draw_bld_1_box() {
     -1
   };
 
-  draw_box_background(313);
+  draw_box_background(PatternStaresGreen);
 
   draw_popup_building(4, 112, 0x80 + 4*interface->get_player()->get_index());
   draw_custom_bld_box(layout);
@@ -2436,7 +2436,7 @@ PopupBox::draw_bld_2_box() {
     -1
   };
 
-  draw_box_background(313);
+  draw_box_background(PatternStaresGreen);
 
   draw_custom_bld_box(layout);
 
@@ -2456,7 +2456,7 @@ PopupBox::draw_bld_3_box() {
     -1
   };
 
-  draw_box_background(313);
+  draw_box_background(PatternStaresGreen);
 
   draw_custom_bld_box(layout);
 
@@ -2476,7 +2476,7 @@ PopupBox::draw_bld_4_box() {
     -1
   };
 
-  draw_box_background(313);
+  draw_box_background(PatternStaresGreen);
 
   draw_custom_bld_box(layout);
 
@@ -2486,7 +2486,7 @@ PopupBox::draw_bld_4_box() {
 
 void
 PopupBox::draw_building_stock_box() {
-  draw_box_background(0x138);
+  draw_box_background(PatternPlaidAlongGreen);
 
   if (interface->get_player()->temp_index == 0) {
     interface->close_popup();
@@ -2547,7 +2547,7 @@ PopupBox::draw_building_stock_box() {
 
 void
 PopupBox::draw_player_faces_box() {
-  draw_box_background(129);
+  draw_box_background(PatternStripedGreen);
 
   draw_player_face(2, 4, 0);
   draw_player_face(10, 4, 1);
@@ -2557,7 +2557,7 @@ PopupBox::draw_player_faces_box() {
 
 void
 PopupBox::draw_demolish_box() {
-  draw_box_background(314);
+  draw_box_background(PatternSquaresGreen);
 
   draw_popup_icon(14, 128, 60); /* Exit */
   draw_popup_icon(7, 45, 288); /* Checkbox */

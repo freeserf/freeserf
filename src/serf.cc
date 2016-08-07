@@ -1841,7 +1841,8 @@ Serf::handle_serf_entering_building_state() {
               break;
             }
 
-            game->get_player(building->get_owner())->add_notification(6,
+            game->get_player(building->get_owner())->add_notification(
+                                              Message::TypeKnightOccupied,
                                                        building->get_position(),
                                                                    mil_type);
 
@@ -3633,7 +3634,8 @@ Serf::handle_serf_mining_state() {
           /* TODO Burn building. */
         }
 
-        game->get_player(building->get_owner())->add_notification(4,
+        game->get_player(building->get_owner())->add_notification(
+                                                   Message::TypeMineEmpty,
                                                        building->get_position(),
                                 building->get_type() - Building::TypeStoneMine);
       }
@@ -4393,7 +4395,8 @@ Serf::handle_serf_knight_engaging_building_state() {
           building->get_owner() != get_player() &&
           building->has_main_serf()) {
         if (building->is_under_attack()) {
-          game->get_player(building->get_owner())->add_notification(1,
+          game->get_player(building->get_owner())->add_notification(
+                                                 Message::TypeUnderAttack,
                                                        building->get_position(),
                                                                  get_player());
         }

@@ -2517,10 +2517,12 @@ Game::building_captured(Building *building) {
   for (Players::Iterator it = players.begin(); it != players.end(); ++it) {
     Player *player = *it;
     if (buildings_before[player->get_index()] > player->get_building_score()) {
-      player->add_notification(9, building->get_position(),
+      player->add_notification(Message::TypeLostBuildings,
+                               building->get_position(),
                                building->get_owner());
     } else if (land_before[player->get_index()] > player->get_land_area()) {
-      player->add_notification(8, building->get_position(),
+      player->add_notification(Message::TypeLostLand,
+                               building->get_position(),
                                building->get_owner());
     }
   }
