@@ -2217,8 +2217,6 @@ Game::load_mission_map(int level) {
     64, 72, 68, 76
   };
 
-  deinit();
-
   Mission *mission = Mission::get_mission(level);
 
   init_map_rnd = mission->rnd;
