@@ -114,7 +114,7 @@ class Game : public EventLoop::Handler {
   unsigned int get_gold_morale_factor() const { return map_gold_morale_factor; }
   unsigned int get_gold_total() const { return gold_total; }
   void add_gold_total(int delta) {
-    if (delta < 0) assert(gold_total >= -delta);
+    if (delta < 0) assert(static_cast<int>(gold_total) >= -delta);
     gold_total += delta;
   }
 

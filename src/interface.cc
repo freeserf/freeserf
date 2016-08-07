@@ -134,7 +134,7 @@ Interface::open_message() {
 
   Message message = player->pop_notification();
 
-  if (message.type == 16) {
+  if (message.type == Message::TypeCallToMenu) {
     /* TODO */
   }
 
@@ -498,7 +498,7 @@ Interface::build_road_segment(Direction dir) {
 
   MapPos dest;
   int r = game->can_build_road(building_road, player, &dest, NULL);
-  if (!r) {
+  if (r <= 0) {
     /* Invalid construction, undo. */
     return remove_road_segment();
   }

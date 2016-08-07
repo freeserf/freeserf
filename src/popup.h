@@ -96,6 +96,46 @@ class PopupBox : public GuiObject {
     TypeCtrlsInfo
   } Type;
 
+  typedef enum BackgroundPattern {
+    PatternStripedGreen = 129,   // \\\.
+    PatternDiagonalGreen = 310,  // xxx
+    PatternCheckerdDiagonalBrown = 311,  // xxx
+    PatternPlaidAlongGreen = 312,  // ###
+    PatternStaresGreen = 313,       // * *
+    PatternSquaresGreen = 314,
+    PatternConstruction = 131,  // many dots
+    PatternOverallComparison = 132,  // sward + building + land
+    PatternRuralProperties = 133,  // land
+    PatternBuildings = 134,  // buildings
+    PatternCombatPower = 135,  // sward
+    PatternFish = 138,
+    PatternPig = 139,
+    PatternMeat = 140,
+    PatternEheat = 141,
+    PatternFlour = 142,
+    PatternBread = 143,
+    PatternLumber = 144,
+    PatternPlank = 145,
+    PatternBoat = 146,
+    PatternStone = 147,
+    PatternIronore = 148,
+    PatternSteel = 149,
+    PatternCoal = 150,
+    PatternGoldore = 151,
+    PatternGoldbar = 152,
+    PatternShovel = 153,
+    PatternHammer = 154,
+    PatternRod = 155,
+    PatternCleaver = 156,
+    PatternScythe = 157,
+    PatternAxe = 158,
+    PatternSaw = 159,
+    PatternPick = 160,
+    PatternPincer = 161,
+    PatternSword = 162,
+    PatternShield = 163
+  } BackgroundPattern;
+
  protected:
   Interface *interface;
   MinimapGame *minimap;
@@ -121,7 +161,7 @@ class PopupBox : public GuiObject {
   void draw_popup_box_frame();
   void draw_popup_icon(int x, int y, int sprite);
   void draw_popup_building(int x, int y, int sprite);
-  void draw_box_background(int sprite);
+  void draw_box_background(BackgroundPattern sprite);
   void draw_box_row(int sprite, int y);
   void draw_green_string(int x, int y, const std::string &str);
   void draw_green_number(int x, int y, int n);
