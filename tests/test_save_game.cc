@@ -21,6 +21,7 @@
 
 #include <iostream>
 #include <sstream>
+#include <memory>
 
 #include "src/game.h"
 #include "src/random.h"
@@ -29,58 +30,76 @@
 int
 main(int argc, char *argv[]) {
   // Print number of tests for TAP
-  std::cout << "1..5" << "\n";
+  std::cout << "1..7" << "\n";
 
   // Create random map game
-  Game *game = new Game();
+  std::unique_ptr<Game> game(new Game());
   game->init();
   game->load_random_map(3, Random("8667715887436237"));
 
-  // Run game for a number of ticks
-  for (int i = 0; i < 100; i++) game->update();
+  // Add player to game
+  unsigned int p_0 = game->add_player(12, 64, 35, 30, 40);
+  Player *player_0 = game->get_player(p_0);
+  if (player_0 == NULL) {
+    std::cout << "not ok 1 - Player not added to game\n";
+    return 0;
+  } else {
+    std::cout << "ok 1 - Player added to game\n";
+  }
 
-  std::cout << "ok 1 - Random map game started and running\n";
+  // Build castle
+  if (game->build_castle(game->get_map()->pos(6, 6), player_0)) {
+    std::cout << "ok 2 - Player built castle\n";
+  } else {
+    std::cout << "not ok 2 - Player was not able to build castle\n";
+    return 0;
+  }
+
+  // Run game for a number of ticks
+  for (int i = 0; i < 500; i++) game->update();
+
+  std::cout << "ok 3 - Random map game started and running\n";
 
   // Save the game state
   std::stringstream str;
-  bool saved = save_text_state(&str, game);
+  bool saved = save_text_state(&str, game.get());
   str.flush();
 
   if (saved && str.good()) {
-    std::cout << "ok 2 - Saved game state\n";
+    std::cout << "ok 4 - Saved game state\n";
   } else {
-    std::cout << "not ok 2 - Failed to save game state; returned " <<
+    std::cout << "not ok 4 - Failed to save game state; returned " <<
       saved << "\n";
     return 0;
   }
 
   // Load the game state into a new game
   str.seekg(0, std::ios::beg);
-  Game *loaded_game = new Game();
-  bool loaded = load_text_state(&str, loaded_game);
+  std::unique_ptr<Game> loaded_game(new Game());
+  bool loaded = load_text_state(&str, loaded_game.get());
 
   if (loaded) {
-    std::cout << "ok 3 - Loaded game state\n";
+    std::cout << "ok 5 - Loaded game state\n";
   } else {
-    std::cout << "not ok 3 - Failed to load save game state; returned " <<
+    std::cout << "not ok 5 - Failed to load save game state; returned " <<
       loaded << "\n";
     return 0;
   }
 
+  // Restore state that is not stored in the save game
+  loaded_game->init_land_ownership();
+
   // Check map
   if (*game->get_map() == *loaded_game->get_map()) {
-    std::cout << "ok 4 - Maps are equal\n";
+    std::cout << "ok 6 - Maps are equal\n";
   } else {
-    std::cout << "not ok 4 - Map equality test failed\n";
+    std::cout << "not ok 6 - Map equality test failed\n";
   }
 
   // Check gold deposit
   if (game->get_gold_total() == loaded_game->get_gold_total()) {
-    std::cout << "ok 5 - Total gold count is identical\n";
+    std::cout << "ok 7 - Total gold count is identical\n";
   } else {
-    std::cout << "not ok 5 - Total gold count is not identical\n";
+    std::cout << "not ok 7 - Total gold count is not identical\n";
   }
-
-  delete game;
-  delete loaded_game;
 }
