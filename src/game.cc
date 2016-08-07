@@ -2601,8 +2601,15 @@ operator >> (SaveReaderBinary &reader, Game &game) {
 
   reader.skip(8);
   reader >> v16;  // 190
+  int map_size = v16;
+
+  // Avoid allocating a huge map if the input file is invalid
+  if (map_size < 3 || map_size > 10) {
+    throw ExceptionFreeserf("Invalid map size in file");
+  }
+
   game.map = new Map();
-  game.map->init(v16);
+  game.map->init(map_size);
 
   reader.skip(8);
   reader >> v16;  // 200

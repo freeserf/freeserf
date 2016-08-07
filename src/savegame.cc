@@ -33,13 +33,16 @@
 
 /* Load a save game. */
 bool
-load_v0_state(std::istream *is) {
+load_v0_state(std::istream *is, Game *game) {
   std::istreambuf_iterator<char> is_start(*is), is_end;
   std::vector<char> data(is_start, is_end);
 
-  SaveReaderBinary reader(&data[0], 8628);
-  Game *game = new Game();
-  reader >> *game;
+  SaveReaderBinary reader(&data[0], data.size());
+  try {
+    reader >> *game;
+  } catch (...) {
+    return false;
+  }
 
   return true;
 }
@@ -258,19 +261,18 @@ load_state(const std::string &path, Game *game) {
   try {
     SaveReaderTextFile reader_text(&file);
     reader_text >> *game;
+  } catch (ExceptionFreeserf& e) {
     file.close();
-  } catch (...) {
-    file.close();
-    Log::Warn["savegame"] << "Unable to load save game, "
-                          << "trying compatability mode...";
+    Log::Warn["savegame"] << "Unable to load save game: " << e.what();
+    Log::Warn["savegame"] << "Trying compatability mode...";
     std::ifstream input(path.c_str(), std::ios::binary);
     std::vector<char> buffer((std::istreambuf_iterator<char>(input)),
                              (std::istreambuf_iterator<char>()));
     SaveReaderBinary reader(&buffer[0], buffer.size());
     try {
       reader >> *game;
-    } catch (...) {
-      Log::Error["savegame"] << "Failed to load save game.";
+    } catch (ExceptionFreeserf& e) {
+      Log::Error["savegame"] << "Failed to load save game: " << e.what();
       return false;
     }
   }
@@ -302,6 +304,7 @@ SaveReaderBinary::SaveReaderBinary(void *data, size_t size) {
 
 SaveReaderBinary&
 SaveReaderBinary::operator >> (uint8_t &val) {
+  if (!has_data_left(1)) throw ExceptionFreeserf("Invalid read past end.");
   val = *current;
   current++;
   return *this;
@@ -309,6 +312,7 @@ SaveReaderBinary::operator >> (uint8_t &val) {
 
 SaveReaderBinary&
 SaveReaderBinary::operator >> (uint16_t &val) {
+  if (!has_data_left(2)) throw ExceptionFreeserf("Invalid read past end.");
   val = *reinterpret_cast<uint16_t*>(current);
   current += 2;
   return *this;
@@ -316,6 +320,7 @@ SaveReaderBinary::operator >> (uint16_t &val) {
 
 SaveReaderBinary&
 SaveReaderBinary::operator >> (uint32_t &val) {
+  if (!has_data_left(4)) throw ExceptionFreeserf("Invalid read past end.");
   val = *reinterpret_cast<uint32_t*>(current);
   current += 4;
   return *this;
@@ -331,6 +336,10 @@ SaveReaderBinary::operator = (const SaveReaderBinary& other) {
 
 SaveReaderBinary
 SaveReaderBinary::extract(size_t size) {
+  if (!has_data_left(size)) {
+    throw ExceptionFreeserf("Invalid extract past end.");
+  }
+
   SaveReaderBinary new_reader(current, size);
   current += size;
   return new_reader;
@@ -338,9 +347,7 @@ SaveReaderBinary::extract(size_t size) {
 
 uint8_t *
 SaveReaderBinary::read(size_t size) {
-  if (current + size > end) {
-    return NULL;
-  }
+  if (!has_data_left(size)) throw ExceptionFreeserf("Invalid read past end.");
   uint8_t *data = current;
   current += size;
   return data;
