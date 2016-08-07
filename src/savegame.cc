@@ -144,7 +144,9 @@ class SaveReaderTextSection : public SaveReaderText {
   value(const std::string &name) const throw(ExceptionFreeserf) {
     values_t::const_iterator it = values.find(name);
     if (it == values.end()) {
-      throw ExceptionFreeserf("failed to load value");
+      std::ostringstream str;
+      str << "Failed to load value: " << name;
+      throw ExceptionFreeserf(str.str());
     }
 
     return SaveReaderTextValue(it->second);
