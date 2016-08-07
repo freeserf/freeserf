@@ -30,7 +30,7 @@
 int
 main(int argc, char *argv[]) {
   // Print number of tests for TAP
-  std::cout << "1..7" << "\n";
+  std::cout << "1..9" << "\n";
 
   // Create random map game
   std::unique_ptr<Game> game(new Game());
@@ -101,5 +101,21 @@ main(int argc, char *argv[]) {
     std::cout << "ok 7 - Total gold count is identical\n";
   } else {
     std::cout << "not ok 7 - Total gold count is not identical\n";
+  }
+
+  // Check player
+  Player *loaded_player_0 = loaded_game->get_player(p_0);
+  if (loaded_player_0 != NULL) {
+    std::cout << "ok 8 - Player exists in loaded game\n";
+  } else {
+    std::cout << "not ok 8 - Player does not exist in loaded game\n";
+    return 0;
+  }
+
+  // Check player land area
+  if (player_0->get_land_area() == loaded_player_0->get_land_area()) {
+    std::cout << "ok 9 - Player land area is identical\n";
+  } else {
+    std::cout << "not ok 9 - Player land area is not identical\n";
   }
 }
