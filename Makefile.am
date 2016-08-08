@@ -47,7 +47,6 @@ OTHER_SOURCES = \
 	src/sfx2wav.cc src/sfx2wav.h \
 	src/xmi2mid.cc src/xmi2mid.h \
 	src/data-source.cc src/data-source.h \
-	src/smart_ptr.h \
 	src/text-input.cc src/text-input.h
 
 freeserf_SOURCES = \

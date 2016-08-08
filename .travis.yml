@@ -14,6 +14,7 @@ cache:
     - $HOME/sdl_root
 
 before_install:
+  - if [[ $TRAVIS_OS_NAME == 'osx' ]]; then brew install autoconf-archive; else sudo apt-get -y install autoconf-archive; fi
   - sed -i -e 's|AC_PREREQ(\[2.69\])|AC_PREREQ([2.68])|' configure.ac
   - if [[ $TRAVIS_OS_NAME == 'linux' ]]; then sudo apt-get update -qq; fi
 
