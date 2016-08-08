@@ -58,8 +58,6 @@ windows/x64
 !windows/config.h
 *.ncb
 *.suo
-*.vcxproj
-*.vcxproj.filters
 *.obj
 *.pdb
 *.idb
