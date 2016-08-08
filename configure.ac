@@ -12,6 +12,7 @@ m4_ifdef([AM_SILENT_RULES], [AM_SILENT_RULES([yes])])
 
 # Checks for programs.
 AC_PROG_CXX
+AC_LANG(C++)
 
 # Checks for libraries.
 PKG_CHECK_MODULES([SDL2], [sdl2])
@@ -33,6 +34,9 @@ AC_TYPE_INT32_T
 AC_TYPE_UINT8_T
 AC_TYPE_UINT16_T
 AC_TYPE_UINT32_T
+
+# Check C++ 11 support and enable compiler flag
+AX_CHECK_COMPILE_FLAG([-std=c++11], [CXXFLAGS="$CXXFLAGS -std=c++11"])
 
 # Check SDL2_mixer support
 AC_MSG_CHECKING([whether to enable SDL2_mixer support])
