@@ -25,12 +25,11 @@
 #include <list>
 #include <vector>
 #include <algorithm>
-
-#include "src/smart_ptr.h"
+#include <memory>
 
 class SearchNode;
 
-typedef SmartPtr<SearchNode> PSearchNode;
+typedef std::shared_ptr<SearchNode> PSearchNode;
 
 class SearchNode {
  public:
@@ -121,7 +120,7 @@ pathfinder_map(Map *map, MapPos start, MapPos end) {
       solution.start(start);
 
       std::list<Direction> dirs;
-      while (node->parent != NULL) {
+      while (node->parent) {
         Direction dir = node->dir;
         solution.extend(reverse_direction(dir));
         node = node->parent;

@@ -239,9 +239,6 @@
     <ClInclude Include="..\src\sfx2wav.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\src\smart_ptr.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="..\src\text-input.h">
       <Filter>Header Files</Filter>
     </ClInclude>

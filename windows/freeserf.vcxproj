@@ -350,7 +350,6 @@ copy /Y /B "$(SDL2_MIXER_LIB)\x64\SDL2_mixer.dll" "$(OutDir)SDL2_mixer.dll"
     <ClInclude Include="..\src\savegame.h" />
     <ClInclude Include="..\src\serf.h" />
     <ClInclude Include="..\src\sfx2wav.h" />
-    <ClInclude Include="..\src\smart_ptr.h" />
     <ClInclude Include="..\src\text-input.h" />
     <ClInclude Include="..\src\tpwm.h" />
     <ClInclude Include="..\src\version.h" />
