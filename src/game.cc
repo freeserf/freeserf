@@ -2833,6 +2833,7 @@ operator >> (SaveReaderText &reader, Game &game) {
   sections = reader.get_sections("player");
   for (Readers::iterator it = sections.begin(); it != sections.end(); ++it) {
     Player *p = game.players.get_or_insert((*it)->get_number());
+    p->init(0, 1, 0, 0, 0, 0);
     **it >> *p;
   }
 
