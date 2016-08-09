@@ -316,22 +316,21 @@ Flag::schedule_slot_to_unknown_dest(int slot_num) {
     if (transporters() == 0) {
       endpoint |= BIT(7);
     } else {
-      int dir = -1;
-      for (int i = DirectionRight; i <= DirectionUp; i++) {
-        int d = DirectionUp - i;
+      Direction dir = DirectionNone;
+      for (int d = DirectionUp; d >= DirectionRight; d--) {
         if (has_transporter((Direction)d)) {
-          dir = d;
+          dir = (Direction)d;
           break;
         }
       }
 
-      assert(dir >= 0);
+      assert(DirectionUp >= dir && dir >= DirectionRight);
 
-      if (!is_scheduled((Direction)dir)) {
+      if (!is_scheduled(dir)) {
         other_end_dir[dir] = BIT(7) |
         (other_end_dir[dir] & 0x38) | slot_num;
       }
-      slot[slot_num].dir = (Direction)dir;
+      slot[slot_num].dir = dir;
     }
   } else {
     this->slot[slot_num].dest = r;
