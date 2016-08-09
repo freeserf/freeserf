@@ -2881,7 +2881,10 @@ operator >> (SaveReaderText &reader, Game &game) {
     if (game.map->get_obj(building->get_position()) <
           Map::ObjectSmallBuilding ||
         game.map->get_obj(building->get_position()) > Map::ObjectCastle) {
-      throw ExceptionFreeserf("Data integrity is broken");
+      std::ostringstream str;
+      str << "Map data does not match building " << building->get_index() <<
+        " position.";
+      throw ExceptionFreeserf(str.str());
     }
 
     game.map->set_obj_index(building->get_position(), building->get_index());
@@ -2894,7 +2897,10 @@ operator >> (SaveReaderText &reader, Game &game) {
     if (flag->get_index() == 0) continue;
 
     if (game.map->get_obj(flag->get_position()) != Map::ObjectFlag) {
-      throw ExceptionFreeserf("Data integrity is broken");
+      std::ostringstream str;
+      str << "Map data does not match flag " << flag->get_index() <<
+        " position.";
+      throw ExceptionFreeserf(str.str());
     }
 
     game.map->set_obj_index(flag->get_position(), flag->get_index());
