@@ -23,6 +23,7 @@
 #define SRC_MAP_H_
 
 #include <list>
+#include <memory>
 #include <utility>
 
 #include "src/map-geometry.h"
@@ -289,8 +290,8 @@ class Map {
   } GameTile;
 
   MapGeometry geom_;
-  LandscapeTile *landscape_tiles;
-  GameTile *game_tiles;
+  std::unique_ptr<LandscapeTile[]> landscape_tiles;
+  std::unique_ptr<GameTile[]> game_tiles;
 
   uint16_t regions;
 
@@ -300,11 +301,10 @@ class Map {
   typedef std::list<Handler*> change_handlers_t;
   change_handlers_t change_handlers;
 
-  MapPos *spiral_pos_pattern;
+  std::unique_ptr<MapPos[]> spiral_pos_pattern;
 
  public:
   explicit Map(const MapGeometry& geom);
-  virtual ~Map();
 
   const MapGeometry& geom() const { return geom_; }
 
@@ -455,8 +455,6 @@ class Map {
     operator << (SaveWriterText &writer, Map &map);
 
  protected:
-  void deinit();
-
   void init_spiral_pos_pattern();
 
   void update_public(MapPos pos, Random *rnd);

@@ -322,13 +322,12 @@ Map::map_space_from_obj[] = {
 };
 
 Map::Map(const MapGeometry& geom)
-  : geom_(geom) {
+  : geom_(geom)
+  , landscape_tiles(new LandscapeTile[geom_.tile_count()]())
+  , game_tiles(new GameTile[geom_.tile_count()]())
+  , spiral_pos_pattern(new MapPos[295]) {
   // Some code may still assume that map has at least size 3.
   assert(3 <= geom.size());
-
-  landscape_tiles = NULL;
-  game_tiles = NULL;
-  spiral_pos_pattern = NULL;
 
   update_state.last_tick = 0;
   update_state.counter = 0;
@@ -339,36 +338,6 @@ Map::Map(const MapGeometry& geom)
 
   init_spiral_pattern();
   init_spiral_pos_pattern();
-
-  int tile_count = geom_.tile_count();
-
-  game_tiles = new GameTile[tile_count]();
-  if (game_tiles == NULL) abort();
-
-  landscape_tiles = new LandscapeTile[tile_count]();
-  if (landscape_tiles == NULL) abort();
-}
-
-Map::~Map() {
-  deinit();
-
-  if (spiral_pos_pattern != NULL) {
-    delete[] spiral_pos_pattern;
-    spiral_pos_pattern = NULL;
-  }
-}
-
-void
-Map::deinit() {
-  if (landscape_tiles != NULL) {
-    delete[] landscape_tiles;
-    landscape_tiles = NULL;
-  }
-
-  if (game_tiles != NULL) {
-    delete[] game_tiles;
-    game_tiles = NULL;
-  }
 }
 
 /* Return a random map position.
@@ -400,11 +369,6 @@ Map::get_gold_deposit() const {
 /* Initialize spiral_pos_pattern from spiral_pattern. */
 void
 Map::init_spiral_pos_pattern() {
-  if (spiral_pos_pattern == NULL) {
-    spiral_pos_pattern = new MapPos[295];
-    if (spiral_pos_pattern == NULL) abort();
-  }
-
   for (int i = 0; i < 295; i++) {
     int x = spiral_pattern[2*i] & geom_.col_mask();
     int y = spiral_pattern[2*i+1] & geom_.row_mask();
@@ -416,7 +380,7 @@ Map::init_spiral_pos_pattern() {
 /* Copy tile data from map generator into map tile data. */
 void
 Map::init_tiles(const MapGenerator &generator) {
-  memcpy(landscape_tiles, generator.get_landscape(),
+  memcpy(landscape_tiles.get(), generator.get_landscape(),
          geom_.tile_count() * sizeof(LandscapeTile));
 }
 
