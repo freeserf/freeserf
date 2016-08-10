@@ -142,7 +142,7 @@ Building::call_attacker_out(int knight_index) {
 }
 
 unsigned int
-Building::military_gold_count() {
+Building::military_gold_count() const {
   unsigned int count = 0;
 
   if (get_type() == TypeHut ||
@@ -230,7 +230,7 @@ Building::requested_knight_arrived() {
 }
 
 bool
-Building::is_enough_place_for_knight() {
+Building::is_enough_place_for_knight() const {
   int max_capacity = -1;
   switch (get_type()) {
     case TypeHut: max_capacity = 3; break;
@@ -296,7 +296,8 @@ Building::remove_stock() {
 }
 
 int
-Building::get_max_priority_for_resource(Resource::Type resource, int minimum) {
+Building::get_max_priority_for_resource(
+    Resource::Type resource, int minimum) const {
   int max_prio = -1;
 
   for (int i = 0; i < BUILDING_MAX_STOCK; i++) {
