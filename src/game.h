@@ -140,23 +140,23 @@ class Game : public EventLoop::Handler {
   void prepare_ground_analysis(MapPos pos, int estimates[5]);
   bool send_geologist(Flag *dest);
 
-  int get_leveling_height(MapPos pos);
+  int get_leveling_height(MapPos pos) const;
 
-  bool can_build_military(MapPos pos);
-  bool can_build_small(MapPos pos);
-  bool can_build_mine(MapPos pos);
-  bool can_build_large(MapPos pos);
+  bool can_build_military(MapPos pos) const;
+  bool can_build_small(MapPos pos) const;
+  bool can_build_mine(MapPos pos) const;
+  bool can_build_large(MapPos pos) const;
   bool can_build_building(MapPos pos, Building::Type type,
-                          const Player *player);
-  bool can_build_castle(MapPos pos, const Player *player);
-  bool can_build_flag(MapPos pos, const Player *player);
-  bool can_player_build(MapPos pos, const Player *player);
+                          const Player *player) const;
+  bool can_build_castle(MapPos pos, const Player *player) const;
+  bool can_build_flag(MapPos pos, const Player *player) const;
+  bool can_player_build(MapPos pos, const Player *player) const;
 
   int can_build_road(const Road &road, const Player *player,
-                     MapPos *dest, bool *water);
+                     MapPos *dest, bool *water) const;
 
-  bool can_demolish_flag(MapPos pos, const Player *player);
-  bool can_demolish_road(MapPos pos, const Player *player);
+  bool can_demolish_flag(MapPos pos, const Player *player) const;
+  bool can_demolish_road(MapPos pos, const Player *player) const;
 
   bool build_road(const Road &road, const Player *player);
 
@@ -213,8 +213,8 @@ class Game : public EventLoop::Handler {
 
   ListSerfs get_serfs_at_pos(MapPos pos);
 
-  Player *get_next_player(Player *player);
-  unsigned int get_enemy_score(Player *player);
+  Player *get_next_player(const Player *player);
+  unsigned int get_enemy_score(const Player *player) const;
   void building_captured(Building *building);
   void clear_search_id();
 
@@ -242,7 +242,7 @@ class Game : public EventLoop::Handler {
   void remove_road_forwards(MapPos pos, Direction dir);
   bool demolish_road_(MapPos pos);
   void build_flag_split_path(MapPos pos);
-  bool map_types_within(MapPos pos, Map::Terrain low, Map::Terrain high);
+  bool map_types_within(MapPos pos, Map::Terrain low, Map::Terrain high) const;
   void flag_remove_player_refs(Flag *flag);
   bool demolish_flag_(MapPos pos);
   bool demolish_building_(MapPos pos);

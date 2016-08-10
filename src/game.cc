@@ -784,7 +784,7 @@ Game::road_segment_in_water(MapPos pos, Direction dir) {
    a flag, and therefore partial paths can be validated with this function. */
 int
 Game::can_build_road(const Road &road, const Player *player, MapPos *dest,
-                     bool *water) {
+                     bool *water) const {
   /* Follow along path to other flag. Test along the way
      whether the path is on ground or in water. */
   MapPos pos = road.get_source();
@@ -1051,7 +1051,7 @@ Game::build_flag_split_path(MapPos pos) {
 
 /* Check whether player can build flag at pos. */
 bool
-Game::can_build_flag(MapPos pos, const Player *player) {
+Game::can_build_flag(MapPos pos, const Player *player) const {
   /* Check owner of land */
   if (!map->has_owner(pos) || map->get_owner(pos) != player->get_index()) {
     return false;
@@ -1105,13 +1105,13 @@ Game::build_flag(MapPos pos, Player *player) {
 
 /* Check whether military buildings are allowed at pos. */
 bool
-Game::can_build_military(MapPos pos) {
+Game::can_build_military(MapPos pos) const {
   /* Check that no military buildings are nearby */
   for (int i = 0; i < 1+6+12; i++) {
     MapPos p = map->pos_add_spirally(pos, i);
     if (map->get_obj(p) >= Map::ObjectSmallBuilding &&
         map->get_obj(p) <= Map::ObjectCastle) {
-      Building *bld = buildings[map->get_obj_index(p)];
+      const Building *bld = buildings[map->get_obj_index(p)];
       if (bld->is_military()) {
         return false;
       }
@@ -1124,7 +1124,7 @@ Game::can_build_military(MapPos pos) {
 /* Return the height that is needed before a large building can be built.
    Returns negative if the needed height cannot be reached. */
 int
-Game::get_leveling_height(MapPos pos) {
+Game::get_leveling_height(MapPos pos) const {
   /* Find min and max height */
   int h_min = 31;
   int h_max = 0;
@@ -1139,7 +1139,7 @@ Game::get_leveling_height(MapPos pos) {
   for (int i = 0; i < 18; i++) {
     MapPos p = map->pos_add_spirally(pos, 19+i);
     if (map->get_obj(p) == Map::ObjectLargeBuilding) {
-      Building *bld = buildings[map->get_obj_index(p)];
+      const Building *bld = buildings[map->get_obj_index(p)];
       if (bld->is_leveling()) { /* Leveling in progress */
         int h = bld->get_level();
         if (h_min > h) h_min = h;
@@ -1168,7 +1168,7 @@ Game::get_leveling_height(MapPos pos) {
 }
 
 bool
-Game::map_types_within(MapPos pos, Map::Terrain low, Map::Terrain high) {
+Game::map_types_within(MapPos pos, Map::Terrain low, Map::Terrain high) const {
   if ((map->type_up(pos) >= low &&
        map->type_up(pos) <= high) &&
       (map->type_down(pos) >= low &&
@@ -1189,13 +1189,13 @@ Game::map_types_within(MapPos pos, Map::Terrain low, Map::Terrain high) {
 
 /* Checks whether a small building is possible at position.*/
 bool
-Game::can_build_small(MapPos pos) {
+Game::can_build_small(MapPos pos) const {
   return map_types_within(pos, Map::TerrainGrass0, Map::TerrainGrass3);
 }
 
 /* Checks whether a mine is possible at position. */
 bool
-Game::can_build_mine(MapPos pos) {
+Game::can_build_mine(MapPos pos) const {
   bool can_build = false;
 
   Map::Terrain types[] = {
@@ -1221,7 +1221,7 @@ Game::can_build_mine(MapPos pos) {
 
 /* Checks whether a large building is possible at position. */
 bool
-Game::can_build_large(MapPos pos) {
+Game::can_build_large(MapPos pos) const {
   /* Check that surroundings are passable by serfs. */
   for (int i = 0; i < 6; i++) {
     MapPos p = map->pos_add_spirally(pos, 1+i);
@@ -1257,7 +1257,7 @@ Game::can_build_large(MapPos pos) {
 
 /* Checks whether a castle can be built by player at position. */
 bool
-Game::can_build_castle(MapPos pos, const Player *player) {
+Game::can_build_castle(MapPos pos, const Player *player) const {
   if (player->has_castle()) return false;
 
   /* Check owner of land around position */
@@ -1294,7 +1294,7 @@ Game::can_build_castle(MapPos pos, const Player *player) {
    can be built after the existing building has been
    demolished. */
 bool
-Game::can_player_build(MapPos pos, const Player *player) {
+Game::can_player_build(MapPos pos, const Player *player) const {
   if (!player->has_castle()) return false;
 
   /* Check owner of land around position */
@@ -1325,7 +1325,7 @@ Game::can_player_build(MapPos pos, const Player *player) {
    position. */
 bool
 Game::can_build_building(MapPos pos, Building::Type type,
-                         const Player *player) {
+                         const Player *player) const {
   if (!can_player_build(pos, player)) return false;
 
   /* Check that space is clear */
@@ -1534,7 +1534,7 @@ Game::flag_remove_player_refs(Flag *flag) {
 
 /* Check whether road can be demolished. */
 bool
-Game::can_demolish_road(MapPos pos, const Player *player) {
+Game::can_demolish_road(MapPos pos, const Player *player) const {
   if (!map->has_owner(pos) || map->get_owner(pos) != player->get_index()) {
     return false;
   }
@@ -1550,7 +1550,7 @@ Game::can_demolish_road(MapPos pos, const Player *player) {
 
 /* Check whether flag can be demolished. */
 bool
-Game::can_demolish_flag(MapPos pos, const Player *player) {
+Game::can_demolish_flag(MapPos pos, const Player *player) const {
   if (map->get_obj(pos) != Map::ObjectFlag) return false;
 
   if (BIT_TEST(map->paths(pos), DirectionUpLeft) &&
@@ -1561,7 +1561,7 @@ Game::can_demolish_flag(MapPos pos, const Player *player) {
 
   if (map->paths(pos) == 0) return true;
 
-  Flag *flag = flags[map->get_obj_index(pos)];
+  const Flag *flag = flags[map->get_obj_index(pos)];
 
   if (flag->get_owner() != player->get_index()) return false;
 
@@ -2465,8 +2465,8 @@ Game::get_serfs_related_to(unsigned int dest, Direction dir) {
 }
 
 Player *
-Game::get_next_player(Player *player) {
-  Players::Iterator p = players.begin();
+Game::get_next_player(const Player *player) {
+  auto p = players.begin();
   while (*p != player) {
     ++p;
   }
@@ -2479,12 +2479,12 @@ Game::get_next_player(Player *player) {
 }
 
 unsigned int
-Game::get_enemy_score(Player *player) {
+Game::get_enemy_score(const Player *player) const {
   unsigned int enemy_score = 0;
 
-  for (Players::Iterator it = players.begin(); it != players.end(); ++it) {
-    if (player->get_index() != (*it)->get_index()) {
-      enemy_score += (*it)->get_total_military_score();
+  for (const Player* p : players) {
+    if (player->get_index() != p->get_index()) {
+      enemy_score += p->get_total_military_score();
     }
   }
 
