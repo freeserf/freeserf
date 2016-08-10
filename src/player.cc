@@ -21,6 +21,7 @@
 
 #include "src/player.h"
 
+#include <cassert>
 #include <algorithm>
 
 #include "src/game.h"
@@ -33,12 +34,24 @@ Player::Player(Game *game, unsigned int index)
   : GameObject(game, index) {
 }
 
+// Initialize player values.
+//
+// Supplies and reproduction are usually limited to 0-40 in random map games.
+//
+// Args:
+//     face: the face image that represents this player.
+//           1-12 is AI, 13-14 is human player.
+//     color: Color of player as palette color index.
+//     supplies: Initial resource supplies at castle (0-50).
+//     reproduction: How quickly new serfs spawn during the game (0-60).
+//     intelligence: AI only (unused) (0-40).
 void
 Player::init(size_t face, unsigned int color, unsigned int supplies,
              size_t reproduction, size_t intelligence) {
-  flags = 0;
+  assert(14 >= face && face >= 1);
+  assert(60 >= reproduction && reproduction >= 0);
 
-  if (face == 0) return;
+  flags = 0;
 
   if (face < 12) { /* AI player */
     flags |= BIT(7); /* Set AI bit */
