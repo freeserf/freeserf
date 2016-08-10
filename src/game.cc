@@ -2114,8 +2114,7 @@ Game::add_player(size_t face, unsigned int color, unsigned int supplies,
   Player *player = players.allocate();
   if (player == NULL) abort();
 
-  player->init(player->get_index(), face, color, supplies, reproduction,
-               intelligence);
+  player->init(face, color, supplies, reproduction, intelligence);
 
   /* Update map values dependent on player count */
   map_gold_morale_factor = 10 * 1024 * static_cast<int>(players.size());
@@ -2827,7 +2826,7 @@ operator >> (SaveReaderText &reader, Game &game) {
   sections = reader.get_sections("player");
   for (Readers::iterator it = sections.begin(); it != sections.end(); ++it) {
     Player *p = game.players.get_or_insert((*it)->get_number());
-    p->init(0, 1, 0, 0, 0, 0);
+    p->init(1, 0, 0, 0, 0);
     **it >> *p;
   }
 
