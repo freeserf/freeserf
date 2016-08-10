@@ -166,9 +166,8 @@ class Player : public GameObject {
  public:
   Player(Game *game, unsigned int index);
 
-  void init(unsigned int number, size_t face, unsigned int color,
-            unsigned int supplies, size_t reproduction,
-            size_t intelligence);
+  void init(size_t face, unsigned int color, unsigned int supplies,
+            size_t reproduction, size_t intelligence);
 
   int get_color() const { return color; }
   size_t get_face() const { return face; }
