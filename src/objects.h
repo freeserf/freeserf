@@ -86,7 +86,7 @@ class Collection {
   }
 
   bool
-  exists(unsigned int index) {
+  exists(unsigned int index) const {
     return (objects.end() != objects.find(index));
   }
 
@@ -122,6 +122,11 @@ class Collection {
       return NULL;
     }
     return objects[index];
+  }
+
+  const T* operator[] (unsigned int index) const {
+    if (!exists(index)) return nullptr;
+    return objects.at(index);
   }
 
   class Iterator {
@@ -185,7 +190,7 @@ class Collection {
   }
 
   size_t
-  size() { return objects.size(); }
+  size() const { return objects.size(); }
 };
 
 #endif  // SRC_OBJECTS_H_
