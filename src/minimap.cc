@@ -22,6 +22,7 @@
 #include "src/minimap.h"
 
 #include <algorithm>
+#include <memory>
 #include <cstring>
 
 #include "src/misc.h"
@@ -41,15 +42,7 @@ Minimap::Minimap(Map *_map) {
   advanced = -1;
   flags = 8;
 
-  minimap = NULL;
   set_map(_map);
-}
-
-Minimap::~Minimap() {
-  if (minimap != NULL) {
-    delete[] minimap;
-    minimap = NULL;
-  }
 }
 
 /* Initialize minimap data. */
@@ -71,23 +64,14 @@ Minimap::init_minimap() {
     11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11
   };
 
-  if (minimap != NULL) {
-    delete[] minimap;
-    minimap = NULL;
-  }
-
   if (map == NULL) {
     return;
   }
 
   size_t size = map->get_rows() * map->get_cols();
-  minimap = new uint8_t[size];
-  if (minimap == NULL) {
-    abort();
-  }
-  memset(minimap, 0, size);
+  minimap.reset(new uint8_t[size]());
 
-  uint8_t *mpos = minimap;
+  uint8_t *mpos = minimap.get();
   for (MapPos pos : map->geom()) {
     int type_off = color_offset[map->type_up(pos)];
 
@@ -133,7 +117,7 @@ Minimap::draw_minimap_point(int col, int row, uint8_t color, int density) {
 
 void
 Minimap::draw_minimap_map() {
-  uint8_t *color_data = minimap;
+  uint8_t *color_data = minimap.get();
   for (unsigned int row = 0; row < map->get_rows(); row++) {
     for (unsigned int col = 0; col < map->get_cols(); col++) {
       uint8_t color = *(color_data++);
