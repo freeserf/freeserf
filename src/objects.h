@@ -160,15 +160,38 @@ class Collection {
     }
   };
 
-  Iterator
-  begin() {
-    return Iterator(objects.begin());
-  }
+  class ConstIterator {
+   protected:
+    typename Objects::const_iterator internal_iterator;
 
-  Iterator
-  end() {
-    return Iterator(objects.end());
-  }
+   public:
+    explicit ConstIterator(typename Objects::const_iterator it) {
+     this->internal_iterator = it;
+    }
+
+    ConstIterator& operator++() {
+     internal_iterator++;
+     return (*this);
+    }
+
+    bool operator == (const ConstIterator& right) const {
+     return internal_iterator == right.internal_iterator;
+    }
+
+    bool operator != (const ConstIterator& right) const {
+     return !(*this == right);
+    }
+
+    const T* operator*() const {
+     return internal_iterator->second;
+    }
+  };
+
+  Iterator begin() { return Iterator(objects.begin()); }
+  Iterator end() { return Iterator(objects.end()); }
+
+  ConstIterator begin() const { return ConstIterator(objects.begin()); }
+  ConstIterator end() const { return ConstIterator(objects.end()); }
 
   void
   erase(unsigned int index) {
