@@ -88,20 +88,17 @@ Minimap::init_minimap() {
   memset(minimap, 0, size);
 
   uint8_t *mpos = minimap;
-  for (unsigned int y = 0; y < map->get_rows(); y++) {
-    for (unsigned int x = 0; x < map->get_cols(); x++) {
-      MapPos pos = map->pos(x, y);
-      int type_off = color_offset[map->type_up(pos)];
+  for (MapPos pos : map->geom()) {
+    int type_off = color_offset[map->type_up(pos)];
 
-      pos = map->move_right(pos);
-      int h1 = map->get_height(pos);
+    pos = map->move_right(pos);
+    int h1 = map->get_height(pos);
 
-      pos = map->move_down_left(pos);
-      int h2 = map->get_height(pos);
+    pos = map->move_down_left(pos);
+    int h2 = map->get_height(pos);
 
-      int h_off = h2 - h1 + 8;
-      *(mpos++) = colors[type_off + h_off];
-    }
+    int h_off = h2 - h1 + 8;
+    *(mpos++) = colors[type_off + h_off];
   }
 }
 

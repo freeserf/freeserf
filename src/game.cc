@@ -2681,13 +2681,10 @@ Game::load_flags(SaveReaderBinary *reader, int max_flag_index) {
   }
 
   /* Set flag positions. */
-  for (unsigned int y = 0; y < map->get_rows(); y++) {
-    for (unsigned int x = 0; x < map->get_cols(); x++) {
-      MapPos pos = map->pos(x, y);
-      if (map->get_obj(pos) == Map::ObjectFlag) {
-        Flag *flag = flags[map->get_obj_index(pos)];
-        flag->set_position(pos);
-      }
+  for (MapPos pos : map->geom()) {
+    if (map->get_obj(pos) == Map::ObjectFlag) {
+      Flag *flag = flags[map->get_obj_index(pos)];
+      flag->set_position(pos);
     }
   }
 

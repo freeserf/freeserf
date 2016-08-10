@@ -99,6 +99,39 @@ class MapGeometry {
   unsigned int row_shift_;
 
  public:
+  class Iterator {
+   protected:
+    const MapGeometry& geom;
+    MapPos pos;
+
+   public:
+    explicit Iterator(const MapGeometry& geom, MapPos pos)
+    : geom(geom), pos(pos) {}
+    Iterator(const Iterator& that)
+    : geom(that.geom), pos(that.pos) {}
+
+    Iterator& operator ++() {
+      if (pos < geom.tile_count()) {
+        pos++;
+      }
+      return *this;
+    }
+
+    Iterator operator ++(int) {
+      Iterator tmp(*this);
+      operator++();
+      return tmp;
+    }
+
+    bool operator == (const Iterator& rhs) const {
+      return this->geom == rhs.geom && this->pos == rhs.pos; }
+    bool operator != (const Iterator& rhs) const { return !(*this == rhs); }
+
+    MapPos operator * () const {
+      return pos;
+    }
+  };
+
   explicit MapGeometry(unsigned int size)
   : size_(size) {
     // Above size 20 the map positions can no longer fit in a 32-bit integer.
@@ -167,6 +200,9 @@ class MapGeometry {
     return pos_add(pos, dirs[DirectionRight]*n); }
   MapPos move_down_n(MapPos pos, int n) const {
     return pos_add(pos, dirs[DirectionDown]*n); }
+
+  Iterator begin() const { return Iterator(*this, 0); }
+  Iterator end() const { return Iterator(*this, tile_count()); }
 
   bool operator == (const MapGeometry& rhs) const {
     return this->size_ == rhs.size_; }

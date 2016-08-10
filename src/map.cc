@@ -388,12 +388,9 @@ unsigned int
 Map::get_gold_deposit() const {
   int count = 0;
 
-  for (unsigned int y = 0; y < geom_.rows(); y++) {
-    for (unsigned int x = 0; x < geom_.cols(); x++) {
-      MapPos pos_ = pos(x, y);
-      if (get_res_type(pos_) == MineralsGold) {
-        count += get_res_amount(pos_);
-      }
+  for (MapPos pos_ : geom_) {
+    if (get_res_type(pos_) == MineralsGold) {
+      count += get_res_amount(pos_);
     }
   }
 
@@ -820,17 +817,12 @@ Map::operator == (const Map& rhs) const {
   }
 
   // Check all tiles
-  for (unsigned int y = 0; y < geom_.rows(); y++) {
-    for (unsigned int x = 0; x < geom_.cols(); x++) {
-      MapPos pos_ = pos(x, y);
-      if (pos_ != rhs.pos(x, y)) return false;
-
-      if (this->landscape_tiles[pos_] != rhs.landscape_tiles[pos_]) {
-        return false;
-      }
-      if (this->game_tiles[pos_] != rhs.game_tiles[pos_]) {
-        return false;
-      }
+  for (MapPos pos_ : geom_) {
+    if (this->landscape_tiles[pos_] != rhs.landscape_tiles[pos_]) {
+      return false;
+    }
+    if (this->game_tiles[pos_] != rhs.game_tiles[pos_]) {
+      return false;
     }
   }
 
