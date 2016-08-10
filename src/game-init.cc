@@ -34,6 +34,7 @@
 #include "src/text-input.h"
 #include "src/minimap.h"
 #include "src/map-generator.h"
+#include "src/map-geometry.h"
 
 class RandomInput : public TextInput {
  protected:
@@ -434,9 +435,8 @@ GameInitBox::generate_map_preview() {
     map = NULL;
   }
 
-  map = new Map();
   if (game_mission < 0) {
-    map->init(map_size);
+    map = new Map(MapGeometry(map_size));
     {
       ClassicMapGenerator generator(*map, mission->rnd);
       generator.init(MapGenerator::HeightGeneratorMidpoints, true);
@@ -444,7 +444,7 @@ GameInitBox::generate_map_preview() {
       map->init_tiles(generator);
     }
   } else {
-    map->init(3);
+    map = new Map(MapGeometry(3));
     {
       ClassicMissionMapGenerator generator(*map, mission->rnd);
       generator.init();

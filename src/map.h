@@ -23,70 +23,12 @@
 #define SRC_MAP_H_
 
 #include <list>
-#include <limits>
 #include <utility>
 
+#include "src/map-geometry.h"
 #include "src/misc.h"
 #include "src/random.h"
 
-/* Map directions
-
-      A ______ B
-       /\    /
-      /  \  /
-   C /____\/ D
-
-   Six standard directions:
-   RIGHT: A to B
-   DOWN_RIGHT: A to D
-   DOWN: A to C
-   LEFT: D to C
-   UP_LEFT: D to A
-   UP: D to B
-
-   Non-standard directions:
-   UP_RIGHT: C to B
-   DOWN_LEFT: B to C
-*/
-typedef enum Direction {
-  DirectionNone = -1,
-
-  DirectionRight = 0,
-  DirectionDownRight,
-  DirectionDown,
-  DirectionLeft,
-  DirectionUpLeft,
-  DirectionUp,
-
-  DirectionUpRight,
-  DirectionDownLeft
-} Direction;
-
-/* Return the given direction turned clockwise a number of times.
-
-   Return the resulting direction from turning the given direction
-   clockwise in 60 degree increment the specified number of times.
-   If times is a negative number the direction will be turned counter
-   clockwise. NOTE: Only valid for the six standard directions. */
-inline Direction turn_direction(Direction d, int times) {
-  int td = (static_cast<int>(d) + times) % 6;
-  if (td < 0) td += 6;
-  return static_cast<Direction>(td);
-}
-
-/* Return the given direction reversed.
-
-   NOTE: Only valid for the six standard directions.
-*/
-inline Direction reverse_direction(Direction d) {
-  return turn_direction(d, 3);
-}
-
-/* MapPos is a compact composition of col and row values that
-   uniquely identifies a vertex in the map space. It is also used
-   directly as index to map data arrays. */
-typedef unsigned int MapPos;
-const MapPos bad_map_pos = std::numeric_limits<unsigned int>::max();
 class Map;
 
 class Road {
@@ -122,16 +64,16 @@ class SaveReaderText;
 class SaveWriterText;
 class MapGenerator;
 
-/* Map data.
- Initialization of a new map_t takes three steps:
-
- 1. Construct map_t and call init() to have basic size fields initialized.
- 2. Constuct a MapGenerator subclass based on the map_t object and use it
- to generate the map data.
- 3. Call init_tiles() on the map_t supplying the MapGenerator object to
- copy the new tile data into map_t.
- */
-
+// Map data.
+//
+// Initialization of a new Map takes a few steps:
+//
+// 1. Construct a MapGeometry specifying the size of the map.
+// 2. Construct a Map from the MapGeometry.
+// 3. Construct a MapGenerator subclass based on the Map object and use
+//    it to generate the initial map data.
+// 4. Call init_tiles() on the Map supplying the MapGenerator object to copy
+//    the new tile data into the Map.
 class Map {
  public:
   typedef enum Object {
@@ -346,18 +288,9 @@ class Map {
       return !(*this == rhs); }
   } GameTile;
 
-  /* Fundamentals */
-  unsigned int size;
+  MapGeometry geom_;
   LandscapeTile *landscape_tiles;
   GameTile *game_tiles;
-  unsigned int col_size, row_size;
-
-  /* Derived */
-  MapPos dirs[8];
-  unsigned int tile_count;
-  unsigned int cols, rows;
-  unsigned int col_mask, row_mask;
-  unsigned int row_shift;
 
   uint16_t regions;
 
@@ -370,55 +303,54 @@ class Map {
   MapPos *spiral_pos_pattern;
 
  public:
-  Map();
+  explicit Map(const MapGeometry& geom);
   virtual ~Map();
 
-  unsigned int get_size() const { return size; }
-  unsigned int get_cols() const { return cols; }
-  unsigned int get_rows() const { return rows; }
-  unsigned int get_col_mask() const { return col_mask; }
-  unsigned int get_row_mask() const { return row_mask; }
-  unsigned int get_row_shift() const { return row_shift; }
+  const MapGeometry& geom() const { return geom_; }
+
+  unsigned int get_size() const { return geom_.size(); }
+  unsigned int get_cols() const { return geom_.cols(); }
+  unsigned int get_rows() const { return geom_.rows(); }
+  unsigned int get_col_mask() const { return geom_.col_mask(); }
+  unsigned int get_row_mask() const { return geom_.row_mask(); }
+  unsigned int get_row_shift() const { return geom_.row_shift(); }
   unsigned int get_region_count() const { return regions; }
 
-  /* Extract col and row from MapPos */
-  int pos_col(int pos) const { return (pos & col_mask); }
-  int pos_row(int pos) const { return ((pos >> row_shift) & row_mask); }
+  // Extract col and row from MapPos
+  int pos_col(MapPos pos) const { return geom_.pos_col(pos); }
+  int pos_row(MapPos pos) const { return geom_.pos_row(pos); }
 
-  /* Translate col, row coordinate to MapPos value. */
-  MapPos pos(int x, int y) const { return ((y << row_shift) | x); }
+  // Translate col, row coordinate to MapPos value. */
+  MapPos pos(int x, int y) const { return geom_.pos(x, y); }
 
-  /* Addition of two map positions. */
-  MapPos pos_add(MapPos pos_, MapPos off) const {
-    return pos((pos_col(pos_) + pos_col(off)) & col_mask,
-               (pos_row(pos_) + pos_row(off)) & row_mask); }
+  // Addition of two map positions.
+  MapPos pos_add(MapPos pos, MapPos off) const {
+    return geom_.pos_add(pos, off); }
   MapPos pos_add_spirally(MapPos pos_, unsigned int off) const {
     return pos_add(pos_, spiral_pos_pattern[off]); }
 
-  /* Get random position */
+  /// Get random position
   MapPos get_rnd_coord(int *col, int *row, Random *rnd) const;
 
-  /* Movement of map position according to directions. */
+  // Movement of map position according to directions.
   MapPos move(MapPos pos, Direction dir) const {
-    return pos_add(pos, dirs[dir]); }
+    return geom_.move(pos, dir); }
 
-  MapPos move_right(MapPos pos) const { return move(pos, DirectionRight); }
+  MapPos move_right(MapPos pos) const { return geom_.move_right(pos); }
   MapPos move_down_right(MapPos pos) const {
-    return move(pos, DirectionDownRight); }
-  MapPos move_down(MapPos pos) const { return move(pos, DirectionDown); }
-  MapPos move_left(MapPos pos) const { return move(pos, DirectionLeft); }
-  MapPos move_up_left(MapPos pos) const { return move(pos, DirectionUpLeft); }
-  MapPos move_up(MapPos pos) const { return move(pos, DirectionUp); }
+    return geom_.move_down_right(pos); }
+  MapPos move_down(MapPos pos) const { return geom_.move_down(pos); }
+  MapPos move_left(MapPos pos) const { return geom_.move_left(pos); }
+  MapPos move_up_left(MapPos pos) const { return geom_.move_up_left(pos); }
+  MapPos move_up(MapPos pos) const { return geom_.move_up(pos); }
 
-  MapPos move_up_right(MapPos pos) const {
-    return move(pos, DirectionUpRight); }
-  MapPos move_down_left(MapPos pos) const {
-    return move(pos, DirectionDownLeft); }
+  MapPos move_up_right(MapPos pos) const { return geom_.move_up_right(pos); }
+  MapPos move_down_left(MapPos pos) const { return geom_.move_down_left(pos); }
 
   MapPos move_right_n(MapPos pos, int n) const {
-    return pos_add(pos, dirs[DirectionRight]*n); }
+    return geom_.move_right_n(pos, n); }
   MapPos move_down_n(MapPos pos, int n) const {
-    return pos_add(pos, dirs[DirectionDown]*n); }
+    return geom_.move_down_n(pos, n); }
 
   /* Extractors for map data. */
   unsigned int paths(MapPos pos) const {
@@ -490,9 +422,6 @@ class Map {
   void set_serf_index(MapPos pos, int index);
 
   unsigned int get_gold_deposit() const;
-
-  void init(unsigned int size);
-  void init_dimensions();
 
   void init_tiles(const MapGenerator &generator);
 

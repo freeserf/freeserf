@@ -74,6 +74,7 @@
 #include "src/debug.h"
 #include "src/savegame.h"
 #include "src/map-generator.h"
+#include "src/map-geometry.h"
 
 /* Facilitates quick lookup of offsets following a spiral pattern in the map data.
  The columns following the second are filled out by setup_spiral_pattern(). */
@@ -320,10 +321,32 @@ Map::map_space_from_obj[] = {
   SpaceOpen,        // Object127
 };
 
-Map::Map() {
+Map::Map(const MapGeometry& geom)
+  : geom_(geom) {
+  // Some code may still assume that map has at least size 3.
+  assert(3 <= geom.size());
+
   landscape_tiles = NULL;
   game_tiles = NULL;
   spiral_pos_pattern = NULL;
+
+  update_state.last_tick = 0;
+  update_state.counter = 0;
+  update_state.remove_signs_counter = 0;
+  update_state.initial_pos = 0;
+
+  regions = (geom.cols() >> 5) * (geom.rows() >> 5);
+
+  init_spiral_pattern();
+  init_spiral_pos_pattern();
+
+  int tile_count = geom_.tile_count();
+
+  game_tiles = new GameTile[tile_count]();
+  if (game_tiles == NULL) abort();
+
+  landscape_tiles = new LandscapeTile[tile_count]();
+  if (landscape_tiles == NULL) abort();
 }
 
 Map::~Map() {
@@ -333,36 +356,6 @@ Map::~Map() {
     delete[] spiral_pos_pattern;
     spiral_pos_pattern = NULL;
   }
-}
-
-void
-Map::init(unsigned int size) {
-  // Some code may still assume that map has at least size 3. Above size 20
-  // the map positions can no longer fit in a 32-bit integer.
-  assert(3 <= size && size <= 20);
-
-  deinit();
-
-  if (spiral_pos_pattern != NULL) {
-    delete[] spiral_pos_pattern;
-    spiral_pos_pattern = NULL;
-  }
-
-  update_state.last_tick = 0;
-  update_state.counter = 0;
-  update_state.remove_signs_counter = 0;
-  update_state.initial_pos = 0;
-
-  this->size = size;
-
-  col_size = 5 + size/2;
-  row_size = 5 + (size - 1)/2;
-  cols = 1 << col_size;
-  rows = 1 << row_size;
-
-  init_dimensions();
-
-  regions = (cols >> 5) * (rows >> 5);
 }
 
 void
@@ -382,8 +375,8 @@ Map::deinit() {
    Returned as map_pos_t and also as col and row if not NULL. */
 MapPos
 Map::get_rnd_coord(int *col, int *row, Random *rnd) const {
-  int c = rnd->random() & col_mask;
-  int r = rnd->random() & row_mask;
+  int c = rnd->random() & geom_.col_mask();
+  int r = rnd->random() & geom_.row_mask();
 
   if (col != NULL) *col = c;
   if (row != NULL) *row = r;
@@ -395,8 +388,8 @@ unsigned int
 Map::get_gold_deposit() const {
   int count = 0;
 
-  for (unsigned int y = 0; y < rows; y++) {
-    for (unsigned int x = 0; x < cols; x++) {
+  for (unsigned int y = 0; y < geom_.rows(); y++) {
+    for (unsigned int x = 0; x < geom_.cols(); x++) {
       MapPos pos_ = pos(x, y);
       if (get_res_type(pos_) == MineralsGold) {
         count += get_res_amount(pos_);
@@ -416,54 +409,18 @@ Map::init_spiral_pos_pattern() {
   }
 
   for (int i = 0; i < 295; i++) {
-    int x = spiral_pattern[2*i] & col_mask;
-    int y = spiral_pattern[2*i+1] & row_mask;
+    int x = spiral_pattern[2*i] & geom_.col_mask();
+    int y = spiral_pattern[2*i+1] & geom_.row_mask();
 
     spiral_pos_pattern[i] = pos(x, y);
   }
-}
-
-/* Set all map fields except cols/rows and col/row_size
-   which must be set. */
-void
-Map::init_dimensions() {
-  /* Initialize global lookup tables */
-  init_spiral_pattern();
-
-  tile_count = cols * rows;
-
-  col_mask = (1 << col_size) - 1;
-  row_mask = (1 << row_size) - 1;
-  row_shift = col_size;
-
-  /* Setup direction offsets. */
-  dirs[DirectionRight] = 1 & col_mask;
-  dirs[DirectionLeft] = -1 & col_mask;
-  dirs[DirectionDown] = (1 & row_mask) << row_shift;
-  dirs[DirectionUp] = (-1 & row_mask) << row_shift;
-
-  dirs[DirectionDownRight] = dirs[DirectionRight] | dirs[DirectionDown];
-  dirs[DirectionUpRight] = dirs[DirectionRight] | dirs[DirectionUp];
-  dirs[DirectionDownLeft] = dirs[DirectionLeft] | dirs[DirectionDown];
-  dirs[DirectionUpLeft] = dirs[DirectionLeft] | dirs[DirectionUp];
-
-  /* Allocate map */
-  deinit();
-
-  game_tiles = new GameTile[tile_count]();
-  if (game_tiles == NULL) abort();
-
-  landscape_tiles = new LandscapeTile[tile_count]();
-  if (landscape_tiles == NULL) abort();
-
-  init_spiral_pos_pattern();
 }
 
 /* Copy tile data from map generator into map tile data. */
 void
 Map::init_tiles(const MapGenerator &generator) {
   memcpy(landscape_tiles, generator.get_landscape(),
-         rows * cols * sizeof(LandscapeTile));
+         geom_.tile_count() * sizeof(LandscapeTile));
 }
 
 /* Change the height of a map position. */
@@ -636,7 +593,7 @@ Map::update(unsigned int tick, Random *rnd) {
     }
 
     /* Test if moving 23 positions right crosses map boundary. */
-    if (pos_col(pos) + 23 < static_cast<int>(cols)) {
+    if (pos_col(pos) + 23 < static_cast<int>(geom_.cols())) {
       pos = move_right_n(pos, 23);
     } else {
       pos = move_right_n(pos, 23);
@@ -856,17 +813,15 @@ Map::types_within(MapPos pos, Terrain low, Terrain high) {
 bool
 Map::operator == (const Map& rhs) const {
   // Check fundamental properties
-  if (this->size != rhs.size ||
-      this->col_size != rhs.col_size ||
-      this->row_size != rhs.row_size ||
+  if (this->geom_ != rhs.geom_ ||
       this->regions != rhs.regions ||
       this->update_state != rhs.update_state) {
     return false;
   }
 
   // Check all tiles
-  for (unsigned int y = 0; y < rows; y++) {
-    for (unsigned int x = 0; x < cols; x++) {
+  for (unsigned int y = 0; y < geom_.rows(); y++) {
+    for (unsigned int x = 0; x < geom_.cols(); x++) {
       MapPos pos_ = pos(x, y);
       if (pos_ != rhs.pos(x, y)) return false;
 
@@ -892,8 +847,8 @@ operator >> (SaveReaderBinary &reader, Map &map) {
   uint8_t v8;
   uint16_t v16;
 
-  for (unsigned int y = 0; y < map.rows; y++) {
-    for (unsigned int x = 0; x < map.cols; x++) {
+  for (unsigned int y = 0; y < map.geom().rows(); y++) {
+    for (unsigned int x = 0; x < map.geom().cols(); x++) {
       MapPos pos = map.pos(x, y);
       reader >> v8;
       map.game_tiles[pos].paths = v8 & 0x3f;
@@ -907,7 +862,7 @@ operator >> (SaveReaderBinary &reader, Map &map) {
       map.landscape_tiles[pos].obj = (Map::Object)(v8 & 0x7f);
       map.game_tiles[pos].idle_serf = (BIT_TEST(v8, 7) != 0);
     }
-    for (unsigned int x = 0; x < map.cols; x++) {
+    for (unsigned int x = 0; x < map.geom().cols(); x++) {
       MapPos pos = map.pos(x, y);
       if (map.get_obj(pos) >= Map::ObjectFlag &&
           map.get_obj(pos) <= Map::ObjectCastle) {
