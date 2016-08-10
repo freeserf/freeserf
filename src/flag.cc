@@ -168,7 +168,7 @@ Flag::drop_resource(Resource::Type res, unsigned int dest) {
 }
 
 bool
-Flag::has_empty_slot() {
+Flag::has_empty_slot() const {
   int scheduled_slots = 0;
   for (int i = 0; i < FLAG_MAX_RES_COUNT; i++) {
     if (slot[i].type != Resource::TypeNone) {
@@ -192,7 +192,7 @@ Flag::remove_all_resources() {
 }
 
 Resource::Type
-Flag::get_resource_at_slot(int slot_) {
+Flag::get_resource_at_slot(int slot_) const {
   return slot[slot_].type;
 }
 
@@ -614,7 +614,7 @@ Flag::restore_path_serf_info(Direction dir, SerfPathInfo *data) {
 }
 
 bool
-Flag::can_demolish() {
+Flag::can_demolish() const {
   int connected = 0;
   void *other_end = NULL;
 
