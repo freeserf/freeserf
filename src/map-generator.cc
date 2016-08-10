@@ -291,23 +291,20 @@ ClassicMapGenerator::clamp_heights() {
   bool changed = true;
   while (changed) {
     changed = false;
-    for (unsigned int y = 0; y < map.get_rows(); y++) {
-      for (unsigned int x = 0; x < map.get_cols(); x++) {
-        MapPos pos_ = map.pos(x, y);
-        int h = tiles[pos_].height;
+    for (MapPos pos_ : map.geom()) {
+      int h = tiles[pos_].height;
 
-        MapPos pos_d = map.move_down(pos_);
-        int h_d = tiles[pos_d].height;
-        changed |= adjust_map_height(h, h_d, pos_d);
+      MapPos pos_d = map.move_down(pos_);
+      int h_d = tiles[pos_d].height;
+      changed |= adjust_map_height(h, h_d, pos_d);
 
-        MapPos pos_dr = map.move_down_right(pos_);
-        int h_dr = tiles[pos_dr].height;
-        changed |= adjust_map_height(h, h_dr, pos_dr);
+      MapPos pos_dr = map.move_down_right(pos_);
+      int h_dr = tiles[pos_dr].height;
+      changed |= adjust_map_height(h, h_dr, pos_dr);
 
-        MapPos pos_r = map.move_right(pos_);
-        int h_r = tiles[pos_r].height;
-        changed |= adjust_map_height(h, h_r, pos_r);
-      }
+      MapPos pos_r = map.move_right(pos_);
+      int h_r = tiles[pos_r].height;
+      changed |= adjust_map_height(h, h_r, pos_r);
     }
   }
 }
@@ -415,12 +412,9 @@ ClassicMapGenerator::expand_water_body(MapPos pos) {
 void
 ClassicMapGenerator::create_water_bodies() {
   for (unsigned int h = 0; h <= water_level; h++) {
-    for (unsigned int y = 0; y < map.get_rows(); y++) {
-      for (unsigned int x = 0; x < map.get_cols(); x++) {
-        MapPos pos_ = map.pos(x, y);
-        if (tiles[pos_].height == h) {
-          expand_water_body(pos_);
-        }
+    for (MapPos pos_ : map.geom()) {
+      if (tiles[pos_].height == h) {
+        expand_water_body(pos_);
       }
     }
   }
@@ -429,23 +423,20 @@ ClassicMapGenerator::create_water_bodies() {
   // 0: Above water level.
   // 252: Land at water level.
   // 253: Water.
-  for (unsigned int y = 0; y < map.get_rows(); y++) {
-    for (unsigned int x = 0; x < map.get_cols(); x++) {
-      MapPos pos_ = map.pos(x, y);
-      int h = tiles[pos_].height;
-      switch (h) {
-        case 0:
-          tiles[pos_].height = water_level + 1;
-          break;
-        case 252:
-          tiles[pos_].height = water_level;
-          break;
-        case 253:
-          tiles[pos_].height = water_level - 1;
-          tiles[pos_].mineral = Map::MineralsNone;
-          tiles[pos_].resource_amount = random_int() & 7; /* Fish */
-          break;
-      }
+  for (MapPos pos_ : map.geom()) {
+    int h = tiles[pos_].height;
+    switch (h) {
+      case 0:
+        tiles[pos_].height = water_level + 1;
+        break;
+      case 252:
+        tiles[pos_].height = water_level;
+        break;
+      case 253:
+        tiles[pos_].height = water_level - 1;
+        tiles[pos_].mineral = Map::MineralsNone;
+        tiles[pos_].resource_amount = random_int() & 7; /* Fish */
+        break;
     }
   }
 }
@@ -455,10 +446,8 @@ void
 ClassicMapGenerator::heights_rebase() {
   int h = water_level - 1;
 
-  for (unsigned int y = 0; y < map.get_rows(); y++) {
-    for (unsigned int x = 0; x < map.get_cols(); x++) {
-      tiles[map.pos(x, y)].height -= h;
-    }
+  for (MapPos pos : map.geom()) {
+    tiles[pos].height -= h;
   }
 }
 
@@ -477,25 +466,20 @@ calc_map_type(int h_sum) {
 /* Set type of map fields based on the height value. */
 void
 ClassicMapGenerator::init_types() {
-  for (unsigned int y = 0; y < map.get_rows(); y++) {
-    for (unsigned int x = 0; x < map.get_cols(); x++) {
-      MapPos pos_ = map.pos(x, y);
-      int h1 = tiles[pos_].height;
-      int h2 = tiles[map.move_right(pos_)].height;
-      int h3 = tiles[map.move_down_right(pos_)].height;
-      int h4 = tiles[map.move_down(pos_)].height;
-      tiles[pos_].type_up = calc_map_type(h1 + h3 + h4);
-      tiles[pos_].type_down = calc_map_type(h1 + h2 + h3);
-    }
+  for (MapPos pos_ : map.geom()) {
+    int h1 = tiles[pos_].height;
+    int h2 = tiles[map.move_right(pos_)].height;
+    int h3 = tiles[map.move_down_right(pos_)].height;
+    int h4 = tiles[map.move_down(pos_)].height;
+    tiles[pos_].type_up = calc_map_type(h1 + h3 + h4);
+    tiles[pos_].type_down = calc_map_type(h1 + h2 + h3);
   }
 }
 
 void
 ClassicMapGenerator::clear_all_tags() {
-  for (unsigned int y = 0; y < map.get_rows(); y++) {
-    for (unsigned int x = 0; x < map.get_cols(); x++) {
-      tags[map.pos(x, y)] = 0;
-    }
+  for (MapPos pos : map.geom()) {
+    tags[pos] = 0;
   }
 }
 
@@ -519,86 +503,74 @@ ClassicMapGenerator::remove_islands() {
   // itself expanded the tag is changed to 2.
   clear_all_tags();
 
-  for (unsigned int y = 0; y < map.get_rows(); y++) {
-    for (unsigned int x = 0; x < map.get_cols(); x++) {
-      MapPos pos_ = map.pos(x, y);
+  for (MapPos pos_ : map.geom()) {
+    if (tiles[pos_].height > 0 && tags[pos_] == 0) {
+      tags[pos_] = 1;
 
-      if (tiles[pos_].height > 0 && tags[pos_] == 0) {
-        tags[pos_] = 1;
+      unsigned int num = 0;
+      bool changed = true;
+      while (changed) {
+        changed = false;
+        for (MapPos pos_ : map.geom()) {
+          if (tags[pos_] == 1) {
+            num += 1;
+            tags[pos_] = 2;
 
-        unsigned int num = 0;
-        bool changed = true;
-        while (changed) {
-          changed = false;
-          for (unsigned int y = 0; y < map.get_rows(); y++) {
-            for (unsigned int x = 0; x < map.get_cols(); x++) {
-              MapPos pos_ = map.pos(x, y);
+            // The i'th flag will indicate whether a path on land from
+            // pos_in direction i is possible.
+            int flags = 0;
+            if (tiles[pos_].type_down >= Map::TerrainGrass0) {
+              flags |= 3;
+            }
+            if (tiles[pos_].type_up >= Map::TerrainGrass0) {
+              flags |= 6;
+            }
+            if (tiles[map.move_left(pos_)].type_down >=
+                Map::TerrainGrass0) {
+              flags |= 0xc;
+            }
+            if (tiles[map.move_up_left(pos_)].type_up >=
+                Map::TerrainGrass0) {
+              flags |= 0x18;
+            }
+            if (tiles[map.move_up_left(pos_)].type_down >=
+                Map::TerrainGrass0) {
+              flags |= 0x30;
+            }
+            if (tiles[map.move_up(pos_)].type_up >= Map::TerrainGrass0) {
+              flags |= 0x21;
+            }
 
-              if (tags[pos_] == 1) {
-                num += 1;
-                tags[pos_] = 2;
-
-                // The i'th flag will indicate whether a path on land from
-                // pos_in direction i is possible.
-                int flags = 0;
-                if (tiles[pos_].type_down >= Map::TerrainGrass0) {
-                  flags |= 3;
-                }
-                if (tiles[pos_].type_up >= Map::TerrainGrass0) {
-                  flags |= 6;
-                }
-                if (tiles[map.move_left(pos_)].type_down >=
-                    Map::TerrainGrass0) {
-                  flags |= 0xc;
-                }
-                if (tiles[map.move_up_left(pos_)].type_up >=
-                    Map::TerrainGrass0) {
-                  flags |= 0x18;
-                }
-                if (tiles[map.move_up_left(pos_)].type_down >=
-                    Map::TerrainGrass0) {
-                  flags |= 0x30;
-                }
-                if (tiles[map.move_up(pos_)].type_up >= Map::TerrainGrass0) {
-                  flags |= 0x21;
-                }
-
-                // Mark positions following any valid direction on land.
-                for (int d = DirectionRight; d <= DirectionUp; d++) {
-                  if (BIT_TEST(flags, d)) {
-                    if (tags[map.move(pos_, (Direction)d)] == 0) {
-                      tags[map.move(pos_, (Direction)d)] = 1;
-                      changed = true;
-                    }
-                  }
+            // Mark positions following any valid direction on land.
+            for (int d = DirectionRight; d <= DirectionUp; d++) {
+              if (BIT_TEST(flags, d)) {
+                if (tags[map.move(pos_, (Direction)d)] == 0) {
+                  tags[map.move(pos_, (Direction)d)] = 1;
+                  changed = true;
                 }
               }
             }
           }
         }
-
-        if (4*num >= tile_count) goto break_loop;
       }
+
+      if (4*num >= tile_count) goto break_loop;
     }
   }
 
   break_loop:
 
   // Change every position that was not tagged (i.e. tag is 0) to water.
-  for (unsigned int y = 0; y < map.get_rows(); y++) {
-    for (unsigned int x = 0; x < map.get_cols(); x++) {
-      MapPos pos_ = map.pos(x, y);
+  for (MapPos pos_ : map.geom()) {
+    if (tiles[pos_].height > 0 && tags[pos_] == 0) {
+      tiles[pos_].height = 0;
+      tiles[pos_].type_up = Map::TerrainWater0;
+      tiles[pos_].type_up = Map::TerrainWater0;
 
-      if (tiles[pos_].height > 0 && tags[pos_] == 0) {
-        tiles[pos_].height = 0;
-        tiles[pos_].type_up = Map::TerrainWater0;
-        tiles[pos_].type_up = Map::TerrainWater0;
-
-        tiles[map.move_left(pos_)].type_down = Map::TerrainWater0;
-        tiles[map.move_up_left(pos_)].type_up = Map::TerrainWater0;
-        tiles[map.move_up_left(pos_)].type_down = Map::TerrainWater0;
-        tiles[map.move_up(pos_)].type_up = Map::TerrainWater0;
-      }
+      tiles[map.move_left(pos_)].type_down = Map::TerrainWater0;
+      tiles[map.move_up_left(pos_)].type_up = Map::TerrainWater0;
+      tiles[map.move_up_left(pos_)].type_down = Map::TerrainWater0;
+      tiles[map.move_up(pos_)].type_up = Map::TerrainWater0;
     }
   }
 }
@@ -606,11 +578,8 @@ ClassicMapGenerator::remove_islands() {
 /* Rescale height values to be in [0;31]. */
 void
 ClassicMapGenerator::heights_rescale() {
-  for (unsigned int y = 0; y < map.get_rows(); y++) {
-    for (unsigned int x = 0; x < map.get_cols(); x++) {
-      MapPos pos_ = map.pos(x, y);
-      tiles[pos_].height = (tiles[pos_].height + 6) >> 3;
-    }
+  for (MapPos pos_ : map.geom()) {
+    tiles[pos_].height = (tiles[pos_].height + 6) >> 3;
   }
 }
 
@@ -621,61 +590,57 @@ ClassicMapGenerator::heights_rescale() {
 void
 ClassicMapGenerator::seed_terrain_type(Map::Terrain old, Map::Terrain seed,
                                        Map::Terrain new_) {
-  for (unsigned int y = 0; y < map.get_rows(); y++) {
-    for (unsigned int x = 0; x < map.get_cols(); x++) {
-      MapPos pos_ = map.pos(x, y);
+  for (MapPos pos_ : map.geom()) {
+    // Check that the central triangle is of type old (*), and that any
+    // adjacent triangle is of type seed:
+    //     ____
+    //    /\  /\
+    //   /__\/__\
+    //  /\  /\  /\
+    // /__\/*_\/__\
+    // \  /\  /\  /
+    //  \/__\/__\/
+    //
+    if (tiles[pos_].type_up == old &&
+        (seed == tiles[map.move_up_left(pos_)].type_down ||
+         seed == tiles[map.move_up_left(pos_)].type_up ||
+         seed == tiles[map.move_up(pos_)].type_up ||
+         seed == tiles[map.move_left(pos_)].type_down ||
+         seed == tiles[map.move_left(pos_)].type_up ||
+         seed == tiles[pos_].type_down ||
+         seed == tiles[map.move_right(pos_)].type_up ||
+         seed == tiles[map.move_down_left(pos_)].type_down ||
+         seed == tiles[map.move_down(pos_)].type_down ||
+         seed == tiles[map.move_down(pos_)].type_up ||
+         seed == tiles[map.move_down_right(pos_)].type_down ||
+         seed == tiles[map.move_down_right(pos_)].type_up)) {
+      tiles[pos_].type_up = new_;
+    }
 
-      // Check that the central triangle is of type old (*), and that any
-      // adjacent triangle is of type seed:
-      //     ____
-      //    /\  /\
-      //   /__\/__\
-      //  /\  /\  /\
-      // /__\/*_\/__\
-      // \  /\  /\  /
-      //  \/__\/__\/
-      //
-      if (tiles[pos_].type_up == old &&
-          (seed == tiles[map.move_up_left(pos_)].type_down ||
-           seed == tiles[map.move_up_left(pos_)].type_up ||
-           seed == tiles[map.move_up(pos_)].type_up ||
-           seed == tiles[map.move_left(pos_)].type_down ||
-           seed == tiles[map.move_left(pos_)].type_up ||
-           seed == tiles[pos_].type_down ||
-           seed == tiles[map.move_right(pos_)].type_up ||
-           seed == tiles[map.move_down_left(pos_)].type_down ||
-           seed == tiles[map.move_down(pos_)].type_down ||
-           seed == tiles[map.move_down(pos_)].type_up ||
-           seed == tiles[map.move_down_right(pos_)].type_down ||
-           seed == tiles[map.move_down_right(pos_)].type_up)) {
-        tiles[pos_].type_up = new_;
-      }
-
-      // Check that the central triangle is of type old (*), and that any
-      // adjacent triangle is of type seed:
-      //   ________
-      //  /\  /\  /\
-      // /__\/__\/__\
-      // \  /\* /\  /
-      //  \/__\/__\/
-      //   \  /\  /
-      //    \/__\/
-      //
-      if (tiles[pos_].type_down == old &&
-          (seed == tiles[map.move_up_left(pos_)].type_down ||
-           seed == tiles[map.move_up_left(pos_)].type_up ||
-           seed == tiles[map.move_up(pos_)].type_down ||
-           seed == tiles[map.move_up(pos_)].type_up ||
-           seed == tiles[map.move_up_right(pos_)].type_up ||
-           seed == tiles[map.move_left(pos_)].type_down ||
-           seed == tiles[pos_].type_up ||
-           seed == tiles[map.move_right(pos_)].type_down ||
-           seed == tiles[map.move_right(pos_)].type_up ||
-           seed == tiles[map.move_down(pos_)].type_down ||
-           seed == tiles[map.move_down_right(pos_)].type_down ||
-           seed == tiles[map.move_down_right(pos_)].type_up)) {
-        tiles[pos_].type_down = new_;
-      }
+    // Check that the central triangle is of type old (*), and that any
+    // adjacent triangle is of type seed:
+    //   ________
+    //  /\  /\  /\
+    // /__\/__\/__\
+    // \  /\* /\  /
+    //  \/__\/__\/
+    //   \  /\  /
+    //    \/__\/
+    //
+    if (tiles[pos_].type_down == old &&
+        (seed == tiles[map.move_up_left(pos_)].type_down ||
+         seed == tiles[map.move_up_left(pos_)].type_up ||
+         seed == tiles[map.move_up(pos_)].type_down ||
+         seed == tiles[map.move_up(pos_)].type_up ||
+         seed == tiles[map.move_up_right(pos_)].type_up ||
+         seed == tiles[map.move_left(pos_)].type_down ||
+         seed == tiles[pos_].type_up ||
+         seed == tiles[map.move_right(pos_)].type_down ||
+         seed == tiles[map.move_right(pos_)].type_up ||
+         seed == tiles[map.move_down(pos_)].type_down ||
+         seed == tiles[map.move_down_right(pos_)].type_down ||
+         seed == tiles[map.move_down_right(pos_)].type_up)) {
+      tiles[pos_].type_down = new_;
     }
   }
 }
@@ -818,18 +783,15 @@ ClassicMapGenerator::create_deserts() {
   // Convert all triangles in the TerrainGrass3 - TerrainDesert1 range to
   // TerrainGrass1. This reduces the size of the desert areas to the core
   // that was made up of TerrainDesert2.
-  for (unsigned int y = 0; y < map.get_rows(); y++) {
-    for (unsigned int x = 0; x < map.get_cols(); x++) {
-      MapPos pos_ = map.pos(x, y);
-      int type_d = tiles[pos_].type_down;
-      int type_u = tiles[pos_].type_up;
+  for (MapPos pos_ : map.geom()) {
+    int type_d = tiles[pos_].type_down;
+    int type_u = tiles[pos_].type_up;
 
-      if (type_d >= Map::TerrainGrass3 && type_d <= Map::TerrainDesert1) {
-        tiles[pos_].type_down = Map::TerrainGrass1;
-      }
-      if (type_u >= Map::TerrainGrass3 && type_u <= Map::TerrainDesert1) {
-        tiles[pos_].type_up = Map::TerrainGrass1;
-      }
+    if (type_d >= Map::TerrainGrass3 && type_d <= Map::TerrainDesert1) {
+      tiles[pos_].type_down = Map::TerrainGrass1;
+    }
+    if (type_u >= Map::TerrainGrass3 && type_u <= Map::TerrainDesert1) {
+      tiles[pos_].type_up = Map::TerrainGrass1;
     }
   }
 
@@ -846,19 +808,16 @@ ClassicMapGenerator::create_deserts() {
 /* Put crosses on top of mountains. */
 void
 ClassicMapGenerator::create_crosses() {
-  for (unsigned int y = 0; y < map.get_rows(); y++) {
-    for (unsigned int x = 0; x < map.get_cols(); x++) {
-      MapPos pos_ = map.pos(x, y);
-      unsigned int h = tiles[pos_].height;
-      if (h >= 26 &&
-          h >= tiles[map.move_right(pos_)].height &&
-          h >= tiles[map.move_down_right(pos_)].height &&
-          h >= tiles[map.move_down(pos_)].height &&
-          h > tiles[map.move_left(pos_)].height &&
-          h > tiles[map.move_up_left(pos_)].height &&
-          h > tiles[map.move_up(pos_)].height) {
-        tiles[pos_].obj = Map::ObjectCross;
-      }
+  for (MapPos pos_ : map.geom()) {
+    unsigned int h = tiles[pos_].height;
+    if (h >= 26 &&
+        h >= tiles[map.move_right(pos_)].height &&
+        h >= tiles[map.move_down_right(pos_)].height &&
+        h >= tiles[map.move_down(pos_)].height &&
+        h > tiles[map.move_left(pos_)].height &&
+        h > tiles[map.move_up_left(pos_)].height &&
+        h > tiles[map.move_up(pos_)].height) {
+      tiles[pos_].obj = Map::ObjectCross;
     }
   }
 }
@@ -1093,33 +1052,31 @@ ClassicMapGenerator::clean_up() {
   /* Make sure that it is always possible to walk around
      any impassable objects. This also clears water obstacles
      except in certain positions near the shore. */
-  for (unsigned int y = 0; y < map.get_rows(); y++) {
-    for (unsigned int x = 0; x < map.get_cols(); x++) {
-      MapPos pos_ = map.pos(x, y);
-      if (Map::map_space_from_obj[tiles[pos_].obj] >= Map::SpaceImpassable) {
-        // Due to a quirk in the original game the three adjacent positions
-        // were not checked directly whether they were impassable but instead
-        // another flag was used to mark the position impassable. This flag
-        // was only initialzed for water positions before this loop and was
-        // initialized as part of this same loop for non-water positions. For
-        // this reason, the check for impassable spaces would never succeed
-        // under two particular conditions at the map edge:
-        // 1) x == 0 && d == DirectionLeft
-        // 2) y == 0 && (d == DirectionUp || d == DirectionUpLeft)
-        for (int d = DirectionLeft; d <= DirectionUp; d++) {
-          MapPos other_pos = map.move(pos_, (Direction)d);
-          Map::Space s = Map::map_space_from_obj[tiles[other_pos].obj];
+  for (MapPos pos_ : map.geom()) {
+    if (Map::map_space_from_obj[tiles[pos_].obj] >= Map::SpaceImpassable) {
+      // Due to a quirk in the original game the three adjacent positions
+      // were not checked directly whether they were impassable but instead
+      // another flag was used to mark the position impassable. This flag
+      // was only initialzed for water positions before this loop and was
+      // initialized as part of this same loop for non-water positions. For
+      // this reason, the check for impassable spaces would never succeed
+      // under two particular conditions at the map edge:
+      // 1) x == 0 && d == DirectionLeft
+      // 2) y == 0 && (d == DirectionUp || d == DirectionUpLeft)
+      for (int d = DirectionLeft; d <= DirectionUp; d++) {
+        MapPos other_pos = map.move(pos_, (Direction)d);
+        Map::Space s = Map::map_space_from_obj[tiles[other_pos].obj];
 
-          bool check_impassable = false;
-          if (!(x == 0 && d == DirectionLeft) &&
-              !((d == DirectionUp || d == DirectionUpLeft) && y == 0)) {
-            check_impassable = s >= Map::SpaceImpassable;
-          }
+        bool check_impassable = false;
+        if (!(map.pos_col(pos_) == 0 && d == DirectionLeft) &&
+            !((d == DirectionUp || d == DirectionUpLeft) &&
+              map.pos_row(pos_) == 0)) {
+          check_impassable = s >= Map::SpaceImpassable;
+        }
 
-          if (is_in_water(other_pos) || check_impassable) {
-            tiles[pos_].obj = Map::ObjectNone;
-            break;
-          }
+        if (is_in_water(other_pos) || check_impassable) {
+          tiles[pos_].obj = Map::ObjectNone;
+          break;
         }
       }
     }

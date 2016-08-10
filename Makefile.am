@@ -14,6 +14,7 @@ GAME_SOURCES = \
 	src/log.cc src/log.h \
 	src/map.cc src/map.h \
 	src/map-generator.cc src/map-generator.h \
+	src/map-geometry.h \
 	src/mission.cc src/mission.h \
 	src/objects.h \
 	src/player.cc src/player.h \

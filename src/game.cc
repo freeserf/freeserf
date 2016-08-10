@@ -39,6 +39,7 @@
 #include "src/misc.h"
 #include "src/inventory.h"
 #include "src/map-generator.h"
+#include "src/map-geometry.h"
 
 #define GROUND_ANALYSIS_RADIUS  25
 
@@ -2156,8 +2157,7 @@ Game::init_map(int size) {
     map = NULL;
   }
 
-  map = new Map();
-  map->init(size);
+  map = new Map(MapGeometry(size));
 }
 
 void
@@ -2225,7 +2225,7 @@ Game::load_mission_map(int level) {
 
   init_map(3);
   {
-    ClassicMissionMapGenerator generator(*this->map, init_map_rnd);
+    ClassicMissionMapGenerator generator(*map, init_map_rnd);
     generator.init();
     generator.generate();
     init_map_data(generator);
@@ -2259,7 +2259,7 @@ Game::load_random_map(int size, const Random &rnd) {
 
   init_map(size);
   {
-    ClassicMapGenerator generator(*this->map, rnd);
+    ClassicMapGenerator generator(*map, rnd);
     generator.init(MapGenerator::HeightGeneratorMidpoints, false);
     generator.generate();
     init_map_data(generator);
@@ -2603,8 +2603,7 @@ operator >> (SaveReaderBinary &reader, Game &game) {
     throw ExceptionFreeserf("Invalid map size in file");
   }
 
-  game.map = new Map();
-  game.map->init(map_size);
+  game.map = new Map(MapGeometry(map_size));
 
   reader.skip(8);
   reader >> v16;  // 200
@@ -2682,13 +2681,10 @@ Game::load_flags(SaveReaderBinary *reader, int max_flag_index) {
   }
 
   /* Set flag positions. */
-  for (unsigned int y = 0; y < map->get_rows(); y++) {
-    for (unsigned int x = 0; x < map->get_cols(); x++) {
-      MapPos pos = map->pos(x, y);
-      if (map->get_obj(pos) == Map::ObjectFlag) {
-        Flag *flag = flags[map->get_obj_index(pos)];
-        flag->set_position(pos);
-      }
+  for (MapPos pos : map->geom()) {
+    if (map->get_obj(pos) == Map::ObjectFlag) {
+      Flag *flag = flags[map->get_obj_index(pos)];
+      flag->set_position(pos);
     }
   }
 
@@ -2773,9 +2769,7 @@ operator >> (SaveReaderText &reader, Game &game) {
   }
 
   /* Initialize remaining map dimensions. */
-  game.map = new Map();
-  game.map->init(size);
-  game.map->init_dimensions();
+  game.map = new Map(MapGeometry(size));
   sections = reader.get_sections("map");
   for (Readers::iterator it = sections.begin(); it != sections.end(); ++it) {
     **it >> *game.map;

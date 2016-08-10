@@ -27,6 +27,7 @@
 
 #include "src/map.h"
 #include "src/map-generator.h"
+#include "src/map-geometry.h"
 #include "src/random.h"
 
 
@@ -55,8 +56,8 @@ main(int argc, char *argv[]) {
   is.close();
 
   // Generate corresponding map
-  Map map;
-  map.init(map_size);
+  const MapGeometry geom(map_size);
+  Map map(geom);
 
   Random random = Random("8667715887436237");
 
