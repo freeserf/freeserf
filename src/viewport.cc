@@ -2171,7 +2171,7 @@ Viewport::draw_map_cursor() {
   draw_map_cursor_sprite(interface->get_map_cursor_pos(),
                          interface->get_map_cursor_sprite(0));
 
-  for (int d = 0; d < 6; d++) {
+  for (int d = DirectionRight; d <= DirectionUp; d++) {
     draw_map_cursor_sprite(map->move(interface->get_map_cursor_pos(),
                                      (Direction)d),
                            interface->get_map_cursor_sprite(1+d));
@@ -2319,7 +2319,7 @@ Viewport::handle_click_left(int x, int y) {
         }
       } else {
         /* Build new road segment */
-        int r = interface->build_road_segment((Direction)dir);
+        int r = interface->build_road_segment(dir);
         if (r < 0) {
           play_sound(Audio::TypeSfxNotAccepted);
         } else if (r == 0) {

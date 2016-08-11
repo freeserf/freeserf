@@ -373,7 +373,7 @@ ClassicMapGenerator::expand_water_body(MapPos pos) {
     bool expanded = false;
 
     MapPos new_pos = map.move_right_n(pos, i+1);
-    for (int k = 0; k < 6; k++) {
+    for (int k = DirectionRight; k <= DirectionUp; k++) {
       Direction d = turn_direction(DirectionDown, k);
       for (unsigned int j = 0; j <= i; j++) {
         expanded |= expand_water_position(new_pos);
@@ -392,7 +392,7 @@ ClassicMapGenerator::expand_water_body(MapPos pos) {
 
   for (unsigned int i = 0; i < max_lake_area + 1; i++) {
     MapPos new_pos = map.move_right_n(pos, i+1);
-    for (int k = 0; k < 6; k++) {
+    for (int k = DirectionRight; k <= DirectionUp; k++) {
       Direction d = (Direction)((k + DirectionDown) % 6);
       for (unsigned int j = 0; j <= i; j++) {
         if (tiles[new_pos].height > 253) tiles[new_pos].height -= 2;

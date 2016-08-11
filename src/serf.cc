@@ -825,10 +825,10 @@ Serf::set_lost_state() {
    or DirectionNone if the desired direction cannot be determined. */
 int
 Serf::is_waiting(Direction *dir) {
-  const int dir_from_offset[] = {
-    DirectionUpLeft, DirectionUp, -1,
-    DirectionLeft, -1, DirectionRight,
-    -1, DirectionDown, DirectionDownRight
+  const Direction dir_from_offset[] = {
+    DirectionUpLeft, DirectionUp,   DirectionNone,
+    DirectionLeft,   DirectionNone, DirectionRight,
+    DirectionNone,   DirectionDown, DirectionDownRight
   };
 
   if ((state == StateTransporting || state == StateWalking ||
@@ -844,8 +844,8 @@ Serf::is_waiting(Direction *dir) {
     int dy = s.free_walking.dist2;
 
     if (abs(dx) <= 1 && abs(dy) <= 1 &&
-        dir_from_offset[(dx+1) + 3*(dy+1)] > -1) {
-      *dir = (Direction)dir_from_offset[(dx+1) + 3*(dy+1)];
+        dir_from_offset[(dx+1) + 3*(dy+1)] > DirectionNone) {
+      *dir = dir_from_offset[(dx+1) + 3*(dy+1)];
     } else {
       *dir = DirectionNone;
     }
@@ -1239,7 +1239,7 @@ Serf::handle_serf_walking_state() {
       } else {
         Flag *src = game->get_flag_at_pos(pos);
         FlagSearch search(game);
-        for (int i = 0; i < 6; i++) {
+        for (int i = DirectionRight; i <= DirectionUp; i++) {
           if (!src->is_water_path((Direction)(5-i))) {
             Flag *other_flag = src->get_other_end_flag((Direction)(5-i));
             other_flag->set_search_dir((Direction)(5-i));
@@ -1255,7 +1255,7 @@ Serf::handle_serf_walking_state() {
       /* Serf is not at a flag. Just follow the road. */
       int paths = game->get_map()->paths(pos) & ~BIT(s.walking.dir);
       Direction dir = DirectionNone;
-      for (int d = 0; d < 6; d++) {
+      for (int d = DirectionRight; d <= DirectionUp; d++) {
         if (paths == BIT(d)) {
           dir = (Direction)d;
           break;
@@ -1346,7 +1346,7 @@ Serf::handle_serf_transporting_state() {
     } else {
       int paths = game->get_map()->paths(pos) & ~BIT(s.walking.dir);
       Direction dir = DirectionNone;
-      for (int d = 0; d < 6; d++) {
+      for (int d = DirectionRight; d <= DirectionUp; d++) {
         if (paths == BIT(d)) {
           dir = (Direction)d;
           break;
@@ -2664,7 +2664,7 @@ Serf::handle_serf_free_walking_state_dest_reached() {
 void
 Serf::handle_serf_free_walking_switch_on_dir(Direction dir) {
   /* A suitable direction has been found; walk. */
-  assert(dir > -1);
+  assert(dir > DirectionNone);
   int dx = ((dir < 3) ? 1 : -1)*((dir % 3) < 2);
   int dy = ((dir < 3) ? 1 : -1)*((dir % 3) > 0);
 
@@ -2689,9 +2689,9 @@ Serf::handle_serf_free_walking_switch_with_other() {
   /* No free position can be found. Switch with
      other serf. */
   MapPos new_pos = 0;
-  int dir = -1;
+  Direction dir = DirectionNone;
   Serf *other_serf = NULL;
-  for (int i = 0; i < 6; i++) {
+  for (int i = DirectionRight; i <= DirectionUp; i++) {
     new_pos = game->get_map()->move(pos, (Direction)i);
     if (game->get_map()->has_serf(new_pos)) {
       other_serf = game->get_serf_at_pos(new_pos);
@@ -2700,13 +2700,13 @@ Serf::handle_serf_free_walking_switch_with_other() {
       if (other_serf->is_waiting(&other_dir) &&
           other_dir == reverse_direction((Direction)i) &&
           other_serf->switch_waiting(other_dir)) {
-        dir = i;
+        dir = (Direction)i;
         break;
       }
     }
   }
 
-  if (dir > -1) {
+  if (dir > DirectionNone) {
     int dx = ((dir < 3) ? 1 : -1)*((dir % 3) < 2);
     int dy = ((dir < 3) ? 1 : -1)*((dir % 3) > 0);
 
@@ -2755,10 +2755,10 @@ Serf::can_pass_map_pos(MapPos pos) {
 
 int
 Serf::handle_free_walking_follow_edge() {
-  const int dir_from_offset[] = {
-    DirectionUpLeft, DirectionUp, -1,
-    DirectionLeft, -1, DirectionRight,
-    -1, DirectionDown, DirectionDownRight
+  const Direction dir_from_offset[] = {
+    DirectionUpLeft, DirectionUp,   DirectionNone,
+    DirectionLeft,   DirectionNone, DirectionRight,
+    DirectionNone,   DirectionDown, DirectionDownRight
   };
 
   /* Follow right-hand edge */
@@ -2806,10 +2806,10 @@ Serf::handle_free_walking_follow_edge() {
 
   /* Check if dest is only one step away. */
   if (!water && abs(d1) <= 1 && abs(d2) <= 1 &&
-      dir_from_offset[(d1+1) + 3*(d2+1)] > -1) {
+      dir_from_offset[(d1+1) + 3*(d2+1)] > DirectionNone) {
     /* Convert offset in two dimensions to
        direction variable. */
-    Direction dir = (Direction)dir_from_offset[(d1+1) + 3*(d2+1)];
+    Direction dir = dir_from_offset[(d1+1) + 3*(d2+1)];
     MapPos new_pos = game->get_map()->move(pos, dir);
 
     if (!can_pass_map_pos(new_pos)) {
@@ -2840,20 +2840,20 @@ Serf::handle_free_walking_follow_edge() {
   }
 
   const Direction *a0 = &dir_arr[6*dir_index];
-  int i0 = -1;
+  Direction i0 = DirectionNone;
   Direction dir = DirectionNone;
-  for (int i = 0; i < 6; i++) {
+  for (int i = DirectionRight; i <= DirectionUp; i++) {
     MapPos new_pos = game->get_map()->move(pos, a0[i]);
     if (((water && game->get_map()->get_obj(new_pos) == 0) ||
          (!water && !game->get_map()->is_in_water(new_pos) &&
           can_pass_map_pos(new_pos))) && !game->get_map()->has_serf(new_pos)) {
-      dir = (Direction)a0[i];
-      i0 = i;
+      dir = a0[i];
+      i0 = (Direction)i;
       break;
     }
   }
 
-  if (i0 > -1) {
+  if (i0 > DirectionNone) {
     int upper = ((s.free_walking.flags >> 4) & 0xf) + i0 - 2;
     if (i0 < 2 && upper < 0) {
       s.free_walking.flags = 0;
@@ -2881,10 +2881,10 @@ Serf::handle_free_walking_follow_edge() {
 
 void
 Serf::handle_free_walking_common() {
-  const int dir_from_offset[] = {
-    DirectionUpLeft, DirectionUp, -1,
-    DirectionLeft, -1, DirectionRight,
-    -1, DirectionDown, DirectionDownRight
+  const Direction dir_from_offset[] = {
+    DirectionUpLeft, DirectionUp,   DirectionNone,
+    DirectionLeft,   DirectionNone, DirectionRight,
+    DirectionNone,   DirectionDown, DirectionDownRight
   };
 
   /* Directions for moving forwards. Each of the 12 lines represents
@@ -2905,7 +2905,7 @@ Serf::handle_free_walking_common() {
      *    5             8
      *         6    7
      */
-  const int dir_forward[] = {
+  const Direction dir_forward[] = {
     DirectionUp, DirectionUpLeft, DirectionRight, DirectionLeft,
     DirectionDownRight, DirectionDown, DirectionUpLeft, DirectionUp,
     DirectionLeft, DirectionRight, DirectionDown, DirectionDownRight,
@@ -2992,7 +2992,7 @@ Serf::handle_free_walking_common() {
   }
 
   /* Try to move directly in the preferred direction */
-  const int *a0 = &dir_forward[6*dir_index];
+  const Direction *a0 = &dir_forward[6*dir_index];
   Direction dir = (Direction)a0[0];
   MapPos new_pos = game->get_map()->move(pos, dir);
   if (((water && game->get_map()->get_obj(new_pos) == 0) ||
@@ -3005,10 +3005,10 @@ Serf::handle_free_walking_common() {
 
   /* Check if dest is only one step away. */
   if (!water && abs(d1) <= 1 && abs(d2) <= 1 &&
-      dir_from_offset[(d1+1) + 3*(d2+1)] > -1) {
+      dir_from_offset[(d1+1) + 3*(d2+1)] > DirectionNone) {
     /* Convert offset in two dimensions to
        direction variable. */
-    Direction d = (Direction)dir_from_offset[(d1+1) + 3*(d2+1)];
+    Direction d = dir_from_offset[(d1+1) + 3*(d2+1)];
     MapPos new_pos = game->get_map()->move(pos, d);
 
     if (!can_pass_map_pos(new_pos)) {
@@ -3081,14 +3081,14 @@ Serf::handle_free_walking_common() {
   }
 
   /* Look for another direction to go in. */
-  int i0 = -1;
+  Direction i0 = DirectionNone;
   for (int i = 0; i < 5; i++) {
-    dir = (Direction)a0[1+i];
+    dir = a0[1+i];
     MapPos new_pos = game->get_map()->move(pos, dir);
     if (((water && game->get_map()->get_obj(new_pos) == 0) ||
          (!water && !game->get_map()->is_in_water(new_pos) &&
           can_pass_map_pos(new_pos))) && !game->get_map()->has_serf(new_pos)) {
-      i0 = i;
+      i0 = (Direction)i;
       break;
     }
   }

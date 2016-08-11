@@ -2168,7 +2168,7 @@ PopupBox::draw_transport_info_box() {
   draw_popup_building(8, 40, 0x80 + 4*popup->interface->player->player_num);
 #endif
 
-  for (int i = 0; i < 6; i++) {
+  for (int i = DirectionRight; i <= DirectionUp; i++) {
     int x = layout[2*i];
     int y = layout[2*i+1];
     if (flag->has_path((Direction)(5-i))) {
