@@ -77,53 +77,56 @@ class Flag : public GameObject {
  public:
   Flag(Game *game, unsigned int index);
 
-  MapPos get_position() { return pos; }
+  MapPos get_position() const { return pos; }
   void set_position(MapPos pos) { this->pos = pos; }
 
   /* Bitmap of all directions with outgoing paths. */
-  int paths() { return path_con & 0x3f; }
+  int paths() const { return path_con & 0x3f; }
   void add_path(Direction dir, bool water);
   void del_path(Direction dir);
   /* Whether a path exists in a given direction. */
-  bool has_path(Direction dir) { return ((path_con & (1 << (dir))) != 0); }
+  bool has_path(Direction dir) const {
+    return ((path_con & (1 << (dir))) != 0); }
 
   void prioritize_pickup(Direction dir, Player *player);
 
   /* Owner of this flag. */
-  unsigned int get_owner() { return (path_con >> 6) & 3; }
+  unsigned int get_owner() const { return (path_con >> 6) & 3; }
   void set_owner(unsigned int owner) { path_con = (owner << 6) |
                                                (path_con & 0x3f); }
 
   /* Bitmap showing whether the outgoing paths are land paths. */
-  int land_paths() { return endpoint & 0x3f; }
+  int land_paths() const { return endpoint & 0x3f; }
   /* Whether the path in the given direction is a water path. */
-  bool is_water_path(Direction dir) { return !(endpoint & (1 << (dir))); }
+  bool is_water_path(Direction dir) const {
+    return !(endpoint & (1 << (dir))); }
   /* Whether a building is connected to this flag. If so, the pointer to
    the other endpoint is a valid building pointer. (Always at UP LEFT direction). */
-  bool has_building() { return (endpoint >> 6) & 1; }
+  bool has_building() const { return (endpoint >> 6) & 1; }
 
   /* Whether resources exist that are not yet scheduled. */
-  bool has_resources() { return (endpoint >> 7) & 1; }
+  bool has_resources() const { return (endpoint >> 7) & 1; }
 
   /* Bitmap showing whether the outgoing paths have transporters
    servicing them. */
-  int transporters() { return transporter & 0x3f; }
+  int transporters() const { return transporter & 0x3f; }
   /* Whether the path in the given direction has a transporter
    serving it. */
-  bool has_transporter(Direction dir) {
+  bool has_transporter(Direction dir) const {
     return ((transporter & (1 << (dir))) != 0); }
   /* Whether this flag has tried to request a transporter without success. */
-  bool serf_request_fail() { return (transporter >> 7) & 1; }
+  bool serf_request_fail() const { return (transporter >> 7) & 1; }
   void serf_request_clear() { transporter &= ~BIT(7); }
 
   /* Current number of transporters on path. */
-  unsigned int free_transporter_count(Direction dir) {
+  unsigned int free_transporter_count(Direction dir) const {
     return length[dir] & 0xf; }
   void transporter_to_serve(Direction dir) { length[dir] -= 1; }
   /* Length category of path determining max number of transporters. */
-  unsigned int length_category(Direction dir) { return (length[dir] >> 4) & 7; }
+  unsigned int length_category(Direction dir) const {
+    return (length[dir] >> 4) & 7; }
   /* Whether a transporter serf was successfully requested for this path. */
-  bool serf_requested(Direction dir) { return (length[dir] >> 7) & 1; }
+  bool serf_requested(Direction dir) const { return (length[dir] >> 7) & 1; }
   void cancel_serf_request(Direction dir) { length[dir] &= ~BIT(7); }
   void complete_serf_request(Direction dir) {
     length[dir] &= ~BIT(7);
@@ -131,25 +134,28 @@ class Flag : public GameObject {
   }
 
   /* The slot that is scheduled for pickup by the given path. */
-  unsigned int scheduled_slot(Direction dir) { return other_end_dir[dir] & 7; }
+  unsigned int scheduled_slot(Direction dir) const {
+    return other_end_dir[dir] & 7; }
   /* The direction from the other endpoint leading back to this flag. */
-  Direction get_other_end_dir(Direction dir) {
+  Direction get_other_end_dir(Direction dir) const {
     return (Direction)((other_end_dir[dir] >> 3) & 7); }
-  Flag *get_other_end_flag(Direction dir) { return other_endpoint.f[dir]; }
+  Flag *get_other_end_flag(Direction dir) const {
+    return other_endpoint.f[dir]; }
   /* Whether the given direction has a resource pickup scheduled. */
-  bool is_scheduled(Direction dir) { return (other_end_dir[dir] >> 7) & 1; }
+  bool is_scheduled(Direction dir) const {
+    return (other_end_dir[dir] >> 7) & 1; }
   bool pick_up_resource(int slot, Resource::Type *res, unsigned int *dest);
   bool drop_resource(Resource::Type res, unsigned int dest);
-  bool has_empty_slot();
+  bool has_empty_slot() const;
   void remove_all_resources();
-  Resource::Type get_resource_at_slot(int slot);
+  Resource::Type get_resource_at_slot(int slot) const;
 
   /* Whether this flag has an inventory building. */
-  bool has_inventory() { return ((bld_flags >> 6) & 1); }
+  bool has_inventory() const { return ((bld_flags >> 6) & 1); }
   /* Whether this inventory accepts resources. */
-  bool accepts_resources() { return ((bld2_flags >> 7) & 1); }
+  bool accepts_resources() const { return ((bld2_flags >> 7) & 1); }
   /* Whether this inventory accepts serfs. */
-  bool accepts_serfs() { return ((bld_flags >> 7) & 1); }
+  bool accepts_serfs() const { return ((bld_flags >> 7) & 1); }
 
   void set_has_inventory() { bld_flags |= BIT(6); }
   void set_accepts_resources(bool accepts) { accepts ? bld2_flags |= BIT(7) :
@@ -192,10 +198,10 @@ class Flag : public GameObject {
   void restore_path_serf_info(Direction dir, SerfPathInfo *data);
 
   void set_search_dir(Direction dir) { search_dir = dir; }
-  Direction get_search_dir() { return search_dir; }
+  Direction get_search_dir() const { return search_dir; }
   void clear_search_id() { search_num = 0; }
 
-  bool can_demolish();
+  bool can_demolish() const;
 
   void merge_paths(MapPos pos);
 

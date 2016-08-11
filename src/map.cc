@@ -572,7 +572,7 @@ Map::update(unsigned int tick, Random *rnd) {
 /* Return non-zero if the road segment from pos in direction dir
  can be successfully constructed at the current time. */
 bool
-Map::is_road_segment_valid(MapPos pos, Direction dir) {
+Map::is_road_segment_valid(MapPos pos, Direction dir) const {
   MapPos other_pos = move(pos, dir);
 
   Object obj = get_obj(other_pos);

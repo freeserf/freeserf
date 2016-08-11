@@ -86,7 +86,7 @@ class Collection {
   }
 
   bool
-  exists(unsigned int index) {
+  exists(unsigned int index) const {
     return (objects.end() != objects.find(index));
   }
 
@@ -124,6 +124,11 @@ class Collection {
     return objects[index];
   }
 
+  const T* operator[] (unsigned int index) const {
+    if (!exists(index)) return nullptr;
+    return objects.at(index);
+  }
+
   class Iterator {
    protected:
     typename Objects::iterator internal_iterator;
@@ -155,15 +160,38 @@ class Collection {
     }
   };
 
-  Iterator
-  begin() {
-    return Iterator(objects.begin());
-  }
+  class ConstIterator {
+   protected:
+    typename Objects::const_iterator internal_iterator;
 
-  Iterator
-  end() {
-    return Iterator(objects.end());
-  }
+   public:
+    explicit ConstIterator(typename Objects::const_iterator it) {
+     this->internal_iterator = it;
+    }
+
+    ConstIterator& operator++() {
+     internal_iterator++;
+     return (*this);
+    }
+
+    bool operator == (const ConstIterator& right) const {
+     return internal_iterator == right.internal_iterator;
+    }
+
+    bool operator != (const ConstIterator& right) const {
+     return !(*this == right);
+    }
+
+    const T* operator*() const {
+     return internal_iterator->second;
+    }
+  };
+
+  Iterator begin() { return Iterator(objects.begin()); }
+  Iterator end() { return Iterator(objects.end()); }
+
+  ConstIterator begin() const { return ConstIterator(objects.begin()); }
+  ConstIterator end() const { return ConstIterator(objects.end()); }
 
   void
   erase(unsigned int index) {
@@ -185,7 +213,7 @@ class Collection {
   }
 
   size_t
-  size() { return objects.size(); }
+  size() const { return objects.size(); }
 };
 
 #endif  // SRC_OBJECTS_H_

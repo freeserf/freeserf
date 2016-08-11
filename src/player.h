@@ -267,7 +267,7 @@ class Player : public GameObject {
   int get_inventory_prio(int type) const { return inventory_prio[type]; }
   int *get_inventory_prio() { return inventory_prio; }
 
-  int get_total_military_score() { return total_military_score; }
+  int get_total_military_score() const { return total_military_score; }
 
   void update();
   void update_stats(int res);
