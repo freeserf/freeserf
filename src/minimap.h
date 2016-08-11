@@ -22,6 +22,8 @@
 #ifndef SRC_MINIMAP_H_
 #define SRC_MINIMAP_H_
 
+#include <memory>
+
 #include "src/gui.h"
 #include "src/map.h"
 #include "src/game.h"
@@ -38,11 +40,10 @@ class Minimap : public GuiObject {
   int advanced;
   int flags;
 
-  uint8_t *minimap;
+  std::unique_ptr<uint8_t> minimap;
 
  public:
   explicit Minimap(Map *map);
-  virtual ~Minimap();
 
   void set_map(Map *map);
 
