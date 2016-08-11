@@ -649,7 +649,7 @@ Map::remove_road_backref_until_flag(MapPos pos_, Direction dir) {
       }
     }
 
-    if (dir == -1) return false;
+    if (dir == DirectionNone) return false;
   }
 
   return true;
@@ -676,7 +676,7 @@ Map::remove_road_backrefs(MapPos pos_) {
     }
   }
 
-  if (path_1_dir == -1 || path_2_dir == -1) return false;
+  if (path_1_dir == DirectionNone || path_2_dir == DirectionNone) return false;
 
   if (!remove_road_backref_until_flag(pos_, path_1_dir)) return false;
   if (!remove_road_backref_until_flag(pos_, path_2_dir)) return false;

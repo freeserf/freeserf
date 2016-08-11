@@ -55,7 +55,7 @@ FlagSearch::execute(flag_search_func *callback, bool land,
       return true;
     }
 
-    for (int i = 0; i < 6; i++) {
+    for (int i = DirectionRight; i <= DirectionUp; i++) {
       if ((!land || !flag->is_water_path((Direction)(5-i))) &&
           (!transporter || flag->has_transporter((Direction)(5-i))) &&
           flag->other_endpoint.f[5-i]->search_num != id) {
@@ -93,7 +93,7 @@ Flag::Flag(Game *game, unsigned int index) : GameObject(game, index) {
   }
   bld_flags = 0;
   bld2_flags = 0;
-  for (int i = 0; i < 6; i++) {
+  for (int i = DirectionRight; i <= DirectionUp; i++) {
     length[i] = 0;
     other_end_dir[i] = 0;
     other_endpoint.f[i] = 0;
@@ -437,7 +437,7 @@ Flag::schedule_slot_to_known_dest(int slot, unsigned int res_waiting[4]) {
   int flags = (res_waiting[0] ^ 0x3f) & transporter;
 
   if (flags != 0) {
-    for (int k = 0; k < 6; k++) {
+    for (int k = DirectionRight; k <= DirectionUp; k++) {
       if (BIT_TEST(flags, 5-k)) {
         tr &= ~BIT(5-k);
         Flag *other_flag = other_endpoint.f[5-k];
@@ -453,7 +453,7 @@ Flag::schedule_slot_to_known_dest(int slot, unsigned int res_waiting[4]) {
   if (tr != 0) {
     for (int j = 0; j < 3; j++) {
       flags = res_waiting[j] ^ res_waiting[j+1];
-      for (int k = 0; k < 6; k++) {
+      for (int k = DirectionRight; k <= DirectionUp; k++) {
         if (BIT_TEST(flags, 5-k)) {
           tr &= ~BIT(5-k);
           Flag *other_flag = other_endpoint.f[5-k];
@@ -468,7 +468,7 @@ Flag::schedule_slot_to_known_dest(int slot, unsigned int res_waiting[4]) {
 
     if (tr != 0) {
       flags = res_waiting[3];
-      for (int k = 0; k < 6; k++) {
+      for (int k = DirectionRight; k <= DirectionUp; k++) {
         if (BIT_TEST(flags, 5-k)) {
           tr &= ~BIT(5-k);
           Flag *other_flag = other_endpoint.f[5-k];
@@ -871,7 +871,7 @@ Flag::update() {
   }
 
   /* Update transporter flags, decide if serf needs to be sent to road */
-  for (int j = 0; j < 6; j++) {
+  for (int j = DirectionRight; j <= DirectionUp; j++) {
     if (has_path((Direction)(5-j))) {
       if (serf_requested((Direction)(5-j))) {
         if (BIT_TEST(res_waiting[2], 5-j)) {
@@ -1036,7 +1036,7 @@ operator >> (SaveReaderBinary &reader, Flag &flag) {
   reader >> val8;  // 5
   flag.transporter = val8;
 
-  for (int j = 0; j < 6; j++) {
+  for (int j = DirectionRight; j <= DirectionUp; j++) {
     reader >> val8;  // 6+j
     flag.length[j] = val8;
   }
@@ -1052,7 +1052,7 @@ operator >> (SaveReaderBinary &reader, Flag &flag) {
   }
 
   // base + 36
-  for (int j = 0; j < 6; j++) {
+  for (int j = DirectionRight; j <= DirectionUp; j++) {
     uint32_t val32;
     reader >> val32;
     int offset = val32;
@@ -1070,7 +1070,7 @@ operator >> (SaveReaderBinary &reader, Flag &flag) {
   }
 
   // base + 60
-  for (int j = 0; j < 6; j++) {
+  for (int j = DirectionRight; j <= DirectionUp; j++) {
     reader >> val8;
     flag.other_end_dir[j] = val8;
   }
@@ -1107,7 +1107,7 @@ operator >> (SaveReaderText &reader, Flag &flag) {
   reader.value("endpoints") >> flag.endpoint;
   reader.value("transporter") >> flag.transporter;
 
-  for (int i = 0; i < 6; i++) {
+  for (int i = DirectionRight; i <= DirectionUp; i++) {
     int len;
     reader.value("length")[i] >> len;
     flag.length[i] = len;
