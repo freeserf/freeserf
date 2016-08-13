@@ -22,6 +22,8 @@
 #ifndef SRC_MAP_GENERATOR_H_
 #define SRC_MAP_GENERATOR_H_
 
+#include <memory>
+
 #include "src/map.h"
 #include "src/random.h"
 
@@ -54,7 +56,6 @@ class ClassicMapGenerator : public MapGenerator {
   static const int default_terrain_spikyness;
 
   ClassicMapGenerator(const Map &map, const Random &random);
-  virtual ~ClassicMapGenerator();
   void init(HeightGenerator height_generator, bool preserve_bugs,
             int max_lake_area = default_max_lake_area,
             int water_level = default_water_level,
@@ -71,15 +72,15 @@ class ClassicMapGenerator : public MapGenerator {
     return tiles[pos].mineral; }
   int get_resource_amount(MapPos pos) const {
     return tiles[pos].resource_amount; }
-  virtual Map::LandscapeTile *get_landscape() const { return tiles; }
+  virtual Map::LandscapeTile *get_landscape() const { return tiles.get(); }
 
  protected:
   const Map &map;
   Random rnd;
 
   unsigned int tile_count;
-  Map::LandscapeTile *tiles;
-  int *tags;
+  std::unique_ptr<Map::LandscapeTile[]> tiles;
+  std::unique_ptr<int[]> tags;
   HeightGenerator height_generator;
   bool preserve_bugs;
 

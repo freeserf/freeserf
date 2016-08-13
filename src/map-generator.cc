@@ -31,28 +31,13 @@ const int ClassicMapGenerator::default_water_level = 20;
 const int ClassicMapGenerator::default_terrain_spikyness = 0x9999;
 
 ClassicMapGenerator::ClassicMapGenerator(const Map& map, const Random& random)
-  : map(map), rnd(random) {
-  tiles = NULL;
-  tags = NULL;
-}
-
-ClassicMapGenerator::~ClassicMapGenerator() {
-  if (tiles != NULL) {
-    delete[] tiles;
-  }
-
-  if (tags != NULL) {
-    delete[] tags;
-  }
-}
+  : map(map), rnd(random)
+  , tiles(new Map::LandscapeTile[map.geom().tile_count()]())
+  , tags(new int[map.geom().tile_count()]()) {}
 
 void ClassicMapGenerator::init(
     HeightGenerator height_generator, bool preserve_bugs, int max_lake_area,
     int water_level, int terrain_spikyness) {
-  tile_count = map.get_cols() * map.get_rows();
-  tiles = new Map::LandscapeTile[tile_count]();
-  tags = new int[tile_count];
-
   this->height_generator = height_generator;
   this->preserve_bugs = preserve_bugs;
   this->max_lake_area = max_lake_area;
