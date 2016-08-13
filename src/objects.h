@@ -60,7 +60,7 @@ class GameObject {
 template<class T>
 class Collection {
  protected:
-  typedef std::map<unsigned int, std::unique_ptr<T>> Objects;
+  typedef std::map<unsigned int, T> Objects;
 
   Objects objects;
   unsigned int last_object_index;
@@ -95,9 +95,9 @@ class Collection {
       last_object_index++;
     }
 
-    objects.emplace(new_index, std::unique_ptr<T>(new T(game, new_index)));
+    objects.emplace(new_index, T(game, new_index));
 
-    return objects[new_index].get();
+    return &objects.at(new_index);
   }
 
   bool
@@ -108,7 +108,7 @@ class Collection {
   T*
   get_or_insert(unsigned int index) {
     if (!exists(index)) {
-      objects.emplace(index, std::unique_ptr<T>(new T(game, index)));
+      objects.emplace(index, T(game, index));
 
       std::set<unsigned int>::iterator i = free_object_indexes.find(index);
       if (i != free_object_indexes.end()) {
@@ -123,20 +123,17 @@ class Collection {
       last_object_index = index + 1;
     }
 
-    return objects[index].get();
+    return &objects.at(index);
   }
 
-  T*
-  operator[] (unsigned int index) {
-    if (!exists(index)) {
-      return NULL;
-    }
-    return objects.at(index).get();
+  T* operator[] (unsigned int index) {
+    if (!exists(index)) return nullptr;
+    return &objects.at(index);
   }
 
   const T* operator[] (unsigned int index) const {
     if (!exists(index)) return nullptr;
-    return objects.at(index).get();
+    return &objects.at(index);
   }
 
   class Iterator {
@@ -164,9 +161,8 @@ class Collection {
       return (!(*this == right));
     }
 
-    T*
-    operator*() const {
-      return internal_iterator->second.get();
+    T* operator*() const {
+      return &internal_iterator->second;
     }
   };
 
@@ -193,7 +189,7 @@ class Collection {
     }
 
     const T* operator*() const {
-     return internal_iterator->second.get();
+     return &internal_iterator->second;
     }
   };
 
