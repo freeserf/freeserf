@@ -23,6 +23,8 @@
 
 #include <cassert>
 #include <algorithm>
+#include <memory>
+#include <utility>
 
 #include "src/misc.h"
 #include "src/game.h"
@@ -271,9 +273,7 @@ Viewport::redraw_map_pos(MapPos pos) {
 
   tiles_map_t::iterator it = landscape_tiles.find(tid);
   if (it != landscape_tiles.end()) {
-    Frame *frame = it->second;
     landscape_tiles.erase(tid);
-    delete frame;
   }
 }
 
@@ -281,14 +281,14 @@ Frame *
 Viewport::get_tile_frame(unsigned int tid, int tc, int tr) {
   tiles_map_t::iterator it = landscape_tiles.find(tid);
   if (it != landscape_tiles.end()) {
-    return it->second;
+    return it->second.get();
   }
 
   int tile_width = MAP_TILE_COLS*MAP_TILE_WIDTH;
   int tile_height = MAP_TILE_ROWS*MAP_TILE_HEIGHT;
 
-  Frame *tile_frame = Graphics::get_instance()->create_frame(tile_width,
-                                                             tile_height);
+  std::unique_ptr<Frame> tile_frame(
+    Graphics::get_instance()->create_frame(tile_width, tile_height));
   tile_frame->fill_rect(0, 0, tile_width, tile_height, 0);
 
   int col = (tc*MAP_TILE_COLS + (tr*MAP_TILE_ROWS)/2) % map->get_cols();
@@ -300,9 +300,9 @@ Viewport::get_tile_frame(unsigned int tid, int tc, int tr) {
   /* Draw one extra column as half a column will be outside the
    map tile on both right and left side.. */
   for (int col = 0; col < MAP_TILE_COLS+1; col++) {
-    draw_up_tile_col(pos, x_base, 0, tile_height, tile_frame);
+    draw_up_tile_col(pos, x_base, 0, tile_height, tile_frame.get());
     draw_down_tile_col(pos, x_base + MAP_TILE_WIDTH/2, 0, tile_height,
-                       tile_frame);
+                       tile_frame.get());
 
     pos = map->move_right(pos);
     x_base += MAP_TILE_WIDTH;
@@ -319,9 +319,9 @@ Viewport::get_tile_frame(unsigned int tid, int tc, int tr) {
                            << ", tc,tr: " << tc << "," << tr << ", tw,th: "
                            << tile_width << "," << tile_height;
 
-  landscape_tiles[tid] = tile_frame;
+  landscape_tiles[tid] = std::move(tile_frame);
 
-  return tile_frame;
+  return landscape_tiles[tid].get();
 }
 
 void
@@ -2489,11 +2489,6 @@ Viewport::Viewport(Interface *_interface, Map *_map) {
 
 Viewport::~Viewport() {
   map->del_change_handler(this);
-  while (landscape_tiles.size()) {
-    tiles_map_t::iterator it = landscape_tiles.begin();
-    delete it->second;
-    landscape_tiles.erase(it);
-  }
 }
 
 void
