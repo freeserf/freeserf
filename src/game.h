@@ -220,7 +220,6 @@ class Game : public EventLoop::Handler {
 
  protected:
   void allocate_objects();
-  void deinit();
 
   void clear_serf_request_failure();
   void update_knight_morale();

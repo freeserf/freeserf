@@ -57,7 +57,10 @@ Game::Game() {
 }
 
 Game::~Game() {
-  deinit();
+  if (map != NULL) {
+    delete map;
+    map = NULL;
+  }
 }
 
 /* Clear the serf request bit of all flags and buildings.
@@ -2161,39 +2164,6 @@ void
 Game::init_map_data(const MapGenerator& generator) {
   this->map->init_tiles(generator);
   gold_total = map->get_gold_deposit();
-}
-
-void
-Game::deinit() {
-  while (serfs.size()) {
-    Serfs::Iterator it = serfs.begin();
-    serfs.erase((*it)->get_index());
-  }
-
-  while (buildings.size()) {
-    Buildings::Iterator it = buildings.begin();
-    buildings.erase((*it)->get_index());
-  }
-
-  while (inventories.size()) {
-    Inventories::Iterator it = inventories.begin();
-    inventories.erase((*it)->get_index());
-  }
-
-  while (flags.size()) {
-    Flags::Iterator it = flags.begin();
-    flags.erase((*it)->get_index());
-  }
-
-  while (players.size()) {
-    Players::Iterator it = players.begin();
-    players.erase((*it)->get_index());
-  }
-
-  if (map != NULL) {
-    delete map;
-    map = NULL;
-  }
 }
 
 void
