@@ -27,6 +27,7 @@
 #include <set>
 #include <memory>
 #include <limits>
+#include <utility>
 
 class Game;
 
@@ -36,8 +37,21 @@ class GameObject {
   Game *game;
 
  public:
+  GameObject() = delete;
   GameObject(Game *game, unsigned int index) : index(index), game(game) {}
+  GameObject(const GameObject& that) = delete;
+  GameObject(GameObject&& that) : index(that.index), game(that.game) {
+    that.game = nullptr;
+    that.index = std::numeric_limits<unsigned int>::max();
+  }
   virtual ~GameObject() {}
+
+  GameObject& operator = (const GameObject& that) = delete;
+  GameObject& operator = (GameObject&& that) {
+    std::swap(this->index, that.index);
+    std::swap(this->game, that.game);
+    return *this;
+  }
 
   Game *get_game() const { return game; }
   unsigned int get_index() const { return index; }
