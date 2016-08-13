@@ -30,6 +30,7 @@
 #include <string>
 #include <algorithm>
 #include <map>
+#include <memory>
 #include <sstream>
 
 #include "src/mission.h"
@@ -1834,11 +1835,10 @@ Game::update_land_ownership(MapPos init_pos) {
   int calculate_radius = influence_radius;
   int calculate_diameter = 1 + 2*calculate_radius;
 
-  int *temp_arr = reinterpret_cast<int*>(calloc(GAME_MAX_PLAYER_COUNT*
-                                                calculate_diameter*
-                                                calculate_diameter,
-                                                sizeof(int)));
-  if (temp_arr == NULL) abort();
+  int temp_arr_size = calculate_diameter * calculate_diameter *
+    GAME_MAX_PLAYER_COUNT;
+  std::unique_ptr<int[]> temp_arr =
+    std::unique_ptr<int[]>(new int[temp_arr_size]());
 
   const int military_influence[] = {
     0, 1, 2, 4, 7, 12, 18, 29, -1, -1,  /* hut */
@@ -1899,7 +1899,7 @@ Game::update_land_ownership(MapPos init_pos) {
           const int *influence = military_influence + 10*mil_type;
           const int *closeness = map_closeness +
             influence_diameter*std::max(-i, 0) + std::max(-j, 0);
-          int *arr = temp_arr +
+          int *arr = temp_arr.get() +
             (building->get_owner() * calculate_diameter*calculate_diameter) +
             calculate_diameter * std::max(i, 0) + std::max(j, 0);
 
@@ -1927,7 +1927,7 @@ Game::update_land_ownership(MapPos init_pos) {
       int player = -1;
       for (Players::Iterator it = players.begin();
            it != players.end(); ++it) {
-        int *arr = temp_arr +
+        const int *arr = temp_arr.get() +
           (*it)->get_index()*calculate_diameter*calculate_diameter +
           calculate_diameter*(i+calculate_radius) + (j+calculate_radius);
         if (*arr > max_val) {
@@ -1956,8 +1956,6 @@ Game::update_land_ownership(MapPos init_pos) {
       }
     }
   }
-
-  free(temp_arr);
 
   /* Update military building flag state. */
   for (int i = -25; i <= 25; i++) {
