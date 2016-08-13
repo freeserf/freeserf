@@ -39,14 +39,13 @@
 #include "src/log.h"
 #include "src/misc.h"
 #include "src/inventory.h"
+#include "src/map.h"
 #include "src/map-generator.h"
 #include "src/map-geometry.h"
 
 #define GROUND_ANALYSIS_RADIUS  25
 
 Game::Game() {
-  map = NULL;
-
   players = Players(this);
   flags = Flags(this);
   inventories = Inventories(this);
@@ -54,13 +53,6 @@ Game::Game() {
   serfs = Serfs(this);
 
   allocate_objects();
-}
-
-Game::~Game() {
-  if (map != NULL) {
-    delete map;
-    map = NULL;
-  }
 }
 
 /* Clear the serf request bit of all flags and buildings.
@@ -2152,12 +2144,7 @@ Game::init() {
 /* Initialize spiral_pos_pattern from spiral_pattern. */
 void
 Game::init_map(int size) {
-  if (map != NULL) {
-    delete map;
-    map = NULL;
-  }
-
-  map = new Map(MapGeometry(size));
+  map.reset(new Map(MapGeometry(size)));
 }
 
 void
@@ -2570,7 +2557,7 @@ operator >> (SaveReaderBinary &reader, Game &game) {
     throw ExceptionFreeserf("Invalid map size in file");
   }
 
-  game.map = new Map(MapGeometry(map_size));
+  game.map.reset(new Map(MapGeometry(map_size)));
 
   reader.skip(8);
   reader >> v16;  // 200
@@ -2736,7 +2723,7 @@ operator >> (SaveReaderText &reader, Game &game) {
   }
 
   /* Initialize remaining map dimensions. */
-  game.map = new Map(MapGeometry(size));
+  game.map.reset(new Map(MapGeometry(size)));
   sections = reader.get_sections("map");
   for (Readers::iterator it = sections.begin(); it != sections.end(); ++it) {
     **it >> *game.map;
