@@ -23,6 +23,7 @@
 #define SRC_VIEWPORT_H_
 
 #include <map>
+#include <memory>
 
 #include "src/gui.h"
 #include "src/map.h"
@@ -50,7 +51,7 @@ class Viewport : public GuiObject, public Map::Handler {
 
  protected:
   /* Cache prerendered tiles of the landscape. */
-  typedef std::map<unsigned int, Frame*> tiles_map_t;
+  typedef std::map<unsigned int, std::unique_ptr<Frame>> tiles_map_t;
   tiles_map_t landscape_tiles;
 
   int offset_x, offset_y;
