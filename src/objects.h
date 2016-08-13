@@ -25,7 +25,8 @@
 #include <map>
 #include <algorithm>
 #include <set>
-#include <climits>
+#include <memory>
+#include <limits>
 
 class Game;
 
@@ -45,7 +46,7 @@ class GameObject {
 template<class T>
 class Collection {
  protected:
-  typedef std::map<unsigned int, T*> Objects;
+  typedef std::map<unsigned int, std::unique_ptr<T>> Objects;
 
   Objects objects;
   unsigned int last_object_index;
@@ -71,18 +72,18 @@ class Collection {
       new_index = *free_object_indexes.begin();
       free_object_indexes.erase(free_object_indexes.begin());
     } else {
-      if (last_object_index == UINT_MAX) {
-        return NULL;
+      if (last_object_index ==
+          std::numeric_limits<decltype(last_object_index)>::max()) {
+        return nullptr;
       }
 
       new_index = last_object_index;
       last_object_index++;
     }
 
-    T *new_object = new T(game, new_index);
-    objects[new_index] = new_object;
+    objects.emplace(new_index, std::unique_ptr<T>(new T(game, new_index)));
 
-    return new_object;
+    return objects[new_index].get();
   }
 
   bool
@@ -92,13 +93,8 @@ class Collection {
 
   T*
   get_or_insert(unsigned int index) {
-    T *object = NULL;
-
-    if (exists(index)) {
-      object = objects[index];
-    } else {
-      object = new T(game, index);
-      objects[index] = object;
+    if (!exists(index)) {
+      objects.emplace(index, std::unique_ptr<T>(new T(game, index)));
 
       std::set<unsigned int>::iterator i = free_object_indexes.find(index);
       if (i != free_object_indexes.end()) {
@@ -113,7 +109,7 @@ class Collection {
       last_object_index = index + 1;
     }
 
-    return object;
+    return objects[index].get();
   }
 
   T*
@@ -121,12 +117,12 @@ class Collection {
     if (!exists(index)) {
       return NULL;
     }
-    return objects[index];
+    return objects.at(index).get();
   }
 
   const T* operator[] (unsigned int index) const {
     if (!exists(index)) return nullptr;
-    return objects.at(index);
+    return objects.at(index).get();
   }
 
   class Iterator {
@@ -156,7 +152,7 @@ class Collection {
 
     T*
     operator*() const {
-      return internal_iterator->second;
+      return internal_iterator->second.get();
     }
   };
 
@@ -183,7 +179,7 @@ class Collection {
     }
 
     const T* operator*() const {
-     return internal_iterator->second;
+     return internal_iterator->second.get();
     }
   };
 
@@ -200,9 +196,7 @@ class Collection {
     if (i == objects.end()) {
       return;
     }
-    T *object = i->second;
     objects.erase(i);
-    delete object;
 
     if (index == last_object_index) {
       last_object_index--;
