@@ -410,7 +410,7 @@ Map::set_object(MapPos pos, Object obj, int index) {
   for (int d = DirectionRight; d <= DirectionUp; d++) {
     for (change_handlers_t::iterator it = change_handlers.begin();
          it != change_handlers.end(); ++it) {
-      (*it)->on_object_changed(pos);
+      (*it)->on_object_changed(move(pos, (Direction)d));
     }
   }
 }
