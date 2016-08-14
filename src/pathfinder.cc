@@ -132,13 +132,12 @@ pathfinder_map(Map *map, MapPos start, MapPos end) {
     /* Put current node on closed list. */
     closed.push_front(node);
 
-    for (int d = DirectionRight; d <= DirectionUp; d++) {
-      MapPos new_pos = map->move(node->pos, (Direction)d);
-      unsigned int cost = actual_cost(map, node->pos,
-                                      static_cast<Direction>(d));
+    for (Direction d : cycle_directions_cw()) {
+      MapPos new_pos = map->move(node->pos, d);
+      unsigned int cost = actual_cost(map, node->pos, d);
 
       /* Check if neighbour is valid. */
-      if (!map->is_road_segment_valid(node->pos, static_cast<Direction>(d)) ||
+      if (!map->is_road_segment_valid(node->pos, d) ||
           (map->get_obj(new_pos) == Map::ObjectFlag && new_pos != start)) {
         continue;
       }
@@ -166,7 +165,7 @@ pathfinder_map(Map *map, MapPos start, MapPos end) {
             n->g_score = node->g_score + cost;
             n->f_score = n->g_score + heuristic_cost(map, new_pos, start);
             n->parent = node;
-            n->dir = static_cast<Direction>(d);
+            n->dir = d;
 
             // Move element to the back and heapify
             iter_swap(it, open.rbegin());
@@ -185,7 +184,7 @@ pathfinder_map(Map *map, MapPos start, MapPos end) {
         new_node->f_score = new_node->g_score +
                             heuristic_cost(map, new_pos, start);
         new_node->parent = node;
-        new_node->dir = static_cast<Direction>(d);
+        new_node->dir = d;
 
         open.push_back(new_node);
         std::push_heap(open.begin(), open.end(), search_node_less);

@@ -276,17 +276,16 @@ Interface::determine_map_cursor_type_road() {
   int h = game->get_map()->get_height(pos);
   int valid_dir = 0;
 
-  for (int d = DirectionRight; d <= DirectionUp; d++) {
+  for (Direction d : cycle_directions_cw()) {
     int sprite = 0;
 
-    if (building_road.is_undo((Direction)d)) {
+    if (building_road.is_undo(d)) {
       sprite = 45; /* undo */
       valid_dir |= BIT(d);
-    } else if (game->get_map()->is_road_segment_valid(pos, (Direction)d)) {
-      if (building_road.is_valid_extension(game->get_map(), (Direction)d)) {
+    } else if (game->get_map()->is_road_segment_valid(pos, d)) {
+      if (building_road.is_valid_extension(game->get_map(), d)) {
         int h_diff =
-          game->get_map()->get_height(game->get_map()->move(pos,
-                                                            (Direction)d)) - h;
+          game->get_map()->get_height(game->get_map()->move(pos, d)) - h;
         sprite = 39 + h_diff; /* height indicators */
         valid_dir |= BIT(d);
       } else {

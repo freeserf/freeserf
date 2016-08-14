@@ -79,6 +79,84 @@ inline Direction reverse_direction(Direction d) {
   return turn_direction(d, 3);
 }
 
+// Cycle direction (clockwise or counter-clockwise)
+enum class Cycle {
+  CW, CCW
+};
+
+// Provides iterator for cycling through directions.
+template <Cycle C>
+class DirectionCycle {
+ public:
+  class Iterator {
+    friend DirectionCycle;
+
+   public:
+    Iterator(const Iterator& it) : cycle(it.cycle), offset(it.offset) {}
+
+    Iterator& operator++() {
+      if (offset < cycle.length) ++offset;
+      return *this;
+    }
+
+    bool operator==(const Iterator& rhs) const {
+      return cycle == rhs.cycle && offset == rhs.offset; }
+    bool operator!=(const Iterator& rhs) const {
+      return !(*this == rhs); }
+
+    Direction operator*() const;
+
+   protected:
+    Iterator(const DirectionCycle& cycle, int offset)
+        : cycle(cycle), offset(offset) {}
+
+    const DirectionCycle& cycle;
+    int offset;
+  };
+
+  DirectionCycle(Direction start, unsigned int length)
+      : start(start), length(length) {}
+  DirectionCycle(const DirectionCycle& that)
+      : start(that.start), length(that.length) {}
+
+  Iterator begin() const { return Iterator(*this, 0); }
+  Iterator end() const { return Iterator(*this, length); }
+
+  bool operator==(const DirectionCycle& rhs) const {
+    return start == rhs.start && length == rhs.length; }
+  bool operator!=(const DirectionCycle& rhs) const {
+    return !(*this == rhs); }
+
+ protected:
+  Direction start;
+  unsigned int length;
+};
+
+// Specialize for clockwise cycle
+template<> inline
+Direction DirectionCycle<Cycle::CW>::Iterator::operator*() const {
+  return static_cast<Direction>((cycle.start + offset) % 6);
+}
+
+// Specialize for counter-clockwise cycle
+template<> inline
+Direction DirectionCycle<Cycle::CCW>::Iterator::operator*() const {
+  return static_cast<Direction>(((cycle.start - offset) % 6 + 6) % 6);
+}
+
+// Convenience function to create clockwise direction cycle.
+inline DirectionCycle<Cycle::CW> cycle_directions_cw(
+    Direction start = DirectionRight, unsigned int length = 6) {
+  return DirectionCycle<Cycle::CW>(start, length);
+}
+
+// Convenience function to create counter-clockwise direction cycle.
+inline DirectionCycle<Cycle::CCW> cycle_directions_ccw(
+    Direction start = DirectionUp, unsigned int length = 6) {
+  return DirectionCycle<Cycle::CCW>(start, length);
+}
+
+
 // MapPos is a compact composition of col and row values that
 // uniquely identifies a vertex in the map space. It is also used
 // directly as index to map data arrays.

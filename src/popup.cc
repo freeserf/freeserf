@@ -2168,12 +2168,13 @@ PopupBox::draw_transport_info_box() {
   draw_popup_building(8, 40, 0x80 + 4*popup->interface->player->player_num);
 #endif
 
-  for (int i = DirectionRight; i <= DirectionUp; i++) {
-    int x = layout[2*i];
-    int y = layout[2*i+1];
-    if (flag->has_path((Direction)(5-i))) {
+  for (Direction d : cycle_directions_cw()) {
+    int index = 5 - d;
+    int x = layout[2*index];
+    int y = layout[2*index + 1];
+    if (flag->has_path(d)) {
       int sprite = 0xdc; /* Minus box */
-      if (flag->has_transporter((Direction)(5-i))) {
+      if (flag->has_transporter(d)) {
         sprite = 0x120; /* Check box */
       }
       draw_popup_icon(x, y, sprite);

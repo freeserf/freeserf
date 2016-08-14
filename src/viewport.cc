@@ -534,14 +534,14 @@ Viewport::draw_paths_and_borders() {
 
       /* For each direction right, down right and down,
          draw the corresponding paths and borders. */
-      for (int d = DirectionRight; d <= DirectionDown; d++) {
-        MapPos other_pos = map->move(pos, (Direction)d);
+      for (Direction d : cycle_directions_cw(DirectionRight, 3)) {
+        MapPos other_pos = map->move(pos, d);
 
-        if (map->has_path(pos, (Direction)d)) {
-          draw_path_segment(x, y_base, pos, (Direction)d);
+        if (map->has_path(pos, d)) {
+          draw_path_segment(x, y_base, pos, d);
         } else if (map->has_owner(pos) != map->has_owner(other_pos) ||
                    map->get_owner(pos) != map->get_owner(other_pos)) {
-          draw_border_segment(x, y_base, pos, (Direction)d);
+          draw_border_segment(x, y_base, pos, d);
         }
       }
 
@@ -2171,9 +2171,8 @@ Viewport::draw_map_cursor() {
   draw_map_cursor_sprite(interface->get_map_cursor_pos(),
                          interface->get_map_cursor_sprite(0));
 
-  for (int d = DirectionRight; d <= DirectionUp; d++) {
-    draw_map_cursor_sprite(map->move(interface->get_map_cursor_pos(),
-                                     (Direction)d),
+  for (Direction d : cycle_directions_cw()) {
+    draw_map_cursor_sprite(map->move(interface->get_map_cursor_pos(), d),
                            interface->get_map_cursor_sprite(1+d));
   }
 }
