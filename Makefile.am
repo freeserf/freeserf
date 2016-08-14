@@ -3,6 +3,7 @@
 bin_PROGRAMS = freeserf
 noinst_PROGRAMS = \
 	tests/test_map \
+	tests/test_map_geometry \
 	tests/test_save_game
 
 GAME_SOURCES = \
@@ -63,6 +64,10 @@ tests_test_save_game_SOURCES = \
 	tests/test_save_game.cc \
 	$(GAME_SOURCES)
 
+tests_test_map_geometry_SOURCES = \
+	tests/test_map_geometry.cc \
+	$(GAME_SOURCES)
+
 AM_CFLAGS = $(SDL2_CFLAGS) -I$(top_builddir)/src
 AM_CXXFLAGS = $(SDL2_CFLAGS) -I$(top_builddir)/src
 freeserf_LDADD = $(SDL2_LIBS) $(SDL2_CFLAGS) -lm
@@ -86,6 +91,7 @@ LOG_DRIVER = env AM_TAP_AWK='$(AWK)' $(SHELL) \
 	$(top_srcdir)/tap-driver.sh
 TESTS = \
 	tests/test_map \
+	tests/test_map_geometry \
 	tests/test_save_game
 
 EXTRA_DIST = \
