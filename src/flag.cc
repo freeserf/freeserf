@@ -428,7 +428,7 @@ Flag::schedule_slot_to_known_dest(int slot, unsigned int res_waiting[4]) {
   FlagSearch search(game);
 
   search_num = search.get_id();
-  search_dir = DirectionUpRight;
+  search_dir = DirectionNone;
   int tr = transporters();
 
   int sources = 0;
@@ -489,7 +489,7 @@ Flag::schedule_slot_to_known_dest(int slot, unsigned int res_waiting[4]) {
     data.dest = game->get_flag(this->slot[slot].dest);
     data.slot = slot;
     bool r = search.execute(schedule_known_dest_cb, false, true, &data);
-    if (!r || data.dest->search_dir == 6) {
+    if (!r || data.dest == this) {
       /* Unable to deliver */
       game->cancel_transported_resource(this->slot[slot].type,
                                         this->slot[slot].dest);

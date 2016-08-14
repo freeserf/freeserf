@@ -53,9 +53,6 @@ typedef enum Direction {
   DirectionLeft,
   DirectionUpLeft,
   DirectionUp,
-
-  DirectionUpRight,
-  DirectionDownLeft
 } Direction;
 
 // Return the given direction turned clockwise a number of times.
@@ -64,17 +61,14 @@ typedef enum Direction {
 // clockwise in 60 degree increment the specified number of times.
 // If times is a negative number the direction will be turned counter
 // clockwise.
-//
-// NOTE: Only valid for the six standard directions.
 inline Direction turn_direction(Direction d, int times) {
+  assert(d != DirectionNone);
   int td = (static_cast<int>(d) + times) % 6;
   if (td < 0) td += 6;
   return static_cast<Direction>(td);
 }
 
 // Return the given direction reversed.
-//
-// NOTE: Only valid for the six standard directions.
 inline Direction reverse_direction(Direction d) {
   return turn_direction(d, 3);
 }
@@ -115,7 +109,9 @@ class DirectionCycle {
   };
 
   DirectionCycle(Direction start, unsigned int length)
-      : start(start), length(length) {}
+      : start(start), length(length) {
+    assert(start != DirectionNone);
+  }
   DirectionCycle(const DirectionCycle& that)
       : start(that.start), length(that.length) {}
 
@@ -169,7 +165,7 @@ class MapGeometry {
   unsigned int size_;
 
   // Derived members
-  MapPos dirs[8];
+  MapPos dirs[6];
   unsigned int col_size_, row_size_;
 
   unsigned int cols_, rows_;
@@ -231,8 +227,6 @@ class MapGeometry {
     dirs[DirectionUp] = (-1 & row_mask_) << row_shift_;
 
     dirs[DirectionDownRight] = dirs[DirectionRight] | dirs[DirectionDown];
-    dirs[DirectionUpRight] = dirs[DirectionRight] | dirs[DirectionUp];
-    dirs[DirectionDownLeft] = dirs[DirectionLeft] | dirs[DirectionDown];
     dirs[DirectionUpLeft] = dirs[DirectionLeft] | dirs[DirectionUp];
   }
   MapGeometry(const MapGeometry& that) : MapGeometry(that.size_) {}
@@ -268,11 +262,6 @@ class MapGeometry {
   MapPos move_left(MapPos pos) const { return move(pos, DirectionLeft); }
   MapPos move_up_left(MapPos pos) const { return move(pos, DirectionUpLeft); }
   MapPos move_up(MapPos pos) const { return move(pos, DirectionUp); }
-
-  MapPos move_up_right(MapPos pos) const {
-    return move(pos, DirectionUpRight); }
-  MapPos move_down_left(MapPos pos) const {
-    return move(pos, DirectionDownLeft); }
 
   MapPos move_right_n(MapPos pos, int n) const {
     return pos_add(pos, dirs[DirectionRight]*n); }

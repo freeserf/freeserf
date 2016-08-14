@@ -344,9 +344,6 @@ class Map {
   MapPos move_up_left(MapPos pos) const { return geom_.move_up_left(pos); }
   MapPos move_up(MapPos pos) const { return geom_.move_up(pos); }
 
-  MapPos move_up_right(MapPos pos) const { return geom_.move_up_right(pos); }
-  MapPos move_down_left(MapPos pos) const { return geom_.move_down_left(pos); }
-
   MapPos move_right_n(MapPos pos, int n) const {
     return geom_.move_right_n(pos, n); }
   MapPos move_down_n(MapPos pos, int n) const {
