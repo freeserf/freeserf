@@ -592,7 +592,7 @@ ClassicMapGenerator::seed_terrain_type(Map::Terrain old, Map::Terrain seed,
          seed == tiles[map.move_left(pos_)].type_up ||
          seed == tiles[pos_].type_down ||
          seed == tiles[map.move_right(pos_)].type_up ||
-         seed == tiles[map.move_down_left(pos_)].type_down ||
+         seed == tiles[map.move_left(map.move_down(pos_))].type_down ||
          seed == tiles[map.move_down(pos_)].type_down ||
          seed == tiles[map.move_down(pos_)].type_up ||
          seed == tiles[map.move_down_right(pos_)].type_down ||
@@ -615,7 +615,7 @@ ClassicMapGenerator::seed_terrain_type(Map::Terrain old, Map::Terrain seed,
          seed == tiles[map.move_up_left(pos_)].type_up ||
          seed == tiles[map.move_up(pos_)].type_down ||
          seed == tiles[map.move_up(pos_)].type_up ||
-         seed == tiles[map.move_up_right(pos_)].type_up ||
+         seed == tiles[map.move_right(map.move_up(pos_))].type_up ||
          seed == tiles[map.move_left(pos_)].type_down ||
          seed == tiles[pos_].type_up ||
          seed == tiles[map.move_right(pos_)].type_down ||

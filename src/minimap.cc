@@ -78,7 +78,7 @@ Minimap::init_minimap() {
     pos = map->move_right(pos);
     int h1 = map->get_height(pos);
 
-    pos = map->move_down_left(pos);
+    pos = map->move_left(map->move_down(pos));
     int h2 = map->get_height(pos);
 
     int h_off = h2 - h1 + 8;
