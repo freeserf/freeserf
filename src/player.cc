@@ -522,21 +522,10 @@ Player::start_attack() {
       target->set_under_attack();
 
       /* Calculate distance to target. */
-      unsigned int dist_col =
-                             (game->get_map()->pos_col(target->get_position()) -
-                              game->get_map()->pos_col(def_serf->get_pos())) &
-                              game->get_map()->get_col_mask();
-      if (dist_col >= (game->get_map()->get_cols() >> 1)) {
-        dist_col -= game->get_map()->get_cols();
-      }
-
-      unsigned int dist_row =
-                             (game->get_map()->pos_row(target->get_position()) -
-                              game->get_map()->pos_row(def_serf->get_pos())) &
-                              game->get_map()->get_row_mask();
-      if (dist_row >= (game->get_map()->get_rows() >> 1)) {
-        dist_row -= game->get_map()->get_rows();
-      }
+      int dist_col = game->get_map()->dist_x(
+        target->get_position(), def_serf->get_pos());
+      int dist_row = game->get_map()->dist_y(
+        target->get_position(), def_serf->get_pos());
 
       /* Send this serf off to fight. */
       def_serf->send_off_to_fight(dist_col, dist_row);

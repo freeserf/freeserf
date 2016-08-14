@@ -254,6 +254,14 @@ class MapGeometry {
     return pos((pos_col(pos_) + pos_col(off)) & col_mask_,
                (pos_row(pos_) + pos_row(off)) & row_mask_); }
 
+  // Shortest signed distance between map positions.
+  int dist_x(MapPos pos1, MapPos pos2) const {
+    return cols_/2 - ((cols_/2 + pos_col(pos1) - pos_col(pos2)) & col_mask_);
+  }
+  int dist_y(MapPos pos1, MapPos pos2) const {
+    return rows_/2 - ((rows_/2 + pos_row(pos1) - pos_row(pos2)) & row_mask_);
+  }
+
   /* Movement of map position according to directions. */
   MapPos move(MapPos pos, Direction dir) const {
     return pos_add(pos, dirs[dir]); }
