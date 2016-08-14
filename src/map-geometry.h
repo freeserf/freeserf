@@ -247,6 +247,9 @@ class MapGeometry {
   MapPos pos(int x, int y) const { return ((y << row_shift_) | x); }
 
   /* Addition of two map positions. */
+  MapPos pos_add(MapPos pos_, int x, int y) const {
+    return pos((pos_col(pos_) + x) & col_mask_,
+               (pos_row(pos_) + y) & row_mask_); }
   MapPos pos_add(MapPos pos_, MapPos off) const {
     return pos((pos_col(pos_) + pos_col(off)) & col_mask_,
                (pos_row(pos_) + pos_row(off)) & row_mask_); }

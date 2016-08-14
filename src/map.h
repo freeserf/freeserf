@@ -324,6 +324,8 @@ class Map {
   MapPos pos(int x, int y) const { return geom_.pos(x, y); }
 
   // Addition of two map positions.
+  MapPos pos_add(MapPos pos, int x, int y) const {
+    return geom_.pos_add(pos, x, y); }
   MapPos pos_add(MapPos pos, MapPos off) const {
     return geom_.pos_add(pos, off); }
   MapPos pos_add_spirally(MapPos pos_, unsigned int off) const {
