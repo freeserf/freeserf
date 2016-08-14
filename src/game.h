@@ -27,10 +27,12 @@
 #include <map>
 #include <string>
 #include <list>
+#include <memory>
 
 #include "src/player.h"
 #include "src/flag.h"
 #include "src/serf.h"
+#include "src/inventory.h"
 #include "src/map.h"
 #include "src/random.h"
 #include "src/objects.h"
@@ -58,7 +60,7 @@ class Game : public EventLoop::Handler {
   typedef std::list<Inventory*> ListInventories;
 
  protected:
-  Map *map;
+  std::unique_ptr<Map> map;
 
   typedef std::map<unsigned int, unsigned int> values_t;
   int map_gold_morale_factor;
@@ -105,9 +107,9 @@ class Game : public EventLoop::Handler {
 
  public:
   Game();
-  virtual ~Game();
+  virtual ~Game() {}
 
-  Map *get_map() { return map; }
+  Map *get_map() { return map.get(); }
 
   unsigned int get_tick() const { return tick; }
   unsigned int get_const_tick() const { return const_tick; }
@@ -220,7 +222,6 @@ class Game : public EventLoop::Handler {
 
  protected:
   void allocate_objects();
-  void deinit();
 
   void clear_serf_request_failure();
   void update_knight_morale();

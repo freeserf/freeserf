@@ -25,7 +25,9 @@
 #include <map>
 #include <algorithm>
 #include <set>
-#include <climits>
+#include <memory>
+#include <limits>
+#include <utility>
 
 class Game;
 
@@ -35,8 +37,21 @@ class GameObject {
   Game *game;
 
  public:
+  GameObject() = delete;
   GameObject(Game *game, unsigned int index) : index(index), game(game) {}
+  GameObject(const GameObject& that) = delete;
+  GameObject(GameObject&& that) : index(that.index), game(that.game) {
+    that.game = nullptr;
+    that.index = std::numeric_limits<unsigned int>::max();
+  }
   virtual ~GameObject() {}
+
+  GameObject& operator = (const GameObject& that) = delete;
+  GameObject& operator = (GameObject&& that) {
+    std::swap(this->index, that.index);
+    std::swap(this->game, that.game);
+    return *this;
+  }
 
   Game *get_game() const { return game; }
   unsigned int get_index() const { return index; }
@@ -45,7 +60,7 @@ class GameObject {
 template<class T>
 class Collection {
  protected:
-  typedef std::map<unsigned int, T*> Objects;
+  typedef std::map<unsigned int, T> Objects;
 
   Objects objects;
   unsigned int last_object_index;
@@ -71,18 +86,18 @@ class Collection {
       new_index = *free_object_indexes.begin();
       free_object_indexes.erase(free_object_indexes.begin());
     } else {
-      if (last_object_index == UINT_MAX) {
-        return NULL;
+      if (last_object_index ==
+          std::numeric_limits<decltype(last_object_index)>::max()) {
+        return nullptr;
       }
 
       new_index = last_object_index;
       last_object_index++;
     }
 
-    T *new_object = new T(game, new_index);
-    objects[new_index] = new_object;
+    objects.emplace(new_index, T(game, new_index));
 
-    return new_object;
+    return &objects.at(new_index);
   }
 
   bool
@@ -92,13 +107,8 @@ class Collection {
 
   T*
   get_or_insert(unsigned int index) {
-    T *object = NULL;
-
-    if (exists(index)) {
-      object = objects[index];
-    } else {
-      object = new T(game, index);
-      objects[index] = object;
+    if (!exists(index)) {
+      objects.emplace(index, T(game, index));
 
       std::set<unsigned int>::iterator i = free_object_indexes.find(index);
       if (i != free_object_indexes.end()) {
@@ -113,20 +123,17 @@ class Collection {
       last_object_index = index + 1;
     }
 
-    return object;
+    return &objects.at(index);
   }
 
-  T*
-  operator[] (unsigned int index) {
-    if (!exists(index)) {
-      return NULL;
-    }
-    return objects[index];
+  T* operator[] (unsigned int index) {
+    if (!exists(index)) return nullptr;
+    return &objects.at(index);
   }
 
   const T* operator[] (unsigned int index) const {
     if (!exists(index)) return nullptr;
-    return objects.at(index);
+    return &objects.at(index);
   }
 
   class Iterator {
@@ -154,9 +161,8 @@ class Collection {
       return (!(*this == right));
     }
 
-    T*
-    operator*() const {
-      return internal_iterator->second;
+    T* operator*() const {
+      return &internal_iterator->second;
     }
   };
 
@@ -183,7 +189,7 @@ class Collection {
     }
 
     const T* operator*() const {
-     return internal_iterator->second;
+     return &internal_iterator->second;
     }
   };
 
@@ -200,9 +206,7 @@ class Collection {
     if (i == objects.end()) {
       return;
     }
-    T *object = i->second;
     objects.erase(i);
-    delete object;
 
     if (index == last_object_index) {
       last_object_index--;
