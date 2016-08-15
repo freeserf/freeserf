@@ -53,17 +53,8 @@ static const unsigned int walk_cost[] = { 255, 319, 383, 447, 511 };
 static unsigned int
 heuristic_cost(Map *map, MapPos start, MapPos end) {
   /* Calculate distance to target. */
-  int dist_col = (map->pos_col(start) - map->pos_col(end)) &
-                 map->get_col_mask();
-  if (dist_col >= static_cast<int>(map->get_cols()/2.0)) {
-    dist_col -= map->get_cols();
-  }
-
-  int dist_row = (map->pos_row(start) - map->pos_row(end)) &
-                 map->get_row_mask();
-  if (dist_row >= static_cast<int>(map->get_rows()/2.0)) {
-    dist_row -= map->get_rows();
-  }
+  int dist_col = map->dist_x(start, end);
+  int dist_row = map->dist_y(start, end);
 
   int h_diff = abs(static_cast<int>(map->get_height(start)) -
                    static_cast<int>(map->get_height(end)));

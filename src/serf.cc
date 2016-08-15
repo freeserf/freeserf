@@ -3421,12 +3421,10 @@ Serf::handle_serf_lost_state() {
       }
 
       int r = game->random_int();
-      int col = ((r & (size-1)) - (size/2)) & game->get_map()->get_col_mask();
-      int row = (((r >> 8) & (size-1)) - (size/2)) &
-                game->get_map()->get_row_mask();
+      int col = ((r & (size-1)) - (size/2));
+      int row = (((r >> 8) & (size-1)) - (size/2));
 
-      MapPos dest = game->get_map()->pos_add(pos,
-                                                game->get_map()->pos(col, row));
+      MapPos dest = game->get_map()->pos_add(pos, col, row);
       if ((game->get_map()->get_obj(dest) == 0 &&
            game->get_map()->get_height(dest) > 0) ||
           (game->get_map()->has_flag(dest) &&
@@ -3483,11 +3481,10 @@ Serf::handle_lost_sailor() {
     /* Choose a random, empty destination */
     while (1) {
       int r = game->random_int();
-      int col = ((r & 0x1f) - 16) & game->get_map()->get_col_mask();
-      int row = (((r >> 8) & 0x1f) - 16) & game->get_map()->get_row_mask();
+      int col = (r & 0x1f) - 16;
+      int row = ((r >> 8) & 0x1f) - 16;
 
-      MapPos dest = game->get_map()->pos_add(pos,
-                                                game->get_map()->pos(col, row));
+      MapPos dest = game->get_map()->pos_add(pos, col, row);
       if (game->get_map()->get_obj(dest) == 0) {
         set_state(StateFreeSailing);
 
@@ -5060,9 +5057,7 @@ Serf::handle_scatter_state() {
     int row = ((r >> 8) & 0xf);
     if (row < 8) row -= 16;
 
-    MapPos dest = game->get_map()->pos_add(pos,
-                     game->get_map()->pos(col & game->get_map()->get_col_mask(),
-                                        row & game->get_map()->get_row_mask()));
+    MapPos dest = game->get_map()->pos_add(pos, col, row);
     if (game->get_map()->get_obj(dest) == 0 &&
         game->get_map()->get_height(dest) > 0) {
       if (get_type() >= TypeKnight0 && get_type() <= TypeKnight4) {

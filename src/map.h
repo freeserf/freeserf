@@ -324,10 +324,18 @@ class Map {
   MapPos pos(int x, int y) const { return geom_.pos(x, y); }
 
   // Addition of two map positions.
+  MapPos pos_add(MapPos pos, int x, int y) const {
+    return geom_.pos_add(pos, x, y); }
   MapPos pos_add(MapPos pos, MapPos off) const {
     return geom_.pos_add(pos, off); }
   MapPos pos_add_spirally(MapPos pos_, unsigned int off) const {
     return pos_add(pos_, spiral_pos_pattern[off]); }
+
+  // Shortest distance between map positions.
+  int dist_x(MapPos pos1, MapPos pos2) const {
+    return geom_.dist_x(pos1, pos2); }
+  int dist_y(MapPos pos1, MapPos pos2) const {
+    return geom_.dist_y(pos1, pos2); }
 
   /// Get random position
   MapPos get_rnd_coord(int *col, int *row, Random *rnd) const;

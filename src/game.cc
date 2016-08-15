@@ -1870,8 +1870,7 @@ Game::update_land_ownership(MapPos init_pos) {
        i <= influence_radius+calculate_radius; i++) {
     for (int j = -(influence_radius+calculate_radius);
          j <= influence_radius+calculate_radius; j++) {
-      MapPos pos = map->pos_add(init_pos, map->pos(j & map->get_col_mask(),
-                                                      i & map->get_row_mask()));
+      MapPos pos = map->pos_add(init_pos, j, i);
 
       if (map->get_obj(pos) >= Map::ObjectSmallBuilding &&
           map->get_obj(pos) <= Map::ObjectCastle &&
@@ -1934,8 +1933,7 @@ Game::update_land_ownership(MapPos init_pos) {
         }
       }
 
-      MapPos pos = map->pos_add(init_pos, map->pos(j & map->get_col_mask(),
-                                                      i & map->get_row_mask()));
+      MapPos pos = map->pos_add(init_pos, j, i);
       int old_player = -1;
       if (map->has_owner(pos)) old_player = map->get_owner(pos);
 
@@ -1958,8 +1956,7 @@ Game::update_land_ownership(MapPos init_pos) {
   /* Update military building flag state. */
   for (int i = -25; i <= 25; i++) {
     for (int j = -25; j <= 25; j++) {
-      MapPos pos = map->pos_add(init_pos, map->pos(i & map->get_col_mask(),
-                                                      j & map->get_row_mask()));
+      MapPos pos = map->pos_add(init_pos, i, j);
 
       if (map->get_obj(pos) >= Map::ObjectSmallBuilding &&
           map->get_obj(pos) <= Map::ObjectCastle &&
