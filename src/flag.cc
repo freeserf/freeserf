@@ -758,7 +758,7 @@ Flag::merge_paths(MapPos pos) {
 
   /* Find first direction */
   for (Direction d : cycle_directions_cw()) {
-    if (BIT_TEST(game->get_map()->paths(pos), d)) {
+    if (game->get_map()->has_path(pos, d)) {
       path_1_dir = d;
       break;
     }
@@ -766,7 +766,7 @@ Flag::merge_paths(MapPos pos) {
 
   /* Find second direction */
   for (Direction d : cycle_directions_ccw()) {
-    if (BIT_TEST(game->get_map()->paths(pos), d)) {
+    if (game->get_map()->has_path(pos, d)) {
       path_2_dir = d;
       break;
     }
