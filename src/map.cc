@@ -643,7 +643,7 @@ Map::remove_road_backref_until_flag(MapPos pos_, Direction dir) {
     /* Find next direction of path. */
     dir = DirectionNone;
     for (Direction d : cycle_directions_cw()) {
-      if (BIT_TEST(paths(pos_), d)) {
+      if (has_path(pos_, d)) {
         dir = d;
         break;
       }
@@ -664,7 +664,7 @@ Map::remove_road_backrefs(MapPos pos_) {
   auto cycle = cycle_directions_cw();
   auto it = cycle.begin();
   for (; it != cycle.end(); ++it) {
-    if (BIT_TEST(paths(pos_), *it)) {
+    if (has_path(pos_, *it)) {
       path_1_dir = *it;
       break;
     }
@@ -673,7 +673,7 @@ Map::remove_road_backrefs(MapPos pos_) {
   Direction path_2_dir = DirectionNone;
   ++it;
   for (; it != cycle.end(); ++it) {
-    if (BIT_TEST(paths(pos_), *it)) {
+    if (has_path(pos_, *it)) {
       path_2_dir = *it;
       break;
     }
@@ -699,7 +699,7 @@ Map::remove_road_segment(MapPos *pos, Direction dir) {
   /* Find next direction of path. */
   dir = DirectionNone;
   for (Direction d : cycle_directions_cw()) {
-    if (BIT_TEST(paths(*pos), d)) {
+    if (has_path(*pos, d)) {
       dir = d;
       break;
     }

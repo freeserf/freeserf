@@ -952,7 +952,7 @@ Game::demolish_road_(MapPos pos) {
   /* Find directions of path segments to be split. */
   Direction path_1_dir = DirectionNone;
   for (Direction d : cycle_directions_cw()) {
-    if (BIT_TEST(map->paths(pos), d)) {
+    if (map->has_path(pos, d)) {
       path_1_dir = d;
       break;
     }
@@ -960,7 +960,7 @@ Game::demolish_road_(MapPos pos) {
 
   Direction path_2_dir = DirectionNone;
   for (int d = path_1_dir+1; d <= DirectionUp; d++) {
-    if (BIT_TEST(map->paths(pos), d)) {
+    if (map->has_path(pos, (Direction)d)) {
       path_2_dir = (Direction)d;
       break;
     }
@@ -968,7 +968,7 @@ Game::demolish_road_(MapPos pos) {
 
   /* If last segment direction is UP LEFT it could
      be to a building and the real path is at UP. */
-  if (path_2_dir == DirectionUpLeft && BIT_TEST(map->paths(pos), DirectionUp)) {
+  if (path_2_dir == DirectionUpLeft && map->has_path(pos, DirectionUp)) {
     path_2_dir = DirectionUp;
   }
 
@@ -994,7 +994,7 @@ Game::build_flag_split_path(MapPos pos) {
   const auto cycle = cycle_directions_cw();
   auto it = cycle.begin();
   for (; it != cycle.end(); ++it) {
-    if (BIT_TEST(map->paths(pos), *it)) {
+    if (map->has_path(pos, *it)) {
       path_1_dir = *it;
       break;
     }
@@ -1003,7 +1003,7 @@ Game::build_flag_split_path(MapPos pos) {
   Direction path_2_dir = DirectionNone;
   ++it;
   for (; it != cycle.end(); ++it) {
-    if (BIT_TEST(map->paths(pos), *it)) {
+    if (map->has_path(pos, *it)) {
       path_2_dir = *it;
       break;
     }
@@ -1011,7 +1011,7 @@ Game::build_flag_split_path(MapPos pos) {
 
   /* If last segment direction is UP LEFT it could
      be to a building and the real path is at UP. */
-  if (path_2_dir == DirectionUpLeft && BIT_TEST(map->paths(pos), DirectionUp)) {
+  if (path_2_dir == DirectionUpLeft && map->has_path(pos, DirectionUp)) {
     path_2_dir = DirectionUp;
   }
 
@@ -1552,7 +1552,7 @@ bool
 Game::can_demolish_flag(MapPos pos, const Player *player) const {
   if (map->get_obj(pos) != Map::ObjectFlag) return false;
 
-  if (BIT_TEST(map->paths(pos), DirectionUpLeft) &&
+  if (map->has_path(pos, DirectionUpLeft) &&
       map->get_obj(map->move_up_left(pos)) >= Map::ObjectSmallBuilding &&
       map->get_obj(map->move_up_left(pos)) <= Map::ObjectCastle) {
     return false;
@@ -1874,7 +1874,7 @@ Game::update_land_ownership(MapPos init_pos) {
 
       if (map->get_obj(pos) >= Map::ObjectSmallBuilding &&
           map->get_obj(pos) <= Map::ObjectCastle &&
-          BIT_TEST(map->paths(pos),
+          map->has_path(pos,
                    DirectionDownRight)) {  // TODO(_): Why wouldn't this be set?
         Building *building = buildings[map->get_obj_index(pos)];
         int mil_type = -1;
@@ -1960,7 +1960,7 @@ Game::update_land_ownership(MapPos init_pos) {
 
       if (map->get_obj(pos) >= Map::ObjectSmallBuilding &&
           map->get_obj(pos) <= Map::ObjectCastle &&
-          BIT_TEST(map->paths(pos), DirectionDownRight)) {
+          map->has_path(pos, DirectionDownRight)) {
         Building *building = buildings[map->get_obj_index(pos)];
         if (building->is_done() && building->is_military()) {
           calculate_military_flag_state(building);
