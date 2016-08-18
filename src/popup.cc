@@ -287,7 +287,6 @@ typedef enum Action {
   ACTION_OPTIONS_SFX
 } Action;
 
-
 /* Draw the frame around the popup box. */
 void
 PopupBox::draw_popup_box_frame() {
@@ -438,20 +437,15 @@ PopupBox::prepare_res_amount_text(int amount) const {
 void
 PopupBox::draw_map_box() {
   /* Icons */
-  draw_popup_icon(0, 128, minimap->get_flags() & 3); /* Mode */
-  draw_popup_icon(4, 128,
-                  BIT_TEST(minimap->get_flags(), 2) ? 3 : 4); /* Roads */
-  if (minimap->get_advanced() >= 0) {
-    draw_popup_icon(8, 128,
-                  minimap->get_advanced() == 0 ? 306 : 305); /* Unknown mode */
-  } else {
-    draw_popup_icon(8, 128,
-                  BIT_TEST(minimap->get_flags(), 3) ? 5 : 6); /* Buildings */
+  draw_popup_icon(0, 128, minimap->get_ownership_mode());  // Mode
+  draw_popup_icon(4, 128, minimap->get_draw_roads() ? 3 : 4);  // Roads
+  if (minimap->get_advanced() >= 0) {  // Unknown mode
+    draw_popup_icon(8, 128, minimap->get_advanced() == 0 ? 306 : 305);
+  } else {  // Buildings
+    draw_popup_icon(8, 128, minimap->get_draw_buildings() ? 5 : 6);
   }
-  draw_popup_icon(12, 128,
-                  BIT_TEST(minimap->get_flags(), 4) ? 7 : 8); /* Grid */
-  draw_popup_icon(14, 128,
-                  BIT_TEST(minimap->get_flags(), 5) ? 91 : 92); /* Scale */
+  draw_popup_icon(12, 128, minimap->get_draw_grid() ? 7 : 8);  // Grid
+  draw_popup_icon(14, 128, (minimap->get_scale() == 1) ? 91 : 92);  // Scale
 }
 
 /* Draw building mine popup box. */
@@ -2828,24 +2822,24 @@ PopupBox::handle_action(int action, int x, int y) {
     /* Not handled here, event is passed to minimap. */
     break;
   case ACTION_MINIMAP_MODE: {
-    int mode = (minimap->get_flags() & 3) + 1;
-    minimap->set_flags(minimap->get_flags() & ~3);
-    if (mode != 3) {
-      minimap->set_flags(minimap->get_flags() | mode);
+    int mode = minimap->get_ownership_mode() + 1;
+    if (mode > MinimapGame::OwnershipModeLast) {
+      mode = MinimapGame::OwnershipModeNone;
     }
+    minimap->set_ownership_mode((MinimapGame::OwnershipMode)mode);
     set_box(TypeMap);
     break;
   }
   case ACTION_MINIMAP_ROADS:
-    minimap->set_flags(minimap->get_flags() ^ 4);
+    minimap->set_draw_roads(!minimap->get_draw_roads());
     set_box(TypeMap);
     break;
   case ACTION_MINIMAP_BUILDINGS:
     if (minimap->get_advanced() >= 0) {
       minimap->set_advanced(-1);
-      minimap->set_flags(minimap->get_flags() | BIT(3));
+      minimap->set_draw_buildings(true);
     } else {
-      minimap->set_flags(minimap->get_flags() ^ 8);
+      minimap->set_draw_buildings(!minimap->get_draw_buildings());
     }
     set_box(TypeMap);
 
@@ -2859,7 +2853,7 @@ PopupBox::handle_action(int action, int x, int y) {
 #endif
     break;
   case ACTION_MINIMAP_GRID:
-    minimap->set_flags(minimap->get_flags() ^ 16);
+      minimap->set_draw_grid(!minimap->get_draw_grid());
     set_box(TypeMap);
     break;
   case ACTION_BUILD_STONEMINE:
@@ -3450,7 +3444,7 @@ PopupBox::handle_action(int action, int x, int y) {
   case ACTION_MINIMAP_BLD_22:
   case ACTION_MINIMAP_BLD_23:
     minimap->set_advanced(action - ACTION_MINIMAP_BLD_1 + 1);
-    minimap->set_flags(minimap->get_flags() | BIT(3));
+    minimap->set_draw_buildings(true);
     set_box(TypeMap);
     break;
   case ACTION_MINIMAP_BLD_FLAG:
@@ -3474,7 +3468,6 @@ PopupBox::handle_action(int action, int x, int y) {
     set_box(TypePlayerFaces);
     break;
   case ACTION_MINIMAP_SCALE: {
-    minimap->set_flags(minimap->get_flags() ^ BIT(5));
     minimap->set_scale(minimap->get_scale() == 1 ? 2 : 1);
     set_box(TypeMap);
   }

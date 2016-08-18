@@ -22,27 +22,28 @@
 #include "src/minimap.h"
 
 #include <algorithm>
-#include <memory>
-#include <cstring>
 
-#include "src/misc.h"
 #include "src/game.h"
-#include "src/data.h"
-#include "src/gfx.h"
 #include "src/interface.h"
 #include "src/viewport.h"
 
-#define MINIMAP_MAX_SCALE  8
+const int
+Minimap::max_scale = 8;
 
 Minimap::Minimap(Map *_map) {
   offset_x = 0;
   offset_y = 0;
   scale = 1;
 
-  advanced = -1;
-  flags = 8;
+  draw_grid = false;
 
   set_map(_map);
+}
+
+void
+Minimap::set_draw_grid(bool _draw_grid) {
+  draw_grid = _draw_grid;
+  set_redraw();
 }
 
 /* Initialize minimap data. */
@@ -128,13 +129,13 @@ Minimap::draw_minimap_map() {
 
 void
 MinimapGame::draw_minimap_ownership(int density) {
-  for (unsigned int row = 0; row < map->get_rows(); row++) {
-    for (unsigned int col = 0; col < map->get_cols(); col++) {
+  for (unsigned int row = 0; row < map->get_rows(); row += density) {
+    for (unsigned int col = 0; col < map->get_cols(); col += density) {
       MapPos pos = map->pos(col, row);
       if (map->has_owner(pos)) {
         int color =
             interface->get_game()->get_player(map->get_owner(pos))->get_color();
-        draw_minimap_point(col, row, color, density);
+        draw_minimap_point(col, row, color, scale);
       }
     }
   }
@@ -229,19 +230,24 @@ Minimap::internal_draw() {
   }
 
   draw_minimap_map();
-  draw_minimap_grid();
+
+  if (draw_grid) {
+    draw_minimap_grid();
+  }
 }
 
 int
 Minimap::handle_scroll(int up) {
   int scale_ = 0;
+
   if (up) {
     scale_ = scale + 1;
   } else {
     scale_ = scale - 1;
   }
 
-  set_scale(clamp(1, scale_, MINIMAP_MAX_SCALE));
+  set_scale(clamp(1, scale_, max_scale));
+
   return 0;
 }
 
@@ -374,33 +380,59 @@ Minimap::move_by_pixels(int dx, int dy) {
   set_redraw();
 }
 
-MinimapGame::MinimapGame(Interface *interface, Game *game)
-  : Minimap(game->get_map()) {
-  this->interface = interface;
-  this->game = game;
+MinimapGame::MinimapGame(Interface *_interface, Game *_game)
+  : Minimap(_game->get_map()) {
+  interface = _interface;
+  game = _game;
+  draw_roads = false;
+  draw_buildings = true;
+  ownership_mode = OwnershipModeNone;
+  advanced = -1;
+}
+
+void
+MinimapGame::set_ownership_mode(OwnershipMode _ownership_mode) {
+  ownership_mode = _ownership_mode;
+  set_redraw();
+}
+
+void
+MinimapGame::set_draw_roads(bool _draw_roads) {
+  draw_roads = _draw_roads;
+  set_redraw();
+}
+
+void
+MinimapGame::set_draw_buildings(bool _draw_buildings) {
+  draw_buildings = _draw_buildings;
+  set_redraw();
 }
 
 void
 MinimapGame::internal_draw() {
-  if (BIT_TEST(flags, 1)) {
-    frame->fill_rect(0, 0, 128, 128, 1);
-    draw_minimap_ownership(2);
-  } else {
-    draw_minimap_map();
-    if (BIT_TEST(flags, 0)) {
+  switch (ownership_mode) {
+    case OwnershipModeNone:
+      draw_minimap_map();
+      break;
+    case OwnershipModeMixed:
+      draw_minimap_map();
+      draw_minimap_ownership(2);
+      break;
+    case OwnershipModeSolid:
+      frame->fill_rect(0, 0, 128, 128, 1);
       draw_minimap_ownership(1);
-    }
+      break;
   }
 
-  if (BIT_TEST(flags, 2)) {
+  if (draw_roads) {
     draw_minimap_roads();
   }
 
-  if (BIT_TEST(flags, 3)) {
+  if (draw_buildings) {
     draw_minimap_buildings();
   }
 
-  if (BIT_TEST(flags, 4)) {
+  if (draw_grid) {
     draw_minimap_grid();
   }
 
