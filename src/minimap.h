@@ -26,8 +26,8 @@
 
 #include "src/gui.h"
 #include "src/map.h"
-#include "src/game.h"
 
+class Game;
 class Interface;
 
 class Minimap : public GuiObject {
@@ -37,8 +37,7 @@ class Minimap : public GuiObject {
   int offset_x, offset_y;
   int scale;
 
-  int advanced;
-  int flags;
+  bool draw_grid;
 
   std::unique_ptr<uint8_t> minimap;
 
@@ -47,12 +46,10 @@ class Minimap : public GuiObject {
 
   void set_map(Map *map);
 
-  int get_flags() const { return flags; }
-  void set_flags(int flags) { this->flags = flags; }
-  int get_advanced() const { return advanced; }
-  void set_advanced(int advanced) { this->advanced = advanced; }
   int get_scale() const { return scale; }
   void set_scale(int scale);
+  bool get_draw_grid() const { return draw_grid; }
+  void set_draw_grid(bool draw_grid);
 
   void move_to_map_pos(MapPos pos);
   void move_by_pixels(int x, int y);
@@ -62,6 +59,8 @@ class Minimap : public GuiObject {
   MapPos map_pos_from_screen_pix(int x, int y);
 
  protected:
+  static const int max_scale;
+
   void init_minimap();
 
   void draw_minimap_point(int col, int row, uint8_t color, int density);
@@ -77,13 +76,35 @@ class Minimap : public GuiObject {
 };
 
 class MinimapGame : public Minimap {
+ public:
+  typedef enum OwnershipMode {
+    OwnershipModeNone = 0,
+    OwnershipModeMixed = 1,
+    OwnershipModeSolid = 2,
+    OwnershipModeLast = OwnershipModeSolid
+  } OwnershipMode;
+
  protected:
   Interface *interface;
 
   Game *game;
 
+  int advanced;
+  bool draw_roads;
+  bool draw_buildings;
+  OwnershipMode ownership_mode;
+
  public:
   MinimapGame(Interface *interface, Game *game);
+
+  int get_advanced() const { return advanced; }
+  void set_advanced(int advanced) { this->advanced = advanced; }
+  bool get_draw_roads() const { return draw_roads; }
+  void set_draw_roads(bool draw_roads);
+  bool get_draw_buildings() const { return draw_buildings; }
+  void set_draw_buildings(bool draw_buildings);
+  OwnershipMode get_ownership_mode() { return ownership_mode; }
+  void set_ownership_mode(OwnershipMode _ownership_mode);
 
  protected:
   void draw_minimap_ownership(int density);

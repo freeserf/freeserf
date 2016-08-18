@@ -2268,8 +2268,6 @@ Viewport::handle_click_left(int x, int y) {
   set_redraw();
 
   MapPos clk_pos = map_pos_from_screen_pix(x, y);
-  int clk_col = map->pos_col(clk_pos);
-  int clk_row = map->pos_row(clk_pos);
 
   if (interface->is_building_road()) {
     int dx = map->dist_x(interface->get_map_cursor_pos(), clk_pos) + 1;
