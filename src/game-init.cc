@@ -438,8 +438,8 @@ GameInitBox::generate_map_preview() {
   if (game_mission < 0) {
     map = new Map(MapGeometry(map_size));
     {
-      ClassicMapGenerator generator(*map, mission->rnd);
-      generator.init(MapGenerator::HeightGeneratorMidpoints, true);
+      DesertMapGenerator generator(*map, mission->rnd);
+      generator.init();
       generator.generate();
       map->init_tiles(generator);
     }

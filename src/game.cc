@@ -2213,8 +2213,8 @@ Game::load_random_map(int size, const Random &rnd) {
 
   init_map(size);
   {
-    ClassicMapGenerator generator(*map, rnd);
-    generator.init(MapGenerator::HeightGeneratorMidpoints, false);
+    DesertMapGenerator generator(*map, rnd);
+    generator.init();
     generator.generate();
     init_map_data(generator);
   }
