@@ -1,7 +1,7 @@
 /*
  * game-init.cc - Game initialization GUI component
  *
- * Copyright (C) 2013-2015  Jon Lund Steffensen <jonlst@gmail.com>
+ * Copyright (C) 2013-2016  Jon Lund Steffensen <jonlst@gmail.com>
  *
  * This file is part of freeserf.
  *
@@ -142,7 +142,7 @@ GameInitBox::internal_draw() {
     draw_box_icon(5, 0, 263);
 
     std::stringstream str_map_size;
-    str_map_size << map_size;
+    str_map_size << mission->get_map_size();
 
     draw_box_string(10, 2, "New game");
     draw_box_string(10, 18, "Mapsize:");
@@ -182,7 +182,7 @@ GameInitBox::internal_draw() {
 }
 
 void
-GameInitBox::draw_player_box(int player, int x, int y) {
+GameInitBox::draw_player_box(unsigned int player, int x, int y) {
   const int layout[] = {
     251, 0, 0,
     252, 0, 72,
@@ -201,48 +201,34 @@ GameInitBox::draw_player_box(int player, int x, int y) {
   y += 8;
   x += 1;
 
-  draw_box_icon(x, y, get_player_face_sprite(mission->player[player].face));
+  unsigned int face = 0;
+  if (player < mission->get_player_count()) {
+    face = mission->get_player(player)->get_face();
+  }
+
+  draw_box_icon(x, y, get_player_face_sprite(face));
   draw_box_icon(x+5, y, 282);
 
-  x *= 8;
+  if (player < mission->get_player_count()) {
+    x *= 8;
 
-  if (mission->player[player].face != 0) {
-    int supplies = static_cast<int>(mission->player[player].supplies);
+    unsigned int supplies = mission->get_player(player)->get_supplies();
     frame->fill_rect(x + 64, y + 76 - supplies, 4, supplies, 67);
 
-    int intelligence = static_cast<int>(mission->player[player].intelligence);
+    unsigned int intelligence = mission->get_player(player)->get_intelligence();
     frame->fill_rect(x + 70, y + 76 - intelligence, 4, intelligence, 30);
 
-    int reproduction = static_cast<int>(mission->player[player].reproduction);
+    unsigned int reproduction = mission->get_player(player)->get_reproduction();
     frame->fill_rect(x + 76, y + 76 - reproduction, 4, reproduction, 75);
   }
 }
 
 void
 GameInitBox::handle_action(int action) {
-  const unsigned int default_player_colors[] = {
-    64, 72, 68, 76
-  };
-
   switch (action) {
     case ActionStartGame: {
       Game *game = new Game();
-      game->init();
-      if (game_mission < 0) {
-        if (!game->load_random_map(map_size, mission->rnd)) return;
-
-        for (int i = 0; i < GAME_MAX_PLAYER_COUNT; i++) {
-          if (mission->player[i].face == 0) continue;
-          int p = game->add_player(mission->player[i].face,
-                                   default_player_colors[i],
-                                   mission->player[i].supplies,
-                                   mission->player[i].reproduction,
-                                   mission->player[i].intelligence);
-          if (p < 0) return;
-        }
-      } else {
-        if (!game->load_mission_map(game_mission)) return;
-      }
+      if (!game->load_mission_map(mission)) return;
 
       Game *old_game = interface->get_game();
       if (old_game != NULL) {
@@ -261,15 +247,14 @@ GameInitBox::handle_action(int action) {
     case ActionToggleGameType:
       if (game_mission < 0) {
         game_mission = 0;
-        mission = Mission::get_mission(game_mission);
+        mission = GameInfo::get_mission(game_mission);
         field->set_displayed(false);
         generate_map_preview();
       } else {
         game_mission = -1;
-        map_size = 3;
-        mission = &custom_mission;
+        mission = custom_mission;
         field->set_displayed(true);
-        field->set_random(custom_mission.rnd);
+        field->set_random(custom_mission->get_random_base());
         generate_map_preview();
       }
       break;
@@ -279,20 +264,22 @@ GameInitBox::handle_action(int action) {
       break;
     case ActionIncrement:
       if (game_mission < 0) {
-        map_size = std::min(10, map_size+1);
+        custom_mission->set_map_size(std::min(10u,
+                                           custom_mission->get_map_size() + 1));
       } else {
         game_mission = std::min(game_mission+1,
-                                Mission::get_mission_count()-1);
-        mission = Mission::get_mission(game_mission);
+                             static_cast<int>(GameInfo::get_mission_count())-1);
+        mission = GameInfo::get_mission(game_mission);
       }
       generate_map_preview();
       break;
     case ActionDecrement:
       if (game_mission < 0) {
-        map_size = std::max(3, map_size-1);
+        custom_mission->set_map_size(std::max(3u,
+                                           custom_mission->get_map_size() - 1));
       } else {
         game_mission = std::max(0, game_mission-1);
-        mission = Mission::get_mission(game_mission);
+        mission = GameInfo::get_mission(game_mission);
       }
       generate_map_preview();
       break;
@@ -307,7 +294,8 @@ GameInitBox::handle_action(int action) {
     case ActionApplyRandom: {
       std::string str = field->get_text();
       if (str.length() == 16) {
-        apply_random(field->get_random());
+        custom_mission = PGameInfo(new GameInfo(field->get_random()));
+        mission = custom_mission;
         generate_map_preview();
       }
       break;
@@ -380,26 +368,27 @@ GameInitBox::handle_click_left(int x, int y) {
 }
 
 bool
-GameInitBox::handle_player_click(int player, int x, int y) {
+GameInitBox::handle_player_click(unsigned int player_index, int x, int y) {
   if (x < 8 || x > 8 + 64 || y < 8 || y > 76) {
     return false;
   }
 
-  if (x >= 8 && x < 8+32 &&
-      y >= 8 && y < 72) {
-    /* Face */
-    int in_use = 0;
-    do {
-      mission->player[player].face = (mission->player[player].face + 1) % 14;
+  PPlayerInfo player = mission->get_player(player_index);
 
-      /* Check that face is not already in use
-       by another player */
+  if (x >= 8 && x < 8+32 && y >= 8 && y < 72) {
+    /* Face */
+    bool in_use = false;
+    do {
+      unsigned int next = (player->get_face() + 1) % 14;
+      next = std::max(1u, next);
+      player->set_character(next);
+
+      /* Check that face is not already in use by another player */
       in_use = 0;
-      for (int j = 0; j < GAME_MAX_PLAYER_COUNT; j++) {
-        if (player != j &&
-            mission->player[player].face != 0 &&
-            mission->player[j].face == mission->player[player].face) {
-          in_use = 1;
+      for (size_t i = 0; i < mission->get_player_count(); i++) {
+        if (player_index != i &&
+            mission->get_player(i)->get_face() == next) {
+          in_use = true;
           break;
         }
       }
@@ -410,15 +399,16 @@ GameInitBox::handle_player_click(int player, int x, int y) {
       return false;
     }
     if (y >= 27 && y < 69) {
+      unsigned int value = clamp(0, 68 - y, 40);
       if (x > 0 && x < 6) {
         /* Supplies */
-        mission->player[player].supplies = clamp(0, 68 - y, 40);
+        player->set_supplies(value);
       } else if (x > 6 && x < 12) {
         /* Intelligence */
-        mission->player[player].intelligence = clamp(0, 68 - y, 40);
+        player->set_intelligence(value);
       } else if (x > 12 && x < 18) {
         /* Reproduction */
-        mission->player[player].reproduction = clamp(0, 68 - y, 40);
+        player->set_reproduction(value);
       }
     }
   }
@@ -435,22 +425,17 @@ GameInitBox::generate_map_preview() {
     map = NULL;
   }
 
+  map = new Map(MapGeometry(mission->get_map_size()));
   if (game_mission < 0) {
-    map = new Map(MapGeometry(map_size));
-    {
-      ClassicMapGenerator generator(*map, mission->rnd);
-      generator.init(MapGenerator::HeightGeneratorMidpoints, true);
-      generator.generate();
-      map->init_tiles(generator);
-    }
+    ClassicMapGenerator generator(*map, mission->get_random_base());
+    generator.init(MapGenerator::HeightGeneratorMidpoints, true);
+    generator.generate();
+    map->init_tiles(generator);
   } else {
-    map = new Map(MapGeometry(3));
-    {
-      ClassicMissionMapGenerator generator(*map, mission->rnd);
-      generator.init();
-      generator.generate();
-      map->init_tiles(generator);
-    }
+    ClassicMissionMapGenerator generator(*map, mission->get_random_base());
+    generator.init();
+    generator.generate();
+    map->init_tiles(generator);
   }
 
   minimap->set_map(map);
@@ -458,90 +443,16 @@ GameInitBox::generate_map_preview() {
   set_redraw();
 }
 
-void
-GameInitBox::apply_random(Random rnd) {
-  custom_mission.rnd = rnd;
-  custom_mission.rnd ^= Random(0x5A5A, 0xA5A5, 0xC3C3);
-
-  for (int i = 3; i >= 0; i--) {
-    uint32_t face = rnd.random();
-    face *= 10;
-    face = face >> 16;
-    face += 1;
-    custom_mission.player[i].face = face & 0xFF;
-    uint32_t val_1 = rnd.random();
-    val_1 *= 41;
-    val_1 = val_1 >> 16;
-    custom_mission.player[i].intelligence = val_1 & 0xFF;
-    uint32_t val_2 = rnd.random();
-    val_2 *= 41;
-    val_2 = val_2 >> 16;
-    custom_mission.player[i].supplies = val_2 & 0xFF;
-    uint32_t val_3 = rnd.random();
-    val_3 *= 41;
-    val_3 = val_3 >> 16;
-    custom_mission.player[i].reproduction = val_3 & 0xFF;
-  }
-
-  for (int i = 1; i >= 0; i--) {
-    uint32_t val_1 = rnd.random();
-    if (i == 0) {
-      val_1 *= 41;
-      val_1 = val_1 >> 16;
-      custom_mission.player[i].supplies = val_1 & 0xFF;
-    }
-    uint32_t val_2 = rnd.random();
-    if (i == 0) {
-      val_2 *= 41;
-      val_2 = val_2 >> 16;
-      custom_mission.player[i].reproduction = val_2 & 0xFF;
-    }
-  }
-
-  uint32_t val = rnd.random();
-  if ((val & 7) == 0) {
-    custom_mission.player[2].face = 0;
-    custom_mission.player[3].face = 0;
-  } else {
-    uint32_t val = rnd.random();
-    if ((val & 3) == 0) {
-      custom_mission.player[3].face = 0;
-    }
-  }
-
-  custom_mission.player[0].face = 12;
-  custom_mission.player[0].intelligence = 40;
-}
-
 GameInitBox::GameInitBox(Interface *interface) {
   this->interface = interface;
-  map_size = 3;
   game_mission = -1;
 
   set_size(360, 254);
 
-  /* Clear player settings */
-  for (int i = 0; i < GAME_MAX_PLAYER_COUNT; i++) {
-    custom_mission.player[i].face = 0;
-    custom_mission.player[i].intelligence = 0;
-    custom_mission.player[i].supplies = 0;
-    custom_mission.player[i].reproduction = 0;
-  }
-
-  /* Create default game setup */
-  custom_mission.player[0].face = 12;
-  custom_mission.player[0].intelligence = 40;
-  custom_mission.player[0].supplies = 40;
-  custom_mission.player[0].reproduction = 40;
-
-  custom_mission.player[1].face = 1;
-  custom_mission.player[1].intelligence = 20;
-  custom_mission.player[1].supplies = 30;
-  custom_mission.player[1].reproduction = 40;
-
-  custom_mission.rnd = Random();
-
-  mission = &custom_mission;
+  custom_mission = PGameInfo(new GameInfo(Random()));
+  custom_mission->add_player(12, 64, 40, 40, 40);
+  custom_mission->add_player(1, 72, 20, 30, 40);
+  mission = custom_mission;
 
   minimap = new Minimap(NULL);
   minimap->set_displayed(true);
@@ -552,7 +463,7 @@ GameInitBox::GameInitBox(Interface *interface) {
   generate_map_preview();
 
   field = new RandomInput();
-  field->set_random(custom_mission.rnd);
+  field->set_random(custom_mission->get_random_base());
   field->set_displayed(true);
   add_float(field, 19 + 26*8, 15);
 }

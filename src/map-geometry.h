@@ -89,7 +89,7 @@ class DirectionCycle {
     Iterator(const Iterator& it) : cycle(it.cycle), offset(it.offset) {}
 
     Iterator& operator++() {
-      if (offset < cycle.length) ++offset;
+      if (offset < static_cast<int>(cycle.length)) ++offset;
       return *this;
     }
 

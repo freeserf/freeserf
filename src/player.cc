@@ -1,7 +1,7 @@
 /*
  * player.cc - Player related functions
  *
- * Copyright (C) 2013  Jon Lund Steffensen <jonlst@gmail.com>
+ * Copyright (C) 2013-2016  Jon Lund Steffensen <jonlst@gmail.com>
  *
  * This file is part of freeserf.
  *
@@ -46,12 +46,9 @@ Player::Player(Game *game, unsigned int index)
 //     reproduction: How quickly new serfs spawn during the game (0-60).
 //     intelligence: AI only (unused) (0-40).
 void
-Player::init(size_t face, unsigned int color, unsigned int supplies,
-             size_t reproduction, size_t intelligence) {
-  assert(14 >= face && face >= 1);
-  assert(60 >= reproduction && reproduction >= 0);
-
+Player::init(PPlayerInfo player_info) {
   flags = 0;
+  face = player_info->get_face();
 
   if (face < 12) { /* AI player */
     flags |= BIT(7); /* Set AI bit */
@@ -59,8 +56,7 @@ Player::init(size_t face, unsigned int color, unsigned int supplies,
     /*game.max_next_index = 49;*/
   }
 
-  this->color = color;
-  this->face = face;
+  color = player_info->get_color();
   build = 0;
 
   building = 0;
@@ -101,9 +97,9 @@ Player::init(size_t face, unsigned int color, unsigned int supplies,
   /* player->field_1b0 = 0; AI */
   /* player->field_1b2 = 0; AI */
 
-  initial_supplies = supplies;
-  reproduction_reset = (60 - reproduction) * 50;
-  ai_intelligence = 1300*intelligence + 13535;
+  initial_supplies = player_info->get_supplies();
+  reproduction_reset = (60 - player_info->get_reproduction()) * 50;
+  ai_intelligence = (1300 * player_info->get_intelligence()) + 13535;
 
   if (is_ai()) init_ai_values(face);
 

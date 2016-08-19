@@ -155,14 +155,14 @@ main(int argc, char *argv[]) {
   }
 
   Game *game = new Game();
-  game->init();
 
   /* Either load a save game if specified or
      start a new game. */
   if (!save_file.empty()) {
     if (!game->load_save_game(save_file)) exit(EXIT_FAILURE);
   } else {
-    if (!game->load_random_map(3, Random())) exit(EXIT_FAILURE);
+    PGameInfo game_info(new GameInfo(Random()));
+    if (!game->load_mission_map(game_info)) exit(EXIT_FAILURE);
   }
 
   /* Initialize interface */

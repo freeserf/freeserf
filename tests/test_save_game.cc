@@ -34,12 +34,14 @@ main(int argc, char *argv[]) {
 
   // Create random map game
   std::unique_ptr<Game> game(new Game());
-  game->init();
-  game->load_random_map(3, Random("8667715887436237"));
-
+  PGameInfo game_info(new GameInfo(Random("8667715887436237")));
   // Add player to game
-  unsigned int p_0 = game->add_player(12, 64, 35, 30, 40);
-  Player *player_0 = game->get_player(p_0);
+  game_info->remove_all_players();
+  PPlayerInfo player_info(new PlayerInfo(12, 64, 35, 30, 40));
+  game_info->add_player(player_info);
+  game->load_mission_map(game_info);
+
+  Player *player_0 = game->get_player(0);
   if (player_0 == NULL) {
     std::cout << "not ok 1 - Player not added to game\n";
     return 0;
@@ -104,7 +106,7 @@ main(int argc, char *argv[]) {
   }
 
   // Check player
-  Player *loaded_player_0 = loaded_game->get_player(p_0);
+  Player *loaded_player_0 = loaded_game->get_player(0);
   if (loaded_player_0 != NULL) {
     std::cout << "ok 8 - Player exists in loaded game\n";
   } else {

@@ -1,7 +1,7 @@
 /*
  * player.h - Player related functions
  *
- * Copyright (C) 2013  Jon Lund Steffensen <jonlst@gmail.com>
+ * Copyright (C) 2013-2016  Jon Lund Steffensen <jonlst@gmail.com>
  *
  * This file is part of freeserf.
  *
@@ -28,6 +28,7 @@
 #include "src/map.h"
 #include "src/serf.h"
 #include "src/objects.h"
+#include "src/mission.h"
 
 class Serf;
 class Inventory;
@@ -166,8 +167,7 @@ class Player : public GameObject {
  public:
   Player(Game *game, unsigned int index);
 
-  void init(size_t face, unsigned int color, unsigned int supplies,
-            size_t reproduction, size_t intelligence);
+  void init(PPlayerInfo player_info);
 
   int get_color() const { return color; }
   size_t get_face() const { return face; }

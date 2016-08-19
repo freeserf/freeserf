@@ -1,7 +1,7 @@
 /*
  * game.cc - Gameplay related functions
  *
- * Copyright (C) 2013  Jon Lund Steffensen <jonlst@gmail.com>
+ * Copyright (C) 2013-2016  Jon Lund Steffensen <jonlst@gmail.com>
  *
  * This file is part of freeserf.
  *
@@ -53,6 +53,29 @@ Game::Game() {
   serfs = Serfs(this);
 
   allocate_objects();
+
+  /* Initialize global lookup tables */
+  game_speed = DEFAULT_GAME_SPEED;
+
+  update_map_last_tick = 0;
+  update_map_counter = 0;
+  update_map_16_loop = 0;
+  update_map_initial_pos = 0;
+  next_index = 0;
+
+  memset(player_history_index, '\0', sizeof(player_history_index));
+  memset(player_history_counter, '\0', sizeof(player_history_counter));
+  resource_history_index = 0;
+
+  tick = 0;
+  const_tick = 0;
+  tick_diff = 0;
+
+  game_stats_counter = 0;
+  history_counter = 0;
+
+  knight_morale_counter = 0;
+  inventory_schedule_counter = 0;
 }
 
 /* Clear the serf request bit of all flags and buildings.
@@ -2078,44 +2101,17 @@ Game::set_inventory_serf_mode(Inventory *inventory, int mode) {
 /* Add new player to the game. Returns the player number
    or negative on error. */
 unsigned int
-Game::add_player(size_t face, unsigned int color, unsigned int supplies,
-                 size_t reproduction, size_t intelligence) {
+Game::add_player(PPlayerInfo player_info) {
   /* Allocate object */
   Player *player = players.allocate();
   if (player == NULL) abort();
 
-  player->init(face, color, supplies, reproduction, intelligence);
+  player->init(player_info);
 
   /* Update map values dependent on player count */
   map_gold_morale_factor = 10 * 1024 * static_cast<int>(players.size());
 
   return player->get_index();
-}
-
-void
-Game::init() {
-  /* Initialize global lookup tables */
-  game_speed = DEFAULT_GAME_SPEED;
-
-  update_map_last_tick = 0;
-  update_map_counter = 0;
-  update_map_16_loop = 0;
-  update_map_initial_pos = 0;
-  next_index = 0;
-
-  memset(player_history_index, '\0', sizeof(player_history_index));
-  memset(player_history_counter, '\0', sizeof(player_history_counter));
-  resource_history_index = 0;
-
-  tick = 0;
-  const_tick = 0;
-  tick_diff = 0;
-
-  game_stats_counter = 0;
-  history_counter = 0;
-
-  knight_morale_counter = 0;
-  inventory_schedule_counter = 0;
 }
 
 /* Initialize spiral_pos_pattern from spiral_pattern. */
@@ -2143,16 +2139,8 @@ Game::allocate_objects() {
 }
 
 bool
-Game::load_mission_map(int level) {
-  const unsigned int default_player_colors[] = {
-    64, 72, 68, 76
-  };
-
-  Mission *mission = Mission::get_mission(level);
-
-  init_map_rnd = mission->rnd;
-
-  mission_level = level;
+Game::load_mission_map(PGameInfo game_info) {
+  init_map_rnd = game_info->get_random_base();
 
   init_map(3);
   {
@@ -2163,37 +2151,15 @@ Game::load_mission_map(int level) {
   }
 
   /* Initialize player and build initial castle */
-  for (int i = 0; i < GAME_MAX_PLAYER_COUNT; i++) {
-    size_t face = (i == 0) ? 12 : mission->player[i].face;
-    if (face == 0) continue;
+  for (size_t i = 0; i < game_info->get_player_count(); i++) {
+    PPlayerInfo player_info = game_info->get_player(i);
+    unsigned int player_index = add_player(player_info);
 
-    int n = add_player(face, default_player_colors[i],
-                       mission->player[i].supplies,
-                       mission->player[i].reproduction,
-                       mission->player[i].intelligence);
-    if (n < 0) return false;
-
-    if (mission->player[i].castle.col > -1 &&
-        mission->player[i].castle.row > -1) {
-      MapPos pos = map->pos(mission->player[i].castle.col,
-                               mission->player[i].castle.row);
-      build_castle(pos, players[n]);
+    PosPreset castle_pos = player_info->get_castle_pos();
+    if (castle_pos.col > -1 && castle_pos.row > -1) {
+      MapPos pos = map->pos(castle_pos.col, castle_pos.row);
+      build_castle(pos, players[player_index]);
     }
-  }
-
-  return true;
-}
-
-bool
-Game::load_random_map(int size, const Random &rnd) {
-  if (size < 3 || size > 10) return false;
-
-  init_map(size);
-  {
-    ClassicMapGenerator generator(*map, rnd);
-    generator.init(MapGenerator::HeightGeneratorMidpoints, false);
-    generator.generate();
-    init_map_data(generator);
   }
 
   return true;
@@ -2758,7 +2724,6 @@ operator >> (SaveReaderText &reader, Game &game) {
   sections = reader.get_sections("player");
   for (Readers::iterator it = sections.begin(); it != sections.end(); ++it) {
     Player *p = game.players.get_or_insert((*it)->get_number());
-    p->init(1, 0, 0, 0, 0);
     **it >> *p;
   }
 
