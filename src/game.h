@@ -1,7 +1,7 @@
 /*
  * game.h - Gameplay related functions
  *
- * Copyright (C) 2013  Jon Lund Steffensen <jonlst@gmail.com>
+ * Copyright (C) 2013-2016  Jon Lund Steffensen <jonlst@gmail.com>
  *
  * This file is part of freeserf.
  *
@@ -37,6 +37,7 @@
 #include "src/random.h"
 #include "src/objects.h"
 #include "src/event_loop.h"
+#include "src/mission.h"
 
 #define DEFAULT_GAME_SPEED  2
 
@@ -125,12 +126,8 @@ class Game : public EventLoop::Handler {
   Serf *get_serf_at_pos(MapPos pos);
 
   /* External interface */
-  void init();
-  unsigned int add_player(size_t face, unsigned int color,
-                          unsigned int supplies, size_t reproduction,
-                          size_t intelligence);
-  bool load_mission_map(int m);
-  bool load_random_map(int size, const Random &rnd);
+  unsigned int add_player(PPlayerInfo player_info);
+  bool load_mission_map(PGameInfo game_info);
   bool load_save_game(const std::string &path);
 
   void update();

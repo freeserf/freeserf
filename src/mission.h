@@ -1,7 +1,7 @@
 /*
  * mission.h - Predefined game mission maps
  *
- * Copyright (C) 2013  Jon Lund Steffensen <jonlst@gmail.com>
+ * Copyright (C) 2013-2016  Jon Lund Steffensen <jonlst@gmail.com>
  *
  * This file is part of freeserf.
  *
@@ -22,32 +22,111 @@
 #ifndef SRC_MISSION_H_
 #define SRC_MISSION_H_
 
+#include <vector>
+#include <string>
+#include <memory>
+
 #include "src/random.h"
 
-class Mission {
- protected:
-  static Mission mission[];
+typedef struct {
+  unsigned int face;
+  const char *name;
+  const char *characterization;
+} CharacterPreset;
 
- public:
-  typedef struct PosPreset {
-    int col;
-    int row;
-  } PosPreset;
+typedef struct {
+  int col;
+  int row;
+} PosPreset;
 
-  typedef struct PlayerPreset {
-    unsigned int face;
-    unsigned int intelligence;
-    unsigned int supplies;
-    unsigned int reproduction;
-    PosPreset castle;
-  } PlayerPreset;
+typedef struct {
+  CharacterPreset *character;
+  unsigned int intelligence;
+  unsigned int supplies;
+  unsigned int reproduction;
+  unsigned int color;
+  PosPreset castle;
+} PlayerPreset;
 
+typedef struct {
   const char *name;
   Random rnd;
   PlayerPreset player[4];
+} MissionPreset;
 
-  static Mission *get_mission(int mission);
-  static int get_mission_count();
+class PlayerInfo {
+ protected:
+  unsigned int intelligence;
+  unsigned int supplies;
+  unsigned int reproduction;
+  unsigned int face;
+  unsigned int color;
+  std::string name;
+  std::string characterization;
+  PosPreset castle_pos;
+
+ public:
+  explicit PlayerInfo(Random *random_base);
+  PlayerInfo(size_t character, unsigned int _color, unsigned int _intelligence,
+             unsigned int _supplies, unsigned int _reproduction);
+
+  void set_intelligence(unsigned int _intelligence) {
+    intelligence = _intelligence; }
+  void set_supplies(unsigned int _supplies) { supplies = _supplies; }
+  void set_reproduction(unsigned int _reproduction) {
+    reproduction = _reproduction; }
+  void set_castle_pos(PosPreset _castle_pos);
+  void set_character(size_t character);
+  void set_color(unsigned int _color) { color = _color; }
+
+  unsigned int get_intelligence() const { return intelligence; }
+  unsigned int get_supplies() const { return supplies; }
+  unsigned int get_reproduction() const { return reproduction; }
+  unsigned int get_face() const { return face; }
+  unsigned int get_color() const { return color; }
+  PosPreset get_castle_pos() const { return castle_pos; }
+
+  bool has_castle() const;
 };
+
+typedef std::shared_ptr<PlayerInfo> PPlayerInfo;
+typedef std::vector<PPlayerInfo> PlayerInfos;
+
+class GameInfo {
+ protected:
+  unsigned int map_size;
+  Random random_base;
+  PlayerInfos players;
+  std::string name;
+
+  static MissionPreset mission[];
+
+  explicit GameInfo(const MissionPreset *mission_preset);
+
+ public:
+  explicit GameInfo(const Random &random_base);
+
+  unsigned int get_map_size() const { return map_size; }
+  void set_map_size(unsigned int size) { map_size = size; }
+  Random get_random_base() const { return random_base; }
+  size_t get_player_count() const { return players.size(); }
+  PPlayerInfo get_player(size_t player) const { return players[player]; }
+
+  void add_player(const PPlayerInfo &player);
+  void add_player(size_t character, unsigned int _color,
+                  unsigned int _intelligence, unsigned int _supplies,
+                  unsigned int _reproduction);
+  void remove_all_players();
+
+  static std::shared_ptr<GameInfo> get_mission(size_t mission);
+  static size_t get_mission_count();
+
+  static CharacterPreset *get_character(size_t character);
+  static size_t get_character_count();
+
+  static unsigned int get_color(size_t index);
+};
+
+typedef std::shared_ptr<GameInfo> PGameInfo;
 
 #endif  // SRC_MISSION_H_

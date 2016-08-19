@@ -1,7 +1,7 @@
 /*
  * game-init.h - Game initialization GUI component header
  *
- * Copyright (C) 2013-2015  Jon Lund Steffensen <jonlst@gmail.com>
+ * Copyright (C) 2013-2016  Jon Lund Steffensen <jonlst@gmail.com>
  *
  * This file is part of freeserf.
  *
@@ -49,11 +49,10 @@ class GameInitBox : public GuiObject {
  protected:
   Interface *interface;
 
-  int map_size;
   int game_mission;
 
-  Mission custom_mission;
-  Mission *mission;
+  PGameInfo custom_mission;
+  PGameInfo mission;
 
   RandomInput *field;
   Map *map;
@@ -66,11 +65,11 @@ class GameInitBox : public GuiObject {
  protected:
   void draw_box_icon(int x, int y, int sprite);
   void draw_box_string(int x, int y, const std::string &str);
-  void draw_player_box(int player, int x, int y);
+  void draw_player_box(unsigned int player, int x, int y);
   void draw_background();
   unsigned int get_player_face_sprite(size_t face);
   void handle_action(int action);
-  bool handle_player_click(int player, int x, int y);
+  bool handle_player_click(unsigned int player, int x, int y);
   void apply_random(Random rnd);
   void generate_map_preview();
 
