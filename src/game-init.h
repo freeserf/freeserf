@@ -23,6 +23,7 @@
 #define SRC_GAME_INIT_H_
 
 #include <string>
+#include <memory>
 
 #include "src/gui.h"
 #include "src/game.h"
@@ -54,9 +55,9 @@ class GameInitBox : public GuiObject {
   PGameInfo custom_mission;
   PGameInfo mission;
 
-  RandomInput *field;
-  Map *map;
-  Minimap *minimap;
+  std::unique_ptr<RandomInput> field;
+  std::unique_ptr<Map> map;
+  std::unique_ptr<Minimap> minimap;
 
  public:
   explicit GameInitBox(Interface *interface);
