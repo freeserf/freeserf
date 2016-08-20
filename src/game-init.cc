@@ -373,6 +373,10 @@ GameInitBox::handle_player_click(unsigned int player_index, int x, int y) {
     return false;
   }
 
+  if (player_index >= mission->get_player_count()) {
+    return true;
+  }
+
   PPlayerInfo player = mission->get_player(player_index);
 
   if (x >= 8 && x < 8+32 && y >= 8 && y < 72) {
