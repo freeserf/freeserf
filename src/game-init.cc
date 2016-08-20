@@ -420,12 +420,7 @@ GameInitBox::handle_player_click(unsigned int player_index, int x, int y) {
 
 void
 GameInitBox::generate_map_preview() {
-  if (map != NULL) {
-    delete map;
-    map = NULL;
-  }
-
-  map = new Map(MapGeometry(mission->get_map_size()));
+  map.reset(new Map(MapGeometry(mission->get_map_size())));
   if (game_mission < 0) {
     ClassicMapGenerator generator(*map, mission->get_random_base());
     generator.init(MapGenerator::HeightGeneratorMidpoints, true);
@@ -438,12 +433,14 @@ GameInitBox::generate_map_preview() {
     map->init_tiles(generator);
   }
 
-  minimap->set_map(map);
+  minimap->set_map(map.get());
 
   set_redraw();
 }
 
-GameInitBox::GameInitBox(Interface *interface) {
+GameInitBox::GameInitBox(Interface *interface)
+    : minimap(new Minimap(nullptr)),
+      field(new RandomInput()) {
   this->interface = interface;
   game_mission = -1;
 
@@ -454,33 +451,15 @@ GameInitBox::GameInitBox(Interface *interface) {
   custom_mission->add_player(1, 72, 20, 30, 40);
   mission = custom_mission;
 
-  minimap = new Minimap(NULL);
   minimap->set_displayed(true);
   minimap->set_size(150, 160);
-  add_float(minimap, 190, 55);
+  add_float(minimap.get(), 190, 55);
 
-  map = NULL;
   generate_map_preview();
 
-  field = new RandomInput();
   field->set_random(custom_mission->get_random_base());
   field->set_displayed(true);
-  add_float(field, 19 + 26*8, 15);
+  add_float(field.get(), 19 + 26*8, 15);
 }
 
-GameInitBox::~GameInitBox() {
-  if (field != NULL) {
-    delete field;
-    field = NULL;
-  }
-
-  if (map != NULL) {
-    delete map;
-    map = NULL;
-  }
-
-  if (minimap != NULL) {
-    delete minimap;
-    minimap = NULL;
-  }
-}
+GameInitBox::~GameInitBox() {}
