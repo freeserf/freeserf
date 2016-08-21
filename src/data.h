@@ -244,7 +244,10 @@ class Data {
   Data();
 
  public:
+  Data(const Data& that) = delete;
   virtual ~Data();
+
+  Data& operator = (const Data& that) = delete;
 
   static Data *get_instance();
 
