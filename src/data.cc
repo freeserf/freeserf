@@ -74,8 +74,6 @@ Data::add_to_search_paths(const char *path,
   search_paths.push_back(res_path);
 }
 
-#define MAX_DATA_PATH      1024
-
 bool
 Data::load(const std::string &path) {
   /* If it possible, prefer DOS game data. */
