@@ -58,7 +58,7 @@
   USAGE                                                     \
       " -d NUM\t\tSet debug output level\n"                 \
       " -f\t\tFullscreen mode (CTRL-q to exit)\n"           \
-      " -g DATA-FILE\tUse specified data file\n"            \
+      " -g DATA-FILE\tUse specified data directory\n"       \
       " -h\t\tShow this help text\n"                        \
       " -l FILE\tLoad saved game\n"                         \
       " -r RES\t\tSet display resolution (e.g. 800x600)\n"  \
@@ -68,7 +68,7 @@
 
 int
 main(int argc, char *argv[]) {
-  std::string data_file;
+  std::string data_dir;
   std::string save_file;
 
   int screen_width = DEFAULT_SCREEN_WIDTH;
@@ -93,7 +93,7 @@ main(int argc, char *argv[]) {
         break;
       case 'g':
         if (strlen(optarg) > 0) {
-          data_file = optarg;
+          data_dir = optarg;
         }
         break;
       case 'h':
@@ -126,7 +126,7 @@ main(int argc, char *argv[]) {
   Log::Info["main"] << "freeserf " << FREESERF_VERSION;
 
   Data *data = Data::get_instance();
-  if (!data->load(data_file)) {
+  if (!data->load(&data_dir)) {
     Log::Error["main"] << "Could not load game data.";
     exit(EXIT_FAILURE);
   }

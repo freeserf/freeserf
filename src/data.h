@@ -239,7 +239,6 @@
 class Data {
  protected:
   std::unique_ptr<DataSource> data_source;
-  std::list<std::string> search_paths;
 
   Data();
 
@@ -251,13 +250,12 @@ class Data {
 
   static Data *get_instance();
 
-  bool load(const std::string &path);
+  bool load(const std::string* path);
 
   DataSource *get_data_source() const { return data_source.get(); }
 
  protected:
   std::list<std::string> get_standard_search_paths() const;
-  void add_to_search_paths(const char *path, const char *suffix);
 };
 
 #endif  // SRC_DATA_H_

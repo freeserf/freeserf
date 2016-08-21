@@ -25,6 +25,7 @@
 #include <vector>
 #include <memory>
 #include <utility>
+#include <string>
 
 #include "src/log.h"
 #include "src/data-source-dos.h"
@@ -43,83 +44,29 @@ Data::get_instance() {
   return &instance;
 }
 
-void
-Data::add_to_search_paths(const char *path,
-                            const char *suffix) {
-  if (path == NULL) {
-    return;
-  }
-
-  std::string res_path = path;
-  if (suffix != NULL) {
-    res_path += '/';
-    res_path += suffix;
-  }
-
-  search_paths.push_back(res_path);
-}
-
+// Try to load data file from given path or standard paths.
+//
+// Return true if successful. Standard paths will be searched only if the
+// given path is nullptr or an empty string.
 bool
-Data::load(const std::string &path) {
-  /* If it possible, prefer DOS game data. */
+Data::load(const std::string* path) {
+  // If it is possible, prefer DOS game data.
   std::vector<std::unique_ptr<DataSource>> data_sources;
   data_sources.emplace_back(new DataSourceDOS());
 
-  /* Use specified path. If something was specified
-     but not found, this function should fail without
-     looking anywhere else. */
-  add_to_search_paths(path.c_str(), NULL);
-
-  /* If a path is not specified (path is NULL) then
-     the configuration file is searched for in the directories
-     specified by the XDG Base Directory Specification
-     <http://standards.freedesktop.org/basedir-spec/basedir-spec-latest.html>.
-
-     On windows platforms the %localappdata% is used in place of XDG_CONFIG_HOME.
-  */
-
-  // Look in current directory
-  add_to_search_paths(".", NULL);
-  /* Look in home */
-  add_to_search_paths(std::getenv("XDG_DATA_HOME"), "freeserf");
-  add_to_search_paths(std::getenv("HOME"), ".local/share/freeserf");
-#ifdef _WIN32
-  // to find the data within the same directory as the freeserf.exe app.
-  char app_path[MAX_PATH + 1];
-  GetModuleFileNameA(NULL, app_path, MAX_PATH);
-  add_to_search_paths(app_path, "/../");
-
-  add_to_search_paths(std::getenv("userprofile"), ".local/share/freeserf");
-  add_to_search_paths(std::getenv("LOCALAPPDATA"), "/freeserf");
-#endif
-
-  // search in preference base directories
-#ifdef _WIN32
-  char *env = std::getenv("PATH");
-  #define PATH_SEPERATING_CHAR ';'
-#else
-  char *env = std::getenv("XDG_DATA_DIRS");
-  #define PATH_SEPERATING_CHAR ':'
-#endif
-
-  std::string dirs = (env == NULL) ? std::string() : env;
-  while (!dirs.empty()) {
-    size_t pos = dirs.find(PATH_SEPERATING_CHAR);
-    std::string dir = dirs.substr(0, pos);
-    dirs.replace(0, (pos == std::string::npos) ? pos : pos + 1, std::string());
-    add_to_search_paths(dir.c_str(), "freeserf");
+  std::list<std::string> search_paths;
+  if (path == nullptr || path->empty()) {
+    search_paths = get_standard_search_paths();
+  } else {
+    search_paths.push_front(*path);
   }
 
-  add_to_search_paths("/usr/local/share", "freeserf");
-  add_to_search_paths("/usr/share", "freeserf");
-
+  // Use each data source to try to find the data files in the search paths.
   for (auto& ds : data_sources) {
-    std::list<std::string>::iterator it = search_paths.begin();
-    for (; it != search_paths.end(); ++it) {
+    for (const auto& path : search_paths) {
       std::string res_path;
-      if (ds->check(*it, &res_path)) {
-        Log::Info["data"] << "Game data found in '"
-                          << res_path.c_str() << "'...";
+      if (ds->check(path, &res_path)) {
+        Log::Info["data"] << "Game data found in '" << res_path << "'...";
         if (ds->load(res_path)) {
           data_source = std::move(ds);
           break;
