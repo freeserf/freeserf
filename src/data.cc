@@ -22,6 +22,8 @@
 #include "src/data.h"
 
 #include <cstdlib>
+#include <vector>
+#include <memory>
 
 #include "src/log.h"
 #include "src/data-source-dos.h"
@@ -68,8 +70,8 @@ Data::add_to_search_paths(const char *path,
 bool
 Data::load(const std::string &path) {
   /* If it possible, prefer DOS game data. */
-  DataSource *data_sources[] = { new DataSourceDOS(),
-                                 NULL, };
+  std::vector<std::unique_ptr<DataSource>> data_sources;
+  data_sources.emplace_back(new DataSourceDOS());
 
   /* Use specified path. If something was specified
      but not found, this function should fail without
@@ -119,27 +121,21 @@ Data::load(const std::string &path) {
   add_to_search_paths("/usr/local/share", "freeserf");
   add_to_search_paths("/usr/share", "freeserf");
 
-  for (int i = 0; data_sources[i] != NULL; i++) {
+  for (auto& ds : data_sources) {
     std::list<std::string>::iterator it = search_paths.begin();
     for (; it != search_paths.end(); ++it) {
       std::string res_path;
-      if (data_sources[i]->check(*it, &res_path)) {
+      if (ds->check(*it, &res_path)) {
         Log::Info["data"] << "Game data found in '"
                           << res_path.c_str() << "'...";
-        if (data_sources[i]->load(res_path)) {
-          data_source = data_sources[i];
+        if (ds->load(res_path)) {
+          data_source = ds.release();
           break;
         }
       }
     }
     if (data_source != NULL) {
       break;
-    }
-  }
-
-  for (int i = 0; data_sources[i] != NULL; i++) {
-    if (data_sources[i] != data_source) {
-      delete data_sources[i];
     }
   }
 
