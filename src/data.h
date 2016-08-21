@@ -237,7 +237,6 @@ class DataSource;
 
 class Data {
  protected:
-  static Data *instance;
   DataSource *data_source;
   std::list<std::string> search_paths;
 

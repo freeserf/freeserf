@@ -32,12 +32,8 @@
 #endif
 
 
-Data *
-Data::instance = NULL;
-
 Data::Data() {
   data_source = NULL;
-  instance = this;
 }
 
 Data::~Data() {
@@ -45,17 +41,12 @@ Data::~Data() {
     delete data_source;
     data_source = NULL;
   }
-
-  instance = NULL;
 }
 
 Data *
 Data::get_instance() {
-  if (instance == NULL) {
-    instance = new Data();
-  }
-
-  return instance;
+  static Data instance;
+  return &instance;
 }
 
 void

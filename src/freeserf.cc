@@ -127,7 +127,6 @@ main(int argc, char *argv[]) {
 
   Data *data = Data::get_instance();
   if (!data->load(data_file)) {
-    delete data;
     Log::Error["main"] << "Could not load game data.";
     exit(EXIT_FAILURE);
   }
@@ -199,7 +198,6 @@ main(int argc, char *argv[]) {
   }
   delete audio;
   delete gfx;
-  delete data;
   delete event_loop;
 
   return EXIT_SUCCESS;
