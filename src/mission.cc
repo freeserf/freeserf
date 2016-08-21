@@ -431,42 +431,23 @@ GameInfo::GameInfo(const Random &_random_base) {
   map_size = 3;
   name = random;
 
-  PPlayerInfo plrs[4];
+  // Player 0
+  players.push_back(std::make_shared<PlayerInfo>(&random));
+  players[0]->set_character(12);
+  players[0]->set_color(64);
+  players[0]->set_intelligence(40);
 
-  for (int i = 3; i >= 0; i--) {
-    PPlayerInfo player(new PlayerInfo(&random));
-    plrs[i] = player;
-  }
-
-  for (int i = 1; i >= 0; i--) {
-    uint32_t val_1 = random.random();
-    if (i == 0) {
-      plrs[i]->set_supplies(((val_1 * 41) >> 16) & 0xFF);
-    }
-    uint32_t val_2 = random.random();
-    if (i == 0) {
-      plrs[i]->set_reproduction(((val_2 * 41) >> 16) & 0xFF);
-    }
-  }
+  // Player 1
+  players.push_back(std::make_shared<PlayerInfo>(&random));
 
   uint32_t val = random.random();
-  if ((val & 7) == 0) {
-    plrs[2] = NULL;
-    plrs[3] = NULL;
-  } else {
+  if ((val & 7) != 0) {
+    // Player 2
+    players.push_back(std::make_shared<PlayerInfo>(&random));
     uint32_t val = random.random();
     if ((val & 3) == 0) {
-      plrs[3] = NULL;
-    }
-  }
-
-  PPlayerInfo player(new PlayerInfo(12, 64, 40, plrs[0]->get_supplies(),
-                                    plrs[0]->get_reproduction()));
-  plrs[0] = player;
-
-  for (int i = 0; i < 4; i++) {
-    if (plrs[i]) {
-      add_player(plrs[i]);
+      // Player 3
+      players.push_back(std::make_shared<PlayerInfo>(&random));
     }
   }
 }
