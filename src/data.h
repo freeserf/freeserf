@@ -256,6 +256,7 @@ class Data {
   DataSource *get_data_source() const { return data_source.get(); }
 
  protected:
+  std::list<std::string> get_standard_search_paths() const;
   void add_to_search_paths(const char *path, const char *suffix);
 };
 
