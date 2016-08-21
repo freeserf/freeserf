@@ -24,6 +24,7 @@
 #include <cstdlib>
 #include <vector>
 #include <memory>
+#include <utility>
 
 #include "src/log.h"
 #include "src/data-source-dos.h"
@@ -34,16 +35,7 @@
 #endif
 
 
-Data::Data() {
-  data_source = NULL;
-}
-
-Data::~Data() {
-  if (data_source != NULL) {
-    delete data_source;
-    data_source = NULL;
-  }
-}
+Data::Data() : data_source(nullptr) {}
 
 Data *
 Data::get_instance() {
@@ -129,15 +121,15 @@ Data::load(const std::string &path) {
         Log::Info["data"] << "Game data found in '"
                           << res_path.c_str() << "'...";
         if (ds->load(res_path)) {
-          data_source = ds.release();
+          data_source = std::move(ds);
           break;
         }
       }
     }
-    if (data_source != NULL) {
+    if (data_source) {
       break;
     }
   }
 
-  return (data_source != NULL);
+  return data_source.get() != nullptr;
 }
