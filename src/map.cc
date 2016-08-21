@@ -391,9 +391,8 @@ Map::set_height(MapPos pos, int height) {
 
   /* Mark landscape dirty */
   for (Direction d : cycle_directions_cw()) {
-    for (change_handlers_t::iterator it = change_handlers.begin();
-         it != change_handlers.end(); ++it) {
-      (*it)->on_height_changed(move(pos, d));
+    for (Handler *handler : change_handlers) {
+      handler->on_height_changed(move(pos, d));
     }
   }
 }
@@ -408,9 +407,8 @@ Map::set_object(MapPos pos, Object obj, int index) {
 
   /* Notify about object change */
   for (Direction d : cycle_directions_cw()) {
-    for (change_handlers_t::iterator it = change_handlers.begin();
-         it != change_handlers.end(); ++it) {
-      (*it)->on_object_changed(move(pos, d));
+    for (Handler *handler : change_handlers) {
+      handler->on_object_changed(move(pos, d));
     }
   }
 }
