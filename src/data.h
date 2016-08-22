@@ -24,6 +24,9 @@
 
 #include <string>
 #include <list>
+#include <memory>
+
+#include "src/data-source.h"
 
 /* Index 0 is undefined (entry 0 in the data file
    contains a header with the size and total
@@ -233,27 +236,26 @@
 
 #define DATA_CURSOR  3999
 
-class DataSource;
-
 class Data {
  protected:
-  static Data *instance;
-  DataSource *data_source;
-  std::list<std::string> search_paths;
+  std::unique_ptr<DataSource> data_source;
 
   Data();
 
  public:
-  virtual ~Data();
+  Data(const Data& that) = delete;
+  virtual ~Data() {}
+
+  Data& operator = (const Data& that) = delete;
 
   static Data *get_instance();
 
-  bool load(const std::string &path);
+  bool load(const std::string* path);
 
-  DataSource *get_data_source() const { return data_source; }
+  DataSource *get_data_source() const { return data_source.get(); }
 
  protected:
-  void add_to_search_paths(const char *path, const char *suffix);
+  std::list<std::string> get_standard_search_paths() const;
 };
 
 #endif  // SRC_DATA_H_
