@@ -1,0 +1,35 @@
+find_path(XMP_INCLUDE_DIR xmp.h
+  HINTS
+    ENV XMPDIR
+  PATH_SUFFIXES
+    XMP include
+)
+
+if(CMAKE_SIZEOF_VOID_P EQUAL 8)
+  set(VC_LIB_PATH_SUFFIX lib/x64)
+else()
+  set(VC_LIB_PATH_SUFFIX lib/x86)
+endif()
+
+if(WIN32)
+  set(XPM_LIB_NAME libxmp)
+else()
+  set(XPM_LIB_NAME xmp)
+endif()
+
+FIND_LIBRARY(XMP_LIBRARY ${XPM_LIB_NAME}
+  HINTS
+    ENV XMPDIR
+  PATH_SUFFIXES
+    lib ${VC_LIB_PATH_SUFFIX}
+)
+
+IF(XMP_INCLUDE_DIR AND XMP_LIBRARY)
+   SET(XMP_FOUND TRUE)
+ENDIF()
+
+IF(XMP_FOUND)
+  MESSAGE(STATUS "Found libxmp: ${XMP_LIBRARY}")
+ELSE()
+  MESSAGE(WARNING "Could not find libxmp")
+ENDIF()

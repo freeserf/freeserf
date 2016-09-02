@@ -18,63 +18,58 @@ install:
 
   # SDL2
   - ps: |
-      $SDL_VERSION = "2.0.4"
-      $SDL_PREFIX = "C:\sdl_root\SDL2-$SDL_VERSION"
-      if (!(Test-Path -Path $SDL_PREFIX)) {
+      $SDL_VERSION = "2.0.5"
+      $SDL2DIR = "C:\sdl_root\SDL2-$SDL_VERSION"
+      if (!(Test-Path -Path $SDL2DIR)) {
         Start-FileDownload https://libsdl.org/release/SDL2-devel-$SDL_VERSION-VC.zip
         7z x SDL2-devel-$SDL_VERSION-VC.zip -oC:\sdl_root\
       }
-      $env:SDL2_INCLUDE = "$SDL_PREFIX\include"
-      $env:SDL2_LIB = "$SDL_PREFIX\lib"
+      $env:SDL2DIR = $SDL2DIR
 
   # SDL2_mixer
   - ps: |
       $SDL_MIXER_VERSION = "2.0.1"
-      $SDL_MIXER_PREFIX = "C:\sdl_root\SDL2_mixer-$SDL_MIXER_VERSION"
-      if (!(Test-Path -Path $SDL_MIXER_PREFIX)) {
+      $SDL2MIXERDIR = "C:\sdl_root\SDL2_mixer-$SDL_MIXER_VERSION"
+      if (!(Test-Path -Path $SDL2MIXERDIR)) {
         Start-FileDownload https://www.libsdl.org/projects/SDL_mixer/release/SDL2_mixer-devel-$SDL_MIXER_VERSION-VC.zip
         7z x SDL2_mixer-devel-$SDL_MIXER_VERSION-VC.zip -oC:\sdl_root\
       }
-      $env:SDL2_MIXER_INCLUDE = "$SDL_MIXER_PREFIX\include"
-      $env:SDL2_MIXER_LIB = "$SDL_MIXER_PREFIX\lib"
+      $env:SDL2MIXERDIR = $SDL2MIXERDIR
 
   # libxmp
   - if "%platform%" == "x86" call "%VS140COMNTOOLS%\..\..\VC\vcvarsall.bat"
   - if "%platform%" == "x64" call "%VS140COMNTOOLS%\..\..\VC\vcvarsall.bat" x86_amd64
   - ps: |
       $XMP_VERSION = "4.4.1"
-      $XMP_PREFIX = "C:\sdl_root\XMP-$XMP_VERSION"
-      if (!(Test-Path "$XMP_PREFIX\lib\$env:PLATFORM\libxmp.lib")) {
+      $XMPDIR = "C:\sdl_root\XMP-$XMP_VERSION"
+      if (!(Test-Path "$XMPDIR\lib\$env:PLATFORM\libxmp.lib")) {
+        $env:build_xmp = 'true'
         Start-FileDownload https://sourceforge.net/projects/xmp/files/libxmp/$XMP_VERSION/libxmp-$XMP_VERSION.tar.gz
         7z x "libxmp-$XMP_VERSION.tar.gz"
         7z x "libxmp-$XMP_VERSION.tar"
         cd libxmp-$XMP_VERSION
-        nmake Makefile.vc
-        md $XMP_PREFIX
-        md $XMP_PREFIX\include
-        md $XMP_PREFIX\lib
-        md $XMP_PREFIX\lib\$env:PLATFORM
-        Copy-Item -Path libxmp.dll -Destination $XMP_PREFIX\lib\$env:PLATFORM
-        Copy-Item -Path libxmp.lib -Destination $XMP_PREFIX\lib\$env:PLATFORM
-        Copy-Item -Path libxmp.exp -Destination $XMP_PREFIX\lib\$env:PLATFORM
-        Copy-Item -Path include\xmp.h -Destination $XMP_PREFIX\include
+      }
+  - cmd: IF "%build_xmp%"=="true" nmake Makefile.vc
+  - ps: |
+      if ($env:build_xmp -eq "true") {
+        md $XMPDIR
+        md $XMPDIR\include
+        md $XMPDIR\lib
+        md $XMPDIR\lib\$env:PLATFORM
+        Copy-Item -Path libxmp.dll -Destination $XMPDIR\lib\$env:PLATFORM
+        Copy-Item -Path libxmp.lib -Destination $XMPDIR\lib\$env:PLATFORM
+        Copy-Item -Path libxmp.exp -Destination $XMPDIR\lib\$env:PLATFORM
+        Copy-Item -Path include\xmp.h -Destination $XMPDIR\include
         cd ..
       }
-      $env:XMP_INCLUDE = "$XMP_PREFIX\include"
-      $env:XMP_LIB = "$XMP_PREFIX\lib"
+      $env:XMPDIR = $XMPDIR
 
 build_script:
-  - msbuild windows\freeserf.sln
+  - cmd: cmake -G "NMake Makefiles"
+  - cmd: nmake
+  - cmd: nmake test
+  - cmd: nmake package
 
 after_build:
   - ps: |
-      $ZIP_BASE = "freeserf-VC-$env:PLATFORM-$env:CONFIGURATION"
-      $ZIP_FILE = "$($ZIP_BASE).zip"
-      md $ZIP_BASE
-      Copy-Item -Path windows\$env:PLATFORM\$env:CONFIGURATION\freeserf.exe -Destination $ZIP_BASE\
-      Copy-Item -Path README.md -Destination $ZIP_BASE\README.txt
-      Copy-Item -Path windows\$env:PLATFORM\$env:CONFIGURATION\SDL2.dll -Destination $ZIP_BASE\
-      Copy-Item -Path windows\$env:PLATFORM\$env:CONFIGURATION\SDL2_mixer.dll -Destination $ZIP_BASE\
-      Copy-Item -Path windows\$env:PLATFORM\$env:CONFIGURATION\libxmp.dll -Destination $ZIP_BASE\
-      7z a $ZIP_FILE $ZIP_BASE\*
-      Push-AppveyorArtifact $ZIP_FILE
+      Push-AppveyorArtifact FreeSerf-$env:PLATFORM.exe
