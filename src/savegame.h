@@ -25,14 +25,7 @@
 #include <iostream>
 #include <string>
 #include <list>
-
-#ifdef HAVE_CONFIG_H
-# include <config.h>
-#endif
-
-#ifdef HAVE_STDINT_H
-# include <stdint.h>
-#endif
+#include <cstdint>
 
 #include "src/map.h"
 #include "src/resource.h"

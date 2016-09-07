@@ -24,15 +24,8 @@
 #include <cstring>
 #include <queue>
 #include <vector>
-#include <algorithm>    // use for std::sort
-
-#ifdef HAVE_CONFIG_H
-# include <config.h>
-#endif
-
-#ifdef HAVE_STDINT_H
-# include <stdint.h>
-#endif
+#include <algorithm>
+#include <cstdint>
 
 #include "src/freeserf_endian.h"
 #include "src/log.h"

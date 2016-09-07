@@ -23,14 +23,7 @@
 
 #include <cassert>
 #include <algorithm>
-
-#ifdef HAVE_CONFIG_H
-# include <config.h>
-#endif
-
-#ifdef HAVE_CSTDINT
-# include <cstdint>
-#endif
+#include <cstdint>
 
 #include "src/savegame.h"
 #include "src/flag.h"

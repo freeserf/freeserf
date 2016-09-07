@@ -20,20 +20,7 @@ PKG_CHECK_MODULES([SDL2_mixer], [SDL2_mixer], [have_sdl2_mixer=yes], [have_sdl2_
 
 # Checks for header files.
 AC_HEADER_ASSERT
-AC_CHECK_HEADERS([byteswap.h endian.h stdint.h getopt.h sys/endian.h])
-
-# Checks for typedefs, structures, and compiler characteristics.
-AC_C_CONST
-AC_C_BIGENDIAN
-AC_SYS_LARGEFILE
-AC_TYPE_OFF_T
-AC_TYPE_SIZE_T
-AC_TYPE_INT8_T
-AC_TYPE_INT16_T
-AC_TYPE_INT32_T
-AC_TYPE_UINT8_T
-AC_TYPE_UINT16_T
-AC_TYPE_UINT32_T
+AC_CHECK_HEADERS([byteswap.h endian.h getopt.h sys/endian.h])
 
 # Check C++ 11 support and enable compiler flag
 AX_CHECK_COMPILE_FLAG([-std=c++11], [CXXFLAGS="$CXXFLAGS -std=c++11"])
