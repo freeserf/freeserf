@@ -23,14 +23,7 @@
 
 #include <cassert>
 #include <algorithm>
-
-#ifdef HAVE_CONFIG_H
-# include <config.h>
-#endif
-
-#ifdef HAVE_CSTDINT
-# include <cstdint>
-#endif
+#include <cstdint>
 
 #include "src/savegame.h"
 #include "src/flag.h"
@@ -49,6 +42,19 @@ Inventory::Inventory(Game *game, unsigned int index)
   }
   serfs_out = 0;
   generic_count = 0;
+}
+
+Inventory::~Inventory() {
+  for (int i = 0; i < 2 && out_queue[i].type != Resource::TypeNone; i++) {
+    Resource::Type res = out_queue[i].type;
+    int dest = out_queue[i].dest;
+
+    game->cancel_transported_resource(res, dest);
+    game->lose_resource(res);
+  }
+
+  game->add_gold_total(-static_cast<int>(resources[Resource::TypeGoldBar]));
+  game->add_gold_total(-static_cast<int>(resources[Resource::TypeGoldOre]));
 }
 
 void
@@ -110,17 +116,6 @@ Inventory::reset_queue_for_dest(Flag *flag) {
     out_queue[0].type = out_queue[1].type;
     out_queue[0].dest = out_queue[1].dest;
     out_queue[1].type = Resource::TypeNone;
-  }
-}
-
-void
-Inventory::lose_queue() {
-  for (int i = 0; i < 2 && out_queue[i].type != Resource::TypeNone; i++) {
-    Resource::Type res = out_queue[i].type;
-    int dest = out_queue[i].dest;
-
-    game->cancel_transported_resource(res, dest);
-    game->lose_resource(res);
   }
 }
 

@@ -1,5 +1,5 @@
 /*
- * test_map.cc - TAP test for loading/saving game
+ * test_save_game.cc - TAP test for loading/saving game
  *
  * Copyright (C) 2016  Jon Lund Steffensen <jonlst@gmail.com>
  *
@@ -88,9 +88,6 @@ main(int argc, char *argv[]) {
     return 0;
   }
 
-  // Restore state that is not stored in the save game
-  loaded_game->init_land_ownership();
-
   // Check map
   if (*game->get_map() == *loaded_game->get_map()) {
     std::cout << "ok 6 - Maps are equal\n";
@@ -118,6 +115,9 @@ main(int argc, char *argv[]) {
   if (player_0->get_land_area() == loaded_player_0->get_land_area()) {
     std::cout << "ok 9 - Player land area is identical\n";
   } else {
-    std::cout << "not ok 9 - Player land area is not identical\n";
+    std::cout << "not ok 9 - Player land area is not identical "
+                 "(in saved game - " << player_0->get_land_area()
+              << " but in loaded game - " << loaded_player_0->get_land_area()
+              << ")\n";
   }
 }

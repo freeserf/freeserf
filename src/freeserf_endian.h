@@ -22,6 +22,7 @@
 #ifndef SRC_FREESERF_ENDIAN_H_
 #define SRC_FREESERF_ENDIAN_H_
 
+#include <cstdint>
 
 #ifdef HAVE_CONFIG_H
 # include <config.h>
@@ -32,10 +33,6 @@
 #elif HAVE_ENDIAN_H
 # include <endian.h>
 #else /* ! HAVE_SYS_ENDIAN_H */
-
-#ifdef HAVE_STDINT_H
-# include <stdint.h>
-#endif
 
 # ifdef HAVE_BYTESWAP_H
 #  include <byteswap.h>

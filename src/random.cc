@@ -24,14 +24,7 @@
 #include <ctime>
 #include <cstdlib>
 #include <sstream>
-
-#ifdef HAVE_CONFIG_H
-# include <config.h>
-#endif
-
-#ifdef HAVE_CSTDINT
-# include <cstdint>
-#endif
+#include <cstdint>
 
 Random::Random() {
   srand((unsigned int)time(NULL));

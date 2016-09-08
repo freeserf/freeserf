@@ -23,14 +23,7 @@
 #define SRC_DATA_SOURCE_H_
 
 #include <string>
-
-#ifdef HAVE_CONFIG_H
-# include <config.h>
-#endif
-
-#ifdef HAVE_STDINT_H
-# include <stdint.h>
-#endif
+#include <cstdint>
 
 /* Sprite object. Contains BGRA data. */
 class Sprite {

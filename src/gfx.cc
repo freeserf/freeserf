@@ -387,7 +387,6 @@ Frame::draw_string(int x, int y, unsigned char color, int shadow,
       fill_rect(x, y, 8, 8, 0);
     }
 */
-
     draw_char_sprite(x, y, *it, color, shadow);
 
     x += 8;

@@ -32,31 +32,6 @@
 
 Player::Player(Game *game, unsigned int index)
   : GameObject(game, index) {
-}
-
-// Initialize player values.
-//
-// Supplies and reproduction are usually limited to 0-40 in random map games.
-//
-// Args:
-//     face: the face image that represents this player.
-//           1-12 is AI, 13-14 is human player.
-//     color: Color of player as palette color index.
-//     supplies: Initial resource supplies at castle (0-50).
-//     reproduction: How quickly new serfs spawn during the game (0-60).
-//     intelligence: AI only (unused) (0-40).
-void
-Player::init(PPlayerInfo player_info) {
-  flags = 0;
-  face = player_info->get_face();
-
-  if (face < 12) { /* AI player */
-    flags |= BIT(7); /* Set AI bit */
-    /* TODO ... */
-    /*game.max_next_index = 49;*/
-  }
-
-  color = player_info->get_color();
   build = 0;
 
   building = 0;
@@ -97,13 +72,6 @@ Player::init(PPlayerInfo player_info) {
   /* player->field_1b0 = 0; AI */
   /* player->field_1b2 = 0; AI */
 
-  initial_supplies = player_info->get_supplies();
-  reproduction_reset = (60 - player_info->get_reproduction()) * 50;
-  ai_intelligence = (1300 * player_info->get_intelligence()) + 13535;
-
-  if (is_ai()) init_ai_values(face);
-
-  reproduction_counter = static_cast<int>(reproduction_reset);
   castle_score = 0;
 
   for (int i = 0; i < 26; i++) {
@@ -134,6 +102,39 @@ Player::init(PPlayerInfo player_info) {
   /* TODO AI: Set array field_402 of length 25 to -1. */
   /* TODO AI: Set array field_434 of length 280*2 to 0 */
   /* TODO AI: Set array field_1bc of length 8 to -1 */
+}
+
+// Initialize player values.
+//
+// Supplies and reproduction are usually limited to 0-40 in random map games.
+//
+// Args:
+//     face: the face image that represents this player.
+//           1-12 is AI, 13-14 is human player.
+//     color: Color of player as palette color index.
+//     supplies: Initial resource supplies at castle (0-50).
+//     reproduction: How quickly new serfs spawn during the game (0-60).
+//     intelligence: AI only (unused) (0-40).
+void
+Player::init(PPlayerInfo player_info) {
+  flags = 0;
+  face = player_info->get_face();
+
+  if (face < 12) { /* AI player */
+    flags |= BIT(7); /* Set AI bit */
+    /* TODO ... */
+    /*game.max_next_index = 49;*/
+  }
+
+  color = player_info->get_color();
+
+  initial_supplies = player_info->get_supplies();
+  reproduction_reset = (60 - player_info->get_reproduction()) * 50;
+  ai_intelligence = (1300 * player_info->get_intelligence()) + 13535;
+
+  if (is_ai()) init_ai_values(face);
+
+  reproduction_counter = static_cast<int>(reproduction_reset);
 }
 
 /* Initialize AI parameters. */
@@ -376,8 +377,7 @@ Player::available_knights_at_pos(MapPos pos, int index_, int dist) {
   }
 
   Building *building = game->get_building(bld_index);
-  if (!building->is_done() ||
-      building->is_burning()) {
+  if (!building->is_done() || building->is_burning()) {
     return index_;
   }
 
@@ -393,10 +393,9 @@ Player::available_knights_at_pos(MapPos pos, int index_, int dist) {
 
   attacking_buildings[index] = bld_index;
 
-  int state = building->get_state();
+  size_t state = building->get_threat_level();
   int knights_present = building->get_knight_count();
-  int to_send = knights_present -
-                min_level[knight_occupation[state] & 0xf];
+  int to_send = knights_present - min_level[knight_occupation[state] & 0xf];
 
   if (to_send > 0) attacking_knights[dist] += to_send;
 
@@ -457,8 +456,7 @@ Player::start_attack() {
 
   Building *target = game->get_building(building_attacked);
   if (!target->is_done() || !target->is_military() ||
-      !target->is_active() ||
-      target->get_state() != 3) {
+      !target->is_active() || target->get_threat_level() != 3) {
     return;
   }
 
@@ -485,7 +483,7 @@ Player::start_attack() {
     default: continue; break;
     }
 
-    int state = b->get_state();
+    size_t state = b->get_threat_level();
     int knights_present = b->get_knight_count();
     int to_send = knights_present - min_level[knight_occupation[state] & 0xf];
 
@@ -495,7 +493,7 @@ Player::start_attack() {
                                          Serf::TypeKnight4;
       int best_index = -1;
 
-      int knight_index = b->get_main_serf();
+      int knight_index = b->get_first_knight();
       while (knight_index != 0) {
         Serf *knight = game->get_serf(knight_index);
         if (send_strongest()) {
@@ -727,7 +725,7 @@ Player::create_initial_castle_serfs(Building *castle) {
   game->get_map()->set_serf_index(serf->get_pos(), serf->get_index());
 
   Building *building = game->get_building(this->building);
-  building->set_main_serf(serf->get_index());
+  building->set_first_knight(serf->get_index());
 
   /* Spawn generic serfs */
   for (int i = 0; i < 5; i++) {

@@ -100,6 +100,7 @@ class Viewport : public GuiObject, public Map::Handler {
                                            int progress);
   void draw_building_unfinished(Building *building, Building::Type bld_type,
                                 int x, int y);
+  void draw_ocupation_flag(Building *building, int x, int y, float mul);
   void draw_unharmed_building(Building *building, int x, int y);
   void draw_burning_building(Building *building, int x, int y);
   void draw_building(MapPos pos, int x, int y);

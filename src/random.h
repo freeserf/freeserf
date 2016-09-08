@@ -23,14 +23,7 @@
 #define SRC_RANDOM_H_
 
 #include <string>
-
-#ifdef HAVE_CONFIG_H
-# include <config.h>
-#endif
-
-#ifdef HAVE_STDINT_H
-#include <stdint.h>
-#endif
+#include <cstdint>
 
 class Random {
  protected:

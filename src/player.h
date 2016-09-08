@@ -220,8 +220,8 @@ class Player : public GameObject {
   void reset_flag_priority();
   void reset_inventory_priority();
 
-  int get_knight_occupation(int index) const {
-    return knight_occupation[index]; }
+  int get_knight_occupation(size_t threat_level) const {
+    return knight_occupation[threat_level]; }
   void change_knight_occupation(int index, int adjust_max, int delta);
   void increase_castle_knights() { castle_knights++; }
   void decrease_castle_knights() { castle_knights--; }

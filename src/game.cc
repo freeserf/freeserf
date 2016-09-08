@@ -341,7 +341,7 @@ Game::send_serf_to_flag_search_cb(Flag *flag, void *d) {
         } else {
           Building *dest_bld =
                     flag->get_game()->flags[data->dest_index]->get_building();
-          dest_bld->request_serf();
+          dest_bld->serf_request_granted();
           mode = -1;
         }
 
@@ -417,7 +417,7 @@ Game::send_serf_to_flag(Flag *dest, Serf::Type type, Resource::Type res1,
         if (building == NULL) {
           return false;
         }
-        building->request_serf();
+        building->serf_request_granted();
         mode = -1;
       }
 
@@ -1473,8 +1473,6 @@ Game::build_castle(MapPos pos, Player *player) {
     return false;
   }
 
-  castle->start_activity();
-  castle->serf_arrive();
   castle->set_inventory(inventory);
 
   inventory->set_building_index(castle->get_index());
@@ -1517,7 +1515,7 @@ Game::build_castle(MapPos pos, Player *player) {
 
   player->building_founded(castle);
 
-  calculate_military_flag_state(castle);
+  castle->update_military_flag_state();
 
   return true;
 }
@@ -1610,121 +1608,22 @@ Game::demolish_flag(MapPos pos, Player *player) {
 bool
 Game::demolish_building_(MapPos pos) {
   Building *building = buildings[map->get_obj_index(pos)];
+  if (building->burnup()) {
+    building_remove_player_refs(building);
 
-  if (building->is_burning()) return false;
+    /* Remove path to building. */
+    map->del_path(pos, Direction::DirectionDownRight);
+    map->del_path(map->move_down_right(pos), Direction::DirectionUpLeft);
 
-  building_remove_player_refs(building);
+    /* Disconnect flag. */
+    Flag *flag = flags[building->get_flag_index()];
+    flag->unlink_building();
+    flag_reset_transport(flag);
 
-  Player *player = players[building->get_owner()];
-
-  building->burnup();
-
-  /* Remove path to building. */
-  map->del_path(pos, DirectionDownRight);
-  map->del_path(map->move_down_right(pos), DirectionUpLeft);
-
-  /* Disconnect flag. */
-  Flag *flag = flags[building->get_flag_index()];
-  flag->unlink_building();
-  flag_reset_transport(flag);
-
-  /* Remove lost gold stock from total count. */
-  if (building->is_done() &&
-      (building->get_type() == Building::TypeHut ||
-       building->get_type() == Building::TypeTower ||
-       building->get_type() == Building::TypeFortress ||
-       building->get_type() == Building::TypeGoldSmelter)) {
-    int gold_stock = building->get_res_count_in_stock(1);
-    add_gold_total(-gold_stock);
+    return true;
   }
 
-  /* Update land owner ship if the building is military. */
-  if (building->is_done() &&
-      building->is_active() &&
-      building->is_military()) {
-    update_land_ownership(building->get_position());
-  }
-
-  if (building->is_done() &&
-      (building->get_type() == Building::TypeCastle ||
-       building->get_type() == Building::TypeStock)) {
-    /* Cancel resources in the out queue and remove gold
-       from map total. */
-    if (building->is_active()) {
-      Inventory *inventory = building->get_inventory();
-
-      inventory->lose_queue();
-
-      add_gold_total(-static_cast<int>(
-        inventory->get_count_of(Resource::TypeGoldBar)));
-      add_gold_total(-static_cast<int>(
-        inventory->get_count_of(Resource::TypeGoldOre)));
-
-      inventories.erase(inventory->get_index());
-    }
-
-    /* Let some serfs escape while the building is burning. */
-    int escaping_serfs = 0;
-    for (Serfs::Iterator i = serfs.begin(); i != serfs.end(); ++i) {
-      Serf *serf = *i;
-      if (serf->building_deleted(building->get_position(),
-                                 escaping_serfs < 12)) {
-        escaping_serfs++;
-      }
-    }
-  } else {
-    building->stop_activity();
-  }
-
-  /* Remove stock from building. */
-  building->remove_stock();
-
-  building->stop_playing_sfx();
-
-  int serf_index = building->get_burning_counter();
-  building->set_burning_counter(2047);
-  building->set_tick(tick);
-
-  player->building_demolished(building);
-
-  if (building->has_serf()) {
-    building->serf_gone();
-
-    if (building->is_done() &&
-        building->get_type() == Building::TypeCastle) {
-      building->set_burning_counter(8191);
-
-      for (Serfs::Iterator i = serfs.begin(); i != serfs.end(); ++i) {
-        Serf *serf = *i;
-        serf->castle_deleted(building->get_position(), true);
-      }
-    }
-
-    if (building->is_done() &&
-        building->is_military()) {
-      while (serf_index != 0) {
-        Serf *serf = serfs[serf_index];
-        serf_index = serf->get_next();
-
-        serf->castle_deleted(building->get_position(), false);
-      }
-    } else {
-      Serf *serf = serfs[serf_index];
-      if (serf->get_type() == Serf::TypeTransporterInventory) {
-        serf->set_type(Serf::TypeTransporter);
-      }
-
-      serf->castle_deleted(building->get_position(), false);
-    }
-  }
-
-  MapPos flag_pos = map->move_down_right(pos);
-  if (map->paths(flag_pos) == 0 &&
-      map->get_obj(flag_pos) == Map::ObjectFlag) {
-    demolish_flag(flag_pos, player);
-  }
-
-  return true;
+  return false;
 }
 
 /* Demolish building at pos. */
@@ -1736,43 +1635,6 @@ Game::demolish_building(MapPos pos, Player *player) {
   if (building->is_burning()) return false;
 
   return demolish_building_(pos);
-}
-
-/* Calculate the flag state of military buildings (distance to enemy). */
-void
-Game::calculate_military_flag_state(Building *building) {
-  const int border_check_offsets[] = {
-    31,  32,  33,  34,  35,  36,  37,  38,  39,  40,  41,  42,
-    100, 101, 102, 103, 104, 105, 106, 107, 108,
-    259, 260, 261, 262, 263, 264,
-    241, 242, 243, 244, 245, 246,
-    217, 218, 219, 220, 221, 222, 223, 224, 225, 226, 227, 228,
-    247, 248, 249, 250, 251, 252,
-    -1,
-
-    265, 266, 267, 268, 269, 270, 271, 272, 273, 274, 275, 276,
-    -1,
-
-    277, 278, 279, 280, 281, 282, 283, 284, 285, 286, 287, 288,
-    289, 290, 291, 292, 293, 294,
-    -1
-  };
-
-  int f, k;
-  for (f = 3, k = 0; f > 0; f--) {
-    int offset;
-    while ((offset = border_check_offsets[k++]) >= 0) {
-      MapPos check_pos = map->pos_add_spirally(building->get_position(),
-                                                  offset);
-      if (map->has_owner(check_pos) &&
-          map->get_owner(check_pos) != building->get_owner()) {
-        goto break_loops;
-      }
-    }
-  }
-
-break_loops:
-  building->set_state(f);
 }
 
 /* Map pos is lost to the owner, demolish everything. */
@@ -1814,8 +1676,7 @@ Game::surrender_land(MapPos pos) {
 /* Initialize land ownership for whole map. */
 void
 Game::init_land_ownership() {
-  for (Buildings::Iterator i = buildings.begin(); i != buildings.end(); ++i) {
-    Building *building = *i;
+  for (Building *building : buildings) {
     if (building->is_military()) {
       update_land_ownership(building->get_position());
     }
@@ -1833,8 +1694,8 @@ Game::update_land_ownership(MapPos init_pos) {
   int calculate_radius = influence_radius;
   int calculate_diameter = 1 + 2*calculate_radius;
 
-  int temp_arr_size = calculate_diameter * calculate_diameter *
-    GAME_MAX_PLAYER_COUNT;
+  size_t temp_arr_size = calculate_diameter * calculate_diameter *
+                         players.size();
   std::unique_ptr<int[]> temp_arr =
     std::unique_ptr<int[]>(new int[temp_arr_size]());
 
@@ -1876,7 +1737,7 @@ Game::update_land_ownership(MapPos init_pos) {
           map->get_obj(pos) <= Map::ObjectCastle &&
           map->has_path(pos,
                    DirectionDownRight)) {  // TODO(_): Why wouldn't this be set?
-        Building *building = buildings[map->get_obj_index(pos)];
+        Building *building = get_building_at_pos(pos);
         int mil_type = -1;
 
         if (building->get_type() == Building::TypeCastle) {
@@ -1891,11 +1752,11 @@ Game::update_land_ownership(MapPos init_pos) {
           }
         }
 
-        if (mil_type >= 0 &&
-            !building->is_burning()) {
+        if (mil_type >= 0 && !building->is_burning()) {
           const int *influence = military_influence + 10*mil_type;
           const int *closeness = map_closeness +
-            influence_diameter*std::max(-i, 0) + std::max(-j, 0);
+                                 influence_diameter*std::max(-i, 0) +
+                                 std::max(-j, 0);
           int *arr = temp_arr.get() +
             (building->get_owner() * calculate_diameter*calculate_diameter) +
             calculate_diameter * std::max(i, 0) + std::max(j, 0);
@@ -1903,8 +1764,11 @@ Game::update_land_ownership(MapPos init_pos) {
           for (int k = 0; k < influence_diameter - abs(i); k++) {
             for (int l = 0; l < influence_diameter - abs(j); l++) {
               int inf = influence[*closeness];
-              if (inf < 0) *arr = 128;
-              else if (*arr < 128) *arr = std::min(*arr + inf, 127);
+              if (inf < 0) {
+                *arr = 128;
+              } else if (*arr < 128) {
+                *arr = std::min(*arr + inf, 127);
+              }
 
               closeness += 1;
               arr += 1;
@@ -1921,15 +1785,14 @@ Game::update_land_ownership(MapPos init_pos) {
   for (int i = -calculate_radius; i <= calculate_radius; i++) {
     for (int j = -calculate_radius; j <= calculate_radius; j++) {
       int max_val = 0;
-      int player = -1;
-      for (Players::Iterator it = players.begin();
-           it != players.end(); ++it) {
+      int player_index = -1;
+      for (Player *player : players) {
         const int *arr = temp_arr.get() +
-          (*it)->get_index()*calculate_diameter*calculate_diameter +
+          player->get_index()*calculate_diameter*calculate_diameter +
           calculate_diameter*(i+calculate_radius) + (j+calculate_radius);
         if (*arr > max_val) {
           max_val = *arr;
-          player = (*it)->get_index();
+          player_index = player->get_index();
         }
       }
 
@@ -1937,15 +1800,15 @@ Game::update_land_ownership(MapPos init_pos) {
       int old_player = -1;
       if (map->has_owner(pos)) old_player = map->get_owner(pos);
 
-      if (old_player >= 0 && player != old_player) {
+      if (old_player >= 0 && player_index != old_player) {
         players[old_player]->decrease_land_area();
         surrender_land(pos);
       }
 
-      if (player >= 0) {
-        if (player != old_player) {
-          players[player]->increase_land_area();
-          map->set_owner(pos, player);
+      if (player_index >= 0) {
+        if (player_index != old_player) {
+          players[player_index]->increase_land_area();
+          map->set_owner(pos, player_index);
         }
       } else {
         map->del_owner(pos);
@@ -1963,7 +1826,7 @@ Game::update_land_ownership(MapPos init_pos) {
           map->has_path(pos, DirectionDownRight)) {
         Building *building = buildings[map->get_obj_index(pos)];
         if (building->is_done() && building->is_military()) {
-          calculate_military_flag_state(building);
+          building->update_military_flag_state();
         }
       }
     }
@@ -2167,13 +2030,7 @@ Game::load_mission_map(PGameInfo game_info) {
 
 bool
 Game::load_save_game(const std::string &path) {
-  if (!load_state(path, this)) {
-    return false;
-  }
-
-  init_land_ownership();
-
-  return true;
+  return load_state(path, this);
 }
 
 /* Cancel a resource being transported to destination. This
@@ -2259,6 +2116,11 @@ Game::create_inventory(int index) {
   } else {
     return inventories.get_or_insert(index);
   }
+}
+
+void
+Game::delete_inventory(Inventory *inventory) {
+  inventories.erase(inventory->get_index());
 }
 
 Building *
@@ -2537,6 +2399,8 @@ operator >> (SaveReaderBinary &reader, Game &game) {
   game.game_speed = 0;
   game.game_speed_save = DEFAULT_GAME_SPEED;
 
+  game.init_land_ownership();
+
   return reader;
 }
 
@@ -2630,7 +2494,11 @@ Game::load_inventories(SaveReaderBinary *reader, int max_inventory_index) {
 
 Building *
 Game::get_building_at_pos(MapPos pos) {
-  return buildings[map->get_obj_index(pos)];
+  Map::Object map_obj = map->get_obj(pos);
+  if (map_obj >= Map::ObjectSmallBuilding && map_obj <= Map::ObjectCastle) {
+    return buildings[map->get_obj_index(pos)];
+  }
+  return NULL;
 }
 
 Flag *
@@ -2799,6 +2667,8 @@ operator >> (SaveReaderText &reader, Game &game) {
 
   game.game_speed = 0;
   game.game_speed_save = DEFAULT_GAME_SPEED;
+
+  game.init_land_ownership();
 
   return reader;
 }

@@ -362,21 +362,21 @@ class Serf : public GameObject {
  public:
   Serf(Game *game, unsigned int index);
 
-  unsigned int get_player() { return owner; }
+  unsigned int get_player() const { return owner; }
   void set_player(unsigned int player_num) { owner = player_num; }
 
-  Type get_type() { return type; }
+  Type get_type() const { return type; }
   void set_type(Type type);
 
-  bool playing_sfx() { return sound; }
+  bool playing_sfx() const { return sound; }
   void start_playing_sfx() { sound = true; }
   void stop_playing_sfx() { sound = false; }
 
-  State get_state() { return state; }
-  int get_animation() { return animation; }
-  int get_counter() { return counter; }
+  State get_state() const { return state; }
+  int get_animation() const { return animation; }
+  int get_counter() const { return counter; }
 
-  MapPos get_pos() { return pos; }
+  MapPos get_pos() const { return pos; }
 
   int train_knight(int p);
 

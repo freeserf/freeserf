@@ -67,7 +67,6 @@ class VideoSDL : public Video {
 
   SDL_Window *window;
   SDL_Renderer *renderer;
-  SDL_Texture *screen_texture;
   Video::Frame *screen;
   bool fullscreen;
   SDL_Cursor *cursor;

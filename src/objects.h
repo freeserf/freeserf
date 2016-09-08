@@ -95,7 +95,9 @@ class Collection {
       last_object_index++;
     }
 
-    objects.emplace(new_index, T(game, new_index));
+    objects.emplace(std::piecewise_construct,
+                    std::forward_as_tuple(new_index),
+                    std::forward_as_tuple(game, new_index));
 
     return &objects.at(new_index);
   }
@@ -108,7 +110,9 @@ class Collection {
   T*
   get_or_insert(unsigned int index) {
     if (!exists(index)) {
-      objects.emplace(index, T(game, index));
+      objects.emplace(std::piecewise_construct,
+                      std::forward_as_tuple(index),
+                      std::forward_as_tuple(game, index));
 
       std::set<unsigned int>::iterator i = free_object_indexes.find(index);
       if (i != free_object_indexes.end()) {

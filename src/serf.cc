@@ -789,12 +789,7 @@ Serf::set_lost_state() {
     } else if (s.walking.res == -1) {
       Flag *flag = game->get_flag(s.walking.dest);
       Building *building = flag->get_building();
-
-      if (building->serf_requested()) {
-        building->serf_request_failed();
-      } else if (!building->has_inventory()) {
-        building->decrease_requested_for_stock(0);
-      }
+      building->requested_serf_lost();
     }
 
     set_state(StateLost);
@@ -1123,9 +1118,7 @@ Serf::handle_serf_walking_state_dest_reached() {
   if (s.walking.res < 0) {
     Building *building =
                   game->get_building_at_pos(game->get_map()->move_up_left(pos));
-    building->serf_arrive();
-    if (building->serf_requested()) building->set_main_serf(get_index());
-    building->serf_request_complete();
+    building->requested_serf_reached(this);
 
     if (game->get_map()->has_serf(game->get_map()->move_up_left(pos))) {
       animation = 85;
@@ -1283,9 +1276,7 @@ Serf::handle_serf_walking_state() {
 
       Flag *flag = game->get_flag(s.walking.dest);
       Building *building = flag->get_building();
-
-      building->serf_request_failed();
-      if (!building->has_inventory()) building->decrease_requested_for_stock(0);
+      building->requested_serf_lost();
     } else if (s.walking.res != 6) {
       Flag *flag = game->get_flag(s.walking.dest);
       Direction d = (Direction)s.walking.res;
@@ -1784,8 +1775,8 @@ Serf::handle_serf_entering_building_state() {
             counter = 6000;
 
             /* Prepend to knight list */
-            s.defending.next_knight = building->get_main_serf();
-            building->set_main_serf(get_index());
+            s.defending.next_knight = building->get_first_knight();
+            building->set_first_knight(get_index());
 
             game->get_player(building->get_owner())->increase_castle_knights();
             return;
@@ -1814,44 +1805,8 @@ Serf::handle_serf_entering_building_state() {
           counter = 6000;
 
           /* Prepend to knight list */
-          s.defending.next_knight = building->get_main_serf();
-          building->set_main_serf(get_index());
-
-          /* Test whether building is already occupied by knights */
-          if (!building->is_active()) {
-            building->start_activity();
-
-            int mil_type = -1;
-            int max_gold = -1;
-            switch (building->get_type()) {
-            case Building::TypeHut:
-              mil_type = 0;
-              max_gold = 2;
-              break;
-            case Building::TypeTower:
-              mil_type = 1;
-              max_gold = 4;
-              break;
-            case Building::TypeFortress:
-              mil_type = 2;
-              max_gold = 8;
-              break;
-            default:
-              NOT_REACHED();
-              break;
-            }
-
-            game->get_player(building->get_owner())->add_notification(
-                                              Message::TypeKnightOccupied,
-                                                       building->get_position(),
-                                                                   mil_type);
-
-            Flag *flag = game->get_flag_at_pos(
-                    game->get_map()->move_down_right(building->get_position()));
-            flag->clear_flags();
-            building->stock_init(1, Resource::TypeGoldBar, max_gold);
-            game->building_captured(building);
-          }
+          s.defending.next_knight = building->get_first_knight();
+          building->set_first_knight(get_index());
         }
       }
       break;
@@ -2074,8 +2029,6 @@ Serf::handle_serf_digging_state() {
         Building *building =
                         game->get_building(game->get_map()->get_obj_index(pos));
         building->done_leveling();
-        building->serf_gone();
-        building->set_main_serf(0);
         set_state(StateReadyToLeave);
         s.leaving_building.dest = 0;
         s.leaving_building.field_B = -2;
@@ -2098,15 +2051,6 @@ Serf::handle_serf_building_state() {
     0, 0, 0, 0, 0, 0, 0, 0
   };
 
-  const int construction_progress[] = {
-    0, 0, 4096, 4096, 4096, 4096, 4096, 2048,
-    4096, 4096, 2048, 1366, 2048, 1366, 2048, 1366,
-    2048, 1366, 4096, 4096, 1366, 1024, 4096, 4096,
-    2048, 1366, 4096, 2048, 2048, 1366, 2048, 2048,
-    4096, 2048, 2048, 1366, 2048, 1366, 2048, 1024,
-    4096, 2048, 2048, 1366, 1024, 683, 2048, 1366
-  };
-
   uint16_t delta = game->get_tick() - tick;
   tick = game->get_tick();
   counter -= delta;
@@ -2114,38 +2058,8 @@ Serf::handle_serf_building_state() {
   while (counter < 0) {
     Building *building = game->get_building(s.building.bld_index);
     if (s.building.mode < 0) {
-      Building::Type type = building->get_type();
-      int frame_finished = !!BIT_TEST(building->get_progress(), 15);
-      building->increase_progress(construction_progress[2*type+frame_finished]);
-
-      if (building->get_progress() > 0xffff) {
-        building->drop_progress();
-        building->serf_gone();
-        building->set_main_serf(0);
-        building->done_build(); /* Building finished */
-
-        switch (type) {
-          case Building::TypeHut:
-          case Building::TypeTower:
-          case Building::TypeFortress:
-            game->calculate_military_flag_state(building);
-            break;
-          default:
-            break;
-        }
-
-        Flag *flag = game->get_flag(building->get_flag_index());
-
-        building->stock_init(0, Resource::TypeNone, 0);
-        building->stock_init(1, Resource::TypeNone, 0);
-        flag->clear_flags();
-
-        /* Update player fields. */
-        Player *player = game->get_player(get_player());
-        player->building_built(building);
-
+      if (building->build_progress()) {
         counter = 0;
-
         set_state(StateFinishedBuilding);
         return;
       }
@@ -2225,18 +2139,14 @@ Serf::handle_serf_building_state() {
 
 void
 Serf::handle_serf_building_castle_state() {
-  int progress_delta = (uint16_t)(game->get_tick() - tick) << 7;
   tick = game->get_tick();
 
   Inventory *inventory = game->get_inventory(s.building_castle.inv_index);
   Building *building = game->get_building(inventory->get_building_index());
-  building->increase_progress(progress_delta);
 
-  if (building->get_progress() >= 0x10000) { /* Finished */
-    set_state(StateWaitForResourceOut);
+  if (building->build_progress()) { /* Finished */
     game->get_map()->set_serf_index(pos, 0);
-    building->done_build(); /* Building finished */
-    building->set_main_serf(0);
+    set_state(StateWaitForResourceOut);
   }
 }
 
@@ -2336,23 +2246,9 @@ Serf::handle_serf_delivering_state() {
                   (Resource::Type)(s.walking.res - 1);  // Offset by one,
                                                         // because 0 means none.
       s.walking.res = 0;
-      Building *building = game->get_building(
-            game->get_map()->get_obj_index(game->get_map()->move_up_left(pos)));
-      if (!building->is_burning()) {
-        if (building->has_inventory()) {
-          Inventory *inventory = building->get_inventory();
-          inventory->push_resource(res);
-        } else {
-          if (res == Resource::TypeFish ||
-              res == Resource::TypeMeat ||
-              res == Resource::TypeBread) {
-            res = Resource::GroupFood;
-          }
-
-          /* Add to building stock */
-          building->requested_resource_delivered(res);
-        }
-      }
+      Building *building =
+                  game->get_building_at_pos(game->get_map()->move_up_left(pos));
+      building->requested_resource_delivered(res);
     }
 
     animation = 4 + 9 - (animation - (3 + 10*9));
@@ -3622,24 +3518,7 @@ Serf::handle_serf_mining_state() {
       break;
     case 9:
       s.mining.substate = 10;
-      building->start_activity();
-
-      if (building->get_progress() == 0x8000) {
-        /* Handle empty mine. */
-        Player *player = game->get_player(get_player());
-        if (player->is_ai()) {
-          /* TODO Burn building. */
-        }
-
-        game->get_player(building->get_owner())->add_notification(
-                                                   Message::TypeMineEmpty,
-                                                       building->get_position(),
-                                building->get_type() - Building::TypeStoneMine);
-      }
-
-      building->increase_mining();
-      if (s.mining.res > 0) building->increase_progress(1);
-
+      building->increase_mining(s.mining.res);
       animation = 128;
       counter = 384; /* TODO counter_from_animation[128] == 383 */
       break;
@@ -3990,11 +3869,10 @@ Serf::handle_serf_pigfarming_state() {
   /* When the serf is present there is also at least one
      pig present and at most eight. */
   const int breeding_prob[] = {
-    6000, 8000, 10000, 11000,
-    12000, 13000, 14000, 0
+    6000, 8000, 10000, 11000, 12000, 13000, 14000, 0
   };
 
-  Building *building = game->get_building(game->get_map()->get_obj_index(pos));
+  Building *building = game->get_building_at_pos(pos);
 
   if (s.pigfarming.mode == 0) {
     if (building->use_resource_in_stock(0)) {
@@ -4096,7 +3974,7 @@ Serf::handle_serf_making_weapon_state() {
        Bit 3 is set if a sword has been made and a
        shield can be made without more resources. */
     /* TODO Use of this bit overlaps with sfx check bit. */
-    if (!building->playing_sfx()) {
+    if (!building->is_playing_sfx()) {
       if (!building->use_resources_in_stocks()) {
         return;
       }
@@ -4122,9 +4000,9 @@ Serf::handle_serf_making_weapon_state() {
         building->stop_activity();
         game->get_map()->set_serf_index(pos, 0);
 
-        Resource::Type res = building->playing_sfx() ? Resource::TypeShield :
-                                                       Resource::TypeSword;
-        if (building->playing_sfx()) {
+        Resource::Type res = building->is_playing_sfx() ? Resource::TypeShield :
+                                                          Resource::TypeSword;
+        if (building->is_playing_sfx()) {
           building->stop_playing_sfx();
         } else {
           building->start_playing_sfx();
@@ -4390,7 +4268,7 @@ Serf::handle_serf_knight_engaging_building_state() {
       if (building->is_done() &&
           building->is_military() &&
           building->get_owner() != get_player() &&
-          building->has_main_serf()) {
+          building->has_knight()) {
         if (building->is_under_attack()) {
           game->get_player(building->get_owner())->add_notification(
                                                  Message::TypeUnderAttack,
@@ -4640,52 +4518,52 @@ Serf::handle_knight_occupy_enemy_building() {
   tick = game->get_tick();
   counter -= delta;
 
-  while (counter < 0) {
-    MapPos pos_ = game->get_map()->move_up_left(pos);
-    if (game->get_map()->get_obj(pos_) >= Map::ObjectSmallBuilding &&
-        game->get_map()->get_obj(pos_) <= Map::ObjectCastle) {
-      Building *building =
-                       game->get_building(game->get_map()->get_obj_index(pos_));
-      if (!building->is_burning() && building->is_military()) {
-        if (building->get_owner() == get_player()) {
-          /* Enter building if there is space. */
-          if (building->get_type() != Building::TypeCastle) {
-            if (building->is_enough_place_for_knight()) {
-              /* Enter building */
-              enter_building(-1, 0);
-              building->knight_occupy();
-              return;
-            }
-          } else {
-            enter_building(-2, 0);
-            return;
-          }
-        } else if (!building->has_main_serf()) {
-          /* Occupy the building. */
-          game->occupy_enemy_building(building, get_player());
+  if (counter >= 0) {
+    return;
+  }
 
-          if (building->get_type() == Building::TypeCastle) {
-            counter = 0;
-          } else {
+  Building *building =
+                  game->get_building_at_pos(game->get_map()->move_up_left(pos));
+  if (building != NULL) {
+    if (!building->is_burning() && building->is_military()) {
+      if (building->get_owner() == owner) {
+        /* Enter building if there is space. */
+        if (building->get_type() == Building::TypeCastle) {
+          enter_building(-2, 0);
+          return;
+        } else {
+          if (building->is_enough_place_for_knight()) {
             /* Enter building */
             enter_building(-1, 0);
             building->knight_occupy();
+            return;
           }
-          return;
-        } else {
-          set_state(StateKnightEngagingBuilding);
-          animation = 167;
-          counter = 191;
-          return;
         }
+      } else if (!building->has_knight()) {
+        /* Occupy the building. */
+        game->occupy_enemy_building(building, get_player());
+
+        if (building->get_type() == Building::TypeCastle) {
+          counter = 0;
+        } else {
+          /* Enter building */
+          enter_building(-1, 0);
+          building->knight_occupy();
+        }
+        return;
+      } else {
+        set_state(StateKnightEngagingBuilding);
+        animation = 167;
+        counter = 191;
+        return;
       }
     }
-
-    /* Something is wrong. */
-    set_state(StateLost);
-    s.lost.field_B = 0;
-    counter = 0;
   }
+
+  /* Something is wrong. */
+  set_state(StateLost);
+  s.lost.field_B = 0;
+  counter = 0;
 }
 
 void
@@ -4724,8 +4602,8 @@ Serf::handle_state_knight_free_walking() {
               return;
             }
           } else if (other->state == StateWalking &&
-               other->get_type() >= TypeKnight0 &&
-               other->get_type() <= TypeKnight4) {
+                     other->get_type() >= TypeKnight0 &&
+                     other->get_type() <= TypeKnight4) {
             pos_ = game->get_map()->move_left(pos_);
             if (can_pass_map_pos(pos_)) {
               int dist_col = s.free_walking.dist1;

@@ -21,9 +21,8 @@
 
 #include "src/freeserf.h"
 
-#include <fstream>
-#include <iostream>
 #include <string>
+#include <cstdint>
 
 #ifdef HAVE_CONFIG_H
 # include <config.h>
@@ -31,10 +30,6 @@
 
 #ifdef HAVE_GETOPT_H
 # include <getopt.h>
-#endif
-
-#ifdef HAVE_STDINT_H
-# include <stdint.h>
 #endif
 
 #include "src/log.h"
