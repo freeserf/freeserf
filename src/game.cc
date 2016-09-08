@@ -1676,8 +1676,7 @@ Game::surrender_land(MapPos pos) {
 /* Initialize land ownership for whole map. */
 void
 Game::init_land_ownership() {
-  for (Buildings::Iterator i = buildings.begin(); i != buildings.end(); ++i) {
-    Building *building = *i;
+  for (Building *building : buildings) {
     if (building->is_military()) {
       update_land_ownership(building->get_position());
     }
@@ -1695,8 +1694,8 @@ Game::update_land_ownership(MapPos init_pos) {
   int calculate_radius = influence_radius;
   int calculate_diameter = 1 + 2*calculate_radius;
 
-  int temp_arr_size = calculate_diameter * calculate_diameter *
-    GAME_MAX_PLAYER_COUNT;
+  size_t temp_arr_size = calculate_diameter * calculate_diameter *
+                         players.size();
   std::unique_ptr<int[]> temp_arr =
     std::unique_ptr<int[]>(new int[temp_arr_size]());
 
@@ -1738,7 +1737,7 @@ Game::update_land_ownership(MapPos init_pos) {
           map->get_obj(pos) <= Map::ObjectCastle &&
           map->has_path(pos,
                    DirectionDownRight)) {  // TODO(_): Why wouldn't this be set?
-        Building *building = buildings[map->get_obj_index(pos)];
+        Building *building = get_building_at_pos(pos);
         int mil_type = -1;
 
         if (building->get_type() == Building::TypeCastle) {
@@ -1753,11 +1752,11 @@ Game::update_land_ownership(MapPos init_pos) {
           }
         }
 
-        if (mil_type >= 0 &&
-            !building->is_burning()) {
+        if (mil_type >= 0 && !building->is_burning()) {
           const int *influence = military_influence + 10*mil_type;
           const int *closeness = map_closeness +
-            influence_diameter*std::max(-i, 0) + std::max(-j, 0);
+                                 influence_diameter*std::max(-i, 0) +
+                                 std::max(-j, 0);
           int *arr = temp_arr.get() +
             (building->get_owner() * calculate_diameter*calculate_diameter) +
             calculate_diameter * std::max(i, 0) + std::max(j, 0);
@@ -1765,8 +1764,11 @@ Game::update_land_ownership(MapPos init_pos) {
           for (int k = 0; k < influence_diameter - abs(i); k++) {
             for (int l = 0; l < influence_diameter - abs(j); l++) {
               int inf = influence[*closeness];
-              if (inf < 0) *arr = 128;
-              else if (*arr < 128) *arr = std::min(*arr + inf, 127);
+              if (inf < 0) {
+                *arr = 128;
+              } else if (*arr < 128) {
+                *arr = std::min(*arr + inf, 127);
+              }
 
               closeness += 1;
               arr += 1;
@@ -1783,15 +1785,14 @@ Game::update_land_ownership(MapPos init_pos) {
   for (int i = -calculate_radius; i <= calculate_radius; i++) {
     for (int j = -calculate_radius; j <= calculate_radius; j++) {
       int max_val = 0;
-      int player = -1;
-      for (Players::Iterator it = players.begin();
-           it != players.end(); ++it) {
+      int player_index = -1;
+      for (Player *player : players) {
         const int *arr = temp_arr.get() +
-          (*it)->get_index()*calculate_diameter*calculate_diameter +
+          player->get_index()*calculate_diameter*calculate_diameter +
           calculate_diameter*(i+calculate_radius) + (j+calculate_radius);
         if (*arr > max_val) {
           max_val = *arr;
-          player = (*it)->get_index();
+          player_index = player->get_index();
         }
       }
 
@@ -1799,15 +1800,15 @@ Game::update_land_ownership(MapPos init_pos) {
       int old_player = -1;
       if (map->has_owner(pos)) old_player = map->get_owner(pos);
 
-      if (old_player >= 0 && player != old_player) {
+      if (old_player >= 0 && player_index != old_player) {
         players[old_player]->decrease_land_area();
         surrender_land(pos);
       }
 
-      if (player >= 0) {
-        if (player != old_player) {
-          players[player]->increase_land_area();
-          map->set_owner(pos, player);
+      if (player_index >= 0) {
+        if (player_index != old_player) {
+          players[player_index]->increase_land_area();
+          map->set_owner(pos, player_index);
         }
       } else {
         map->del_owner(pos);
@@ -2029,13 +2030,7 @@ Game::load_mission_map(PGameInfo game_info) {
 
 bool
 Game::load_save_game(const std::string &path) {
-  if (!load_state(path, this)) {
-    return false;
-  }
-
-  init_land_ownership();
-
-  return true;
+  return load_state(path, this);
 }
 
 /* Cancel a resource being transported to destination. This
@@ -2404,6 +2399,8 @@ operator >> (SaveReaderBinary &reader, Game &game) {
   game.game_speed = 0;
   game.game_speed_save = DEFAULT_GAME_SPEED;
 
+  game.init_land_ownership();
+
   return reader;
 }
 
@@ -2670,6 +2667,8 @@ operator >> (SaveReaderText &reader, Game &game) {
 
   game.game_speed = 0;
   game.game_speed_save = DEFAULT_GAME_SPEED;
+
+  game.init_land_ownership();
 
   return reader;
 }

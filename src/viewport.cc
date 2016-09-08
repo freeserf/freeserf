@@ -25,6 +25,7 @@
 #include <algorithm>
 #include <memory>
 #include <utility>
+#include <sstream>
 
 #include "src/misc.h"
 #include "src/game.h"
@@ -2181,11 +2182,20 @@ Viewport::draw_map_cursor() {
     draw_map_cursor_possible_build();
   }
 
-  draw_map_cursor_sprite(interface->get_map_cursor_pos(),
-                         interface->get_map_cursor_sprite(0));
+  MapPos pos = interface->get_map_cursor_pos();
+
+/*
+  int x = map->pos_col(pos);
+  int y = map->pos_row(pos);
+  std::stringstream s;
+  s << x << ":" << y;
+  frame->draw_string(0, 0, 75, 0, s.str());
+*/
+
+  draw_map_cursor_sprite(pos, interface->get_map_cursor_sprite(0));
 
   for (Direction d : cycle_directions_cw()) {
-    draw_map_cursor_sprite(map->move(interface->get_map_cursor_pos(), d),
+    draw_map_cursor_sprite(map->move(pos, d),
                            interface->get_map_cursor_sprite(1+d));
   }
 }
