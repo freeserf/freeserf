@@ -399,12 +399,12 @@ Interface::set_game(Game *game) {
 }
 
 void
-Interface::set_player(unsigned int player) {
+Interface::set_player(unsigned int player_index) {
   if (game == NULL) {
     return;
   }
 
-  if ((this->player != NULL) && (player == this->player->get_index())) {
+  if ((player != NULL) && (player_index == player->get_index())) {
     return;
   }
 
@@ -414,21 +414,18 @@ Interface::set_player(unsigned int player) {
     panel = NULL;
   }
 
-  this->player = game->get_player(player);
+  player = game->get_player(player_index);
 
   /* Move viewport to initial position */
   MapPos init_pos = game->get_map()->pos(0, 0);
 
-  if (this->player != NULL) {
+  if (player != NULL) {
     panel = new PanelBar(this);
     panel->set_displayed(true);
     add_float(panel, 0, 0);
     layout();
 
-    Game::ListBuildings buildings = game->get_player_buildings(this->player);
-    for (Game::ListBuildings::iterator it = buildings.begin();
-         it != buildings.end(); ++it) {
-      Building *building = *it;
+    for (Building *building : game->get_player_buildings(player)) {
       if (building->get_type() == Building::TypeCastle) {
         init_pos = building->get_position();
       }
@@ -549,10 +546,7 @@ Interface::remove_road_segment() {
 int
 Interface::extend_road(const Road &road) {
   Road old_road = building_road;
-  Road::Dirs dirs = road.get_dirs();
-  Road::Dirs::const_iterator it = dirs.begin();
-  for (; it != dirs.end(); ++it) {
-    Direction dir = *it;
+  for (const Direction dir : road.get_dirs()) {
     int r = build_road_segment(dir);
     if (r < 0) {
       building_road = old_road;

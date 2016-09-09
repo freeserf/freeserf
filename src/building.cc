@@ -425,9 +425,7 @@ Building::burnup() {
 
     /* Let some serfs escape while the building is burning. */
     unsigned int escaping_serfs = 0;
-    Game::ListSerfs serfs = game->get_serfs_at_pos(pos);
-    for (Game::ListSerfs::iterator i = serfs.begin(); i != serfs.end(); ++i) {
-      Serf *serf = *i;
+    for (Serf *serf : game->get_serfs_at_pos(pos)) {
       if (serf->building_deleted(pos, escaping_serfs < 12)) {
         escaping_serfs++;
       }
@@ -454,9 +452,7 @@ Building::burnup() {
     if (!constructing && (type == TypeCastle)) {
       set_burning_counter(8191);
 
-      Game::ListSerfs serfs = game->get_serfs_at_pos(pos);
-      for (Game::ListSerfs::iterator i = serfs.begin(); i != serfs.end(); ++i) {
-        Serf *serf = *i;
+      for (Serf *serf : game->get_serfs_at_pos(pos)) {
         serf->castle_deleted(pos, true);
       }
     }

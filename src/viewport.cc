@@ -564,11 +564,7 @@ Viewport::draw_paths_and_borders() {
   if (interface->is_building_road()) {
     Road road = interface->get_building_road();
     MapPos pos = road.get_source();
-    Road::Dirs dirs = road.get_dirs();
-    Road::Dirs::const_iterator it = dirs.begin();
-    for (; it != dirs.end(); ++it) {
-      Direction dir = *it;
-
+    for (Direction dir : road.get_dirs()) {
       MapPos draw_pos = pos;
       Direction draw_dir = dir;
       if (draw_dir > DirectionDown) {

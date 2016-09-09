@@ -338,10 +338,7 @@ int
 Player::promote_serfs_to_knights(int number) {
   int promoted = 0;
 
-  Game::ListSerfs serfs = game->get_player_serfs(this);
-
-  for (Game::ListSerfs::iterator i = serfs.begin(); i != serfs.end(); ++i) {
-    Serf *serf = *i;
+  for (Serf *serf : game->get_player_serfs(this)) {
     if (serf->get_state() == Serf::StateIdleInStock &&
         serf->get_type() == Serf::TypeGeneric) {
       Inventory *inv = game->get_inventory(serf->get_idle_in_stock_inv_index());
@@ -646,9 +643,7 @@ Player::spawn_serf(Serf **serf, Inventory **inventory, bool want_knight) {
   }
 
   Inventory *inv = NULL;
-  for (Game::ListInventories::iterator i = inventories.begin();
-       i != inventories.end(); ++i) {
-    Inventory *loop_inv = *i;
+  for (Inventory *loop_inv : inventories) {
     if (loop_inv->get_serf_mode() == Inventory::ModeIn) {
       if (want_knight && (loop_inv->get_count_of(Resource::TypeSword) == 0 ||
                           loop_inv->get_count_of(Resource::TypeShield) == 0)) {
@@ -873,18 +868,12 @@ Player::update_knight_morale() {
   unsigned int military_gold = 0;
 
   /* Sum gold collected in inventories */
-  Game::ListInventories inventories = game->get_player_inventories(this);
-  for (Game::ListInventories::iterator i = inventories.begin();
-       i != inventories.end(); ++i) {
-    Inventory *inventory = *i;
+  for (Inventory *inventory : game->get_player_inventories(this)) {
     inventory_gold += inventory->get_count_of(Resource::TypeGoldBar);
   }
 
   /* Sum gold deposited in military buildings */
-  Game::ListBuildings buildings = game->get_player_buildings(this);
-  for (Game::ListBuildings::iterator i = buildings.begin();
-       i != buildings.end(); ++i) {
-    Building *building = *i;
+  for (Building *building : game->get_player_buildings(this)) {
     military_gold += building->military_gold_count();
   }
 
@@ -956,11 +945,8 @@ resource_map_t
 Player::get_stats_resources() {
   resource_map_t resources;
 
-  Game::ListInventories invs = game->get_player_inventories(this);
-
   /* Sum up resources of all inventories. */
-  for (Game::ListInventories::iterator i = invs.begin(); i != invs.end(); ++i) {
-    Inventory *inventory = *i;
+  for (Inventory *inventory : game->get_player_inventories(this)) {
     for (int j = 0; j < 26; j++) {
       resources[(Resource::Type)j] +=
                                      inventory->get_count_of((Resource::Type)j);
@@ -974,11 +960,8 @@ Serf::SerfMap
 Player::get_stats_serfs_idle() {
   Serf::SerfMap res;
 
-  Game::ListSerfs serfs = game->get_player_serfs(this);
-
   /* Sum up all existing serfs. */
-  for (Game::ListSerfs::iterator i = serfs.begin(); i != serfs.end(); ++i) {
-    Serf *serf = *i;
+  for (Serf *serf : game->get_player_serfs(this)) {
     if (serf->get_state() == Serf::StateIdleInStock) {
       res[serf->get_type()] += 1;
     }
@@ -991,11 +974,8 @@ Serf::SerfMap
 Player::get_stats_serfs_potential() {
   Serf::SerfMap res;
 
-  Game::ListInventories invs = game->get_player_inventories(this);
-
   /* Sum up potential serfs of all inventories. */
-  for (Game::ListInventories::iterator i = invs.begin(); i != invs.end(); ++i) {
-    Inventory *inventory = *i;
+  for (Inventory *inventory : game->get_player_inventories(this)) {
     if (inventory->free_serf_count() > 0) {
       for (int i = 0; i < 27; i++) {
         res[(Serf::Type)i] += inventory->serf_potential_count((Serf::Type)i);
