@@ -50,11 +50,9 @@ EventLoop::notify_handlers(Event *event) {
   bool result = false;
 
   Handlers handlers = event_handlers;
-  for (Handlers::iterator it = handlers.begin();
-       it != handlers.end(); ++it) {
-    Handler *handler = *it;
+  for (Handler *handler : handlers) {
     if (std::find(removed.begin(), removed.end(), handler) == removed.end()) {
-      result |= (*it)->handle_event(event);
+      result |= handler->handle_event(event);
     }
   }
 

@@ -64,26 +64,25 @@ GuiObject::delete_frame() {
 }
 
 void
-GuiObject::draw(Frame *frame) {
+GuiObject::draw(Frame *_frame) {
   if (!displayed) {
     return;
   }
 
-  if (this->frame == NULL) {
-    this->frame = Graphics::get_instance()->create_frame(width, height);
+  if (frame == NULL) {
+    frame = Graphics::get_instance()->create_frame(width, height);
   }
 
   if (redraw) {
     internal_draw();
 
-    float_list_t::iterator fl = floats.begin();
-    for ( ; fl != floats.end() ; ++fl) {
-      (*fl)->draw(this->frame);
+    for (GuiObject *float_window : floats) {
+      float_window->draw(frame);
     }
 
     redraw = false;
   }
-  frame->draw_frame(x, y, 0, 0, this->frame, width, height);
+  _frame->draw_frame(x, y, 0, 0, frame, width, height);
 }
 
 bool

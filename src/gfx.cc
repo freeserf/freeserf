@@ -381,13 +381,13 @@ Frame::draw_char_sprite(int x, int y, unsigned char c, unsigned char color,
 void
 Frame::draw_string(int x, int y, unsigned char color, int shadow,
                    const std::string &str) {
-  for (std::string::const_iterator it = str.begin(); it != str.end(); ++it) {
+  for (char c : str) {
 /*
     if (string_bg) {
       fill_rect(x, y, 8, 8, 0);
     }
 */
-    draw_char_sprite(x, y, *it, color, shadow);
+    draw_char_sprite(x, y, c, color, shadow);
 
     x += 8;
   }

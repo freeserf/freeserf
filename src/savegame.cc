@@ -79,14 +79,14 @@ class SaveWriterTextSection : public SaveWriterText {
   bool save(std::ostream *os) {
     *os << "[" << name << " " << number << "]\n";
 
-    for (values_t::iterator i = values.begin(); i != values.end(); ++i) {
-      *os << i->first << "=" << i->second.get_value() << "\n";
+    for (auto value : values) {
+      *os << value.first << "=" << value.second.get_value() << "\n";
     }
 
     *os << "\n";
 
-    for (sections_t::iterator i = sections.begin(); i != sections.end(); ++i) {
-      (*i)->save(os);
+    for (SaveWriterTextSection *writer : sections) {
+      writer->save(os);
     }
 
     return true;
@@ -212,10 +212,9 @@ class SaveReaderTextFile : public SaveReaderText {
   value(const std::string &name) const throw(ExceptionFreeserf) {
     reader_sections_t result;
 
-    reader_sections_t::const_iterator it = sections.begin();
-    for (; it != sections.end(); ++it) {
-      if ((*it)->get_name() == "main") {
-        return (*it)->value(name);
+    for (const SaveReaderTextSection *reader : sections) {
+      if (reader->get_name() == "main") {
+        return reader->value(name);
       }
     }
 
@@ -227,10 +226,9 @@ class SaveReaderTextFile : public SaveReaderText {
   virtual Readers get_sections(const std::string &name) {
     Readers result;
 
-    reader_sections_t::const_iterator it = sections.begin();
-    for (; it != sections.end(); ++it) {
-      if ((*it)->get_name() == name) {
-        result.push_back(*it);
+    for (SaveReaderTextSection *reader : sections) {
+      if (reader->get_name() == name) {
+        result.push_back(reader);
       }
     }
 

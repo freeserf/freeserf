@@ -120,10 +120,7 @@ Flag::del_path(Direction dir) {
   if (serf_requested(dir)) {
     cancel_serf_request(dir);
     unsigned int dest = game->get_map()->get_obj_index(pos);
-    Game::ListSerfs serfs = game->get_serfs_related_to(dest, dir);
-
-    for (Game::ListSerfs::iterator i = serfs.begin(); i != serfs.end(); ++i) {
-      Serf *serf = *i;
+    for (Serf *serf : game->get_serfs_related_to(dest, dir)) {
       serf->path_deleted(dest, dir);
     }
   }
@@ -641,11 +638,8 @@ Flag::can_demolish() const {
 
 /* Find a transporter at pos and change it to state. */
 static int
-change_transporter_state_at_pos(Game *game, MapPos pos,
-                                Serf::State state) {
-  Game::ListSerfs serfs = game->get_serfs_at_pos(pos);
-  for (Game::ListSerfs::iterator i = serfs.begin(); i != serfs.end(); ++i) {
-    Serf *serf = *i;
+change_transporter_state_at_pos(Game *game, MapPos pos, Serf::State state) {
+  for (Serf *serf : game->get_serfs_at_pos(pos)) {
     if (serf->change_transporter_state_at_pos(pos, state)) {
       return serf->get_index();
     }
@@ -819,8 +813,7 @@ Flag::merge_paths(MapPos pos) {
   Game::ListSerfs serfs2 = game->get_serfs_related_to(flag_2->get_index(),
                                                       dir_2);
   serfs.insert(serfs.end(), serfs2.begin(), serfs2.end());
-  for (Game::ListSerfs::iterator i = serfs.begin(); i != serfs.end(); ++i) {
-    Serf *serf = *i;
+  for (Serf *serf : serfs) {
     serf->path_merged2(flag_1->get_index(), dir_1,
                        flag_2->get_index(), dir_2);
   }

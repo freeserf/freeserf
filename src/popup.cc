@@ -1143,11 +1143,7 @@ PopupBox::draw_gauge_full(int x, int y, unsigned int value,
 static void
 calculate_gauge_values(Player *player,
                        unsigned int values[24][BUILDING_MAX_STOCK][2]) {
-  Game::ListBuildings buildings =
-                               player->get_game()->get_player_buildings(player);
-  for (Game::ListBuildings::iterator i = buildings.begin();
-       i != buildings.end(); ++i) {
-    Building *building = *i;
+  for (Building *building : player->get_game()->get_player_buildings(player)) {
     if (building->is_burning() || !building->has_serf()) {
       continue;
     }
@@ -2223,12 +2219,7 @@ PopupBox::draw_castle_serf_box() {
   }
 
   Inventory *inventory = building->get_inventory();
-  Game::ListSerfs inv_srfs =
-                       interface->get_game()->get_serfs_in_inventory(inventory);
-
-  for (Game::ListSerfs::iterator i = inv_srfs.begin();
-       i != inv_srfs.end(); ++i) {
-    Serf *serf = *i;
+  for (Serf *serf : interface->get_game()->get_serfs_in_inventory(inventory)) {
     serfs[serf->get_type()] += 1;
   }
 
@@ -2365,11 +2356,7 @@ PopupBox::draw_sett_8_box() {
   }
 
   size_t convertible_to_knights = 0;
-  Game::ListInventories inventories =
-                          interface->get_game()->get_player_inventories(player);
-  for (Game::ListInventories::iterator i = inventories.begin();
-       i != inventories.end(); ++i) {
-    Inventory *inv = *i;
+  for (Inventory *inv : interface->get_game()->get_player_inventories(player)) {
     size_t c = std::min(inv->get_count_of(Resource::TypeSword),
                         inv->get_count_of(Resource::TypeShield));
     convertible_to_knights += std::max((size_t)0,

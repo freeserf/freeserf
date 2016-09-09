@@ -135,9 +135,8 @@ pathfinder_map(Map *map, MapPos start, MapPos end) {
 
       /* Check if neighbour is in closed list. */
       bool in_closed = false;
-      for (std::list<PSearchNode>::iterator it = closed.begin();
-           it != closed.end(); ++it) {
-        if ((*it)->pos == new_pos) {
+      for (PSearchNode closed_node : closed) {
+        if (closed_node->pos == new_pos) {
           in_closed = true;
           break;
         }

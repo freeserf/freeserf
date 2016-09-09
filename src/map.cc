@@ -936,9 +936,8 @@ operator << (SaveWriterText &writer, Map &map) {
 MapPos
 Road::get_end(Map *map) const {
   MapPos result = begin;
-  Dirs::const_iterator it = dirs.begin();
-  for (; it != dirs.end(); ++it) {
-    result = map->move(result, *it);
+  for (const Direction dir : dirs) {
+    result = map->move(result, dir);
   }
   return result;
 }
@@ -953,14 +952,12 @@ Road::is_valid_extension(Map *map, Direction dir) const {
   MapPos extended_end = map->move(get_end(map), dir);
   MapPos pos = begin;
   bool valid = true;
-  Dirs::const_iterator it = dirs.begin();
-  for (size_t i = dirs.size(); i > 0; i--) {
-    pos = map->move(pos, *it);
+  for (const Direction _dir : dirs) {
+    pos = map->move(pos, _dir);
     if (pos == extended_end) {
       valid = false;
       break;
     }
-    it++;
   }
 
   return valid;
