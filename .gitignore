@@ -37,6 +37,7 @@ src/version-vcs.h
 stamp-h1
 compile
 src/.dirstamp
+data/
 
 # test related
 tests/test_map
@@ -67,3 +68,6 @@ windows/x64
 *.sdf
 *.lastbuildstate
 *.unsuccessfulbuild
+
+# cmake specific
+build/
