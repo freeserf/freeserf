@@ -537,11 +537,10 @@ ClassicMapGenerator::remove_islands() {
         }
       }
 
-      if (4*num >= tile_count) goto break_loop;
+      if (4*num >= map.geom().tile_count())
+          break;
     }
   }
-
-  break_loop:
 
   // Change every position that was not tagged (i.e. tag is 0) to water.
   for (MapPos pos_ : map.geom()) {

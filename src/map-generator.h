@@ -78,7 +78,6 @@ class ClassicMapGenerator : public MapGenerator {
   const Map &map;
   Random rnd;
 
-  unsigned int tile_count;
   std::unique_ptr<Map::LandscapeTile[]> tiles;
   std::unique_ptr<int[]> tags;
   HeightGenerator height_generator;
