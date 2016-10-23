@@ -90,6 +90,8 @@ Flag::Flag(Game *game, unsigned int index) : GameObject(game, index) {
   transporter = 0;
   for (int j = 0; j < FLAG_MAX_RES_COUNT; j++) {
     slot[j].type = Resource::TypeNone;
+    slot[j].dest = 0;
+    slot[j].dir = DirectionNone;
   }
   bld_flags = 0;
   bld2_flags = 0;

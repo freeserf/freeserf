@@ -71,6 +71,9 @@ Game::Game() {
   const_tick = 0;
   tick_diff = 0;
 
+  max_next_index = 0;
+  game_type = 0;
+  flag_search_counter = 0;
   game_stats_counter = 0;
   history_counter = 0;
 
