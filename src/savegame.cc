@@ -65,12 +65,10 @@ class SaveWriterTextSection : public SaveWriterText {
     this->number = number;
   }
 
-  ~SaveWriterTextSection()
-  {
-      for(auto section : sections)
-      {
-          delete section;
-      }
+  ~SaveWriterTextSection() {
+    for (auto section : sections) {
+      delete section;
+    }
   }
 
   virtual SaveWriterTextValue &value(const std::string &name) {
@@ -208,12 +206,10 @@ class SaveReaderTextFile : public SaveReaderText {
     }
   }
 
-  virtual ~SaveReaderTextFile()
-  {
-      for(auto section : sections)
-      {
-          delete section;
-      }
+  virtual ~SaveReaderTextFile() {
+    for (auto section : sections) {
+      delete section;
+    }
   }
 
   virtual std::string get_name() const {
