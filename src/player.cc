@@ -52,15 +52,13 @@ Player::Player(Game *game, unsigned int index)
   knight_occupation[3] = 0x43;
 
   total_attacking_knights = 0;
-  for(int i = 0; i < 4; i++)
-  {
+  for (int i = 0; i < 4; i++) {
     attacking_knights[i] = 0;
   }
 
   attacking_building_count = 0;
-  for(int i = 0; i < 64; i++)
-  {
-      attacking_buildings[i] = 0;
+  for (int i = 0; i < 64; i++) {
+    attacking_buildings[i] = 0;
   }
 
   building_attacked = 0;
