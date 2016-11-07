@@ -65,6 +65,12 @@ class SaveWriterTextSection : public SaveWriterText {
     this->number = number;
   }
 
+  ~SaveWriterTextSection() {
+    for (auto section : sections) {
+      delete section;
+    }
+  }
+
   virtual SaveWriterTextValue &value(const std::string &name) {
     values_t::iterator i = values.find(name);
     if (i != values.end()) {
@@ -197,6 +203,12 @@ class SaveReaderTextFile : public SaveReaderText {
           section->add_value(line);
         }
       }
+    }
+  }
+
+  virtual ~SaveReaderTextFile() {
+    for (auto section : sections) {
+      delete section;
     }
   }
 

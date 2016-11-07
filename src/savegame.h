@@ -115,6 +115,7 @@ typedef std::list<SaveReaderText*> Readers;
 
 class SaveReaderText {
  public:
+  virtual ~SaveReaderText() = default;
   virtual std::string get_name() const = 0;
   virtual unsigned int get_number() const = 0;
   virtual SaveReaderTextValue value(const std::string &name) const
@@ -124,6 +125,7 @@ class SaveReaderText {
 
 class SaveWriterText {
  public:
+  virtual ~SaveWriterText() = default;
   virtual SaveWriterTextValue &value(const std::string &name) = 0;
   virtual SaveWriterText &add_section(const std::string &name,
                                       unsigned int number) = 0;
