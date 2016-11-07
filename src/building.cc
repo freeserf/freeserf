@@ -35,6 +35,8 @@ Building::Building(Game *game, unsigned int index)
   flag = 0;
   playing_sfx = false;
   threat_level = 0;
+  owner = 0;
+  serf_requested = false;
   serf_request_failed = false;
   burning = false;
   active = false;
