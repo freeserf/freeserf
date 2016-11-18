@@ -36,9 +36,9 @@ class TextInput : public GuiObject {
   std::string text;
   unsigned int max_length;
   Filter filter;
-  unsigned char color_focus;
-  unsigned char color_text;
-  unsigned char color_background;
+  Color color_focus;
+  Color color_text;
+  Color color_background;
   bool draw_focus;
 
  public:

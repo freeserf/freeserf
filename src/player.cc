@@ -1001,8 +1001,11 @@ Player::get_stats_serfs_potential() {
 
 SaveReaderBinary&
 operator >> (SaveReaderBinary &reader, Player &player)  {
-  const int default_player_colors[] = {
-    64, 72, 68, 76
+  const PlayerColor default_player_colors[] = {
+    {0x00, 0xe3, 0xe3},
+    {0xcf, 0x63, 0x63},
+    {0xdf, 0x7f, 0xef},
+    {0xef, 0xef, 0x8f}
   };
 
   uint16_t v16;
@@ -1169,7 +1172,10 @@ SaveReaderText&
 operator >> (SaveReaderText &reader, Player &player) {
   reader.value("flags") >> player.flags;
   reader.value("build") >> player.build;
-  reader.value("color") >> player.color;
+  unsigned int val;
+  reader.value("color")[0] >> val; player.color.red = val;
+  reader.value("color")[1] >> val; player.color.green = val;
+  reader.value("color")[2] >> val; player.color.blue = val;
   reader.value("face") >> player.face;
   for (int i = 0; i < 9; i++) {
     reader.value("tool_prio")[i] >> player.tool_prio[i];
@@ -1232,7 +1238,9 @@ SaveWriterText&
 operator << (SaveWriterText &writer, Player &player) {
   writer.value("flags") << player.flags;
   writer.value("build") << player.build;
-  writer.value("color") << player.color;
+  writer.value("color") << player.color.red;
+  writer.value("color") << player.color.green;
+  writer.value("color") << player.color.blue;
   writer.value("face") << player.face;
 
   for (int i = 0; i < 9; i++) {

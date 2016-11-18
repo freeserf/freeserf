@@ -114,6 +114,8 @@ class Interface : public GuiObject {
   Game *get_game() { return game; }
   void set_game(Game *game);
 
+  Color get_player_color(unsigned int player_index);
+
   Viewport *get_viewport();
   PanelBar *get_panel_bar();
   PopupBox *get_popup_box();

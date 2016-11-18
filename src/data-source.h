@@ -30,21 +30,51 @@
 /* Sprite object. Contains BGRA data. */
 class Sprite {
  public:
-  virtual ~Sprite() {}
+  typedef struct Color {
+    unsigned char blue;
+    unsigned char green;
+    unsigned char red;
+    unsigned char alpha;
+  } Color;
 
-  virtual uint8_t *get_data() const = 0;
-  virtual unsigned int get_width() const = 0;
-  virtual unsigned int get_height() const = 0;
-  virtual int get_delta_x() const = 0;
-  virtual int get_delta_y() const = 0;
-  virtual int get_offset_x() const = 0;
-  virtual int get_offset_y() const = 0;
+ protected:
+  int delta_x;
+  int delta_y;
+  int offset_x;
+  int offset_y;
+  unsigned int width;
+  unsigned int height;
+  uint8_t *data;
 
-  virtual Sprite *get_masked(Sprite *mask) = 0;
+ public:
+  Sprite();
+  explicit Sprite(Sprite *base);
+  Sprite(unsigned int w, unsigned int h);
+  virtual ~Sprite();
 
-  static uint64_t create_sprite_id(uint64_t resource, uint64_t index,
-                                   uint64_t mask_resource, uint64_t mask_index,
-                                   uint64_t offset);
+  virtual uint8_t *get_data() const { return data; }
+  virtual unsigned int get_width() const { return width; }
+  virtual unsigned int get_height() const { return height; }
+  virtual int get_delta_x() const { return delta_x; }
+  virtual int get_delta_y() const { return delta_y; }
+  virtual int get_offset_x() const { return offset_x; }
+  virtual int get_offset_y() const { return offset_y; }
+
+  virtual Sprite *get_masked(Sprite *mask);
+  virtual Sprite *create_mask(Sprite *other);
+  virtual Sprite *create_diff(Sprite *other);
+  virtual void fill(Sprite::Color color);
+  virtual void fill_masked(Sprite::Color color);
+  virtual void add(Sprite *other);
+
+  virtual void stick(Sprite *sticker, unsigned int x, unsigned int y);
+
+  static uint64_t create_id(uint64_t resource, uint64_t index,
+                            uint64_t mask_resource, uint64_t mask_index,
+                            const Color &color);
+
+ protected:
+  void create(unsigned int w, unsigned int h);
 };
 
 class Animation {
@@ -52,21 +82,6 @@ class Animation {
   uint8_t time;
   int8_t x;
   int8_t y;
-};
-
-typedef struct Color {
-  unsigned char blue;
-  unsigned char green;
-  unsigned char red;
-  unsigned char alpha;
-} Color;
-
-class Palette {
- public:
-  virtual ~Palette() {}
-
-  virtual size_t get_size() const = 0;
-  virtual Color get_color(size_t index) const = 0;
 };
 
 class DataSource {
@@ -77,17 +92,13 @@ class DataSource {
   virtual bool load(const std::string &path) = 0;
 
   virtual Sprite *get_sprite(Data::Resource res, unsigned int index,
-                             int color_off) = 0;
-
-  virtual Color get_color(unsigned int index) = 0;
+                             const Sprite::Color &color) = 0;
 
   virtual Animation *get_animation(unsigned int animation,
                                    unsigned int phase) = 0;
 
   virtual void *get_sound(unsigned int index, size_t *size) = 0;
   virtual void *get_music(unsigned int index, size_t *size) = 0;
-
-  virtual Palette *get_palette(unsigned int index) = 0;
 
   bool check_file(const std::string &path);
   void *file_read(const std::string &path, size_t *size);

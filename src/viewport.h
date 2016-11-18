@@ -94,8 +94,9 @@ class Viewport : public GuiObject, public Map::Handler {
   void draw_border_segment(int x, int y, MapPos pos, Direction dir);
   void draw_paths_and_borders();
   void draw_game_sprite(int x, int y, int index);
-  void draw_serf(int x, int y, unsigned char color, int head, int body);
-  void draw_shadow_and_building_sprite(int x, int y, int index);
+  void draw_serf(int x, int y, const Color &color, int head, int body);
+  void draw_shadow_and_building_sprite(int x, int y, int index,
+                                       const Color &color = Color::transparent);
   void draw_shadow_and_building_unfinished(int x, int y, int index,
                                            int progress);
   void draw_building_unfinished(Building *building, Building::Type bld_type,
@@ -108,7 +109,7 @@ class Viewport : public GuiObject, public Map::Handler {
   void draw_water_waves_row(MapPos pos, int y_base, int cols, int x_base);
   void draw_flag_and_res(MapPos pos, int x, int y);
   void draw_map_objects_row(MapPos pos, int y_base, int cols, int x_base);
-  void draw_row_serf(int x, int y, bool shadow, int color, int body);
+  void draw_row_serf(int x, int y, bool shadow, const Color &color, int body);
   int serf_get_body(Serf *serf);
   void draw_active_serf(Serf *serf, MapPos pos, int x_base, int y_base);
   void draw_serf_row(MapPos pos, int y_base, int cols, int x_base);
@@ -117,8 +118,8 @@ class Viewport : public GuiObject, public Map::Handler {
   void draw_map_cursor_sprite(MapPos pos, int sprite);
   void draw_map_cursor_possible_build();
   void draw_map_cursor();
-  void draw_base_grid_overlay(int color);
-  void draw_height_grid_overlay(int color);
+  void draw_base_grid_overlay(const Color &color);
+  void draw_height_grid_overlay(const Color &color);
 
   virtual void internal_draw();
   virtual void layout();

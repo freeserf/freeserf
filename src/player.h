@@ -85,7 +85,7 @@ class Player : public GameObject {
   int serf_count[27];
   int knight_occupation[4];
 
-  unsigned int color; /* ADDED */
+  PlayerColor color; /* ADDED */
   size_t face;
   int flags;
   int build;
@@ -169,7 +169,7 @@ class Player : public GameObject {
 
   void init(PPlayerInfo player_info);
 
-  int get_color() const { return color; }
+  PlayerColor get_color() const { return color; }
   size_t get_face() const { return face; }
 
   /* Whether player has built the initial castle. */

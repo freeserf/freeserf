@@ -50,7 +50,7 @@ NotificationBox::draw_string(int x, int y, const std::string &str) {
   std::string line;
   int cy = y;
   while (std::getline(sin, line)) {
-    frame->draw_string(x*8, cy, 31, 0, line);
+    frame->draw_string(x*8, cy, line, Color::green);
     cy += 10;
   }
 }
@@ -71,9 +71,9 @@ NotificationBox::get_player_face_sprite(size_t face) {
 void
 NotificationBox::draw_player_face(int x, int y, int player) {
   Player *p = interface->get_game()->get_player(player);
-  frame->fill_rect(8*x, y, 48, 72, p->get_color());
-  draw_icon(x+1, y+4,
-    get_player_face_sprite(p->get_face()));
+  Color color = interface->get_player_color(player);
+  frame->fill_rect(8*x, y, 48, 72, color);
+  draw_icon(x+1, y+4, get_player_face_sprite(p->get_face()));
 }
 
 #define NOTIFICATION_SHOW_OPPONENT 0

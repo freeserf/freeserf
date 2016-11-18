@@ -77,7 +77,6 @@ data_resource_t data_resources[] = {
   { Data::AssetSound,        Data::TypeSound,     90,  "sound"         },
   { Data::AssetMusic,        Data::TypeMusic,     7,   "music"         },
   { Data::AssetCursor,       Data::TypeSprite,    1,   "cursor"        },
-  { Data::AssetPalette,      Data::TypePalette,   3,   "palette"       }
 };
 
 Data::Data() : data_source(nullptr) {}

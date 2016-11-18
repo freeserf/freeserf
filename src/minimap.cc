@@ -54,15 +54,53 @@ Minimap::init_minimap() {
     34, 34, 34, 51, 51, 51, 68, 68
   };
 
-  static const int colors[] = {
-    8,  8,  8,  8,  8,  8,  8,  8,  8,  8,  8,  8,  8,  8,  8,  8,  8,
-    31, 31, 30, 29, 28, 27, 26, 25, 24, 23, 22, 21, 20, 19, 18, 17, 16,
-    63, 63, 62, 61, 61, 60, 59, 59, 58, 57, 57, 56, 55, 55, 54, 53, 53,
-    61, 61, 60, 60, 59, 59, 58, 57, 56, 55, 54, 53, 52, 51, 50, 49, 48,
-    47, 47, 46, 46, 45, 44, 43, 42, 41, 40, 39, 38, 37, 36, 35, 34, 33,
-    9,  9,  9,  9,  9,  9,  9,  9,  9,  9,  9,  9,  9,  9,  9,  9,  9,
-    10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10,
-    11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11
+  static const Color colors[] = {
+    Color(0x00, 0x00, 0xaf), Color(0x00, 0x00, 0xaf), Color(0x00, 0x00, 0xaf),
+    Color(0x00, 0x00, 0xaf), Color(0x00, 0x00, 0xaf), Color(0x00, 0x00, 0xaf),
+    Color(0x00, 0x00, 0xaf), Color(0x00, 0x00, 0xaf), Color(0x00, 0x00, 0xaf),
+    Color(0x00, 0x00, 0xaf), Color(0x00, 0x00, 0xaf), Color(0x00, 0x00, 0xaf),
+    Color(0x00, 0x00, 0xaf), Color(0x00, 0x00, 0xaf), Color(0x00, 0x00, 0xaf),
+    Color(0x00, 0x00, 0xaf), Color(0x00, 0x00, 0xaf), Color(0x73, 0xb3, 0x43),
+    Color(0x73, 0xb3, 0x43), Color(0x6b, 0xab, 0x3b), Color(0x63, 0xa3, 0x33),
+    Color(0x5f, 0x9b, 0x2f), Color(0x57, 0x93, 0x27), Color(0x53, 0x8b, 0x23),
+    Color(0x4f, 0x83, 0x1b), Color(0x47, 0x7f, 0x17), Color(0x3f, 0x73, 0x13),
+    Color(0x3b, 0x6b, 0x13), Color(0x33, 0x63, 0x0f), Color(0x2f, 0x57, 0x0b),
+    Color(0x2b, 0x4f, 0x0b), Color(0x23, 0x43, 0x0b), Color(0x1f, 0x3b, 0x07),
+    Color(0x1b, 0x33, 0x07), Color(0xef, 0xcf, 0xaf), Color(0xef, 0xcf, 0xaf),
+    Color(0xe3, 0xbf, 0x9f), Color(0xd7, 0xb3, 0x8f), Color(0xd7, 0xb3, 0x8f),
+    Color(0xcb, 0xa3, 0x7f), Color(0xbf, 0x97, 0x73), Color(0xbf, 0x97, 0x73),
+    Color(0xb3, 0x87, 0x67), Color(0xab, 0x7b, 0x5b), Color(0xab, 0x7b, 0x5b),
+    Color(0x9f, 0x6f, 0x4f), Color(0x93, 0x63, 0x43), Color(0x93, 0x63, 0x43),
+    Color(0x87, 0x57, 0x3b), Color(0x7b, 0x4f, 0x33), Color(0x7b, 0x4f, 0x33),
+    Color(0xd7, 0xb3, 0x8f), Color(0xd7, 0xb3, 0x8f), Color(0xcb, 0xa3, 0x7f),
+    Color(0xcb, 0xa3, 0x7f), Color(0xbf, 0x97, 0x73), Color(0xbf, 0x97, 0x73),
+    Color(0xb3, 0x87, 0x67), Color(0xab, 0x7b, 0x5b), Color(0x9f, 0x6f, 0x4f),
+    Color(0x93, 0x63, 0x43), Color(0x87, 0x57, 0x3b), Color(0x7b, 0x4f, 0x33),
+    Color(0x73, 0x43, 0x2b), Color(0x67, 0x3b, 0x23), Color(0x5b, 0x33, 0x1b),
+    Color(0x4f, 0x2b, 0x17), Color(0x43, 0x23, 0x13), Color(0xff, 0xff, 0xff),
+    Color(0xff, 0xff, 0xff), Color(0xef, 0xef, 0xef), Color(0xef, 0xef, 0xef),
+    Color(0xdf, 0xdf, 0xdf), Color(0xd3, 0xd3, 0xd3), Color(0xc3, 0xc3, 0xc3),
+    Color(0xb3, 0xb3, 0xb3), Color(0xa7, 0xa7, 0xa7), Color(0x97, 0x97, 0x97),
+    Color(0x87, 0x87, 0x87), Color(0x7b, 0x7b, 0x7b), Color(0x6b, 0x6b, 0x6b),
+    Color(0x5b, 0x5b, 0x5b), Color(0x4f, 0x4f, 0x4f), Color(0x3f, 0x3f, 0x3f),
+    Color(0x2f, 0x2f, 0x2f), Color(0x07, 0x07, 0xb3), Color(0x07, 0x07, 0xb3),
+    Color(0x07, 0x07, 0xb3), Color(0x07, 0x07, 0xb3), Color(0x07, 0x07, 0xb3),
+    Color(0x07, 0x07, 0xb3), Color(0x07, 0x07, 0xb3), Color(0x07, 0x07, 0xb3),
+    Color(0x07, 0x07, 0xb3), Color(0x07, 0x07, 0xb3), Color(0x07, 0x07, 0xb3),
+    Color(0x07, 0x07, 0xb3), Color(0x07, 0x07, 0xb3), Color(0x07, 0x07, 0xb3),
+    Color(0x07, 0x07, 0xb3), Color(0x07, 0x07, 0xb3), Color(0x07, 0x07, 0xb3),
+    Color(0x0b, 0x0b, 0xb7), Color(0x0b, 0x0b, 0xb7), Color(0x0b, 0x0b, 0xb7),
+    Color(0x0b, 0x0b, 0xb7), Color(0x0b, 0x0b, 0xb7), Color(0x0b, 0x0b, 0xb7),
+    Color(0x0b, 0x0b, 0xb7), Color(0x0b, 0x0b, 0xb7), Color(0x0b, 0x0b, 0xb7),
+    Color(0x0b, 0x0b, 0xb7), Color(0x0b, 0x0b, 0xb7), Color(0x0b, 0x0b, 0xb7),
+    Color(0x0b, 0x0b, 0xb7), Color(0x0b, 0x0b, 0xb7), Color(0x0b, 0x0b, 0xb7),
+    Color(0x0b, 0x0b, 0xb7), Color(0x0b, 0x0b, 0xb7), Color(0x13, 0x13, 0xbb),
+    Color(0x13, 0x13, 0xbb), Color(0x13, 0x13, 0xbb), Color(0x13, 0x13, 0xbb),
+    Color(0x13, 0x13, 0xbb), Color(0x13, 0x13, 0xbb), Color(0x13, 0x13, 0xbb),
+    Color(0x13, 0x13, 0xbb), Color(0x13, 0x13, 0xbb), Color(0x13, 0x13, 0xbb),
+    Color(0x13, 0x13, 0xbb), Color(0x13, 0x13, 0xbb), Color(0x13, 0x13, 0xbb),
+    Color(0x13, 0x13, 0xbb), Color(0x13, 0x13, 0xbb), Color(0x13, 0x13, 0xbb),
+    Color(0x13, 0x13, 0xbb)
   };
 
   if (map == NULL) {
@@ -70,9 +108,9 @@ Minimap::init_minimap() {
   }
 
   size_t size = map->get_rows() * map->get_cols();
-  minimap.reset(new uint8_t[size]());
+  minimap.reset(new Color[size]());
 
-  uint8_t *mpos = minimap.get();
+  Color *mpos = minimap.get();
   for (MapPos pos : map->geom()) {
     int type_off = color_offset[map->type_up(pos)];
 
@@ -88,7 +126,7 @@ Minimap::init_minimap() {
 }
 
 void
-Minimap::draw_minimap_point(int col, int row, uint8_t color, int density) {
+Minimap::draw_minimap_point(int col, int row, const Color &color, int density) {
   int map_width = map->get_cols() * scale;
   int map_height = map->get_rows() * scale;
 
@@ -96,13 +134,13 @@ Minimap::draw_minimap_point(int col, int row, uint8_t color, int density) {
     return;
   }
 
-  int mm_y = row*scale - offset_y;
+  int mm_y = row * scale - offset_y;
   col -= (map->get_rows()/2) * static_cast<int>(mm_y / map_height);
   mm_y = mm_y % map_height;
 
   while (mm_y < height) {
     if (mm_y >= -density) {
-      int mm_x = col*scale - (row*scale)/2 - offset_x;
+      int mm_x = col * scale - (row * scale) / 2 - offset_x;
       mm_x = mm_x % map_width;
       while (mm_x < width) {
         if (mm_x >= -density) {
@@ -118,10 +156,10 @@ Minimap::draw_minimap_point(int col, int row, uint8_t color, int density) {
 
 void
 Minimap::draw_minimap_map() {
-  uint8_t *color_data = minimap.get();
+  Color *color_data = minimap.get();
   for (unsigned int row = 0; row < map->get_rows(); row++) {
     for (unsigned int col = 0; col < map->get_cols(); col++) {
-      uint8_t color = *(color_data++);
+      Color color = *(color_data++);
       draw_minimap_point(col, row, color, scale);
     }
   }
@@ -133,8 +171,7 @@ MinimapGame::draw_minimap_ownership(int density) {
     for (unsigned int col = 0; col < map->get_cols(); col += density) {
       MapPos pos = map->pos(col, row);
       if (map->has_owner(pos)) {
-        int color =
-            interface->get_game()->get_player(map->get_owner(pos))->get_color();
+        Color color = interface->get_player_color(map->get_owner(pos));
         draw_minimap_point(col, row, color, scale);
       }
     }
@@ -147,7 +184,7 @@ MinimapGame::draw_minimap_roads() {
     for (unsigned int col = 0; col < map->get_cols(); col++) {
       int pos = map->pos(col, row);
       if (map->paths(pos)) {
-        draw_minimap_point(col, row, 1, scale);
+        draw_minimap_point(col, row, Color::black, scale);
       }
     }
   }
@@ -173,8 +210,7 @@ MinimapGame::draw_minimap_buildings() {
       int pos = map->pos(col, row);
       int obj = map->get_obj(pos);
       if (obj > Map::ObjectFlag && obj <= Map::ObjectCastle) {
-        int color =
-            interface->get_game()->get_player(map->get_owner(pos))->get_color();
+        Color color = interface->get_player_color(map->get_owner(pos));
         if (advanced > 0) {
           Building *bld = interface->get_game()->get_building_at_pos(pos);
           if (bld->get_type() == building_remap[advanced]) {
@@ -194,8 +230,7 @@ MinimapGame::draw_minimap_traffic() {
     for (unsigned int col = 0; col < map->get_cols(); col++) {
       int pos = map->pos(col, row);
       if (map->get_idle_serf(pos)) {
-        int color =
-            interface->get_game()->get_player(map->get_owner(pos))->get_color();
+        Color color = interface->get_player_color(map->get_owner(pos));
         draw_minimap_point(col, row, color, scale);
       }
     }
@@ -205,13 +240,13 @@ MinimapGame::draw_minimap_traffic() {
 void
 Minimap::draw_minimap_grid() {
   for (unsigned int y = 0; y < map->get_rows() * scale; y += 2) {
-    draw_minimap_point(0, y, 47, 1);
-    draw_minimap_point(0, y+1, 1, 1);
+    draw_minimap_point(0, y, Color(0xab, 0x7b, 0x5b), 1);
+    draw_minimap_point(0, y+1, Color::black, 1);
   }
 
   for (unsigned int x = 0; x < map->get_cols() * scale; x += 2) {
-    draw_minimap_point(x, 0, 47, 1);
-    draw_minimap_point(x+1, 0, 1, 1);
+    draw_minimap_point(x, 0, Color(0xab, 0x7b, 0x5b), 1);
+    draw_minimap_point(x+1, 0, Color::black, 1);
   }
 }
 
@@ -225,7 +260,7 @@ Minimap::draw_minimap_rect() {
 void
 Minimap::internal_draw() {
   if (map == NULL) {
-    frame->fill_rect(0, 0, width, height, 1);
+    frame->fill_rect(0, 0, width, height, Color::black);
     return;
   }
 
@@ -419,7 +454,7 @@ MinimapGame::internal_draw() {
       draw_minimap_ownership(2);
       break;
     case OwnershipModeSolid:
-      frame->fill_rect(0, 0, 128, 128, 1);
+      frame->fill_rect(0, 0, 128, 128, Color::black);
       draw_minimap_ownership(1);
       break;
   }

@@ -289,7 +289,7 @@ Viewport::get_tile_frame(unsigned int tid, int tc, int tr) {
 
   std::unique_ptr<Frame> tile_frame(
     Graphics::get_instance()->create_frame(tile_width, tile_height));
-  tile_frame->fill_rect(0, 0, tile_width, tile_height, 0);
+  tile_frame->fill_rect(0, 0, tile_width, tile_height, Color::black);
 
   int col = (tc*MAP_TILE_COLS + (tr*MAP_TILE_ROWS)/2) % map->get_cols();
   int row = tr*MAP_TILE_ROWS;
@@ -591,7 +591,7 @@ Viewport::draw_game_sprite(int x, int y, int index) {
 }
 
 void
-Viewport::draw_serf(int x, int y, unsigned char color, int head, int body) {
+Viewport::draw_serf(int x, int y, const Color &color, int head, int body) {
   frame->draw_sprite(x, y, Data::AssetSerfTorso, body, true, color);
 
   if (head >= 0) {
@@ -601,9 +601,10 @@ Viewport::draw_serf(int x, int y, unsigned char color, int head, int body) {
 }
 
 void
-Viewport::draw_shadow_and_building_sprite(int x, int y, int index) {
+Viewport::draw_shadow_and_building_sprite(int x, int y, int index,
+                                          const Color &color) {
   frame->draw_sprite(x, y, Data::AssetMapShadow, index, true);
-  frame->draw_sprite(x, y, Data::AssetMapObject, index, true);
+  frame->draw_sprite(x, y, Data::AssetMapObject, index, true, color);
 }
 
 void
@@ -658,7 +659,8 @@ Viewport::draw_building_unfinished(Building *building, Building::Type bld_type,
 void
 Viewport::draw_ocupation_flag(Building *building, int x, int y, float mul) {
   if (building->has_knight()) {
-    draw_game_sprite(x, y - (mul * building->get_knight_count()),
+    draw_game_sprite(x, y -
+                     static_cast<int>(mul * building->get_knight_count()),
                      182 + ((interface->get_game()->get_tick() >> 3) & 3) +
                      4 * static_cast<int>(building->get_threat_level()));
   }
@@ -1171,10 +1173,10 @@ Viewport::draw_flag_and_res(MapPos pos, int x, int y) {
   }
 
   int pl_num = flag->get_owner();
-  int spr = 0x80 + (pl_num << 2) +
-            ((interface->get_game()->get_tick() >> 3) & 3);
+  Color player_color = interface->get_player_color(pl_num);
+  int spr = 0x80 + ((interface->get_game()->get_tick() >> 3) & 3);
 
-  draw_shadow_and_building_sprite(x, y, spr);
+  draw_shadow_and_building_sprite(x, y, spr, player_color);
 
   if (flag->get_resource_at_slot(3) != Resource::TypeNone) {
     draw_game_sprite(x+10, y+2, flag->get_resource_at_slot(3) + 1);
@@ -1230,7 +1232,8 @@ Viewport::draw_map_objects_row(MapPos pos, int y_base,
 
 /* Draw one individual serf in the row. */
 void
-Viewport::draw_row_serf(int x, int y, bool shadow, int color, int body) {
+Viewport::draw_row_serf(int x, int y, bool shadow, const Color &color,
+                        int body) {
   const int index1[] = {
     0, 0, 48, 6, 96, -1, 48, 24,
     240, -1, 48, 30, 248, -1, 48, 12,
@@ -1349,7 +1352,7 @@ Viewport::serf_get_body(Serf *serf) {
   };
 
   Animation *animation = data_source->get_animation(serf->get_animation(),
-                                                      serf->get_counter());
+                                                    serf->get_counter());
   int t = animation->time;
 
   switch (serf->get_type()) {
@@ -1863,8 +1866,7 @@ Viewport::draw_active_serf(Serf *serf, MapPos pos,
   int body = serf_get_body(serf);
 
   if (body > -1) {
-    int color =
-             interface->get_game()->get_player(serf->get_player())->get_color();
+    Color color = interface->get_player_color(serf->get_player());
     draw_row_serf(x, y, true, color, body);
   }
 
@@ -1889,8 +1891,7 @@ Viewport::draw_active_serf(Serf *serf, MapPos pos,
       int body = serf_get_body(def_serf);
 
       if (body > -1) {
-        int color =
-         interface->get_game()->get_player(def_serf->get_player())->get_color();
+        Color color = interface->get_player_color(def_serf->get_player());
         draw_row_serf(x, y, true, color, body);
       }
     }
@@ -2003,8 +2004,7 @@ Viewport::draw_serf_row(MapPos pos, int y_base, int cols, int x_base) {
                        arr_1[pos & 0xf]) >> 3) & 0x7f];
       }
 
-      int color =
-            interface->get_game()->get_player(map->get_owner(pos))->get_color();
+      Color color = interface->get_player_color(map->get_owner(pos));
       draw_row_serf(x, y, true, color, body);
     }
   }
@@ -2137,8 +2137,7 @@ Viewport::draw_map_cursor_possible_build() {
         sprite = 50;
       } else if (interface->get_game()->can_player_build(pos,
                                                      interface->get_player()) &&
-                 Map::map_space_from_obj[map->get_obj(pos)] ==
-                   Map::SpaceOpen &&
+                 Map::map_space_from_obj[map->get_obj(pos)] == Map::SpaceOpen &&
                (interface->get_game()->can_build_flag(map->move_down_right(pos),
                                       interface->get_player()) ||
                  map->has_flag(map->move_down_right(pos)))) {
@@ -2182,7 +2181,7 @@ Viewport::draw_map_cursor() {
   int y = map->pos_row(pos);
   std::stringstream s;
   s << x << ":" << y;
-  frame->draw_string(0, 0, 75, 0, s.str());
+  frame->draw_string(0, 0, s.str(), 75, 0);
 */
 
   draw_map_cursor_sprite(pos, interface->get_map_cursor_sprite(0));
@@ -2194,7 +2193,7 @@ Viewport::draw_map_cursor() {
 }
 
 void
-Viewport::draw_base_grid_overlay(int color) {
+Viewport::draw_base_grid_overlay(const Color &color) {
   int x_base = -(offset_x + 16*(offset_y/20)) % 32;
   int y_base = -offset_y % 20;
 
@@ -2209,7 +2208,7 @@ Viewport::draw_base_grid_overlay(int color) {
 }
 
 void
-Viewport::draw_height_grid_overlay(int color) {
+Viewport::draw_height_grid_overlay(const Color &color) {
   int x_off = -(offset_x + 16*(offset_y/20)) % 32;
   int y_off = -offset_y % 20;
 
@@ -2267,8 +2266,8 @@ Viewport::internal_draw() {
     draw_landscape();
   }
   if (layers & LayerGrid) {
-    draw_base_grid_overlay(72);
-    draw_height_grid_overlay(76);
+    draw_base_grid_overlay(Color(0xcf, 0x63, 0x63));
+    draw_height_grid_overlay(Color(0xef, 0xef, 0x8f));
   }
   if (layers & LayerPaths) {
     draw_paths_and_borders();

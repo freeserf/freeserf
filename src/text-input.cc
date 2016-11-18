@@ -27,9 +27,9 @@ TextInput::TextInput() : GuiObject() {
   max_length = 0;
   filter = NULL;
   draw_focus = true;
-  color_focus = 0;
-  color_text = 31;
-  color_background = 1;
+  color_focus = Color(0x00, 0x8b, 0x47);
+  color_text = Color::green;
+  color_background = Color::black;
 }
 
 void
@@ -60,7 +60,7 @@ TextInput::internal_draw() {
   while (str.length()) {
     std::string substr = str.substr(0, ch_width);
     str.erase(0, ch_width);
-    frame->draw_string(cx, cy, color_text, 0, substr.c_str());
+    frame->draw_string(cx, cy, substr, color_text);
     cy += 8;
   }
 }

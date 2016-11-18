@@ -93,7 +93,7 @@ GameInitBox::draw_box_icon(int x, int y, int sprite) {
 
 void
 GameInitBox::draw_box_string(int x, int y, const std::string &str) {
-  frame->draw_string(8*x+20, y+16, 31, 1, str);
+  frame->draw_string(8*x+20, y+16, str, Color::green, Color::black);
 }
 
 void
@@ -213,13 +213,16 @@ GameInitBox::draw_player_box(unsigned int player, int x, int y) {
     x *= 8;
 
     unsigned int supplies = mission->get_player(player)->get_supplies();
-    frame->fill_rect(x + 64, y + 76 - supplies, 4, supplies, 67);
+    frame->fill_rect(x + 64, y + 76 - supplies, 4, supplies,
+                     Color(0x00, 0x93, 0x87));
 
     unsigned int intelligence = mission->get_player(player)->get_intelligence();
-    frame->fill_rect(x + 70, y + 76 - intelligence, 4, intelligence, 30);
+    frame->fill_rect(x + 70, y + 76 - intelligence, 4, intelligence,
+                     Color(0x6b, 0xab, 0x3b));
 
     unsigned int reproduction = mission->get_player(player)->get_reproduction();
-    frame->fill_rect(x + 76, y + 76 - reproduction, 4, reproduction, 75);
+    frame->fill_rect(x + 76, y + 76 - reproduction, 4, reproduction,
+                     Color(0xa7, 0x27, 0x27));
   }
 }
 
@@ -451,8 +454,8 @@ GameInitBox::GameInitBox(Interface *interface)
   set_size(360, 254);
 
   custom_mission = PGameInfo(new GameInfo(Random()));
-  custom_mission->add_player(12, 64, 40, 40, 40);
-  custom_mission->add_player(1, 72, 20, 30, 40);
+  custom_mission->add_player(12, {0x00, 0xe3, 0xe3}, 40, 40, 40);
+  custom_mission->add_player(1, {0xcf, 0x63, 0x63}, 20, 30, 40);
   mission = custom_mission;
 
   minimap->set_displayed(true);

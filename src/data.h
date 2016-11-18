@@ -36,7 +36,6 @@ class Data {
     TypeAnimation,
     TypeSound,
     TypeMusic,
-    TypePalette
   } Type;
 
   typedef enum Resource {
@@ -74,7 +73,6 @@ class Data {
     AssetSound,
     AssetMusic,
     AssetCursor,
-    AssetPalette
   } Asset;
 
  protected:

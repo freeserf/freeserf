@@ -186,7 +186,7 @@ class PopupBox : public GuiObject {
   void draw_stat_bld_2_box();
   void draw_stat_bld_3_box();
   void draw_stat_bld_4_box();
-  void draw_player_stat_chart(const int *data, int index, int color);
+  void draw_player_stat_chart(const int *data, int index, const Color &color);
   void draw_stat_8_box();
   void draw_stat_7_box();
   void draw_gauge_balance(int x, int y, unsigned int value, unsigned int count);

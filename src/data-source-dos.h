@@ -44,25 +44,13 @@ class DataSourceDOS : public DataSource {
   } Resource;
 
  protected:
-  typedef struct Color {
+  typedef struct ColorDOS {
     unsigned char r;
     unsigned char g;
     unsigned char b;
-  } Color;
+  } ColorDOS;
 
-  class PaletteDOS : public Palette {
-   protected:
-    Color *palette_dos;
-
-   public:
-    explicit PaletteDOS(Color *palette_dos);
-    virtual ~PaletteDOS() {}
-
-    virtual size_t get_size() const { return 256; }
-    virtual ::Color get_color(size_t index) const;
-  };
-
-  class SpriteDosEmpty : public Sprite {
+  class SpriteBaseDOS : public Sprite {
    protected:
     /* Sprite header. In the data file this is
     * immediately followed by sprite data. */
@@ -75,64 +63,33 @@ class DataSourceDOS : public DataSource {
       int16_t y;
     } dos_sprite_header_t;
 
-    int delta_x;
-    int delta_y;
-    int offset_x;
-    int offset_y;
-    unsigned int width;
-    unsigned int height;
-
    public:
-    SpriteDosEmpty() {}
-    SpriteDosEmpty(void *data, size_t size);
-    virtual ~SpriteDosEmpty() {}
-
-    virtual uint8_t *get_data() const { return NULL; }
-    virtual unsigned int get_width() const { return width; }
-    virtual unsigned int get_height() const { return height; }
-    virtual int get_delta_x() const { return delta_x; }
-    virtual int get_delta_y() const { return delta_y; }
-    virtual int get_offset_x() const { return offset_x; }
-    virtual int get_offset_y() const { return offset_y; }
-
-    virtual Sprite *get_masked(Sprite * /*mask*/) { return NULL; }
+    SpriteBaseDOS() {}
+    SpriteBaseDOS(void *data, size_t size);
+    virtual ~SpriteBaseDOS() {}
   };
 
-  class SpriteDosBase : public SpriteDosEmpty {
-   protected:
-    uint8_t *data;
-
+  class SpriteDosSolid : public SpriteBaseDOS {
    public:
-    SpriteDosBase(void *data, size_t size);
-    explicit SpriteDosBase(Sprite *base);
-    virtual ~SpriteDosBase();
-
-    virtual uint8_t *get_data() const { return data; }
-    virtual Sprite *get_masked(Sprite *mask);
-    void stick(SpriteDosBase *sticker, unsigned int x, unsigned int y);
-  };
-
-  class SpriteDosSolid : public SpriteDosBase {
-   public:
-    SpriteDosSolid(void *data, size_t size, Color *palette);
+    SpriteDosSolid(void *data, size_t size, ColorDOS *palette);
     virtual ~SpriteDosSolid() {}
   };
 
-  class SpriteDosTransparent : public SpriteDosBase {
+  class SpriteDosTransparent : public SpriteBaseDOS {
    public:
-    SpriteDosTransparent(void *data, size_t size, Color *palette,
-      int color_off);
+    SpriteDosTransparent(void *data, size_t size, ColorDOS *palette,
+                         uint8_t color = 0);
     virtual ~SpriteDosTransparent() {}
   };
 
-  class SpriteDosOverlay : public SpriteDosBase {
+  class SpriteDosOverlay : public SpriteBaseDOS {
    public:
-    SpriteDosOverlay(void *data, size_t size, Color *palette,
+    SpriteDosOverlay(void *data, size_t size, ColorDOS *palette,
       unsigned char value);
     virtual ~SpriteDosOverlay() {}
   };
 
-  class SpriteDosMask : public SpriteDosBase {
+  class SpriteDosMask : public SpriteBaseDOS {
    public:
     SpriteDosMask(void *data, size_t size);
     virtual ~SpriteDosMask() {}
@@ -158,9 +115,7 @@ class DataSourceDOS : public DataSource {
   virtual bool load(const std::string &path);
 
   virtual Sprite *get_sprite(Data::Resource res, unsigned int index,
-                             int color_off);
-
-  virtual ::Color get_color(unsigned int index);
+                             const Sprite::Color &color);
 
   virtual Animation *get_animation(unsigned int animation,
                                    unsigned int phase);
@@ -168,18 +123,11 @@ class DataSourceDOS : public DataSource {
   virtual void *get_sound(unsigned int index, size_t *size);
   virtual void *get_music(unsigned int index, size_t *size);
 
-  virtual Palette *get_palette(unsigned int index);
-
  protected:
-  virtual Sprite *get_empty_sprite(unsigned int index);
-  virtual Sprite *get_transparent_sprite(unsigned int index, int color_off);
-  virtual Sprite *get_overlay_sprite(unsigned int index);
-  virtual Sprite *get_mask_sprite(unsigned int index);
-
   void *get_object(unsigned int index, size_t *size);
   void fixup();
   bool load_animation_table();
-  Color *get_dos_palette(unsigned int index);
+  DataSourceDOS::ColorDOS *get_dos_palette(unsigned int index);
 };
 
 #endif  // SRC_DATA_SOURCE_DOS_H_
