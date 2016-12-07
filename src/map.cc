@@ -329,6 +329,9 @@ Map::Map(const MapGeometry& geom)
   // Some code may still assume that map has at least size 3.
   assert(3 <= geom.size());
 
+  memset(landscape_tiles.get(), 0, sizeof(LandscapeTile) * geom_.tile_count());
+  memset(game_tiles.get(), 0, sizeof(GameTile) * geom_.tile_count());
+
   update_state.last_tick = 0;
   update_state.counter = 0;
   update_state.remove_signs_counter = 0;
