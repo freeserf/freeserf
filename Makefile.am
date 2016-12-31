@@ -49,7 +49,8 @@ OTHER_SOURCES = \
 	src/sfx2wav.cc src/sfx2wav.h \
 	src/xmi2mid.cc src/xmi2mid.h \
 	src/data-source.cc src/data-source.h \
-	src/text-input.cc src/text-input.h
+	src/text-input.cc src/text-input.h \
+	src/data-source-amiga.cc src/data-source-amiga.h
 
 freeserf_SOURCES = \
 	src/freeserf.cc src/freeserf.h \
@@ -79,6 +80,12 @@ freeserf_LDADD += $(SDL2_mixer_LIBS)
 freeserf_SOURCES += src/audio-sdlmixer.cc src/audio-sdlmixer.h
 else
 freeserf_SOURCES += src/audio-dummy.cc src/audio-dummy.h
+endif
+
+if ENABLE_XMP
+AM_CFLAGS += $(libxmp_CFLAGS)
+AM_CXXFLAGS += $(libxmp_CFLAGS)
+freeserf_LDADD += $(libxmp_LIBS)
 endif
 
 VCS_VERSION_FILE = src/version-vcs.h

@@ -57,7 +57,6 @@
       " -h\t\tShow this help text\n"                        \
       " -l FILE\tLoad saved game\n"                         \
       " -r RES\t\tSet display resolution (e.g. 800x600)\n"  \
-      " -t GEN\t\tMap generator (0 or 1)\n"                 \
       "\n"                                                  \
       "Please report bugs to <" PACKAGE_BUGREPORT ">\n"
 
@@ -93,8 +92,7 @@ main(int argc, char *argv[]) {
         break;
       case 'h':
         fprintf(stdout, HELP, argv[0]);
-        exit(EXIT_SUCCESS);
-        break;
+        return EXIT_SUCCESS;
       case 'l':
         if (strlen(optarg) > 0) {
           save_file = optarg;
@@ -104,7 +102,7 @@ main(int argc, char *argv[]) {
           char *hstr = strchr(optarg, 'x');
           if (hstr == NULL) {
             fprintf(stderr, USAGE, argv[0]);
-            exit(EXIT_FAILURE);
+            return EXIT_FAILURE;
           }
           screen_width = atoi(optarg);
           screen_height = atoi(hstr+1);
@@ -112,8 +110,7 @@ main(int argc, char *argv[]) {
         break;
       default:
         fprintf(stderr, USAGE, argv[0]);
-        exit(EXIT_FAILURE);
-        break;
+        return EXIT_FAILURE;
     }
   }
 #endif
@@ -123,7 +120,7 @@ main(int argc, char *argv[]) {
   Data *data = Data::get_instance();
   if (!data->load(&data_dir)) {
     Log::Error["main"] << "Could not load game data.";
-    exit(EXIT_FAILURE);
+    return EXIT_FAILURE;
   }
 
   Log::Info["main"] << "Initialize graphics...";
@@ -134,7 +131,7 @@ main(int argc, char *argv[]) {
     gfx->set_resolution(screen_width, screen_height, fullscreen);
   } catch (ExceptionFreeserf &e) {
     Log::Error[e.get_system().c_str()] << e.what();
-    return -1;
+    return EXIT_FAILURE;
   }
 
   /* TODO move to right place */
@@ -153,10 +150,10 @@ main(int argc, char *argv[]) {
   /* Either load a save game if specified or
      start a new game. */
   if (!save_file.empty()) {
-    if (!game->load_save_game(save_file)) exit(EXIT_FAILURE);
+    if (!game->load_save_game(save_file)) return EXIT_FAILURE;
   } else {
     PGameInfo game_info(new GameInfo(Random()));
-    if (!game->load_mission_map(game_info)) exit(EXIT_FAILURE);
+    if (!game->load_mission_map(game_info)) return EXIT_FAILURE;
   }
 
   /* Initialize interface */

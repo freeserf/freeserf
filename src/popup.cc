@@ -290,22 +290,24 @@ typedef enum Action {
 /* Draw the frame around the popup box. */
 void
 PopupBox::draw_popup_box_frame() {
-  frame->draw_sprite(0, 0, DATA_FRAME_POPUP_BASE+0);
-  frame->draw_sprite(0, 153, DATA_FRAME_POPUP_BASE+1);
-  frame->draw_sprite(0, 9, DATA_FRAME_POPUP_BASE+2);
-  frame->draw_sprite(136, 9, DATA_FRAME_POPUP_BASE+3);
+  frame->draw_sprite(0, 0, Data::AssetFramePopup, 0);
+  frame->draw_sprite(0, 153, Data::AssetFramePopup, 1);
+  frame->draw_sprite(0, 9, Data::AssetFramePopup, 2);
+  frame->draw_sprite(136, 9, Data::AssetFramePopup, 3);
 }
 
 /* Draw icon in a popup frame. */
 void
 PopupBox::draw_popup_icon(int x, int y, int sprite) {
-  frame->draw_sprite(8*x+8, y+9, DATA_ICON_BASE + sprite);
+  frame->draw_sprite(8*x+8, y+9, Data::AssetIcon, sprite);
 }
 
 /* Draw building in a popup frame. */
 void
 PopupBox::draw_popup_building(int x, int y, int sprite) {
-  frame->draw_transp_sprite(8*x+8, y+9, DATA_MAP_OBJECT_BASE + sprite, false);
+  Player *player = interface->get_player();
+  Color color = interface->get_player_color(player->get_index());
+  frame->draw_sprite(8*x+8, y+9, Data::AssetMapObject, sprite, false, color);
 }
 
 /* Fill the background of a popup frame. */
@@ -327,7 +329,7 @@ PopupBox::draw_box_row(int sprite, int y) {
 /* Draw a green string in a popup frame. */
 void
 PopupBox::draw_green_string(int x, int y, const std::string &str) {
-  frame->draw_string(8*x+8, y+9, 31, 0, str);
+  frame->draw_string(8*x+8, y+9, str, Color::green);
 }
 
 /* Draw a green number in a popup frame.
@@ -365,7 +367,7 @@ PopupBox::draw_green_number(int x, int y, int n) {
    No limits on n. */
 void
 PopupBox::draw_green_large_number(int x, int y, int n) {
-  frame->draw_number(8*x+8, 9+y, 31, 0, n);
+  frame->draw_number(8*x+8, 9+y, n, Color::green);
 }
 
 /* Draw small green number. */
@@ -386,11 +388,11 @@ PopupBox::get_player_face_sprite(size_t face) {
 /* Draw player face in popup frame. */
 void
 PopupBox::draw_player_face(int x, int y, int player) {
-  int color = 0;
+  Color color;
   size_t face = 0;
   Player *p = interface->get_game()->get_player(player);
   if (p != NULL) {
-    color = p->get_color();
+    color = interface->get_player_color(player);
     face = p->get_face();
   }
 
@@ -404,8 +406,7 @@ PopupBox::draw_custom_bld_box(const int sprites[]) {
   while (sprites[0] > 0) {
     int x = sprites[1];
     int y = sprites[2];
-    frame->draw_transp_sprite(8*x+8, y+9, DATA_MAP_OBJECT_BASE + sprites[0],
-                              false);
+    frame->draw_sprite(8*x+8, y+9, Data::AssetMapObject, sprites[0], false);
     sprites += 3;
   }
 }
@@ -836,7 +837,8 @@ PopupBox::draw_stat_bld_4_box() {
 }
 
 void
-PopupBox::draw_player_stat_chart(const int *data, int index, int color) {
+PopupBox::draw_player_stat_chart(const int *data, int index,
+                                 const Color &color) {
   int x = 8;
   int y = 9;
   int width = 112;
@@ -928,8 +930,9 @@ PopupBox::draw_stat_8_box() {
     if (interface->get_game()->get_player(GAME_MAX_PLAYER_COUNT-i-1) != NULL) {
       Player *player =
                    interface->get_game()->get_player(GAME_MAX_PLAYER_COUNT-i-1);
+      Color color = interface->get_player_color(GAME_MAX_PLAYER_COUNT-i-1);
       draw_player_stat_chart(player->get_player_stat_history(mode), index,
-                             player->get_color());
+                             color);
     }
   }
 }
@@ -1063,7 +1066,7 @@ PopupBox::draw_stat_7_box() {
   for (int i = 0; i < 112; i++) {
     int value = std::min((historical_data[i]*multiplier) >> 16, 64);
     if (value > 0) {
-      frame->fill_rect(119 - i, 73 - value, 1, value, 72);
+      frame->fill_rect(119 - i, 73 - value, 1, value, Color(0xcf, 0x63, 0x63));
     }
   }
 }
@@ -1590,7 +1593,7 @@ PopupBox::draw_slide_bar(int x, int y, int value) {
 
   int width = value/1310;
   if (width > 0) {
-    frame->fill_rect(8*x+15, y+11, width, 4, 30);
+    frame->fill_rect(8*x+15, y+11, width, 4, Color(0x6b, 0xab, 0x3b));
   }
 }
 

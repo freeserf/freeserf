@@ -9,7 +9,10 @@ Build status
 
 Play
 ------
-Copy the data file from the original game to the same directory as freeserf. Alternatively you can put the data file in `~/.local/share/freeserf`. The data file is called `SPAE.PA`, `SPAD.PA`, `SPAF.PA` or `SPAU.PA`, depending on the language of the game.
+Copy the data file(s) from the original game to the same directory as freeserf. Alternatively you can put the data file in `~/.local/share/freeserf`. You may use data file(s) from DOS or Amiga game version.
+
+* DOS data file is called `SPAE.PA`, `SPAD.PA`, `SPAF.PA` or `SPAU.PA`, depending on the language of the game.
+* Amiga files `gfxheader`, `gfxfast`, `gfxchip`, `gfxpics`, `sounds`, `music`.
 
 Keyboard gameplay controls:
 

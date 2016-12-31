@@ -97,9 +97,8 @@ Viewport::draw_triangle_up(int x, int y, int m, int left, int right,
 
   int sprite = tri_spr[index];
 
-  frame->draw_masked_sprite(x, y,
-                            DATA_MAP_MASK_UP_BASE + mask,
-                            DATA_MAP_GROUND_BASE + sprite);
+  frame->draw_masked_sprite(x, y, Data::AssetMapMaskUp, mask,
+                            Data::AssetMapGround, sprite);
 }
 
 void
@@ -130,8 +129,8 @@ Viewport::draw_triangle_down(int x, int y, int m, int left, int right,
   int sprite = tri_spr[index];
 
   frame->draw_masked_sprite(x, y + MAP_TILE_HEIGHT,
-                            DATA_MAP_MASK_DOWN_BASE + mask,
-                            DATA_MAP_GROUND_BASE + sprite);
+                            Data::AssetMapMaskDown, mask,
+                            Data::AssetMapGround, sprite);
 }
 
 /* Draw a column (vertical) of tiles, starting at an up pointing tile. */
@@ -290,7 +289,7 @@ Viewport::get_tile_frame(unsigned int tid, int tc, int tr) {
 
   std::unique_ptr<Frame> tile_frame(
     Graphics::get_instance()->create_frame(tile_width, tile_height));
-  tile_frame->fill_rect(0, 0, tile_width, tile_height, 0);
+  tile_frame->fill_rect(0, 0, tile_width, tile_height, Color::black);
 
   int col = (tc*MAP_TILE_COLS + (tr*MAP_TILE_ROWS)/2) % map->get_cols();
   int row = tr*MAP_TILE_ROWS;
@@ -439,8 +438,8 @@ Viewport::draw_path_segment(int x, int y, MapPos pos, Direction dir) {
   }
 
   frame->draw_masked_sprite(x, y,
-                            DATA_PATH_MASK_BASE + mask,
-                            DATA_PATH_GROUND_BASE + sprite);
+                            Data::AssetPathMask, mask,
+                            Data::AssetPathGround, sprite);
 }
 
 void
@@ -504,7 +503,7 @@ Viewport::draw_border_segment(int x, int y, MapPos pos, Direction dir) {
     sprite += 3;
   }
 
-  frame->draw_transp_sprite(x, y, DATA_MAP_BORDER_BASE + sprite, false);
+  frame->draw_sprite(x, y, Data::AssetMapBorder, sprite, false);
 }
 
 void
@@ -588,32 +587,32 @@ Viewport::draw_paths_and_borders() {
 
 void
 Viewport::draw_game_sprite(int x, int y, int index) {
-  frame->draw_transp_sprite(x, y, DATA_GAME_OBJECT_BASE + index, true);
+  frame->draw_sprite(x, y, Data::AssetGameObject, index-1, true);
 }
 
 void
-Viewport::draw_serf(int x, int y, unsigned char color, int head, int body) {
-  frame->draw_transp_sprite(x, y, DATA_SERF_ARMS_BASE + body, true);
-  frame->draw_transp_sprite(x, y, DATA_SERF_TORSO_BASE + body, true, color);
+Viewport::draw_serf(int x, int y, const Color &color, int head, int body) {
+  frame->draw_sprite(x, y, Data::AssetSerfTorso, body, true, color);
 
   if (head >= 0) {
-    frame->draw_transp_sprite_relatively(x, y, DATA_SERF_HEAD_BASE + head,
-                                         DATA_SERF_ARMS_BASE + body);
+    frame->draw_sprite_relatively(x, y, Data::AssetSerfHead, head,
+                                  Data::AssetSerfTorso, body);
   }
 }
 
 void
-Viewport::draw_shadow_and_building_sprite(int x, int y, int index) {
-  frame->draw_overlay_sprite(x, y, DATA_MAP_SHADOW_BASE + index);
-  frame->draw_transp_sprite(x, y, DATA_MAP_OBJECT_BASE + index, true);
+Viewport::draw_shadow_and_building_sprite(int x, int y, int index,
+                                          const Color &color) {
+  frame->draw_sprite(x, y, Data::AssetMapShadow, index, true);
+  frame->draw_sprite(x, y, Data::AssetMapObject, index, true, color);
 }
 
 void
 Viewport::draw_shadow_and_building_unfinished(int x, int y, int index,
                                                 int progress) {
   float p = static_cast<float>(progress) / static_cast<float>(0xFFFF);
-  frame->draw_overlay_sprite(x, y, DATA_MAP_SHADOW_BASE + index, p);
-  frame->draw_transp_sprite(x, y, DATA_MAP_OBJECT_BASE + index, true, p);
+  frame->draw_sprite(x, y, Data::AssetMapShadow, index, true, p);
+  frame->draw_sprite(x, y, Data::AssetMapObject, index, true, p);
 }
 
 static const int map_building_frame_sprite[] = {
@@ -660,7 +659,8 @@ Viewport::draw_building_unfinished(Building *building, Building::Type bld_type,
 void
 Viewport::draw_ocupation_flag(Building *building, int x, int y, float mul) {
   if (building->has_knight()) {
-    draw_game_sprite(x, y - (mul * building->get_knight_count()),
+    draw_game_sprite(x, y -
+                     static_cast<int>(mul * building->get_knight_count()),
                      182 + ((interface->get_game()->get_tick() >> 3) & 3) +
                      4 * static_cast<int>(building->get_threat_level()));
   }
@@ -1131,18 +1131,17 @@ Viewport::draw_building(MapPos pos, int x, int y) {
 
 void
 Viewport::draw_water_waves(MapPos pos, int x, int y) {
-  int sprite = DATA_MAP_WAVES_BASE +
-               (((pos ^ 5) + (interface->get_game()->get_tick() >> 3)) & 0xf);
+  int sprite = (((pos ^ 5) + (interface->get_game()->get_tick() >> 3)) & 0xf);
 
-  if (map->type_down(pos) <= Map::TerrainWater3 &&
-      map->type_up(pos) <= Map::TerrainWater3) {
-    frame->draw_waves_sprite(x - 16, y, 0, sprite);
-  } else if (map->type_down(pos) <= Map::TerrainWater3) {
-    int mask = DATA_MAP_MASK_DOWN_BASE + 40;
-    frame->draw_waves_sprite(x, y + 16, mask, sprite);
+  if (map->type_down(pos) < 4 && map->type_up(pos) < 4) {
+    frame->draw_waves_sprite(x - 16, y, Data::AssetNone, 0,
+                             Data::AssetMapWaves, sprite);
+  } else if (map->type_down(pos) < 4) {
+    frame->draw_waves_sprite(x, y + 16, Data::AssetMapMaskDown, 40,
+                             Data::AssetMapWaves, sprite);
   } else {
-    int mask = DATA_MAP_MASK_UP_BASE + 40;
-    frame->draw_waves_sprite(x - 16, y, mask, sprite);
+    frame->draw_waves_sprite(x - 16, y, Data::AssetMapMaskUp, 40,
+                             Data::AssetMapWaves, sprite);
   }
 }
 
@@ -1174,10 +1173,10 @@ Viewport::draw_flag_and_res(MapPos pos, int x, int y) {
   }
 
   int pl_num = flag->get_owner();
-  int spr = 0x80 + (pl_num << 2) +
-            ((interface->get_game()->get_tick() >> 3) & 3);
+  Color player_color = interface->get_player_color(pl_num);
+  int spr = 0x80 + ((interface->get_game()->get_tick() >> 3) & 3);
 
-  draw_shadow_and_building_sprite(x, y, spr);
+  draw_shadow_and_building_sprite(x, y, spr, player_color);
 
   if (flag->get_resource_at_slot(3) != Resource::TypeNone) {
     draw_game_sprite(x+10, y+2, flag->get_resource_at_slot(3) + 1);
@@ -1233,7 +1232,8 @@ Viewport::draw_map_objects_row(MapPos pos, int y_base,
 
 /* Draw one individual serf in the row. */
 void
-Viewport::draw_row_serf(int x, int y, int shadow, int color, int body) {
+Viewport::draw_row_serf(int x, int y, bool shadow, const Color &color,
+                        int body) {
   const int index1[] = {
     0, 0, 48, 6, 96, -1, 48, 24,
     240, -1, 48, 30, 248, -1, 48, 12,
@@ -1314,7 +1314,7 @@ Viewport::draw_row_serf(int x, int y, int shadow, int color, int body) {
 
   /* Shadow */
   if (shadow) {
-    frame->draw_overlay_sprite(x, y, DATA_SERF_SHADOW);
+    frame->draw_sprite(x, y, Data::AssetSerfShadow, 0, true);
   }
 
   int hi = ((body >> 8) & 0xff) * 2;
@@ -1352,7 +1352,7 @@ Viewport::serf_get_body(Serf *serf) {
   };
 
   Animation *animation = data_source->get_animation(serf->get_animation(),
-                                                      serf->get_counter());
+                                                    serf->get_counter());
   int t = animation->time;
 
   switch (serf->get_type()) {
@@ -1866,9 +1866,8 @@ Viewport::draw_active_serf(Serf *serf, MapPos pos,
   int body = serf_get_body(serf);
 
   if (body > -1) {
-    int color =
-             interface->get_game()->get_player(serf->get_player())->get_color();
-    draw_row_serf(x, y, 1, color, body);
+    Color color = interface->get_player_color(serf->get_player());
+    draw_row_serf(x, y, true, color, body);
   }
 
   /* Draw additional serf */
@@ -1892,9 +1891,8 @@ Viewport::draw_active_serf(Serf *serf, MapPos pos,
       int body = serf_get_body(def_serf);
 
       if (body > -1) {
-        int color =
-         interface->get_game()->get_player(def_serf->get_player())->get_color();
-        draw_row_serf(x, y, 1, color, body);
+        Color color = interface->get_player_color(def_serf->get_player());
+        draw_row_serf(x, y, true, color, body);
       }
     }
   }
@@ -2006,9 +2004,8 @@ Viewport::draw_serf_row(MapPos pos, int y_base, int cols, int x_base) {
                        arr_1[pos & 0xf]) >> 3) & 0x7f];
       }
 
-      int color =
-            interface->get_game()->get_player(map->get_owner(pos))->get_color();
-      draw_row_serf(x, y, 1, color, body);
+      Color color = interface->get_player_color(map->get_owner(pos));
+      draw_row_serf(x, y, true, color, body);
     }
   }
 }
@@ -2140,8 +2137,7 @@ Viewport::draw_map_cursor_possible_build() {
         sprite = 50;
       } else if (interface->get_game()->can_player_build(pos,
                                                      interface->get_player()) &&
-                 Map::map_space_from_obj[map->get_obj(pos)] ==
-                   Map::SpaceOpen &&
+                 Map::map_space_from_obj[map->get_obj(pos)] == Map::SpaceOpen &&
                (interface->get_game()->can_build_flag(map->move_down_right(pos),
                                       interface->get_player()) ||
                  map->has_flag(map->move_down_right(pos)))) {
@@ -2185,7 +2181,7 @@ Viewport::draw_map_cursor() {
   int y = map->pos_row(pos);
   std::stringstream s;
   s << x << ":" << y;
-  frame->draw_string(0, 0, 75, 0, s.str());
+  frame->draw_string(0, 0, s.str(), 75, 0);
 */
 
   draw_map_cursor_sprite(pos, interface->get_map_cursor_sprite(0));
@@ -2197,7 +2193,7 @@ Viewport::draw_map_cursor() {
 }
 
 void
-Viewport::draw_base_grid_overlay(int color) {
+Viewport::draw_base_grid_overlay(const Color &color) {
   int x_base = -(offset_x + 16*(offset_y/20)) % 32;
   int y_base = -offset_y % 20;
 
@@ -2212,7 +2208,7 @@ Viewport::draw_base_grid_overlay(int color) {
 }
 
 void
-Viewport::draw_height_grid_overlay(int color) {
+Viewport::draw_height_grid_overlay(const Color &color) {
   int x_off = -(offset_x + 16*(offset_y/20)) % 32;
   int y_off = -offset_y % 20;
 
@@ -2270,8 +2266,8 @@ Viewport::internal_draw() {
     draw_landscape();
   }
   if (layers & LayerGrid) {
-    draw_base_grid_overlay(72);
-    draw_height_grid_overlay(76);
+    draw_base_grid_overlay(Color(0xcf, 0x63, 0x63));
+    draw_height_grid_overlay(Color(0xef, 0xef, 0x8f));
   }
   if (layers & LayerPaths) {
     draw_paths_and_borders();

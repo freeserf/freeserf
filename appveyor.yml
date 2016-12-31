@@ -3,7 +3,7 @@ os: Visual Studio 2015
 version: '{build}'
 
 platform:
-  - Win32
+  - x86
   - x64
 
 configuration:
@@ -38,6 +38,31 @@ install:
       $env:SDL2_MIXER_INCLUDE = "$SDL_MIXER_PREFIX\include"
       $env:SDL2_MIXER_LIB = "$SDL_MIXER_PREFIX\lib"
 
+  # libxmp
+  - if "%platform%" == "x86" call "%VS140COMNTOOLS%\..\..\VC\vcvarsall.bat"
+  - if "%platform%" == "x64" call "%VS140COMNTOOLS%\..\..\VC\vcvarsall.bat" x86_amd64
+  - ps: |
+      $XMP_VERSION = "4.4.1"
+      $XMP_PREFIX = "C:\sdl_root\XMP-$XMP_VERSION"
+      if (!(Test-Path "$XMP_PREFIX\lib\$env:PLATFORM\libxmp.lib")) {
+        Start-FileDownload https://sourceforge.net/projects/xmp/files/libxmp/$XMP_VERSION/libxmp-$XMP_VERSION.tar.gz
+        7z x "libxmp-$XMP_VERSION.tar.gz"
+        7z x "libxmp-$XMP_VERSION.tar"
+        cd libxmp-$XMP_VERSION
+        nmake Makefile.vc
+        md $XMP_PREFIX
+        md $XMP_PREFIX\include
+        md $XMP_PREFIX\lib
+        md $XMP_PREFIX\lib\$env:PLATFORM
+        Copy-Item -Path libxmp.dll -Destination $XMP_PREFIX\lib\$env:PLATFORM
+        Copy-Item -Path libxmp.lib -Destination $XMP_PREFIX\lib\$env:PLATFORM
+        Copy-Item -Path libxmp.exp -Destination $XMP_PREFIX\lib\$env:PLATFORM
+        Copy-Item -Path include\xmp.h -Destination $XMP_PREFIX\include
+        cd ..
+      }
+      $env:XMP_INCLUDE = "$XMP_PREFIX\include"
+      $env:XMP_LIB = "$XMP_PREFIX\lib"
+
 build_script:
   - msbuild windows\freeserf.sln
 
@@ -50,5 +75,6 @@ after_build:
       Copy-Item -Path README.md -Destination $ZIP_BASE\README.txt
       Copy-Item -Path windows\$env:PLATFORM\$env:CONFIGURATION\SDL2.dll -Destination $ZIP_BASE\
       Copy-Item -Path windows\$env:PLATFORM\$env:CONFIGURATION\SDL2_mixer.dll -Destination $ZIP_BASE\
+      Copy-Item -Path windows\$env:PLATFORM\$env:CONFIGURATION\libxmp.dll -Destination $ZIP_BASE\
       7z a $ZIP_FILE $ZIP_BASE\*
       Push-AppveyorArtifact $ZIP_FILE

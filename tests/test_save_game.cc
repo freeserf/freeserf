@@ -37,7 +37,7 @@ main(int argc, char *argv[]) {
   PGameInfo game_info(new GameInfo(Random("8667715887436237")));
   // Add player to game
   game_info->remove_all_players();
-  PPlayerInfo player_info(new PlayerInfo(12, 64, 35, 30, 40));
+  PPlayerInfo player_info(new PlayerInfo(12, {255, 255, 255}, 35, 30, 40));
   game_info->add_player(player_info);
   game->load_mission_map(game_info);
 

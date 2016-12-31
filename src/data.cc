@@ -1,7 +1,7 @@
 /*
  * data.cc - Game resources file functions
  *
- * Copyright (C) 2014  Wicked_Digger <wicked_digger@mail.ru>
+ * Copyright (C) 2014-2016  Wicked_Digger <wicked_digger@mail.ru>
  *
  * This file is part of freeserf.
  *
@@ -29,12 +29,56 @@
 
 #include "src/log.h"
 #include "src/data-source-dos.h"
+#include "src/data-source-amiga.h"
 
 #ifdef _WIN32
 // need for GetModuleFileName
 #include <Windows.h>
 #endif
 
+typedef struct {
+  Data::Resource resource;
+  Data::Type type;
+  unsigned int count;
+  const char *name;
+} data_resource_t;
+
+data_resource_t data_resources[] = {
+  { Data::AssetNone,         Data::TypeUnknown,   0,   "error"         },
+  { Data::AssetArtLandscape, Data::TypeSprite,    1,   "art_landscape" },
+  { Data::AssetAnimation,    Data::TypeAnimation, 1,   "animation"     },
+  { Data::AssetSerfShadow,   Data::TypeSprite,    1,   "serf_shadow"   },
+  { Data::AssetDottedLines,  Data::TypeSprite,    7,   "dotted_lines"  },
+  { Data::AssetArtFlag,      Data::TypeSprite,    7,   "art_flag"      },
+  { Data::AssetArtBox,       Data::TypeSprite,    14,  "art_box"       },
+  { Data::AssetCreditsBg,    Data::TypeSprite,    1,   "credits_bg"    },
+  { Data::AssetLogo,         Data::TypeSprite,    1,   "logo"          },
+  { Data::AssetSymbol,       Data::TypeSprite,    16,  "symbol"        },
+  { Data::AssetMapMaskUp,    Data::TypeSprite,    81,  "map_mask_up"   },
+  { Data::AssetMapMaskDown,  Data::TypeSprite,    81,  "map_mask_down" },
+  { Data::AssetPathMask,     Data::TypeSprite,    26,  "path_mask"     },
+  { Data::AssetMapGround,    Data::TypeSprite,    33,  "map_ground"    },
+  { Data::AssetPathGround,   Data::TypeSprite,    10,  "path_ground"   },
+  { Data::AssetGameObject,   Data::TypeSprite,    280, "game_object"   },
+  { Data::AssetFrameTop,     Data::TypeSprite,    4,   "frame_top"     },
+  { Data::AssetMapBorder,    Data::TypeSprite,    10,  "map_border"    },
+  { Data::AssetMapWaves,     Data::TypeSprite,    16,  "map_waves"     },
+  { Data::AssetFramePopup,   Data::TypeSprite,    4,   "frame_popup"   },
+  { Data::AssetIndicator,    Data::TypeSprite,    8,   "indicator"     },
+  { Data::AssetFont,         Data::TypeSprite,    44,  "font"          },
+  { Data::AssetFontShadow,   Data::TypeSprite,    44,  "font_shadow"   },
+  { Data::AssetIcon,         Data::TypeSprite,    318, "icon"          },
+  { Data::AssetMapObject,    Data::TypeSprite,    194, "map_object"    },
+  { Data::AssetMapShadow,    Data::TypeSprite,    194, "map_shadow"    },
+  { Data::AssetPanelButton,  Data::TypeSprite,    25,  "panel_button"  },
+  { Data::AssetFrameBottom,  Data::TypeSprite,    26,  "frame_bottom"  },
+  { Data::AssetSerfTorso,    Data::TypeSprite,    541, "serf_torso"    },
+  { Data::AssetSerfHead,     Data::TypeSprite,    630, "serf_head"     },
+  { Data::AssetFrameSplit,   Data::TypeSprite,    3,   "frame_split"   },
+  { Data::AssetSound,        Data::TypeSound,     90,  "sound"         },
+  { Data::AssetMusic,        Data::TypeMusic,     7,   "music"         },
+  { Data::AssetCursor,       Data::TypeSprite,    1,   "cursor"        },
+};
 
 Data::Data() : data_source(nullptr) {}
 
@@ -42,6 +86,9 @@ Data *
 Data::get_instance() {
   static Data instance;
   return &instance;
+}
+
+Data::~Data() {
 }
 
 // Try to load data file from given path or standard paths.
@@ -53,6 +100,7 @@ Data::load(const std::string* path) {
   // If it is possible, prefer DOS game data.
   std::vector<std::unique_ptr<DataSource>> data_sources;
   data_sources.emplace_back(new DataSourceDOS());
+  data_sources.emplace_back(new DataSourceAmiga());
 
   std::list<std::string> search_paths;
   if (path == nullptr || path->empty()) {
@@ -148,4 +196,19 @@ Data::get_standard_search_paths() const {
 #endif
 
   return paths;
+}
+
+Data::Type
+Data::get_resource_type(Resource resource) {
+  return data_resources[resource].type;
+}
+
+unsigned int
+Data::get_resource_count(Resource resource) {
+  return data_resources[resource].count;
+}
+
+const char *
+Data::get_resource_name(Resource resource) {
+  return data_resources[resource].name;
 }

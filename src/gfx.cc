@@ -26,6 +26,10 @@
 #include "src/video.h"
 #include "src/data-source.h"
 
+const Color Color::black = Color(0x00, 0x00, 0x00);
+const Color Color::green = Color(0x73, 0xb3, 0x43);
+const Color Color::transparent = Color(0x00, 0x00, 0x00, 0x00);
+
 ExceptionGFX::ExceptionGFX(const std::string &description) throw()
   : ExceptionFreeserf(description) {
 }
@@ -94,7 +98,7 @@ Graphics::Graphics() throw(ExceptionFreeserf) {
 
   Data *data = Data::get_instance();
   DataSource *data_source = data->get_data_source();
-  Sprite *sprite = data_source->get_transparent_sprite(DATA_CURSOR, 0);
+  Sprite *sprite = data_source->get_sprite(Data::AssetCursor, 0, {0, 0, 0, 0});
   video->set_cursor(sprite->get_data(), sprite->get_width(),
                     sprite->get_height());
   delete sprite;
@@ -124,39 +128,24 @@ Graphics::get_instance() {
 /* Draw the opaque sprite with data file index of
    sprite at x, y in dest frame. */
 void
-Frame::draw_sprite(int x, int y, unsigned int sprite) {
-  uint64_t id = Sprite::create_sprite_id(sprite, 0, 0);
-  Image *image = Image::get_cached_image(id);
-  if (image == NULL) {
-    Sprite *s = data_source->get_sprite(sprite);
-    if (s == NULL) {
-      Log::Warn["graphics"] << "Failed to decode sprite #" << sprite;
-      return;
-    }
-
-    image = new Image(video, s);
-    Image::cache_image(id, image);
-
-    delete s;
-  }
-
-  x += image->get_offset_x();
-  y += image->get_offset_y();
-  video->draw_image(image->get_video_image(), x, y, 0, video_frame);
+Frame::draw_sprite(int x, int y, Data::Resource res, unsigned int index) {
+  draw_sprite(x, y, res, index, false, Color::transparent, 1.f);
 }
 
-/* Draw the transparent sprite with data file index of
-   sprite at x, y in dest frame.*/
-
 void
-Frame::draw_transp_sprite(int x, int y, unsigned int sprite, bool use_off,
-                            unsigned char color_off, float progress) {
-  uint64_t id = Sprite::create_sprite_id(sprite, 0, color_off);
+Frame::draw_sprite(int x, int y, Data::Resource res, unsigned int index,
+                   bool use_off, const Color &color, float progress) {
+  Sprite::Color pc = {color.get_blue(),
+                      color.get_green(),
+                      color.get_red(),
+                      color.get_alpha()};
+  uint64_t id = Sprite::create_id(res, index, 0, 0, pc);
   Image *image = Image::get_cached_image(id);
   if (image == NULL) {
-    Sprite *s = data_source->get_transparent_sprite(sprite, color_off);
+    Sprite *s = data_source->get_sprite(res, index, pc);
     if (s == NULL) {
-      Log::Warn["graphics"] << "Failed to decode sprite #" << sprite;
+      Log::Warn["graphics"] << "Failed to decode sprite #"
+                            << Data::get_resource_name(res) << ":" << index;
       return;
     }
 
@@ -177,58 +166,70 @@ Frame::draw_transp_sprite(int x, int y, unsigned int sprite, bool use_off,
 
 
 void
-Frame::draw_transp_sprite(int x, int y, unsigned int sprite, bool use_off) {
-  draw_transp_sprite(x, y, sprite, use_off, 0, 1.f);
+Frame::draw_sprite(int x, int y, Data::Resource res, unsigned int index,
+                   bool use_off) {
+  draw_sprite(x, y, res, index, use_off, Color::transparent, 1.f);
 }
 
 void
-Frame::draw_transp_sprite(int x, int y, unsigned int sprite, bool use_off,
-                          float progress) {
-  draw_transp_sprite(x, y, sprite, use_off, 0, progress);
+Frame::draw_sprite(int x, int y, Data::Resource res, unsigned int index,
+                   bool use_off, float progress) {
+  draw_sprite(x, y, res, index, use_off, Color::transparent, progress);
 }
 
 void
-Frame::draw_transp_sprite(int x, int y, unsigned int sprite, bool use_off,
-                          unsigned char color_offs) {
-  draw_transp_sprite(x, y, sprite, use_off, color_offs, 1.f);
+Frame::draw_sprite(int x, int y, Data::Resource res, unsigned int index,
+                   bool use_off, const Color &color) {
+  draw_sprite(x, y, res, index, use_off, color, 1.f);
 }
 
 void
-Frame::draw_transp_sprite_relatively(int x, int y, unsigned int sprite,
-                                     unsigned int offs_sprite) {
-  Sprite *s = data_source->get_empty_sprite(offs_sprite);
+Frame::draw_sprite_relatively(int x, int y, Data::Resource res,
+                              unsigned int index,
+                              Data::Resource relative_to_res,
+                              unsigned int relative_to_index) {
+  Sprite *s = data_source->get_sprite(relative_to_res, relative_to_index,
+                                      {0, 0, 0, 0});
   x += s->get_delta_x();
   y += s->get_delta_y();
 
-  draw_transp_sprite(x, y, sprite, true, 0, 1.f);
+  draw_sprite(x, y, res, index, true, Color::transparent, 1.f);
   delete s;
 }
 
 /* Draw the masked sprite with given mask and sprite
    indices at x, y in dest frame. */
 void
-Frame::draw_masked_sprite(int x, int y, unsigned int mask,
-                          unsigned int sprite) {
-  uint64_t id = Sprite::create_sprite_id(sprite, mask, 0);
+Frame::draw_masked_sprite(int x, int y, Data::Resource mask_res,
+                          unsigned int mask_index, Data::Resource res,
+                          unsigned int index) {
+  uint64_t id = Sprite::create_id(res, index, mask_res, mask_index,
+                                  {0, 0, 0, 0});
   Image *image = Image::get_cached_image(id);
   if (image == NULL) {
-    Sprite *s = data_source->get_sprite(sprite);
+    Sprite *s = data_source->get_sprite(res, index, {0, 0, 0, 0});
     if (s == NULL) {
-      Log::Warn["graphics"] << "Failed to decode sprite #" << sprite;
+      Log::Warn["graphics"] << "Failed to decode sprite #"
+                            << Data::get_resource_name(res) << ":" << index;
       return;
     }
 
-    Sprite *m = data_source->get_mask_sprite(mask);
+    Sprite *m = data_source->get_sprite(mask_res, mask_index, {0, 0, 0, 0});
     if (m == NULL) {
-      Log::Warn["graphics"] << "Failed to decode sprite #" << sprite;
+      Log::Warn["graphics"] << "Failed to decode sprite #"
+                            << Data::get_resource_name(mask_res)
+                            << ":" << mask_index;
       delete s;
       return;
     }
 
     Sprite *masked = s->get_masked(m);
     if (masked == NULL) {
-      Log::Warn["graphics"] << "Failed to apply mask #" << mask
-                            << " to sprite #" << sprite;
+      Log::Warn["graphics"] << "Failed to apply mask #"
+                            << Data::get_resource_name(mask_res)
+                            << ":" << mask_index
+                            << " to sprite #"
+                            << Data::get_resource_name(res) << ":" << index;
       return;
     }
 
@@ -248,66 +249,39 @@ Frame::draw_masked_sprite(int x, int y, unsigned int mask,
   video->draw_image(image->get_video_image(), x, y, 0, video_frame);
 }
 
-/* Draw the overlay sprite with data file index of
-   sprite at x, y in dest frame. Rendering will be
-   offset in the vertical axis from y_off in the
-   sprite. */
-void
-Frame::draw_overlay_sprite(int x, int y, unsigned int sprite) {
-  draw_overlay_sprite(x, y, sprite, 1.f);
-}
-
-void
-Frame::draw_overlay_sprite(int x, int y, unsigned int sprite,
-                             float progress) {
-  uint64_t id = Sprite::create_sprite_id(sprite, 0, 0);
-  Image *image = Image::get_cached_image(id);
-  if (image == NULL) {
-    Sprite *s = data_source->get_overlay_sprite(sprite);
-    if (s == NULL) {
-      Log::Warn["graphics"] << "Failed to decode sprite #" << sprite;
-      return;
-    }
-
-    image = new Image(video, s);
-    Image::cache_image(id, image);
-
-    delete s;
-  }
-
-  x += image->get_offset_x();
-  y += image->get_offset_y();
-
-  int y_off = image->get_height() - static_cast<int>(image->get_height() *
-                                                     progress);
-
-  video->draw_image(image->get_video_image(), x, y, y_off, video_frame);
-}
-
 /* Draw the waves sprite with given mask and sprite
    indices at x, y in dest frame. */
 void
-Frame::draw_waves_sprite(int x, int y, unsigned int mask, unsigned int sprite) {
-  uint64_t id = Sprite::create_sprite_id(sprite, mask, 0);
+Frame::draw_waves_sprite(int x, int y, Data::Resource mask_res,
+                         unsigned int mask_index, Data::Resource res,
+                         unsigned int index) {
+  uint64_t id = Sprite::create_id(res, index, mask_res, mask_index,
+                                  {0, 0, 0, 0});
   Image *image = Image::get_cached_image(id);
   if (image == NULL) {
-    Sprite *s = data_source->get_transparent_sprite(sprite, 0);
+    Sprite *s = data_source->get_sprite(res, index, {0, 0, 0, 0});
     if (s == NULL) {
-      Log::Warn["graphics"] << "Failed to decode sprite #" << sprite;
+      Log::Warn["graphics"] << "Failed to decode sprite #"
+                            << Data::get_resource_name(res) << ":" << index;
       return;
     }
 
-    if (mask > 0) {
-      Sprite *m = data_source->get_mask_sprite(mask);
+    if (mask_res > 0) {
+      Sprite *m = data_source->get_sprite(mask_res, mask_index, {0, 0, 0, 0});
       if (m == NULL) {
-        Log::Warn["graphics"] << "Failed to decode sprite #" << sprite;
+        Log::Warn["graphics"] << "Failed to decode sprite #"
+                              << Data::get_resource_name(mask_res)
+                              << ":" << mask_index;
         return;
       }
 
       Sprite *masked = s->get_masked(m);
       if (masked == NULL) {
-        Log::Warn["graphics"] << "Failed to apply mask #" << mask
-                              << " to sprite #" << sprite;
+        Log::Warn["graphics"] << "Failed to apply mask #"
+                              << Data::get_resource_name(mask_res)
+                              << ":" << mask_index
+                              << " to sprite #"
+                              << Data::get_resource_name(res) << ":" << index;
         return;
       }
 
@@ -330,8 +304,8 @@ Frame::draw_waves_sprite(int x, int y, unsigned int mask, unsigned int sprite) {
 
 /* Draw a character at x, y in the dest frame. */
 void
-Frame::draw_char_sprite(int x, int y, unsigned char c, unsigned char color,
-                        unsigned char shadow) {
+Frame::draw_char_sprite(int x, int y, unsigned char c, const Color &color,
+                        const Color &shadow) {
   static const int sprite_offset_from_ascii[] = {
     -1, -1, -1, -1, -1, -1, -1, -1,
     -1, -1, -1, -1, -1, -1, -1, -1,
@@ -371,16 +345,16 @@ Frame::draw_char_sprite(int x, int y, unsigned char c, unsigned char color,
   int s = sprite_offset_from_ascii[c];
   if (s < 0) return;
 
-  if (shadow) {
-    draw_transp_sprite(x, y, DATA_FONT_SHADOW_BASE + s, false, shadow);
+  if (shadow != Color::transparent) {
+    draw_sprite(x, y, Data::AssetFontShadow, s, false, shadow);
   }
-  draw_transp_sprite(x, y, DATA_FONT_BASE + s, false, color);
+  draw_sprite(x, y, Data::AssetFont, s, false, color);
 }
 
 /* Draw the string str at x, y in the dest frame. */
 void
-Frame::draw_string(int x, int y, unsigned char color, int shadow,
-                   const std::string &str) {
+Frame::draw_string(int x, int y, const std::string &str, const Color &color,
+                   const Color &shadow) {
   for (char c : str) {
 /*
     if (string_bg) {
@@ -395,40 +369,45 @@ Frame::draw_string(int x, int y, unsigned char color, int shadow,
 
 /* Draw the number n at x, y in the dest frame. */
 void
-Frame::draw_number(int x, int y, unsigned char color, int shadow, int n) {
-  if (n < 0) {
+Frame::draw_number(int x, int y, int value, const Color &color,
+                   const Color &shadow) {
+  if (value < 0) {
     draw_char_sprite(x, y, '-', color, shadow);
     x += 8;
-    n *= -1;
+    value *= -1;
   }
 
-  if (n == 0) {
+  if (value == 0) {
     draw_char_sprite(x, y, '0', color, shadow);
     return;
   }
 
   int digits = 0;
-  for (int i = n; i > 0; i /= 10) digits += 1;
+  for (int i = value; i > 0; i /= 10) digits += 1;
 
   for (int i = digits-1; i >= 0; i--) {
-    draw_char_sprite(x+8*i, y, '0'+(n % 10), color, shadow);
-    n /= 10;
+    draw_char_sprite(x+8*i, y, '0'+(value % 10), color, shadow);
+    value /= 10;
   }
 }
 
 /* Draw a rectangle with color at x, y in the dest frame. */
 void
-Frame::draw_rect(int x, int y, int width, int height, unsigned char color) {
-  Color col = data_source->get_color(color);
-  Video::Color c = { col.red, col.green, col.blue, col.alpha };
+Frame::draw_rect(int x, int y, int width, int height, const Color &color) {
+  Video::Color c = { color.get_red(),
+                     color.get_green(),
+                     color.get_blue(),
+                     color.get_alpha() };
   video->draw_rect(x, y, width, height, c, video_frame);
 }
 
 /* Draw a rectangle with color at x, y in the dest frame. */
 void
-Frame::fill_rect(int x, int y, int width, int height, unsigned char color) {
-  Color col = data_source->get_color(color);
-  Video::Color c = { col.red, col.green, col.blue, col.alpha };
+Frame::fill_rect(int x, int y, int width, int height, const Color &color) {
+  Video::Color c = { color.get_red(),
+                     color.get_green(),
+                     color.get_blue(),
+                     color.get_alpha() };
   video->fill_rect(x, y, width, height, c, video_frame);
 }
 

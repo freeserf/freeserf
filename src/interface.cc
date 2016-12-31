@@ -436,6 +436,13 @@ Interface::set_player(unsigned int player_index) {
   viewport->move_to_map_pos(map_cursor_pos);
 }
 
+Color
+Interface::get_player_color(unsigned int player_index) {
+  PlayerColor player_color = game->get_player(player_index)->get_color();
+  Color color(player_color.red, player_color.green, player_color.blue);
+  return color;
+}
+
 void
 Interface::update_map_cursor_pos(MapPos pos) {
   map_cursor_pos = pos;

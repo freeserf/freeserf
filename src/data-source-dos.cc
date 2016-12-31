@@ -1,7 +1,7 @@
 /*
  * data-source-dos.cc - DOS game resources file functions
  *
- * Copyright (C) 2014  Jon Lund Steffensen <jonlst@gmail.com>
+ * Copyright (C) 2014-2016  Jon Lund Steffensen <jonlst@gmail.com>
  *
  * This file is part of freeserf.
  *
@@ -32,6 +32,15 @@
 #include "src/sfx2wav.h"
 #include "src/xmi2mid.h"
 
+#define DATA_SERF_ANIMATION_TABLE  2
+#define DATA_PALETTE_GAME          3
+#define DATA_SERF_ARMS             1850  // 3, dos_sprite_type_transparent
+/* Sound effects (index 0 is undefined). */
+#define DATA_SFX_BASE              3900
+/* XMI music (similar to MIDI). */
+#define DATA_MUSIC_GAME            3990
+#define DATA_MUSIC_ENDING          3992
+
 /* There are different types of sprites:
  - Non-packed, rectangular sprites: These are simple called sprites here.
  - Transparent sprites, "transp": These are e.g. buldings/serfs.
@@ -40,6 +49,44 @@
  This is used to either modify the alpha level of another sprite (shadows)
  or mask parts of other sprites completely (mask sprites).
  */
+
+DataSourceDOS::Resource dos_resources[] = {
+  {   0, 0,    DataSourceDOS::SpriteTypeUnknown     },  // none
+  {   1, 3997, DataSourceDOS::SpriteTypeSolid       },  // art_landscape
+  {   2, 0,    DataSourceDOS::SpriteTypeUnknown     },  // animation
+  {   4, 3,    DataSourceDOS::SpriteTypeOverlay     },  // serf_shadow
+  {   5, 3,    DataSourceDOS::SpriteTypeSolid       },  // dotted_lines
+  {  15, 3997, DataSourceDOS::SpriteTypeSolid       },  // art_flag
+  {  25, 3,    DataSourceDOS::SpriteTypeSolid       },  // art_box
+  {  40, 3998, DataSourceDOS::SpriteTypeSolid       },  // credits_bg
+  {  41, 3998, DataSourceDOS::SpriteTypeSolid       },  // logo
+  {  42, 3,    DataSourceDOS::SpriteTypeSolid       },  // symbol
+  {  60, 3,    DataSourceDOS::SpriteTypeMask        },  // map_mask_up
+  { 141, 3,    DataSourceDOS::SpriteTypeMask        },  // map_mask_down
+  { 230, 3,    DataSourceDOS::SpriteTypeMask        },  // path_mask
+  { 260, 3,    DataSourceDOS::SpriteTypeSolid       },  // map_ground
+  { 300, 3,    DataSourceDOS::SpriteTypeSolid       },  // path_ground
+  { 321, 3,    DataSourceDOS::SpriteTypeTransparent },  // game_object
+  { 600, 3,    DataSourceDOS::SpriteTypeSolid       },  // frame_top
+  { 610, 3,    DataSourceDOS::SpriteTypeTransparent },  // map_border
+  { 630, 3,    DataSourceDOS::SpriteTypeTransparent },  // map_waves
+  { 660, 3,    DataSourceDOS::SpriteTypeSolid       },  // frame_popup
+  { 670, 3,    DataSourceDOS::SpriteTypeSolid       },  // indicator
+  { 750, 3,    DataSourceDOS::SpriteTypeTransparent },  // font
+  { 810, 3,    DataSourceDOS::SpriteTypeTransparent },  // font_shadow
+  { 870, 3,    DataSourceDOS::SpriteTypeSolid       },  // icon
+  {1250, 3,    DataSourceDOS::SpriteTypeTransparent },  // map_object
+  {1500, 3,    DataSourceDOS::SpriteTypeOverlay     },  // map_shadow
+  {1750, 3,    DataSourceDOS::SpriteTypeSolid       },  // panel_button
+  {1780, 3,    DataSourceDOS::SpriteTypeSolid       },  // frame_bottom
+  {2500, 3,    DataSourceDOS::SpriteTypeTransparent },  // serf_torso
+  {3150, 3,    DataSourceDOS::SpriteTypeTransparent },  // serf_head
+  {3880, 3,    DataSourceDOS::SpriteTypeSolid       },  // frame_split
+  {3900, 0,    DataSourceDOS::SpriteTypeUnknown     },  // sound
+  {3990, 0,    DataSourceDOS::SpriteTypeUnknown     },  // music
+  {3999, 3,    DataSourceDOS::SpriteTypeTransparent },  // cursor
+  {   3, 0,    DataSourceDOS::SpriteTypeUnknown     }   // palette
+};
 
 DataSourceDOS::DataSourceDOS() {
   sprites = NULL;
@@ -191,24 +238,118 @@ DataSourceDOS::fixup() {
 
 /* Create sprite object */
 Sprite *
-DataSourceDOS::get_sprite(unsigned int index) {
-  size_t size = 0;
-  void *data = get_object(index, &size);
-  if (data == NULL) {
+DataSourceDOS::get_sprite(Data::Resource res, unsigned int index,
+                          const Sprite::Color &color) {
+  if (index >= Data::get_resource_count(res)) {
     return NULL;
   }
 
-  Color *palette = get_palette(DATA_PALETTE_GAME);
+  Resource &dos_res = dos_resources[res];
+
+  ColorDOS *palette = get_dos_palette(dos_res.dos_palette);
   if (palette == NULL) {
     return NULL;
   }
 
-  return new SpriteDosSolid(data, size, palette);
+  if (res == Data::AssetSerfTorso) {
+    size_t size = 0;
+    void *data = get_object(dos_res.index + index, &size);
+    if (data == NULL) {
+      return NULL;
+    }
+    SpriteBaseDOS *torso = new SpriteDosTransparent(data, size, palette, 64);
+
+    data = get_object(dos_res.index + index, &size);
+    if (data == NULL) {
+      delete torso;
+      return NULL;
+    }
+    SpriteBaseDOS *torso2 = new SpriteDosTransparent(data, size, palette, 72);
+    Sprite *filled = torso->create_mask(torso2);
+    filled->fill_masked({0xe3, 0xe3, 0x00, 0xff});
+    Sprite *diff = torso->create_diff(filled);
+    filled->fill_masked(color);
+    filled->add(diff);
+    torso->stick(filled, 0, 0);
+    delete torso2;
+    delete filled;
+    delete diff;
+    data = get_object(DATA_SERF_ARMS + index, &size);
+    SpriteBaseDOS *arms = new SpriteDosTransparent(data, size, palette);
+    torso->stick(arms, 0, 0);
+    delete arms;
+    return torso;
+  } else if (res == Data::AssetMapObject) {
+    if ((index >= 128) && (index <= 143)) {
+      int flag_frame = (index - 128) % 4;
+      size_t size = 0;
+      void *data = get_object(dos_res.index + 128 + flag_frame, &size);
+      if (data == NULL) {
+        return NULL;
+      }
+      Sprite *s1 = new SpriteDosTransparent(data, size, palette);
+      data = get_object(dos_res.index + 128 + 4 + flag_frame, &size);
+      if (data == NULL) {
+        delete s1;
+        return NULL;
+      }
+      Sprite *s2 = new SpriteDosTransparent(data, size, palette);
+      Sprite *filled = s1->create_mask(s2);
+      filled->fill_masked({0xe3, 0xe3, 0x00, 0xff});
+      Sprite *diff = s1->create_diff(filled);
+      filled->fill_masked(color);
+      filled->add(diff);
+      s1->stick(filled, 0, 0);
+      delete s2;
+      delete filled;
+      delete diff;
+      return s1;
+    }
+  } else if (res == Data::AssetFont || res == Data::AssetFontShadow) {
+    size_t size = 0;
+    void *data = get_object(dos_res.index + index, &size);
+    if (data == NULL) {
+      return NULL;
+    }
+    Sprite *res = new SpriteDosTransparent(data, size, palette);
+    res->fill_masked(color);
+    return res;
+  }
+
+  size_t size = 0;
+  void *data = get_object(dos_res.index + index, &size);
+  if (data == NULL) {
+    return NULL;
+  }
+
+  Sprite *sprite = NULL;
+  switch (dos_res.sprite_type) {
+    case SpriteTypeSolid: {
+      sprite = new SpriteDosSolid(data, size, palette);
+      break;
+    }
+    case SpriteTypeTransparent: {
+      sprite = new SpriteDosTransparent(data, size, palette);
+      break;
+    }
+    case SpriteTypeOverlay: {
+      sprite = new SpriteDosOverlay(data, size, palette, 0x80);
+      break;
+    }
+    case SpriteTypeMask: {
+      sprite = new SpriteDosMask(data, size);
+      break;
+    }
+    default:
+      return NULL;
+  }
+
+  return sprite;
 }
 
 DataSourceDOS::SpriteDosSolid::SpriteDosSolid(void *data, size_t size,
-                                              Color *palette)
-  : SpriteDosBase(data, size) {
+                                              ColorDOS *palette)
+  : SpriteBaseDOS(data, size) {
   size -= sizeof(dos_sprite_header_t);
   if (size != width * height) {
     assert(0);
@@ -219,7 +360,7 @@ DataSourceDOS::SpriteDosSolid::SpriteDosSolid(void *data, size_t size,
   uint8_t *dest = this->data;
 
   while (src < end) {
-    Color color = palette[*src++];
+    ColorDOS color = palette[*src++];
     *dest++ = color.b; /* Blue */
     *dest++ = color.g; /* Green */
     *dest++ = color.r; /* Red */
@@ -227,39 +368,11 @@ DataSourceDOS::SpriteDosSolid::SpriteDosSolid(void *data, size_t size,
   }
 }
 
-Sprite *
-DataSourceDOS::get_empty_sprite(unsigned int index) {
-  size_t size = 0;
-  void *data = get_object(index, &size);
-  if (data == NULL) {
-    return NULL;
-  }
-
-  return new SpriteDosEmpty(data, size);
-}
-
-/* Create transparent sprite object */
-Sprite *
-DataSourceDOS::get_transparent_sprite(unsigned int index, int color_off) {
-  size_t size = 0;
-  void *data = get_object(index, &size);
-  if (data == NULL) {
-    return NULL;
-  }
-
-  Color *palette = get_palette(DATA_PALETTE_GAME);
-  if (palette == NULL) {
-    return NULL;
-  }
-
-  return new SpriteDosTransparent(data, size, palette, color_off);
-}
-
 DataSourceDOS::SpriteDosTransparent::SpriteDosTransparent(void *data,
                                                           size_t size,
-                                                          Color *palette,
-                                                          int color_off)
-  : SpriteDosBase(data, size) {
+                                                          ColorDOS *palette,
+                                                          uint8_t color)
+  : SpriteBaseDOS(data, size) {
   size -= sizeof(dos_sprite_header_t);
   uint8_t *src = reinterpret_cast<uint8_t*>(data) + sizeof(dos_sprite_header_t);
   uint8_t *end = src + size;
@@ -276,8 +389,8 @@ DataSourceDOS::SpriteDosTransparent::SpriteDosTransparent(void *data,
 
     size_t fill = *src++;
     for (size_t i = 0; i < fill; i++) {
-      unsigned int p_index = *src++ + color_off;
-      Color color = palette[p_index];
+      unsigned int p_index = *src++ + color;  // color_off;
+      ColorDOS color = palette[p_index];
       *dest++ = color.b; /* Blue */
       *dest++ = color.g; /* Green */
       *dest++ = color.r; /* Red */
@@ -286,26 +399,10 @@ DataSourceDOS::SpriteDosTransparent::SpriteDosTransparent(void *data,
   }
 }
 
-Sprite *
-DataSourceDOS::get_overlay_sprite(unsigned int index) {
-  size_t size = 0;
-  void *data = get_object(index, &size);
-  if (data == NULL) {
-    return NULL;
-  }
-
-  Color *palette = get_palette(DATA_PALETTE_GAME);
-  if (palette == NULL) {
-    return NULL;
-  }
-
-  return new SpriteDosOverlay(data, size, palette, 0x80);
-}
-
 DataSourceDOS::SpriteDosOverlay::SpriteDosOverlay(void *data, size_t size,
-                                                  Color *palette,
+                                                  ColorDOS *palette,
                                                   unsigned char value)
-  : SpriteDosBase(data, size) {
+  : SpriteBaseDOS(data, size) {
   size -= sizeof(dos_sprite_header_t);
   uint8_t *src = reinterpret_cast<uint8_t*>(data) + sizeof(dos_sprite_header_t);
   uint8_t *end = src + size;
@@ -322,7 +419,7 @@ DataSourceDOS::SpriteDosOverlay::SpriteDosOverlay(void *data, size_t size,
 
     size_t fill = *src++;
     for (size_t i = 0; i < fill; i++) {
-      Color color = palette[value];
+      ColorDOS color = palette[value];
       *dest++ = color.b; /* Blue */
       *dest++ = color.g; /* Green */
       *dest++ = color.r; /* Red */
@@ -331,19 +428,8 @@ DataSourceDOS::SpriteDosOverlay::SpriteDosOverlay(void *data, size_t size,
   }
 }
 
-Sprite *
-DataSourceDOS::get_mask_sprite(unsigned int index) {
-  size_t size = 0;
-  void *data = get_object(index, &size);
-  if (data == NULL) {
-    return NULL;
-  }
-
-  return new SpriteDosMask(data, size);
-}
-
 DataSourceDOS::SpriteDosMask::SpriteDosMask(void *data, size_t size)
-  : SpriteDosBase(data, size) {
+  : SpriteBaseDOS(data, size) {
   size -= sizeof(dos_sprite_header_t);
   uint8_t *src = reinterpret_cast<uint8_t*>(data) + sizeof(dos_sprite_header_t);
   uint8_t *end = src + size;
@@ -369,7 +455,7 @@ DataSourceDOS::SpriteDosMask::SpriteDosMask(void *data, size_t size)
 }
 
 
-DataSourceDOS::SpriteDosEmpty::SpriteDosEmpty(void *data, size_t size) {
+DataSourceDOS::SpriteBaseDOS::SpriteBaseDOS(void *data, size_t size) {
   if (size < sizeof(dos_sprite_header_t)) {
     assert(0);
   }
@@ -379,74 +465,8 @@ DataSourceDOS::SpriteDosEmpty::SpriteDosEmpty(void *data, size_t size) {
   delta_y = sprite->b_y;
   offset_x = sprite->x;
   offset_y = sprite->y;
-  width = sprite->w;
-  height = sprite->h;
-}
 
-/* Apply mask to map tile sprite
- The resulting sprite will be extended to the height of the mask
- by repeating lines from the top of the sprite. The width of the
- mask and the sprite must be identical. */
-Sprite *
-DataSourceDOS::SpriteDosBase::get_masked(Sprite *mask) {
-  if (mask->get_width() > width) {
-    assert(0);
-  }
-
-  Sprite *masked = new SpriteDosBase(mask);
-
-  uint32_t *pos = reinterpret_cast<uint32_t*>(masked->get_data());
-
-  uint32_t *s_beg = reinterpret_cast<uint32_t*>(data);
-  uint32_t *s_pos = s_beg;
-  uint32_t *s_end = s_beg + (width * height);
-  size_t s_delta = width - masked->get_width();
-
-  uint32_t *m_pos = reinterpret_cast<uint32_t*>(mask->get_data());
-
-  for (size_t y = 0; y < masked->get_height(); y++) {
-    for (size_t x = 0; x < masked->get_width(); x++) {
-      if (s_pos >= s_end) {
-        s_pos = s_beg;
-      }
-      *pos++ = *s_pos++ & *m_pos++;
-    }
-    s_pos += s_delta;
-  }
-
-  return masked;
-}
-
-DataSourceDOS::SpriteDosBase::SpriteDosBase(void *data, size_t size)
-  : SpriteDosEmpty(data, size) {
-  this->data = new uint8_t[width * height * 4];
-}
-
-DataSourceDOS::SpriteDosBase::SpriteDosBase(Sprite *base) {
-  width = base->get_width();
-  height = base->get_height();
-  delta_x = 0;
-  delta_y = 0;
-  offset_x = base->get_offset_x();
-  offset_y = base->get_offset_y();
-  data = new uint8_t[width * height * 4];
-}
-
-DataSourceDOS::SpriteDosBase::~SpriteDosBase() {
-  if (data != NULL) {
-    delete[] data;
-    data = NULL;
-  }
-}
-
-::Color
-DataSourceDOS::get_color(unsigned int index) {
-  DataSourceDOS::Color *palette = get_palette(DATA_PALETTE_GAME);
-  ::Color color = { palette[index].r,
-                    palette[index].g,
-                    palette[index].b,
-                    0xff };
-  return color;
+  create(sprite->w, sprite->h);
 }
 
 bool
@@ -545,13 +565,13 @@ DataSourceDOS::get_music(unsigned int index, size_t *size) {
   return mid;
 }
 
-DataSourceDOS::Color *
-DataSourceDOS::get_palette(unsigned int index) {
+DataSourceDOS::ColorDOS *
+DataSourceDOS::get_dos_palette(unsigned int index) {
   size_t size = 0;
   void *data = get_object(index, &size);
-  if ((data == NULL) || (size != sizeof(Color)*256)) {
+  if ((data == NULL) || (size != sizeof(ColorDOS)*256)) {
     return NULL;
   }
 
-  return reinterpret_cast<Color*>(data);
+  return reinterpret_cast<ColorDOS*>(data);
 }

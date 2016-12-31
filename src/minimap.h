@@ -39,7 +39,7 @@ class Minimap : public GuiObject {
 
   bool draw_grid;
 
-  std::unique_ptr<uint8_t> minimap;
+  std::unique_ptr<Color> minimap;
 
  public:
   explicit Minimap(Map *map);
@@ -63,7 +63,7 @@ class Minimap : public GuiObject {
 
   void init_minimap();
 
-  void draw_minimap_point(int col, int row, uint8_t color, int density);
+  void draw_minimap_point(int col, int row, const Color &color, int density);
   void draw_minimap_map();
   void draw_minimap_grid();
   void draw_minimap_rect();

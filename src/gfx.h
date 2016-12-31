@@ -26,6 +26,7 @@
 #include <string>
 #include <cstdint>
 
+#include "src/data.h"
 #include "src/debug.h"
 #include "src/video.h"
 
@@ -39,6 +40,34 @@ class ExceptionGFX : public ExceptionFreeserf {
 
 class Sprite;
 class DataSource;
+
+class Color {
+ protected:
+  uint8_t r;
+  uint8_t g;
+  uint8_t b;
+  uint8_t a;
+
+ public:
+  Color() : r(0), g(0), b(0), a(0) {}
+  Color(uint8_t _r, uint8_t _g, uint8_t _b, uint8_t _a = 0xff) :
+    r(_r), g(_g), b(_b), a(_a) {}
+
+  uint8_t get_red() const { return r; }
+  uint8_t get_green() const { return g; }
+  uint8_t get_blue() const { return b; }
+  uint8_t get_alpha() const { return a; }
+
+  static const Color black;
+  static const Color green;
+  static const Color transparent;
+
+  bool operator==(const Color &c) const { return (r == c.r) &&
+                                                 (g == c.g) &&
+                                                 (b == c.b) &&
+                                                 (a == c.a); }
+  inline bool operator!=(const Color &c) const { return !((*this) == c); }
+};
 
 class Image {
  protected:
@@ -90,36 +119,42 @@ class Frame {
   virtual ~Frame();
 
   /* Sprite functions */
-  void draw_sprite(int x, int y, unsigned int sprite);
-  void draw_transp_sprite(int x, int y, unsigned int sprite, bool use_off);
-  void draw_transp_sprite(int x, int y, unsigned int sprite, bool use_off,
-                          float progress);
-  void draw_transp_sprite(int x, int y, unsigned int sprite, bool use_off,
-                          unsigned char color_offs);
-  void draw_transp_sprite_relatively(int x, int y, unsigned int sprite,
-                                     unsigned int offs_sprite);
-  void draw_masked_sprite(int x, int y, unsigned int mask, unsigned int sprite);
-  void draw_overlay_sprite(int x, int y, unsigned int sprite);
-  void draw_overlay_sprite(int x, int y, unsigned int sprite, float progress);
-  void draw_waves_sprite(int x, int y, unsigned int mask, unsigned int sprite);
+  void draw_sprite(int x, int y, Data::Resource res, unsigned int index);
+  void draw_sprite(int x, int y, Data::Resource res, unsigned int index,
+                   bool use_off);
+  void draw_sprite(int x, int y, Data::Resource res, unsigned int index,
+                   bool use_off, float progress);
+  void draw_sprite(int x, int y, Data::Resource res, unsigned int index,
+                   bool use_off, const Color &color);
+  void draw_sprite_relatively(int x, int y, Data::Resource res,
+                              unsigned int index,
+                              Data::Resource relative_to_res,
+                              unsigned int relative_to_index);
+  void draw_masked_sprite(int x, int y, Data::Resource mask_res,
+                          unsigned int mask_index, Data::Resource res,
+                          unsigned int index);
+  void draw_waves_sprite(int x, int y, Data::Resource mask_res,
+                         unsigned int mask_index, Data::Resource res,
+                         unsigned int index);
 
   /* Drawing functions */
-  void draw_rect(int x, int y, int width, int height, unsigned char color);
-  void fill_rect(int x, int y, int width, int height, unsigned char color);
+  void draw_rect(int x, int y, int width, int height, const Color &color);
+  void fill_rect(int x, int y, int width, int height, const Color &color);
 
   /* Text functions */
-  void draw_string(int x, int y, unsigned char color, int shadow,
-                   const std::string &str);
-  void draw_number(int x, int y, unsigned char color, int shadow, int n);
+  void draw_string(int x, int y, const std::string &str, const Color &color,
+                   const Color &shadow = Color::transparent);
+  void draw_number(int x, int y, int value, const Color &color,
+                   const Color &shadow = Color::transparent);
 
   /* Frame functions */
   void draw_frame(int dx, int dy, int sx, int sy, Frame *src, int w, int h);
 
  protected:
-  void draw_char_sprite(int x, int y, unsigned char c, unsigned char color,
-                        unsigned char shadow);
-  void draw_transp_sprite(int x, int y, unsigned int sprite, bool use_off,
-                          unsigned char color_off, float progress);
+  void draw_char_sprite(int x, int y, unsigned char c, const Color &color,
+                        const Color &shadow);
+  void draw_sprite(int x, int y, Data::Resource res, unsigned int index,
+                   bool use_off, const Color &color, float progress);
 };
 
 class Graphics {

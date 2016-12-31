@@ -29,6 +29,12 @@
 #include "src/random.h"
 
 typedef struct {
+  unsigned char red;
+  unsigned char green;
+  unsigned char blue;
+} PlayerColor;
+
+typedef struct {
   unsigned int face;
   const char *name;
   const char *characterization;
@@ -44,7 +50,6 @@ typedef struct {
   unsigned int intelligence;
   unsigned int supplies;
   unsigned int reproduction;
-  unsigned int color;
   PosPreset castle;
 } PlayerPreset;
 
@@ -60,15 +65,16 @@ class PlayerInfo {
   unsigned int supplies;
   unsigned int reproduction;
   unsigned int face;
-  unsigned int color;
+  PlayerColor color;
   std::string name;
   std::string characterization;
   PosPreset castle_pos;
 
  public:
   explicit PlayerInfo(Random *random_base);
-  PlayerInfo(size_t character, unsigned int _color, unsigned int _intelligence,
-             unsigned int _supplies, unsigned int _reproduction);
+  PlayerInfo(size_t character, const PlayerColor &_color,
+             unsigned int _intelligence, unsigned int _supplies,
+             unsigned int _reproduction);
 
   void set_intelligence(unsigned int _intelligence) {
     intelligence = _intelligence; }
@@ -77,13 +83,13 @@ class PlayerInfo {
     reproduction = _reproduction; }
   void set_castle_pos(PosPreset _castle_pos);
   void set_character(size_t character);
-  void set_color(unsigned int _color) { color = _color; }
+  void set_color(const PlayerColor &_color) { color = _color; }
 
   unsigned int get_intelligence() const { return intelligence; }
   unsigned int get_supplies() const { return supplies; }
   unsigned int get_reproduction() const { return reproduction; }
   unsigned int get_face() const { return face; }
-  unsigned int get_color() const { return color; }
+  PlayerColor get_color() const { return color; }
   PosPreset get_castle_pos() const { return castle_pos; }
 
   bool has_castle() const;
@@ -113,7 +119,7 @@ class GameInfo {
   PPlayerInfo get_player(size_t player) const { return players[player]; }
 
   void add_player(const PPlayerInfo &player);
-  void add_player(size_t character, unsigned int _color,
+  void add_player(size_t character, const PlayerColor &_color,
                   unsigned int _intelligence, unsigned int _supplies,
                   unsigned int _reproduction);
   void remove_all_players();
@@ -123,8 +129,6 @@ class GameInfo {
 
   static CharacterPreset *get_character(size_t character);
   static size_t get_character_count();
-
-  static unsigned int get_color(size_t index);
 };
 
 typedef std::shared_ptr<GameInfo> PGameInfo;
