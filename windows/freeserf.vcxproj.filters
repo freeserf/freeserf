@@ -143,9 +143,6 @@
     <ClInclude Include="..\src\building.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="config.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="..\src\data-source-dos.h">
       <Filter>Header Files</Filter>
     </ClInclude>
