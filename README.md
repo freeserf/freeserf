@@ -7,6 +7,11 @@ Build status
 [![Build Status](https://travis-ci.org/freeserf/freeserf.svg?branch=master)](https://travis-ci.org/freeserf/freeserf)
 [![Build Status](https://ci.appveyor.com/api/projects/status/github/freeserf/freeserf?branch=master&svg=true)](https://ci.appveyor.com/project/jonls/freeserf)
 
+Last build binaries
+-------------------
+* [Windows x86](https://ci.appveyor.com/api/projects/jonls/freeserf/artifacts/freeserf-VC-x86-Release.zip?branch=master&job=Configuration%3A%20Release%3B%20Platform%3A%20x86)
+* [Windows x64](https://ci.appveyor.com/api/projects/jonls/freeserf/artifacts/freeserf-VC-x64-Release.zip?branch=master&job=Configuration%3A%20Release%3B%20Platform%3A%20x64)
+
 Play
 ------
 Copy the data file(s) from the original game to the same directory as freeserf. Alternatively you can put the data file in `~/.local/share/freeserf`. You may use data file(s) from DOS or Amiga game version.

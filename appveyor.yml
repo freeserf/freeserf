@@ -68,7 +68,7 @@ build_script:
 
 after_build:
   - ps: |
-      $ZIP_BASE = "freeserf-VC-$env:PLATFORM-$env:CONFIGURATION-$env:APPVEYOR_BUILD_NUMBER"
+      $ZIP_BASE = "freeserf-VC-$env:PLATFORM-$env:CONFIGURATION"
       $ZIP_FILE = "$($ZIP_BASE).zip"
       md $ZIP_BASE
       Copy-Item -Path windows\$env:PLATFORM\$env:CONFIGURATION\freeserf.exe -Destination $ZIP_BASE\
