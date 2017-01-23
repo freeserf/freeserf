@@ -24,7 +24,11 @@ AC_HEADER_ASSERT
 AC_CHECK_HEADERS([byteswap.h endian.h getopt.h sys/endian.h])
 
 # Check C++ 11 support and enable compiler flag
-AX_CHECK_COMPILE_FLAG([-std=c++11], [CXXFLAGS="$CXXFLAGS -std=c++11"])
+m4_ifdef([AX_CXX_COMPILE_STDCXX_11], [
+  AX_CXX_COMPILE_STDCXX_11([noext],[mandatory])
+], [
+  AC_MSG_ERROR([You need to install the "autoconf-archive" package.])
+])
 
 # Check SDL2_mixer support
 AC_MSG_CHECKING([whether to enable SDL2_mixer support])
