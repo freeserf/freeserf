@@ -39,19 +39,12 @@ class GameObject {
  public:
   GameObject() = delete;
   GameObject(Game *game, unsigned int index) : index(index), game(game) {}
-  GameObject(const GameObject& that) = delete;
-  GameObject(GameObject&& that) : index(that.index), game(that.game) {
-    that.game = nullptr;
-    that.index = std::numeric_limits<unsigned int>::max();
-  }
+  GameObject(const GameObject& that) = delete;  // Copying prohibited
+  GameObject(GameObject&& that) = delete;  // Moving prohibited
   virtual ~GameObject() {}
 
   GameObject& operator = (const GameObject& that) = delete;
-  GameObject& operator = (GameObject&& that) {
-    std::swap(this->index, that.index);
-    std::swap(this->game, that.game);
-    return *this;
-  }
+  GameObject& operator = (GameObject&& that) = delete;
 
   Game *get_game() const { return game; }
   unsigned int get_index() const { return index; }
@@ -60,7 +53,7 @@ class GameObject {
 template<class T>
 class Collection {
  protected:
-  typedef std::map<unsigned int, T> Objects;
+  typedef std::map<unsigned int, T*> Objects;
 
   Objects objects;
   unsigned int last_object_index;
@@ -76,6 +69,12 @@ class Collection {
   explicit Collection(Game *_game) {
     game = _game;
     last_object_index = 0;
+  }
+
+  virtual ~Collection() {
+    for (std::pair<const unsigned int, T*> &kv : objects) {
+      delete kv.second;
+    }
   }
 
   T*
@@ -95,11 +94,10 @@ class Collection {
       last_object_index++;
     }
 
-    objects.emplace(std::piecewise_construct,
-                    std::forward_as_tuple(new_index),
-                    std::forward_as_tuple(game, new_index));
+    T *new_object = new T(game, new_index);
+    objects[new_index] = new_object;
 
-    return &objects.at(new_index);
+    return new_object;
   }
 
   bool
@@ -110,9 +108,8 @@ class Collection {
   T*
   get_or_insert(unsigned int index) {
     if (!exists(index)) {
-      objects.emplace(std::piecewise_construct,
-                      std::forward_as_tuple(index),
-                      std::forward_as_tuple(game, index));
+      T *new_object = new T(game, index);
+      objects[index] = new_object;
 
       std::set<unsigned int>::iterator i = free_object_indexes.find(index);
       if (i != free_object_indexes.end()) {
@@ -127,17 +124,17 @@ class Collection {
       last_object_index = index + 1;
     }
 
-    return &objects.at(index);
+    return objects.at(index);
   }
 
   T* operator[] (unsigned int index) {
     if (!exists(index)) return nullptr;
-    return &objects.at(index);
+    return objects.at(index);
   }
 
   const T* operator[] (unsigned int index) const {
     if (!exists(index)) return nullptr;
-    return &objects.at(index);
+    return objects.at(index);
   }
 
   class Iterator {
@@ -166,7 +163,7 @@ class Collection {
     }
 
     T* operator*() const {
-      return &internal_iterator->second;
+      return internal_iterator->second;
     }
   };
 
@@ -193,7 +190,7 @@ class Collection {
     }
 
     const T* operator*() const {
-     return &internal_iterator->second;
+     return internal_iterator->second;
     }
   };
 
@@ -210,7 +207,9 @@ class Collection {
     if (i == objects.end()) {
       return;
     }
+    T *object_for_deleting = objects[index];
     objects.erase(i);
+    delete object_for_deleting;
 
     if (index == last_object_index) {
       last_object_index--;
