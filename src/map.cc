@@ -814,13 +814,15 @@ operator >> (SaveReaderBinary &reader, Map &map) {
       map.game_tiles[pos].paths = v8 & 0x3f;
       reader >> v8;
       map.landscape_tiles[pos].height = v8 & 0x1f;
-      map.game_tiles[pos].owner = (v8 >> 5) & 0x07;
+      if ((v8 >> 7) == 0x01) {
+        map.game_tiles[pos].owner = ((v8 >> 5) & 0x03) + 1;
+      }
       reader >> v8;
       map.landscape_tiles[pos].type_up = (Map::Terrain)((v8 >> 4) & 0x0f);
       map.landscape_tiles[pos].type_down = (Map::Terrain)(v8 & 0x0f);
       reader >> v8;
       map.landscape_tiles[pos].obj = (Map::Object)(v8 & 0x7f);
-      map.game_tiles[pos].idle_serf = (BIT_TEST(v8, 7) != 0);
+      map.game_tiles[pos].idle_serf = 0;  // (BIT_TEST(v8, 7) != 0);
     }
     for (unsigned int x = 0; x < map.geom().cols(); x++) {
       MapPos pos = map.pos(x, y);
@@ -844,6 +846,15 @@ operator >> (SaveReaderBinary &reader, Map &map) {
   }
 
   return reader;
+}
+
+MapPos
+Map::pos_from_saved_value(uint32_t val) {
+  val = val >> 2;
+  int x = val & get_col_mask();
+  val = val >> (get_row_shift() + 1);
+  int y = val & get_row_mask();
+  return pos(x, y);
 }
 
 #define SAVE_MAP_TILE_SIZE (16)

@@ -5291,11 +5291,7 @@ operator >> (SaveReaderBinary &reader, Serf &serf) {
   reader >> v32;  // 4
   serf.pos = v32;
   if (serf.pos != 0xFFFFFFFF) {
-    v32 = v32 >> 2;
-    int x = v32 & serf.game->get_map()->get_col_mask();
-    v32 = v32 >> (serf.game->get_map()->get_row_shift() + 1);
-    int y = v32 & serf.game->get_map()->get_row_mask();
-    serf.pos = serf.game->get_map()->pos(x, y);
+    serf.pos = serf.get_game()->get_map()->pos_from_saved_value(serf.pos);
   }
   reader >> v16;  // 8
   serf.tick = v16;
