@@ -30,7 +30,7 @@
 const int
 Minimap::max_scale = 8;
 
-Minimap::Minimap(Map *_map) {
+Minimap::Minimap(PMap _map) {
   offset_x = 0;
   offset_y = 0;
   scale = 1;
@@ -296,7 +296,7 @@ Minimap::handle_drag(int dx, int dy) {
 }
 
 void
-Minimap::set_map(Map *_map) {
+Minimap::set_map(PMap _map) {
   map = _map;
   init_minimap();
   set_redraw();

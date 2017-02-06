@@ -440,7 +440,7 @@ GameInitBox::generate_map_preview() {
     map->init_tiles(generator);
   }
 
-  minimap->set_map(map.get());
+  minimap->set_map(map);
 
   set_redraw();
 }

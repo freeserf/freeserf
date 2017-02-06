@@ -506,7 +506,7 @@ Building::update_military_flag_state() {
   };
 
   int f, k;
-  Map *map = game->get_map();
+  PMap map = game->get_map();
   for (f = 3, k = 0; f > 0; f--) {
     int offset;
     while ((offset = border_check_offsets[k++]) >= 0) {

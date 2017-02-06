@@ -56,7 +56,7 @@ class GameInitBox : public GuiObject {
   PGameInfo mission;
 
   std::unique_ptr<RandomInput> field;
-  std::unique_ptr<Map> map;
+  PMap map;
   std::unique_ptr<Minimap> minimap;
 
  public:

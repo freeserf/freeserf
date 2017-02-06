@@ -468,4 +468,6 @@ class Map {
   void update_hidden(MapPos pos, Random *rnd);
 };
 
+typedef std::shared_ptr<Map> PMap;
+
 #endif  // SRC_MAP_H_

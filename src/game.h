@@ -61,7 +61,7 @@ class Game : public EventLoop::Handler {
   typedef std::list<Inventory*> ListInventories;
 
  protected:
-  std::unique_ptr<Map> map;
+  PMap map;
 
   typedef std::map<unsigned int, unsigned int> values_t;
   int map_gold_morale_factor;
@@ -110,7 +110,7 @@ class Game : public EventLoop::Handler {
   Game();
   virtual ~Game() {}
 
-  Map *get_map() { return map.get(); }
+  PMap get_map() { return map; }
 
   unsigned int get_tick() const { return tick; }
   unsigned int get_const_tick() const { return const_tick; }
