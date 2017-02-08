@@ -459,6 +459,8 @@ class Map {
   friend SaveWriterText&
     operator << (SaveWriterText &writer, Map &map);
 
+  MapPos pos_from_saved_value(uint32_t val);
+
  protected:
   void init_spiral_pos_pattern();
 

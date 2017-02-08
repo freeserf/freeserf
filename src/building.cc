@@ -1239,7 +1239,7 @@ SaveReaderBinary&
 operator >> (SaveReaderBinary &reader, Building &building) {
   uint32_t v32;
   reader >> v32;
-  building.pos = v32;
+  building.pos = building.get_game()->get_map()->pos_from_saved_value(v32);
 
   uint8_t v8;
   reader >> v8;  // 4
