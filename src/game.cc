@@ -79,6 +79,8 @@ Game::Game() {
 
   knight_morale_counter = 0;
   inventory_schedule_counter = 0;
+
+  gold_total = 0;
 }
 
 /* Clear the serf request bit of all flags and buildings.
@@ -2371,6 +2373,8 @@ operator >> (SaveReaderBinary &reader, Game &game) {
   game.game_speed_save = DEFAULT_GAME_SPEED;
 
   game.init_land_ownership();
+
+  game.gold_total = game.map->get_gold_deposit();
 
   return reader;
 }
