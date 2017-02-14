@@ -33,7 +33,7 @@ TextInput::TextInput() : GuiObject() {
 }
 
 void
-TextInput::set_text(const char *text) {
+TextInput::set_text(const std::string &text) {
   this->text = text;
   set_redraw();
 }

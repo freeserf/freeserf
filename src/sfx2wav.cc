@@ -38,8 +38,9 @@
                           WRITE_DATA_WG(val);}
 #define WRITE_BYTE_WG(X) {*current = (uint8_t)X; current++;}
 
-char *write_wave_header(char *current, size_t data_size, size_t chenals,
-                        size_t rate) {
+static char *
+write_wave_header(char *current, size_t data_size, size_t chenals,
+                  size_t rate) {
   /* WAVE header */
   WRITE_BE32_WG(0x52494646);                      /* 'RIFF' */
   WRITE_LE32_WG((uint32_t)data_size + 36);        /* Chunks size */

@@ -66,7 +66,7 @@ VideoSDL::VideoSDL() throw(ExceptionVideo) {
   }
 
   /* Determine optimal pixel format for current window */
-  SDL_RendererInfo render_info = {0};
+  SDL_RendererInfo render_info = {0, 0, 0, {0}, 0, 0};
   SDL_GetRendererInfo(renderer, &render_info);
   for (Uint32 i = 0; i < render_info.num_texture_formats; i++) {
     Uint32 format = render_info.texture_formats[i];

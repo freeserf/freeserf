@@ -44,7 +44,7 @@ class TextInput : public GuiObject {
  public:
   TextInput();
 
-  void set_text(const char *text);
+  void set_text(const std::string &text);
   std::string get_text();
   unsigned int get_max_length() { return max_length; }
   void set_max_length(unsigned int max_length);
