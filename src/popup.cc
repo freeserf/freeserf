@@ -1,7 +1,7 @@
 /*
  * popup.cc - Popup GUI component
  *
- * Copyright (C) 2013-2014  Jon Lund Steffensen <jonlst@gmail.com>
+ * Copyright (C) 2013-2017  Jon Lund Steffensen <jonlst@gmail.com>
  *
  * This file is part of freeserf.
  *
@@ -37,6 +37,8 @@
 #include "src/minimap.h"
 #include "src/viewport.h"
 #include "src/inventory.h"
+#include "src/list.h"
+#include "src/text-input.h"
 
 /* Action types that can be fired from
    clicks in the popup window. */
@@ -283,9 +285,44 @@ typedef enum Action {
   ACTION_OPTIONS_VOLUME_MINUS,
   ACTION_OPTIONS_VOLUME_PLUS,
   ACTION_DEMOLISH,
-
-  ACTION_OPTIONS_SFX
+  ACTION_OPTIONS_SFX,
+  ACTION_SAVE,
+  ACTION_NEW_NAME
 } Action;
+
+PopupBox::PopupBox(Interface *_interface)
+  : minimap(new MinimapGame(_interface, _interface->get_game()))
+  , file_list(new ListSavedFiles())
+  , file_field(new TextInput()) {
+  interface = _interface;
+
+  current_sett_5_item = 8;
+  current_sett_6_item = 15;
+  current_stat_7_item = 7;
+  current_stat_8_mode = 0;
+
+  /* Initialize minimap */
+  minimap->set_displayed(false);
+  minimap->set_parent(this);
+  minimap->set_size(128, 128);
+  add_float(minimap.get(), 8, 9);
+
+  file_list->set_size(120, 100);
+  file_list->set_displayed(false);
+  file_list->set_selection_handler([this](const std::string &item) {
+    size_t p = item.find_last_of("/\\");
+    std::string file_name = item.substr(p+1, item.size());
+    this->file_field->set_text(file_name);
+  });
+  add_float(file_list.get(), 12, 22);
+
+  file_field->set_size(120, 10);
+  file_field->set_displayed(false);
+  add_float(file_field.get(), 12, 124);
+}
+
+PopupBox::~PopupBox() {
+}
 
 /* Draw the frame around the popup box. */
 void
@@ -2147,7 +2184,7 @@ PopupBox::draw_transport_info_box() {
   flag_view.switch_layer(Viewport::LayerLandscape);
   flag_view.switch_layer(Viewport::LayerSerfs);
   flag_view.switch_layer(Viewport::LayerCursor);
-  flag_view.set_displayed(1);
+  flag_view.set_displayed(true);
 
   flag_view.set_parent(this);
   flag_view.set_size(128, 64);
@@ -2554,6 +2591,21 @@ PopupBox::draw_demolish_box() {
 }
 
 void
+PopupBox::draw_save_box() {
+  const int layout[] = {
+    224, 0, 128,
+    -1
+  };
+
+  draw_box_background(PatternDiagonalGreen);
+  draw_custom_icon_box(layout);
+
+  draw_green_string(3, 2, "Save  Game");
+
+  draw_popup_icon(14, 128, 60); /* Exit */
+}
+
+void
 PopupBox::internal_draw() {
   draw_popup_box_frame();
 
@@ -2700,6 +2752,9 @@ PopupBox::internal_draw() {
     break;
   case TypeDemolish:
     draw_demolish_box();
+    break;
+  case TypeLoadSave:
+    draw_save_box();
     break;
   default:
     break;
@@ -3514,6 +3569,30 @@ PopupBox::handle_action(int action, int x, int y) {
     interface->demolish_object();
     interface->close_popup();
     break;
+  case ACTION_SHOW_SAVE:
+    file_list->set_displayed(true);
+    file_field->set_displayed(true);
+    set_box(TypeLoadSave);
+    break;
+  case ACTION_SAVE: {
+    std::string file_name = file_field->get_text();
+    size_t p = file_name.find_last_of(".");
+    std::string file_ext;
+    if (p != std::string::npos) {
+      file_ext = file_name.substr(p+1, file_name.size());
+      if (file_ext != "save") {
+        file_ext.clear();
+      }
+    }
+    if (file_ext.empty()) {
+      file_name += ".save";
+    }
+    std::string file_path = file_list->get_folder_path() + "/" + file_name;
+    if (GameStore::get_instance()->save(file_path, interface->get_game())) {
+      interface->close_popup();
+    }
+    break;
+  }
   default:
     Log::Warn["popup"] << "unhandled action " << action;
     break;
@@ -4120,6 +4199,17 @@ PopupBox::handle_box_bld_4(int x, int y) {
   handle_clickmap(x, y, clkmap);
 }
 
+void
+PopupBox::handle_save_clk(int x, int y) {
+  const int clkmap[] = {
+    ACTION_SAVE, 0, 128, 32, 64,
+    ACTION_CLOSE_BOX, 112, 128, 16, 16,
+    -1
+  };
+
+  handle_clickmap(x, y, clkmap);
+}
+
 bool
 PopupBox::handle_click_left(int x, int y) {
   x -= 8;
@@ -4258,35 +4348,15 @@ PopupBox::handle_click_left(int x, int y) {
   case TypeDemolish:
     handle_box_demolish_clk(x, y);
     break;
+  case TypeLoadSave:
+    handle_save_clk(x, y);
+    break;
   default:
     Log::Debug["popup"] << "unhandled box: " << box;
     break;
   }
 
   return true;
-}
-
-PopupBox::PopupBox(Interface *_interface) {
-  interface = _interface;
-
-  current_sett_5_item = 8;
-  current_sett_6_item = 15;
-  current_stat_7_item = 7;
-  current_stat_8_mode = 0;
-
-  /* Initialize minimap */
-  minimap = new MinimapGame(interface, interface->get_game());
-  minimap->set_displayed(false);
-  minimap->set_parent(this);
-  minimap->set_size(128, 128);
-  add_float(minimap, 8, 9);
-}
-
-PopupBox::~PopupBox() {
-  if (minimap != NULL) {
-    delete minimap;
-    minimap = NULL;
-  }
 }
 
 void PopupBox::show(Type box) {

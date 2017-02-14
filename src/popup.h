@@ -1,7 +1,7 @@
 /*
  * popup.h - Popup GUI component
  *
- * Copyright (C) 2013  Jon Lund Steffensen <jonlst@gmail.com>
+ * Copyright (C) 2013-2017  Jon Lund Steffensen <jonlst@gmail.com>
  *
  * This file is part of freeserf.
  *
@@ -24,12 +24,15 @@
 
 #include <string>
 #include <vector>
+#include <memory>
 
 #include "src/gui.h"
 #include "src/resource.h"
 
 class Interface;
 class MinimapGame;
+class ListSavedFiles;
+class TextInput;
 
 class PopupBox : public GuiObject {
  public:
@@ -138,7 +141,9 @@ class PopupBox : public GuiObject {
 
  protected:
   Interface *interface;
-  MinimapGame *minimap;
+  std::unique_ptr<MinimapGame> minimap;
+  std::unique_ptr<ListSavedFiles> file_list;
+  std::unique_ptr<TextInput> file_field;
 
   Type box;
 
@@ -152,7 +157,7 @@ class PopupBox : public GuiObject {
   virtual ~PopupBox();
 
   Type get_box() const { return box; }
-  MinimapGame *get_minimap() { return minimap; }
+  MinimapGame *get_minimap() { return minimap.get(); }
 
   void show(Type box);
   void hide();
@@ -227,6 +232,7 @@ class PopupBox : public GuiObject {
   void draw_building_stock_box();
   void draw_player_faces_box();
   void draw_demolish_box();
+  void draw_save_box();
   void activate_sett_5_6_item(int index);
   void move_sett_5_6_item(int up, int to_end);
   void handle_send_geologist();
@@ -273,6 +279,7 @@ class PopupBox : public GuiObject {
   void handle_box_bld_2(int x, int y);
   void handle_box_bld_3(int x, int y);
   void handle_box_bld_4(int x, int y);
+  void handle_save_clk(int x, int y);
 
   void set_box(Type box);
 
