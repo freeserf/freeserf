@@ -250,8 +250,12 @@ class Serf : public GameObject {
       int flags; /* F */
     } free_walking;
 
-    /* No state data: planning_logging,
-       planning_planting, planning_stonecutting */
+    /* States: planning_logging,
+       planning_planting, planning_stonecutting,
+       planning_fishing, planning_farming */
+    struct {
+      int counter;
+    } planning;
 
     struct {
       int mode; /* B */
@@ -273,9 +277,6 @@ class Serf : public GameObject {
       int counter; /* C */
       unsigned int type; /* D */
     } smelting;
-
-    /* No state data: planning_fishing,
-       planning_farming */
 
     struct {
       int mode; /* B */

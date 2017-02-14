@@ -1986,7 +1986,7 @@ PopupBox::draw_mine_output_box() {
                     0x24); /* meat (food) sprite */
   }
 
-  /* Calculate output percentage (simple WMA) */
+  /* Calculate output percentage (simple weighted average) */
   const int output_weight[] = { 10, 10, 9, 9, 8, 8, 7, 7,
                                  6,  6, 5, 5, 4, 3, 2, 1 };
   int output = 0;
@@ -2526,6 +2526,28 @@ PopupBox::draw_building_stock_box() {
 
   draw_green_string(1, 4, "Stock of");
   draw_green_string(1, 14, "this building:");
+
+  if (building->get_type() == Building::TypeStonecutter ||
+      building->get_type() == Building::TypeLumberjack ||
+      building->get_type() == Building::TypeFisher ||
+      building->get_type() == Building::TypeFarm) {
+    /* Calculate output percentage (simple weighted average) */
+    const int output_weight[] = { 10, 10, 9, 9, 8, 8, 7, 7,
+                                   6,  6, 5, 5, 4, 3, 2, 1 };
+    int output = 0;
+    for (int i = 0; i < 15; i++) {
+      output += !!BIT_TEST(building->get_progress(), i) * output_weight[i];
+    }
+
+    /* Print output percentage */
+    int x = 10;
+    if (output >= 100) x += 1;
+    if (output >= 10) x += 1;
+    draw_green_string(x, 80, "%");
+    draw_green_number(9, 80, output);
+
+    draw_green_string(1, 80, "Output:");
+  }
 
   draw_popup_icon(14, 128, 0x3c); /* exit box */
 }
