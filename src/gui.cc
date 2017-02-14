@@ -52,6 +52,9 @@ GuiObject::GuiObject() {
 }
 
 GuiObject::~GuiObject() {
+  if (focused_object == this) {
+    focused_object = nullptr;
+  }
   delete_frame();
 }
 
@@ -140,14 +143,30 @@ GuiObject::handle_event(const Event *event) {
       break;
   }
 
-  if ((result != 0) && (focused_object != NULL)) {
-    if (focused_object != this) {
+  if (result && (focused_object != this)) {
+    if (focused_object != nullptr) {
+      focused_object->focused = false;
       focused_object->handle_focus_loose();
-      focused_object = NULL;
+      focused_object->set_redraw();
+      focused_object = nullptr;
     }
   }
 
   return result;
+}
+
+void
+GuiObject::set_focused() {
+  if (focused_object != this) {
+    if (focused_object != nullptr) {
+      focused_object->focused = false;
+      focused_object->handle_focus_loose();
+      focused_object->set_redraw();
+    }
+    focused = true;
+    focused_object = this;
+    set_redraw();
+  }
 }
 
 void

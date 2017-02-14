@@ -49,7 +49,7 @@ class GuiObject : public EventLoop::Handler {
   virtual bool handle_click_left(int x, int y) { return false; }
   virtual bool handle_dbl_click(int x, int y, Event::Button button) {
     return false; }
-  virtual bool handle_drag(int dx, int dy) { return false; }
+  virtual bool handle_drag(int dx, int dy) { return true; }
   virtual bool handle_key_pressed(char key, int modifier) { return false; }
   virtual bool handle_focus_loose() { return false; }
 
@@ -74,6 +74,8 @@ class GuiObject : public EventLoop::Handler {
 
   void add_float(GuiObject *obj, int x, int y);
   void del_float(GuiObject *obj);
+
+  void set_focused();
 
   virtual bool handle_event(const Event *event);
 
