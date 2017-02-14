@@ -176,8 +176,6 @@ class Interface : public GuiObject {
 
   void update();
 
-  bool save_game(bool autosave);
-
   virtual bool handle_event(const Event *event);
 
  protected:

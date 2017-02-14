@@ -1,7 +1,7 @@
 /*
  * savegame.h - Loading and saving of save games
  *
- * Copyright (C) 2013  Jon Lund Steffensen <jonlst@gmail.com>
+ * Copyright (C) 2013-2017  Jon Lund Steffensen <jonlst@gmail.com>
  *
  * This file is part of freeserf.
  *
@@ -26,26 +26,13 @@
 #include <string>
 #include <list>
 #include <cstdint>
+#include <vector>
 
 #include "src/map.h"
 #include "src/resource.h"
 #include "src/building.h"
 #include "src/serf.h"
 #include "src/debug.h"
-
-/* Original game format */
-bool load_v0_state(std::istream *is, Game *game);
-
-/* Text format */
-bool save_text_state(std::ostream *os, Game *game);
-bool load_text_state(std::istream *is, Game *game);
-
-/* Generic save/load function that will try to detect the right
-   format on load and save to the best format on write. */
-bool save_state(const std::string &path, Game *game);
-bool load_state(const std::string &path, Game *game);
-
-bool save_game(int autosave, Game *game);
 
 class SaveReaderBinary {
  protected:
@@ -129,6 +116,55 @@ class SaveWriterText {
   virtual SaveWriterTextValue &value(const std::string &name) = 0;
   virtual SaveWriterText &add_section(const std::string &name,
                                       unsigned int number) = 0;
+};
+
+class GameStore {
+ public:
+  class SaveInfo {
+   public:
+    typedef enum Type {
+      Legacy,
+      Regular
+    } Type;
+
+    std::string name;
+    std::string path;
+    Type type;
+  };
+
+ protected:
+  GameStore();
+
+  static GameStore *instance;
+
+  std::string folder_path;
+  std::vector<SaveInfo> saved_games;
+
+ public:
+  virtual ~GameStore();
+
+  static GameStore *get_instance();
+
+  std::string get_folder_path() const { return folder_path; }
+  bool create_folder(const std::string &path);
+  bool is_folder_exists(const std::string &path);
+  const std::vector<SaveInfo> &get_saved_games();
+
+  /* Generic save/load function that will try to detect the right
+   format on load and save to the best format on write. */
+  bool save(const std::string &path, Game *game);
+  bool load(const std::string &path, Game *game);
+  bool quick_save(const std::string &prefix, Game *game);
+
+  /* Text format */
+  static bool save_text_state(std::ostream *os, Game *game);
+  static bool load_text_state(std::istream *is, Game *game);
+
+ protected:
+  void update();
+  void find_legacy();
+  void find_regular();
+  std::string name_from_file(const std::string &file_name);
 };
 
 #endif  // SRC_SAVEGAME_H_

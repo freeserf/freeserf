@@ -128,7 +128,6 @@ class Game : public EventLoop::Handler {
   /* External interface */
   unsigned int add_player(PPlayerInfo player_info);
   bool load_mission_map(PGameInfo game_info);
-  bool load_save_game(const std::string &path);
 
   void update();
   void pause();
