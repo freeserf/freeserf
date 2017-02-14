@@ -35,6 +35,7 @@
 #include "src/minimap.h"
 #include "src/map-generator.h"
 #include "src/map-geometry.h"
+#include "src/list.h"
 
 class RandomInput : public TextInput {
  protected:
@@ -85,6 +86,47 @@ class RandomInput : public TextInput {
     return true;
   }
 };
+
+GameInitBox::GameInitBox(Interface *interface)
+  : minimap(new Minimap(nullptr))
+  , random_input(new RandomInput())
+  , file_list(new ListSavedFiles()) {
+  this->interface = interface;
+
+  game_type = GameCustom;
+  game_mission = 0;
+
+  set_size(360, 254);
+
+  custom_mission = std::make_shared<GameInfo>(Random());
+  custom_mission->add_player(12, {0x00, 0xe3, 0xe3}, 40, 40, 40);
+  custom_mission->add_player(1, {0xcf, 0x63, 0x63}, 20, 30, 40);
+  mission = custom_mission;
+
+  minimap->set_displayed(true);
+  minimap->set_size(150, 160);
+  add_float(minimap.get(), 190, 55);
+
+  generate_map_preview();
+
+  random_input->set_random(custom_mission->get_random_base());
+  random_input->set_displayed(true);
+  add_float(random_input.get(), 19 + 26*8, 15);
+
+  file_list->set_size(160, 160);
+  file_list->set_displayed(false);
+  file_list->set_selection_handler([this](const std::string &item) {
+    Game game;
+    if (GameStore::get_instance()->load(item, &game)) {
+      this->map = game.get_map();
+      this->minimap->set_map(map);
+    }
+  });
+  add_float(file_list.get(), 20, 55);
+}
+
+GameInitBox::~GameInitBox() {
+}
 
 void
 GameInitBox::draw_box_icon(int x, int y, int sprite) {
@@ -138,40 +180,54 @@ GameInitBox::internal_draw() {
   }
 
   /* Game type settings */
-  if (game_mission < 0) {
-    draw_box_icon(5, 0, 263);
+  switch (game_type) {
+    case GameMission: {
+      draw_box_icon(5, 0, 260);
 
-    std::stringstream str_map_size;
-    str_map_size << mission->get_map_size();
+      std::stringstream level;
+      level << (game_mission+1);
 
-    draw_box_string(10, 2, "New game");
-    draw_box_string(10, 18, "Mapsize:");
-    draw_box_string(18, 18, str_map_size.str());
+      draw_box_string(10, 2, "Start mission");
+      draw_box_string(10, 18, "Mission:");
+      draw_box_string(20, 18, level.str());
 
-    draw_box_icon(20, 0, 265);
-  } else {
-    draw_box_icon(5, 0, 260);
+      draw_box_icon(28, 0, 237);
+      draw_box_icon(28, 16, 240);
 
-    std::stringstream level;
-    level << (game_mission+1);
+      break;
+    }
+    case GameCustom: {
+      draw_box_icon(5, 0, 263);
 
-    draw_box_string(10, 2, "Start mission");
-    draw_box_string(10, 18, "Mission:");
-    draw_box_string(20, 18, level.str());
+      std::stringstream str_map_size;
+      str_map_size << mission->get_map_size();
 
-    draw_box_icon(28, 0, 237);
-    draw_box_icon(28, 16, 240);
+      draw_box_string(10, 2, "New game");
+      draw_box_string(10, 18, "Mapsize:");
+      draw_box_string(18, 18, str_map_size.str());
+
+      draw_box_icon(20, 0, 265);
+
+      break;
+    }
+    case GameLoad: {
+      draw_box_icon(5, 0, 316);
+
+      break;
+    }
   }
 
   /* Game info */
-  int x = 0;
-  int y = 0;
-  for (int i = 0; i < GAME_MAX_PLAYER_COUNT; i++) {
-    draw_player_box(i, 10 * x, 40 + y * 80);
-    x++;
-    if (i == 1) {
-      y++;
-      x = 0;
+  if (game_type != GameLoad) {
+    int x = 0;
+    int y = 0;
+    for (int i = 0; i < GAME_MAX_PLAYER_COUNT; i++) {
+      draw_player_box(i, 10 * x, 40 + y * 80);
+      x++;
+      if (i == 1) {
+        y++;
+        x = 0;
+      }
     }
   }
 
@@ -231,7 +287,16 @@ GameInitBox::handle_action(int action) {
   switch (action) {
     case ActionStartGame: {
       Game *game = new Game();
-      if (!game->load_mission_map(mission)) return;
+      if (game_type == GameLoad) {
+        if (!GameStore::get_instance()->load(file_list->get_selected(), game)) {
+          return;
+        }
+        game->pause();
+      } else {
+        if (!game->load_mission_map(mission)) {
+          return;
+        }
+      }
 
       Game *old_game = interface->get_game();
       if (old_game != NULL) {
@@ -248,17 +313,31 @@ GameInitBox::handle_action(int action) {
       break;
     }
     case ActionToggleGameType:
-      if (game_mission < 0) {
-        game_mission = 0;
-        mission = GameInfo::get_mission(game_mission);
-        field->set_displayed(false);
-        generate_map_preview();
-      } else {
-        game_mission = -1;
-        mission = custom_mission;
-        field->set_displayed(true);
-        field->set_random(custom_mission->get_random_base());
-        generate_map_preview();
+      game_type++;
+      if (game_type > GameLoad) {
+        game_type = GameMission;
+      }
+      switch (game_type) {
+        case GameMission: {
+          mission = GameInfo::get_mission(game_mission);
+          random_input->set_displayed(false);
+          file_list->set_displayed(false);
+          generate_map_preview();
+          break;
+        }
+        case GameCustom: {
+          mission = custom_mission;
+          random_input->set_displayed(true);
+          random_input->set_random(custom_mission->get_random_base());
+          file_list->set_displayed(false);
+          generate_map_preview();
+          break;
+        }
+        case GameLoad: {
+          random_input->set_displayed(false);
+          file_list->set_displayed(true);
+          break;
+        }
       }
       break;
     case ActionShowOptions:
@@ -290,14 +369,14 @@ GameInitBox::handle_action(int action) {
       interface->close_game_init();
       break;
     case ActionGenRandom: {
-      field->set_random(Random());
+      random_input->set_random(Random());
       set_redraw();
       break;
     }
     case ActionApplyRandom: {
-      std::string str = field->get_text();
+      std::string str = random_input->get_text();
       if (str.length() == 16) {
-        custom_mission = PGameInfo(new GameInfo(field->get_random()));
+        custom_mission = PGameInfo(new GameInfo(random_input->get_random()));
         mission = custom_mission;
         generate_map_preview();
       }
@@ -312,25 +391,25 @@ bool
 GameInitBox::handle_click_left(int x, int y) {
   const int clickmap_mission[] = {
     ActionStartGame,        20,  16, 32, 32,
-    ActionToggleGameType,  60,  16, 32, 32,
+    ActionToggleGameType,   60,  16, 32, 32,
     ActionShowOptions,     268,  16, 32, 32,
-    ActionShowLoadGame,   308,  16, 32, 32,
-    ActionIncrement,        244,  16, 16, 16,
-    ActionDecrement,        244,  32, 16, 16,
-    ActionClose,            324, 216, 16, 16,
+    ActionShowLoadGame,    308,  16, 32, 32,
+    ActionIncrement,       244,  16, 16, 16,
+    ActionDecrement,       244,  32, 16, 16,
+    ActionClose,           324, 216, 16, 16,
     -1
   };
 
   const int clickmap_custom[] = {
     ActionStartGame,        20,  16, 32, 32,
-    ActionToggleGameType,  60,  16, 32, 32,
+    ActionToggleGameType,   60,  16, 32, 32,
     ActionShowOptions,     268,  16, 32, 32,
-    ActionShowLoadGame,   308,  16, 32, 32,
-    ActionIncrement,        180,  24, 24, 24,
-    ActionDecrement,        180,  16,  8,  8,
+    ActionShowLoadGame,    308,  16, 32, 32,
+    ActionIncrement,       180,  24, 24, 24,
+    ActionDecrement,       180,  16,  8,  8,
     ActionGenRandom,       204,  16, 16,  8,
     ActionApplyRandom ,    204,  24, 16, 24,
-    ActionClose,            324, 216, 16, 16,
+    ActionClose,           324, 216, 16, 16,
     -1
   };
 
@@ -444,29 +523,3 @@ GameInitBox::generate_map_preview() {
 
   set_redraw();
 }
-
-GameInitBox::GameInitBox(Interface *interface)
-    : minimap(new Minimap(nullptr)),
-      field(new RandomInput()) {
-  this->interface = interface;
-  game_mission = -1;
-
-  set_size(360, 254);
-
-  custom_mission = PGameInfo(new GameInfo(Random()));
-  custom_mission->add_player(12, {0x00, 0xe3, 0xe3}, 40, 40, 40);
-  custom_mission->add_player(1, {0xcf, 0x63, 0x63}, 20, 30, 40);
-  mission = custom_mission;
-
-  minimap->set_displayed(true);
-  minimap->set_size(150, 160);
-  add_float(minimap.get(), 190, 55);
-
-  generate_map_preview();
-
-  field->set_random(custom_mission->get_random_base());
-  field->set_displayed(true);
-  add_float(field.get(), 19 + 26*8, 15);
-}
-
-GameInitBox::~GameInitBox() {}
