@@ -64,7 +64,7 @@ main(int argc, char *argv[]) {
 
   // Save the game state
   std::stringstream str;
-  bool saved = save_text_state(&str, game.get());
+  bool saved = GameStore::save_text_state(&str, game.get());
   str.flush();
 
   if (saved && str.good()) {
@@ -78,7 +78,7 @@ main(int argc, char *argv[]) {
   // Load the game state into a new game
   str.seekg(0, std::ios::beg);
   std::unique_ptr<Game> loaded_game(new Game());
-  bool loaded = load_text_state(&str, loaded_game.get());
+  bool loaded = GameStore::load_text_state(&str, loaded_game.get());
 
   if (loaded) {
     std::cout << "ok 5 - Loaded game state\n";

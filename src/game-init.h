@@ -32,6 +32,7 @@
 class Interface;
 class RandomInput;
 class Minimap;
+class ListSavedFiles;
 
 class GameInitBox : public GuiObject {
  protected:
@@ -44,20 +45,28 @@ class GameInitBox : public GuiObject {
     ActionDecrement,
     ActionClose,
     ActionGenRandom,
-    ActionApplyRandom,
+    ActionApplyRandom
   } Action;
+
+  typedef enum GameType {
+    GameMission = 0,
+    GameCustom = 1,
+    GameLoad = 2
+  } GameType;
 
  protected:
   Interface *interface;
 
+  unsigned int game_type;
   int game_mission;
 
   PGameInfo custom_mission;
   PGameInfo mission;
 
-  std::unique_ptr<RandomInput> field;
-  std::unique_ptr<Map> map;
+  std::unique_ptr<RandomInput> random_input;
+  PMap map;
   std::unique_ptr<Minimap> minimap;
+  std::unique_ptr<ListSavedFiles> file_list;
 
  public:
   explicit GameInitBox(Interface *interface);

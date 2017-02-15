@@ -60,10 +60,10 @@ class Viewport : public GuiObject, public Map::Handler {
   unsigned int last_tick;
   DataSource *data_source;
 
-  Map *map;
+  PMap map;
 
  public:
-  Viewport(Interface *interface, Map *map);
+  Viewport(Interface *interface, PMap map);
   virtual ~Viewport();
 
   void switch_layer(Layer layer) { layers ^= layer; }

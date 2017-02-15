@@ -2011,11 +2011,6 @@ Game::load_mission_map(PGameInfo game_info) {
   return true;
 }
 
-bool
-Game::load_save_game(const std::string &path) {
-  return load_state(path, this);
-}
-
 /* Cancel a resource being transported to destination. This
    ensures that the destination can request a new resource. */
 void

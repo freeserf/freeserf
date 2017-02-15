@@ -2357,8 +2357,8 @@ Viewport::handle_dbl_click(int x, int y, Event::Button button) {
 
   if (interface->is_building_road()) {
     if (clk_pos != interface->get_map_cursor_pos()) {
-      MapPos pos = interface->get_building_road().get_end(map);
-      Road road = pathfinder_map(map, pos, clk_pos);
+      MapPos pos = interface->get_building_road().get_end(map.get());
+      Road road = pathfinder_map(map.get(), pos, clk_pos);
       if (road.get_length() != 0) {
         int r = interface->extend_road(road);
         if (r < 0) {
@@ -2485,7 +2485,7 @@ Viewport::handle_drag(int x, int y) {
   return true;
 }
 
-Viewport::Viewport(Interface *_interface, Map *_map) {
+Viewport::Viewport(Interface *_interface, PMap _map) {
   interface = _interface;
   map = _map;
   map->add_change_handler(this);

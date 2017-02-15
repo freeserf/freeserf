@@ -50,7 +50,8 @@ OTHER_SOURCES = \
 	src/xmi2mid.cc src/xmi2mid.h \
 	src/data-source.cc src/data-source.h \
 	src/text-input.cc src/text-input.h \
-	src/data-source-amiga.cc src/data-source-amiga.h
+	src/data-source-amiga.cc src/data-source-amiga.h \
+	src/list.cc src/list.h
 
 freeserf_SOURCES = \
 	src/freeserf.cc src/freeserf.h \

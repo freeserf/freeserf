@@ -32,7 +32,7 @@ class Interface;
 
 class Minimap : public GuiObject {
  protected:
-  Map *map;
+  PMap map;
 
   int offset_x, offset_y;
   int scale;
@@ -42,9 +42,9 @@ class Minimap : public GuiObject {
   std::unique_ptr<Color> minimap;
 
  public:
-  explicit Minimap(Map *map);
+  explicit Minimap(PMap map);
 
-  void set_map(Map *map);
+  void set_map(PMap map);
 
   int get_scale() const { return scale; }
   void set_scale(int scale);

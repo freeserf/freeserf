@@ -150,10 +150,14 @@ main(int argc, char *argv[]) {
   /* Either load a save game if specified or
      start a new game. */
   if (!save_file.empty()) {
-    if (!game->load_save_game(save_file)) return EXIT_FAILURE;
+    if (!GameStore::get_instance()->load(save_file, game)) {
+      return EXIT_FAILURE;
+    }
   } else {
     PGameInfo game_info(new GameInfo(Random()));
-    if (!game->load_mission_map(game_info)) return EXIT_FAILURE;
+    if (!game->load_mission_map(game_info)) {
+      return EXIT_FAILURE;
+    }
   }
 
   /* Initialize interface */

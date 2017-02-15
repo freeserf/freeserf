@@ -2444,7 +2444,7 @@ Serf::handle_serf_free_walking_state_dest_reached() {
       s.free_walking.dist2 = s.free_walking.neg_dist2;
 
       int a = -1;
-      Map *map = game->get_map();
+      PMap map = game->get_map();
       if (map->paths(pos) == 0) {
         if (map->type_down(pos) <= Map::TerrainWater3 &&
             map->type_up(map->move_up_left(pos)) >= Map::TerrainGrass0) {
@@ -3080,7 +3080,7 @@ Serf::handle_serf_planning_planting_state() {
   tick = game->get_tick();
   counter -= delta;
 
-  Map *map = game->get_map();
+  PMap map = game->get_map();
   while (counter < 0) {
     int index = (game->random_int() & 0x7f) + 1;
     MapPos pos_ = map->pos_add_spirally(pos, index);
@@ -3611,7 +3611,7 @@ Serf::handle_serf_planning_fishing_state() {
   tick = game->get_tick();
   counter -= delta;
 
-  Map *map = game->get_map();
+  PMap map = game->get_map();
   while (counter < 0) {
     int index = ((game->random_int() >> 2) & 0x3f) + 1;
     MapPos dest = map->pos_add_spirally(pos, index);
@@ -3696,7 +3696,7 @@ Serf::handle_serf_planning_farming_state() {
   tick = game->get_tick();
   counter -= delta;
 
-  Map *map = game->get_map();
+  PMap map = game->get_map();
   while (counter < 0) {
     int index = ((game->random_int() >> 2) & 0x1f) + 7;
     MapPos dest = map->pos_add_spirally(pos, index);
@@ -4141,7 +4141,7 @@ Serf::handle_serf_building_boat_state() {
 void
 Serf::handle_serf_looking_for_geo_spot_state() {
   int tries = 2;
-  Map *map = game->get_map();
+  PMap map = game->get_map();
   for (int i = 0; i < 8; i++) {
     int index = ((game->random_int() >> 2) & 0x3f) + 1;
     MapPos dest = map->pos_add_spirally(pos, index);
