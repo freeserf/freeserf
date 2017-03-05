@@ -71,7 +71,7 @@ main(int argc, char *argv[]) {
 
 #ifdef HAVE_GETOPT_H
   while (true) {
-    char opt = getopt(argc, argv, "d:fg:hl:r:");
+    int opt = getopt(argc, argv, "d:fg:hl:r:");
     if (opt < 0) break;
 
     switch (opt) {
