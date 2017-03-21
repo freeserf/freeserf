@@ -111,7 +111,7 @@ GameInitBox::GameInitBox(Interface *interface)
 
   random_input->set_random(custom_mission->get_random_base());
   random_input->set_displayed(true);
-  add_float(random_input.get(), 19 + 26*8, 15);
+  add_float(random_input.get(), 19 + 31*8, 15);
 
   file_list->set_size(160, 160);
   file_list->set_displayed(false);
@@ -167,9 +167,8 @@ GameInitBox::internal_draw() {
   draw_background();
 
   const int layout[] = {
-    266, 0, 0,
-    267, 31, 0,
-    316, 36, 0,
+    266, 0, 0,    // Start button
+    267, 36, 0,   // Options button
     -1
   };
 
@@ -182,7 +181,7 @@ GameInitBox::internal_draw() {
   /* Game type settings */
   switch (game_type) {
     case GameMission: {
-      draw_box_icon(5, 0, 260);
+      draw_box_icon(5, 0, 260);  // Game type
 
       std::stringstream level;
       level << (game_mission+1);
@@ -191,13 +190,13 @@ GameInitBox::internal_draw() {
       draw_box_string(10, 18, "Mission:");
       draw_box_string(20, 18, level.str());
 
-      draw_box_icon(28, 0, 237);
-      draw_box_icon(28, 16, 240);
+      draw_box_icon(33, 0, 237);  // Up button
+      draw_box_icon(33, 16, 240);  // Down button
 
       break;
     }
     case GameCustom: {
-      draw_box_icon(5, 0, 263);
+      draw_box_icon(5, 0, 263);  // Game type
 
       std::stringstream str_map_size;
       str_map_size << mission->get_map_size();
@@ -206,12 +205,14 @@ GameInitBox::internal_draw() {
       draw_box_string(10, 18, "Mapsize:");
       draw_box_string(18, 18, str_map_size.str());
 
-      draw_box_icon(20, 0, 265);
+      draw_box_icon(25, 0, 265);
 
       break;
     }
     case GameLoad: {
-      draw_box_icon(5, 0, 316);
+      draw_box_icon(5, 0, 316);  // Game type
+
+      draw_box_string(10, 2, "Load game");
 
       break;
     }
@@ -342,26 +343,30 @@ GameInitBox::handle_action(int action) {
       break;
     case ActionShowOptions:
       break;
-    case ActionShowLoadGame:
-      break;
     case ActionIncrement:
-      if (game_mission < 0) {
-        custom_mission->set_map_size(std::min(10u,
-                                           custom_mission->get_map_size() + 1));
-      } else {
-        game_mission = std::min(game_mission+1,
+      switch (game_type) {
+        case GameMission:
+          game_mission = std::min(game_mission+1,
                              static_cast<int>(GameInfo::get_mission_count())-1);
-        mission = GameInfo::get_mission(game_mission);
+          mission = GameInfo::get_mission(game_mission);
+          break;
+        case GameCustom:
+          custom_mission->set_map_size(std::min(10u,
+                                           custom_mission->get_map_size() + 1));
+          break;
       }
       generate_map_preview();
       break;
     case ActionDecrement:
-      if (game_mission < 0) {
-        custom_mission->set_map_size(std::max(3u,
+      switch (game_type) {
+        case GameMission:
+          game_mission = std::max(0, game_mission-1);
+          mission = GameInfo::get_mission(game_mission);
+          break;
+        case GameCustom:
+          custom_mission->set_map_size(std::max(3u,
                                            custom_mission->get_map_size() - 1));
-      } else {
-        game_mission = std::max(0, game_mission-1);
-        mission = GameInfo::get_mission(game_mission);
+          break;
       }
       generate_map_preview();
       break;
@@ -376,7 +381,7 @@ GameInitBox::handle_action(int action) {
     case ActionApplyRandom: {
       std::string str = random_input->get_text();
       if (str.length() == 16) {
-        custom_mission = PGameInfo(new GameInfo(random_input->get_random()));
+        custom_mission->set_random_base(random_input->get_random());
         mission = custom_mission;
         generate_map_preview();
       }
@@ -392,10 +397,9 @@ GameInitBox::handle_click_left(int x, int y) {
   const int clickmap_mission[] = {
     ActionStartGame,        20,  16, 32, 32,
     ActionToggleGameType,   60,  16, 32, 32,
-    ActionShowOptions,     268,  16, 32, 32,
-    ActionShowLoadGame,    308,  16, 32, 32,
-    ActionIncrement,       244,  16, 16, 16,
-    ActionDecrement,       244,  32, 16, 16,
+    ActionShowOptions,     308,  16, 32, 32,
+    ActionIncrement,       284,  16, 16, 16,
+    ActionDecrement,       284,  32, 16, 16,
     ActionClose,           324, 216, 16, 16,
     -1
   };
@@ -403,19 +407,34 @@ GameInitBox::handle_click_left(int x, int y) {
   const int clickmap_custom[] = {
     ActionStartGame,        20,  16, 32, 32,
     ActionToggleGameType,   60,  16, 32, 32,
-    ActionShowOptions,     268,  16, 32, 32,
-    ActionShowLoadGame,    308,  16, 32, 32,
-    ActionIncrement,       180,  24, 24, 24,
-    ActionDecrement,       180,  16,  8,  8,
-    ActionGenRandom,       204,  16, 16,  8,
-    ActionApplyRandom ,    204,  24, 16, 24,
+    ActionShowOptions,     308,  16, 32, 32,
+    ActionIncrement,       220,  24, 24, 24,
+    ActionDecrement,       220,  16,  8,  8,
+    ActionGenRandom,       244,  16, 16,  8,
+    ActionApplyRandom ,    244,  24, 16, 24,
     ActionClose,           324, 216, 16, 16,
     -1
   };
 
-  const int *clickmap = clickmap_mission;
-  if (game_mission < 0) {
-    clickmap = clickmap_custom;
+  const int clickmap_load[] = {
+    ActionStartGame,        20,  16, 32, 32,
+    ActionToggleGameType,   60,  16, 32, 32,
+    ActionShowOptions,     308,  16, 32, 32,
+    ActionClose,           324, 216, 16, 16,
+    -1
+  };
+
+  const int *clickmap = nullptr;
+  switch (game_type) {
+    case GameMission:
+      clickmap = clickmap_mission;
+      break;
+    case GameCustom:
+      clickmap = clickmap_custom;
+      break;
+    case GameLoad:
+      clickmap = clickmap_load;
+      break;
   }
 
   const int *i = clickmap;
@@ -507,14 +526,14 @@ GameInitBox::handle_player_click(unsigned int player_index, int x, int y) {
 void
 GameInitBox::generate_map_preview() {
   map.reset(new Map(MapGeometry(mission->get_map_size())));
-  if (game_mission < 0) {
-    ClassicMapGenerator generator(*map, mission->get_random_base());
-    generator.init(MapGenerator::HeightGeneratorMidpoints, true);
+  if (game_type == GameMission) {
+    ClassicMissionMapGenerator generator(*map, mission->get_random_base());
+    generator.init();
     generator.generate();
     map->init_tiles(generator);
   } else {
-    ClassicMissionMapGenerator generator(*map, mission->get_random_base());
-    generator.init();
+    ClassicMapGenerator generator(*map, mission->get_random_base());
+    generator.init(MapGenerator::HeightGeneratorMidpoints, true);
     generator.generate();
     map->init_tiles(generator);
   }

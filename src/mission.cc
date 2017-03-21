@@ -433,10 +433,32 @@ MissionPreset missions[] = {
 };
 
 GameInfo::GameInfo(const Random &_random_base) {
-  Random random = _random_base;
-  random_base = _random_base;
   map_size = 3;
-  name = random;
+  name = _random_base;
+  set_random_base(_random_base);
+}
+
+GameInfo::GameInfo(const MissionPreset *mission_preset) {
+  map_size = 3;
+  name = mission_preset->name;
+  random_base = mission_preset->rnd;
+  for (size_t i = 0; i < 4; i++) {
+    if (mission_preset->player[i].character->face == 0) continue;
+    size_t character = mission_preset->player[i].character->face;
+    PPlayerInfo player(new PlayerInfo(character,
+                                      def_color[i],
+                                      mission_preset->player[i].intelligence,
+                                      mission_preset->player[i].supplies,
+                                      mission_preset->player[i].reproduction));
+    player->set_castle_pos(mission_preset->player[i].castle);
+    add_player(player);
+  }
+}
+
+void
+GameInfo::set_random_base(const Random &base) {
+  Random random = base;
+  random_base = base;
 
   // Player 0
   players.push_back(std::make_shared<PlayerInfo>(&random));
@@ -456,23 +478,6 @@ GameInfo::GameInfo(const Random &_random_base) {
       // Player 3
       players.push_back(std::make_shared<PlayerInfo>(&random));
     }
-  }
-}
-
-GameInfo::GameInfo(const MissionPreset *mission_preset) {
-  map_size = 3;
-  name = mission_preset->name;
-  random_base = mission_preset->rnd;
-  for (size_t i = 0; i < 4; i++) {
-    if (mission_preset->player[i].character->face == 0) continue;
-    size_t character = mission_preset->player[i].character->face;
-    PPlayerInfo player(new PlayerInfo(character,
-                                      def_color[i],
-                                      mission_preset->player[i].intelligence,
-                                      mission_preset->player[i].supplies,
-                                      mission_preset->player[i].reproduction));
-    player->set_castle_pos(mission_preset->player[i].castle);
-    add_player(player);
   }
 }
 

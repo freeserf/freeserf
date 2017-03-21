@@ -40,7 +40,6 @@ class GameInitBox : public GuiObject {
     ActionStartGame,
     ActionToggleGameType,
     ActionShowOptions,
-    ActionShowLoadGame,
     ActionIncrement,
     ActionDecrement,
     ActionClose,
@@ -49,8 +48,8 @@ class GameInitBox : public GuiObject {
   } Action;
 
   typedef enum GameType {
-    GameMission = 0,
-    GameCustom = 1,
+    GameCustom = 0,
+    GameMission = 1,
     GameLoad = 2
   } GameType;
 

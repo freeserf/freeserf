@@ -115,6 +115,7 @@ class GameInfo {
   unsigned int get_map_size() const { return map_size; }
   void set_map_size(unsigned int size) { map_size = size; }
   Random get_random_base() const { return random_base; }
+  void set_random_base(const Random &base);
   size_t get_player_count() const { return players.size(); }
   PPlayerInfo get_player(size_t player) const { return players[player]; }
 
