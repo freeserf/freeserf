@@ -1988,7 +1988,7 @@ bool
 Game::load_mission_map(PGameInfo game_info) {
   init_map_rnd = game_info->get_random_base();
 
-  init_map(3);
+  init_map(game_info->get_map_size());
   {
     ClassicMissionMapGenerator generator(*map, init_map_rnd);
     generator.init();
