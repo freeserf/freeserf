@@ -273,12 +273,19 @@ uint64_t
 Sprite::create_id(uint64_t resource, uint64_t index,
                   uint64_t mask_resource, uint64_t mask_index,
                   const Sprite::Color &color) {
-  uint64_t result = (resource & 0xFF) << 56;  // 0xFF00000000000000
-  result |= (index & 0xFFF) << 44;            // 0x00FFF00000000000
-  result |= (mask_resource & 0xFF) << 36;     // 0x00000FF000000000
-  result |= (mask_index & 0xFFF) << 24;       // 0x0000000FFF000000
-  result |= (color.red & 0xFF) << 16;         // 0x0000000000FF0000
-  result |= (color.green & 0xFF) << 8;        // 0x000000000000FF00
-  result |= (color.blue & 0xFF) << 0;         // 0x00000000000000FF
+  // 0xFF00000000000000
+  uint64_t result = static_cast<uint64_t>(resource & 0xFF) << 56;
+  // 0x00FFF00000000000
+  result |= static_cast<uint64_t>(index & 0xFFF) << 44;
+  // 0x00000FF000000000
+  result |= static_cast<uint64_t>(mask_resource & 0xFF) << 36;
+  // 0x0000000FFF000000
+  result |= static_cast<uint64_t>(mask_index & 0xFFF) << 24;
+  // 0x0000000000FF0000
+  result |= static_cast<uint64_t>(color.red & 0xFF) << 16;
+  // 0x000000000000FF00
+  result |= static_cast<uint64_t>(color.green & 0xFF) << 8;
+  // 0x00000000000000FF
+  result |= static_cast<uint64_t>(color.blue & 0xFF) << 0;
   return result;
 }
