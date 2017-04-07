@@ -316,7 +316,7 @@ GameInitBox::handle_action(int action) {
     case ActionToggleGameType:
       game_type++;
       if (game_type > GameLoad) {
-        game_type = GameMission;
+        game_type = GameCustom;
       }
       switch (game_type) {
         case GameMission: {

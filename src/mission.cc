@@ -460,6 +460,8 @@ GameInfo::set_random_base(const Random &base) {
   Random random = base;
   random_base = base;
 
+  players.clear();
+
   // Player 0
   players.push_back(std::make_shared<PlayerInfo>(&random));
   players[0]->set_character(12);
