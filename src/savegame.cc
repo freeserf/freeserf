@@ -483,9 +483,9 @@ GameStore::GameStore() {
                                      KF_FLAG_CREATE | KF_FLAG_INIT,
                                      nullptr, &saved_games_path);
   int len = static_cast<int>(wcslen(saved_games_path));
-  folder_path.reserve(len + 1);
-  ::WideCharToMultiByte(CP_ACP, 0, saved_games_path, len + 1,
-                        (LPSTR)folder_path.data(), len + 1, nullptr, nullptr);
+  folder_path.resize(len);
+  ::WideCharToMultiByte(CP_ACP, 0, saved_games_path, len,
+                        (LPSTR)folder_path.data(), len, nullptr, nullptr);
   ::CoTaskMemFree(saved_games_path);
 #elif defined(__APPLE__)
   folder_path = std::string(std::getenv("HOME"));
