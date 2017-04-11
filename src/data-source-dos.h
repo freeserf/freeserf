@@ -111,6 +111,8 @@ class DataSourceDOS : public DataSource {
   DataSourceDOS();
   virtual ~DataSourceDOS();
 
+  virtual const char *get_name() const { return "DOS"; }
+
   virtual bool check(const std::string &path, std::string *load_path);
   virtual bool load(const std::string &path);
 

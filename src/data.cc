@@ -59,7 +59,7 @@ data_resource_t data_resources[] = {
   { Data::AssetPathMask,     Data::TypeSprite,    27,  "path_mask"     },
   { Data::AssetMapGround,    Data::TypeSprite,    33,  "map_ground"    },
   { Data::AssetPathGround,   Data::TypeSprite,    10,  "path_ground"   },
-  { Data::AssetGameObject,   Data::TypeSprite,    280, "game_object"   },
+  { Data::AssetGameObject,   Data::TypeSprite,    279, "game_object"   },
   { Data::AssetFrameTop,     Data::TypeSprite,    4,   "frame_top"     },
   { Data::AssetMapBorder,    Data::TypeSprite,    10,  "map_border"    },
   { Data::AssetMapWaves,     Data::TypeSprite,    16,  "map_waves"     },

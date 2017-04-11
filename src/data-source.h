@@ -88,6 +88,8 @@ class DataSource {
  public:
   virtual ~DataSource() {}
 
+  virtual const char *get_name() const = 0;
+
   virtual bool check(const std::string &path, std::string *load_path) = 0;
   virtual bool load(const std::string &path) = 0;
 
