@@ -51,6 +51,8 @@ class DataSourceAmiga : public DataSource {
   DataSourceAmiga();
   virtual ~DataSourceAmiga();
 
+  virtual const char *get_name() const { return "Amiga"; }
+
   virtual bool check(const std::string &path, std::string *load_path);
   virtual bool load(const std::string &path);
 
