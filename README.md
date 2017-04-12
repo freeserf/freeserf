@@ -7,10 +7,13 @@ Build status
 [![Build Status](https://travis-ci.org/freeserf/freeserf.svg?branch=master)](https://travis-ci.org/freeserf/freeserf)
 [![Build Status](https://ci.appveyor.com/api/projects/status/github/freeserf/freeserf?branch=master&svg=true)](https://ci.appveyor.com/project/jonls/freeserf)
 
-Last build binaries
--------------------
+Last build downloads
+--------------------
 * [Windows x86](https://ci.appveyor.com/api/projects/jonls/freeserf/artifacts/freeserf-VC-x86-Release.zip?branch=master&job=Configuration%3A%20Release%3B%20Platform%3A%20x86)
 * [Windows x64](https://ci.appveyor.com/api/projects/jonls/freeserf/artifacts/freeserf-VC-x64-Release.zip?branch=master&job=Configuration%3A%20Release%3B%20Platform%3A%20x64)
+* [Linux Sources TAR.GZ](https://s3.amazonaws.com/freeserftest1/freeserf-0.2.tar.gz)
+* [Linux Sources TAR.XZ](https://s3.amazonaws.com/freeserftest1/freeserf-0.2.tar.xz)
+* [macOS](https://s3.amazonaws.com/freeserftest1/FreeSerf.dmg)
 
 Play
 ------
