@@ -64,3 +64,9 @@ script:
   - $CPPLINT_PATH/cpplint.py ./src/*.cc ./src/*.h ./tests/*.cc ./windows/*.cc ./windows/*.h
   - ./bootstrap && ./configure --enable-sdl2-mixer
   - if [[ $TRAVIS_OS_NAME == 'osx' ]]; then make dist-osx; else make -j5 distcheck; fi
+
+deploy:
+  provider: s3
+  access_key_id: $AWS_ACCESS_KEY_ID
+  secret_access_key: $AWS_SECRET_ACCESS_KEY
+  bucket: "freeserftest1"
