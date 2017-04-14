@@ -254,6 +254,7 @@ Viewport::draw_down_tile_col(MapPos pos, int x_base, int y_base,
 
 void
 Viewport::layout() {
+  landscape_tiles.clear();
 }
 
 void
@@ -310,7 +311,7 @@ Viewport::get_tile_frame(unsigned int tid, int tc, int tr) {
 
 #if 0
   /* Draw a border around the tile for debug. */
-  tile_frame->draw_rect(0, 0, tile_width, tile_height, 76);
+  tile_frame->draw_rect(0, 0, tile_width, tile_height, Color(0xff, 0x00, 0x00));
 #endif
 
   Log::Verbose["viewport"] << "map: " << map->get_cols()*MAP_TILE_WIDTH << ","
