@@ -580,13 +580,15 @@ Serf::castle_deleted(MapPos castle_pos, bool transporter) {
     if (transporter) {
       set_type(TypeTransporter);
     }
+  }
 
-    if (game->get_map()->get_serf_index(pos) == index) {
-      set_state(StateLost);
-      s.lost.field_B = 0;
-    } else {
-      set_state(StateEscapeBuilding);
-    }
+  counter = 0;
+
+  if (game->get_map()->get_serf_index(pos) == index) {
+    set_state(StateLost);
+    s.lost.field_B = 0;
+  } else {
+    set_state(StateEscapeBuilding);
   }
 }
 
