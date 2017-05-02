@@ -148,25 +148,6 @@ Sprite::create_mask(PSprite other) {
   return result;
 }
 
-PSprite
-Sprite::create_diff(PSprite other) {
-  if ((width != other->get_width()) || (height != other->get_height())) {
-    return nullptr;
-  }
-
-  PSprite result = std::make_shared<Sprite>(shared_from_this());
-
-  uint32_t *src1 = reinterpret_cast<uint32_t*>(data);
-  uint32_t *src2 = reinterpret_cast<uint32_t*>(other->get_data());
-  uint32_t *res = reinterpret_cast<uint32_t*>(result->get_data());
-
-  for (unsigned int i = 0; i < width * height; i++) {
-    *res++ = *src1++ - *src2++;
-  }
-
-  return result;
-}
-
 void
 Sprite::fill(Sprite::Color color) {
   Color *c = reinterpret_cast<Color*>(data);
@@ -374,4 +355,32 @@ DataSource::separate_sprites(PSprite s1, PSprite s2) {
   s1->stick(masked, 0, 0);
 
   return std::make_tuple(filled, s1);
+}
+
+size_t
+DataSource::get_animation_phase_count(size_t animation) {
+  if (animation >= animation_table.size()) {
+    Log::Error["data"] << "Failed to get phase count for animation #"
+    << animation
+    << " (got only " << animation_table.size()
+    << " animations)";
+    return 0;
+  }
+
+  return animation_table[animation].size();
+}
+
+Animation
+DataSource::get_animation(size_t animation, size_t phase) {
+  phase >>= 3;
+  if ((animation >= animation_table.size()) ||
+      (phase >= animation_table[animation].size())) {
+    Log::Error["data"] << "Failed to get animation #" << animation
+    << " phase #" << phase
+    << " (got only " << animation_table[animation].size()
+    << " phases)";
+    return {0, 0, 0};
+  }
+
+  return animation_table[animation][phase];
 }

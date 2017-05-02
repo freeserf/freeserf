@@ -245,7 +245,7 @@ uint8_t palette3[] = {
 };
 
 DataSourceAmiga::DataSourceAmiga(const std::string &_path)
-  : DataSource(_path) {
+  : DataSourceLegacy(_path) {
 }
 
 DataSourceAmiga::~DataSourceAmiga() {
@@ -338,17 +338,10 @@ DataSourceAmiga::load() {
   data_pointers[23] = gfxfast;  // Title (1 * 43200)
 
   for (unsigned int i = 1; i < gfxheader->get_size()/4; i++) {
-//    printf("Block %d: %d\n", i, be32toh(gfxheader[i]));
-    data_pointers[i] = data_pointers[i]->get_tail(gfxheader->pop32be());
+    size_t black_offset = gfxheader->pop32be();
+//    Log::Warn["data"] << "Block " << i << " : " << black_offset;
+    data_pointers[i] = data_pointers[i]->get_tail(black_offset);
   }
-/*
-  uint32_t *catalog = (uint32_t*)data_pointers[4];
-  for (int i = 0; i < 20; i++) {
-      uint32_t offset = catalog[i];
-      offset = be32toh(offset);
-      printf("%d\n", offset);
-  }
-*/
 
   try {
     sound = std::make_shared<Buffer>(path + "/sounds");
@@ -373,9 +366,7 @@ DataSourceAmiga::load() {
     Log::Warn["data"] << "Failed to load 'gfxpics'";
   }
 
-  loaded = true;
-
-  return loaded;
+  return load_animation_table(data_pointers[1]->get_subbuffer(0, 30528));
 }
 
 DataSource::MaskImage
@@ -596,18 +587,6 @@ DataSourceAmiga::get_sprite_parts(Data::Resource res, size_t index) {
   }
 
   return std::make_tuple(nullptr, sprite);
-}
-
-Animation
-DataSourceAmiga::get_animation(size_t animation, size_t phase) {
-  uint32_t *animation_catalog = reinterpret_cast<uint32_t*>(
-                                                  data_pointers[1]->get_data());
-  uint8_t *data = reinterpret_cast<uint8_t*>(animation_catalog);
-  unsigned int offset = be32toh(animation_catalog[animation]);
-
-  Animation *anim = reinterpret_cast<Animation*>(data + offset);
-
-  return *(anim + (phase >> 3));
 }
 
 typedef struct SoundStruct {

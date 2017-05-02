@@ -27,10 +27,10 @@
 #include <memory>
 
 #include "src/data.h"
-#include "src/data-source.h"
+#include "src/data-source-legacy.h"
 #include "src/buffer.h"
 
-class DataSourceDOS : public DataSource {
+class DataSourceDOS : public DataSourceLegacy {
  public:
   typedef enum SpriteType {
     SpriteTypeUnknown = 0,
@@ -96,7 +96,6 @@ class DataSourceDOS : public DataSource {
   } DataEntry;
 
   PBuffer spae;
-  std::vector<Animation*> animations;
   std::vector<DataEntry> entries;
 
  public:
@@ -112,15 +111,12 @@ class DataSourceDOS : public DataSource {
 
   virtual MaskImage get_sprite_parts(Data::Resource res, size_t index);
 
-  virtual Animation get_animation(size_t animation, size_t phase);
-
   virtual PBuffer get_sound(size_t index);
   virtual PBuffer get_music(size_t index);
 
  protected:
   PBuffer get_object(size_t index);
   void fixup();
-  bool load_animation_table();
   DataSourceDOS::ColorDOS *get_dos_palette(size_t index);
 };
 

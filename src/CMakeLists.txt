@@ -70,6 +70,7 @@ set(OTHER_SOURCES data.cc
                   version.cc
                   data-source-dos.cc
                   data-source-amiga.cc
+                  data-source-legacy.cc
                   tpwm.cc
                   event_loop.cc
                   sfx2wav.cc
@@ -98,6 +99,7 @@ set(OTHER_HEADERS data.h
                   version.h
                   data-source-dos.h
                   data-source-amiga.h
+                  data-source-legacy.h
                   tpwm.h
                   event_loop.h
                   sfx2wav.h

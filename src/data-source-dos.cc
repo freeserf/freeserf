@@ -86,7 +86,7 @@ DataSourceDOS::Resource dos_resources[] = {
 };
 
 DataSourceDOS::DataSourceDOS(const std::string &_path)
-  : DataSource(_path) {
+  : DataSourceLegacy(_path) {
 }
 
 DataSourceDOS::~DataSourceDOS() {
@@ -150,9 +150,17 @@ DataSourceDOS::load() {
 
   fixup();
 
-  loaded = load_animation_table();
+  // The first uint32 is the byte length of the rest
+  // of the table in big endian order.
+  PBuffer anim = get_object(DATA_SERF_ANIMATION_TABLE);
+  size_t size = anim->get_size();
+  if (size != anim->pop32be()) {
+    Log::Error["data"] << "Could not extract animation table.";
+    return false;
+  }
+  anim = anim->pop_tail();
 
-  return loaded;
+  return load_animation_table(anim);
 }
 
 // Return buffer with object at index
@@ -375,49 +383,6 @@ DataSourceDOS::SpriteBaseDOS::SpriteBaseDOS(PBuffer _data) {
   height = _data->pop16le();
   offset_x = static_cast<int16_t>(_data->pop16le());
   offset_y = static_cast<int16_t>(_data->pop16le());
-}
-
-bool
-DataSourceDOS::load_animation_table() {
-  // The serf animation table is stored in big endian order in the data file.
-
-  // * The first uint32 is the byte length of the rest of the table.
-  // * Next is 199 uint32s that are offsets from the start of this table
-  //   to an animation table (one for each animation).
-  // * The animation tables are of varying lengths.
-  //   Each entry in the animation table is three bytes long.
-  //   First byte is used to determine the serf body sprite.
-  //   Second byte is a signed horizontal sprite offset.
-  //   Third byte is a signed vertical offset.
-
-  PBuffer data = get_object(DATA_SERF_ANIMATION_TABLE);
-  if (!data) {
-    return false;
-  }
-  size_t size = data->pop32be();
-  if (size != data->get_size()) {
-    Log::Error["data"] << "Could not extract animation table.";
-    return false;
-  }
-
-  // Endianess convert from big endian.
-  for (int i = 0; i < 200; i++) {
-    size_t offset = data->pop32be();
-    PBuffer anumation = data->get_tail(4 + offset);
-    animations.push_back(reinterpret_cast<Animation*>(anumation->get_data()));
-  }
-
-  return true;
-}
-
-Animation
-DataSourceDOS::get_animation(size_t animation, size_t phase) {
-  if (animation >= animations.size()) {
-    throw ExceptionFreeserf("Animation index out of range.");
-  }
-  Animation *animation_phase = animations[animation] + (phase >> 3);
-
-  return *animation_phase;
 }
 
 PBuffer

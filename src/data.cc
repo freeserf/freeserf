@@ -46,7 +46,7 @@ typedef struct DataResource {
 DataResource data_resources[] = {
   { Data::AssetNone,         Data::TypeUnknown,   0,   "error"         },
   { Data::AssetArtLandscape, Data::TypeSprite,    1,   "art_landscape" },
-  { Data::AssetAnimation,    Data::TypeAnimation, 1,   "animation"     },
+  { Data::AssetAnimation,    Data::TypeAnimation, 200, "animation"     },
   { Data::AssetSerfShadow,   Data::TypeSprite,    1,   "serf_shadow"   },
   { Data::AssetDottedLines,  Data::TypeSprite,    7,   "dotted_lines"  },
   { Data::AssetArtFlag,      Data::TypeSprite,    7,   "art_flag"      },

@@ -1359,7 +1359,7 @@ Viewport::serf_get_body(Serf *serf) {
 
   Animation animation = data_source->get_animation(serf->get_animation(),
                                                    serf->get_counter());
-  int t = animation.time;
+  int t = animation.sprite;
 
   switch (serf->get_type()) {
   case Serf::TypeTransporter:
@@ -1905,7 +1905,7 @@ Viewport::draw_active_serf(Serf *serf, MapPos pos, int x_base, int y_base) {
   /* Draw extra objects for fight */
   if ((serf->get_state() == Serf::StateKnightAttacking ||
        serf->get_state() == Serf::StateKnightAttackingFree) &&
-      animation.time >= 0x80 && animation.time < 0xc0) {
+      animation.sprite >= 0x80 && animation.sprite < 0xc0) {
     int index = serf->get_attacking_def_index();
     if (index != 0) {
       Serf *def_serf = interface->get_game()->get_serf(index);

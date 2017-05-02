@@ -28,10 +28,10 @@
 #include <vector>
 #include <memory>
 
-#include "src/data-source.h"
+#include "src/data-source-legacy.h"
 #include "src/buffer.h"
 
-class DataSourceAmiga : public DataSource {
+class DataSourceAmiga : public DataSourceLegacy {
  protected:
   class SpriteAmiga;
   typedef std::shared_ptr<SpriteAmiga> PSpriteAmiga;
@@ -65,8 +65,6 @@ class DataSourceAmiga : public DataSource {
   virtual bool load();
 
   virtual MaskImage get_sprite_parts(Data::Resource res, size_t index);
-
-  virtual Animation get_animation(size_t animation, size_t phase);
 
   virtual PBuffer get_sound(size_t index);
   virtual PBuffer get_music(size_t index);

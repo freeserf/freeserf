@@ -25,6 +25,7 @@
 #include <string>
 #include <memory>
 #include <tuple>
+#include <vector>
 
 #include "src/data.h"
 #include "src/debug.h"
@@ -68,7 +69,6 @@ class Sprite : public std::enable_shared_from_this<Sprite> {
 
   virtual PSprite get_masked(PSprite mask);
   virtual PSprite create_mask(PSprite other);
-  virtual PSprite create_diff(PSprite other);
   virtual void fill(Sprite::Color color);
   virtual void fill_masked(Sprite::Color color);
   virtual void add(PSprite other);
@@ -88,9 +88,9 @@ class Sprite : public std::enable_shared_from_this<Sprite> {
 
 class Animation {
  public:
-  uint8_t time;
-  int8_t x;
-  int8_t y;
+  uint8_t sprite;
+  int x;
+  int y;
 };
 
 class DataSource {
@@ -100,6 +100,7 @@ class DataSource {
  protected:
   std::string path;
   bool loaded;
+  std::vector<std::vector<Animation>> animation_table;
 
  public:
   explicit DataSource(const std::string &path);
@@ -119,7 +120,8 @@ class DataSource {
 
   virtual MaskImage get_sprite_parts(Data::Resource res, size_t index) = 0;
 
-  virtual Animation get_animation(size_t animation, size_t phase) = 0;
+  virtual size_t get_animation_phase_count(size_t animation);
+  virtual Animation get_animation(size_t animation, size_t phase);
 
   virtual PBuffer get_sound(size_t index) = 0;
   virtual PBuffer get_music(size_t index) = 0;
