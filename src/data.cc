@@ -26,6 +26,7 @@
 #include <memory>
 #include <utility>
 #include <string>
+#include <functional>
 
 #include "src/log.h"
 #include "src/data-source-dos.h"
@@ -94,29 +95,33 @@ Data::~Data() {
 // Try to load data file from given path or standard paths.
 //
 // Return true if successful. Standard paths will be searched only if the
-// given path is nullptr or an empty string.
+// given path is empty string.
 bool
-Data::load(const std::string* path) {
+Data::load(const std::string &path) {
   // If it is possible, prefer DOS game data.
-  std::vector<std::unique_ptr<DataSource>> data_sources;
-  data_sources.emplace_back(new DataSourceDOS());
-  data_sources.emplace_back(new DataSourceAmiga());
+  typedef std::function<PDataSource(const std::string &)> SourceFactory;
+  std::vector<SourceFactory> sources_factories;
+  sources_factories.push_back([](const std::string &path)->PDataSource{
+    return std::make_shared<DataSourceDOS>(path); });
+  sources_factories.push_back([](const std::string &path)->PDataSource{
+    return std::make_shared<DataSourceAmiga>(path); });
 
   std::list<std::string> search_paths;
-  if (path == nullptr || path->empty()) {
+  if (path.empty()) {
     search_paths = get_standard_search_paths();
   } else {
-    search_paths.push_front(*path);
+    search_paths.push_front(path);
   }
 
   // Use each data source to try to find the data files in the search paths.
-  for (auto& ds : data_sources) {
-    for (const auto& path : search_paths) {
-      std::string res_path;
-      if (ds->check(path, &res_path)) {
-        Log::Info["data"] << "Game data found in '" << res_path << "'...";
-        if (ds->load(res_path)) {
-          data_source = std::move(ds);
+  for (const SourceFactory &factory : sources_factories) {
+    for (const std::string &path : search_paths) {
+      PDataSource source = factory(path);
+      if (source->check()) {
+        Log::Info["data"] << "Game data found in '" << source->get_path()
+                          << "'...";
+        if (source->load()) {
+          data_source = source;
           break;
         }
       }
@@ -181,7 +186,7 @@ Data::get_standard_search_paths() const {
   #define PATH_SEPERATING_CHAR ':'
 #endif
 
-  std::string dirs = (env == NULL) ? std::string() : env;
+  std::string dirs = (env == nullptr) ? std::string() : env;
   size_t next_path = 0;
   while (next_path != std::string::npos) {
     size_t pos = dirs.find(PATH_SEPERATING_CHAR, next_path);
@@ -208,7 +213,7 @@ Data::get_resource_count(Resource resource) {
   return data_resources[resource].count;
 }
 
-const char *
+const std::string
 Data::get_resource_name(Resource resource) {
   return data_resources[resource].name;
 }

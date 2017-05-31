@@ -21,6 +21,9 @@
 
 #include "src/data-source.h"
 
+#include <sys/types.h>
+#include <sys/stat.h>
+
 #include <algorithm>
 #include <fstream>
 #include <cassert>
@@ -41,20 +44,29 @@
  or mask parts of other sprites completely (mask sprites).
  */
 
+DataSource::DataSource(const std::string &_path)
+  : path(_path)
+  , loaded(false) {
+}
+
 bool
 DataSource::check_file(const std::string &path) {
-  std::ifstream ifile(path.c_str());
-  if (ifile.good()) {
-    ifile.close();
-    return true;
+  struct stat info;
+
+  if (stat(path.c_str(), &info) != 0) {
+    return false;
   }
 
-  return false;
+  if (info.st_mode & S_IFDIR) {
+    return false;
+  }
+
+  return true;
 }
 
 void*
 DataSource::file_read(const std::string &path, size_t *size) {
-  char *data = NULL;
+  char *data = nullptr;
   *size = 0;
 
   do {
@@ -71,7 +83,7 @@ DataSource::file_read(const std::string &path, size_t *size) {
     file.seekg(0, file.beg);
 
     data = reinterpret_cast<char*>(malloc(*size));
-    if (data == NULL) {
+    if (data == nullptr) {
       *size = 0;
       break;
     }
@@ -102,8 +114,8 @@ Sprite::Sprite() {
 
 Sprite::Sprite(Sprite *base) {
   data = nullptr;
-  delta_x = 0;
-  delta_y = 0;
+  delta_x = base->get_delta_x();
+  delta_y = base->get_delta_y();
   offset_x = base->get_offset_x();
   offset_y = base->get_offset_y();
   create(base->get_width(), base->get_height());
@@ -246,6 +258,96 @@ Sprite::add(Sprite *other) {
 }
 
 void
+Sprite::del(Sprite *other) {
+  if ((width != other->get_width()) || (height != other->get_height())) {
+    return;
+  }
+
+  uint32_t *src = reinterpret_cast<uint32_t*>(other->get_data());
+  uint32_t *res = reinterpret_cast<uint32_t*>(data);
+
+  for (unsigned int i = 0; i < width * height; i++) {
+    if (*src++ == 0xFFFFFFFF) {
+      *res = 0x00000000;
+    }
+    res++;
+  }
+
+  return;
+}
+
+void
+Sprite::blend(Sprite *other) {
+  if ((width != other->get_width()) || (height != other->get_height())) {
+    return;
+  }
+
+#define UNMULTIPLY(color, a) ((0xFF * color) / a)
+#define BLEND(back, front, a) ((front * a) + (back * (0xFF - a))) / 0xFF
+
+  Color *c = reinterpret_cast<Color*>(data);
+  Color *o = reinterpret_cast<Color*>(other->get_data());
+  for (unsigned int i = 0; i < width * height; i++) {
+    const uint32_t alpha = o->alpha;
+
+    if (alpha == 0x00) {
+      c++;
+      o++;
+      continue;
+    }
+
+    if (alpha == 0xFF) {
+      *c++ = *o++;
+      continue;
+    }
+
+    const uint8_t backR = c->red;
+    const uint8_t backG = c->green;
+    const uint8_t backB = c->blue;
+
+    const uint8_t frontR = UNMULTIPLY(o->red, alpha);
+    const uint8_t frontG = UNMULTIPLY(o->green, alpha);
+    const uint8_t frontB = UNMULTIPLY(o->blue, alpha);
+
+    const uint32_t R = BLEND(backR, frontR, alpha);
+    const uint32_t G = BLEND(backG, frontG, alpha);
+    const uint32_t B = BLEND(backB, frontB, alpha);
+
+    *c++ = {(uint8_t)B, (uint8_t)G, (uint8_t)R, 0xFF};
+    o++;
+  }
+
+  delta_x = other->delta_x;
+  delta_y = other->delta_y;
+}
+
+void
+Sprite::make_alpha_mask() {
+  Color *c = reinterpret_cast<Color*>(data);
+  uint8_t min = 0xFF;
+  for (unsigned int i = 0; i < width * height; i++) {
+    if (c->alpha != 0x00) {
+      c->alpha = 0xff - ((0.21 * c->red) +
+                         (0.72 * c->green) +
+                         (0.07 * c->blue));
+      c->red = 0;
+      c->green = 0;
+      c->blue = 0;
+      min = std::min(min, c->alpha);
+    }
+    c++;
+  }
+
+  c = reinterpret_cast<Color*>(data);
+  for (unsigned int i = 0; i < width * height; i++) {
+    if (c->alpha != 0x00) {
+      c->alpha = c->alpha - min;
+    }
+    c++;
+  }
+}
+
+void
 Sprite::stick(Sprite *sticker, unsigned int dx, unsigned int dy) {
   Color *base = reinterpret_cast<Color*>(data);
   Color *stkr = reinterpret_cast<Color*>(sticker->get_data());
@@ -288,4 +390,52 @@ Sprite::create_id(uint64_t resource, uint64_t index,
   // 0x00000000000000FF
   result |= static_cast<uint64_t>(color.blue & 0xFF) << 0;
   return result;
+}
+
+Sprite *
+DataSource::get_sprite(Data::Resource res, unsigned int index,
+                       const Sprite::Color &color) {
+  if (index >= Data::get_resource_count(res)) {
+    return nullptr;
+  }
+
+  Sprite *mask = nullptr;
+  Sprite *image = nullptr;
+
+  this->get_sprite_parts(res, index, &mask, &image);
+
+  if (mask != nullptr) {
+    mask->fill_masked(color);
+    if (image != nullptr) {
+      mask->blend(image);
+      delete image;
+      return mask;
+    }
+    return mask;
+  }
+
+  return image;
+}
+
+void
+DataSource::separate_sprites(Sprite *s1, Sprite *s2,
+                             Sprite **mask, Sprite **image) {
+  if ((s1 == nullptr) || (s2 == nullptr)) {
+    return;
+  }
+
+  Sprite *filled = s1->create_mask(s2);
+  if (mask != nullptr) {
+    *mask = filled;
+  }
+
+  Sprite *masked = s1->get_masked(filled);
+  masked->make_alpha_mask();
+  s1->del(filled);
+  s1->stick(masked, 0, 0);
+  delete masked;
+
+  if (image != nullptr) {
+    *image = s1;
+  }
 }

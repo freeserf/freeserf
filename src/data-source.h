@@ -24,6 +24,7 @@
 
 #include <string>
 #include <cstdint>
+#include <memory>
 
 #include "src/data.h"
 
@@ -66,6 +67,9 @@ class Sprite {
   virtual void fill(Sprite::Color color);
   virtual void fill_masked(Sprite::Color color);
   virtual void add(Sprite *other);
+  virtual void del(Sprite *other);
+  virtual void blend(Sprite *other);
+  virtual void make_alpha_mask();
 
   virtual void stick(Sprite *sticker, unsigned int x, unsigned int y);
 
@@ -85,16 +89,28 @@ class Animation {
 };
 
 class DataSource {
+ protected:
+  std::string path;
+  bool loaded;
+
  public:
+  explicit DataSource(const std::string &path);
   virtual ~DataSource() {}
 
-  virtual const char *get_name() const = 0;
+  virtual std::string get_name() const = 0;
+  virtual std::string get_path() const { return path; }
+  virtual bool is_loaded() const { return loaded; }
+  virtual unsigned int get_scale() const = 0;
+  virtual unsigned int get_bpp() const = 0;
 
-  virtual bool check(const std::string &path, std::string *load_path) = 0;
-  virtual bool load(const std::string &path) = 0;
+  virtual bool check() = 0;
+  virtual bool load() = 0;
 
   virtual Sprite *get_sprite(Data::Resource res, unsigned int index,
-                             const Sprite::Color &color) = 0;
+                             const Sprite::Color &color);
+
+  virtual void get_sprite_parts(Data::Resource res, unsigned int index,
+                                Sprite **mask, Sprite **image) = 0;
 
   virtual Animation *get_animation(unsigned int animation,
                                    unsigned int phase) = 0;
@@ -105,6 +121,11 @@ class DataSource {
   bool check_file(const std::string &path);
   void *file_read(const std::string &path, size_t *size);
   bool file_write(const std::string &path, void *data, size_t size);
+
+ protected:
+  void separate_sprites(Sprite *s1, Sprite *s2, Sprite **mask, Sprite **image);
 };
+
+typedef std::shared_ptr<DataSource> PDataSource;
 
 #endif  // SRC_DATA_SOURCE_H_

@@ -58,7 +58,7 @@ class Viewport : public GuiObject, public Map::Handler {
   unsigned int layers;
   Interface *interface;
   unsigned int last_tick;
-  DataSource *data_source;
+  PDataSource data_source;
 
   PMap map;
 

@@ -48,16 +48,18 @@ class DataSourceAmiga : public DataSource {
   };
 
  public:
-  DataSourceAmiga();
+  explicit DataSourceAmiga(const std::string &path);
   virtual ~DataSourceAmiga();
 
-  virtual const char *get_name() const { return "Amiga"; }
+  virtual std::string get_name() const { return "Amiga"; }
+  virtual unsigned int get_scale() const { return 1; }
+  virtual unsigned int get_bpp() const { return 5; }
 
-  virtual bool check(const std::string &path, std::string *load_path);
-  virtual bool load(const std::string &path);
+  virtual bool check();
+  virtual bool load();
 
-  virtual Sprite *get_sprite(Data::Resource res, unsigned int index,
-                             const Sprite::Color &color);
+  virtual void get_sprite_parts(Data::Resource res, unsigned int index,
+                                Sprite **mask, Sprite **image);
 
   virtual Animation *get_animation(unsigned int animation, unsigned int phase);
 
@@ -94,7 +96,7 @@ class DataSourceAmiga : public DataSource {
   SpriteAmiga *get_mirrored_horizontaly_sprite(Sprite *sprite);
   Sprite *get_path_mask_sprite(unsigned int index);
   Sprite *get_game_object_sprite(unsigned int catalog, unsigned int index);
-  Sprite *get_torso_sprite(unsigned int index);
+  Sprite *get_torso_sprite(unsigned int index, uint8_t *palette);
   Sprite *get_map_object_sprite(unsigned int index);
   Sprite *get_map_object_shadow(unsigned int index);
   SpriteAmiga *get_hud_sprite(unsigned int index);
