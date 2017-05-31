@@ -118,8 +118,8 @@ class DataSourceDOS : public DataSource {
   virtual bool check();
   virtual bool load();
 
-  virtual Sprite *get_sprite(Data::Resource res, unsigned int index,
-                             const Sprite::Color &color);
+  virtual void get_sprite_parts(Data::Resource res, unsigned int index,
+                                Sprite **mask, Sprite **image);
 
   virtual Animation *get_animation(unsigned int animation,
                                    unsigned int phase);

@@ -58,8 +58,8 @@ class DataSourceAmiga : public DataSource {
   virtual bool check();
   virtual bool load();
 
-  virtual Sprite *get_sprite(Data::Resource res, unsigned int index,
-                             const Sprite::Color &color);
+  virtual void get_sprite_parts(Data::Resource res, unsigned int index,
+                                Sprite **mask, Sprite **image);
 
   virtual Animation *get_animation(unsigned int animation, unsigned int phase);
 
@@ -96,7 +96,7 @@ class DataSourceAmiga : public DataSource {
   SpriteAmiga *get_mirrored_horizontaly_sprite(Sprite *sprite);
   Sprite *get_path_mask_sprite(unsigned int index);
   Sprite *get_game_object_sprite(unsigned int catalog, unsigned int index);
-  Sprite *get_torso_sprite(unsigned int index);
+  Sprite *get_torso_sprite(unsigned int index, uint8_t *palette);
   Sprite *get_map_object_sprite(unsigned int index);
   Sprite *get_map_object_shadow(unsigned int index);
   SpriteAmiga *get_hud_sprite(unsigned int index);

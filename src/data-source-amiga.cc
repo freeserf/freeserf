@@ -47,11 +47,11 @@ uint8_t palette[] = {
   0x00, 0x00, 0x00,   // 0
   0xFF, 0xAA, 0x00,   // 1
   0x00, 0x00, 0x00,   // 2
-  0x00, 0xEE, 0xEE,   // 3
+  0x00, 0xEE, 0xEE,   // 3  // 1st player normal
   0x00, 0x00, 0xBB,   // 4
   0x44, 0x44, 0xDD,   // 5
   0x88, 0x88, 0xFF,   // 6
-  0x00, 0xCC, 0xBB,   // 7
+  0x00, 0xCC, 0xBB,   // 7  // 1st player dark
   0x22, 0x44, 0x00,   // 8
   0x33, 0x55, 0x00,   // 9
   0x33, 0x66, 0x33,   // 10
@@ -218,6 +218,41 @@ uint8_t palette2[] = {
   0x00, 0x00, 0x00,  // 31 ???
 };
 
+uint8_t palette3[] = {
+  0x00, 0x00, 0x00,   // 0
+  0xFF, 0xAA, 0x00,   // 1
+  0x00, 0x00, 0x00,   // 2
+  0xFF, 0x00, 0xEE,   // 3  // 1st player normal
+  0x00, 0x00, 0xBB,   // 4
+  0x44, 0x44, 0xDD,   // 5
+  0x88, 0x88, 0xFF,   // 6
+  0xFF, 0x00, 0xBB,   // 7  // 1st player dark
+  0x22, 0x44, 0x00,   // 8
+  0x33, 0x55, 0x00,   // 9
+  0x33, 0x66, 0x33,   // 10
+  0xEE, 0x88, 0xFF,   // 11
+  0x44, 0x88, 0x00,   // 12
+  0x66, 0x99, 0x00,   // 13
+  0x77, 0xBB, 0x44,   // 14
+  0xCC, 0x77, 0xDD,   // 15
+  0x44, 0x44, 0x44,   // 16
+  0x99, 0x99, 0x99,   // 17
+  0xFF, 0xFF, 0xFF,   // 18
+  0xEE, 0x66, 0x66,   // 19
+  0x22, 0x22, 0x22,   // 20
+  0x66, 0x66, 0x66,   // 21
+  0xCC, 0xCC, 0xCC,   // 22
+  0xDD, 0x33, 0x33,   // 23
+  0x55, 0x22, 0x00,   // 24
+  0x77, 0x33, 0x00,   // 25
+  0x99, 0x55, 0x22,   // 26
+  0xFF, 0xFF, 0x99,   // 27
+  0xBB, 0x88, 0x55,   // 28
+  0xDD, 0xAA, 0x77,   // 29
+  0xFF, 0xDD, 0xBB,   // 30
+  0xDD, 0xDD, 0x00,   // 31
+};
+
 DataSourceAmiga::DataSourceAmiga(const std::string &_path)
   : DataSource(_path)
   , gfxfast(nullptr)
@@ -368,10 +403,18 @@ DataSourceAmiga::load() {
   return true;
 }
 
-Sprite *
-DataSourceAmiga::get_sprite(Data::Resource res, unsigned int index,
-                            const Sprite::Color &color) {
-  Sprite *sprite = NULL;
+void
+DataSourceAmiga::get_sprite_parts(Data::Resource res, unsigned int index,
+                                  Sprite **mask, Sprite **image) {
+  if (mask != nullptr) {
+    *mask = nullptr;
+  }
+  if (image != nullptr) {
+    *image = nullptr;
+  }
+
+  Sprite *sprite = nullptr;
+
   switch (res) {
     case Data::AssetArtLandscape:
       break;
@@ -517,8 +560,9 @@ DataSourceAmiga::get_sprite(Data::Resource res, unsigned int index,
       uint8_t *data = reinterpret_cast<uint8_t*>(data_pointers[14]);
       data += index * 8;
       SpriteAmiga *s = decode_mask_sprite(data, 8, 8);
-      s->fill_masked(color);
-      sprite = s;
+      if (mask != nullptr) {
+        *mask = s;
+      }
       break;
     }
     case Data::AssetFontShadow:
@@ -527,6 +571,14 @@ DataSourceAmiga::get_sprite(Data::Resource res, unsigned int index,
       sprite = get_icon_sprite(index);
       break;
     case Data::AssetMapObject:
+      if ((index >= 128) && (index <= 143)) {  // Flag sprites
+        int flag_frame = (index - 128) % 4;
+        Sprite *s1 = get_map_object_sprite(128 + flag_frame);
+        Sprite *s2 = get_map_object_sprite(128 + flag_frame + 4);
+        separate_sprites(s1, s2, mask, image);
+        delete s2;
+        return;
+      }
       sprite = get_map_object_sprite(index);
       break;
     case Data::AssetMapShadow:
@@ -577,9 +629,13 @@ DataSourceAmiga::get_sprite(Data::Resource res, unsigned int index,
         sprite = get_hud_sprite(index - 20);
       }
       break;
-    case Data::AssetSerfTorso:
-      sprite = get_torso_sprite(index);
-      break;
+    case Data::AssetSerfTorso: {
+      Sprite *s1 = get_torso_sprite(index, palette);
+      Sprite *s2 = get_torso_sprite(index, palette3);
+      this->separate_sprites(s1, s2, mask, image);
+      delete s2;
+      return;
+    }
     case Data::AssetSerfHead:
       sprite = get_game_object_sprite(20, index);
       break;
@@ -596,7 +652,9 @@ DataSourceAmiga::get_sprite(Data::Resource res, unsigned int index,
       break;
   }
 
-  return sprite;
+  if (image != nullptr) {
+    *image = sprite;
+  }
 }
 
 Animation *
@@ -1079,7 +1137,7 @@ DataSourceAmiga::get_game_object_sprite(unsigned int catalog,
 }
 
 Sprite *
-DataSourceAmiga::get_torso_sprite(unsigned int index) {
+DataSourceAmiga::get_torso_sprite(unsigned int index, uint8_t *palette) {
   uint8_t *data = get_data_from_catalog(19, index, gfxchip);
   if (data == nullptr) {
     return nullptr;

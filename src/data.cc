@@ -26,6 +26,7 @@
 #include <memory>
 #include <utility>
 #include <string>
+#include <functional>
 
 #include "src/log.h"
 #include "src/data-source-dos.h"

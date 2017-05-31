@@ -250,89 +250,89 @@ DataSourceDOS::fixup() {
  */
 
 /* Create sprite object */
-Sprite *
-DataSourceDOS::get_sprite(Data::Resource res, unsigned int index,
-                          const Sprite::Color &color) {
+void
+DataSourceDOS::get_sprite_parts(Data::Resource res, unsigned int index,
+                                Sprite **mask, Sprite **image) {
+  if (mask != nullptr) {
+    *mask = nullptr;
+  }
+  if (image != nullptr) {
+    *image = nullptr;
+  }
   if (index >= Data::get_resource_count(res)) {
-    return nullptr;
+    return;
   }
 
   Resource &dos_res = dos_resources[res];
 
   ColorDOS *palette = get_dos_palette(dos_res.dos_palette);
   if (palette == nullptr) {
-    return nullptr;
+    return;
   }
 
   if (res == Data::AssetSerfTorso) {
     size_t size = 0;
     void *data = get_object(dos_res.index + index, &size);
     if (data == nullptr) {
-      return nullptr;
+      return;
     }
     SpriteBaseDOS *torso = new SpriteDosTransparent(data, size, palette, 64);
 
     data = get_object(dos_res.index + index, &size);
     if (data == nullptr) {
       delete torso;
-      return nullptr;
+      return;
     }
     SpriteBaseDOS *torso2 = new SpriteDosTransparent(data, size, palette, 72);
-    Sprite *filled = torso->create_mask(torso2);
-    filled->fill_masked({0xe3, 0xe3, 0x00, 0xff});
-    Sprite *diff = torso->create_diff(filled);
-    filled->fill_masked(color);
-    filled->add(diff);
-    torso->stick(filled, 0, 0);
+
+    separate_sprites(torso, torso2, mask, image);
     delete torso2;
-    delete filled;
-    delete diff;
+
     data = get_object(DATA_SERF_ARMS + index, &size);
     SpriteBaseDOS *arms = new SpriteDosTransparent(data, size, palette);
     torso->stick(arms, 0, 0);
     delete arms;
-    return torso;
+
+    if (image != nullptr) {
+      *image = torso;
+    }
+    return;
   } else if (res == Data::AssetMapObject) {
-    if ((index >= 128) && (index <= 143)) {
+      if ((index >= 128) && (index <= 143)) {  // Flag sprites
       int flag_frame = (index - 128) % 4;
       size_t size = 0;
       void *data = get_object(dos_res.index + 128 + flag_frame, &size);
       if (data == nullptr) {
-        return nullptr;
+        return;
       }
       Sprite *s1 = new SpriteDosTransparent(data, size, palette);
       data = get_object(dos_res.index + 128 + 4 + flag_frame, &size);
       if (data == nullptr) {
         delete s1;
-        return nullptr;
+        return;
       }
       Sprite *s2 = new SpriteDosTransparent(data, size, palette);
-      Sprite *filled = s1->create_mask(s2);
-      filled->fill_masked({0xe3, 0xe3, 0x00, 0xff});
-      Sprite *diff = s1->create_diff(filled);
-      filled->fill_masked(color);
-      filled->add(diff);
-      s1->stick(filled, 0, 0);
-      delete s2;
-      delete filled;
-      delete diff;
-      return s1;
+
+      separate_sprites(s1, s2, mask, image);
+
+      return;
     }
   } else if (res == Data::AssetFont || res == Data::AssetFontShadow) {
     size_t size = 0;
     void *data = get_object(dos_res.index + index, &size);
     if (data == nullptr) {
-      return nullptr;
+      return;
     }
-    Sprite *res = new SpriteDosTransparent(data, size, palette);
-    res->fill_masked(color);
-    return res;
+    if (mask != nullptr) {
+      *mask = new SpriteDosTransparent(data, size, palette);
+      return;
+    }
   }
 
   size_t size = 0;
   void *data = get_object(dos_res.index + index, &size);
   if (data == nullptr) {
-    return nullptr;
+    return;
   }
 
   Sprite *sprite = nullptr;
@@ -354,10 +354,12 @@ DataSourceDOS::get_sprite(Data::Resource res, unsigned int index,
       break;
     }
     default:
-      return nullptr;
+      return;
   }
 
-  return sprite;
+  if (image != nullptr) {
+    *image = sprite;
+  }
 }
 
 DataSourceDOS::SpriteDosSolid::SpriteDosSolid(void *data, size_t size,
@@ -502,7 +504,7 @@ DataSourceDOS::load_animation_table() {
   size_t size = 0;
   uint32_t *animation_block =
     reinterpret_cast<uint32_t*>(get_object(DATA_SERF_ANIMATION_TABLE, &size));
-  if (animation_block == NULL) {
+  if (animation_block == nullptr) {
     return false;
   }
 
