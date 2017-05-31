@@ -108,13 +108,15 @@ class DataSourceDOS : public DataSource {
   Animation **animation_table;
 
  public:
-  DataSourceDOS();
+  explicit DataSourceDOS(const std::string &path);
   virtual ~DataSourceDOS();
 
-  virtual const char *get_name() const { return "DOS"; }
+  virtual std::string get_name() const { return "DOS"; }
+  virtual unsigned int get_scale() const { return 1; }
+  virtual unsigned int get_bpp() const { return 8; }
 
-  virtual bool check(const std::string &path, std::string *load_path);
-  virtual bool load(const std::string &path);
+  virtual bool check();
+  virtual bool load();
 
   virtual Sprite *get_sprite(Data::Resource res, unsigned int index,
                              const Sprite::Color &color);

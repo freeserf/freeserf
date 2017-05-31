@@ -88,43 +88,46 @@ DataSourceDOS::Resource dos_resources[] = {
   {   3, 0,    DataSourceDOS::SpriteTypeUnknown     }   // palette
 };
 
-DataSourceDOS::DataSourceDOS() {
-  sprites = NULL;
-  sprites_size = 0;
-  entry_count = 0;
-  animation_table = NULL;
+DataSourceDOS::DataSourceDOS(const std::string &_path)
+  : DataSource(_path)
+  , sprites(nullptr)
+  , sprites_size(0)
+  , entry_count(0)
+  , animation_table(nullptr) {
 }
 
 DataSourceDOS::~DataSourceDOS() {
-  if (sprites != NULL) {
+  if (sprites != nullptr) {
     free(sprites);
-    sprites = NULL;
+    sprites = nullptr;
   }
 
-  if (animation_table != NULL) {
+  if (animation_table != nullptr) {
     delete[] animation_table;
-    animation_table = NULL;
+    animation_table = nullptr;
   }
 }
 
 bool
-DataSourceDOS::check(const std::string &path, std::string *load_path) {
+DataSourceDOS::check() {
   const char *default_data_file[] = {
     "SPAE.PA", /* English */
     "SPAF.PA", /* French */
     "SPAD.PA", /* German */
     "SPAU.PA", /* Engish (US) */
-    NULL
+    nullptr
   };
+
+  if (check_file(path)) {
+    return true;
+  }
 
   for (const char **df = default_data_file; *df != NULL; df++) {
     std::string file_path = path + '/' + *df;
     Log::Info["data"] << "Looking for game data in '"
                       << file_path.c_str() << "'...";
     if (check_file(file_path)) {
-      if (load_path != NULL) {
-        *load_path = file_path;
-      }
+      path = file_path;
       return true;
     }
   }
@@ -133,18 +136,22 @@ DataSourceDOS::check(const std::string &path, std::string *load_path) {
 }
 
 bool
-DataSourceDOS::load(const std::string &path) {
+DataSourceDOS::load() {
+  if (!check()) {
+    return false;
+  }
+
   sprites = file_read(path, &sprites_size);
-  if (sprites == NULL) {
+  if (sprites == nullptr) {
     return false;
   }
 
   /* Check that data file is decompressed. */
   if (tpwm_is_compressed(sprites, sprites_size)) {
     Log::Verbose["data"] << "Data file is compressed";
-    void *uncompressed = NULL;
+    void *uncompressed = nullptr;
     size_t uncmpsd_size = 0;
-    const char *error = NULL;
+    const char *error = nullptr;
     if (!tpwm_uncompress(sprites, sprites_size,
                          &uncompressed, &uncmpsd_size,
                          &error)) {
@@ -164,7 +171,13 @@ DataSourceDOS::load(const std::string &path) {
 
   fixup();
 
-  return load_animation_table();
+  if (!load_animation_table()) {
+    return false;
+  }
+
+  loaded = true;
+
+  return true;
 }
 
 /* Return a pointer to the data object at index.
@@ -172,13 +185,13 @@ DataSourceDOS::load(const std::string &path) {
  (There's no guarantee that size is correct!). */
 void *
 DataSourceDOS::get_object(unsigned int index, size_t *size) {
-  if (size != NULL) {
+  if (size != nullptr) {
     *size = 0;
   }
 
   // first entry is whole file itself
   if ((index <= 0) || (index >= entry_count)) {
-    return NULL;
+    return nullptr;
   }
 
   SpaeEntry *entries = reinterpret_cast<SpaeEntry*>(sprites);
@@ -186,10 +199,10 @@ DataSourceDOS::get_object(unsigned int index, size_t *size) {
 
   size_t offset = le32toh(entries[index].offset);
   if (offset == 0) {
-    return NULL;
+    return nullptr;
   }
 
-  if (size != NULL) {
+  if (size != nullptr) {
     *size = le32toh(entries[index].size);
   }
 
@@ -241,28 +254,28 @@ Sprite *
 DataSourceDOS::get_sprite(Data::Resource res, unsigned int index,
                           const Sprite::Color &color) {
   if (index >= Data::get_resource_count(res)) {
-    return NULL;
+    return nullptr;
   }
 
   Resource &dos_res = dos_resources[res];
 
   ColorDOS *palette = get_dos_palette(dos_res.dos_palette);
-  if (palette == NULL) {
-    return NULL;
+  if (palette == nullptr) {
+    return nullptr;
   }
 
   if (res == Data::AssetSerfTorso) {
     size_t size = 0;
     void *data = get_object(dos_res.index + index, &size);
-    if (data == NULL) {
-      return NULL;
+    if (data == nullptr) {
+      return nullptr;
     }
     SpriteBaseDOS *torso = new SpriteDosTransparent(data, size, palette, 64);
 
     data = get_object(dos_res.index + index, &size);
-    if (data == NULL) {
+    if (data == nullptr) {
       delete torso;
-      return NULL;
+      return nullptr;
     }
     SpriteBaseDOS *torso2 = new SpriteDosTransparent(data, size, palette, 72);
     Sprite *filled = torso->create_mask(torso2);
@@ -284,14 +297,14 @@ DataSourceDOS::get_sprite(Data::Resource res, unsigned int index,
       int flag_frame = (index - 128) % 4;
       size_t size = 0;
       void *data = get_object(dos_res.index + 128 + flag_frame, &size);
-      if (data == NULL) {
-        return NULL;
+      if (data == nullptr) {
+        return nullptr;
       }
       Sprite *s1 = new SpriteDosTransparent(data, size, palette);
       data = get_object(dos_res.index + 128 + 4 + flag_frame, &size);
-      if (data == NULL) {
+      if (data == nullptr) {
         delete s1;
-        return NULL;
+        return nullptr;
       }
       Sprite *s2 = new SpriteDosTransparent(data, size, palette);
       Sprite *filled = s1->create_mask(s2);
@@ -308,8 +321,8 @@ DataSourceDOS::get_sprite(Data::Resource res, unsigned int index,
   } else if (res == Data::AssetFont || res == Data::AssetFontShadow) {
     size_t size = 0;
     void *data = get_object(dos_res.index + index, &size);
-    if (data == NULL) {
-      return NULL;
+    if (data == nullptr) {
+      return nullptr;
     }
     Sprite *res = new SpriteDosTransparent(data, size, palette);
     res->fill_masked(color);
@@ -318,11 +331,11 @@ DataSourceDOS::get_sprite(Data::Resource res, unsigned int index,
 
   size_t size = 0;
   void *data = get_object(dos_res.index + index, &size);
-  if (data == NULL) {
-    return NULL;
+  if (data == nullptr) {
+    return nullptr;
   }
 
-  Sprite *sprite = NULL;
+  Sprite *sprite = nullptr;
   switch (dos_res.sprite_type) {
     case SpriteTypeSolid: {
       sprite = new SpriteDosSolid(data, size, palette);
@@ -341,7 +354,7 @@ DataSourceDOS::get_sprite(Data::Resource res, unsigned int index,
       break;
     }
     default:
-      return NULL;
+      return nullptr;
   }
 
   return sprite;
@@ -514,7 +527,7 @@ DataSourceDOS::load_animation_table() {
 Animation*
 DataSourceDOS::get_animation(unsigned int animation, unsigned int phase) {
   if (animation > 199) {
-    return NULL;
+    return nullptr;
   }
   Animation *animation_phase = animation_table[animation] + (phase >> 3);
 
@@ -523,21 +536,21 @@ DataSourceDOS::get_animation(unsigned int animation, unsigned int phase) {
 
 void *
 DataSourceDOS::get_sound(unsigned int index, size_t *size) {
-  if (size != NULL) {
+  if (size != nullptr) {
     *size = 0;
   }
 
   size_t sfx_size = 0;
   void *data = get_object(DATA_SFX_BASE + index, &sfx_size);
-  if (data == NULL) {
+  if (data == nullptr) {
     Log::Error["data"] << "Could not extract SFX clip: #" << index;
-    return NULL;
+    return nullptr;
   }
 
   void *wav = sfx2wav(data, sfx_size, size, -0x20);
-  if (wav == NULL) {
+  if (wav == nullptr) {
     Log::Error["data"] << "Could not convert SFX clip to WAV: #" << index;
-    return NULL;
+    return nullptr;
   }
 
   return wav;
@@ -545,21 +558,21 @@ DataSourceDOS::get_sound(unsigned int index, size_t *size) {
 
 void *
 DataSourceDOS::get_music(unsigned int index, size_t *size) {
-  if (size != NULL) {
+  if (size != nullptr) {
     *size = 0;
   }
 
   size_t xmi_size = 0;
   void *data = get_object(DATA_MUSIC_GAME + index, &xmi_size);
-  if (data == NULL) {
+  if (data == nullptr) {
     Log::Error["data"] << "Could not extract XMI clip: #" << index;
-    return NULL;
+    return nullptr;
   }
 
   void *mid = xmi2mid(data, xmi_size, size);
-  if (mid == NULL) {
+  if (mid == nullptr) {
     Log::Error["data"] << "Could not convert XMI clip to MID: #" << index;
-    return NULL;
+    return nullptr;
   }
 
   return mid;
@@ -569,8 +582,8 @@ DataSourceDOS::ColorDOS *
 DataSourceDOS::get_dos_palette(unsigned int index) {
   size_t size = 0;
   void *data = get_object(index, &size);
-  if ((data == NULL) || (size != sizeof(ColorDOS)*256)) {
-    return NULL;
+  if ((data == nullptr) || (size != sizeof(ColorDOS)*256)) {
+    return nullptr;
   }
 
   return reinterpret_cast<ColorDOS*>(data);

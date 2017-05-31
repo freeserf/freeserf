@@ -27,6 +27,7 @@
 #include <memory>
 
 class DataSource;
+typedef std::shared_ptr<DataSource> PDataSource;
 
 class Data {
  public:
@@ -76,7 +77,7 @@ class Data {
   } Asset;
 
  protected:
-  std::unique_ptr<DataSource> data_source;
+  PDataSource data_source;
 
   Data();
 
@@ -88,13 +89,13 @@ class Data {
 
   static Data *get_instance();
 
-  bool load(const std::string* path);
+  bool load(const std::string &path);
 
-  DataSource *get_data_source() const { return data_source.get(); }
+  PDataSource get_data_source() const { return data_source; }
 
   static Type get_resource_type(Resource resource);
   static unsigned int get_resource_count(Resource resource);
-  static const char *get_resource_name(Resource resource);
+  static const std::string get_resource_name(Resource resource);
 
  protected:
   std::list<std::string> get_standard_search_paths() const;

@@ -21,6 +21,9 @@
 
 #include "src/data-source.h"
 
+#include <sys/types.h>
+#include <sys/stat.h>
+
 #include <algorithm>
 #include <fstream>
 #include <cassert>
@@ -41,20 +44,29 @@
  or mask parts of other sprites completely (mask sprites).
  */
 
+DataSource::DataSource(const std::string &_path)
+  : path(_path)
+  , loaded(false) {
+}
+
 bool
 DataSource::check_file(const std::string &path) {
-  std::ifstream ifile(path.c_str());
-  if (ifile.good()) {
-    ifile.close();
-    return true;
+  struct stat info;
+
+  if (stat(path.c_str(), &info) != 0) {
+    return false;
   }
 
-  return false;
+  if (info.st_mode & S_IFDIR) {
+    return false;
+  }
+
+  return true;
 }
 
 void*
 DataSource::file_read(const std::string &path, size_t *size) {
-  char *data = NULL;
+  char *data = nullptr;
   *size = 0;
 
   do {
@@ -71,7 +83,7 @@ DataSource::file_read(const std::string &path, size_t *size) {
     file.seekg(0, file.beg);
 
     data = reinterpret_cast<char*>(malloc(*size));
-    if (data == NULL) {
+    if (data == nullptr) {
       *size = 0;
       break;
     }

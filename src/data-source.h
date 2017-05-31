@@ -85,13 +85,22 @@ class Animation {
 };
 
 class DataSource {
+ protected:
+  std::string path;
+  bool loaded;
+
  public:
+  explicit DataSource(const std::string &path);
   virtual ~DataSource() {}
 
-  virtual const char *get_name() const = 0;
+  virtual std::string get_name() const = 0;
+  virtual std::string get_path() const { return path; }
+  virtual bool is_loaded() const { return loaded; }
+  virtual unsigned int get_scale() const = 0;
+  virtual unsigned int get_bpp() const = 0;
 
-  virtual bool check(const std::string &path, std::string *load_path) = 0;
-  virtual bool load(const std::string &path) = 0;
+  virtual bool check() = 0;
+  virtual bool load() = 0;
 
   virtual Sprite *get_sprite(Data::Resource res, unsigned int index,
                              const Sprite::Color &color) = 0;
@@ -106,5 +115,7 @@ class DataSource {
   void *file_read(const std::string &path, size_t *size);
   bool file_write(const std::string &path, void *data, size_t size);
 };
+
+typedef std::shared_ptr<DataSource> PDataSource;
 
 #endif  // SRC_DATA_SOURCE_H_

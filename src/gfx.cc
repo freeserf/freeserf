@@ -97,7 +97,7 @@ Graphics::Graphics() throw(ExceptionFreeserf) {
   }
 
   Data *data = Data::get_instance();
-  DataSource *data_source = data->get_data_source();
+  PDataSource data_source = data->get_data_source();
   Sprite *sprite = data_source->get_sprite(Data::AssetCursor, 0, {0, 0, 0, 0});
   video->set_cursor(sprite->get_data(), sprite->get_width(),
                     sprite->get_height());

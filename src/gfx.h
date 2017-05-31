@@ -111,7 +111,7 @@ class Frame {
   Video *video;
   Video::Frame *video_frame;
   bool owner;
-  DataSource *data_source;
+  PDataSource data_source;
 
  public:
   Frame(Video *video, unsigned int width, unsigned int height);
