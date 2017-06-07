@@ -314,6 +314,7 @@ DataSourceDOS::get_sprite_parts(Data::Resource res, unsigned int index,
       Sprite *s2 = new SpriteDosTransparent(data, size, palette);
 
       separate_sprites(s1, s2, mask, image);
+      delete s2;
 
       return;
     }
@@ -359,18 +360,20 @@ DataSourceDOS::get_sprite_parts(Data::Resource res, unsigned int index,
 
   if (image != nullptr) {
     *image = sprite;
+  } else if (sprite != nullptr) {
+    delete sprite;
   }
 }
 
 DataSourceDOS::SpriteDosSolid::SpriteDosSolid(void *data, size_t size,
                                               ColorDOS *palette)
   : SpriteBaseDOS(data, size) {
-  size -= sizeof(dos_sprite_header_t);
+  size -= sizeof(DosSpriteHeader);
   if (size != width * height) {
     assert(0);
   }
 
-  uint8_t *src = reinterpret_cast<uint8_t*>(data) + sizeof(dos_sprite_header_t);
+  uint8_t *src = reinterpret_cast<uint8_t*>(data) + sizeof(DosSpriteHeader);
   uint8_t *end = src + size;
   uint8_t *dest = this->data;
 
@@ -388,8 +391,8 @@ DataSourceDOS::SpriteDosTransparent::SpriteDosTransparent(void *data,
                                                           ColorDOS *palette,
                                                           uint8_t color)
   : SpriteBaseDOS(data, size) {
-  size -= sizeof(dos_sprite_header_t);
-  uint8_t *src = reinterpret_cast<uint8_t*>(data) + sizeof(dos_sprite_header_t);
+  size -= sizeof(DosSpriteHeader);
+  uint8_t *src = reinterpret_cast<uint8_t*>(data) + sizeof(DosSpriteHeader);
   uint8_t *end = src + size;
   uint8_t *dest = this->data;
 
@@ -418,8 +421,8 @@ DataSourceDOS::SpriteDosOverlay::SpriteDosOverlay(void *data, size_t size,
                                                   ColorDOS *palette,
                                                   unsigned char value)
   : SpriteBaseDOS(data, size) {
-  size -= sizeof(dos_sprite_header_t);
-  uint8_t *src = reinterpret_cast<uint8_t*>(data) + sizeof(dos_sprite_header_t);
+  size -= sizeof(DosSpriteHeader);
+  uint8_t *src = reinterpret_cast<uint8_t*>(data) + sizeof(DosSpriteHeader);
   uint8_t *end = src + size;
   uint8_t *dest = this->data;
 
@@ -445,8 +448,8 @@ DataSourceDOS::SpriteDosOverlay::SpriteDosOverlay(void *data, size_t size,
 
 DataSourceDOS::SpriteDosMask::SpriteDosMask(void *data, size_t size)
   : SpriteBaseDOS(data, size) {
-  size -= sizeof(dos_sprite_header_t);
-  uint8_t *src = reinterpret_cast<uint8_t*>(data) + sizeof(dos_sprite_header_t);
+  size -= sizeof(DosSpriteHeader);
+  uint8_t *src = reinterpret_cast<uint8_t*>(data) + sizeof(DosSpriteHeader);
   uint8_t *end = src + size;
   uint8_t *dest = this->data;
 
@@ -471,11 +474,11 @@ DataSourceDOS::SpriteDosMask::SpriteDosMask(void *data, size_t size)
 
 
 DataSourceDOS::SpriteBaseDOS::SpriteBaseDOS(void *data, size_t size) {
-  if (size < sizeof(dos_sprite_header_t)) {
+  if (size < sizeof(DosSpriteHeader)) {
     assert(0);
   }
 
-  dos_sprite_header_t *sprite = reinterpret_cast<dos_sprite_header_t*>(data);
+  DosSpriteHeader *sprite = reinterpret_cast<DosSpriteHeader*>(data);
   delta_x = sprite->b_x;
   delta_y = sprite->b_y;
   offset_x = sprite->x;

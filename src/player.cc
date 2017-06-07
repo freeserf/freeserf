@@ -954,9 +954,9 @@ Player::get_score() const {
   return total_building_score + ((total_land_area + mil_score) >> 4);
 }
 
-resource_map_t
+ResourceMap
 Player::get_stats_resources() {
-  resource_map_t resources;
+  ResourceMap resources;
 
   /* Sum up resources of all inventories. */
   for (Inventory *inventory : game->get_player_inventories(this)) {

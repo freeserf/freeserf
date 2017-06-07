@@ -298,8 +298,8 @@ class Map {
   UpdateState update_state;
 
   /* Callback for map height changes */
-  typedef std::list<Handler*> change_handlers_t;
-  change_handlers_t change_handlers;
+  typedef std::list<Handler*> ChangeHandlers;
+  ChangeHandlers change_handlers;
 
   std::unique_ptr<MapPos[]> spiral_pos_pattern;
 

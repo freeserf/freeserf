@@ -29,8 +29,8 @@
 
 class GuiObject : public EventLoop::Handler {
  private:
-  typedef std::list<GuiObject*> float_list_t;
-  float_list_t floats;
+  typedef std::list<GuiObject*> FloatList;
+  FloatList floats;
 
  protected:
   int x, y;

@@ -426,7 +426,7 @@ DataSourceAmiga::get_sprite_parts(Data::Resource res, unsigned int index,
       break;
     case Data::AssetArtBox:
       if (gfxpics != nullptr) {
-        pics_t::iterator it = pics.find(index);
+        Pics::iterator it = pics.find(index);
         if (it != pics.end()) {
           sprite = decode_interlased_sprite(pics[index], 16, 144, 0, 0,
                                             palette);
@@ -654,6 +654,8 @@ DataSourceAmiga::get_sprite_parts(Data::Resource res, unsigned int index,
 
   if (image != nullptr) {
     *image = sprite;
+  } else if (sprite != nullptr) {
+    delete sprite;
   }
 }
 
@@ -668,7 +670,7 @@ DataSourceAmiga::get_animation(unsigned int animation, unsigned int phase) {
   return anim + (phase >> 3);
 }
 
-typedef struct {
+typedef struct SoundStruct {
   ptrdiff_t offset;
   size_t size;
   size_t unknown_2;
@@ -676,9 +678,9 @@ typedef struct {
   size_t unknown_4;
   size_t unknown_5;
   size_t unknown_6;
-} sound_struct_t;
+} SoundStruct;
 
-sound_struct_t sound_info[] = {
+SoundStruct sound_info[] = {
   {0x000000, 0x0000, 0, 0x000, 0x0000, 0x0000, 0x000},
   {0x000000, 0x0548, 0, 0x1AB, 0x0000, 0x4000, 0x060},
   {0x000A90, 0x0237, 0, 0x1AB, 0x0000, 0x3000, 0x028},
@@ -779,7 +781,7 @@ sound_struct_t sound_info[] = {
 void *
 DataSourceAmiga::get_sound_data(unsigned int index, size_t *size) {
   if (sound != nullptr) {
-    size_t count = sizeof(sound_info) / sizeof(sound_struct_t);
+    size_t count = sizeof(sound_info) / sizeof(SoundStruct);
     if (index < count) {
       *size = sound_info[index].size * 2;
       if (*size != 0) {
@@ -927,19 +929,19 @@ DataSourceAmiga::get_menu_sprite(unsigned int index, void *block,
                                   palette2);
 }
 
-typedef struct {
+typedef struct IconHeader {
   uint16_t width;
   uint16_t height;
   uint8_t filling;
   uint8_t compression;
-} icon_header_t;
+} IconHeader;
 
 Sprite *
 DataSourceAmiga::get_icon_sprite(unsigned int index) {
   size_t offset = icon_catalog[index];
   uint8_t *data = reinterpret_cast<uint8_t*>(gfxfast)+offset;
-  icon_header_t header = *reinterpret_cast<icon_header_t*>(data);
-  data += sizeof(icon_header_t);
+  IconHeader header = *reinterpret_cast<IconHeader*>(data);
+  data += sizeof(IconHeader);
   header.width = be16toh(header.width);
   header.height = be16toh(header.height);
 
@@ -1179,14 +1181,14 @@ DataSourceAmiga::get_torso_sprite(unsigned int index, uint8_t *palette) {
   return res;
 }
 
-typedef struct {
+typedef struct TransparentSpriteHeder {
   uint16_t shadow_offset;
   uint16_t bitplane_size;
   uint8_t width;
   uint8_t height;
   uint8_t offset_y;
   uint8_t compression;
-} transparent_sprite_heder_t;
+} TransparentSpriteHeder;
 
 Sprite *
 DataSourceAmiga::get_map_object_sprite(unsigned int index) {
@@ -1194,8 +1196,8 @@ DataSourceAmiga::get_map_object_sprite(unsigned int index) {
   if (data == nullptr) {
     return nullptr;
   }
-  transparent_sprite_heder_t header =
-                           *reinterpret_cast<transparent_sprite_heder_t*>(data);
+  TransparentSpriteHeder header =
+                               *reinterpret_cast<TransparentSpriteHeder*>(data);
   if (header.height == 0) {
     return nullptr;
   }
@@ -1204,7 +1206,7 @@ DataSourceAmiga::get_map_object_sprite(unsigned int index) {
   if (header.width == 0) {
     header.width = header.bitplane_size / header.height;
   }
-  data += sizeof(transparent_sprite_heder_t);
+  data += sizeof(TransparentSpriteHeder);
 
   uint8_t compressed = 0;
   uint8_t filled = 0;
@@ -1250,8 +1252,8 @@ DataSourceAmiga::get_map_object_shadow(unsigned int index) {
   if (data == nullptr) {
     return nullptr;
   }
-  transparent_sprite_heder_t header =
-                           *reinterpret_cast<transparent_sprite_heder_t*>(data);
+  TransparentSpriteHeder header =
+                               *reinterpret_cast<TransparentSpriteHeder*>(data);
   if (header.height == 0) {
     return nullptr;
   }

@@ -102,14 +102,14 @@ class DirectionCycle {
 
    protected:
     Iterator(const DirectionCycle& cycle, int offset)
-        : cycle(cycle), offset(offset) {}
+      : cycle(cycle), offset(offset) {}
 
     const DirectionCycle& cycle;
     int offset;
   };
 
   DirectionCycle(Direction start, unsigned int length)
-      : start(start), length(length) {
+    : start(start), length(length) {
     assert(start != DirectionNone);
   }
   DirectionCycle(const DirectionCycle& that)
@@ -141,14 +141,14 @@ Direction DirectionCycle<Cycle::CCW>::Iterator::operator*() const {
 }
 
 // Convenience function to create clockwise direction cycle.
-inline DirectionCycle<Cycle::CW> cycle_directions_cw(
-    Direction start = DirectionRight, unsigned int length = 6) {
+inline DirectionCycle<Cycle::CW>
+cycle_directions_cw(Direction start = DirectionRight, unsigned int length = 6) {
   return DirectionCycle<Cycle::CW>(start, length);
 }
 
 // Convenience function to create counter-clockwise direction cycle.
-inline DirectionCycle<Cycle::CCW> cycle_directions_ccw(
-    Direction start = DirectionUp, unsigned int length = 6) {
+inline DirectionCycle<Cycle::CCW>
+cycle_directions_ccw(Direction start = DirectionUp, unsigned int length = 6) {
   return DirectionCycle<Cycle::CCW>(start, length);
 }
 
@@ -180,9 +180,9 @@ class MapGeometry {
 
    public:
     explicit Iterator(const MapGeometry& geom, MapPos pos)
-    : geom(geom), pos(pos) {}
+      : geom(geom), pos(pos) {}
     Iterator(const Iterator& that)
-    : geom(that.geom), pos(that.pos) {}
+      : geom(that.geom), pos(that.pos) {}
 
     Iterator& operator ++() {
       if (pos < geom.tile_count()) {
@@ -207,7 +207,7 @@ class MapGeometry {
   };
 
   explicit MapGeometry(unsigned int size)
-  : size_(size) {
+    : size_(size) {
     // Above size 20 the map positions can no longer fit in a 32-bit integer.
     assert(size_ <= 20);
 

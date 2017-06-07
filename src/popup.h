@@ -182,7 +182,7 @@ class PopupBox : public GuiObject {
   void draw_basic_building_box(int flip);
   void draw_adv_1_building_box();
   void draw_adv_2_building_box();
-  void draw_resources_box(const resource_map_t &resources);
+  void draw_resources_box(const ResourceMap &resources);
   void draw_serfs_box(const int serfs[], int total);
   void draw_stat_select_box();
   void draw_stat_4_box();

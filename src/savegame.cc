@@ -48,14 +48,14 @@
 
 class SaveWriterTextSection : public SaveWriterText {
  protected:
-  typedef std::map<std::string, SaveWriterTextValue> values_t;
-  typedef std::vector<SaveWriterTextSection*> sections_t;
+  typedef std::map<std::string, SaveWriterTextValue> Values;
+  typedef std::vector<SaveWriterTextSection*> Sections;
 
  protected:
   std::string name;
   unsigned int number;
-  values_t values;
-  sections_t sections;
+  Values values;
+  Sections sections;
 
  public:
   SaveWriterTextSection(std::string name, unsigned int number) {
@@ -70,7 +70,7 @@ class SaveWriterTextSection : public SaveWriterText {
   }
 
   virtual SaveWriterTextValue &value(const std::string &name) {
-    values_t::iterator i = values.find(name);
+    Values::iterator i = values.find(name);
     if (i != values.end()) {
       return i->second;
     }
@@ -108,10 +108,10 @@ class SaveWriterTextSection : public SaveWriterText {
 
 class SaveReaderTextSection : public SaveReaderText {
  protected:
-  typedef std::map<std::string, std::string> values_t;
+  typedef std::map<std::string, std::string> Values;
   std::string name;
   int number;
-  values_t values;
+  Values values;
   Readers readers_stub;
 
  public:
@@ -137,7 +137,7 @@ class SaveReaderTextSection : public SaveReaderText {
 
   virtual SaveReaderTextValue
   value(const std::string &name) const throw(ExceptionFreeserf) {
-    values_t::const_iterator it = values.find(name);
+    Values::const_iterator it = values.find(name);
     if (it == values.end()) {
       std::ostringstream str;
       str << "Failed to load value: " << name;
@@ -163,16 +163,15 @@ class SaveReaderTextSection : public SaveReaderText {
   }
 };
 
-typedef std::list<SaveReaderTextSection*> reader_sections_t;
+typedef std::list<SaveReaderTextSection*> ReaderSections;
 
 class SaveReaderTextFile : public SaveReaderText {
  protected:
-  reader_sections_t sections;
+  ReaderSections sections;
 
  public:
   explicit SaveReaderTextFile(std::istream *file) {
-    SaveReaderTextSection *section =
-                                       new SaveReaderTextSection("[main]");
+    SaveReaderTextSection *section = new SaveReaderTextSection("[main]");
     sections.push_back(section);
     while (!file->eof()) {
       char c = file->peek();
@@ -211,7 +210,7 @@ class SaveReaderTextFile : public SaveReaderText {
 
   virtual SaveReaderTextValue
   value(const std::string &name) const throw(ExceptionFreeserf) {
-    reader_sections_t result;
+    ReaderSections result;
 
     for (const SaveReaderTextSection *reader : sections) {
       if (reader->get_name() == "main") {
@@ -628,7 +627,7 @@ GameStore::find_legacy() {
       SaveInfo info;
       info.type = SaveInfo::Legacy;
       for (char &c : name) {
-        if (c != 0x20 && c != static_cast<char>(0xff)) {
+        if (c != 0x20 && c != '\xff') {
           info.name += c;
         }
       }

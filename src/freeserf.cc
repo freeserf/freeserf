@@ -192,6 +192,7 @@ main(int argc, char *argv[]) {
     delete game;
     game = NULL;
   }
+  delete GameStore::get_instance();
   delete audio;
   delete gfx;
   delete event_loop;

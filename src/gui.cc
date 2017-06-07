@@ -115,7 +115,7 @@ GuiObject::handle_event(const Event *event) {
   internal_event.button = event->button;
 
   /* Find the corresponding float element if any */
-  float_list_t::reverse_iterator fl = floats.rbegin();
+  FloatList::reverse_iterator fl = floats.rbegin();
   for ( ; fl != floats.rend() ; ++fl) {
     bool result = (*fl)->handle_event(&internal_event);
     if (result != 0) {

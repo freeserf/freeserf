@@ -63,7 +63,7 @@ class Game : public EventLoop::Handler {
  protected:
   PMap map;
 
-  typedef std::map<unsigned int, unsigned int> values_t;
+  typedef std::map<unsigned int, unsigned int> Values;
   int map_gold_morale_factor;
   unsigned int gold_total;
 
@@ -228,8 +228,8 @@ class Game : public EventLoop::Handler {
   void update_buildings();
   void update_serfs();
   void record_player_history(int max_level, int aspect,
-                             const int history_index[], const values_t &values);
-  int calculate_clear_winner(const values_t &values);
+                             const int history_index[], const Values &values);
+  int calculate_clear_winner(const Values &values);
   void update_game_stats();
   void get_resource_estimate(MapPos pos, int weight, int estimates[5]);
   int road_segment_in_water(MapPos pos, Direction dir);

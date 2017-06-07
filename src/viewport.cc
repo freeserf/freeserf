@@ -272,7 +272,7 @@ Viewport::redraw_map_pos(MapPos pos) {
   int tr = (my / tile_height) % vert_tiles;
   int tid = tc + horiz_tiles*tr;
 
-  tiles_map_t::iterator it = landscape_tiles.find(tid);
+  TilesMap::iterator it = landscape_tiles.find(tid);
   if (it != landscape_tiles.end()) {
     landscape_tiles.erase(tid);
   }
@@ -280,7 +280,7 @@ Viewport::redraw_map_pos(MapPos pos) {
 
 Frame *
 Viewport::get_tile_frame(unsigned int tid, int tc, int tr) {
-  tiles_map_t::iterator it = landscape_tiles.find(tid);
+  TilesMap::iterator it = landscape_tiles.find(tid);
   if (it != landscape_tiles.end()) {
     return it->second.get();
   }

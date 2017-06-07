@@ -435,6 +435,8 @@ GameInitBox::handle_click_left(int x, int y) {
     case GameLoad:
       clickmap = clickmap_load;
       break;
+    default:
+      return false;
   }
 
   const int *i = clickmap;

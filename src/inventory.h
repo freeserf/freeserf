@@ -46,7 +46,7 @@ class Inventory : public GameObject {
   /* Index of building containing this inventory */
   unsigned int building;
   /* Count of resources */
-  resource_map_t resources;
+  ResourceMap resources;
   /* Resources waiting to be moved out */
   struct out_queue {
     Resource::Type type;
@@ -93,7 +93,7 @@ class Inventory : public GameObject {
 
   unsigned int get_count_of(Resource::Type resource) {
     return resources[resource]; }
-  resource_map_t get_all_resources() { return resources; }
+  ResourceMap get_all_resources() { return resources; }
   void pop_resource(Resource::Type resource) { resources[resource]--; }
   void push_resource(Resource::Type resource);
 
