@@ -581,7 +581,7 @@ PopupBox::draw_adv_2_building_box() {
 
 /* Draw generic popup box of resources. */
 void
-PopupBox::draw_resources_box(const resource_map_t &resources) {
+PopupBox::draw_resources_box(const ResourceMap &resources) {
   const int layout[] = {
     0x28, 1, 0, /* resources */
     0x29, 1, 16,
@@ -645,7 +645,7 @@ PopupBox::draw_resources_box(const resource_map_t &resources) {
 
   for (size_t i = 0; i < sizeof(layout_res)/sizeof(layout_res[0])/3; i++) {
     Resource::Type res_type = (Resource::Type)layout_res[i*3+2];
-    resource_map_t::const_iterator it = resources.find(res_type);
+    ResourceMap::const_iterator it = resources.find(res_type);
     int value = 0;
     if (it != resources.end()) {
       value = static_cast<int>(it->second);
@@ -751,7 +751,7 @@ PopupBox::draw_stat_4_box() {
   draw_box_background(PatternStripedGreen);
 
   /* Sum up resources of all inventories. */
-  resource_map_t resources = interface->get_player()->get_stats_resources();
+  ResourceMap resources = interface->get_player()->get_stats_resources();
 
   draw_resources_box(resources);
 
@@ -1967,7 +1967,7 @@ PopupBox::draw_castle_res_box() {
   }
 
   Inventory *inventory = building->get_inventory();
-  resource_map_t resources = inventory->get_all_resources();
+  ResourceMap resources = inventory->get_all_resources();
   draw_resources_box(resources);
 }
 

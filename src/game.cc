@@ -460,7 +460,7 @@ Game::update_serfs() {
 void
 Game::record_player_history(int max_level, int aspect,
                             const int history_index[],
-                            const values_t &values) {
+                            const Values &values) {
   unsigned int total = 0;
   for (auto value : values) {
     total += value.second;
@@ -482,7 +482,7 @@ Game::record_player_history(int max_level, int aspect,
    considered a clear winner regarding one aspect.
    Return -1 if there is no clear winner. */
 int
-Game::calculate_clear_winner(const values_t &values) {
+Game::calculate_clear_winner(const Values &values) {
   int total = 0;
   for (auto value : values) {
     total += value.second;

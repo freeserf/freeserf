@@ -54,14 +54,14 @@ class DataSourceDOS : public DataSource {
    protected:
     /* Sprite header. In the data file this is
     * immediately followed by sprite data. */
-    typedef struct {
+    typedef struct DosSpriteHeader {
       int8_t b_x;
       int8_t b_y;
       uint16_t w;
       uint16_t h;
       int16_t x;
       int16_t y;
-    } dos_sprite_header_t;
+    } DosSpriteHeader;
 
    public:
     SpriteBaseDOS() {}

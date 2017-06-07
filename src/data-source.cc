@@ -327,9 +327,9 @@ Sprite::make_alpha_mask() {
   uint8_t min = 0xFF;
   for (unsigned int i = 0; i < width * height; i++) {
     if (c->alpha != 0x00) {
-      c->alpha = 0xff - ((0.21 * c->red) +
-                         (0.72 * c->green) +
-                         (0.07 * c->blue));
+      c->alpha = 0xff - static_cast<uint8_t>((0.21 * c->red) +
+                                             (0.72 * c->green) +
+                                             (0.07 * c->blue));
       c->red = 0;
       c->green = 0;
       c->blue = 0;

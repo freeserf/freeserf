@@ -37,14 +37,14 @@
 #include <Windows.h>
 #endif
 
-typedef struct {
+typedef struct DataResource {
   Data::Resource resource;
   Data::Type type;
   unsigned int count;
   const char *name;
-} data_resource_t;
+} DataResource;
 
-data_resource_t data_resources[] = {
+DataResource data_resources[] = {
   { Data::AssetNone,         Data::TypeUnknown,   0,   "error"         },
   { Data::AssetArtLandscape, Data::TypeSprite,    1,   "art_landscape" },
   { Data::AssetAnimation,    Data::TypeAnimation, 1,   "animation"     },

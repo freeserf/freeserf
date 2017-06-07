@@ -51,8 +51,8 @@ class Viewport : public GuiObject, public Map::Handler {
 
  protected:
   /* Cache prerendered tiles of the landscape. */
-  typedef std::map<unsigned int, std::unique_ptr<Frame>> tiles_map_t;
-  tiles_map_t landscape_tiles;
+  typedef std::map<unsigned int, std::unique_ptr<Frame>> TilesMap;
+  TilesMap landscape_tiles;
 
   int offset_x, offset_y;
   unsigned int layers;

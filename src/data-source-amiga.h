@@ -75,8 +75,8 @@ class DataSourceAmiga : public DataSource {
   size_t music_size;
 
   void *data_pointers[24];
-  typedef std::map<size_t, void*> pics_t;
-  pics_t pics;
+  typedef std::map<size_t, void*> Pics;
+  Pics pics;
 
   size_t *icon_catalog;
 

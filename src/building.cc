@@ -54,15 +54,15 @@ Building::Building(Game *game, unsigned int index)
   burning_counter = 0;
 }
 
-typedef struct {
+typedef struct ConstructionInfo {
   Map::Object map_obj;
   int planks;
   int stones;
   int phase_1;
   int phase_2;
-} construction_info_t;
+} ConstructionInfo;
 
-const construction_info_t const_info[] = {
+const ConstructionInfo const_info[] = {
   { Map::ObjectNone,          0, 0,    0,    0},  // BUILDING_NONE
   { Map::ObjectSmallBuilding, 2, 0, 4096, 4096},  // BUILDING_FISHER
   { Map::ObjectSmallBuilding, 2, 0, 4096, 4096},  // BUILDING_LUMBERJACK
@@ -603,13 +603,13 @@ Building::use_resources_in_stocks() {
 
 void
 Building::request_serf_if_needed() {
-  typedef struct {
+  typedef struct Request {
     Serf::Type serf_type;
     Resource::Type res_type_1;
     Resource::Type res_type_2;
-  } request_t;
+  } Request;
 
-  request_t requests[] = {
+  Request requests[] = {
     {Serf::TypeNone       , Resource::TypeNone   , Resource::TypeNone  },
     {Serf::TypeFisher     , Resource::TypeRod    , Resource::TypeNone  },
     {Serf::TypeLumberjack , Resource::TypeAxe    , Resource::TypeNone  },

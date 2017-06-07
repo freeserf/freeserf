@@ -290,7 +290,7 @@ class Player : public GameObject {
     player_stat_history[mode][index] = val; }
   int *get_player_stat_history(int mode) { return player_stat_history[mode]; }
 
-  resource_map_t get_stats_resources();
+  ResourceMap get_stats_resources();
   Serf::SerfMap get_stats_serfs_idle();
   Serf::SerfMap get_stats_serfs_potential();
 
