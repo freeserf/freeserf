@@ -1,7 +1,7 @@
 /*
  * mission.h - Predefined game mission maps
  *
- * Copyright (C) 2013-2016  Jon Lund Steffensen <jonlst@gmail.com>
+ * Copyright (C) 2013-2017  Jon Lund Steffensen <jonlst@gmail.com>
  *
  * This file is part of freeserf.
  *
@@ -36,8 +36,8 @@ typedef struct {
 
 typedef struct {
   unsigned int face;
-  const char *name;
-  const char *characterization;
+  const std::string name;
+  const std::string characterization;
 } CharacterPreset;
 
 typedef struct {
@@ -54,9 +54,9 @@ typedef struct {
 } PlayerPreset;
 
 typedef struct {
-  const char *name;
+  const std::string name;
   Random rnd;
-  PlayerPreset player[4];
+  std::vector<PlayerPreset> player;
 } MissionPreset;
 
 class PlayerInfo {
@@ -98,6 +98,9 @@ class PlayerInfo {
 typedef std::shared_ptr<PlayerInfo> PPlayerInfo;
 typedef std::vector<PPlayerInfo> PlayerInfos;
 
+class GameInfo;
+typedef std::shared_ptr<GameInfo> PGameInfo;
+
 class GameInfo {
  protected:
   unsigned int map_size;
@@ -125,13 +128,11 @@ class GameInfo {
                   unsigned int _reproduction);
   void remove_all_players();
 
-  static std::shared_ptr<GameInfo> get_mission(size_t mission);
+  static PGameInfo get_mission(size_t mission);
   static size_t get_mission_count();
 
   static CharacterPreset *get_character(size_t character);
   static size_t get_character_count();
 };
-
-typedef std::shared_ptr<GameInfo> PGameInfo;
 
 #endif  // SRC_MISSION_H_

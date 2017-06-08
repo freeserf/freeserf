@@ -1,7 +1,7 @@
 /*
  * mission.cc - Predefined game mission maps
  *
- * Copyright (C) 2013-2016  Jon Lund Steffensen <jonlst@gmail.com>
+ * Copyright (C) 2013-2017  Jon Lund Steffensen <jonlst@gmail.com>
  *
  * This file is part of freeserf.
  *
@@ -71,60 +71,42 @@ MissionPreset tutorials[] = {
     "Tutorial 1",
     Random("3762665523225478"),
     {
-      {&characters[12], 40, 30, 30, {-1, -1}},
-      {&characters[ 0],  0,  0,  0, {-1, -1}},
-      {&characters[ 0],  0,  0,  0, {-1, -1}},
-      {&characters[ 0],  0,  0,  0, {-1, -1}}
+      {&characters[12], 40, 30, 30, {-1, -1}}
     }
   },
   {
     "Tutorial 2",
     Random("1616118277634871"),
     {
-      {&characters[12], 40, 30, 30, {-1, -1}},
-      {&characters[ 0],  0,  0,  0, {-1, -1}},
-      {&characters[ 0],  0,  0,  0, {-1, -1}},
-      {&characters[ 0],  0,  0,  0, {-1, -1}}
+      {&characters[12], 40, 30, 30, {-1, -1}}
     }
   },
   {
     "Tutorial 3",
     Random("2418554743842118"),
     {
-      {&characters[12], 40, 30, 30, {-1, -1}},
-      {&characters[ 0],  0,  0,  0, {-1, -1}},
-      {&characters[ 0],  0,  0,  0, {-1, -1}},
-      {&characters[ 0],  0,  0,  0, {-1, -1}}
+      {&characters[12], 40, 30, 30, {-1, -1}}
     }
   },
   {
     "Tutorial 4",
     Random("4454333314864658"),
     {
-      {&characters[12], 40, 30, 30, {-1, -1}},
-      {&characters[ 0],  0,  0,  0, {-1, -1}},
-      {&characters[ 0],  0,  0,  0, {-1, -1}},
-      {&characters[ 0],  0,  0,  0, {-1, -1}}
+      {&characters[12], 40, 30, 30, {-1, -1}}
     }
   },
   {
     "Tutorial 5",
     Random("4264118313621432"),
     {
-      {&characters[12], 40, 30, 30, {-1, -1}},
-      {&characters[ 0],  0,  0,  0, {-1, -1}},
-      {&characters[ 0],  0,  0,  0, {-1, -1}},
-      {&characters[ 0],  0,  0,  0, {-1, -1}}
+      {&characters[12], 40, 30, 30, {-1, -1}}
     }
   },
   {
     "Tutorial 6",
     Random("2487251185361288"),
     {
-      {&characters[12], 40, 30, 30, {-1, -1}},
-      {&characters[ 0],  0,  0,  0, {-1, -1}},
-      {&characters[ 0],  0,  0,  0, {-1, -1}},
-      {&characters[ 0],  0,  0,  0, {-1, -1}}
+      {&characters[12], 40, 30, 30, {-1, -1}}
     }
   }
 };
@@ -135,9 +117,7 @@ MissionPreset missions[] = {
     Random("8667715887436237"),
     {
       {&characters[12], 40, 35, 30, {-1, -1}},
-      {&characters[ 1], 10,  5, 30, {-1, -1}},
-      {&characters[ 0],  0,  0,  0, {-1, -1}},
-      {&characters[ 0],  0,  0,  0, {-1, -1}}
+      {&characters[ 1], 10,  5, 30, {-1, -1}}
     }
   },
   {
@@ -146,8 +126,7 @@ MissionPreset missions[] = {
     {
       {&characters[12], 40, 30, 40, {-1, -1}},
       {&characters[ 2], 12, 15, 30, {-1, -1}},
-      {&characters[ 3], 14, 15, 30, {-1, -1}},
-      {&characters[ 0],  0,  0,  0, {-1, -1}}
+      {&characters[ 3], 14, 15, 30, {-1, -1}}
     }
   },
   {
@@ -156,8 +135,7 @@ MissionPreset missions[] = {
     {
       {&characters[12], 40, 30, 30, {-1, -1}},
       {&characters[ 2], 18, 10, 25, {-1, -1}},
-      {&characters[ 4], 18, 10, 25, {-1, -1}},
-      {&characters[ 0],  0,  0,  0, {-1, -1}}
+      {&characters[ 4], 18, 10, 25, {-1, -1}}
     }
   },
   {
@@ -165,9 +143,7 @@ MissionPreset missions[] = {
     Random("8447342476811762"),
     {
       {&characters[12], 40, 25, 40, {-1, -1}},
-      {&characters[ 2], 16, 20, 30, {-1, -1}},
-      {&characters[ 0],  0,  0,  0, {-1, -1}},
-      {&characters[ 0],  0,  0,  0, {-1, -1}}
+      {&characters[ 2], 16, 20, 30, {-1, -1}}
     }
   },
   {
@@ -176,8 +152,7 @@ MissionPreset missions[] = {
     {
       {&characters[12], 40, 30, 30, {-1, -1}},
       {&characters[ 3], 16, 25, 20, {-1, -1}},
-      {&characters[ 4], 16, 25, 20, {-1, -1}},
-      {&characters[ 0],  0,  0,  0, {-1, -1}}
+      {&characters[ 4], 16, 25, 20, {-1, -1}}
     }
   },
   {
@@ -186,8 +161,7 @@ MissionPreset missions[] = {
     {
       {&characters[12], 40, 30, 30, {-1, -1}},
       {&characters[ 3], 20, 12, 14, {-1, -1}},
-      {&characters[ 5], 20, 12, 14, {-1, -1}},
-      {&characters[ 0],  0,  0,  0, {-1, -1}}
+      {&characters[ 5], 20, 12, 14, {-1, -1}}
     }
   },
   {
@@ -195,9 +169,7 @@ MissionPreset missions[] = {
     Random("1416541231242884"),
     {
       {&characters[12], 40, 30, 40, {-1, -1}},
-      {&characters[ 3], 22, 30, 30, {-1, -1}},
-      {&characters[ 0],  0,  0,  0, {-1, -1}},
-      {&characters[ 0],  0,  0,  0, {-1, -1}}
+      {&characters[ 3], 22, 30, 30, {-1, -1}}
     }
   },
   {
@@ -206,8 +178,7 @@ MissionPreset missions[] = {
     {
       {&characters[12], 40, 25, 30, {-1, -1}},
       {&characters[ 4], 23, 25, 30, {-1, -1}},
-      {&characters[ 6], 24, 25, 30, {-1, -1}},
-      {&characters[ 0],  0,  0,  0, {-1, -1}}
+      {&characters[ 6], 24, 25, 30, {-1, -1}}
     }
   },
   {
@@ -225,9 +196,7 @@ MissionPreset missions[] = {
     Random("3183215728814883"),
     {
       {&characters[12], 40, 20, 16, {28, 14}},
-      {&characters[ 4], 30, 19, 20, { 5, 47}},
-      {&characters[ 0],  0,  0,  0, {-1, -1}},
-      {&characters[ 0],  0,  0,  0, {-1, -1}}
+      {&characters[ 4], 30, 19, 20, { 5, 47}}
     }
   },
   {
@@ -236,8 +205,7 @@ MissionPreset missions[] = {
     {
       {&characters[12], 40, 16, 20, {16, 42}},
       {&characters[ 5], 33, 10, 20, {52, 25}},
-      {&characters[ 7], 34, 13, 20, {23, 12}},
-      {&characters[ 0],  0,  0,  0, {-1, -1}}
+      {&characters[ 7], 34, 13, 20, {23, 12}}
     }
   },
   {
@@ -255,9 +223,7 @@ MissionPreset missions[] = {
     Random("8473352672411117"),
     {
       {&characters[12], 40, 24, 20, { 7, 26}},
-      {&characters[ 5], 20, 30, 20, { 2, 10}},
-      {&characters[ 0],  0,  0,  0, {-1, -1}},
-      {&characters[ 0],  0,  0,  0, {-1, -1}}
+      {&characters[ 5], 20, 30, 20, { 2, 10}}
     }
   },
   {
@@ -266,8 +232,7 @@ MissionPreset missions[] = {
     {
       {&characters[12], 40, 20, 23, {19,  3}},
       {&characters[ 6], 28, 16, 20, {55,  7}},
-      {&characters[ 8], 28, 16, 20, {55, 46}},
-      {&characters[ 0],  0,  0,  0, {-1, -1}}
+      {&characters[ 8], 28, 16, 20, {55, 46}}
     }
   },
   {
@@ -285,9 +250,7 @@ MissionPreset missions[] = {
     Random("4563653871271587"),
     {
       {&characters[12], 40, 26, 23, {36, 63}},
-      {&characters[ 6], 28, 29, 40, {14, 15}},
-      {&characters[ 0],  0,  0,  0, {-1, -1}},
-      {&characters[ 0],  0,  0,  0, {-1, -1}}
+      {&characters[ 6], 28, 29, 40, {14, 15}}
     }
   },
   {
@@ -306,8 +269,7 @@ MissionPreset missions[] = {
     {
       {&characters[12], 40, 25, 40, {15,  0}},
       {&characters[ 7], 40, 30, 35, {34, 48}},
-      {&characters[ 9], 30, 30, 35, {58,  5}},
-      {&characters[ 0],  0,  0,  0, {-1, -1}}
+      {&characters[ 9], 30, 30, 35, {58,  5}}
     }
   },
   {
@@ -315,9 +277,7 @@ MissionPreset missions[] = {
     Random("7142748441424786"),
     {
       {&characters[12], 40, 30, 20, {13, 37}},
-      {&characters[ 7], 40, 20, 20, {32, 34}},
-      {&characters[ 0],  0,  0,  0, {-1, -1}},
-      {&characters[ 0],  0,  0,  0, {-1, -1}}
+      {&characters[ 7], 40, 20, 20, {32, 34}}
     }
   },
   {
@@ -326,8 +286,7 @@ MissionPreset missions[] = {
     {
       {&characters[12], 40,  9, 10, {14, 42}},
       {&characters[ 8], 40, 16, 22, {62,  1}},
-      {&characters[ 9], 40, 16, 23, {32, 14}},
-      {&characters[ 0],  0,  0,  0, {-1, -1}}
+      {&characters[ 9], 40, 16, 23, {32, 14}}
     }
   },
   {
@@ -345,9 +304,7 @@ MissionPreset missions[] = {
     Random("6764387728224725"),
     {
       {&characters[12], 40, 20, 40, {42, 20}},
-      {&characters[ 8], 36, 25, 40, {48, 47}},
-      {&characters[ 0],  0,  0,  0, {-1, -1}},
-      {&characters[ 0],  0,  0,  0, {-1, -1}}
+      {&characters[ 8], 36, 25, 40, {48, 47}}
     }
   },
   {
@@ -356,8 +313,7 @@ MissionPreset missions[] = {
     {
       {&characters[12], 40,  5, 11, {53,  1}},
       {&characters[ 9], 35, 30, 10, {20,  2}},
-      {&characters[10], 37, 30, 10, {16, 55}},
-      {&characters[ 0],  0,  0,  0, {-1, -1}}
+      {&characters[10], 37, 30, 10, {16, 55}}
     }
   },
   {
@@ -366,8 +322,7 @@ MissionPreset missions[] = {
     {
       {&characters[12], 40, 20, 12, { 3, 34}},
       {&characters[ 9], 30, 25, 10, {47, 41}},
-      {&characters[10], 30, 26, 10, {42, 52}},
-      {&characters[ 0],  0,  0,  0, {-1, -1}}
+      {&characters[10], 30, 26, 10, {42, 52}}
     }
   },
   {
@@ -375,9 +330,7 @@ MissionPreset missions[] = {
     Random("7633126817245833"),
     {
       {&characters[12], 40, 20, 40, {23, 38}},
-      {&characters[ 9], 40, 25, 40, {57, 52}},
-      {&characters[ 0],  0,  0,  0, {-1, -1}},
-      {&characters[ 0],  0,  0,  0, {-1, -1}}
+      {&characters[ 9], 40, 25, 40, {57, 52}}
     }
   },
   {
@@ -385,9 +338,7 @@ MissionPreset missions[] = {
     Random("5554144773646312"),
     {
       {&characters[12], 40, 20, 30, {29, 11}},
-      {&characters[10], 38, 30, 35, {15, 40}},
-      {&characters[ 0],  0,  0,  0, {-1, -1}},
-      {&characters[ 0],  0,  0,  0, {-1, -1}}
+      {&characters[10], 38, 30, 35, {15, 40}}
     }
   },
   {
@@ -395,9 +346,7 @@ MissionPreset missions[] = {
     Random("3122431112682557"),
     {
       {&characters[12], 40, 18, 28, {49, 53}},
-      {&characters[10], 39, 25, 40, {14, 53}},
-      {&characters[ 0],  0,  0,  0, {-1, -1}},
-      {&characters[ 0],  0,  0,  0, {-1, -1}}
+      {&characters[10], 39, 25, 40, {14, 53}}
     }
   },
   {
@@ -405,9 +354,7 @@ MissionPreset missions[] = {
     Random("2568412624848266"),
     {
       {&characters[12], 40, 20, 40, {44, 39}},
-      {&characters[10], 39, 25, 40, {44, 63}},
-      {&characters[ 0],  0,  0,  0, {-1, -1}},
-      {&characters[ 0],  0,  0,  0, {-1, -1}}
+      {&characters[10], 39, 25, 40, {44, 63}}
     }
   },
   {
@@ -415,9 +362,7 @@ MissionPreset missions[] = {
     Random("3736685353284538"),
     {
       {&characters[12], 40,  5, 22, {53,  8}},
-      {&characters[11], 40, 15, 20, {30, 22}},
-      {&characters[ 0],  0,  0,  0, {-1, -1}},
-      {&characters[ 0],  0,  0,  0, {-1, -1}}
+      {&characters[11], 40, 15, 20, {30, 22}}
     }
   },
   {
@@ -425,9 +370,7 @@ MissionPreset missions[] = {
     Random("5471458635555317"),
     {
       {&characters[12], 40,  5, 20, {25, 46}},
-      {&characters[11], 40, 20, 20, {51, 42}},
-      {&characters[ 0],  0,  0,  0, {-1, -1}},
-      {&characters[ 0],  0,  0,  0, {-1, -1}}
+      {&characters[11], 40, 20, 20, {51, 42}}
     }
   }
 };
@@ -442,8 +385,7 @@ GameInfo::GameInfo(const MissionPreset *mission_preset) {
   map_size = 3;
   name = mission_preset->name;
   random_base = mission_preset->rnd;
-  for (size_t i = 0; i < 4; i++) {
-    if (mission_preset->player[i].character->face == 0) continue;
+  for (size_t i = 0; i < mission_preset->player.size(); i++) {
     size_t character = mission_preset->player[i].character->face;
     PPlayerInfo player(new PlayerInfo(character,
                                       def_color[i],
@@ -465,7 +407,6 @@ GameInfo::set_random_base(const Random &base) {
   // Player 0
   players.push_back(std::make_shared<PlayerInfo>(&random));
   players[0]->set_character(12);
-  players[0]->set_color(def_color[0]);
   players[0]->set_intelligence(40);
 
   // Player 1
@@ -480,6 +421,11 @@ GameInfo::set_random_base(const Random &base) {
       // Player 3
       players.push_back(std::make_shared<PlayerInfo>(&random));
     }
+  }
+
+  int i = 0;
+  for (PPlayerInfo info : players) {
+    info->set_color(def_color[i++]);
   }
 }
 
@@ -505,7 +451,7 @@ GameInfo::remove_all_players() {
 PGameInfo
 GameInfo::get_mission(size_t m) {
   if (m >= get_mission_count()) {
-    return PGameInfo(NULL);
+    return nullptr;
   }
 
   return PGameInfo(new GameInfo(missions + m));
@@ -519,7 +465,7 @@ GameInfo::get_mission_count() {
 CharacterPreset *
 GameInfo::get_character(size_t character) {
   if (character >= get_character_count()) {
-    return NULL;
+    return nullptr;
   }
 
   return characters + character;
