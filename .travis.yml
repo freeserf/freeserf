@@ -44,6 +44,20 @@ install:
           make -j5 && make install)
     fi
 
+  - export SDL_IMAGE_VERSION="2.0.1"
+  - export SDL2IMAGEDIR="$HOME/3rd_party/${TRAVIS_OS_NAME}/SDL_image_${SDL_MIXER_VERSION}"
+  - export PKG_CONFIG_PATH="$SDL2IMAGEDIR/lib/pkgconfig:$PKG_CONFIG_PATH"
+  - export PATH="$SDL2IMAGEDIR/bin:$PATH"
+  - |
+    cd $BUID_DIR
+    if [ ! -d "$SDL2IMAGEDIR" ]; then
+      mkdir -p "$SDL2IMAGEDIR" && \
+        wget https://www.libsdl.org/projects/SDL_image/release/SDL2_image-${SDL_IMAGE_VERSION}.tar.gz -O - | tar -xz && \
+        (cd SDL2_image-${SDL_IMAGE_VERSION} && \
+          ./configure --prefix=$SDL2IMAGEDIR && \
+          make -j5 && make install)
+    fi
+
   - export XMP_VERSION="4.4.1"
   - export XMPDIR="$HOME/3rd_party/${TRAVIS_OS_NAME}/XMP_${XMP_VERSION}"
   - export PKG_CONFIG_PATH="$XMPDIR/lib/pkgconfig:$PKG_CONFIG_PATH"

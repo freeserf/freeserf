@@ -30,6 +30,7 @@
 #include "src/log.h"
 #include "src/data-source-dos.h"
 #include "src/data-source-amiga.h"
+#include "src/data-source-custom.h"
 
 #ifdef _WIN32
 // need for GetModuleFileName
@@ -101,6 +102,8 @@ Data::load(const std::string &path) {
   typedef std::function<PDataSource(const std::string &)> SourceFactory;
   std::vector<SourceFactory> sources_factories;
   sources_factories.push_back([](const std::string &path)->PDataSource{
+    return std::make_shared<DataSourceCustom>(path); });
+  sources_factories.push_back([](const std::string &path)->PDataSource{
     return std::make_shared<DataSourceDOS>(path); });
   sources_factories.push_back([](const std::string &path)->PDataSource{
     return std::make_shared<DataSourceAmiga>(path); });
@@ -164,6 +167,7 @@ Data::get_standard_search_paths() const {
   // Look in data directories under the home directory
   add_env_path(std::getenv("XDG_DATA_HOME"), "freeserf");
   add_env_path(std::getenv("HOME"), ".local/share/freeserf");
+  add_env_path(std::getenv("HOME"), ".local/share/freeserf/custom");
 
 #ifdef _WIN32
   // Look in the same directory as the freeserf.exe app.

@@ -36,6 +36,16 @@ install:
       }
       $env:SDL2MIXERDIR = $SDL2MIXERDIR
 
+  # SDL2_image
+  - ps: |
+      $SDL_IMAGE_VERSION = "2.0.1"
+      $SDL2IMAGEDIR = "C:\sdl_root\SDL2_image-$SDL_IMAGE_VERSION"
+      if (!(Test-Path -Path $SDL2IMAGEDIR)) {
+        Start-FileDownload https://www.libsdl.org/projects/SDL_image/release/SDL2_image-devel-$SDL_IMAGE_VERSION-VC.zip
+        7z x SDL2_image-devel-$SDL_IMAGE_VERSION-VC.zip -oC:\sdl_root\
+      }
+      $env:SDL2IMAGEDIR = $SDL2IMAGEDIR
+
   # Prepare for NMake
   - if "%platform%" == "x86" call "%VS140COMNTOOLS%\..\..\VC\vcvarsall.bat"
   - if "%platform%" == "x64" call "%VS140COMNTOOLS%\..\..\VC\vcvarsall.bat" x86_amd64
