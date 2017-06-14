@@ -23,6 +23,7 @@
 #define SRC_MAP_GENERATOR_H_
 
 #include <memory>
+#include <vector>
 
 #include "src/map.h"
 #include "src/random.h"
@@ -45,7 +46,7 @@ class MapGenerator {
   virtual Map::Object get_obj(MapPos pos) const = 0;
   virtual Map::Minerals get_resource_type(MapPos pos) const = 0;
   virtual int get_resource_amount(MapPos pos) const = 0;
-  virtual Map::LandscapeTile *get_landscape() const = 0;
+  virtual const std::vector<Map::LandscapeTile> &get_landscape() const = 0;
 };
 
 /* Classic map generator as in original game. */
@@ -72,14 +73,15 @@ class ClassicMapGenerator : public MapGenerator {
     return tiles[pos].mineral; }
   int get_resource_amount(MapPos pos) const {
     return tiles[pos].resource_amount; }
-  virtual Map::LandscapeTile *get_landscape() const { return tiles.get(); }
+  virtual const std::vector<Map::LandscapeTile> &get_landscape() const {
+    return tiles; }
 
  protected:
   const Map &map;
   Random rnd;
 
-  std::unique_ptr<Map::LandscapeTile[]> tiles;
-  std::unique_ptr<int[]> tags;
+  std::vector<Map::LandscapeTile> tiles;
+  std::vector<int> tags;
   HeightGenerator height_generator;
   bool preserve_bugs;
 

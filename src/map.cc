@@ -323,14 +323,12 @@ Map::map_space_from_obj[] = {
 
 Map::Map(const MapGeometry& geom)
   : geom_(geom)
-  , landscape_tiles(new LandscapeTile[geom_.tile_count()]())
-  , game_tiles(new GameTile[geom_.tile_count()]())
   , spiral_pos_pattern(new MapPos[295]) {
   // Some code may still assume that map has at least size 3.
   assert(3 <= geom.size());
 
-  memset(landscape_tiles.get(), 0, sizeof(LandscapeTile) * geom_.tile_count());
-  memset(game_tiles.get(), 0, sizeof(GameTile) * geom_.tile_count());
+  landscape_tiles.resize(geom_.tile_count());
+  game_tiles.resize(geom_.tile_count());
 
   update_state.last_tick = 0;
   update_state.counter = 0;
@@ -383,8 +381,7 @@ Map::init_spiral_pos_pattern() {
 /* Copy tile data from map generator into map tile data. */
 void
 Map::init_tiles(const MapGenerator &generator) {
-  memcpy(landscape_tiles.get(), generator.get_landscape(),
-         geom_.tile_count() * sizeof(LandscapeTile));
+  landscape_tiles = generator.get_landscape();
 }
 
 /* Change the height of a map position. */
