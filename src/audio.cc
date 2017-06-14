@@ -1,7 +1,7 @@
 /*
  * audio.cc - Music and sound effects playback base.
  *
- * Copyright (C) 2015  Wicked_Digger <wicked_digger@mail.ru>
+ * Copyright (C) 2015-2017  Wicked_Digger <wicked_digger@mail.ru>
  *
  * This file is part of freeserf.
  *
@@ -26,18 +26,13 @@
 #include "src/log.h"
 
 Audio *
-Audio::instance = NULL;
+Audio::instance = nullptr;
 
 Audio::Player::Player() {
   enabled = true;
 }
 
 Audio::Player::~Player() {
-  while (track_cache.size()) {
-    Audio::Track *track = track_cache.begin()->second;
-    track_cache.erase(track_cache.begin());
-    delete track;
-  }
 }
 
 void
@@ -46,18 +41,18 @@ Audio::Player::play_track(int track_id) {
     return;
   }
 
-  Audio::Track *track = NULL;
+  Audio::PTrack track;
   TrackCache::iterator it = track_cache.find(track_id);
   if (it == track_cache.end()) {
     track = create_track(track_id);
-    if (track != NULL) {
+    if (track != nullptr) {
       track_cache[track_id] = track;
     }
   } else {
     track = it->second;
   }
 
-  if (track != NULL) {
+  if (track != nullptr) {
     track->play();
   }
 }

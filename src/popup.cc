@@ -1897,12 +1897,12 @@ PopupBox::draw_options_box() {
   draw_green_string(1, 54, "Volume");
 
   Audio *audio = Audio::get_instance();
-  Audio::Player *player = audio->get_music_player();
-  draw_popup_icon(13, 10, ((player != NULL) && player->is_enabled()) ? 288 :
-                  220); /* Music */
+  Audio::PPlayer player = audio->get_music_player();
+  // Music
+  draw_popup_icon(13, 10, ((player) && player->is_enabled()) ? 288 : 220);
   player = audio->get_sound_player();
-  draw_popup_icon(13, 30, ((player != NULL) && player->is_enabled()) ? 288 :
-                  220); /* Sfx */
+  // Sfx
+  draw_popup_icon(13, 30, ((player) && player->is_enabled()) ? 288 :220);
   draw_popup_icon(11, 50, 220); /* Volume minus */
   draw_popup_icon(13, 50, 221); /* Volume plus */
 
@@ -3526,8 +3526,8 @@ PopupBox::handle_action(int action, int x, int y) {
     break;
   case ACTION_OPTIONS_MUSIC: {
     Audio *audio = Audio::get_instance();
-    Audio::Player *player = audio->get_music_player();
-    if (player != NULL) {
+    Audio::PPlayer player = audio->get_music_player();
+    if (player) {
       player->enable(!player->is_enabled());
     }
     play_sound(Audio::TypeSfxClick);
@@ -3535,8 +3535,8 @@ PopupBox::handle_action(int action, int x, int y) {
   }
   case ACTION_OPTIONS_SFX: {
     Audio *audio = Audio::get_instance();
-    Audio::Player *player = audio->get_sound_player();
-    if (player != NULL) {
+    Audio::PPlayer player = audio->get_sound_player();
+    if (player) {
       player->enable(!player->is_enabled());
     }
     play_sound(Audio::TypeSfxClick);

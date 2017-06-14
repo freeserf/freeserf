@@ -1,7 +1,7 @@
 /*
  * event_loop-sdl.h - User and system events handling
  *
- * Copyright (C) 2012-2014  Jon Lund Steffensen <jonlst@gmail.com>
+ * Copyright (C) 2012-2017  Jon Lund Steffensen <jonlst@gmail.com>
  *
  * This file is part of freeserf.
  *
@@ -22,6 +22,8 @@
 #ifndef SRC_EVENT_LOOP_SDL_H_
 #define SRC_EVENT_LOOP_SDL_H_
 
+#include <list>
+
 #include "src/event_loop.h"
 
 class EventLoopSDL : public EventLoop {
@@ -32,12 +34,15 @@ class EventLoopSDL : public EventLoop {
     EventUserTypeCall,
   } EventUserType;
 
+ protected:
+  std::list<DeferredCall> deferred_calls;
+
  public:
   EventLoopSDL();
 
   virtual void quit();
   virtual void run();
-  virtual void deferred_call(DeferredCallee *deferred_callee, void *data);
+  virtual void deferred_call(DeferredCall call);
 
  protected:
   void zoom(float delta);

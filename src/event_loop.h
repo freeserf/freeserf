@@ -1,7 +1,7 @@
 /*
  * event_loop.h - User and system events handling
  *
- * Copyright (C) 2012-2016  Jon Lund Steffensen <jonlst@gmail.com>
+ * Copyright (C) 2012-2017  Jon Lund Steffensen <jonlst@gmail.com>
  *
  * This file is part of freeserf.
  *
@@ -23,6 +23,7 @@
 #define SRC_EVENT_LOOP_H_
 
 #include <list>
+#include <functional>
 
 class Event {
  public:
@@ -77,11 +78,6 @@ class Timer {
                        Handler *_handler);
 };
 
-class DeferredCallee {
- public:
-  virtual void deferred_call(void *data) = 0;
-};
-
 class EventLoop {
  public:
   class Handler {
@@ -91,6 +87,7 @@ class EventLoop {
 
  protected:
   typedef std::list<Handler*> Handlers;
+  typedef std::function<void()> DeferredCall;
 
  protected:
   Handlers event_handlers;
@@ -103,8 +100,7 @@ class EventLoop {
 
   virtual void run() = 0;
   virtual void quit() = 0;
-  virtual void deferred_call(DeferredCallee *deferred_callee,
-                             void *data) = 0;
+  virtual void deferred_call(DeferredCall call) = 0;
 
   void add_handler(Handler *handler);
   void del_handler(Handler *handler);
