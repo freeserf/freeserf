@@ -1,7 +1,7 @@
 /*
  * event_loop.cc - User and system events handling
  *
- * Copyright (C) 2012-2014  Jon Lund Steffensen <jonlst@gmail.com>
+ * Copyright (C) 2012-2017  Jon Lund Steffensen <jonlst@gmail.com>
  *
  * This file is part of freeserf.
  *
@@ -25,7 +25,7 @@
 #include <algorithm>
 
 EventLoop *
-EventLoop::instance = NULL;
+EventLoop::instance = nullptr;
 
 EventLoop::EventLoop() {
 }

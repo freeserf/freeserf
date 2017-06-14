@@ -1,7 +1,7 @@
 /*
  * audio-sdlmixer.cc - Music and sound effects playback using SDL_mixer.
  *
- * Copyright (C) 2012-2015  Wicked_Digger <wicked_digger@mail.ru>
+ * Copyright (C) 2012-2017  Wicked_Digger <wicked_digger@mail.ru>
  *
  * This file is part of freeserf.
  *
@@ -23,6 +23,7 @@
 
 #include <cassert>
 #include <algorithm>
+#include <memory>
 
 #include <SDL.h>
 #include <SDL_mixer.h>
@@ -33,7 +34,7 @@
 
 Audio *
 Audio::get_instance() {
-  if (instance == NULL) {
+  if (instance == nullptr) {
     instance = new AudioSDL();
   }
   return instance;
@@ -71,21 +72,11 @@ AudioSDL::AudioSDL() {
 
   volume = 1.f;
 
-  sfx_player = new AudioSDL::PlayerSFX();
-  midi_player = new AudioSDL::PlayerMIDI();
+  sfx_player = std::make_shared<AudioSDL::PlayerSFX>();
+  midi_player = std::make_shared<AudioSDL::PlayerMIDI>();
 }
 
 AudioSDL::~AudioSDL() {
-  if (sfx_player != NULL) {
-    delete sfx_player;
-    sfx_player = NULL;
-  }
-
-  if (midi_player != NULL) {
-    delete midi_player;
-    midi_player = NULL;
-  }
-
   Mix_CloseAudio();
   Mix_Quit();
 }
@@ -100,18 +91,18 @@ AudioSDL::set_volume(float volume) {
   volume = std::max(0.f, std::min(volume, 1.f));
   this->volume = volume;
 
-  if (midi_player != NULL) {
-    Audio::VolumeController *volume_controller =
+  if (midi_player != nullptr) {
+    Audio::PVolumeController volume_controller =
                                            midi_player->get_volume_controller();
-    if (volume_controller != NULL) {
+    if (volume_controller) {
       volume_controller->set_volume(volume);
     }
   }
 
-  if (sfx_player != NULL) {
-    Audio::VolumeController *volume_controller =
+  if (sfx_player != nullptr) {
+    Audio::PVolumeController volume_controller =
                                             sfx_player->get_volume_controller();
-    if (volume_controller != NULL) {
+    if (volume_controller) {
       volume_controller->set_volume(volume);
     }
   }
@@ -129,26 +120,26 @@ AudioSDL::volume_down() {
   set_volume(volume - 0.1f);
 }
 
-Audio::Track *
+Audio::PTrack
 AudioSDL::PlayerSFX::create_track(int track_id) {
   Data *data = Data::get_instance();
   PDataSource data_source = data->get_data_source();
 
   size_t size = 0;
   void *wav = data_source->get_sound(track_id, &size);
-  if (wav == NULL) {
-    return NULL;
+  if (wav == nullptr) {
+    return nullptr;
   }
 
   SDL_RWops *rw = SDL_RWFromMem(wav, static_cast<int>(size));
   Mix_Chunk *chunk = Mix_LoadWAV_RW(rw, 0);
   free(wav);
-  if (chunk == NULL) {
+  if (chunk == nullptr) {
     Log::Error["audio-sdlmixer"] << "Mix_LoadWAV_RW: " << Mix_GetError();
-    return NULL;
+    return nullptr;
   }
 
-  return new AudioSDL::TrackSFX(chunk);
+  return std::make_shared<AudioSDL::TrackSFX>(chunk);
 }
 
 void
@@ -205,7 +196,7 @@ AudioSDL::TrackSFX::play() {
 }
 
 AudioSDL::PlayerMIDI::PlayerMIDI() {
-  if (current_midi_player != NULL) {
+  if (current_midi_player != nullptr) {
     Log::Error["audio-sdlmixer"] << "Only one midi player is allowed.";
     assert(0);
   }
@@ -215,27 +206,27 @@ AudioSDL::PlayerMIDI::PlayerMIDI() {
 }
 
 AudioSDL::PlayerMIDI::~PlayerMIDI() {
-  Mix_HookMusicFinished(NULL);
+  Mix_HookMusicFinished(nullptr);
 }
 
-Audio::Track *
+Audio::PTrack
 AudioSDL::PlayerMIDI::create_track(int track_id) {
   Data *data = Data::get_instance();
   PDataSource data_source = data->get_data_source();
 
   size_t size = 0;
   void *midi = data_source->get_music(track_id, &size);
-  if (midi == NULL) {
-    return NULL;
+  if (midi == nullptr) {
+    return nullptr;
   }
 
   SDL_RWops *rw = SDL_RWFromMem(midi, static_cast<int>(size));
   Mix_Music *music = Mix_LoadMUS_RW(rw, 0);
-  if (music == NULL) {
-    return NULL;
+  if (music == nullptr) {
+    return nullptr;
   }
 
-  return new AudioSDL::TrackMIDI(midi, music);
+  return std::make_shared<AudioSDL::TrackMIDI>(midi, music);
 }
 
 void
@@ -284,19 +275,16 @@ AudioSDL::PlayerMIDI::volume_down() {
 }
 
 AudioSDL::PlayerMIDI *
-AudioSDL::PlayerMIDI::current_midi_player = NULL;
+AudioSDL::PlayerMIDI::current_midi_player = nullptr;
 
 void
 AudioSDL::PlayerMIDI::music_finished_hook() {
-  if (current_midi_player != NULL) {
-    EventLoop *event_loop = EventLoop::get_instance();
-    event_loop->deferred_call(current_midi_player, NULL);
-  }
-}
-
-void
-AudioSDL::PlayerMIDI::deferred_call(void *data) {
-  music_finished();
+  EventLoop *event_loop = EventLoop::get_instance();
+  event_loop->deferred_call([](){
+    if (current_midi_player != nullptr) {
+      current_midi_player->music_finished();
+    }
+  });
 }
 
 void

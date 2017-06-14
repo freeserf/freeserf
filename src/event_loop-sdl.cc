@@ -1,7 +1,7 @@
 /*
  * event_loop-sdl.cc - User and system events handling
  *
- * Copyright (C) 2012-2016  Jon Lund Steffensen <jonlst@gmail.com>
+ * Copyright (C) 2012-2017  Jon Lund Steffensen <jonlst@gmail.com>
  *
  * This file is part of freeserf.
  *
@@ -30,7 +30,7 @@
 
 EventLoop *
 EventLoop::get_instance() {
-  if (instance == NULL) {
+  if (instance == nullptr) {
     instance = new EventLoopSDL();
   }
 
@@ -72,13 +72,13 @@ EventLoopSDL::quit() {
 }
 
 void
-EventLoopSDL::deferred_call(DeferredCallee *deferred_callee, void *data) {
+EventLoopSDL::deferred_call(DeferredCall call) {
+  deferred_calls.push_back(call);
+
   SDL_Event event;
   event.type = SDL_USEREVENT;
   event.user.type = SDL_USEREVENT;
   event.user.code = EventUserTypeCall;
-  event.user.data1 = deferred_callee;
-  event.user.data2 = data;
   SDL_PushEvent(&event);
 }
 
@@ -105,7 +105,7 @@ EventLoopSDL::run() {
   SDL_Event event;
 
   Graphics *gfx = Graphics::get_instance();
-  Frame *screen = NULL;
+  Frame *screen = nullptr;
 
   while (SDL_WaitEvent(&event)) {
     unsigned int current_ticks = SDL_GetTicks();
@@ -157,7 +157,7 @@ EventLoopSDL::run() {
                         event.motion.x - drag_x, event.motion.y - drag_y,
                         (Event::Button)drag_button);
 
-            SDL_WarpMouseInWindow(NULL, drag_x, drag_y);
+            SDL_WarpMouseInWindow(nullptr, drag_x, drag_y);
 
             break;
           }
@@ -257,16 +257,16 @@ EventLoopSDL::run() {
         switch (event.user.code) {
           case EventUserTypeQuit:
             SDL_RemoveTimer(timer_id);
-            if (screen != NULL) {
+            if (screen != nullptr) {
               delete screen;
-              screen = NULL;
+              screen = nullptr;
             }
             return;
           case EventUserTypeStep:
             /* Update and draw interface */
             notify_update();
 
-            if (screen == NULL) {
+            if (screen == nullptr) {
               screen = gfx->get_screen_frame();
             }
             notify_draw(screen);
@@ -275,10 +275,9 @@ EventLoopSDL::run() {
             gfx->swap_buffers();
             break;
           case EventUserTypeCall: {
-            DeferredCallee *deferred_callee =
-                            reinterpret_cast<DeferredCallee*>(event.user.data1);
-            if (deferred_callee != NULL) {
-              deferred_callee->deferred_call(event.user.data2);
+            while (!deferred_calls.empty()) {
+              deferred_calls.front()();
+              deferred_calls.pop_front();
             }
             break;
           }
@@ -290,9 +289,9 @@ EventLoopSDL::run() {
   }
 
   SDL_RemoveTimer(timer_id);
-  if (screen != NULL) {
+  if (screen != nullptr) {
     delete screen;
-    screen = NULL;
+    screen = nullptr;
   }
 }
 
@@ -335,7 +334,7 @@ class TimerSDL : public Timer {
 
   static Uint32 callback(Uint32 interval, void *param) {
     TimerSDL *timer = reinterpret_cast<TimerSDL*>(param);
-    if (timer->handler != NULL) {
+    if (timer->handler != nullptr) {
       timer->handler->on_timer_fired(timer->id);
     }
     return interval;

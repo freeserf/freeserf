@@ -248,8 +248,8 @@ GuiObject::del_float(GuiObject *obj) {
 void
 GuiObject::play_sound(int sound) {
   Audio *audio = Audio::get_instance();
-  Audio::Player *player = audio->get_sound_player();
-  if (player != NULL) {
+  Audio::PPlayer player = audio->get_sound_player();
+  if (player) {
     player->play_track(sound);
   }
 }

@@ -855,16 +855,16 @@ Interface::handle_key_pressed(char key, int modifier) {
     /* Audio */
     case 's': {
       Audio *audio = Audio::get_instance();
-      Audio::Player *player = audio->get_sound_player();
-      if (player != NULL) {
+      Audio::PPlayer player = audio->get_sound_player();
+      if (player) {
         player->enable(!player->is_enabled());
       }
       break;
     }
     case 'm': {
       Audio *audio = Audio::get_instance();
-      Audio::Player *player = audio->get_music_player();
-      if (player != NULL) {
+      Audio::PPlayer player = audio->get_music_player();
+      if (player) {
         player->enable(!player->is_enabled());
       }
       break;

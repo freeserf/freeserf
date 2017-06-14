@@ -1,7 +1,7 @@
 /*
  * audio-sdlmixer.h - Music and sound effects playback using SDL_mixer.
  *
- * Copyright (C) 2015  Wicked_Digger <wicked_digger@mail.ru>
+ * Copyright (C) 2015-2017  Wicked_Digger <wicked_digger@mail.ru>
  *
  * This file is part of freeserf.
  *
@@ -42,13 +42,17 @@ class AudioSDL : public Audio, public Audio::VolumeController {
     virtual void play();
   };
 
-  class PlayerSFX : public Audio::Player, public Audio::VolumeController {
+  class PlayerSFX : public Audio::Player,
+                    public Audio::VolumeController,
+                    public std::enable_shared_from_this<PlayerSFX> {
    public:
     virtual void enable(bool enable);
-    virtual Audio::VolumeController *get_volume_controller() { return this; }
+    virtual Audio::PVolumeController get_volume_controller() {
+      return shared_from_this();
+    }
 
    protected:
-    virtual Audio::Track *create_track(int track_id);
+    virtual Audio::PTrack create_track(int track_id);
     virtual void stop();
 
    public:
@@ -70,8 +74,9 @@ class AudioSDL : public Audio, public Audio::VolumeController {
     virtual void play();
   };
 
-  class PlayerMIDI : public Audio::Player, public Audio::VolumeController,
-                     public DeferredCallee {
+  class PlayerMIDI : public Audio::Player,
+                     public Audio::VolumeController,
+                     public std::enable_shared_from_this<PlayerMIDI> {
    protected:
     TypeMidi current_track;
 
@@ -81,10 +86,12 @@ class AudioSDL : public Audio, public Audio::VolumeController {
 
     virtual void play_track(int track_id);
     virtual void enable(bool enable);
-    virtual Audio::VolumeController *get_volume_controller() { return this; }
+    virtual Audio::PVolumeController get_volume_controller() {
+      return shared_from_this();
+    }
 
    protected:
-    virtual Audio::Track *create_track(int track_id);
+    virtual Audio::PTrack create_track(int track_id);
     virtual void stop();
 
    public:
@@ -93,9 +100,6 @@ class AudioSDL : public Audio, public Audio::VolumeController {
     virtual void volume_up();
     virtual void volume_down();
 
-   public:
-    virtual void deferred_call(void *data);
-
    protected:
     static PlayerMIDI *current_midi_player;
     static void music_finished_hook();
@@ -103,8 +107,8 @@ class AudioSDL : public Audio, public Audio::VolumeController {
   };
 
  protected:
-  Audio::Player *sfx_player;
-  Audio::Player *midi_player;
+  Audio::PPlayer sfx_player;
+  Audio::PPlayer midi_player;
 
   float volume;
 
@@ -114,8 +118,8 @@ class AudioSDL : public Audio, public Audio::VolumeController {
   virtual ~AudioSDL();
 
   virtual Audio::VolumeController *get_volume_controller() { return this; }
-  virtual Audio::Player *get_sound_player() { return sfx_player; }
-  virtual Audio::Player *get_music_player() { return midi_player; }
+  virtual Audio::PPlayer get_sound_player() { return sfx_player; }
+  virtual Audio::PPlayer get_music_player() { return midi_player; }
 
  public:
   virtual float get_volume();

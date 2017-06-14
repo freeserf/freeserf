@@ -24,6 +24,7 @@
 #define SRC_AUDIO_H_
 
 #include <map>
+#include <memory>
 
 class Audio {
  public:
@@ -85,6 +86,7 @@ class Audio {
     virtual void volume_up() = 0;
     virtual void volume_down() = 0;
   };
+  typedef std::shared_ptr<VolumeController> PVolumeController;
 
   class Track {
    public:
@@ -92,10 +94,11 @@ class Audio {
 
     virtual void play() = 0;
   };
+  typedef std::shared_ptr<Track> PTrack;
 
   class Player {
    protected:
-    typedef std::map<int, Track*> TrackCache;
+    typedef std::map<int, PTrack> TrackCache;
     TrackCache track_cache;
     bool enabled;
 
@@ -106,12 +109,13 @@ class Audio {
     virtual void play_track(int track_id);
     virtual void enable(bool enable) = 0;
     virtual bool is_enabled() const { return enabled; }
-    virtual VolumeController *get_volume_controller() = 0;
+    virtual PVolumeController get_volume_controller() = 0;
 
    protected:
-    virtual Track *create_track(int track_id) = 0;
+    virtual PTrack create_track(int track_id) = 0;
     virtual void stop() = 0;
   };
+  typedef std::shared_ptr<Player> PPlayer;
 
  protected:
   static Audio *instance;
@@ -125,8 +129,8 @@ class Audio {
   static Audio *get_instance();
 
   virtual VolumeController *get_volume_controller() = 0;
-  virtual Player *get_sound_player() = 0;
-  virtual Player *get_music_player() = 0;
+  virtual PPlayer get_sound_player() = 0;
+  virtual PPlayer get_music_player() = 0;
 };
 
 #endif  // SRC_AUDIO_H_

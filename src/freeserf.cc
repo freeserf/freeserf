@@ -140,7 +140,7 @@ main(int argc, char *argv[]) {
   if (volume_controller != NULL) {
     volume_controller->set_volume(.75f);
   }
-  Audio::Player *player = audio->get_music_player();
+  Audio::PPlayer player = audio->get_music_player();
   if (player) {
     player->play_track(Audio::TypeMidiTrack0);
   }
