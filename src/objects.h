@@ -72,9 +72,14 @@ class Collection {
   }
 
   virtual ~Collection() {
+    clear();
+  }
+
+  void clear() {
     for (std::pair<const unsigned int, T*> &kv : objects) {
       delete kv.second;
     }
+    objects.clear();
   }
 
   T*

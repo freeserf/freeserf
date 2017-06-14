@@ -25,6 +25,7 @@
 #include <list>
 #include <memory>
 #include <utility>
+#include <vector>
 
 #include "src/map-geometry.h"
 #include "src/misc.h"
@@ -290,8 +291,8 @@ class Map {
   } GameTile;
 
   MapGeometry geom_;
-  std::unique_ptr<LandscapeTile[]> landscape_tiles;
-  std::unique_ptr<GameTile[]> game_tiles;
+  std::vector<LandscapeTile> landscape_tiles;
+  std::vector<GameTile> game_tiles;
 
   uint16_t regions;
 
