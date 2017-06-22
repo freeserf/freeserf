@@ -1,7 +1,7 @@
 /*
  * player.cc - Player related functions
  *
- * Copyright (C) 2013-2016  Jon Lund Steffensen <jonlst@gmail.com>
+ * Copyright (C) 2013-2017  Jon Lund Steffensen <jonlst@gmail.com>
  *
  * This file is part of freeserf.
  *
@@ -129,9 +129,19 @@ Player::Player(Game *game, unsigned int index)
 //     reproduction: How quickly new serfs spawn during the game (0-60).
 //     intelligence: AI only (unused) (0-40).
 void
-Player::init(PPlayerInfo player_info) {
+Player::init(unsigned int _intelligence, unsigned int _supplies,
+             unsigned int _reproduction) {
   flags = 0;
-  face = player_info->get_face();
+
+  initial_supplies = _supplies;
+  reproduction_reset = (60 - _reproduction) * 50;
+  ai_intelligence = (1300 * _intelligence) + 13535;
+  reproduction_counter = static_cast<int>(reproduction_reset);
+}
+
+void
+Player::init_view(Color _color, unsigned int _face) {
+  face = _face;
 
   if (face < 12) { /* AI player */
     flags |= BIT(7); /* Set AI bit */
@@ -139,15 +149,9 @@ Player::init(PPlayerInfo player_info) {
     /*game.max_next_index = 49;*/
   }
 
-  color = player_info->get_color();
-
-  initial_supplies = player_info->get_supplies();
-  reproduction_reset = (60 - player_info->get_reproduction()) * 50;
-  ai_intelligence = (1300 * player_info->get_intelligence()) + 13535;
-
   if (is_ai()) init_ai_values(face);
 
-  reproduction_counter = static_cast<int>(reproduction_reset);
+  color = _color;
 }
 
 /* Initialize AI parameters. */
@@ -1001,7 +1005,7 @@ Player::get_stats_serfs_potential() {
 
 SaveReaderBinary&
 operator >> (SaveReaderBinary &reader, Player &player)  {
-  const PlayerColor default_player_colors[] = {
+  const Player::Color default_player_colors[] = {
     {0x00, 0xe3, 0xe3},
     {0xcf, 0x63, 0x63},
     {0xdf, 0x7f, 0xef},

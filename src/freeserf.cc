@@ -1,7 +1,7 @@
 /*
  * freeserf.cc - Main program source.
  *
- * Copyright (C) 2013-2014  Jon Lund Steffensen <jonlst@gmail.com>
+ * Copyright (C) 2013-2017  Jon Lund Steffensen <jonlst@gmail.com>
  *
  * This file is part of freeserf.
  *
@@ -145,17 +145,20 @@ main(int argc, char *argv[]) {
     player->play_track(Audio::TypeMidiTrack0);
   }
 
-  Game *game = new Game();
+  Game *game = nullptr;
 
   /* Either load a save game if specified or
      start a new game. */
   if (!save_file.empty()) {
+    game = new Game();
     if (!GameStore::get_instance()->load(save_file, game)) {
+      delete game;
       return EXIT_FAILURE;
     }
   } else {
     PGameInfo game_info(new GameInfo(Random()));
-    if (!game->load_mission_map(game_info)) {
+    game = game_info->instantiate();
+    if (game == nullptr) {
       return EXIT_FAILURE;
     }
   }

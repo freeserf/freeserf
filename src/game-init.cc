@@ -287,14 +287,17 @@ void
 GameInitBox::handle_action(int action) {
   switch (action) {
     case ActionStartGame: {
-      Game *game = new Game();
+      Game *game = nullptr;
       if (game_type == GameLoad) {
+        game = new Game();
         if (!GameStore::get_instance()->load(file_list->get_selected(), game)) {
+          delete game;
           return;
         }
         game->pause();
       } else {
-        if (!game->load_mission_map(mission)) {
+        game = mission->instantiate();
+        if (game == nullptr) {
           return;
         }
       }

@@ -20,8 +20,9 @@
  */
 
 #include "src/mission.h"
+#include "src/game.h"
 
-CharacterPreset characters[] = {
+Character characters[] = {
   { 0, "ERROR", "ERROR"},
   { 1, "Lady Amalie",
     "An inoffensive lady, reserved, who goes about her work peacefully."},
@@ -59,14 +60,14 @@ CharacterPreset characters[] = {
     "Your partner."}
 };
 
-PlayerColor def_color[4] = {
+Player::Color def_color[4] = {
   {0x00, 0xe3, 0xe3},
   {0xcf, 0x63, 0x63},
   {0xdf, 0x7f, 0xef},
   {0xef, 0xef, 0x8f}
 };
 
-MissionPreset tutorials[] = {
+GameInfo::Mission tutorials[] = {
   {
     "Tutorial 1",
     Random("3762665523225478"),
@@ -111,7 +112,7 @@ MissionPreset tutorials[] = {
   }
 };
 
-MissionPreset missions[] = {
+GameInfo::Mission missions[] = {
   {
     "START",
     Random("8667715887436237"),
@@ -381,7 +382,7 @@ GameInfo::GameInfo(const Random &_random_base) {
   set_random_base(_random_base);
 }
 
-GameInfo::GameInfo(const MissionPreset *mission_preset) {
+GameInfo::GameInfo(const GameInfo::Mission *mission_preset) {
   map_size = 3;
   name = mission_preset->name;
   random_base = mission_preset->rnd;
@@ -435,7 +436,7 @@ GameInfo::add_player(const PPlayerInfo &player) {
 }
 
 void
-GameInfo::add_player(size_t character, const PlayerColor &_color,
+GameInfo::add_player(size_t character, const Player::Color &_color,
                      unsigned int _intelligence, unsigned int _supplies,
                      unsigned int _reproduction) {
   PPlayerInfo player(new PlayerInfo(character, _color, _intelligence, _supplies,
@@ -462,7 +463,7 @@ GameInfo::get_mission_count() {
   return sizeof(missions) / sizeof(missions[0]);
 }
 
-CharacterPreset *
+const Character *
 GameInfo::get_character(size_t character) {
   if (character >= get_character_count()) {
     return nullptr;
@@ -476,6 +477,33 @@ GameInfo::get_character_count() {
   return sizeof(characters) / sizeof(characters[0]);
 }
 
+Game *
+GameInfo::instantiate() {
+  Game *game = new Game();
+
+  if (!game->init(map_size, random_base)) {
+    delete game;
+    return nullptr;
+  }
+
+  /* Initialize player and build initial castle */
+  for (PPlayerInfo player_info : players) {
+    unsigned int index = game->add_player(player_info->get_intelligence(),
+                                          player_info->get_supplies(),
+                                          player_info->get_reproduction());
+    Player *player = game->get_player(index);
+    player->init_view(player_info->get_color(), player_info->get_face());
+
+    PlayerInfo::Pos castle_pos = player_info->get_castle_pos();
+    if (castle_pos.col > -1 && castle_pos.row > -1) {
+      MapPos pos = game->get_map()->pos(castle_pos.col, castle_pos.row);
+      game->build_castle(pos, player);
+    }
+  }
+
+  return game;
+}
+
 PlayerInfo::PlayerInfo(Random *random_base) {
   size_t character = (((random_base->random() * 10) >> 16) + 1) & 0xFF;
   set_character(character);
@@ -485,7 +513,7 @@ PlayerInfo::PlayerInfo(Random *random_base) {
   set_castle_pos({-1, -1});
 }
 
-PlayerInfo::PlayerInfo(size_t character, const PlayerColor &_color,
+PlayerInfo::PlayerInfo(size_t character, const Player::Color &_color,
                        unsigned int _intelligence, unsigned int _supplies,
                        unsigned int _reproduction) {
   set_character(character);
@@ -497,7 +525,7 @@ PlayerInfo::PlayerInfo(size_t character, const PlayerColor &_color,
 }
 
 void
-PlayerInfo::set_castle_pos(PosPreset _castle_pos) {
+PlayerInfo::set_castle_pos(PlayerInfo::Pos _castle_pos) {
   castle_pos = _castle_pos;
 }
 
