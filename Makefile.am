@@ -16,7 +16,6 @@ GAME_SOURCES = \
 	src/map.cc src/map.h \
 	src/map-generator.cc src/map-generator.h \
 	src/map-geometry.h \
-	src/mission.cc src/mission.h \
 	src/objects.h \
 	src/player.cc src/player.h \
 	src/random.cc src/random.h \
@@ -51,7 +50,9 @@ OTHER_SOURCES = \
 	src/data-source.cc src/data-source.h \
 	src/text-input.cc src/text-input.h \
 	src/data-source-amiga.cc src/data-source-amiga.h \
-	src/list.cc src/list.h
+	src/list.cc src/list.h \
+	src/mission.cc src/mission.h \
+	src/game-manager.cc src/game-manager.h
 
 freeserf_SOURCES = \
 	src/freeserf.cc src/freeserf.h \

@@ -28,6 +28,7 @@
 
 #include "src/random.h"
 #include "src/player.h"
+#include "src/game.h"
 
 typedef struct Character {
   unsigned int face;
@@ -131,7 +132,7 @@ class GameInfo {
   static const Character *get_character(size_t character);
   static size_t get_character_count();
 
-  Game *instantiate();
+  PGame instantiate();
 };
 
 #endif  // SRC_MISSION_H_

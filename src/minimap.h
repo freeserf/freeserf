@@ -26,8 +26,8 @@
 
 #include "src/gui.h"
 #include "src/map.h"
+#include "src/game.h"
 
-class Game;
 class Interface;
 
 class Minimap : public GuiObject {
@@ -87,7 +87,7 @@ class MinimapGame : public Minimap {
  protected:
   Interface *interface;
 
-  Game *game;
+  PGame game;
 
   int advanced;
   bool draw_roads;
@@ -95,7 +95,7 @@ class MinimapGame : public Minimap {
   OwnershipMode ownership_mode;
 
  public:
-  MinimapGame(Interface *interface, Game *game);
+  MinimapGame(Interface *interface, PGame game);
 
   int get_advanced() const { return advanced; }
   void set_advanced(int advanced) { this->advanced = advanced; }

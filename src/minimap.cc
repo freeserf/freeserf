@@ -415,7 +415,7 @@ Minimap::move_by_pixels(int dx, int dy) {
   set_redraw();
 }
 
-MinimapGame::MinimapGame(Interface *_interface, Game *_game)
+MinimapGame::MinimapGame(Interface *_interface, PGame _game)
   : Minimap(_game->get_map()) {
   interface = _interface;
   game = _game;

@@ -2492,6 +2492,9 @@ Viewport::Viewport(Interface *_interface, PMap _map) {
   map->add_change_handler(this);
   layers = LayerAll;
 
+  offset_x = 0;
+  offset_y = 0;
+
   last_tick = 0;
 
   Data *data = Data::get_instance();

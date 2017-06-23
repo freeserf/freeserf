@@ -284,6 +284,7 @@ copy /Y /B "$(XMP_LIB)\x64\libxmp.dll" "$(OutDir)libxmp.dll"</Command>
     <ClCompile Include="..\src\flag.cc" />
     <ClCompile Include="..\src\freeserf.cc" />
     <ClCompile Include="..\src\game-init.cc" />
+    <ClCompile Include="..\src\game-manager.cc" />
     <ClCompile Include="..\src\game.cc" />
     <ClCompile Include="..\src\gfx.cc" />
     <ClCompile Include="..\src\gui.cc" />
@@ -327,6 +328,7 @@ copy /Y /B "$(XMP_LIB)\x64\libxmp.dll" "$(OutDir)libxmp.dll"</Command>
     <ClInclude Include="..\src\freeserf.h" />
     <ClInclude Include="..\src\freeserf_endian.h" />
     <ClInclude Include="..\src\game-init.h" />
+    <ClInclude Include="..\src\game-manager.h" />
     <ClInclude Include="..\src\game.h" />
     <ClInclude Include="..\src\gfx.h" />
     <ClInclude Include="..\src\gui.h" />

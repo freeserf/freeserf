@@ -36,6 +36,7 @@
 #include "src/map-generator.h"
 #include "src/map-geometry.h"
 #include "src/list.h"
+#include "src/game-manager.h"
 
 class RandomInput : public TextInput {
  protected:
@@ -287,32 +288,17 @@ void
 GameInitBox::handle_action(int action) {
   switch (action) {
     case ActionStartGame: {
-      Game *game = nullptr;
       if (game_type == GameLoad) {
-        game = new Game();
-        if (!GameStore::get_instance()->load(file_list->get_selected(), game)) {
-          delete game;
+        std::string path = file_list->get_selected();
+        if (!GameManager::get_instance()->load_game(path)) {
           return;
         }
-        game->pause();
       } else {
-        game = mission->instantiate();
-        if (game == nullptr) {
+        if (!GameManager::get_instance()->start_game(mission)) {
           return;
         }
       }
 
-      Game *old_game = interface->get_game();
-      if (old_game != NULL) {
-        EventLoop::get_instance()->del_handler(old_game);
-      }
-
-      EventLoop::get_instance()->add_handler(game);
-      interface->set_game(game);
-      if (old_game != NULL) {
-        delete old_game;
-      }
-      interface->set_player(0);
       interface->close_game_init();
       break;
     }

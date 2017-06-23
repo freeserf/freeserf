@@ -88,6 +88,14 @@ Game::Game() {
   gold_total = 0;
 }
 
+Game::~Game() {
+  serfs.clear();
+  inventories.clear();
+  buildings.clear();
+  flags.clear();
+  players.clear();
+}
+
 /* Clear the serf request bit of all flags and buildings.
    This allows the flag or building to try and request a
    serf again. */
@@ -2005,19 +2013,6 @@ Game::lose_resource(Resource::Type res) {
 uint16_t
 Game::random_int() {
   return rnd.random();
-}
-
-bool
-Game::handle_event(const Event *event) {
-  switch (event->type) {
-    case Event::TypeUpdate:
-      update();
-      return true;
-      break;
-    default:
-      break;
-  }
-  return false;
 }
 
 int

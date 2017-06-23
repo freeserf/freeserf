@@ -477,12 +477,11 @@ GameInfo::get_character_count() {
   return sizeof(characters) / sizeof(characters[0]);
 }
 
-Game *
+PGame
 GameInfo::instantiate() {
-  Game *game = new Game();
+  PGame game = std::make_shared<Game>();
 
   if (!game->init(map_size, random_base)) {
-    delete game;
     return nullptr;
   }
 
