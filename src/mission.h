@@ -27,52 +27,43 @@
 #include <memory>
 
 #include "src/random.h"
+#include "src/player.h"
+#include "src/game.h"
 
-typedef struct {
-  unsigned char red;
-  unsigned char green;
-  unsigned char blue;
-} PlayerColor;
-
-typedef struct {
+typedef struct Character {
   unsigned int face;
-  const std::string name;
-  const std::string characterization;
-} CharacterPreset;
-
-typedef struct {
-  int col;
-  int row;
-} PosPreset;
-
-typedef struct {
-  CharacterPreset *character;
-  unsigned int intelligence;
-  unsigned int supplies;
-  unsigned int reproduction;
-  PosPreset castle;
-} PlayerPreset;
-
-typedef struct {
-  const std::string name;
-  Random rnd;
-  std::vector<PlayerPreset> player;
-} MissionPreset;
+  const char *name;
+  const char *characterization;
+} Character;
 
 class PlayerInfo {
+ public:
+  typedef struct Pos {
+    int col;
+    int row;
+  } Pos;
+
+  typedef struct Preset {
+    Character *character;
+    unsigned int intelligence;
+    unsigned int supplies;
+    unsigned int reproduction;
+    Pos castle;
+  } Preset;
+
  protected:
   unsigned int intelligence;
   unsigned int supplies;
   unsigned int reproduction;
   unsigned int face;
-  PlayerColor color;
+  Player::Color color;
   std::string name;
   std::string characterization;
-  PosPreset castle_pos;
+  Pos castle_pos;
 
  public:
   explicit PlayerInfo(Random *random_base);
-  PlayerInfo(size_t character, const PlayerColor &_color,
+  PlayerInfo(size_t character, const Player::Color &_color,
              unsigned int _intelligence, unsigned int _supplies,
              unsigned int _reproduction);
 
@@ -81,16 +72,16 @@ class PlayerInfo {
   void set_supplies(unsigned int _supplies) { supplies = _supplies; }
   void set_reproduction(unsigned int _reproduction) {
     reproduction = _reproduction; }
-  void set_castle_pos(PosPreset _castle_pos);
+  void set_castle_pos(Pos _castle_pos);
   void set_character(size_t character);
-  void set_color(const PlayerColor &_color) { color = _color; }
+  void set_color(const Player::Color &_color) { color = _color; }
 
   unsigned int get_intelligence() const { return intelligence; }
   unsigned int get_supplies() const { return supplies; }
   unsigned int get_reproduction() const { return reproduction; }
   unsigned int get_face() const { return face; }
-  PlayerColor get_color() const { return color; }
-  PosPreset get_castle_pos() const { return castle_pos; }
+  Player::Color get_color() const { return color; }
+  Pos get_castle_pos() const { return castle_pos; }
 
   bool has_castle() const;
 };
@@ -102,15 +93,22 @@ class GameInfo;
 typedef std::shared_ptr<GameInfo> PGameInfo;
 
 class GameInfo {
+ public:
+  typedef struct Mission {
+    const std::string name;
+    Random rnd;
+    std::vector<PlayerInfo::Preset> player;
+  } Mission;
+
  protected:
   unsigned int map_size;
   Random random_base;
   PlayerInfos players;
   std::string name;
 
-  static MissionPreset mission[];
+  static Mission mission[];
 
-  explicit GameInfo(const MissionPreset *mission_preset);
+  explicit GameInfo(const Mission *mission_preset);
 
  public:
   explicit GameInfo(const Random &random_base);
@@ -123,7 +121,7 @@ class GameInfo {
   PPlayerInfo get_player(size_t player) const { return players[player]; }
 
   void add_player(const PPlayerInfo &player);
-  void add_player(size_t character, const PlayerColor &_color,
+  void add_player(size_t character, const Player::Color &_color,
                   unsigned int _intelligence, unsigned int _supplies,
                   unsigned int _reproduction);
   void remove_all_players();
@@ -131,8 +129,10 @@ class GameInfo {
   static PGameInfo get_mission(size_t mission);
   static size_t get_mission_count();
 
-  static CharacterPreset *get_character(size_t character);
+  static const Character *get_character(size_t character);
   static size_t get_character_count();
+
+  PGame instantiate();
 };
 
 #endif  // SRC_MISSION_H_

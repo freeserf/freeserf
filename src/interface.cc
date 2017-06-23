@@ -42,6 +42,66 @@
 // Interval between automatic save games
 #define AUTOSAVE_INTERVAL  (10*60*TICKS_PER_SEC)
 
+Interface::Interface() {
+  displayed = true;
+
+  game = nullptr;
+
+  map_cursor_pos = 0;
+  map_cursor_type = (CursorType)0;
+  build_possibility = BuildPossibilityNone;
+
+  player = nullptr;
+
+  /* Settings */
+  config = 0x39;
+  msg_flags = 0;
+  return_timeout = 0;
+
+  current_stat_8_mode = 0;
+  current_stat_7_item = 7;
+
+  map_cursor_sprites[0].sprite = 32;
+  map_cursor_sprites[1].sprite = 33;
+  map_cursor_sprites[2].sprite = 33;
+  map_cursor_sprites[3].sprite = 33;
+  map_cursor_sprites[4].sprite = 33;
+  map_cursor_sprites[5].sprite = 33;
+  map_cursor_sprites[6].sprite = 33;
+
+  last_const_tick = 0;
+
+  viewport = nullptr;
+  panel = nullptr;
+  popup = nullptr;
+  init_box = nullptr;
+  notification_box = nullptr;
+
+  GameManager::get_instance()->add_handler(this);
+  set_game(GameManager::get_instance()->get_current_game());
+}
+
+Interface::~Interface() {
+  GameManager::get_instance()->del_handler(this);
+  set_game(nullptr);
+
+  if (viewport != nullptr) {
+    delete viewport;
+  }
+  if (panel != nullptr) {
+    delete panel;
+  }
+  if (popup != nullptr) {
+    delete popup;
+  }
+  if (init_box != nullptr) {
+    delete init_box;
+  }
+  if (notification_box != nullptr) {
+    delete notification_box;
+  }
+}
+
 Viewport *
 Interface::get_viewport() {
   return viewport;
@@ -379,17 +439,17 @@ Interface::update_interface() {
 }
 
 void
-Interface::set_game(Game *game) {
+Interface::set_game(PGame new_game) {
   if (viewport != NULL) {
     del_float(viewport);
     delete viewport;
     viewport = NULL;
   }
 
-  this->game = game;
-  player = NULL;
+  game = new_game;
+  player = nullptr;
 
-  if (game != NULL) {
+  if (game) {
     viewport = new Viewport(this, game->get_map());
     viewport->set_displayed(true);
     add_float(viewport, 0, 0);
@@ -438,7 +498,7 @@ Interface::set_player(unsigned int player_index) {
 
 Color
 Interface::get_player_color(unsigned int player_index) {
-  PlayerColor player_color = game->get_player(player_index)->get_color();
+  Player::Color player_color = game->get_player(player_index)->get_color();
   Color color(player_color.red, player_color.green, player_color.blue);
   return color;
 }
@@ -701,66 +761,14 @@ Interface::layout() {
   set_redraw();
 }
 
-Interface::Interface() {
-  displayed = true;
-
-  game = NULL;
-
-  map_cursor_pos = 0;
-  map_cursor_type = (CursorType)0;
-  build_possibility = BuildPossibilityNone;
-
-  player = NULL;
-
-  /* Settings */
-  config = 0x39;
-  msg_flags = 0;
-  return_timeout = 0;
-
-  current_stat_8_mode = 0;
-  current_stat_7_item = 7;
-
-  map_cursor_sprites[0].sprite = 32;
-  map_cursor_sprites[1].sprite = 33;
-  map_cursor_sprites[2].sprite = 33;
-  map_cursor_sprites[3].sprite = 33;
-  map_cursor_sprites[4].sprite = 33;
-  map_cursor_sprites[5].sprite = 33;
-  map_cursor_sprites[6].sprite = 33;
-
-  last_const_tick = 0;
-
-  viewport = NULL;
-  panel = NULL;
-  popup = NULL;
-  init_box = NULL;
-  notification_box = NULL;
-}
-
-Interface::~Interface() {
-  if (viewport != NULL) {
-    delete viewport;
-  }
-  if (panel != NULL) {
-    delete panel;
-  }
-  if (popup != NULL) {
-    delete popup;
-  }
-  if (init_box != NULL) {
-    delete init_box;
-  }
-  if (notification_box != NULL) {
-    delete notification_box;
-  }
-}
-
 /* Called periodically when the game progresses. */
 void
 Interface::update() {
-  if (game == NULL) {
+  if (!game) {
     return;
   }
+
+  game->update();
 
   int tick_diff = game->get_const_tick() - last_const_tick;
   last_const_tick = game->get_const_tick();
@@ -889,7 +897,7 @@ Interface::handle_key_pressed(char key, int modifier) {
     }
     case 'z':
       if (modifier & 1) {
-        GameStore::get_instance()->quick_save("quicksave", game);
+        GameStore::get_instance()->quick_save("quicksave", game.get());
       }
       break;
     case 'n':
@@ -929,4 +937,15 @@ Interface::handle_event(const Event *event) {
   }
 
   return true;
+}
+
+void
+Interface::on_new_game(PGame game) {
+  set_game(game);
+  set_player(0);
+}
+
+void
+Interface::on_end_game(PGame game) {
+  set_game(nullptr);
 }

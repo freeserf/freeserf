@@ -1,7 +1,7 @@
 /*
  * game.cc - Gameplay related functions
  *
- * Copyright (C) 2013-2016  Jon Lund Steffensen <jonlst@gmail.com>
+ * Copyright (C) 2013-2017  Jon Lund Steffensen <jonlst@gmail.com>
  *
  * This file is part of freeserf.
  *
@@ -25,7 +25,6 @@
 
 #include "src/game.h"
 
-#include <cassert>
 #include <cstring>
 #include <string>
 #include <algorithm>
@@ -33,7 +32,6 @@
 #include <memory>
 #include <sstream>
 
-#include "src/mission.h"
 #include "src/savegame.h"
 #include "src/debug.h"
 #include "src/log.h"
@@ -52,7 +50,14 @@ Game::Game() {
   buildings = Buildings(this);
   serfs = Serfs(this);
 
-  allocate_objects();
+  /* Create NULL-serf */
+  serfs.allocate();
+
+  /* Create NULL-building (index 0 is undefined) */
+  buildings.allocate();
+
+  /* Create NULL-flag (index 0 is undefined) */
+  flags.allocate();
 
   /* Initialize global lookup tables */
   game_speed = DEFAULT_GAME_SPEED;
@@ -81,6 +86,14 @@ Game::Game() {
   inventory_schedule_counter = 0;
 
   gold_total = 0;
+}
+
+Game::~Game() {
+  serfs.clear();
+  inventories.clear();
+  buildings.clear();
+  flags.clear();
+  players.clear();
 }
 
 /* Clear the serf request bit of all flags and buildings.
@@ -1944,15 +1957,17 @@ Game::set_inventory_serf_mode(Inventory *inventory, int mode) {
   }
 }
 
-/* Add new player to the game. Returns the player number
-   or negative on error. */
+// Add new player to the game. Returns the player number.
 unsigned int
-Game::add_player(PPlayerInfo player_info) {
+Game::add_player(unsigned int intelligence, unsigned int supplies,
+                 unsigned int reproduction) {
   /* Allocate object */
   Player *player = players.allocate();
-  if (player == NULL) abort();
+  if (player == nullptr) {
+    throw ExceptionFreeserf("Failed to create new player.");
+  }
 
-  player->init(player_info);
+  player->init(intelligence, supplies, reproduction);
 
   /* Update map values dependent on player count */
   map_gold_morale_factor = 10 * 1024 * static_cast<int>(players.size());
@@ -1960,53 +1975,16 @@ Game::add_player(PPlayerInfo player_info) {
   return player->get_index();
 }
 
-/* Initialize spiral_pos_pattern from spiral_pattern. */
-void
-Game::init_map(int size) {
-  map.reset(new Map(MapGeometry(size)));
-}
-
-void
-Game::init_map_data(const MapGenerator& generator) {
-  this->map->init_tiles(generator);
-  gold_total = map->get_gold_deposit();
-}
-
-void
-Game::allocate_objects() {
-  /* Create NULL-serf */
-  serfs.allocate();
-
-  /* Create NULL-building (index 0 is undefined) */
-  buildings.allocate();
-
-  /* Create NULL-flag (index 0 is undefined) */
-  flags.allocate();
-}
-
 bool
-Game::load_mission_map(PGameInfo game_info) {
-  init_map_rnd = game_info->get_random_base();
+Game::init(unsigned int map_size, const Random &random) {
+  init_map_rnd = random;
 
-  init_map(game_info->get_map_size());
-  {
-    ClassicMissionMapGenerator generator(*map, init_map_rnd);
-    generator.init();
-    generator.generate();
-    init_map_data(generator);
-  }
-
-  /* Initialize player and build initial castle */
-  for (size_t i = 0; i < game_info->get_player_count(); i++) {
-    PPlayerInfo player_info = game_info->get_player(i);
-    unsigned int player_index = add_player(player_info);
-
-    PosPreset castle_pos = player_info->get_castle_pos();
-    if (castle_pos.col > -1 && castle_pos.row > -1) {
-      MapPos pos = map->pos(castle_pos.col, castle_pos.row);
-      build_castle(pos, players[player_index]);
-    }
-  }
+  map.reset(new Map(MapGeometry(map_size)));
+  ClassicMissionMapGenerator generator(*map, init_map_rnd);
+  generator.init();
+  generator.generate();
+  map->init_tiles(generator);
+  gold_total = map->get_gold_deposit();
 
   return true;
 }
@@ -2035,19 +2013,6 @@ Game::lose_resource(Resource::Type res) {
 uint16_t
 Game::random_int() {
   return rnd.random();
-}
-
-bool
-Game::handle_event(const Event *event) {
-  switch (event->type) {
-    case Event::TypeUpdate:
-      update();
-      return true;
-      break;
-    default:
-      break;
-  }
-  return false;
 }
 
 int

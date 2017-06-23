@@ -1,7 +1,7 @@
 /*
  * game.h - Gameplay related functions
  *
- * Copyright (C) 2013-2016  Jon Lund Steffensen <jonlst@gmail.com>
+ * Copyright (C) 2013-2017  Jon Lund Steffensen <jonlst@gmail.com>
  *
  * This file is part of freeserf.
  *
@@ -36,8 +36,6 @@
 #include "src/map.h"
 #include "src/random.h"
 #include "src/objects.h"
-#include "src/event_loop.h"
-#include "src/mission.h"
 
 #define DEFAULT_GAME_SPEED  2
 
@@ -47,7 +45,12 @@ class SaveReaderBinary;
 class SaveReaderText;
 class SaveWriterText;
 
-class Game : public EventLoop::Handler {
+class Game {
+ public:
+  typedef std::list<Serf*> ListSerfs;
+  typedef std::list<Building*> ListBuildings;
+  typedef std::list<Inventory*> ListInventories;
+
  protected:
   typedef Collection<Flag> Flags;
   typedef Collection<Inventory> Inventories;
@@ -55,12 +58,6 @@ class Game : public EventLoop::Handler {
   typedef Collection<Serf> Serfs;
   typedef Collection<Player> Players;
 
- public:
-  typedef std::list<Serf*> ListSerfs;
-  typedef std::list<Building*> ListBuildings;
-  typedef std::list<Inventory*> ListInventories;
-
- protected:
   PMap map;
 
   typedef std::map<unsigned int, unsigned int> Values;
@@ -108,7 +105,7 @@ class Game : public EventLoop::Handler {
 
  public:
   Game();
-  virtual ~Game() {}
+  virtual ~Game();
 
   PMap get_map() { return map; }
 
@@ -126,8 +123,9 @@ class Game : public EventLoop::Handler {
   Serf *get_serf_at_pos(MapPos pos);
 
   /* External interface */
-  unsigned int add_player(PPlayerInfo player_info);
-  bool load_mission_map(PGameInfo game_info);
+  unsigned int add_player(unsigned int intelligence, unsigned int supplies,
+                          unsigned int reproduction);
+  bool init(unsigned int map_size, const Random &random);
 
   void update();
   void pause();
@@ -217,8 +215,6 @@ class Game : public EventLoop::Handler {
   void clear_search_id();
 
  protected:
-  void allocate_objects();
-
   void clear_serf_request_failure();
   void update_knight_morale();
   static bool update_inventories_cb(Flag *flag, void *data);
@@ -245,12 +241,8 @@ class Game : public EventLoop::Handler {
   bool demolish_building_(MapPos pos);
   void surrender_land(MapPos pos);
   void demolish_flag_and_roads(MapPos pos);
-  void init_map(int size);
-  void init_map_data(const MapGenerator &generator);
 
  public:
-  virtual bool handle_event(const Event *event);
-
   friend SaveReaderBinary&
     operator >> (SaveReaderBinary &reader, Game &game);
   friend SaveReaderText&
@@ -264,5 +256,7 @@ class Game : public EventLoop::Handler {
   bool load_buildings(SaveReaderBinary *reader, int max_building_index);
   bool load_inventories(SaveReaderBinary *reader, int max_inventory_index);
 };
+
+typedef std::shared_ptr<Game> PGame;
 
 #endif  // SRC_GAME_H_

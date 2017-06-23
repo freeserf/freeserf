@@ -1,7 +1,7 @@
 /*
  * test_save_game.cc - TAP test for loading/saving game
  *
- * Copyright (C) 2016  Jon Lund Steffensen <jonlst@gmail.com>
+ * Copyright (C) 2016-2017  Jon Lund Steffensen <jonlst@gmail.com>
  *
  * This file is part of freeserf.
  *
@@ -26,6 +26,7 @@
 #include "src/game.h"
 #include "src/random.h"
 #include "src/savegame.h"
+#include "src/mission.h"
 
 int
 main(int argc, char *argv[]) {
@@ -34,12 +35,9 @@ main(int argc, char *argv[]) {
 
   // Create random map game
   std::unique_ptr<Game> game(new Game());
-  PGameInfo game_info(new GameInfo(Random("8667715887436237")));
+  game->init(3, Random("8667715887436237"));
   // Add player to game
-  game_info->remove_all_players();
-  PPlayerInfo player_info(new PlayerInfo(12, {255, 255, 255}, 35, 30, 40));
-  game_info->add_player(player_info);
-  game->load_mission_map(game_info);
+  game->add_player(35, 30, 40);
 
   Player *player_0 = game->get_player(0);
   if (player_0 == NULL) {

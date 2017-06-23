@@ -28,6 +28,7 @@
 #include "src/player.h"
 #include "src/building.h"
 #include "src/gui.h"
+#include "src/game-manager.h"
 
 static const unsigned int map_building_sprite[] = {
   0, 0xa7, 0xa8, 0xae, 0xa9,
@@ -42,7 +43,7 @@ class PopupBox;
 class GameInitBox;
 class NotificationBox;
 
-class Interface : public GuiObject {
+class Interface : public GuiObject, public GameManager::Handler {
  public:
   typedef enum CursorType {
     CursorTypeNone = 0,
@@ -71,7 +72,7 @@ class Interface : public GuiObject {
   } SpriteLoc;
 
  protected:
-  Game *game;
+  PGame game;
 
   Random random;
 
@@ -111,8 +112,8 @@ class Interface : public GuiObject {
   Interface();
   virtual ~Interface();
 
-  Game *get_game() { return game; }
-  void set_game(Game *game);
+  PGame get_game() { return game; }
+  void set_game(PGame game);
 
   Color get_player_color(unsigned int player_index);
 
@@ -190,6 +191,11 @@ class Interface : public GuiObject {
   virtual void internal_draw();
   virtual void layout();
   virtual bool handle_key_pressed(char key, int modifier);
+
+  // GameManager::Handler implementation
+ public:
+  virtual void on_new_game(PGame game);
+  virtual void on_end_game(PGame game);
 };
 
 #endif  // SRC_INTERFACE_H_

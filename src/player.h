@@ -1,7 +1,7 @@
 /*
  * player.h - Player related functions
  *
- * Copyright (C) 2013-2016  Jon Lund Steffensen <jonlst@gmail.com>
+ * Copyright (C) 2013-2017  Jon Lund Steffensen <jonlst@gmail.com>
  *
  * This file is part of freeserf.
  *
@@ -28,7 +28,6 @@
 #include "src/map.h"
 #include "src/serf.h"
 #include "src/objects.h"
-#include "src/mission.h"
 
 class Serf;
 class Inventory;
@@ -78,6 +77,13 @@ typedef std::vector<PosTimer> PosTimers;
 
 /* Player object. Holds the game state of a player. */
 class Player : public GameObject {
+ public:
+  typedef struct Color {
+    unsigned char red;
+    unsigned char green;
+    unsigned char blue;
+  } Color;
+
  protected:
   int tool_prio[9];
   int resource_count[26];
@@ -85,7 +91,7 @@ class Player : public GameObject {
   int serf_count[27];
   int knight_occupation[4];
 
-  PlayerColor color; /* ADDED */
+  Color color; /* ADDED */
   size_t face;
   int flags;
   int build;
@@ -167,9 +173,11 @@ class Player : public GameObject {
  public:
   Player(Game *game, unsigned int index);
 
-  void init(PPlayerInfo player_info);
+  void init(unsigned int intelligence, unsigned int supplies,
+            unsigned int reproduction);
+  void init_view(Color color, unsigned int face);
 
-  PlayerColor get_color() const { return color; }
+  Color get_color() const { return color; }
   size_t get_face() const { return face; }
 
   /* Whether player has built the initial castle. */

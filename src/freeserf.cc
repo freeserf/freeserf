@@ -1,7 +1,7 @@
 /*
  * freeserf.cc - Main program source.
  *
- * Copyright (C) 2013-2014  Jon Lund Steffensen <jonlst@gmail.com>
+ * Copyright (C) 2013-2017  Jon Lund Steffensen <jonlst@gmail.com>
  *
  * This file is part of freeserf.
  *
@@ -23,6 +23,7 @@
 
 #include <string>
 #include <cstdint>
+#include <cstring>
 
 #ifdef HAVE_CONFIG_H
 # include <config.h>
@@ -33,16 +34,16 @@
 #endif
 
 #include "src/log.h"
-#include "src/savegame.h"
-#include "src/mission.h"
 #include "src/version.h"
-#include "src/game.h"
 #include "src/data.h"
 #include "src/audio.h"
 #include "src/gfx.h"
-#include "src/video-sdl.h"
-#include "src/event_loop.h"
 #include "src/interface.h"
+#include "src/game-manager.h"
+
+#ifdef WIN32
+# include <SDL.h>
+#endif  // WIN32
 
 #define DEFAULT_SCREEN_WIDTH  800
 #define DEFAULT_SCREEN_HEIGHT 600
@@ -125,7 +126,7 @@ main(int argc, char *argv[]) {
 
   Log::Info["main"] << "Initialize graphics...";
 
-  Graphics *gfx = NULL;
+  Graphics *gfx = nullptr;
   try {
     gfx = Graphics::get_instance();
     gfx->set_resolution(screen_width, screen_height, fullscreen);
@@ -137,7 +138,7 @@ main(int argc, char *argv[]) {
   /* TODO move to right place */
   Audio *audio = Audio::get_instance();
   Audio::VolumeController *volume_controller = audio->get_volume_controller();
-  if (volume_controller != NULL) {
+  if (volume_controller != nullptr) {
     volume_controller->set_volume(.75f);
   }
   Audio::PPlayer player = audio->get_music_player();
@@ -145,17 +146,16 @@ main(int argc, char *argv[]) {
     player->play_track(Audio::TypeMidiTrack0);
   }
 
-  Game *game = new Game();
+  GameManager *game_manager = GameManager::get_instance();
 
   /* Either load a save game if specified or
      start a new game. */
   if (!save_file.empty()) {
-    if (!GameStore::get_instance()->load(save_file, game)) {
+    if (!game_manager->load_game(save_file)) {
       return EXIT_FAILURE;
     }
   } else {
-    PGameInfo game_info(new GameInfo(Random()));
-    if (!game->load_mission_map(game_info)) {
+    if (!game_manager->start_random_game()) {
       return EXIT_FAILURE;
     }
   }
@@ -164,8 +164,6 @@ main(int argc, char *argv[]) {
   Interface *interface = new Interface();
   interface->set_size(screen_width, screen_height);
   interface->set_displayed(true);
-  interface->set_game(game);
-  interface->set_player(0);
 
   if (save_file.empty()) {
     interface->open_game_init();
@@ -173,29 +171,21 @@ main(int argc, char *argv[]) {
 
   /* Init game loop */
   EventLoop *event_loop = EventLoop::get_instance();
-  event_loop->add_handler(game);
   event_loop->add_handler(interface);
 
   /* Start game loop */
   event_loop->run();
 
   event_loop->del_handler(interface);
-  event_loop->del_handler(game);
 
   Log::Info["main"] << "Cleaning up...";
 
   /* Clean up */
-  game = interface->get_game();
   delete interface;
-  if (game != NULL) {
-    EventLoop::get_instance()->del_handler(game);
-    delete game;
-    game = NULL;
-  }
-  delete GameStore::get_instance();
   delete audio;
   delete gfx;
   delete event_loop;
+  delete game_manager;
 
   return EXIT_SUCCESS;
 }
