@@ -30,14 +30,15 @@
 #include <SDL_mixer.h>
 
 #include "src/event_loop.h"
+#include "src/buffer.h"
 
 class ExceptionSDLmixer : public ExceptionAudio {
  protected:
   std::string sdl_error;
 
  public:
-  explicit ExceptionSDLmixer(const std::string &description) throw();
-  virtual ~ExceptionSDLmixer() throw() {}
+  explicit ExceptionSDLmixer(const std::string &description);
+  virtual ~ExceptionSDLmixer() {}
 
   virtual std::string get_platform() const { return "SDL_mixer"; }
 };
@@ -77,11 +78,11 @@ class AudioSDL : public Audio, public Audio::VolumeController {
 
   class TrackMIDI : public Audio::Track {
    protected:
-    void *data;
+    PBuffer data;
     Mix_Music *chunk;
 
    public:
-    explicit TrackMIDI(void *data, Mix_Music *chunk);
+    explicit TrackMIDI(PBuffer data, Mix_Music *chunk);
     virtual ~TrackMIDI();
 
     virtual void play();

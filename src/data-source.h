@@ -1,7 +1,7 @@
 /*
  * data-source.h - Game resources file functions
  *
- * Copyright (C) 2015-2016  Wicked_Digger <wicked_digger@mail.ru>
+ * Copyright (C) 2015-2017  Wicked_Digger <wicked_digger@mail.ru>
  *
  * This file is part of freeserf.
  *
@@ -23,13 +23,18 @@
 #define SRC_DATA_SOURCE_H_
 
 #include <string>
-#include <cstdint>
 #include <memory>
+#include <tuple>
 
 #include "src/data.h"
+#include "src/debug.h"
+#include "src/buffer.h"
 
-/* Sprite object. Contains BGRA data. */
-class Sprite {
+// Sprite object.
+// Contains BGRA data.
+class Sprite;
+typedef std::shared_ptr<Sprite> PSprite;
+class Sprite : public std::enable_shared_from_this<Sprite> {
  public:
   typedef struct Color {
     unsigned char blue;
@@ -43,42 +48,42 @@ class Sprite {
   int delta_y;
   int offset_x;
   int offset_y;
-  unsigned int width;
-  unsigned int height;
+  size_t width;
+  size_t height;
   uint8_t *data;
 
  public:
   Sprite();
-  explicit Sprite(Sprite *base);
+  explicit Sprite(PSprite base);
   Sprite(unsigned int w, unsigned int h);
   virtual ~Sprite();
 
   virtual uint8_t *get_data() const { return data; }
-  virtual unsigned int get_width() const { return width; }
-  virtual unsigned int get_height() const { return height; }
+  virtual size_t get_width() const { return width; }
+  virtual size_t get_height() const { return height; }
   virtual int get_delta_x() const { return delta_x; }
   virtual int get_delta_y() const { return delta_y; }
   virtual int get_offset_x() const { return offset_x; }
   virtual int get_offset_y() const { return offset_y; }
 
-  virtual Sprite *get_masked(Sprite *mask);
-  virtual Sprite *create_mask(Sprite *other);
-  virtual Sprite *create_diff(Sprite *other);
+  virtual PSprite get_masked(PSprite mask);
+  virtual PSprite create_mask(PSprite other);
+  virtual PSprite create_diff(PSprite other);
   virtual void fill(Sprite::Color color);
   virtual void fill_masked(Sprite::Color color);
-  virtual void add(Sprite *other);
-  virtual void del(Sprite *other);
-  virtual void blend(Sprite *other);
+  virtual void add(PSprite other);
+  virtual void del(PSprite other);
+  virtual void blend(PSprite other);
   virtual void make_alpha_mask();
 
-  virtual void stick(Sprite *sticker, unsigned int x, unsigned int y);
+  virtual void stick(PSprite sticker, unsigned int x, unsigned int y);
 
   static uint64_t create_id(uint64_t resource, uint64_t index,
                             uint64_t mask_resource, uint64_t mask_index,
                             const Color &color);
 
  protected:
-  void create(unsigned int w, unsigned int h);
+  void create(size_t w, size_t h);
 };
 
 class Animation {
@@ -89,6 +94,9 @@ class Animation {
 };
 
 class DataSource {
+ public:
+  typedef std::tuple<PSprite, PSprite> MaskImage;
+
  protected:
   std::string path;
   bool loaded;
@@ -106,24 +114,20 @@ class DataSource {
   virtual bool check() = 0;
   virtual bool load() = 0;
 
-  virtual Sprite *get_sprite(Data::Resource res, unsigned int index,
+  virtual PSprite get_sprite(Data::Resource res, size_t index,
                              const Sprite::Color &color);
 
-  virtual void get_sprite_parts(Data::Resource res, unsigned int index,
-                                Sprite **mask, Sprite **image) = 0;
+  virtual MaskImage get_sprite_parts(Data::Resource res, size_t index) = 0;
 
-  virtual Animation *get_animation(unsigned int animation,
-                                   unsigned int phase) = 0;
+  virtual Animation get_animation(size_t animation, size_t phase) = 0;
 
-  virtual void *get_sound(unsigned int index, size_t *size) = 0;
-  virtual void *get_music(unsigned int index, size_t *size) = 0;
+  virtual PBuffer get_sound(size_t index) = 0;
+  virtual PBuffer get_music(size_t index) = 0;
 
   bool check_file(const std::string &path);
-  void *file_read(const std::string &path, size_t *size);
-  bool file_write(const std::string &path, void *data, size_t size);
 
  protected:
-  void separate_sprites(Sprite *s1, Sprite *s2, Sprite **mask, Sprite **image);
+  MaskImage separate_sprites(PSprite s1, PSprite s2);
 };
 
 typedef std::shared_ptr<DataSource> PDataSource;

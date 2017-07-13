@@ -21,9 +21,10 @@
 
 #include "src/data-source-dos.h"
 
-#include <cassert>
 #include <algorithm>
 #include <fstream>
+#include <memory>
+#include <sstream>
 
 #include "src/freeserf_endian.h"
 #include "src/log.h"
@@ -33,22 +34,18 @@
 #include "src/xmi2mid.h"
 
 #define DATA_SERF_ANIMATION_TABLE  2
-#define DATA_PALETTE_GAME          3
 #define DATA_SERF_ARMS             1850  // 3, dos_sprite_type_transparent
-/* Sound effects (index 0 is undefined). */
-#define DATA_SFX_BASE              3900
-/* XMI music (similar to MIDI). */
-#define DATA_MUSIC_GAME            3990
-#define DATA_MUSIC_ENDING          3992
+#define DATA_SFX_BASE              3900  // SFX sounds (index 0 is undefined)
+#define DATA_MUSIC_GAME            3990  // XMI music
+#define DATA_MUSIC_ENDING          3992  // XMI music
 
-/* There are different types of sprites:
- - Non-packed, rectangular sprites: These are simple called sprites here.
- - Transparent sprites, "transp": These are e.g. buldings/serfs.
- The transparent regions are RLE encoded.
- - Bitmap sprites: Conceptually these contain either 0 or 1 at each pixel.
- This is used to either modify the alpha level of another sprite (shadows)
- or mask parts of other sprites completely (mask sprites).
- */
+// There are different types of sprites:
+// - Non-packed, rectangular sprites: These are simple called sprites here.
+// - Transparent sprites, "transp": These are e.g. buldings/serfs.
+// The transparent regions are RLE encoded.
+// - Bitmap sprites: Conceptually these contain either 0 or 1 at each pixel.
+// This is used to either modify the alpha level of another sprite (shadows)
+// or mask parts of other sprites completely (mask sprites).
 
 DataSourceDOS::Resource dos_resources[] = {
   {   0, 0,    DataSourceDOS::SpriteTypeUnknown     },  // none
@@ -89,43 +86,28 @@ DataSourceDOS::Resource dos_resources[] = {
 };
 
 DataSourceDOS::DataSourceDOS(const std::string &_path)
-  : DataSource(_path)
-  , sprites(nullptr)
-  , sprites_size(0)
-  , entry_count(0)
-  , animation_table(nullptr) {
+  : DataSource(_path) {
 }
 
 DataSourceDOS::~DataSourceDOS() {
-  if (sprites != nullptr) {
-    free(sprites);
-    sprites = nullptr;
-  }
-
-  if (animation_table != nullptr) {
-    delete[] animation_table;
-    animation_table = nullptr;
-  }
 }
 
 bool
 DataSourceDOS::check() {
-  const char *default_data_file[] = {
-    "SPAE.PA", /* English */
-    "SPAF.PA", /* French */
-    "SPAD.PA", /* German */
-    "SPAU.PA", /* Engish (US) */
-    nullptr
+  std::vector<std::string> default_file_names = {
+    "SPAE.PA",  // English
+    "SPAF.PA",  // French
+    "SPAD.PA",  // German
+    "SPAU.PA"   // Engish (US)
   };
 
   if (check_file(path)) {
     return true;
   }
 
-  for (const char **df = default_data_file; *df != NULL; df++) {
-    std::string file_path = path + '/' + *df;
-    Log::Info["data"] << "Looking for game data in '"
-                      << file_path.c_str() << "'...";
+  for (std::string file_name : default_file_names) {
+    std::string file_path = path + '/' + file_name;
+    Log::Info["data"] << "Looking for game data in '" << file_path << "'...";
     if (check_file(file_path)) {
       path = file_path;
       return true;
@@ -141,403 +123,306 @@ DataSourceDOS::load() {
     return false;
   }
 
-  sprites = file_read(path, &sprites_size);
-  if (sprites == nullptr) {
+  try {
+    spae = std::make_shared<Buffer>(path);
+  } catch(ExceptionFreeserf e) {
     return false;
   }
 
   // Check that data file is decompressed
   try {
-    PBuffer spae = std::make_shared<Buffer>(sprites, sprites_size);
     UnpackerTPWM unpacker(spae);
     spae = unpacker.convert();
-    free(sprites);
-    sprites = spae->unfix();
-    sprites_size = spae->get_size();
     Log::Verbose["data"] << "Data file is compressed";
   }  catch(ExceptionFreeserf e) {
   }
 
-  /* Read the number of entries in the index table.
-     Some entries are undefined (size and offset are zero). */
-  entry_count = *(reinterpret_cast<uint32_t*>(sprites) + 1);
-  entry_count = le32toh(entry_count) + 1;
+  // Read the number of entries in the index table.
+  // Some entries are undefined (size and offset are zero).
+  size_t entry_count = spae->pop32le();
+  entries.push_back({0, 0});  // first entry is whole file itself, drop it
+  for (size_t i = 0; i < entry_count; i++) {
+    DataEntry entry;
+    entry.size = spae->pop32le();
+    entry.offset = spae->pop32le();
+    entries.push_back(entry);
+  }
 
   fixup();
 
-  if (!load_animation_table()) {
-    return false;
-  }
+  loaded = load_animation_table();
 
-  loaded = true;
-
-  return true;
+  return loaded;
 }
 
-/* Return a pointer to the data object at index.
- If size is non-NULL it will be set to the size of the data object.
- (There's no guarantee that size is correct!). */
-void *
-DataSourceDOS::get_object(unsigned int index, size_t *size) {
-  if (size != nullptr) {
-    *size = 0;
-  }
-
-  // first entry is whole file itself
-  if ((index <= 0) || (index >= entry_count)) {
+// Return buffer with object at index
+PBuffer
+DataSourceDOS::get_object(size_t index) {
+  if (index >= entries.size()) {
     return nullptr;
   }
 
-  SpaeEntry *entries = reinterpret_cast<SpaeEntry*>(sprites);
-  uint8_t *bytes = reinterpret_cast<uint8_t*>(sprites);
-
-  size_t offset = le32toh(entries[index].offset);
-  if (offset == 0) {
+  if (entries[index].offset == 0) {
     return nullptr;
   }
 
-  if (size != nullptr) {
-    *size = le32toh(entries[index].size);
-  }
-
-  return &bytes[offset];
+  return spae->get_subbuffer(entries[index].offset, entries[index].size);
 }
 
-/* Perform various fixups of the data file entries. */
+// Perform various fixups of the data file entries
 void
 DataSourceDOS::fixup() {
-  SpaeEntry *entries = reinterpret_cast<SpaeEntry*>(sprites);
-
-  /* Fill out some undefined spaces in the index from other
-     places in the data file index. */
+  // Fill out some undefined spaces in the index from other
+  // places in the data file index.
 
   for (int i = 0; i < 48; i++) {
     for (int j = 1; j < 6; j++) {
-      entries[3450+6*i+j].size = entries[3450+6*i].size;
-      entries[3450+6*i+j].offset = entries[3450+6*i].offset;
+      entries[3450+6*i+j] = entries[3450+6*i];
     }
   }
 
   for (int i = 0; i < 3; i++) {
-    entries[3765+i].size = entries[3762+i].size;
-    entries[3765+i].offset = entries[3762+i].offset;
+    entries[3765+i] = entries[3762+i];
   }
 
   for (int i = 0; i < 6; i++) {
-    entries[1363+i].size = entries[1352].size;
-    entries[1363+i].offset = entries[1352].offset;
-  }
-
-  for (int i = 0; i < 6; i++) {
-    entries[1613+i].size = entries[1602].size;
-    entries[1613+i].offset = entries[1602].offset;
+    entries[1363+i] = entries[1352];
+    entries[1613+i] = entries[1602];
   }
 }
 
-/* There are different types of sprites:
- - Non-packed, rectangular sprites: These are simple called sprites here.
- - Transparent sprites, "transp": These are e.g. buldings/serfs.
- The transparent regions are RLE encoded.
- - Bitmap sprites: Conceptually these contain either 0 or 1 at each pixel.
- This is used to either modify the alpha level of another sprite (shadows)
- or mask parts of other sprites completely (mask sprites).
- */
-
-/* Create sprite object */
-void
-DataSourceDOS::get_sprite_parts(Data::Resource res, unsigned int index,
-                                Sprite **mask, Sprite **image) {
-  if (mask != nullptr) {
-    *mask = nullptr;
-  }
-  if (image != nullptr) {
-    *image = nullptr;
-  }
+// Create sprite object
+DataSource::MaskImage
+DataSourceDOS::get_sprite_parts(Data::Resource res, size_t index) {
   if (index >= Data::get_resource_count(res)) {
-    return;
+    return std::make_tuple(nullptr, nullptr);
   }
 
   Resource &dos_res = dos_resources[res];
 
   ColorDOS *palette = get_dos_palette(dos_res.dos_palette);
   if (palette == nullptr) {
-    return;
+    return std::make_tuple(nullptr, nullptr);
   }
 
   if (res == Data::AssetSerfTorso) {
-    size_t size = 0;
-    void *data = get_object(dos_res.index + index, &size);
-    if (data == nullptr) {
-      return;
+    PBuffer data = get_object(dos_res.index + index);
+    if (!data) {
+      return std::make_tuple(nullptr, nullptr);
     }
-    SpriteBaseDOS *torso = new SpriteDosTransparent(data, size, palette, 64);
+    PSprite torso = std::make_shared<SpriteDosTransparent>(data, palette, 64);
 
-    data = get_object(dos_res.index + index, &size);
-    if (data == nullptr) {
-      delete torso;
-      return;
+    data = get_object(dos_res.index + index);
+    if (!data) {
+      return std::make_tuple(nullptr, nullptr);
     }
-    SpriteBaseDOS *torso2 = new SpriteDosTransparent(data, size, palette, 72);
+    PSprite torso2 = std::make_shared<SpriteDosTransparent>(data, palette, 72);
 
-    separate_sprites(torso, torso2, mask, image);
-    delete torso2;
+    MaskImage mi = separate_sprites(torso, torso2);
 
-    data = get_object(DATA_SERF_ARMS + index, &size);
-    SpriteBaseDOS *arms = new SpriteDosTransparent(data, size, palette);
+    data = get_object(DATA_SERF_ARMS + index);
+    PSprite arms = std::make_shared<SpriteDosTransparent>(data, palette);
     torso->stick(arms, 0, 0);
-    delete arms;
 
-    if (image != nullptr) {
-      *image = torso;
-    }
-    return;
+    return mi;
   } else if (res == Data::AssetMapObject) {
       if ((index >= 128) && (index <= 143)) {  // Flag sprites
       int flag_frame = (index - 128) % 4;
-      size_t size = 0;
-      void *data = get_object(dos_res.index + 128 + flag_frame, &size);
-      if (data == nullptr) {
-        return;
+      PBuffer data = get_object(dos_res.index + 128 + flag_frame);
+      if (!data) {
+        return std::make_tuple(nullptr, nullptr);
       }
-      Sprite *s1 = new SpriteDosTransparent(data, size, palette);
-      data = get_object(dos_res.index + 128 + 4 + flag_frame, &size);
-      if (data == nullptr) {
-        delete s1;
-        return;
+      PSprite s1 = std::make_shared<SpriteDosTransparent>(data, palette);
+      data = get_object(dos_res.index + 128 + 4 + flag_frame);
+      if (!data) {
+        return std::make_tuple(nullptr, nullptr);
       }
-      Sprite *s2 = new SpriteDosTransparent(data, size, palette);
+      PSprite s2 = std::make_shared<SpriteDosTransparent>(data, palette);
 
-      separate_sprites(s1, s2, mask, image);
-      delete s2;
-
-      return;
+      return separate_sprites(s1, s2);
     }
   } else if (res == Data::AssetFont || res == Data::AssetFontShadow) {
-    size_t size = 0;
-    void *data = get_object(dos_res.index + index, &size);
-    if (data == nullptr) {
-      return;
+    PBuffer data = get_object(dos_res.index + index);
+    if (!data) {
+      return std::make_tuple(nullptr, nullptr);
     }
-    if (mask != nullptr) {
-      *mask = new SpriteDosTransparent(data, size, palette);
-      return;
-    }
+    return std::make_tuple(std::make_shared<SpriteDosTransparent>(data,
+                                                                  palette),
+                           nullptr);
   }
 
-  size_t size = 0;
-  void *data = get_object(dos_res.index + index, &size);
-  if (data == nullptr) {
-    return;
+  PBuffer data = get_object(dos_res.index + index);
+  if (!data) {
+    return std::make_tuple(nullptr, nullptr);
   }
 
-  Sprite *sprite = nullptr;
+  PSprite sprite;
   switch (dos_res.sprite_type) {
     case SpriteTypeSolid: {
-      sprite = new SpriteDosSolid(data, size, palette);
+      sprite = std::make_shared<SpriteDosSolid>(data, palette);
       break;
     }
     case SpriteTypeTransparent: {
-      sprite = new SpriteDosTransparent(data, size, palette);
+      sprite = std::make_shared<SpriteDosTransparent>(data, palette);
       break;
     }
     case SpriteTypeOverlay: {
-      sprite = new SpriteDosOverlay(data, size, palette, 0x80);
+      sprite = std::make_shared<SpriteDosOverlay>(data, palette, 0x80);
       break;
     }
     case SpriteTypeMask: {
-      sprite = new SpriteDosMask(data, size);
+      sprite = std::make_shared<SpriteDosMask>(data);
       break;
     }
     default:
-      return;
+      return std::make_tuple(nullptr, nullptr);
   }
 
-  if (image != nullptr) {
-    *image = sprite;
-  } else if (sprite != nullptr) {
-    delete sprite;
-  }
+  return std::make_tuple(nullptr, sprite);
 }
 
-DataSourceDOS::SpriteDosSolid::SpriteDosSolid(void *data, size_t size,
-                                              ColorDOS *palette)
-  : SpriteBaseDOS(data, size) {
-  size -= sizeof(DosSpriteHeader);
-  if (size != width * height) {
-    assert(0);
+DataSourceDOS::SpriteDosSolid::SpriteDosSolid(PBuffer _data, ColorDOS *palette)
+  : SpriteBaseDOS(_data) {
+  size_t size = _data->get_size();
+  if (size != (width * height + 10)) {
+    throw ExceptionFreeserf("Failed to extract DOS solid sprite");
   }
 
-  uint8_t *src = reinterpret_cast<uint8_t*>(data) + sizeof(DosSpriteHeader);
-  uint8_t *end = src + size;
-  uint8_t *dest = this->data;
+  PMutableBuffer result = std::make_shared<MutableBuffer>();
 
-  while (src < end) {
-    ColorDOS color = palette[*src++];
-    *dest++ = color.b; /* Blue */
-    *dest++ = color.g; /* Green */
-    *dest++ = color.r; /* Red */
-    *dest++ = 0xff;    /* Alpha */
+  while (_data->readable()) {
+    ColorDOS color = palette[_data->pop()];
+    result->push(color.b);  // Blue
+    result->push(color.g);  // Green
+    result->push(color.r);  // Red
+    result->push(0xff);     // Alpha
   }
+
+  data = reinterpret_cast<uint8_t*>(result->unfix());
 }
 
-DataSourceDOS::SpriteDosTransparent::SpriteDosTransparent(void *data,
-                                                          size_t size,
+DataSourceDOS::SpriteDosTransparent::SpriteDosTransparent(PBuffer _data,
                                                           ColorDOS *palette,
                                                           uint8_t color)
-  : SpriteBaseDOS(data, size) {
-  size -= sizeof(DosSpriteHeader);
-  uint8_t *src = reinterpret_cast<uint8_t*>(data) + sizeof(DosSpriteHeader);
-  uint8_t *end = src + size;
-  uint8_t *dest = this->data;
+  : SpriteBaseDOS(_data) {
+  PMutableBuffer result = std::make_shared<MutableBuffer>();
 
-  while (src < end) {
-    size_t drop = *src++;
-    for (size_t i = 0; i < drop; i++) {
-      *dest++ = 0x00; /* Blue */
-      *dest++ = 0x00; /* Green */
-      *dest++ = 0x00; /* Red */
-      *dest++ = 0x00; /* Alpha */
-    }
+  while (_data->readable()) {
+    size_t drop = _data->pop();
+    result->push32be(0x00000000, drop);
 
-    size_t fill = *src++;
+    size_t fill = _data->pop();
     for (size_t i = 0; i < fill; i++) {
-      unsigned int p_index = *src++ + color;  // color_off;
+      unsigned int p_index = _data->pop() + color;  // color_off;
       ColorDOS color = palette[p_index];
-      *dest++ = color.b; /* Blue */
-      *dest++ = color.g; /* Green */
-      *dest++ = color.r; /* Red */
-      *dest++ = 0xff;    /* Alpha */
+      result->push(color.b);  // Blue
+      result->push(color.g);  // Green
+      result->push(color.r);  // Red
+      result->push(0xFF);     // Alpha
     }
   }
+
+  data = reinterpret_cast<uint8_t*>(result->unfix());
 }
 
-DataSourceDOS::SpriteDosOverlay::SpriteDosOverlay(void *data, size_t size,
+DataSourceDOS::SpriteDosOverlay::SpriteDosOverlay(PBuffer _data,
                                                   ColorDOS *palette,
                                                   unsigned char value)
-  : SpriteBaseDOS(data, size) {
-  size -= sizeof(DosSpriteHeader);
-  uint8_t *src = reinterpret_cast<uint8_t*>(data) + sizeof(DosSpriteHeader);
-  uint8_t *end = src + size;
-  uint8_t *dest = this->data;
+  : SpriteBaseDOS(_data) {
+  PMutableBuffer result = std::make_shared<MutableBuffer>();
 
-  while (src < end) {
-    size_t drop = *src++;
-    for (size_t i = 0; i < drop; i++) {
-      *dest++ = 0x00; /* Blue */
-      *dest++ = 0x00; /* Green */
-      *dest++ = 0x00; /* Red */
-      *dest++ = 0x00; /* Alpha */
-    }
+  while (_data->readable()) {
+    size_t drop = _data->pop();
+    result->push32be(0x00000000, drop);
 
-    size_t fill = *src++;
+    size_t fill = _data->pop();
     for (size_t i = 0; i < fill; i++) {
       ColorDOS color = palette[value];
-      *dest++ = color.b; /* Blue */
-      *dest++ = color.g; /* Green */
-      *dest++ = color.r; /* Red */
-      *dest++ = value;   /* Alpha */
+      result->push(color.b);  // Blue
+      result->push(color.g);  // Green
+      result->push(color.r);  // Red
+      result->push(value);    // Alpha
     }
   }
+
+  data = reinterpret_cast<uint8_t*>(result->unfix());
 }
 
-DataSourceDOS::SpriteDosMask::SpriteDosMask(void *data, size_t size)
-  : SpriteBaseDOS(data, size) {
-  size -= sizeof(DosSpriteHeader);
-  uint8_t *src = reinterpret_cast<uint8_t*>(data) + sizeof(DosSpriteHeader);
-  uint8_t *end = src + size;
-  uint8_t *dest = this->data;
+DataSourceDOS::SpriteDosMask::SpriteDosMask(PBuffer _data)
+  : SpriteBaseDOS(_data) {
+  PMutableBuffer result = std::make_shared<MutableBuffer>();
 
-  while (src < end) {
-    size_t drop = *src++;
-    for (size_t i = 0; i < drop; i++) {
-      *dest++ = 0x00; /* Blue */
-      *dest++ = 0x00; /* Green */
-      *dest++ = 0x00; /* Red */
-      *dest++ = 0x00; /* Alpha */
-    }
+  while (_data->readable()) {
+    size_t drop = _data->pop();
+    result->push32be(0x00000000, drop);
 
-    size_t fill = *src++;
-    for (size_t i = 0; i < fill; i++) {
-      *dest++ = 0xFF; /* Blue */
-      *dest++ = 0xFF; /* Green */
-      *dest++ = 0xFF; /* Red */
-      *dest++ = 0xFF; /* Alpha */
-    }
+    size_t fill = _data->pop();
+    result->push32be(0xFFFFFFFF, fill);
   }
+
+  data = reinterpret_cast<uint8_t*>(result->unfix());
 }
 
 
-DataSourceDOS::SpriteBaseDOS::SpriteBaseDOS(void *data, size_t size) {
-  if (size < sizeof(DosSpriteHeader)) {
-    assert(0);
+DataSourceDOS::SpriteBaseDOS::SpriteBaseDOS(PBuffer _data) {
+  if (_data->get_size() < 10) {
+    throw ExceptionFreeserf("Failed to extract DOS sprite");
   }
 
-  DosSpriteHeader *sprite = reinterpret_cast<DosSpriteHeader*>(data);
-  delta_x = sprite->b_x;
-  delta_y = sprite->b_y;
-  offset_x = sprite->x;
-  offset_y = sprite->y;
-
-  create(sprite->w, sprite->h);
+  delta_x = static_cast<int8_t>(_data->pop());
+  delta_y = static_cast<int8_t>(_data->pop());
+  width = _data->pop16le();
+  height = _data->pop16le();
+  offset_x = static_cast<int16_t>(_data->pop16le());
+  offset_y = static_cast<int16_t>(_data->pop16le());
 }
 
 bool
 DataSourceDOS::load_animation_table() {
-  /* The serf animation table is stored in big endian
-   order in the data file.
+  // The serf animation table is stored in big endian order in the data file.
 
-   * The first uint32 is the byte length of the rest
-   of the table.
-   * Next is 199 uint32s that are offsets from the start
-   of this table to an animation table (one for each
-   animation).
-   * The animation tables are of varying lengths.
-   Each entry in the animation table is three bytes
-   long. First byte is used to determine the serf body
-   sprite. Second byte is a signed horizontal sprite
-   offset. Third byte is a signed vertical offset.
-   */
+  // * The first uint32 is the byte length of the rest of the table.
+  // * Next is 199 uint32s that are offsets from the start of this table
+  //   to an animation table (one for each animation).
+  // * The animation tables are of varying lengths.
+  //   Each entry in the animation table is three bytes long.
+  //   First byte is used to determine the serf body sprite.
+  //   Second byte is a signed horizontal sprite offset.
+  //   Third byte is a signed vertical offset.
 
-  size_t size = 0;
-  uint32_t *animation_block =
-    reinterpret_cast<uint32_t*>(get_object(DATA_SERF_ANIMATION_TABLE, &size));
-  if (animation_block == nullptr) {
+  PBuffer data = get_object(DATA_SERF_ANIMATION_TABLE);
+  if (!data) {
     return false;
   }
-
-  if (size != be32toh(animation_block[0])) {
+  size_t size = data->pop32be();
+  if (size != data->get_size()) {
     Log::Error["data"] << "Could not extract animation table.";
     return false;
   }
-  animation_block++;
 
-  animation_table = new Animation*[200];
-  /* Endianess convert from big endian. */
+  // Endianess convert from big endian.
   for (int i = 0; i < 200; i++) {
-    int offset = be32toh(animation_block[i]);
-    animation_table[i] =
-      reinterpret_cast<Animation*>(
-        reinterpret_cast<char*>(animation_block) + offset);
+    size_t offset = data->pop32be();
+    PBuffer anumation = data->get_tail(4 + offset);
+    animations.push_back(reinterpret_cast<Animation*>(anumation->get_data()));
   }
 
   return true;
 }
 
-Animation*
-DataSourceDOS::get_animation(unsigned int animation, unsigned int phase) {
-  if (animation > 199) {
-    return nullptr;
+Animation
+DataSourceDOS::get_animation(size_t animation, size_t phase) {
+  if (animation >= animations.size()) {
+    throw ExceptionFreeserf("Animation index out of range.");
   }
-  Animation *animation_phase = animation_table[animation] + (phase >> 3);
+  Animation *animation_phase = animations[animation] + (phase >> 3);
 
-  return animation_phase;
+  return *animation_phase;
 }
 
-void *
-DataSourceDOS::get_sound(unsigned int index, size_t *size) {
-  size_t s = 0;
-  void *d = get_object(DATA_SFX_BASE + index, &s);
-  PBuffer data = std::make_shared<Buffer>(d, s);
+PBuffer
+DataSourceDOS::get_sound(size_t index) {
+  PBuffer data = get_object(DATA_SFX_BASE + index);
   if (!data) {
     Log::Error["data"] << "Could not extract SFX clip: #" << index;
     return nullptr;
@@ -545,22 +430,16 @@ DataSourceDOS::get_sound(unsigned int index, size_t *size) {
 
   try {
     ConvertorSFX2WAV convertor(data, -32);
-    PBuffer result = convertor.convert();
-    if (size != nullptr) {
-      *size = result->get_size();
-    }
-    return result->unfix();
+    return convertor.convert();
   } catch (ExceptionFreeserf e) {
     Log::Error["data"] << "Could not convert SFX clip to WAV: #" << index;
     return nullptr;
   }
 }
 
-void *
-DataSourceDOS::get_music(unsigned int index, size_t *size) {
-  size_t s = 0;
-  void *d = get_object(DATA_MUSIC_GAME + index, &s);
-  PBuffer data = std::make_shared<Buffer>(d, s);
+PBuffer
+DataSourceDOS::get_music(size_t index) {
+  PBuffer data = get_object(DATA_MUSIC_GAME + index);
   if (!data) {
     Log::Error["data"] << "Could not extract XMI clip: #" << index;
     return nullptr;
@@ -568,11 +447,7 @@ DataSourceDOS::get_music(unsigned int index, size_t *size) {
 
   try {
     ConvertorXMI2MID convertor(data);
-    PBuffer result = convertor.convert();
-    if (size != nullptr) {
-      *size = result->get_size();
-    }
-    return result->unfix();
+    return convertor.convert();
   } catch (ExceptionFreeserf e) {
     Log::Error["data"] << "Could not convert XMI clip to MID: #" << index;
     return nullptr;
@@ -580,12 +455,11 @@ DataSourceDOS::get_music(unsigned int index, size_t *size) {
 }
 
 DataSourceDOS::ColorDOS *
-DataSourceDOS::get_dos_palette(unsigned int index) {
-  size_t size = 0;
-  void *data = get_object(index, &size);
-  if ((data == nullptr) || (size != sizeof(ColorDOS)*256)) {
+DataSourceDOS::get_dos_palette(size_t index) {
+  PBuffer data = get_object(index);
+  if (!data || (data->get_size() != sizeof(ColorDOS)*256)) {
     return nullptr;
   }
 
-  return reinterpret_cast<ColorDOS*>(data);
+  return reinterpret_cast<ColorDOS*>(data->get_data());
 }

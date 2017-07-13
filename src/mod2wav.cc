@@ -55,7 +55,7 @@ ConvertorMOD2WAV::convert() {
   }
   xmp_free_context(ctx);
 
-  ConvertorPCM2WAV converter(result, 1, 44100);
+  ConvertorPCM2WAV converter(result, 2, 44100);
   return converter.convert();
 }
 

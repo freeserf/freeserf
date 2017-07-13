@@ -30,17 +30,17 @@ const Color Color::black = Color(0x00, 0x00, 0x00);
 const Color Color::green = Color(0x73, 0xb3, 0x43);
 const Color Color::transparent = Color(0x00, 0x00, 0x00, 0x00);
 
-ExceptionGFX::ExceptionGFX(const std::string &description) throw()
+ExceptionGFX::ExceptionGFX(const std::string &description)
   : ExceptionFreeserf(description) {
 }
 
-ExceptionGFX::~ExceptionGFX() throw() {
+ExceptionGFX::~ExceptionGFX() {
 }
 
-Image::Image(Video *video, Sprite *sprite) {
-  this->video = video;
-  width = sprite->get_width();
-  height = sprite->get_height();
+Image::Image(Video *_video, PSprite sprite) {
+  video = _video;
+  width = static_cast<unsigned int>(sprite->get_width());
+  height = static_cast<unsigned int>(sprite->get_height());
   offset_x = sprite->get_offset_x();
   offset_y = sprite->get_offset_y();
   delta_x = sprite->get_delta_x();
@@ -49,11 +49,11 @@ Image::Image(Video *video, Sprite *sprite) {
 }
 
 Image::~Image() {
-  if (video_image != NULL) {
+  if (video_image != nullptr) {
     video->destroy_image(video_image);
-    video_image = NULL;
+    video_image = nullptr;
   }
-  video = NULL;
+  video = nullptr;
 }
 
 /* Sprite cache hash table */
@@ -98,10 +98,10 @@ Graphics::Graphics() {
 
   Data *data = Data::get_instance();
   PDataSource data_source = data->get_data_source();
-  Sprite *sprite = data_source->get_sprite(Data::AssetCursor, 0, {0, 0, 0, 0});
-  video->set_cursor(sprite->get_data(), sprite->get_width(),
-                    sprite->get_height());
-  delete sprite;
+  PSprite sprite = data_source->get_sprite(Data::AssetCursor, 0, {0, 0, 0, 0});
+  video->set_cursor(sprite->get_data(),
+                    static_cast<unsigned int>(sprite->get_width()),
+                    static_cast<unsigned int>(sprite->get_height()));
 
   Graphics::instance = this;
 }
@@ -142,8 +142,8 @@ Frame::draw_sprite(int x, int y, Data::Resource res, unsigned int index,
   uint64_t id = Sprite::create_id(res, index, 0, 0, pc);
   Image *image = Image::get_cached_image(id);
   if (image == NULL) {
-    Sprite *s = data_source->get_sprite(res, index, pc);
-    if (s == NULL) {
+    PSprite s = data_source->get_sprite(res, index, pc);
+    if (!s) {
       Log::Warn["graphics"] << "Failed to decode sprite #"
                             << Data::get_resource_name(res) << ":" << index;
       return;
@@ -151,8 +151,6 @@ Frame::draw_sprite(int x, int y, Data::Resource res, unsigned int index,
 
     image = new Image(video, s);
     Image::cache_image(id, image);
-
-    delete s;
   }
 
   if (use_off) {
@@ -188,13 +186,12 @@ Frame::draw_sprite_relatively(int x, int y, Data::Resource res,
                               unsigned int index,
                               Data::Resource relative_to_res,
                               unsigned int relative_to_index) {
-  Sprite *s = data_source->get_sprite(relative_to_res, relative_to_index,
+  PSprite s = data_source->get_sprite(relative_to_res, relative_to_index,
                                       {0, 0, 0, 0});
   x += s->get_delta_x();
   y += s->get_delta_y();
 
   draw_sprite(x, y, res, index, true, Color::transparent, 1.f);
-  delete s;
 }
 
 /* Draw the masked sprite with given mask and sprite
@@ -207,24 +204,23 @@ Frame::draw_masked_sprite(int x, int y, Data::Resource mask_res,
                                   {0, 0, 0, 0});
   Image *image = Image::get_cached_image(id);
   if (image == NULL) {
-    Sprite *s = data_source->get_sprite(res, index, {0, 0, 0, 0});
-    if (s == NULL) {
+    PSprite s = data_source->get_sprite(res, index, {0, 0, 0, 0});
+    if (!s) {
       Log::Warn["graphics"] << "Failed to decode sprite #"
                             << Data::get_resource_name(res) << ":" << index;
       return;
     }
 
-    Sprite *m = data_source->get_sprite(mask_res, mask_index, {0, 0, 0, 0});
-    if (m == NULL) {
+    PSprite m = data_source->get_sprite(mask_res, mask_index, {0, 0, 0, 0});
+    if (!m) {
       Log::Warn["graphics"] << "Failed to decode sprite #"
                             << Data::get_resource_name(mask_res)
                             << ":" << mask_index;
-      delete s;
       return;
     }
 
-    Sprite *masked = s->get_masked(m);
-    if (masked == NULL) {
+    PSprite masked = s->get_masked(m);
+    if (!masked) {
       Log::Warn["graphics"] << "Failed to apply mask #"
                             << Data::get_resource_name(mask_res)
                             << ":" << mask_index
@@ -233,15 +229,10 @@ Frame::draw_masked_sprite(int x, int y, Data::Resource mask_res,
       return;
     }
 
-    delete s;
-    delete m;
-
     s = masked;
 
     image = new Image(video, s);
     Image::cache_image(id, image);
-
-    delete s;
   }
 
   x += image->get_offset_x();
@@ -259,24 +250,24 @@ Frame::draw_waves_sprite(int x, int y, Data::Resource mask_res,
                                   {0, 0, 0, 0});
   Image *image = Image::get_cached_image(id);
   if (image == NULL) {
-    Sprite *s = data_source->get_sprite(res, index, {0, 0, 0, 0});
-    if (s == NULL) {
+    PSprite s = data_source->get_sprite(res, index, {0, 0, 0, 0});
+    if (!s) {
       Log::Warn["graphics"] << "Failed to decode sprite #"
                             << Data::get_resource_name(res) << ":" << index;
       return;
     }
 
     if (mask_res > 0) {
-      Sprite *m = data_source->get_sprite(mask_res, mask_index, {0, 0, 0, 0});
-      if (m == NULL) {
+      PSprite m = data_source->get_sprite(mask_res, mask_index, {0, 0, 0, 0});
+      if (!m) {
         Log::Warn["graphics"] << "Failed to decode sprite #"
                               << Data::get_resource_name(mask_res)
                               << ":" << mask_index;
         return;
       }
 
-      Sprite *masked = s->get_masked(m);
-      if (masked == NULL) {
+      PSprite masked = s->get_masked(m);
+      if (!masked) {
         Log::Warn["graphics"] << "Failed to apply mask #"
                               << Data::get_resource_name(mask_res)
                               << ":" << mask_index
@@ -285,16 +276,11 @@ Frame::draw_waves_sprite(int x, int y, Data::Resource mask_res,
         return;
       }
 
-      delete s;
-      delete m;
-
       s = masked;
     }
 
     image = new Image(video, s);
     Image::cache_image(id, image);
-
-    delete s;
   }
 
   x += image->get_offset_x();

@@ -32,7 +32,7 @@
 #include "src/data.h"
 #include "src/data-source.h"
 
-ExceptionSDLmixer::ExceptionSDLmixer(const std::string &_description) throw()
+ExceptionSDLmixer::ExceptionSDLmixer(const std::string &_description)
   : ExceptionAudio(_description) {
   sdl_error = SDL_GetError();
   description += " (" + sdl_error + ")";
@@ -126,15 +126,14 @@ AudioSDL::PlayerSFX::create_track(int track_id) {
   Data *data = Data::get_instance();
   PDataSource data_source = data->get_data_source();
 
-  size_t size = 0;
-  void *wav = data_source->get_sound(track_id, &size);
-  if (wav == nullptr) {
+  PBuffer wav = data_source->get_sound(track_id);
+  if (!wav) {
     return nullptr;
   }
 
-  SDL_RWops *rw = SDL_RWFromMem(wav, static_cast<int>(size));
+  SDL_RWops *rw = SDL_RWFromMem(wav->get_data(),
+                                static_cast<int>(wav->get_size()));
   Mix_Chunk *chunk = Mix_LoadWAV_RW(rw, 0);
-  free(wav);
   if (chunk == nullptr) {
     Log::Error["audio-sdlmixer"] << "Mix_LoadWAV_RW: " << Mix_GetError();
     return nullptr;
@@ -214,13 +213,13 @@ AudioSDL::PlayerMIDI::create_track(int track_id) {
   Data *data = Data::get_instance();
   PDataSource data_source = data->get_data_source();
 
-  size_t size = 0;
-  void *midi = data_source->get_music(track_id, &size);
-  if (midi == nullptr) {
+  PBuffer midi = data_source->get_music(track_id);
+  if (!midi) {
     return nullptr;
   }
 
-  SDL_RWops *rw = SDL_RWFromMem(midi, static_cast<int>(size));
+  SDL_RWops *rw = SDL_RWFromMem(midi->get_data(),
+                                static_cast<int>(midi->get_size()));
   Mix_Music *music = Mix_LoadMUS_RW(rw, 0);
   if (music == nullptr) {
     return nullptr;
@@ -294,14 +293,13 @@ AudioSDL::PlayerMIDI::music_finished() {
   }
 }
 
-AudioSDL::TrackMIDI::TrackMIDI(void *_data, Mix_Music *_chunk) {
+AudioSDL::TrackMIDI::TrackMIDI(PBuffer _data, Mix_Music *_chunk) {
   data = _data;
   chunk = _chunk;
 }
 
 AudioSDL::TrackMIDI::~TrackMIDI() {
   Mix_FreeMusic(chunk);
-  free(data);
 }
 
 void

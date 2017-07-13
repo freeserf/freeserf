@@ -1,7 +1,7 @@
 /*
  * data.cc - Game resources file functions
  *
- * Copyright (C) 2014-2016  Wicked_Digger <wicked_digger@mail.ru>
+ * Copyright (C) 2014-2017  Wicked_Digger <wicked_digger@mail.ru>
  *
  * This file is part of freeserf.
  *
@@ -21,7 +21,6 @@
 
 #include "src/data.h"
 
-#include <cstdlib>
 #include <vector>
 #include <memory>
 #include <utility>

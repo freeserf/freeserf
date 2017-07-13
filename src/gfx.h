@@ -25,6 +25,7 @@
 #include <map>
 #include <string>
 #include <cstdint>
+#include <memory>
 
 #include "src/data.h"
 #include "src/debug.h"
@@ -32,13 +33,14 @@
 
 class ExceptionGFX : public ExceptionFreeserf {
  public:
-  explicit ExceptionGFX(const std::string &description) throw();
-  virtual ~ExceptionGFX() throw();
+  explicit ExceptionGFX(const std::string &description);
+  virtual ~ExceptionGFX();
 
   virtual std::string get_system() const { return "graphics"; }
 };
 
 class Sprite;
+typedef std::shared_ptr<Sprite> PSprite;
 class DataSource;
 
 class Color {
@@ -84,7 +86,7 @@ class Image {
   static ImageCache image_cache;
 
  public:
-  Image(Video *video, Sprite *sprite);
+  Image(Video *video, PSprite sprite);
   virtual ~Image();
 
   unsigned int get_width() const { return width; }
