@@ -76,7 +76,8 @@ set(OTHER_SOURCES data.cc
                   xmi2mid.cc
                   data-source.cc
                   text-input.cc
-                  list.cc)
+                  list.cc
+                  buffer.cc)
 
 set(OTHER_HEADERS data.h
                   pathfinder.h
@@ -102,7 +103,9 @@ set(OTHER_HEADERS data.h
                   xmi2mid.h
                   data-source.h
                   text-input.h
-                  list.h)
+                  list.h
+                  buffer.h
+                  convertor.h)
 
 if(WIN32)
   add_definitions(/D_CRT_SECURE_NO_WARNINGS /wd4290)
