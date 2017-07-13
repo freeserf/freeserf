@@ -1,7 +1,7 @@
 /*
- * sfx2wav.h - SFX to WAV converter.
+ * mod2wav.h - MOD to WAV converter.
  *
- * Copyright (C) 2015-2017  Wicked_Digger <wicked_digger@mail.ru>
+ * Copyright (C) 2017  Wicked_Digger <wicked_digger@mail.ru>
  *
  * This file is part of freeserf.
  *
@@ -19,21 +19,16 @@
  * along with freeserf.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef SRC_SFX2WAV_H_
-#define SRC_SFX2WAV_H_
+#ifndef SRC_MOD2WAV_H_
+#define SRC_MOD2WAV_H_
 
-#include "src/pcm2wav.h"
+#include "src/convertor.h"
 
-class ConvertorSFX2WAV : public ConvertorPCM2WAV {
- protected:
-  int level;
-  bool invert;
-
+class ConvertorMOD2WAV : public Convertor {
  public:
-  explicit ConvertorSFX2WAV(PBuffer buffer, int level = 0, bool invert = false);
+  explicit ConvertorMOD2WAV(PBuffer buffer);
 
- protected:
-  virtual PBuffer create_data(PBuffer data);
+  virtual PBuffer convert();
 };
 
-#endif  // SRC_SFX2WAV_H_
+#endif  // SRC_MOD2WAV_H_

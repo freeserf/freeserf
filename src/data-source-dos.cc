@@ -1,7 +1,7 @@
 /*
  * data-source-dos.cc - DOS game resources file functions
  *
- * Copyright (C) 2014-2016  Jon Lund Steffensen <jonlst@gmail.com>
+ * Copyright (C) 2014-2017  Jon Lund Steffensen <jonlst@gmail.com>
  *
  * This file is part of freeserf.
  *
@@ -146,22 +146,16 @@ DataSourceDOS::load() {
     return false;
   }
 
-  /* Check that data file is decompressed. */
-  if (tpwm_is_compressed(sprites, sprites_size)) {
-    Log::Verbose["data"] << "Data file is compressed";
-    void *uncompressed = nullptr;
-    size_t uncmpsd_size = 0;
-    const char *error = nullptr;
-    if (!tpwm_uncompress(sprites, sprites_size,
-                         &uncompressed, &uncmpsd_size,
-                         &error)) {
-      Log::Error["tpwm"] << error;
-      Log::Error["data"] << "Data file is broken!";
-      return false;
-    }
+  // Check that data file is decompressed
+  try {
+    PBuffer spae = std::make_shared<Buffer>(sprites, sprites_size);
+    UnpackerTPWM unpacker(spae);
+    spae = unpacker.convert();
     free(sprites);
-    sprites = uncompressed;
-    sprites_size = uncmpsd_size;
+    sprites = spae->unfix();
+    sprites_size = spae->get_size();
+    Log::Verbose["data"] << "Data file is compressed";
+  }  catch(ExceptionFreeserf e) {
   }
 
   /* Read the number of entries in the index table.
@@ -541,46 +535,48 @@ DataSourceDOS::get_animation(unsigned int animation, unsigned int phase) {
 
 void *
 DataSourceDOS::get_sound(unsigned int index, size_t *size) {
-  if (size != nullptr) {
-    *size = 0;
-  }
-
-  size_t sfx_size = 0;
-  void *data = get_object(DATA_SFX_BASE + index, &sfx_size);
-  if (data == nullptr) {
+  size_t s = 0;
+  void *d = get_object(DATA_SFX_BASE + index, &s);
+  PBuffer data = std::make_shared<Buffer>(d, s);
+  if (!data) {
     Log::Error["data"] << "Could not extract SFX clip: #" << index;
     return nullptr;
   }
 
-  void *wav = sfx2wav(data, sfx_size, size, -0x20);
-  if (wav == nullptr) {
+  try {
+    ConvertorSFX2WAV convertor(data, -32);
+    PBuffer result = convertor.convert();
+    if (size != nullptr) {
+      *size = result->get_size();
+    }
+    return result->unfix();
+  } catch (ExceptionFreeserf e) {
     Log::Error["data"] << "Could not convert SFX clip to WAV: #" << index;
     return nullptr;
   }
-
-  return wav;
 }
 
 void *
 DataSourceDOS::get_music(unsigned int index, size_t *size) {
-  if (size != nullptr) {
-    *size = 0;
-  }
-
-  size_t xmi_size = 0;
-  void *data = get_object(DATA_MUSIC_GAME + index, &xmi_size);
-  if (data == nullptr) {
+  size_t s = 0;
+  void *d = get_object(DATA_MUSIC_GAME + index, &s);
+  PBuffer data = std::make_shared<Buffer>(d, s);
+  if (!data) {
     Log::Error["data"] << "Could not extract XMI clip: #" << index;
     return nullptr;
   }
 
-  void *mid = xmi2mid(data, xmi_size, size);
-  if (mid == nullptr) {
+  try {
+    ConvertorXMI2MID convertor(data);
+    PBuffer result = convertor.convert();
+    if (size != nullptr) {
+      *size = result->get_size();
+    }
+    return result->unfix();
+  } catch (ExceptionFreeserf e) {
     Log::Error["data"] << "Could not convert XMI clip to MID: #" << index;
     return nullptr;
   }
-
-  return mid;
 }
 
 DataSourceDOS::ColorDOS *

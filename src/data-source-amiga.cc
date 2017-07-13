@@ -1,7 +1,7 @@
 /*
  * data-source-amiga.cc - Amiga data loading
  *
- * Copyright (C) 2016  Wicked_Digger <wicked_digger@mail.ru>
+ * Copyright (C) 2016-2017  Wicked_Digger <wicked_digger@mail.ru>
  *
  * This file is part of freeserf.
  *
@@ -29,18 +29,16 @@
 #include <vector>
 #include <sstream>
 #include <string>
+#include <memory>
 
 #ifdef HAVE_CONFIG_H
 # include "config.h"
 #endif
 
-#ifdef ENABLE_XMP
-#include <xmp.h>
-#endif  // ENABLE_XMP
-
 #include "src/data.h"
 #include "src/freeserf_endian.h"
 #include "src/sfx2wav.h"
+#include "src/mod2wav.h"
 #include "src/log.h"
 
 uint8_t palette[] = {
@@ -815,62 +813,42 @@ DataSourceAmiga::get_sound_data(unsigned int index, size_t *size) {
 
 void *
 DataSourceAmiga::get_sound(unsigned int index, size_t *size) {
-  *size = 0;
-  size_t sfx_size = 0;
-  void *data = get_sound_data(index, &sfx_size);
-  if (data == nullptr) {
+  size_t s;
+  void *d = get_sound_data(index, &s);
+  if (d == nullptr) {
     Log::Error["data"] << "Sound sample with index" << index << " not present.";
     return nullptr;
   }
 
-  void *wav = sfx2wav(data, sfx_size, size, 0, true);
-  if (wav == nullptr) {
-    Log::Error["data"] << "Could not convert PCM clip to WAV: " << index << ".";
+  PBuffer data = std::make_shared<Buffer>(d, s);
+  try {
+    ConvertorSFX2WAV convertor(data);
+    PBuffer result = convertor.convert();
+    if (size != nullptr) {
+      *size = result->get_size();
+    }
+    return result->unfix();
+  } catch (ExceptionFreeserf e) {
+    Log::Error["data"] << "Could not convert SFX clip to WAV: #" << index;
     return nullptr;
   }
-
-  return wav;
 }
 
 void *
 DataSourceAmiga::get_music(unsigned int /*index*/, size_t *size) {
-  void *wav = nullptr;
-  if (size != nullptr) {
-    *size = 0;
-  }
-
-#ifdef ENABLE_XMP
-  if (music != nullptr) {
-    uint8_t *mod = reinterpret_cast<uint8_t*>(music) + 4370;
-    size_t mod_size = music_size - 4370;
-
-    std::vector<char> buffer;
-
-    xmp_context ctx = xmp_create_context();
-    if (xmp_load_module_from_memory(ctx, mod, mod_size) == 0) {
-      if (xmp_start_player(ctx, 44100, 0) == 0) {
-        struct xmp_frame_info fi;
-        while (xmp_play_frame(ctx) == 0) {
-          xmp_get_frame_info(ctx, &fi);
-
-          if (fi.loop_count > 0) {
-            break;
-          }
-
-          char *samples = reinterpret_cast<char*>(fi.buffer);
-          buffer.insert(buffer.end(), samples, samples + fi.buffer_size);
-        }
-        xmp_end_player(ctx);
-      }
-      xmp_release_module(ctx);
+  PBuffer mod = std::make_shared<Buffer>(music, music_size);
+  try {
+    ConvertorMOD2WAV converter(mod);
+    PBuffer result = converter.convert();
+    if (size != nullptr) {
+      *size = result->get_size();
     }
-    xmp_free_context(ctx);
-
-    wav = sfx2wav16(buffer.data(), buffer.size(), size);
+    return result->unfix();
+  } catch (ExceptionFreeserf e) {
+    Log::Error["data"] << e.get_description();
   }
-#endif  // ENABLE_XMP
 
-  return wav;
+  return nullptr;
 }
 
 void

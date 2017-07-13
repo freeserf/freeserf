@@ -1,7 +1,7 @@
 /*
- * sfx2wav.h - SFX to WAV converter.
+ * pcm2wav.h - PCM to WAV converter.
  *
- * Copyright (C) 2015-2017  Wicked_Digger <wicked_digger@mail.ru>
+ * Copyright (C) 2017  Wicked_Digger <wicked_digger@mail.ru>
  *
  * This file is part of freeserf.
  *
@@ -19,21 +19,28 @@
  * along with freeserf.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef SRC_SFX2WAV_H_
-#define SRC_SFX2WAV_H_
+#ifndef SRC_PCM2WAV_H_
+#define SRC_PCM2WAV_H_
 
-#include "src/pcm2wav.h"
+#include <string>
 
-class ConvertorSFX2WAV : public ConvertorPCM2WAV {
+#include "src/convertor.h"
+
+class ConvertorPCM2WAV : public Convertor {
  protected:
-  int level;
-  bool invert;
+  PMutableBuffer result;
+  size_t chenals;
+  size_t rate;
 
  public:
-  explicit ConvertorSFX2WAV(PBuffer buffer, int level = 0, bool invert = false);
+  ConvertorPCM2WAV(PBuffer buffer, size_t chenals, size_t rate);
+
+  virtual PBuffer convert();
 
  protected:
+  void write_chunk(std::string name, PBuffer data);
+  PBuffer create_header();
   virtual PBuffer create_data(PBuffer data);
 };
 
-#endif  // SRC_SFX2WAV_H_
+#endif  // SRC_PCM2WAV_H_

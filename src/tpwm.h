@@ -1,7 +1,7 @@
 /*
  * tpwm.h - Uncomprassing TPWM'ed content
  *
- * Copyright (C) 2015  Wicked_Digger  <wicked_digger@mail.ru>
+ * Copyright (C) 2015-2017  Wicked_Digger  <wicked_digger@mail.ru>
  *
  * This file is part of freeserf.
  *
@@ -22,11 +22,14 @@
 #ifndef SRC_TPWM_H_
 #define SRC_TPWM_H_
 
-#include <cstdlib>
+#include "src/convertor.h"
 
-bool tpwm_is_compressed(void *src_data, size_t src_size);
-bool tpwm_uncompress(void *src_data, size_t src_size,
-                     void **res_data, size_t *res_size,
-                     const char **error);
+class UnpackerTPWM : public Convertor {
+ public:
+  explicit UnpackerTPWM(PBuffer buffer);
+  virtual ~UnpackerTPWM() {}
+
+  virtual PBuffer convert();
+};
 
 #endif  // SRC_TPWM_H_

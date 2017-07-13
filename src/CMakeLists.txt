@@ -74,6 +74,7 @@ set(OTHER_SOURCES data.cc
                   event_loop.cc
                   sfx2wav.cc
                   xmi2mid.cc
+                  pcm2wav.cc
                   data-source.cc
                   text-input.cc
                   list.cc
@@ -101,6 +102,8 @@ set(OTHER_HEADERS data.h
                   event_loop.h
                   sfx2wav.h
                   xmi2mid.h
+                  mod2wav.h
+                  pcm2wav.h
                   data-source.h
                   text-input.h
                   list.h
@@ -131,6 +134,9 @@ endif()
 if(ENABLE_XMP AND XMP_FOUND)
   add_definitions(/DENABLE_XMP)
   include_directories(${INCLUDE_DIRECTORIES} ${XMP_INCLUDE_DIR})
+  list(APPEND OTHER_SOURCES mod2wav.cc)
+else()
+  list(APPEND OTHER_SOURCES mod2wav-dummy.cc)
 endif()
 
 set(FREESERF_SOURCES freeserf.cc ${OTHER_SOURCES})
