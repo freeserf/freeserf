@@ -31,9 +31,9 @@ class AudioDummy : public Audio {
   AudioDummy() {}
   virtual ~AudioDummy() {}
 
-  virtual Audio::VolumeController *get_volume_controller() { return NULL; }
-  virtual Audio::Player *get_sound_player() { return NULL; }
-  virtual Audio::Player *get_music_player() { return NULL; }
+  virtual Audio::VolumeController *get_volume_controller() { return nullptr; }
+  virtual Audio::PPlayer get_sound_player() { return nullptr; }
+  virtual Audio::PPlayer get_music_player() { return nullptr; }
 };
 
 #endif  // SRC_AUDIO_DUMMY_H_
