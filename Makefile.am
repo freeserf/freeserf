@@ -40,7 +40,7 @@ OTHER_SOURCES = \
 	src/audio.cc src/audio.h \
 	src/misc.h \
 	src/freeserf_endian.h \
-	src/version.cc src/version.h src/version-vcs.h \
+	src/version.cc src/version.h version-vcs.h \
 	src/data-source-dos.cc src/data-source-dos.h\
 	src/tpwm.cc src/tpwm.h \
 	src/event_loop.cc src/event_loop.h \
@@ -90,7 +90,7 @@ AM_CXXFLAGS += $(libxmp_CFLAGS)
 freeserf_LDADD += $(libxmp_LIBS)
 endif
 
-VCS_VERSION_FILE = src/version-vcs.h
+VCS_VERSION_FILE = version-vcs.h
 
 CLEANFILES = $(VCS_VERSION_FILE)
 
@@ -120,9 +120,8 @@ gitversion:
 		echo "FREESERF_VERSION = $$FREESERF_VERSION" ; \
 		echo "VCS_VERSION = $$VCS_VERSION" ; \
 		if [ "$${VCS_VERSION}" != "$${FREESERF_VERSION}" ] ; then \
-			$(MKDIR_P) $(@D) ; \
-			echo "Updating version file." ; \
-			printf "#ifndef VERSION_VCS_H\n#define VERSION_VCS_H\n\n#define VERSION_VCS \"$${VCS_VERSION}\"\n\n#endif /* VERSION_VCS_H */\n" > $(VCS_VERSION_FILE) ; \
+			$(MKDIR_P) $(@D) && \
+				sed -e "s|\@VCS_TAG\@|$${VCS_VERSION}|g" "$(top_srcdir)/src/version-vcs.h.in" > "$(top_builddir)/$(VCS_VERSION_FILE)" ; \
 		fi ; \
 	fi )
 

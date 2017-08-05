@@ -1,0 +1,6 @@
+#ifndef VERSION_VCS_H
+#define VERSION_VCS_H
+
+#define VERSION_VCS "@VCS_TAG@"
+
+#endif /* VERSION_VCS_H */
