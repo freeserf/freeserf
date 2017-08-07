@@ -394,7 +394,7 @@ schedule_known_dest_cb(Flag *flag, void *data) {
                                         dest_data->slot) != 0);
 }
 
-int
+bool
 Flag::schedule_known_dest_cb_(Flag *src, Flag *dest, int _slot) {
   if (this == dest) {
     /* Destination found */
@@ -416,10 +416,10 @@ Flag::schedule_known_dest_cb_(Flag *src, Flag *dest, int _slot) {
         src->slot[_slot].dir = this->search_dir;
       }
     }
-    return 1;
+    return true;
   }
 
-  return 0;
+  return false;
 }
 
 void

@@ -100,6 +100,9 @@ class VideoSDL : public Video {
                          const Video::Color color, Video::Frame *dest);
   virtual void fill_rect(int x, int y, unsigned int width, unsigned int height,
                          const Video::Color color, Video::Frame *dest);
+  virtual void draw_line(int x, int y, int x1, int y1,
+                         const Video::Color color);
+
   virtual void swap_buffers();
 
   virtual void set_cursor(void *data, unsigned int width, unsigned int height);

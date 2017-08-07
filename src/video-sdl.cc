@@ -320,6 +320,12 @@ VideoSDL::fill_rect(int x, int y, unsigned int width, unsigned int height,
 }
 
 void
+VideoSDL::draw_line(int x, int y, int x1, int y1, const Video::Color color) {
+  SDL_SetRenderDrawColor(renderer, color.r, color.g, color.b, 0xff);
+  SDL_RenderDrawLine(renderer, x, y, x1, y1);
+}
+
+void
 VideoSDL::swap_buffers() {
   SDL_SetRenderTarget(renderer, NULL);
   SDL_RenderCopy(renderer, screen->texture, NULL, NULL);

@@ -1,7 +1,7 @@
 /*
  * viewport.cc - Viewport GUI component
  *
- * Copyright (C) 2013-2014  Jon Lund Steffensen <jonlst@gmail.com>
+ * Copyright (C) 2013-2017  Jon Lund Steffensen <jonlst@gmail.com>
  *
  * This file is part of freeserf.
  *
@@ -44,8 +44,6 @@
 
 #define MAP_TILE_TEXTURES  33
 #define MAP_TILE_MASKS     81
-
-#define VIEWPORT_COLS(viewport)  (2*((viewport)->width / MAP_TILE_WIDTH) + 1)
 
 /* Number of cols,rows in each landscape tile */
 #define MAP_TILE_COLS  16
@@ -545,7 +543,17 @@ Viewport::draw_paths_and_borders() {
           draw_border_segment(x, y_base, pos, d);
         }
       }
-
+#if 0
+      for (int d = DIR_RIGHT; d <= DIR_UP_RIGHT; d++) {
+        if (map->has_path(pos, (dir_t)d)) {
+          int x, y;
+          screen_pix_from_map_coord(pos, &x, &y);
+          int x1, y1;
+          screen_pix_from_map_coord(map->move(pos, (dir_t)d), &x1, &y1);
+          frame->draw_line(x, y, x1, y1, 76);
+        }
+      }
+#endif
       if (row % 2 == 0) {
         pos = map->move_down(pos);
       } else {
@@ -572,11 +580,8 @@ Viewport::draw_paths_and_borders() {
         draw_dir = reverse_direction(dir);
       }
 
-      int mx, my;
-      map_pix_from_map_coord(draw_pos, map->get_height(draw_pos), &mx, &my);
-
       int sx, sy;
-      screen_pix_from_map_pix(mx, my, &sx, &sy);
+      screen_pix_from_map_coord(draw_pos, &sx, &sy);
 
       draw_path_segment(sx, sy + 4 * map->get_height(draw_pos), draw_pos,
                         draw_dir);
@@ -610,7 +615,7 @@ Viewport::draw_shadow_and_building_sprite(int x, int y, int index,
 
 void
 Viewport::draw_shadow_and_building_unfinished(int x, int y, int index,
-                                                int progress) {
+                                              int progress) {
   float p = static_cast<float>(progress) / static_cast<float>(0xFFFF);
   frame->draw_sprite(x, y, Data::AssetMapShadow, index, true, p);
   frame->draw_sprite(x, y, Data::AssetMapObject, index, true, p);
@@ -669,7 +674,7 @@ Viewport::draw_ocupation_flag(Building *building, int x, int y, float mul) {
 
 void
 Viewport::draw_unharmed_building(Building *building, int x, int y) {
-  Random *random = interface->get_random();
+  Random random;
 
   static const int pigfarm_anim[] = {
     0xa2, 0, 0xa2, 0, 0xa2, 0, 0xa2, 0, 0xa2, 0, 0xa3, 0,
@@ -731,7 +736,7 @@ Viewport::draw_unharmed_building(Building *building, int x, int y) {
         MapPos pos = building->get_position();
         if ((((interface->get_game()->get_tick() +
                reinterpret_cast<uint8_t*>(&pos)[1]) >> 3) & 7) == 0
-            && random->random() < 40000) {
+            && random.random() < 40000) {
           play_sound(Audio::TypeSfxElevator);
         }
       }
@@ -744,7 +749,7 @@ Viewport::draw_unharmed_building(Building *building, int x, int y) {
     case Building::TypePigFarm:
       draw_shadow_and_building_sprite(x, y, map_building_sprite[type]);
       if (building->get_res_count_in_stock(1) > 0) {
-        if ((random->random() & 0x7f) <
+        if ((random.random() & 0x7f) <
             static_cast<int>(building->get_res_count_in_stock(1))) {
           play_sound(Audio::TypeSfxPigOink);
         }
@@ -1134,10 +1139,11 @@ void
 Viewport::draw_water_waves(MapPos pos, int x, int y) {
   int sprite = (((pos ^ 5) + (interface->get_game()->get_tick() >> 3)) & 0xf);
 
-  if (map->type_down(pos) < 4 && map->type_up(pos) < 4) {
+  if (map->type_down(pos) <= Map::TerrainWater3 &&
+      map->type_up(pos) <= Map::TerrainWater3) {
     frame->draw_waves_sprite(x - 16, y, Data::AssetNone, 0,
                              Data::AssetMapWaves, sprite);
-  } else if (map->type_down(pos) < 4) {
+  } else if (map->type_down(pos) <= Map::TerrainWater3) {
     frame->draw_waves_sprite(x, y + 16, Data::AssetMapMaskDown, 40,
                              Data::AssetMapWaves, sprite);
   } else {
@@ -1197,8 +1203,7 @@ Viewport::draw_flag_and_res(MapPos pos, int x, int y) {
 }
 
 void
-Viewport::draw_map_objects_row(MapPos pos, int y_base,
-                               int cols, int x_base) {
+Viewport::draw_map_objects_row(MapPos pos, int y_base, int cols, int x_base) {
   for (int i = 0; i < cols;
        i++, x_base += MAP_TILE_WIDTH, pos = map->move_right(pos)) {
     if (map->get_obj(pos) == Map::ObjectNone) continue;
@@ -1825,8 +1830,7 @@ Viewport::serf_get_body(Serf *serf) {
 }
 
 void
-Viewport::draw_active_serf(Serf *serf, MapPos pos,
-                             int x_base, int y_base) {
+Viewport::draw_active_serf(Serf *serf, MapPos pos, int x_base, int y_base) {
   const int arr_4[] = {
      9, 5,
     10, 7,
@@ -2014,8 +2018,7 @@ Viewport::draw_serf_row(MapPos pos, int y_base, int cols, int x_base) {
 /* Draw serfs that should appear behind the building at their
    current position. */
 void
-Viewport::draw_serf_row_behind(MapPos pos, int y_base, int cols,
-                                 int x_base) {
+Viewport::draw_serf_row_behind(MapPos pos, int y_base, int cols, int x_base) {
   for (int i = 0; i < cols;
        i++, x_base += MAP_TILE_WIDTH, pos = map->move_right(pos)) {
     /* Active serf */
@@ -2043,7 +2046,7 @@ Viewport::draw_game_objects(int layers) {
   int draw_serfs = layers & LayerSerfs;
   if (!draw_landscape && !draw_objects && !draw_serfs) return;
 
-  int cols = VIEWPORT_COLS(this);
+  int cols = (2*(width / MAP_TILE_WIDTH) + 1);
   int short_row_len = ((cols + 1) >> 1) + 1;
   int long_row_len = ((cols + 2) >> 1) + 1;
 
@@ -2096,11 +2099,8 @@ Viewport::draw_game_objects(int layers) {
 
 void
 Viewport::draw_map_cursor_sprite(MapPos pos, int sprite) {
-  int mx, my;
-  map_pix_from_map_coord(pos, map->get_height(pos), &mx, &my);
-
   int sx, sy;
-  screen_pix_from_map_pix(mx, my, &sx, &sy);
+  screen_pix_from_map_coord(pos, &sx, &sy);
 
   draw_game_sprite(sx, sy, sprite);
 }
@@ -2200,10 +2200,10 @@ Viewport::draw_base_grid_overlay(const Color &color) {
 
   int row = 0;
   for (int y = y_base; y < height; y += MAP_TILE_HEIGHT, row++) {
-    frame->fill_rect(0, y, width, 1, color);
+    frame->draw_line(0, y, width, y, color);
     for (int x = x_base + ((row % 2 == 0) ? 0 : -MAP_TILE_WIDTH/2);
          x < width; x += MAP_TILE_WIDTH) {
-      frame->fill_rect(x, y + y - 2, 1, 5, color);
+      frame->draw_line(x, y + y - 3, x, y + y + 3, color);
     }
   }
 }
@@ -2593,6 +2593,15 @@ Viewport::map_pix_from_map_coord(MapPos pos, int h, int *mx, int *my) {
 
   if (*mx < 0) *mx += width;
   else if (*mx >= width) *mx -= width;
+}
+
+void
+Viewport::screen_pix_from_map_coord(MapPos pos, int *sx, int *sy) {
+  int h = map->get_height(pos);
+  int mx = 0;
+  int my = 0;
+  map_pix_from_map_coord(pos, h, &mx, &my);
+  screen_pix_from_map_pix(mx, my, sx, sy);
 }
 
 MapPos

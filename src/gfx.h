@@ -140,6 +140,7 @@ class Frame {
   /* Drawing functions */
   void draw_rect(int x, int y, int width, int height, const Color &color);
   void fill_rect(int x, int y, int width, int height, const Color &color);
+  void draw_line(int x, int y, int x1, int y1, const Color &color);
 
   /* Text functions */
   void draw_string(int x, int y, const std::string &str, const Color &color,

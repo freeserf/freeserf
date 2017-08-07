@@ -21,9 +21,9 @@
 
 #include "src/audio-sdlmixer.h"
 
-#include <cassert>
 #include <algorithm>
 #include <memory>
+#include <string>
 
 #include <SDL.h>
 #include <SDL_mixer.h>
@@ -31,6 +31,12 @@
 #include "src/log.h"
 #include "src/data.h"
 #include "src/data-source.h"
+
+ExceptionSDLmixer::ExceptionSDLmixer(const std::string &_description) throw()
+  : ExceptionAudio(_description) {
+  sdl_error = SDL_GetError();
+  description += " (" + sdl_error + ")";
+}
 
 Audio *
 Audio::get_instance() {
@@ -40,34 +46,26 @@ Audio::get_instance() {
   return instance;
 }
 
-AudioSDL::AudioSDL() {
-  Log::Info["audio-sdlmixer"] << "Initializing audio driver `sdlmixer'.";
+AudioSDL::AudioSDL() throw(ExceptionAudio) {
+  Log::Info["audio"] << "Initializing audio driver `sdlmixer'.";
 
   if (SDL_Init(SDL_INIT_AUDIO | SDL_INIT_TIMER) != 0) {
-    Log::Error["audio-sdlmixer"] << "Could not init SDL audio: "
-                                 << SDL_GetError();
-    assert(false);
+    throw ExceptionSDLmixer("Could not init SDL audio");
   }
 
   int r = Mix_Init(0);
   if (r != 0) {
-    Log::Error["audio-sdlmixer"] << "Could not init SDL_mixer: "
-                                 << Mix_GetError();
-    assert(false);
+    throw ExceptionSDLmixer("Could not init SDL_mixer");
   }
 
   r = Mix_OpenAudio(44100, MIX_DEFAULT_FORMAT, MIX_DEFAULT_CHANNELS, 512);
   if (r < 0) {
-    Log::Error["audio-sdlmixer"] << "Could not open audio device: "
-                                 << Mix_GetError();
-    assert(false);
+    throw ExceptionSDLmixer("Could not open audio device");
   }
 
   r = Mix_AllocateChannels(16);
   if (r != 16) {
-    Log::Error["audio-sdlmixer"] << "Failed to allocate channels: %s."
-                                 << Mix_GetError();
-    assert(false);
+    throw ExceptionSDLmixer("Failed to allocate channels");
   }
 
   volume = 1.f;
@@ -87,9 +85,12 @@ AudioSDL::get_volume() {
 }
 
 void
-AudioSDL::set_volume(float volume) {
-  volume = std::max(0.f, std::min(volume, 1.f));
-  this->volume = volume;
+AudioSDL::set_volume(float _volume) {
+  _volume = std::max(0.f, std::min(_volume, 1.f));
+  if (volume == _volume) {
+    return;
+  }
+  volume = _volume;
 
   if (midi_player != nullptr) {
     Audio::PVolumeController volume_controller =
@@ -178,8 +179,8 @@ AudioSDL::PlayerSFX::volume_down() {
   set_volume(get_volume() - 0.1f);
 }
 
-AudioSDL::TrackSFX::TrackSFX(Mix_Chunk *chunk) {
-  this->chunk = chunk;
+AudioSDL::TrackSFX::TrackSFX(Mix_Chunk *_chunk) {
+  chunk = _chunk;
 }
 
 AudioSDL::TrackSFX::~TrackSFX() {
@@ -197,8 +198,7 @@ AudioSDL::TrackSFX::play() {
 
 AudioSDL::PlayerMIDI::PlayerMIDI() {
   if (current_midi_player != nullptr) {
-    Log::Error["audio-sdlmixer"] << "Only one midi player is allowed.";
-    assert(0);
+    throw ExceptionSDLmixer("Only one midi player is allowed");
   }
   current_track = TypeMidiNone;
   current_midi_player = this;

@@ -74,6 +74,7 @@ class Viewport : public GuiObject, public Map::Handler {
 
   void screen_pix_from_map_pix(int mx, int my, int *sx, int *sy);
   void map_pix_from_map_coord(MapPos pos, int h, int *mx, int *my);
+  void screen_pix_from_map_coord(MapPos pos, int *sx, int *sy);
   MapPos map_pos_from_screen_pix(int x, int y);
 
   void redraw_map_pos(MapPos pos);

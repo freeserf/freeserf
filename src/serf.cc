@@ -1053,10 +1053,10 @@ Serf::handle_serf_walking_state_search_cb(Flag *flag, void *data) {
   if (flag == dest) {
     Log::Verbose["serf"] << " dest found: " << dest->get_search_dir();
     serf->change_direction(dest->get_search_dir(), 0);
-    return 1;
+    return true;
   }
 
-  return 0;
+  return false;
 }
 
 void
