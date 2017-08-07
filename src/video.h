@@ -84,6 +84,9 @@ class Video {
                          const Video::Color color, Frame *dest) = 0;
   virtual void fill_rect(int x, int y, unsigned int width, unsigned int height,
                          const Video::Color color, Frame *dest) = 0;
+  virtual void draw_line(int x, int y, int x1, int y1,
+                         const Video::Color color) = 0;
+
   virtual void swap_buffers() = 0;
 
   virtual void set_cursor(void *data, unsigned int width,
