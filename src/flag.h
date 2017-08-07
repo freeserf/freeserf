@@ -25,7 +25,6 @@
 #include <vector>
 
 #include "src/building.h"
-#include "src/misc.h"
 #include "src/objects.h"
 
 typedef struct SerfPathInfo {
@@ -171,7 +170,7 @@ class Flag : public GameObject {
   friend SaveWriterText&
     operator << (SaveWriterText &writer, Flag &flag);
 
-  int schedule_known_dest_cb_(Flag *src, Flag *dest, int slot);
+  bool schedule_known_dest_cb_(Flag *src, Flag *dest, int slot);
 
   void reset_transport(Flag *other);
 

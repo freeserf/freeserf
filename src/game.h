@@ -228,7 +228,7 @@ class Game {
   int calculate_clear_winner(const Values &values);
   void update_game_stats();
   void get_resource_estimate(MapPos pos, int weight, int estimates[5]);
-  int road_segment_in_water(MapPos pos, Direction dir);
+  bool road_segment_in_water(MapPos pos, Direction dir) const;
   void flag_reset_transport(Flag *flag);
   void building_remove_player_refs(Building *building);
   bool path_serf_idle_to_wait_state(MapPos pos);

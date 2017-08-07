@@ -26,7 +26,6 @@
 
 #include "src/map.h"
 #include "src/resource.h"
-#include "src/misc.h"
 #include "src/objects.h"
 
 class Flag;

@@ -743,32 +743,32 @@ Game::prepare_ground_analysis(MapPos pos, int estimates[5]) {
   }
 }
 
-int
-Game::road_segment_in_water(MapPos pos, Direction dir) {
+bool
+Game::road_segment_in_water(MapPos pos, Direction dir) const {
   if (dir > DirectionDown) {
     pos = map->move(pos, dir);
     dir = reverse_direction(dir);
   }
 
-  int water = 0;
+  bool water = false;
 
   switch (dir) {
     case DirectionRight:
       if (map->type_down(pos) <= Map::TerrainWater3 &&
           map->type_up(map->move_up(pos)) <= Map::TerrainWater3) {
-        water = 1;
+        water = true;
       }
       break;
     case DirectionDownRight:
       if (map->type_up(pos) <= Map::TerrainWater3 &&
           map->type_down(pos) <= Map::TerrainWater3) {
-        water = 1;
+        water = true;
       }
       break;
     case DirectionDown:
       if (map->type_up(pos) <= Map::TerrainWater3 &&
           map->type_down(map->move_left(pos)) <= Map::TerrainWater3) {
-        water = 1;
+        water = true;
       }
       break;
     default:
@@ -977,7 +977,7 @@ Game::demolish_road_(MapPos pos) {
   remove_road_forwards(pos, path_1_dir);
   remove_road_forwards(pos, path_2_dir);
 
-  return 0;
+  return true;
 }
 
 /* Demolish road at position. */
@@ -1287,7 +1287,7 @@ Game::can_build_castle(MapPos pos, const Player *player) const {
 
 /* Check whether player is allowed to build anything
    at position. To determine if the initial castle can
-   be built use game_can_build_castle() instead.
+   be built use can_build_castle() instead.
 
    TODO Existing buildings at position should be
    disregarded so this can be used to determine what
