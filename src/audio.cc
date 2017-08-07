@@ -22,8 +22,21 @@
 #include "src/audio.h"
 
 #include <algorithm>
+#include <string>
 
 #include "src/log.h"
+
+ExceptionAudio::ExceptionAudio(const std::string &description) throw() :
+  ExceptionFreeserf(description) {
+}
+
+ExceptionAudio::~ExceptionAudio() throw() {
+}
+
+std::string
+ExceptionAudio::get_description() const {
+  return "[" + get_system() + ":" + get_platform() + "] " + description.c_str();
+}
 
 Audio *
 Audio::instance = nullptr;

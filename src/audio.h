@@ -25,6 +25,19 @@
 
 #include <map>
 #include <memory>
+#include <string>
+
+#include "src/debug.h"
+
+class ExceptionAudio : public ExceptionFreeserf {
+ public:
+  explicit ExceptionAudio(const std::string &description) throw();
+  virtual ~ExceptionAudio() throw();
+
+  virtual std::string get_description() const;
+  virtual std::string get_platform() const { return "Abstract"; }
+  virtual std::string get_system() const { return "audio"; }
+};
 
 class Audio {
  public:
@@ -121,6 +134,8 @@ class Audio {
   static Audio *instance;
 
   float volume;
+
+  Audio() throw(ExceptionAudio) {}
 
  public:
   /* Common audio. */

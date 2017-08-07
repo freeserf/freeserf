@@ -25,9 +25,22 @@
 
 #include "src/audio.h"
 
+#include <string>
+
 #include <SDL_mixer.h>
 
 #include "src/event_loop.h"
+
+class ExceptionSDLmixer : public ExceptionAudio {
+ protected:
+  std::string sdl_error;
+
+ public:
+  explicit ExceptionSDLmixer(const std::string &description) throw();
+  virtual ~ExceptionSDLmixer() throw() {}
+
+  virtual std::string get_platform() const { return "SDL_mixer"; }
+};
 
 class AudioSDL : public Audio, public Audio::VolumeController {
  protected:
@@ -114,7 +127,7 @@ class AudioSDL : public Audio, public Audio::VolumeController {
 
  public:
   /* Common audio. */
-  AudioSDL();
+  AudioSDL() throw(ExceptionAudio);
   virtual ~AudioSDL();
 
   virtual Audio::VolumeController *get_volume_controller() { return this; }
