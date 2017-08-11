@@ -22,7 +22,7 @@ install:
       $SDL2DIR = "C:\sdl_root\SDL2-$SDL_VERSION"
       if (!(Test-Path -Path $SDL2DIR)) {
         Start-FileDownload https://libsdl.org/release/SDL2-devel-$SDL_VERSION-VC.zip
-        7z x SDL2-devel-$SDL_VERSION-VC.zip -oC:\sdl_root\
+        7z x SDL2-devel-$SDL_VERSION-VC.zip -aoa -oC:\sdl_root\
       }
       $env:SDL2DIR = $SDL2DIR
 
@@ -32,13 +32,15 @@ install:
       $SDL2MIXERDIR = "C:\sdl_root\SDL2_mixer-$SDL_MIXER_VERSION"
       if (!(Test-Path -Path $SDL2MIXERDIR)) {
         Start-FileDownload https://www.libsdl.org/projects/SDL_mixer/release/SDL2_mixer-devel-$SDL_MIXER_VERSION-VC.zip
-        7z x SDL2_mixer-devel-$SDL_MIXER_VERSION-VC.zip -oC:\sdl_root\
+        7z x SDL2_mixer-devel-$SDL_MIXER_VERSION-VC.zip -aoa -oC:\sdl_root\
       }
       $env:SDL2MIXERDIR = $SDL2MIXERDIR
 
-  # libxmp
+  # Prepare for NMake
   - if "%platform%" == "x86" call "%VS140COMNTOOLS%\..\..\VC\vcvarsall.bat"
   - if "%platform%" == "x64" call "%VS140COMNTOOLS%\..\..\VC\vcvarsall.bat" x86_amd64
+
+  # libxmp
   - ps: |
       $XMP_VERSION = "4.4.1"
       $XMPDIR = "C:\sdl_root\XMP-$XMP_VERSION"
@@ -65,6 +67,7 @@ install:
       $env:XMPDIR = $XMPDIR
 
 build_script:
+  - cmd: cd %APPVEYOR_BUILD_FOLDER%
   - cmd: cmake -G "NMake Makefiles" -DCMAKE_BUILD_TYPE=%configuration%
   - cmd: nmake check_style
   - cmd: nmake
