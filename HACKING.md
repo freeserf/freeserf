@@ -2,46 +2,20 @@
 Build from repository
 ----------------------------
 
-### GNU like systems
+The project use [CMake](https://cmake.org) build system.
+Use shell:
 
 ``` shell
-$ ./bootstrap
-$ ./configure
+$ ./cmake
+$ ./make
 ```
+or select platform dependent [generator](https://cmake.org/cmake/help/v3.0/manual/cmake-generators.7.html) for your favorit IDE.
 
-The bootstrap script will use autotools to set up the build environment
-and create the `configure` script.
+Some useful configure variables (set as env var or with -D command line key):
 
-Run `./configure --help` for options. Use the `--enable-debug` option to
-enable some features that make debugging easier. If you are going to
-report bugs this should be enabled.
-
-Now compile by running
-
-``` shell
-$ make
-```
-
-The project can be rebuilt at any time by running `make` again.
-
-### MS Visual Studio
-
-Setup Environment Variables
-`SDL2_INCLUDE`, `SDL2_LIB`, `SDL2_MIXER_INCLUDE`, `SDL2_MIXER_LIB`, `XMP_INCLUDE`, `XMP_LIB`
-
-For example:
-``` shell
-set 3RD_PARTY="c:\3rd_party"
-setx SDL2_INCLUDE "%3RD_PARTY%\SDL2-2.0.4\include"
-setx SDL2_LIB "%3RD_PARTY%\SDL2-2.0.4\lib"
-setx SDL2_MIXER_INCLUDE "%3RD_PARTY%\SDL2_mixer-2.0.1\include"
-setx SDL2_MIXER_LIB "%3RD_PARTY%\SDL2_mixer-2.0.1\lib"
-setx XMP_INCLUDE "%3RD_PARTY%\libxmp-4.4.1\include"
-setx XMP_LIB "%3RD_PARTY%\libxmp-4.4.1\lib"
-```
-
-Open `windows/freeserf.sln`, build, run or debug.
-
+* SDL2DIR - path to SDL2 root directory
+* SDL2MIXERDIR - path to SDL2_mixer root directory (optional)
+* XMPDIR - path to libxmp root directory (optional)
 
 Dependencies
 ------------
@@ -107,11 +81,6 @@ Creating a new release
    use previous release tag as base (e.g. for 1.9.1 use 1.9 as base)
 2. Create release branch `release-X.Y`
 3. Apply any bugfixes for release
-4. Update version in `configure.ac`
-5. Run `make distcheck`
-7. Commit and tag release (`vX.Y` or `vX.Y.Z`)
-8. Push tag to Github and also upload source dist file to Github
-
-Also remember to check before release that
-
-* Windows build is ok
+4. Update version in `CMakeLists.txt`
+5. Commit and tag release (`vX.Y` or `vX.Y.Z`)
+6. Push tag to Github and also upload source dist file to Github
