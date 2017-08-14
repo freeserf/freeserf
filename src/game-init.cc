@@ -89,8 +89,8 @@ class RandomInput : public TextInput {
 };
 
 GameInitBox::GameInitBox(Interface *interface)
-  : minimap(new Minimap(nullptr))
-  , random_input(new RandomInput())
+  : random_input(new RandomInput())
+  , minimap(new Minimap(nullptr))
   , file_list(new ListSavedFiles()) {
   this->interface = interface;
 

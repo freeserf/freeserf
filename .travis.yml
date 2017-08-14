@@ -4,7 +4,6 @@ matrix:
   include:
     - os: linux
       compiler: gcc
-      sudo: required
       dist: trusty
     - os: osx
       compiler: clang
@@ -13,47 +12,42 @@ cache:
   directories:
     - $HOME/3rd_party
 
-before_install:
-  - if [[ $TRAVIS_OS_NAME == 'osx' ]]; then brew install autoconf-archive; else sudo apt-get -y install autoconf-archive; fi
-  - sed -i -e 's|AC_PREREQ(\[2.69\])|AC_PREREQ([2.68])|' configure.ac
-  - if [[ $TRAVIS_OS_NAME == 'linux' ]]; then sudo apt-get update -qq; fi
-
 install:
-  - export SDL_VERSION="2.0.4"
-  - export SDL_PREFIX="$HOME/3rd_party/${TRAVIS_OS_NAME}/SDL_${SDL_VERSION}"
-  - export PKG_CONFIG_PATH="$SDL_PREFIX/lib/pkgconfig:$PKG_CONFIG_PATH"
-  - export PATH="$SDL_PREFIX/bin:$PATH"
+  - export SDL_VERSION="2.0.5"
+  - export SDL2DIR="$HOME/3rd_party/${TRAVIS_OS_NAME}/SDL_${SDL_VERSION}"
+  - export PKG_CONFIG_PATH="$SDL2DIR/lib/pkgconfig:$PKG_CONFIG_PATH"
+  - export PATH="$SDL2DIR/bin:$PATH"
   - |
-    if [ ! -d "$SDL_PREFIX" ]; then
-      mkdir -p "$SDL_PREFIX" && \
+    if [ ! -d "$SDL2DIR" ]; then
+      mkdir -p "$SDL2DIR" && \
         wget https://www.libsdl.org/release/SDL2-${SDL_VERSION}.tar.gz -O - | tar -xz && \
         (cd SDL2-${SDL_VERSION} && \
-          ./configure --prefix=$SDL_PREFIX && \
+          ./configure --prefix=$SDL2DIR && \
           make -j5 && make install)
     fi
 
   - export SDL_MIXER_VERSION="2.0.1"
-  - export SDL_MIXER_PREFIX="$HOME/3rd_party/${TRAVIS_OS_NAME}/SDL_mixer_${SDL_MIXER_VERSION}"
-  - export PKG_CONFIG_PATH="$SDL_MIXER_PREFIX/lib/pkgconfig:$PKG_CONFIG_PATH"
-  - export PATH="$SDL_MIXER_PREFIX/bin:$PATH"
+  - export SDL2MIXERDIR="$HOME/3rd_party/${TRAVIS_OS_NAME}/SDL_mixer_${SDL_MIXER_VERSION}"
+  - export PKG_CONFIG_PATH="$SDL2MIXERDIR/lib/pkgconfig:$PKG_CONFIG_PATH"
+  - export PATH="$SDL2MIXERDIR/bin:$PATH"
   - |
-    if [ ! -d "$SDL_MIXER_PREFIX" ]; then
-      mkdir -p "$SDL_MIXER_PREFIX" && \
+    if [ ! -d "$SDL2MIXERDIR" ]; then
+      mkdir -p "$SDL2MIXERDIR" && \
         wget https://www.libsdl.org/projects/SDL_mixer/release/SDL2_mixer-${SDL_MIXER_VERSION}.tar.gz -O - | tar -xz && \
         (cd SDL2_mixer-${SDL_MIXER_VERSION} && \
-          ./configure --prefix=$SDL_MIXER_PREFIX && \
+          ./configure --prefix=$SDL2MIXERDIR && \
           make -j5 && make install)
     fi
 
   - export XMP_VERSION="4.4.1"
-  - export XMP_PREFIX="$HOME/3rd_party/${TRAVIS_OS_NAME}/XMP_${XMP_VERSION}"
-  - export PKG_CONFIG_PATH="$XMP_PREFIX/lib/pkgconfig:$PKG_CONFIG_PATH"
+  - export XMPDIR="$HOME/3rd_party/${TRAVIS_OS_NAME}/XMP_${XMP_VERSION}"
+  - export PKG_CONFIG_PATH="$XMPDIR/lib/pkgconfig:$PKG_CONFIG_PATH"
   - |
-    if [ ! -d "$XMP_PREFIX" ]; then
-      mkdir -p "$XMP_PREFIX" && \
+    if [ ! -d "$XMPDIR" ]; then
+      mkdir -p "$XMPDIR" && \
         wget https://sourceforge.net/projects/xmp/files/libxmp/${XMP_VERSION}/libxmp-${XMP_VERSION}.tar.gz -O - | tar -xz && \
         (cd libxmp-${XMP_VERSION} && \
-          ./configure --prefix=$XMP_PREFIX && \
+          ./configure --prefix=$XMPDIR && \
           make -j5 && make install)
     fi
 
@@ -62,12 +56,13 @@ install:
 
 script:
   - $CPPLINT_PATH/cpplint.py ./src/*.cc ./src/*.h ./tests/*.cc ./windows/*.cc ./windows/*.h
-  - ./bootstrap && ./configure --enable-sdl2-mixer
-  - if [[ $TRAVIS_OS_NAME == 'osx' ]]; then make dist-osx; else make -j5 distcheck; fi
+  - mkdir $HOME/target && cd $HOME/target && cmake $TRAVIS_BUILD_DIR && make && make test
+  - if [[ $TRAVIS_OS_NAME == 'osx' ]]; then make package; else make package_source; fi
 
-deploy:
-  provider: s3
-  access_key_id: $AWS_ACCESS_KEY_ID
-  secret_access_key: $AWS_SECRET_ACCESS_KEY
-  bucket: "freeserftest1"
-  skip_cleanup: true
+addons:
+  artifacts:
+    working_dir: $HOME/target
+    paths:
+    - $(ls *.dmg | tr "\n" ":")
+    - $(ls *.tar.* | tr "\n" ":")
+    target_paths: $TRAVIS_REPO_SLUG/$TRAVIS_BRANCH
