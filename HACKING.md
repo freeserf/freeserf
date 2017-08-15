@@ -2,35 +2,34 @@
 Build from repository
 ----------------------------
 
-The project use [CMake](https://cmake.org) build system.
-Use shell:
+This project uses the [CMake](https://cmake.org) build system.
+Use the following commands to build (it is recommended to build in a separate directory as shown here):
 
 ``` shell
-$ ./cmake
-$ ./make
+$ mkdir build && cd build
+$ cmake ..
+$ make
 ```
-or select platform dependent [generator](https://cmake.org/cmake/help/v3.0/manual/cmake-generators.7.html) for your favorit IDE.
+or select platform dependent [generator](https://cmake.org/cmake/help/v3.0/manual/cmake-generators.7.html) for your favorite IDE.
 
-Some useful configure variables (set as env var or with -D command line key):
+Some useful configure variables (set as environment variable or with `-D` command line option):
 
-* SDL2DIR - path to SDL2 root directory
-* SDL2MIXERDIR - path to SDL2_mixer root directory (optional)
-* XMPDIR - path to libxmp root directory (optional)
+* `SDL2DIR` - path to SDL2 root directory
+* `SDL2MIXERDIR` - path to SDL2_mixer root directory (optional)
+* `XMPDIR` - path to libxmp root directory (optional)
 
 Dependencies
 ------------
 
-* SDL2 <https://www.libsdl.org/download-2.0.php> (Development Libraries)
-* SDL2_mixer (Optional; for audio playback) <https://www.libsdl.org/projects/SDL_mixer/> (Development Libraries)
-* libxmp (Optional; for Amiga music playback) <https://sourceforge.net/projects/xmp/files/libxmp/4.4.1/libxmp-4.4.1.tar.gz> (Building needed)
-
+* [SDL2](https://www.libsdl.org/download-2.0.php) (Development Libraries)
+* [SDL2_mixer](https://www.libsdl.org/projects/SDL_mixer/) (Optional; for audio playback) (Development Libraries)
+* [libxmp](http://xmp.sourceforge.net/) (Optional; for Amiga music playback) (Building needed)
 
 Coding style
 ------------
 
 For the C++ code we are following the Google C++ Style Guide
 <https://google-styleguide.googlecode.com/svn/trunk/cppguide.html>.
-
 
 Creating a pull request
 -----------------------
@@ -83,4 +82,4 @@ Creating a new release
 3. Apply any bugfixes for release
 4. Update version in `CMakeLists.txt`
 5. Commit and tag release (`vX.Y` or `vX.Y.Z`)
-6. Push tag to Github and also upload source dist file to Github
+6. Push tag to Github and also upload package files: Windows `.exe` package (from Appveyor), macOS `.dmg` (from Travis)
