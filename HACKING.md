@@ -28,8 +28,14 @@ Dependencies
 Coding style
 ------------
 
-For the C++ code we are following the Google C++ Style Guide
-<https://google-styleguide.googlecode.com/svn/trunk/cppguide.html>.
+For the C++ code we are following the [Google C++ Style Guide](https://google-styleguide.googlecode.com/svn/trunk/cppguide.html).
+
+You can check style during the build
+
+``` shell
+$ make check_style
+```
+
 
 Creating a pull request
 -----------------------

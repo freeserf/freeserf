@@ -57,18 +57,11 @@ install:
           make -j5 && make install)
     fi
 
-  - |
-    cd $BUID_DIR
-    git clone https://github.com/google/styleguide.git ./styleguide
-  - export CPPLINT_PATH="$PWD/styleguide/cpplint"
-
 script:
-  - |
-    cd $TRAVIS_BUILD_DIR
-    $CPPLINT_PATH/cpplint.py ./src/*.cc ./src/*.h ./tests/*.cc
   - |
     cd $BUID_DIR
     cmake $TRAVIS_BUILD_DIR
+    make check_style
     make
     make test
   - if [[ $TRAVIS_OS_NAME == 'osx' ]]; then make package; else make package_source; fi

@@ -82,6 +82,9 @@ else()
   find_package(XMP)
 endif()
 
+include(CppLint)
+enable_check_style()
+
 add_subdirectory(src)
 if(ENABLE_TESTS)
   add_subdirectory(tests)
