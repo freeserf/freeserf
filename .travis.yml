@@ -18,6 +18,7 @@ install:
   - export PKG_CONFIG_PATH="$SDL2DIR/lib/pkgconfig:$PKG_CONFIG_PATH"
   - export PATH="$SDL2DIR/bin:$PATH"
   - |
+    cd $HOME/3rd_party
     if [ ! -d "$SDL2DIR" ]; then
       mkdir -p "$SDL2DIR" && \
         wget https://www.libsdl.org/release/SDL2-${SDL_VERSION}.tar.gz -O - | tar -xz && \
@@ -31,6 +32,7 @@ install:
   - export PKG_CONFIG_PATH="$SDL2MIXERDIR/lib/pkgconfig:$PKG_CONFIG_PATH"
   - export PATH="$SDL2MIXERDIR/bin:$PATH"
   - |
+    cd $HOME/3rd_party
     if [ ! -d "$SDL2MIXERDIR" ]; then
       mkdir -p "$SDL2MIXERDIR" && \
         wget https://www.libsdl.org/projects/SDL_mixer/release/SDL2_mixer-${SDL_MIXER_VERSION}.tar.gz -O - | tar -xz && \
@@ -43,6 +45,7 @@ install:
   - export XMPDIR="$HOME/3rd_party/${TRAVIS_OS_NAME}/XMP_${XMP_VERSION}"
   - export PKG_CONFIG_PATH="$XMPDIR/lib/pkgconfig:$PKG_CONFIG_PATH"
   - |
+    cd $HOME/3rd_party
     if [ ! -d "$XMPDIR" ]; then
       mkdir -p "$XMPDIR" && \
         wget https://sourceforge.net/projects/xmp/files/libxmp/${XMP_VERSION}/libxmp-${XMP_VERSION}.tar.gz -O - | tar -xz && \
@@ -51,11 +54,15 @@ install:
           make -j5 && make install)
     fi
 
-  - git clone https://github.com/google/styleguide.git ./styleguide
+  - |
+    cd $HOME/3rd_party
+    git clone https://github.com/google/styleguide.git ./styleguide
   - export CPPLINT_PATH="$PWD/styleguide/cpplint"
 
 script:
-  - $CPPLINT_PATH/cpplint.py ./src/*.cc ./src/*.h ./tests/*.cc ./windows/*.cc ./windows/*.h
+  - |
+    cd $TRAVIS_BUILD_DIR
+    $CPPLINT_PATH/cpplint.py ./src/*.cc ./src/*.h ./tests/*.cc
   - mkdir $HOME/target && cd $HOME/target && cmake $TRAVIS_BUILD_DIR && make && make test
   - if [[ $TRAVIS_OS_NAME == 'osx' ]]; then make package; else make package_source; fi
 
