@@ -136,7 +136,7 @@ class SaveReaderTextSection : public SaveReaderText {
   }
 
   virtual SaveReaderTextValue
-  value(const std::string &name) const throw(ExceptionFreeserf) {
+  value(const std::string &name) const {
     Values::const_iterator it = values.find(name);
     if (it == values.end()) {
       std::ostringstream str;
@@ -209,7 +209,7 @@ class SaveReaderTextFile : public SaveReaderText {
   }
 
   virtual SaveReaderTextValue
-  value(const std::string &name) const throw(ExceptionFreeserf) {
+  value(const std::string &name) const {
     ReaderSections result;
 
     for (const SaveReaderTextSection *reader : sections) {

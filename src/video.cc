@@ -23,11 +23,11 @@
 
 #include <sstream>
 
-ExceptionVideo::ExceptionVideo(const std::string &description) throw() :
+ExceptionVideo::ExceptionVideo(const std::string &description) :
   ExceptionFreeserf(description) {
 }
 
-ExceptionVideo::~ExceptionVideo() throw() {
+ExceptionVideo::~ExceptionVideo() {
 }
 
 std::string
@@ -37,7 +37,7 @@ ExceptionVideo::get_description() const {
 
 Video *Video::instance = NULL;
 
-Video::Video() throw(ExceptionVideo) {
+Video::Video() {
   if (instance != NULL) {
     throw ExceptionVideo("Unable to create second instance.");
   }

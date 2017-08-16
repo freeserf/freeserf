@@ -46,7 +46,7 @@ Audio::get_instance() {
   return instance;
 }
 
-AudioSDL::AudioSDL() throw(ExceptionAudio) {
+AudioSDL::AudioSDL() {
   Log::Info["audio"] << "Initializing audio driver `sdlmixer'.";
 
   if (SDL_Init(SDL_INIT_AUDIO | SDL_INIT_TIMER) != 0) {

@@ -127,7 +127,7 @@ class AudioSDL : public Audio, public Audio::VolumeController {
 
  public:
   /* Common audio. */
-  AudioSDL() throw(ExceptionAudio);
+  AudioSDL();
   virtual ~AudioSDL();
 
   virtual Audio::VolumeController *get_volume_controller() { return this; }

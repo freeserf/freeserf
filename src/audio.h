@@ -135,7 +135,7 @@ class Audio {
 
   float volume;
 
-  Audio() throw(ExceptionAudio) {}
+  Audio() {}
 
  public:
   /* Common audio. */

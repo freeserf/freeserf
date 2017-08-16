@@ -73,13 +73,13 @@ class VideoSDL : public Video {
   float zoom_factor;
 
  public:
-  VideoSDL() throw(ExceptionVideo);
+  VideoSDL();
   virtual ~VideoSDL();
 
   virtual void set_resolution(unsigned int width, unsigned int height,
-                              bool fullscreen) throw(ExceptionVideo);
+                              bool fullscreen);
   virtual void get_resolution(unsigned int *width, unsigned int *height);
-  virtual void set_fullscreen(bool enable) throw(ExceptionVideo);
+  virtual void set_fullscreen(bool enable);
   virtual bool is_fullscreen();
 
   virtual Video::Frame *get_screen_frame();
