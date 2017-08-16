@@ -17,41 +17,16 @@
 *.app
 
 # freeserf specific
-.deps
-Makefile
-Makefile.in
 *.PA
-aclocal.m4
-autom4te.cache
-config.h
-freeserf
-install-sh
-missing
-src/version-vcs.h
-stamp-h1
-compile
-src/.dirstamp
-
-# test related
-tests/test_map
-tests/test_map_geometry
-tests/test_save_game
-tests/.dirstamp
-test-driver
-
 
 # mac specific
 *.xcworkspace
 xcuserdata
-mac/version_vcs.h
 .DS_Store
 *.dmg
 *.pbxproj
 
 # windows specific
-windows/Win32
-windows/x64
-!windows/config.h
 *.ncb
 *.suo
 *.obj
