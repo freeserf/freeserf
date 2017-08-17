@@ -38,7 +38,7 @@ Uint32 VideoSDL::Bmask = 0xFF000000;
 Uint32 VideoSDL::Amask = 0x000000FF;
 Uint32 VideoSDL::pixel_format = SDL_PIXELFORMAT_RGBA8888;
 
-VideoSDL::VideoSDL() throw(ExceptionVideo) {
+VideoSDL::VideoSDL() {
   screen = NULL;
   cursor = NULL;
   fullscreen = false;
@@ -113,7 +113,7 @@ VideoSDL::create_surface(int width, int height) {
 
 void
 VideoSDL::set_resolution(unsigned int width, unsigned int height,
-                            bool fullscreen) throw(ExceptionVideo) {
+                            bool fullscreen) {
   /* Set fullscreen mode */
   int r = SDL_SetWindowFullscreen(window,
                                   fullscreen ? SDL_WINDOW_FULLSCREEN_DESKTOP :
@@ -155,7 +155,7 @@ VideoSDL::get_resolution(unsigned int *width, unsigned int *height) {
 }
 
 void
-VideoSDL::set_fullscreen(bool enable) throw(ExceptionVideo) {
+VideoSDL::set_fullscreen(bool enable) {
   int width = 0;
   int height = 0;
   SDL_GetRendererOutputSize(renderer, &width, &height);

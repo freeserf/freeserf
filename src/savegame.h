@@ -105,8 +105,7 @@ class SaveReaderText {
   virtual ~SaveReaderText() = default;
   virtual std::string get_name() const = 0;
   virtual unsigned int get_number() const = 0;
-  virtual SaveReaderTextValue value(const std::string &name) const
-            throw(ExceptionFreeserf) = 0;
+  virtual SaveReaderTextValue value(const std::string &name) const = 0;
   virtual Readers get_sections(const std::string &name) = 0;
 };
 

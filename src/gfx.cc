@@ -85,7 +85,7 @@ Image::clear_cache() {
 
 Graphics *Graphics::instance = NULL;
 
-Graphics::Graphics() throw(ExceptionFreeserf) {
+Graphics::Graphics() {
   if (instance != NULL) {
     throw ExceptionGFX("Unable to create second instance.");
   }

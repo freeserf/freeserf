@@ -163,7 +163,7 @@ class Graphics {
   static Graphics *instance;
   Video *video;
 
-  Graphics() throw(ExceptionFreeserf);
+  Graphics();
 
  public:
   virtual ~Graphics();

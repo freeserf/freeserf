@@ -29,8 +29,8 @@
 
 class ExceptionVideo : public ExceptionFreeserf {
  public:
-  explicit ExceptionVideo(const std::string &description) throw();
-  virtual ~ExceptionVideo() throw();
+  explicit ExceptionVideo(const std::string &description);
+  virtual ~ExceptionVideo();
 
   virtual std::string get_description() const;
   virtual std::string get_platform() const { return "Abstract"; }
@@ -52,7 +52,7 @@ class Video {
  protected:
   static Video *instance;
 
-  Video() throw(ExceptionVideo);
+  Video();
 
  public:
   virtual ~Video();
@@ -60,9 +60,9 @@ class Video {
   static Video *get_instance();
 
   virtual void set_resolution(unsigned int width, unsigned int height,
-                              bool fullscreen) throw(ExceptionVideo) = 0;
+                              bool fullscreen) = 0;
   virtual void get_resolution(unsigned int *width, unsigned int *height) = 0;
-  virtual void set_fullscreen(bool enable) throw(ExceptionVideo) = 0;
+  virtual void set_fullscreen(bool enable) = 0;
   virtual bool is_fullscreen() = 0;
 
   virtual Frame *get_screen_frame() = 0;
