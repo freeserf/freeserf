@@ -13,7 +13,8 @@ set(GAME_SOURCES building.cc
                  random.cc
                  savegame.cc
                  serf.cc
-                 game-manager.cc)
+                 game-manager.cc
+                 configfile.cc)
 
 set(GAME_HEADERS building.h
                  debug.h
@@ -32,7 +33,8 @@ set(GAME_HEADERS building.h
                  savegame.h
                  serf.h
                  misc.h
-                 game-manager.h)
+                 game-manager.h
+                 configfile.h)
 
 set(OTHER_SOURCES data.cc
                   pathfinder.cc

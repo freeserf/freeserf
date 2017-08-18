@@ -28,10 +28,12 @@
 #include <iostream>
 #include <array>
 #include <ctime>
+#include <utility>
 
 #include "src/game.h"
 #include "src/log.h"
 #include "src/debug.h"
+#include "src/configfile.h"
 
 #ifdef _WIN32
 #include <Windows.h>
@@ -63,7 +65,7 @@ class SaveWriterTextSection : public SaveWriterText {
     this->number = number;
   }
 
-  ~SaveWriterTextSection() {
+  virtual ~SaveWriterTextSection() {
     for (auto section : sections) {
       delete section;
     }
@@ -80,43 +82,54 @@ class SaveWriterTextSection : public SaveWriterText {
     return i->second;
   }
 
-  bool save(std::ostream *os) {
-    *os << "[" << name << " " << number << "]\n";
+  bool save(const std::string &path) {
+    ConfigFile file;
+    save(&file);
+    return file.save(path);
+  }
+
+  bool write(std::ostream *os) {
+    ConfigFile file;
+    save(&file);
+    return file.write(os);
+  }
+
+
+  SaveWriterText &add_section(const std::string &name, unsigned int number) {
+    SaveWriterTextSection *section = new SaveWriterTextSection(name, number);
+    sections.push_back(section);
+    return *section;
+  }
+
+ protected:
+  bool save(ConfigFile *file) {
+    std::stringstream str;
+    str << name << " " << number;
 
     for (auto value : values) {
-      *os << value.first << "=" << value.second.get_value() << "\n";
+      file->set_value(str.str(), value.first, value.second.get_value());
     }
 
-    *os << "\n";
-
     for (SaveWriterTextSection *writer : sections) {
-      writer->save(os);
+      writer->save(file);
     }
 
     return true;
   }
-
-  SaveWriterText &add_section(const std::string &name, unsigned int number) {
-    SaveWriterTextSection *new_section =
-                                   new SaveWriterTextSection(name, number);
-
-    sections.push_back(new_section);
-
-    return *new_section;
-  }
 };
+
+typedef std::map<std::string, SaveReaderTextValue> Values;
 
 class SaveReaderTextSection : public SaveReaderText {
  protected:
-  typedef std::map<std::string, std::string> Values;
   std::string name;
   int number;
   Values values;
   Readers readers_stub;
 
  public:
-  explicit SaveReaderTextSection(const std::string &header) {
-    name = header.substr(1, header.length() - 2);
+  SaveReaderTextSection(ConfigFile *file, const std::string &_name) {
+    name = _name;
     size_t pos = name.find(' ');
     if (pos != std::string::npos) {
       std::string value = name.substr(pos + 1, name.length() - pos - 1);
@@ -124,6 +137,12 @@ class SaveReaderTextSection : public SaveReaderText {
       std::stringstream ss;
       ss << value;
       ss >> number;
+    }
+
+    auto vals = file->get_values(_name);
+    for (std::string vname : vals) {
+      values.emplace(std::make_pair(vname,
+                           SaveReaderTextValue(file->value(_name, vname, ""))));
     }
   }
 
@@ -135,7 +154,7 @@ class SaveReaderTextSection : public SaveReaderText {
     return number;
   }
 
-  virtual SaveReaderTextValue
+  virtual const SaveReaderTextValue &
   value(const std::string &name) const {
     Values::const_iterator it = values.find(name);
     if (it == values.end()) {
@@ -144,22 +163,12 @@ class SaveReaderTextSection : public SaveReaderText {
       throw ExceptionFreeserf(str.str());
     }
 
-    return SaveReaderTextValue(it->second);
+    return it->second;
   }
 
   virtual Readers get_sections(const std::string &name) {
     throw ExceptionFreeserf("Recursive sections are not allowed");
     return readers_stub;
-  }
-
-  void add_value(std::string line) {
-    size_t pos = line.find('=');
-    if (pos == std::string::npos) {
-      throw ExceptionFreeserf("Wrong save file format");
-    }
-    std::string name = line.substr(0, pos);
-    std::string value = line.substr(pos + 1, line.length() - pos - 1);
-    values[name] = value;
   }
 };
 
@@ -168,29 +177,23 @@ typedef std::list<SaveReaderTextSection*> ReaderSections;
 class SaveReaderTextFile : public SaveReaderText {
  protected:
   ReaderSections sections;
+  Values values;
 
  public:
-  explicit SaveReaderTextFile(std::istream *file) {
-    SaveReaderTextSection *section = new SaveReaderTextSection("[main]");
-    sections.push_back(section);
-    while (!file->eof()) {
-      char c = file->peek();
-      while (c == ' ' || c == '\t' || c == '\n') {
-        file->get(c);
-        c = file->peek();
-      }
+  explicit SaveReaderTextFile(std::istream *is) {
+    ConfigFile file;
+    file.read(is);
 
-      std::string line;
-      getline(*file, line);
+    auto sects = file.get_sections();
+    for (std::string name : sects) {
+      SaveReaderTextSection *section = new SaveReaderTextSection(&file, name);
+      sections.push_back(section);
+    }
 
-      if (c == '[') {
-        section = new SaveReaderTextSection(line);
-        sections.push_back(section);
-      } else {
-        if (line.length() != 0) {
-          section->add_value(line);
-        }
-      }
+    auto vals = file.get_values("main");
+    for (std::string vname : vals) {
+      values.emplace(std::make_pair(vname,
+                           SaveReaderTextValue(file.value("main", vname, ""))));
     }
   }
 
@@ -208,19 +211,16 @@ class SaveReaderTextFile : public SaveReaderText {
     return 0;
   }
 
-  virtual SaveReaderTextValue
+  virtual const SaveReaderTextValue &
   value(const std::string &name) const {
-    ReaderSections result;
-
-    for (const SaveReaderTextSection *reader : sections) {
-      if (reader->get_name() == "main") {
-        return reader->value(name);
-      }
+    Values::const_iterator it = values.find(name);
+    if (it == values.end()) {
+      std::ostringstream str;
+      str << "Failed to load value: " << name;
+      throw ExceptionFreeserf(str.str());
     }
 
-    throw ExceptionFreeserf("Value \"" + name + "\" not found");
-
-    return SaveReaderTextValue("");
+    return it->second;
   }
 
   virtual Readers get_sections(const std::string &name) {
@@ -298,20 +298,27 @@ SaveReaderBinary::read(size_t size) {
   return data;
 }
 
-SaveReaderTextValue::SaveReaderTextValue(std::string value) {
-  this->value = value;
+SaveReaderTextValue::SaveReaderTextValue(const std::string &_value) {
+  value = _value;
+  if (value.find(',') != std::string::npos) {
+    std::istringstream iss(value);
+    std::string item;
+    while (std::getline(iss, item, ',')) {
+      parts.emplace_back(item);
+    }
+  }
 }
 
-SaveReaderTextValue&
-SaveReaderTextValue::operator >> (int &val) {
+const SaveReaderTextValue&
+SaveReaderTextValue::operator >> (int &val) const {
   int result = atoi(value.c_str());
   val = result;
 
   return *this;
 }
 
-SaveReaderTextValue&
-SaveReaderTextValue::operator >> (unsigned int &val) {
+const SaveReaderTextValue&
+SaveReaderTextValue::operator >> (unsigned int &val) const {
   int result = atoi(value.c_str());
   val = result;
 
@@ -319,8 +326,8 @@ SaveReaderTextValue::operator >> (unsigned int &val) {
 }
 
 #if defined(_M_AMD64) || defined(__x86_64__)
-SaveReaderTextValue&
-SaveReaderTextValue::operator >> (size_t &val) {
+const SaveReaderTextValue&
+SaveReaderTextValue::operator >> (size_t &val) const {
   int result = atoi(value.c_str());
   val = result;
 
@@ -328,66 +335,59 @@ SaveReaderTextValue::operator >> (size_t &val) {
 }
 #endif  // defined(_M_AMD64) || defined(__x86_64__)
 
-SaveReaderTextValue&
-SaveReaderTextValue::operator >> (Direction &val) {
+const SaveReaderTextValue&
+SaveReaderTextValue::operator >> (Direction &val) const {
   int result = atoi(value.c_str());
   val = (Direction)result;
 
   return *this;
 }
 
-SaveReaderTextValue&
-SaveReaderTextValue::operator >> (Resource::Type &val) {
+const SaveReaderTextValue&
+SaveReaderTextValue::operator >> (Resource::Type &val) const {
   int result = atoi(value.c_str());
   val = (Resource::Type)result;
 
   return *this;
 }
 
-SaveReaderTextValue&
-SaveReaderTextValue::operator >> (Building::Type &val) {
+const SaveReaderTextValue&
+SaveReaderTextValue::operator >> (Building::Type &val) const {
   int result = atoi(value.c_str());
   val = (Building::Type)result;
 
   return *this;
 }
 
-SaveReaderTextValue&
-SaveReaderTextValue::operator >> (Serf::State &val) {
+const SaveReaderTextValue&
+SaveReaderTextValue::operator >> (Serf::State &val) const {
   int result = atoi(value.c_str());
   val = (Serf::State)result;
 
   return *this;
 }
 
-SaveReaderTextValue&
-SaveReaderTextValue::operator >> (uint16_t &val) {
+const SaveReaderTextValue&
+SaveReaderTextValue::operator >> (uint16_t &val) const {
   int result = atoi(value.c_str());
   val = (uint16_t)result;
 
   return *this;
 }
 
-SaveReaderTextValue&
-SaveReaderTextValue::operator >> (std::string &val) {
+const SaveReaderTextValue&
+SaveReaderTextValue::operator >> (std::string &val) const {
   val = value;
   return *this;
 }
 
-SaveReaderTextValue
-SaveReaderTextValue::operator[] (size_t pos) {
-  std::vector<std::string> parts;
-  std::istringstream iss(value);
-  std::string item;
-  while (std::getline(iss, item, ',')) {
-    parts.push_back(item);
-  }
-
+const SaveReaderTextValue&
+SaveReaderTextValue::operator[] (size_t pos) const {
   if (pos >= parts.size()) {
-    return SaveReaderTextValue("");
+    throw ExceptionFreeserf("Failed to read value");
   }
 
-  return SaveReaderTextValue(parts[pos]);
+  return parts[pos];
 }
 
 SaveWriterTextValue&
@@ -693,7 +693,7 @@ GameStore::quick_save(const std::string &prefix, Game *game) {
   std::string path = save_game.get_folder_path();
   path += "/" + prefix + "-" + name + ".save";
 
-  return GameStore::save(path, game);
+  return save(path, game);
 }
 
 // In target, replace any character from needle with replacement character.
@@ -722,32 +722,26 @@ GameStore::save(const std::string &path, Game *game) {
   /* TODO Possibly use PathCleanupSpec() when building for windows platform. */
   std::string file_path = strreplace(path, "*?\"<>|", '_');
 
-  std::ofstream os(file_path.c_str(), std::ofstream::binary);
-  if (!os.is_open()) return false;
-
-  bool r = save_text_state(&os, game);
-  os.close();
-
-  return r;
-}
-
-bool
-GameStore::save_text_state(std::ostream *os, Game *game) {
   SaveWriterTextSection writer("game", 0);
-
   writer << *game;
-
-  return writer.save(os);
+  return writer.save(file_path);
 }
 
 bool
-GameStore::load_text_state(std::istream *is, Game *game) {
+GameStore::read(std::istream *is, Game *game) {
   try {
     SaveReaderTextFile reader_text(is);
     reader_text >> *game;
   } catch (...) {
     return false;
   }
-
   return true;
 }
+
+bool
+GameStore::write(std::ostream *os, Game *game) {
+  SaveWriterTextSection writer("game", 0);
+  writer << *game;
+  return writer.write(os);
+}
+

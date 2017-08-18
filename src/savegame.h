@@ -27,6 +27,7 @@
 #include <list>
 #include <cstdint>
 #include <vector>
+#include <memory>
 
 #include "src/map.h"
 #include "src/resource.h"
@@ -59,22 +60,23 @@ class SaveReaderBinary {
 class SaveReaderTextValue {
  protected:
   std::string value;
+  std::vector<SaveReaderTextValue> parts;
 
  public:
-  explicit SaveReaderTextValue(std::string value);
+  explicit SaveReaderTextValue(const std::string &value);
 
-  SaveReaderTextValue& operator >> (int &val);
-  SaveReaderTextValue& operator >> (unsigned int &val);
+  const SaveReaderTextValue& operator >> (int &val) const;
+  const SaveReaderTextValue& operator >> (unsigned int &val) const;
 #if defined(_M_AMD64) || defined(__x86_64__)
-  SaveReaderTextValue& operator >> (size_t &val);
+  const SaveReaderTextValue& operator >> (size_t &val) const;
 #endif  // defined(_M_AMD64) || defined(__x86_64__)
-  SaveReaderTextValue& operator >> (Direction &val);
-  SaveReaderTextValue& operator >> (Resource::Type &val);
-  SaveReaderTextValue& operator >> (Building::Type &val);
-  SaveReaderTextValue& operator >> (Serf::State &val);
-  SaveReaderTextValue& operator >> (uint16_t &val);
-  SaveReaderTextValue& operator >> (std::string &val);
-  SaveReaderTextValue operator[] (size_t pos);
+  const SaveReaderTextValue& operator >> (Direction &val) const;
+  const SaveReaderTextValue& operator >> (Resource::Type &val) const;
+  const SaveReaderTextValue& operator >> (Building::Type &val) const;
+  const SaveReaderTextValue& operator >> (Serf::State &val) const;
+  const SaveReaderTextValue& operator >> (uint16_t &val) const;
+  const SaveReaderTextValue& operator >> (std::string &val) const;
+  const SaveReaderTextValue& operator[] (size_t pos) const;
 };
 
 class SaveWriterTextValue {
@@ -105,7 +107,7 @@ class SaveReaderText {
   virtual ~SaveReaderText() = default;
   virtual std::string get_name() const = 0;
   virtual unsigned int get_number() const = 0;
-  virtual SaveReaderTextValue value(const std::string &name) const = 0;
+  virtual const SaveReaderTextValue &value(const std::string &name) const = 0;
   virtual Readers get_sections(const std::string &name) = 0;
 };
 
@@ -155,9 +157,8 @@ class GameStore {
   bool load(const std::string &path, Game *game);
   bool quick_save(const std::string &prefix, Game *game);
 
-  /* Text format */
-  static bool save_text_state(std::ostream *os, Game *game);
-  static bool load_text_state(std::istream *is, Game *game);
+  bool read(std::istream *is, Game *game);
+  bool write(std::ostream *os, Game *game);
 
  protected:
   void update();

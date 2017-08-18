@@ -62,27 +62,27 @@ main(int argc, char *argv[]) {
 
   // Save the game state
   std::stringstream str;
-  bool saved = GameStore::save_text_state(&str, game.get());
+  bool saved = GameStore::get_instance()->write(&str, game.get());
   str.flush();
 
   if (saved && str.good()) {
     std::cout << "ok 4 - Saved game state\n";
   } else {
-    std::cout << "not ok 4 - Failed to save game state; returned " <<
-      saved << "\n";
+    std::cout << "not ok 4 - Failed to save game state; returned "
+              << saved << "\n";
     return 0;
   }
 
   // Load the game state into a new game
   str.seekg(0, std::ios::beg);
   std::unique_ptr<Game> loaded_game(new Game());
-  bool loaded = GameStore::load_text_state(&str, loaded_game.get());
+  bool loaded = GameStore::get_instance()->read(&str, loaded_game.get());
 
   if (loaded) {
     std::cout << "ok 5 - Loaded game state\n";
   } else {
-    std::cout << "not ok 5 - Failed to load save game state; returned " <<
-      loaded << "\n";
+    std::cout << "not ok 5 - Failed to load save game state; returned "
+              << loaded << "\n";
     return 0;
   }
 
