@@ -66,6 +66,7 @@ install:
 
 build_script:
   - cmd: cmake -G "NMake Makefiles"
+  - cmd: nmake check_style
   - cmd: nmake
   - cmd: nmake test
   - cmd: nmake package
