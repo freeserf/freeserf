@@ -26,6 +26,7 @@
 #include <memory>
 
 #include "src/pcm2wav.h"
+#include "src/debug.h"
 
 ConvertorMOD2WAV::ConvertorMOD2WAV(PBuffer _buffer) : Convertor(_buffer) {
   PBuffer id = buffer->get_subbuffer(1080, 4);
@@ -36,7 +37,7 @@ ConvertorMOD2WAV::ConvertorMOD2WAV(PBuffer _buffer) : Convertor(_buffer) {
 
 PBuffer
 ConvertorMOD2WAV::convert() {
-  PMutableBuffer result = std::make_shared<MutableBuffer>();
+  PMutableBuffer result = std::make_shared<MutableBuffer>(Buffer::EndianessBig);
   xmp_context ctx = xmp_create_context();
   if (xmp_load_module_from_memory(ctx, buffer->get_data(),
                                   buffer->get_size()) == 0) {

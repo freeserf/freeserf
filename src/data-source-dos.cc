@@ -139,12 +139,12 @@ DataSourceDOS::load() {
 
   // Read the number of entries in the index table.
   // Some entries are undefined (size and offset are zero).
-  size_t entry_count = spae->pop32le();
+  size_t entry_count = spae->pop<uint32_t>();
   entries.push_back({0, 0});  // first entry is whole file itself, drop it
   for (size_t i = 0; i < entry_count; i++) {
     DataEntry entry;
-    entry.size = spae->pop32le();
-    entry.offset = spae->pop32le();
+    entry.size = spae->pop<uint32_t>();
+    entry.offset = spae->pop<uint32_t>();
     entries.push_back(entry);
   }
 
@@ -153,8 +153,9 @@ DataSourceDOS::load() {
   // The first uint32 is the byte length of the rest
   // of the table in big endian order.
   PBuffer anim = get_object(DATA_SERF_ANIMATION_TABLE);
+  anim->set_endianess(Buffer::EndianessBig);
   size_t size = anim->get_size();
-  if (size != anim->pop32be()) {
+  if (size != anim->pop<uint32_t>()) {
     Log::Error["data"] << "Could not extract animation table.";
     return false;
   }
@@ -296,14 +297,14 @@ DataSourceDOS::SpriteDosSolid::SpriteDosSolid(PBuffer _data, ColorDOS *palette)
     throw ExceptionFreeserf("Failed to extract DOS solid sprite");
   }
 
-  PMutableBuffer result = std::make_shared<MutableBuffer>();
+  PMutableBuffer result = std::make_shared<MutableBuffer>(Buffer::EndianessBig);
 
   while (_data->readable()) {
-    ColorDOS color = palette[_data->pop()];
-    result->push(color.b);  // Blue
-    result->push(color.g);  // Green
-    result->push(color.r);  // Red
-    result->push(0xff);     // Alpha
+    ColorDOS color = palette[_data->pop<uint8_t>()];
+    result->push<uint8_t>(color.b);  // Blue
+    result->push<uint8_t>(color.g);  // Green
+    result->push<uint8_t>(color.r);  // Red
+    result->push<uint8_t>(0xff);     // Alpha
   }
 
   data = reinterpret_cast<uint8_t*>(result->unfix());
@@ -313,20 +314,20 @@ DataSourceDOS::SpriteDosTransparent::SpriteDosTransparent(PBuffer _data,
                                                           ColorDOS *palette,
                                                           uint8_t color)
   : SpriteBaseDOS(_data) {
-  PMutableBuffer result = std::make_shared<MutableBuffer>();
+  PMutableBuffer result = std::make_shared<MutableBuffer>(Buffer::EndianessBig);
 
   while (_data->readable()) {
-    size_t drop = _data->pop();
-    result->push32be(0x00000000, drop);
+    size_t drop = _data->pop<uint8_t>();
+    result->push<uint32_t>(0x00000000, drop);
 
-    size_t fill = _data->pop();
+    size_t fill = _data->pop<uint8_t>();
     for (size_t i = 0; i < fill; i++) {
-      unsigned int p_index = _data->pop() + color;  // color_off;
+      unsigned int p_index = _data->pop<uint8_t>() + color;  // color_off;
       ColorDOS color = palette[p_index];
-      result->push(color.b);  // Blue
-      result->push(color.g);  // Green
-      result->push(color.r);  // Red
-      result->push(0xFF);     // Alpha
+      result->push<uint8_t>(color.b);  // Blue
+      result->push<uint8_t>(color.g);  // Green
+      result->push<uint8_t>(color.r);  // Red
+      result->push<uint8_t>(0xFF);     // Alpha
     }
   }
 
@@ -337,19 +338,19 @@ DataSourceDOS::SpriteDosOverlay::SpriteDosOverlay(PBuffer _data,
                                                   ColorDOS *palette,
                                                   unsigned char value)
   : SpriteBaseDOS(_data) {
-  PMutableBuffer result = std::make_shared<MutableBuffer>();
+  PMutableBuffer result = std::make_shared<MutableBuffer>(Buffer::EndianessBig);
 
   while (_data->readable()) {
-    size_t drop = _data->pop();
-    result->push32be(0x00000000, drop);
+    size_t drop = _data->pop<uint8_t>();
+    result->push<uint32_t>(0x00000000, drop);
 
-    size_t fill = _data->pop();
+    size_t fill = _data->pop<uint8_t>();
     for (size_t i = 0; i < fill; i++) {
       ColorDOS color = palette[value];
-      result->push(color.b);  // Blue
-      result->push(color.g);  // Green
-      result->push(color.r);  // Red
-      result->push(value);    // Alpha
+      result->push<uint8_t>(color.b);  // Blue
+      result->push<uint8_t>(color.g);  // Green
+      result->push<uint8_t>(color.r);  // Red
+      result->push<uint8_t>(value);    // Alpha
     }
   }
 
@@ -358,14 +359,14 @@ DataSourceDOS::SpriteDosOverlay::SpriteDosOverlay(PBuffer _data,
 
 DataSourceDOS::SpriteDosMask::SpriteDosMask(PBuffer _data)
   : SpriteBaseDOS(_data) {
-  PMutableBuffer result = std::make_shared<MutableBuffer>();
+  PMutableBuffer result = std::make_shared<MutableBuffer>(Buffer::EndianessBig);
 
   while (_data->readable()) {
-    size_t drop = _data->pop();
-    result->push32be(0x00000000, drop);
+    size_t drop = _data->pop<uint8_t>();
+    result->push<uint32_t>(0x00000000, drop);
 
-    size_t fill = _data->pop();
-    result->push32be(0xFFFFFFFF, fill);
+    size_t fill = _data->pop<uint8_t>();
+    result->push<uint32_t>(0xFFFFFFFF, fill);
   }
 
   data = reinterpret_cast<uint8_t*>(result->unfix());
@@ -377,12 +378,12 @@ DataSourceDOS::SpriteBaseDOS::SpriteBaseDOS(PBuffer _data) {
     throw ExceptionFreeserf("Failed to extract DOS sprite");
   }
 
-  delta_x = static_cast<int8_t>(_data->pop());
-  delta_y = static_cast<int8_t>(_data->pop());
-  width = _data->pop16le();
-  height = _data->pop16le();
-  offset_x = static_cast<int16_t>(_data->pop16le());
-  offset_y = static_cast<int16_t>(_data->pop16le());
+  delta_x = _data->pop<int8_t>();
+  delta_y = _data->pop<int8_t>();
+  width = _data->pop<uint16_t>();
+  height = _data->pop<uint16_t>();
+  offset_x = _data->pop<int16_t>();
+  offset_y = _data->pop<int16_t>();
 }
 
 PBuffer

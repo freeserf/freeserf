@@ -25,38 +25,52 @@
 #include <memory>
 #include <string>
 
-#include "src/debug.h"
+#include "src/freeserf_endian.h"
 
 class Buffer;
 typedef std::shared_ptr<Buffer> PBuffer;
 
 class Buffer : public std::enable_shared_from_this<Buffer> {
+ public:
+  typedef enum EndianessMode {
+    EndianessBig,
+    EndianessLittle
+  } EndianessMode;
+
  protected:
   void *data;
   size_t size;
   bool owned;
   PBuffer parent;
   uint8_t *read;
+  EndianessMode endianess;
 
  public:
-  Buffer();
-  Buffer(void *data, size_t size);
+  Buffer(EndianessMode endianess = is_big_endian() ? EndianessBig
+                                                   : EndianessLittle);
+  Buffer(void *data, size_t size,
+         EndianessMode endianess = is_big_endian() ? EndianessBig
+                                                   : EndianessLittle);
   Buffer(PBuffer parent, size_t start, size_t length);
-  explicit Buffer(const std::string &path);
+  Buffer(PBuffer parent, size_t start, size_t length, EndianessMode endianess);
+  explicit Buffer(const std::string &path,
+                  EndianessMode endianess = is_big_endian() ? EndianessBig
+                                                            : EndianessLittle);
   virtual ~Buffer();
 
   size_t get_size() const { return size; }
   void *get_data() const { return data; }
   void *unfix();
+  void set_endianess(EndianessMode _endianess) { endianess = _endianess; }
 
   bool readable();
-  uint8_t pop();
   PBuffer pop(size_t size);
   PBuffer pop_tail();
-  uint16_t pop16be();
-  uint16_t pop16le();
-  uint32_t pop32be();
-  uint32_t pop32le();
+  template<typename T> T pop() {
+    T value = *reinterpret_cast<T*>(read);
+    read += sizeof(T);
+    return (endianess == EndianessBig) ? betoh(value) : letoh(value);
+  }
 
   PBuffer get_subbuffer(size_t offset, size_t size);
   PBuffer get_tail(size_t offset);
@@ -78,8 +92,8 @@ class MutableBuffer : public Buffer {
   size_t growth;
 
  public:
-  MutableBuffer();
-  explicit MutableBuffer(size_t size);
+  explicit MutableBuffer(EndianessMode endianess);
+  MutableBuffer(size_t size, EndianessMode endianess);
   virtual ~MutableBuffer();
 
   size_t get_size() const { return size; }
@@ -90,11 +104,16 @@ class MutableBuffer : public Buffer {
   void push(const void *data, size_t size);
   void push(void *data, size_t size) { push((const void*)data, size); }
   void push(const std::string &str);
-  void push32be(uint32_t value, size_t count = 1);
-  void push32le(uint32_t value, size_t count = 1);
-  void push16be(uint16_t value, size_t count = 1);
-  void push16le(uint16_t value, size_t count = 1);
-  void push(uint8_t value, size_t count = 1);
+  void push(const char *str) { push(std::string(str)); }
+  template<typename T> void push(T value, size_t count = 1) {
+    check_size(size + (sizeof(T) * count));
+    for (size_t i = 0; i < count; i++) {
+      *(reinterpret_cast<T*>(offset(size))) = (endianess == EndianessBig) ?
+                                                htobe(value) :
+                                                htole(value);
+      size += sizeof(T);
+    }
+  }
 
  protected:
   void check_size(size_t size);

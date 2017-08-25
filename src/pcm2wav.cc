@@ -34,15 +34,13 @@ ConvertorPCM2WAV::ConvertorPCM2WAV(PBuffer _buffer,
 
 PBuffer
 ConvertorPCM2WAV::convert() {
-  result = std::make_shared<MutableBuffer>();
+  result = std::make_shared<MutableBuffer>(Buffer::EndianessLittle);
 
   PBuffer header = create_header();
   PBuffer data = create_data(buffer);
 
   result->push("RIFF");
-  result->push32le(static_cast<uint32_t>(header->get_size() +
-                                         data->get_size() +
-                                         20));
+  result->push<uint32_t>(header->get_size() + data->get_size() + 20);
   result->push("WAVE");
   write_chunk("fmt ", header);
   write_chunk("data", data);
@@ -53,20 +51,21 @@ ConvertorPCM2WAV::convert() {
 void
 ConvertorPCM2WAV::write_chunk(std::string name, PBuffer data) {
   result->push(name);
-  result->push32le(static_cast<uint32_t>(data->get_size()));
+  result->push<uint32_t>(data->get_size());
   result->push(data);
 }
 
 PBuffer
 ConvertorPCM2WAV::create_header() {
-  PMutableBuffer header = std::make_shared<MutableBuffer>();
+  PMutableBuffer header =
+                       std::make_shared<MutableBuffer>(Buffer::EndianessLittle);
 
-  header->push16le(1);                               // Format = PCM
-  header->push16le((uint16_t)chenals);               // Chanels count
-  header->push32le((uint32_t)rate);                  // Rate
-  header->push32le((uint32_t)(rate * chenals * 2));  // Byte rate
-  header->push16le((uint16_t)(chenals * 2));         // Block align
-  header->push16le(16);                              // Bits per sample
+  header->push<uint16_t>(1);                   // Format = PCM
+  header->push<uint16_t>(chenals);             // Chanels count
+  header->push<uint32_t>(rate);                // Rate
+  header->push<uint32_t>(rate * chenals * 2);  // Byte rate
+  header->push<uint16_t>(chenals * 2);         // Block align
+  header->push<uint16_t>(16);                  // Bits per sample
 
   return header;
 }

@@ -37,6 +37,7 @@ DataSourceLegacy::~DataSourceLegacy() {
 bool
 DataSourceLegacy::load_animation_table(PBuffer data) {
   // The serf animation table is stored in big endian order in the data file.
+  data->set_endianess(Buffer::EndianessBig);
 
   // * Starts with 200 uint32s that are offsets from the start
   // of this table to an animation table (one for each animation).
@@ -53,7 +54,7 @@ DataSourceLegacy::load_animation_table(PBuffer data) {
 
   // Endianess convert from big endian.
   for (size_t i = 0; i < 200; i++) {
-    animation_block[i] = be32toh(animation_block[i]);
+    animation_block[i] = betoh(animation_block[i]);
   }
 
   size_t sizes[200];

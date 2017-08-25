@@ -25,6 +25,7 @@
 #include <memory>
 
 #include "src/freeserf_endian.h"
+#include "src/debug.h"
 
 UnpackerTPWM::UnpackerTPWM(PBuffer _buffer) : Convertor(_buffer) {
   if (buffer->get_size() < 8) {
@@ -39,26 +40,25 @@ UnpackerTPWM::UnpackerTPWM(PBuffer _buffer) : Convertor(_buffer) {
 
 PBuffer
 UnpackerTPWM::convert() {
-  size_t res_size = buffer->pop16le();
-  PMutableBuffer result = std::make_shared<MutableBuffer>();
+  size_t res_size = buffer->pop<uint16_t>();
+  PMutableBuffer result = std::make_shared<MutableBuffer>(Buffer::EndianessBig);
 
   try {
     while (buffer->readable()) {
-      size_t flag = buffer->pop();
+      size_t flag = buffer->pop<uint8_t>();
       for (int i = 0 ; i < 8 ; i++) {
         flag <<= 1;
         if (flag & ~0xFF) {
           flag &= 0xFF;
-          size_t temp = buffer->pop();
+          size_t temp = buffer->pop<uint8_t>();
           size_t stamp_size = (temp & 0x0F) + 3;
-          size_t stamp_offset = buffer->pop();
+          size_t stamp_offset = buffer->pop<uint8_t>();
           stamp_offset |= ((temp << 4) & 0x0F00);
           PBuffer stamp = result->get_subbuffer(result->get_size() -
-                                                  stamp_offset,
-                                                stamp_size);
+                                                stamp_offset, stamp_size);
           result->push(stamp);
         } else {
-          result->push(buffer->pop());
+          result->push<uint8_t>(buffer->pop<uint8_t>());
         }
       }
     }

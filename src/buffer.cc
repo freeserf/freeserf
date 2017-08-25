@@ -26,20 +26,22 @@
 #include <cstddef>
 #include <cstring>
 
-#include "src/freeserf_endian.h"
+#include "src/debug.h"
 
-Buffer::Buffer()
+Buffer::Buffer(EndianessMode _endianess)
   : data(nullptr)
   , size(0)
   , owned(true)
-  , read(nullptr) {
+  , read(nullptr)
+  , endianess(_endianess) {
 }
 
-Buffer::Buffer(void *_data, size_t _size)
+Buffer::Buffer(void *_data, size_t _size, EndianessMode _endianess)
   : data(_data)
   , size(_size)
   , owned(false)
-  , read(reinterpret_cast<uint8_t*>(data)) {
+  , read(reinterpret_cast<uint8_t*>(data))
+  , endianess(_endianess) {
 }
 
 Buffer::Buffer(PBuffer _parent, size_t start, size_t length)
@@ -47,10 +49,23 @@ Buffer::Buffer(PBuffer _parent, size_t start, size_t length)
   , size(length)
   , owned(false)
   , parent(_parent)
-  , read(reinterpret_cast<uint8_t*>(data)) {
+  , read(reinterpret_cast<uint8_t*>(data))
+  , endianess(_parent->endianess) {
 }
 
-Buffer::Buffer(const std::string &path) : owned(true) {
+Buffer::Buffer(PBuffer _parent, size_t start, size_t length,
+               EndianessMode _endianess)
+  : data(reinterpret_cast<uint8_t*>(_parent->get_data()) + start)
+  , size(length)
+  , owned(false)
+  , parent(_parent)
+  , read(reinterpret_cast<uint8_t*>(data))
+  , endianess(_endianess) {
+}
+
+Buffer::Buffer(const std::string &path, EndianessMode _endianess)
+  : owned(true)
+  , endianess(_endianess) {
   std::ifstream file(path.c_str(), std::ios::binary | std::ios::ate);
   if (!file.good()) {
     throw ExceptionFreeserf("Failed to open file '" + path + "'");
@@ -90,18 +105,11 @@ Buffer::readable() {
   return (read - reinterpret_cast<uint8_t*>(data) != (ptrdiff_t)size);
 }
 
-uint8_t
-Buffer::pop() {
-  uint8_t value = *read;
-  read++;
-  return value;
-}
-
 PBuffer
 Buffer::pop(size_t _size) {
   PBuffer value = std::make_shared<Buffer>(shared_from_this(),
                                         read - reinterpret_cast<uint8_t*>(data),
-                                           _size);
+                                           _size, endianess);
   read += _size;
   return value;
 }
@@ -112,37 +120,9 @@ Buffer::pop_tail() {
   return pop(_size);
 }
 
-uint16_t
-Buffer::pop16be() {
-  uint16_t value = *reinterpret_cast<uint16_t*>(read);
-  read += 2;
-  return be16toh(value);
-}
-
-uint16_t
-Buffer::pop16le() {
-  uint16_t value = *reinterpret_cast<uint16_t*>(read);
-  read += 2;
-  return le16toh(value);
-}
-
-uint32_t
-Buffer::pop32be() {
-  uint32_t value = *reinterpret_cast<uint32_t*>(read);
-  read += 4;
-  return be32toh(value);
-}
-
-uint32_t
-Buffer::pop32le() {
-  uint32_t value = *reinterpret_cast<uint32_t*>(read);
-  read += 4;
-  return le32toh(value);
-}
-
 PBuffer
 Buffer::get_subbuffer(size_t offset, size_t _size) {
-  return std::make_shared<Buffer>(shared_from_this(), offset, _size);
+  return std::make_shared<Buffer>(shared_from_this(), offset, _size, endianess);
 }
 
 PBuffer
@@ -165,20 +145,21 @@ Buffer::write(const std::string &path) {
 
 // MutableBuffer
 
-MutableBuffer::MutableBuffer()
-  : Buffer()
+MutableBuffer::MutableBuffer(EndianessMode _endianess)
+  : Buffer(_endianess)
   , reserved(0)
   , growth(1000) {
   owned = true;
 }
 
-MutableBuffer::MutableBuffer(size_t _size)
+MutableBuffer::MutableBuffer(size_t _size, EndianessMode _endianess)
   : reserved(_size)
   , growth(1000) {
   data = ::malloc(_size);
   size = 0;
   owned = true;
   read = reinterpret_cast<uint8_t*>(data);
+  endianess = _endianess;
 }
 
 MutableBuffer::~MutableBuffer() {
@@ -226,50 +207,5 @@ MutableBuffer::push(const void *_data, size_t _size) {
 void
 MutableBuffer::push(const std::string &str) {
   push((const void*)str.c_str(), str.size());
-}
-
-void
-MutableBuffer::push32be(uint32_t value, size_t count) {
-  check_size(size + (4 * count));
-  for (size_t i = 0; i < count; i++) {
-    *(reinterpret_cast<uint32_t*>(offset(size))) = htobe32(value);
-    size += 4;
-  }
-}
-
-void
-MutableBuffer::push32le(uint32_t value, size_t count) {
-  check_size(size + (4 * count));
-  for (size_t i = 0; i < count; i++) {
-    *(reinterpret_cast<uint32_t*>(offset(size))) = htole32(value);
-    size += 4;
-  }
-}
-
-void
-MutableBuffer::push16be(uint16_t value, size_t count) {
-  check_size(size + (2 * count));
-  for (size_t i = 0; i < count; i++) {
-    *(reinterpret_cast<uint16_t*>(offset(size))) = htobe16(value);
-    size += 2;
-  }
-}
-
-void
-MutableBuffer::push16le(uint16_t value, size_t count) {
-  check_size(size + (2 * count));
-  for (size_t i = 0; i < count; i++) {
-    *(reinterpret_cast<uint16_t*>(offset(size))) = htole16(value);
-    size += 2;
-  }
-}
-
-void
-MutableBuffer::push(uint8_t value, size_t count) {
-  check_size(size + count);
-  for (size_t i = 0; i < count; i++) {
-    *(reinterpret_cast<uint8_t*>(offset(size))) = value;
-    size++;
-  }
 }
 

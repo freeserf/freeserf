@@ -54,10 +54,10 @@ static ChunkProcessors xmi_processors = {
 static size_t
 xmi_process_chunk(PBuffer buffer, MidiFile *midi) {
   PBuffer id = buffer->pop(4);
-  std::string name = *id.get();
-  size_t size = buffer->pop32be();
-  Log::Verbose["xmi2mid"] << "Processing XMI chunk: "
-                          << name << " (size: " << size << ")";
+  std::string name = *id;
+  size_t size = buffer->pop<uint32_t>();
+  Log::Verbose["xmi2mid"] << "Processing XMI chunk: " << name
+                          << " (size: " << size << ")";
   PBuffer data = buffer->pop(size);
 
   ChunkProcessors::iterator it = xmi_processors.find(name);
@@ -96,7 +96,7 @@ xmi_process_INFO(PBuffer buffer, MidiFile * /*midi*/) {
   if (buffer->get_size() != 2) {
     Log::Debug["xmi2mid"] << "\tInconsistent INFO block.";
   } else {
-    uint16_t track_count = buffer->pop16le();
+    uint16_t track_count = buffer->pop<uint16_t>();
     Log::Verbose["xmi2mid"] << "\tXMI contains " << track_count << " track(s)";
   }
   return buffer->get_size();
@@ -104,13 +104,13 @@ xmi_process_INFO(PBuffer buffer, MidiFile * /*midi*/) {
 
 static size_t
 xmi_process_TIMB(PBuffer buffer, MidiFile * /*midi*/) {
-  size_t count = buffer->pop16le();
+  size_t count = buffer->pop<uint16_t>();
   if (count*2 + 2 != buffer->get_size()) {
     Log::Debug["xmi2mid"] << "\tInconsistent TIMB block.";
   } else {
     for (size_t i = 0; i < count; i++) {
-      uint8_t patch = buffer->pop();
-      uint8_t bank = buffer->pop();
+      uint8_t patch = buffer->pop<uint8_t>();
+      uint8_t bank = buffer->pop<uint8_t>();
       Log::Verbose["xmi2mid"] << "\tTIMB entry " << i << ": "
                               << static_cast<int>(patch) << ", "
                               << static_cast<int>(bank);
@@ -124,10 +124,10 @@ static uint64_t
 midi_read_variable_size(PBuffer buffer) {
   uint64_t val = 0;
 
-  uint8_t data = buffer->pop();
+  uint8_t data = buffer->pop<uint8_t>();
   while (data & 0x80) {
     val = (val << 7) | (data & 0x7f);
-    data = buffer->pop();
+    data = buffer->pop<uint8_t>();
   }
   val = (val << 7) | (data & 0x7f);
 
@@ -140,7 +140,7 @@ xmi_process_EVNT(PBuffer buffer, MidiFile *midi) {
   unsigned int time_index = 0;
 
   while (buffer->readable()) {
-    uint8_t type = buffer->pop();
+    uint8_t type = buffer->pop<uint8_t>();
 
     if (type & 0x80) {
       ConvertorXMI2MID::MidiNode node;
@@ -154,8 +154,8 @@ xmi_process_EVNT(PBuffer buffer, MidiFile *midi) {
         case 0xA0:
         case 0xB0:
         case 0xE0:
-          node.data1 = buffer->pop();
-          node.data2 = buffer->pop();
+          node.data1 = buffer->pop<uint8_t>();
+          node.data2 = buffer->pop<uint8_t>();
           if ((type & 0xF0) == 0x90) {
             uint8_t data1 = node.data1;
             midi->nodes.push_back(node);
@@ -174,19 +174,19 @@ xmi_process_EVNT(PBuffer buffer, MidiFile *midi) {
           break;
         case 0xC0:
         case 0xD0:
-          node.data1 = buffer->pop();
+          node.data1 = buffer->pop<uint8_t>();
           node.data2 = 0;
           break;
         case 0xF0:
           if (type == 0xFF) {  // Meta message.
-            node.data1 = buffer->pop();
-            node.data2 = buffer->pop();
+            node.data1 = buffer->pop<uint8_t>();
+            node.data2 = buffer->pop<uint8_t>();
             node.buffer = buffer->pop(node.data2);
             if (node.data1 == 0x51) {
               if (midi->tempo == 0) {
                 for (int i = 0; i < node.data2; i++) {
                   midi->tempo = midi->tempo << 8;
-                  midi->tempo |= node.buffer->pop();
+                  midi->tempo |= node.buffer->pop<uint8_t>();
                 }
               }
             }
@@ -211,12 +211,13 @@ midi_write_variable_size(uint64_t val, PMutableBuffer data) {
     buf = (buf << 8) | 0x80 | (val & 0x7F);
   }
   for (uint32_t i = 0; i < count; ++i) {
-    data->push((uint8_t)(buf & 0xFF));
+    data->push<uint8_t>(buf & 0xFF);
     buf >>= 8;
   }
 }
 
 ConvertorXMI2MID::ConvertorXMI2MID(PBuffer _buffer) : Convertor(_buffer) {
+  buffer->set_endianess(Buffer::EndianessBig);
 }
 
 PBuffer
@@ -226,12 +227,12 @@ ConvertorXMI2MID::convert() {
 
   xmi_process_chunks(buffer, &midi_file);
 
-  result = std::make_shared<MutableBuffer>();
+  result = std::make_shared<MutableBuffer>(Buffer::EndianessBig);
 
-  PMutableBuffer header = std::make_shared<MutableBuffer>();
-  header->push16be(0);                            // File type
-  header->push16be(1);                            // Track count
-  header->push16be(midi_file.tempo * 3 / 25000);  // Time division
+  PMutableBuffer header = std::make_shared<MutableBuffer>(Buffer::EndianessBig);
+  header->push<int16_t>(0);                            // File type
+  header->push<int16_t>(1);                            // Track count
+  header->push<int16_t>(midi_file.tempo * 3 / 25000);  // Time division
   write_chunk("MThd", header);
 
   write_chunk("MTrk", create_track(&midi_file.nodes));
@@ -242,7 +243,7 @@ ConvertorXMI2MID::convert() {
 void
 ConvertorXMI2MID::write_chunk(std::string id, PBuffer data) {
   result->push(id);
-  result->push32be(static_cast<uint32_t>(data->get_size()));
+  result->push<uint32_t>(data->get_size());
   result->push(data);
 }
 
@@ -262,7 +263,7 @@ ConvertorXMI2MID::create_track(MidiNodes *nodes) {
   // Sort the nodes.
   std::sort(nodes->begin(), nodes->end(), CompareByTime());
 
-  PMutableBuffer data = std::make_shared<MutableBuffer>();
+  PMutableBuffer data = std::make_shared<MutableBuffer>(Buffer::EndianessBig);
   uint64_t time = 0;
   while (!nodes->empty()) {
     MidiNode node = nodes->back();
@@ -270,10 +271,10 @@ ConvertorXMI2MID::create_track(MidiNodes *nodes) {
 
     midi_write_variable_size(node.time - time, data);
     time = node.time;
-    data->push(node.type);
-    data->push(node.data1);
+    data->push<uint8_t>(node.type);
+    data->push<uint8_t>(node.data1);
     if (((node.type & 0xF0) != 0xC0) && ((node.type & 0xF0) != 0xD0)) {
-      data->push(node.data2);
+      data->push<uint8_t>(node.data2);
       if (node.type == 0xFF) {
         if (node.data2 > 0) {
           data->push(node.buffer);

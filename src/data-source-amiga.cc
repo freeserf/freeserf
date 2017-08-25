@@ -273,7 +273,7 @@ DataSourceAmiga::check() {
 bool
 DataSourceAmiga::load() {
   try {
-    gfxfast = std::make_shared<Buffer>(path + "/gfxfast");
+    gfxfast = std::make_shared<Buffer>(path + "/gfxfast", Buffer::EndianessBig);
     gfxfast = decode(gfxfast);
     gfxfast = unpack(gfxfast);
     Log::Debug["data"] << "Data file 'gfxfast' loaded (size = "
@@ -284,7 +284,7 @@ DataSourceAmiga::load() {
   }
 
   try {
-    gfxchip = std::make_shared<Buffer>(path + "/gfxchip");
+    gfxchip = std::make_shared<Buffer>(path + "/gfxchip", Buffer::EndianessBig);
     gfxchip = decode(gfxchip);
     gfxchip = unpack(gfxchip);
     Log::Debug["data"] << "Data file 'gfxchip' loaded (size = "
@@ -296,19 +296,20 @@ DataSourceAmiga::load() {
 
   PBuffer gfxheader;
   try {
-    gfxheader = std::make_shared<Buffer>(path + "/gfxheader");
+    gfxheader = std::make_shared<Buffer>(path + "/gfxheader",
+                                         Buffer::EndianessBig);
   } catch (ExceptionFreeserf e) {
     Log::Error["data"] << "Failed to load 'gfxheader'";
     return false;
   }
 
   // Prepare icons catalog
-  size_t icon_catalog_offset = gfxheader->pop16be();
-  size_t icon_catalog_size = gfxheader->pop16be();
+  size_t icon_catalog_offset = gfxheader->pop<uint16_t>();
+  size_t icon_catalog_size = gfxheader->pop<uint16_t>();
   PBuffer icon_catalog_tmp = gfxfast->get_subbuffer(icon_catalog_offset * 4,
                                                     icon_catalog_size * 4);
   for (unsigned int i = 0; i < icon_catalog_size; i++) {
-    size_t offset = icon_catalog_tmp->pop32be();
+    size_t offset = icon_catalog_tmp->pop<uint32_t>();
     icon_catalog.push_back(offset);
   }
 
@@ -338,7 +339,7 @@ DataSourceAmiga::load() {
   data_pointers[23] = gfxfast;  // Title (1 * 43200)
 
   for (unsigned int i = 1; i < gfxheader->get_size()/4; i++) {
-    size_t black_offset = gfxheader->pop32be();
+    size_t black_offset = gfxheader->pop<uint32_t>();
 //    Log::Warn["data"] << "Block " << i << " : " << black_offset;
     data_pointers[i] = data_pointers[i]->get_tail(black_offset);
   }
@@ -352,10 +353,11 @@ DataSourceAmiga::load() {
   }
 
   try {
-    PBuffer gfxpics = std::make_shared<Buffer>(path + "/gfxpics");
+    PBuffer gfxpics = std::make_shared<Buffer>(path + "/gfxpics",
+                                               Buffer::EndianessBig);
     for (size_t i = 0; i < 14; i++) {
-      uint32_t offset = gfxpics->pop32be();
-      uint32_t size = gfxpics->pop32be();
+      uint32_t offset = gfxpics->pop<uint32_t>();
+      uint32_t size = gfxpics->pop<uint32_t>();
       pics[i] = gfxpics->get_subbuffer(28*4 + offset, size);
       pics[i] = decode(pics[i]);
       pics[i] = unpack(pics[i]);
@@ -377,8 +379,9 @@ DataSourceAmiga::get_sprite_parts(Data::Resource res, size_t index) {
     case Data::AssetArtLandscape:
       break;
     case Data::AssetSerfShadow: {
-      uint16_t shadow[6] = {be16toh(0x01C0), be16toh(0x07C0), be16toh(0x1F80),
-                            be16toh(0x7F00), be16toh(0xFE00), be16toh(0xFC00)};
+      uint16_t shadow[6] = {betoh<uint16_t>(0x01C0), betoh<uint16_t>(0x07C0),
+                            betoh<uint16_t>(0x1F80), betoh<uint16_t>(0x7F00),
+                            betoh<uint16_t>(0xFE00), betoh<uint16_t>(0xFC00)};
       PBuffer data = std::make_shared<Buffer>(shadow, 12);
       PSpriteAmiga m = decode_mask_sprite(data, 16, 6);
       m->fill_masked({0x00, 0x00, 0x00, 0x80});
@@ -763,29 +766,30 @@ DataSourceAmiga::get_music(size_t /*index*/) {
 
 PBuffer
 DataSourceAmiga::decode(PBuffer data) {
-  PMutableBuffer result = std::make_shared<MutableBuffer>(data->get_size());
+  PMutableBuffer result = std::make_shared<MutableBuffer>(data->get_size(),
+                                                          Buffer::EndianessBig);
   for (size_t i = 0; i < data->get_size(); i++) {
-    result->push(data->pop() ^ static_cast<uint8_t>(i));
+    result->push<uint8_t>(data->pop<uint8_t>() ^ static_cast<uint8_t>(i));
   }
   return result;
 }
 
 PBuffer
 DataSourceAmiga::unpack(PBuffer data) {
-  PMutableBuffer result = std::make_shared<MutableBuffer>();
-  uint8_t flag = data->pop();
+  PMutableBuffer result = std::make_shared<MutableBuffer>(Buffer::EndianessBig);
+  uint8_t flag = data->pop<uint8_t>();
 
   while (data->readable()) {
-    uint8_t val = data->pop();
+    uint8_t val = data->pop<uint8_t>();
     size_t count = 0;
 
     if (val == flag) {
-      count = data->pop();
-      val = data->pop();
+      count = data->pop<uint8_t>();
+      val = data->pop<uint8_t>();
     }
 
     for (unsigned int i = 0; i < count + 1; i++) {
-      result->push(val);
+      result->push<uint8_t>(val);
     }
   }
 
@@ -822,10 +826,10 @@ PSprite
 DataSourceAmiga::get_icon_sprite(size_t index) {
   PBuffer data = gfxfast->get_tail(icon_catalog[index]);
 
-  uint16_t width = data->pop16be();
-  uint16_t height = data->pop16be();
-  uint8_t filling = data->pop();
-  uint8_t compression = data->pop();
+  uint16_t width = data->pop<uint16_t>();
+  uint16_t height = data->pop<uint16_t>();
+  uint8_t filling = data->pop<uint8_t>();
+  uint8_t compression = data->pop<uint8_t>();
 
   return decode_planned_sprite(data->pop_tail(), width, height, compression,
                                filling, palette);
@@ -849,11 +853,10 @@ DataSourceAmiga::get_data_from_catalog(size_t catalog_index, size_t index,
                                        PBuffer base) {
   uint32_t *catalog = reinterpret_cast<uint32_t*>(
                                       data_pointers[catalog_index]->get_data());
-  uint32_t offset = catalog[index];
+  uint32_t offset = betoh(catalog[index]);
   if (offset == 0) {
     return nullptr;
   }
-  offset = be32toh(offset);
 
   return base->get_tail(offset);
 }
@@ -865,8 +868,8 @@ DataSourceAmiga::get_ground_sprite(size_t index) {
     return nullptr;
   }
 
-  uint8_t filled = data->pop();
-  uint8_t compressed = data->pop();
+  uint8_t filled = data->pop<uint8_t>();
+  uint8_t compressed = data->pop<uint8_t>();
 
   PSpriteAmiga sprite = decode_planned_sprite(data->pop_tail(), 4, 21,
                                               compressed, filled, palette);
@@ -891,7 +894,7 @@ DataSourceAmiga::get_ground_mask_sprite(size_t index) {
   if (!data) {
     return nullptr;
   }
-  uint16_t height = data->pop16be();
+  uint16_t height = data->pop<uint16_t>();
 
   PSpriteAmiga sprite = std::make_shared<SpriteAmiga>(32, height);
   sprite->set_delta(2, 0);
@@ -899,7 +902,7 @@ DataSourceAmiga::get_ground_mask_sprite(size_t index) {
 
   uint32_t *pixel = reinterpret_cast<uint32_t*>(sprite->get_data());
   for (int i = 0 ; i < 32*height/8 ; i++) {
-    uint8_t byte = data->pop();
+    uint8_t byte = data->pop<uint8_t>();
     for (unsigned int j = 0 ; j < 8; j++) {
       if (((byte >> (7-j)) & 0x01) == 0x01) {
         *pixel = 0xFFFFFFFF;
@@ -942,8 +945,8 @@ DataSourceAmiga::get_path_mask_sprite(size_t index) {
     return nullptr;
   }
 
-  uint8_t n = data->pop();
-  uint8_t k = data->pop();
+  uint8_t n = data->pop<uint8_t>();
+  uint8_t k = data->pop<uint8_t>();
 
   int width = (k == 66) ? 32 : 16;
 
@@ -964,7 +967,7 @@ DataSourceAmiga::decode_mask_sprite(PBuffer data, size_t width, size_t height) {
 
   uint32_t *pixel = reinterpret_cast<uint32_t*>(sprite->get_data());
   for (unsigned int i = 0 ; i < size ; i++) {
-    uint8_t byte = data->pop();
+    uint8_t byte = data->pop<uint8_t>();
     for (unsigned int j = 0 ; j < 8; j++) {
       if (((byte >> (7-j)) & 0x01) == 0x01) {
         *pixel = 0xFFFFFFFF;
@@ -985,12 +988,12 @@ DataSourceAmiga::get_game_object_sprite(size_t catalog, size_t index) {
     return nullptr;
   }
 
-  uint8_t h = data->pop();
-  uint8_t offset_y = data->pop();
-  uint8_t w = data->pop();
-  uint8_t offset_x = data->pop();
-  uint8_t filling = data->pop();
-  uint8_t compression = data->pop();
+  uint8_t h = data->pop<uint8_t>();
+  uint8_t offset_y = data->pop<uint8_t>();
+  uint8_t w = data->pop<uint8_t>();
+  uint8_t offset_x = data->pop<uint8_t>();
+  uint8_t filling = data->pop<uint8_t>();
+  uint8_t compression = data->pop<uint8_t>();
 
   if (w < 16) w = 16;
 
@@ -1017,12 +1020,12 @@ DataSourceAmiga::get_torso_sprite(size_t index, uint8_t *palette) {
     return nullptr;
   }
 
-  uint8_t offset_x = data->pop();
-  uint8_t w = data->pop();
-  uint8_t offset_y = data->pop();
-  uint8_t h = data->pop();
-  int8_t delta_y = static_cast<int8_t>(data->pop());
-  int8_t delta_x = static_cast<int8_t>(data->pop());
+  uint8_t offset_x = data->pop<uint8_t>();
+  uint8_t w = data->pop<uint8_t>();
+  uint8_t offset_y = data->pop<uint8_t>();
+  uint8_t h = data->pop<uint8_t>();
+  int8_t delta_y = data->pop<int8_t>();
+  int8_t delta_x = data->pop<int8_t>();
 
   if (w < 16) {
     w = 16;
@@ -1033,7 +1036,7 @@ DataSourceAmiga::get_torso_sprite(size_t index, uint8_t *palette) {
 
   PSpriteAmiga mask = decode_mask_sprite(data, w*8, h);
 
-  PMutableBuffer buff = std::make_shared<MutableBuffer>();
+  PMutableBuffer buff = std::make_shared<MutableBuffer>(Buffer::EndianessBig);
   buff->push(data->pop(bps*4));
   data->pop(bps);
   buff->push(data->pop(bps));
@@ -1055,12 +1058,12 @@ DataSourceAmiga::get_map_object_sprite(size_t index) {
     return nullptr;
   }
 
-  data->pop16be();  // drop shadow_offset
-  uint16_t bitplane_size = data->pop16be();
-  uint8_t width = data->pop();
-  uint8_t height = data->pop();
-  uint8_t offset_y = data->pop();
-  uint8_t compression = data->pop();
+  data->pop<uint16_t>();  // drop shadow_offset
+  uint16_t bitplane_size = data->pop<uint16_t>();
+  uint8_t width = data->pop<uint8_t>();
+  uint8_t height = data->pop<uint8_t>();
+  uint8_t offset_y = data->pop<uint8_t>();
+  uint8_t compression = data->pop<uint8_t>();
 
   if (height == 0) {
     return nullptr;
@@ -1107,12 +1110,12 @@ DataSourceAmiga::get_map_object_shadow(size_t index) {
     return nullptr;
   }
 
-  uint16_t shadow_offset = data->pop16be();
-  uint16_t bitplane_size = data->pop16be();
-  uint8_t width = data->pop();
-  uint8_t height = data->pop();
-  data->pop();  // drop offset_y
-  data->pop();  // drop compression
+  uint16_t shadow_offset = data->pop<uint16_t>();
+  uint16_t bitplane_size = data->pop<uint16_t>();
+  uint8_t width = data->pop<uint8_t>();
+  uint8_t height = data->pop<uint8_t>();
+  data->pop<uint8_t>();  // drop offset_y
+  data->pop<uint8_t>();  // drop compression
 
   if (height == 0) {
     return nullptr;
@@ -1122,10 +1125,10 @@ DataSourceAmiga::get_map_object_shadow(size_t index) {
   }
 
   PBuffer shadow = data->get_tail(shadow_offset);
-  int shadow_offset_y = shadow->pop();
-  size_t shadow_height = shadow->pop();
-  int shadow_offset_x = shadow->pop();
-  size_t shadow_width = shadow->pop() * 8;
+  int shadow_offset_y = shadow->pop<int8_t>();
+  size_t shadow_height = shadow->pop<uint8_t>();
+  int shadow_offset_x = shadow->pop<int8_t>();
+  size_t shadow_width = shadow->pop<uint8_t>() * 8;
 
   PSpriteAmiga sprite = std::make_shared<SpriteAmiga>(shadow_width,
                                                       shadow_height);
