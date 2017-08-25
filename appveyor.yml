@@ -65,7 +65,7 @@ install:
       $env:XMPDIR = $XMPDIR
 
 build_script:
-  - cmd: cmake -G "NMake Makefiles"
+  - cmd: cmake -G "NMake Makefiles" -DCMAKE_BUILD_TYPE=%configuration%
   - cmd: nmake check_style
   - cmd: nmake
   - cmd: nmake test
@@ -73,4 +73,4 @@ build_script:
 
 after_build:
   - ps: |
-      Push-AppveyorArtifact FreeSerf-$env:PLATFORM.exe
+      Push-AppveyorArtifact FreeSerf-$env:PLATFORM-$env:CONFIGURATION.exe

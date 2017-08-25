@@ -9,8 +9,8 @@ Build status
 
 Last build downloads
 --------------------
-* [Windows Installer x86](https://ci.appveyor.com/api/projects/jonls/freeserf/artifacts/FreeSerf-x86.exe?branch=master&pr=false&job=Configuration%3A%20Release%3B%20Platform%3A%20x86)
-* [Windows Installer x64](https://ci.appveyor.com/api/projects/jonls/freeserf/artifacts/FreeSerf-x64.exe?branch=master&pr=false&job=Configuration%3A%20Release%3B%20Platform%3A%20x64)
+* [Windows Installer x86](https://ci.appveyor.com/api/projects/jonls/freeserf/artifacts/FreeSerf-x86-Release.exe?branch=master&pr=false&job=Configuration%3A%20Release%3B%20Platform%3A%20x86)
+* [Windows Installer x64](https://ci.appveyor.com/api/projects/jonls/freeserf/artifacts/FreeSerf-x64-Release.exe?branch=master&pr=false&job=Configuration%3A%20Release%3B%20Platform%3A%20x64)
 * [Linux Sources TAR.Z](https://s3.amazonaws.com/freeserf/freeserf/freeserf/master/FreeSerf.tar.Z)
 * [Linux Sources TAR.BZ2](https://s3.amazonaws.com/freeserf/freeserf/freeserf/master/FreeSerf.tar.bz2)
 * [Linux Sources TAR.GZ](https://s3.amazonaws.com/freeserf/freeserf/freeserf/master/FreeSerf.tar.gz)

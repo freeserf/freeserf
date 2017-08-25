@@ -60,7 +60,7 @@ install:
 script:
   - |
     cd $BUID_DIR
-    cmake $TRAVIS_BUILD_DIR
+    cmake -DCMAKE_BUILD_TYPE=Release $TRAVIS_BUILD_DIR
     make check_style
     make
     make test
