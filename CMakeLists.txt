@@ -2,6 +2,8 @@ cmake_minimum_required(VERSION 2.8 FATAL_ERROR)
 project(FreeSerf)
 set(PROJECT_VERSION "0.2.0")
 
+list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
+
 find_package(Git)
 if(GIT_FOUND)
   execute_process(COMMAND ${GIT_EXECUTABLE} describe --always --tags --dirty
@@ -37,10 +39,6 @@ message(STATUS "PROJECT_VERSION_MAJOR = ${PROJECT_VERSION_MAJOR}")
 message(STATUS "PROJECT_VERSION_MINOR = ${PROJECT_VERSION_MINOR}")
 message(STATUS "PROJECT_VERSION_PATCH = ${PROJECT_VERSION_PATCH}")
 
-enable_testing()
-
-list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
-
 if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
   set(CMAKE_CXX_FLAGS "-std=gnu++11 ${CMAKE_CXX_FLAGS}")
 elseif(CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
@@ -63,29 +61,13 @@ add_definitions(-DHAVE_CONFIG_H)
 
 add_definitions(-DPACKAGE_BUGREPORT="https://github.com/freeserf/freeserf/issues")
 
-option(ENABLE_TESTS "Enable compilation of tests" ON)
-option(ENABLE_SDL2_MIXER "Enable audio support using SDL2_mixer" ON)
-set(SDL2_BUILDING_LIBRARY 1)
-find_package(SDL2 REQUIRED)
-if(SDL2_FOUND)
-  if(ENABLE_SDL2_MIXER)
-    find_package(SDL2_mixer REQUIRED)
-  else()
-    find_package(SDL2_mixer)
-  endif()
-endif()
-
-option(ENABLE_XMP "Enable libxmp support" ON)
-if(ENABLE_XMP)
-  find_package(XMP REQUIRED)
-else()
-  find_package(XMP)
-endif()
-
 include(CppLint)
 enable_check_style()
 
 add_subdirectory(src)
+
+option(ENABLE_TESTS "Enable compilation of tests" ON)
 if(ENABLE_TESTS)
+  enable_testing()
   add_subdirectory(tests)
 endif()

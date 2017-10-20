@@ -110,7 +110,7 @@ if(NOT SDL2_INCLUDE_DIR MATCHES ".framework")
   # SDLmain. This is mainly for Windows and OS X. Other (Unix) platforms
   # seem to provide SDLmain for compatibility even though they don't
   # necessarily need it.
-  find_library(SDL2MAIN_LIBRARY
+  find_library(SDL2_MAIN_LIBRARY
     NAMES SDL2main SDLmain-2
     HINTS
       ENV SDL2DIR
@@ -140,10 +140,10 @@ endif()
 
 if(SDL2_LIBRARY_TEMP)
   # For SDLmain
-  if(SDL2MAIN_LIBRARY AND NOT SDL2_BUILDING_LIBRARY)
-    list(FIND SDL2_LIBRARY_TEMP "${SDL2MAIN_LIBRARY}" _SDL2_MAIN_INDEX)
+  if(SDL2_MAIN_LIBRARY AND NOT SDL2_BUILDING_LIBRARY)
+    list(FIND SDL2_LIBRARY_TEMP "${SDL2_MAIN_LIBRARY}" _SDL2_MAIN_INDEX)
     if(_SDL2_MAIN_INDEX EQUAL -1)
-      set(SDL2_LIBRARY_TEMP "${SDL2MAIN_LIBRARY}" ${SDL2_LIBRARY_TEMP})
+      set(SDL2_LIBRARY_TEMP "${SDL2_MAIN_LIBRARY}" ${SDL2_LIBRARY_TEMP})
     endif()
     unset(_SDL2_MAIN_INDEX)
   endif()

@@ -1,5 +1,23 @@
 cmake_minimum_required(VERSION 2.8 FATAL_ERROR)
 
+option(ENABLE_SDL2_MIXER "Enable audio support using SDL2_mixer" ON)
+set(SDL2_BUILDING_LIBRARY 1)
+find_package(SDL2 REQUIRED)
+if(SDL2_FOUND)
+  if(ENABLE_SDL2_MIXER)
+    find_package(SDL2_mixer REQUIRED)
+  else()
+    find_package(SDL2_mixer)
+  endif()
+endif()
+
+option(ENABLE_XMP "Enable libxmp support" ON)
+if(ENABLE_XMP)
+  find_package(XMP REQUIRED)
+else()
+  find_package(XMP)
+endif()
+
 set(GAME_SOURCES building.cc
                  debug.cc
                  flag.cc
@@ -119,7 +137,7 @@ target_check_style(FreeSerf)
 target_link_libraries(FreeSerf game)
 if(SDL2_FOUND)
   target_link_libraries(FreeSerf ${SDL2_LIBRARY})
-  target_link_libraries(FreeSerf ${SDL2MAIN_LIBRARY})
+  target_link_libraries(FreeSerf ${SDL2_MAIN_LIBRARY})
   if(SDL2_MIXER_FOUND)
     target_link_libraries(FreeSerf ${SDL2_MIXER_LIBRARY})
   endif()

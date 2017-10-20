@@ -1,7 +1,7 @@
 /*
- * test_map_geometry.cc - TAP test for map geometry
+ * test_map_geometry.cc - test for map geometry
  *
- * Copyright (C) 2016  Jon Lund Steffensen <jonlst@gmail.com>
+ * Copyright (C) 2016-2017  Jon Lund Steffensen <jonlst@gmail.com>
  *
  * This file is part of freeserf.
  *
@@ -19,89 +19,69 @@
  * along with freeserf.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <iostream>
+#include <gtest/gtest.h>
+
 #include <vector>
 
 #include "src/map-geometry.h"
 
-int
-main(int argc, char *argv[]) {
-  // Print number of tests for TAP
-  std::cout << "1..4" << "\n";
 
-  {
-    // Test standard direction cycle
-    std::vector<Direction> dirs;
-    for (Direction d : cycle_directions_cw()) {
-      dirs.push_back(d);
-    }
-
-    std::vector<Direction> expected{
-      DirectionRight, DirectionDownRight, DirectionDown,
-      DirectionLeft, DirectionUpLeft, DirectionUp
-    };
-
-    if (dirs == expected) {
-      std::cout << "ok 1 - Correct directions produced\n";
-    } else {
-      std::cout << "not ok 1 - Incorrect directions produced\n";
-    }
+TEST(MapGeometry, StandardDirectionCycle) {
+  // Test standard direction cycle
+  std::vector<Direction> dirs;
+  for (Direction d : cycle_directions_cw()) {
+    dirs.push_back(d);
   }
 
-  {
-    // Test standard counter-clockwise direction cycle
-    std::vector<Direction> dirs;
-    for (Direction d : cycle_directions_ccw()) {
-      dirs.push_back(d);
-    }
+  std::vector<Direction> expected{
+    DirectionRight, DirectionDownRight, DirectionDown,
+    DirectionLeft, DirectionUpLeft, DirectionUp
+  };
 
-    std::vector<Direction> expected{
-      DirectionUp, DirectionUpLeft, DirectionLeft,
-      DirectionDown, DirectionDownRight, DirectionRight
-    };
+  EXPECT_EQ(expected, dirs);
+}
 
-    if (dirs == expected) {
-      std::cout << "ok 2 - Correct directions produced\n";
-    } else {
-      std::cout << "not ok 2 - Incorrect directions produced\n";
-    }
+TEST(MapGeometry, StandardCCWDirectionCycle) {
+  // Test standard counter-clockwise direction cycle
+  std::vector<Direction> dirs;
+  for (Direction d : cycle_directions_ccw()) {
+    dirs.push_back(d);
   }
 
-  {
-    // Test shorter clockwise cycle
-    std::vector<Direction> dirs;
-    for (Direction d : cycle_directions_cw(DirectionLeft, 4)) {
-      dirs.push_back(d);
-    }
+  std::vector<Direction> expected{
+    DirectionUp, DirectionUpLeft, DirectionLeft,
+    DirectionDown, DirectionDownRight, DirectionRight
+  };
 
-    std::vector<Direction> expected{
-      DirectionLeft, DirectionUpLeft, DirectionUp, DirectionRight
-    };
+  EXPECT_EQ(expected, dirs);
+}
 
-    if (dirs == expected) {
-      std::cout << "ok 3 - Correct directions produced\n";
-    } else {
-      std::cout << "not ok 3 - Incorrect directions produced\n";
-    }
+TEST(MapGeometry, ShorterCWDirectionCycle) {
+  // Test shorter clockwise cycle
+  std::vector<Direction> dirs;
+  for (Direction d : cycle_directions_cw(DirectionLeft, 4)) {
+    dirs.push_back(d);
   }
 
-  {
-    // Test longer counter-clockwise cycle
-    std::vector<Direction> dirs;
-    for (Direction d : cycle_directions_ccw(DirectionLeft, 10)) {
-      dirs.push_back(d);
-    }
+  std::vector<Direction> expected{
+    DirectionLeft, DirectionUpLeft, DirectionUp, DirectionRight
+  };
 
-    std::vector<Direction> expected{
-      DirectionLeft, DirectionDown, DirectionDownRight, DirectionRight,
-      DirectionUp, DirectionUpLeft, DirectionLeft, DirectionDown,
-      DirectionDownRight, DirectionRight
-    };
+  EXPECT_EQ(expected, dirs);
+}
 
-    if (dirs == expected) {
-      std::cout << "ok 4 - Correct directions produced\n";
-    } else {
-      std::cout << "not ok 4 - Incorrect directions produced\n";
-    }
+TEST(MapGeometry, LongerCCWDirectionCycle) {
+  // Test longer counter-clockwise cycle
+  std::vector<Direction> dirs;
+  for (Direction d : cycle_directions_ccw(DirectionLeft, 10)) {
+    dirs.push_back(d);
   }
+
+  std::vector<Direction> expected{
+    DirectionLeft, DirectionDown, DirectionDownRight, DirectionRight,
+    DirectionUp, DirectionUpLeft, DirectionLeft, DirectionDown,
+    DirectionDownRight, DirectionRight
+  };
+
+  EXPECT_EQ(expected, dirs);
 }
