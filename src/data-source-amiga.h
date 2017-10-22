@@ -118,6 +118,8 @@ class DataSourceAmiga : public DataSource {
 
   unsigned int bitplane_count_from_compression(unsigned char compression);
 
+  SpriteAmiga *make_shadow_from_symbol(SpriteAmiga *symbol);
+
   void *get_sound_data(unsigned int index, size_t *size);
 };
 

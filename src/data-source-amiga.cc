@@ -565,8 +565,17 @@ DataSourceAmiga::get_sprite_parts(Data::Resource res, unsigned int index,
       }
       break;
     }
-    case Data::AssetFontShadow:
+    case Data::AssetFontShadow: {
+      uint8_t *data = reinterpret_cast<uint8_t*>(data_pointers[14]);
+      data += index * 8;
+      SpriteAmiga *s = decode_mask_sprite(data, 8, 8);
+      SpriteAmiga *m = make_shadow_from_symbol(s);
+      delete s;
+      if (mask != nullptr) {
+        *mask = m;
+      }
       break;
+    }
     case Data::AssetIcon:
       sprite = get_icon_sprite(index);
       break;
@@ -1550,4 +1559,15 @@ DataSourceAmiga::SpriteAmiga::split_horizontaly(bool return_right) {
   }
 
   return s;
+}
+
+DataSourceAmiga::SpriteAmiga *
+DataSourceAmiga::make_shadow_from_symbol(SpriteAmiga *symbol) {
+  SpriteAmiga *res = new SpriteAmiga(10, 10);
+  res->stick(symbol, 1, 0);
+  res->stick(symbol, 0, 1);
+  res->stick(symbol, 2, 1);
+  res->stick(symbol, 1, 2);
+  res->fill_masked({0xFF, 0xFF, 0xFF, 0xFF});
+  return res;
 }
