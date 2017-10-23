@@ -418,8 +418,16 @@ DataSourceAmiga::get_sprite_parts(Data::Resource res, unsigned int index,
   switch (res) {
     case Data::AssetArtLandscape:
       break;
-    case Data::AssetSerfShadow:
+    case Data::AssetSerfShadow: {
+      uint16_t shadow[6] = {be16toh(0x01C0), be16toh(0x07C0), be16toh(0x1F80),
+                            be16toh(0x7F00), be16toh(0xFE00), be16toh(0xFC00)};
+      SpriteAmiga *m = decode_mask_sprite(shadow, 16, 6);
+      m->fill_masked({0x00, 0x00, 0x00, 0x80});
+      m->set_delta(2, 0);
+      m->set_offset(-2, -7);
+      sprite = m;
       break;
+    }
     case Data::AssetDottedLines:
       break;
     case Data::AssetArtFlag:
