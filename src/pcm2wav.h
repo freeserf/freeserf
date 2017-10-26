@@ -1,7 +1,7 @@
 /*
- * sfx2wav.cc - SFX to WAV converter.
+ * pcm2wav.h - PCM to WAV converter.
  *
- * Copyright (C) 2015-2017  Wicked_Digger <wicked_digger@mail.ru>
+ * Copyright (C) 2017  Wicked_Digger <wicked_digger@mail.ru>
  *
  * This file is part of freeserf.
  *
@@ -19,30 +19,28 @@
  * along with freeserf.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "src/sfx2wav.h"
+#ifndef SRC_PCM2WAV_H_
+#define SRC_PCM2WAV_H_
 
-#include <memory>
+#include <string>
 
-ConvertorSFX2WAV::ConvertorSFX2WAV(PBuffer _buffer, int _level, bool _invert)
-  : ConvertorPCM2WAV(_buffer, 1, 8000)
-  , level(_level)
-  , invert(_invert) {
-}
+#include "src/convertor.h"
 
-PBuffer
-ConvertorSFX2WAV::create_data(PBuffer data) {
-  PMutableBuffer result = std::make_shared<MutableBuffer>(Buffer::EndianessBig);
+class ConvertorPCM2WAV : public Convertor {
+ protected:
+  PMutableBuffer result;
+  size_t chenals;
+  size_t rate;
 
-  while (data->readable()) {
-    int value = data->pop<uint8_t>();
-    value = value + level;
-    if (invert) {
-      value = 0xFF - value;
-    }
-    value *= 0xFF;
-    result->push<int16_t>(value);
-  }
+ public:
+  ConvertorPCM2WAV(PBuffer buffer, size_t chenals, size_t rate);
 
-  return result;
-}
+  virtual PBuffer convert();
 
+ protected:
+  void write_chunk(std::string name, PBuffer data);
+  PBuffer create_header();
+  virtual PBuffer create_data(PBuffer data);
+};
+
+#endif  // SRC_PCM2WAV_H_

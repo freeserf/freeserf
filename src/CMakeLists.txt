@@ -1,6 +1,7 @@
 cmake_minimum_required(VERSION 2.8 FATAL_ERROR)
 
 option(ENABLE_SDL2_MIXER "Enable audio support using SDL2_mixer" ON)
+option(ENABLE_SDL2_IMAGE "Enable image loading using SDL2_image" ON)
 set(SDL2_BUILDING_LIBRARY 1)
 find_package(SDL2 REQUIRED)
 if(SDL2_FOUND)
@@ -8,6 +9,11 @@ if(SDL2_FOUND)
     find_package(SDL2_mixer REQUIRED)
   else()
     find_package(SDL2_mixer)
+  endif()
+  if(ENABLE_SDL2_IMAGE)
+    find_package(SDL2_image REQUIRED)
+  else()
+    find_package(SDL2_image)
   endif()
 endif()
 
@@ -70,13 +76,17 @@ set(OTHER_SOURCES data.cc
                   version.cc
                   data-source-dos.cc
                   data-source-amiga.cc
+                  data-source-legacy.cc
+                  data-source-custom.cc
                   tpwm.cc
                   event_loop.cc
                   sfx2wav.cc
                   xmi2mid.cc
+                  pcm2wav.cc
                   data-source.cc
                   text-input.cc
-                  list.cc)
+                  list.cc
+                  buffer.cc)
 
 set(OTHER_HEADERS data.h
                   pathfinder.h
@@ -96,13 +106,20 @@ set(OTHER_HEADERS data.h
                   version.h
                   data-source-dos.h
                   data-source-amiga.h
+                  data-source-legacy.h
+                  data-source-custom.h
                   tpwm.h
                   event_loop.h
                   sfx2wav.h
                   xmi2mid.h
+                  mod2wav.h
+                  pcm2wav.h
                   data-source.h
                   text-input.h
-                  list.h)
+                  list.h
+                  buffer.h
+                  convertor.h
+                  sprite-file.h)
 
 if(WIN32)
   add_definitions(/D_CRT_SECURE_NO_WARNINGS /wd4290)
@@ -125,9 +142,19 @@ else()
   list(APPEND OTHER_HEADERS audio-dummy.h )
 endif()
 
+if(ENABLE_SDL2_IMAGE AND SDL2_IMAGE_FOUND)
+  include_directories(${INCLUDE_DIRECTORIES} ${SDL2_IMAGE_INCLUDE_DIR})
+  list(APPEND OTHER_SOURCES sprite-file-sdl.cc)
+else()
+  list(APPEND OTHER_SOURCES sprite-file-dummy.cc)
+endif()
+
 if(ENABLE_XMP AND XMP_FOUND)
   add_definitions(/DENABLE_XMP)
   include_directories(${INCLUDE_DIRECTORIES} ${XMP_INCLUDE_DIR})
+  list(APPEND OTHER_SOURCES mod2wav.cc)
+else()
+  list(APPEND OTHER_SOURCES mod2wav-dummy.cc)
 endif()
 
 set(FREESERF_SOURCES freeserf.cc ${OTHER_SOURCES})
@@ -141,6 +168,9 @@ if(SDL2_FOUND)
   if(SDL2_MIXER_FOUND)
     target_link_libraries(FreeSerf ${SDL2_MIXER_LIBRARY})
   endif()
+  if(SDL2_IMAGE_FOUND)
+    target_link_libraries(FreeSerf ${SDL2_IMAGE_LIBRARY})
+  endif()
 endif()
 if(XMP_FOUND)
   target_link_libraries(FreeSerf ${XMP_LIBRARY})
@@ -150,9 +180,10 @@ install(TARGETS FreeSerf DESTINATION ".")
 if(WIN32)
   get_filename_component(SDL2_DIR ${SDL2_LIBRARY} DIRECTORY)
   get_filename_component(SDL2_MIXER_DIR ${SDL2_MIXER_LIBRARY} DIRECTORY)
+  get_filename_component(SDL2_IMAGE_DIR ${SDL2_IMAGE_LIBRARY} DIRECTORY)
   get_filename_component(XMP_DIR ${XMP_LIBRARY} DIRECTORY)
   install(CODE "include(BundleUtilities)
-                fixup_bundle(\"\${CMAKE_INSTALL_PREFIX}/FreeSerf.exe\" \"\" \"${SDL2_DIR};${SDL2_MIXER_DIR};${XMP_DIR}\")")
+                fixup_bundle(\"\${CMAKE_INSTALL_PREFIX}/FreeSerf.exe\" \"\" \"${SDL2_DIR};${SDL2_MIXER_DIR};${SDL2_IMAGE_DIR};${XMP_DIR}\")")
 elseif(APPLE)
   install(CODE "include(BundleUtilities)
                 fixup_bundle(\"\${CMAKE_INSTALL_PREFIX}/FreeSerf.app\" \"\" \"\")")

@@ -1,7 +1,7 @@
 /*
  * xmi2mid.h - XMI to MID converter.
  *
- * Copyright (C) 2015  Wicked_Digger <wicked_digger@mail.ru>
+ * Copyright (C) 2015-2017  Wicked_Digger <wicked_digger@mail.ru>
  *
  * This file is part of freeserf.
  *
@@ -22,8 +22,35 @@
 #ifndef SRC_XMI2MID_H_
 #define SRC_XMI2MID_H_
 
-#include <cstdlib>
+#include <vector>
+#include <string>
 
-void *xmi2mid(void *xmi, size_t xmi_size, size_t *mid_size);
+#include "src/convertor.h"
+
+class ConvertorXMI2MID : public Convertor {
+ public:
+  typedef struct MidiNode {
+    uint64_t time;
+    unsigned int index;
+    uint8_t type;
+    uint8_t data1;
+    uint8_t data2;
+    PBuffer buffer;
+  } MidiNode;
+
+  typedef std::vector<MidiNode> MidiNodes;
+
+ protected:
+  PMutableBuffer result;
+
+ public:
+  explicit ConvertorXMI2MID(PBuffer buffer);
+
+  virtual PBuffer convert();
+
+ protected:
+  void write_chunk(std::string id, PBuffer data);
+  PBuffer create_track(MidiNodes *nodes);
+};
 
 #endif  // SRC_XMI2MID_H_

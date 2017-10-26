@@ -1,7 +1,7 @@
 /*
  * data.cc - Game resources file functions
  *
- * Copyright (C) 2014-2016  Wicked_Digger <wicked_digger@mail.ru>
+ * Copyright (C) 2014-2017  Wicked_Digger <wicked_digger@mail.ru>
  *
  * This file is part of freeserf.
  *
@@ -21,7 +21,6 @@
 
 #include "src/data.h"
 
-#include <cstdlib>
 #include <vector>
 #include <memory>
 #include <utility>
@@ -31,6 +30,7 @@
 #include "src/log.h"
 #include "src/data-source-dos.h"
 #include "src/data-source-amiga.h"
+#include "src/data-source-custom.h"
 
 #ifdef _WIN32
 // need for GetModuleFileName
@@ -47,7 +47,7 @@ typedef struct DataResource {
 DataResource data_resources[] = {
   { Data::AssetNone,         Data::TypeUnknown,   0,   "error"         },
   { Data::AssetArtLandscape, Data::TypeSprite,    1,   "art_landscape" },
-  { Data::AssetAnimation,    Data::TypeAnimation, 1,   "animation"     },
+  { Data::AssetAnimation,    Data::TypeAnimation, 200, "animation"     },
   { Data::AssetSerfShadow,   Data::TypeSprite,    1,   "serf_shadow"   },
   { Data::AssetDottedLines,  Data::TypeSprite,    7,   "dotted_lines"  },
   { Data::AssetArtFlag,      Data::TypeSprite,    7,   "art_flag"      },
@@ -101,6 +101,8 @@ Data::load(const std::string &path) {
   // If it is possible, prefer DOS game data.
   typedef std::function<PDataSource(const std::string &)> SourceFactory;
   std::vector<SourceFactory> sources_factories;
+  sources_factories.push_back([](const std::string &path)->PDataSource{
+    return std::make_shared<DataSourceCustom>(path); });
   sources_factories.push_back([](const std::string &path)->PDataSource{
     return std::make_shared<DataSourceDOS>(path); });
   sources_factories.push_back([](const std::string &path)->PDataSource{
@@ -165,6 +167,7 @@ Data::get_standard_search_paths() const {
   // Look in data directories under the home directory
   add_env_path(std::getenv("XDG_DATA_HOME"), "freeserf");
   add_env_path(std::getenv("HOME"), ".local/share/freeserf");
+  add_env_path(std::getenv("HOME"), ".local/share/freeserf/custom");
 
 #ifdef _WIN32
   // Look in the same directory as the freeserf.exe app.

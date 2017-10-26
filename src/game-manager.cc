@@ -41,6 +41,7 @@ GameManager::GameManager() {
 
 GameManager::~GameManager() {
   set_current_game(nullptr);
+  delete GameStore::get_instance();
 }
 
 void

@@ -1,7 +1,7 @@
 /*
  * sfx2wav.h - SFX to WAV converter.
  *
- * Copyright (C) 2015  Wicked_Digger <wicked_digger@mail.ru>
+ * Copyright (C) 2015-2017  Wicked_Digger <wicked_digger@mail.ru>
  *
  * This file is part of freeserf.
  *
@@ -22,11 +22,18 @@
 #ifndef SRC_SFX2WAV_H_
 #define SRC_SFX2WAV_H_
 
-#include <cstdlib>
+#include "src/pcm2wav.h"
 
-void *sfx2wav(void* sfx, size_t sfx_size, size_t *wav_size, int level,
-              bool invert = false);
+class ConvertorSFX2WAV : public ConvertorPCM2WAV {
+ protected:
+  int level;
+  bool invert;
 
-void *sfx2wav16(void* sfx, size_t sfx_size, size_t *wav_size);
+ public:
+  explicit ConvertorSFX2WAV(PBuffer buffer, int level = 0, bool invert = false);
+
+ protected:
+  virtual PBuffer create_data(PBuffer data);
+};
 
 #endif  // SRC_SFX2WAV_H_

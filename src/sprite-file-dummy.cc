@@ -1,7 +1,7 @@
 /*
- * sfx2wav.cc - SFX to WAV converter.
+ * sprite-file-dummy.cc - Dummy sprite loading from file implementation
  *
- * Copyright (C) 2015-2017  Wicked_Digger <wicked_digger@mail.ru>
+ * Copyright (C) 2017  Wicked_Digger <wicked_digger@mail.ru>
  *
  * This file is part of freeserf.
  *
@@ -19,30 +19,12 @@
  * along with freeserf.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "src/sfx2wav.h"
+#include "src/sprite-file.h"
 
-#include <memory>
-
-ConvertorSFX2WAV::ConvertorSFX2WAV(PBuffer _buffer, int _level, bool _invert)
-  : ConvertorPCM2WAV(_buffer, 1, 8000)
-  , level(_level)
-  , invert(_invert) {
+SpriteFile::SpriteFile() {
 }
 
-PBuffer
-ConvertorSFX2WAV::create_data(PBuffer data) {
-  PMutableBuffer result = std::make_shared<MutableBuffer>(Buffer::EndianessBig);
-
-  while (data->readable()) {
-    int value = data->pop<uint8_t>();
-    value = value + level;
-    if (invert) {
-      value = 0xFF - value;
-    }
-    value *= 0xFF;
-    result->push<int16_t>(value);
-  }
-
-  return result;
+bool
+SpriteFile::load(const std::string &path) {
+  return false;
 }
-

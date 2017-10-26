@@ -26,11 +26,11 @@
 
 #include "src/log.h"
 
-ExceptionAudio::ExceptionAudio(const std::string &description) throw() :
+ExceptionAudio::ExceptionAudio(const std::string &description) :
   ExceptionFreeserf(description) {
 }
 
-ExceptionAudio::~ExceptionAudio() throw() {
+ExceptionAudio::~ExceptionAudio() {
 }
 
 std::string

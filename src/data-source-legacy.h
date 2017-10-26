@@ -1,7 +1,7 @@
 /*
- * sfx2wav.cc - SFX to WAV converter.
+ * data-source-legacy.h - Legacy game resources file functions
  *
- * Copyright (C) 2015-2017  Wicked_Digger <wicked_digger@mail.ru>
+ * Copyright (C) 2017  Wicked_Digger <wicked_digger@mail.ru>
  *
  * This file is part of freeserf.
  *
@@ -19,30 +19,27 @@
  * along with freeserf.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "src/sfx2wav.h"
+#ifndef SRC_DATA_SOURCE_LEGACY_H_
+#define SRC_DATA_SOURCE_LEGACY_H_
 
-#include <memory>
+#include <string>
 
-ConvertorSFX2WAV::ConvertorSFX2WAV(PBuffer _buffer, int _level, bool _invert)
-  : ConvertorPCM2WAV(_buffer, 1, 8000)
-  , level(_level)
-  , invert(_invert) {
-}
+#include "src/data-source.h"
 
-PBuffer
-ConvertorSFX2WAV::create_data(PBuffer data) {
-  PMutableBuffer result = std::make_shared<MutableBuffer>(Buffer::EndianessBig);
+class DataSourceLegacy : public DataSource {
+ protected:
+  typedef struct AnimationPhase {
+    uint8_t sprite;
+    int8_t x;
+    int8_t y;
+  } AnimationPhase;
 
-  while (data->readable()) {
-    int value = data->pop<uint8_t>();
-    value = value + level;
-    if (invert) {
-      value = 0xFF - value;
-    }
-    value *= 0xFF;
-    result->push<int16_t>(value);
-  }
+ public:
+  explicit DataSourceLegacy(const std::string &path);
+  virtual ~DataSourceLegacy();
 
-  return result;
-}
+ protected:
+  bool load_animation_table(PBuffer data);
+};
 
+#endif  // SRC_DATA_SOURCE_LEGACY_H_

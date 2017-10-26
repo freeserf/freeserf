@@ -1,7 +1,7 @@
 /*
  * data-source-amiga.h - Amiga data loading
  *
- * Copyright (C) 2016  Wicked_Digger <wicked_digger@mail.ru>
+ * Copyright (C) 2016-2017  Wicked_Digger <wicked_digger@mail.ru>
  *
  * This file is part of freeserf.
  *
@@ -24,27 +24,33 @@
 
 #include <string>
 #include <map>
+#include <array>
+#include <vector>
+#include <memory>
 
-#include "src/data-source.h"
+#include "src/data-source-legacy.h"
+#include "src/buffer.h"
 
-class DataSourceAmiga : public DataSource {
+class DataSourceAmiga : public DataSourceLegacy {
  protected:
+  class SpriteAmiga;
+  typedef std::shared_ptr<SpriteAmiga> PSpriteAmiga;
   class SpriteAmiga : public Sprite {
    public:
-    SpriteAmiga(unsigned int width, unsigned int height);
+    SpriteAmiga(size_t width, size_t height);
     virtual ~SpriteAmiga();
 
     void set_delta(int x, int y) { delta_x = x; delta_y = y; }
     void set_offset(int x, int y) { offset_x = x; offset_y = y; }
-    SpriteAmiga *get_amiga_masked(Sprite *mask);
+    PSpriteAmiga get_amiga_masked(PSprite mask);
     void clear() {}
     Sprite::Color *get_writable_data() {
       return reinterpret_cast<Sprite::Color*>(data);
     }
 
     void make_transparent(uint32_t rc = 0);
-    SpriteAmiga *merge_horizontaly(SpriteAmiga *right);
-    SpriteAmiga *split_horizontaly(bool return_right);
+    PSpriteAmiga merge_horizontaly(PSpriteAmiga right);
+    PSpriteAmiga split_horizontaly(bool return_right);
   };
 
  public:
@@ -58,69 +64,59 @@ class DataSourceAmiga : public DataSource {
   virtual bool check();
   virtual bool load();
 
-  virtual void get_sprite_parts(Data::Resource res, unsigned int index,
-                                Sprite **mask, Sprite **image);
+  virtual MaskImage get_sprite_parts(Data::Resource res, size_t index);
 
-  virtual Animation *get_animation(unsigned int animation, unsigned int phase);
-
-  virtual void *get_sound(unsigned int index, size_t *size);
-  virtual void *get_music(unsigned int index, size_t *size);
+  virtual PBuffer get_sound(size_t index);
+  virtual PBuffer get_music(size_t index);
 
  private:
-  void *gfxfast;
-  void *gfxchip;
-  void *gfxpics;
-  void *sound;
-  void *music;
-  size_t music_size;
+  PBuffer gfxfast;
+  PBuffer gfxchip;
+  PBuffer sound;
+  PBuffer music;
 
-  void *data_pointers[24];
-  typedef std::map<size_t, void*> Pics;
-  Pics pics;
+  std::array<PBuffer, 24> data_pointers;
+  std::array<PBuffer, 14> pics;
 
-  size_t *icon_catalog;
+  std::vector<size_t> icon_catalog;
 
-  void decode(void *data, size_t size);
-  void *unpack(void *data, size_t size, size_t *unpacked_size);
+  PBuffer decode(PBuffer data);
+  PBuffer unpack(PBuffer data);
 
-  unsigned char *get_data_from_catalog(size_t catalog_index, size_t index,
-                                       void *base);
+  PBuffer get_data_from_catalog(size_t catalog, size_t index, PBuffer base);
 
-  SpriteAmiga *get_menu_sprite(unsigned int index, void *block,
-                               unsigned int width, unsigned int height,
+  PSpriteAmiga get_menu_sprite(size_t index, PBuffer block,
+                               size_t width, size_t height,
                                unsigned char compression,
                                unsigned char filling);
-  Sprite *get_icon_sprite(unsigned int index);
-  SpriteAmiga *get_ground_sprite(unsigned int index);
-  Sprite *get_ground_mask_sprite(unsigned int index);
-  SpriteAmiga *get_mirrored_horizontaly_sprite(Sprite *sprite);
-  Sprite *get_path_mask_sprite(unsigned int index);
-  Sprite *get_game_object_sprite(unsigned int catalog, unsigned int index);
-  Sprite *get_torso_sprite(unsigned int index, uint8_t *palette);
-  Sprite *get_map_object_sprite(unsigned int index);
-  Sprite *get_map_object_shadow(unsigned int index);
-  SpriteAmiga *get_hud_sprite(unsigned int index);
+  PSprite get_icon_sprite(size_t index);
+  PSpriteAmiga get_ground_sprite(size_t index);
+  PSprite get_ground_mask_sprite(size_t index);
+  PSpriteAmiga get_mirrored_horizontaly_sprite(PSprite sprite);
+  PSprite get_path_mask_sprite(size_t index);
+  PSprite get_game_object_sprite(size_t catalog, size_t index);
+  PSprite get_torso_sprite(size_t index, uint8_t *palette);
+  PSprite get_map_object_sprite(size_t index);
+  PSprite get_map_object_shadow(size_t index);
+  PSpriteAmiga get_hud_sprite(size_t index);
 
-  SpriteAmiga *decode_planned_sprite(void *data,
-                                     unsigned int width, unsigned int height,
+  PSpriteAmiga decode_planned_sprite(PBuffer data, size_t width, size_t height,
                                      uint8_t compression, uint8_t filling,
                                      uint8_t *palette, bool invert = true);
-  SpriteAmiga *decode_interlased_sprite(void *data,
-                                        unsigned int width, unsigned int height,
+  PSpriteAmiga decode_interlased_sprite(PBuffer data,
+                                        size_t width, size_t height,
                                         uint8_t compression, uint8_t filling,
                                         uint8_t *palette,
                                         size_t skip_lines = 0);
-  SpriteAmiga *decode_amiga_sprite(void *data,
-                                   unsigned int width, unsigned int height,
+  PSpriteAmiga decode_amiga_sprite(PBuffer data, size_t width, size_t height,
                                    uint8_t *palette);
-  SpriteAmiga *decode_mask_sprite(void *data,
-                                  unsigned int width, unsigned int height);
+  PSpriteAmiga decode_mask_sprite(PBuffer data, size_t width, size_t height);
 
   unsigned int bitplane_count_from_compression(unsigned char compression);
 
-  SpriteAmiga *make_shadow_from_symbol(SpriteAmiga *symbol);
+  PSpriteAmiga make_shadow_from_symbol(PSpriteAmiga symbol);
 
-  void *get_sound_data(unsigned int index, size_t *size);
+  PBuffer get_sound_data(size_t index);
 };
 
 #endif  // SRC_DATA_SOURCE_AMIGA_H_

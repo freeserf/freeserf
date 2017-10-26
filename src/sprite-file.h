@@ -1,7 +1,7 @@
 /*
- * sfx2wav.cc - SFX to WAV converter.
+ * sprite-file.h - Sprite loaded from file declaration
  *
- * Copyright (C) 2015-2017  Wicked_Digger <wicked_digger@mail.ru>
+ * Copyright (C) 2017  Wicked_Digger <wicked_digger@mail.ru>
  *
  * This file is part of freeserf.
  *
@@ -19,30 +19,24 @@
  * along with freeserf.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "src/sfx2wav.h"
+#ifndef SRC_SPRITE_FILE_H_
+#define SRC_SPRITE_FILE_H_
 
+#include <string>
 #include <memory>
 
-ConvertorSFX2WAV::ConvertorSFX2WAV(PBuffer _buffer, int _level, bool _invert)
-  : ConvertorPCM2WAV(_buffer, 1, 8000)
-  , level(_level)
-  , invert(_invert) {
-}
+#include "src/data-source.h"
 
-PBuffer
-ConvertorSFX2WAV::create_data(PBuffer data) {
-  PMutableBuffer result = std::make_shared<MutableBuffer>(Buffer::EndianessBig);
+class SpriteFile : public Sprite {
+ public:
+  SpriteFile();
 
-  while (data->readable()) {
-    int value = data->pop<uint8_t>();
-    value = value + level;
-    if (invert) {
-      value = 0xFF - value;
-    }
-    value *= 0xFF;
-    result->push<int16_t>(value);
-  }
+  bool load(const std::string &path);
 
-  return result;
-}
+  void set_delta(int x, int y) { delta_x = x; delta_y = y; }
+  void set_offset(int x, int y) { offset_x = x; offset_y = y; }
+};
 
+typedef std::shared_ptr<SpriteFile> PSpriteFile;
+
+#endif  // SRC_SPRITE_FILE_H_

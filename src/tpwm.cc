@@ -1,7 +1,7 @@
 /*
  * tpwm.cc - Uncomprassing TPWM'ed content
  *
- * Copyright (C) 2015  Wicked_Digger  <wicked_digger@mail.ru>
+ * Copyright (C) 2015-2017  Wicked_Digger  <wicked_digger@mail.ru>
  *
  * This file is part of freeserf.
  *
@@ -21,85 +21,53 @@
 
 #include "src/tpwm.h"
 
-#include <cstring>
-#include <cstdint>
+#include <string>
+#include <memory>
 
 #include "src/freeserf_endian.h"
+#include "src/debug.h"
 
-static const uint8_t tpwm_sign[4] = {'T', 'P', 'W', 'M'};
-
-bool
-tpwm_is_compressed(void *src_data, size_t src_size) {
-  if (src_size < 8) {
-    return false;
+UnpackerTPWM::UnpackerTPWM(PBuffer _buffer) : Convertor(_buffer) {
+  if (buffer->get_size() < 8) {
+    throw ExceptionFreeserf("Data is not TPWM archive");
   }
 
-  if (0 != memcmp(src_data, tpwm_sign, 4)) {
-    return false;
+  PBuffer id = buffer->pop(4);
+  if ((std::string)*id.get() != "TPWM") {
+    throw ExceptionFreeserf("Data is not TPWM archive");
   }
-
-  return true;
 }
 
-bool
-tpwm_uncompress(void *src_data, size_t src_size,
-                void **res_data, size_t *res_size, const char **error) {
-  if ((res_data == NULL) || (res_size == NULL)) {
-    *error = "TPWM: bad parameter";
-    return false;
-  }
+PBuffer
+UnpackerTPWM::convert() {
+  size_t res_size = buffer->pop<uint16_t>();
+  PMutableBuffer result = std::make_shared<MutableBuffer>(Buffer::EndianessBig);
 
-  if (!tpwm_is_compressed(src_data, src_size)) {
-    *error = "TPWM: source buffer is not tpwm packed";
-    return false;
-  }
-
-  *res_data = NULL;
-  *res_size = 0;
-
-  uint32_t *header = reinterpret_cast<uint32_t*>(src_data);
-  *res_size = le32toh(header[1]);
-  *res_data = malloc(*res_size);
-  if (*res_data == NULL) {
-    *error = "TPWM: unable to allocate target buffer";
-    return false;
-  }
-
-  uint8_t *src_pos = reinterpret_cast<uint8_t*>(src_data) + 8;
-  uint8_t *src_end = src_pos+src_size - 8;
-  uint8_t *res_pos = reinterpret_cast<uint8_t*>(*res_data);
-  uint8_t *res_end = res_pos + *res_size;
-  bool result = true;
-
-  while ((src_pos < src_end) && (res_pos < res_end)) {
-    size_t flag = *src_pos++;
-    if (src_pos >= src_end) { result = false; break; }
-    for (int i = 0 ; i < 8 ; i++) {
-      flag <<= 1;
-      if (flag & ~0xFF) {
-        flag &= 0xFF;
-        size_t temp = *src_pos++;
-        if (src_pos >= src_end) { result = false; break; }
-        size_t repeater = (temp & 0x0F) + 3;
-        size_t stamp_offset = *src_pos++ | ((temp << 4) & 0x0F00);
-        uint8_t *stamp = res_pos - stamp_offset;
-        while (repeater--) {
-          if ((res_pos >= res_end) || (stamp >= res_end)) {
-            result = false; break;
-          }
-          *res_pos++ = *stamp++;
+  try {
+    while (buffer->readable()) {
+      size_t flag = buffer->pop<uint8_t>();
+      for (int i = 0 ; i < 8 ; i++) {
+        flag <<= 1;
+        if (flag & ~0xFF) {
+          flag &= 0xFF;
+          size_t temp = buffer->pop<uint8_t>();
+          size_t stamp_size = (temp & 0x0F) + 3;
+          size_t stamp_offset = buffer->pop<uint8_t>();
+          stamp_offset |= ((temp << 4) & 0x0F00);
+          PBuffer stamp = result->get_subbuffer(result->get_size() -
+                                                stamp_offset, stamp_size);
+          result->push(stamp);
+        } else {
+          result->push<uint8_t>(buffer->pop<uint8_t>());
         }
-      } else {
-        *res_pos++ = *src_pos++;
       }
     }
+  } catch (ExceptionFreeserf e) {
+    throw ExceptionFreeserf("TPWM source data corrupted");
   }
 
-  if (!result) {
-    *error = "TPWM: unable to unpack, source data corrupted";
-    free(*res_data);
-    *res_data = NULL;
-    *res_size = 0;
+  if (result->get_size() != res_size) {
+    throw ExceptionFreeserf("TPWM source data corrupted");
   }
 
   return result;

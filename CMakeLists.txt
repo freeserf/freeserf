@@ -52,10 +52,7 @@ configure_file(${CMAKE_CURRENT_SOURCE_DIR}/src/version-vcs.h.in
                @ONLY)
 
 include(CheckIncludeFiles)
-check_include_files(byteswap.h HAVE_BYTESWAP_H)
-check_include_files(endian.h HAVE_ENDIAN_H)
 check_include_files(getopt.h HAVE_GETOPT_H)
-check_include_files(sys/endian.h HAVE_SYS_ENDIAN_H)
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/cmake/config.h.in ${CMAKE_CURRENT_BINARY_DIR}/config.h)
 add_definitions(-DHAVE_CONFIG_H)
 

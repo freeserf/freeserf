@@ -1,7 +1,7 @@
 /*
  * data-source-dos.h - DOS game resources file functions
  *
- * Copyright (C) 2015-2016  Wicked_Digger <wicked_digger@mail.ru>
+ * Copyright (C) 2015-2017  Wicked_Digger <wicked_digger@mail.ru>
  *
  * This file is part of freeserf.
  *
@@ -23,11 +23,14 @@
 #define SRC_DATA_SOURCE_DOS_H_
 
 #include <string>
+#include <vector>
+#include <memory>
 
 #include "src/data.h"
-#include "src/data-source.h"
+#include "src/data-source-legacy.h"
+#include "src/buffer.h"
 
-class DataSourceDOS : public DataSource {
+class DataSourceDOS : public DataSourceLegacy {
  public:
   typedef enum SpriteType {
     SpriteTypeUnknown = 0,
@@ -51,61 +54,49 @@ class DataSourceDOS : public DataSource {
   } ColorDOS;
 
   class SpriteBaseDOS : public Sprite {
-   protected:
-    /* Sprite header. In the data file this is
-    * immediately followed by sprite data. */
-    typedef struct DosSpriteHeader {
-      int8_t b_x;
-      int8_t b_y;
-      uint16_t w;
-      uint16_t h;
-      int16_t x;
-      int16_t y;
-    } DosSpriteHeader;
-
    public:
     SpriteBaseDOS() {}
-    SpriteBaseDOS(void *data, size_t size);
+    explicit SpriteBaseDOS(PBuffer data);
     virtual ~SpriteBaseDOS() {}
   };
 
   class SpriteDosSolid : public SpriteBaseDOS {
    public:
-    SpriteDosSolid(void *data, size_t size, ColorDOS *palette);
+    SpriteDosSolid(PBuffer data, ColorDOS *palette);
     virtual ~SpriteDosSolid() {}
   };
+  typedef std::shared_ptr<SpriteDosSolid> PSpriteDosSolid;
 
   class SpriteDosTransparent : public SpriteBaseDOS {
    public:
-    SpriteDosTransparent(void *data, size_t size, ColorDOS *palette,
-                         uint8_t color = 0);
+    SpriteDosTransparent(PBuffer data, ColorDOS *palette, uint8_t color = 0);
     virtual ~SpriteDosTransparent() {}
   };
+  typedef std::shared_ptr<SpriteDosTransparent> PSpriteDosTransparent;
 
   class SpriteDosOverlay : public SpriteBaseDOS {
    public:
-    SpriteDosOverlay(void *data, size_t size, ColorDOS *palette,
-      unsigned char value);
+    SpriteDosOverlay(PBuffer data, ColorDOS *palette, unsigned char value);
     virtual ~SpriteDosOverlay() {}
   };
+  typedef std::shared_ptr<SpriteDosOverlay> PSpriteDosOverlay;
 
   class SpriteDosMask : public SpriteBaseDOS {
    public:
-    SpriteDosMask(void *data, size_t size);
+    explicit SpriteDosMask(PBuffer data);
     virtual ~SpriteDosMask() {}
   };
+  typedef std::shared_ptr<SpriteDosMask> PSpriteDosMask;
 
  protected:
-  /* These entries follow the 8 byte header of the data file. */
-  typedef struct SpaeEntry {
-    uint32_t size;
-    uint32_t offset;
-  } SpaeEntry;
+  // These entries follow the 8 byte header of the data file.
+  typedef struct DataEntry {
+    size_t offset;
+    size_t size;
+  } DataEntry;
 
-  void *sprites;
-  size_t sprites_size;
-  size_t entry_count;
-  Animation **animation_table;
+  PBuffer spae;
+  std::vector<DataEntry> entries;
 
  public:
   explicit DataSourceDOS(const std::string &path);
@@ -118,20 +109,15 @@ class DataSourceDOS : public DataSource {
   virtual bool check();
   virtual bool load();
 
-  virtual void get_sprite_parts(Data::Resource res, unsigned int index,
-                                Sprite **mask, Sprite **image);
+  virtual MaskImage get_sprite_parts(Data::Resource res, size_t index);
 
-  virtual Animation *get_animation(unsigned int animation,
-                                   unsigned int phase);
-
-  virtual void *get_sound(unsigned int index, size_t *size);
-  virtual void *get_music(unsigned int index, size_t *size);
+  virtual PBuffer get_sound(size_t index);
+  virtual PBuffer get_music(size_t index);
 
  protected:
-  void *get_object(unsigned int index, size_t *size);
+  PBuffer get_object(size_t index);
   void fixup();
-  bool load_animation_table();
-  DataSourceDOS::ColorDOS *get_dos_palette(unsigned int index);
+  DataSourceDOS::ColorDOS *get_dos_palette(size_t index);
 };
 
 #endif  // SRC_DATA_SOURCE_DOS_H_

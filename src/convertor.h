@@ -1,7 +1,7 @@
 /*
- * sfx2wav.cc - SFX to WAV converter.
+ * convertor.h - Converter base declaration
  *
- * Copyright (C) 2015-2017  Wicked_Digger <wicked_digger@mail.ru>
+ * Copyright (C) 2017  Wicked_Digger <wicked_digger@mail.ru>
  *
  * This file is part of freeserf.
  *
@@ -19,30 +19,21 @@
  * along with freeserf.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "src/sfx2wav.h"
+#ifndef SRC_CONVERTOR_H_
+#define SRC_CONVERTOR_H_
 
-#include <memory>
+#include "src/buffer.h"
 
-ConvertorSFX2WAV::ConvertorSFX2WAV(PBuffer _buffer, int _level, bool _invert)
-  : ConvertorPCM2WAV(_buffer, 1, 8000)
-  , level(_level)
-  , invert(_invert) {
-}
+class Convertor {
+ protected:
+  PBuffer buffer;
 
-PBuffer
-ConvertorSFX2WAV::create_data(PBuffer data) {
-  PMutableBuffer result = std::make_shared<MutableBuffer>(Buffer::EndianessBig);
-
-  while (data->readable()) {
-    int value = data->pop<uint8_t>();
-    value = value + level;
-    if (invert) {
-      value = 0xFF - value;
-    }
-    value *= 0xFF;
-    result->push<int16_t>(value);
+ public:
+  explicit Convertor(PBuffer _buffer) : buffer(_buffer) {
   }
+  virtual ~Convertor() {}
 
-  return result;
-}
+  virtual PBuffer convert() = 0;
+};
 
+#endif  // SRC_CONVERTOR_H_
