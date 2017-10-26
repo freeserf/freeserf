@@ -18,7 +18,7 @@ install:
 
   # SDL2
   - ps: |
-      $SDL_VERSION = "2.0.5"
+      $SDL_VERSION = "2.0.7"
       $SDL2DIR = "C:\sdl_root\SDL2-$SDL_VERSION"
       if (!(Test-Path -Path $SDL2DIR)) {
         Start-FileDownload https://libsdl.org/release/SDL2-devel-$SDL_VERSION-VC.zip
@@ -28,7 +28,7 @@ install:
 
   # SDL2_mixer
   - ps: |
-      $SDL_MIXER_VERSION = "2.0.1"
+      $SDL_MIXER_VERSION = "2.0.2"
       $SDL2MIXERDIR = "C:\sdl_root\SDL2_mixer-$SDL_MIXER_VERSION"
       if (!(Test-Path -Path $SDL2MIXERDIR)) {
         Start-FileDownload https://www.libsdl.org/projects/SDL_mixer/release/SDL2_mixer-devel-$SDL_MIXER_VERSION-VC.zip
@@ -38,7 +38,7 @@ install:
 
   # SDL2_image
   - ps: |
-      $SDL_IMAGE_VERSION = "2.0.1"
+      $SDL_IMAGE_VERSION = "2.0.2"
       $SDL2IMAGEDIR = "C:\sdl_root\SDL2_image-$SDL_IMAGE_VERSION"
       if (!(Test-Path -Path $SDL2IMAGEDIR)) {
         Start-FileDownload https://www.libsdl.org/projects/SDL_image/release/SDL2_image-devel-$SDL_IMAGE_VERSION-VC.zip
