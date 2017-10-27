@@ -102,7 +102,7 @@ class MutableBuffer : public Buffer {
 
   void push(PBuffer buffer);
   void push(const void *data, size_t size);
-  void push(void *data, size_t size) { push((const void*)data, size); }
+  void push(void *buf, size_t len) { push((const void*)buf, len); }
   void push(const std::string &str);
   void push(const char *str) { push(std::string(str)); }
   template<typename T> void push(T value, size_t count = 1) {

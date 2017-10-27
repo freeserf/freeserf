@@ -36,7 +36,7 @@ void
 GuiObject::layout() {
 }
 
-GuiObject *GuiObject::focused_object = NULL;
+GuiObject *GuiObject::focused_object = nullptr;
 
 GuiObject::GuiObject() {
   x = 0;
@@ -46,8 +46,8 @@ GuiObject::GuiObject() {
   displayed = false;
   enabled = true;
   redraw = true;
-  parent = NULL;
-  frame = NULL;
+  parent = nullptr;
+  frame = nullptr;
   focused = false;
 }
 
@@ -60,9 +60,9 @@ GuiObject::~GuiObject() {
 
 void
 GuiObject::delete_frame() {
-  if (frame != NULL) {
+  if (frame != nullptr) {
     delete frame;
-    frame = NULL;
+    frame = nullptr;
   }
 }
 
@@ -72,7 +72,7 @@ GuiObject::draw(Frame *_frame) {
     return;
   }
 
-  if (frame == NULL) {
+  if (frame == nullptr) {
     frame = Graphics::get_instance()->create_frame(width, height);
   }
 
@@ -170,38 +170,38 @@ GuiObject::set_focused() {
 }
 
 void
-GuiObject::move_to(int x, int y) {
-  this->x = x;
-  this->y = y;
+GuiObject::move_to(int px, int py) {
+  x = px;
+  y = py;
   set_redraw();
 }
 
 void
-GuiObject::get_position(int *x, int *y) {
-  if (x != NULL) {
-    *x = this->x;
+GuiObject::get_position(int *px, int *py) {
+  if (px != nullptr) {
+    *px = x;
   }
-  if (y != NULL) {
-    *y = this->y;
+  if (py != nullptr) {
+    *py = y;
   }
 }
 
 void
-GuiObject::set_size(int width, int height) {
+GuiObject::set_size(int new_width, int new_height) {
   delete_frame();
-  this->width = width;
-  this->height = height;
+  width = new_width;
+  height = new_height;
   layout();
   set_redraw();
 }
 
 void
-GuiObject::get_size(int *width, int *height) {
-  if (width != NULL) {
-    *width = this->width;
+GuiObject::get_size(int *pwidth, int *pheight) {
+  if (pwidth != nullptr) {
+    *pwidth = width;
   }
-  if (height != NULL) {
-    *height = this->height;
+  if (pheight != nullptr) {
+    *pheight = height;
   }
 }
 
@@ -219,7 +219,7 @@ GuiObject::set_enabled(bool enabled) {
 void
 GuiObject::set_redraw() {
   redraw = true;
-  if (parent != NULL) {
+  if (parent != nullptr) {
     parent->set_redraw();
   }
 }
@@ -231,16 +231,16 @@ GuiObject::point_inside(int point_x, int point_y) {
 }
 
 void
-GuiObject::add_float(GuiObject *obj, int x, int y) {
+GuiObject::add_float(GuiObject *obj, int fx, int fy) {
   obj->set_parent(this);
   floats.push_back(obj);
-  obj->move_to(x, y);
+  obj->move_to(fx, fy);
   set_redraw();
 }
 
 void
 GuiObject::del_float(GuiObject *obj) {
-  obj->set_parent(NULL);
+  obj->set_parent(nullptr);
   floats.remove(obj);
   set_redraw();
 }

@@ -62,7 +62,7 @@ UnpackerTPWM::convert() {
         }
       }
     }
-  } catch (ExceptionFreeserf e) {
+  } catch (...) {
     throw ExceptionFreeserf("TPWM source data corrupted");
   }
 

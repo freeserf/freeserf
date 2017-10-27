@@ -22,7 +22,7 @@
 #ifndef SRC_MINIMAP_H_
 #define SRC_MINIMAP_H_
 
-#include <memory>
+#include <vector>
 
 #include "src/gui.h"
 #include "src/map.h"
@@ -39,7 +39,7 @@ class Minimap : public GuiObject {
 
   bool draw_grid;
 
-  std::unique_ptr<Color> minimap;
+  std::vector<Color> minimap;
 
  public:
   explicit Minimap(PMap map);

@@ -376,9 +376,9 @@ GameInfo::Mission missions[] = {
   }
 };
 
-GameInfo::GameInfo(const Random &_random_base) {
-  map_size = 3;
-  name = _random_base;
+GameInfo::GameInfo(const Random &_random_base)
+  : map_size(3)
+  , name(_random_base) {
   set_random_base(_random_base);
 }
 
@@ -387,13 +387,14 @@ GameInfo::GameInfo(const GameInfo::Mission *mission_preset) {
   name = mission_preset->name;
   random_base = mission_preset->rnd;
   for (size_t i = 0; i < mission_preset->player.size(); i++) {
-    size_t character = mission_preset->player[i].character->face;
+    PlayerInfo::Preset player_info = mission_preset->player[i];
+    size_t character = player_info.character->face;
     PPlayerInfo player(new PlayerInfo(character,
                                       def_color[i],
-                                      mission_preset->player[i].intelligence,
-                                      mission_preset->player[i].supplies,
-                                      mission_preset->player[i].reproduction));
-    player->set_castle_pos(mission_preset->player[i].castle);
+                                      player_info.intelligence,
+                                      player_info.supplies,
+                                      player_info.reproduction));
+    player->set_castle_pos(player_info.castle);
     add_player(player);
   }
 }

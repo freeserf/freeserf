@@ -31,8 +31,8 @@
 
 #define SEARCH_MAX_DEPTH  0x10000
 
-FlagSearch::FlagSearch(Game *game) {
-  this->game = game;
+FlagSearch::FlagSearch(Game *game_) {
+  game = game_;
   id = game->next_search_id();
 }
 
@@ -423,7 +423,7 @@ Flag::schedule_known_dest_cb_(Flag *src, Flag *dest, int _slot) {
 }
 
 void
-Flag::schedule_slot_to_known_dest(int slot, unsigned int res_waiting[4]) {
+Flag::schedule_slot_to_known_dest(int slot_, unsigned int res_waiting[4]) {
   FlagSearch search(game);
 
   search_num = search.get_id();
@@ -485,14 +485,14 @@ Flag::schedule_slot_to_known_dest(int slot, unsigned int res_waiting[4]) {
   if (sources > 0) {
     ScheduleKnownDestData data;
     data.src = this;
-    data.dest = game->get_flag(this->slot[slot].dest);
-    data.slot = slot;
+    data.dest = game->get_flag(this->slot[slot_].dest);
+    data.slot = slot_;
     bool r = search.execute(schedule_known_dest_cb, false, true, &data);
     if (!r || data.dest == this) {
       /* Unable to deliver */
-      game->cancel_transported_resource(this->slot[slot].type,
-                                        this->slot[slot].dest);
-      this->slot[slot].dest = 0;
+      game->cancel_transported_resource(this->slot[slot_].type,
+                                        this->slot[slot_].dest);
+      this->slot[slot_].dest = 0;
       endpoint |= BIT(7);
     }
   } else {
@@ -546,8 +546,8 @@ Flag::get_road_length_value(size_t length) {
 }
 
 void
-Flag::link_with_flag(Flag *dest_flag, bool water_path, size_t length,
-                       Direction in_dir, Direction out_dir) {
+Flag::link_with_flag(Flag *dest_flag, bool water_path, size_t length_,
+                     Direction in_dir, Direction out_dir) {
   dest_flag->add_path(in_dir, water_path);
   add_path(out_dir, water_path);
 
@@ -555,7 +555,7 @@ Flag::link_with_flag(Flag *dest_flag, bool water_path, size_t length,
     (dest_flag->other_end_dir[in_dir] & 0xc7) | (out_dir << 3);
   other_end_dir[out_dir] = (other_end_dir[out_dir] & 0xc7) | (in_dir << 3);
 
-  size_t len = get_road_length_value(length);
+  size_t len = get_road_length_value(length_);
 
   dest_flag->length[in_dir] = len << 4;
   this->length[out_dir] = len << 4;
@@ -663,13 +663,14 @@ wake_transporter_on_path(Game *game, MapPos pos) {
 void
 Flag::fill_path_serf_info(Game *game, MapPos pos, Direction dir,
                           SerfPathInfo *data) {
-  if (game->get_map()->get_idle_serf(pos)) wake_transporter_at_flag(game, pos);
+  PMap map = game->get_map();
+  if (map->get_idle_serf(pos)) wake_transporter_at_flag(game, pos);
 
   int serf_count = 0;
   int path_len = 0;
 
   /* Handle first position. */
-  if (game->get_map()->has_serf(pos)) {
+  if (map->has_serf(pos)) {
     Serf *serf = game->get_serf_at_pos(pos);
     if (serf->get_state() == Serf::StateTransporting &&
         serf->get_walking_wait_counter() != -1) {
@@ -687,11 +688,11 @@ Flag::fill_path_serf_info(Game *game, MapPos pos, Direction dir,
   int paths = 0;
   while (1) {
     path_len += 1;
-    pos = game->get_map()->move(pos, dir);
-    paths = game->get_map()->paths(pos);
+    pos = map->move(pos, dir);
+    paths = map->paths(pos);
     paths &= ~BIT(reverse_direction(dir));
 
-    if (game->get_map()->has_flag(pos)) break;
+    if (map->has_flag(pos)) break;
 
     /* Find out which direction the path follows. */
     for (Direction d : cycle_directions_cw()) {
@@ -702,13 +703,13 @@ Flag::fill_path_serf_info(Game *game, MapPos pos, Direction dir,
     }
 
     /* Check if there is a transporter waiting here. */
-    if (game->get_map()->get_idle_serf(pos)) {
+    if (map->get_idle_serf(pos)) {
       int index = wake_transporter_on_path(game, pos);
       if (index >= 0) data->serfs[serf_count++] = index;
     }
 
     /* Check if there is a serf occupying this space. */
-    if (game->get_map()->has_serf(pos)) {
+    if (map->has_serf(pos)) {
       Serf *serf = game->get_serf_at_pos(pos);
       if (serf->get_state() == Serf::StateTransporting &&
           serf->get_walking_wait_counter() != -1) {
@@ -719,7 +720,7 @@ Flag::fill_path_serf_info(Game *game, MapPos pos, Direction dir,
   }
 
   /* Handle last position. */
-  if (game->get_map()->has_serf(pos)) {
+  if (map->has_serf(pos)) {
     Serf *serf = game->get_serf_at_pos(pos);
     if ((serf->get_state() == Serf::StateTransporting &&
          serf->get_walking_wait_counter() != -1) ||
@@ -737,15 +738,16 @@ Flag::fill_path_serf_info(Game *game, MapPos pos, Direction dir,
   /* Fill the rest of the struct. */
   data->path_len = path_len;
   data->serf_count = serf_count;
-  data->flag_index = game->get_map()->get_obj_index(pos);
+  data->flag_index = map->get_obj_index(pos);
   data->flag_dir = reverse_direction(dir);
 }
 
 void
-Flag::merge_paths(MapPos pos) {
+Flag::merge_paths(MapPos pos_) {
   const int max_transporters[] = { 1, 2, 3, 4, 6, 8, 11, 15 };
 
-  if (!game->get_map()->paths(pos)) {
+  PMap map = game->get_map();
+  if (!map->paths(pos_)) {
     return;
   }
 
@@ -754,7 +756,7 @@ Flag::merge_paths(MapPos pos) {
 
   /* Find first direction */
   for (Direction d : cycle_directions_cw()) {
-    if (game->get_map()->has_path(pos, d)) {
+    if (map->has_path(pos_, d)) {
       path_1_dir = d;
       break;
     }
@@ -762,7 +764,7 @@ Flag::merge_paths(MapPos pos) {
 
   /* Find second direction */
   for (Direction d : cycle_directions_ccw()) {
-    if (game->get_map()->has_path(pos, d)) {
+    if (map->has_path(pos_, d)) {
       path_2_dir = d;
       break;
     }
@@ -771,8 +773,8 @@ Flag::merge_paths(MapPos pos) {
   SerfPathInfo path_1_data;
   SerfPathInfo path_2_data;
 
-  fill_path_serf_info(game, pos, path_1_dir, &path_1_data);
-  fill_path_serf_info(game, pos, path_2_dir, &path_2_data);
+  fill_path_serf_info(game, pos_, path_1_dir, &path_1_data);
+  fill_path_serf_info(game, pos_, path_2_dir, &path_2_data);
 
   Flag *flag_1 = game->get_flag(path_1_data.flag_index);
   Flag *flag_2 = game->get_flag(path_2_data.flag_index);

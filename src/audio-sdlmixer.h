@@ -124,8 +124,6 @@ class AudioSDL : public Audio, public Audio::VolumeController {
   Audio::PPlayer sfx_player;
   Audio::PPlayer midi_player;
 
-  float volume;
-
  public:
   /* Common audio. */
   AudioSDL();

@@ -21,6 +21,8 @@
 
 #include "src/gfx.h"
 
+#include <utility>
+
 #include "src/log.h"
 #include "src/data.h"
 #include "src/video.h"
@@ -229,7 +231,7 @@ Frame::draw_masked_sprite(int x, int y, Data::Resource mask_res,
       return;
     }
 
-    s = masked;
+    s = std::move(masked);
 
     image = new Image(video, s);
     Image::cache_image(id, image);
@@ -276,7 +278,7 @@ Frame::draw_waves_sprite(int x, int y, Data::Resource mask_res,
         return;
       }
 
-      s = masked;
+      s = std::move(masked);
     }
 
     image = new Image(video, s);
@@ -400,8 +402,8 @@ Frame::fill_rect(int x, int y, int width, int height, const Color &color) {
 /* Initialize new graphics frame. If dest is NULL a new
    backing surface is created, otherwise the same surface
    as dest is used. */
-Frame::Frame(Video *video, unsigned int width, unsigned int height) {
-  this->video = video;
+Frame::Frame(Video *video_, unsigned int width, unsigned int height) {
+  video = video_;
   video_frame = video->create_frame(width, height);
   owner = true;
   Data *data = Data::get_instance();

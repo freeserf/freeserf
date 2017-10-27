@@ -33,10 +33,10 @@ typedef std::shared_ptr<SearchNode> PSearchNode;
 
 class SearchNode {
  public:
-  MapPos pos;
+  PSearchNode parent;
   unsigned int g_score;
   unsigned int f_score;
-  PSearchNode parent;
+  MapPos pos;
   Direction dir;
 };
 
@@ -110,7 +110,6 @@ pathfinder_map(Map *map, MapPos start, MapPos end) {
       Road solution;
       solution.start(start);
 
-      std::list<Direction> dirs;
       while (node->parent) {
         Direction dir = node->dir;
         solution.extend(reverse_direction(dir));

@@ -25,6 +25,7 @@
 #include <fstream>
 #include <memory>
 #include <sstream>
+#include <utility>
 
 #include "src/freeserf_endian.h"
 #include "src/log.h"
@@ -109,7 +110,7 @@ DataSourceDOS::check() {
     std::string file_path = path + '/' + file_name;
     Log::Info["data"] << "Looking for game data in '" << file_path << "'...";
     if (check_file(file_path)) {
-      path = file_path;
+      path = std::move(file_path);
       return true;
     }
   }
@@ -125,7 +126,7 @@ DataSourceDOS::load() {
 
   try {
     spae = std::make_shared<Buffer>(path);
-  } catch(ExceptionFreeserf e) {
+  } catch (...) {
     return false;
   }
 
@@ -134,7 +135,8 @@ DataSourceDOS::load() {
     UnpackerTPWM unpacker(spae);
     spae = unpacker.convert();
     Log::Verbose["data"] << "Data file is compressed";
-  }  catch(ExceptionFreeserf e) {
+  }  catch (...) {
+    Log::Verbose["data"] << "Data file is not compressed";
   }
 
   // Read the number of entries in the index table.
@@ -397,7 +399,7 @@ DataSourceDOS::get_sound(size_t index) {
   try {
     ConvertorSFX2WAV convertor(data, -32);
     return convertor.convert();
-  } catch (ExceptionFreeserf e) {
+  } catch (...) {
     Log::Error["data"] << "Could not convert SFX clip to WAV: #" << index;
     return nullptr;
   }
@@ -414,7 +416,7 @@ DataSourceDOS::get_music(size_t index) {
   try {
     ConvertorXMI2MID convertor(data);
     return convertor.convert();
-  } catch (ExceptionFreeserf e) {
+  } catch (...) {
     Log::Error["data"] << "Could not convert XMI clip to MID: #" << index;
     return nullptr;
   }

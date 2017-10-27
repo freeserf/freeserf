@@ -58,13 +58,14 @@ xmi_process_chunk(PBuffer buffer, MidiFile *midi) {
   size_t size = buffer->pop<uint32_t>();
   Log::Verbose["xmi2mid"] << "Processing XMI chunk: " << name
                           << " (size: " << size << ")";
-  PBuffer data = buffer->pop(size);
 
   ChunkProcessors::iterator it = xmi_processors.find(name);
   if (it == xmi_processors.end()) {
+    buffer->pop(size);
     Log::Debug["xmi2mid"] << "Unknown XMI chunk: " << id.get();
   } else {
-    it->second(data, midi);
+    PBuffer content = buffer->pop(size);
+    it->second(content, midi);
   }
 
   return size + 8;
@@ -241,9 +242,9 @@ ConvertorXMI2MID::convert() {
 }
 
 void
-ConvertorXMI2MID::write_chunk(std::string id, PBuffer data) {
+ConvertorXMI2MID::write_chunk(const std::string &id, PBuffer data) {
   result->push(id);
-  result->push<uint32_t>(data->get_size());
+  result->push<uint32_t>(static_cast<uint32_t>(data->get_size()));
   result->push(data);
 }
 

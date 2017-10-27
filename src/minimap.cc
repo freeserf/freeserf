@@ -22,6 +22,7 @@
 #include "src/minimap.h"
 
 #include <algorithm>
+#include <utility>
 
 #include "src/game.h"
 #include "src/interface.h"
@@ -107,10 +108,8 @@ Minimap::init_minimap() {
     return;
   }
 
-  size_t size = map->get_rows() * map->get_cols();
-  minimap.reset(new Color[size]());
+  minimap.clear();
 
-  Color *mpos = minimap.get();
   for (MapPos pos : map->geom()) {
     int type_off = color_offset[map->type_up(pos)];
 
@@ -121,7 +120,7 @@ Minimap::init_minimap() {
     int h2 = map->get_height(pos);
 
     int h_off = h2 - h1 + 8;
-    *(mpos++) = colors[type_off + h_off];
+    minimap.push_back(colors[type_off + h_off]);
   }
 }
 
@@ -156,7 +155,7 @@ Minimap::draw_minimap_point(int col, int row, const Color &color, int density) {
 
 void
 Minimap::draw_minimap_map() {
-  Color *color_data = minimap.get();
+  Color *color_data = &minimap[0];
   for (unsigned int row = 0; row < map->get_rows(); row++) {
     for (unsigned int col = 0; col < map->get_cols(); col++) {
       Color color = *(color_data++);
@@ -239,22 +238,22 @@ MinimapGame::draw_minimap_traffic() {
 
 void
 Minimap::draw_minimap_grid() {
-  for (unsigned int y = 0; y < map->get_rows() * scale; y += 2) {
-    draw_minimap_point(0, y, Color(0xab, 0x7b, 0x5b), 1);
-    draw_minimap_point(0, y+1, Color::black, 1);
+  for (unsigned int py = 0; py < map->get_rows() * scale; py += 2) {
+    draw_minimap_point(0, py, Color(0xab, 0x7b, 0x5b), 1);
+    draw_minimap_point(0, py + 1, Color::black, 1);
   }
 
-  for (unsigned int x = 0; x < map->get_cols() * scale; x += 2) {
-    draw_minimap_point(x, 0, Color(0xab, 0x7b, 0x5b), 1);
-    draw_minimap_point(x+1, 0, Color::black, 1);
+  for (unsigned int px = 0; px < map->get_cols() * scale; px += 2) {
+    draw_minimap_point(px, 0, Color(0xab, 0x7b, 0x5b), 1);
+    draw_minimap_point(px + 1, 0, Color::black, 1);
   }
 }
 
 void
 Minimap::draw_minimap_rect() {
-  int y = height/2;
-  int x = width/2;
-  frame->draw_sprite(x, y, Data::AssetGameObject, 33, true);
+  int px = width / 2;
+  int py = height / 2;
+  frame->draw_sprite(px, py, Data::AssetGameObject, 33, true);
 }
 
 void
@@ -297,7 +296,7 @@ Minimap::handle_drag(int dx, int dy) {
 
 void
 Minimap::set_map(PMap _map) {
-  map = _map;
+  map = std::move(_map);
   init_minimap();
   set_redraw();
 }
@@ -314,47 +313,47 @@ Minimap::set_scale(int scale) {
 
 void
 Minimap::screen_pix_from_map_pix(int mx, int my, int *sx, int *sy) {
-  int width = map->get_cols() * scale;
-  int height = map->get_rows() * scale;
+  int pwidth = map->get_cols() * scale;
+  int pheight = map->get_rows() * scale;
 
   *sx = mx - offset_x;
   *sy = my - offset_y;
 
   while (*sy < 0) {
-    *sx -= height/2;
-    *sy += height;
+    *sx -= pheight / 2;
+    *sy += pheight;
   }
 
-  while (*sy >= height) {
-    *sx += height/2;
-    *sy -= height;
+  while (*sy >= pheight) {
+    *sx += pheight / 2;
+    *sy -= pheight;
   }
 
-  while (*sx < 0) *sx += width;
-  while (*sx >= width) *sx -= width;
+  while (*sx < 0) *sx += pwidth;
+  while (*sx >= pwidth) *sx -= pwidth;
 }
 
 void
 Minimap::map_pix_from_map_coord(MapPos pos, int *mx, int *my) {
-  int width = map->get_cols() * scale;
-  int height = map->get_rows() * scale;
+  int pwidth = map->get_cols() * scale;
+  int pheight = map->get_rows() * scale;
 
-  *mx = scale * map->pos_col(pos) - (scale * map->pos_row(pos))/2;
+  *mx = scale * map->pos_col(pos) - (scale * map->pos_row(pos)) / 2;
   *my = scale * map->pos_row(pos);
 
   if (*my < 0) {
-    *mx -= height/2;
-    *my += height;
+    *mx -= pheight / 2;
+    *my += pheight;
   }
 
-  if (*mx < 0) *mx += width;
-  else if (*mx >= width) *mx -= width;
+  if (*mx < 0) *mx += pwidth;
+  else if (*mx >= pwidth) *mx -= pwidth;
 }
 
 MapPos
-Minimap::map_pos_from_screen_pix(int x, int y) {
-  int mx = x + offset_x;
-  int my = y + offset_y;
+Minimap::map_pos_from_screen_pix(int sx, int sy) {
+  int mx = sx + offset_x;
+  int my = sy + offset_y;
 
   int col = ((my/2 + mx)/scale) & map->get_col_mask();
   int row = (my/scale) & map->get_row_mask();
@@ -395,34 +394,34 @@ Minimap::move_to_map_pos(MapPos pos) {
 
 void
 Minimap::move_by_pixels(int dx, int dy) {
-  int width = map->get_cols() * scale;
-  int height = map->get_rows() * scale;
+  int pwidth = map->get_cols() * scale;
+  int pheight = map->get_rows() * scale;
 
   offset_x += dx;
   offset_y += dy;
 
   if (offset_y < 0) {
-    offset_y += height;
-    offset_x -= height/2;
-  } else if (offset_y >= height) {
-    offset_y -= height;
-    offset_x += height/2;
+    offset_y += pheight;
+    offset_x -= pheight / 2;
+  } else if (offset_y >= pheight) {
+    offset_y -= pheight;
+    offset_x += pheight / 2;
   }
 
-  if (offset_x >= width) offset_x -= width;
-  else if (offset_x < 0) offset_x += width;
+  if (offset_x >= pwidth) offset_x -= pwidth;
+  else if (offset_x < 0) offset_x += pwidth;
 
   set_redraw();
 }
 
 MinimapGame::MinimapGame(Interface *_interface, PGame _game)
-  : Minimap(_game->get_map()) {
-  interface = _interface;
-  game = _game;
-  draw_roads = false;
-  draw_buildings = true;
-  ownership_mode = OwnershipModeNone;
-  advanced = -1;
+  : Minimap(_game->get_map())
+  , interface(_interface)
+  , game(_game)
+  , advanced(-1)
+  , draw_roads(false)
+  , draw_buildings(true)
+  , ownership_mode(OwnershipModeNone) {
 }
 
 void
@@ -479,8 +478,8 @@ MinimapGame::internal_draw() {
 }
 
 bool
-MinimapGame::handle_click_left(int x, int y) {
-  MapPos pos = map_pos_from_screen_pix(x, y);
+MinimapGame::handle_click_left(int cx, int cy) {
+  MapPos pos = map_pos_from_screen_pix(cx, cy);
   interface->get_viewport()->move_to_map_pos(pos);
 
   interface->update_map_cursor_pos(pos);

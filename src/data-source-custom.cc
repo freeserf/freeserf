@@ -24,6 +24,7 @@
 #include <iomanip>
 #include <memory>
 #include <vector>
+#include <utility>
 
 #include "src/sprite-file.h"
 
@@ -116,12 +117,12 @@ DataSourceCustom::get_sound(size_t index) {
   std::stringstream stream;
   stream << std::setfill('0') << std::setw(3) << index;
   std::string file_name = info->meta->value(stream.str(), "path", stream.str());
-  std::string path = info->path + "/" + file_name;
+  std::string fpath = info->path + "/" + file_name;
 
   try {
-    PBuffer file = std::make_shared<Buffer>(path);
+    PBuffer file = std::make_shared<Buffer>(fpath);
     return file;
-  } catch (ExceptionFreeserf e) {
+  } catch (...) {
     return nullptr;
   }
 }
@@ -136,12 +137,12 @@ DataSourceCustom::get_music(size_t index) {
   std::stringstream stream;
   stream << std::setfill('0') << std::setw(3) << index;
   std::string file_name = info->meta->value(stream.str(), "path", stream.str());
-  std::string path = info->path + "/" + file_name;
+  std::string fpath = info->path + "/" + file_name;
 
   try {
-    PBuffer file = std::make_shared<Buffer>(path);
+    PBuffer file = std::make_shared<Buffer>(fpath);
     return file;
-  } catch (ExceptionFreeserf e) {
+  } catch (...) {
     return nullptr;
   }
 }
@@ -159,8 +160,8 @@ DataSourceCustom::get_info(Data::Resource res) {
       return nullptr;
     }
     ResInfo info;
-    info.meta = meta;
-    info.path = dir_path;
+    info.meta = std::move(meta);
+    info.path = std::move(dir_path);
     infos[res] = info;
   }
 
@@ -177,8 +178,6 @@ DataSourceCustom::load_animation_table() {
   for (size_t i = 0; i < Data::get_resource_count(Data::AssetAnimation); i++) {
     std::stringstream stream;
     stream << std::setfill('0') << std::setw(3) << i;
-    std::string file_name = info->meta->value(stream.str(), "path",
-                                              stream.str() + ".ini");
     ConfigFile meta = ConfigFile();
     if (!meta.load(info->path + "/" + stream.str() + ".ini")) {
       return false;

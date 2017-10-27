@@ -62,6 +62,8 @@ class Message {
   } Type;
 
  public:
+  Message() : type(TypeNone), pos(0), data(0) {}
+
   Type type;
   MapPos pos;
   unsigned int data;
@@ -252,12 +254,12 @@ class Player : public GameObject {
   bool tick_send_knight_delay();
   Serf::Type get_cycling_sert_type(Serf::Type type) const;
 
-  void increase_serf_count(int type) { serf_count[type]++; }
-  void decrease_serf_count(int type) { serf_count[type]--; }
+  void increase_serf_count(unsigned int type) { serf_count[type]++; }
+  void decrease_serf_count(unsigned int type);
   int *get_serfs() { return reinterpret_cast<int*>(serf_count); }
 
-  void increase_res_count(int type) { serf_count[type]++; }
-  void decrease_res_count(int type) { serf_count[type]--; }
+  void increase_res_count(unsigned int type) { resource_count[type]++; }
+  void decrease_res_count(unsigned int type) { resource_count[type]--; }
 
   void building_founded(Building *building);
   void building_built(Building *building);
@@ -294,8 +296,8 @@ class Player : public GameObject {
   unsigned int get_initial_supplies() const { return initial_supplies; }
   int *get_resource_count_history(Resource::Type type) {
     return resource_count_history[type]; }
-  void set_player_stat_history(int mode, int index, int val) {
-    player_stat_history[mode][index] = val; }
+  void set_player_stat_history(int mode, int ind, int val) {
+    player_stat_history[mode][ind] = val; }
   int *get_player_stat_history(int mode) { return player_stat_history[mode]; }
 
   ResourceMap get_stats_resources();
@@ -305,6 +307,7 @@ class Player : public GameObject {
   // Settings
   int get_serf_to_knight_rate() const { return serf_to_knight_rate; }
   void set_serf_to_knight_rate(int rate) { serf_to_knight_rate = rate; }
+  unsigned int get_food_for_building(unsigned int bld_type) const;
   int get_food_stonemine() const { return food_stonemine; }
   void set_food_stonemine(int val) { food_stonemine = val; }
   int get_food_coalmine() const { return food_coalmine; }

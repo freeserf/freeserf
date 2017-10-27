@@ -344,9 +344,9 @@ class Serf : public GameObject {
     /* States: idle_on_path, wait_idle_on_path,
        wake_at_flag, wake_on_path. */
     struct {
-      Direction rev_dir; /* B */
       Flag *flag; /* C */
       int field_E; /* E */
+      Direction rev_dir; /* B */
     } idle_on_path;
 
     /* No state data: finished_building */
@@ -413,8 +413,8 @@ class Serf : public GameObject {
   int get_attacking_field_D() const { return s.attacking.field_D; }
   int get_attacking_def_index() const { return s.attacking.def_index; }
   int get_walking_wait_counter() const { return s.walking.wait_counter; }
-  void set_walking_wait_counter(int counter) {
-    s.walking.wait_counter = counter; }
+  void set_walking_wait_counter(int new_counter) {
+    s.walking.wait_counter = new_counter; }
   int get_walking_dir() const { return s.walking.dir; }
   unsigned int get_idle_in_stock_inv_index() const {
                                              return s.idle_in_stock.inv_index; }

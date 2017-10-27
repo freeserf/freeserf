@@ -31,7 +31,7 @@ ConvertorSFX2WAV::ConvertorSFX2WAV(PBuffer _buffer, int _level, bool _invert)
 
 PBuffer
 ConvertorSFX2WAV::create_data(PBuffer data) {
-  PMutableBuffer result = std::make_shared<MutableBuffer>(Buffer::EndianessBig);
+  PMutableBuffer res = std::make_shared<MutableBuffer>(Buffer::EndianessBig);
 
   while (data->readable()) {
     int value = data->pop<uint8_t>();
@@ -40,9 +40,9 @@ ConvertorSFX2WAV::create_data(PBuffer data) {
       value = 0xFF - value;
     }
     value *= 0xFF;
-    result->push<int16_t>(value);
+    res->push<int16_t>(value);
   }
 
-  return result;
+  return res;
 }
 

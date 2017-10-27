@@ -41,6 +41,9 @@ Building::Building(Game *game, unsigned int index)
   burning = false;
   active = false;
   holder = false;
+  pos = 0;
+  progress = 0;
+  u = { 0 };
 
   for (int j = 0; j < BUILDING_MAX_STOCK; j++) {
     stock[j].type = Resource::TypeNone;
@@ -476,9 +479,10 @@ Building::burnup() {
     }
   }
 
-  MapPos flag_pos = game->get_map()->move_down_right(pos);
-  if (game->get_map()->paths(flag_pos) == 0 &&
-      game->get_map()->get_obj(flag_pos) == Map::ObjectFlag) {
+  PMap map = game->get_map();
+  MapPos flag_pos = map->move_down_right(pos);
+  if (map->paths(flag_pos) == 0 &&
+    map->get_obj(flag_pos) == Map::ObjectFlag) {
     game->demolish_flag(flag_pos, player);
   }
 
@@ -746,11 +750,12 @@ Building::update() {
           }
 
           /* TODO Following code looks like a hack */
-          MapPos flag_pos = game->get_map()->move_down_right(pos);
-          if (game->get_map()->has_serf(flag_pos)) {
+          PMap map = game->get_map();
+          MapPos flag_pos = map->move_down_right(pos);
+          if (map->has_serf(flag_pos)) {
             Serf *serf = game->get_serf_at_pos(flag_pos);
             if (serf->get_pos() != flag_pos) {
-              game->get_map()->set_serf_index(flag_pos, 0);
+              map->set_serf_index(flag_pos, 0);
             }
           }
         }
@@ -1113,11 +1118,12 @@ Building::update_castle() {
     }
   }
 
-  MapPos flag_pos = game->get_map()->move_down_right(pos);
-  if (game->get_map()->has_serf(flag_pos)) {
+  PMap map = game->get_map();
+  MapPos flag_pos = map->move_down_right(pos);
+  if (map->has_serf(flag_pos)) {
     Serf *serf = game->get_serf_at_pos(flag_pos);
     if (serf->get_pos() != flag_pos) {
-      game->get_map()->set_serf_index(flag_pos, 0);
+      map->set_serf_index(flag_pos, 0);
     }
   }
 }

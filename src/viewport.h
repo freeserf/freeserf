@@ -121,6 +121,8 @@ class Viewport : public GuiObject, public Map::Handler {
   void draw_map_cursor();
   void draw_base_grid_overlay(const Color &color);
   void draw_height_grid_overlay(const Color &color);
+  MapPos get_offset(int *x_off, int *y_off,
+                    int *col = nullptr, int *row = nullptr);
 
   virtual void internal_draw();
   virtual void layout();

@@ -40,10 +40,10 @@ DataSource::DataSource(const std::string &_path)
 }
 
 bool
-DataSource::check_file(const std::string &path) {
+DataSource::check_file(const std::string &fpath) {
   struct stat info;
 
-  if (stat(path.c_str(), &info) != 0) {
+  if (stat(fpath.c_str(), &info) != 0) {
     return false;
   }
 
@@ -54,21 +54,31 @@ DataSource::check_file(const std::string &path) {
   return true;
 }
 
-Sprite::Sprite() {
-  data = nullptr;
+Sprite::Sprite()
+  : delta_x(0)
+  , delta_y(0)
+  , offset_x(0)
+  , offset_y(0)
+  , width(0)
+  , height(0)
+  , data(nullptr) {
 }
 
-Sprite::Sprite(PSprite base) {
-  data = nullptr;
-  delta_x = base->get_delta_x();
-  delta_y = base->get_delta_y();
-  offset_x = base->get_offset_x();
-  offset_y = base->get_offset_y();
+Sprite::Sprite(PSprite base)
+  : delta_x(base->get_delta_x())
+  , delta_y(base->get_delta_y())
+  , offset_x(base->get_offset_x())
+  , offset_y(base->get_offset_y())
+  , data(nullptr) {
   create(base->get_width(), base->get_height());
 }
 
-Sprite::Sprite(unsigned int w, unsigned int h) {
-  data = nullptr;
+Sprite::Sprite(unsigned int w, unsigned int h)
+  : delta_x(0)
+  , delta_y(0)
+  , offset_x(0)
+  , offset_y(0)
+  , data(nullptr) {
   create(w, h);
 }
 
@@ -209,8 +219,8 @@ Sprite::blend(PSprite other) {
     return;
   }
 
-#define UNMULTIPLY(color, a) ((0xFF * color) / a)
-#define BLEND(back, front, a) ((front * a) + (back * (0xFF - a))) / 0xFF
+#define UNMULTIPLY(color, a) ((0xFF * (color)) / (a))
+#define BLEND(back, front, a) (((front) * (a)) + ((back) * (0xFF - (a)))) / 0xFF
 
   Color *c = reinterpret_cast<Color*>(data);
   Color *o = reinterpret_cast<Color*>(other->get_data());

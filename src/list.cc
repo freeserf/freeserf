@@ -48,26 +48,26 @@ ListSavedFiles::internal_draw() {
   }
 
   unsigned int item = first_visible_item;
-  for (int y = 0; (y < (height - 6)) && (item < items.size()); y += 9) {
+  for (int ly = 0; (ly < (height - 6)) && (item < items.size()); ly += 9) {
     Color tc = color_text;
     if (static_cast<int>(item) == selected_item) {
-      frame->fill_rect(2, y + 2, width - 4, 9, Color::green);
+      frame->fill_rect(2, ly + 2, width - 4, 9, Color::green);
       tc = Color::black;
     }
-    frame->draw_string(3, 3 + y, items[item].name, tc);
+    frame->draw_string(3, 3 + ly, items[item].name, tc);
     item++;
   }
 }
 
 bool
-ListSavedFiles::handle_click_left(int x, int y) {
+ListSavedFiles::handle_click_left(int /*cx*/, int cy) {
   set_focused();
-  y -= 3;
-  if (y >= 0) {
-    y = first_visible_item + (y / 9);
-    if ((selected_item != y) && (y >= 0) &&
-        (y < static_cast<int>(items.size()))) {
-      selected_item = y;
+  cy -= 3;
+  if (cy >= 0) {
+    cy = first_visible_item + (cy / 9);
+    if ((selected_item != cy) && (cy >= 0) &&
+        (cy < static_cast<int>(items.size()))) {
+      selected_item = cy;
       set_redraw();
       if (selection_handler != nullptr) {
         std::string file_path = items[selected_item].path;

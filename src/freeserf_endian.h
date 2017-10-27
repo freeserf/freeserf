@@ -62,12 +62,12 @@ T letoh(T x) {
 
 template <typename T>
 T htobe(T x) {
-  return is_big_endian() ? x : byte_swap(x);
+  return betoh(x);
 }
 
 template <typename T>
 T htole(T x) {
-  return is_big_endian() ? byte_swap(x) : x;
+  return letoh(x);
 }
 
 #endif  // SRC_FREESERF_ENDIAN_H_

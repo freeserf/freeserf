@@ -16,6 +16,7 @@ Some useful configure variables (set as environment variable or with `-D` comman
 
 * `SDL2DIR` - path to SDL2 root directory
 * `SDL2MIXERDIR` - path to SDL2_mixer root directory (optional)
+* `SDL2IMAGEDIR` - path to SDL2_image root directory (optional)
 * `XMPDIR` - path to libxmp root directory (optional)
 
 Dependencies
@@ -23,12 +24,13 @@ Dependencies
 
 * [SDL2](https://www.libsdl.org/download-2.0.php) (Development Libraries)
 * [SDL2_mixer](https://www.libsdl.org/projects/SDL_mixer/) (Optional; for audio playback) (Development Libraries)
+* [SDL2_image](https://www.libsdl.org/projects/SDL_image/) (Optional; for custom resources) (Development Libraries)
 * [libxmp](http://xmp.sourceforge.net/) (Optional; for Amiga music playback) (Building needed)
 
 Coding style
 ------------
 
-For the C++ code we are following the [Google C++ Style Guide](https://google-styleguide.googlecode.com/svn/trunk/cppguide.html).
+For the C++ code we are following the [Google C++ Style Guide](http://google.github.io/styleguide/cppguide.html).
 
 You can check style during the build
 

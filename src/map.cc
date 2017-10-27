@@ -804,41 +804,46 @@ operator >> (SaveReaderBinary &reader, Map &map) {
   uint8_t v8;
   uint16_t v16;
 
-  for (unsigned int y = 0; y < map.geom().rows(); y++) {
-    for (unsigned int x = 0; x < map.geom().cols(); x++) {
+  const MapGeometry &geom = map.geom();
+  for (unsigned int y = 0; y < geom.rows(); y++) {
+    for (unsigned int x = 0; x < geom.cols(); x++) {
       MapPos pos = map.pos(x, y);
+      Map::GameTile &game_tile = map.game_tiles[pos];
+      Map::LandscapeTile &landscape_tile = map.landscape_tiles[pos];
       reader >> v8;
-      map.game_tiles[pos].paths = v8 & 0x3f;
+      game_tile.paths = v8 & 0x3f;
       reader >> v8;
-      map.landscape_tiles[pos].height = v8 & 0x1f;
+      landscape_tile.height = v8 & 0x1f;
       if ((v8 >> 7) == 0x01) {
-        map.game_tiles[pos].owner = ((v8 >> 5) & 0x03) + 1;
+        game_tile.owner = ((v8 >> 5) & 0x03) + 1;
       }
       reader >> v8;
-      map.landscape_tiles[pos].type_up = (Map::Terrain)((v8 >> 4) & 0x0f);
-      map.landscape_tiles[pos].type_down = (Map::Terrain)(v8 & 0x0f);
+      landscape_tile.type_up = (Map::Terrain)((v8 >> 4) & 0x0f);
+      landscape_tile.type_down = (Map::Terrain)(v8 & 0x0f);
       reader >> v8;
-      map.landscape_tiles[pos].obj = (Map::Object)(v8 & 0x7f);
-      map.game_tiles[pos].idle_serf = 0;  // (BIT_TEST(v8, 7) != 0);
+      landscape_tile.obj = (Map::Object)(v8 & 0x7f);
+      game_tile.idle_serf = 0;  // (BIT_TEST(v8, 7) != 0);
     }
-    for (unsigned int x = 0; x < map.geom().cols(); x++) {
+    for (unsigned int x = 0; x < geom.cols(); x++) {
       MapPos pos = map.pos(x, y);
+      Map::GameTile &game_tile = map.game_tiles[pos];
+      Map::LandscapeTile &landscape_tile = map.landscape_tiles[pos];
       if (map.get_obj(pos) >= Map::ObjectFlag &&
           map.get_obj(pos) <= Map::ObjectCastle) {
-        map.landscape_tiles[pos].mineral = Map::MineralsNone;
-        map.landscape_tiles[pos].resource_amount = 0;
+        landscape_tile.mineral = Map::MineralsNone;
+        landscape_tile.resource_amount = 0;
         reader >> v16;
-        map.game_tiles[pos].obj_index = v16;
+        game_tile.obj_index = v16;
       } else {
         reader >> v8;
-        map.landscape_tiles[pos].mineral = (Map::Minerals)((v8 >> 5) & 7);
-        map.landscape_tiles[pos].resource_amount = v8 & 0x1f;
+        landscape_tile.mineral = (Map::Minerals)((v8 >> 5) & 7);
+        landscape_tile.resource_amount = v8 & 0x1f;
         reader >> v8;
-        map.game_tiles[pos].obj_index = 0;
+        game_tile.obj_index = 0;
       }
 
       reader >> v16;
-      map.game_tiles[pos].serf = v16;
+      game_tile.serf = v16;
     }
   }
 
@@ -867,39 +872,41 @@ operator >> (SaveReaderText &reader, Map &map) {
   for (int y = 0; y < SAVE_MAP_TILE_SIZE; y++) {
     for (int x = 0; x < SAVE_MAP_TILE_SIZE; x++) {
       MapPos p = map.pos_add(pos, map.pos(x, y));
+      Map::GameTile &game_tile = map.game_tiles[p];
+      Map::LandscapeTile &landscape_tile = map.landscape_tiles[p];
       unsigned int val;
 
       reader.value("paths")[y*SAVE_MAP_TILE_SIZE+x] >> val;
-      map.game_tiles[p].paths = val & 0x3f;
+      game_tile.paths = val & 0x3f;
 
       reader.value("height")[y*SAVE_MAP_TILE_SIZE+x] >> val;
-      map.landscape_tiles[p].height = val & 0x1f;
+      landscape_tile.height = val & 0x1f;
 
       reader.value("type.up")[y*SAVE_MAP_TILE_SIZE+x] >> val;
-      map.landscape_tiles[p].type_up = (Map::Terrain)val;
+      landscape_tile.type_up = (Map::Terrain)val;
 
       reader.value("type.down")[y*SAVE_MAP_TILE_SIZE+x] >> val;
-      map.landscape_tiles[p].type_down = (Map::Terrain)val;
+      landscape_tile.type_down = (Map::Terrain)val;
 
       try {
         reader.value("idle_serf")[y*SAVE_MAP_TILE_SIZE+x] >> val;
-        map.game_tiles[p].idle_serf = (val != 0);
+        game_tile.idle_serf = (val != 0);
         reader.value("object")[y*SAVE_MAP_TILE_SIZE+x] >> val;
-        map.landscape_tiles[p].obj = (Map::Object)val;
+        landscape_tile.obj = (Map::Object)val;
       } catch (...) {
         reader.value("object")[y*SAVE_MAP_TILE_SIZE+x] >> val;
-        map.landscape_tiles[p].obj = (Map::Object)(val & 0x7f);
-        map.game_tiles[p].idle_serf = (BIT_TEST(val, 7) != 0);
+        landscape_tile.obj = (Map::Object)(val & 0x7f);
+        game_tile.idle_serf = (BIT_TEST(val, 7) != 0);
       }
 
       reader.value("serf")[y*SAVE_MAP_TILE_SIZE+x] >> val;
-      map.game_tiles[p].serf = val;
+      game_tile.serf = val;
 
       reader.value("resource.type")[y*SAVE_MAP_TILE_SIZE+x] >> val;
-      map.landscape_tiles[p].mineral = (Map::Minerals)val;
+      landscape_tile.mineral = (Map::Minerals)val;
 
       reader.value("resource.amount")[y*SAVE_MAP_TILE_SIZE+x] >> val;
-      map.landscape_tiles[p].resource_amount = val;
+      landscape_tile.resource_amount = val;
     }
   }
 
