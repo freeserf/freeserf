@@ -70,8 +70,8 @@ TEST(Map, ClassicMissionMapGenerator) {
     index_offset += 1;
   }
 
-  for (int y = 0; y < map.get_rows(); y++) {
-    for (int x = 0; x < map.get_cols(); x++) {
+  for (unsigned int y = 0; y < map.get_rows(); y++) {
+    for (unsigned int x = 0; x < map.get_cols(); x++) {
       MapPos pos = map.pos(x, y);
       int index_1 = ((y << index_offset) | x) << 2;
       int index_2 = ((y << index_offset) | (1 << (index_offset-1)) | x) << 2;

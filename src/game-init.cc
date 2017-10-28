@@ -51,7 +51,7 @@ class RandomInput : public TextInput {
 
   void set_random(const Random &rnd) {
     std::string str = rnd;
-    set_text(str.c_str());
+    set_text(str);
   }
   Random get_random() {
     return Random(text);
@@ -71,8 +71,8 @@ class RandomInput : public TextInput {
     return true;
   }
 
-  virtual bool handle_click_left(int x, int y) {
-    TextInput::handle_click_left(x, y);
+  virtual bool handle_click_left(int cx, int cy) {
+    TextInput::handle_click_left(cx, cy);
     saved_text = text;
     text.clear();
     return true;
@@ -130,22 +130,22 @@ GameInitBox::~GameInitBox() {
 }
 
 void
-GameInitBox::draw_box_icon(int x, int y, int sprite) {
-  frame->draw_sprite(8*x+20, y+16, Data::AssetIcon, sprite);
+GameInitBox::draw_box_icon(int ix, int iy, int sprite) {
+  frame->draw_sprite(8 * ix + 20, iy + 16, Data::AssetIcon, sprite);
 }
 
 void
-GameInitBox::draw_box_string(int x, int y, const std::string &str) {
-  frame->draw_string(8*x+20, y+16, str, Color::green, Color::black);
+GameInitBox::draw_box_string(int sx, int sy, const std::string &str) {
+  frame->draw_string(8 * sx + 20, sy + 16, str, Color::green, Color::black);
 }
 
 void
 GameInitBox::draw_background() {
   // Background
   unsigned int icon = 290;
-  for (int y = 0; y < height; y += 8) {
-    for (int x = 0; x < width; x += 40) {
-      frame->draw_sprite(x, y, Data::AssetIcon, icon);
+  for (int by = 0; by < height; by += 8) {
+    for (int bx = 0; bx < width; bx += 40) {
+      frame->draw_sprite(bx, by, Data::AssetIcon, icon);
     }
     icon--;
     if (icon < 290) {
@@ -221,14 +221,14 @@ GameInitBox::internal_draw() {
 
   /* Game info */
   if (game_type != GameLoad) {
-    int x = 0;
-    int y = 0;
+    int bx = 0;
+    int by = 0;
     for (int i = 0; i < GAME_MAX_PLAYER_COUNT; i++) {
-      draw_player_box(i, 10 * x, 40 + y * 80);
-      x++;
+      draw_player_box(i, 10 * bx, 40 + by * 80);
+      bx++;
       if (i == 1) {
-        y++;
-        x = 0;
+        by++;
+        bx = 0;
       }
     }
   }
@@ -240,7 +240,7 @@ GameInitBox::internal_draw() {
 }
 
 void
-GameInitBox::draw_player_box(unsigned int player, int x, int y) {
+GameInitBox::draw_player_box(unsigned int player, int bx, int by) {
   const int layout[] = {
     251, 0, 0,
     252, 0, 72,
@@ -252,34 +252,35 @@ GameInitBox::draw_player_box(unsigned int player, int x, int y) {
 
   const int *i = layout;
   while (i[0] >= 0) {
-    draw_box_icon(x+i[1], y+i[2], i[0]);
+    draw_box_icon(bx+i[1], by+i[2], i[0]);
     i += 3;
   }
 
-  y += 8;
-  x += 1;
+  by += 8;
+  bx += 1;
 
   unsigned int face = 0;
   if (player < mission->get_player_count()) {
     face = mission->get_player(player)->get_face();
   }
 
-  draw_box_icon(x, y, get_player_face_sprite(face));
-  draw_box_icon(x+5, y, 282);
+  draw_box_icon(bx, by, get_player_face_sprite(face));
+  draw_box_icon(bx+5, by, 282);
 
   if (player < mission->get_player_count()) {
-    x *= 8;
+    bx *= 8;
 
-    unsigned int supplies = mission->get_player(player)->get_supplies();
-    frame->fill_rect(x + 64, y + 76 - supplies, 4, supplies,
+    PPlayerInfo pi = mission->get_player(player);
+    unsigned int supplies = pi->get_supplies();
+    frame->fill_rect(bx + 64, by + 76 - supplies, 4, supplies,
                      Color(0x00, 0x93, 0x87));
 
-    unsigned int intelligence = mission->get_player(player)->get_intelligence();
-    frame->fill_rect(x + 70, y + 76 - intelligence, 4, intelligence,
+    unsigned int intelligence = pi->get_intelligence();
+    frame->fill_rect(bx + 70, by + 76 - intelligence, 4, intelligence,
                      Color(0x6b, 0xab, 0x3b));
 
-    unsigned int reproduction = mission->get_player(player)->get_reproduction();
-    frame->fill_rect(x + 76, y + 76 - reproduction, 4, reproduction,
+    unsigned int reproduction = pi->get_reproduction();
+    frame->fill_rect(bx + 76, by + 76 - reproduction, 4, reproduction,
                      Color(0xa7, 0x27, 0x27));
   }
 }
@@ -382,7 +383,7 @@ GameInitBox::handle_action(int action) {
 }
 
 bool
-GameInitBox::handle_click_left(int x, int y) {
+GameInitBox::handle_click_left(int cx, int cy) {
   const int clickmap_mission[] = {
     ActionStartGame,        20,  16, 32, 32,
     ActionToggleGameType,   60,  16, 32, 32,
@@ -430,7 +431,7 @@ GameInitBox::handle_click_left(int x, int y) {
 
   const int *i = clickmap;
   while (i[0] >= 0) {
-    if (x >= i[1] && x < i[1]+i[3] && y >= i[2] && y < i[2]+i[4]) {
+    if (cx >= i[1] && cx < i[1]+i[3] && cy >= i[2] && cy < i[2]+i[4]) {
       set_redraw();
       handle_action(i[0]);
       return true;
@@ -439,20 +440,20 @@ GameInitBox::handle_click_left(int x, int y) {
   }
 
   /* Check player area */
-  int cx = 0;
-  int cy = 0;
+  int lx = 0;
+  int ly = 0;
   for (int i = 0; i < GAME_MAX_PLAYER_COUNT; i++) {
-    int px = 20 + cx*80;
-    int py = 56 + cy*80;
-    if ((x > px) && (x < px + 80) && (y > py) && (y < py + 80)) {
-      if (handle_player_click(i, x - px, y - py)) {
+    int px = 20 + lx * 80;
+    int py = 56 + ly * 80;
+    if ((cx > px) && (cx < px + 80) && (cy > py) && (cy < py + 80)) {
+      if (handle_player_click(i, cx - px, cy - py)) {
         break;
       }
     }
-    cx++;
+    lx++;
     if (i == 1) {
-      cy++;
-      cx = 0;
+      ly++;
+      lx = 0;
     }
   }
 
@@ -460,8 +461,8 @@ GameInitBox::handle_click_left(int x, int y) {
 }
 
 bool
-GameInitBox::handle_player_click(unsigned int player_index, int x, int y) {
-  if (x < 8 || x > 8 + 64 || y < 8 || y > 76) {
+GameInitBox::handle_player_click(unsigned int player_index, int cx, int cy) {
+  if (cx < 8 || cx > 8 + 64 || cy < 8 || cy > 76) {
     return false;
   }
 
@@ -471,7 +472,7 @@ GameInitBox::handle_player_click(unsigned int player_index, int x, int y) {
 
   PPlayerInfo player = mission->get_player(player_index);
 
-  if (x >= 8 && x < 8+32 && y >= 8 && y < 72) {
+  if ((cx < 8+32) && (cy < 72)) {
     /* Face */
     bool in_use = false;
     do {
@@ -490,19 +491,19 @@ GameInitBox::handle_player_click(unsigned int player_index, int x, int y) {
       }
     } while (in_use);
   } else {
-    x -= 8 + 32 + 8 + 3;
-    if (x < 0) {
+    cx -= 8 + 32 + 8 + 3;
+    if (cx < 0) {
       return false;
     }
-    if (y >= 27 && y < 69) {
-      unsigned int value = clamp(0, 68 - y, 40);
-      if (x > 0 && x < 6) {
+    if (cy >= 27 && cy < 69) {
+      unsigned int value = clamp(0, 68 - cy, 40);
+      if (cx > 0 && cx < 6) {
         /* Supplies */
         player->set_supplies(value);
-      } else if (x > 6 && x < 12) {
+      } else if (cx > 6 && cx < 12) {
         /* Intelligence */
         player->set_intelligence(value);
-      } else if (x > 12 && x < 18) {
+      } else if (cx > 12 && cx < 18) {
         /* Reproduction */
         player->set_reproduction(value);
       }

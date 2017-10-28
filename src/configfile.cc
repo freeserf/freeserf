@@ -100,7 +100,7 @@ ConfigFile::read(std::istream *is) {
   data["global"] = section;
   size_t line_number = 0;
 
-  while (!is->eof()) {
+  while (!is->eof() && !is->fail()) {
     std::string line;
     getline(*is, line);
     line_number++;

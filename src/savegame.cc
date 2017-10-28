@@ -60,9 +60,9 @@ class SaveWriterTextSection : public SaveWriterText {
   Sections sections;
 
  public:
-  SaveWriterTextSection(std::string name, unsigned int number) {
-    this->name = name;
-    this->number = number;
+  SaveWriterTextSection(std::string name_, unsigned int number_)
+    : name(name_)
+    , number(number_) {
   }
 
   virtual ~SaveWriterTextSection() {
@@ -71,15 +71,14 @@ class SaveWriterTextSection : public SaveWriterText {
     }
   }
 
-  virtual SaveWriterTextValue &value(const std::string &name) {
-    Values::iterator i = values.find(name);
+  virtual SaveWriterTextValue &value(const std::string &val_name) {
+    Values::iterator i = values.find(val_name);
     if (i != values.end()) {
       return i->second;
     }
 
-    values[name] = SaveWriterTextValue();
-    i = values.find(name);
-    return i->second;
+    values[val_name] = SaveWriterTextValue();
+    return values[val_name];
   }
 
   bool save(const std::string &path) {
@@ -95,8 +94,8 @@ class SaveWriterTextSection : public SaveWriterText {
   }
 
 
-  SaveWriterText &add_section(const std::string &name, unsigned int number) {
-    SaveWriterTextSection *section = new SaveWriterTextSection(name, number);
+  SaveWriterText &add_section(const std::string &sub_name, unsigned int sub_number) {
+    SaveWriterTextSection *section = new SaveWriterTextSection(sub_name, sub_number);
     sections.push_back(section);
     return *section;
   }
@@ -128,8 +127,9 @@ class SaveReaderTextSection : public SaveReaderText {
   Readers readers_stub;
 
  public:
-  SaveReaderTextSection(ConfigFile *file, const std::string &_name) {
-    name = _name;
+  SaveReaderTextSection(ConfigFile *file, const std::string &_name)
+    : name(_name)
+    , number(0) {
     size_t pos = name.find(' ');
     if (pos != std::string::npos) {
       std::string value = name.substr(pos + 1, name.length() - pos - 1);
@@ -155,11 +155,11 @@ class SaveReaderTextSection : public SaveReaderText {
   }
 
   virtual const SaveReaderTextValue &
-  value(const std::string &name) const {
-    Values::const_iterator it = values.find(name);
+  value(const std::string &val_name) const {
+    Values::const_iterator it = values.find(val_name);
     if (it == values.end()) {
       std::ostringstream str;
-      str << "Failed to load value: " << name;
+      str << "Failed to load value: " << val_name;
       throw ExceptionFreeserf(str.str());
     }
 
@@ -298,8 +298,8 @@ SaveReaderBinary::read(size_t size) {
   return data;
 }
 
-SaveReaderTextValue::SaveReaderTextValue(const std::string &_value) {
-  value = _value;
+SaveReaderTextValue::SaveReaderTextValue(const std::string &_value)
+  : value(_value) {
   if (value.find(',') != std::string::npos) {
     std::istringstream iss(value);
     std::string item;
@@ -525,7 +525,7 @@ GameStore::get_instance() {
 bool
 GameStore::create_folder(const std::string &path) {
 #ifdef _WIN32
-  return (CreateDirectoryA(path.c_str(), nullptr) == TRUE);
+  return (CreateDirectoryA(path.c_str(), nullptr) != FALSE);
 #else
   return (mkdir(folder_path.c_str(),
                 S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH) == 0);
@@ -551,7 +551,7 @@ GameStore::get_saved_games() {
 
 std::string
 GameStore::name_from_file(const std::string &file_name) {
-  size_t pos = file_name.find_last_of(".");
+  size_t pos = file_name.find_last_of('.');
   if (pos == std::string::npos) {
     return file_name;
   }
@@ -575,7 +575,7 @@ GameStore::update() {
         info.type = SaveInfo::Regular;
         saved_games.push_back(info);
       }
-    } while (FindNextFileA(hFind, &ffd) == TRUE);
+    } while (FindNextFileA(hFind, &ffd) != FALSE);
   }
 
   FindClose(hFind);

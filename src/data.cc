@@ -123,7 +123,7 @@ Data::load(const std::string &path) {
         Log::Info["data"] << "Game data found in '" << source->get_path()
                           << "'...";
         if (source->load()) {
-          data_source = source;
+          data_source = std::move(source);
           break;
         }
       }

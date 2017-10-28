@@ -250,11 +250,10 @@ class PopupBox : public GuiObject {
   void handle_adv_1_building_clk(int x, int y);
   void handle_adv_2_building_clk(int x, int y);
   void handle_stat_select_click(int x, int y);
-  void handle_stat_3_4_6_click(int x, int y);
   void handle_stat_bld_click(int x, int y);
   void handle_stat_8_click(int x, int y);
   void handle_stat_7_click(int x, int y);
-  void handle_stat_1_2_click(int x, int y);
+  void handle_stat_1_2_3_4_6_click(int x, int y);
   void handle_start_attack_click(int x, int y);
   void handle_ground_analysis_clk(int x, int y);
   void handle_sett_select_clk(int x, int y);

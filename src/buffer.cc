@@ -184,7 +184,11 @@ MutableBuffer::check_size(size_t _size) {
     return;
   }
   while (_size > reserved) {
-    data = ::realloc(data, reserved + growth);
+    void *new_data = ::realloc(data, reserved + growth);
+    if (new_data == nullptr) {
+      throw std::bad_alloc();
+    }
+    data = new_data;
     reserved += growth;
   }
 }

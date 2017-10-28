@@ -335,48 +335,51 @@ PopupBox::draw_popup_box_frame() {
 
 /* Draw icon in a popup frame. */
 void
-PopupBox::draw_popup_icon(int x, int y, int sprite) {
-  frame->draw_sprite(8*x+8, y+9, Data::AssetIcon, sprite);
+PopupBox::draw_popup_icon(int x_, int y_, int sprite) {
+  frame->draw_sprite(8 * x_ + 8, y_ + 9, Data::AssetIcon, sprite);
 }
 
 /* Draw building in a popup frame. */
 void
-PopupBox::draw_popup_building(int x, int y, int sprite) {
+PopupBox::draw_popup_building(int x_, int y_, int sprite) {
   Player *player = interface->get_player();
   Color color = interface->get_player_color(player->get_index());
-  frame->draw_sprite(8*x+8, y+9, Data::AssetMapObject, sprite, false, color);
+  frame->draw_sprite(8 * x_ + 8, y_ + 9,
+                     Data::AssetMapObject, sprite, false, color);
 }
 
 /* Fill the background of a popup frame. */
 void
 PopupBox::draw_box_background(BackgroundPattern sprite) {
-  for (int y = 0; y < 144; y += 16) {
-    for (int x = 0; x < 16; x += 2) {
-      draw_popup_icon(x, y, sprite);
+  for (int iy = 0; iy < 144; iy += 16) {
+    for (int ix = 0; ix < 16; ix += 2) {
+      draw_popup_icon(ix, iy, sprite);
     }
   }
 }
 
 /* Fill one row of a popup frame. */
 void
-PopupBox::draw_box_row(int sprite, int y) {
-  for (int x = 0; x < 16; x += 2) draw_popup_icon(x, y, sprite);
+PopupBox::draw_box_row(int sprite, int iy) {
+  for (int ix = 0; ix < 16; ix += 2) {
+    draw_popup_icon(ix, iy, sprite);
+  }
 }
 
 /* Draw a green string in a popup frame. */
 void
-PopupBox::draw_green_string(int x, int y, const std::string &str) {
-  frame->draw_string(8*x+8, y+9, str, Color::green);
+PopupBox::draw_green_string(int sx, int sy, const std::string &str) {
+  frame->draw_string(8 * sx + 8, sy + 9, str, Color::green);
 }
 
 /* Draw a green number in a popup frame.
    n must be non-negative. If > 999 simply draw ">999" (three characters). */
 void
-PopupBox::draw_green_number(int x, int y, int n) {
+PopupBox::draw_green_number(int sx, int sy, int n) {
   if (n >= 1000) {
-    draw_popup_icon(x, y, 0xd5); /* Draw >999 */
-    draw_popup_icon(x+1, y, 0xd6);
-    draw_popup_icon(x+2, y, 0xd7);
+    draw_popup_icon(sx, sy, 0xd5); /* Draw >999 */
+    draw_popup_icon(sx+1, sy, 0xd6);
+    draw_popup_icon(sx+2, sy, 0xd7);
   } else {
     /* Not the same sprites as are used to draw numbers
        in gfx_draw_number(). */
@@ -384,33 +387,35 @@ PopupBox::draw_green_number(int x, int y, int n) {
     if (n >= 100) {
       int n100 = static_cast<int>(floor(n / 100.f));
       n -= n100 * 100;
-      draw_popup_icon(x, y, 0x4e + n100);
-      x += 1;
+      draw_popup_icon(sx, sy, 0x4e + n100);
+      sx += 1;
       draw_zero = 1;
     }
 
     if (n >= 10 || draw_zero) {
       int n10 = static_cast<int>(floor(n / 10.f));
       n -= n10 * 10;
-      draw_popup_icon(x, y, 0x4e + n10);
-      x += 1;
+      draw_popup_icon(sx, sy, 0x4e + n10);
+      sx += 1;
     }
 
-    draw_popup_icon(x, y, 0x4e + n);
+    draw_popup_icon(sx, sy, 0x4e + n);
   }
 }
 
 /* Draw a green number in a popup frame.
    No limits on n. */
 void
-PopupBox::draw_green_large_number(int x, int y, int n) {
-  frame->draw_number(8*x+8, 9+y, n, Color::green);
+PopupBox::draw_green_large_number(int sx, int sy, int n) {
+  frame->draw_number(8 * sx + 8, 9 + sy, n, Color::green);
 }
 
 /* Draw small green number. */
 void
-PopupBox::draw_additional_number(int x, int y, int n) {
-  if (n > 0) draw_popup_icon(x, y, 240 + std::min(n, 10));
+PopupBox::draw_additional_number(int ix, int iy, int n) {
+  if (n > 0) {
+    draw_popup_icon(ix, iy, 240 + std::min(n, 10));
+  }
 }
 
 /* Get the sprite number for a face. */
@@ -424,26 +429,27 @@ PopupBox::get_player_face_sprite(size_t face) {
 
 /* Draw player face in popup frame. */
 void
-PopupBox::draw_player_face(int x, int y, int player) {
+PopupBox::draw_player_face(int ix, int iy, int player) {
   Color color;
   size_t face = 0;
   Player *p = interface->get_game()->get_player(player);
-  if (p != NULL) {
+  if (p != nullptr) {
     color = interface->get_player_color(player);
     face = p->get_face();
   }
 
-  frame->fill_rect(8*x, y+5, 48, 72, color);
-  draw_popup_icon(x, y, get_player_face_sprite(face));
+  frame->fill_rect(8 * ix, iy + 5, 48, 72, color);
+  draw_popup_icon(ix, iy, get_player_face_sprite(face));
 }
 
 /* Draw a layout of buildings in a popup box. */
 void
 PopupBox::draw_custom_bld_box(const int sprites[]) {
   while (sprites[0] > 0) {
-    int x = sprites[1];
-    int y = sprites[2];
-    frame->draw_sprite(8*x+8, y+9, Data::AssetMapObject, sprites[0], false);
+    int sx = sprites[1];
+    int sy = sprites[2];
+    frame->draw_sprite(8 * sx + 8, sy + 9,
+                       Data::AssetMapObject, sprites[0], false);
     sprites += 3;
   }
 }
@@ -759,11 +765,11 @@ PopupBox::draw_stat_4_box() {
 }
 
 void
-PopupBox::draw_building_count(int x, int y, int type) {
+PopupBox::draw_building_count(int x_, int y_, int type) {
   Player *player = interface->get_player();
-  draw_green_number(x, y,
+  draw_green_number(x_, y_,
              player->get_completed_building_count((Building::Type)type));
-  draw_additional_number(x+1, y,
+  draw_additional_number(x_+1, y_,
              player->get_incomplete_building_count((Building::Type)type));
 }
 
@@ -876,33 +882,33 @@ PopupBox::draw_stat_bld_4_box() {
 void
 PopupBox::draw_player_stat_chart(const int *data, int index,
                                  const Color &color) {
-  int x = 8;
-  int y = 9;
-  int width = 112;
-  int height = 100;
+  int lx = 8;
+  int ly = 9;
+  int lw = 112;
+  int lh = 100;
 
   int prev_value = data[index];
 
-  for (int i = 0; i < width; i++) {
+  for (int i = 0; i < lw; i++) {
     int value = data[index];
-    index = index > 0 ? index-1 : (width-1);
+    index = index > 0 ? index-1 : (lw-1);
 
     if (value > 0 || prev_value > 0) {
       if (value > prev_value) {
         int diff = value - prev_value;
         int h = diff/2;
-        frame->fill_rect(x + width - i, y + height - h - prev_value, 1, h,
+        frame->fill_rect(lx + lw - i, ly + lh - h - prev_value, 1, h,
                          color);
         diff -= h;
-        frame->fill_rect(x + width - i - 1, y + height - value, 1, diff, color);
+        frame->fill_rect(lx + lw - i - 1, ly + lh - value, 1, diff, color);
       } else if (value == prev_value) {
-        frame->fill_rect(x + width - i - 1, y + height - value, 2, 1, color);
+        frame->fill_rect(lx + lw - i - 1, ly + lh - value, 2, 1, color);
       } else {
         int diff = prev_value - value;
         int h = diff/2;
-        frame->fill_rect(x + width - i, y + height - prev_value, 1, h, color);
+        frame->fill_rect(lx + lw - i, ly + lh - prev_value, 1, h, color);
         diff -= h;
-        frame->fill_rect(x + width - i - 1, y + height - value - diff, 1, diff,
+        frame->fill_rect(lx + lw - i - 1, ly + lh - value - diff, 1, diff,
                          color);
       }
     }
@@ -962,11 +968,11 @@ PopupBox::draw_stat_8_box() {
   draw_popup_icon(10, 103, 94 + 3*scale + 2);
 
   /* Draw chart */
-  int index = interface->get_game()->get_player_history_index(scale);
+  PGame game = interface->get_game();
+  int index = game->get_player_history_index(scale);
   for (int i = 0; i < GAME_MAX_PLAYER_COUNT; i++) {
-    if (interface->get_game()->get_player(GAME_MAX_PLAYER_COUNT-i-1) != NULL) {
-      Player *player =
-                   interface->get_game()->get_player(GAME_MAX_PLAYER_COUNT-i-1);
+    if (game->get_player(GAME_MAX_PLAYER_COUNT-i-1) != nullptr) {
+      Player *player = game->get_player(GAME_MAX_PLAYER_COUNT-i-1);
       Color color = interface->get_player_color(GAME_MAX_PLAYER_COUNT-i-1);
       draw_player_stat_chart(player->get_player_stat_history(mode), index,
                              color);
@@ -1025,9 +1031,9 @@ PopupBox::draw_stat_7_box() {
   Resource::Type item = (Resource::Type)(current_stat_7_item-1);
 
   /* Draw background of chart */
-  for (int y = 0; y < 64; y += 16) {
-    for (int x = 0; x < 14; x += 2) {
-      draw_popup_icon(x, y, 138 + item);
+  for (int iy = 0; iy < 64; iy += 16) {
+    for (int ix = 0; ix < 14; ix += 2) {
+      draw_popup_icon(ix, iy, 138 + item);
     }
   }
 
@@ -1063,7 +1069,7 @@ PopupBox::draw_stat_7_box() {
   const int axis_icons_7[] = { 125, 124, 122, 120 };
   const int axis_icons_8[] = { 128, 127, 126, 123 };
 
-  const int *axis_icons = NULL;
+  const int *axis_icons = nullptr;
   int multiplier = 0;
 
   /* TODO chart background pattern */
@@ -1109,11 +1115,11 @@ PopupBox::draw_stat_7_box() {
 }
 
 void
-PopupBox::draw_gauge_balance(int x, int y, unsigned int value,
-                                unsigned int count) {
-  int sprite = -1;
+PopupBox::draw_gauge_balance(int lx, int ly, unsigned int value,
+                             unsigned int count) {
+  unsigned int sprite = 0xd3;
   if (count > 0) {
-    unsigned int v = (16*value)/count;
+    unsigned int v = (16  *value) / count;
     if (v >= 230) {
       sprite = 0xd2;
     } else if (v >= 207) {
@@ -1137,19 +1143,17 @@ PopupBox::draw_gauge_balance(int x, int y, unsigned int value,
     } else {
       sprite = 0xc8;
     }
-  } else {
-    sprite = 0xd3;
   }
 
-  draw_popup_icon(x, y, sprite);
+  draw_popup_icon(lx, ly, sprite);
 }
 
 void
-PopupBox::draw_gauge_full(int x, int y, unsigned int value,
-                             unsigned int count) {
-  int sprite = -1;
+PopupBox::draw_gauge_full(int lx, int ly, unsigned int value,
+                          unsigned int count) {
+  unsigned int sprite = 0xc7;
   if (count > 0) {
-    unsigned int v = (16*value)/count;
+    unsigned int v = (16 * value) / count;
     if (v >= 230) {
       sprite = 0xc6;
     } else if (v >= 207) {
@@ -1173,11 +1177,9 @@ PopupBox::draw_gauge_full(int x, int y, unsigned int value,
     } else {
       sprite = 0xbc;
     }
-  } else {
-    sprite = 0xc7;
   }
 
-  draw_popup_icon(x, y, sprite);
+  draw_popup_icon(lx, ly, sprite);
 }
 
 static void
@@ -1394,8 +1396,8 @@ PopupBox::draw_stat_6_box() {
 }
 
 void
-PopupBox::draw_stat_3_meter(int x, int y, int value) {
-  int sprite = -1;
+PopupBox::draw_stat_3_meter(int lx, int ly, int value) {
+  unsigned int sprite = 0xc6;
   if (value < 1) {
     sprite = 0xbc;
   } else if (value < 2) {
@@ -1412,10 +1414,8 @@ PopupBox::draw_stat_3_meter(int x, int y, int value) {
     sprite = 0xc4;
   } else if (value < 20) {
     sprite = 0xc5;
-  } else {
-    sprite = 0xc6;
   }
-  draw_popup_icon(x, y, sprite);
+  draw_popup_icon(lx, ly, sprite);
 }
 
 void
@@ -1541,17 +1541,17 @@ PopupBox::draw_start_attack_box() {
 
   Building *building = interface->get_game()->get_building(
                                     interface->get_player()->building_attacked);
-  int y = 0;
+  int ly = 0;
 
   switch (building->get_type()) {
-    case Building::TypeHut: y = 50; break;
-    case Building::TypeTower: y = 32; break;
-    case Building::TypeFortress: y = 17; break;
-    case Building::TypeCastle: y = 0; break;
+    case Building::TypeHut: ly = 50; break;
+    case Building::TypeTower: ly = 32; break;
+    case Building::TypeFortress: ly = 17; break;
+    case Building::TypeCastle: ly = 0; break;
     default: NOT_REACHED(); break;
   }
 
-  draw_popup_building(0, y, map_building_sprite[building->get_type()]);
+  draw_popup_building(0, ly, map_building_sprite[building->get_type()]);
   draw_custom_icon_box(icon_layout);
 
   /* Draw number of knight at each distance. */
@@ -1625,12 +1625,12 @@ PopupBox::draw_sett_select_box() {
 
 /* Draw slide bar in a popup box. */
 void
-PopupBox::draw_slide_bar(int x, int y, int value) {
-  draw_popup_icon(x, y, 236);
+PopupBox::draw_slide_bar(int lx, int ly, int value) {
+  draw_popup_icon(lx, ly, 236);
 
-  int width = value/1310;
-  if (width > 0) {
-    frame->fill_rect(8*x+15, y+11, width, 4, Color(0x6b, 0xab, 0x3b));
+  int lwidth = value / 1310;
+  if (lwidth > 0) {
+    frame->fill_rect(8*lx+15, ly+11, lwidth, 4, Color(0x6b, 0xab, 0x3b));
   }
 }
 
@@ -1659,10 +1659,17 @@ PopupBox::draw_sett_1_box() {
 
   Player *player = interface->get_player();
 
-  draw_slide_bar(4, 21, player->get_food_stonemine());
-  draw_slide_bar(0, 41, player->get_food_coalmine());
-  draw_slide_bar(8, 114, player->get_food_ironmine());
-  draw_slide_bar(4, 133, player->get_food_goldmine());
+  unsigned int prio_layout[] = {
+    4,  21, Building::TypeStoneMine,
+    0,  41, Building::TypeCoalMine,
+    8, 114, Building::TypeIronMine,
+    4, 133, Building::TypeGoldMine
+  };
+
+  for (int i = 0; i < 4; i++) {
+    draw_slide_bar(prio_layout[i * 3], prio_layout[i * 3 + 1],
+                   player->get_food_for_building(prio_layout[i * 3 + 2]));
+  }
 }
 
 void
@@ -1766,10 +1773,10 @@ PopupBox::draw_knight_level_box() {
   Player *player = interface->get_player();
 
   for (int i = 0; i < 4; i++) {
-    int y = 8 + (34*i);
-    draw_green_string(8, y,
+    int ly = 8 + (34*i);
+    draw_green_string(8, ly,
                       level_str[player->get_knight_occupation(3-i) & 0x7]);
-    draw_green_string(8, y + 11,
+    draw_green_string(8, ly + 11,
                       level_str[(player->get_knight_occupation(3-i) >> 4) &
                                 0x7]);
   }
@@ -1908,7 +1915,7 @@ PopupBox::draw_options_box() {
 
   float volume = 0.f;
   Audio::VolumeController *volume_controller = audio->get_volume_controller();
-  if (volume_controller != NULL) {
+  if (volume_controller != nullptr) {
     volume = 99.f * volume_controller->get_volume();
   }
   std::stringstream str;
@@ -2032,10 +2039,10 @@ PopupBox::draw_mine_output_box() {
   }
 
   /* Print output precentage */
-  int x = 7;
-  if (output >= 100) x += 1;
-  if (output >= 10) x += 1;
-  draw_green_string(x, 38, "%");
+  int lx = 7;
+  if (output >= 100) lx += 1;
+  if (output >= 10) lx += 1;
+  draw_green_string(lx, 38, "%");
   draw_green_number(6, 38, output);
 
   draw_green_string(1, 14, "MINING");
@@ -2064,9 +2071,9 @@ PopupBox::draw_ordered_building_box() {
   Building::Type type = building->get_type();
 
   int sprite = map_building_sprite[type];
-  int x = 6;
-  if (sprite == 0xc0 /*stock*/ || sprite < 0x9e /*tower*/) x = 4;
-  draw_popup_building(x, 40, sprite);
+  int lx = 6;
+  if (sprite == 0xc0 /*stock*/ || sprite < 0x9e /*tower*/) lx = 4;
+  draw_popup_building(lx, 40, sprite);
 
   draw_green_string(2, 4, "Ordered");
   draw_green_string(2, 14, "Building");
@@ -2088,19 +2095,19 @@ void
 PopupBox::draw_defenders_box() {
   draw_box_background(PatternPlaidAlongGreen);
 
-  if (interface->get_player()->temp_index == 0) {
+  Player *player = interface->get_player();
+  if (player->temp_index == 0) {
     interface->close_popup();
     return;
   }
 
-  Building *building =
-       interface->get_game()->get_building(interface->get_player()->temp_index);
+  Building *building = interface->get_game()->get_building(player->temp_index);
   if (building->is_burning()) {
     interface->close_popup();
     return;
   }
 
-  if (building->get_owner() != interface->get_player()->get_index()) {
+  if (building->get_owner() != player->get_index()) {
     interface->close_popup();
     return;
   }
@@ -2114,15 +2121,26 @@ PopupBox::draw_defenders_box() {
 
   /* Draw building sprite */
   int sprite = map_building_sprite[building->get_type()];
-  int x = 0, y = 0;
+  int lx = 0;
+  int ly = 0;
   switch (building->get_type()) {
-    case Building::TypeHut: x = 6; y = 20; break;
-    case Building::TypeTower: x = 4; y = 6; break;
-    case Building::TypeFortress: x = 4; y = 1; break;
-    default: NOT_REACHED(); break;
+    case Building::TypeHut:
+      lx = 6;
+      ly = 20;
+      break;
+    case Building::TypeTower:
+      lx = 4;
+      ly = 6;
+      break;
+    case Building::TypeFortress:
+      lx = 4;
+      ly = 1;
+      break;
+    default:
+      NOT_REACHED();
   }
 
-  draw_popup_building(x, y, sprite);
+  draw_popup_building(lx, ly, sprite);
 
   /* Draw gold stock */
   if (building->get_res_count_in_stock(1) > 0) {
@@ -2200,14 +2218,14 @@ PopupBox::draw_transport_info_box() {
 
   for (Direction d : cycle_directions_cw()) {
     int index = 5 - d;
-    int x = layout[2*index];
-    int y = layout[2*index + 1];
+    int lx = layout[2*index];
+    int ly = layout[2*index + 1];
     if (flag->has_path(d)) {
       int sprite = 0xdc; /* Minus box */
       if (flag->has_transporter(d)) {
         sprite = 0x120; /* Check box */
       }
-      draw_popup_icon(x, y, sprite);
+      draw_popup_icon(lx, ly, sprite);
     }
   }
 
@@ -2557,9 +2575,9 @@ PopupBox::draw_building_stock_box() {
 
   /* Draw building */
   int bld_sprite = map_building_sprite[building->get_type()];
-  int x = 6;
-  if (bld_sprite == 0xc0 /*stock*/ || bld_sprite < 0x9e /*tower*/) x = 4;
-  draw_popup_building(x, 30, bld_sprite);
+  int lx = 6;
+  if (bld_sprite == 0xc0 /*stock*/ || bld_sprite < 0x9e /*tower*/) lx = 4;
+  draw_popup_building(lx, 30, bld_sprite);
 
   draw_green_string(1, 4, "Stock of");
   draw_green_string(1, 14, "this building:");
@@ -2780,7 +2798,7 @@ PopupBox::activate_sett_5_6_item(int index) {
 
 void
 PopupBox::move_sett_5_6_item(int up, int to_end) {
-  int *prio = NULL;
+  int *prio = nullptr;
   int cur = -1;
 
   if (interface->get_popup_box()->get_box() == TypeSett5) {
@@ -2859,8 +2877,10 @@ PopupBox::set_inventory_serf_mode(int mode) {
 }
 
 void
-PopupBox::handle_action(int action, int x, int y) {
+PopupBox::handle_action(int action, int x_, int /*y_*/) {
   set_redraw();
+
+  Player *player = interface->get_player();
 
   switch (action) {
   case ACTION_MINIMAP_CLICK:
@@ -2898,7 +2918,7 @@ PopupBox::handle_action(int action, int x, int y) {
 #endif
     break;
   case ACTION_MINIMAP_GRID:
-      minimap->set_draw_grid(!minimap->get_draw_grid());
+    minimap->set_draw_grid(!minimap->get_draw_grid());
     set_box(TypeMap);
     break;
   case ACTION_BUILD_STONEMINE:
@@ -3070,19 +3090,17 @@ PopupBox::handle_action(int action, int x, int y) {
     interface->set_current_stat_7_item(action - ACTION_STAT_7_SELECT_FISH + 1);
     break;
   case ACTION_ATTACKING_KNIGHTS_DEC:
-    interface->get_player()->knights_attacking =
-      std::max(interface->get_player()->knights_attacking-1, 0);
+    player->knights_attacking = std::max(player->knights_attacking-1, 0);
     break;
   case ACTION_ATTACKING_KNIGHTS_INC:
-    interface->get_player()->knights_attacking =
-      std::min(interface->get_player()->knights_attacking+1,
-               std::min(interface->get_player()->total_attacking_knights, 100));
+    player->knights_attacking = std::min(player->knights_attacking + 1,
+                                std::min(player->total_attacking_knights, 100));
     break;
   case ACTION_START_ATTACK:
-    if (interface->get_player()->knights_attacking > 0) {
-      if (interface->get_player()->attacking_building_count > 0) {
+    if (player->knights_attacking > 0) {
+      if (player->attacking_building_count > 0) {
         play_sound(Audio::TypeSfxAccepted);
-        interface->get_player()->start_attack();
+        player->start_attack();
       }
       interface->close_popup();
     } else {
@@ -3116,166 +3134,159 @@ PopupBox::handle_action(int action, int x, int y) {
     break;
   case ACTION_SETT_1_ADJUST_STONEMINE:
     interface->open_popup(TypeSett1);
-    interface->get_player()->set_food_stonemine(gui_get_slider_click_value(x));
+    player->set_food_stonemine(gui_get_slider_click_value(x_));
     break;
   case ACTION_SETT_1_ADJUST_COALMINE:
     interface->open_popup(TypeSett1);
-    interface->get_player()->set_food_coalmine(gui_get_slider_click_value(x));
+    player->set_food_coalmine(gui_get_slider_click_value(x_));
     break;
   case ACTION_SETT_1_ADJUST_IRONMINE:
     interface->open_popup(TypeSett1);
-    interface->get_player()->set_food_ironmine(gui_get_slider_click_value(x));
+    player->set_food_ironmine(gui_get_slider_click_value(x_));
     break;
   case ACTION_SETT_1_ADJUST_GOLDMINE:
     interface->open_popup(TypeSett1);
-    interface->get_player()->set_food_goldmine(gui_get_slider_click_value(x));
+    player->set_food_goldmine(gui_get_slider_click_value(x_));
     break;
   case ACTION_SETT_2_ADJUST_CONSTRUCTION:
     interface->open_popup(TypeSett2);
-    interface->get_player()->set_planks_construction(
-                               gui_get_slider_click_value(x));
+    player->set_planks_construction(gui_get_slider_click_value(x_));
     break;
   case ACTION_SETT_2_ADJUST_BOATBUILDER:
     interface->open_popup(TypeSett2);
-    interface->get_player()->set_planks_boatbuilder(
-                               gui_get_slider_click_value(x));
+    player->set_planks_boatbuilder(gui_get_slider_click_value(x_));
     break;
   case ACTION_SETT_2_ADJUST_TOOLMAKER_PLANKS:
     interface->open_popup(TypeSett2);
-    interface->get_player()->set_planks_toolmaker(
-                               gui_get_slider_click_value(x));
+    player->set_planks_toolmaker(gui_get_slider_click_value(x_));
     break;
   case ACTION_SETT_2_ADJUST_TOOLMAKER_STEEL:
     interface->open_popup(TypeSett2);
-    interface->get_player()->set_steel_toolmaker(gui_get_slider_click_value(x));
+    player->set_steel_toolmaker(gui_get_slider_click_value(x_));
     break;
   case ACTION_SETT_2_ADJUST_WEAPONSMITH:
     interface->open_popup(TypeSett2);
-    interface->get_player()->set_steel_weaponsmith(
-                               gui_get_slider_click_value(x));
+    player->set_steel_weaponsmith(gui_get_slider_click_value(x_));
     break;
   case ACTION_SETT_3_ADJUST_STEELSMELTER:
     interface->open_popup(TypeSett3);
-    interface->get_player()->set_coal_steelsmelter(
-                               gui_get_slider_click_value(x));
+    player->set_coal_steelsmelter(gui_get_slider_click_value(x_));
     break;
   case ACTION_SETT_3_ADJUST_GOLDSMELTER:
     interface->open_popup(TypeSett3);
-    interface->get_player()->set_coal_goldsmelter(
-                               gui_get_slider_click_value(x));
+    player->set_coal_goldsmelter(gui_get_slider_click_value(x_));
     break;
   case ACTION_SETT_3_ADJUST_WEAPONSMITH:
     interface->open_popup(TypeSett3);
-    interface->get_player()->set_coal_weaponsmith(
-                               gui_get_slider_click_value(x));
+    player->set_coal_weaponsmith(gui_get_slider_click_value(x_));
     break;
   case ACTION_SETT_3_ADJUST_PIGFARM:
     interface->open_popup(TypeSett3);
-    interface->get_player()->set_wheat_pigfarm(gui_get_slider_click_value(x));
+    player->set_wheat_pigfarm(gui_get_slider_click_value(x_));
     break;
   case ACTION_SETT_3_ADJUST_MILL:
     interface->open_popup(TypeSett3);
-    interface->get_player()->set_wheat_mill(gui_get_slider_click_value(x));
+    player->set_wheat_mill(gui_get_slider_click_value(x_));
     break;
   case ACTION_KNIGHT_LEVEL_CLOSEST_MIN_DEC:
-    interface->get_player()->change_knight_occupation(3, 0, -1);
+    player->change_knight_occupation(3, 0, -1);
     interface->open_popup(TypeKnightLevel);
     break;
   case ACTION_KNIGHT_LEVEL_CLOSEST_MIN_INC:
-    interface->get_player()->change_knight_occupation(3, 0, 1);
+    player->change_knight_occupation(3, 0, 1);
     interface->open_popup(TypeKnightLevel);
     break;
   case ACTION_KNIGHT_LEVEL_CLOSEST_MAX_DEC:
-    interface->get_player()->change_knight_occupation(3, 1, -1);
+    player->change_knight_occupation(3, 1, -1);
     interface->open_popup(TypeKnightLevel);
     break;
   case ACTION_KNIGHT_LEVEL_CLOSEST_MAX_INC:
-    interface->get_player()->change_knight_occupation(3, 1, 1);
+    player->change_knight_occupation(3, 1, 1);
     interface->open_popup(TypeKnightLevel);
     break;
   case ACTION_KNIGHT_LEVEL_CLOSE_MIN_DEC:
-    interface->get_player()->change_knight_occupation(2, 0, -1);
+    player->change_knight_occupation(2, 0, -1);
     interface->open_popup(TypeKnightLevel);
     break;
   case ACTION_KNIGHT_LEVEL_CLOSE_MIN_INC:
-    interface->get_player()->change_knight_occupation(2, 0, 1);
+    player->change_knight_occupation(2, 0, 1);
     interface->open_popup(TypeKnightLevel);
     break;
   case ACTION_KNIGHT_LEVEL_CLOSE_MAX_DEC:
-    interface->get_player()->change_knight_occupation(2, 1, -1);
+    player->change_knight_occupation(2, 1, -1);
     interface->open_popup(TypeKnightLevel);
     break;
   case ACTION_KNIGHT_LEVEL_CLOSE_MAX_INC:
-    interface->get_player()->change_knight_occupation(2, 1, 1);
+    player->change_knight_occupation(2, 1, 1);
     interface->open_popup(TypeKnightLevel);
     break;
   case ACTION_KNIGHT_LEVEL_FAR_MIN_DEC:
-    interface->get_player()->change_knight_occupation(1, 0, -1);
+    player->change_knight_occupation(1, 0, -1);
     interface->open_popup(TypeKnightLevel);
     break;
   case ACTION_KNIGHT_LEVEL_FAR_MIN_INC:
-    interface->get_player()->change_knight_occupation(1, 0, 1);
+    player->change_knight_occupation(1, 0, 1);
     interface->open_popup(TypeKnightLevel);
     break;
   case ACTION_KNIGHT_LEVEL_FAR_MAX_DEC:
-    interface->get_player()->change_knight_occupation(1, 1, -1);
+    player->change_knight_occupation(1, 1, -1);
     interface->open_popup(TypeKnightLevel);
     break;
   case ACTION_KNIGHT_LEVEL_FAR_MAX_INC:
-    interface->get_player()->change_knight_occupation(1, 1, 1);
+    player->change_knight_occupation(1, 1, 1);
     interface->open_popup(TypeKnightLevel);
     break;
   case ACTION_KNIGHT_LEVEL_FARTHEST_MIN_DEC:
-    interface->get_player()->change_knight_occupation(0, 0, -1);
+    player->change_knight_occupation(0, 0, -1);
     interface->open_popup(TypeKnightLevel);
     break;
   case ACTION_KNIGHT_LEVEL_FARTHEST_MIN_INC:
-    interface->get_player()->change_knight_occupation(0, 0, 1);
+    player->change_knight_occupation(0, 0, 1);
     interface->open_popup(TypeKnightLevel);
     break;
   case ACTION_KNIGHT_LEVEL_FARTHEST_MAX_DEC:
-    interface->get_player()->change_knight_occupation(0, 1, -1);
+    player->change_knight_occupation(0, 1, -1);
     interface->open_popup(TypeKnightLevel);
     break;
   case ACTION_KNIGHT_LEVEL_FARTHEST_MAX_INC:
-    interface->get_player()->change_knight_occupation(0, 1, 1);
+    player->change_knight_occupation(0, 1, 1);
     interface->open_popup(TypeKnightLevel);
     break;
   case ACTION_SETT_4_ADJUST_SHOVEL:
     interface->open_popup(TypeSett4);
-    interface->get_player()->set_tool_prio(0, gui_get_slider_click_value(x));
+    player->set_tool_prio(0, gui_get_slider_click_value(x_));
     break;
   case ACTION_SETT_4_ADJUST_HAMMER:
     interface->open_popup(TypeSett4);
-    interface->get_player()->set_tool_prio(1, gui_get_slider_click_value(x));
+    player->set_tool_prio(1, gui_get_slider_click_value(x_));
     break;
   case ACTION_SETT_4_ADJUST_AXE:
     interface->open_popup(TypeSett4);
-    interface->get_player()->set_tool_prio(5, gui_get_slider_click_value(x));
+    player->set_tool_prio(5, gui_get_slider_click_value(x_));
     break;
   case ACTION_SETT_4_ADJUST_SAW:
     interface->open_popup(TypeSett4);
-    interface->get_player()->set_tool_prio(6, gui_get_slider_click_value(x));
+    player->set_tool_prio(6, gui_get_slider_click_value(x_));
     break;
   case ACTION_SETT_4_ADJUST_SCYTHE:
     interface->open_popup(TypeSett4);
-    interface->get_player()->set_tool_prio(4, gui_get_slider_click_value(x));
+    player->set_tool_prio(4, gui_get_slider_click_value(x_));
     break;
   case ACTION_SETT_4_ADJUST_PICK:
     interface->open_popup(TypeSett4);
-    interface->get_player()->set_tool_prio(7, gui_get_slider_click_value(x));
+    player->set_tool_prio(7, gui_get_slider_click_value(x_));
     break;
   case ACTION_SETT_4_ADJUST_PINCER:
     interface->open_popup(TypeSett4);
-    interface->get_player()->set_tool_prio(8, gui_get_slider_click_value(x));
+    player->set_tool_prio(8, gui_get_slider_click_value(x_));
     break;
   case ACTION_SETT_4_ADJUST_CLEAVER:
     interface->open_popup(TypeSett4);
-    interface->get_player()->set_tool_prio(3, gui_get_slider_click_value(x));
+    player->set_tool_prio(3, gui_get_slider_click_value(x_));
     break;
   case ACTION_SETT_4_ADJUST_ROD:
     interface->open_popup(TypeSett4);
-    interface->get_player()->set_tool_prio(2, gui_get_slider_click_value(x));
+    player->set_tool_prio(2, gui_get_slider_click_value(x_));
     break;
   case ACTION_SETT_5_6_ITEM_1:
   case ACTION_SETT_5_6_ITEM_2:
@@ -3340,7 +3351,7 @@ PopupBox::handle_action(int action, int x, int y) {
     break;
     /* TODO */
   case ACTION_SETT_8_CYCLE:
-    interface->get_player()->cycle_knights();
+    player->cycle_knights();
     play_sound(Audio::TypeSfxAccepted);
     break;
   case ACTION_CLOSE_OPTIONS:
@@ -3363,24 +3374,24 @@ PopupBox::handle_action(int action, int x, int y) {
     break;
   case ACTION_DEFAULT_SETT_1:
     interface->open_popup(TypeSett1);
-    interface->get_player()->reset_food_priority();
+    player->reset_food_priority();
     break;
   case ACTION_DEFAULT_SETT_2:
     interface->open_popup(TypeSett2);
-    interface->get_player()->reset_planks_priority();
-    interface->get_player()->reset_steel_priority();
+    player->reset_planks_priority();
+    player->reset_steel_priority();
     break;
   case ACTION_DEFAULT_SETT_5_6:
     switch (box) {
-    case TypeSett5:
-      interface->get_player()->reset_flag_priority();
-      break;
-    case TypeSett6:
-      interface->get_player()->reset_inventory_priority();
-      break;
-    default:
-      NOT_REACHED();
-      break;
+      case TypeSett5:
+        player->reset_flag_priority();
+        break;
+      case TypeSett6:
+        player->reset_inventory_priority();
+        break;
+      default:
+        NOT_REACHED();
+        break;
     }
     break;
   case ACTION_BUILD_STOCK:
@@ -3415,8 +3426,7 @@ PopupBox::handle_action(int action, int x, int y) {
     set_box(TypeSett6);
     break;
   case ACTION_SETT_8_ADJUST_RATE:
-    interface->get_player()->set_serf_to_knight_rate(
-                                                gui_get_slider_click_value(x));
+    player->set_serf_to_knight_rate(gui_get_slider_click_value(x_));
     break;
   case ACTION_SETT_8_TRAIN_1:
     sett_8_train(1);
@@ -3432,38 +3442,34 @@ PopupBox::handle_action(int action, int x, int y) {
     break;
   case ACTION_DEFAULT_SETT_3:
     interface->open_popup(TypeSett3);
-    interface->get_player()->reset_coal_priority();
-    interface->get_player()->reset_wheat_priority();
+    player->reset_coal_priority();
+    player->reset_wheat_priority();
     break;
   case ACTION_SETT_8_SET_COMBAT_MODE_WEAK:
-    interface->get_player()->drop_send_strongest();
+    player->drop_send_strongest();
     play_sound(Audio::TypeSfxAccepted);
     break;
   case ACTION_SETT_8_SET_COMBAT_MODE_STRONG:
-    interface->get_player()->set_send_strongest();
+    player->set_send_strongest();
     play_sound(Audio::TypeSfxAccepted);
     break;
   case ACTION_ATTACKING_SELECT_ALL_1:
-    interface->get_player()->knights_attacking =
-      interface->get_player()->attacking_knights[0];
+    player->knights_attacking = player->attacking_knights[0];
     break;
   case ACTION_ATTACKING_SELECT_ALL_2:
-    interface->get_player()->knights_attacking =
-      interface->get_player()->attacking_knights[0] +
-      interface->get_player()->attacking_knights[1];
+    player->knights_attacking = player->attacking_knights[0]
+                                + player->attacking_knights[1];
     break;
   case ACTION_ATTACKING_SELECT_ALL_3:
-    interface->get_player()->knights_attacking =
-      interface->get_player()->attacking_knights[0] +
-      interface->get_player()->attacking_knights[1] +
-      interface->get_player()->attacking_knights[2];
+    player->knights_attacking = player->attacking_knights[0]
+                                + player->attacking_knights[1]
+                                + player->attacking_knights[2];
     break;
   case ACTION_ATTACKING_SELECT_ALL_4:
-    interface->get_player()->knights_attacking =
-      interface->get_player()->attacking_knights[0] +
-      interface->get_player()->attacking_knights[1] +
-      interface->get_player()->attacking_knights[2] +
-      interface->get_player()->attacking_knights[3];
+    player->knights_attacking = player->attacking_knights[0]
+                                + player->attacking_knights[1]
+                                + player->attacking_knights[2]
+                                + player->attacking_knights[3];
     break;
   case ACTION_MINIMAP_BLD_1:
   case ACTION_MINIMAP_BLD_2:
@@ -3507,7 +3513,7 @@ PopupBox::handle_action(int action, int x, int y) {
     break;
   case ACTION_DEFAULT_SETT_4:
     interface->open_popup(TypeSett4);
-    interface->get_player()->reset_tool_priority();
+    player->reset_tool_priority();
     break;
   case ACTION_SHOW_PLAYER_FACES:
     set_box(TypePlayerFaces);
@@ -3519,10 +3525,10 @@ PopupBox::handle_action(int action, int x, int y) {
     break;
     /* TODO */
   case ACTION_SETT_8_CASTLE_DEF_DEC:
-    interface->get_player()->decrease_castle_knights_wanted();
+    player->decrease_castle_knights_wanted();
     break;
   case ACTION_SETT_8_CASTLE_DEF_INC:
-    interface->get_player()->increase_castle_knights_wanted();
+    player->increase_castle_knights_wanted();
     break;
   case ACTION_OPTIONS_MUSIC: {
     Audio *audio = Audio::get_instance();
@@ -3550,7 +3556,7 @@ PopupBox::handle_action(int action, int x, int y) {
   case ACTION_OPTIONS_VOLUME_MINUS: {
     Audio *audio = Audio::get_instance();
     Audio::VolumeController *volume_controller = audio->get_volume_controller();
-    if (volume_controller != NULL) {
+    if (volume_controller != nullptr) {
       volume_controller->volume_down();
     }
     play_sound(Audio::TypeSfxClick);
@@ -3559,7 +3565,7 @@ PopupBox::handle_action(int action, int x, int y) {
   case ACTION_OPTIONS_VOLUME_PLUS: {
     Audio *audio = Audio::get_instance();
     Audio::VolumeController *volume_controller = audio->get_volume_controller();
-    if (volume_controller != NULL) {
+    if (volume_controller != nullptr) {
       volume_controller->volume_up();
     }
     play_sound(Audio::TypeSfxClick);
@@ -3576,7 +3582,7 @@ PopupBox::handle_action(int action, int x, int y) {
     break;
   case ACTION_SAVE: {
     std::string file_name = file_field->get_text();
-    size_t p = file_name.find_last_of(".");
+    size_t p = file_name.find_last_of('.');
     std::string file_ext;
     if (p != std::string::npos) {
       file_ext = file_name.substr(p+1, file_name.size());
@@ -3602,14 +3608,14 @@ PopupBox::handle_action(int action, int x, int y) {
 
 /* Generic handler for clicks in popup boxes. */
 int
-PopupBox::handle_clickmap(int x, int y, const int clkmap[]) {
+PopupBox::handle_clickmap(int x_, int y_, const int clkmap[]) {
   while (clkmap[0] >= 0) {
-    if (clkmap[1] <= x && x < clkmap[1] + clkmap[3] &&
-        clkmap[2] <= y && y < clkmap[2] + clkmap[4]) {
+    if (clkmap[1] <= x_ && x_ < clkmap[1] + clkmap[3] &&
+        clkmap[2] <= y_ && y_ < clkmap[2] + clkmap[4]) {
       play_sound(Audio::TypeSfxClick);
 
       Action action = (Action)clkmap[0];
-      handle_action(action, x-clkmap[1], y-clkmap[2]);
+      handle_action(action, x_-clkmap[1], y_-clkmap[2]);
       return 0;
     }
     clkmap += 5;
@@ -3619,16 +3625,16 @@ PopupBox::handle_clickmap(int x, int y, const int clkmap[]) {
 }
 
 void
-PopupBox::handle_box_close_clk(int x, int y) {
+PopupBox::handle_box_close_clk(int cx, int cy) {
   const int clkmap[] = {
     ACTION_CLOSE_BOX, 112, 128, 16, 16,
     -1
   };
-  handle_clickmap(x, y, clkmap);
+  handle_clickmap(cx, cy, clkmap);
 }
 
 void
-PopupBox::handle_box_options_clk(int x, int y) {
+PopupBox::handle_box_options_clk(int cx, int cy) {
   const int clkmap[] = {
     ACTION_OPTIONS_MUSIC, 106, 10, 16, 16,
     ACTION_OPTIONS_SFX, 106, 30, 16, 16,
@@ -3639,11 +3645,11 @@ PopupBox::handle_box_options_clk(int x, int y) {
     ACTION_CLOSE_OPTIONS, 112, 126, 16, 16,
     -1
   };
-  handle_clickmap(x, y, clkmap);
+  handle_clickmap(cx, cy, clkmap);
 }
 
 void
-PopupBox::handle_mine_building_clk(int x, int y) {
+PopupBox::handle_mine_building_clk(int cx, int cy) {
   const int clkmap[] = {
     ACTION_BUILD_STONEMINE, 16, 8, 33, 65,
     ACTION_BUILD_COALMINE, 64, 8, 33, 65,
@@ -3652,11 +3658,11 @@ PopupBox::handle_mine_building_clk(int x, int y) {
     ACTION_BUILD_FLAG, 10, 114, 17, 21,
     -1
   };
-  handle_clickmap(x, y, clkmap);
+  handle_clickmap(cx, cy, clkmap);
 }
 
 void
-PopupBox::handle_basic_building_clk(int x, int y, int flip) {
+PopupBox::handle_basic_building_clk(int cx, int cy, int flip) {
   const int clkmap[] = {
     ACTION_BLD_FLIP_PAGE, 0, 129, 16, 15,
     ACTION_BUILD_STONECUTTER, 16, 13, 33, 29,
@@ -3673,11 +3679,11 @@ PopupBox::handle_basic_building_clk(int x, int y, int flip) {
   const int *c = clkmap;
   if (!flip) c += 5; /* Skip flip button */
 
-  handle_clickmap(x, y, c);
+  handle_clickmap(cx, cy, c);
 }
 
 void
-PopupBox::handle_adv_1_building_clk(int x, int y) {
+PopupBox::handle_adv_1_building_clk(int cx, int cy) {
   const int clkmap[] = {
     ACTION_BLD_FLIP_PAGE, 0, 129, 16, 15,
     ACTION_BUILD_BUTCHER, 0, 15, 65, 26,
@@ -3688,11 +3694,11 @@ PopupBox::handle_adv_1_building_clk(int x, int y) {
     ACTION_BUILD_GOLDSMELTER, 80, 96, 49, 40,
     -1
   };
-  handle_clickmap(x, y, clkmap);
+  handle_clickmap(cx, cy, clkmap);
 }
 
 void
-PopupBox::handle_adv_2_building_clk(int x, int y) {
+PopupBox::handle_adv_2_building_clk(int cx, int cy) {
   const int clkmap[] = {
     ACTION_BLD_FLIP_PAGE, 0, 129, 16, 15,
     ACTION_BUILD_FORTRESS, 64, 87, 64, 56,
@@ -3703,11 +3709,11 @@ PopupBox::handle_adv_2_building_clk(int x, int y) {
     ACTION_BUILD_STOCK, 0, 50, 48, 48,
     -1
   };
-  handle_clickmap(x, y, clkmap);
+  handle_clickmap(cx, cy, clkmap);
 }
 
 void
-PopupBox::handle_stat_select_click(int x, int y) {
+PopupBox::handle_stat_select_click(int cx, int cy) {
   const int clkmap[] = {
     ACTION_SHOW_STAT_1, 8, 12, 32, 32,
     ACTION_SHOW_STAT_2, 48, 12, 32, 32,
@@ -3721,30 +3727,30 @@ PopupBox::handle_stat_select_click(int x, int y) {
     ACTION_SHOW_SETT_SELECT, 96, 104, 16, 16,
     -1
   };
-  handle_clickmap(x, y, clkmap);
+  handle_clickmap(cx, cy, clkmap);
 }
 
 void
-PopupBox::handle_stat_3_4_6_click(int x, int y) {
+PopupBox::handle_stat_1_2_3_4_6_click(int cx, int cy) {
   const int clkmap[] = {
     ACTION_SHOW_STAT_SELECT, 0, 0, 128, 144,
     -1
   };
-  handle_clickmap(x, y, clkmap);
+  handle_clickmap(cx, cy, clkmap);
 }
 
 void
-PopupBox::handle_stat_bld_click(int x, int y) {
+PopupBox::handle_stat_bld_click(int cx, int cy) {
   const int clkmap[] = {
     ACTION_SHOW_STAT_SELECT, 112, 128, 16, 16,
     ACTION_STAT_BLD_FLIP, 0, 128, 16, 16,
     -1
   };
-  handle_clickmap(x, y, clkmap);
+  handle_clickmap(cx, cy, clkmap);
 }
 
 void
-PopupBox::handle_stat_8_click(int x, int y) {
+PopupBox::handle_stat_8_click(int cx, int cy) {
   const int clkmap[] = {
     ACTION_SETT_8_SET_ASPECT_ALL, 16, 112, 16, 16,
     ACTION_SETT_8_SET_ASPECT_LAND, 32, 112, 16, 16,
@@ -3760,11 +3766,11 @@ PopupBox::handle_stat_8_click(int x, int y) {
     ACTION_SHOW_STAT_SELECT, 112, 128, 16, 16,
     -1
   };
-  handle_clickmap(x, y, clkmap);
+  handle_clickmap(cx, cy, clkmap);
 }
 
 void
-PopupBox::handle_stat_7_click(int x, int y) {
+PopupBox::handle_stat_7_click(int cx, int cy) {
   const int clkmap[] = {
     ACTION_STAT_7_SELECT_LUMBER, 0, 75, 16, 16,
     ACTION_STAT_7_SELECT_PLANK, 16, 75, 16, 16,
@@ -3799,20 +3805,11 @@ PopupBox::handle_stat_7_click(int x, int y) {
     ACTION_SHOW_STAT_SELECT, 112, 128, 16, 16,
     -1
   };
-  handle_clickmap(x, y, clkmap);
+  handle_clickmap(cx, cy, clkmap);
 }
 
 void
-PopupBox::handle_stat_1_2_click(int x, int y) {
-  const int clkmap[] = {
-    ACTION_SHOW_STAT_SELECT, 0, 0, 128, 144,
-    -1
-  };
-  handle_clickmap(x, y, clkmap);
-}
-
-void
-PopupBox::handle_start_attack_click(int x, int y) {
+PopupBox::handle_start_attack_click(int cx, int cy) {
   const int clkmap[] = {
     ACTION_ATTACKING_KNIGHTS_DEC, 32, 112, 16, 16,
     ACTION_ATTACKING_KNIGHTS_INC, 80, 112, 16, 16,
@@ -3824,20 +3821,20 @@ PopupBox::handle_start_attack_click(int x, int y) {
     ACTION_ATTACKING_SELECT_ALL_4, 104, 80, 16, 24,
     -1
   };
-  handle_clickmap(x, y, clkmap);
+  handle_clickmap(cx, cy, clkmap);
 }
 
 void
-PopupBox::handle_ground_analysis_clk(int x, int y) {
+PopupBox::handle_ground_analysis_clk(int cx, int cy) {
   const int clkmap[] = {
     ACTION_CLOSE_GROUND_ANALYSIS, 112, 128, 16, 16,
     -1
   };
-  handle_clickmap(x, y, clkmap);
+  handle_clickmap(cx, cy, clkmap);
 }
 
 void
-PopupBox::handle_sett_select_clk(int x, int y) {
+PopupBox::handle_sett_select_clk(int cx, int cy) {
   const int clkmap[] = {
     ACTION_SHOW_QUIT, 0, 128, 32, 16,
     ActionShowOptions, 32, 128, 32, 16,
@@ -3856,11 +3853,11 @@ PopupBox::handle_sett_select_clk(int x, int y) {
     ACTION_SHOW_STAT_SELECT, 96, 104, 16, 16,
     -1
   };
-  handle_clickmap(x, y, clkmap);
+  handle_clickmap(cx, cy, clkmap);
 }
 
 void
-PopupBox::handle_sett_1_click(int x, int y) {
+PopupBox::handle_sett_1_click(int cx, int cy) {
   const int clkmap[] = {
     ACTION_SETT_1_ADJUST_STONEMINE, 32, 22, 64, 6,
     ACTION_SETT_1_ADJUST_COALMINE, 0, 42, 64, 6,
@@ -3871,11 +3868,11 @@ PopupBox::handle_sett_1_click(int x, int y) {
     ACTION_DEFAULT_SETT_1, 8, 8, 16, 16,
     -1
   };
-  handle_clickmap(x, y, clkmap);
+  handle_clickmap(cx, cy, clkmap);
 }
 
 void
-PopupBox::handle_sett_2_click(int x, int y) {
+PopupBox::handle_sett_2_click(int cx, int cy) {
   const int clkmap[] = {
     ACTION_SETT_2_ADJUST_CONSTRUCTION, 0, 27, 64, 6,
     ACTION_SETT_2_ADJUST_BOATBUILDER, 0, 37, 64, 6,
@@ -3887,11 +3884,11 @@ PopupBox::handle_sett_2_click(int x, int y) {
     ACTION_DEFAULT_SETT_2, 104, 8, 16, 16,
     -1
   };
-  handle_clickmap(x, y, clkmap);
+  handle_clickmap(cx, cy, clkmap);
 }
 
 void
-PopupBox::handle_sett_3_click(int x, int y) {
+PopupBox::handle_sett_3_click(int cx, int cy) {
   const int clkmap[] = {
     ACTION_SETT_3_ADJUST_STEELSMELTER, 0, 40, 64, 6,
     ACTION_SETT_3_ADJUST_GOLDSMELTER, 64, 40, 64, 6,
@@ -3903,11 +3900,11 @@ PopupBox::handle_sett_3_click(int x, int y) {
     ACTION_DEFAULT_SETT_3, 8, 60, 16, 16,
     -1
   };
-  handle_clickmap(x, y, clkmap);
+  handle_clickmap(cx, cy, clkmap);
 }
 
 void
-PopupBox::handle_knight_level_click(int x, int y) {
+PopupBox::handle_knight_level_click(int cx, int cy) {
   const int clkmap[] = {
     ACTION_KNIGHT_LEVEL_CLOSEST_MIN_DEC, 32, 2, 16, 16,
     ACTION_KNIGHT_LEVEL_CLOSEST_MIN_INC, 48, 2, 16, 16,
@@ -3929,11 +3926,11 @@ PopupBox::handle_knight_level_click(int x, int y) {
     ACTION_SHOW_SETT_SELECT, 112, 128, 16, 16,
     -1
   };
-  handle_clickmap(x, y, clkmap);
+  handle_clickmap(cx, cy, clkmap);
 }
 
 void
-PopupBox::handle_sett_4_click(int x, int y) {
+PopupBox::handle_sett_4_click(int cx, int cy) {
   const int clkmap[] = {
     ACTION_SETT_4_ADJUST_SHOVEL, 32, 4, 64, 8,
     ACTION_SETT_4_ADJUST_HAMMER, 32, 20, 64, 8,
@@ -3949,11 +3946,11 @@ PopupBox::handle_sett_4_click(int x, int y) {
     ACTION_DEFAULT_SETT_4, 104, 8, 16, 16,
     -1
   };
-  handle_clickmap(x, y, clkmap);
+  handle_clickmap(cx, cy, clkmap);
 }
 
 void
-PopupBox::handle_sett_5_6_click(int x, int y) {
+PopupBox::handle_sett_5_6_click(int cx, int cy) {
   const int clkmap[] = {
     ACTION_SETT_5_6_ITEM_1, 40, 4, 16, 16,
     ACTION_SETT_5_6_ITEM_2, 56, 6, 16, 16,
@@ -3991,41 +3988,41 @@ PopupBox::handle_sett_5_6_click(int x, int y) {
     ACTION_DEFAULT_SETT_5_6, 8, 4, 16, 16,
     -1
   };
-  handle_clickmap(x, y, clkmap);
+  handle_clickmap(cx, cy, clkmap);
 }
 
 void
-PopupBox::handle_quit_confirm_click(int x, int y) {
+PopupBox::handle_quit_confirm_click(int cx, int cy) {
   const int clkmap[] = {
     ACTION_QUIT_CONFIRM, 8, 45, 32, 8,
     ACTION_QUIT_CANCEL, 88, 45, 32, 8,
     -1
   };
-  handle_clickmap(x, y, clkmap);
+  handle_clickmap(cx, cy, clkmap);
 }
 
 void
-PopupBox::handle_no_save_quit_confirm_click(int x, int y) {
+PopupBox::handle_no_save_quit_confirm_click(int cx, int cy) {
   const int clkmap[] = {
     ACTION_NO_SAVE_QUIT_CONFIRM, 8, 125, 32, 8,
     ACTION_QUIT_CANCEL, 88, 125, 32, 8,
     -1
   };
-  handle_clickmap(x, y, clkmap);
+  handle_clickmap(cx, cy, clkmap);
 }
 
 void
-PopupBox::handle_castle_res_clk(int x, int y) {
+PopupBox::handle_castle_res_clk(int cx, int cy) {
   const int clkmap[] = {
     ACTION_CLOSE_BOX, 112, 128, 16, 16,
     ACTION_SHOW_CASTLE_SERF, 96, 128, 16, 16,
     -1
   };
-  handle_clickmap(x, y, clkmap);
+  handle_clickmap(cx, cy, clkmap);
 }
 
 void
-PopupBox::handle_transport_info_clk(int x, int y) {
+PopupBox::handle_transport_info_clk(int cx, int cy) {
   const int clkmap[] = {
     ACTION_UNKNOWN_TP_INFO_FLAG, 56, 51, 16, 15,
     ACTION_SEND_GEOLOGIST, 16, 96, 16, 16,
@@ -4033,21 +4030,21 @@ PopupBox::handle_transport_info_clk(int x, int y) {
     -1
   };
 
-  handle_clickmap(x, y, clkmap);
+  handle_clickmap(cx, cy, clkmap);
 }
 
 void
-PopupBox::handle_castle_serf_clk(int x, int y) {
+PopupBox::handle_castle_serf_clk(int cx, int cy) {
   const int clkmap[] = {
     ACTION_CLOSE_BOX, 112, 128, 16, 16,
     ACTION_SHOW_RESDIR, 96, 128, 16, 16,
     -1
   };
-  handle_clickmap(x, y, clkmap);
+  handle_clickmap(cx, cy, clkmap);
 }
 
 void
-PopupBox::handle_resdir_clk(int x, int y) {
+PopupBox::handle_resdir_clk(int cx, int cy) {
   const int mode_clkmap[] = {
     ACTION_RES_MODE_IN, 72, 16, 16, 16,
     ACTION_RES_MODE_STOP, 72, 32, 16, 16,
@@ -4062,11 +4059,11 @@ PopupBox::handle_resdir_clk(int x, int y) {
     -1
   };
 
-  handle_clickmap(x, y, mode_clkmap);
+  handle_clickmap(cx, cy, mode_clkmap);
 }
 
 void
-PopupBox::handle_sett_8_click(int x, int y) {
+PopupBox::handle_sett_8_click(int cx, int cy) {
   const int clkmap[] = {
     ACTION_SETT_8_ADJUST_RATE, 32, 12, 64, 8,
 
@@ -4086,39 +4083,39 @@ PopupBox::handle_sett_8_click(int x, int y) {
     ACTION_SHOW_SETT_SELECT, 112, 128, 16, 16,
     -1
   };
-  handle_clickmap(x, y, clkmap);
+  handle_clickmap(cx, cy, clkmap);
 }
 
 void
-PopupBox::handle_message_clk(int x, int y) {
+PopupBox::handle_message_clk(int cx, int cy) {
   const int clkmap[] = {
     ACTION_CLOSE_MESSAGE, 112, 128, 16, 16,
     -1
   };
-  handle_clickmap(x, y, clkmap);
+  handle_clickmap(cx, cy, clkmap);
 }
 
 void
-PopupBox::handle_player_faces_click(int x, int y) {
+PopupBox::handle_player_faces_click(int cx, int cy) {
   const int clkmap[] = {
     ACTION_SHOW_STAT_8, 0, 0, 128, 144,
     -1
   };
-  handle_clickmap(x, y, clkmap);
+  handle_clickmap(cx, cy, clkmap);
 }
 
 void
-PopupBox::handle_box_demolish_clk(int x, int y) {
+PopupBox::handle_box_demolish_clk(int cx, int cy) {
   const int clkmap[] = {
     ACTION_CLOSE_BOX, 112, 128, 16, 16,
     ACTION_DEMOLISH, 56, 45, 16, 16,
     -1
   };
-  handle_clickmap(x, y, clkmap);
+  handle_clickmap(cx, cy, clkmap);
 }
 
 void
-PopupBox::handle_minimap_clk(int x, int y) {
+PopupBox::handle_minimap_clk(int cx, int cy) {
   const int clkmap[] = {
     ACTION_MINIMAP_CLICK, 0, 0, 128, 128,
     ACTION_MINIMAP_MODE, 0, 128, 32, 16,
@@ -4129,11 +4126,11 @@ PopupBox::handle_minimap_clk(int x, int y) {
     -1
   };
 
-  handle_clickmap(x, y, clkmap);
+  handle_clickmap(cx, cy, clkmap);
 }
 
 void
-PopupBox::handle_box_bld_1(int x, int y) {
+PopupBox::handle_box_bld_1(int cx, int cy) {
   const int clkmap[] = {
     ACTION_MINIMAP_BLD_1, 0, 0, 64, 51,
     ACTION_MINIMAP_BLD_2, 64, 0, 48, 51,
@@ -4145,11 +4142,11 @@ PopupBox::handle_box_bld_1(int x, int y) {
     -1
   };
 
-  handle_clickmap(x, y, clkmap);
+  handle_clickmap(cx, cy, clkmap);
 }
 
 void
-PopupBox::handle_box_bld_2(int x, int y) {
+PopupBox::handle_box_bld_2(int cx, int cy) {
   const int clkmap[] = {
     ACTION_MINIMAP_BLD_5, 0, 0, 64, 56,
     ACTION_MINIMAP_BLD_6, 64, 0, 32, 51,
@@ -4163,11 +4160,11 @@ PopupBox::handle_box_bld_2(int x, int y) {
     -1
   };
 
-  handle_clickmap(x, y, clkmap);
+  handle_clickmap(cx, cy, clkmap);
 }
 
 void
-PopupBox::handle_box_bld_3(int x, int y) {
+PopupBox::handle_box_bld_3(int cx, int cy) {
   const int clkmap[] = {
     ACTION_MINIMAP_BLD_12, 0, 0, 64, 48,
     ACTION_MINIMAP_BLD_13, 64, 0, 64, 48,
@@ -4180,11 +4177,11 @@ PopupBox::handle_box_bld_3(int x, int y) {
     -1
   };
 
-  handle_clickmap(x, y, clkmap);
+  handle_clickmap(cx, cy, clkmap);
 }
 
 void
-PopupBox::handle_box_bld_4(int x, int y) {
+PopupBox::handle_box_bld_4(int cx, int cy) {
   const int clkmap[] = {
     ACTION_MINIMAP_BLD_18, 0, 0, 32, 64,
     ACTION_MINIMAP_BLD_19, 32, 0, 32, 64,
@@ -4197,160 +4194,158 @@ PopupBox::handle_box_bld_4(int x, int y) {
     -1
   };
 
-  handle_clickmap(x, y, clkmap);
+  handle_clickmap(cx, cy, clkmap);
 }
 
 void
-PopupBox::handle_save_clk(int x, int y) {
+PopupBox::handle_save_clk(int cx, int cy) {
   const int clkmap[] = {
     ACTION_SAVE, 0, 128, 32, 64,
     ACTION_CLOSE_BOX, 112, 128, 16, 16,
     -1
   };
 
-  handle_clickmap(x, y, clkmap);
+  handle_clickmap(cx, cy, clkmap);
 }
 
 bool
-PopupBox::handle_click_left(int x, int y) {
-  x -= 8;
-  y -= 8;
+PopupBox::handle_click_left(int cx, int cy) {
+  cx -= 8;
+  cy -= 8;
 
   switch (box) {
   case TypeMap:
-    handle_minimap_clk(x, y);
+    handle_minimap_clk(cx, cy);
     break;
   case TypeMineBuilding:
-    handle_mine_building_clk(x, y);
+    handle_mine_building_clk(cx, cy);
     break;
   case TypeBasicBld:
-    handle_basic_building_clk(x, y, 0);
+    handle_basic_building_clk(cx, cy, 0);
     break;
   case TypeBasicBldFlip:
-    handle_basic_building_clk(x, y, 1);
+    handle_basic_building_clk(cx, cy, 1);
     break;
   case TypeAdv1Bld:
-    handle_adv_1_building_clk(x, y);
+    handle_adv_1_building_clk(cx, cy);
     break;
   case TypeAdv2Bld:
-    handle_adv_2_building_clk(x, y);
+    handle_adv_2_building_clk(cx, cy);
     break;
   case TypeStatSelect:
-    handle_stat_select_click(x, y);
+    handle_stat_select_click(cx, cy);
     break;
+  case TypeStat1:
+  case TypeStat2:
+  case TypeStat3:
   case TypeStat4:
   case TypeStat6:
-  case TypeStat3:
-    handle_stat_3_4_6_click(x, y);
+    handle_stat_1_2_3_4_6_click(cx, cy);
     break;
   case TypeStatBld1:
   case TypeStatBld2:
   case TypeStatBld3:
   case TypeStatBld4:
-    handle_stat_bld_click(x, y);
+    handle_stat_bld_click(cx, cy);
     break;
   case TypeStat8:
-    handle_stat_8_click(x, y);
+    handle_stat_8_click(cx, cy);
     break;
   case TypeStat7:
-    handle_stat_7_click(x, y);
-    break;
-  case TypeStat1:
-  case TypeStat2:
-    handle_stat_1_2_click(x, y);
+    handle_stat_7_click(cx, cy);
     break;
   case TypeStartAttack:
   case TypeStartAttackRedraw:
-    handle_start_attack_click(x, y);
+    handle_start_attack_click(cx, cy);
     break;
     /* TODO */
   case TypeGroundAnalysis:
-    handle_ground_analysis_clk(x, y);
+    handle_ground_analysis_clk(cx, cy);
     break;
     /* TODO ... */
   case TypeSettSelect:
-    handle_sett_select_clk(x, y);
+    handle_sett_select_clk(cx, cy);
     break;
   case TypeSett1:
-    handle_sett_1_click(x, y);
+    handle_sett_1_click(cx, cy);
     break;
   case TypeSett2:
-    handle_sett_2_click(x, y);
+    handle_sett_2_click(cx, cy);
     break;
   case TypeSett3:
-    handle_sett_3_click(x, y);
+    handle_sett_3_click(cx, cy);
     break;
   case TypeKnightLevel:
-    handle_knight_level_click(x, y);
+    handle_knight_level_click(cx, cy);
     break;
   case TypeSett4:
-    handle_sett_4_click(x, y);
+    handle_sett_4_click(cx, cy);
     break;
   case TypeSett5:
-    handle_sett_5_6_click(x, y);
+    handle_sett_5_6_click(cx, cy);
     break;
   case TypeQuitConfirm:
-    handle_quit_confirm_click(x, y);
+    handle_quit_confirm_click(cx, cy);
     break;
   case TypeNoSaveQuitConfirm:
-    handle_no_save_quit_confirm_click(x, y);
+    handle_no_save_quit_confirm_click(cx, cy);
     break;
   case TypeOptions:
-    handle_box_options_clk(x, y);
+    handle_box_options_clk(cx, cy);
     break;
   case TypeCastleRes:
-    handle_castle_res_clk(x, y);
+    handle_castle_res_clk(cx, cy);
     break;
   case TypeMineOutput:
-    handle_box_close_clk(x, y);
+    handle_box_close_clk(cx, cy);
     break;
   case TypeOrderedBld:
-    handle_box_close_clk(x, y);
+    handle_box_close_clk(cx, cy);
     break;
   case TypeDefenders:
-    handle_box_close_clk(x, y);
+    handle_box_close_clk(cx, cy);
     break;
   case TypeTransportInfo:
-    handle_transport_info_clk(x, y);
+    handle_transport_info_clk(cx, cy);
     break;
   case TypeCastleSerf:
-    handle_castle_serf_clk(x, y);
+    handle_castle_serf_clk(cx, cy);
     break;
   case TypeResDir:
-    handle_resdir_clk(x, y);
+    handle_resdir_clk(cx, cy);
     break;
   case TypeSett8:
-    handle_sett_8_click(x, y);
+    handle_sett_8_click(cx, cy);
     break;
   case TypeSett6:
-    handle_sett_5_6_click(x, y);
+    handle_sett_5_6_click(cx, cy);
     break;
   case TypeBld1:
-    handle_box_bld_1(x, y);
+    handle_box_bld_1(cx, cy);
     break;
   case TypeBld2:
-    handle_box_bld_2(x, y);
+    handle_box_bld_2(cx, cy);
     break;
   case TypeBld3:
-    handle_box_bld_3(x, y);
+    handle_box_bld_3(cx, cy);
     break;
   case TypeBld4:
-    handle_box_bld_4(x, y);
+    handle_box_bld_4(cx, cy);
     break;
   case TypeMessage:
-    handle_message_clk(x, y);
+    handle_message_clk(cx, cy);
     break;
   case TypeBldStock:
-    handle_box_close_clk(x, y);
+    handle_box_close_clk(cx, cy);
     break;
   case TypePlayerFaces:
-    handle_player_faces_click(x, y);
+    handle_player_faces_click(cx, cy);
     break;
   case TypeDemolish:
-    handle_box_demolish_clk(x, y);
+    handle_box_demolish_clk(cx, cy);
     break;
   case TypeLoadSave:
-    handle_save_clk(x, y);
+    handle_save_clk(cx, cy);
     break;
   default:
     Log::Debug["popup"] << "unhandled box: " << box;
@@ -4360,8 +4355,8 @@ PopupBox::handle_click_left(int x, int y) {
   return true;
 }
 
-void PopupBox::show(Type box) {
-  set_box(box);
+void PopupBox::show(Type box_) {
+  set_box(box_);
   set_displayed(true);
 }
 
@@ -4371,8 +4366,8 @@ void PopupBox::hide() {
 }
 
 void
-PopupBox::set_box(Type box) {
-  this->box = box;
+PopupBox::set_box(Type box_) {
+  box = box_;
   if (box == TypeMap) {
     minimap->set_displayed(true);
   } else {

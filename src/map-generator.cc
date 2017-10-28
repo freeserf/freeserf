@@ -23,6 +23,7 @@
 
 #include <cstdlib>
 #include <algorithm>
+#include <array>
 
 #include "src/debug.h"
 
@@ -31,7 +32,13 @@ const int ClassicMapGenerator::default_water_level = 20;
 const int ClassicMapGenerator::default_terrain_spikyness = 0x9999;
 
 ClassicMapGenerator::ClassicMapGenerator(const Map& map, const Random& random)
-  : map(map), rnd(random) {
+  : map(map)
+  , rnd(random)
+  , height_generator(HeightGeneratorMidpoints)
+  , preserve_bugs(false)
+  , water_level(default_water_level)
+  , max_lake_area(default_max_lake_area)
+  , terrain_spikyness(default_terrain_spikyness) {
   tiles.resize(map.geom().tile_count());
   tags.resize(map.geom().tile_count());
 }
@@ -111,8 +118,8 @@ void
 ClassicMapGenerator::init_heights_squares() {
   for (unsigned int y = 0; y < map.get_rows(); y += 16) {
     for (unsigned int x = 0; x < map.get_cols(); x += 16) {
-      int rnd = random_int() & 0xff;
-      tiles[map.pos(x, y)].height = std::min(rnd, 250);
+      int rndl = random_int() & 0xff;
+      tiles[map.pos(x, y)].height = std::min(rndl, 250);
     }
   }
 }
@@ -142,8 +149,8 @@ ClassicMapGenerator::init_heights_midpoints() {
      spikyness will result in smooth mountains and sharp valleys.
   */
 
-  int rnd = random_int();
-  int r1 = 0x80 + (rnd & 0x7f);
+  int rndl = random_int();
+  int r1 = 0x80 + (rndl & 0x7f);
   int r2 = (r1 * terrain_spikyness) >> 16;
 
   for (int i = 8; i > 0; i >>= 1) {
@@ -160,7 +167,7 @@ ClassicMapGenerator::init_heights_midpoints() {
           /* The intention was probably just to set h_r to the map height value,
              but the upper bits of rnd must be preserved in h_r in the first
              iteration to generate the same maps as the original game. */
-          if (x == 0 && y == 0 && i == 8) h_r |= rnd & 0xff00;
+          if (x == 0 && y == 0 && i == 8) h_r |= rndl & 0xff00;
         }
 
         tiles[pos_mid_r].height = calc_height_displacement((h + h_r)/2, r1, r2);
@@ -199,8 +206,8 @@ ClassicMapGenerator::init_heights_diamond_square() {
      spikyness will result in smooth mountains and sharp valleys.
   */
 
-  int rnd = random_int();
-  int r1 = 0x80 + (rnd & 0x7f);
+  int rndl = random_int();
+  int r1 = 0x80 + (rndl & 0x7f);
   int r2 = (r1 * terrain_spikyness) >> 16;
 
   for (int i = 8; i > 0; i >>= 1) {
@@ -1015,19 +1022,23 @@ ClassicMapGenerator::create_random_mineral_clusters(
 // Initialize mineral deposits in the ground.
 void
 ClassicMapGenerator::create_mineral_deposits() {
-  int regions = map.get_region_count();
-  create_random_mineral_clusters(
-    regions * 9, Map::MineralsCoal,
-    Map::TerrainTundra0, Map::TerrainSnow0);
-  create_random_mineral_clusters(
-    regions * 4, Map::MineralsIron,
-    Map::TerrainTundra0, Map::TerrainSnow0);
-  create_random_mineral_clusters(
-    regions * 2, Map::MineralsGold,
-    Map::TerrainTundra0, Map::TerrainSnow0);
-  create_random_mineral_clusters(
-    regions * 2, Map::MineralsStone,
-    Map::TerrainTundra0, Map::TerrainSnow0);
+  typedef struct Deposit {
+    unsigned int mult;
+    Map::Minerals mineral;
+  } Deposit;
+
+  std::array<Deposit, 4> deposits = { {
+    { 9, Map::MineralsCoal },
+    { 4, Map::MineralsIron },
+    { 2, Map::MineralsGold },
+    { 2, Map::MineralsStone }
+  } };
+
+  unsigned int regions = map.get_region_count();
+
+  for (const Deposit &dep : deposits) {
+    create_random_mineral_clusters(regions * dep.mult, dep.mineral, Map::TerrainTundra0, Map::TerrainSnow0);
+  }
 }
 
 void

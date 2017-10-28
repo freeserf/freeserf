@@ -40,7 +40,7 @@ ConvertorMOD2WAV::convert() {
   PMutableBuffer result = std::make_shared<MutableBuffer>(Buffer::EndianessBig);
   xmp_context ctx = xmp_create_context();
   if (xmp_load_module_from_memory(ctx, buffer->get_data(),
-                                  buffer->get_size()) == 0) {
+                              static_cast<uint32_t>(buffer->get_size())) == 0) {
     if (xmp_start_player(ctx, 44100, 0) == 0) {
       struct xmp_frame_info fi;
       while (xmp_play_frame(ctx) == 0) {

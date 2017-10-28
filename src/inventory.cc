@@ -104,14 +104,14 @@ Inventory::add_to_queue(Resource::Type type, unsigned int dest) {
 }
 
 void
-Inventory::reset_queue_for_dest(Flag *flag) {
+Inventory::reset_queue_for_dest(Flag *flag_) {
   if (out_queue[1].type != Resource::TypeNone &&
-      out_queue[1].dest == flag->get_index()) {
+      out_queue[1].dest == flag_->get_index()) {
     push_resource(out_queue[1].type);
     out_queue[1].type = Resource::TypeNone;
   }
   if (out_queue[0].type != Resource::TypeNone &&
-      out_queue[0].dest == flag->get_index()) {
+      out_queue[0].dest == flag_->get_index()) {
     push_resource(out_queue[0].type);
     out_queue[0].type = out_queue[1].type;
     out_queue[0].dest = out_queue[1].dest;
@@ -121,47 +121,39 @@ Inventory::reset_queue_for_dest(Flag *flag) {
 
 void
 Inventory::apply_supplies_preset(unsigned int supplies) {
-  const unsigned int supplies_template_0[] = {  0,  0,  0,  0,  0,  0,  0,  7,
-                                                0,  2,  0,  0,  0,  0,  0,  1,
-                                                6,  1,  0,  0,  1,  2,  3,  0,
-                                               10, 10 };
-  const unsigned int supplies_template_1[] = {  2,  1,  1,  3,  2,  1,  0, 25,
-                                                1,  8,  4,  3,  8,  2,  1,  3,
-                                               12,  2,  1,  1,  2,  3,  4,  1,
-                                               30, 30 };
-  const unsigned int supplies_template_2[] = {  3,  2,  2, 10,  3,  1,  0,  40,
-                                                2, 20, 12,  8, 20,  4,  2,  5,
-                                                20, 3,  1,  2,  3,  4,  6,  2,
-                                                60,  60 };
-  const unsigned int supplies_template_3[] = {  8,  4,  6, 20,  7,  5,  3,  80,
-                                                5, 40, 20,  40,  50,  8, 4, 10,
-                                               30,  5, 2,  4,  6,  6, 12,  4,
-                                                100, 100 };
-  const unsigned int supplies_template_4[] = { 30,  10, 30, 50, 10, 30, 10, 200,
-                                               10, 100, 30, 150, 100, 10, 5, 20,
-                                               50,  10, 5, 10, 20, 20, 50, 10,
-                                              200, 200 };
+  const unsigned int supplies_template[5][26] = {
+    {  0,  0,  0,  0,  0,  0,  0,   7,   0,   2,  0,   0,   0,  0,  0,  1,
+       6,  1,  0,  0,  1,  2,  3,   0,  10,  10 },
+    {  2,  1,  1,  3,  2,  1,  0,  25,   1,   8,  4,   3,   8,  2,  1,  3,
+      12,  2,  1,  1,  2,  3,  4,   1,  30,  30 },
+    {  3,  2,  2, 10,  3,  1,  0,  40,   2,  20, 12,   8,  20,  4,  2,  5,
+      20,  3,  1,  2,  3,  4,  6,   2,  60,  60 },
+    {  8,  4,  6, 20,  7,  5,  3,  80,   5,  40, 20,  40,  50,  8,  4, 10,
+      30,  5,  2,  4,  6,  6, 12,   4, 100, 100 },
+    { 30, 10, 30, 50, 10, 30, 10, 200,  10, 100, 30, 150, 100, 10,  5, 20,
+      50, 10,  5, 10, 20, 20, 50,  10, 200, 200 }
+  };
 
-  const unsigned int *template_1 = NULL;
-  const unsigned int *template_2 = NULL;
+  const unsigned int *template_1 = nullptr;
+  const unsigned int *template_2 = nullptr;
   if (supplies < 10) {
-    template_1 = supplies_template_0;
-    template_2 = supplies_template_1;
+    template_1 = supplies_template[0];
+    template_2 = supplies_template[1];
   } else if (supplies < 20) {
-    template_1 = supplies_template_1;
-    template_2 = supplies_template_2;
+    template_1 = supplies_template[1];
+    template_2 = supplies_template[2];
     supplies -= 10;
   } else if (supplies < 30) {
-    template_1 = supplies_template_2;
-    template_2 = supplies_template_3;
+    template_1 = supplies_template[2];
+    template_2 = supplies_template[3];
     supplies -= 20;
   } else if (supplies < 40) {
-    template_1 = supplies_template_3;
-    template_2 = supplies_template_4;
+    template_1 = supplies_template[3];
+    template_2 = supplies_template[4];
     supplies -= 30;
   } else {
-    template_1 = supplies_template_4;
-    template_2 = supplies_template_4;
+    template_1 = supplies_template[4];
+    template_2 = supplies_template[4];
     supplies -= 40;
   }
 

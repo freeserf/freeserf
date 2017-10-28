@@ -36,6 +36,13 @@ class Random {
   explicit Random(const std::string &string);
   Random(uint16_t base_0, uint16_t base_1, uint16_t base_2);
 
+  Random &operator =(const Random &that) {
+    state[0] = that.state[0];
+    state[1] = that.state[1];
+    state[2] = that.state[2];
+    return *this;
+  }
+
   uint16_t random();
 
   operator std::string() const;

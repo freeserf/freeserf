@@ -30,34 +30,34 @@
 #include "src/data.h"
 
 void
-NotificationBox::draw_icon(int x, int y, int sprite) {
-  frame->draw_sprite(8*x, y, Data::AssetIcon, sprite);
+NotificationBox::draw_icon(int ix, int iy, int sprite) {
+  frame->draw_sprite(8 * ix, iy, Data::AssetIcon, sprite);
 }
 
 void
-NotificationBox::draw_background(int width, int height, int sprite) {
-  for (int y = 0; y < height; y += 16) {
-    for (int x = 0; x < width; x += 16) {
-      frame->draw_sprite(x, y, Data::AssetIcon, sprite);
+NotificationBox::draw_background(int bwidth, int bheight, int sprite) {
+  for (int sy = 0; sy < bheight; sy += 16) {
+    for (int sx = 0; sx < bwidth; sx += 16) {
+      frame->draw_sprite(sx, sy, Data::AssetIcon, sprite);
     }
   }
 }
 
 void
-NotificationBox::draw_string(int x, int y, const std::string &str) {
+NotificationBox::draw_string(int sx, int sy, const std::string &str) {
   std::stringstream sin;
   sin << str;
   std::string line;
-  int cy = y;
+  int cy = sy;
   while (std::getline(sin, line)) {
-    frame->draw_string(x*8, cy, line, Color::green);
+    frame->draw_string(sx*8, cy, line, Color::green);
     cy += 10;
   }
 }
 
 void
-NotificationBox::draw_map_object(int x, int y, int sprite) {
-  frame->draw_sprite(8*x, y, Data::AssetMapObject, sprite);
+NotificationBox::draw_map_object(int ox, int oy, int sprite) {
+  frame->draw_sprite(8 * ox, oy, Data::AssetMapObject, sprite);
 }
 
 unsigned int
@@ -69,11 +69,11 @@ NotificationBox::get_player_face_sprite(size_t face) {
 }
 
 void
-NotificationBox::draw_player_face(int x, int y, int player) {
+NotificationBox::draw_player_face(int fx, int fy, int player) {
   Player *p = interface->get_game()->get_player(player);
   Color color = interface->get_player_color(player);
-  frame->fill_rect(8*x, y, 48, 72, color);
-  draw_icon(x+1, y+4, get_player_face_sprite(p->get_face()));
+  frame->fill_rect(8 * fx, fy, 48, 72, color);
+  draw_icon(fx + 1, fy + 4, get_player_face_sprite(p->get_face()));
 }
 
 #define NOTIFICATION_SHOW_OPPONENT 0
@@ -229,8 +229,8 @@ NotificationBox::handle_click_left(int x, int y) {
   return true;
 }
 
-NotificationBox::NotificationBox(Interface *_interface) {
-  interface = _interface;
+NotificationBox::NotificationBox(Interface *_interface)
+  : interface(_interface) {
 }
 
 void

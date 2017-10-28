@@ -49,7 +49,7 @@ class ConvertorXMI2MID : public Convertor {
   virtual PBuffer convert();
 
  protected:
-  void write_chunk(std::string id, PBuffer data);
+  void write_chunk(const std::string &id, PBuffer data);
   PBuffer create_track(MidiNodes *nodes);
 };
 

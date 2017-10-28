@@ -135,7 +135,7 @@ class Audio {
 
   float volume;
 
-  Audio() {}
+  Audio() : volume(0.75f) {}
 
  public:
   /* Common audio. */

@@ -62,7 +62,7 @@ GameManager::set_current_game(PGame new_game) {
     }
   }
 
-  current_game = new_game;
+  current_game = std::move(new_game);
   if (!current_game) {
     return;
   }

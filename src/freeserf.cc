@@ -137,10 +137,6 @@ main(int argc, char *argv[]) {
 
   /* TODO move to right place */
   Audio *audio = Audio::get_instance();
-  Audio::VolumeController *volume_controller = audio->get_volume_controller();
-  if (volume_controller != nullptr) {
-    volume_controller->set_volume(.75f);
-  }
   Audio::PPlayer player = audio->get_music_player();
   if (player) {
     player->play_track(Audio::TypeMidiTrack0);

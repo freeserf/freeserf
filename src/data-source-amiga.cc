@@ -278,7 +278,7 @@ DataSourceAmiga::load() {
     gfxfast = unpack(gfxfast);
     Log::Debug["data"] << "Data file 'gfxfast' loaded (size = "
                        << gfxfast->get_size() << ")";
-  } catch (ExceptionFreeserf e) {
+  } catch (...) {
     Log::Error["data"] << "Failed to load 'gfxfast'";
     return false;
   }
@@ -289,7 +289,7 @@ DataSourceAmiga::load() {
     gfxchip = unpack(gfxchip);
     Log::Debug["data"] << "Data file 'gfxchip' loaded (size = "
                        << gfxchip->get_size() << ")";
-  } catch (ExceptionFreeserf e) {
+  } catch (...) {
     Log::Error["data"] << "Failed to load 'gfxchip'";
     return false;
   }
@@ -298,7 +298,7 @@ DataSourceAmiga::load() {
   try {
     gfxheader = std::make_shared<Buffer>(path + "/gfxheader",
                                          Buffer::EndianessBig);
-  } catch (ExceptionFreeserf e) {
+  } catch (...) {
     Log::Error["data"] << "Failed to load 'gfxheader'";
     return false;
   }
@@ -347,7 +347,7 @@ DataSourceAmiga::load() {
   try {
     sound = std::make_shared<Buffer>(path + "/sounds");
     sound = decode(sound);
-  } catch (ExceptionFreeserf e) {
+  } catch (...) {
     Log::Warn["data"] << "Failed to load 'sounds'";
     sound = nullptr;
   }
@@ -364,7 +364,7 @@ DataSourceAmiga::load() {
     }
     Log::Debug["data"] << "Data file 'gfxpics' loaded (size = "
                        << gfxpics->get_size() << ")";
-  } catch (ExceptionFreeserf e) {
+  } catch (...) {
     Log::Warn["data"] << "Failed to load 'gfxpics'";
   }
 
@@ -486,7 +486,7 @@ DataSourceAmiga::get_sprite_parts(Data::Resource res, size_t index) {
       } else if (index == 1) {
         sprite = decode_interlased_sprite(data_pointers[10]->get_tail(972),
                                           18, 7, 0, 0, palette, 1);
-      } else if (index > 1) {
+      } else {
         PSpriteAmiga s = decode_interlased_sprite(data_pointers[11], 2, 144,
                                                   0, 0, palette);
         sprite = s->split_horizontaly(index == 3);
@@ -720,7 +720,7 @@ DataSourceAmiga::get_sound(size_t index) {
   try {
     ConvertorSFX2WAV convertor(data);
     return convertor.convert();
-  } catch (ExceptionFreeserf e) {
+  } catch (...) {
     Log::Error["data"] << "Could not convert SFX clip to WAV: #" << index;
     return nullptr;
   }
@@ -737,7 +737,7 @@ DataSourceAmiga::get_music(size_t /*index*/) {
     data = std::make_shared<Buffer>(path + "/music");
     data = decode(data);
     data = unpack(data);
-  } catch (ExceptionFreeserf e) {
+  } catch (...) {
     Log::Warn["data"] << "Failed to load 'music'";
     return nullptr;
   }
@@ -756,7 +756,7 @@ DataSourceAmiga::get_music(size_t /*index*/) {
   try {
     ConvertorMOD2WAV converter(mod);
     music = converter.convert();
-  } catch (ExceptionFreeserf e) {
+  } catch (ExceptionFreeserf &e) {
     Log::Error["data"] << e.get_description();
     music = nullptr;
   }

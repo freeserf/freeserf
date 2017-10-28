@@ -112,12 +112,10 @@ VideoSDL::create_surface(int width, int height) {
 }
 
 void
-VideoSDL::set_resolution(unsigned int width, unsigned int height,
-                            bool fullscreen) {
+VideoSDL::set_resolution(unsigned int width, unsigned int height, bool fs) {
   /* Set fullscreen mode */
   int r = SDL_SetWindowFullscreen(window,
-                                  fullscreen ? SDL_WINDOW_FULLSCREEN_DESKTOP :
-                                               0);
+                                  fs ? SDL_WINDOW_FULLSCREEN_DESKTOP : 0);
   if (r < 0) {
     throw ExceptionSDL("Unable to set window fullscreen");
   }
@@ -138,7 +136,7 @@ VideoSDL::set_resolution(unsigned int width, unsigned int height,
     throw ExceptionSDL("Unable to set logical size");
   }
 
-  this->fullscreen = fullscreen;
+  fullscreen = fs;
 }
 
 void
@@ -248,12 +246,8 @@ VideoSDL::create_texture(int width, int height) {
 SDL_Texture *
 VideoSDL::create_texture_from_data(void *data, int width, int height) {
   SDL_Surface *surf = create_surface_from_data(data, width, height);
-  if (surf == NULL) {
-    return NULL;
-  }
-
   SDL_Texture *texture = SDL_CreateTextureFromSurface(renderer, surf);
-  if (texture == NULL) {
+  if (texture == nullptr) {
     throw ExceptionSDL("Unable to create SDL texture from data");
   }
 

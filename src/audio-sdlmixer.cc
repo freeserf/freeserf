@@ -87,7 +87,7 @@ AudioSDL::get_volume() {
 void
 AudioSDL::set_volume(float _volume) {
   _volume = std::max(0.f, std::min(_volume, 1.f));
-  if (volume == _volume) {
+  if (fabs(volume - _volume) < 0.01f) {
     return;
   }
   volume = _volume;
@@ -111,14 +111,14 @@ AudioSDL::set_volume(float _volume) {
 
 void
 AudioSDL::volume_up() {
-  float volume = get_volume();
-  set_volume(volume + 0.1f);
+  float vol = get_volume();
+  set_volume(vol + 0.1f);
 }
 
 void
 AudioSDL::volume_down() {
-  float volume = get_volume();
-  set_volume(volume - 0.1f);
+  float vol = get_volume();
+  set_volume(vol - 0.1f);
 }
 
 Audio::PTrack
@@ -293,9 +293,9 @@ AudioSDL::PlayerMIDI::music_finished() {
   }
 }
 
-AudioSDL::TrackMIDI::TrackMIDI(PBuffer _data, Mix_Music *_chunk) {
-  data = _data;
-  chunk = _chunk;
+AudioSDL::TrackMIDI::TrackMIDI(PBuffer _data, Mix_Music *_chunk)
+  : data(_data)
+  , chunk(_chunk) {
 }
 
 AudioSDL::TrackMIDI::~TrackMIDI() {

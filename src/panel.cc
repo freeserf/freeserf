@@ -143,9 +143,9 @@ PanelBar::draw_panel_buttons() {
     int button = panel_btns[i];
     if (!enabled) button = inactive_buttons[i];
 
-    int x = 64 + i*48;
-    int y = 4;
-    frame->draw_sprite(x, y, Data::AssetPanelButton, button);
+    int sx = 64 + i*48;
+    int sy = 4;
+    frame->draw_sprite(sx, sy, Data::AssetPanelButton, button);
   }
 }
 
@@ -158,191 +158,186 @@ PanelBar::internal_draw() {
 /* Handle a click on the panel buttons. */
 void
 PanelBar::button_click(int button) {
+  PopupBox *popup = interface->get_popup_box();
   switch (panel_btns[button]) {
-  case ButtonMap:
-  case ButtonMapStarred:
-    play_sound(Audio::TypeSfxClick);
-    if ((interface->get_popup_box() != NULL) &&
-        interface->get_popup_box()->is_displayed()) {
-      interface->close_popup();
-    } else {
-      panel_btns[0] = ButtonBuildInactive;
-      panel_btns[1] = ButtonDestroyInactive;
-      panel_btns[2] = ButtonMapStarred;
-      panel_btns[3] = ButtonStatsInactive;
-      panel_btns[4] = ButtonSettInactive;
+    case ButtonMap:
+    case ButtonMapStarred:
+      play_sound(Audio::TypeSfxClick);
+      if ((popup != nullptr) && popup->is_displayed()) {
+        interface->close_popup();
+      } else {
+        panel_btns[0] = ButtonBuildInactive;
+        panel_btns[1] = ButtonDestroyInactive;
+        panel_btns[2] = ButtonMapStarred;
+        panel_btns[3] = ButtonStatsInactive;
+        panel_btns[4] = ButtonSettInactive;
 
-      interface->open_popup(PopupBox::TypeMap);
+        interface->open_popup(PopupBox::TypeMap);
 
-      /* Synchronize minimap window with viewport. */
-      Viewport *viewport = interface->get_viewport();
-      PopupBox *popup = interface->get_popup_box();
-      Minimap *minimap = popup->get_minimap();
-      if (minimap != NULL) {
-        MapPos pos = viewport->get_current_map_pos();
-        minimap->move_to_map_pos(pos);
+        /* Synchronize minimap window with viewport. */
+        if (popup != nullptr) {
+          Viewport *viewport = interface->get_viewport();
+          Minimap *minimap = popup->get_minimap();
+          if (minimap != nullptr) {
+            MapPos pos = viewport->get_current_map_pos();
+            minimap->move_to_map_pos(pos);
+          }
+        }
       }
-    }
-    break;
-  case ButtonSett:
-  case ButtonSettStarred:
-    play_sound(Audio::TypeSfxClick);
-    if ((interface->get_popup_box() != NULL) &&
-        interface->get_popup_box()->is_displayed()) {
-      interface->close_popup();
-    } else {
-      panel_btns[0] = ButtonBuildInactive;
-      panel_btns[1] = ButtonDestroyInactive;
-      panel_btns[2] = ButtonMapInactive;
-      panel_btns[3] = ButtonStatsInactive;
-      panel_btns[4] = ButtonSettStarred;
-      interface->open_popup(PopupBox::TypeSettSelect);
-    }
-    break;
-  case ButtonStats:
-  case ButtonStatsStarred:
-    play_sound(Audio::TypeSfxClick);
-    if ((interface->get_popup_box() != NULL) &&
-        interface->get_popup_box()->is_displayed()) {
-      interface->close_popup();
-    } else {
-      panel_btns[0] = ButtonBuildInactive;
-      panel_btns[1] = ButtonDestroyInactive;
-      panel_btns[2] = ButtonMapInactive;
-      panel_btns[3] = ButtonStatsStarred;
-      panel_btns[4] = ButtonSettInactive;
-      interface->open_popup(PopupBox::TypeStatSelect);
-    }
-    break;
-  case ButtonBuildRoad:
-  case ButtonBuildRoadStarred:
-    play_sound(Audio::TypeSfxClick);
-    if (interface->is_building_road()) {
-      interface->build_road_end();
-    } else {
-      interface->build_road_begin();
-    }
-    break;
-  case ButtonBuildFlag:
-    play_sound(Audio::TypeSfxClick);
-    interface->build_flag();
-    break;
-  case ButtonBuildSmall:
-  case ButtonBuildSmallStarred:
-    play_sound(Audio::TypeSfxClick);
-    if ((interface->get_popup_box() != NULL) &&
-        interface->get_popup_box()->is_displayed()) {
-      interface->close_popup();
-    } else {
-      panel_btns[0] = ButtonBuildSmallStarred;
-      panel_btns[1] = ButtonDestroyInactive;
-      panel_btns[2] = ButtonMapInactive;
-      panel_btns[3] = ButtonStatsInactive;
-      panel_btns[4] = ButtonSettInactive;
-      interface->open_popup(PopupBox::TypeBasicBld);
-    }
-    break;
-  case ButtonBuildLarge:
-  case ButtonBuildLargeStarred:
-    play_sound(Audio::TypeSfxClick);
-    if ((interface->get_popup_box() != NULL) &&
-        interface->get_popup_box()->is_displayed()) {
-      interface->close_popup();
-    } else {
-      panel_btns[0] = ButtonBuildLargeStarred;
-      panel_btns[1] = ButtonDestroyInactive;
-      panel_btns[2] = ButtonMapInactive;
-      panel_btns[3] = ButtonStatsInactive;
-      panel_btns[4] = ButtonSettInactive;
-      interface->open_popup(PopupBox::TypeBasicBldFlip);
-    }
-    break;
-  case ButtonBuildMine:
-  case ButtonBuildMineStarred:
-    play_sound(Audio::TypeSfxClick);
-    if ((interface->get_popup_box() != NULL) &&
-        interface->get_popup_box()->is_displayed()) {
-      interface->close_popup();
-    } else {
-      panel_btns[0] = ButtonBuildMineStarred;
-      panel_btns[1] = ButtonDestroyInactive;
-      panel_btns[2] = ButtonMapInactive;
-      panel_btns[3] = ButtonStatsInactive;
-      panel_btns[4] = ButtonSettInactive;
-      interface->open_popup(PopupBox::TypeMineBuilding);
-    }
-    break;
-  case ButtonDestroy:
-    if (interface->get_map_cursor_type() ==
-        Interface::CursorTypeRemovableFlag) {
-      interface->demolish_object();
-    } else {
-      panel_btns[0] = ButtonBuildInactive;
-      panel_btns[1] = ButtonDestroyInactive;
-      panel_btns[2] = ButtonMapInactive;
-      panel_btns[3] = ButtonStatsInactive;
-      panel_btns[4] = ButtonSettInactive;
-      interface->open_popup(PopupBox::TypeDemolish);
-    }
-    break;
-  case ButtonBuildCastle:
-    interface->build_castle();
-    break;
-  case ButtonDestroyRoad: {
-    bool r = interface->get_player()->get_game()->demolish_road(
+      break;
+    case ButtonSett:
+    case ButtonSettStarred:
+      play_sound(Audio::TypeSfxClick);
+      if ((popup != nullptr) && popup->is_displayed()) {
+        interface->close_popup();
+      } else {
+        panel_btns[0] = ButtonBuildInactive;
+        panel_btns[1] = ButtonDestroyInactive;
+        panel_btns[2] = ButtonMapInactive;
+        panel_btns[3] = ButtonStatsInactive;
+        panel_btns[4] = ButtonSettStarred;
+        interface->open_popup(PopupBox::TypeSettSelect);
+      }
+      break;
+    case ButtonStats:
+    case ButtonStatsStarred:
+      play_sound(Audio::TypeSfxClick);
+      if ((popup != nullptr) && popup->is_displayed()) {
+        interface->close_popup();
+      } else {
+        panel_btns[0] = ButtonBuildInactive;
+        panel_btns[1] = ButtonDestroyInactive;
+        panel_btns[2] = ButtonMapInactive;
+        panel_btns[3] = ButtonStatsStarred;
+        panel_btns[4] = ButtonSettInactive;
+        interface->open_popup(PopupBox::TypeStatSelect);
+      }
+      break;
+    case ButtonBuildRoad:
+    case ButtonBuildRoadStarred:
+      play_sound(Audio::TypeSfxClick);
+      if (interface->is_building_road()) {
+        interface->build_road_end();
+      } else {
+        interface->build_road_begin();
+      }
+      break;
+    case ButtonBuildFlag:
+      play_sound(Audio::TypeSfxClick);
+      interface->build_flag();
+      break;
+    case ButtonBuildSmall:
+    case ButtonBuildSmallStarred:
+      play_sound(Audio::TypeSfxClick);
+      if ((popup != nullptr) && popup->is_displayed()) {
+        interface->close_popup();
+      } else {
+        panel_btns[0] = ButtonBuildSmallStarred;
+        panel_btns[1] = ButtonDestroyInactive;
+        panel_btns[2] = ButtonMapInactive;
+        panel_btns[3] = ButtonStatsInactive;
+        panel_btns[4] = ButtonSettInactive;
+        interface->open_popup(PopupBox::TypeBasicBld);
+      }
+      break;
+    case ButtonBuildLarge:
+    case ButtonBuildLargeStarred:
+      play_sound(Audio::TypeSfxClick);
+      if ((popup != nullptr) && popup->is_displayed()) {
+        interface->close_popup();
+      } else {
+        panel_btns[0] = ButtonBuildLargeStarred;
+        panel_btns[1] = ButtonDestroyInactive;
+        panel_btns[2] = ButtonMapInactive;
+        panel_btns[3] = ButtonStatsInactive;
+        panel_btns[4] = ButtonSettInactive;
+        interface->open_popup(PopupBox::TypeBasicBldFlip);
+      }
+      break;
+    case ButtonBuildMine:
+    case ButtonBuildMineStarred:
+      play_sound(Audio::TypeSfxClick);
+      if ((popup != nullptr) && popup->is_displayed()) {
+        interface->close_popup();
+      } else {
+        panel_btns[0] = ButtonBuildMineStarred;
+        panel_btns[1] = ButtonDestroyInactive;
+        panel_btns[2] = ButtonMapInactive;
+        panel_btns[3] = ButtonStatsInactive;
+        panel_btns[4] = ButtonSettInactive;
+        interface->open_popup(PopupBox::TypeMineBuilding);
+      }
+      break;
+    case ButtonDestroy:
+      if (interface->get_map_cursor_type() ==
+          Interface::CursorTypeRemovableFlag) {
+        interface->demolish_object();
+      } else {
+        panel_btns[0] = ButtonBuildInactive;
+        panel_btns[1] = ButtonDestroyInactive;
+        panel_btns[2] = ButtonMapInactive;
+        panel_btns[3] = ButtonStatsInactive;
+        panel_btns[4] = ButtonSettInactive;
+        interface->open_popup(PopupBox::TypeDemolish);
+      }
+      break;
+    case ButtonBuildCastle:
+      interface->build_castle();
+      break;
+    case ButtonDestroyRoad: {
+      bool r = interface->get_player()->get_game()->demolish_road(
                                                 interface->get_map_cursor_pos(),
                                                        interface->get_player());
-    if (!r) {
-      play_sound(Audio::TypeSfxNotAccepted);
-      interface->update_map_cursor_pos(interface->get_map_cursor_pos());
-    } else {
-      play_sound(Audio::TypeSfxAccepted);
+      if (!r) {
+        play_sound(Audio::TypeSfxNotAccepted);
+        interface->update_map_cursor_pos(interface->get_map_cursor_pos());
+      } else {
+        play_sound(Audio::TypeSfxAccepted);
+      }
     }
-  }
-    break;
-  case ButtonGroundAnalysis:
-  case ButtonGroundAnalysisStarred:
-    play_sound(Audio::TypeSfxClick);
-    if ((interface->get_popup_box() != NULL) &&
-        interface->get_popup_box()->is_displayed()) {
-      interface->close_popup();
-    } else {
-      panel_btns[0] = ButtonBuildInactive;
-      panel_btns[1] = ButtonGroundAnalysisStarred;
-      panel_btns[2] = ButtonMapInactive;
-      panel_btns[3] = ButtonStatsInactive;
-      panel_btns[4] = ButtonSettInactive;
-      interface->open_popup(PopupBox::TypeGroundAnalysis);
-    }
-    break;
+      break;
+    case ButtonGroundAnalysis:
+    case ButtonGroundAnalysisStarred:
+      play_sound(Audio::TypeSfxClick);
+      if ((popup != nullptr) && popup->is_displayed()) {
+        interface->close_popup();
+      } else {
+        panel_btns[0] = ButtonBuildInactive;
+        panel_btns[1] = ButtonGroundAnalysisStarred;
+        panel_btns[2] = ButtonMapInactive;
+        panel_btns[3] = ButtonStatsInactive;
+        panel_btns[4] = ButtonSettInactive;
+        interface->open_popup(PopupBox::TypeGroundAnalysis);
+      }
+      break;
   }
 }
 
 bool
-PanelBar::handle_click_left(int x, int y) {
+PanelBar::handle_click_left(int cx, int cy) {
   set_redraw();
 
-  if (x >= 41 && x < 53) {
+  if (cx >= 41 && cx < 53) {
     /* Message bar click */
-    if (y < 16) {
+    if (cy < 16) {
       /* Message icon */
       interface->open_message();
-    } else if (y >= 28) {
+    } else if (cy >= 28) {
       /* Return arrow */
       interface->return_from_message();
     }
-  } else if (x >= 301 && x < 313) {
+  } else if (cx >= 301 && cx < 313) {
     /* Timer bar click */
     /* Call to map position */
     unsigned int timer_length = 0;
 
-    if (y < 7) {
+    if (cy < 7) {
       timer_length = 5*60;
-    } else if (y < 14) {
+    } else if (cy < 14) {
       timer_length = 10*60;
-    } else if (y < 21) {
+    } else if (cy < 21) {
       timer_length = 20*60;
-    } else if (y < 28) {
+    } else if (cy < 28) {
       timer_length = 30*60;
     } else {
       timer_length = 60*60;
@@ -352,13 +347,13 @@ PanelBar::handle_click_left(int x, int y) {
                                        interface->get_map_cursor_pos());
 
     play_sound(Audio::TypeSfxAccepted);
-  } else if (y >= 4 && y < 36 && x >= 64) {
-    x -= 64;
+  } else if (cy >= 4 && cy < 36 && cx >= 64) {
+    cx -= 64;
 
     /* Figure out what button was clicked */
     int button = 0;
     while (1) {
-      if (x < 32) {
+      if (cx < 32) {
         if (button < 5) {
           break;
         } else {
@@ -366,8 +361,8 @@ PanelBar::handle_click_left(int x, int y) {
         }
       }
       button += 1;
-      if (x < 48) return false;
-      x -= 48;
+      if (cx < 48) return false;
+      cx -= 48;
     }
     button_click(button);
   }

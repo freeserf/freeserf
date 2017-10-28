@@ -41,9 +41,12 @@ SpriteFile::load(const std::string &path) {
   width = surf->w;
   height = surf->h;
   size_t size = width * height * 4;
-  data =  reinterpret_cast<uint8_t*>(malloc(size));
-  memcpy(data, surf->pixels, size);
+  data = reinterpret_cast<uint8_t*>(malloc(size));
+  bool res = (surf->pixels != nullptr) && (data != nullptr);
+  if (res) {
+    memcpy(data, surf->pixels, size);
+  }
   SDL_UnlockSurface(surf);
   SDL_FreeSurface(surf);
-  return true;
+  return res;
 }

@@ -273,11 +273,11 @@ class Map {
 
  protected:
   typedef struct GameTile {
-    uint8_t paths;
     unsigned int serf;
     unsigned int owner;
-    bool idle_serf;
     unsigned int obj_index;
+    uint8_t paths;
+    bool idle_serf;
 
     bool operator == (const GameTile& rhs) const {
       return this->paths == rhs.paths &&
@@ -394,8 +394,7 @@ class Map {
     return landscape_tiles[pos].mineral; }
   unsigned int get_res_amount(MapPos pos) const {
     return landscape_tiles[pos].resource_amount; }
-  unsigned int get_res_fish(MapPos pos) const {
-    return landscape_tiles[pos].resource_amount; }
+  unsigned int get_res_fish(MapPos pos) const { return get_res_amount(pos); }
   unsigned int get_serf_index(MapPos pos) const { return game_tiles[pos].serf; }
   unsigned int has_serf(MapPos pos) const {
     return (game_tiles[pos].serf != 0); }

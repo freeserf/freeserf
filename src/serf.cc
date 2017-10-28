@@ -296,6 +296,8 @@ Serf::Serf(Game *game, unsigned int index) : GameObject(game, index) {
   animation = 0;
   counter = 0;
   pos = -1;
+  tick = 0;
+  s = { { 0 } };
 }
 
 /* Change type of serf and update all global tables
@@ -310,8 +312,9 @@ Serf::set_type(Serf::Type new_type) {
   if (old_type == TypeTransporterInventory) old_type = TypeTransporter;
 
   Player *player = game->get_player(get_player());
-  player->decrease_serf_count(old_type);
-
+  if (old_type != Serf::TypeNone) {
+    player->decrease_serf_count(old_type);
+  }
   if (type != TypeDead) {
     player->increase_serf_count(new_type);
   }
@@ -954,13 +957,14 @@ Serf::get_walking_animation(int h_diff, Direction dir, int switch_pos) {
 /* Preconditon: serf is in WALKING or TRANSPORTING state */
 void
 Serf::change_direction(Direction dir, int alt_end) {
-  MapPos new_pos = game->get_map()->move(pos, dir);
+  PMap map = game->get_map();
+  MapPos new_pos = map->move(pos, dir);
 
-  if (!game->get_map()->has_serf(new_pos)) {
+  if (!map->has_serf(new_pos)) {
     /* Change direction, not occupied. */
-    game->get_map()->set_serf_index(pos, 0);
-    animation = get_walking_animation(game->get_map()->get_height(new_pos) -
-                               game->get_map()->get_height(pos), (Direction)dir,
+    map->set_serf_index(pos, 0);
+    animation = get_walking_animation(map->get_height(new_pos) -
+                                      map->get_height(pos), (Direction)dir,
                                       0);
     s.walking.dir = reverse_direction(dir);
   } else {
@@ -973,15 +977,15 @@ Serf::change_direction(Direction dir, int alt_end) {
         other_serf->switch_waiting(reverse_direction(dir))) {
       /* Do the switch */
       other_serf->pos = pos;
-      game->get_map()->set_serf_index(other_serf->pos, other_serf->get_index());
+      map->set_serf_index(other_serf->pos, other_serf->get_index());
       other_serf->animation =
-           get_walking_animation(game->get_map()->get_height(other_serf->pos) -
-                                 game->get_map()->get_height(new_pos),
+           get_walking_animation(map->get_height(other_serf->pos) -
+                                 map->get_height(new_pos),
                                  reverse_direction(dir), 1);
       other_serf->counter = counter_from_animation[other_serf->animation];
 
-      animation = get_walking_animation(game->get_map()->get_height(new_pos) -
-                                        game->get_map()->get_height(pos),
+      animation = get_walking_animation(map->get_height(new_pos) -
+                                        map->get_height(pos),
                                         (Direction)dir, 1);
       s.walking.dir = reverse_direction(dir);
     } else {
@@ -995,10 +999,10 @@ Serf::change_direction(Direction dir, int alt_end) {
 
   if (!alt_end) s.walking.wait_counter = 0;
   pos = new_pos;
-  game->get_map()->set_serf_index(pos, get_index());
+  map->set_serf_index(pos, get_index());
   counter += counter_from_animation[animation];
   if (alt_end && counter < 0) {
-    if (game->get_map()->has_flag(new_pos)) {
+    if (map->has_flag(new_pos)) {
       counter = 0;
     } else {
       Log::Debug["serf"] << "unhandled jump to 31B82.";
@@ -1061,14 +1065,15 @@ Serf::handle_serf_walking_state_search_cb(Flag *flag, void *data) {
 
 void
 Serf::start_walking(Direction dir, int slope, int change_pos) {
-  MapPos new_pos = game->get_map()->move(pos, dir);
-  animation = get_walking_animation(game->get_map()->get_height(new_pos) -
-                                    game->get_map()->get_height(pos), dir, 0);
+  PMap map = game->get_map();
+  MapPos new_pos = map->move(pos, dir);
+  animation = get_walking_animation(map->get_height(new_pos) -
+                                    map->get_height(pos), dir, 0);
   counter += (slope * counter_from_animation[animation]) >> 5;
 
   if (change_pos) {
-    game->get_map()->set_serf_index(pos, 0);
-    game->get_map()->set_serf_index(new_pos, get_index());
+    map->set_serf_index(pos, 0);
+    map->set_serf_index(new_pos, get_index());
   }
 
   pos = new_pos;
@@ -1118,11 +1123,11 @@ void
 Serf::handle_serf_walking_state_dest_reached() {
   /* Destination reached. */
   if (s.walking.res < 0) {
-    Building *building =
-                  game->get_building_at_pos(game->get_map()->move_up_left(pos));
+    PMap map = game->get_map();
+    Building *building = game->get_building_at_pos(map->move_up_left(pos));
     building->requested_serf_reached(this);
 
-    if (game->get_map()->has_serf(game->get_map()->move_up_left(pos))) {
+    if (map->has_serf(map->move_up_left(pos))) {
       animation = 85;
       counter = 0;
       set_state(StateReadyToEnter);
@@ -1156,20 +1161,21 @@ Serf::handle_serf_walking_state_waiting() {
   /* Waiting for other serf. */
   Direction dir = (Direction)(s.walking.dir + 6);
 
+  PMap map = game->get_map();
   /* Only check for loops once in a while. */
   s.walking.wait_counter += 1;
-  if ((!game->get_map()->has_flag(pos) && s.walking.wait_counter >= 10) ||
+  if ((!map->has_flag(pos) && s.walking.wait_counter >= 10) ||
       s.walking.wait_counter >= 50) {
     MapPos pos_ = pos;
 
     /* Follow the chain of serfs waiting for each other and
        see if there is a loop. */
     for (int i = 0; i < 100; i++) {
-      pos_ = game->get_map()->move(pos_, dir);
+      pos_ = map->move(pos_, dir);
 
-      if (!game->get_map()->has_serf(pos_)) {
+      if (!map->has_serf(pos_)) {
         break;
-      } else if (game->get_map()->get_serf_index(pos_) == index) {
+      } else if (map->get_serf_index(pos_) == index) {
         /* We have found a loop, try a different direction. */
         change_direction(reverse_direction(dir), 0);
         return;
@@ -1301,11 +1307,12 @@ Serf::handle_serf_transporting_state() {
 
   if (counter >= 0) return;
 
+  PMap map = game->get_map();
   if (s.walking.dir < 0) {
     change_direction((Direction)(s.walking.dir+6), 1);
   } else {
     /* 31549 */
-    if (game->get_map()->has_flag(pos)) {
+    if (map->has_flag(pos)) {
       /* Current position occupied by waiting transporter */
       if (s.walking.wait_counter < 0) {
         set_state(StateWalking);
@@ -1318,14 +1325,13 @@ Serf::handle_serf_transporting_state() {
 
       /* 31590 */
       if (s.walking.res != 0 &&
-          game->get_map()->get_obj_index(pos) == s.walking.dest) {
+        map->get_obj_index(pos) == s.walking.dest) {
         /* At resource destination */
         set_state(StateDelivering);
         s.walking.wait_counter = 0;
 
-        MapPos new_pos = game->get_map()->move_up_left(pos);
-        animation = 3 + game->get_map()->get_height(new_pos) -
-                    game->get_map()->get_height(pos) + (DirectionUpLeft+6)*9;
+        MapPos new_pos = map->move_up_left(pos);
+        animation = 3 + map->get_height(new_pos) - map->get_height(pos) + (DirectionUpLeft + 6) * 9;
         counter = counter_from_animation[animation];
         /* TODO next call is actually into the middle of handle_serf_delivering_state().
            Why is a nice and clean state switch not enough???
@@ -1337,7 +1343,7 @@ Serf::handle_serf_transporting_state() {
       Flag *flag = game->get_flag_at_pos(pos);
       transporter_move_to_flag(flag);
     } else {
-      int paths = game->get_map()->paths(pos) & ~BIT(s.walking.dir);
+      int paths = map->paths(pos) & ~BIT(s.walking.dir);
       Direction dir = DirectionNone;
       for (Direction d : cycle_directions_cw()) {
         if (paths == BIT(d)) {
@@ -1352,14 +1358,14 @@ Serf::handle_serf_transporting_state() {
         return;
       }
 
-      if (!game->get_map()->has_flag(game->get_map()->move(pos, dir)) ||
+      if (!map->has_flag(map->move(pos, dir)) ||
           s.walking.res != 0 ||
           s.walking.wait_counter < 0) {
         change_direction(dir, 1);
         return;
       }
 
-      Flag *flag = game->get_flag_at_pos(game->get_map()->move(pos, dir));
+      Flag *flag = game->get_flag_at_pos(map->move(pos, dir));
       Direction rev_dir = reverse_direction(dir);
       Flag *other_flag = flag->get_other_end_flag(rev_dir);
       Direction other_dir = flag->get_other_end_dir(rev_dir);
@@ -1387,8 +1393,8 @@ Serf::handle_serf_transporting_state() {
           set_state(StateIdleOnPath);
           s.idle_on_path.rev_dir = rev_dir;
           s.idle_on_path.flag = flag;
-          game->get_map()->set_idle_serf(pos);
-          game->get_map()->set_serf_index(pos, 0);
+          map->set_idle_serf(pos);
+          map->set_serf_index(pos, 0);
           return;
         }
       }
@@ -1423,398 +1429,388 @@ Serf::handle_serf_entering_building_state() {
     }
 
     counter = s.entering_building.slope_len;
+    PMap map = game->get_map();
     switch (get_type()) {
-    case TypeTransporter:
-      if (s.entering_building.field_B == -2) {
-        enter_inventory();
-      } else {
-        game->get_map()->set_serf_index(pos, 0);
-        int flag_index =
-          game->get_map()->get_obj_index(game->get_map()->move_down_right(pos));
-        Flag *flag = game->get_flag(flag_index);
-
-        /* Mark as inventory accepting resources and serfs. */
-        flag->set_has_inventory();
-        flag->set_accepts_resources(true);
-        flag->set_accepts_serfs(true);
-
-        set_state(StateWaitForResourceOut);
-        counter = 63;
-        set_type(TypeTransporterInventory);
-      }
-      break;
-    case TypeSailor:
-      enter_inventory();
-      break;
-    case TypeDigger:
-      if (s.entering_building.field_B == -2) {
-        enter_inventory();
-      } else {
-        set_state(StateDigging);
-        s.digging.h_index = 15;
-
-        Building *building = game->get_building_at_pos(pos);
-        s.digging.dig_pos = 6;
-        s.digging.target_h = building->get_level();
-        s.digging.substate = 1;
-      }
-      break;
-    case TypeBuilder:
-      if (s.entering_building.field_B == -2) {
-        enter_inventory();
-      } else {
-        set_state(StateBuilding);
-        animation = 98;
-        counter = 127;
-        s.building.mode = 1;
-        s.building.bld_index = game->get_map()->get_obj_index(pos);
-        s.building.material_step = 0;
-
-        Building *building = game->get_building(s.building.bld_index);
-        switch (building->get_type()) {
-          case Building::TypeStock:
-          case Building::TypeSawmill:
-          case Building::TypeToolMaker:
-          case Building::TypeFortress:
-            s.building.material_step |= BIT(7);
-            animation = 100;
-            break;
-          default:
-            break;
-        }
-      }
-      break;
-    case TypeTransporterInventory:
-      game->get_map()->set_serf_index(pos, 0);
-      set_state(StateWaitForResourceOut);
-      counter = 63;
-      break;
-    case TypeLumberjack:
-      if (s.entering_building.field_B == -2) {
-        enter_inventory();
-      } else {
-        game->get_map()->set_serf_index(pos, 0);
-        set_state(StatePlanningLogging);
-      }
-      break;
-    case TypeSawmiller:
-      if (s.entering_building.field_B == -2) {
-        enter_inventory();
-      } else {
-        game->get_map()->set_serf_index(pos, 0);
-        if (s.entering_building.field_B != 0) {
-          Building *building = game->get_building_at_pos(pos);
-          int flag_index =
-          game->get_map()->get_obj_index(game->get_map()->move_down_right(pos));
+      case TypeTransporter:
+        if (s.entering_building.field_B == -2) {
+          enter_inventory();
+        } else {
+          map->set_serf_index(pos, 0);
+          int flag_index = map->get_obj_index(map->move_down_right(pos));
           Flag *flag = game->get_flag(flag_index);
-          flag->clear_flags();
-          building->stock_init(1, Resource::TypeLumber, 8);
+
+          /* Mark as inventory accepting resources and serfs. */
+          flag->set_has_inventory();
+          flag->set_accepts_resources(true);
+          flag->set_accepts_serfs(true);
+
+          set_state(StateWaitForResourceOut);
+          counter = 63;
+          set_type(TypeTransporterInventory);
         }
-        set_state(StateSawing);
-        s.sawing.mode = 0;
-      }
-      break;
-    case TypeStonecutter:
-      if (s.entering_building.field_B == -2) {
+        break;
+      case TypeSailor:
         enter_inventory();
-      } else {
-        game->get_map()->set_serf_index(pos, 0);
-        set_state(StatePlanningStoneCutting);
-      }
-      break;
-    case TypeForester:
-      if (s.entering_building.field_B == -2) {
-        enter_inventory();
-      } else {
-        game->get_map()->set_serf_index(pos, 0);
-        set_state(StatePlanningPlanting);
-      }
-      break;
-    case TypeMiner:
-      if (s.entering_building.field_B == -2) {
-        enter_inventory();
-      } else {
-        game->get_map()->set_serf_index(pos, 0);
-        Building *building = game->get_building_at_pos(pos);
-        Building::Type bld_type = building->get_type();
+        break;
+      case TypeDigger:
+        if (s.entering_building.field_B == -2) {
+          enter_inventory();
+        } else {
+          set_state(StateDigging);
+          s.digging.h_index = 15;
 
-        if (s.entering_building.field_B != 0) {
-          building->start_activity();
-          building->stop_playing_sfx();
-
-          Flag *flag =
-                   game->get_flag_at_pos(game->get_map()->move_down_right(pos));
-          flag->clear_flags();
-          building->stock_init(0, Resource::GroupFood, 8);
+          Building *building = game->get_building_at_pos(pos);
+          s.digging.dig_pos = 6;
+          s.digging.target_h = building->get_level();
+          s.digging.substate = 1;
         }
+        break;
+      case TypeBuilder:
+        if (s.entering_building.field_B == -2) {
+          enter_inventory();
+        } else {
+          set_state(StateBuilding);
+          animation = 98;
+          counter = 127;
+          s.building.mode = 1;
+          s.building.bld_index = map->get_obj_index(pos);
+          s.building.material_step = 0;
 
-        set_state(StateMining);
-        s.mining.substate = 0;
-        s.mining.deposit = (Map::Minerals)(4 - (bld_type -
-                                                   Building::TypeStoneMine));
-        /*s.mining.field_C = 0;*/
-        s.mining.res = 0;
-      }
-      break;
-    case TypeSmelter:
-      if (s.entering_building.field_B == -2) {
-        enter_inventory();
-      } else {
-        game->get_map()->set_serf_index(pos, 0);
-
-        Building *building = game->get_building_at_pos(pos);
-
-        if (s.entering_building.field_B != 0) {
-          Flag *flag =
-                   game->get_flag_at_pos(game->get_map()->move_down_right(pos));
-          flag->clear_flags();
-          building->stock_init(0, Resource::TypeCoal, 8);
-
-          if (building->get_type() == Building::TypeSteelSmelter) {
-            building->stock_init(1, Resource::TypeIronOre, 8);
-          } else {
-            building->stock_init(1, Resource::TypeGoldOre, 8);
+          Building *building = game->get_building(s.building.bld_index);
+          switch (building->get_type()) {
+            case Building::TypeStock:
+            case Building::TypeSawmill:
+            case Building::TypeToolMaker:
+            case Building::TypeFortress:
+              s.building.material_step |= BIT(7);
+              animation = 100;
+              break;
+            default:
+              break;
           }
         }
-
-        /* Switch to smelting state to begin work. */
-        set_state(StateSmelting);
-
-        if (building->get_type() == Building::TypeSteelSmelter) {
-          s.smelting.type = 0;
+        break;
+      case TypeTransporterInventory:
+        map->set_serf_index(pos, 0);
+        set_state(StateWaitForResourceOut);
+        counter = 63;
+        break;
+      case TypeLumberjack:
+        if (s.entering_building.field_B == -2) {
+          enter_inventory();
         } else {
-          s.smelting.type = -1;
+          map->set_serf_index(pos, 0);
+          set_state(StatePlanningLogging);
         }
-
-        s.smelting.mode = 0;
-      }
-      break;
-    case TypeFisher:
-      if (s.entering_building.field_B == -2) {
-        enter_inventory();
-      } else {
-        game->get_map()->set_serf_index(pos, 0);
-        set_state(StatePlanningFishing);
-      }
-      break;
-    case TypePigFarmer:
-      if (s.entering_building.field_B == -2) {
-        enter_inventory();
-      } else {
-        game->get_map()->set_serf_index(pos, 0);
-
-        if (s.entering_building.field_B != 0) {
-          Building *building = game->get_building_at_pos(pos);
-          Flag *flag =
-                   game->get_flag_at_pos(game->get_map()->move_down_right(pos));
-
-          building->set_initial_res_in_stock(1, 1);
-
-          flag->clear_flags();
-          building->stock_init(0, Resource::TypeWheat, 8);
-
-          set_state(StatePigFarming);
-          s.pigfarming.mode = 0;
+        break;
+      case TypeSawmiller:
+        if (s.entering_building.field_B == -2) {
+          enter_inventory();
         } else {
-          set_state(StatePigFarming);
-          s.pigfarming.mode = 6;
+          map->set_serf_index(pos, 0);
+          if (s.entering_building.field_B != 0) {
+            Building *building = game->get_building_at_pos(pos);
+            int flag_index = map->get_obj_index(map->move_down_right(pos));
+            Flag *flag = game->get_flag(flag_index);
+            flag->clear_flags();
+            building->stock_init(1, Resource::TypeLumber, 8);
+          }
+          set_state(StateSawing);
+          s.sawing.mode = 0;
+        }
+        break;
+      case TypeStonecutter:
+        if (s.entering_building.field_B == -2) {
+          enter_inventory();
+        } else {
+          map->set_serf_index(pos, 0);
+          set_state(StatePlanningStoneCutting);
+        }
+        break;
+      case TypeForester:
+        if (s.entering_building.field_B == -2) {
+          enter_inventory();
+        } else {
+          map->set_serf_index(pos, 0);
+          set_state(StatePlanningPlanting);
+        }
+        break;
+      case TypeMiner:
+        if (s.entering_building.field_B == -2) {
+          enter_inventory();
+        } else {
+          map->set_serf_index(pos, 0);
+          Building *building = game->get_building_at_pos(pos);
+          Building::Type bld_type = building->get_type();
+
+          if (s.entering_building.field_B != 0) {
+            building->start_activity();
+            building->stop_playing_sfx();
+
+            Flag *flag = game->get_flag_at_pos(map->move_down_right(pos));
+            flag->clear_flags();
+            building->stock_init(0, Resource::GroupFood, 8);
+          }
+
+          set_state(StateMining);
+          s.mining.substate = 0;
+          s.mining.deposit = (Map::Minerals)(4 - (bld_type -
+                                                     Building::TypeStoneMine));
+          /*s.mining.field_C = 0;*/
+          s.mining.res = 0;
+        }
+        break;
+      case TypeSmelter:
+        if (s.entering_building.field_B == -2) {
+          enter_inventory();
+        } else {
+          map->set_serf_index(pos, 0);
+
+          Building *building = game->get_building_at_pos(pos);
+
+          if (s.entering_building.field_B != 0) {
+            Flag *flag = game->get_flag_at_pos(map->move_down_right(pos));
+            flag->clear_flags();
+            building->stock_init(0, Resource::TypeCoal, 8);
+
+            if (building->get_type() == Building::TypeSteelSmelter) {
+              building->stock_init(1, Resource::TypeIronOre, 8);
+            } else {
+              building->stock_init(1, Resource::TypeGoldOre, 8);
+            }
+          }
+
+          /* Switch to smelting state to begin work. */
+          set_state(StateSmelting);
+
+          if (building->get_type() == Building::TypeSteelSmelter) {
+            s.smelting.type = 0;
+          } else {
+            s.smelting.type = -1;
+          }
+
+          s.smelting.mode = 0;
+        }
+        break;
+      case TypeFisher:
+        if (s.entering_building.field_B == -2) {
+          enter_inventory();
+        } else {
+          map->set_serf_index(pos, 0);
+          set_state(StatePlanningFishing);
+        }
+        break;
+      case TypePigFarmer:
+        if (s.entering_building.field_B == -2) {
+          enter_inventory();
+        } else {
+          map->set_serf_index(pos, 0);
+
+          if (s.entering_building.field_B != 0) {
+            Building *building = game->get_building_at_pos(pos);
+            Flag *flag = game->get_flag_at_pos(map->move_down_right(pos));
+
+            building->set_initial_res_in_stock(1, 1);
+
+            flag->clear_flags();
+            building->stock_init(0, Resource::TypeWheat, 8);
+
+            set_state(StatePigFarming);
+            s.pigfarming.mode = 0;
+          } else {
+            set_state(StatePigFarming);
+            s.pigfarming.mode = 6;
+            counter = 0;
+          }
+        }
+        break;
+      case TypeButcher:
+        if (s.entering_building.field_B == -2) {
+          enter_inventory();
+        } else {
+          map->set_serf_index(pos, 0);
+
+          if (s.entering_building.field_B != 0) {
+            Building *building = game->get_building_at_pos(pos);
+            Flag *flag = game->get_flag_at_pos(map->move_down_right(pos));
+            flag->clear_flags();
+            building->stock_init(0, Resource::TypePig, 8);
+          }
+
+          set_state(StateButchering);
+          s.butchering.mode = 0;
+        }
+        break;
+      case TypeFarmer:
+        if (s.entering_building.field_B == -2) {
+          enter_inventory();
+        } else {
+          map->set_serf_index(pos, 0);
+          set_state(StatePlanningFarming);
+        }
+        break;
+      case TypeMiller:
+        if (s.entering_building.field_B == -2) {
+          enter_inventory();
+        } else {
+          map->set_serf_index(pos, 0);
+
+          if (s.entering_building.field_B != 0) {
+            Building *building = game->get_building_at_pos(pos);
+            Flag *flag = game->get_flag_at_pos(map->move_down_right(pos));
+            flag->clear_flags();
+            building->stock_init(0, Resource::TypeWheat, 8);
+          }
+
+          set_state(StateMilling);
+          s.milling.mode = 0;
+        }
+        break;
+      case TypeBaker:
+        if (s.entering_building.field_B == -2) {
+          enter_inventory();
+        } else {
+          map->set_serf_index(pos, 0);
+
+          if (s.entering_building.field_B != 0) {
+            Building *building = game->get_building_at_pos(pos);
+            Flag *flag = game->get_flag_at_pos(map->move_down_right(pos));
+            flag->clear_flags();
+            building->stock_init(0, Resource::TypeFlour, 8);
+          }
+
+          set_state(StateBaking);
+          s.baking.mode = 0;
+        }
+        break;
+      case TypeBoatBuilder:
+        if (s.entering_building.field_B == -2) {
+          enter_inventory();
+        } else {
+          map->set_serf_index(pos, 0);
+          if (s.entering_building.field_B != 0) {
+            Building *building = game->get_building_at_pos(pos);
+            Flag *flag = game->get_flag_at_pos(map->move_down_right(pos));
+            flag->clear_flags();
+            building->stock_init(0, Resource::TypePlank, 8);
+          }
+
+          set_state(StateBuildingBoat);
+          s.building_boat.mode = 0;
+        }
+        break;
+      case TypeToolmaker:
+        if (s.entering_building.field_B == -2) {
+          enter_inventory();
+        } else {
+          map->set_serf_index(pos, 0);
+          if (s.entering_building.field_B != 0) {
+            Building *building = game->get_building_at_pos(pos);
+            Flag *flag = game->get_flag_at_pos(map->move_down_right(pos));
+            flag->clear_flags();
+            building->stock_init(0, Resource::TypePlank, 8);
+            building->stock_init(1, Resource::TypeSteel, 8);
+          }
+
+          set_state(StateMakingTool);
+          s.making_tool.mode = 0;
+        }
+        break;
+      case TypeWeaponSmith:
+        if (s.entering_building.field_B == -2) {
+          enter_inventory();
+        } else {
+          map->set_serf_index(pos, 0);
+          if (s.entering_building.field_B != 0) {
+            Building *building = game->get_building_at_pos(pos);
+            Flag *flag = game->get_flag_at_pos(map->move_down_right(pos));
+            flag->clear_flags();
+            building->stock_init(0, Resource::TypeCoal, 8);
+            building->stock_init(1, Resource::TypeSteel, 8);
+          }
+
+          set_state(StateMakingWeapon);
+          s.making_weapon.mode = 0;
+        }
+        break;
+      case TypeGeologist:
+        if (s.entering_building.field_B == -2) {
+          enter_inventory();
+        } else {
+          set_state(StateLookingForGeoSpot); /* TODO Should never be reached */
           counter = 0;
         }
-      }
-      break;
-    case TypeButcher:
-      if (s.entering_building.field_B == -2) {
-        enter_inventory();
-      } else {
-        game->get_map()->set_serf_index(pos, 0);
+        break;
+      case TypeGeneric: {
+        map->set_serf_index(pos, 0);
 
-        if (s.entering_building.field_B != 0) {
-          Building *building = game->get_building_at_pos(pos);
-          Flag *flag =
-                   game->get_flag_at_pos(game->get_map()->move_down_right(pos));
-          flag->clear_flags();
-          building->stock_init(0, Resource::TypePig, 8);
-        }
-
-        set_state(StateButchering);
-        s.butchering.mode = 0;
-      }
-      break;
-    case TypeFarmer:
-      if (s.entering_building.field_B == -2) {
-        enter_inventory();
-      } else {
-        game->get_map()->set_serf_index(pos, 0);
-        set_state(StatePlanningFarming);
-      }
-      break;
-    case TypeMiller:
-      if (s.entering_building.field_B == -2) {
-        enter_inventory();
-      } else {
-        game->get_map()->set_serf_index(pos, 0);
-
-        if (s.entering_building.field_B != 0) {
-          Building *building = game->get_building_at_pos(pos);
-          Flag *flag =
-                   game->get_flag_at_pos(game->get_map()->move_down_right(pos));
-          flag->clear_flags();
-          building->stock_init(0, Resource::TypeWheat, 8);
-        }
-
-        set_state(StateMilling);
-        s.milling.mode = 0;
-      }
-      break;
-    case TypeBaker:
-      if (s.entering_building.field_B == -2) {
-        enter_inventory();
-      } else {
-        game->get_map()->set_serf_index(pos, 0);
-
-        if (s.entering_building.field_B != 0) {
-          Building *building = game->get_building_at_pos(pos);
-          Flag *flag =
-                   game->get_flag_at_pos(game->get_map()->move_down_right(pos));
-          flag->clear_flags();
-          building->stock_init(0, Resource::TypeFlour, 8);
-        }
-
-        set_state(StateBaking);
-        s.baking.mode = 0;
-      }
-      break;
-    case TypeBoatBuilder:
-      if (s.entering_building.field_B == -2) {
-        enter_inventory();
-      } else {
-        game->get_map()->set_serf_index(pos, 0);
-        if (s.entering_building.field_B != 0) {
-          Building *building = game->get_building_at_pos(pos);
-          Flag *flag =
-                   game->get_flag_at_pos(game->get_map()->move_down_right(pos));
-          flag->clear_flags();
-          building->stock_init(0, Resource::TypePlank, 8);
-        }
-
-        set_state(StateBuildingBoat);
-        s.building_boat.mode = 0;
-      }
-      break;
-    case TypeToolmaker:
-      if (s.entering_building.field_B == -2) {
-        enter_inventory();
-      } else {
-        game->get_map()->set_serf_index(pos, 0);
-        if (s.entering_building.field_B != 0) {
-          Building *building = game->get_building_at_pos(pos);
-          Flag *flag =
-                   game->get_flag_at_pos(game->get_map()->move_down_right(pos));
-          flag->clear_flags();
-          building->stock_init(0, Resource::TypePlank, 8);
-          building->stock_init(1, Resource::TypeSteel, 8);
-        }
-
-        set_state(StateMakingTool);
-        s.making_tool.mode = 0;
-      }
-      break;
-    case TypeWeaponSmith:
-      if (s.entering_building.field_B == -2) {
-        enter_inventory();
-      } else {
-        game->get_map()->set_serf_index(pos, 0);
-        if (s.entering_building.field_B != 0) {
-          Building *building = game->get_building_at_pos(pos);
-          Flag *flag =
-                   game->get_flag_at_pos(game->get_map()->move_down_right(pos));
-          flag->clear_flags();
-          building->stock_init(0, Resource::TypeCoal, 8);
-          building->stock_init(1, Resource::TypeSteel, 8);
-        }
-
-        set_state(StateMakingWeapon);
-        s.making_weapon.mode = 0;
-      }
-      break;
-    case TypeGeologist:
-      if (s.entering_building.field_B == -2) {
-        enter_inventory();
-      } else {
-        set_state(StateLookingForGeoSpot); /* TODO Should never be reached */
-        counter = 0;
-      }
-      break;
-    case TypeGeneric: {
-      game->get_map()->set_serf_index(pos, 0);
-
-      Building *building = game->get_building_at_pos(pos);
-      Inventory *inventory = building->get_inventory();
-      assert(inventory);
-      inventory->serf_come_back();
-
-      set_state(StateIdleInStock);
-      s.idle_in_stock.inv_index = inventory->get_index();
-      break;
-    }
-    case TypeKnight0:
-    case TypeKnight1:
-    case TypeKnight2:
-    case TypeKnight3:
-    case TypeKnight4:
-      if (s.entering_building.field_B == -2) {
-        enter_inventory();
-      } else {
         Building *building = game->get_building_at_pos(pos);
-        if (building->is_burning()) {
-          set_state(StateLost);
-          counter = 0;
-        } else {
-          game->get_map()->set_serf_index(pos, 0);
+        Inventory *inventory = building->get_inventory();
+        assert(inventory);
+        inventory->serf_come_back();
 
-          if (building->has_inventory()) {
-            set_state(StateDefendingCastle);
+        set_state(StateIdleInStock);
+        s.idle_in_stock.inv_index = inventory->get_index();
+        break;
+      }
+      case TypeKnight0:
+      case TypeKnight1:
+      case TypeKnight2:
+      case TypeKnight3:
+      case TypeKnight4:
+        if (s.entering_building.field_B == -2) {
+          enter_inventory();
+        } else {
+          Building *building = game->get_building_at_pos(pos);
+          if (building->is_burning()) {
+            set_state(StateLost);
+            counter = 0;
+          } else {
+            map->set_serf_index(pos, 0);
+
+            if (building->has_inventory()) {
+              set_state(StateDefendingCastle);
+              counter = 6000;
+
+              /* Prepend to knight list */
+              s.defending.next_knight = building->get_first_knight();
+              building->set_first_knight(get_index());
+
+              game->get_player(building->get_owner())->increase_castle_knights();
+              return;
+            }
+
+            building->requested_knight_arrived();
+
+            Serf::State next_state = (Serf::State)-1;
+            switch (building->get_type()) {
+              case Building::TypeHut:
+                next_state = StateDefendingHut;
+                break;
+              case Building::TypeTower:
+                next_state = StateDefendingTower;
+                break;
+              case Building::TypeFortress:
+                next_state = StateDefendingFortress;
+                break;
+              default:
+                NOT_REACHED();
+                break;
+            }
+
+            /* Switch to defending state */
+            set_state(next_state);
             counter = 6000;
 
             /* Prepend to knight list */
             s.defending.next_knight = building->get_first_knight();
             building->set_first_knight(get_index());
-
-            game->get_player(building->get_owner())->increase_castle_knights();
-            return;
           }
-
-          building->requested_knight_arrived();
-
-          Serf::State next_state = (Serf::State)-1;
-          switch (building->get_type()) {
-            case Building::TypeHut:
-              next_state = StateDefendingHut;
-              break;
-            case Building::TypeTower:
-              next_state = StateDefendingTower;
-              break;
-            case Building::TypeFortress:
-              next_state = StateDefendingFortress;
-              break;
-            default:
-              NOT_REACHED();
-              break;
-          }
-
-          /* Switch to defending state */
-          set_state(next_state);
-          counter = 6000;
-
-          /* Prepend to knight list */
-          s.defending.next_knight = building->get_first_knight();
-          building->set_first_knight(get_index());
         }
-      }
-      break;
-    default:
-      NOT_REACHED();
-      break;
+        break;
+      default:
+        NOT_REACHED();
+        break;
     }
   }
 }
@@ -1878,11 +1874,10 @@ Serf::handle_serf_ready_to_leave_state() {
   tick = game->get_tick();
   counter = 0;
 
-  MapPos new_pos = game->get_map()->move_down_right(pos);
+  PMap map = game->get_map();
+  MapPos new_pos = map->move_down_right(pos);
 
-  if ((game->get_map()->get_serf_index(pos) != index &&
-       game->get_map()->has_serf(pos)) ||
-      game->get_map()->has_serf(new_pos)) {
+  if ((map->get_serf_index(pos) != index && map->has_serf(pos)) || map->has_serf(new_pos)) {
     animation = 82;
     counter = 0;
     return;
@@ -1902,15 +1897,17 @@ Serf::handle_serf_digging_state() {
   tick = game->get_tick();
   counter -= delta;
 
+  PMap map = game->get_map();
+
   while (counter < 0) {
     s.digging.substate -= 1;
     if (s.digging.substate < 0) {
       Log::Verbose["serf"] << "substate -1: wait for serf.";
       int d = s.digging.dig_pos;
       Direction dir = (Direction)((d == 0) ? DirectionUp : 6-d);
-      MapPos new_pos = game->get_map()->move(pos, dir);
+      MapPos new_pos = map->move(pos, dir);
 
-      if (game->get_map()->has_serf(new_pos)) {
+      if (map->has_serf(new_pos)) {
         Serf *other_serf = game->get_serf_at_pos(new_pos);
         Direction other_dir;
 
@@ -1919,21 +1916,20 @@ Serf::handle_serf_digging_state() {
             other_serf->switch_waiting(other_dir)) {
           /* Do the switch */
           other_serf->pos = pos;
-          game->get_map()->set_serf_index(other_serf->pos,
+          map->set_serf_index(other_serf->pos,
                                           other_serf->get_index());
           other_serf->animation =
-            get_walking_animation(game->get_map()->get_height(other_serf->pos) -
-                                  game->get_map()->get_height(new_pos),
+            get_walking_animation(map->get_height(other_serf->pos) -
+                                  map->get_height(new_pos),
                                   reverse_direction(dir), 1);
           other_serf->counter = counter_from_animation[other_serf->animation];
 
           if (d != 0) {
             animation =
-                    get_walking_animation(game->get_map()->get_height(new_pos) -
-                                      game->get_map()->get_height(pos), dir, 1);
+                    get_walking_animation(map->get_height(new_pos) -
+                                          map->get_height(pos), dir, 1);
           } else {
-            animation = game->get_map()->get_height(new_pos) -
-                        game->get_map()->get_height(pos);
+            animation = map->get_height(new_pos) - map->get_height(pos);
           }
         } else {
           counter = 127;
@@ -1941,29 +1937,27 @@ Serf::handle_serf_digging_state() {
           return;
         }
       } else {
-        game->get_map()->set_serf_index(pos, 0);
+        map->set_serf_index(pos, 0);
         if (d != 0) {
           animation =
-                    get_walking_animation(game->get_map()->get_height(new_pos) -
-                                            game->get_map()->get_height(pos),
-                                            dir, 0);
+                    get_walking_animation(map->get_height(new_pos) -
+                                          map->get_height(pos), dir, 0);
         } else {
-          animation = game->get_map()->get_height(new_pos) -
-                      game->get_map()->get_height(pos);
+          animation = map->get_height(new_pos) - map->get_height(pos);
         }
       }
 
-      game->get_map()->set_serf_index(new_pos, get_index());
+      map->set_serf_index(new_pos, get_index());
       pos = new_pos;
       s.digging.substate = 3;
       counter += counter_from_animation[animation];
     } else if (s.digging.substate == 1) {
       /* 34CD6: Change height, head back to center */
-      int h = game->get_map()->get_height(pos);
+      int h = map->get_height(pos);
       h += (s.digging.h_index & 1) ? -1 : 1;
       Log::Verbose["serf"] << "substate 1: change height "
                            << ((s.digging.h_index & 1) ? "down." : "up.");
-      game->get_map()->set_height(pos, h);
+      map->set_height(pos, h);
 
       if (s.digging.dig_pos == 0) {
         s.digging.substate = 1;
@@ -1984,7 +1978,7 @@ Serf::handle_serf_digging_state() {
         int h = h_diff[s.digging.h_index] + s.digging.target_h;
         if (s.digging.dig_pos >= 0 && h >= 0 && h < 32) {
           if (s.digging.dig_pos == 0) {
-            int height = game->get_map()->get_height(pos);
+            int height = map->get_height(pos);
             if (height != h) {
               s.digging.dig_pos -= 1;
               continue;
@@ -1999,15 +1993,15 @@ Serf::handle_serf_digging_state() {
             counter += 383;
           } else {
             Direction dir = (Direction)(6-s.digging.dig_pos);
-            MapPos new_pos = game->get_map()->move(pos, dir);
-            int new_height = game->get_map()->get_height(new_pos);
+            MapPos new_pos = map->move(pos, dir);
+            int new_height = map->get_height(new_pos);
             if (new_height != h) {
               s.digging.dig_pos -= 1;
               continue;
             }
             Log::Verbose["serf"] << "  found at: " << s.digging.dig_pos << ".";
             /* Digging spot found */
-            if (game->get_map()->has_serf(new_pos)) {
+            if (map->has_serf(new_pos)) {
               /* Occupied by other serf, wait */
               s.digging.substate = 0;
               animation = 87 - s.digging.dig_pos;
@@ -2157,16 +2151,16 @@ Serf::handle_serf_move_resource_out_state() {
   tick = game->get_tick();
   counter = 0;
 
-  if ((game->get_map()->get_serf_index(pos) != index &&
-       game->get_map()->has_serf(pos)) ||
-      game->get_map()->has_serf(game->get_map()->move_down_right(pos))) {
+  PMap map = game->get_map();
+  if ((map->get_serf_index(pos) != index && map->has_serf(pos)) ||
+    map->has_serf(map->move_down_right(pos))) {
     /* Occupied by serf, wait */
     animation = 82;
     counter = 0;
     return;
   }
 
-  Flag *flag = game->get_flag_at_pos(game->get_map()->move_down_right(pos));
+  Flag *flag = game->get_flag_at_pos(map->move_down_right(pos));
   if (!flag->has_empty_slot()) {
     /* All resource slots at flag are occupied, wait */
     animation = 82;
@@ -2264,8 +2258,8 @@ Serf::handle_serf_ready_to_leave_inventory_state() {
   tick = game->get_tick();
   counter = 0;
 
-  if (game->get_map()->has_serf(pos) ||
-      game->get_map()->has_serf(game->get_map()->move_down_right(pos))) {
+  PMap map = game->get_map();
+  if (map->has_serf(pos) || map->has_serf(map->move_down_right(pos))) {
     animation = 82;
     counter = 0;
     return;
@@ -2275,7 +2269,7 @@ Serf::handle_serf_ready_to_leave_inventory_state() {
     Flag *flag = game->get_flag(s.ready_to_leave_inventory.dest);
     if (flag->has_building()) {
       Building *building = flag->get_building();
-      if (game->get_map()->has_serf(building->get_position())) {
+      if (map->has_serf(building->get_position())) {
         animation = 82;
         counter = 0;
         return;
@@ -2319,11 +2313,12 @@ Serf::drop_resource(Resource::Type res) {
    to find a flag nearby. */
 void
 Serf::find_inventory() {
-  if (game->get_map()->has_flag(pos)) {
-    Flag *flag = game->get_flag(game->get_map()->get_obj_index(pos));
+  PMap map = game->get_map();
+  if (map->has_flag(pos)) {
+    Flag *flag = game->get_flag(map->get_obj_index(pos));
     if ((flag->land_paths() != 0 ||
          (flag->has_inventory() && flag->accepts_serfs())) &&
-         game->get_map()->get_owner(pos) == get_player()) {
+          map->get_owner(pos) == get_player()) {
       set_state(StateWalking);
       s.walking.res = -2;
       s.walking.dest = 0;
@@ -2346,216 +2341,216 @@ Serf::handle_serf_free_walking_state_dest_reached() {
     return;
   }
 
+  PMap map = game->get_map();
   switch (get_type()) {
-  case TypeLumberjack:
-    if (s.free_walking.neg_dist1 == -128) {
-      if (s.free_walking.neg_dist2 > 0) {
-        drop_resource(Resource::TypeLumber);
-      }
+    case TypeLumberjack:
+      if (s.free_walking.neg_dist1 == -128) {
+        if (s.free_walking.neg_dist2 > 0) {
+          drop_resource(Resource::TypeLumber);
+        }
 
-      set_state(StateReadyToEnter);
-      s.ready_to_enter.field_B = 0;
-      counter = 0;
-    } else {
-      s.free_walking.dist1 = s.free_walking.neg_dist1;
-      s.free_walking.dist2 = s.free_walking.neg_dist2;
-      int obj = game->get_map()->get_obj(pos);
-      if (obj >= Map::ObjectTree0 &&
-          obj <= Map::ObjectPine7) {
-        set_state(StateLogging);
-        s.free_walking.neg_dist1 = 0;
-        s.free_walking.neg_dist2 = 0;
-        if (obj < 16) s.free_walking.neg_dist1 = -1;
-        animation = 116;
-        counter = counter_from_animation[animation];
+        set_state(StateReadyToEnter);
+        s.ready_to_enter.field_B = 0;
+        counter = 0;
       } else {
-        /* The expected tree is gone */
-        s.free_walking.neg_dist1 = -128;
-        s.free_walking.neg_dist2 = 0;
-        s.free_walking.flags = 0;
-        counter = 0;
-      }
-    }
-    break;
-  case TypeStonecutter:
-    if (s.free_walking.neg_dist1 == -128) {
-      if (s.free_walking.neg_dist2 > 0) {
-        drop_resource(Resource::TypeStone);
-      }
-
-      set_state(StateReadyToEnter);
-      s.ready_to_enter.field_B = 0;
-      counter = 0;
-    } else {
-      s.free_walking.dist1 = s.free_walking.neg_dist1;
-      s.free_walking.dist2 = s.free_walking.neg_dist2;
-
-      MapPos new_pos = game->get_map()->move_up_left(pos);
-      int obj = game->get_map()->get_obj(new_pos);
-      if (!game->get_map()->has_serf(new_pos) &&
-          obj >= Map::ObjectStone0 &&
-          obj <= Map::ObjectStone7) {
-        counter = 0;
-        start_walking(DirectionUpLeft, 32, 1);
-
-        set_state(StateStoneCutting);
-        s.free_walking.neg_dist2 = counter >> 2;
-        s.free_walking.neg_dist1 = 0;
-      } else {
-        /* The expected stone is gone or unavailable */
-        s.free_walking.neg_dist1 = -128;
-        s.free_walking.neg_dist2 = 0;
-        s.free_walking.flags = 0;
-        counter = 0;
-      }
-    }
-    break;
-  case TypeForester:
-    if (s.free_walking.neg_dist1 == -128) {
-      set_state(StateReadyToEnter);
-      s.ready_to_enter.field_B = 0;
-      counter = 0;
-    } else {
-      s.free_walking.dist1 = s.free_walking.neg_dist1;
-      s.free_walking.dist2 = s.free_walking.neg_dist2;
-      if (game->get_map()->get_obj(pos) == Map::ObjectNone) {
-        set_state(StatePlanting);
-        s.free_walking.neg_dist2 = 0;
-        animation = 121;
-        counter = counter_from_animation[animation];
-      } else {
-        /* The expected free space is no longer empty */
-        s.free_walking.neg_dist1 = -128;
-        s.free_walking.neg_dist2 = 0;
-        s.free_walking.flags = 0;
-        counter = 0;
-      }
-    }
-    break;
-  case TypeFisher:
-    if (s.free_walking.neg_dist1 == -128) {
-      if (s.free_walking.neg_dist2 > 0) {
-        drop_resource(Resource::TypeFish);
-      }
-
-      set_state(StateReadyToEnter);
-      s.ready_to_enter.field_B = 0;
-      counter = 0;
-    } else {
-      s.free_walking.dist1 = s.free_walking.neg_dist1;
-      s.free_walking.dist2 = s.free_walking.neg_dist2;
-
-      int a = -1;
-      PMap map = game->get_map();
-      if (map->paths(pos) == 0) {
-        if (map->type_down(pos) <= Map::TerrainWater3 &&
-            map->type_up(map->move_up_left(pos)) >= Map::TerrainGrass0) {
-          a = 132;
-        } else if (
-            map->type_down(map->move_left(pos)) <= Map::TerrainWater3 &&
-            map->type_up(map->move_up(pos)) >= Map::TerrainGrass0) {
-          a = 131;
+        s.free_walking.dist1 = s.free_walking.neg_dist1;
+        s.free_walking.dist2 = s.free_walking.neg_dist2;
+        int obj = map->get_obj(pos);
+        if (obj >= Map::ObjectTree0 &&
+            obj <= Map::ObjectPine7) {
+          set_state(StateLogging);
+          s.free_walking.neg_dist1 = 0;
+          s.free_walking.neg_dist2 = 0;
+          if (obj < 16) s.free_walking.neg_dist1 = -1;
+          animation = 116;
+          counter = counter_from_animation[animation];
+        } else {
+          /* The expected tree is gone */
+          s.free_walking.neg_dist1 = -128;
+          s.free_walking.neg_dist2 = 0;
+          s.free_walking.flags = 0;
+          counter = 0;
         }
       }
+      break;
+    case TypeStonecutter:
+      if (s.free_walking.neg_dist1 == -128) {
+        if (s.free_walking.neg_dist2 > 0) {
+          drop_resource(Resource::TypeStone);
+        }
 
-      if (a < 0) {
-        /* Cannot fish here after all. */
-        s.free_walking.neg_dist1 = -128;
-        s.free_walking.neg_dist2 = 0;
-        s.free_walking.flags = 0;
+        set_state(StateReadyToEnter);
+        s.ready_to_enter.field_B = 0;
         counter = 0;
       } else {
-        set_state(StateFishing);
-        s.free_walking.neg_dist1 = 0;
-        s.free_walking.neg_dist2 = 0;
-        s.free_walking.flags = 0;
-        animation = a;
-        counter = counter_from_animation[a];
-      }
-    }
-    break;
-  case TypeFarmer:
-    if (s.free_walking.neg_dist1 == -128) {
-      if (s.free_walking.neg_dist2 > 0) {
-        drop_resource(Resource::TypeWheat);
-      }
+        s.free_walking.dist1 = s.free_walking.neg_dist1;
+        s.free_walking.dist2 = s.free_walking.neg_dist2;
 
-      set_state(StateReadyToEnter);
-      s.ready_to_enter.field_B = 0;
-      counter = 0;
-    } else {
-      s.free_walking.dist1 = s.free_walking.neg_dist1;
-      s.free_walking.dist2 = s.free_walking.neg_dist2;
+        MapPos new_pos = map->move_up_left(pos);
+        int obj = map->get_obj(new_pos);
+        if (!map->has_serf(new_pos) &&
+            obj >= Map::ObjectStone0 &&
+            obj <= Map::ObjectStone7) {
+          counter = 0;
+          start_walking(DirectionUpLeft, 32, 1);
 
-      if (game->get_map()->get_obj(pos) == Map::ObjectSeeds5 ||
-          (game->get_map()->get_obj(pos) >= Map::ObjectField0 &&
-           game->get_map()->get_obj(pos) <= Map::ObjectField5)) {
-        /* Existing field. */
-        animation = 136;
-        s.free_walking.neg_dist1 = 1;
-        counter = counter_from_animation[animation];
-      } else if (game->get_map()->get_obj(pos) == Map::ObjectNone &&
-                 game->get_map()->paths(pos) == 0) {
-        /* Empty space. */
-        animation = 135;
-        s.free_walking.neg_dist1 = 0;
-        counter = counter_from_animation[animation];
-      } else {
-        /* Space not available after all. */
-        s.free_walking.neg_dist1 = -128;
-        s.free_walking.neg_dist2 = 0;
-        s.free_walking.flags = 0;
-        counter = 0;
-        break;
+          set_state(StateStoneCutting);
+          s.free_walking.neg_dist2 = counter >> 2;
+          s.free_walking.neg_dist1 = 0;
+        } else {
+          /* The expected stone is gone or unavailable */
+          s.free_walking.neg_dist1 = -128;
+          s.free_walking.neg_dist2 = 0;
+          s.free_walking.flags = 0;
+          counter = 0;
+        }
       }
-
-      set_state(StateFarming);
-      s.free_walking.neg_dist2 = 0;
-    }
-    break;
-  case TypeGeologist:
-    if (s.free_walking.neg_dist1 == -128) {
-      if (game->get_map()->get_obj(pos) == Map::ObjectFlag &&
-          game->get_map()->get_owner(pos) == get_player()) {
-        set_state(StateLookingForGeoSpot);
+      break;
+    case TypeForester:
+      if (s.free_walking.neg_dist1 == -128) {
+        set_state(StateReadyToEnter);
+        s.ready_to_enter.field_B = 0;
         counter = 0;
       } else {
-        set_state(StateLost);
-        s.lost.field_B = 0;
-        counter = 0;
+        s.free_walking.dist1 = s.free_walking.neg_dist1;
+        s.free_walking.dist2 = s.free_walking.neg_dist2;
+        if (map->get_obj(pos) == Map::ObjectNone) {
+          set_state(StatePlanting);
+          s.free_walking.neg_dist2 = 0;
+          animation = 121;
+          counter = counter_from_animation[animation];
+        } else {
+          /* The expected free space is no longer empty */
+          s.free_walking.neg_dist1 = -128;
+          s.free_walking.neg_dist2 = 0;
+          s.free_walking.flags = 0;
+          counter = 0;
+        }
       }
-    } else {
-      s.free_walking.dist1 = s.free_walking.neg_dist1;
-      s.free_walking.dist2 = s.free_walking.neg_dist2;
-      if (game->get_map()->get_obj(pos) == Map::ObjectNone) {
-        set_state(StateSamplingGeoSpot);
-        s.free_walking.neg_dist1 = 0;
-        animation = 141;
-        counter = counter_from_animation[animation];
+      break;
+    case TypeFisher:
+      if (s.free_walking.neg_dist1 == -128) {
+        if (s.free_walking.neg_dist2 > 0) {
+          drop_resource(Resource::TypeFish);
+        }
+
+        set_state(StateReadyToEnter);
+        s.ready_to_enter.field_B = 0;
+        counter = 0;
       } else {
-        /* Destination is not a free space after all. */
-        s.free_walking.neg_dist1 = -128;
+        s.free_walking.dist1 = s.free_walking.neg_dist1;
+        s.free_walking.dist2 = s.free_walking.neg_dist2;
+
+        int a = -1;
+        if (map->paths(pos) == 0) {
+          if (map->type_down(pos) <= Map::TerrainWater3 &&
+              map->type_up(map->move_up_left(pos)) >= Map::TerrainGrass0) {
+            a = 132;
+          } else if (
+              map->type_down(map->move_left(pos)) <= Map::TerrainWater3 &&
+              map->type_up(map->move_up(pos)) >= Map::TerrainGrass0) {
+            a = 131;
+          }
+        }
+
+        if (a < 0) {
+          /* Cannot fish here after all. */
+          s.free_walking.neg_dist1 = -128;
+          s.free_walking.neg_dist2 = 0;
+          s.free_walking.flags = 0;
+          counter = 0;
+        } else {
+          set_state(StateFishing);
+          s.free_walking.neg_dist1 = 0;
+          s.free_walking.neg_dist2 = 0;
+          s.free_walking.flags = 0;
+          animation = a;
+          counter = counter_from_animation[a];
+        }
+      }
+      break;
+    case TypeFarmer:
+      if (s.free_walking.neg_dist1 == -128) {
+        if (s.free_walking.neg_dist2 > 0) {
+          drop_resource(Resource::TypeWheat);
+        }
+
+        set_state(StateReadyToEnter);
+        s.ready_to_enter.field_B = 0;
+        counter = 0;
+      } else {
+        s.free_walking.dist1 = s.free_walking.neg_dist1;
+        s.free_walking.dist2 = s.free_walking.neg_dist2;
+
+        if (map->get_obj(pos) == Map::ObjectSeeds5 ||
+            (map->get_obj(pos) >= Map::ObjectField0 &&
+             map->get_obj(pos) <= Map::ObjectField5)) {
+          /* Existing field. */
+          animation = 136;
+          s.free_walking.neg_dist1 = 1;
+          counter = counter_from_animation[animation];
+        } else if (map->get_obj(pos) == Map::ObjectNone &&
+                   map->paths(pos) == 0) {
+          /* Empty space. */
+          animation = 135;
+          s.free_walking.neg_dist1 = 0;
+          counter = counter_from_animation[animation];
+        } else {
+          /* Space not available after all. */
+          s.free_walking.neg_dist1 = -128;
+          s.free_walking.neg_dist2 = 0;
+          s.free_walking.flags = 0;
+          counter = 0;
+          break;
+        }
+
+        set_state(StateFarming);
         s.free_walking.neg_dist2 = 0;
-        s.free_walking.flags = 0;
+      }
+      break;
+    case TypeGeologist:
+      if (s.free_walking.neg_dist1 == -128) {
+        if (map->get_obj(pos) == Map::ObjectFlag &&
+            map->get_owner(pos) == get_player()) {
+          set_state(StateLookingForGeoSpot);
+          counter = 0;
+        } else {
+          set_state(StateLost);
+          s.lost.field_B = 0;
+          counter = 0;
+        }
+      } else {
+        s.free_walking.dist1 = s.free_walking.neg_dist1;
+        s.free_walking.dist2 = s.free_walking.neg_dist2;
+        if (map->get_obj(pos) == Map::ObjectNone) {
+          set_state(StateSamplingGeoSpot);
+          s.free_walking.neg_dist1 = 0;
+          animation = 141;
+          counter = counter_from_animation[animation];
+        } else {
+          /* Destination is not a free space after all. */
+          s.free_walking.neg_dist1 = -128;
+          s.free_walking.neg_dist2 = 0;
+          s.free_walking.flags = 0;
+          counter = 0;
+        }
+      }
+      break;
+    case TypeKnight0:
+    case TypeKnight1:
+    case TypeKnight2:
+    case TypeKnight3:
+    case TypeKnight4:
+      if (s.free_walking.neg_dist1 == -128) {
+        find_inventory();
+      } else {
+        set_state(StateKnightOccupyEnemyBuilding);
         counter = 0;
       }
-    }
-    break;
-  case TypeKnight0:
-  case TypeKnight1:
-  case TypeKnight2:
-  case TypeKnight3:
-  case TypeKnight4:
-    if (s.free_walking.neg_dist1 == -128) {
+      break;
+    default:
       find_inventory();
-    } else {
-      set_state(StateKnightOccupyEnemyBuilding);
-      counter = 0;
-    }
-    break;
-  default:
-    find_inventory();
-    break;
+      break;
   }
 }
 
@@ -2589,9 +2584,10 @@ Serf::handle_serf_free_walking_switch_with_other() {
   MapPos new_pos = 0;
   Direction dir = DirectionNone;
   Serf *other_serf = NULL;
+  PMap map = game->get_map();
   for (Direction i : cycle_directions_cw()) {
-    new_pos = game->get_map()->move(pos, i);
-    if (game->get_map()->has_serf(new_pos)) {
+    new_pos = map->move(pos, i);
+    if (map->has_serf(new_pos)) {
       other_serf = game->get_serf_at_pos(new_pos);
       Direction other_dir;
 
@@ -2623,15 +2619,14 @@ Serf::handle_serf_free_walking_switch_with_other() {
     }
 
     /* Switch with other serf. */
-    game->get_map()->set_serf_index(pos, other_serf->index);
-    game->get_map()->set_serf_index(new_pos, index);
+    map->set_serf_index(pos, other_serf->index);
+    map->set_serf_index(new_pos, index);
 
-    other_serf->animation = get_walking_animation(
-                              game->get_map()->get_height(pos) -
-                              game->get_map()->get_height(other_serf->pos),
-                              reverse_direction((Direction)dir), 1);
-    animation = get_walking_animation(game->get_map()->get_height(new_pos) -
-                                      game->get_map()->get_height(pos),
+    other_serf->animation = get_walking_animation(map->get_height(pos) -
+                                                  map->get_height(other_serf->pos),
+                                                  reverse_direction((Direction)dir), 1);
+    animation = get_walking_animation(map->get_height(new_pos) -
+                                      map->get_height(pos),
                                       (Direction)dir, 1);
 
     other_serf->counter = counter_from_animation[other_serf->animation];
@@ -2646,8 +2641,8 @@ Serf::handle_serf_free_walking_switch_with_other() {
 }
 
 bool
-Serf::can_pass_map_pos(MapPos pos) {
-  return Map::map_space_from_obj[game->get_map()->get_obj(pos)] <=
+Serf::can_pass_map_pos(MapPos test_pos) {
+  return Map::map_space_from_obj[game->get_map()->get_obj(test_pos)] <=
            Map::SpaceSemipassable;
 }
 
@@ -2740,11 +2735,12 @@ Serf::handle_free_walking_follow_edge() {
   const Direction *a0 = &dir_arr[6*dir_index];
   Direction i0 = DirectionNone;
   Direction dir = DirectionNone;
+  PMap map = game->get_map();
   for (Direction i : cycle_directions_cw()) {
-    MapPos new_pos = game->get_map()->move(pos, a0[i]);
-    if (((water && game->get_map()->get_obj(new_pos) == 0) ||
-         (!water && !game->get_map()->is_in_water(new_pos) &&
-          can_pass_map_pos(new_pos))) && !game->get_map()->has_serf(new_pos)) {
+    MapPos new_pos = map->move(pos, a0[i]);
+    if (((water && map->get_obj(new_pos) == 0) ||
+         (!water && !map->is_in_water(new_pos) &&
+          can_pass_map_pos(new_pos))) && !map->has_serf(new_pos)) {
       dir = a0[i];
       i0 = i;
       break;
@@ -2892,11 +2888,12 @@ Serf::handle_free_walking_common() {
   /* Try to move directly in the preferred direction */
   const Direction *a0 = &dir_forward[6*dir_index];
   Direction dir = (Direction)a0[0];
-  MapPos new_pos = game->get_map()->move(pos, dir);
-  if (((water && game->get_map()->get_obj(new_pos) == 0) ||
-       (!water && !game->get_map()->is_in_water(new_pos) &&
+  PMap map = game->get_map();
+  MapPos new_pos = map->move(pos, dir);
+  if (((water && map->get_obj(new_pos) == 0) ||
+       (!water && !map->is_in_water(new_pos) &&
         can_pass_map_pos(new_pos))) &&
-      !game->get_map()->has_serf(new_pos)) {
+      !map->has_serf(new_pos)) {
     handle_serf_free_walking_switch_on_dir(dir);
     return;
   }
@@ -2907,7 +2904,7 @@ Serf::handle_free_walking_common() {
     /* Convert offset in two dimensions to
        direction variable. */
     Direction d = dir_from_offset[(d1+1) + 3*(d2+1)];
-    MapPos new_pos = game->get_map()->move(pos, d);
+    MapPos new_pos = map->move(pos, d);
 
     if (!can_pass_map_pos(new_pos)) {
       if (state != StateKnightFreeWalking && s.free_walking.neg_dist1 != -128) {
@@ -2924,8 +2921,7 @@ Serf::handle_free_walking_common() {
       return;
     }
 
-    if (state == StateKnightFreeWalking && s.free_walking.neg_dist1 != -128 &&
-        game->get_map()->has_serf(new_pos)) {
+    if (state == StateKnightFreeWalking && s.free_walking.neg_dist1 != -128 && map->has_serf(new_pos)) {
       Serf *other_serf = game->get_serf_at_pos(new_pos);
       Direction other_dir;
 
@@ -2934,20 +2930,19 @@ Serf::handle_free_walking_common() {
           other_serf->switch_waiting(reverse_direction(d))) {
         /* Do the switch */
         other_serf->pos = pos;
-        game->get_map()->set_serf_index(other_serf->pos,
+        map->set_serf_index(other_serf->pos,
                                         other_serf->get_index());
         other_serf->animation =
-          get_walking_animation(game->get_map()->get_height(other_serf->pos) -
-                                game->get_map()->get_height(new_pos),
+          get_walking_animation(map->get_height(other_serf->pos) -
+            map->get_height(new_pos),
                                 reverse_direction(d), 1);
         other_serf->counter = counter_from_animation[other_serf->animation];
 
-        animation = get_walking_animation(game->get_map()->get_height(new_pos) -
-                                        game->get_map()->get_height(pos), d, 1);
+        animation = get_walking_animation(map->get_height(new_pos) - map->get_height(pos), d, 1);
         counter = counter_from_animation[animation];
 
         pos = new_pos;
-        game->get_map()->set_serf_index(pos, index);
+        map->set_serf_index(pos, index);
         return;
       }
 
@@ -2957,7 +2952,7 @@ Serf::handle_free_walking_common() {
         if (s.free_walking.neg_dist2 >= 10) {
           s.free_walking.neg_dist2 = 0;
           if (other_serf->state == StateTransporting) {
-            if (game->get_map()->has_flag(new_pos)) {
+            if (map->has_flag(new_pos)) {
               if (other_serf->s.walking.wait_counter != -1) {
 //                int dir = other_serf->s.walking.dir;
 //                if (dir < 0) dir += 6;
@@ -2982,10 +2977,10 @@ Serf::handle_free_walking_common() {
   Direction i0 = DirectionNone;
   for (int i = 0; i < 5; i++) {
     dir = a0[1+i];
-    MapPos new_pos = game->get_map()->move(pos, dir);
-    if (((water && game->get_map()->get_obj(new_pos) == 0) ||
-         (!water && !game->get_map()->is_in_water(new_pos) &&
-          can_pass_map_pos(new_pos))) && !game->get_map()->has_serf(new_pos)) {
+    MapPos new_pos = map->move(pos, dir);
+    if (((water && map->get_obj(new_pos) == 0) ||
+         (!water && !map->is_in_water(new_pos) &&
+          can_pass_map_pos(new_pos))) && !map->has_serf(new_pos)) {
       i0 = (Direction)i;
       break;
     }
@@ -3056,15 +3051,15 @@ Serf::handle_serf_planning_logging_state() {
   counter -= delta;
 
   while (counter < 0) {
-    int index = (game->random_int() & 0x7f) + 1;
-    MapPos pos_ = game->get_map()->pos_add_spirally(pos, index);
+    int dist = (game->random_int() & 0x7f) + 1;
+    MapPos pos_ = game->get_map()->pos_add_spirally(pos, dist);
     int obj = game->get_map()->get_obj(pos_);
     if (obj >= Map::ObjectTree0 && obj <= Map::ObjectPine7) {
       set_state(StateReadyToLeave);
-      s.leaving_building.field_B = Map::get_spiral_pattern()[2*index] - 1;
-      s.leaving_building.dest = Map::get_spiral_pattern()[2*index+1] - 1;
-      s.leaving_building.dest2 = -Map::get_spiral_pattern()[2*index] + 1;
-      s.leaving_building.dir = -Map::get_spiral_pattern()[2*index+1] + 1;
+      s.leaving_building.field_B = Map::get_spiral_pattern()[2 * dist] - 1;
+      s.leaving_building.dest = Map::get_spiral_pattern()[2 * dist + 1] - 1;
+      s.leaving_building.dest2 = -Map::get_spiral_pattern()[2 * dist] + 1;
+      s.leaving_building.dir = -Map::get_spiral_pattern()[2 * dist + 1] + 1;
       s.leaving_building.next_state = StateFreeWalking;
       Log::Verbose["serf"] << "planning logging: tree found, dist "
                            << s.leaving_building.field_B << ", "
@@ -3084,8 +3079,8 @@ Serf::handle_serf_planning_planting_state() {
 
   PMap map = game->get_map();
   while (counter < 0) {
-    int index = (game->random_int() & 0x7f) + 1;
-    MapPos pos_ = map->pos_add_spirally(pos, index);
+    int dist = (game->random_int() & 0x7f) + 1;
+    MapPos pos_ = map->pos_add_spirally(pos, dist);
     if (map->paths(pos_) == 0 &&
         map->get_obj(pos_) == Map::ObjectNone &&
         map->type_up(pos_) == Map::TerrainGrass1 &&
@@ -3093,10 +3088,10 @@ Serf::handle_serf_planning_planting_state() {
         map->type_up(map->move_up_left(pos_)) == Map::TerrainGrass1 &&
         map->type_down(map->move_up_left(pos_)) == Map::TerrainGrass1) {
       set_state(StateReadyToLeave);
-      s.leaving_building.field_B = Map::get_spiral_pattern()[2*index] - 1;
-      s.leaving_building.dest = Map::get_spiral_pattern()[2*index+1] - 1;
-      s.leaving_building.dest2 = -Map::get_spiral_pattern()[2*index] + 1;
-      s.leaving_building.dir = -Map::get_spiral_pattern()[2*index+1] + 1;
+      s.leaving_building.field_B = Map::get_spiral_pattern()[2 * dist] - 1;
+      s.leaving_building.dest = Map::get_spiral_pattern()[2 * dist + 1] - 1;
+      s.leaving_building.dest2 = -Map::get_spiral_pattern()[2 * dist] + 1;
+      s.leaving_building.dir = -Map::get_spiral_pattern()[2 * dist + 1] + 1;
       s.leaving_building.next_state = StateFreeWalking;
       Log::Verbose["serf"] << "planning planting: free space found, dist "
                            << s.leaving_building.field_B << ", "
@@ -3114,6 +3109,7 @@ Serf::handle_serf_planting_state() {
   tick = game->get_tick();
   counter -= delta;
 
+  PMap map = game->get_map();
   while (counter < 0) {
     if (s.free_walking.neg_dist2 != 0) {
       set_state(StateFreeWalking);
@@ -3129,9 +3125,8 @@ Serf::handle_serf_planting_state() {
     Map::Object new_obj = (Map::Object)(Map::ObjectNewPine +
                                     (game->random_int() & 1));
 
-    if (game->get_map()->paths(pos) == 0 &&
-        game->get_map()->get_obj(pos) == Map::ObjectNone) {
-      game->get_map()->set_object(pos, new_obj, -1);
+    if (map->paths(pos) == 0 && map->get_obj(pos) == Map::ObjectNone) {
+      map->set_object(pos, new_obj, -1);
     }
 
     s.free_walking.neg_dist2 = -s.free_walking.neg_dist2 - 1;
@@ -3145,17 +3140,18 @@ Serf::handle_serf_planning_stonecutting() {
   tick = game->get_tick();
   counter -= delta;
 
+  PMap map = game->get_map();
   while (counter < 0) {
-    int index = (game->random_int() & 0x7f) + 1;
-    MapPos pos_ = game->get_map()->pos_add_spirally(pos, index);
-    int obj = game->get_map()->get_obj(game->get_map()->move_up_left(pos_));
+    int dist = (game->random_int() & 0x7f) + 1;
+    MapPos pos_ = map->pos_add_spirally(pos, dist);
+    int obj = map->get_obj(map->move_up_left(pos_));
     if (obj >= Map::ObjectStone0 && obj <= Map::ObjectStone7 &&
         can_pass_map_pos(pos_)) {
       set_state(StateReadyToLeave);
-      s.leaving_building.field_B = Map::get_spiral_pattern()[2*index] - 1;
-      s.leaving_building.dest = Map::get_spiral_pattern()[2*index+1] - 1;
-      s.leaving_building.dest2 = -Map::get_spiral_pattern()[2*index] + 1;
-      s.leaving_building.dir = -Map::get_spiral_pattern()[2*index+1] + 1;
+      s.leaving_building.field_B = Map::get_spiral_pattern()[2 * dist] - 1;
+      s.leaving_building.dest = Map::get_spiral_pattern()[2 * dist + 1] - 1;
+      s.leaving_building.dest2 = -Map::get_spiral_pattern()[2 * dist] + 1;
+      s.leaving_building.dir = -Map::get_spiral_pattern()[2 * dist + 1] + 1;
       s.leaving_building.next_state = StateStoneCutterFreeWalking;
       Log::Verbose["serf"] << "planning stonecutting: stone found, dist "
                            << s.leaving_building.field_B << ", "
@@ -3173,11 +3169,11 @@ Serf::handle_stonecutter_free_walking() {
   tick = game->get_tick();
   counter -= delta;
 
+  PMap map = game->get_map();
   while (counter < 0) {
-    MapPos pos_ = game->get_map()->move_up_left(pos);
-    if (!game->get_map()->has_serf(pos) &&
-        game->get_map()->get_obj(pos_) >= Map::ObjectStone0 &&
-        game->get_map()->get_obj(pos_) <= Map::ObjectStone7) {
+    MapPos pos_ = map->move_up_left(pos);
+    if (!map->has_serf(pos) && map->get_obj(pos_) >= Map::ObjectStone0 &&
+        map->get_obj(pos_) <= Map::ObjectStone7) {
       s.free_walking.neg_dist1 += s.free_walking.dist1;
       s.free_walking.neg_dist2 += s.free_walking.dist2;
       s.free_walking.dist1 = 0;
@@ -3213,18 +3209,19 @@ Serf::handle_serf_stonecutting_state() {
       return;
     }
 
-    if (game->get_map()->has_serf(game->get_map()->move_down_right(pos))) {
+    PMap map = game->get_map();
+    if (map->has_serf(map->move_down_right(pos))) {
       counter = 0;
       return;
     }
 
     /* Decrement stone quantity or remove entirely if this
        was the last piece. */
-    int obj = game->get_map()->get_obj(pos);
+    int obj = map->get_obj(pos);
     if (obj <= Map::ObjectStone6) {
-      game->get_map()->set_object(pos, (Map::Object)(obj + 1), -1);
+      map->set_object(pos, (Map::Object)(obj + 1), -1);
     } else {
-      game->get_map()->set_object(pos, Map::ObjectNone, -1);
+      map->set_object(pos, Map::ObjectNone, -1);
     }
 
     counter = 0;
@@ -3272,18 +3269,19 @@ Serf::handle_serf_lost_state() {
   tick = game->get_tick();
   counter -= delta;
 
+  PMap map = game->get_map();
   while (counter < 0) {
     /* Try to find a suitable destination. */
     for (int i = 0; i < 258; i++) {
-      int index = (s.lost.field_B == 0) ? 1+i : 258-i;
-      MapPos dest = game->get_map()->pos_add_spirally(pos, index);
+      int dist = (s.lost.field_B == 0) ? 1+i : 258-i;
+      MapPos dest = map->pos_add_spirally(pos, dist);
 
-      if (game->get_map()->has_flag(dest)) {
-        Flag *flag = game->get_flag(game->get_map()->get_obj_index(dest));
+      if (map->has_flag(dest)) {
+        Flag *flag = game->get_flag(map->get_obj_index(dest));
         if ((flag->land_paths() != 0 ||
              (flag->has_inventory() && flag->accepts_serfs())) &&
-            game->get_map()->has_owner(dest) &&
-            game->get_map()->get_owner(dest) == get_player()) {
+              map->has_owner(dest) &&
+              map->get_owner(dest) == get_player()) {
           if (get_type() >= TypeKnight0 &&
               get_type() <= TypeKnight4) {
             set_state(StateKnightFreeWalking);
@@ -3291,8 +3289,8 @@ Serf::handle_serf_lost_state() {
             set_state(StateFreeWalking);
           }
 
-          s.free_walking.dist1 = Map::get_spiral_pattern()[2*index];
-          s.free_walking.dist2 = Map::get_spiral_pattern()[2*index+1];
+          s.free_walking.dist1 = Map::get_spiral_pattern()[2 * dist];
+          s.free_walking.dist2 = Map::get_spiral_pattern()[2 * dist +1];
           s.free_walking.neg_dist1 = -128;
           s.free_walking.neg_dist2 = -1;
           s.free_walking.flags = 0;
@@ -3322,14 +3320,12 @@ Serf::handle_serf_lost_state() {
       int col = ((r & (size-1)) - (size/2));
       int row = (((r >> 8) & (size-1)) - (size/2));
 
-      MapPos dest = game->get_map()->pos_add(pos, col, row);
-      if ((game->get_map()->get_obj(dest) == 0 &&
-           game->get_map()->get_height(dest) > 0) ||
-          (game->get_map()->has_flag(dest) &&
-           (game->get_map()->has_owner(dest) &&
-            game->get_map()->get_owner(dest) == get_player()))) {
-        if (get_type() >= TypeKnight0 &&
-            get_type() <= TypeKnight4) {
+      MapPos dest = map->pos_add(pos, col, row);
+      if ((map->get_obj(dest) == 0 && map->get_height(dest) > 0) ||
+          (map->has_flag(dest) &&
+           (map->has_owner(dest) &&
+             map->get_owner(dest) == get_player()))) {
+        if (get_type() >= TypeKnight0 && get_type() <= TypeKnight4) {
           set_state(StateKnightFreeWalking);
         } else {
           set_state(StateFreeWalking);
@@ -3353,16 +3349,17 @@ Serf::handle_lost_sailor() {
   tick = game->get_tick();
   counter -= delta;
 
+  PMap map = game->get_map();
   while (counter < 0) {
     /* Try to find a suitable destination. */
     for (int i = 0; i < 258; i++) {
-      MapPos dest = game->get_map()->pos_add_spirally(pos, i);
+      MapPos dest = map->pos_add_spirally(pos, i);
 
-      if (game->get_map()->has_flag(dest)) {
-        Flag *flag = game->get_flag(game->get_map()->get_obj_index(dest));
+      if (map->has_flag(dest)) {
+        Flag *flag = game->get_flag(map->get_obj_index(dest));
         if (flag->land_paths() != 0 &&
-            game->get_map()->has_owner(dest) &&
-            game->get_map()->get_owner(dest) == get_player()) {
+            map->has_owner(dest) &&
+            map->get_owner(dest) == get_player()) {
           set_state(StateFreeSailing);
 
           s.free_walking.dist1 = Map::get_spiral_pattern()[2*i];
@@ -3382,8 +3379,8 @@ Serf::handle_lost_sailor() {
       int col = (r & 0x1f) - 16;
       int row = ((r >> 8) & 0x1f) - 16;
 
-      MapPos dest = game->get_map()->pos_add(pos, col, row);
-      if (game->get_map()->get_obj(dest) == 0) {
+      MapPos dest = map->pos_add(pos, col, row);
+      if (map->get_obj(dest) == 0) {
         set_state(StateFreeSailing);
 
         s.free_walking.dist1 = col;
@@ -3434,119 +3431,118 @@ Serf::handle_serf_mining_state() {
   tick = game->get_tick();
   counter -= delta;
 
+  PMap map = game->get_map();
   while (counter < 0) {
-    Building *building =
-                        game->get_building(game->get_map()->get_obj_index(pos));
+    Building *building = game->get_building(map->get_obj_index(pos));
 
     Log::Verbose["serf"] << "mining substate: " << s.mining.substate << ".";
     switch (s.mining.substate) {
-    case 0: {
-      /* There is a small chance that the miner will
-         not require food and skip to state 2. */
-      int r = game->random_int();
-      if ((r & 7) == 0) {
-        s.mining.substate = 2;
-      } else {
-        s.mining.substate = 1;
+      case 0: {
+        /* There is a small chance that the miner will
+           not require food and skip to state 2. */
+        int r = game->random_int();
+        if ((r & 7) == 0) {
+          s.mining.substate = 2;
+        } else {
+          s.mining.substate = 1;
+        }
+        counter += 100 + (r & 0x1ff);
+        break;
       }
-      counter += 100 + (r & 0x1ff);
-    }
-    break;
-    case 1:
-      if (building->use_resource_in_stock(0)) {
-        /* Eat the food. */
+      case 1:
+        if (building->use_resource_in_stock(0)) {
+          /* Eat the food. */
+          s.mining.substate = 3;
+          map->set_serf_index(pos, index);
+          animation = 125;
+          counter = counter_from_animation[animation];
+        } else {
+          map->set_serf_index(pos, index);
+          animation = 98;
+          counter += 256;
+          if (counter < 0) counter = 255;
+        }
+        break;
+      case 2:
         s.mining.substate = 3;
-        game->get_map()->set_serf_index(pos, index);
+        map->set_serf_index(pos, index);
         animation = 125;
         counter = counter_from_animation[animation];
-      } else {
-        game->get_map()->set_serf_index(pos, index);
-        animation = 98;
-        counter += 256;
-        if (counter < 0) counter = 255;
+        break;
+      case 3:
+        s.mining.substate = 4;
+        building->stop_activity();
+        animation = 126;
+        counter = 304; /* TODO counter_from_animation[126] == 303 */
+        break;
+      case 4: {
+        building->start_playing_sfx();
+        map->set_serf_index(pos, 0);
+        /* fall through */
       }
-      break;
-    case 2:
-      s.mining.substate = 3;
-      game->get_map()->set_serf_index(pos, index);
-      animation = 125;
-      counter = counter_from_animation[animation];
-      break;
-    case 3:
-      s.mining.substate = 4;
-      building->stop_activity();
-      animation = 126;
-      counter = 304; /* TODO counter_from_animation[126] == 303 */
-      break;
-    case 4: {
-      building->start_playing_sfx();
-      game->get_map()->set_serf_index(pos, 0);
-      /* fall through */
-    }
-    case 5:
-    case 6:
-    case 7: {
-      s.mining.substate += 1;
+      case 5:
+      case 6:
+      case 7: {
+        s.mining.substate += 1;
 
-      /* Look for resource in ground. */
-      MapPos dest = game->get_map()->pos_add_spirally(pos,
-                                  (game->random_int() >> 2) & 0x1f);
-      if ((game->get_map()->get_obj(dest) == Map::ObjectNone ||
-           game->get_map()->get_obj(dest) > Map::ObjectCastle) &&
-          game->get_map()->get_res_type(dest) == s.mining.deposit &&
-          game->get_map()->get_res_amount(dest) > 0) {
-        /* Decrement resource count in ground. */
-        game->get_map()->remove_ground_deposit(dest, 1);
+        /* Look for resource in ground. */
+        MapPos dest = map->pos_add_spirally(pos, (game->random_int() >> 2) & 0x1f);
+        if ((map->get_obj(dest) == Map::ObjectNone ||
+             map->get_obj(dest) > Map::ObjectCastle) &&
+            map->get_res_type(dest) == s.mining.deposit &&
+            map->get_res_amount(dest) > 0) {
+          /* Decrement resource count in ground. */
+          map->remove_ground_deposit(dest, 1);
 
-        /* Hand resource to miner. */
-        const Resource::Type res_from_mine_type[] = {
-          Resource::TypeGoldOre, Resource::TypeIronOre,
-          Resource::TypeCoal, Resource::TypeStone
-        };
+          /* Hand resource to miner. */
+          const Resource::Type res_from_mine_type[] = {
+            Resource::TypeGoldOre, Resource::TypeIronOre,
+            Resource::TypeCoal, Resource::TypeStone
+          };
 
-        s.mining.res = res_from_mine_type[s.mining.deposit-1] + 1;
-        s.mining.substate = 8;
+          s.mining.res = res_from_mine_type[s.mining.deposit-1] + 1;
+          s.mining.substate = 8;
+        }
+
+        counter += 1000;
+        break;
       }
+      case 8:
+        map->set_serf_index(pos, index);
+        s.mining.substate = 9;
+        building->stop_playing_sfx();
+        animation = 127;
+        counter = counter_from_animation[animation];
+        break;
+      case 9:
+        s.mining.substate = 10;
+        building->increase_mining(s.mining.res);
+        animation = 128;
+        counter = 384; /* TODO counter_from_animation[128] == 383 */
+        break;
+      case 10:
+        map->set_serf_index(pos, 0);
+        if (s.mining.res == 0) {
+          s.mining.substate = 0;
+          counter = 0;
+        } else {
+          unsigned int res = s.mining.res;
+          map->set_serf_index(pos, 0);
 
-      counter += 1000;
-      break;
-    }
-    case 8:
-      game->get_map()->set_serf_index(pos, index);
-      s.mining.substate = 9;
-      building->stop_playing_sfx();
-      animation = 127;
-      counter = counter_from_animation[animation];
-      break;
-    case 9:
-      s.mining.substate = 10;
-      building->increase_mining(s.mining.res);
-      animation = 128;
-      counter = 384; /* TODO counter_from_animation[128] == 383 */
-      break;
-    case 10:
-      game->get_map()->set_serf_index(pos, 0);
-      if (s.mining.res == 0) {
-        s.mining.substate = 0;
-        counter = 0;
-      } else {
-        unsigned int res = s.mining.res;
-        game->get_map()->set_serf_index(pos, 0);
+          set_state(StateMoveResourceOut);
+          s.move_resource_out.res = res;
+          s.move_resource_out.res_dest = 0;
+          s.move_resource_out.next_state = StateDropResourceOut;
 
-        set_state(StateMoveResourceOut);
-        s.move_resource_out.res = res;
-        s.move_resource_out.res_dest = 0;
-        s.move_resource_out.next_state = StateDropResourceOut;
-
-        /* Update resource stats. */
-        Player *player = game->get_player(get_player());
-        player->increase_res_count(res-1);
-        return;
-      }
-      break;
-    default:
-      NOT_REACHED();
-      break;
+          /* Update resource stats. */
+          Player *player = game->get_player(get_player());
+          player->increase_res_count(res-1);
+          return;
+        }
+        break;
+      default:
+        NOT_REACHED();
+        break;
     }
   }
 }
@@ -3615,8 +3611,8 @@ Serf::handle_serf_planning_fishing_state() {
 
   PMap map = game->get_map();
   while (counter < 0) {
-    int index = ((game->random_int() >> 2) & 0x3f) + 1;
-    MapPos dest = map->pos_add_spirally(pos, index);
+    int dist = ((game->random_int() >> 2) & 0x3f) + 1;
+    MapPos dest = map->pos_add_spirally(pos, dist);
 
     if (map->get_obj(dest) == Map::ObjectNone &&
         map->paths(dest) == 0 &&
@@ -3625,10 +3621,10 @@ Serf::handle_serf_planning_fishing_state() {
          (map->type_down(map->move_left(dest)) <= Map::TerrainWater3 &&
           map->type_up(map->move_up(dest)) >= Map::TerrainGrass0))) {
       set_state(StateReadyToLeave);
-      s.leaving_building.field_B = Map::get_spiral_pattern()[2*index] - 1;
-      s.leaving_building.dest = Map::get_spiral_pattern()[2*index+1] - 1;
-      s.leaving_building.dest2 = -Map::get_spiral_pattern()[2*index] + 1;
-      s.leaving_building.dir = -Map::get_spiral_pattern()[2*index+1] + 1;
+      s.leaving_building.field_B = Map::get_spiral_pattern()[2 * dist] - 1;
+      s.leaving_building.dest = Map::get_spiral_pattern()[2 * dist + 1] - 1;
+      s.leaving_building.dest2 = -Map::get_spiral_pattern()[2 * dist] + 1;
+      s.leaving_building.dir = -Map::get_spiral_pattern()[2 * dist +1] + 1;
       s.leaving_building.next_state = StateFreeWalking;
       Log::Verbose["serf"] << "planning fishing: lake found, dist "
                            << s.leaving_building.field_B << ","
@@ -3664,25 +3660,26 @@ Serf::handle_serf_fishing_state() {
       continue;
     }
 
+    PMap map = game->get_map();
     Direction dir = DirectionNone;
     if (animation == 131) {
-      if (game->get_map()->is_in_water(game->get_map()->move_left(pos))) {
+      if (map->is_in_water(map->move_left(pos))) {
         dir = DirectionLeft;
       } else {
         dir = DirectionDown;
       }
     } else {
-      if (game->get_map()->is_in_water(game->get_map()->move_right(pos))) {
+      if (map->is_in_water(map->move_right(pos))) {
         dir = DirectionRight;
       } else {
         dir = DirectionDownRight;
       }
     }
 
-    int res = game->get_map()->get_res_fish(game->get_map()->move(pos, dir));
+    int res = map->get_res_fish(map->move(pos, dir));
     if (res > 0 && (game->random_int() & 0x3f) + 4 < res) {
       /* Caught a fish. */
-      game->get_map()->remove_fish(game->get_map()->move(pos, dir), 1);
+      map->remove_fish(map->move(pos, dir), 1);
       s.free_walking.neg_dist2 = 1 + Resource::TypeFish;
     }
 
@@ -3700,8 +3697,8 @@ Serf::handle_serf_planning_farming_state() {
 
   PMap map = game->get_map();
   while (counter < 0) {
-    int index = ((game->random_int() >> 2) & 0x1f) + 7;
-    MapPos dest = map->pos_add_spirally(pos, index);
+    int dist = ((game->random_int() >> 2) & 0x1f) + 7;
+    MapPos dest = map->pos_add_spirally(pos, dist);
 
     /* If destination doesn't have an object it must be
        of the correct type and the surrounding spaces
@@ -3731,10 +3728,10 @@ Serf::handle_serf_planning_farming_state() {
         (map->get_obj(dest) >= Map::ObjectField0 &&
          map->get_obj(dest) <= Map::ObjectField5)) {
       set_state(StateReadyToLeave);
-      s.leaving_building.field_B = Map::get_spiral_pattern()[2*index] - 1;
-      s.leaving_building.dest = Map::get_spiral_pattern()[2*index+1] - 1;
-      s.leaving_building.dest2 = -Map::get_spiral_pattern()[2*index] + 1;
-      s.leaving_building.dir = -Map::get_spiral_pattern()[2*index+1] + 1;
+      s.leaving_building.field_B = Map::get_spiral_pattern()[2 * dist] - 1;
+      s.leaving_building.dest = Map::get_spiral_pattern()[2 * dist + 1] - 1;
+      s.leaving_building.dest2 = -Map::get_spiral_pattern()[2 * dist] + 1;
+      s.leaving_building.dir = -Map::get_spiral_pattern()[2 * dist + 1] + 1;
       s.leaving_building.next_state = StateFreeWalking;
       Log::Verbose["serf"] << "planning farming: field spot found, dist "
                            << s.leaving_building.field_B << ", "
@@ -3754,23 +3751,21 @@ Serf::handle_serf_farming_state() {
 
   if (counter >= 0) return;
 
+  PMap map = game->get_map();
   if (s.free_walking.neg_dist1 == 0) {
     /* Sowing. */
-    if (game->get_map()->get_obj(pos) == 0 &&
-        game->get_map()->paths(pos) == 0) {
-      game->get_map()->set_object(pos, Map::ObjectSeeds0, -1);
+    if (map->get_obj(pos) == 0 && map->paths(pos) == 0) {
+      map->set_object(pos, Map::ObjectSeeds0, -1);
     }
   } else {
     /* Harvesting. */
     s.free_walking.neg_dist2 = 1;
-    if (game->get_map()->get_obj(pos) == Map::ObjectSeeds5) {
-      game->get_map()->set_object(pos, Map::ObjectField0, -1);
-    } else if (game->get_map()->get_obj(pos) == Map::ObjectField5) {
-      game->get_map()->set_object(pos, Map::ObjectFieldExpired, -1);
-    } else if (game->get_map()->get_obj(pos) != Map::ObjectFieldExpired) {
-      game->get_map()->set_object(pos,
-                               (Map::Object)(game->get_map()->get_obj(pos) + 1),
-                                  -1);
+    if (map->get_obj(pos) == Map::ObjectSeeds5) {
+      map->set_object(pos, Map::ObjectField0, -1);
+    } else if (map->get_obj(pos) == Map::ObjectField5) {
+      map->set_object(pos, Map::ObjectFieldExpired, -1);
+    } else if (map->get_obj(pos) != Map::ObjectFieldExpired) {
+      map->set_object(pos, (Map::Object)(map->get_obj(pos) + 1), -1);
     }
   }
 
@@ -4088,7 +4083,8 @@ Serf::handle_serf_making_tool_state() {
 
 void
 Serf::handle_serf_building_boat_state() {
-  Building *building = game->get_building(game->get_map()->get_obj_index(pos));
+  PMap map = game->get_map();
+  Building *building = game->get_building(map->get_obj_index(pos));
 
   if (s.building_boat.mode == 0) {
     if (!building->use_resource_in_stock(0)) return;
@@ -4099,7 +4095,7 @@ Serf::handle_serf_building_boat_state() {
     counter = counter_from_animation[animation];
     tick = game->get_tick();
 
-    game->get_map()->set_serf_index(pos, index);
+    map->set_serf_index(pos, index);
   } else {
     uint16_t delta = game->get_tick() - tick;
     tick = game->get_tick();
@@ -4109,15 +4105,15 @@ Serf::handle_serf_building_boat_state() {
       s.building_boat.mode += 1;
       if (s.building_boat.mode == 9) {
         /* Boat done. */
-        MapPos new_pos = game->get_map()->move_down_right(pos);
-        if (game->get_map()->has_serf(new_pos)) {
+        MapPos new_pos = map->move_down_right(pos);
+        if (map->has_serf(new_pos)) {
           /* Wait for flag to be free. */
           s.building_boat.mode -= 1;
           counter = 0;
         } else {
           /* Drop boat at flag. */
           building->boat_clear();
-          game->get_map()->set_serf_index(pos, 0);
+          map->set_serf_index(pos, 0);
 
           set_state(StateMoveResourceOut);
           s.move_resource_out.res = 1 + Resource::TypeBoat;
@@ -4145,8 +4141,8 @@ Serf::handle_serf_looking_for_geo_spot_state() {
   int tries = 2;
   PMap map = game->get_map();
   for (int i = 0; i < 8; i++) {
-    int index = ((game->random_int() >> 2) & 0x3f) + 1;
-    MapPos dest = map->pos_add_spirally(pos, index);
+    int dist = ((game->random_int() >> 2) & 0x3f) + 1;
+    MapPos dest = map->pos_add_spirally(pos, dist);
 
     int obj = map->get_obj(dest);
     if (obj == Map::ObjectNone) {
@@ -4159,10 +4155,10 @@ Serf::handle_serf_looking_for_geo_spot_state() {
           (t3 >= Map::TerrainTundra0 && t3 <= Map::TerrainSnow0) ||
           (t4 >= Map::TerrainTundra0 && t4 <= Map::TerrainSnow0)) {
         set_state(StateFreeWalking);
-        s.free_walking.dist1 = Map::get_spiral_pattern()[2*index];
-        s.free_walking.dist2 = Map::get_spiral_pattern()[2*index+1];
-        s.free_walking.neg_dist1 = -Map::get_spiral_pattern()[2*index];
-        s.free_walking.neg_dist2 = -Map::get_spiral_pattern()[2*index+1];
+        s.free_walking.dist1 = Map::get_spiral_pattern()[2 * dist];
+        s.free_walking.dist2 = Map::get_spiral_pattern()[2 * dist + 1];
+        s.free_walking.neg_dist1 = -Map::get_spiral_pattern()[2 * dist];
+        s.free_walking.neg_dist2 = -Map::get_spiral_pattern()[2 * dist + 1];
         s.free_walking.flags = 0;
         tick = game->get_tick();
         Log::Verbose["serf"] << "looking for geo spot: found, dist "
@@ -4191,28 +4187,29 @@ Serf::handle_serf_sampling_geo_spot_state() {
   tick = game->get_tick();
   counter -= delta;
 
+  PMap map = game->get_map();
   while (counter < 0) {
     if (s.free_walking.neg_dist1 == 0 &&
-        game->get_map()->get_obj(pos) == Map::ObjectNone) {
-      if (game->get_map()->get_res_type(pos) == Map::MineralsNone ||
-          game->get_map()->get_res_amount(pos) == 0) {
+      map->get_obj(pos) == Map::ObjectNone) {
+      if (map->get_res_type(pos) == Map::MineralsNone ||
+          map->get_res_amount(pos) == 0) {
         /* No available resource here. Put empty sign. */
-        game->get_map()->set_object(pos, Map::ObjectSignEmpty, -1);
+        map->set_object(pos, Map::ObjectSignEmpty, -1);
       } else {
         s.free_walking.neg_dist1 = -1;
         animation = 142;
 
         /* Select small or large sign with the right resource depicted. */
         int obj = Map::ObjectSignLargeGold +
-          2*(game->get_map()->get_res_type(pos)-1) +
-          (game->get_map()->get_res_amount(pos) < 12 ? 1 : 0);
-        game->get_map()->set_object(pos, (Map::Object)obj, -1);
+          2*(map->get_res_type(pos)-1) +
+          (map->get_res_amount(pos) < 12 ? 1 : 0);
+        map->set_object(pos, (Map::Object)obj, -1);
 
         /* Check whether a new notification should be posted. */
         int show_notification = 1;
         for (int i = 0; i < 60; i++) {
-          MapPos pos_ = game->get_map()->pos_add_spirally(pos, 1+i);
-          if ((game->get_map()->get_obj(pos_) >> 1) == (obj >> 1)) {
+          MapPos pos_ = map->pos_add_spirally(pos, 1+i);
+          if ((map->get_obj(pos_) >> 1) == (obj >> 1)) {
             show_notification = 0;
             break;
           }
@@ -4220,25 +4217,24 @@ Serf::handle_serf_sampling_geo_spot_state() {
 
         /* Create notification for found resource. */
         if (show_notification) {
-          Message::Type type;
-          switch (game->get_map()->get_res_type(pos)) {
+          Message::Type mtype;
+          switch (map->get_res_type(pos)) {
             case Map::MineralsCoal:
-              type = Message::TypeFoundCoal;
+              mtype = Message::TypeFoundCoal;
               break;
             case Map::MineralsIron:
-              type = Message::TypeFoundIron;
+              mtype = Message::TypeFoundIron;
               break;
             case Map::MineralsGold:
-              type = Message::TypeFoundGold;
+              mtype = Message::TypeFoundGold;
               break;
             case Map::MineralsStone:
-              type = Message::TypeFoundStone;
+              mtype = Message::TypeFoundStone;
               break;
             default:
               NOT_REACHED();
           }
-          game->get_player(get_player())->add_notification(
-            type, pos, game->get_map()->get_res_type(pos)-1);
+          game->get_player(get_player())->add_notification(mtype, pos, map->get_res_type(pos)-1);
         }
 
         counter += 64;
@@ -4261,12 +4257,12 @@ Serf::handle_serf_knight_engaging_building_state() {
   counter -= delta;
 
   if (counter < 0) {
-    Map::Object obj =
-                   game->get_map()->get_obj(game->get_map()->move_up_left(pos));
+    PMap map = game->get_map();
+    Map::Object obj = map->get_obj(map->move_up_left(pos));
     if (obj >= Map::ObjectSmallBuilding &&
         obj <= Map::ObjectCastle) {
-      Building *building = game->get_building(game->get_map()->get_obj_index(
-                                           game->get_map()->move_up_left(pos)));
+      Building *building = game->get_building(map->get_obj_index(
+                                              map->move_up_left(pos)));
       if (building->is_done() &&
           building->is_military() &&
           building->get_owner() != get_player() &&
@@ -4326,26 +4322,26 @@ Serf::set_fight_outcome(Serf *attacker, Serf *defender) {
 
   int player = -1;
   int value = -1;
-  Type type = TypeNone;
+  Type ktype = TypeNone;
   int r = ((morale + def_morale)*game->random_int()) >> 16;
   if (r < morale) {
     player = defender->get_player();
     value = def_exp_factor;
-    type = defender->get_type();
+    ktype = defender->get_type();
     attacker->s.attacking.field_C = 1;
     Log::Debug["serf"] << "Fight: " << morale << " vs " << def_morale
     << " (" << r << "). Attacker winning.";
   } else {
     player = attacker->get_player();
     value = exp_factor;
-    type = attacker->get_type();
+    ktype = attacker->get_type();
     attacker->s.attacking.field_C = 0;
     Log::Debug["serf"] << "Fight: " << morale << " vs " << def_morale
                        << " (" << r << "). Defender winning.";
   }
 
   game->get_player(player)->decrease_military_score(value);
-  game->get_player(player)->decrease_serf_count(type);
+  game->get_player(player)->decrease_serf_count(ktype);
   attacker->s.attacking.field_B = game->random_int() & 0x70;
 }
 
@@ -4410,7 +4406,7 @@ Serf::handle_knight_attacking() {
 
   uint16_t delta = game->get_tick() - tick;
   tick = game->get_tick();
-  def_serf->tick = game->get_tick();
+  def_serf->tick = tick;
   counter -= delta;
   def_serf->counter = counter;
 
@@ -4455,9 +4451,9 @@ Serf::handle_knight_attacking() {
           animation = 168;
           counter = 0;
 
-          int index = game->get_map()->get_obj_index(
+          int obj = game->get_map()->get_obj_index(
                                   game->get_map()->move_up_left(def_serf->pos));
-          Building *building = game->get_building(index);
+          Building *building = game->get_building(obj);
           building->requested_knight_defeat_on_walk();
         }
 
@@ -4574,16 +4570,17 @@ Serf::handle_state_knight_free_walking() {
   tick = game->get_tick();
   counter -= delta;
 
+  PMap map = game->get_map();
   while (counter < 0) {
     /* Check for enemy knights nearby. */
     for (Direction d : cycle_directions_cw()) {
-      MapPos pos_ = game->get_map()->move(pos, d);
+      MapPos pos_ = map->move(pos, d);
 
-      if (game->get_map()->has_serf(pos_)) {
+      if (map->has_serf(pos_)) {
         Serf *other = game->get_serf_at_pos(pos_);
         if (get_player() != other->get_player()) {
           if (other->state == StateKnightFreeWalking) {
-            pos = game->get_map()->move_left(pos_);
+            pos = map->move_left(pos_);
             if (can_pass_map_pos(pos_)) {
               int dist_col = s.free_walking.dist1;
               int dist_row = s.free_walking.dist2;
@@ -4606,7 +4603,7 @@ Serf::handle_state_knight_free_walking() {
           } else if (other->state == StateWalking &&
                      other->get_type() >= TypeKnight0 &&
                      other->get_type() <= TypeKnight4) {
-            pos_ = game->get_map()->move_left(pos_);
+            pos_ = map->move_left(pos_);
             if (can_pass_map_pos(pos_)) {
               int dist_col = s.free_walking.dist1;
               int dist_row = s.free_walking.dist2;
@@ -4653,11 +4650,10 @@ Serf::handle_state_knight_engage_attacking_free() {
   tick = game->get_tick();
   counter -= delta;
 
-  while (counter < 0) {
+  if (counter < 0) {
     set_state(StateKnightEngageAttackingFreeJoin);
     animation = 167;
     counter += 191;
-    return;
   }
 }
 
@@ -4667,7 +4663,7 @@ Serf::handle_state_knight_engage_attacking_free_join() {
   tick = game->get_tick();
   counter -= delta;
 
-  while (counter < 0) {
+  if (counter < 0) {
     set_state(StateKnightPrepareAttackingFree);
     animation = 168;
     counter = 0;
@@ -4693,7 +4689,6 @@ Serf::handle_state_knight_engage_attacking_free_join() {
 
     other->start_walking(d, 32, 0);
     game->get_map()->set_serf_index(other_pos, 0);
-    return;
   }
 }
 
@@ -4717,10 +4712,9 @@ Serf::handle_state_knight_prepare_defending_free() {
   tick = game->get_tick();
   counter -= delta;
 
-  while (counter < 0) {
+  if (counter < 0) {
     set_state(StateKnightPrepareDefendingFreeWait);
     counter = 0;
-    return;
   }
 }
 
@@ -4732,7 +4726,7 @@ Serf::handle_knight_attacking_victory_free() {
   other->tick = game->get_tick();
   other->counter -= delta;
 
-  while (other->counter < 0) {
+  if (other->counter < 0) {
     game->delete_serf(other);
 
     int dist_col = s.attacking.field_C;
@@ -4754,7 +4748,6 @@ Serf::handle_knight_attacking_victory_free() {
     animation = 179;
     counter = 127;
     tick = game->get_tick();
-    return;
   }
 }
 
@@ -4800,7 +4793,7 @@ Serf::handle_knight_attacking_free_wait() {
   tick = game->get_tick();
   counter -= delta;
 
-  while (counter < 0) {
+  if (counter < 0) {
     if (s.free_walking.flags != 0) {
       set_state(StateKnightFreeWalking);
     } else {
@@ -4808,7 +4801,6 @@ Serf::handle_knight_attacking_free_wait() {
     }
 
     counter = 0;
-    return;
   }
 }
 
@@ -4817,17 +4809,17 @@ Serf::handle_serf_state_knight_leave_for_walk_to_fight() {
   tick = game->get_tick();
   counter = 0;
 
-  if (game->get_map()->get_serf_index(pos) != index &&
-      game->get_map()->has_serf(pos)) {
+  PMap map = game->get_map();
+  if (map->get_serf_index(pos) != index && map->has_serf(pos)) {
     animation = 82;
     counter = 0;
     return;
   }
 
-  Building *building = game->get_building(game->get_map()->get_obj_index(pos));
-  MapPos new_pos = game->get_map()->move_down_right(pos);
+  Building *building = game->get_building(map->get_obj_index(pos));
+  MapPos new_pos = map->move_down_right(pos);
 
-  if (!game->get_map()->has_serf(new_pos)) {
+  if (!map->has_serf(new_pos)) {
     /* For clean state change, save the values first. */
     /* TODO maybe knight_leave_for_walk_to_fight can
        share leaving_building state vars. */
@@ -4892,9 +4884,10 @@ Serf::handle_serf_idle_on_path_state() {
     }
   }
 
-  if (!game->get_map()->has_serf(pos)) {
-    game->get_map()->clear_idle_serf(pos);
-    game->get_map()->set_serf_index(pos, index);
+  PMap map = game->get_map();
+  if (!map->has_serf(pos)) {
+    map->clear_idle_serf(pos);
+    map->set_serf_index(pos, index);
 
     int dir = s.idle_on_path.field_E;
 
@@ -4911,10 +4904,11 @@ Serf::handle_serf_idle_on_path_state() {
 
 void
 Serf::handle_serf_wait_idle_on_path_state() {
-  if (!game->get_map()->has_serf(pos)) {
+  PMap map = game->get_map();
+  if (!map->has_serf(pos)) {
     /* Duplicate code from handle_serf_idle_on_path_state() */
-    game->get_map()->clear_idle_serf(pos);
-    game->get_map()->set_serf_index(pos, index);
+    map->clear_idle_serf(pos);
+    map->set_serf_index(pos, index);
 
     int dir = s.idle_on_path.field_E;
 
@@ -4937,9 +4931,9 @@ Serf::handle_scatter_state() {
     int row = ((r >> 8) & 0xf);
     if (row < 8) row -= 16;
 
-    MapPos dest = game->get_map()->pos_add(pos, col, row);
-    if (game->get_map()->get_obj(dest) == 0 &&
-        game->get_map()->get_height(dest) > 0) {
+    PMap map = game->get_map();
+    MapPos dest = map->pos_add(pos, col, row);
+    if (map->get_obj(dest) == 0 && map->get_height(dest) > 0) {
       if (get_type() >= TypeKnight0 && get_type() <= TypeKnight4) {
         set_state(StateKnightFreeWalking);
       } else {
@@ -4959,15 +4953,15 @@ Serf::handle_scatter_state() {
 
 void
 Serf::handle_serf_finished_building_state() {
-  if (!game->get_map()->has_serf(game->get_map()->move_down_right(pos))) {
+  PMap map = game->get_map();
+  if (!map->has_serf(map->move_down_right(pos))) {
     set_state(StateReadyToLeave);
     s.leaving_building.dest = 0;
     s.leaving_building.field_B = -2;
     s.leaving_building.dir = 0;
     s.leaving_building.next_state = StateWalking;
 
-    if (game->get_map()->get_serf_index(pos) != index &&
-        game->get_map()->has_serf(pos)) {
+    if (map->get_serf_index(pos) != index && map->has_serf(pos)) {
       animation = 82;
     }
   }
@@ -4975,9 +4969,10 @@ Serf::handle_serf_finished_building_state() {
 
 void
 Serf::handle_serf_wake_at_flag_state() {
-  if (!game->get_map()->has_serf(pos)) {
-    game->get_map()->clear_idle_serf(pos);
-    game->get_map()->set_serf_index(pos, index);
+  PMap map = game->get_map();
+  if (!map->has_serf(pos)) {
+    map->clear_idle_serf(pos);
+    map->set_serf_index(pos, index);
     tick = game->get_tick();
     counter = 0;
 

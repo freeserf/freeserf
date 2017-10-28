@@ -44,10 +44,10 @@ class Event {
   } Button;
 
  public:
-  Type type;
+  void *object;
   int x, y;
   int dx, dy;
-  void *object;
+  Type type;
   Button button;
 };
 

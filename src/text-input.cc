@@ -108,8 +108,8 @@ TextInput::handle_focus_loose() {
 }
 
 void
-TextInput::set_max_length(unsigned int max_length) {
-  this->max_length = max_length;
+TextInput::set_max_length(unsigned int max_len) {
+  max_length = max_len;
   if (max_length != 0) {
     if (text.length() > max_length) {
       text = text.substr(0, max_length);

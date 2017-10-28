@@ -38,7 +38,7 @@ class ConvertorPCM2WAV : public Convertor {
   virtual PBuffer convert();
 
  protected:
-  void write_chunk(std::string name, PBuffer data);
+  void write_chunk(const std::string &name, PBuffer data);
   PBuffer create_header();
   virtual PBuffer create_data(PBuffer data);
 };
