@@ -22,16 +22,7 @@
 #include "src/freeserf.h"
 
 #include <string>
-#include <cstdint>
-#include <cstring>
-
-#ifdef HAVE_CONFIG_H
-# include <config.h>
-#endif
-
-#ifdef HAVE_GETOPT_H
-# include <getopt.h>
-#endif
+#include <iostream>
 
 #include "src/log.h"
 #include "src/version.h"
@@ -40,81 +31,59 @@
 #include "src/gfx.h"
 #include "src/interface.h"
 #include "src/game-manager.h"
+#include "src/command_line.h"
 
 #ifdef WIN32
 # include <SDL.h>
 #endif  // WIN32
-
-#define DEFAULT_SCREEN_WIDTH  800
-#define DEFAULT_SCREEN_HEIGHT 600
-
-#define USAGE                                               \
-  "Usage: %s [-g DATA-FILE]\n"
-#define HELP                                                \
-  USAGE                                                     \
-      " -d NUM\t\tSet debug output level\n"                 \
-      " -f\t\tFullscreen mode (CTRL-q to exit)\n"           \
-      " -g DATA-FILE\tUse specified data directory\n"       \
-      " -h\t\tShow this help text\n"                        \
-      " -l FILE\tLoad saved game\n"                         \
-      " -r RES\t\tSet display resolution (e.g. 800x600)\n"  \
-      "\n"                                                  \
-      "Please report bugs to <" PACKAGE_BUGREPORT ">\n"
 
 int
 main(int argc, char *argv[]) {
   std::string data_dir;
   std::string save_file;
 
-  int screen_width = DEFAULT_SCREEN_WIDTH;
-  int screen_height = DEFAULT_SCREEN_HEIGHT;
+  int screen_width = 800;
+  int screen_height = 600;
   bool fullscreen = false;
 
-#ifdef HAVE_GETOPT_H
-  while (true) {
-    int opt = getopt(argc, argv, "d:fg:hl:r:");
-    if (opt < 0) break;
-
-    switch (opt) {
-      case 'd': {
-          int d = atoi(optarg);
-          if (d >= 0 && d < Log::LevelMax) {
-            Log::set_level(static_cast<Log::Level>(d));
-          }
-        }
-        break;
-      case 'f':
-        fullscreen = true;
-        break;
-      case 'g':
-        if (strlen(optarg) > 0) {
-          data_dir = optarg;
-        }
-        break;
-      case 'h':
-        fprintf(stdout, HELP, argv[0]);
-        return EXIT_SUCCESS;
-      case 'l':
-        if (strlen(optarg) > 0) {
-          save_file = optarg;
-        }
-        break;
-      case 'r': {
-          char *hstr = strchr(optarg, 'x');
-          if (hstr == NULL) {
-            fprintf(stderr, USAGE, argv[0]);
-            return EXIT_FAILURE;
-          }
-          screen_width = atoi(optarg);
-          screen_height = atoi(hstr+1);
-        }
-        break;
-      default:
-        fprintf(stderr, USAGE, argv[0]);
-        return EXIT_FAILURE;
-    }
+  CommandLine command_line;
+  command_line.add_option('d', "Set Debug output level")
+                .add_parameter("NUM", [](std::istream& s) {
+                  int d;
+                  s >> d;
+                  if (d >= 0 && d < Log::LevelMax) {
+                    Log::set_level(static_cast<Log::Level>(d));
+                  }
+                  return true;
+                });
+  command_line.add_option('f', "Run in Fullscreen mode",
+                          [&fullscreen](){ fullscreen = true; });
+  command_line.add_option('g', "Use specified data directory")
+                .add_parameter("DATA-PATH", [&data_dir](std::istream& s) {
+                  s >> data_dir;
+                  return true;
+                });
+  command_line.add_option('h', "Show this help text", [&command_line](){
+                  command_line.show_help();
+                  exit(EXIT_SUCCESS);
+                });
+  command_line.add_option('l', "Load saved game")
+                .add_parameter("FILE", [&save_file](std::istream& s) {
+                  s >> save_file;
+                  return true;
+                });
+  command_line.add_option('r', "Set display resolution (e.g. 800x600)")
+                .add_parameter("RES",
+                              [&screen_width, &screen_height](std::istream& s) {
+                  s >> screen_width;
+                  char c; s >> c;
+                  s >> screen_height;
+                  return true;
+                });
+  command_line.set_comment("Please report bugs to <" PACKAGE_BUGREPORT ">");
+  if (!command_line.process(argc, argv)) {
+    return EXIT_FAILURE;
   }
-#endif
 
   Log::Info["main"] << "freeserf " << FREESERF_VERSION;
 
