@@ -51,11 +51,6 @@ configure_file(${CMAKE_CURRENT_SOURCE_DIR}/src/version-vcs.h.in
                "${CMAKE_CURRENT_BINARY_DIR}/src/version-vcs.h"
                @ONLY)
 
-include(CheckIncludeFiles)
-check_include_files(getopt.h HAVE_GETOPT_H)
-configure_file(${CMAKE_CURRENT_SOURCE_DIR}/cmake/config.h.in ${CMAKE_CURRENT_BINARY_DIR}/config.h)
-add_definitions(-DHAVE_CONFIG_H)
-
 add_definitions(-DPACKAGE_BUGREPORT="https://github.com/freeserf/freeserf/issues")
 
 include(CppLint)

@@ -86,7 +86,8 @@ set(OTHER_SOURCES data.cc
                   data-source.cc
                   text-input.cc
                   list.cc
-                  buffer.cc)
+                  buffer.cc
+                  command_line.cc)
 
 set(OTHER_HEADERS data.h
                   pathfinder.h
@@ -119,7 +120,8 @@ set(OTHER_HEADERS data.h
                   list.h
                   buffer.h
                   convertor.h
-                  sprite-file.h)
+                  sprite-file.h
+                  command_line.h)
 
 if(WIN32)
   add_definitions(/D_CRT_SECURE_NO_WARNINGS /wd4290)
