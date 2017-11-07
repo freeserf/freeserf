@@ -72,7 +72,7 @@ EventLoopSDL::quit() {
 }
 
 void
-EventLoopSDL::deferred_call(DeferredCall call) {
+EventLoopSDL::deferred_call(DeferredCall call, void *data) {
   deferred_calls.push_back(call);
 
   SDL_Event event;
@@ -276,7 +276,7 @@ EventLoopSDL::run() {
             break;
           case EventUserTypeCall: {
             while (!deferred_calls.empty()) {
-              deferred_calls.front()();
+              deferred_calls.front()(nullptr);
               deferred_calls.pop_front();
             }
             break;

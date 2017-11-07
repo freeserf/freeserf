@@ -42,7 +42,7 @@ class EventLoopSDL : public EventLoop {
 
   virtual void quit();
   virtual void run();
-  virtual void deferred_call(DeferredCall call);
+  virtual void deferred_call(DeferredCall call, void *data);
 
  protected:
   void zoom(float delta);

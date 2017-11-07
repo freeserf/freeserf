@@ -30,6 +30,7 @@
 class SpriteFile : public Sprite {
  public:
   SpriteFile();
+  virtual ~SpriteFile();
 
   bool load(const std::string &path);
 

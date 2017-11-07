@@ -228,13 +228,13 @@ AudioSDL::PlayerMIDI::create_track(int track_id) {
   return std::make_shared<AudioSDL::TrackMIDI>(midi, music);
 }
 
-void
+Audio::PTrack
 AudioSDL::PlayerMIDI::play_track(int track_id) {
   if ((track_id <= TypeMidiNone) || (track_id > TypeMidiTrackLast)) {
     track_id = TypeMidiTrack0;
   }
   current_track = static_cast<TypeMidi>(track_id);
-  Audio::Player::play_track(track_id);
+  return Audio::Player::play_track(track_id);
 }
 
 void
@@ -279,11 +279,11 @@ AudioSDL::PlayerMIDI::current_midi_player = nullptr;
 void
 AudioSDL::PlayerMIDI::music_finished_hook() {
   EventLoop *event_loop = EventLoop::get_instance();
-  event_loop->deferred_call([](){
+  event_loop->deferred_call([](void*){
     if (current_midi_player != nullptr) {
       current_midi_player->music_finished();
     }
-  });
+  }, nullptr);
 }
 
 void

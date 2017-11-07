@@ -314,7 +314,9 @@ VideoSDL::fill_rect(int x, int y, unsigned int width, unsigned int height,
 }
 
 void
-VideoSDL::draw_line(int x, int y, int x1, int y1, const Video::Color color) {
+VideoSDL::draw_line(int x, int y, int x1, int y1, const Video::Color color,
+                    Video::Frame *dest) {
+  SDL_SetRenderTarget(renderer, dest->texture);
   SDL_SetRenderDrawColor(renderer, color.r, color.g, color.b, 0xff);
   SDL_RenderDrawLine(renderer, x, y, x1, y1);
 }

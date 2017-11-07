@@ -48,10 +48,10 @@ Audio::Player::Player() {
 Audio::Player::~Player() {
 }
 
-void
+Audio::PTrack
 Audio::Player::play_track(int track_id) {
   if (!is_enabled()) {
-    return;
+    return nullptr;
   }
 
   Audio::PTrack track;
@@ -68,4 +68,6 @@ Audio::Player::play_track(int track_id) {
   if (track != nullptr) {
     track->play();
   }
+
+  return track;
 }

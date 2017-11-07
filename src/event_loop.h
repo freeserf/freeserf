@@ -87,7 +87,7 @@ class EventLoop {
 
  protected:
   typedef std::list<Handler*> Handlers;
-  typedef std::function<void()> DeferredCall;
+  typedef std::function<void(void*)> DeferredCall;
 
  protected:
   Handlers event_handlers;
@@ -100,7 +100,7 @@ class EventLoop {
 
   virtual void run() = 0;
   virtual void quit() = 0;
-  virtual void deferred_call(DeferredCall call) = 0;
+  virtual void deferred_call(DeferredCall call, void *data) = 0;
 
   void add_handler(Handler *handler);
   void del_handler(Handler *handler);

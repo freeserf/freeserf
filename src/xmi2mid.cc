@@ -105,6 +105,7 @@ xmi_process_INFO(PBuffer buffer, MidiFile * /*midi*/) {
 
 static size_t
 xmi_process_TIMB(PBuffer buffer, MidiFile * /*midi*/) {
+  buffer->set_endianess(Buffer::EndianessLittle);
   size_t count = buffer->pop<uint16_t>();
   if (count*2 + 2 != buffer->get_size()) {
     Log::Debug["xmi2mid"] << "\tInconsistent TIMB block.";
