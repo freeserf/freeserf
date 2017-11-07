@@ -440,7 +440,7 @@ Frame::draw_line(int x, int y, int x1, int y1, const Color &color) {
                     color.get_green(),
                     color.get_blue(),
                     color.get_alpha()};
-  video->draw_line(x, y, x1, y1, c);
+  video->draw_line(x, y, x1, y1, c, video_frame);
 }
 
 Frame *
@@ -467,7 +467,7 @@ Graphics::get_screen_frame() {
 
 void
 Graphics::set_resolution(unsigned int width, unsigned int height,
-                      bool fullscreen) {
+                         bool fullscreen) {
   video->set_resolution(width, height, fullscreen);
 }
 

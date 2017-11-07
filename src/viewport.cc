@@ -2200,7 +2200,7 @@ Viewport::draw_base_grid_overlay(const Color &color) {
     frame->draw_line(0, ly, width, ly, color);
     for (int lx = x_base + ((row % 2 == 0) ? 0 : -MAP_TILE_WIDTH/2);
          lx < width; lx += MAP_TILE_WIDTH) {
-      frame->draw_line(lx, ly + ly - 3, lx, ly + ly + 3, color);
+      frame->draw_line(lx, ly - 3, lx, ly + 3, color);
     }
   }
 }

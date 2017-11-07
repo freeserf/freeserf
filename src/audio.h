@@ -119,7 +119,7 @@ class Audio {
     Player();
     virtual ~Player();
 
-    virtual void play_track(int track_id);
+    virtual PTrack play_track(int track_id);
     virtual void enable(bool enable) = 0;
     virtual bool is_enabled() const { return enabled; }
     virtual PVolumeController get_volume_controller() = 0;

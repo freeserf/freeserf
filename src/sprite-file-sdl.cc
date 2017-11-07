@@ -27,6 +27,9 @@ SpriteFile::SpriteFile() {
   IMG_Init(IMG_INIT_JPG | IMG_INIT_PNG | IMG_INIT_TIF);
 }
 
+SpriteFile::~SpriteFile() {
+}
+
 bool
 SpriteFile::load(const std::string &path) {
   SDL_Surface *image = IMG_Load(path.c_str());

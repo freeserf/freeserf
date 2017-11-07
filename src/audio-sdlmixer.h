@@ -98,7 +98,7 @@ class AudioSDL : public Audio, public Audio::VolumeController {
     PlayerMIDI();
     virtual ~PlayerMIDI();
 
-    virtual void play_track(int track_id);
+    virtual Audio::PTrack play_track(int track_id);
     virtual void enable(bool enable);
     virtual Audio::PVolumeController get_volume_controller() {
       return shared_from_this();
