@@ -53,8 +53,8 @@ CommandLine::process(int argc, char *argv[]) {
     std::string arg = args.front();
     args.pop();
     if ((arg.length() != 2) || (arg[0] != '-')) {
-      show_help();
-      return false;
+      std::cout << "Unknown command line parameter: \"" << arg << "\"\n";
+      continue;
     }
 
     char key = arg[1];
