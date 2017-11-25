@@ -1111,18 +1111,11 @@ DataSourceAmiga::get_map_object_shadow(size_t index) {
   }
 
   uint16_t shadow_offset = data->pop<uint16_t>();
-  uint16_t bitplane_size = data->pop<uint16_t>();
-  uint8_t width = data->pop<uint8_t>();
-  uint8_t height = data->pop<uint8_t>();
+  data->pop<uint16_t>();
+  data->pop<uint8_t>();
+  data->pop<uint8_t>();
   data->pop<uint8_t>();  // drop offset_y
   data->pop<uint8_t>();  // drop compression
-
-  if (height == 0) {
-    return nullptr;
-  }
-  if (width == 0) {
-    width = bitplane_size / height;
-  }
 
   PBuffer shadow = data->get_tail(shadow_offset);
   int shadow_offset_y = shadow->pop<int8_t>();
@@ -1130,9 +1123,8 @@ DataSourceAmiga::get_map_object_shadow(size_t index) {
   int shadow_offset_x = shadow->pop<int8_t>();
   size_t shadow_width = shadow->pop<uint8_t>() * 8;
 
-  PSpriteAmiga sprite = std::make_shared<SpriteAmiga>(shadow_width,
-                                                      shadow_height);
-  decode_mask_sprite(shadow, shadow_width, shadow_height);
+  PSpriteAmiga sprite = decode_mask_sprite(shadow, shadow_width, shadow_height);
+  sprite->fill_masked({0x00, 0x00, 0x00, 0x80});
   sprite->clear();
   sprite->set_delta(0, 0);
   sprite->set_offset(shadow_offset_x * 8, -shadow_offset_y);
