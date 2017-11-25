@@ -152,14 +152,16 @@ MutableBuffer::MutableBuffer(EndianessMode _endianess)
   owned = true;
 }
 
-MutableBuffer::MutableBuffer(size_t _size, EndianessMode _endianess)
-  : reserved(_size)
+MutableBuffer::MutableBuffer(size_t _reserved, EndianessMode _endianess)
+  : Buffer(_endianess)
+  , reserved(_reserved)
   , growth(1000) {
-  data = ::malloc(_size);
+  if (reserved > 0) {
+    data = ::malloc(reserved);
+    read = reinterpret_cast<uint8_t*>(data);
+  }
   size = 0;
   owned = true;
-  read = reinterpret_cast<uint8_t*>(data);
-  endianess = _endianess;
 }
 
 MutableBuffer::~MutableBuffer() {
@@ -176,21 +178,25 @@ MutableBuffer::unfix() {
 
 void
 MutableBuffer::check_size(size_t _size) {
-  if (data == nullptr) {
-    data = ::malloc(growth);
-    size = 0;
-    reserved = growth;
-    owned = true;
+  if (reserved >= _size) {
     return;
   }
-  while (_size > reserved) {
-    void *new_data = ::realloc(data, reserved + growth);
+
+  size_t _reserved = std::max(size + growth, _size);
+
+  if (data == nullptr) {
+    data = ::malloc(_reserved);
+    size = 0;
+    owned = true;
+  } else {
+    void *new_data = ::realloc(data, _reserved);
     if (new_data == nullptr) {
       throw std::bad_alloc();
     }
     data = new_data;
-    reserved += growth;
   }
+
+  reserved = _reserved;
 }
 
 void
