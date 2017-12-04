@@ -83,7 +83,7 @@ actual_cost(Map *map, MapPos pos, Direction dir) {
    should be minimized. Returns a malloc'ed array of directions and
    the size of this array in length. */
 Road
-pathfinder_map(Map *map, MapPos start, MapPos end) {
+pathfinder_map(Map *map, MapPos start, MapPos end, const Road *building_road) {
   // Unfortunately the STL priority_queue cannot be used since we
   // would need access to the underlying sequence to determine if
   // a node is already in the open list. We keep instead open as
@@ -129,6 +129,11 @@ pathfinder_map(Map *map, MapPos start, MapPos end) {
       /* Check if neighbour is valid. */
       if (!map->is_road_segment_valid(node->pos, d) ||
           (map->get_obj(new_pos) == Map::ObjectFlag && new_pos != start)) {
+        continue;
+      }
+
+      if ((building_road != nullptr) && building_road->has_pos(map, new_pos) &&
+          (new_pos != end) && (new_pos != start)) {
         continue;
       }
 

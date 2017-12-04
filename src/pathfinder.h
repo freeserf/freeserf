@@ -24,6 +24,7 @@
 
 #include "src/map.h"
 
-Road pathfinder_map(Map *map, MapPos start, MapPos end);
+Road pathfinder_map(Map *map, MapPos start, MapPos end,
+                    const Road *building_road = nullptr);
 
 #endif  // SRC_PATHFINDER_H_

@@ -59,6 +59,7 @@ class Road {
   bool extend(Direction dir);
   bool undo();
   MapPos get_end(Map *map) const;
+  bool has_pos(Map *map, MapPos pos) const;
 };
 
 class SaveReaderBinary;
