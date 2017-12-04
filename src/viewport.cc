@@ -2355,7 +2355,8 @@ Viewport::handle_dbl_click(int lx, int ly, Event::Button button) {
   if (interface->is_building_road()) {
     if (clk_pos != interface->get_map_cursor_pos()) {
       MapPos pos = interface->get_building_road().get_end(map.get());
-      Road road = pathfinder_map(map.get(), pos, clk_pos);
+      Road road = pathfinder_map(map.get(), pos, clk_pos,
+                                 &interface->get_building_road());
       if (road.get_length() != 0) {
         int r = interface->extend_road(road);
         if (r < 0) {

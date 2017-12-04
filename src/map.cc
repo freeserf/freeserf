@@ -961,6 +961,18 @@ Road::get_end(Map *map) const {
 }
 
 bool
+Road::has_pos(Map *map, MapPos pos) const {
+  MapPos result = begin;
+  for (const Direction dir : dirs) {
+    if (result == pos) {
+      return true;
+    }
+    result = map->move(result, dir);
+  }
+  return (result == pos);
+}
+
+bool
 Road::is_valid_extension(Map *map, Direction dir) const {
   if (is_undo(dir)) {
     return false;
