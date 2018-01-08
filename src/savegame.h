@@ -67,9 +67,9 @@ class SaveReaderTextValue {
 
   const SaveReaderTextValue& operator >> (int &val) const;
   const SaveReaderTextValue& operator >> (unsigned int &val) const;
-#if defined(_M_AMD64) || defined(__x86_64__)
+#if (defined(_M_AMD64) || defined(__x86_64__)) || !defined(WIN32)
   const SaveReaderTextValue& operator >> (size_t &val) const;
-#endif  // defined(_M_AMD64) || defined(__x86_64__)
+#endif  // (defined(_M_AMD64) || defined(__x86_64__)) || !defined(WIN32)
   const SaveReaderTextValue& operator >> (Direction &val) const;
   const SaveReaderTextValue& operator >> (Resource::Type &val) const;
   const SaveReaderTextValue& operator >> (Building::Type &val) const;
@@ -88,9 +88,9 @@ class SaveWriterTextValue {
 
   SaveWriterTextValue& operator << (int val);
   SaveWriterTextValue& operator << (unsigned int val);
-#if defined(_M_AMD64) || defined(__x86_64__)
+#if (defined(_M_AMD64) || defined(__x86_64__)) || !defined(WIN32)
   SaveWriterTextValue& operator << (size_t val);
-#endif  // defined(_M_AMD64) || defined(__x86_64__)
+#endif  // (defined(_M_AMD64) || defined(__x86_64__)) || !defined(WIN32)
   SaveWriterTextValue& operator << (Direction val);
   SaveWriterTextValue& operator << (Resource::Type val);
   SaveWriterTextValue& operator << (const std::string &val);
