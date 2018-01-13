@@ -2349,9 +2349,9 @@ Game::load_serfs(SaveReaderBinary *reader, int max_serf_index) {
 
   /* Load serf data. */
   for (int i = 0; i < max_serf_index; i++) {
+    SaveReaderBinary serf_reader = reader->extract(16);
     if (BIT_TEST(bitmap[(i)>>3], 7-((i)&7))) {
       Serf *serf = serfs.get_or_insert(i);
-      SaveReaderBinary serf_reader = reader->extract(16);
       serf_reader >> *serf;
     }
   }
@@ -2369,9 +2369,9 @@ Game::load_flags(SaveReaderBinary *reader, int max_flag_index) {
 
   /* Load flag data. */
   for (int i = 0; i < max_flag_index; i++) {
+    SaveReaderBinary flag_reader = reader->extract(70);
     if (BIT_TEST(bitmap[(i)>>3], 7-((i)&7))) {
       Flag *flag = flags.get_or_insert(i);
-      SaveReaderBinary flag_reader = reader->extract(70);
       flag_reader >> *flag;
     }
   }
@@ -2387,6 +2387,8 @@ Game::load_flags(SaveReaderBinary *reader, int max_flag_index) {
   return true;
 }
 
+#include <bitset>
+
 /* Load buildings state from save game. */
 bool
 Game::load_buildings(SaveReaderBinary *reader, int max_building_index) {
@@ -2397,10 +2399,13 @@ Game::load_buildings(SaveReaderBinary *reader, int max_building_index) {
 
   /* Load building data. */
   for (int i = 0; i < max_building_index; i++) {
+    SaveReaderBinary building_reader = reader->extract(18);
     if (BIT_TEST(bitmap[(i)>>3], 7-((i)&7))) {
       Building *building = buildings.get_or_insert(i);
-      SaveReaderBinary building_reader = reader->extract(18);
       building_reader >> *building;
+      if (building->get_type() == Building::TypeNone) {
+        buildings.erase(i);
+      }
     }
   }
 
@@ -2417,9 +2422,9 @@ Game::load_inventories(SaveReaderBinary *reader, int max_inventory_index) {
 
   /* Load inventory data. */
   for (int i = 0; i < max_inventory_index; i++) {
+    SaveReaderBinary inventory_reader = reader->extract(120);
     if (BIT_TEST(bitmap[(i)>>3], 7-((i)&7))) {
       Inventory *inventory = inventories.get_or_insert(i);
-      SaveReaderBinary inventory_reader = reader->extract(120);
       inventory_reader >> *inventory;
     }
   }
@@ -2456,6 +2461,9 @@ operator >> (SaveReaderText &reader, Game &game) {
    so that map positions can be loaded properly. */
   Readers sections = reader.get_sections("game");
   SaveReaderText *game_reader = sections.front();
+  if (game_reader == nullptr) {
+    throw ExceptionFreeserf("Failed to find section \"game\"");
+  }
 
   unsigned int size = 0;
   try {

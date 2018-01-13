@@ -545,6 +545,7 @@ GameStore::is_folder_exists(const std::string &path) {
 
 const std::vector<GameStore::SaveInfo> &
 GameStore::get_saved_games() {
+  saved_games.clear();
   update();
   return saved_games;
 }
@@ -580,8 +581,6 @@ GameStore::update() {
 
   FindClose(hFind);
 #else
-  saved_games.clear();
-
   DIR *dir = opendir(folder_path.c_str());
   if (dir == nullptr) {
     return;
@@ -635,6 +634,57 @@ GameStore::find_legacy() {
       saved_games.push_back(info);
     }
   }
+
+#ifdef _WIN32
+  std::string find_mask = folder_path + "\\*.DS";
+  WIN32_FIND_DATAA ffd;
+  HANDLE hFind = FindFirstFileA(find_mask.c_str(), &ffd);
+  if (hFind != INVALID_HANDLE_VALUE) {
+    do {
+      if ((ffd.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) == 0) {
+        SaveInfo info;
+        info.name = name_from_file(ffd.cFileName);
+        info.path = folder_path + "\\" + ffd.cFileName;
+        info.type = SaveInfo::Legacy;
+        saved_games.push_back(info);
+      }
+    } while (FindNextFileA(hFind, &ffd) != FALSE);
+  }
+
+  FindClose(hFind);
+#else
+  DIR *dir = opendir(folder_path.c_str());
+  if (dir == nullptr) {
+    return;
+  }
+
+  struct dirent *ent = nullptr;
+  while ((ent = readdir(dir)) != nullptr) {
+    std::string file_name(ent->d_name);
+    size_t pos = file_name.find_last_of(".");
+    if (pos == std::string::npos) {
+      continue;
+    }
+    std::string ext = file_name.substr(pos+1, file_name.size());
+    if (ext != "DS") {
+      continue;
+    }
+    std::string file_path = folder_path + "/" + file_name;
+    struct stat info;
+    if (stat(file_path.c_str(), &info) == 0) {
+      if ((info.st_mode & S_IFDIR) != S_IFDIR) {
+        SaveInfo info;
+        info.name = name_from_file(file_name);
+        info.path = file_path;
+        info.type = SaveInfo::Legacy;
+        saved_games.push_back(info);
+      }
+    }
+  }
+
+  closedir(dir);
+#endif  // _WIN32
+
 }
 
 void

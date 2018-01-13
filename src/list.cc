@@ -35,6 +35,9 @@ ListSavedFiles::ListSavedFiles()
 
 std::string
 ListSavedFiles::get_selected() const {
+  if (items.size() == 0) {
+    return std::string();
+  }
   std::string file_path = items[selected_item].path;
   return file_path;
 }
