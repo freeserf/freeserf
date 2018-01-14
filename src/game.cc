@@ -2387,8 +2387,6 @@ Game::load_flags(SaveReaderBinary *reader, int max_flag_index) {
   return true;
 }
 
-#include <bitset>
-
 /* Load buildings state from save game. */
 bool
 Game::load_buildings(SaveReaderBinary *reader, int max_building_index) {
@@ -2403,9 +2401,6 @@ Game::load_buildings(SaveReaderBinary *reader, int max_building_index) {
     if (BIT_TEST(bitmap[(i)>>3], 7-((i)&7))) {
       Building *building = buildings.get_or_insert(i);
       building_reader >> *building;
-      if (building->get_type() == Building::TypeNone) {
-        buildings.erase(i);
-      }
     }
   }
 

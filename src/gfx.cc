@@ -190,6 +190,12 @@ Frame::draw_sprite_relatively(int x, int y, Data::Resource res,
                               unsigned int relative_to_index) {
   PSprite s = data_source->get_sprite(relative_to_res, relative_to_index,
                                       {0, 0, 0, 0});
+  if (s == nullptr) {
+    Log::Warn["graphics"] << "Failed to decode sprite #"
+                          << Data::get_resource_name(res) << ":" << index;
+    return;
+  }
+
   x += s->get_delta_x();
   y += s->get_delta_y();
 
