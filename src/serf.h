@@ -172,10 +172,10 @@ class Serf : public GameObject {
     } idle_in_stock;
 
     /* States: walking, transporting, delivering */
-    /* res: resource carried (when transporting),
-       otherwise direction. */
+    /* res: resource carried (when transporting), otherwise direction. */
     struct {
-      int res; /* B */
+      int dir1; /* newly added */
+      Resource::Type res; /* B */
       unsigned int dest; /* C */
       int dir; /* E */
       int wait_counter; /* F */
@@ -262,7 +262,7 @@ class Serf : public GameObject {
 
     struct {
       unsigned int substate; /* B */
-      unsigned int res; /* D */
+      int res; /* D */
       Map::Minerals deposit; /* E */
     } mining;
 
@@ -444,7 +444,7 @@ class Serf : public GameObject {
     operator << (SaveWriterText &writer, Serf &serf);
 
  protected:
-  int is_waiting(Direction *dir);
+  bool is_waiting(Direction *dir);
   int switch_waiting(Direction dir);
   int get_walking_animation(int h_diff, Direction dir, int switch_pos);
   void change_direction(Direction dir, int alt_end);

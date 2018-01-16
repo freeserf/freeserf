@@ -136,15 +136,19 @@ Flag::del_path(Direction dir) {
 }
 
 bool
-Flag::pick_up_resource(int slot, Resource::Type *res, unsigned int *dest) {
-  if (this->slot[slot].type == Resource::TypeNone) {
+Flag::pick_up_resource(unsigned int from_slot, Resource::Type *res, unsigned int *dest) {
+  if (from_slot >= FLAG_MAX_RES_COUNT) {
+    throw ExceptionFreeserf("Wrong flag slot index.");
+  }
+
+  if (slot[from_slot].type == Resource::TypeNone) {
     return false;
   }
 
-  *res = this->slot[slot].type;
-  *dest = this->slot[slot].dest;
-  this->slot[slot].type = Resource::TypeNone;
-  this->slot[slot].dir = DirectionNone;
+  *res = slot[from_slot].type;
+  *dest = slot[from_slot].dest;
+  slot[from_slot].type = Resource::TypeNone;
+  slot[from_slot].dir = DirectionNone;
 
   fix_scheduled();
 
@@ -153,6 +157,10 @@ Flag::pick_up_resource(int slot, Resource::Type *res, unsigned int *dest) {
 
 bool
 Flag::drop_resource(Resource::Type res, unsigned int dest) {
+  if (res < Resource::TypeNone || res > Resource::GroupFood) {
+    throw ExceptionFreeserf("Wrong resource type.");
+  }
+
   for (int i = 0; i < FLAG_MAX_RES_COUNT; i++) {
     if (slot[i].type == Resource::TypeNone) {
       slot[i].type = res;
@@ -686,7 +694,7 @@ Flag::fill_path_serf_info(Game *game, MapPos pos, Direction dir,
 
   /* Trace along the path to the flag at the other end. */
   int paths = 0;
-  while (1) {
+  while (true) {
     path_len += 1;
     pos = map->move(pos, dir);
     paths = map->paths(pos);
