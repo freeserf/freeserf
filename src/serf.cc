@@ -1134,8 +1134,14 @@ Serf::handle_serf_walking_state_dest_reached() {
     counter = 0;
   } else {
     Flag *flag = game->get_flag_at_pos(pos);
-    Direction dir = (Direction)s.walking.dir;
+    if (flag == nullptr) {
+      throw ExceptionFreeserf("Flag expected as destination of walking serf.");
+    }
+    Direction dir = (Direction)s.walking.dir1;
     Flag *other_flag = flag->get_other_end_flag(dir);
+    if (other_flag == nullptr) {
+      throw ExceptionFreeserf("Path has no other end flag in selected dir.");
+    }
     Direction other_dir = flag->get_other_end_dir(dir);
 
     /* Increment transport serf count */
