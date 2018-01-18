@@ -42,8 +42,8 @@ main(int argc, char *argv[]) {
   std::string data_dir;
   std::string save_file;
 
-  int screen_width = 800;
-  int screen_height = 600;
+  unsigned int screen_width = 0;
+  unsigned int screen_height = 0;
   bool fullscreen = false;
 
   CommandLine command_line;
@@ -98,7 +98,6 @@ main(int argc, char *argv[]) {
   Graphics *gfx = nullptr;
   try {
     gfx = Graphics::get_instance();
-    gfx->set_resolution(screen_width, screen_height, fullscreen);
   } catch (ExceptionFreeserf &e) {
     Log::Error[e.get_system().c_str()] << e.what();
     return EXIT_FAILURE;
@@ -127,6 +126,9 @@ main(int argc, char *argv[]) {
 
   /* Initialize interface */
   Interface *interface = new Interface();
+  if ((screen_width == 0) || (screen_height == 0)) {
+    gfx->get_resolution(&screen_width, &screen_height);
+  }
   interface->set_size(screen_width, screen_height);
   interface->set_displayed(true);
 

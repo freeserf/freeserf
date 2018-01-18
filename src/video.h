@@ -94,6 +94,7 @@ class Video {
 
   virtual float get_zoom_factor() = 0;
   virtual bool set_zoom_factor(float factor) = 0;
+  virtual void get_screen_factor(float *fx, float *fy) = 0;
 };
 
 #endif  // SRC_VIDEO_H_

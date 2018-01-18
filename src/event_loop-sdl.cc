@@ -44,7 +44,10 @@ EventLoop::get_instance() {
  considered as a double click. */
 #define MOUSE_MOVE_SENSITIVITY  8
 
-EventLoopSDL::EventLoopSDL() {
+EventLoopSDL::EventLoopSDL()
+  : zoom_factor(1.f)
+  , screen_factor_x(1.f)
+  , screen_factor_y(1.f) {
 }
 
 static Uint32
@@ -106,6 +109,7 @@ EventLoopSDL::run() {
 
   Graphics *gfx = Graphics::get_instance();
   Frame *screen = nullptr;
+  gfx->get_screen_factor(&screen_factor_x, &screen_factor_y);
 
   while (SDL_WaitEvent(&event)) {
     unsigned int current_ticks = SDL_GetTicks();
@@ -118,9 +122,9 @@ EventLoopSDL::run() {
 
         if (event.button.button <= 3) {
           int x = static_cast<int>(static_cast<float>(event.button.x) *
-                                   gfx->get_zoom_factor());
+                                   zoom_factor * screen_factor_x);
           int y = static_cast<int>(static_cast<float>(event.button.y) *
-                                   gfx->get_zoom_factor());
+                                   zoom_factor * screen_factor_y);
           notify_click(x, y, (Event::Button)event.button.button);
 
           if (current_ticks - last_click[event.button.button] <
@@ -149,9 +153,9 @@ EventLoopSDL::run() {
             }
 
             int x = static_cast<int>(static_cast<float>(drag_x) *
-                                     gfx->get_zoom_factor());
+                                     zoom_factor * screen_factor_x);
             int y = static_cast<int>(static_cast<float>(drag_y) *
-                                     gfx->get_zoom_factor());
+                                     zoom_factor * screen_factor_y);
 
             notify_drag(x, y,
                         event.motion.x - drag_x, event.motion.y - drag_y,
@@ -250,6 +254,7 @@ EventLoopSDL::run() {
           unsigned int width = event.window.data1;
           unsigned int height = event.window.data2;
           gfx->set_resolution(width, height, gfx->is_fullscreen());
+          gfx->get_screen_factor(&screen_factor_x, &screen_factor_y);
           notify_resize(width, height);
         }
         break;
@@ -300,6 +305,7 @@ EventLoopSDL::zoom(float delta) {
   Graphics *gfx = Graphics::get_instance();
   float factor = gfx->get_zoom_factor();
   if (gfx->set_zoom_factor(factor + delta)) {
+    zoom_factor = gfx->get_zoom_factor();
     unsigned int width = 0;
     unsigned int height = 0;
     gfx->get_resolution(&width, &height);

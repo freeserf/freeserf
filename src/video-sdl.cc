@@ -39,8 +39,8 @@ Uint32 VideoSDL::Amask = 0x000000FF;
 Uint32 VideoSDL::pixel_format = SDL_PIXELFORMAT_RGBA8888;
 
 VideoSDL::VideoSDL() {
-  screen = NULL;
-  cursor = NULL;
+  screen = nullptr;
+  cursor = nullptr;
   fullscreen = false;
   zoom_factor = 1.f;
 
@@ -53,7 +53,8 @@ VideoSDL::VideoSDL() {
   window = SDL_CreateWindow("freeserf",
                             SDL_WINDOWPOS_UNDEFINED,
                             SDL_WINDOWPOS_UNDEFINED,
-                            800, 600, SDL_WINDOW_RESIZABLE);
+                            800, 600,
+                            SDL_WINDOW_RESIZABLE | SDL_WINDOW_ALLOW_HIGHDPI);
   if (window == NULL) {
     throw ExceptionSDL("Unable to create SDL window");
   }
@@ -81,20 +82,25 @@ VideoSDL::VideoSDL() {
 
   /* Set scaling mode */
   SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY, "linear");
+
+  int w = 0;
+  int h = 0;
+  SDL_GL_GetDrawableSize(window, &w, &h);
+  set_resolution(w, h, fullscreen);
 }
 
 VideoSDL::~VideoSDL() {
-  if (screen != NULL) {
+  if (screen != nullptr) {
     delete screen;
-    screen = NULL;
+    screen = nullptr;
   }
-  set_cursor(NULL, 0, 0);
+  set_cursor(nullptr, 0, 0);
   SDL_Quit();
 }
 
 Video *
 Video::get_instance() {
-  if (instance == NULL) {
+  if (instance == nullptr) {
     instance = new VideoSDL();
   }
   return instance;
@@ -104,7 +110,7 @@ SDL_Surface *
 VideoSDL::create_surface(int width, int height) {
   SDL_Surface *surf = SDL_CreateRGBSurface(0, width, height, bpp,
                                            Rmask, Gmask, Bmask, Amask);
-  if (surf == NULL) {
+  if (surf == nullptr) {
     throw ExceptionSDL("Unable to create SDL surface");
   }
 
@@ -120,12 +126,12 @@ VideoSDL::set_resolution(unsigned int width, unsigned int height, bool fs) {
     throw ExceptionSDL("Unable to set window fullscreen");
   }
 
-  if (screen == NULL) {
+  if (screen == nullptr) {
     screen = new Video::Frame();
   }
 
   /* Allocate new screen surface and texture */
-  if (screen->texture != NULL) {
+  if (screen->texture != nullptr) {
     SDL_DestroyTexture(screen->texture);
   }
   screen->texture = create_texture(width, height);
@@ -144,10 +150,10 @@ VideoSDL::get_resolution(unsigned int *width, unsigned int *height) {
   int w = 0;
   int h = 0;
   SDL_GetRendererOutputSize(renderer, &w, &h);
-  if (width != NULL) {
+  if (width != nullptr) {
     *width = w;
   }
-  if (height != NULL) {
+  if (height != nullptr) {
     *height = h;
   }
 }
@@ -200,7 +206,7 @@ VideoSDL::destroy_image(Video::Image *image) {
 
 void
 VideoSDL::warp_mouse(int x, int y) {
-  SDL_WarpMouseInWindow(NULL, x, y);
+  SDL_WarpMouseInWindow(nullptr, x, y);
 }
 
 SDL_Surface *
@@ -210,13 +216,13 @@ VideoSDL::create_surface_from_data(void *data, int width, int height) {
                                                4 * width,
                                                0x00FF0000, 0x0000FF00,
                                                0x000000FF, 0xFF000000);
-  if (surf == NULL) {
+  if (surf == nullptr) {
     throw ExceptionSDL("Unable to create sprite surface");
   }
 
   /* Covert to screen format */
   SDL_Surface *surf_screen = SDL_ConvertSurfaceFormat(surf, pixel_format, 0);
-  if (surf_screen == NULL) {
+  if (surf_screen == nullptr) {
     throw ExceptionSDL("Unable to convert sprite surface");
   }
 
@@ -231,7 +237,7 @@ VideoSDL::create_texture(int width, int height) {
                                            SDL_TEXTUREACCESS_TARGET,
                                            width, height);
 
-  if (texture == NULL) {
+  if (texture == nullptr) {
     throw ExceptionSDL("Unable to create SDL texture");
   }
 
@@ -323,20 +329,22 @@ VideoSDL::draw_line(int x, int y, int x1, int y1, const Video::Color color,
 
 void
 VideoSDL::swap_buffers() {
-  SDL_SetRenderTarget(renderer, NULL);
-  SDL_RenderCopy(renderer, screen->texture, NULL, NULL);
+  SDL_SetRenderTarget(renderer, nullptr);
+  SDL_RenderCopy(renderer, screen->texture, nullptr, nullptr);
   SDL_RenderPresent(renderer);
 }
 
 void
 VideoSDL::set_cursor(void *data, unsigned int width, unsigned int height) {
-  if (cursor != NULL) {
-    SDL_SetCursor(NULL);
+  if (cursor != nullptr) {
+    SDL_SetCursor(nullptr);
     SDL_FreeCursor(cursor);
-    cursor = NULL;
+    cursor = nullptr;
   }
 
-  if (data == NULL) return;
+  if (data == nullptr) {
+    return;
+  }
 
   SDL_Surface *surface = create_surface_from_data(data, width, height);
   cursor = SDL_CreateColorCursor(surface, 8, 8);
@@ -359,4 +367,20 @@ VideoSDL::set_zoom_factor(float factor) {
   set_resolution(width, height, is_fullscreen());
 
   return true;
+}
+
+void
+VideoSDL::get_screen_factor(float *fx, float *fy) {
+  int w = 0;
+  int h = 0;
+  SDL_GetWindowSize(window, &w, &h);
+  int rw = 0;
+  int rh = 0;
+  SDL_GL_GetDrawableSize(window, &rw, &rh);
+  if (fx != nullptr) {
+    *fx = static_cast<float>(rw) / static_cast<float>(w);
+  }
+  if (fy != nullptr) {
+    *fy = static_cast<float>(rh) / static_cast<float>(h);
+  }
 }
