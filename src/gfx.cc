@@ -496,3 +496,8 @@ bool
 Graphics::set_zoom_factor(float factor) {
   return video->set_zoom_factor(factor);
 }
+
+void
+Graphics::get_screen_factor(float *fx, float *fy) {
+  video->get_screen_factor(fx, fy);
+}

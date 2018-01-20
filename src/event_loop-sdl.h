@@ -36,6 +36,9 @@ class EventLoopSDL : public EventLoop {
 
  protected:
   std::list<DeferredCall> deferred_calls;
+  float zoom_factor;
+  float screen_factor_x;
+  float screen_factor_y;
 
  public:
   EventLoopSDL();

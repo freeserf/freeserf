@@ -186,6 +186,7 @@ class Graphics {
 
   float get_zoom_factor();
   bool set_zoom_factor(float factor);
+  void get_screen_factor(float *fx, float *fy);
 };
 
 #endif  // SRC_GFX_H_

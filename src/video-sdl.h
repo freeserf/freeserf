@@ -109,6 +109,7 @@ class VideoSDL : public Video {
 
   virtual float get_zoom_factor() { return zoom_factor; }
   virtual bool set_zoom_factor(float factor);
+  virtual void get_screen_factor(float *fx, float *fy);
 
  protected:
   SDL_Surface *create_surface(int width, int height);
