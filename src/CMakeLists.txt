@@ -162,7 +162,10 @@ endif()
 set(FREESERF_SOURCES freeserf.cc ${OTHER_SOURCES})
 set(FREESERF_HEADERS freeserf.h ${OTHER_HEADERS})
 add_executable(FreeSerf MACOSX_BUNDLE WIN32 ${FREESERF_SOURCES} ${FREESERF_HEADERS})
+
+target_check_style(game)
 target_check_style(FreeSerf)
+
 target_link_libraries(FreeSerf game)
 if(SDL2_FOUND)
   target_link_libraries(FreeSerf ${SDL2_LIBRARY})

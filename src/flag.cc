@@ -136,7 +136,8 @@ Flag::del_path(Direction dir) {
 }
 
 bool
-Flag::pick_up_resource(unsigned int from_slot, Resource::Type *res, unsigned int *dest) {
+Flag::pick_up_resource(unsigned int from_slot, Resource::Type *res,
+                       unsigned int *dest) {
   if (from_slot >= FLAG_MAX_RES_COUNT) {
     throw ExceptionFreeserf("Wrong flag slot index.");
   }

@@ -1333,9 +1333,11 @@ Serf::handle_serf_transporting_state() {
         s.walking.wait_counter = 0;
 
         MapPos new_pos = map->move_up_left(pos);
-        animation = 3 + map->get_height(new_pos) - map->get_height(pos) + (DirectionUpLeft + 6) * 9;
+        animation = 3 + map->get_height(new_pos) - map->get_height(pos) +
+                    (DirectionUpLeft + 6) * 9;
         counter = counter_from_animation[animation];
-        /* TODO next call is actually into the middle of handle_serf_delivering_state().
+        /* TODO next call is actually into the middle of
+           handle_serf_delivering_state().
            Why is a nice and clean state switch not enough???
            Just ignore this call and we'll be safe, I think... */
         /* handle_serf_delivering_state(serf); */
@@ -1778,7 +1780,8 @@ Serf::handle_serf_entering_building_state() {
               s.defending.next_knight = building->get_first_knight();
               building->set_first_knight(get_index());
 
-              game->get_player(building->get_owner())->increase_castle_knights();
+              game->get_player(
+                              building->get_owner())->increase_castle_knights();
               return;
             }
 
@@ -1879,7 +1882,8 @@ Serf::handle_serf_ready_to_leave_state() {
   PMap map = game->get_map();
   MapPos new_pos = map->move_down_right(pos);
 
-  if ((map->get_serf_index(pos) != index && map->has_serf(pos)) || map->has_serf(new_pos)) {
+  if ((map->get_serf_index(pos) != index && map->has_serf(pos))
+      || map->has_serf(new_pos)) {
     animation = 82;
     counter = 0;
     return;
@@ -2623,8 +2627,8 @@ Serf::handle_serf_free_walking_switch_with_other() {
     map->set_serf_index(new_pos, index);
 
     other_serf->animation = get_walking_animation(map->get_height(pos) -
-                                                  map->get_height(other_serf->pos),
-                                                  reverse_direction((Direction)dir), 1);
+                                               map->get_height(other_serf->pos),
+                                          reverse_direction((Direction)dir), 1);
     animation = get_walking_animation(map->get_height(new_pos) -
                                       map->get_height(pos),
                                       (Direction)dir, 1);
@@ -2921,7 +2925,8 @@ Serf::handle_free_walking_common() {
       return;
     }
 
-    if (state == StateKnightFreeWalking && s.free_walking.neg_dist1 != -128 && map->has_serf(new_pos)) {
+    if (state == StateKnightFreeWalking && s.free_walking.neg_dist1 != -128
+        && map->has_serf(new_pos)) {
       Serf *other_serf = game->get_serf_at_pos(new_pos);
       Direction other_dir;
 
@@ -2938,7 +2943,8 @@ Serf::handle_free_walking_common() {
                                 reverse_direction(d), 1);
         other_serf->counter = counter_from_animation[other_serf->animation];
 
-        animation = get_walking_animation(map->get_height(new_pos) - map->get_height(pos), d, 1);
+        animation = get_walking_animation(map->get_height(new_pos) -
+                                          map->get_height(pos), d, 1);
         counter = counter_from_animation[animation];
 
         pos = new_pos;
@@ -3486,7 +3492,8 @@ Serf::handle_serf_mining_state() {
         s.mining.substate += 1;
 
         /* Look for resource in ground. */
-        MapPos dest = map->pos_add_spirally(pos, (game->random_int() >> 2) & 0x1f);
+        MapPos dest = map->pos_add_spirally(pos,
+                                            (game->random_int() >> 2) & 0x1f);
         if ((map->get_obj(dest) == Map::ObjectNone ||
              map->get_obj(dest) > Map::ObjectCastle) &&
             map->get_res_type(dest) == s.mining.deposit &&
@@ -4234,7 +4241,8 @@ Serf::handle_serf_sampling_geo_spot_state() {
             default:
               NOT_REACHED();
           }
-          game->get_player(get_player())->add_notification(mtype, pos, map->get_res_type(pos)-1);
+          game->get_player(get_player())->add_notification(mtype, pos,
+                                                    map->get_res_type(pos) - 1);
         }
 
         counter += 64;

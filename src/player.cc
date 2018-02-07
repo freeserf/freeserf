@@ -1042,19 +1042,19 @@ Player::get_food_for_building(unsigned int bld_type) const {
   unsigned int res = 0;
   switch (bld_type) {
     case Building::TypeStoneMine:
-	  res = get_food_stonemine();
-	  break;
+      res = get_food_stonemine();
+      break;
     case Building::TypeCoalMine:
-	  res = get_food_coalmine();
-	  break;
+      res = get_food_coalmine();
+      break;
     case Building::TypeIronMine:
-	  res = get_food_ironmine();
-	  break;
+      res = get_food_ironmine();
+      break;
     case Building::TypeGoldMine:
-	  res = get_food_goldmine();
-	  break;
+      res = get_food_goldmine();
+      break;
     default:
-	  break;
+      break;
   }
   return res;
 }

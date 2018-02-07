@@ -22,6 +22,7 @@
 #include "src/game-manager.h"
 
 #include <string>
+#include <utility>
 
 #include "src/savegame.h"
 

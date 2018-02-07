@@ -222,7 +222,7 @@ class MapGeometry {
    protected:
     Iterator(const MapGeometry &geom_, MapPos pos)
       : geom(&geom_), pos(pos) {}
-     
+
     const MapGeometry *geom;
     MapPos pos;
   };

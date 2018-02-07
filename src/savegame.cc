@@ -94,8 +94,10 @@ class SaveWriterTextSection : public SaveWriterText {
   }
 
 
-  SaveWriterText &add_section(const std::string &sub_name, unsigned int sub_number) {
-    SaveWriterTextSection *section = new SaveWriterTextSection(sub_name, sub_number);
+  SaveWriterText &add_section(const std::string &sub_name,
+                              unsigned int sub_number) {
+    SaveWriterTextSection *section = new SaveWriterTextSection(sub_name,
+                                                               sub_number);
     sections.push_back(section);
     return *section;
   }
@@ -684,7 +686,6 @@ GameStore::find_legacy() {
 
   closedir(dir);
 #endif  // _WIN32
-
 }
 
 void
