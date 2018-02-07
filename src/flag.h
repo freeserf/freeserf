@@ -143,7 +143,8 @@ class Flag : public GameObject {
   /* Whether the given direction has a resource pickup scheduled. */
   bool is_scheduled(Direction dir) const {
     return (other_end_dir[dir] >> 7) & 1; }
-  bool pick_up_resource(unsigned int slot, Resource::Type *res, unsigned int *dest);
+  bool pick_up_resource(unsigned int slot, Resource::Type *res,
+                        unsigned int *dest);
   bool drop_resource(Resource::Type res, unsigned int dest);
   bool has_empty_slot() const;
   void remove_all_resources();

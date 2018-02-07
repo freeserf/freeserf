@@ -142,8 +142,8 @@ ClassicMapGenerator::init_heights_midpoints() {
 
      The random offset applied to the midpoints is based on r1 and r2.
      The offset is a random value in [-r2; r1-r2). r1 controls the roughness of
-     the terrain; a larger value of r1 will result in rough terrain while a smaller
-     value will generate smoother terrain.
+     the terrain; a larger value of r1 will result in rough terrain
+     while a smaller value will generate smoother terrain.
 
      A high spikyness will result in sharp mountains and smooth valleys. A low
      spikyness will result in smooth mountains and sharp valleys.
@@ -199,8 +199,8 @@ ClassicMapGenerator::init_heights_diamond_square() {
 
      The random offset applied to the midpoints is based on r1 and r2.
      The offset is a random value in [-r2; r1-r2). r1 controls the roughness of
-     the terrain; a larger value of r1 will result in rough terrain while a smaller
-     value will generate smoother terrain.
+     the terrain; a larger value of r1 will result in rough terrain
+     while a smaller value will generate smoother terrain.
 
      A high spikyness will result in sharp mountains and smooth valleys. A low
      spikyness will result in smooth mountains and sharp valleys.
@@ -1037,7 +1037,8 @@ ClassicMapGenerator::create_mineral_deposits() {
   unsigned int regions = map.get_region_count();
 
   for (const Deposit &dep : deposits) {
-    create_random_mineral_clusters(regions * dep.mult, dep.mineral, Map::TerrainTundra0, Map::TerrainSnow0);
+    create_random_mineral_clusters(regions * dep.mult, dep.mineral,
+                                   Map::TerrainTundra0, Map::TerrainSnow0);
   }
 }
 
