@@ -65,7 +65,6 @@
 
 #include "src/map.h"
 
-#include <cassert>
 #include <cstdlib>
 #include <cstring>
 #include <algorithm>
@@ -325,7 +324,9 @@ Map::Map(const MapGeometry& geom)
   : geom_(geom)
   , spiral_pos_pattern(new MapPos[295]) {
   // Some code may still assume that map has at least size 3.
-  assert(3 <= geom.size());
+  if (geom.size() < 3) {
+    throw ExceptionFreeserf("Failed to create map with size less than 3.");
+  }
 
   landscape_tiles.resize(geom_.tile_count());
   game_tiles.resize(geom_.tile_count());

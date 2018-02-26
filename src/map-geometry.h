@@ -21,10 +21,10 @@
 #ifndef SRC_MAP_GEOMETRY_H_
 #define SRC_MAP_GEOMETRY_H_
 
-#include <cassert>
-
 #include <limits>
 #include <utility>
+
+#include "src/debug.h"
 
 // Map directions
 //
@@ -62,7 +62,9 @@ typedef enum Direction {
 // If times is a negative number the direction will be turned counter
 // clockwise.
 inline Direction turn_direction(Direction d, int times) {
-  assert(d != DirectionNone);
+  if (d == DirectionNone) {
+    throw ExceptionFreeserf("Failed to turn uninitialised direction");
+  }
   int td = (static_cast<int>(d) + times) % 6;
   if (td < 0) td += 6;
   return static_cast<Direction>(td);
@@ -116,7 +118,10 @@ class DirectionCycle {
 
   DirectionCycle(Direction start, unsigned int length)
     : start(start), length(length) {
-    assert(start != DirectionNone);
+    if (start == DirectionNone) {
+      throw ExceptionFreeserf("Failed to init DirectionCycle with "
+                              "uninitialised direction");
+    }
   }
   DirectionCycle(const DirectionCycle& that)
     : start(that.start), length(that.length) {}
@@ -296,8 +301,10 @@ class MapGeometry {
 
  protected:
   void init() {
-    // Above size 20 the map positions can no longer fit in a 32-bit integer.
-    assert(size_ <= 20);
+    if (size_ > 20) {
+      throw ExceptionFreeserf("Above size 20 the map positions can no longer "
+                              "fit in a 32-bit integer.");
+    }
 
     col_size_ = 5 + size_ / 2;
     row_size_ = 5 + (size_ - 1) / 2;

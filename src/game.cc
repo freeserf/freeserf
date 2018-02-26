@@ -264,8 +264,9 @@ Game::update_inventories() {
           Resource::Type res = (Resource::Type)arr[0];
 
           Building *dest_bld = flags_[i]->get_building();
-          bool r = dest_bld->add_requested_resource(res, false);
-          assert(r);
+          if (!dest_bld->add_requested_resource(res, false)) {
+            throw ExceptionFreeserf("Failed to request resource.");
+          }
 
           /* Put resource in out queue */
           Inventory *src_inv = invs[i];
@@ -1573,7 +1574,9 @@ Game::demolish_flag_(MapPos pos) {
   }
 
   Flag *flag = flags[map->get_obj_index(pos)];
-  assert(!flag->has_building());
+  if (flag->has_building()) {
+    throw ExceptionFreeserf("Failed to demolish flag with building.");
+  }
 
   flag_remove_player_refs(flag);
 
@@ -1993,10 +1996,14 @@ Game::init(unsigned int map_size, const Random &random) {
    ensures that the destination can request a new resource. */
 void
 Game::cancel_transported_resource(Resource::Type res, unsigned int dest) {
-  if (dest == 0) return;
+  if (dest == 0) {
+    return;
+  }
 
   Flag *flag = flags[dest];
-  assert(flag->has_building());
+  if (!flag->has_building()) {
+    throw ExceptionFreeserf("Failed to cancel transported resource.");
+  }
   Building *building = flag->get_building();
   building->cancel_transported_resource(res);
 }
@@ -2405,6 +2412,16 @@ Game::load_buildings(SaveReaderBinary *reader, int max_building_index) {
   }
 
   return true;
+}
+
+void
+Game::add_gold_total(int delta) {
+  if (delta < 0) {
+    if (static_cast<int>(gold_total) < -delta) {
+      throw ExceptionFreeserf("Failed to decrease global gold counter.");
+    }
+  }
+  gold_total += delta;
 }
 
 /* Load inventories state from save game. */

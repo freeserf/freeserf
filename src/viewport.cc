@@ -21,7 +21,6 @@
 
 #include "src/viewport.h"
 
-#include <cassert>
 #include <algorithm>
 #include <memory>
 #include <utility>
@@ -83,15 +82,23 @@ Viewport::draw_triangle_up(int lx, int ly, int m, int left, int right,
     -1, -1, -1, -1,  0,  1,  4,  6,  7
   };
 
-  assert(left - m >= -4 && left - m <= 4);
-  assert(right - m >= -4 && right - m <= 4);
+  if (((left - m) < -4) || ((left - m) > 4)) {
+    throw ExceptionFreeserf("Failed to draw triangle up (1).");
+  }
+  if (((right - m) < -4) || ((right - m) > 4)) {
+    throw ExceptionFreeserf("Failed to draw triangle up (2).");
+  }
 
   int mask = 4 + m - left + 9*(4 + m - right);
-  assert(tri_mask[mask] >= 0);
+  if (tri_mask[mask] < 0) {
+    throw ExceptionFreeserf("Failed to draw triangle up (3).");
+  }
 
   Map::Terrain type = map->type_up(map->move_up(pos));
   int index = (type << 3) | tri_mask[mask];
-  assert(index < 128);
+  if (index >= 128) {
+    throw ExceptionFreeserf("Failed to draw triangle up (4).");
+  }
 
   int sprite = tri_spr[index];
 
@@ -114,15 +121,23 @@ Viewport::draw_triangle_down(int lx, int ly, int m, int left, int right,
     -1, -1, -1, -1,  7,  7,  7,  7,  7
   };
 
-  assert(left - m >= -4 && left - m <= 4);
-  assert(right - m >= -4 && right - m <= 4);
+  if (((left - m) < -4) || ((left - m) > 4)) {
+    throw ExceptionFreeserf("Failed to draw triangle down (1).");
+  }
+  if (((right - m) < -4) || ((right - m) > 4)) {
+    throw ExceptionFreeserf("Failed to draw triangle down (2).");
+  }
 
   int mask = 4 + left - m + 9*(4 + right - m);
-  assert(tri_mask[mask] >= 0);
+  if (tri_mask[mask] < 0) {
+    throw ExceptionFreeserf("Failed to draw triangle down (3).");
+  }
 
   int type = map->type_down(map->move_up_left(pos));
   int index = (type << 3) | tri_mask[mask];
-  assert(index < 128);
+  if (index >= 128) {
+    throw ExceptionFreeserf("Failed to draw triangle down (4).");
+  }
 
   int sprite = tri_spr[index];
 

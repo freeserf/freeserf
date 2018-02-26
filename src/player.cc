@@ -21,7 +21,6 @@
 
 #include "src/player.h"
 
-#include <cassert>
 #include <algorithm>
 
 #include "src/game.h"

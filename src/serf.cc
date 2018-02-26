@@ -21,7 +21,6 @@
 
 #include "src/serf.h"
 
-#include <cassert>
 #include <algorithm>
 #include <map>
 
@@ -1750,7 +1749,9 @@ Serf::handle_serf_entering_building_state() {
 
         Building *building = game->get_building_at_pos(pos);
         Inventory *inventory = building->get_inventory();
-        assert(inventory);
+        if (inventory == nullptr) {
+          throw ExceptionFreeserf("Not inventory.");
+        }
         inventory->serf_come_back();
 
         set_state(StateIdleInStock);
@@ -2222,7 +2223,9 @@ Serf::handle_serf_drop_resource_out_state() {
 
   bool res = flag->drop_resource((Resource::Type)(s.move_resource_out.res-1),
                                  s.move_resource_out.res_dest);
-  assert(res);
+  if (!res) {
+    throw ExceptionFreeserf("Failed to drop resource.");
+  }
 
   set_state(StateReadyToEnter);
   s.ready_to_enter.field_B = 0;
@@ -2560,8 +2563,10 @@ Serf::handle_serf_free_walking_state_dest_reached() {
 
 void
 Serf::handle_serf_free_walking_switch_on_dir(Direction dir) {
-  /* A suitable direction has been found; walk. */
-  assert(dir > DirectionNone);
+  // A suitable direction has been found; walk.
+  if (dir < DirectionRight) {
+    throw ExceptionFreeserf("Wrong direction.");
+  }
   int dx = ((dir < 3) ? 1 : -1)*((dir % 3) < 2);
   int dy = ((dir < 3) ? 1 : -1)*((dir % 3) > 0);
 
