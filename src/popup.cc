@@ -22,7 +22,6 @@
 #include "src/popup.h"
 
 #include <cmath>
-#include <cassert>
 #include <algorithm>
 #include <sstream>
 
@@ -1184,7 +1183,7 @@ PopupBox::draw_gauge_full(int lx, int ly, unsigned int value,
 
 static void
 calculate_gauge_values(Player *player,
-                       unsigned int values[24][BUILDING_MAX_STOCK][2]) {
+                       unsigned int values[24][Building::kMaxStock][2]) {
   for (Building *building : player->get_game()->get_player_buildings(player)) {
     if (building->is_burning() || !building->has_serf()) {
       continue;
@@ -1193,7 +1192,7 @@ calculate_gauge_values(Player *player,
     int type = building->get_type();
     if (!building->is_done()) type = 0;
 
-    for (int i = 0; i < BUILDING_MAX_STOCK; i++) {
+    for (int i = 0; i < Building::kMaxStock; i++) {
       if (building->get_maximum_in_stock(i) > 0) {
         int v = 2*building->get_res_count_in_stock(i) +
           building->get_requested_in_stock(i);
@@ -1263,7 +1262,7 @@ PopupBox::draw_stat_1_box() {
 
   draw_custom_icon_box(layout);
 
-  unsigned int values[24][BUILDING_MAX_STOCK][2] = {{{0}}};
+  unsigned int values[24][Building::kMaxStock][2] = {{{0}}};
   calculate_gauge_values(interface->get_player(), values);
 
   draw_gauge_balance(10, 0, values[Building::TypeMill][0][0],
@@ -1339,7 +1338,7 @@ PopupBox::draw_stat_2_box() {
 
   draw_custom_icon_box(layout);
 
-  unsigned int values[24][BUILDING_MAX_STOCK][2] = {{{0}}};
+  unsigned int values[24][Building::kMaxStock][2] = {{{0}}};
   calculate_gauge_values(interface->get_player(), values);
 
   draw_gauge_balance(6, 0, values[Building::TypeGoldSmelter][1][0],
@@ -2334,8 +2333,9 @@ PopupBox::draw_resdir_box() {
     while (serf_index != 0) {
       Serf *serf = interface->get_game()->get_serf(serf_index);
       Serf::Type serf_type = serf->get_type();
-      assert(serf_type >= Serf::TypeKnight0 &&
-             serf_type <= Serf::TypeKnight4);
+      if ((serf_type < Serf::TypeKnight0) || (serf_type > Serf::TypeKnight4)) {
+        throw ExceptionFreeserf("Not a knight among the castle defenders.");
+      }
       knights[serf_type-Serf::TypeKnight0] += 1;
       serf_index = serf->get_next();
     }
@@ -2541,7 +2541,7 @@ PopupBox::draw_building_stock_box() {
   }
 
   /* Draw list of resources */
-  for (unsigned int j = 0; j < BUILDING_MAX_STOCK; j++) {
+  for (unsigned int j = 0; j < Building::kMaxStock; j++) {
     if (building->is_stock_active(j)) {
       int stock = building->get_res_count_in_stock(j);
       if (stock > 0) {

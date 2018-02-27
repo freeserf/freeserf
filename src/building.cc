@@ -21,8 +21,6 @@
 
 #include "src/building.h"
 
-#include <cassert>
-
 #include "src/game.h"
 #include "src/inventory.h"
 #include "src/debug.h"
@@ -45,7 +43,7 @@ Building::Building(Game *game, unsigned int index)
   progress = 0;
   u = { 0 };
 
-  for (int j = 0; j < BUILDING_MAX_STOCK; j++) {
+  for (int j = 0; j < kMaxStock; j++) {
     stock[j].type = Resource::TypeNone;
     stock[j].prio = 0;
     stock[j].available = 0;
@@ -265,7 +263,7 @@ Building::military_gold_count() const {
   if (get_type() == TypeHut ||
       get_type() == TypeTower ||
       get_type() == TypeFortress) {
-    for (int j = 0; j < BUILDING_MAX_STOCK; j++) {
+    for (int j = 0; j < kMaxStock; j++) {
       if (stock[j].type == Resource::TypeGoldBar) {
         count += stock[j].available;
       }
@@ -284,7 +282,7 @@ Building::cancel_transported_resource(Resource::Type res) {
   }
 
   int in_stock = -1;
-  for (int i = 0; i < BUILDING_MAX_STOCK; i++) {
+  for (int i = 0; i < kMaxStock; i++) {
     if (stock[i].type == res) {
       in_stock = i;
       break;
@@ -293,15 +291,20 @@ Building::cancel_transported_resource(Resource::Type res) {
 
   if (in_stock >= 0) {
     stock[in_stock].requested -= 1;
-    assert(stock[in_stock].requested >= 0);
+    if (stock[in_stock].requested < 0) {
+      throw ExceptionFreeserf("Failed to cancel unrequested "
+                              "resource delivery.");
+    }
   } else {
-    assert(has_inventory());
+    if (!has_inventory()) {
+      throw ExceptionFreeserf("Not inventory");
+    }
   }
 }
 
 bool
 Building::add_requested_resource(Resource::Type res, bool fix_priority) {
-  for (int j = 0; j < BUILDING_MAX_STOCK; j++) {
+  for (int j = 0; j < kMaxStock; j++) {
     if (stock[j].type == res) {
       if (fix_priority) {
         int prio = stock[j].prio;
@@ -341,16 +344,18 @@ Building::requested_resource_delivered(Resource::Type resource) {
     }
 
     /* Add to building stock */
-    for (int i = 0; i < BUILDING_MAX_STOCK; i++) {
+    for (int i = 0; i < kMaxStock; i++) {
       if (stock[i].type == resource) {
         stock[i].available += 1;
         stock[i].requested -= 1;
-        assert(stock[i].requested >= 0);
+        if (stock[i].requested < 0) {
+          throw ExceptionFreeserf("Delivered more resources than requested.");
+        }
         return;
       }
     }
 
-    assert(true);
+    throw ExceptionFreeserf("Delivered unexpected resource.");
   }
 }
 
@@ -575,7 +580,7 @@ Building::get_max_priority_for_resource(
     Resource::Type resource, int minimum) const {
   int max_prio = -1;
 
-  for (int i = 0; i < BUILDING_MAX_STOCK; i++) {
+  for (int i = 0; i < kMaxStock; i++) {
     if (stock[i].type == resource &&
         stock[i].prio >= minimum &&
         stock[i].prio > max_prio) {
@@ -1037,9 +1042,10 @@ Building::update_castle() {
     unsigned int next_serf_index = first_knight;
     while (next_serf_index != 0) {
       Serf *serf = game->get_serf(next_serf_index);
-      assert(serf != NULL);
-      if (best_knight == NULL ||
-          serf->get_type() < best_knight->get_type()) {
+      if (serf == nullptr) {
+        throw ExceptionFreeserf("Index of nonexistent serf in the queue.");
+      }
+      if ((best_knight == NULL) || serf->get_type() < best_knight->get_type()) {
         best_knight = serf;
       }
       last_knight = serf;
@@ -1187,7 +1193,9 @@ Building::update_military() {
     int _serf_index = first_knight;
     while (_serf_index != 0) {
       Serf *serf = game->get_serf(_serf_index);
-      assert(serf != NULL);
+      if (serf == nullptr) {
+        throw ExceptionFreeserf("Index of nonexistent serf in the queue.");
+      }
       if (leaving_serf == NULL || serf->get_type() < leaving_serf->get_type()) {
         leaving_serf = serf;
       }

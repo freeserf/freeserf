@@ -21,7 +21,6 @@
 
 #include "src/inventory.h"
 
-#include <cassert>
 #include <algorithm>
 #include <cstdint>
 
@@ -91,7 +90,9 @@ Inventory::add_to_queue(Resource::Type type, unsigned int dest) {
     }
   }
 
-  assert(resources[type] != 0);
+  if (resources[type] == 0) {
+    throw ExceptionFreeserf("No resource with type.");
+  }
 
   resources[type] -= 1;
   if (out_queue[0].type == Resource::TypeNone) {

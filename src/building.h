@@ -29,9 +29,6 @@
 #include "src/serf.h"
 #include "src/objects.h"
 
-/* Max number of different types of resources accepted by buildings. */
-#define BUILDING_MAX_STOCK  2
-
 class Inventory;
 class Serf;
 class SaveReaderBinary;
@@ -39,6 +36,10 @@ class SaveReaderText;
 class SaveWriterText;
 
 class Building : public GameObject {
+ public:
+  // Max number of different types of resources accepted by buildings.
+  static const unsigned int kMaxStock = 3;
+
  public:
   typedef enum Type {
     TypeNone = 0,
@@ -96,7 +97,7 @@ class Building : public GameObject {
   /* Index of flag connected to this building */
   unsigned int flag;
   /* Stock of this building */
-  Stock stock[BUILDING_MAX_STOCK];
+  Stock stock[kMaxStock];
   unsigned int first_knight;
   int burning_counter;
   int progress;

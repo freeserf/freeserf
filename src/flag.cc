@@ -21,7 +21,6 @@
 
 #include "src/flag.h"
 
-#include <cassert>
 #include <algorithm>
 
 #include "src/game.h"
@@ -298,13 +297,14 @@ Flag::schedule_slot_to_unknown_dest(int slot_num) {
     data.max_prio = 0;
 
     search.execute(schedule_unknown_dest_cb, false, true, &data);
-    if (data.flag != NULL) {
+    if (data.flag != nullptr) {
       Log::Verbose["game"] << "dest for flag " << index << " res " << slot
                            << " found: flag " << data.flag->get_index();
       Building *dest_bld = data.flag->other_endpoint.b[DirectionUpLeft];
 
-      bool r = dest_bld->add_requested_resource(res, true);
-      assert(r);
+      if (!dest_bld->add_requested_resource(res, true)) {
+        throw ExceptionFreeserf("Failed to request resource.");
+      }
 
       slot[slot_num].dest = dest_bld->get_flag_index();
       endpoint |= BIT(7);
@@ -332,7 +332,9 @@ Flag::schedule_slot_to_unknown_dest(int slot_num) {
         }
       }
 
-      assert(DirectionUp >= dir && dir >= DirectionRight);
+      if ((dir >= DirectionRight) || (dir <= DirectionUp)) {
+        throw ExceptionFreeserf("Failed to request resource.");
+      }
 
       if (!is_scheduled(dir)) {
         other_end_dir[dir] = BIT(7) |

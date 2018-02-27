@@ -22,7 +22,6 @@
 #ifndef SRC_GAME_H_
 #define SRC_GAME_H_
 
-#include <cassert>
 #include <vector>
 #include <map>
 #include <string>
@@ -113,10 +112,7 @@ class Game {
   unsigned int get_const_tick() const { return const_tick; }
   unsigned int get_gold_morale_factor() const { return map_gold_morale_factor; }
   unsigned int get_gold_total() const { return gold_total; }
-  void add_gold_total(int delta) {
-    if (delta < 0) assert(static_cast<int>(gold_total) >= -delta);
-    gold_total += delta;
-  }
+  void add_gold_total(int delta);
 
   Building *get_building_at_pos(MapPos pos);
   Flag *get_flag_at_pos(MapPos pos);
