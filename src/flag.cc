@@ -332,7 +332,7 @@ Flag::schedule_slot_to_unknown_dest(int slot_num) {
         }
       }
 
-      if ((dir >= DirectionRight) || (dir <= DirectionUp)) {
+      if ((dir < DirectionRight) || (dir > DirectionUp)) {
         throw ExceptionFreeserf("Failed to request resource.");
       }
 

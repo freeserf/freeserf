@@ -5344,7 +5344,7 @@ operator >> (SaveReaderBinary &reader, Serf &serf) {
     }
     case Serf::StateEnteringBuilding:
       reader >> v8;  // 11
-      serf.s.entering_building.field_B = v8;
+      serf.s.entering_building.field_B = (int8_t)v8;
       reader >> v16;  // 12
       serf.s.entering_building.slope_len = v16;
       break;
@@ -5352,7 +5352,7 @@ operator >> (SaveReaderBinary &reader, Serf &serf) {
     case Serf::StateLeavingBuilding:
     case Serf::StateReadyToLeave:
       reader >> v8;  // 11
-      serf.s.leaving_building.field_B = v8;
+      serf.s.leaving_building.field_B = (int8_t)v8;
       reader >> v8;  // 12
       serf.s.leaving_building.dest = v8;
       reader >> v8;  // 13
@@ -5409,7 +5409,7 @@ operator >> (SaveReaderBinary &reader, Serf &serf) {
 
     case Serf::StateReadyToLeaveInventory:
       reader >> v8;  // 11
-      serf.s.ready_to_leave_inventory.mode = v8;
+      serf.s.ready_to_leave_inventory.mode = (int8_t)v8;
       reader >> v16;  // 12
       serf.s.ready_to_leave_inventory.dest = v16;
       reader >> v16;  // 14
