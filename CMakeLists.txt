@@ -1,7 +1,5 @@
 cmake_minimum_required(VERSION 2.8 FATAL_ERROR)
 
-set(CMAKE_OSX_ARCHITECTURES "x86_64;i386")
-
 project(FreeSerf)
 set(PROJECT_VERSION "0.2.0")
 

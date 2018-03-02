@@ -69,7 +69,7 @@ main(int argc, char *argv[]) {
                 });
   command_line.add_option('l', "Load saved game")
                 .add_parameter("FILE", [&save_file](std::istream& s) {
-                  s >> save_file;
+                  std::getline(s, save_file);
                   return true;
                 });
   command_line.add_option('r', "Set display resolution (e.g. 800x600)")

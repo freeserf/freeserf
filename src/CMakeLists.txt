@@ -128,6 +128,7 @@ if(WIN32)
 endif()
 
 add_library(game STATIC ${GAME_SOURCES} ${GAME_HEADERS})
+target_check_style(game)
 
 if(SDL2_FOUND)
   include_directories(${INCLUDE_DIRECTORIES} ${SDL2_INCLUDE_DIR})
@@ -162,8 +163,6 @@ endif()
 set(FREESERF_SOURCES freeserf.cc ${OTHER_SOURCES})
 set(FREESERF_HEADERS freeserf.h ${OTHER_HEADERS})
 add_executable(FreeSerf MACOSX_BUNDLE WIN32 ${FREESERF_SOURCES} ${FREESERF_HEADERS})
-
-target_check_style(game)
 target_check_style(FreeSerf)
 
 target_link_libraries(FreeSerf game)
@@ -217,3 +216,17 @@ else()
   set(CPACK_SOURCE_PACKAGE_FILE_NAME "${CMAKE_PROJECT_NAME}")
 endif()
 include(CPack)
+
+# Profiler
+
+set(PROFILER_SOURCES profiler.cc
+                     version.cc
+                     command_line.cc)
+
+set(PROFILER_HEADERS profiler.h
+                     version.h
+                     command_line.h)
+
+add_executable(profiler ${PROFILER_SOURCES} ${PROFILER_HEADERS})
+target_check_style(profiler)
+target_link_libraries(profiler game)
