@@ -11,13 +11,8 @@ else()
   set(VC_LIB_PATH_SUFFIX lib/x86)
 endif()
 
-if(WIN32)
-  set(XPM_LIB_NAME libxmp)
-else()
-  set(XPM_LIB_NAME xmp)
-endif()
-
-FIND_LIBRARY(XMP_LIBRARY ${XPM_LIB_NAME}
+find_library(XMP_LIBRARY
+  NAMES xmp xmp-lite libxmp libxmp-lite
   HINTS
     ENV XMPDIR
   PATH_SUFFIXES

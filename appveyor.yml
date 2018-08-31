@@ -11,74 +11,26 @@ configuration:
   - Release
 
 cache:
-  - C:\sdl_root
+  - c:\tools\vcpkg\installed\
 
 install:
   - ps: iex ((new-object net.webclient).DownloadString('https://raw.githubusercontent.com/appveyor/ci/master/scripts/enable-http-proxy.ps1'))
 
-  # SDL2
-  - ps: |
-      $SDL_VERSION = "2.0.5"
-      $SDL2DIR = "C:\sdl_root\SDL2-$SDL_VERSION"
-      if (!(Test-Path -Path $SDL2DIR)) {
-        Start-FileDownload https://libsdl.org/release/SDL2-devel-$SDL_VERSION-VC.zip
-        7z x SDL2-devel-$SDL_VERSION-VC.zip -aoa -oC:\sdl_root\
-      }
-      $env:SDL2DIR = $SDL2DIR
-
-  # SDL2_mixer
-  - ps: |
-      $SDL_MIXER_VERSION = "2.0.1"
-      $SDL2MIXERDIR = "C:\sdl_root\SDL2_mixer-$SDL_MIXER_VERSION"
-      if (!(Test-Path -Path $SDL2MIXERDIR)) {
-        Start-FileDownload https://www.libsdl.org/projects/SDL_mixer/release/SDL2_mixer-devel-$SDL_MIXER_VERSION-VC.zip
-        7z x SDL2_mixer-devel-$SDL_MIXER_VERSION-VC.zip -aoa -oC:\sdl_root\
-      }
-      $env:SDL2MIXERDIR = $SDL2MIXERDIR
-
-  # SDL2_image
-  - ps: |
-      $SDL_IMAGE_VERSION = "2.0.1"
-      $SDL2IMAGEDIR = "C:\sdl_root\SDL2_image-$SDL_IMAGE_VERSION"
-      if (!(Test-Path -Path $SDL2IMAGEDIR)) {
-        Start-FileDownload https://www.libsdl.org/projects/SDL_image/release/SDL2_image-devel-$SDL_IMAGE_VERSION-VC.zip
-        7z x SDL2_image-devel-$SDL_IMAGE_VERSION-VC.zip -oC:\sdl_root\
-      }
-      $env:SDL2IMAGEDIR = $SDL2IMAGEDIR
+  # Install required packages
+  - cmd: vcpkg install sdl2:%platform%-windows
+  - cmd: vcpkg install sdl2-mixer:%platform%-windows
+  - cmd: vcpkg install sdl2-image:%platform%-windows
+  - cmd: vcpkg install libxmp-lite:%platform%-windows
+  - cmd: cd c:\tools\vcpkg
+  - cmd: vcpkg integrate install
 
   # Prepare for NMake
   - if "%platform%" == "x86" call "%VS140COMNTOOLS%\..\..\VC\vcvarsall.bat"
   - if "%platform%" == "x64" call "%VS140COMNTOOLS%\..\..\VC\vcvarsall.bat" x86_amd64
 
-  # libxmp
-  - ps: |
-      $XMP_VERSION = "4.4.1"
-      $XMPDIR = "C:\sdl_root\XMP-$XMP_VERSION"
-      if (!(Test-Path "$XMPDIR\lib\$env:PLATFORM\libxmp.lib")) {
-        $env:build_xmp = 'true'
-        Start-FileDownload https://sourceforge.net/projects/xmp/files/libxmp/$XMP_VERSION/libxmp-$XMP_VERSION.tar.gz
-        7z x "libxmp-$XMP_VERSION.tar.gz"
-        7z x "libxmp-$XMP_VERSION.tar"
-        cd libxmp-$XMP_VERSION
-      }
-  - cmd: IF "%build_xmp%"=="true" nmake Makefile.vc
-  - ps: |
-      if ($env:build_xmp -eq "true") {
-        md $XMPDIR
-        md $XMPDIR\include
-        md $XMPDIR\lib
-        md $XMPDIR\lib\$env:PLATFORM
-        Copy-Item -Path libxmp.dll -Destination $XMPDIR\lib\$env:PLATFORM
-        Copy-Item -Path libxmp.lib -Destination $XMPDIR\lib\$env:PLATFORM
-        Copy-Item -Path libxmp.exp -Destination $XMPDIR\lib\$env:PLATFORM
-        Copy-Item -Path include\xmp.h -Destination $XMPDIR\include
-        cd ..
-      }
-      $env:XMPDIR = $XMPDIR
-
 build_script:
   - cmd: cd %APPVEYOR_BUILD_FOLDER%
-  - cmd: cmake -G "NMake Makefiles" -DCMAKE_BUILD_TYPE=%configuration%
+  - cmd: cmake -DCMAKE_TOOLCHAIN_FILE=c:/tools/vcpkg/scripts/buildsystems/vcpkg.cmake -G "NMake Makefiles" -DCMAKE_BUILD_TYPE=%configuration%
   - cmd: nmake check_style
   - cmd: nmake
   - cmd: nmake test
