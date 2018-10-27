@@ -22,7 +22,6 @@
 #ifndef SRC_RESOURCE_H_
 #define SRC_RESOURCE_H_
 
-#include <cstddef>
 #include <map>
 
 class Resource {

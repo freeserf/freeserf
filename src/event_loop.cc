@@ -21,7 +21,6 @@
 
 #include "src/event_loop.h"
 
-#include <cstddef>
 #include <algorithm>
 
 EventLoop *

@@ -25,7 +25,6 @@
 
 #include "src/game.h"
 
-#include <cstring>
 #include <string>
 #include <algorithm>
 #include <map>
@@ -68,8 +67,10 @@ Game::Game() {
   update_map_initial_pos = 0;
   next_index = 0;
 
-  memset(player_history_index, '\0', sizeof(player_history_index));
-  memset(player_history_counter, '\0', sizeof(player_history_counter));
+  std::fill(std::begin(player_history_index),
+            std::end(player_history_index), 0);
+  std::fill(std::begin(player_history_counter),
+            std::end(player_history_counter), 0);
   resource_history_index = 0;
 
   tick = 0;

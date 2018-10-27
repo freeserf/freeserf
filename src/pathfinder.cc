@@ -21,7 +21,6 @@
 
 #include "src/pathfinder.h"
 
-#include <cstdlib>
 #include <list>
 #include <vector>
 #include <algorithm>

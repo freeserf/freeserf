@@ -24,7 +24,6 @@
 
 #include <map>
 #include <string>
-#include <cstdint>
 #include <memory>
 
 #include "src/data.h"

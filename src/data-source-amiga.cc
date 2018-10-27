@@ -26,7 +26,7 @@
 #include <string>
 #include <memory>
 #include <cstddef>
-#include <cstring>
+#include <algorithm>
 
 #include "src/data.h"
 #include "src/freeserf_endian.h"
@@ -930,7 +930,7 @@ DataSourceAmiga::get_mirrored_horizontaly_sprite(PSprite sprite) {
   uint8_t *dst_pixels = reinterpret_cast<uint8_t*>(result->get_data()) +
                         result->get_width() * (result->get_height() - 1) * 4;
   for (unsigned int i = 0 ; i < sprite->get_height() ; i++) {
-    memcpy(dst_pixels, src_pixels, sprite->get_width() * 4);
+    std::copy(src_pixels, src_pixels + sprite->get_width() * 4, dst_pixels);
     src_pixels += sprite->get_width() * 4;
     dst_pixels -= sprite->get_width() * 4;
   }
@@ -1294,7 +1294,7 @@ DataSourceAmiga::SpriteAmiga::SpriteAmiga(size_t _width, size_t _height) {
   offset_y = 0;
   size_t size = width * height * 4;
   data = new uint8_t[size];
-  memset(data, 0, size);
+  std::fill(data, data + size, 0);
 }
 
 DataSourceAmiga::SpriteAmiga::~SpriteAmiga() {

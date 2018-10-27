@@ -24,12 +24,24 @@ else()
   find_package(XMP)
 endif()
 
+set(TOOLS_SOURCES debug.cc
+                  log.cc
+                  configfile.cc
+                  buffer.cc)
+
+set(TOOLS_HEADERS debug.h
+                  log.h
+                  misc.h
+                  configfile.h
+                  buffer.h)
+
+add_library(tools STATIC ${TOOLS_SOURCES} ${TOOLS_HEADERS})
+target_check_style(tools)
+
 set(GAME_SOURCES building.cc
-                 debug.cc
                  flag.cc
                  game.cc
                  inventory.cc
-                 log.cc
                  map.cc
                  map-generator.cc
                  mission.cc
@@ -37,15 +49,12 @@ set(GAME_SOURCES building.cc
                  random.cc
                  savegame.cc
                  serf.cc
-                 game-manager.cc
-                 configfile.cc)
+                 game-manager.cc)
 
 set(GAME_HEADERS building.h
-                 debug.h
                  flag.h
                  game.h
                  inventory.h
-                 log.h
                  map.h
                  map-generator.h
                  map-geometry.h
@@ -56,9 +65,7 @@ set(GAME_HEADERS building.h
                  resource.h
                  savegame.h
                  serf.h
-                 misc.h
-                 game-manager.h
-                 configfile.h)
+                 game-manager.h)
 
 set(OTHER_SOURCES data.cc
                   pathfinder.cc
@@ -86,7 +93,6 @@ set(OTHER_SOURCES data.cc
                   data-source.cc
                   text-input.cc
                   list.cc
-                  buffer.cc
                   command_line.cc)
 
 set(OTHER_HEADERS data.h
@@ -118,13 +124,12 @@ set(OTHER_HEADERS data.h
                   data-source.h
                   text-input.h
                   list.h
-                  buffer.h
                   convertor.h
                   sprite-file.h
                   command_line.h)
 
 if(WIN32)
-  add_definitions(/D_CRT_SECURE_NO_WARNINGS /wd4290)
+  add_definitions(/D_CRT_SECURE_NO_WARNINGS)
 endif()
 
 add_library(game STATIC ${GAME_SOURCES} ${GAME_HEADERS})
@@ -165,7 +170,7 @@ set(FREESERF_HEADERS freeserf.h ${OTHER_HEADERS})
 add_executable(FreeSerf MACOSX_BUNDLE WIN32 ${FREESERF_SOURCES} ${FREESERF_HEADERS})
 target_check_style(FreeSerf)
 
-target_link_libraries(FreeSerf game)
+target_link_libraries(FreeSerf game tools)
 if(SDL2_FOUND)
   target_link_libraries(FreeSerf ${SDL2_LIBRARY})
   target_link_libraries(FreeSerf ${SDL2_MAIN_LIBRARY})
@@ -241,4 +246,4 @@ set(PROFILER_HEADERS profiler.h
 
 add_executable(profiler ${PROFILER_SOURCES} ${PROFILER_HEADERS})
 target_check_style(profiler)
-target_link_libraries(profiler game)
+target_link_libraries(profiler game tools)

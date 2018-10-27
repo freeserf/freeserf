@@ -22,8 +22,6 @@
 #ifndef SRC_FREESERF_ENDIAN_H_
 #define SRC_FREESERF_ENDIAN_H_
 
-#include <cstdint>
-
 inline bool
 is_big_endian() {
   union {

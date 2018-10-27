@@ -22,9 +22,7 @@
 #include "src/random.h"
 
 #include <ctime>
-#include <cstdlib>
 #include <sstream>
-#include <cstdint>
 
 Random::Random() {
   srand((unsigned int)time(NULL));
