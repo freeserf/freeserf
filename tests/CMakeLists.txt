@@ -29,23 +29,39 @@ add_dependencies(gtest_main googletest)
 include(GoogleTest)
 
 if(WIN32)
-  add_definitions(/D_CRT_SECURE_NO_WARNINGS /wd4290)
+  add_definitions(/D_CRT_SECURE_NO_WARNINGS)
 endif()
 
 set(TEST_MAP_SOURCES test_map.cc)
 add_executable(test_map ${TEST_MAP_SOURCES})
 target_check_style(test_map)
 target_link_libraries(test_map game tools gtest gtest_main ${CMAKE_THREAD_LIBS_INIT})
-gtest_add_tests(TARGET test_map WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/..")
+gtest_add_tests(TARGET test_map
+                WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/.."
+                TEST_LIST test_list)
+foreach(test IN LISTS test_list)
+  message(STATUS "test=${test}")
+  set_tests_properties(${test} PROPERTIES ENVIRONMENT "GTEST_OUTPUT=xml:${PROJECT_BINARY_DIR}/${test}.xml")
+endforeach(test)
 
 set(TEST_SAVE_GAME_SOURCES test_save_game.cc)
 add_executable(test_save_game ${TEST_SAVE_GAME_SOURCES})
 target_check_style(test_save_game)
 target_link_libraries(test_save_game game tools gtest gtest_main ${CMAKE_THREAD_LIBS_INIT})
-gtest_add_tests(TARGET test_save_game)
+gtest_add_tests(TARGET test_save_game
+                TEST_LIST test_list)
+foreach(test IN LISTS test_list)
+  message(STATUS "test=${test}")
+  set_tests_properties(${test} PROPERTIES ENVIRONMENT "GTEST_OUTPUT=xml:${PROJECT_BINARY_DIR}/${test}.xml")
+endforeach(test)
 
 set(TEST_MAP_GEOMETRY_SOURCES test_map_geometry.cc)
 add_executable(test_map_geometry ${TEST_MAP_GEOMETRY_SOURCES})
 target_check_style(test_map_geometry)
 target_link_libraries(test_map_geometry game tools gtest gtest_main ${CMAKE_THREAD_LIBS_INIT})
-gtest_add_tests(TARGET test_map_geometry)
+gtest_add_tests(TARGET test_map_geometry
+                TEST_LIST test_list)
+foreach(test IN LISTS test_list)
+  message(STATUS "test=${test}")
+  set_tests_properties(${test} PROPERTIES ENVIRONMENT "GTEST_OUTPUT=xml:${PROJECT_BINARY_DIR}/${test}.xml")
+endforeach(test)
