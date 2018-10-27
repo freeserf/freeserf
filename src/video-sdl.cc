@@ -44,17 +44,32 @@ VideoSDL::VideoSDL() {
   fullscreen = false;
   zoom_factor = 1.f;
 
+  Log::Info["video"] << "Initializing \"sdl\".";
+  Log::Info["video"] << "Available drivers:";
+  int num_drivers = SDL_GetNumVideoDrivers();
+  for (int i = 0; i < num_drivers; ++i) {
+    Log::Info["video"] << "\t" << SDL_GetVideoDriver(i);
+  }
+
   /* Initialize defaults and Video subsystem */
-  if (SDL_Init(SDL_INIT_VIDEO) < 0) {
+  if (SDL_VideoInit(NULL) != 0) {
     throw ExceptionSDL("Unable to initialize SDL video");
   }
+
+  SDL_version version;
+  SDL_GetVersion(&version);
+  Log::Info["video"] << "Initialized with SDL "
+                     << static_cast<int>(version.major) << '.'
+                     << static_cast<int>(version.minor) << '.'
+                     << static_cast<int>(version.patch)
+                     << " (driver: " << SDL_GetCurrentVideoDriver() << ")";
 
   /* Create window and renderer */
   window = SDL_CreateWindow("freeserf",
                             SDL_WINDOWPOS_UNDEFINED,
                             SDL_WINDOWPOS_UNDEFINED,
                             800, 600,
-                            SDL_WINDOW_RESIZABLE | SDL_WINDOW_ALLOW_HIGHDPI);
+                            SDL_WINDOW_RESIZABLE);
   if (window == NULL) {
     throw ExceptionSDL("Unable to create SDL window");
   }
@@ -95,7 +110,7 @@ VideoSDL::~VideoSDL() {
     screen = nullptr;
   }
   set_cursor(nullptr, 0, 0);
-  SDL_Quit();
+  SDL_VideoQuit();
 }
 
 Video *

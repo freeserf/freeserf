@@ -94,6 +94,7 @@ class Audio {
 
   class VolumeController {
    public:
+    virtual ~VolumeController() {}
     virtual float get_volume() = 0;
     virtual void set_volume(float volume) = 0;
     virtual void volume_up() = 0;

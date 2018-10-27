@@ -47,11 +47,31 @@ Audio::get_instance() {
 }
 
 AudioSDL::AudioSDL() {
-  Log::Info["audio"] << "Initializing audio driver `sdlmixer'.";
+  Log::Info["audio"] << "Initializing \"sdlmixer\".";
 
-  if (SDL_Init(SDL_INIT_AUDIO | SDL_INIT_TIMER) != 0) {
+  Log::Info["audio"] << "Available drivers:";
+  int num_drivers = SDL_GetNumAudioDrivers();
+  for (int i = 0; i < num_drivers; ++i) {
+    Log::Info["audio"] << "\t" << SDL_GetAudioDriver(i);
+  }
+
+  if (SDL_AudioInit(NULL) != 0) {
     throw ExceptionSDLmixer("Could not init SDL audio");
   }
+
+  SDL_version version;
+  SDL_GetVersion(&version);
+  Log::Info["audio"] << "Initialized with SDL "
+                     << static_cast<int>(version.major) << '.'
+                     << static_cast<int>(version.minor) << '.'
+                     << static_cast<int>(version.patch)
+                     << " (driver: " << SDL_GetCurrentAudioDriver() << ")";
+
+  const SDL_version *mversion = Mix_Linked_Version();
+  Log::Info["audio:SDL_mixer"] << "Initializing SDL_mixer "
+                               << static_cast<int>(mversion->major) << '.'
+                               << static_cast<int>(mversion->minor) << '.'
+                               << static_cast<int>(mversion->patch);
 
   int r = Mix_Init(0);
   if (r != 0) {
@@ -63,8 +83,8 @@ AudioSDL::AudioSDL() {
     throw ExceptionSDLmixer("Could not open audio device");
   }
 
-  r = Mix_AllocateChannels(16);
-  if (r != 16) {
+  r = Mix_AllocateChannels(128);
+  if (r != 128) {
     throw ExceptionSDLmixer("Failed to allocate channels");
   }
 
@@ -72,11 +92,17 @@ AudioSDL::AudioSDL() {
 
   sfx_player = std::make_shared<AudioSDL::PlayerSFX>();
   midi_player = std::make_shared<AudioSDL::PlayerMIDI>();
+
+  Log::Info["audio:SDL_mixer"] << "Initialized";
 }
 
 AudioSDL::~AudioSDL() {
+  sfx_player = nullptr;
+  midi_player = nullptr;
+
   Mix_CloseAudio();
   Mix_Quit();
+  SDL_AudioQuit();
 }
 
 float
@@ -205,6 +231,7 @@ AudioSDL::PlayerMIDI::PlayerMIDI() {
 }
 
 AudioSDL::PlayerMIDI::~PlayerMIDI() {
+  current_midi_player = nullptr;
   Mix_HookMusicFinished(nullptr);
 }
 
@@ -278,12 +305,12 @@ AudioSDL::PlayerMIDI::current_midi_player = nullptr;
 
 void
 AudioSDL::PlayerMIDI::music_finished_hook() {
-  EventLoop *event_loop = EventLoop::get_instance();
-  event_loop->deferred_call([](void*){
-    if (current_midi_player != nullptr) {
+  if (current_midi_player != nullptr) {
+    EventLoop *event_loop = EventLoop::get_instance();
+    event_loop->deferred_call([](void*){
       current_midi_player->music_finished();
-    }
-  }, nullptr);
+    }, nullptr);
+  }
 }
 
 void
