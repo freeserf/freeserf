@@ -21,8 +21,6 @@
 
 #include "src/panel.h"
 
-#include <cstdlib>
-
 #include "src/game.h"
 #include "src/debug.h"
 #include "src/data.h"

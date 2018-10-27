@@ -727,14 +727,14 @@ GameStore::load(const std::string &path, Game *game) {
 bool
 GameStore::quick_save(const std::string &prefix, Game *game) {
   /* Build filename including time stamp. */
-  std::time_t t = time(nullptr);
+  std::time_t t = time(NULL);
   struct tm *tm = std::localtime(&t);
   if (tm == nullptr) {
     return false;
   }
 
   char name[128];
-  size_t r = strftime(name, sizeof(name), "%c", tm);
+  size_t r = strftime(name, sizeof(name), "%Y-%m-%d_%H-%M-%S", tm);
   if (r == 0) {
     return false;
   }

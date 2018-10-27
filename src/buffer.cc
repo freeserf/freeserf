@@ -24,7 +24,6 @@
 #include <fstream>
 #include <string>
 #include <cstddef>
-#include <cstring>
 
 #include "src/debug.h"
 
@@ -201,16 +200,15 @@ MutableBuffer::check_size(size_t _size) {
 
 void
 MutableBuffer::push(PBuffer buffer) {
-  size_t _size = buffer->get_size();
-  check_size(size + _size);
-  ::memcpy(reinterpret_cast<uint8_t*>(data) + size, buffer->get_data(), _size);
-  size += _size;
+  push(buffer->get_data(), buffer->get_size());
 }
 
 void
 MutableBuffer::push(const void *_data, size_t _size) {
   check_size(size + _size);
-  ::memcpy(reinterpret_cast<uint8_t*>(data) + size, _data, _size);
+  uint8_t *to = reinterpret_cast<uint8_t*>(data) + size;
+  const uint8_t *from = reinterpret_cast<const uint8_t*>(_data);
+  std::copy(from, from + _size, to);
   size += _size;
 }
 

@@ -22,7 +22,6 @@
 #include "src/inventory.h"
 
 #include <algorithm>
-#include <cstdint>
 
 #include "src/savegame.h"
 #include "src/flag.h"

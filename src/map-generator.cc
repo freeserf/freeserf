@@ -21,7 +21,6 @@
 
 #include "src/map-generator.h"
 
-#include <cstdlib>
 #include <algorithm>
 #include <array>
 

@@ -21,7 +21,6 @@
 
 #include "src/game-init.h"
 
-#include <ctime>
 #include <algorithm>
 #include <sstream>
 #include <string>

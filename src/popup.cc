@@ -21,7 +21,6 @@
 
 #include "src/popup.h"
 
-#include <cmath>
 #include <algorithm>
 #include <sstream>
 
@@ -384,7 +383,7 @@ PopupBox::draw_green_number(int sx, int sy, int n) {
        in gfx_draw_number(). */
     int draw_zero = 0;
     if (n >= 100) {
-      int n100 = static_cast<int>(floor(n / 100.f));
+      int n100 = static_cast<int>((n / 100.f) + 0.5f);
       n -= n100 * 100;
       draw_popup_icon(sx, sy, 0x4e + n100);
       sx += 1;
@@ -392,7 +391,7 @@ PopupBox::draw_green_number(int sx, int sy, int n) {
     }
 
     if (n >= 10 || draw_zero) {
-      int n10 = static_cast<int>(floor(n / 10.f));
+      int n10 = static_cast<int>((n / 10.f) + 0.5f);
       n -= n10 * 10;
       draw_popup_icon(sx, sy, 0x4e + n10);
       sx += 1;
