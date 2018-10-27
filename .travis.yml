@@ -16,7 +16,7 @@ install:
   - export BUILD_DIR="$HOME/target"
   - mkdir $BUILD_DIR
 
-  - export SDL_VERSION="2.0.5"
+  - export SDL_VERSION="2.0.8"
   - export SDL2DIR="$HOME/3rd_party/${TRAVIS_OS_NAME}/SDL_${SDL_VERSION}"
   - export PKG_CONFIG_PATH="$SDL2DIR/lib/pkgconfig:$PKG_CONFIG_PATH"
   - export PATH="$SDL2DIR/bin:$PATH"
@@ -30,7 +30,7 @@ install:
           make -j5 && make install)
     fi
 
-  - export SDL_MIXER_VERSION="2.0.1"
+  - export SDL_MIXER_VERSION="2.0.2"
   - export SDL2MIXERDIR="$HOME/3rd_party/${TRAVIS_OS_NAME}/SDL_mixer_${SDL_MIXER_VERSION}"
   - export PKG_CONFIG_PATH="$SDL2MIXERDIR/lib/pkgconfig:$PKG_CONFIG_PATH"
   - export PATH="$SDL2MIXERDIR/bin:$PATH"
@@ -44,7 +44,7 @@ install:
           make -j5 && make install)
     fi
 
-  - export SDL_IMAGE_VERSION="2.0.1"
+  - export SDL_IMAGE_VERSION="2.0.3"
   - export SDL2IMAGEDIR="$HOME/3rd_party/${TRAVIS_OS_NAME}/SDL_image_${SDL_MIXER_VERSION}"
   - export PKG_CONFIG_PATH="$SDL2IMAGEDIR/lib/pkgconfig:$PKG_CONFIG_PATH"
   - export PATH="$SDL2IMAGEDIR/bin:$PATH"
