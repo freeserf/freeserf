@@ -33,9 +33,19 @@ build_script:
   - cmd: cmake -DCMAKE_TOOLCHAIN_FILE=c:/tools/vcpkg/scripts/buildsystems/vcpkg.cmake -G "NMake Makefiles" -DCMAKE_BUILD_TYPE=%configuration%
   - cmd: nmake check_style
   - cmd: nmake
-  - cmd: nmake test
   - cmd: nmake package
 
-after_build:
+test_script:
+  - cmd: nmake test
+
+after_test:
   - ps: |
-      Push-AppveyorArtifact FreeSerf-$env:PLATFORM-$env:CONFIGURATION.exe
+      $wc = New-Object 'System.Net.WebClient'
+      Get-ChildItem "$($env:APPVEYOR_BUILD_FOLDER)" -Filter *.xml |
+      Foreach-Object {
+        $wc.UploadFile("https://ci.appveyor.com/api/testresults/junit/$($env:APPVEYOR_JOB_ID)", $_.FullName)
+      }
+
+artifacts:
+  - path: FreeSerf-$(PLATFORM)-$(CONFIGURATION).exe
+    name: installer
