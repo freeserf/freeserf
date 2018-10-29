@@ -149,7 +149,7 @@ AudioSDL::volume_down() {
 
 Audio::PTrack
 AudioSDL::PlayerSFX::create_track(int track_id) {
-  Data *data = Data::get_instance();
+  PData &data = Data::get_instance();
   PDataSource data_source = data->get_data_source();
 
   PBuffer wav = data_source->get_sound(track_id);
@@ -237,7 +237,7 @@ AudioSDL::PlayerMIDI::~PlayerMIDI() {
 
 Audio::PTrack
 AudioSDL::PlayerMIDI::create_track(int track_id) {
-  Data *data = Data::get_instance();
+  PData &data = Data::get_instance();
   PDataSource data_source = data->get_data_source();
 
   PBuffer midi = data_source->get_music(track_id);

@@ -40,7 +40,6 @@ gtest_add_tests(TARGET test_map
                 WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/.."
                 TEST_LIST test_list)
 foreach(test IN LISTS test_list)
-  message(STATUS "test=${test}")
   set_tests_properties(${test} PROPERTIES ENVIRONMENT "GTEST_OUTPUT=xml:${PROJECT_BINARY_DIR}/${test}.xml")
 endforeach(test)
 
@@ -51,7 +50,6 @@ target_link_libraries(test_save_game game tools gtest gtest_main ${CMAKE_THREAD_
 gtest_add_tests(TARGET test_save_game
                 TEST_LIST test_list)
 foreach(test IN LISTS test_list)
-  message(STATUS "test=${test}")
   set_tests_properties(${test} PROPERTIES ENVIRONMENT "GTEST_OUTPUT=xml:${PROJECT_BINARY_DIR}/${test}.xml")
 endforeach(test)
 
@@ -62,6 +60,5 @@ target_link_libraries(test_map_geometry game tools gtest gtest_main ${CMAKE_THRE
 gtest_add_tests(TARGET test_map_geometry
                 TEST_LIST test_list)
 foreach(test IN LISTS test_list)
-  message(STATUS "test=${test}")
   set_tests_properties(${test} PROPERTIES ENVIRONMENT "GTEST_OUTPUT=xml:${PROJECT_BINARY_DIR}/${test}.xml")
 endforeach(test)

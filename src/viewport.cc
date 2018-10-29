@@ -2508,7 +2508,7 @@ Viewport::Viewport(Interface *_interface, PMap _map)
 
   last_tick = 0;
 
-  Data *data = Data::get_instance();
+  PData &data = Data::get_instance();
   data_source = data->get_data_source();
 }
 

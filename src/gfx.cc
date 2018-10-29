@@ -98,7 +98,7 @@ Graphics::Graphics() {
     throw ExceptionGFX(e.what());
   }
 
-  Data *data = Data::get_instance();
+  PData &data = Data::get_instance();
   PDataSource data_source = data->get_data_source();
   PSprite sprite = data_source->get_sprite(Data::AssetCursor, 0, {0, 0, 0, 0});
   video->set_cursor(sprite->get_data(),
@@ -412,7 +412,7 @@ Frame::Frame(Video *video_, unsigned int width, unsigned int height) {
   video = video_;
   video_frame = video->create_frame(width, height);
   owner = true;
-  Data *data = Data::get_instance();
+  PData &data = Data::get_instance();
   data_source = data->get_data_source();
 }
 
@@ -420,7 +420,7 @@ Frame::Frame(Video *video, Video::Frame *video_frame) {
   this->video = video;
   this->video_frame = video_frame;
   owner = false;
-  Data *data = Data::get_instance();
+  PData &data = Data::get_instance();
   data_source = data->get_data_source();
 }
 

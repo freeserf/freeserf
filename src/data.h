@@ -29,6 +29,9 @@
 class DataSource;
 typedef std::shared_ptr<DataSource> PDataSource;
 
+class Data;
+typedef std::unique_ptr<Data> PData;
+
 class Data {
  public:
   typedef enum Type {
@@ -87,7 +90,7 @@ class Data {
 
   Data& operator = (const Data& that) = delete;
 
-  static Data *get_instance();
+  static PData &get_instance();
 
   bool load(const std::string &path);
 

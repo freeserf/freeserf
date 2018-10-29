@@ -28,7 +28,8 @@
 
 #include "src/data.h"
 #include "src/data-source-legacy.h"
-#include "src/buffer.h"
+
+class Buffer;
 
 class DataSourceDOS : public DataSourceLegacy {
  public:

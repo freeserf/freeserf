@@ -87,7 +87,7 @@ main(int argc, char *argv[]) {
 
   Log::Info["main"] << "freeserf " << FREESERF_VERSION;
 
-  Data *data = Data::get_instance();
+  PData &data = Data::get_instance();
   if (!data->load(data_dir)) {
     Log::Error["main"] << "Could not load game data.";
     return EXIT_FAILURE;
