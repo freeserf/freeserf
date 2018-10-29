@@ -67,8 +67,77 @@ set(GAME_HEADERS building.h
                  serf.h
                  game-manager.h)
 
-set(OTHER_SOURCES data.cc
-                  pathfinder.cc
+add_library(game STATIC ${GAME_SOURCES} ${GAME_HEADERS})
+target_check_style(game)
+
+set(PLATFORM_SOURCES video.cc
+                     audio.cc
+                     event_loop.cc)
+
+set(PLATFORM_HEADERS video.h
+                     audio.h
+                     event_loop.h)
+
+if(SDL2_FOUND)
+  include_directories(${INCLUDE_DIRECTORIES} ${SDL2_INCLUDE_DIR})
+  list(APPEND PLATFORM_SOURCES video-sdl.cc event_loop-sdl.cc)
+  list(APPEND PLATFORM_HEADERS video-sdl.h event_loop-sdl.h)
+endif()
+
+if(ENABLE_SDL2_MIXER AND SDL2_MIXER_FOUND)
+  include_directories(${INCLUDE_DIRECTORIES} ${SDL2_MIXER_INCLUDE_DIR})
+  list(APPEND PLATFORM_SOURCES audio-sdlmixer.cc)
+  list(APPEND PLATFORM_HEADERS audio-sdlmixer.h)
+else()
+  list(APPEND PLATFORM_SOURCES audio-dummy.cc)
+  list(APPEND PLATFORM_HEADERS audio-dummy.h )
+endif()
+
+add_library(platform STATIC ${PLATFORM_SOURCES} ${PLATFORM_HEADERS})
+target_check_style(platform)
+
+set(DATA_SOURCES data.cc
+                 data-source-dos.cc
+                 data-source-amiga.cc
+                 data-source-legacy.cc
+                 data-source-custom.cc
+                 tpwm.cc
+                 sfx2wav.cc
+                 xmi2mid.cc
+                 pcm2wav.cc
+                 data-source.cc)
+
+set(DATA_HEADERS data.h
+                 data-source-dos.h
+                 data-source-amiga.h
+                 data-source-legacy.h
+                 data-source-custom.h
+                 tpwm.h
+                 sfx2wav.h
+                 xmi2mid.h
+                 mod2wav.h
+                 pcm2wav.h
+                 data-source.h)
+
+if(ENABLE_SDL2_IMAGE AND SDL2_IMAGE_FOUND)
+  include_directories(${INCLUDE_DIRECTORIES} ${SDL2_IMAGE_INCLUDE_DIR})
+  list(APPEND DATA_SOURCES sprite-file-sdl.cc)
+else()
+  list(APPEND DATA_SOURCES sprite-file-dummy.cc)
+endif()
+
+if(ENABLE_XMP AND XMP_FOUND)
+  add_definitions(/DENABLE_XMP)
+  include_directories(${INCLUDE_DIRECTORIES} ${XMP_INCLUDE_DIR})
+  list(APPEND DATA_SOURCES mod2wav.cc)
+else()
+  list(APPEND DATA_SOURCES mod2wav-dummy.cc)
+endif()
+
+add_library(data STATIC ${DATA_SOURCES} ${DATA_HEADERS})
+target_check_style(data)
+
+set(OTHER_SOURCES pathfinder.cc
                   gfx.cc
                   viewport.cc
                   minimap.cc
@@ -78,25 +147,12 @@ set(OTHER_SOURCES data.cc
                   game-init.cc
                   notification.cc
                   panel.cc
-                  video.cc
-                  audio.cc
                   version.cc
-                  data-source-dos.cc
-                  data-source-amiga.cc
-                  data-source-legacy.cc
-                  data-source-custom.cc
-                  tpwm.cc
-                  event_loop.cc
-                  sfx2wav.cc
-                  xmi2mid.cc
-                  pcm2wav.cc
-                  data-source.cc
                   text-input.cc
                   list.cc
                   command_line.cc)
 
-set(OTHER_HEADERS data.h
-                  pathfinder.h
+set(OTHER_HEADERS pathfinder.h
                   gfx.h
                   viewport.h
                   minimap.h
@@ -106,22 +162,9 @@ set(OTHER_HEADERS data.h
                   game-init.h
                   notification.h
                   panel.h
-                  video.h
-                  audio.h
                   misc.h
                   freeserf_endian.h
                   version.h
-                  data-source-dos.h
-                  data-source-amiga.h
-                  data-source-legacy.h
-                  data-source-custom.h
-                  tpwm.h
-                  event_loop.h
-                  sfx2wav.h
-                  xmi2mid.h
-                  mod2wav.h
-                  pcm2wav.h
-                  data-source.h
                   text-input.h
                   list.h
                   convertor.h
@@ -132,45 +175,12 @@ if(WIN32)
   add_definitions(/D_CRT_SECURE_NO_WARNINGS)
 endif()
 
-add_library(game STATIC ${GAME_SOURCES} ${GAME_HEADERS})
-target_check_style(game)
-
-if(SDL2_FOUND)
-  include_directories(${INCLUDE_DIRECTORIES} ${SDL2_INCLUDE_DIR})
-  list(APPEND OTHER_SOURCES video-sdl.cc event_loop-sdl.cc)
-  list(APPEND OTHER_HEADERS video-sdl.h event_loop-sdl.h)
-endif()
-
-if(ENABLE_SDL2_MIXER AND SDL2_MIXER_FOUND)
-  include_directories(${INCLUDE_DIRECTORIES} ${SDL2_MIXER_INCLUDE_DIR})
-  list(APPEND OTHER_SOURCES audio-sdlmixer.cc)
-  list(APPEND OTHER_HEADERS audio-sdlmixer.h)
-else()
-  list(APPEND OTHER_SOURCES audio-dummy.cc)
-  list(APPEND OTHER_HEADERS audio-dummy.h )
-endif()
-
-if(ENABLE_SDL2_IMAGE AND SDL2_IMAGE_FOUND)
-  include_directories(${INCLUDE_DIRECTORIES} ${SDL2_IMAGE_INCLUDE_DIR})
-  list(APPEND OTHER_SOURCES sprite-file-sdl.cc)
-else()
-  list(APPEND OTHER_SOURCES sprite-file-dummy.cc)
-endif()
-
-if(ENABLE_XMP AND XMP_FOUND)
-  add_definitions(/DENABLE_XMP)
-  include_directories(${INCLUDE_DIRECTORIES} ${XMP_INCLUDE_DIR})
-  list(APPEND OTHER_SOURCES mod2wav.cc)
-else()
-  list(APPEND OTHER_SOURCES mod2wav-dummy.cc)
-endif()
-
 set(FREESERF_SOURCES freeserf.cc ${OTHER_SOURCES})
 set(FREESERF_HEADERS freeserf.h ${OTHER_HEADERS})
 add_executable(FreeSerf MACOSX_BUNDLE WIN32 ${FREESERF_SOURCES} ${FREESERF_HEADERS})
 target_check_style(FreeSerf)
 
-target_link_libraries(FreeSerf game tools)
+target_link_libraries(FreeSerf game platform data tools)
 if(SDL2_FOUND)
   target_link_libraries(FreeSerf ${SDL2_LIBRARY})
   target_link_libraries(FreeSerf ${SDL2_MAIN_LIBRARY})

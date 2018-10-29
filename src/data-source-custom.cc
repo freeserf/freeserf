@@ -27,6 +27,7 @@
 #include <utility>
 
 #include "src/sprite-file.h"
+#include "src/buffer.h"
 
 DataSourceCustom::DataSourceCustom(const std::string &_path)
   : DataSource(_path)

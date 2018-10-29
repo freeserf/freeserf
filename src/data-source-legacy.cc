@@ -26,6 +26,7 @@
 
 #include "src/freeserf_endian.h"
 #include "src/log.h"
+#include "src/buffer.h"
 
 DataSourceLegacy::DataSourceLegacy(const std::string &_path)
   : DataSource(_path) {

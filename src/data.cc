@@ -83,10 +83,10 @@ DataResource data_resources[] = {
 
 Data::Data() : data_source(nullptr) {}
 
-Data *
+PData &
 Data::get_instance() {
-  static Data instance;
-  return &instance;
+  static PData pInstance(new Data());
+  return pInstance;
 }
 
 Data::~Data() {

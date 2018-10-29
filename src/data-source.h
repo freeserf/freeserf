@@ -29,7 +29,9 @@
 
 #include "src/data.h"
 #include "src/debug.h"
-#include "src/buffer.h"
+
+class Buffer;
+typedef std::shared_ptr<Buffer> PBuffer;
 
 // Sprite object.
 // Contains BGRA data.
