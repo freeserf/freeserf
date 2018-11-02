@@ -24,6 +24,12 @@ else()
   find_package(XMP)
 endif()
 
+if(WIN32)
+  add_definitions(/D_CRT_SECURE_NO_WARNINGS /D_SCL_SECURE_NO_WARNINGS)
+endif()
+
+# Tools library
+
 set(TOOLS_SOURCES debug.cc
                   log.cc
                   configfile.cc
@@ -37,6 +43,8 @@ set(TOOLS_HEADERS debug.h
 
 add_library(tools STATIC ${TOOLS_SOURCES} ${TOOLS_HEADERS})
 target_check_style(tools)
+
+# Game library
 
 set(GAME_SOURCES building.cc
                  flag.cc
@@ -70,6 +78,8 @@ set(GAME_HEADERS building.h
 add_library(game STATIC ${GAME_SOURCES} ${GAME_HEADERS})
 target_check_style(game)
 
+# Platform library
+
 set(PLATFORM_SOURCES video.cc
                      audio.cc
                      event_loop.cc)
@@ -96,6 +106,8 @@ endif()
 add_library(platform STATIC ${PLATFORM_SOURCES} ${PLATFORM_HEADERS})
 target_check_style(platform)
 
+# Data library
+
 set(DATA_SOURCES data.cc
                  data-source-dos.cc
                  data-source-amiga.cc
@@ -117,7 +129,8 @@ set(DATA_HEADERS data.h
                  xmi2mid.h
                  mod2wav.h
                  pcm2wav.h
-                 data-source.h)
+                 data-source.h
+                 sprite-file.h)
 
 if(ENABLE_SDL2_IMAGE AND SDL2_IMAGE_FOUND)
   include_directories(${INCLUDE_DIRECTORIES} ${SDL2_IMAGE_INCLUDE_DIR})
@@ -136,6 +149,8 @@ endif()
 
 add_library(data STATIC ${DATA_SOURCES} ${DATA_HEADERS})
 target_check_style(data)
+
+# FreeSerf executable
 
 set(OTHER_SOURCES pathfinder.cc
                   gfx.cc
@@ -168,12 +183,7 @@ set(OTHER_HEADERS pathfinder.h
                   text-input.h
                   list.h
                   convertor.h
-                  sprite-file.h
                   command_line.h)
-
-if(WIN32)
-  add_definitions(/D_CRT_SECURE_NO_WARNINGS)
-endif()
 
 set(FREESERF_SOURCES freeserf.cc ${OTHER_SOURCES})
 set(FREESERF_HEADERS freeserf.h ${OTHER_HEADERS})
@@ -246,7 +256,7 @@ else()
 endif()
 include(CPack)
 
-# Profiler
+# Profiler executable
 
 set(PROFILER_SOURCES profiler.cc
                      version.cc
