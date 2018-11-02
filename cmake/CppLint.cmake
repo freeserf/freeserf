@@ -31,5 +31,6 @@ function(target_check_style TARGET)
                       DEPENDS ${SOURCES_LIST}
                       WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
     add_dependencies(check_style ${TARGET_NAME})
+    set_property(TARGET ${TARGET_NAME} PROPERTY FOLDER "check_style")
   endif()
 endfunction()
