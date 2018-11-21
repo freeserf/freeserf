@@ -6,6 +6,8 @@ Build status
 
 [![Build Status](https://travis-ci.org/freeserf/freeserf.svg?branch=master)](https://travis-ci.org/freeserf/freeserf)
 [![Build Status](https://ci.appveyor.com/api/projects/status/github/freeserf/freeserf?branch=master&svg=true)](https://ci.appveyor.com/project/jonls/freeserf)
+[![Code Quality: Cpp](https://img.shields.io/lgtm/grade/cpp/g/freeserf/freeserf.svg?logo=lgtm&logoWidth=18)](https://lgtm.com/projects/g/freeserf/freeserf/context:cpp)
+[![Total Alerts](https://img.shields.io/lgtm/alerts/g/freeserf/freeserf.svg?logo=lgtm&logoWidth=18)](https://lgtm.com/projects/g/freeserf/freeserf/alerts)
 
 Last build downloads
 --------------------
