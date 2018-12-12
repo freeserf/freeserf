@@ -379,25 +379,7 @@ PopupBox::draw_green_number(int sx, int sy, int n) {
     draw_popup_icon(sx+1, sy, 0xd6);
     draw_popup_icon(sx+2, sy, 0xd7);
   } else {
-    /* Not the same sprites as are used to draw numbers
-       in gfx_draw_number(). */
-    int draw_zero = 0;
-    if (n >= 100) {
-      int n100 = static_cast<int>((n / 100.f) + 0.5f);
-      n -= n100 * 100;
-      draw_popup_icon(sx, sy, 0x4e + n100);
-      sx += 1;
-      draw_zero = 1;
-    }
-
-    if (n >= 10 || draw_zero) {
-      int n10 = static_cast<int>((n / 10.f) + 0.5f);
-      n -= n10 * 10;
-      draw_popup_icon(sx, sy, 0x4e + n10);
-      sx += 1;
-    }
-
-    draw_popup_icon(sx, sy, 0x4e + n);
+    frame->draw_number(8 * sx + 8, 9 + sy, n, Color::green);
   }
 }
 
