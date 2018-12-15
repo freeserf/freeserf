@@ -1,7 +1,7 @@
 /*
  * game-init.cc - Game initialization GUI component
  *
- * Copyright (C) 2013-2016  Jon Lund Steffensen <jonlst@gmail.com>
+ * Copyright (C) 2013-2018  Jon Lund Steffensen <jonlst@gmail.com>
  *
  * This file is part of freeserf.
  *
@@ -117,7 +117,7 @@ GameInitBox::GameInitBox(Interface *interface)
   file_list->set_displayed(false);
   file_list->set_selection_handler([this](const std::string &item) {
     Game game;
-    if (GameStore::get_instance()->load(item, &game)) {
+    if (GameStore::get_instance().load(item, &game)) {
       this->map = game.get_map();
       this->minimap->set_map(map);
     }
@@ -290,11 +290,11 @@ GameInitBox::handle_action(int action) {
     case ActionStartGame: {
       if (game_type == GameLoad) {
         std::string path = file_list->get_selected();
-        if (!GameManager::get_instance()->load_game(path)) {
+        if (!GameManager::get_instance().load_game(path)) {
           return;
         }
       } else {
-        if (!GameManager::get_instance()->start_game(mission)) {
+        if (!GameManager::get_instance().start_game(mission)) {
           return;
         }
       }

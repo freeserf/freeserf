@@ -50,7 +50,7 @@ TEST(SaveGame, RandomMapSaveGame) {
 
   // Save the game state
   std::stringstream str;
-  bool saved = GameStore::get_instance()->write(&str, game.get());
+  bool saved = GameStore::get_instance().write(&str, game.get());
   str.flush();
 
   ASSERT_TRUE(saved && str.good()) <<
@@ -59,7 +59,7 @@ TEST(SaveGame, RandomMapSaveGame) {
   // Load the game state into a new game
   str.seekg(0, std::ios::beg);
   std::unique_ptr<Game> loaded_game(new Game());
-  bool loaded = GameStore::get_instance()->read(&str, loaded_game.get());
+  bool loaded = GameStore::get_instance().read(&str, loaded_game.get());
 
   ASSERT_TRUE(loaded) <<
     "Failed to load save game state; returned " << loaded;

@@ -1,7 +1,7 @@
 /*
  * event_loop-sdl.cc - User and system events handling
  *
- * Copyright (C) 2012-2017  Jon Lund Steffensen <jonlst@gmail.com>
+ * Copyright (C) 2012-2018  Jon Lund Steffensen <jonlst@gmail.com>
  *
  * This file is part of freeserf.
  *
@@ -28,13 +28,10 @@
 #include "src/freeserf.h"
 #include "src/video-sdl.h"
 
-EventLoop *
+EventLoop &
 EventLoop::get_instance() {
-  if (instance == nullptr) {
-    instance = new EventLoopSDL();
-  }
-
-  return instance;
+  static EventLoopSDL event_loop;
+  return event_loop;
 }
 
 /* How fast consequtive mouse events need to be generated
@@ -107,9 +104,9 @@ EventLoopSDL::run() {
 
   SDL_Event event;
 
-  Graphics *gfx = Graphics::get_instance();
+  Graphics &gfx = Graphics::get_instance();
   Frame *screen = nullptr;
-  gfx->get_screen_factor(&screen_factor_x, &screen_factor_y);
+  gfx.get_screen_factor(&screen_factor_x, &screen_factor_y);
 
   while (SDL_WaitEvent(&event)) {
     unsigned int current_ticks = SDL_GetTicks();
@@ -224,7 +221,7 @@ EventLoopSDL::run() {
             /* Video */
           case SDLK_f:
             if (event.key.keysym.mod & KMOD_CTRL) {
-              gfx->set_fullscreen(!gfx->is_fullscreen());
+              gfx.set_fullscreen(!gfx.is_fullscreen());
             }
             break;
           case SDLK_RIGHTBRACKET:
@@ -253,8 +250,8 @@ EventLoopSDL::run() {
         if (SDL_WINDOWEVENT_SIZE_CHANGED == event.window.event) {
           unsigned int width = event.window.data1;
           unsigned int height = event.window.data2;
-          gfx->set_resolution(width, height, gfx->is_fullscreen());
-          gfx->get_screen_factor(&screen_factor_x, &screen_factor_y);
+          gfx.set_resolution(width, height, gfx.is_fullscreen());
+          gfx.get_screen_factor(&screen_factor_x, &screen_factor_y);
           notify_resize(width, height);
         }
         break;
@@ -272,12 +269,12 @@ EventLoopSDL::run() {
             notify_update();
 
             if (screen == nullptr) {
-              screen = gfx->get_screen_frame();
+              screen = gfx.get_screen_frame();
             }
             notify_draw(screen);
 
             /* Swap video buffers */
-            gfx->swap_buffers();
+            gfx.swap_buffers();
             break;
           case EventUserTypeCall: {
             while (!deferred_calls.empty()) {
@@ -302,13 +299,13 @@ EventLoopSDL::run() {
 
 void
 EventLoopSDL::zoom(float delta) {
-  Graphics *gfx = Graphics::get_instance();
-  float factor = gfx->get_zoom_factor();
-  if (gfx->set_zoom_factor(factor + delta)) {
-    zoom_factor = gfx->get_zoom_factor();
+  Graphics &gfx = Graphics::get_instance();
+  float factor = gfx.get_zoom_factor();
+  if (gfx.set_zoom_factor(factor + delta)) {
+    zoom_factor = gfx.get_zoom_factor();
     unsigned int width = 0;
     unsigned int height = 0;
-    gfx->get_resolution(&width, &height);
+    gfx.get_resolution(&width, &height);
     notify_resize(width, height);
   }
 }

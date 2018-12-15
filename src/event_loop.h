@@ -1,7 +1,7 @@
 /*
  * event_loop.h - User and system events handling
  *
- * Copyright (C) 2012-2017  Jon Lund Steffensen <jonlst@gmail.com>
+ * Copyright (C) 2012-2018  Jon Lund Steffensen <jonlst@gmail.com>
  *
  * This file is part of freeserf.
  *
@@ -57,6 +57,7 @@ class Timer {
  public:
   class Handler {
    public:
+    virtual ~Handler() {}
     virtual void on_timer_fired(unsigned int id) = 0;
   };
 
@@ -82,6 +83,7 @@ class EventLoop {
  public:
   class Handler {
    public:
+    virtual ~Handler() {}
     virtual bool handle_event(const Event *event) = 0;
   };
 
@@ -95,7 +97,7 @@ class EventLoop {
   static EventLoop *instance;
 
  public:
-  static EventLoop *get_instance();
+  static EventLoop &get_instance();
   virtual ~EventLoop() {}
 
   virtual void run() = 0;

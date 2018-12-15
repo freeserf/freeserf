@@ -1,7 +1,7 @@
 /*
  * game-manager.h - Gameplay related functions
  *
- * Copyright (C) 2017  Wicked_Digger <wicked_digger@mail.ru>
+ * Copyright (C) 2017-2018  Wicked_Digger <wicked_digger@mail.ru>
  *
  * This file is part of freeserf.
  *
@@ -38,7 +38,6 @@ class GameManager {
   };
 
  protected:
-  static GameManager *instance;
   PGame current_game;
   typedef std::list<Handler*> Handlers;
   Handlers handlers;
@@ -48,7 +47,7 @@ class GameManager {
  public:
   virtual ~GameManager();
 
-  static GameManager *get_instance();
+  static GameManager &get_instance();
 
   void add_handler(Handler *handler);
   void del_handler(Handler *handler);

@@ -1,7 +1,7 @@
 /*
  * data.h - Definitions for data file access.
  *
- * Copyright (C) 2012-2016  Jon Lund Steffensen <jonlst@gmail.com>
+ * Copyright (C) 2012-2018  Jon Lund Steffensen <jonlst@gmail.com>
  *
  * This file is part of freeserf.
  *
@@ -90,7 +90,7 @@ class Data {
 
   Data& operator = (const Data& that) = delete;
 
-  static PData &get_instance();
+  static Data &get_instance();
 
   bool load(const std::string &path);
 

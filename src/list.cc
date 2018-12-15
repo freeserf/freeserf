@@ -1,7 +1,7 @@
 /*
  * list.cc - String list GUI component
  *
- * Copyright (C) 2017  Wicked_Digger <wicked_digger@mail.ru>
+ * Copyright (C) 2017-2018  Wicked_Digger <wicked_digger@mail.ru>
  *
  * This file is part of freeserf.
  *
@@ -23,7 +23,7 @@
 
 ListSavedFiles::ListSavedFiles()
   : GuiObject()
-  , save_game(GameStore::get_instance()) {
+  , save_game(&GameStore::get_instance()) {
   color_focus = Color(0x00, 0x8b, 0x47);
   color_text = Color::green;
   color_background = Color::black;

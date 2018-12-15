@@ -1,7 +1,7 @@
 /*
  * data.cc - Game resources file functions
  *
- * Copyright (C) 2014-2017  Wicked_Digger <wicked_digger@mail.ru>
+ * Copyright (C) 2014-2018  Wicked_Digger <wicked_digger@mail.ru>
  *
  * This file is part of freeserf.
  *
@@ -83,10 +83,10 @@ DataResource data_resources[] = {
 
 Data::Data() : data_source(nullptr) {}
 
-PData &
+Data &
 Data::get_instance() {
-  static PData pInstance(new Data());
-  return pInstance;
+  static Data instance;
+  return instance;
 }
 
 Data::~Data() {

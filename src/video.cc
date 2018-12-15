@@ -1,7 +1,7 @@
 /*
  * video.cc - Base for graphics rendering
  *
- * Copyright (C) 2015  Wicked_Digger <wicked_digger@mail.ru>
+ * Copyright (C) 2015-2018  Wicked_Digger <wicked_digger@mail.ru>
  *
  * This file is part of freeserf.
  *
@@ -33,18 +33,4 @@ ExceptionVideo::~ExceptionVideo() {
 std::string
 ExceptionVideo::get_description() const {
   return "[" + get_system() + ":" + get_platform() + "] " + description.c_str();
-}
-
-Video *Video::instance = NULL;
-
-Video::Video() {
-  if (instance != NULL) {
-    throw ExceptionVideo("Unable to create second instance.");
-  }
-
-  instance = this;
-}
-
-Video::~Video() {
-  instance = NULL;
 }

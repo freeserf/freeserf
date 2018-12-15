@@ -1,7 +1,7 @@
 /*
  * audio.h - Music and sound effects playback base.
  *
- * Copyright (C) 2012-2015  Wicked_Digger <wicked_digger@mail.ru>
+ * Copyright (C) 2012-2018  Wicked_Digger <wicked_digger@mail.ru>
  *
  * This file is part of freeserf.
  *
@@ -142,7 +142,7 @@ class Audio {
   /* Common audio. */
   virtual ~Audio() {}
 
-  static Audio *get_instance();
+  static Audio &get_instance();
 
   virtual VolumeController *get_volume_controller() = 0;
   virtual PPlayer get_sound_player() = 0;

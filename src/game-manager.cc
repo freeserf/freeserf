@@ -1,7 +1,7 @@
 /*
  * game-manager.cc - Gameplay related functions
  *
- * Copyright (C) 2017  Wicked_Digger <wicked_digger@mail.ru>
+ * Copyright (C) 2017-2018  Wicked_Digger <wicked_digger@mail.ru>
  *
  * This file is part of freeserf.
  *
@@ -26,15 +26,10 @@
 
 #include "src/savegame.h"
 
-GameManager *GameManager::instance = nullptr;
-
-GameManager *
+GameManager &
 GameManager::get_instance() {
-  if (instance == nullptr) {
-    instance = new GameManager();
-  }
-
-  return instance;
+  static GameManager game_manager;
+  return game_manager;
 }
 
 GameManager::GameManager() {
@@ -42,7 +37,6 @@ GameManager::GameManager() {
 
 GameManager::~GameManager() {
   set_current_game(nullptr);
-  delete GameStore::get_instance();
 }
 
 void
@@ -94,7 +88,7 @@ GameManager::start_game(PGameInfo game_info) {
 bool
 GameManager::load_game(const std::string &path) {
   PGame new_game = std::make_shared<Game>();
-  if (!GameStore::get_instance()->load(path, new_game.get())) {
+  if (!GameStore::get_instance().load(path, new_game.get())) {
     return false;
   }
 

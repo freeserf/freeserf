@@ -1,7 +1,7 @@
 /*
  * video.h - Base for graphics rendering
  *
- * Copyright (C) 2015  Wicked_Digger <wicked_digger@mail.ru>
+ * Copyright (C) 2015-2018  Wicked_Digger <wicked_digger@mail.ru>
  *
  * This file is part of freeserf.
  *
@@ -50,14 +50,12 @@ class Video {
   class Image;
 
  protected:
-  static Video *instance;
-
-  Video();
+  Video() {}
 
  public:
-  virtual ~Video();
+  virtual ~Video() {}
 
-  static Video *get_instance();
+  static Video &get_instance();
 
   virtual void set_resolution(unsigned int width, unsigned int height,
                               bool fullscreen) = 0;

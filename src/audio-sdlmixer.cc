@@ -1,7 +1,7 @@
 /*
  * audio-sdlmixer.cc - Music and sound effects playback using SDL_mixer.
  *
- * Copyright (C) 2012-2017  Wicked_Digger <wicked_digger@mail.ru>
+ * Copyright (C) 2012-2018  Wicked_Digger <wicked_digger@mail.ru>
  *
  * This file is part of freeserf.
  *
@@ -38,12 +38,10 @@ ExceptionSDLmixer::ExceptionSDLmixer(const std::string &_description)
   description += " (" + sdl_error + ")";
 }
 
-Audio *
+Audio &
 Audio::get_instance() {
-  if (instance == nullptr) {
-    instance = new AudioSDL();
-  }
-  return instance;
+  static AudioSDL audio_sdl;
+  return audio_sdl;
 }
 
 AudioSDL::AudioSDL() {
@@ -149,8 +147,8 @@ AudioSDL::volume_down() {
 
 Audio::PTrack
 AudioSDL::PlayerSFX::create_track(int track_id) {
-  PData &data = Data::get_instance();
-  PDataSource data_source = data->get_data_source();
+  Data &data = Data::get_instance();
+  PDataSource data_source = data.get_data_source();
 
   PBuffer wav = data_source->get_sound(track_id);
   if (!wav) {
@@ -237,8 +235,8 @@ AudioSDL::PlayerMIDI::~PlayerMIDI() {
 
 Audio::PTrack
 AudioSDL::PlayerMIDI::create_track(int track_id) {
-  PData &data = Data::get_instance();
-  PDataSource data_source = data->get_data_source();
+  Data &data = Data::get_instance();
+  PDataSource data_source = data.get_data_source();
 
   PBuffer midi = data_source->get_music(track_id);
   if (!midi) {
@@ -306,8 +304,8 @@ AudioSDL::PlayerMIDI::current_midi_player = nullptr;
 void
 AudioSDL::PlayerMIDI::music_finished_hook() {
   if (current_midi_player != nullptr) {
-    EventLoop *event_loop = EventLoop::get_instance();
-    event_loop->deferred_call([](void*){
+    EventLoop &event_loop = EventLoop::get_instance();
+    event_loop.deferred_call([](void*){
       current_midi_player->music_finished();
     }, nullptr);
   }

@@ -1,7 +1,7 @@
 /*
  * viewport.cc - Viewport GUI component
  *
- * Copyright (C) 2013-2017  Jon Lund Steffensen <jonlst@gmail.com>
+ * Copyright (C) 2013-2018  Jon Lund Steffensen <jonlst@gmail.com>
  *
  * This file is part of freeserf.
  *
@@ -302,7 +302,7 @@ Viewport::get_tile_frame(unsigned int tid, int tc, int tr) {
   int tile_height = MAP_TILE_ROWS*MAP_TILE_HEIGHT;
 
   std::unique_ptr<Frame> tile_frame(
-    Graphics::get_instance()->create_frame(tile_width, tile_height));
+    Graphics::get_instance().create_frame(tile_width, tile_height));
   tile_frame->fill_rect(0, 0, tile_width, tile_height, Color::black);
 
   int col = (tc*MAP_TILE_COLS + (tr*MAP_TILE_ROWS)/2) % map->get_cols();
@@ -2508,8 +2508,7 @@ Viewport::Viewport(Interface *_interface, PMap _map)
 
   last_tick = 0;
 
-  PData &data = Data::get_instance();
-  data_source = data->get_data_source();
+  data_source = Data::get_instance().get_data_source();
 }
 
 Viewport::~Viewport() {

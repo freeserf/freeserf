@@ -1,7 +1,7 @@
 /*
  * freeserf.cc - Main program source.
  *
- * Copyright (C) 2013-2017  Jon Lund Steffensen <jonlst@gmail.com>
+ * Copyright (C) 2013-2018  Jon Lund Steffensen <jonlst@gmail.com>
  *
  * This file is part of freeserf.
  *
@@ -87,72 +87,59 @@ main(int argc, char *argv[]) {
 
   Log::Info["main"] << "freeserf " << FREESERF_VERSION;
 
-  PData &data = Data::get_instance();
-  if (!data->load(data_dir)) {
+  Data &data = Data::get_instance();
+  if (!data.load(data_dir)) {
     Log::Error["main"] << "Could not load game data.";
     return EXIT_FAILURE;
   }
 
   Log::Info["main"] << "Initialize graphics...";
 
-  Graphics *gfx = nullptr;
-  try {
-    gfx = Graphics::get_instance();
-  } catch (ExceptionFreeserf &e) {
-    Log::Error[e.get_system().c_str()] << e.what();
-    return EXIT_FAILURE;
-  }
+  Graphics &gfx = Graphics::get_instance();
 
   /* TODO move to right place */
-  Audio *audio = Audio::get_instance();
-  Audio::PPlayer player = audio->get_music_player();
+  Audio &audio = Audio::get_instance();
+  Audio::PPlayer player = audio.get_music_player();
   if (player) {
     player->play_track(Audio::TypeMidiTrack0);
   }
 
-  GameManager *game_manager = GameManager::get_instance();
+  GameManager &game_manager = GameManager::get_instance();
 
   /* Either load a save game if specified or
      start a new game. */
   if (!save_file.empty()) {
-    if (!game_manager->load_game(save_file)) {
+    if (!game_manager.load_game(save_file)) {
       return EXIT_FAILURE;
     }
   } else {
-    if (!game_manager->start_random_game()) {
+    if (!game_manager.start_random_game()) {
       return EXIT_FAILURE;
     }
   }
 
   /* Initialize interface */
-  Interface *interface = new Interface();
+  Interface interface;
   if ((screen_width == 0) || (screen_height == 0)) {
-    gfx->get_resolution(&screen_width, &screen_height);
+    gfx.get_resolution(&screen_width, &screen_height);
   }
-  interface->set_size(screen_width, screen_height);
-  interface->set_displayed(true);
+  interface.set_size(screen_width, screen_height);
+  interface.set_displayed(true);
 
   if (save_file.empty()) {
-    interface->open_game_init();
+    interface.open_game_init();
   }
 
   /* Init game loop */
-  EventLoop *event_loop = EventLoop::get_instance();
-  event_loop->add_handler(interface);
+  EventLoop &event_loop = EventLoop::get_instance();
+  event_loop.add_handler(&interface);
 
   /* Start game loop */
-  event_loop->run();
+  event_loop.run();
 
-  event_loop->del_handler(interface);
+  event_loop.del_handler(&interface);
 
   Log::Info["main"] << "Cleaning up...";
-
-  /* Clean up */
-  delete interface;
-  delete audio;
-  delete gfx;
-  delete event_loop;
-  delete game_manager;
 
   return EXIT_SUCCESS;
 }

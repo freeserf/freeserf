@@ -1,7 +1,7 @@
 /*
  * interface.cc - Top-level GUI interface
  *
- * Copyright (C) 2013-2014  Jon Lund Steffensen <jonlst@gmail.com>
+ * Copyright (C) 2013-2018  Jon Lund Steffensen <jonlst@gmail.com>
  *
  * This file is part of freeserf.
  *
@@ -76,12 +76,12 @@ Interface::Interface() {
   init_box = nullptr;
   notification_box = nullptr;
 
-  GameManager::get_instance()->add_handler(this);
-  set_game(GameManager::get_instance()->get_current_game());
+  GameManager::get_instance().add_handler(this);
+  set_game(GameManager::get_instance().get_current_game());
 }
 
 Interface::~Interface() {
-  GameManager::get_instance()->del_handler(this);
+  GameManager::get_instance().del_handler(this);
   set_game(nullptr);
 
   delete viewport;
@@ -850,16 +850,16 @@ Interface::handle_key_pressed(char key, int modifier) {
 
     /* Audio */
     case 's': {
-      Audio *audio = Audio::get_instance();
-      Audio::PPlayer splayer = audio->get_sound_player();
+      Audio &audio = Audio::get_instance();
+      Audio::PPlayer splayer = audio.get_sound_player();
       if (splayer) {
         splayer->enable(!splayer->is_enabled());
       }
       break;
     }
     case 'm': {
-      Audio *audio = Audio::get_instance();
-      Audio::PPlayer splayer = audio->get_music_player();
+      Audio &audio = Audio::get_instance();
+      Audio::PPlayer splayer = audio.get_music_player();
       if (splayer) {
         splayer->enable(!splayer->is_enabled());
       }
@@ -885,7 +885,7 @@ Interface::handle_key_pressed(char key, int modifier) {
     }
     case 'z':
       if (modifier & 1) {
-        GameStore::get_instance()->quick_save("quicksave", game.get());
+        GameStore::get_instance().quick_save("quicksave", game.get());
       }
       break;
     case 'n':
