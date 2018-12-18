@@ -1,7 +1,7 @@
 /*
  * video-sdl.cc - SDL graphics rendering
  *
- * Copyright (C) 2013-2015  Jon Lund Steffensen <jonlst@gmail.com>
+ * Copyright (C) 2013-2018  Jon Lund Steffensen <jonlst@gmail.com>
  *
  * This file is part of freeserf.
  *
@@ -113,11 +113,9 @@ VideoSDL::~VideoSDL() {
   SDL_VideoQuit();
 }
 
-Video *
+Video &
 Video::get_instance() {
-  if (instance == nullptr) {
-    instance = new VideoSDL();
-  }
+  static VideoSDL instance;
   return instance;
 }
 

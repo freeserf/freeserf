@@ -1,7 +1,7 @@
 /*
  * map.h - Map data and map update functions
  *
- * Copyright (C) 2013-2016  Jon Lund Steffensen <jonlst@gmail.com>
+ * Copyright (C) 2013-2018  Jon Lund Steffensen <jonlst@gmail.com>
  *
  * This file is part of freeserf.
  *
@@ -229,6 +229,7 @@ class Map {
 
   class Handler {
    public:
+    virtual ~Handler() {}
     virtual void on_height_changed(MapPos pos) = 0;
     virtual void on_object_changed(MapPos pos) = 0;
   };

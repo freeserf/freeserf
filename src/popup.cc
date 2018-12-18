@@ -1,7 +1,7 @@
 /*
  * popup.cc - Popup GUI component
  *
- * Copyright (C) 2013-2017  Jon Lund Steffensen <jonlst@gmail.com>
+ * Copyright (C) 2013-2018  Jon Lund Steffensen <jonlst@gmail.com>
  *
  * This file is part of freeserf.
  *
@@ -1883,18 +1883,18 @@ PopupBox::draw_options_box() {
   draw_green_string(1, 39, "effects");
   draw_green_string(1, 54, "Volume");
 
-  Audio *audio = Audio::get_instance();
-  Audio::PPlayer player = audio->get_music_player();
+  Audio &audio = Audio::get_instance();
+  Audio::PPlayer player = audio.get_music_player();
   // Music
   draw_popup_icon(13, 10, ((player) && player->is_enabled()) ? 288 : 220);
-  player = audio->get_sound_player();
+  player = audio.get_sound_player();
   // Sfx
   draw_popup_icon(13, 30, ((player) && player->is_enabled()) ? 288 :220);
   draw_popup_icon(11, 50, 220); /* Volume minus */
   draw_popup_icon(13, 50, 221); /* Volume plus */
 
   float volume = 0.f;
-  Audio::VolumeController *volume_controller = audio->get_volume_controller();
+  Audio::VolumeController *volume_controller = audio.get_volume_controller();
   if (volume_controller != nullptr) {
     volume = 99.f * volume_controller->get_volume();
   }
@@ -1906,7 +1906,7 @@ PopupBox::draw_options_box() {
   draw_green_string(1, 79, "video");
 
   draw_popup_icon(13, 70,   /* Fullscreen mode */
-                  Graphics::get_instance()->is_fullscreen() ? 288 : 220);
+                  Graphics::get_instance().is_fullscreen() ? 288 : 220);
 
   const char *value = "All";
   if (!interface->get_config(3)) {
@@ -3314,7 +3314,7 @@ PopupBox::handle_action(int action, int x_, int /*y_*/) {
 //      set_box(TypeNoSaveQuitConfirm);
 //    } else {
       play_sound(Audio::TypeSfxAhhh);
-      EventLoop::get_instance()->quit();
+      EventLoop::get_instance().quit();
 //    }
     break;
   case ACTION_QUIT_CANCEL:
@@ -3322,7 +3322,7 @@ PopupBox::handle_action(int action, int x_, int /*y_*/) {
     break;
   case ACTION_NO_SAVE_QUIT_CONFIRM:
     play_sound(Audio::TypeSfxAhhh);
-    EventLoop::get_instance()->quit();
+    EventLoop::get_instance().quit();
     break;
   case ACTION_SHOW_QUIT:
     interface->open_popup(TypeQuitConfirm);
@@ -3512,8 +3512,8 @@ PopupBox::handle_action(int action, int x_, int /*y_*/) {
     player->increase_castle_knights_wanted();
     break;
   case ACTION_OPTIONS_MUSIC: {
-    Audio *audio = Audio::get_instance();
-    Audio::PPlayer player = audio->get_music_player();
+    Audio &audio = Audio::get_instance();
+    Audio::PPlayer player = audio.get_music_player();
     if (player) {
       player->enable(!player->is_enabled());
     }
@@ -3521,8 +3521,8 @@ PopupBox::handle_action(int action, int x_, int /*y_*/) {
     break;
   }
   case ACTION_OPTIONS_SFX: {
-    Audio *audio = Audio::get_instance();
-    Audio::PPlayer player = audio->get_sound_player();
+    Audio &audio = Audio::get_instance();
+    Audio::PPlayer player = audio.get_sound_player();
     if (player) {
       player->enable(!player->is_enabled());
     }
@@ -3530,13 +3530,13 @@ PopupBox::handle_action(int action, int x_, int /*y_*/) {
     break;
   }
   case ACTION_OPTIONS_FULLSCREEN:
-    Graphics::get_instance()->set_fullscreen(
-                                    !Graphics::get_instance()->is_fullscreen());
+    Graphics::get_instance().set_fullscreen(
+                                    !Graphics::get_instance().is_fullscreen());
     play_sound(Audio::TypeSfxClick);
     break;
   case ACTION_OPTIONS_VOLUME_MINUS: {
-    Audio *audio = Audio::get_instance();
-    Audio::VolumeController *volume_controller = audio->get_volume_controller();
+    Audio &audio = Audio::get_instance();
+    Audio::VolumeController *volume_controller = audio.get_volume_controller();
     if (volume_controller != nullptr) {
       volume_controller->volume_down();
     }
@@ -3544,8 +3544,8 @@ PopupBox::handle_action(int action, int x_, int /*y_*/) {
     break;
   }
   case ACTION_OPTIONS_VOLUME_PLUS: {
-    Audio *audio = Audio::get_instance();
-    Audio::VolumeController *volume_controller = audio->get_volume_controller();
+    Audio &audio = Audio::get_instance();
+    Audio::VolumeController *volume_controller = audio.get_volume_controller();
     if (volume_controller != nullptr) {
       volume_controller->volume_up();
     }
@@ -3575,8 +3575,8 @@ PopupBox::handle_action(int action, int x_, int /*y_*/) {
       file_name += ".save";
     }
     std::string file_path = file_list->get_folder_path() + "/" + file_name;
-    if (GameStore::get_instance()->save(file_path,
-                                        interface->get_game().get())) {
+    if (GameStore::get_instance().save(file_path,
+                                       interface->get_game().get())) {
       interface->close_popup();
     }
     break;

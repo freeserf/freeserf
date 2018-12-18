@@ -1,7 +1,7 @@
 /*
  * gui.cc - Base functions for the GUI hierarchy
  *
- * Copyright (C) 2013  Jon Lund Steffensen <jonlst@gmail.com>
+ * Copyright (C) 2013-2018  Jon Lund Steffensen <jonlst@gmail.com>
  *
  * This file is part of freeserf.
  *
@@ -73,7 +73,7 @@ GuiObject::draw(Frame *_frame) {
   }
 
   if (frame == nullptr) {
-    frame = Graphics::get_instance()->create_frame(width, height);
+    frame = Graphics::get_instance().create_frame(width, height);
   }
 
   if (redraw) {
@@ -247,8 +247,8 @@ GuiObject::del_float(GuiObject *obj) {
 
 void
 GuiObject::play_sound(int sound) {
-  Audio *audio = Audio::get_instance();
-  Audio::PPlayer player = audio->get_sound_player();
+  Audio &audio = Audio::get_instance();
+  Audio::PPlayer player = audio.get_sound_player();
   if (player) {
     player->play_track(sound);
   }

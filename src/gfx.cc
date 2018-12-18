@@ -1,7 +1,7 @@
 /*
  * gfx.cc - General graphics and data file functions
  *
- * Copyright (C) 2013-2015  Jon Lund Steffensen <jonlst@gmail.com>
+ * Copyright (C) 2013-2018  Jon Lund Steffensen <jonlst@gmail.com>
  *
  * This file is part of freeserf.
  *
@@ -22,6 +22,7 @@
 #include "src/gfx.h"
 
 #include <utility>
+#include <algorithm>
 
 #include "src/log.h"
 #include "src/data.h"
@@ -29,8 +30,34 @@
 #include "src/data-source.h"
 
 const Color Color::black = Color(0x00, 0x00, 0x00);
+const Color Color::white = Color(0xff, 0xff, 0xff);
 const Color Color::green = Color(0x73, 0xb3, 0x43);
 const Color Color::transparent = Color(0x00, 0x00, 0x00, 0x00);
+
+double
+Color::get_cyan() const {
+  double k = get_key();
+  return (1. - (static_cast<double>(r)/255.) -k ) / (1. - k);
+}
+
+double
+Color::get_magenta() const {
+  double k = get_key();
+  return (1. - (static_cast<double>(g)/255.) -k ) / (1. - k);
+}
+
+double
+Color::get_yellow() const {
+  double k = get_key();
+  return (1. - (static_cast<double>(b)/255.) -k ) / (1. - k);
+}
+
+double
+Color::get_key() const {
+  return 1. - std::max(static_cast<double>(r)/255.,
+                       std::max(static_cast<double>(g)/255.,
+                       static_cast<double>(b)/255.));
+}
 
 ExceptionGFX::ExceptionGFX(const std::string &description)
   : ExceptionFreeserf(description) {
@@ -71,7 +98,7 @@ Image *
 Image::get_cached_image(uint64_t id) {
   ImageCache::iterator result = image_cache.find(id);
   if (result == image_cache.end()) {
-    return NULL;
+    return nullptr;
   }
   return result->second;
 }
@@ -85,21 +112,21 @@ Image::clear_cache() {
   }
 }
 
-Graphics *Graphics::instance = NULL;
+Graphics *Graphics::instance = nullptr;
 
 Graphics::Graphics() {
-  if (instance != NULL) {
+  if (instance != nullptr) {
     throw ExceptionGFX("Unable to create second instance.");
   }
 
   try {
-    video = Video::get_instance();
+    video = &Video::get_instance();
   } catch (ExceptionVideo &e) {
     throw ExceptionGFX(e.what());
   }
 
-  PData &data = Data::get_instance();
-  PDataSource data_source = data->get_data_source();
+  Data &data = Data::get_instance();
+  PDataSource data_source = data.get_data_source();
   PSprite sprite = data_source->get_sprite(Data::AssetCursor, 0, {0, 0, 0, 0});
   video->set_cursor(sprite->get_data(),
                     static_cast<unsigned int>(sprite->get_width()),
@@ -110,21 +137,12 @@ Graphics::Graphics() {
 
 Graphics::~Graphics() {
   Image::clear_cache();
-
-  if (video != NULL) {
-    delete video;
-    video = NULL;
-  }
-
-  Graphics::instance = NULL;
 }
 
-Graphics*
+Graphics &
 Graphics::get_instance() {
-  if (instance == NULL) {
-    instance = new Graphics();
-  }
-  return instance;
+  static Graphics graphics;
+  return graphics;
 }
 
 /* Draw the opaque sprite with data file index of
@@ -143,7 +161,7 @@ Frame::draw_sprite(int x, int y, Data::Resource res, unsigned int index,
                       color.get_alpha()};
   uint64_t id = Sprite::create_id(res, index, 0, 0, pc);
   Image *image = Image::get_cached_image(id);
-  if (image == NULL) {
+  if (image == nullptr) {
     PSprite s = data_source->get_sprite(res, index, pc);
     if (!s) {
       Log::Warn["graphics"] << "Failed to decode sprite #"
@@ -211,7 +229,7 @@ Frame::draw_masked_sprite(int x, int y, Data::Resource mask_res,
   uint64_t id = Sprite::create_id(res, index, mask_res, mask_index,
                                   {0, 0, 0, 0});
   Image *image = Image::get_cached_image(id);
-  if (image == NULL) {
+  if (image == nullptr) {
     PSprite s = data_source->get_sprite(res, index, {0, 0, 0, 0});
     if (!s) {
       Log::Warn["graphics"] << "Failed to decode sprite #"
@@ -257,7 +275,7 @@ Frame::draw_waves_sprite(int x, int y, Data::Resource mask_res,
   uint64_t id = Sprite::create_id(res, index, mask_res, mask_index,
                                   {0, 0, 0, 0});
   Image *image = Image::get_cached_image(id);
-  if (image == NULL) {
+  if (image == nullptr) {
     PSprite s = data_source->get_sprite(res, index, {0, 0, 0, 0});
     if (!s) {
       Log::Warn["graphics"] << "Failed to decode sprite #"
@@ -412,16 +430,14 @@ Frame::Frame(Video *video_, unsigned int width, unsigned int height) {
   video = video_;
   video_frame = video->create_frame(width, height);
   owner = true;
-  PData &data = Data::get_instance();
-  data_source = data->get_data_source();
+  data_source = Data::get_instance().get_data_source();
 }
 
-Frame::Frame(Video *video, Video::Frame *video_frame) {
-  this->video = video;
-  this->video_frame = video_frame;
+Frame::Frame(Video *video_, Video::Frame *video_frame_) {
+  video = video_;
+  video_frame = video_frame_;
   owner = false;
-  PData &data = Data::get_instance();
-  data_source = data->get_data_source();
+  data_source = Data::get_instance().get_data_source();
 }
 
 /* Deinitialize frame and backing surface. */
@@ -429,14 +445,13 @@ Frame::~Frame() {
   if (owner) {
     video->destroy_frame(video_frame);
   }
-  video_frame = NULL;
+  video_frame = nullptr;
 }
 
 /* Draw source frame from rectangle at sx, sy with given
    width and height, to destination frame at dx, dy. */
 void
-Frame::draw_frame(int dx, int dy, int sx, int sy, Frame *src,
-                  int w, int h) {
+Frame::draw_frame(int dx, int dy, int sx, int sy, Frame *src, int w, int h) {
   video->draw_frame(dx, dy, video_frame, sx, sy, src->video_frame, w, h);
 }
 

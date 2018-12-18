@@ -1,7 +1,7 @@
 /*
  * flag.h - Flag related functions.
  *
- * Copyright (C) 2013  Jon Lund Steffensen <jonlst@gmail.com>
+ * Copyright (C) 2013-2018  Jon Lund Steffensen <jonlst@gmail.com>
  *
  * This file is part of freeserf.
  *
@@ -100,7 +100,8 @@ class Flag : public GameObject {
   bool is_water_path(Direction dir) const {
     return !(endpoint & (1 << (dir))); }
   /* Whether a building is connected to this flag. If so, the pointer to
-   the other endpoint is a valid building pointer. (Always at UP LEFT direction). */
+   the other endpoint is a valid building pointer.
+   (Always at UP LEFT direction). */
   bool has_building() const { return (endpoint >> 6) & 1; }
 
   /* Whether resources exist that are not yet scheduled. */

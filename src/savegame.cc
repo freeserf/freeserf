@@ -472,9 +472,6 @@ SaveWriterTextValue::operator << (const std::string &val) {
 
 // SaveGame
 
-GameStore *
-GameStore::instance = nullptr;
-
 GameStore::GameStore() {
   folder_path = ".";
 
@@ -516,11 +513,9 @@ GameStore::GameStore() {
 GameStore::~GameStore() {
 }
 
-GameStore *
+GameStore &
 GameStore::get_instance() {
-  if (instance == nullptr) {
-    instance = new GameStore();
-  }
+  static GameStore instance;
   return instance;
 }
 

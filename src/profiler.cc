@@ -50,19 +50,17 @@ main(int argc, char *argv[]) {
 
   Log::Info["profiler"] << "starts " << FREESERF_VERSION;
 
-  GameManager *game_manager = GameManager::get_instance();
+  GameManager &game_manager = GameManager::get_instance();
 
-  if (!game_manager->load_game(save_file)) {
+  if (!game_manager.load_game(save_file)) {
     return EXIT_FAILURE;
   }
   Log::Info["profiler"] << "loaded game '" << save_file << "'";
 
-  PGame game = game_manager->get_current_game();
+  PGame game = game_manager.get_current_game();
   while (true) {
     game->update();
   }
-
-  delete game_manager;
 
   return EXIT_SUCCESS;
 }

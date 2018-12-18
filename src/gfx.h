@@ -1,7 +1,7 @@
 /*
  * gfx.h - General graphics and data file functions
  *
- * Copyright (C) 2012-2015  Jon Lund Steffensen <jonlst@gmail.com>
+ * Copyright (C) 2012-2018  Jon Lund Steffensen <jonlst@gmail.com>
  *
  * This file is part of freeserf.
  *
@@ -54,12 +54,24 @@ class Color {
   Color(uint8_t _r, uint8_t _g, uint8_t _b, uint8_t _a = 0xff) :
     r(_r), g(_g), b(_b), a(_a) {}
 
+  Color(double c, double m, double y, double k, uint8_t _a) :
+    r(static_cast<uint8_t>(255. * (1. - c) * (1. - k))),
+    g(static_cast<uint8_t>(255. * (1. - m) * (1. - k))),
+    b(static_cast<uint8_t>(255. * (1. - y) * (1. - k))),
+    a(_a) {
+  }
+
   uint8_t get_red() const { return r; }
   uint8_t get_green() const { return g; }
   uint8_t get_blue() const { return b; }
   uint8_t get_alpha() const { return a; }
+  double get_cyan() const;
+  double get_magenta() const;
+  double get_yellow() const;
+  double get_key() const;
 
   static const Color black;
+  static const Color white;
   static const Color green;
   static const Color transparent;
 
@@ -169,7 +181,7 @@ class Graphics {
  public:
   virtual ~Graphics();
 
-  static Graphics *get_instance();
+  static Graphics &get_instance();
 
   /* Frame functions */
   Frame *create_frame(unsigned int width, unsigned int height);

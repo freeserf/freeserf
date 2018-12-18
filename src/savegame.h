@@ -1,7 +1,7 @@
 /*
  * savegame.h - Loading and saving of save games
  *
- * Copyright (C) 2013-2017  Jon Lund Steffensen <jonlst@gmail.com>
+ * Copyright (C) 2013-2018  Jon Lund Steffensen <jonlst@gmail.com>
  *
  * This file is part of freeserf.
  *
@@ -135,15 +135,13 @@ class GameStore {
  protected:
   GameStore();
 
-  static GameStore *instance;
-
   std::string folder_path;
   std::vector<SaveInfo> saved_games;
 
  public:
   virtual ~GameStore();
 
-  static GameStore *get_instance();
+  static GameStore &get_instance();
 
   std::string get_folder_path() const { return folder_path; }
   bool create_folder(const std::string &path);
