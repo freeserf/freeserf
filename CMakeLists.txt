@@ -53,6 +53,7 @@ endif()
 
 include_directories(${INCLUDE_DIRECTORIES} ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_CURRENT_BINARY_DIR})
 
+set(VCS_TAG "${FREESERF_VERSION}")
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/src/version-vcs.h.in
                "${CMAKE_CURRENT_BINARY_DIR}/src/version-vcs.h"
                @ONLY)
