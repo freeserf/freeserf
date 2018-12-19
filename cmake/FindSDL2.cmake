@@ -105,6 +105,13 @@ find_library(SDL2_LIBRARY_TEMP
   PATH_SUFFIXES lib ${VC_LIB_PATH_SUFFIX}
 )
 
+find_library(SDL2_LIBRARY_DEBUG_TEMP
+  NAMES SDL2d SDL-2d
+  HINTS
+    ENV SDL2DIR
+  PATH_SUFFIXES lib ${VC_LIB_PATH_SUFFIX}
+)
+
 if(NOT SDL2_INCLUDE_DIR MATCHES ".framework")
   # Non-OS X framework versions expect you to also dynamically link to
   # SDLmain. This is mainly for Windows and OS X. Other (Unix) platforms
@@ -121,6 +128,15 @@ if(NOT SDL2_INCLUDE_DIR MATCHES ".framework")
     /opt/csw
     /opt
   )
+  list(GET SDL2_LIBRARY_DEBUG_TEMP 0 SDL2_LIBRARY_DEBUG_TEMP_PATH)
+  get_filename_component(SDL2_LIBRARY_DEBUG_DIR ${SDL2_LIBRARY_DEBUG_TEMP_PATH} DIRECTORY)
+  find_library(SDL2_MAIN_LIBRARY_DEBUG
+               NAMES SDL2maind SDLmain-2d
+               PATHS ${SDL2_LIBRARY_DEBUG_DIR}
+               PATH_SUFFIXES lib manual-link)
+  if(NOT SDL2_MAIN_LIBRARY_DEBUG)
+    set(SDL2_MAIN_LIBRARY_DEBUG ${SDL2_MAIN_LIBRARY})
+  endif()
 endif()
 
 # SDL2 may require threads on your system.
@@ -172,25 +188,35 @@ if(SDL2_LIBRARY_TEMP)
 
   # Set the final string here so the GUI reflects the final state.
   set(SDL2_LIBRARY ${SDL2_LIBRARY_TEMP} CACHE STRING "Where the SDL2 Library can be found")
-  # Set the temp variable to INTERNAL so it is not seen in the CMake GUI
-  set(SDL2_LIBRARY_TEMP "${SDL_LIBRARY_TEMP}" CACHE INTERNAL "")
+  if(NOT SDL2_LIBRARY_DEBUG_TEMP)
+    set(SDL2_LIBRARY_DEBUG_TEMP ${SDL2_LIBRARY_TEMP})
+  endif()
+  set(SDL2_LIBRARY_DEBUG ${SDL2_LIBRARY_DEBUG_TEMP} CACHE STRING "Where the SDL2 Debug Library can be found")
 endif()
 
-if(SDL2_INCLUDE_DIR AND EXISTS "${SDL2_INCLUDE_DIR}/SDL_version.h")
-  file(STRINGS "${SDL2_INCLUDE_DIR}/SDL_version.h" SDL_VERSION_MAJOR_LINE REGEX "^#define[ \t]+SDL_MAJOR_VERSION[ \t]+[0-9]+$")
-  file(STRINGS "${SDL2_INCLUDE_DIR}/SDL_version.h" SDL_VERSION_MINOR_LINE REGEX "^#define[ \t]+SDL_MINOR_VERSION[ \t]+[0-9]+$")
-  file(STRINGS "${SDL2_INCLUDE_DIR}/SDL_version.h" SDL_VERSION_PATCH_LINE REGEX "^#define[ \t]+SDL_PATCHLEVEL[ \t]+[0-9]+$")
-  string(REGEX REPLACE "^#define[ \t]+SDL_MAJOR_VERSION[ \t]+([0-9]+)$" "\\1" SDL_VERSION_MAJOR "${SDL_VERSION_MAJOR_LINE}")
-  string(REGEX REPLACE "^#define[ \t]+SDL_MINOR_VERSION[ \t]+([0-9]+)$" "\\1" SDL_VERSION_MINOR "${SDL_VERSION_MINOR_LINE}")
-  string(REGEX REPLACE "^#define[ \t]+SDL_PATCHLEVEL[ \t]+([0-9]+)$" "\\1" SDL_VERSION_PATCH "${SDL_VERSION_PATCH_LINE}")
-  set(SDL2_VERSION_STRING ${SDL_VERSION_MAJOR}.${SDL_VERSION_MINOR}.${SDL_VERSION_PATCH})
-  unset(SDL_VERSION_MAJOR_LINE)
-  unset(SDL_VERSION_MINOR_LINE)
-  unset(SDL_VERSION_PATCH_LINE)
-  unset(SDL_VERSION_MAJOR)
-  unset(SDL_VERSION_MINOR)
-  unset(SDL_VERSION_PATCH)
-endif()
+set(SDL2_LIBRARY_TEMP "${SDL_LIBRARY_TEMP}" CACHE INTERNAL "")
+set(SDL2_LIBRARY_DEBUG_TEMP "${SDL2_LIBRARY_DEBUG_TEMP}" CACHE INTERNAL "")
+
+function(sdl2_extract_version _var _header _componint)
+  if(EXISTS ${_header})
+    set(_part "")
+    if (NOT _componint)
+      set(_part "")
+    else()
+      set(_part "_${_componint}")
+      string(TOUPPER ${_part} _part)
+    endif()
+    file(STRINGS ${_header} _ver_major_line REGEX "^#define[ \t]+SDL${_part}_MAJOR_VERSION[ \t]+[0-9]+$")
+    file(STRINGS ${_header} _ver_minor_line REGEX "^#define[ \t]+SDL${_part}_MINOR_VERSION[ \t]+[0-9]+$")
+    file(STRINGS ${_header} _ver_patch_line REGEX "^#define[ \t]+SDL${_part}_PATCHLEVEL[ \t]+[0-9]+$")
+    string(REGEX REPLACE "^#define[ \t]+SDL${_part}_MAJOR_VERSION[ \t]+([0-9]+)$" "\\1" _ver_major "${_ver_major_line}")
+    string(REGEX REPLACE "^#define[ \t]+SDL${_part}_MINOR_VERSION[ \t]+([0-9]+)$" "\\1" _ver_minor "${_ver_minor_line}")
+    string(REGEX REPLACE "^#define[ \t]+SDL${_part}_PATCHLEVEL[ \t]+([0-9]+)$" "\\1" _ver_patch "${_ver_patch_line}")
+    set(${_var} "${_ver_major}.${_ver_minor}.${_ver_patch}" PARENT_SCOPE)
+  endif()
+endfunction()
+
+sdl2_extract_version(SDL2_VERSION_STRING "${SDL2_INCLUDE_DIR}/SDL_version.h" "")
 
 include(FindPackageHandleStandardArgs)
 
