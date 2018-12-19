@@ -2407,9 +2407,11 @@ Viewport::handle_dbl_click(int lx, int ly, Event::Button button) {
 
       player->temp_index = map->get_obj_index(clk_pos);
     } else { /* Building */
+      Building *building = interface->get_game()->get_building_at_pos(clk_pos);
+      if ((building == nullptr) || building->is_burning()) {
+        return false;
+      }
       if (map->get_owner(clk_pos) == player->get_index()) {
-        Building *building =
-                            interface->get_game()->get_building_at_pos(clk_pos);
         if (!building->is_done()) {
           interface->open_popup(PopupBox::TypeOrderedBld);
         } else if (building->get_type() == Building::TypeCastle) {
@@ -2433,8 +2435,6 @@ Viewport::handle_dbl_click(int lx, int ly, Event::Button button) {
         player->temp_index = map->get_obj_index(clk_pos);
       } else { /* Foreign building */
         /* TODO handle coop mode*/
-        Building *building =
-                  interface->get_game()->get_building_at_pos(clk_pos);
         player->building_attacked = building->get_index();
 
         if (building->is_done() &&
