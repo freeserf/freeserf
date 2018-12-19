@@ -131,7 +131,9 @@ Interface::close_popup() {
   delete popup;
   popup = nullptr;
   update_map_cursor_pos(map_cursor_pos);
-  panel->update();
+  if (panel != nullptr) {
+    panel->update();
+  }
 }
 
 /* Open box for starting a new game */

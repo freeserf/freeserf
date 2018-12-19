@@ -36,6 +36,7 @@
 #include "src/map-geometry.h"
 #include "src/list.h"
 #include "src/game-manager.h"
+#include "src/popup.h"
 
 class RandomInput : public TextInput {
  protected:
@@ -330,8 +331,12 @@ GameInitBox::handle_action(int action) {
         }
       }
       break;
-    case ActionShowOptions:
+    case ActionShowOptions: {
+      if (interface) {
+        interface->open_popup(PopupBox::TypeOptions);
+      }
       break;
+    }
     case ActionIncrement:
       switch (game_type) {
         case GameMission:
