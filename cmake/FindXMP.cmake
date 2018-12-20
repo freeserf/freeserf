@@ -16,8 +16,27 @@ find_library(XMP_LIBRARY
   HINTS
     ENV XMPDIR
   PATH_SUFFIXES
-    lib ${VC_LIB_PATH_SUFFIX}
-)
+    lib ${VC_LIB_PATH_SUFFIX})
+
+set(XMP_LIBRARY_DEBUG ${XMP_LIBRARY} CACHE STRING "XMP Debug Library")
+if(DEFINED _VCPKG_INSTALLED_DIR)
+  if(XMP_LIBRARY MATCHES "/debug/lib/")
+    get_filename_component(XMP_LIBRARY_DIR ${XMP_LIBRARY} DIRECTORY)
+    get_filename_component(XMP_LIBRARY_DIR ${XMP_LIBRARY_DIR} DIRECTORY)
+    get_filename_component(XMP_LIBRARY_DIR ${XMP_LIBRARY_DIR} DIRECTORY)
+    set(XMP_LIBRARY_DIR "${XMP_LIBRARY_DIR}/lib")
+    unset(XMP_LIBRARY CACHE)
+    find_library(XMP_LIBRARY
+      NAMES libxmp-lite
+      HINTS
+        ${XMP_LIBRARY_DIR}
+      PATH_SUFFIXES
+        lib ${VC_LIB_PATH_SUFFIX}
+      NO_CMAKE_PATH
+      NO_DEFAULT_PATH)
+    message(STATUS "XMP_LIBRARY = ${XMP_LIBRARY}")
+  endif()
+endif()
 
 if(XMP_INCLUDE_DIR AND EXISTS "${XMP_INCLUDE_DIR}/xmp.h")
   file(STRINGS "${XMP_INCLUDE_DIR}/xmp.h" XMP_VER_MAJOR_LINE REGEX "^#define[ \t]+XMP_VER_MAJOR[ \t]+[0-9]+$")
