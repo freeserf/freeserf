@@ -159,7 +159,7 @@ AudioSDL::PlayerSFX::create_track(int track_id) {
                                 static_cast<int>(wav->get_size()));
   Mix_Chunk *chunk = Mix_LoadWAV_RW(rw, 0);
   if (chunk == nullptr) {
-    Log::Error["audio-sdlmixer"] << "Mix_LoadWAV_RW: " << Mix_GetError();
+    Log::Error["audio:SDL_mixer"] << "Mix_LoadWAV_RW: " << Mix_GetError();
     return nullptr;
   }
 
@@ -214,8 +214,8 @@ void
 AudioSDL::TrackSFX::play() {
   int r = Mix_PlayChannel(-1, chunk, 0);
   if (r < 0) {
-    Log::Error["audio-sdlmixer"] << "Could not play SFX clip: "
-                                 << Mix_GetError();
+    Log::Error["audio:SDL_mixer"] << "Could not play SFX clip: "
+                                  << Mix_GetError();
   }
 }
 
@@ -255,11 +255,17 @@ AudioSDL::PlayerMIDI::create_track(int track_id) {
 
 Audio::PTrack
 AudioSDL::PlayerMIDI::play_track(int track_id) {
-  if ((track_id <= TypeMidiNone) || (track_id > TypeMidiTrackLast)) {
-    track_id = TypeMidiTrack0;
+  Audio::PTrack track = nullptr;
+  while (track == nullptr) {
+    if ((track_id <= TypeMidiNone) || (track_id > TypeMidiTrackLast)) {
+      track_id = TypeMidiTrack0;
+    }
+    current_track = static_cast<TypeMidi>(track_id);
+    Log::Info["audio:SDL_mixer"] << "Playing MIDI track: " << current_track;
+    track = Audio::Player::play_track(track_id);
+    track_id++;
   }
-  current_track = static_cast<TypeMidi>(track_id);
-  return Audio::Player::play_track(track_id);
+  return track;
 }
 
 void
@@ -331,7 +337,8 @@ void
 AudioSDL::TrackMIDI::play() {
   int r = Mix_PlayMusic(chunk, 0);
   if (r < 0) {
-    Log::Warn["audio-sdlmixer"] << "Could not play MIDI track: "
-                                << Mix_GetError();
+    Log::Warn["audio:SDL_mixer"] << "Could not play MIDI track: "
+                                 << Mix_GetError();
+    PlayerMIDI::music_finished_hook();
   }
 }

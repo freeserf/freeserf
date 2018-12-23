@@ -118,6 +118,8 @@ class AudioSDL : public Audio, public Audio::VolumeController {
     static PlayerMIDI *current_midi_player;
     static void music_finished_hook();
     void music_finished();
+
+    friend class TrackMIDI;
   };
 
  protected:
