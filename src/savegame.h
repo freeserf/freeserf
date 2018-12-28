@@ -159,9 +159,11 @@ class GameStore {
 
  protected:
   void update();
+  void add_info(SaveInfo info);
   void find_legacy();
   void find_regular();
   std::string name_from_file(const std::string &file_name);
+  bool is_file_exists(const std::string &path);
 };
 
 #endif  // SRC_SAVEGAME_H_
