@@ -124,6 +124,7 @@ class GameInfo {
   void add_player(size_t character, const Player::Color &_color,
                   unsigned int _intelligence, unsigned int _supplies,
                   unsigned int _reproduction);
+  void remove_player(unsigned int index);
   void remove_all_players();
 
   static PGameInfo get_mission(size_t mission);

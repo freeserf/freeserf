@@ -100,6 +100,7 @@ GameInitBox::GameInitBox(Interface *interface)
   set_size(360, 254);
 
   custom_mission = std::make_shared<GameInfo>(Random());
+  custom_mission->remove_all_players();
   custom_mission->add_player(12, {0x00, 0xe3, 0xe3}, 40, 40, 40);
   custom_mission->add_player(1, {0xcf, 0x63, 0x63}, 20, 30, 40);
   mission = custom_mission;
@@ -266,6 +267,10 @@ GameInitBox::draw_player_box(unsigned int player, int bx, int by) {
 
   draw_box_icon(bx, by, get_player_face_sprite(face));
   draw_box_icon(bx+5, by, 282);
+  if (game_type == GameCustom) {
+    draw_box_icon(bx+4, by, 308);
+    draw_box_icon(bx+5, by, (face == 0) ? 287 : 259);
+  }
 
   if (player < mission->get_player_count()) {
     bx *= 8;
@@ -464,37 +469,59 @@ GameInitBox::handle_click_left(int cx, int cy) {
   return true;
 }
 
+unsigned int
+GameInitBox::get_next_character(unsigned int player_index) {
+  bool in_use = false;
+  PPlayerInfo player = mission->get_player(player_index);
+  unsigned int next = player->get_face();
+  do {
+    next = (next + 1) % 14;
+    next = std::max(1u, next);
+    /* Check that face is not already in use by another player */
+    in_use = 0;
+    for (size_t i = 0; i < mission->get_player_count(); i++) {
+      if (player_index != i && mission->get_player(i)->get_face() == next) {
+        in_use = true;
+        break;
+      }
+    }
+  } while (in_use);
+
+  return next;
+}
+
 bool
 GameInitBox::handle_player_click(unsigned int player_index, int cx, int cy) {
+  if (game_type != GameCustom) {
+    return true;
+  }
+
   if (cx < 8 || cx > 8 + 64 || cy < 8 || cy > 76) {
     return false;
   }
 
-  if (player_index >= mission->get_player_count()) {
-    return true;
-  }
-
-  PPlayerInfo player = mission->get_player(player_index);
-
   if ((cx < 8+32) && (cy < 72)) {
-    /* Face */
-    bool in_use = false;
-    do {
-      unsigned int next = (player->get_face() + 1) % 14;
-      next = std::max(1u, next);
-      player->set_character(next);
-
-      /* Check that face is not already in use by another player */
-      in_use = 0;
-      for (size_t i = 0; i < mission->get_player_count(); i++) {
-        if (player_index != i &&
-            mission->get_player(i)->get_face() == next) {
-          in_use = true;
-          break;
-        }
+    if (player_index >= mission->get_player_count()) {
+      return true;
+    }
+    PPlayerInfo player = mission->get_player(player_index);
+    player->set_character(get_next_character(player_index));
+  } else if ((cx > 16 + 32) && (cy < 24)) {
+    if (player_index >= mission->get_player_count()) {
+      mission->add_player(0, {0, 0, 0}, 20, 20, 20);
+      player_index = mission->get_player_count() - 1;
+      PPlayerInfo player = mission->get_player(player_index);
+      player->set_character(get_next_character(player_index));
+    } else {
+      if (player_index > 0) {
+        mission->remove_player(player_index);
       }
-    } while (in_use);
+    }
   } else {
+    if (player_index >= mission->get_player_count()) {
+      return true;
+    }
+    PPlayerInfo player = mission->get_player(player_index);
     cx -= 8 + 32 + 8 + 3;
     if (cx < 0) {
       return false;
