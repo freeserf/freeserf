@@ -446,6 +446,14 @@ GameInfo::add_player(size_t character, const Player::Color &_color,
 }
 
 void
+GameInfo::remove_player(unsigned int index) {
+  if (index >= players.size()) {
+    return;
+  }
+  players.erase(players.begin() + index);
+}
+
+void
 GameInfo::remove_all_players() {
   players.clear();
 }
