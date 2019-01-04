@@ -29,6 +29,7 @@
 #include <array>
 #include <ctime>
 #include <utility>
+#include <algorithm>
 
 #include "src/game.h"
 #include "src/log.h"
@@ -158,7 +159,9 @@ class SaveReaderTextSection : public SaveReaderText {
 
   virtual const SaveReaderTextValue &
   value(const std::string &val_name) const {
-    Values::const_iterator it = values.find(val_name);
+    std::string v_name = val_name;
+    std::transform(v_name.begin(), v_name.end(), v_name.begin(), ::tolower);
+    Values::const_iterator it = values.find(v_name);
     if (it == values.end()) {
       std::ostringstream str;
       str << "Failed to load value: " << val_name;
