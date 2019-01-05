@@ -79,6 +79,7 @@ class GameInitBox : public GuiObject {
   unsigned int get_player_face_sprite(size_t face);
   void handle_action(int action);
   bool handle_player_click(unsigned int player, int x, int y);
+  unsigned int get_next_character(unsigned int player);
   void apply_random(Random rnd);
   void generate_map_preview();
 

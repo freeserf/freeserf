@@ -2473,11 +2473,11 @@ operator >> (SaveReaderText &reader, Game &game) {
   /* Load essential values for calculating map positions
    so that map positions can be loaded properly. */
   Readers sections = reader.get_sections("game");
-  SaveReaderText *game_reader = sections.front();
-  if (game_reader == nullptr) {
+  if (sections.size() == 0) {
     throw ExceptionFreeserf("Failed to find section \"game\"");
   }
 
+  SaveReaderText *game_reader = sections.front();
   unsigned int size = 0;
   try {
     game_reader->value("map.size") >> size;
