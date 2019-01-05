@@ -94,7 +94,7 @@ class ConfigFile {
   }
 
  protected:
-  std::string trim(std::string str);
+  std::string trim(const std::string &str);
 };
 
 typedef std::shared_ptr<ConfigFile> PConfigFile;

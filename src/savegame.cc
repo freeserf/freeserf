@@ -187,7 +187,12 @@ class SaveReaderTextFile : public SaveReaderText {
  public:
   explicit SaveReaderTextFile(std::istream *is) {
     ConfigFile file;
-    file.read(is);
+
+    try {
+      file.read(is);
+    } catch (...) {
+      throw ExceptionFreeserf("Wrong config file format.");
+    }
 
     auto sects = file.get_sections();
     for (std::string name : sects) {
