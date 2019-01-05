@@ -310,7 +310,7 @@ Serf::set_type(Serf::Type new_type) {
   if (new_type == TypeTransporterInventory) new_type = TypeTransporter;
   if (old_type == TypeTransporterInventory) old_type = TypeTransporter;
 
-  Player *player = game->get_player(get_player());
+  Player *player = game->get_player(get_owner());
   if (old_type != Serf::TypeNone) {
     player->decrease_serf_count(old_type);
   }
@@ -345,7 +345,7 @@ Serf::add_to_defending_queue(unsigned int next_knight_index, bool pause) {
 void
 Serf::init_generic(Inventory *inventory) {
   set_type(TypeGeneric);
-  set_player(inventory->get_owner());
+  set_owner(inventory->get_owner());
   Building *building = game->get_building(inventory->get_building_index());
   pos = building->get_position();
   tick = game->get_tick();
@@ -1032,7 +1032,7 @@ Serf::transporter_move_to_flag(Flag *flag) {
     }
 
     /* Find next resource to be picked up */
-    Player *player = game->get_player(get_player());
+    Player *player = game->get_player(get_owner());
     flag->prioritize_pickup((Direction)dir, player);
   } else if (s.walking.res != Resource::TypeNone) {
     /* Drop resource at flag */
@@ -2310,7 +2310,7 @@ Serf::drop_resource(Resource::Type res) {
   /* Resource is lost if no free slot is found */
   bool result = flag->drop_resource(res, 0);
   if (result) {
-    Player *player = game->get_player(get_player());
+    Player *player = game->get_player(get_owner());
     player->increase_res_count(res);
   }
 }
@@ -2325,7 +2325,7 @@ Serf::find_inventory() {
     Flag *flag = game->get_flag(map->get_obj_index(pos));
     if ((flag->land_paths() != 0 ||
          (flag->has_inventory() && flag->accepts_serfs())) &&
-          map->get_owner(pos) == get_player()) {
+          map->get_owner(pos) == get_owner()) {
       set_state(StateWalking);
       s.walking.dir1 = -2;
       s.walking.dest = 0;
@@ -2518,7 +2518,7 @@ Serf::handle_serf_free_walking_state_dest_reached() {
     case TypeGeologist:
       if (s.free_walking.neg_dist1 == -128) {
         if (map->get_obj(pos) == Map::ObjectFlag &&
-            map->get_owner(pos) == get_player()) {
+            map->get_owner(pos) == get_owner()) {
           set_state(StateLookingForGeoSpot);
           counter = 0;
         } else {
@@ -3269,7 +3269,7 @@ Serf::handle_serf_sawing_state() {
     s.move_resource_out.next_state = StateDropResourceOut;
 
     /* Update resource stats. */
-    Player *player = game->get_player(get_player());
+    Player *player = game->get_player(get_owner());
     player->increase_res_count(Resource::TypePlank);
   }
 }
@@ -3292,7 +3292,7 @@ Serf::handle_serf_lost_state() {
         if ((flag->land_paths() != 0 ||
              (flag->has_inventory() && flag->accepts_serfs())) &&
               map->has_owner(dest) &&
-              map->get_owner(dest) == get_player()) {
+              map->get_owner(dest) == get_owner()) {
           if (get_type() >= TypeKnight0 &&
               get_type() <= TypeKnight4) {
             set_state(StateKnightFreeWalking);
@@ -3335,7 +3335,7 @@ Serf::handle_serf_lost_state() {
       if ((map->get_obj(dest) == 0 && map->get_height(dest) > 0) ||
           (map->has_flag(dest) &&
            (map->has_owner(dest) &&
-             map->get_owner(dest) == get_player()))) {
+             map->get_owner(dest) == get_owner()))) {
         if (get_type() >= TypeKnight0 && get_type() <= TypeKnight4) {
           set_state(StateKnightFreeWalking);
         } else {
@@ -3370,7 +3370,7 @@ Serf::handle_lost_sailor() {
         Flag *flag = game->get_flag(map->get_obj_index(dest));
         if (flag->land_paths() != 0 &&
             map->has_owner(dest) &&
-            map->get_owner(dest) == get_player()) {
+            map->get_owner(dest) == get_owner()) {
           set_state(StateFreeSailing);
 
           s.free_walking.dist1 = Map::get_spiral_pattern()[2*i];
@@ -3547,7 +3547,7 @@ Serf::handle_serf_mining_state() {
           s.move_resource_out.next_state = StateDropResourceOut;
 
           /* Update resource stats. */
-          Player *player = game->get_player(get_player());
+          Player *player = game->get_player(get_owner());
           player->increase_res_count(res-1);
           return;
         }
@@ -3603,7 +3603,7 @@ Serf::handle_serf_smelting_state() {
         s.move_resource_out.next_state = StateDropResourceOut;
 
         /* Update resource stats. */
-        Player *player = game->get_player(get_player());
+        Player *player = game->get_player(get_owner());
         player->increase_res_count(res-1);
         return;
       } else if (s.smelting.counter == 0) {
@@ -3817,7 +3817,7 @@ Serf::handle_serf_milling_state() {
         s.move_resource_out.res_dest = 0;
         s.move_resource_out.next_state = StateDropResourceOut;
 
-        Player *player = game->get_player(get_player());
+        Player *player = game->get_player(get_owner());
         player->increase_res_count(Resource::TypeFlour);
         return;
       } else if (s.milling.mode == 3) {
@@ -3861,7 +3861,7 @@ Serf::handle_serf_baking_state() {
         s.move_resource_out.res_dest = 0;
         s.move_resource_out.next_state = StateDropResourceOut;
 
-        Player *player = game->get_player(get_player());
+        Player *player = game->get_player(get_owner());
         player->increase_res_count(Resource::TypeBread);
         return;
       } else {
@@ -3916,7 +3916,7 @@ Serf::handle_serf_pigfarming_state() {
           s.move_resource_out.next_state = StateDropResourceOut;
 
           /* Update resource stats. */
-          Player *player = game->get_player(get_player());
+          Player *player = game->get_player(get_owner());
           player->increase_res_count(Resource::TypePig);
         } else if (game->random_int() & 0xf) {
           s.pigfarming.mode = 1;
@@ -3968,7 +3968,7 @@ Serf::handle_serf_butchering_state() {
       s.move_resource_out.next_state = StateDropResourceOut;
 
       /* Update resource stats. */
-      Player *player = game->get_player(get_player());
+      Player *player = game->get_player(get_owner());
       player->increase_res_count(Resource::TypeMeat);
     }
   }
@@ -4023,7 +4023,7 @@ Serf::handle_serf_making_weapon_state() {
         s.move_resource_out.next_state = StateDropResourceOut;
 
         /* Update resource stats. */
-        Player *player = game->get_player(get_player());
+        Player *player = game->get_player(get_owner());
         player->increase_res_count(res);
         return;
       } else {
@@ -4057,7 +4057,7 @@ Serf::handle_serf_making_tool_state() {
         /* Done making tool. */
         game->get_map()->set_serf_index(pos, 0);
 
-        Player *player = game->get_player(get_player());
+        Player *player = game->get_player(get_owner());
         int total_tool_prio = 0;
         for (int i = 0; i < 9; i++) total_tool_prio += player->get_tool_prio(i);
         total_tool_prio >>= 4;
@@ -4133,7 +4133,7 @@ Serf::handle_serf_building_boat_state() {
           s.move_resource_out.next_state = StateDropResourceOut;
 
           /* Update resource stats. */
-          Player *player = game->get_player(get_player());
+          Player *player = game->get_player(get_owner());
           player->increase_res_count(Resource::TypeBoat);
 
           break;
@@ -4246,7 +4246,7 @@ Serf::handle_serf_sampling_geo_spot_state() {
             default:
               NOT_REACHED();
           }
-          game->get_player(get_player())->add_notification(mtype, pos,
+          game->get_player(get_owner())->add_notification(mtype, pos,
                                                     map->get_res_type(pos) - 1);
         }
 
@@ -4278,13 +4278,13 @@ Serf::handle_serf_knight_engaging_building_state() {
                                               map->move_up_left(pos)));
       if (building->is_done() &&
           building->is_military() &&
-          building->get_owner() != get_player() &&
+          building->get_owner() != get_owner() &&
           building->has_knight()) {
         if (building->is_under_attack()) {
           game->get_player(building->get_owner())->add_notification(
                                                  Message::TypeUnderAttack,
                                                        building->get_position(),
-                                                                 get_player());
+                                                                   get_owner());
         }
 
         /* Change state of attacking knight */
@@ -4317,8 +4317,8 @@ Serf::set_fight_outcome(Serf *attacker, Serf *defender) {
   /* Calculate "morale" for attacker. */
   int exp_factor = 1 << (attacker->get_type() - TypeKnight0);
   int land_factor = 0x1000;
-  if (attacker->get_player() != game->get_map()->get_owner(attacker->pos)) {
-    land_factor = game->get_player(attacker->get_player())->get_knight_morale();
+  if (attacker->get_owner() != game->get_map()->get_owner(attacker->pos)) {
+    land_factor = game->get_player(attacker->get_owner())->get_knight_morale();
   }
 
   int morale = (0x400*exp_factor * land_factor) >> 16;
@@ -4326,9 +4326,9 @@ Serf::set_fight_outcome(Serf *attacker, Serf *defender) {
   /* Calculate "morale" for defender. */
   int def_exp_factor = 1 << (defender->get_type() - TypeKnight0);
   int def_land_factor = 0x1000;
-  if (defender->get_player() != game->get_map()->get_owner(defender->pos)) {
+  if (defender->get_owner() != game->get_map()->get_owner(defender->pos)) {
     def_land_factor =
-                  game->get_player(defender->get_player())->get_knight_morale();
+                   game->get_player(defender->get_owner())->get_knight_morale();
   }
 
   int def_morale = (0x400*def_exp_factor * def_land_factor) >> 16;
@@ -4338,14 +4338,14 @@ Serf::set_fight_outcome(Serf *attacker, Serf *defender) {
   Type ktype = TypeNone;
   int r = ((morale + def_morale)*game->random_int()) >> 16;
   if (r < morale) {
-    player = defender->get_player();
+    player = defender->get_owner();
     value = def_exp_factor;
     ktype = defender->get_type();
     attacker->s.attacking.field_C = 1;
     Log::Debug["serf"] << "Fight: " << morale << " vs " << def_morale
     << " (" << r << "). Attacker winning.";
   } else {
-    player = attacker->get_player();
+    player = attacker->get_owner();
     value = exp_factor;
     ktype = attacker->get_type();
     attacker->s.attacking.field_C = 0;
@@ -4552,7 +4552,7 @@ Serf::handle_knight_occupy_enemy_building() {
         }
       } else if (!building->has_knight()) {
         /* Occupy the building. */
-        game->occupy_enemy_building(building, get_player());
+        game->occupy_enemy_building(building, get_owner());
 
         if (building->get_type() == Building::TypeCastle) {
           counter = 0;
@@ -4591,7 +4591,7 @@ Serf::handle_state_knight_free_walking() {
 
       if (map->has_serf(pos_)) {
         Serf *other = game->get_serf_at_pos(pos_);
-        if (get_player() != other->get_player()) {
+        if (get_owner() != other->get_owner()) {
           if (other->state == StateKnightFreeWalking) {
             pos = map->move_left(pos_);
             if (can_pass_map_pos(pos_)) {
@@ -4851,7 +4851,7 @@ Serf::handle_serf_state_knight_leave_for_walk_to_fight() {
     s.leaving_building.next_state = next_state;
   } else {
     Serf *other = game->get_serf_at_pos(new_pos);
-    if (get_player() == other->get_player()) {
+    if (get_owner() == other->get_owner()) {
       animation = 82;
       counter = 0;
     } else {

@@ -2094,7 +2094,7 @@ Game::get_player_serfs(Player *player) {
   ListSerfs player_serfs;
 
   for (Serf *serf : serfs) {
-    if (serf->get_player() == player->get_index()) {
+    if (serf->get_owner() == player->get_index()) {
       player_serfs.push_back(serf);
     }
   }

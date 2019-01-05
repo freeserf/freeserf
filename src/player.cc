@@ -511,7 +511,7 @@ Player::start_attack() {
     if (map->has_serf(flag_pos)) {
       /* Check if building is under siege. */
       Serf *s = game->get_serf_at_pos(flag_pos);
-      if (s->get_player() != index) continue;
+      if (s->get_owner() != index) continue;
     }
 
     const int *min_level = NULL;
@@ -664,7 +664,7 @@ Player::spawn_serf_generic() {
   Serf *serf = game->create_serf();
   if (serf == NULL) return NULL;
 
-  serf->set_player(index);
+  serf->set_owner(index);
 
   serf_count[Serf::TypeGeneric] += 1;
 

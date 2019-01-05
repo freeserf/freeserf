@@ -1035,7 +1035,8 @@ operator >> (SaveReaderBinary &reader, Flag &flag) {
   flag.search_dir = (Direction)val8;
 
   reader >> val8;  // 3
-  flag.path_con = val8;
+  flag.owner = (val8 >> 6) & 3;
+  flag.path_con = val8 & 0x3f;
 
   reader >> val8;  // 4
   flag.endpoint = val8;
@@ -1110,7 +1111,15 @@ operator >> (SaveReaderText &reader, Flag &flag) {
   flag.pos = flag.get_game()->get_map()->pos(x, y);
   reader.value("search_num") >> flag.search_num;
   reader.value("search_dir") >> flag.search_dir;
-  reader.value("path_con") >> flag.path_con;
+  unsigned int val;
+  reader.value("path_con") >> val;
+  if (reader.has_value("owner")) {
+    flag.path_con = val;
+    reader.value("owner") >> flag.owner;
+  } else {
+    flag.path_con = (val & 0x3f);
+    flag.owner = ((val >> 6) & 3);
+  }
   reader.value("endpoints") >> flag.endpoint;
   reader.value("transporter") >> flag.transporter;
 
@@ -1152,6 +1161,7 @@ operator << (SaveWriterText &writer, Flag &flag) {
   writer.value("search_num") << flag.search_num;
   writer.value("search_dir") << flag.search_dir;
   writer.value("path_con") << flag.path_con;
+  writer.value("owner") << flag.owner;
   writer.value("endpoints") << flag.endpoint;
   writer.value("transporter") << flag.transporter;
 

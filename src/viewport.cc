@@ -1885,7 +1885,7 @@ Viewport::draw_active_serf(Serf *serf, MapPos pos, int x_base, int y_base) {
   int body = serf_get_body(serf);
 
   if (body > -1) {
-    Color color = interface->get_player_color(serf->get_player());
+    Color color = interface->get_player_color(serf->get_owner());
     draw_row_serf(lx, ly, true, color, body);
   }
 
@@ -1910,7 +1910,7 @@ Viewport::draw_active_serf(Serf *serf, MapPos pos, int x_base, int y_base) {
       int body = serf_get_body(def_serf);
 
       if (body > -1) {
-        Color color = interface->get_player_color(def_serf->get_player());
+        Color color = interface->get_player_color(def_serf->get_owner());
         draw_row_serf(lx, ly, true, color, body);
       }
     }

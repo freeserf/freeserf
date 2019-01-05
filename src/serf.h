@@ -361,8 +361,8 @@ class Serf : public GameObject {
  public:
   Serf(Game *game, unsigned int index);
 
-  unsigned int get_player() const { return owner; }
-  void set_player(unsigned int player_num) { owner = player_num; }
+  unsigned int get_owner() const { return owner; }
+  void set_owner(unsigned int player_num) { owner = player_num; }
 
   Type get_type() const { return type; }
   void set_type(Type type);
