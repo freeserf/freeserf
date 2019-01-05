@@ -1814,6 +1814,8 @@ Serf::handle_serf_entering_building_state() {
           }
         }
         break;
+      case TypeDead:
+        break;
       default:
         NOT_REACHED();
         break;

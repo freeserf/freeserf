@@ -1067,12 +1067,18 @@ operator >> (SaveReaderBinary &reader, Flag &flag) {
 
     /* Other endpoint could be a building in direction up left. */
     if (j == DirectionUpLeft && flag.has_building()) {
-      flag.other_endpoint.b[j] = flag.get_game()->create_building(offset/18);
+      unsigned int index = offset/18;
+      flag.other_endpoint.b[j] = flag.get_game()->create_building(index);
     } else {
+      if (!flag.has_path(j)) {
+        flag.other_endpoint.f[j] = NULL;
+        continue;
+      }
       if (offset < 0) {
         flag.other_endpoint.f[j] = NULL;
       } else {
-        flag.other_endpoint.f[j] = flag.get_game()->create_flag(offset/70);
+        unsigned int index = offset/70;
+        flag.other_endpoint.f[j] = flag.get_game()->create_flag(index);
       }
     }
   }

@@ -466,7 +466,10 @@ Game::update_buildings() {
 /* Update serfs as part of the game progression. */
 void
 Game::update_serfs() {
-  for (Serf *serf : serfs) {
+  Serfs::Iterator i = serfs.begin();
+  while (i != serfs.end()) {
+    Serf *serf = *i;
+    ++i;
     serf->update();
   }
 }
