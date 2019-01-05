@@ -32,6 +32,7 @@ Keyboard gameplay controls:
 * `+`/`-`: Increase/decrease game speed.
 * `0`: Reset game speed.
 * `p`: Pause game.
+* `j`: Switch player.
 
 Other keyboard controls:
 

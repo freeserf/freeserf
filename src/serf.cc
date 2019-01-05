@@ -5568,6 +5568,7 @@ operator >> (SaveReaderText &reader, Serf &serf) {
       reader.value("state.dest") >> serf.s.walking.dest;
       reader.value("state.dir") >> serf.s.walking.dir;
       reader.value("state.wait_counter") >> serf.s.walking.wait_counter;
+      reader.value("state.other_dir") >> serf.s.walking.dir1;
       break;
 
     case Serf::StateEnteringBuilding:
@@ -5772,6 +5773,7 @@ operator << (SaveWriterText &writer, Serf &serf) {
       writer.value("state.dest") << serf.s.walking.dest;
       writer.value("state.dir") << serf.s.walking.dir;
       writer.value("state.wait_counter") << serf.s.walking.wait_counter;
+      writer.value("state.other_dir") << serf.s.walking.dir1;
       break;
 
     case Serf::StateEnteringBuilding:

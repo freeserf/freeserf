@@ -29,6 +29,7 @@
 #include <memory>
 #include <algorithm>
 #include <cctype>
+#include <clocale>
 
 #include "src/log.h"
 
@@ -83,19 +84,23 @@ ConfigFile::save(const std::string &path) {
 }
 
 std::string
-ConfigFile::trim(std::string str) {
-  str.erase(str.begin(),
-            std::find_if(str.begin(), str.end(),
+ConfigFile::trim(const std::string &str) {
+  std::string tmp = str;
+  tmp.erase(tmp.begin(),
+            std::find_if(tmp.begin(), tmp.end(),
                          std::not1(std::ptr_fun<int, int>(std::isspace))));
-  str.erase(std::find_if(str.rbegin(), str.rend(),
-                        std::not1(std::ptr_fun<int, int>(std::isspace))).base(),
-            str.end());
+  tmp.erase(std::find_if(tmp.rbegin(), tmp.rend(),
+                         std::not1(std::ptr_fun<int, int>(std::isspace)))
+                .base(),
+            tmp.end());
 
-  return str;
+  return tmp;
 }
 
 bool
 ConfigFile::read(std::istream *is) {
+  std::setlocale(LC_ALL, "en_US.UTF-8");
+
   PValues section = std::make_shared<Values>();
   data["global"] = section;
   size_t line_number = 0;
@@ -116,7 +121,7 @@ ConfigFile::read(std::istream *is) {
                              << line_number << ")";
         return false;
       }
-      std::string name = line.substr(1, end-1);
+      std::string name = line.substr(1, end - 1);
       if (name.empty()) {
         Log::Error["config"] << "Failed to parse config file ("
                              << line_number << ")";
@@ -132,7 +137,7 @@ ConfigFile::read(std::istream *is) {
         size_t pos = line.find('=');
         std::string name = line.substr(0, pos);
         std::transform(name.begin(), name.end(), name.begin(), ::tolower);
-        std::string val = line.substr(pos+1, std::string::npos);
+        std::string val = line.substr(pos + 1, std::string::npos);
         std::transform(val.begin(), val.end(), val.begin(), ::tolower);
         (*section)[trim(name)] = trim(val);
       }

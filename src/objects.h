@@ -124,7 +124,7 @@ class Collection {
 
     if (last_object_index <= index) {
       for (unsigned int i = last_object_index; i < index; i++) {
-        free_object_indexes.insert(index);
+        free_object_indexes.insert(i);
       }
       last_object_index = index + 1;
     }
