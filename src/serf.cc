@@ -310,7 +310,7 @@ Serf::set_type(Serf::Type new_type) {
   if (new_type == TypeTransporterInventory) new_type = TypeTransporter;
   if (old_type == TypeTransporterInventory) old_type = TypeTransporter;
 
-  Player *player = game->get_player(get_player());
+  Player *player = game->get_player(get_owner());
   if (old_type != Serf::TypeNone) {
     player->decrease_serf_count(old_type);
   }
@@ -345,7 +345,7 @@ Serf::add_to_defending_queue(unsigned int next_knight_index, bool pause) {
 void
 Serf::init_generic(Inventory *inventory) {
   set_type(TypeGeneric);
-  set_player(inventory->get_owner());
+  set_owner(inventory->get_owner());
   Building *building = game->get_building(inventory->get_building_index());
   pos = building->get_position();
   tick = game->get_tick();
@@ -609,12 +609,12 @@ Serf::change_transporter_state_at_pos(MapPos pos_, Serf::State _state) {
 void
 Serf::restore_path_serf_info() {
   if (state != StateWakeOnPath) {
-    s.walking.wait_counter = -1;
-    if (s.walking.res != Resource::TypeNone) {
-      Resource::Type res = s.walking.res;
-      s.walking.res = Resource::TypeNone;
+    s.transporting.wait_counter = -1;
+    if (s.transporting.res != Resource::TypeNone) {
+      Resource::Type res = s.transporting.res;
+      s.transporting.res = Resource::TypeNone;
 
-      game->cancel_transported_resource(res, s.walking.dest);
+      game->cancel_transported_resource(res, s.transporting.dest);
       game->lose_resource(res);
     }
   } else {
@@ -700,7 +700,7 @@ Serf::get_delivery() const {
   switch (state) {
     case StateDelivering:
     case StateTransporting:
-      res = s.walking.res + 1;
+      res = s.transporting.res + 1;
       break;
     case StateEnteringBuilding:
       res = s.entering_building.field_B;
@@ -799,8 +799,8 @@ Serf::set_lost_state() {
     set_state(StateLost);
     s.lost.field_B = 0;
   } else if (state == StateTransporting || state == StateDelivering) {
-    if (s.walking.res != Resource::TypeNone) {
-      Resource::Type res = s.walking.res;
+    if (s.transporting.res != Resource::TypeNone) {
+      Resource::Type res = s.transporting.res;
       int dest = s.walking.dest;
 
       game->cancel_transported_resource(res, dest);
@@ -1012,32 +1012,34 @@ Serf::change_direction(Direction dir, int alt_end) {
 /* Precondition: serf state is in WALKING or TRANSPORTING state */
 void
 Serf::transporter_move_to_flag(Flag *flag) {
-  Direction dir = (Direction)s.walking.dir;
+  Direction dir = (Direction)s.transporting.dir;
   if (flag->is_scheduled(dir)) {
     /* Fetch resource from flag */
-    s.walking.wait_counter = 0;
+    s.transporting.wait_counter = 0;
     int res_index = flag->scheduled_slot(dir);
 
-    if (s.walking.res == Resource::TypeNone) {
+    if (s.transporting.res == Resource::TypeNone) {
       /* Pick up resource. */
-      flag->pick_up_resource(res_index, &s.walking.res, &s.walking.dest);
+      flag->pick_up_resource(res_index, &s.transporting.res,
+                             &s.transporting.dest);
     } else {
       /* Switch resources and destination. */
-      Resource::Type temp_res = s.walking.res;
-      int temp_dest = s.walking.dest;
+      Resource::Type temp_res = s.transporting.res;
+      int temp_dest = s.transporting.dest;
 
-      flag->pick_up_resource(res_index, &s.walking.res, &s.walking.dest);
+      flag->pick_up_resource(res_index, &s.transporting.res,
+                             &s.transporting.dest);
 
       flag->drop_resource(temp_res, temp_dest);
     }
 
     /* Find next resource to be picked up */
-    Player *player = game->get_player(get_player());
+    Player *player = game->get_player(get_owner());
     flag->prioritize_pickup((Direction)dir, player);
-  } else if (s.walking.res != Resource::TypeNone) {
+  } else if (s.transporting.res != Resource::TypeNone) {
     /* Drop resource at flag */
-    if (flag->drop_resource(s.walking.res, s.walking.dest)) {
-      s.walking.res = Resource::TypeNone;
+    if (flag->drop_resource(s.transporting.res, s.transporting.dest)) {
+      s.transporting.res = Resource::TypeNone;
     }
   }
 
@@ -1148,10 +1150,9 @@ Serf::handle_serf_walking_state_dest_reached() {
     other_flag->complete_serf_request(other_dir);
 
     set_state(StateTransporting);
-    s.walking.res = Resource::TypeNone;
-    s.walking.dir = dir;
-    s.walking.dir1 = 0;
-    s.walking.wait_counter = 0;
+    s.transporting.res = Resource::TypeNone;
+    s.transporting.dir = dir;
+    s.transporting.wait_counter = 0;
 
     transporter_move_to_flag(flag);
   }
@@ -1308,14 +1309,14 @@ Serf::handle_serf_transporting_state() {
 
   if (counter >= 0) return;
 
-  if (s.walking.dir < 0) {
-    change_direction((Direction)(s.walking.dir+6), 1);
+  if (s.transporting.dir < 0) {
+    change_direction((Direction)(s.transporting.dir + 6), 1);
   } else {
     PMap map = game->get_map();
     /* 31549 */
     if (map->has_flag(pos)) {
       /* Current position occupied by waiting transporter */
-      if (s.walking.wait_counter < 0) {
+      if (s.transporting.wait_counter < 0) {
         set_state(StateWalking);
         s.walking.wait_counter = 0;
         s.walking.dir1 = -2;
@@ -1325,11 +1326,11 @@ Serf::handle_serf_transporting_state() {
       }
 
       /* 31590 */
-      if (s.walking.res != Resource::TypeNone &&
-        map->get_obj_index(pos) == s.walking.dest) {
+      if (s.transporting.res != Resource::TypeNone &&
+          map->get_obj_index(pos) == s.transporting.dest) {
         /* At resource destination */
         set_state(StateDelivering);
-        s.walking.wait_counter = 0;
+        s.transporting.wait_counter = 0;
 
         MapPos new_pos = map->move_up_left(pos);
         animation = 3 + map->get_height(new_pos) - map->get_height(pos) +
@@ -1362,8 +1363,8 @@ Serf::handle_serf_transporting_state() {
       }
 
       if (!map->has_flag(map->move(pos, dir)) ||
-          s.walking.res != Resource::TypeNone ||
-          s.walking.wait_counter < 0) {
+          s.transporting.res != Resource::TypeNone ||
+          s.transporting.wait_counter < 0) {
         change_direction(dir, 1);
         return;
       }
@@ -1383,11 +1384,11 @@ Serf::handle_serf_transporting_state() {
       s.walking.dir -= 6;
 
       if (flag->free_transporter_count(rev_dir) > 1) {
-        s.walking.wait_counter += 1;
-        if (s.walking.wait_counter > 3) {
+        s.transporting.wait_counter += 1;
+        if (s.transporting.wait_counter > 3) {
           flag->transporter_to_serve(rev_dir);
           other_flag->transporter_to_serve(other_dir);
-          s.walking.wait_counter = -1;
+          s.transporting.wait_counter = -1;
         }
       } else {
         if (!other_flag->is_scheduled(other_dir)) {
@@ -1814,6 +1815,8 @@ Serf::handle_serf_entering_building_state() {
           }
         }
         break;
+      case TypeDead:
+        break;
       default:
         NOT_REACHED();
         break;
@@ -2238,24 +2241,24 @@ Serf::handle_serf_delivering_state() {
   counter -= delta;
 
   while (counter < 0) {
-    if (s.walking.wait_counter != 0) {
+    if (s.transporting.wait_counter != 0) {
       set_state(StateTransporting);
-      s.walking.wait_counter = 0;
+      s.transporting.wait_counter = 0;
       Flag *flag = game->get_flag(game->get_map()->get_obj_index(pos));
       transporter_move_to_flag(flag);
       return;
     }
 
-    if (s.walking.res != Resource::TypeNone) {
-      Resource::Type res = s.walking.res;
-      s.walking.res = Resource::TypeNone;
+    if (s.transporting.res != Resource::TypeNone) {
+      Resource::Type res = s.transporting.res;
+      s.transporting.res = Resource::TypeNone;
       Building *building =
                   game->get_building_at_pos(game->get_map()->move_up_left(pos));
       building->requested_resource_delivered(res);
     }
 
     animation = 4 + 9 - (animation - (3 + 10*9));
-    s.walking.wait_counter = -s.walking.wait_counter - 1;
+    s.transporting.wait_counter = -s.transporting.wait_counter - 1;
     counter += counter_from_animation[animation] >> 1;
   }
 }
@@ -2310,7 +2313,7 @@ Serf::drop_resource(Resource::Type res) {
   /* Resource is lost if no free slot is found */
   bool result = flag->drop_resource(res, 0);
   if (result) {
-    Player *player = game->get_player(get_player());
+    Player *player = game->get_player(get_owner());
     player->increase_res_count(res);
   }
 }
@@ -2325,7 +2328,7 @@ Serf::find_inventory() {
     Flag *flag = game->get_flag(map->get_obj_index(pos));
     if ((flag->land_paths() != 0 ||
          (flag->has_inventory() && flag->accepts_serfs())) &&
-          map->get_owner(pos) == get_player()) {
+          map->get_owner(pos) == get_owner()) {
       set_state(StateWalking);
       s.walking.dir1 = -2;
       s.walking.dest = 0;
@@ -2518,7 +2521,7 @@ Serf::handle_serf_free_walking_state_dest_reached() {
     case TypeGeologist:
       if (s.free_walking.neg_dist1 == -128) {
         if (map->get_obj(pos) == Map::ObjectFlag &&
-            map->get_owner(pos) == get_player()) {
+            map->get_owner(pos) == get_owner()) {
           set_state(StateLookingForGeoSpot);
           counter = 0;
         } else {
@@ -3269,7 +3272,7 @@ Serf::handle_serf_sawing_state() {
     s.move_resource_out.next_state = StateDropResourceOut;
 
     /* Update resource stats. */
-    Player *player = game->get_player(get_player());
+    Player *player = game->get_player(get_owner());
     player->increase_res_count(Resource::TypePlank);
   }
 }
@@ -3292,7 +3295,7 @@ Serf::handle_serf_lost_state() {
         if ((flag->land_paths() != 0 ||
              (flag->has_inventory() && flag->accepts_serfs())) &&
               map->has_owner(dest) &&
-              map->get_owner(dest) == get_player()) {
+              map->get_owner(dest) == get_owner()) {
           if (get_type() >= TypeKnight0 &&
               get_type() <= TypeKnight4) {
             set_state(StateKnightFreeWalking);
@@ -3335,7 +3338,7 @@ Serf::handle_serf_lost_state() {
       if ((map->get_obj(dest) == 0 && map->get_height(dest) > 0) ||
           (map->has_flag(dest) &&
            (map->has_owner(dest) &&
-             map->get_owner(dest) == get_player()))) {
+             map->get_owner(dest) == get_owner()))) {
         if (get_type() >= TypeKnight0 && get_type() <= TypeKnight4) {
           set_state(StateKnightFreeWalking);
         } else {
@@ -3370,7 +3373,7 @@ Serf::handle_lost_sailor() {
         Flag *flag = game->get_flag(map->get_obj_index(dest));
         if (flag->land_paths() != 0 &&
             map->has_owner(dest) &&
-            map->get_owner(dest) == get_player()) {
+            map->get_owner(dest) == get_owner()) {
           set_state(StateFreeSailing);
 
           s.free_walking.dist1 = Map::get_spiral_pattern()[2*i];
@@ -3547,7 +3550,7 @@ Serf::handle_serf_mining_state() {
           s.move_resource_out.next_state = StateDropResourceOut;
 
           /* Update resource stats. */
-          Player *player = game->get_player(get_player());
+          Player *player = game->get_player(get_owner());
           player->increase_res_count(res-1);
           return;
         }
@@ -3603,7 +3606,7 @@ Serf::handle_serf_smelting_state() {
         s.move_resource_out.next_state = StateDropResourceOut;
 
         /* Update resource stats. */
-        Player *player = game->get_player(get_player());
+        Player *player = game->get_player(get_owner());
         player->increase_res_count(res-1);
         return;
       } else if (s.smelting.counter == 0) {
@@ -3817,7 +3820,7 @@ Serf::handle_serf_milling_state() {
         s.move_resource_out.res_dest = 0;
         s.move_resource_out.next_state = StateDropResourceOut;
 
-        Player *player = game->get_player(get_player());
+        Player *player = game->get_player(get_owner());
         player->increase_res_count(Resource::TypeFlour);
         return;
       } else if (s.milling.mode == 3) {
@@ -3861,7 +3864,7 @@ Serf::handle_serf_baking_state() {
         s.move_resource_out.res_dest = 0;
         s.move_resource_out.next_state = StateDropResourceOut;
 
-        Player *player = game->get_player(get_player());
+        Player *player = game->get_player(get_owner());
         player->increase_res_count(Resource::TypeBread);
         return;
       } else {
@@ -3916,7 +3919,7 @@ Serf::handle_serf_pigfarming_state() {
           s.move_resource_out.next_state = StateDropResourceOut;
 
           /* Update resource stats. */
-          Player *player = game->get_player(get_player());
+          Player *player = game->get_player(get_owner());
           player->increase_res_count(Resource::TypePig);
         } else if (game->random_int() & 0xf) {
           s.pigfarming.mode = 1;
@@ -3968,7 +3971,7 @@ Serf::handle_serf_butchering_state() {
       s.move_resource_out.next_state = StateDropResourceOut;
 
       /* Update resource stats. */
-      Player *player = game->get_player(get_player());
+      Player *player = game->get_player(get_owner());
       player->increase_res_count(Resource::TypeMeat);
     }
   }
@@ -4023,7 +4026,7 @@ Serf::handle_serf_making_weapon_state() {
         s.move_resource_out.next_state = StateDropResourceOut;
 
         /* Update resource stats. */
-        Player *player = game->get_player(get_player());
+        Player *player = game->get_player(get_owner());
         player->increase_res_count(res);
         return;
       } else {
@@ -4057,7 +4060,7 @@ Serf::handle_serf_making_tool_state() {
         /* Done making tool. */
         game->get_map()->set_serf_index(pos, 0);
 
-        Player *player = game->get_player(get_player());
+        Player *player = game->get_player(get_owner());
         int total_tool_prio = 0;
         for (int i = 0; i < 9; i++) total_tool_prio += player->get_tool_prio(i);
         total_tool_prio >>= 4;
@@ -4133,7 +4136,7 @@ Serf::handle_serf_building_boat_state() {
           s.move_resource_out.next_state = StateDropResourceOut;
 
           /* Update resource stats. */
-          Player *player = game->get_player(get_player());
+          Player *player = game->get_player(get_owner());
           player->increase_res_count(Resource::TypeBoat);
 
           break;
@@ -4246,7 +4249,7 @@ Serf::handle_serf_sampling_geo_spot_state() {
             default:
               NOT_REACHED();
           }
-          game->get_player(get_player())->add_notification(mtype, pos,
+          game->get_player(get_owner())->add_notification(mtype, pos,
                                                     map->get_res_type(pos) - 1);
         }
 
@@ -4278,13 +4281,13 @@ Serf::handle_serf_knight_engaging_building_state() {
                                               map->move_up_left(pos)));
       if (building->is_done() &&
           building->is_military() &&
-          building->get_owner() != get_player() &&
+          building->get_owner() != get_owner() &&
           building->has_knight()) {
         if (building->is_under_attack()) {
           game->get_player(building->get_owner())->add_notification(
                                                  Message::TypeUnderAttack,
                                                        building->get_position(),
-                                                                 get_player());
+                                                                   get_owner());
         }
 
         /* Change state of attacking knight */
@@ -4317,8 +4320,8 @@ Serf::set_fight_outcome(Serf *attacker, Serf *defender) {
   /* Calculate "morale" for attacker. */
   int exp_factor = 1 << (attacker->get_type() - TypeKnight0);
   int land_factor = 0x1000;
-  if (attacker->get_player() != game->get_map()->get_owner(attacker->pos)) {
-    land_factor = game->get_player(attacker->get_player())->get_knight_morale();
+  if (attacker->get_owner() != game->get_map()->get_owner(attacker->pos)) {
+    land_factor = game->get_player(attacker->get_owner())->get_knight_morale();
   }
 
   int morale = (0x400*exp_factor * land_factor) >> 16;
@@ -4326,9 +4329,9 @@ Serf::set_fight_outcome(Serf *attacker, Serf *defender) {
   /* Calculate "morale" for defender. */
   int def_exp_factor = 1 << (defender->get_type() - TypeKnight0);
   int def_land_factor = 0x1000;
-  if (defender->get_player() != game->get_map()->get_owner(defender->pos)) {
+  if (defender->get_owner() != game->get_map()->get_owner(defender->pos)) {
     def_land_factor =
-                  game->get_player(defender->get_player())->get_knight_morale();
+                   game->get_player(defender->get_owner())->get_knight_morale();
   }
 
   int def_morale = (0x400*def_exp_factor * def_land_factor) >> 16;
@@ -4338,14 +4341,14 @@ Serf::set_fight_outcome(Serf *attacker, Serf *defender) {
   Type ktype = TypeNone;
   int r = ((morale + def_morale)*game->random_int()) >> 16;
   if (r < morale) {
-    player = defender->get_player();
+    player = defender->get_owner();
     value = def_exp_factor;
     ktype = defender->get_type();
     attacker->s.attacking.field_C = 1;
     Log::Debug["serf"] << "Fight: " << morale << " vs " << def_morale
     << " (" << r << "). Attacker winning.";
   } else {
-    player = attacker->get_player();
+    player = attacker->get_owner();
     value = exp_factor;
     ktype = attacker->get_type();
     attacker->s.attacking.field_C = 0;
@@ -4552,7 +4555,7 @@ Serf::handle_knight_occupy_enemy_building() {
         }
       } else if (!building->has_knight()) {
         /* Occupy the building. */
-        game->occupy_enemy_building(building, get_player());
+        game->occupy_enemy_building(building, get_owner());
 
         if (building->get_type() == Building::TypeCastle) {
           counter = 0;
@@ -4591,7 +4594,7 @@ Serf::handle_state_knight_free_walking() {
 
       if (map->has_serf(pos_)) {
         Serf *other = game->get_serf_at_pos(pos_);
-        if (get_player() != other->get_player()) {
+        if (get_owner() != other->get_owner()) {
           if (other->state == StateKnightFreeWalking) {
             pos = map->move_left(pos_);
             if (can_pass_map_pos(pos_)) {
@@ -4842,7 +4845,7 @@ Serf::handle_serf_state_knight_leave_for_walk_to_fight() {
     int field_E = s.leave_for_walk_to_fight.field_E;
     Serf::State next_state = s.leave_for_walk_to_fight.next_state;
 
-    leave_building(0);
+    leave_building(pos);
     /* TODO names for leaving_building vars make no sense here. */
     s.leaving_building.field_B = dist_col;
     s.leaving_building.dest = dist_row;
@@ -4851,7 +4854,7 @@ Serf::handle_serf_state_knight_leave_for_walk_to_fight() {
     s.leaving_building.next_state = next_state;
   } else {
     Serf *other = game->get_serf_at_pos(new_pos);
-    if (get_player() == other->get_player()) {
+    if (get_owner() == other->get_owner()) {
       animation = 82;
       counter = 0;
     } else {
@@ -4905,9 +4908,9 @@ Serf::handle_serf_idle_on_path_state() {
     int dir = s.idle_on_path.field_E;
 
     set_state(StateTransporting);
-    s.walking.res = Resource::TypeNone;
-    s.walking.wait_counter = 0;
-    s.walking.dir = dir;
+    s.transporting.res = Resource::TypeNone;
+    s.transporting.wait_counter = 0;
+    s.transporting.dir = dir;
     tick = game->get_tick();
     counter = 0;
   } else {
@@ -4926,9 +4929,9 @@ Serf::handle_serf_wait_idle_on_path_state() {
     int dir = s.idle_on_path.field_E;
 
     set_state(StateTransporting);
-    s.walking.res = Resource::TypeNone;
-    s.walking.wait_counter = 0;
-    s.walking.dir = dir;
+    s.transporting.res = Resource::TypeNone;
+    s.transporting.wait_counter = 0;
+    s.transporting.dir = dir;
     tick = game->get_tick();
     counter = 0;
   }
@@ -5333,13 +5336,13 @@ operator >> (SaveReaderBinary &reader, Serf &serf) {
     case Serf::StateTransporting:
     case Serf::StateDelivering: {
       reader >> v8;  // 11
-      serf.s.walking.res = (Resource::Type)(((int8_t)v8) - 1);
+      serf.s.transporting.res = (Resource::Type)(((int8_t)v8) - 1);
       reader >> v16;  // 12
-      serf.s.walking.dest = v16;
+      serf.s.transporting.dest = v16;
       reader >> v8;  // 14
-      serf.s.walking.dir = (int8_t)v8;
+      serf.s.transporting.dir = (int8_t)v8;
       reader >> v8;  // 15
-      serf.s.walking.wait_counter = v8;
+      serf.s.transporting.wait_counter = v8;
       break;
     }
     case Serf::StateEnteringBuilding:
@@ -5507,17 +5510,32 @@ operator >> (SaveReaderBinary &reader, Serf &serf) {
        (SERF_STATE_KNIGHT_ATTACKING_DEFEAT_FREE). */
       break;
 
+    case Serf::StateKnightLeaveForWalkToFight:
+      reader >> v8;  // 11
+      serf.s.leave_for_walk_to_fight.dist_col = v8;
+      reader >> v8;  // 12
+      serf.s.leave_for_walk_to_fight.dist_row = v8;
+      reader >> v8;  // 13
+      serf.s.leave_for_walk_to_fight.field_D = v8;
+      reader >> v8;  // 14
+      serf.s.leave_for_walk_to_fight.field_E = v8;
+      reader >> v8;  // 15
+      serf.s.leave_for_walk_to_fight.next_state = (Serf::State)v8;
+      break;
+
     case Serf::StateIdleOnPath:
     case Serf::StateWaitIdleOnPath:
     case Serf::StateWakeAtFlag:
-    case Serf::StateWakeOnPath:
+    case Serf::StateWakeOnPath: {
       reader >> v8;  // 11
       serf.s.idle_on_path.rev_dir = (Direction)v8;
       reader >> v16;  // 12
-      serf.s.idle_on_path.flag = serf.get_game()->create_flag(v16/70);
+      unsigned int index = v16/70;
+      serf.s.idle_on_path.flag = serf.get_game()->create_flag(index);
       reader >> v8;  // 14
       serf.s.idle_on_path.field_E = v8;
       break;
+    }
 
     case Serf::StateDefendingHut:
     case Serf::StateDefendingTower:
@@ -5562,13 +5580,18 @@ operator >> (SaveReaderText &reader, Serf &serf) {
       break;
 
     case Serf::StateWalking:
-    case Serf::StateTransporting:
-    case Serf::StateDelivering:
-      reader.value("state.res") >> serf.s.walking.res;
       reader.value("state.dest") >> serf.s.walking.dest;
       reader.value("state.dir") >> serf.s.walking.dir;
       reader.value("state.wait_counter") >> serf.s.walking.wait_counter;
       reader.value("state.other_dir") >> serf.s.walking.dir1;
+      break;
+
+    case Serf::StateTransporting:
+    case Serf::StateDelivering:
+      reader.value("state.res") >> serf.s.transporting.res;
+      reader.value("state.dest") >> serf.s.transporting.dest;
+      reader.value("state.dir") >> serf.s.transporting.dir;
+      reader.value("state.wait_counter") >> serf.s.transporting.wait_counter;
       break;
 
     case Serf::StateEnteringBuilding:
@@ -5767,13 +5790,18 @@ operator << (SaveWriterText &writer, Serf &serf) {
       break;
 
     case Serf::StateWalking:
-    case Serf::StateTransporting:
-    case Serf::StateDelivering:
-      writer.value("state.res") << serf.s.walking.res;
       writer.value("state.dest") << serf.s.walking.dest;
       writer.value("state.dir") << serf.s.walking.dir;
       writer.value("state.wait_counter") << serf.s.walking.wait_counter;
       writer.value("state.other_dir") << serf.s.walking.dir1;
+      break;
+
+    case Serf::StateTransporting:
+    case Serf::StateDelivering:
+      writer.value("state.res") << serf.s.transporting.res;
+      writer.value("state.dest") << serf.s.transporting.dest;
+      writer.value("state.dir") << serf.s.transporting.dir;
+      writer.value("state.wait_counter") << serf.s.transporting.wait_counter;
       break;
 
     case Serf::StateEnteringBuilding:
