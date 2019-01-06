@@ -422,12 +422,12 @@ Player::available_knights_at_pos(MapPos pos, int index_, int dist) {
     case Building::TypeHut: min_level = min_level_hut; break;
     case Building::TypeTower: min_level = min_level_tower; break;
     case Building::TypeFortress: min_level = min_level_fortress; break;
-    default: return index; break;
+    default: return index_; break;
   }
 
-  if (index >= 64) return index_;
+  if (index_ >= 64) return index_;
 
-  attacking_buildings[index] = bld_index;
+  attacking_buildings[index_] = bld_index;
 
   size_t state = building_->get_threat_level();
   int knights_present = building_->get_knight_count();

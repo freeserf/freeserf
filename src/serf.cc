@@ -4845,7 +4845,7 @@ Serf::handle_serf_state_knight_leave_for_walk_to_fight() {
     int field_E = s.leave_for_walk_to_fight.field_E;
     Serf::State next_state = s.leave_for_walk_to_fight.next_state;
 
-    leave_building(0);
+    leave_building(pos);
     /* TODO names for leaving_building vars make no sense here. */
     s.leaving_building.field_B = dist_col;
     s.leaving_building.dest = dist_row;
