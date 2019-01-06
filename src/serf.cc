@@ -609,12 +609,12 @@ Serf::change_transporter_state_at_pos(MapPos pos_, Serf::State _state) {
 void
 Serf::restore_path_serf_info() {
   if (state != StateWakeOnPath) {
-    s.walking.wait_counter = -1;
-    if (s.walking.res != Resource::TypeNone) {
-      Resource::Type res = s.walking.res;
-      s.walking.res = Resource::TypeNone;
+    s.transporting.wait_counter = -1;
+    if (s.transporting.res != Resource::TypeNone) {
+      Resource::Type res = s.transporting.res;
+      s.transporting.res = Resource::TypeNone;
 
-      game->cancel_transported_resource(res, s.walking.dest);
+      game->cancel_transported_resource(res, s.transporting.dest);
       game->lose_resource(res);
     }
   } else {
@@ -700,7 +700,7 @@ Serf::get_delivery() const {
   switch (state) {
     case StateDelivering:
     case StateTransporting:
-      res = s.walking.res + 1;
+      res = s.transporting.res + 1;
       break;
     case StateEnteringBuilding:
       res = s.entering_building.field_B;
@@ -799,8 +799,8 @@ Serf::set_lost_state() {
     set_state(StateLost);
     s.lost.field_B = 0;
   } else if (state == StateTransporting || state == StateDelivering) {
-    if (s.walking.res != Resource::TypeNone) {
-      Resource::Type res = s.walking.res;
+    if (s.transporting.res != Resource::TypeNone) {
+      Resource::Type res = s.transporting.res;
       int dest = s.walking.dest;
 
       game->cancel_transported_resource(res, dest);
@@ -1012,21 +1012,23 @@ Serf::change_direction(Direction dir, int alt_end) {
 /* Precondition: serf state is in WALKING or TRANSPORTING state */
 void
 Serf::transporter_move_to_flag(Flag *flag) {
-  Direction dir = (Direction)s.walking.dir;
+  Direction dir = (Direction)s.transporting.dir;
   if (flag->is_scheduled(dir)) {
     /* Fetch resource from flag */
-    s.walking.wait_counter = 0;
+    s.transporting.wait_counter = 0;
     int res_index = flag->scheduled_slot(dir);
 
-    if (s.walking.res == Resource::TypeNone) {
+    if (s.transporting.res == Resource::TypeNone) {
       /* Pick up resource. */
-      flag->pick_up_resource(res_index, &s.walking.res, &s.walking.dest);
+      flag->pick_up_resource(res_index, &s.transporting.res,
+                             &s.transporting.dest);
     } else {
       /* Switch resources and destination. */
-      Resource::Type temp_res = s.walking.res;
-      int temp_dest = s.walking.dest;
+      Resource::Type temp_res = s.transporting.res;
+      int temp_dest = s.transporting.dest;
 
-      flag->pick_up_resource(res_index, &s.walking.res, &s.walking.dest);
+      flag->pick_up_resource(res_index, &s.transporting.res,
+                             &s.transporting.dest);
 
       flag->drop_resource(temp_res, temp_dest);
     }
@@ -1034,10 +1036,10 @@ Serf::transporter_move_to_flag(Flag *flag) {
     /* Find next resource to be picked up */
     Player *player = game->get_player(get_owner());
     flag->prioritize_pickup((Direction)dir, player);
-  } else if (s.walking.res != Resource::TypeNone) {
+  } else if (s.transporting.res != Resource::TypeNone) {
     /* Drop resource at flag */
-    if (flag->drop_resource(s.walking.res, s.walking.dest)) {
-      s.walking.res = Resource::TypeNone;
+    if (flag->drop_resource(s.transporting.res, s.transporting.dest)) {
+      s.transporting.res = Resource::TypeNone;
     }
   }
 
@@ -1148,10 +1150,9 @@ Serf::handle_serf_walking_state_dest_reached() {
     other_flag->complete_serf_request(other_dir);
 
     set_state(StateTransporting);
-    s.walking.res = Resource::TypeNone;
-    s.walking.dir = dir;
-    s.walking.dir1 = 0;
-    s.walking.wait_counter = 0;
+    s.transporting.res = Resource::TypeNone;
+    s.transporting.dir = dir;
+    s.transporting.wait_counter = 0;
 
     transporter_move_to_flag(flag);
   }
@@ -1308,14 +1309,14 @@ Serf::handle_serf_transporting_state() {
 
   if (counter >= 0) return;
 
-  if (s.walking.dir < 0) {
-    change_direction((Direction)(s.walking.dir+6), 1);
+  if (s.transporting.dir < 0) {
+    change_direction((Direction)(s.transporting.dir + 6), 1);
   } else {
     PMap map = game->get_map();
     /* 31549 */
     if (map->has_flag(pos)) {
       /* Current position occupied by waiting transporter */
-      if (s.walking.wait_counter < 0) {
+      if (s.transporting.wait_counter < 0) {
         set_state(StateWalking);
         s.walking.wait_counter = 0;
         s.walking.dir1 = -2;
@@ -1325,11 +1326,11 @@ Serf::handle_serf_transporting_state() {
       }
 
       /* 31590 */
-      if (s.walking.res != Resource::TypeNone &&
-        map->get_obj_index(pos) == s.walking.dest) {
+      if (s.transporting.res != Resource::TypeNone &&
+          map->get_obj_index(pos) == s.transporting.dest) {
         /* At resource destination */
         set_state(StateDelivering);
-        s.walking.wait_counter = 0;
+        s.transporting.wait_counter = 0;
 
         MapPos new_pos = map->move_up_left(pos);
         animation = 3 + map->get_height(new_pos) - map->get_height(pos) +
@@ -1362,8 +1363,8 @@ Serf::handle_serf_transporting_state() {
       }
 
       if (!map->has_flag(map->move(pos, dir)) ||
-          s.walking.res != Resource::TypeNone ||
-          s.walking.wait_counter < 0) {
+          s.transporting.res != Resource::TypeNone ||
+          s.transporting.wait_counter < 0) {
         change_direction(dir, 1);
         return;
       }
@@ -1383,11 +1384,11 @@ Serf::handle_serf_transporting_state() {
       s.walking.dir -= 6;
 
       if (flag->free_transporter_count(rev_dir) > 1) {
-        s.walking.wait_counter += 1;
-        if (s.walking.wait_counter > 3) {
+        s.transporting.wait_counter += 1;
+        if (s.transporting.wait_counter > 3) {
           flag->transporter_to_serve(rev_dir);
           other_flag->transporter_to_serve(other_dir);
-          s.walking.wait_counter = -1;
+          s.transporting.wait_counter = -1;
         }
       } else {
         if (!other_flag->is_scheduled(other_dir)) {
@@ -2240,24 +2241,24 @@ Serf::handle_serf_delivering_state() {
   counter -= delta;
 
   while (counter < 0) {
-    if (s.walking.wait_counter != 0) {
+    if (s.transporting.wait_counter != 0) {
       set_state(StateTransporting);
-      s.walking.wait_counter = 0;
+      s.transporting.wait_counter = 0;
       Flag *flag = game->get_flag(game->get_map()->get_obj_index(pos));
       transporter_move_to_flag(flag);
       return;
     }
 
-    if (s.walking.res != Resource::TypeNone) {
-      Resource::Type res = s.walking.res;
-      s.walking.res = Resource::TypeNone;
+    if (s.transporting.res != Resource::TypeNone) {
+      Resource::Type res = s.transporting.res;
+      s.transporting.res = Resource::TypeNone;
       Building *building =
                   game->get_building_at_pos(game->get_map()->move_up_left(pos));
       building->requested_resource_delivered(res);
     }
 
     animation = 4 + 9 - (animation - (3 + 10*9));
-    s.walking.wait_counter = -s.walking.wait_counter - 1;
+    s.transporting.wait_counter = -s.transporting.wait_counter - 1;
     counter += counter_from_animation[animation] >> 1;
   }
 }
@@ -4907,9 +4908,9 @@ Serf::handle_serf_idle_on_path_state() {
     int dir = s.idle_on_path.field_E;
 
     set_state(StateTransporting);
-    s.walking.res = Resource::TypeNone;
-    s.walking.wait_counter = 0;
-    s.walking.dir = dir;
+    s.transporting.res = Resource::TypeNone;
+    s.transporting.wait_counter = 0;
+    s.transporting.dir = dir;
     tick = game->get_tick();
     counter = 0;
   } else {
@@ -4928,9 +4929,9 @@ Serf::handle_serf_wait_idle_on_path_state() {
     int dir = s.idle_on_path.field_E;
 
     set_state(StateTransporting);
-    s.walking.res = Resource::TypeNone;
-    s.walking.wait_counter = 0;
-    s.walking.dir = dir;
+    s.transporting.res = Resource::TypeNone;
+    s.transporting.wait_counter = 0;
+    s.transporting.dir = dir;
     tick = game->get_tick();
     counter = 0;
   }
@@ -5335,13 +5336,13 @@ operator >> (SaveReaderBinary &reader, Serf &serf) {
     case Serf::StateTransporting:
     case Serf::StateDelivering: {
       reader >> v8;  // 11
-      serf.s.walking.res = (Resource::Type)(((int8_t)v8) - 1);
+      serf.s.transporting.res = (Resource::Type)(((int8_t)v8) - 1);
       reader >> v16;  // 12
-      serf.s.walking.dest = v16;
+      serf.s.transporting.dest = v16;
       reader >> v8;  // 14
-      serf.s.walking.dir = (int8_t)v8;
+      serf.s.transporting.dir = (int8_t)v8;
       reader >> v8;  // 15
-      serf.s.walking.wait_counter = v8;
+      serf.s.transporting.wait_counter = v8;
       break;
     }
     case Serf::StateEnteringBuilding:
@@ -5509,17 +5510,32 @@ operator >> (SaveReaderBinary &reader, Serf &serf) {
        (SERF_STATE_KNIGHT_ATTACKING_DEFEAT_FREE). */
       break;
 
+    case Serf::StateKnightLeaveForWalkToFight:
+      reader >> v8;  // 11
+      serf.s.leave_for_walk_to_fight.dist_col = v8;
+      reader >> v8;  // 12
+      serf.s.leave_for_walk_to_fight.dist_row = v8;
+      reader >> v8;  // 13
+      serf.s.leave_for_walk_to_fight.field_D = v8;
+      reader >> v8;  // 14
+      serf.s.leave_for_walk_to_fight.field_E = v8;
+      reader >> v8;  // 15
+      serf.s.leave_for_walk_to_fight.next_state = (Serf::State)v8;
+      break;
+
     case Serf::StateIdleOnPath:
     case Serf::StateWaitIdleOnPath:
     case Serf::StateWakeAtFlag:
-    case Serf::StateWakeOnPath:
+    case Serf::StateWakeOnPath: {
       reader >> v8;  // 11
       serf.s.idle_on_path.rev_dir = (Direction)v8;
       reader >> v16;  // 12
-      serf.s.idle_on_path.flag = serf.get_game()->create_flag(v16/70);
+      unsigned int index = v16/70;
+      serf.s.idle_on_path.flag = serf.get_game()->create_flag(index);
       reader >> v8;  // 14
       serf.s.idle_on_path.field_E = v8;
       break;
+    }
 
     case Serf::StateDefendingHut:
     case Serf::StateDefendingTower:
@@ -5564,13 +5580,18 @@ operator >> (SaveReaderText &reader, Serf &serf) {
       break;
 
     case Serf::StateWalking:
-    case Serf::StateTransporting:
-    case Serf::StateDelivering:
-      reader.value("state.res") >> serf.s.walking.res;
       reader.value("state.dest") >> serf.s.walking.dest;
       reader.value("state.dir") >> serf.s.walking.dir;
       reader.value("state.wait_counter") >> serf.s.walking.wait_counter;
       reader.value("state.other_dir") >> serf.s.walking.dir1;
+      break;
+
+    case Serf::StateTransporting:
+    case Serf::StateDelivering:
+      reader.value("state.res") >> serf.s.transporting.res;
+      reader.value("state.dest") >> serf.s.transporting.dest;
+      reader.value("state.dir") >> serf.s.transporting.dir;
+      reader.value("state.wait_counter") >> serf.s.transporting.wait_counter;
       break;
 
     case Serf::StateEnteringBuilding:
@@ -5769,13 +5790,18 @@ operator << (SaveWriterText &writer, Serf &serf) {
       break;
 
     case Serf::StateWalking:
-    case Serf::StateTransporting:
-    case Serf::StateDelivering:
-      writer.value("state.res") << serf.s.walking.res;
       writer.value("state.dest") << serf.s.walking.dest;
       writer.value("state.dir") << serf.s.walking.dir;
       writer.value("state.wait_counter") << serf.s.walking.wait_counter;
       writer.value("state.other_dir") << serf.s.walking.dir1;
+      break;
+
+    case Serf::StateTransporting:
+    case Serf::StateDelivering:
+      writer.value("state.res") << serf.s.transporting.res;
+      writer.value("state.dest") << serf.s.transporting.dest;
+      writer.value("state.dir") << serf.s.transporting.dir;
+      writer.value("state.wait_counter") << serf.s.transporting.wait_counter;
       break;
 
     case Serf::StateEnteringBuilding:

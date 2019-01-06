@@ -174,12 +174,19 @@ class Serf : public GameObject {
     /* States: walking, transporting, delivering */
     /* res: resource carried (when transporting), otherwise direction. */
     struct {
-      int dir1; /* newly added */
-      Resource::Type res; /* B */
+      int dir1; /* B */
       unsigned int dest; /* C */
       int dir; /* E */
       int wait_counter; /* F */
     } walking;
+
+    /* States: transporting, delivering */
+    struct {
+      Resource::Type res; /* B */
+      unsigned int dest; /* C */
+      int dir; /* E */
+      int wait_counter; /* F */
+    } transporting;
 
     struct {
       int field_B; /* B */

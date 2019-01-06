@@ -82,6 +82,7 @@ FlagSearch::single(Flag *src, flag_search_func *callback, bool land,
 
 Flag::Flag(Game *game, unsigned int index) : GameObject(game, index) {
   pos = 0;
+  owner = -1;
   search_num = 0;
   search_dir = DirectionRight;
   path_con = 0;
