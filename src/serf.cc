@@ -23,6 +23,8 @@
 
 #include <algorithm>
 #include <map>
+#include <strstream>
+#include <string>
 
 #include "src/game.h"
 #include "src/log.h"
@@ -303,7 +305,11 @@ Serf::Serf(Game *game, unsigned int index) : GameObject(game, index) {
    tracking serf types. */
 void
 Serf::set_type(Serf::Type new_type) {
-  Serf::Type old_type = get_type();
+  if (new_type == type) {
+    return;
+  }
+
+  Serf::Type old_type = type;
   type = new_type;
 
   /* Register this type as transporter */
@@ -1396,7 +1402,7 @@ Serf::handle_serf_transporting_state() {
           tick = (tick & 0xff00) | (s.walking.dir & 0xff);
           set_state(StateIdleOnPath);
           s.idle_on_path.rev_dir = rev_dir;
-          s.idle_on_path.flag = flag;
+          s.idle_on_path.flag = flag->get_index();
           map->set_idle_serf(pos);
           map->set_serf_index(pos, 0);
           return;
@@ -4884,7 +4890,11 @@ Serf::handle_serf_state_knight_leave_for_walk_to_fight() {
 
 void
 Serf::handle_serf_idle_on_path_state() {
-  Flag *flag = s.idle_on_path.flag;
+  Flag *flag = game->get_flag(s.idle_on_path.flag);
+  if (flag == nullptr) {
+    set_state(StateLost);
+    return;
+  }
   Direction rev_dir = s.idle_on_path.rev_dir;
 
   /* Set walking dir in field_E. */
@@ -5427,10 +5437,11 @@ operator >> (SaveReaderBinary &reader, Serf &serf) {
     case Serf::StateFishing:
     case Serf::StateFarming:
     case Serf::StateSamplingGeoSpot:
+    case Serf::StateKnightFreeWalking:
       reader >> v8;  // 11
-      serf.s.free_walking.dist1 = v8;
+      serf.s.free_walking.dist1 = (int8_t)v8;
       reader >> v8;  // 12
-      serf.s.free_walking.dist2 = v8;
+      serf.s.free_walking.dist2 = (int8_t)v8;
       reader >> v8;  // 13
       serf.s.free_walking.neg_dist1 = (int8_t)v8;
       reader >> v8;  // 14
@@ -5512,13 +5523,13 @@ operator >> (SaveReaderBinary &reader, Serf &serf) {
 
     case Serf::StateKnightLeaveForWalkToFight:
       reader >> v8;  // 11
-      serf.s.leave_for_walk_to_fight.dist_col = v8;
+      serf.s.leave_for_walk_to_fight.dist_col = (int8_t)v8;
       reader >> v8;  // 12
-      serf.s.leave_for_walk_to_fight.dist_row = v8;
+      serf.s.leave_for_walk_to_fight.dist_row = (int8_t)v8;
       reader >> v8;  // 13
-      serf.s.leave_for_walk_to_fight.field_D = v8;
+      serf.s.leave_for_walk_to_fight.field_D = (int8_t)v8;
       reader >> v8;  // 14
-      serf.s.leave_for_walk_to_fight.field_E = v8;
+      serf.s.leave_for_walk_to_fight.field_E = (int8_t)v8;
       reader >> v8;  // 15
       serf.s.leave_for_walk_to_fight.next_state = (Serf::State)v8;
       break;
@@ -5531,7 +5542,7 @@ operator >> (SaveReaderBinary &reader, Serf &serf) {
       serf.s.idle_on_path.rev_dir = (Direction)v8;
       reader >> v16;  // 12
       unsigned int index = v16/70;
-      serf.s.idle_on_path.flag = serf.get_game()->create_flag(index);
+      serf.s.idle_on_path.flag = index;
       reader >> v8;  // 14
       serf.s.idle_on_path.field_E = v8;
       break;
@@ -5755,7 +5766,7 @@ operator >> (SaveReaderText &reader, Serf &serf) {
       reader.value("state.rev_dir") >> serf.s.idle_on_path.rev_dir;
       unsigned int flag_idex;
       reader.value("state.flag") >> flag_idex;
-      serf.s.idle_on_path.flag = serf.get_game()->create_flag(flag_idex);
+      serf.s.idle_on_path.flag = flag_idex;
       reader.value("state.field_E") >> serf.s.idle_on_path.field_E;
       break;
 
@@ -5961,7 +5972,7 @@ operator << (SaveWriterText &writer, Serf &serf) {
     case Serf::StateWakeAtFlag:
     case Serf::StateWakeOnPath:
       writer.value("state.rev_dir") << serf.s.idle_on_path.rev_dir;
-      writer.value("state.flag") << serf.s.idle_on_path.flag->get_index();
+      writer.value("state.flag") << serf.s.idle_on_path.flag;
       writer.value("state.field_E") << serf.s.idle_on_path.field_E;
       break;
 
@@ -5976,4 +5987,203 @@ operator << (SaveWriterText &writer, Serf &serf) {
   }
 
   return writer;
+}
+
+std::string
+Serf::print_state() {
+  std::strstream res;
+
+  res << get_state_name(state) << "\n";
+
+  switch (state) {
+    case Serf::StateIdleInStock:
+      res << "inventory" << "\t" << s.idle_in_stock.inv_index << "\n";
+      break;
+
+    case Serf::StateWalking:
+      res << "dest" << "\t" << s.walking.dest << "\n";
+      res << "dir" << "\t" << s.walking.dir << "\n";
+      res << "wait_counter" << "\t" << s.walking.wait_counter << "\n";
+      res << "other_dir" << "\t" << s.walking.dir1 << "\n";
+      break;
+
+    case Serf::StateTransporting:
+    case Serf::StateDelivering:
+      res << "res" << "\t" << s.transporting.res << "\n";
+      res << "dest" << "\t" << s.transporting.dest << "\n";
+      res << "dir" << "\t" << s.transporting.dir << "\n";
+      res << "wait_counter" << "\t" << s.transporting.wait_counter << "\n";
+      break;
+
+    case Serf::StateEnteringBuilding:
+      res << "field_B" << "\t" << s.entering_building.field_B << "\n";
+      res << "slope_len" << "\t" << s.entering_building.slope_len << "\n";
+      break;
+
+    case Serf::StateLeavingBuilding:
+    case Serf::StateReadyToLeave:
+    case Serf::StateKnightLeaveForFight:
+      res << "field_B" << "\t" << s.leaving_building.field_B << "\n";
+      res << "dest" << "\t" << s.leaving_building.dest << "\n";
+      res << "dest2" << "\t" << s.leaving_building.dest2 << "\n";
+      res << "dir" << "\t" << s.leaving_building.dir << "\n";
+      res << "next_state" << "\t" << s.leaving_building.next_state << "\n";
+      break;
+
+    case Serf::StateReadyToEnter:
+      res << "field_B" << "\t" << s.ready_to_enter.field_B << "\n";
+      break;
+
+    case Serf::StateDigging:
+      res << "h_index" << "\t" << s.digging.h_index << "\n";
+      res << "target_h" << "\t" << s.digging.target_h << "\n";
+      res << "dig_pos" << "\t" << s.digging.dig_pos << "\n";
+      res << "substate" << "\t" << s.digging.substate << "\n";
+      break;
+
+    case Serf::StateBuilding:
+      res << "mode" << "\t" << s.building.mode << "\n";
+      res << "bld_index" << "\t" << s.building.bld_index << "\n";
+      res << "material_step" << "\t" << s.building.material_step << "\n";
+      res << "counter" << "\t" << s.building.counter << "\n";
+      break;
+
+    case Serf::StateBuildingCastle:
+      res << "inv_index" << "\t" << s.building_castle.inv_index << "\n";
+      break;
+
+    case Serf::StateMoveResourceOut:
+    case Serf::StateDropResourceOut:
+      res << "res" << "\t" << s.move_resource_out.res << "\n";
+      res << "res_dest" << "\t" << s.move_resource_out.res_dest << "\n";
+      res << "next_state" << "\t" << s.move_resource_out.next_state << "\n";
+      break;
+
+    case Serf::StateReadyToLeaveInventory:
+      res << "mode" << "\t" << s.ready_to_leave_inventory.mode << "\n";
+      res << "dest" << "\t" << s.ready_to_leave_inventory.dest << "\n";
+      res << "inv_index" << "\t" << s.ready_to_leave_inventory.inv_index
+          << "\n";
+      break;
+
+    case Serf::StateFreeWalking:
+    case Serf::StateLogging:
+    case Serf::StatePlanting:
+    case Serf::StateStoneCutting:
+    case Serf::StateStoneCutterFreeWalking:
+    case Serf::StateFishing:
+    case Serf::StateFarming:
+    case Serf::StateSamplingGeoSpot:
+    case Serf::StateKnightFreeWalking:
+    case Serf::StateKnightAttackingFree:
+    case Serf::StateKnightAttackingFreeWait:
+      res << "dist1" << "\t" << s.free_walking.dist1 << "\n";
+      res << "dist2" << "\t" << s.free_walking.dist2 << "\n";
+      res << "neg_dist" << "\t" << s.free_walking.neg_dist1 << "\n";
+      res << "neg_dist2" << "\t" << s.free_walking.neg_dist2 << "\n";
+      res << "flags" << "\t" << s.free_walking.flags << "\n";
+      break;
+
+    case Serf::StateSawing:
+      res << "mode" << "\t" << s.sawing.mode << "\n";
+      break;
+
+    case Serf::StateLost:
+      res << "field_B" << "\t" << s.lost.field_B << "\n";
+      break;
+
+    case Serf::StateMining:
+      res << "substate" << "\t" << s.mining.substate << "\n";
+      res << "res" << "\t" << s.mining.res << "\n";
+      res << "deposit" << "\t" << s.mining.deposit << "\n";
+      break;
+
+    case Serf::StateSmelting:
+      res << "mode" << "\t" << s.smelting.mode << "\n";
+      res << "counter" << "\t" << s.smelting.counter << "\n";
+      res << "type" << "\t" << s.smelting.type << "\n";
+      break;
+
+    case Serf::StateMilling:
+      res << "mode" << "\t" << s.milling.mode << "\n";
+      break;
+
+    case Serf::StateBaking:
+      res << "mode" << "\t" << s.baking.mode << "\n";
+      break;
+
+    case Serf::StatePigFarming:
+      res << "mode" << "\t" << s.pigfarming.mode << "\n";
+      break;
+
+    case Serf::StateButchering:
+      res << "mode" << "\t" << s.butchering.mode << "\n";
+      break;
+
+    case Serf::StateMakingWeapon:
+      res << "mode" << "\t" << s.making_weapon.mode << "\n";
+      break;
+
+    case Serf::StateMakingTool:
+      res << "mode" << "\t" << s.making_tool.mode << "\n";
+      break;
+
+    case Serf::StateBuildingBoat:
+      res << "mode" << "\t" << s.building_boat.mode << "\n";
+      break;
+
+    case Serf::StateKnightEngagingBuilding:
+    case Serf::StateKnightPrepareAttacking:
+    case Serf::StateKnightPrepareDefendingFreeWait:
+    case Serf::StateKnightAttackingDefeatFree:
+    case Serf::StateKnightAttacking:
+    case Serf::StateKnightAttackingVictory:
+    case Serf::StateKnightEngageAttackingFree:
+    case Serf::StateKnightEngageAttackingFreeJoin:
+    case Serf::StateKnightAttackingVictoryFree:
+      res << "field_B" << "\t" << s.attacking.field_B << "\n";
+      res << "field_C" << "\t" << s.attacking.field_C << "\n";
+      res << "field_D" << "\t" << s.attacking.field_D << "\n";
+      res << "def_index" << "\t" << s.attacking.def_index << "\n";
+      break;
+
+    case Serf::StateKnightDefendingFree:
+    case Serf::StateKnightEngageDefendingFree:
+      res << "dist_col" << "\t" << s.defending_free.dist_col << "\n";
+      res << "dist_row" << "\t" << s.defending_free.dist_row << "\n";
+      res << "field_D" << "\t" << s.defending_free.field_D << "\n";
+      res << "other_dist_col" << "\t" << s.defending_free.other_dist_col
+          << "\n";
+      res << "other_dist_row" << "\t" << s.defending_free.other_dist_row
+          << "\n";
+      break;
+
+    case Serf::StateKnightLeaveForWalkToFight:
+      res << "dist_col" << "\t" << s.leave_for_walk_to_fight.dist_col << "\n";
+      res << "dist_row" << "\t" << s.leave_for_walk_to_fight.dist_row << "\n";
+      res << "field_D" << "\t" << s.leave_for_walk_to_fight.field_D << "\n";
+      res << "field_E" << "\t" << s.leave_for_walk_to_fight.field_E << "\n";
+      res << "next_state" << "\t" << s.leave_for_walk_to_fight.next_state
+          << "\n";
+      break;
+
+    case Serf::StateIdleOnPath:
+    case Serf::StateWaitIdleOnPath:
+    case Serf::StateWakeAtFlag:
+    case Serf::StateWakeOnPath:
+      res << "rev_dir" << "\t" << s.idle_on_path.rev_dir << "\n";
+      res << "flag" << "\t" << s.idle_on_path.flag << "\n";
+      res << "field_E" << "\t" << s.idle_on_path.field_E << "\n";
+      break;
+
+    case Serf::StateDefendingHut:
+    case Serf::StateDefendingTower:
+    case Serf::StateDefendingFortress:
+    case Serf::StateDefendingCastle:
+      res << "next_knight" << "\t" << s.defending.next_knight << "\n";
+      break;
+
+    default: break;
+  }
+  return res.str();
 }

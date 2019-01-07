@@ -23,6 +23,7 @@
 #define SRC_SERF_H_
 
 #include <map>
+#include <string>
 
 #include "src/map.h"
 #include "src/resource.h"
@@ -351,7 +352,7 @@ class Serf : public GameObject {
     /* States: idle_on_path, wait_idle_on_path,
        wake_at_flag, wake_on_path. */
     struct {
-      Flag *flag; /* C */
+      int flag; /* C */
       int field_E; /* E */
       Direction rev_dir; /* B */
     } idle_on_path;
@@ -449,6 +450,8 @@ class Serf : public GameObject {
     operator >> (SaveReaderText &reader, Serf &serf);
   friend SaveWriterText&
     operator << (SaveWriterText &writer, Serf &serf);
+
+  std::string print_state();
 
  protected:
   bool is_waiting(Direction *dir);
