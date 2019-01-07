@@ -82,6 +82,7 @@ FlagSearch::single(Flag *src, flag_search_func *callback, bool land,
 
 Flag::Flag(Game *game, unsigned int index) : GameObject(game, index) {
   pos = 0;
+  owner = -1;
   search_num = 0;
   search_dir = DirectionRight;
   path_con = 0;
@@ -1035,7 +1036,8 @@ operator >> (SaveReaderBinary &reader, Flag &flag) {
   flag.search_dir = (Direction)val8;
 
   reader >> val8;  // 3
-  flag.path_con = val8;
+  flag.owner = (val8 >> 6) & 3;
+  flag.path_con = val8 & 0x3f;
 
   reader >> val8;  // 4
   flag.endpoint = val8;
@@ -1066,12 +1068,18 @@ operator >> (SaveReaderBinary &reader, Flag &flag) {
 
     /* Other endpoint could be a building in direction up left. */
     if (j == DirectionUpLeft && flag.has_building()) {
-      flag.other_endpoint.b[j] = flag.get_game()->create_building(offset/18);
+      unsigned int index = offset/18;
+      flag.other_endpoint.b[j] = flag.get_game()->create_building(index);
     } else {
+      if (!flag.has_path(j)) {
+        flag.other_endpoint.f[j] = NULL;
+        continue;
+      }
       if (offset < 0) {
         flag.other_endpoint.f[j] = NULL;
       } else {
-        flag.other_endpoint.f[j] = flag.get_game()->create_flag(offset/70);
+        unsigned int index = offset/70;
+        flag.other_endpoint.f[j] = flag.get_game()->create_flag(index);
       }
     }
   }
@@ -1110,7 +1118,15 @@ operator >> (SaveReaderText &reader, Flag &flag) {
   flag.pos = flag.get_game()->get_map()->pos(x, y);
   reader.value("search_num") >> flag.search_num;
   reader.value("search_dir") >> flag.search_dir;
-  reader.value("path_con") >> flag.path_con;
+  unsigned int val;
+  reader.value("path_con") >> val;
+  if (reader.has_value("owner")) {
+    flag.path_con = val;
+    reader.value("owner") >> flag.owner;
+  } else {
+    flag.path_con = (val & 0x3f);
+    flag.owner = ((val >> 6) & 3);
+  }
   reader.value("endpoints") >> flag.endpoint;
   reader.value("transporter") >> flag.transporter;
 
@@ -1152,6 +1168,7 @@ operator << (SaveWriterText &writer, Flag &flag) {
   writer.value("search_num") << flag.search_num;
   writer.value("search_dir") << flag.search_dir;
   writer.value("path_con") << flag.path_con;
+  writer.value("owner") << flag.owner;
   writer.value("endpoints") << flag.endpoint;
   writer.value("transporter") << flag.transporter;
 

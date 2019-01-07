@@ -54,6 +54,7 @@ class Flag : public GameObject {
   };
 
  protected:
+  unsigned int owner;
   MapPos pos; /* ADDITION */
   int path_con;
   int endpoint;
@@ -90,9 +91,8 @@ class Flag : public GameObject {
   void prioritize_pickup(Direction dir, Player *player);
 
   /* Owner of this flag. */
-  unsigned int get_owner() const { return (path_con >> 6) & 3; }
-  void set_owner(unsigned int owner) { path_con = (owner << 6) |
-                                               (path_con & 0x3f); }
+  unsigned int get_owner() const { return owner; }
+  void set_owner(unsigned int _owner) { owner = _owner; }
 
   /* Bitmap showing whether the outgoing paths are land paths. */
   int land_paths() const { return endpoint & 0x3f; }

@@ -174,12 +174,19 @@ class Serf : public GameObject {
     /* States: walking, transporting, delivering */
     /* res: resource carried (when transporting), otherwise direction. */
     struct {
-      int dir1; /* newly added */
-      Resource::Type res; /* B */
+      int dir1; /* B */
       unsigned int dest; /* C */
       int dir; /* E */
       int wait_counter; /* F */
     } walking;
+
+    /* States: transporting, delivering */
+    struct {
+      Resource::Type res; /* B */
+      unsigned int dest; /* C */
+      int dir; /* E */
+      int wait_counter; /* F */
+    } transporting;
 
     struct {
       int field_B; /* B */
@@ -361,8 +368,8 @@ class Serf : public GameObject {
  public:
   Serf(Game *game, unsigned int index);
 
-  unsigned int get_player() const { return owner; }
-  void set_player(unsigned int player_num) { owner = player_num; }
+  unsigned int get_owner() const { return owner; }
+  void set_owner(unsigned int player_num) { owner = player_num; }
 
   Type get_type() const { return type; }
   void set_type(Type type);

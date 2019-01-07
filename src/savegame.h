@@ -108,6 +108,7 @@ class SaveReaderText {
   virtual unsigned int get_number() const = 0;
   virtual const SaveReaderTextValue &value(const std::string &name) const = 0;
   virtual Readers get_sections(const std::string &name) = 0;
+  virtual bool has_value(const std::string &name) = 0;
 };
 
 class SaveWriterText {

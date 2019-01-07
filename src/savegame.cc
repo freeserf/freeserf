@@ -175,6 +175,13 @@ class SaveReaderTextSection : public SaveReaderText {
     throw ExceptionFreeserf("Recursive sections are not allowed");
     return readers_stub;
   }
+
+  virtual bool has_value(const std::string &name) {
+    std::string v_name = name;
+    std::transform(v_name.begin(), v_name.end(), v_name.begin(), ::tolower);
+    Values::const_iterator it = values.find(v_name);
+    return (it != values.end());
+  }
 };
 
 typedef std::list<SaveReaderTextSection*> ReaderSections;
@@ -223,7 +230,9 @@ class SaveReaderTextFile : public SaveReaderText {
 
   virtual const SaveReaderTextValue &
   value(const std::string &name) const {
-    Values::const_iterator it = values.find(name);
+    std::string v_name = name;
+    std::transform(v_name.begin(), v_name.end(), v_name.begin(), ::tolower);
+    Values::const_iterator it = values.find(v_name);
     if (it == values.end()) {
       std::ostringstream str;
       str << "Failed to load value: " << name;
@@ -243,6 +252,13 @@ class SaveReaderTextFile : public SaveReaderText {
     }
 
     return result;
+  }
+
+  virtual bool has_value(const std::string &name) {
+    std::string v_name = name;
+    std::transform(v_name.begin(), v_name.end(), v_name.begin(), ::tolower);
+    Values::const_iterator it = values.find(v_name);
+    return (it != values.end());
   }
 };
 
