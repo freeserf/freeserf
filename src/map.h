@@ -336,9 +336,9 @@ class Map {
 
   // Shortest distance between map positions.
   int dist_x(MapPos pos1, MapPos pos2) const {
-    return geom_.dist_x(pos1, pos2); }
+    return -geom_.dist_x(pos1, pos2); }
   int dist_y(MapPos pos1, MapPos pos2) const {
-    return geom_.dist_y(pos1, pos2); }
+    return -geom_.dist_y(pos1, pos2); }
 
   /// Get random position
   MapPos get_rnd_coord(int *col, int *row, Random *rnd) const;
