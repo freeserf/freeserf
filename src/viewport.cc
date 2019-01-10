@@ -1887,6 +1887,10 @@ Viewport::draw_active_serf(Serf *serf, MapPos pos, int x_base, int y_base) {
   if (body > -1) {
     Color color = interface->get_player_color(serf->get_owner());
     draw_row_serf(lx, ly, true, color, body);
+    if (layers & Layer::LayerGrid) {
+      frame->draw_number(lx, ly, serf->get_index(), Color(0, 0, 128));
+      frame->draw_string(lx, ly + 8, serf->print_state(),  Color(0, 0, 128));
+    }
   }
 
   /* Draw additional serf */

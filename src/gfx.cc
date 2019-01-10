@@ -367,15 +367,18 @@ Frame::draw_char_sprite(int x, int y, unsigned char c, const Color &color,
 void
 Frame::draw_string(int x, int y, const std::string &str, const Color &color,
                    const Color &shadow) {
-  for (char c : str) {
-/*
-    if (string_bg) {
-      fill_rect(x, y, 8, 8, 0);
-    }
-*/
-    draw_char_sprite(x, y, c, color, shadow);
+  int cx = x;
 
-    x += 8;
+  for (char c : str) {
+    if (c == '\t') {
+      cx += 8 * 2;
+    } else if (c == '\n') {
+      y += 8;
+      cx = x;
+    } else {
+      draw_char_sprite(cx, y, c, color, shadow);
+      cx += 8;
+    }
   }
 }
 
