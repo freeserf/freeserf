@@ -845,8 +845,8 @@ Serf::is_waiting(Direction *dir) {
               state == StateKnightFreeWalking ||
               state == StateStoneCutterFreeWalking) &&
              animation == 82) {
-    int dx = s.free_walking.dist1;
-    int dy = s.free_walking.dist2;
+    int dx = s.free_walking.dist_col;
+    int dy = s.free_walking.dist_row;
 
     if (abs(dx) <= 1 && abs(dy) <= 1 &&
         dir_from_offset[(dx+1) + 3*(dy+1)] > DirectionNone) {
@@ -881,10 +881,10 @@ Serf::switch_waiting(Direction dir) {
     int dx = ((dir < 3) ? 1 : -1)*((dir % 3) < 2);
     int dy = ((dir < 3) ? 1 : -1)*((dir % 3) > 0);
 
-    s.free_walking.dist1 -= dx;
-    s.free_walking.dist2 -= dy;
+    s.free_walking.dist_col -= dx;
+    s.free_walking.dist_row -= dy;
 
-    if (s.free_walking.dist1 == 0 && s.free_walking.dist2 == 0) {
+    if (s.free_walking.dist_col == 0 && s.free_walking.dist_row == 0) {
       /* Arriving to destination */
       s.free_walking.flags = BIT(3);
     }
@@ -1858,8 +1858,8 @@ Serf::handle_serf_leaving_building_state() {
       int dist2 = s.leaving_building.dest;
       int neg_dist1 = s.leaving_building.dest2;
       int neg_dist2 = s.leaving_building.dir;
-      s.free_walking.dist1 = dist1;
-      s.free_walking.dist2 = dist2;
+      s.free_walking.dist_col = dist1;
+      s.free_walking.dist_row = dist2;
       s.free_walking.neg_dist1 = neg_dist1;
       s.free_walking.neg_dist2 = neg_dist2;
       s.free_walking.flags = 0;
@@ -2369,8 +2369,8 @@ Serf::handle_serf_free_walking_state_dest_reached() {
         s.ready_to_enter.field_B = 0;
         counter = 0;
       } else {
-        s.free_walking.dist1 = s.free_walking.neg_dist1;
-        s.free_walking.dist2 = s.free_walking.neg_dist2;
+        s.free_walking.dist_col = s.free_walking.neg_dist1;
+        s.free_walking.dist_row = s.free_walking.neg_dist2;
         int obj = map->get_obj(pos);
         if (obj >= Map::ObjectTree0 &&
             obj <= Map::ObjectPine7) {
@@ -2399,8 +2399,8 @@ Serf::handle_serf_free_walking_state_dest_reached() {
         s.ready_to_enter.field_B = 0;
         counter = 0;
       } else {
-        s.free_walking.dist1 = s.free_walking.neg_dist1;
-        s.free_walking.dist2 = s.free_walking.neg_dist2;
+        s.free_walking.dist_col = s.free_walking.neg_dist1;
+        s.free_walking.dist_row = s.free_walking.neg_dist2;
 
         MapPos new_pos = map->move_up_left(pos);
         int obj = map->get_obj(new_pos);
@@ -2428,8 +2428,8 @@ Serf::handle_serf_free_walking_state_dest_reached() {
         s.ready_to_enter.field_B = 0;
         counter = 0;
       } else {
-        s.free_walking.dist1 = s.free_walking.neg_dist1;
-        s.free_walking.dist2 = s.free_walking.neg_dist2;
+        s.free_walking.dist_col = s.free_walking.neg_dist1;
+        s.free_walking.dist_row = s.free_walking.neg_dist2;
         if (map->get_obj(pos) == Map::ObjectNone) {
           set_state(StatePlanting);
           s.free_walking.neg_dist2 = 0;
@@ -2454,8 +2454,8 @@ Serf::handle_serf_free_walking_state_dest_reached() {
         s.ready_to_enter.field_B = 0;
         counter = 0;
       } else {
-        s.free_walking.dist1 = s.free_walking.neg_dist1;
-        s.free_walking.dist2 = s.free_walking.neg_dist2;
+        s.free_walking.dist_col = s.free_walking.neg_dist1;
+        s.free_walking.dist_row = s.free_walking.neg_dist2;
 
         int a = -1;
         if (map->paths(pos) == 0) {
@@ -2495,8 +2495,8 @@ Serf::handle_serf_free_walking_state_dest_reached() {
         s.ready_to_enter.field_B = 0;
         counter = 0;
       } else {
-        s.free_walking.dist1 = s.free_walking.neg_dist1;
-        s.free_walking.dist2 = s.free_walking.neg_dist2;
+        s.free_walking.dist_col = s.free_walking.neg_dist1;
+        s.free_walking.dist_row = s.free_walking.neg_dist2;
 
         if (map->get_obj(pos) == Map::ObjectSeeds5 ||
             (map->get_obj(pos) >= Map::ObjectField0 &&
@@ -2536,8 +2536,8 @@ Serf::handle_serf_free_walking_state_dest_reached() {
           counter = 0;
         }
       } else {
-        s.free_walking.dist1 = s.free_walking.neg_dist1;
-        s.free_walking.dist2 = s.free_walking.neg_dist2;
+        s.free_walking.dist_col = s.free_walking.neg_dist1;
+        s.free_walking.dist_row = s.free_walking.neg_dist2;
         if (map->get_obj(pos) == Map::ObjectNone) {
           set_state(StateSamplingGeoSpot);
           s.free_walking.neg_dist1 = 0;
@@ -2580,16 +2580,16 @@ Serf::handle_serf_free_walking_switch_on_dir(Direction dir) {
   int dy = ((dir < 3) ? 1 : -1)*((dir % 3) > 0);
 
   Log::Verbose["serf"] << "serf " << index << ": free walking: dest "
-                       << s.free_walking.dist1 << ", " << s.free_walking.dist2
+                       << s.free_walking.dist_col << ", "
+                       << s.free_walking.dist_row
                        << ", move " << dx << ", " << dy;
 
-  s.free_walking.dist1 -= dx;
-  s.free_walking.dist2 -= dy;
+  s.free_walking.dist_col -= dx;
+  s.free_walking.dist_row -= dy;
 
   start_walking(dir, 32, 1);
 
-  if (s.free_walking.dist1 == 0 &&
-      s.free_walking.dist2 == 0) {
+  if (s.free_walking.dist_col == 0 && s.free_walking.dist_row == 0) {
     /* Arriving to destination */
     s.free_walking.flags = BIT(3);
   }
@@ -2623,15 +2623,15 @@ Serf::handle_serf_free_walking_switch_with_other() {
     int dy = ((dir < 3) ? 1 : -1)*((dir % 3) > 0);
 
     Log::Verbose["serf"] << "free walking (switch): dest "
-                         << s.free_walking.dist1 << ", "
-                         << s.free_walking.dist2 << ", move "
+                         << s.free_walking.dist_col << ", "
+                         << s.free_walking.dist_row << ", move "
                          << dx << ", " << dy;
 
-    s.free_walking.dist1 -= dx;
-    s.free_walking.dist2 -= dy;
+    s.free_walking.dist_col -= dx;
+    s.free_walking.dist_row -= dy;
 
-    if (s.free_walking.dist1 == 0 &&
-        s.free_walking.dist2 == 0) {
+    if (s.free_walking.dist_col == 0 &&
+        s.free_walking.dist_row == 0) {
       /* Arriving to destination */
       s.free_walking.flags = BIT(3);
     }
@@ -2712,8 +2712,8 @@ Serf::handle_free_walking_follow_edge() {
     dir_index = (s.free_walking.flags & 7)-1;
   }
 
-  int d1 = s.free_walking.dist1;
-  int d2 = s.free_walking.dist2;
+  int d1 = s.free_walking.dist_col;
+  int d2 = s.free_walking.dist_row;
 
   /* Check if dest is only one step away. */
   if (!water && abs(d1) <= 1 && abs(d2) <= 1 &&
@@ -2725,8 +2725,8 @@ Serf::handle_free_walking_follow_edge() {
 
     if (!can_pass_map_pos(new_pos)) {
       if (state != StateKnightFreeWalking && s.free_walking.neg_dist1 != -128) {
-        s.free_walking.dist1 += s.free_walking.neg_dist1;
-        s.free_walking.dist2 += s.free_walking.neg_dist2;
+        s.free_walking.dist_col += s.free_walking.neg_dist1;
+        s.free_walking.dist_row += s.free_walking.neg_dist2;
         s.free_walking.neg_dist1 = 0;
         s.free_walking.neg_dist2 = 0;
         s.free_walking.flags = 0;
@@ -2855,8 +2855,8 @@ Serf::handle_free_walking_common() {
 
   /* Move fowards */
   int dir_index = -1;
-  int d1 = s.free_walking.dist1;
-  int d2 = s.free_walking.dist2;
+  int d1 = s.free_walking.dist_col;
+  int d2 = s.free_walking.dist_row;
   if (d1 < 0) {
     if (d2 < 0) {
       if (-d2 < -d1) {
@@ -2926,8 +2926,8 @@ Serf::handle_free_walking_common() {
 
     if (!can_pass_map_pos(new_pos)) {
       if (state != StateKnightFreeWalking && s.free_walking.neg_dist1 != -128) {
-        s.free_walking.dist1 += s.free_walking.neg_dist1;
-        s.free_walking.dist2 += s.free_walking.neg_dist2;
+        s.free_walking.dist_col += s.free_walking.neg_dist1;
+        s.free_walking.dist_row += s.free_walking.neg_dist2;
         s.free_walking.neg_dist1 = 0;
         s.free_walking.neg_dist2 = 0;
         s.free_walking.flags = 0;
@@ -3194,10 +3194,10 @@ Serf::handle_stonecutter_free_walking() {
     MapPos pos_ = map->move_up_left(pos);
     if (!map->has_serf(pos) && map->get_obj(pos_) >= Map::ObjectStone0 &&
         map->get_obj(pos_) <= Map::ObjectStone7) {
-      s.free_walking.neg_dist1 += s.free_walking.dist1;
-      s.free_walking.neg_dist2 += s.free_walking.dist2;
-      s.free_walking.dist1 = 0;
-      s.free_walking.dist2 = 0;
+      s.free_walking.neg_dist1 += s.free_walking.dist_col;
+      s.free_walking.neg_dist2 += s.free_walking.dist_row;
+      s.free_walking.dist_col = 0;
+      s.free_walking.dist_row = 0;
       s.free_walking.flags = 8;
     }
 
@@ -3309,8 +3309,8 @@ Serf::handle_serf_lost_state() {
             set_state(StateFreeWalking);
           }
 
-          s.free_walking.dist1 = Map::get_spiral_pattern()[2 * dist];
-          s.free_walking.dist2 = Map::get_spiral_pattern()[2 * dist +1];
+          s.free_walking.dist_col = Map::get_spiral_pattern()[2 * dist];
+          s.free_walking.dist_row = Map::get_spiral_pattern()[2 * dist +1];
           s.free_walking.neg_dist1 = -128;
           s.free_walking.neg_dist2 = -1;
           s.free_walking.flags = 0;
@@ -3351,8 +3351,8 @@ Serf::handle_serf_lost_state() {
           set_state(StateFreeWalking);
         }
 
-        s.free_walking.dist1 = col;
-        s.free_walking.dist2 = row;
+        s.free_walking.dist_col = col;
+        s.free_walking.dist_row = row;
         s.free_walking.neg_dist1 = -128;
         s.free_walking.neg_dist2 = -1;
         s.free_walking.flags = 0;
@@ -3382,8 +3382,8 @@ Serf::handle_lost_sailor() {
             map->get_owner(dest) == get_owner()) {
           set_state(StateFreeSailing);
 
-          s.free_walking.dist1 = Map::get_spiral_pattern()[2*i];
-          s.free_walking.dist2 = Map::get_spiral_pattern()[2*i+1];
+          s.free_walking.dist_col = Map::get_spiral_pattern()[2*i];
+          s.free_walking.dist_row = Map::get_spiral_pattern()[2*i+1];
           s.free_walking.neg_dist1 = -128;
           s.free_walking.neg_dist2 = -1;
           s.free_walking.flags = 0;
@@ -3403,8 +3403,8 @@ Serf::handle_lost_sailor() {
       if (map->get_obj(dest) == 0) {
         set_state(StateFreeSailing);
 
-        s.free_walking.dist1 = col;
-        s.free_walking.dist2 = row;
+        s.free_walking.dist_col = col;
+        s.free_walking.dist_row = row;
         s.free_walking.neg_dist1 = -128;
         s.free_walking.neg_dist2 = -1;
         s.free_walking.flags = 0;
@@ -4176,15 +4176,15 @@ Serf::handle_serf_looking_for_geo_spot_state() {
           (t3 >= Map::TerrainTundra0 && t3 <= Map::TerrainSnow0) ||
           (t4 >= Map::TerrainTundra0 && t4 <= Map::TerrainSnow0)) {
         set_state(StateFreeWalking);
-        s.free_walking.dist1 = Map::get_spiral_pattern()[2 * dist];
-        s.free_walking.dist2 = Map::get_spiral_pattern()[2 * dist + 1];
+        s.free_walking.dist_col = Map::get_spiral_pattern()[2 * dist];
+        s.free_walking.dist_row = Map::get_spiral_pattern()[2 * dist + 1];
         s.free_walking.neg_dist1 = -Map::get_spiral_pattern()[2 * dist];
         s.free_walking.neg_dist2 = -Map::get_spiral_pattern()[2 * dist + 1];
         s.free_walking.flags = 0;
         tick = game->get_tick();
         Log::Verbose["serf"] << "looking for geo spot: found, dist "
-                             << s.free_walking.dist1 << ", "
-                             << s.free_walking.dist2 << ".";
+                             << s.free_walking.dist_col << ", "
+                             << s.free_walking.dist_row << ".";
         return;
       }
     } else if (obj >= Map::ObjectSignLargeGold &&
@@ -4350,21 +4350,21 @@ Serf::set_fight_outcome(Serf *attacker, Serf *defender) {
     player = defender->get_owner();
     value = def_exp_factor;
     ktype = defender->get_type();
-    attacker->s.attacking.field_C = 1;
+    attacker->s.attacking.attacker_won = 1;
     Log::Debug["serf"] << "Fight: " << morale << " vs " << def_morale
     << " (" << r << "). Attacker winning.";
   } else {
     player = attacker->get_owner();
     value = exp_factor;
     ktype = attacker->get_type();
-    attacker->s.attacking.field_C = 0;
+    attacker->s.attacking.attacker_won = 0;
     Log::Debug["serf"] << "Fight: " << morale << " vs " << def_morale
                        << " (" << r << "). Defender winning.";
   }
 
   game->get_player(player)->decrease_military_score(value);
   game->get_player(player)->decrease_serf_count(ktype);
-  attacker->s.attacking.field_B = game->random_int() & 0x70;
+  attacker->s.attacking.move = game->random_int() & 0x70;
 }
 
 void
@@ -4433,9 +4433,9 @@ Serf::handle_knight_attacking() {
   def_serf->counter = counter;
 
   while (counter < 0) {
-    int move = moves[s.attacking.field_B];
+    int move = moves[s.attacking.move];
     if (move < 0) {
-      if (s.attacking.field_C == 0) {
+      if (s.attacking.attacker_won == 0) {
         /* Defender won. */
         if (state == StateKnightAttackingFree) {
           set_other_state(def_serf, StateKnightDefendingVictoryFree);
@@ -4465,9 +4465,11 @@ Serf::handle_knight_attacking() {
           animation = 168;
           counter = 0;
 
-          s.attacking.field_B = def_serf->s.defending_free.field_D;
-          s.attacking.field_C = def_serf->s.defending_free.other_dist_col;
-          s.attacking.field_D = def_serf->s.defending_free.other_dist_row;
+          s.attacking_victory_free.move = def_serf->s.defending_free.field_D;
+          s.attacking_victory_free.dist_col =
+                                      def_serf->s.defending_free.other_dist_col;
+          s.attacking_victory_free.dist_row =
+                                      def_serf->s.defending_free.other_dist_row;
         } else {
           set_state(StateKnightAttackingVictory);
           animation = 168;
@@ -4487,8 +4489,8 @@ Serf::handle_knight_attacking() {
       }
     } else {
       /* Go to next move in fight sequence. */
-      s.attacking.field_B += 1;
-      if (s.attacking.field_C == 0) move = 4 - move;
+      s.attacking.move += 1;
+      if (s.attacking.attacker_won == 0) move = 4 - move;
       s.attacking.field_D = move;
 
       int off = (game->random_int() * fight_anim_max[move]) >> 16;
@@ -4604,15 +4606,15 @@ Serf::handle_state_knight_free_walking() {
           if (other->state == StateKnightFreeWalking) {
             pos = map->move_left(pos_);
             if (can_pass_map_pos(pos_)) {
-              int dist_col = s.free_walking.dist1;
-              int dist_row = s.free_walking.dist2;
+              int dist_col = s.free_walking.dist_col;
+              int dist_row = s.free_walking.dist_row;
 
               set_state(StateKnightEngageDefendingFree);
 
               s.defending_free.dist_col = dist_col;
               s.defending_free.dist_row = dist_row;
-              s.defending_free.other_dist_col = other->s.free_walking.dist1;
-              s.defending_free.other_dist_row = other->s.free_walking.dist2;
+              s.defending_free.other_dist_col = other->s.free_walking.dist_col;
+              s.defending_free.other_dist_row = other->s.free_walking.dist_row;
               s.defending_free.field_D = 1;
               animation = 99;
               counter = 255;
@@ -4627,8 +4629,8 @@ Serf::handle_state_knight_free_walking() {
                      other->get_type() <= TypeKnight4) {
             pos_ = map->move_left(pos_);
             if (can_pass_map_pos(pos_)) {
-              int dist_col = s.free_walking.dist1;
-              int dist_row = s.free_walking.dist2;
+              int dist_col = s.free_walking.dist_col;
+              int dist_row = s.free_walking.dist_row;
 
               set_state(StateKnightEngageDefendingFree);
               s.defending_free.dist_col = dist_col;
@@ -4742,7 +4744,7 @@ Serf::handle_state_knight_prepare_defending_free() {
 
 void
 Serf::handle_knight_attacking_victory_free() {
-  Serf *other = game->get_serf(s.attacking.def_index);
+  Serf *other = game->get_serf(s.attacking_victory_free.def_index);
 
   uint16_t delta = game->get_tick() - other->tick;
   other->tick = game->get_tick();
@@ -4751,17 +4753,17 @@ Serf::handle_knight_attacking_victory_free() {
   if (other->counter < 0) {
     game->delete_serf(other);
 
-    int dist_col = s.attacking.field_C;
-    int dist_row = s.attacking.field_D;
+    int dist_col = s.attacking_victory_free.dist_col;
+    int dist_row = s.attacking_victory_free.dist_row;
 
     set_state(StateKnightAttackingFreeWait);
 
-    s.free_walking.dist1 = dist_col;
-    s.free_walking.dist2 = dist_row;
+    s.free_walking.dist_col = dist_col;
+    s.free_walking.dist_row = dist_row;
     s.free_walking.neg_dist1 = 0;
     s.free_walking.neg_dist2 = 0;
 
-    if (s.attacking.field_B != 0) {
+    if (s.attacking.move != 0) {
       s.free_walking.flags = 1;
     } else {
       s.free_walking.flags = 0;
@@ -4793,8 +4795,8 @@ Serf::handle_serf_knight_attacking_defeat_free_state() {
 
     set_other_state(other, StateKnightFreeWalking);
 
-    other->s.free_walking.dist1 = dist_col;
-    other->s.free_walking.dist2 = dist_row;
+    other->s.free_walking.dist_col = dist_col;
+    other->s.free_walking.dist_row = dist_row;
     other->s.free_walking.neg_dist1 = 0;
     other->s.free_walking.neg_dist2 = 0;
     other->s.free_walking.flags = 0;
@@ -4966,8 +4968,8 @@ Serf::handle_scatter_state() {
         set_state(StateFreeWalking);
       }
 
-      s.free_walking.dist1 = col;
-      s.free_walking.dist2 = row;
+      s.free_walking.dist_col = col;
+      s.free_walking.dist_row = row;
       s.free_walking.neg_dist1 = -128;
       s.free_walking.neg_dist2 = -1;
       s.free_walking.flags = 0;
@@ -5439,9 +5441,9 @@ operator >> (SaveReaderBinary &reader, Serf &serf) {
     case Serf::StateSamplingGeoSpot:
     case Serf::StateKnightFreeWalking:
       reader >> v8;  // 11
-      serf.s.free_walking.dist1 = (int8_t)v8;
+      serf.s.free_walking.dist_col = (int8_t)v8;
       reader >> v8;  // 12
-      serf.s.free_walking.dist2 = (int8_t)v8;
+      serf.s.free_walking.dist_row = (int8_t)v8;
       reader >> v8;  // 13
       serf.s.free_walking.neg_dist1 = (int8_t)v8;
       reader >> v8;  // 14
@@ -5667,8 +5669,16 @@ operator >> (SaveReaderText &reader, Serf &serf) {
     case Serf::StateKnightFreeWalking:
     case Serf::StateKnightAttackingFree:
     case Serf::StateKnightAttackingFreeWait:
-      reader.value("state.dist1") >> serf.s.free_walking.dist1;
-      reader.value("state.dist2") >> serf.s.free_walking.dist2;
+      if (reader.has_value("state.dist_col")) {
+        reader.value("state.dist_col") >> serf.s.free_walking.dist_col;
+      } else {
+        reader.value("state.dist1") >> serf.s.free_walking.dist_col;
+      }
+      if (reader.has_value("state.dist_row")) {
+        reader.value("state.dist_row") >> serf.s.free_walking.dist_row;
+      } else {
+        reader.value("state.dist2") >> serf.s.free_walking.dist_row;
+      }
       reader.value("state.neg_dist") >> serf.s.free_walking.neg_dist1;
       reader.value("state.neg_dist2") >> serf.s.free_walking.neg_dist2;
       reader.value("state.flags") >> serf.s.free_walking.flags;
@@ -5732,11 +5742,40 @@ operator >> (SaveReaderText &reader, Serf &serf) {
     case Serf::StateKnightAttackingVictory:
     case Serf::StateKnightEngageAttackingFree:
     case Serf::StateKnightEngageAttackingFreeJoin:
-    case Serf::StateKnightAttackingVictoryFree:
-      reader.value("state.field_B") >> serf.s.attacking.field_B;
-      reader.value("state.field_C") >> serf.s.attacking.field_C;
+      if (reader.has_value("state.move")) {
+        reader.value("state.move") >> serf.s.attacking.move;
+      } else {
+        reader.value("state.field_B") >> serf.s.attacking.move;
+      }
+      if (reader.has_value("state.attacker_won")) {
+        reader.value("state.attacker_won") >> serf.s.attacking.attacker_won;
+      } else {
+        reader.value("state.field_C") >> serf.s.attacking.attacker_won;
+      }
       reader.value("state.field_D") >> serf.s.attacking.field_D;
       reader.value("state.def_index") >> serf.s.attacking.def_index;
+      break;
+
+    case Serf::StateKnightAttackingVictoryFree:
+      if (reader.has_value("state.move")) {
+        reader.value("state.move") >> serf.s.attacking_victory_free.move;
+      } else {
+        reader.value("state.field_B") >> serf.s.attacking_victory_free.move;
+      }
+      if (reader.has_value("state.dist_col")) {
+        reader.value("state.dist_col") >>
+                                         serf.s.attacking_victory_free.dist_col;
+      } else {
+        reader.value("state.field_C") >> serf.s.attacking_victory_free.dist_col;
+      }
+      if (reader.has_value("state.dist_row")) {
+        reader.value("state.dist_row") >>
+                                         serf.s.attacking_victory_free.dist_row;
+      } else {
+        reader.value("state.field_D") >> serf.s.attacking_victory_free.dist_row;
+      }
+      reader.value("state.def_index") >>
+                                        serf.s.attacking_victory_free.def_index;
       break;
 
     case Serf::StateKnightDefendingFree:
@@ -5877,8 +5916,8 @@ operator << (SaveWriterText &writer, Serf &serf) {
     case Serf::StateKnightFreeWalking:
     case Serf::StateKnightAttackingFree:
     case Serf::StateKnightAttackingFreeWait:
-      writer.value("state.dist1") << serf.s.free_walking.dist1;
-      writer.value("state.dist2") << serf.s.free_walking.dist2;
+      writer.value("state.dist_col") << serf.s.free_walking.dist_col;
+      writer.value("state.dist_row") << serf.s.free_walking.dist_row;
       writer.value("state.neg_dist") << serf.s.free_walking.neg_dist1;
       writer.value("state.neg_dist2") << serf.s.free_walking.neg_dist2;
       writer.value("state.flags") << serf.s.free_walking.flags;
@@ -5941,8 +5980,8 @@ operator << (SaveWriterText &writer, Serf &serf) {
     case Serf::StateKnightEngageAttackingFree:
     case Serf::StateKnightEngageAttackingFreeJoin:
     case Serf::StateKnightAttackingVictoryFree:
-      writer.value("state.field_B") << serf.s.attacking.field_B;
-      writer.value("state.field_C") << serf.s.attacking.field_C;
+      writer.value("state.move") << serf.s.attacking.move;
+      writer.value("state.attacker_won") << serf.s.attacking.attacker_won;
       writer.value("state.field_D") << serf.s.attacking.field_D;
       writer.value("state.def_index") << serf.s.attacking.def_index;
       break;
@@ -6077,8 +6116,8 @@ Serf::print_state() {
     case Serf::StateKnightFreeWalking:
     case Serf::StateKnightAttackingFree:
     case Serf::StateKnightAttackingFreeWait:
-      res << "dist1" << "\t" << s.free_walking.dist1 << "\n";
-      res << "dist2" << "\t" << s.free_walking.dist2 << "\n";
+      res << "dist_col" << "\t" << s.free_walking.dist_col << "\n";
+      res << "dist_row" << "\t" << s.free_walking.dist_row << "\n";
       res << "neg_dist" << "\t" << s.free_walking.neg_dist1 << "\n";
       res << "neg_dist2" << "\t" << s.free_walking.neg_dist2 << "\n";
       res << "flags" << "\t" << s.free_walking.flags << "\n";
@@ -6141,8 +6180,8 @@ Serf::print_state() {
     case Serf::StateKnightEngageAttackingFree:
     case Serf::StateKnightEngageAttackingFreeJoin:
     case Serf::StateKnightAttackingVictoryFree:
-      res << "field_B" << "\t" << s.attacking.field_B << "\n";
-      res << "field_C" << "\t" << s.attacking.field_C << "\n";
+      res << "move" << "\t" << s.attacking.move << "\n";
+      res << "attacker_won" << "\t" << s.attacking.attacker_won << "\n";
       res << "field_D" << "\t" << s.attacking.field_D << "\n";
       res << "def_index" << "\t" << s.attacking.def_index << "\n";
       break;

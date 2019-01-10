@@ -250,8 +250,8 @@ class Serf : public GameObject {
        knight_attacking_free,
        knight_attacking_free_wait */
     struct {
-      int dist1; /* B */
-      int dist2; /* C */
+      int dist_col; /* B */
+      int dist_row; /* C */
       int neg_dist1; /* D */
       int neg_dist2; /* E */
       int flags; /* F */
@@ -325,11 +325,20 @@ class Serf : public GameObject {
        knight_attacking_victory_free,
     */
     struct {
-      int field_B; /* B */
-      int field_C; /* C */
+      int move; /* B */
+      int attacker_won; /* C */
       int field_D; /* D */
       int def_index; /* E */
     } attacking;
+
+    /* States: knight_attacking_victory_free,
+     */
+    struct {
+      int move; /* B */
+      int dist_col; /* C */
+      int dist_row; /* D */
+      int def_index; /* E */
+    } attacking_victory_free;
 
     /* States: knight_defending_free,
        knight_engage_defending_free */
