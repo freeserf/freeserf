@@ -63,7 +63,7 @@ typedef enum Direction {
 // clockwise.
 inline Direction turn_direction(Direction d, int times) {
   if (d == DirectionNone) {
-    throw ExceptionFreeserf("Failed to turn uninitialised direction");
+    return DirectionNone;
   }
   int td = (static_cast<int>(d) + times) % 6;
   if (td < 0) td += 6;
