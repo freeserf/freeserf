@@ -296,10 +296,6 @@ Building::cancel_transported_resource(Resource::Type res) {
       throw ExceptionFreeserf("Failed to cancel unrequested "
                               "resource delivery.");
     }
-  } else {
-    if (!has_inventory()) {
-      throw ExceptionFreeserf("Not inventory");
-    }
   }
 }
 
