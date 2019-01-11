@@ -102,10 +102,10 @@ class Building : public GameObject {
   int burning_counter;
   int progress;
   union u {
-    Inventory *inventory;
     unsigned int tick; /* Used for burning building. */
     unsigned int level;
   } u;
+  Inventory *inventory;
 
  public:
   Building(Game *game, unsigned int index);
@@ -169,9 +169,9 @@ class Building : public GameObject {
   void knight_request_granted();
 
   /* Building has inventory and the inventory pointer is valid. */
-  bool has_inventory() const { return (stock[0].requested == 0xff); }
-  Inventory *get_inventory() { return u.inventory; }
-  void set_inventory(Inventory *inventory) { u.inventory = inventory; }
+  bool has_inventory() const { return (inventory != nullptr); }
+  Inventory *get_inventory() { return inventory; }
+  void set_inventory(Inventory *inventory_) { inventory = inventory_; }
 
   unsigned int get_level() const { return u.level; }
   void set_level(unsigned int level) { u.level = level; }
