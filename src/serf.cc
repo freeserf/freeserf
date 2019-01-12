@@ -4485,7 +4485,7 @@ Serf::handle_knight_attacking() {
         def_serf->tick = game->get_tick();
         def_serf->animation = 147 + get_type();
         def_serf->counter = 255;
-        set_type(TypeDead);
+        def_serf->set_type(TypeDead);
       }
     } else {
       /* Go to next move in fight sequence. */
