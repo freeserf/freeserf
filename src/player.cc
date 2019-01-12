@@ -738,7 +738,7 @@ Player::tick_send_knight_delay() {
 }
 
 Serf::Type
-Player::get_cycling_sert_type(Serf::Type type) const {
+Player::get_cycling_serf_type(Serf::Type type) const {
   if (cycling_second()) {
     type = (Serf::Type)-((knight_cycle_counter >> 8) + 1);
   }

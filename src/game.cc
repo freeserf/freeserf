@@ -388,7 +388,7 @@ Game::send_serf_to_flag(Flag *dest, Serf::Type type, Resource::Type res1,
   /* If type is negative, building is non-NULL. */
   if ((type < 0) && (building != NULL)) {
     Player *player = players[building->get_owner()];
-    type = player->get_cycling_sert_type(type);
+    type = player->get_cycling_serf_type(type);
   }
 
   SendSerfToFlagData data;
