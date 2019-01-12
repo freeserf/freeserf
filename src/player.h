@@ -252,7 +252,7 @@ class Player : public GameObject {
   int spawn_serf(Serf **serf, Inventory **inventory, bool want_knight);
   bool tick_send_generic_delay();
   bool tick_send_knight_delay();
-  Serf::Type get_cycling_sert_type(Serf::Type type) const;
+  Serf::Type get_cycling_serf_type(Serf::Type type) const;
 
   void increase_serf_count(unsigned int type) { serf_count[type]++; }
   void decrease_serf_count(unsigned int type);
