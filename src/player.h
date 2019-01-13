@@ -254,12 +254,12 @@ class Player : public GameObject {
   bool tick_send_knight_delay();
   Serf::Type get_cycling_serf_type(Serf::Type type) const;
 
-  void increase_serf_count(unsigned int type) { serf_count[type]++; }
-  void decrease_serf_count(unsigned int type);
+  void increase_serf_count(Serf::Type type) { serf_count[type]++; }
+  void decrease_serf_count(Serf::Type type);
   int *get_serfs() { return reinterpret_cast<int*>(serf_count); }
 
-  void increase_res_count(unsigned int type) { resource_count[type]++; }
-  void decrease_res_count(unsigned int type) { resource_count[type]--; }
+  void increase_res_count(Resource::Type type) { resource_count[type]++; }
+  void decrease_res_count(Resource::Type type) { resource_count[type]--; }
 
   void building_founded(Building *building);
   void building_built(Building *building);
