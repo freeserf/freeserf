@@ -746,7 +746,7 @@ Player::get_cycling_serf_type(Serf::Type type) const {
 }
 
 void
-Player::decrease_serf_count(unsigned int type) {
+Player::decrease_serf_count(Serf::Type type) {
   if (serf_count[type] == 0) {
     throw ExceptionFreeserf("Failed to decrease serf count");
   }

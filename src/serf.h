@@ -39,34 +39,34 @@ class Serf : public GameObject {
  public:
   typedef enum Type {
     TypeNone = -1,
-    TypeTransporter = 0,
+    TypeTransporter = 0,  // 0
     TypeSailor,
     TypeDigger,
     TypeBuilder,
     TypeTransporterInventory,
-    TypeLumberjack,
+    TypeLumberjack,  // 5
     TypeSawmiller,
     TypeStonecutter,
     TypeForester,
     TypeMiner,
-    TypeSmelter,
+    TypeSmelter,  // 10
     TypeFisher,
     TypePigFarmer,
     TypeButcher,
     TypeFarmer,
-    TypeMiller,
+    TypeMiller,  // 15
     TypeBaker,
     TypeBoatBuilder,
     TypeToolmaker,
     TypeWeaponSmith,
-    TypeGeologist,
+    TypeGeologist,  // 20
     TypeGeneric,
     TypeKnight0,
     TypeKnight1,
     TypeKnight2,
-    TypeKnight3,
+    TypeKnight3,  // 25
     TypeKnight4,
-    TypeDead
+    TypeDead  // 27
   } Type;
 
   typedef std::map<Type, unsigned int> SerfMap;

@@ -3557,7 +3557,7 @@ Serf::handle_serf_mining_state() {
 
           /* Update resource stats. */
           Player *player = game->get_player(get_owner());
-          player->increase_res_count(res-1);
+          player->increase_res_count(static_cast<Resource::Type>(res-1));
           return;
         }
         break;
@@ -3613,7 +3613,7 @@ Serf::handle_serf_smelting_state() {
 
         /* Update resource stats. */
         Player *player = game->get_player(get_owner());
-        player->increase_res_count(res-1);
+        player->increase_res_count(static_cast<Resource::Type>(res-1));
         return;
       } else if (s.smelting.counter == 0) {
         game->get_map()->set_serf_index(pos, 0);
@@ -3715,9 +3715,12 @@ Serf::handle_serf_planning_farming_state() {
   uint16_t delta = game->get_tick() - tick;
   tick = game->get_tick();
   counter -= delta;
+  if (counter > 0) {
+    return;
+  }
 
   PMap map = game->get_map();
-  while (counter < 0) {
+  while (true) {
     int dist = ((game->random_int() >> 2) & 0x1f) + 7;
     MapPos dest = map->pos_add_spirally(pos, dist);
 
@@ -3761,6 +3764,9 @@ Serf::handle_serf_planning_farming_state() {
     }
 
     counter += 500;
+    if (counter >= 65500) {
+      return;
+    }
   }
 }
 
@@ -3773,21 +3779,22 @@ Serf::handle_serf_farming_state() {
   if (counter >= 0) return;
 
   PMap map = game->get_map();
+  Map::Object object = map->get_obj(pos);
   if (s.free_walking.neg_dist1 == 0) {
-    /* Sowing. */
-    if (map->get_obj(pos) == 0 && map->paths(pos) == 0) {
+    // Sowing
+    if (object == Map::ObjectNone && map->paths(pos) == 0) {
       map->set_object(pos, Map::ObjectSeeds0, -1);
     }
   } else {
-    /* Harvesting. */
+    // Harvesting
     s.free_walking.neg_dist2 = 1;
-    if (map->get_obj(pos) == Map::ObjectSeeds5) {
-      map->set_object(pos, Map::ObjectField0, -1);
-    } else if (map->get_obj(pos) == Map::ObjectField5) {
-      map->set_object(pos, Map::ObjectFieldExpired, -1);
-    } else if (map->get_obj(pos) != Map::ObjectFieldExpired) {
-      map->set_object(pos, (Map::Object)(map->get_obj(pos) + 1), -1);
+    object = static_cast<Map::Object>(static_cast<int>(object) + 1);
+    if (object == Map::ObjectFieldExpired) {
+      object = Map::ObjectField0;
+    } else if (object == Map::ObjectSignLargeGold || object == Map::Object127) {
+      object = Map::ObjectFieldExpired;
     }
+    map->set_object(pos, object, -1);
   }
 
   set_state(StateFreeWalking);
@@ -4093,7 +4100,7 @@ Serf::handle_serf_making_tool_state() {
         s.move_resource_out.next_state = StateDropResourceOut;
 
         /* Update resource stats. */
-        player->increase_res_count(res);
+        player->increase_res_count(static_cast<Resource::Type>(res));
         return;
       } else {
         counter += 1536;
@@ -4363,7 +4370,6 @@ Serf::set_fight_outcome(Serf *attacker, Serf *defender) {
   }
 
   game->get_player(player)->decrease_military_score(value);
-  game->get_player(player)->decrease_serf_count(ktype);
   attacker->s.attacking.move = game->random_int() & 0x70;
 }
 
@@ -5369,9 +5375,9 @@ operator >> (SaveReaderBinary &reader, Serf &serf) {
       reader >> v8;  // 11
       serf.s.leaving_building.field_B = (int8_t)v8;
       reader >> v8;  // 12
-      serf.s.leaving_building.dest = v8;
+      serf.s.leaving_building.dest = (int8_t)v8;
       reader >> v8;  // 13
-      serf.s.leaving_building.dest2 = v8;
+      serf.s.leaving_building.dest2 = (int8_t)v8;
       reader >> v8;  // 14
       serf.s.leaving_building.dir = v8;
       reader >> v8;  // 15
