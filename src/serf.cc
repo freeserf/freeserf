@@ -317,7 +317,7 @@ Serf::set_type(Serf::Type new_type) {
   if (old_type == TypeTransporterInventory) old_type = TypeTransporter;
 
   Player *player = game->get_player(get_owner());
-  if (old_type != Serf::TypeNone) {
+  if (old_type != Serf::TypeNone && old_type != Serf::TypeDead) {
     player->decrease_serf_count(old_type);
   }
   if (type != TypeDead) {

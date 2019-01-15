@@ -115,6 +115,7 @@ class Building : public GameObject {
 
   unsigned int get_flag_index() const { return flag; }
   void link_flag(unsigned int flag_index) { flag = flag_index; }
+  void unlink_flag() { flag = 0; }
 
   bool has_knight() const { return (first_knight != 0); }
   unsigned int get_first_knight() const { return first_knight; }

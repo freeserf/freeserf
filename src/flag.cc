@@ -1019,7 +1019,7 @@ Flag::link_building(Building *building) {
 
 void
 Flag::unlink_building() {
-  other_endpoint.b[DirectionUpLeft] = NULL;
+  other_endpoint.b[DirectionUpLeft] = nullptr;
   endpoint &= ~BIT(6);
   clear_flags();
 }

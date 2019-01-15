@@ -1755,10 +1755,10 @@ PopupBox::draw_knight_level_box() {
   for (int i = 0; i < 4; i++) {
     int ly = 8 + (34*i);
     draw_green_string(8, ly,
-                      level_str[player->get_knight_occupation(3-i) & 0x7]);
-    draw_green_string(8, ly + 11,
                       level_str[(player->get_knight_occupation(3-i) >> 4) &
                                 0x7]);
+    draw_green_string(8, ly + 11,
+                      level_str[player->get_knight_occupation(3-i) & 0x7]);
   }
 
   draw_custom_icon_box(layout);
@@ -3887,22 +3887,22 @@ PopupBox::handle_sett_3_click(int cx, int cy) {
 void
 PopupBox::handle_knight_level_click(int cx, int cy) {
   const int clkmap[] = {
-    ACTION_KNIGHT_LEVEL_CLOSEST_MIN_DEC, 32, 2, 16, 16,
-    ACTION_KNIGHT_LEVEL_CLOSEST_MIN_INC, 48, 2, 16, 16,
-    ACTION_KNIGHT_LEVEL_CLOSEST_MAX_DEC, 32, 18, 16, 16,
-    ACTION_KNIGHT_LEVEL_CLOSEST_MAX_INC, 48, 18, 16, 16,
-    ACTION_KNIGHT_LEVEL_CLOSE_MIN_DEC, 32, 36, 16, 16,
-    ACTION_KNIGHT_LEVEL_CLOSE_MIN_INC, 48, 36, 16, 16,
-    ACTION_KNIGHT_LEVEL_CLOSE_MAX_DEC, 32, 52, 16, 16,
-    ACTION_KNIGHT_LEVEL_CLOSE_MAX_INC, 48, 52, 16, 16,
-    ACTION_KNIGHT_LEVEL_FAR_MIN_DEC, 32, 70, 16, 16,
-    ACTION_KNIGHT_LEVEL_FAR_MIN_INC, 48, 70, 16, 16,
-    ACTION_KNIGHT_LEVEL_FAR_MAX_DEC, 32, 86, 16, 16,
-    ACTION_KNIGHT_LEVEL_FAR_MAX_INC, 48, 86, 16, 16,
-    ACTION_KNIGHT_LEVEL_FARTHEST_MIN_DEC, 32, 104, 16, 16,
-    ACTION_KNIGHT_LEVEL_FARTHEST_MIN_INC, 48, 104, 16, 16,
-    ACTION_KNIGHT_LEVEL_FARTHEST_MAX_DEC, 32, 120, 16, 16,
-    ACTION_KNIGHT_LEVEL_FARTHEST_MAX_INC, 48, 120, 16, 16,
+    ACTION_KNIGHT_LEVEL_CLOSEST_MAX_DEC, 32, 2, 16, 16,
+    ACTION_KNIGHT_LEVEL_CLOSEST_MAX_INC, 48, 2, 16, 16,
+    ACTION_KNIGHT_LEVEL_CLOSEST_MIN_DEC, 32, 18, 16, 16,
+    ACTION_KNIGHT_LEVEL_CLOSEST_MIN_INC, 48, 18, 16, 16,
+    ACTION_KNIGHT_LEVEL_CLOSE_MAX_DEC, 32, 36, 16, 16,
+    ACTION_KNIGHT_LEVEL_CLOSE_MAX_INC, 48, 36, 16, 16,
+    ACTION_KNIGHT_LEVEL_CLOSE_MIN_DEC, 32, 52, 16, 16,
+    ACTION_KNIGHT_LEVEL_CLOSE_MIN_INC, 48, 52, 16, 16,
+    ACTION_KNIGHT_LEVEL_FAR_MAX_DEC, 32, 70, 16, 16,
+    ACTION_KNIGHT_LEVEL_FAR_MAX_INC, 48, 70, 16, 16,
+    ACTION_KNIGHT_LEVEL_FAR_MIN_DEC, 32, 86, 16, 16,
+    ACTION_KNIGHT_LEVEL_FAR_MIN_INC, 48, 86, 16, 16,
+    ACTION_KNIGHT_LEVEL_FARTHEST_MAX_DEC, 32, 104, 16, 16,
+    ACTION_KNIGHT_LEVEL_FARTHEST_MAX_INC, 48, 104, 16, 16,
+    ACTION_KNIGHT_LEVEL_FARTHEST_MIN_DEC, 32, 120, 16, 16,
+    ACTION_KNIGHT_LEVEL_FARTHEST_MIN_INC, 48, 120, 16, 16,
 
     ACTION_SHOW_SETT_SELECT, 112, 128, 16, 16,
     -1
