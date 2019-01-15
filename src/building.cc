@@ -402,7 +402,7 @@ Building::knight_occupy() {
 bool
 Building::burnup() {
   if (is_burning()) {
-    return false;
+    return true;
   }
 
   burning = true;

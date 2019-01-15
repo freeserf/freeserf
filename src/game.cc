@@ -1621,9 +1621,13 @@ Game::demolish_building_(MapPos pos) {
     map->del_path(map->move_down_right(pos), Direction::DirectionUpLeft);
 
     /* Disconnect flag. */
-    Flag *flag = flags[building->get_flag_index()];
-    flag->unlink_building();
-    flag_reset_transport(flag);
+    unsigned int flag_index = building->get_flag_index();
+    if (flag_index > 0) {
+      Flag *flag = flags[flag_index];
+      flag->unlink_building();
+      building->unlink_flag();
+      flag_reset_transport(flag);
+    }
 
     return true;
   }
