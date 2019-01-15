@@ -2299,8 +2299,8 @@ Viewport::handle_click_left(int lx, int ly) {
   MapPos clk_pos = map_pos_from_screen_pix(lx, ly);
 
   if (interface->is_building_road()) {
-    int dx = map->dist_x(interface->get_map_cursor_pos(), clk_pos) + 1;
-    int dy = map->dist_y(interface->get_map_cursor_pos(), clk_pos) + 1;
+    int dx = -map->dist_x(interface->get_map_cursor_pos(), clk_pos) + 1;
+    int dy = -map->dist_y(interface->get_map_cursor_pos(), clk_pos) + 1;
     Direction dir = DirectionNone;
 
     if (dx == 0) {
