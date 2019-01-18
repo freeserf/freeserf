@@ -1,7 +1,7 @@
 /*
- * serf.h - Serf related functions
+ * serf.h - Serf related declarations
  *
- * Copyright (C) 2013  Jon Lund Steffensen <jonlst@gmail.com>
+ * Copyright (C) 2013-2019  Jon Lund Steffensen <jonlst@gmail.com>
  *
  * This file is part of freeserf.
  *

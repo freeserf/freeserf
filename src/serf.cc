@@ -1,7 +1,7 @@
 /*
- * serf.cc - Serf related functions
+ * serf.cc - Serf related implementation
  *
- * Copyright (C) 2013  Jon Lund Steffensen <jonlst@gmail.com>
+ * Copyright (C) 2013-2019  Jon Lund Steffensen <jonlst@gmail.com>
  *
  * This file is part of freeserf.
  *
@@ -5371,18 +5371,23 @@ operator >> (SaveReaderBinary &reader, Serf &serf) {
       break;
 
     case Serf::StateLeavingBuilding:
-    case Serf::StateReadyToLeave:
+    case Serf::StateReadyToLeave: {
       reader >> v8;  // 11
       serf.s.leaving_building.field_B = (int8_t)v8;
-      reader >> v8;  // 12
-      serf.s.leaving_building.dest = (int8_t)v8;
+      uint8_t dest = 0;
+      reader >> dest;  // 12
+      serf.s.leaving_building.dest = (int8_t)dest;
       reader >> v8;  // 13
       serf.s.leaving_building.dest2 = (int8_t)v8;
       reader >> v8;  // 14
       serf.s.leaving_building.dir = v8;
       reader >> v8;  // 15
       serf.s.leaving_building.next_state = (Serf::State)v8;
+      if (serf.s.leaving_building.next_state == Serf::StateWalking) {
+        serf.s.leaving_building.dest = dest;
+      }
       break;
+    }
 
     case Serf::StateReadyToEnter:
       reader >> v8;  // 11
@@ -5564,6 +5569,24 @@ operator >> (SaveReaderBinary &reader, Serf &serf) {
       reader >> v8;  // 13
       reader >> v16;  // 14
       serf.s.defending.next_knight = v16;
+      break;
+
+    case Serf::StateKnightEngagingBuilding:
+    case Serf::StateKnightPrepareAttacking:
+    case Serf::StateKnightPrepareDefendingFreeWait:
+    case Serf::StateKnightAttackingDefeatFree:
+    case Serf::StateKnightAttacking:
+    case Serf::StateKnightAttackingVictory:
+    case Serf::StateKnightEngageAttackingFree:
+    case Serf::StateKnightEngageAttackingFreeJoin:
+      reader >> v8;  // 11
+      serf.s.attacking.move = v8;
+      reader >> v8;  // 12
+      serf.s.attacking.attacker_won = v8;
+      reader >> v8;  // 13
+      serf.s.attacking.field_D = v8;
+      reader >> v16;  // 14
+      serf.s.attacking.def_index = v16;
       break;
 
     default: break;

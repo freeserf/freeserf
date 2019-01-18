@@ -470,7 +470,9 @@ Game::update_serfs() {
   while (i != serfs.end()) {
     Serf *serf = *i;
     ++i;
-    serf->update();
+    if (serf->get_index() != 0) {
+      serf->update();
+    }
   }
 }
 
