@@ -1281,6 +1281,10 @@ operator >> (SaveReaderBinary &reader, Building &building) {
     }
   }
 
+  if (building.type == Building::TypeStock) {
+    has_inventory = true;
+  }
+
   reader >> v16;  // 10
   building.first_knight = v16;
   reader >> v16;  // 12
