@@ -2331,7 +2331,7 @@ Viewport::handle_click_left(int lx, int ly) {
       return false;
     }
 
-    if (interface->build_roid_is_valid_dir(dir)) {
+    if (interface->build_road_is_valid_dir(dir)) {
       Road road = interface->get_building_road();
       if (road.is_undo(dir)) {
         /* Delete existing path */
