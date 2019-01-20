@@ -165,7 +165,7 @@ class Interface : public GuiObject, public GameManager::Handler {
   int build_road_segment(Direction dir);
   int remove_road_segment();
   int extend_road(const Road &road);
-  bool build_roid_is_valid_dir(Direction dir) {
+  bool build_road_is_valid_dir(Direction dir) {
     return (BIT_TEST(building_road_valid_dir, dir) != 0); }
 
   void demolish_object();

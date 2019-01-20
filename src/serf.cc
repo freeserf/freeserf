@@ -3493,7 +3493,7 @@ Serf::handle_serf_mining_state() {
         s.mining.substate = 4;
         building->stop_activity();
         animation = 126;
-        counter = 304; /* TODO counter_from_animation[126] == 303 */
+        counter = counter_from_animation[animation];
         break;
       case 4: {
         building->start_playing_sfx();
@@ -3539,7 +3539,7 @@ Serf::handle_serf_mining_state() {
         s.mining.substate = 10;
         building->increase_mining(s.mining.res);
         animation = 128;
-        counter = 384; /* TODO counter_from_animation[128] == 383 */
+        counter = counter_from_animation[animation];
         break;
       case 10:
         map->set_serf_index(pos, 0);

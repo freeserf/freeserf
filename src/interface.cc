@@ -438,7 +438,6 @@ Interface::set_game(PGame new_game) {
   }
 
   game = std::move(new_game);
-  player = nullptr;
 
   if (game) {
     viewport = new Viewport(this, game->get_map());
@@ -447,22 +446,24 @@ Interface::set_game(PGame new_game) {
   }
 
   layout();
+
+  set_player(0);
 }
 
 void
 Interface::set_player(unsigned int player_index) {
+  if (panel != nullptr) {
+    del_float(panel);
+    delete panel;
+    panel = nullptr;
+  }
+
   if (game == nullptr) {
     return;
   }
 
   if ((player != nullptr) && (player_index == player->get_index())) {
     return;
-  }
-
-  if (panel != nullptr) {
-    del_float(panel);
-    delete panel;
-    panel = nullptr;
   }
 
   player = game->get_player(player_index);
@@ -932,7 +933,6 @@ Interface::handle_event(const Event *event) {
 void
 Interface::on_new_game(PGame new_game) {
   set_game(new_game);
-  set_player(0);
 }
 
 void
