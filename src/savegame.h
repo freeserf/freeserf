@@ -27,6 +27,7 @@
 #include <list>
 #include <vector>
 #include <memory>
+#include <sstream>
 
 #include "src/map.h"
 #include "src/resource.h"
@@ -66,9 +67,13 @@ class SaveReaderTextValue {
 
   const SaveReaderTextValue& operator >> (int &val) const;
   const SaveReaderTextValue& operator >> (unsigned int &val) const;
-#if (defined(_M_AMD64) || defined(__x86_64__)) || !defined(WIN32)
-  const SaveReaderTextValue& operator >> (size_t &val) const;
-#endif  // (defined(_M_AMD64) || defined(__x86_64__)) || !defined(WIN32)
+  template <typename = std::enable_if<
+                                    !std::is_same<size_t, unsigned int>::value>>
+    const SaveReaderTextValue& operator >> (size_t &val) const {
+      int result = atoi(value.c_str());
+      val = result;
+      return *this;
+    }
   const SaveReaderTextValue& operator >> (Direction &val) const;
   const SaveReaderTextValue& operator >> (Resource::Type &val) const;
   const SaveReaderTextValue& operator >> (Building::Type &val) const;
@@ -87,9 +92,20 @@ class SaveWriterTextValue {
 
   SaveWriterTextValue& operator << (int val);
   SaveWriterTextValue& operator << (unsigned int val);
-#if (defined(_M_AMD64) || defined(__x86_64__)) || !defined(WIN32)
-  SaveWriterTextValue& operator << (size_t val);
-#endif  // (defined(_M_AMD64) || defined(__x86_64__)) || !defined(WIN32)
+  template <typename = std::enable_if<
+                                    !std::is_same<size_t, unsigned int>::value>>
+    SaveWriterTextValue& operator << (size_t val) {
+      if (!value.empty()) {
+        value += ",";
+      }
+      std::ostringstream ss;
+      ss << val;
+      value += ss.str();
+
+      return *this;
+    }
+
+
   SaveWriterTextValue& operator << (Direction val);
   SaveWriterTextValue& operator << (Resource::Type val);
   SaveWriterTextValue& operator << (const std::string &val);
