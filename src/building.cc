@@ -1290,7 +1290,7 @@ operator >> (SaveReaderBinary &reader, Building &building) {
   reader >> v16;  // 12
   building.progress = v16;
 
-  if (has_inventory) {
+  if (has_inventory && !building.constructing) {
     reader >> v32;  // 14
     int offset = v32;
     building.inventory = building.game->create_inventory(offset/120);
