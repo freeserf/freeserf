@@ -51,11 +51,11 @@ class Game {
   typedef std::list<Inventory*> ListInventories;
 
  protected:
-  typedef Collection<Flag> Flags;
-  typedef Collection<Inventory> Inventories;
-  typedef Collection<Building> Buildings;
-  typedef Collection<Serf> Serfs;
-  typedef Collection<Player> Players;
+  typedef Collection<Flag, 5000> Flags;
+  typedef Collection<Inventory, 100> Inventories;
+  typedef Collection<Building, 1000> Buildings;
+  typedef Collection<Serf, 5000> Serfs;
+  typedef Collection<Player, 5> Players;
 
   PMap map;
 
