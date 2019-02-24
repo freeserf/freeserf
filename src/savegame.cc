@@ -351,16 +351,6 @@ SaveReaderTextValue::operator >> (unsigned int &val) const {
   return *this;
 }
 
-#if (defined(_M_AMD64) || defined(__x86_64__)) || !defined(WIN32)
-const SaveReaderTextValue&
-SaveReaderTextValue::operator >> (size_t &val) const {
-  int result = atoi(value.c_str());
-  val = result;
-
-  return *this;
-}
-#endif  // (defined(_M_AMD64) || defined(__x86_64__)) || !defined(WIN32)
-
 const SaveReaderTextValue&
 SaveReaderTextValue::operator >> (Direction &val) const {
   int result = atoi(value.c_str());
@@ -441,21 +431,6 @@ SaveWriterTextValue::operator << (unsigned int val) {
 
   return *this;
 }
-
-#if (defined(_M_AMD64) || defined(__x86_64__)) || !defined(WIN32)
-SaveWriterTextValue&
-SaveWriterTextValue::operator << (size_t val) {
-  if (!value.empty()) {
-    value += ",";
-  }
-
-  std::ostringstream ss;
-  ss << val;
-  value += ss.str();
-
-  return *this;
-}
-#endif  // (defined(_M_AMD64) || defined(__x86_64__)) || !defined(WIN32)
 
 SaveWriterTextValue&
 SaveWriterTextValue::operator << (Direction val) {

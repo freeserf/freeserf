@@ -23,7 +23,7 @@
 
 #include <algorithm>
 #include <map>
-#include <strstream>
+#include <sstream>
 #include <string>
 
 #include "src/game.h"
@@ -6059,7 +6059,7 @@ operator << (SaveWriterText &writer, Serf &serf) {
 
 std::string
 Serf::print_state() {
-  std::strstream res;
+  std::stringstream res;
 
   res << get_state_name(state) << "\n";
 

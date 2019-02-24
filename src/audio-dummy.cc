@@ -21,10 +21,8 @@
 
 #include "src/audio-dummy.h"
 
-Audio *
+Audio &
 Audio::get_instance() {
-  if (instance == NULL) {
-    instance = new AudioDummy();
-  }
+  static AudioDummy instance;
   return instance;
 }
