@@ -45,14 +45,22 @@ EventLoopSDL::EventLoopSDL()
   : zoom_factor(1.f)
   , screen_factor_x(1.f)
   , screen_factor_y(1.f) {
+  SDL_InitSubSystem(SDL_INIT_EVENTS | SDL_INIT_TIMER);
+
+  eventUserTypeStep = SDL_RegisterEvents(2);
+  if (eventUserTypeStep == (Uint32)-1) {
+    throw ExceptionFreeserf("Failed to register SDL event");
+  }
+  eventUserTypeStep++;
 }
 
-static Uint32
-timer_callback(Uint32 interval, void *param) {
+Uint32
+EventLoopSDL::timer_callback(Uint32 interval, void *param) {
+  EventLoopSDL *eventLoop = static_cast<EventLoopSDL*>(param);
   SDL_Event event;
-  event.type = SDL_USEREVENT;
-  event.user.type = SDL_USEREVENT;
-  event.user.code = EventLoopSDL::EventUserTypeStep;
+  event.type = eventLoop->eventUserTypeStep;
+  event.user.type = eventLoop->eventUserTypeStep;
+  event.user.code = 0;
   event.user.data1 = 0;
   event.user.data2 = 0;
   SDL_PushEvent(&event);
@@ -82,14 +90,11 @@ EventLoopSDL::deferred_call(DeferredCall call, void *data) {
   SDL_PushEvent(&event);
 }
 
-/* event_loop() has been turned into a SDL based loop.
- The code for one iteration of the original game_loop is
- in game_loop_iter. */
+// event_loop() has been turned into a SDL based loop.
+// The code for one iteration of the original game_loop is in game_loop_iter.
 void
 EventLoopSDL::run() {
-  SDL_InitSubSystem(SDL_INIT_EVENTS | SDL_INIT_TIMER);
-
-  SDL_TimerID timer_id = SDL_AddTimer(TICK_LENGTH, timer_callback, 0);
+  SDL_TimerID timer_id = SDL_AddTimer(TICK_LENGTH, timer_callback, this);
   if (timer_id == 0) {
     return;
   }
@@ -190,7 +195,7 @@ EventLoopSDL::run() {
         }
 
         switch (event.key.keysym.sym) {
-          /* Map scroll */
+          // Map scroll
           case SDLK_UP: {
             notify_drag(0, 0, 0, -32, Event::ButtonLeft);
             break;
@@ -218,7 +223,7 @@ EventLoopSDL::run() {
             notify_key_pressed('-', 0);
             break;
 
-            /* Video */
+          // Video
           case SDLK_f:
             if (event.key.keysym.mod & KMOD_CTRL) {
               gfx.set_fullscreen(!gfx.is_fullscreen());
@@ -231,7 +236,7 @@ EventLoopSDL::run() {
             zoom(0.2f);
             break;
 
-            /* Misc */
+          // Misc
           case SDLK_F10:
             notify_key_pressed('n', 1);
             break;
@@ -264,18 +269,6 @@ EventLoopSDL::run() {
               screen = nullptr;
             }
             return;
-          case EventUserTypeStep:
-            /* Update and draw interface */
-            notify_update();
-
-            if (screen == nullptr) {
-              screen = gfx.get_screen_frame();
-            }
-            notify_draw(screen);
-
-            /* Swap video buffers */
-            gfx.swap_buffers();
-            break;
           case EventUserTypeCall: {
             while (!deferred_calls.empty()) {
               deferred_calls.front()(nullptr);
@@ -287,6 +280,21 @@ EventLoopSDL::run() {
             break;
         }
         break;
+      default:
+        if (event.type == eventUserTypeStep) {
+          // Update and draw interface
+          notify_update();
+
+          if (screen == nullptr) {
+            screen = gfx.get_screen_frame();
+          }
+          notify_draw(screen);
+
+          // Swap video buffers
+          gfx.swap_buffers();
+
+          SDL_FlushEvent(eventUserTypeStep);
+        }
     }
   }
 

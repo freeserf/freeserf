@@ -23,6 +23,7 @@
 #define SRC_EVENT_LOOP_SDL_H_
 
 #include <list>
+#include <SDL.h>
 
 #include "src/event_loop.h"
 
@@ -39,6 +40,7 @@ class EventLoopSDL : public EventLoop {
   float zoom_factor;
   float screen_factor_x;
   float screen_factor_y;
+  Uint32 eventUserTypeStep;
 
  public:
   EventLoopSDL();
@@ -49,6 +51,7 @@ class EventLoopSDL : public EventLoop {
 
  protected:
   void zoom(float delta);
+  static Uint32 timer_callback(Uint32 interval, void *param);
 };
 
 #endif  // SRC_EVENT_LOOP_SDL_H_

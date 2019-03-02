@@ -1,7 +1,7 @@
 /*
  * objects.h - Game objects collection template
  *
- * Copyright (C) 2015  Wicked_Digger <wicked_digger@mail.ru>
+ * Copyright (C) 2015-2019  Wicked_Digger <wicked_digger@mail.ru>
  *
  * This file is part of freeserf.
  *
@@ -22,9 +22,9 @@
 #ifndef SRC_OBJECTS_H_
 #define SRC_OBJECTS_H_
 
-#include <map>
+#include <vector>
 #include <algorithm>
-#include <set>
+#include <list>
 #include <memory>
 #include <limits>
 #include <utility>
@@ -50,14 +50,15 @@ class GameObject {
   unsigned int get_index() const { return index; }
 };
 
-template<class T>
+template<class T, size_t growth>
 class Collection {
  protected:
-  typedef std::map<unsigned int, T*> Objects;
+  typedef std::vector<T*> Objects;
+  typedef std::list<unsigned int> FObjects;
 
   Objects objects;
   unsigned int last_object_index;
-  std::set<unsigned int> free_object_indexes;
+  FObjects free_object_indexes;
   Game *game;
 
  public:
@@ -76,8 +77,10 @@ class Collection {
   }
 
   void clear() {
-    for (std::pair<const unsigned int, T*> &kv : objects) {
-      delete kv.second;
+    for (T *&obj : objects) {
+      if (obj != nullptr) {
+        delete obj;
+      }
     }
     objects.clear();
   }
@@ -85,75 +88,92 @@ class Collection {
   T*
   allocate() {
     unsigned int new_index = 0;
+    T *new_object = nullptr;
 
     if (!free_object_indexes.empty()) {
-      new_index = *free_object_indexes.begin();
-      free_object_indexes.erase(free_object_indexes.begin());
+      new_index = free_object_indexes.front();
+      free_object_indexes.pop_front();
+      new_object = new T(game, new_index);
+      objects[new_index] = new_object;
     } else {
-      if (last_object_index ==
-          std::numeric_limits<decltype(last_object_index)>::max()) {
-        return nullptr;
+      new_index = objects.size();
+      if (objects.size() == objects.capacity()) {
+        objects.reserve(objects.capacity() + growth);
       }
-
-      new_index = last_object_index;
-      last_object_index++;
+      new_object = new T(game, new_index);
+      objects.push_back(new_object);
     }
-
-    T *new_object = new T(game, new_index);
-    objects[new_index] = new_object;
 
     return new_object;
   }
 
   bool
   exists(unsigned int index) const {
-    return (objects.end() != objects.find(index));
+    if (index >= objects.size()) {
+      return false;
+    }
+    return (objects[index] != nullptr);
   }
 
   T*
   get_or_insert(unsigned int index) {
-    if (!exists(index)) {
-      T *new_object = new T(game, index);
-      objects[index] = new_object;
-
-      std::set<unsigned int>::iterator i = free_object_indexes.find(index);
-      if (i != free_object_indexes.end()) {
+    T *object = nullptr;
+    if (index < objects.size()) {
+      object = objects[index];
+      if (object == nullptr) {
+        FObjects::iterator i = std::find(free_object_indexes.begin(),
+                                         free_object_indexes.end(), index);
         free_object_indexes.erase(i);
+        object = new T(game, index);
+        objects[index] = object;
       }
+    } else {
+      if (objects.size() == objects.capacity()) {
+        objects.reserve(objects.capacity() + growth);
+      }
+      for (size_t i = objects.size(); i < index; ++i) {
+        free_object_indexes.push_back(i);
+        objects.push_back(nullptr);
+      }
+      object = new T(game, index);
+      objects.push_back(object);
     }
 
-    if (last_object_index <= index) {
-      for (unsigned int i = last_object_index; i < index; i++) {
-        free_object_indexes.insert(i);
-      }
-      last_object_index = index + 1;
-    }
-
-    return objects.at(index);
+    return object;
   }
 
   T* operator[] (unsigned int index) {
-    if (!exists(index)) return nullptr;
-    return objects.at(index);
+    if (index >= objects.size()) {
+      return nullptr;
+    }
+    return objects[index];
   }
 
   const T* operator[] (unsigned int index) const {
-    if (!exists(index)) return nullptr;
-    return objects.at(index);
+    if (index >= objects.size()) {
+      return nullptr;
+    }
+    return objects[index];
   }
 
   class Iterator {
    protected:
     typename Objects::iterator internal_iterator;
+    Objects *objects;
 
    public:
-    explicit Iterator(typename Objects::iterator internal_iterator) {
-      this->internal_iterator = internal_iterator;
+    Iterator(typename Objects::iterator it, Objects *objs) {
+      internal_iterator = it;
+      objects = objs;
     }
 
     Iterator&
     operator++() {
-      internal_iterator++;
+      while (++internal_iterator != objects->end()) {
+        if (*internal_iterator != nullptr) {
+          return (*this);
+        }
+      }
       return (*this);
     }
 
@@ -168,22 +188,28 @@ class Collection {
     }
 
     T* operator*() const {
-      return internal_iterator->second;
+      return *internal_iterator;
     }
   };
 
   class ConstIterator {
    protected:
     typename Objects::const_iterator internal_iterator;
+    const Objects *objects;
 
    public:
-    explicit ConstIterator(typename Objects::const_iterator it) {
-     this->internal_iterator = it;
+    ConstIterator(typename Objects::const_iterator it, const Objects *objs) {
+      internal_iterator = it;
+      objects = objs;
     }
 
     ConstIterator& operator++() {
-     internal_iterator++;
-     return (*this);
+      while (++internal_iterator != objects->end()) {
+        if (*internal_iterator != nullptr) {
+          return (*this);
+        }
+      }
+      return (*this);
     }
 
     bool operator == (const ConstIterator& right) const {
@@ -195,37 +221,37 @@ class Collection {
     }
 
     const T* operator*() const {
-     return internal_iterator->second;
+     return *internal_iterator;
     }
   };
 
-  Iterator begin() { return Iterator(objects.begin()); }
-  Iterator end() { return Iterator(objects.end()); }
+  Iterator begin() { return Iterator(objects.begin(), &objects); }
+  Iterator end() { return Iterator(objects.end(), &objects); }
 
-  ConstIterator begin() const { return ConstIterator(objects.begin()); }
-  ConstIterator end() const { return ConstIterator(objects.end()); }
+  ConstIterator begin() const {
+    return ConstIterator(objects.begin(), &objects);
+  }
+
+  ConstIterator end() const {
+    return ConstIterator(objects.end(), &objects);
+  }
 
   void
   erase(unsigned int index) {
-    /* Decrement max_flag_index as much as possible. */
-    typename Objects::iterator i = objects.find(index);
-    if (i == objects.end()) {
-      return;
-    }
-    T *object_for_deleting = objects[index];
-    objects.erase(i);
-    delete object_for_deleting;
-
-    if (index == last_object_index) {
-      last_object_index--;
-      // ToDo: remove all empty indexes if needed
-    } else {
-      free_object_indexes.insert(index);
+    if ((index <= objects.size()) && (objects[index] != nullptr)) {
+      T *object = objects[index];
+      if (index + 1 == objects.size()) {
+        objects.pop_back();
+      } else {
+        free_object_indexes.push_back(index);
+        objects[index] = nullptr;
+      }
+      delete object;
     }
   }
 
   size_t
-  size() const { return objects.size(); }
+  size() const { return objects.size() - free_object_indexes.size(); }
 };
 
 #endif  // SRC_OBJECTS_H_
