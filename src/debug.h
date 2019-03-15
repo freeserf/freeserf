@@ -32,7 +32,7 @@ class ExceptionFreeserf : public std::exception {
 
  public:
   explicit ExceptionFreeserf(const std::string &description) throw();
-  virtual ~ExceptionFreeserf() throw();
+  virtual ~ExceptionFreeserf();
 
   virtual const char* what() const throw();
   virtual std::string get_description() const;

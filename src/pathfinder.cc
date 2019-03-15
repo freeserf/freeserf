@@ -37,6 +37,13 @@ class SearchNode {
   unsigned int f_score;
   MapPos pos;
   Direction dir;
+
+  SearchNode()
+    : g_score(0)
+    , f_score(0)
+    , pos(0)
+    , dir(DirectionNone) {
+  }
 };
 
 static bool

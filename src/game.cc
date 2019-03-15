@@ -42,7 +42,17 @@
 
 #define GROUND_ANALYSIS_RADIUS  25
 
-Game::Game() {
+Game::Game()
+  : map_gold_morale_factor(0)
+  , game_speed_save(0)
+  , last_tick(0)
+  , field_340(0)
+  , field_342(0)
+  , field_344(0)
+  , tutorial_level(0)
+  , mission_level(0)
+  , map_preserve_bugs(0)
+  , player_score_leader(0) {
   players = Players(this);
   flags = Flags(this);
   inventories = Inventories(this);

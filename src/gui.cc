@@ -250,6 +250,6 @@ GuiObject::play_sound(int sound) {
   Audio &audio = Audio::get_instance();
   Audio::PPlayer player = audio.get_sound_player();
   if (player) {
-    player->play_track(sound);
+    Audio::PTrack t = player->play_track(sound);
   }
 }

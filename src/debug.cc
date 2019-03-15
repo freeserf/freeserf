@@ -25,7 +25,7 @@ ExceptionFreeserf::ExceptionFreeserf(const std::string &description_) throw()
   : description(description_) {
 }
 
-ExceptionFreeserf::~ExceptionFreeserf() throw() {
+ExceptionFreeserf::~ExceptionFreeserf() {
 }
 
 const char*

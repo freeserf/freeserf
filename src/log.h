@@ -84,7 +84,7 @@ class Log {
 
    public:
     explicit Logger(Level _level, std::string _prefix)
-      : level(_level), prefix(_prefix) {
+      : level(_level), prefix(_prefix), stream(nullptr) {
       apply_level();
     }
 

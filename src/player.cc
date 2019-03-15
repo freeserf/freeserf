@@ -29,8 +29,33 @@
 #include "src/savegame.h"
 #include "src/building.h"
 
-Player::Player(Game *game, unsigned int index)
-  : GameObject(game, index) {
+Player::Player(Game* game, unsigned int index)
+  : GameObject(game, index)
+  , tool_prio{}
+  , resource_count{}
+  , flag_prio{}
+  , serf_count{}
+  , completed_building_count{}
+  , incomplete_building_count{}
+  , inventory_prio{}
+  , attacking_buildings{}
+  , food_stonemine(0)
+  , food_coalmine(0)
+  , food_ironmine(0)
+  , food_goldmine(0)
+  , planks_construction(0)
+  , planks_boatbuilder(0)
+  , planks_toolmaker(0)
+  , steel_toolmaker(0)
+  , steel_weaponsmith(0)
+  , coal_steelsmelter(0)
+  , coal_goldsmelter(0)
+  , coal_weaponsmith(0)
+  , wheat_pigfarm(0)
+  , wheat_mill(0)
+  , player_stat_history{}
+  , resource_count_history{}
+  , attacking_knights{} {
   build = 0;
   color = { 0 };
   face = -1;
@@ -155,8 +180,8 @@ Player::init(unsigned int _intelligence, unsigned int _supplies,
   flags = 0;
 
   initial_supplies = _supplies;
-  reproduction_reset = (60 - _reproduction) * 50;
-  ai_intelligence = (1300 * _intelligence) + 13535;
+  reproduction_reset = (60 - (size_t)_reproduction) * 50;
+  ai_intelligence = (1300 * (size_t)_intelligence) + 13535;
   reproduction_counter = static_cast<int>(reproduction_reset);
 }
 

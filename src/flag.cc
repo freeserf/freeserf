@@ -80,25 +80,25 @@ FlagSearch::single(Flag *src, flag_search_func *callback, bool land,
   return search.execute(callback, land, transporter, data);
 }
 
-Flag::Flag(Game *game, unsigned int index) : GameObject(game, index) {
-  pos = 0;
-  owner = -1;
-  search_num = 0;
-  search_dir = DirectionRight;
-  path_con = 0;
-  endpoint = 0;
-  transporter = 0;
+Flag::Flag(Game *game, unsigned int index)
+  : GameObject(game, index)
+  , owner(-1)
+  , pos(0)
+  , path_con(0)
+  , endpoint(0)
+  , slot{}
+  , search_num(0)
+  , search_dir(DirectionRight)
+  , transporter(0)
+  , length{}
+  , other_endpoint{}
+  , other_end_dir{}
+  , bld_flags(0)
+  , bld2_flags(0) {
   for (int j = 0; j < FLAG_MAX_RES_COUNT; j++) {
     slot[j].type = Resource::TypeNone;
     slot[j].dest = 0;
     slot[j].dir = DirectionNone;
-  }
-  bld_flags = 0;
-  bld2_flags = 0;
-  for (Direction i : cycle_directions_cw()) {
-    length[i] = 0;
-    other_end_dir[i] = 0;
-    other_endpoint.f[i] = 0;
   }
 }
 
@@ -804,8 +804,8 @@ Flag::merge_paths(MapPos pos_) {
   flag_1->transporter &= ~BIT(dir_1);
   flag_2->transporter &= ~BIT(dir_2);
 
-  size_t len = Flag::get_road_length_value(path_1_data.path_len +
-                                             path_2_data.path_len);
+  size_t len = Flag::get_road_length_value((size_t)path_1_data.path_len +
+                                           (size_t)path_2_data.path_len);
   flag_1->length[dir_1] = len << 4;
   flag_2->length[dir_2] = len << 4;
 

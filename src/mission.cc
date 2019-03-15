@@ -60,11 +60,12 @@ Character characters[] = {
     "Your partner."}
 };
 
-Player::Color def_color[4] = {
+Player::Color def_color[] = {
   {0x00, 0xe3, 0xe3},
   {0xcf, 0x63, 0x63},
   {0xdf, 0x7f, 0xef},
-  {0xef, 0xef, 0x8f}
+  {0xef, 0xef, 0x8f},
+  {0x00, 0x00, 0x00}
 };
 
 GameInfo::Mission tutorials[] = {
@@ -427,7 +428,9 @@ GameInfo::set_random_base(const Random &base) {
 
   int i = 0;
   for (PPlayerInfo info : players) {
-    info->set_color(def_color[i++]);
+    if (i < 4) {
+      info->set_color(def_color[i++]);
+    }
   }
 }
 
@@ -512,7 +515,13 @@ GameInfo::instantiate() {
   return game;
 }
 
-PlayerInfo::PlayerInfo(Random *random_base) {
+PlayerInfo::PlayerInfo(Random *random_base)
+  : intelligence(0)
+  , supplies(0)
+  , reproduction(0)
+  , face(0)
+  , color({})
+  , castle_pos({}) {
   size_t character = (((random_base->random() * 10) >> 16) + 1) & 0xFF;
   set_character(character);
   set_intelligence(((random_base->random() * 41) >> 16) & 0xFF);
@@ -523,7 +532,13 @@ PlayerInfo::PlayerInfo(Random *random_base) {
 
 PlayerInfo::PlayerInfo(size_t character, const Player::Color &_color,
                        unsigned int _intelligence, unsigned int _supplies,
-                       unsigned int _reproduction) {
+                       unsigned int _reproduction)
+  : intelligence(0)
+  , supplies(0)
+  , reproduction(0)
+  , face(0)
+  , color({})
+  , castle_pos({}) {
   set_character(character);
   set_intelligence(_intelligence);
   set_supplies(_supplies);
