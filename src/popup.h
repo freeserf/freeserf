@@ -37,6 +37,7 @@ class TextInput;
 class PopupBox : public GuiObject {
  public:
   typedef enum Type {
+    TypeNone = 0,
     TypeMap = 1,
     TypeMapOverlay, /* UNUSED */
     TypeMineBuilding,

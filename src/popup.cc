@@ -291,7 +291,8 @@ typedef enum Action {
 PopupBox::PopupBox(Interface *_interface)
   : minimap(new MinimapGame(_interface, _interface->get_game()))
   , file_list(new ListSavedFiles())
-  , file_field(new TextInput()) {
+  , file_field(new TextInput())
+  , box(TypeNone) {
   interface = _interface;
 
   current_sett_5_item = 8;

@@ -101,7 +101,7 @@ main(int argc, char *argv[]) {
   Audio &audio = Audio::get_instance();
   Audio::PPlayer player = audio.get_music_player();
   if (player) {
-    player->play_track(Audio::TypeMidiTrack0);
+    Audio::PTrack t = player->play_track(Audio::TypeMidiTrack0);
   }
 
   GameManager &game_manager = GameManager::get_instance();

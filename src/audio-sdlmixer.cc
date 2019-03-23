@@ -320,7 +320,7 @@ AudioSDL::PlayerMIDI::music_finished_hook() {
 void
 AudioSDL::PlayerMIDI::music_finished() {
   if (is_enabled()) {
-    play_track(current_track + 1);
+    Audio::PTrack t = play_track(current_track + 1);
   }
 }
 

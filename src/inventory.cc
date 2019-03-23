@@ -29,17 +29,18 @@
 #include "src/serf.h"
 
 Inventory::Inventory(Game *game, unsigned int index)
-  : GameObject(game, index) {
-  owner = 0;
-  res_dir = 0;
-  flag = 0;
-  building = 0;
+  : GameObject(game, index)
+  , owner(0)
+  , flag(0)
+  , building(0)
+  , out_queue{}
+  , serfs_out(0)
+  , generic_count(0)
+  , res_dir(0) {
   for (int i = 0; i < 2; i++) {
     out_queue[i].type = Resource::TypeNone;
     out_queue[i].dest = 0;
   }
-  serfs_out = 0;
-  generic_count = 0;
 }
 
 Inventory::~Inventory() {

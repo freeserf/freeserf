@@ -233,10 +233,30 @@ class MapGeometry {
   };
 
   explicit MapGeometry(unsigned int size)
-    : size_(size) {
+    : size_(size)
+    , dirs{6}
+    , col_size_(0)
+    , row_size_(0)
+    , cols_(0)
+    , rows_(0)
+    , col_mask_(0)
+    , row_mask_(0)
+    , row_shift_(0) {
     init();
   }
-  MapGeometry(const MapGeometry& that) : size_(that.size_) { init(); }
+
+  MapGeometry(const MapGeometry& that)
+    : size_(that.size_)
+    , dirs{6}
+    , col_size_(0)
+    , row_size_(0)
+    , cols_(0)
+    , rows_(0)
+    , col_mask_(0)
+    , row_mask_(0)
+    , row_shift_(0) {
+    init();
+  }
 
   MapGeometry& operator=(const MapGeometry &that) {
     size_ = that.size_;

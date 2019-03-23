@@ -1038,7 +1038,7 @@ DataSourceAmiga::get_torso_sprite(size_t index, uint8_t *palette) {
 
   PMutableBuffer buff = std::make_shared<MutableBuffer>(Buffer::EndianessBig);
   buff->push(data->pop(bps*4));
-  data->pop(bps);
+  PBuffer b = data->pop(bps);
   buff->push(data->pop(bps));
 
   PSpriteAmiga pixels = decode_planned_sprite(buff, w, h, 0, 0, palette);

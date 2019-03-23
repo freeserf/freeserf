@@ -27,7 +27,8 @@
 #include "src/savegame.h"
 
 Building::Building(Game *game, unsigned int index)
-  : GameObject(game, index) {
+  : GameObject(game, index)
+  , stock{} {
   type = TypeNone;
   constructing = true; /* Unfinished building */
   flag = 0;

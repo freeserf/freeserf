@@ -41,7 +41,12 @@
 // Interval between automatic save games
 #define AUTOSAVE_INTERVAL  (10*60*TICKS_PER_SEC)
 
-Interface::Interface() {
+Interface::Interface()
+  : building_road_valid_dir(0)
+  , sfx_queue{0}
+  , water_in_view(false)
+  , trees_in_view(false)
+  , return_pos(0) {
   displayed = true;
 
   game = nullptr;

@@ -96,7 +96,7 @@ class Collection {
       new_object = new T(game, new_index);
       objects[new_index] = new_object;
     } else {
-      new_index = objects.size();
+      new_index = static_cast<unsigned int>(objects.size());
       if (objects.size() == objects.capacity()) {
         objects.reserve(objects.capacity() + growth);
       }
@@ -132,7 +132,7 @@ class Collection {
         objects.reserve(objects.capacity() + growth);
       }
       for (size_t i = objects.size(); i < index; ++i) {
-        free_object_indexes.push_back(i);
+        free_object_indexes.push_back(static_cast<unsigned int>(i));
         objects.push_back(nullptr);
       }
       object = new T(game, index);
