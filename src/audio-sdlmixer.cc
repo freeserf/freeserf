@@ -255,14 +255,21 @@ AudioSDL::PlayerMIDI::create_track(int track_id) {
 
 Audio::PTrack
 AudioSDL::PlayerMIDI::play_track(int track_id) {
-  Audio::PTrack track = nullptr;
-  while (track == nullptr) {
+  Audio::PTrack track;
+  bool have_track = false;
+  while (!track) {
     if ((track_id <= TypeMidiNone) || (track_id > TypeMidiTrackLast)) {
+      if (!have_track) {
+        break;
+      }
       track_id = TypeMidiTrack0;
     }
     current_track = static_cast<TypeMidi>(track_id);
     Log::Info["audio:SDL_mixer"] << "Playing MIDI track: " << current_track;
     track = Audio::Player::play_track(track_id);
+    if (track) {
+      have_track = true;
+    }
     track_id++;
   }
   return track;
