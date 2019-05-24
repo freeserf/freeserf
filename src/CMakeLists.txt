@@ -13,11 +13,6 @@ if(SDL2_FOUND)
   endif()
 endif()
 
-option(ENABLE_XMP "Enable libxmp support" ON)
-if(ENABLE_XMP)
-  find_package(XMP)
-endif()
-
 if(WIN32)
   add_definitions(/D_CRT_SECURE_NO_WARNINGS /D_SCL_SECURE_NO_WARNINGS)
 endif()
@@ -121,7 +116,6 @@ set(DATA_HEADERS data.h
                  tpwm.h
                  sfx2wav.h
                  xmi2mid.h
-                 mod2wav.h
                  pcm2wav.h
                  data-source.h
                  sprite-file.h)
@@ -131,14 +125,6 @@ if(ENABLE_SDL2_IMAGE AND SDL2_IMAGE_FOUND)
   list(APPEND DATA_SOURCES sprite-file-sdl.cc)
 else()
   list(APPEND DATA_SOURCES sprite-file-dummy.cc)
-endif()
-
-if(ENABLE_XMP AND XMP_FOUND)
-  add_definitions(/DENABLE_XMP)
-  include_directories(${INCLUDE_DIRECTORIES} ${XMP_INCLUDE_DIR})
-  list(APPEND DATA_SOURCES mod2wav.cc)
-else()
-  list(APPEND DATA_SOURCES mod2wav-dummy.cc)
 endif()
 
 add_library(data STATIC ${DATA_SOURCES} ${DATA_HEADERS})
@@ -197,9 +183,6 @@ if(SDL2_FOUND)
     target_link_libraries(FreeSerf optimized ${SDL2_IMAGE_LIBRARY} debug ${SDL2_IMAGE_LIBRARY_DEBUG})
   endif()
 endif()
-if(XMP_FOUND)
-  target_link_libraries(FreeSerf optimized ${XMP_LIBRARY} debug ${XMP_LIBRARY_DEBUG})
-endif()
 install(TARGETS FreeSerf DESTINATION ".")
 
 if(WIN32)
@@ -215,7 +198,6 @@ if(WIN32)
     get_filename_component(SDL2_DIR ${SDL2_LIBRARY} DIRECTORY)
     get_filename_component(SDL2_MIXER_DIR ${SDL2_MIXER_LIBRARY} DIRECTORY)
     get_filename_component(SDL2_IMAGE_DIR ${SDL2_IMAGE_LIBRARY} DIRECTORY)
-    get_filename_component(XMP_DIR ${XMP_LIBRARY} DIRECTORY)
     set(BIN_DIRS "${SDL2_DIR};${SDL2_MIXER_DIR};${SDL2_IMAGE_DIR};${XMP_DIR}/bin")
   endif()
 

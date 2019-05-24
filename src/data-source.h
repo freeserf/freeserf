@@ -99,6 +99,12 @@ class DataSource {
  public:
   typedef std::tuple<PSprite, PSprite> MaskImage;
 
+  enum MusicFormat {
+    MusicFormatNone,
+    MusicFormatMidi,
+    MusicFormatMod
+  };
+
  protected:
   std::string path;
   bool loaded;
@@ -126,6 +132,7 @@ class DataSource {
   virtual Animation get_animation(size_t animation, size_t phase);
 
   virtual PBuffer get_sound(size_t index) = 0;
+  virtual MusicFormat get_music_format() { return MusicFormatNone; }
   virtual PBuffer get_music(size_t index) = 0;
 
   bool check_file(const std::string &path);

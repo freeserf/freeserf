@@ -11,18 +11,20 @@ configuration:
   - Release
 
 cache:
-  - c:\tools\vcpkg\installed\
+  - c:\tools\vcpkg\installed\ -> appveyor.yml
 
 install:
   - ps: iex ((new-object net.webclient).DownloadString('https://raw.githubusercontent.com/appveyor/ci/master/scripts/enable-http-proxy.ps1'))
 
   # Install required packages
-  - cmd: vcpkg install sdl2:%platform%-windows
-  - cmd: vcpkg install sdl2-mixer:%platform%-windows
-  - cmd: vcpkg install sdl2-image:%platform%-windows
-  - cmd: vcpkg install libxmp-lite:%platform%-windows
   - cmd: cd c:\tools\vcpkg
+  - cmd: git pull
+  - cmd: bootstrap-vcpkg.bat
+  - cmd: vcpkg install sdl2:%platform%-windows
+  - cmd: vcpkg install sdl2-mixer[core,libmodplug]:%platform%-windows
+  - cmd: vcpkg install sdl2-image:%platform%-windows
   - cmd: vcpkg integrate install
+  - cmd: cd %appveyor_build_folder%
 
   # Prepare for NMake
   - if "%platform%" == "x86" call "%VS140COMNTOOLS%\..\..\VC\vcvarsall.bat"

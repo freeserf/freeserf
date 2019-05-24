@@ -113,6 +113,7 @@ class DataSourceDOS : public DataSourceLegacy {
   virtual MaskImage get_sprite_parts(Data::Resource res, size_t index);
 
   virtual PBuffer get_sound(size_t index);
+  virtual MusicFormat get_music_format() { return MusicFormatMidi; }
   virtual PBuffer get_music(size_t index);
 
  protected:
