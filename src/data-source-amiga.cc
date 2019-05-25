@@ -31,7 +31,6 @@
 #include "src/data.h"
 #include "src/freeserf_endian.h"
 #include "src/sfx2wav.h"
-#include "src/mod2wav.h"
 #include "src/log.h"
 
 uint8_t palette[] = {
@@ -751,15 +750,7 @@ DataSourceAmiga::get_music(size_t /*index*/) {
   }
   pos -= 1080;
 
-  PBuffer mod = data->get_tail(pos);
-
-  try {
-    ConvertorMOD2WAV converter(mod);
-    music = converter.convert();
-  } catch (ExceptionFreeserf &e) {
-    Log::Error["data"] << e.get_description();
-    music = nullptr;
-  }
+  music = data->get_tail(pos);
 
   return music;
 }

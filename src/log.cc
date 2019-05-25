@@ -23,6 +23,10 @@
 
 #include <iostream>
 
+#ifdef _WIN32
+#include <windows.h>
+#endif  // WIN32
+
 #ifndef NDEBUG
 Log::Level Log::level = Log::LevelDebug;
 #else
@@ -37,6 +41,21 @@ Log::Logger Log::Debug(Log::LevelDebug, "Debug");
 Log::Logger Log::Info(Log::LevelInfo, "Info");
 Log::Logger Log::Warn(Log::LevelWarn, "Warning");
 Log::Logger Log::Error(Log::LevelError, "Error");
+
+Log::Log() {
+#ifdef WIN32
+  if (::AttachConsole(ATTACH_PARENT_PROCESS)) {
+    FILE *f = freopen("CONOUT$", "w", stdout);
+    f = freopen("CONOUT$", "w", stderr);
+  }
+#endif  // WIN32
+}
+
+Log::~Log() {
+#ifdef WIN32
+  ::FreeConsole();
+#endif  // WIN32
+}
 
 void
 Log::set_file(std::ostream *_stream) {

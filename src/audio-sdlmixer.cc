@@ -238,6 +238,13 @@ AudioSDL::PlayerMIDI::create_track(int track_id) {
   Data &data = Data::get_instance();
   PDataSource data_source = data.get_data_source();
 
+  if (data_source->get_music_format() == DataSource::MusicFormatMod) {
+    if (MIX_INIT_MOD != Mix_Init(MIX_INIT_MOD)) {
+      Log::Error["audio:SDL_mixer"] << "Failed to initialize MOD music decoder";
+      return nullptr;
+    }
+  }
+
   PBuffer midi = data_source->get_music(track_id);
   if (!midi) {
     return nullptr;
@@ -255,14 +262,21 @@ AudioSDL::PlayerMIDI::create_track(int track_id) {
 
 Audio::PTrack
 AudioSDL::PlayerMIDI::play_track(int track_id) {
-  Audio::PTrack track = nullptr;
-  while (track == nullptr) {
+  Audio::PTrack track;
+  bool have_track = false;
+  while (!track) {
     if ((track_id <= TypeMidiNone) || (track_id > TypeMidiTrackLast)) {
+      if (!have_track) {
+        break;
+      }
       track_id = TypeMidiTrack0;
     }
     current_track = static_cast<TypeMidi>(track_id);
     Log::Info["audio:SDL_mixer"] << "Playing MIDI track: " << current_track;
     track = Audio::Player::play_track(track_id);
+    if (track) {
+      have_track = true;
+    }
     track_id++;
   }
   return track;

@@ -102,6 +102,9 @@ class Log {
     }
   };
 
+  Log();
+  virtual ~Log();
+
   static void set_file(std::ostream *stream);
   static void set_level(Log::Level level);
 
