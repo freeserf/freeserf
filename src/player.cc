@@ -696,18 +696,20 @@ Player::spawn_serf_generic() {
   return serf;
 }
 
-/* Spawn new serf. Returns 0 on success.
- The serf_t object and inventory are returned if non-NULL. */
-int
+// Spawn new serf. Returns true on success.
+// The serf_t object and inventory are returned if non-NULL.
+bool
 Player::spawn_serf(Serf **serf, Inventory **inventory, bool want_knight) {
-  if (!can_spawn()) return -1;
+  if (!can_spawn()) {
+    return false;
+  }
 
   Game::ListInventories inventories = game->get_player_inventories(this);
   if (inventories.size() < 1) {
-    return -1;
+    return false;
   }
 
-  Inventory *inv = NULL;
+  Inventory *inv = nullptr;
   for (Inventory *loop_inv : inventories) {
     if (loop_inv->get_serf_mode() == Inventory::ModeIn) {
       if (want_knight && (loop_inv->get_count_of(Resource::TypeSword) == 0 ||
@@ -716,30 +718,34 @@ Player::spawn_serf(Serf **serf, Inventory **inventory, bool want_knight) {
       } else if (loop_inv->free_serf_count() == 0) {
         inv = loop_inv;
         break;
-      } else if (inv == NULL ||
+      } else if (inv == nullptr ||
                  loop_inv->free_serf_count() < inv->free_serf_count()) {
         inv = loop_inv;
       }
     }
   }
 
-  if (inv == NULL) {
+  if (inv == nullptr) {
     if (want_knight) {
       return spawn_serf(serf, inventory, false);
     } else {
-      return -1;
+      return false;
     }
   }
 
   Serf *s = inv->spawn_serf_generic();
-  if (s == NULL) {
-    return -1;
+  if (s == nullptr) {
+    return false;
   }
 
-  if (serf) *serf = s;
-  if (inventory) *inventory = inv;
+  if (serf != nullptr) {
+    *serf = s;
+  }
+  if (inventory != nullptr) {
+    *inventory = inv;
+  }
 
-  return 0;
+  return true;
 }
 
 bool
@@ -896,14 +902,13 @@ Player::update() {
       }
 
       if (knights_to_spawn == 0) {
-        /* Create unassigned serf */
-        spawn_serf(NULL, NULL, false);
+        // Create unassigned serf
+        spawn_serf(nullptr, nullptr, false);
       } else {
-        /* Create knight serf */
-        Serf *serf = NULL;
-        Inventory *inventory = NULL;
-        int r = spawn_serf(&serf, &inventory, true);
-        if (r >= 0) {
+        // Create knight serf
+        Serf *serf = nullptr;
+        Inventory *inventory = nullptr;
+        if (spawn_serf(&serf, &inventory, true)) {
           if (inventory->get_count_of(Resource::TypeSword) != 0 &&
               inventory->get_count_of(Resource::TypeShield) != 0) {
             knights_to_spawn -= 1;

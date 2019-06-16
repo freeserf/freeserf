@@ -90,7 +90,7 @@ class Sprite : public std::enable_shared_from_this<Sprite> {
 
 class Animation {
  public:
-  uint8_t sprite;
+  size_t sprite;
   int x;
   int y;
 };
