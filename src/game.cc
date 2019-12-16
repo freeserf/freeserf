@@ -465,8 +465,9 @@ Game::send_geologist(Flag *dest) {
 /* Update buildings as part of the game progression. */
 void
 Game::update_buildings() {
-  Buildings::Iterator i = buildings.begin();
-  while (i != buildings.end()) {
+  Buildings blds(buildings);
+  Buildings::Iterator i = blds.begin();
+  while (i != blds.end()) {
     Building *building = *i;
     ++i;
     building->update(tick);

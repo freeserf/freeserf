@@ -67,13 +67,19 @@ class Collection {
     last_object_index = 0;
   }
 
+  Collection(const Collection& other) {
+    objects = other.objects;
+    last_object_index = other.last_object_index;
+    free_object_indexes = other.free_object_indexes;
+    game = other.game;
+  }
+
   explicit Collection(Game *_game) {
     game = _game;
     last_object_index = 0;
   }
 
   virtual ~Collection() {
-    clear();
   }
 
   void clear() {
