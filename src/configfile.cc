@@ -88,9 +88,9 @@ ConfigFile::trim(const std::string &str) {
   std::string tmp = str;
   tmp.erase(tmp.begin(),
             std::find_if(tmp.begin(), tmp.end(),
-                         std::not1(std::ptr_fun<int, int>(std::isspace))));
+                         [](int c) {return !std::isspace(c);}));
   tmp.erase(std::find_if(tmp.rbegin(), tmp.rend(),
-                         std::not1(std::ptr_fun<int, int>(std::isspace)))
+                         [](int c) {return !std::isspace(c);})
                 .base(),
             tmp.end());
 

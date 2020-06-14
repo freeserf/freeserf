@@ -1,7 +1,7 @@
 /*
  * viewport.h - Viewport GUI component
  *
- * Copyright (C) 2013  Jon Lund Steffensen <jonlst@gmail.com>
+ * Copyright (C) 2013-2019  Jon Lund Steffensen <jonlst@gmail.com>
  *
  * This file is part of freeserf.
  *
@@ -58,7 +58,7 @@ class Viewport : public GuiObject, public Map::Handler {
   unsigned int layers;
   Interface *interface;
   unsigned int last_tick;
-  PDataSource data_source;
+  Data::PSource data_source;
 
   PMap map;
 

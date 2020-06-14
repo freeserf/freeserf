@@ -1,7 +1,7 @@
 /*
  * data-source-custom.cc - Custom data loading
  *
- * Copyright (C) 2017  Wicked_Digger <wicked_digger@mail.ru>
+ * Copyright (C) 2017-2019  Wicked_Digger <wicked_digger@mail.ru>
  *
  * This file is part of freeserf.
  *
@@ -30,7 +30,7 @@
 #include "src/buffer.h"
 
 DataSourceCustom::DataSourceCustom(const std::string &_path)
-  : DataSource(_path)
+  : DataSourceBase(_path)
   , scale(1)
   , name("Unnamed") {
 }
@@ -61,7 +61,7 @@ DataSourceCustom::load() {
   return loaded;
 }
 
-DataSource::MaskImage
+Data::MaskImage
 DataSourceCustom::get_sprite_parts(Data::Resource res, size_t index) {
   ResInfo *info = get_info(res);
   if (info == nullptr) {
@@ -184,11 +184,11 @@ DataSourceCustom::load_animation_table() {
       return false;
     }
     size_t count = meta.value("general", "count", 0);
-    std::vector<Animation> animations;
+    std::vector<Data::Animation> animations;
     for (size_t j = 0; j < count; j++) {
       std::stringstream stream;
       stream << std::setfill('0') << std::setw(3) << j;
-      Animation animation;
+      Data::Animation animation;
       animation.sprite = meta.value(stream.str(), "sprite", 0);
       animation.x = meta.value(stream.str(), "x", 0);
       animation.y = meta.value(stream.str(), "y", 0);

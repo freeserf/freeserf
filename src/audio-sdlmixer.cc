@@ -1,7 +1,7 @@
 /*
  * audio-sdlmixer.cc - Music and sound effects playback using SDL_mixer.
  *
- * Copyright (C) 2012-2018  Wicked_Digger <wicked_digger@mail.ru>
+ * Copyright (C) 2012-2019  Wicked_Digger <wicked_digger@mail.ru>
  *
  * This file is part of freeserf.
  *
@@ -30,7 +30,6 @@
 
 #include "src/log.h"
 #include "src/data.h"
-#include "src/data-source.h"
 
 ExceptionSDLmixer::ExceptionSDLmixer(const std::string &_description)
   : ExceptionAudio(_description) {
@@ -148,7 +147,7 @@ AudioSDL::volume_down() {
 Audio::PTrack
 AudioSDL::PlayerSFX::create_track(int track_id) {
   Data &data = Data::get_instance();
-  PDataSource data_source = data.get_data_source();
+  Data::PSource data_source = data.get_data_source();
 
   PBuffer wav = data_source->get_sound(track_id);
   if (!wav) {
@@ -236,9 +235,9 @@ AudioSDL::PlayerMIDI::~PlayerMIDI() {
 Audio::PTrack
 AudioSDL::PlayerMIDI::create_track(int track_id) {
   Data &data = Data::get_instance();
-  PDataSource data_source = data.get_data_source();
+  Data::PSource data_source = data.get_data_source();
 
-  if (data_source->get_music_format() == DataSource::MusicFormatMod) {
+  if (data_source->get_music_format() == Data::MusicFormatMod) {
     if (MIX_INIT_MOD != Mix_Init(MIX_INIT_MOD)) {
       Log::Error["audio:SDL_mixer"] << "Failed to initialize MOD music decoder";
       return nullptr;

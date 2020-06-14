@@ -463,7 +463,8 @@ Interface::set_player(unsigned int player_index) {
     panel = nullptr;
   }
 
-  if (game == nullptr) {
+  if (!game) {
+    player = nullptr;
     return;
   }
 

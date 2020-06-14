@@ -1,7 +1,7 @@
 /*
  * data-source-dos.h - DOS game resources file functions
  *
- * Copyright (C) 2015-2017  Wicked_Digger <wicked_digger@mail.ru>
+ * Copyright (C) 2015-2019  Wicked_Digger <wicked_digger@mail.ru>
  *
  * This file is part of freeserf.
  *
@@ -54,7 +54,7 @@ class DataSourceDOS : public DataSourceLegacy {
     unsigned char b;
   } ColorDOS;
 
-  class SpriteBaseDOS : public Sprite {
+  class SpriteBaseDOS : public SpriteBase {
    public:
     SpriteBaseDOS() {}
     explicit SpriteBaseDOS(PBuffer data);
@@ -110,10 +110,10 @@ class DataSourceDOS : public DataSourceLegacy {
   virtual bool check();
   virtual bool load();
 
-  virtual MaskImage get_sprite_parts(Data::Resource res, size_t index);
+  virtual Data::MaskImage get_sprite_parts(Data::Resource res, size_t index);
 
   virtual PBuffer get_sound(size_t index);
-  virtual MusicFormat get_music_format() { return MusicFormatMidi; }
+  virtual Data::MusicFormat get_music_format() { return Data::MusicFormatMidi; }
   virtual PBuffer get_music(size_t index);
 
  protected:

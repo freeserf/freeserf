@@ -1,7 +1,7 @@
 /*
  * data-source-custom.h - Custom data loading
  *
- * Copyright (C) 2017  Wicked_Digger <wicked_digger@mail.ru>
+ * Copyright (C) 2017-2019  Wicked_Digger <wicked_digger@mail.ru>
  *
  * This file is part of freeserf.
  *
@@ -28,7 +28,7 @@
 #include "src/data-source.h"
 #include "src/configfile.h"
 
-class DataSourceCustom : public DataSource {
+class DataSourceCustom : public DataSourceBase {
  protected:
   typedef struct ResInfo {
     PConfigFile meta;
@@ -52,7 +52,7 @@ class DataSourceCustom : public DataSource {
   virtual bool check();
   virtual bool load();
 
-  virtual MaskImage get_sprite_parts(Data::Resource res, size_t index);
+  virtual Data::MaskImage get_sprite_parts(Data::Resource res, size_t index);
 
   virtual PBuffer get_sound(size_t index);
   virtual PBuffer get_music(size_t index);

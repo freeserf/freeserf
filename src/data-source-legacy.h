@@ -1,7 +1,7 @@
 /*
  * data-source-legacy.h - Legacy game resources file functions
  *
- * Copyright (C) 2017  Wicked_Digger <wicked_digger@mail.ru>
+ * Copyright (C) 2017-2019  Wicked_Digger <wicked_digger@mail.ru>
  *
  * This file is part of freeserf.
  *
@@ -26,7 +26,7 @@
 
 #include "src/data-source.h"
 
-class DataSourceLegacy : public DataSource {
+class DataSourceLegacy : public DataSourceBase {
  protected:
   typedef struct AnimationPhase {
     uint8_t sprite;

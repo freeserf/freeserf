@@ -1,7 +1,7 @@
 /*
  * gfx.cc - General graphics and data file functions
  *
- * Copyright (C) 2013-2018  Jon Lund Steffensen <jonlst@gmail.com>
+ * Copyright (C) 2013-2019  Jon Lund Steffensen <jonlst@gmail.com>
  *
  * This file is part of freeserf.
  *
@@ -27,7 +27,6 @@
 #include "src/log.h"
 #include "src/data.h"
 #include "src/video.h"
-#include "src/data-source.h"
 
 const Color Color::black = Color(0x00, 0x00, 0x00);
 const Color Color::white = Color(0xff, 0xff, 0xff);
@@ -66,7 +65,7 @@ ExceptionGFX::ExceptionGFX(const std::string &description)
 ExceptionGFX::~ExceptionGFX() {
 }
 
-Image::Image(Video *_video, PSprite sprite) {
+Image::Image(Video *_video, Data::PSprite sprite) {
   video = _video;
   width = static_cast<unsigned int>(sprite->get_width());
   height = static_cast<unsigned int>(sprite->get_height());
@@ -126,8 +125,9 @@ Graphics::Graphics() {
   }
 
   Data &data = Data::get_instance();
-  PDataSource data_source = data.get_data_source();
-  PSprite sprite = data_source->get_sprite(Data::AssetCursor, 0, {0, 0, 0, 0});
+  Data::PSource data_source = data.get_data_source();
+  Data::PSprite sprite = data_source->get_sprite(Data::AssetCursor, 0,
+                                                 {0, 0, 0, 0});
   video->set_cursor(sprite->get_data(),
                     static_cast<unsigned int>(sprite->get_width()),
                     static_cast<unsigned int>(sprite->get_height()));
@@ -155,14 +155,14 @@ Frame::draw_sprite(int x, int y, Data::Resource res, unsigned int index) {
 void
 Frame::draw_sprite(int x, int y, Data::Resource res, unsigned int index,
                    bool use_off, const Color &color, float progress) {
-  Sprite::Color pc = {color.get_blue(),
-                      color.get_green(),
-                      color.get_red(),
-                      color.get_alpha()};
-  uint64_t id = Sprite::create_id(res, index, 0, 0, pc);
+  Data::Sprite::Color pc = {color.get_blue(),
+                            color.get_green(),
+                            color.get_red(),
+                            color.get_alpha()};
+  uint64_t id = Data::Sprite::create_id(res, index, 0, 0, pc);
   Image *image = Image::get_cached_image(id);
   if (image == nullptr) {
-    PSprite s = data_source->get_sprite(res, index, pc);
+    Data::PSprite s = data_source->get_sprite(res, index, pc);
     if (!s) {
       Log::Warn["graphics"] << "Failed to decode sprite #"
                             << Data::get_resource_name(res) << ":" << index;
@@ -206,8 +206,8 @@ Frame::draw_sprite_relatively(int x, int y, Data::Resource res,
                               unsigned int index,
                               Data::Resource relative_to_res,
                               unsigned int relative_to_index) {
-  PSprite s = data_source->get_sprite(relative_to_res, relative_to_index,
-                                      {0, 0, 0, 0});
+  Data::PSprite s = data_source->get_sprite(relative_to_res, relative_to_index,
+                                            {0, 0, 0, 0});
   if (s == nullptr) {
     Log::Warn["graphics"] << "Failed to decode sprite #"
                           << Data::get_resource_name(res) << ":" << index;
@@ -226,18 +226,19 @@ void
 Frame::draw_masked_sprite(int x, int y, Data::Resource mask_res,
                           unsigned int mask_index, Data::Resource res,
                           unsigned int index) {
-  uint64_t id = Sprite::create_id(res, index, mask_res, mask_index,
-                                  {0, 0, 0, 0});
+  uint64_t id = Data::Sprite::create_id(res, index, mask_res, mask_index,
+                                        {0, 0, 0, 0});
   Image *image = Image::get_cached_image(id);
   if (image == nullptr) {
-    PSprite s = data_source->get_sprite(res, index, {0, 0, 0, 0});
+    Data::PSprite s = data_source->get_sprite(res, index, {0, 0, 0, 0});
     if (!s) {
       Log::Warn["graphics"] << "Failed to decode sprite #"
                             << Data::get_resource_name(res) << ":" << index;
       return;
     }
 
-    PSprite m = data_source->get_sprite(mask_res, mask_index, {0, 0, 0, 0});
+    Data::PSprite m = data_source->get_sprite(mask_res, mask_index,
+                                              {0, 0, 0, 0});
     if (!m) {
       Log::Warn["graphics"] << "Failed to decode sprite #"
                             << Data::get_resource_name(mask_res)
@@ -245,7 +246,7 @@ Frame::draw_masked_sprite(int x, int y, Data::Resource mask_res,
       return;
     }
 
-    PSprite masked = s->get_masked(m);
+    Data::PSprite masked = s->get_masked(m);
     if (!masked) {
       Log::Warn["graphics"] << "Failed to apply mask #"
                             << Data::get_resource_name(mask_res)
@@ -272,11 +273,11 @@ void
 Frame::draw_waves_sprite(int x, int y, Data::Resource mask_res,
                          unsigned int mask_index, Data::Resource res,
                          unsigned int index) {
-  uint64_t id = Sprite::create_id(res, index, mask_res, mask_index,
-                                  {0, 0, 0, 0});
+  uint64_t id = Data::Sprite::create_id(res, index, mask_res, mask_index,
+                                        {0, 0, 0, 0});
   Image *image = Image::get_cached_image(id);
   if (image == nullptr) {
-    PSprite s = data_source->get_sprite(res, index, {0, 0, 0, 0});
+    Data::PSprite s = data_source->get_sprite(res, index, {0, 0, 0, 0});
     if (!s) {
       Log::Warn["graphics"] << "Failed to decode sprite #"
                             << Data::get_resource_name(res) << ":" << index;
@@ -284,7 +285,8 @@ Frame::draw_waves_sprite(int x, int y, Data::Resource mask_res,
     }
 
     if (mask_res > 0) {
-      PSprite m = data_source->get_sprite(mask_res, mask_index, {0, 0, 0, 0});
+      Data::PSprite m = data_source->get_sprite(mask_res, mask_index,
+                                                {0, 0, 0, 0});
       if (!m) {
         Log::Warn["graphics"] << "Failed to decode sprite #"
                               << Data::get_resource_name(mask_res)
@@ -292,7 +294,7 @@ Frame::draw_waves_sprite(int x, int y, Data::Resource mask_res,
         return;
       }
 
-      PSprite masked = s->get_masked(m);
+      Data::PSprite masked = s->get_masked(m);
       if (!masked) {
         Log::Warn["graphics"] << "Failed to apply mask #"
                               << Data::get_resource_name(mask_res)

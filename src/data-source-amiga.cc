@@ -1,7 +1,7 @@
 /*
  * data-source-amiga.cc - Amiga data loading
  *
- * Copyright (C) 2016-2017  Wicked_Digger <wicked_digger@mail.ru>
+ * Copyright (C) 2016-2019  Wicked_Digger <wicked_digger@mail.ru>
  *
  * This file is part of freeserf.
  *
@@ -370,9 +370,9 @@ DataSourceAmiga::load() {
   return load_animation_table(data_pointers[1]->get_subbuffer(0, 30528));
 }
 
-DataSource::MaskImage
+Data::MaskImage
 DataSourceAmiga::get_sprite_parts(Data::Resource res, size_t index) {
-  PSprite sprite;
+  Data::PSprite sprite;
 
   switch (res) {
     case Data::AssetArtLandscape:
@@ -416,7 +416,7 @@ DataSourceAmiga::get_sprite_parts(Data::Resource res, size_t index) {
       sprite = get_ground_mask_sprite(index);
       break;
     case Data::AssetMapMaskDown: {
-      PSprite mask = get_ground_mask_sprite(index);
+      Data::PSprite mask = get_ground_mask_sprite(index);
       if (mask) {
         PSpriteAmiga s = get_mirrored_horizontaly_sprite(mask);
         s->set_offset(0, -(static_cast<int>(s->get_height()) - 1));
@@ -431,7 +431,7 @@ DataSourceAmiga::get_sprite_parts(Data::Resource res, size_t index) {
       PSpriteAmiga s;
       if (index == 32) {
         s = std::make_shared<SpriteAmiga>(32, 21);
-        Sprite::Color c = {0xBB, 0x00, 0x00, 0xFF};
+        Data::Sprite::Color c = {0xBB, 0x00, 0x00, 0xFF};
         s->fill(c);
       } else {
         s = get_ground_sprite(index);
@@ -518,8 +518,8 @@ DataSourceAmiga::get_sprite_parts(Data::Resource res, size_t index) {
     case Data::AssetMapObject:
       if ((index >= 128) && (index <= 143)) {  // Flag sprites
         int flag_frame = (index - 128) % 4;
-        PSprite s1 = get_map_object_sprite(128 + flag_frame);
-        PSprite s2 = get_map_object_sprite(128 + flag_frame + 4);
+        Data::PSprite s1 = get_map_object_sprite(128 + flag_frame);
+        Data::PSprite s2 = get_map_object_sprite(128 + flag_frame + 4);
         return separate_sprites(s1, s2);
       }
       sprite = get_map_object_sprite(index);
@@ -568,8 +568,8 @@ DataSourceAmiga::get_sprite_parts(Data::Resource res, size_t index) {
       }
       break;
     case Data::AssetSerfTorso: {
-      PSprite s1 = get_torso_sprite(index, palette);
-      PSprite s2 = get_torso_sprite(index, palette3);
+      Data::PSprite s1 = get_torso_sprite(index, palette);
+      Data::PSprite s2 = get_torso_sprite(index, palette3);
       return separate_sprites(s1, s2);
     }
     case Data::AssetSerfHead:
@@ -813,7 +813,7 @@ DataSourceAmiga::get_menu_sprite(size_t index, PBuffer block,
                                   palette2);
 }
 
-PSprite
+Data::PSprite
 DataSourceAmiga::get_icon_sprite(size_t index) {
   PBuffer data = gfxfast->get_tail(icon_catalog[index]);
 
@@ -873,7 +873,7 @@ DataSourceAmiga::get_ground_sprite(size_t index) {
   return sprite;
 }
 
-PSprite
+Data::PSprite
 DataSourceAmiga::get_ground_mask_sprite(size_t index) {
   PBuffer data;
   if (index == 0) {
@@ -908,7 +908,7 @@ DataSourceAmiga::get_ground_mask_sprite(size_t index) {
 }
 
 DataSourceAmiga::PSpriteAmiga
-DataSourceAmiga::get_mirrored_horizontaly_sprite(PSprite sprite) {
+DataSourceAmiga::get_mirrored_horizontaly_sprite(Data::PSprite sprite) {
   if (!sprite) {
     return nullptr;
   }
@@ -929,7 +929,7 @@ DataSourceAmiga::get_mirrored_horizontaly_sprite(PSprite sprite) {
   return result;
 }
 
-PSprite
+Data::PSprite
 DataSourceAmiga::get_path_mask_sprite(size_t index) {
   PBuffer data = get_data_from_catalog(3, index, gfxchip);
   if (!data) {
@@ -972,7 +972,7 @@ DataSourceAmiga::decode_mask_sprite(PBuffer data, size_t width, size_t height) {
   return sprite;
 }
 
-PSprite
+Data::PSprite
 DataSourceAmiga::get_game_object_sprite(size_t catalog, size_t index) {
   PBuffer data = get_data_from_catalog(catalog, index, gfxchip);
   if (!data) {
@@ -1004,7 +1004,7 @@ DataSourceAmiga::get_game_object_sprite(size_t catalog, size_t index) {
   return sprite;
 }
 
-PSprite
+Data::PSprite
 DataSourceAmiga::get_torso_sprite(size_t index, uint8_t *palette) {
   PBuffer data = get_data_from_catalog(19, index, gfxchip);
   if (!data) {
@@ -1042,7 +1042,7 @@ DataSourceAmiga::get_torso_sprite(size_t index, uint8_t *palette) {
   return res;
 }
 
-PSprite
+Data::PSprite
 DataSourceAmiga::get_map_object_sprite(size_t index) {
   PBuffer data = get_data_from_catalog(6, index, gfxchip);
   if (!data) {
@@ -1094,7 +1094,7 @@ DataSourceAmiga::get_map_object_sprite(size_t index) {
   return sprite;
 }
 
-PSprite
+Data::PSprite
 DataSourceAmiga::get_map_object_shadow(size_t index) {
   PBuffer data = get_data_from_catalog(6, index, gfxchip);
   if (!data) {
@@ -1162,7 +1162,7 @@ DataSourceAmiga::decode_planned_sprite(PBuffer data, size_t width,
   PSpriteAmiga sprite = std::make_shared<SpriteAmiga>(width*8, height);
 
   uint8_t *src = reinterpret_cast<uint8_t*>(data->get_data());
-  Sprite::Color *res = sprite->get_writable_data();
+  Data::Sprite::Color *res = sprite->get_writable_data();
 
   size_t bps = width * height;  // bitplane size in bytes
 
@@ -1206,7 +1206,7 @@ DataSourceAmiga::decode_interlased_sprite(PBuffer data, size_t width,
   PSpriteAmiga sprite = std::make_shared<SpriteAmiga>(width*8, height);
 
   uint8_t *src = reinterpret_cast<uint8_t*>(data->get_data());
-  Sprite::Color *res = sprite->get_writable_data();
+  Data::Sprite::Color *res = sprite->get_writable_data();
 
   size_t bpp = bitplane_count_from_compression(compression);
 
@@ -1249,7 +1249,7 @@ DataSourceAmiga::decode_amiga_sprite(PBuffer data, size_t width, size_t height,
   uint8_t *src_1 = reinterpret_cast<uint8_t*>(data->get_data());
   size_t bp2s = width * 2 * height;
   uint8_t *src_2 = src_1 + bp2s;
-  Sprite::Color *res = sprite->get_writable_data();
+  Data::Sprite::Color *res = sprite->get_writable_data();
 
   for (size_t y = 0; y < height; y++) {
     for (size_t i = 0; i < width; i++) {
@@ -1292,7 +1292,7 @@ DataSourceAmiga::SpriteAmiga::~SpriteAmiga() {
 }
 
 DataSourceAmiga::PSpriteAmiga
-DataSourceAmiga::SpriteAmiga::get_amiga_masked(PSprite mask) {
+DataSourceAmiga::SpriteAmiga::get_amiga_masked(Data::PSprite mask) {
   if (mask->get_width() > width) {
     throw ExceptionFreeserf("Failed to apply mask");
   }

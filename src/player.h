@@ -247,9 +247,7 @@ class Player : public GameObject {
   void start_attack();
   void cycle_knights();
 
-  void create_initial_castle_serfs(Building *castle);
   Serf *spawn_serf_generic();
-  int spawn_serf(Serf **serf, Inventory **inventory, bool want_knight);
   bool tick_send_generic_delay();
   bool tick_send_knight_delay();
   Serf::Type get_cycling_serf_type(Serf::Type type) const;
@@ -345,6 +343,9 @@ class Player : public GameObject {
     operator << (SaveWriterText &writer, Player &player);
 
  protected:
+  void create_initial_castle_serfs(Building *castle);
+  bool spawn_serf(Serf **serf, Inventory **inventory, bool want_knight);
+
   void init_ai_values(size_t face);
 
   int available_knights_at_pos(MapPos pos, int index, int dist);
