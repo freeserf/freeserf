@@ -1,7 +1,7 @@
 /*
  * data-source-dos.cc - DOS game resources file functions
  *
- * Copyright (C) 2014-2017  Jon Lund Steffensen <jonlst@gmail.com>
+ * Copyright (C) 2014-2019  Jon Lund Steffensen <jonlst@gmail.com>
  *
  * This file is part of freeserf.
  *
@@ -203,7 +203,7 @@ DataSourceDOS::fixup() {
 }
 
 // Create sprite object
-DataSource::MaskImage
+Data::MaskImage
 DataSourceDOS::get_sprite_parts(Data::Resource res, size_t index) {
   if (index >= Data::get_resource_count(res)) {
     return std::make_tuple(nullptr, nullptr);
@@ -221,18 +221,20 @@ DataSourceDOS::get_sprite_parts(Data::Resource res, size_t index) {
     if (!data) {
       return std::make_tuple(nullptr, nullptr);
     }
-    PSprite torso = std::make_shared<SpriteDosTransparent>(data, palette, 64);
+    Data::PSprite torso = std::make_shared<SpriteDosTransparent>(data, palette,
+                                                                 64);
 
     data = get_object(dos_res.index + index);
     if (!data) {
       return std::make_tuple(nullptr, nullptr);
     }
-    PSprite torso2 = std::make_shared<SpriteDosTransparent>(data, palette, 72);
+    Data::PSprite torso2 = std::make_shared<SpriteDosTransparent>(data, palette,
+                                                                  72);
 
-    MaskImage mi = separate_sprites(torso, torso2);
+    Data::MaskImage mi = separate_sprites(torso, torso2);
 
     data = get_object(DATA_SERF_ARMS + index);
-    PSprite arms = std::make_shared<SpriteDosTransparent>(data, palette);
+    Data::PSprite arms = std::make_shared<SpriteDosTransparent>(data, palette);
     torso->stick(arms, 0, 0);
 
     return mi;
@@ -243,12 +245,12 @@ DataSourceDOS::get_sprite_parts(Data::Resource res, size_t index) {
       if (!data) {
         return std::make_tuple(nullptr, nullptr);
       }
-      PSprite s1 = std::make_shared<SpriteDosTransparent>(data, palette);
+      Data::PSprite s1 = std::make_shared<SpriteDosTransparent>(data, palette);
       data = get_object(dos_res.index + 128 + 4 + flag_frame);
       if (!data) {
         return std::make_tuple(nullptr, nullptr);
       }
-      PSprite s2 = std::make_shared<SpriteDosTransparent>(data, palette);
+      Data::PSprite s2 = std::make_shared<SpriteDosTransparent>(data, palette);
 
       return separate_sprites(s1, s2);
     }
@@ -267,7 +269,7 @@ DataSourceDOS::get_sprite_parts(Data::Resource res, size_t index) {
     return std::make_tuple(nullptr, nullptr);
   }
 
-  PSprite sprite;
+  Data::PSprite sprite;
   switch (dos_res.sprite_type) {
     case SpriteTypeSolid: {
       sprite = std::make_shared<SpriteDosSolid>(data, palette);

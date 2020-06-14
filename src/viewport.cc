@@ -1,7 +1,7 @@
 /*
  * viewport.cc - Viewport GUI component
  *
- * Copyright (C) 2013-2018  Jon Lund Steffensen <jonlst@gmail.com>
+ * Copyright (C) 2013-2019  Jon Lund Steffensen <jonlst@gmail.com>
  *
  * This file is part of freeserf.
  *
@@ -36,7 +36,6 @@
 #include "src/interface.h"
 #include "src/popup.h"
 #include "src/pathfinder.h"
-#include "src/data-source.h"
 
 #define MAP_TILE_WIDTH   32
 #define MAP_TILE_HEIGHT  20
@@ -1371,8 +1370,8 @@ Viewport::serf_get_body(Serf *serf) {
     0x7600, 0x5f00, 0x6000, 0, 0, 0, 0, 0
   };
 
-  Animation animation = data_source->get_animation(serf->get_animation(),
-                                                   serf->get_counter());
+  Data::Animation animation = data_source->get_animation(serf->get_animation(),
+                                                         serf->get_counter());
   int t = animation.sprite;
 
   switch (serf->get_type()) {
@@ -1877,8 +1876,8 @@ Viewport::draw_active_serf(Serf *serf, MapPos pos, int x_base, int y_base) {
     return;
   }
 
-  Animation animation = data_source->get_animation(serf->get_animation(),
-                                                   serf->get_counter());
+  Data::Animation animation = data_source->get_animation(serf->get_animation(),
+                                                         serf->get_counter());
 
   int lx = x_base + animation.x;
   int ly = y_base + animation.y - 4 * map->get_height(pos);
@@ -1905,7 +1904,7 @@ Viewport::draw_active_serf(Serf *serf, MapPos pos, int x_base, int y_base) {
     if (index != 0) {
       Serf *def_serf = interface->get_game()->get_serf(index);
 
-      Animation animation =
+      Data::Animation animation =
                            data_source->get_animation(def_serf->get_animation(),
                                                       def_serf->get_counter());
 

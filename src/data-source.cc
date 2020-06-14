@@ -1,7 +1,7 @@
 /*
  * data-source.cc - Game resources file functions
  *
- * Copyright (C) 2015-2017  Wicked_Digger <wicked_digger@mail.ru>
+ * Copyright (C) 2015-2019  Wicked_Digger <wicked_digger@mail.ru>
  *
  * This file is part of freeserf.
  *
@@ -34,13 +34,13 @@
 #include "src/sfx2wav.h"
 #include "src/xmi2mid.h"
 
-DataSource::DataSource(const std::string &_path)
+DataSourceBase::DataSourceBase(const std::string &_path)
   : path(_path)
   , loaded(false) {
 }
 
 bool
-DataSource::check_file(const std::string &fpath) {
+DataSourceBase::check_file(const std::string &fpath) {
   struct stat info;
 
   if (stat(fpath.c_str(), &info) != 0) {
@@ -54,7 +54,7 @@ DataSource::check_file(const std::string &fpath) {
   return true;
 }
 
-Sprite::Sprite()
+SpriteBase::SpriteBase()
   : delta_x(0)
   , delta_y(0)
   , offset_x(0)
@@ -64,7 +64,7 @@ Sprite::Sprite()
   , data(nullptr) {
 }
 
-Sprite::Sprite(PSprite base)
+SpriteBase::SpriteBase(Data::PSprite base)
   : delta_x(base->get_delta_x())
   , delta_y(base->get_delta_y())
   , offset_x(base->get_offset_x())
@@ -73,7 +73,7 @@ Sprite::Sprite(PSprite base)
   create(base->get_width(), base->get_height());
 }
 
-Sprite::Sprite(unsigned int w, unsigned int h)
+SpriteBase::SpriteBase(unsigned int w, unsigned int h)
   : delta_x(0)
   , delta_y(0)
   , offset_x(0)
@@ -82,7 +82,7 @@ Sprite::Sprite(unsigned int w, unsigned int h)
   create(w, h);
 }
 
-Sprite::~Sprite() {
+SpriteBase::~SpriteBase() {
   if (data != nullptr) {
     delete[] data;
     data = nullptr;
@@ -90,7 +90,7 @@ Sprite::~Sprite() {
 }
 
 void
-Sprite::create(size_t w, size_t h) {
+SpriteBase::create(size_t w, size_t h) {
   if (data != nullptr) {
     delete[] data;
     data = nullptr;
@@ -105,13 +105,13 @@ Sprite::create(size_t w, size_t h) {
 // The resulting sprite will be extended to the height of the mask
 // by repeating lines from the top of the sprite. The width of the
 // mask and the sprite must be identical.
-PSprite
-Sprite::get_masked(PSprite mask) {
+Data::PSprite
+SpriteBase::get_masked(Data::PSprite mask) {
   if (mask->get_width() > width) {
     throw ExceptionFreeserf("Failed to apply mask to sprite");
   }
 
-  PSprite masked = std::make_shared<Sprite>(mask);
+  Data::PSprite masked = std::make_shared<SpriteBase>(mask);
 
   uint32_t *pos = reinterpret_cast<uint32_t*>(masked->get_data());
 
@@ -135,13 +135,13 @@ Sprite::get_masked(PSprite mask) {
   return masked;
 }
 
-PSprite
-Sprite::create_mask(PSprite other) {
+Data::PSprite
+SpriteBase::create_mask(Data::PSprite other) {
   if ((width != other->get_width()) || (height != other->get_height())) {
     return nullptr;
   }
 
-  PSprite result = std::make_shared<Sprite>(shared_from_this());
+  Data::PSprite result = std::make_shared<SpriteBase>(shared_from_this());
 
   uint32_t *src1 = reinterpret_cast<uint32_t*>(data);
   uint32_t *src2 = reinterpret_cast<uint32_t*>(other->get_data());
@@ -159,16 +159,16 @@ Sprite::create_mask(PSprite other) {
 }
 
 void
-Sprite::fill(Sprite::Color color) {
-  Color *c = reinterpret_cast<Color*>(data);
+SpriteBase::fill(Data::Sprite::Color color) {
+  Data::Sprite::Color *c = reinterpret_cast<Data::Sprite::Color*>(data);
   for (unsigned int i = 0; i < (width * height); i++) {
     *c++ = color;
   }
 }
 
 void
-Sprite::fill_masked(Sprite::Color color) {
-  Color *res = reinterpret_cast<Color*>(data);
+SpriteBase::fill_masked(Data::Sprite::Color color) {
+  Data::Sprite::Color *res = reinterpret_cast<Data::Sprite::Color*>(data);
 
   for (unsigned int i = 0; i < width * height; i++) {
     if ((res->alpha & 0xFF) != 0x00) {
@@ -179,7 +179,7 @@ Sprite::fill_masked(Sprite::Color color) {
 }
 
 void
-Sprite::add(PSprite other) {
+SpriteBase::add(Data::PSprite other) {
   if ((width != other->get_width()) || (height != other->get_height())) {
     return;
   }
@@ -195,7 +195,7 @@ Sprite::add(PSprite other) {
 }
 
 void
-Sprite::del(PSprite other) {
+SpriteBase::del(Data::PSprite other) {
   if ((width != other->get_width()) || (height != other->get_height())) {
     return;
   }
@@ -214,7 +214,7 @@ Sprite::del(PSprite other) {
 }
 
 void
-Sprite::blend(PSprite other) {
+SpriteBase::blend(Data::PSprite other) {
   if ((width != other->get_width()) || (height != other->get_height())) {
     return;
   }
@@ -254,12 +254,12 @@ Sprite::blend(PSprite other) {
     o++;
   }
 
-  delta_x = other->delta_x;
-  delta_y = other->delta_y;
+  delta_x = other->get_delta_x();
+  delta_y = other->get_delta_y();
 }
 
 void
-Sprite::make_alpha_mask() {
+SpriteBase::make_alpha_mask() {
   Color *c = reinterpret_cast<Color*>(data);
   uint8_t min = 0xFF;
   for (unsigned int i = 0; i < width * height; i++) {
@@ -285,7 +285,7 @@ Sprite::make_alpha_mask() {
 }
 
 void
-Sprite::stick(PSprite sticker, unsigned int dx, unsigned int dy) {
+SpriteBase::stick(Data::PSprite sticker, unsigned int dx, unsigned int dy) {
   Color *base = reinterpret_cast<Color*>(data);
   Color *stkr = reinterpret_cast<Color*>(sticker->get_data());
   size_t w = std::min(width, sticker->get_width());
@@ -309,9 +309,9 @@ Sprite::stick(PSprite sticker, unsigned int dx, unsigned int dy) {
 
 // Calculate hash of sprite identifier.
 uint64_t
-Sprite::create_id(uint64_t resource, uint64_t index,
-                  uint64_t mask_resource, uint64_t mask_index,
-                  const Sprite::Color &color) {
+Data::Sprite::create_id(uint64_t resource, uint64_t index,
+                        uint64_t mask_resource, uint64_t mask_index,
+                        const Sprite::Color &color) {
   // 0xFF00000000000000
   uint64_t result = static_cast<uint64_t>(resource & 0xFF) << 56;
   // 0x00FFF00000000000
@@ -329,16 +329,16 @@ Sprite::create_id(uint64_t resource, uint64_t index,
   return result;
 }
 
-PSprite
-DataSource::get_sprite(Data::Resource res, size_t index,
-                       const Sprite::Color &color) {
+Data::PSprite
+DataSourceBase::get_sprite(Data::Resource res, size_t index,
+                           const Data::Sprite::Color &color) {
   if (index >= Data::get_resource_count(res)) {
     return nullptr;
   }
 
-  MaskImage ms = get_sprite_parts(res, index);
-  PSprite mask = std::get<0>(ms);
-  PSprite image = std::get<1>(ms);
+  Data::MaskImage ms = get_sprite_parts(res, index);
+  Data::PSprite mask = std::get<0>(ms);
+  Data::PSprite image = std::get<1>(ms);
 
   if (mask) {
     mask->fill_masked(color);
@@ -352,14 +352,14 @@ DataSource::get_sprite(Data::Resource res, size_t index,
   return image;
 }
 
-DataSource::MaskImage
-DataSource::separate_sprites(PSprite s1, PSprite s2) {
+Data::MaskImage
+DataSourceBase::separate_sprites(Data::PSprite s1, Data::PSprite s2) {
   if (!s1 || !s2) {
     return std::make_tuple(nullptr, nullptr);
   }
 
-  PSprite filled = s1->create_mask(s2);
-  PSprite masked = s1->get_masked(filled);
+  Data::PSprite filled = s1->create_mask(s2);
+  Data::PSprite masked = s1->get_masked(filled);
   masked->make_alpha_mask();
   s1->del(filled);
   s1->stick(masked, 0, 0);
@@ -368,7 +368,7 @@ DataSource::separate_sprites(PSprite s1, PSprite s2) {
 }
 
 size_t
-DataSource::get_animation_phase_count(size_t animation) {
+DataSourceBase::get_animation_phase_count(size_t animation) {
   if (animation >= animation_table.size()) {
     Log::Error["data"] << "Failed to get phase count for animation #"
     << animation
@@ -380,8 +380,8 @@ DataSource::get_animation_phase_count(size_t animation) {
   return animation_table[animation].size();
 }
 
-Animation
-DataSource::get_animation(size_t animation, size_t phase) {
+Data::Animation
+DataSourceBase::get_animation(size_t animation, size_t phase) {
   phase >>= 3;
   if ((animation >= animation_table.size()) ||
       (phase >= animation_table[animation].size())) {

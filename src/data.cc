@@ -1,7 +1,7 @@
 /*
  * data.cc - Game resources file functions
  *
- * Copyright (C) 2014-2018  Wicked_Digger <wicked_digger@mail.ru>
+ * Copyright (C) 2014-2019  Wicked_Digger <wicked_digger@mail.ru>
  *
  * This file is part of freeserf.
  *
@@ -99,13 +99,13 @@ Data::~Data() {
 bool
 Data::load(const std::string &path) {
   // If it is possible, prefer DOS game data.
-  typedef std::function<PDataSource(const std::string &)> SourceFactory;
+  typedef std::function<Data::PSource(const std::string &)> SourceFactory;
   std::vector<SourceFactory> sources_factories;
-  sources_factories.push_back([](const std::string &path)->PDataSource{
+  sources_factories.push_back([](const std::string &path)->Data::PSource{
     return std::make_shared<DataSourceCustom>(path); });
-  sources_factories.push_back([](const std::string &path)->PDataSource{
+  sources_factories.push_back([](const std::string &path)->Data::PSource{
     return std::make_shared<DataSourceDOS>(path); });
-  sources_factories.push_back([](const std::string &path)->PDataSource{
+  sources_factories.push_back([](const std::string &path)->Data::PSource{
     return std::make_shared<DataSourceAmiga>(path); });
 
   std::list<std::string> search_paths;
@@ -118,7 +118,7 @@ Data::load(const std::string &path) {
   // Use each data source to try to find the data files in the search paths.
   for (const SourceFactory &factory : sources_factories) {
     for (const std::string &path : search_paths) {
-      PDataSource source = factory(path);
+      Data::PSource source = factory(path);
       if (source->check()) {
         Log::Info["data"] << "Game data found in '" << source->get_path()
                           << "'...";

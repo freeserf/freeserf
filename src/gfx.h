@@ -1,7 +1,7 @@
 /*
  * gfx.h - General graphics and data file functions
  *
- * Copyright (C) 2012-2018  Jon Lund Steffensen <jonlst@gmail.com>
+ * Copyright (C) 2012-2019  Jon Lund Steffensen <jonlst@gmail.com>
  *
  * This file is part of freeserf.
  *
@@ -37,10 +37,6 @@ class ExceptionGFX : public ExceptionFreeserf {
 
   virtual std::string get_system() const { return "graphics"; }
 };
-
-class Sprite;
-typedef std::shared_ptr<Sprite> PSprite;
-class DataSource;
 
 class Color {
  protected:
@@ -97,7 +93,7 @@ class Image {
   static ImageCache image_cache;
 
  public:
-  Image(Video *video, PSprite sprite);
+  Image(Video *video, Data::PSprite sprite);
   virtual ~Image();
 
   unsigned int get_width() const { return width; }
@@ -124,7 +120,7 @@ class Frame {
   Video *video;
   Video::Frame *video_frame;
   bool owner;
-  PDataSource data_source;
+  Data::PSource data_source;
 
  public:
   Frame(Video *video, unsigned int width, unsigned int height);

@@ -1,7 +1,7 @@
 /*
  * data-source.h - Game resources file functions
  *
- * Copyright (C) 2015-2017  Wicked_Digger <wicked_digger@mail.ru>
+ * Copyright (C) 2015-2019  Wicked_Digger <wicked_digger@mail.ru>
  *
  * This file is part of freeserf.
  *
@@ -35,17 +35,7 @@ typedef std::shared_ptr<Buffer> PBuffer;
 
 // Sprite object.
 // Contains BGRA data.
-class Sprite;
-typedef std::shared_ptr<Sprite> PSprite;
-class Sprite : public std::enable_shared_from_this<Sprite> {
- public:
-  typedef struct Color {
-    unsigned char blue;
-    unsigned char green;
-    unsigned char red;
-    unsigned char alpha;
-  } Color;
-
+class SpriteBase : public Data::Sprite {
  protected:
   int delta_x;
   int delta_y;
@@ -56,10 +46,10 @@ class Sprite : public std::enable_shared_from_this<Sprite> {
   uint8_t *data;
 
  public:
-  Sprite();
-  explicit Sprite(PSprite base);
-  Sprite(unsigned int w, unsigned int h);
-  virtual ~Sprite();
+  SpriteBase();
+  explicit SpriteBase(Data::PSprite base);
+  SpriteBase(unsigned int w, unsigned int h);
+  virtual ~SpriteBase();
 
   virtual uint8_t *get_data() const { return data; }
   virtual size_t get_width() const { return width; }
@@ -69,50 +59,33 @@ class Sprite : public std::enable_shared_from_this<Sprite> {
   virtual int get_offset_x() const { return offset_x; }
   virtual int get_offset_y() const { return offset_y; }
 
-  virtual PSprite get_masked(PSprite mask);
-  virtual PSprite create_mask(PSprite other);
+  virtual Data::PSprite get_masked(Data::PSprite mask);
+  virtual Data::PSprite create_mask(Data::PSprite other);
   virtual void fill(Sprite::Color color);
   virtual void fill_masked(Sprite::Color color);
-  virtual void add(PSprite other);
-  virtual void del(PSprite other);
-  virtual void blend(PSprite other);
+  virtual void add(Data::PSprite other);
+  virtual void del(Data::PSprite other);
+  virtual void blend(Data::PSprite other);
   virtual void make_alpha_mask();
 
-  virtual void stick(PSprite sticker, unsigned int x, unsigned int y);
-
-  static uint64_t create_id(uint64_t resource, uint64_t index,
-                            uint64_t mask_resource, uint64_t mask_index,
-                            const Color &color);
+  virtual void stick(Data::PSprite sticker, unsigned int x, unsigned int y);
 
  protected:
   void create(size_t w, size_t h);
 };
 
-class Animation {
+class DataSourceBase : public Data::Source {
  public:
-  size_t sprite;
-  int x;
-  int y;
-};
-
-class DataSource {
- public:
-  typedef std::tuple<PSprite, PSprite> MaskImage;
-
-  enum MusicFormat {
-    MusicFormatNone,
-    MusicFormatMidi,
-    MusicFormatMod
-  };
+  typedef std::tuple<Data::Sprite, Data::Sprite> MaskImage;
 
  protected:
   std::string path;
   bool loaded;
-  std::vector<std::vector<Animation>> animation_table;
+  std::vector<std::vector<Data::Animation>> animation_table;
 
  public:
-  explicit DataSource(const std::string &path);
-  virtual ~DataSource() {}
+  explicit DataSourceBase(const std::string &path);
+  virtual ~DataSourceBase() {}
 
   virtual std::string get_name() const = 0;
   virtual std::string get_path() const { return path; }
@@ -123,24 +96,23 @@ class DataSource {
   virtual bool check() = 0;
   virtual bool load() = 0;
 
-  virtual PSprite get_sprite(Data::Resource res, size_t index,
-                             const Sprite::Color &color);
+  virtual Data::PSprite get_sprite(Data::Resource res, size_t index,
+                                   const Data::Sprite::Color &color);
 
-  virtual MaskImage get_sprite_parts(Data::Resource res, size_t index) = 0;
+  virtual Data::MaskImage get_sprite_parts(Data::Resource res,
+                                           size_t index) = 0;
 
   virtual size_t get_animation_phase_count(size_t animation);
-  virtual Animation get_animation(size_t animation, size_t phase);
+  virtual Data::Animation get_animation(size_t animation, size_t phase);
 
   virtual PBuffer get_sound(size_t index) = 0;
-  virtual MusicFormat get_music_format() { return MusicFormatNone; }
+  virtual Data::MusicFormat get_music_format() { return Data::MusicFormatNone; }
   virtual PBuffer get_music(size_t index) = 0;
 
   bool check_file(const std::string &path);
 
  protected:
-  MaskImage separate_sprites(PSprite s1, PSprite s2);
+  Data::MaskImage separate_sprites(Data::PSprite s1, Data::PSprite s2);
 };
-
-typedef std::shared_ptr<DataSource> PDataSource;
 
 #endif  // SRC_DATA_SOURCE_H_

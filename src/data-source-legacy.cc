@@ -1,7 +1,7 @@
 /*
  * data-source-legacy.cc - Legacy game resources file functions
  *
- * Copyright (C) 2017  Wicked_Digger <wicked_digger@mail.ru>
+ * Copyright (C) 2017-2019  Wicked_Digger <wicked_digger@mail.ru>
  *
  * This file is part of freeserf.
  *
@@ -29,7 +29,7 @@
 #include "src/buffer.h"
 
 DataSourceLegacy::DataSourceLegacy(const std::string &_path)
-  : DataSource(_path) {
+  : DataSourceBase(_path) {
 }
 
 DataSourceLegacy::~DataSourceLegacy() {
@@ -77,9 +77,9 @@ DataSourceLegacy::load_animation_table(PBuffer data) {
     AnimationPhase *anims =
     reinterpret_cast<AnimationPhase*>(reinterpret_cast<char*>(animation_block) +
                                       offset);
-    std::vector<Animation> animations;
+    std::vector<Data::Animation> animations;
     for (size_t j = 0; j < sizes[i]; j++) {
-      Animation a;
+      Data::Animation a;
       a.sprite = anims[j].sprite;
       a.x = anims[j].x;
       a.y = anims[j].y;

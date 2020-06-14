@@ -1,7 +1,7 @@
 /*
  * data-source-amiga.h - Amiga data loading
  *
- * Copyright (C) 2016-2017  Wicked_Digger <wicked_digger@mail.ru>
+ * Copyright (C) 2016-2019  Wicked_Digger <wicked_digger@mail.ru>
  *
  * This file is part of freeserf.
  *
@@ -35,14 +35,14 @@ class DataSourceAmiga : public DataSourceLegacy {
  protected:
   class SpriteAmiga;
   typedef std::shared_ptr<SpriteAmiga> PSpriteAmiga;
-  class SpriteAmiga : public Sprite {
+  class SpriteAmiga : public SpriteBase {
    public:
     SpriteAmiga(size_t width, size_t height);
     virtual ~SpriteAmiga();
 
     void set_delta(int x, int y) { delta_x = x; delta_y = y; }
     void set_offset(int x, int y) { offset_x = x; offset_y = y; }
-    PSpriteAmiga get_amiga_masked(PSprite mask);
+    PSpriteAmiga get_amiga_masked(Data::PSprite mask);
     void clear() {}
     Sprite::Color *get_writable_data() {
       return reinterpret_cast<Sprite::Color*>(data);
@@ -64,10 +64,10 @@ class DataSourceAmiga : public DataSourceLegacy {
   virtual bool check();
   virtual bool load();
 
-  virtual MaskImage get_sprite_parts(Data::Resource res, size_t index);
+  virtual Data::MaskImage get_sprite_parts(Data::Resource res, size_t index);
 
   virtual PBuffer get_sound(size_t index);
-  virtual MusicFormat get_music_format() { return MusicFormatMod; }
+  virtual Data::MusicFormat get_music_format() { return Data::MusicFormatMod; }
   virtual PBuffer get_music(size_t index);
 
  private:
@@ -90,15 +90,15 @@ class DataSourceAmiga : public DataSourceLegacy {
                                size_t width, size_t height,
                                unsigned char compression,
                                unsigned char filling);
-  PSprite get_icon_sprite(size_t index);
+  Data::PSprite get_icon_sprite(size_t index);
   PSpriteAmiga get_ground_sprite(size_t index);
-  PSprite get_ground_mask_sprite(size_t index);
-  PSpriteAmiga get_mirrored_horizontaly_sprite(PSprite sprite);
-  PSprite get_path_mask_sprite(size_t index);
-  PSprite get_game_object_sprite(size_t catalog, size_t index);
-  PSprite get_torso_sprite(size_t index, uint8_t *palette);
-  PSprite get_map_object_sprite(size_t index);
-  PSprite get_map_object_shadow(size_t index);
+  Data::PSprite get_ground_mask_sprite(size_t index);
+  PSpriteAmiga get_mirrored_horizontaly_sprite(Data::PSprite sprite);
+  Data::PSprite get_path_mask_sprite(size_t index);
+  Data::PSprite get_game_object_sprite(size_t catalog, size_t index);
+  Data::PSprite get_torso_sprite(size_t index, uint8_t *palette);
+  Data::PSprite get_map_object_sprite(size_t index);
+  Data::PSprite get_map_object_shadow(size_t index);
   PSpriteAmiga get_hud_sprite(size_t index);
 
   PSpriteAmiga decode_planned_sprite(PBuffer data, size_t width, size_t height,
