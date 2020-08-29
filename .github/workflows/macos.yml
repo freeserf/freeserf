@@ -1,0 +1,57 @@
+name: macos
+
+on:
+  pull_request:
+  push:
+  release:
+    types: published
+
+jobs:
+  build:
+    runs-on: macos-latest
+
+    strategy:
+      matrix:
+        buildtype: [Debug, Release]
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+        with:
+          submodules: 'recursive'
+
+      - name: Install dependencies
+        run: |
+          brew install sdl2
+          brew install sdl2_mixer
+          brew install sdl2_image
+
+      - name: Configure FreeSerf
+        run: |
+          cmake -B build -G "Unix Makefiles"
+
+      - name: Check style
+        run: |
+          cd build
+          make check_style
+
+      - name: Build FreeSerf
+        run: |
+          cd build
+          make
+
+      - name: Run Tests
+        run: |
+          cd build
+          make test
+
+      - name: Pack FreeSerf
+        run: |
+          cd build
+          make package
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v1
+        with:
+          name: FreeSerf-${{ matrix.buildtype }}
+          path: ./build/FreeSerf.dmg
