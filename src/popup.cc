@@ -375,6 +375,7 @@ PopupBox::draw_green_string(int sx, int sy, const std::string &str) {
    n must be non-negative. If > 999 simply draw three characters xxT or Mx thousands, xxM or Mx for millions, xxB for bilions. */
 void
 PopupBox::draw_green_number(int sx, int sy, int n) {
+  //p1plp1_thousands_millions_billions_abbrev
   if (n >= 1000000000) {
     /*billion*/
     int ntmp = n / 1000000000;

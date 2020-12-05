@@ -412,6 +412,7 @@ PanelBar::update() {
   if ((interface->get_popup_box() != NULL) &&
       interface->get_popup_box()->is_displayed()) {
     switch (interface->get_popup_box()->get_box()) {
+      //p1plp1_add_starred_panel_icons
       case PopupBox::TypeBasicBld:
         panel_btns[0] = ButtonBuildSmallStarred;
         break;

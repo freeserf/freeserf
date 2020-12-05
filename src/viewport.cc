@@ -1876,6 +1876,7 @@ Viewport::draw_active_serf(Serf *serf, MapPos pos, int x_base, int y_base) {
                            << "): " << serf->get_animation()
                            << "," << serf->get_counter();
     //object self fix animation
+    //p1plp1_fix_bad_serf_animation
     serf->fix_bad_animation();
     return;
   }

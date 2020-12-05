@@ -301,6 +301,7 @@ Building::cancel_transported_resource(Resource::Type res) {
       stock[in_stock].requested -= 1;
 	}      		
     if (stock[in_stock].requested < 0) {
+          //p1plp1_food_type_unrequested_resource_fix
 	  Log::Info["Building::cancel_transported_resource"] << "Failed to cancel unrequested resource delivery" << res << " stock index "<< in_stock <<" requested "<<stock[in_stock].requested;
       throw ExceptionFreeserf("Failed to cancel unrequested resource delivery.");
     }
