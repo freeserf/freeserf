@@ -81,11 +81,14 @@ class Flag : public GameObject {
   void set_position(MapPos pos) { this->pos = pos; }
 
   /* Bitmap of all directions with outgoing paths. */
+  // to understand, convert this to binary and read it last to first 
+  // ex: 44 = 101100 = -,-,+,+,-,+ or has paths in 3 dirs:  DownLeft, Left, Up
   int paths() const { return path_con & 0x3f; }
   void add_path(Direction dir, bool water);
   void del_path(Direction dir);
   /* Whether a path exists in a given direction. */
   bool has_path(Direction dir) const {
+	  // got a nullptr here, never seen before.  oct30 2020
     return ((path_con & (1 << (dir))) != 0); }
 
   void prioritize_pickup(Direction dir, Player *player);
@@ -109,6 +112,7 @@ class Flag : public GameObject {
 
   /* Bitmap showing whether the outgoing paths have transporters
    servicing them. */
+  // same as path con, to understand convert to binary and reverse order of bits
   int transporters() const { return transporter & 0x3f; }
   /* Whether the path in the given direction has a transporter
    serving it. */
@@ -203,18 +207,22 @@ class Flag : public GameObject {
   void clear_search_id() { search_num = 0; }
 
   bool can_demolish() const;
+  bool is_connected() const;
 
   void merge_paths(MapPos pos);
 
   static void fill_path_serf_info(Game *game, MapPos pos, Direction dir,
                                   SerfPathInfo *data);
+  // copied from protected, so AI can call it to work around missing transporter bug
+  bool call_transporter(Direction dir, bool water);
 
  protected:
   void fix_scheduled();
 
   void schedule_slot_to_unknown_dest(int slot);
   void schedule_slot_to_known_dest(int slot, unsigned int res_waiting[4]);
-  bool call_transporter(Direction dir, bool water);
+  // moved to public so AI can call it to work around missing transporter bug
+  //bool call_transporter(Direction dir, bool water);
 
   friend class FlagSearch;
 };

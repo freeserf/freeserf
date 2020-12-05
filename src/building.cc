@@ -277,12 +277,6 @@ Building::military_gold_count() const {
 
 void
 Building::cancel_transported_resource(Resource::Type res) {
-  if (res == Resource::TypeFish ||
-      res == Resource::TypeMeat ||
-      res == Resource::TypeBread) {
-    res = Resource::GroupFood;
-  }
-
   int in_stock = -1;
   for (int i = 0; i < kMaxStock; i++) {
     if (stock[i].type == res) {
@@ -290,12 +284,25 @@ Building::cancel_transported_resource(Resource::Type res) {
       break;
     }
   }
-
+  if ((in_stock < 0) && (res == Resource::TypeFish || res == Resource::TypeMeat || res == Resource::TypeBread)) {
+	Log::Info["Building::cancel_transported_resource"] << "fixing food " << res;
+	for (int i = 0; i < kMaxStock; i++) {
+	  if ((stock[i].type == Resource::TypeFish && stock[i].requested > 0) ||
+          (stock[i].type == Resource::TypeMeat && stock[i].requested > 0) ||
+	      (stock[i].type == Resource::TypeBread && stock[i].requested > 0)) {
+        in_stock = i;
+        break;
+	  }
+    }
+  }
   if (in_stock >= 0) {
-    stock[in_stock].requested -= 1;
+	if (stock[in_stock].requested>0) {
+	  Log::Info["Building::cancel_transported_resource"] << "stock[in_stock].requested - 1";
+      stock[in_stock].requested -= 1;
+	}      		
     if (stock[in_stock].requested < 0) {
-      throw ExceptionFreeserf("Failed to cancel unrequested "
-                              "resource delivery.");
+	  Log::Info["Building::cancel_transported_resource"] << "Failed to cancel unrequested resource delivery" << res << " stock index "<< in_stock <<" requested "<<stock[in_stock].requested;
+      throw ExceptionFreeserf("Failed to cancel unrequested resource delivery.");
     }
   }
 }
@@ -335,24 +342,31 @@ Building::requested_resource_delivered(Resource::Type resource) {
   if (has_inventory()) {
     inventory->push_resource(resource);
   } else {
-    if (resource == Resource::TypeFish ||
-        resource == Resource::TypeMeat ||
-        resource == Resource::TypeBread) {
-      resource = Resource::GroupFood;
-    }
-
     /* Add to building stock */
     for (int i = 0; i < kMaxStock; i++) {
+      if ((stock[i].type == Resource::GroupFood) && (resource == Resource::TypeFish ||
+        resource == Resource::TypeMeat || resource == Resource::TypeBread)) {
+         stock[i].available += 1;
+         stock[i].requested -= 1;
+         if (stock[i].requested < 0) {
+           stock[i].requested = 0;
+           Log::Info["building"] << "Building::requested_resource_delivered, Fixing req res delivered FOOD type requested below zero.";
+         }
+         Log::Info["building"] << "Building::requested_resource_delivered, Fixing req res delivered FOOD type.";
+         return;
+      }
       if (stock[i].type == resource) {
-        stock[i].available += 1;
-        stock[i].requested -= 1;
-        if (stock[i].requested < 0) {
-          throw ExceptionFreeserf("Delivered more resources than requested.");
+        if (stock[i].requested > 0) {
+          stock[i].available += 1;
+          stock[i].requested -= 1;
+        } else {
+          Log::Info["building"] << "Building::requested_resource_delivered, Delivered more resources than requested: " << stock[i].requested << " available: "<< stock[i].available << " of type: " << resource;
+          return;
         }
         return;
       }
     }
-
+    Log::Info["building"] << "Building::requested_resource_delivered, Delivered unexpected resource: " << resource;
     throw ExceptionFreeserf("Delivered unexpected resource.");
   }
 }

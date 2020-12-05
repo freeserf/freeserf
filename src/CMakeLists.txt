@@ -35,7 +35,10 @@ target_check_style(tools)
 
 # Game library
 
-set(GAME_SOURCES building.cc
+set(GAME_SOURCES ai.cc
+                 ai_roadbuilder.cc
+				 ai_util.cc
+                 building.cc
                  flag.cc
                  game.cc
                  inventory.cc
@@ -48,10 +51,13 @@ set(GAME_SOURCES building.cc
                  serf.cc
                  game-manager.cc)
 
-set(GAME_HEADERS building.h
+set(GAME_HEADERS ai.h
+                 ai_roadbuilder.h
+                 building.h
                  flag.h
                  game.h
                  inventory.h
+				 lookup.h
                  map.h
                  map-generator.h
                  map-geometry.h
@@ -132,7 +138,8 @@ target_check_style(data)
 
 # FreeSerf executable
 
-set(OTHER_SOURCES pathfinder.cc
+set(OTHER_SOURCES ai_pathfinder.cc
+                  pathfinder.cc
                   gfx.cc
                   viewport.cc
                   minimap.cc
@@ -147,7 +154,8 @@ set(OTHER_SOURCES pathfinder.cc
                   list.cc
                   command_line.cc)
 
-set(OTHER_HEADERS pathfinder.h
+set(OTHER_HEADERS ai_pathfinder.h
+                  pathfinder.h
                   gfx.h
                   viewport.h
                   minimap.h

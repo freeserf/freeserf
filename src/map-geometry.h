@@ -169,6 +169,12 @@ cycle_directions_ccw(Direction start = DirectionUp, unsigned int length = 6) {
   return DirectionCycle<Cycle::CCW>(start, length);
 }
 
+// Convenience function to create clockwise direction cycle with random start direction (for AI)
+inline DirectionCycle<Cycle::CW>
+cycle_directions_rand_cw(Direction start = Direction(rand() % 7), unsigned int length = 6) {
+	return DirectionCycle<Cycle::CW>(start, length);
+}
+
 
 // MapPos is a compact composition of col and row values that
 // uniquely identifies a vertex in the map space. It is also used

@@ -5306,6 +5306,15 @@ Serf::update() {
   }
 }
 
+void
+Serf::fix_bad_animation() {
+  /* Transporting (turning?) (110-115) */
+  animation = 110;
+  counter = counter_from_animation[animation]; 
+  Log::Debug["serf"] << "Serf::fix_bad_animation, fixing serf animation to: " <<  animation << " counter: "<< counter;
+}
+
+
 SaveReaderBinary&
 operator >> (SaveReaderBinary &reader, Serf &serf) {
   uint8_t v8;

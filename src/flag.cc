@@ -650,6 +650,16 @@ Flag::can_demolish() const {
   return false;
 }
 
+// return true if a flag has any roads connected to it
+bool
+Flag::is_connected() const {
+	for (Direction d : cycle_directions_cw()) {
+		if (has_path(d))
+			return true;
+	}
+	return false;
+}
+
 /* Find a transporter at pos and change it to state. */
 static int
 change_transporter_state_at_pos(Game *game, MapPos pos, Serf::State state) {
@@ -838,7 +848,7 @@ Flag::merge_paths(MapPos pos_) {
 void
 Flag::update() {
   const int max_transporters[] = { 1, 2, 3, 4, 6, 8, 11, 15 };
-
+  Log::Verbose["flag"] << " inside Flag::update() - Count and store in bitfield which directions";
   /* Count and store in bitfield which directions
    have strictly more than 0,1,2,3 slots waiting. */
   unsigned int res_waiting[4] = {0};
@@ -854,6 +864,7 @@ Flag::update() {
     }
   }
 
+  Log::Verbose["flag"] << " inside Flag::update() - Count of total resources waiting at flag";
   /* Count of total resources waiting at flag */
   int waiting_count = 0;
 
@@ -879,6 +890,7 @@ Flag::update() {
     }
   }
 
+  Log::Verbose["flag"] << " inside Flag::update() - Update transporter flags, decide if serf needs to be sent to road";
   /* Update transporter flags, decide if serf needs to be sent to road */
   for (Direction j : cycle_directions_ccw()) {
     if (has_path(j)) {
@@ -906,6 +918,7 @@ Flag::update() {
       }
     }
   }
+  Log::Verbose["flag"] << "end of Flag::update()";
 }
 
 typedef struct SendSerfToRoadData {
@@ -940,7 +953,6 @@ send_serf_to_road_search_cb(Flag *flag, void *data) {
       road_data->inventory = inventory;
     }
   }
-
   return false;
 }
 
@@ -950,6 +962,17 @@ Flag::call_transporter(Direction dir, bool water) {
   Direction dir_2 = get_other_end_dir(dir);
 
   search_dir = DirectionRight;
+  // got a write access violation here, src_2 was nullptr... check first?
+  // got it again
+  // couple more times
+  // I think this is because I wasn't checking that this player owns the flag!  added that code.  hopefully fixes it
+  // nope still getting it
+  // try just ignoring this if it happens?
+  // I think this is happening every time... look into it
+  if (src_2 == nullptr) {
+	  Log::Warn["flag"] << " Flag::call_transporter - nullptr found when doing Flag *src_2 = other_endpoint.f[dir], returning false  FIND OUT WHY!";
+	  return false;
+  }
   src_2->search_dir = DirectionDownRight;
 
   FlagSearch search(game);
@@ -962,6 +985,7 @@ Flag::call_transporter(Direction dir, bool water) {
   search.execute(send_serf_to_road_search_cb, true, false, &data);
   Inventory *inventory = data.inventory;
   if (inventory == NULL) {
+	  Log::Warn["flag"] << " Flag::call_transporter - inventory is NULL, returning false - it could not find nearest inventory?";
     return false;
   }
 
@@ -979,7 +1003,7 @@ Flag::call_transporter(Direction dir, bool water) {
   }
 
   serf->go_out_from_inventory(inventory->get_index(), src->get_index(), dir);
-
+  Log::Debug["flag"] << " Flag::call_transporter - successfully called transporter";
   return true;
 }
 

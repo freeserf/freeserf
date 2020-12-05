@@ -19,8 +19,11 @@
  * along with freeserf.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include <thread>
+
 #include "src/mission.h"
 #include "src/game.h"
+
 
 Character characters[] = {
   { 0, "ERROR", "ERROR"},
@@ -380,28 +383,35 @@ GameInfo::Mission missions[] = {
 GameInfo::GameInfo(const Random &_random_base)
   : map_size(3)
   , name(_random_base) {
+  Log::Debug["mission"] << " inside GameInfo::GameInfo constructor w/ random_base";
   set_random_base(_random_base);
+  Log::Debug["mission"] << "done GameInfo::GameInfo constructor w/ random_base";
 }
 
 GameInfo::GameInfo(const GameInfo::Mission *mission_preset) {
+  Log::Debug["mission"] << " inside GameInfo::GameInfo w/ mission_preset";
   map_size = 3;
   name = mission_preset->name;
   random_base = mission_preset->rnd;
   for (size_t i = 0; i < mission_preset->player.size(); i++) {
     PlayerInfo::Preset player_info = mission_preset->player[i];
     size_t character = player_info.character->face;
+	Log::Debug["mission"] << " inside GameInfo::GameInfo w/ mission_preset, creating PPlayerInfo for Player" << i;
     PPlayerInfo player(new PlayerInfo(character,
                                       def_color[i],
                                       player_info.intelligence,
                                       player_info.supplies,
                                       player_info.reproduction));
     player->set_castle_pos(player_info.castle);
+	Log::Debug["mission"] << " inside GameInfo::GameInfo w/ mission_preset, calling add_player for Player" << i;
     add_player(player);
   }
+  Log::Debug["mission"] << "done GameInfo::GameInfo w/ mission_preset ";
 }
 
 void
 GameInfo::set_random_base(const Random &base) {
+  Log::Debug["mission"] << " inside GameInfo::set_random_base";
   Random random = base;
   random_base = base;
 
@@ -427,15 +437,22 @@ GameInfo::set_random_base(const Random &base) {
   }
 
   int i = 0;
+  Log::Debug["mission"] << " inside GameInfo::set_random_base, setting player colors...";
   for (PPlayerInfo info : players) {
+	  Log::Debug["mission"] << " inside GameInfo::set_random_base, inside foreach playerinfo : players, Player" << i;
     if (i < 4) {
-      info->set_color(def_color[i++]);
+		Log::Debug["mission"] << " inside GameInfo::set_random_base, about to set_color for Player" << i;
+      info->set_color(def_color[i]);
+	  Log::Debug["mission"] << " inside GameInfo::set_random_base, finished setting def_color[" << i << "] = " << int(def_color[i].red) << " / " << int(def_color[i].green) << " / " << int(def_color[i].blue) << " - is this valid?";
+	  i++;
     }
   }
+  Log::Debug["mission"] << "done with GameInfo::set_random_base";
 }
 
 void
 GameInfo::add_player(const PPlayerInfo &player) {
+	Log::Debug["mission"] << " inside GameInfo::add_player(PPlayerInfo), adding a PPlayerInfo";
   players.push_back(player);
 }
 
@@ -443,6 +460,7 @@ void
 GameInfo::add_player(size_t character, const Player::Color &_color,
                      unsigned int _intelligence, unsigned int _supplies,
                      unsigned int _reproduction) {
+	Log::Debug["mission"] << " inside GameInfo::add_player(PLAYERINFO_SPECIFICS), adding a PPlayerInfo";
   PPlayerInfo player(new PlayerInfo(character, _color, _intelligence, _supplies,
                                     _reproduction));
   add_player(player);
@@ -497,19 +515,19 @@ GameInfo::instantiate() {
     return nullptr;
   }
 
-  /* Initialize player and build initial castle */
+  /* Initialize player and build initial castle (if this is a mission or loaded game) */
   for (PPlayerInfo player_info : players) {
-    unsigned int index = game->add_player(player_info->get_intelligence(),
-                                          player_info->get_supplies(),
-                                          player_info->get_reproduction());
-    Player *player = game->get_player(index);
-    player->init_view(player_info->get_color(), player_info->get_face());
-
-    PlayerInfo::Pos castle_pos = player_info->get_castle_pos();
-    if (castle_pos.col > -1 && castle_pos.row > -1) {
-      MapPos pos = game->get_map()->pos(castle_pos.col, castle_pos.row);
-      game->build_castle(pos, player);
-    }
+	  Log::Debug["mission"] << " inside GameInfo::instantiate(), calling game->add_player(PPlayerinfo)";
+	  unsigned int index = game->add_player(player_info->get_intelligence(),
+		  player_info->get_supplies(),
+		  player_info->get_reproduction());
+	  Player *player = game->get_player(index);
+	  player->init_view(player_info->get_color(), player_info->get_face());
+	  PlayerInfo::Pos castle_pos = player_info->get_castle_pos();
+	  if (castle_pos.col > -1 && castle_pos.row > -1) {
+		  MapPos pos = game->get_map()->pos(castle_pos.col, castle_pos.row);
+		  game->build_castle(pos, player);
+	  }
   }
 
   return game;
@@ -539,12 +557,15 @@ PlayerInfo::PlayerInfo(size_t character, const Player::Color &_color,
   , face(0)
   , color({})
   , castle_pos({}) {
+  Log::Debug["mission"] << " inside PlayerInfo::PlayerInfo constructor";
   set_character(character);
   set_intelligence(_intelligence);
   set_supplies(_supplies);
   set_reproduction(_reproduction);
+  Log::Debug["mission"] << " inside PlayerInfo::PlayerInfo constructor, about to set_color to _color rgb: " << int(_color.red) << " / " << int(_color.green) << " / " << int(_color.blue);
   set_color(_color);
   set_castle_pos({-1, -1});
+  Log::Debug["mission"] << "done PlayerInfo::PlayerInfo constructor";
 }
 
 void
