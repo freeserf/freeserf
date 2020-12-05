@@ -372,13 +372,33 @@ PopupBox::draw_green_string(int sx, int sy, const std::string &str) {
 }
 
 /* Draw a green number in a popup frame.
-   n must be non-negative. If > 999 simply draw ">999" (three characters). */
+   n must be non-negative. If > 999 simply draw three characters xxT or Mx thousands, xxM or Mx for millions, xxB for bilions. */
 void
 PopupBox::draw_green_number(int sx, int sy, int n) {
-  if (n >= 1000) {
-    draw_popup_icon(sx, sy, 0xd5); /* Draw >999 */
-    draw_popup_icon(sx+1, sy, 0xd6);
-    draw_popup_icon(sx+2, sy, 0xd7);
+  //p1plp1_thousands_millions_billions_abbrev
+  if (n >= 1000000000) {
+    /*billion*/
+    int ntmp = n / 1000000000;
+    frame->draw_number(8 * sx + 8, 9 + sy, ntmp, Color::green);
+    frame->draw_string(8 * (sx + (ntmp<10 ? 1 : 2)) + 8, sy + 9, "B", Color::green);
+  } else if (n >= 100000000) {
+    int ntmp = n / 100000000;
+    frame->draw_string(8 * sx + 8, sy + 9, "B", Color::green);
+    frame->draw_number(8 * (sx + 1) + 8, 9 + sy, ntmp, Color::green);
+  } else if (n >= 1000000) {
+    /*million*/
+    int ntmp = n / 1000000;
+    frame->draw_number(8 * sx + 8, 9 + sy, ntmp, Color::green);
+    frame->draw_string(8 * (sx + (ntmp<10 ? 1 : 2)) + 8, sy + 9, "M", Color::green);
+  } else if (n >= 100000) {
+    int ntmp =  n / 100000;
+    frame->draw_string(8 * sx + 8, sy + 9, "M", Color::green);
+    frame->draw_number(8 * (sx + 1) + 8, 9 + sy, ntmp, Color::green);
+  } else if (n >= 1000) {
+    /* thousand */
+    int ntmp =  n / 1000;
+    frame->draw_number(8 * sx + 8, 9 + sy, ntmp, Color::green);
+    frame->draw_string(8 * (sx + (ntmp<10 ? 1 : 2)) + 8, sy + 9, "k", Color::green);
   } else {
     frame->draw_number(8 * sx + 8, 9 + sy, n, Color::green);
   }
