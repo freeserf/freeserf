@@ -1318,36 +1318,42 @@ AI::do_send_geologists() {
 			// can't use walking_dest test because idle serfs have a nonzero but invalid walking_dest
 			//if (serf->get_walking_dest() != 0) {
 			Serf::State state = serf->get_state();
-			int dest;
+			int dest;  //dest is a Flag index, not a MapPos
 			Flag *flag;
+			MapPos geo_pos = bad_map_pos;
+			MapPos flag_pos = bad_map_pos;
 			switch (state) {
 			case Serf::StateLeavingBuilding:
 			case Serf::StateWalking:
 			case Serf::StateIdleOnPath:
 				dest = serf->get_walking_dest();
-				//AILogLogger["do_send_geologists"] << name << " geo serf walking_dest flag index # is " << dest;
 				flag = game->get_flag(dest);
-				//AILogLogger["do_send_geologists"] << name << " geo serf walking_dest flag pointer fetched";
 				if (flag == nullptr) {
 					// it seems that serf dest can be a flag index much higher than the actual highest flag index, it likely has some bit-math meaning
-					AILogLogger["do_send_geologists"] << name << " geo flag is nullptr!  why?  skipping";
+					break;
 				}
-				else {
-					MapPos pos = flag->get_position();
-					AILogLogger["do_send_geologists"] << name << " a geologist has walking_dest of flag at pos " << pos;
+				flag_pos = flag->get_position();
+				geo_pos = serf->get_pos();
+				if (flag->has_building()) {
+					Building::Type attached_building_type = flag->get_building()->get_type();
+					if (attached_building_type == Building::TypeCastle || attached_building_type == Building::TypeStock) {
+						AILogLogger["do_send_geologists"] << name << " a geologist at pos " << geo_pos << " is returning home to " << NameBuilding[attached_building_type] << " with flag_pos " << flag_pos;
+						break;
+					}
 				}
+				AILogLogger["do_send_geologists"] << name << " a geologist at pos " << geo_pos << " is en route to work at flag_pos " << flag_pos;
+				// add the flag where the geologist is heading to work at to the active geologist positions list
+				geologist_positions.push_back(flag_pos);
 				break;
 			case Serf::StateLookingForGeoSpot:
-			case Serf::StateSamplingGeoSpot:
-			case Serf::StateFreeWalking:
 				// note - I don't think StateLookingForGeoSpot is ever used... it seems to be some kind of fallback if Dir = 6 (invalid?)
 				//    or maybe time spent in this state is so small it cannot be seen easily
-				pos = serf->get_pos();
-				AILogLogger["do_send_geologists"] << name << " a geologist is currently working in the vicinity of pos " << pos;
-				break;
-			}
-			if (pos != bad_map_pos && pos != castle_flag_pos) {
+			case Serf::StateSamplingGeoSpot:
+			case Serf::StateFreeWalking:
+				geo_pos = serf->get_pos();
+				AILogLogger["do_send_geologists"] << name << " a geologist is currently working at pos " << geo_pos;
 				geologist_positions.push_back(pos);
+				break;
 			}
 		}
 	}
@@ -1416,12 +1422,12 @@ AI::do_send_geologists() {
 				MapPos pos = map->pos_add_extended_spirally(corner_pos, i);
 				unsigned int geologists_pos = static_cast<unsigned int>(std::count(geologist_positions.begin(), geologist_positions.end(), pos));
 				if (geologists_pos > 0) {
-					//AILogLogger["do_send_geologists"] << name << " there are " << geologists_pos << " geologists operating at pos " << pos;
+					AILogLogger["do_send_geologists"] << name << " there are " << geologists_pos << " geologists operating at pos " << pos << ", which is near corner pos " << corner_pos;
 					geologists_corner += geologists_pos;
 
 				}
 			}
-			AILogLogger["do_send_geologists"] << name << " there are " << geologists_corner << " other geologists operating in the vicinity of corner_pos " << corner_pos;
+			AILogLogger["do_send_geologists"] << name << " there are " << geologists_corner << " total geologists operating in the vicinity of corner_pos " << corner_pos;
 			if (geologists_corner >= 2) {
 				AILogLogger["do_send_geologists"] << name << " found at least two geologists in the vicinity of corner_pos " << corner_pos << ", skipping this corner";
 				break;

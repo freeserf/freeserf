@@ -1937,6 +1937,9 @@ Viewport::draw_active_serf(Serf *serf, MapPos pos, int x_base, int y_base) {
 				//state_details = serf->print_state();
 				state_details += serf->get_state_name(serf->get_state());
 				state_details += "\n";
+				// debug - get serf walking_dest
+				//state_details += std::to_string(serf->get_walking_dest());
+				//state_details += "\n";
 				//frame->draw_string(lx, ly + 16, "counter: " + std::to_string(serf->get_counter()) + "\n", Color(125, 125, 200));
 				// it seems "counter" is just animation frame counter and doesn't provide any useful information in detecting stuck serfs
 				//   as it keeps rolling even if serf is static

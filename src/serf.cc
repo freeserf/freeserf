@@ -2917,6 +2917,7 @@ Serf::handle_free_walking_common() {
   }
 
   /* Check if dest is only one step away. */
+  //dec05 2020 got a read access violation here after loading a saved game, happens every time 
   if (!water && abs(d1) <= 1 && abs(d2) <= 1 &&
       dir_from_offset[(d1+1) + 3*(d2+1)] > DirectionNone) {
     /* Convert offset in two dimensions to
