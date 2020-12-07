@@ -31,6 +31,7 @@
 #include <map>
 #include <memory>
 #include <sstream>
+#include <thread>   // didn't need this on windows, why on linux with gcc?
 
 #include "src/savegame.h"
 #include "src/debug.h"
@@ -323,38 +324,11 @@ Game::update_flags() {
   Log::Verbose["game"] << "thread #" << std::this_thread::get_id() << " has locked mutex for Game::update_flags";
   // still getting vector iterators incompatible here sometimes   oct22 2020
   // again   oct29 2020
-  // again   dec01 2020
-  // again   dec02 2020
-  /* this is the original function
   for (Flag *flag : flags) {
 	Log::Verbose["game"] << "calling flag->update for flag with index " << flag->get_index();
     flag->update();
 	Log::Verbose["game"] << "done flag->update for flag with index " << flag->get_index();
   }
-  */
-  // trying replacement with p1plp1 way
-  Flags::Iterator i = flags.begin();
-  Flags::Iterator prev = flags.begin();
-  while (i != flags.end()) {
-	  prev = i;
-	  Flag *flag = *i;
-	  if (flag != NULL) {
-		  if (flag->get_index() != 0) {
-			  flag->update();
-			  if (flag == NULL)
-				  Log::Debug["game"] << "Game::update_flags, flag is NULL after update";
-		  }
-	  }
-	  if (flag == NULL) {
-		  Log::Debug["game"] << "Game::update_flags, flag is NULL so set i=prev";
-		  i = prev;
-	  }
-	  else {
-		  if (i != flags.end())
-			  ++i;
-	  }
-  }
-
   Log::Verbose["game"] << "thread #" << std::this_thread::get_id() << " is unlocking mutex for Game::update_flags";
   mutex.unlock();
   Log::Verbose["game"] << "thread #" << std::this_thread::get_id() << " has unlocked mutex for Game::update_flags";
@@ -2817,21 +2791,11 @@ operator << (SaveWriterText &writer, Game &game) {
     inventory_writer << *inventory;
   }
 
-  // getting vector iterators incompatible here also
-  //  likely needs same fix as update_serf
-  //  again same day
-  //  trying mutex
-  Log::Verbose["game"] << "thread #" << std::this_thread::get_id() << " is locking mutex for Game::SaveWriter (before foreach serf)";
-  game.mutex.lock();
-  Log::Verbose["game"] << "thread #" << std::this_thread::get_id() << " has locked mutex for Game::SaveWriter (before foreach serf)";
   for (Serf *serf : game.serfs) {
     if (serf->get_index() == 0) continue;
     SaveWriterText &serf_writer = writer.add_section("serf", serf->get_index());
     serf_writer << *serf;
   }
-  Log::Verbose["game"] << "thread #" << std::this_thread::get_id() << " is unlocking mutex for Game::SaveWriter (after foreach serf)";
-  game.mutex.unlock();
-  Log::Verbose["game"] << "thread #" << std::this_thread::get_id() << " has unlocked mutex for Game::SaveWriter (after foreach serf)";
 
 
   writer << *game.map;

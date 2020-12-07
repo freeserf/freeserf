@@ -7,31 +7,22 @@
 
 /* TO DO
 
-- still seeing constant knight shuffling!
-
-- saw a really bad AI start inside mountain range with few building pos.... why wasn't this disqualified?
-
 - a significant amount of time is spent on expand_borders call, which is spent doing many score_area calls around all occupied_military_buildings.  There are probably excessive
     redundant calls because every dir is checked from every military building (straight line to where it hits border)  
 	  INSTEAD - try walking the border and trying every so many positions?  what about circular borders?  could get stuck
 	  NO, better yet just give up on finding borders in a given direction after 10 or so tiles, because huts at edges of territory borders should be ~8 or less tiles from border
-			I think I implemented this last option already... verify
 
 - seeing some new roads being connected inefficiently... like the pathfinding went the wrong (non-optimal) way and didn't find the clearly better way.  Saw this twice in one
     game when creating geologist roads on mountains, they ended up being connected to a non-optimal flag instead of the nearest flag.  Maybe change these to use nearest only?	
-		   saw this again... maybe ensure that pathfinding checks every possible direction from the starting pos?  I think the heuristic comparison shortcut is causing this
-			it should be possible to check every possible position for a reasonaly small radius before moving to a heuristic
 
 - toolmaker is making too many tools, hogging all the iron, even though many tools exist.   I think this is related to warehouse/stock parallel economy 
      see TOOLMAKER.save file for example
 
 - I think knight shuffling issue remains, likely need to add a check for if all knights have reached their destination before changing value again
 	DONE - see if this fixes it
-		nope still seeing it dec01 2020
 
 - max unfinished buildings not working right anymore?  saw an AI create 5 civ buildings and 2 military right at game start
     on closer inspection... I think this is because lumberjacks/mills/rangers ignore the limit and they are the only ones exceeding it?
-		yes I don't think this is a real issue dec01 2020
 
 - oct30 2020, added check for terrain type when creating geologist flags, will only consider terrain with hills
 		if (!AI::has_terrain_type(game, pos, Map::TerrainTundra0, Map::TerrainSnow0))
@@ -222,7 +213,7 @@ AI::AI(PGame current_game, unsigned int pi) {
 	//Log::set_file(ai_filestr);
 	// this nonsense results in an extra empty file being created after the last player, but otherwise ...works?
 	// Player0's log is merged with console_out.txt for some reason, but the others work normally
-	Log::set_file(new std::ofstream("ai_Player" + std::to_string(player_index + 1) + ".txt"));
+	Log::set_file(new std::ofstream("ai_Player" + std::to_string(player_index + 1)));
 	AILogLogger["foo"] << "initialized AI log for Player" << pi;
 
 	game = current_game;
@@ -318,7 +309,7 @@ AI::next_loop(){
 	AILogLogger["next_loop"] << name << ", starting AI loop #" << loop_count;
 
 	do_place_castle();
-	do_save_game();
+	//do_save_game();   // enable to automatically save game every X turns
 	do_update_clear_reset();
 	//do_locate_military_buildings();  deprecated, replaced with update_building_counts expansion
 	update_stocks_pos();
@@ -1275,6 +1266,7 @@ AI::do_send_geologists() {
 	int reserve_hammers = int((specialists_max[Serf::TypeBuilder] - total_builders) + (specialists_max[Serf::TypeWeaponSmith] - total_blacksmiths));
 	if (reserve_hammers < 0) { reserve_hammers = 0; }
 	int excess_hammers = int(hammers_count - reserve_hammers);
+
 	AILogLogger["do_send_geologists"] << name << " total geologists " << total_geologists << ", idle_geologists " << idle_geologists << ", geologists_max "
 		<< geologists_max << ", total_builders " << total_builders << ", total_blacksmiths " << total_blacksmiths
 		<< ", hammers_count " << hammers_count << ", reserve_hammers " << reserve_hammers << ", excess_hammers " << excess_hammers;
@@ -1285,8 +1277,7 @@ AI::do_send_geologists() {
 		}
 		else {
 			// cap the number of potential geologists at the number of excess hammers (those not reserved for builder/blacksmith)
-			potential_geologists =
-				unsigned int(excess_hammers) > geologists_max - total_geologists ? geologists_max - total_geologists : unsigned int(excess_hammers);
+			potential_geologists = unsigned(excess_hammers) > geologists_max - total_geologists ? geologists_max - total_geologists : unsigned(excess_hammers);
 			AILogLogger["do_send_geologists"] << name << " at least one excess hammer, potential_geologists set to " << potential_geologists;
 		}
 	}
@@ -1318,42 +1309,36 @@ AI::do_send_geologists() {
 			// can't use walking_dest test because idle serfs have a nonzero but invalid walking_dest
 			//if (serf->get_walking_dest() != 0) {
 			Serf::State state = serf->get_state();
-			int dest;  //dest is a Flag index, not a MapPos
+			int dest;
 			Flag *flag;
-			MapPos geo_pos = bad_map_pos;
-			MapPos flag_pos = bad_map_pos;
 			switch (state) {
 			case Serf::StateLeavingBuilding:
 			case Serf::StateWalking:
 			case Serf::StateIdleOnPath:
 				dest = serf->get_walking_dest();
+				//AILogLogger["do_send_geologists"] << name << " geo serf walking_dest flag index # is " << dest;
 				flag = game->get_flag(dest);
+				//AILogLogger["do_send_geologists"] << name << " geo serf walking_dest flag pointer fetched";
 				if (flag == nullptr) {
 					// it seems that serf dest can be a flag index much higher than the actual highest flag index, it likely has some bit-math meaning
-					break;
+					AILogLogger["do_send_geologists"] << name << " geo flag is nullptr!  why?  skipping";
 				}
-				flag_pos = flag->get_position();
-				geo_pos = serf->get_pos();
-				if (flag->has_building()) {
-					Building::Type attached_building_type = flag->get_building()->get_type();
-					if (attached_building_type == Building::TypeCastle || attached_building_type == Building::TypeStock) {
-						AILogLogger["do_send_geologists"] << name << " a geologist at pos " << geo_pos << " is returning home to " << NameBuilding[attached_building_type] << " with flag_pos " << flag_pos;
-						break;
-					}
+				else {
+					MapPos pos = flag->get_position();
+					AILogLogger["do_send_geologists"] << name << " a geologist has walking_dest of flag at pos " << pos;
 				}
-				AILogLogger["do_send_geologists"] << name << " a geologist at pos " << geo_pos << " is en route to work at flag_pos " << flag_pos;
-				// add the flag where the geologist is heading to work at to the active geologist positions list
-				geologist_positions.push_back(flag_pos);
 				break;
 			case Serf::StateLookingForGeoSpot:
-				// note - I don't think StateLookingForGeoSpot is ever used... it seems to be some kind of fallback if Dir = 6 (invalid?)
-				//    or maybe time spent in this state is so small it cannot be seen easily
 			case Serf::StateSamplingGeoSpot:
 			case Serf::StateFreeWalking:
-				geo_pos = serf->get_pos();
-				AILogLogger["do_send_geologists"] << name << " a geologist is currently working at pos " << geo_pos;
-				geologist_positions.push_back(pos);
+				// note - I don't think StateLookingForGeoSpot is ever used... it seems to be some kind of fallback if Dir = 6 (invalid?)
+				//    or maybe time spent in this state is so small it cannot be seen easily
+				pos = serf->get_pos();
+				AILogLogger["do_send_geologists"] << name << " a geologist is currently working in the vicinity of pos " << pos;
 				break;
+			}
+			if (pos != bad_map_pos && pos != castle_flag_pos) {
+				geologist_positions.push_back(pos);
 			}
 		}
 	}
@@ -1379,8 +1364,8 @@ AI::do_send_geologists() {
 			AILogLogger["do_send_geologists"] << name << " considering corner_pos " << corner_pos;
 			// i'm not sure why Snow0 is valid for mining, it seems to be the edge where hill meets snow
 			unsigned int count = AI::count_terrain_near_pos(corner_pos, AI::spiral_dist(4), Map::TerrainTundra0, Map::TerrainSnow0, "orange");
-			//AILogLogger["do_send_geologists"] << name << " corner has hills count: " << count << ", min acceptable is " << AI::hills_min;
-			if (count >= AI::hills_min) {
+			//AILogLogger["do_send_geologists"] << name << " corner has hills count: " << count << ", min acceptable is " << hills_min;
+			if (count >= hills_min) {
 				// count the number of signs of any type, and the number of hills
 				double signs_count = AI::count_objects_near_pos(corner_pos, AI::spiral_dist(4), Map::ObjectSignLargeGold, Map::ObjectSignSmallStone, "dk_orange");
 				double hills_count = AI::count_terrain_near_pos(corner_pos, AI::spiral_dist(4), Map::TerrainTundra0, Map::TerrainSnow0, "orange");
@@ -1422,12 +1407,12 @@ AI::do_send_geologists() {
 				MapPos pos = map->pos_add_extended_spirally(corner_pos, i);
 				unsigned int geologists_pos = static_cast<unsigned int>(std::count(geologist_positions.begin(), geologist_positions.end(), pos));
 				if (geologists_pos > 0) {
-					AILogLogger["do_send_geologists"] << name << " there are " << geologists_pos << " geologists operating at pos " << pos << ", which is near corner pos " << corner_pos;
+					//AILogLogger["do_send_geologists"] << name << " there are " << geologists_pos << " geologists operating at pos " << pos;
 					geologists_corner += geologists_pos;
 
 				}
 			}
-			AILogLogger["do_send_geologists"] << name << " there are " << geologists_corner << " total geologists operating in the vicinity of corner_pos " << corner_pos;
+			AILogLogger["do_send_geologists"] << name << " there are " << geologists_corner << " other geologists operating in the vicinity of corner_pos " << corner_pos;
 			if (geologists_corner >= 2) {
 				AILogLogger["do_send_geologists"] << name << " found at least two geologists in the vicinity of corner_pos " << corner_pos << ", skipping this corner";
 				break;
@@ -1551,8 +1536,8 @@ AI::do_build_rangers() {
 			continue;
 		MapPos pos = building->get_position();
 		unsigned int count = AI::count_objects_near_pos(pos, AI::spiral_dist(4), Map::ObjectTree0, Map::ObjectPine7, "lt_green");
-		AILogLogger["do_build_rangers"] << name << " lumberjack trees nearby count: " << count << ", min acceptable is " << AI::near_trees_min;
-		if (count >= AI::near_trees_min)
+		AILogLogger["do_build_rangers"] << name << " lumberjack trees nearby count: " << count << ", min acceptable is " << near_trees_min;
+		if (count >= near_trees_min)
 			continue;
 		if (AI::building_exists_near_pos(pos, AI::spiral_dist(6), Building::TypeForester))
 			continue;
@@ -2188,7 +2173,7 @@ AI::do_build_sawmill_lumberjacks() {
 			for (MapPos corner_pos : corners) {
 				unsigned int count = AI::count_objects_near_pos(corner_pos, AI::spiral_dist(4), Map::ObjectTree0, Map::ObjectPine7, "lt_green");
 				//AILogLogger["do_build_sawmill_lumberjacks"] << name << " corner has count: " << count << ", min acceptable is " << AI::near_trees_min;
-				if (count >= AI::near_trees_min) {
+				if (count >= near_trees_min) {
 					count_by_corner.insert(std::make_pair(corner_pos, count));
 				}
 			}
@@ -2336,7 +2321,7 @@ AI::do_build_stonecutter() {
 	//ai_mark_pos.clear();
 	unsigned int stones_count = stock_inv->get_count_of(Resource::TypeStone);
 	//AILogLogger["do_build_stonecutter"] << name << " AI: has " << stones_count << " stones";
-	if (stones_count < AI::stones_min) {
+	if (stones_count < stones_min) {
 		AILogLogger["do_build_stonecutter"] << name << " AI: desire more stones";
 		// count stones near military buildings
 		MapPosSet count_by_corner;
@@ -2350,8 +2335,8 @@ AI::do_build_stonecutter() {
 			MapPosVector corners = AI::get_corners(center_pos);
 			for (MapPos corner_pos : corners) {
 				unsigned int count = AI::count_stones_near_pos(corner_pos, AI::spiral_dist(4));
-				//AILogLogger["do_build_stonecutter"] << name << " corner has count: " << count << ", min acceptable is " << AI::near_stones_min;
-				if (count >= AI::near_stones_min) {
+				//AILogLogger["do_build_stonecutter"] << name << " corner has count: " << count << ", min acceptable is " << near_stones_min;
+				if (count >= near_stones_min) {
 					count_by_corner.insert(std::make_pair(corner_pos, count));
 				}
 			}
@@ -2366,7 +2351,7 @@ AI::do_build_stonecutter() {
 					MapPos pos = map->pos_add_extended_spirally(corner_pos, i);
 					//unsigned int count = AI::count_stones_near_pos(pos, AI::spiral_dist(4), Map::ObjectStone0, Map::ObjectStone7, "gray");
 					unsigned int count = AI::count_stones_near_pos(pos, AI::spiral_dist(4));
-					if (count < AI::near_stones_min) {
+					if (count < near_stones_min) {
 						continue;
 					}
 					// try each specific pos one at a time
@@ -2505,7 +2490,7 @@ AI::do_build_food_buildings_and_3rd_lumberjack() {
 			MapPosVector corners = AI::get_corners(center_pos);
 			for (MapPos corner_pos : corners) {
 				unsigned int count = AI::count_terrain_near_pos(corner_pos, AI::spiral_dist(4), Map::TerrainWater0, Map::TerrainWater3, "dk_blue");
-				if (count >= AI::waters_min) {
+				if (count >= waters_min) {
 					if (!AI::building_exists_near_pos(corner_pos, AI::spiral_dist(8), Building::TypeFisher)) {
 						AILogLogger["do_build_food_buildings_and_3rd_lumberjack"] << name << " water found and no fisherman nearby, trying to build fisherman";
 						built_pos = bad_map_pos;
@@ -2699,7 +2684,7 @@ AI::do_build_food_buildings_and_3rd_lumberjack() {
 			for (MapPos corner_pos : corners) {
 				unsigned int count = AI::count_objects_near_pos(corner_pos,
 					AI::spiral_dist(4), Map::ObjectTree0, Map::ObjectPine7, "lt_green");
-				if (count >= AI::near_trees_min) {
+				if (count >= near_trees_min) {
 					count_by_corner.insert(std::make_pair(corner_pos, count));
 				}
 			}
@@ -2752,8 +2737,8 @@ AI::do_build_food_buildings_and_3rd_lumberjack() {
 				unsigned int count = 0;
 				count += AI::count_objects_near_pos(farm_pos, AI::spiral_dist(4), Map::ObjectSeeds0, Map::ObjectFieldExpired, "yellow");
 				count += AI::count_objects_near_pos(farm_pos, AI::spiral_dist(4), Map::ObjectField0, Map::ObjectField5, "dk_yellow");
-				AILogLogger["do_build_food_buildings_and_3rd_lumberjack"] << name << " farm at pos " << farm_pos << " fields nearby count: " << count << ", min acceptable is " << AI::near_fields_min;
-				if (count < AI::near_fields_min)
+				AILogLogger["do_build_food_buildings_and_3rd_lumberjack"] << name << " farm at pos " << farm_pos << " fields nearby count: " << count << ", min acceptable is " << near_fields_min;
+				if (count < near_fields_min)
 					continue;
 
 				// build grain mill near farm
