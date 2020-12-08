@@ -301,7 +301,7 @@ void
 AI::next_loop(){
 	AILogLogger["next_loop"] << name << " inside AI::next_loop()";
 	loop_count++;
-	
+
 	ai_status.assign("SLEEPING_AT_START");
 	AILogLogger["next_loop"] << name << " sleeping 6sec at start of new loop";
 	std::this_thread::sleep_for(std::chrono::milliseconds(6000));
@@ -1363,16 +1363,16 @@ AI::do_send_geologists() {
 		for (MapPos corner_pos : corners) {
 			AILogLogger["do_send_geologists"] << name << " considering corner_pos " << corner_pos;
 			// i'm not sure why Snow0 is valid for mining, it seems to be the edge where hill meets snow
-			unsigned int count = AI::count_terrain_near_pos(corner_pos, AI::spiral_dist(4), Map::TerrainTundra0, Map::TerrainSnow0, "orange");
+			unsigned int count = AI::count_empty_terrain_near_pos(corner_pos, AI::spiral_dist(4), Map::TerrainTundra0, Map::TerrainSnow0, "orange");
 			//AILogLogger["do_send_geologists"] << name << " corner has hills count: " << count << ", min acceptable is " << hills_min;
 			if (count >= hills_min) {
-				// count the number of signs of any type, and the number of hills
+				// count the number of signs of any type, and the number of hills that have no blocking objects (signs are okay, they are not blocking)
 				double signs_count = AI::count_objects_near_pos(corner_pos, AI::spiral_dist(4), Map::ObjectSignLargeGold, Map::ObjectSignSmallStone, "dk_orange");
-				double hills_count = AI::count_terrain_near_pos(corner_pos, AI::spiral_dist(4), Map::TerrainTundra0, Map::TerrainSnow0, "orange");
-				double sign_density = signs_count / hills_count;
-				AILogLogger["do_send_geologists"] << name << " corner has signs_count: " << signs_count << ", hills_count: " << hills_count << ", sign_density: " << sign_density << ", min is " << geologist_sign_density_min;
-				if (sign_density >= geologist_sign_density_min) {
-					AILogLogger["do_send_geologists"] << name << " sign density " << sign_density << " is over geologist_sign_density_min " << geologist_sign_density_min << ".  De-prioritizing this area for geologists";
+				double empty_hills_count = AI::count_empty_terrain_near_pos(corner_pos, AI::spiral_dist(4), Map::TerrainTundra0, Map::TerrainSnow0, "orange");
+				double sign_density = signs_count / empty_hills_count;
+				AILogLogger["do_send_geologists"] << name << " corner with center pos " << corner_pos << " has signs_count: " << signs_count << ", empty_hills_count: " << empty_hills_count << ", sign_density: " << sign_density << ", deprioritize at " << geologist_sign_density_deprio;
+				if (sign_density >= geologist_sign_density_deprio) {
+					AILogLogger["do_send_geologists"] << name << " sign density " << sign_density << " is over geologist_sign_density_deprio " << geologist_sign_density_deprio << ".  De-prioritizing this area for geologists";
 					count = count / 3;
 				}
 				// now using sign_density instead of "flag already exists"
@@ -1470,6 +1470,19 @@ AI::do_send_geologists() {
 					Flag *flag = game->get_flag_at_pos(pos);
 					if (flag == nullptr)
 						continue;
+					// check once again for sign density, but this time centered around the Flag rather than the corner that the flag is near
+					//  this is to avoid issue where geologists keep being sent to a flag that is already near 100% sign density, but the corner 
+					//   itself is not.  ALSO, corner sign_density only affects corner priority, it does not totally disqualify a corner like this can
+					// should also check for number of geologists operating in area around flag and disqualify?
+					AILogLogger["do_send_geologists"] << name << " checking sign_density around flag at " << pos << ", near corner_pos " << corner_pos;
+					double signs_count = AI::count_objects_near_pos(corner_pos, AI::spiral_dist(4), Map::ObjectSignLargeGold, Map::ObjectSignSmallStone, "dk_orange");
+					double empty_hills_count = AI::count_empty_terrain_near_pos(corner_pos, AI::spiral_dist(4), Map::TerrainTundra0, Map::TerrainSnow0, "orange");
+					double sign_density = signs_count / empty_hills_count;
+					AILogLogger["do_send_geologists"] << name << " flag at pos " << pos << ", near corner with center pos " << corner_pos << " has signs_count: " << signs_count << ", empty_hills_count: " << empty_hills_count << ", sign_density: " << sign_density << ", max is at " << geologist_sign_density_max;
+					if (sign_density >= geologist_sign_density_max) {
+						AILogLogger["do_send_geologists"] << name << " sign density " << sign_density << " is over geologist_sign_density_max " << geologist_sign_density_max << ", not sending geologist to this flag";
+						continue;
+					}
 					if (idle_geologists >= 1) {
 						AILogLogger["do_send_geologists"] << name << " sending an idle geologist to pos " << pos;
 						idle_geologists--;
@@ -1883,6 +1896,12 @@ AI::do_manage_mine_food_priorities() {
 	unsigned int coal_count = realm_inv[Resource::TypeCoal];
 	unsigned int iron_ore_count = realm_inv[Resource::TypeIronOre];
 	unsigned int gold_ore_count = realm_inv[Resource::TypeGoldOre];
+	//6550 is.. zero? mear zero?
+	// default food priorities:
+	//food_stonemine = 13100;
+	//food_coalmine = 45850;
+	//food_ironmine = 45850;
+	//food_goldmine = 65500;
 	if (coal_count > coal_min) {
 		AILogLogger["do_manage_mine_food_priorities"] << name << " coal_count " << coal_count << " is greater than coal_min " << coal_min << ", greatly reducing food priority to coal mines";
 		player->set_food_coalmine(6550);
@@ -1894,6 +1913,12 @@ AI::do_manage_mine_food_priorities() {
 	if (gold_ore_count > gold_ore_min) {
 		AILogLogger["do_manage_mine_food_priorities"] << name << " gold_ore_count " << gold_ore_count << " is greater than gold_ore_min " << gold_ore_min << ", greatly reducing food priority to gold mines";
 		player->set_food_goldmine(6550);
+	}
+	// avoid issue where all food goes to gold mining while running out of knights
+	unsigned int idle_knights = serfs_idle[Serf::TypeKnight0] + serfs_idle[Serf::TypeKnight1] + serfs_idle[Serf::TypeKnight2] + serfs_idle[Serf::TypeKnight3] + serfs_idle[Serf::TypeKnight4];
+	if (idle_knights <= knights_min) {
+		// set gold food prio to less than coal or iron would be if needed
+		player->set_food_goldmine(25000);
 	}
 }
 
@@ -2072,12 +2097,12 @@ AI::do_place_mines(std::string type, Building::Type building_type, Map::Object l
 			for (MapPos corner_pos : corners) {
 				// count the number of signs of any type
 				double signs_count = AI::count_objects_near_pos(corner_pos, AI::spiral_dist(4), Map::ObjectSignLargeGold, Map::ObjectSignSmallStone, "dk_orange");
-				// count the number of hills
-				double hills_count = AI::count_terrain_near_pos(corner_pos, AI::spiral_dist(4), Map::TerrainTundra0, Map::TerrainSnow0, "orange");
-				if (signs_count < 1 || hills_count < 1)
+				// count the number of empty hills (no blocking objects)
+				double empty_hills_count = AI::count_empty_terrain_near_pos(corner_pos, AI::spiral_dist(4), Map::TerrainTundra0, Map::TerrainSnow0, "orange");
+				if (signs_count < 1 || empty_hills_count < 1)
 					continue;
-				double sign_density = signs_count / hills_count;
-				AILogLogger["do_place_mines"] << name << " " << type << " mine: corner has signs_count: " << signs_count << ", hills_count: " << hills_count << ", sign_density: " << sign_density << ", min is " << sign_density_min;
+				double sign_density = signs_count / empty_hills_count;
+				AILogLogger["do_place_mines"] << name << " " << type << " mine:  corner with center pos " << corner_pos << " has signs_count: " << signs_count << ", empty_hills_count: " << empty_hills_count << ", sign_density: " << sign_density << ", min is " << sign_density_min;
 				if (sign_density >= sign_density_min) {
 					AILogLogger["do_place_mines"] << name << " sign density " << sign_density << " is over sign_density_min " << sign_density_min;
 				}

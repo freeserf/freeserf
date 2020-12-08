@@ -132,7 +132,7 @@ protected:
 	static const unsigned int geologists_max = 4; // try not to create more geologists if have this many, hard to tell if they are out working
 	
 	// deprioritize sending geologists to area where signs density is over this amount (prefer send geologists to unevaluated areas)
-	static constexpr double geologist_sign_density_min = 0.50; 
+	static constexpr double geologist_sign_density_deprio = 0.50; 
 
 	// don't build mines on Small resource signs until this ratio of potential resource signs are placed.
 	//    until this % of signs placed, only build if you find a Large resource sign
@@ -214,6 +214,7 @@ private:
 	MapPosVector get_corners(MapPos);
 	MapPosVector get_corners(MapPos, unsigned int distance);
 	unsigned int count_terrain_near_pos(MapPos, unsigned int, Map::Terrain, Map::Terrain, std::string);
+	unsigned int count_empty_terrain_near_pos(MapPos, unsigned int, Map::Terrain, Map::Terrain, std::string);
 	unsigned int count_farmable_land(MapPos, unsigned int, std::string);
 	unsigned int count_objects_near_pos(MapPos, unsigned int, Map::Object, Map::Object, std::string);
 	MapPosVector sort_by_val_asc(MapPosSet);
@@ -332,7 +333,9 @@ static const unsigned int hammers_min = 6; // don't create geologists unless thi
 static const unsigned int geologists_max = 4; // try not to create more geologists if have this many, hard to tell if they are out working
 
 // deprioritize sending geologists to area where signs density is over this amount (prefer send geologists to unevaluated areas)
-static constexpr double geologist_sign_density_min = 0.50; 
+static constexpr double geologist_sign_density_deprio = 0.50; 
+// never send geologists to a flag that has a sign_density over this amount
+static constexpr double geologist_sign_density_max = 0.80;
 
 // don't build mines on Small resource signs until this ratio of potential resource signs are placed.
 //    until this % of signs placed, only build if you find a Large resource sign
