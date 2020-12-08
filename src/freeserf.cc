@@ -96,7 +96,6 @@ main(int argc, char *argv[]) {
   if (!data.load(data_dir)) {
     Log::Error["main"] << "Could not load game data.";
     #ifdef WIN32
-     //p1plp1_throw_exception_win32_if_missing_SPA_data
      int msgboxID = SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR,"FreeSerf","missing SPA*.PA",NULL);
     #endif
     return EXIT_FAILURE;
@@ -106,12 +105,13 @@ main(int argc, char *argv[]) {
 
   Graphics &gfx = Graphics::get_instance();
 
+//tlongstretch - disabling audio to debug linux build
   /* TODO move to right place */
-  Audio &audio = Audio::get_instance();
-  Audio::PPlayer player = audio.get_music_player();
-  if (player) {
-    Audio::PTrack t = player->play_track(Audio::TypeMidiTrack0);
-  }
+//  Audio &audio = Audio::get_instance();
+//  Audio::PPlayer player = audio.get_music_player();
+//  if (player) {
+//    Audio::PTrack t = player->play_track(Audio::TypeMidiTrack0);
+//  }
 
   GameManager &game_manager = GameManager::get_instance();
 

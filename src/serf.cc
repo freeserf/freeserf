@@ -2917,7 +2917,6 @@ Serf::handle_free_walking_common() {
   }
 
   /* Check if dest is only one step away. */
-  //dec05 2020 got a read access violation here after loading a saved game, happens every time 
   if (!water && abs(d1) <= 1 && abs(d2) <= 1 &&
       dir_from_offset[(d1+1) + 3*(d2+1)] > DirectionNone) {
     /* Convert offset in two dimensions to
@@ -5309,10 +5308,12 @@ Serf::update() {
 
 void
 Serf::fix_bad_animation() {
+//Serf::fix_bad_animation(Serf &serf,  MapPos pos, int x_base, int y_base) {
   /* Transporting (turning?) (110-115) */
+  //animation = 110 + s.walking.dir;
   animation = 110;
   counter = counter_from_animation[animation]; 
-  Log::Debug["serf"] << "Serf::fix_bad_animation, fixing serf animation to: " <<  animation << " counter: "<< counter;
+  Log::Info["Serf::fix_bad_animation"] << "fixing serf animation to: " <<  animation << " counter: "<< counter;
 }
 
 

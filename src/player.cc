@@ -22,6 +22,7 @@
 #include "src/player.h"
 
 #include <algorithm>
+#include <thread>
 
 #include "src/game.h"
 #include "src/log.h"

@@ -59,7 +59,8 @@ class Game {
   typedef std::list<Serf*> ListSerfs;
   typedef std::list<Building*> ListBuildings;
   typedef std::list<Inventory*> ListInventories;
-  typedef Collection<Player, 5> Players;
+  // found this in public and protected... does AI need it?  trying as protected only first
+  //typedef Collection<Player, 5> Players;
 
  protected:
   // moved to outside of Game class so AI can use the Flags typedef
@@ -67,6 +68,7 @@ class Game {
   typedef Collection<Inventory, 100> Inventories;
   typedef Collection<Building, 1000> Buildings;
   typedef Collection<Serf, 5000> Serfs;
+  // found this in public and protected... does AI need it?  trying as protected only first
   typedef Collection<Player, 5> Players;
 
   PMap map;

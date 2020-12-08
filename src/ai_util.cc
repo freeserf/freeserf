@@ -284,7 +284,10 @@ AI::update_stocks_pos() {
 		MapPos stock_flag_pos = map->move_down_right(building->get_position());
 		AILogLogger["util_update_stocks_pos"] << name << " the castle or a completed, connected warehouse/stock was found at pos " << building->get_position() << ", with its flag at pos " << stock_flag_pos;
 		stocks_pos.push_back(stock_flag_pos);
-		stock_buildings[stock_flag_pos] = { {0},{0},{0},{0},0,0,{} };
+		//stock_buildings[stock_flag_pos] = { {0},{0},{0},{0},0,0,{} }
+		//stock_buildings.insert(std::make_pair<MapPos, AI::StockBuildings>(stock_flag_pos,AI::StockBuildings{ {0},{0},{0},{0},0,0,{} }));
+		stock_buildings[stock_flag_pos];
+		//stock_buildings.insert(stock_flag_pos, *(new AI::StockBuildings));
 	}
 	AILogLogger["util_update_stocks_pos"] << name << " done AI::update_stocks_pos";
 	duration = (std::clock() - start) / (double)CLOCKS_PER_SEC;
@@ -1582,10 +1585,11 @@ AI::count_farmable_land(MapPos center_pos, unsigned int distance, std::string co
 }
 
 
-// sort a MapPosSet by value, ascending, and return as a vector (throwing the actual values away)
+// sort a MapPosSet by value, ascending, and return as sorted vector of the keys (throwing the values away)
 MapPosVector
 AI::sort_by_val_asc(MapPosSet set) {
 	AILogLogger["util_sort_by_val_asc"] << name << " inside AI::sort_by_val_asc";
+	// this is C++14 only?  worked on visual studio 2017 on windows but not VC code w/gcc on linux
 	auto cmp = [](const auto &p1, const auto &p2) { return p2.second > p1.second || !(p1.second > p2.second) && p1.first > p2.first; };
 	std::set< std::pair<MapPos, unsigned int>, decltype(cmp)> sorted_set(set.begin(), set.end(), cmp);
 	MapPosVector sorted_vector;
@@ -1596,7 +1600,7 @@ AI::sort_by_val_asc(MapPosSet set) {
 	return sorted_vector;
 }
 
-// sort a MapPosSet by value, descending, and return as a vector (throwing the actual values away)
+// sort a MapPosSet by value, descending, and return as sorted vector of the keys (throwing the values away)
 MapPosVector
 AI::sort_by_val_desc(MapPosSet set) {
 	AILogLogger["util_sort_by_val_desc"] << name << " inside AI::sort_by_val_desc";
