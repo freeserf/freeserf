@@ -1567,8 +1567,9 @@ AI::count_empty_terrain_near_pos(MapPos center_pos, unsigned int distance, Map::
 			// exclude tiles with blocking objects (anything not on this list)
 			if (obj_type == Map::ObjectNone
 				|| (obj_type >= Map::ObjectFieldExpired && obj_type <= Map::ObjectSignSmallStone)) {
-			//AILogLogger["util_count_empty_terrain_near_pos"] << name << " AI: found matching empty terrain at pos " << pos;
-			++count;
+				//AILogLogger["util_count_empty_terrain_near_pos"] << name << " AI: found matching empty terrain at pos " << pos;
+				++count;
+			}
 		}
 	}
 	//AILogLogger["util_count_empty_terrain_near_pos"] << name << " AI: found count " << count << " matching empty terrain of types " << NameTerrain[res_start_index] << " - " << NameTerrain[res_end_index];
