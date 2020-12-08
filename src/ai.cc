@@ -1363,7 +1363,7 @@ AI::do_send_geologists() {
 		for (MapPos corner_pos : corners) {
 			AILogLogger["do_send_geologists"] << name << " considering corner_pos " << corner_pos;
 			// i'm not sure why Snow0 is valid for mining, it seems to be the edge where hill meets snow
-			unsigned int count = AI::count_terrain_near_pos(corner_pos, AI::spiral_dist(4), Map::TerrainTundra0, Map::TerrainSnow0, "orange");
+			unsigned int count = AI::count_empty_terrain_near_pos(corner_pos, AI::spiral_dist(4), Map::TerrainTundra0, Map::TerrainSnow0, "orange");
 			//AILogLogger["do_send_geologists"] << name << " corner has hills count: " << count << ", min acceptable is " << hills_min;
 			if (count >= hills_min) {
 				// count the number of signs of any type, and the number of hills that have no blocking objects (signs are okay, they are not blocking)
@@ -2085,12 +2085,12 @@ AI::do_place_mines(std::string type, Building::Type building_type, Map::Object l
 			for (MapPos corner_pos : corners) {
 				// count the number of signs of any type
 				double signs_count = AI::count_objects_near_pos(corner_pos, AI::spiral_dist(4), Map::ObjectSignLargeGold, Map::ObjectSignSmallStone, "dk_orange");
-				// count the number of hills
-				double hills_count = AI::count_terrain_near_pos(corner_pos, AI::spiral_dist(4), Map::TerrainTundra0, Map::TerrainSnow0, "orange");
-				if (signs_count < 1 || hills_count < 1)
+				// count the number of empty hills (no blocking objects)
+				double empty_hills_count = AI::count_empty_terrain_near_pos(corner_pos, AI::spiral_dist(4), Map::TerrainTundra0, Map::TerrainSnow0, "orange");
+				if (signs_count < 1 || empty_hills_count < 1)
 					continue;
-				double sign_density = signs_count / hills_count;
-				AILogLogger["do_place_mines"] << name << " " << type << " mine:  corner with center pos " << corner_pos << " has signs_count: " << signs_count << ", hills_count: " << hills_count << ", sign_density: " << sign_density << ", min is " << sign_density_min;
+				double sign_density = signs_count / empty_hills_count;
+				AILogLogger["do_place_mines"] << name << " " << type << " mine:  corner with center pos " << corner_pos << " has signs_count: " << signs_count << ", empty_hills_count: " << empty_hills_count << ", sign_density: " << sign_density << ", min is " << sign_density_min;
 				if (sign_density >= sign_density_min) {
 					AILogLogger["do_place_mines"] << name << " sign density " << sign_density << " is over sign_density_min " << sign_density_min;
 				}
