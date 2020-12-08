@@ -1,21 +1,13 @@
-Freeserf
+https://github.com/freeserf/freeserf/wiki/AI---first-release
+https://github.com/freeserf/freeserf/wiki/AI-road-building-logic-and-features
+https://github.com/freeserf/freeserf/wiki/Building-from-Source-on-Windows
+
+Freeserf-with-AI-plus
 ========
 
 Build status
 ------------
-
-[![Build Status](https://travis-ci.org/freeserf/freeserf.svg?branch=master)](https://travis-ci.org/freeserf/freeserf)
-[![Build Status](https://ci.appveyor.com/api/projects/status/github/freeserf/freeserf?branch=master&svg=true)](https://ci.appveyor.com/project/jonls/freeserf)
-
-Last build downloads
---------------------
-* [Windows Installer x86](https://ci.appveyor.com/api/projects/jonls/freeserf/artifacts/FreeSerf-x86-Release.exe?branch=master&pr=false&job=Configuration%3A%20Release%3B%20Platform%3A%20x86)
-* [Windows Installer x64](https://ci.appveyor.com/api/projects/jonls/freeserf/artifacts/FreeSerf-x64-Release.exe?branch=master&pr=false&job=Configuration%3A%20Release%3B%20Platform%3A%20x64)
-* [Linux Sources TAR.Z](https://s3.amazonaws.com/freeserf/freeserf/freeserf/master/FreeSerf.tar.Z)
-* [Linux Sources TAR.BZ2](https://s3.amazonaws.com/freeserf/freeserf/freeserf/master/FreeSerf.tar.bz2)
-* [Linux Sources TAR.GZ](https://s3.amazonaws.com/freeserf/freeserf/freeserf/master/FreeSerf.tar.gz)
-* [Linux Sources TAR.XZ](https://s3.amazonaws.com/freeserf/freeserf/freeserf/master/FreeSerf.tar.xz)
-* [macOS Disk Image](https://s3.amazonaws.com/freeserf/freeserf/freeserf/master/FreeSerf.dmg)
+binary distribution not yet available for AI enabled freeserf, must compile until I set it up
 
 Play
 ------
@@ -33,6 +25,7 @@ Keyboard gameplay controls:
 * `0`: Reset game speed.
 * `p`: Pause game.
 * `j`: Switch player.
+* `y`; AI debug overlay
 
 Other keyboard controls:
 
