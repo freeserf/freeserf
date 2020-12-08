@@ -214,6 +214,7 @@ private:
 	MapPosVector get_corners(MapPos);
 	MapPosVector get_corners(MapPos, unsigned int distance);
 	unsigned int count_terrain_near_pos(MapPos, unsigned int, Map::Terrain, Map::Terrain, std::string);
+	unsigned int count_empty_terrain_near_pos(MapPos, unsigned int, Map::Terrain, Map::Terrain, std::string);
 	unsigned int count_farmable_land(MapPos, unsigned int, std::string);
 	unsigned int count_objects_near_pos(MapPos, unsigned int, Map::Object, Map::Object, std::string);
 	MapPosVector sort_by_val_asc(MapPosSet);

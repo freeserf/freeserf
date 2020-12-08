@@ -1366,11 +1366,11 @@ AI::do_send_geologists() {
 			unsigned int count = AI::count_terrain_near_pos(corner_pos, AI::spiral_dist(4), Map::TerrainTundra0, Map::TerrainSnow0, "orange");
 			//AILogLogger["do_send_geologists"] << name << " corner has hills count: " << count << ", min acceptable is " << hills_min;
 			if (count >= hills_min) {
-				// count the number of signs of any type, and the number of hills
+				// count the number of signs of any type, and the number of hills that have no blocking objects (signs are okay, they are not blocking)
 				double signs_count = AI::count_objects_near_pos(corner_pos, AI::spiral_dist(4), Map::ObjectSignLargeGold, Map::ObjectSignSmallStone, "dk_orange");
-				double hills_count = AI::count_terrain_near_pos(corner_pos, AI::spiral_dist(4), Map::TerrainTundra0, Map::TerrainSnow0, "orange");
-				double sign_density = signs_count / hills_count;
-				AILogLogger["do_send_geologists"] << name << " corner with center pos " << corner_pos << " has signs_count: " << signs_count << ", hills_count: " << hills_count << ", sign_density: " << sign_density << ", min is " << geologist_sign_density_deprio;
+				double empty_hills_count = AI::count_empty_terrain_near_pos(corner_pos, AI::spiral_dist(4), Map::TerrainTundra0, Map::TerrainSnow0, "orange");
+				double sign_density = signs_count / empty_hills_count;
+				AILogLogger["do_send_geologists"] << name << " corner with center pos " << corner_pos << " has signs_count: " << signs_count << ", empty_hills_count: " << empty_hills_count << ", sign_density: " << sign_density << ", deprioritize at " << geologist_sign_density_deprio;
 				if (sign_density >= geologist_sign_density_deprio) {
 					AILogLogger["do_send_geologists"] << name << " sign density " << sign_density << " is over geologist_sign_density_deprio " << geologist_sign_density_deprio << ".  De-prioritizing this area for geologists";
 					count = count / 3;
@@ -1476,11 +1476,11 @@ AI::do_send_geologists() {
 					// should also check for number of geologists operating in area around flag and disqualify?
 					AILogLogger["do_send_geologists"] << name << " checking sign_density around flag at " << pos << ", near corner_pos " << corner_pos;
 					double signs_count = AI::count_objects_near_pos(corner_pos, AI::spiral_dist(4), Map::ObjectSignLargeGold, Map::ObjectSignSmallStone, "dk_orange");
-					double hills_count = AI::count_terrain_near_pos(corner_pos, AI::spiral_dist(4), Map::TerrainTundra0, Map::TerrainSnow0, "orange");
-					double sign_density = signs_count / hills_count;
-					AILogLogger["do_send_geologists"] << name << " flag at pos " << pos << ", near corner with center pos " << corner_pos << " has signs_count: " << signs_count << ", hills_count: " << hills_count << ", sign_density: " << sign_density << ", min is " << geologist_sign_density_deprio;
+					double empty_hills_count = AI::count_empty_terrain_near_pos(corner_pos, AI::spiral_dist(4), Map::TerrainTundra0, Map::TerrainSnow0, "orange");
+					double sign_density = signs_count / empty_hills_count;
+					AILogLogger["do_send_geologists"] << name << " flag at pos " << pos << ", near corner with center pos " << corner_pos << " has signs_count: " << signs_count << ", empty_hills_count: " << empty_hills_count << ", sign_density: " << sign_density << ", max is at " << geologist_sign_density_max;
 					if (sign_density >= geologist_sign_density_max) {
-						AILogLogger["do_send_geologists"] << name << " sign density " << sign_density << " is over geologist_sign_density_max " << geologist_sign_density_deprio << ", not sending geologist to this flag";
+						AILogLogger["do_send_geologists"] << name << " sign density " << sign_density << " is over geologist_sign_density_max " << geologist_sign_density_max << ", not sending geologist to this flag";
 						continue;
 					}
 					if (idle_geologists >= 1) {

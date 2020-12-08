@@ -1548,6 +1548,33 @@ AI::count_terrain_near_pos(MapPos center_pos, unsigned int distance, Map::Terrai
 	return count;
 }
 
+// return count of terrain tiles of the specified type range, like hills (Tundra)...
+//   ... that have NO hard objects on them (flags, buildings, stones, etc.).  Paths are acceptable
+//  initially only used for hill/sign ratios
+// this function is almost identical to count_farmable_land except it doesn't include existing wheat fiels
+//  maybe merge them?  Or make this one geologist/hill-specific
+unsigned int
+AI::count_empty_terrain_near_pos(MapPos center_pos, unsigned int distance, Map::Terrain res_start_index, Map::Terrain res_end_index, std::string color) {
+	AILogLogger["util_count_empty_terrain_near_pos"] << name << " inside count_terrain_near_pos";
+	//AILogLogger["util_count_empty_terrain_near_pos"] << name << " AI: inside AI::count_empty_terrain_near_pos";
+	//AILogLogger["util_count_empty_terrain_near_pos"] << name << " AI: center_pos " << center_pos << ", distance " << distance << ", res_start_index " << NameTerrain[res_start_index] << ", res_end_index " << NameTerrain[res_end_index];
+	unsigned int count = 0;
+	for (unsigned int i = 0; i < distance; i++) {
+		MapPos pos = map->pos_add_extended_spirally(center_pos, i);
+		//AILogLogger["util_count_empty_terrain_near_pos"] << name << " AI: terrain at pos " << pos << " has type " << terrain;
+		if (AI::has_terrain_type(game, pos, res_start_index, res_end_index)) {
+			Map::Object obj_type = map->get_obj(pos);
+			// exclude tiles with blocking objects (anything not on this list)
+			if (obj_type == Map::ObjectNone
+				|| (obj_type >= Map::ObjectFieldExpired && obj_type <= Map::ObjectSignSmallStone)) {
+			//AILogLogger["util_count_empty_terrain_near_pos"] << name << " AI: found matching empty terrain at pos " << pos;
+			++count;
+		}
+	}
+	//AILogLogger["util_count_empty_terrain_near_pos"] << name << " AI: found count " << count << " matching empty terrain of types " << NameTerrain[res_start_index] << " - " << NameTerrain[res_end_index];
+	return count;
+}
+
 // count farmable land  - count the number of grass tiles, with no paths, 
 //     and no obstacles (other than existing wheat fields)
 unsigned int
