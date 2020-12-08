@@ -301,7 +301,7 @@ void
 AI::next_loop(){
 	AILogLogger["next_loop"] << name << " inside AI::next_loop()";
 	loop_count++;
-	
+
 	ai_status.assign("SLEEPING_AT_START");
 	AILogLogger["next_loop"] << name << " sleeping 6sec at start of new loop";
 	std::this_thread::sleep_for(std::chrono::milliseconds(6000));
