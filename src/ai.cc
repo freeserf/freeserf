@@ -1370,9 +1370,9 @@ AI::do_send_geologists() {
 				double signs_count = AI::count_objects_near_pos(corner_pos, AI::spiral_dist(4), Map::ObjectSignLargeGold, Map::ObjectSignSmallStone, "dk_orange");
 				double hills_count = AI::count_terrain_near_pos(corner_pos, AI::spiral_dist(4), Map::TerrainTundra0, Map::TerrainSnow0, "orange");
 				double sign_density = signs_count / hills_count;
-				AILogLogger["do_send_geologists"] << name << " corner has signs_count: " << signs_count << ", hills_count: " << hills_count << ", sign_density: " << sign_density << ", min is " << geologist_sign_density_min;
-				if (sign_density >= geologist_sign_density_min) {
-					AILogLogger["do_send_geologists"] << name << " sign density " << sign_density << " is over geologist_sign_density_min " << geologist_sign_density_min << ".  De-prioritizing this area for geologists";
+				AILogLogger["do_send_geologists"] << name << " corner with center pos " << corner_pos << " has signs_count: " << signs_count << ", hills_count: " << hills_count << ", sign_density: " << sign_density << ", min is " << geologist_sign_density_deprio;
+				if (sign_density >= geologist_sign_density_deprio) {
+					AILogLogger["do_send_geologists"] << name << " sign density " << sign_density << " is over geologist_sign_density_deprio " << geologist_sign_density_deprio << ".  De-prioritizing this area for geologists";
 					count = count / 3;
 				}
 				// now using sign_density instead of "flag already exists"
@@ -1470,6 +1470,19 @@ AI::do_send_geologists() {
 					Flag *flag = game->get_flag_at_pos(pos);
 					if (flag == nullptr)
 						continue;
+					// check once again for sign density, but this time centered around the Flag rather than the corner that the flag is near
+					//  this is to avoid issue where geologists keep being sent to a flag that is already near 100% sign density, but the corner 
+					//   itself is not.  ALSO, corner sign_density only affects corner priority, it does not totally disqualify a corner like this can
+					// should also check for number of geologists operating in area around flag and disqualify?
+					AILogLogger["do_send_geologists"] << name << " checking sign_density around flag at " << pos << ", near corner_pos " << corner_pos;
+					double signs_count = AI::count_objects_near_pos(corner_pos, AI::spiral_dist(4), Map::ObjectSignLargeGold, Map::ObjectSignSmallStone, "dk_orange");
+					double hills_count = AI::count_terrain_near_pos(corner_pos, AI::spiral_dist(4), Map::TerrainTundra0, Map::TerrainSnow0, "orange");
+					double sign_density = signs_count / hills_count;
+					AILogLogger["do_send_geologists"] << name << " flag at pos " << pos << ", near corner with center pos " << corner_pos << " has signs_count: " << signs_count << ", hills_count: " << hills_count << ", sign_density: " << sign_density << ", min is " << geologist_sign_density_deprio;
+					if (sign_density >= geologist_sign_density_max) {
+						AILogLogger["do_send_geologists"] << name << " sign density " << sign_density << " is over geologist_sign_density_max " << geologist_sign_density_deprio << ", not sending geologist to this flag";
+						continue;
+					}
 					if (idle_geologists >= 1) {
 						AILogLogger["do_send_geologists"] << name << " sending an idle geologist to pos " << pos;
 						idle_geologists--;
@@ -2077,7 +2090,7 @@ AI::do_place_mines(std::string type, Building::Type building_type, Map::Object l
 				if (signs_count < 1 || hills_count < 1)
 					continue;
 				double sign_density = signs_count / hills_count;
-				AILogLogger["do_place_mines"] << name << " " << type << " mine: corner has signs_count: " << signs_count << ", hills_count: " << hills_count << ", sign_density: " << sign_density << ", min is " << sign_density_min;
+				AILogLogger["do_place_mines"] << name << " " << type << " mine:  corner with center pos " << corner_pos << " has signs_count: " << signs_count << ", hills_count: " << hills_count << ", sign_density: " << sign_density << ", min is " << sign_density_min;
 				if (sign_density >= sign_density_min) {
 					AILogLogger["do_place_mines"] << name << " sign density " << sign_density << " is over sign_density_min " << sign_density_min;
 				}
