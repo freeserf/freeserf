@@ -309,12 +309,10 @@ AI::next_loop(){
 	AILogLogger["next_loop"] << name << ", starting AI loop #" << loop_count;
 
 	do_place_castle();
-	//do_save_game();   // enable to automatically save game every X turns
+	do_save_game();   // enable to automatically save game every X turns
 	do_update_clear_reset();
-	//do_locate_military_buildings();  deprecated, replaced with update_building_counts expansion
 	update_stocks_pos();
 	update_building_counts();
-	//do_get_inventories();  move this to inside warehouse/stock loop
 	do_get_inventory(castle_pos);
 	do_get_serfs();
 	do_debug_building_triggers();
