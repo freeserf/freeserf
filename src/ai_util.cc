@@ -1840,7 +1840,7 @@ AI::count_stones_near_pos(MapPos center_pos, unsigned int distance) {
 }
 
 // count the number of knights that would be sent out if occupation level is changed, to avoid depleting the reserve of idle_knights
-//    this might not be working right as I see knights constantly cycling in and out of castle
+//  this function only counts the **TARGET** levels, ignoring if that many knights are actually available and/or currently in buildings
 unsigned int
 AI::count_knights_affected_by_occupation_level_change(unsigned int current_level, unsigned int new_level) {
 	AILogLogger["util_count_knights_affected_by_occupation_level_change"] << name << " inside count_knights_affected_by_occupation_level_change, level " << current_level << " -> " << new_level;
@@ -1851,7 +1851,7 @@ AI::count_knights_affected_by_occupation_level_change(unsigned int current_level
 	unsigned int hut_count = building_count[Building::TypeHut];
 	unsigned int tower_count = building_count[Building::TypeTower];
 	unsigned int garrison_count = building_count[Building::TypeFortress];
-	AILogLogger["util_count_knights_affected_by_occupation_level_change"] << name << " hut_count " << hut_count << ", tower_count " << tower_count << ", garrison_count " << garrison_count;
+	AILogLogger["util_count_knights_affected_by_occupation_level_change"] << name << " military building counts: huts " << hut_count << ", towers " << tower_count << ", garrisons " << garrison_count;
 	unsigned int total_current = 0;
 	total_current += slots_hut[current_level] * hut_count;
 	total_current += slots_tower[current_level] * tower_count;
@@ -1860,12 +1860,14 @@ AI::count_knights_affected_by_occupation_level_change(unsigned int current_level
 	total_new += slots_hut[new_level] * hut_count;
 	total_new += slots_tower[new_level] * tower_count;
 	total_new += slots_garrison[new_level] * garrison_count;
-	unsigned int diff = total_new - total_current;
+	// diff must be signed as it can be negative!
+	//unsigned int diff = total_new - total_current;
+	int diff = unsigned(total_new) - unsigned(total_current);
 	if (diff < 0) {
 		AILogLogger["util_count_knights_affected_by_occupation_level_change"] << name << " diff " << diff << " is negative, setting to zero instead";
 		diff = 0;
 	}
-	AILogLogger["util_count_knights_affected_by_occupation_level_change"] << name << " total_current " << total_current << ", total_new " << total_new << ", diff " << diff;
+	AILogLogger["util_count_knights_affected_by_occupation_level_change"] << name << " knight counts if at fully-occupied-*target* staffing level: current " << total_current << ", new " << total_new << ", diff " << diff;
 	return diff;
 }
 

@@ -627,9 +627,9 @@ AI::do_promote_serfs_to_knights() {
 	// this 'promotable' function doesn't seem to work right, it doesn't limit the number promoted to the specified integer like it suggests
 	//int promoted = player->promote_serfs_to_knights(promotable);
 	int promoted = 0;
-	AILogLogger["do_promote_serfs_to_knights"] << name << " thread #" << std::this_thread::get_id() << " AI is locking mutex before calling game->get_player_serfs(player) (for serf_wait_timers is_waiting)";
+	AILogLogger["do_promote_serfs_to_knights"] << name << " thread #" << std::this_thread::get_id() << " AI is locking mutex before calling game->get_player_serfs(player) (for do_manage_knight_occupation_levels is_waiting)";
 	game->get_mutex()->lock();
-	AILogLogger["do_promote_serfs_to_knights"] << name << " thread #" << std::this_thread::get_id() << " AI has locked mutex before calling game->get_player_serfs(player) (for serf_wait_timers is_waiting)";
+	AILogLogger["do_promote_serfs_to_knights"] << name << " thread #" << std::this_thread::get_id() << " AI has locked mutex before calling game->get_player_serfs(player) (for do_manage_knight_occupation_levels is_waiting)";
 	// this returns a copy, so it should be thread-safe
 	//  maybe not, beause game->get_player_serfs internally just does for (Serf *serf : serfs)
 	for (Serf *serf : game->get_player_serfs(player)) {
@@ -643,9 +643,9 @@ AI::do_promote_serfs_to_knights() {
 			}
 		}
 	}
-	AILogLogger["do_promote_serfs_to_knights"] << name << " thread #" << std::this_thread::get_id() << " AI is unlocking mutex after calling game->get_player_serfs(player) (for serf_wait_timers is_waiting)";
+	AILogLogger["do_promote_serfs_to_knights"] << name << " thread #" << std::this_thread::get_id() << " AI is unlocking mutex after calling game->get_player_serfs(player) (for do_manage_knight_occupation_levels is_waiting)";
 	game->get_mutex()->unlock();
-	AILogLogger["do_promote_serfs_to_knights"] << name << " thread #" << std::this_thread::get_id() << " AI has unlocked mutex after calling game->get_player_serfs(player) (for serf_wait_timers is_waiting)";
+	AILogLogger["do_promote_serfs_to_knights"] << name << " thread #" << std::this_thread::get_id() << " AI has unlocked mutex after calling game->get_player_serfs(player) (for do_manage_knight_occupation_levels is_waiting)";
 
 }
 
@@ -2020,17 +2020,17 @@ AI::do_manage_knight_occupation_levels() {
 	// to avoid flapping...
 	//  ...if this is not the very first occupation level change...
 	if (previous_knight_occupation_level > 0) {
-		// ...and we last LOWERED the level, increase the surplus knights required to increase it again
+		// ...and we last LOWERED the level
 		if (previous_knight_occupation_level > current_level) {
-			change_buffer = int(knight_occupation_change_buffer);
-			AILogLogger["do_manage_knight_occupation_levels"] << name << " knight occupation level last DECREASED from " << previous_knight_occupation_level << " to "
-				<< current_level << ", setting a negative change buffer of " << change_buffer;
-		}
-		// ...and we last RAISED the occupation level, decrease the surplus knight level at which it decreases again
-		if (previous_knight_occupation_level < current_level) {
 			change_buffer = int(knight_occupation_change_buffer) * -1;
+			AILogLogger["do_manage_knight_occupation_levels"] << name << " knight occupation level last DECREASED from " << previous_knight_occupation_level << " to "
+				<< current_level << ", setting a change buffer of " << change_buffer;
+		}
+		// ...and we last RAISED the occupation level
+		if (previous_knight_occupation_level < current_level) {
+			change_buffer = int(knight_occupation_change_buffer);
 			AILogLogger["do_manage_knight_occupation_levels"] << name << " knight occupation level last INCREASED from " << previous_knight_occupation_level << " to "
-				<< current_level << ", setting a negative change buffer of " << change_buffer;
+				<< current_level << ", setting a change buffer of " << change_buffer;
 		}
 	}
 	previous_knight_occupation_level = current_level;
@@ -2047,21 +2047,43 @@ AI::do_manage_knight_occupation_levels() {
 	// get current occupation setting for thread level Frontier (thick cross) - closest to enemy
 	//player->get_knight_occupation(3);
 
-	unsigned int idle_knights = serfs_idle[Serf::TypeKnight0] + serfs_idle[Serf::TypeKnight1] + serfs_idle[Serf::TypeKnight2] + serfs_idle[Serf::TypeKnight3] + serfs_idle[Serf::TypeKnight4];
+	// this is counting all knights in *any* building, but we only care about idle in castle/stock
+	//unsigned int idle_knights = serfs_idle[Serf::TypeKnight0] + serfs_idle[Serf::TypeKnight1] + serfs_idle[Serf::TypeKnight2] + serfs_idle[Serf::TypeKnight3] + serfs_idle[Serf::TypeKnight4];
+	// instead use this function I wrote elsewhere
+	unsigned int idle_knights = 0;
+	AILogLogger["do_manage_knight_occupation_levels"] << name << " thread #" << std::this_thread::get_id() << " AI is locking mutex before calling game->get_player_serfs(player) (for do_manage_knight_occupation_levels is_waiting)";
+	game->get_mutex()->lock();
+	AILogLogger["do_manage_knight_occupation_levels"] << name << " thread #" << std::this_thread::get_id() << " AI has locked mutex before calling game->get_player_serfs(player) (for do_manage_knight_occupation_levels is_waiting)";
+	for (Serf *serf : game->get_player_serfs(player)) {
+		if (serf->get_state() == Serf::StateIdleInStock && serf->get_type() >= Serf::TypeKnight0 && serf->get_type() <= Serf::TypeKnight4) {
+			idle_knights++;
+		}
+	}
+	AILogLogger["do_manage_knight_occupation_levels"] << name << " thread #" << std::this_thread::get_id() << " AI is unlocking mutex after calling game->get_player_serfs(player) (for do_manage_knight_occupation_levels is_waiting)";
+	game->get_mutex()->unlock();
+	AILogLogger["do_manage_knight_occupation_levels"] << name << " thread #" << std::this_thread::get_id() << " AI has unlocked mutex after calling game->get_player_serfs(player) (for do_manage_knight_occupation_levels is_waiting)";
+	AILogLogger["do_manage_knight_occupation_levels"] << name << " found in stocks idle_knights: " << idle_knights;
+
 	player->change_knight_occupation(3, 0, -5);   // reset lower bound to 'min'
-	player->change_knight_occupation(3, 1, -5);   // reset upper bound to 'min'
+	player->change_knight_occupation(3, 1, -5);   // reset upper bound to 'min'	
 	// must evaluate idle_knights as signed integer to avoid calculating negative values returning opposite result
-	if      ((signed int)idle_knights - (AI::count_knights_affected_by_occupation_level_change(current_level, 4) + change_buffer) >= knights_max) {
+	if      ((signed)idle_knights - (signed)AI::count_knights_affected_by_occupation_level_change(current_level, 4) + (signed)change_buffer >= (signed)knights_max) {
+		//AILogLogger["do_manage_knight_occupation_levels"] << name << " debug4: " << (signed)idle_knights << " - " << (signed)AI::count_knights_affected_by_occupation_level_change(current_level, 4) << " + " << change_buffer 
+		//	<< " = " << (signed)idle_knights - (signed)AI::count_knights_affected_by_occupation_level_change(current_level, 4) + change_buffer << " ?? " << knights_max;
 		AILogLogger["do_manage_knight_occupation_levels"] << name << " setting knight level to med/full";
 		player->change_knight_occupation(3, 1, +4);   // increase upper bound to 'full'
 		player->change_knight_occupation(3, 0, +2);   // increase lower bound to 'med'
 	}
-	else if ((signed int)idle_knights - (AI::count_knights_affected_by_occupation_level_change(current_level, 3) + change_buffer) >= knights_med) {
+	else if ((signed)idle_knights - (signed)AI::count_knights_affected_by_occupation_level_change(current_level, 3) + (signed)change_buffer >= (signed)knights_med) {
+		//AILogLogger["do_manage_knight_occupation_levels"] << name << " debug3: " << (signed)idle_knights << " - " << (signed)AI::count_knights_affected_by_occupation_level_change(current_level, 3) << " + " << change_buffer
+		//	<< " = " << (signed)idle_knights - (signed)AI::count_knights_affected_by_occupation_level_change(current_level, 3) + change_buffer << " ?? " << knights_med;
 		AILogLogger["do_manage_knight_occupation_levels"] << name << " setting knight level to weak/good";
 		player->change_knight_occupation(3, 1, +3);   // increase upper bound to 'good'
 		player->change_knight_occupation(3, 0, +1);   // increase lower bound to 'weak'
 	}
-	else if ((signed int)idle_knights - (AI::count_knights_affected_by_occupation_level_change(current_level, 2) + change_buffer) >= knights_min) {
+	else if ((signed)idle_knights - (signed)AI::count_knights_affected_by_occupation_level_change(current_level, 2) + (signed)change_buffer >= (signed)knights_min) {
+		//AILogLogger["do_manage_knight_occupation_levels"] << name << " debug2: " << (signed)idle_knights << " - " << (signed)AI::count_knights_affected_by_occupation_level_change(current_level, 2) << " + " << change_buffer
+		//	<< " = " << (signed)idle_knights - (signed)AI::count_knights_affected_by_occupation_level_change(current_level, 2) + change_buffer << " ?? " << knights_min;
 		AILogLogger["do_manage_knight_occupation_levels"] << name << " setting knight level to min/med";
 		player->change_knight_occupation(3, 1, +2);   // increase upper bound to 'med'
 		// leave lower bound at 'min'
