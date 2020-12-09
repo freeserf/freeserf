@@ -309,12 +309,10 @@ AI::next_loop(){
 	AILogLogger["next_loop"] << name << ", starting AI loop #" << loop_count;
 
 	do_place_castle();
-	//do_save_game();   // enable to automatically save game every X turns
+	do_save_game();   // enable to automatically save game every X turns
 	do_update_clear_reset();
-	//do_locate_military_buildings();  deprecated, replaced with update_building_counts expansion
 	update_stocks_pos();
 	update_building_counts();
-	//do_get_inventories();  move this to inside warehouse/stock loop
 	do_get_inventory(castle_pos);
 	do_get_serfs();
 	do_debug_building_triggers();
@@ -1802,6 +1800,7 @@ AI::do_manage_tool_priorities() {
 	need_tools = false;
 	unsigned int planks_count = realm_inv[Resource::TypePlank];
 	for (int i = 0; i < 27; ++i) {
+		
 		unsigned int idle = serfs_idle[(Serf::Type)i];
 		unsigned int potential = serfs_potential[(Serf::Type)i];
 		unsigned int available = idle + potential;
@@ -1809,7 +1808,7 @@ AI::do_manage_tool_priorities() {
 		unsigned int total = serfs_total[i];
 		unsigned int min = specialists_reserve[Serf::Type(i)];
 		unsigned int max = specialists_max[Serf::Type(i)];
-		AILogLogger["do_manage_tool_priorities"] << name << " serf job " << NameSerf[i] << name << " has idle: " << idle << ", potential: " << potential << ", available: " << available
+		AILogLogger["do_manage_tool_priorities"] << name << " serf job " << NameSerf[i] << " idle: " << idle << ", potential: " << potential << ", available: " << available
 		      << ", total: " << total << ", min: " << min << ", max: " << max;
 		//if (total >= max && max > 0) {
 		//      AILogLogger["do_manage_tool_priorities"] << name << " maximum serfs with job type " << NameSerf[i] << name << " reached";
@@ -1823,6 +1822,9 @@ AI::do_manage_tool_priorities() {
 		//}
 		if (available < 1) {
 			AILogLogger["do_manage_tool_priorities"] << name << " need more available serfs of job type " << NameSerf[i];
+			// boats (Serf::TypeSailor) are *not* made by toolmaker
+			if (i == Serf::TypeSailor)
+				continue;
 			need_tools = true;
 		}
 	}
@@ -1835,7 +1837,7 @@ AI::do_manage_tool_priorities() {
 			// tools Resource::Types are and 15-24
 			int tool_index = 15 + i;
 			int tool_count = realm_inv[Resource::Type(tool_index)];
-			//AILogLogger["do_manage_tool_priorities"] << name << " castle has " << tool_count << " of tool " << NameTool[i];
+			AILogLogger["do_manage_tool_priorities"] << name << " castle has " << tool_count << " of tool " << NameTool[i];
 			if (tool_count >= 1) {
 				// don't need this tool, set to zero prior
 				player->set_tool_prio(i, 0);
