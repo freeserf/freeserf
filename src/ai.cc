@@ -2216,7 +2216,7 @@ AI::do_build_sawmill_lumberjacks() {
 	unsigned int planks_count = stock_inv->get_count_of(Resource::TypePlank);
 	int sawmill_count = 0;
 	int lumberjack_count = 0;
-	if (planks_count < planks_min) {
+	if (planks_count < planks_max) {
 		AILogLogger["do_build_sawmill_lumberjacks"] << name << " AI: desire more planks";
 		// count trees around corners of each military building, starting with castle
 		MapPosSet count_by_corner;
