@@ -9,7 +9,8 @@ Freeserf-with-AI-plus
 
 Build status
 ------------
-binary distribution not yet available for AI enabled freeserf, must compile until I set it up
+binaries are here: https://github.com/tlongstretch/freeserf-with-AI-plus-binaries/tree/main
+but this is a manual process where I upload them occasionally.  I still need to set up proper automated builds.
 
 Play
 ------
