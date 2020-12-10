@@ -56,6 +56,7 @@ class SaveWriterText;
 class Game {
  public:
   std::mutex mutex;
+  std::mutex autosave_mutex;
   typedef std::list<Serf*> ListSerfs;
   typedef std::list<Building*> ListBuildings;
   typedef std::list<Inventory*> ListInventories;
@@ -145,7 +146,10 @@ class Game {
   // used for viewport and maybe other funtions to get the ai object so they can fetch the ai_mark stuff for AI overlay for debugging
   //void set_ai_ptr(unsigned int index, AI *ai) { ai_ptrs[index] = ai; }
   //AI * get_ai_ptr(unsigned int index) { return ai_ptrs[index]; }
+  // used by AI for many actions that risk vector invalidation and other non-threadsafe things
   std::mutex * get_mutex() { return &mutex; }
+  // used by AI so only a single AI thread performs auto-saving, rather than all of theam each doing it
+  std::mutex * get_autosave_mutex() { return &autosave_mutex; }
   // used by AI to check if game is paused
   unsigned int get_game_speed() const { return game_speed; }
 

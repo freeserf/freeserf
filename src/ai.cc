@@ -202,7 +202,7 @@
 AI::AI(PGame current_game, unsigned int pi) {
 
 
-
+	has_autosave_mutex = false;
 	ai_status = "INITIALIZING";
 	player_index = pi;
 	name = "Player" + std::to_string(pi);
@@ -272,7 +272,11 @@ AI::AI(PGame current_game, unsigned int pi) {
 void
 AI::start() {
 	AILogLogger["start"] << name << " AI is starting, thread_id: " << std::this_thread::get_id();
-
+	// try to get autosave_mutex, only one AI thread will get it so they are not all saving
+	if (game->get_autosave_mutex()->try_lock()) {
+		has_autosave_mutex = true;
+		AILogLogger["start"] << name << " this AI thread has the autosave mutex";
+	}
 	while (true) {
 		//AILogLogger["start"] << name << " start AI::start while(true)";
 		if (game->should_ai_stop() == true) {
@@ -493,10 +497,12 @@ AI::do_place_castle() {
 
 void
 AI::do_save_game() {
-	//
-	// modify this so it doesn't run once for EACH ai player!  
-	//
 	AILogLogger["do_save_game"] << name << " inside do_save_game()";
+	// only one AI thread should be auto-saving, and really it should be the main game auto-saving anyway but that is harder to do
+	if (!has_autosave_mutex) {
+		AILogLogger["do_save_game"] << name << " skipping do_save_game, this AI does not have the autosave_mutex";
+		return;
+	}
 	// only do this every X loops
 	if (loop_count % 30 != 0) {
 		AILogLogger["do_save_game"] << name << " skipping do_save_game, only running this every X loops";

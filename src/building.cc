@@ -565,6 +565,7 @@ Building::requested_serf_lost() {
 
 void
 Building::requested_serf_reached(Serf *serf) {
+  //got nullptr exception here for first time, dec09 2020
   holder = true;
   if (serf_requested) {
     first_knight = serf->get_index();

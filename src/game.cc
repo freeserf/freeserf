@@ -62,6 +62,7 @@ Game::Game()
   buildings = Buildings(this);
   serfs = Serfs(this);
   std::mutex mutex;
+  std::mutex autosave_mutex;
 
   /* Create NULL-serf */
   serfs.allocate();
@@ -2772,6 +2773,9 @@ operator << (SaveWriterText &writer, Game &game) {
     player_writer << *player;
   }
 
+  // got vector iterators incompatible here,
+  //  but really it could happen anywhere in these next few functions
+  //   could add the usual fixes, but probably makes more sense to just mutex/pause the AIs
   for (Flag *flag : game.flags) {
     if (flag->get_index() == 0) continue;
     SaveWriterText &flag_writer = writer.add_section("flag", flag->get_index());

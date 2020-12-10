@@ -75,6 +75,7 @@ private:
 	int connected_building_count[25] = {0};
 	int change_buffer;
 	int previous_knight_occupation_level; 
+	bool has_autosave_mutex = false;
 	
 	// list of bad building positions (where buildings had to be demolished for any reason)
 	//  this might be too aggressive but probably acceptable to block some positions even as conditions change over time
