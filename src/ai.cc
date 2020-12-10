@@ -510,7 +510,10 @@ AI::do_save_game() {
 	}
 	ai_status.assign("SAVING_GAME");
 	// save game for debugging
-	AILogLogger["do_save_game"] << name << " attempting to save game...";
+	AILogLogger["do_save_game"] << name << " preparing to save game...";
+	AILogLogger["do_get_serfs"] << name << " thread #" << std::this_thread::get_id() << " AI is locking mutex before auto-saving game";
+	game->get_mutex()->lock();
+	AILogLogger["do_get_serfs"] << name << " thread #" << std::this_thread::get_id() << " AI has locked mutex before auto-saving game";
 	std::string savetick = std::to_string(game->get_tick());
 	std::string savename = "ai_debug_" + savetick + ".save";
 	AILogLogger["do_save_game"] << name << " savegame name is '" << savename << " '";
@@ -520,6 +523,9 @@ AI::do_save_game() {
 	else {
 		AILogLogger["do_save_game"] << name << " FAILED TO SAVE GAME NAME " << savename;
 	}
+	AILogLogger["do_get_serfs"] << name << " thread #" << std::this_thread::get_id() << " AI is unlocking mutex after auto-saving game";
+	game->get_mutex()->unlock();
+	AILogLogger["do_get_serfs"] << name << " thread #" << std::this_thread::get_id() << " AI has unlocked mutex after auto-saving game";
 }
 
 
