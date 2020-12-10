@@ -111,6 +111,7 @@ AudioSDL::get_volume() {
 void
 AudioSDL::set_volume(float _volume) {
   _volume = std::max(0.f, std::min(_volume, 1.f));
+  //p1plp1_audio_slider_decrease_sensitivity
   if (fabs(volume - _volume) < 0.01f) {
     return;
   }

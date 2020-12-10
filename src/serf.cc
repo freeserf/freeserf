@@ -1147,6 +1147,7 @@ Serf::handle_serf_walking_state_dest_reached() {
     Direction dir = (Direction)s.walking.dir1;
     Flag *other_flag = flag->get_other_end_flag(dir);
     if (other_flag == nullptr) {
+		// got this exception dec10 2020
       throw ExceptionFreeserf("Path has no other end flag in selected dir.");
     }
     Direction other_dir = flag->get_other_end_dir(dir);
@@ -4608,6 +4609,7 @@ Serf::handle_state_knight_free_walking() {
 
       if (map->has_serf(pos_)) {
         Serf *other = game->get_serf_at_pos(pos_);
+		//got a nullptr execption on serf->get_owner() for first time here  dec10 2020
         if (get_owner() != other->get_owner()) {
           if (other->state == StateKnightFreeWalking) {
             pos = map->move_left(pos_);
