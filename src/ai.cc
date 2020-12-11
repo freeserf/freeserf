@@ -1283,7 +1283,8 @@ AI::do_send_geologists() {
 	if (excess_hammers > 0) {
 		// its possible to accidently create > geologists_max, so if this happens avoid going negative
 		if (total_geologists >= geologists_max) {
-			AILogLogger["do_send_geologists"] << name << " geologists_max " << geologists_max << " hit, have total_geologists " << total_geologists;
+			AILogLogger["do_send_geologists"] << name << " geologists_max " << geologists_max << " hit, have total_geologists " << total_geologists << ".  Returning early";
+			return;
 		}
 		else {
 			// cap the number of potential geologists at the number of excess hammers (those not reserved for builder/blacksmith)
