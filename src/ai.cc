@@ -702,9 +702,20 @@ AI::do_connect_disconnected_flags() {
 		AILogLogger["do_connect_disconnected_flags"] << name << " flag at pos " << flag->get_position() << " has no connected road, trying to connect it";
 		bool was_built = AI::build_best_road(flag->get_position(), road_options);
 		if (!was_built) {
+			AILogLogger["do_connect_disconnected_flags"] << name << " thread #" << std::this_thread::get_id() << " AI is locking mutex before calling demolish_flag (and maybe attached building)";
+			game->get_mutex()->lock();
+			AILogLogger["do_connect_disconnected_flags"] << name << " thread #" << std::this_thread::get_id() << " AI has locked mutex before calling demolish_flag (and maybe attached building)";
+			// should I look for an attached building an burn it?
+			// yes!  let's try that
+			if (flag->has_building()) {
+				AILogLogger["do_connect_disconnected_flags"] << name << " failed to connect disconnected flag to road network!  BURNING ATTACHED BUILDING!";
+				game->demolish_building(flag->get_position(), player);
+			}
 			AILogLogger["do_connect_disconnected_flags"] << name << " failed to connect disconnected flag to road network!  removing it";
 			game->demolish_flag(flag->get_position(), player);
-			// should I look for an attached building an burn it?
+			AILogLogger["do_connect_disconnected_flags"] << name << " thread #" << std::this_thread::get_id() << " AI is unlocking mutex after calling demolish_flag (and maybe attached building)";
+			game->get_mutex()->unlock();
+			AILogLogger["do_connect_disconnected_flags"] << name << " thread #" << std::this_thread::get_id() << " AI has unlocked mutex after calling demolish_flag (and maybe attached building)";
 		}
 	}
 
