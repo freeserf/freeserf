@@ -7,6 +7,10 @@
 
 /* TO DO
 
+- something is up with idle_serfs check, the underling function seems correct, it only cheecks for StateIdleInStock, but
+    knights might have issues, and geologists are having issues.  Maybe two separate problems?  If so, go back and un-do the extra step
+	   that was added to knight calculations to avoid what I thought was a problem with idle serf detection
+
 - a significant amount of time is spent on expand_borders call, which is spent doing many score_area calls around all occupied_military_buildings.  There are probably excessive
     redundant calls because every dir is checked from every military building (straight line to where it hits border)  
 	  INSTEAD - try walking the border and trying every so many positions?  what about circular borders?  could get stuck
@@ -328,7 +332,7 @@ AI::next_loop(){
 	//      rather it should be done after first few buildings/roads placed 
 	//-----------------------------------------------------------
 
-	do_connect_disconnected_flags(); // except mines
+	do_connect_disconnected_flags(); // except unfinished mines
 	do_build_better_roads_for_important_buildings();  // is this working?  I still see pretty inefficient roads for important buildings
 	//do_spiderweb_roads1();   // this might be too close to the castle, do some more testing
 	do_spiderweb_roads2();
@@ -673,43 +677,34 @@ AI::do_connect_disconnected_flags() {
 	flags_static_copy = *(game->get_flags());
 	flags = &flags_static_copy;
 	for (Flag *flag : *flags) {
-		// only consider flags owned by this player
 		if (flag->get_owner() != player_index)
 			continue;
-		//AILogLogger["do_connect_disconnected_flags"] << name << " one of my flags is at pos: " << flag->get_position();
-		MapPos pos = flag->get_position();
-		if (flag->get_position() == castle_flag_pos) {
+		if (flag->get_position() == castle_flag_pos)
 			continue;
+		if (flag->is_connected())
+			continue;
+		if (flag->has_building()) {
+			AILogLogger["do_connect_disconnected_flags"] << name << " flag at pos " << flag->get_position() << " has an attached building of type " << NameBuilding[flag->get_building()->get_type()];
+			if ((flag->get_building()->get_type() == Building::TypeCoalMine
+				|| flag->get_building()->get_type() == Building::TypeIronMine
+				|| flag->get_building()->get_type() == Building::TypeGoldMine
+				|| flag->get_building()->get_type() == Building::TypeStoneMine)
+				&& !flag->get_building()->is_done()) {
+				AILogLogger["do_connect_disconnected_flags"] << name << " disconnected flag at pos " << flag->get_position() << " is attached to an incomplete Mine, skipping - it will be dealt with later";
+				continue;
+			}
+			if (flag->get_building()->get_type() == Building::TypeForester &&
+				flag->get_building()->is_done() && flag->get_building()->has_serf()){
+				AILogLogger["do_connect_disconnected_flags"] << name << " disconnected flag at pos " << flag->get_position() << " is attached to an occupied ranger, skipping";
+				continue;
+			}
 		}
-		if (!flag->is_connected()) {
-			if (flag->has_building()) {
-				if (flag->get_building()->get_type() == Building::TypeCoalMine
-					|| flag->get_building()->get_type() == Building::TypeIronMine
-					|| flag->get_building()->get_type() == Building::TypeGoldMine
-					|| flag->get_building()->get_type() == Building::TypeStoneMine) {
-					AILogLogger["do_connect_disconnected_flags"] << name << " disconnected flag at pos " << pos << " is attached to a Mine, skipping - it will be dealt with later";
-					continue;
-				}
-				if (flag->get_building()->get_type() == Building::TypeForester &&
-					flag->get_building()->is_done() && flag->get_building()->has_serf()){
-					AILogLogger["do_connect_disconnected_flags"] << name << " disconnected flag at pos " << pos << " is attached to an occupied ranger, skipping";
-				}
-			}
-			else {
-				AILogLogger["do_connect_disconnected_flags"] << name << " flag at pos " << pos << " has no connected road, trying to connect it";
-				//AILogLogger["do_connect_disconnected_flags"] << name << " thread #" << std::this_thread::get_id() << " AI is locking mutex for AI::build_best_road  connect disconnected flag with no attached building";
-				//game->get_mutex()->lock();
-				//AILogLogger["do_connect_disconnected_flags"] << name << " thread #" << std::this_thread::get_id() << " AI has locked mutex for AI::build_best_road  connect disconnected flag with no attached building";
-				bool was_built = AI::build_best_road(pos, road_options);
-				//AILogLogger["do_connect_disconnected_flags"] << name << " thread #" << std::this_thread::get_id() << " AI is unlocking mutex for AI::build_best_road  connect disconnected flag with no attached building";
-				//game->get_mutex()->unlock();
-				//AILogLogger["do_connect_disconnected_flags"] << name << " thread #" << std::this_thread::get_id() << " AI has unlocked mutex for AI::build_best_road  connect disconnected flag with no attached building";
-				if (!was_built) {
-					AILogLogger["do_connect_disconnected_flags"] << name << " failed to connect disconnected flag to road network!  removing it";
-					game->demolish_flag(pos, player);
-					// should I look for an attached building an burn it?
-				}
-			}
+		AILogLogger["do_connect_disconnected_flags"] << name << " flag at pos " << flag->get_position() << " has no connected road, trying to connect it";
+		bool was_built = AI::build_best_road(flag->get_position(), road_options);
+		if (!was_built) {
+			AILogLogger["do_connect_disconnected_flags"] << name << " failed to connect disconnected flag to road network!  removing it";
+			game->demolish_flag(flag->get_position(), player);
+			// should I look for an attached building an burn it?
 		}
 	}
 
@@ -1273,11 +1268,14 @@ AI::do_send_geologists() {
 	unsigned int hammers_count = realm_inv[Resource::TypeHammer];
 	unsigned int total_builders = player->get_serf_count(Serf::TypeBuilder);
 	unsigned int total_blacksmiths = player->get_serf_count(Serf::TypeWeaponSmith);
-	int reserve_hammers = int((specialists_max[Serf::TypeBuilder] - total_builders) + (specialists_max[Serf::TypeWeaponSmith] - total_blacksmiths));
-	if (reserve_hammers < 0) { reserve_hammers = 0; }
+	int reserve_builders = int(specialists_max[Serf::TypeBuilder] - total_builders);
+	if (reserve_builders < 0) { reserve_builders = 0; }
+	int reserve_blacksmiths = int(specialists_max[Serf::TypeWeaponSmith] - total_blacksmiths);
+	if (reserve_blacksmiths < 0) { reserve_blacksmiths = 0; }
+	int reserve_hammers = reserve_builders + reserve_blacksmiths;
 	int excess_hammers = int(hammers_count - reserve_hammers);
 
-	AILogLogger["do_send_geologists"] << name << " total geologists " << total_geologists << ", idle_geologists " << idle_geologists << ", geologists_max "
+	AILogLogger["do_send_geologists"] << name << " total_geologists " << total_geologists << ", idle_geologists " << idle_geologists << ", geologists_max "
 		<< geologists_max << ", total_builders " << total_builders << ", total_blacksmiths " << total_blacksmiths
 		<< ", hammers_count " << hammers_count << ", reserve_hammers " << reserve_hammers << ", excess_hammers " << excess_hammers;
 	if (excess_hammers > 0) {
@@ -1285,6 +1283,11 @@ AI::do_send_geologists() {
 		if (total_geologists >= geologists_max) {
 			AILogLogger["do_send_geologists"] << name << " geologists_max " << geologists_max << " hit, have total_geologists " << total_geologists;
 			potential_geologists = 0;
+			// it seems there is an issue where idle_geologists is appearing greater than it really is, resulting in more geologists being created
+			//  even after geologists_max hit.  As a work-around to hopefully avoid this, never allow idle_geologists to be >1 once geologists_max hit
+			if (idle_geologists > 1) {
+				idle_geologists = 1;
+			}
 		}
 		else {
 			// cap the number of potential geologists at the number of excess hammers (those not reserved for builder/blacksmith)
@@ -1494,7 +1497,10 @@ AI::do_send_geologists() {
 						AILogLogger["do_send_geologists"] << name << " sign density " << sign_density << " is over geologist_sign_density_max " << geologist_sign_density_max << ", not sending geologist to this flag";
 						continue;
 					}
+					//// need to add a final check to ensure there really is still an idle geologist to avoid accidentally creating more once max hit
+					//bool sending_idle_geologist = false;
 					if (idle_geologists >= 1) {
+						//sending_idle_geologist = true;
 						AILogLogger["do_send_geologists"] << name << " sending an idle geologist to pos " << pos;
 						idle_geologists--;
 					}
@@ -1510,16 +1516,36 @@ AI::do_send_geologists() {
 					AILogLogger["do_send_geologists"] << name << " thread #" << std::this_thread::get_id() << " AI is locking mutex before calling game->send_geologist(flag)";
 					game->get_mutex()->lock();
 					AILogLogger["do_send_geologists"] << name << " thread #" << std::this_thread::get_id() << " AI has locked mutex before calling game->send_geologist(flag)";
+					/*
+					// even with this extra check it still will likely break once warehouse/stocks come into play
+					//   also, it doesn't make sense that theis check would even be required, clearly something else is wrong
+					///  this STILL results in sending more geologists over max.  WTF. 
+					if (total_geologists >= geologists_max) {
+						if (sending_idle_geologist == true) {
+							AILogLogger["do_send_geologists"] << name << " about to send an idle_geologists, double-checking to see if one is really idle...";
+							serfs_idle = player->get_stats_serfs_idle();
+							idle_geologists = serfs_idle[Serf::TypeGeologist];
+							AILogLogger["do_send_geologists"] << name << " after re-checking, found idle_geologists: " << idle_geologists;
+							if (idle_geologists < 1) {
+								AILogLogger["do_send_geologists"] << name << " NO IDLE GEOLOGIST after re-check, returning early and not sending any geologists out";
+							}
+						}
+					}
+					*/
 					bool was_sent = game->send_geologist(flag);
 					AILogLogger["do_send_geologists"] << name << " thread #" << std::this_thread::get_id() << " AI is unlocking mutex after calling game->send_geologist(flag)";
 					game->get_mutex()->unlock();
 					AILogLogger["do_send_geologists"] << name << " thread #" << std::this_thread::get_id() << " AI has unlocked mutex after calling game->send_geologist(flag)";
 					if (was_sent) {
-						AILogLogger["do_send_geologists"] << name << " sent an idle geologist to pos " << pos << ", moving on to next corner";
-						break;
+						//AILogLogger["do_send_geologists"] << name << " sent an geologist to pos " << pos << ", moving on to next corner";
+						//break;
+						AILogLogger["do_send_geologists"] << name << " sent a geologist to pos " << pos << ", not sending any more geologists until next call of this function";
+						// because of incredibly frusterating "too many geologists" / idle_geologists issue, only send one geologist per call of this function.
+						//   and even THIS will probably not work right for warehouse/stocks
+						return;
 					}
 					else {
-						AILogLogger["do_send_geologists"] << name << " failed to send idle geologist to pos " << pos << ".  This happens sometimes but appears benign.  Sleeping 1sec";
+						AILogLogger["do_send_geologists"] << name << " failed to send geologist to pos " << pos << ".  This happens sometimes but appears benign.  Sleeping 1sec";
 						std::this_thread::sleep_for(std::chrono::milliseconds(1000));
 						// I stil cannot tell what is causing this to happen so often, maybe sending geologists is rate-limited per flag?
 						//   my debug logs are showing that it is failing because the flag search failed...but why??
@@ -2796,12 +2822,17 @@ AI::do_build_food_buildings_and_3rd_lumberjack() {
 					AILogLogger["do_build_food_buildings_and_3rd_lumberjack"] << name << " farm at pos " << farm_pos << " is not closest to current stock_pos " << stock_pos << ", skipping";
 					continue;
 				}
+				/*
+				// only build a miller if a farm is already productive (having some fields nearby)
+				/// disabling this because the delay in building miller and baker results it bad road connections
+				///   even though the delay would be optimal for building priorities, having a very good road connection is even more important!
 				unsigned int count = 0;
 				count += AI::count_objects_near_pos(farm_pos, AI::spiral_dist(4), Map::ObjectSeeds0, Map::ObjectFieldExpired, "yellow");
 				count += AI::count_objects_near_pos(farm_pos, AI::spiral_dist(4), Map::ObjectField0, Map::ObjectField5, "dk_yellow");
 				AILogLogger["do_build_food_buildings_and_3rd_lumberjack"] << name << " farm at pos " << farm_pos << " fields nearby count: " << count << ", min acceptable is " << near_fields_min;
 				if (count < near_fields_min)
 					continue;
+				*/
 
 				// build grain mill near farm
 				if (stock_buildings.at(stock_pos).count[Building::TypeMill] < 1 || need_mill) {
@@ -2813,6 +2844,9 @@ AI::do_build_food_buildings_and_3rd_lumberjack() {
 						need_mill = false;
 					}
 				}
+
+				// need to find a simple way to disable this check so it tries to place the baker immedately, ignoring max incomplete buildings
+				//  if I comment it out there, it will still be rejected by the build_near_pos call (I think)
 				if (built_pos == stopbuilding_pos) { return; }
 
 				// build bakery near farm
@@ -2980,6 +3014,7 @@ AI::do_connect_iron_mines() {
 void
 AI::do_build_steelsmelter() {
 	ai_status.assign("MAIN LOOP - steel");
+	// saw an infinite loop here dec11 2020, AI never ended doing update_buildings calls??
 	AILogLogger["do_build_steelsmelter"] << name << " inside do_build_steelsmelter()";
 	unsigned int steel_count = stock_inv->get_count_of(Resource::TypeSteel);
 	update_building_counts();
