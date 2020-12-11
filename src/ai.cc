@@ -1948,28 +1948,40 @@ AI::do_manage_mine_food_priorities() {
 	unsigned int coal_count = realm_inv[Resource::TypeCoal];
 	unsigned int iron_ore_count = realm_inv[Resource::TypeIronOre];
 	unsigned int gold_ore_count = realm_inv[Resource::TypeGoldOre];
-	//6550 is.. zero? mear zero?
+	//6550 is a near-zero value I chose to use as "very low priority"
 	// default food priorities:
 	//food_stonemine = 13100;
 	//food_coalmine = 45850;
 	//food_ironmine = 45850;
 	//food_goldmine = 65500;
-	if (coal_count > coal_min) {
+	// coal
+	if (coal_count > coal_max) {
+		AILogLogger["do_manage_mine_food_priorities"] << name << " coal_count " << coal_count << " is greater than coal_max " << coal_min << ", setting coal mine food priority to zero";
+		player->set_food_coalmine(0);
+	}else if (coal_count > coal_min) {
 		AILogLogger["do_manage_mine_food_priorities"] << name << " coal_count " << coal_count << " is greater than coal_min " << coal_min << ", greatly reducing food priority to coal mines";
 		player->set_food_coalmine(6550);
 	}
-	if (iron_ore_count > iron_ore_min) {
+	// iron
+	if (iron_ore_count > iron_ore_max) {
+		AILogLogger["do_manage_mine_food_priorities"] << name << " iron_ore_count " << iron_ore_count << " is greater than iron_ore_max " << iron_ore_max << ", setting iron mine food priority to zero";
+		player->set_food_ironmine(0);
+	}else if (iron_ore_count > iron_ore_min) {
 		AILogLogger["do_manage_mine_food_priorities"] << name << " iron_ore_count " << iron_ore_count << " is greater than iron_ore_min " << iron_ore_min << ", greatly reducing food priority to iron mines";
 		player->set_food_ironmine(6550);
 	}
-	if (gold_ore_count > gold_ore_min) {
+	// gold
+	if (gold_ore_count > gold_ore_max) {
+		AILogLogger["do_manage_mine_food_priorities"] << name << " gold_ore_count " << gold_ore_count << " is greater than gold_ore_max " << gold_ore_max << ", setting gold mine food priority to zero";
+		player->set_food_goldmine(0);
+	} else if (gold_ore_count > gold_ore_min) {
 		AILogLogger["do_manage_mine_food_priorities"] << name << " gold_ore_count " << gold_ore_count << " is greater than gold_ore_min " << gold_ore_min << ", greatly reducing food priority to gold mines";
 		player->set_food_goldmine(6550);
 	}
 	// avoid issue where all food goes to gold mining while running out of knights
 	unsigned int idle_knights = serfs_idle[Serf::TypeKnight0] + serfs_idle[Serf::TypeKnight1] + serfs_idle[Serf::TypeKnight2] + serfs_idle[Serf::TypeKnight3] + serfs_idle[Serf::TypeKnight4];
 	if (idle_knights <= knights_min) {
-		// set gold food prio to less than coal or iron would be if needed
+		// set gold food prio to less than coal or iron would be if they are needed
 		player->set_food_goldmine(25000);
 	}
 }
