@@ -346,7 +346,7 @@ AI::next_loop(){
 	do_manage_tool_priorities();
 	do_manage_mine_food_priorities();
 	do_balance_sword_shield_priorities();  
-	do_demolish_excess_lumberjacks();
+	//do_demolish_excess_lumberjacks();  moved to per-stock 
 	do_demolish_excess_fishermen();
 	do_attack();
 	do_manage_knight_occupation_levels();
@@ -355,8 +355,8 @@ AI::next_loop(){
 	for (MapPos this_stock_pos : stocks_pos) {
 		stock_pos = this_stock_pos;
 		AILogLogger["next_loop"] << name << " Starting economy loop for stock at pos " << stock_pos;
-		//ai_mark_pos.clear();
-		//ai_mark_pos.insert(ColorDot(stock_pos, "yellow"));
+
+		do_demolish_excess_lumberjacks();
 
 		// debug
 		AILogLogger["next_loop"] << name << " stock at pos " << stock_pos << " has all/completed/occupied buildings: ";
