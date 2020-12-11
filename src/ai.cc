@@ -584,7 +584,7 @@ AI::do_debug_building_triggers() {
 	AILogLogger["do_debug_building_triggers"] << name << " inside do_debug_building_triggers";
 	update_building_counts();
 	// DEBUG
-	//   trigger demolish/rebuild all roads by placing a Pig Farm anywhere
+	//   trigger demolish/rebuild all roads by placing a Pig Farm anywhere in the realm
 	if (building_count[Building::TypePigFarm] > 0) {
 		AILogLogger["do_debug_building_triggers"] << name << " PigFarm found, running rebuild_all_roads";
 		rebuild_all_roads();
@@ -620,7 +620,7 @@ AI::do_debug_building_triggers() {
 
 
 	// DEBUG
-	//   tell AI to quit by placing a BoatBuilder anywhere
+	//   tell AI to quit by placing a BoatBuilder anywhere in the realm
 	if (building_count[Building::TypeBoatbuilder] > 0) {
 		AILogLogger["do_debug_building_triggers"] << name << " BoatBuilder found, locking all AIs";
 		game->lock_ai();
@@ -1257,6 +1257,8 @@ AI::do_send_geologists() {
 	MapPosVector geologist_positions;
 	// don't send geologists if already have enough mines
 	update_building_counts();
+	// these consider entire REALM, not per-stock, should this be made per-stock?
+	// probably so...
 	int completed_coalmine_count = completed_building_count[Building::TypeCoalMine];
 	int completed_ironmine_count = completed_building_count[Building::TypeIronMine];
 	int completed_goldmine_count = completed_building_count[Building::TypeGoldMine];
@@ -1752,18 +1754,20 @@ AI::do_demolish_excess_lumberjacks() {
 	AILogLogger["do_demolish_excess_lumberjacks"] << name << " inside do_demolish_excess_lumberjacks";
 	ai_status.assign("HOUSEKEEPING - burn lumberjacks");
 	update_building_counts();
-	int lumberjack_count = building_count[Building::TypeLumberjack];
+	// need to be made stock-aware since adding multiple economies
+	//int lumberjack_count = building_count[Building::TypeLumberjack];
+	int lumberjack_count = stock_buildings.at(stock_pos).count[Building::TypeLumberjack];
 	unsigned int planks_count = realm_inv[Resource::TypePlank];
-	if (planks_count >= planks_max && lumberjack_count >= 2) {
-		AILogLogger["do_demolish_excess_lumberjacks"] << name << " planks_max reached and lumberjack_count is " << lumberjack_count << ".  Burning all but one lumberjack";
+	if (planks_count >= planks_max && lumberjack_count > 1) {
+		AILogLogger["do_demolish_excess_lumberjacks"] << name << " planks_max reached and lumberjack_count is " << lumberjack_count << ".  Burning all but one lumberjack (nearest to this stock)";
 		bool first_one_found = false;
-		AILogLogger["do_demolish_excess_lumberjacks"] << name << " thread #" << std::this_thread::get_id() << " AI is locking mutex before calling game->get_player_buildings(player) (for demolish unproductive mines)";
+		AILogLogger["do_demolish_excess_lumberjacks"] << name << " thread #" << std::this_thread::get_id() << " AI is locking mutex before calling game->get_player_buildings(player)";
 		game->get_mutex()->lock();
-		AILogLogger["do_demolish_excess_lumberjacks"] << name << " thread #" << std::this_thread::get_id() << " AI has locked mutex before calling game->get_player_buildings(player) (for demolish unproductive mines)";
+		AILogLogger["do_demolish_excess_lumberjacks"] << name << " thread #" << std::this_thread::get_id() << " AI has locked mutex before calling game->get_player_buildings(player)";
 		Game::ListBuildings buildings = game->get_player_buildings(player);
-		AILogLogger["do_demolish_excess_lumberjacks"] << name << " thread #" << std::this_thread::get_id() << " AI is unlocking mutex after calling game->get_player_buildings(player) (for demolish unproductive mines)";
+		AILogLogger["do_demolish_excess_lumberjacks"] << name << " thread #" << std::this_thread::get_id() << " AI is unlocking mutex after calling game->get_player_buildings(player)";
 		game->get_mutex()->unlock();
-		AILogLogger["do_demolish_excess_lumberjacks"] << name << " thread #" << std::this_thread::get_id() << " AI has unlocked mutex after calling game->get_player_buildings(player) (for demolish unproductive mines)";
+		AILogLogger["do_demolish_excess_lumberjacks"] << name << " thread #" << std::this_thread::get_id() << " AI has unlocked mutex after calling game->get_player_buildings(player)";
 		for (Building *building : buildings) {
 			if (building->get_type() == Building::TypeLumberjack) {
 				MapPos pos = building->get_position();
@@ -1879,6 +1883,7 @@ AI::do_manage_tool_priorities() {
 		}
 	}
 	update_building_counts();
+	// this is one toolmaker in entire REALM, but that is okay
 	if (building_count[Building::TypeToolMaker] < 1) {
 		AILogLogger["do_manage_tool_priorities"] << name << " no toolmaker exists yet!";
 	}
@@ -2438,7 +2443,10 @@ AI::do_build_stonecutter() {
 		MapPosSet count_by_corner;
 		for (MapPos center_pos : stock_buildings.at(stock_pos).occupied_military_pos) {
 			update_building_counts();
-			int stonecutter_count = building_count[Building::TypeStonecutter];
+			// this only allows one stonecutter in the entire realm... is that desireable?
+			// instead, changing to per-stock
+			//int stonecutter_count = building_count[Building::TypeStonecutter];
+			int stonecutter_count = stock_buildings.at(stock_pos).count[Building::TypeStonecutter];
 			if (stonecutter_count >= 1) {
 				AILogLogger["do_build_stonecutter"] << name << " Already placed stonecutter, not building more";
 				return;
@@ -2522,6 +2530,7 @@ AI::do_build_toolmaker_steelsmelter() {
 	AILogLogger["do_build_toolmaker_steelsmelter"] << name << " inside do_build_toolmaker_steelsmelter";
 	ai_status.assign("MAIN LOOP - tools");
 	update_building_counts();
+	// one toolmaker in entire REALM
 	int toolmaker_count = building_count[Building::TypeToolMaker];
 	if (toolmaker_count < 1) {
 		if (need_tools) {
@@ -2786,7 +2795,9 @@ AI::do_build_food_buildings_and_3rd_lumberjack() {
 		MapPosSet count_by_corner;
 		for (MapPos center_pos : stock_buildings.at(stock_pos).occupied_military_pos) {
 			update_building_counts();
-			lumberjack_count = building_count[Building::TypeLumberjack];
+			// make per-stock
+			//lumberjack_count = building_count[Building::TypeLumberjack];
+			lumberjack_count = stock_buildings.at(stock_pos).count[Building::TypeLumberjack];
 			if (lumberjack_count >= 3) {
 				AILogLogger["do_build_food_buildings_and_3rd_lumberjack"] << name << " Already placed third lumberhack, not building more";
 				break;
