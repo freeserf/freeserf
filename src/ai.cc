@@ -3148,7 +3148,7 @@ AI::do_build_gold_smelter_and_connect_gold_mines() {
 		AILogLogger["do_build_gold_smelter_and_connect_gold_mines"] << name << " AI: desire more gold";
 		unsigned int gold_ore_count = stock_inv->get_count_of(Resource::TypeGoldOre);
 		update_building_counts();
-		if (gold_ore_count >= gold_ore_min || stock_buildings.at(stock_pos).completed_count[Building::TypeGoldMine] > 1) {
+		if (gold_ore_count >= gold_ore_min || stock_buildings.at(stock_pos).completed_count[Building::TypeGoldMine] > 0) {
 			// build a gold smelter
 			if (stock_buildings.at(stock_pos).count[Building::TypeGoldSmelter] < 1) {
 				AILogLogger["do_build_gold_smelter_and_connect_gold_mines"] << name << " trying to build gold smelter";
