@@ -166,6 +166,7 @@ class Serf : public GameObject {
   MapPos pos;
   uint16_t tick;
   State state;
+  bool deleteme; // tlongstretch, used to only delete serfs during update loop instead of immediately
 
   union s {
     struct {
@@ -451,6 +452,8 @@ class Serf : public GameObject {
   void stay_idle_in_stock(unsigned int inventory);
   void go_out_from_building(MapPos dest, int dir, int field_B);
   void fix_bad_animation();
+  void mark_for_deletion();
+  bool is_marked_for_deletion();
 
   void update();
 

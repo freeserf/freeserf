@@ -575,8 +575,16 @@ Game::update_serfs() {
       if (serf->get_index() != 0) {
         //here it crashes? on dead on delete flag building etc
         serf->update();
-        if (serf == NULL)
-          Log::Debug["game"] << "Game::update_serfs, serf is NULL after update";
+		if (serf == NULL) {
+			Log::Debug["game"] << "Game::update_serfs, serf is NULL after update";
+		}
+		//tlongstretch
+		//else if (serf->get_type() == Serf::TypeDead) {
+		else if (serf->is_marked_for_deletion()) {
+			// this is a test fix for https://github.com/tlongstretch/freeserf-with-AI-plus/issues/27
+			//  this likely will cause serfs that are still playing their dying animation to disappear!
+			delete_serf(serf);
+		}
       }
     }
     if (serf == NULL) {
@@ -1039,6 +1047,12 @@ Game::remove_road_forwards(MapPos pos, Direction dir) {
 
     if (map->has_serf(pos)) {
       Serf *serf = get_serf_at_pos(pos);
+	  // trying skip if nullptr...
+		//   THIS LIKELY INTRODUCES NEW PROBLEMS AS A RESULT OF THE FOLLOWING ACTIONS NOT HAPPENING!
+	  if (serf == nullptr) {
+		  Log::Warn["serf"] << " inside Serf::remove_road_forwards - Serf *serf is nullptr!, skipping it.  This is normally a crash bug";
+		  continue;
+	  }
       if (!map->has_flag(pos)) {
         serf->set_lost_state();
       } else {

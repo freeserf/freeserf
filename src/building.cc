@@ -1137,7 +1137,10 @@ Building::update_castle() {
   MapPos flag_pos = map->move_down_right(pos);
   if (map->has_serf(flag_pos)) {
     Serf *serf = game->get_serf_at_pos(flag_pos);
-    if (serf->get_pos() != flag_pos) {
+	// trying skip if nullptr...
+	if (serf == nullptr) {
+	  Log::Warn["building"] << " inside Building::update_castle - Serf *serf is nullptr!, skipping it.  This is normally a crash bug";
+	}else if (serf->get_pos() != flag_pos) {
       map->set_serf_index(flag_pos, 0);
     }
   }
