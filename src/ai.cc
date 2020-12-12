@@ -1771,6 +1771,10 @@ AI::do_demolish_excess_lumberjacks() {
 		for (Building *building : buildings) {
 			if (building->get_type() == Building::TypeLumberjack) {
 				MapPos pos = building->get_position();
+				if (find_nearest_stock(pos) != stock_pos) {
+					AILogLogger["do_demolish_excess_lumberjacks"] << name << " lumberjack at pos " << pos << " is not closest to current stock_pos " << stock_pos << ", skipping";
+					continue;
+				}
 				if (building->is_done() && building->has_serf() && !first_one_found) {
 					AILogLogger["do_demolish_excess_lumberjacks"] << name << " the lumberjack at pos " << pos << " will be preserved and the rest destroyed";
 					first_one_found = true;
