@@ -356,8 +356,6 @@ AI::next_loop(){
 		stock_pos = this_stock_pos;
 		AILogLogger["next_loop"] << name << " Starting economy loop for stock at pos " << stock_pos;
 
-		do_demolish_excess_lumberjacks();
-
 		// debug
 		AILogLogger["next_loop"] << name << " stock at pos " << stock_pos << " has all/completed/occupied buildings: ";
 		for (int x=0; x<25; x++) {
@@ -366,6 +364,7 @@ AI::next_loop(){
 		}
 
 		do_get_inventory(stock_pos);
+		do_demolish_excess_lumberjacks();
 		do_promote_serfs_to_knights();
 		do_send_geologists();
 
@@ -1757,7 +1756,8 @@ AI::do_demolish_excess_lumberjacks() {
 	// need to be made stock-aware since adding multiple economies
 	//int lumberjack_count = building_count[Building::TypeLumberjack];
 	int lumberjack_count = stock_buildings.at(stock_pos).count[Building::TypeLumberjack];
-	unsigned int planks_count = realm_inv[Resource::TypePlank];
+	//unsigned int planks_count = realm_inv[Resource::TypePlank];
+	unsigned int planks_count = stock_inv->get_count_of(Resource::TypePlank);
 	if (planks_count >= planks_max && lumberjack_count > 1) {
 		AILogLogger["do_demolish_excess_lumberjacks"] << name << " planks_max reached and lumberjack_count is " << lumberjack_count << ".  Burning all but one lumberjack (nearest to this stock)";
 		bool first_one_found = false;
@@ -1772,23 +1772,24 @@ AI::do_demolish_excess_lumberjacks() {
 			if (building->get_type() == Building::TypeLumberjack) {
 				MapPos pos = building->get_position();
 				if (find_nearest_stock(pos) != stock_pos) {
-					AILogLogger["do_demolish_excess_lumberjacks"] << name << " lumberjack at pos " << pos << " is not closest to current stock_pos " << stock_pos << ", skipping";
+					AILogLogger["do_demolish_excess_lumberjacks"] << name << " DEBUG lumberjack at pos " << pos << " is not closest to current stock_pos " << stock_pos << ", skipping";
 					continue;
 				}
+				AILogLogger["do_demolish_excess_lumberjacks"] << name << " DEBUG lumberjack at pos " << pos << " *is* closest to current stock_pos " << stock_pos;
 				if (building->is_done() && building->has_serf() && !first_one_found) {
 					AILogLogger["do_demolish_excess_lumberjacks"] << name << " the lumberjack at pos " << pos << " will be preserved and the rest destroyed";
 					first_one_found = true;
 				}
 				else {
 					AILogLogger["do_demolish_excess_lumberjacks"] << name << " burning lumberjack at pos " << pos;
-					AILogLogger["do_demolish_excess_lumberjacks"] << name << " thread #" << std::this_thread::get_id() << " AI is locking mutex before calling game->get_player_buildings(player) (for demolish unproductive mines)";
+					AILogLogger["do_demolish_excess_lumberjacks"] << name << " thread #" << std::this_thread::get_id() << " AI is locking mutex before calling game->get_player_buildings(player)";
 					game->get_mutex()->lock();
-					AILogLogger["do_demolish_excess_lumberjacks"] << name << " thread #" << std::this_thread::get_id() << " AI has locked mutex before calling game->get_player_buildings(player) (for demolish unproductive mines)";
+					AILogLogger["do_demolish_excess_lumberjacks"] << name << " thread #" << std::this_thread::get_id() << " AI has locked mutex before calling game->get_player_buildings(player)";
 					game->demolish_building(pos, player);
-					AILogLogger["do_demolish_excess_lumberjacks"] << name << " thread #" << std::this_thread::get_id() << " AI is unlocking mutex after calling game->get_player_buildings(player) (for demolish unproductive mines)";
+					AILogLogger["do_demolish_excess_lumberjacks"] << name << " thread #" << std::this_thread::get_id() << " AI is unlocking mutex after calling game->get_player_buildings(player)";
 					game->get_mutex()->unlock();
-					AILogLogger["do_demolish_excess_lumberjacks"] << name << " thread #" << std::this_thread::get_id() << " AI has unlocked mutex after calling game->get_player_buildings(player) (for demolish unproductive mines)";
-					// do NOT mark as bad pos, in unlikely event that plank production becomes important again
+					AILogLogger["do_demolish_excess_lumberjacks"] << name << " thread #" << std::this_thread::get_id() << " AI has unlocked mutex after calling game->get_player_buildings(player)";
+					// do NOT mark as bad pos
 					//bad_building_pos.AI::do_demolish_excess_lumberjacks() {
 				}
 			}
