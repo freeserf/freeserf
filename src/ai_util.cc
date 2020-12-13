@@ -186,7 +186,7 @@ AI::update_building_counts() {
 				update_stocks_pos();
 			}
 			//AILogLogger["util_update_building_counts"] << name << " has a completed castle at pos " << building->get_position() << " with flag pos " << map->move_down_right(building->get_position());
-			occupied_military_pos.push_back(building->get_position());
+			realm_occupied_military_pos.push_back(building->get_position());
 			stock_buildings.at(map->move_down_right(building->get_position())).occupied_military_pos.push_back(building->get_position());
 			continue;
 		}
@@ -232,7 +232,7 @@ AI::update_building_counts() {
 			}
 			if (building->is_military() && building->is_active()) {
 				AILogLogger["util_update_building_counts"] << name << " adding occupied military building at " << building->get_position() << " to list for stock_pos " << nearest_stock;
-				occupied_military_pos.push_back(building->get_position());
+				realm_occupied_military_pos.push_back(building->get_position());
 				stock_buildings.at(nearest_stock).occupied_military_pos.push_back(building->get_position());
 			}
 		}
@@ -1355,14 +1355,16 @@ AI::building_exists_near_pos(MapPos center_pos, unsigned int distance, Building:
 // find the "best" of two building types, in preference order: occupied->completed->any
 //   and find the halfway point between those two and return it
 // for trying to build between two buildings, such as building a SteelSmelter halfway between CoalMine and IronMine
+//   currently this is ONLY used for placing a steelsmelter between coal and iron mines
+//  since enabling multiple economies, this function only considers buildings attached to the current stock_pos
 MapPos
 AI::find_halfway_pos_between_buildings(Building::Type first, Building::Type second) {
-	AILogLogger["util_find_halfway_pos_between_buildings"] << name << " inside get_halfway_pos_between_buildings, type1 " << NameBuilding[first] << " type2 " << NameBuilding[second];
+	AILogLogger["util_find_halfway_pos_between_buildings"] << name << " inside get_halfway_pos_between_buildings, type1 " << NameBuilding[first] << " type2 " << NameBuilding[second] << " for stock_pos " << stock_pos;
 	update_building_counts();
 	Building::Type type[2] = { first, second };
 	MapPos found_pos[2] = { bad_map_pos, bad_map_pos };
 	for (int x = 0; x < 2; x++) {
-		AILogLogger["util_find_halfway_pos_between_buildings"] << name << " searching realm for a building of type" << x << " " << NameBuilding[type[x]];
+		AILogLogger["util_find_halfway_pos_between_buildings"] << name << " searching this stock area for a building of type" << x << " " << NameBuilding[type[x]];
 		if (stock_buildings.at(stock_pos).occupied_count[type[x]] >= 1) {
 			AILogLogger["util_find_halfway_pos_between_buildings"] << name << " searching for an OCCUPIED building of type" << x << " " << NameBuilding[type[x]];
 			for (MapPos center_pos : stock_buildings.at(stock_pos).occupied_military_pos) {
@@ -1871,13 +1873,15 @@ AI::count_knights_affected_by_occupation_level_change(unsigned int current_level
 	return diff;
 }
 
+// this is only considering expanding the borders of the military buildings associated with this stock
+//   should it be done this way per-stock, or once globally using realm_occupied_military_buildings ?
 MapPos
 AI::expand_borders(MapPos center_pos) {
 	// time this function for debugging
 	std::clock_t start;
 	double duration;
 	start = std::clock();
-	AILogLogger["util_expand_borders"] << name << " inside AI::expand_borders";
+	AILogLogger["util_expand_borders"] << name << " inside AI::expand_borders for stock_pos " << stock_pos;
 	ai_status.assign("EXPANDING BORDERS");
 	MapPos built_pos = bad_map_pos;
 	MapPosSet count_by_corner;
@@ -1885,7 +1889,6 @@ AI::expand_borders(MapPos center_pos) {
 		AILogLogger["util_expand_borders"] << name << " expand_towards goal list includes item: " << goal;
 	}
 	// get list of military buildings as centers to look around for borders
-	MapPosVector occupied_military_pos = {};
 	AILogLogger["util_expand_borders"] << name << " thread #" << std::this_thread::get_id() << " AI is locking mutex before calling game->get_player_buildings(player) (for expand_borders)";
 	game->get_mutex()->lock();
 	AILogLogger["util_expand_borders"] << name << " thread #" << std::this_thread::get_id() << " AI has locked mutex before calling game->get_player_buildings(player) (for expand_borders)";

@@ -241,7 +241,7 @@ AI::AI(PGame current_game, unsigned int pi) {
 	no_transporter_timers = {};
 	serf_wait_timers = {};
 	serf_wait_idle_on_road_timers = {};
-	occupied_military_pos = {};
+	realm_occupied_military_pos = {};
 	bad_building_pos = {};   // AI STATEFULNESS WARNING - this bad_building_pos list is lost on save/load or if AI thread terminated
 	stocks_pos = {};
 	realm_inv = {};
@@ -3054,50 +3054,49 @@ void
 AI::do_build_steelsmelter() {
 	ai_status.assign("MAIN LOOP - steel");
 	// saw an infinite loop here dec11 2020, AI never ended doing update_buildings calls??
+	// saw again dec13, not actually infinite loop but took very long to run... minutes
 	AILogLogger["do_build_steelsmelter"] << name << " inside do_build_steelsmelter()";
 	unsigned int steel_count = stock_inv->get_count_of(Resource::TypeSteel);
 	update_building_counts();
 	int steelsmelter_count = stock_buildings.at(stock_pos).count[Building::TypeSteelSmelter];
 	MapPos built_pos = bad_map_pos;
-	if (steelsmelter_count < 1 && steel_count < steel_max) {
-		AILogLogger["do_build_steelsmelter"] << name << " desire more steel";
-		// if we got to this point we should already have iron & coal stored or mines connected
-		//&& iron_ore_count > 0 && coal_count > 0)) {
-		AILogLogger["do_build_steelsmelter"] << name << " trying to build steel smelter";
-		// try to place steel smelter halfway between a coal mine and iron mine if both exist, preferring active ones
-		// NOTE - there isn't much point to this until second/third+ steel smelters built, because one will almost certainly
-		//   have already been built to fuel toolmaker.   This does seem to work correctly though if tested in a contrived way
-		MapPos halfway_pos = find_halfway_pos_between_buildings(Building::TypeCoalMine, Building::TypeIronMine);
-		MapPosVector steelsmelter_pos;
-		if (halfway_pos != bad_map_pos) {
-			AILogLogger["do_build_steelsmelter"] << name << " adding pos halfway between a coal mine and an iron mine to first build_near center";
-			steelsmelter_pos.push_back(halfway_pos);
-		}
-		steelsmelter_pos.insert(steelsmelter_pos.end(), occupied_military_pos.begin(), occupied_military_pos.end());
-		for (MapPos center_pos : steelsmelter_pos) {
-			update_building_counts();
-			int steelsmelter_count = stock_buildings.at(stock_pos).count[Building::TypeSteelSmelter];
-			if (steelsmelter_count >= 1) {
-				AILogLogger["do_build_steelsmelter"] << name << " Already placed steel smelter, not building more";
-				break;
-			}
-			MapPosVector corners = AI::get_corners(center_pos);
-			for (MapPos corner_pos : corners) {
-				built_pos = bad_map_pos;
-				built_pos = AI::build_near_pos(corner_pos, AI::spiral_dist(6), Building::TypeSteelSmelter);
-				if (built_pos != bad_map_pos && built_pos != notplaced_pos && built_pos != stopbuilding_pos) {
-					AILogLogger["do_build_steelsmelter"] << name << " built steel smelter at pos " << built_pos;
-					break;
-				}
-				if (built_pos == stopbuilding_pos) { return; }
-			}
-		} // for each military building
+	if (steelsmelter_count > 1 || steel_count > steel_max) {
+		AILogLogger["do_build_steelsmelter"] << name << " have steel smelter or sufficient steel, skipping";
+		return;
+	}
+	AILogLogger["do_build_steelsmelter"] << name << " desire more steel";
+	// if we got to this point we should already have iron & coal stored or mines connected
+	//&& iron_ore_count > 0 && coal_count > 0)) {
+	AILogLogger["do_build_steelsmelter"] << name << " trying to build steel smelter";
+	// try to place steel smelter halfway between a coal mine and iron mine if both exist, preferring active ones
+	// NOTE - there isn't much point to this until second/third+ steel smelters built, because one will almost certainly
+	//   have already been built to fuel toolmaker.   This does seem to work correctly though if tested in a contrived way
+	//      actually Because there is only ever one toolmaker, and it is near castle, this function should be helpful for non-castle stocks
+	MapPos halfway_pos = find_halfway_pos_between_buildings(Building::TypeCoalMine, Building::TypeIronMine);
+	MapPosVector steelsmelter_pos;
+	if (halfway_pos != bad_map_pos) {
+		AILogLogger["do_build_steelsmelter"] << name << " adding pos halfway between a coal mine and an iron mine to first build_near center";
+		steelsmelter_pos.push_back(halfway_pos);
+	}
+	steelsmelter_pos.insert(steelsmelter_pos.end(), stock_buildings.at(stock_pos).occupied_military_pos.begin(), stock_buildings.at(stock_pos).occupied_military_pos.end());
+	for (MapPos center_pos : steelsmelter_pos) {
 		update_building_counts();
 		int steelsmelter_count = stock_buildings.at(stock_pos).count[Building::TypeSteelSmelter];
-	}
-	else {
-		AILogLogger["do_build_steelsmelter"] << name << " have steel smelter or sufficient steel, skipping";
-	}
+		if (steelsmelter_count >= 1) {
+			AILogLogger["do_build_steelsmelter"] << name << " Already placed steel smelter, not building more";
+			break;
+		}
+		MapPosVector corners = AI::get_corners(center_pos);
+		for (MapPos corner_pos : corners) {
+			built_pos = bad_map_pos;
+			built_pos = AI::build_near_pos(corner_pos, AI::spiral_dist(6), Building::TypeSteelSmelter);
+			if (built_pos != bad_map_pos && built_pos != notplaced_pos && built_pos != stopbuilding_pos) {
+				AILogLogger["do_build_steelsmelter"] << name << " built steel smelter at pos " << built_pos;
+				return;
+			}
+			if (built_pos == stopbuilding_pos) { return; }
+		}
+	} //foreach military building
 	AILogLogger["do_build_steelsmelter"] << name << " done do_build_steelsmelter";
 }
 

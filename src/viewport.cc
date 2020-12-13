@@ -2087,7 +2087,11 @@ Viewport::draw_serf_row(MapPos pos, int y_base, int cols, int x_base) {
     /* Active serf */
     if (map->has_serf(pos)) {
       Serf *serf = interface->get_game()->get_serf_at_pos(pos);
-
+	  //tlongstretch
+	  if (serf == nullptr) {
+		  Log::Warn["viewport"] << "serf is nullptr during draw_serf_row!  this is normally a crash bug. skipping this serf";
+		  continue;
+	  }
       if (serf->get_state() != Serf::StateMining ||
           (serf->get_mining_substate() != 3 &&
            serf->get_mining_substate() != 4 &&
@@ -2127,14 +2131,18 @@ Viewport::draw_serf_row_behind(MapPos pos, int y_base, int cols, int x_base) {
     /* Active serf */
     if (map->has_serf(pos)) {
       Serf *serf = interface->get_game()->get_serf_at_pos(pos);
-
+	  //tlongstretch
+	  if (serf == nullptr) {
+		Log::Warn["viewport"] << "serf is nullptr during draw_serf_row_behind!  this is normally a crash bug. skipping this serf";
+		continue;
+	  }
       if (serf->get_state() == Serf::StateMining &&
           (serf->get_mining_substate() == 3 ||
            serf->get_mining_substate() == 4 ||
            serf->get_mining_substate() == 9 ||
            serf->get_mining_substate() == 10)) {
             draw_active_serf(serf, pos, x_base, y_base);
-          }
+      }
     }
   }
 }

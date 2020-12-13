@@ -933,6 +933,7 @@ send_serf_to_road_search_cb(Flag *flag, void *data) {
   if (flag->has_inventory()) {
     /* Inventory reached */
     Building *building = flag->get_building();
+	// got read access violation here first time dec13 2020:   'Unhandled exception thrown: read access violation. **this** was 0xFFFFFFFFFFFFFF77. occurred"
     Inventory *inventory = building->get_inventory();
     if (!road_data->water) {
       if (inventory->have_serf(Serf::TypeTransporter)) {

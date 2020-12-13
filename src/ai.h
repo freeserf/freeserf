@@ -60,7 +60,7 @@ private:
 	FlagDirTimer no_transporter_timers;
 	SerfWaitTimer serf_wait_timers;
 	SerfWaitTimer serf_wait_idle_on_road_timers;
-	MapPosVector occupied_military_pos;
+	MapPosVector realm_occupied_military_pos;
 	Building *castle;
 	Inventory *stock_inv;
 	RoadOptions road_options;
