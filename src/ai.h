@@ -384,7 +384,7 @@ static constexpr double max_convolution = 3.00;
 static const unsigned int min_knight_morale_attack = 1400;
 // attack if knights sent is at least this many times the defending knights
 //  ex. if enemy hut has 2 defenders, and this is set to 4.00, only attack if 8 knights can be sent
-static constexpr double min_knight_ratio_attack = 2.50;
+static constexpr double min_knight_ratio_attack = 2.00;
 // TODO add some kind of factor that reduces the required attack ratio as own morale increases
 
 #endif
