@@ -747,8 +747,8 @@ AI::do_spiderweb_roads2() {
 	// only do this every X loops, and only add one new road per run
 	update_building_counts();
 	unsigned int completed_huts = completed_building_count[Building::TypeHut];
-	if (loop_count % 10 != 0 || completed_huts < 9) {
-		AILogLogger["do_spiderweb_roads2"] << name << " skipping spider-web2 roads, only running this every X loops and Y knight huts built";
+	if (loop_count % 10 != 0 || completed_huts < 9 || completed_huts > 16) {
+		AILogLogger["do_spiderweb_roads2"] << name << " skipping spider-web2 roads, only running this every X loops and >Y, <Z knight huts built";
 	}
 	else {
 		std::set<MapPos> tried_pairs;
@@ -899,8 +899,8 @@ AI::do_spiderweb_roads1() {
 	// only do this every X loops, and only add one new road per run
 	update_building_counts();
 	unsigned int completed_huts = completed_building_count[Building::TypeHut];
-	if (loop_count % 10 != 0 || completed_huts < 6) {
-		AILogLogger["do_spiderweb_roads1"] << name << " skipping spider-web1 roads, only running this every X loops and Y knight huts built";
+	if (loop_count % 10 != 0 || completed_huts < 6 || completed_huts > 12) {
+		AILogLogger["do_spiderweb_roads1"] << name << " skipping spider-web1 roads, only running this every X loops and >Y, <Z knight huts built";
 	}
 	else {
 		std::set<MapPos> tried_pairs;
