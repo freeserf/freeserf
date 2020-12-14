@@ -381,7 +381,7 @@ static constexpr double max_convolution = 3.00;
 
 // ##############  these are very rough values for testing, need to be fine tuned  - oct28 2020 ###############
 // attack if own knight_morale is this high (starting morale is 1024?)
-static const unsigned int min_knight_morale_attack = 1300;
+static const unsigned int min_knight_morale_attack = 1400;
 // attack if knights sent is at least this many times the defending knights
 //  ex. if enemy hut has 2 defenders, and this is set to 4.00, only attack if 8 knights can be sent
 static constexpr double min_knight_ratio_attack = 2.50;
