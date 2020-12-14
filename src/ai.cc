@@ -336,6 +336,7 @@ AI::next_loop(){
 	do_build_better_roads_for_important_buildings();  // is this working?  I still see pretty inefficient roads for important buildings
 	//do_spiderweb_roads1();   // this might be too close to the castle, do some more testing
 	do_spiderweb_roads2();
+	do_pollute_castle_area_roads_with_flags();
 	do_fix_stuck_serfs();
 	do_fix_missing_transporters();
 	//do_send_geologists();  move this to inside warehouse / stock loop only because it uses occupied_building_count which uses stock_pos
@@ -454,7 +455,7 @@ AI::do_place_castle() {
 				exit(1);
 			}
 			MapPos pos = map->get_rnd_coord(NULL, NULL, &rnd);
-			AILogLogger["do_place_castle"] << name << ": trying to place castle at random pos " << pos;
+			AILogLogger["do_place_castle"] << name << ": considering placing castle at random pos " << pos;
 			if (!game->can_build_castle(pos, player)) {
 				AILogLogger["do_place_castle"] << name << " cannot build a castle at pos " << pos;
 				continue;
@@ -843,6 +844,42 @@ AI::do_spiderweb_roads2() {
 	AILogLogger["do_spiderweb_roads2"] << name << " done with building spider-web roads2 call took " << duration;
 }
 
+// after the game has progressed a bit, add a bunch of flags to the roads immediately surrounding the castle
+//  to disfavor transport paths that would otherwise route through the castle, encouraging alternate routes
+void
+AI::do_pollute_castle_area_roads_with_flags() {
+	AILogLogger["do_pollute_castle_area_roads_with_flags"] << name << " inside do_pollute_castle_area_roads_with_flagsderweb_roads2";
+	ai_status.assign("HOUSEKEEPING - do_pollute_castle_area_roads_with_flags");
+	// only do this every X loops, and only once a certain number of huts have been built
+	//  and don't do it again after a few more huts built, because it only ever needs to be done once
+	update_building_counts();
+	unsigned int completed_huts = completed_building_count[Building::TypeHut];
+	if (loop_count % 5 != 0 || completed_huts < 15 || completed_huts >19) {
+		AILogLogger["do_pollute_castle_area_roads_with_flags"] << name << " skipping do_pollute_castle_area_roads_with_flags roads, only running this every X loops, and if >Y and <Z knight huts built";
+		return;
+	}
+
+	unsigned int created_flags = 0;
+	for (unsigned int x = 0; x < AI::spiral_dist(9); x++) {
+		MapPos pos = map->pos_add_extended_spirally(castle_flag_pos, x);
+		if (map->has_any_path(pos)){
+			if (game->can_build_flag(pos, player)) {
+				AILogLogger["do_pollute_castle_area_roads_with_flags"] << name << " building a pollution flag at pos " << pos;
+				AILogLogger["do_pollute_castle_area_roads_with_flags"] << name << " thread #" << std::this_thread::get_id() << " AI is locking mutex before calling game->build_flag";
+				game->get_mutex()->lock();
+				AILogLogger["do_pollute_castle_area_roads_with_flags"] << name << " thread #" << std::this_thread::get_id() << " AI has locking mutex before calling game->build_flag";
+				if (game->build_flag(pos, player)) {
+					created_flags++;
+				}
+				AILogLogger["do_pollute_castle_area_roads_with_flags"] << name << " thread #" << std::this_thread::get_id() << " AI is unlocking mutex after calling game->build_flag";
+				game->get_mutex()->unlock();
+				AILogLogger["do_pollute_castle_area_roads_with_flags"] << name << " thread #" << std::this_thread::get_id() << " AI has unlocked mutex after calling game->build_flag";
+			}
+		}
+	}
+	AILogLogger["do_pollute_castle_area_roads_with_flags"] << name << " done do_pollute_castle_area_roads_with_flags, created " << created_flags << " new flags";
+}
+
 
 
 void
@@ -1076,6 +1113,9 @@ AI::do_fix_stuck_serfs() {
 	AILogLogger["do_fix_stuck_serfs"] << name << " done do_fix_stuck_serfs call took " << duration;
 }
 
+// bug workaround - send transporters to paths where they are missing
+//   for unknown reasons, sometimes roads have no transporter and cannot move resources, halting building and economy
+//     Detect this and force sending a transporter using internal game function
 void
 AI::do_fix_missing_transporters() {
 	// time this function for debugging
@@ -1083,10 +1123,10 @@ AI::do_fix_missing_transporters() {
 	double duration;
 	start = std::clock();
 	AILogLogger["do_fix_missing_transporters"] << name << " inside do_fix_missing_transporters";
-	// bug workaround - send transporters to paths where they are missing
-	//   for unknown reasons, sometimes roads have no transporter and cannot move resources, halting building and economy
-	//     Detect this and force sending a transporter
 	ai_status.assign("HOUSEKEEPING - send transporters");
+	//
+	// first, check any timers already set
+	//
 	AILogLogger["do_fix_missing_transporters"] << name << " there are " << no_transporter_timers.size() << " TOTAL no_transporter_timers set";
 	FlagDirTimer::iterator no_transporter_timer;
 	for (no_transporter_timer = no_transporter_timers.begin(); no_transporter_timer != no_transporter_timers.end(); ) {
@@ -1138,6 +1178,9 @@ AI::do_fix_missing_transporters() {
 	}
 	//AILogLogger["do_fix_missing_transporters"] << name << " after checking timeouts, there are now " << no_transporter_timers.size() << " TOTAL no_transporter_timers set";
 
+	//
+	// look for missing transporters and if found set timers for them
+	//
 	unsigned int flag_index = 0;
 	flags_static_copy = *(game->get_flags());
 	flags = &flags_static_copy;
@@ -1152,7 +1195,11 @@ AI::do_fix_missing_transporters() {
 		for (Direction dir : cycle_directions_cw()) {
 			if (!map->has_path(flag->get_position(), dir))
 				continue;
-			// check for rarer missing transporter bug, where flag lists a transporter in dir, but no serf is actually on the road
+			if (map->road_segment_in_water(flag->get_position(), dir))
+				continue;
+			//
+			// check for rare missing transporter bug, where flag lists a transporter in dir, but no serf is actually on the road
+			//
 			if (flag->has_transporter(dir)) {
 				bool found_transporter = false;
 				Road road;
@@ -1216,6 +1263,9 @@ AI::do_fix_missing_transporters() {
 				}
 
 			}
+			//
+			// check for common missing transporter bug, where no transporter is assigned at all
+			//
 			if (!flag->has_transporter(dir)) {
 				AILogLogger["do_fix_missing_transporters"] << name << " flag at pos " << flag->get_position() << " has no transporter on path in dir " << dir << " / " << NameDirection[dir];
 				// maybe check to see if there is a Walking Transporter serf whose dest is this path?

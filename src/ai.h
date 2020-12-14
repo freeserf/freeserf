@@ -263,6 +263,7 @@ private:
 	void do_connect_disconnected_flags();
 	void do_spiderweb_roads1();
 	void do_spiderweb_roads2();
+	void do_pollute_castle_area_roads_with_flags();
 	void do_build_better_roads_for_important_buildings();
 	void do_fix_stuck_serfs();
 	void do_fix_missing_transporters();
@@ -308,7 +309,7 @@ static const unsigned int knights_min = 3;
 static const unsigned int knights_med = 18;
 static const unsigned int knights_max = 50;
 static const unsigned int knight_occupation_change_buffer = 4; // to avoid repeatedly cycling knights, increase/lower bar to change levels again by this amount
-static const unsigned int near_building_sites_min = 35;   // don't place castle unless this many sites available.  small += 1, large += 3
+static const unsigned int near_building_sites_min = 250;   // don't place castle unless this many sites available.  small += 1, large += 3
 static const unsigned int gold_bars_max = 50;  // does this do anything?  maybe use to deprioritize food to gold mines over this amount?
 static const unsigned int steel_min = 8;   // don't build blacksmith if under this value, unless sufficient iron or an iron mine
 static const unsigned int steel_max = 60;  // don't build iron foundry if over this value

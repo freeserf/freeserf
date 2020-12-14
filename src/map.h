@@ -381,6 +381,14 @@ class Map {
     return (game_tiles[pos].paths & 0x3f); }
   bool has_path(MapPos pos, Direction dir) const {
     return (BIT_TEST(game_tiles[pos].paths, dir) != 0); }
+  //tlongstretch - convenience function
+  bool has_any_path(MapPos pos) {
+	  for (Direction d : cycle_directions_cw()) {
+		  if (has_path(pos, d))
+			  return true;
+	  }
+	  return false;
+  }
   void add_path(MapPos pos, Direction dir) {
     game_tiles[pos].paths |= BIT(dir); }
   void del_path(MapPos pos, Direction dir) {
