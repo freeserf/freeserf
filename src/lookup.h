@@ -330,7 +330,8 @@ const std::string NameRoadOption[] = {
 				"AvoidCastleArea",
 				"PenalizeCastleFlag",
 				"Improve",
-				"ReducedNewLengthPenalty"
+				"ReducedNewLengthPenalty",
+				"AllowWaterRoad"
 };
 
 
@@ -564,9 +565,12 @@ typedef enum RoadOption {
 	AvoidCastleArea,	// disfavor any pos surrounding the castle, to avoid congesting that area
 	PenalizeCastleFlag, // disfavor any flag-path that includes the castle flag, for resources that route directly to consumers
 	Improve,			// allow creating new roads even if start_pos already has any existing path (otherwise disallow it)
-	ReducedNewLengthPenalty // reduced penalty, experimental, probably should just change overall new_length_penalty to be penalize longer roads less
+	ReducedNewLengthPenalty, // reduced penalty, experimental, probably should just change overall new_length_penalty to penalize longer roads less
+	AllowWaterRoad		// allow creating water roads, this is on by default but if a water road is about to be built the build_best_road function will 
+						//   make a recursive call to itself with AllowWater disabled to ensure that a land route is also available, to avoid issue where 
+						//   serfs cannot reach the construction site/building because serfs cannot travel in boats (which is dumb)
 } RoadOption;
-typedef std::bitset<7> RoadOptions;
+typedef std::bitset<8> RoadOptions;
 typedef std::vector<Road> Roads;
 
 

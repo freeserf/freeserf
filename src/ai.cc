@@ -257,6 +257,7 @@ AI::AI(PGame current_game, unsigned int pi) {
 	road_options.reset(RoadOption::AvoidCastleArea);
 	road_options.reset(RoadOption::Improve);
 	road_options.reset(RoadOption::ReducedNewLengthPenalty);
+	road_options.set(RoadOption::AllowWaterRoad);
 
 	need_tools = false;
 

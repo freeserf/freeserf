@@ -1032,6 +1032,37 @@ AI::build_best_road(MapPos start_pos, RoadOptions road_options, Building::Type o
 
 			Road road = proad->get_road();
 			AILogLogger["util_build_best_road"] << name << " trying to build road from " << start_pos << " to " << end_pos << " as specified in proad";
+
+			// check to see if this is a water road about to be built
+			//  it should only be possible for BOTH ends to be in water, but checking both just to be sure
+			bool water_road = false;
+			if (map->road_segment_in_water(end_pos, reverse_direction(road.get_last()))){
+				AILogLogger["util_build_best_road"] << name << " end_pos is in water!";
+				water_road = true;
+			}
+			if (map->road_segment_in_water(start_pos, road.get_first())){
+				AILogLogger["util_build_best_road"] << name << " start_pos is in water!";
+				water_road = true;
+			}
+			if (water_road) {
+				if (!road_options.test(RoadOption::AllowWaterRoad)) {
+					AILogLogger["util_build_best_road"] << name << " this solution is a water road, but AllowWaterRoad RoadOption is not set, skipping";
+					continue;
+				}
+				RoadOptions recursive_land_road_options = road_options;
+				recursive_land_road_options.reset(RoadOption::AllowWaterRoad);
+				// does this return true if an existing (better?) land road already exists?? or only if it creates one?
+				bool land_road_was_built = AI::build_best_road(start_pos, recursive_land_road_options);
+				if (land_road_was_built) {
+					AILogLogger["util_build_best_road"] << name << " successfully built land road, allowing a water road to " << start_pos;
+				}
+				else {
+					AILogLogger["util_build_best_road"] << name << " failed to build land road, NOT allowing a water road to " << start_pos;
+					continue;
+				}
+			}
+
+
 			bool created_new_flag = false;
 			if (game->get_flag_at_pos(end_pos) == nullptr) {
 				AILogLogger["util_build_best_road"] << name << " end_pos " << end_pos << " has no flag, must be fake flag/split road, trying to create a real flag";
@@ -1057,6 +1088,7 @@ AI::build_best_road(MapPos start_pos, RoadOptions road_options, Building::Type o
 			// insert code here to check if the second road is actually better than the first road built (if one was built) !!
 			//   otherwise, don't build.  Adding this because often a stubby second road is built when the first road is already optimal
 			//      to connect to the second affinity building
+			//  Is this actually still an issue?  I think they "stubby second road" issue was actually a result of a pathfinding bug that was fixed   - dec14 2020
 			//
 			if (true) {
 				if (roads_built >= 1) {

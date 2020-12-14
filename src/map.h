@@ -52,6 +52,8 @@ class Road {
   MapPos get_source() const { return begin; }
   Dirs get_dirs() const { return dirs; }
   size_t get_length() const { return dirs.size(); }
+  // tlongstretch convenience function
+  Direction get_first() const { return dirs.front(); }
   Direction get_last() const { return dirs.back(); }
   bool is_extendable() const { return (dirs.size() < max_length); }
   bool is_valid_extension(Map *map, Direction dir) const;
