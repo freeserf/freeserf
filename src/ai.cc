@@ -7,6 +7,8 @@
 
 /* TO DO
 
+// i just noticed there is Object::NewTree and Object::NewPine... I thought only baby pines exist?   check and see if there is an unused baby non-pine tree graphic!
+
 - something is up with idle_serfs check, the underling function seems correct, it only cheecks for StateIdleInStock, but
     knights might have issues, and geologists are having issues.  Maybe two separate problems?  If so, go back and un-do the extra step
 	   that was added to knight calculations to avoid what I thought was a problem with idle serf detection
@@ -343,6 +345,7 @@ AI::next_loop(){
 	//do_send_geologists();  move this to inside warehouse / stock loop only because it uses occupied_building_count which uses stock_pos
 	do_build_rangers();
 	do_remove_road_stubs();
+	do_demolish_unproductive_3rd_lumberjacks();
 	do_demolish_unproductive_stonecutters();
 	do_demolish_unproductive_mines();
 	do_manage_tool_priorities();
@@ -1662,6 +1665,70 @@ AI::do_build_rangers() {
 	AILogLogger["do_build_rangers"] << name << " done do_build_rangers";
 }
 
+void
+AI::do_demolish_unproductive_3rd_lumberjacks() {
+	AILogLogger["do_demolish_unproductive_3rd_lumberjacks"] << name << " inside do_demolish_unproductive_3rd_lumberjacks";
+	//
+	// build ranger near lumberjacks that have few trees and no ranger nearby
+	//
+	ai_status.assign("HOUSEKEEPING - burn unproductive 3rd lumberjacks");
+	AILogLogger["do_demolish_unproductive_3rd_lumberjacks"] << name << " thread #" << std::this_thread::get_id() << " AI is locking mutex before calling game->get_player_buildings(player)";
+	game->get_mutex()->lock();
+	AILogLogger["do_demolish_unproductive_3rd_lumberjacks"] << name << " thread #" << std::this_thread::get_id() << " AI has locked mutex before calling game->get_player_buildings(player)";
+	Game::ListBuildings buildings = game->get_player_buildings(player);
+	AILogLogger["do_demolish_unproductive_3rd_lumberjacks"] << name << " thread #" << std::this_thread::get_id() << " AI is unlocking mutex after calling game->get_player_buildings(player)";
+	game->get_mutex()->unlock();
+	AILogLogger["do_demolish_unproductive_3rd_lumberjacks"] << name << " thread #" << std::this_thread::get_id() << " AI has unlocked mutex after calling game->get_player_buildings(player)";
+	// find all sawmills in the realm, and check the area around each one
+	// if three completed lumberjacks and a ranger are nearby, but still not many trees,
+	//   then burn one lumberjack to allow it to be replaced elsewhere by the do_food_buildings_and_3rd_lumberjack function
+	for (Building *building : buildings) {
+		if (building->get_type() != Building::TypeSawmill)
+			continue;
+		MapPos sawmill_pos = building->get_position();
+		unsigned int lumberjack_count = 0;
+		MapPosVector lumberjack_positions;
+		for (unsigned int i = 0; i < AI::spiral_dist(8); i++) {
+			MapPos pos = map->pos_add_extended_spirally(sawmill_pos, i);
+			if (map->get_obj(pos) == Map::ObjectSmallBuilding 
+				&& game->get_building_at_pos(pos)->get_type() == Building::TypeLumberjack
+				&& map->get_owner(pos) == player_index) {
+				++lumberjack_count;
+				lumberjack_positions.push_back(pos);
+			}
+		}
+		if (lumberjack_count < 3)
+			continue;
+		unsigned int ranger_count = 0;
+		unsigned int mature_tree_count = 0;
+		for (MapPos lumberjack_pos : lumberjack_positions) {
+			for (unsigned int i = 0; i < AI::spiral_dist(6); i++) {
+				MapPos pos = map->pos_add_extended_spirally(lumberjack_pos, i);
+				if (map->get_obj(pos) == Map::ObjectSmallBuilding
+					&& map->get_owner(pos) == player_index
+					&& game->get_building_at_pos(pos)->get_type() == Building::TypeForester
+					&& game->get_building_at_pos(pos)->is_done())
+					++ranger_count;
+				if (map->get_obj(pos) >= Map::ObjectTree0 && map->get_obj(pos) <= Map::ObjectPine7)
+					++mature_tree_count;
+			}
+			if (ranger_count > 0 && mature_tree_count < near_trees_min) {
+				AILogLogger["do_demolish_unproductive_3rd_lumberjacks"] << name << " 3rd lumberjack at pos " << lumberjack_pos << " has a nearby ranger yet still only has " << mature_tree_count << ", less than near_trees_min " << near_trees_min << ".  Burning it so it can be replaced in a better spot";
+				AILogLogger["do_demolish_unproductive_3rd_lumberjacks"] << name << " thread #" << std::this_thread::get_id() << " AI is locking mutex before calling game->demolish_building";
+				game->get_mutex()->lock();
+				AILogLogger["do_demolish_unproductive_3rd_lumberjacks"] << name << " thread #" << std::this_thread::get_id() << " AI has locked mutex before calling game->demolish_building";
+				game->demolish_building(lumberjack_pos, player);
+				AILogLogger["do_demolish_unproductive_3rd_lumberjacks"] << name << " thread #" << std::this_thread::get_id() << " AI is unlocking mutex after calling game->demolish_building";
+				game->get_mutex()->unlock();
+				AILogLogger["do_demolish_unproductive_3rd_lumberjacks"] << name << " thread #" << std::this_thread::get_id() << " AI has unlocked mutex after calling game->demolish_building";
+				break;
+			}
+		}
+	}
+	AILogLogger["do_demolish_unproductive_3rd_lumberjacks"] << name << " done do_demolish_unproductive_3rd_lumberjacks";
+}
+
+
 
 // remove roads that lead to:
 //  - an occupied ranger building, if no other paths from ranger flag
@@ -2645,6 +2712,11 @@ AI::do_build_toolmaker_steelsmelter() {
 // build one baker - near the mills
 // build a 3rd lumberjack after the first farm is built - because it makes good use of time while farmer is sowing his fields
 //    I keep trying to break this up into smaller functions it really works best together
+//
+// NOTE - had to change this function somewhat.  Even though it is ideal to do farmer->3rd_lumberjack->wait a bit->miller->baker the delay between
+//   building tends to result in poor road connection between the food buildings.  Because it is so critical that the food buildings all have very good
+//    connections to each other, and I cannot figure out a way to "save a spot" for roads without actually connecting them
+//
 void
 AI::do_build_food_buildings_and_3rd_lumberjack() {
 	AILogLogger["do_build_food_buildings_and_3rd_lumberjack"] << name << " Main Loop - food (and 3rd lumberjack)";
@@ -2694,7 +2766,6 @@ AI::do_build_food_buildings_and_3rd_lumberjack() {
 			// if economy is far enough along, place a second and third farm near existing farm buildings
 			//   (if they indeed exist) by inserting their positions in the front of the queue
 			int mine_count = 0;
-			update_building_counts();
 			mine_count += stock_buildings.at(stock_pos).completed_count[Building::TypeCoalMine];
 			mine_count += stock_buildings.at(stock_pos).completed_count[Building::TypeIronMine];
 			mine_count += stock_buildings.at(stock_pos).completed_count[Building::TypeGoldMine];
@@ -2751,7 +2822,7 @@ AI::do_build_food_buildings_and_3rd_lumberjack() {
 					}
 				}
 
-				// insert order matters here, mill is the best thing to be near
+				// insert order matters here, mill is the best thing to be near because it is the middle of the food chain
 				if (mill_pos != bad_map_pos) {
 					AILogLogger["do_build_food_buildings_and_3rd_lumberjack"] << name << " inserting mill_pos " << mill_pos << " into 2nd/3rd farm build_positions list";
 					farm_positions.push_back(mill_pos);
@@ -2777,13 +2848,6 @@ AI::do_build_food_buildings_and_3rd_lumberjack() {
 			//   this should result in a farm being built near the first knight hut expansion, or one of the first few
 			MapPosVector farm_centers = stock_buildings.at(stock_pos).occupied_military_pos;
 			// remove first element, which is always castle_pos  (NOT castle_flag_pos, which might make more sense)
-			//since doing parallel economies/stocks/warehouses started getting this error here:cannot seek value-initialized vector iterator
-			//adding debugging
-			AILogLogger["do_build_food_buildings_and_3rd_lumberjack"] << name << " DEBUG stock_pos is " << stock_pos;
-			AILogLogger["do_build_food_buildings_and_3rd_lumberjack"] << name << " DEBUG farm_centers size = " << farm_centers.size();
-			for (MapPos foo : farm_centers) {
-				AILogLogger["do_build_food_buildings_and_3rd_lumberjack"] << name << " DEBUG farm_centers contains position: " << foo;
-			}
 			farm_centers.erase(farm_centers.begin(), farm_centers.begin() + 1);
 			// add castle_pos back to the end
 			farm_centers.push_back(castle_pos);
@@ -2808,7 +2872,7 @@ AI::do_build_food_buildings_and_3rd_lumberjack() {
 				}
 				// build wheat farm near corner with most open grass
 				MapPosVector search_positions = AI::sort_by_val_desc(count_by_corner);
-				
+
 				built_pos = bad_map_pos;
 				for (MapPos corner_pos : search_positions) {
 					//ai_mark_pos.clear();
@@ -2838,6 +2902,11 @@ AI::do_build_food_buildings_and_3rd_lumberjack() {
 	//    this has nothing to do with food, but now is the optimal time to build the third lumberjack
 	//      but it would be inefficient to break this up because farms are tied to mills and bakers
 	//
+	// if a 3rd lumberjack already exists, but no longer has the min number of trees nearby, burn it and place a new one
+	//   this should fix an issue where a cluster of wood buildings exists but is waiting on trees to grow, bottlenecking it
+	//     better to move one of the lumberjacks to an area with mature trees
+	// Could move this to the do_build_rangers function which is almost identical, but that is a Realm-wide check while this is per-stock
+	// actually... moving this to its own realm-wide function do_burn_unproductive_3rd_lumberjacks
 	update_building_counts();
 	unsigned int sawmill_count = stock_buildings.at(stock_pos).count[Building::TypeSawmill];
 	unsigned int farm_count = stock_buildings.at(stock_pos).count[Building::TypeFarm];
@@ -2851,11 +2920,9 @@ AI::do_build_food_buildings_and_3rd_lumberjack() {
 		MapPosSet count_by_corner;
 		for (MapPos center_pos : stock_buildings.at(stock_pos).occupied_military_pos) {
 			update_building_counts();
-			// make per-stock
-			//lumberjack_count = building_count[Building::TypeLumberjack];
 			lumberjack_count = stock_buildings.at(stock_pos).count[Building::TypeLumberjack];
 			if (lumberjack_count >= 3) {
-				AILogLogger["do_build_food_buildings_and_3rd_lumberjack"] << name << " Already placed third lumberhack, not building more";
+				AILogLogger["do_build_food_buildings_and_3rd_lumberjack"] << name << " Already placed third lumberjack, not building more";
 				break;
 			}
 			MapPosVector corners = AI::get_corners(center_pos);
@@ -2866,19 +2933,19 @@ AI::do_build_food_buildings_and_3rd_lumberjack() {
 					count_by_corner.insert(std::make_pair(corner_pos, count));
 				}
 			}
-			// build lumberjack near corner with most trees
-			MapPosVector search_positions = AI::sort_by_val_desc(count_by_corner);
-			built_pos = bad_map_pos;
-			for (MapPos corner_pos : search_positions) {
-				AILogLogger["do_build_food_buildings_and_3rd_lumberjack"] << name << " try to build lumberjack near pos " << corner_pos;
-				built_pos = AI::build_near_pos(corner_pos, AI::spiral_dist(4), Building::TypeLumberjack);
-				if (built_pos != bad_map_pos && built_pos != notplaced_pos && built_pos != stopbuilding_pos) {
-					AILogLogger["do_build_food_buildings_and_3rd_lumberjack"] << name << " built 3rd lumberjack at pos " << built_pos;
-					break;
-				}
-				if (built_pos == stopbuilding_pos) { return; }
-			}
 		} // foreach military building
+		// build lumberjack near corner with most trees
+		MapPosVector search_positions = AI::sort_by_val_desc(count_by_corner);
+		built_pos = bad_map_pos;
+		for (MapPos corner_pos : search_positions) {
+			AILogLogger["do_build_food_buildings_and_3rd_lumberjack"] << name << " try to build lumberjack near pos " << corner_pos;
+			built_pos = AI::build_near_pos(corner_pos, AI::spiral_dist(4), Building::TypeLumberjack);
+			if (built_pos != bad_map_pos && built_pos != notplaced_pos && built_pos != stopbuilding_pos) {
+				AILogLogger["do_build_food_buildings_and_3rd_lumberjack"] << name << " built 3rd lumberjack at pos " << built_pos;
+				break;
+			}
+			if (built_pos == stopbuilding_pos) { return; }
+		}
 		update_building_counts();
 		lumberjack_count = stock_buildings.at(stock_pos).count[Building::TypeLumberjack];
 		if (lumberjack_count < 3) {

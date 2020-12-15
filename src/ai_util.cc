@@ -107,8 +107,8 @@ AI::place_castle(PGame game, MapPos center_pos, unsigned int distance) {
 	}
 
 	AILogLogger["util_place_castle"] << name << " found trees: " << trees << ", stones: " << stones << ", building_sites: " << building_sites << " in area " << center_pos;
-	if (trees < (near_trees_min * 3)) {
-		AILogLogger["util_place_castle"] << name << " not enough trees, min is " << near_trees_min * 3 << ", returning false";
+	if (trees < (near_trees_min * 4)) {
+		AILogLogger["util_place_castle"] << name << " not enough trees, min is " << near_trees_min * 4 << ", returning false";
 		return false;
 	}
 	if (stones < near_stones_min) {
