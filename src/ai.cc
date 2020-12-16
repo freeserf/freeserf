@@ -1456,30 +1456,14 @@ AI::do_send_geologists() {
 			unsigned int count = AI::count_empty_terrain_near_pos(corner_pos, AI::spiral_dist(4), Map::TerrainTundra0, Map::TerrainSnow0, "orange");
 			//AILogLogger["do_send_geologists"] << name << " corner has hills count: " << count << ", min acceptable is " << hills_min;
 			if (count >= hills_min) {
-				// count the number of signs of any type, and the number of hills that have no blocking objects (signs are okay, they are not blocking)
-				double signs_count = AI::count_objects_near_pos(corner_pos, AI::spiral_dist(4), Map::ObjectSignLargeGold, Map::ObjectSignSmallStone, "dk_orange");
-				double empty_hills_count = AI::count_empty_terrain_near_pos(corner_pos, AI::spiral_dist(4), Map::TerrainTundra0, Map::TerrainSnow0, "orange");
-				double sign_density = signs_count / empty_hills_count;
-				AILogLogger["do_send_geologists"] << name << " corner with center pos " << corner_pos << " has signs_count: " << signs_count << ", empty_hills_count: " << empty_hills_count << ", sign_density: " << sign_density << ", deprioritize at " << geologist_sign_density_deprio;
-				if (sign_density >= geologist_sign_density_deprio) {
+				double sign_density = AI::count_geologist_sign_density(corner_pos, AI::spiral_dist(4));
+				if (sign_density > geologist_sign_density_max) {
+					AILogLogger["do_send_geologists"] << name << " sign density " << sign_density << " is over geologist_sign_density_max " << geologist_sign_density_max << ", skipping this corner";
+					continue;
+				}else if (sign_density > geologist_sign_density_deprio) {
 					AILogLogger["do_send_geologists"] << name << " sign density " << sign_density << " is over geologist_sign_density_deprio " << geologist_sign_density_deprio << ".  De-prioritizing this area for geologists";
 					count = count / 3;
 				}
-				// now using sign_density instead of "flag already exists"
-				//// deprioritize areas where any resource flags already exist
-				////if (AI::count_objects_near_pos(corner_pos, AI::spiral_dist(4),
-				////		Map::ObjectSignLargeGold, Map::ObjectSignEmpty, "dk_orange") > 0) {
-				////		AILogLogger["do_send_geologists"] << name << " at least one resource flag found near pos " << corner_pos << " de-prioritizing from count " << count << " to " << count / 3;
-				////		count = count / 3;
-				////}
-				////
-
-				// improved method?  no this might actually be worse
-				//unsigned int sign_count = AI::count_objects_near_pos(corner_pos, AI::spiral_dist(4),
-				//      Map::ObjectSignLargeGold, Map::ObjectSignEmpty, "dk_orange");
-				//if (count > sign_count){
-				//      AILogLogger["do_send_geologists"] << name << " found " << sign_count << " resource signs found near pos " << corner_pos << " de-prioritizing from count " << count << " to " << count - sign_count;
-				//}
 				AILogLogger["do_send_geologists"] << name << " inserting hills corner pos " << corner_pos << " to count_by_corner with adjusted value " << count;
 				count_by_corner.insert(std::make_pair(corner_pos, count));
 			}
@@ -1562,13 +1546,8 @@ AI::do_send_geologists() {
 						continue;
 					// check once again for sign density, but this time centered around the Flag rather than the corner that the flag is near
 					//  this is to avoid issue where geologists keep being sent to a flag that is already near 100% sign density, but the corner 
-					//   itself is not.  ALSO, corner sign_density only affects corner priority, it does not totally disqualify a corner like this can
-					// should also check for number of geologists operating in area around flag and disqualify?
-					AILogLogger["do_send_geologists"] << name << " checking sign_density around flag at " << pos << ", near corner_pos " << corner_pos;
-					double signs_count = AI::count_objects_near_pos(corner_pos, AI::spiral_dist(4), Map::ObjectSignLargeGold, Map::ObjectSignSmallStone, "dk_orange");
-					double empty_hills_count = AI::count_empty_terrain_near_pos(corner_pos, AI::spiral_dist(4), Map::TerrainTundra0, Map::TerrainSnow0, "orange");
-					double sign_density = signs_count / empty_hills_count;
-					AILogLogger["do_send_geologists"] << name << " flag at pos " << pos << ", near corner with center pos " << corner_pos << " has signs_count: " << signs_count << ", empty_hills_count: " << empty_hills_count << ", sign_density: " << sign_density << ", max is at " << geologist_sign_density_max;
+					//   itself is not.  Should also check for number of geologists operating in area around flag and disqualify?
+					double sign_density = AI::count_geologist_sign_density(corner_pos, AI::spiral_dist(4));
 					if (sign_density > geologist_sign_density_max) {
 						AILogLogger["do_send_geologists"] << name << " sign density " << sign_density << " is over geologist_sign_density_max " << geologist_sign_density_max << ", not sending geologist to this flag";
 						continue;
@@ -1739,11 +1718,18 @@ AI::do_demolish_unproductive_3rd_lumberjacks() {
 
 // remove roads that lead to:
 //  - an occupied ranger building, if no other paths from ranger flag
-// TODO   - a mountain/geologist road, if sign density high enough??   
+//  - a mountain/geologist road, if sign density > max
 void
 AI::do_remove_road_stubs() {
 	AILogLogger["do_remove_road_stubs"] << name << " inside do_remove_road_stubs";
+	// time this function for debugging
+	std::clock_t start;
+	double duration;
+	start = std::clock();
+	unsigned int roads_removed = 0;
+	//
 	// ...an occupied ranger building, if no other paths from ranger flag
+	//
 	AILogLogger["do_remove_road_stubs"] << name << " thread #" << std::this_thread::get_id() << " AI is locking mutex before calling game->get_player_buildings(player) (for do_remove_road_stubs)";
 	game->get_mutex()->lock();
 	AILogLogger["do_remove_road_stubs"] << name << " thread #" << std::this_thread::get_id() << " AI has locked mutex before calling game->get_player_buildings(player) (for do_remove_road_stubs)";
@@ -1759,23 +1745,59 @@ AI::do_remove_road_stubs() {
 		MapPos pos = building->get_position();
 		MapPos flag_pos = map->move_down_right(pos);
 		unsigned int paths = 0;
-		Road existing_road;
 		Direction road_dir;
 		for (Direction dir : cycle_directions_cw()) {
 			if (!map->has_path(flag_pos, dir)) { continue; }
 			paths++;
 			if (paths > 1) {
 				AILogLogger["do_remove_road_stubs"] << name << " occupied ranger at pos " << pos << "'s flag has more than one path, not removing road";
-				return;
+				break;
 			}
 			road_dir = dir;
 		}
 		if (paths == 1) {
 			AILogLogger["do_remove_road_stubs"] << name << " occupied ranger at pos " << pos << "'s flag has only one path, removing the stub road";
 			game->demolish_road(map->move(flag_pos, road_dir), player);
+			roads_removed++;
 		}
 	}
-	AILogLogger["do_remove_road_stubs"] << name << " done do_remove_road_stubs";
+	//
+	// a mountain/geologist road, if sign density > max
+	//
+	flags_static_copy = *(game->get_flags());
+	flags = &flags_static_copy;
+	for (Flag *flag : *flags) {
+		if (flag == nullptr || flag->get_owner() != player_index || !flag->is_connected() || flag->has_building())
+			continue;
+		MapPos flag_pos = flag->get_position();
+		// don't check for TerrainSnow1 because geologist flags should not be built there
+		if (!AI::has_terrain_type(game, flag_pos, Map::TerrainTundra0, Map::TerrainSnow0))
+			continue;
+		if (AI::count_geologist_sign_density(flag_pos, AI::spiral_dist(4)) <= geologist_sign_density_max)
+			continue;
+		AILogLogger["do_remove_road_stubs"] << name << " eligible geologist flag found at pos " << flag_pos << ", sign_density > geologist_sign_density_max of " << geologist_sign_density_max;
+		unsigned int paths = 0;
+		Direction road_dir;
+		for (Direction dir : cycle_directions_cw()) {
+			if (!map->has_path(flag_pos, dir)) { continue; }
+			paths++;
+			if (paths > 1) {
+				AILogLogger["do_remove_road_stubs"] << name << " eligible geologist road ending with flag at pos " << flag_pos << " has more than one path, not removing road";
+				break;
+			}
+			road_dir = dir;
+		}
+		if (paths == 1) {
+			AILogLogger["do_remove_road_stubs"] << name << " eligible geologist road ending with flag at pos " << flag_pos << " has only one path, removing the stub road and its end flag";
+			game->demolish_road(map->move(flag_pos, road_dir), player);
+			roads_removed++;
+			game->demolish_flag(flag_pos, player);
+		}
+	}
+	duration = (std::clock() - start) / (double)CLOCKS_PER_SEC;
+	AILogLogger["do_remove_road_stubs"] << name << " call took " << duration;
+	AILogLogger["do_remove_road_stubs"] << name << " done do_remove_road_stubs, removed " << roads_removed << " roads";
+
 }
 
 
@@ -2325,7 +2347,7 @@ AI::do_place_mines(std::string type, Building::Type building_type, Map::Object l
 				if (signs_count < 1 || empty_hills_count < 1)
 					continue;
 				double sign_density = signs_count / empty_hills_count;
-				AILogLogger["do_place_mines"] << name << " " << type << " mine:  corner with center pos " << corner_pos << " has signs_count: " << signs_count << ", empty_hills_count: " << empty_hills_count << ", sign_density: " << sign_density << ", min is " << sign_density_min;
+				AILogLogger["do_place_mines"] << name << " " << type << " mine: corner with center pos " << corner_pos << " has signs_count: " << signs_count << ", empty_hills_count: " << empty_hills_count << ", sign_density: " << sign_density << ", min is " << sign_density_min;
 				if (sign_density >= sign_density_min) {
 					AILogLogger["do_place_mines"] << name << " sign density " << sign_density << " is over sign_density_min " << sign_density_min;
 				}

@@ -2334,3 +2334,16 @@ AI::attack_nearest_target(MapPosSet *scored_targets) {
 	}
 	AILogLogger["util_attack_nearest_target"] << name << " done AI::attack_nearest_target";
 }
+
+
+// count the number of signs of any type, and the number of hills that have no blocking objects (signs are okay, they are not blocking)
+// NOTE - signs can be placed on full-snow tiles which cannot actually have mines, so sign_density is unlikely to reach 100%
+double
+AI::count_geologist_sign_density(MapPos pos, unsigned int distance) {
+	AILogLogger["count_geologist_sign_density"] << name << " inside count_geologist_sign_density, around pos " << pos;
+	double signs_count = AI::count_objects_near_pos(pos, distance, Map::ObjectSignLargeGold, Map::ObjectSignSmallStone, "dk_orange");
+	double empty_hills_count = AI::count_empty_terrain_near_pos(pos, distance, Map::TerrainTundra0, Map::TerrainSnow1, "orange");
+	double sign_density = signs_count / empty_hills_count;
+	AILogLogger["count_geologist_sign_density"] << name << " done, area around pos " << pos << " has signs_count: " << signs_count << ", empty_hills_count: " << empty_hills_count << ", sign_density: " << sign_density << ", deprioritize at " << geologist_sign_density_deprio;
+	return sign_density;
+}
