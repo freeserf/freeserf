@@ -249,6 +249,8 @@ AI::AI(PGame current_game, unsigned int pi) {
 	realm_inv = {};
 	stock_buildings = {};
 	scoring_attack = false;
+	scoring_warehouse = false;
+	cannot_expand_borders_this_loop = false;
 	change_buffer = 0;
 	previous_knight_occupation_level = -1;
 
@@ -318,6 +320,10 @@ AI::next_loop(){
 	std::this_thread::sleep_for(std::chrono::milliseconds(6000));
 
 	AILogLogger["next_loop"] << name << ", starting AI loop #" << loop_count;
+	// time entire loop
+	std::clock_t loop_clock_start;
+	double loop_clock_duration;
+	loop_clock_start = std::clock();
 
 	do_place_castle();
 	do_save_game();   // enable to automatically save game every X turns
@@ -351,8 +357,6 @@ AI::next_loop(){
 	do_manage_tool_priorities();
 	do_manage_mine_food_priorities();
 	do_balance_sword_shield_priorities();  
-	//do_demolish_excess_lumberjacks();  moved to per-stock 
-	do_demolish_excess_fishermen();
 	do_attack();
 	do_manage_knight_occupation_levels();
 
@@ -370,6 +374,7 @@ AI::next_loop(){
 
 		do_get_inventory(stock_pos);
 		do_demolish_excess_lumberjacks();
+		do_demolish_excess_fishermen();
 		do_promote_serfs_to_knights();
 		do_send_geologists();
 
@@ -421,6 +426,8 @@ AI::next_loop(){
 	AILogLogger["next_loop"] << name << " Done AI Loop";
 	ai_status.assign("END OF LOOP");
 	AILogLogger["next_loop"] << name << " AI loop #" << loop_count << " complete, sleeping 2sec";
+	loop_clock_duration = (std::clock() - loop_clock_start) / (double)CLOCKS_PER_SEC;
+	AILogLogger["next_loop"] << name << " done next_loop, call took " << loop_clock_duration;
 	std::this_thread::sleep_for(std::chrono::milliseconds(2000));
 }
 
@@ -553,6 +560,9 @@ AI::do_update_clear_reset() {
 	unfinished_hut_count = 0;
 	unfinished_building_count = 0;
 	realm_inv = player->get_stats_resources();
+	scoring_attack = false;
+	scoring_warehouse = false;
+	cannot_expand_borders_this_loop = false;
 	AILogLogger["do_update_clear_reset"] << name << " done do_update_clear_reset";
 }
 
@@ -1559,14 +1569,11 @@ AI::do_send_geologists() {
 					double empty_hills_count = AI::count_empty_terrain_near_pos(corner_pos, AI::spiral_dist(4), Map::TerrainTundra0, Map::TerrainSnow0, "orange");
 					double sign_density = signs_count / empty_hills_count;
 					AILogLogger["do_send_geologists"] << name << " flag at pos " << pos << ", near corner with center pos " << corner_pos << " has signs_count: " << signs_count << ", empty_hills_count: " << empty_hills_count << ", sign_density: " << sign_density << ", max is at " << geologist_sign_density_max;
-					if (sign_density >= geologist_sign_density_max) {
+					if (sign_density > geologist_sign_density_max) {
 						AILogLogger["do_send_geologists"] << name << " sign density " << sign_density << " is over geologist_sign_density_max " << geologist_sign_density_max << ", not sending geologist to this flag";
 						continue;
 					}
-					//// need to add a final check to ensure there really is still an idle geologist to avoid accidentally creating more once max hit
-					//bool sending_idle_geologist = false;
 					if (idle_geologists >= 1) {
-						//sending_idle_geologist = true;
 						AILogLogger["do_send_geologists"] << name << " sending an idle geologist to pos " << pos;
 						idle_geologists--;
 					}
@@ -1919,44 +1926,46 @@ AI::do_demolish_excess_lumberjacks() {
 }
 
 
-// burn ALL fisherman huts if food_max reached, to avoid clogging roads
+// burn ALL fisherman huts attached to this stock if stock food_max reached, to avoid clogging roads
 void
 AI::do_demolish_excess_fishermen() {
-	AILogLogger["do_demolish_excess_fishermen"] << name << " inside do_demolish_excess_fishermen";
+	AILogLogger["do_demolish_excess_fishermen"] << name << " inside do_demolish_excess_fishermen for stock at pos " << stock_pos;
 	ai_status.assign("HOUSEKEEPING - burn fishermen");
 	unsigned int food_count = 0;
-	food_count += realm_inv[Resource::TypeBread];
-	food_count += realm_inv[Resource::TypeMeat];
-	food_count += realm_inv[Resource::TypeFish];
+	food_count += stock_inv->get_count_of(Resource::TypeBread);
+	food_count += stock_inv->get_count_of(Resource::TypeMeat);
+	food_count += stock_inv->get_count_of(Resource::TypeFish);
 	if (food_count >= food_max) {
-		AILogLogger["do_demolish_excess_fishermen"] << name << " food_max reached, burning all fishermen";
-		AILogLogger["do_demolish_excess_fishermen"] << name << " thread #" << std::this_thread::get_id() << " AI is locking mutex before calling game->get_player_buildings(player) (for demolish unproductive mines)";
+		AILogLogger["do_demolish_excess_fishermen"] << name << " food_max reached at stock_pos " << stock_pos << ", burning all fishermen attached to this stock";
+		AILogLogger["do_demolish_excess_fishermen"] << name << " thread #" << std::this_thread::get_id() << " AI is locking mutex before calling game->get_player_buildings(player)";
 		game->get_mutex()->lock();
-		AILogLogger["do_demolish_excess_fishermen"] << name << " thread #" << std::this_thread::get_id() << " AI has locked mutex before calling game->get_player_buildings(player) (for demolish unproductive mines)";
+		AILogLogger["do_demolish_excess_fishermen"] << name << " thread #" << std::this_thread::get_id() << " AI has locked mutex before calling game->get_player_buildings(player)";
 		Game::ListBuildings buildings = game->get_player_buildings(player);
-		AILogLogger["do_demolish_excess_fishermen"] << name << " thread #" << std::this_thread::get_id() << " AI is unlocking mutex after calling game->get_player_buildings(player) (for demolish unproductive mines)";
+		AILogLogger["do_demolish_excess_fishermen"] << name << " thread #" << std::this_thread::get_id() << " AI is unlocking mutex after calling game->get_player_buildings(player)";
 		game->get_mutex()->unlock();
-		AILogLogger["do_demolish_excess_fishermen"] << name << " thread #" << std::this_thread::get_id() << " AI has unlocked mutex after calling game->get_player_buildings(player) (for demolish unproductive mines)";
+		AILogLogger["do_demolish_excess_fishermen"] << name << " thread #" << std::this_thread::get_id() << " AI has unlocked mutex after calling game->get_player_buildings(player)";
 		for (Building *building : buildings) {
 			if (building->get_type() == Building::TypeFisher) {
 				MapPos pos = building->get_position();
-				if (!building->is_burning()) {
-					AILogLogger["do_demolish_excess_fishermen"] << name << " burning fisherman at pos " << pos;
-					AILogLogger["do_demolish_excess_fishermen"] << name << " thread #" << std::this_thread::get_id() << " AI is locking mutex before calling game->get_player_buildings(player) (for demolish unproductive mines)";
-					game->get_mutex()->lock();
-					AILogLogger["do_demolish_excess_fishermen"] << name << " thread #" << std::this_thread::get_id() << " AI has locked mutex before calling game->get_player_buildings(player) (for demolish unproductive mines)";
-					game->demolish_building(pos, player);
-					AILogLogger["do_demolish_excess_fishermen"] << name << " thread #" << std::this_thread::get_id() << " AI is unlocking mutex after calling game->get_player_buildings(player) (for demolish unproductive mines)";
-					game->get_mutex()->unlock();
-					AILogLogger["do_demolish_excess_fishermen"] << name << " thread #" << std::this_thread::get_id() << " AI has unlocked mutex after calling game->get_player_buildings(player) (for demolish unproductive mines)";
-					// do NOT mark as bad pos, could use this spot again if food is needed later
-					//bad_building_pos.insert(std::make_pair(pos, Building::TypeStonecutter));
+				if (find_nearest_stock(pos) != stock_pos) {
+					AILogLogger["do_demolish_excess_lumberjacks"] << name << " fishermen at pos " << pos << " is not closest to current stock_pos " << stock_pos << ", skipping";
+					continue;
 				}
+				AILogLogger["do_demolish_excess_fishermen"] << name << " burning fisherman at pos " << pos;
+				AILogLogger["do_demolish_excess_fishermen"] << name << " thread #" << std::this_thread::get_id() << " AI is locking mutex before calling game->get_player_buildings(player)";
+				game->get_mutex()->lock();
+				AILogLogger["do_demolish_excess_fishermen"] << name << " thread #" << std::this_thread::get_id() << " AI has locked mutex before calling game->get_player_buildings(player)";
+				game->demolish_building(pos, player);
+				AILogLogger["do_demolish_excess_fishermen"] << name << " thread #" << std::this_thread::get_id() << " AI is unlocking mutex after calling game->get_player_buildings(player)";
+				game->get_mutex()->unlock();
+				AILogLogger["do_demolish_excess_fishermen"] << name << " thread #" << std::this_thread::get_id() << " AI has unlocked mutex after calling game->get_player_buildings(player)";
+				// do NOT mark as bad pos, could use this spot again if food is needed later
+				//bad_building_pos.insert(std::make_pair(pos, Building::TypeStonecutter));
 			}
 		}
 	}
 	else {
-		AILogLogger["do_demolish_excess_fishermen"] << name << " food_max not yet reached, skipping";
+		AILogLogger["do_demolish_excess_fishermen"] << name << " food_max not yet reached at stock_pos " << stock_pos << ", skipping";
 	}
 	AILogLogger["do_demolish_excess_fishermen"] << name << " done do_demolish_excess_fishermen";
 }
@@ -3496,6 +3505,7 @@ AI::do_build_warehouse() {
 	MapPosVector corners = AI::get_corners(castle_pos, 21);
 	MapPosSet count_by_corner;
 	MapPosVector warehouse_positions;
+	scoring_warehouse = true;
 	for (MapPos corner_pos : corners) {
 		AILogLogger["do_build_warehouse"] << name << " considering building warehouse near corner_pos " << corner_pos;
 		// using expand_towards logic because it scores based on number of civ buildings, which is good for placing warehouse
@@ -3509,6 +3519,7 @@ AI::do_build_warehouse() {
 		AILogLogger["do_build_warehouse"] << name << " corner " << corner_pos << " has score " << score;
 		count_by_corner.insert(std::make_pair(corner_pos, score));
 	}
+	scoring_warehouse = false;
 	MapPosVector search_positions = AI::sort_by_val_desc(count_by_corner);
 	MapPos built_pos;
 	for (MapPos search_pos : search_positions) {

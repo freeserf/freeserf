@@ -151,6 +151,8 @@ private:
 	MapPos stock_pos;
 	MapPos find_nearest_stock(MapPos);
 	bool scoring_attack;
+	bool scoring_warehouse;
+	bool cannot_expand_borders_this_loop;
 	void score_enemy_targets(MapPosSet*);
 	void attack_nearest_target(MapPosSet*);
 
@@ -252,9 +254,9 @@ static const unsigned int hammers_min = 6; // don't create geologists unless thi
 static const unsigned int geologists_max = 4; // try not to create more geologists if have this many, hard to tell if they are out working
 
 // deprioritize sending geologists to area where signs density is over this amount (prefer send geologists to unevaluated areas)
-static constexpr double geologist_sign_density_deprio = 0.50; 
+static constexpr double geologist_sign_density_deprio = 0.40; 
 // never send geologists to a flag that has a sign_density over this amount
-static constexpr double geologist_sign_density_max = 0.80;
+static constexpr double geologist_sign_density_max = 0.70;
 
 // don't build mines on Small resource signs until this ratio of potential resource signs are placed.
 //    until this % of signs placed, only build if you find a Large resource sign

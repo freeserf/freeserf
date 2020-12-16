@@ -1830,13 +1830,13 @@ AI::build_near_pos(MapPos center_pos, unsigned int distance, Building::Type buil
 				AILogLogger["util_build_near_pos"] << name << " found unfinished " << NameBuilding[building_type] << ", incrementing unfinished_building_count, is now: " << unfinished_building_count;
 			}
 			duration = (std::clock() - start) / (double)CLOCKS_PER_SEC;
-			AILogLogger["util_build_near_pos"] << name << " util_build_near_pos call took " << duration;
+			AILogLogger["util_build_near_pos"] << name << " successful util_build_near_pos for building of type " << NameBuilding[building_type] << " call took " << duration;
 			return pos;
 		}
 	}
 	AILogLogger["util_build_near_pos"] << name << " could not find a place to build, or failed to build, type " << NameBuilding[building_type] << " near pos " << center_pos << " after checking " << distance << " positions";
 	duration = (std::clock() - start) / (double)CLOCKS_PER_SEC;
-	AILogLogger["util_build_near_pos"] << name << " util_build_near_pos call took " << duration;
+	AILogLogger["util_build_near_pos"] << name << " failed util_build_near_pos for building of type " << NameBuilding[building_type] << " call took " << duration;
 	return notplaced_pos;
 }
 
@@ -1915,6 +1915,16 @@ AI::expand_borders(MapPos center_pos) {
 	start = std::clock();
 	AILogLogger["util_expand_borders"] << name << " inside AI::expand_borders for stock_pos " << stock_pos;
 	ai_status.assign("EXPANDING BORDERS");
+	if (stock_buildings.at(stock_pos).unfinished_hut_count >= max_unfinished_buildings) {
+		AILogLogger["util_expand_borders"] << name << " max unfinished huts limit " << max_unfinished_huts << " reached, not building";
+		// should be returning not_built_pos or bad_map pos?? stopbuilding is less appropriate with separate counts set up for huts vs other buildings
+		return stopbuilding_pos;
+	}
+	if (cannot_expand_borders_this_loop) {
+		AILogLogger["util_expand_borders"] << name << " cannot_expand_borders_this_loop is true, not trying again until next loop";
+		// should be returning not_built_pos or bad_map pos?? stopbuilding is less appropriate with separate counts set up for huts vs other buildings
+		return stopbuilding_pos;
+	}
 	MapPos built_pos = bad_map_pos;
 	MapPosSet count_by_corner;
 	for (std::string goal : expand_towards) {
@@ -1960,9 +1970,9 @@ AI::expand_borders(MapPos center_pos) {
 	for (MapPos corner_pos : search_positions) {
 		AILogLogger["util_expand_borders"] << name << " try to build knight hut near pos " << corner_pos;
 		built_pos = AI::build_near_pos(corner_pos, AI::spiral_dist(4), Building::TypeHut);
-
 		if (built_pos == stopbuilding_pos) {
 			duration = (std::clock() - start) / (double)CLOCKS_PER_SEC;
+			cannot_expand_borders_this_loop = true;
 			AILogLogger["util_expand_borders"] << name << " done util_expand_borders call took " << duration;
 			return stopbuilding_pos;
 		}
@@ -1971,11 +1981,10 @@ AI::expand_borders(MapPos center_pos) {
 	AILogLogger["util_expand_borders"] << name << " done util_expand_borders call took " << duration;
 	if (built_pos == bad_map_pos || built_pos == notplaced_pos || built_pos == stopbuilding_pos) {
 		AILogLogger["util_expand_borders"] << name << " couldn't place knight hut";
+		cannot_expand_borders_this_loop = true;
 		return notplaced_pos;
 	}
-
 	return built_pos;
-
 }
 
 
@@ -2052,25 +2061,27 @@ AI::score_area(MapPos center_pos, unsigned int distance) {
 			pos_value += expand_towards.count("stones") * stone_signs_weight * stone_signs;
 			AILogLogger["util_score_area"] << name << " adding stones count " << stone_signs << " with value " << expand_towards.count("stones") * stone_signs_weight * stone_signs;
 		}
-		//
-		// defense - build knight huts to buffer borders
-		//    prioritizing areas with own civ buildings, or any place that enemy territory found
-		//
-		if (map->get_owner(pos) == player_index) {
-			if (obj == Map::ObjectLargeBuilding && !game->get_building_at_pos(pos)->is_military()) {
-				pos_value += expand_towards.count("create_buffer") * 3;
-				AILogLogger["util_score_area"] << name << " adding defensive_buffer building value x3 for large civilian building of type " << NameBuilding[game->get_building_at_pos(pos)->get_type()] << " at pos " << pos;
+		if (!scoring_warehouse) {
+			//
+			// defense - build knight huts to buffer borders
+			//    prioritizing areas with own civ buildings, or any place that enemy territory found
+			//
+			if (map->get_owner(pos) == player_index) {
+				if (obj == Map::ObjectLargeBuilding && !game->get_building_at_pos(pos)->is_military()) {
+					pos_value += expand_towards.count("create_buffer") * 3;
+					AILogLogger["util_score_area"] << name << " adding defensive_buffer building value x3 for large civilian building of type " << NameBuilding[game->get_building_at_pos(pos)->get_type()] << " at pos " << pos;
+				}
+				if (obj == Map::ObjectSmallBuilding && !game->get_building_at_pos(pos)->is_military()) {
+					pos_value += expand_towards.count("create_buffer") * 1;
+					AILogLogger["util_score_area"] << name << " adding defensive_buffer building value x1 for small civilian building of type " << NameBuilding[game->get_building_at_pos(pos)->get_type()] << " at pos " << pos;
+				}
 			}
-			if (obj == Map::ObjectSmallBuilding && !game->get_building_at_pos(pos)->is_military()) {
+			// does -1 mean unowned?   need to check
+			//  this code does seem to work so that must be the case
+			if (map->get_owner(pos) != player_index && map->get_owner(pos) != -1) {
 				pos_value += expand_towards.count("create_buffer") * 1;
-				AILogLogger["util_score_area"] << name << " adding defensive_buffer building value x1 for small civilian building of type " << NameBuilding[game->get_building_at_pos(pos)->get_type()] << " at pos " << pos;
+				AILogLogger["util_score_area"] << name << " adding defensive_buffer value for enemy territory";
 			}
-		}
-		// does -1 mean unowned?   need to check
-		//  this code does seem to work so that must be the case
-		if (map->get_owner(pos) != player_index && map->get_owner(pos) != -1) {
-			pos_value += expand_towards.count("create_buffer") * 1;
-			AILogLogger["util_score_area"] << name << " adding defensive_buffer value for enemy territory";
 		}
 		//
 		// offense
@@ -2281,6 +2292,7 @@ AI::score_enemy_targets(MapPosSet *scored_targets) {
 		AILogLogger["util_score_enemy_targets"] << name << " attackable enemy target at pos " << target_pos << " has score " << score;
 		scored_targets->insert(std::make_pair(target_pos, score));
 	}
+	scoring_attack = false;
 	// second part of stupid hack to work-around it
 	expand_towards.clear();
 	AILogLogger["util_score_enemy_targets"] << name << " done score_enemy_targets";
