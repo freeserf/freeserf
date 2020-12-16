@@ -1501,6 +1501,12 @@ AI::do_send_geologists() {
 							break;
 						}
 					}
+					// avoid known bad positions for this building type (using TypeNone to mean Flag here)
+					//   note this list is NOT persisted if AI thread goes away or game load/restart
+					if (is_bad_building_pos(pos, Building::TypeNone)) {
+						AILogLogger["do_send_geologists"] << name << " skipping this pos, TypeNone (i.e. geo Flag) marked in bad_building_pos list";
+						continue;
+					}
 					if (other_flags == 0) {
 						AILogLogger["do_send_geologists"] << name << " no other flags nearby " << pos << ", building flag here";
 						AILogLogger["do_send_geologists"] << name << " thread #" << std::this_thread::get_id() << " AI is locking mutex before calling game->build_flag, for geologist";
@@ -1522,10 +1528,14 @@ AI::do_send_geologists() {
 							AILogLogger["do_send_geologists"] << name << " thread #" << std::this_thread::get_id() << " AI is locking mutex before calling demolish_flag (built for geoligist, couldn't connect)";
 							game->get_mutex()->lock();
 							AILogLogger["do_send_geologists"] << name << " thread #" << std::this_thread::get_id() << " AI has locked mutex before calling demolish_flag (built for geoligist, couldn't connect)";
-							game->demolish_flag(map->move_down_right(pos), player);
+							game->demolish_flag(pos, player);
 							AILogLogger["do_send_geologists"] << name << " thread #" << std::this_thread::get_id() << " AI is unlocking mutex after calling demolish_flag (built for geoligist, couldn't connect)";
 							game->get_mutex()->unlock();
 							AILogLogger["do_send_geologists"] << name << " thread #" << std::this_thread::get_id() << " AI has unlocked mutex after calling demolish_flag (built for geoligist, couldn't connect)";
+							AILogLogger["do_send_geologists"] << name << " adding this flag pos " << pos << " to bad_building_pos list";
+							// because there is no Building::Type for a plain flag, use Building::TypeNone for now.
+							//  alternatively, could create a new type, or use some number that has no type
+							bad_building_pos.insert(std::make_pair(pos, Building::TypeNone));
 						}
 					}
 				}
