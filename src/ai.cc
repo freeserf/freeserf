@@ -1350,7 +1350,6 @@ AI::do_send_geologists() {
 	if (reserve_blacksmiths < 0) { reserve_blacksmiths = 0; }
 	int reserve_hammers = reserve_builders + reserve_blacksmiths;
 	int excess_hammers = int(hammers_count - reserve_hammers);
-
 	AILogLogger["do_send_geologists"] << name << " total_geologists " << total_geologists << ", idle_geologists " << idle_geologists << ", geologists_max "
 		<< geologists_max << ", total_builders " << total_builders << ", total_blacksmiths " << total_blacksmiths
 		<< ", hammers_count " << hammers_count << ", reserve_hammers " << reserve_hammers << ", excess_hammers " << excess_hammers;
@@ -1374,7 +1373,6 @@ AI::do_send_geologists() {
 	else {
 		AILogLogger["do_send_geologists"] << name << " hammers_count <= hammers_reserve, potential_geologists set to zero.  Existing geologists: " << total_geologists;
 	}
-
 	// determine where any geologists are currently operating (to later avoid sending too many to one area)
 	AILogLogger["do_send_geologists"] << name << " thread #" << std::this_thread::get_id() << " AI is locking mutex before calling game->get_player_serfs(player) (for serf_wait_timers is_waiting)";
 	game->get_mutex()->lock();
@@ -1395,7 +1393,6 @@ AI::do_send_geologists() {
 			//   when done, starts walking back to flag dest while still in StateFreeWalking, no dest exists at this point
 			//   once reached flag dest, state becomes StateWalking with dest castle flag (Flag index # 1)
 			//   then returns to castle via roads, state becomes StateEnteringBuilding as it enters castle
-
 			// can't use walking_dest test because idle serfs have a nonzero but invalid walking_dest
 			//if (serf->get_walking_dest() != 0) {
 			Serf::State state = serf->get_state();
@@ -1436,9 +1433,7 @@ AI::do_send_geologists() {
 	game->get_mutex()->unlock();
 	AILogLogger["do_send_geologists"] << name << " thread #" << std::this_thread::get_id() << " AI has unlocked mutex after calling game->get_player_serfs(player) (for serf_wait_timers is_waiting)";
 	AILogLogger["do_send_geologists"] << name << " active geologists found: " << geologist_positions.size();
-
-	// count hills (Tundra0-2) near castle
-
+	// count hills (Tundra0-2, Snow0, NOT Snow1 because can't build mines there)
 	// for mined resouce finding,  reverse the occupied_military_buildings order
 	//   so the newest military building is searched first,
 	//    instead of castle first then outward
@@ -1447,7 +1442,6 @@ AI::do_send_geologists() {
 	//  must copy it to another MapPosVector and iterate over that.  I'm sure there is a cleaner way
 	//for (MapPosVector::reverse_iterator it = stock_buildings.at(stock_pos).occupied_military_pos.rbegin(); it != stock_buildings.at(stock_pos).occupied_military_pos.rend(); ++it) {
 	for (MapPosVector::reverse_iterator it = foo.rbegin(); it != foo.rend(); ++it) {
-		//for (MapPos center_pos : occupied_military_pos) {
 		MapPos center_pos = *it;
 		MapPosVector corners = AI::get_corners(center_pos);
 		for (MapPos corner_pos : corners) {
@@ -1468,7 +1462,6 @@ AI::do_send_geologists() {
 				count_by_corner.insert(std::make_pair(corner_pos, count));
 			}
 		}
-
 		// try to place a flag on hills anywhere no flag is nearby
 		AILogLogger["do_send_geologists"] << name << " trying to find a good place to send geologists";
 		MapPosVector search_positions = AI::sort_by_val_desc(count_by_corner);
@@ -1483,7 +1476,6 @@ AI::do_send_geologists() {
 				if (geologists_pos > 0) {
 					//AILogLogger["do_send_geologists"] << name << " there are " << geologists_pos << " geologists operating at pos " << pos;
 					geologists_corner += geologists_pos;
-
 				}
 			}
 			AILogLogger["do_send_geologists"] << name << " there are " << geologists_corner << " other geologists operating in the vicinity of corner_pos " << corner_pos;
@@ -1537,7 +1529,6 @@ AI::do_send_geologists() {
 						}
 					}
 				}
-
 				// send geologist
 				if (map->has_flag(pos) && map->get_owner(pos) == player_index && game->get_flag_at_pos(pos)->is_connected()) {
 					AILogLogger["do_send_geologists"] << name << " found connected flag on hills for geologist at pos " << pos;
@@ -1781,7 +1772,7 @@ AI::do_remove_road_stubs() {
 			eligible = true;
 		}
 		else {
-			for (unsigned int i = 0; i < AI::spiral_dist(2); i++) {
+			for (unsigned int i = 1; i < AI::spiral_dist(2); i++) {
 				MapPos pos = map->pos_add_extended_spirally(flag_pos, i);
 				if (map->has_flag(pos) && map->get_owner(pos) == player_index && game->get_flag_at_pos(pos)->is_connected()) {
 					eligible = true;
