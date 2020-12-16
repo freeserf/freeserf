@@ -1770,12 +1770,29 @@ AI::do_remove_road_stubs() {
 		if (flag == nullptr || flag->get_owner() != player_index || !flag->is_connected() || flag->has_building())
 			continue;
 		MapPos flag_pos = flag->get_position();
-		// don't check for TerrainSnow1 because geologist flags should not be built there
-		if (!AI::has_terrain_type(game, flag_pos, Map::TerrainTundra0, Map::TerrainSnow0))
+		if (!AI::has_terrain_type(game, flag_pos, Map::TerrainTundra0, Map::TerrainSnow1))
 			continue;
-		if (AI::count_geologist_sign_density(flag_pos, AI::spiral_dist(4)) <= geologist_sign_density_max)
+		// if *either* condition is true, stub road is eligible for removal:
+		//  - if sign density is > max
+		//  - if another flag is very close
+		bool eligible = false;
+		if (AI::count_geologist_sign_density(flag_pos, AI::spiral_dist(4)) > geologist_sign_density_max){
+			AILogLogger["do_remove_road_stubs"] << name << " flag at pos " << flag_pos << " is eligible because sign_density > max";
+			eligible = true;
+		}
+		else {
+			for (unsigned int i = 0; i < AI::spiral_dist(2); i++) {
+				MapPos pos = map->pos_add_extended_spirally(flag_pos, i);
+				if (map->has_flag(pos) && map->get_owner(pos) == player_index && game->get_flag_at_pos(pos)->is_connected()) {
+					eligible = true;
+					AILogLogger["do_remove_road_stubs"] << name << " flag at pos " << flag_pos << " is eligible because another connected flag is very close";
+					break;
+				}
+			}
+		}
+		if (!eligible)
 			continue;
-		AILogLogger["do_remove_road_stubs"] << name << " eligible geologist flag found at pos " << flag_pos << ", sign_density > geologist_sign_density_max of " << geologist_sign_density_max;
+		// see if it has only one path
 		unsigned int paths = 0;
 		Direction road_dir;
 		for (Direction dir : cycle_directions_cw()) {
@@ -1801,12 +1818,10 @@ AI::do_remove_road_stubs() {
 }
 
 
+// demolish any stonecutters with no stones nearby
 void
 AI::do_demolish_unproductive_stonecutters() {
 	AILogLogger["do_demolish_unproductive_stonecutters"] << name << " inside do_demolish_unproductive_stonecutters";
-	//
-	// demolish stonecutters with no stones nearby
-	//
 	ai_status.assign("HOUSEKEEPING - demolish stonecutters");
 	AILogLogger["do_demolish_unproductive_stonecutters"] << name << " thread #" << std::this_thread::get_id() << " AI is locking mutex before calling game->get_player_buildings(player) (for demolish stonecutters)";
 	game->get_mutex()->lock();
@@ -1894,16 +1909,13 @@ AI::do_demolish_unproductive_mines() {
 }
 
 
-// burn all but one lumberjack if planks_max reached, to avoid clogging roads
+// burn all but one lumberjack per stock if planks_max reached, to avoid clogging roads
 void
 AI::do_demolish_excess_lumberjacks() {
 	AILogLogger["do_demolish_excess_lumberjacks"] << name << " inside do_demolish_excess_lumberjacks";
 	ai_status.assign("HOUSEKEEPING - burn lumberjacks");
 	update_building_counts();
-	// need to be made stock-aware since adding multiple economies
-	//int lumberjack_count = building_count[Building::TypeLumberjack];
 	int lumberjack_count = stock_buildings.at(stock_pos).count[Building::TypeLumberjack];
-	//unsigned int planks_count = realm_inv[Resource::TypePlank];
 	unsigned int planks_count = stock_inv->get_count_of(Resource::TypePlank);
 	if (planks_count >= planks_max && lumberjack_count > 1) {
 		AILogLogger["do_demolish_excess_lumberjacks"] << name << " planks_max reached and lumberjack_count is " << lumberjack_count << ".  Burning all but one lumberjack (nearest to this stock)";
@@ -2145,15 +2157,15 @@ AI::do_manage_mine_food_priorities() {
 	}
 }
 
+// ensure equal numbers of swords and shields stored
+//    because swords default to a higher serf-transport priority than shields, over time
+//    significantly more swords will be stored than shields while shields sit on roads/flags
+//     If they are balanced, more knights can be created
+// NOTE - this function seems to result in a graphical bug in the priority list if viewed in game,
+//    where the sword/shield icon is mising.  However I am quite sure that the function still works properly
 void
 AI::do_balance_sword_shield_priorities() {
-	//
-	// ensure equal numbers of swords and shields stored
-	//
-	// because swords default to a higher serf-transport priority than shields, over time
-	//    significantly more swords will be stored than shields while shields sit on roads/flags
-	//     If they are balanced, more knights can be created
-	AILogLogger["do_balance_sword_shield_priorities"] << name << " HouseKeeping: ensure equal numbers of swords and shields stored";
+	AILogLogger["do_balance_sword_shield_priorities"] << name << " inside do_balance_sword_shield_priorities";
 	ai_status.assign("HOUSEKEEPING - balance swords/shields");
 	player->reset_flag_priority();
 	int *prio = nullptr;
@@ -2165,7 +2177,7 @@ AI::do_balance_sword_shield_priorities() {
 	unsigned int swords_count = realm_inv[Resource::TypeSword];
 	unsigned int shields_count = realm_inv[Resource::TypeShield];
 	AILogLogger["do_balance_sword_shield_priorities"] << name << " there are " << swords_count << " swords and " << shields_count << " shields stored";
-	// actually, rather than worry about the actual ordering, just swap the two values
+	// actually, rather than worry about the overall ordering, just swap the two values
 	if (swords_count >= shields_count + 2) {
 		AILogLogger["do_balance_sword_shield_priorities"] << name << " more swords than shields stored";
 		if (prio[Resource::TypeSword] > prio[Resource::TypeShield]) {
@@ -2206,26 +2218,22 @@ AI::do_manage_knight_occupation_levels() {
 	// adjust military building occupation levels
 	//   to avoid bouncing knights back and forth, only adjust occupation levels
 	//     if doing so will not push it back across the same threshold
-
-	// !!! there must be a bug here somewhere, as I am seeing knights bounce back and forth from castle
-	//   oct26 2020
-
+	//
 	//        Hut Tower     Garrison
 	//      Full    3       6       12
 	//      Good    2       4       9
 	//      Medium  2       3       6
 	//      Weak    1       2       3
 	//      Minimum 1       1       1
-
+	//
 	// Ai initializes the lowest three threat levels at min, and they never have to be adjusted
-	
+	//
 	//   because there is never a good reason to increase these (unless map is enormous, maybe?)
 	//      Frontier - thick cross        = 3   *this is the one we adjust
 	//      Second line - thin cross      = 2
 	//      Interior - thin line          = 1
 	//      Interior / safe - white flag  = 0
-
-
+	//
 	// get current occupation level setting (regardless of how filled the buildings actually are!)
 	//   freeserf knight_occupation values are goofy hex stuff for bit-math!!!
 	// initial values for four threat levels:
@@ -2237,7 +2245,6 @@ AI::do_manage_knight_occupation_levels() {
 	//   here's how to get the correct 0-4 value we work with using player->change_knight_occupation
 	int current_level = (player->get_knight_occupation(3) >> 4) & 0xf;
 	AILogLogger["do_manage_knight_occupation_levels"] << name << " current knight occupation level: " << current_level;
-
 	// to avoid flapping...
 	//  ...if this is not the very first occupation level change...
 	if (previous_knight_occupation_level > 0) {
@@ -2256,7 +2263,6 @@ AI::do_manage_knight_occupation_levels() {
 	}
 	previous_knight_occupation_level = current_level;
 	AILogLogger["do_manage_knight_occupation_levels"] << name << " knight occupation change_buffer is currently set to " << change_buffer;
-	
 	//
 	// NEED TO CHANGE THIS WHOLE FUNCTION
 	//   make it determine current desired level without changing it
@@ -2267,7 +2273,6 @@ AI::do_manage_knight_occupation_levels() {
 	//
 	// get current occupation setting for thread level Frontier (thick cross) - closest to enemy
 	//player->get_knight_occupation(3);
-
 	// this is counting all knights in *any* building, but we only care about idle in castle/stock
 	//unsigned int idle_knights = serfs_idle[Serf::TypeKnight0] + serfs_idle[Serf::TypeKnight1] + serfs_idle[Serf::TypeKnight2] + serfs_idle[Serf::TypeKnight3] + serfs_idle[Serf::TypeKnight4];
 	// instead use this function I wrote elsewhere
@@ -2284,7 +2289,6 @@ AI::do_manage_knight_occupation_levels() {
 	game->get_mutex()->unlock();
 	AILogLogger["do_manage_knight_occupation_levels"] << name << " thread #" << std::this_thread::get_id() << " AI has unlocked mutex after calling game->get_player_serfs(player) (for do_manage_knight_occupation_levels is_waiting)";
 	AILogLogger["do_manage_knight_occupation_levels"] << name << " found in stocks idle_knights: " << idle_knights;
-
 	player->change_knight_occupation(3, 0, -5);   // reset lower bound to 'min'
 	player->change_knight_occupation(3, 1, -5);   // reset upper bound to 'min'	
 	// must evaluate idle_knights as signed integer to avoid calculating negative values returning opposite result
@@ -2313,7 +2317,6 @@ AI::do_manage_knight_occupation_levels() {
 		AILogLogger["do_manage_knight_occupation_levels"] << name << " setting knight level to min/min";
 		// leave both at 'min'
 	}
-
 }
 
 
@@ -2419,7 +2422,6 @@ AI::do_build_sawmill_lumberjacks() {
 	std::clock_t start;
 	double duration;
 	start = std::clock();
-
 	AILogLogger["do_build_sawmill_lumberjacks"] << name << " inside do_build_sawmill_lumberjacks";
 	ai_status.assign("MAIN LOOP - wood");
 	unsigned int planks_count = stock_inv->get_count_of(Resource::TypePlank);
@@ -2447,9 +2449,10 @@ AI::do_build_sawmill_lumberjacks() {
 					count_by_corner.insert(std::make_pair(corner_pos, count));
 				}
 			}
-
 			if (sawmill_count < 1) {
+				//
 				// build sawmill near corner with most trees
+				//
 				MapPosVector search_positions = AI::sort_by_val_desc(count_by_corner);
 				for (MapPos corner_pos : search_positions) {
 					AILogLogger["do_build_sawmill_lumberjacks"] << name << " try to build sawmill near pos " << corner_pos;
@@ -2460,11 +2463,12 @@ AI::do_build_sawmill_lumberjacks() {
 					}
 					if (built_pos == stopbuilding_pos) { return; }
 				}
-			} // if no sawmill
-
+			}
 			sawmill_count = stock_buildings.at(stock_pos).count[Building::TypeSawmill];
 			if (sawmill_count > 0) {
+				//
 				// build two lumberjacks near corner where sawmill was built, or corner with most trees
+				//
 				MapPosVector search_positions = AI::sort_by_val_desc(count_by_corner);
 				//  push the location of the sawmill (built_pos) to the front of the search path to help keep lumberjacks close
 				search_positions.insert(search_positions.begin(), built_pos);
@@ -2510,7 +2514,7 @@ AI::do_build_sawmill_lumberjacks() {
 }
 
 
-// stop here if at least one sawmill an at least one lumberjack are not fully built
+// stop AI loop here if at least one sawmill an at least one lumberjack are not fully built
 //    OR at least until all wood/stone delivered for sawmill AND at least one lumberjack fully built
 // return false if need to wait, true if ready to continue
 bool
@@ -2583,23 +2587,20 @@ AI::do_wait_until_sawmill_lumberjacks_built() {
 
 
 // build a stonecutter near area with most stones
-//   note that stone mines are NEVER built - maybe in future AI improvement
+//   note that stone *mines* are NEVER built - maybe in future AI improvement
 void
 AI::do_build_stonecutter() {
 	AILogLogger["do_build_stonecutter"] << name << " Main Loop - stones & stonecutters";
 	ai_status.assign("MAIN LOOP - stone");
 	//ai_mark_pos.clear();
 	unsigned int stones_count = stock_inv->get_count_of(Resource::TypeStone);
-	//AILogLogger["do_build_stonecutter"] << name << " AI: has " << stones_count << " stones";
+	//AILogLogger["do_build_stonecutter"] << name << " has " << stones_count << " stones in this stock";
 	if (stones_count < stones_min) {
 		AILogLogger["do_build_stonecutter"] << name << " AI: desire more stones";
 		// count stones near military buildings
 		MapPosSet count_by_corner;
 		for (MapPos center_pos : stock_buildings.at(stock_pos).occupied_military_pos) {
 			update_building_counts();
-			// this only allows one stonecutter in the entire realm... is that desireable?
-			// instead, changing to per-stock
-			//int stonecutter_count = building_count[Building::TypeStonecutter];
 			int stonecutter_count = stock_buildings.at(stock_pos).count[Building::TypeStonecutter];
 			if (stonecutter_count >= 1) {
 				AILogLogger["do_build_stonecutter"] << name << " Already placed stonecutter, not building more";
@@ -2629,13 +2630,7 @@ AI::do_build_stonecutter() {
 					}
 					// try each specific pos one at a time
 					AILogLogger["do_build_stonecutter"] << name << " trying to build stonecutter near pos " << pos;
-					//AILogLogger["do_build_stonecutter"] << name << " thread #" << std::this_thread::get_id() << " AI is locking mutex before calling AI::build_near_pos(pos, 1, Building::TypeStonecutter);";
-					//game->get_mutex()->lock();
-					//AILogLogger["do_build_stonecutter"] << name << " thread #" << std::this_thread::get_id() << " AI has locked mutex before calling AI::build_near_pos(pos, 1, Building::TypeStonecutter);";
 					built_pos = AI::build_near_pos(pos, 1, Building::TypeStonecutter);
-					//AILogLogger["do_build_stonecutter"] << name << " thread #" << std::this_thread::get_id() << " AI is unlocking mutex after calling AI::build_near_pos(pos, 1, Building::TypeStonecutter);";
-					//game->get_mutex()->unlock();
-					//AILogLogger["do_build_stonecutter"] << name << " thread #" << std::this_thread::get_id() << " AI has unlocked mutex after calling AI::build_near_pos(pos, 1, Building::TypeStonecutter);";
 					if (built_pos != bad_map_pos && built_pos != notplaced_pos && built_pos != stopbuilding_pos) {
 						AILogLogger["do_build_stonecutter"] << name << " built stonecutter at pos " << built_pos;
 						break;
@@ -2927,7 +2922,6 @@ AI::do_build_food_buildings_and_3rd_lumberjack() {
 			AI::expand_borders(castle_pos);
 		}
 	} // if food < max
-
 	//
 	// third lumberjack
 	//    this has nothing to do with food, but now is the optimal time to build the third lumberjack
@@ -2984,7 +2978,6 @@ AI::do_build_food_buildings_and_3rd_lumberjack() {
 			AILogLogger["do_build_food_buildings_and_3rd_lumberjack"] << name << " couldn't place 3rd lumberjack,  will try again next AI loop";
 		}
 	} // 3rd lumberjack
-
 	//
 	// back to food - grain mills and baker
 	//
@@ -3021,7 +3014,6 @@ AI::do_build_food_buildings_and_3rd_lumberjack() {
 				if (count < near_fields_min)
 					continue;
 				*/
-
 				// build grain mill near farm
 				if (stock_buildings.at(stock_pos).count[Building::TypeMill] < 1 || need_mill) {
 					built_pos = bad_map_pos;
@@ -3032,11 +3024,9 @@ AI::do_build_food_buildings_and_3rd_lumberjack() {
 						need_mill = false;
 					}
 				}
-
 				// need to find a simple way to disable this check so it tries to place the baker immedately, ignoring max incomplete buildings
 				//  if I comment it out there, it will still be rejected by the build_near_pos call (I think)
 				if (built_pos == stopbuilding_pos) { return; }
-
 				// build bakery near farm
 				if (stock_buildings.at(stock_pos).count[Building::TypeBaker] < 1) {
 					built_pos = bad_map_pos;
@@ -3334,7 +3324,6 @@ AI::do_build_gold_smelter_and_connect_gold_mines() {
 				} // foreach military pos
 			} // if have gold smelter
 		} // if need gold smelter
-
 		// note that expanding towards hills when territory already contains unmarked hills
 		//    may be sub-optimal... but is probably good enough
 		update_building_counts();
@@ -3345,7 +3334,6 @@ AI::do_build_gold_smelter_and_connect_gold_mines() {
 			expand_towards.insert("gold_ore");
 			AI::expand_borders(castle_pos);
 		}
-
 		//  if low on miners/pickaxes, don't build a gold mine unless already having
 		//   at least one occupied coal and iron mine to avoid depleting pickaxes/miners
 		update_building_counts();
@@ -3391,6 +3379,7 @@ AI::do_build_gold_smelter_and_connect_gold_mines() {
 	}
 	else {
 		// is it ever possible to have enough gold?  Is morale derived from this player's gold compared to each opponents gold??  Or total of everyone else's gold??
+		//  it seems to be the player's ratio of refined gold compared to the opponents and the total amount of all gold ore originally in mountains on the map
 		AILogLogger["do_build_gold_smelter_and_connect_gold_mines"] << name << " have sufficient gold, skipping";
 	}
 	AILogLogger["do_build_gold_smelter_and_connect_gold_mines"] << name << " done do_build_gold_smelter_and_connect_gold_mines";
@@ -3405,7 +3394,6 @@ AI::do_attack() {
 	AILogLogger["do_attack"] << name << " calling score_enemy_targets...";
 	score_enemy_targets(&scored_targets);
 	AILogLogger["do_attack"] << name << " score_enemy_targets call found " << scored_targets.size() << " targets";
-
 
 	// TEMPORARY  
 	int morale = 0;
@@ -3462,7 +3450,6 @@ AI::do_build_better_roads_for_important_buildings() {
 	std::clock_t start;
 	double duration;
 	start = std::clock();
-
 	AILogLogger["do_build_better_roads_for_important_buildings"] << name << " inside do_build_better_roads_for_important_buildings";
 	// only do this every X loops
 	if (loop_count % 10 != 0) {
@@ -3480,13 +3467,7 @@ AI::do_build_better_roads_for_important_buildings() {
 	for (Building *building : buildings) {
 		if (building == nullptr)
 			continue;
-		// got read access violation here... for log stream??
-		// got it again. changing dynamic building->get_type call to static copy
-		// got it again even after that change... hmmm
-		// just removing this line for now as a test
-		//    ... what line?  oct28 2020   haven't seen any crashes here in a while, must be fixed
 		Building::Type type = building->get_type();
-		//AILogLogger["do_build_better_roads_for_important_buildings"] << name << " has a building: " << NameBuilding[type];
 		if (!building->is_done() || building->is_burning())
 			continue;
 		// only consider these building types for road improvement
@@ -3602,7 +3583,6 @@ AI::do_build_warehouse() {
 			}
 		}
 	}
-
 	AILogLogger["do_build_warehouse"] << name << " done do_build_warehouse";
 }
 
@@ -3638,4 +3618,3 @@ AI::do_get_inventory(MapPos stock_pos) {
 	}
 	AILogLogger["do_get_inventory"] << name << " done get_inventory";
 }
-
