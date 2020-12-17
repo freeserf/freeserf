@@ -175,6 +175,9 @@ Interface::close_game_init() {
 	viewport->set_enabled(true);
 	layout();
 	update_map_cursor_pos(map_cursor_pos);
+	//// this makes absolutely no sense, randomly tried things until it worked as desired
+	//Log::set_file(new std::ofstream("ai_Player0.txt"));
+	//Log::set_file(new std::ofstream("consoleFOO.txt"));
 	initialize_AI();
 }
 
@@ -194,9 +197,11 @@ Interface::initialize_AI() {
 		if (player->get_face() >= 1 && player->get_face() <= 11) {
 			Log::Info["freeserf"] << "Initializing AI for player #" << index;
 			Log::Debug["ai"] << "MAIN GAME thread_id: " << std::this_thread::get_id();
-			//std::mutex mutex;
+			// set AI log file... I don't understand why this works the way it does
+			//  the AI thread "takes" the file handle but the main game filehandle still works even though they all
+			//    use the same static function???  and the class is a singleton??
+			Log::set_file(new std::ofstream("ai_Player" + std::to_string(index) + ".txt"));
 			AI *ai = new AI(game, index);
-			//AI *ai = new AI(game, index, &mutex);
 			game->ai_thread_starting();
 			// store AI pointer in game so it can be fetched by other functions (viewport, at least, for AI overlay)
 			set_ai_ptr(index, ai);

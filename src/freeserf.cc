@@ -42,8 +42,11 @@
 
 int
 main(int argc, char *argv[]) {
+  // why does simply calling new(Log) make console output work on windows???
+  new(Log);
   std::ofstream* filestr = new std::ofstream("console_out.txt");
   Log::set_file(filestr);
+  
   std::string data_dir;
   std::string save_file;
 

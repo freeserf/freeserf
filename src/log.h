@@ -113,6 +113,7 @@ class Log {
   static Logger Info;
   static Logger Warn;
   static Logger Error;
+  static Logger Player0;
 
  protected:
   static std::ostream *stream;

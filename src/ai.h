@@ -95,7 +95,12 @@ private:
 	//std::ofstream* ai_filestr = nullptr;
 	//Log::set_file(ai_filestr);
 	//Log::Logger AILogLogger(Log::LevelError, "AI");
-	Log::Logger AILogLogger{ Log::LevelError, "AI" }; // Using {} instead of () makes it clear you are not declaring a function
+	//Log::Logger AILogLogger{ Log::LevelError, "AI" }; // Using {} instead of () makes it clear you are not declaring a function
+	Log::Logger AILogVerbose{ Log::LevelVerbose, "Verbose" };
+	Log::Logger AILogDebug{ Log::LevelDebug, "Debug" };
+	Log::Logger AILogInfo{ Log::LevelInfo, "Info" };
+	Log::Logger AILogWarn{ Log::LevelWarn, "Warn" };
+	Log::Logger AILogError{ Log::LevelError, "Error" };
 protected:
 	// all the tuning variables were moved outside the class to satisfy gcc/g++ which threw compile errors when they were here
 	// VS2017 had no issue with it
@@ -110,7 +115,7 @@ public:
 	Road * get_ai_mark_road() { return ai_mark_road; }
 	Color get_mark_color(std::string color) { return colors.at(color); }
 	std::string get_ai_status() { return ai_status; }
-	// stupid way to pass game speed to viewport for AI overlay
+	// stupid way to pass game speed and AI loop count to viewport for AI overlay
 	unsigned int get_game_speed() { return game->get_game_speed(); }
 	unsigned int get_loop_count() { return loop_count; }
 	std::set<std::string> get_ai_expansion_goals() { return expand_towards; }
@@ -119,9 +124,9 @@ private:
 	//
 	// ai_util.cc 
 	//
-	static bool has_terrain_type(PGame, MapPos, Map::Terrain, Map::Terrain);
+	static bool has_terrain_type(PGame, MapPos, Map::Terrain, Map::Terrain);  // why does this need to be static?
 	bool place_castle(PGame, MapPos, unsigned int);
-	static unsigned int spiral_dist(int);
+	static unsigned int spiral_dist(int);   // why does this need to be static?
 	void rebuild_all_roads();
 	bool build_best_road(MapPos, RoadOptions, Building::Type optional_affinity = Building::TypeNone, MapPos optional_target = bad_map_pos);
 	MapPosVector get_affinity(MapPos);

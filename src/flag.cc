@@ -986,7 +986,8 @@ Flag::call_transporter(Direction dir, bool water) {
   search.execute(send_serf_to_road_search_cb, true, false, &data);
   Inventory *inventory = data.inventory;
   if (inventory == NULL) {
-	  Log::Warn["flag"] << " Flag::call_transporter - inventory is NULL, returning false - it could not find nearest inventory?";
+	  // this happens if castle not built yet, changing from Warn to Verbose
+	  Log::Verbose["flag"] << " Flag::call_transporter - inventory is NULL, returning false - it could not find nearest inventory?";
     return false;
   }
 
