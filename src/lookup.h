@@ -1,6 +1,6 @@
 /*
  * lookup.h - debugging data structures, mostly to allow conversion of enums to their string names
- *   tlongstretch 2019-2020
+ *   Copyright 2019-2021 tlongstretch
  */
 
 #ifndef SRC_LOOKUP_H_
@@ -9,10 +9,16 @@
 #include <bitset>			// used for RoadOptions bools
 #include <set>				// for MapPosSet typedef
 #include <vector>			// for MapPosVector typedef
-#include "src/building.h"	// used to know Building class 
+#include <utility>			// to satisfy cpplint
+#include <map>				// to satisfy cpplint
+#include <string>			// to satisfy cpplint
+#include "src/building.h"	// used to know Building classconst char*
 #include "src/gfx.h"		// for AI overlay, needed to get Color class, maybe find a simpler way?
 
-
+//
+// NOTE - cpplint says to change const std:string to const char* but when I do so it causesconst char*
+//   linker error saying these are being redefined??? makes no sense to me.  Leaving them as std::string
+//
 const std::string NameBuilding[] = {
 				"Building::TypeNone",
 				"Building::TypeFisher",
@@ -418,7 +424,7 @@ typedef std::set<std::pair<MapPos, unsigned int>> MapPosSet;
 typedef std::vector<MapPos> MapPosVector;
 
 // for AI overlay debugging markers
-const typedef std::map<std::string, Color> Colors;
+typedef const std::map<std::string, Color> Colors;
 const Colors colors = {
 { "black", Color(0x00,0x00,0x00)} ,	{ "white", Color(0xFF,0xFF,0xFF)} ,	{ "lt_brown", Color(0xD2, 0xB4, 0x8C)} ,	{ "lt_red", Color(0xFF,0x99,0x99)} ,
 { "lt_orange", Color(0xFF,0xCC,0x99)} ,	{ "lt_yellow", Color(0xFF,0xFF,0x99)} ,	{ "lt_lime", Color(0xCC,0xFF,0x99)} ,	{ "lt_green", Color(0x99,0xFF,0x99)} ,
@@ -566,8 +572,8 @@ typedef enum RoadOption {
 	PenalizeCastleFlag, // disfavor any flag-path that includes the castle flag, for resources that route directly to consumers
 	Improve,			// allow creating new roads even if start_pos already has any existing path (otherwise disallow it)
 	ReducedNewLengthPenalty, // reduced penalty, experimental, probably should just change overall new_length_penalty to penalize longer roads less
-	AllowWaterRoad		// allow creating water roads, this is on by default but if a water road is about to be built the build_best_road function will 
-						//   make a recursive call to itself with AllowWater disabled to ensure that a land route is also available, to avoid issue where 
+	AllowWaterRoad		// allow creating water roads, this is on by default but if a water road is about to be built the build_best_road function willconst char*
+						//   make a recursive call to itself with AllowWater disabled to ensure that a land route is also available, to avoid issue whereconst char*
 						//   serfs cannot reach the construction site/building because serfs cannot travel in boats (which is dumb)
 } RoadOption;
 typedef std::bitset<8> RoadOptions;
@@ -575,7 +581,7 @@ typedef std::vector<Road> Roads;
 
 
 
-// I was originally setting -1 here to be the worst-possible score, but because other lengths/penalties are ADDED to this score, it wraps back around 
+// I was originally setting -1 here to be the worst-possible score, but because other lengths/penalties are ADDED to this score, it wraps back aroundconst char*
 //     to be a very-low/good score again!   Instead, setting to HALF of -1 (4294967295) ... which is 2147483647.5 or 2147483648
 // GAH, this STILL doesn't work safely, because scores get ADDED and very commonly bad_score + bad_score overflows it
 //   changing to a much lower number that is still obviously wrong

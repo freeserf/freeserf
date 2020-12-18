@@ -235,7 +235,7 @@ Map::get_spiral_pattern() {
 }
 
 
-// extended spiral uses alternate method, I don't understand how the first 2 cols of the 
+// extended spiral uses alternate method, I don't understand how the first 2 cols of the
 //  original method were determined, so cannot extend it
 std::vector<int> extended_spiral_coord_vector;
 static int extended_spiral_pattern[3268] = { 0 };
@@ -280,13 +280,13 @@ init_extended_spiral_pattern() {
 	// i = 49  # row id
 	// x = 24  # 1st hardcoded value
 	// y = 16  # 2nd hardcoded value
-	// if j=0... 
+	// if j=0...
 	//  12*i = 588
 	//  2 + 588 + 0     (2*0 = 0 = j)
 	//  or, 1st hardcoded value of 49th row
 	//     is overwritten to the value 24*(pos/neg/zero?) + 16*(pos/neg/zero?)
 	//  and 2nd hardcoded value of 49th row
-	//     is overwritten to the value 24*(pos/neg/zero?) + 16*(pos/neg/zero?) also, but with different -1/1/0 
+	//     is overwritten to the value 24*(pos/neg/zero?) + 16*(pos/neg/zero?) also, but with different -1/1/0
 	// then as j=1,2,3..., the next pairs of values in same row are set to same pattern,
 	//     only change is the -1/1/0 spiral_matrix entry used
 	extended_spiral_pattern_initialized = 1;
@@ -545,12 +545,12 @@ Map::set_height(MapPos pos, int height) {
   }
 }
 
-// tlongstretch - hack to work around crash bug during castle 
+// tlongstretch - hack to work around crash bug during castle
 //   placement at game start, https://github.com/tlongstretch/freeserf-with-AI-plus/issues/38
 void
 Map::set_height_no_refresh(MapPos pos, int height) {
 	landscape_tiles[pos].height = height;
-	// don't Mark landscape dirty, I guess it will be updated on next refresh? 
+	// don't Mark landscape dirty, I guess it will be updated on next refresh?
 	//  not sure, it might not even matter
 }
 

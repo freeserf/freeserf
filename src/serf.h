@@ -468,7 +468,7 @@ class Serf : public GameObject {
     operator << (SaveWriterText &writer, Serf &serf);
 
   std::string print_state();
-  // moved from protected 
+  // moved from protected
   bool is_waiting(Direction *dir);
 
  protected:

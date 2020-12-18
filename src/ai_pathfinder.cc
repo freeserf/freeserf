@@ -1,8 +1,8 @@
 /*
  * ai_pathfinder.cc - extra pathfinder functions used for AI
- *	   tlongstretch 2019-2020
+ *	   Copyright 2019-2021 tlongstretch
  *
- *     FlagSearch function mostly copied from Pyrdacor's Freeserf.NET 
+ *     FlagSearch function mostly copied from Pyrdacor's Freeserf.NET
  *        C# implementation
  *
  */
@@ -17,42 +17,14 @@
 #include <chrono>  // for sleeping/debugging/ai_mark_pos
 #include <ctime>   // for timing function call runs
 
-
-class SearchNode;
-
-typedef std::shared_ptr<SearchNode> PSearchNode;
-
-class SearchNode {
- public:
-  PSearchNode parent;
-  unsigned int g_score;
-  unsigned int f_score;
-  MapPos pos;
-  Direction dir;
-
-  SearchNode()
-    : g_score(0)
-    , f_score(0)
-    , pos(0)
-    , dir(DirectionNone) {
-  }
-};
-
-
-static bool
-search_node_less(const PSearchNode &left, const PSearchNode &right) {
-  // A search node is considered less than the other if
-  // it has a larger f-score. This means that in the max-heap
-  // the lower score will go to the top.
-  return left->f_score > right->f_score;
-}
+#include "src/pathfinder.h"  // for SearchNode
 
 class FlagSearchNode;
 
 typedef std::shared_ptr<FlagSearchNode> PFlagSearchNode;
 
 class FlagSearchNode {
-public:
+ public:
 	PFlagSearchNode parent;
 	//unsigned int g_score;
 	//unsigned int f_score;
@@ -75,38 +47,8 @@ flagsearch_node_less(const PFlagSearchNode &left, const PFlagSearchNode &right) 
 
 
 
-static const unsigned int walk_cost[] = { 255, 319, 383, 447, 511 };
-
-static unsigned int
-heuristic_cost(Map *map, MapPos start, MapPos end) {
-  /* Calculate distance to target. */
-  int dist_col = map->dist_x(start, end);
-  int dist_row = map->dist_y(start, end);
-
-  int h_diff = abs(static_cast<int>(map->get_height(start)) -
-                   static_cast<int>(map->get_height(end)));
-  int dist = 0;
-
-  if ((dist_col > 0 && dist_row > 0) ||
-      (dist_col < 0 && dist_row < 0)) {
-    dist = std::max(abs(dist_col), abs(dist_row));
-  } else {
-    dist = abs(dist_col) + abs(dist_row);
-  }
-
-  return dist > 0 ? dist*walk_cost[h_diff/dist] : 0;
-}
-
-static unsigned int
-actual_cost(Map *map, MapPos pos, Direction dir) {
-  MapPos other_pos = map->move(pos, dir);
-  int h_diff = abs(static_cast<int>(map->get_height(pos)) -
-                   static_cast<int>(map->get_height(other_pos)));
-  return walk_cost[h_diff];
-}
-
 // plot a Road between two pos and return it
-//  *In addition*, while plotting that road, use any existing flags and anyplace that new flags 
+//  *In addition*, while plotting that road, use any existing flags and anyplace that new flags
 //    could be built on existing roads along the way to populate a set of additional potential Roads.
 //    Any valid existing or potential flag pos encountered "in the way" during pathfinding
 //    will be included, but not positions that are not organically checked by the direct pathfinding logic.
@@ -222,7 +164,7 @@ plot_road(PMap map, unsigned int player_index, MapPos start_pos, MapPos end_pos,
 					// store the current node so it can be restored after this part is done
 					PSearchNode orig_node = node;
 
-					// start the road at new_pos (where potential flag could be built), and follow the 'node' path back to start_pos 
+					// start the road at new_pos (where potential flag could be built), and follow the 'node' path back to start_pos
 					Road split_flag_breadcrumb_solution;
 					split_flag_breadcrumb_solution.start(split_flag_node->pos);   // same as new_pos
 
@@ -235,7 +177,7 @@ plot_road(PMap map, unsigned int player_index, MapPos start_pos, MapPos end_pos,
 						//std::this_thread::sleep_for(std::chrono::milliseconds(0));
 						split_flag_node = split_flag_node->parent;
 					}
-					// restore original node so search can resume 
+					// restore original node so search can resume
 					node = orig_node;
 					unsigned int new_length = static_cast<unsigned int>(split_flag_breadcrumb_solution.get_length());
 					Log::Info["pathfinder"] << "plot_road: split_flag_breadcrumb_solution found, new segment length is " << split_flag_breadcrumb_solution.get_length();
@@ -320,7 +262,7 @@ plot_road(PMap map, unsigned int player_index, MapPos start_pos, MapPos end_pos,
 	if (direct_road.get_source() == bad_map_pos) {
 		Log::Info["pathfinder"] << "NO DIRECT SOLUTION FOUND for start_pos " << start_pos << " to end_pos " << end_pos;
 	}
-	duration = (std::clock() - start) / (double)CLOCKS_PER_SEC;
+	duration = (std::clock() - start) / static_cast<double>(CLOCKS_PER_SEC);
 	Log::Info["pathfinder"] << "plot road call took " << duration;
 	return direct_road;
 }
@@ -421,14 +363,14 @@ score_flag(PMap map, unsigned int player_index, RoadBuilder *rb, RoadOptions roa
 			unsigned int adjusted_score = bad_score;
 			bool contains_castle_flag = false;
 			// go score the adjacent flags if they aren't already known (sometimes they will already have been checked)
-			if (! rb->has_score(adjacent_flag_pos)) {
+			if (!rb->has_score(adjacent_flag_pos)) {
 				Log::Debug["pathfinder"] << "score_flag, rb doesn't have score yet for adjacent flag_pos " << adjacent_flag_pos << ", will try to score it";
 				if (find_flag_and_tile_dist(map, player_index, rb, adjacent_flag_pos, castle_flag_pos, ai_mark_pos)) {
 					Log::Debug["pathfinder"] << "score_flag, splitting_flag find_flag_and_tile_dist() returend true from flag_pos " << adjacent_flag_pos << " to target_pos " << target_pos;
 				}
 				else{
 					Log::Debug["pathfinder"] << "score_flag, splitting_flag find_flag_and_tile_dist() returned false, cannot find flag-path solution from flag_pos " << adjacent_flag_pos << " to target_pos " << target_pos << ".  Returning false";
-					// if not found just let rb->get_score call fail and it wlil use the default bad_scores given.  
+					// if not found just let rb->get_score call fail and it wlil use the default bad_scores given.
 					Log::Debug["pathfinder"] << "score_flag returned false for adjacent flag at pos " << adjacent_flag_pos;
 					Log::Debug["pathfinder"] << "for now, leaving default bogus super-high score for adjacent flag";
 					std::this_thread::sleep_for(std::chrono::milliseconds(0));
@@ -579,7 +521,7 @@ reverse_road(PMap map, Road road) {
 }
 
 
-// perform FlagSearch to find best flag-path from flag_pos to target_pos and determine tile path along the way.  
+// perform FlagSearch to find best flag-path from flag_pos to target_pos and determine tile path along the way.
 // return true if solution found, false if not
 //  this function will NOT work for fake flags / splitting flags
 bool
@@ -619,7 +561,7 @@ find_flag_and_tile_dist(PMap map, unsigned int player_index, RoadBuilder *rb, Ma
 			Log::Info["pathfinder"] << "score_flag: plotted a complete multi-road solution from flag_pos " << flag_pos << " to target_pos " << target_pos;
 			// record the solution
 			//
-			//  wait, don't I already have the solution?? the score... is all that matters.  
+			//  wait, don't I already have the solution?? the score... is all that matters.
 			//   There is no need to store the flag-node steps, unless maybe to cache for later
 			//     I think this just means search is complete and scores should be recorded
 			//
@@ -630,7 +572,7 @@ find_flag_and_tile_dist(PMap map, unsigned int player_index, RoadBuilder *rb, Ma
 				//    ??   is this even true with new fake-flag solution of just checking the adjacent flags??
 				MapPos end1 = fnode->parent->pos;
 				// wait a minute... after tracing complex bug it seems like end2 should not be fnode->pos but instead
-				//  should be determined by the result of the trace_existing_road call??  
+				//  should be determined by the result of the trace_existing_road call??
 				// I think I am getting bogus end2 results in some cases (maybe all?)
 				//MapPos end2 = fnode->pos;
 				MapPos end2 = bad_map_pos;
@@ -648,7 +590,7 @@ find_flag_and_tile_dist(PMap map, unsigned int player_index, RoadBuilder *rb, Ma
 					// trace the road to get the tile-path (we already have the flag-path in the FlagSearch object
 					existing_road = trace_existing_road(map, end1, dir1);
 					//after tracing complex bug it seems like end2 should not be fnode->pos but instead
-					//  should be determined by the result of the trace_existing_road call??  
+					//  should be determined by the result of the trace_existing_road call??
 					// I think I am getting bogus end2 results in some cases (maybe all?)
 					// instead, now getting end2 from traced existing road
 					end2 = existing_road.get_end(map.get());
@@ -710,7 +652,7 @@ find_flag_and_tile_dist(PMap map, unsigned int player_index, RoadBuilder *rb, Ma
 				//Direction end_dir = reverse_direction(fsearch_road.get_last());
 				Log::Verbose["pathfinder"] << "fsearchnode - fsearch from fnode->pos " << fnode->pos << " and dir " << NameDirection[d] << " found flag at pos " << new_pos << " with return dir " << reverse_direction(fsearch_road.get_last());
 
-				// break early if this is the target_flag, run the usual new-node code here that would otherwise be run after in_closed and in_open checks 
+				// break early if this is the target_flag, run the usual new-node code here that would otherwise be run after in_closed and in_open checks
 				//   wait, why duplicate this and break?  it should find that it is NOT in_closed and NOT in_open, move on to creating a new node and complete
 				//    maybe comment this stuff out
 				//   YES this fixes a huge bug!  leaving it this way
@@ -720,7 +662,7 @@ find_flag_and_tile_dist(PMap map, unsigned int player_index, RoadBuilder *rb, Ma
 					//ai_mark_pos->erase(new_pos);
 					//ai_mark_pos->insert(ColorDot(new_pos, "green"));
 					std::this_thread::sleep_for(std::chrono::milliseconds(0));
-					/*  trying this.. commenting this out and letting it flow to new node as usual 
+					/*  trying this.. commenting this out and letting it flow to new node as usual
 					PFlagSearchNode new_fnode(new FlagSearchNode);
 					new_fnode->pos = new_pos;
 					new_fnode->parent = fnode;

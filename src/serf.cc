@@ -5365,7 +5365,7 @@ Serf::fix_bad_animation() {
   /* Transporting (turning?) (110-115) */
   //animation = 110 + s.walking.dir;
   animation = 110;
-  counter = counter_from_animation[animation]; 
+  counter = counter_from_animation[animation];
   Log::Info["serf"] << "Serf::fix_bad_animation - fixing serf animation to: " <<  animation << " counter: "<< counter;
 }
 

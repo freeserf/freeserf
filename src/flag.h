@@ -81,7 +81,7 @@ class Flag : public GameObject {
   void set_position(MapPos pos) { this->pos = pos; }
 
   /* Bitmap of all directions with outgoing paths. */
-  // to understand, convert this to binary and read it last to first 
+  // to understand, convert this to binary and read it last to first
   // ex: 44 = 101100 = -,-,+,+,-,+ or has paths in 3 dirs:  DownLeft, Left, Up
   int paths() const { return path_con & 0x3f; }
   void add_path(Direction dir, bool water);

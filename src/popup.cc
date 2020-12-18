@@ -379,7 +379,7 @@ PopupBox::draw_green_number(int sx, int sy, int n) {
     /*billion*/
     int ntmp = n / 1000000000;
     frame->draw_number(8 * sx + 8, 9 + sy, ntmp, Color::green);
-    frame->draw_string(8 * (sx + (ntmp<10 ? 1 : 2)) + 8, sy + 9, "B", Color::green);
+    frame->draw_string(8 * (sx + (ntmp < 10 ? 1 : 2)) + 8, sy + 9, "B", Color::green);
   } else if (n >= 100000000) {
     int ntmp = n / 100000000;
     frame->draw_string(8 * sx + 8, sy + 9, "B", Color::green);
@@ -388,7 +388,7 @@ PopupBox::draw_green_number(int sx, int sy, int n) {
     /*million*/
     int ntmp = n / 1000000;
     frame->draw_number(8 * sx + 8, 9 + sy, ntmp, Color::green);
-    frame->draw_string(8 * (sx + (ntmp<10 ? 1 : 2)) + 8, sy + 9, "M", Color::green);
+    frame->draw_string(8 * (sx + (ntmp < 10 ? 1 : 2)) + 8, sy + 9, "M", Color::green);
   } else if (n >= 100000) {
     int ntmp =  n / 100000;
     frame->draw_string(8 * sx + 8, sy + 9, "M", Color::green);
@@ -397,7 +397,7 @@ PopupBox::draw_green_number(int sx, int sy, int n) {
     /* thousand */
     int ntmp =  n / 1000;
     frame->draw_number(8 * sx + 8, 9 + sy, ntmp, Color::green);
-    frame->draw_string(8 * (sx + (ntmp<10 ? 1 : 2)) + 8, sy + 9, "k", Color::green);
+    frame->draw_string(8 * (sx + (ntmp < 10 ? 1 : 2)) + 8, sy + 9, "k", Color::green);
   } else {
     frame->draw_number(8 * sx + 8, 9 + sy, n, Color::green);
   }

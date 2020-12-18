@@ -1,6 +1,6 @@
 /*
  * ai_roadbuilder.cc - class to store the state of a single pathfinding attempt
- *   tlongstretch 2019-2020
+ *   Copyright 2019-2021 tlongstretch
  *
  *
  * this class was originally created thinking I would build and maintain a cache of all roads

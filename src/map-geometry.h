@@ -170,6 +170,7 @@ cycle_directions_ccw(Direction start = DirectionUp, unsigned int length = 6) {
 }
 
 // Convenience function to create clockwise direction cycle with random start direction (for AI)
+//  NOTE - cpplint says: "Consider using rand_r(...) instead of rand(...) for improved thread safety.  [runtime/threadsafe_fn] [2]"
 inline DirectionCycle<Cycle::CW>
 cycle_directions_rand_cw(Direction start = Direction(rand() % 7), unsigned int length = 6) {
 	return DirectionCycle<Cycle::CW>(start, length);

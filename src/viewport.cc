@@ -25,6 +25,8 @@
 #include <memory>
 #include <utility>
 #include <sstream>
+#include <string>   //to satisfy cpplinter
+#include <vector>   //to satisfy cpplinter
 
 #include "src/misc.h"
 #include "src/game.h"

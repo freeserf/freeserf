@@ -1,6 +1,6 @@
 /*
  * ai_pathfinder.h - extra pathfinder functions used for AI
- *	   tlongstretch 2019-2020
+ *	   Copyright 2019-2020 tlongstretch
  */
 
 #ifndef SRC_AI_PATHFINDER_H_

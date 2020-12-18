@@ -201,7 +201,6 @@ class Interface : public GuiObject, public GameManager::Handler {
 
   // used for viewport and maybe other funtions to get the ai object so they can fetch the ai_mark stuff for AI overlay for debugging
   void set_ai_ptr(unsigned int index, AI *ai) { ai_ptrs[index] = ai; }
- // AI * get_ai_ptr(unsigned int index) { return ai_ptrs[index]; }
 
   // GameManager::Handler implementation
  public:

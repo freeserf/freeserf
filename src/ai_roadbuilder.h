@@ -1,6 +1,6 @@
 /*
  * ai_roadbuilder.h - class to store the state of a single pathfinding attempt
- *   tlongstretch 2019-2020
+ *   Copyright 2019-2021 tlongstretch
  */
 
 #ifndef SRC_AI_ROADBUILDER_H_
@@ -8,6 +8,8 @@
 
 #include <map>
 #include <tuple>
+#include <utility>			// to satisfy cpplinter
+#include <vector>			// to satisfy cpplinter
 
 #include "src/map.h"
 #include "src/lookup.h"
@@ -15,16 +17,19 @@
 typedef std::tuple<MapPos, Direction, MapPos, Direction> RoadEnds;
 
 class RoadBuilderRoad {
-public:
+
+ public:
 	//
-protected:
+
+ protected:
 	Road road;
 	MapPos end1;
 	MapPos end2;
 	Direction dir1;
 	Direction dir2;
 	bool contains_castle_flag;
-public:
+
+ public:
 	RoadBuilderRoad();
 	//RoadBuilderRoad(MapPos end1, Direction dir1, MapPos end2, Direction dir2);
 	RoadBuilderRoad(RoadEnds ends, Road r);
@@ -40,19 +45,21 @@ public:
 	void set_dir2(Direction d2) { dir2 = d2; }
 	bool get_contains_castle_flag() { return contains_castle_flag; }
 	void set_contains_castle_flag() { contains_castle_flag = true; }
-protected:
+
+ protected:
 	//
 };
 
 class FlagScore {
-public:
-//
-protected:
+
+ public:
+	//
+ protected:
 	unsigned int flag_dist;
 	unsigned int tile_dist;
 	bool contains_castle_flag = false;
 
-public:
+ public:
 	FlagScore();
 	FlagScore(unsigned int fd, unsigned int td);
 	unsigned int get_flag_dist() { return flag_dist; }
@@ -61,24 +68,28 @@ public:
 	void set_tile_dist(unsigned int y) { tile_dist = y; }
 	bool get_contains_castle_flag() { return contains_castle_flag; }
 	void set_contains_castle_flag() { contains_castle_flag = true; }
-protected:
+
+ protected:
 	//
 };
 
 
 
 class RoadBuilder {
-public:
+
+ public:
 	typedef std::map<RoadEnds, RoadBuilderRoad*> RoadBuilderRoads;
 	typedef std::map<MapPos, FlagScore> FlagScores;
-protected:
+
+ protected:
 	RoadBuilderRoads eroads;
 	RoadBuilderRoads proads;  // proad is same object type as eroad, but start_pos/end1 is always same/known/fixed because it is set by roadbuilder
 	FlagScores scores;
 	MapPos start_pos; // this determines end1 for proad
 	MapPos target_pos; // this is not included in any proad/eroad unless it happens to be a direct road solution
 	//unsigned int roads_built = 0;
-public:
+
+ public:
 	RoadBuilder();
 	RoadBuilder(MapPos start_pos, MapPos target_pos);
 	MapPos get_start_pos() { return start_pos; }
@@ -119,7 +130,7 @@ public:
 			Log::Warn["ai_util"] << "returning bogus super-high score to avoid the crash this used to cause";
 			//std::this_thread::sleep_for(std::chrono::milliseconds(2000));
 			FlagScore bogus_score;
-			// I was originally setting -1 here, but because other lengths/penalties are ADDED to this score, it wraps back around 
+			// I was originally setting -1 here, but because other lengths/penalties are ADDED to this score, it wraps back around
 			//     to be a very-low/good score again!   Instead, setting to HALF of -1 (4294967295) ... which is 2147483647.5 or 2147483648
 			bogus_score.set_flag_dist(bad_score);
 			bogus_score.set_tile_dist(bad_score);
@@ -144,12 +155,12 @@ public:
 		}
 		return false;
 	}
-	
-	// because the RoadEnds are never used directly (I think?), rather only xroad->get_ calls, 
-	//   I don't think this should return a std::pair including the RoadEnds, only the RoadBuilderRoad itself 
+
+	// because the RoadEnds are never used directly (I think?), rather only xroad->get_ calls,
+	//   I don't think this should return a std::pair including the RoadEnds, only the RoadBuilderRoad itself
 	RoadBuilderRoads get_eroads() { return eroads; }
 	RoadBuilderRoads get_proads() { return proads; }
-	
+
 	// search all ERoads for any with specified end1/dir1, OR end2/dir, and return the list as vector
 	std::vector<RoadBuilderRoad*> get_eroads(MapPos end, Direction dir) {
 		std::vector<RoadBuilderRoad*> found_eroads;
@@ -209,13 +220,13 @@ public:
 	}
 	*/
 
-	/* I don't think this is needed?  
+	/* I don't think this is needed?
 	std::pair<MapPos, Direction> get_rb_road_other_end(MapPos end, Direction dir) {
 		// search all ERoads for one that has specified end1/dir1, OR end2/dir2 and return the other end_pos and end_dir
 		for (std::pair<RoadEnds, RoadBuilderRoad *> record : eroads) {
 			// the RoadBuilderRoad * is not used here, only the key/index ERoadEnds is used to uniquely identify an ERoad
 			RoadEnds ends = record.first;
-			if (std::get<0>(ends) == end && std::get<1>(ends) == dir) { 
+			if (std::get<0>(ends) == end && std::get<1>(ends) == dir) {
 				Log::Debug["ai"] << "found RBRoad (forwards) with one end pos " << end << " and dir " << NameDirection[dir];
 				return std::make_pair(std::get<2>(ends), std::get<3>(ends));
 			}
@@ -266,7 +277,7 @@ public:
 		proads[ends] = rb_road;
 	}
 
-protected:
+ protected:
 	//
 }; // class Roadbuilder
 

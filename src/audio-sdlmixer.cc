@@ -172,7 +172,7 @@ AudioSDL::PlayerSFX::enable(bool enable) {
   enabled = enable;
   if (!enabled) {
     stop();
-  }	
+  }
 }
 
 void
@@ -265,8 +265,8 @@ Audio::PTrack
 AudioSDL::PlayerMIDI::play_track(int track_id) {
   Audio::PTrack track;
   bool have_track = false;
-  while (!track) {	      
-	if ((track_id <= TypeMidiNone) || (track_id > TypeMidiTrackLast)) {    
+  while (!track) {
+	if ((track_id <= TypeMidiNone) || (track_id > TypeMidiTrackLast)) {
       if (!have_track) {
         break;
       }
@@ -291,7 +291,7 @@ AudioSDL::PlayerMIDI::enable(bool enable) {
   } else {//fixed start playing when music enabled in options
 	if (!Mix_PlayingMusic()) {
 		play_track(0);
-	}  
+	}
   }
 }
 

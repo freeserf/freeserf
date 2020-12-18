@@ -25,6 +25,7 @@
 #include <fstream>
 #include <utility>
 #include <thread>
+#include <vector>   //to satisfy cpplinter
 
 #include "src/misc.h"
 #include "src/debug.h"

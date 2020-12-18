@@ -1,6 +1,6 @@
 /*
  * ai.h - AI main class and AI related functions
- *   tlongstretch 2019-2020
+ *   Copyright 2019-2021 tlongstretch
  */
 
 #ifndef SRC_AI_H_
@@ -8,6 +8,10 @@
 
 #include <map>
 #include <set>
+#include <string>			// to satisfy cpplinter
+#include <utility>			// to satisfy cpplinter
+#include <vector>			// to satisfy cpplinter
+#include <limits>			// to satisfy cpplinter
 #include <chrono>			// for thread sleeps
 #include <thread>			// for AI threads
 #include <bitset>			// for RoadOptions option-bit manipulation
@@ -16,7 +20,7 @@
 #include <cstring>			// for memset
 
 #include "src/audio.h"      // for audio notifications
-#include "src/flag.h"		// for flag->call_transporter for 
+#include "src/flag.h"		// for flag->call_transporter for
 #include "src/game.h"
 #include "src/gfx.h"		// for AI overlay, needed to get Color class, maybe find a simpler way?
 #include "src/log.h"		// for separate AI logger
@@ -29,13 +33,14 @@
 
 
 class AI {
-public:
+		//
+ public:
 	typedef std::map<std::pair<unsigned int, Direction>, unsigned int> FlagDirTimer;
 	typedef std::map<unsigned int, unsigned int> SerfWaitTimer;
 	const MapPos notplaced_pos = std::numeric_limits<unsigned int>::max() - 1;
 
-private:
-	std::ofstream ai_ofstream; // each AI thread logs to its own file 
+ private:
+	std::ofstream ai_ofstream; // each AI thread logs to its own file
 	PGame game;
 	PMap map;
 	Player *player;
@@ -74,13 +79,13 @@ private:
 	int occupied_building_count[25] = {0};
 	int connected_building_count[25] = {0};
 	int change_buffer;
-	int previous_knight_occupation_level; 
+	int previous_knight_occupation_level;
 	bool has_autosave_mutex = false;
-	
+
 	// list of bad building positions (where buildings had to be demolished for certain reasons)
 	// AI STATEFULNESS WARNING - this bad_building_pos list is lost on save/load or if AI thread terminated
 	MapPosSet bad_building_pos;
-	
+
 	std::vector<MapPos> stocks_pos; // positions of stocks - CASTLE and warehouses
 
 	//// create a console output log file for this AI thread
@@ -101,11 +106,12 @@ private:
 	Log::Logger AILogInfo{ Log::LevelInfo, "Info" };
 	Log::Logger AILogWarn{ Log::LevelWarn, "Warn" };
 	Log::Logger AILogError{ Log::LevelError, "Error" };
-protected:
+
+ protected:
 	// all the tuning variables were moved outside the class to satisfy gcc/g++ which threw compile errors when they were here
 	// VS2017 had no issue with it
 
-public:
+ public:
 	AI(PGame, unsigned int);
 	//AI(PGame, unsigned int, std::mutex *m);
 	void start();
@@ -119,10 +125,12 @@ public:
 	unsigned int get_game_speed() { return game->get_game_speed(); }
 	unsigned int get_loop_count() { return loop_count; }
 	std::set<std::string> get_ai_expansion_goals() { return expand_towards; }
-protected:
-private:
+
+ protected:
 	//
-	// ai_util.cc 
+ private:
+	//
+	// ai_util.cc
 	//
 	static bool has_terrain_type(PGame, MapPos, Map::Terrain, Map::Terrain);  // why does this need to be static?
 	bool place_castle(PGame, MapPos, unsigned int);
@@ -173,9 +181,8 @@ private:
 	};
 	std::map<MapPos, StockBuildings> stock_buildings;
 
-
 	//
-	// ai.cc 
+	// ai.cc
 	//
 	void do_place_castle();
 	void do_get_inventory(MapPos);
@@ -204,7 +211,7 @@ private:
 	void do_balance_sword_shield_priorities();
 	void do_attack();
 	void do_manage_knight_occupation_levels();
-	 void do_place_mines(std::string, Building::Type, Map::Object, Map::Object, int, double);
+	void do_place_mines(std::string, Building::Type, Map::Object, Map::Object, int, double);
 	void do_place_coal_mines(); //wrapper around do_place_mines
 	void do_place_iron_mines(); //wrapper around do_place_mines
 	void do_place_gold_mines(); //wrapper around do_place_mines
@@ -260,7 +267,7 @@ static const unsigned int hammers_min = 6; // don't create geologists unless thi
 static const unsigned int geologists_max = 4; // try not to create more geologists if have this many, hard to tell if they are out working
 
 // deprioritize sending geologists to area where signs density is over this amount (prefer send geologists to unevaluated areas)
-static constexpr double geologist_sign_density_deprio = 0.40; 
+static constexpr double geologist_sign_density_deprio = 0.40;
 // never send geologists to a flag that has a sign_density over this amount
 static constexpr double geologist_sign_density_max = 0.70;
 
@@ -312,5 +319,5 @@ static const unsigned int min_knight_morale_attack = 1400;
 static constexpr double min_knight_ratio_attack = 2.00;
 // TODO add some kind of factor that reduces the required attack ratio as own morale increases
 
-#endif
+#endif // SRC_AI_H_
 

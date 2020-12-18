@@ -1,9 +1,12 @@
 /*
  * ai.cc - AI main class
- *   tlongstretch 2019-2020
+ *   Copyright 2019-2021 tlongstretch
  */
 
+#include <algorithm>	// to satisfy cpplint
+
 #include "src/ai.h"
+
 
 /* TO DO
 
@@ -14,14 +17,14 @@
 	   that was added to knight calculations to avoid what I thought was a problem with idle serf detection
 
 - a significant amount of time is spent on expand_borders call, which is spent doing many score_area calls around all occupied_military_buildings.  There are probably excessive
-    redundant calls because every dir is checked from every military building (straight line to where it hits border)  
+    redundant calls because every dir is checked from every military building (straight line to where it hits border)
 	  INSTEAD - try walking the border and trying every so many positions?  what about circular borders?  could get stuck
 	  NO, better yet just give up on finding borders in a given direction after 10 or so tiles, because huts at edges of territory borders should be ~8 or less tiles from border
 
 - seeing some new roads being connected inefficiently... like the pathfinding went the wrong (non-optimal) way and didn't find the clearly better way.  Saw this twice in one
-    game when creating geologist roads on mountains, they ended up being connected to a non-optimal flag instead of the nearest flag.  Maybe change these to use nearest only?	
+    game when creating geologist roads on mountains, they ended up being connected to a non-optimal flag instead of the nearest flag.  Maybe change these to use nearest only?
 
-- toolmaker is making too many tools, hogging all the iron, even though many tools exist.   I think this is related to warehouse/stock parallel economy 
+- toolmaker is making too many tools, hogging all the iron, even though many tools exist.   I think this is related to warehouse/stock parallel economy
      see TOOLMAKER.save file for example
 
 - I think knight shuffling issue remains, likely need to add a check for if all knights have reached their destination before changing value again
@@ -42,14 +45,14 @@
 
 - improve performance by having a separate mutex for each resource/action group?
 
-- update_building_counts is being called far to often.  Because it requires a mutex lock it slows down the many functions that use it.  Maybe better to 
+- update_building_counts is being called far to often.  Because it requires a mutex lock it slows down the many functions that use it.  Maybe better to
     simply call it sparingly?  or, find a way to make it not require mutex lock
 
 - modify do_manage_knight_occupation_levels so that on game load it doesn't change knight occupation!  it assumes a new game was started and so sets to zero
     check to see if this actually still a problem
 
 - when building roads, consider a path THROUGH another path where a flag could be built and continuing, instead of only considering ending the road at a new flag
-   
+
 - move auto-saving to the main game, or have it check how many AI players there are and only save for one thread instead of all of them
     maybe create a separate mutex just for save games and let one AI keep it locked?
 
@@ -59,14 +62,14 @@
 - bug confirmation - when the stuck serf detector boots a serf that is on its way to occupy a building, the serf returns to the castle but the building will never be
     occupied!  saw this early in a game where a fisherman was on way to a new fisherman hut, got stuck, was booted, returned to castle, but never was sent back to hut!
 
-- seems like knights are shuffling in and out of the castle too often.  maybe the min/max occupation/staffing settings are flipping too often? 
+- seems like knights are shuffling in and out of the castle too often.  maybe the min/max occupation/staffing settings are flipping too often?
     this might be fixed now - nov01 2020
 
 - minor issue - when mines are placed early, sometimes their flags happen to fall on existing roads and cause them to be unexpectedly connected.  Maybe check this
     before building the mine and... disfavor it somehow without totally eliminating that spot?  Maybe only if this is the 2nd or 3rd mine of same type?
 
-- make the direction that pathfinding starts random?  I saw an issue where AI would build a building in a tight area, fail to connect it, burn it, 
-    try another spot, and keep trying until it exhausted every spot, BUT it could have build a road.  
+- make the direction that pathfinding starts random?  I saw an issue where AI would build a building in a tight area, fail to connect it, burn it,
+    try another spot, and keep trying until it exhausted every spot, BUT it could have build a road.
     I think it was always trying to go one direction and hitting obstacle (large lake in this case)
 			DONE - updated build_best_road to do this - test it out
 
@@ -75,13 +78,13 @@
 		DIDNT ACTUALLY MAKE THIS CHANGE YET, it looks like single affinity uses different and likely older code than dual affinity
 		 make them both use the same logic and update both at once
 
-- attack scoring should probably be different than expansion scoring.  When expand_towards list has a lot of needs, enemy target scores are very high, but 
+- attack scoring should probably be different than expansion scoring.  When expand_towards list has a lot of needs, enemy target scores are very high, but
     when expand_towards list is small enemy target scores are low.  Maybe ignore things that are easy to find elsewhere (fields, hills, trees, stone) and
-	only focus on buildings, gold, iron?  what about desperate situations where stones, hills, nowhere else to be found?  some kind of "cannot 
+	only focus on buildings, gold, iron?  what about desperate situations where stones, hills, nowhere else to be found?  some kind of "cannot
 	expand borders by building huts" or "cannot obtain goals by building huts" to trigger desperate attacks??
 
 - when doing mid/high resource start where planks are initially high and no sawmill is needed yet, when a sawmill is eventually needed its placement
-    the placement of lumberjacks near it is inefficient.  
+    the placement of lumberjacks near it is inefficient.
 		This is actually a general problem with higher resource starts.  It might be better to build all buildings in order regardless of current resources
 		   OR work on the rebuild_all_roads idea?  Or maybe rebuild all roads near castle??
 
@@ -96,8 +99,8 @@
 		not seeing this anymore - oct22 2020
 
 - additional no transporter bug!  Saw no transporter on road, never was detected.  After some digging and testing with savegames, determined that the flags
-   at either end of the road say a transporter is there (so my check doesn't detect it), but there is no serf object with the map coordinates and job 
-   that match any point on that road.  By changing some random IdleInStock serf to being a Transporter with coordinates (pos) of a point on the road - 
+   at either end of the road say a transporter is there (so my check doesn't detect it), but there is no serf object with the map coordinates and job
+   that match any point on that road.  By changing some random IdleInStock serf to being a Transporter with coordinates (pos) of a point on the road -
    in the savegame where it was broken,
    it fixes the problem.  To detect this issue, could run a check for any road that does not actually have a serf transporter where it thinks it does
 	 DONE
@@ -119,13 +122,13 @@
 - NEED TO MODIFY ENTIRE AI CODE TO WORK WITH per-stock/nearest_stock.  MANY FUNCTIONS REQUIRE UPDATING
 	DONE, but might need to fix a few things
 
-- possible huge performance improvement... change all the Game::update_XXX functions to use a loop that can be safely invalidated (somehow?) 
+- possible huge performance improvement... change all the Game::update_XXX functions to use a loop that can be safely invalidated (somehow?)
     so the entire call doesn't have to be mutex locked
 
 - idea - like pos_add_spirally, create a pos_add_cone with a direction.  To find positions in a "pie slice" radiating outward from center
-    use this to place faraway things that would require a massive spiral 
+    use this to place faraway things that would require a massive spiral
 
-- BUG - by allowing roads to be built to flags that have no paths if the flag is target_pos, it allows buildings to never be 
+- BUG - by allowing roads to be built to flags that have no paths if the flag is target_pos, it allows buildings to never be
    connected to road system, but only to their affinity buildings.  Change this to only allow connecting to disconnected if doing rebuild_all_roads
 
 - BUG - freeserf bug?  saw an occupied sawmill not receive any wood to saw despite ample logs being logged nearby, they are all placed in castle
@@ -134,7 +137,7 @@
 
 	saw this AGAIN right afteR?? next game   wtf?
 
-- rebuild all roads still not working right.  The roads appear to be rebuilt fine, but even after lost serf chaos eventually calls down, 
+- rebuild all roads still not working right.  The roads appear to be rebuilt fine, but even after lost serf chaos eventually calls down,
      materials are still not being transported on certain roads/flags.  Not sure why, probably related to missing transporter bug?
 
 - maybe add a "compare two roads" function?   or is that redundant
@@ -142,25 +145,25 @@
 - the nearby_flags search doesn't seem to reliably be ending early (within 6 tiles if any flag found), at least when watching rebuild_all_roads
       Look into it
 
-- for finding faraway things... maybe use get_straightline_dist to compare rather than giant spirals?  
+- for finding faraway things... maybe use get_straightline_dist to compare rather than giant spirals?
 
 - work on rebuild_all_roads... might be an acceptable solution to inefficient AI roads
 
 - avoid building Large civilian buildings near borders with enemies
 
 - pause/lock AI if game speed is paused.  In fact... move entire AI lock feature on game start to use pause status instead???
-	AI now pauses before starting a new loop if game speed is puased, but AI lock/unlock feature still unchanged 
+	AI now pauses before starting a new loop if game speed is puased, but AI lock/unlock feature still unchanged
 
 - clean up ai.h or create another for functions needed by other code, keep all the private AI stuff from having to be included?
 
-- start building warehouses and multiple copies of infrastructure around them.  To place warehouse, maybe search corners 
+- start building warehouses and multiple copies of infrastructure around them.  To place warehouse, maybe search corners
     about 15-20 tiles from castle and count the number of economy buildings, build near the highest score
 	   then repeat the entire build logic for each warehouse
 
 	   try to connect warehouse flags to all nearby flags
 
 - really do need a CONNECTED building count after all, for mines's free-miner/tools check.  Maybe just do dynamically instead of keeping a record??
-- clean up spiral and extended spiral stuff  
+- clean up spiral and extended spiral stuff
 // make this part of the calling function
  ///static void next_extended_spiral_coord
      DONE -  added it back in but did *not* add it to the "find best nearby affinity buildings" logic.
@@ -170,7 +173,7 @@
 - send_geologist bug... I saw AI sending geologists to a dead-end flag built next to a big desert with no mountains nearby.
      is it possible that desert tiles are accidently included in part of the geologist find terrain check????
 
-- idea - burn any building that hasn't acquired an owner/occupant serf after so many ticks?  
+- idea - burn any building that hasn't acquired an owner/occupant serf after so many ticks?
 
 - PUT AN UNFINISHED BUILDINGS / MAX CHECK at the beginning of each do_build function!!! or in the main AI loop but that is ugly
 
@@ -188,7 +191,7 @@
 
 - rebuild_all_roads not working right at all, missing roads, wrong connections, etc.   look into it if still needed
 
-- idea - build a bunch of flags on existing roads around castle to increase connection points? (whould this even help if split roads enabled?) but also to deprioritize 
+- idea - build a bunch of flags on existing roads around castle to increase connection points? (whould this even help if split roads enabled?) but also to deprioritize
     routes passing through flag (because more flags = worse)
 
 - idea - consider making sawmill (or stonecutter??) the secondary affinity for ALL buildings?
@@ -334,8 +337,8 @@ AI::next_loop(){
 	//-----------------------------------------------------------
 	// housekeeping tasks
 	//  NOTE - all of these should probably be moved to run AFTER the main game loop.
-	//    for example, we shouldn't send geologists out as the very first action when starting a game, 
-	//      rather it should be done after first few buildings/roads placed 
+	//    for example, we shouldn't send geologists out as the very first action when starting a game,
+	//      rather it should be done after first few buildings/roads placed
 	//-----------------------------------------------------------
 
 	do_connect_disconnected_flags(); // except unfinished mines
@@ -353,7 +356,7 @@ AI::next_loop(){
 	do_demolish_unproductive_mines();
 	do_manage_tool_priorities();
 	do_manage_mine_food_priorities();
-	do_balance_sword_shield_priorities();  
+	do_balance_sword_shield_priorities();
 	do_attack();
 	do_manage_knight_occupation_levels();
 
@@ -364,7 +367,7 @@ AI::next_loop(){
 
 		// debug
 		AILogDebug["next_loop"] << name << " stock at pos " << stock_pos << " has all/completed/occupied buildings: ";
-		for (int x=0; x<25; x++) {
+		for (int x = 0; x < 25; x++) {
 			AILogDebug["next_loop"] << name << " type " << x << " / " << NameBuilding[x] << ": " << stock_buildings.at(stock_pos).count[x]
 				<< "/" << stock_buildings.at(stock_pos).completed_count[x] << "/" << stock_buildings.at(stock_pos).occupied_count[x];
 		}
@@ -423,7 +426,7 @@ AI::next_loop(){
 	AILogInfo["next_loop"] << name << " Done AI Loop #" << loop_count;
 	ai_status.assign("END OF LOOP");
 	AILogDebug["next_loop"] << name << " loop complete, sleeping 2sec";
-	loop_clock_duration = (std::clock() - loop_clock_start) / (double)CLOCKS_PER_SEC;
+	loop_clock_duration = (std::clock() - loop_clock_start) / static_cast<double>(CLOCKS_PER_SEC);
 	AILogDebug["next_loop"] << name << " done next_loop, call took " << loop_clock_duration;
 	std::this_thread::sleep_for(std::chrono::milliseconds(2000));
 }
@@ -582,7 +585,7 @@ AI::do_get_serfs() {
 	AILogDebug["do_get_serfs"] << name << " thread #" << std::this_thread::get_id() << " AI is unlocking mutex after getting serfs at AI loop start";
 	game->get_mutex()->unlock();
 	AILogDebug["do_get_serfs"] << name << " thread #" << std::this_thread::get_id() << " AI has unlocked mutex after getting serfs at AI loop start";
-	duration = (std::clock() - start) / (double)CLOCKS_PER_SEC;
+	duration = (std::clock() - start) / static_cast<double>(CLOCKS_PER_SEC);
 	AILogDebug["do_get_serfs"] << name << " done do_get_serfs call took " << duration;
 }
 
@@ -730,7 +733,7 @@ AI::do_connect_disconnected_flags() {
 		}
 	}
 
-	duration = (std::clock() - start) / (double)CLOCKS_PER_SEC;
+	duration = (std::clock() - start) / static_cast<double>(CLOCKS_PER_SEC);
 	AILogDebug["do_connect_disconnected_flags"] << name << " done do_connect_disconnected_flags call took " << duration;
 }
 
@@ -745,9 +748,9 @@ AI::do_spiderweb_roads2() {
 	AILogDebug["do_spiderweb_roads2"] << name << " inside do_spiderweb_roads2";
 	ai_status.assign("HOUSEKEEPING - do_spiderweb_roads2");
 	// "spider-web" roads - because a "star network" pattern naturally emerges with castle at center, try to
-	//   convert it until a "spider-web" shape by attemping build roads between any flags within a band a bit outside 
+	//   convert it until a "spider-web" shape by attemping build roads between any flags within a band a bit outside
 	//    the castle area.  This should end up being 2/3 to 3/3 of the original castle area before any borders expanded
-	//  
+	//
 	//  second layer - find the six corners 18 tiles out from castle,
 	//     at each corner draw a size8 circle and connect any flags within it
 	//  this could be improved by making a "caret" or "flattened hexagon" shape at corners instead of spiral_pos
@@ -820,7 +823,7 @@ AI::do_spiderweb_roads2() {
 				for (MapPos other_area_flag_pos : shuffled_flag_vector) {
 					AILogDebug["do_spiderweb_roads2"] << name << " considering roads from area_flag_pos " << area_flag_pos << " to other_area_flag_pos " << other_area_flag_pos;
 					if (area_flag_pos == other_area_flag_pos) { continue; }
-					
+
 					// bitwise operator... to simplify checking for already tried combinations in either order
 					unsigned int pair = area_flag_pos & other_area_flag_pos;
 					if (tried_pairs.count(pair) > 0) { continue; }
@@ -851,7 +854,7 @@ AI::do_spiderweb_roads2() {
 		//AILogDebug["do_spiderweb_roads2"] << name << " sanity check: there were " << tried_pairs.size() << " tried pairs";
 		AILogDebug["do_spiderweb_roads2"] << name << " done with building spider-web roads2";
 	}
-	duration = (std::clock() - start) / (double)CLOCKS_PER_SEC;
+	duration = (std::clock() - start) / static_cast<double>(CLOCKS_PER_SEC);
 	AILogDebug["do_spiderweb_roads2"] << name << " done with building spider-web roads2 call took " << duration;
 }
 
@@ -900,7 +903,7 @@ AI::do_spiderweb_roads1() {
 	// "spider-web" roads - because a "star network" pattern naturally emerges with castle at center, try to
 	//   convert it until a "spider-web" shape by attemping build roads between any flags with band a bit outside the castle area
 	//    this should end up being 1/3 to 2/3 of the original castle area before any borders expanded
-	//  
+	//
 	//  second layer - find the six corners 9 tiles out from castle,
 	//     at each corner draw a size8 circle and connect any flags within it
 	//  this could be improved by making a "caret" or "flattened hexagon" shape at corners instead of spiral_pos
@@ -1020,7 +1023,7 @@ AI::do_fix_stuck_serfs() {
 	//      Detect this state, and "boot" the serfs by changing their state to 'lost' so they return to castle
 
 	// !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-	// oct28 2020 
+	// oct28 2020
 	//  bug confirmation - when the stuck serf detector boots a serf that is on its way to occupy a building, the serf returns to the castle but the building will never be
 	//	occupied!  I saw this early in a game where a fisherman was on way to a new fisherman hut, got stuck, was booted, returned to castle, but never was sent back to hut!
 	// !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -1065,7 +1068,7 @@ AI::do_fix_stuck_serfs() {
 					serf_dest_flag_pos = serf_dest_flag->get_position();
 				}
 				// more info, saw case of a stuck Digger (leveller) that was on way to a construction site, but when stuck his walking_dest flag was a flag somewhere totally different
-				//   in the realm and not a place where a Digger was even needed.  Maybe a bad pointer somewhere is causing the walking_dest to be set to someplace invalid and this is 
+				//   in the realm and not a place where a Digger was even needed.  Maybe a bad pointer somewhere is causing the walking_dest to be set to someplace invalid and this is
 				//     the cause of the stuck serf WAIT_IDLE_ON_PATH issue???
 				AILogDebug["do_fix_stuck_serfs"] << name << " about to boot serf with job type: " << serf->get_type() << " " << NameSerf[serf->get_type()] << name << " with walking_dest/flag_pos " << serf_dest_flag_pos;
 				if (serf_job == Serf::TypeTransporter) {
@@ -1112,15 +1115,15 @@ AI::do_fix_stuck_serfs() {
 				//std::this_thread::sleep_for(std::chrono::milliseconds(12000));
 			}
 			else {
-				AILogDebug["do_fix_stuck_serfs"] << name << " SerfWaitTimer WAIT_IDLE_ON_PATH a serf_wait_idle_on_road_timer is already set for this serf, it will trigger in " <<
-					int(serf_wait_idle_on_road_timers.at(serf->get_index()) - game->get_tick()) << " ticks";
+				int trigger_ticks = static_cast<int>(serf_wait_idle_on_road_timers.at(serf->get_index()) - game->get_tick());
+				AILogDebug["do_fix_stuck_serfs"] << name << " SerfWaitTimer WAIT_IDLE_ON_PATH a serf_wait_idle_on_road_timer is already set for this serf, it will trigger in " << trigger_ticks << " ticks";
 			}
 		}
 	}
 	AILogDebug["do_fix_stuck_serfs"] << name << " thread #" << std::this_thread::get_id() << " AI is unlocking mutex after calling game->get_player_serfs(player) (for serf_wait_timers StateWaitIdleOnPath)";
 	game->get_mutex()->unlock();
 	AILogDebug["do_fix_stuck_serfs"] << name << " thread #" << std::this_thread::get_id() << " AI has unlocked mutex after calling game->get_player_serfs(player) (for serf_wait_timers StateWaitIdleOnPath)";
-	duration = (std::clock() - start) / (double)CLOCKS_PER_SEC;
+	duration = (std::clock() - start) / static_cast<double>(CLOCKS_PER_SEC);
 	AILogDebug["do_fix_stuck_serfs"] << name << " done do_fix_stuck_serfs call took " << duration;
 }
 
@@ -1178,7 +1181,7 @@ AI::do_fix_missing_transporters() {
 				}
 				// don't erase if it isn't fixed yet, keep checking each AI loop
 				//++no_transporter_timer;
-				//  **actually, DO erase, because in rare cases if a road is removed when a timer set, and then a different road built there(?) 
+				//  **actually, DO erase, because in rare cases if a road is removed when a timer set, and then a different road built there(?)
 				//   it causes a neverending trigger.  Best to assume it works and let it discover all over again if it has not
 				no_transporter_timer = no_transporter_timers.erase(no_transporter_timer);
 			}
@@ -1232,7 +1235,7 @@ AI::do_fix_missing_transporters() {
 					if (serf_on_path != nullptr) {
 						if (serf_on_path->get_type() == Serf::TypeTransporter) {
 							// need to check state to make sure it isn't just passing through on way to another road ???
-							// ALSO, if there is a serf working on an adjacent road that happens to be at this flag end, this will think it is 
+							// ALSO, if there is a serf working on an adjacent road that happens to be at this flag end, this will think it is
 							//    servicing this road being checked, but on some subsequent pass it should detect it
 							found_transporter = true;
 							break;
@@ -1291,13 +1294,13 @@ AI::do_fix_missing_transporters() {
 					AILogDebug["do_fix_missing_transporters"] << name << " there are now " << no_transporter_timers.count(std::make_pair(flag_index, dir)) << " no_transporter_timers set for this flag-dir " << flag_index << "-" << dir << " / " << NameDirection[dir] << name << ", value is: " << no_transporter_timers.at(std::make_pair(flag_index, dir));
 				}
 				else {
-					AILogDebug["do_fix_missing_transporters"] << name << " a timer is already set for this path, it will trigger in " <<
-						int(no_transporter_timers.at(std::make_pair(flag_index, dir)) - game->get_tick()) << " ticks";
+					int trigger_ticks = static_cast<int>(no_transporter_timers.at(std::make_pair(flag_index, dir)) - game->get_tick());
+					AILogDebug["do_fix_missing_transporters"] << name << " a timer is already set for this path, it will trigger in " << trigger_ticks << " ticks";
 				}
 			}
 		}
 	}
-	duration = (std::clock() - start) / (double)CLOCKS_PER_SEC;
+	duration = (std::clock() - start) / static_cast<double>(CLOCKS_PER_SEC);
 	AILogDebug["do_fix_missing_transporters"] << name << " done do_fix_missing_transporters call took " << duration;
 }
 
@@ -1341,12 +1344,12 @@ AI::do_send_geologists() {
 	unsigned int hammers_count = realm_inv[Resource::TypeHammer];
 	unsigned int total_builders = player->get_serf_count(Serf::TypeBuilder);
 	unsigned int total_blacksmiths = player->get_serf_count(Serf::TypeWeaponSmith);
-	int reserve_builders = int(specialists_max[Serf::TypeBuilder] - total_builders);
+	int reserve_builders = static_cast<int>(specialists_max[Serf::TypeBuilder] - total_builders);
 	if (reserve_builders < 0) { reserve_builders = 0; }
-	int reserve_blacksmiths = int(specialists_max[Serf::TypeWeaponSmith] - total_blacksmiths);
+	int reserve_blacksmiths = static_cast<int>(specialists_max[Serf::TypeWeaponSmith] - total_blacksmiths);
 	if (reserve_blacksmiths < 0) { reserve_blacksmiths = 0; }
 	int reserve_hammers = reserve_builders + reserve_blacksmiths;
-	int excess_hammers = int(hammers_count - reserve_hammers);
+	int excess_hammers = static_cast<int>(hammers_count - reserve_hammers);
 	AILogDebug["do_send_geologists"] << name << " total_geologists " << total_geologists << ", idle_geologists " << idle_geologists << ", geologists_max "
 		<< geologists_max << ", total_builders " << total_builders << ", total_blacksmiths " << total_blacksmiths
 		<< ", hammers_count " << hammers_count << ", reserve_hammers " << reserve_hammers << ", excess_hammers " << excess_hammers;
@@ -1543,7 +1546,7 @@ AI::do_send_geologists() {
 					if (flag == nullptr)
 						continue;
 					// check once again for sign density, but this time centered around the Flag rather than the corner that the flag is near
-					//  this is to avoid issue where geologists keep being sent to a flag that is already near 100% sign density, but the corner 
+					//  this is to avoid issue where geologists keep being sent to a flag that is already near 100% sign density, but the corner
 					//   itself is not.  Should also check for number of geologists operating in area around flag and disqualify?
 					double sign_density = AI::count_geologist_sign_density(corner_pos, AI::spiral_dist(4));
 					if (sign_density > geologist_sign_density_max) {
@@ -1569,7 +1572,7 @@ AI::do_send_geologists() {
 					/*
 					// even with this extra check it still will likely break once warehouse/stocks come into play
 					//   also, it doesn't make sense that theis check would even be required, clearly something else is wrong
-					///  this STILL results in sending more geologists over max.  WTF. 
+					///  this STILL results in sending more geologists over max.  WTF.
 					if (total_geologists >= geologists_max) {
 						if (sending_idle_geologist == true) {
 							AILogDebug["do_send_geologists"] << name << " about to send an idle_geologists, double-checking to see if one is really idle...";
@@ -1600,7 +1603,7 @@ AI::do_send_geologists() {
 						// I stil cannot tell what is causing this to happen so often, maybe sending geologists is rate-limited per flag?
 						//   my debug logs are showing that it is failing because the flag search failed...but why??
 						///    "inside Game::send_serf_to_flag, send_serf_to_flag_search returned false"
-							
+
 						// playing sound causes occasional write access violation, probably needs to be made thread-safe.  Simply disabling for now.
 						//Audio &audio = Audio::get_instance();
 						//Audio::PPlayer player = audio.get_sound_player();
@@ -1611,7 +1614,7 @@ AI::do_send_geologists() {
 		} // foreach corner
 	} // foreach military building
 	AILogDebug["do_send_geologists"] << name << " done do_send_geologists";
-	duration = (std::clock() - start) / (double)CLOCKS_PER_SEC;
+	duration = (std::clock() - start) / static_cast<double>(CLOCKS_PER_SEC);
 	AILogDebug["do_send_geologists"] << name << " done do_send_geologists call took " << duration;
 }
 
@@ -1674,7 +1677,7 @@ AI::do_demolish_unproductive_3rd_lumberjacks() {
 		MapPosVector lumberjack_positions;
 		for (unsigned int i = 0; i < AI::spiral_dist(8); i++) {
 			MapPos pos = map->pos_add_extended_spirally(sawmill_pos, i);
-			if (map->get_obj(pos) == Map::ObjectSmallBuilding 
+			if (map->get_obj(pos) == Map::ObjectSmallBuilding
 				&& game->get_building_at_pos(pos)->get_type() == Building::TypeLumberjack
 				&& map->get_owner(pos) == player_index) {
 				++lumberjack_count;
@@ -1809,7 +1812,7 @@ AI::do_remove_road_stubs() {
 			game->demolish_flag(flag_pos, player);
 		}
 	}
-	duration = (std::clock() - start) / (double)CLOCKS_PER_SEC;
+	duration = (std::clock() - start) / static_cast<double>(CLOCKS_PER_SEC);
 	AILogDebug["do_remove_road_stubs"] << name << " call took " << duration;
 	AILogDebug["do_remove_road_stubs"] << name << " done do_remove_road_stubs, removed " << roads_removed << " roads";
 
@@ -2018,7 +2021,7 @@ AI::do_manage_tool_priorities() {
 	need_tools = false;
 	unsigned int planks_count = realm_inv[Resource::TypePlank];
 	for (int i = 0; i < 27; ++i) {
-		
+
 		unsigned int idle = serfs_idle[(Serf::Type)i];
 		unsigned int potential = serfs_potential[(Serf::Type)i];
 		unsigned int available = idle + potential;
@@ -2033,7 +2036,7 @@ AI::do_manage_tool_priorities() {
 		//}
 		// this caps the total number of tools & serfs with each job type to a fixed number
 		//  that was good with single economy centered aroud castle, but fails with multiple economies w/ warehouses
-		//   disabling this, going back to simple "ensure > 0" 
+		//   disabling this, going back to simple "ensure > 0"
 		//if (total < max && available < min) {
 		//	AILogDebug["do_manage_tool_priorities"] << name << " need more available serfs of job type " << NameSerf[i];
 		//	need_tools = true;
@@ -2248,13 +2251,13 @@ AI::do_manage_knight_occupation_levels() {
 	if (previous_knight_occupation_level > 0) {
 		// ...and we last LOWERED the level
 		if (previous_knight_occupation_level > current_level) {
-			change_buffer = int(knight_occupation_change_buffer) * -1;
+			change_buffer = static_cast<int>(knight_occupation_change_buffer) * -1;
 			AILogDebug["do_manage_knight_occupation_levels"] << name << " knight occupation level last DECREASED from " << previous_knight_occupation_level << " to "
 				<< current_level << ", setting a change buffer of " << change_buffer;
 		}
 		// ...and we last RAISED the occupation level
 		if (previous_knight_occupation_level < current_level) {
-			change_buffer = int(knight_occupation_change_buffer);
+			change_buffer = static_cast<int>(knight_occupation_change_buffer);
 			AILogDebug["do_manage_knight_occupation_levels"] << name << " knight occupation level last INCREASED from " << previous_knight_occupation_level << " to "
 				<< current_level << ", setting a change buffer of " << change_buffer;
 		}
@@ -2288,10 +2291,10 @@ AI::do_manage_knight_occupation_levels() {
 	AILogDebug["do_manage_knight_occupation_levels"] << name << " thread #" << std::this_thread::get_id() << " AI has unlocked mutex after calling game->get_player_serfs(player) (for do_manage_knight_occupation_levels is_waiting)";
 	AILogDebug["do_manage_knight_occupation_levels"] << name << " found in stocks idle_knights: " << idle_knights;
 	player->change_knight_occupation(3, 0, -5);   // reset lower bound to 'min'
-	player->change_knight_occupation(3, 1, -5);   // reset upper bound to 'min'	
+	player->change_knight_occupation(3, 1, -5);   // reset upper bound to 'min'
 	// must evaluate idle_knights as signed integer to avoid calculating negative values returning opposite result
 	if      ((signed)idle_knights - (signed)AI::count_knights_affected_by_occupation_level_change(current_level, 4) + (signed)change_buffer >= (signed)knights_max) {
-		//AILogDebug["do_manage_knight_occupation_levels"] << name << " debug4: " << (signed)idle_knights << " - " << (signed)AI::count_knights_affected_by_occupation_level_change(current_level, 4) << " + " << change_buffer 
+		//AILogDebug["do_manage_knight_occupation_levels"] << name << " debug4: " << (signed)idle_knights << " - " << (signed)AI::count_knights_affected_by_occupation_level_change(current_level, 4) << " + " << change_buffer
 		//	<< " = " << (signed)idle_knights - (signed)AI::count_knights_affected_by_occupation_level_change(current_level, 4) + change_buffer << " ?? " << knights_max;
 		AILogDebug["do_manage_knight_occupation_levels"] << name << " setting knight level to med/full";
 		player->change_knight_occupation(3, 1, +4);   // increase upper bound to 'full'
@@ -2388,7 +2391,7 @@ AI::do_place_mines(std::string type, Building::Type building_type, Map::Object l
 			} // foreach corner
 		} // foreach military building
 	} // if < max_mines
-	duration = (std::clock() - start) / (double)CLOCKS_PER_SEC;
+	duration = (std::clock() - start) / static_cast<double>(CLOCKS_PER_SEC);
 	Log::Info["pathfinder"] << "plot road call took " << duration;
 }
 
@@ -2507,7 +2510,7 @@ AI::do_build_sawmill_lumberjacks() {
 		AILogDebug["do_build_sawmill_lumberjacks"] << name << " have sufficient planks, skipping";
 	}
 	AILogDebug["do_build_sawmill_lumberjacks"] << name << " done do_build_sawmill_lumberjacks";
-	duration = (std::clock() - start) / (double)CLOCKS_PER_SEC;
+	duration = (std::clock() - start) / static_cast<double>(CLOCKS_PER_SEC);
 	AILogDebug["do_build_sawmill_lumberjacks"] << name << " done do_build_sawmill_lumberjacks call took " << duration;
 }
 
@@ -3089,7 +3092,7 @@ AI::do_connect_coal_mines() {
 			AILogDebug["do_connect_coal_mines"] << name << " trying to connect unfinished coal mine flag to road system";
 			bool was_built = AI::build_best_road(flag->get_position(), road_options);
 			if (!was_built) {
-				// should the mine be demolished if this happens?  
+				// should the mine be demolished if this happens?
 				AILogDebug["do_connect_coal_mines"] << name << " failed to connect coal mine to road network! ";
 				// YES it should
 				AILogDebug["do_connect_coal_mines"] << name << " demolishing coal mine that could not be connected to road network";
@@ -3393,7 +3396,7 @@ AI::do_attack() {
 	score_enemy_targets(&scored_targets);
 	AILogDebug["do_attack"] << name << " score_enemy_targets call found " << scored_targets.size() << " targets";
 
-	// TEMPORARY  
+	// TEMPORARY
 	int morale = 0;
 	int morale_max = 99999;
 
@@ -3440,7 +3443,7 @@ AI::do_attack() {
 
 
 // build better roads for high priority buildings
-//   for each one, see if a better-scoring multi-road solution can be plotted to its affinity_building[s] 
+//   for each one, see if a better-scoring multi-road solution can be plotted to its affinity_building[s]
 //    and if so, build that road in.  Do not remove any existing roads
 void
 AI::do_build_better_roads_for_important_buildings() {
@@ -3481,7 +3484,7 @@ AI::do_build_better_roads_for_important_buildings() {
 		road_options.reset(RoadOption::Improve);
 	}
 	AILogDebug["do_build_better_roads_for_important_buildings"] << name << " done do_build_better_roads_for_important_buildings";
-	duration = (std::clock() - start) / (double)CLOCKS_PER_SEC;
+	duration = (std::clock() - start) / static_cast<double>(CLOCKS_PER_SEC);
 	AILogDebug["do_build_better_roads_for_important_buildings"] << name << " done do_build_better_roads_for_important_buildings call took " << duration;
 }
 

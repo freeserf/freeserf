@@ -46,7 +46,7 @@
 
 #define GAME_MAX_PLAYER_COUNT  4
 
- // these were originally private, inside Game class
+// these were originally private, inside Game class
 typedef Collection<Flag, 5000> Flags;
 
 class SaveReaderBinary;
@@ -79,7 +79,7 @@ class Game {
   unsigned int gold_total;
 
   Players players;
-  
+
   Flags flags;
   Inventories inventories;
   Buildings buildings;
