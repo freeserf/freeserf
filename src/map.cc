@@ -518,7 +518,18 @@ Map::init_spiral_pos_pattern() {
 /* Initialize extended spiral_pos_pattern for AI functions */
 void
 Map::init_extended_spiral_pos_pattern() {
-	for (int i = 0; i < 1801; i++) {
+    // NOTE, originally had this set to <1801 but g++ threw warning:
+//[build] map.cc:522:40: warning: iteration 1634 invokes undefined behavior [-Waggressive-loop-optimizations]
+//[build]    int x = extended_spiral_pattern[2 * i] & geom_.col_mask();
+//[build]            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+//[build] map.cc:521:20: note: within this loop
+//[build]   for (int i = 0; i < 1801; i++) {
+//[build]                   ~~^~~~~~
+//  going to try changing it to 1633 to avoid... this might shrink the possible spiral 
+//   *OR* it might actually fix a bug
+
+//	for (int i = 0; i < 1801; i++) {
+  	for (int i = 0; i < 1633; i++) {
 		int x = extended_spiral_pattern[2 * i] & geom_.col_mask();
 		int y = extended_spiral_pattern[2 * i + 1] & geom_.row_mask();
 
