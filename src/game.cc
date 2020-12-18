@@ -1646,9 +1646,12 @@ Game::build_castle(MapPos pos, Player *player) {
 
   /* Level land in hexagon below castle */
   int h = get_leveling_height(pos);
-  map->set_height(pos, h);
+  // tlongstretch - hack to work around crash on castle placement issue: https://github.com/tlongstretch/freeserf-with-AI-plus/issues/38
+  //map->set_height(pos, h);
+  map->set_height_no_refresh(pos, h);
   for (Direction d : cycle_directions_cw()) {
-    map->set_height(map->move(pos, d), h);
+    //map->set_height(map->move(pos, d), h);
+	map->set_height_no_refresh(map->move(pos, d), h);
   }
 
   update_land_ownership(pos);

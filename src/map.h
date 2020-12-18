@@ -449,6 +449,7 @@ class Map {
   static const Space map_space_from_obj[128];
 
   void set_height(MapPos pos, int height);
+  void set_height_no_refresh(MapPos pos, int height);
   void set_object(MapPos pos, Object obj, int index);
   void remove_ground_deposit(MapPos pos, int amount);
   void remove_fish(MapPos pos, int amount);
