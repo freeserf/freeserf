@@ -216,11 +216,11 @@ AI::AI(PGame current_game, unsigned int pi) {
 	player_index = pi;
 	name = "Player" + std::to_string(pi);
 	AILogInfo["init"] << name << " inside AI::AI constructor with player_index: " << player_index;
-	AILogVerbose["init"] << name << "AI log level is at least verbose";
-	AILogDebug["init"] << name << "AI log level is at least debug";
-	AILogInfo["init"] << name << "AI log level is at least info";
-	AILogWarn["init"] << name << "AI log level is at least warn";
-	AILogError["init"] << name << "AI log level is at least error";
+	AILogVerbose["init"] << name << " AI log level is at least verbose";
+	AILogDebug["init"] << name << " AI log level is at least debug";
+	AILogInfo["init"] << name << " AI log level is at least info";
+	AILogWarn["init"] << name << " AI log level is at least warn";
+	AILogError["init"] << name << " AI log level is at least error";
 
 	game = current_game;
 	map = game->get_map();
@@ -319,7 +319,7 @@ AI::next_loop(){
 	AILogDebug["next_loop"] << name << " sleeping 6sec at start of new loop";
 	std::this_thread::sleep_for(std::chrono::milliseconds(6000));
 
-	AILogInfo["next_loop"] << name << ", starting AI loop #" << loop_count;
+	AILogInfo["next_loop"] << name << " starting AI loop #" << loop_count;
 	// time entire loop
 	std::clock_t loop_clock_start;
 	double loop_clock_duration;
