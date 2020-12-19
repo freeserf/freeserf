@@ -4,7 +4,7 @@ Freeserf
 Build status
 ------------
 Freeserf-with-AI-plus
-<appveyor not working yet>
+appveyor not working yet
   
 Freeserf
 [![Build Status](https://travis-ci.org/freeserf/freeserf.svg?branch=master)](https://travis-ci.org/freeserf/freeserf)
