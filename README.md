@@ -1,16 +1,28 @@
-https://github.com/freeserf/freeserf/wiki/AI---first-release
-
-https://github.com/freeserf/freeserf/wiki/AI-road-building-logic-and-features
-
-https://github.com/freeserf/freeserf/wiki/Building-from-Source-on-Windows
-
-Freeserf-with-AI-plus
+Freeserf
 ========
 
 Build status
 ------------
-binaries are here: https://github.com/tlongstretch/freeserf-with-AI-plus-binaries/tree/main
-but this is a manual process where I upload them occasionally.  I still need to set up proper automated builds.
+Freeserf-with-AI-plus:
+---appveyor not working yet---
+  
+Freeserf:
+[![Build Status](https://travis-ci.org/freeserf/freeserf.svg?branch=master)](https://travis-ci.org/freeserf/freeserf)
+[![Build Status](https://ci.appveyor.com/api/projects/status/github/freeserf/freeserf?branch=master&svg=true)](https://ci.appveyor.com/project/jonls/freeserf)
+
+Last build downloads
+--------------------
+Freeserf-with-AI-plus
+* [Windows64 and Linux64](https://github.com/tlongstretch/freeserf-with-AI-plus-binaries)
+
+Freeserf
+* [Windows Installer x86](https://ci.appveyor.com/api/projects/jonls/freeserf/artifacts/FreeSerf-x86-Release.exe?branch=master&pr=false&job=Configuration%3A%20Release%3B%20Platform%3A%20x86)
+* [Windows Installer x64](https://ci.appveyor.com/api/projects/jonls/freeserf/artifacts/FreeSerf-x64-Release.exe?branch=master&pr=false&job=Configuration%3A%20Release%3B%20Platform%3A%20x64)
+* [Linux Sources TAR.Z](https://s3.amazonaws.com/freeserf/freeserf/freeserf/master/FreeSerf.tar.Z)
+* [Linux Sources TAR.BZ2](https://s3.amazonaws.com/freeserf/freeserf/freeserf/master/FreeSerf.tar.bz2)
+* [Linux Sources TAR.GZ](https://s3.amazonaws.com/freeserf/freeserf/freeserf/master/FreeSerf.tar.gz)
+* [Linux Sources TAR.XZ](https://s3.amazonaws.com/freeserf/freeserf/freeserf/master/FreeSerf.tar.xz)
+* [macOS Disk Image](https://s3.amazonaws.com/freeserf/freeserf/freeserf/master/FreeSerf.dmg)
 
 Play
 ------
@@ -28,7 +40,7 @@ Keyboard gameplay controls:
 * `0`: Reset game speed.
 * `p`: Pause game.
 * `j`: Switch player.
-* `y`; AI debug overlay
+* `y`: Enable AI debug overlay.  Must switch to AI player to see.
 
 Other keyboard controls:
 
@@ -60,6 +72,11 @@ The game is paused after loading so press `p` to start the game.
 
 Run `freeserf -h` for more info on command line options.
 
+Logging
+----------
+You can control log debug level by specifying -d followed by a number from 0 (most verbose) to 4 (errors only)
+
+`$ freeserf -d2`   for recommended INFO loglevel
 
 Bugs
 ----
