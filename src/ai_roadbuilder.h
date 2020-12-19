@@ -124,10 +124,10 @@ class RoadBuilder {
 	FlagScore get_score(MapPos pos) {
 		Log::Debug["ai_roadbuilder"] << "called RoadBuilder::get_score() for MapPos " << pos;
 		if (scores.count(pos) == 0) {
-			Log::Debug["ai_util"] << "ERROR!  scores.at(" << pos << ") is nullptr!  this is a crash bug";
-			Log::Warn["ai_util"] << "ERROR!  unable to find score for pos " << pos << ".  It should be scored already.  FIND OUT WHY";
+			Log::Debug["ai_roadbuilder"] << "ERROR!  scores.at(" << pos << ") is nullptr!  this is a crash bug";
+			Log::Debug["ai_roadbuilder"] << "ERROR!  unable to find score for pos " << pos << ".  It should be scored already.  FIND OUT WHY";
 			//std::this_thread::sleep_for(std::chrono::milliseconds(10000));
-			Log::Warn["ai_util"] << "returning bogus super-high score to avoid the crash this used to cause";
+			Log::Debug["ai_roadbuilder"] << "returning bogus super-high score to avoid the crash this used to cause";
 			//std::this_thread::sleep_for(std::chrono::milliseconds(2000));
 			FlagScore bogus_score;
 			// I was originally setting -1 here, but because other lengths/penalties are ADDED to this score, it wraps back around
@@ -174,7 +174,7 @@ class RoadBuilder {
 			if (eroads.count(RoadEnds(end2, dir2, end, dir))) { found_eroads.push_back(eroads.at(RoadEnds(end2, dir2, end, dir))); }
 		}
 		if (found_eroads.size() == 0) {
-			Log::Info["ai_util"] << "ERROR could not find any eroad with one end:dir " << end << ":" << NameDirection[dir];
+			Log::Debug["ai_roadbuilder"] << "ERROR could not find any eroad with one end:dir " << end << ":" << NameDirection[dir];
 		}
 		return found_eroads;
 	}
@@ -183,7 +183,7 @@ class RoadBuilder {
 	RoadBuilderRoad* get_eroad(MapPos end1, Direction dir1, MapPos end2, Direction dir2) {
 		if (eroads.count(RoadEnds(end1, dir1, end2, dir2))) { return eroads.at(RoadEnds(end1, dir1, end2, dir2)); }
 		if (eroads.count(RoadEnds(end2, dir2, end1, dir1))) { return eroads.at(RoadEnds(end2, dir2, end1, dir1)); }
-		Log::Warn["ai_util"] << "could not find eroad with ends:dirs " << end1 << ":" << NameDirection[dir1] << ", " << end2 << ":" << NameDirection[dir2] << " or inverse";
+		Log::Debug["ai_roadbuilder"] << "could not find eroad with ends:dirs " << end1 << ":" << NameDirection[dir1] << ", " << end2 << ":" << NameDirection[dir2] << " or inverse";
 		return nullptr;
 	}
 
@@ -195,7 +195,7 @@ class RoadBuilder {
 		Direction dir2 = std::get<3>(ends);
 		if (eroads.count(RoadEnds(end1, dir1, end2, dir2))) { return eroads.at(RoadEnds(end1, dir1, end2, dir2)); }
 		if (eroads.count(RoadEnds(end2, dir2, end1, dir1))) { return eroads.at(RoadEnds(end2, dir2, end1, dir1)); }
-		Log::Warn["ai_util"] << "could not find eroad with ends:dirs " << end1 << ":" << NameDirection[dir1] << ", " << end2 << ":" << NameDirection[dir2] << " or inverse";
+		Log::Debug["ai_roadbuilder"] << "could not find eroad with ends:dirs " << end1 << ":" << NameDirection[dir1] << ", " << end2 << ":" << NameDirection[dir2] << " or inverse";
 		return nullptr;
 	}
 
@@ -207,7 +207,7 @@ class RoadBuilder {
 				return rb_road;
 			}
 		}
-		Log::Warn["ai_util"] << "could not find proad with end2/end_pos :dirs " << end_pos;
+		Log::Debug["ai_roadbuilder"] << "could not find proad with end2/end_pos :dirs " << end_pos;
 		return nullptr;
 	}
 
@@ -242,7 +242,7 @@ class RoadBuilder {
 
 	/*
 	void new_eroad(MapPos end1, Direction dir1, MapPos end2, Direction dir2, Road road) {
-		Log::Info["ai_util"] << " inside new_eroad with end1 " << end1 << ", end2 " << end2 << ", dir1 " << dir1 << ", dir2 " << dir2;
+		Log::Info["ai_roadbuilder"] << " inside new_eroad with end1 " << end1 << ", end2 " << end2 << ", dir1 " << dir1 << ", dir2 " << dir2;
 		//ERoadEnds ends = ERoadEnds(end1, dir1, end2, dir2);
 		RoadEnds ends = RoadEnds(end1, dir1, end2, dir2);
 		RoadBuilderRoad *rb_road = new RoadBuilderRoad(end1, dir1, end2, dir2);
@@ -251,12 +251,12 @@ class RoadBuilder {
 	}
 	*/
 	void new_eroad(RoadEnds ends, Road road) {
-		Log::Info["ai_roadbuilder"] << " inside new_eroad";
+		Log::Debug["ai_roadbuilder"] << " inside new_eroad";
 		MapPos end1 = std::get<0>(ends);
 		Direction dir1 = std::get<1>(ends);
 		MapPos end2 = std::get<2>(ends);
 		Direction dir2 = std::get<3>(ends);
-		Log::Info["ai_roadbuilder"] << " inside new_eroad with end1 " << end1 << ", dir1 " << NameDirection[dir1] << ", end2 " << end2 << ", dir2 " << NameDirection[dir2];
+		Log::Debug["ai_roadbuilder"] << " inside new_eroad with end1 " << end1 << ", dir1 " << NameDirection[dir1] << ", end2 " << end2 << ", dir2 " << NameDirection[dir2];
 		//RoadBuilderRoad *rb_road = new RoadBuilderRoad(end1, dir1, end2, dir2);
 		RoadBuilderRoad *rb_road = new RoadBuilderRoad(ends, road);
 		//rb_road->set_road(road);
@@ -265,12 +265,12 @@ class RoadBuilder {
 
 	//void new_proad(MapPos end1, Direction dir1, MapPos end2, Direction dir2, Road road) {
 	void new_proad(RoadEnds ends, Road road) {
-		Log::Info["ai_roadbuilder"] << " inside new_proad";
+		Log::Debug["ai_roadbuilder"] << " inside new_proad";
 		MapPos start_pos = std::get<0>(ends);
 		Direction start_dir = std::get<1>(ends);
 		MapPos end_pos = std::get<2>(ends);
 		Direction end_dir = std::get<3>(ends);
-		Log::Info["ai_roadbuilder"] << " inside new_proad with start_pos " << start_pos << ", start_dir " << NameDirection[start_dir] << ", end_pos " << end_pos << ", end_dir " << NameDirection[end_dir];
+		Log::Debug["ai_roadbuilder"] << " inside new_proad with start_pos " << start_pos << ", start_dir " << NameDirection[start_dir] << ", end_pos " << end_pos << ", end_dir " << NameDirection[end_dir];
 		//RoadBuilderRoad *rb_road = new RoadBuilderRoad(end1, dir1, end2, dir2);
 		RoadBuilderRoad *rb_road = new RoadBuilderRoad(ends, road);
 		//rb_road->set_road(road);

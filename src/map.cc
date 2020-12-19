@@ -525,7 +525,7 @@ Map::init_extended_spiral_pos_pattern() {
 //[build] map.cc:521:20: note: within this loop
 //[build]   for (int i = 0; i < 1801; i++) {
 //[build]                   ~~^~~~~~
-//  going to try changing it to 1633 to avoid... this might shrink the possible spiral 
+//  going to try changing it to 1633 to avoid... this might shrink the possible spiral
 //   *OR* it might actually fix a bug
 
 //	for (int i = 0; i < 1801; i++) {

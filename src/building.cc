@@ -351,9 +351,9 @@ Building::requested_resource_delivered(Resource::Type resource) {
          stock[i].requested -= 1;
          if (stock[i].requested < 0) {
            stock[i].requested = 0;
-           Log::Info["building"] << "Building::requested_resource_delivered, Fixing req res delivered FOOD type requested below zero.";
+           Log::Debug["building"] << "Building::requested_resource_delivered, Fixing req res delivered FOOD type requested below zero.";
          }
-         Log::Info["building"] << "Building::requested_resource_delivered, Fixing req res delivered FOOD type.";
+         Log::Debug["building"] << "Building::requested_resource_delivered, Fixing req res delivered FOOD type.";
          return;
       }
       if (stock[i].type == resource) {
@@ -361,13 +361,13 @@ Building::requested_resource_delivered(Resource::Type resource) {
           stock[i].available += 1;
           stock[i].requested -= 1;
         } else {
-          Log::Info["building"] << "Building::requested_resource_delivered, Delivered more resources than requested: " << stock[i].requested << " available: "<< stock[i].available << " of type: " << resource;
+          Log::Debug["building"] << "Building::requested_resource_delivered, Delivered more resources than requested: " << stock[i].requested << " available: "<< stock[i].available << " of type: " << resource;
           return;
         }
         return;
       }
     }
-    Log::Info["building"] << "Building::requested_resource_delivered, Delivered unexpected resource: " << resource;
+    Log::Debug["building"] << "Building::requested_resource_delivered, Delivered unexpected resource: " << resource;
     throw ExceptionFreeserf("Delivered unexpected resource.");
   }
 }

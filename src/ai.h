@@ -27,7 +27,6 @@
 #include "src/savegame.h"   // for auto-saving
 #include "src/serf.h"		// for serf->is_waiting check for stuck serfs
 
-#include "src/ai_pathfinder.h" // for plotting building roads
 #include "src/ai_roadbuilder.h"  // additional pathfinder functions for AI
 #include "src/lookup.h"     // for console log, has text names for enums and such
 
@@ -38,6 +37,8 @@ class AI {
 	typedef std::map<std::pair<unsigned int, Direction>, unsigned int> FlagDirTimer;
 	typedef std::map<unsigned int, unsigned int> SerfWaitTimer;
 	const MapPos notplaced_pos = std::numeric_limits<unsigned int>::max() - 1;
+	std::string name;					// 'Player1', 'Player2', etc.  used to tag log lines
+
 
  private:
 	std::ofstream ai_ofstream; // each AI thread logs to its own file
@@ -50,7 +51,6 @@ class AI {
 	Flags flags_static_copy;	// store the copy here each time it is fetched from game->get_flags    ?  is this still used?  oct28 2020
 	unsigned int loop_count;
 	unsigned int player_index;
-	std::string name;					// 'Player1', 'Player2', etc.  used to tag log lines
 	std::string ai_status;				// used to describe what AI is doing when AI overlay is on (top-left corner of screen)
 	unsigned int unfinished_building_count;
 	unsigned int unfinished_hut_count;
@@ -81,31 +81,16 @@ class AI {
 	int change_buffer;
 	int previous_knight_occupation_level;
 	bool has_autosave_mutex = false;
-
 	// list of bad building positions (where buildings had to be demolished for certain reasons)
 	// AI STATEFULNESS WARNING - this bad_building_pos list is lost on save/load or if AI thread terminated
 	MapPosSet bad_building_pos;
-
 	std::vector<MapPos> stocks_pos; // positions of stocks - CASTLE and warehouses
-
-	//// create a console output log file for this AI thread
-	////Log::Logger AILogLogger;
-	// I have no idea wtf I am doing
-	//Log::Logger *AILogLoggerPtr = new Log::Logger(Log::LevelError, "AI");
-	//Log::Logger AILogLogger = *AILogLoggerPtr;
-	//Log::Logger AILogLogger = *(new Log::Logger(Log::LevelError, "AI"));
-	//Log::Logger AILogLogger{ Log::LevelError, "AI" }; // Using {} instead of () makes it clear you are not declaring a function
-	//std::ofstream* ai_filestr = new std::ofstream("ai_Player" + std::to_string(pi));
-	//std::ofstream* ai_filestr = new std::ofstream("ai_log");
-	//std::ofstream* ai_filestr = nullptr;
-	//Log::set_file(ai_filestr);
-	//Log::Logger AILogLogger(Log::LevelError, "AI");
-	//Log::Logger AILogLogger{ Log::LevelError, "AI" }; // Using {} instead of () makes it clear you are not declaring a function
 	Log::Logger AILogVerbose{ Log::LevelVerbose, "Verbose" };
 	Log::Logger AILogDebug{ Log::LevelDebug, "Debug" };
 	Log::Logger AILogInfo{ Log::LevelInfo, "Info" };
 	Log::Logger AILogWarn{ Log::LevelWarn, "Warn" };
 	Log::Logger AILogError{ Log::LevelError, "Error" };
+
 
  protected:
 	// all the tuning variables were moved outside the class to satisfy gcc/g++ which threw compile errors when they were here
@@ -113,7 +98,6 @@ class AI {
 
  public:
 	AI(PGame, unsigned int);
-	//AI(PGame, unsigned int, std::mutex *m);
 	void start();
 	void next_loop();
 	ColorDotMap * get_ai_mark_pos() { return &ai_mark_pos; }
@@ -227,6 +211,16 @@ class AI {
 	void do_build_blacksmith();
 	void do_build_gold_smelter_and_connect_gold_mines();
 	void do_build_warehouse();
+
+	//
+	// ai_pathfinder.cc
+	//
+	Road plot_road(PMap map, unsigned int player_index, MapPos start, MapPos end, Roads * const &potential_roads);
+	int get_straightline_tile_dist(PMap map, MapPos start_pos, MapPos end_pos);
+	bool score_flag(PMap map, unsigned int player_index, RoadBuilder *rb, RoadOptions road_options, MapPos flag_pos, MapPos castle_flag_pos, ColorDotMap *ai_mark_pos);
+	bool find_flag_and_tile_dist(PMap map, unsigned int player_index, RoadBuilder *rb, MapPos flag_pos, MapPos castle_flag_pos, ColorDotMap *ai_mark_pos);
+	RoadEnds get_roadends(PMap map, Road road);
+	Road reverse_road(PMap map, Road road);
 };
 
 //
@@ -318,6 +312,10 @@ static const unsigned int min_knight_morale_attack = 1400;
 //  ex. if enemy hut has 2 defenders, and this is set to 4.00, only attack if 8 knights can be sent
 static constexpr double min_knight_ratio_attack = 2.00;
 // TODO add some kind of factor that reduces the required attack ratio as own morale increases
+
+// fixed penalty for a non-direct road that contains the castle flag (but doesn't start/end there)
+static const unsigned int contains_castle_flag_penalty = 10;
+
 
 #endif // SRC_AI_H_
 

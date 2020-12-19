@@ -569,8 +569,8 @@ Interface::update_map_cursor_pos(MapPos pos) {
 				iface_ai_mark_serf->push_back(serf->get_index());
 			}
 			else {
-				Log::Info["interface"] << "not marking serf with index " << serf->get_index();
-				Log::Info["interface"] << "not marking serf with index " << serf->get_index() << ", job " << serf->get_type() << ", state " << serf->get_state();
+				Log::Debug["interface"] << "not marking serf with index " << serf->get_index();
+				Log::Debug["interface"] << "not marking serf with index " << serf->get_index() << ", job " << serf->get_type() << ", state " << serf->get_state();
 			}
 		}
 	}

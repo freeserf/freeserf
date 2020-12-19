@@ -2392,7 +2392,7 @@ AI::do_place_mines(std::string type, Building::Type building_type, Map::Object l
 		} // foreach military building
 	} // if < max_mines
 	duration = (std::clock() - start) / static_cast<double>(CLOCKS_PER_SEC);
-	Log::Info["pathfinder"] << "plot road call took " << duration;
+	AILogDebug["do_place_mines"] << name << " plot do_place_mines call took " << duration;
 }
 
 

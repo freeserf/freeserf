@@ -802,7 +802,7 @@ AI::build_best_road(MapPos start_pos, RoadOptions road_options, Building::Type o
 		//
 		// use straight-line-distance to the actual target_pos as the measuring stick to judge how convoluted actual roads are be in comparison
 		AILogDebug["util_build_best_road"] << name << " checking tile_dist from start_pos " << start_pos << " to end_pos " << target_pos << " for an ideal road";
-		int ideal_length = get_straightline_tile_dist(map, start_pos, target_pos);
+		int ideal_length = AI::get_straightline_tile_dist(map, start_pos, target_pos);
 		AILogDebug["util_build_best_road"] << name << " flag target_pos at " << target_pos << " has straight-line tile distance " << ideal_length << " from start_pos " << start_pos;
 		// for each nearby_flag:
 		//   - use FlagNodeSearch to find the shortest flag-path from each nearby_flag pos to the target_pos/flag, apply any penalties
@@ -2175,7 +2175,7 @@ AI::find_nearest_stock(MapPos pos) {
 	MapPos closest_stock = bad_map_pos;
 	for (MapPos stock_pos : stocks_pos) {
 		AILogDebug["util_find_nearest_stock"] << name << " considering stock_pos " << stock_pos;
-		unsigned int dist = get_straightline_tile_dist(map, pos, stock_pos);
+		unsigned int dist = AI::get_straightline_tile_dist(map, pos, stock_pos);
 		AILogDebug["util_find_nearest_stock"] << name << " straightline tile dist from pos " << pos << " to stock_pos " << stock_pos << " is " << dist;
 		if (dist < best_dist) {
 			AILogDebug["util_find_nearest_stock"] << name << " stock at stock_pos " << stock_pos << " is the closest so far to pos " << pos << " , with dist " << dist;
