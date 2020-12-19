@@ -3,10 +3,10 @@ Freeserf
 
 Build status
 ------------
-Freeserf-with-AI-plus
+Freeserf-with-AI-plus:
 *appveyor not working yet
   
-Freeserf
+Freeserf:
 [![Build Status](https://travis-ci.org/freeserf/freeserf.svg?branch=master)](https://travis-ci.org/freeserf/freeserf)
 [![Build Status](https://ci.appveyor.com/api/projects/status/github/freeserf/freeserf?branch=master&svg=true)](https://ci.appveyor.com/project/jonls/freeserf)
 
