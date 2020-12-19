@@ -75,6 +75,7 @@ Run `freeserf -h` for more info on command line options.
 Logging
 ----------
 You can control log debug level by specifying -d followed by a number from 0 (most verbose) to 4 (errors only)
+
 `$ freeserf -d2`   for recommended INFO loglevel
 
 Bugs
