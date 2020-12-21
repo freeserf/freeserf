@@ -153,8 +153,7 @@ set(OTHER_SOURCES ai_pathfinder.cc
                   list.cc
                   command_line.cc)
 
-set(OTHER_HEADERS ai_pathfinder.h
-                  pathfinder.h
+set(OTHER_HEADERS pathfinder.h
                   gfx.h
                   viewport.h
                   minimap.h
