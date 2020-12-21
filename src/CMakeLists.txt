@@ -37,7 +37,7 @@ target_check_style(tools)
 
 set(GAME_SOURCES ai.cc
                  ai_roadbuilder.cc
-				 ai_util.cc
+                 ai_util.cc
                  building.cc
                  flag.cc
                  game.cc
@@ -52,12 +52,11 @@ set(GAME_SOURCES ai.cc
                  game-manager.cc)
 
 set(GAME_HEADERS ai.h
-                 ai_roadbuilder.h
                  building.h
                  flag.h
                  game.h
                  inventory.h
-				 lookup.h
+                 lookup.h
                  map.h
                  map-generator.h
                  map-geometry.h
