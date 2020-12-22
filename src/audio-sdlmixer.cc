@@ -24,7 +24,6 @@
 #include <algorithm>
 #include <memory>
 #include <string>
-#include <math.h>
 
 #include <SDL.h>
 #include <SDL_mixer.h>
@@ -111,7 +110,6 @@ AudioSDL::get_volume() {
 void
 AudioSDL::set_volume(float _volume) {
   _volume = std::max(0.f, std::min(_volume, 1.f));
-  //p1plp1_audio_slider_decrease_sensitivity
   if (fabs(volume - _volume) < 0.01f) {
     return;
   }
@@ -137,13 +135,13 @@ AudioSDL::set_volume(float _volume) {
 void
 AudioSDL::volume_up() {
   float vol = get_volume();
-  set_volume(vol + 0.01f);
+  set_volume(vol + 0.1f);
 }
 
 void
 AudioSDL::volume_down() {
   float vol = get_volume();
-  set_volume(vol - 0.01f);
+  set_volume(vol - 0.1f);
 }
 
 Audio::PTrack
@@ -195,12 +193,12 @@ AudioSDL::PlayerSFX::set_volume(float volume) {
 
 void
 AudioSDL::PlayerSFX::volume_up() {
-  set_volume(get_volume() + 0.01f);
+  set_volume(get_volume() + 0.1f);
 }
 
 void
 AudioSDL::PlayerSFX::volume_down() {
-  set_volume(get_volume() - 0.01f);
+  set_volume(get_volume() - 0.1f);
 }
 
 AudioSDL::TrackSFX::TrackSFX(Mix_Chunk *_chunk) {
@@ -266,7 +264,7 @@ AudioSDL::PlayerMIDI::play_track(int track_id) {
   Audio::PTrack track;
   bool have_track = false;
   while (!track) {
-	if ((track_id <= TypeMidiNone) || (track_id > TypeMidiTrackLast)) {
+    if ((track_id <= TypeMidiNone) || (track_id > TypeMidiTrackLast)) {
       if (!have_track) {
         break;
       }
@@ -278,7 +276,7 @@ AudioSDL::PlayerMIDI::play_track(int track_id) {
     if (track) {
       have_track = true;
     }
-    (track_id < (TypeMidiTrackLast-1) ? track_id++ : track_id = 0);
+    track_id++;
   }
   return track;
 }
@@ -288,10 +286,6 @@ AudioSDL::PlayerMIDI::enable(bool enable) {
   enabled = enable;
   if (!enabled) {
     stop();
-  } else {//fixed start playing when music enabled in options
-	if (!Mix_PlayingMusic()) {
-		play_track(0);
-	}
   }
 }
 
@@ -315,12 +309,12 @@ AudioSDL::PlayerMIDI::set_volume(float volume) {
 
 void
 AudioSDL::PlayerMIDI::volume_up() {
-  set_volume(get_volume() + 0.01f);//fixed volume control step too big
+  set_volume(get_volume() + 0.1f);
 }
 
 void
 AudioSDL::PlayerMIDI::volume_down() {
-  set_volume(get_volume() - 0.01f);//fixed volume control step too big
+  set_volume(get_volume() - 0.1f);
 }
 
 AudioSDL::PlayerMIDI *
