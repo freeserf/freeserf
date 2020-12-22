@@ -31,7 +31,7 @@
 #include <map>
 #include <memory>
 #include <sstream>
-#include <thread>   // didn't need this on windows, why on linux with gcc?
+#include <thread>   //NOLINT (build/c++11) this is a Google Chromium req, not relevant to general C++.  // for AI threads
 
 #include "src/savegame.h"
 #include "src/debug.h"

@@ -345,7 +345,7 @@ PopupBox::draw_large_popup_box_frame() {
   //sprite index 2: left bar, plain
   //sprite index 3: right bar, plain
   //  using bottom bar's (undecorated) sprite because the normal one looks funny doubled), shifted down 2 pixels to avoid a gap
-  frame->draw_sprite(0, 2, Data::AssetFramePopup, 1); // top bar, left 
+  frame->draw_sprite(0, 2, Data::AssetFramePopup, 1); // top bar, left
   frame->draw_sprite(144, 2, Data::AssetFramePopup, 1); // top bar, right
   frame->draw_sprite(0, 153, Data::AssetFramePopup, 1); // bottom bar, left
   frame->draw_sprite(144, 153, Data::AssetFramePopup, 1); // bottom bar, right
@@ -1993,7 +1993,7 @@ PopupBox::draw_aiplus_options_box() {
 
   draw_green_string(3, 48, "Baz");
   draw_popup_icon(1, 45, (interface->test_aiplus_option(AIPlusOption::Baz)) ? 288 : 220);
- 
+
   draw_popup_icon(32, 128, 60); /* exit */
 }
 
@@ -3440,7 +3440,7 @@ PopupBox::handle_action(int action, int x_, int /*y_*/) {
     } else{
       interface->set_aiplus_option(AIPlusOption::Baz);
     }
-    break; 
+    break;
   case ACTION_SETT_8_CYCLE:
     player->cycle_knights();
     play_sound(Audio::TypeSfxAccepted);
@@ -3751,8 +3751,8 @@ PopupBox::handle_box_aiplusoptions_clk(int cx, int cy) {
 
   draw_green_string(3, 48, "Baz");
   draw_popup_icon(1, 45, (interface->get_game()->test_aiplus_option(AIPlusOption::Baz)) ? 288 : 220);
- 
-  draw_popup_icon(32, 128, 60); 
+
+  draw_popup_icon(32, 128, 60);
   */
   const int clkmap[] = {
     ACTION_AIPLUS_FOO, 7, 7, 16, 16,

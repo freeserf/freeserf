@@ -28,7 +28,7 @@
 #include <list>
 #include <memory>
 
-#include <mutex>
+#include <mutex>   //NOLINT (build/c++11) this is a Google Chromium req, not relevant to general C++.  // for AI thread locking
 
 #include "src/lookup.h"
 

@@ -24,7 +24,7 @@
 #include <iostream>
 #include <fstream>
 #include <utility>
-#include <thread>
+#include <thread>   //NOLINT (build/c++11) this is a Google Chromium req, not relevant to general C++.  // for AI threads
 #include <vector>   //to satisfy cpplinter
 
 #include "src/misc.h"
@@ -126,7 +126,7 @@ Interface::open_popup(int box) {
   // tlongstretch
   if (box == PopupBox::TypeAIPlusOptions){
     // double wide, normal height
-    popup->set_size(288,160);
+    popup->set_size(288, 160);
     // recenter the popup
     //   because the popup->get_position call requires providing pointers to ints,
     //   we must create those ints and pointers and then check them after the call

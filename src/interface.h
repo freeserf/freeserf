@@ -189,7 +189,7 @@ class Interface : public GuiObject, public GameManager::Handler {
   // used for viewport and maybe other funtions to get the ai object so they can fetch the ai_mark stuff for AI overlay for debugging
   AI * get_ai_ptr(unsigned int index) { return ai_ptrs[index]; }
   // options bitfield (bool settings)
-  static AIPlusOptions &get_aiplus_options(); 
+  static AIPlusOptions &get_aiplus_options();
   void set_aiplus_option(AIPlusOption opt) { aiplus_options.set(opt); }
   void unset_aiplus_option(AIPlusOption opt) { aiplus_options.reset(opt); }
   bool test_aiplus_option(AIPlusOption opt) { return aiplus_options.test(opt); }

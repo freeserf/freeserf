@@ -22,7 +22,7 @@
 #include "src/player.h"
 
 #include <algorithm>
-#include <thread>
+#include <thread>        //NOLINT (build/c++11) this is a Google Chromium req, not relevant to general C++.  // for AI threads
 
 #include "src/game.h"
 #include "src/log.h"

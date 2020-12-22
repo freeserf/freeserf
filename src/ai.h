@@ -8,219 +8,219 @@
 
 #include <map>
 #include <set>
-#include <string>			// to satisfy cpplinter
-#include <utility>			// to satisfy cpplinter
-#include <vector>			// to satisfy cpplinter
-#include <limits>			// to satisfy cpplinter
-#include <chrono>			// for thread sleeps
-#include <thread>			// for AI threads
-#include <bitset>			// for RoadOptions option-bit manipulation
-#include <fstream>			// for writing individual console log for each AI player
-#include <ctime>			// for timing function call runs
-#include <cstring>			// for memset
+#include <string>        // to satisfy cpplinter
+#include <utility>       // to satisfy cpplinter
+#include <vector>        // to satisfy cpplinter
+#include <limits>        // to satisfy cpplinter
+#include <chrono>        //NOLINT (build/c++11) this is a Google Chromium req, not relevant to general C++.  // for thread sleeps
+#include <thread>        //NOLINT (build/c++11) this is a Google Chromium req, not relevant to general C++.  // for AI threads
+#include <bitset>        // for RoadOptions option-bit manipulation
+#include <fstream>       // for writing individual console log for each AI player
+#include <ctime>         // for timing function call runs
+#include <cstring>       // for memset
 
-#include "src/audio.h"      // for audio notifications
-#include "src/flag.h"		// for flag->call_transporter for
+#include "src/audio.h"   // for audio notifications
+#include "src/flag.h"    // for flag->call_transporter for
 #include "src/game.h"
-#include "src/gfx.h"		// for AI overlay, needed to get Color class, maybe find a simpler way?
-#include "src/log.h"		// for separate AI logger
+#include "src/gfx.h"     // for AI overlay, needed to get Color class, maybe find a simpler way?
+#include "src/log.h"     // for separate AI logger
 #include "src/savegame.h"   // for auto-saving
-#include "src/serf.h"		// for serf->is_waiting check for stuck serfs
+#include "src/serf.h"    // for serf->is_waiting check for stuck serfs
 
 #include "src/ai_roadbuilder.h"  // additional pathfinder functions for AI
-#include "src/lookup.h"     // for console log, has text names for enums and such
+#include "src/lookup.h"  // for console log, has text names for enums and such
 
 
 class AI {
-		//
+    //
  public:
-	typedef std::map<std::pair<unsigned int, Direction>, unsigned int> FlagDirTimer;
-	typedef std::map<unsigned int, unsigned int> SerfWaitTimer;
-	const MapPos notplaced_pos = std::numeric_limits<unsigned int>::max() - 1;
-	std::string name;					// 'Player1', 'Player2', etc.  used to tag log lines
+  typedef std::map<std::pair<unsigned int, Direction>, unsigned int> FlagDirTimer;
+  typedef std::map<unsigned int, unsigned int> SerfWaitTimer;
+  const MapPos notplaced_pos = std::numeric_limits<unsigned int>::max() - 1;
+  std::string name;          // 'Player1', 'Player2', etc.  used to tag log lines
 
  private:
-	std::ofstream ai_ofstream; // each AI thread logs to its own file
-	PGame game;
-	PMap map;
-	Player *player;
-	AIPlusOptions aiplus_options;  // bitfield of bools for AIPlus game options, passed in from Interface::initialize_AI
-	//Flags *flags;   // don't use a pointer to game.flags, not thread safe   ?  is this still used?  oct28 2020
-	//Flags flags;    // instead use a copy that is created before each foreach Flag loop   ?  is this still used?  oct28 2020
-	Flags *flags;				//or maybe just create a copy and move the pointer to point to that new copy instead?? is that easier than changing all the foreach Flag loops?   ?  is this still used?  oct28 2020
-	Flags flags_static_copy;	// store the copy here each time it is fetched from game->get_flags    ?  is this still used?  oct28 2020
-	unsigned int loop_count;
-	unsigned int player_index;
-	std::string ai_status;				// used to describe what AI is doing when AI overlay is on (top-left corner of screen)
-	unsigned int unfinished_building_count;
-	unsigned int unfinished_hut_count;
-	ColorDotMap ai_mark_pos;			// used to mark spots on map with various colored dots.  For debugging, when AI overlay is on
-	std::vector<int> ai_mark_serf;		// used to mark serfs on map with status text.  For debugging, when AI overlay is on
-	Road *ai_mark_road = (new Road);	// used to trace roads on map as pathfinding runs.  For debugging, when AI overlay is on
-	std::set<std::string> expand_towards;
-	std::set<std::string> last_expand_towards;  // quick hack to save a copy for attack scoring
-	MapPos stopbuilding_pos;
-	MapPos castle_pos;
-	MapPos castle_flag_pos;
-	FlagDirTimer no_transporter_timers;
-	SerfWaitTimer serf_wait_timers;
-	SerfWaitTimer serf_wait_idle_on_road_timers;
-	MapPosVector realm_occupied_military_pos;
-	Building *castle;
-	Inventory *stock_inv;
-	RoadOptions road_options;
-	Serf::SerfMap serfs_idle;
-	Serf::SerfMap serfs_potential;
-	int *serfs_total;
-	bool need_tools;
-	int building_count[25] = {0};
-	int completed_building_count[25] = {0};
-	//int incomplete_building_count[25] = {0};
-	int occupied_building_count[25] = {0};
-	int connected_building_count[25] = {0};
-	int change_buffer;
-	int previous_knight_occupation_level;
-	bool has_autosave_mutex = false;
-	// list of bad building positions (where buildings had to be demolished for certain reasons)
-	// AI STATEFULNESS WARNING - this bad_building_pos list is lost on save/load or if AI thread terminated
-	MapPosSet bad_building_pos;
-	std::vector<MapPos> stocks_pos; // positions of stocks - CASTLE and warehouses
-	Log::Logger AILogVerbose{ Log::LevelVerbose, "Verbose" };
-	Log::Logger AILogDebug{ Log::LevelDebug, "Debug" };
-	Log::Logger AILogInfo{ Log::LevelInfo, "Info" };
-	Log::Logger AILogWarn{ Log::LevelWarn, "Warn" };
-	Log::Logger AILogError{ Log::LevelError, "Error" };
+  std::ofstream ai_ofstream; // each AI thread logs to its own file
+  PGame game;
+  PMap map;
+  Player *player;
+  AIPlusOptions aiplus_options;  // bitfield of bools for AIPlus game options, passed in from Interface::initialize_AI
+  //Flags *flags;   // don't use a pointer to game.flags, not thread safe   ?  is this still used?  oct28 2020
+  //Flags flags;    // instead use a copy that is created before each foreach Flag loop   ?  is this still used?  oct28 2020
+  Flags *flags;        //or maybe just create a copy and move the pointer to point to that new copy instead?? is that easier than changing all the foreach Flag loops?   ?  is this still used?  oct28 2020
+  Flags flags_static_copy;  // store the copy here each time it is fetched from game->get_flags    ?  is this still used?  oct28 2020
+  unsigned int loop_count;
+  unsigned int player_index;
+  std::string ai_status;        // used to describe what AI is doing when AI overlay is on (top-left corner of screen)
+  unsigned int unfinished_building_count;
+  unsigned int unfinished_hut_count;
+  ColorDotMap ai_mark_pos;      // used to mark spots on map with various colored dots.  For debugging, when AI overlay is on
+  std::vector<int> ai_mark_serf;    // used to mark serfs on map with status text.  For debugging, when AI overlay is on
+  Road *ai_mark_road = (new Road);  // used to trace roads on map as pathfinding runs.  For debugging, when AI overlay is on
+  std::set<std::string> expand_towards;
+  std::set<std::string> last_expand_towards;  // quick hack to save a copy for attack scoring
+  MapPos stopbuilding_pos;
+  MapPos castle_pos;
+  MapPos castle_flag_pos;
+  FlagDirTimer no_transporter_timers;
+  SerfWaitTimer serf_wait_timers;
+  SerfWaitTimer serf_wait_idle_on_road_timers;
+  MapPosVector realm_occupied_military_pos;
+  Building *castle;
+  Inventory *stock_inv;
+  RoadOptions road_options;
+  Serf::SerfMap serfs_idle;
+  Serf::SerfMap serfs_potential;
+  int *serfs_total;
+  bool need_tools;
+  int building_count[25] = {0};
+  int completed_building_count[25] = {0};
+  //int incomplete_building_count[25] = {0};
+  int occupied_building_count[25] = {0};
+  int connected_building_count[25] = {0};
+  int change_buffer;
+  int previous_knight_occupation_level;
+  bool has_autosave_mutex = false;
+  // list of bad building positions (where buildings had to be demolished for certain reasons)
+  // AI STATEFULNESS WARNING - this bad_building_pos list is lost on save/load or if AI thread terminated
+  MapPosSet bad_building_pos;
+  std::vector<MapPos> stocks_pos; // positions of stocks - CASTLE and warehouses
+  Log::Logger AILogVerbose{ Log::LevelVerbose, "Verbose" };
+  Log::Logger AILogDebug{ Log::LevelDebug, "Debug" };
+  Log::Logger AILogInfo{ Log::LevelInfo, "Info" };
+  Log::Logger AILogWarn{ Log::LevelWarn, "Warn" };
+  Log::Logger AILogError{ Log::LevelError, "Error" };
 
 
  protected:
-	// all the tuning variables were moved outside the class to satisfy gcc/g++ which threw compile errors when they were here
-	// VS2017 had no issue with it
+  // all the tuning variables were moved outside the class to satisfy gcc/g++ which threw compile errors when they were here
+  // VS2017 had no issue with it
 
  public:
-	AI(PGame, unsigned int, AIPlusOptions);
-	void start();
-	void next_loop();
-	ColorDotMap * get_ai_mark_pos() { return &ai_mark_pos; }
-	std::vector<int> * get_ai_mark_serf() { return &ai_mark_serf; }
-	Road * get_ai_mark_road() { return ai_mark_road; }
-	Color get_mark_color(std::string color) { return colors.at(color); }
-	std::string get_ai_status() { return ai_status; }
-	// stupid way to pass game speed and AI loop count to viewport for AI overlay
-	unsigned int get_game_speed() { return game->get_game_speed(); }
-	unsigned int get_loop_count() { return loop_count; }
-	std::set<std::string> get_ai_expansion_goals() { return expand_towards; }
+  AI(PGame, unsigned int, AIPlusOptions);
+  void start();
+  void next_loop();
+  ColorDotMap * get_ai_mark_pos() { return &ai_mark_pos; }
+  std::vector<int> * get_ai_mark_serf() { return &ai_mark_serf; }
+  Road * get_ai_mark_road() { return ai_mark_road; }
+  Color get_mark_color(std::string color) { return colors.at(color); }
+  std::string get_ai_status() { return ai_status; }
+  // stupid way to pass game speed and AI loop count to viewport for AI overlay
+  unsigned int get_game_speed() { return game->get_game_speed(); }
+  unsigned int get_loop_count() { return loop_count; }
+  std::set<std::string> get_ai_expansion_goals() { return expand_towards; }
 
  protected:
-	//
+  //
  private:
-	//
-	// ai_util.cc
-	//
-	static bool has_terrain_type(PGame, MapPos, Map::Terrain, Map::Terrain);  // why does this need to be static?
-	bool place_castle(PGame, MapPos, unsigned int);
-	static unsigned int spiral_dist(int);   // why does this need to be static?
-	void rebuild_all_roads();
-	bool build_best_road(MapPos, RoadOptions, Building::Type optional_affinity = Building::TypeNone, MapPos optional_target = bad_map_pos);
-	MapPosVector get_affinity(MapPos);
-	Building* find_nearest_building(MapPos, unsigned int, Building::Type);
-	Building* find_nearest_completed_building(MapPos, unsigned int, Building::Type);
-	Road trace_existing_road(PMap, MapPos, Direction);
-	MapPosVector get_corners(MapPos);
-	MapPosVector get_corners(MapPos, unsigned int distance);
-	unsigned int count_terrain_near_pos(MapPos, unsigned int, Map::Terrain, Map::Terrain, std::string);
-	unsigned int count_empty_terrain_near_pos(MapPos, unsigned int, Map::Terrain, Map::Terrain, std::string);
-	unsigned int count_farmable_land(MapPos, unsigned int, std::string);
-	unsigned int count_objects_near_pos(MapPos, unsigned int, Map::Object, Map::Object, std::string);
-	double count_geologist_sign_density(MapPos, unsigned int);
-	MapPosVector sort_by_val_asc(MapPosSet);
-	MapPosVector sort_by_val_desc(MapPosSet);
-	MapPos build_near_pos(MapPos, unsigned int, Building::Type);
-	bool building_exists_near_pos(MapPos, unsigned int, Building::Type);
-	MapPos find_halfway_pos_between_buildings(Building::Type, Building::Type);
-	unsigned int count_stones_near_pos(MapPos, unsigned int);
-	unsigned int count_knights_affected_by_occupation_level_change(unsigned int, unsigned int);
-	MapPos expand_borders(MapPos);
-	unsigned int score_area(MapPos, unsigned int);
-	bool is_bad_building_pos(MapPos, Building::Type);
-	void update_building_counts();
-	void update_stocks_pos();
-	MapPos get_halfway_pos(MapPos, MapPos);
-	ResourceMap realm_inv;
-	MapPos stock_pos;
-	MapPos find_nearest_stock(MapPos);
-	bool scoring_attack;
-	bool scoring_warehouse;
-	bool cannot_expand_borders_this_loop;
-	void score_enemy_targets(MapPosSet*);
-	void attack_nearest_target(MapPosSet*);
+  //
+  // ai_util.cc
+  //
+  static bool has_terrain_type(PGame, MapPos, Map::Terrain, Map::Terrain);  // why does this need to be static?
+  bool place_castle(PGame, MapPos, unsigned int);
+  static unsigned int spiral_dist(int);   // why does this need to be static?
+  void rebuild_all_roads();
+  bool build_best_road(MapPos, RoadOptions, Building::Type optional_affinity = Building::TypeNone, MapPos optional_target = bad_map_pos);
+  MapPosVector get_affinity(MapPos);
+  Building* find_nearest_building(MapPos, unsigned int, Building::Type);
+  Building* find_nearest_completed_building(MapPos, unsigned int, Building::Type);
+  Road trace_existing_road(PMap, MapPos, Direction);
+  MapPosVector get_corners(MapPos);
+  MapPosVector get_corners(MapPos, unsigned int distance);
+  unsigned int count_terrain_near_pos(MapPos, unsigned int, Map::Terrain, Map::Terrain, std::string);
+  unsigned int count_empty_terrain_near_pos(MapPos, unsigned int, Map::Terrain, Map::Terrain, std::string);
+  unsigned int count_farmable_land(MapPos, unsigned int, std::string);
+  unsigned int count_objects_near_pos(MapPos, unsigned int, Map::Object, Map::Object, std::string);
+  double count_geologist_sign_density(MapPos, unsigned int);
+  MapPosVector sort_by_val_asc(MapPosSet);
+  MapPosVector sort_by_val_desc(MapPosSet);
+  MapPos build_near_pos(MapPos, unsigned int, Building::Type);
+  bool building_exists_near_pos(MapPos, unsigned int, Building::Type);
+  MapPos find_halfway_pos_between_buildings(Building::Type, Building::Type);
+  unsigned int count_stones_near_pos(MapPos, unsigned int);
+  unsigned int count_knights_affected_by_occupation_level_change(unsigned int, unsigned int);
+  MapPos expand_borders(MapPos);
+  unsigned int score_area(MapPos, unsigned int);
+  bool is_bad_building_pos(MapPos, Building::Type);
+  void update_building_counts();
+  void update_stocks_pos();
+  MapPos get_halfway_pos(MapPos, MapPos);
+  ResourceMap realm_inv;
+  MapPos stock_pos;
+  MapPos find_nearest_stock(MapPos);
+  bool scoring_attack;
+  bool scoring_warehouse;
+  bool cannot_expand_borders_this_loop;
+  void score_enemy_targets(MapPosSet*);
+  void attack_nearest_target(MapPosSet*);
 
-	struct StockBuildings {
-		int count[25] = { 0 };
-		int connected_count[25] = { 0 };
-		int completed_count[25] = { 0 };
-		int occupied_count[25] = { 0 };
-		int unfinished_count;
-		int unfinished_hut_count;
-		MapPosVector occupied_military_pos;
-	};
-	std::map<MapPos, StockBuildings> stock_buildings;
+  struct StockBuildings {
+    int count[25] = { 0 };
+    int connected_count[25] = { 0 };
+    int completed_count[25] = { 0 };
+    int occupied_count[25] = { 0 };
+    int unfinished_count;
+    int unfinished_hut_count;
+    MapPosVector occupied_military_pos;
+  };
+  std::map<MapPos, StockBuildings> stock_buildings;
 
-	//
-	// ai.cc
-	//
-	void do_place_castle();
-	void do_get_inventory(MapPos);
-	void do_save_game();
-	void do_update_clear_reset();
-	void do_get_serfs();
-	void do_debug_building_triggers();
-	void do_promote_serfs_to_knights();
-	void do_connect_disconnected_flags();
-	void do_spiderweb_roads1();
-	void do_spiderweb_roads2();
-	void do_pollute_castle_area_roads_with_flags();
-	void do_build_better_roads_for_important_buildings();
-	void do_fix_stuck_serfs();
-	void do_fix_missing_transporters();
-	void do_send_geologists();
-	void do_build_rangers();
-	void do_remove_road_stubs();
-	void do_demolish_unproductive_3rd_lumberjacks();
-	void do_demolish_unproductive_stonecutters();
-	void do_demolish_unproductive_mines();
-	void do_demolish_excess_lumberjacks();
-	void do_demolish_excess_fishermen();
-	void do_manage_tool_priorities();
-	void do_manage_mine_food_priorities();
-	void do_balance_sword_shield_priorities();
-	void do_attack();
-	void do_manage_knight_occupation_levels();
-	void do_place_mines(std::string, Building::Type, Map::Object, Map::Object, int, double);
-	void do_place_coal_mines(); //wrapper around do_place_mines
-	void do_place_iron_mines(); //wrapper around do_place_mines
-	void do_place_gold_mines(); //wrapper around do_place_mines
-	void do_build_sawmill_lumberjacks();
-	bool do_wait_until_sawmill_lumberjacks_built();
-	void do_build_stonecutter();
-	void do_create_defensive_buffer();
-	void do_build_toolmaker_steelsmelter();
-	void do_build_food_buildings_and_3rd_lumberjack();
-	void do_connect_coal_mines();
-	void do_connect_iron_mines();
-	void do_build_steelsmelter();
-	void do_build_blacksmith();
-	void do_build_gold_smelter_and_connect_gold_mines();
-	void do_build_warehouse();
+  //
+  // ai.cc
+  //
+  void do_place_castle();
+  void do_get_inventory(MapPos);
+  void do_save_game();
+  void do_update_clear_reset();
+  void do_get_serfs();
+  void do_debug_building_triggers();
+  void do_promote_serfs_to_knights();
+  void do_connect_disconnected_flags();
+  void do_spiderweb_roads1();
+  void do_spiderweb_roads2();
+  void do_pollute_castle_area_roads_with_flags();
+  void do_build_better_roads_for_important_buildings();
+  void do_fix_stuck_serfs();
+  void do_fix_missing_transporters();
+  void do_send_geologists();
+  void do_build_rangers();
+  void do_remove_road_stubs();
+  void do_demolish_unproductive_3rd_lumberjacks();
+  void do_demolish_unproductive_stonecutters();
+  void do_demolish_unproductive_mines();
+  void do_demolish_excess_lumberjacks();
+  void do_demolish_excess_fishermen();
+  void do_manage_tool_priorities();
+  void do_manage_mine_food_priorities();
+  void do_balance_sword_shield_priorities();
+  void do_attack();
+  void do_manage_knight_occupation_levels();
+  void do_place_mines(std::string, Building::Type, Map::Object, Map::Object, int, double);
+  void do_place_coal_mines(); //wrapper around do_place_mines
+  void do_place_iron_mines(); //wrapper around do_place_mines
+  void do_place_gold_mines(); //wrapper around do_place_mines
+  void do_build_sawmill_lumberjacks();
+  bool do_wait_until_sawmill_lumberjacks_built();
+  void do_build_stonecutter();
+  void do_create_defensive_buffer();
+  void do_build_toolmaker_steelsmelter();
+  void do_build_food_buildings_and_3rd_lumberjack();
+  void do_connect_coal_mines();
+  void do_connect_iron_mines();
+  void do_build_steelsmelter();
+  void do_build_blacksmith();
+  void do_build_gold_smelter_and_connect_gold_mines();
+  void do_build_warehouse();
 
-	//
-	// ai_pathfinder.cc
-	//
-	Road plot_road(PMap map, unsigned int player_index, MapPos start, MapPos end, Roads * const &potential_roads);
-	int get_straightline_tile_dist(PMap map, MapPos start_pos, MapPos end_pos);
-	bool score_flag(PMap map, unsigned int player_index, RoadBuilder *rb, RoadOptions road_options, MapPos flag_pos, MapPos castle_flag_pos, ColorDotMap *ai_mark_pos);
-	bool find_flag_and_tile_dist(PMap map, unsigned int player_index, RoadBuilder *rb, MapPos flag_pos, MapPos castle_flag_pos, ColorDotMap *ai_mark_pos);
-	RoadEnds get_roadends(PMap map, Road road);
-	Road reverse_road(PMap map, Road road);
+  //
+  // ai_pathfinder.cc
+  //
+  Road plot_road(PMap map, unsigned int player_index, MapPos start, MapPos end, Roads * const &potential_roads);
+  int get_straightline_tile_dist(PMap map, MapPos start_pos, MapPos end_pos);
+  bool score_flag(PMap map, unsigned int player_index, RoadBuilder *rb, RoadOptions road_options, MapPos flag_pos, MapPos castle_flag_pos, ColorDotMap *ai_mark_pos);
+  bool find_flag_and_tile_dist(PMap map, unsigned int player_index, RoadBuilder *rb, MapPos flag_pos, MapPos castle_flag_pos, ColorDotMap *ai_mark_pos);
+  RoadEnds get_roadends(PMap map, Road road);
+  Road reverse_road(PMap map, Road road);
 };
 
 //
