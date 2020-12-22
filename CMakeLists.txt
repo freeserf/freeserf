@@ -29,8 +29,9 @@ configure_file(${CMAKE_CURRENT_SOURCE_DIR}/src/version-vcs.h.in
 
 add_definitions(-DPACKAGE_BUGREPORT="https://github.com/freeserf/freeserf/issues")
 
-include(CppLint)
-enable_check_style()
+# disabling this until I can figure out how to pass --filters arg
+#include(CppLint)
+#enable_check_style()
 
 add_subdirectory(src)
 
