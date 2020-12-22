@@ -4,7 +4,7 @@ if(PYTHONINTERP_FOUND AND NOT CPPLINT_FOUND)
   file(DOWNLOAD "https://github.com/google/styleguide/archive/gh-pages.zip" "${CMAKE_CURRENT_BINARY_DIR}/styleguide.zip")
   execute_process(COMMAND ${CMAKE_COMMAND} -E tar xz styleguide.zip
                   WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})
-  set(CPPLINT_COMMAND "${CMAKE_CURRENT_BINARY_DIR}/styleguide-gh-pages/cpplint/cpplint.py CACHE FILEPATH "CppLint commad")
+  set(CPPLINT_COMMAND "${CMAKE_CURRENT_BINARY_DIR}/styleguide-gh-pages/cpplint/cpplint.py" CACHE FILEPATH "CppLint commad")
   set(CPPLINT_FOUND ON CACHE BOOL "CppLint found")
 endif()
 
