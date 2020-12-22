@@ -31,7 +31,8 @@ set(TOOLS_HEADERS debug.h
                   buffer.h)
 
 add_library(tools STATIC ${TOOLS_SOURCES} ${TOOLS_HEADERS})
-target_check_style(tools)
+# disabling this until I can figure out how to pass --filters arg
+#target_check_style(tools)
 
 # Game library
 
@@ -70,7 +71,8 @@ set(GAME_HEADERS ai.h
                  game-manager.h)
 
 add_library(game STATIC ${GAME_SOURCES} ${GAME_HEADERS})
-target_check_style(game)
+# disabling this until I can figure out how to pass --filters arg
+#target_check_style(game)
 
 # Platform library
 
@@ -98,7 +100,8 @@ else()
 endif()
 
 add_library(platform STATIC ${PLATFORM_SOURCES} ${PLATFORM_HEADERS})
-target_check_style(platform)
+# disabling this until I can figure out how to pass --filters arg
+#target_check_style(platform)
 
 # Data library
 
@@ -133,7 +136,8 @@ else()
 endif()
 
 add_library(data STATIC ${DATA_SOURCES} ${DATA_HEADERS})
-target_check_style(data)
+# disabling this until I can figure out how to pass --filters arg
+#target_check_style(data)
 
 # FreeSerf executable
 
@@ -174,7 +178,8 @@ set(OTHER_HEADERS pathfinder.h
 set(FREESERF_SOURCES freeserf.cc ${OTHER_SOURCES})
 set(FREESERF_HEADERS freeserf.h ${OTHER_HEADERS})
 add_executable(FreeSerf MACOSX_BUNDLE WIN32 ${FREESERF_SOURCES} ${FREESERF_HEADERS})
-target_check_style(FreeSerf)
+# disabling this until I can figure out how to pass --filters arg
+#target_check_style(FreeSerf)
 
 target_link_libraries(FreeSerf game platform data tools)
 if(SDL2_FOUND)
@@ -256,5 +261,6 @@ set(PROFILER_HEADERS profiler.h
                      command_line.h)
 
 add_executable(profiler ${PROFILER_SOURCES} ${PROFILER_HEADERS})
-target_check_style(profiler)
+# disabling this until I can figure out how to pass --filters arg
+#target_check_style(profiler)
 target_link_libraries(profiler game tools)
