@@ -4,7 +4,7 @@ if(PYTHONINTERP_FOUND AND NOT CPPLINT_FOUND)
   file(DOWNLOAD "https://github.com/google/styleguide/archive/gh-pages.zip" "${CMAKE_CURRENT_BINARY_DIR}/styleguide.zip")
   execute_process(COMMAND ${CMAKE_COMMAND} -E tar xz styleguide.zip
                   WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})
-  set(CPPLINT_COMMAND "${CMAKE_CURRENT_BINARY_DIR}/styleguide-gh-pages/cpplint/cpplint.py --filters=-whitespace/line_length,-whitespace/comma,-whitespace/braces,-whitespace/newline,-whitespace/blank_line,-whitespace/comments,-whitespace/todo,-readability/todo,-readability/braces" CACHE FILEPATH "CppLint commad")
+  set(CPPLINT_COMMAND "${CMAKE_CURRENT_BINARY_DIR}/styleguide-gh-pages/cpplint/cpplint.py CACHE FILEPATH "CppLint commad")
   set(CPPLINT_FOUND ON CACHE BOOL "CppLint found")
 endif()
 
@@ -27,7 +27,7 @@ function(target_check_style TARGET)
         endif()
     endforeach(sourcefile)
 
-    add_custom_target(${TARGET_NAME} ${PYTHON_EXECUTABLE} ${CPPLINT_COMMAND} ${SOURCES_LIST}
+    add_custom_target(${TARGET_NAME} ${PYTHON_EXECUTABLE} ${CPPLINT_COMMAND} --filters=-whitespace/line_length,-whitespace/comma,-whitespace/braces,-whitespace/newline,-whitespace/blank_line,-whitespace/comments,-whitespace/todo,-readability/todo,-readability/braces ${SOURCES_LIST}
                       DEPENDS ${SOURCES_LIST}
                       WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
     add_dependencies(check_style ${TARGET_NAME})
