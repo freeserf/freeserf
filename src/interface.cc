@@ -123,6 +123,23 @@ Interface::open_popup(int box) {
     add_float(popup, 0, 0);
   }
   layout();
+  // tlongstretch
+  if (box == PopupBox::TypeAIPlusOptions){
+    // double wide, normal height
+    popup->set_size(288,160);
+    // recenter the popup
+    //   because the popup->get_position call requires providing pointers to ints,
+    //   we must create those ints and pointers and then check them after the call
+    int options_pos_x = 0;
+    int options_pos_y = 0;
+    int *ptoptions_pos_x = &options_pos_x;
+    int *ptoptions_pos_y = &options_pos_y;
+    popup->get_position(ptoptions_pos_x, ptoptions_pos_y);
+    options_pos_x = *ptoptions_pos_x;
+    // shift left half of one "normal width", keep same height
+    options_pos_x -= 72;
+    popup->move_to(options_pos_x, options_pos_y);
+  }
   popup->show((PopupBox::Type)box);
   if (panel != nullptr) {
     panel->update();

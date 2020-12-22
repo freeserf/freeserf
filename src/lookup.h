@@ -598,6 +598,12 @@ const unsigned int bad_score = 123123123;
 //  yeah... say you start at NE/U corner, just draw a straight line SE/DR until next corner found, then draw SW/D...
 
 
+typedef enum AIPlusOption {
+	Foo = 0,
+	Bar,
+	Baz,
+} AIPlusOption;
+typedef std::bitset<3> AIPlusOptions;
 
 
 

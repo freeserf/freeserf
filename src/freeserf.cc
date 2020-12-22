@@ -109,12 +109,12 @@ main(int argc, char *argv[]) {
 
   Graphics &gfx = Graphics::get_instance();
 
-  /* TODO move to right place */
-  Audio &audio = Audio::get_instance();
-  Audio::PPlayer player = audio.get_music_player();
-  if (player) {
-    Audio::PTrack t = player->play_track(Audio::TypeMidiTrack0);
-  }
+  ///* TODO move to right place */
+  //Audio &audio = Audio::get_instance();
+  //Audio::PPlayer player = audio.get_music_player();
+  //if (player) {
+  //  Audio::PTrack t = player->play_track(Audio::TypeMidiTrack0);
+  //}
 
   GameManager &game_manager = GameManager::get_instance();
 

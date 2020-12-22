@@ -60,8 +60,6 @@ class Game {
   typedef std::list<Serf*> ListSerfs;
   typedef std::list<Building*> ListBuildings;
   typedef std::list<Inventory*> ListInventories;
-  // found this in public and protected... does AI need it?  trying as protected only first
-  //typedef Collection<Player, 5> Players;
 
  protected:
   // moved to outside of Game class so AI can use the Flags typedef
@@ -69,7 +67,6 @@ class Game {
   typedef Collection<Inventory, 100> Inventories;
   typedef Collection<Building, 1000> Buildings;
   typedef Collection<Serf, 5000> Serfs;
-  // found this in public and protected... does AI need it?  trying as protected only first
   typedef Collection<Player, 5> Players;
 
   PMap map;
@@ -118,9 +115,11 @@ class Game {
   int knight_morale_counter;
   int inventory_schedule_counter;
 
+  // tlongstretch
   bool ai_locked;
   bool signal_ai_exit;
   unsigned int ai_threads_remaining;
+  AIPlusOptions aiplus_options;
 
 
  public:
@@ -129,6 +128,9 @@ class Game {
 
   PMap get_map() { return map; }
 
+  //
+  // tlongstretch
+  //
   // tell ai to exit when a game ends
   void stop_ai_threads() { signal_ai_exit = true; }
   // ai checks this every loop and exits if true
@@ -143,17 +145,17 @@ class Game {
   void ai_thread_exiting() { ai_threads_remaining--; Log::Debug["game"] << "ai_thread_exiting, " << ai_threads_remaining << " remain"; }
   void ai_thread_starting() { ai_threads_remaining++; Log::Debug["game"] << "ai_thread_starting, " << ai_threads_remaining << " started"; }
   unsigned int get_ai_thread_count() { return ai_threads_remaining; }
-  // used for viewport and maybe other funtions to get the ai object so they can fetch the ai_mark stuff for AI overlay for debugging
-  //void set_ai_ptr(unsigned int index, AI *ai) { ai_ptrs[index] = ai; }
-  //AI * get_ai_ptr(unsigned int index) { return ai_ptrs[index]; }
+  // options bitfield (bool settings)
+  AIPlusOptions get_aiplus_options() { return aiplus_options; }
+  void set_aiplus_option(AIPlusOption opt) { aiplus_options.set(opt); }
+  void unset_aiplus_option(AIPlusOption opt) { aiplus_options.reset(opt); }
+  bool test_aiplus_option(AIPlusOption opt) { return aiplus_options.test(opt); }
   // used by AI for many actions that risk vector invalidation and other non-threadsafe things
   std::mutex * get_mutex() { return &mutex; }
   // used by AI so only a single AI thread performs auto-saving, rather than all of theam each doing it
   std::mutex * get_autosave_mutex() { return &autosave_mutex; }
   // used by AI to check if game is paused
   unsigned int get_game_speed() const { return game_speed; }
-
-
 
   unsigned int get_tick() const { return tick; }
   unsigned int get_const_tick() const { return const_tick; }
