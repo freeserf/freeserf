@@ -653,11 +653,11 @@ Flag::can_demolish() const {
 // return true if a flag has any roads connected to it
 bool
 Flag::is_connected() const {
-	for (Direction d : cycle_directions_cw()) {
-		if (has_path(d))
-			return true;
-	}
-	return false;
+  for (Direction d : cycle_directions_cw()) {
+    if (has_path(d))
+      return true;
+  }
+  return false;
 }
 
 /* Find a transporter at pos and change it to state. */
@@ -933,7 +933,7 @@ send_serf_to_road_search_cb(Flag *flag, void *data) {
   if (flag->has_inventory()) {
     /* Inventory reached */
     Building *building = flag->get_building();
-	// got read access violation here first time dec13 2020:   'Unhandled exception thrown: read access violation. **this** was 0xFFFFFFFFFFFFFF77. occurred"
+  // got read access violation here first time dec13 2020:   'Unhandled exception thrown: read access violation. **this** was 0xFFFFFFFFFFFFFF77. occurred"
     Inventory *inventory = building->get_inventory();
     if (!road_data->water) {
       if (inventory->have_serf(Serf::TypeTransporter)) {
@@ -971,8 +971,8 @@ Flag::call_transporter(Direction dir, bool water) {
   // try just ignoring this if it happens?
   // I think this is happening every time... look into it
   if (src_2 == nullptr) {
-	  Log::Warn["flag"] << " Flag::call_transporter - nullptr found when doing Flag *src_2 = other_endpoint.f[dir], returning false  FIND OUT WHY!";
-	  return false;
+    Log::Warn["flag"] << " Flag::call_transporter - nullptr found when doing Flag *src_2 = other_endpoint.f[dir], returning false  FIND OUT WHY!";
+    return false;
   }
   src_2->search_dir = DirectionDownRight;
 
@@ -986,8 +986,8 @@ Flag::call_transporter(Direction dir, bool water) {
   search.execute(send_serf_to_road_search_cb, true, false, &data);
   Inventory *inventory = data.inventory;
   if (inventory == NULL) {
-	  // this happens if castle not built yet, changing from Warn to Verbose
-	  Log::Verbose["flag"] << " Flag::call_transporter - inventory is NULL, returning false - it could not find nearest inventory?";
+    // this happens if castle not built yet, changing from Warn to Verbose
+    Log::Verbose["flag"] << " Flag::call_transporter - inventory is NULL, returning false - it could not find nearest inventory?";
     return false;
   }
 

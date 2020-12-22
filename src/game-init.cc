@@ -300,16 +300,16 @@ GameInitBox::handle_action(int action) {
   Log::Debug["game-init"] << " inside GameInitBox::handle_action";
   switch (action) {
     case ActionStartGame: {
-		Log::Debug["game-init"] << " inside GameInitBox::handle_action, switch case is 'ActionStartGame'";
+    Log::Debug["game-init"] << " inside GameInitBox::handle_action, switch case is 'ActionStartGame'";
 
       if (game_type == GameLoad) {
         std::string path = file_list->get_selected();
-		Log::Debug["game-init"] << "starting game using load_game(" << path << ")";
+    Log::Debug["game-init"] << "starting game using load_game(" << path << ")";
         if (!GameManager::get_instance().load_game(path)) {
           return;
         }
       } else {
-		  Log::Debug["game-init"] << "starting game using start_game(mission)";
+      Log::Debug["game-init"] << "starting game using start_game(mission)";
         if (!GameManager::get_instance().start_game(mission)) {
           return;
         }
@@ -319,7 +319,7 @@ GameInitBox::handle_action(int action) {
       break;
     }
     case ActionToggleGameType:
-		Log::Debug["game-init"] << " inside GameInitBox::handle_action, switch case is 'ActionToggleGameType'";
+    Log::Debug["game-init"] << " inside GameInitBox::handle_action, switch case is 'ActionToggleGameType'";
       game_type++;
       if (game_type > GameLoad) {
         game_type = GameCustom;
@@ -348,14 +348,14 @@ GameInitBox::handle_action(int action) {
       }
       break;
     case ActionShowOptions: {
-		Log::Debug["game-init"] << " inside GameInitBox::handle_action, switch case is 'ActionShowOptions'";
+    Log::Debug["game-init"] << " inside GameInitBox::handle_action, switch case is 'ActionShowOptions'";
       if (interface) {
         interface->open_popup(PopupBox::TypeOptions);
       }
       break;
     }
     case ActionIncrement:
-		Log::Debug["game-init"] << " inside GameInitBox::handle_action, switch case is 'ActionIncrement'";
+    Log::Debug["game-init"] << " inside GameInitBox::handle_action, switch case is 'ActionIncrement'";
       switch (game_type) {
         case GameMission:
           game_mission = std::min(game_mission+1,
@@ -370,7 +370,7 @@ GameInitBox::handle_action(int action) {
       generate_map_preview();
       break;
     case ActionDecrement:
-		Log::Debug["game-init"] << " inside GameInitBox::handle_action, switch case is 'ActionDecrement'";
+    Log::Debug["game-init"] << " inside GameInitBox::handle_action, switch case is 'ActionDecrement'";
       switch (game_type) {
         case GameMission:
           game_mission = std::max(0, game_mission-1);
@@ -384,17 +384,17 @@ GameInitBox::handle_action(int action) {
       generate_map_preview();
       break;
     case ActionClose:
-		Log::Debug["game-init"] << " inside GameInitBox::handle_action, switch case is 'ActionClose'";
+    Log::Debug["game-init"] << " inside GameInitBox::handle_action, switch case is 'ActionClose'";
       interface->close_game_init();
       break;
     case ActionGenRandom: {
-		Log::Debug["game-init"] << " inside GameInitBox::handle_action, switch case is 'ActionGenRandom'";
+    Log::Debug["game-init"] << " inside GameInitBox::handle_action, switch case is 'ActionGenRandom'";
       random_input->set_random(Random());
       set_redraw();
       break;
     }
     case ActionApplyRandom: {
-		Log::Debug["game-init"] << " inside GameInitBox::handle_action, switch case is 'ActionApplyRandom'";
+    Log::Debug["game-init"] << " inside GameInitBox::handle_action, switch case is 'ActionApplyRandom'";
       std::string str = random_input->get_text();
       if (str.length() == 16) {
         custom_mission->set_random_base(random_input->get_random());
@@ -404,7 +404,7 @@ GameInitBox::handle_action(int action) {
       break;
     }
     default:
-	  Log::Debug["game-init"] << " inside GameInitBox::handle_action, switch case is 'default'";
+    Log::Debug["game-init"] << " inside GameInitBox::handle_action, switch case is 'default'";
       break;
   }
 }
@@ -526,23 +526,23 @@ GameInitBox::handle_player_click(unsigned int player_index, int cx, int cy) {
     player->set_character(get_next_character(player_index));
   } else if ((cx > 16 + 32) && (cy < 24)) {
     if (player_index >= mission->get_player_count()) {
-	  Log::Debug["mission"] << " inside GameInitBox::handle_player_click, calling mission->add_player(PLAYERINFO_SPECIFICS - hardcoded 0/{0/0/0}/20/20/20 - incomplete template??";
-	  // tlongstretch - set all AI players to default to full intelligence because the slider does nothing yet
-	  //   and also set full reproduction because low reproduction is confusing and the mechanism adds little to the game
+    Log::Debug["mission"] << " inside GameInitBox::handle_player_click, calling mission->add_player(PLAYERINFO_SPECIFICS - hardcoded 0/{0/0/0}/20/20/20 - incomplete template??";
+    // tlongstretch - set all AI players to default to full intelligence because the slider does nothing yet
+    //   and also set full reproduction because low reproduction is confusing and the mechanism adds little to the game
       //mission->add_player(0, {0, 0, 0}, 20, 20, 20);
-	  mission->add_player(0, { 0, 0, 0 }, 40, 20, 40);
+    mission->add_player(0, { 0, 0, 0 }, 40, 20, 40);
       player_index = static_cast<unsigned int>(mission->get_player_count() - 1);
       PPlayerInfo player = mission->get_player(player_index);
       player->set_character(get_next_character(player_index));
-	  // hack to work around missing color for players 2+
-	  Player::Color def_color[] = {
-	  {0x00, 0xe3, 0xe3},
-	  {0xcf, 0x63, 0x63},
-	  {0xdf, 0x7f, 0xef},
-	  {0xef, 0xef, 0x8f},
-	  {0x00, 0x00, 0x00}
-		  };
-	  player->set_color(def_color[player_index]);
+    // hack to work around missing color for players 2+
+    Player::Color def_color[] = {
+    {0x00, 0xe3, 0xe3},
+    {0xcf, 0x63, 0x63},
+    {0xdf, 0x7f, 0xef},
+    {0xef, 0xef, 0x8f},
+    {0x00, 0x00, 0x00}
+      };
+    player->set_color(def_color[player_index]);
     } else {
       if (player_index > 0) {
         mission->remove_player(player_index);
@@ -564,9 +564,9 @@ GameInitBox::handle_player_click(unsigned int player_index, int cx, int cy) {
         player->set_supplies(value);
       } else if (cx > 6 && cx < 12) {
         /* Intelligence */
-		// tlongstretch - disallow changing intelligence as it does nothing and this could be confusing to players
+    // tlongstretch - disallow changing intelligence as it does nothing and this could be confusing to players
         //player->set_intelligence(value);
-		play_sound(Audio::TypeSfxNotAccepted);
+    play_sound(Audio::TypeSfxNotAccepted);
       } else if (cx > 12 && cx < 18) {
         /* Reproduction */
         player->set_reproduction(value);

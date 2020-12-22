@@ -337,11 +337,11 @@ class Map {
   MapPos pos_add(MapPos pos, MapPos off) const {
     return geom_.pos_add(pos, off); }
   MapPos pos_add_spirally(MapPos pos_, unsigned int off) const {
-	if (off > 295) { Log::Error["map"] << "cannot use pos_add_spirally() beyond 295 positions (~10 shells)"; }
+  if (off > 295) { Log::Error["map"] << "cannot use pos_add_spirally() beyond 295 positions (~10 shells)"; }
     return pos_add(pos_, spiral_pos_pattern[off]); }
   MapPos pos_add_extended_spirally(MapPos pos_, unsigned int off) const {
-	if (off > 3268) { Log::Error["map"] << "cannot use pos_add_extended_spirally() beyond 3268 positions (~24 shells)"; }
-	return pos_add(pos_, extended_spiral_pos_pattern[off]);
+  if (off > 3268) { Log::Error["map"] << "cannot use pos_add_extended_spirally() beyond 3268 positions (~24 shells)"; }
+  return pos_add(pos_, extended_spiral_pos_pattern[off]);
   }
 
   // Shortest distance between map positions.
@@ -360,9 +360,9 @@ class Map {
 
   // make this part of the calling function
   static void next_extended_spiral_coord(int x, int y, std::vector<int> *vector) {
-	  vector->push_back(x);
-	  vector->push_back(y);
-	  //Log::Debug["map"] << "just added " << x << "," << y << ", vector now has " << vector->size() << " elements";
+    vector->push_back(x);
+    vector->push_back(y);
+    //Log::Debug["map"] << "just added " << x << "," << y << ", vector now has " << vector->size() << " elements";
   }
 
   MapPos move_right(MapPos pos) const { return geom_.move_right(pos); }
@@ -385,11 +385,11 @@ class Map {
     return (BIT_TEST(game_tiles[pos].paths, dir) != 0); }
   //tlongstretch - convenience function
   bool has_any_path(MapPos pos) {
-	  for (Direction d : cycle_directions_cw()) {
-		  if (has_path(pos, d))
-			  return true;
-	  }
-	  return false;
+    for (Direction d : cycle_directions_cw()) {
+      if (has_path(pos, d))
+        return true;
+    }
+    return false;
   }
   void add_path(MapPos pos, Direction dir) {
     game_tiles[pos].paths |= BIT(dir); }

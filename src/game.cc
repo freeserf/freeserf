@@ -237,9 +237,9 @@ Game::update_inventories() {
     for (Player *player : players) {
       Inventory *invs[256];
       int n = 0;
-	  Log::Verbose["game"] << "thread #" << std::this_thread::get_id() << " is locking mutex inside Game::update_inventories";
-	  mutex.lock();
-	  Log::Verbose["game"] << "thread #" << std::this_thread::get_id() << " has locked mutex inside Game::update_inventories";
+    Log::Verbose["game"] << "thread #" << std::this_thread::get_id() << " is locking mutex inside Game::update_inventories";
+    mutex.lock();
+    Log::Verbose["game"] << "thread #" << std::this_thread::get_id() << " has locked mutex inside Game::update_inventories";
       for (Inventory *inventory : inventories) {
         if (inventory->get_owner() == player->get_index() &&
             !inventory->is_queue_full()) {
@@ -272,9 +272,9 @@ Game::update_inventories() {
         }
       }
 
-	  Log::Verbose["game"] << "thread #" << std::this_thread::get_id() << " is unlocking mutex inside Game::update_inventories";
-	  mutex.unlock();
-	  Log::Verbose["game"] << "thread #" << std::this_thread::get_id() << " has unlocked mutex inside Game::update_inventories";
+    Log::Verbose["game"] << "thread #" << std::this_thread::get_id() << " is unlocking mutex inside Game::update_inventories";
+    mutex.unlock();
+    Log::Verbose["game"] << "thread #" << std::this_thread::get_id() << " has unlocked mutex inside Game::update_inventories";
 
       if (n == 0) continue;
 
@@ -330,32 +330,32 @@ Game::update_flags() {
   // again   dec10 2020
   /* this is the original function
   for (Flag *flag : flags) {
-	Log::Verbose["game"] << "calling flag->update for flag with index " << flag->get_index();
+  Log::Verbose["game"] << "calling flag->update for flag with index " << flag->get_index();
     flag->update();
-	Log::Verbose["game"] << "done flag->update for flag with index " << flag->get_index();
+  Log::Verbose["game"] << "done flag->update for flag with index " << flag->get_index();
   }
   */
   // trying replacement with p1plp1 way
   Flags::Iterator i = flags.begin();
   Flags::Iterator prev = flags.begin();
   while (i != flags.end()) {
-	  prev = i;
-	  Flag *flag = *i;
-	  if (flag != NULL) {
-		  if (flag->get_index() != 0) {
-			  flag->update();
-			  if (flag == NULL)
-				  Log::Debug["game"] << "Game::update_flags, flag is NULL after update";
-		  }
-	  }
-	  if (flag == NULL) {
-		  Log::Debug["game"] << "Game::update_flags, flag is NULL so set i=prev";
-		  i = prev;
-	  }
-	  else {
-		  if (i != flags.end())
-			  ++i;
-	  }
+    prev = i;
+    Flag *flag = *i;
+    if (flag != NULL) {
+      if (flag->get_index() != 0) {
+        flag->update();
+        if (flag == NULL)
+          Log::Debug["game"] << "Game::update_flags, flag is NULL after update";
+      }
+    }
+    if (flag == NULL) {
+      Log::Debug["game"] << "Game::update_flags, flag is NULL so set i=prev";
+      i = prev;
+    }
+    else {
+      if (i != flags.end())
+        ++i;
+    }
   }
   Log::Verbose["game"] << "thread #" << std::this_thread::get_id() << " is unlocking mutex for Game::update_flags";
   mutex.unlock();
@@ -458,7 +458,7 @@ Game::send_serf_to_flag(Flag *dest, Serf::Type type, Resource::Type res1,
   Log::Verbose["game"] << " inside Game::send_serf_to_flag";
   Building *building = NULL;
   if (dest->has_building()) {
-	Log::Verbose["game"] << " inside Game::send_serf_to_flag, found dest building";
+  Log::Verbose["game"] << " inside Game::send_serf_to_flag, found dest building";
     building = dest->get_building();
   }
 
@@ -482,16 +482,16 @@ Game::send_serf_to_flag(Flag *dest, Serf::Type type, Resource::Type res1,
   Log::Verbose["game"] << " inside Game::send_serf_to_flag, done send_serf_to_flag_search";
 
   if (!r) {
-	Log::Verbose["game"] << " inside Game::send_serf_to_flag, send_serf_to_flag_search returned false";
+  Log::Verbose["game"] << " inside Game::send_serf_to_flag, send_serf_to_flag_search returned false";
     return false;
   } else if (data.inventory != NULL) {
-	Log::Verbose["game"] << " inside Game::send_serf_to_flag, send_serf_to_flag_search returned true and data.inventory found";
+  Log::Verbose["game"] << " inside Game::send_serf_to_flag, send_serf_to_flag_search returned true and data.inventory found";
     Inventory *inventory = data.inventory;
-	Log::Verbose["game"] << " inside Game::send_serf_to_flag, send_serf_to_flag_search returned true and data.inventory found, calling out serf";
+  Log::Verbose["game"] << " inside Game::send_serf_to_flag, send_serf_to_flag_search returned true and data.inventory found, calling out serf";
     Serf *serf = inventory->call_out_serf(Serf::TypeGeneric);
 
     if ((type < 0) && (building != NULL)) {
-	  Log::Verbose["game"] << " inside Game::send_serf_to_flag, a knight was called out";
+    Log::Verbose["game"] << " inside Game::send_serf_to_flag, a knight was called out";
       /* Knight */
       building->knight_request_granted();
 
@@ -507,25 +507,25 @@ Game::send_serf_to_flag(Flag *dest, Serf::Type type, Resource::Type res1,
       int mode = 0;
 
       if (type == Serf::TypeGeologist) {
-		Log::Verbose["game"] << " inside Game::send_serf_to_flag, a geologists was called out";
+    Log::Verbose["game"] << " inside Game::send_serf_to_flag, a geologists was called out";
         mode = 6;
       } else {
-		Log::Verbose["game"] << " inside Game::send_serf_to_flag, some other serf type was called out";
+    Log::Verbose["game"] << " inside Game::send_serf_to_flag, some other serf type was called out";
         if (building == NULL) {
-	      Log::Warn["game"] << " inside Game::send_serf_to_flag, some other serf type was called out, but building is NULL! returning false";
+        Log::Warn["game"] << " inside Game::send_serf_to_flag, some other serf type was called out, but building is NULL! returning false";
           return false;
         }
         building->serf_request_granted();
         mode = -1;
       }
-	  Log::Verbose["game"] << " inside Game::send_serf_to_flag, calling serf->go_out_from_inventory";
+    Log::Verbose["game"] << " inside Game::send_serf_to_flag, calling serf->go_out_from_inventory";
       serf->go_out_from_inventory(inventory->get_index(), dest->get_index(),
                                   mode);
 
       if (res1 != Resource::TypeNone) inventory->pop_resource(res1);
       if (res2 != Resource::TypeNone) inventory->pop_resource(res2);
     }
-	Log::Verbose["game"] << " inside Game::send_serf_to_flag, done, returning true 1";
+  Log::Verbose["game"] << " inside Game::send_serf_to_flag, done, returning true 1";
     return true;
   }
   Log::Verbose["game"] << " inside Game::send_serf_to_flag, done, returning true 2";
@@ -575,16 +575,16 @@ Game::update_serfs() {
       if (serf->get_index() != 0) {
         //here it crashes? on dead on delete flag building etc
         serf->update();
-		if (serf == NULL) {
-			Log::Debug["game"] << "Game::update_serfs, serf is NULL after update";
-		}
-		//tlongstretch
-		//else if (serf->get_type() == Serf::TypeDead) {
-		else if (serf->is_marked_for_deletion()) {
-			// this is a test fix for https://github.com/tlongstretch/freeserf-with-AI-plus/issues/27
-			//  this likely will cause serfs that are still playing their dying animation to disappear!
-			delete_serf(serf);
-		}
+    if (serf == NULL) {
+      Log::Debug["game"] << "Game::update_serfs, serf is NULL after update";
+    }
+    //tlongstretch
+    //else if (serf->get_type() == Serf::TypeDead) {
+    else if (serf->is_marked_for_deletion()) {
+      // this is a test fix for https://github.com/tlongstretch/freeserf-with-AI-plus/issues/27
+      //  this likely will cause serfs that are still playing their dying animation to disappear!
+      delete_serf(serf);
+    }
       }
     }
     if (serf == NULL) {
@@ -1047,12 +1047,12 @@ Game::remove_road_forwards(MapPos pos, Direction dir) {
 
     if (map->has_serf(pos)) {
       Serf *serf = get_serf_at_pos(pos);
-	  // trying skip if nullptr...
-		//   THIS LIKELY INTRODUCES NEW PROBLEMS AS A RESULT OF THE FOLLOWING ACTIONS NOT HAPPENING!
-	  if (serf == nullptr) {
-		  Log::Warn["serf"] << " inside Serf::remove_road_forwards - Serf *serf is nullptr!, skipping it.  This is normally a crash bug";
-		  continue;
-	  }
+    // trying skip if nullptr...
+    //   THIS LIKELY INTRODUCES NEW PROBLEMS AS A RESULT OF THE FOLLOWING ACTIONS NOT HAPPENING!
+    if (serf == nullptr) {
+      Log::Warn["serf"] << " inside Serf::remove_road_forwards - Serf *serf is nullptr!, skipping it.  This is normally a crash bug";
+      continue;
+    }
       if (!map->has_flag(pos)) {
         serf->set_lost_state();
       } else {
@@ -1651,7 +1651,7 @@ Game::build_castle(MapPos pos, Player *player) {
   map->set_height_no_refresh(pos, h);
   for (Direction d : cycle_directions_cw()) {
     //map->set_height(map->move(pos, d), h);
-	map->set_height_no_refresh(map->move(pos, d), h);
+  map->set_height_no_refresh(map->move(pos, d), h);
   }
 
   update_land_ownership(pos);
@@ -1821,9 +1821,9 @@ Game::surrender_land(MapPos pos) {
 /* Initialize land ownership for whole map. */
 void
 Game::init_land_ownership() {
-	Log::Verbose["game"] << "thread #" << std::this_thread::get_id() << " is locking mutex inside Game::init_land_ownership";
-	mutex.lock();
-	Log::Verbose["game"] << "thread #" << std::this_thread::get_id() << " is locking mutex inside Game::init_land_ownership";
+  Log::Verbose["game"] << "thread #" << std::this_thread::get_id() << " is locking mutex inside Game::init_land_ownership";
+  mutex.lock();
+  Log::Verbose["game"] << "thread #" << std::this_thread::get_id() << " is locking mutex inside Game::init_land_ownership";
   for (Building *building : buildings) {
     if (building->is_military()) {
       update_land_ownership(building->get_position());
@@ -2076,15 +2076,15 @@ Game::set_inventory_resource_mode(Inventory *inventory, int mode) {
     /* Clear destination of serfs with resources destined
        for this inventory. */
     int dest = flag->get_index();
-	Log::Verbose["game"] << "thread #" << std::this_thread::get_id() << " is locking mutex inside Game::set_inventory_resource_mode";
-	mutex.lock();
-	Log::Verbose["game"] << "thread #" << std::this_thread::get_id() << " is locking mutex inside Game::set_inventory_resource_mode";
+  Log::Verbose["game"] << "thread #" << std::this_thread::get_id() << " is locking mutex inside Game::set_inventory_resource_mode";
+  mutex.lock();
+  Log::Verbose["game"] << "thread #" << std::this_thread::get_id() << " is locking mutex inside Game::set_inventory_resource_mode";
     for (Serf *serf : serfs) {
       serf->clear_destination2(dest);
     }
-	Log::Verbose["game"] << "thread #" << std::this_thread::get_id() << " is locking mutex inside Game::set_inventory_resource_mode";
-	mutex.unlock();
-	Log::Verbose["game"] << "thread #" << std::this_thread::get_id() << " is locking mutex inside Game::set_inventory_resource_mode";
+  Log::Verbose["game"] << "thread #" << std::this_thread::get_id() << " is locking mutex inside Game::set_inventory_resource_mode";
+  mutex.unlock();
+  Log::Verbose["game"] << "thread #" << std::this_thread::get_id() << " is locking mutex inside Game::set_inventory_resource_mode";
   } else {
     flag->set_accepts_resources(true);
   }
@@ -2108,15 +2108,15 @@ Game::set_inventory_serf_mode(Inventory *inventory, int mode) {
 
     /* Clear destination of serfs destined for this inventory. */
     int dest = flag->get_index();
-	Log::Verbose["game"] << "thread #" << std::this_thread::get_id() << " is locking mutex inside Game::set_inventory_serf_mode";
-	mutex.lock();
-	Log::Verbose["game"] << "thread #" << std::this_thread::get_id() << " is locking mutex inside Game::set_inventory_serf_mode";
+  Log::Verbose["game"] << "thread #" << std::this_thread::get_id() << " is locking mutex inside Game::set_inventory_serf_mode";
+  mutex.lock();
+  Log::Verbose["game"] << "thread #" << std::this_thread::get_id() << " is locking mutex inside Game::set_inventory_serf_mode";
     for (Serf *serf : serfs) {
       serf->clear_destination(dest);
     }
-	Log::Verbose["game"] << "thread #" << std::this_thread::get_id() << " is locking mutex inside Game::set_inventory_serf_mode";
-	mutex.unlock();
-	Log::Verbose["game"] << "thread #" << std::this_thread::get_id() << " is locking mutex inside Game::set_inventory_serf_mode";
+  Log::Verbose["game"] << "thread #" << std::this_thread::get_id() << " is locking mutex inside Game::set_inventory_serf_mode";
+  mutex.unlock();
+  Log::Verbose["game"] << "thread #" << std::this_thread::get_id() << " is locking mutex inside Game::set_inventory_serf_mode";
   } else {
     flag->set_accepts_serfs(true);
   }
@@ -2327,7 +2327,7 @@ Game::get_serfs_related_to(unsigned int dest, Direction dir) {
 
 Player *
 Game::get_next_player(const Player *player) {
-	Log::Debug["game"] << " inside Game::get_next_player";
+  Log::Debug["game"] << " inside Game::get_next_player";
   auto p = players.begin();
   while (*p != player) {
     ++p;

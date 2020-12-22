@@ -285,24 +285,24 @@ Building::cancel_transported_resource(Resource::Type res) {
     }
   }
   if ((in_stock < 0) && (res == Resource::TypeFish || res == Resource::TypeMeat || res == Resource::TypeBread)) {
-	Log::Debug["building"] << "Building::cancel_transported_resource fixing food " << res;
-	for (int i = 0; i < kMaxStock; i++) {
-	  if ((stock[i].type == Resource::TypeFish && stock[i].requested > 0) ||
+  Log::Debug["building"] << "Building::cancel_transported_resource fixing food " << res;
+  for (int i = 0; i < kMaxStock; i++) {
+    if ((stock[i].type == Resource::TypeFish && stock[i].requested > 0) ||
           (stock[i].type == Resource::TypeMeat && stock[i].requested > 0) ||
-	      (stock[i].type == Resource::TypeBread && stock[i].requested > 0)) {
+        (stock[i].type == Resource::TypeBread && stock[i].requested > 0)) {
         in_stock = i;
         break;
-	  }
+    }
     }
   }
   if (in_stock >= 0) {
-	if (stock[in_stock].requested > 0) {
-	  Log::Debug["building"] << "cancel_transported_resource - stock[in_stock].requested - 1";
+  if (stock[in_stock].requested > 0) {
+    Log::Debug["building"] << "cancel_transported_resource - stock[in_stock].requested - 1";
       stock[in_stock].requested -= 1;
-	}
+  }
     if (stock[in_stock].requested < 0) {
-		//p1plp1_food_type_unrequested_resource_fix
-	  Log::Debug["building"] << "cancel_transported_resource - Failed to cancel unrequested resource delivery" << res << " stock index " << in_stock << " requested " << stock[in_stock].requested;
+    //p1plp1_food_type_unrequested_resource_fix
+    Log::Debug["building"] << "cancel_transported_resource - Failed to cancel unrequested resource delivery" << res << " stock index " << in_stock << " requested " << stock[in_stock].requested;
       throw ExceptionFreeserf("Failed to cancel unrequested resource delivery.");
     }
   }
@@ -1137,10 +1137,10 @@ Building::update_castle() {
   MapPos flag_pos = map->move_down_right(pos);
   if (map->has_serf(flag_pos)) {
     Serf *serf = game->get_serf_at_pos(flag_pos);
-	// trying skip if nullptr...
-	if (serf == nullptr) {
-	  Log::Warn["building"] << " inside Building::update_castle - Serf *serf is nullptr!, skipping it.  This is normally a crash bug";
-	}else if (serf->get_pos() != flag_pos) {
+  // trying skip if nullptr...
+  if (serf == nullptr) {
+    Log::Warn["building"] << " inside Building::update_castle - Serf *serf is nullptr!, skipping it.  This is normally a crash bug";
+  }else if (serf->get_pos() != flag_pos) {
       map->set_serf_index(flag_pos, 0);
     }
   }

@@ -575,7 +575,7 @@ Serf::building_deleted(MapPos building_pos, bool escape) {
       /* Kill this serf. */
       set_type(TypeDead);
       //game->delete_serf(this);
-	  deleteme = true;
+    deleteme = true;
     }
     return true;
   }
@@ -979,9 +979,9 @@ Serf::change_direction(Direction dir, int alt_end) {
     Serf *other_serf = game->get_serf_at_pos(new_pos);
     Direction other_dir;
 
-	//tlongstretch avoid nullptr
+  //tlongstretch avoid nullptr
     //if (other_serf->is_waiting(&other_dir) &&
-	if (other_serf != nullptr && other_serf->is_waiting(&other_dir) &&
+  if (other_serf != nullptr && other_serf->is_waiting(&other_dir) &&
         (other_dir == reverse_direction(dir) || other_dir == DirectionNone) &&
         other_serf->switch_waiting(reverse_direction(dir))) {
       /* Do the switch */
@@ -1151,7 +1151,7 @@ Serf::handle_serf_walking_state_dest_reached() {
     Direction dir = (Direction)s.walking.dir1;
     Flag *other_flag = flag->get_other_end_flag(dir);
     if (other_flag == nullptr) {
-		// got this exception dec10 2020
+    // got this exception dec10 2020
       throw ExceptionFreeserf("Path has no other end flag in selected dir.");
     }
     Direction other_dir = flag->get_other_end_dir(dir);
@@ -4524,15 +4524,15 @@ Serf::handle_serf_knight_attacking_victory_state() {
   def_serf->counter -= delta;
 
   if (def_serf->counter < 0) {
-	// maybe this doesn't need mutex after all
-	//Log::Verbose["game"] << "thread #" << std::this_thread::get_id() << " is locking mutex for Game::delete_serf() (handle_serf_knight_attacking_victory_state)";
-	//game->get_mutex()->lock();
-	//Log::Verbose["game"] << "thread #" << std::this_thread::get_id() << " has locked mutex for Game::delete_serf() (handle_serf_knight_attacking_victory_state)";
-	def_serf->mark_for_deletion();
-	//game->delete_serf(def_serf);
-	//Log::Verbose["game"] << "thread #" << std::this_thread::get_id() << " is unlocking mutex for Game::delete_serf() (handle_serf_knight_attacking_victory_state)";
-	//game->get_mutex()->unlock();
-	//Log::Verbose["game"] << "thread #" << std::this_thread::get_id() << " has unlocked mutex for Game::delete_serf() (handle_serf_knight_attacking_victory_state)";
+  // maybe this doesn't need mutex after all
+  //Log::Verbose["game"] << "thread #" << std::this_thread::get_id() << " is locking mutex for Game::delete_serf() (handle_serf_knight_attacking_victory_state)";
+  //game->get_mutex()->lock();
+  //Log::Verbose["game"] << "thread #" << std::this_thread::get_id() << " has locked mutex for Game::delete_serf() (handle_serf_knight_attacking_victory_state)";
+  def_serf->mark_for_deletion();
+  //game->delete_serf(def_serf);
+  //Log::Verbose["game"] << "thread #" << std::this_thread::get_id() << " is unlocking mutex for Game::delete_serf() (handle_serf_knight_attacking_victory_state)";
+  //game->get_mutex()->unlock();
+  //Log::Verbose["game"] << "thread #" << std::this_thread::get_id() << " has unlocked mutex for Game::delete_serf() (handle_serf_knight_attacking_victory_state)";
     s.attacking.def_index = 0;
 
     set_state(StateKnightEngagingBuilding);
@@ -4549,15 +4549,15 @@ Serf::handle_serf_knight_attacking_defeat_state() {
 
   if (counter < 0) {
     game->get_map()->set_serf_index(pos, 0);
-	// maybe don't need mutex after all
-	//Log::Verbose["game"] << "thread #" << std::this_thread::get_id() << " is locking mutex for Game::delete_serf() (handle_serf_knight_attacking_defeat_state)";
-	//game->get_mutex()->lock();
-	//Log::Verbose["game"] << "thread #" << std::this_thread::get_id() << " has locked mutex for Game::delete_serf() (handle_serf_knight_attacking_defeat_state)";
-	//game->delete_serf(this);
-	deleteme = true;
-	//Log::Verbose["game"] << "thread #" << std::this_thread::get_id() << " is unlocking mutex for Game::delete_serf() (handle_serf_knight_attacking_defeat_state)";
-	//game->get_mutex()->unlock();
-	//Log::Verbose["game"] << "thread #" << std::this_thread::get_id() << " has unlocked mutex for Game::delete_serf() (handle_serf_knight_attacking_defeat_state)";
+  // maybe don't need mutex after all
+  //Log::Verbose["game"] << "thread #" << std::this_thread::get_id() << " is locking mutex for Game::delete_serf() (handle_serf_knight_attacking_defeat_state)";
+  //game->get_mutex()->lock();
+  //Log::Verbose["game"] << "thread #" << std::this_thread::get_id() << " has locked mutex for Game::delete_serf() (handle_serf_knight_attacking_defeat_state)";
+  //game->delete_serf(this);
+  deleteme = true;
+  //Log::Verbose["game"] << "thread #" << std::this_thread::get_id() << " is unlocking mutex for Game::delete_serf() (handle_serf_knight_attacking_defeat_state)";
+  //game->get_mutex()->unlock();
+  //Log::Verbose["game"] << "thread #" << std::this_thread::get_id() << " has unlocked mutex for Game::delete_serf() (handle_serf_knight_attacking_defeat_state)";
   }
 }
 
@@ -4629,14 +4629,14 @@ Serf::handle_state_knight_free_walking() {
 
       if (map->has_serf(pos_)) {
         Serf *other = game->get_serf_at_pos(pos_);
-		//got a nullptr execption on serf->get_owner() for first time here  dec10 2020
-		// again dec12 2020
-		// trying skip if nullptr...
-		//   THIS LIKELY INTRODUCES NEW PROBLEMS AS A RESULT OF THE FOLLOWING ACTIONS NOT HAPPENING!
-		if (other == nullptr) {
-			Log::Warn["serf"] << " inside Serf::handle_state_knight_free_walking - Serf *other is nullptr!, skipping it.  This is normally a crash bug";
-			continue;
-		}
+    //got a nullptr execption on serf->get_owner() for first time here  dec10 2020
+    // again dec12 2020
+    // trying skip if nullptr...
+    //   THIS LIKELY INTRODUCES NEW PROBLEMS AS A RESULT OF THE FOLLOWING ACTIONS NOT HAPPENING!
+    if (other == nullptr) {
+      Log::Warn["serf"] << " inside Serf::handle_state_knight_free_walking - Serf *other is nullptr!, skipping it.  This is normally a crash bug";
+      continue;
+    }
         if (get_owner() != other->get_owner()) {
           if (other->state == StateKnightFreeWalking) {
             pos = map->move_left(pos_);
@@ -4676,16 +4676,16 @@ Serf::handle_state_knight_free_walking() {
 
               Flag *dest = game->get_flag(other->s.walking.dest);
               Building *building = dest->get_building();
-			  // trying skip if nullptr...
-			  if (building == nullptr) {
-				Log::Warn["serf"] << " inside Serf::handle_state_knight_free_walking - Building *building is nullptr!, skipping it.  This is normally a crash bug";
-				continue;
-			  }
-			  else {
-				if (!building->has_inventory()) {
-				  building->requested_knight_attacking_on_walk();
-				}
-			  }
+        // trying skip if nullptr...
+        if (building == nullptr) {
+        Log::Warn["serf"] << " inside Serf::handle_state_knight_free_walking - Building *building is nullptr!, skipping it.  This is normally a crash bug";
+        continue;
+        }
+        else {
+        if (!building->has_inventory()) {
+          building->requested_knight_attacking_on_walk();
+        }
+        }
 
               set_other_state(other, StateKnightEngageAttackingFree);
               other->s.attacking.field_D = d;
@@ -4793,15 +4793,15 @@ Serf::handle_knight_attacking_victory_free() {
   other->counter -= delta;
 
   if (other->counter < 0) {
-	// maybe don't need mutex after all
-	//Log::Verbose["game"] << "thread #" << std::this_thread::get_id() << " is locking mutex for Game::delete_serf() (handle_knight_attacking_victory_free)";
-	//game->get_mutex()->lock();
-	//Log::Verbose["game"] << "thread #" << std::this_thread::get_id() << " has locked mutex for Game::delete_serf() (handle_knight_attacking_victory_free)";
-	//game->delete_serf(other);
-	other->mark_for_deletion();
-	//Log::Verbose["game"] << "thread #" << std::this_thread::get_id() << " is unlocking mutex for Game::delete_serf() (handle_knight_attacking_victory_free)";
-	//game->get_mutex()->unlock();
-	//Log::Verbose["game"] << "thread #" << std::this_thread::get_id() << " has unlocked mutex for Game::delete_serf() (handle_knight_attacking_victory_free)";
+  // maybe don't need mutex after all
+  //Log::Verbose["game"] << "thread #" << std::this_thread::get_id() << " is locking mutex for Game::delete_serf() (handle_knight_attacking_victory_free)";
+  //game->get_mutex()->lock();
+  //Log::Verbose["game"] << "thread #" << std::this_thread::get_id() << " has locked mutex for Game::delete_serf() (handle_knight_attacking_victory_free)";
+  //game->delete_serf(other);
+  other->mark_for_deletion();
+  //Log::Verbose["game"] << "thread #" << std::this_thread::get_id() << " is unlocking mutex for Game::delete_serf() (handle_knight_attacking_victory_free)";
+  //game->get_mutex()->unlock();
+  //Log::Verbose["game"] << "thread #" << std::this_thread::get_id() << " has unlocked mutex for Game::delete_serf() (handle_knight_attacking_victory_free)";
 
     int dist_col = s.attacking_victory_free.dist_col;
     int dist_row = s.attacking_victory_free.dist_row;
@@ -4856,16 +4856,16 @@ Serf::handle_serf_knight_attacking_defeat_free_state() {
     other->tick = game->get_tick();
 
     /* Remove itself. */
-	// maybe don't need mutex after all
+  // maybe don't need mutex after all
     //game->get_map()->set_serf_index(pos, other->index);
-	//Log::Verbose["game"] << "thread #" << std::this_thread::get_id() << " is locking mutex for Game::delete_serf() (handle_serf_knight_attacking_defeat_free_state)";
-	//game->get_mutex()->lock();
-	//Log::Verbose["game"] << "thread #" << std::this_thread::get_id() << " has locked mutex for Game::delete_serf() (handle_serf_knight_attacking_defeat_free_state)";
-	//game->delete_serf(this);
-	deleteme = true;
-	//Log::Verbose["game"] << "thread #" << std::this_thread::get_id() << " is unlocking mutex for Game::delete_serf() (handle_serf_knight_attacking_defeat_free_state)";
-	//game->get_mutex()->unlock();
-	//Log::Verbose["game"] << "thread #" << std::this_thread::get_id() << " has unlocked mutex for Game::delete_serf() (handle_serf_knight_attacking_defeat_free_state)";
+  //Log::Verbose["game"] << "thread #" << std::this_thread::get_id() << " is locking mutex for Game::delete_serf() (handle_serf_knight_attacking_defeat_free_state)";
+  //game->get_mutex()->lock();
+  //Log::Verbose["game"] << "thread #" << std::this_thread::get_id() << " has locked mutex for Game::delete_serf() (handle_serf_knight_attacking_defeat_free_state)";
+  //game->delete_serf(this);
+  deleteme = true;
+  //Log::Verbose["game"] << "thread #" << std::this_thread::get_id() << " is unlocking mutex for Game::delete_serf() (handle_serf_knight_attacking_defeat_free_state)";
+  //game->get_mutex()->unlock();
+  //Log::Verbose["game"] << "thread #" << std::this_thread::get_id() << " has unlocked mutex for Game::delete_serf() (handle_serf_knight_attacking_defeat_free_state)";
   }
 }
 

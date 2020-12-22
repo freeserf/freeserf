@@ -133,48 +133,48 @@ static int spiral_pattern_initialized = 0;
 /* Initialize the global spiral_pattern. */
 static void
 init_spiral_pattern() {
-	if (spiral_pattern_initialized) {
-		return;
-	}
+  if (spiral_pattern_initialized) {
+    return;
+  }
 
-	static const int spiral_matrix[] = {
-	  1,  0,  0,  1,
-	  1,  1, -1,  0,
-	  0,  1, -1, -1,
-	  -1,  0,  0, -1,
-	  -1, -1,  1,  0,
-	  0, -1,  1,  1
-	};
+  static const int spiral_matrix[] = {
+    1,  0,  0,  1,
+    1,  1, -1,  0,
+    0,  1, -1, -1,
+    -1,  0,  0, -1,
+    -1, -1,  1,  0,
+    0, -1,  1,  1
+  };
 
-	for (int i = 0; i < 49; i++) {
-		int x = spiral_pattern[2 + 12 * i];
-		int y = spiral_pattern[2 + 12 * i + 1];
+  for (int i = 0; i < 49; i++) {
+    int x = spiral_pattern[2 + 12 * i];
+    int y = spiral_pattern[2 + 12 * i + 1];
 
-		for (int j = 0; j < 6; j++) {
-			spiral_pattern[2 + 12 * i + 2 * j] = x * spiral_matrix[4 * j + 0] +
-				y * spiral_matrix[4 * j + 2];
-			spiral_pattern[2 + 12 * i + 2 * j + 1] = x * spiral_matrix[4 * j + 1] +
-				y * spiral_matrix[4 * j + 3];
-		}
-	}
-	spiral_pattern_initialized = 1;
+    for (int j = 0; j < 6; j++) {
+      spiral_pattern[2 + 12 * i + 2 * j] = x * spiral_matrix[4 * j + 0] +
+        y * spiral_matrix[4 * j + 2];
+      spiral_pattern[2 + 12 * i + 2 * j + 1] = x * spiral_matrix[4 * j + 1] +
+        y * spiral_matrix[4 * j + 3];
+    }
+  }
+  spiral_pattern_initialized = 1;
 
-	/*
-	// dump the pattern to help understand it
-	Log::Debug["map"] << "spiral pattern: ";
-	Log::Debug["map"] << "0, 0";
-	for (int x = 0; x < 49; x++) {
-		std::string row;
-		for (int y = 0; y < 12; y++) {
-			int val = spiral_pattern[2 + (12 * x) + y];
-			row.append(std::to_string(val) + ",");
-		}
-		Log::Debug["map"] << row;
-	}
-	exit(1);
-	*/
+  /*
+  // dump the pattern to help understand it
+  Log::Debug["map"] << "spiral pattern: ";
+  Log::Debug["map"] << "0, 0";
+  for (int x = 0; x < 49; x++) {
+    std::string row;
+    for (int y = 0; y < 12; y++) {
+      int val = spiral_pattern[2 + (12 * x) + y];
+      row.append(std::to_string(val) + ",");
+    }
+    Log::Debug["map"] << row;
+  }
+  exit(1);
+  */
 
-	/* here it is:
+  /* here it is:
   Debug: [map] spiral pattern:
   Debug: [map] 0, 0
   Debug: [map] 1,0,1,1,0,1,-1,0,-1,-1,0,-1,
@@ -231,7 +231,7 @@ init_spiral_pattern() {
 
 int *
 Map::get_spiral_pattern() {
-	return spiral_pattern;
+  return spiral_pattern;
 }
 
 
@@ -243,60 +243,60 @@ static int extended_spiral_pattern_initialized = 0;
 
 static void
 init_extended_spiral_pattern() {
-	if (extended_spiral_pattern_initialized) {
-		return;
-	}
-	int x = 0;
-	int y = 0;
-	Map::next_extended_spiral_coord(x, y, &extended_spiral_coord_vector); // add the center pos coords
-	for (int shells = 1; shells < 24; ++shells) {
-		//Log::Debug["map"] << "inside loop, shells=" << shells;
-		for (int i = 0; i < shells; ++i) { Map::next_extended_spiral_coord(++x, y, &extended_spiral_coord_vector); } // RIGHT
-		for (int i = 0; i < shells - 1; ++i) { Map::next_extended_spiral_coord(x, --y, &extended_spiral_coord_vector); } // DOWN
-		for (int i = 0; i < shells; ++i) { Map::next_extended_spiral_coord(--x, --y, &extended_spiral_coord_vector); } // DOWN-LEFT
-		for (int i = 0; i < shells; ++i) { Map::next_extended_spiral_coord(--x, y, &extended_spiral_coord_vector); } // LEFT
-		for (int i = 0; i < shells; ++i) { Map::next_extended_spiral_coord(x, ++y, &extended_spiral_coord_vector); } // UP
-		for (int i = 0; i < shells; ++i) { Map::next_extended_spiral_coord(++x, ++y, &extended_spiral_coord_vector); } // UP-RIGHT
-	}
-	std::copy(extended_spiral_coord_vector.begin(), extended_spiral_coord_vector.end(), extended_spiral_pattern);
-	/*
-	Log::Debug["map"] << "new extended spiral pattern: ";
-	Log::Debug["map"] << "0, 0";
-	for (int x = 0; x < 272; x++) {
-		std::string row;
-		for (int y = 0; y < 12; y++) {
-			int val = extended_spiral_pattern[2 + (12 * x) + y];
-			row.append(std::to_string(val) + ",");
-		}
-		Log::Debug["map"] << row;
-	}
-	exit(1);
-	*/
+  if (extended_spiral_pattern_initialized) {
+    return;
+  }
+  int x = 0;
+  int y = 0;
+  Map::next_extended_spiral_coord(x, y, &extended_spiral_coord_vector); // add the center pos coords
+  for (int shells = 1; shells < 24; ++shells) {
+    //Log::Debug["map"] << "inside loop, shells=" << shells;
+    for (int i = 0; i < shells; ++i) { Map::next_extended_spiral_coord(++x, y, &extended_spiral_coord_vector); } // RIGHT
+    for (int i = 0; i < shells - 1; ++i) { Map::next_extended_spiral_coord(x, --y, &extended_spiral_coord_vector); } // DOWN
+    for (int i = 0; i < shells; ++i) { Map::next_extended_spiral_coord(--x, --y, &extended_spiral_coord_vector); } // DOWN-LEFT
+    for (int i = 0; i < shells; ++i) { Map::next_extended_spiral_coord(--x, y, &extended_spiral_coord_vector); } // LEFT
+    for (int i = 0; i < shells; ++i) { Map::next_extended_spiral_coord(x, ++y, &extended_spiral_coord_vector); } // UP
+    for (int i = 0; i < shells; ++i) { Map::next_extended_spiral_coord(++x, ++y, &extended_spiral_coord_vector); } // UP-RIGHT
+  }
+  std::copy(extended_spiral_coord_vector.begin(), extended_spiral_coord_vector.end(), extended_spiral_pattern);
+  /*
+  Log::Debug["map"] << "new extended spiral pattern: ";
+  Log::Debug["map"] << "0, 0";
+  for (int x = 0; x < 272; x++) {
+    std::string row;
+    for (int y = 0; y < 12; y++) {
+      int val = extended_spiral_pattern[2 + (12 * x) + y];
+      row.append(std::to_string(val) + ",");
+    }
+    Log::Debug["map"] << row;
+  }
+  exit(1);
+  */
 
-	// best explanation of original spiral_pattern method...
-	//  an example, for this row #49
-	//
-	// 24, 16, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-	// i = 49  # row id
-	// x = 24  # 1st hardcoded value
-	// y = 16  # 2nd hardcoded value
-	// if j=0...
-	//  12*i = 588
-	//  2 + 588 + 0     (2*0 = 0 = j)
-	//  or, 1st hardcoded value of 49th row
-	//     is overwritten to the value 24*(pos/neg/zero?) + 16*(pos/neg/zero?)
-	//  and 2nd hardcoded value of 49th row
-	//     is overwritten to the value 24*(pos/neg/zero?) + 16*(pos/neg/zero?) also, but with different -1/1/0
-	// then as j=1,2,3..., the next pairs of values in same row are set to same pattern,
-	//     only change is the -1/1/0 spiral_matrix entry used
-	extended_spiral_pattern_initialized = 1;
+  // best explanation of original spiral_pattern method...
+  //  an example, for this row #49
+  //
+  // 24, 16, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+  // i = 49  # row id
+  // x = 24  # 1st hardcoded value
+  // y = 16  # 2nd hardcoded value
+  // if j=0...
+  //  12*i = 588
+  //  2 + 588 + 0     (2*0 = 0 = j)
+  //  or, 1st hardcoded value of 49th row
+  //     is overwritten to the value 24*(pos/neg/zero?) + 16*(pos/neg/zero?)
+  //  and 2nd hardcoded value of 49th row
+  //     is overwritten to the value 24*(pos/neg/zero?) + 16*(pos/neg/zero?) also, but with different -1/1/0
+  // then as j=1,2,3..., the next pairs of values in same row are set to same pattern,
+  //     only change is the -1/1/0 spiral_matrix entry used
+  extended_spiral_pattern_initialized = 1;
 }
 
 
 
 int *
 Map::get_extended_spiral_pattern() {
-	return extended_spiral_pattern;
+  return extended_spiral_pattern;
 }
 
 
@@ -528,13 +528,13 @@ Map::init_extended_spiral_pos_pattern() {
 //  going to try changing it to 1633 to avoid... this might shrink the possible spiral
 //   *OR* it might actually fix a bug
 
-//	for (int i = 0; i < 1801; i++) {
-  	for (int i = 0; i < 1633; i++) {
-		int x = extended_spiral_pattern[2 * i] & geom_.col_mask();
-		int y = extended_spiral_pattern[2 * i + 1] & geom_.row_mask();
+//  for (int i = 0; i < 1801; i++) {
+    for (int i = 0; i < 1633; i++) {
+    int x = extended_spiral_pattern[2 * i] & geom_.col_mask();
+    int y = extended_spiral_pattern[2 * i + 1] & geom_.row_mask();
 
-		extended_spiral_pos_pattern[i] = pos(x, y);
-	}
+    extended_spiral_pos_pattern[i] = pos(x, y);
+  }
 }
 
 /* Copy tile data from map generator into map tile data. */
@@ -560,9 +560,9 @@ Map::set_height(MapPos pos, int height) {
 //   placement at game start, https://github.com/tlongstretch/freeserf-with-AI-plus/issues/38
 void
 Map::set_height_no_refresh(MapPos pos, int height) {
-	landscape_tiles[pos].height = height;
-	// don't Mark landscape dirty, I guess it will be updated on next refresh?
-	//  not sure, it might not even matter
+  landscape_tiles[pos].height = height;
+  // don't Mark landscape dirty, I guess it will be updated on next refresh?
+  //  not sure, it might not even matter
 }
 
 

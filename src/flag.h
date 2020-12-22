@@ -88,7 +88,7 @@ class Flag : public GameObject {
   void del_path(Direction dir);
   /* Whether a path exists in a given direction. */
   bool has_path(Direction dir) const {
-	  // got a nullptr here, never seen before.  oct30 2020
+    // got a nullptr here, never seen before.  oct30 2020
     return ((path_con & (1 << (dir))) != 0); }
 
   void prioritize_pickup(Direction dir, Player *player);

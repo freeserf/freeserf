@@ -98,7 +98,7 @@ main(int argc, char *argv[]) {
   Data &data = Data::get_instance();
   if (!data.load(data_dir)) {
     Log::Error["main"] << "Could not load game data.";
-	//p1plp1_throw_exception_win32_if_missing_SPA_data
+  //p1plp1_throw_exception_win32_if_missing_SPA_data
     #ifdef WIN32
      int msgboxID = SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR,"FreeSerf","missing SPA*.PA",NULL);
     #endif
@@ -144,7 +144,7 @@ main(int argc, char *argv[]) {
     interface.open_game_init();
   }
   else {
-	  loaded_game_start_ai = true;
+    loaded_game_start_ai = true;
   }
 
   /* Init game loop */
@@ -153,7 +153,7 @@ main(int argc, char *argv[]) {
 
   // tlongstretch
   if (loaded_game_start_ai) {
-	  interface.initialize_AI();
+    interface.initialize_AI();
   }
 
   /* Start game loop */

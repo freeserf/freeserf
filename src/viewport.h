@@ -42,7 +42,7 @@ class Viewport : public GuiObject, public Map::Handler {
     LayerCursor = 1<<4,
     LayerGrid = 1<<5,
     LayerBuilds = 1<<6,
-	LayerAI = 1<<7,
+  LayerAI = 1<<7,
     LayerAll = (LayerLandscape |
                 LayerPaths |
                 LayerObjects |
