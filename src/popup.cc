@@ -1984,15 +1984,15 @@ PopupBox::draw_options_box() {
 void
 PopupBox::draw_aiplus_options_box() {
   draw_large_box_background(PatternDiagonalGreen);
-  
+  AIPlusOptions aiplus_options = interface->get_aiplus_options();
   draw_green_string(3, 10, "Foo");
-  draw_popup_icon(1, 7, (interface->get_game()->test_aiplus_option(AIPlusOption::Foo)) ? 288 : 220);
+  draw_popup_icon(1, 7, (interface->test_aiplus_option(AIPlusOption::Foo)) ? 288 : 220);
 
   draw_green_string(3, 29, "Bar");
-  draw_popup_icon(1, 26, (interface->get_game()->test_aiplus_option(AIPlusOption::Bar)) ? 288 : 220);
+  draw_popup_icon(1, 26, (interface->test_aiplus_option(AIPlusOption::Bar)) ? 288 : 220);
 
   draw_green_string(3, 48, "Baz");
-  draw_popup_icon(1, 45, (interface->get_game()->test_aiplus_option(AIPlusOption::Baz)) ? 288 : 220);
+  draw_popup_icon(1, 45, (interface->test_aiplus_option(AIPlusOption::Baz)) ? 288 : 220);
  
   draw_popup_icon(32, 128, 60); /* exit */
 }
@@ -3421,24 +3421,24 @@ PopupBox::handle_action(int action, int x_, int /*y_*/) {
   //  interface->open_popup(TypeAIPlusOptions2);
   //  break;
   case ACTION_AIPLUS_FOO:
-    if (interface->get_game()->test_aiplus_option(AIPlusOption::Foo)){
-      interface->get_game()->unset_aiplus_option(AIPlusOption::Foo);
+    if (interface->test_aiplus_option(AIPlusOption::Foo)){
+      interface->unset_aiplus_option(AIPlusOption::Foo);
     } else{
-      interface->get_game()->set_aiplus_option(AIPlusOption::Foo);
+      interface->set_aiplus_option(AIPlusOption::Foo);
     }
     break;
   case ACTION_AIPLUS_BAR:
-    if (interface->get_game()->test_aiplus_option(AIPlusOption::Bar)){
-      interface->get_game()->unset_aiplus_option(AIPlusOption::Bar);
+    if (interface->test_aiplus_option(AIPlusOption::Bar)){
+      interface->unset_aiplus_option(AIPlusOption::Bar);
     } else{
-      interface->get_game()->set_aiplus_option(AIPlusOption::Bar);
+      interface->set_aiplus_option(AIPlusOption::Bar);
     }
     break;
   case ACTION_AIPLUS_BAZ:
-    if (interface->get_game()->test_aiplus_option(AIPlusOption::Baz)){
-      interface->get_game()->unset_aiplus_option(AIPlusOption::Baz);
+    if (interface->test_aiplus_option(AIPlusOption::Baz)){
+      interface->unset_aiplus_option(AIPlusOption::Baz);
     } else{
-      interface->get_game()->set_aiplus_option(AIPlusOption::Baz);
+      interface->set_aiplus_option(AIPlusOption::Baz);
     }
     break; 
   case ACTION_SETT_8_CYCLE:

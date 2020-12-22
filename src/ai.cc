@@ -208,13 +208,14 @@
 
 */
 
-AI::AI(PGame current_game, unsigned int pi) {
+AI::AI(PGame current_game, unsigned int _player_index, AIPlusOptions _aiplus_options) {
 
 
 	has_autosave_mutex = false;
 	ai_status = "INITIALIZING";
-	player_index = pi;
-	name = "Player" + std::to_string(pi);
+	player_index = _player_index;
+	aiplus_options = _aiplus_options;
+	name = "Player" + std::to_string(player_index);
 	AILogInfo["init"] << name << " inside AI::AI constructor with player_index: " << player_index;
 	AILogVerbose["init"] << name << " AI log level is at least verbose";
 	AILogDebug["init"] << name << " AI log level is at least debug";
@@ -286,6 +287,10 @@ AI::start() {
 		has_autosave_mutex = true;
 		AILogDebug["start"] << name << " this AI thread has the autosave mutex";
 	}
+	// the Interface must pass the options bitset to each AI thread when initializing them
+	AILogInfo["start"] << name << " AIOption::Foo is " << std::to_string(aiplus_options.test(AIPlusOption::Foo));
+	AILogInfo["start"] << name << " AIOption::Bar is " << std::to_string(aiplus_options.test(AIPlusOption::Bar));
+	AILogInfo["start"] << name << " AIOption::Baz is " << std::to_string(aiplus_options.test(AIPlusOption::Baz));
 	while (true) {
 		//AILogDebug["start"] << name << " start AI::start while(true)";
 		if (game->should_ai_stop() == true) {

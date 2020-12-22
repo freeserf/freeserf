@@ -138,6 +138,7 @@ main(int argc, char *argv[]) {
   interface.set_size(screen_width, screen_height);
   interface.set_displayed(true);
 
+  // tlongstretch
   bool loaded_game_start_ai = false;
   if (save_file.empty()) {
     interface.open_game_init();
@@ -150,6 +151,7 @@ main(int argc, char *argv[]) {
   EventLoop &event_loop = EventLoop::get_instance();
   event_loop.add_handler(&interface);
 
+  // tlongstretch
   if (loaded_game_start_ai) {
 	  interface.initialize_AI();
   }

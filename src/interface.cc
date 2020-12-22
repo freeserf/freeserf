@@ -193,13 +193,27 @@ Interface::close_game_init() {
 	viewport->set_enabled(true);
 	layout();
 	update_map_cursor_pos(map_cursor_pos);
-	//// this makes absolutely no sense, randomly tried things until it worked as desired
-	//Log::set_file(new std::ofstream("ai_Player0.txt"));
-	//Log::set_file(new std::ofstream("consoleFOO.txt"));
+  //
+  // tlongstretch
+  //
+	// print AIPlus game options
+	//   there is no way to iterate over a bitfield or an enum so this must be hardcoded
+	//   and it must be updated any time an option is added!
+	Log::Info["interface"] << " AIOption::Foo is " << std::to_string(aiplus_options.test(AIPlusOption::Foo));
+	Log::Info["interface"] << " AIOption::Bar is " << std::to_string(aiplus_options.test(AIPlusOption::Bar));
+	Log::Info["interface"] << " AIOption::Baz is " << std::to_string(aiplus_options.test(AIPlusOption::Baz));
+  // start any AI threads
 	initialize_AI();
 }
 
+// tlongstretch
+AIPlusOptions &
+Interface::get_aiplus_options() {
+  static AIPlusOptions aiplus_options;
+  return aiplus_options;
+}
 
+// tlongstretch
 // Initialize AI for non-human players
 void
 Interface::initialize_AI() {
@@ -219,7 +233,7 @@ Interface::initialize_AI() {
 			//  the AI thread "takes" the file handle but the main game filehandle still works even though they all
 			//    use the same static function???  and the class is a singleton??
 			Log::set_file(new std::ofstream("ai_Player" + std::to_string(index) + ".txt"));
-			AI *ai = new AI(game, index);
+			AI *ai = new AI(game, index, aiplus_options);
 			game->ai_thread_starting();
 			// store AI pointer in game so it can be fetched by other functions (viewport, at least, for AI overlay)
 			set_ai_ptr(index, ai);

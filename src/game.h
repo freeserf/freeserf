@@ -119,8 +119,6 @@ class Game {
   bool ai_locked;
   bool signal_ai_exit;
   unsigned int ai_threads_remaining;
-  AIPlusOptions aiplus_options;
-
 
  public:
   Game();
@@ -145,11 +143,6 @@ class Game {
   void ai_thread_exiting() { ai_threads_remaining--; Log::Debug["game"] << "ai_thread_exiting, " << ai_threads_remaining << " remain"; }
   void ai_thread_starting() { ai_threads_remaining++; Log::Debug["game"] << "ai_thread_starting, " << ai_threads_remaining << " started"; }
   unsigned int get_ai_thread_count() { return ai_threads_remaining; }
-  // options bitfield (bool settings)
-  AIPlusOptions get_aiplus_options() { return aiplus_options; }
-  void set_aiplus_option(AIPlusOption opt) { aiplus_options.set(opt); }
-  void unset_aiplus_option(AIPlusOption opt) { aiplus_options.reset(opt); }
-  bool test_aiplus_option(AIPlusOption opt) { return aiplus_options.test(opt); }
   // used by AI for many actions that risk vector invalidation and other non-threadsafe things
   std::mutex * get_mutex() { return &mutex; }
   // used by AI so only a single AI thread performs auto-saving, rather than all of theam each doing it
