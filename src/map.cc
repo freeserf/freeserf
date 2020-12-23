@@ -556,6 +556,15 @@ Map::set_height(MapPos pos, int height) {
   }
 }
 
+// tlongstretch - hack to work around crash bug during castle
+//   placement at game start, https://github.com/tlongstretch/freeserf-with-AI-plus/issues/38
+void
+Map::set_height_no_refresh(MapPos pos, int height) {
+  landscape_tiles[pos].height = height;
+  // don't Mark landscape dirty, I guess it will be updated on next refresh?
+  //  not sure, it might not even matter.  It seems to work fine
+}
+
 /* Change the object at a map position. If index is non-negative
    also change this. The index should be reset to zero when a flag or
    building is removed. */

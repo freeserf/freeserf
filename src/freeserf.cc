@@ -98,6 +98,10 @@ main(int argc, char *argv[]) {
   Data &data = Data::get_instance();
   if (!data.load(data_dir)) {
     Log::Error["main"] << "Could not load game data.";
+    //p1plp1_throw_exception_win32_if_missing_SPA_data
+    #ifdef WIN32
+     int msgboxID = SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "FreeSerf", "missing SPA*.PA", NULL);
+    #endif
     return EXIT_FAILURE;
   }
 

@@ -321,10 +321,27 @@ Game::update_flags() {
   Log::Verbose["game"] << "thread #" << std::this_thread::get_id() << " is locking mutex for Game::update_flags";
   mutex.lock();
   Log::Verbose["game"] << "thread #" << std::this_thread::get_id() << " has locked mutex for Game::update_flags";
-  for (Flag *flag : flags) {
-    Log::Verbose["game"] << "calling flag->update for flag with index " << flag->get_index();
-    flag->update();
-    Log::Verbose["game"] << "done flag->update for flag with index " << flag->get_index();
+  // trying replacement with p1plp1 way
+  Flags::Iterator i = flags.begin();
+  Flags::Iterator prev = flags.begin();
+  while (i != flags.end()) {
+    prev = i;
+    Flag *flag = *i;
+    if (flag != NULL) {
+      if (flag->get_index() != 0) {
+        flag->update();
+        if (flag == NULL)
+          Log::Debug["game"] << "Game::update_flags, flag is NULL after update";
+      }
+    }
+    if (flag == NULL) {
+      Log::Debug["game"] << "Game::update_flags, flag is NULL so set i=prev";
+      i = prev;
+    }
+    else {
+      if (i != flags.end())
+        ++i;
+    }
   }
   Log::Verbose["game"] << "thread #" << std::this_thread::get_id() << " is unlocking mutex for Game::update_flags";
   mutex.unlock();
@@ -1574,9 +1591,12 @@ Game::build_castle(MapPos pos, Player *player) {
 
   /* Level land in hexagon below castle */
   int h = get_leveling_height(pos);
-  map->set_height(pos, h);
+  // tlongstretch - hack to work around crash on castle placement issue: https://github.com/tlongstretch/freeserf-with-AI-plus/issues/38
+  //map->set_height(pos, h);
+  map->set_height_no_refresh(pos, h);
   for (Direction d : cycle_directions_cw()) {
-    map->set_height(map->move(pos, d), h);
+    //map->set_height(map->move(pos, d), h);
+    map->set_height_no_refresh(map->move(pos, d), h);
   }
 
   update_land_ownership(pos);
