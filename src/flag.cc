@@ -650,6 +650,16 @@ Flag::can_demolish() const {
   return false;
 }
 
+/* Return true if a flag has any roads connected to it. */
+bool
+Flag::is_connected() const {
+  for (Direction d : cycle_directions_cw()) {
+    if (has_path(d))
+      return true;
+  }
+  return false;
+}
+
 /* Find a transporter at pos and change it to state. */
 static int
 change_transporter_state_at_pos(Game *game, MapPos pos, Serf::State state) {

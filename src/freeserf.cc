@@ -23,6 +23,7 @@
 
 #include <string>
 #include <iostream>
+// #include <fstream>
 
 #include "src/log.h"
 #include "src/version.h"
@@ -37,8 +38,15 @@
 # include <SDL.h>
 #endif  // WIN32
 
+
+
 int
 main(int argc, char *argv[]) {
+  // why does simply calling new(Log) make console output work on windows???
+  new(Log);
+  // std::ofstream* filestr = new std::ofstream("console_out.txt");
+  // Log::set_file(filestr);
+
   std::string data_dir;
   std::string save_file;
 
@@ -126,13 +134,23 @@ main(int argc, char *argv[]) {
   interface.set_size(screen_width, screen_height);
   interface.set_displayed(true);
 
+  /* Initialize AI */
+  bool loaded_game_start_ai = false;
   if (save_file.empty()) {
     interface.open_game_init();
+  }
+  else {
+    loaded_game_start_ai = true;
   }
 
   /* Init game loop */
   EventLoop &event_loop = EventLoop::get_instance();
   event_loop.add_handler(&interface);
+
+  /* Initialize AI on load_game */
+  if (loaded_game_start_ai) {
+    interface.initialize_AI();
+  }
 
   /* Start game loop */
   event_loop.run();

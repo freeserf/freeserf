@@ -26,6 +26,8 @@
 #include <algorithm>
 #include <memory>
 
+// moved to pathfinder.h
+/*
 class SearchNode;
 
 typedef std::shared_ptr<SearchNode> PSearchNode;
@@ -58,7 +60,7 @@ static const unsigned int walk_cost[] = { 255, 319, 383, 447, 511 };
 
 static unsigned int
 heuristic_cost(Map *map, MapPos start, MapPos end) {
-  /* Calculate distance to target. */
+  // Calculate distance to target. 
   int dist_col = map->dist_x(start, end);
   int dist_row = map->dist_y(start, end);
 
@@ -83,6 +85,7 @@ actual_cost(Map *map, MapPos pos, Direction dir) {
                    static_cast<int>(map->get_height(other_pos)));
   return walk_cost[h_diff];
 }
+*/
 
 /* Find the shortest path from start to end (using A*) considering that
    the walking time for a serf walking in any direction of the path

@@ -24,6 +24,8 @@
 #include <iostream>
 #include <fstream>
 #include <utility>
+#include <thread>   //NOLINT (build/c++11) this is a Google Chromium req, not relevant to general C++.  // for AI threads
+#include <vector>
 
 #include "src/misc.h"
 #include "src/debug.h"
@@ -37,6 +39,8 @@
 #include "src/notification.h"
 #include "src/panel.h"
 #include "src/savegame.h"
+#include "src/lookup.h"
+#include "src/ai.h"
 
 // Interval between automatic save games
 #define AUTOSAVE_INTERVAL  (10*60*TICKS_PER_SEC)
@@ -155,6 +159,7 @@ Interface::open_game_init() {
   }
   viewport->set_enabled(false);
   layout();
+
 }
 
 void
@@ -171,8 +176,39 @@ Interface::close_game_init() {
   }
   viewport->set_enabled(true);
   layout();
-
   update_map_cursor_pos(map_cursor_pos);
+  // start any AI threads
+  initialize_AI();
+}
+
+// Initialize AI for non-human players
+void
+Interface::initialize_AI() {
+  Player *player = game->get_player(0);
+  unsigned int index = 0;
+  do {
+    // face: the face image that represents this player.
+    //  1-11 is AI, 12-13 is human player.  0 is invalid
+    if (player->get_face() >= 1 && player->get_face() <= 11) {
+      Log::Info["freeserf"] << "Initializing AI for player #" << index;
+      Log::Debug["ai"] << "MAIN GAME thread_id: " << std::this_thread::get_id();
+      // set AI log file... I don't understand why this works the way it does
+      //  the AI thread "takes" the file handle but the main game filehandle still works even though they all
+      //    use the same static function???  and the class is a singleton??
+      Log::set_file(new std::ofstream("ai_Player" + std::to_string(index) + ".txt"));
+      AI *ai = new AI(game, index);
+      game->ai_thread_starting();
+      // store AI pointer in game so it can be fetched by other functions (viewport, at least, for AI overlay)
+      set_ai_ptr(index, ai);
+      std::thread ai_thread(&AI::start, ai);
+      ai_thread.detach();
+    }
+    index++;
+    player = game->get_player(index);
+  } while (player != nullptr);
+  // this locking mechanism probably isn't needed anymore now that AI startup is moved to this function instead of during 'mission' game initialization
+  Log::Debug["interface"] << "unlocking AI from interface.cc";
+  game->unlock_ai();
 }
 
 /* Open box for next message in the message queue */
@@ -508,6 +544,27 @@ Interface::update_map_cursor_pos(MapPos pos) {
     determine_map_cursor_type_road();
   } else {
     determine_map_cursor_type();
+  }
+  // with AI overlay on, mark any serf that is clicked on (for debugging serf states)
+  if (get_ai_ptr(player->get_index()) != nullptr) {
+    Serf *serf = game->get_serf_at_pos(pos);
+    if (serf == nullptr){
+      Log::Debug["interface"] << "no serf found at clicked pos";
+    }
+    else {
+      Log::Debug["interface"] << "evaluating clicked-on serf with index " << serf->get_index();
+      std::vector<int> *iface_ai_mark_serf = get_ai_ptr(get_player()->get_index())->get_ai_mark_serf();
+      if (serf->get_owner() == get_player()->get_index() && (serf->get_state() != Serf::StateIdleInStock)) {
+        Log::Info["interface"] << "adding serf with index " << serf->get_index() << " to ai_mark_serf";
+        iface_ai_mark_serf->push_back(serf->get_index());
+      }
+      else {
+        Log::Debug["interface"] << "not marking serf with index " << serf->get_index() << ", job " << serf->get_type() << ", state " << serf->get_state();
+      }
+    }
+  }
+  else {
+    Log::Debug["interface"] << "this player is not an AI, not marking clicked-on serf";
   }
   update_interface();
 }
@@ -886,6 +943,14 @@ Interface::handle_key_pressed(char key, int modifier) {
       viewport->switch_layer(Viewport::LayerBuilds);
       break;
     }
+
+    /* AI overlay grid - colored dots showing AI searching positions, roads being build, AI status, serf status, etc. */
+    case 'y': {
+      Log::Info["interface"] << "'y' key pressed, switching to LayerAI";
+      viewport->switch_layer(Viewport::LayerAI);
+      break;
+    }
+
     case 'j': {
       unsigned int index = game->get_next_player(player)->get_index();
       set_player(index);
