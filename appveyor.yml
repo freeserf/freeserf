@@ -34,8 +34,7 @@ install:
 build_script:
   - cmd: cd %APPVEYOR_BUILD_FOLDER%
   - cmd: cmake -DCMAKE_TOOLCHAIN_FILE=c:/tools/vcpkg/scripts/buildsystems/vcpkg.cmake -G "NMake Makefiles" -DCMAKE_BUILD_TYPE=%configuration% .
-# disabling this until I can figure out how to pass --filters arg
-#  - cmd: nmake check_style
+  - cmd: nmake check_style
   - cmd: nmake
   - cmd: nmake package
 
