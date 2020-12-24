@@ -960,6 +960,12 @@ Flag::call_transporter(Direction dir, bool water) {
   Direction dir_2 = get_other_end_dir(dir);
 
   search_dir = DirectionRight;
+  // got a write access violation here, src_2 was nullptr
+  //  I think this is an AI- specific issue related to the missing transporter work-around
+  if (src_2 == nullptr) {
+    Log::Warn["flag"] << " Flag::call_transporter - nullptr found when doing Flag *src_2 = other_endpoint.f[dir], returning false  FIND OUT WHY!";
+    return false;
+  }
   src_2->search_dir = DirectionDownRight;
 
   FlagSearch search(game);
