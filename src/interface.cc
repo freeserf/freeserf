@@ -952,9 +952,16 @@ Interface::handle_key_pressed(char key, int modifier) {
     }
 
     case 'j': {
-      unsigned int index = game->get_next_player(player)->get_index();
-      set_player(index);
-      Log::Debug["main"] << "Switched to player #" << index;
+    unsigned int current_index = player->get_index();
+    unsigned int next_index = game->get_next_player(player)->get_index();
+    if (current_index == next_index) {
+      //Log::Debug["interface"] << "next player index is current player index - i.e. there is only one player, not switching";
+      play_sound(Audio::TypeSfxNotAccepted);
+    }
+    else {
+      set_player(next_index);
+      Log::Info["interface"] << "Switched to player #" << next_index;
+    }
       break;
     }
     case 'z':
