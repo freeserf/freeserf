@@ -29,6 +29,7 @@
 #include "src/building.h"
 #include "src/gui.h"
 #include "src/game-manager.h"
+#include "src/ai.h"
 
 static const unsigned int map_building_sprite[] = {
   0, 0xa7, 0xa8, 0xae, 0xa9,
@@ -108,6 +109,8 @@ class Interface : public GuiObject, public GameManager::Handler {
   int return_timeout;
   int return_pos;
 
+  AI *ai_ptrs[5] = { NULL, NULL, NULL, NULL, NULL };
+
  public:
   Interface();
   virtual ~Interface();
@@ -148,6 +151,7 @@ class Interface : public GuiObject, public GameManager::Handler {
 
   void open_game_init();
   void close_game_init();
+  void initialize_AI();
 
   void open_message();
   void return_from_message();
@@ -179,6 +183,9 @@ class Interface : public GuiObject, public GameManager::Handler {
 
   virtual bool handle_event(const Event *event);
 
+  // used for viewport and maybe other funtions to get the ai object so they can fetch the ai_mark stuff for AI overlay for debugging
+  AI * get_ai_ptr(unsigned int index) { return ai_ptrs[index]; }
+
  protected:
   void get_map_cursor_type(const Player *player, MapPos pos,
                            BuildPossibility *bld_possibility,
@@ -191,6 +198,8 @@ class Interface : public GuiObject, public GameManager::Handler {
   virtual void internal_draw();
   virtual void layout();
   virtual bool handle_key_pressed(char key, int modifier);
+
+  void set_ai_ptr(unsigned int index, AI *ai) { ai_ptrs[index] = ai; }
 
   // GameManager::Handler implementation
  public:

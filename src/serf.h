@@ -442,6 +442,9 @@ class Serf : public GameObject {
   unsigned int get_next() const { return s.defending.next_knight; }
   void set_next(int next) { s.defending.next_knight = next; }
 
+  // AI addition to help debug lack of serf transporter issue/bug
+  unsigned int get_walking_dest() const { return s.walking.dest; }
+
   // Commands
   void go_out_from_inventory(unsigned int inventory, MapPos dest, int mode);
   void send_off_to_fight(int dist_col, int dist_row);
@@ -461,9 +464,12 @@ class Serf : public GameObject {
     operator << (SaveWriterText &writer, Serf &serf);
 
   std::string print_state();
+  // moved from protected
+  bool is_waiting(Direction *dir);
 
  protected:
-  bool is_waiting(Direction *dir);
+  // moved to public so AI can use it to check for stuck serfs
+  //bool is_waiting(Direction *dir);
   int switch_waiting(Direction dir);
   int get_walking_animation(int h_diff, Direction dir, int switch_pos);
   void change_direction(Direction dir, int alt_end);

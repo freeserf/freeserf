@@ -512,6 +512,15 @@ GameInitBox::handle_player_click(unsigned int player_index, int cx, int cy) {
       player_index = static_cast<unsigned int>(mission->get_player_count() - 1);
       PPlayerInfo player = mission->get_player(player_index);
       player->set_character(get_next_character(player_index));
+      // tlongstretch - hack to work around missing color for players 2+
+      Player::Color def_color[] = {
+        {0x00, 0xe3, 0xe3},
+        {0xcf, 0x63, 0x63},
+        {0xdf, 0x7f, 0xef},
+        {0xef, 0xef, 0x8f},
+        {0x00, 0x00, 0x00}
+      };
+      player->set_color(def_color[player_index]);
     } else {
       if (player_index > 0) {
         mission->remove_player(player_index);

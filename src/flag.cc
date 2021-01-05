@@ -650,6 +650,16 @@ Flag::can_demolish() const {
   return false;
 }
 
+/* Return true if a flag has any roads connected to it. */
+bool
+Flag::is_connected() const {
+  for (Direction d : cycle_directions_cw()) {
+    if (has_path(d))
+      return true;
+  }
+  return false;
+}
+
 /* Find a transporter at pos and change it to state. */
 static int
 change_transporter_state_at_pos(Game *game, MapPos pos, Serf::State state) {
@@ -950,6 +960,12 @@ Flag::call_transporter(Direction dir, bool water) {
   Direction dir_2 = get_other_end_dir(dir);
 
   search_dir = DirectionRight;
+  // got a write access violation here, src_2 was nullptr
+  //  I think this is an AI- specific issue related to the missing transporter work-around
+  if (src_2 == nullptr) {
+    Log::Warn["flag"] << " Flag::call_transporter - nullptr found when doing Flag *src_2 = other_endpoint.f[dir], returning false  FIND OUT WHY!";
+    return false;
+  }
   src_2->search_dir = DirectionDownRight;
 
   FlagSearch search(game);

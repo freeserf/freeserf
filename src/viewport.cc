@@ -25,6 +25,8 @@
 #include <memory>
 #include <utility>
 #include <sstream>
+#include <string>
+#include <vector>
 
 #include "src/misc.h"
 #include "src/game.h"
@@ -46,6 +48,8 @@
 /* Number of cols,rows in each landscape tile */
 #define MAP_TILE_COLS  16
 #define MAP_TILE_ROWS  16
+
+MapPos ai_overlay_clicked_pos = bad_map_pos;
 
 static const uint8_t tri_spr[] = {
   32, 32, 32, 32, 32, 32, 32, 32,
@@ -790,14 +794,14 @@ Viewport::draw_unharmed_building(Building *building, int lx, int ly) {
 
         int pigs_layout[] = {
           0,   0,   0,  0,
-          6, 140,  -2,  6,
-          5, 280,   8,  8,
-          3, 420, -11,  8,
           1,  40,   2, 11,
+          2, 460,   0, 17,
+          3, 420, -11,  8,
+          4,  90, -11, 19,
+          5, 280,   8,  8,
+          6, 140,  -2,  6,
           7, 180,  -8, 13,
           8, 320,  13, 14,
-          2, 460,   0, 17,
-          4,  90, -11, 19,
         };
 
         for (int p = 1; p <= pigs_count; p++) {
@@ -1890,6 +1894,88 @@ Viewport::draw_active_serf(Serf *serf, MapPos pos, int x_base, int y_base) {
       frame->draw_number(lx, ly, serf->get_index(), Color(0, 0, 128));
       frame->draw_string(lx, ly + 8, serf->print_state(),  Color(0, 0, 128));
     }
+  //
+  // AI overlay used for debugging AI
+  //
+  if (layers & Layer::LayerAI) {
+    unsigned int current_player_index = interface->get_player()->get_index();
+    AI *ai = interface->get_ai_ptr(current_player_index);
+    if (ai == NULL) {
+      // no AI running for this player, do nothing
+    }
+    else {
+      std::vector<int> ai_mark_serf = *(interface->get_ai_ptr(current_player_index)->get_ai_mark_serf());
+
+      // automatically mark waiting serfs
+      bool auto_mark_this_serf = false;
+      /*
+      if (serf->get_state() != Serf::StateIdleInStock) {
+              // direction is unknown until set by serf->is_waiting() in the ptr created here
+              //  actually, for this debugging we don't even care which dir is waiting but it seems to be mandatory
+              Direction dir = DirectionNone;
+              Direction *dir_ptr = &dir;
+              if (serf->is_waiting(dir_ptr)) {
+                      Direction dir = *(dir_ptr);
+                      MapPos serf_pos = bad_map_pos;
+                      serf_pos = serf->get_pos();
+                      //Log::Info["ai"] << "serf at pos " << serf_pos << " is waiting for direction " << dir << " / " << NameDirection[dir];
+                      //Log::Info["ai"] << "serf state: " << serf->print_state();
+                      //Log::Info["ai"] << "marking serf on AI overlay";
+                      //ai_mark_serf->push_back(serf->get_index());
+                      auto_mark_this_serf = true;
+              }
+      }
+      */
+
+      if (std::count(ai_mark_serf.begin(), ai_mark_serf.end(), serf->get_index()) > 0
+        || auto_mark_this_serf == true) {
+        //frame->draw_number(lx, ly, serf->get_index(), Color(50, 50, 200));
+        std::string state_details = "";
+        //frame->draw_string(lx, ly + 8, serf->print_state(), Color(125, 125, 200));
+        // print state has some weird corruption at the end... try just getting the values we want
+        //state_details = serf->print_state();
+        state_details += serf->get_state_name(serf->get_state());
+        state_details += "\n";
+        //frame->draw_string(lx, ly + 16, "counter: " + std::to_string(serf->get_counter()) + "\n", Color(125, 125, 200));
+        // it seems "counter" is just animation frame counter and doesn't provide any useful information in detecting stuck serfs
+        //   as it keeps rolling even if serf is static
+        //state_details += "counter: " + std::to_string(serf->get_counter()) + "\n";
+
+        /* I don't think this is needed anymore, it seems that only serf->is_waiting check matters
+        int wait_counter = 0;
+        std::string wait_string;
+        if (serf->get_state() == Serf::StateWalking) {
+            wait_counter = serf->get_walking_wait_counter();
+            wait_string = "walking wait: ";
+        }
+        if (serf->get_state() == Serf::StateTransporting || serf->get_state() == Serf::StateDelivering) {
+            wait_counter = serf->get_transporting_wait_counter();
+            wait_string = "transporting wait: ";
+        }
+        // make text increasingly red as wait increases
+        int red = 150 + (25 * wait_counter);
+        if (red > 255) {
+            red = 255;
+        }
+        int green_blue = 150 - (25 * wait_counter);
+        if (green_blue < 0) {
+            green_blue = 0;
+                }
+
+                state_details += wait_string + std::to_string(wait_counter) + "\n";
+                */
+
+                // draw text box above the marked serf with its status
+                //  this red/green_blue stuff is related to darkening color effect as wait_counter increases, but is not actually needed
+                //frame->draw_string(lx, ly + 8, state_details, Color(red, green_blue, green_blue));
+                // just use a fixed color
+        frame->draw_string(lx, ly + 8, state_details, colors.at("white"));
+        //frame->draw_string(1, 1, status, ai->get_mark_color("white"));
+      }
+    }
+  }
+  // end LayerAI
+
   }
 
   /* Draw additional serf */
@@ -2008,7 +2094,7 @@ Viewport::draw_serf_row(MapPos pos, int y_base, int cols, int x_base) {
            serf->get_mining_substate() != 9 &&
            serf->get_mining_substate() != 10)) {
             draw_active_serf(serf, pos, x_base, y_base);
-          }
+         }
     }
 
     /* Idle serf */
@@ -2048,7 +2134,7 @@ Viewport::draw_serf_row_behind(MapPos pos, int y_base, int cols, int x_base) {
            serf->get_mining_substate() == 9 ||
            serf->get_mining_substate() == 10)) {
             draw_active_serf(serf, pos, x_base, y_base);
-          }
+         }
     }
   }
 }
@@ -2184,6 +2270,112 @@ Viewport::draw_map_cursor_possible_build() {
 }
 
 void
+Viewport::draw_ai_grid_overlay() {
+  int x_off = 0;
+  int y_off = 0;
+  MapPos base_pos = get_offset(&x_off, &y_off);
+  unsigned int current_player_index = interface->get_player()->get_index();
+  AI *ai = interface->get_ai_ptr(current_player_index);
+  if (ai == NULL) {
+    //Log::Debug["viewport"] << "Player" << current_player_index << " is human, not drawing AI overlay";
+    return;
+  }
+  //Log::Debug["viewport"] << "Player" << current_player_index << " is an AI, enabling AI overlay";
+  ColorDotMap ai_mark_pos = *(ai->get_ai_mark_pos());
+  Road *ai_mark_road = ai->get_ai_mark_road();
+
+  for (int x_base = x_off; x_base < width + MAP_TILE_WIDTH;
+    x_base += MAP_TILE_WIDTH) {
+    MapPos pos = base_pos;
+    int y_base = y_off;
+    int row = 0;
+
+    while (1) {
+      int lx;
+      if (row % 2 == 0) {
+        lx = x_base;
+      }
+      else {
+        lx = x_base - MAP_TILE_WIDTH / 2;
+      }
+
+      int ly = y_base - 4 * map->get_height(pos);
+      if (ly >= height) break;
+
+      if (ai_mark_pos.count(pos) > 0) {
+        if (pos != map->pos(0, 0)) {
+          frame->fill_rect(lx - 2, ly + 0, 5, 5, ai->get_mark_color(ai_mark_pos.at(pos)));
+          frame->fill_rect(lx - 3, ly + 1, 7, 3, ai->get_mark_color(ai_mark_pos.at(pos)));
+        }
+      }
+
+      if (row % 2 == 0) {
+        pos = map->move_down(pos);
+      }
+      else {
+        pos = map->move_down_right(pos);
+      }
+
+
+      y_base += MAP_TILE_HEIGHT;
+      row += 1;
+    }
+
+    base_pos = map->move_right(base_pos);
+  }
+
+  /*
+  // draw road pathfinding
+  //Road *p_mark_road = game->get_ai_mark_road();
+  MapPos prevpos = p_mark_road->get_source();
+  //for (Direction dir : p_mark_road->get_dirs()) {
+  for (const auto &dir : p_mark_road->get_dirs()) {
+          MapPos thispos = map->move(prevpos, dir);
+          int prev_sx = 0;
+          int prev_sy = 0;
+          //Log::Info["viewport"] << "calling screen_pix_from_map_coord with FROM MapPos " << prevpos << ", empty x,y " << prev_sx << "," << prev_sy;
+          screen_pix_from_map_coord(prevpos, &prev_sx, &prev_sy);
+          //Log::Info["viewport"] << "called screen_pix_from_map_coord with FROM MapPos " << prevpos << ", got x,y " << prev_sx << "," << prev_sy;
+
+          int this_sx = 0;
+          int this_sy = 0;
+          //Log::Info["viewport"] << "calling screen_pix_from_map_coord with TO MapPos " << thispos << ", empty x,y " << this_sx << "," << this_sy;
+          screen_pix_from_map_coord(thispos, &this_sx, &this_sy);
+          //Log::Info["viewport"] << "called screen_pix_from_map_coord with TO MapPos " << thispos << ", got x,y " << this_sx << "," << this_sy;
+
+          frame->draw_line(prev_sx, prev_sy, this_sx, this_sy, game->get_mark_color("white"));
+          prevpos = thispos;
+  }
+  */
+
+  // draw AI status text box
+  std::string status = ai->get_ai_status();
+  //frame->draw_string(50, 50, "FOO\n", game->get_mark_color("white"));
+  frame->draw_string(1, 1, "Player" + std::to_string(current_player_index) + " " + status, ai->get_mark_color("white"));
+
+  // draw AI expansion goals text box
+  int row = 1;   // text rows are 10 pixels apart, start at row 1 (2nd row, after ai_status row)
+  frame->draw_string(1, row * 10, "expansion_goals:", ai->get_mark_color("white"));
+  for (std::string goal : ai->get_ai_expansion_goals()) {
+    row++;
+    frame->draw_string(1, row * 10, "   " + goal, ai->get_mark_color("white"));
+  }
+
+  // draw cursor map click position
+  if (ai_overlay_clicked_pos != bad_map_pos) {
+    frame->draw_string(500, 1, "clicked on " + std::to_string(ai_overlay_clicked_pos), colors.at("white"));
+  }
+
+  // draw current game speed
+  frame->draw_string(800, 1, "game speed: " + std::to_string(ai->get_game_speed()), colors.at("white"));
+  // draw current loop count
+  frame->draw_string(800, 10, "AI loop: " + std::to_string(ai->get_loop_count()), colors.at("white"));
+
+}
+
+
+
+void
 Viewport::draw_map_cursor() {
   if (layers & LayerBuilds) {
     draw_map_cursor_possible_build();
@@ -2285,6 +2477,9 @@ Viewport::internal_draw() {
   if (layers & LayerPaths) {
     draw_paths_and_borders();
   }
+  if (layers & LayerAI) {
+    draw_ai_grid_overlay();
+  }
   draw_game_objects(layers);
   if (layers & LayerCursor) {
     draw_map_cursor();
@@ -2296,6 +2491,8 @@ Viewport::handle_click_left(int lx, int ly) {
   set_redraw();
 
   MapPos clk_pos = map_pos_from_screen_pix(lx, ly);
+  Log::Debug["interface"] << "======= clicked on pos " << clk_pos << " with x,y " << map->pos_col(clk_pos) << "," << map->pos_row(clk_pos) << " =======";
+  ai_overlay_clicked_pos = clk_pos;
 
   if (interface->is_building_road()) {
     int dx = -map->dist_x(interface->get_map_cursor_pos(), clk_pos) + 1;
