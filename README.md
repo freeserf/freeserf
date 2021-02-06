@@ -55,10 +55,11 @@ Other keyboard controls:
 * `F10`: Return to main menu to start a new game
 * `s`: Enable/disable sounds playback
 * `m`: Enable/disable music playback
-* CTRL+`f`: Switch fullscreen mode on/off.
-* CTRL+`z`: Save game in current directory.
+* `CTRL`+`f`: Switch fullscreen mode on/off.
+* `CTRL`+`z`: Save game in current directory.
 * `[`/`]`: Zoom -/+
-* CTRL-MouseWheel: Zoom -/+     // note there's a bug where if you resize the game window after zooming you need to zoom again or cursor gets messed up
+* `CTRL`-`MouseWheel`: Zoom -/+     
+  *note there's a bug where if you resize the game window after zooming you need to zoom again or cursor gets messed up
 
 
 Audio
