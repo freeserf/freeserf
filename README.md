@@ -49,6 +49,7 @@ Keyboard gameplay controls:
 * `p`: Pause game.
 * `j`: Switch player.
 * `y`: AI/debug overlay (only shows for AI players)
+* `g`: grid/serf state debug overlay
 
 Other keyboard controls:
 
