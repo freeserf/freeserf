@@ -7,8 +7,8 @@ Forkserf adds:
 - fixes for Freeserf bugs
 - advanced AI for non-human players
 - new features (mostly as optional checkboxes)
- - foo
- - foo2
+-  foo
+-  foo2
 - internal game mechanics changes to fix problems that existed even in the original game
 
 Build status
