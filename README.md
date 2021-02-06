@@ -8,6 +8,7 @@ Forkserf adds:
   - major crash bugs from iterator invalidation during normal gameplay
   - crash & other bugs related to combat
   - some minor visual & audio issues
+  - crash & other issue with food resource delivery
 - advanced AI for non-human players with greatly improved road building logic
 - new features (mostly as optional checkboxes)
   - auto-saving
@@ -19,9 +20,12 @@ Forkserf adds:
   - prioritized transport of resources that can be immediately used
 - debugging tools
   - mark positions with colored dots
+  - mark specific serfs and their state
+  - "boot" specific serfs by setting them to Lost state
   - trace road pathfinding
   - identification & colored highlighting of arterial roads
-  
+- no multiplayer yet, sorry
+
 Details about all of the above are on the wiki: https://github.com/forkserf/forkserf/wiki
 
 Build status
