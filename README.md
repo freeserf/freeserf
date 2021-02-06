@@ -7,9 +7,13 @@ Forkserf adds:
 - fixes for Freeserf bugs
 - advanced AI for non-human players
 - new features (mostly as optional checkboxes)
-  - foo
-  - foo2
+  - auto-saving
+  - enhanced Pig Farms
+  - serfs can be transported in Boats!
+  - empty building sites don't burn
 - internal game mechanics changes to fix problems that existed even in the original game
+  - timeout & retry of building resource requests
+  - prioritized transport of resources that can be immediately used
 
 Build status
 ------------
