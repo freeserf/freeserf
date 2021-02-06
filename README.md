@@ -1,22 +1,34 @@
-Freeserf
+Forkserf
 ========
+
+A continuation of Freeserf, a SerfCity/Settlers1 clone in C/C++.  Freeserf was created by jonls and wdigger
+
+Forkserf adds:
+- fixes for Freeserf bugs
+  - major crash bugs from iterator invalidation during normal gameplay
+  - crash & other bugs related to combat
+  - some minor visual & audio issues
+- advanced AI for non-human players with greatly improved road building logic
+- new features (mostly as optional checkboxes)
+  - auto-saving
+  - enhanced Pig Farms
+  - serfs can be transported in Boats!
+  - empty building sites don't burn
+- internal game mechanics changes to fix gridlock issues that existed even in the original game
+  - timeout & retry of building resource requests
+  - prioritized transport of resources that can be immediately used
+- debugging tools
+  - mark positions with colored dots
+  - trace road pathfinding
+  - identification & colored highlighting of arterial roads
 
 Build status
 ------------
-
-[![Build Status](https://travis-ci.org/freeserf/freeserf.svg?branch=master)](https://travis-ci.org/freeserf/freeserf)
-[![Build Status](https://ci.appveyor.com/api/projects/status/github/freeserf/freeserf?branch=master&svg=true)](https://ci.appveyor.com/project/jonls/freeserf)
+coming soon
 
 Last build downloads
 --------------------
-* [Windows Installer x86](https://ci.appveyor.com/api/projects/jonls/freeserf/artifacts/FreeSerf-x86-Release.exe?branch=master&pr=false&job=Configuration%3A%20Release%3B%20Platform%3A%20x86)
-* [Windows Installer x64](https://ci.appveyor.com/api/projects/jonls/freeserf/artifacts/FreeSerf-x64-Release.exe?branch=master&pr=false&job=Configuration%3A%20Release%3B%20Platform%3A%20x64)
-* [Linux Sources TAR.Z](https://s3.amazonaws.com/freeserf/freeserf/freeserf/master/FreeSerf.tar.Z)
-* [Linux Sources TAR.BZ2](https://s3.amazonaws.com/freeserf/freeserf/freeserf/master/FreeSerf.tar.bz2)
-* [Linux Sources TAR.GZ](https://s3.amazonaws.com/freeserf/freeserf/freeserf/master/FreeSerf.tar.gz)
-* [Linux Sources TAR.XZ](https://s3.amazonaws.com/freeserf/freeserf/freeserf/master/FreeSerf.tar.xz)
-* [macOS Disk Image](https://s3.amazonaws.com/freeserf/freeserf/freeserf/master/FreeSerf.dmg)
-
+coming soon, check https://github.com/tlongstretch/freeserf-with-AI-plus-binaries for the moment
 Play
 ------
 Copy the data file(s) from the original game to the same directory as freeserf. Alternatively you can put the data file in `~/.local/share/freeserf`. You may use data file(s) from DOS or Amiga game version.
@@ -33,6 +45,7 @@ Keyboard gameplay controls:
 * `0`: Reset game speed.
 * `p`: Pause game.
 * `j`: Switch player.
+* `y`: AI/debug overlay (only shows for AI players)
 
 Other keyboard controls:
 
@@ -42,6 +55,7 @@ Other keyboard controls:
 * CTRL+`f`: Switch fullscreen mode on/off.
 * CTRL+`z`: Save game in current directory.
 * `[`/`]`: Zoom -/+
+* CTRL-MouseWheel: Zoom -/+     // note there's a bug where if you resize the game window after zooming you need to zoom again or cursor gets messed up
 
 
 Audio
@@ -67,9 +81,9 @@ Run `freeserf -h` for more info on command line options.
 
 Bugs
 ----
-Please report bugs at <https://github.com/freeserf/freeserf/issues>.
+Please report bugs at <https://github.com/forkserf/forkserf/issues>.
 
 
 Development
 -----------
-The main source repository for this project is at <https://github.com/freeserf/freeserf>. See the HACKING document in the source code root for information on how to compile and how to contribute.
+The main source repository for this project is at <https://github.com/forkserf/forkserf>. See the HACKING document in the source code root for information on how to compile and how to contribute.
