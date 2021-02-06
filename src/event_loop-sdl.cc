@@ -113,8 +113,10 @@ EventLoopSDL::run() {
   Frame *screen = nullptr;
   gfx.get_screen_factor(&screen_factor_x, &screen_factor_y);
 
+
   while (SDL_WaitEvent(&event)) {
     unsigned int current_ticks = SDL_GetTicks();
+    SDL_Keymod mod = SDL_GetModState();
 
     switch (event.type) {
       case SDL_MOUSEBUTTONUP:
@@ -127,7 +129,7 @@ EventLoopSDL::run() {
                                    zoom_factor * screen_factor_x);
           int y = static_cast<int>(static_cast<float>(event.button.y) *
                                    zoom_factor * screen_factor_y);
-          notify_click(x, y, (Event::Button)event.button.button);
+          notify_click(x, y, mod, (Event::Button)event.button.button);
 
           if (current_ticks - last_click[event.button.button] <
                 MOUSE_TIME_SENSITIVITY &&
@@ -172,7 +174,8 @@ EventLoopSDL::run() {
       case SDL_MOUSEWHEEL: {
         SDL_Keymod mod = SDL_GetModState();
         if ((mod & KMOD_CTRL) != 0) {
-          zoom(0.2f * static_cast<float>(event.wheel.y));
+          // the wheel zoom is backwards unless reversed
+          zoom(0.2f * static_cast<float>((event.wheel.y * -1)));
         }
         break;
       }

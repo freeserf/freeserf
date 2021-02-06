@@ -27,10 +27,7 @@
 #include <string>
 #include <list>
 #include <memory>
-
 #include <mutex>   //NOLINT (build/c++11) this is a Google Chromium req, not relevant to general C++.  // for AI thread locking
-
-#include "src/lookup.h"
 
 #include "src/player.h"
 #include "src/flag.h"
@@ -39,6 +36,7 @@
 #include "src/map.h"
 #include "src/random.h"
 #include "src/objects.h"
+#include "src/lookup.h"
 
 
 
@@ -56,7 +54,6 @@ class SaveWriterText;
 class Game {
  public:
   std::mutex mutex;
-  std::mutex autosave_mutex;
   typedef std::list<Serf*> ListSerfs;
   typedef std::list<Building*> ListBuildings;
   typedef std::list<Inventory*> ListInventories;
@@ -78,7 +75,7 @@ class Game {
   Players players;
 
   Flags flags;
-  Inventories inventories;
+  Inventories inventories;  // castle and warehouse/stocks.  NOT other buildings
   Buildings buildings;
   Serfs serfs;
 
@@ -87,6 +84,9 @@ class Game {
   unsigned int game_speed;
   unsigned int tick;
   unsigned int last_tick;
+  // what is the diff between const_tick and last_tick??
+  //  maybe const_tick is the same tick used for each update cycle?
+  //  and plain tick is incrementing constantly within the cylcle?
   unsigned int const_tick;
   unsigned int game_stats_counter;
   unsigned int history_counter;
@@ -115,7 +115,7 @@ class Game {
   int knight_morale_counter;
   int inventory_schedule_counter;
 
-  // tlongstretch
+  AIPlusOptions *aiplus_options_ptr;
   bool ai_locked;
   bool signal_ai_exit;
   unsigned int ai_threads_remaining;
@@ -126,9 +126,9 @@ class Game {
 
   PMap get_map() { return map; }
 
-  //
-  // tlongstretch
-  //
+  // ugly way to pass AIPlusOptions to functions that only have game but not interface
+  void set_ai_options_ptr(AIPlusOptions *_aiplus_options_ptr) { aiplus_options_ptr = _aiplus_options_ptr; }
+  AIPlusOptions* get_ai_options_ptr() { return aiplus_options_ptr; }
   // tell ai to exit when a game ends
   void stop_ai_threads() { signal_ai_exit = true; }
   // ai checks this every loop and exits if true
@@ -145,8 +145,6 @@ class Game {
   unsigned int get_ai_thread_count() { return ai_threads_remaining; }
   // used by AI for many actions that risk vector invalidation and other non-threadsafe things
   std::mutex * get_mutex() { return &mutex; }
-  // used by AI so only a single AI thread performs auto-saving, rather than all of theam each doing it
-  std::mutex * get_autosave_mutex() { return &autosave_mutex; }
   // used by AI to check if game is paused
   unsigned int get_game_speed() const { return game_speed; }
 
@@ -297,6 +295,5 @@ class Game {
 };
 
 typedef std::shared_ptr<Game> PGame;
-
 
 #endif  // SRC_GAME_H_

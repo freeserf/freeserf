@@ -340,6 +340,78 @@ VideoSDL::draw_line(int x, int y, int x1, int y1, const Video::Color color,
   SDL_RenderDrawLine(renderer, x, y, x1, y1);
 }
 
+// draw a triple-thick line by drawing three lines
+//  side-by-side, with the parallel line's axis
+//  determined by the relationship between the lines
+// otherwise it would be like a calligraphy pen where
+//  one direction is thin and one thick
+void
+VideoSDL::draw_thick_line(int x, int y, int x1, int y1, const Video::Color color,
+                    Video::Frame *dest) {
+  SDL_SetRenderTarget(renderer, dest->texture);
+  SDL_SetRenderDrawColor(renderer, color.r, color.g, color.b, 0xff);
+
+/*
+  // find the slope of a straight line 
+  float fx = x;
+  float fx1 = x1;
+  float fy = y;
+  float fy1 = y1;
+  float slope = (fy1 - fy) / (fx1 - fx); 
+  Log::Info["video-sdl"] << " slope of x " << fx << ", x1 " << fx1 << " to y " << fy << ", y1 " << fy1 << " = " << std::to_string(slope);
+
+*/
+
+  // draw the original thin line...
+  SDL_RenderDrawLine(renderer, x, y, x1, y1);
+  
+  /*
+  if (slope >= 2.5 || slope <= -2.5){
+    // up-down line, widen x axis by 2
+    SDL_RenderDrawLine(renderer, x-1, y, x1-1, y1);
+    //SDL_RenderDrawLine(renderer, x+1, y, x1+1, y1);
+    //SDL_RenderDrawLine(renderer, x, y-1, x1, y1-1);
+    //SDL_RenderDrawLine(renderer, x, y+1, x1, y1+1);
+  }
+  else if (slope <= 1 && slope >= -1){
+    // left-right line, widen y axis by 1
+    SDL_RenderDrawLine(renderer, x, y-1, x1, y1-1);
+    //SDL_RenderDrawLine(renderer, x, y+1, x1, y1+1);
+    //SDL_RenderDrawLine(renderer, x-1, y, x1-1, y1);
+    //SDL_RenderDrawLine(renderer, x+1, y, x1+1, y1);
+  }
+  else{  //(slope >= 1 && slope < 2 || slope <= -1 && slope >= -2){
+    //// diagonal line, widen x and y axis
+    //SDL_RenderDrawLine(renderer, x-1, y-1, x1-1, y1-1);
+    //SDL_RenderDrawLine(renderer, x+1, y+1, x1+1, y1+1);
+    // diagonal line, widen x by 1 and y by 1, in caret shape
+    SDL_RenderDrawLine(renderer, x-1, y, x1-1, y1);
+    SDL_RenderDrawLine(renderer, x, y-1, x1, y1-1);
+    */
+    // draw four lines, in an + shape around the original line
+    SDL_RenderDrawLine(renderer, x-1, y, x1-1, y1);
+    SDL_RenderDrawLine(renderer, x+1, y, x1+1, y1);
+    SDL_RenderDrawLine(renderer, x, y+1, x1, y1+1);
+    SDL_RenderDrawLine(renderer, x, y-1, x1, y1-1);
+  //}
+
+  /*
+  if (x >= x1 && y >= y1){
+    // up-right quadrant
+  }
+  if (x <= x1 && y >= y1){
+    // up-left quadrant
+  }
+  if (x <= x1 && y <= y1){
+    // down-left quadrant
+  }
+  if (x >= x1 && y <= y1){
+    // down-right quadrant
+  }
+  */
+}
+
+
 void
 VideoSDL::swap_buffers() {
   SDL_SetRenderTarget(renderer, nullptr);

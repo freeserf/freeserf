@@ -56,7 +56,8 @@ class Resource {
     TypeSword,
     TypeShield,
 
-    GroupFood
+    GroupFood,
+    TypeSerf      // added to support AIPlusOption::CanTransportSerfsInBoats
   } Type;
 };
 

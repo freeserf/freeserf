@@ -84,7 +84,7 @@ class GameInitBox : public GuiObject {
   void generate_map_preview();
 
   virtual void internal_draw();
-  virtual bool handle_click_left(int x, int y);
+  virtual bool handle_click_left(int x, int y, int modifier);
 };
 
 #endif  // SRC_GAME_INIT_H_

@@ -25,7 +25,7 @@
 #include <fstream>
 #include <utility>
 #include <thread>   //NOLINT (build/c++11) this is a Google Chromium req, not relevant to general C++.  // for AI threads
-#include <vector>   //to satisfy cpplinter
+#include <vector>
 
 #include "src/misc.h"
 #include "src/debug.h"
@@ -43,13 +43,14 @@
 #include "src/ai.h"
 
 // Interval between automatic save games
-#define AUTOSAVE_INTERVAL  (10*60*TICKS_PER_SEC)
+#define AUTOSAVE_INTERVAL  (5*60*TICKS_PER_SEC)
 
 Interface::Interface()
   : building_road_valid_dir(0)
   , sfx_queue{0}
-  , water_in_view(false)
-  , trees_in_view(false)
+  // these are not used
+  //, water_in_view(false)
+  //, trees_in_view(false)
   , return_pos(0) {
   displayed = true;
 
@@ -78,6 +79,7 @@ Interface::Interface()
   map_cursor_sprites[6].sprite = 33;
 
   last_const_tick = 0;
+  last_autosave_tick = 0;
 
   viewport = nullptr;
   panel = nullptr;
@@ -123,7 +125,6 @@ Interface::open_popup(int box) {
     add_float(popup, 0, 0);
   }
   layout();
-  // tlongstretch
   if (box == PopupBox::TypeAIPlusOptions){
     // double wide, normal height
     popup->set_size(288, 160);
@@ -176,6 +177,7 @@ Interface::open_game_init() {
   }
   viewport->set_enabled(false);
   layout();
+
 }
 
 void
@@ -193,39 +195,31 @@ Interface::close_game_init() {
   viewport->set_enabled(true);
   layout();
   update_map_cursor_pos(map_cursor_pos);
-  //
-  // tlongstretch
-  //
   // print AIPlus game options
   //   there is no way to iterate over a bitfield or an enum so this must be hardcoded
   //   and it must be updated any time an option is added!
-  Log::Info["interface"] << " AIOption::Foo is " << std::to_string(aiplus_options.test(AIPlusOption::Foo));
-  Log::Info["interface"] << " AIOption::Bar is " << std::to_string(aiplus_options.test(AIPlusOption::Bar));
-  Log::Info["interface"] << " AIOption::Baz is " << std::to_string(aiplus_options.test(AIPlusOption::Baz));
+  Log::Info["interface"] << " AIOption::EnableAutoSave is " << std::to_string(aiplus_options.test(AIPlusOption::EnableAutoSave));
+  Log::Info["interface"] << " AIOption::ImprovedPigFarms is " << std::to_string(aiplus_options.test(AIPlusOption::ImprovedPigFarms));
+  Log::Info["interface"] << " AIOption::CanTransportSerfsInBoats is " << std::to_string(aiplus_options.test(AIPlusOption::CanTransportSerfsInBoats));
+  Log::Info["interface"] << " AIOption::QuickDemoEmptyBuildSites is " << std::to_string(aiplus_options.test(AIPlusOption::QuickDemoEmptyBuildSites));
   // start any AI threads
   initialize_AI();
 }
 
-// tlongstretch
 AIPlusOptions &
 Interface::get_aiplus_options() {
   static AIPlusOptions aiplus_options;
   return aiplus_options;
 }
 
-// tlongstretch
 // Initialize AI for non-human players
 void
 Interface::initialize_AI() {
-  //Log::Debug["interface"] << " TEMPORARILY DISABLING AI TO DO PERF CHECK";
-  //return;
-//     face: the face image that represents this player.
-//           1-12 is AI, 13-14 is human player.
-// NOTE - values are actually 1-11, 12-13 because index starts at zero(invalid)!
   Player *player = game->get_player(0);
   unsigned int index = 0;
   do {
-    Log::Debug["interface"] << "player #" << index << " has face " << player->get_face() << " / " << NamePlayerFace[player->get_face()];
+    // face: the face image that represents this player.
+    //  1-11 is AI, 12-13 is human player.  0 is invalid
     if (player->get_face() >= 1 && player->get_face() <= 11) {
       Log::Info["freeserf"] << "Initializing AI for player #" << index;
       Log::Debug["ai"] << "MAIN GAME thread_id: " << std::this_thread::get_id();
@@ -521,6 +515,8 @@ Interface::set_game(PGame new_game) {
     viewport = new Viewport(this, game->get_map());
     viewport->set_displayed(true);
     add_float(viewport, 0, 0);
+    // ugly way to pass AIPlusOptions to functions that only have game but not interface
+    game->set_ai_options_ptr(&aiplus_options);
   }
 
   layout();
@@ -536,7 +532,8 @@ Interface::set_player(unsigned int player_index) {
     panel = nullptr;
   }
 
-  if (game == nullptr) {
+  if (!game) {
+    player = nullptr;
     return;
   }
 
@@ -568,7 +565,6 @@ Interface::set_player(unsigned int player_index) {
 
 Color
 Interface::get_player_color(unsigned int player_index) {
-  //Log::Debug["interface"] << " inside Interface::get_player_color with player_index " << player_index;
   Player::Color player_color = game->get_player(player_index)->get_color();
   Color color(player_color.red, player_color.green, player_color.blue);
   return color;
@@ -579,34 +575,8 @@ Interface::update_map_cursor_pos(MapPos pos) {
   map_cursor_pos = pos;
   if (building_road.is_valid()) {
     determine_map_cursor_type_road();
-  }
-  else {
+  } else {
     determine_map_cursor_type();
-  }
-
-  // with AI overlay on, mark any serf that is clicked on
-  // this doesn't seem to work reliably at all
-  //  also I think it is crashing if player doesn't have castle yet and AI grid is turned on?
-  if (get_ai_ptr(player->get_index()) != nullptr) {
-    Serf *serf = game->get_serf_at_pos(pos);
-    if (serf == nullptr){
-      Log::Debug["interface"] << "no serf found at clicked pos";
-    }
-    else {
-      Log::Debug["interface"] << "evaluating clicked-on serf with index " << serf->get_index();
-      std::vector<int> *iface_ai_mark_serf = get_ai_ptr(get_player()->get_index())->get_ai_mark_serf();
-      if (serf->get_owner() == get_player()->get_index() && (serf->get_state() != Serf::StateIdleInStock)) {
-        Log::Info["interface"] << "adding serf with index " << serf->get_index() << " to ai_mark_serf";
-        iface_ai_mark_serf->push_back(serf->get_index());
-      }
-      else {
-        Log::Debug["interface"] << "not marking serf with index " << serf->get_index();
-        Log::Debug["interface"] << "not marking serf with index " << serf->get_index() << ", job " << serf->get_type() << ", state " << serf->get_state();
-      }
-    }
-  }
-  else {
-    Log::Debug["interface"] << "this player is not an AI, not marking clicked-on serf";
   }
   update_interface();
 }
@@ -911,6 +881,29 @@ Interface::update() {
     }
   }
 
+  if (aiplus_options.test(AIPlusOption::EnableAutoSave)){
+    // auto-save if interval reached
+    if (game->get_const_tick() >= AUTOSAVE_INTERVAL + last_autosave_tick){
+      Log::Debug["interface"] << "auto-save interval reached, preparing to auto-save game...";
+      Log::Debug["interface"] << "thread #" << std::this_thread::get_id() << " is locking mutex before auto-saving game";
+      game->get_mutex()->lock();
+      Log::Debug["interface"] << "thread #" << std::this_thread::get_id() << " has locked mutex before auto-saving game";
+      std::string savename = "AUTOSAVE.save";
+      Log::Debug["interface"] << "savegame name is '" << savename << " '";
+      if (GameStore::get_instance().quick_save("autosave", game.get())){
+        Log::Info["interface"] << "successfully auto-saved game";
+      } else {
+        Log::Warn["interface"] << "FAILED TO SAVE GAME!";
+      }
+      Log::Debug["interface"] << "thread #" << std::this_thread::get_id() << " is unlocking mutex after auto-saving game";
+      game->get_mutex()->unlock();
+      Log::Debug["interface"] << "thread #" << std::this_thread::get_id() << " has unlocked mutex after auto-saving game";
+
+      last_autosave_tick = game->get_const_tick();
+    }
+  }
+
+
   viewport->update();
   set_redraw();
 }
@@ -919,6 +912,10 @@ bool
 Interface::handle_key_pressed(char key, int modifier) {
   switch (key) {
     /* Interface control */
+
+    /* disabling TAB key control for now because it triggers when
+      alt-tabbing and I am wondering if it is responsible for frequent
+      crashes seen when alt-tabbing and multitasking - when game is otherwise stable
     case '\t': {
       if (modifier & 2) {
         return_from_message();
@@ -927,6 +924,7 @@ Interface::handle_key_pressed(char key, int modifier) {
       }
       break;
     }
+    */
     case 27: {
       if ((notification_box != nullptr) && notification_box->is_displayed()) {
         close_message();
@@ -985,40 +983,37 @@ Interface::handle_key_pressed(char key, int modifier) {
       viewport->switch_layer(Viewport::LayerBuilds);
       break;
     }
+
     /* AI overlay grid - colored dots showing AI searching positions, roads being build, AI status, serf status, etc. */
-  case 'y': {
-    Log::Info["interface"] << "'y' key pressed, switching to LayerAI";
-    viewport->switch_layer(Viewport::LayerAI);
-    break;
-  }
-  /* Weather feature test.  */
-  /* tlongstretch experimental 
-  case 'w': {
-    // you must also resize the screen to get it to change, probably need to add some refresh command
-    Log::Info["interface"] << "'w' key pressed, enabling weather!";
-    if (viewport->weather_enabled() == true) {
-      Log::Info["interface"] << "'w' key pressed, disabling weather!";
-      viewport->disable_weather();
+    case 'y': {
+      Log::Info["interface"] << "'y' key pressed, switching to LayerAI";
+      viewport->switch_layer(Viewport::LayerAI);
+      break;
     }
-    else {
-      Log::Info["interface"] << "'w' key pressed, enabling weather!";
-      viewport->enable_weather(); 
+
+    case 'l': {
+      if (modifier & 1) {
+        Log::Info["interface"] << "CTRL-L pressed, telling AI to make any selected serf StateLost, for debugging";
+        AI *ai_ptr = get_ai_ptr(player->get_index());
+        if (ai_ptr == nullptr){
+          Log::Warn["interface"] << "got nullptr for get_ai_ptr(player->get_index()); for player index " << player->get_index();
+          break;
+        }else{
+          ai_ptr->set_serf_lost();
+        }
+      }
     }
-    //viewport->switch_layer(Viewport::LayerAI);
-    break;
-  }
-  */
 
     case 'j': {
     unsigned int current_index = player->get_index();
     unsigned int next_index = game->get_next_player(player)->get_index();
     if (current_index == next_index) {
-      Log::Debug["interface"] << "next player index is current player index - i.e. there is only one player, not switching";
+      //Log::Debug["interface"] << "next player index is current player index - i.e. there is only one player, not switching";
       play_sound(Audio::TypeSfxNotAccepted);
     }
     else {
       set_player(next_index);
-      Log::Debug["interface"] << "Switched to player #" << next_index;
+      Log::Info["interface"] << "Switched to player #" << next_index;
     }
       break;
     }

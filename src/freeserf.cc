@@ -23,7 +23,7 @@
 
 #include <string>
 #include <iostream>
-#include <fstream>
+// #include <fstream>
 
 #include "src/log.h"
 #include "src/version.h"
@@ -98,7 +98,7 @@ main(int argc, char *argv[]) {
   Data &data = Data::get_instance();
   if (!data.load(data_dir)) {
     Log::Error["main"] << "Could not load game data.";
-  //p1plp1_throw_exception_win32_if_missing_SPA_data
+    //p1plp1_throw_exception_win32_if_missing_SPA_data
     #ifdef WIN32
      int msgboxID = SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "FreeSerf", "missing SPA*.PA", NULL);
     #endif
@@ -109,12 +109,12 @@ main(int argc, char *argv[]) {
 
   Graphics &gfx = Graphics::get_instance();
 
-  ///* TODO move to right place */
-  //Audio &audio = Audio::get_instance();
-  //Audio::PPlayer player = audio.get_music_player();
-  //if (player) {
-  //  Audio::PTrack t = player->play_track(Audio::TypeMidiTrack0);
-  //}
+  /* TODO move to right place */
+  Audio &audio = Audio::get_instance();
+  Audio::PPlayer player = audio.get_music_player();
+  if (player) {
+    Audio::PTrack t = player->play_track(Audio::TypeMidiTrack0);
+  }
 
   GameManager &game_manager = GameManager::get_instance();
 
@@ -138,7 +138,7 @@ main(int argc, char *argv[]) {
   interface.set_size(screen_width, screen_height);
   interface.set_displayed(true);
 
-  // tlongstretch
+  /* Initialize AI */
   bool loaded_game_start_ai = false;
   if (save_file.empty()) {
     interface.open_game_init();
@@ -151,7 +151,7 @@ main(int argc, char *argv[]) {
   EventLoop &event_loop = EventLoop::get_instance();
   event_loop.add_handler(&interface);
 
-  // tlongstretch
+  /* Initialize AI on load_game */
   if (loaded_game_start_ai) {
     interface.initialize_AI();
   }

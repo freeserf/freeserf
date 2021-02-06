@@ -27,7 +27,6 @@
 
 #include <string>
 #include <algorithm>
-#include <set>
 #include <map>
 #include <memory>
 #include <sstream>
@@ -62,7 +61,7 @@ Game::Game()
   buildings = Buildings(this);
   serfs = Serfs(this);
   std::mutex mutex;
-  std::mutex autosave_mutex;
+  aiplus_options_ptr = new AIPlusOptions();
 
   /* Create NULL-serf */
   serfs.allocate();
@@ -153,12 +152,45 @@ typedef struct UpdateInventoriesData {
   Resource::Type resource;
   int *max_prio;
   Flag **flags;
+  // adding support for requested resource timeouts:
+  // - when requesting a resource, count the total tile distance it must travel
+  //    as determined by adding up the length of the path-dirs followed in the
+  //    flag search.
+  // - set an "expected by" tick based on the delivery distance times some multiplier
+  //    that allows for reasonable traffic and steep roads
+  // - inside the Building update, add code to re-request a resource that has not 
+  //    arrived by the expected-by tick
+  // - if this expected_by tick is not made part of the save/load game, it should
+  //    be harmless as the expected_by tick will not be set and not trigger on load
+  //    but should still be set and work normally for any further reqs from the building
+  // I don't understand how these are pointers when being defined in the struct
+  //  but not when assigned to data.xxxx ?
+  //
+  // array of dists_from_inv, index matches with inv[i], assigned once
+  //  an inventory is found (assigns the current running total so far)
+  int *dists_from_inv;
+  // current accumulalted tile dist so far since the start of the entire flag search
+  int dist_so_far;
+  // needed to determine the path Direction between the current and previous flags
+  //  so the flag length[dir] field can be checked
+  Flag *prev_flag;
 } UpdateInventoriesData;
 
 bool
 Game::update_inventories_cb(Flag *flag, void *d) {
   UpdateInventoriesData *data = reinterpret_cast<UpdateInventoriesData*>(d);
+  // I don't understand how the flag search_dir is used in this function, because
+  //  it seems that the search_dir is always 0 / East/Right just like in the
+  //  schedule_unknown_dest_cb
   int inv = flag->get_search_dir();
+  // HOW THE HELL CAN THIS ALWAYS BE East/Right ???????
+  //  the answer is - because it doesn't actually refer to a Direction when used by Game::update_inventories_cb,
+  //  it looks to be re-used to store the index number (in the context of THIS CURRENT SEARCH)
+  //   of the Inventory (castle, warehouse/stock) that the flag is attached to 
+  //   and it is only always 0/East/DirectionRight for the castle inventory, 
+  //   but for other warehouse will be 1, 2, 100, and so on
+  //Log::Info["game"] << "thread #" << std::this_thread::get_id() << " debug: inside Game::update_inventories_cb, flag pos = " << flag->get_position() << ", \"flag->search_dir\" i.e. inv[#] = " << inv;
+
   if (data->max_prio[inv] < 255 && flag->has_building()) {
     Building *building = flag->get_building();
 
@@ -166,9 +198,73 @@ Game::update_inventories_cb(Flag *flag, void *d) {
     if (bld_prio > data->max_prio[inv]) {
       data->max_prio[inv] = bld_prio;
       data->flags[inv] = flag;
+      //Log::Info["game"] << "DEBUG: setting data->dists_so_far[" << inv << "] = " << data->dist_so_far;
+      data->dists_from_inv[inv] = data->dist_so_far;
     }
   }
+  // adding support for requested resource timeouts
+  //
+  // this needs to be outside of the if() block above because that if() is only true
+  //  when the flag being checked is one of the valid inventories
+  //  For all non-inventory flags, we need to determine the flag dist between this and the
+  //   previous flag, and increment the current running dist_from_inv.
+  //  Once and inventory is reached, the current dist_from_inv is stored in reference to
+  //   that inv[i] Inventory in the dists_from_inv[] array
+  //  The number is never reset, it keeps increasing until the last inv is found or the search ends
+  //
+  // quick hack to avoid 0 result?
+  bool found = false;
+  // for some reason data->prev_flag->get_other_end_flag(d)->get_index() seems to cause a crash
+  //  if prev_flag is flag 0 (castle flag? or no flag?) so try skipping if that is the case
+  //Log::Info["game"] << "debug: inside Game::update_inventories_cb, foo";
+  //Log::Info["game"] << "debug: inside Game::update_inventories_cb, ZZ THIS flag index " << flag->get_index();
+  // hmm it seems like prev_flag is somehow set to ...something resulting in super high prev_flag->get_index
+  //  when I would expect it to be a nullptr.
+  if (data->prev_flag != nullptr && data->prev_flag->get_index() > 0){
+    for (Direction d : cycle_directions_ccw()) {
+      //Log::Info["game"] << "debug: inside Game::update_inventories_cb, checking dir " << d;
+      //// exception debug
+      //Log::Info["game"] << "debug: inside Game::update_inventories_cb, 2";
+      //Log::Info["game"] << "debug: inside Game::update_inventories_cb,Y1 prev flag index " << data->prev_flag->get_index();
+      //Log::Info["game"] << "debug: inside Game::update_inventories_cb,Y2 THIS flag index " << flag->get_index();
+      //if (!data->prev_flag->has_path(d)){
+      //  Log::Info["game"] << "debug: inside Game::update_inventories_cb, B";
+      //  continue;
+      //}
+      //
+      //Log::Info["game"] << "debug: inside Game::update_inventories_cb, 3";
+      //Log::Info["game"] << "debug: inside Game::update_inventories_cb,z1 " << data->prev_flag->get_other_end_flag(d)->get_index();
+      //Log::Info["game"] << "debug: inside Game::update_inventories_cb,z2 " << flag->get_index();
+      //Log::Info["game"] << "debug: inside Game::update_inventories_cb,z3";
+      //if (data->prev_flag->get_other_end_flag(d)->get_index() != flag->get_index()) {
+      //  Log::Info["game"] << "debug: inside Game::update_inventories_cb, C";
+      //  continue;
+      //}
+      //Log::Info["game"] << "debug: inside Game::update_inventories_cb, 4";
+      if (data->prev_flag->has_path(d) && data->prev_flag->get_other_end_flag(d)->get_index() == flag->get_index()) {
+        // could also use flag->get_other_end_flag(d)? but this reads better
+        // to try to approximate the original road length, bit-shift >>4, or divide by 16
+        //  and then triple it to get pretty close the reversing the above table
+        if(data->prev_flag->get_road_length((Direction)d) == 0){
+          Log::Info["game"] << "debug: it seems get_road_length can be zero, using +1 for dist_from_inv addition";
+          data->dist_so_far += 1;
+        }else{
+          Log::Info["game"] << "DEBUG: data->prev_flag->get_road_length((Direction)" << d << ") = " << data->prev_flag->get_road_length((Direction)d) << "... which is then divided by 16 then multiplied by 3 to get " << (data->prev_flag->get_road_length((Direction)d) / 16) * 3;
+          data->dist_so_far += (data->prev_flag->get_road_length((Direction)d) / 16) * 3;
+        }
+        found = true;
+        break;
+      }
+    }
+  }
+  if (!found){
+    //Log::Info["game"] << "debug: no prev_flag/dir found, using +1 for dist_from_inv addition";
+    data->dist_so_far += 1;
+  }
+  data->prev_flag = flag;
 
+  // it seems this callback cannot return true, it doesn't have a return true condition
+  //  instead, the search exits once all inventories in the search are considered(?)
   return false;
 }
 
@@ -176,6 +272,7 @@ Game::update_inventories_cb(Flag *flag, void *d) {
    resources that are needed outside of the inventory into the out queue. */
 void
 Game::update_inventories() {
+	//Log::Debug["game"] << " debug: inside Game::update_inventories(), start of function";
   const Resource::Type arr_1[] = {
     Resource::TypePlank,
     Resource::TypeStone,
@@ -226,6 +323,8 @@ Game::update_inventories() {
 
   /* AI: TODO */
 
+  // is this randomly selecting one of three orderings ??? why???
+
   const Resource::Type *arr = NULL;
   switch (random_int() & 7) {
     case 0: arr = arr_2; break;
@@ -235,12 +334,29 @@ Game::update_inventories() {
 
   while (arr[0] != Resource::TypeNone) {
     for (Player *player : players) {
+      // the ONLY VALID "Inventories" are the castle and warehouse/stocks
+      //  buildings which have stock[0] and stock[1], including ones that produce
+      //   new resources, do NOT count as valid inventories for this search (I think)
+      // an array of inventories that could service requests for this resource
       Inventory *invs[256];
+      // n is the number of inventories that could service this request
+      //  that is, the last valid invs[] array index
       int n = 0;
-    Log::Verbose["game"] << "thread #" << std::this_thread::get_id() << " is locking mutex inside Game::update_inventories";
-    mutex.lock();
-    Log::Verbose["game"] << "thread #" << std::this_thread::get_id() << " has locked mutex inside Game::update_inventories";
+      Log::Verbose["game"] << "thread #" << std::this_thread::get_id() << " is locking mutex inside Game::update_inventories";
+      mutex.lock();
+      Log::Verbose["game"] << "thread #" << std::this_thread::get_id() << " has locked mutex inside Game::update_inventories";
       for (Inventory *inventory : inventories) {
+
+        // debug
+        //  it seems pretty normal for Inventory out queues to be full
+        //if (inventory->get_owner() == player->get_index() && inventory->is_queue_full()) {
+        //  Building *foo = get_building(inventory->get_building_index());
+        //  Log::Info["game"] << "debug: OUT QUEUE FULL for player" << player->get_index() << "'s inventory at " << NameBuilding[foo->get_type()] << " at pos " << foo->get_position();
+        //}
+
+        // find inventories (whose out-queue is not full) 
+        //  that have the desired resource type, and add
+        //  as a pointer to the inv[] array
         if (inventory->get_owner() == player->get_index() &&
             !inventory->is_queue_full()) {
           Inventory::Mode res_dir = inventory->get_res_mode();
@@ -272,22 +388,60 @@ Game::update_inventories() {
         }
       }
 
-    Log::Verbose["game"] << "thread #" << std::this_thread::get_id() << " is unlocking mutex inside Game::update_inventories";
-    mutex.unlock();
-    Log::Verbose["game"] << "thread #" << std::this_thread::get_id() << " has unlocked mutex inside Game::update_inventories";
+      Log::Verbose["game"] << "thread #" << std::this_thread::get_id() << " is unlocking mutex inside Game::update_inventories";
+      mutex.unlock();
+      Log::Verbose["game"] << "thread #" << std::this_thread::get_id() << " has unlocked mutex inside Game::update_inventories";
 
+      //
+      // NOTE - so far nothing in this function is paying attention to where resources are REQUESTED
+      //   it is only iterating over each Resource type, checking Inventories that could supply it,
+      //    and THEN checking where the Resource might be needed at 
+      //       search.execute(update_inventories_cb
+      //
+
+      // if there are no inventories that could service this request, 
+      //  skip this resource type and move on to the next resource type
       if (n == 0) continue;
 
+      // if there ARE inventories that could service this resource type,
+      //  start a new search
       FlagSearch search(this);
 
+      // each array item will map to one of the invs[], which are the
+      //  valid inventories that can service this request.  Up to 256
+      //  inventories could be considered, but usually much fewer!
       int max_prio[256];
       Flag *flags_[256];
+      // adding support for requested resource timeouts
+      int dists_from_inv[256];
 
+      // set the initial values for each inventory
+      //  'n' is the number of inventories found that could 
+      //   service this request... i.e. the highest element
+      //   of array inv[]
       for (int i = 0; i < n; i++) {
+        //Log::Info["game"] << "debug: inside Game::update_inventories, wtf0, i = " << i << ", n = " << n;
         max_prio[i] = 0;
         flags_[i] = NULL;
+        // adding support for requested resource timeouts
+        dists_from_inv[i] = -1;
+        // get the game->Flag* attached to the inventory building...
         Flag *flag = flags[invs[i]->get_flag_index()];
+        // and set its search dir and add it as a source to the FlagSearch
+        // NOTE - Directions only go from 0-5, but this is setting 0-256!
+        //  this may explain why elsewhere I see invalid dirs, and various
+        //  bitwise operators doing 'AND 255' on Direction integers
+        // but this is casting it to Direction type... 
+        // which is an enum that only goes up to 5!!!  how can that work?
+        // shouldn't it break as soon as it hits 6???  test this out
+        //
+        // I no longer think that search_dir actually refers to a direction at all in some cases
+        //  it looks like it is simply used to store the INVENTORY INDEX FOR THIS CURRENT SEARCH
+        //   rather than any valid Direction 0-5
+        //
+        //Log::Info["game"] << "debug: inside Game::update_inventories, wtf1, i = " << i << ", n = " << n << ", (Direction)i = " << (Direction)i;
         flag->set_search_dir((Direction)i);
+        //Log::Info["game"] << "debug: inside Game::update_inventories, wtf1, i = " << i << ", n = " << n << ", flag->get_search_dir = " << flag->get_search_dir();
         search.add_source(flag);
       }
 
@@ -295,15 +449,32 @@ Game::update_inventories() {
       data.resource = arr[0];
       data.max_prio = max_prio;
       data.flags = flags_;
+      // adding support for requested resource timeouts
+      data.dists_from_inv = dists_from_inv;
+      data.dist_so_far = 0;
+      // I guess I need to set this explicitly?  was seeing weird behavior
+      data.prev_flag = nullptr;
+      // the update_inventories_cb does stuff but can only return false,
+      //  maybe it is not intended to end early and simply to do some work
+      //  as part of the flag search?
+      //Log::Info["game"] << "debug: starting Game::update_inventories flagsearch";
       search.execute(update_inventories_cb, false, true, &data);
 
       for (int i = 0; i < n; i++) {
+        // if max_prio >0 that means there is a building at this
+        //  flag which can request resources
         if (max_prio[i] > 0) {
-          Log::Verbose["game"] << " dest for inventory " << i << "found";
+          //Log::Verbose["game"] << " dest for inventory " << i << "found";
           Resource::Type res = (Resource::Type)arr[0];
+		  
+		  //Log::Info["game"] << " debug: inside update_inventories, i == " << i << ", expecting it to be way under 256";
 
           Building *dest_bld = flags_[i]->get_building();
-          if (!dest_bld->add_requested_resource(res, false)) {
+          //Log::Info["flag"] << "inside Game::update_inventories, about to call add_requested_resource for dest_bld of type " << NameBuilding[dest_bld->get_type()];
+          // adding support for requested resource timeouts
+          //if (!dest_bld->add_requested_resource(res, false)) {
+          int dist_from_inv = dists_from_inv[i];
+          if (!dest_bld->add_requested_resource(res, false, dist_from_inv)) {
             throw ExceptionFreeserf("Failed to request resource.");
           }
 
@@ -323,19 +494,7 @@ Game::update_flags() {
   Log::Verbose["game"] << "thread #" << std::this_thread::get_id() << " is locking mutex for Game::update_flags";
   mutex.lock();
   Log::Verbose["game"] << "thread #" << std::this_thread::get_id() << " has locked mutex for Game::update_flags";
-  // still getting vector iterators incompatible here sometimes   oct22 2020
-  // again   oct29 2020
-  // again   dec01 2020
-  // again   dec02 2020
-  // again   dec10 2020
-  /* this is the original function
-  for (Flag *flag : flags) {
-  Log::Verbose["game"] << "calling flag->update for flag with index " << flag->get_index();
-    flag->update();
-  Log::Verbose["game"] << "done flag->update for flag with index " << flag->get_index();
-  }
-  */
-  // trying replacement with p1plp1 way
+  // replacing with p1plp1 way, this works reliably
   Flags::Iterator i = flags.begin();
   Flags::Iterator prev = flags.begin();
   while (i != flags.end()) {
@@ -378,7 +537,6 @@ Game::send_serf_to_flag_search_cb(Flag *flag, void *d) {
   }
 
   SendSerfToFlagData *data = reinterpret_cast<SendSerfToFlagData*>(d);
-
   /* Inventory reached */
   Building *building = flag->get_building();
   Inventory *inv = building->get_inventory();
@@ -430,7 +588,6 @@ Game::send_serf_to_flag_search_cb(Flag *flag, void *d) {
           dest_bld->serf_request_granted();
           mode = -1;
         }
-
         serf->go_out_from_inventory(inv->get_index(), data->dest_index, mode);
 
         return true;
@@ -440,6 +597,7 @@ Game::send_serf_to_flag_search_cb(Flag *flag, void *d) {
           inv->have_serf(Serf::TypeGeneric) &&
           (data->res1 == -1 || inv->get_count_of(data->res1) > 0) &&
           (data->res2 == -1 || inv->get_count_of(data->res2) > 0)) {
+
         data->inventory = inv;
         /* player_t *player = globals->player[SERF_PLAYER(serf)]; */
         /* game.field_340 = player->cont_search_after_non_optimal_find; */
@@ -447,7 +605,9 @@ Game::send_serf_to_flag_search_cb(Flag *flag, void *d) {
       }
     }
   }
-
+  if (data->serf_type == Serf::TypeGeologist){
+    //Log::Info["game"] << "debug: inside Game::send_serf_to_flag_search_cb with GEOLOGIST, F false";
+  }
   return false;
 }
 
@@ -455,18 +615,20 @@ Game::send_serf_to_flag_search_cb(Flag *flag, void *d) {
 bool
 Game::send_serf_to_flag(Flag *dest, Serf::Type type, Resource::Type res1,
                         Resource::Type res2) {
-  Log::Verbose["game"] << " inside Game::send_serf_to_flag";
+  //Log::Info["game"] << "debug: inside Game::send_serf_to_flag, serf type " << type << ", res1 " << res1 << ", res2 " << res2;         
   Building *building = NULL;
   if (dest->has_building()) {
-  Log::Verbose["game"] << " inside Game::send_serf_to_flag, found dest building";
     building = dest->get_building();
   }
+  //Log::Info["game"] << "debug: inside Game::send_serf_to_flag, A";
 
   /* If type is negative, building is non-NULL. */
   if ((type < 0) && (building != NULL)) {
     Player *player = players[building->get_owner()];
     type = player->get_cycling_serf_type(type);
   }
+
+  //Log::Info["game"] << "debug: inside Game::send_serf_to_flag, B";
 
   SendSerfToFlagData data;
   data.inventory = NULL;
@@ -476,22 +638,16 @@ Game::send_serf_to_flag(Flag *dest, Serf::Type type, Resource::Type res1,
   data.res1 = res1;
   data.res2 = res2;
 
-  Log::Verbose["game"] << " inside Game::send_serf_to_flag, starting send_serf_to_flag_search";
+
   bool r = FlagSearch::single(dest, send_serf_to_flag_search_cb, true, false,
                               &data);
-  Log::Verbose["game"] << " inside Game::send_serf_to_flag, done send_serf_to_flag_search";
 
   if (!r) {
-  Log::Verbose["game"] << " inside Game::send_serf_to_flag, send_serf_to_flag_search returned false";
     return false;
   } else if (data.inventory != NULL) {
-  Log::Verbose["game"] << " inside Game::send_serf_to_flag, send_serf_to_flag_search returned true and data.inventory found";
     Inventory *inventory = data.inventory;
-  Log::Verbose["game"] << " inside Game::send_serf_to_flag, send_serf_to_flag_search returned true and data.inventory found, calling out serf";
     Serf *serf = inventory->call_out_serf(Serf::TypeGeneric);
-
     if ((type < 0) && (building != NULL)) {
-    Log::Verbose["game"] << " inside Game::send_serf_to_flag, a knight was called out";
       /* Knight */
       building->knight_request_granted();
 
@@ -507,35 +663,29 @@ Game::send_serf_to_flag(Flag *dest, Serf::Type type, Resource::Type res1,
       int mode = 0;
 
       if (type == Serf::TypeGeologist) {
-    Log::Verbose["game"] << " inside Game::send_serf_to_flag, a geologists was called out";
         mode = 6;
       } else {
-    Log::Verbose["game"] << " inside Game::send_serf_to_flag, some other serf type was called out";
         if (building == NULL) {
-        Log::Warn["game"] << " inside Game::send_serf_to_flag, some other serf type was called out, but building is NULL! returning false";
           return false;
         }
         building->serf_request_granted();
         mode = -1;
       }
-    Log::Verbose["game"] << " inside Game::send_serf_to_flag, calling serf->go_out_from_inventory";
+
       serf->go_out_from_inventory(inventory->get_index(), dest->get_index(),
                                   mode);
-
       if (res1 != Resource::TypeNone) inventory->pop_resource(res1);
       if (res2 != Resource::TypeNone) inventory->pop_resource(res2);
     }
-  Log::Verbose["game"] << " inside Game::send_serf_to_flag, done, returning true 1";
+
     return true;
   }
-  Log::Verbose["game"] << " inside Game::send_serf_to_flag, done, returning true 2";
   return true;
 }
 
 /* Dispatch geologist to flag. */
 bool
 Game::send_geologist(Flag *dest) {
-  Log::Debug["game"] << " inside Game::send_geologist, calling send_serf_to_flag";
   return send_serf_to_flag(dest, Serf::TypeGeologist, Resource::TypeHammer,
                            Resource::TypeNone);
 }
@@ -550,10 +700,8 @@ Game::update_buildings() {
   Buildings::Iterator i = blds.begin();
   while (i != blds.end()) {
     Building *building = *i;
-    if (building != NULL) {
-      building->update(tick);
-    }
     ++i;
+    building->update(tick);
   }
   Log::Verbose["game"] << "thread #" << std::this_thread::get_id() << " is unlocking mutex for Game::update_buildings";
   mutex.unlock();
@@ -567,32 +715,11 @@ Game::update_serfs() {
   mutex.lock();
   Log::Verbose["game"] << "thread #" << std::this_thread::get_id() << " has locked mutex for Game::update_serfs";
   Serfs::Iterator i = serfs.begin();
-  Serfs::Iterator prev = serfs.begin();
   while (i != serfs.end()) {
-    prev = i;
     Serf *serf = *i;
-    if (serf != NULL) {
-      if (serf->get_index() != 0) {
-        //here it crashes? on dead on delete flag building etc
-        serf->update();
-    if (serf == NULL) {
-      Log::Debug["game"] << "Game::update_serfs, serf is NULL after update";
-    }
-    //tlongstretch
-    //else if (serf->get_type() == Serf::TypeDead) {
-    else if (serf->is_marked_for_deletion()) {
-      // this is a test fix for https://github.com/tlongstretch/freeserf-with-AI-plus/issues/27
-      //  this likely will cause serfs that are still playing their dying animation to disappear!
-      delete_serf(serf);
-    }
-      }
-    }
-    if (serf == NULL) {
-      Log::Debug["game"] << "Game::update_serfs, serf is NULL so set i=prev";
-      i = prev;
-    } else {
-      if (i != serfs.end())
-         ++i;
+    ++i;
+    if (serf->get_index() != 0) {
+      serf->update();
     }
   }
   Log::Verbose["game"] << "thread #" << std::this_thread::get_id() << " is unlocking mutex for Game::update_serfs";
@@ -1033,6 +1160,7 @@ Game::path_serf_idle_to_wait_state(MapPos pos) {
       return true;
     }
   }
+
   return false;
 }
 
@@ -1047,12 +1175,6 @@ Game::remove_road_forwards(MapPos pos, Direction dir) {
 
     if (map->has_serf(pos)) {
       Serf *serf = get_serf_at_pos(pos);
-    // trying skip if nullptr...
-    //   THIS LIKELY INTRODUCES NEW PROBLEMS AS A RESULT OF THE FOLLOWING ACTIONS NOT HAPPENING!
-    if (serf == nullptr) {
-      Log::Warn["serf"] << " inside Serf::remove_road_forwards - Serf *serf is nullptr!, skipping it.  This is normally a crash bug";
-      continue;
-    }
       if (!map->has_flag(pos)) {
         serf->set_lost_state();
       } else {
@@ -1651,7 +1773,7 @@ Game::build_castle(MapPos pos, Player *player) {
   map->set_height_no_refresh(pos, h);
   for (Direction d : cycle_directions_cw()) {
     //map->set_height(map->move(pos, d), h);
-  map->set_height_no_refresh(map->move(pos, d), h);
+    map->set_height_no_refresh(map->move(pos, d), h);
   }
 
   update_land_ownership(pos);
@@ -1709,6 +1831,9 @@ Game::can_demolish_flag(MapPos pos, const Player *player) const {
 bool
 Game::demolish_flag_(MapPos pos) {
   /* Handle any serf at pos. */
+
+  //  actually, nevermind.  It should not be possible to delete a flag that is at the end of a water path
+  //   unless first deleting the water path itself
   if (map->has_serf(pos)) {
     Serf *serf = get_serf_at_pos(pos);
     serf->flag_deleted(pos);
@@ -1728,6 +1853,7 @@ Game::demolish_flag_(MapPos pos) {
   for (Serf *serf : serfs) {
     serf->path_merged(flag);
   }
+
   map->set_object(pos, Map::ObjectNone, 0);
 
   /* Remove resources from flag. */
@@ -2246,59 +2372,66 @@ Game::create_building(int index) {
 
 void
 Game::delete_building(Building *building) {
-  Log::Debug["game"] << " inside Game::delete_building";
   map->set_object(building->get_position(), Map::ObjectNone, 0);
   buildings.erase(building->get_index());
-  Log::Debug["game"] << "done Game::delete_building";
 }
 
 Game::ListSerfs
 Game::get_player_serfs(Player *player) {
   ListSerfs player_serfs;
+
   for (Serf *serf : serfs) {
     if (serf->get_owner() == player->get_index()) {
       player_serfs.push_back(serf);
     }
   }
+
   return player_serfs;
 }
 
 Game::ListBuildings
 Game::get_player_buildings(Player *player) {
   ListBuildings player_buildings;
+
   for (Building *building : buildings) {
     if (building->get_owner() == player->get_index()) {
       player_buildings.push_back(building);
     }
   }
+
   return player_buildings;
 }
 
 Game::ListInventories
 Game::get_player_inventories(Player *player) {
   ListInventories player_inventories;
+
   for (Inventory *inventory : inventories) {
     if (inventory->get_owner() == player->get_index()) {
       player_inventories.push_back(inventory);
     }
   }
+
   return player_inventories;
 }
 
 Game::ListSerfs
 Game::get_serfs_at_pos(MapPos pos) {
   ListSerfs result;
+
   for (Serf *serf : serfs) {
     if (serf->get_pos() == pos) {
       result.push_back(serf);
     }
   }
+
   return result;
 }
 
 Game::ListSerfs
 Game::get_serfs_in_inventory(Inventory *inventory) {
   ListSerfs result;
+
   Log::Verbose["game"] << "thread #" << std::this_thread::get_id() << " is locking mutex inside Game::get_serfs_in_inventory";
   mutex.lock();
   Log::Verbose["game"] << "thread #" << std::this_thread::get_id() << " is locking mutex inside Game::get_serfs_in_inventory";
@@ -2308,6 +2441,7 @@ Game::get_serfs_in_inventory(Inventory *inventory) {
       result.push_back(serf);
     }
   }
+
   Log::Verbose["game"] << "thread #" << std::this_thread::get_id() << " is locking mutex inside Game::get_serfs_in_inventory";
   mutex.unlock();
   Log::Verbose["game"] << "thread #" << std::this_thread::get_id() << " is locking mutex inside Game::get_serfs_in_inventory";
@@ -2317,17 +2451,18 @@ Game::get_serfs_in_inventory(Inventory *inventory) {
 Game::ListSerfs
 Game::get_serfs_related_to(unsigned int dest, Direction dir) {
   ListSerfs result;
+
   for (Serf *serf : serfs) {
     if (serf->is_related_to(dest, dir)) {
       result.push_back(serf);
     }
   }
+
   return result;
 }
 
 Player *
 Game::get_next_player(const Player *player) {
-  Log::Debug["game"] << " inside Game::get_next_player";
   auto p = players.begin();
   while (*p != player) {
     ++p;
@@ -2750,6 +2885,7 @@ operator >> (SaveReaderText &reader, Game &game) {
         " position.";
       throw ExceptionFreeserf(str.str());
     }
+
     game.map->set_obj_index(building->get_position(), building->get_index());
   }
 
@@ -2817,9 +2953,6 @@ operator << (SaveWriterText &writer, Game &game) {
     player_writer << *player;
   }
 
-  // got vector iterators incompatible here,
-  //  but really it could happen anywhere in these next few functions
-  //   could add the usual fixes, but probably makes more sense to just mutex/pause the AIs
   for (Flag *flag : game.flags) {
     if (flag->get_index() == 0) continue;
     SaveWriterText &flag_writer = writer.add_section("flag", flag->get_index());
@@ -2844,7 +2977,6 @@ operator << (SaveWriterText &writer, Game &game) {
     SaveWriterText &serf_writer = writer.add_section("serf", serf->get_index());
     serf_writer << *serf;
   }
-
 
   writer << *game.map;
 

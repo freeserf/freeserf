@@ -25,8 +25,8 @@
 #include <memory>
 #include <utility>
 #include <sstream>
-#include <string>   //to satisfy cpplinter
-#include <vector>   //to satisfy cpplinter
+#include <string>
+#include <vector>
 
 #include "src/misc.h"
 #include "src/game.h"
@@ -791,17 +791,16 @@ Viewport::draw_unharmed_building(Building *building, int lx, int ly) {
         }
 
         int pigs_count = building->get_res_count_in_stock(1);
-
         int pigs_layout[] = {
           0,   0,   0,  0,
-          6, 140,  -2,  6,
-          5, 280,   8,  8,
-          3, 420, -11,  8,
           1,  40,   2, 11,
+          2, 460,   0, 17,
+          3, 420, -11,  8,
+          4,  90, -11, 19,
+          5, 280,   8,  8,
+          6, 140,  -2,  6,
           7, 180,  -8, 13,
           8, 320,  13, 14,
-          2, 460,   0, 17,
-          4,  90, -11, 19,
         };
 
         for (int p = 1; p <= pigs_count; p++) {
@@ -1360,6 +1359,7 @@ Viewport::draw_row_serf(int lx, int ly, bool shadow, const Color &color,
 /* Translate serf type into the corresponding sprite code. */
 int
 Viewport::serf_get_body(Serf *serf) {
+  /*
   const int transporter_type[] = {
     0, 0x3000, 0x3500, 0x3b00, 0x4100, 0x4600, 0x4b00, 0x1400,
     0x700, 0x5100, 0x800, 0x1c00, 0x1d00, 0x1e00, 0x1a00, 0x1b00,
@@ -1367,11 +1367,28 @@ Viewport::serf_get_body(Serf *serf) {
     0x6c00, 0x5700, 0x5600, 0, 0, 0, 0, 0
   };
 
+  // need to add more zeros here for AIPlusOption::CanTransportSerfsInBoats
   const int sailor_type[] = {
     0, 0x3100, 0x3600, 0x3c00, 0x4200, 0x4700, 0x4c00, 0x1500,
     0x900, 0x7700, 0xa00, 0x2100, 0x2200, 0x2300, 0x1f00, 0x2000,
     0x6e00, 0x6f00, 0x7000, 0x7100, 0x7200, 0x7300, 0x7400, 0x7500,
     0x7600, 0x5f00, 0x6000, 0, 0, 0, 0, 0
+  };
+  */
+
+  // extra zeros for added fake Resource types 
+  const int transporter_type[] = {
+    0, 0x3000, 0x3500, 0x3b00, 0x4100, 0x4600, 0x4b00, 0x1400,
+    0x700, 0x5100, 0x800, 0x1c00, 0x1d00, 0x1e00, 0x1a00, 0x1b00,
+    0x6800, 0x6d00, 0x6500, 0x6700, 0x6b00, 0x6a00, 0x6600, 0x6900,
+    0x6c00, 0x5700, 0x5600, 0, 0, 0, 0, 0, 0, 0
+  };
+
+  const int sailor_type[] = {
+    0, 0x3100, 0x3600, 0x3c00, 0x4200, 0x4700, 0x4c00, 0x1500,
+    0x900, 0x7700, 0xa00, 0x2100, 0x2200, 0x2300, 0x1f00, 0x2000,
+    0x6e00, 0x6f00, 0x7000, 0x7100, 0x7200, 0x7300, 0x7400, 0x7500,
+    0x7600, 0x5f00, 0x6000, 0, 0, 0, 0, 0, 0, 0
   };
 
   Data::Animation animation = data_source->get_animation(serf->get_animation(),
@@ -1415,7 +1432,22 @@ Viewport::serf_get_body(Serf *serf) {
       }
       t += 0x200;
     } else if (serf->get_state() == Serf::StateTransporting) {
-      t += sailor_type[serf->get_delivery()];
+      // add support for AIPlusOption::CanTransportSerfsInBoats
+      /// need to figure out this -1 +1 resource type stuff
+      if (serf->get_delivery() >= Resource::TypeSerf - 1){
+        // set the 0x200 "rowing empty boat" animation
+        //Log::Info["viewport"] << "debug: sailor is transporting a serf, setting default +0x200 animation";
+        t += 0x200;
+      } else {
+        // I think this sets the animation/sprite to the right transported resource?
+        //  yes, that looks right.  Try simply adding another ,0,0 to that list
+        //  for now, try this hack
+        //Log::Info["viewport"] << "debug: sailor is NOT transporting a serf, change animation to match the resource type";
+        t += sailor_type[serf->get_delivery()];
+      }
+      // try this way, now that extra zeroes added for fake resource types 26+
+      // nope this doesn't work... hmm figure it out later
+      //t += sailor_type[serf->get_delivery()];
     } else {
       t += 0x100;
     }
@@ -1877,8 +1909,6 @@ Viewport::draw_active_serf(Serf *serf, MapPos pos, int x_base, int y_base) {
                            << " (" << Serf::get_state_name(serf->get_state())
                            << "): " << serf->get_animation()
                            << "," << serf->get_counter();
-    //object self fix animation
-    serf->fix_bad_animation();
     return;
   }
 
@@ -1891,94 +1921,240 @@ Viewport::draw_active_serf(Serf *serf, MapPos pos, int x_base, int y_base) {
 
   if (body > -1) {
     Color color = interface->get_player_color(serf->get_owner());
-    draw_row_serf(lx, ly, true, color, body);
+
+    // add support for AIPlusOption::CanTransportSerfsInBoats
+    //
+    // this whole section should probably be moved outside of viewport and into serf, and instead update
+    //  viewport to support drawing multiple serfs per pos
+    //
+    if (serf->get_type() == Serf::TypeSailor && serf->get_state() == Serf::StateTransporting &&
+        (serf->get_pickup_serf_type() > Serf::TypeNone && serf->get_pickup_serf_index() > 0) ||
+        (serf->get_passenger_serf_type() > Serf::TypeNone && serf->get_passenger_serf_index() > 0) ||
+        (serf->get_dropped_serf_type() > Serf::TypeNone && serf->get_dropped_serf_index() > 0)){
+
+      // if a boat passenger is being picked up, draw the passenger waiting at the flag
+      //  or he will disappear once the sailor enters the tile
+      int draw_boat_pickup = false;
+      int pickup_body;
+      int pickup_x;
+      int pickup_y;
+      if (serf->get_type() == Serf::TypeSailor && serf->get_state() == Serf::StateTransporting &&
+          serf->get_pickup_serf_type() > Serf::TypeNone && serf->get_pickup_serf_index() > 0){
+        Serf::Type pickup_type = serf->get_pickup_serf_type();
+        unsigned int pickup_index = serf->get_pickup_serf_index();
+        Serf *pickup_serf = interface->get_game()->get_serf(pickup_index);
+        //Log::Info["viewport"] << "inside draw_active_serf: transporting sailor is about to pick up a serf of type " << pickup_type << " with serf index " << pickup_index;
+        if (pickup_serf == nullptr){
+          Log::Warn["viewport"] << "got nullptr for pickup boat passenger serf of type " << pickup_type << " with serf index " << pickup_index << "!";
+        }else{
+          // sanity check
+          PGame game = interface->get_game();
+          if (map->has_flag(pos) && game->get_flag_at_pos(pos)->has_serf_waiting_for_boat()){
+            //Log::Info["viewport"] << "inside draw_active_serf: transporting sailor: a serf is waiting for a boat at flag pos " << pos;
+            draw_boat_pickup = true;
+            pickup_body = serf_get_body(pickup_serf);
+            // draw the dropped passenger at the flag, which is the x/y_base and requires no offset
+            pickup_x = x_base;
+            pickup_y = y_base;
+          }else{
+            throw ExceptionFreeserf("serf->get_pickup_serf vars are set but either map has no flag at pos or game says no waiting serf!");
+          }
+        }
+      }
+
+      // if a sailor already has a passenger in his boat, draw the passenger in the boat
+      int draw_boat_passenger = false;
+      int passenger_body;
+      int passenger_x;
+      int passenger_y;
+      if (serf->get_type() == Serf::TypeSailor && serf->get_state() == Serf::StateTransporting &&
+          serf->get_passenger_serf_type() > Serf::TypeNone && serf->get_passenger_serf_index() > 0){
+        Serf::Type passenger_type = serf->get_passenger_serf_type();
+        unsigned int passenger_index = serf->get_passenger_serf_index();
+        Serf *passenger_serf = interface->get_game()->get_serf(passenger_index);
+        if (passenger_serf == nullptr){
+          Log::Warn["viewport"] << "got nullptr for current boat passenger serf of type " << passenger_type << " with serf index " << passenger_index << "!";
+        }
+        else{
+          //Log::Info["viewport"] << "inside draw_active_serf: transporting sailor: a serf has a passenger in his boat at flag pos " << pos;
+          draw_boat_passenger = true;
+          passenger_body = serf_get_body(passenger_serf);
+          int passenger_sprite_offset[] = {
+            // these seem backwards - north/south reversed
+            // x, y pixel offset from sailor sprite
+             5,  1,   // dir 0  "East / Right"
+             5,  5,   // dir 1  "SouthEast / DownRight"
+            -5,  5,   // dir 2  "SouthWest / Down"
+            -5,  1,   // dir 3  "West / Left"
+            -3, -3,   // dir 4  "NorthWest / UpLeft"
+             3, -3,   // dir 5  "NorthEast / Up"
+          };
+          int passenger_dir = passenger_serf->get_walking_dir();
+          // draw the passenger in the boat, a dynamic offset that follows the boat along the tile
+          passenger_x = lx + passenger_sprite_offset[passenger_dir * 2];
+          passenger_y = ly + passenger_sprite_offset[passenger_dir * 2 + 1];
+        }
+      }
+
+      // if a sailor has just dropped off a passenger, draw the passenger standing at the flag
+      //  or he will not appear until the sailor moves one tile away from the flag
+      int draw_boat_dropoff = false;
+      int dropoff_body;
+      int dropoff_x;
+      int dropoff_y;
+      if (serf->get_type() == Serf::TypeSailor && serf->get_state() == Serf::StateTransporting &&
+          serf->get_dropped_serf_type() > Serf::TypeNone && serf->get_dropped_serf_index() > 0){
+        Serf::Type dropoff_type = serf->get_dropped_serf_type();
+        unsigned int dropoff_index = serf->get_dropped_serf_index();
+        Serf *dropoff_serf = interface->get_game()->get_serf(dropoff_index);
+        if (dropoff_serf == nullptr){
+          Log::Warn["viewport"] << "got nullptr for dropped boat passenger serf of type " << dropoff_type << " with serf index " << dropoff_index << "!";
+        }
+        else{
+          //Log::Info["viewport"] << "inside draw_active_serf: transporting sailor: a passenger has just been dropped off at flag pos " << pos;
+          draw_boat_dropoff = true;
+          dropoff_body = serf_get_body(dropoff_serf);
+          //  because the x/y_base is the sailor pos, it needs to be adjusted 
+          //  the position is normally figured out by draw_serf_row and includes map height adjustment
+          //  however, because water and coast tiles are always flag and lowest height, it should be
+          //   safe to use a hardcoded table to find the relative flag pos in the next tile
+          int dropoff_sprite_offset[] = {
+            // these seem backwards - north/south reversed
+            // x, y pixel offset from sailor sprite
+            -31,  0,   // dir 0  "East / Right"
+            -15,-15,   // dir 1  "SouthEast / DownRight"
+             15,-17,   // dir 2  "SouthWest / Down"
+             31,  0,   // dir 3  "West / Left"
+             16, 20,   // dir 4  "NorthWest / UpLeft"
+            -15, 15,   // dir 5  "NorthEast / Up"
+          };
+          int dropoff_dir = dropoff_serf->get_walking_dir();
+          // draw the dropped passenger at the flag, a fixed offset relative to the sailor's base pos
+          dropoff_x = x_base + dropoff_sprite_offset[dropoff_dir * 2];
+          dropoff_y = y_base + dropoff_sprite_offset[dropoff_dir * 2 + 1];
+        }
+      }
+
+      // draw order of the sailor/passenger spites based on the direction the flag meets the water.
+      Direction flag_dir = DirectionNone;
+      // if picking up, the sailor is heading to the flag so check the sailor's dir
+      if (draw_boat_pickup){ flag_dir = (Direction)serf->get_walking_dir(); }
+      // if dropped off, the sailor is heading away from the flag so invert the sailor's dir
+      if (draw_boat_dropoff){ flag_dir = reverse_direction((Direction)serf->get_walking_dir()); }
+
+      if (flag_dir < 4){
+        // If the flag is north of the water path the sailor/boat/passenger should occlude any pickup/dropoff serf
+        //  for dir left and right it looks better when the sailor/boat/passenger occludes any pickup/dropoff serf
+        if (draw_boat_pickup){ draw_row_serf(pickup_x, pickup_y, true, color, pickup_body);}
+        if (draw_boat_dropoff){ draw_row_serf(dropoff_x, dropoff_y, true, color, dropoff_body);}
+        draw_row_serf(lx, ly, true, color, body);  // the sailor
+        if (draw_boat_passenger){ draw_row_serf(passenger_x, passenger_y, false, color, passenger_body);}
+      }else{
+        // If the flag is south of the water path any pickup/dropoff serf should occlude the sailor/boat/passenger
+        //Log::Info["viewport"] << "sailor is heading SOUTH or EAST/WEST with a passenger";
+        draw_row_serf(lx, ly, true, color, body);  // the sailor
+        if (draw_boat_passenger){ draw_row_serf(passenger_x, passenger_y, false, color, passenger_body);}
+        if (draw_boat_pickup){ draw_row_serf(pickup_x, pickup_y, true, color, pickup_body);}
+        if (draw_boat_dropoff){ draw_row_serf(dropoff_x, dropoff_y, true, color, dropoff_body);}
+      }
+
+    } else {
+      //
+      // **** draw any normal serf as usual ****
+      //
+      draw_row_serf(lx, ly, true, color, body);
+    }
+
+    //  
+    // 'g' Freeserf debug grid showing map lines and serf states/info
+    //
     if (layers & Layer::LayerGrid) {
       frame->draw_number(lx, ly, serf->get_index(), Color(0, 0, 128));
       frame->draw_string(lx, ly + 8, serf->print_state(),  Color(0, 0, 128));
     }
-  //
-// AI overlay used for debugging AI
-//
-  if (layers & Layer::LayerAI) {
-    unsigned int current_player_index = interface->get_player()->get_index();
-    AI *ai = interface->get_ai_ptr(current_player_index);
-    if (ai == NULL) {
-      // no AI running for this player, do nothing
-    }
-    else {
-      std::vector<int> ai_mark_serf = *(interface->get_ai_ptr(current_player_index)->get_ai_mark_serf());
-
-      // automatically mark waiting serfs
-      bool auto_mark_this_serf = false;
-      /*
-      if (serf->get_state() != Serf::StateIdleInStock) {
-              // direction is unknown until set by serf->is_waiting() in the ptr created here
-              //  actually, for this debugging we don't even care which dir is waiting but it seems to be mandatory
-              Direction dir = DirectionNone;
-              Direction *dir_ptr = &dir;
-              if (serf->is_waiting(dir_ptr)) {
-                      Direction dir = *(dir_ptr);
-                      MapPos serf_pos = bad_map_pos;
-                      serf_pos = serf->get_pos();
-                      //Log::Info["ai"] << "serf at pos " << serf_pos << " is waiting for direction " << dir << " / " << NameDirection[dir];
-                      //Log::Info["ai"] << "serf state: " << serf->print_state();
-                      //Log::Info["ai"] << "marking serf on AI overlay";
-                      //ai_mark_serf->push_back(serf->get_index());
-                      auto_mark_this_serf = true;
-              }
+    
+    //
+    // 'y' AI overlay used for debugging AI
+    //
+    if (layers & Layer::LayerAI) {
+      unsigned int current_player_index = interface->get_player()->get_index();
+      AI *ai = interface->get_ai_ptr(current_player_index);
+      if (ai == NULL) {
+        // no AI running for this player, do nothing
       }
-      */
+      else {
+        std::vector<int> ai_mark_serf = *(interface->get_ai_ptr(current_player_index)->get_ai_mark_serf());
 
-      if (std::count(ai_mark_serf.begin(), ai_mark_serf.end(), serf->get_index()) > 0
-        || auto_mark_this_serf == true) {
-        //frame->draw_number(lx, ly, serf->get_index(), Color(50, 50, 200));
-        std::string state_details = "";
-        //frame->draw_string(lx, ly + 8, serf->print_state(), Color(125, 125, 200));
-        // print state has some weird corruption at the end... try just getting the values we want
-        //state_details = serf->print_state();
-        state_details += serf->get_state_name(serf->get_state());
-        state_details += "\n";
-        //frame->draw_string(lx, ly + 16, "counter: " + std::to_string(serf->get_counter()) + "\n", Color(125, 125, 200));
-        // it seems "counter" is just animation frame counter and doesn't provide any useful information in detecting stuck serfs
-        //   as it keeps rolling even if serf is static
-        //state_details += "counter: " + std::to_string(serf->get_counter()) + "\n";
-
-        /* I don't think this is needed anymore, it seems that only serf->is_waiting check matters
-        int wait_counter = 0;
-        std::string wait_string;
-        if (serf->get_state() == Serf::StateWalking) {
-            wait_counter = serf->get_walking_wait_counter();
-            wait_string = "walking wait: ";
-        }
-        if (serf->get_state() == Serf::StateTransporting || serf->get_state() == Serf::StateDelivering) {
-            wait_counter = serf->get_transporting_wait_counter();
-            wait_string = "transporting wait: ";
-        }
-        // make text increasingly red as wait increases
-        int red = 150 + (25 * wait_counter);
-        if (red > 255) {
-            red = 255;
-        }
-        int green_blue = 150 - (25 * wait_counter);
-        if (green_blue < 0) {
-            green_blue = 0;
+        // automatically mark waiting serfs
+        bool auto_mark_this_serf = false;
+        /*
+        if (serf->get_state() != Serf::StateIdleInStock) {
+                // direction is unknown until set by serf->is_waiting() in the ptr created here
+                //  actually, for this debugging we don't even care which dir is waiting but it seems to be mandatory
+                Direction dir = DirectionNone;
+                Direction *dir_ptr = &dir;
+                if (serf->is_waiting(dir_ptr)) {
+                        Direction dir = *(dir_ptr);
+                        MapPos serf_pos = bad_map_pos;
+                        serf_pos = serf->get_pos();
+                        //Log::Info["ai"] << "serf at pos " << serf_pos << " is waiting for direction " << dir << " / " << NameDirection[dir];
+                        //Log::Info["ai"] << "serf state: " << serf->print_state();
+                        //Log::Info["ai"] << "marking serf on AI overlay";
+                        //ai_mark_serf->push_back(serf->get_index());
+                        auto_mark_this_serf = true;
                 }
+        }
+        */
 
-                state_details += wait_string + std::to_string(wait_counter) + "\n";
-                */
+        if (std::count(ai_mark_serf.begin(), ai_mark_serf.end(), serf->get_index()) > 0
+          || auto_mark_this_serf == true) {
+          //frame->draw_number(lx, ly, serf->get_index(), Color(50, 50, 200));
+          std::string state_details = "";
+          //frame->draw_string(lx, ly + 8, serf->print_state(), Color(125, 125, 200));
+          // print state has some weird corruption at the end... try just getting the values we want
+          //state_details = serf->print_state();
+          state_details += serf->get_state_name(serf->get_state());
+          state_details += "\n";
+          //frame->draw_string(lx, ly + 16, "counter: " + std::to_string(serf->get_counter()) + "\n", Color(125, 125, 200));
+          // it seems "counter" is just animation frame counter and doesn't provide any useful information in detecting stuck serfs
+          //   as it keeps rolling even if serf is static
+          //state_details += "counter: " + std::to_string(serf->get_counter()) + "\n";
 
-                // draw text box above the marked serf with its status
-                //  this red/green_blue stuff is related to darkening color effect as wait_counter increases, but is not actually needed
-                //frame->draw_string(lx, ly + 8, state_details, Color(red, green_blue, green_blue));
-                // just use a fixed color
-        frame->draw_string(lx, ly + 8, state_details, colors.at("white"));
-        //frame->draw_string(1, 1, status, ai->get_mark_color("white"));
+          /* I don't think this is needed anymore, it seems that only serf->is_waiting check matters
+          int wait_counter = 0;
+          std::string wait_string;
+          if (serf->get_state() == Serf::StateWalking) {
+              wait_counter = serf->get_walking_wait_counter();
+              wait_string = "walking wait: ";
+          }
+          if (serf->get_state() == Serf::StateTransporting || serf->get_state() == Serf::StateDelivering) {
+              wait_counter = serf->get_transporting_wait_counter();
+              wait_string = "transporting wait: ";
+          }
+          // make text increasingly red as wait increases
+          int red = 150 + (25 * wait_counter);
+          if (red > 255) {
+              red = 255;
+          }
+          int green_blue = 150 - (25 * wait_counter);
+          if (green_blue < 0) {
+              green_blue = 0;
+                  }
+
+                  state_details += wait_string + std::to_string(wait_counter) + "\n";
+                  */
+
+                  // draw text box above the marked serf with its status
+                  //  this red/green_blue stuff is related to darkening color effect as wait_counter increases, but is not actually needed
+                  //frame->draw_string(lx, ly + 8, state_details, Color(red, green_blue, green_blue));
+                  // just use a fixed color
+          frame->draw_string(lx, ly + 8, state_details, colors.at("white"));
+          //frame->draw_string(1, 1, status, ai->get_mark_color("white"));
+        }
       }
-    }
-  }
-  // end LayerAI
+    } // end LayerAI
 
-  }
+  } // end if (body > -1)
 
   /* Draw additional serf */
   if (serf->get_state() == Serf::StateKnightEngagingBuilding ||
@@ -1987,7 +2163,8 @@ Viewport::draw_active_serf(Serf *serf, MapPos pos, int x_base, int y_base) {
       serf->get_state() == Serf::StateKnightPrepareAttackingFree ||
       serf->get_state() == Serf::StateKnightAttackingFree ||
       serf->get_state() == Serf::StateKnightAttackingVictoryFree ||
-      serf->get_state() == Serf::StateKnightAttackingDefeatFree) {
+      serf->get_state() == Serf::StateKnightAttackingDefeatFree ||
+      serf->get_state() == Serf::StateKnightAttackingVictory) {
     int index = serf->get_attacking_def_index();
     if (index != 0) {
       Serf *def_serf = interface->get_game()->get_serf(index);
@@ -1999,7 +2176,7 @@ Viewport::draw_active_serf(Serf *serf, MapPos pos, int x_base, int y_base) {
       int lx = x_base + animation.x;
       int ly = y_base + animation.y - 4 * map->get_height(pos);
       int body = serf_get_body(def_serf);
-
+     
       if (body > -1) {
         Color color = interface->get_player_color(def_serf->get_owner());
         draw_row_serf(lx, ly, true, color, body);
@@ -2089,18 +2266,14 @@ Viewport::draw_serf_row(MapPos pos, int y_base, int cols, int x_base) {
     /* Active serf */
     if (map->has_serf(pos)) {
       Serf *serf = interface->get_game()->get_serf_at_pos(pos);
-    //tlongstretch
-    if (serf == nullptr) {
-      Log::Warn["viewport"] << "serf is nullptr during draw_serf_row!  this is normally a crash bug. skipping this serf";
-      continue;
-    }
+
       if (serf->get_state() != Serf::StateMining ||
           (serf->get_mining_substate() != 3 &&
            serf->get_mining_substate() != 4 &&
            serf->get_mining_substate() != 9 &&
            serf->get_mining_substate() != 10)) {
             draw_active_serf(serf, pos, x_base, y_base);
-          }
+         }
     }
 
     /* Idle serf */
@@ -2117,9 +2290,17 @@ Viewport::draw_serf_row(MapPos pos, int y_base, int cols, int x_base) {
         body = arr_2[((interface->get_game()->get_tick() +
                        arr_1[pos & 0xf]) >> 3) & 0x7f];
       }
-
-      Color color = interface->get_player_color(map->get_owner(pos));
-      draw_row_serf(lx, ly, true, color, body);
+      // when deleting lots of buildings, seeing exception here
+      //  on get_player_color->get_color because player/owner index is -1
+      //  which is "nobody".  Not sure of cause, thinking I could just have
+      //  get_color return black as default??
+      // actually, for now just don't draw this serf it pos has owner of -1
+      if (map->get_owner(pos) == -1){
+        Log::Warn["viewport"] << "got owner nobody / -1 for pos " << pos << " inside draw_row_serf call, not drawing this serf to avoid crash on get_color";
+      }else{
+        Color color = interface->get_player_color(map->get_owner(pos));
+        draw_row_serf(lx, ly, true, color, body);
+      }
     }
   }
 }
@@ -2133,18 +2314,14 @@ Viewport::draw_serf_row_behind(MapPos pos, int y_base, int cols, int x_base) {
     /* Active serf */
     if (map->has_serf(pos)) {
       Serf *serf = interface->get_game()->get_serf_at_pos(pos);
-    //tlongstretch
-    if (serf == nullptr) {
-    Log::Warn["viewport"] << "serf is nullptr during draw_serf_row_behind!  this is normally a crash bug. skipping this serf";
-    continue;
-    }
+
       if (serf->get_state() == Serf::StateMining &&
           (serf->get_mining_substate() == 3 ||
            serf->get_mining_substate() == 4 ||
            serf->get_mining_substate() == 9 ||
            serf->get_mining_substate() == 10)) {
             draw_active_serf(serf, pos, x_base, y_base);
-      }
+         }
     }
   }
 }
@@ -2334,6 +2511,9 @@ Viewport::draw_ai_grid_overlay() {
     base_pos = map->move_right(base_pos);
   }
 
+  // did I forget this somewhere when copying from Freeserf to Freeserf-with-AI-Plus?
+  PGame game = interface->get_game();
+  
   /*
   // draw road pathfinding
   //Road *p_mark_road = game->get_ai_mark_road();
@@ -2358,11 +2538,144 @@ Viewport::draw_ai_grid_overlay() {
   }
   */
 
+  //
+  // highlight arterial roads
+  //
+  // NOTE - if there are overlapping paths in an arterial branch, right one one "wins" and is drawn over the other
+  //  it would be nice to check for this and either merge the colors or better yet alternate between them flashing
+  // for now, trying random ordering so that it does flash back and forth
+  //
+  Log::Info["viewport"] << " inside draw_ai_grid_overlay, debug0";
+  //FlagDirToFlagDirVectorMap ai_mark_arterial_road_pairs = *(interface->get_ai_ptr(current_player_index)->get_ai_mark_arterial_road_pairs());
+  FlagDirToFlagDirVectorMap ai_mark_arterial_road_pairs = *(ai->get_ai_mark_arterial_road_pairs());
+
+  // hack - randomize the starting Dir so that overlapping paths tend to flash two different colors
+  //  this seems to work well enough, leaving it
+  MapPosVector inv_flag_pos_v = {};
+  for (std::pair<std::pair<MapPos, Direction>, std::vector<std::pair<MapPos,Direction>>> record : ai_mark_arterial_road_pairs){
+    inv_flag_pos_v.push_back(record.first.first);
+  }
+
+  // non-hack way
+  //for (std::pair<std::pair<MapPos, Direction>, std::vector<std::pair<MapPos,Direction>>> record : ai_mark_arterial_road_pairs){
+  //for (std::pair<std::pair<MapPos, Direction>, std::vector<std::pair<MapPos,Direction>>> record : *(ai->get_ai_mark_arterial_road_pairs())){
+  
+  for (MapPos inv_flag_pos : inv_flag_pos_v){
+    for (Direction inv_flag_dir : cycle_directions_rand_cw()) {
+      if (ai_mark_arterial_road_pairs.count(std::make_pair(inv_flag_pos, inv_flag_dir)) > 0){
+        Log::Info["viewport"] << " inside draw_ai_grid_overlay, debug1";
+
+        // non-hack way
+        //std::pair<MapPos, Direction> inv_key = record.first;
+        //MapPos inv_flag_pos = inv_key.first;
+        //Direction inv_flag_dir = inv_key.second;
+
+        Log::Info["viewport"] << " inside draw_ai_grid_overlay, debug1b inv_flag_pos " << inv_flag_pos << ", inv_flag_dir " << inv_flag_dir;
+        // iterate over the provided list of flag->dir pairs and walk
+        //  the tile-path along each, and highlight it
+        //Color rand_color = interface->get_ai_ptr(current_player_index)->get_random_mark_color();
+        //Color dir_color = interface->get_ai_ptr(current_player_index)->get_dir_color(inv_flag_dir);
+        Color dir_color = ai->get_dir_color(inv_flag_dir);
+
+        // non-hack way
+        //for (std::pair<MapPos,Direction> art_key : record.second) {
+        
+        for (std::pair<MapPos,Direction> art_key : ai_mark_arterial_road_pairs.at(std::make_pair(inv_flag_pos, inv_flag_dir))){
+          Log::Info["viewport"] << " inside draw_ai_grid_overlay, debug2";
+          // trace the tile-path to the next flag
+          //  and highlight each tile-path as we go
+          MapPos art_pos = art_key.first;
+          Direction art_dir = art_key.second;
+          Log::Info["viewport"] << " inside draw_ai_grid_overlay, debug2b, art_pos " << art_pos << ", art_dir " << art_dir;
+          MapPos pos = art_pos;
+          Direction dir = art_dir;
+          MapPos prev_pos = art_pos;
+          while (true) {
+
+            Log::Info["viewport"] << " inside draw_ai_grid_overlay, debug3";
+            if (!map->has_path(pos, dir)){
+              Log::Error["viewport"] << " inside draw_ai_grid_overlay, debug3a, NO PATH IN DIR " << dir << "!, crashing";
+              throw ExceptionFreeserf("inside draw_ai_grid_overlay, debug3a, NO PATH IN DIR");
+            }
+            pos = map->move(pos, dir);
+            for (Direction new_dir : cycle_directions_cw()) {
+              Log::Info["viewport"] << " inside draw_ai_grid_overlay, debug4, checking dir " << new_dir;
+              if (map->has_path(pos, new_dir) && new_dir != reverse_direction(dir)) {
+                Log::Info["viewport"] << " inside draw_ai_grid_overlay, debug5, found path in new_dir " << new_dir;
+                int prev_sx = 0;
+                int prev_sy = 0;
+                screen_pix_from_map_coord(prev_pos, &prev_sx, &prev_sy);
+                int this_sx = 0;
+                int this_sy = 0;
+                screen_pix_from_map_coord(pos, &this_sx, &this_sy);
+                //frame->draw_line(prev_sx, prev_sy, this_sx, this_sy, dir_color);
+                frame->draw_thick_line(prev_sx, prev_sy, this_sx, this_sy, dir_color);
+                prev_pos = pos;
+                dir = new_dir;
+                break;
+              }
+            }
+
+            Log::Info["viewport"] << " inside draw_ai_grid_overlay, debugZ";
+            if (map->has_flag(pos)) {
+              break;
+            }
+
+          }
+        }
+      } // foreach foo_dir - randomization hack
+    } // foreach foo_pos - randomization hack
+
+  }
+
+  //
+  // draw spider-web roads
+  //
+  //MapPosDirVector ai_mark_spiderweb_road_pairs = *(ai->get_ai_mark_spiderweb_road_pairs());
+  //for (std::pair<MapPos, Direction> pair : ai_mark_spiderweb_road_pairs){
+  Log::Info["viewport"] << " inside draw_ai_grid_overlay, draw spiderweb roads";
+  for (std::pair<MapPos, Direction> pair : *(ai->get_ai_mark_spiderweb_road_pairs())){
+    MapPos start_pos = pair.first;
+    Direction start_dir = pair.second;
+    Log::Info["viewport"] << " inside draw_ai_grid_overlay, draw spiderweb roads, start_pos " << start_pos << ", start_dir " << start_dir;
+    // trace the tile-path to the next flag
+    //  and highlight each tile-path as we go
+    MapPos pos = start_pos;
+    Direction dir = start_dir;
+    MapPos prev_pos = start_pos;
+    while (true) {
+      if (!map->has_path(pos, dir)){
+        Log::Error["viewport"] << " inside draw_ai_grid_overlay, draw spiderweb roads, start_pos " << start_pos << ", start_dir " << start_dir << ", NO PATH IN DIR " << dir << "!, crashing";
+        throw ExceptionFreeserf("inside draw_ai_grid_overlay, draw spiderweb roads, NO PATH IN DIR");
+      }
+      pos = map->move(pos, dir);
+      for (Direction new_dir : cycle_directions_cw()) {
+        if (map->has_path(pos, new_dir) && new_dir != reverse_direction(dir)) {
+          int prev_sx = 0;
+          int prev_sy = 0;
+          screen_pix_from_map_coord(prev_pos, &prev_sx, &prev_sy);
+          int this_sx = 0;
+          int this_sy = 0;
+          screen_pix_from_map_coord(pos, &this_sx, &this_sy);
+          //frame->draw_line(prev_sx, prev_sy, this_sx, this_sy, dir_color);
+          frame->draw_thick_line(prev_sx, prev_sy, this_sx, this_sy, ai->get_mark_color("cyan"));
+          prev_pos = pos;
+          dir = new_dir;
+          break;
+        }
+      }
+      if (map->has_flag(pos)) {
+        break;
+      }
+    }
+  }
+
   // draw AI status text box
   std::string status = ai->get_ai_status();
   //frame->draw_string(50, 50, "FOO\n", game->get_mark_color("white"));
   frame->draw_string(1, 1, "Player" + std::to_string(current_player_index) + " " + status, ai->get_mark_color("white"));
 
+  /*
   // draw AI expansion goals text box
   int row = 1;   // text rows are 10 pixels apart, start at row 1 (2nd row, after ai_status row)
   frame->draw_string(1, row * 10, "expansion_goals:", ai->get_mark_color("white"));
@@ -2370,6 +2683,7 @@ Viewport::draw_ai_grid_overlay() {
     row++;
     frame->draw_string(1, row * 10, "   " + goal, ai->get_mark_color("white"));
   }
+  */
 
   // draw cursor map click position
   if (ai_overlay_clicked_pos != bad_map_pos) {
@@ -2497,12 +2811,33 @@ Viewport::internal_draw() {
 }
 
 bool
-Viewport::handle_click_left(int lx, int ly) {
+Viewport::handle_click_left(int lx, int ly, int modifier) {
   set_redraw();
-
   MapPos clk_pos = map_pos_from_screen_pix(lx, ly);
-  Log::Debug["interface"] << "======= clicked on pos " << clk_pos << " with x,y " << map->pos_col(clk_pos) << "," << map->pos_row(clk_pos) << " =======";
+
   ai_overlay_clicked_pos = clk_pos;
+  // CTRL-click:  KMOD_CTRL = (KMOD_LCTRL|KMOD_RCTRL) which is 64|128
+  if (modifier == 64 || modifier == 128){
+    Log::Debug["viewport"] << "CTRL-clicked on pos " << clk_pos << " with x,y " << map->pos_col(clk_pos) << "," << map->pos_row(clk_pos);
+    // with AI overlay on, mark any serf that is clicked on (for debugging serf states)
+    Serf *serf = interface->get_game()->get_serf_at_pos(clk_pos);
+    if (serf == nullptr || serf->get_type() == Serf::TypeNone || serf->get_type() == Serf::TypeTransporterInventory){
+      Log::Debug["viewport"] << "no active serf found at CTRL-clicked pos " << clk_pos;
+    } else {
+      unsigned int current_player_index = interface->get_player()->get_index();
+      if (interface->get_ai_ptr(current_player_index) == nullptr) {
+        Log::Debug["viewport"] << "CTRL-clicked serf at pos " << clk_pos << " is not owned by an AI player, not marking";
+      }
+      else {
+        std::vector<int> *iface_ai_mark_serf = interface->get_ai_ptr(current_player_index)->get_ai_mark_serf();
+        Log::Info["viewport"] << "adding CTRL-clicked serf of type " << NameSerf[serf->get_type()] << " at pos " << clk_pos << " to Player" << current_player_index << "'s ai_mark_serf";
+        iface_ai_mark_serf->push_back(serf->get_index());
+      }
+    }
+  } else {
+    Log::Debug["viewport"] << "clicked on pos " << clk_pos << " with x,y " << map->pos_col(clk_pos) << "," << map->pos_row(clk_pos);
+  }
+
 
   if (interface->is_building_road()) {
     int dx = -map->dist_x(interface->get_map_cursor_pos(), clk_pos) + 1;

@@ -76,7 +76,7 @@ class PanelBar : public GuiObject, public Timer::Handler {
   Button button_type_with_build_possibility(int build_possibility);
 
   virtual void internal_draw();
-  virtual bool handle_click_left(int x, int y);
+  virtual bool handle_click_left(int x, int y, int modifier);
   virtual bool handle_key_pressed(char key, int modifier);
 
   // timer_handler_t

@@ -102,6 +102,8 @@ class VideoSDL : public Video {
                          const Video::Color color, Video::Frame *dest);
   virtual void draw_line(int x, int y, int x1, int y1,
                          const Video::Color color, Video::Frame *dest);
+  virtual void draw_thick_line(int x, int y, int x1, int y1,
+                         const Video::Color color, Video::Frame *dest);
 
   virtual void swap_buffers();
 

@@ -52,6 +52,7 @@ set(GAME_SOURCES ai.cc
                  game-manager.cc)
 
 set(GAME_HEADERS ai.h
+                 ai_roadbuilder.h
                  building.h
                  flag.h
                  game.h

@@ -52,7 +52,6 @@ class Road {
   MapPos get_source() const { return begin; }
   Dirs get_dirs() const { return dirs; }
   size_t get_length() const { return dirs.size(); }
-  // tlongstretch convenience function
   Direction get_first() const { return dirs.front(); }
   Direction get_last() const { return dirs.back(); }
   bool is_extendable() const { return (dirs.size() < max_length); }
@@ -341,7 +340,7 @@ class Map {
     return pos_add(pos_, spiral_pos_pattern[off]); }
   MapPos pos_add_extended_spirally(MapPos pos_, unsigned int off) const {
   if (off > 3268) { Log::Error["map"] << "cannot use pos_add_extended_spirally() beyond 3268 positions (~24 shells)"; }
-  return pos_add(pos_, extended_spiral_pos_pattern[off]);
+    return pos_add(pos_, extended_spiral_pos_pattern[off]);
   }
 
   // Shortest distance between map positions.
@@ -350,19 +349,16 @@ class Map {
   int dist_y(MapPos pos1, MapPos pos2) const {
     return -geom_.dist_y(pos1, pos2); }
 
-  /// Get random position
+  // Get random position
   MapPos get_rnd_coord(int *col, int *row, Random *rnd) const;
 
   // Movement of map position according to directions.
   MapPos move(MapPos pos, Direction dir) const {
     return geom_.move(pos, dir); }
 
-
-  // make this part of the calling function
   static void next_extended_spiral_coord(int x, int y, std::vector<int> *vector) {
     vector->push_back(x);
     vector->push_back(y);
-    //Log::Debug["map"] << "just added " << x << "," << y << ", vector now has " << vector->size() << " elements";
   }
 
   MapPos move_right(MapPos pos) const { return geom_.move_right(pos); }
@@ -383,7 +379,6 @@ class Map {
     return (game_tiles[pos].paths & 0x3f); }
   bool has_path(MapPos pos, Direction dir) const {
     return (BIT_TEST(game_tiles[pos].paths, dir) != 0); }
-  //tlongstretch - convenience function
   bool has_any_path(MapPos pos) {
     for (Direction d : cycle_directions_cw()) {
       if (has_path(pos, d))

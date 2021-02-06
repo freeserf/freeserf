@@ -29,15 +29,15 @@ RoadBuilderRoad::RoadBuilderRoad(MapPos e1, Direction d1, MapPos e2, Direction d
 */
 
 RoadBuilderRoad::RoadBuilderRoad(RoadEnds ends, Road r) {
-  Log::Debug["roadbuilder_init"] << " inside RoadBuilderRoad::RoadBuilderRoad";
+  // need to make these able to log to AILogs
+  //Log::Debug["roadbuilder_init"] << " inside RoadBuilderRoad::RoadBuilderRoad";
   end1 = std::get<0>(ends);
   dir1 = std::get<1>(ends);
   end2 = std::get<2>(ends);
   dir2 = std::get<3>(ends);
   road = r;
   contains_castle_flag = false;
-  Log::Debug["roadbuilder_init"] << "constructed RoadBuilderRoad::RoadBuilderRoad with end1 " << end1 <<
-    ", dir1 " << NameDirection[dir1] << ", end2 " << end2 << ", dir2 " << NameDirection[dir2] << ", road length " << road.get_length();
+  //Log::Debug["roadbuilder_init"] << "constructed RoadBuilderRoad::RoadBuilderRoad with end1 " << end1 << ", dir1 " << NameDirection[dir1] << ", end2 " << end2 << ", dir2 " << NameDirection[dir2] << ", road length " << road.get_length();
 }
 
 

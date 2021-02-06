@@ -41,7 +41,6 @@ Log::Logger Log::Debug(Log::LevelDebug, "Debug");
 Log::Logger Log::Info(Log::LevelInfo, "Info");
 Log::Logger Log::Warn(Log::LevelWarn, "Warning");
 Log::Logger Log::Error(Log::LevelError, "Error");
-//Log::Logger Log::Player0(Log::LevelVerbose, "Verbose");
 
 Log::Log() {
 #ifdef WIN32

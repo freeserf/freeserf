@@ -34,8 +34,7 @@ endif()
 
 set(TEST_MAP_SOURCES test_map.cc)
 add_executable(test_map ${TEST_MAP_SOURCES})
-# disabling this until I can figure out how to pass --filters arg
-#target_check_style(test_map)
+target_check_style(test_map)
 set_property(TARGET test_map PROPERTY FOLDER "Tests")
 target_link_libraries(test_map game tools gtest gtest_main ${CMAKE_THREAD_LIBS_INIT})
 gtest_add_tests(TARGET test_map
@@ -47,8 +46,7 @@ endforeach(test)
 
 set(TEST_SAVE_GAME_SOURCES test_save_game.cc)
 add_executable(test_save_game ${TEST_SAVE_GAME_SOURCES})
-# disabling this until I can figure out how to pass --filters arg
-#target_check_style(test_save_game)
+target_check_style(test_save_game)
 set_property(TARGET test_save_game PROPERTY FOLDER "Tests")
 target_link_libraries(test_save_game game tools gtest gtest_main ${CMAKE_THREAD_LIBS_INIT})
 gtest_add_tests(TARGET test_save_game
@@ -59,8 +57,7 @@ endforeach(test)
 
 set(TEST_MAP_GEOMETRY_SOURCES test_map_geometry.cc)
 add_executable(test_map_geometry ${TEST_MAP_GEOMETRY_SOURCES})
-# disabling this until I can figure out how to pass --filters arg
-#target_check_style(test_map_geometry)
+target_check_style(test_map_geometry)
 set_property(TARGET test_map_geometry PROPERTY FOLDER "Tests")
 target_link_libraries(test_map_geometry game tools gtest gtest_main ${CMAKE_THREAD_LIBS_INIT})
 gtest_add_tests(TARGET test_map_geometry

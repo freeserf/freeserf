@@ -29,7 +29,7 @@
 #include "src/building.h"
 #include "src/gui.h"
 #include "src/game-manager.h"
-#include "src/ai.h"  // used for viewport and maybe other funtions to get the ai object so they can fetch the ai_mark stuff for AI overlay for debugging
+#include "src/ai.h"
 
 static const unsigned int map_building_sprite[] = {
   0, 0xa7, 0xa8, 0xae, 0xa9,
@@ -88,6 +88,7 @@ class Interface : public GuiObject, public GameManager::Handler {
   BuildPossibility build_possibility;
 
   unsigned int last_const_tick;
+  unsigned int last_autosave_tick;
 
   Road building_road;
   int building_road_valid_dir;
@@ -103,13 +104,13 @@ class Interface : public GuiObject, public GameManager::Handler {
   int current_stat_8_mode;
   int current_stat_7_item;
 
-  int water_in_view;
-  int trees_in_view;
+  // these variables do not appear to actually be used
+  //int water_in_view;
+  //int trees_in_view;
 
   int return_timeout;
   int return_pos;
 
-  // tlongstretch
   AI *ai_ptrs[5] = { NULL, NULL, NULL, NULL, NULL };
   AIPlusOptions aiplus_options;
 
@@ -185,7 +186,6 @@ class Interface : public GuiObject, public GameManager::Handler {
 
   virtual bool handle_event(const Event *event);
 
-  // tlongstretch
   // used for viewport and maybe other funtions to get the ai object so they can fetch the ai_mark stuff for AI overlay for debugging
   AI * get_ai_ptr(unsigned int index) { return ai_ptrs[index]; }
   // options bitfield (bool settings)
@@ -207,7 +207,6 @@ class Interface : public GuiObject, public GameManager::Handler {
   virtual void layout();
   virtual bool handle_key_pressed(char key, int modifier);
 
-  // used for viewport and maybe other funtions to get the ai object so they can fetch the ai_mark stuff for AI overlay for debugging
   void set_ai_ptr(unsigned int index, AI *ai) { ai_ptrs[index] = ai; }
 
   // GameManager::Handler implementation

@@ -44,6 +44,7 @@ FlagSearch::add_source(Flag *flag) {
 bool
 FlagSearch::execute(flag_search_func *callback, bool land,
                     bool transporter, void *data) {
+  //Log::Info["flag"] << "thread #" << std::this_thread::get_id() << "debug: inside FlagSearch::execute with current flag queue.front()" << queue.front()->get_position();
   for (int i = 0; i < SEARCH_MAX_DEPTH && !queue.empty(); i++) {
     Flag *flag = queue.front();
     queue.erase(queue.begin());
@@ -53,6 +54,16 @@ FlagSearch::execute(flag_search_func *callback, bool land,
       queue.clear();
       return true;
     }
+
+    /*
+    // here is the original Flagsearch::execute function 
+    //   before I added support for AIPlusOption::CanTransportSerfsInBoats
+    // I broke it up and inverted all the negative checks to make it more readable
+    // NOTE - this original function never actually checks flag->has_path(i)
+    //  which is confusing!
+    //   because it is designed to ONLY work for:
+    //    routing serfs - disallowing water routes
+    //    routing resources - disallowing routes without transporters
 
     for (Direction i : cycle_directions_ccw()) {
       if ((!land || !flag->is_water_path(i)) &&
@@ -64,6 +75,88 @@ FlagSearch::execute(flag_search_func *callback, bool land,
         queue.push_back(other_flag);
       }
     }
+    */
+
+    // adding support for AIPlusOption::CanTransportSerfsOnBoats
+    //
+    // the function argument 'bool land' and 'bool transporter are used as follows':
+    // if a resource is being routed, land=false and transporter=true
+    //    which means "does not have to be a land route, uses transporter(?)"
+    // if a serf being is routed, land=true and transporter=false
+    //    which means "must be a land route, does not need transporter(?)"...
+    //  ... unless there is already a boat and AIPlusOption::CanTransportSerfsInBoats is set
+    //Log::Info["flag"] << "debug a";
+    for (Direction i : cycle_directions_ccw()) {
+      //Log::Info["flag"] << "debug: inside FlagSearch::execute, checking dir: " << i;
+      // sanity check my assumption that 'land' and 'transporter' are exclusive (two sides of the same coin)
+      if (land == true && transporter == true){
+        throw ExceptionFreeserf("faulty Flagsearch::execute logic!  both 'land' and 'transporter' bools are true but I assume this can never happen!");
+      }
+      
+      if (!flag->has_path(i)){
+        //Log::Info["flag"] << "debug: inside FlagSearch::execute, no path in dir " << i << ", skipping this dir";
+        // ... skip this dir/flag
+        continue;
+      }
+
+      // if a serf is being routed... ('land = true' suggests it is a serf)
+      if (land == true){
+        //Log::Info["flag"] << "debug: inside FlagSearch::execute, checking dir: " << i << ", 'land' == true";
+        // ...and this is a water route (which requires a sailor to transport serfs)
+        // WARNING - is_water_path can only be uses to check a path that is certain to exist, it will return true if there is no path at all!
+        //if (flag->has_path(i) && flag->is_water_path(i)){
+        // checking flag->has_path earlier now
+        if (flag->is_water_path(i)){
+          // debug - I am seeing serfs walking on water paths when CanTransportSerfsInBoats is *OFF* 
+          // hmm... I cannot reproduce this now using a human player
+          Log::Info["flag"] << "debug SERFS WALKING ON WATER, skipping flag " << flag->get_index() << " dir " << NameDirection[i] << " is water path";
+          // ...but CanTransportSerfsInBoats option is not on...
+          if (!game->get_ai_options_ptr()->test(AIPlusOption::CanTransportSerfsInBoats)){
+            // ... skip this dir/flag
+            // debug - I am seeing serfs walking on water paths when CanTransportSerfsInBoats is *OFF*
+            // hmm... I cannot reproduce this now using a human player
+            Log::Info["flag"] << "debug SERFS WALKING ON WATER, skipping flag " << flag->get_index() << " dir " << NameDirection[i] << " because is water path but CanTransportSerfsInBoats is false";
+            continue;
+          }
+          //Log::Info["flag"] << "debug e";
+          // ...but no sailor is on the water route...
+          if (!flag->has_transporter(i)){
+            //Log::Info["flag"] << "debug: inside FlagSearch::execute, checking dir: " << i << ", 'land' == true, this flag has a water path, but this flag-dir has no sailor!  skipping this dir";
+            // ... skip this dir/flag
+            continue;
+          }
+        }
+      }
+      
+      // if this is a resource being routed... ('transporter = true' suggests it is a resource)
+      //  ... but there is no transporter on this flag-path-dir...
+      //   NOTE it should be possible to remove the 'transporter == true' check if we are sure that land and transporter bools are exclusive
+      //Log::Info["flag"] << "debug g";
+      if (transporter && !flag->has_transporter(i)){
+        //Log::Info["flag"] << "debug: inside FlagSearch::execute, checking dir: " << i << ", 'transporter' == true but this flag-dir has no transporter!  skipping this dir";
+        // ... skip this dir/flag
+        continue;
+      }
+      
+      // if this is the same flag we just checked(?)
+      //Log::Info["flag"] << "debug: inside FlagSearch::execute, checking dir: " << i << ", for flag at pos " << flag->get_position() << ", about to check flag->other_endpoint.f[" << i << "]->search_num to see if it matches id " << id;
+	  // got a crash here, access violation for flag->other_endpoint.f[i]
+	  // again
+      if (flag->other_endpoint.f[i]->search_num == id) {
+        //Log::Info["flag"] << "debug: inside FlagSearch::execute, checking dir: " << i << " flag->other_endpoint.f[" << i << "]->search_num matches id " << id << " (meaning already visited this?), skipping this dir";
+        // ... skip this dir/flag
+        continue;
+      }
+      //Log::Info["flag"] << "debug: inside FlagSearch::execute, continuing search";
+
+      // if NONE of the above exclusions were true, continue the search
+      flag->other_endpoint.f[i]->search_num = id;
+      flag->other_endpoint.f[i]->search_dir = flag->search_dir;
+      Flag *other_flag = flag->other_endpoint.f[i];
+      queue.push_back(other_flag);
+      //Log::Info["flag"] << "debug: inside FlagSearch::execute, done adding new node at end of loop";
+    }
+
   }
 
   /* Clean up */
@@ -76,6 +169,7 @@ bool
 FlagSearch::single(Flag *src, flag_search_func *callback, bool land,
                    bool transporter, void *data) {
   FlagSearch search(src->get_game());
+  //Log::Info["flag"] << "debug: inside FlagSearch::single with src flag at pos " << src->get_position();
   search.add_source(src);
   return search.execute(callback, land, transporter, data);
 }
@@ -94,7 +188,8 @@ Flag::Flag(Game *game, unsigned int index)
   , other_endpoint{}
   , other_end_dir{}
   , bld_flags(0)
-  , bld2_flags(0) {
+  , bld2_flags(0)
+  , serf_waiting_for_boat(false) {
   for (int j = 0; j < FLAG_MAX_RES_COUNT; j++) {
     slot[j].type = Resource::TypeNone;
     slot[j].dest = 0;
@@ -153,6 +248,48 @@ Flag::pick_up_resource(unsigned int from_slot, Resource::Type *res,
 
   fix_scheduled();
 
+  return true;
+}
+
+// support AIPlusOption::CanTransportSerfsInBoats
+//  is this function even necessary?  could just reset serf_waiting_for_boat directly
+bool
+Flag::pick_up_serf() {
+  if (!serf_waiting_for_boat){
+    throw ExceptionFreeserf("No serf is waiting for boat pickup at this flag!");
+  }
+  serf_waiting_for_boat = false;
+  // clear the flag search queue that was set to fake a resource schedule
+  //  which is the mechanism used to trigger a sailor to come to the serf in WaitForBoat state
+  // if this queue is not cleared the sailor will, after dropping off the passenger, come back
+  //  to the original flag where the serf in WaitForBoat state was waiting... and become stuck
+  // We want the sailor to return to idle (inactive) transporter on road state
+
+  // it is more complicated than simply calling queue.clear(), 
+  //  the flag's search_num and search_dir must be cleared
+  //queue.clear();
+  // this still isn't working, the sailor still thinks there is a resource waiting at the flag
+  //
+  // wait... maybe this is not a problem at all and the sailor simply NORMALLY returns to the 
+  //  flag where the last resource CAME FROM before returning to idle state
+  // Now I am thinking the issue is that a sailor cannot pick up a WaitForBoat passenger
+  //  if he is already adjacent to flag where the passenger is waiting!
+  // YES, I just confirmed in original SerfCity/Settlers1 DOS game that after a sailor drops
+  //  off a resource delivery he returns to the side the the first delivery originated from
+  //   and not the side he originally was idle at 
+  //  STILL NEED TO VERIFY THAT HE CAN THEN PICK UP ANOTHER RES FROM "near" FLAG!  
+  //   though I am sure it will work
+  //
+  ///search_dir = DirectionNone;
+  ///search_num = 0;
+  /// trying this:
+  ///fix_scheduled();
+
+//  *res = slot[from_slot].type;
+//  *dest = slot[from_slot].dest;
+//  slot[from_slot].type = Resource::TypeNone;
+//  slot[from_slot].dir = DirectionNone;
+//  fix_scheduled();   look into what this does
   return true;
 }
 
@@ -224,29 +361,86 @@ typedef struct ScheduleUnknownDestData {
   Resource::Type resource;
   int max_prio;
   Flag *flag;
+  // adding support for requested resource timeouts
+  int dist_from_inv;
 } ScheduleUnknownDestData;
 
 static bool
 schedule_unknown_dest_cb(Flag *flag, void *data) {
   ScheduleUnknownDestData *dest_data =
     static_cast<ScheduleUnknownDestData*>(data);
+  //Log::Info["flag"] << "debug: inside schedule_unknown_dest_cb with flag index " << flag->get_index() << ", pos " << flag->get_position() << ", search_dir " << NameDirection[flag->get_search_dir()];
   if (flag->has_building()) {
     Building *building = flag->get_building();
+    //Log::Info["flag"] << "debug: inside schedule_unknown_dest_cb with flag index " << flag->get_index() << ", pos " << flag->get_position() << ", search_dir " << flag->get_search_dir() << ". Flag has building of type " << NameBuilding[building->get_type()];
 
     int bld_prio = building->get_max_priority_for_resource(dest_data->resource);
     if (bld_prio > dest_data->max_prio) {
+      //Log::Info["flag"] << "debug: inside schedule_unknown_dest_cb with flag index " << flag->get_index() << ", pos " << flag->get_position() << ", search_dir " << flag->get_search_dir() << ". acceptable prio";
       dest_data->max_prio = bld_prio;
+      //dest_data->flag = flag;  // don't do this yet
+      // adding support for requested resource timeouts
+      // wait... UNKNOWN_dest search doesn't use flag->search_dirs because it does not care
+      //  about the destination, it just keeps searching outward until it finds a compatible building(?)
+      //  so the search_dir cannot be used to figure out the length of the roads
+      // need to check the PREVIOUS flag to determine which dirs they connect between and check that length
+
+      // quick hack to avoid 0 result
+      bool found = false;
+      for (Direction d : cycle_directions_ccw()) {
+        if (dest_data->flag != nullptr && dest_data->flag->has_path(d) && dest_data->flag->get_other_end_flag(d)->get_index() == flag->get_index()) {
+          // could also use flag->get_other_end_flag(d)? but this reads better
+          /* the flag->length[dir] values are calculated by taking the true length of the path
+          // and then bastardizing it by first feeding it into this get_road_length_value() 
+          // function where it is changed to a 1-7 value (corresponding to the max number of
+          // serfs that could service the road?) 
+          // and then that1-7 value is bit-shifted << 4, effectively multiplying by 16
+          // so the only possible flag->length[dir] values
+          // are 16,32,48,64,80,96, and 112.
+          Flag::get_road_length_value(size_t length) {
+            if (length >= 24) return 7;
+            else if (length >= 18) return 6;
+            else if (length >= 13) return 5;
+            else if (length >= 10) return 4;
+            else if (length >= 7) return 3;
+            else if (length >= 6) return 2;
+            else if (length >= 4) return 1;
+            return 0;
+          }
+          // to try to approximate the original road length, bit-shift >>4, or divide by 16
+          //  and then triple it to get pretty close the reversing the above table
+          //  and set a minimum added value of 1 because it can actually be zero if flags are close?
+            */
+          if(dest_data->flag->get_road_length((Direction)d) == 0){
+            Log::Info["flag"] << "debug: it get_road_length can be zero, using +1 for dist_from_inv addition";
+            dest_data->dist_from_inv += 1;
+          }else{
+            dest_data->dist_from_inv += (dest_data->flag->get_road_length((Direction)d) / 16) * 3;
+          }
+          found = true;
+          break;
+        }
+      }
+      if (!found){
+        //Log::Info["game"] << "debug: no prev_flag/dir found, using +1 for dist_from_inv addition";
+        dest_data->dist_from_inv += 1;
+      }
+      // NOW we can update this
       dest_data->flag = flag;
     }
 
-    if (dest_data->max_prio > 204) return true;
-  }
+    if (dest_data->max_prio > 204){
+      //Log::Info["flag"] << "debug: inside schedule_unknown_dest_cb with flag index " << flag->get_index() << ", pos " << flag->get_position() << ", search_dir " << flag->get_search_dir() << ". max_prio >204, returning true";
+      return true;
+    }
 
+  }
   return false;
 }
 
 void
 Flag::schedule_slot_to_unknown_dest(int slot_num) {
+  //Log::Info["flag"] << "debug: inside Flag::schedule_slot_to_unknown_dest";
   /* Resources which should be routed directly to
    buildings requesting them. Resources not listed
    here will simply be moved to an inventory. */
@@ -294,16 +488,31 @@ Flag::schedule_slot_to_unknown_dest(int slot_num) {
 
     ScheduleUnknownDestData data;
     data.resource = res;
-    data.flag = NULL;
+    // adding support for requested resource timeouts
+    //  in order to figure out which dir we just searched in,
+    //  as search_dir is not used for unknown_dest searches,
+    //  I am checking which dir connects the previous flag in the search
+    //  to the current one.  But the very first flag is null, so this breaks
+    //  Trying this: set data.flag to the current flag
+    //data.flag = NULL;
+    // wait this doesn't work, because it TESTS to see if data.flag is nullptr below
+    ///  hmm, changing below check to fix
+    data.flag = this;
     data.max_prio = 0;
+    data.dist_from_inv = 0;
 
+    //Log::Info["flag"] << "inside Flag::schedule_slot_to_unknown_dest, about to start search";
     search.execute(schedule_unknown_dest_cb, false, true, &data);
-    if (data.flag != nullptr) {
+    //  this should work...
+    //if (data.flag != nullptr) {
+    if (data.flag != this) {
       Log::Verbose["game"] << "dest for flag " << index << " res " << slot
                            << " found: flag " << data.flag->get_index();
       Building *dest_bld = data.flag->other_endpoint.b[DirectionUpLeft];
-
-      if (!dest_bld->add_requested_resource(res, true)) {
+      // adding support for requested resource timeouts
+      //if (!dest_bld->add_requested_resource(res, true)) {
+      if (!dest_bld->add_requested_resource(res, true, data.dist_from_inv)) {
+        Log::Error["flag"] << "inside Flag::schedule_slot_to_unknown_dest, add_requested_resource returned false, resource: " << NameResource[res] << ", building type " << NameBuilding[dest_bld->get_type()];
         throw ExceptionFreeserf("Failed to request resource.");
       }
 
@@ -311,6 +520,7 @@ Flag::schedule_slot_to_unknown_dest(int slot_num) {
       endpoint |= BIT(7);
       return;
     }
+    //Log::Info["flag"] << "inside Flag::schedule_slot_to_unknown_dest, dest not found?";
   }
 
   /* Either this resource cannot be routed to a destination
@@ -352,26 +562,76 @@ Flag::schedule_slot_to_unknown_dest(int slot_num) {
 static bool
 find_nearest_inventory_search_cb(Flag *flag, void *data) {
   Flag **dest = reinterpret_cast<Flag**>(data);
+  //Log::Info["flag"] << "debug: inside Flag::find_nearest_inventory_search_cb, considering flag at pos " << flag->get_position();
   if (flag->accepts_resources()) {
+    //Log::Info["flag"] << "debug: inside Flag::find_nearest_inventory_search_cb FOOTRUE";
     *dest = flag;
     return true;
   }
+  //Log::Info["flag"] << "debug: inside Flag::find_nearest_inventory_search_cb FOOFALSE";
   return false;
 }
 
 /* Return the flag index of the inventory nearest to flag. */
+//  this search requires that transporters are already in place along the route
 int
 Flag::find_nearest_inventory_for_resource() {
+  //Log::Info["flag"] << "debug: inside Flag::find_nearest_inventory_for_resource";
+  
   Flag *dest = NULL;
   FlagSearch::single(this, find_nearest_inventory_search_cb, false, true,
                      &dest);
+                     //if (dest == nullptr){
+                        //Log::Info["flag"] << "debug: inside Flag::find_nearest_inventory_for_resource, returned nullptr!";
+                     //}else{
+                        //Log::Info["flag"] << "debug: inside Flag::find_nearest_inventory_for_resource, returned dest flag pos " << dest->get_position();        
+                     //}
+
   if (dest != NULL) return dest->get_index();
 
   return -1;
 }
 
+/* Return the flag index of the inventory nearest to flag. */
+//  this search does NOT require that transporters are already in place along the route
+//  meant for checking which Inventory a building will send its non-directly-routable 
+//   resources to (i.e. where they will pile up in storage) - for congestion planning
+
+//
+// POSSIBLE MAJOR AI BUG - if this function uses the flag->search_num or search_dir it will collide
+//  with the main game flag updates unless mutex locked... probably need to have the AI implement its 
+//   own copy
+//
+//  ... and it definitely does!
+//   NEED TO MAKE THIS ITS OWN FUNCTION IN AI AND NOT USE THE flag->search_xxx vars at all!
+	/*
+	  flag->other_endpoint.f[i]->search_num = id;
+	  flag->other_endpoint.f[i]->search_dir = flag->search_dir;
+	  */
+/* replacing this with updated AI::find_nearest_inventoryXXXXX() functions
+int
+Flag::find_nearest_inventory_for_res_producer() {
+  Log::Info["flag"] << "thread #" << std::this_thread::get_id() << " debug: inside Flag::find_nearest_inventory_for_res_producer";
+  Log::Info["flag"] << "debug: inside Flag::find_nearest_inventory_for_res_producer";
+  
+  Flag *dest = NULL;
+  FlagSearch::single(this, find_nearest_inventory_search_cb, false, false,
+                     &dest);
+                     if (dest == nullptr){
+                        Log::Info["flag"] << "debug: inside Flag::find_nearest_inventory_for_res_producer, returned nullptr!";
+                     }else{
+                        Log::Info["flag"] << "debug: inside Flag::find_nearest_inventory_for_res_producer, returned dest flag pos " << dest->get_position();        
+                     }
+
+  if (dest != NULL) return dest->get_index();
+
+  return -1;
+}
+*/
+
 static bool
 flag_search_inventory_search_cb(Flag *flag, void *data) {
+  //Log::Info["flag"] << "debug: inside Flag::flag_search_inventory_search_cb";
   int *dest_index = static_cast<int*>(data);
   if (flag->accepts_serfs()) {
     Building *building = flag->get_building();
@@ -384,8 +644,41 @@ flag_search_inventory_search_cb(Flag *flag, void *data) {
 
 int
 Flag::find_nearest_inventory_for_serf() {
+  //Log::Info["flag"] << "debug: inside Flag::find_nearest_inventory_for_serf";
   int dest_index = -1;
   FlagSearch::single(this, flag_search_inventory_search_cb, true, false,
+                     &dest_index);
+
+  return dest_index;
+}
+
+static bool
+flag_search_building_for_lost_generic_serf_search_cb(Flag *flag, void *data) {
+  Log::Info["flag"] << "debug: inside Flag::flag_search_building_for_lost_generic_serf_search_cb";
+  int *dest_index = static_cast<int*>(data);
+  if (flag->has_building()) {
+    Building *building = flag->get_building();
+    if (building->is_done() && !building->is_burning() &&
+      // disallow mines because they can deadlock when miner runs out of food and holds the pos
+       (building->get_type() < Building::TypeStoneMine || building->get_type() > Building::TypeGoldMine)){
+      Log::Info["flag"] << "debug: inside Flag::flag_search_building_for_lost_generic_serf_search_cb, found a valid complete building at flag pos " << flag->get_position();
+      *dest_index = building->get_flag_index();
+      return true;
+    }
+  }
+
+  return false;
+}
+
+// support allowing LostSerfs of generic type to enter ANY friendly building
+//  so they can get off the map faster
+//  EXCEPT mines, as they can deadlock when the miner runs out of food and 
+//  holds the pos, disallowing serfs entry
+int
+Flag::find_nearest_building_for_lost_generic_serf() {
+  Log::Info["flag"] << "debug: inside Flag::find_nearest_building_for_lost_generic_serf";
+  int dest_index = -1;
+  FlagSearch::single(this, flag_search_building_for_lost_generic_serf_search_cb, true, false,
                      &dest_index);
 
   return dest_index;
@@ -395,12 +688,16 @@ typedef struct ScheduleKnownDestData {
   Flag *src;
   Flag *dest;
   int slot;
+  // wait this is not needed here
+  //// add support for requested resource timeouts
+  //int dist_from_inv;
 } ScheduleKnownDestData;
 
 static bool
 schedule_known_dest_cb(Flag *flag, void *data) {
   ScheduleKnownDestData *dest_data =
     static_cast<ScheduleKnownDestData*>(data);
+  //Log::Info["flag"] << "debug: inside Flag::schedule_known_dest_cb  stub function";
   return (flag->schedule_known_dest_cb_(dest_data->src,
                                         dest_data->dest,
                                         dest_data->slot) != 0);
@@ -408,34 +705,49 @@ schedule_known_dest_cb(Flag *flag, void *data) {
 
 bool
 Flag::schedule_known_dest_cb_(Flag *src, Flag *dest, int _slot) {
+  // I think this is one of the few (only?) functions where the
+  //  flag->search_dir is actually used the way you would expect
+  //Log::Info["flag"] << "debug: inside Flag::schedule_known_dest_cb_";
   if (this == dest) {
+    //Log::Info["flag"] << "debug: inside Flag::schedule_known_dest_cb_, destination found";
     /* Destination found */
     if (this->search_dir != 6) {
+      //Log::Info["flag"] << "debug: inside Flag::schedule_known_dest_cb_ 1";
       if (!src->is_scheduled(this->search_dir)) {
+        //Log::Info["flag"] << "debug: inside Flag::schedule_known_dest_cb_ 2";
         /* Item is requesting to be fetched */
         src->other_end_dir[this->search_dir] =
           BIT(7) | (src->other_end_dir[this->search_dir] & 0x78) | _slot;
       } else {
+        //Log::Info["flag"] << "debug: inside Flag::schedule_known_dest_cb_ 3";
         Player *player = game->get_player(this->get_owner());
         int other_dir = src->other_end_dir[this->search_dir];
         int prio_old = player->get_flag_prio(src->slot[other_dir & 7].type);
         int prio_new = player->get_flag_prio(src->slot[_slot].type);
         if (prio_new > prio_old) {
+          //Log::Info["flag"] << "debug: inside Flag::schedule_known_dest_cb_ 4";
           /* This item has the highest priority now */
           src->other_end_dir[this->search_dir] =
             (src->other_end_dir[this->search_dir] & 0xf8) | _slot;
         }
+        //Log::Info["flag"] << "debug: inside Flag::schedule_known_dest_cb_ 5";
+        // add support for requested resource timeouts
+        // wait, is this the wrong place???
+        //  yes, it isn't needed at all here I think, this function is triggered
+        //   by the flag variables set in Game::update_flags
         src->slot[_slot].dir = this->search_dir;
       }
     }
+    //Log::Info["flag"] << "debug: inside Flag::schedule_known_dest_cb_, returning true";
     return true;
   }
-
+  //Log::Info["flag"] << "debug: inside Flag::schedule_known_dest_cb_, returning false";
   return false;
 }
 
 void
 Flag::schedule_slot_to_known_dest(int slot_, unsigned int res_waiting[4]) {
+  //Log::Info["flag"] << "debug: inside Flag::schedule_slot_to_known_dest";
   FlagSearch search(game);
 
   search_num = search.get_id();
@@ -447,7 +759,9 @@ Flag::schedule_slot_to_known_dest(int slot_, unsigned int res_waiting[4]) {
   /* Directions where transporters are idle (zero slots waiting) */
   int flags = (res_waiting[0] ^ 0x3f) & transporter;
 
+  //Log::Info["flag"] << "debug: inside Flag::schedule_slot_to_known_dest 1";
   if (flags != 0) {
+    //Log::Info["flag"] << "debug: inside Flag::schedule_slot_to_known_dest 2";
     for (Direction k : cycle_directions_ccw()) {
       if (BIT_TEST(flags, k)) {
         tr &= ~BIT(k);
@@ -460,14 +774,16 @@ Flag::schedule_slot_to_known_dest(int slot_, unsigned int res_waiting[4]) {
       }
     }
   }
-
+  //Log::Info["flag"] << "debug: inside Flag::schedule_slot_to_known_dest 3";
   if (tr != 0) {
+    //Log::Info["flag"] << "debug: inside Flag::schedule_slot_to_known_dest 4 tr";
     for (int j = 0; j < 3; j++) {
       flags = res_waiting[j] ^ res_waiting[j+1];
       for (Direction k : cycle_directions_ccw()) {
         if (BIT_TEST(flags, k)) {
           tr &= ~BIT(k);
           Flag *other_flag = other_endpoint.f[k];
+		      //Log::Info["flag"] << "debug: inside Flag::schedule_slot_to_known_dest 4a, dir: " << k;
           if (other_flag->search_num != search.get_id()) {
             other_flag->search_dir = k;
             search.add_source(other_flag);
@@ -476,8 +792,9 @@ Flag::schedule_slot_to_known_dest(int slot_, unsigned int res_waiting[4]) {
         }
       }
     }
-
+    //Log::Info["flag"] << "debug: inside Flag::schedule_slot_to_known_dest 5";
     if (tr != 0) {
+      //Log::Info["flag"] << "debug: inside Flag::schedule_slot_to_known_dest 6";
       flags = res_waiting[3];
       for (Direction k : cycle_directions_ccw()) {
         if (BIT_TEST(flags, k)) {
@@ -493,12 +810,16 @@ Flag::schedule_slot_to_known_dest(int slot_, unsigned int res_waiting[4]) {
       if (flags == 0) return;
     }
   }
-
+  //Log::Info["flag"] << "debug: inside Flag::schedule_slot_to_known_dest 7";
   if (sources > 0) {
+    //Log::Info["flag"] << "debug: inside Flag::schedule_slot_to_known_dest 8";
     ScheduleKnownDestData data;
     data.src = this;
     data.dest = game->get_flag(this->slot[slot_].dest);
     data.slot = slot_;
+    // wait this is not needed here
+    //// add support for requested resource timeouts
+    //data.dist_from_inv = 0;
     bool r = search.execute(schedule_known_dest_cb, false, true, &data);
     if (!r || data.dest == this) {
       /* Unable to deliver */
@@ -510,10 +831,12 @@ Flag::schedule_slot_to_known_dest(int slot_, unsigned int res_waiting[4]) {
   } else {
     endpoint |= BIT(7);
   }
+  //Log::Info["flag"] << "debug: inside Flag::schedule_slot_to_known_dest 9";
 }
 
 void
 Flag::prioritize_pickup(Direction dir, Player *player) {
+  //Log::Info["flag"] << "debug: inside Flag::prioritize_pickup";
   int res_next = -1;
   int res_prio = -1;
 
@@ -525,6 +848,43 @@ Flag::prioritize_pickup(Direction dir, Player *player) {
       if (res_dir == dir && player->get_flag_prio(res_type) > res_prio) {
         res_next = i;
         res_prio = player->get_flag_prio(res_type);
+        // de-prioritize any resource that is destined for castle/warehouse reserves
+        //  this should exclude resources that are "activated" by being in castle/warehouse,
+        //   such as gold bars (morale), sword/shield (knights), or tools (professionals)
+        // priorities are 1-26 for flag_prio and inventory_prio, higher number == higher priority
+        //  slot[x].dest is a Flag index, not a MapPos
+        // ranges are based on the const int routable[] array in Flag::schedule_slot_to_unknown_dest
+        // but instead of copying the table just check for FISH<>PLANK, STONE<>GOLDBAR
+        //
+        // if this resource has a known dest (flag index)...
+        if (slot[i].dest != 0){
+          // ... and is routable (meaning it CAN be delivered directly to a requesting building)...
+          //if (routable[res_type]){
+          if ((res_type >= Resource::TypeFish && res_type <= Resource::TypePlank) ||
+              (res_type >= Resource::TypeStone && res_type <= Resource::TypeGoldBar)){
+            Flag *dest_flag = game->get_flag(slot[i].dest);
+            if (dest_flag == nullptr){
+              Log::Warn["flag"] << "inside Flag::prioritize_pickup, got nullptr for flag";
+            }else{
+              // if dest is a castle/warehouse
+              if (dest_flag->has_inventory() && dest_flag->accepts_serfs()){
+                // ...this resource is going to pile up in a warehouse, do not adjust its priority
+                //Log::Info["flag"] << "debug: Player" << player->get_index() << " a resource of type " << NameResource[res_type] << " is destined for castle/warehouse";
+              }else{
+                // ...this resource is being sent directly to a requesting building, increase its priority
+                //Log::Info["flag"] << "debug: Player" << player->get_index() << " a resource of type " << NameResource[res_type] << " with dest pos " << dest_flag->get_position() << " and dest building type " << NameBuilding[dest_flag->get_building()->get_type()] << " is being directly routed, increasing priority";
+                res_prio += 26;
+              }
+            }
+          }else{
+            // this resource is not routable, meaning it is "activated" at castle/warehouse
+            //  increase its priority
+            //Log::Info["flag"] << "debug: Player" << player->get_index() << " a resource of type " << NameResource[res_type] << " is not routable, increasing priority";
+            res_prio += 26;
+          }
+        }
+        // if this resource does NOT have a known dest, it will be assigned one when
+        //  a serf picks it up from a flag, then then this check can run
       }
     }
   }
@@ -650,7 +1010,7 @@ Flag::can_demolish() const {
   return false;
 }
 
-// return true if a flag has any roads connected to it
+/* Return true if a flag has any roads connected to it. */
 bool
 Flag::is_connected() const {
   for (Direction d : cycle_directions_cw()) {
@@ -674,11 +1034,13 @@ change_transporter_state_at_pos(Game *game, MapPos pos, Serf::State state) {
 
 static int
 wake_transporter_at_flag(Game *game, MapPos pos) {
+ //Log::Info["serf"] << "debug: inside Serf::wake_transporter_at_flag, pos " << pos;
   return change_transporter_state_at_pos(game, pos, Serf::StateWakeAtFlag);
 }
 
 static int
 wake_transporter_on_path(Game *game, MapPos pos) {
+ //Log::Info["serf"] << "debug: inside Serf::wake_transporter_on_path, pos " << pos;
   return change_transporter_state_at_pos(game, pos, Serf::StateWakeOnPath);
 }
 
@@ -727,11 +1089,13 @@ Flag::fill_path_serf_info(Game *game, MapPos pos, Direction dir,
     /* Check if there is a transporter waiting here. */
     if (map->get_idle_serf(pos)) {
       int index = wake_transporter_on_path(game, pos);
+      //Log::Info["flag"] << "debug: calling wake_transporter_on_path for pos " << pos;
       if (index >= 0) data->serfs[serf_count++] = index;
     }
 
     /* Check if there is a serf occupying this space. */
     if (map->has_serf(pos)) {
+      //Log::Info["flag"] << "debug: found serf at pos " << pos;
       Serf *serf = game->get_serf_at_pos(pos);
       if (serf->get_state() == Serf::StateTransporting &&
           serf->get_walking_wait_counter() != -1) {
@@ -848,7 +1212,7 @@ Flag::merge_paths(MapPos pos_) {
 void
 Flag::update() {
   const int max_transporters[] = { 1, 2, 3, 4, 6, 8, 11, 15 };
-  Log::Verbose["flag"] << " inside Flag::update() - Count and store in bitfield which directions";
+
   /* Count and store in bitfield which directions
    have strictly more than 0,1,2,3 slots waiting. */
   unsigned int res_waiting[4] = {0};
@@ -864,7 +1228,6 @@ Flag::update() {
     }
   }
 
-  Log::Verbose["flag"] << " inside Flag::update() - Count of total resources waiting at flag";
   /* Count of total resources waiting at flag */
   int waiting_count = 0;
 
@@ -878,6 +1241,7 @@ Flag::update() {
          been scheduled for fetch. */
         int res_dir = slot[slot_].dir;
         if (res_dir < 0) {
+          //Log::Info["flag"] << "debug: inside flag::update, about to schedule a slot";
           if (slot[slot_].dest != 0) {
             /* Destination is known */
             schedule_slot_to_known_dest(slot_, res_waiting);
@@ -890,7 +1254,6 @@ Flag::update() {
     }
   }
 
-  Log::Verbose["flag"] << " inside Flag::update() - Update transporter flags, decide if serf needs to be sent to road";
   /* Update transporter flags, decide if serf needs to be sent to road */
   for (Direction j : cycle_directions_ccw()) {
     if (has_path(j)) {
@@ -918,7 +1281,6 @@ Flag::update() {
       }
     }
   }
-  Log::Verbose["flag"] << "end of Flag::update()";
 }
 
 typedef struct SendSerfToRoadData {
@@ -933,7 +1295,6 @@ send_serf_to_road_search_cb(Flag *flag, void *data) {
   if (flag->has_inventory()) {
     /* Inventory reached */
     Building *building = flag->get_building();
-  // got read access violation here first time dec13 2020:   'Unhandled exception thrown: read access violation. **this** was 0xFFFFFFFFFFFFFF77. occurred"
     Inventory *inventory = building->get_inventory();
     if (!road_data->water) {
       if (inventory->have_serf(Serf::TypeTransporter)) {
@@ -954,6 +1315,7 @@ send_serf_to_road_search_cb(Flag *flag, void *data) {
       road_data->inventory = inventory;
     }
   }
+
   return false;
 }
 
@@ -963,13 +1325,8 @@ Flag::call_transporter(Direction dir, bool water) {
   Direction dir_2 = get_other_end_dir(dir);
 
   search_dir = DirectionRight;
-  // got a write access violation here, src_2 was nullptr... check first?
-  // got it again
-  // couple more times
-  // I think this is because I wasn't checking that this player owns the flag!  added that code.  hopefully fixes it
-  // nope still getting it
-  // try just ignoring this if it happens?
-  // I think this is happening every time... look into it
+  // got a write access violation here, src_2 was nullptr
+  //  I think this is an AI- specific issue related to the missing transporter work-around
   if (src_2 == nullptr) {
     Log::Warn["flag"] << " Flag::call_transporter - nullptr found when doing Flag *src_2 = other_endpoint.f[dir], returning false  FIND OUT WHY!";
     return false;
@@ -986,8 +1343,6 @@ Flag::call_transporter(Direction dir, bool water) {
   search.execute(send_serf_to_road_search_cb, true, false, &data);
   Inventory *inventory = data.inventory;
   if (inventory == NULL) {
-    // this happens if castle not built yet, changing from Warn to Verbose
-    Log::Verbose["flag"] << " Flag::call_transporter - inventory is NULL, returning false - it could not find nearest inventory?";
     return false;
   }
 
@@ -1005,7 +1360,7 @@ Flag::call_transporter(Direction dir, bool water) {
   }
 
   serf->go_out_from_inventory(inventory->get_index(), src->get_index(), dir);
-  Log::Debug["flag"] << " Flag::call_transporter - successfully called transporter";
+
   return true;
 }
 

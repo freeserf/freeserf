@@ -113,7 +113,7 @@ class MinimapGame : public Minimap {
   void draw_minimap_traffic();
 
   virtual void internal_draw();
-  virtual bool handle_click_left(int x, int y);
+  virtual bool handle_click_left(int x, int y, int modifier);
 };
 
 #endif  // SRC_MINIMAP_H_

@@ -25,6 +25,16 @@
 /* The length between game updates in miliseconds. */
 #define TICK_LENGTH  20
 #define TICKS_PER_SEC  (1000/TICK_LENGTH)
+/* this file doesn't seem to be included by building.cc
+    so I am moving it there, and also copying the TICKS_PER_SEC there
+// adding support for requested resource timeouts
+//  this number represents the number of seconds to allow for a requested
+//   resource to travel one game tile at default game speed (2)
+//   It needs to account for steepness and reasonable traffic
+//  A quick test shows that it takes about nine seconds for a serf
+//   to travel one tile up a road of the steepest category
+#define TIMEOUT_SECS_PER_TILE    15
+*/
 
 
 #endif  // SRC_FREESERF_H_

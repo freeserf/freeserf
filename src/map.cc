@@ -147,16 +147,17 @@ init_spiral_pattern() {
   };
 
   for (int i = 0; i < 49; i++) {
-    int x = spiral_pattern[2 + 12 * i];
-    int y = spiral_pattern[2 + 12 * i + 1];
+    int x = spiral_pattern[2 + 12*i];
+    int y = spiral_pattern[2 + 12*i + 1];
 
     for (int j = 0; j < 6; j++) {
-      spiral_pattern[2 + 12 * i + 2 * j] = x * spiral_matrix[4 * j + 0] +
-        y * spiral_matrix[4 * j + 2];
-      spiral_pattern[2 + 12 * i + 2 * j + 1] = x * spiral_matrix[4 * j + 1] +
-        y * spiral_matrix[4 * j + 3];
+      spiral_pattern[2+12*i+2*j] = x*spiral_matrix[4*j+0] +
+                                   y*spiral_matrix[4*j+2];
+      spiral_pattern[2+12*i+2*j+1] = x*spiral_matrix[4*j+1] +
+                                     y*spiral_matrix[4*j+3];
     }
   }
+
   spiral_pattern_initialized = 1;
 
   /*
@@ -250,7 +251,6 @@ init_extended_spiral_pattern() {
   int y = 0;
   Map::next_extended_spiral_coord(x, y, &extended_spiral_coord_vector); // add the center pos coords
   for (int shells = 1; shells < 24; ++shells) {
-    //Log::Debug["map"] << "inside loop, shells=" << shells;
     for (int i = 0; i < shells; ++i) { Map::next_extended_spiral_coord(++x, y, &extended_spiral_coord_vector); } // RIGHT
     for (int i = 0; i < shells - 1; ++i) { Map::next_extended_spiral_coord(x, --y, &extended_spiral_coord_vector); } // DOWN
     for (int i = 0; i < shells; ++i) { Map::next_extended_spiral_coord(--x, --y, &extended_spiral_coord_vector); } // DOWN-LEFT
@@ -562,9 +562,8 @@ void
 Map::set_height_no_refresh(MapPos pos, int height) {
   landscape_tiles[pos].height = height;
   // don't Mark landscape dirty, I guess it will be updated on next refresh?
-  //  not sure, it might not even matter
+  //  not sure, it might not even matter.  It seems to work fine
 }
-
 
 /* Change the object at a map position. If index is non-negative
    also change this. The index should be reset to zero when a flag or

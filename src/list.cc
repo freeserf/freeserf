@@ -63,7 +63,7 @@ ListSavedFiles::internal_draw() {
 }
 
 bool
-ListSavedFiles::handle_click_left(int /*cx*/, int cy) {
+ListSavedFiles::handle_click_left(int /*cx*/, int cy, int modifier) {
   set_focused();
   cy -= 3;
   if (cy >= 0) {

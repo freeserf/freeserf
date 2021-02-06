@@ -288,9 +288,10 @@ typedef enum Action {
   ACTION_NEW_NAME,
   ACTION_OPTIONS_FLIP_TO_AIPLUS,
   ACTION_AIPLUS_NEXT_PAGE,
-  ACTION_AIPLUS_FOO,
-  ACTION_AIPLUS_BAR,
-  ACTION_AIPLUS_BAZ,
+  ACTION_AIPLUS_ENABLE_AUTOSAVE,
+  ACTION_AIPLUS_IMPROVED_PIG_FARMS,
+  ACTION_AIPLUS_CAN_TRANSPORT_SERFS_IN_BOATS,
+  ACTION_AIPLUS_QUICK_DEMO_EMPTY_BUILD_SITES
 } Action;
 
 PopupBox::PopupBox(Interface *_interface)
@@ -328,7 +329,7 @@ PopupBox::PopupBox(Interface *_interface)
 PopupBox::~PopupBox() {
 }
 
-// Draw the frame around the popup box.
+/* Draw the frame around the popup box. */
 void
 PopupBox::draw_popup_box_frame() {
   frame->draw_sprite(0, 0, Data::AssetFramePopup, 0);
@@ -337,7 +338,7 @@ PopupBox::draw_popup_box_frame() {
   frame->draw_sprite(136, 9, Data::AssetFramePopup, 3);
 }
 
-// tlongstretch
+/* Draw larger frame used for extra options screen */
 void
 PopupBox::draw_large_popup_box_frame() {
   //sprite index 0: top bar, decorated (~2 pixels thicker than the others!)
@@ -378,7 +379,7 @@ PopupBox::draw_box_background(BackgroundPattern sprite) {
   }
 }
 
-// tlongstretch
+/* Fill the background of the large type popup frame. */
 void
 PopupBox::draw_large_box_background(BackgroundPattern sprite) {
   // double-wide, normal height (ix is doubled)
@@ -405,6 +406,7 @@ PopupBox::draw_green_string(int sx, int sy, const std::string &str) {
 
 /* Draw a green number in a popup frame.
    n must be non-negative. If > 999 simply draw three characters xxT or Mx thousands, xxM or Mx for millions, xxB for bilions. */
+// includes p1plp1's "millions and billions"... though likely only Thousands ever seen
 void
 PopupBox::draw_green_number(int sx, int sy, int n) {
   if (n >= 1000000000) {
@@ -1972,27 +1974,30 @@ PopupBox::draw_options_box() {
   }
   draw_green_string(1, 94, "Messages");
   draw_green_string(11, 94, value);
-  // tlongstretch
+
   draw_green_string(1, 109, "AI-Plus");
   draw_green_string(1, 118, "Options");
-  draw_popup_icon(13, 109, 0x3d); /* flipbox */
+  draw_popup_icon(13, 109, 0x3d); /* flipbox to aiplus options */
 
   draw_popup_icon(14, 128, 60); /* exit */
 }
 
-// tlongstretch
 void
 PopupBox::draw_aiplus_options_box() {
   draw_large_box_background(PatternDiagonalGreen);
   AIPlusOptions aiplus_options = interface->get_aiplus_options();
-  draw_green_string(3, 10, "Foo");
-  draw_popup_icon(1, 7, (interface->test_aiplus_option(AIPlusOption::Foo)) ? 288 : 220);
+  draw_green_string(3, 10, "Auto Save Game");
+  draw_popup_icon(1, 7, (interface->test_aiplus_option(AIPlusOption::EnableAutoSave)) ? 288 : 220);
 
-  draw_green_string(3, 29, "Bar");
-  draw_popup_icon(1, 26, (interface->test_aiplus_option(AIPlusOption::Bar)) ? 288 : 220);
+  draw_green_string(3, 29, "Pigs Require No Wheat");
+  draw_popup_icon(1, 26, (interface->test_aiplus_option(AIPlusOption::ImprovedPigFarms)) ? 288 : 220);
 
-  draw_green_string(3, 48, "Baz");
-  draw_popup_icon(1, 45, (interface->test_aiplus_option(AIPlusOption::Baz)) ? 288 : 220);
+  draw_green_string(3, 48, "Can Transport Serfs In Boats");
+  draw_popup_icon(1, 45, (interface->test_aiplus_option(AIPlusOption::CanTransportSerfsInBoats)) ? 288 : 220);
+
+  draw_green_string(3, 67, "Quick Demo Empty Build Sites");
+  draw_popup_icon(1, 64, (interface->test_aiplus_option(AIPlusOption::QuickDemoEmptyBuildSites)) ? 288 : 220);
+
 
   draw_popup_icon(32, 128, 60); /* exit */
 }
@@ -2056,6 +2061,64 @@ PopupBox::draw_mine_output_box() {
     interface->close_popup();
     return;
   }
+
+   //
+  // DEBUG - find the requested resources destined for this building
+  //
+  if (building->get_requested_in_stock(0) > 0){
+    Log::Info["popup"] << "debug: clicked mine of type " << NameBuilding[building->get_type()] << " at pos " << building->get_position() << " has stock[0].requested: " << building->get_requested_in_stock(0);
+    int reqd_res_found = 0;
+    Log::Verbose["popup"] << "thread #" << std::this_thread::get_id() << " is locking mutex for requested-resource debug search in PopupBox::draw_mine_output_box";
+    interface->get_game()->get_mutex()->lock();
+    Log::Verbose["popup"] << "thread #" << std::this_thread::get_id() << " has locked mutex for requested-resource debug search in PopupBox::draw_mine_output_box";
+    // search all of this player's flags to see if they have any resources destined for this building's flag
+    Flags *flags = interface->get_game()->get_flags();
+    Flags::Iterator i = flags->begin();
+    Flags::Iterator prev = flags->begin();
+    while (i != flags->end()) {
+      prev = i;
+      Flag *flag = *i;
+      if (flag != NULL && flag->get_index() != 0 && flag->get_owner() == interface->get_player()->get_index()){
+        for (int s = 0; s < FLAG_MAX_RES_COUNT; s++){
+          if (flag->slot[s].dest == building->get_flag_index() &&
+              (flag->slot[s].type == Resource::TypeFish ||
+               flag->slot[s].type == Resource::TypeBread ||
+               flag->slot[s].type == Resource::TypeMeat)){
+            Log::Info["popup"] << "debug: a requested resource of type " << NameResource[flag->slot[s].type] << " with dest flag building " << building->get_position() << " of type " << NameBuilding[building->get_type()] << " found at flag pos " << flag->get_position() << " in slot " << s;
+            reqd_res_found++;
+          }
+        }
+        if (i != flags->end())
+          ++i;
+      } else {
+        // skip this flag
+        if (i != flags->end())
+          ++i;
+      }
+    }
+    // search all of this player's transporters/sailors to see if they have any resources destined for this building's flag
+    for (Serf *serf : interface->get_game()->get_player_serfs(interface->get_player())) {
+      if (serf->get_type() == Serf::TypeTransporter || serf->get_type() == Serf::TypeSailor){
+        if (serf->get_transporting_dest() == building->get_flag_index() &&
+              (serf->get_delivery() == Resource::TypeFish ||
+               serf->get_delivery() == Resource::TypeBread ||
+               serf->get_delivery() == Resource::TypeMeat)){
+          Log::Info["popup"] << "debug: a requested resource of type " << NameResource[serf->get_delivery()] << " with dest flag building " << building->get_position() << " of type " << NameBuilding[building->get_type()] << " is carried by a serf at pos " << serf->get_pos();
+          reqd_res_found++;
+        }
+      }
+    }
+
+    Log::Verbose["popup"] << "thread #" << std::this_thread::get_id() << " is unlocking mutex for requested-resource debug search in PopupBox::draw_mine_output_box";
+    interface->get_game()->get_mutex()->unlock();
+    Log::Verbose["popup"] << "thread #" << std::this_thread::get_id() << " has unlocked mutex for requested-resource debug search in PopupBox::draw_mine_output_box";
+    if (reqd_res_found == building->get_requested_in_stock(0)){
+      Log::Info["popup"] << "debug: all requested stock[0] resources requested to building " << NameBuilding[building->get_type()] << " at pos " << building->get_position() << " are accounted for and en-route";
+    }else{
+      Log::Warn["popup"] << "debug: " << building->get_requested_in_stock(0) - reqd_res_found << " of requested stock[0] resources are unaccounted for to building " << NameBuilding[building->get_type()] << " at pos " << building->get_position();
+    }
+  }
+
 
   /* Draw building */
   draw_popup_building(6, 60, map_building_sprite[type]);
@@ -2619,6 +2682,13 @@ PopupBox::draw_building_stock_box() {
     -1
   };
 
+  //
+  // DEBUG - find the requested resources destined for this building
+  //
+  if (building->get_requested_in_stock(0) > 0){
+    Log::Info["popup"] << "debug: clicked building of type " << NameBuilding[building->get_type()] << " at pos " << building->get_position() << " has stock[0].requested: " << building->get_requested_in_stock(0);
+  }
+
   /* Draw picture of serf present */
   int serf_sprite = 0xdc; /* minus box */
   if (building->has_serf()) {
@@ -2679,7 +2749,6 @@ PopupBox::draw_save_box() {
 
 void
 PopupBox::internal_draw() {
-  // tlongstretch
   if (box == Type::TypeAIPlusOptions){
     draw_large_popup_box_frame();
   }else{
@@ -2900,6 +2969,7 @@ PopupBox::move_sett_5_6_item(int up, int to_end) {
 
 void
 PopupBox::handle_send_geologist() {
+  //Log::Info["popup"] << "debug: inside handle_send_geologist";
   MapPos pos = interface->get_map_cursor_pos();
   Flag *flag = interface->get_game()->get_flag_at_pos(pos);
 
@@ -2908,7 +2978,7 @@ PopupBox::handle_send_geologist() {
   } else {
     play_sound(Audio::TypeSfxAccepted);
     interface->close_popup();
-  }
+  } 
 }
 
 void
@@ -3412,7 +3482,6 @@ PopupBox::handle_action(int action, int x_, int /*y_*/) {
     interface->open_popup(TypeOptions);
     break;
     /* TODO */
-  // tlongstretch
   case ACTION_OPTIONS_FLIP_TO_AIPLUS:
     interface->open_popup(TypeAIPlusOptions);
     //set_box((box + 1 <= TypeAdv2Bld) ? (Type)(box + 1) : TypeBasicBldFlip);
@@ -3420,27 +3489,34 @@ PopupBox::handle_action(int action, int x_, int /*y_*/) {
   //case ACTION_AIPLUS_NEXT_PAGE:
   //  interface->open_popup(TypeAIPlusOptions2);
   //  break;
-  case ACTION_AIPLUS_FOO:
-    if (interface->test_aiplus_option(AIPlusOption::Foo)){
-      interface->unset_aiplus_option(AIPlusOption::Foo);
+  case ACTION_AIPLUS_ENABLE_AUTOSAVE:
+    if (interface->test_aiplus_option(AIPlusOption::EnableAutoSave)){
+      interface->unset_aiplus_option(AIPlusOption::EnableAutoSave);
     } else{
-      interface->set_aiplus_option(AIPlusOption::Foo);
+      interface->set_aiplus_option(AIPlusOption::EnableAutoSave);
     }
     break;
-  case ACTION_AIPLUS_BAR:
-    if (interface->test_aiplus_option(AIPlusOption::Bar)){
-      interface->unset_aiplus_option(AIPlusOption::Bar);
+  case ACTION_AIPLUS_IMPROVED_PIG_FARMS:
+    if (interface->test_aiplus_option(AIPlusOption::ImprovedPigFarms)){
+      interface->unset_aiplus_option(AIPlusOption::ImprovedPigFarms);
     } else{
-      interface->set_aiplus_option(AIPlusOption::Bar);
+      interface->set_aiplus_option(AIPlusOption::ImprovedPigFarms);
     }
     break;
-  case ACTION_AIPLUS_BAZ:
-    if (interface->test_aiplus_option(AIPlusOption::Baz)){
-      interface->unset_aiplus_option(AIPlusOption::Baz);
+  case ACTION_AIPLUS_CAN_TRANSPORT_SERFS_IN_BOATS:
+    if (interface->test_aiplus_option(AIPlusOption::CanTransportSerfsInBoats)){
+      interface->unset_aiplus_option(AIPlusOption::CanTransportSerfsInBoats);
     } else{
-      interface->set_aiplus_option(AIPlusOption::Baz);
+      interface->set_aiplus_option(AIPlusOption::CanTransportSerfsInBoats);
     }
     break;
+  case ACTION_AIPLUS_QUICK_DEMO_EMPTY_BUILD_SITES:
+    if (interface->test_aiplus_option(AIPlusOption::QuickDemoEmptyBuildSites)){
+      interface->unset_aiplus_option(AIPlusOption::QuickDemoEmptyBuildSites);
+    } else{
+      interface->set_aiplus_option(AIPlusOption::QuickDemoEmptyBuildSites);
+    }
+    break; 
   case ACTION_SETT_8_CYCLE:
     player->cycle_knights();
     play_sound(Audio::TypeSfxAccepted);
@@ -3742,22 +3818,11 @@ PopupBox::handle_box_options_clk(int cx, int cy) {
 
 void
 PopupBox::handle_box_aiplusoptions_clk(int cx, int cy) {
-  /*
-    draw_green_string(3, 10, "Foo");
-  draw_popup_icon(1, 7, (interface->get_game()->test_aiplus_option(AIPlusOption::Foo)) ? 288 : 220);
-
-  draw_green_string(3, 29, "Bar");
-  draw_popup_icon(1, 26, (interface->get_game()->test_aiplus_option(AIPlusOption::Bar)) ? 288 : 220);
-
-  draw_green_string(3, 48, "Baz");
-  draw_popup_icon(1, 45, (interface->get_game()->test_aiplus_option(AIPlusOption::Baz)) ? 288 : 220);
-
-  draw_popup_icon(32, 128, 60);
-  */
   const int clkmap[] = {
-    ACTION_AIPLUS_FOO, 7, 7, 16, 16,
-    ACTION_AIPLUS_BAR, 7, 26, 16, 16,
-    ACTION_AIPLUS_BAZ, 7, 45, 16, 16,
+    ACTION_AIPLUS_ENABLE_AUTOSAVE, 7, 7, 16, 16,
+    ACTION_AIPLUS_IMPROVED_PIG_FARMS, 7, 26, 16, 16,
+    ACTION_AIPLUS_CAN_TRANSPORT_SERFS_IN_BOATS, 7, 45, 16, 16,
+    ACTION_AIPLUS_QUICK_DEMO_EMPTY_BUILD_SITES, 7, 64, 16, 16,
     //ACTION_AIPLUS_NEXT_PAGE, 106, 110, 16, 16,
     ActionShowOptions, 255, 126, 16, 16,
     -1
@@ -4326,7 +4391,8 @@ PopupBox::handle_save_clk(int cx, int cy) {
 }
 
 bool
-PopupBox::handle_click_left(int cx, int cy) {
+//PopupBox::handle_click_left(int cx, int cy) {
+PopupBox::handle_click_left(int cx, int cy, int modifier) {
   cx -= 8;
   cy -= 8;
 

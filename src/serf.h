@@ -154,7 +154,9 @@ class Serf : public GameObject {
 
     /* Additional state: goes at the end to ease loading of
      original save game. */
-    StateKnightAttackingDefeatFree
+    StateKnightAttackingDefeatFree,
+    StateWaitForBoat,   // to support AIPlusOption::CanTransportSerfsInBoats
+    StateBoatPassenger  // to support AIPlusOption::CanTransportSerfsInBoats
   } State;
 
  protected:
@@ -166,7 +168,6 @@ class Serf : public GameObject {
   MapPos pos;
   uint16_t tick;
   State state;
-  bool deleteme; // tlongstretch, used to only delete serfs during update loop instead of immediately
 
   union s {
     struct {
@@ -188,6 +189,13 @@ class Serf : public GameObject {
       unsigned int dest; /* C */
       int dir; /* E */
       int wait_counter; /* F */
+      // add support for AIPlusOption::CanTransportSerfsInBoats
+      Type pickup_serf_type;            // serf at flag one tile away, about to be picked up by sailor
+      unsigned int pickup_serf_index;   // serf at flag one tile away, about to be picked up by sailor
+      Type passenger_serf_type;         // serf currently in the sailor's boat
+      unsigned int passenger_serf_index;  // serf currently in the sailor's boat
+      Type dropped_serf_type;           // serf at flag one tile away, just dropped off by sailor
+      unsigned int dropped_serf_index;  // serf at flag one tile away, just dropped off by sailor
     } transporting;
 
     struct {
@@ -384,6 +392,7 @@ class Serf : public GameObject {
 
   Type get_type() const { return type; }
   void set_type(Type type);
+  void set_serf_state(Serf::State state);
 
   bool playing_sfx() const { return sound; }
   void start_playing_sfx() { sound = true; }
@@ -421,6 +430,15 @@ class Serf : public GameObject {
   bool idle_to_wait_state(MapPos pos);
 
   int get_delivery() const;
+  // add support for requested resource search debugging - returns destination flag index for carried resource
+  int get_transporting_dest() const { return s.transporting.dest; }
+  // add support for AIPlusOption::CanTransportSerfsInBoats
+  Type get_pickup_serf_type() const { return s.transporting.pickup_serf_type; }
+  unsigned int get_pickup_serf_index() const { return s.transporting.pickup_serf_index; }
+  Type get_passenger_serf_type() const { return s.transporting.passenger_serf_type; }
+  unsigned int get_passenger_serf_index() const { return s.transporting.passenger_serf_index; }
+  Type get_dropped_serf_type() const { return s.transporting.dropped_serf_type; }
+  unsigned int get_dropped_serf_index() const { return s.transporting.dropped_serf_index; }
   int get_free_walking_neg_dist1() const { return s.free_walking.neg_dist1; }
   int get_free_walking_neg_dist2() const { return s.free_walking.neg_dist2; }
   int get_leaving_building_next_state() const {
@@ -451,9 +469,6 @@ class Serf : public GameObject {
   void send_off_to_fight(int dist_col, int dist_row);
   void stay_idle_in_stock(unsigned int inventory);
   void go_out_from_building(MapPos dest, int dir, int field_B);
-  void fix_bad_animation();
-  void mark_for_deletion();
-  bool is_marked_for_deletion();
 
   void update();
 
@@ -469,10 +484,14 @@ class Serf : public GameObject {
 
   std::string print_state();
   // moved from protected
+  //   wait, does this still need to be moved?  I think I changed the approach to
+  //   serf wait timers
   bool is_waiting(Direction *dir);
 
  protected:
   // moved to public so AI can use it to check for stuck serfs
+  //   wait, does this still need to be moved?  I think I changed the approach to
+  //   serf wait timers
   //bool is_waiting(Direction *dir);
   int switch_waiting(Direction dir);
   int get_walking_animation(int h_diff, Direction dir, int switch_pos);
@@ -569,6 +588,8 @@ class Serf : public GameObject {
   void handle_serf_defending_tower_state();
   void handle_serf_defending_fortress_state();
   void handle_serf_defending_castle_state();
+  void handle_serf_wait_for_boat_state();
+  void handle_serf_boat_passenger_state();
 };
 
 #endif  // SRC_SERF_H_

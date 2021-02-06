@@ -166,6 +166,7 @@ Inventory::apply_supplies_preset(unsigned int supplies) {
   }
 }
 
+// dispatch a transporter from a stock out to a road to work
 Serf*
 Inventory::call_transporter(bool water) {
   Serf *serf = NULL;

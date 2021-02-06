@@ -61,11 +61,12 @@ EventLoop::notify_handlers(Event *event) {
 }
 
 bool
-EventLoop::notify_click(int x, int y, Event::Button button) {
+EventLoop::notify_click(int x, int y, unsigned char modifier, Event::Button button) {
   Event event;
   event.type = Event::TypeClick;
   event.x = x;
   event.y = y;
+  event.dy = modifier;
   event.button = button;
   return notify_handlers(&event);
 }
@@ -93,13 +94,13 @@ EventLoop::notify_drag(int x, int y, int dx, int dy, Event::Button button) {
 }
 
 bool
-EventLoop::notify_key_pressed(unsigned char key, unsigned char morifier) {
+EventLoop::notify_key_pressed(unsigned char key, unsigned char modifier) {
   Event event;
   event.type = Event::TypeKeyPressed;
   event.x = 0;
   event.y = 0;
   event.dx = key;
-  event.dy = morifier;
+  event.dy = modifier;
   return notify_handlers(&event);
 }
 

@@ -45,25 +45,55 @@ class SaveReaderText;
 class SaveWriterText;
 
 class Flag : public GameObject {
- protected:
+
+  // temporarily creating public: and putting ResourceSlot slot stuff
+  //  in it for popup.cc "find resources desteind for this building's flag search"
+ public:
+ //protected:
   class ResourceSlot {
    public:
     Resource::Type type;
     Direction dir;
     unsigned int dest;
   };
+  ResourceSlot slot[FLAG_MAX_RES_COUNT];
 
  protected:
   unsigned int owner;
   MapPos pos; /* ADDITION */
   int path_con;
   int endpoint;
-  ResourceSlot slot[FLAG_MAX_RES_COUNT];
+  // temporarily moving this to public for popup.cc "find resources desteind for this building's flag search"
+  //ResourceSlot slot[FLAG_MAX_RES_COUNT];
 
   int search_num;
   Direction search_dir;
   int transporter;
+  // this is the "road length value", which is then bit-shifted << 4  (effectively multiplying it by 16?)
+  // it is NOT the actual length of the road in that dir, that value is unfortunately thrown away
+  // despite the name 'length', this var also seems to track serf requests to this flag! 
+  // I believe the rightmost four bits are used for this
   size_t length[6];
+  //
+  // add support for requested resource timeouts
+  //
+  //  this is a tough decision, it seems that the best approach is clearly to add true
+  //  length field to flags that actually represents the tile-count (i.e. Dirs count)
+  //  in each direction that has a path.  However, this would require updating the save/load 
+  //  functions to include this new field, breaking compatibility with other saves
+  // Also, if I were to add this, might as well store the actual Dirs (i.e. the Road object)
+  //  itself in the flag in each dir, to make pathfinding simpler.  This is how Freesef.NET
+  //  does it
+  // It MIGHT be okay to use the road length "category" which is "banded" to certain values
+  //  tied to the number of transporters to use for a road, and importantly is effectively
+  //  capped at length it can represent so a really long road that is far higher than the 
+  //  number required to reach the highest category is not well represented when it comes to
+  //  estimating the time it should take for a resource to arrive at the requesting building.
+  // ALSO, it seems possible to simply use larger values for the length and not modify the save
+  //  game files?  However it might break loading Freeserf save games in original Settlers1/
+  //  SerfCity... but is that even supported?  And do we really care about it?  Why would
+  //   anybody bother doing this?
+
   union other_endpoint {
     Building *b[6];
     Flag *f[6];
@@ -73,6 +103,7 @@ class Flag : public GameObject {
 
   int bld_flags;
   int bld2_flags;
+  bool serf_waiting_for_boat;  // adding support for AIPlusOption::CanTransportSerfsInBoats
 
  public:
   Flag(Game *game, unsigned int index);
@@ -88,7 +119,6 @@ class Flag : public GameObject {
   void del_path(Direction dir);
   /* Whether a path exists in a given direction. */
   bool has_path(Direction dir) const {
-    // got a nullptr here, never seen before.  oct30 2020
     return ((path_con & (1 << (dir))) != 0); }
 
   void prioritize_pickup(Direction dir, Player *player);
@@ -100,6 +130,14 @@ class Flag : public GameObject {
   /* Bitmap showing whether the outgoing paths are land paths. */
   int land_paths() const { return endpoint & 0x3f; }
   /* Whether the path in the given direction is a water path. */
+  //**********************************************************************
+  // THIS FUNCTION IS VERY MISLEADING
+  // - it returns true if there is a water path, or NO PATH AT ALL!
+  // - it returns false if there is a valid LAND path
+  // so it cannot be used on its own to test if there is a valid water path in dir
+  // it must be combined with a "has_path(dir)" check
+  // The game probably does with with bitwise operators
+  //**********************************************************************
   bool is_water_path(Direction dir) const {
     return !(endpoint & (1 << (dir))); }
   /* Whether a building is connected to this flag. If so, the pointer to
@@ -109,6 +147,11 @@ class Flag : public GameObject {
 
   /* Whether resources exist that are not yet scheduled. */
   bool has_resources() const { return (endpoint >> 7) & 1; }
+
+  // true if a serf is waiting for a boat at this flag (next to water path)
+  bool has_serf_waiting_for_boat() const { return serf_waiting_for_boat; }
+  void set_serf_waiting_for_boat() { serf_waiting_for_boat = true; }
+  //void clear_serf_waiting_for_boat() { serf_waiting_for_boat = false; }
 
   /* Bitmap showing whether the outgoing paths have transporters
    servicing them. */
@@ -122,6 +165,8 @@ class Flag : public GameObject {
   bool serf_request_fail() const { return (transporter >> 7) & 1; }
   void serf_request_clear() { transporter &= ~BIT(7); }
 
+  // adding support for requested resource timeouts
+  size_t get_road_length(Direction dir) const { return length[dir]; }
   /* Current number of transporters on path. */
   unsigned int free_transporter_count(Direction dir) const {
     return length[dir] & 0xf; }
@@ -150,14 +195,19 @@ class Flag : public GameObject {
     return (other_end_dir[dir] >> 7) & 1; }
   bool pick_up_resource(unsigned int slot, Resource::Type *res,
                         unsigned int *dest);
+  // add support for AIPlusOption::CanTransportSerfsInBoats
+  bool pick_up_serf();
+  //bool drop_off_serf();
   bool drop_resource(Resource::Type res, unsigned int dest);
   bool has_empty_slot() const;
   void remove_all_resources();
   Resource::Type get_resource_at_slot(int slot) const;
 
   /* Whether this flag has an inventory building. */
+  // WHY DOES THIS NOT SEEM TO RETURN TRUE FOR Stock/warehouse buildings?????
   bool has_inventory() const { return ((bld_flags >> 6) & 1); }
   /* Whether this inventory accepts resources. */
+  // WHY DOES THIS NOT SEEM TO RETURN TRUE FOR Stock/warehouse buildings?????
   bool accepts_resources() const { return ((bld2_flags >> 7) & 1); }
   /* Whether this inventory accepts serfs. */
   bool accepts_serfs() const { return ((bld_flags >> 7) & 1); }
@@ -189,7 +239,16 @@ class Flag : public GameObject {
   void invalidate_resource_path(Direction dir);
 
   int find_nearest_inventory_for_resource();
+  // quick hack for building placement for AI
+  //  need to be able to do a flagsearch that finds a resource-receiving Inventory
+  //   such as the castle, or a warehouse, but the path to it does NOT
+  //   need to have a transporter already (which the normal function requires)
+  //int find_nearest_inventory_for_res_producer();  // replacing this with new find_nearest_inventoryXXXX() functions
   int find_nearest_inventory_for_serf();
+
+  // support allowing generic serfs in StateLost to enter any nearby friendly building to
+  //  get them off the map quickly to avoid clogging roads
+  int find_nearest_building_for_lost_generic_serf();
 
   void link_with_flag(Flag *dest_flag, bool water_path, size_t length,
                       Direction in_dir, Direction out_dir);
@@ -203,6 +262,13 @@ class Flag : public GameObject {
   void restore_path_serf_info(Direction dir, SerfPathInfo *data);
 
   void set_search_dir(Direction dir) { search_dir = dir; }
+  // even though this returns a Direction, it is often NOT
+  //  a valid Direction 0-5!! I don't know why yet
+  // NOT ONLY THAT, it seems that Game::update_inventories uses the
+  //  flag->search_dir as the inventory identifier for the search?
+  //  so for the castle, search_dir is always 0 / DirectionRight / East
+  //  and for the next warehouse that can fulfill, it is always 1 / DirectionDownRight / SouthEast
+  //  so it is not a Direction at all but a var that is used for multiple purposes??
   Direction get_search_dir() const { return search_dir; }
   void clear_search_id() { search_num = 0; }
 

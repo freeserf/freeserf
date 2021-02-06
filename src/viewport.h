@@ -1,7 +1,7 @@
 /*
  * viewport.h - Viewport GUI component
  *
- * Copyright (C) 2013  Jon Lund Steffensen <jonlst@gmail.com>
+ * Copyright (C) 2013-2019  Jon Lund Steffensen <jonlst@gmail.com>
  *
  * This file is part of freeserf.
  *
@@ -42,7 +42,7 @@ class Viewport : public GuiObject, public Map::Handler {
     LayerCursor = 1<<4,
     LayerGrid = 1<<5,
     LayerBuilds = 1<<6,
-  LayerAI = 1<<7,
+    LayerAI = 1<<7,
     LayerAll = (LayerLandscape |
                 LayerPaths |
                 LayerObjects |
@@ -61,8 +61,6 @@ class Viewport : public GuiObject, public Map::Handler {
   unsigned int last_tick;
   Data::PSource data_source;
 
-  bool weather;
-
   PMap map;
 
  public:
@@ -70,10 +68,6 @@ class Viewport : public GuiObject, public Map::Handler {
   virtual ~Viewport();
 
   void switch_layer(Layer layer) { layers ^= layer; }
-
-  bool weather_enabled() { return weather; }
-  void enable_weather() { weather = true; }
-  void disable_weather() { weather = false; }
 
   void move_to_map_pos(MapPos pos);
   void move_by_pixels(int x, int y);
@@ -134,7 +128,7 @@ class Viewport : public GuiObject, public Map::Handler {
 
   virtual void internal_draw();
   virtual void layout();
-  virtual bool handle_click_left(int x, int y);
+  virtual bool handle_click_left(int x, int y, int modifier);
   virtual bool handle_dbl_click(int x, int y, Event::Button button);
   virtual bool handle_drag(int x, int y);
 

@@ -901,6 +901,7 @@ Player::update() {
         knights_to_spawn += 1;
         if (knights_to_spawn > 2) knights_to_spawn = 2;
       }
+
     Log::Verbose["game"] << "thread #" << std::this_thread::get_id() << " is locking mutex for Player::update before spawn_serf";
     game->get_mutex()->lock();
     Log::Verbose["game"] << "thread #" << std::this_thread::get_id() << " has locked mutex for Player::update before spawn_serf";

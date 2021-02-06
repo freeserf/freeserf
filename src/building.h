@@ -29,6 +29,33 @@
 #include "src/serf.h"
 #include "src/objects.h"
 
+// adding support for requested resource timeouts
+//  this number represents the number of seconds to allow for a requested
+//   resource to travel one game tile at default game speed (2)
+//   It needs to account for steepness and reasonable traffic
+//  A quick test shows that it takes about nine seconds for a serf
+//   to travel one tile up a road of the steepest category
+// originally tested this at 15, kept increasing as I saw timeouts triggering
+//  even setting it at 600 I still see a few timeouts.  Find a happy balance.
+//  it is probably safe to keep it relatively low as re-requesting resources
+//   should not be a big deal, but waiting forever for resources is.
+//   at 600, that is TEN MINUTES PER TILE if the TICKS_PER_SEC def is accurate
+//    that seems far too long to tolerate
+// NOT ONLY THIS.... it still seems like it isn't working!!!
+// I still see a 4x AI long running game where the castle has hundreds of bread
+//  and there's a baker right near a gold mine, and the gold mine has highest food
+//   priority, but the gold mine is still not getting and food!  it all gets stored
+// ACTUALLY I think it does work.  the warehouse where the food was being stored
+//  instead of going to the mines, after some time suddenly sent out a ton of food
+//  to the mines.  I think the timeout did work on game load anyway, not sure
+//   why it wasn't working up to that point??
+#define TIMEOUT_SECS_PER_TILE  18
+// also copying these here from freeserf.h as it is not included but is needed for
+//  the request resource timeouts
+/* The length between game updates in miliseconds. */
+#define TICK_LENGTH  20
+#define TICKS_PER_SEC  (1000/TICK_LENGTH)
+
 class Inventory;
 class Serf;
 class SaveReaderBinary;
@@ -76,6 +103,9 @@ class Building : public GameObject {
     int available;
     int requested;
     int maximum;
+    // adding support for resource request timeouts
+    int requested_tick[8];
+    int req_timeout_tick[8];
   } Stock;
 
   /* Map position of building */
@@ -193,7 +223,9 @@ class Building : public GameObject {
   Serf *call_defender_out();
   Serf *call_attacker_out(int knight_index);
 
-  bool add_requested_resource(Resource::Type res, bool fix_priority);
+  // adding support for requested resource timeouts
+  //bool add_requested_resource(Resource::Type res, bool fix_priority);
+  bool add_requested_resource(Resource::Type res, bool fix_priority, int dist_from_inv);
   bool is_stock_active(int stock_num) const {
     return (stock[stock_num].type > 0); }
   unsigned int get_res_count_in_stock(int stock_num) const {

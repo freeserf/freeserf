@@ -289,7 +289,8 @@ class PopupBox : public GuiObject {
   void set_box(Type box);
 
   virtual void internal_draw();
-  virtual bool handle_click_left(int x, int y);
+  //virtual bool handle_click_left(int x, int y);
+  virtual bool handle_click_left(int x, int y, int modifier);
 };
 
 #endif  // SRC_POPUP_H_

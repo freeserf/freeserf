@@ -84,6 +84,8 @@ class Video {
                          const Video::Color color, Frame *dest) = 0;
   virtual void draw_line(int x, int y, int x1, int y1,
                          const Video::Color color, Frame *dest) = 0;
+  virtual void draw_thick_line(int x, int y, int x1, int y1,
+                         const Video::Color color, Frame *dest) = 0;
 
   virtual void swap_buffers() = 0;
 
