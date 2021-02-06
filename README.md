@@ -21,6 +21,8 @@ Forkserf adds:
   - mark positions with colored dots
   - trace road pathfinding
   - identification & colored highlighting of arterial roads
+  
+Details about all of the above are on the wiki: https://github.com/forkserf/forkserf/wiki
 
 Build status
 ------------
