@@ -1,9 +1,7 @@
 Forkserf
 ========
 
-A continuation of Freeserf, a SerfCity/Settlers1 clone in C/C++
-
-Freeserf was created by jonls and wdigger
+A continuation of Freeserf, a SerfCity/Settlers1 clone in C/C++.  Freeserf was created by jonls and wdigger
 
 Forkserf adds:
 - fixes for Freeserf bugs
