@@ -43,7 +43,7 @@ Keyboard gameplay controls:
 
 * `1`, `2`, `3`, `4`, `5`: Activate one of the five buttons in the panel.
 * `b`: Toggle overlay showing possibilities for constructions.
-* `TAB`/SHIFT-`TAB`: Open next notification message; or return from last message.
+* ~~`TAB`/SHIFT-`TAB`: Open next notification message; or return from last message.~~ removed for now because of alt-tab issues
 * `+`/`-`: Increase/decrease game speed.
 * `0`: Reset game speed.
 * `p`: Pause game.
