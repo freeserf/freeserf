@@ -8,6 +8,7 @@ Forkserf adds:
   - major crash bugs from iterator invalidation during normal gameplay
   - crash & other bugs related to combat
   - some minor visual & audio issues
+  - crash & other issue with food resource delivery
 - advanced AI for non-human players with greatly improved road building logic
 - new features (mostly as optional checkboxes)
   - auto-saving
