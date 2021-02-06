@@ -29,7 +29,9 @@ coming soon
 
 Last build downloads
 --------------------
+
 coming soon, check https://github.com/tlongstretch/freeserf-with-AI-plus-binaries for the moment
+
 Play
 ------
 Copy the data file(s) from the original game to the same directory as freeserf. Alternatively you can put the data file in `~/.local/share/freeserf`. You may use data file(s) from DOS or Amiga game version.
