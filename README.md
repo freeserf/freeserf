@@ -26,6 +26,8 @@ Forkserf adds:
   - identification & colored highlighting of arterial roads
 - no multiplayer yet, sorry
 
+Details about all of the above are on the wiki: https://github.com/forkserf/forkserf/wiki
+
 Build status
 ------------
 coming soon
