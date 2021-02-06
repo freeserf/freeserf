@@ -19,6 +19,8 @@ Forkserf adds:
   - prioritized transport of resources that can be immediately used
 - debugging tools
   - mark positions with colored dots
+  - mark specific serfs and their state
+  - "boot" specific serfs by setting them to Lost state
   - trace road pathfinding
   - identification & colored highlighting of arterial roads
 - no multiplayer yet, sorry
