@@ -11,7 +11,7 @@ Forkserf adds:
   - enhanced Pig Farms
   - serfs can be transported in Boats!
   - empty building sites don't burn
-- internal game mechanics changes to fix problems that existed even in the original game
+- internal game mechanics changes to fix gridlock issues that existed even in the original game
   - timeout & retry of building resource requests
   - prioritized transport of resources that can be immediately used
 
