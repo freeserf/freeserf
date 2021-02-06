@@ -3,12 +3,19 @@ Freeserf
 
 Build status
 ------------
-
+Freeserf-with-AI-plus:
+[![Build Status](https://ci.appveyor.com/api/projects/status/github/tlongstretch/freeserf-with-ai-plus?branch=clean_AI_addition&svg=true)](https://ci.appveyor.com/project/tlongstretch/freeserf-with-ai-plus)
+  
+Freeserf:
 [![Build Status](https://travis-ci.org/freeserf/freeserf.svg?branch=master)](https://travis-ci.org/freeserf/freeserf)
 [![Build Status](https://ci.appveyor.com/api/projects/status/github/freeserf/freeserf?branch=master&svg=true)](https://ci.appveyor.com/project/jonls/freeserf)
 
 Last build downloads
 --------------------
+Freeserf-with-AI-plus
+* [Windows64 and Linux64](https://github.com/tlongstretch/freeserf-with-AI-plus-binaries)
+
+Freeserf
 * [Windows Installer x86](https://ci.appveyor.com/api/projects/jonls/freeserf/artifacts/FreeSerf-x86-Release.exe?branch=master&pr=false&job=Configuration%3A%20Release%3B%20Platform%3A%20x86)
 * [Windows Installer x64](https://ci.appveyor.com/api/projects/jonls/freeserf/artifacts/FreeSerf-x64-Release.exe?branch=master&pr=false&job=Configuration%3A%20Release%3B%20Platform%3A%20x64)
 * [Linux Sources TAR.Z](https://s3.amazonaws.com/freeserf/freeserf/freeserf/master/FreeSerf.tar.Z)
@@ -33,6 +40,7 @@ Keyboard gameplay controls:
 * `0`: Reset game speed.
 * `p`: Pause game.
 * `j`: Switch player.
+* `y`: Enable AI debug overlay.  Must switch to AI player to see.
 
 Other keyboard controls:
 
@@ -64,6 +72,11 @@ The game is paused after loading so press `p` to start the game.
 
 Run `freeserf -h` for more info on command line options.
 
+Logging
+----------
+You can control log debug level by specifying -d followed by a number from 0 (most verbose) to 4 (errors only)
+
+`$ freeserf -d2`   for recommended INFO loglevel
 
 Bugs
 ----

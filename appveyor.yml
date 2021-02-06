@@ -22,7 +22,7 @@ install:
   - cmd: bootstrap-vcpkg.bat
   - cmd: vcpkg update
   - cmd: vcpkg install sdl2:%platform%-windows
-  - cmd: vcpkg install sdl2-mixer[core,libmodplug,dynamic-load]:%platform%-windows
+  - cmd: vcpkg install sdl2-mixer[core,dynamic-load,libmodplug,nativemidi]:%platform%-windows
   - cmd: vcpkg install sdl2-image:%platform%-windows
   - cmd: vcpkg integrate install
   - cmd: cd %appveyor_build_folder%

@@ -23,6 +23,7 @@
 
 #include <string>
 #include <iostream>
+#include <fstream>
 
 #include "src/log.h"
 #include "src/version.h"
@@ -37,8 +38,15 @@
 # include <SDL.h>
 #endif  // WIN32
 
+
+
 int
 main(int argc, char *argv[]) {
+  // why does simply calling new(Log) make console output work on windows???
+  new(Log);
+  std::ofstream* filestr = new std::ofstream("console_out.txt");
+  Log::set_file(filestr);
+
   std::string data_dir;
   std::string save_file;
 
@@ -90,6 +98,10 @@ main(int argc, char *argv[]) {
   Data &data = Data::get_instance();
   if (!data.load(data_dir)) {
     Log::Error["main"] << "Could not load game data.";
+  //p1plp1_throw_exception_win32_if_missing_SPA_data
+    #ifdef WIN32
+     int msgboxID = SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "FreeSerf", "missing SPA*.PA", NULL);
+    #endif
     return EXIT_FAILURE;
   }
 
@@ -97,12 +109,12 @@ main(int argc, char *argv[]) {
 
   Graphics &gfx = Graphics::get_instance();
 
-  /* TODO move to right place */
-  Audio &audio = Audio::get_instance();
-  Audio::PPlayer player = audio.get_music_player();
-  if (player) {
-    Audio::PTrack t = player->play_track(Audio::TypeMidiTrack0);
-  }
+  ///* TODO move to right place */
+  //Audio &audio = Audio::get_instance();
+  //Audio::PPlayer player = audio.get_music_player();
+  //if (player) {
+  //  Audio::PTrack t = player->play_track(Audio::TypeMidiTrack0);
+  //}
 
   GameManager &game_manager = GameManager::get_instance();
 
@@ -126,13 +138,23 @@ main(int argc, char *argv[]) {
   interface.set_size(screen_width, screen_height);
   interface.set_displayed(true);
 
+  // tlongstretch
+  bool loaded_game_start_ai = false;
   if (save_file.empty()) {
     interface.open_game_init();
+  }
+  else {
+    loaded_game_start_ai = true;
   }
 
   /* Init game loop */
   EventLoop &event_loop = EventLoop::get_instance();
   event_loop.add_handler(&interface);
+
+  // tlongstretch
+  if (loaded_game_start_ai) {
+    interface.initialize_AI();
+  }
 
   /* Start game loop */
   event_loop.run();

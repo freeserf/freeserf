@@ -52,6 +52,8 @@ class Road {
   MapPos get_source() const { return begin; }
   Dirs get_dirs() const { return dirs; }
   size_t get_length() const { return dirs.size(); }
+  // tlongstretch convenience function
+  Direction get_first() const { return dirs.front(); }
   Direction get_last() const { return dirs.back(); }
   bool is_extendable() const { return (dirs.size() < max_length); }
   bool is_valid_extension(Map *map, Direction dir) const;
@@ -305,8 +307,11 @@ class Map {
   ChangeHandlers change_handlers;
 
   std::unique_ptr<MapPos[]> spiral_pos_pattern;
+  std::unique_ptr<MapPos[]> extended_spiral_pos_pattern;
+
 
  public:
+
   explicit Map(const MapGeometry& geom);
 
   const MapGeometry& geom() const { return geom_; }
@@ -332,7 +337,12 @@ class Map {
   MapPos pos_add(MapPos pos, MapPos off) const {
     return geom_.pos_add(pos, off); }
   MapPos pos_add_spirally(MapPos pos_, unsigned int off) const {
+  if (off > 295) { Log::Error["map"] << "cannot use pos_add_spirally() beyond 295 positions (~10 shells)"; }
     return pos_add(pos_, spiral_pos_pattern[off]); }
+  MapPos pos_add_extended_spirally(MapPos pos_, unsigned int off) const {
+  if (off > 3268) { Log::Error["map"] << "cannot use pos_add_extended_spirally() beyond 3268 positions (~24 shells)"; }
+  return pos_add(pos_, extended_spiral_pos_pattern[off]);
+  }
 
   // Shortest distance between map positions.
   int dist_x(MapPos pos1, MapPos pos2) const {
@@ -346,6 +356,14 @@ class Map {
   // Movement of map position according to directions.
   MapPos move(MapPos pos, Direction dir) const {
     return geom_.move(pos, dir); }
+
+
+  // make this part of the calling function
+  static void next_extended_spiral_coord(int x, int y, std::vector<int> *vector) {
+    vector->push_back(x);
+    vector->push_back(y);
+    //Log::Debug["map"] << "just added " << x << "," << y << ", vector now has " << vector->size() << " elements";
+  }
 
   MapPos move_right(MapPos pos) const { return geom_.move_right(pos); }
   MapPos move_down_right(MapPos pos) const {
@@ -365,6 +383,14 @@ class Map {
     return (game_tiles[pos].paths & 0x3f); }
   bool has_path(MapPos pos, Direction dir) const {
     return (BIT_TEST(game_tiles[pos].paths, dir) != 0); }
+  //tlongstretch - convenience function
+  bool has_any_path(MapPos pos) {
+    for (Direction d : cycle_directions_cw()) {
+      if (has_path(pos, d))
+        return true;
+    }
+    return false;
+  }
   void add_path(MapPos pos, Direction dir) {
     game_tiles[pos].paths |= BIT(dir); }
   void del_path(MapPos pos, Direction dir) {
@@ -423,6 +449,7 @@ class Map {
   static const Space map_space_from_obj[128];
 
   void set_height(MapPos pos, int height);
+  void set_height_no_refresh(MapPos pos, int height);
   void set_object(MapPos pos, Object obj, int index);
   void remove_ground_deposit(MapPos pos, int amount);
   void remove_fish(MapPos pos, int amount);
@@ -442,6 +469,7 @@ class Map {
   void del_change_handler(Handler *handler);
 
   static int *get_spiral_pattern();
+  static int *get_extended_spiral_pattern();
 
   /* Actually place road segments */
   bool place_road_segments(const Road &road);
@@ -465,6 +493,7 @@ class Map {
 
  protected:
   void init_spiral_pos_pattern();
+  void init_extended_spiral_pos_pattern();
 
   void update_public(MapPos pos, Random *rnd);
   void update_hidden(MapPos pos, Random *rnd);

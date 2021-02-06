@@ -412,6 +412,17 @@ PanelBar::update() {
   if ((interface->get_popup_box() != NULL) &&
       interface->get_popup_box()->is_displayed()) {
     switch (interface->get_popup_box()->get_box()) {
+      case PopupBox::TypeBasicBld:
+        panel_btns[0] = ButtonBuildSmallStarred;
+        break;
+      case PopupBox::TypeBasicBldFlip:
+      case PopupBox::TypeAdv1Bld:
+      case PopupBox::TypeAdv2Bld:
+        panel_btns[0] = ButtonBuildLargeStarred;
+        break;
+      case PopupBox::TypeMineBuilding:
+        panel_btns[0] = ButtonBuildMineStarred;
+        break;
       case PopupBox::TypeTransportInfo:
       case PopupBox::TypeOrderedBld:
       case PopupBox::TypeCastleRes:

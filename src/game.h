@@ -28,6 +28,10 @@
 #include <list>
 #include <memory>
 
+#include <mutex>   //NOLINT (build/c++11) this is a Google Chromium req, not relevant to general C++.  // for AI thread locking
+
+#include "src/lookup.h"
+
 #include "src/player.h"
 #include "src/flag.h"
 #include "src/serf.h"
@@ -36,9 +40,14 @@
 #include "src/random.h"
 #include "src/objects.h"
 
+
+
 #define DEFAULT_GAME_SPEED  2
 
 #define GAME_MAX_PLAYER_COUNT  4
+
+// these were originally private, inside Game class
+typedef Collection<Flag, 5000> Flags;
 
 class SaveReaderBinary;
 class SaveReaderText;
@@ -46,12 +55,15 @@ class SaveWriterText;
 
 class Game {
  public:
+  std::mutex mutex;
+  std::mutex autosave_mutex;
   typedef std::list<Serf*> ListSerfs;
   typedef std::list<Building*> ListBuildings;
   typedef std::list<Inventory*> ListInventories;
 
  protected:
-  typedef Collection<Flag, 5000> Flags;
+  // moved to outside of Game class so AI can use the Flags typedef
+  //typedef Collection<Flag, 5000> Flags;
   typedef Collection<Inventory, 100> Inventories;
   typedef Collection<Building, 1000> Buildings;
   typedef Collection<Serf, 5000> Serfs;
@@ -64,6 +76,7 @@ class Game {
   unsigned int gold_total;
 
   Players players;
+
   Flags flags;
   Inventories inventories;
   Buildings buildings;
@@ -102,11 +115,40 @@ class Game {
   int knight_morale_counter;
   int inventory_schedule_counter;
 
+  // tlongstretch
+  bool ai_locked;
+  bool signal_ai_exit;
+  unsigned int ai_threads_remaining;
+
  public:
   Game();
   virtual ~Game();
 
   PMap get_map() { return map; }
+
+  //
+  // tlongstretch
+  //
+  // tell ai to exit when a game ends
+  void stop_ai_threads() { signal_ai_exit = true; }
+  // ai checks this every loop and exits if true
+  bool should_ai_stop() { return signal_ai_exit; }
+  // ai begins locked, and is unlocked by game init close
+  void unlock_ai() { ai_locked = false; }
+  // for debugging
+  void lock_ai() { ai_locked = true; }
+  // ai remains locked while the game init_box is shown because they are not actually playing yet
+  bool is_ai_locked() { return ai_locked; }
+  // used to keep track of running ai threads, there are examples using std::future and std::async but I couldn't understand them
+  void ai_thread_exiting() { ai_threads_remaining--; Log::Debug["game"] << "ai_thread_exiting, " << ai_threads_remaining << " remain"; }
+  void ai_thread_starting() { ai_threads_remaining++; Log::Debug["game"] << "ai_thread_starting, " << ai_threads_remaining << " started"; }
+  unsigned int get_ai_thread_count() { return ai_threads_remaining; }
+  // used by AI for many actions that risk vector invalidation and other non-threadsafe things
+  std::mutex * get_mutex() { return &mutex; }
+  // used by AI so only a single AI thread performs auto-saving, rather than all of theam each doing it
+  std::mutex * get_autosave_mutex() { return &autosave_mutex; }
+  // used by AI to check if game is paused
+  unsigned int get_game_speed() const { return game_speed; }
 
   unsigned int get_tick() const { return tick; }
   unsigned int get_const_tick() const { return const_tick; }
@@ -193,6 +235,7 @@ class Game {
 
   Serf *get_serf(unsigned int index) { return serfs[index]; }
   Flag *get_flag(unsigned int index) { return flags[index]; }
+  Flags *get_flags() { return &flags; }
   Inventory *get_inventory(unsigned int index) { return inventories[index]; }
   Building *get_building(unsigned int index) { return buildings[index]; }
   Player *get_player(unsigned int index) { return players[index]; }
@@ -254,5 +297,6 @@ class Game {
 };
 
 typedef std::shared_ptr<Game> PGame;
+
 
 #endif  // SRC_GAME_H_

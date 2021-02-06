@@ -285,7 +285,12 @@ typedef enum Action {
   ACTION_DEMOLISH,
   ACTION_OPTIONS_SFX,
   ACTION_SAVE,
-  ACTION_NEW_NAME
+  ACTION_NEW_NAME,
+  ACTION_OPTIONS_FLIP_TO_AIPLUS,
+  ACTION_AIPLUS_NEXT_PAGE,
+  ACTION_AIPLUS_FOO,
+  ACTION_AIPLUS_BAR,
+  ACTION_AIPLUS_BAZ,
 } Action;
 
 PopupBox::PopupBox(Interface *_interface)
@@ -323,13 +328,29 @@ PopupBox::PopupBox(Interface *_interface)
 PopupBox::~PopupBox() {
 }
 
-/* Draw the frame around the popup box. */
+// Draw the frame around the popup box.
 void
 PopupBox::draw_popup_box_frame() {
   frame->draw_sprite(0, 0, Data::AssetFramePopup, 0);
   frame->draw_sprite(0, 153, Data::AssetFramePopup, 1);
   frame->draw_sprite(0, 9, Data::AssetFramePopup, 2);
   frame->draw_sprite(136, 9, Data::AssetFramePopup, 3);
+}
+
+// tlongstretch
+void
+PopupBox::draw_large_popup_box_frame() {
+  //sprite index 0: top bar, decorated (~2 pixels thicker than the others!)
+  //sprite index 1: bottom bar, plain
+  //sprite index 2: left bar, plain
+  //sprite index 3: right bar, plain
+  //  using bottom bar's (undecorated) sprite because the normal one looks funny doubled), shifted down 2 pixels to avoid a gap
+  frame->draw_sprite(0, 2, Data::AssetFramePopup, 1); // top bar, left
+  frame->draw_sprite(144, 2, Data::AssetFramePopup, 1); // top bar, right
+  frame->draw_sprite(0, 153, Data::AssetFramePopup, 1); // bottom bar, left
+  frame->draw_sprite(144, 153, Data::AssetFramePopup, 1); // bottom bar, right
+  frame->draw_sprite(0, 9, Data::AssetFramePopup, 2); // left bar
+  frame->draw_sprite(280, 9, Data::AssetFramePopup, 3);  // right bar
 }
 
 /* Draw icon in a popup frame. */
@@ -357,6 +378,17 @@ PopupBox::draw_box_background(BackgroundPattern sprite) {
   }
 }
 
+// tlongstretch
+void
+PopupBox::draw_large_box_background(BackgroundPattern sprite) {
+  // double-wide, normal height (ix is doubled)
+  for (int iy = 0; iy < 144; iy += 16) {
+    for (int ix = 0; ix < 33; ix += 2) {
+      draw_popup_icon(ix, iy, sprite);
+    }
+  }
+}
+
 /* Fill one row of a popup frame. */
 void
 PopupBox::draw_box_row(int sprite, int iy) {
@@ -372,13 +404,32 @@ PopupBox::draw_green_string(int sx, int sy, const std::string &str) {
 }
 
 /* Draw a green number in a popup frame.
-   n must be non-negative. If > 999 simply draw ">999" (three characters). */
+   n must be non-negative. If > 999 simply draw three characters xxT or Mx thousands, xxM or Mx for millions, xxB for bilions. */
 void
 PopupBox::draw_green_number(int sx, int sy, int n) {
-  if (n >= 1000) {
-    draw_popup_icon(sx, sy, 0xd5); /* Draw >999 */
-    draw_popup_icon(sx+1, sy, 0xd6);
-    draw_popup_icon(sx+2, sy, 0xd7);
+  if (n >= 1000000000) {
+    /*billion*/
+    int ntmp = n / 1000000000;
+    frame->draw_number(8 * sx + 8, 9 + sy, ntmp, Color::green);
+    frame->draw_string(8 * (sx + (ntmp < 10 ? 1 : 2)) + 8, sy + 9, "B", Color::green);
+  } else if (n >= 100000000) {
+    int ntmp = n / 100000000;
+    frame->draw_string(8 * sx + 8, sy + 9, "B", Color::green);
+    frame->draw_number(8 * (sx + 1) + 8, 9 + sy, ntmp, Color::green);
+  } else if (n >= 1000000) {
+    /*million*/
+    int ntmp = n / 1000000;
+    frame->draw_number(8 * sx + 8, 9 + sy, ntmp, Color::green);
+    frame->draw_string(8 * (sx + (ntmp < 10 ? 1 : 2)) + 8, sy + 9, "M", Color::green);
+  } else if (n >= 100000) {
+    int ntmp =  n / 100000;
+    frame->draw_string(8 * sx + 8, sy + 9, "M", Color::green);
+    frame->draw_number(8 * (sx + 1) + 8, 9 + sy, ntmp, Color::green);
+  } else if (n >= 1000) {
+    /* thousand */
+    int ntmp =  n / 1000;
+    frame->draw_number(8 * sx + 8, 9 + sy, ntmp, Color::green);
+    frame->draw_string(8 * (sx + (ntmp < 10 ? 1 : 2)) + 8, sy + 9, "k", Color::green);
   } else {
     frame->draw_number(8 * sx + 8, 9 + sy, n, Color::green);
   }
@@ -1921,8 +1972,29 @@ PopupBox::draw_options_box() {
   }
   draw_green_string(1, 94, "Messages");
   draw_green_string(11, 94, value);
+  // tlongstretch
+  draw_green_string(1, 109, "AI-Plus");
+  draw_green_string(1, 118, "Options");
+  draw_popup_icon(13, 109, 0x3d); /* flipbox */
 
   draw_popup_icon(14, 128, 60); /* exit */
+}
+
+// tlongstretch
+void
+PopupBox::draw_aiplus_options_box() {
+  draw_large_box_background(PatternDiagonalGreen);
+  AIPlusOptions aiplus_options = interface->get_aiplus_options();
+  draw_green_string(3, 10, "Foo");
+  draw_popup_icon(1, 7, (interface->test_aiplus_option(AIPlusOption::Foo)) ? 288 : 220);
+
+  draw_green_string(3, 29, "Bar");
+  draw_popup_icon(1, 26, (interface->test_aiplus_option(AIPlusOption::Bar)) ? 288 : 220);
+
+  draw_green_string(3, 48, "Baz");
+  draw_popup_icon(1, 45, (interface->test_aiplus_option(AIPlusOption::Baz)) ? 288 : 220);
+
+  draw_popup_icon(32, 128, 60); /* exit */
 }
 
 void
@@ -2607,7 +2679,12 @@ PopupBox::draw_save_box() {
 
 void
 PopupBox::internal_draw() {
-  draw_popup_box_frame();
+  // tlongstretch
+  if (box == Type::TypeAIPlusOptions){
+    draw_large_popup_box_frame();
+  }else{
+    draw_popup_box_frame();
+  }
 
   /* Dispatch to one of the popup box functions above. */
   switch (box) {
@@ -2704,6 +2781,9 @@ PopupBox::internal_draw() {
     break;
   case TypeOptions:
     draw_options_box();
+    break;
+  case TypeAIPlusOptions:
+    draw_aiplus_options_box();
     break;
   case TypeCastleRes:
     draw_castle_res_box();
@@ -3332,6 +3412,35 @@ PopupBox::handle_action(int action, int x_, int /*y_*/) {
     interface->open_popup(TypeOptions);
     break;
     /* TODO */
+  // tlongstretch
+  case ACTION_OPTIONS_FLIP_TO_AIPLUS:
+    interface->open_popup(TypeAIPlusOptions);
+    //set_box((box + 1 <= TypeAdv2Bld) ? (Type)(box + 1) : TypeBasicBldFlip);
+    break;
+  //case ACTION_AIPLUS_NEXT_PAGE:
+  //  interface->open_popup(TypeAIPlusOptions2);
+  //  break;
+  case ACTION_AIPLUS_FOO:
+    if (interface->test_aiplus_option(AIPlusOption::Foo)){
+      interface->unset_aiplus_option(AIPlusOption::Foo);
+    } else{
+      interface->set_aiplus_option(AIPlusOption::Foo);
+    }
+    break;
+  case ACTION_AIPLUS_BAR:
+    if (interface->test_aiplus_option(AIPlusOption::Bar)){
+      interface->unset_aiplus_option(AIPlusOption::Bar);
+    } else{
+      interface->set_aiplus_option(AIPlusOption::Bar);
+    }
+    break;
+  case ACTION_AIPLUS_BAZ:
+    if (interface->test_aiplus_option(AIPlusOption::Baz)){
+      interface->unset_aiplus_option(AIPlusOption::Baz);
+    } else{
+      interface->set_aiplus_option(AIPlusOption::Baz);
+    }
+    break;
   case ACTION_SETT_8_CYCLE:
     player->cycle_knights();
     play_sound(Audio::TypeSfxAccepted);
@@ -3624,7 +3733,33 @@ PopupBox::handle_box_options_clk(int cx, int cy) {
     ACTION_OPTIONS_VOLUME_PLUS, 106, 50, 16, 16,
     ACTION_OPTIONS_FULLSCREEN, 106, 70, 16, 16,
     ACTION_OPTIONS_MESSAGE_COUNT_1, 90, 90, 32, 16,
+    ACTION_OPTIONS_FLIP_TO_AIPLUS, 106, 110, 16, 16,
     ACTION_CLOSE_OPTIONS, 112, 126, 16, 16,
+    -1
+  };
+  handle_clickmap(cx, cy, clkmap);
+}
+
+void
+PopupBox::handle_box_aiplusoptions_clk(int cx, int cy) {
+  /*
+    draw_green_string(3, 10, "Foo");
+  draw_popup_icon(1, 7, (interface->get_game()->test_aiplus_option(AIPlusOption::Foo)) ? 288 : 220);
+
+  draw_green_string(3, 29, "Bar");
+  draw_popup_icon(1, 26, (interface->get_game()->test_aiplus_option(AIPlusOption::Bar)) ? 288 : 220);
+
+  draw_green_string(3, 48, "Baz");
+  draw_popup_icon(1, 45, (interface->get_game()->test_aiplus_option(AIPlusOption::Baz)) ? 288 : 220);
+
+  draw_popup_icon(32, 128, 60);
+  */
+  const int clkmap[] = {
+    ACTION_AIPLUS_FOO, 7, 7, 16, 16,
+    ACTION_AIPLUS_BAR, 7, 26, 16, 16,
+    ACTION_AIPLUS_BAZ, 7, 45, 16, 16,
+    //ACTION_AIPLUS_NEXT_PAGE, 106, 110, 16, 16,
+    ActionShowOptions, 255, 126, 16, 16,
     -1
   };
   handle_clickmap(cx, cy, clkmap);
@@ -4274,6 +4409,9 @@ PopupBox::handle_click_left(int cx, int cy) {
     break;
   case TypeOptions:
     handle_box_options_clk(cx, cy);
+    break;
+  case TypeAIPlusOptions:
+    handle_box_aiplusoptions_clk(cx, cy);
     break;
   case TypeCastleRes:
     handle_castle_res_clk(cx, cy);

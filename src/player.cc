@@ -22,6 +22,7 @@
 #include "src/player.h"
 
 #include <algorithm>
+#include <thread>        //NOLINT (build/c++11) this is a Google Chromium req, not relevant to general C++.  // for AI threads
 
 #include "src/game.h"
 #include "src/log.h"
@@ -900,7 +901,9 @@ Player::update() {
         knights_to_spawn += 1;
         if (knights_to_spawn > 2) knights_to_spawn = 2;
       }
-
+    Log::Verbose["game"] << "thread #" << std::this_thread::get_id() << " is locking mutex for Player::update before spawn_serf";
+    game->get_mutex()->lock();
+    Log::Verbose["game"] << "thread #" << std::this_thread::get_id() << " has locked mutex for Player::update before spawn_serf";
       if (knights_to_spawn == 0) {
         // Create unassigned serf
         spawn_serf(nullptr, nullptr, false);
@@ -916,6 +919,9 @@ Player::update() {
           }
         }
       }
+    Log::Verbose["game"] << "thread #" << std::this_thread::get_id() << " is unlocking mutex for Player::update before spawn_serf";
+    game->get_mutex()->unlock();
+    Log::Verbose["game"] << "thread #" << std::this_thread::get_id() << " has unlocked mutex for Player::update before spawn_serf";
 
       reproduction_counter += static_cast<int>(reproduction_reset);
     }

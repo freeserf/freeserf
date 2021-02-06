@@ -147,24 +147,159 @@ init_spiral_pattern() {
   };
 
   for (int i = 0; i < 49; i++) {
-    int x = spiral_pattern[2 + 12*i];
-    int y = spiral_pattern[2 + 12*i + 1];
+    int x = spiral_pattern[2 + 12 * i];
+    int y = spiral_pattern[2 + 12 * i + 1];
 
     for (int j = 0; j < 6; j++) {
-      spiral_pattern[2+12*i+2*j] = x*spiral_matrix[4*j+0] +
-                                   y*spiral_matrix[4*j+2];
-      spiral_pattern[2+12*i+2*j+1] = x*spiral_matrix[4*j+1] +
-                                     y*spiral_matrix[4*j+3];
+      spiral_pattern[2 + 12 * i + 2 * j] = x * spiral_matrix[4 * j + 0] +
+        y * spiral_matrix[4 * j + 2];
+      spiral_pattern[2 + 12 * i + 2 * j + 1] = x * spiral_matrix[4 * j + 1] +
+        y * spiral_matrix[4 * j + 3];
     }
   }
-
   spiral_pattern_initialized = 1;
+
+  /*
+  // dump the pattern to help understand it
+  Log::Debug["map"] << "spiral pattern: ";
+  Log::Debug["map"] << "0, 0";
+  for (int x = 0; x < 49; x++) {
+    std::string row;
+    for (int y = 0; y < 12; y++) {
+      int val = spiral_pattern[2 + (12 * x) + y];
+      row.append(std::to_string(val) + ",");
+    }
+    Log::Debug["map"] << row;
+  }
+  exit(1);
+  */
+
+  /* here it is:
+  Debug: [map] spiral pattern:
+  Debug: [map] 0, 0
+  Debug: [map] 1,0,1,1,0,1,-1,0,-1,-1,0,-1,
+  Debug: [map] 2,1,1,2,-1,1,-2,-1,-1,-2,1,-1,
+  Debug: [map] 2,0,2,2,0,2,-2,0,-2,-2,0,-2,
+  Debug: [map] 3,1,2,3,-1,2,-3,-1,-2,-3,1,-2,
+  Debug: [map] 3,2,1,3,-2,1,-3,-2,-1,-3,2,-1,
+  Debug: [map] 3,0,3,3,0,3,-3,0,-3,-3,0,-3,
+  Debug: [map] 4,2,2,4,-2,2,-4,-2,-2,-4,2,-2,
+  Debug: [map] 4,1,3,4,-1,3,-4,-1,-3,-4,1,-3,
+  Debug: [map] 4,3,1,4,-3,1,-4,-3,-1,-4,3,-1,
+  Debug: [map] 4,0,4,4,0,4,-4,0,-4,-4,0,-4,
+  Debug: [map] 5,2,3,5,-2,3,-5,-2,-3,-5,2,-3,
+  Debug: [map] 5,3,2,5,-3,2,-5,-3,-2,-5,3,-2,
+  Debug: [map] 5,1,4,5,-1,4,-5,-1,-4,-5,1,-4,
+  Debug: [map] 5,4,1,5,-4,1,-5,-4,-1,-5,4,-1,
+  Debug: [map] 5,0,5,5,0,5,-5,0,-5,-5,0,-5,
+  Debug: [map] 6,3,3,6,-3,3,-6,-3,-3,-6,3,-3,
+  Debug: [map] 6,2,4,6,-2,4,-6,-2,-4,-6,2,-4,
+  Debug: [map] 6,4,2,6,-4,2,-6,-4,-2,-6,4,-2,
+  Debug: [map] 6,1,5,6,-1,5,-6,-1,-5,-6,1,-5,
+  Debug: [map] 6,5,1,6,-5,1,-6,-5,-1,-6,5,-1,
+  Debug: [map] 6,0,6,6,0,6,-6,0,-6,-6,0,-6,
+  Debug: [map] 7,3,4,7,-3,4,-7,-3,-4,-7,3,-4,
+  Debug: [map] 7,4,3,7,-4,3,-7,-4,-3,-7,4,-3,
+  Debug: [map] 7,2,5,7,-2,5,-7,-2,-5,-7,2,-5,
+  Debug: [map] 7,5,2,7,-5,2,-7,-5,-2,-7,5,-2,
+  Debug: [map] 7,1,6,7,-1,6,-7,-1,-6,-7,1,-6,
+  Debug: [map] 7,6,1,7,-6,1,-7,-6,-1,-7,6,-1,
+  Debug: [map] 7,0,7,7,0,7,-7,0,-7,-7,0,-7,
+  Debug: [map] 8,4,4,8,-4,4,-8,-4,-4,-8,4,-4,
+  Debug: [map] 8,3,5,8,-3,5,-8,-3,-5,-8,3,-5,
+  Debug: [map] 8,5,3,8,-5,3,-8,-5,-3,-8,5,-3,
+  Debug: [map] 8,2,6,8,-2,6,-8,-2,-6,-8,2,-6,
+  Debug: [map] 8,6,2,8,-6,2,-8,-6,-2,-8,6,-2,
+  Debug: [map] 8,1,7,8,-1,7,-8,-1,-7,-8,1,-7,
+  Debug: [map] 8,7,1,8,-7,1,-8,-7,-1,-8,7,-1,
+  Debug: [map] 8,0,8,8,0,8,-8,0,-8,-8,0,-8,
+  Debug: [map] 9,4,5,9,-4,5,-9,-4,-5,-9,4,-5,
+  Debug: [map] 9,5,4,9,-5,4,-9,-5,-4,-9,5,-4,
+  Debug: [map] 9,3,6,9,-3,6,-9,-3,-6,-9,3,-6,
+  Debug: [map] 9,6,3,9,-6,3,-9,-6,-3,-9,6,-3,
+  Debug: [map] 9,2,7,9,-2,7,-9,-2,-7,-9,2,-7,
+  Debug: [map] 9,7,2,9,-7,2,-9,-7,-2,-9,7,-2,
+  Debug: [map] 9,1,8,9,-1,8,-9,-1,-8,-9,1,-8,
+  Debug: [map] 9,0,9,9,0,9,-9,0,-9,-9,0,-9,
+  Debug: [map] 16,0,16,16,0,16,-16,0,-16,-16,0,-16,
+  Debug: [map] 16,8,8,16,-8,8,-16,-8,-8,-16,8,-8,
+  Debug: [map] 24,0,24,24,0,24,-24,0,-24,-24,0,-24,
+  Debug: [map] 24,8,16,24,-8,16,-24,-8,-16,-24,8,-16,
+  Debug: [map] 24,16,8,24,-16,8,-24,-16,-8,-24,16,-8,
+  */
 }
 
 int *
 Map::get_spiral_pattern() {
   return spiral_pattern;
 }
+
+
+// extended spiral uses alternate method, I don't understand how the first 2 cols of the
+//  original method were determined, so cannot extend it
+std::vector<int> extended_spiral_coord_vector;
+static int extended_spiral_pattern[3268] = { 0 };
+static int extended_spiral_pattern_initialized = 0;
+
+static void
+init_extended_spiral_pattern() {
+  if (extended_spiral_pattern_initialized) {
+    return;
+  }
+  int x = 0;
+  int y = 0;
+  Map::next_extended_spiral_coord(x, y, &extended_spiral_coord_vector); // add the center pos coords
+  for (int shells = 1; shells < 24; ++shells) {
+    //Log::Debug["map"] << "inside loop, shells=" << shells;
+    for (int i = 0; i < shells; ++i) { Map::next_extended_spiral_coord(++x, y, &extended_spiral_coord_vector); } // RIGHT
+    for (int i = 0; i < shells - 1; ++i) { Map::next_extended_spiral_coord(x, --y, &extended_spiral_coord_vector); } // DOWN
+    for (int i = 0; i < shells; ++i) { Map::next_extended_spiral_coord(--x, --y, &extended_spiral_coord_vector); } // DOWN-LEFT
+    for (int i = 0; i < shells; ++i) { Map::next_extended_spiral_coord(--x, y, &extended_spiral_coord_vector); } // LEFT
+    for (int i = 0; i < shells; ++i) { Map::next_extended_spiral_coord(x, ++y, &extended_spiral_coord_vector); } // UP
+    for (int i = 0; i < shells; ++i) { Map::next_extended_spiral_coord(++x, ++y, &extended_spiral_coord_vector); } // UP-RIGHT
+  }
+  std::copy(extended_spiral_coord_vector.begin(), extended_spiral_coord_vector.end(), extended_spiral_pattern);
+  /*
+  Log::Debug["map"] << "new extended spiral pattern: ";
+  Log::Debug["map"] << "0, 0";
+  for (int x = 0; x < 272; x++) {
+    std::string row;
+    for (int y = 0; y < 12; y++) {
+      int val = extended_spiral_pattern[2 + (12 * x) + y];
+      row.append(std::to_string(val) + ",");
+    }
+    Log::Debug["map"] << row;
+  }
+  exit(1);
+  */
+
+  // best explanation of original spiral_pattern method...
+  //  an example, for this row #49
+  //
+  // 24, 16, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+  // i = 49  # row id
+  // x = 24  # 1st hardcoded value
+  // y = 16  # 2nd hardcoded value
+  // if j=0...
+  //  12*i = 588
+  //  2 + 588 + 0     (2*0 = 0 = j)
+  //  or, 1st hardcoded value of 49th row
+  //     is overwritten to the value 24*(pos/neg/zero?) + 16*(pos/neg/zero?)
+  //  and 2nd hardcoded value of 49th row
+  //     is overwritten to the value 24*(pos/neg/zero?) + 16*(pos/neg/zero?) also, but with different -1/1/0
+  // then as j=1,2,3..., the next pairs of values in same row are set to same pattern,
+  //     only change is the -1/1/0 spiral_matrix entry used
+  extended_spiral_pattern_initialized = 1;
+}
+
+
+
+int *
+Map::get_extended_spiral_pattern() {
+  return extended_spiral_pattern;
+}
+
+
 
 /* Map Object to Space. */
 const Map::Space
@@ -320,7 +455,8 @@ Map::map_space_from_obj[] = {
 
 Map::Map(const MapGeometry& geom)
   : geom_(geom)
-  , spiral_pos_pattern(new MapPos[295]) {
+  , spiral_pos_pattern(new MapPos[295])
+  , extended_spiral_pos_pattern(new MapPos[3268]) {
   // Some code may still assume that map has at least size 3.
   if (geom.size() < 3) {
     throw ExceptionFreeserf("Failed to create map with size less than 3.");
@@ -337,7 +473,9 @@ Map::Map(const MapGeometry& geom)
   regions = (geom.cols() >> 5) * (geom.rows() >> 5);
 
   init_spiral_pattern();
+  init_extended_spiral_pattern();
   init_spiral_pos_pattern();
+  init_extended_spiral_pos_pattern();
 }
 
 /* Return a random map position.
@@ -377,6 +515,28 @@ Map::init_spiral_pos_pattern() {
   }
 }
 
+/* Initialize extended spiral_pos_pattern for AI functions */
+void
+Map::init_extended_spiral_pos_pattern() {
+    // NOTE, originally had this set to <1801 but g++ threw warning:
+//[build] map.cc:522:40: warning: iteration 1634 invokes undefined behavior [-Waggressive-loop-optimizations]
+//[build]    int x = extended_spiral_pattern[2 * i] & geom_.col_mask();
+//[build]            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+//[build] map.cc:521:20: note: within this loop
+//[build]   for (int i = 0; i < 1801; i++) {
+//[build]                   ~~^~~~~~
+//  going to try changing it to 1633 to avoid... this might shrink the possible spiral
+//   *OR* it might actually fix a bug
+
+//  for (int i = 0; i < 1801; i++) {
+    for (int i = 0; i < 1633; i++) {
+    int x = extended_spiral_pattern[2 * i] & geom_.col_mask();
+    int y = extended_spiral_pattern[2 * i + 1] & geom_.row_mask();
+
+    extended_spiral_pos_pattern[i] = pos(x, y);
+  }
+}
+
 /* Copy tile data from map generator into map tile data. */
 void
 Map::init_tiles(const MapGenerator &generator) {
@@ -395,6 +555,16 @@ Map::set_height(MapPos pos, int height) {
     }
   }
 }
+
+// tlongstretch - hack to work around crash bug during castle
+//   placement at game start, https://github.com/tlongstretch/freeserf-with-AI-plus/issues/38
+void
+Map::set_height_no_refresh(MapPos pos, int height) {
+  landscape_tiles[pos].height = height;
+  // don't Mark landscape dirty, I guess it will be updated on next refresh?
+  //  not sure, it might not even matter
+}
+
 
 /* Change the object at a map position. If index is non-negative
    also change this. The index should be reset to zero when a flag or
@@ -1021,3 +1191,4 @@ Road::undo() {
 
   return true;
 }
+

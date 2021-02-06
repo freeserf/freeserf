@@ -29,6 +29,7 @@
 #include "src/building.h"
 #include "src/gui.h"
 #include "src/game-manager.h"
+#include "src/ai.h"  // used for viewport and maybe other funtions to get the ai object so they can fetch the ai_mark stuff for AI overlay for debugging
 
 static const unsigned int map_building_sprite[] = {
   0, 0xa7, 0xa8, 0xae, 0xa9,
@@ -108,6 +109,10 @@ class Interface : public GuiObject, public GameManager::Handler {
   int return_timeout;
   int return_pos;
 
+  // tlongstretch
+  AI *ai_ptrs[5] = { NULL, NULL, NULL, NULL, NULL };
+  AIPlusOptions aiplus_options;
+
  public:
   Interface();
   virtual ~Interface();
@@ -148,6 +153,7 @@ class Interface : public GuiObject, public GameManager::Handler {
 
   void open_game_init();
   void close_game_init();
+  void initialize_AI();
 
   void open_message();
   void return_from_message();
@@ -179,6 +185,15 @@ class Interface : public GuiObject, public GameManager::Handler {
 
   virtual bool handle_event(const Event *event);
 
+  // tlongstretch
+  // used for viewport and maybe other funtions to get the ai object so they can fetch the ai_mark stuff for AI overlay for debugging
+  AI * get_ai_ptr(unsigned int index) { return ai_ptrs[index]; }
+  // options bitfield (bool settings)
+  static AIPlusOptions &get_aiplus_options();
+  void set_aiplus_option(AIPlusOption opt) { aiplus_options.set(opt); }
+  void unset_aiplus_option(AIPlusOption opt) { aiplus_options.reset(opt); }
+  bool test_aiplus_option(AIPlusOption opt) { return aiplus_options.test(opt); }
+
  protected:
   void get_map_cursor_type(const Player *player, MapPos pos,
                            BuildPossibility *bld_possibility,
@@ -191,6 +206,9 @@ class Interface : public GuiObject, public GameManager::Handler {
   virtual void internal_draw();
   virtual void layout();
   virtual bool handle_key_pressed(char key, int modifier);
+
+  // used for viewport and maybe other funtions to get the ai object so they can fetch the ai_mark stuff for AI overlay for debugging
+  void set_ai_ptr(unsigned int index, AI *ai) { ai_ptrs[index] = ai; }
 
   // GameManager::Handler implementation
  public:
