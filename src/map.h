@@ -307,6 +307,7 @@ class Map {
 
   std::unique_ptr<MapPos[]> spiral_pos_pattern;
   std::unique_ptr<MapPos[]> extended_spiral_pos_pattern;
+  std::unique_ptr<MapPos[]> directional_fill_pos_pattern;
 
 
  public:
@@ -333,14 +334,26 @@ class Map {
   // Addition of two map positions.
   MapPos pos_add(MapPos pos, int x, int y) const {
     return geom_.pos_add(pos, x, y); }
+
   MapPos pos_add(MapPos pos, MapPos off) const {
     return geom_.pos_add(pos, off); }
+
   MapPos pos_add_spirally(MapPos pos_, unsigned int off) const {
-  if (off > 295) { Log::Error["map"] << "cannot use pos_add_spirally() beyond 295 positions (~10 shells)"; }
+    if (off > 295) {
+      Log::Error["map"] << "cannot use pos_add_spirally() beyond 295 positions (~10 shells)";
+    }
     return pos_add(pos_, spiral_pos_pattern[off]); }
+
   MapPos pos_add_extended_spirally(MapPos pos_, unsigned int off) const {
-  if (off > 3268) { Log::Error["map"] << "cannot use pos_add_extended_spirally() beyond 3268 positions (~24 shells)"; }
+    if (off > 3268) {
+      Log::Error["map"] << "cannot use pos_add_extended_spirally() beyond 3268 positions (~24 shells)";
+    }
     return pos_add(pos_, extended_spiral_pos_pattern[off]);
+  }
+
+  MapPos pos_add_directional_fill(MapPos pos_, unsigned int off, int dir) const {
+    int dir_offset = 52 * dir;
+    return pos_add(pos_, directional_fill_pos_pattern[off+dir_offset]);
   }
 
   // Shortest distance between map positions.
@@ -465,6 +478,7 @@ class Map {
 
   static int *get_spiral_pattern();
   static int *get_extended_spiral_pattern();
+  static int *get_directional_fill_pattern();
 
   /* Actually place road segments */
   bool place_road_segments(const Road &road);
@@ -489,6 +503,7 @@ class Map {
  protected:
   void init_spiral_pos_pattern();
   void init_extended_spiral_pos_pattern();
+  void init_directional_fill_pos_pattern();
 
   void update_public(MapPos pos, Random *rnd);
   void update_hidden(MapPos pos, Random *rnd);

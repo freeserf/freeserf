@@ -1487,8 +1487,14 @@ Serf::enter_building(int field_B, int join_pos) {
 void
 Serf::leave_building(int join_pos) {
   Building *building = game->get_building_at_pos(pos);
-  int slope = 31 - road_building_slope[building->get_type()];
-  if (!building->is_done()) slope = 30;
+  int slope;
+  if (building == nullptr){
+    Log::Warn["serf"] << " got nullptr for building at pos " << pos << " inside Serf::leave_building, trying a safe default slope value";
+    slope = 30;
+  }else{
+    slope = 31 - road_building_slope[building->get_type()];
+    if (!building->is_done()) slope = 30;
+  }
 
   if (join_pos) game->get_map()->set_serf_index(pos, 0);
   start_walking(DirectionDownRight, slope, !join_pos);

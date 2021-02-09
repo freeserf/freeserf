@@ -455,8 +455,7 @@ typedef std::map<MapPos, std::string> ColorDotMap;
 // convert distance-from-center to MapPos offset for add_spirally
 const int _spiral_dist[25] = { 1, 7, 19, 37, 61, 91, 127, 169, 217, 271, 331, 397,
   469, 547, 631, 721, 817, 919, 1027, 1141, 1261, 1387, 1519, 1657, 1801 };
-
-
+//  one spiral row count equals (6*rows from center) + (previous row's value)
 
 // ***** I don't think any of the specialists_reserve or specialists_max works at all *********
 //

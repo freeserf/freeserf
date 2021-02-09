@@ -29,6 +29,8 @@
 #include "src/ai_roadbuilder.h"  // additional pathfinder functions for AI
 #include "src/lookup.h"  // for console log, has text names for enums and such
 
+// used for build_near_pos loops, the number of MapPos in the fill pattern
+#define DIRECTIONAL_FILL_POS_MAX  52
 
 class AI {
     //
@@ -149,10 +151,54 @@ class AI {
         return colors.at("white");
     }
   }
+
+  std::string get_dir_color_name(Direction dir) {
+    switch (dir) {
+      case DirectionNone:           // undef, should we throw error?
+        return "black";
+
+      case DirectionRight:          // 0 / East
+        return "red";
+
+      case DirectionDownRight:      // 1 / SouthEast
+        return "yellow";
+
+      case DirectionDown:           // 2 / SouthWest
+        return "blue";
+
+      case DirectionLeft:           // 3 / West
+        return "orange";
+
+      case DirectionUpLeft:         // 4 / NorthWest
+        return "purple";
+
+      case DirectionUp:             // 5 / NorthEast
+        return "green";
+        
+      default:                      // some bad dir, should we throw error?
+        return "white";
+    }
+  }
   std::string get_ai_status() { return ai_status; }
   // stupid way to pass game speed and AI loop count to viewport for AI overlay
   unsigned int get_game_speed() { return game->get_game_speed(); }
   unsigned int get_loop_count() { return loop_count; }
+  unsigned int ai_loop_freq_adj_for_gamespeed(unsigned int freq) { 
+    // because certain AI functions only run every X loops,
+    //  they do occur at the right frequency when the game
+    //  speed is increased.  To handle this, take the "every X loops"
+    //  and reduce it as game speed is increased, return the adjusted number
+    switch (game->get_game_speed()) {
+      case 0 ... 5:
+        return freq;
+      case 6 ... 15:
+        return freq*.5;
+      case 16 ... 40:
+        return freq*.2;
+      default:
+        return freq*.2;
+    }
+  }
   //std::set<std::string> get_ai_expansion_goals() { return expand_towards; }
   void set_serf_lost();
   
@@ -185,6 +231,7 @@ class AI {
   void arterial_road_depth_first_recursive_flagsearch(MapPos, std::pair<MapPos,Direction>, MapPosVector *, int *);
   MapPosVector get_corners(MapPos);
   MapPosVector get_corners(MapPos, unsigned int distance);
+  Direction get_dir_from_corner(MapPos center_pos, MapPos corner_pos);
   unsigned int count_terrain_near_pos(MapPos, unsigned int, Map::Terrain, Map::Terrain, std::string);
   unsigned int count_empty_terrain_near_pos(MapPos, unsigned int, Map::Terrain, Map::Terrain, std::string);
   unsigned int count_farmable_land(MapPos, unsigned int, std::string);
@@ -192,7 +239,8 @@ class AI {
   double count_geologist_sign_density(MapPos, unsigned int);
   MapPosVector sort_by_val_asc(MapPosSet);
   MapPosVector sort_by_val_desc(MapPosSet);
-  MapPos build_near_pos(MapPos, unsigned int, Building::Type);
+  //MapPos build_near_pos(MapPos, unsigned int, Building::Type);
+  MapPos build_near_pos(MapPos, unsigned int, Building::Type, Direction optional_fill_dir = DirectionNone);
   bool building_exists_near_pos(MapPos, unsigned int, Building::Type);
   //MapPos find_halfway_pos_between_buildings(Building::Type, Building::Type);
   unsigned int count_stones_near_pos(MapPos, unsigned int);

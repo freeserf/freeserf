@@ -1304,7 +1304,9 @@ AI::identify_arterial_roads(PMap map){
       size_t size = counts.size();
       size_t median = 0;
       // middle record is median value
-      median = counts[size / 2];
+      //median = counts[size / 2];
+      // changing this to 70th percentile
+      median = counts[size * 0.7];
       AILogDebug["util_identify_arterial_roads"] << name << " the median count " << median;
 
       // build MapPosVector of all flags that are > median, this is the arterial flag-path 
