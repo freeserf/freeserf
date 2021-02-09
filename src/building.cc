@@ -380,7 +380,9 @@ Building::add_requested_resource(Resource::Type res, bool fix_priority, int dist
       // don't let dist_from_inv be zero (it seems to happen on game start, new buildings? dunno)
       if (dist_from_inv < 1){ dist_from_inv = 1; }
       // set expiration tick
-      stock[j].req_timeout_tick[stock[j].requested] = game->get_const_tick() + (dist_from_inv * TIMEOUT_SECS_PER_TILE * TICKS_PER_SEC);
+      //stock[j].req_timeout_tick[stock[j].requested] = game->get_const_tick() + (dist_from_inv * TIMEOUT_SECS_PER_TILE * TICKS_PER_SEC);
+      // add a minimum tick timeout padding so short roads don't timeout so easily
+      stock[j].req_timeout_tick[stock[j].requested] = game->get_const_tick() + ((dist_from_inv + 10) * TIMEOUT_SECS_PER_TILE * TICKS_PER_SEC);
       //Log::Info["building"] << "debug: successfully requested resource for building of type " << NameBuilding[type] << ", at pos " << get_position() << ", with dist_from_inv " << dist_from_inv;
       //Log::Info["building"] << "debug: inside add_requested_resource, requested_tick: " << stock[j].requested_tick[stock[j].requested] << ", req_timeout_tick: " << stock[j].req_timeout_tick[stock[j].requested]; 
       stock[j].requested += 1;
@@ -861,6 +863,10 @@ Building::update() {
             if (stock[j].req_timeout_tick[x] <= 0){
               // assign highest possible timeout (associated with road >24 tiles...get_road_length_value 7)
               //  which ends up being 21 because it is road_length_value (7) * 3 for length timeout estimation
+              //
+              // ISSUE - I am seeing this trigger sometimes during normal game, not only on loadgame when I would expect it
+              //  that means resources are being requested without a req timeout being set on completed buildings, why?
+              //   TODO - check for other places that resources are rerequested and add timeout setting there
               stock[j].req_timeout_tick[x] = game->get_const_tick() + (21 * TIMEOUT_SECS_PER_TILE * TICKS_PER_SEC);
               count++;
               Log::Info["building"] << "debug: inside Building::update(), building type " << NameBuilding[type] << " at pos " << get_position() << ", no req_timeout_tick set for this requested slot of type " << stock[j].type << ", setting to highest timeout";

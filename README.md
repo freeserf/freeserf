@@ -35,7 +35,9 @@ coming soon
 
 Last build downloads
 --------------------
+
 coming soon, check https://github.com/tlongstretch/freeserf-with-AI-plus-binaries for the moment
+
 Play
 ------
 Copy the data file(s) from the original game to the same directory as freeserf. Alternatively you can put the data file in `~/.local/share/freeserf`. You may use data file(s) from DOS or Amiga game version.
@@ -47,22 +49,24 @@ Keyboard gameplay controls:
 
 * `1`, `2`, `3`, `4`, `5`: Activate one of the five buttons in the panel.
 * `b`: Toggle overlay showing possibilities for constructions.
-* `TAB`/SHIFT-`TAB`: Open next notification message; or return from last message.
+* ~~`TAB`/SHIFT-`TAB`: Open next notification message; or return from last message.~~ removed for now because of alt-tab issues
 * `+`/`-`: Increase/decrease game speed.
 * `0`: Reset game speed.
 * `p`: Pause game.
 * `j`: Switch player.
 * `y`: AI/debug overlay (only shows for AI players)
+* `g`: grid/serf state debug overlay
 
 Other keyboard controls:
 
 * `F10`: Return to main menu to start a new game
 * `s`: Enable/disable sounds playback
 * `m`: Enable/disable music playback
-* CTRL+`f`: Switch fullscreen mode on/off.
-* CTRL+`z`: Save game in current directory.
+* `CTRL`+`f`: Switch fullscreen mode on/off.
+* `CTRL`+`z`: Save game in current directory.
 * `[`/`]`: Zoom -/+
-* CTRL-MouseWheel: Zoom -/+     // note there's a bug where if you resize the game window after zooming you need to zoom again or cursor gets messed up
+* `CTRL`-`MouseWheel`: Zoom -/+     
+  *note there's a bug where if you resize the game window after zooming you need to zoom again or cursor gets messed up
 
 
 Audio

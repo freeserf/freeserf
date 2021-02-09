@@ -52,7 +52,6 @@ AI::spiral_dist(int distance) {
   return _spiral_dist[distance];
 }
 
-
 // return true if *any* of the four points contain the requested terrain type
 bool
 AI::has_terrain_type(PGame game, MapPos pos, Map::Terrain res_start_index, Map::Terrain res_end_index) {
@@ -1356,8 +1355,15 @@ AI::get_affinity(MapPos flag_pos, Building::Type optional_building_type){
       AILogDebug["util_get_affinity"] << name << " no building attached to flag_pos " << flag_pos << " and no optional_affinity building specified, returning empty vector";
       return affinity;
     }
-    request_type = game->get_flag_at_pos(flag_pos)->get_building()->get_type();
+    if (game->get_flag_at_pos(flag_pos) != nullptr ){
+      if (game->get_flag_at_pos(flag_pos)->get_building() != nullptr){
+        request_type = game->get_flag_at_pos(flag_pos)->get_building()->get_type();
+      }
+    }
     AILogDebug["util_get_affinity"] << name << " flag at flag_pos " << flag_pos << " is attached to a building of type " << NameBuilding[request_type];
+  }
+  if (request_type == Building::TypeNone){
+    AILogDebug["util_get_affinity"] << name << " request_type is TypeNone, maybe flag or building removed?";
   }
 
   // up to two affinity types for a given request type
@@ -1733,6 +1739,7 @@ AI::get_corners(MapPos center) {
   MapPosVector positions;
   MapPosVector::iterator it;
   for (Direction dir : cycle_directions_rand_cw()) {
+  //for (Direction dir : cycle_directions_cw()) {
     MapPos pos = center;
     for (int x = 0; x < 5; x++) {
       pos = map->move(pos, dir);
@@ -1741,6 +1748,7 @@ AI::get_corners(MapPos center) {
   }
   return positions;
 }
+
 
 // create vector of the six hexagonal "corner" positions (N,NE,SE,S,SW,NW),
 //   an arbitrary distance out - NOTE this is straight line NOT spirally distance!!!
@@ -1761,6 +1769,42 @@ AI::get_corners(MapPos center, unsigned int distance) {
     positions.push_back(pos);
   }
   return positions;
+}
+
+// silly function to determine the Direction 
+//  of a corner, relative to the center_pos,
+//  so that a directional fill pattern can be used
+//
+// ISSUE - because a series of centers are used to find corners
+//  and the centers-to-corner association is lost
+//  this function only ever works if the center pos happens to
+//  be the one associated with the corner.  Usually this is only
+//  at the castle pos during the early game.  That is the
+//  only time when this really matters much.  For now I am going to just
+//  let it quietly fail in those cases and return DirectionNone which
+//  results in the normal spiral search pattern anyway
+Direction
+AI::get_dir_from_corner(MapPos center_pos, MapPos corner_pos) {
+  AILogDebug["util_get_dir_from_corner"] << name << " inside AI::get_dir_from_corner(pos) with center_pos " << center_pos << " and corner_pos " << corner_pos;
+  for (Direction dir : cycle_directions_cw()) {
+    MapPos pos = center_pos;
+    for (int x = 0; x < 5; x++) {
+      pos = map->move(pos, dir);
+    }
+    if (pos == corner_pos){
+      AILogDebug["util_get_dir_from_corner"] << name << " found direction from center_pos " << center_pos << " to corner_pos " << corner_pos << ": " << NameDirection[dir] << " / " << dir;
+      return dir;
+    }
+  }
+  // if we reached this point it wasn't found, throw an exception as this should never happen
+  //  WRONG - this happens all the time, see ISSUE above, it is okay
+  //AILogError["util_get_dir_from_corner"] << name << " failed to find the Direction of the corner_pos " << corner_pos << " associated with center_pos " << center_pos;
+  //ai_mark_pos.insert(ColorDot(center_pos, "green"));
+  //ai_mark_pos.insert(ColorDot(corner_pos, "red"));
+  //ai_status.assign("LOOK AT green RED POS ERROR");
+  //std::this_thread::sleep_for(std::chrono::milliseconds(300000));
+  //throw ExceptionFreeserf("util_get_dir_from_corner failed to find the Direction from center_pos to corner_pos!  This should never happen");
+  return DirectionNone;
 }
 
 
@@ -1906,30 +1950,13 @@ AI::count_objects_near_pos(MapPos center_pos, unsigned int distance, Map::Object
 //  adding a new roadoption for this
 //
 MapPos
-AI::build_near_pos(MapPos center_pos, unsigned int distance, Building::Type building_type) {
+AI::build_near_pos(MapPos center_pos, unsigned int distance, Building::Type building_type, Direction optional_fill_dir) {
   // time this function for debugging
   std::clock_t start;
   double duration;
   start = std::clock();
 
   AILogDebug["util_build_near_pos"] << name << " inside AI::build_near_pos with building type index " << NameBuilding[building_type] << ", distance " << distance << ", target pos " << center_pos << ", inventory_pos " << inventory_pos;
-
-  /*
-  // I forgot I had this check here already... I think it is redundant
-  //  and not needed anymore
-  MapPos inventory_pos = find_nearest_inventory(center_pos);
-  if (inventory_pos != inventory_pos) {
-    AILogDebug["util_build_near_pos"] << name << " this center_pos " << center_pos << " is closer to another stock (at pos " << inventory_pos << ") than the current inventory_pos " << inventory_pos << ", returning notplaced_pos";
-    return notplaced_pos;
-  }
-  */
-
-  //
-  // *** TEMPORARILY *** KEEP THIS TO AVOID HAVING TO ADD FLAG-SEARCH TO FIND inventory_pos 
-  //// ***** THIS NEEDS TO BE CHANGED TO FIND NEAREST STOCK WITH A FLAG SEARCH!!  ******
-  // this is updated to use flagsearch now, but it now requires that a Flag already exist
-  //  at this pos, and that the flag is connected to road system.  Disabling this check for now
-  //MapPos inventory_pos = find_nearest_inventory(center_pos);
 
   // this function is being changed from using the *nearest* Inventory to using the *current*
   //  inventory, does that introduce any problems?
@@ -1991,7 +2018,22 @@ AI::build_near_pos(MapPos center_pos, unsigned int distance, Building::Type buil
 
   MapPos built_pos = bad_map_pos;
   for (unsigned int i = 0; i < distance; i++) {
-    MapPos pos = map->pos_add_extended_spirally(center_pos, i);
+    MapPos pos = bad_map_pos;
+    // normally use spiral, but instead use directional fill (outside first)
+    //  if a direction is specified. 
+    // if you wanted to do inside first fill, or some rotated pattern, you could just specify
+    //  the dir that corresponds to that dir's "outside first" fill pattern
+    if (optional_fill_dir != DirectionNone){
+      // directional fill only supports ~spiral4 right now (52 positions)
+      //  quit early with a warning if a larger number specified
+      if (i > DIRECTIONAL_FILL_POS_MAX){
+        AILogWarn["build_near_pos"] << name << " DIRECTIONAL FILL ONLY WORKS FOR ~SPIRAL-4 DIST! " << DIRECTIONAL_FILL_POS_MAX << " POSITIONS, limit reached, quitting here";
+        return bad_map_pos;
+      }
+      pos = map->pos_add_directional_fill(center_pos, i, optional_fill_dir);
+    }else{
+      pos = map->pos_add_extended_spirally(center_pos, i);
+    }
     if (map->get_owner(pos) != player_index) {
       continue;
     }
@@ -2702,9 +2744,9 @@ AI::attack_nearest_target(MapPosSet *scored_targets) {
     AILogDebug["util_attack_nearest_target"] << name << " my military_score = " << player->get_military_score() << ", knight_morale = " << player->get_knight_morale();
     //AILogDebug["util_attack_nearest_target"] << name << " ENEMY military_score = " << game->get_player(target_player_index)->get_military_score() << ",  ENEMY knight_morale = " << game->get_player(target_player_index)->get_knight_morale();
     AILogDebug["util_attack_nearest_target"] << name << " my morale is " << player->get_knight_morale() << ", min_knight_morale_attack is " << min_knight_morale_attack;
-   // TEMPORARILY DISABLING THIS to debug fighting bugs
-   if (true){
-   //if (player->get_knight_morale() > min_knight_morale_attack) {
+   //// TEMPORARILY DISABLING THIS to debug fighting bugs
+   //if (true){
+   if (player->get_knight_morale() > min_knight_morale_attack) {
       AILogDebug["util_attack_nearest_target"] << name << " my morale " << player->get_knight_morale() << " is at least min_knight_morale_attack of " << min_knight_morale_attack;
       int defending_knights = 2;  // TEMP hardcoded
       double attack_ratio = static_cast<double>(attacking_knights) / static_cast<double>(defending_knights);

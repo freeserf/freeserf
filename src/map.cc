@@ -241,6 +241,8 @@ Map::get_spiral_pattern() {
 std::vector<int> extended_spiral_coord_vector;
 static int extended_spiral_pattern[3268] = { 0 };
 static int extended_spiral_pattern_initialized = 0;
+static int directional_fill_pattern[629] = { 0 };
+static int directional_fill_pattern_initialized = 0;
 
 static void
 init_extended_spiral_pattern() {
@@ -259,6 +261,7 @@ init_extended_spiral_pattern() {
     for (int i = 0; i < shells; ++i) { Map::next_extended_spiral_coord(++x, ++y, &extended_spiral_coord_vector); } // UP-RIGHT
   }
   std::copy(extended_spiral_coord_vector.begin(), extended_spiral_coord_vector.end(), extended_spiral_pattern);
+  extended_spiral_pattern_initialized = 1;
   /*
   Log::Debug["map"] << "new extended spiral pattern: ";
   Log::Debug["map"] << "0, 0";
@@ -289,16 +292,40 @@ init_extended_spiral_pattern() {
   //     is overwritten to the value 24*(pos/neg/zero?) + 16*(pos/neg/zero?) also, but with different -1/1/0
   // then as j=1,2,3..., the next pairs of values in same row are set to same pattern,
   //     only change is the -1/1/0 spiral_matrix entry used
-  extended_spiral_pattern_initialized = 1;
 }
 
-
-
+static void
+init_directional_fill_pattern() {
+  if (directional_fill_pattern_initialized) {
+    return;
+  }
+  // I generated this pattern inside an AI loop using the marked as "used to generate Map::init_directional_fill_pattern"
+   std::vector<int> pregenerated_pattern = { -1,-4,0,-3,1,-2,2,-1,3,0,3,1,3,2,3,3,3,4,-2,-4,-1,-3,0,-2,1,-1,2,0,2,1,2,2,2,3,2,4,-3,-4,-2,-3,-1,-2,0,-1,1,0,1,1,1,2,1,3,1,4,-4,-4,-3,-3,-2,-2,-1,-1,0,0,0,1,0,2,0,3,0,4,-4,-3,-3,-2,-2,-1,-1,0,-1,1,-1,2,-1,3,-4,-2,-3,-1,-2,0,-2,1,-2,2,-4,-1,-3,0,-3,1,-4,0,
+3,-1,3,0,3,1,3,2,3,3,2,3,1,3,0,3,-1,3,2,-2,2,-1,2,0,2,1,2,2,1,2,0,2,-1,2,-2,2,1,-3,1,-2,1,-1,1,0,1,1,0,1,-1,1,-2,1,-3,1,0,-4,0,-3,0,-2,0,-1,0,0,-1,0,-2,0,-3,0,-4,0,-1,-4,-1,-3,-1,-2,-1,-1,-2,-1,-3,-1,-4,-1,-2,-4,-2,-3,-2,-2,-3,-2,-4,-2,-3,-4,-3,-3,-4,-3,-4,-4,
+4,3,3,3,2,3,1,3,0,3,-1,2,-2,1,-3,0,-4,-1,4,2,3,2,2,2,1,2,0,2,-1,1,-2,0,-3,-1,-4,-2,4,1,3,1,2,1,1,1,0,1,-1,0,-2,-1,-3,-2,-4,-3,4,0,3,0,2,0,1,0,0,0,-1,-1,-2,-2,-3,-3,-4,-4,3,-1,2,-1,1,-1,0,-1,-1,-2,-2,-3,-3,-4,2,-2,1,-2,0,-2,-1,-3,-2,-4,1,-3,0,-3,-1,-4,0,-4, 
+1,4,0,3,-1,2,-2,1,-3,0,-3,-1,-3,-2,-3,-3,-3,-4,2,4,1,3,0,2,-1,1,-2,0,-2,-1,-2,-2,-2,-3,-2,-4,3,4,2,3,1,2,0,1,-1,0,-1,-1,-1,-2,-1,-3,-1,-4,4,4,3,3,2,2,1,1,0,0,0,-1,0,-2,0,-3,0,-4,4,3,3,2,2,1,1,0,1,-1,1,-2,1,-3,4,2,3,1,2,0,2,-1,2,-2,4,1,3,0,3,-1,4,0,
+-3,-3,-2,-3,-1,-3,0,-3,1,-3,-3,1,-3,0,-3,-1,-3,-2,-2,-2,-1,-2,0,-2,1,-2,2,-2,-2,2,-2,1,-2,0,-2,-1,-1,-1,0,-1,1,-1,2,-1,3,-1,-1,3,-1,2,-1,1,-1,0,0,0,1,0,2,0,3,0,4,0,0,4,0,3,0,2,0,1,1,1,2,1,3,1,4,1,1,4,1,3,1,2,2,2,3,2,4,2,2,4,2,3,3,3,4,3,3,4,4,4,
+-4,-3,-3,-3,-2,-3,-1,-3,0,-3,1,-2,2,-1,3,0,4,1,-4,-2,-3,-2,-2,-2,-1,-2,0,-2,1,-1,2,0,3,1,4,2,-4,-1,-3,-1,-2,-1,-1,-1,0,-1,1,0,2,1,3,2,4,3,-4,0,-3,0,-2,0,-1,0,0,0,1,1,2,2,3,3,4,4,-3,1,-2,1,-1,1,0,1,1,2,2,3,3,4,-2,2,-1,2,0,2,1,3,2,4,-1,3,0,3,1,4,0,4 };
+// orig, starts at Dir 2 instead of 0
+//  std::vector<int> pregenerated_pattern = { 1,4,0,3,-1,2,-2,1,-3,0,-3,-1,-3,-2,-3,-3,-3,-4,2,4,1,3,0,2,-1,1,-2,0,-2,-1,-2,-2,-2,-3,-2,-4,3,4,2,3,1,2,0,1,-1,0,-1,-1,-1,-2,-1,-3,-1,-4,4,4,3,3,2,2,1,1,0,0,0,-1,0,-2,0,-3,0,-4,4,3,3,2,2,1,1,0,1,-1,1,-2,1,-3,4,2,3,1,2,0,2,-1,2,-2,4,1,3,0,3,-1,4,0,
+//-3,-3,-2,-3,-1,-3,0,-3,1,-3,-3,1,-3,0,-3,-1,-3,-2,-2,-2,-1,-2,0,-2,1,-2,2,-2,-2,2,-2,1,-2,0,-2,-1,-1,-1,0,-1,1,-1,2,-1,3,-1,-1,3,-1,2,-1,1,-1,0,0,0,1,0,2,0,3,0,4,0,0,4,0,3,0,2,0,1,1,1,2,1,3,1,4,1,1,4,1,3,1,2,2,2,3,2,4,2,2,4,2,3,3,3,4,3,3,4,4,4,
+//-4,-3,-3,-3,-2,-3,-1,-3,0,-3,1,-2,2,-1,3,0,4,1,-4,-2,-3,-2,-2,-2,-1,-2,0,-2,1,-1,2,0,3,1,4,2,-4,-1,-3,-1,-2,-1,-1,-1,0,-1,1,0,2,1,3,2,4,3,-4,0,-3,0,-2,0,-1,0,0,0,1,1,2,2,3,3,4,4,-3,1,-2,1,-1,1,0,1,1,2,2,3,3,4,-2,2,-1,2,0,2,1,3,2,4,-1,3,0,3,1,4,0,4,
+//-1,-4,0,-3,1,-2,2,-1,3,0,3,1,3,2,3,3,3,4,-2,-4,-1,-3,0,-2,1,-1,2,0,2,1,2,2,2,3,2,4,-3,-4,-2,-3,-1,-2,0,-1,1,0,1,1,1,2,1,3,1,4,-4,-4,-3,-3,-2,-2,-1,-1,0,0,0,1,0,2,0,3,0,4,-4,-3,-3,-2,-2,-1,-1,0,-1,1,-1,2,-1,3,-4,-2,-3,-1,-2,0,-2,1,-2,2,-4,-1,-3,0,-3,1,-4,0,
+//3,-1,3,0,3,1,3,2,3,3,2,3,1,3,0,3,-1,3,2,-2,2,-1,2,0,2,1,2,2,1,2,0,2,-1,2,-2,2,1,-3,1,-2,1,-1,1,0,1,1,0,1,-1,1,-2,1,-3,1,0,-4,0,-3,0,-2,0,-1,0,0,-1,0,-2,0,-3,0,-4,0,-1,-4,-1,-3,-1,-2,-1,-1,-2,-1,-3,-1,-4,-1,-2,-4,-2,-3,-2,-2,-3,-2,-4,-2,-3,-4,-3,-3,-4,-3,-4,-4,
+//4,3,3,3,2,3,1,3,0,3,-1,2,-2,1,-3,0,-4,-1,4,2,3,2,2,2,1,2,0,2,-1,1,-2,0,-3,-1,-4,-2,4,1,3,1,2,1,1,1,0,1,-1,0,-2,-1,-3,-2,-4,-3,4,0,3,0,2,0,1,0,0,0,-1,-1,-2,-2,-3,-3,-4,-4,3,-1,2,-1,1,-1,0,-1,-1,-2,-2,-3,-3,-4,2,-2,1,-2,0,-2,-1,-3,-2,-4,1,-3,0,-3,-1,-4,0,-4};
+  std::copy(pregenerated_pattern.begin(), pregenerated_pattern.end(), directional_fill_pattern);
+  directional_fill_pattern_initialized = 1;
+}
+  
 int *
 Map::get_extended_spiral_pattern() {
   return extended_spiral_pattern;
 }
 
+int *
+Map::get_directional_fill_pattern() {
+  return directional_fill_pattern;
+}
 
 
 /* Map Object to Space. */
@@ -456,7 +483,8 @@ Map::map_space_from_obj[] = {
 Map::Map(const MapGeometry& geom)
   : geom_(geom)
   , spiral_pos_pattern(new MapPos[295])
-  , extended_spiral_pos_pattern(new MapPos[3268]) {
+  , extended_spiral_pos_pattern(new MapPos[3268])
+  , directional_fill_pos_pattern(new MapPos[313]) {
   // Some code may still assume that map has at least size 3.
   if (geom.size() < 3) {
     throw ExceptionFreeserf("Failed to create map with size less than 3.");
@@ -474,8 +502,11 @@ Map::Map(const MapGeometry& geom)
 
   init_spiral_pattern();
   init_extended_spiral_pattern();
+  init_directional_fill_pattern();
+
   init_spiral_pos_pattern();
   init_extended_spiral_pos_pattern();
+  init_directional_fill_pos_pattern();
 }
 
 /* Return a random map position.
@@ -534,6 +565,22 @@ Map::init_extended_spiral_pos_pattern() {
     int y = extended_spiral_pattern[2 * i + 1] & geom_.row_mask();
 
     extended_spiral_pos_pattern[i] = pos(x, y);
+  }
+}
+
+/* Initialize outwards-first fill/search pattern for AI functions */
+//  see https://github.com/tlongstretch/freeserf-with-AI-plus/issues/58
+void
+Map::init_directional_fill_pos_pattern() {
+  // for each Direction (+1 because *0 = 0)
+  for (int dir = 0; dir < 6; dir++){
+    for (int i = 0; i < 52; i++) {
+      int dir_pattern_offset = 104 * dir;
+      int dir_pos_offset = 52 * dir;
+      int x = directional_fill_pattern[dir_pattern_offset + i * 2 ] & geom_.col_mask();
+      int y = directional_fill_pattern[dir_pattern_offset + i * 2 + 1] & geom_.row_mask();
+      directional_fill_pos_pattern[dir_pos_offset + i] = pos(x, y);
+    }
   }
 }
 

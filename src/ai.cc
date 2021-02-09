@@ -136,16 +136,122 @@ AI::next_loop(){
   update_building_counts();
   do_get_inventory(castle_flag_pos);
 
-  //DEBUG DEBUG DEBUG
-  //DEBUG DEBUG DEBUG
-  //DEBUG DEBUG DEBUG
+  /*
+  //DEBUG
   if (realm_building_count[Building::TypeHut] > 1){
     AI::identify_arterial_roads(map);
     //return;
   }
-  //DEBUG DEBUG DEBUG
-  //DEBUG DEBUG DEBUG
-  //DEBUG DEBUG DEBUG
+  */
+
+/*
+  //DEBUG
+  MapPosVector corners = AI::get_corners(castle_pos);
+  std::map<int,MapPosVector> spots;
+  int dir = -1;
+  for (MapPos corner_pos : corners) {
+    dir++;
+    spots[dir] = {};
+    for (unsigned int i = 0; i < AI::spiral_dist(4); i++) {
+      MapPos spot_pos = map->pos_add_extended_spirally(corner_pos, i);
+      ai_mark_pos.insert(ColorDot(spot_pos, "black"));
+      std::this_thread::sleep_for(std::chrono::milliseconds(5));
+      spots.at(dir).push_back(spot_pos);
+    }
+  }
+  MapPosVector bigspiral = {};
+  std::map<int,MapPosVector> matches;
+  for (unsigned int i = AI::spiral_dist(8) - 1; i > 0; i--) {
+    //MapPos ring_pos = map->pos_add_extended_reverse_spirally(inventory_pos, i);
+    MapPos ring_pos = map->pos_add_extended_spirally(castle_pos, i);
+    ai_mark_pos.erase(ring_pos);
+    ai_mark_pos.insert(ColorDot(ring_pos, "lt_orange"));
+    bigspiral.push_back(ring_pos);
+    for (Direction dir : cycle_directions_cw()){
+      if (std::find(spots[dir].begin(),spots[dir].end(),ring_pos) != spots[dir].end()){
+        matches[dir].push_back(ring_pos);
+        ai_mark_pos.erase(ring_pos);
+        ai_mark_pos.insert(ColorDot(ring_pos, get_dir_color_name(dir)));
+      }
+      std::this_thread::sleep_for(std::chrono::milliseconds(5));
+    }
+  }
+  ai_mark_pos.clear();
+  for (Direction dir : cycle_directions_cw()){
+    for (MapPos pos : matches[dir]){
+      ai_mark_pos.erase(pos);
+      ai_mark_pos.insert(ColorDot(pos, get_dir_color_name(dir)));
+      std::this_thread::sleep_for(std::chrono::milliseconds(15));
+    }
+    ai_mark_pos.clear();
+  }
+
+  //======= copied from map.h =====================
+  //// Extract col and row from MapPos
+  //int pos_col(MapPos pos) const { return geom_.pos_col(pos); }
+  //int pos_row(MapPos pos) const { return geom_.pos_row(pos); }
+  //
+  //// Translate col, row coordinate to MapPos value.
+  //MapPos pos(int x, int y) const { return geom_.pos(x, y); }
+  ================================================= 
+
+  // make this a nested map that includes not just each direction
+  //  but also each corner distance from center.  
+  // Right now it is hardcoded to 4 pos away (it uses get_corners)
+  std::map<int,MapPosVector> directional_fill;
+  ai_mark_pos.clear();
+  dir = -1;
+  for (MapPos corner_pos : corners) {
+    dir++;
+    AILogInfo["spiral"] << " corner_pos " << corner_pos << " is in dir " << NameDirection[dir] << " / " << dir;
+    int corner_col = map->pos_col(corner_pos);
+    int corner_row = map->pos_row(corner_pos);
+    //for (unsigned int i = 0; i < AI::spiral_dist(4); i++) {
+    for (MapPos pos : matches.at(dir)){
+      //MapPos pos = map->pos_add_extended_spirally(corner_pos, i);
+      int col_offset = corner_col - map->pos_col(pos);
+      int row_offset = corner_row - map->pos_row(pos);
+      AILogInfo["spiral"] << " pos " << pos << " has offset " << col_offset << ", " << row_offset << " from corner_pos " << corner_pos;
+      directional_fill[dir].push_back(col_offset);
+      directional_fill[dir].push_back(row_offset);
+    }
+  }
+  */
+
+/* this works
+  MapPosVector corners = AI::get_corners(castle_pos);
+  //int dir = 2;
+  int dir = -1;
+  for (MapPos corner_pos : corners) {
+    dir++;
+    //if (dir == 6){
+    //  dir = 0;
+    //}
+    //int *foo = map->get_directional_fill_pattern();
+    //for (int i = 0; i < 104; i++){
+      //int dir_offset = 104 * dir;
+      //int x = foo[dir_offset + i];
+      //int y = foo[dir_offset + i + 1];
+      //int x = foo[i];
+      //int y = foo[i+1];
+      //i++;
+      //AILogInfo["spiral"] << "x,y = " << x << ", " << y;
+      //MapPos pos = map->pos_add(corner_pos,x,y);
+      // I don't understand why the -9 is required, I had it working okay when I wasn't
+      //  using pos_add_directional_fill but was instead directly calculating the offsets
+      // from the fill pattern.  I guess either leave it this way, figure out why, or
+      //  just use the fill pattern directly instead of the pos_pattern
+    //for (unsigned int i = 0; i < (AI::spiral_dist(4) - 9); i++) {
+    for (unsigned int i = 0; i < DIRECTIONAL_FILL_POS_MAX; i++) {
+      MapPos pos = map->pos_add_directional_fill(corner_pos, i, dir);
+      ai_mark_pos.erase(pos);
+      ai_mark_pos.insert(ColorDot(pos, get_dir_color_name(Direction(dir))));
+      std::this_thread::sleep_for(std::chrono::milliseconds(75));
+    }
+  }
+  return;
+  */
+  //DEBUG
 
   do_get_serfs();
   //do_debug_building_triggers();   // not using these right now
@@ -278,7 +384,7 @@ AI::do_place_castle() {
     AILogDebug["do_place_castle"] << name << " sleeping " << player_index << "sec so each AI player thread gets different seed for random map pos";
     std::this_thread::sleep_for(std::chrono::milliseconds(1000 * player_index));
     Random rnd;
-    int tries = 200;
+    int tries = 250; // I saw 200 tries reached once, not sure if it was a particular map or what
     int x = 0;
     while (true) {
       x++;
@@ -341,7 +447,7 @@ AI::do_update_clear_reset() {
   //ai_mark_arterial_roads->clear();
   ai_mark_arterial_road_pairs->clear();
   ai_mark_arterial_road_flags->clear();
-  ai_mark_spiderweb_road_pairs->clear();
+  //ai_mark_spiderweb_road_pairs->clear();
   last_expand_towards = expand_towards;
   expand_towards.clear();
   road_options.reset(RoadOption::Direct);
@@ -561,7 +667,11 @@ AI::do_spiderweb_roads2() {
   // only do this every X loops, and only add one new road per run
   update_building_counts();
   unsigned int completed_huts = realm_completed_building_count[Building::TypeHut];
-  if (loop_count % 10 != 0 || completed_huts < 9 || completed_huts > 16) {
+  //if (loop_count % 10 != 0 || completed_huts < 9 || completed_huts > 16) {
+    // temporary run ever other loop for debugging
+  //if (loop_count % 2 != 0 || completed_huts < 9 || completed_huts > 16) {
+  AILogDebug["do_spiderweb_roads2"] << inventory_pos << " DEBUG: loop_count " << loop_count << ", desired freq 10, adjusted freq " << ai_loop_freq_adj_for_gamespeed(10) << ", completed_huts " << completed_huts;
+  if (loop_count % ai_loop_freq_adj_for_gamespeed(10) != 0 || completed_huts < 9 || completed_huts > 16) {
     AILogDebug["do_spiderweb_roads2"] << inventory_pos << " skipping spider-web2 roads, only running this every X loops and >Y, <Z knight huts built";
   }
   else {
@@ -643,6 +753,7 @@ AI::do_spiderweb_roads2() {
             AILogDebug["do_spiderweb_roads2"] << inventory_pos << " successfully built spider-web2 road between area_flag_pos " << area_flag_pos << " to other_area_flag_pos " << other_area_flag_pos;
             // only create one road per run
             spider_web_roads_built++;
+            /* disable for now, it works great though
             // find the new road and mark for highlighting on AI Overlay in Viewport
             // assume the first road found directly between the two flags and NOT having a transporter yet is the new road
             // CRAP, this doesn't work because it is not a direct road, but could be a split road or indirect connection
@@ -666,6 +777,7 @@ AI::do_spiderweb_roads2() {
                 ai_mark_spiderweb_road_pairs->push_back(std::make_pair(area_flag_pos, d));
               }
             }
+            */
             break;
           }
           else {
@@ -698,7 +810,7 @@ AI::do_pollute_castle_area_roads_with_flags() {
   }
 
   unsigned int created_flags = 0;
-  for (unsigned int x = 0; x < AI::spiral_dist(9); x++) {
+  for (unsigned int x = 0; x < AI::spiral_dist(8); x++) {
     MapPos pos = map->pos_add_extended_spirally(castle_flag_pos, x);
     if (map->has_any_path(pos)){
       if (game->can_build_flag(pos, player)) {
@@ -2311,23 +2423,22 @@ AI::do_build_sawmill_lumberjacks() {
         AILogDebug["do_build_sawmill_lumberjacks"] << inventory_pos << " Already placed sawmill and lumberjacks, not building more";
         return;
       }
-      MapPosVector corners = AI::get_corners(center_pos);
-      // build a list of corners by tree count and sort
-      for (MapPos corner_pos : corners) {
-        unsigned int count = AI::count_objects_near_pos(corner_pos, AI::spiral_dist(4), Map::ObjectTree0, Map::ObjectPine7, "lt_green");
-        //AILogDebug["do_build_sawmill_lumberjacks"] << inventory_pos << " corner has count: " << count << ", min acceptable is " << AI::near_trees_min;
-        if (count >= near_trees_min) {
-          count_by_corner.insert(std::make_pair(corner_pos, count));
-        }
-      }
       if (sawmill_count < 1) {
-        //
+        // build a list of corners by tree count and sort
+        MapPosVector corners = AI::get_corners(center_pos);
+        for (MapPos corner_pos : corners) {
+          unsigned int count = AI::count_objects_near_pos(corner_pos, AI::spiral_dist(4), Map::ObjectTree0, Map::ObjectPine7, "lt_green");
+          //AILogDebug["do_build_sawmill_lumberjacks"] << inventory_pos << " corner has count: " << count << ", min acceptable is " << AI::near_trees_min;
+          if (count >= near_trees_min) {
+            count_by_corner.insert(std::make_pair(corner_pos, count));
+          }
+        }
         // build sawmill near corner with most trees
-        //
         MapPosVector search_positions = AI::sort_by_val_desc(count_by_corner);
         for (MapPos corner_pos : search_positions) {
           AILogDebug["do_build_sawmill_lumberjacks"] << inventory_pos << " try to build sawmill near pos " << corner_pos;
-          built_pos = AI::build_near_pos(corner_pos, AI::spiral_dist(6), Building::TypeSawmill);
+          //built_pos = AI::build_near_pos(corner_pos, AI::spiral_dist(6), Building::TypeSawmill);
+          built_pos = AI::build_near_pos(corner_pos, DIRECTIONAL_FILL_POS_MAX, Building::TypeSawmill, get_dir_from_corner(center_pos, corner_pos));
           if (built_pos != bad_map_pos && built_pos != notplaced_pos && built_pos != stopbuilding_pos) {
             AILogDebug["do_build_sawmill_lumberjacks"] << inventory_pos << " built sawmill at pos " << built_pos;
             break;
@@ -2605,8 +2716,8 @@ AI::do_build_toolmaker_steelsmelter() {
 }
 
 // build a fisherman in every good spot
-// build up to 3 farms as needed
-// build up to 2 mills as needed - near the farms
+// build up to 3 farms as needed ** changing this to TWO farms max to reduce clutter
+// build up to 2 mills as needed - near the farms  ** changing this to ONE mill max to reduce clutter
 // build one baker - near the mills
 // build a 3rd lumberjack after the first farm is built - because it makes good use of time while farmer is sowing his fields
 //    I keep trying to break this up into smaller functions it really works best together
@@ -2674,18 +2785,22 @@ AI::do_build_food_buildings_and_3rd_lumberjack() {
       int mill_count = stock_buildings.at(inventory_pos).count[Building::TypeMill];
       int baker_count = stock_buildings.at(inventory_pos).count[Building::TypeBaker];
       if (mine_count >= 3) {
+        /*
         if (farm_count == 2 && mill_count >= 2 && baker_count >= 1) {
           AILogDebug["do_build_food_buildings_and_3rd_lumberjack"] << inventory_pos << " three completed mines, two farms, two mills, and a baker exist.  Need a third wheat farm";
           need_farm = true;
         }
+        */
         if (farm_count == 1 && mill_count == 1 && baker_count >= 1) {
           AILogDebug["do_build_food_buildings_and_3rd_lumberjack"] << inventory_pos << " three completed mines, a mill, and a baker exist.  Need a second wheat farm";
           need_farm = true;
         }
+        /*
         if (farm_count >= 1 && mill_count == 1 && baker_count >= 1) {
           AILogDebug["do_build_food_buildings_and_3rd_lumberjack"] << inventory_pos << " three completed mines, two farms, and a baker exist.  Need a second mill";
           need_mill = true;
         }
+        */
       }
       else {
         AILogDebug["do_build_food_buildings_and_3rd_lumberjack"] << inventory_pos << " not building any more farms until having 3+ completed mines, currently have " << mine_count;
@@ -3380,6 +3495,8 @@ AI::do_attack() {
 // build better roads for high priority buildings
 //   for each one, see if a better-scoring multi-road solution can be plotted to its affinity_building[s]
 //    and if so, build that road in.  Do not remove any existing roads
+// I think a major limitation of this function is that it only considers the 
+//  building flag (right?) but should also consider nearby flags as source flags
 void
 AI::do_build_better_roads_for_important_buildings() {
   // time this function for debugging
