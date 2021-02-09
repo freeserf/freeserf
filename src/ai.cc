@@ -2716,8 +2716,8 @@ AI::do_build_toolmaker_steelsmelter() {
 }
 
 // build a fisherman in every good spot
-// build up to 3 farms as needed
-// build up to 2 mills as needed - near the farms
+// build up to 3 farms as needed ** changing this to TWO farms max to reduce clutter
+// build up to 2 mills as needed - near the farms  ** changing this to ONE mill max to reduce clutter
 // build one baker - near the mills
 // build a 3rd lumberjack after the first farm is built - because it makes good use of time while farmer is sowing his fields
 //    I keep trying to break this up into smaller functions it really works best together
@@ -2785,18 +2785,22 @@ AI::do_build_food_buildings_and_3rd_lumberjack() {
       int mill_count = stock_buildings.at(inventory_pos).count[Building::TypeMill];
       int baker_count = stock_buildings.at(inventory_pos).count[Building::TypeBaker];
       if (mine_count >= 3) {
+        /*
         if (farm_count == 2 && mill_count >= 2 && baker_count >= 1) {
           AILogDebug["do_build_food_buildings_and_3rd_lumberjack"] << inventory_pos << " three completed mines, two farms, two mills, and a baker exist.  Need a third wheat farm";
           need_farm = true;
         }
+        */
         if (farm_count == 1 && mill_count == 1 && baker_count >= 1) {
           AILogDebug["do_build_food_buildings_and_3rd_lumberjack"] << inventory_pos << " three completed mines, a mill, and a baker exist.  Need a second wheat farm";
           need_farm = true;
         }
+        /*
         if (farm_count >= 1 && mill_count == 1 && baker_count >= 1) {
           AILogDebug["do_build_food_buildings_and_3rd_lumberjack"] << inventory_pos << " three completed mines, two farms, and a baker exist.  Need a second mill";
           need_mill = true;
         }
+        */
       }
       else {
         AILogDebug["do_build_food_buildings_and_3rd_lumberjack"] << inventory_pos << " not building any more farms until having 3+ completed mines, currently have " << mine_count;
