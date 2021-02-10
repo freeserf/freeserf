@@ -202,6 +202,7 @@ typedef enum Action {
   ACTION_NO_SAVE_QUIT_CONFIRM,
   ACTION_SHOW_QUIT,
   ActionShowOptions,
+  ACTION_RESET_MAPGEN_DEFAULTS,
   ACTION_SHOW_SAVE,
   ACTION_SETT_8_CYCLE,
   ACTION_CLOSE_OPTIONS,
@@ -2018,14 +2019,6 @@ void
 PopupBox::draw_edit_map_generator_box() {
   draw_large_box_background(PatternDiagonalGreen);
 
-
-
-
-
-
-
-
-
   // Trees
   //    Add either tree or pine.
   //    Add only trees.
@@ -2053,10 +2046,10 @@ PopupBox::draw_edit_map_generator_box() {
 
   // Deserts
   draw_colored_slide_bar(1, 59, 65535/1.5, Color::yellow);
-  draw_green_string(10, 60, "Deserts");
+  draw_green_string(10, 58, "Deserts");
 
   // Lakes
-  draw_green_string(10, 73, "Lakes");
+  draw_green_string(10, 72, "Lakes");
   draw_colored_slide_bar(1, 72, 65535/1.5, Color::blue);
 
   // Junk Objects
@@ -2078,22 +2071,10 @@ PopupBox::draw_edit_map_generator_box() {
   //    Create palm trees in desert.
   draw_colored_slide_bar(25, junk_y+16, 65535/1.5, Color::yellow);
 
-  /*
-  AIPlusOptions aiplus_options = interface->get_aiplus_options();
-  draw_green_string(3, 10, "Auto Save Game");
-  draw_popup_icon(1, 7, (interface->test_aiplus_option(AIPlusOption::EnableAutoSave)) ? 288 : 220);
-
-  draw_green_string(3, 29, "Pigs Require No Wheat");
-  draw_popup_icon(1, 26, (interface->test_aiplus_option(AIPlusOption::ImprovedPigFarms)) ? 288 : 220);
-
-  draw_green_string(3, 48, "Can Transport Serfs In Boats");
-  draw_popup_icon(1, 45, (interface->test_aiplus_option(AIPlusOption::CanTransportSerfsInBoats)) ? 288 : 220);
-
-  draw_green_string(3, 67, "Quick Demo Empty Build Sites");
-  draw_popup_icon(1, 64, (interface->test_aiplus_option(AIPlusOption::QuickDemoEmptyBuildSites)) ? 288 : 220);
-*/
-
-  draw_popup_icon(32, 128, 60); /* exit */
+  draw_green_string(1, 128, "Reset Defaults");
+  draw_popup_icon(16, 124, 0x3d); // flipbox icon
+  
+  draw_popup_icon(32, 128, 60); // exit icon  
 }
 
 
@@ -3579,14 +3560,20 @@ PopupBox::handle_action(int action, int x_, int /*y_*/) {
   case ActionShowOptions:
     interface->open_popup(TypeOptions);
     break;
-    /* TODO */
+  case ACTION_RESET_MAPGEN_DEFAULTS:
+    // TODO - reset map generator defaults
+    break;
   case ACTION_OPTIONS_FLIP_TO_AIPLUS:
     interface->open_popup(TypeAIPlusOptions);
-    //set_box((box + 1 <= TypeAdv2Bld) ? (Type)(box + 1) : TypeBasicBldFlip);
     break;
   //case ACTION_AIPLUS_NEXT_PAGE:
   //  interface->open_popup(TypeAIPlusOptions2);
   //  break;
+  //
+  //case ???? 
+  /* ToDo */
+  //set_box((box + 1 <= TypeAdv2Bld) ? (Type)(box + 1) : TypeBasicBldFlip);
+    //break;
   case ACTION_AIPLUS_ENABLE_AUTOSAVE:
     if (interface->test_aiplus_option(AIPlusOption::EnableAutoSave)){
       interface->unset_aiplus_option(AIPlusOption::EnableAutoSave);
@@ -3938,6 +3925,7 @@ PopupBox::handle_box_edit_map_generator_clk(int cx, int cy) {
     ACTION_AIPLUS_QUICK_DEMO_EMPTY_BUILD_SITES, 7, 64, 16, 16,
     //ACTION_AIPLUS_NEXT_PAGE, 106, 110, 16, 16,
     */
+    ACTION_RESET_MAPGEN_DEFAULTS, 128, 124, 16, 16,
     ACTION_CLOSE_BOX, 255, 126, 16, 16,
     -1
   };

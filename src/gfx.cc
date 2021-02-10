@@ -38,7 +38,7 @@ const Color Color::yellow  = Color(239, 239, 143);
 const Color Color::gold    = Color(255, 255,  55);
 const Color Color::dk_gray = Color( 35,  35,  35);
 const Color Color::blue    = Color( 44,  44, 255);
-const Color Color::lt_gray = Color(177, 177, 177);
+const Color Color::lt_gray = Color(188, 188, 188);
 const Color Color::cyan    = Color(  0, 227, 227);
 const Color Color::magenta = Color(223, 127, 239);
 
