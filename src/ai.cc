@@ -92,13 +92,18 @@ AI::start() {
 
   while (true) {
     //AILogDebug["start"] << name << " start AI::start while(true)";
+    bool logged_paused = false;
     if (game->should_ai_stop() == true) {
       AILogInfo["start"] << name << " received stop_ai_threads signal, exiting!";
       game->ai_thread_exiting();
       return;
     }
     else if (game->get_game_speed() == 0) {
-      AILogDebug["start"] << name << " game is paused, not running AI loops until unpaused";
+      // avoid repeat log messages when paused
+      if (!logged_paused){
+        AILogDebug["start"] << name << " game is paused, not running AI loops until unpaused";
+        logged_paused = true;
+      }
       ai_status.assign("AI_PAUSED");
       std::this_thread::sleep_for(std::chrono::milliseconds(100));
     }
@@ -267,9 +272,9 @@ AI::next_loop(){
   do_build_better_roads_for_important_buildings();  // is this working?  I still see pretty inefficient roads for important buildings
   //do_spiderweb_roads1();   // this might be too close to the castle, do some more testing
   //do_spiderweb_roads2();  // moved to inside warehouse/stock so it does this for each one
-  do_pollute_castle_area_roads_with_flags();
-  do_fix_stuck_serfs();
-  do_fix_missing_transporters();
+  //do_pollute_castle_area_roads_with_flags(); // CHANGE THIS TO USE ARTERIAL ROADS 
+  do_fix_stuck_serfs();  // this is definitely still an issue, try to fix root cause
+  do_fix_missing_transporters();  // is this still a problem anymore??
   //do_send_geologists();  move this to inside warehouse / stock loop only because it uses occupied_building_count which uses inventory_pos
   do_build_rangers();
   do_remove_road_stubs();
@@ -1024,7 +1029,10 @@ AI::do_fix_stuck_serfs() {
         AILogDebug["do_fix_stuck_serfs"] << name << " thread #" << std::this_thread::get_id() << " AI is locking mutex before calling serf->set_lost_state (for bug workaround stuck serfs)";
         game->get_mutex()->lock();
         AILogDebug["do_fix_stuck_serfs"] << name << " thread #" << std::this_thread::get_id() << " AI has locked mutex before calling serf->set_lost_state (for bug workaround stuck serfs)";
+        // feb09 2021, try setting them to Walking state instead...
+        //   nope, that doesn't work.  find out why Walking crashes.  Back to Lost
         serf->set_lost_state();
+        //serf->set_serf_state(Serf::StateWalking);  // this crashes
         AILogDebug["do_fix_stuck_serfs"] << name << " thread #" << std::this_thread::get_id() << " AI is unlocking mutex after after serf->set_lost_state (for bug workaround stuck serfs)";
         game->get_mutex()->unlock();
         AILogDebug["do_fix_stuck_serfs"] << name << " thread #" << std::this_thread::get_id() << " AI has unlocked mutex after after serf->set_lost_state (for bug workaround stuck serfs)";
@@ -1096,12 +1104,12 @@ AI::do_fix_missing_transporters() {
       AILogDebug["do_fix_missing_transporters"] << name << " triggering timer for flag with pos " << flag->get_position() << ", index " << flag_index << ", dir " << dir << " / " << NameDirection[dir];
       
       if (!flag->has_path(dir)){
-        AILogDebug["do_fix_missing_transporters"] << name << " a path no longer exists for flag with pos " << flag->get_position() << ", index " << flag_index << ", dir " << dir << " / " << NameDirection[dir] << ", erasing timer";
+        AILogVerbose["do_fix_missing_transporters"] << name << " a path no longer exists for flag with pos " << flag->get_position() << ", index " << flag_index << ", dir " << dir << " / " << NameDirection[dir] << ", erasing timer";
         no_transporter_timer = no_transporter_timers.erase(no_transporter_timer);
       }
       else if (flag->has_transporter(dir)) {
-        AILogDebug["do_fix_missing_transporters"] << name << " looks like a transporter finally arrived, not calling another";
-        AILogDebug["do_fix_missing_transporters"] << name << " erasing timer for flag-dir " << flag_index << "-" << dir << " / " << NameDirection[dir];
+        AILogVerbose["do_fix_missing_transporters"] << name << " looks like a transporter finally arrived, not calling another";
+        AILogVerbose["do_fix_missing_transporters"] << name << " erasing timer for flag-dir " << flag_index << "-" << dir << " / " << NameDirection[dir];
         // found in C++ example... iterator is set by the result of the erase call on the current iterator pos (which is serf_index)
         no_transporter_timer = no_transporter_timers.erase(no_transporter_timer);
       }
@@ -1165,7 +1173,7 @@ AI::do_fix_missing_transporters() {
         bool found_transporter = false;
         Road road;
         if (!map->has_path(flag->get_position(), dir)) {
-          AILogDebug["do_fix_missing_transporters"] << name << " no path found for flag with pos " << flag->get_position() << ", index " << flag_index << ", dir " << dir << " / " << NameDirection[dir] << " during no_transporter check!  FIND OUT WHY";
+          AILogVerbose["do_fix_missing_transporters"] << name << " no path found for flag with pos " << flag->get_position() << ", index " << flag_index << ", dir " << dir << " / " << NameDirection[dir] << " during no_transporter check!  FIND OUT WHY";
         }
         MapPos pos = flag->get_position();
         Direction tmp_dir = dir;
@@ -1229,33 +1237,33 @@ AI::do_fix_missing_transporters() {
       // check for common missing transporter bug, where no transporter is assigned at all
       //
       if (!flag->has_transporter(dir)) {
-        AILogDebug["do_fix_missing_transporters"] << name << " flag at pos " << flag->get_position() << " has no transporter on path in dir " << dir << " / " << NameDirection[dir];
+        AILogVerbose["do_fix_missing_transporters"] << name << " flag at pos " << flag->get_position() << " has no transporter on path in dir " << dir << " / " << NameDirection[dir];
         // check to see if one was requested
         if (flag->serf_requested(dir)){
-          AILogDebug["do_fix_missing_transporters"] << name << " flag->serf_requested is true at pos " << flag->get_position() << " in dir " << dir << " / " << NameDirection[dir];
+          AILogVerbose["do_fix_missing_transporters"] << name << " flag->serf_requested is true at pos " << flag->get_position() << " in dir " << dir << " / " << NameDirection[dir];
         }else{
-          AILogDebug["do_fix_missing_transporters"] << name << " flag->serf_requested is FALSE at pos " << flag->get_position() << " in dir " << dir << " / " << NameDirection[dir] << ", marking flag in yellow and dir in dk_yellow";
-          ai_mark_pos.insert(ColorDot(flag->get_position(), "yellow"));
-          ai_mark_pos.insert(ColorDot(map->move(flag->get_position(), dir), "dk_yellow"));
-          std::this_thread::sleep_for(std::chrono::milliseconds(3000));
-          //game->pause();
+          AILogVerbose["do_fix_missing_transporters"] << name << " flag->serf_requested is FALSE at pos " << flag->get_position() << " in dir " << dir << " / " << NameDirection[dir] << ", marking flag in yellow and dir in dk_yellow";
+          // this happens when flags/roads/buildings were just created, not an issue as far as I have ever seen
+          //ai_mark_pos.insert(ColorDot(flag->get_position(), "yellow"));
+          //ai_mark_pos.insert(ColorDot(map->move(flag->get_position(), dir), "dk_yellow"));
+          //std::this_thread::sleep_for(std::chrono::milliseconds(3000));
         }
         // maybe check to see if there is a Walking Transporter serf whose dest is this path?
         // see if a timer already set for this flag & dir
-        AILogDebug["do_fix_missing_transporters"] << name << " there are " << no_transporter_timers.count(std::make_pair(flag_index, dir)) << " no_transporter_timers set for this flag with pos " << flag->get_position() << ", index " << flag_index << ", dir " << dir << " / " << NameDirection[dir];
+        AILogVerbose["do_fix_missing_transporters"] << name << " there are " << no_transporter_timers.count(std::make_pair(flag_index, dir)) << " no_transporter_timers set for this flag with pos " << flag->get_position() << ", index " << flag_index << ", dir " << dir << " / " << NameDirection[dir];
         if (no_transporter_timers.count(std::make_pair(flag_index, dir)) == 0) {
-          AILogDebug["do_fix_missing_transporters"] << name << " setting countdown timer for flag with pos " << flag->get_position() << ", index " << flag_index << ", dir " << dir << " / " << NameDirection[dir];
+          AILogVerbose["do_fix_missing_transporters"] << name << " setting countdown timer for flag with pos " << flag->get_position() << ", index " << flag_index << ", dir " << dir << " / " << NameDirection[dir];
           // this is difficult to tune... if too long the entire economy can break down while waiting to clear it
           //    but too soon as it could trigger for a faraway road that the original transporter simply hasn't reached
           //  Maybe make more advanced and check to see if there is an outgoing transporter serf with this destination flag/dir??
           // jan05 2021 - setting this 25x now that I am looking at it closer.  It should be either extremely long timer or
           //    based on the distance from the inventory (warehouse/stock) that is dispatching the serf
           no_transporter_timers.insert(std::make_pair(std::make_pair(flag_index, dir), game->get_tick() + 50000));
-          AILogDebug["do_fix_missing_transporters"] << name << " there are now " << no_transporter_timers.count(std::make_pair(flag_index, dir)) << " no_transporter_timers set for this flag with pos " << flag->get_position() << ", index " << flag_index << ", dir " << dir << " / " << NameDirection[dir] << ", value is: " << no_transporter_timers.at(std::make_pair(flag_index, dir));
+          AILogVerbose["do_fix_missing_transporters"] << name << " there are now " << no_transporter_timers.count(std::make_pair(flag_index, dir)) << " no_transporter_timers set for this flag with pos " << flag->get_position() << ", index " << flag_index << ", dir " << dir << " / " << NameDirection[dir] << ", value is: " << no_transporter_timers.at(std::make_pair(flag_index, dir));
         }
         else {
           int trigger_ticks = static_cast<int>(no_transporter_timers.at(std::make_pair(flag_index, dir)) - game->get_tick());
-          AILogDebug["do_fix_missing_transporters"] << name << " a timer is already set for flag with pos " << flag->get_position() << ", index " << flag_index << ", dir " << dir << " / " << NameDirection[dir] << ", it will trigger in " << trigger_ticks << " ticks";
+          AILogVerbose["do_fix_missing_transporters"] << name << " a timer is already set for flag with pos " << flag->get_position() << ", index " << flag_index << ", dir " << dir << " / " << NameDirection[dir] << ", it will trigger in " << trigger_ticks << " ticks";
         }
       }
     }
@@ -2731,6 +2739,13 @@ AI::do_build_food_buildings_and_3rd_lumberjack() {
   AILogDebug["do_build_food_buildings_and_3rd_lumberjack"] << inventory_pos << " Main Loop - food (and 3rd lumberjack)";
   ai_status.assign("MAIN LOOP - food");
   update_building_counts();
+  // to avoid placing a Farm right near the castle at the beginning of a game, just don't 
+  //  build any food buildings until at least two occupied huts have been placed
+  unsigned int occupied_huts = realm_occupied_building_count[Building::TypeHut];
+  if (occupied_huts < 2){
+    AILogDebug["do_build_food_buildings_and_3rd_lumberjack"] << inventory_pos << " not building any food buildings until at least two occupied knight huts in realm, currently have: " << occupied_huts;
+    return;
+  }
   unsigned int food_count = 0;
   food_count += stock_inv->get_count_of(Resource::TypeBread) + stock_res_sitting_at_flags.at(inventory_pos)[Resource::TypeBread];
   food_count += stock_inv->get_count_of(Resource::TypeMeat) + stock_res_sitting_at_flags.at(inventory_pos)[Resource::TypeMeat];
@@ -3081,18 +3096,27 @@ AI::do_connect_coal_mines() {
       AILogDebug["do_connect_coal_mines"] << inventory_pos << " coalmine_count " << coalmine_count << " is >= max_coalmines " << max_coalmines << ", max_coalmines reached, not connecting more";
       return;
     }
-    // don't connect a second coalmine until have at least two non-coal mines
-    // don't conenct a third coalmine until have at least three non-coal mines
+    // ADDING - don't connect a second coalmine until have at least one iron mine
+    // REMOVED - don't connect a second coalmine until have at least two non-coal mines
+    // REMOVED - don't conenct a third coalmine until have at least three non-coal mines
     if (coalmine_count > 0){
+      if (stock_buildings.at(inventory_pos).connected_count[Building::TypeIronMine] < 1){
+        AILogDebug["do_connect_coal_mines"] << inventory_pos << " already have a connected coal mine and do not yet have a connected iron mine, not connecting another coal mine yet";
+        return;
+      }
+      /*
       int other_mine_count = stock_buildings.at(inventory_pos).connected_count[Building::TypeIronMine] + stock_buildings.at(inventory_pos).connected_count[Building::TypeGoldMine];
       if (other_mine_count < 2){
         AILogDebug["do_connect_coal_mines"] << inventory_pos << " already have a connected coal mine and do not yet have two other non-coal mines, not connecting another coal mine yet";
         return;
       }
+      */
+      /*
       if (other_mine_count < 3 && coalmine_count > 2){
         AILogDebug["do_connect_coal_mines"] << inventory_pos << " already have two connected coal mines and do not yet have three other non-coal mines, not connecting another coal mine yet";
         return;
       }
+      */
     }
     //  if low on miners/pickaxes, don't build a second/third coal mine unless already having
     //   at least one occupied iron and gold mine to avoid depleting pickaxes/miners
@@ -3168,6 +3192,7 @@ AI::do_connect_iron_mines() {
       AILogDebug["do_connect_iron_mines"] << inventory_pos << " ironmine_count " << ironmine_count << " is >= max_ironmines " << max_ironmines << ", max_ironmines reached, not connecting more";
       return;
     }
+    /* now limiting to one iron mine per Inventory
     // don't connect a second ironmine until have at least one coal mines
     if (ironmine_count > 0){
       int coalmine_count = stock_buildings.at(inventory_pos).connected_count[Building::TypeCoalMine];
@@ -3176,6 +3201,7 @@ AI::do_connect_iron_mines() {
         return;
       }
     }
+    */
     //  if low on miners/pickaxes, don't build a second iron mine unless already having
     //   at least one occupied coal and gold mine to avoid depleting pickaxes/miners
     update_building_counts();
@@ -3569,7 +3595,7 @@ AI::do_build_warehouse() {
     AILogDebug["do_build_warehouse"] << name << " considering building warehouse near corners around realm_occupied_military_pos " << center_pos;
     MapPosVector corners = AI::get_corners(center_pos);
     for (MapPos corner_pos : corners) {
-      if (get_straightline_tile_dist(map, corner_pos, castle_pos) <= 30){
+      if (get_straightline_tile_dist(map, corner_pos, castle_pos) <= 25){
         AILogDebug["do_build_warehouse"] << name << " corner_pos " << corner_pos << " is too close to the castle, skipping this area";
         continue;
       }

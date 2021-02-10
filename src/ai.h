@@ -427,8 +427,9 @@ static const unsigned int max_unfinished_huts = 2;
 
 // don't send geologists (or maybe reduce rate) if this many mines already placed
 //   also don't expand borders for mines if >= max?
-static const unsigned int max_coalmines = 3;
-static const unsigned int max_ironmines = 2;
+// Feb 2021 - reducing these to reduce clutter, they never all get used to their potential anyway 
+static const unsigned int max_coalmines = 2;   // was 3
+static const unsigned int max_ironmines = 1;   // was 2
 static const unsigned int max_goldmines = 1;
 
 // max ratio of actual road length compared to ideal straight-line length to determine if road is acceptably short

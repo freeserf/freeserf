@@ -848,6 +848,9 @@ AI::build_best_road(MapPos start_pos, RoadOptions road_options, Building::Type o
     //        potential bug, if the target_pos is really far away from the start_pos, it might not find anything... that seems unlikely though.
     //         ...and that should happen even with the original method anyway so this isn't worse
     //          could consider a "tunnel" of multiple radiuses based on distance from start to target, but don't feel like coding that now
+    // ISSUES - yes I think a "tunnel" would be best, seeing issues where long snakey roads are built, I believe because the flags near
+    //  to the new building are not considered in the flag search, so it connects to some flag much farther away.
+    //   for now, adding a second search of flags around the new building and including all those for consideration
     AILogDebug["util_build_best_road"] << name << " finding halfway point between start_pos and target_pos to center nearby_flag search";
     MapPos halfway_pos = get_halfway_pos(start_pos, target_pos);
     // for rebuild_all_roads, and possibly other reasons, always push the target_pos onto the nearby_flags list
@@ -864,7 +867,7 @@ AI::build_best_road(MapPos start_pos, RoadOptions road_options, Building::Type o
         continue;
       }
       if (start_pos == pos) {
-        AILogDebug["util_build_best_road"] << name << " flag at pos " << pos << " is the same as start flag, skipping";
+        AILogDebug["util_build_best_road"] << name << " nearby flags to halfway_pos - flag at pos " << pos << " is the same as start flag, skipping";
         continue;
       }
       // avoid disconnected flags, unless they are the flag of the target building
@@ -877,14 +880,14 @@ AI::build_best_road(MapPos start_pos, RoadOptions road_options, Building::Type o
       }*/
       // removing "allow target_pos" exception, it causes problems and is only used for rebuild_all_roads which doesn't work well
       if (!game->get_flag_at_pos(pos)->is_connected() && pos != castle_flag_pos) {
-        AILogDebug["util_build_best_road"] << name << " flag at pos " << pos << " is itself disconnected and is not the castle_flag_pos, skipping";
+        AILogDebug["util_build_best_road"] << name << " nearby flags to halfway_pos - flag at pos " << pos << " is itself disconnected and is not the castle_flag_pos, skipping";
         continue;
       }
 
       AILogDebug["util_build_best_road"] << name << " found valid nearby_flag at pos " << pos;
       if (std::find(nearby_flags.begin(), nearby_flags.end(), pos) != nearby_flags.end()) {
         // skip if already in nearby_flags list, which should only happen if it is part of existing road and RoadOption::Improve roads set;
-        AILogDebug["util_build_best_road"] << name << " this pos is already in nearby_flag list, skipping";
+        AILogDebug["util_build_best_road"] << name << " nearby flags to halfway_pos - this pos is already in nearby_flag list, skipping";
         continue;
       }
       nearby_flags.push_back(pos);
@@ -897,14 +900,54 @@ AI::build_best_road(MapPos start_pos, RoadOptions road_options, Building::Type o
       if (i >= AI::spiral_dist(6)) {
         // nearby_flags includes the target_pos flag so it is always at least 1, check for 2+
         if (nearby_flags.size() >= 2) {
-          AILogDebug["util_build_best_road"] << name << " at least one flag found within 6 tiles of halfway_pos, quitting search";
+          AILogDebug["util_build_best_road"] << name << " nearby flags to halfway_pos - at least one flag found within 6 tiles of halfway_pos, quitting search";
           break;
         }
         else {
-          AILogDebug["util_build_best_road"] << name << " no nearby flag found within 6 tiles of halfway_pos!  continuing expanded search until one found";
+          AILogDebug["util_build_best_road"] << name << " nearby flags to halfway_pos - no nearby flag found within 6 tiles of halfway_pos!  continuing expanded search until one found";
         }
       }
-    }
+    } // foreach pos around halfway_pos
+    //
+    // to avoid long snakey roads, also include flags around the new building
+    //
+    for (unsigned int i = 0; i < AI::spiral_dist(6); i++) {
+      MapPos pos = map->pos_add_extended_spirally(start_pos, i);
+      //ai_mark_pos.insert(std::make_pair(pos, "dk_cyan"));
+      //std::this_thread::sleep_for(std::chrono::milliseconds(5));
+      // skip if no flag, or pos not owned by this player
+      if (!map->has_flag(pos) || map->get_owner(pos) != player_index) {
+        continue;
+      }
+      if (start_pos == pos) {
+        AILogDebug["util_build_best_road"] << name << " nearby flags to start_pos - flag at pos " << pos << " is the same as start flag, skipping";
+        continue;
+      }
+      // avoid disconnected flags, unless they are the flag of the target building
+      // NOTE that this isn't smart enough to ignore flags that have some paths but are overall disconnected from the road system!
+      //  this is a real bug that will need fixing otherwise disconnected roads will never be rejoined to road network
+      /*
+      if (!game->get_flag_at_pos(pos)->is_connected() && pos != castle_flag_pos && pos != target_pos) {
+        AILogDebug["util_build_best_road"] << name << " nearby flags to start_pos - flag at pos " << pos << " is itself disconnected and is neither the castle_flag_pos nor the target_pos, skipping";
+        continue;
+      }*/
+      // removing "allow target_pos" exception, it causes problems and is only used for rebuild_all_roads which doesn't work well
+      if (!game->get_flag_at_pos(pos)->is_connected() && pos != castle_flag_pos) {
+        AILogDebug["util_build_best_road"] << name << " nearby flags to start_pos - flag at pos " << pos << " is itself disconnected and is not the castle_flag_pos, skipping";
+        continue;
+      }
+
+      AILogDebug["util_build_best_road"] << name << " nearby flags to start_pos - found valid nearby_flag at pos " << pos;
+      if (std::find(nearby_flags.begin(), nearby_flags.end(), pos) != nearby_flags.end()) {
+        // skip if already in nearby_flags list, which should only happen if it is part of existing road and RoadOption::Improve roads set;
+        AILogDebug["util_build_best_road"] << name << " nearby flags to start_pos - this pos is already in nearby_flag list, skipping";
+        continue;
+      }
+      //ai_mark_pos.erase(pos);
+      //ai_mark_pos.insert(std::make_pair(pos, "cyan"));
+      //std::this_thread::sleep_for(std::chrono::milliseconds(10));
+      nearby_flags.push_back(pos);
+    } // foreach pos around start_pos
     ai_mark_pos.clear();
 
     AILogDebug["util_build_best_road"] << name << " found " << nearby_flags.size() << " nearby_flags";
@@ -966,7 +1009,7 @@ AI::build_best_road(MapPos start_pos, RoadOptions road_options, Building::Type o
         // if this is "tracked economy building", ensure the end_pos flag is closest to the currently selected Inventory (castle/warehouse)
         if (verify_stock == true){
           if (find_nearest_inventory(map, player_index, end_pos, DistType::FlagAndStraightLine, &ai_mark_pos) != inventory_pos){
-            AILogDebug["util_build_best_road"] << name << " DIRECT road - flag at end_pos " << end_pos << " is not closest to current inventory_pos " << inventory_pos << ", skipping";
+            AILogDebug["util_build_best_road"] << name << " verify_stock - DIRECT road - flag at end_pos " << end_pos << " is not closest to current inventory_pos " << inventory_pos << ", skipping";
             break;
           }
         }
@@ -975,7 +1018,7 @@ AI::build_best_road(MapPos start_pos, RoadOptions road_options, Building::Type o
         rb.new_proad(potential_road_ends, potential_road);
         AILogDebug["util_build_best_road"] << name << " there are currently " << rb.get_proads().size() << " potential_roads in the list";
         break;
-      }
+      } // while true - find direct road
       //
       // now do the same thing for any potential_roads found (flag-splitting), could make this a recursive function call instead...
       //
@@ -1006,30 +1049,30 @@ AI::build_best_road(MapPos start_pos, RoadOptions road_options, Building::Type o
         int disqualified = 0;
         if (verify_stock == true){
           for (Direction dir : cycle_directions_cw()) {
-            AILogVerbose["util_build_best_road"] << name << " looking for a path for splitting flag at split_end_pos " << split_end_pos << " in dir " << NameDirection[dir];
+            AILogVerbose["util_build_best_road"] << name << " verify_stock - looking for a path for splitting flag at split_end_pos " << split_end_pos << " in dir " << NameDirection[dir];
             if (map->has_path(split_end_pos, dir)) {
               Road split_road = trace_existing_road(map, split_end_pos, dir);
-              AILogDebug["util_build_best_road"] << name << " found a path for splitting flag at split_end_pos " << split_end_pos << " in dir " << NameDirection[dir];
+              AILogDebug["util_build_best_road"] << name << " verify_stock - found a path for splitting flag at split_end_pos " << split_end_pos << " in dir " << NameDirection[dir];
               MapPos adjacent_flag_pos = split_road.get_end(map.get());
-              AILogDebug["util_build_best_road"] << name << " path for splitting flag at split_end_pos " << split_end_pos << " in dir " << NameDirection[dir] << " ends at flag at pos " << adjacent_flag_pos;
+              AILogDebug["util_build_best_road"] << name << " verify_stock - path for splitting flag at split_end_pos " << split_end_pos << " in dir " << NameDirection[dir] << " ends at flag at pos " << adjacent_flag_pos;
               if (find_nearest_inventory(map, player_index, adjacent_flag_pos, DistType::FlagAndStraightLine, &ai_mark_pos) != inventory_pos){
-                AILogDebug["util_build_best_road"] << name << " potential split_road flag at split_end_pos " << split_end_pos << " is not closest to current inventory_pos " << inventory_pos << ", skipping";
+                AILogDebug["util_build_best_road"] << name << " verify_stock - potential split_road flag at split_end_pos " << split_end_pos << " is not closest to current inventory_pos " << inventory_pos << ", skipping";
                 disqualified++;
               }
             }
           }
         }
         if (disqualified > 0){
-          AILogDebug["util_build_best_road"] << name << " this split_end_pos is disqualified, skipping it";
+          AILogDebug["util_build_best_road"] << name << " verify_stock - this split_end_pos is disqualified, skipping it";
           continue;
         }
         AILogDebug["util_build_best_road"] << name << " this split_road road solution is acceptable so far in terms of NEW length only, adding to RoadBuilder potential_roads";
         RoadEnds split_road_ends = get_roadends(map, split_road);
         rb.new_proad(split_road_ends, split_road);
         AILogDebug["util_build_best_road"] << name << " there are currently " << rb.get_proads().size() << " potential_roads in the list";
-      }
+      } // foreach split road
+    } // foreach end_pos nearby flags
 
-    }
     //=====================================================================================
     // score the potential new roads to nearby_flags in terms of:
     //     tile_dist (from end_flag to target flag)
@@ -2082,7 +2125,7 @@ AI::build_near_pos(MapPos center_pos, unsigned int distance, Building::Type buil
     if (is_mine){
       AILogDebug["util_build_near_pos"] << name << " this is a mine, skipping flag/road checks as this will not be connected to the road system yet";
     }else{
-
+      bool built_new_flag = false;
       if (!map->has_flag(flag_pos)){
         AILogDebug["util_build_near_pos"] << name << " no flag yet exists at flag_pos " << flag_pos << " for potential new building of type " << NameBuilding[building_type] << " at pos " << pos << ", trying to build one";
         if (!game->build_flag(flag_pos, player)){
@@ -2090,6 +2133,7 @@ AI::build_near_pos(MapPos center_pos, unsigned int distance, Building::Type buil
           continue;
         }
         AILogDebug["util_build_near_pos"] << name << " successfully built flag at flag_pos " << flag_pos << " for potential new building of type " << NameBuilding[building_type] << " at pos " << pos;
+        built_new_flag = true;
       }
 
       if (!game->get_flag_at_pos(flag_pos)->is_connected()) {
@@ -2103,6 +2147,25 @@ AI::build_near_pos(MapPos center_pos, unsigned int distance, Building::Type buil
         road_built = AI::build_best_road(flag_pos, road_options, building_type, Building::TypeNone, bad_map_pos, verify_stock);
       }else{
         AILogDebug["util_build_near_pos"] << name << " the flag already at flag_pos " << flag_pos << " is already connected to road system.  For potential new building of type " << NameBuilding[building_type] << " at pos " << pos;
+        // must do the verify_stock check here on this flag, because normally it is done when placing the road but this
+        //  flag/road already exists
+        if (verify_stock == true){
+          if (find_nearest_inventory(map, player_index, flag_pos, DistType::FlagAndStraightLine, &ai_mark_pos) != inventory_pos){
+            AILogDebug["util_build_best_road"] << name << " verify_stock for existing flag - flag at flag_pos " << flag_pos << " is not closest to current inventory_pos " << inventory_pos << ", skipping";
+            // if a new flag was built, remove it
+            if (built_new_flag){
+              AILogDebug["util_build_near_pos"] << name << " thread #" << std::this_thread::get_id() << " AI is locking mutex before calling game->demolish_flag (build_near_pos verify_stock test)";
+              game->get_mutex()->lock();
+              AILogDebug["util_build_near_pos"] << name << " thread #" << std::this_thread::get_id() << " AI has locked mutex before calling game->demolish_flag (build_near_pos verify_stock test)";
+              game->demolish_flag(flag_pos, player);
+              AILogDebug["util_build_near_pos"] << name << " thread #" << std::this_thread::get_id() << " AI is unlocking mutex after calling game->demolish_flag (build_near_pos verify_stock test)";
+              game->get_mutex()->unlock();
+              AILogDebug["util_build_near_pos"] << name << " thread #" << std::this_thread::get_id() << " AI has unlocked mutex after calling game->demolish_flag (build_near_pos verify_stock test)";
+            }
+            // skip this flag/pos and try the next position
+            continue;
+          }
+        }
       }
 
       if (!road_built && !game->get_flag_at_pos(flag_pos)->is_connected()) {
@@ -2122,8 +2185,8 @@ AI::build_near_pos(MapPos center_pos, unsigned int distance, Building::Type buil
         AILogDebug["util_build_near_pos"] << name << " thread #" << std::this_thread::get_id() << " AI has unlocked mutex after calling game->demolish_flag (build_near_pos failed to connect)";
         // mark as bad pos, to avoid repeateadly rebuilding same building in same spot
         bad_building_pos.insert(std::make_pair(pos, building_type));
-		// try the next position
-		continue;
+        // try the next position
+        continue;
       }else{
         AILogDebug["util_build_near_pos"] << name << " successfully connected flag at flag_pos " << flag_pos << " to road network.  For potential new building of type " << NameBuilding[building_type];
         //if (building_type == Building::TypeHut) {
