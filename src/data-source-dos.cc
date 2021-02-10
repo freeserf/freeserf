@@ -305,6 +305,14 @@ DataSourceDOS::SpriteDosSolid::SpriteDosSolid(PBuffer _data, ColorDOS *palette)
 
   while (_data->readable()) {
     ColorDOS color = palette[_data->pop<uint8_t>()];
+    //Log::Info["data-source-dos"] << "ColorDOS old color.b " << std::to_string(color.b) << ", color.g " << std::to_string(color.g) << ", color.r " << std::to_string(color.r);
+    // shift colors cooler
+    //if (color.g > 50){color.g -= 30;}
+    //if (color.r > 50){color.r -= 30;}
+    // shift colors warmer
+    //if (color.b > 50){color.b -= 30;}
+    //if (color.g > 50){color.g -= 30;}
+    //Log::Info["data-source-dos"] << "ColorDOS new color.b " << std::to_string(color.b) << ", color.g " << std::to_string(color.g) << ", color.r " << std::to_string(color.r);
     result->push<uint8_t>(color.b);  // Blue
     result->push<uint8_t>(color.g);  // Green
     result->push<uint8_t>(color.r);  // Red

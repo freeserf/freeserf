@@ -44,7 +44,8 @@ class GameInitBox : public GuiObject {
     ActionDecrement,
     ActionClose,
     ActionGenRandom,
-    ActionApplyRandom
+    ActionApplyRandom,
+    ActionEditMapGenerator
   } Action;
 
   typedef enum GameType {

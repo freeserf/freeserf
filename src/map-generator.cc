@@ -919,12 +919,11 @@ ClassicMapGenerator::create_objects() {
   create_random_object_clusters(
     regions, 40, 0x3f, Map::TerrainGrass1, Map::TerrainGrass2,
     Map::ObjectStone0, 0x7);
-
+    
   // Create sparse clusters.
   create_random_object_clusters(
     regions, 15, 0xff, Map::TerrainGrass1, Map::TerrainGrass2,
     Map::ObjectStone0, 0x7);
-
   // Create dead trees.
   create_random_object_clusters(
     regions, 2, 0xff, Map::TerrainGrass1, Map::TerrainGrass2,

@@ -847,7 +847,7 @@ Building::update() {
             count++;
             // find any expired timeouts
             if (stock[j].req_timeout_tick[x] < (signed)game->get_const_tick()){
-              Log::Info["building"] << "debug: inside Building::update(), building type " << NameBuilding[type] << " at pos " << get_position() << ", res type " << stock[j].type << ", resource request timeout triggered! req_timeout_tick = " << stock[j].req_timeout_tick[x] << ", current tick = " << game->get_const_tick();
+              Log::Debug["building"] << "debug: inside Building::update(), building type " << NameBuilding[type] << " at pos " << get_position() << ", res type " << stock[j].type << ", resource request timeout triggered! req_timeout_tick = " << stock[j].req_timeout_tick[x] << ", current tick = " << game->get_const_tick();
               // decrement the requested count so another can be requested
               stock[j].requested -= 1;
               // delete the timeout
@@ -869,7 +869,7 @@ Building::update() {
               //   TODO - check for other places that resources are rerequested and add timeout setting there
               stock[j].req_timeout_tick[x] = game->get_const_tick() + (21 * TIMEOUT_SECS_PER_TILE * TICKS_PER_SEC);
               count++;
-              Log::Info["building"] << "debug: inside Building::update(), building type " << NameBuilding[type] << " at pos " << get_position() << ", no req_timeout_tick set for this requested slot of type " << stock[j].type << ", setting to highest timeout";
+              Log::Debug["building"] << "debug: inside Building::update(), building type " << NameBuilding[type] << " at pos " << get_position() << ", no req_timeout_tick set for this requested slot of type " << stock[j].type << ", setting to highest timeout";
             }
           }
         }

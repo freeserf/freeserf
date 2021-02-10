@@ -246,10 +246,10 @@ Game::update_inventories_cb(Flag *flag, void *d) {
         // to try to approximate the original road length, bit-shift >>4, or divide by 16
         //  and then triple it to get pretty close the reversing the above table
         if(data->prev_flag->get_road_length((Direction)d) == 0){
-          Log::Info["game"] << "debug: it seems get_road_length can be zero, using +1 for dist_from_inv addition";
+          //Log::Info["game"] << "debug: it seems get_road_length can be zero, using +1 for dist_from_inv addition";
           data->dist_so_far += 1;
         }else{
-          Log::Info["game"] << "DEBUG: data->prev_flag->get_road_length((Direction)" << d << ") = " << data->prev_flag->get_road_length((Direction)d) << "... which is then divided by 16 then multiplied by 3 to get " << (data->prev_flag->get_road_length((Direction)d) / 16) * 3;
+          //Log::Info["game"] << "DEBUG: data->prev_flag->get_road_length((Direction)" << d << ") = " << data->prev_flag->get_road_length((Direction)d) << "... which is then divided by 16 then multiplied by 3 to get " << (data->prev_flag->get_road_length((Direction)d) / 16) * 3;
           data->dist_so_far += (data->prev_flag->get_road_length((Direction)d) / 16) * 3;
         }
         found = true;

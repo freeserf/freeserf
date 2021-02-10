@@ -70,6 +70,15 @@ class Color {
   static const Color white;
   static const Color green;
   static const Color transparent;
+  // added by me
+  static const Color red;
+  static const Color yellow;
+  static const Color gold;
+  static const Color blue;
+  static const Color cyan;
+  static const Color dk_gray;
+  static const Color lt_gray;
+  static const Color magenta;
 
   bool operator==(const Color &c) const { return (r == c.r) &&
                                                  (g == c.g) &&

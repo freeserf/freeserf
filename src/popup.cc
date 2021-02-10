@@ -1668,6 +1668,17 @@ PopupBox::draw_slide_bar(int lx, int ly, int value) {
   }
 }
 
+// Draw custom-colored slide bar in a popup box
+void
+PopupBox::draw_colored_slide_bar(int lx, int ly, int value, Color color) {
+  draw_popup_icon(lx, ly, 236);
+
+  int lwidth = value / 1310;
+  if (lwidth > 0) {
+    frame->fill_rect(8*lx+15, ly+11, lwidth, 4, color);
+  }
+}
+
 void
 PopupBox::draw_sett_1_box() {
   const int bld_layout[] = {
@@ -2001,6 +2012,90 @@ PopupBox::draw_aiplus_options_box() {
 
   draw_popup_icon(32, 128, 60); /* exit */
 }
+
+
+void
+PopupBox::draw_edit_map_generator_box() {
+  draw_large_box_background(PatternDiagonalGreen);
+
+
+
+
+
+
+
+
+
+  // Trees
+  //    Add either tree or pine.
+  //    Add only trees.
+  //    Add only pines.
+  //    Add either tree or pine.
+  draw_colored_slide_bar(1,  5, 65535/1.5, Color::green);
+  draw_green_string(10, 4, "Trees");
+
+  // Stone Piles above ground
+  //    Create dense clusters of stone.
+  //    Create sparse clusters [of stone]
+  draw_colored_slide_bar(1, 18, 65535/1.5, Color::lt_gray);
+  draw_green_string(10, 18, "Stone Piles");
+
+  draw_green_string(2, 38, "Resources in mountains");
+  int mountain_res_y = 26;
+  // Gold in mountains
+  draw_colored_slide_bar(25, mountain_res_y, 65535/1.5, Color::gold);
+  // Iron in mountains
+  draw_colored_slide_bar(25, mountain_res_y + 8, 65535/1.5, Color::red);
+  // Coal in mountains
+  draw_colored_slide_bar(25, mountain_res_y + 16, 65535/1.5, Color::dk_gray);
+  // Stone in mountains
+  draw_colored_slide_bar(25, mountain_res_y + 24, 65535/1.5, Color::lt_gray);
+
+  // Deserts
+  draw_colored_slide_bar(1, 59, 65535/1.5, Color::yellow);
+  draw_green_string(10, 60, "Deserts");
+
+  // Lakes
+  draw_green_string(10, 73, "Lakes");
+  draw_colored_slide_bar(1, 72, 65535/1.5, Color::blue);
+
+  // Junk Objects
+  draw_green_string(4, 92, "Terrain Junk Objects");
+  int junk_y = 83;
+  //  "grass junk"
+  //    Create dead trees.
+  //    Create sandstone boulders.
+  //    Create tree stubs.
+  //    Create small boulders.
+  draw_colored_slide_bar(25, junk_y, 65535/1.5, Color::green);
+  //  "water junk"
+  //    Create trees submerged in water.
+  //    Create boulders submerged in water.
+  draw_colored_slide_bar(25, junk_y+8, 65535/1.5, Color::blue);
+  //  "desert junk"
+  //    Create animal cadavers in desert.
+  //    Create cacti in desert.
+  //    Create palm trees in desert.
+  draw_colored_slide_bar(25, junk_y+16, 65535/1.5, Color::yellow);
+
+  /*
+  AIPlusOptions aiplus_options = interface->get_aiplus_options();
+  draw_green_string(3, 10, "Auto Save Game");
+  draw_popup_icon(1, 7, (interface->test_aiplus_option(AIPlusOption::EnableAutoSave)) ? 288 : 220);
+
+  draw_green_string(3, 29, "Pigs Require No Wheat");
+  draw_popup_icon(1, 26, (interface->test_aiplus_option(AIPlusOption::ImprovedPigFarms)) ? 288 : 220);
+
+  draw_green_string(3, 48, "Can Transport Serfs In Boats");
+  draw_popup_icon(1, 45, (interface->test_aiplus_option(AIPlusOption::CanTransportSerfsInBoats)) ? 288 : 220);
+
+  draw_green_string(3, 67, "Quick Demo Empty Build Sites");
+  draw_popup_icon(1, 64, (interface->test_aiplus_option(AIPlusOption::QuickDemoEmptyBuildSites)) ? 288 : 220);
+*/
+
+  draw_popup_icon(32, 128, 60); /* exit */
+}
+
 
 void
 PopupBox::draw_castle_res_box() {
@@ -2749,7 +2844,7 @@ PopupBox::draw_save_box() {
 
 void
 PopupBox::internal_draw() {
-  if (box == Type::TypeAIPlusOptions){
+  if (box == Type::TypeAIPlusOptions || box == Type::TypeEditMapGenerator){
     draw_large_popup_box_frame();
   }else{
     draw_popup_box_frame();
@@ -2853,6 +2948,9 @@ PopupBox::internal_draw() {
     break;
   case TypeAIPlusOptions:
     draw_aiplus_options_box();
+    break;
+  case TypeEditMapGenerator:
+    draw_edit_map_generator_box();
     break;
   case TypeCastleRes:
     draw_castle_res_box();
@@ -3831,6 +3929,22 @@ PopupBox::handle_box_aiplusoptions_clk(int cx, int cy) {
 }
 
 void
+PopupBox::handle_box_edit_map_generator_clk(int cx, int cy) {
+  const int clkmap[] = {
+    /*
+    ACTION_AIPLUS_ENABLE_AUTOSAVE, 7, 7, 16, 16,
+    ACTION_AIPLUS_IMPROVED_PIG_FARMS, 7, 26, 16, 16,
+    ACTION_AIPLUS_CAN_TRANSPORT_SERFS_IN_BOATS, 7, 45, 16, 16,
+    ACTION_AIPLUS_QUICK_DEMO_EMPTY_BUILD_SITES, 7, 64, 16, 16,
+    //ACTION_AIPLUS_NEXT_PAGE, 106, 110, 16, 16,
+    */
+    ACTION_CLOSE_BOX, 255, 126, 16, 16,
+    -1
+  };
+  handle_clickmap(cx, cy, clkmap);
+}
+
+void
 PopupBox::handle_mine_building_clk(int cx, int cy) {
   const int clkmap[] = {
     ACTION_BUILD_STONEMINE, 16, 8, 33, 65,
@@ -4478,6 +4592,9 @@ PopupBox::handle_click_left(int cx, int cy, int modifier) {
     break;
   case TypeAIPlusOptions:
     handle_box_aiplusoptions_clk(cx, cy);
+    break;
+  case TypeEditMapGenerator:
+    handle_box_edit_map_generator_clk(cx, cy);
     break;
   case TypeCastleRes:
     handle_castle_res_clk(cx, cy);

@@ -125,7 +125,7 @@ Interface::open_popup(int box) {
     add_float(popup, 0, 0);
   }
   layout();
-  if (box == PopupBox::TypeAIPlusOptions){
+  if (box == PopupBox::TypeAIPlusOptions || box == PopupBox::TypeEditMapGenerator){
     // double wide, normal height
     popup->set_size(288, 160);
     // recenter the popup
