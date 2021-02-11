@@ -292,6 +292,14 @@ class PopupBox : public GuiObject {
 
   void set_box(Type box);
 
+  // THESE FUNCTIONS BELOW ARE ALSO DEFINED IN map-generator.h !!!!
+  // 65535 / 2 = 32767.5
+  double slider_uint16_to_double(uint16_t val){ return double(32767 / val); }
+  uint16_t slider_double_to_uint16(uint16_t val){ return uint16_t(val * 32767); }
+  // 65535 / 17 = 3855
+  double slider_mineral_uint16_to_int_to_double(uint16_t val){ return double(int(3855 / val)); }  // convert to int midway so there are no fractional values
+  uint16_t slider_mineral_double_to_uint16(uint16_t val){ return uint16_t(val * 3855); }
+
   virtual void internal_draw();
   //virtual bool handle_click_left(int x, int y);
   virtual bool handle_click_left(int x, int y, int modifier);

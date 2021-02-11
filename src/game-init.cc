@@ -586,7 +586,8 @@ GameInitBox::generate_map_preview() {
     generator.generate();
     map->init_tiles(generator);
   } else {
-    ClassicMapGenerator generator(*map, mission->get_random_base());
+    //ClassicMapGenerator generator(*map, mission->get_random_base());
+    CustomMapGenerator generator(*map, mission->get_random_base());
     generator.init(MapGenerator::HeightGeneratorMidpoints, true);
     generator.generate();
     map->init_tiles(generator);

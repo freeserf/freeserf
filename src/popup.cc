@@ -2015,61 +2015,127 @@ PopupBox::draw_aiplus_options_box() {
 }
 
 
+
 void
 PopupBox::draw_edit_map_generator_box() {
   draw_large_box_background(PatternDiagonalGreen);
+
+  CustomMapGeneratorOptions generator_options = interface->get_custom_map_generator_options();
+  /*
+  typedef enum CustomMapGeneratorOption {
+    TreesBoth1 = 0,
+    TreesDeciduous,
+    TreesPine,
+    TreesBoth2,
+    StonepileDense,
+    StonepileSparse,
+    JunkGrassDeadTrees,
+    JunkGrassStandStone,
+    JunkWaterSubmergedTrees,
+    JunkGrassStubTrees,
+    JunkGrassSmallBoulders,
+    JunkDesertAnimalCadavers,
+    JunkDesertCacti,
+    JunkWaterSubmergedBoulders,
+    JunkDesertPalmTrees,
+  } CustomMapGeneratorOption;
+  */
 
   // Trees
   //    Add either tree or pine.
   //    Add only trees.
   //    Add only pines.
   //    Add either tree or pine.
-  draw_colored_slide_bar(1,  5, 65535/1.5, Color::green);
+  // combine these four variables into one be simply averaging them
+  //  when GETing and using same value for all when SETing
+  Log::Info["popup"] << " inside draw_edit_map_generator_box ";
+  for (int x = 0; x < 22; x++){
+    Log::Info["popup"] << " inside draw_edit_map_generator_box, opt" << x << " = " << generator_options.opt[x];
+  }
+  double trees_mean = (generator_options.opt[CustomMapGeneratorOption::TreesBoth1] 
+                     + generator_options.opt[CustomMapGeneratorOption::TreesDeciduous] 
+                     + generator_options.opt[CustomMapGeneratorOption::TreesPine]
+                     + generator_options.opt[CustomMapGeneratorOption::TreesBoth2]) / 4;
+
+  Log::Info["popup"] << " inside draw_edit_map_generator_box, trees_mean " << trees_mean << ", uint trees_mean " << slider_double_to_uint16(trees_mean);
+
+  draw_colored_slide_bar(1,  5, slider_double_to_uint16(trees_mean), Color::green);
   draw_green_string(10, 4, "Trees");
 
   // Stone Piles above ground
   //    Create dense clusters of stone.
   //    Create sparse clusters [of stone]
-  draw_colored_slide_bar(1, 18, 65535/1.5, Color::lt_gray);
+  // combine these four variables into one be simply averaging them
+  //  when GETing and using same value for all when SETing
+  double stonepile_mean = (generator_options.opt[CustomMapGeneratorOption::StonepileDense] 
+                         + generator_options.opt[CustomMapGeneratorOption::StonepileSparse]) / 2;
+  draw_colored_slide_bar(1, 18, slider_double_to_uint16(stonepile_mean), Color::lt_gray);
   draw_green_string(10, 18, "Stone Piles");
 
-  draw_green_string(2, 38, "Resources in mountains");
-  int mountain_res_y = 26;
+  draw_green_string(2, 43, "Resources in mountains");
+  draw_green_string(26, 2, "Total");
+  // Aggregate minerals in mountains on 0.00-2.00x scale
+  draw_colored_slide_bar(25, 11, slider_double_to_uint16(generator_options.opt[CustomMapGeneratorOption::MountainMineralTotal]), Color::cyan);
+
+  draw_green_string(26, 24, "Ratio");
+  /* here is the original game ratio for mined resources (copied from ClassicMapGenerator)
+    { 9, Map::MineralsCoal },
+    { 4, Map::MineralsIron },
+    { 2, Map::MineralsGold },
+    { 2, Map::MineralsStone }
+    */
+  // to have the same 0-2x while being clear about the actual ratios, the sliders
+  //  are set up so that if all four are at the highest setting the result will be
+  //  a total of 2x that original TOTAL resource count but evenly distributed
+  int aggregate_res_max = 36; // 9 coal + 4 iron + 2 gold + 2 stone = 17 * 2 = 34
+
+  int mountain_res_y = 33;
   // Gold in mountains
-  draw_colored_slide_bar(25, mountain_res_y, 65535/1.5, Color::gold);
+  draw_colored_slide_bar(25, mountain_res_y, slider_mineral_double_to_uint16(generator_options.opt[CustomMapGeneratorOption::MountainGold]), Color::gold);
   // Iron in mountains
-  draw_colored_slide_bar(25, mountain_res_y + 8, 65535/1.5, Color::red);
+  draw_colored_slide_bar(25, mountain_res_y + 8, slider_mineral_double_to_uint16(generator_options.opt[CustomMapGeneratorOption::MountainIron]), Color::red);
   // Coal in mountains
-  draw_colored_slide_bar(25, mountain_res_y + 16, 65535/1.5, Color::dk_gray);
+  draw_colored_slide_bar(25, mountain_res_y + 16, slider_mineral_double_to_uint16(generator_options.opt[CustomMapGeneratorOption::MountainCoal]), Color::dk_gray);
   // Stone in mountains
-  draw_colored_slide_bar(25, mountain_res_y + 24, 65535/1.5, Color::lt_gray);
+  draw_colored_slide_bar(25, mountain_res_y + 24, slider_mineral_double_to_uint16(generator_options.opt[CustomMapGeneratorOption::MountainStone]), Color::lt_gray);
 
   // Deserts
-  draw_colored_slide_bar(1, 59, 65535/1.5, Color::yellow);
-  draw_green_string(10, 58, "Deserts");
+  draw_colored_slide_bar(1, 66, slider_double_to_uint16(generator_options.opt[CustomMapGeneratorOption::DesertFrequency]), Color::yellow);
+  draw_green_string(10, 65, "Deserts");
 
   // Lakes
-  draw_green_string(10, 72, "Lakes");
-  draw_colored_slide_bar(1, 72, 65535/1.5, Color::blue);
+  draw_green_string(10, 79, "Lakes");
+  draw_colored_slide_bar(1, 79, slider_double_to_uint16(generator_options.opt[CustomMapGeneratorOption::LakesMaxSize]), Color::blue);
 
   // Junk Objects
-  draw_green_string(4, 92, "Terrain Junk Objects");
-  int junk_y = 83;
+  //  should these be auto-scaled to water/desert frequency/size?
+  draw_green_string(4, 100, "Terrain Junk Objects");
+  int junk_y = 92;
   //  "grass junk"
   //    Create dead trees.
   //    Create sandstone boulders.
   //    Create tree stubs.
   //    Create small boulders.
-  draw_colored_slide_bar(25, junk_y, 65535/1.5, Color::green);
+  double junk_trees_mean = (generator_options.opt[CustomMapGeneratorOption::JunkGrassDeadTrees] 
+                          + generator_options.opt[CustomMapGeneratorOption::JunkGrassSandStone] 
+                          + generator_options.opt[CustomMapGeneratorOption::JunkGrassStubTrees]
+                          + generator_options.opt[CustomMapGeneratorOption::JunkGrassSmallBoulders]) / 4;
+  draw_colored_slide_bar(25, junk_y, slider_double_to_uint16(junk_trees_mean), Color::green);
   //  "water junk"
   //    Create trees submerged in water.
   //    Create boulders submerged in water.
-  draw_colored_slide_bar(25, junk_y+8, 65535/1.5, Color::blue);
+  double junk_water_mean = (generator_options.opt[CustomMapGeneratorOption::JunkWaterSubmergedTrees] 
+                          + generator_options.opt[CustomMapGeneratorOption::JunkWaterSubmergedBoulders]) / 2;
+  draw_colored_slide_bar(25, junk_y+8, slider_double_to_uint16(junk_water_mean), Color::blue);
   //  "desert junk"
   //    Create animal cadavers in desert.
   //    Create cacti in desert.
   //    Create palm trees in desert.
-  draw_colored_slide_bar(25, junk_y+16, 65535/1.5, Color::yellow);
+  double junk_desert_mean = (generator_options.opt[CustomMapGeneratorOption::JunkDesertAnimalCadavers] 
+                                 + generator_options.opt[CustomMapGeneratorOption::JunkDesertCacti] 
+                                 + generator_options.opt[CustomMapGeneratorOption::JunkDesertPalmTrees]) / 3;
+  draw_colored_slide_bar(25, junk_y+16, slider_double_to_uint16(junk_desert_mean), Color::yellow);
+
 
   draw_green_string(1, 128, "Reset Defaults");
   draw_popup_icon(16, 124, 0x3d); // flipbox icon

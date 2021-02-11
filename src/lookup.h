@@ -614,6 +614,52 @@ typedef enum AIPlusOption {
 } AIPlusOption;
 typedef std::bitset<4> AIPlusOptions;
 
+/*
+  double desert_frequency;
+
+  double trees_both1;
+  double trees_deciduous;
+  double trees_pine;
+  double trees_both2;
+  double stonepile_dense;
+  double stonepile_sparse;
+  double junk_grass_trees_dead;
+  double junk_grass_sandstone;
+  double junk_water_trees;
+  double junk_grass_stub_trees;
+  double junk_grass_small_boulders;
+  double junk_desert_cadavers;
+  double junk_desert_cacti;
+  double junk_water_boulders;
+  double junk_desert_palm_trees;*/
+
+typedef enum CustomMapGeneratorOption {
+  TreesBoth1 = 0,
+  TreesDeciduous,
+  TreesPine,
+  TreesBoth2,
+  StonepileDense,
+  StonepileSparse,
+  MountainMineralTotal,
+  MountainGold,
+  MountainIron,
+  MountainCoal,
+  MountainStone,
+  DesertFrequency,
+  LakesMaxSize,
+  JunkGrassDeadTrees,
+  JunkGrassSandStone,
+  JunkWaterSubmergedTrees,
+  JunkGrassStubTrees,
+  JunkGrassSmallBoulders,
+  JunkDesertAnimalCadavers,
+  JunkDesertCacti,
+  JunkWaterSubmergedBoulders,
+  JunkDesertPalmTrees,
+} CustomMapGeneratorOption;
+
+typedef struct CustomMapGeneratorOptions { double opt[22]; } CustomMapGeneratorOptions;
+
 typedef enum CompletionLevel {
   Unfinished = 0,
   Connected = 1,

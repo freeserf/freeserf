@@ -87,6 +87,21 @@ Interface::Interface()
   init_box = nullptr;
   notification_box = nullptr;
 
+  // adding support for EditMapGeneratorOptions
+  for (int x = 0; x < 22; x++){
+    custom_map_generator_options.opt[x] = 1.00;
+  }
+    /* here is the original game ratio for mined resources (copied from ClassicMapGenerator)
+    { 9, Map::MineralsCoal },
+    { 4, Map::MineralsIron },
+    { 2, Map::MineralsGold },
+    { 2, Map::MineralsStone }
+    */
+  custom_map_generator_options.opt[CustomMapGeneratorOption::MountainGold] = 2.00;
+  custom_map_generator_options.opt[CustomMapGeneratorOption::MountainIron] = 4.00;
+  custom_map_generator_options.opt[CustomMapGeneratorOption::MountainCoal] = 9.00;
+  custom_map_generator_options.opt[CustomMapGeneratorOption::MountainStone] = 2.00;
+
   GameManager::get_instance().add_handler(this);
   set_game(GameManager::get_instance().get_current_game());
 }
@@ -210,6 +225,19 @@ AIPlusOptions &
 Interface::get_aiplus_options() {
   static AIPlusOptions aiplus_options;
   return aiplus_options;
+}
+
+/*
+CustomMapGeneratorOptions &
+Interface::get_custom_map_generator_options() {
+  static CustomMapGeneratorOptions custom_map_generator_options;
+  return custom_map_generator_options;
+}
+*/
+
+CustomMapGeneratorOptions
+Interface::get_custom_map_generator_options() {
+  return custom_map_generator_options;
 }
 
 // Initialize AI for non-human players

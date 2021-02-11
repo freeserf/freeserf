@@ -113,6 +113,7 @@ class Interface : public GuiObject, public GameManager::Handler {
 
   AI *ai_ptrs[5] = { NULL, NULL, NULL, NULL, NULL };
   AIPlusOptions aiplus_options;
+  CustomMapGeneratorOptions custom_map_generator_options;
 
  public:
   Interface();
@@ -188,11 +189,15 @@ class Interface : public GuiObject, public GameManager::Handler {
 
   // used for viewport and maybe other funtions to get the ai object so they can fetch the ai_mark stuff for AI overlay for debugging
   AI * get_ai_ptr(unsigned int index) { return ai_ptrs[index]; }
+
   // options bitfield (bool settings)
   static AIPlusOptions &get_aiplus_options();
   void set_aiplus_option(AIPlusOption opt) { aiplus_options.set(opt); }
   void unset_aiplus_option(AIPlusOption opt) { aiplus_options.reset(opt); }
   bool test_aiplus_option(AIPlusOption opt) { return aiplus_options.test(opt); }
+
+  //static CustomMapGeneratorOptions &get_custom_map_generator_options();
+  CustomMapGeneratorOptions get_custom_map_generator_options();
 
  protected:
   void get_map_cursor_type(const Player *player, MapPos pos,
