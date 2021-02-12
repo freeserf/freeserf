@@ -3692,18 +3692,51 @@ PopupBox::handle_action(int action, int x_, int /*y_*/) {
     interface->set_custom_map_generator_stonepile_dense(gui_get_slider_click_value(x_));
     interface->set_custom_map_generator_stonepile_sparse(gui_get_slider_click_value(x_));
     break;
-  /*
-  ACTION_MAPGEN_ADJUST_MINE_RES_TOTAL,
-  ACTION_MAPGEN_ADJUST_MINE_RES_GOLD,
-  ACTION_MAPGEN_ADJUST_MINE_RES_IRON,
-  ACTION_MAPGEN_ADJUST_MINE_RES_COAL,
-  ACTION_MAPGEN_ADJUST_MINE_RES_STONE,
-  ACTION_MAPGEN_ADJUST_DESERTS,
-  ACTION_MAPGEN_ADJUST_LAKES,
-  ACTION_MAPGEN_ADJUST_JUNK_OBJ_GRASS,
-  ACTION_MAPGEN_ADJUST_JUNK_OBJ_WATER,
-  ACTION_MAPGEN_ADJUST_JUNK_OBJ_DESERT
-  */
+  case ACTION_MAPGEN_ADJUST_MINE_RES_TOTAL:
+    Log::Info["popup"] << "ACTION_MAPGEN_ADJUST_MINE_RES_TOTAL x_ = " << x_ << ", gui_get_slider_click_value(x_) = " << gui_get_slider_click_value(x_) << ", unint16_t(gui_get_slider_click_value(x_)) = " << uint16_t(gui_get_slider_click_value(x_));
+    interface->set_custom_map_generator_mountain_mineral_total(gui_get_slider_click_value(x_));
+    break;
+  case ACTION_MAPGEN_ADJUST_MINE_RES_GOLD:
+    Log::Info["popup"] << "ACTION_MAPGEN_ADJUST_MINE_RES_GOLD x_ = " << x_ << ", gui_get_slider_click_value(x_) = " << gui_get_slider_click_value(x_) << ", unint16_t(gui_get_slider_click_value(x_)) = " << uint16_t(gui_get_slider_click_value(x_));
+    interface->set_custom_map_generator_mountain_gold(gui_get_slider_click_value(x_));
+    break;
+  case ACTION_MAPGEN_ADJUST_MINE_RES_IRON:
+    Log::Info["popup"] << "ACTION_MAPGEN_ADJUST_MINE_RES_IRON x_ = " << x_ << ", gui_get_slider_click_value(x_) = " << gui_get_slider_click_value(x_) << ", unint16_t(gui_get_slider_click_value(x_)) = " << uint16_t(gui_get_slider_click_value(x_));
+    interface->set_custom_map_generator_mountain_iron(gui_get_slider_click_value(x_));
+    break;
+  case ACTION_MAPGEN_ADJUST_MINE_RES_COAL:
+    Log::Info["popup"] << "ACTION_MAPGEN_ADJUST_MINE_RES_COAL x_ = " << x_ << ", gui_get_slider_click_value(x_) = " << gui_get_slider_click_value(x_) << ", unint16_t(gui_get_slider_click_value(x_)) = " << uint16_t(gui_get_slider_click_value(x_));
+    interface->set_custom_map_generator_mountain_coal(gui_get_slider_click_value(x_));
+    break;
+  case ACTION_MAPGEN_ADJUST_MINE_RES_STONE:
+    Log::Info["popup"] << "ACTION_MAPGEN_ADJUST_MINE_RES_STONE x_ = " << x_ << ", gui_get_slider_click_value(x_) = " << gui_get_slider_click_value(x_) << ", unint16_t(gui_get_slider_click_value(x_)) = " << uint16_t(gui_get_slider_click_value(x_));
+    interface->set_custom_map_generator_mountain_stone(gui_get_slider_click_value(x_));
+    break;
+  case ACTION_MAPGEN_ADJUST_DESERTS:
+    Log::Info["popup"] << "ACTION_MAPGEN_ADJUST_DESERTS x_ = " << x_ << ", gui_get_slider_click_value(x_) = " << gui_get_slider_click_value(x_) << ", unint16_t(gui_get_slider_click_value(x_)) = " << uint16_t(gui_get_slider_click_value(x_));
+    interface->set_custom_map_generator_desert_frequency(gui_get_slider_click_value(x_));
+    break;
+  case ACTION_MAPGEN_ADJUST_LAKES:
+    Log::Info["popup"] << "ACTION_MAPGEN_ADJUST_LAKES x_ = " << x_ << ", gui_get_slider_click_value(x_) = " << gui_get_slider_click_value(x_) << ", unint16_t(gui_get_slider_click_value(x_)) = " << uint16_t(gui_get_slider_click_value(x_));
+    interface->set_custom_map_generator_lakes_size(gui_get_slider_click_value(x_));
+    break;
+  case ACTION_MAPGEN_ADJUST_JUNK_OBJ_GRASS:
+    Log::Info["popup"] << "ACTION_MAPGEN_ADJUST_JUNK_OBJ_GRASS x_ = " << x_ << ", gui_get_slider_click_value(x_) = " << gui_get_slider_click_value(x_) << ", unint16_t(gui_get_slider_click_value(x_)) = " << uint16_t(gui_get_slider_click_value(x_));
+    interface->set_custom_map_generator_junk_grass_sandstone(gui_get_slider_click_value(x_));
+    interface->set_custom_map_generator_junk_grass_small_boulders(gui_get_slider_click_value(x_));
+    interface->set_custom_map_generator_junk_grass_stub_trees(gui_get_slider_click_value(x_));
+    break;
+  case ACTION_MAPGEN_ADJUST_JUNK_OBJ_WATER:
+    Log::Info["popup"] << "ACTION_MAPGEN_ADJUST_JUNK_OBJ_WATER x_ = " << x_ << ", gui_get_slider_click_value(x_) = " << gui_get_slider_click_value(x_) << ", unint16_t(gui_get_slider_click_value(x_)) = " << uint16_t(gui_get_slider_click_value(x_));
+    interface->set_custom_map_generator_junk_water_boulders(gui_get_slider_click_value(x_));
+    interface->set_custom_map_generator_junk_water_trees(gui_get_slider_click_value(x_));
+    break;
+  case ACTION_MAPGEN_ADJUST_JUNK_OBJ_DESERT:
+    Log::Info["popup"] << "ACTION_MAPGEN_ADJUST_JUNK_OBJ_DESERT x_ = " << x_ << ", gui_get_slider_click_value(x_) = " << gui_get_slider_click_value(x_) << ", unint16_t(gui_get_slider_click_value(x_)) = " << uint16_t(gui_get_slider_click_value(x_));
+    interface->set_custom_map_generator_junk_desert_cadavers(gui_get_slider_click_value(x_));
+    interface->set_custom_map_generator_junk_desert_cacti(gui_get_slider_click_value(x_));
+    interface->set_custom_map_generator_junk_desert_palm_trees(gui_get_slider_click_value(x_));
+    break;
   case ACTION_SETT_8_CYCLE:
     player->cycle_knights();
     play_sound(Audio::TypeSfxAccepted);
@@ -4020,20 +4053,22 @@ PopupBox::handle_box_aiplusoptions_clk(int cx, int cy) {
 void
 PopupBox::handle_box_edit_map_generator_clk(int cx, int cy) {
   const int clkmap[] = {
-    ACTION_MAPGEN_ADJUST_TREES, 7, 7, 64, 6,
-    ACTION_MAPGEN_ADJUST_STONEPILES, 7, 22, 64, 6,
-    /*
-    ACTION_MAPGEN_ADJUST_MINE_RES_TOTAL, 7, 7, 64, 6,
-    ACTION_MAPGEN_ADJUST_MINE_RES_GOLD, 7, 7, 64, 6,
-    ACTION_MAPGEN_ADJUST_MINE_RES_IRON, 7, 7, 64, 6,
-    ACTION_MAPGEN_ADJUST_MINE_RES_COAL, 7, 7, 64, 6,
-    ACTION_MAPGEN_ADJUST_MINE_RES_STONE, 7, 7, 64, 6,
-    ACTION_MAPGEN_ADJUST_DESERTS, 7, 7, 64, 6,
-    ACTION_MAPGEN_ADJUST_LAKES, 7, 7, 64, 6,
-    ACTION_MAPGEN_ADJUST_JUNK_OBJ_GRASS, 7, 7, 64, 6,
-    ACTION_MAPGEN_ADJUST_JUNK_OBJ_WATER, 7, 7, 64, 6,
-    ACTION_MAPGEN_ADJUST_JUNK_OBJ_DESERT, 7, 7, 64, 6,
-    */
+    ACTION_MAPGEN_ADJUST_TREES,             7,   7, 64, 6,
+    ACTION_MAPGEN_ADJUST_STONEPILES,        7,  22, 64, 6,
+    
+    ACTION_MAPGEN_ADJUST_MINE_RES_TOTAL,  199,  13, 64, 6,
+    ACTION_MAPGEN_ADJUST_MINE_RES_GOLD,   199,  36, 64, 6,
+    ACTION_MAPGEN_ADJUST_MINE_RES_IRON,   199,  44, 64, 6,
+    ACTION_MAPGEN_ADJUST_MINE_RES_COAL,   199,  53, 64, 6,
+    ACTION_MAPGEN_ADJUST_MINE_RES_STONE,  199,  60, 64, 6,
+
+    ACTION_MAPGEN_ADJUST_DESERTS,           7,  69, 64, 6,
+    ACTION_MAPGEN_ADJUST_LAKES,             7,  84, 64, 6,
+    
+    ACTION_MAPGEN_ADJUST_JUNK_OBJ_GRASS,  199,  95, 64, 6,
+    ACTION_MAPGEN_ADJUST_JUNK_OBJ_WATER,  199, 103, 64, 6,
+    ACTION_MAPGEN_ADJUST_JUNK_OBJ_DESERT, 199, 111, 64, 6,
+    
 
     ACTION_RESET_MAPGEN_DEFAULTS, 128, 124, 16, 16,
     ACTION_CLOSE_BOX, 255, 126, 16, 16,
