@@ -279,13 +279,13 @@ class CustomMapGenerator : public ClassicMapGenerator {
   void create_objects();  // modified to allow changing of all object frequency / quantity
   void create_mineral_deposits();  // modified to allow changing of all mineral deposit frequency / quantity
 
-  // THESE FUNCTIONS BELOW ARE ALSO DEFINED IN popup.h !!!!
+  // THESE FUNCTIONS BELOW ARE ALSO DEFINED IN interface.h and popup.h !!!!
   // 65535 / 2 = 32767.5
-  double slider_uint16_to_double(uint16_t val){ return double(32767 / val); }
-  uint16_t slider_double_to_uint16(uint16_t val){ return uint16_t(val * 2); }
+  double slider_uint16_to_double(uint16_t val){ return double(double(val) / double(32767)); }
+  uint16_t slider_double_to_uint16(double val){ return uint16_t(val * 32767); }
   // 65535 / 17 = 3855
   double slider_mineral_uint16_to_int_to_double(uint16_t val){ return double(int(3855 / val)); }  // convert to int midway so there are no fractional values
-  uint16_t slider_mineral_double_to_uint16(uint16_t val){ return uint16_t(val * 17); }
+  uint16_t slider_mineral_double_to_uint16(double val){ return uint16_t(val * 3855); }
 
 
 };

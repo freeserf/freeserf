@@ -292,7 +292,19 @@ typedef enum Action {
   ACTION_AIPLUS_ENABLE_AUTOSAVE,
   ACTION_AIPLUS_IMPROVED_PIG_FARMS,
   ACTION_AIPLUS_CAN_TRANSPORT_SERFS_IN_BOATS,
-  ACTION_AIPLUS_QUICK_DEMO_EMPTY_BUILD_SITES
+  ACTION_AIPLUS_QUICK_DEMO_EMPTY_BUILD_SITES,
+  ACTION_MAPGEN_ADJUST_TREES,
+  ACTION_MAPGEN_ADJUST_STONEPILES,
+  ACTION_MAPGEN_ADJUST_MINE_RES_TOTAL,
+  ACTION_MAPGEN_ADJUST_MINE_RES_GOLD,
+  ACTION_MAPGEN_ADJUST_MINE_RES_IRON,
+  ACTION_MAPGEN_ADJUST_MINE_RES_COAL,
+  ACTION_MAPGEN_ADJUST_MINE_RES_STONE,
+  ACTION_MAPGEN_ADJUST_DESERTS,
+  ACTION_MAPGEN_ADJUST_LAKES,
+  ACTION_MAPGEN_ADJUST_JUNK_OBJ_GRASS,
+  ACTION_MAPGEN_ADJUST_JUNK_OBJ_WATER,
+  ACTION_MAPGEN_ADJUST_JUNK_OBJ_DESERT
 } Action;
 
 PopupBox::PopupBox(Interface *_interface)
@@ -3667,7 +3679,31 @@ PopupBox::handle_action(int action, int x_, int /*y_*/) {
     } else{
       interface->set_aiplus_option(AIPlusOption::QuickDemoEmptyBuildSites);
     }
-    break; 
+    break;
+  case ACTION_MAPGEN_ADJUST_TREES:
+    Log::Info["popup"] << "ACTION_MAPGEN_ADJUST_TREES x_ = " << x_ << ", gui_get_slider_click_value(x_) = " << gui_get_slider_click_value(x_) << ", unint16_t(gui_get_slider_click_value(x_)) = " << uint16_t(gui_get_slider_click_value(x_));
+    interface->set_custom_map_generator_trees_both1(gui_get_slider_click_value(x_));                                         
+    interface->set_custom_map_generator_trees_deciduous(gui_get_slider_click_value(x_));
+    interface->set_custom_map_generator_trees_pine(gui_get_slider_click_value(x_));
+    interface->set_custom_map_generator_trees_both2(gui_get_slider_click_value(x_));
+    break;
+  case ACTION_MAPGEN_ADJUST_STONEPILES:
+    Log::Info["popup"] << "ACTION_MAPGEN_ADJUST_STONEPILES x_ = " << x_ << ", gui_get_slider_click_value(x_) = " << gui_get_slider_click_value(x_) << ", unint16_t(gui_get_slider_click_value(x_)) = " << uint16_t(gui_get_slider_click_value(x_));
+    interface->set_custom_map_generator_stonepile_dense(gui_get_slider_click_value(x_));
+    interface->set_custom_map_generator_stonepile_sparse(gui_get_slider_click_value(x_));
+    break;
+  /*
+  ACTION_MAPGEN_ADJUST_MINE_RES_TOTAL,
+  ACTION_MAPGEN_ADJUST_MINE_RES_GOLD,
+  ACTION_MAPGEN_ADJUST_MINE_RES_IRON,
+  ACTION_MAPGEN_ADJUST_MINE_RES_COAL,
+  ACTION_MAPGEN_ADJUST_MINE_RES_STONE,
+  ACTION_MAPGEN_ADJUST_DESERTS,
+  ACTION_MAPGEN_ADJUST_LAKES,
+  ACTION_MAPGEN_ADJUST_JUNK_OBJ_GRASS,
+  ACTION_MAPGEN_ADJUST_JUNK_OBJ_WATER,
+  ACTION_MAPGEN_ADJUST_JUNK_OBJ_DESERT
+  */
   case ACTION_SETT_8_CYCLE:
     player->cycle_knights();
     play_sound(Audio::TypeSfxAccepted);
@@ -3984,13 +4020,21 @@ PopupBox::handle_box_aiplusoptions_clk(int cx, int cy) {
 void
 PopupBox::handle_box_edit_map_generator_clk(int cx, int cy) {
   const int clkmap[] = {
+    ACTION_MAPGEN_ADJUST_TREES, 7, 7, 64, 6,
+    ACTION_MAPGEN_ADJUST_STONEPILES, 7, 22, 64, 6,
     /*
-    ACTION_AIPLUS_ENABLE_AUTOSAVE, 7, 7, 16, 16,
-    ACTION_AIPLUS_IMPROVED_PIG_FARMS, 7, 26, 16, 16,
-    ACTION_AIPLUS_CAN_TRANSPORT_SERFS_IN_BOATS, 7, 45, 16, 16,
-    ACTION_AIPLUS_QUICK_DEMO_EMPTY_BUILD_SITES, 7, 64, 16, 16,
-    //ACTION_AIPLUS_NEXT_PAGE, 106, 110, 16, 16,
+    ACTION_MAPGEN_ADJUST_MINE_RES_TOTAL, 7, 7, 64, 6,
+    ACTION_MAPGEN_ADJUST_MINE_RES_GOLD, 7, 7, 64, 6,
+    ACTION_MAPGEN_ADJUST_MINE_RES_IRON, 7, 7, 64, 6,
+    ACTION_MAPGEN_ADJUST_MINE_RES_COAL, 7, 7, 64, 6,
+    ACTION_MAPGEN_ADJUST_MINE_RES_STONE, 7, 7, 64, 6,
+    ACTION_MAPGEN_ADJUST_DESERTS, 7, 7, 64, 6,
+    ACTION_MAPGEN_ADJUST_LAKES, 7, 7, 64, 6,
+    ACTION_MAPGEN_ADJUST_JUNK_OBJ_GRASS, 7, 7, 64, 6,
+    ACTION_MAPGEN_ADJUST_JUNK_OBJ_WATER, 7, 7, 64, 6,
+    ACTION_MAPGEN_ADJUST_JUNK_OBJ_DESERT, 7, 7, 64, 6,
     */
+
     ACTION_RESET_MAPGEN_DEFAULTS, 128, 124, 16, 16,
     ACTION_CLOSE_BOX, 255, 126, 16, 16,
     -1
