@@ -212,7 +212,7 @@ class Interface : public GuiObject, public GameManager::Handler {
   double get_custom_map_generator_mountain_stone(){ return slider_double_to_uint16(custom_map_generator_options.opt[CustomMapGeneratorOption::MountainStone]); }
   double get_custom_map_generator_desert_frequency(){ return slider_double_to_uint16(custom_map_generator_options.opt[CustomMapGeneratorOption::DesertFrequency]); }
   double get_custom_map_generator_lakes_size(){ return slider_double_to_uint16(custom_map_generator_options.opt[CustomMapGeneratorOption::LakesMaxSize]); }
-  double get_custom_map_generator_junk_grass_trees_dead(){ return slider_double_to_uint16(custom_map_generator_options.opt[CustomMapGeneratorOption::JunkGrassDeadTrees]); }
+  double get_custom_map_generator_junk_grass_dead_trees(){ return slider_double_to_uint16(custom_map_generator_options.opt[CustomMapGeneratorOption::JunkGrassDeadTrees]); }
   double get_custom_map_generator_junk_grass_sandstone(){ return slider_double_to_uint16(custom_map_generator_options.opt[CustomMapGeneratorOption::JunkGrassSandStone]); }
   double get_custom_map_generator_junk_grass_stub_trees(){ return slider_double_to_uint16(custom_map_generator_options.opt[CustomMapGeneratorOption::JunkGrassStubTrees]); }
   double get_custom_map_generator_junk_grass_small_boulders(){ return slider_double_to_uint16(custom_map_generator_options.opt[CustomMapGeneratorOption::JunkGrassSmallBoulders]); }
@@ -234,15 +234,16 @@ class Interface : public GuiObject, public GameManager::Handler {
   void set_custom_map_generator_stonepile_dense(uint16_t val){ custom_map_generator_options.opt[CustomMapGeneratorOption::StonepileDense] = slider_uint16_to_double(val); }
   void set_custom_map_generator_stonepile_sparse(uint16_t val){ custom_map_generator_options.opt[CustomMapGeneratorOption::StonepileSparse] = slider_uint16_to_double(val); }
   void set_custom_map_generator_mountain_mineral_total(uint16_t val){ custom_map_generator_options.opt[CustomMapGeneratorOption::MountainMineralTotal] = slider_uint16_to_double(val); }
-  void set_custom_map_generator_mountain_gold(uint16_t val){ custom_map_generator_options.opt[CustomMapGeneratorOption::MountainGold] = slider_uint16_to_double(val); }
-  void set_custom_map_generator_mountain_iron(uint16_t val){ custom_map_generator_options.opt[CustomMapGeneratorOption::MountainIron] = slider_uint16_to_double(val); }
-  void set_custom_map_generator_mountain_coal(uint16_t val){ custom_map_generator_options.opt[CustomMapGeneratorOption::MountainCoal] = slider_uint16_to_double(val); }
-  void set_custom_map_generator_mountain_stone(uint16_t val){ custom_map_generator_options.opt[CustomMapGeneratorOption::MountainStone] = slider_uint16_to_double(val); }
+  void set_custom_map_generator_mountain_gold(uint16_t val){ custom_map_generator_options.opt[CustomMapGeneratorOption::MountainGold] = slider_mineral_uint16_to_int_to_double(val); }
+  void set_custom_map_generator_mountain_iron(uint16_t val){ custom_map_generator_options.opt[CustomMapGeneratorOption::MountainIron] = slider_mineral_uint16_to_int_to_double(val); }
+  void set_custom_map_generator_mountain_coal(uint16_t val){ custom_map_generator_options.opt[CustomMapGeneratorOption::MountainCoal] = slider_mineral_uint16_to_int_to_double(val); }
+  void set_custom_map_generator_mountain_stone(uint16_t val){ custom_map_generator_options.opt[CustomMapGeneratorOption::MountainStone] = slider_mineral_uint16_to_int_to_double(val); }
   void set_custom_map_generator_desert_frequency(uint16_t val){ custom_map_generator_options.opt[CustomMapGeneratorOption::DesertFrequency] = slider_uint16_to_double(val); }
   void set_custom_map_generator_lakes_size(uint16_t val){ custom_map_generator_options.opt[CustomMapGeneratorOption::LakesMaxSize] = slider_uint16_to_double(val); }
   void set_custom_map_generator_junk_grass_sandstone(uint16_t val){ custom_map_generator_options.opt[CustomMapGeneratorOption::JunkGrassSandStone] = slider_uint16_to_double(val); }
   void set_custom_map_generator_junk_grass_stub_trees(uint16_t val){ custom_map_generator_options.opt[CustomMapGeneratorOption::JunkGrassStubTrees] = slider_uint16_to_double(val); }
   void set_custom_map_generator_junk_grass_small_boulders(uint16_t val){ custom_map_generator_options.opt[CustomMapGeneratorOption::JunkGrassSmallBoulders] = slider_uint16_to_double(val); }
+  void set_custom_map_generator_junk_grass_dead_trees(uint16_t val){ custom_map_generator_options.opt[CustomMapGeneratorOption::JunkGrassDeadTrees] = slider_uint16_to_double(val); }
   void set_custom_map_generator_junk_water_boulders(uint16_t val){ custom_map_generator_options.opt[CustomMapGeneratorOption::JunkWaterSubmergedBoulders] = slider_uint16_to_double(val); }
   void set_custom_map_generator_junk_water_trees(uint16_t val){ custom_map_generator_options.opt[CustomMapGeneratorOption::JunkWaterSubmergedTrees] = slider_uint16_to_double(val); }
   void set_custom_map_generator_junk_desert_cadavers(uint16_t val){ custom_map_generator_options.opt[CustomMapGeneratorOption::JunkDesertAnimalCadavers] = slider_uint16_to_double(val); }
@@ -266,13 +267,13 @@ class Interface : public GuiObject, public GameManager::Handler {
 
   void set_ai_ptr(unsigned int index, AI *ai) { ai_ptrs[index] = ai; }
 
-  // THESE FUNCTIONS BELOW ARE ALSO DEFINED IN map-generator.h and popup.h !!!!
-  // 65535 / 2 = 32767.5
-  double slider_uint16_to_double(uint16_t val){ return double(double(val) / double(32767)); }
-  uint16_t slider_double_to_uint16(double val){ return uint16_t(val * 32767); }
-  // 65535 / 17 = 3855
-  double slider_mineral_uint16_to_int_to_double(uint16_t val){ return double(int(3855 / val)); }  // convert to int midway so there are no fractional values
-  uint16_t slider_mineral_double_to_uint16(double val){ return uint16_t(val * 3855); }
+  // THESE FUNCTIONS BELOW ARE ALSO DEFINED IN map-generator.h and interface.h !!!!
+  // 65500 (not 65535) / 2 = 32750
+  double slider_uint16_to_double(uint16_t val){ return double(double(val) / double(32750)); }
+  uint16_t slider_double_to_uint16(double val){ return uint16_t(val * 32750); }
+  // 65500 (not 65535) / 17 = 3852.94  (trying 3852)
+  double slider_mineral_uint16_to_int_to_double(uint16_t val){ return double(int(val / 3852)); }  // convert to int midway so there are no fractional values
+  uint16_t slider_mineral_double_to_uint16(double val){ return uint16_t(val * 3853); }
 
   // GameManager::Handler implementation
  public:

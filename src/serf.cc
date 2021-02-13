@@ -3003,7 +3003,10 @@ Serf::handle_serf_free_walking_state_dest_reached() {
       if (map->has_building(upleft_pos)){
         Building *building = game->get_building_at_pos(upleft_pos);
         if (building->is_done() && !building->is_burning() &&
-            building->get_type() != Building::TypeStock && building->get_type() != Building::TypeCastle){
+            // disallow Inventory buildings because they are handled by the default function
+            building->get_type() != Building::TypeStock && building->get_type() != Building::TypeCastle &&
+            // disallow mines because they can deadlock when miner runs out of food and holds the pos
+            (building->get_type() < Building::TypeStoneMine || building->get_type() > Building::TypeGoldMine)){
           Log::Debug["serf"] << "Debug - a generic serf at pos " << pos << " is about to enter a non-inventory building of type " << NameBuilding[building->get_type()] << " at pos " << upleft_pos << ", assuming this was a Lost Serf";
           set_state(StateReadyToEnter);
           s.ready_to_enter.field_B = 0;

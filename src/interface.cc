@@ -87,6 +87,7 @@ Interface::Interface()
   init_box = nullptr;
   notification_box = nullptr;
 
+  // THIS IS ALSO COPIED IN popup.cc clickmap case/switch
   // adding support for EditMapGeneratorOptions
   for (int x = 0; x < 22; x++){
     custom_map_generator_options.opt[x] = 1.00;
