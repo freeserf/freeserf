@@ -116,7 +116,7 @@ class RoadBuilder {
       return false;
     }
     else {
-      Log::Debug["ai_roadbuilder"] << "inside RoadBuilder has_score(" << pos << "), returning true";
+      //Log::Debug["ai_roadbuilder"] << "inside RoadBuilder has_score(" << pos << "), returning true";
       return true;
     }
   }

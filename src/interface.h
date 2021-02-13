@@ -196,7 +196,6 @@ class Interface : public GuiObject, public GameManager::Handler {
   void unset_aiplus_option(AIPlusOption opt) { aiplus_options.reset(opt); }
   bool test_aiplus_option(AIPlusOption opt) { return aiplus_options.test(opt); }
 
-  //static CustomMapGeneratorOptions &get_custom_map_generator_options();
   CustomMapGeneratorOptions get_custom_map_generator_options();
 
   double get_custom_map_generator_trees_both1(){ return slider_double_to_uint16(custom_map_generator_options.opt[CustomMapGeneratorOption::TreesBoth1]); }

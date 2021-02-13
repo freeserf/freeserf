@@ -27,6 +27,7 @@
 
 #include "src/map.h"
 #include "src/random.h"
+#include "src/lookup.h"  // for CustomMapGeneratorOptions
 
 /* Interface for map generators. */
 class MapGenerator {
@@ -158,121 +159,43 @@ class CustomMapGenerator : public ClassicMapGenerator {
   static const int default_water_level = 20;
   static const int default_terrain_spikyness = 0x9999;
 
-// if I actually end up leaving all these values at 1
-//  then get rid of the defaults entirely
-  const double default_desert_frequency = 1.00;
+  CustomMapGeneratorOptions custom_map_generator_options;
 
-  const double default_trees_both1 = 1.00;
-  const double default_trees_deciduous = 1.00;
-  const double default_trees_pine = 1.00;
-  const double default_trees_both2 = 1.00;
-  const double default_stonepile_dense = 1.00;
-  const double default_stonepile_sparse = 1.00;
-  const double default_junk_grass_trees_dead = 1.00;
-  const double default_junk_grass_sandstone = 1.00;
-  const double default_junk_water_trees = 1.00;
-  const double default_junk_grass_stub_trees = 1.00;
-  const double default_junk_grass_small_boulders = 1.00;
-  const double default_junk_desert_cadavers = 1.00;
-  const double default_junk_desert_cacti = 1.00;
-  const double default_junk_water_boulders = 1.00;
-  const double default_junk_desert_palm_trees = 1.00;
-
-  double desert_frequency;
-
-  double trees_both1;
-  double trees_deciduous;
-  double trees_pine;
-  double trees_both2;
-  double stonepile_dense;
-  double stonepile_sparse;
-  double junk_grass_trees_dead;
-  double junk_grass_sandstone;
-  double junk_water_trees;
-  double junk_grass_stub_trees;
-  double junk_grass_small_boulders;
-  double junk_desert_cadavers;
-  double junk_desert_cacti;
-  double junk_water_boulders;
-  double junk_desert_palm_trees;
-  
   CustomMapGenerator(const Map& map, const Random& random);
 
   void init(HeightGenerator height_generator, bool preserve_bugs,
+            CustomMapGeneratorOptions _custom_map_generator_options,
             int max_lake_area = default_max_lake_area,
             int water_level = default_water_level,
             int terrain_spikyness = default_terrain_spikyness){
 
-    desert_frequency = default_desert_frequency;
+    Log::Info["map-generator.h"] << "inside CustomMapGenerator::init";
 
-    trees_both1 = default_trees_both1;
-    trees_deciduous = default_trees_deciduous;
-    trees_pine = default_trees_pine;
-    trees_both2 = default_trees_both2;
-    stonepile_dense = default_stonepile_dense;
-    stonepile_sparse = default_stonepile_sparse;
-    junk_grass_trees_dead = default_junk_grass_trees_dead;
-    junk_grass_sandstone = default_junk_grass_sandstone;
-    junk_water_trees = default_junk_water_trees;
-    junk_grass_stub_trees = default_junk_grass_stub_trees;
-    junk_grass_small_boulders = default_junk_grass_small_boulders;
-    junk_desert_cadavers = default_junk_desert_cadavers;
-    junk_desert_cacti = default_junk_desert_cacti;
-    junk_water_boulders = default_junk_water_boulders;
-    junk_desert_palm_trees = default_junk_desert_palm_trees;
+    for (int x = 0; x < 22; x++){
+      Log::Info["map-generator.h"] << "inside CustomMapGenerator::init, copying values x " << x << "_.opt[x] = " << _custom_map_generator_options.opt[x] << " as string " << std::to_string(_custom_map_generator_options.opt[x]);
+      custom_map_generator_options.opt[x] = _custom_map_generator_options.opt[x];
+    }
+/*
+    for (int x = 0; x < 22; x++){
+      Log::Info["map-generator.h"] << "inside CustomMapGenerator::init, BEFORE reset opt" << x << " = " << custom_map_generator_options.opt[x];
+    }
 
+    // wtf
+    for (int x = 0; x < 22; x++){
+      custom_map_generator_options.opt[x] = 1.00;
+    }
+    custom_map_generator_options.opt[CustomMapGeneratorOption::MountainGold] = 2.00;
+    custom_map_generator_options.opt[CustomMapGeneratorOption::MountainIron] = 4.00;
+    custom_map_generator_options.opt[CustomMapGeneratorOption::MountainCoal] = 9.00;
+    custom_map_generator_options.opt[CustomMapGeneratorOption::MountainStone] = 2.00;
+
+    for (int x = 0; x < 22; x++){
+      Log::Info["map-generator.h"] << "inside CustomMapGenerator::init, AFTER reset opt" << x << " = " << custom_map_generator_options.opt[x];
+    }
+*/
   }
 
-  
-
-  /*
-  // Add either tree or pine.
-  // Add only trees.
-  // Add only pines.
-  // Add either tree or pine.
-  // Create dense clusters of stone.
-  // Create sparse clusters.
-  // Create dead trees.
-  // Create sandstone boulders.
-  // Create trees submerged in water.
-  // Create tree stubs.
-  // Create small boulders.
-  // Create animal cadavers in desert.
-  // Create cacti in desert.
-  // Create boulders submerged in water.
-  // Create palm trees in desert.
-*/
-  void set_trees_both1(uint16_t val){ trees_both1 = slider_uint16_to_double(val); }
-  void set_trees_deciduous(uint16_t val){ trees_deciduous = slider_uint16_to_double(val); }
-  void set_trees_pine(uint16_t val){ trees_pine = slider_uint16_to_double(val); }
-  void set_trees_both2(uint16_t val){ trees_both2 = slider_uint16_to_double(val); }
-  void set_stonepile_dense(uint16_t val){ stonepile_dense = slider_uint16_to_double(val); }
-  void set_stonepile_sparse(uint16_t val){ stonepile_sparse = slider_uint16_to_double(val); }
-  void set_junk_grass_trees_dead(uint16_t val){ junk_grass_trees_dead = slider_uint16_to_double(val); }
-  void set_junk_grass_sandstone(uint16_t val){ junk_grass_sandstone = slider_uint16_to_double(val); }
-  void set_junk_water_trees(uint16_t val){ junk_water_trees = slider_uint16_to_double(val); }
-  void set_junk_grass_stub_trees(uint16_t val){ junk_grass_stub_trees = slider_uint16_to_double(val); }
-  void set_junk_grass_small_boulders(uint16_t val){ junk_grass_small_boulders = slider_uint16_to_double(val); }
-  void set_junk_desert_cadavers(uint16_t val){ junk_desert_cadavers = slider_uint16_to_double(val); }
-  void set_junk_desert_cacti(uint16_t val){ junk_desert_cacti = slider_uint16_to_double(val); }
-  void set_junk_water_boulders(uint16_t val){ junk_water_boulders = slider_uint16_to_double(val); }
-  void set_junk_desert_palm_trees(uint16_t val){ junk_desert_palm_trees = slider_uint16_to_double(val); }
-
-  double get_trees_both1(){ return slider_double_to_uint16(trees_both1); }
-  double get_trees_deciduous(){ return slider_double_to_uint16(trees_deciduous); }
-  double get_trees_pine(){ return slider_double_to_uint16(trees_pine); }
-  double get_trees_both2(){ return slider_double_to_uint16(trees_both2); }
-  double get_stonepile_dense(){ return slider_double_to_uint16(stonepile_dense); }
-  double get_stonepile_sparse(){ return slider_double_to_uint16(stonepile_sparse); }
-  double get_junk_grass_trees_dead(){ return slider_double_to_uint16(junk_grass_trees_dead); }
-  double get_junk_grass_sandstone(){ return slider_double_to_uint16(junk_grass_sandstone); }
-  double get_junk_water_trees(){ return slider_double_to_uint16(junk_water_trees); }
-  double get_junk_grass_stub_trees(){ return slider_double_to_uint16(junk_grass_stub_trees); }
-  double get_junk_grass_small_boulders(){ return slider_double_to_uint16(junk_grass_small_boulders); }
-  double get_junk_desert_cadavers(){ return slider_double_to_uint16(junk_desert_cadavers); }
-  double get_junk_desert_cacti(){ return slider_double_to_uint16(junk_desert_cacti); }
-  double get_junk_water_boulders(){ return slider_double_to_uint16(junk_water_boulders); }
-  double get_junk_desert_palm_trees(){ return slider_double_to_uint16(junk_desert_palm_trees); }
+  void generate();
 
  protected:
   void create_deserts();  // modified to allow changing of desert frequency

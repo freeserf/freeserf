@@ -310,7 +310,7 @@ GameInitBox::handle_action(int action) {
           return;
         }
       } else {
-        if (!GameManager::get_instance().start_game(mission)) {
+        if (!GameManager::get_instance().start_game(mission, interface->get_custom_map_generator_options())) {
           return;
         }
       }
@@ -588,7 +588,10 @@ GameInitBox::generate_map_preview() {
   } else {
     //ClassicMapGenerator generator(*map, mission->get_random_base());
     CustomMapGenerator generator(*map, mission->get_random_base());
-    generator.init(MapGenerator::HeightGeneratorMidpoints, true);
+    for (int x = 0; x < 22; x++){
+      Log::Info["game.cc"] << "inside GameInitBox::ingenerate_map_previewit,  x" << x << " = " << interface->get_custom_map_generator_options().opt[x];
+    }
+    generator.init(MapGenerator::HeightGeneratorMidpoints, true, interface->get_custom_map_generator_options());
     generator.generate();
     map->init_tiles(generator);
   }

@@ -685,4 +685,13 @@ const std::string NameDistType[] = {
 };
 
 
+// copied from game-init.h so game.cc can use it?
+typedef enum GameType {
+  GameCustom = 0,
+  GameMission = 1,
+  GameLoad = 2
+} GameType;
+
+
+
 #endif  // SRC_LOOKUP_H_

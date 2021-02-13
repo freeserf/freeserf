@@ -238,6 +238,12 @@ Interface::get_custom_map_generator_options() {
 
 CustomMapGeneratorOptions
 Interface::get_custom_map_generator_options() {
+  Log::Info["interface.cc"] << " inside get_custom_map_generator_options";
+    for (int x = 0; x < 22; x++){
+    Log::Info["map-generator"] << " inside get_custom_map_generator_options, opt" << x << " = " << custom_map_generator_options.opt[x];
+  }
+  //// UGLY HACK
+  //game->set_custom_map_generator_options(custom_map_generator_options);
   return custom_map_generator_options;
 }
 

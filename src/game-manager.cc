@@ -69,13 +69,26 @@ GameManager::set_current_game(PGame new_game) {
 
 bool
 GameManager::start_random_game() {
+  // allow junk?  need to create defaults
+  // just set the defaults here for now, need to make these initialized and passed or otherwise work without specifying
+  CustomMapGeneratorOptions custom_map_generator_options;
+  for (int x = 0; x < 22; x++){
+    custom_map_generator_options.opt[x] = 1.00;
+  }
+  custom_map_generator_options.opt[CustomMapGeneratorOption::MountainGold] = 2.00;
+  custom_map_generator_options.opt[CustomMapGeneratorOption::MountainIron] = 4.00;
+  custom_map_generator_options.opt[CustomMapGeneratorOption::MountainCoal] = 9.00;
+  custom_map_generator_options.opt[CustomMapGeneratorOption::MountainStone] = 2.00;
+
   PGameInfo game_info(new GameInfo(Random()));
-  return start_game(game_info);
+  //return start_game(game_info);
+  return start_game(game_info, custom_map_generator_options);
 }
 
 bool
-GameManager::start_game(PGameInfo game_info) {
-  PGame new_game = game_info->instantiate();
+GameManager::start_game(PGameInfo game_info, CustomMapGeneratorOptions custom_map_generator_options) {
+  //PGame new_game = game_info->instantiate();
+  PGame new_game = game_info->instantiate(custom_map_generator_options);
   if (!new_game) {
     return false;
   }

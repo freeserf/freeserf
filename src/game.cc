@@ -2267,14 +2267,29 @@ Game::add_player(unsigned int intelligence, unsigned int supplies,
 }
 
 bool
-Game::init(unsigned int map_size, const Random &random) {
+//Game::init(unsigned int map_size, const Random &random) {
+Game::init(unsigned int map_size, const Random &random, const CustomMapGeneratorOptions custom_map_generator_options) {
   init_map_rnd = random;
 
   map.reset(new Map(MapGeometry(map_size)));
-  ClassicMissionMapGenerator generator(*map, init_map_rnd);
-  generator.init();
-  generator.generate();
-  map->init_tiles(generator);
+
+  if (game_type == GameMission) {
+    ClassicMissionMapGenerator generator(*map, init_map_rnd);
+    generator.init();
+    generator.generate();
+    map->init_tiles(generator);
+  } else {
+    //ClassicMapGenerator generator(*map, mission->get_random_base());
+    CustomMapGenerator generator(*map, init_map_rnd);
+    for (int x = 0; x < 22; x++){
+      Log::Info["game.cc"] << "inside Game::init,  x" << x << " = " << custom_map_generator_options.opt[x];
+    }
+
+    generator.init(MapGenerator::HeightGeneratorMidpoints, true, custom_map_generator_options);
+    generator.generate();
+    map->init_tiles(generator);
+  }
+
   gold_total = map->get_gold_deposit();
 
   return true;

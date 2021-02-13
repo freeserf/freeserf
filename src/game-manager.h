@@ -55,7 +55,8 @@ class GameManager {
   PGame get_current_game() { return current_game; }
 
   bool start_random_game();
-  bool start_game(PGameInfo game_info);
+  //bool start_game(PGameInfo game_info);
+  bool start_game(PGameInfo game_info, CustomMapGeneratorOptions custom_map_generator_options);
   bool load_game(const std::string &path);
 
  protected:

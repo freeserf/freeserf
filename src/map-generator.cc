@@ -50,6 +50,7 @@ void ClassicMapGenerator::init(
   this->max_lake_area = max_lake_area;
   this->water_level = water_level;
   this->terrain_spikyness = terrain_spikyness;
+  Log::Info["map-generator.cc"] << "inside ClassicMapGenerator::init";
 }
 
 /* Whether any of the two up/down tiles at this pos are water. */
@@ -871,6 +872,9 @@ void
 ClassicMapGenerator::create_random_object_clusters(
     int num_clusters, int objs_in_cluster, int pos_mask, Map::Terrain type_min,
     Map::Terrain type_max, int obj_base, int obj_mask) {
+
+  Log::Info["map-generator.cc"] << " inside ClassicMapGenerator::create_random_object_clusters, num_clusters " << num_clusters << ", objs_in_cluster " << objs_in_cluster << ", obj_base " << NameObject[obj_base];
+  
   for (int i = 0; i < num_clusters; i++) {
     for (int try_ = 0; try_ < 100; try_++) {
       MapPos rnd_pos = map.get_rnd_coord(NULL, NULL, &rnd);
@@ -1048,8 +1052,49 @@ void ClassicMissionMapGenerator::init() {
 //  sliders in the game init screen - EditMapGenerator popup
 
 CustomMapGenerator::CustomMapGenerator(
-  const Map& map, const Random& rnd) : ClassicMapGenerator(map, rnd) {}
+  const Map& map, const Random &rnd) : ClassicMapGenerator(map, rnd) {}
 
+void CustomMapGenerator::generate() {
+  Log::Info["map-generator"] << " inside CustomMapGenerator::generate()";
+
+  rnd ^= Random(0x5a5a, 0xa5a5, 0xc3c3);
+
+  random_int();
+  random_int();
+
+  init_heights_squares();
+  switch (height_generator) {
+    case HeightGeneratorMidpoints:
+      init_heights_midpoints(); /* Midpoint displacement algorithm */
+      break;
+    case HeightGeneratorDiamondSquare:
+      init_heights_diamond_square(); /* Diamond square algorithm */
+      break;
+    default:
+      NOT_REACHED();
+  }
+
+  clamp_heights();
+  create_water_bodies();  // THIS NEEDS CUSTOMIZATION ALSO
+  heights_rebase();
+  init_types();
+  remove_islands();
+  heights_rescale();
+
+  // Adjust terrain types on shores
+  change_shore_water_type();
+  change_shore_grass_type();
+
+  // Create deserts
+  CustomMapGenerator::create_deserts();
+
+  // Create map objects (trees, boulders, etc.)
+  CustomMapGenerator::create_objects();
+
+  CustomMapGenerator::create_mineral_deposits();
+
+  clean_up();
+}
 
 // Create deserts.
 // the only differences between CustomMapGenerator::create_deserts
@@ -1063,7 +1108,12 @@ CustomMapGenerator::CustomMapGenerator(
 //
 void
 CustomMapGenerator::create_deserts() {
-  if (desert_frequency = 0.00){
+    Log::Info["map-generator"] << "inside map-generator.cc CustomMapGenerator::create_deserts";
+  // DEBUG
+  for (int x = 0; x < 22; x++){
+    Log::Info["map-generator"] << " inside CustomMapGenerator::create_deserts, opt" << x << " = " << custom_map_generator_options.opt[x];
+  }
+  if (custom_map_generator_options.opt[CustomMapGeneratorOption::DesertFrequency] = 0.00){
     return;
   }
   // Initialize random areas of desert based on spiral pattern.
@@ -1071,15 +1121,15 @@ CustomMapGenerator::create_deserts() {
   bool created_extra_desert_this_region = false;
   for (unsigned int i = 0; i < map.get_region_count(); i++) {
     // chance of not creating a desert in this region
-    if (desert_frequency < 1.00){
-      if (double(rand()) / double(RAND_MAX) < desert_frequency){
+    if (custom_map_generator_options.opt[CustomMapGeneratorOption::DesertFrequency] < 1.00){
+      if (double(rand()) / double(RAND_MAX) < custom_map_generator_options.opt[CustomMapGeneratorOption::DesertFrequency]){
         continue;
       }
     }
     // chance of creating one extra desert in this region
     int deserts = 1;
-    if (desert_frequency > 1.00){
-      if (double(rand()) / double(RAND_MAX) < desert_frequency - 1){
+    if (custom_map_generator_options.opt[CustomMapGeneratorOption::DesertFrequency] > 1.00){
+      if (double(rand()) / double(RAND_MAX) < custom_map_generator_options.opt[CustomMapGeneratorOption::DesertFrequency] - 1){
         deserts++;
       }
     }
@@ -1142,55 +1192,82 @@ CustomMapGenerator::create_deserts() {
 void
 CustomMapGenerator::create_objects() {
   int regions = map.get_region_count();
+  Log::Info["map-generator"] << "inside map-generator.cc CustomMapGenerator::create_objects";
+
+  // DEBUG
+  for (int x = 0; x < 22; x++){
+    Log::Info["map-generator"] << " inside CustomMapGenerator::create_objects, opt" << x << " = " << custom_map_generator_options.opt[x];
+  }
 
   create_crosses();
 
   // Add either tree or pine.
-  create_random_object_clusters(regions * 8, 10 * trees_both1, 0xff, Map::TerrainGrass1, Map::TerrainGrass2, Map::ObjectTree0, 0xf);
+  create_random_object_clusters(regions * 8, 10 * custom_map_generator_options.opt[CustomMapGeneratorOption::TreesBoth1], 0xff, Map::TerrainGrass1, Map::TerrainGrass2, Map::ObjectTree0, 0xf);
   // Add only trees.
-  create_random_object_clusters(regions, 45 * trees_deciduous, 0x3f, Map::TerrainGrass1, Map::TerrainGrass2, Map::ObjectTree0, 0x7);
+  create_random_object_clusters(regions, 45 * custom_map_generator_options.opt[CustomMapGeneratorOption::TreesDeciduous], 0x3f, Map::TerrainGrass1, Map::TerrainGrass2, Map::ObjectTree0, 0x7);
   // Add only pines.
-  create_random_object_clusters(regions, 30 * trees_pine, 0x3f, Map::TerrainGrass0, Map::TerrainGrass2, Map::ObjectPine0, 0x7);
+  create_random_object_clusters(regions, 30 * custom_map_generator_options.opt[CustomMapGeneratorOption::TreesPine], 0x3f, Map::TerrainGrass0, Map::TerrainGrass2, Map::ObjectPine0, 0x7);
   // Add either tree or pine.
-  create_random_object_clusters(regions, 20 * trees_both2, 0x7f, Map::TerrainGrass1, Map::TerrainGrass2, Map::ObjectTree0, 0xf);
+  create_random_object_clusters(regions, 20 * custom_map_generator_options.opt[CustomMapGeneratorOption::TreesBoth2], 0x7f, Map::TerrainGrass1, Map::TerrainGrass2, Map::ObjectTree0, 0xf);
   // Create dense clusters of stone.
-  create_random_object_clusters(regions, 40 * stonepile_dense, 0x3f, Map::TerrainGrass1, Map::TerrainGrass2, Map::ObjectStone0, 0x7);
+  create_random_object_clusters(regions, 40 * custom_map_generator_options.opt[CustomMapGeneratorOption::StonepileDense], 0x3f, Map::TerrainGrass1, Map::TerrainGrass2, Map::ObjectStone0, 0x7);
   // Create sparse clusters.
-  create_random_object_clusters(regions, 15 * stonepile_sparse, 0xff, Map::TerrainGrass1, Map::TerrainGrass2, Map::ObjectStone0, 0x7);
+  create_random_object_clusters(regions, 15 * custom_map_generator_options.opt[CustomMapGeneratorOption::StonepileSparse], 0xff, Map::TerrainGrass1, Map::TerrainGrass2, Map::ObjectStone0, 0x7);
   // Create dead trees.
-  create_random_object_clusters(regions, 2 * junk_grass_trees_dead, 0xff, Map::TerrainGrass1, Map::TerrainGrass2, Map::ObjectDeadTree, 0);
+  create_random_object_clusters(regions, 2 * custom_map_generator_options.opt[CustomMapGeneratorOption::JunkGrassDeadTrees], 0xff, Map::TerrainGrass1, Map::TerrainGrass2, Map::ObjectDeadTree, 0);
   // Create sandstone boulders.
-  create_random_object_clusters(regions, 6 * junk_grass_sandstone, 0xff, Map::TerrainGrass1, Map::TerrainGrass2, Map::ObjectSandstone0, 0x1);
+  create_random_object_clusters(regions, 6 * custom_map_generator_options.opt[CustomMapGeneratorOption::JunkGrassSandStone], 0xff, Map::TerrainGrass1, Map::TerrainGrass2, Map::ObjectSandstone0, 0x1);
   // Create trees submerged in water.
-  create_random_object_clusters(regions, 50 * junk_water_trees, 0x7f, Map::TerrainWater2, Map::TerrainWater3, Map::ObjectWaterTree0, 0x3);
+  create_random_object_clusters(regions, 50 * custom_map_generator_options.opt[CustomMapGeneratorOption::JunkWaterSubmergedTrees], 0x7f, Map::TerrainWater2, Map::TerrainWater3, Map::ObjectWaterTree0, 0x3);
   // Create tree stubs.
-  create_random_object_clusters(regions, 5 * junk_grass_small_boulders, 0xff, Map::TerrainGrass1, Map::TerrainGrass2, Map::ObjectStub, 0);
+  create_random_object_clusters(regions, 5 * custom_map_generator_options.opt[CustomMapGeneratorOption::JunkGrassStubTrees], 0xff, Map::TerrainGrass1, Map::TerrainGrass2, Map::ObjectStub, 0);
   // Create small boulders.
-  create_random_object_clusters(regions, 10 * junk_grass_small_boulders, 0xff, Map::TerrainGrass1, Map::TerrainGrass2, Map::ObjectStone, 0x1);
+  create_random_object_clusters(regions, 10 * custom_map_generator_options.opt[CustomMapGeneratorOption::JunkGrassSmallBoulders], 0xff, Map::TerrainGrass1, Map::TerrainGrass2, Map::ObjectStone, 0x1);
   // Create animal cadavers in desert.
-  create_random_object_clusters(regions, 2 * junk_desert_cadavers, 0xf, Map::TerrainDesert2, Map::TerrainDesert2, Map::ObjectCadaver0, 0x1);
+  create_random_object_clusters(regions, 2 * custom_map_generator_options.opt[CustomMapGeneratorOption::JunkDesertAnimalCadavers], 0xf, Map::TerrainDesert2, Map::TerrainDesert2, Map::ObjectCadaver0, 0x1);
   // Create cacti in desert.
-  create_random_object_clusters(regions, 6 * junk_desert_cacti, 0x7f, Map::TerrainDesert0, Map::TerrainDesert2, Map::ObjectCactus0, 0x1);
+  create_random_object_clusters(regions, 6 * custom_map_generator_options.opt[CustomMapGeneratorOption::JunkDesertCacti], 0x7f, Map::TerrainDesert0, Map::TerrainDesert2, Map::ObjectCactus0, 0x1);
   // Create boulders submerged in water.
-  create_random_object_clusters(regions, 8 * junk_water_boulders, 0x7f, Map::TerrainWater0, Map::TerrainWater2, Map::ObjectWaterStone0, 0x1);
+  create_random_object_clusters(regions, 8 * custom_map_generator_options.opt[CustomMapGeneratorOption::JunkWaterSubmergedBoulders], 0x7f, Map::TerrainWater0, Map::TerrainWater2, Map::ObjectWaterStone0, 0x1);
   // Create palm trees in desert.
-  create_random_object_clusters(regions, 6 * junk_water_trees, 0x3f, Map::TerrainDesert2, Map::TerrainDesert2, Map::ObjectPalm0, 0x3);
+  create_random_object_clusters(regions, 6 * custom_map_generator_options.opt[CustomMapGeneratorOption::JunkDesertPalmTrees], 0x3f, Map::TerrainDesert2, Map::TerrainDesert2, Map::ObjectPalm0, 0x3);
 }
 
 
 // Initialize mineral deposits in the ground.
 void
 CustomMapGenerator::create_mineral_deposits() {
+  Log::Info["map-generator"] << "inside map-generator.cc CustomMapGenerator::create_mineral_deposits";
+  // DEBUG
+  for (int x = 0; x < 22; x++){
+    Log::Info["map-generator"] << " inside CustomMapGenerator::create_mineral_deposits, opt" << x << " = " << custom_map_generator_options.opt[x];
+  }
+
   typedef struct Deposit {
     unsigned int mult;
     Map::Minerals mineral;
   } Deposit;
 
+/* original settings
   std::array<Deposit, 4> deposits = { {
     { 9, Map::MineralsCoal },
     { 4, Map::MineralsIron },
     { 2, Map::MineralsGold },
     { 2, Map::MineralsStone }
+  } };
+  */
+
+  // convert doubles to unsigned int ... safe?
+  unsigned int coal = custom_map_generator_options.opt[CustomMapGeneratorOption::MountainCoal];
+  unsigned int iron = custom_map_generator_options.opt[CustomMapGeneratorOption::MountainIron];
+  unsigned int gold = custom_map_generator_options.opt[CustomMapGeneratorOption::MountainGold];
+  unsigned int stone = custom_map_generator_options.opt[CustomMapGeneratorOption::MountainStone];
+  
+  std::array<Deposit, 4> deposits = { {
+    { coal, Map::MineralsCoal },
+    { iron, Map::MineralsIron },
+    { gold, Map::MineralsGold },
+    { stone, Map::MineralsStone }
   } };
 
   unsigned int regions = map.get_region_count();
