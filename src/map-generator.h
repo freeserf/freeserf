@@ -175,6 +175,13 @@ class CustomMapGenerator : public ClassicMapGenerator {
       Log::Info["map-generator.h"] << "inside CustomMapGenerator::init, copying values x " << x << "_.opt[x] = " << _custom_map_generator_options.opt[x] << " as string " << std::to_string(_custom_map_generator_options.opt[x]);
       custom_map_generator_options.opt[x] = _custom_map_generator_options.opt[x];
     }
+    // keep water_level same for now until I figure out safe levels
+    // water_level 12 or lower seems to result in crash, 13+ is okay, highest multiplier is 1.53x
+    // water_level 21 or higher results in no water at all, default is 20, lowest multipliyer is 0.98 (no change, effectively)
+    // so it seems safe water levels are 13-20, with 13 giving some more water but not a huge amount
+    // ALSO, if water_level is set to lower than default (i.e. >1.xx multipler) the max_lake_area seems to have no effect!
+    custom_map_generator_options.opt[CustomMapGeneratorOption::LakesWaterLevel] = 1.00;
+    Log::Info["map-generator.h"] << "inside CustomMapGenerator::init, water_level " << water_level << " / " << custom_map_generator_options.opt[CustomMapGeneratorOption::LakesWaterLevel] << " = " << water_level / custom_map_generator_options.opt[CustomMapGeneratorOption::LakesWaterLevel];
 /*
     for (int x = 0; x < 23; x++){
       Log::Info["map-generator.h"] << "inside CustomMapGenerator::init, BEFORE reset opt" << x << " = " << custom_map_generator_options.opt[x];

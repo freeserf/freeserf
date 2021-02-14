@@ -1068,7 +1068,7 @@ void CustomMapGenerator::generate() {
       init_heights_midpoints(); /* Midpoint displacement algorithm */
       break;
     case HeightGeneratorDiamondSquare:
-      init_heights_diamond_square(); /* Diamond square algorithm */
+      init_heights_diamond_square(); /* Diamond square algorithm */  // looks identical to me...
       break;
     default:
       NOT_REACHED();
@@ -1123,12 +1123,14 @@ CustomMapGenerator::create_deserts() {
   bool created_extra_desert_this_region = false;
   for (unsigned int i = 0; i < map.get_region_count(); i++) {
     // chance of not creating a desert in this region
+    //   I don't think this is working, I don't see any difference between >0 < 1.00 and 1.00 values
     if (custom_map_generator_options.opt[CustomMapGeneratorOption::DesertFrequency] < 1.00){
       if (double(rand()) / double(RAND_MAX) < custom_map_generator_options.opt[CustomMapGeneratorOption::DesertFrequency]){
         continue;
       }
     }
     // chance of creating one extra desert in this region
+    //  this seems to work... or at least the 2x does
     int deserts = 1;
     if (custom_map_generator_options.opt[CustomMapGeneratorOption::DesertFrequency] > 1.00){
       if (double(rand()) / double(RAND_MAX) < custom_map_generator_options.opt[CustomMapGeneratorOption::DesertFrequency] - 1){
@@ -1203,6 +1205,8 @@ CustomMapGenerator::create_objects() {
 
   create_crosses();
 
+  // trees seem to be a fairly safe thing to increase heavily, trying increasing the base values 2x 
+
   // Add either tree or pine.
   create_random_object_clusters(regions * 8, 10 * custom_map_generator_options.opt[CustomMapGeneratorOption::TreesBoth1], 0xff, Map::TerrainGrass1, Map::TerrainGrass2, Map::ObjectTree0, 0xf);
   // Add only trees.
@@ -1211,15 +1215,34 @@ CustomMapGenerator::create_objects() {
   create_random_object_clusters(regions, 30 * custom_map_generator_options.opt[CustomMapGeneratorOption::TreesPine], 0x3f, Map::TerrainGrass0, Map::TerrainGrass2, Map::ObjectPine0, 0x7);
   // Add either tree or pine.
   create_random_object_clusters(regions, 20 * custom_map_generator_options.opt[CustomMapGeneratorOption::TreesBoth2], 0x7f, Map::TerrainGrass1, Map::TerrainGrass2, Map::ObjectTree0, 0xf);
+
+ // yes, even 2x original values as a base (so 4x at max setting) seems fine
+ // modify the custom map generator to allow 4x trees
+ /*
+  // Add either tree or pine.
+  create_random_object_clusters(regions * 8, 20 * custom_map_generator_options.opt[CustomMapGeneratorOption::TreesBoth1], 0xff, Map::TerrainGrass1, Map::TerrainGrass2, Map::ObjectTree0, 0xf);
+  // Add only trees.
+  create_random_object_clusters(regions, 90 * custom_map_generator_options.opt[CustomMapGeneratorOption::TreesDeciduous], 0x3f, Map::TerrainGrass1, Map::TerrainGrass2, Map::ObjectTree0, 0x7);
+  // Add only pines.
+  create_random_object_clusters(regions, 70 * custom_map_generator_options.opt[CustomMapGeneratorOption::TreesPine], 0x3f, Map::TerrainGrass0, Map::TerrainGrass2, Map::ObjectPine0, 0x7);
+  // Add either tree or pine.
+  create_random_object_clusters(regions, 40 * custom_map_generator_options.opt[CustomMapGeneratorOption::TreesBoth2], 0x7f, Map::TerrainGrass1, Map::TerrainGrass2, Map::ObjectTree0, 0xf);
+*/
+
   // Create dense clusters of stone.
   create_random_object_clusters(regions, 40 * custom_map_generator_options.opt[CustomMapGeneratorOption::StonepileDense], 0x3f, Map::TerrainGrass1, Map::TerrainGrass2, Map::ObjectStone0, 0x7);
   // Create sparse clusters.
   create_random_object_clusters(regions, 15 * custom_map_generator_options.opt[CustomMapGeneratorOption::StonepileSparse], 0xff, Map::TerrainGrass1, Map::TerrainGrass2, Map::ObjectStone0, 0x7);
   // Create dead trees.
+  //   dead trees could be increased significantly (10x or more) except they look really ugly as the sprites have no variance
+  //    would need to do different dead tree graphics to make this okay
   create_random_object_clusters(regions, 2 * custom_map_generator_options.opt[CustomMapGeneratorOption::JunkGrassDeadTrees], 0xff, Map::TerrainGrass1, Map::TerrainGrass2, Map::ObjectDeadTree, 0);
   // Create sandstone boulders.
+  //   sandstone boulders don't have enough graphical variance to look good with a large multiplier, otherwise they could do 5x+
   create_random_object_clusters(regions, 6 * custom_map_generator_options.opt[CustomMapGeneratorOption::JunkGrassSandStone], 0xff, Map::TerrainGrass1, Map::TerrainGrass2, Map::ObjectSandstone0, 0x1);
   // Create trees submerged in water.
+  //   increasing this drastically doesn't seem to change anything, I don't think it works
+  // also... it seems like these are always placed in an up-left corner of the lake... probably a bug inside the original generator logic
   create_random_object_clusters(regions, 50 * custom_map_generator_options.opt[CustomMapGeneratorOption::JunkWaterSubmergedTrees], 0x7f, Map::TerrainWater2, Map::TerrainWater3, Map::ObjectWaterTree0, 0x3);
   // Create tree stubs.
   create_random_object_clusters(regions, 5 * custom_map_generator_options.opt[CustomMapGeneratorOption::JunkGrassStubTrees], 0xff, Map::TerrainGrass1, Map::TerrainGrass2, Map::ObjectStub, 0);
@@ -1230,6 +1253,7 @@ CustomMapGenerator::create_objects() {
   // Create cacti in desert.
   create_random_object_clusters(regions, 6 * custom_map_generator_options.opt[CustomMapGeneratorOption::JunkDesertCacti], 0x7f, Map::TerrainDesert0, Map::TerrainDesert2, Map::ObjectCactus0, 0x1);
   // Create boulders submerged in water.
+  //  do these actually work?  I can't remember if I've ever seen a boulder in water.  I tried increaqsing it from 8 to 50 and still don't see any
   create_random_object_clusters(regions, 8 * custom_map_generator_options.opt[CustomMapGeneratorOption::JunkWaterSubmergedBoulders], 0x7f, Map::TerrainWater0, Map::TerrainWater2, Map::ObjectWaterStone0, 0x1);
   // Create palm trees in desert.
   create_random_object_clusters(regions, 6 * custom_map_generator_options.opt[CustomMapGeneratorOption::JunkDesertPalmTrees], 0x3f, Map::TerrainDesert2, Map::TerrainDesert2, Map::ObjectPalm0, 0x3);
