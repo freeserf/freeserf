@@ -305,12 +305,12 @@ const std::string NameResource[] = {
 
 
 const std::string NameDirection[]{
-    "East / Right",            // 0
-    "SouthEast / DownRight",   // 1
-    "SouthWest / Down",        // 2
-    "West / Left",             // 3
-    "NorthWest / UpLeft",      // 4
-    "NorthEast / Up"           // 5
+  "East / Right",            // 0
+  "SouthEast / DownRight",   // 1
+  "SouthWest / Down",        // 2
+  "West / Left",             // 3
+  "NorthWest / UpLeft",      // 4
+  "NorthEast / Up"           // 5
 };
 
 const std::string NamePlayerFace[]{
@@ -331,16 +331,25 @@ const std::string NamePlayerFace[]{
 };
 
 const std::string NameRoadOption[] = {
-        "Direct",
-        "SplitRoads",
-        "PenalizeNewLength",
-        "AvoidCastleArea",
-        "PenalizeCastleFlag",
-        "Improve",
-        "ReducedNewLengthPenalty",
-        "AllowWaterRoad",
-        "HoldBuildingPos"
+  "Direct",
+  "SplitRoads",
+  "PenalizeNewLength",
+  "AvoidCastleArea",
+  "PenalizeCastleFlag",
+  "Improve",
+  "ReducedNewLengthPenalty",
+  "AllowWaterRoad",
+  "HoldBuildingPos"
 };
+
+const std::string NameMinerals[] = {
+  "MineralsNone",   // fish???
+  "MineralsGold",
+  "MineralsIron",
+  "MineralsCoal",
+  "MineralsStone",
+};
+
 
 
 
@@ -692,6 +701,8 @@ typedef enum GameType {
   GameMission = 1,
   GameLoad = 2
 } GameType;
+
+
 
 
 

@@ -1024,6 +1024,13 @@ Interface::handle_key_pressed(char key, int modifier) {
       break;
     }
 
+    // Hidden Resources (Minerals/Fish) overlay grid - colored dots showing otherwise invisible map resoureces
+    case 'h': {
+      Log::Info["interface"] << "'h' key pressed, switching to LayerHiddenResources";
+      viewport->switch_layer(Viewport::LayerHiddenResources);
+      break;
+    }
+
     case 'l': {
       if (modifier & 1) {
         Log::Info["interface"] << "CTRL-L pressed, telling AI to make any selected serf StateLost, for debugging";

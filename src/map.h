@@ -188,7 +188,7 @@ class Map {
   } Object;
 
   typedef enum Minerals {
-    MineralsNone = 0,
+    MineralsNone = 0,   // fish???
     MineralsGold,
     MineralsIron,
     MineralsCoal,

@@ -2098,13 +2098,17 @@ PopupBox::draw_edit_map_generator_box() {
   draw_green_string(10, 65, "Deserts");
 
   // Lakes
-  draw_green_string(10, 79, "Lakes");
+  //draw_green_string(10, 79, "Lakes");
+  // describe how this currently works rather than how I wanted it to work
+  // the water level part is disabled for now as it doesn't work right
+  draw_green_string(10, 79, "Lake Cohesion");
   double lakes_mean = (generator_options.opt[CustomMapGeneratorOption::LakesMaxSize] 
                      + generator_options.opt[CustomMapGeneratorOption::LakesWaterLevel]) / 2;
   draw_colored_slide_bar(1, 79, slider_double_to_uint16(lakes_mean), Color::blue);
 
   // Junk Objects
   //  should these be auto-scaled to water/desert frequency/size?
+  // the water junk object adjustment doesn't seem to work at all, others do
   draw_green_string(4, 100, "Terrain Junk Objects");
   int junk_y = 92;
   //  "grass junk"
