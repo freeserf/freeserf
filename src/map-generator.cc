@@ -1075,7 +1075,7 @@ void CustomMapGenerator::generate() {
   }
 
   clamp_heights();
-  create_water_bodies();  // THIS NEEDS CUSTOMIZATION ALSO
+  CustomMapGenerator::create_water_bodies();
   heights_rebase();
   init_types();
   remove_islands();
@@ -1108,12 +1108,14 @@ void CustomMapGenerator::generate() {
 //
 void
 CustomMapGenerator::create_deserts() {
-    Log::Info["map-generator"] << "inside map-generator.cc CustomMapGenerator::create_deserts";
+  Log::Info["map-generator"] << "inside map-generator.cc CustomMapGenerator::create_deserts";
+  Log::Info["map-generator"] << "inside map-generator.cc CustomMapGenerator::create_deserts, desert frequency is " << custom_map_generator_options.opt[CustomMapGeneratorOption::DesertFrequency];
   // DEBUG
-  for (int x = 0; x < 22; x++){
+  for (int x = 0; x < 23; x++){
     Log::Info["map-generator"] << " inside CustomMapGenerator::create_deserts, opt" << x << " = " << custom_map_generator_options.opt[x];
   }
-  if (custom_map_generator_options.opt[CustomMapGeneratorOption::DesertFrequency] = 0.00){
+  if (custom_map_generator_options.opt[CustomMapGeneratorOption::DesertFrequency] == 0.00){
+    Log::Info["map-generator"] << " inside CustomMapGenerator::create_deserts, desert frequency is zero, quitting now";
     return;
   }
   // Initialize random areas of desert based on spiral pattern.
@@ -1192,11 +1194,11 @@ CustomMapGenerator::create_deserts() {
 void
 CustomMapGenerator::create_objects() {
   int regions = map.get_region_count();
-  Log::Info["map-generator"] << "inside map-generator.cc CustomMapGenerator::create_objects";
+  Log::Info["map-generator.cc"] << "inside map-generator.cc CustomMapGenerator::create_objects";
 
   // DEBUG
-  for (int x = 0; x < 22; x++){
-    Log::Info["map-generator"] << " inside CustomMapGenerator::create_objects, opt" << x << " = " << custom_map_generator_options.opt[x];
+  for (int x = 0; x < 23; x++){
+    Log::Info["map-generator.cc"] << " inside CustomMapGenerator::create_objects, opt" << x << " = " << custom_map_generator_options.opt[x];
   }
 
   create_crosses();
@@ -1239,7 +1241,7 @@ void
 CustomMapGenerator::create_mineral_deposits() {
   Log::Info["map-generator"] << "inside map-generator.cc CustomMapGenerator::create_mineral_deposits";
   // DEBUG
-  for (int x = 0; x < 22; x++){
+  for (int x = 0; x < 23; x++){
     Log::Info["map-generator"] << " inside CustomMapGenerator::create_mineral_deposits, opt" << x << " = " << custom_map_generator_options.opt[x];
   }
 
@@ -1275,6 +1277,150 @@ CustomMapGenerator::create_mineral_deposits() {
   for (const Deposit &dep : deposits) {
     create_random_mineral_clusters(regions * dep.mult, dep.mineral,
                                    Map::TerrainTundra0, Map::TerrainSnow0);
+  }
+}
+
+
+
+// Expand water around position.
+//
+// Expand water area by marking shores with 254 and water positions with 255.
+// Water (255) can only be expanded to a position where all six adjacent
+// positions are at or lower than the water level. When a position is marked
+// as water (255) the surrounding positions, that are not yet marked, are
+// changed to shore (254). Returns true only if the given position was
+// converted to water.
+bool
+CustomMapGenerator::expand_water_position(MapPos pos_) {
+  bool expanding = false;
+
+  for (Direction d : cycle_directions_cw()) {
+    MapPos new_pos = map.move(pos_, d);
+    unsigned int height = tiles[new_pos].height;
+    //if (water_level < height && height < 254) {
+    if (water_level / custom_map_generator_options.opt[CustomMapGeneratorOption::LakesWaterLevel] < height && height < 254) {
+      return false;
+    } else if (height == 255) {
+      expanding = true;
+    }
+  }
+
+  if (expanding) {
+    tiles[pos_].height = 255;
+
+    for (Direction d : cycle_directions_cw()) {
+      MapPos new_pos = map.move(pos_, d);
+      if (tiles[new_pos].height != 255) tiles[new_pos].height = 254;
+    }
+  }
+
+  return expanding;
+}
+
+
+
+// Try to expand area around position into a water body.
+//
+// After expanding, the water body will be tagged with the heights 253 for
+// positions in water and 252 for positions on the shore.
+void
+CustomMapGenerator::expand_water_body(MapPos pos) {
+  // Check whether it is possible to expand from this position.
+  for (Direction d : cycle_directions_cw()) {
+    MapPos new_pos = map.move(pos, d);
+    //if (tiles[new_pos].height > water_level) {
+    if (tiles[new_pos].height > water_level / custom_map_generator_options.opt[CustomMapGeneratorOption::LakesWaterLevel]) {
+      // Expanding water from this position was not possible. Just raise the
+      // height to one above sea level.
+      tiles[pos].height = 0;
+      return;
+    }
+  }
+
+  // Initialize expansion
+  tiles[pos].height = 255;
+  for (Direction d : cycle_directions_cw()) {
+    MapPos new_pos = map.move(pos, d);
+    tiles[new_pos].height = 254;
+  }
+
+  // Expand water until we are unable to expand any more or until the max
+  // lake area limit has been reached.
+  //for (unsigned int i = 0; i < max_lake_area; i++) {
+  for (unsigned int i = 0; i < max_lake_area * custom_map_generator_options.opt[CustomMapGeneratorOption::LakesMaxSize]; i++) {
+    bool expanded = false;
+
+    MapPos new_pos = map.move_right_n(pos, i+1);
+    for (Direction d : cycle_directions_cw(DirectionDown)) {
+      for (unsigned int j = 0; j <= i; j++) {
+        expanded |= expand_water_position(new_pos);
+        new_pos = map.move(new_pos, d);
+      }
+    }
+
+    if (!expanded) break;
+  }
+
+  // Change the water encoding from 255,254 to 253,252. This change means that
+  // when expanding another lake, this area will look like an elevated plateau
+  // at heights 252/253 and the other lake will not be able to expand into this
+  // area. This keeps water bodies from growing larger than the max lake area.
+  tiles[pos].height -= 2;
+
+  //for (unsigned int i = 0; i < max_lake_area + 1; i++) {
+  for (unsigned int i = 0; i < max_lake_area * custom_map_generator_options.opt[CustomMapGeneratorOption::LakesMaxSize] + 1; i++) {
+    MapPos new_pos = map.move_right_n(pos, i+1);
+    for (Direction d : cycle_directions_cw(DirectionDown)) {
+      for (unsigned int j = 0; j <= i; j++) {
+        if (tiles[new_pos].height > 253) tiles[new_pos].height -= 2;
+        new_pos = map.move(new_pos, d);
+      }
+    }
+  }
+}
+
+// Create water bodies on the map.
+//
+// Try to expand every position that is at or below the water level into a
+// body of water. After expanding bodies of water, the height of the positions
+// are changed such that the lowest points on the map are at water_level - 1
+// (marking water) and just above that the height is at water_level (marking
+// shore).
+void
+CustomMapGenerator::create_water_bodies() {
+  Log::Info["map-generator.cc"] << "inside CustomMapGenerator::create_water_bodies, LakesWaterLevel = " << custom_map_generator_options.opt[CustomMapGeneratorOption::LakesWaterLevel];
+  //for (unsigned int h = 0; h <= water_level; h++) {
+  for (unsigned int h = 0; h <= water_level / custom_map_generator_options.opt[CustomMapGeneratorOption::LakesWaterLevel]; h++) {
+    for (MapPos pos_ : map.geom()) {
+      if (tiles[pos_].height == h) {
+        //expand_water_body(pos_);
+        CustomMapGenerator::expand_water_body(pos_);
+      }
+    }
+  }
+
+  // Map positions are marked in the previous loop.
+  // 0: Above water level.
+  // 252: Land at water level.
+  // 253: Water.
+  for (MapPos pos_ : map.geom()) {
+    int h = tiles[pos_].height;
+    switch (h) {
+      case 0:
+        //tiles[pos_].height = water_level + 1;
+        tiles[pos_].height = water_level / custom_map_generator_options.opt[CustomMapGeneratorOption::LakesWaterLevel] + 1;
+        break;
+      case 252:
+        //tiles[pos_].height = water_level;
+        tiles[pos_].height = water_level / custom_map_generator_options.opt[CustomMapGeneratorOption::LakesWaterLevel];
+        break;
+      case 253:
+        //tiles[pos_].height = water_level - 1;
+        tiles[pos_].height = water_level / custom_map_generator_options.opt[CustomMapGeneratorOption::LakesWaterLevel] - 1;
+        tiles[pos_].mineral = Map::MineralsNone;
+        tiles[pos_].resource_amount = random_int() & 7; /* Fish */
+        break;
+    }
   }
 }
 
@@ -1601,3 +1747,4 @@ DesertMapGenerator::create_link_patches() {
   } while (pos != map.pos(0, 0));
 }
 */   // end jonls DesertMapGenerator WIP
+

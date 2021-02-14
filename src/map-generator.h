@@ -171,17 +171,17 @@ class CustomMapGenerator : public ClassicMapGenerator {
 
     Log::Info["map-generator.h"] << "inside CustomMapGenerator::init";
 
-    for (int x = 0; x < 22; x++){
+    for (int x = 0; x < 23; x++){
       Log::Info["map-generator.h"] << "inside CustomMapGenerator::init, copying values x " << x << "_.opt[x] = " << _custom_map_generator_options.opt[x] << " as string " << std::to_string(_custom_map_generator_options.opt[x]);
       custom_map_generator_options.opt[x] = _custom_map_generator_options.opt[x];
     }
 /*
-    for (int x = 0; x < 22; x++){
+    for (int x = 0; x < 23; x++){
       Log::Info["map-generator.h"] << "inside CustomMapGenerator::init, BEFORE reset opt" << x << " = " << custom_map_generator_options.opt[x];
     }
 
     // wtf
-    for (int x = 0; x < 22; x++){
+    for (int x = 0; x < 23; x++){
       custom_map_generator_options.opt[x] = 1.00;
     }
     custom_map_generator_options.opt[CustomMapGeneratorOption::MountainGold] = 2.00;
@@ -189,7 +189,7 @@ class CustomMapGenerator : public ClassicMapGenerator {
     custom_map_generator_options.opt[CustomMapGeneratorOption::MountainCoal] = 9.00;
     custom_map_generator_options.opt[CustomMapGeneratorOption::MountainStone] = 2.00;
 
-    for (int x = 0; x < 22; x++){
+    for (int x = 0; x < 23; x++){
       Log::Info["map-generator.h"] << "inside CustomMapGenerator::init, AFTER reset opt" << x << " = " << custom_map_generator_options.opt[x];
     }
 */
@@ -198,6 +198,9 @@ class CustomMapGenerator : public ClassicMapGenerator {
   void generate();
 
  protected:
+  bool expand_water_position(MapPos pos);  // modified to allow changing of water_level
+  void create_water_bodies();  // modified to to allow changing of water_level and to call the override of expand_water_body that allows changing of max_lake_area
+  void expand_water_body(MapPos pos);  // modified to allow changing of max_lake_area
   void create_deserts();  // modified to allow changing of desert frequency
   void create_objects();  // modified to allow changing of all object frequency / quantity
   void create_mineral_deposits();  // modified to allow changing of all mineral deposit frequency / quantity

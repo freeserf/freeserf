@@ -114,6 +114,7 @@ class Interface : public GuiObject, public GameManager::Handler {
   AI *ai_ptrs[5] = { NULL, NULL, NULL, NULL, NULL };
   AIPlusOptions aiplus_options;
   CustomMapGeneratorOptions custom_map_generator_options;
+  //bool regen_map = false;
 
  public:
   Interface();
@@ -198,6 +199,10 @@ class Interface : public GuiObject, public GameManager::Handler {
 
   CustomMapGeneratorOptions get_custom_map_generator_options();
 
+  // this allows the EditCustomMapGenerator popup to tell the
+  //  GameInitBox to refresh the map on popup
+  void tell_gameinit_regen_map();
+
   double get_custom_map_generator_trees_both1(){ return slider_double_to_uint16(custom_map_generator_options.opt[CustomMapGeneratorOption::TreesBoth1]); }
   double get_custom_map_generator_trees_deciduous(){ return slider_double_to_uint16(custom_map_generator_options.opt[CustomMapGeneratorOption::TreesDeciduous]); }
   double get_custom_map_generator_trees_pine(){ return slider_double_to_uint16(custom_map_generator_options.opt[CustomMapGeneratorOption::TreesPine]); }
@@ -211,6 +216,7 @@ class Interface : public GuiObject, public GameManager::Handler {
   double get_custom_map_generator_mountain_stone(){ return slider_double_to_uint16(custom_map_generator_options.opt[CustomMapGeneratorOption::MountainStone]); }
   double get_custom_map_generator_desert_frequency(){ return slider_double_to_uint16(custom_map_generator_options.opt[CustomMapGeneratorOption::DesertFrequency]); }
   double get_custom_map_generator_lakes_size(){ return slider_double_to_uint16(custom_map_generator_options.opt[CustomMapGeneratorOption::LakesMaxSize]); }
+  double get_custom_map_generator_lakes_water_level(){ return slider_double_to_uint16(custom_map_generator_options.opt[CustomMapGeneratorOption::LakesWaterLevel]); }
   double get_custom_map_generator_junk_grass_dead_trees(){ return slider_double_to_uint16(custom_map_generator_options.opt[CustomMapGeneratorOption::JunkGrassDeadTrees]); }
   double get_custom_map_generator_junk_grass_sandstone(){ return slider_double_to_uint16(custom_map_generator_options.opt[CustomMapGeneratorOption::JunkGrassSandStone]); }
   double get_custom_map_generator_junk_grass_stub_trees(){ return slider_double_to_uint16(custom_map_generator_options.opt[CustomMapGeneratorOption::JunkGrassStubTrees]); }
@@ -239,6 +245,7 @@ class Interface : public GuiObject, public GameManager::Handler {
   void set_custom_map_generator_mountain_stone(uint16_t val){ custom_map_generator_options.opt[CustomMapGeneratorOption::MountainStone] = slider_mineral_uint16_to_int_to_double(val); }
   void set_custom_map_generator_desert_frequency(uint16_t val){ custom_map_generator_options.opt[CustomMapGeneratorOption::DesertFrequency] = slider_uint16_to_double(val); }
   void set_custom_map_generator_lakes_size(uint16_t val){ custom_map_generator_options.opt[CustomMapGeneratorOption::LakesMaxSize] = slider_uint16_to_double(val); }
+  void set_custom_map_generator_lakes_water_level(uint16_t val){ custom_map_generator_options.opt[CustomMapGeneratorOption::LakesWaterLevel] = slider_uint16_to_double(val); }
   void set_custom_map_generator_junk_grass_sandstone(uint16_t val){ custom_map_generator_options.opt[CustomMapGeneratorOption::JunkGrassSandStone] = slider_uint16_to_double(val); }
   void set_custom_map_generator_junk_grass_stub_trees(uint16_t val){ custom_map_generator_options.opt[CustomMapGeneratorOption::JunkGrassStubTrees] = slider_uint16_to_double(val); }
   void set_custom_map_generator_junk_grass_small_boulders(uint16_t val){ custom_map_generator_options.opt[CustomMapGeneratorOption::JunkGrassSmallBoulders] = slider_uint16_to_double(val); }

@@ -72,7 +72,7 @@ GameManager::start_random_game() {
   // allow junk?  need to create defaults
   // just set the defaults here for now, need to make these initialized and passed or otherwise work without specifying
   CustomMapGeneratorOptions custom_map_generator_options;
-  for (int x = 0; x < 22; x++){
+  for (int x = 0; x < 23; x++){
     custom_map_generator_options.opt[x] = 1.00;
   }
   custom_map_generator_options.opt[CustomMapGeneratorOption::MountainGold] = 2.00;

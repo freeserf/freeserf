@@ -647,6 +647,7 @@ typedef enum CustomMapGeneratorOption {
   MountainStone,
   DesertFrequency,
   LakesMaxSize,
+  LakesWaterLevel,
   JunkGrassDeadTrees,
   JunkGrassSandStone,
   JunkWaterSubmergedTrees,
@@ -658,7 +659,7 @@ typedef enum CustomMapGeneratorOption {
   JunkDesertPalmTrees,
 } CustomMapGeneratorOption;
 
-typedef struct CustomMapGeneratorOptions { double opt[22]; } CustomMapGeneratorOptions;
+typedef struct CustomMapGeneratorOptions { double opt[23]; } CustomMapGeneratorOptions;
 
 typedef enum CompletionLevel {
   Unfinished = 0,

@@ -2281,7 +2281,7 @@ Game::init(unsigned int map_size, const Random &random, const CustomMapGenerator
   } else {
     //ClassicMapGenerator generator(*map, mission->get_random_base());
     CustomMapGenerator generator(*map, init_map_rnd);
-    for (int x = 0; x < 22; x++){
+    for (int x = 0; x < 23; x++){
       Log::Info["game.cc"] << "inside Game::init,  x" << x << " = " << custom_map_generator_options.opt[x];
     }
 

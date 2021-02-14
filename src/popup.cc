@@ -203,6 +203,7 @@ typedef enum Action {
   ACTION_SHOW_QUIT,
   ActionShowOptions,
   ACTION_RESET_MAPGEN_DEFAULTS,
+  ACTION_CLOSE_MAPGEN_BOX,
   ACTION_SHOW_SAVE,
   ACTION_SETT_8_CYCLE,
   ACTION_CLOSE_OPTIONS,
@@ -2042,7 +2043,7 @@ PopupBox::draw_edit_map_generator_box() {
   // combine these four variables into one be simply averaging them
   //  when GETing and using same value for all when SETing
   Log::Info["popup"] << " inside draw_edit_map_generator_box ";
-  for (int x = 0; x < 22; x++){
+  for (int x = 0; x < 23; x++){
     Log::Info["popup"] << " inside draw_edit_map_generator_box, opt" << x << " = " << generator_options.opt[x];
   }
   double trees_mean = (generator_options.opt[CustomMapGeneratorOption::TreesBoth1] 
@@ -2098,7 +2099,9 @@ PopupBox::draw_edit_map_generator_box() {
 
   // Lakes
   draw_green_string(10, 79, "Lakes");
-  draw_colored_slide_bar(1, 79, slider_double_to_uint16(generator_options.opt[CustomMapGeneratorOption::LakesMaxSize]), Color::blue);
+  double lakes_mean = (generator_options.opt[CustomMapGeneratorOption::LakesMaxSize] 
+                     + generator_options.opt[CustomMapGeneratorOption::LakesWaterLevel]) / 2;
+  draw_colored_slide_bar(1, 79, slider_double_to_uint16(lakes_mean), Color::blue);
 
   // Junk Objects
   //  should these be auto-scaled to water/desert frequency/size?
@@ -3633,6 +3636,7 @@ PopupBox::handle_action(int action, int x_, int /*y_*/) {
     interface->set_custom_map_generator_mountain_stone(slider_mineral_double_to_uint16(2.00));  // 2
     interface->set_custom_map_generator_desert_frequency(slider_double_to_uint16(1.00)); 
     interface->set_custom_map_generator_lakes_size(slider_double_to_uint16(1.00)); 
+    interface->set_custom_map_generator_lakes_water_level(slider_double_to_uint16(1.00)); 
     interface->set_custom_map_generator_junk_grass_sandstone(slider_double_to_uint16(1.00)); 
     interface->set_custom_map_generator_junk_grass_small_boulders(slider_double_to_uint16(1.00)); 
     interface->set_custom_map_generator_junk_grass_stub_trees(slider_double_to_uint16(1.00)); 
@@ -3642,6 +3646,13 @@ PopupBox::handle_action(int action, int x_, int /*y_*/) {
     interface->set_custom_map_generator_junk_desert_cadavers(slider_double_to_uint16(1.00)); 
     interface->set_custom_map_generator_junk_desert_cacti(slider_double_to_uint16(1.00)); 
     interface->set_custom_map_generator_junk_desert_palm_trees(slider_double_to_uint16(1.00)); 
+    break;
+  case ACTION_CLOSE_MAPGEN_BOX:
+    //generate_map_preview();
+    //set_redraw();
+    //interface->set_regen_map();
+    interface->tell_gameinit_regen_map();
+    interface->close_popup();
     break;
   case ACTION_OPTIONS_FLIP_TO_AIPLUS:
     interface->open_popup(TypeAIPlusOptions);
@@ -3721,6 +3732,7 @@ PopupBox::handle_action(int action, int x_, int /*y_*/) {
   case ACTION_MAPGEN_ADJUST_LAKES:
     Log::Info["popup"] << "ACTION_MAPGEN_ADJUST_LAKES x_ = " << x_ << ", gui_get_slider_click_value(x_) = " << gui_get_slider_click_value(x_) << ", unint16_t(gui_get_slider_click_value(x_)) = " << uint16_t(gui_get_slider_click_value(x_));
     interface->set_custom_map_generator_lakes_size(gui_get_slider_click_value(x_));
+    interface->set_custom_map_generator_lakes_water_level(gui_get_slider_click_value(x_));
     break;
   case ACTION_MAPGEN_ADJUST_JUNK_OBJ_GRASS:
     Log::Info["popup"] << "ACTION_MAPGEN_ADJUST_JUNK_OBJ_GRASS x_ = " << x_ << ", gui_get_slider_click_value(x_) = " << gui_get_slider_click_value(x_) << ", unint16_t(gui_get_slider_click_value(x_)) = " << uint16_t(gui_get_slider_click_value(x_));
@@ -4074,7 +4086,10 @@ PopupBox::handle_box_edit_map_generator_clk(int cx, int cy) {
     
 
     ACTION_RESET_MAPGEN_DEFAULTS, 128, 124, 16, 16,
-    ACTION_CLOSE_BOX, 255, 126, 16, 16,
+    //generate_map_preview(); ??
+    //set_redraw()  ??
+    //ACTION_CLOSE_BOX, 255, 126, 16, 16,
+    ACTION_CLOSE_MAPGEN_BOX, 255, 126, 16, 16,
     -1
   };
   handle_clickmap(cx, cy, clkmap);

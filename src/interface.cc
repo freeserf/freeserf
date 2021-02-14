@@ -89,7 +89,7 @@ Interface::Interface()
 
   // THIS IS ALSO COPIED IN popup.cc clickmap case/switch
   // adding support for EditMapGeneratorOptions
-  for (int x = 0; x < 22; x++){
+  for (int x = 0; x < 23; x++){
     custom_map_generator_options.opt[x] = 1.00;
   }
     /* here is the original game ratio for mined resources (copied from ClassicMapGenerator)
@@ -239,7 +239,7 @@ Interface::get_custom_map_generator_options() {
 CustomMapGeneratorOptions
 Interface::get_custom_map_generator_options() {
   Log::Info["interface.cc"] << " inside get_custom_map_generator_options";
-    for (int x = 0; x < 22; x++){
+    for (int x = 0; x < 23; x++){
     Log::Info["map-generator"] << " inside get_custom_map_generator_options, opt" << x << " = " << custom_map_generator_options.opt[x];
   }
   //// UGLY HACK
@@ -1104,4 +1104,12 @@ Interface::on_new_game(PGame new_game) {
 void
 Interface::on_end_game(PGame /*game*/) {
   set_game(nullptr);
+}
+
+// this allows the EditCustomMapGenerator popup to tell the
+//  GameInitBox to refresh the map on popup
+void
+Interface::tell_gameinit_regen_map(){
+  init_box->generate_map_preview();
+  init_box->set_redraw();
 }
