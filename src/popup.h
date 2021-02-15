@@ -296,9 +296,14 @@ class PopupBox : public GuiObject {
   // 65500 (not 65535) / 2 = 32750
   double slider_uint16_to_double(uint16_t val){ return double(double(val) / double(32750)); }
   uint16_t slider_double_to_uint16(double val){ return uint16_t(val * 32750); }
+  /* the default mineral amounts are already really high, leave the defaults as the max reasonable values
   // 65500 (not 65535) / 17 = 3852.94  (trying 3852)
   double slider_mineral_uint16_to_int_to_double(uint16_t val){ return double(int(val / 3852)); }  // convert to int midway so there are no fractional values
   uint16_t slider_mineral_double_to_uint16(double val){ return uint16_t(val * 3853); }
+  */
+  // 65500 (not 65535) / 9 = 7277.77, trying 7277 and 7278
+  double slider_mineral_uint16_to_int_to_double(uint16_t val){ return double(int(val / 7277)); }  // convert to int midway so there are no fractional values
+  uint16_t slider_mineral_double_to_uint16(double val){ return uint16_t(val * 7278); }
 
   virtual void internal_draw();
   //virtual bool handle_click_left(int x, int y);

@@ -1075,7 +1075,7 @@ void CustomMapGenerator::generate() {
   }
 
   clamp_heights();
-  CustomMapGenerator::create_water_bodies();
+  CustomMapGenerator::create_water_bodies();  // allows adjustment of water_level (turn off), lake max_size, and Fish
   heights_rebase();
   init_types();
   remove_islands();
@@ -1086,12 +1086,12 @@ void CustomMapGenerator::generate() {
   change_shore_grass_type();
 
   // Create deserts
-  CustomMapGenerator::create_deserts();
+  CustomMapGenerator::create_deserts();  // allows adjustment of desert count
 
   // Create map objects (trees, boulders, etc.)
-  CustomMapGenerator::create_objects();
+  CustomMapGenerator::create_objects();  // allows adjustment of object counts of each type
 
-  CustomMapGenerator::create_mineral_deposits();
+  CustomMapGenerator::create_mineral_deposits();  // allows adjustment of mineral deposits (Gold, Iron, Coal, Stone)
 
   clean_up();
 }
@@ -1208,26 +1208,13 @@ CustomMapGenerator::create_objects() {
   // trees seem to be a fairly safe thing to increase heavily, trying increasing the base values 2x 
 
   // Add either tree or pine.
-  create_random_object_clusters(regions * 8, 10 * custom_map_generator_options.opt[CustomMapGeneratorOption::TreesBoth1], 0xff, Map::TerrainGrass1, Map::TerrainGrass2, Map::ObjectTree0, 0xf);
+  create_random_object_clusters(regions * 8, 10 * custom_map_generator_options.opt[CustomMapGeneratorOption::Trees], 0xff, Map::TerrainGrass1, Map::TerrainGrass2, Map::ObjectTree0, 0xf);
   // Add only trees.
-  create_random_object_clusters(regions, 45 * custom_map_generator_options.opt[CustomMapGeneratorOption::TreesDeciduous], 0x3f, Map::TerrainGrass1, Map::TerrainGrass2, Map::ObjectTree0, 0x7);
+  create_random_object_clusters(regions, 45 * custom_map_generator_options.opt[CustomMapGeneratorOption::Trees], 0x3f, Map::TerrainGrass1, Map::TerrainGrass2, Map::ObjectTree0, 0x7);
   // Add only pines.
-  create_random_object_clusters(regions, 30 * custom_map_generator_options.opt[CustomMapGeneratorOption::TreesPine], 0x3f, Map::TerrainGrass0, Map::TerrainGrass2, Map::ObjectPine0, 0x7);
+  create_random_object_clusters(regions, 30 * custom_map_generator_options.opt[CustomMapGeneratorOption::Trees], 0x3f, Map::TerrainGrass0, Map::TerrainGrass2, Map::ObjectPine0, 0x7);
   // Add either tree or pine.
-  create_random_object_clusters(regions, 20 * custom_map_generator_options.opt[CustomMapGeneratorOption::TreesBoth2], 0x7f, Map::TerrainGrass1, Map::TerrainGrass2, Map::ObjectTree0, 0xf);
-
- // yes, even 2x original values as a base (so 4x at max setting) seems fine
- // modify the custom map generator to allow 4x trees
- /*
-  // Add either tree or pine.
-  create_random_object_clusters(regions * 8, 20 * custom_map_generator_options.opt[CustomMapGeneratorOption::TreesBoth1], 0xff, Map::TerrainGrass1, Map::TerrainGrass2, Map::ObjectTree0, 0xf);
-  // Add only trees.
-  create_random_object_clusters(regions, 90 * custom_map_generator_options.opt[CustomMapGeneratorOption::TreesDeciduous], 0x3f, Map::TerrainGrass1, Map::TerrainGrass2, Map::ObjectTree0, 0x7);
-  // Add only pines.
-  create_random_object_clusters(regions, 70 * custom_map_generator_options.opt[CustomMapGeneratorOption::TreesPine], 0x3f, Map::TerrainGrass0, Map::TerrainGrass2, Map::ObjectPine0, 0x7);
-  // Add either tree or pine.
-  create_random_object_clusters(regions, 40 * custom_map_generator_options.opt[CustomMapGeneratorOption::TreesBoth2], 0x7f, Map::TerrainGrass1, Map::TerrainGrass2, Map::ObjectTree0, 0xf);
-*/
+  create_random_object_clusters(regions, 20 * custom_map_generator_options.opt[CustomMapGeneratorOption::Trees], 0x7f, Map::TerrainGrass1, Map::TerrainGrass2, Map::ObjectTree0, 0xf);
 
   // Create dense clusters of stone.
   create_random_object_clusters(regions, 40 * custom_map_generator_options.opt[CustomMapGeneratorOption::StonepileDense], 0x3f, Map::TerrainGrass1, Map::TerrainGrass2, Map::ObjectStone0, 0x7);
@@ -1442,7 +1429,7 @@ CustomMapGenerator::create_water_bodies() {
         //tiles[pos_].height = water_level - 1;
         tiles[pos_].height = water_level / custom_map_generator_options.opt[CustomMapGeneratorOption::LakesWaterLevel] - 1;
         tiles[pos_].mineral = Map::MineralsNone;
-        tiles[pos_].resource_amount = random_int() & 7; /* Fish */
+        tiles[pos_].resource_amount = (random_int() & 7) * custom_map_generator_options.opt[CustomMapGeneratorOption::Fish]; /* Fish */
         break;
     }
   }

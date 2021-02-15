@@ -643,13 +643,10 @@ typedef std::bitset<4> AIPlusOptions;
   double junk_desert_palm_trees;*/
 
 typedef enum CustomMapGeneratorOption {
-  TreesBoth1 = 0,
-  TreesDeciduous,
-  TreesPine,
-  TreesBoth2,
+  Trees = 0,
   StonepileDense,
   StonepileSparse,
-  MountainMineralTotal,
+  Fish,
   MountainGold,
   MountainIron,
   MountainCoal,

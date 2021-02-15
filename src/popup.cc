@@ -296,7 +296,7 @@ typedef enum Action {
   ACTION_AIPLUS_QUICK_DEMO_EMPTY_BUILD_SITES,
   ACTION_MAPGEN_ADJUST_TREES,
   ACTION_MAPGEN_ADJUST_STONEPILES,
-  ACTION_MAPGEN_ADJUST_MINE_RES_TOTAL,
+  ACTION_MAPGEN_ADJUST_FISH,
   ACTION_MAPGEN_ADJUST_MINE_RES_GOLD,
   ACTION_MAPGEN_ADJUST_MINE_RES_IRON,
   ACTION_MAPGEN_ADJUST_MINE_RES_COAL,
@@ -2046,14 +2046,10 @@ PopupBox::draw_edit_map_generator_box() {
   for (int x = 0; x < 23; x++){
     Log::Info["popup"] << " inside draw_edit_map_generator_box, opt" << x << " = " << generator_options.opt[x];
   }
-  double trees_mean = (generator_options.opt[CustomMapGeneratorOption::TreesBoth1] 
-                     + generator_options.opt[CustomMapGeneratorOption::TreesDeciduous] 
-                     + generator_options.opt[CustomMapGeneratorOption::TreesPine]
-                     + generator_options.opt[CustomMapGeneratorOption::TreesBoth2]) / 4;
 
-  Log::Info["popup"] << " inside draw_edit_map_generator_box, trees_mean " << trees_mean << ", uint trees_mean " << slider_double_to_uint16(trees_mean);
-
-  draw_colored_slide_bar(1,  5, slider_double_to_uint16(trees_mean), Color::green);
+  // uint16_t slider_double_to_uint16(double val){ return uint16_t(val * 32750); }
+  // reasonable values for trees are 0.00-4.00, so divide max slider 65500 by 4 to get 16375 and let 1.00 == 16375
+  draw_colored_slide_bar(1,  5, generator_options.opt[CustomMapGeneratorOption::Trees] * 16375, Color::green);
   draw_green_string(10, 4, "Trees");
 
   // Stone Piles above ground
@@ -2067,11 +2063,10 @@ PopupBox::draw_edit_map_generator_box() {
   draw_green_string(10, 18, "Stone Piles");
 
   draw_green_string(2, 43, "Resources in mountains");
-  draw_green_string(26, 2, "Total");
-  // Aggregate minerals in mountains on 0.00-2.00x scale
-  draw_colored_slide_bar(25, 11, slider_double_to_uint16(generator_options.opt[CustomMapGeneratorOption::MountainMineralTotal]), Color::cyan);
+  draw_green_string(27, 2, "Fish");
+  draw_colored_slide_bar(25, 11, slider_double_to_uint16(generator_options.opt[CustomMapGeneratorOption::Fish]), Color::green);
 
-  draw_green_string(26, 24, "Ratio");
+  //draw_green_string(26, 24, "Ratio");
   /* here is the original game ratio for mined resources (copied from ClassicMapGenerator)
     { 9, Map::MineralsCoal },
     { 4, Map::MineralsIron },
@@ -3627,13 +3622,12 @@ PopupBox::handle_action(int action, int x_, int /*y_*/) {
     interface->open_popup(TypeOptions);
     break;
   case ACTION_RESET_MAPGEN_DEFAULTS:
-    interface->set_custom_map_generator_trees_both1(slider_double_to_uint16(1.00));                                         
-    interface->set_custom_map_generator_trees_deciduous(slider_double_to_uint16(1.00)); 
-    interface->set_custom_map_generator_trees_pine(slider_double_to_uint16(1.00)); 
-    interface->set_custom_map_generator_trees_both2(slider_double_to_uint16(1.00)); 
+    //uint16_t slider_double_to_uint16(double val){ return uint16_t(val * 32750); }
+    // reasonable values for trees are 0.00-4.00, so divide max slider 65500 by 4 to get 16375 and let 1.00 == 16375
+    interface->set_custom_map_generator_trees(uint16_t(16375 * 1.00));
     interface->set_custom_map_generator_stonepile_dense(slider_double_to_uint16(1.00)); 
     interface->set_custom_map_generator_stonepile_sparse(slider_double_to_uint16(1.00)); 
-    interface->set_custom_map_generator_mountain_mineral_total(slider_double_to_uint16(1.00)); 
+    interface->set_custom_map_generator_fish(slider_double_to_uint16(1.00)); 
     interface->set_custom_map_generator_mountain_gold(slider_mineral_double_to_uint16(2.00));   // 2
     interface->set_custom_map_generator_mountain_iron(slider_mineral_double_to_uint16(4.00));   // 4
     interface->set_custom_map_generator_mountain_coal(slider_mineral_double_to_uint16(9.00));   // 9
@@ -3699,19 +3693,16 @@ PopupBox::handle_action(int action, int x_, int /*y_*/) {
     break;
   case ACTION_MAPGEN_ADJUST_TREES:
     Log::Info["popup"] << "ACTION_MAPGEN_ADJUST_TREES x_ = " << x_ << ", gui_get_slider_click_value(x_) = " << gui_get_slider_click_value(x_) << ", unint16_t(gui_get_slider_click_value(x_)) = " << uint16_t(gui_get_slider_click_value(x_));
-    interface->set_custom_map_generator_trees_both1(gui_get_slider_click_value(x_));                                         
-    interface->set_custom_map_generator_trees_deciduous(gui_get_slider_click_value(x_));
-    interface->set_custom_map_generator_trees_pine(gui_get_slider_click_value(x_));
-    interface->set_custom_map_generator_trees_both2(gui_get_slider_click_value(x_));
+    interface->set_custom_map_generator_trees(gui_get_slider_click_value(x_));                                         
     break;
   case ACTION_MAPGEN_ADJUST_STONEPILES:
     Log::Info["popup"] << "ACTION_MAPGEN_ADJUST_STONEPILES x_ = " << x_ << ", gui_get_slider_click_value(x_) = " << gui_get_slider_click_value(x_) << ", unint16_t(gui_get_slider_click_value(x_)) = " << uint16_t(gui_get_slider_click_value(x_));
     interface->set_custom_map_generator_stonepile_dense(gui_get_slider_click_value(x_));
     interface->set_custom_map_generator_stonepile_sparse(gui_get_slider_click_value(x_));
     break;
-  case ACTION_MAPGEN_ADJUST_MINE_RES_TOTAL:
-    Log::Info["popup"] << "ACTION_MAPGEN_ADJUST_MINE_RES_TOTAL x_ = " << x_ << ", gui_get_slider_click_value(x_) = " << gui_get_slider_click_value(x_) << ", unint16_t(gui_get_slider_click_value(x_)) = " << uint16_t(gui_get_slider_click_value(x_));
-    interface->set_custom_map_generator_mountain_mineral_total(gui_get_slider_click_value(x_));
+  case ACTION_MAPGEN_ADJUST_FISH:
+    Log::Info["popup"] << "ACTION_MAPGEN_ADJUST_FISH x_ = " << x_ << ", gui_get_slider_click_value(x_) = " << gui_get_slider_click_value(x_) << ", unint16_t(gui_get_slider_click_value(x_)) = " << uint16_t(gui_get_slider_click_value(x_));
+    interface->set_custom_map_generator_fish(gui_get_slider_click_value(x_));
     break;
   case ACTION_MAPGEN_ADJUST_MINE_RES_GOLD:
     Log::Info["popup"] << "ACTION_MAPGEN_ADJUST_MINE_RES_GOLD x_ = " << x_ << ", gui_get_slider_click_value(x_) = " << gui_get_slider_click_value(x_) << ", unint16_t(gui_get_slider_click_value(x_)) = " << uint16_t(gui_get_slider_click_value(x_));
@@ -4075,7 +4066,8 @@ PopupBox::handle_box_edit_map_generator_clk(int cx, int cy) {
     ACTION_MAPGEN_ADJUST_TREES,             7,   7, 64, 6,
     ACTION_MAPGEN_ADJUST_STONEPILES,        7,  22, 64, 6,
     
-    ACTION_MAPGEN_ADJUST_MINE_RES_TOTAL,  199,  13, 64, 6,
+    ACTION_MAPGEN_ADJUST_FISH,  199,  13, 64, 6,
+
     ACTION_MAPGEN_ADJUST_MINE_RES_GOLD,   199,  36, 64, 6,
     ACTION_MAPGEN_ADJUST_MINE_RES_IRON,   199,  44, 64, 6,
     ACTION_MAPGEN_ADJUST_MINE_RES_COAL,   199,  53, 64, 6,
