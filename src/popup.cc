@@ -202,6 +202,8 @@ typedef enum Action {
   ACTION_NO_SAVE_QUIT_CONFIRM,
   ACTION_SHOW_QUIT,
   ActionShowOptions,
+  ACTION_RESET_MAPGEN_DEFAULTS,
+  ACTION_CLOSE_MAPGEN_BOX,
   ACTION_SHOW_SAVE,
   ACTION_SETT_8_CYCLE,
   ACTION_CLOSE_OPTIONS,
@@ -291,7 +293,19 @@ typedef enum Action {
   ACTION_AIPLUS_ENABLE_AUTOSAVE,
   ACTION_AIPLUS_IMPROVED_PIG_FARMS,
   ACTION_AIPLUS_CAN_TRANSPORT_SERFS_IN_BOATS,
-  ACTION_AIPLUS_QUICK_DEMO_EMPTY_BUILD_SITES
+  ACTION_AIPLUS_QUICK_DEMO_EMPTY_BUILD_SITES,
+  ACTION_MAPGEN_ADJUST_TREES,
+  ACTION_MAPGEN_ADJUST_STONEPILES,
+  ACTION_MAPGEN_ADJUST_FISH,
+  ACTION_MAPGEN_ADJUST_MINE_RES_GOLD,
+  ACTION_MAPGEN_ADJUST_MINE_RES_IRON,
+  ACTION_MAPGEN_ADJUST_MINE_RES_COAL,
+  ACTION_MAPGEN_ADJUST_MINE_RES_STONE,
+  ACTION_MAPGEN_ADJUST_DESERTS,
+  ACTION_MAPGEN_ADJUST_LAKES,
+  ACTION_MAPGEN_ADJUST_JUNK_OBJ_GRASS,
+  ACTION_MAPGEN_ADJUST_JUNK_OBJ_WATER,
+  ACTION_MAPGEN_ADJUST_JUNK_OBJ_DESERT
 } Action;
 
 PopupBox::PopupBox(Interface *_interface)
@@ -1668,6 +1682,17 @@ PopupBox::draw_slide_bar(int lx, int ly, int value) {
   }
 }
 
+// Draw custom-colored slide bar in a popup box
+void
+PopupBox::draw_colored_slide_bar(int lx, int ly, int value, Color color) {
+  draw_popup_icon(lx, ly, 236);
+
+  int lwidth = value / 1310;
+  if (lwidth > 0) {
+    frame->fill_rect(8*lx+15, ly+11, lwidth, 4, color);
+  }
+}
+
 void
 PopupBox::draw_sett_1_box() {
   const int bld_layout[] = {
@@ -2001,6 +2026,118 @@ PopupBox::draw_aiplus_options_box() {
 
   draw_popup_icon(32, 128, 60); /* exit */
 }
+
+
+
+void
+PopupBox::draw_edit_map_generator_box() {
+  draw_large_box_background(PatternDiagonalGreen);
+
+  CustomMapGeneratorOptions generator_options = interface->get_custom_map_generator_options();
+
+  // Trees
+  //    Add either tree or pine.
+  //    Add only trees.
+  //    Add only pines.
+  //    Add either tree or pine.
+  // combine these four variables into one be simply averaging them
+  //  when GETing and using same value for all when SETing
+  Log::Info["popup"] << " inside draw_edit_map_generator_box ";
+  for (int x = 0; x < 23; x++){
+    Log::Info["popup"] << " inside draw_edit_map_generator_box, opt" << x << " = " << generator_options.opt[x];
+  }
+
+  // uint16_t slider_double_to_uint16(double val){ return uint16_t(val * 32750); }
+  // reasonable values for trees are 0.00-4.00, so divide max slider 65500 by 4 to get 16375 and let 1.00 == 16375
+  draw_colored_slide_bar(1,  5, generator_options.opt[CustomMapGeneratorOption::Trees] * 16375, Color::green);
+  draw_green_string(10, 4, "Trees");
+
+  // Stone Piles above ground
+  //    Create dense clusters of stone.
+  //    Create sparse clusters [of stone]
+  // combine these four variables into one be simply averaging them
+  //  when GETing and using same value for all when SETing
+  double stonepile_mean = (generator_options.opt[CustomMapGeneratorOption::StonepileDense] 
+                         + generator_options.opt[CustomMapGeneratorOption::StonepileSparse]) / 2;
+  draw_colored_slide_bar(1, 18, slider_double_to_uint16(stonepile_mean), Color::lt_gray);
+  draw_green_string(10, 18, "Stone Piles");
+
+  draw_green_string(2, 43, "Resources in mountains");
+  draw_green_string(27, 2, "Fish");
+  draw_colored_slide_bar(25, 11, slider_double_to_uint16(generator_options.opt[CustomMapGeneratorOption::Fish]), Color::green);
+
+  //draw_green_string(26, 24, "Ratio");
+  /* here is the original game ratio for mined resources (copied from ClassicMapGenerator)
+    { 9, Map::MineralsCoal },
+    { 4, Map::MineralsIron },
+    { 2, Map::MineralsGold },
+    { 2, Map::MineralsStone }
+    */
+  // to have the same 0-2x while being clear about the actual ratios, the sliders
+  //  are set up so that if all four are at the highest setting the result will be
+  //  a total of 2x that original TOTAL resource count but evenly distributed
+  int aggregate_res_max = 36; // 9 coal + 4 iron + 2 gold + 2 stone = 17 * 2 = 34
+
+  int mountain_res_y = 33;
+  // Gold in mountains
+  draw_colored_slide_bar(25, mountain_res_y, slider_mineral_double_to_uint16(generator_options.opt[CustomMapGeneratorOption::MountainGold]), Color::gold);
+  // Iron in mountains
+  draw_colored_slide_bar(25, mountain_res_y + 8, slider_mineral_double_to_uint16(generator_options.opt[CustomMapGeneratorOption::MountainIron]), Color::red);
+  // Coal in mountains
+  draw_colored_slide_bar(25, mountain_res_y + 16, slider_mineral_double_to_uint16(generator_options.opt[CustomMapGeneratorOption::MountainCoal]), Color::dk_gray);
+  // Stone in mountains
+  draw_colored_slide_bar(25, mountain_res_y + 24, slider_mineral_double_to_uint16(generator_options.opt[CustomMapGeneratorOption::MountainStone]), Color::lt_gray);
+
+  // Deserts
+  draw_colored_slide_bar(1, 66, slider_double_to_uint16(generator_options.opt[CustomMapGeneratorOption::DesertFrequency]), Color::yellow);
+  draw_green_string(10, 65, "Deserts");
+
+  // Lakes
+  //draw_green_string(10, 79, "Lakes");
+  // describe how this currently works rather than how I wanted it to work
+  // the water level part is disabled for now as it doesn't work right
+  draw_green_string(10, 79, "Lake Cohesion");
+  double lakes_mean = (generator_options.opt[CustomMapGeneratorOption::LakesMaxSize] 
+                     + generator_options.opt[CustomMapGeneratorOption::LakesWaterLevel]) / 2;
+  draw_colored_slide_bar(1, 79, slider_double_to_uint16(lakes_mean), Color::blue);
+
+  // Junk Objects
+  //  should these be auto-scaled to water/desert frequency/size?
+  // the water junk object adjustment doesn't seem to work at all, others do
+  draw_green_string(4, 100, "Terrain Junk Objects");
+  int junk_y = 92;
+  //  "grass junk"
+  //    Create dead trees.
+  //    Create sandstone boulders.
+  //    Create tree stubs.
+  //    Create small boulders.
+  double junk_trees_mean = (generator_options.opt[CustomMapGeneratorOption::JunkGrassDeadTrees] 
+                          + generator_options.opt[CustomMapGeneratorOption::JunkGrassSandStone] 
+                          + generator_options.opt[CustomMapGeneratorOption::JunkGrassStubTrees]
+                          + generator_options.opt[CustomMapGeneratorOption::JunkGrassSmallBoulders]) / 4;
+  draw_colored_slide_bar(25, junk_y, slider_double_to_uint16(junk_trees_mean), Color::green);
+  //  "water junk"
+  //    Create trees submerged in water.
+  //    Create boulders submerged in water.
+  double junk_water_mean = (generator_options.opt[CustomMapGeneratorOption::JunkWaterSubmergedTrees] 
+                          + generator_options.opt[CustomMapGeneratorOption::JunkWaterSubmergedBoulders]) / 2;
+  draw_colored_slide_bar(25, junk_y+8, slider_double_to_uint16(junk_water_mean), Color::blue);
+  //  "desert junk"
+  //    Create animal cadavers in desert.
+  //    Create cacti in desert.
+  //    Create palm trees in desert.
+  double junk_desert_mean = (generator_options.opt[CustomMapGeneratorOption::JunkDesertAnimalCadavers] 
+                                 + generator_options.opt[CustomMapGeneratorOption::JunkDesertCacti] 
+                                 + generator_options.opt[CustomMapGeneratorOption::JunkDesertPalmTrees]) / 3;
+  draw_colored_slide_bar(25, junk_y+16, slider_double_to_uint16(junk_desert_mean), Color::yellow);
+
+
+  draw_green_string(1, 128, "Reset Defaults");
+  draw_popup_icon(16, 124, 0x3d); // flipbox icon
+  
+  draw_popup_icon(32, 128, 60); // exit icon  
+}
+
 
 void
 PopupBox::draw_castle_res_box() {
@@ -2749,7 +2886,7 @@ PopupBox::draw_save_box() {
 
 void
 PopupBox::internal_draw() {
-  if (box == Type::TypeAIPlusOptions){
+  if (box == Type::TypeAIPlusOptions || box == Type::TypeEditMapGenerator){
     draw_large_popup_box_frame();
   }else{
     draw_popup_box_frame();
@@ -2853,6 +2990,9 @@ PopupBox::internal_draw() {
     break;
   case TypeAIPlusOptions:
     draw_aiplus_options_box();
+    break;
+  case TypeEditMapGenerator:
+    draw_edit_map_generator_box();
     break;
   case TypeCastleRes:
     draw_castle_res_box();
@@ -3481,14 +3621,48 @@ PopupBox::handle_action(int action, int x_, int /*y_*/) {
   case ActionShowOptions:
     interface->open_popup(TypeOptions);
     break;
-    /* TODO */
+  case ACTION_RESET_MAPGEN_DEFAULTS:
+    //uint16_t slider_double_to_uint16(double val){ return uint16_t(val * 32750); }
+    // reasonable values for trees are 0.00-4.00, so divide max slider 65500 by 4 to get 16375 and let 1.00 == 16375
+    interface->set_custom_map_generator_trees(uint16_t(16375 * 1.00));
+    interface->set_custom_map_generator_stonepile_dense(slider_double_to_uint16(1.00)); 
+    interface->set_custom_map_generator_stonepile_sparse(slider_double_to_uint16(1.00)); 
+    interface->set_custom_map_generator_fish(slider_double_to_uint16(1.00)); 
+    interface->set_custom_map_generator_mountain_gold(slider_mineral_double_to_uint16(2.00));   // 2
+    interface->set_custom_map_generator_mountain_iron(slider_mineral_double_to_uint16(4.00));   // 4
+    interface->set_custom_map_generator_mountain_coal(slider_mineral_double_to_uint16(9.00));   // 9
+    interface->set_custom_map_generator_mountain_stone(slider_mineral_double_to_uint16(2.00));  // 2
+    interface->set_custom_map_generator_desert_frequency(slider_double_to_uint16(1.00)); 
+    interface->set_custom_map_generator_lakes_size(slider_double_to_uint16(1.00)); 
+    interface->set_custom_map_generator_lakes_water_level(slider_double_to_uint16(1.00)); 
+    interface->set_custom_map_generator_junk_grass_sandstone(slider_double_to_uint16(1.00)); 
+    interface->set_custom_map_generator_junk_grass_small_boulders(slider_double_to_uint16(1.00)); 
+    interface->set_custom_map_generator_junk_grass_stub_trees(slider_double_to_uint16(1.00)); 
+    interface->set_custom_map_generator_junk_grass_dead_trees(slider_double_to_uint16(1.00)); 
+    interface->set_custom_map_generator_junk_water_boulders(slider_double_to_uint16(1.00)); 
+    interface->set_custom_map_generator_junk_water_trees(slider_double_to_uint16(1.00)); 
+    interface->set_custom_map_generator_junk_desert_cadavers(slider_double_to_uint16(1.00)); 
+    interface->set_custom_map_generator_junk_desert_cacti(slider_double_to_uint16(1.00)); 
+    interface->set_custom_map_generator_junk_desert_palm_trees(slider_double_to_uint16(1.00)); 
+    break;
+  case ACTION_CLOSE_MAPGEN_BOX:
+    //generate_map_preview();
+    //set_redraw();
+    //interface->set_regen_map();
+    interface->tell_gameinit_regen_map();
+    interface->close_popup();
+    break;
   case ACTION_OPTIONS_FLIP_TO_AIPLUS:
     interface->open_popup(TypeAIPlusOptions);
-    //set_box((box + 1 <= TypeAdv2Bld) ? (Type)(box + 1) : TypeBasicBldFlip);
     break;
   //case ACTION_AIPLUS_NEXT_PAGE:
   //  interface->open_popup(TypeAIPlusOptions2);
   //  break;
+  //
+  //case ???? 
+  /* ToDo */
+  //set_box((box + 1 <= TypeAdv2Bld) ? (Type)(box + 1) : TypeBasicBldFlip);
+    //break;
   case ACTION_AIPLUS_ENABLE_AUTOSAVE:
     if (interface->test_aiplus_option(AIPlusOption::EnableAutoSave)){
       interface->unset_aiplus_option(AIPlusOption::EnableAutoSave);
@@ -3516,7 +3690,63 @@ PopupBox::handle_action(int action, int x_, int /*y_*/) {
     } else{
       interface->set_aiplus_option(AIPlusOption::QuickDemoEmptyBuildSites);
     }
-    break; 
+    break;
+  case ACTION_MAPGEN_ADJUST_TREES:
+    Log::Info["popup"] << "ACTION_MAPGEN_ADJUST_TREES x_ = " << x_ << ", gui_get_slider_click_value(x_) = " << gui_get_slider_click_value(x_) << ", unint16_t(gui_get_slider_click_value(x_)) = " << uint16_t(gui_get_slider_click_value(x_));
+    interface->set_custom_map_generator_trees(gui_get_slider_click_value(x_));                                         
+    break;
+  case ACTION_MAPGEN_ADJUST_STONEPILES:
+    Log::Info["popup"] << "ACTION_MAPGEN_ADJUST_STONEPILES x_ = " << x_ << ", gui_get_slider_click_value(x_) = " << gui_get_slider_click_value(x_) << ", unint16_t(gui_get_slider_click_value(x_)) = " << uint16_t(gui_get_slider_click_value(x_));
+    interface->set_custom_map_generator_stonepile_dense(gui_get_slider_click_value(x_));
+    interface->set_custom_map_generator_stonepile_sparse(gui_get_slider_click_value(x_));
+    break;
+  case ACTION_MAPGEN_ADJUST_FISH:
+    Log::Info["popup"] << "ACTION_MAPGEN_ADJUST_FISH x_ = " << x_ << ", gui_get_slider_click_value(x_) = " << gui_get_slider_click_value(x_) << ", unint16_t(gui_get_slider_click_value(x_)) = " << uint16_t(gui_get_slider_click_value(x_));
+    interface->set_custom_map_generator_fish(gui_get_slider_click_value(x_));
+    break;
+  case ACTION_MAPGEN_ADJUST_MINE_RES_GOLD:
+    Log::Info["popup"] << "ACTION_MAPGEN_ADJUST_MINE_RES_GOLD x_ = " << x_ << ", gui_get_slider_click_value(x_) = " << gui_get_slider_click_value(x_) << ", unint16_t(gui_get_slider_click_value(x_)) = " << uint16_t(gui_get_slider_click_value(x_));
+    interface->set_custom_map_generator_mountain_gold(gui_get_slider_click_value(x_));
+    break;
+  case ACTION_MAPGEN_ADJUST_MINE_RES_IRON:
+    Log::Info["popup"] << "ACTION_MAPGEN_ADJUST_MINE_RES_IRON x_ = " << x_ << ", gui_get_slider_click_value(x_) = " << gui_get_slider_click_value(x_) << ", unint16_t(gui_get_slider_click_value(x_)) = " << uint16_t(gui_get_slider_click_value(x_));
+    interface->set_custom_map_generator_mountain_iron(gui_get_slider_click_value(x_));
+    break;
+  case ACTION_MAPGEN_ADJUST_MINE_RES_COAL:
+    Log::Info["popup"] << "ACTION_MAPGEN_ADJUST_MINE_RES_COAL x_ = " << x_ << ", gui_get_slider_click_value(x_) = " << gui_get_slider_click_value(x_) << ", unint16_t(gui_get_slider_click_value(x_)) = " << uint16_t(gui_get_slider_click_value(x_));
+    interface->set_custom_map_generator_mountain_coal(gui_get_slider_click_value(x_));
+    break;
+  case ACTION_MAPGEN_ADJUST_MINE_RES_STONE:
+    Log::Info["popup"] << "ACTION_MAPGEN_ADJUST_MINE_RES_STONE x_ = " << x_ << ", gui_get_slider_click_value(x_) = " << gui_get_slider_click_value(x_) << ", unint16_t(gui_get_slider_click_value(x_)) = " << uint16_t(gui_get_slider_click_value(x_));
+    interface->set_custom_map_generator_mountain_stone(gui_get_slider_click_value(x_));
+    break;
+  case ACTION_MAPGEN_ADJUST_DESERTS:
+    Log::Info["popup"] << "ACTION_MAPGEN_ADJUST_DESERTS x_ = " << x_ << ", gui_get_slider_click_value(x_) = " << gui_get_slider_click_value(x_) << ", unint16_t(gui_get_slider_click_value(x_)) = " << uint16_t(gui_get_slider_click_value(x_));
+    interface->set_custom_map_generator_desert_frequency(gui_get_slider_click_value(x_));
+    break;
+  case ACTION_MAPGEN_ADJUST_LAKES:
+    Log::Info["popup"] << "ACTION_MAPGEN_ADJUST_LAKES x_ = " << x_ << ", gui_get_slider_click_value(x_) = " << gui_get_slider_click_value(x_) << ", unint16_t(gui_get_slider_click_value(x_)) = " << uint16_t(gui_get_slider_click_value(x_));
+    interface->set_custom_map_generator_lakes_size(gui_get_slider_click_value(x_));
+    interface->set_custom_map_generator_lakes_water_level(gui_get_slider_click_value(x_));
+    break;
+  case ACTION_MAPGEN_ADJUST_JUNK_OBJ_GRASS:
+    Log::Info["popup"] << "ACTION_MAPGEN_ADJUST_JUNK_OBJ_GRASS x_ = " << x_ << ", gui_get_slider_click_value(x_) = " << gui_get_slider_click_value(x_) << ", unint16_t(gui_get_slider_click_value(x_)) = " << uint16_t(gui_get_slider_click_value(x_));
+    interface->set_custom_map_generator_junk_grass_sandstone(gui_get_slider_click_value(x_));
+    interface->set_custom_map_generator_junk_grass_small_boulders(gui_get_slider_click_value(x_));
+    interface->set_custom_map_generator_junk_grass_stub_trees(gui_get_slider_click_value(x_));
+    interface->set_custom_map_generator_junk_grass_dead_trees(gui_get_slider_click_value(x_));
+    break;
+  case ACTION_MAPGEN_ADJUST_JUNK_OBJ_WATER:
+    Log::Info["popup"] << "ACTION_MAPGEN_ADJUST_JUNK_OBJ_WATER x_ = " << x_ << ", gui_get_slider_click_value(x_) = " << gui_get_slider_click_value(x_) << ", unint16_t(gui_get_slider_click_value(x_)) = " << uint16_t(gui_get_slider_click_value(x_));
+    interface->set_custom_map_generator_junk_water_boulders(gui_get_slider_click_value(x_));
+    interface->set_custom_map_generator_junk_water_trees(gui_get_slider_click_value(x_));
+    break;
+  case ACTION_MAPGEN_ADJUST_JUNK_OBJ_DESERT:
+    Log::Info["popup"] << "ACTION_MAPGEN_ADJUST_JUNK_OBJ_DESERT x_ = " << x_ << ", gui_get_slider_click_value(x_) = " << gui_get_slider_click_value(x_) << ", unint16_t(gui_get_slider_click_value(x_)) = " << uint16_t(gui_get_slider_click_value(x_));
+    interface->set_custom_map_generator_junk_desert_cadavers(gui_get_slider_click_value(x_));
+    interface->set_custom_map_generator_junk_desert_cacti(gui_get_slider_click_value(x_));
+    interface->set_custom_map_generator_junk_desert_palm_trees(gui_get_slider_click_value(x_));
+    break;
   case ACTION_SETT_8_CYCLE:
     player->cycle_knights();
     play_sound(Audio::TypeSfxAccepted);
@@ -3825,6 +4055,37 @@ PopupBox::handle_box_aiplusoptions_clk(int cx, int cy) {
     ACTION_AIPLUS_QUICK_DEMO_EMPTY_BUILD_SITES, 7, 64, 16, 16,
     //ACTION_AIPLUS_NEXT_PAGE, 106, 110, 16, 16,
     ActionShowOptions, 255, 126, 16, 16,
+    -1
+  };
+  handle_clickmap(cx, cy, clkmap);
+}
+
+void
+PopupBox::handle_box_edit_map_generator_clk(int cx, int cy) {
+  const int clkmap[] = {
+    ACTION_MAPGEN_ADJUST_TREES,             7,   7, 64, 6,
+    ACTION_MAPGEN_ADJUST_STONEPILES,        7,  22, 64, 6,
+    
+    ACTION_MAPGEN_ADJUST_FISH,  199,  13, 64, 6,
+
+    ACTION_MAPGEN_ADJUST_MINE_RES_GOLD,   199,  36, 64, 6,
+    ACTION_MAPGEN_ADJUST_MINE_RES_IRON,   199,  44, 64, 6,
+    ACTION_MAPGEN_ADJUST_MINE_RES_COAL,   199,  53, 64, 6,
+    ACTION_MAPGEN_ADJUST_MINE_RES_STONE,  199,  60, 64, 6,
+
+    ACTION_MAPGEN_ADJUST_DESERTS,           7,  69, 64, 6,
+    ACTION_MAPGEN_ADJUST_LAKES,             7,  84, 64, 6,
+    
+    ACTION_MAPGEN_ADJUST_JUNK_OBJ_GRASS,  199,  95, 64, 6,
+    ACTION_MAPGEN_ADJUST_JUNK_OBJ_WATER,  199, 103, 64, 6,
+    ACTION_MAPGEN_ADJUST_JUNK_OBJ_DESERT, 199, 111, 64, 6,
+    
+
+    ACTION_RESET_MAPGEN_DEFAULTS, 128, 124, 16, 16,
+    //generate_map_preview(); ??
+    //set_redraw()  ??
+    //ACTION_CLOSE_BOX, 255, 126, 16, 16,
+    ACTION_CLOSE_MAPGEN_BOX, 255, 126, 16, 16,
     -1
   };
   handle_clickmap(cx, cy, clkmap);
@@ -4478,6 +4739,9 @@ PopupBox::handle_click_left(int cx, int cy, int modifier) {
     break;
   case TypeAIPlusOptions:
     handle_box_aiplusoptions_clk(cx, cy);
+    break;
+  case TypeEditMapGenerator:
+    handle_box_edit_map_generator_clk(cx, cy);
     break;
   case TypeCastleRes:
     handle_castle_res_clk(cx, cy);

@@ -305,12 +305,12 @@ const std::string NameResource[] = {
 
 
 const std::string NameDirection[]{
-    "East / Right",            // 0
-    "SouthEast / DownRight",   // 1
-    "SouthWest / Down",        // 2
-    "West / Left",             // 3
-    "NorthWest / UpLeft",      // 4
-    "NorthEast / Up"           // 5
+  "East / Right",            // 0
+  "SouthEast / DownRight",   // 1
+  "SouthWest / Down",        // 2
+  "West / Left",             // 3
+  "NorthWest / UpLeft",      // 4
+  "NorthEast / Up"           // 5
 };
 
 const std::string NamePlayerFace[]{
@@ -331,16 +331,25 @@ const std::string NamePlayerFace[]{
 };
 
 const std::string NameRoadOption[] = {
-        "Direct",
-        "SplitRoads",
-        "PenalizeNewLength",
-        "AvoidCastleArea",
-        "PenalizeCastleFlag",
-        "Improve",
-        "ReducedNewLengthPenalty",
-        "AllowWaterRoad",
-        "HoldBuildingPos"
+  "Direct",
+  "SplitRoads",
+  "PenalizeNewLength",
+  "AvoidCastleArea",
+  "PenalizeCastleFlag",
+  "Improve",
+  "ReducedNewLengthPenalty",
+  "AllowWaterRoad",
+  "HoldBuildingPos"
 };
+
+const std::string NameMinerals[] = {
+  "MineralsNone",   // fish???
+  "MineralsGold",
+  "MineralsIron",
+  "MineralsCoal",
+  "MineralsStone",
+};
+
 
 
 
@@ -614,6 +623,50 @@ typedef enum AIPlusOption {
 } AIPlusOption;
 typedef std::bitset<4> AIPlusOptions;
 
+/*
+  double desert_frequency;
+
+  double trees_both1;
+  double trees_deciduous;
+  double trees_pine;
+  double trees_both2;
+  double stonepile_dense;
+  double stonepile_sparse;
+  double junk_grass_trees_dead;
+  double junk_grass_sandstone;
+  double junk_water_trees;
+  double junk_grass_stub_trees;
+  double junk_grass_small_boulders;
+  double junk_desert_cadavers;
+  double junk_desert_cacti;
+  double junk_water_boulders;
+  double junk_desert_palm_trees;*/
+
+typedef enum CustomMapGeneratorOption {
+  Trees = 0,
+  StonepileDense,
+  StonepileSparse,
+  Fish,
+  MountainGold,
+  MountainIron,
+  MountainCoal,
+  MountainStone,
+  DesertFrequency,
+  LakesMaxSize,
+  LakesWaterLevel,
+  JunkGrassDeadTrees,
+  JunkGrassSandStone,
+  JunkWaterSubmergedTrees,
+  JunkGrassStubTrees,
+  JunkGrassSmallBoulders,
+  JunkDesertAnimalCadavers,
+  JunkDesertCacti,
+  JunkWaterSubmergedBoulders,
+  JunkDesertPalmTrees,
+} CustomMapGeneratorOption;
+
+typedef struct CustomMapGeneratorOptions { double opt[23]; } CustomMapGeneratorOptions;
+
 typedef enum CompletionLevel {
   Unfinished = 0,
   Connected = 1,
@@ -637,6 +690,17 @@ const std::string NameDistType[] = {
   "StraightLineOnly",
   "FlagAndStraightLine",
 };
+
+
+// copied from game-init.h so game.cc can use it?
+typedef enum GameType {
+  GameCustom = 0,
+  GameMission = 1,
+  GameLoad = 2
+} GameType;
+
+
+
 
 
 #endif  // SRC_LOOKUP_H_

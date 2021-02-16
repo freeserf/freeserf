@@ -43,6 +43,7 @@ class Viewport : public GuiObject, public Map::Handler {
     LayerGrid = 1<<5,
     LayerBuilds = 1<<6,
     LayerAI = 1<<7,
+    LayerHiddenResources = 1<<8,
     LayerAll = (LayerLandscape |
                 LayerPaths |
                 LayerObjects |
@@ -123,6 +124,7 @@ class Viewport : public GuiObject, public Map::Handler {
   void draw_base_grid_overlay(const Color &color);
   void draw_height_grid_overlay(const Color &color);
   void draw_ai_grid_overlay();
+  void draw_hidden_res_overlay();
   MapPos get_offset(int *x_off, int *y_off,
                     int *col = nullptr, int *row = nullptr);
 

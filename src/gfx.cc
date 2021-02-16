@@ -32,6 +32,25 @@ const Color Color::black = Color(0x00, 0x00, 0x00);
 const Color Color::white = Color(0xff, 0xff, 0xff);
 const Color Color::green = Color(0x73, 0xb3, 0x43);
 const Color Color::transparent = Color(0x00, 0x00, 0x00, 0x00);
+// added by me
+const Color Color::red     = Color(207,  99,  99);
+const Color Color::yellow  = Color(239, 239, 143);
+const Color Color::gold    = Color(255, 255,  55);
+const Color Color::dk_gray = Color( 35,  35,  35);
+const Color Color::blue    = Color( 44,  44, 255);
+const Color Color::lt_gray = Color(188, 188, 188);
+const Color Color::cyan    = Color(  0, 227, 227);
+const Color Color::magenta = Color(223, 127, 239);
+
+/* original player colors:
+  {0x00, 0xe3, 0xe3},  // cyan   player0
+  {0xcf, 0x63, 0x63},  // red    player1
+  {0xdf, 0x7f, 0xef},  // pink   player2
+  {0xef, 0xef, 0x8f},  // yellow player3
+*/
+
+// I am not sure why these get_cyan/magenta/etc functions exist
+//  when they could just be hardcoded(?)
 
 double
 Color::get_cyan() const {

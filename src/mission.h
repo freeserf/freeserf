@@ -107,6 +107,7 @@ class GameInfo {
   Random random_base;
   PlayerInfos players;
   std::string name;
+  CustomMapGeneratorOptions custom_map_generator_options;
 
   static Mission mission[];
 
@@ -135,7 +136,8 @@ class GameInfo {
   static const Character *get_character(size_t character);
   static size_t get_character_count();
 
-  PGame instantiate();
+  //PGame instantiate();
+  PGame instantiate(CustomMapGeneratorOptions custom_map_generator_options);
 };
 
 #endif  // SRC_MISSION_H_

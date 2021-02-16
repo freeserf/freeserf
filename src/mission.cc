@@ -490,10 +490,16 @@ GameInfo::get_character_count() {
 }
 
 PGame
-GameInfo::instantiate() {
+//GameInfo::instantiate() {
+GameInfo::instantiate(CustomMapGeneratorOptions custom_map_generator_options) {  
   PGame game = std::make_shared<Game>();
 
-  if (!game->init(map_size, random_base)) {
+  for (int x = 0; x < 23; x++){
+    Log::Info["game.cc"] << "inside GameInfo::instantiate,  x" << x << " = " << custom_map_generator_options.opt[x];
+  }
+
+  //if (!game->init(map_size, random_base)) {
+  if (!game->init(map_size, random_base, custom_map_generator_options)) {
     return nullptr;
   }
 

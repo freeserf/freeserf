@@ -246,10 +246,10 @@ Game::update_inventories_cb(Flag *flag, void *d) {
         // to try to approximate the original road length, bit-shift >>4, or divide by 16
         //  and then triple it to get pretty close the reversing the above table
         if(data->prev_flag->get_road_length((Direction)d) == 0){
-          Log::Info["game"] << "debug: it seems get_road_length can be zero, using +1 for dist_from_inv addition";
+          //Log::Info["game"] << "debug: it seems get_road_length can be zero, using +1 for dist_from_inv addition";
           data->dist_so_far += 1;
         }else{
-          Log::Info["game"] << "DEBUG: data->prev_flag->get_road_length((Direction)" << d << ") = " << data->prev_flag->get_road_length((Direction)d) << "... which is then divided by 16 then multiplied by 3 to get " << (data->prev_flag->get_road_length((Direction)d) / 16) * 3;
+          //Log::Info["game"] << "DEBUG: data->prev_flag->get_road_length((Direction)" << d << ") = " << data->prev_flag->get_road_length((Direction)d) << "... which is then divided by 16 then multiplied by 3 to get " << (data->prev_flag->get_road_length((Direction)d) / 16) * 3;
           data->dist_so_far += (data->prev_flag->get_road_length((Direction)d) / 16) * 3;
         }
         found = true;
@@ -2267,14 +2267,32 @@ Game::add_player(unsigned int intelligence, unsigned int supplies,
 }
 
 bool
-Game::init(unsigned int map_size, const Random &random) {
+//Game::init(unsigned int map_size, const Random &random) {
+Game::init(unsigned int map_size, const Random &random, const CustomMapGeneratorOptions custom_map_generator_options) {
   init_map_rnd = random;
 
   map.reset(new Map(MapGeometry(map_size)));
-  ClassicMissionMapGenerator generator(*map, init_map_rnd);
-  generator.init();
-  generator.generate();
-  map->init_tiles(generator);
+
+  if (game_type == GameMission) {
+    ClassicMissionMapGenerator generator(*map, init_map_rnd);
+    generator.init();
+    generator.generate();
+    map->init_tiles(generator);
+  } else {
+    //ClassicMapGenerator generator(*map, mission->get_random_base());
+    CustomMapGenerator generator(*map, init_map_rnd);
+    for (int x = 0; x < 23; x++){
+      Log::Info["game.cc"] << "inside Game::init,  x" << x << " = " << custom_map_generator_options.opt[x];
+    }
+    // testing HeightGeneratorDiamondSquare
+    //  I tried DiamondSquare but it looks the same to me, leaving it as default Midpoints setting
+    // trying preserve_bugs = false
+    generator.init(MapGenerator::HeightGeneratorMidpoints, false, custom_map_generator_options);
+    //generator.init(MapGenerator::HeightGeneratorDiamondSquare, true, custom_map_generator_options);
+    generator.generate();
+    map->init_tiles(generator);
+  }
+
   gold_total = map->get_gold_deposit();
 
   return true;

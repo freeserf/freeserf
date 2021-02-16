@@ -2211,6 +2211,7 @@ Viewport::draw_active_serf(Serf *serf, MapPos pos, int x_base, int y_base) {
   }
 }
 
+
 /* Draw one row of serfs. The serfs are composed of two or three transparent
    sprites (arm, torso, possibly head). A shadow is also drawn if appropriate.
    Note that idle serfs do not have their serf_t object linked from the map
@@ -2711,6 +2712,80 @@ Viewport::draw_ai_grid_overlay() {
 
 }
 
+void
+Viewport::draw_hidden_res_overlay() {
+  //Log::Info["viewport.cc"] << "inside draw_hidden_res_overlay";
+  int x_off = 0;
+  int y_off = 0;
+  MapPos base_pos = get_offset(&x_off, &y_off);
+  // iterate over each map tile, mark tiles with hidden resources
+  for (int x_base = x_off; x_base < width + MAP_TILE_WIDTH; x_base += MAP_TILE_WIDTH) {
+    MapPos pos = base_pos;
+    int y_base = y_off;
+    int row = 0;
+    while (1) {
+      int lx;
+      if (row % 2 == 0) {
+        lx = x_base;
+      } else {
+        lx = x_base - MAP_TILE_WIDTH / 2;
+      }
+      int ly = y_base - 4 * map->get_height(pos);
+      if (ly >= height) break;
+
+      if (map->get_res_amount(pos) > 0){
+        // with default map generator, seems like highest amount possible is 16
+        //  seeing ranges from 1 to 16.  
+        //  Fish amount 1-7, mined resource amount 4+
+        unsigned int amount = map->get_res_amount(pos);
+        unsigned int type = map->get_res_type(pos);
+        unsigned int size = 3;
+        if (amount > 4){
+          size = 4;
+        }
+        if (amount > 8){
+          size = 6;
+        }
+        if (amount > 12){
+          size = 8;
+        }
+        //Log::Info["viewport.cc"] << "inside draw_hidden_res_overlay, amount: " << amount << ", type " << NameMinerals[type];
+        Color res_color;
+        switch (type) {
+          case Map::Minerals::MineralsNone:
+            res_color = Color::green;
+            break;
+          case Map::Minerals::MineralsGold:
+            res_color = Color::gold;
+            break;          
+          case Map::Minerals::MineralsIron:
+            res_color = Color::red;
+            break;          
+          case Map::Minerals::MineralsCoal:
+            res_color = Color::dk_gray;
+            break;
+          case Map::Minerals::MineralsStone:
+            res_color = Color::lt_gray;
+            break;
+        }
+        //frame->fill_rect(lx - 2, ly + 0, 5, 5, res_color);
+        frame->fill_rect(lx - 2, ly + 0, size, size, res_color);
+        //frame->fill_rect(lx - 3, ly + 1, 7, 3, res_color);
+        frame->fill_rect(lx - 3, ly + 1, size + 2, size - 2, res_color);
+      }
+
+      if (row % 2 == 0) {
+        pos = map->move_down(pos);
+      } else {
+        pos = map->move_down_right(pos);
+      }
+      y_base += MAP_TILE_HEIGHT;
+      row += 1;
+    }
+    base_pos = map->move_right(base_pos);
+  }
+} // end draw_hidden_res_overlay
+
 
 
 void
@@ -2817,6 +2892,9 @@ Viewport::internal_draw() {
   }
   if (layers & LayerAI) {
     draw_ai_grid_overlay();
+  }
+  if (layers & LayerHiddenResources) {
+    draw_hidden_res_overlay();
   }
   draw_game_objects(layers);
   if (layers & LayerCursor) {

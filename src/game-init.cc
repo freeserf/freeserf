@@ -182,6 +182,7 @@ GameInitBox::internal_draw() {
     draw_box_icon(i[1], i[2], i[0]);
     i += 3;
   }
+  
 
   /* Game type settings */
   switch (game_type) {
@@ -239,6 +240,13 @@ GameInitBox::internal_draw() {
 
   /* Display program name and version in caption */
   draw_box_string(0, 212, FREESERF_VERSION);
+
+  if (game_type == GameCustom) {
+    // Link to open Map Generator editor popup
+    draw_box_string(22, 207, "Edit Map");
+    draw_box_string(22, 217, "Generator");
+    draw_box_icon(32, 208, 0x3d); // flipbox icon
+  }
 
   draw_box_icon(38, 208, 60); /* exit */
 }
@@ -303,7 +311,7 @@ GameInitBox::handle_action(int action) {
           return;
         }
       } else {
-        if (!GameManager::get_instance().start_game(mission)) {
+        if (!GameManager::get_instance().start_game(mission, interface->get_custom_map_generator_options())) {
           return;
         }
       }
@@ -389,6 +397,12 @@ GameInitBox::handle_action(int action) {
       }
       break;
     }
+    case ActionEditMapGenerator: {
+      if (interface) {
+        interface->open_popup(PopupBox::TypeEditMapGenerator);
+      }
+      break;
+    }
     default:
       break;
   }
@@ -402,7 +416,7 @@ bool
     ActionShowOptions,     308,  16, 32, 32,
     ActionIncrement,       284,  16, 16, 16,
     ActionDecrement,       284,  32, 16, 16,
-    ActionClose,           324, 216, 16, 16,
+    ActionClose,           324, 222, 16, 16,
     -1
   };
 
@@ -413,8 +427,9 @@ bool
     ActionIncrement,       220,  24, 24, 24,
     ActionDecrement,       220,  16,  8,  8,
     ActionGenRandom,       244,  16, 16,  8,
-    ActionApplyRandom ,    244,  24, 16, 24,
-    ActionClose,           324, 216, 16, 16,
+    ActionApplyRandom,     244,  24, 16, 24,
+    ActionEditMapGenerator,274, 222, 16, 16,
+    ActionClose,           324, 222, 16, 16,
     -1
   };
 
@@ -422,7 +437,7 @@ bool
     ActionStartGame,        20,  16, 32, 32,
     ActionToggleGameType,   60,  16, 32, 32,
     ActionShowOptions,     308,  16, 32, 32,
-    ActionClose,           324, 216, 16, 16,
+    ActionClose,           324, 222, 16, 16,
     -1
   };
 
@@ -572,8 +587,16 @@ GameInitBox::generate_map_preview() {
     generator.generate();
     map->init_tiles(generator);
   } else {
-    ClassicMapGenerator generator(*map, mission->get_random_base());
-    generator.init(MapGenerator::HeightGeneratorMidpoints, true);
+    //ClassicMapGenerator generator(*map, mission->get_random_base());
+    CustomMapGenerator generator(*map, mission->get_random_base());
+    for (int x = 0; x < 23; x++){
+      Log::Info["game-init.cc"] << "inside GameInitBox::init::generate_map_preview,  x" << x << " = " << interface->get_custom_map_generator_options().opt[x];
+    }
+    // testing HeightGeneratorDiamondSquare
+    //  I tried DiamondSquare but it looks the same to me, leaving it as default Midpoints setting
+    // trying preserve_bugs = false
+    generator.init(MapGenerator::HeightGeneratorMidpoints, false, interface->get_custom_map_generator_options());
+    //generator.init(MapGenerator::HeightGeneratorDiamondSquare, true, interface->get_custom_map_generator_options());
     generator.generate();
     map->init_tiles(generator);
   }

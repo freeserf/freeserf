@@ -44,7 +44,8 @@ class GameInitBox : public GuiObject {
     ActionDecrement,
     ActionClose,
     ActionGenRandom,
-    ActionApplyRandom
+    ActionApplyRandom,
+    ActionEditMapGenerator
   } Action;
 
   typedef enum GameType {
@@ -70,6 +71,9 @@ class GameInitBox : public GuiObject {
  public:
   explicit GameInitBox(Interface *interface);
   virtual ~GameInitBox();
+  // moved from protected so Interface can call init_box->generate_map_preview() to 
+  //  refresh the map after EditCustomMapGenerator popup is closed
+  void generate_map_preview();
 
  protected:
   void draw_box_icon(int x, int y, int sprite);
@@ -81,7 +85,9 @@ class GameInitBox : public GuiObject {
   bool handle_player_click(unsigned int player, int x, int y);
   unsigned int get_next_character(unsigned int player);
   void apply_random(Random rnd);
-  void generate_map_preview();
+  // moving to public so Interface can call init_box->generate_map_preview() to 
+  //  refresh the map after EditCustomMapGenerator popup is closed
+  //void generate_map_preview();
 
   virtual void internal_draw();
   virtual bool handle_click_left(int x, int y, int modifier);

@@ -675,7 +675,7 @@ AI::do_spiderweb_roads2() {
   //if (loop_count % 10 != 0 || completed_huts < 9 || completed_huts > 16) {
     // temporary run ever other loop for debugging
   //if (loop_count % 2 != 0 || completed_huts < 9 || completed_huts > 16) {
-  AILogDebug["do_spiderweb_roads2"] << inventory_pos << " DEBUG: loop_count " << loop_count << ", desired freq 10, adjusted freq " << ai_loop_freq_adj_for_gamespeed(10) << ", completed_huts " << completed_huts;
+  //AILogDebug["do_spiderweb_roads2"] << inventory_pos << " DEBUG: loop_count " << loop_count << ", desired freq 10, adjusted freq " << ai_loop_freq_adj_for_gamespeed(10) << ", completed_huts " << completed_huts;
   if (loop_count % ai_loop_freq_adj_for_gamespeed(10) != 0 || completed_huts < 9 || completed_huts > 16) {
     AILogDebug["do_spiderweb_roads2"] << inventory_pos << " skipping spider-web2 roads, only running this every X loops and >Y, <Z knight huts built";
   }

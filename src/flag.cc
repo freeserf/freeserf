@@ -109,13 +109,13 @@ FlagSearch::execute(flag_search_func *callback, bool land,
         if (flag->is_water_path(i)){
           // debug - I am seeing serfs walking on water paths when CanTransportSerfsInBoats is *OFF* 
           // hmm... I cannot reproduce this now using a human player
-          Log::Info["flag"] << "debug SERFS WALKING ON WATER, skipping flag " << flag->get_index() << " dir " << NameDirection[i] << " is water path";
+          //Log::Info["flag"] << "debug SERFS WALKING ON WATER, skipping flag " << flag->get_index() << " dir " << NameDirection[i] << " is water path";
           // ...but CanTransportSerfsInBoats option is not on...
           if (!game->get_ai_options_ptr()->test(AIPlusOption::CanTransportSerfsInBoats)){
             // ... skip this dir/flag
             // debug - I am seeing serfs walking on water paths when CanTransportSerfsInBoats is *OFF*
             // hmm... I cannot reproduce this now using a human player
-            Log::Info["flag"] << "debug SERFS WALKING ON WATER, skipping flag " << flag->get_index() << " dir " << NameDirection[i] << " because is water path but CanTransportSerfsInBoats is false";
+            //Log::Info["flag"] << "debug SERFS WALKING ON WATER, skipping flag " << flag->get_index() << " dir " << NameDirection[i] << " because is water path but CanTransportSerfsInBoats is false";
             continue;
           }
           //Log::Info["flag"] << "debug e";
@@ -654,14 +654,14 @@ Flag::find_nearest_inventory_for_serf() {
 
 static bool
 flag_search_building_for_lost_generic_serf_search_cb(Flag *flag, void *data) {
-  Log::Info["flag"] << "debug: inside Flag::flag_search_building_for_lost_generic_serf_search_cb";
+  //Log::Info["flag"] << "debug: inside Flag::flag_search_building_for_lost_generic_serf_search_cb";
   int *dest_index = static_cast<int*>(data);
   if (flag->has_building()) {
     Building *building = flag->get_building();
     if (building->is_done() && !building->is_burning() &&
       // disallow mines because they can deadlock when miner runs out of food and holds the pos
        (building->get_type() < Building::TypeStoneMine || building->get_type() > Building::TypeGoldMine)){
-      Log::Info["flag"] << "debug: inside Flag::flag_search_building_for_lost_generic_serf_search_cb, found a valid complete building at flag pos " << flag->get_position();
+      //Log::Info["flag"] << "debug: inside Flag::flag_search_building_for_lost_generic_serf_search_cb, found a valid complete building at flag pos " << flag->get_position();
       *dest_index = building->get_flag_index();
       return true;
     }
@@ -676,7 +676,7 @@ flag_search_building_for_lost_generic_serf_search_cb(Flag *flag, void *data) {
 //  holds the pos, disallowing serfs entry
 int
 Flag::find_nearest_building_for_lost_generic_serf() {
-  Log::Info["flag"] << "debug: inside Flag::find_nearest_building_for_lost_generic_serf";
+  Log::Debug["flag"] << "debug: inside Flag::find_nearest_building_for_lost_generic_serf";
   int dest_index = -1;
   FlagSearch::single(this, flag_search_building_for_lost_generic_serf_search_cb, true, false,
                      &dest_index);

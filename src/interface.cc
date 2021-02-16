@@ -87,6 +87,22 @@ Interface::Interface()
   init_box = nullptr;
   notification_box = nullptr;
 
+  // THIS IS ALSO COPIED IN popup.cc clickmap case/switch
+  // adding support for EditMapGeneratorOptions
+  for (int x = 0; x < 23; x++){
+    custom_map_generator_options.opt[x] = 1.00;
+  }
+    /* here is the original game ratio for mined resources (copied from ClassicMapGenerator)
+    { 9, Map::MineralsCoal },
+    { 4, Map::MineralsIron },
+    { 2, Map::MineralsGold },
+    { 2, Map::MineralsStone }
+    */
+  custom_map_generator_options.opt[CustomMapGeneratorOption::MountainGold] = 2.00;
+  custom_map_generator_options.opt[CustomMapGeneratorOption::MountainIron] = 4.00;
+  custom_map_generator_options.opt[CustomMapGeneratorOption::MountainCoal] = 9.00;
+  custom_map_generator_options.opt[CustomMapGeneratorOption::MountainStone] = 2.00;
+
   GameManager::get_instance().add_handler(this);
   set_game(GameManager::get_instance().get_current_game());
 }
@@ -125,7 +141,7 @@ Interface::open_popup(int box) {
     add_float(popup, 0, 0);
   }
   layout();
-  if (box == PopupBox::TypeAIPlusOptions){
+  if (box == PopupBox::TypeAIPlusOptions || box == PopupBox::TypeEditMapGenerator){
     // double wide, normal height
     popup->set_size(288, 160);
     // recenter the popup
@@ -210,6 +226,23 @@ AIPlusOptions &
 Interface::get_aiplus_options() {
   static AIPlusOptions aiplus_options;
   return aiplus_options;
+}
+
+/*
+CustomMapGeneratorOptions &
+Interface::get_custom_map_generator_options() {
+  static CustomMapGeneratorOptions custom_map_generator_options;
+  return custom_map_generator_options;
+}
+*/
+
+CustomMapGeneratorOptions
+Interface::get_custom_map_generator_options() {
+  Log::Info["interface.cc"] << " inside get_custom_map_generator_options";
+    for (int x = 0; x < 23; x++){
+    Log::Info["map-generator"] << " inside get_custom_map_generator_options, opt" << x << " = " << custom_map_generator_options.opt[x];
+  }
+  return custom_map_generator_options;
 }
 
 // Initialize AI for non-human players
@@ -991,6 +1024,13 @@ Interface::handle_key_pressed(char key, int modifier) {
       break;
     }
 
+    // Hidden Resources (Minerals/Fish) overlay grid - colored dots showing otherwise invisible map resoureces
+    case 'h': {
+      Log::Info["interface"] << "'h' key pressed, switching to LayerHiddenResources";
+      viewport->switch_layer(Viewport::LayerHiddenResources);
+      break;
+    }
+
     case 'l': {
       if (modifier & 1) {
         Log::Info["interface"] << "CTRL-L pressed, telling AI to make any selected serf StateLost, for debugging";
@@ -1069,4 +1109,12 @@ Interface::on_new_game(PGame new_game) {
 void
 Interface::on_end_game(PGame /*game*/) {
   set_game(nullptr);
+}
+
+// this allows the EditCustomMapGenerator popup to tell the
+//  GameInitBox to refresh the map on popup
+void
+Interface::tell_gameinit_regen_map(){
+  init_box->generate_map_preview();
+  init_box->set_redraw();
 }

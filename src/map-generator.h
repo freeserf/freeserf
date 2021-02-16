@@ -27,6 +27,7 @@
 
 #include "src/map.h"
 #include "src/random.h"
+#include "src/lookup.h"  // for CustomMapGeneratorOptions
 
 /* Interface for map generators. */
 class MapGenerator {
@@ -145,5 +146,118 @@ class ClassicMissionMapGenerator : public ClassicMapGenerator {
   ClassicMissionMapGenerator(const Map &map, const Random &random);
   void init();
 };
+
+
+
+
+// the usual ClassicMapGenerator but allows direct tuning via
+//  sliders in the game init screen - EditMapGenerator popup
+class CustomMapGenerator : public ClassicMapGenerator {
+ public:
+
+  static const int default_max_lake_area = 14;
+  static const int default_water_level = 20;
+  static const int default_terrain_spikyness = 0x9999;
+
+  CustomMapGeneratorOptions custom_map_generator_options;
+
+  CustomMapGenerator(const Map& map, const Random& random);
+
+  void init(HeightGenerator height_generator, bool preserve_bugs,
+            CustomMapGeneratorOptions _custom_map_generator_options,
+            int max_lake_area = default_max_lake_area,
+            int water_level = default_water_level,
+            int terrain_spikyness = default_terrain_spikyness){
+
+    Log::Info["map-generator.h"] << "inside CustomMapGenerator::init";
+
+    for (int x = 0; x < 23; x++){
+      Log::Info["map-generator.h"] << "inside CustomMapGenerator::init, copying values x " << x << "_.opt[x] = " << _custom_map_generator_options.opt[x] << " as string " << std::to_string(_custom_map_generator_options.opt[x]);
+      custom_map_generator_options.opt[x] = _custom_map_generator_options.opt[x];
+    }
+    // keep water_level same for now until I figure out safe levels
+    // water_level 12 or lower seems to result in crash, 13+ is okay, highest multiplier is 1.53x
+    // water_level 21 or higher results in no water at all, default is 20, lowest multipliyer is 0.98 (no change, effectively)
+    // so it seems safe water levels are 13-20, with 13 giving some more water but not a huge amount
+    // ALSO, if water_level is set to lower than default (i.e. >1.xx multipler) the max_lake_area seems to have no effect!
+    custom_map_generator_options.opt[CustomMapGeneratorOption::LakesWaterLevel] = 1.00;
+    Log::Info["map-generator.h"] << "inside CustomMapGenerator::init, water_level " << water_level << " / " << custom_map_generator_options.opt[CustomMapGeneratorOption::LakesWaterLevel] << " = " << water_level / custom_map_generator_options.opt[CustomMapGeneratorOption::LakesWaterLevel];
+/*
+    for (int x = 0; x < 23; x++){
+      Log::Info["map-generator.h"] << "inside CustomMapGenerator::init, BEFORE reset opt" << x << " = " << custom_map_generator_options.opt[x];
+    }
+
+    // wtf
+    for (int x = 0; x < 23; x++){
+      custom_map_generator_options.opt[x] = 1.00;
+    }
+    custom_map_generator_options.opt[CustomMapGeneratorOption::MountainGold] = 2.00;
+    custom_map_generator_options.opt[CustomMapGeneratorOption::MountainIron] = 4.00;
+    custom_map_generator_options.opt[CustomMapGeneratorOption::MountainCoal] = 9.00;
+    custom_map_generator_options.opt[CustomMapGeneratorOption::MountainStone] = 2.00;
+
+    for (int x = 0; x < 23; x++){
+      Log::Info["map-generator.h"] << "inside CustomMapGenerator::init, AFTER reset opt" << x << " = " << custom_map_generator_options.opt[x];
+    }
+*/
+  }
+
+  void generate();
+
+ protected:
+  bool expand_water_position(MapPos pos);  // modified to allow changing of water_level
+  void create_water_bodies();  // modified to to allow changing of water_level and to call the override of expand_water_body that allows changing of max_lake_area
+  void expand_water_body(MapPos pos);  // modified to allow changing of max_lake_area
+  void create_deserts();  // modified to allow changing of desert frequency
+  void create_objects();  // modified to allow changing of all object frequency / quantity
+  void create_mineral_deposits();  // modified to allow changing of all mineral deposit frequency / quantity
+
+  // THESE FUNCTIONS BELOW ARE ALSO DEFINED IN popup.h and interface.h !!!!
+  // 65500 (not 65535) / 2 = 32750
+  double slider_uint16_to_double(uint16_t val){ return double(double(val) / double(32750)); }
+  uint16_t slider_double_to_uint16(double val){ return uint16_t(val * 32750); }
+  /* the default mineral amounts are already really high, leave the defaults as the max reasonable values
+  // 65500 (not 65535) / 17 = 3852.94  (trying 3852)
+  double slider_mineral_uint16_to_int_to_double(uint16_t val){ return double(int(val / 3852)); }  // convert to int midway so there are no fractional values
+  uint16_t slider_mineral_double_to_uint16(double val){ return uint16_t(val * 3853); }
+  */
+  // 65500 (not 65535) / 9 = 7277.77, trying 7277 and 7278
+  double slider_mineral_uint16_to_int_to_double(uint16_t val){ return double(int(val / 7277)); }  // convert to int midway so there are no fractional values
+  uint16_t slider_mineral_double_to_uint16(double val){ return uint16_t(val * 7278); }
+
+};
+
+
+/*
+// Desert map generator.  
+// from jonls Freeserf Pull request 'Alternative map generator (WIP) #263'
+//   at  https://github.com/freeserf/freeserf/pull/263
+class DesertMapGenerator : public ClassicMapGenerator {
+ public:
+  static const int default_max_lake_area;
+  static const int default_water_level;
+
+  DesertMapGenerator(const Map& map, const Random& random);
+  void init(int max_lake_area = default_max_lake_area,
+            int water_level = default_water_level,
+            int terrain_spikyness = default_terrain_spikyness);
+  void generate();
+
+ protected:
+  void init_heights_squares();
+
+  void replace_all_types(Map::Terrain old, Map::Terrain new_);
+
+  void change_shore_water_type();
+  void change_shore_grass_type();
+
+  void create_oases();
+
+  void create_objects();
+
+  void create_link_patches();
+  void lower_desert_elevation();
+};
+*/ 
 
 #endif  // SRC_MAP_GENERATOR_H_

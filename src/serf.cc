@@ -2053,7 +2053,7 @@ Serf::handle_serf_entering_building_state() {
         Building *building = game->get_building_at_pos(pos);
         if (building->is_done() && !building->is_burning() &&
             building->get_type() != Building::TypeStock && building->get_type() != Building::TypeCastle){
-          Log::Info["serf"] << "Debug - a generic serf at pos " << pos << " has arrived in a non-inventory building of type " << NameBuilding[building->get_type()] << ", assuming this was a Lost Serf";
+          Log::Debug["serf"] << "Debug - a generic serf at pos " << pos << " has arrived in a non-inventory building of type " << NameBuilding[building->get_type()] << ", assuming this was a Lost Serf";
           //game->delete_serf(this);  // this crashes, didn't check why
           //enter_inventory();  // this crashes because it calls get_inventory() on attached building, but it isn't an Inventory
           // this is needed so the serf stops appearing at the building entrance, but does it affect a serf already
@@ -2995,7 +2995,7 @@ void
 Serf::handle_serf_free_walking_state_dest_reached() {
   if (s.free_walking.neg_dist1 == -128 &&
       s.free_walking.neg_dist2 < 0) {
-    Log::Info["serf"] << "debug : Serf::handle_serf_free_walking_state_dest_reached s.free_walking.neg_dist1: " << s.free_walking.neg_dist1 << ", s.free_walking.neg_dist2: " << s.free_walking.neg_dist2;
+    //Log::Info["serf"] << "debug : Serf::handle_serf_free_walking_state_dest_reached s.free_walking.neg_dist1: " << s.free_walking.neg_dist1 << ", s.free_walking.neg_dist2: " << s.free_walking.neg_dist2;
     // support allowing Lost serfs to enter any nearby friendly building
     if ((get_type() == Serf::TypeTransporter || get_type() == Serf::TypeGeneric || get_type() == Serf::TypeNone)){
       PMap map = game->get_map();
@@ -3003,8 +3003,11 @@ Serf::handle_serf_free_walking_state_dest_reached() {
       if (map->has_building(upleft_pos)){
         Building *building = game->get_building_at_pos(upleft_pos);
         if (building->is_done() && !building->is_burning() &&
-            building->get_type() != Building::TypeStock && building->get_type() != Building::TypeCastle){
-          Log::Info["serf"] << "Debug - a generic serf at pos " << pos << " is about to enter a non-inventory building of type " << NameBuilding[building->get_type()] << " at pos " << upleft_pos << ", assuming this was a Lost Serf";
+            // disallow Inventory buildings because they are handled by the default function
+            building->get_type() != Building::TypeStock && building->get_type() != Building::TypeCastle &&
+            // disallow mines because they can deadlock when miner runs out of food and holds the pos
+            (building->get_type() < Building::TypeStoneMine || building->get_type() > Building::TypeGoldMine)){
+          Log::Debug["serf"] << "Debug - a generic serf at pos " << pos << " is about to enter a non-inventory building of type " << NameBuilding[building->get_type()] << " at pos " << upleft_pos << ", assuming this was a Lost Serf";
           set_state(StateReadyToEnter);
           s.ready_to_enter.field_B = 0;
           counter = 0;

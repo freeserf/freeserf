@@ -161,7 +161,8 @@ class Game {
   /* External interface */
   unsigned int add_player(unsigned int intelligence, unsigned int supplies,
                           unsigned int reproduction);
-  bool init(unsigned int map_size, const Random &random);
+  //bool init(unsigned int map_size, const Random &random);
+  bool init(unsigned int map_size, const Random &random, const CustomMapGeneratorOptions custom_map_generator_options);
 
   void update();
   void pause();

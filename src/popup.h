@@ -98,7 +98,8 @@ class PopupBox : public GuiObject {
     TypeJsCalibDownRight,
     TypeJsCalibCenter,
     TypeCtrlsInfo,
-    TypeAIPlusOptions
+    TypeAIPlusOptions,
+    TypeEditMapGenerator
   } Type;
 
   typedef enum BackgroundPattern {
@@ -210,6 +211,7 @@ class PopupBox : public GuiObject {
   void draw_ground_analysis_box();
   void draw_sett_select_box();
   void draw_slide_bar(int x, int y, int value);
+  void draw_colored_slide_bar(int x, int y, int value, Color color);
   void draw_sett_1_box();
   void draw_sett_2_box();
   void draw_sett_3_box();
@@ -221,6 +223,7 @@ class PopupBox : public GuiObject {
   void draw_no_save_quit_confirm_box();
   void draw_options_box();
   void draw_aiplus_options_box();
+  void draw_edit_map_generator_box();
   void draw_castle_res_box();
   void draw_mine_output_box();
   void draw_ordered_building_box();
@@ -251,6 +254,7 @@ class PopupBox : public GuiObject {
   void handle_box_close_clk(int x, int y);
   void handle_box_options_clk(int x, int y);
   void handle_box_aiplusoptions_clk(int x, int y);
+  void handle_box_edit_map_generator_clk(int x, int y);
   void handle_mine_building_clk(int x, int y);
   void handle_basic_building_clk(int x, int y, int flip);
   void handle_adv_1_building_clk(int x, int y);
@@ -287,6 +291,19 @@ class PopupBox : public GuiObject {
   void handle_save_clk(int x, int y);
 
   void set_box(Type box);
+
+  // THESE FUNCTIONS BELOW ARE ALSO DEFINED IN map-generator.h and interface.h !!!!
+  // 65500 (not 65535) / 2 = 32750
+  double slider_uint16_to_double(uint16_t val){ return double(double(val) / double(32750)); }
+  uint16_t slider_double_to_uint16(double val){ return uint16_t(val * 32750); }
+  /* the default mineral amounts are already really high, leave the defaults as the max reasonable values
+  // 65500 (not 65535) / 17 = 3852.94  (trying 3852)
+  double slider_mineral_uint16_to_int_to_double(uint16_t val){ return double(int(val / 3852)); }  // convert to int midway so there are no fractional values
+  uint16_t slider_mineral_double_to_uint16(double val){ return uint16_t(val * 3853); }
+  */
+  // 65500 (not 65535) / 9 = 7277.77, trying 7277 and 7278
+  double slider_mineral_uint16_to_int_to_double(uint16_t val){ return double(int(val / 7277)); }  // convert to int midway so there are no fractional values
+  uint16_t slider_mineral_double_to_uint16(double val){ return uint16_t(val * 7278); }
 
   virtual void internal_draw();
   //virtual bool handle_click_left(int x, int y);
