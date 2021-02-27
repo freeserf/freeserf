@@ -67,7 +67,7 @@ class Audio {
     TypeSfxBackswordBlow = 44,
     TypeSfxGeologistSampling = 46,  // the DOS vs Amiga sounds are slightly different, I think Amiga is a bit better
     TypeSfxPlanting = 48,  // the DOS vs Amiga sounds are slightly different, I can't say which I prefer
-    // there is a sound #50, similar to HammerBlow, DOS vs Amiga sounds are slightly different, I can't say which I prefer
+    TypeSfxDigging = 50,  // DOS vs Amiga sounds are slightly different, I can't say which I prefer
     TypeSfxMowing = 52,
     TypeSfxFishingRodReel = 54,  // the DOS sample repeats 4x times, while Amiga is a single non-repeating sound (very similar sound though)
     TypeSfxUnknown21 = 58,  // sounds like "hup"  or hopping-over-something quick grunt sound
