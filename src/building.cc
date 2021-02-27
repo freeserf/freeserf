@@ -874,7 +874,8 @@ Building::update() {
           }
         }
         if (stock[j].requested < 0) {
-          Log::Warn["building"] << "debug: inside Building::update(), building type " << NameBuilding[type] << " at pos " << get_position() << ", after requested resource count is below zero!  stock[" << j << "].requested = " << stock[j].requested << ", resetting it to zero";
+          // changing this from Warn to Debug, as this is not so unexpected if resource timeouts are in place
+          Log::Debug["building"] << "debug: inside Building::update(), building type " << NameBuilding[type] << " at pos " << get_position() << ", after requested resource count is below zero!  stock[" << j << "].requested = " << stock[j].requested << ", resetting it to zero";
           stock[j].requested = 0;
         }
       }

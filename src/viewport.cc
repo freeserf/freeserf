@@ -783,14 +783,46 @@ Viewport::draw_unharmed_building(Building *building, int lx, int ly) {
       draw_ocupation_flag(building, lx - 14, ly + 2, 2);
       break;
     case Building::TypePigFarm:
+      //Log::Info["viewport.cc"] << "pig debug: tick " << interface->get_game()->get_tick() << ", const tick " << interface->get_game()->get_const_tick() << ", building tick " << building->get_tick() << ", random.random " << std::to_string(random.random()) << ", rand() " << std::to_string(rand());
       draw_shadow_and_building_sprite(lx, ly, map_building_sprite[type]);
       if (building->get_res_count_in_stock(1) > 0) {
-        if ((random.random() & 0x7f) <
-            static_cast<int>(building->get_res_count_in_stock(1))) {
-          play_sound(Audio::TypeSfxPigOink);
+        int pigs_count = building->get_res_count_in_stock(1);
+
+        //
+        // THE PROBLEM is that there is no state that allows keeping track of how many times
+        //  this building has been "visited" this "random tick" beacuse the random value only
+        //   updates every so many loops (5-12 or so at normal game speed) and so there is no
+        //   way to keep track of how many oinks have been played this cycle
+        //  need to add some kind of "last updated" or "last tick" or "oinks played" value for
+        //  this building!
+        // it looks like 'tick' and 'const tick' change every loop, only rand stuff does not
+        // it seems ticks are always even!
+        //uint16_t tick_rand = (random.random() * interface->get_game()->get_const_tick()) & 0x7f;
+        uint16_t semiconst_rand = (random.random() & 0x7f);  // this is NOT always even
+        uint16_t tick_rand = (random.random() + interface->get_game()->get_const_tick()) & 0x7f;
+        uint16_t limit_tick = interface->get_game()->get_const_tick() & 0x7f;
+        Log::Info["viewport.cc"] << "pig debug: pigs_count " << pigs_count << ", limit_tick " << limit_tick << ", const tick " << interface->get_game()->get_const_tick() << ", semiconst_rand " << semiconst_rand << ", tick_rand " << tick_rand;
+        if (building->is_playing_sfx()){
+          // throttle oinking so it doesn't happen every tick (every 2, really since tick is always even)
+          if (limit_tick % 8 == 0){
+            play_sound(Audio::TypeSfxPigOink);
+            Log::Info["viewport.cc"] << "pig debug: OINK!";
+          }
+          // stop oinking after some time (actual number of oinks depends on tick when oinking began)
+          //  max number of oinks based on pigs in stock
+          if (pigs_count == 1 || limit_tick % 6 == 0){
+            building->stop_playing_sfx();
+            Log::Info["viewport.cc"] << "pig stop_playing";
+          }
+        }else{
+          // begin a period of oinking, chance of oinking period increases with pigs in stock
+          //if (semiconst_rand < pigs_count * 4){
+          if (tick_rand > 0 && tick_rand < (pigs_count / 2 + 2) * 1){
+            building->start_playing_sfx();
+            Log::Info["viewport.cc"] << "pig start_playing";
+          }
         }
 
-        int pigs_count = building->get_res_count_in_stock(1);
         int pigs_layout[] = {
           0,   0,   0,  0,
           1,  40,   2, 11,

@@ -617,6 +617,7 @@ Serf::change_transporter_state_at_pos(MapPos pos_, Serf::State _state) {
   if (pos == pos_ &&
       (_state == StateWakeAtFlag || _state == StateWakeOnPath ||
        _state == StateWaitIdleOnPath || _state == StateIdleOnPath)) {
+    Log::Info["serf.cc"] << "inside change_transporter_state_at_pos (IS wake/wait/idle, set new state), type " << NameSerf[get_type()] << ", pos_ " << pos_ << " old state: " << get_state() << ", new_state = " << _state;
     set_state(_state);
     return true;
   }
@@ -2902,7 +2903,11 @@ Serf::handle_serf_delivering_state() {
       s.transporting.res = Resource::TypeNone;
       Building *building =
                   game->get_building_at_pos(game->get_map()->move_up_left(pos));
-      building->requested_resource_delivered(res);
+      if (building == nullptr){
+        Log::Warn["serf.cc"] << "inside handle_serf_delivering_state, building is nullptr";
+      }else{
+        building->requested_resource_delivered(res);
+      }
     }
 
     animation = 4 + 9 - (animation - (3 + 10*9));
@@ -5733,7 +5738,7 @@ Serf::handle_serf_idle_on_path_state() {
     //if (get_type() == Serf::TypeSailor){
        //Log::Info["serf"] << "debug: inside handle_serf_idle_on_path_state, sailor end 5";
     //}
-   //Log::Info["serf"] << "debug: inside handle_serf_idle_on_path_state, a serf of any type is about to be set to StateWaitIdleOnPath !";
+    Log::Info["serf"] << "debug: inside handle_serf_idle_on_path_state, a serf of type " << NameSerf[get_type()] << " at pos " << get_pos() << " is about to be set to StateWaitIdleOnPath !";
     set_state(StateWaitIdleOnPath);
   }
 }
@@ -5826,6 +5831,7 @@ Serf::handle_serf_wake_at_flag_state() {
 
 void
 Serf::handle_serf_wake_on_path_state() {
+  Log::Info["serf"] << "debug: inside handle_serf_wake_on_path_state, a serf of type " << NameSerf[get_type()] << " at pos " << get_pos() << " is about to be set to StateWaitIdleOnPath !";
   set_state(StateWaitIdleOnPath);
 
   for (Direction d : cycle_directions_ccw()) {

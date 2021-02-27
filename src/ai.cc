@@ -991,7 +991,11 @@ AI::do_fix_stuck_serfs() {
 
         AILogDebug["do_fix_stuck_serfs"] << name << " SerfWaitTimer detected WAIT_IDLE_ON_PATH STUCK SERF at pos " << serf->get_pos() << ", marking its current pos in lt_purple";
         ai_mark_pos.insert(ColorDot(serf->get_pos(), "lt_purple"));
-        //std::this_thread::sleep_for(std::chrono::milliseconds(10000));
+        // I THINK I FIXED THIS ISSUE FOR GOOD - see https://github.com/freeserf/freeserf/issues/492
+        //  changing this to a crash exception in case I am wrong about the fix being 100% effective
+        std::this_thread::sleep_for(std::chrono::milliseconds(10000));
+        AILogDebug["do_fix_stuck_serfs"] << name << " SerfWaitTimer detected WAIT_IDLE_ON_PATH STUCK SERF at pos " << serf->get_pos() << " of type " << NameSerf[serf->get_type()] << ", I THOUGHT I FIXED THIS! crashing.  check to see";
+        throw ExceptionFreeserf("SerfWaitTimer detected WAIT_IDLE_ON_PATH STUCK SERF at pos - I THOUGHT I FIXED THIS");
         // don't erase timer if problem isn't fixed yet, keep checking each AI loop
         AILogDebug["do_fix_stuck_serfs"] << name << " SerfWaitTimer attempting to set serf to lost state, updating marking to purple";
         ai_mark_pos.erase(serf->get_pos());
