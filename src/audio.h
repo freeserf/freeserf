@@ -58,32 +58,32 @@ class Audio {
     TypeSfxPickBlow = 28,
     TypeSfxMetalHammering = 30,
     TypeSfxAxBlow = 32,
-    TypeSfxTreeFall = 34,
+    TypeSfxTreeFall = 34,  // the DOS vs Amiga sounds are very different, I think DOS is better
     TypeSfxWoodHammering = 36,
     TypeSfxElevator = 38,
     TypeSfxHammerBlow = 40,
-    TypeSfxSawing = 42,
-    TypeSfxMillGrinding = 43,
+    TypeSfxSawing = 42,   // the DOS vs Amiga sounds are very different, I think Amiga is better
+    TypeSfxMillGrinding = 43,  // the DOS vs Amiga sounds are very different, I think Amiga is better
     TypeSfxBackswordBlow = 44,
-    TypeSfxGeologistSampling = 46,
-    TypeSfxPlanting = 48,
-    TypeSfxDigging = 50,
+    TypeSfxGeologistSampling = 46,  // the DOS vs Amiga sounds are slightly different, I think Amiga is a bit better
+    TypeSfxPlanting = 48,  // the DOS vs Amiga sounds are slightly different, I can't say which I prefer
+    // there is a sound #50, similar to HammerBlow, DOS vs Amiga sounds are slightly different, I can't say which I prefer
     TypeSfxMowing = 52,
-    TypeSfxFishingRodReel = 54,
-    TypeSfxUnknown21 = 58,
+    TypeSfxFishingRodReel = 54,  // the DOS sample repeats 4x times, while Amiga is a single non-repeating sound (very similar sound though)
+    TypeSfxUnknown21 = 58,  // sounds like "hup"  or hopping-over-something quick grunt sound
     TypeSfxPigOink = 60,
-    TypeSfxGoldBoils = 62,
-    TypeSfxRowing = 64,
-    TypeSfxUnknown25 = 66,
-    TypeSfxSerfDying = 69,
-    TypeSfxBirdChirp0 = 70,
-    TypeSfxBirdChirp1 = 74,
+    TypeSfxGoldBoils = 62,  // the DOS vs Amiga sounds are very different, I think Amiga is better. Also, in Freeserf the DOS sound #62 is buggy (pop, static)
+    TypeSfxRowing = 64,     // the DOS vs Amiga sounds are very different, I think DOS is better
+    TypeSfxUnknown25 = 66,  // sounds like a fainter burning sound, could be an alternate building burn sound?  the DOS vs Amiga sounds are very different, Amiga sounds like a motor
+    TypeSfxSerfDying = 69,  
+    TypeSfxBirdChirp0 = 70, // DOS vs Amiga sounds are quite different, I can't say which I prefer, I think Amiga
+    TypeSfxBirdChirp1 = 74, // DOS vs Amiga sounds are quite different, I can't say which I prefer, I think Amiga
     TypeSfxAhhh = 76,
-    TypeSfxBirdChirp2 = 78,
-    TypeSfxBirdChirp3 = 82,
+    TypeSfxBirdChirp2 = 78, // DOS vs Amiga sounds are VERY different, Amiga is way better
+    TypeSfxBirdChirp3 = 82, // DOS vs Amiga sounds are VERY different, Amiga is probably better
     TypeSfxBurning = 84,
-    TypeSfxUnknown28 = 86,
-    TypeSfxUnknown29 = 88,
+    TypeSfxUnknown28 = 86,  // ocean sound, use for ambient water sounds. DOS vs Amiga sounds are quite different, I think DOS is better
+    TypeSfxUnknown29 = 88,  // whistling wind sound, user for ambient desert sound.  DOS vs Amiga sounds are slightly different, I can't say which I prefer
   } TypeSfx;
 
   typedef enum TypeMidi {
