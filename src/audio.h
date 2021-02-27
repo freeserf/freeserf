@@ -42,6 +42,9 @@ class ExceptionAudio : public ExceptionFreeserf {
 class Audio {
  public:
   typedef enum TypeSfx {
+    // the numbers that are not represented here appear to be unreadable/nonexistant?
+    //  if you try to export DOS resources using FSStudio it says Error [data] Could not extract SFX clip: #n
+    //  for all of the ones missing below
     TypeSfxMessage = 1,
     TypeSfxAccepted = 2,
     TypeSfxNotAccepted = 4,

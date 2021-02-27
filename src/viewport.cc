@@ -798,28 +798,23 @@ Viewport::draw_unharmed_building(Building *building, int lx, int ly) {
         // it looks like 'tick' and 'const tick' change every loop, only rand stuff does not
         // it seems ticks are always even!
         //uint16_t tick_rand = (random.random() * interface->get_game()->get_const_tick()) & 0x7f;
-        uint16_t semiconst_rand = (random.random() & 0x7f);  // this is NOT always even
+        //uint16_t semiconst_rand = (random.random() & 0x7f);  // this is NOT always even
         uint16_t tick_rand = (random.random() + interface->get_game()->get_const_tick()) & 0x7f;
         uint16_t limit_tick = interface->get_game()->get_const_tick() & 0x7f;
-        Log::Info["viewport.cc"] << "pig debug: pigs_count " << pigs_count << ", limit_tick " << limit_tick << ", const tick " << interface->get_game()->get_const_tick() << ", semiconst_rand " << semiconst_rand << ", tick_rand " << tick_rand;
+        //Log::Info["viewport.cc"] << "pig debug: pigs_count " << pigs_count << ", limit_tick " << limit_tick << ", const tick " << interface->get_game()->get_const_tick() << ", semiconst_rand " << semiconst_rand << ", tick_rand " << tick_rand;
         if (building->is_playing_sfx()){
-          // throttle oinking so it doesn't happen every tick (every 2, really since tick is always even)
+          // throttle oinking so it doesn't happen too fast
           if (limit_tick % 8 == 0){
             play_sound(Audio::TypeSfxPigOink);
-            Log::Info["viewport.cc"] << "pig debug: OINK!";
           }
-          // stop oinking after some time (actual number of oinks depends on tick when oinking began)
-          //  max number of oinks based on pigs in stock
+          // allow up to a few oinks if >1 pig in stock
           if (pigs_count == 1 || limit_tick % 6 == 0){
             building->stop_playing_sfx();
-            Log::Info["viewport.cc"] << "pig stop_playing";
           }
         }else{
           // begin a period of oinking, chance of oinking period increases with pigs in stock
-          //if (semiconst_rand < pigs_count * 4){
           if (tick_rand > 0 && tick_rand < (pigs_count / 2 + 2) * 1){
             building->start_playing_sfx();
-            Log::Info["viewport.cc"] << "pig start_playing";
           }
         }
 
@@ -1267,7 +1262,10 @@ Viewport::draw_map_objects_row(MapPos pos, int y_base, int cols, int x_base) {
       int sprite = map->get_obj(pos) - Map::ObjectTree0;
       if (sprite < 24) {
         /* Trees */
-        /*player->trees_in_view += 1;*/
+        // only allow bird chirps from Tree and Pine (not palm or submerged, cactus, etc.)
+        if (map->get_obj(pos) >= Map::ObjectTree0 && map->get_obj(pos) <= Map::ObjectPine7) {
+          interface->trees_in_view += 1;
+        }
 
         /* Adding sprite number to animation ensures
            that the tree animation won't be synchronized
@@ -1280,6 +1278,39 @@ Viewport::draw_map_objects_row(MapPos pos, int y_base, int cols, int x_base) {
         }
       }
       draw_shadow_and_building_sprite(x_base, ly, sprite);
+    }
+  }
+  // play bird sounds if enough trees in view
+  //Log::Info["viewport.cc"] << "trees in view: " << interface->trees_in_view;
+  if (interface->trees_in_view > 0){
+    Random random;
+    uint16_t tick_rand = (random.random() + interface->get_game()->get_const_tick()) & 0x7f;
+    uint16_t limit_tick = interface->get_game()->get_const_tick() & 0x7f;
+    //Log::Info["viewport.cc"] << "pig debug: pigs_count " << pigs_count << ", limit_tick " << limit_tick << ", const tick " << interface->get_game()->get_const_tick() << ", semiconst_rand " << semiconst_rand << ", tick_rand " << tick_rand;
+    // throttle sounds so it doesn't happen too fast
+    if (!interface->is_playing_birdsfx && limit_tick % 18 == 0) {
+      if (tick_rand > 0 && tick_rand < 16) {
+        play_sound(Audio::TypeSfxBirdChirp3);   // this is a longer chirp, make it less frequent
+      } else if (tick_rand < 32) {
+        play_sound(Audio::TypeSfxBirdChirp1);
+      } else if (tick_rand < 80) {
+        play_sound(Audio::TypeSfxBirdChirp0); 
+      } else {
+        play_sound(Audio::TypeSfxBirdChirp2);
+      }
+      // allow up to a few birdsounds
+      //if (limit_tick % 36 == 0){
+        interface->is_playing_birdsfx = true;
+      //}
+    }else{
+      // begin a period of bird sounds
+      int birdsound_chance = interface->trees_in_view / 4 + 1;
+      if (birdsound_chance > 22){
+        birdsound_chance = 22;
+      }
+      if (tick_rand > 0 && tick_rand < birdsound_chance){
+        interface->is_playing_birdsfx = false;
+      }
     }
   }
 }
@@ -2363,6 +2394,7 @@ void
 Viewport::draw_game_objects(int layers_) {
   /*player->water_in_view = 0;
   player->trees_in_view = 0;*/
+  interface->trees_in_view = 0;
 
   int draw_landscape = layers_ & LayerLandscape;
   int draw_objects = layers_ & LayerObjects;

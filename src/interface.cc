@@ -50,8 +50,9 @@ Interface::Interface()
   , sfx_queue{0}
   // these are not used
   //, water_in_view(false)
-  //, trees_in_view(false)
+  , trees_in_view(0)  // for bird sounds
   , return_pos(0) {
+  is_playing_birdsfx = false;  // for bird sounds
   displayed = true;
 
   game = nullptr;
