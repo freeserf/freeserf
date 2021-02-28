@@ -1857,18 +1857,20 @@ AI::do_remove_road_stubs() {
       if (road_dir == DirectionNone)
         continue;
       // find a nearby flag
+      //  or any place on an existing road that a flag could be built
       road_options.set(RoadOption::Direct);
       bool was_built = false;
       for (unsigned int i = 0; i < AI::spiral_dist(4); i++) {
         MapPos pos = map->pos_add_extended_spirally(flag->get_building()->get_position(), i);
-        if (map->has_flag(pos) && pos != flag_pos && flag->get_owner() == player_index && flag->is_connected()) {
-          AILogDebug["do_remove_road_stubs"] << name << " eligible knight hut stub road ending with flag at pos " << flag_pos << " with one path and suitable length, found nearby flag at " << pos;
+        if (map->has_flag(pos) && pos != flag_pos && flag->get_owner() == player_index && flag->is_connected()
+         || (game->can_build_flag(pos, player) && map->has_any_path(pos))) {
+          AILogDebug["do_remove_road_stubs"] << name << " eligible knight hut stub road ending with flag at pos " << flag_pos << " with one path and suitable length, found nearby flag/pos at " << pos;
           was_built = AI::build_best_road(flag->get_position(), road_options, Building::TypeNone, Building::TypeNone, pos, false);
           if (was_built){
-            AILogDebug["do_remove_road_stubs"] << name << " eligible knight hut stub road ending with flag at pos " << flag_pos << ", successfully built replacement road, to flag at pos " << pos;
+            AILogDebug["do_remove_road_stubs"] << name << " eligible knight hut stub road ending with flag at pos " << flag_pos << ", successfully built replacement road, to flag/pos " << pos;
             break;
           }else{
-            AILogDebug["do_remove_road_stubs"] << name << " eligible knight hut stub road ending with flag at pos " << flag_pos << ", failed to build replacement road to flag at pos " << pos << ", will keep trying";
+            AILogDebug["do_remove_road_stubs"] << name << " eligible knight hut stub road ending with flag at pos " << flag_pos << ", failed to build replacement road to flag/pos " << pos << ", will keep trying";
           }
         }
       }
@@ -1881,7 +1883,7 @@ AI::do_remove_road_stubs() {
       }
     }
   } // if only do knight stub removal every x loops
-  
+
   duration = (std::clock() - start) / static_cast<double>(CLOCKS_PER_SEC);
   AILogDebug["do_remove_road_stubs"] << name << " call took " << duration;
   AILogDebug["do_remove_road_stubs"] << name << " done do_remove_road_stubs, removed " << roads_removed << " roads";
