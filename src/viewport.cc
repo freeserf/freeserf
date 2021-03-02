@@ -2426,25 +2426,21 @@ Viewport::draw_game_objects(int layers_) {
     Random random;
     uint16_t tick_rand = (random.random() + interface->get_game()->get_const_tick()) & 0x7f;
     uint16_t limit_tick = interface->get_game()->get_const_tick() & 0x7f;
-    Log::Info["viewport.cc"] << "birdsongsfx debug: trees_in_view " << interface->trees_in_view << ", limit_tick " << limit_tick << ", const tick " << interface->get_game()->get_const_tick() << ", tick_rand " << tick_rand;
-    int birdsound_chance = interface->trees_in_view / 6 + 1;
+    //Log::Info["viewport.cc"] << "birdsongsfx debug: trees_in_view " << interface->trees_in_view << ", limit_tick " << limit_tick << ", const tick " << interface->get_game()->get_const_tick() << ", tick_rand " << tick_rand;
+    int birdsound_chance = interface->trees_in_view / 8 + 1;
     if (birdsound_chance > 16){
       birdsound_chance = 16;
     }
-    if (!interface->is_playing_birdsfx && birdsound_chance > tick_rand){
+    if (!interface->is_playing_birdsfx && birdsound_chance > tick_rand && limit_tick % 8 == 0){
       uint16_t foo_rand = (random.random() * tick_rand) & 0x7f;
       if (foo_rand < 25) {
         play_sound(Audio::TypeSfxBirdChirp3);   // this is a longer chirp, make it less frequent
-        Log::Info["viewport.cc"] << "playing bird3";
       } else if (foo_rand < 50) {
         play_sound(Audio::TypeSfxBirdChirp1);
-        Log::Info["viewport.cc"] << "playing bird1";
       } else if (foo_rand < 75) {
         play_sound(Audio::TypeSfxBirdChirp0); 
-        Log::Info["viewport.cc"] << "playing bird0";
       } else {
         play_sound(Audio::TypeSfxBirdChirp2);
-        Log::Info["viewport.cc"] << "playing bird2";
       }
       // allow up to a few birdsounds
       //if (limit_tick % 36 == 0){
