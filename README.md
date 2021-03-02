@@ -11,6 +11,7 @@ Forkserf adds:
   - some minor visual & audio issues
   - crash & other issue with food resource delivery
   - serfs become forever stuck on roads and block the road
+  - missing ambient sounds
 - new features (mostly as optional checkboxes)
   - auto-saving
   - enhanced Pig Farms
