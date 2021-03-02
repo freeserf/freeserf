@@ -1024,6 +1024,10 @@ Flag::is_connected() const {
 static int
 change_transporter_state_at_pos(Game *game, MapPos pos, Serf::State state) {
   for (Serf *serf : game->get_serfs_at_pos(pos)) {
+    // originally this function was trying to call change_transporter_state_at_pos on ANY serf
+    //  at the post that had one of the four wait states, occasionally causing non-transporters to become stuck forever
+    if (!serf->get_type() == Serf::TypeTransporter)
+      continue;
     if (serf->change_transporter_state_at_pos(pos, state)) {
       return serf->get_index();
     }

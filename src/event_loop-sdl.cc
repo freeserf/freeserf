@@ -230,6 +230,9 @@ EventLoopSDL::run() {
           case SDLK_f:
             if (event.key.keysym.mod & KMOD_CTRL) {
               gfx.set_fullscreen(!gfx.is_fullscreen());
+            }else{
+              // if this isn't handled the 'f' key doesn't work for savegame names
+              notify_key_pressed(event.key.keysym.sym, modifier);
             }
             break;
           case SDLK_RIGHTBRACKET:

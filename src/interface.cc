@@ -50,8 +50,9 @@ Interface::Interface()
   , sfx_queue{0}
   // these are not used
   //, water_in_view(false)
-  //, trees_in_view(false)
+  , trees_in_view(0)  // for bird sounds
   , return_pos(0) {
+  is_playing_birdsfx = false;  // for bird sounds
   displayed = true;
 
   game = nullptr;
@@ -238,10 +239,10 @@ Interface::get_custom_map_generator_options() {
 
 CustomMapGeneratorOptions
 Interface::get_custom_map_generator_options() {
-  Log::Info["interface.cc"] << " inside get_custom_map_generator_options";
-    for (int x = 0; x < 23; x++){
-    Log::Info["map-generator"] << " inside get_custom_map_generator_options, opt" << x << " = " << custom_map_generator_options.opt[x];
-  }
+  //Log::Info["interface.cc"] << " inside get_custom_map_generator_options";
+  //  for (int x = 0; x < 23; x++){
+  //  Log::Info["map-generator"] << " inside get_custom_map_generator_options, opt" << x << " = " << custom_map_generator_options.opt[x];
+  //}
   return custom_map_generator_options;
 }
 

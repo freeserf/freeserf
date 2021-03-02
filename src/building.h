@@ -179,6 +179,15 @@ class Building : public GameObject {
    the building is closer to the enemy. */
   size_t get_threat_level() const { return threat_level; }
   /* Building is currently playing back a sound effect. */
+  //
+  // THESE FUNCTION NAMES ARE MISLEADING:
+  // the start/stop functions don't actually start or stop anything,
+  //  they are used as a locking mechanism to prevent sounds from
+  //  playing too often and/or overlapping.  Because the random function
+  //  returns the SAME VALUE OVER MULTIPLE xxx::update cycles, these functions
+  //  are used to prevent constant looping of the sound effects.  A call to
+  //  "stop_playing_sfx" means "unlock" (i.e. allow the sound to play again this update)
+  //
   bool is_playing_sfx() const { return playing_sfx; }
   void start_playing_sfx() { playing_sfx = true; }
   void stop_playing_sfx() { playing_sfx = false; }

@@ -991,7 +991,12 @@ AI::do_fix_stuck_serfs() {
 
         AILogDebug["do_fix_stuck_serfs"] << name << " SerfWaitTimer detected WAIT_IDLE_ON_PATH STUCK SERF at pos " << serf->get_pos() << ", marking its current pos in lt_purple";
         ai_mark_pos.insert(ColorDot(serf->get_pos(), "lt_purple"));
-        //std::this_thread::sleep_for(std::chrono::milliseconds(10000));
+        // I THINK I FIXED THIS ISSUE FOR GOOD - see https://github.com/freeserf/freeserf/issues/492
+        //  changing this to a crash exception in case I am wrong about the fix being 100% effective
+        std::this_thread::sleep_for(std::chrono::milliseconds(10000));
+        AILogDebug["do_fix_stuck_serfs"] << name << " SerfWaitTimer detected WAIT_IDLE_ON_PATH STUCK SERF at pos " << serf->get_pos() << " of type " << NameSerf[serf->get_type()] << ", I THOUGHT I FIXED THIS! crashing.  check to see";
+        // still seeing this happen for Transporter serfs... but rare... keep an eye on it
+        //throw ExceptionFreeserf("SerfWaitTimer detected WAIT_IDLE_ON_PATH STUCK SERF at pos - I THOUGHT I FIXED THIS");
         // don't erase timer if problem isn't fixed yet, keep checking each AI loop
         AILogDebug["do_fix_stuck_serfs"] << name << " SerfWaitTimer attempting to set serf to lost state, updating marking to purple";
         ai_mark_pos.erase(serf->get_pos());
@@ -1026,6 +1031,7 @@ AI::do_fix_stuck_serfs() {
           //::this_thread::sleep_for(std::chrono::milliseconds(6000));
         }
         */
+       /* DONT ACTUALLY SET THEM TO LOST - just observere for now, as I think I fixed the bug
         AILogDebug["do_fix_stuck_serfs"] << name << " thread #" << std::this_thread::get_id() << " AI is locking mutex before calling serf->set_lost_state (for bug workaround stuck serfs)";
         game->get_mutex()->lock();
         AILogDebug["do_fix_stuck_serfs"] << name << " thread #" << std::this_thread::get_id() << " AI has locked mutex before calling serf->set_lost_state (for bug workaround stuck serfs)";
@@ -1037,6 +1043,7 @@ AI::do_fix_stuck_serfs() {
         game->get_mutex()->unlock();
         AILogDebug["do_fix_stuck_serfs"] << name << " thread #" << std::this_thread::get_id() << " AI has unlocked mutex after after serf->set_lost_state (for bug workaround stuck serfs)";
         //game->pause();
+        */
       }
       ++serf_wait_idle_on_road_timer;
     }
@@ -1775,6 +1782,111 @@ AI::do_remove_road_stubs() {
       game->demolish_flag(flag_pos, player);
     }
   }
+  //
+  // any non-mountain road that dead-ends and has no building attached
+  //
+  flags_static_copy = *(game->get_flags());
+  flags = &flags_static_copy;
+  for (Flag *flag : *flags) {
+    if (flag == nullptr || flag->get_owner() != player_index || !flag->is_connected() || flag->has_building())
+      continue;
+    MapPos flag_pos = flag->get_position();
+    if (AI::has_terrain_type(game, flag_pos, Map::TerrainTundra0, Map::TerrainSnow1))
+      continue;
+    // see if it has only one path
+    unsigned int paths = 0;
+    Direction road_dir;
+    for (Direction dir : cycle_directions_cw()) {
+      if (!map->has_path(flag_pos, dir)) { continue; }
+      paths++;
+      if (paths > 1) {
+        //AILogDebug["do_remove_road_stubs"] << name << " eligible non-mountain road ending with flag at pos " << flag_pos << " has more than one path, not removing road";
+        break;
+      }
+      road_dir = dir;
+    }
+    if (paths == 1) {
+      AILogDebug["do_remove_road_stubs"] << name << " eligible non-mountain road ending with flag at pos " << flag_pos << " has only one path, removing the stub road and its end flag";
+      game->demolish_road(map->move(flag_pos, road_dir), player);
+      roads_removed++;
+      game->demolish_flag(flag_pos, player);
+    }
+  }
+  //
+  // fully-constructed, occupied huts that have another flag nearby 
+  //   that can be successfully connected
+  //
+  // look for huts that have an attached stub road that is >4 tiles or so long
+  //  try connecting the other road first
+  //  if completed, destroy the original road
+  //
+  if (loop_count % ai_loop_freq_adj_for_gamespeed(6) != 0) {
+    AILogDebug["do_remove_road_stubs"] << " skipping eligible knight hut stub roads, only running this every X loops";
+  }else{
+    flags_static_copy = *(game->get_flags());
+    flags = &flags_static_copy;
+    for (Flag *flag : *flags) {
+      if (flag == nullptr || flag->get_owner() != player_index || !flag->is_connected() || !flag->has_building())
+        continue;
+      if (flag->get_building()->get_type() != Building::TypeHut)
+        continue;
+      if (!flag->get_building()->is_done())
+        continue;
+      if (!flag->get_building()->has_knight())
+        continue;
+      MapPos flag_pos = flag->get_position();
+      // see if it has only one path
+      unsigned int paths = 0;
+      Direction road_dir = DirectionNone;
+      for (Direction dir : cycle_directions_cw()) {
+        if (!map->has_path(flag_pos, dir)) { continue; }
+
+        paths++;
+        if (paths > 1) {
+          //AILogDebug["do_remove_road_stubs"] << name << " eligible knight hut stub road ending with flag at pos " << flag_pos << " has more than one path, not removing road";
+          break;
+        }
+        // only consider removing if its road is over a certain length
+        Road tmp_road = trace_existing_road(map, flag_pos, dir);
+        if (tmp_road.get_length() < 6){
+          AILogDebug["do_remove_road_stubs"] << name << " eligible knight hut stub road ending with flag at pos " << flag_pos << " is too short to bother with, not removing road";
+          break;
+        }else{
+          road_dir = dir;
+        }
+      }
+      if (paths != 1) 
+        continue;
+      if (road_dir == DirectionNone)
+        continue;
+      // find a nearby flag
+      //  or any place on an existing road that a flag could be built
+      road_options.set(RoadOption::Direct);
+      bool was_built = false;
+      for (unsigned int i = 0; i < AI::spiral_dist(4); i++) {
+        MapPos pos = map->pos_add_extended_spirally(flag->get_building()->get_position(), i);
+        if (map->has_flag(pos) && pos != flag_pos && flag->get_owner() == player_index && flag->is_connected()
+         || (game->can_build_flag(pos, player) && map->has_any_path(pos))) {
+          AILogDebug["do_remove_road_stubs"] << name << " eligible knight hut stub road ending with flag at pos " << flag_pos << " with one path and suitable length, found nearby flag/pos at " << pos;
+          was_built = AI::build_best_road(flag->get_position(), road_options, Building::TypeNone, Building::TypeNone, pos, false);
+          if (was_built){
+            AILogDebug["do_remove_road_stubs"] << name << " eligible knight hut stub road ending with flag at pos " << flag_pos << ", successfully built replacement road, to flag/pos " << pos;
+            break;
+          }else{
+            AILogDebug["do_remove_road_stubs"] << name << " eligible knight hut stub road ending with flag at pos " << flag_pos << ", failed to build replacement road to flag/pos " << pos << ", will keep trying";
+          }
+        }
+      }
+      road_options.reset(RoadOption::Direct);
+
+      if (was_built){
+        AILogDebug["do_remove_road_stubs"] << name << " eligible knight hut stub road ending with flag at pos " << flag_pos << " had replacement road built, destroying old road in dir " << NameDirection[road_dir] << " / " << road_dir;
+        game->demolish_road(map->move(flag_pos, road_dir), player);
+        roads_removed++;
+      }
+    }
+  } // if only do knight stub removal every x loops
+
   duration = (std::clock() - start) / static_cast<double>(CLOCKS_PER_SEC);
   AILogDebug["do_remove_road_stubs"] << name << " call took " << duration;
   AILogDebug["do_remove_road_stubs"] << name << " done do_remove_road_stubs, removed " << roads_removed << " roads";
@@ -2587,7 +2699,7 @@ AI::do_build_stonecutter() {
   //ai_mark_pos.clear();
   unsigned int stones_count = stock_inv->get_count_of(Resource::TypeStone);
   //AILogDebug["do_build_stonecutter"] << inventory_pos << " has " << stones_count << " stones in this stock";
-  if (stones_count < stones_min) {
+  if (stones_count < stones_max) {
     AILogDebug["do_build_stonecutter"] << inventory_pos << " AI: desire more stones";
     // count stones near military buildings
     MapPosSet count_by_corner;
