@@ -48,11 +48,13 @@
 Interface::Interface()
   : building_road_valid_dir(0)
   , sfx_queue{0}
-  // these are not used
-  //, water_in_view(false)
-  , trees_in_view(0)  // for bird sounds
+  , trees_in_view(0)   // for bird sounds
+  , water_in_view(0)   // for wave sounds
+  , desert_in_view(0)  // for wind sounds
   , return_pos(0) {
-  is_playing_birdsfx = false;  // for bird sounds
+  is_playing_birdsfx = false;   // for ambient bird sounds near trees
+  is_playing_watersfx = false;  // for ambient wave sounds near water
+  is_playing_desertsfx = false; // for ambient wind sounds near desert
   displayed = true;
 
   game = nullptr;

@@ -104,10 +104,6 @@ class Interface : public GuiObject, public GameManager::Handler {
   int current_stat_8_mode;
   int current_stat_7_item;
 
-  // these variables do not appear to actually be used
-  //int water_in_view;
-  //int trees_in_view; // moved this to public, going to start using it
-
   int return_timeout;
   int return_pos;
 
@@ -250,9 +246,13 @@ class Interface : public GuiObject, public GameManager::Handler {
   void set_custom_map_generator_junk_desert_cacti(uint16_t val){ custom_map_generator_options.opt[CustomMapGeneratorOption::JunkDesertCacti] = slider_uint16_to_double(val); }
   void set_custom_map_generator_junk_desert_palm_trees(uint16_t val){ custom_map_generator_options.opt[CustomMapGeneratorOption::JunkDesertPalmTrees] = slider_uint16_to_double(val); }
 
-  // used to trigger bird sounds
-  int trees_in_view; // copied from protected (it was never actually used before, was a stub)
+  // used to trigger ambient bird/wind/wave sounds
+  int trees_in_view;
   bool is_playing_birdsfx;
+  int desert_in_view;
+  bool is_playing_desertsfx;
+  int water_in_view;
+  bool is_playing_watersfx;
   
 
  protected:

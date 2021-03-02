@@ -323,6 +323,20 @@ Viewport::get_tile_frame(unsigned int tid, int tc, int tr) {
 
     pos = map->move_right(pos);
     x_base += MAP_TILE_WIDTH;
+    
+    // NOTE - it seems that the landscape tiles are only drawn once and saved
+    //  so moving the map around does NOT reload them, so it is not possible to
+    //  check what terrain types are in view this way!  Instead, I am going to try
+    //  triggering the ambient desert and water sounds by the junk objects within them
+    //  being in view, like trees/birds do
+    // ambient wind gust sounds triggered by amount of desert tiles in view
+    /*
+    if (map->is_desert_tile(pos)){
+      interface->desert_in_view += 1;
+      Log::Info["viewport.cc"] << "desert tiles in view: " << interface->desert_in_view;
+    }
+    */
+
   }
 
 #if 0
@@ -343,6 +357,7 @@ Viewport::get_tile_frame(unsigned int tid, int tc, int tr) {
 
 void
 Viewport::draw_landscape() {
+
   int horiz_tiles = map->get_cols()/MAP_TILE_COLS;
   int vert_tiles = map->get_rows()/MAP_TILE_ROWS;
 
@@ -1265,6 +1280,22 @@ Viewport::draw_map_objects_row(MapPos pos, int y_base, int cols, int x_base) {
         // only allow bird chirps from Tree and Pine (not palm or submerged, cactus, etc.)
         if (map->get_obj(pos) >= Map::ObjectTree0 && map->get_obj(pos) <= Map::ObjectPine7) {
           interface->trees_in_view += 1;
+          //Log::Info["viewport.cc"] << "trees in view: " << interface->trees_in_view;
+        }
+        // use junk objects that only appear in deserts to trigger desert wind sounds
+        //  cannot use desert terrain in view because landscape is not constantly redrawn
+        if (map->get_obj(pos) == Map::ObjectCactus0   || map->get_obj(pos) == Map::ObjectCactus1
+         || map->get_obj(pos) == Map::ObjectCadaver0  || map->get_obj(pos) == Map::ObjectCadaver1
+         || (map->get_obj(pos) >= Map::ObjectPalm0 && map->get_obj(pos) <= Map::ObjectPalm3)) {
+          interface->desert_in_view += 1;
+          //Log::Info["viewport.cc"] << "desert junk objects in view: " << interface->desert_in_view;
+        }
+        // there's a bug with water tile map generation, seems only one water tree is rendered
+        //  and always top row, top left??  include all anyway in case I eventually fix that
+        if ((map->get_obj(pos) >= Map::ObjectWaterTree0 && map->get_obj(pos) <= Map::ObjectWaterTree3)
+          || map->get_obj(pos) >= Map::ObjectWaterStone0 || map->get_obj(pos) >= Map::ObjectWaterStone1) {
+          interface->water_in_view += 1;
+          //Log::Info["viewport.cc"] << "water junk objects in view: " << interface->water_in_view;
         }
 
         /* Adding sprite number to animation ensures
@@ -2360,10 +2391,12 @@ Viewport::draw_serf_row_behind(MapPos pos, int y_base, int cols, int x_base) {
 
 void
 Viewport::draw_game_objects(int layers_) {
-  /*player->water_in_view = 0;
-  player->trees_in_view = 0;*/
   interface->trees_in_view = 0;
   interface->is_playing_birdsfx = false;
+  interface->desert_in_view = 0;
+  interface->is_playing_desertsfx = false;
+  interface->water_in_view = 0;
+  interface->is_playing_watersfx = false;
 
   int draw_landscape = layers_ & LayerLandscape;
   int draw_objects = layers_ & LayerObjects;
@@ -2419,7 +2452,13 @@ Viewport::draw_game_objects(int layers_) {
 
     pos = map->move_down_right(pos);
   }
-
+  //
+  // ambient sounds - birds near trees, waves near water (palms)
+  //  wind near deserts 
+  // the timing of these isn't well planned, just fiddled around with the numbers until it
+  //  gave acceptable results.  could be improved
+  // ALSO... would the wind sounds be better for mountains rather than deserts??
+  //
   // play bird sounds if enough trees in view
   //Log::Info["viewport.cc"] << "trees in view: " << interface->trees_in_view;
   if (interface->trees_in_view > 0){
@@ -2458,6 +2497,48 @@ Viewport::draw_game_objects(int layers_) {
         Log::Info["viewport.cc"] << "resetting birdsong play";
       }
       */
+    }
+  }
+  // play wind sounds if enough desert junk objects in view
+  //Log::Info["viewport.cc"] << "desert junk objects in view: " << interface->desert_in_view;
+  if (interface->desert_in_view > 0){
+    Random random;
+    uint16_t tick_rand = (random.random() + interface->get_game()->get_const_tick()) & 0x7f;
+    uint16_t limit_tick = interface->get_game()->get_const_tick() & 0x7f;
+    //Log::Info["viewport.cc"] << "windsfx debug: desert_in_view " << interface->desert_in_view << ", limit_tick " << limit_tick << ", const tick " << interface->get_game()->get_const_tick() << ", tick_rand " << tick_rand;
+    int windsound_chance = interface->desert_in_view * 5;
+    if (windsound_chance > 30){
+      windsound_chance = 30;
+    }
+    if (!interface->is_playing_desertsfx && windsound_chance > tick_rand && limit_tick % 8 == 0){
+      uint16_t foo_rand = (random.random() * tick_rand) & 0x7f;
+      if (foo_rand < 25) {
+        play_sound(Audio::TypeSfxUnknown29);
+      }
+      interface->is_playing_desertsfx = true;
+    }else{
+      //
+    }
+  }
+  // play wave sounds if enough water junk objects in view
+  //Log::Info["viewport.cc"] << "water junk objects in view: " << interface->water_in_view;
+  if (interface->water_in_view > 0){
+    Random random;
+    uint16_t tick_rand = (random.random() + interface->get_game()->get_const_tick()) & 0x7f;
+    uint16_t limit_tick = interface->get_game()->get_const_tick() & 0x7f;
+    //Log::Info["viewport.cc"] << "wavesfx debug: water_in_view " << interface->water_in_view << ", limit_tick " << limit_tick << ", const tick " << interface->get_game()->get_const_tick() << ", tick_rand " << tick_rand;
+    int wavesound_chance = interface->water_in_view * 100;
+    if (wavesound_chance > 30){
+      wavesound_chance = 30;
+    }
+    if (!interface->is_playing_watersfx && wavesound_chance > tick_rand && limit_tick % 8 == 0){
+      uint16_t foo_rand = (random.random() * tick_rand) & 0x7f;
+      if (foo_rand < 25) {
+        play_sound(Audio::TypeSfxUnknown28);
+      }
+      interface->is_playing_watersfx = true;
+    }else{
+      //
     }
   }
 }

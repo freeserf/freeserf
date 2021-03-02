@@ -453,6 +453,24 @@ class Map {
             type_down(move_left(pos)) <= TerrainWater3 &&
             type_up(move_up(pos)) <= TerrainWater3); }
 
+
+  // NOTE - because terrain is only drawn once, this isn't helpful for ambient 
+  //  sound triggering.  Disabling for now, might use it later for something else
+  /*
+  // Whether any of the two up/down tiles at this pos are desert.
+  bool is_desert_tile(MapPos pos) const {
+    Log::Info["map.h"] << "inside is_desert_tile, type_down is " << type_down(pos) << ", type_up is " << type_up(pos);
+    if ( (type_down(pos) >= TerrainDesert0 && type_down(pos) <= TerrainDesert2)
+      || (type_up(pos)   >= TerrainDesert0 && type_up(pos)   <= TerrainDesert2)){
+        Log::Info["map.h"] << "inside is_desert_tile, IS desert tile";
+        return true;
+    }
+    return false;
+  }
+  */
+          
+
+
   /* Mapping from Object to Space. */
   static const Space map_space_from_obj[128];
 
