@@ -589,9 +589,9 @@ GameInitBox::generate_map_preview() {
   } else {
     //ClassicMapGenerator generator(*map, mission->get_random_base());
     CustomMapGenerator generator(*map, mission->get_random_base());
-    for (int x = 0; x < 23; x++){
-      Log::Info["game-init.cc"] << "inside GameInitBox::init::generate_map_preview,  x" << x << " = " << interface->get_custom_map_generator_options().opt[x];
-    }
+    //for (int x = 0; x < 23; x++){
+    //  Log::Info["game-init.cc"] << "inside GameInitBox::init::generate_map_preview,  x" << x << " = " << interface->get_custom_map_generator_options().opt[x];
+    //}
     // testing HeightGeneratorDiamondSquare
     //  I tried DiamondSquare but it looks the same to me, leaving it as default Midpoints setting
     // trying preserve_bugs = false

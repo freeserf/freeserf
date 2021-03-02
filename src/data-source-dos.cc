@@ -180,6 +180,7 @@ DataSourceDOS::get_object(size_t index) {
   #define DATA_SFX_BASE              3900  // SFX sounds (index 0 is undefined)
   #define DATA_MUSIC_GAME            3990  // XMI music
   */
+  /* it seems the DOS sound 62 is indeed messed up by Freeserf reader, try using Amiga sound instead
   if (index >= DATA_SFX_BASE && index < DATA_MUSIC_GAME){
     Log::Info["data-source-dos.cc"] << "inside get_object, index " << index << ", offset " << entries[index].offset << ", size " << entries[index].size;
   }
@@ -194,6 +195,7 @@ DataSourceDOS::get_object(size_t index) {
     // default
     return spae->get_subbuffer(entries[index].offset, entries[index].size);
   }
+  */
   return spae->get_subbuffer(entries[index].offset, entries[index].size);
 }
 
@@ -418,7 +420,7 @@ DataSourceDOS::SpriteBaseDOS::SpriteBaseDOS(PBuffer _data) {
 PBuffer
 DataSourceDOS::get_sound(size_t index) {
   PBuffer data = get_object(DATA_SFX_BASE + index);
-  Log::Info["data-source-dos.cc"] << "inside get_sound, index " << index;
+  //Log::Info["data-source-dos.cc"] << "inside get_sound, index " << index;
   if (!data) {
     Log::Error["data"] << "Could not extract SFX clip: #" << index;
     return nullptr;
