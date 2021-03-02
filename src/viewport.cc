@@ -1280,39 +1280,7 @@ Viewport::draw_map_objects_row(MapPos pos, int y_base, int cols, int x_base) {
       draw_shadow_and_building_sprite(x_base, ly, sprite);
     }
   }
-  // play bird sounds if enough trees in view
-  //Log::Info["viewport.cc"] << "trees in view: " << interface->trees_in_view;
-  if (interface->trees_in_view > 0){
-    Random random;
-    uint16_t tick_rand = (random.random() + interface->get_game()->get_const_tick()) & 0x7f;
-    uint16_t limit_tick = interface->get_game()->get_const_tick() & 0x7f;
-    //Log::Info["viewport.cc"] << "pig debug: pigs_count " << pigs_count << ", limit_tick " << limit_tick << ", const tick " << interface->get_game()->get_const_tick() << ", semiconst_rand " << semiconst_rand << ", tick_rand " << tick_rand;
-    // throttle sounds so it doesn't happen too fast
-    if (!interface->is_playing_birdsfx && limit_tick % 18 == 0) {
-      if (tick_rand > 0 && tick_rand < 16) {
-        play_sound(Audio::TypeSfxBirdChirp3);   // this is a longer chirp, make it less frequent
-      } else if (tick_rand < 32) {
-        play_sound(Audio::TypeSfxBirdChirp1);
-      } else if (tick_rand < 80) {
-        play_sound(Audio::TypeSfxBirdChirp0); 
-      } else {
-        play_sound(Audio::TypeSfxBirdChirp2);
-      }
-      // allow up to a few birdsounds
-      //if (limit_tick % 36 == 0){
-        interface->is_playing_birdsfx = true;
-      //}
-    }else{
-      // begin a period of bird sounds
-      int birdsound_chance = interface->trees_in_view / 4 + 1;
-      if (birdsound_chance > 22){
-        birdsound_chance = 22;
-      }
-      if (tick_rand > 0 && tick_rand < birdsound_chance){
-        interface->is_playing_birdsfx = false;
-      }
-    }
-  }
+
 }
 
 /* Draw one individual serf in the row. */
@@ -2395,6 +2363,7 @@ Viewport::draw_game_objects(int layers_) {
   /*player->water_in_view = 0;
   player->trees_in_view = 0;*/
   interface->trees_in_view = 0;
+  interface->is_playing_birdsfx = false;
 
   int draw_landscape = layers_ & LayerLandscape;
   int draw_objects = layers_ & LayerObjects;
@@ -2449,6 +2418,51 @@ Viewport::draw_game_objects(int layers_) {
     if (ly >= height + 6*MAP_TILE_HEIGHT) break;
 
     pos = map->move_down_right(pos);
+  }
+
+  // play bird sounds if enough trees in view
+  //Log::Info["viewport.cc"] << "trees in view: " << interface->trees_in_view;
+  if (interface->trees_in_view > 0){
+    Random random;
+    uint16_t tick_rand = (random.random() + interface->get_game()->get_const_tick()) & 0x7f;
+    uint16_t limit_tick = interface->get_game()->get_const_tick() & 0x7f;
+    Log::Info["viewport.cc"] << "birdsongsfx debug: trees_in_view " << interface->trees_in_view << ", limit_tick " << limit_tick << ", const tick " << interface->get_game()->get_const_tick() << ", tick_rand " << tick_rand;
+    int birdsound_chance = interface->trees_in_view / 6 + 1;
+    if (birdsound_chance > 16){
+      birdsound_chance = 16;
+    }
+    if (!interface->is_playing_birdsfx && birdsound_chance > tick_rand){
+      uint16_t foo_rand = (random.random() * tick_rand) & 0x7f;
+      if (foo_rand < 25) {
+        play_sound(Audio::TypeSfxBirdChirp3);   // this is a longer chirp, make it less frequent
+        Log::Info["viewport.cc"] << "playing bird3";
+      } else if (foo_rand < 50) {
+        play_sound(Audio::TypeSfxBirdChirp1);
+        Log::Info["viewport.cc"] << "playing bird1";
+      } else if (foo_rand < 75) {
+        play_sound(Audio::TypeSfxBirdChirp0); 
+        Log::Info["viewport.cc"] << "playing bird0";
+      } else {
+        play_sound(Audio::TypeSfxBirdChirp2);
+        Log::Info["viewport.cc"] << "playing bird2";
+      }
+      // allow up to a few birdsounds
+      //if (limit_tick % 36 == 0){
+        interface->is_playing_birdsfx = true;
+      //}
+    }else{
+      // begin a period of bird sounds
+      int birdsound_chance = interface->trees_in_view / 4 + 1;
+      if (birdsound_chance > 22){
+        birdsound_chance = 22;
+      }
+      /*
+      if (tick_rand > 0 && tick_rand % 2 == 0 && tick_rand < birdsound_chance){
+        interface->is_playing_birdsfx = false;
+        Log::Info["viewport.cc"] << "resetting birdsong play";
+      }
+      */
+    }
   }
 }
 

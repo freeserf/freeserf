@@ -995,7 +995,8 @@ AI::do_fix_stuck_serfs() {
         //  changing this to a crash exception in case I am wrong about the fix being 100% effective
         std::this_thread::sleep_for(std::chrono::milliseconds(10000));
         AILogDebug["do_fix_stuck_serfs"] << name << " SerfWaitTimer detected WAIT_IDLE_ON_PATH STUCK SERF at pos " << serf->get_pos() << " of type " << NameSerf[serf->get_type()] << ", I THOUGHT I FIXED THIS! crashing.  check to see";
-        throw ExceptionFreeserf("SerfWaitTimer detected WAIT_IDLE_ON_PATH STUCK SERF at pos - I THOUGHT I FIXED THIS");
+        // still seeing this happen for Transporter serfs... but rare... keep an eye on it
+        //throw ExceptionFreeserf("SerfWaitTimer detected WAIT_IDLE_ON_PATH STUCK SERF at pos - I THOUGHT I FIXED THIS");
         // don't erase timer if problem isn't fixed yet, keep checking each AI loop
         AILogDebug["do_fix_stuck_serfs"] << name << " SerfWaitTimer attempting to set serf to lost state, updating marking to purple";
         ai_mark_pos.erase(serf->get_pos());
@@ -1030,6 +1031,7 @@ AI::do_fix_stuck_serfs() {
           //::this_thread::sleep_for(std::chrono::milliseconds(6000));
         }
         */
+       /* DONT ACTUALLY SET THEM TO LOST - just observere for now, as I think I fixed the bug
         AILogDebug["do_fix_stuck_serfs"] << name << " thread #" << std::this_thread::get_id() << " AI is locking mutex before calling serf->set_lost_state (for bug workaround stuck serfs)";
         game->get_mutex()->lock();
         AILogDebug["do_fix_stuck_serfs"] << name << " thread #" << std::this_thread::get_id() << " AI has locked mutex before calling serf->set_lost_state (for bug workaround stuck serfs)";
@@ -1041,6 +1043,7 @@ AI::do_fix_stuck_serfs() {
         game->get_mutex()->unlock();
         AILogDebug["do_fix_stuck_serfs"] << name << " thread #" << std::this_thread::get_id() << " AI has unlocked mutex after after serf->set_lost_state (for bug workaround stuck serfs)";
         //game->pause();
+        */
       }
       ++serf_wait_idle_on_road_timer;
     }
