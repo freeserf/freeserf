@@ -113,7 +113,8 @@ main(int argc, char *argv[]) {
   Audio &audio = Audio::get_instance();
   Audio::PPlayer player = audio.get_music_player();
   if (player) {
-    Audio::PTrack t = player->play_track(Audio::TypeMidiTrack0);
+    //Audio::PTrack t = player->play_track(Audio::TypeMidiTrack0);
+    Audio::PTrack t = player->play_track(Audio::TypeMidiTrack0, DataSourceType::Amiga);  // 0=Amiga, 1=DOS, 2=Custom
   }
 
   GameManager &game_manager = GameManager::get_instance();

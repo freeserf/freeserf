@@ -25,6 +25,7 @@
 
 #include "src/misc.h"
 #include "src/audio.h"
+#include "src/lookup.h"  // for DataSourceType enum
 
 /* Get the resulting value from a click on a slider bar. */
 int
@@ -250,6 +251,19 @@ GuiObject::play_sound(int sound) {
   Audio &audio = Audio::get_instance();
   Audio::PPlayer player = audio.get_sound_player();
   if (player) {
-    Audio::PTrack t = player->play_track(sound);
+    //Audio::PTrack t = player->play_track(sound);
+    Audio::PTrack t = player->play_track(sound, DataSourceType::DOS);  // default to DOS
+    //Audio::PTrack t = player->play_track(sound, DataSourceType::Amiga);  // default to Amiga
+  }
+}
+
+void
+//GuiObject::play_sound(int sound) {
+GuiObject::play_sound(int sound, int source_type) {
+  Audio &audio = Audio::get_instance();
+  Audio::PPlayer player = audio.get_sound_player();
+  if (player) {
+    //Audio::PTrack t = player->play_track(sound);
+    Audio::PTrack t = player->play_track(sound, source_type);
   }
 }

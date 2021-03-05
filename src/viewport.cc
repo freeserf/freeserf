@@ -882,7 +882,8 @@ Viewport::draw_unharmed_building(Building *building, int lx, int ly) {
         int i = (interface->get_game()->get_tick() >> 3) & 7;
         if (i == 0 || (i == 7 && !building->is_playing_sfx())) {
           building->start_playing_sfx();
-          play_sound(Audio::TypeSfxGoldBoils);
+          //play_sound(Audio::TypeSfxGoldBoils);
+          play_sound(Audio::TypeSfxGoldBoils, DataSourceType::Amiga);  // the DOS sound is bugged in freeserf, Amiga sound is better anyway
         } else if (i != 7) {
           building->stop_playing_sfx();
         }
@@ -916,7 +917,8 @@ Viewport::draw_unharmed_building(Building *building, int lx, int ly) {
         int i = (interface->get_game()->get_tick() >> 3) & 7;
         if (i == 0 || (i == 7 && !building->is_playing_sfx())) {
           building->start_playing_sfx();
-          play_sound(Audio::TypeSfxGoldBoils);
+          //play_sound(Audio::TypeSfxGoldBoils);
+          play_sound(Audio::TypeSfxGoldBoils, DataSourceType::Amiga);  // the DOS sound is bugged in freeserf, Amiga sound is better anyway
         } else if (i != 7) {
           building->stop_playing_sfx();
         }
@@ -1473,7 +1475,8 @@ Viewport::serf_get_body(Serf *serf) {
       if (((t & 7) == 4 && !serf->playing_sfx()) ||
           (t & 7) == 3) {
         serf->start_playing_sfx();
-        play_sound(Audio::TypeSfxRowing);
+        //play_sound(Audio::TypeSfxRowing);
+        play_sound(Audio::TypeSfxRowing, DataSourceType::DOS);  // DOS sound is a little better
       } else {
         serf->stop_playing_sfx();
       }
@@ -1487,7 +1490,8 @@ Viewport::serf_get_body(Serf *serf) {
         if (((t & 7) == 4 && !serf->playing_sfx()) ||
             (t & 7) == 3) {
           serf->start_playing_sfx();
-          play_sound(Audio::TypeSfxRowing);
+          //play_sound(Audio::TypeSfxRowing);
+          play_sound(Audio::TypeSfxRowing, DataSourceType::DOS);  // DOS sound is a little better
         } else {
           serf->stop_playing_sfx();
         }
@@ -1567,7 +1571,8 @@ Viewport::serf_get_body(Serf *serf) {
          It is probably free walking. */
       if (serf->get_free_walking_neg_dist2() == 0 &&
           serf->get_counter() < 64) {
-        play_sound(Audio::TypeSfxTreeFall);
+        //play_sound(Audio::TypeSfxTreeFall);
+        play_sound(Audio::TypeSfxTreeFall, DataSourceType::DOS);  // DOS sound is better
       }
       t += 0xe80;
     } else if (t != 0x86) {
@@ -1590,7 +1595,8 @@ Viewport::serf_get_body(Serf *serf) {
           (!serf->playing_sfx() && (t == 0xb7 || t == 0xbf ||
                 t == 0xc7 || t == 0xcf))) {
         serf->start_playing_sfx();
-        play_sound(Audio::TypeSfxSawing);
+        //play_sound(Audio::TypeSfxSawing);
+        play_sound(Audio::TypeSfxSawing, DataSourceType::Amiga);  // Amiga sound is better for sawmill
       } else if (t != 0xb7 && t != 0xbf && t != 0xc7 && t != 0xcf) {
         serf->stop_playing_sfx();
       }
@@ -1833,7 +1839,8 @@ Viewport::serf_get_body(Serf *serf) {
       /* edi10 += 4; */
       if (t == 0x83 || (t == 0xb2 && !serf->playing_sfx())) {
         serf->start_playing_sfx();
-        play_sound(Audio::TypeSfxSawing);
+        //play_sound(Audio::TypeSfxSawing); 
+        play_sound(Audio::TypeSfxSawing, DataSourceType::DOS);  // DOS sound better for hand-saw?  uses same sound ID as sawmill
       } else if (t == 0x87 || (t == 0xb6 && !serf->playing_sfx())) {
         serf->start_playing_sfx();
         play_sound(Audio::TypeSfxWoodHammering);
@@ -1873,7 +1880,8 @@ Viewport::serf_get_body(Serf *serf) {
     } else if (t == 0x83 || t == 0x84 || t == 0x86) {
       if (t == 0x83 || !serf->playing_sfx()) {
         serf->start_playing_sfx();
-        play_sound(Audio::TypeSfxGeologistSampling);
+        //play_sound(Audio::TypeSfxGeologistSampling);
+        play_sound(Audio::TypeSfxGeologistSampling, DataSourceType::DOS);  // I thought I prefered the Amiga sound but it is grating, annoying.  use DOS
       }
       t += 0x4c80;
     } else if (t == 0x8c || t == 0x8d) {
@@ -2472,14 +2480,30 @@ Viewport::draw_game_objects(int layers_) {
     }
     if (!interface->is_playing_birdsfx && birdsound_chance > tick_rand && limit_tick % 8 == 0){
       uint16_t foo_rand = (random.random() * tick_rand) & 0x7f;
-      if (foo_rand < 25) {
-        play_sound(Audio::TypeSfxBirdChirp3);   // this is a longer chirp, make it less frequent
-      } else if (foo_rand < 50) {
-        play_sound(Audio::TypeSfxBirdChirp1);
+      if (foo_rand < 20) {
+        play_sound(Audio::TypeSfxBirdChirp3, DataSourceType::DOS);
+        //Log::Info["viewport.cc"] << "birdsongsfx debug: CHIRP!  DOS 3";  // short chirp 
+      } else if (foo_rand < 40) {
+        play_sound(Audio::TypeSfxBirdChirp1, DataSourceType::DOS);
+        //Log::Info["viewport.cc"] << "birdsongsfx debug: CHIRP!  DOS 1";  // short chirp
+      } else if (foo_rand < 60) {
+        play_sound(Audio::TypeSfxBirdChirp0, DataSourceType::DOS);
+        //Log::Info["viewport.cc"] << "birdsongsfx debug: CHIRP!  DOS 0";  // short chirp
       } else if (foo_rand < 75) {
-        play_sound(Audio::TypeSfxBirdChirp0); 
+        play_sound(Audio::TypeSfxBirdChirp2, DataSourceType::DOS);
+        //Log::Info["viewport.cc"] << "birdsongsfx debug: CHIRP!  DOS 2";  // medium chirp
+      } else if (foo_rand < 82) {
+        play_sound(Audio::TypeSfxBirdChirp3, DataSourceType::Amiga);  
+        //Log::Info["viewport.cc"] << "birdsongsfx debug: CHIRP!  Amiga 3";  // long chirp
+      } else if (foo_rand < 90) {
+        play_sound(Audio::TypeSfxBirdChirp1, DataSourceType::Amiga);  // long chirp
+        //Log::Info["viewport.cc"] << "birdsongsfx debug: CHIRP!  Amiga 1";
+      } else if (foo_rand < 120) {
+        play_sound(Audio::TypeSfxBirdChirp0, DataSourceType::Amiga);  // short chirp
+        //Log::Info["viewport.cc"] << "birdsongsfx debug: CHIRP!  Amiga 0";
       } else {
-        play_sound(Audio::TypeSfxBirdChirp2);
+        play_sound(Audio::TypeSfxBirdChirp2, DataSourceType::Amiga);  // long chirp
+        //Log::Info["viewport.cc"] << "birdsongsfx debug: CHIRP!  Amiga 2";  
       }
       // allow up to a few birdsounds
       //if (limit_tick % 36 == 0){
@@ -2535,6 +2559,7 @@ Viewport::draw_game_objects(int layers_) {
       uint16_t foo_rand = (random.random() * tick_rand) & 0x7f;
       if (foo_rand < 25) {
         play_sound(Audio::TypeSfxUnknown28);
+        //play_sound(Audio::TypeSfxUnknown28, DataSourceType::DOS);  // DOS is a little better
       }
       interface->is_playing_watersfx = true;
     }else{

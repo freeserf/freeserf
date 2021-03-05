@@ -80,6 +80,7 @@ class GuiObject : public EventLoop::Handler {
   virtual bool handle_event(const Event *event);
 
   void play_sound(int sound);
+  void play_sound(int sound, int source_type);
 };
 
 int gui_get_slider_click_value(int x);

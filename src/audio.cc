@@ -49,7 +49,8 @@ Audio::Player::~Player() {
 }
 
 Audio::PTrack
-Audio::Player::play_track(int track_id) {
+//Audio::Player::play_track(int track_id) {
+Audio::Player::play_track(int track_id, int source_type) {  
   if (!is_enabled()) {
     return nullptr;
   }
@@ -57,7 +58,8 @@ Audio::Player::play_track(int track_id) {
   Audio::PTrack track;
   TrackCache::iterator it = track_cache.find(track_id);
   if (it == track_cache.end()) {
-    track = create_track(track_id);
+    //track = create_track(track_id);
+    track = create_track(track_id, source_type); // 0=Amiga, 1=DOS, 2=Custom
     if (track != nullptr) {
       track_cache[track_id] = track;
     }

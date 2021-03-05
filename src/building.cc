@@ -453,7 +453,8 @@ Building::requested_resource_delivered(Resource::Type resource) {
           // decrement the requested count
           stock[i].requested -= 1;
         } else {
-          Log::Warn["building"] << "inside Building::requested_resource_delivered, building of type " << NameBuilding[type] << " at pos " << get_position() << ", Delivered more resources than requested: " << stock[i].requested << " available: "<< stock[i].available << " of type: " << resource;
+          // this isn't unexpected now that res req timeouts/retry in place
+          //Log::Warn["building"] << "inside Building::requested_resource_delivered, building of type " << NameBuilding[type] << " at pos " << get_position() << ", Delivered more resources than requested: " << stock[i].requested << " available: "<< stock[i].available << " of type: " << resource;
           return;
         }
         return;

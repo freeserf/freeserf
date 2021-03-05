@@ -699,7 +699,17 @@ typedef enum GameType {
   GameLoad = 2
 } GameType;
 
+typedef enum DataSourceType {
+  Amiga = 0,
+  DOS = 1,
+  Custom = 2
+} DataSourceType;
 
+const std::string NameDataSourceType[] = {
+  "Amiga",
+  "DOS",
+  "Custom",
+};
 
 
 

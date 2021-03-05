@@ -1154,7 +1154,7 @@ Serf::change_direction(Direction dir, int alt_end) {
         // this sailor is probably the new transporter for this water path
         //  let him go on, and do not put him in WaitForBoat state
       }else{
-        Log::Error["serf"] << "serf of type " << NameSerf[get_type()] << " at pos " << pos << " with state " << get_state() << " expecting flag with water path to have sailor! but dose not, crashing";
+        Log::Error["serf"] << "serf of type " << NameSerf[get_type()] << " at pos " << pos << " with state " << get_state() << " expecting flag with water path to have sailor! but does not, crashing";
         throw ExceptionFreeserf("expecting flag with water path to have a (sailor) transporter!  to direct serf to WaitForBoat state");
       }
     }
@@ -5738,7 +5738,7 @@ Serf::handle_serf_idle_on_path_state() {
     //if (get_type() == Serf::TypeSailor){
        //Log::Info["serf"] << "debug: inside handle_serf_idle_on_path_state, sailor end 5";
     //}
-    Log::Info["serf"] << "debug: inside handle_serf_idle_on_path_state, a serf of type " << NameSerf[get_type()] << " at pos " << get_pos() << " is about to be set to StateWaitIdleOnPath !";
+    //Log::Info["serf"] << "debug: inside handle_serf_idle_on_path_state, a serf of type " << NameSerf[get_type()] << " at pos " << get_pos() << " is about to be set to StateWaitIdleOnPath !";
     set_state(StateWaitIdleOnPath);
   }
 }
@@ -5831,7 +5831,7 @@ Serf::handle_serf_wake_at_flag_state() {
 
 void
 Serf::handle_serf_wake_on_path_state() {
-  Log::Info["serf"] << "debug: inside handle_serf_wake_on_path_state, a serf of type " << NameSerf[get_type()] << " at pos " << get_pos() << " is about to be set to StateWaitIdleOnPath !";
+  //Log::Info["serf"] << "debug: inside handle_serf_wake_on_path_state, a serf of type " << NameSerf[get_type()] << " at pos " << get_pos() << " is about to be set to StateWaitIdleOnPath !";
   set_state(StateWaitIdleOnPath);
 
   for (Direction d : cycle_directions_ccw()) {
