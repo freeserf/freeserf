@@ -2101,7 +2101,7 @@ AI::do_manage_tool_priorities() {
   player->set_planks_toolmaker(0);
   need_tools = false;
   unsigned int planks_count = realm_inv[Resource::TypePlank];
-  for (int i = 0; i < 27; ++i) {
+  for (int i = 0; i < 20; ++i) {
 
     unsigned int idle = serfs_idle[(Serf::Type)i];
     unsigned int potential = serfs_potential[(Serf::Type)i];

@@ -617,7 +617,7 @@ Serf::change_transporter_state_at_pos(MapPos pos_, Serf::State _state) {
   if (pos == pos_ &&
       (_state == StateWakeAtFlag || _state == StateWakeOnPath ||
        _state == StateWaitIdleOnPath || _state == StateIdleOnPath)) {
-    Log::Info["serf.cc"] << "inside change_transporter_state_at_pos (IS wake/wait/idle, set new state), type " << NameSerf[get_type()] << ", pos_ " << pos_ << " old state: " << get_state() << ", new_state = " << _state;
+    //Log::Info["serf.cc"] << "inside change_transporter_state_at_pos (IS wake/wait/idle, set new state), type " << NameSerf[get_type()] << ", pos_ " << pos_ << " old state: " << get_state() << ", new_state = " << _state;
     set_state(_state);
     return true;
   }

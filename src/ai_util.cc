@@ -2368,9 +2368,9 @@ AI::expand_borders(MapPos center_pos) {
     // should be returning not_built_pos or bad_map pos?? stopbuilding is less appropriate with separate counts set up for huts vs other buildings
     return stopbuilding_pos;
   }
-  // don't expand borders if running out of knights AND already have all 3 mine types
+  // don't expand borders if running low of knights AND already have all 3 mine types
   unsigned int idle_knights = serfs_idle[Serf::TypeKnight0] + serfs_idle[Serf::TypeKnight1] + serfs_idle[Serf::TypeKnight2] + serfs_idle[Serf::TypeKnight3] + serfs_idle[Serf::TypeKnight4];
-  if (idle_knights <= knights_min) {
+  if (idle_knights <= knights_med) {
     AILogDebug["util_expand_borders"] << name << " running low on idle_knights, checking to see if already have all three mine types";
     if (realm_building_count[Building::TypeCoalMine] > 0 &&
         realm_building_count[Building::TypeIronMine] > 0 &&
