@@ -1,10 +1,10 @@
-cmake_minimum_required(VERSION 2.8 FATAL_ERROR)
+cmake_minimum_required(VERSION 3.1 FATAL_ERROR)
 
 find_package(Threads REQUIRED)
 
 include(ExternalProject)
 ExternalProject_Add(googletest
-                    URL https://github.com/google/googletest/archive/release-1.8.0.tar.gz
+                    URL https://github.com/google/googletest/archive/release-1.10.0.tar.gz
                     CMAKE_ARGS -Dgtest_force_shared_crt=ON
                                -DBUILD_GTEST=ON
                                -DBUILD_GMOCK=OFF
@@ -14,16 +14,20 @@ ExternalProject_Add(googletest
                     INSTALL_COMMAND "")
 ExternalProject_Get_Property(googletest SOURCE_DIR BINARY_DIR)
 include_directories(${INCLUDE_DIRECTORIES} "${SOURCE_DIR}/googletest/include")
-set(GTEST_BIN_DIR "${BINARY_DIR}/googletest/${CMAKE_CFG_INTDIR}")
+set(GTEST_BIN_DIR "${BINARY_DIR}/${CMAKE_CFG_INTDIR}")
+
+if(CMAKE_BUILD_TYPE STREQUAL "Debug")
+  set(LIBRARY_DEBUG_SUFFIX "d")
+endif()
 
 add_library(gtest STATIC IMPORTED)
 set_target_properties(gtest PROPERTIES
-                      IMPORTED_LOCATION "${GTEST_BIN_DIR}/${CMAKE_STATIC_LIBRARY_PREFIX}gtest${CMAKE_STATIC_LIBRARY_SUFFIX}")
+                      IMPORTED_LOCATION "${GTEST_BIN_DIR}/lib/${CMAKE_STATIC_LIBRARY_PREFIX}gtest${LIBRARY_DEBUG_SUFFIX}${CMAKE_STATIC_LIBRARY_SUFFIX}")
 add_dependencies(gtest googletest)
 
 add_library(gtest_main STATIC IMPORTED)
 set_target_properties(gtest_main PROPERTIES
-                      IMPORTED_LOCATION "${GTEST_BIN_DIR}/${CMAKE_STATIC_LIBRARY_PREFIX}gtest_main${CMAKE_STATIC_LIBRARY_SUFFIX}")
+                      IMPORTED_LOCATION "${GTEST_BIN_DIR}/lib/${CMAKE_STATIC_LIBRARY_PREFIX}gtest_main${LIBRARY_DEBUG_SUFFIX}${CMAKE_STATIC_LIBRARY_SUFFIX}")
 add_dependencies(gtest_main googletest)
 
 include(GoogleTest)
