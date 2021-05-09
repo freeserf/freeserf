@@ -490,8 +490,11 @@ GameStore::GameStore() {
   folder_path += "/Library/Application Support";
   folder_path += '/';
 #else
-  folder_path = std::string(std::getenv("HOME"));
-  folder_path += "/.local/share";
+  char *folder = std::getenv("XDG_DATA_HOME");
+  if (folder == nullptr) {
+    folder = std::getenv("HOME");
+  }
+  folder_path = std::string(folder);
   folder_path += '/';
 #endif
 
@@ -526,8 +529,13 @@ GameStore::create_folder(const std::string &path) {
 #ifdef _WIN32
   return (CreateDirectoryA(path.c_str(), nullptr) != FALSE);
 #else
-  return (mkdir(folder_path.c_str(),
-                S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH) == 0);
+  int result = mkdir(path.c_str(),
+                     S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
+  if (result != 0) {
+    Log::Error["savegame"] << "Failed to create folder: errno = "
+                           << errno << "";
+  }
+  return (result == 0);
 #endif  // _WIN32
 }
 

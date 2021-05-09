@@ -1,0 +1,53 @@
+name: linux
+
+on:
+  pull_request:
+  push:
+  release:
+    types: published
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        buildtype: [Debug, Release]
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+        with:
+          submodules: 'recursive'
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libsdl2-dev
+          sudo apt-get install -y libsdl2-mixer-dev
+          sudo apt-get install -y libsdl2-image-dev
+
+      - name: Configure FreeSerf
+        run: |
+          cmake -B build -G "Unix Makefiles"
+
+      - name: Build FreeSerf
+        run: |
+          cd build
+          make
+
+      - name: Run Tests
+        run: |
+          cd build
+          make test
+
+      - name: Pack FreeSerf
+        run: |
+          cd build
+          make package
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v2
+        with:
+          name: FreeSerf-${{ matrix.buildtype }}
+          path: ./build/FreeSerf-0.1.1-Linux.tar.*
