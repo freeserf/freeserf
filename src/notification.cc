@@ -60,20 +60,12 @@ NotificationBox::draw_map_object(int ox, int oy, int sprite) {
   frame->draw_sprite(8 * ox, oy, Data::AssetMapObject, sprite);
 }
 
-unsigned int
-NotificationBox::get_player_face_sprite(size_t face) {
-  if (face != 0) {
-    return static_cast<unsigned int>(0x10b + face);
-  }
-  return 0x119; /* sprite_face_none */
-}
-
 void
 NotificationBox::draw_player_face(int fx, int fy, int player) {
-  Player *p = interface->get_game()->get_player(player);
   Color color = interface->get_player_color(player);
+  size_t face = interface->get_player_face(player);
   frame->fill_rect(8 * fx, fy, 48, 72, color);
-  draw_icon(fx + 1, fy + 4, get_player_face_sprite(p->get_face()));
+  draw_icon(fx + 1, fy + 4, face);
 }
 
 #define NOTIFICATION_SHOW_OPPONENT 0

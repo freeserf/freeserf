@@ -27,28 +27,27 @@
 #include <functional>
 
 #include "src/gui.h"
-#include "src/savegame.h"
+#include "src/game-manager.h"
 
-class ListSavedFiles : public GuiObject {
+class ListGames : public GuiObject {
  protected:
   Color color_focus;
   Color color_text;
   Color color_background;
 
-  GameStore *save_game;
-  std::vector<GameStore::SaveInfo> items;
+  PGameSource game_source;
   unsigned int first_visible_item;
   int selected_item;
-  std::function<void(const std::string&)> selection_handler;
+  std::function<void(PGameInfo)> selection_handler;
 
  public:
-  ListSavedFiles();
+  explicit ListGames(PGameSource _game_source);
+  virtual ~ListGames();
 
-  void set_selection_handler(std::function<void(const std::string&)> handler) {
+  void set_selection_handler(std::function<void(PGameInfo)> handler) {
     selection_handler = handler;
   }
-  std::string get_selected() const;
-  std::string get_folder_path() const { return save_game->get_folder_path(); }
+  PGameInfo get_selected() const;
 
  protected:
   virtual void internal_draw();

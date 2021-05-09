@@ -41,12 +41,10 @@ set(GAME_SOURCES building.cc
                  inventory.cc
                  map.cc
                  map-generator.cc
-                 mission.cc
                  player.cc
                  random.cc
                  savegame.cc
-                 serf.cc
-                 game-manager.cc)
+                 serf.cc)
 
 set(GAME_HEADERS building.h
                  flag.h
@@ -55,14 +53,12 @@ set(GAME_HEADERS building.h
                  map.h
                  map-generator.h
                  map-geometry.h
-                 mission.h
                  objects.h
                  player.h
                  random.h
                  resource.h
                  savegame.h
-                 serf.h
-                 game-manager.h)
+                 serf.h)
 
 add_library(game STATIC ${GAME_SOURCES} ${GAME_HEADERS})
 target_check_style(game)
@@ -130,6 +126,23 @@ endif()
 add_library(data STATIC ${DATA_SOURCES} ${DATA_HEADERS})
 target_check_style(data)
 
+# Adapter library
+
+set(ADAPTER_SOURCES game-source-mission.cc
+                    game-source-custom.cc
+                    game-source-local.cc
+                    characters.cc
+                    game-manager.cc)
+
+set(ADAPTER_HEADERS game-source-mission.h
+                    game-source-custom.h
+                    game-source-local.h
+                    characters.h
+                    game-manager.h)
+
+add_library(adapter STATIC ${ADAPTER_SOURCES} ${ADAPTER_HEADERS})
+target_check_style(adapter)
+
 # FreeSerf executable
 
 set(OTHER_SOURCES pathfinder.cc
@@ -170,7 +183,7 @@ set(FREESERF_HEADERS freeserf.h ${OTHER_HEADERS})
 add_executable(FreeSerf MACOSX_BUNDLE WIN32 ${FREESERF_SOURCES} ${FREESERF_HEADERS})
 target_check_style(FreeSerf)
 
-target_link_libraries(FreeSerf game platform data tools)
+target_link_libraries(FreeSerf game platform data adapter tools)
 if(SDL2_FOUND)
   target_link_libraries(FreeSerf optimized ${SDL2_LIBRARY} debug ${SDL2_LIBRARY_DEBUG})
   if(WIN32)
@@ -252,4 +265,4 @@ set(PROFILER_HEADERS profiler.h
 
 add_executable(profiler ${PROFILER_SOURCES} ${PROFILER_HEADERS})
 target_check_style(profiler)
-target_link_libraries(profiler game tools)
+target_link_libraries(profiler game adapter tools)

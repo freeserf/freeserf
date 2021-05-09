@@ -81,13 +81,15 @@ Interface::Interface()
   init_box = nullptr;
   notification_box = nullptr;
 
-  GameManager::get_instance().add_handler(this);
-  set_game(GameManager::get_instance().get_current_game());
+  GameManager &game_manager = GameManager::get_instance();
+  game_manager.add_handler(this);
+  set_game(game_manager.get_current_game(),
+           game_manager.get_current_game_info());
 }
 
 Interface::~Interface() {
   GameManager::get_instance().del_handler(this);
-  set_game(nullptr);
+  set_game(nullptr, nullptr);
 
   delete viewport;
   delete panel;
@@ -435,14 +437,16 @@ Interface::update_interface() {
 }
 
 void
-Interface::set_game(PGame new_game) {
+Interface::set_game(PGame new_game, PGameInfo new_game_info) {
   if (viewport != nullptr) {
     del_float(viewport);
     delete viewport;
     viewport = nullptr;
   }
 
-  game = std::move(new_game);
+  game = new_game;
+  game_info = new_game_info;
+  player = nullptr;
 
   if (game) {
     viewport = new Viewport(this, game->get_map());
@@ -496,9 +500,23 @@ Interface::set_player(unsigned int player_index) {
 
 Color
 Interface::get_player_color(unsigned int player_index) {
-  Player::Color player_color = game->get_player(player_index)->get_color();
+  PPlayerInfo player = game_info->get_player(player_index);
+  if (!player) {
+    return Color(0xFF, 0xFF, 0xFF);
+  }
+  PlayerInfo::Color player_color = player->get_color();
   Color color(player_color.red, player_color.green, player_color.blue);
   return color;
+}
+
+unsigned int
+Interface::get_player_face(unsigned int player_index) {
+  PPlayerInfo player = game_info->get_player(player_index);
+  if (!player) {
+    return 0x119;  // sprite_face_none
+  }
+
+  return static_cast<unsigned int>(0x10b + player->get_face());
 }
 
 void
@@ -894,7 +912,8 @@ Interface::handle_key_pressed(char key, int modifier) {
     }
     case 'z':
       if (modifier & 1) {
-        GameStore::get_instance().quick_save("quicksave", game.get());
+        GameManager::get_instance().publicate_current_game("local",
+                                                           "quicksave");
       }
       break;
     case 'n':
@@ -937,11 +956,11 @@ Interface::handle_event(const Event *event) {
 }
 
 void
-Interface::on_new_game(PGame new_game) {
-  set_game(new_game);
+Interface::on_new_game(PGame new_game, PGameInfo new_game_info) {
+  set_game(new_game, new_game_info);
 }
 
 void
 Interface::on_end_game(PGame /*game*/) {
-  set_game(nullptr);
+  set_game(nullptr, nullptr);
 }

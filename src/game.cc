@@ -42,17 +42,25 @@
 
 #define GROUND_ANALYSIS_RADIUS  25
 
-Game::Game()
-  : map_gold_morale_factor(0)
-  , game_speed_save(0)
-  , last_tick(0)
-  , field_340(0)
-  , field_342(0)
-  , field_344(0)
-  , tutorial_level(0)
-  , mission_level(0)
-  , map_preserve_bugs(0)
-  , player_score_leader(0) {
+Game::Game() {
+  init();
+}
+
+Game::Game(unsigned int map_size, const Random &random) {
+  init();
+
+  init_map_rnd = random;
+
+  map.reset(new Map(MapGeometry(map_size)));
+  ClassicMissionMapGenerator generator(*map, init_map_rnd);
+  generator.init();
+  generator.generate();
+  map->init_tiles(generator);
+  gold_total = map->get_gold_deposit();
+}
+
+void
+Game::init() {
   players = Players(this);
   flags = Flags(this);
   inventories = Inventories(this);
@@ -105,6 +113,24 @@ Game::~Game() {
   buildings.clear();
   flags.clear();
   players.clear();
+}
+
+// Add new player to the game. Returns the player number.
+unsigned int
+Game::add_player(unsigned int intelligence, unsigned int supplies,
+                 unsigned int reproduction) {
+  /* Allocate object */
+  Player *player = players.allocate();
+  if (player == nullptr) {
+    throw ExceptionFreeserf("Failed to create new player.");
+  }
+
+  player->init(intelligence, supplies, reproduction);
+
+  /* Update map values dependent on player count */
+  map_gold_morale_factor = 10 * 1024 * static_cast<int>(players.size());
+
+  return player->get_index();
 }
 
 /* Clear the serf request bit of all flags and buildings.
@@ -1979,38 +2005,6 @@ Game::set_inventory_serf_mode(Inventory *inventory, int mode) {
   } else {
     flag->set_accepts_serfs(true);
   }
-}
-
-// Add new player to the game. Returns the player number.
-unsigned int
-Game::add_player(unsigned int intelligence, unsigned int supplies,
-                 unsigned int reproduction) {
-  /* Allocate object */
-  Player *player = players.allocate();
-  if (player == nullptr) {
-    throw ExceptionFreeserf("Failed to create new player.");
-  }
-
-  player->init(intelligence, supplies, reproduction);
-
-  /* Update map values dependent on player count */
-  map_gold_morale_factor = 10 * 1024 * static_cast<int>(players.size());
-
-  return player->get_index();
-}
-
-bool
-Game::init(unsigned int map_size, const Random &random) {
-  init_map_rnd = random;
-
-  map.reset(new Map(MapGeometry(map_size)));
-  ClassicMissionMapGenerator generator(*map, init_map_rnd);
-  generator.init();
-  generator.generate();
-  map->init_tiles(generator);
-  gold_total = map->get_gold_deposit();
-
-  return true;
 }
 
 /* Cancel a resource being transported to destination. This

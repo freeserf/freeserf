@@ -54,7 +54,6 @@ class NotificationBox : public GuiObject {
   void draw_background(int width, int height, int sprite);
   void draw_string(int x, int y, const std::string &str);
   void draw_map_object(int x, int y, int sprite);
-  unsigned int get_player_face_sprite(size_t face);
   void draw_player_face(int x, int y, int player);
 
   virtual void internal_draw();

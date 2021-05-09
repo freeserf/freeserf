@@ -57,8 +57,6 @@ Player::Player(Game* game, unsigned int index)
   , resource_count_history{}
   , attacking_knights{} {
   build = 0;
-  color = { 0 };
-  face = -1;
   flags = 0;
   castle_inventory = 0;
   reproduction_counter = 0;
@@ -183,43 +181,6 @@ Player::init(unsigned int _intelligence, unsigned int _supplies,
   reproduction_reset = (60 - (size_t)_reproduction) * 50;
   ai_intelligence = (1300 * (size_t)_intelligence) + 13535;
   reproduction_counter = static_cast<int>(reproduction_reset);
-}
-
-void
-Player::init_view(Color _color, unsigned int _face) {
-  face = _face;
-
-  if (face < 12) { /* AI player */
-    flags |= BIT(7); /* Set AI bit */
-    /* TODO ... */
-    /*game.max_next_index = 49;*/
-  }
-
-  if (is_ai()) init_ai_values(face);
-
-  color = _color;
-}
-
-/* Initialize AI parameters. */
-void
-Player::init_ai_values(size_t face_) {
-  const int ai_values_0[] = { 13, 10, 16, 9, 10, 8, 6, 10, 12, 5, 8 };
-  const int ai_values_1[] = { 10000, 13000, 16000, 16000, 18000, 20000,
-                              19000, 18000, 30000, 23000, 26000 };
-  const int ai_values_2[] = { 10000, 35000, 20000, 27000, 37000, 25000,
-                              40000, 30000, 50000, 35000, 40000 };
-  const int ai_values_3[] = { 0, 36, 0, 31, 8, 480, 3, 16, 0, 193, 39 };
-  const int ai_values_4[] = { 0, 30000, 5000, 40000, 50000, 20000, 45000,
-                              35000, 65000, 25000, 30000 };
-  const int ai_values_5[] = { 60000, 61000, 60000, 65400, 63000, 62000,
-                              65000, 63000, 64000, 64000, 64000 };
-
-  ai_value_0 = ai_values_0[face_ - 1];
-  ai_value_1 = ai_values_1[face_ - 1];
-  ai_value_2 = ai_values_2[face_ - 1];
-  ai_value_3 = ai_values_3[face_ - 1];
-  ai_value_4 = ai_values_4[face_ - 1];
-  ai_value_5 = ai_values_5[face_ - 1];
 }
 
 /* Enqueue a new notification message for player. */
@@ -1090,13 +1051,6 @@ Player::get_food_for_building(unsigned int bld_type) const {
 
 SaveReaderBinary&
 operator >> (SaveReaderBinary &reader, Player &player)  {
-  const Player::Color default_player_colors[] = {
-    {0x00, 0xe3, 0xe3},
-    {0xcf, 0x63, 0x63},
-    {0xdf, 0x7f, 0xef},
-    {0xef, 0xef, 0x8f}
-  };
-
   uint16_t v16;
   for (int j = 0; j < 9; j++) {
     reader >> v16;  // 0
@@ -1125,7 +1079,6 @@ operator >> (SaveReaderBinary &reader, Player &player)  {
 
   reader >> v16;  // 128
   player.index = v16;
-  player.color = default_player_colors[player.index];
   reader >> v8;  // 130
   player.flags = v8;
   reader >> v8;  // 131
@@ -1261,11 +1214,6 @@ SaveReaderText&
 operator >> (SaveReaderText &reader, Player &player) {
   reader.value("flags") >> player.flags;
   reader.value("build") >> player.build;
-  unsigned int val;
-  reader.value("color")[0] >> val; player.color.red = val;
-  reader.value("color")[1] >> val; player.color.green = val;
-  reader.value("color")[2] >> val; player.color.blue = val;
-  reader.value("face") >> player.face;
   for (int i = 0; i < 9; i++) {
     reader.value("tool_prio")[i] >> player.tool_prio[i];
   }
@@ -1327,10 +1275,6 @@ SaveWriterText&
 operator << (SaveWriterText &writer, Player &player) {
   writer.value("flags") << player.flags;
   writer.value("build") << player.build;
-  writer.value("color") << player.color.red;
-  writer.value("color") << player.color.green;
-  writer.value("color") << player.color.blue;
-  writer.value("face") << player.face;
 
   for (int i = 0; i < 9; i++) {
     writer.value("tool_prio") << player.tool_prio[i];

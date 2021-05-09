@@ -79,13 +79,6 @@ typedef std::vector<PosTimer> PosTimers;
 
 /* Player object. Holds the game state of a player. */
 class Player : public GameObject {
- public:
-  typedef struct Color {
-    unsigned char red;
-    unsigned char green;
-    unsigned char blue;
-  } Color;
-
  protected:
   int tool_prio[9];
   int resource_count[26];
@@ -93,8 +86,6 @@ class Player : public GameObject {
   int serf_count[27];
   int knight_occupation[4];
 
-  Color color; /* ADDED */
-  size_t face;
   int flags;
   int build;
   int completed_building_count[24];
@@ -177,10 +168,6 @@ class Player : public GameObject {
 
   void init(unsigned int intelligence, unsigned int supplies,
             unsigned int reproduction);
-  void init_view(Color color, unsigned int face);
-
-  Color get_color() const { return color; }
-  size_t get_face() const { return face; }
 
   /* Whether player has built the initial castle. */
   bool has_castle() const { return (flags & 1); }

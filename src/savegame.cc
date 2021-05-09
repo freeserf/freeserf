@@ -471,6 +471,9 @@ SaveWriterTextValue::operator << (const std::string &val) {
 
 // SaveGame
 
+GameStore *
+GameStore::instance = nullptr;
+
 GameStore::GameStore() {
   folder_path = ".";
 
@@ -484,21 +487,18 @@ GameStore::GameStore() {
   ::WideCharToMultiByte(CP_ACP, 0, saved_games_path, len,
                         (LPSTR)folder_path.data(), len, nullptr, nullptr);
   ::CoTaskMemFree(saved_games_path);
-  folder_path += '\\';
 #elif defined(__APPLE__)
   folder_path = std::string(std::getenv("HOME"));
   folder_path += "/Library/Application Support";
-  folder_path += '/';
 #else
   char *folder = std::getenv("XDG_DATA_HOME");
   if (folder == nullptr) {
     folder = std::getenv("HOME");
   }
   folder_path = std::string(folder);
-  folder_path += '/';
 #endif
 
-  folder_path += "freeserf";
+  folder_path += "/freeserf";
   if (!is_folder_exists(folder_path)) {
     if (!create_folder(folder_path)) {
       throw ExceptionFreeserf("Failed to create folder");
@@ -518,9 +518,11 @@ GameStore::GameStore() {
 GameStore::~GameStore() {
 }
 
-GameStore &
+GameStore *
 GameStore::get_instance() {
-  static GameStore instance;
+  if (instance == nullptr) {
+    instance = new GameStore();
+  }
   return instance;
 }
 
@@ -621,33 +623,6 @@ GameStore::update() {
 #endif  // _WIN32
 }
 
-bool
-GameStore::is_file_exists(const std::string &path) {
-  struct stat info;
-  if (stat(path.c_str(), &info) == 0) {
-    if ((info.st_mode & S_IFDIR) != S_IFDIR) {
-      return true;
-    }
-  }
-  return false;
-}
-
-void
-GameStore::add_info(SaveInfo info) {
-  if (!is_file_exists(info.path)) {
-    return;
-  }
-  bool exists = false;
-  for (SaveInfo &i : saved_games) {
-    if (i.path == info.path) {
-      exists = true;
-    }
-  }
-  if (!exists) {
-    saved_games.push_back(info);
-  }
-}
-
 void
 GameStore::find_legacy() {
   std::ifstream archiv(folder_path + "/ARCHIV.DS", std::ios::binary);
@@ -664,15 +639,8 @@ GameStore::find_legacy() {
           info.name += c;
         }
       }
-#ifdef _WIN32
-      info.path = folder_path + '\\';
-#else
-      info.path = folder_path + '/';
-#endif  // _WIN32
-      info.path += "SAVE";
-      info.path += static_cast<char>(i + '0');
-      info.path += ".DS";
-      add_info(info);
+      info.path = folder_path + "/SAVE" + static_cast<char>(i + '0') + ".DS";
+      saved_games.push_back(info);
     }
   }
 
@@ -683,13 +651,11 @@ GameStore::find_legacy() {
   if (hFind != INVALID_HANDLE_VALUE) {
     do {
       if ((ffd.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) == 0) {
-        if (std::string(ffd.cFileName) != "ARCHIV.DS") {
-          SaveInfo info;
-          info.name = name_from_file(ffd.cFileName);
-          info.path = folder_path + "\\" + ffd.cFileName;
-          info.type = SaveInfo::Legacy;
-          add_info(info);
-        }
+        SaveInfo info;
+        info.name = name_from_file(ffd.cFileName);
+        info.path = folder_path + "\\" + ffd.cFileName;
+        info.type = SaveInfo::Legacy;
+        saved_games.push_back(info);
       }
     } while (FindNextFileA(hFind, &ffd) != FALSE);
   }
@@ -709,14 +675,20 @@ GameStore::find_legacy() {
       continue;
     }
     std::string ext = file_name.substr(pos+1, file_name.size());
-    if (ext != "DS" || file_name == "ARCHIV.DS") {
+    if (ext != "DS") {
       continue;
     }
-    SaveInfo info;
-    info.name = name_from_file(file_name);
-    info.path = folder_path + "/" + file_name;
-    info.type = SaveInfo::Legacy;
-    add_info(info);
+    std::string file_path = folder_path + "/" + file_name;
+    struct stat info;
+    if (stat(file_path.c_str(), &info) == 0) {
+      if ((info.st_mode & S_IFDIR) != S_IFDIR) {
+        SaveInfo info;
+        info.name = name_from_file(file_name);
+        info.path = file_path;
+        info.type = SaveInfo::Legacy;
+        saved_games.push_back(info);
+      }
+    }
   }
 
   closedir(dir);

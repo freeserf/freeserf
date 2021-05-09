@@ -1,7 +1,7 @@
 /*
  * game-init.cc - Game initialization GUI component
  *
- * Copyright (C) 2013-2018  Jon Lund Steffensen <jonlst@gmail.com>
+ * Copyright (C) 2013-2019  Jon Lund Steffensen <jonlst@gmail.com>
  *
  * This file is part of freeserf.
  *
@@ -26,7 +26,6 @@
 #include <string>
 
 #include "src/misc.h"
-#include "src/mission.h"
 #include "src/data.h"
 #include "src/interface.h"
 #include "src/version.h"
@@ -35,7 +34,7 @@
 #include "src/map-generator.h"
 #include "src/map-geometry.h"
 #include "src/list.h"
-#include "src/game-manager.h"
+#include "src/game-source-custom.h"
 #include "src/popup.h"
 
 class RandomInput : public TextInput {
@@ -88,10 +87,18 @@ class RandomInput : public TextInput {
   }
 };
 
+const PlayerInfo::Color default_player_colors[] = {
+  {0x00, 0xe3, 0xe3},
+  {0xcf, 0x63, 0x63},
+  {0xdf, 0x7f, 0xef},
+  {0xef, 0xef, 0x8f}
+};
+
 GameInitBox::GameInitBox(Interface *interface)
   : random_input(new RandomInput())
   , minimap(new Minimap(nullptr))
-  , file_list(new ListSavedFiles()) {
+  , file_list(new ListGames(
+                        GameManager::get_instance().get_game_source("local"))) {
   this->interface = interface;
 
   game_type = GameCustom;
@@ -99,10 +106,16 @@ GameInitBox::GameInitBox(Interface *interface)
 
   set_size(360, 254);
 
-  custom_mission = std::make_shared<GameInfo>(Random());
-  custom_mission->remove_all_players();
-  custom_mission->add_player(12, {0x00, 0xe3, 0xe3}, 40, 40, 40);
-  custom_mission->add_player(1, {0xcf, 0x63, 0x63}, 20, 30, 40);
+  std::shared_ptr<GameInfoCustom> game_info =
+                                     std::make_shared<GameInfoCustom>(Random());
+  PPlayerInfoCustom player = std::make_shared<PlayerInfoCustom>(12,
+                                                       default_player_colors[0],
+                                                                40, 40, 40);
+  game_info->add_player(player);
+  player = std::make_shared<PlayerInfoCustom>(1, default_player_colors[1],
+                                              20, 30, 40);
+  game_info->add_player(player);
+  custom_mission = game_info;
   mission = custom_mission;
 
   minimap->set_displayed(true);
@@ -117,12 +130,9 @@ GameInitBox::GameInitBox(Interface *interface)
 
   file_list->set_size(160, 160);
   file_list->set_displayed(false);
-  file_list->set_selection_handler([this](const std::string &item) {
-    Game game;
-    if (GameStore::get_instance().load(item, &game)) {
-      this->map = game.get_map();
-      this->minimap->set_map(map);
-    }
+  file_list->set_selection_handler([this](PGameInfo game_info) {
+    this->mission = game_info;
+    this->generate_map_preview();
   });
   add_float(file_list.get(), 20, 55);
 }
@@ -155,13 +165,13 @@ GameInitBox::draw_background() {
   }
 }
 
-/* Get the sprite number for a face. */
+// Get the sprite number for a face
 unsigned int
 GameInitBox::get_player_face_sprite(size_t face) {
   if (face != 0) {
     return static_cast<unsigned int>(0x10b + face);
   }
-  return 0x119; /* sprite_face_none */
+  return 0x119;  // sprite_face_none
 }
 
 void
@@ -180,7 +190,7 @@ GameInitBox::internal_draw() {
     i += 3;
   }
 
-  /* Game type settings */
+  // Game type settings
   switch (game_type) {
     case GameMission: {
       draw_box_icon(5, 0, 260);  // Game type
@@ -220,7 +230,7 @@ GameInitBox::internal_draw() {
     }
   }
 
-  /* Game info */
+  // Game info
   if (game_type != GameLoad) {
     int bx = 0;
     int by = 0;
@@ -234,10 +244,10 @@ GameInitBox::internal_draw() {
     }
   }
 
-  /* Display program name and version in caption */
+  // Display program name and version in caption
   draw_box_string(0, 212, FREESERF_VERSION);
 
-  draw_box_icon(38, 208, 60); /* exit */
+  draw_box_icon(38, 208, 60);  // exit
 }
 
 void
@@ -294,17 +304,9 @@ void
 GameInitBox::handle_action(int action) {
   switch (action) {
     case ActionStartGame: {
-      if (game_type == GameLoad) {
-        std::string path = file_list->get_selected();
-        if (!GameManager::get_instance().load_game(path)) {
-          return;
-        }
-      } else {
-        if (!GameManager::get_instance().start_game(mission)) {
-          return;
-        }
+      if (!GameManager::get_instance().start_game(mission)) {
+        return;
       }
-
       interface->close_game_init();
       break;
     }
@@ -315,7 +317,9 @@ GameInitBox::handle_action(int action) {
       }
       switch (game_type) {
         case GameMission: {
-          mission = GameInfo::get_mission(game_mission);
+          PGameSource source =
+                         GameManager::get_instance().get_game_source("mission");
+          mission = source->game_info_at(game_mission);
           random_input->set_displayed(false);
           file_list->set_displayed(false);
           generate_map_preview();
@@ -344,26 +348,33 @@ GameInitBox::handle_action(int action) {
     }
     case ActionIncrement:
       switch (game_type) {
-        case GameMission:
-          game_mission = std::min(game_mission+1,
-                             static_cast<int>(GameInfo::get_mission_count())-1);
-          mission = GameInfo::get_mission(game_mission);
+        case GameMission: {
+          PGameSource source =
+                         GameManager::get_instance().get_game_source("mission");
+          game_mission = std::min(game_mission + 1,
+                                  static_cast<int>(source->count() - 1));
+          mission = source->game_info_at(game_mission);
           break;
-        case GameCustom:
-          custom_mission->set_map_size(std::min(10u,
+        }
+        case GameCustom: {
+          custom_mission->set_map_size(std::min(10ul,
                                            custom_mission->get_map_size() + 1));
           break;
+        }
       }
       generate_map_preview();
       break;
     case ActionDecrement:
       switch (game_type) {
-        case GameMission:
+        case GameMission: {
+          PGameSource source =
+                         GameManager::get_instance().get_game_source("mission");
           game_mission = std::max(0, game_mission-1);
-          mission = GameInfo::get_mission(game_mission);
+          mission = source->game_info_at(game_mission);
           break;
+        }
         case GameCustom:
-          custom_mission->set_map_size(std::max(3u,
+          custom_mission->set_map_size(std::max(3ul,
                                            custom_mission->get_map_size() - 1));
           break;
       }
@@ -448,10 +459,10 @@ GameInitBox::handle_click_left(int cx, int cy) {
     i += 5;
   }
 
-  /* Check player area */
+  // Check player area
   int lx = 0;
   int ly = 0;
-  for (int i = 0; i < GAME_MAX_PLAYER_COUNT; i++) {
+  for (size_t i = 0; i < GAME_MAX_PLAYER_COUNT; i++) {
     int px = 20 + lx * 80;
     int py = 56 + ly * 80;
     if ((cx > px) && (cx < px + 80) && (cy > py) && (cy < py + 80)) {
@@ -477,7 +488,7 @@ GameInitBox::get_next_character(unsigned int player_index) {
   do {
     next = (next + 1) % 14;
     next = std::max(1u, next);
-    /* Check that face is not already in use by another player */
+    // Check that face is not already in use by another player
     in_use = 0;
     for (size_t i = 0; i < mission->get_player_count(); i++) {
       if (player_index != i && mission->get_player(i)->get_face() == next) {
@@ -496,32 +507,25 @@ GameInitBox::handle_player_click(unsigned int player_index, int cx, int cy) {
     return true;
   }
 
-  if (cx < 8 || cx > 8 + 64 || cy < 8 || cy > 76) {
-    return false;
-  }
+  PPlayerInfoCustom player = custom_mission->get_custom_player(player_index);
 
   if ((cx < 8+32) && (cy < 72)) {
-    if (player_index >= mission->get_player_count()) {
+    if (!player) {
       return true;
     }
-    PPlayerInfo player = mission->get_player(player_index);
     player->set_character(get_next_character(player_index));
   } else if ((cx > 16 + 32) && (cy < 24)) {
-    if (player_index >= mission->get_player_count()) {
-      mission->add_player(0, {0, 0, 0}, 20, 20, 20);
-      player_index = static_cast<unsigned int>(mission->get_player_count() - 1);
-      PPlayerInfo player = mission->get_player(player_index);
-      player->set_character(get_next_character(player_index));
+    if (!player) {
+        custom_mission->add_player(std::make_shared<PlayerInfoCustom>());
     } else {
       if (player_index > 0) {
-        mission->remove_player(player_index);
+        custom_mission->remove_player(player_index);
       }
     }
   } else {
-    if (player_index >= mission->get_player_count()) {
+    if (!player) {
       return true;
     }
-    PPlayerInfo player = mission->get_player(player_index);
     cx -= 8 + 32 + 8 + 3;
     if (cx < 0) {
       return false;
@@ -529,13 +533,13 @@ GameInitBox::handle_player_click(unsigned int player_index, int cx, int cy) {
     if (cy >= 27 && cy < 69) {
       unsigned int value = clamp(0, 68 - cy, 40);
       if (cx > 0 && cx < 6) {
-        /* Supplies */
+        // Supplies
         player->set_supplies(value);
       } else if (cx > 6 && cx < 12) {
-        /* Intelligence */
+        // Intelligence
         player->set_intelligence(value);
       } else if (cx > 12 && cx < 18) {
-        /* Reproduction */
+        // Reproduction
         player->set_reproduction(value);
       }
     }

@@ -28,29 +28,29 @@
 #include "src/game.h"
 #include "src/random.h"
 #include "src/savegame.h"
-#include "src/mission.h"
-
 
 TEST(SaveGame, RandomMapSaveGame) {
   // Create random map game
-  std::unique_ptr<Game> game(new Game());
-  game->init(3, Random("8667715887436237"));
+  PGame game = std::make_shared<Game>(3, Random("8667715887436237"));
   // Add player to game
   game->add_player(35, 30, 40);
 
   Player *player_0 = game->get_player(0);
-  ASSERT_TRUE(player_0 != NULL);
+  ASSERT_TRUE(player_0 != nullptr);
 
   // Build castle
   bool r = game->build_castle(game->get_map()->pos(6, 6), player_0);
   ASSERT_TRUE(r) << "Player was not able to build castle";
 
   // Run game for a number of ticks
-  for (int i = 0; i < 500; i++) game->update();
+  for (int i = 0; i < 500; i++) {
+    game->update();
+  }
 
   // Save the game state
   std::stringstream str;
-  bool saved = GameStore::get_instance().write(&str, game.get());
+
+  bool saved = GameSaver::game_write(game, &str);
   str.flush();
 
   ASSERT_TRUE(saved && str.good()) <<
@@ -58,8 +58,8 @@ TEST(SaveGame, RandomMapSaveGame) {
 
   // Load the game state into a new game
   str.seekg(0, std::ios::beg);
-  std::unique_ptr<Game> loaded_game(new Game());
-  bool loaded = GameStore::get_instance().read(&str, loaded_game.get());
+  PGame loaded_game = std::make_shared<Game>();
+  bool loaded = GameSaver::game_read(loaded_game, &str);
 
   ASSERT_TRUE(loaded) <<
     "Failed to load save game state; returned " << loaded;
@@ -72,7 +72,7 @@ TEST(SaveGame, RandomMapSaveGame) {
 
   // Check player
   Player *loaded_player_0 = loaded_game->get_player(0);
-  ASSERT_TRUE(loaded_player_0 != NULL);
+  ASSERT_TRUE(loaded_player_0 != nullptr);
 
   // Check player land area
   EXPECT_EQ(player_0->get_land_area(), loaded_player_0->get_land_area());

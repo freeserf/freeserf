@@ -27,12 +27,13 @@
 
 #include "src/gui.h"
 #include "src/game.h"
-#include "src/mission.h"
+#include "src/game-manager.h"
+#include "src/game-source-custom.h"
 
 class Interface;
 class RandomInput;
 class Minimap;
-class ListSavedFiles;
+class ListGames;
 
 class GameInitBox : public GuiObject {
  protected:
@@ -59,13 +60,13 @@ class GameInitBox : public GuiObject {
   unsigned int game_type;
   int game_mission;
 
-  PGameInfo custom_mission;
+  PGameInfoCustom custom_mission;
   PGameInfo mission;
 
   std::unique_ptr<RandomInput> random_input;
   PMap map;
   std::unique_ptr<Minimap> minimap;
-  std::unique_ptr<ListSavedFiles> file_list;
+  std::unique_ptr<ListGames> file_list;
 
  public:
   explicit GameInitBox(Interface *interface);

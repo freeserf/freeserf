@@ -73,6 +73,7 @@ class Interface : public GuiObject, public GameManager::Handler {
 
  protected:
   PGame game;
+  PGameInfo game_info;
 
   Random random;
 
@@ -113,9 +114,10 @@ class Interface : public GuiObject, public GameManager::Handler {
   virtual ~Interface();
 
   PGame get_game() { return game; }
-  void set_game(PGame game);
+  void set_game(PGame game, PGameInfo game_info);
 
   Color get_player_color(unsigned int player_index);
+  unsigned int get_player_face(unsigned int player_index);
 
   Viewport *get_viewport();
   PanelBar *get_panel_bar();
@@ -194,7 +196,7 @@ class Interface : public GuiObject, public GameManager::Handler {
 
   // GameManager::Handler implementation
  public:
-  virtual void on_new_game(PGame game);
+  virtual void on_new_game(PGame game, PGameInfo game_info);
   virtual void on_end_game(PGame game);
 };
 

@@ -1,7 +1,7 @@
 /*
  * profiler.cc - Profiling tool.
  *
- * Copyright (C) 2018   Wicked_Digger <wicked_digger@mail.ru>
+ * Copyright (C) 2018-2019   Wicked_Digger <wicked_digger@mail.ru>
  *
  * This file is part of freeserf.
  *
@@ -28,6 +28,7 @@
 #include "src/log.h"
 #include "src/version.h"
 #include "src/game-manager.h"
+#include "src/game.h"
 
 int
 main(int argc, char *argv[]) {
@@ -51,10 +52,16 @@ main(int argc, char *argv[]) {
   Log::Info["profiler"] << "starts " << FREESERF_VERSION;
 
   GameManager &game_manager = GameManager::get_instance();
+  PGameSource game_source = game_manager.get_game_source("local");
 
-  if (!game_manager.load_game(save_file)) {
+  if (!game_source) {
     return EXIT_FAILURE;
   }
+  PGameInfo game_info = game_source->create_game(save_file);
+  if (!game_info) {
+    return EXIT_FAILURE;
+  }
+  game_manager.start_game(game_info);
   Log::Info["profiler"] << "loaded game '" << save_file << "'";
 
   PGame game = game_manager.get_current_game();

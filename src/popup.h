@@ -31,7 +31,7 @@
 
 class Interface;
 class MinimapGame;
-class ListSavedFiles;
+class ListGames;
 class TextInput;
 
 class PopupBox : public GuiObject {
@@ -143,7 +143,7 @@ class PopupBox : public GuiObject {
  protected:
   Interface *interface;
   std::unique_ptr<MinimapGame> minimap;
-  std::unique_ptr<ListSavedFiles> file_list;
+  std::unique_ptr<ListGames> file_list;
   std::unique_ptr<TextInput> file_field;
 
   Type box;
@@ -173,7 +173,6 @@ class PopupBox : public GuiObject {
   void draw_green_number(int x, int y, int n);
   void draw_green_large_number(int x, int y, int n);
   void draw_additional_number(int x, int y, int n);
-  unsigned int get_player_face_sprite(size_t face);
   void draw_player_face(int x, int y, int player);
   void draw_custom_bld_box(const int sprites[]);
   void draw_custom_icon_box(const int sprites[]);

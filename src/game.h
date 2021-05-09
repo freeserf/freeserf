@@ -104,7 +104,11 @@ class Game {
 
  public:
   Game();
+  Game(unsigned int map_size, const Random &random);
   virtual ~Game();
+
+  unsigned int add_player(unsigned int intelligence, unsigned int supplies,
+                          unsigned int reproduction);
 
   PMap get_map() { return map; }
 
@@ -119,10 +123,6 @@ class Game {
   Serf *get_serf_at_pos(MapPos pos);
 
   /* External interface */
-  unsigned int add_player(unsigned int intelligence, unsigned int supplies,
-                          unsigned int reproduction);
-  bool init(unsigned int map_size, const Random &random);
-
   void update();
   void pause();
   void speed_increase();
@@ -211,6 +211,8 @@ class Game {
   void clear_search_id();
 
  protected:
+  void init();
+
   void clear_serf_request_failure();
   void update_knight_morale();
   static bool update_inventories_cb(Flag *flag, void *data);

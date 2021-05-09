@@ -290,7 +290,8 @@ typedef enum Action {
 
 PopupBox::PopupBox(Interface *_interface)
   : minimap(new MinimapGame(_interface, _interface->get_game()))
-  , file_list(new ListSavedFiles())
+  , file_list(new ListGames(
+              GameManager::get_instance().get_game_source("local")))
   , file_field(new TextInput())
   , box(TypeNone) {
   interface = _interface;
@@ -308,10 +309,8 @@ PopupBox::PopupBox(Interface *_interface)
 
   file_list->set_size(120, 100);
   file_list->set_displayed(false);
-  file_list->set_selection_handler([this](const std::string &item) {
-    size_t p = item.find_last_of("/\\");
-    std::string file_name = item.substr(p+1, item.size());
-    this->file_field->set_text(file_name);
+  file_list->set_selection_handler([this](PGameInfo game_info) {
+    this->file_field->set_text(game_info->get_name());
   });
   add_float(file_list.get(), 12, 22);
 
@@ -399,28 +398,14 @@ PopupBox::draw_additional_number(int ix, int iy, int n) {
   }
 }
 
-/* Get the sprite number for a face. */
-unsigned int
-PopupBox::get_player_face_sprite(size_t face) {
-  if (face != 0) {
-    return static_cast<unsigned int>(0x10b + face);
-  }
-  return 0x119; /* sprite_face_none */
-}
-
 /* Draw player face in popup frame. */
 void
 PopupBox::draw_player_face(int ix, int iy, int player) {
-  Color color;
-  size_t face = 0;
-  Player *p = interface->get_game()->get_player(player);
-  if (p != nullptr) {
-    color = interface->get_player_color(player);
-    face = p->get_face();
-  }
+  Color color = interface->get_player_color(player);
+  size_t face = interface->get_player_face(player);
 
   frame->fill_rect(8 * ix, iy + 5, 48, 72, color);
-  draw_popup_icon(ix, iy, get_player_face_sprite(face));
+  draw_popup_icon(ix, iy, face);
 }
 
 /* Draw a layout of buildings in a popup box. */
@@ -3575,9 +3560,10 @@ PopupBox::handle_action(int action, int x_, int /*y_*/) {
     if (file_ext.empty()) {
       file_name += ".save";
     }
-    std::string file_path = file_list->get_folder_path() + "/" + file_name;
-    if (GameStore::get_instance().save(file_path,
-                                       interface->get_game().get())) {
+    std::string file_path = file_list->get_selected()->get_path();
+    if (GameManager::get_instance().publicate_current_game("local")) {
+//    } LocalGameStore::get_instance()->save(file_path,
+//                                             interface->get_game().get())) {
       interface->close_popup();
     }
     break;

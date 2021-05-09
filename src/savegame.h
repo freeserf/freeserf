@@ -152,13 +152,15 @@ class GameStore {
  protected:
   GameStore();
 
+  static GameStore *instance;
+
   std::string folder_path;
   std::vector<SaveInfo> saved_games;
 
  public:
   virtual ~GameStore();
 
-  static GameStore &get_instance();
+  static GameStore *get_instance();
 
   std::string get_folder_path() const { return folder_path; }
   bool create_folder(const std::string &path);
@@ -176,11 +178,9 @@ class GameStore {
 
  protected:
   void update();
-  void add_info(SaveInfo info);
   void find_legacy();
   void find_regular();
   std::string name_from_file(const std::string &file_name);
-  bool is_file_exists(const std::string &path);
 };
 
 #endif  // SRC_SAVEGAME_H_

@@ -23,6 +23,7 @@
 
 #include <string>
 #include <iostream>
+#include <memory>
 
 #include "src/log.h"
 #include "src/version.h"
@@ -32,6 +33,8 @@
 #include "src/interface.h"
 #include "src/game-manager.h"
 #include "src/command_line.h"
+#include "src/game-source-custom.h"
+#include "src/game-source-local.h"
 
 #ifdef WIN32
 # include <SDL.h>
@@ -106,16 +109,16 @@ main(int argc, char *argv[]) {
 
   GameManager &game_manager = GameManager::get_instance();
 
-  /* Either load a save game if specified or
-     start a new game. */
+  // Either load a save game if specified or start a new game.
+  PGameInfo game_info;
   if (!save_file.empty()) {
-    if (!game_manager.load_game(save_file)) {
-      return EXIT_FAILURE;
-    }
+    game_info = std::make_shared<GameInfoLocal>(save_file);
   } else {
-    if (!game_manager.start_random_game()) {
-      return EXIT_FAILURE;
-    }
+    game_info = std::make_shared<GameInfoCustom>(Random());
+  }
+
+  if (!game_manager.start_game(game_info)) {
+    return EXIT_FAILURE;
   }
 
   /* Initialize interface */
