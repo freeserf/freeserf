@@ -118,6 +118,7 @@ class Viewport : public GuiObject, public Map::Handler {
   void draw_game_objects(int layers);
   void draw_map_cursor_sprite(MapPos pos, int sprite);
   void draw_map_cursor_possible_build();
+  void draw_map_cursor_coverage();
   void draw_map_cursor();
   void draw_base_grid_overlay(const Color &color);
   void draw_height_grid_overlay(const Color &color);
