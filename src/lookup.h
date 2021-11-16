@@ -620,8 +620,10 @@ typedef enum AIPlusOption {
   ImprovedPigFarms,
   CanTransportSerfsInBoats,
   QuickDemoEmptyBuildSites,
-} AIPlusOption;
-typedef std::bitset<4> AIPlusOptions;
+  TreesReproduce,
+  // REMEMBER TO INCREASE THE bitset<x> number below if adding new options!
+} AIPlusOption;  
+typedef std::bitset<5> AIPlusOptions;  // increase this when adding options!
 
 /*
   double desert_frequency;

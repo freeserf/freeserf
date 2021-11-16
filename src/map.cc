@@ -521,6 +521,18 @@ Map::get_rnd_coord(int *col, int *row, Random *rnd) const {
   return pos(c, r);
 }
 
+// Return a truly random map position, NOT the default one that only changes once per second
+//   Returned as map_pos_t and also as col and row if not NULL. */
+// WAIT THIS SUCKS TOO, use newer c++11 functions
+MapPos
+Map::get_better_rnd_coord() const {
+  int foo = rand();
+  int c = rand() & geom_.col_mask();
+  int r = rand() & geom_.row_mask();
+  Log::Debug["map"] << "inside get_better_rnd_coord, rand map pos is " << pos(c, r) << ", foo = " << foo;
+  return pos(c, r);
+}
+
 // Get count of gold mineral deposits in the map.
 unsigned int
 Map::get_gold_deposit() const {
@@ -673,12 +685,14 @@ Map::update_public(MapPos pos, Random *rnd) {
     set_object(pos, ObjectStub, -1);
     break;
   case ObjectNewPine:
+    // new trees randomly grow into mature trees
     r = rnd->random();
     if ((r & 0x300) == 0) {
       set_object(pos, (Object)(ObjectPine0 + (r & 7)), -1);
     }
     break;
   case ObjectNewTree:
+    // new trees randomly grow into mature trees
     r = rnd->random();
     if ((r & 0x300) == 0) {
       set_object(pos, (Object)(ObjectTree0 + (r & 7)), -1);
@@ -745,6 +759,77 @@ Map::update_hidden(MapPos pos, Random *rnd) {
   }
 }
 
+// added features
+void
+Map::update_environment(MapPos pos, Random *rnd) { 
+  //Log::Debug["map"] << "inside Map::update_environment()";
+  //
+  // new baby trees spontaneously grow if a mature trees of same type nearby
+  //
+  // NOTES: 
+  //  every tree on the entire map has a chance to spawn a new baby tree of same type each time this function is called
+  //  this function is called many times per second, around ten times per sec on a freshly started game (might change over time)
+  //  the more mature trees on a map, the more baby trees will spawn
+  //  the larger the map, the more trees will spawn (because there are more total trees on the map)
+  //  trees will spawn even outside the player viewport window
+  //  suggest tuning the %roll chance to adjust the rate of tree spawning, but fix the linear relationship of mature trees to new tree rate
+
+  // need to rename 'AIPlusOptions' and move them to the main game so all code can refer to them
+  //if (!game->get_ai_options_ptr()->test(AIPlusOption::TreesReproduce)){
+  //  return;
+  //}
+  //Log::Debug["map"] << "inside Map::update_environment(), forcing TreesReproduce on because cannot check AIPlusOptions here yet";
+
+
+  Map::Object type = get_obj(pos);
+  Map::Object newtype = Map::ObjectNone;
+  //Log::Debug["map"] << "inside Map::update_environment(), random pos " << pos << " has object type " << NameObject[type];
+
+  if (type >= Map::ObjectTree0 && type <= Map::ObjectTree7){
+    newtype = Map::ObjectNewTree;
+  }
+  else if (type >= Map::ObjectPine0 && type <= Map::ObjectPine7){
+    newtype = Map::ObjectNewPine;
+  }
+  if (newtype == Map::ObjectNone){
+    //Log::Debug["map"] << "inside Map::update_environment(), random pos " << pos << " has no mature tree, skipping pos";
+    return;
+  }
+  // limit the rate of baby trees appearing
+  double doubrand = double(rnd->random());
+  double roll = 100.00 * doubrand / double(UINT16_MAX);
+  //Log::Debug["map"] << "inside Map::update_environment(), doubrand " << doubrand << ", roll " << roll;
+  if (roll < 95.00) {
+    //Log::Debug["map"] << "inside Map::update_environment(), doubrand " << doubrand << ", roll " << roll << ", RETURNING";
+    return;  // in most cases, do NOT place a tree
+  }
+  //Log::Debug["map"] << "inside Map::update_environment(), random pos " << pos << " has a mature tree, newtype is " << NameObject[newtype];
+  for (int i = 0; i < _spiral_dist[4]; i++) {
+    // this should be a random pos spirally, a function that I don't think exists yet, or might only exist in AI functions
+    //  could use a lazy trick such as rand (hah not really random!) chance of actually trying each spot
+    //  or could write new function to make it random, or pick a random direction and travel outwards instead of spirally
+    MapPos p = pos_add_spirally(pos, i);
+    //Log::Debug["map"] << "inside Map::update_environment(), random pos " << pos << ", considering spirally pos " << p;
+    // I was thinking I could re-use the Forester/ranger tree-placement rules here, but I don't understand them
+    //  instead, using my own rules
+    if (get_obj(p) > Map::ObjectNone){
+      // another object here, can't place tree
+      continue;
+    }
+    // in original game and Freeserf, no trees can be placed on mountains (Tundra/Snow terrain types)
+    //  however, I intend to add a feature to allow Pines on mountains, but haven't done it yet.
+    //  when it is done, allow Pines to grow on mountains!
+    //if ( map_types_within(pos, Map::TerrainGrass0, Map::TerrainGrass3) && newtype == Map::ObjectNewTree)
+    //  || map_types_within(pos, Map::TerrainGrass0, Map::TerrainGrass3)
+    if (types_within(p, Map::TerrainGrass0, Map::TerrainGrass3)){
+      Log::Debug["map"] << "inside Map::update_environment(), random pos " << pos << " trying to place a baby tree of type " << NameObject[newtype] << " near random pos " << pos << ", at pos " << p;
+      set_object(p, newtype, 0);
+      return;
+    }
+  }
+  //Log::Debug["map"] << "done Map::update_environment()";
+}
+
 /* Update map data as part of the game progression. */
 void
 Map::update(unsigned int tick, Random *rnd) {
@@ -777,6 +862,7 @@ Map::update(unsigned int tick, Random *rnd) {
     /* Update map at position. */
     update_hidden(pos, rnd);
     update_public(pos, rnd);
+    update_environment(pos, rnd);
   }
 
   update_state.initial_pos = pos;

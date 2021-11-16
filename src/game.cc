@@ -727,6 +727,7 @@ Game::update_serfs() {
   Log::Verbose["game"] << "thread #" << std::this_thread::get_id() << " has unlocked mutex for Game::update_serfs";
 }
 
+
 /* Update historical player statistics for one measure. */
 void
 Game::record_player_history(int max_level, int aspect,
@@ -1949,15 +1950,15 @@ void
 Game::init_land_ownership() {
   Log::Verbose["game"] << "thread #" << std::this_thread::get_id() << " is locking mutex inside Game::init_land_ownership";
   mutex.lock();
-  Log::Verbose["game"] << "thread #" << std::this_thread::get_id() << " is locking mutex inside Game::init_land_ownership";
+  Log::Verbose["game"] << "thread #" << std::this_thread::get_id() << " has locked mutex inside Game::init_land_ownership";
   for (Building *building : buildings) {
     if (building->is_military()) {
       update_land_ownership(building->get_position());
     }
   }
-  Log::Verbose["game"] << "thread #" << std::this_thread::get_id() << " is locking mutex inside Game::init_land_ownership";
+  Log::Verbose["game"] << "thread #" << std::this_thread::get_id() << " is unlocking mutex inside Game::init_land_ownership";
   mutex.unlock();
-  Log::Verbose["game"] << "thread #" << std::this_thread::get_id() << " is locking mutex inside Game::init_land_ownership";
+  Log::Verbose["game"] << "thread #" << std::this_thread::get_id() << " has unlocking mutex inside Game::init_land_ownership";
 }
 
 /* Update land ownership around map position. */

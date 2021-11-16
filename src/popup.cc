@@ -294,6 +294,7 @@ typedef enum Action {
   ACTION_AIPLUS_IMPROVED_PIG_FARMS,
   ACTION_AIPLUS_CAN_TRANSPORT_SERFS_IN_BOATS,
   ACTION_AIPLUS_QUICK_DEMO_EMPTY_BUILD_SITES,
+  ACTION_AIPLUS_TREES_REPRODUCE,
   ACTION_MAPGEN_ADJUST_TREES,
   ACTION_MAPGEN_ADJUST_STONEPILES,
   ACTION_MAPGEN_ADJUST_FISH,
@@ -2023,6 +2024,9 @@ PopupBox::draw_aiplus_options_box() {
   draw_green_string(3, 67, "Quick Demo Empty Build Sites");
   draw_popup_icon(1, 64, (interface->test_aiplus_option(AIPlusOption::QuickDemoEmptyBuildSites)) ? 288 : 220);
 
+  draw_green_string(3, 86, "Trees Spontaneously Reproduce");
+  draw_popup_icon(1, 83, (interface->test_aiplus_option(AIPlusOption::TreesReproduce)) ? 288 : 220);
+
 
   draw_popup_icon(32, 128, 60); /* exit */
 }
@@ -3691,6 +3695,13 @@ PopupBox::handle_action(int action, int x_, int /*y_*/) {
       interface->set_aiplus_option(AIPlusOption::QuickDemoEmptyBuildSites);
     }
     break;
+  case ACTION_AIPLUS_TREES_REPRODUCE:
+    if (interface->test_aiplus_option(AIPlusOption::TreesReproduce)){
+      interface->unset_aiplus_option(AIPlusOption::TreesReproduce);
+    } else{
+      interface->set_aiplus_option(AIPlusOption::TreesReproduce);
+    }
+    break;
   case ACTION_MAPGEN_ADJUST_TREES:
     Log::Info["popup"] << "ACTION_MAPGEN_ADJUST_TREES x_ = " << x_ << ", gui_get_slider_click_value(x_) = " << gui_get_slider_click_value(x_) << ", unint16_t(gui_get_slider_click_value(x_)) = " << uint16_t(gui_get_slider_click_value(x_));
     interface->set_custom_map_generator_trees(gui_get_slider_click_value(x_));                                         
@@ -4048,11 +4059,13 @@ PopupBox::handle_box_options_clk(int cx, int cy) {
 
 void
 PopupBox::handle_box_aiplusoptions_clk(int cx, int cy) {
+  //all AIPlusOptions need to be defined here for the checkboxes to work,
   const int clkmap[] = {
     ACTION_AIPLUS_ENABLE_AUTOSAVE, 7, 7, 16, 16,
     ACTION_AIPLUS_IMPROVED_PIG_FARMS, 7, 26, 16, 16,
     ACTION_AIPLUS_CAN_TRANSPORT_SERFS_IN_BOATS, 7, 45, 16, 16,
     ACTION_AIPLUS_QUICK_DEMO_EMPTY_BUILD_SITES, 7, 64, 16, 16,
+    ACTION_AIPLUS_TREES_REPRODUCE, 7, 83, 16, 16,
     //ACTION_AIPLUS_NEXT_PAGE, 106, 110, 16, 16,
     ActionShowOptions, 255, 126, 16, 16,
     -1

@@ -1596,7 +1596,9 @@ Viewport::serf_get_body(Serf *serf) {
                 t == 0xc7 || t == 0xcf))) {
         serf->start_playing_sfx();
         //play_sound(Audio::TypeSfxSawing);
-        play_sound(Audio::TypeSfxSawing, DataSourceType::Amiga);  // Amiga sound is better for sawmill
+        //play_sound(Audio::TypeSfxSawing, DataSourceType::Amiga);  // Amiga sound is better for sawmill
+        //  actually, I am now thinking the Amiga sound is too grating, trying DOS again..
+        play_sound(Audio::TypeSfxSawing, DataSourceType::DOS);
       } else if (t != 0xb7 && t != 0xbf && t != 0xc7 && t != 0xcf) {
         serf->stop_playing_sfx();
       }

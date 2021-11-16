@@ -3837,6 +3837,9 @@ Serf::handle_serf_planting_state() {
 
     /* Plant a tree */
     animation = 122;
+    // tlongstretch - I had always thought that Forester/rangers only plant Pine trees, but
+    //  it seems I was mis-remembering, I just verified in the original Settlers 1 game that 
+    //  both Pine and deciduous Trees are planted by ranger/forester
     Map::Object new_obj = (Map::Object)(Map::ObjectNewPine +
                                     (game->random_int() & 1));
 

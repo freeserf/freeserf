@@ -364,6 +364,7 @@ class Map {
 
   // Get random position
   MapPos get_rnd_coord(int *col, int *row, Random *rnd) const;
+  MapPos get_better_rnd_coord() const; // truly random function, doesn't require args, returns only MapPos - tlongstretch
 
   // Movement of map position according to directions.
   MapPos move(MapPos pos, Direction dir) const {
@@ -525,6 +526,7 @@ class Map {
 
   void update_public(MapPos pos, Random *rnd);
   void update_hidden(MapPos pos, Random *rnd);
+  void update_environment(MapPos pos, Random *rnd); // tlongstretch new features
 };
 
 typedef std::shared_ptr<Map> PMap;

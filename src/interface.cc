@@ -221,6 +221,7 @@ Interface::close_game_init() {
   Log::Info["interface"] << " AIOption::ImprovedPigFarms is " << std::to_string(aiplus_options.test(AIPlusOption::ImprovedPigFarms));
   Log::Info["interface"] << " AIOption::CanTransportSerfsInBoats is " << std::to_string(aiplus_options.test(AIPlusOption::CanTransportSerfsInBoats));
   Log::Info["interface"] << " AIOption::QuickDemoEmptyBuildSites is " << std::to_string(aiplus_options.test(AIPlusOption::QuickDemoEmptyBuildSites));
+  Log::Info["interface"] << " AIOption::TreesReproduce is " << std::to_string(aiplus_options.test(AIPlusOption::TreesReproduce));
   // start any AI threads
   initialize_AI();
 }
