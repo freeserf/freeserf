@@ -25,6 +25,7 @@
 #include "src/inventory.h"
 #include "src/debug.h"
 #include "src/savegame.h"
+#include "src/game-options.h"
 
 Building::Building(Game *game, unsigned int index)
   : GameObject(game, index)
@@ -575,7 +576,7 @@ Building::burnup() {
   unsigned int _serf_index = first_knight;
   burning_counter = 2047;
   //
-  // adding support for AIPlusOption::QuickDemoEmptyBuildSites
+  // adding support for option_QuickDemoEmptyBuildSites
   //
   //  zero burn time if no framing started
   //  half burn time if framing <= half complete
@@ -592,7 +593,7 @@ Building::burnup() {
   //    43697 = 1st stone consumed, 1/3 exterior complete
   //    54625 = 2nd stone consumed, 2/3 exterior complete
   //    3rd plank used for remainder of exterior, then building complete
-  if (game->get_ai_options_ptr()->test(AIPlusOption::QuickDemoEmptyBuildSites) && constructing){
+  if (option_QuickDemoEmptyBuildSites && constructing){
     if (progress <= 1)
       burning_counter = 0;
     else if (progress <= 16385)
@@ -1006,8 +1007,8 @@ Building::update() {
         break;
       case TypePigFarm:
         if (holder) {
-          if (game->get_ai_options_ptr()->test(AIPlusOption::ImprovedPigFarms)){
-            Log::Debug["building"] << "AIPlusOption::ImprovedPigFarms set - not requesting grain for pig farm";
+          if (option_ImprovedPigFarms){
+            Log::Debug["building"] << "option_ImprovedPigFarms set - not requesting grain for pig farm";
           }else{
             // Request more wheat.
             int total_stock = stock[0].requested + stock[0].available;

@@ -98,7 +98,7 @@ class PopupBox : public GuiObject {
     TypeJsCalibDownRight,
     TypeJsCalibCenter,
     TypeCtrlsInfo,
-    TypeAIPlusOptions,
+    TypeGameOptions,
     TypeEditMapGenerator
   } Type;
 
@@ -222,7 +222,7 @@ class PopupBox : public GuiObject {
   void draw_quit_confirm_box();
   void draw_no_save_quit_confirm_box();
   void draw_options_box();
-  void draw_aiplus_options_box();
+  void draw_game_options_box();
   void draw_edit_map_generator_box();
   void draw_castle_res_box();
   void draw_mine_output_box();
@@ -253,7 +253,7 @@ class PopupBox : public GuiObject {
 
   void handle_box_close_clk(int x, int y);
   void handle_box_options_clk(int x, int y);
-  void handle_box_aiplusoptions_clk(int x, int y);
+  void handle_box_game_options_clk(int x, int y);
   void handle_box_edit_map_generator_clk(int x, int y);
   void handle_mine_building_clk(int x, int y);
   void handle_basic_building_clk(int x, int y, int flip);

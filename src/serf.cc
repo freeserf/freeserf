@@ -32,6 +32,7 @@
 #include "src/misc.h"
 #include "src/inventory.h"
 #include "src/savegame.h"
+#include "src/game-options.h"
 
 #define set_state(new_state)  \
   Log::Verbose["serf"] << "serf " << index  \
@@ -342,7 +343,7 @@ Serf::set_type(Serf::Type new_type) {
 }
 
 // added because set_state is actually some kind of macro definition I don't understand
-//  and I need this for AIPlusOption::CanTransportSerfsInBoats
+//  and I need this for option_CanTransportSerfsInBoats
 //   and probably other things eventually
 void
 Serf::set_serf_state(Serf::State new_state){
@@ -979,13 +980,13 @@ Serf::change_direction(Direction dir, int alt_end) {
   MapPos new_pos = map->move(pos, dir);
 
   //
-  // adding support for AIPlusOption::CanTransportSerfsInBoats
+  // adding support for option_CanTransportSerfsInBoats
   //
 
   // BUG - I am seeing serfs walking on water paths as of jan14 2021
   //   this is happening when CanTransportSerfsInBoats is *not* true!
   // hmm... I cannot reproduce this now using a human player  jan14 2021
-  //  I could reproduce, and fixed it by adding to ensure the AIPlusOption::CanTransportSerfsInBoats is set
+  //  I could reproduce, and fixed it by adding to ensure the option_CanTransportSerfsInBoats is set
   // however I still see some issues, such as a land serf "switching" positions with a sailor!
 
   // handle sailor carrying a passenger in his boat
@@ -1102,8 +1103,7 @@ Serf::change_direction(Direction dir, int alt_end) {
   // handle serf entering WaitForBoat state because it's change_direction dir is into a waiting sailor's water path
   // if next pos is in water and has no blocking serf, and current pos is NOT in water... (or else it triggers for active sailors)
   // WARNING - is_water_path can only be uses to check a path that is certain to exist, it will return true if there is no path at all!
-  if (game->get_ai_options_ptr()->test(AIPlusOption::CanTransportSerfsInBoats) &&
-      map->is_in_water(new_pos) && !map->has_serf(new_pos) && !map->is_in_water(pos)){
+  if (option_CanTransportSerfsInBoats && map->is_in_water(new_pos) && !map->has_serf(new_pos) && !map->is_in_water(pos)){
     // this water path must have a sailor or else the search callback should not have given 
     //  this as a valid dir, but do some sanity checks anyway
     Flag *water_flag = game->get_flag_at_pos(pos);
@@ -1310,7 +1310,7 @@ Serf::transporter_move_to_flag(Flag *flag) {
    //Log::Info["serf"] << "debug: sailor inside Serf::transporter_move_to_flag A, flag->is_water_path " << NameDirection[dir] << " = " << flag->is_water_path(dir);
    //Log::Info["serf"] << "debug: sailor inside Serf::transporter_move_to_flag A, flag->has_serf_waiting_for_boat() == " << flag->has_serf_waiting_for_boat();
     
-    // adding support for AIPlusOption::CanTransportSerfsInBoats
+    // adding support for option_CanTransportSerfsInBoats
     Direction other_dir = flag->get_other_end_dir(dir);
     //Log::Info["serf"] << "debug: sailor inside Serf::transporter_move_to_flag A, flag other_end_dir = " << NameDirection[other_dir];
     // WARNING - is_water_path can only be uses to check a path that is certain to exist, it will return true if there is no path at all!
@@ -1677,7 +1677,7 @@ Serf::handle_serf_walking_state() {
           //    AND this also lets me remove the flagsearch cleanup junk that had to be added to avoid the fact that
           ///     the flagsearch is not actually running!
           //
-          // adding support for AIPlusOption::CanTransportSerfsInBoats
+          // adding support for option_CanTransportSerfsInBoats
           // WARNING - is_water_path can only be uses to check a path that is certain to exist, it will return true if there is no path at all!
           if (src->is_water_path(i)){
            //Log::Info["serf"] << "debug: inside handle_serf_walking_state, serf at pos " << get_pos() << " found water path in dir " << NameDirection[i];
@@ -1704,7 +1704,7 @@ Serf::handle_serf_walking_state() {
           }
           */
 
-          // adding support for AIPlusOption::CanTransportSerfsInBoats
+          // adding support for option_CanTransportSerfsInBoats
           // WARNING - is_water_path can only be uses to check a path that is certain to exist, it will return true if there is no path at all!
           //if (src->has_path(i)){
             //if (!src->is_water_path(i)){
@@ -1717,9 +1717,9 @@ Serf::handle_serf_walking_state() {
           // WARNING - is_water_path can only be uses to check a path that is certain to exist, it will return true if there is no path at all!
           //if (!src->is_water_path(i)) {
           if (!src->is_water_path(i) ||
-             // adding support for AIPlusOption::CanTransportSerfsInBoats
-             (game->get_ai_options_ptr()->test(AIPlusOption::CanTransportSerfsInBoats) &&
-              src->has_path(i) && src->is_water_path(i) && src->has_transporter(i))){
+             // adding support for option_CanTransportSerfsInBoats
+             (option_CanTransportSerfsInBoats && src->has_path(i) && src->is_water_path(i) && src->has_transporter(i))
+             ){
             Flag *other_flag = src->get_other_end_flag(i);
             other_flag->set_search_dir(i);
             search.add_source(other_flag);
@@ -1914,7 +1914,7 @@ Serf::handle_serf_transporting_state() {
         */
       //}
       
-      // add support for AIPlusOption::CanTransportSerfsInBoats
+      // add support for option_CanTransportSerfsInBoats
       // if *this* serf is a sailor (who is already in transporting state and so must be in his boat)...
       //  and if another serf is at the next pos in StateWaitForBoat AND is waiting in the direction of this serf
       //   continue "through" the waiting serf to pick him up
@@ -2254,9 +2254,9 @@ Serf::handle_serf_entering_building_state() {
             Flag *flag = game->get_flag_at_pos(map->move_down_right(pos));
 
             // resource #1 is the pigs themselves
-            // start with two pigs if AIPlusOption::ImprovedPigFarms is set
+            // start with two pigs if option_ImprovedPigFarms is set
             //   how else could they reproduce?
-            if (game->get_ai_options_ptr()->test(AIPlusOption::ImprovedPigFarms)) {
+            if (option_ImprovedPigFarms) {
               building->set_initial_res_in_stock(1, 2);
             } else {
               // game default
@@ -4636,8 +4636,7 @@ Serf::handle_serf_pigfarming_state() {
   Building *building = game->get_building_at_pos(pos);
   if (s.pigfarming.mode == 0) {
 
-    if (game->get_ai_options_ptr()->test(AIPlusOption::ImprovedPigFarms)
-      || building->use_resource_in_stock(0)) {
+    if (option_ImprovedPigFarms || building->use_resource_in_stock(0)) {
         s.pigfarming.mode = 1;
         animation = 139;
         counter = counter_from_animation[animation];
@@ -5644,7 +5643,7 @@ Serf::handle_serf_idle_on_path_state() {
 
   // check the flag in each direction to see if it needs a transporter 
   //  to come pick up a resource, or a serf if this is a sailor and 
-  //   AIPlusOption::CanTransportSerfsInBoats is set
+  //  option_CanTransportSerfsInBoats is set
   // * Set walking dir in field_E. */
 
   //Log::Info["serf"] << "debug: before idle transporter checking flags, s.idle_on_path.field_E = " << s.idle_on_path.field_E;

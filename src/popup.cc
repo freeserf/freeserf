@@ -37,6 +37,8 @@
 #include "src/inventory.h"
 #include "src/list.h"
 #include "src/text-input.h"
+#include "src/game-options.h"
+
 
 /* Action types that can be fired from
    clicks in the popup window. */
@@ -288,14 +290,14 @@ typedef enum Action {
   ACTION_OPTIONS_SFX,
   ACTION_SAVE,
   ACTION_NEW_NAME,
-  ACTION_OPTIONS_FLIP_TO_AIPLUS,
-  ACTION_AIPLUS_NEXT_PAGE,
-  ACTION_AIPLUS_ENABLE_AUTOSAVE,
-  ACTION_AIPLUS_IMPROVED_PIG_FARMS,
-  ACTION_AIPLUS_CAN_TRANSPORT_SERFS_IN_BOATS,
-  ACTION_AIPLUS_QUICK_DEMO_EMPTY_BUILD_SITES,
-  ACTION_AIPLUS_TREES_REPRODUCE,
-  ACTION_AIPLUS_BABY_TREES_MATURE_SLOWLY,
+  ACTION_OPTIONS_FLIP_TO_GAME_OPTIONS,
+  ACTION_GAME_OPTIONS_NEXT_PAGE,
+  ACTION_GAME_OPTIONS_ENABLE_AUTOSAVE,
+  ACTION_GAME_OPTIONS_IMPROVED_PIG_FARMS,
+  ACTION_GAME_OPTIONS_CAN_TRANSPORT_SERFS_IN_BOATS,
+  ACTION_GAME_OPTIONS_QUICK_DEMO_EMPTY_BUILD_SITES,
+  ACTION_GAME_OPTIONS_TREES_REPRODUCE,
+  ACTION_GAME_OPTIONS_BABY_TREES_MATURE_SLOWLY,
   ACTION_MAPGEN_ADJUST_TREES,
   ACTION_MAPGEN_ADJUST_STONEPILES,
   ACTION_MAPGEN_ADJUST_FISH,
@@ -2002,35 +2004,35 @@ PopupBox::draw_options_box() {
   draw_green_string(1, 94, "Messages");
   draw_green_string(11, 94, value);
 
-  draw_green_string(1, 109, "AI-Plus");
+  draw_green_string(1, 109, "Game");
   draw_green_string(1, 118, "Options");
-  draw_popup_icon(13, 109, 0x3d); /* flipbox to aiplus options */
+  draw_popup_icon(13, 109, 0x3d); /* flipbox to game options */
 
   draw_popup_icon(14, 128, 60); /* exit */
 }
 
 void
-PopupBox::draw_aiplus_options_box() {
+PopupBox::draw_game_options_box() {
   draw_large_box_background(PatternDiagonalGreen);
-  AIPlusOptions aiplus_options = interface->get_aiplus_options();
   draw_green_string(3, 10, "Auto Save Game");
-  draw_popup_icon(1, 7, (interface->test_aiplus_option(AIPlusOption::EnableAutoSave)) ? 288 : 220);
+  draw_popup_icon(1, 7, option_EnableAutoSave ? 288 : 220);
 
   draw_green_string(3, 29, "Pigs Require No Wheat");
-  draw_popup_icon(1, 26, (interface->test_aiplus_option(AIPlusOption::ImprovedPigFarms)) ? 288 : 220);
+  draw_popup_icon(1, 26, option_ImprovedPigFarms ? 288 : 220);
 
   draw_green_string(3, 48, "Can Transport Serfs In Boats");
-  draw_popup_icon(1, 45, (interface->test_aiplus_option(AIPlusOption::CanTransportSerfsInBoats)) ? 288 : 220);
+  draw_popup_icon(1, 45, option_CanTransportSerfsInBoats ? 288 : 220);
 
   draw_green_string(3, 67, "Quick Demo Empty Build Sites");
-  draw_popup_icon(1, 64, (interface->test_aiplus_option(AIPlusOption::QuickDemoEmptyBuildSites)) ? 288 : 220);
+  draw_popup_icon(1, 64, option_QuickDemoEmptyBuildSites ? 288 : 220);
 
   draw_green_string(3, 86, "Trees Spontaneously Reproduce");
-  draw_popup_icon(1, 83, (interface->test_aiplus_option(AIPlusOption::TreesReproduce)) ? 288 : 220);
+  draw_popup_icon(1, 83, option_TreesReproduce ? 288 : 220);
 
   draw_green_string(3, 105, "Baby Trees Mature Slowly");
-  draw_popup_icon(1, 102, (interface->test_aiplus_option(AIPlusOption::BabyTreesMatureSlowly)) ? 288 : 220);
-
+  draw_popup_icon(1, 102, option_BabyTreesMatureSlowly ? 288 : 220);
+  //draw_popup_icon(1, 102, option_foo1 ? 288 : 220);
+  Log::Info["popup"] << "option_foo1 " << option_foo1;
   draw_popup_icon(32, 128, 60); /* exit */
 }
 
@@ -2893,7 +2895,7 @@ PopupBox::draw_save_box() {
 
 void
 PopupBox::internal_draw() {
-  if (box == Type::TypeAIPlusOptions || box == Type::TypeEditMapGenerator){
+  if (box == Type::TypeGameOptions || box == Type::TypeEditMapGenerator){
     draw_large_popup_box_frame();
   }else{
     draw_popup_box_frame();
@@ -2995,8 +2997,8 @@ PopupBox::internal_draw() {
   case TypeOptions:
     draw_options_box();
     break;
-  case TypeAIPlusOptions:
-    draw_aiplus_options_box();
+  case TypeGameOptions:
+    draw_game_options_box();
     break;
   case TypeEditMapGenerator:
     draw_edit_map_generator_box();
@@ -3659,57 +3661,57 @@ PopupBox::handle_action(int action, int x_, int /*y_*/) {
     interface->tell_gameinit_regen_map();
     interface->close_popup();
     break;
-  case ACTION_OPTIONS_FLIP_TO_AIPLUS:
-    interface->open_popup(TypeAIPlusOptions);
+  case ACTION_OPTIONS_FLIP_TO_GAME_OPTIONS:
+    interface->open_popup(TypeGameOptions);
     break;
-  //case ACTION_AIPLUS_NEXT_PAGE:
-  //  interface->open_popup(TypeAIPlusOptions2);
+  //case ACTION_GAME_OPTIONS_NEXT_PAGE:
+  //  interface->open_popup(TypeGameOptions2);
   //  break;
   //
   //case ???? 
   /* ToDo */
   //set_box((box + 1 <= TypeAdv2Bld) ? (Type)(box + 1) : TypeBasicBldFlip);
     //break;
-  case ACTION_AIPLUS_ENABLE_AUTOSAVE:
-    if (interface->test_aiplus_option(AIPlusOption::EnableAutoSave)){
-      interface->unset_aiplus_option(AIPlusOption::EnableAutoSave);
+  case ACTION_GAME_OPTIONS_ENABLE_AUTOSAVE:
+    if (option_EnableAutoSave){
+      option_EnableAutoSave = false;
     } else{
-      interface->set_aiplus_option(AIPlusOption::EnableAutoSave);
+      option_EnableAutoSave = true;
     }
     break;
-  case ACTION_AIPLUS_IMPROVED_PIG_FARMS:
-    if (interface->test_aiplus_option(AIPlusOption::ImprovedPigFarms)){
-      interface->unset_aiplus_option(AIPlusOption::ImprovedPigFarms);
+  case ACTION_GAME_OPTIONS_IMPROVED_PIG_FARMS:
+    if (option_ImprovedPigFarms){
+      option_ImprovedPigFarms = false;
     } else{
-      interface->set_aiplus_option(AIPlusOption::ImprovedPigFarms);
+      option_ImprovedPigFarms = true;
     }
     break;
-  case ACTION_AIPLUS_CAN_TRANSPORT_SERFS_IN_BOATS:
-    if (interface->test_aiplus_option(AIPlusOption::CanTransportSerfsInBoats)){
-      interface->unset_aiplus_option(AIPlusOption::CanTransportSerfsInBoats);
+  case ACTION_GAME_OPTIONS_CAN_TRANSPORT_SERFS_IN_BOATS:
+    if (option_CanTransportSerfsInBoats){
+      option_CanTransportSerfsInBoats = false;
     } else{
-      interface->set_aiplus_option(AIPlusOption::CanTransportSerfsInBoats);
+      option_CanTransportSerfsInBoats = true;
     }
     break;
-  case ACTION_AIPLUS_QUICK_DEMO_EMPTY_BUILD_SITES:
-    if (interface->test_aiplus_option(AIPlusOption::QuickDemoEmptyBuildSites)){
-      interface->unset_aiplus_option(AIPlusOption::QuickDemoEmptyBuildSites);
+  case ACTION_GAME_OPTIONS_QUICK_DEMO_EMPTY_BUILD_SITES:
+    if (option_QuickDemoEmptyBuildSites){
+      option_QuickDemoEmptyBuildSites = false;
     } else{
-      interface->set_aiplus_option(AIPlusOption::QuickDemoEmptyBuildSites);
+      option_QuickDemoEmptyBuildSites = true;
     }
     break;
-  case ACTION_AIPLUS_TREES_REPRODUCE:
-    if (interface->test_aiplus_option(AIPlusOption::TreesReproduce)){
-      interface->unset_aiplus_option(AIPlusOption::TreesReproduce);
+  case ACTION_GAME_OPTIONS_TREES_REPRODUCE:
+    if (option_TreesReproduce){
+      option_TreesReproduce = false;
     } else{
-      interface->set_aiplus_option(AIPlusOption::TreesReproduce);
+      option_TreesReproduce = true;
     }
     break;
-  case ACTION_AIPLUS_BABY_TREES_MATURE_SLOWLY:
-    if (interface->test_aiplus_option(AIPlusOption::BabyTreesMatureSlowly)){
-      interface->unset_aiplus_option(AIPlusOption::BabyTreesMatureSlowly);
+  case ACTION_GAME_OPTIONS_BABY_TREES_MATURE_SLOWLY:
+    if (option_BabyTreesMatureSlowly){
+      option_BabyTreesMatureSlowly = false;
     } else{
-      interface->set_aiplus_option(AIPlusOption::BabyTreesMatureSlowly);
+      option_BabyTreesMatureSlowly = true;
     }
     break;
   case ACTION_MAPGEN_ADJUST_TREES:
@@ -4060,7 +4062,7 @@ PopupBox::handle_box_options_clk(int cx, int cy) {
     ACTION_OPTIONS_VOLUME_PLUS, 106, 50, 16, 16,
     ACTION_OPTIONS_FULLSCREEN, 106, 70, 16, 16,
     ACTION_OPTIONS_MESSAGE_COUNT_1, 90, 90, 32, 16,
-    ACTION_OPTIONS_FLIP_TO_AIPLUS, 106, 110, 16, 16,
+    ACTION_OPTIONS_FLIP_TO_GAME_OPTIONS, 106, 110, 16, 16,
     ACTION_CLOSE_OPTIONS, 112, 126, 16, 16,
     -1
   };
@@ -4068,16 +4070,16 @@ PopupBox::handle_box_options_clk(int cx, int cy) {
 }
 
 void
-PopupBox::handle_box_aiplusoptions_clk(int cx, int cy) {
-  //all AIPlusOptions need to be defined here for the checkboxes to work,
+PopupBox::handle_box_game_options_clk(int cx, int cy) {
+  //all options need to be defined here for the checkboxes to work,
   const int clkmap[] = {
-    ACTION_AIPLUS_ENABLE_AUTOSAVE, 7, 7, 16, 16,
-    ACTION_AIPLUS_IMPROVED_PIG_FARMS, 7, 26, 16, 16,
-    ACTION_AIPLUS_CAN_TRANSPORT_SERFS_IN_BOATS, 7, 45, 16, 16,
-    ACTION_AIPLUS_QUICK_DEMO_EMPTY_BUILD_SITES, 7, 64, 16, 16,
-    ACTION_AIPLUS_TREES_REPRODUCE, 7, 83, 16, 16,
-    ACTION_AIPLUS_BABY_TREES_MATURE_SLOWLY, 7, 102, 16, 16,
-    //ACTION_AIPLUS_NEXT_PAGE, 106, 110, 16, 16,
+    ACTION_GAME_OPTIONS_ENABLE_AUTOSAVE, 7, 7, 16, 16,
+    ACTION_GAME_OPTIONS_IMPROVED_PIG_FARMS, 7, 26, 16, 16,
+    ACTION_GAME_OPTIONS_CAN_TRANSPORT_SERFS_IN_BOATS, 7, 45, 16, 16,
+    ACTION_GAME_OPTIONS_QUICK_DEMO_EMPTY_BUILD_SITES, 7, 64, 16, 16,
+    ACTION_GAME_OPTIONS_TREES_REPRODUCE, 7, 83, 16, 16,
+    ACTION_GAME_OPTIONS_BABY_TREES_MATURE_SLOWLY, 7, 102, 16, 16,
+    //ACTION_GAME_OPTIONS_NEXT_PAGE, 106, 110, 16, 16,
     ActionShowOptions, 255, 126, 16, 16,
     -1
   };
@@ -4761,8 +4763,8 @@ PopupBox::handle_click_left(int cx, int cy, int modifier) {
   case TypeOptions:
     handle_box_options_clk(cx, cy);
     break;
-  case TypeAIPlusOptions:
-    handle_box_aiplusoptions_clk(cx, cy);
+  case TypeGameOptions:
+    handle_box_game_options_clk(cx, cy);
     break;
   case TypeEditMapGenerator:
     handle_box_edit_map_generator_clk(cx, cy);

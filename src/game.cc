@@ -61,7 +61,6 @@ Game::Game()
   buildings = Buildings(this);
   serfs = Serfs(this);
   std::mutex mutex;
-  aiplus_options_ptr = new AIPlusOptions();
 
   /* Create NULL-serf */
   serfs.allocate();
@@ -868,6 +867,10 @@ Game::update_game_stats() {
 /* Update game state after tick increment. */
 void
 Game::update() {
+
+    // test globals
+  //Log::Info["game"] << "option_foo1 " << option_foo1;
+
   /* Increment tick counters */
   const_tick += 1;
 

@@ -45,7 +45,6 @@ class AI {
   PGame game;
   PMap map;
   Player *player;
-  AIPlusOptions aiplus_options;  // bitfield of bools for AIPlus game options, passed in from Interface::initialize_AI
   //Flags *flags;   // don't use a pointer to game.flags, not thread safe   ?  is this still used?  oct28 2020
   //Flags flags;    // instead use a copy that is created before each foreach Flag loop   ?  is this still used?  oct28 2020
   Flags *flags;        //or maybe just create a copy and move the pointer to point to that new copy instead?? is that easier than changing all the foreach Flag loops?   ?  is this still used?  oct28 2020
@@ -105,7 +104,7 @@ class AI {
   // VS2017 had no issue with it
 
  public:
-  AI(PGame, unsigned int, AIPlusOptions);
+  AI(PGame, unsigned int);
   void start();
   void next_loop();
   ColorDotMap * get_ai_mark_pos() { return &ai_mark_pos; }

@@ -615,17 +615,6 @@ const unsigned int bad_score = 123123123;
 //  yeah... say you start at NE/U corner, just draw a straight line SE/DR until next corner found, then draw SW/D...
 
 
-typedef enum AIPlusOption {
-  EnableAutoSave = 0,
-  ImprovedPigFarms,
-  CanTransportSerfsInBoats,
-  QuickDemoEmptyBuildSites,
-  TreesReproduce,
-  BabyTreesMatureSlowly,
-  // REMEMBER TO INCREASE THE bitset<x> number below if adding new options!
-} AIPlusOption;  
-typedef std::bitset<6> AIPlusOptions;  // increase this when adding options!
-
 /*
   double desert_frequency;
 

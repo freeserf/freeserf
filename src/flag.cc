@@ -27,6 +27,7 @@
 #include "src/savegame.h"
 #include "src/log.h"
 #include "src/inventory.h"
+#include "src/game-options.h"
 
 #define SEARCH_MAX_DEPTH  0x10000
 
@@ -57,7 +58,7 @@ FlagSearch::execute(flag_search_func *callback, bool land,
 
     /*
     // here is the original Flagsearch::execute function 
-    //   before I added support for AIPlusOption::CanTransportSerfsInBoats
+    //   before I added support for option_CanTransportSerfsInBoats
     // I broke it up and inverted all the negative checks to make it more readable
     // NOTE - this original function never actually checks flag->has_path(i)
     //  which is confusing!
@@ -77,14 +78,14 @@ FlagSearch::execute(flag_search_func *callback, bool land,
     }
     */
 
-    // adding support for AIPlusOption::CanTransportSerfsOnBoats
+    // adding support for option_CanTransportSerfsOnBoats
     //
     // the function argument 'bool land' and 'bool transporter are used as follows':
     // if a resource is being routed, land=false and transporter=true
     //    which means "does not have to be a land route, uses transporter(?)"
     // if a serf being is routed, land=true and transporter=false
     //    which means "must be a land route, does not need transporter(?)"...
-    //  ... unless there is already a boat and AIPlusOption::CanTransportSerfsInBoats is set
+    //  ... unless there is already a boat and option_CanTransportSerfsInBoats is set
     //Log::Info["flag"] << "debug a";
     for (Direction i : cycle_directions_ccw()) {
       //Log::Info["flag"] << "debug: inside FlagSearch::execute, checking dir: " << i;
@@ -111,7 +112,7 @@ FlagSearch::execute(flag_search_func *callback, bool land,
           // hmm... I cannot reproduce this now using a human player
           //Log::Info["flag"] << "debug SERFS WALKING ON WATER, skipping flag " << flag->get_index() << " dir " << NameDirection[i] << " is water path";
           // ...but CanTransportSerfsInBoats option is not on...
-          if (!game->get_ai_options_ptr()->test(AIPlusOption::CanTransportSerfsInBoats)){
+          if (!option_CanTransportSerfsInBoats){
             // ... skip this dir/flag
             // debug - I am seeing serfs walking on water paths when CanTransportSerfsInBoats is *OFF*
             // hmm... I cannot reproduce this now using a human player
@@ -251,7 +252,7 @@ Flag::pick_up_resource(unsigned int from_slot, Resource::Type *res,
   return true;
 }
 
-// support AIPlusOption::CanTransportSerfsInBoats
+// support option_CanTransportSerfsInBoats
 //  is this function even necessary?  could just reset serf_waiting_for_boat directly
 bool
 Flag::pick_up_serf() {

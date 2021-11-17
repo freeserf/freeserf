@@ -1431,7 +1431,7 @@ Viewport::serf_get_body(Serf *serf) {
     0x6c00, 0x5700, 0x5600, 0, 0, 0, 0, 0
   };
 
-  // need to add more zeros here for AIPlusOption::CanTransportSerfsInBoats
+  // need to add more zeros here for option_CanTransportSerfsInBoats
   const int sailor_type[] = {
     0, 0x3100, 0x3600, 0x3c00, 0x4200, 0x4700, 0x4c00, 0x1500,
     0x900, 0x7700, 0xa00, 0x2100, 0x2200, 0x2300, 0x1f00, 0x2000,
@@ -1498,7 +1498,7 @@ Viewport::serf_get_body(Serf *serf) {
       }
       t += 0x200;
     } else if (serf->get_state() == Serf::StateTransporting) {
-      // add support for AIPlusOption::CanTransportSerfsInBoats
+      // add support for option_CanTransportSerfsInBoats
       /// need to figure out this -1 +1 resource type stuff
       if (serf->get_delivery() >= Resource::TypeSerf - 1){
         // set the 0x200 "rowing empty boat" animation
@@ -1994,7 +1994,7 @@ Viewport::draw_active_serf(Serf *serf, MapPos pos, int x_base, int y_base) {
   if (body > -1) {
     Color color = interface->get_player_color(serf->get_owner());
 
-    // add support for AIPlusOption::CanTransportSerfsInBoats
+    // add support for option_CanTransportSerfsInBoats
     //
     // this whole section should probably be moved outside of viewport and into serf, and instead update
     //  viewport to support drawing multiple serfs per pos

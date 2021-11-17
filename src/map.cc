@@ -72,6 +72,7 @@
 #include "src/savegame.h"
 #include "src/map-generator.h"
 #include "src/map-geometry.h"
+#include "src/game-options.h"
 
 /* Facilitates quick lookup of offsets following a spiral pattern in the map data.
  The columns following the second are filled out by setup_spiral_pattern(). */
@@ -688,14 +689,15 @@ Map::update_public(MapPos pos, Random *rnd) {
     // new trees randomly grow into mature trees
     r = rnd->random();
     if ((r & 0x300) == 0) {
-      // if AIPlusOption::BabyTreesMatureSlowly is set, it is half as likely for a tree to grow up
-      //  regardless of it was planted or spontaneously grew from TreesReproduce feature
-      Log::Info["map"] << "inside Map::update_public, forcing BabyTreesMatureSlowly feature on becase I cannot yet options working inside Map yet.";
-      if ((r % 2 == 0)){ 
-        Log::Info["map"] << "inside Map::update_public, forcing BabyTreesMatureSlowly feature on, r = " << r << ", NOT maturing this tree at pos " << pos;
-        break;
+      if (option_BabyTreesMatureSlowly) {
+        // if set, it is half as likely for a tree to grow up
+        //  regardless of it was planted or spontaneously grew from TreesReproduce feature
+        if ((r % 2 == 0)){ 
+          //Log::Info["map"] << "inside Map::update_public, BabyTreesMatureSlowly feature on, r = " << r << ", NOT maturing this tree at pos " << pos;
+          break;
+        }
+        Log::Info["map"] << "inside Map::update_public, BabyTreesMatureSlowly feature on, r = " << r << ", maturing this tree at pos " << pos;
       }
-      Log::Info["map"] << "inside Map::update_public, forcing BabyTreesMatureSlowly feature on, r = " << r << ", maturing this tree at pos " << pos;
       set_object(pos, (Object)(ObjectPine0 + (r & 7)), -1);
     }
     break;
@@ -703,14 +705,15 @@ Map::update_public(MapPos pos, Random *rnd) {
     // new trees randomly grow into mature trees
     r = rnd->random();
     if ((r & 0x300) == 0) {
-      // if AIPlusOption::BabyTreesMatureSlowly is set, it is half as likely for a tree to grow up
-      //  regardless of it was planted or spontaneously grew from TreesReproduce feature
-      Log::Info["map"] << "inside Map::update_public, forcing BabyTreesMatureSlowly feature on becase I cannot yet options working inside Map yet.";
-      if ((r % 2 == 0)){ 
-        Log::Info["map"] << "inside Map::update_public, forcing BabyTreesMatureSlowly feature on, r = " << r << ", NOT maturing this tree at pos " << pos;
-        break;
+      if (option_BabyTreesMatureSlowly) {
+        // if set, it is half as likely for a tree to grow up
+        //  regardless of it was planted or spontaneously grew from TreesReproduce feature
+        if ((r % 2 == 0)){ 
+          //Log::Info["map"] << "inside Map::update_public, BabyTreesMatureSlowly feature on, r = " << r << ", NOT maturing this tree at pos " << pos;
+          break;
+        }
+        Log::Info["map"] << "inside Map::update_public, BabyTreesMatureSlowly feature on, r = " << r << ", maturing this tree at pos " << pos;
       }
-      Log::Info["map"] << "inside Map::update_public, forcing BabyTreesMatureSlowly feature on, r = " << r << ", maturing this tree at pos " << pos;
       set_object(pos, (Object)(ObjectTree0 + (r & 7)), -1);
     }
     break;
@@ -790,12 +793,9 @@ Map::update_environment(MapPos pos, Random *rnd) {
   //  trees will spawn even outside the player viewport window
   //  suggest tuning the %roll chance to adjust the rate of tree spawning, but fix the linear relationship of mature trees to new tree rate
 
-  // need to rename 'AIPlusOptions' and move them to the main game so all code can refer to them
-  //if (!game->get_ai_options_ptr()->test(AIPlusOption::TreesReproduce)){
-  //  return;
-  //}
-  //Log::Debug["map"] << "inside Map::update_environment(), forcing TreesReproduce on because cannot check AIPlusOptions here yet";
-
+  if (option_BabyTreesMatureSlowly){
+    return;
+  }
 
   Map::Object type = get_obj(pos);
   Map::Object newtype = Map::ObjectNone;
@@ -815,7 +815,7 @@ Map::update_environment(MapPos pos, Random *rnd) {
   double doubrand = double(rnd->random());
   double roll = 100.00 * doubrand / double(UINT16_MAX);
   //Log::Debug["map"] << "inside Map::update_environment(), doubrand " << doubrand << ", roll " << roll;
-  if (roll < 95.00) {
+  if (roll < 99.80) {
     //Log::Debug["map"] << "inside Map::update_environment(), doubrand " << doubrand << ", roll " << roll << ", RETURNING";
     return;  // in most cases, do NOT place a tree
   }

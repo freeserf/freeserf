@@ -6,12 +6,12 @@
 #include <algorithm>  // to satisfy cpplint
 
 #include "src/ai.h"
+#include "src/game-options.h"
 
-AI::AI(PGame current_game, unsigned int _player_index, AIPlusOptions _aiplus_options) {
+AI::AI(PGame current_game, unsigned int _player_index) {
 
   ai_status = "INITIALIZING";
   player_index = _player_index;
-  aiplus_options = _aiplus_options;
   name = "Player" + std::to_string(player_index);
 
   AILogInfo["init"] << name << " inside AI::AI constructor with player_index: " << player_index;
@@ -82,15 +82,17 @@ AI::AI(PGame current_game, unsigned int _player_index, AIPlusOptions _aiplus_opt
 
 void
 AI::start() {
+  Log::Info["AI"] << "option_foo1 " << option_foo1;
   AILogInfo["start"] << name << " AI is starting, thread_id: " << std::this_thread::get_id();
 
-  // the Interface must pass the options bitset to each AI thread when initializing them
-  AILogInfo["start"] << name << " AIOption::EnableAutoSave is " << std::to_string(aiplus_options.test(AIPlusOption::EnableAutoSave));
-  AILogInfo["start"] << name << " AIOption::ImprovedPigFarms is " << std::to_string(aiplus_options.test(AIPlusOption::ImprovedPigFarms));
-  AILogInfo["start"] << name << " AIOption::CanTransportSerfsInBoats is " << std::to_string(aiplus_options.test(AIPlusOption::CanTransportSerfsInBoats));
-  AILogInfo["start"] << name << " AIOption::QuickDemoEmptyBuildSites is " << std::to_string(aiplus_options.test(AIPlusOption::QuickDemoEmptyBuildSites));
-  AILogInfo["start"] << name << " AIOption::TreesReproduce is " << std::to_string(aiplus_options.test(AIPlusOption::TreesReproduce));
-  AILogInfo["start"] << name << " AIOption::BabyTreesMatureSlowly is " << std::to_string(aiplus_options.test(AIPlusOption::BabyTreesMatureSlowly));
+  /* this works, don't need to print
+  AILogInfo["start"] << name << " option_EnableAutoSave is " << option_EnableAutoSave;
+  AILogInfo["start"] << name << " option_ImprovedPigFarms is " << option_ImprovedPigFarms;
+  AILogInfo["start"] << name << " option_CanTransportSerfsInBoats is " << option_CanTransportSerfsInBoats;
+  AILogInfo["start"] << name << " option_QuickDemoEmptyBuildSites is " << option_QuickDemoEmptyBuildSites;
+  AILogInfo["start"] << name << " option_TreesReproduce is " << option_TreesReproduce;
+  AILogInfo["start"] << name << " option_BabyTreesMatureSlowly is " << option_BabyTreesMatureSlowly;
+  */
 
   while (true) {
     //AILogDebug["start"] << name << " start AI::start while(true)";
