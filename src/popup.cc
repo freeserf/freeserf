@@ -295,6 +295,7 @@ typedef enum Action {
   ACTION_AIPLUS_CAN_TRANSPORT_SERFS_IN_BOATS,
   ACTION_AIPLUS_QUICK_DEMO_EMPTY_BUILD_SITES,
   ACTION_AIPLUS_TREES_REPRODUCE,
+  ACTION_AIPLUS_BABY_TREES_MATURE_SLOWLY,
   ACTION_MAPGEN_ADJUST_TREES,
   ACTION_MAPGEN_ADJUST_STONEPILES,
   ACTION_MAPGEN_ADJUST_FISH,
@@ -2027,6 +2028,8 @@ PopupBox::draw_aiplus_options_box() {
   draw_green_string(3, 86, "Trees Spontaneously Reproduce");
   draw_popup_icon(1, 83, (interface->test_aiplus_option(AIPlusOption::TreesReproduce)) ? 288 : 220);
 
+  draw_green_string(3, 105, "Baby Trees Mature Slowly");
+  draw_popup_icon(1, 102, (interface->test_aiplus_option(AIPlusOption::BabyTreesMatureSlowly)) ? 288 : 220);
 
   draw_popup_icon(32, 128, 60); /* exit */
 }
@@ -3702,6 +3705,13 @@ PopupBox::handle_action(int action, int x_, int /*y_*/) {
       interface->set_aiplus_option(AIPlusOption::TreesReproduce);
     }
     break;
+  case ACTION_AIPLUS_BABY_TREES_MATURE_SLOWLY:
+    if (interface->test_aiplus_option(AIPlusOption::BabyTreesMatureSlowly)){
+      interface->unset_aiplus_option(AIPlusOption::BabyTreesMatureSlowly);
+    } else{
+      interface->set_aiplus_option(AIPlusOption::BabyTreesMatureSlowly);
+    }
+    break;
   case ACTION_MAPGEN_ADJUST_TREES:
     Log::Info["popup"] << "ACTION_MAPGEN_ADJUST_TREES x_ = " << x_ << ", gui_get_slider_click_value(x_) = " << gui_get_slider_click_value(x_) << ", unint16_t(gui_get_slider_click_value(x_)) = " << uint16_t(gui_get_slider_click_value(x_));
     interface->set_custom_map_generator_trees(gui_get_slider_click_value(x_));                                         
@@ -4066,6 +4076,7 @@ PopupBox::handle_box_aiplusoptions_clk(int cx, int cy) {
     ACTION_AIPLUS_CAN_TRANSPORT_SERFS_IN_BOATS, 7, 45, 16, 16,
     ACTION_AIPLUS_QUICK_DEMO_EMPTY_BUILD_SITES, 7, 64, 16, 16,
     ACTION_AIPLUS_TREES_REPRODUCE, 7, 83, 16, 16,
+    ACTION_AIPLUS_BABY_TREES_MATURE_SLOWLY, 7, 102, 16, 16,
     //ACTION_AIPLUS_NEXT_PAGE, 106, 110, 16, 16,
     ActionShowOptions, 255, 126, 16, 16,
     -1

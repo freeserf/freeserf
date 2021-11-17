@@ -621,9 +621,10 @@ typedef enum AIPlusOption {
   CanTransportSerfsInBoats,
   QuickDemoEmptyBuildSites,
   TreesReproduce,
+  BabyTreesMatureSlowly,
   // REMEMBER TO INCREASE THE bitset<x> number below if adding new options!
 } AIPlusOption;  
-typedef std::bitset<5> AIPlusOptions;  // increase this when adding options!
+typedef std::bitset<6> AIPlusOptions;  // increase this when adding options!
 
 /*
   double desert_frequency;

@@ -90,6 +90,7 @@ AI::start() {
   AILogInfo["start"] << name << " AIOption::CanTransportSerfsInBoats is " << std::to_string(aiplus_options.test(AIPlusOption::CanTransportSerfsInBoats));
   AILogInfo["start"] << name << " AIOption::QuickDemoEmptyBuildSites is " << std::to_string(aiplus_options.test(AIPlusOption::QuickDemoEmptyBuildSites));
   AILogInfo["start"] << name << " AIOption::TreesReproduce is " << std::to_string(aiplus_options.test(AIPlusOption::TreesReproduce));
+  AILogInfo["start"] << name << " AIOption::BabyTreesMatureSlowly is " << std::to_string(aiplus_options.test(AIPlusOption::BabyTreesMatureSlowly));
 
   while (true) {
     //AILogDebug["start"] << name << " start AI::start while(true)";

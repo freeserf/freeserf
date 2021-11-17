@@ -688,6 +688,14 @@ Map::update_public(MapPos pos, Random *rnd) {
     // new trees randomly grow into mature trees
     r = rnd->random();
     if ((r & 0x300) == 0) {
+      // if AIPlusOption::BabyTreesMatureSlowly is set, it is half as likely for a tree to grow up
+      //  regardless of it was planted or spontaneously grew from TreesReproduce feature
+      Log::Info["map"] << "inside Map::update_public, forcing BabyTreesMatureSlowly feature on becase I cannot yet options working inside Map yet.";
+      if ((r % 2 == 0)){ 
+        Log::Info["map"] << "inside Map::update_public, forcing BabyTreesMatureSlowly feature on, r = " << r << ", NOT maturing this tree at pos " << pos;
+        break;
+      }
+      Log::Info["map"] << "inside Map::update_public, forcing BabyTreesMatureSlowly feature on, r = " << r << ", maturing this tree at pos " << pos;
       set_object(pos, (Object)(ObjectPine0 + (r & 7)), -1);
     }
     break;
@@ -695,6 +703,14 @@ Map::update_public(MapPos pos, Random *rnd) {
     // new trees randomly grow into mature trees
     r = rnd->random();
     if ((r & 0x300) == 0) {
+      // if AIPlusOption::BabyTreesMatureSlowly is set, it is half as likely for a tree to grow up
+      //  regardless of it was planted or spontaneously grew from TreesReproduce feature
+      Log::Info["map"] << "inside Map::update_public, forcing BabyTreesMatureSlowly feature on becase I cannot yet options working inside Map yet.";
+      if ((r % 2 == 0)){ 
+        Log::Info["map"] << "inside Map::update_public, forcing BabyTreesMatureSlowly feature on, r = " << r << ", NOT maturing this tree at pos " << pos;
+        break;
+      }
+      Log::Info["map"] << "inside Map::update_public, forcing BabyTreesMatureSlowly feature on, r = " << r << ", maturing this tree at pos " << pos;
       set_object(pos, (Object)(ObjectTree0 + (r & 7)), -1);
     }
     break;
