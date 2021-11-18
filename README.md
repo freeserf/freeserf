@@ -20,6 +20,7 @@ Forkserf adds:
 - internal game mechanics changes to fix gridlock issues that existed even in the original game
   - timeout & retry of building resource requests
   - prioritized transport of resources that can be immediately used
+  - faster clearing of Lost serfs
 - debugging tools
   - mark positions with colored dots
   - mark specific serfs and their state
