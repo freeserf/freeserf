@@ -43,6 +43,16 @@
 
 #define GROUND_ANALYSIS_RADIUS  25
 
+// deFINE the global game option bools that were deCLARED in game-options.h
+bool option_EnableAutoSave = false;
+bool option_ImprovedPigFarms = false;
+bool option_CanTransportSerfsInBoats = false;
+bool option_QuickDemoEmptyBuildSites = false;
+bool option_TreesReproduce = false;
+bool option_BabyTreesMatureSlowly = false;
+bool option_ResourceRequestsTimeOut = true;  // these are forced true to indicate that the code to make them optional isn't added yet
+bool option_LostTransportersClearFaster = true;  // these are forced true to indicate that the code to make them optional isn't added yet
+
 
 Game::Game()
   : map_gold_morale_factor(0)

@@ -110,6 +110,7 @@ Interface::Interface()
 
   GameManager::get_instance().add_handler(this);
   set_game(GameManager::get_instance().get_current_game());
+
 }
 
 Interface::~Interface() {
