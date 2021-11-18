@@ -159,6 +159,11 @@ class Data {
  protected:
   PSource data_source;
 
+  // added tlongstretch, early attempt to use multiple data sources
+  PSource data_source_Custom;
+  PSource data_source_DOS;
+  PSource data_source_Amiga;
+
   Data();
 
  public:
@@ -172,6 +177,10 @@ class Data {
   bool load(const std::string &path);
 
   PSource get_data_source() const { return data_source; }
+
+  PSource get_data_source_Custom() const { return data_source_Custom; }
+  PSource get_data_source_DOS() const { return data_source_DOS; }
+  PSource get_data_source_Amiga() const { return data_source_Amiga; }
 
   static Type get_resource_type(Resource resource);
   static unsigned int get_resource_count(Resource resource);

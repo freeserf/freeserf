@@ -101,12 +101,24 @@ Data::load(const std::string &path) {
   // If it is possible, prefer DOS game data.
   typedef std::function<Data::PSource(const std::string &)> SourceFactory;
   std::vector<SourceFactory> sources_factories;
+  // reversing the original order (Custom, DOS, Amiga) 
+  //  because instead of breaking as soon as one is found, I want to load
+  //   everything found and prefer the last one found
+  /*
   sources_factories.push_back([](const std::string &path)->Data::PSource{
     return std::make_shared<DataSourceCustom>(path); });
   sources_factories.push_back([](const std::string &path)->Data::PSource{
     return std::make_shared<DataSourceDOS>(path); });
   sources_factories.push_back([](const std::string &path)->Data::PSource{
     return std::make_shared<DataSourceAmiga>(path); });
+    */
+  
+  sources_factories.push_back([](const std::string &path)->Data::PSource{
+    return std::make_shared<DataSourceAmiga>(path); });
+  sources_factories.push_back([](const std::string &path)->Data::PSource{
+    return std::make_shared<DataSourceDOS>(path); });
+  sources_factories.push_back([](const std::string &path)->Data::PSource{
+    return std::make_shared<DataSourceCustom>(path); });
 
   std::list<std::string> search_paths;
   if (path.empty()) {
@@ -116,23 +128,39 @@ Data::load(const std::string &path) {
   }
 
   // Use each data source to try to find the data files in the search paths.
+  int source_type = 0;
+  std::string source_name = "Unknown";
   for (const SourceFactory &factory : sources_factories) {
+    if (source_type == 0)
+      source_name = "Amiga";
+    if (source_type == 1)
+      source_name = "DOS";
+    if (source_type == 2)
+      source_name = "Custom";
     for (const std::string &path : search_paths) {
       Data::PSource source = factory(path);
       if (source->check()) {
-        Log::Info["data"] << "Game data found in '" << source->get_path()
+        Log::Info["data"] << "Game data of type " << source_name << " found in '" << source->get_path()
                           << "'...";
         if (source->load()) {
+          if (source_type == 0)
+            data_source_Amiga = source;
+          if (source_type == 1)
+            data_source_DOS = source;
+          if (source_type == 2)
+            data_source_Custom = source;
           data_source = std::move(source);
           break;
         }
       }
     }
-    if (data_source) {
-      break;
-    }
+//    if (data_source) {
+//      break;
+//    }
+    source_type++;
   }
 
+  // "choose" the last one found
   return data_source.get() != nullptr;
 }
 

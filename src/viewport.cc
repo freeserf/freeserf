@@ -323,6 +323,20 @@ Viewport::get_tile_frame(unsigned int tid, int tc, int tr) {
 
     pos = map->move_right(pos);
     x_base += MAP_TILE_WIDTH;
+    
+    // NOTE - it seems that the landscape tiles are only drawn once and saved
+    //  so moving the map around does NOT reload them, so it is not possible to
+    //  check what terrain types are in view this way!  Instead, I am going to try
+    //  triggering the ambient desert and water sounds by the junk objects within them
+    //  being in view, like trees/birds do
+    // ambient wind gust sounds triggered by amount of desert tiles in view
+    /*
+    if (map->is_desert_tile(pos)){
+      interface->desert_in_view += 1;
+      Log::Info["viewport.cc"] << "desert tiles in view: " << interface->desert_in_view;
+    }
+    */
+
   }
 
 #if 0
@@ -343,6 +357,7 @@ Viewport::get_tile_frame(unsigned int tid, int tc, int tr) {
 
 void
 Viewport::draw_landscape() {
+
   int horiz_tiles = map->get_cols()/MAP_TILE_COLS;
   int vert_tiles = map->get_rows()/MAP_TILE_ROWS;
 
@@ -867,7 +882,8 @@ Viewport::draw_unharmed_building(Building *building, int lx, int ly) {
         int i = (interface->get_game()->get_tick() >> 3) & 7;
         if (i == 0 || (i == 7 && !building->is_playing_sfx())) {
           building->start_playing_sfx();
-          play_sound(Audio::TypeSfxGoldBoils);
+          //play_sound(Audio::TypeSfxGoldBoils);
+          play_sound(Audio::TypeSfxGoldBoils, DataSourceType::Amiga);  // the DOS sound is bugged in freeserf, Amiga sound is better anyway
         } else if (i != 7) {
           building->stop_playing_sfx();
         }
@@ -901,7 +917,8 @@ Viewport::draw_unharmed_building(Building *building, int lx, int ly) {
         int i = (interface->get_game()->get_tick() >> 3) & 7;
         if (i == 0 || (i == 7 && !building->is_playing_sfx())) {
           building->start_playing_sfx();
-          play_sound(Audio::TypeSfxGoldBoils);
+          //play_sound(Audio::TypeSfxGoldBoils);
+          play_sound(Audio::TypeSfxGoldBoils, DataSourceType::Amiga);  // the DOS sound is bugged in freeserf, Amiga sound is better anyway
         } else if (i != 7) {
           building->stop_playing_sfx();
         }
@@ -1265,6 +1282,22 @@ Viewport::draw_map_objects_row(MapPos pos, int y_base, int cols, int x_base) {
         // only allow bird chirps from Tree and Pine (not palm or submerged, cactus, etc.)
         if (map->get_obj(pos) >= Map::ObjectTree0 && map->get_obj(pos) <= Map::ObjectPine7) {
           interface->trees_in_view += 1;
+          //Log::Info["viewport.cc"] << "trees in view: " << interface->trees_in_view;
+        }
+        // use junk objects that only appear in deserts to trigger desert wind sounds
+        //  cannot use desert terrain in view because landscape is not constantly redrawn
+        if (map->get_obj(pos) == Map::ObjectCactus0   || map->get_obj(pos) == Map::ObjectCactus1
+         || map->get_obj(pos) == Map::ObjectCadaver0  || map->get_obj(pos) == Map::ObjectCadaver1
+         || (map->get_obj(pos) >= Map::ObjectPalm0 && map->get_obj(pos) <= Map::ObjectPalm3)) {
+          interface->desert_in_view += 1;
+          //Log::Info["viewport.cc"] << "desert junk objects in view: " << interface->desert_in_view;
+        }
+        // there's a bug with water tile map generation, seems only one water tree is rendered
+        //  and always top row, top left??  include all anyway in case I eventually fix that
+        if ((map->get_obj(pos) >= Map::ObjectWaterTree0 && map->get_obj(pos) <= Map::ObjectWaterTree3)
+          || map->get_obj(pos) >= Map::ObjectWaterStone0 || map->get_obj(pos) >= Map::ObjectWaterStone1) {
+          interface->water_in_view += 1;
+          //Log::Info["viewport.cc"] << "water junk objects in view: " << interface->water_in_view;
         }
 
         /* Adding sprite number to animation ensures
@@ -1398,7 +1431,7 @@ Viewport::serf_get_body(Serf *serf) {
     0x6c00, 0x5700, 0x5600, 0, 0, 0, 0, 0
   };
 
-  // need to add more zeros here for AIPlusOption::CanTransportSerfsInBoats
+  // need to add more zeros here for option_CanTransportSerfsInBoats
   const int sailor_type[] = {
     0, 0x3100, 0x3600, 0x3c00, 0x4200, 0x4700, 0x4c00, 0x1500,
     0x900, 0x7700, 0xa00, 0x2100, 0x2200, 0x2300, 0x1f00, 0x2000,
@@ -1442,7 +1475,8 @@ Viewport::serf_get_body(Serf *serf) {
       if (((t & 7) == 4 && !serf->playing_sfx()) ||
           (t & 7) == 3) {
         serf->start_playing_sfx();
-        play_sound(Audio::TypeSfxRowing);
+        //play_sound(Audio::TypeSfxRowing);
+        play_sound(Audio::TypeSfxRowing, DataSourceType::DOS);  // DOS sound is a little better
       } else {
         serf->stop_playing_sfx();
       }
@@ -1456,14 +1490,15 @@ Viewport::serf_get_body(Serf *serf) {
         if (((t & 7) == 4 && !serf->playing_sfx()) ||
             (t & 7) == 3) {
           serf->start_playing_sfx();
-          play_sound(Audio::TypeSfxRowing);
+          //play_sound(Audio::TypeSfxRowing);
+          play_sound(Audio::TypeSfxRowing, DataSourceType::DOS);  // DOS sound is a little better
         } else {
           serf->stop_playing_sfx();
         }
       }
       t += 0x200;
     } else if (serf->get_state() == Serf::StateTransporting) {
-      // add support for AIPlusOption::CanTransportSerfsInBoats
+      // add support for option_CanTransportSerfsInBoats
       /// need to figure out this -1 +1 resource type stuff
       if (serf->get_delivery() >= Resource::TypeSerf - 1){
         // set the 0x200 "rowing empty boat" animation
@@ -1536,7 +1571,8 @@ Viewport::serf_get_body(Serf *serf) {
          It is probably free walking. */
       if (serf->get_free_walking_neg_dist2() == 0 &&
           serf->get_counter() < 64) {
-        play_sound(Audio::TypeSfxTreeFall);
+        //play_sound(Audio::TypeSfxTreeFall);
+        play_sound(Audio::TypeSfxTreeFall, DataSourceType::DOS);  // DOS sound is better
       }
       t += 0xe80;
     } else if (t != 0x86) {
@@ -1559,7 +1595,10 @@ Viewport::serf_get_body(Serf *serf) {
           (!serf->playing_sfx() && (t == 0xb7 || t == 0xbf ||
                 t == 0xc7 || t == 0xcf))) {
         serf->start_playing_sfx();
-        play_sound(Audio::TypeSfxSawing);
+        //play_sound(Audio::TypeSfxSawing);
+        //play_sound(Audio::TypeSfxSawing, DataSourceType::Amiga);  // Amiga sound is better for sawmill
+        //  actually, I am now thinking the Amiga sound is too grating, trying DOS again..
+        play_sound(Audio::TypeSfxSawing, DataSourceType::DOS);
       } else if (t != 0xb7 && t != 0xbf && t != 0xc7 && t != 0xcf) {
         serf->stop_playing_sfx();
       }
@@ -1802,7 +1841,8 @@ Viewport::serf_get_body(Serf *serf) {
       /* edi10 += 4; */
       if (t == 0x83 || (t == 0xb2 && !serf->playing_sfx())) {
         serf->start_playing_sfx();
-        play_sound(Audio::TypeSfxSawing);
+        //play_sound(Audio::TypeSfxSawing); 
+        play_sound(Audio::TypeSfxSawing, DataSourceType::DOS);  // DOS sound better for hand-saw?  uses same sound ID as sawmill
       } else if (t == 0x87 || (t == 0xb6 && !serf->playing_sfx())) {
         serf->start_playing_sfx();
         play_sound(Audio::TypeSfxWoodHammering);
@@ -1842,7 +1882,8 @@ Viewport::serf_get_body(Serf *serf) {
     } else if (t == 0x83 || t == 0x84 || t == 0x86) {
       if (t == 0x83 || !serf->playing_sfx()) {
         serf->start_playing_sfx();
-        play_sound(Audio::TypeSfxGeologistSampling);
+        //play_sound(Audio::TypeSfxGeologistSampling);
+        play_sound(Audio::TypeSfxGeologistSampling, DataSourceType::DOS);  // I thought I prefered the Amiga sound but it is grating, annoying.  use DOS
       }
       t += 0x4c80;
     } else if (t == 0x8c || t == 0x8d) {
@@ -1953,7 +1994,7 @@ Viewport::draw_active_serf(Serf *serf, MapPos pos, int x_base, int y_base) {
   if (body > -1) {
     Color color = interface->get_player_color(serf->get_owner());
 
-    // add support for AIPlusOption::CanTransportSerfsInBoats
+    // add support for option_CanTransportSerfsInBoats
     //
     // this whole section should probably be moved outside of viewport and into serf, and instead update
     //  viewport to support drawing multiple serfs per pos
@@ -2118,6 +2159,14 @@ Viewport::draw_active_serf(Serf *serf, MapPos pos, int x_base, int y_base) {
 
         // automatically mark waiting serfs
         bool auto_mark_this_serf = false;
+
+        //
+        // help debug lost serf clearing issues, auto-mark Lost serfs
+        //   Nov 2021
+        if (serf->get_state() == Serf::StateLost){
+          auto_mark_this_serf = true;
+        }
+
         /*
         if (serf->get_state() != Serf::StateIdleInStock) {
                 // direction is unknown until set by serf->is_waiting() in the ptr created here
@@ -2360,10 +2409,12 @@ Viewport::draw_serf_row_behind(MapPos pos, int y_base, int cols, int x_base) {
 
 void
 Viewport::draw_game_objects(int layers_) {
-  /*player->water_in_view = 0;
-  player->trees_in_view = 0;*/
   interface->trees_in_view = 0;
   interface->is_playing_birdsfx = false;
+  interface->desert_in_view = 0;
+  interface->is_playing_desertsfx = false;
+  interface->water_in_view = 0;
+  interface->is_playing_watersfx = false;
 
   int draw_landscape = layers_ & LayerLandscape;
   int draw_objects = layers_ & LayerObjects;
@@ -2419,7 +2470,13 @@ Viewport::draw_game_objects(int layers_) {
 
     pos = map->move_down_right(pos);
   }
-
+  //
+  // ambient sounds - birds near trees, waves near water (palms)
+  //  wind near deserts 
+  // the timing of these isn't well planned, just fiddled around with the numbers until it
+  //  gave acceptable results.  could be improved
+  // ALSO... would the wind sounds be better for mountains rather than deserts??
+  //
   // play bird sounds if enough trees in view
   //Log::Info["viewport.cc"] << "trees in view: " << interface->trees_in_view;
   if (interface->trees_in_view > 0){
@@ -2433,14 +2490,30 @@ Viewport::draw_game_objects(int layers_) {
     }
     if (!interface->is_playing_birdsfx && birdsound_chance > tick_rand && limit_tick % 8 == 0){
       uint16_t foo_rand = (random.random() * tick_rand) & 0x7f;
-      if (foo_rand < 25) {
-        play_sound(Audio::TypeSfxBirdChirp3);   // this is a longer chirp, make it less frequent
-      } else if (foo_rand < 50) {
-        play_sound(Audio::TypeSfxBirdChirp1);
+      if (foo_rand < 20) {
+        play_sound(Audio::TypeSfxBirdChirp3, DataSourceType::DOS);
+        //Log::Info["viewport.cc"] << "birdsongsfx debug: CHIRP!  DOS 3";  // short chirp 
+      } else if (foo_rand < 40) {
+        play_sound(Audio::TypeSfxBirdChirp1, DataSourceType::DOS);
+        //Log::Info["viewport.cc"] << "birdsongsfx debug: CHIRP!  DOS 1";  // short chirp
+      } else if (foo_rand < 60) {
+        play_sound(Audio::TypeSfxBirdChirp0, DataSourceType::DOS);
+        //Log::Info["viewport.cc"] << "birdsongsfx debug: CHIRP!  DOS 0";  // short chirp
       } else if (foo_rand < 75) {
-        play_sound(Audio::TypeSfxBirdChirp0); 
+        play_sound(Audio::TypeSfxBirdChirp2, DataSourceType::DOS);
+        //Log::Info["viewport.cc"] << "birdsongsfx debug: CHIRP!  DOS 2";  // medium chirp
+      } else if (foo_rand < 82) {
+        play_sound(Audio::TypeSfxBirdChirp3, DataSourceType::Amiga);  
+        //Log::Info["viewport.cc"] << "birdsongsfx debug: CHIRP!  Amiga 3";  // long chirp
+      } else if (foo_rand < 90) {
+        play_sound(Audio::TypeSfxBirdChirp1, DataSourceType::Amiga);  // long chirp
+        //Log::Info["viewport.cc"] << "birdsongsfx debug: CHIRP!  Amiga 1";
+      } else if (foo_rand < 120) {
+        play_sound(Audio::TypeSfxBirdChirp0, DataSourceType::Amiga);  // short chirp
+        //Log::Info["viewport.cc"] << "birdsongsfx debug: CHIRP!  Amiga 0";
       } else {
-        play_sound(Audio::TypeSfxBirdChirp2);
+        play_sound(Audio::TypeSfxBirdChirp2, DataSourceType::Amiga);  // long chirp
+        //Log::Info["viewport.cc"] << "birdsongsfx debug: CHIRP!  Amiga 2";  
       }
       // allow up to a few birdsounds
       //if (limit_tick % 36 == 0){
@@ -2458,6 +2531,49 @@ Viewport::draw_game_objects(int layers_) {
         Log::Info["viewport.cc"] << "resetting birdsong play";
       }
       */
+    }
+  }
+  // play wind sounds if enough desert junk objects in view
+  //Log::Info["viewport.cc"] << "desert junk objects in view: " << interface->desert_in_view;
+  if (interface->desert_in_view > 0){
+    Random random;
+    uint16_t tick_rand = (random.random() + interface->get_game()->get_const_tick()) & 0x7f;
+    uint16_t limit_tick = interface->get_game()->get_const_tick() & 0x7f;
+    //Log::Info["viewport.cc"] << "windsfx debug: desert_in_view " << interface->desert_in_view << ", limit_tick " << limit_tick << ", const tick " << interface->get_game()->get_const_tick() << ", tick_rand " << tick_rand;
+    int windsound_chance = interface->desert_in_view * 5;
+    if (windsound_chance > 30){
+      windsound_chance = 30;
+    }
+    if (!interface->is_playing_desertsfx && windsound_chance > tick_rand && limit_tick % 8 == 0){
+      uint16_t foo_rand = (random.random() * tick_rand) & 0x7f;
+      if (foo_rand < 25) {
+        play_sound(Audio::TypeSfxUnknown29);
+      }
+      interface->is_playing_desertsfx = true;
+    }else{
+      //
+    }
+  }
+  // play wave sounds if enough water junk objects in view
+  //Log::Info["viewport.cc"] << "water junk objects in view: " << interface->water_in_view;
+  if (interface->water_in_view > 0){
+    Random random;
+    uint16_t tick_rand = (random.random() + interface->get_game()->get_const_tick()) & 0x7f;
+    uint16_t limit_tick = interface->get_game()->get_const_tick() & 0x7f;
+    //Log::Info["viewport.cc"] << "wavesfx debug: water_in_view " << interface->water_in_view << ", limit_tick " << limit_tick << ", const tick " << interface->get_game()->get_const_tick() << ", tick_rand " << tick_rand;
+    int wavesound_chance = interface->water_in_view * 100;
+    if (wavesound_chance > 30){
+      wavesound_chance = 30;
+    }
+    if (!interface->is_playing_watersfx && wavesound_chance > tick_rand && limit_tick % 8 == 0){
+      uint16_t foo_rand = (random.random() * tick_rand) & 0x7f;
+      if (foo_rand < 25) {
+        play_sound(Audio::TypeSfxUnknown28);
+        //play_sound(Audio::TypeSfxUnknown28, DataSourceType::DOS);  // DOS is a little better
+      }
+      interface->is_playing_watersfx = true;
+    }else{
+      //
     }
   }
 }

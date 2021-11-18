@@ -103,7 +103,7 @@ class Flag : public GameObject {
 
   int bld_flags;
   int bld2_flags;
-  bool serf_waiting_for_boat;  // adding support for AIPlusOption::CanTransportSerfsInBoats
+  bool serf_waiting_for_boat;  // adding support for option_CanTransportSerfsInBoats
 
  public:
   Flag(Game *game, unsigned int index);
@@ -195,7 +195,7 @@ class Flag : public GameObject {
     return (other_end_dir[dir] >> 7) & 1; }
   bool pick_up_resource(unsigned int slot, Resource::Type *res,
                         unsigned int *dest);
-  // add support for AIPlusOption::CanTransportSerfsInBoats
+  // add support for option_CanTransportSerfsInBoats
   bool pick_up_serf();
   //bool drop_off_serf();
   bool drop_resource(Resource::Type res, unsigned int dest);

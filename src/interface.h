@@ -104,15 +104,10 @@ class Interface : public GuiObject, public GameManager::Handler {
   int current_stat_8_mode;
   int current_stat_7_item;
 
-  // these variables do not appear to actually be used
-  //int water_in_view;
-  //int trees_in_view; // moved this to public, going to start using it
-
   int return_timeout;
   int return_pos;
 
   AI *ai_ptrs[5] = { NULL, NULL, NULL, NULL, NULL };
-  AIPlusOptions aiplus_options;
   CustomMapGeneratorOptions custom_map_generator_options;
   //bool regen_map = false;
 
@@ -191,12 +186,6 @@ class Interface : public GuiObject, public GameManager::Handler {
   // used for viewport and maybe other funtions to get the ai object so they can fetch the ai_mark stuff for AI overlay for debugging
   AI * get_ai_ptr(unsigned int index) { return ai_ptrs[index]; }
 
-  // options bitfield (bool settings)
-  static AIPlusOptions &get_aiplus_options();
-  void set_aiplus_option(AIPlusOption opt) { aiplus_options.set(opt); }
-  void unset_aiplus_option(AIPlusOption opt) { aiplus_options.reset(opt); }
-  bool test_aiplus_option(AIPlusOption opt) { return aiplus_options.test(opt); }
-
   CustomMapGeneratorOptions get_custom_map_generator_options();
 
   // this allows the EditCustomMapGenerator popup to tell the
@@ -250,9 +239,13 @@ class Interface : public GuiObject, public GameManager::Handler {
   void set_custom_map_generator_junk_desert_cacti(uint16_t val){ custom_map_generator_options.opt[CustomMapGeneratorOption::JunkDesertCacti] = slider_uint16_to_double(val); }
   void set_custom_map_generator_junk_desert_palm_trees(uint16_t val){ custom_map_generator_options.opt[CustomMapGeneratorOption::JunkDesertPalmTrees] = slider_uint16_to_double(val); }
 
-  // used to trigger bird sounds
-  int trees_in_view; // copied from protected (it was never actually used before, was a stub)
+  // used to trigger ambient bird/wind/wave sounds
+  int trees_in_view;
   bool is_playing_birdsfx;
+  int desert_in_view;
+  bool is_playing_desertsfx;
+  int water_in_view;
+  bool is_playing_watersfx;
   
 
  protected:

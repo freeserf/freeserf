@@ -42,10 +42,12 @@
 
 int
 main(int argc, char *argv[]) {
+
   // why does simply calling new(Log) make console output work on windows???
   new(Log);
   std::ofstream* filestr = new std::ofstream("console_out.txt");
   Log::set_file(filestr);
+
 
   std::string data_dir;
   std::string save_file;
@@ -88,7 +90,7 @@ main(int argc, char *argv[]) {
                   s >> screen_height;
                   return true;
                 });
-  command_line.set_comment("Please report bugs to <" PACKAGE_BUGREPORT ">");
+  //command_line.set_comment("Please report bugs to <" PACKAGE_BUGREPORT ">");
   if (!command_line.process(argc, argv)) {
     return EXIT_FAILURE;
   }
@@ -113,7 +115,8 @@ main(int argc, char *argv[]) {
   Audio &audio = Audio::get_instance();
   Audio::PPlayer player = audio.get_music_player();
   if (player) {
-    Audio::PTrack t = player->play_track(Audio::TypeMidiTrack0);
+    //Audio::PTrack t = player->play_track(Audio::TypeMidiTrack0);
+    Audio::PTrack t = player->play_track(Audio::TypeMidiTrack0, DataSourceType::Amiga);  // 0=Amiga, 1=DOS, 2=Custom
   }
 
   GameManager &game_manager = GameManager::get_instance();

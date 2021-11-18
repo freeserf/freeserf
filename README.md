@@ -4,12 +4,14 @@ Forkserf
 A continuation of Freeserf, a SerfCity/Settlers1 clone in C/C++.  Freeserf was created by jonls and wdigger
 
 Forkserf adds:
+- advanced AI for non-human players with greatly improved road building logic
 - fixes for Freeserf bugs
   - major crash bugs from iterator invalidation during normal gameplay
   - crash & other bugs related to combat
   - some minor visual & audio issues
   - crash & other issue with food resource delivery
-- advanced AI for non-human players with greatly improved road building logic
+  - serfs become forever stuck on roads and block the road
+  - missing ambient sounds
 - new features (mostly as optional checkboxes)
   - auto-saving
   - enhanced Pig Farms
@@ -25,6 +27,7 @@ Forkserf adds:
   - "boot" specific serfs by setting them to Lost state
   - trace road pathfinding
   - identification & colored highlighting of arterial roads
+  - hidden resource overlay (THIS IS CHEATING!)
 - no multiplayer yet, sorry
 
 Details about all of the above are on the wiki: https://github.com/forkserf/forkserf/wiki
@@ -56,6 +59,7 @@ Keyboard gameplay controls:
 * `j`: Switch player.
 * `y`: AI/debug overlay (only shows for AI players)
 * `g`: grid/serf state debug overlay
+* `h`: hidden resource overlay (THIS IS CHEATING!)
 
 Other keyboard controls:
 

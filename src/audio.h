@@ -123,13 +123,15 @@ class Audio {
     Player();
     virtual ~Player();
 
-    virtual PTrack play_track(int track_id);
+    //virtual PTrack play_track(int track_id);
+    virtual PTrack play_track(int track_id, int source_type);   // 0=Amiga, 1=DOS, 2=Custom
     virtual void enable(bool enable) = 0;
     virtual bool is_enabled() const { return enabled; }
     virtual PVolumeController get_volume_controller() = 0;
 
    protected:
-    virtual PTrack create_track(int track_id) = 0;
+    //virtual PTrack create_track(int track_id) = 0;
+    virtual PTrack create_track(int track_id, int source_type) = 0;
     virtual void stop() = 0;
   };
   typedef std::shared_ptr<Player> PPlayer;

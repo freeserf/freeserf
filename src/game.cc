@@ -43,6 +43,16 @@
 
 #define GROUND_ANALYSIS_RADIUS  25
 
+// deFINE the global game option bools that were deCLARED in game-options.h
+bool option_EnableAutoSave = false;
+bool option_ImprovedPigFarms = false;
+bool option_CanTransportSerfsInBoats = false;
+bool option_QuickDemoEmptyBuildSites = false;
+bool option_TreesReproduce = false;
+bool option_BabyTreesMatureSlowly = false;
+bool option_ResourceRequestsTimeOut = true;  // this is forced true to indicate that the code to make them optional isn't added yet
+bool option_LostTransportersClearFaster = false;
+
 
 Game::Game()
   : map_gold_morale_factor(0)
@@ -61,7 +71,6 @@ Game::Game()
   buildings = Buildings(this);
   serfs = Serfs(this);
   std::mutex mutex;
-  aiplus_options_ptr = new AIPlusOptions();
 
   /* Create NULL-serf */
   serfs.allocate();
@@ -727,6 +736,7 @@ Game::update_serfs() {
   Log::Verbose["game"] << "thread #" << std::this_thread::get_id() << " has unlocked mutex for Game::update_serfs";
 }
 
+
 /* Update historical player statistics for one measure. */
 void
 Game::record_player_history(int max_level, int aspect,
@@ -867,6 +877,7 @@ Game::update_game_stats() {
 /* Update game state after tick increment. */
 void
 Game::update() {
+
   /* Increment tick counters */
   const_tick += 1;
 
@@ -1949,15 +1960,15 @@ void
 Game::init_land_ownership() {
   Log::Verbose["game"] << "thread #" << std::this_thread::get_id() << " is locking mutex inside Game::init_land_ownership";
   mutex.lock();
-  Log::Verbose["game"] << "thread #" << std::this_thread::get_id() << " is locking mutex inside Game::init_land_ownership";
+  Log::Verbose["game"] << "thread #" << std::this_thread::get_id() << " has locked mutex inside Game::init_land_ownership";
   for (Building *building : buildings) {
     if (building->is_military()) {
       update_land_ownership(building->get_position());
     }
   }
-  Log::Verbose["game"] << "thread #" << std::this_thread::get_id() << " is locking mutex inside Game::init_land_ownership";
+  Log::Verbose["game"] << "thread #" << std::this_thread::get_id() << " is unlocking mutex inside Game::init_land_ownership";
   mutex.unlock();
-  Log::Verbose["game"] << "thread #" << std::this_thread::get_id() << " is locking mutex inside Game::init_land_ownership";
+  Log::Verbose["game"] << "thread #" << std::this_thread::get_id() << " has unlocking mutex inside Game::init_land_ownership";
 }
 
 /* Update land ownership around map position. */

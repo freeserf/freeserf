@@ -155,8 +155,8 @@ class Serf : public GameObject {
     /* Additional state: goes at the end to ease loading of
      original save game. */
     StateKnightAttackingDefeatFree,
-    StateWaitForBoat,   // to support AIPlusOption::CanTransportSerfsInBoats
-    StateBoatPassenger  // to support AIPlusOption::CanTransportSerfsInBoats
+    StateWaitForBoat,   // to support option_CanTransportSerfsInBoats
+    StateBoatPassenger  // to support option_CanTransportSerfsInBoats
   } State;
 
  protected:
@@ -168,6 +168,10 @@ class Serf : public GameObject {
   MapPos pos;
   uint16_t tick;
   State state;
+  // tlongstretch, added to support lost serf clearing to non-Inventory buildings
+  // this could be done inside the states union, but that would require passing it along the various
+  //  relevant states, which is annoying
+  bool was_lost;
 
   union s {
     struct {
@@ -189,7 +193,7 @@ class Serf : public GameObject {
       unsigned int dest; /* C */
       int dir; /* E */
       int wait_counter; /* F */
-      // add support for AIPlusOption::CanTransportSerfsInBoats
+      // add support for option_CanTransportSerfsInBoats
       Type pickup_serf_type;            // serf at flag one tile away, about to be picked up by sailor
       unsigned int pickup_serf_index;   // serf at flag one tile away, about to be picked up by sailor
       Type passenger_serf_type;         // serf currently in the sailor's boat
@@ -432,7 +436,7 @@ class Serf : public GameObject {
   int get_delivery() const;
   // add support for requested resource search debugging - returns destination flag index for carried resource
   int get_transporting_dest() const { return s.transporting.dest; }
-  // add support for AIPlusOption::CanTransportSerfsInBoats
+  // add support for option_CanTransportSerfsInBoats
   Type get_pickup_serf_type() const { return s.transporting.pickup_serf_type; }
   unsigned int get_pickup_serf_index() const { return s.transporting.pickup_serf_index; }
   Type get_passenger_serf_type() const { return s.transporting.passenger_serf_type; }

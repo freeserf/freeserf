@@ -615,14 +615,6 @@ const unsigned int bad_score = 123123123;
 //  yeah... say you start at NE/U corner, just draw a straight line SE/DR until next corner found, then draw SW/D...
 
 
-typedef enum AIPlusOption {
-  EnableAutoSave = 0,
-  ImprovedPigFarms,
-  CanTransportSerfsInBoats,
-  QuickDemoEmptyBuildSites,
-} AIPlusOption;
-typedef std::bitset<4> AIPlusOptions;
-
 /*
   double desert_frequency;
 
@@ -699,7 +691,17 @@ typedef enum GameType {
   GameLoad = 2
 } GameType;
 
+typedef enum DataSourceType {
+  Amiga = 0,
+  DOS = 1,
+  Custom = 2
+} DataSourceType;
 
+const std::string NameDataSourceType[] = {
+  "Amiga",
+  "DOS",
+  "Custom",
+};
 
 
 

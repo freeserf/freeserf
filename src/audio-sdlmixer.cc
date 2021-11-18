@@ -144,10 +144,41 @@ AudioSDL::volume_down() {
   set_volume(vol - 0.1f);
 }
 
+/*
 Audio::PTrack
 AudioSDL::PlayerSFX::create_track(int track_id) {
   Data &data = Data::get_instance();
   Data::PSource data_source = data.get_data_source();
+
+  PBuffer wav = data_source->get_sound(track_id);
+  if (!wav) {
+    return nullptr;
+  }
+
+  SDL_RWops *rw = SDL_RWFromMem(wav->get_data(),
+                                static_cast<int>(wav->get_size()));
+  Mix_Chunk *chunk = Mix_LoadWAV_RW(rw, 0);
+  if (chunk == nullptr) {
+    Log::Error["audio:SDL_mixer"] << "Mix_LoadWAV_RW: " << Mix_GetError();
+    return nullptr;
+  }
+
+  return std::make_shared<AudioSDL::TrackSFX>(chunk);
+}
+*/
+
+// adding support for multiple data sources
+Audio::PTrack
+AudioSDL::PlayerSFX::create_track(int track_id, int source_type) {
+  Data &data = Data::get_instance();
+  //Data::PSource data_source = data.get_data_source();
+  Data::PSource data_source;
+  if (source_type == 0)
+    data_source = data.get_data_source_Amiga();
+  if (source_type == 1)
+    data_source = data.get_data_source_DOS();
+  if (source_type == 2)
+    data_source = data.get_data_source_Custom();
 
   PBuffer wav = data_source->get_sound(track_id);
   if (!wav) {
@@ -232,6 +263,7 @@ AudioSDL::PlayerMIDI::~PlayerMIDI() {
   Mix_HookMusicFinished(nullptr);
 }
 
+/*
 Audio::PTrack
 AudioSDL::PlayerMIDI::create_track(int track_id) {
   Data &data = Data::get_instance();
@@ -258,9 +290,46 @@ AudioSDL::PlayerMIDI::create_track(int track_id) {
 
   return std::make_shared<AudioSDL::TrackMIDI>(midi, music);
 }
+*/
+
+// adding support for multiple data sources
+Audio::PTrack
+AudioSDL::PlayerMIDI::create_track(int track_id, int source_type) {
+  Data &data = Data::get_instance();
+  //Data::PSource data_source = data.get_data_source();
+  Data::PSource data_source;
+  if (source_type == 0)
+    data_source = data.get_data_source_Amiga();
+  if (source_type == 1)
+    data_source = data.get_data_source_DOS();
+  if (source_type == 2)
+    data_source = data.get_data_source_Custom();
+
+  if (data_source->get_music_format() == Data::MusicFormatMod) {
+    if (MIX_INIT_MOD != Mix_Init(MIX_INIT_MOD)) {
+      Log::Error["audio:SDL_mixer"] << "Failed to initialize MOD music decoder";
+      return nullptr;
+    }
+  }
+
+  PBuffer midi = data_source->get_music(track_id);
+  if (!midi) {
+    return nullptr;
+  }
+
+  SDL_RWops *rw = SDL_RWFromMem(midi->get_data(),
+                                static_cast<int>(midi->get_size()));
+  Mix_Music *music = Mix_LoadMUS_RW(rw, 0);
+  if (music == nullptr) {
+    return nullptr;
+  }
+
+  return std::make_shared<AudioSDL::TrackMIDI>(midi, music);
+}
 
 Audio::PTrack
-AudioSDL::PlayerMIDI::play_track(int track_id) {
+//AudioSDL::PlayerMIDI::play_track(int track_id) {
+AudioSDL::PlayerMIDI::play_track(int track_id, int source_type) {
   Audio::PTrack track;
   bool have_track = false;
   while (!track) {
@@ -271,8 +340,10 @@ AudioSDL::PlayerMIDI::play_track(int track_id) {
       track_id = TypeMidiTrack0;
     }
     current_track = static_cast<TypeMidi>(track_id);
+    current_source = source_type;
     Log::Info["audio:SDL_mixer"] << "Playing MIDI track: " << current_track;
-    track = Audio::Player::play_track(track_id);
+    //track = Audio::Player::play_track(track_id);
+    track = Audio::Player::play_track(track_id, source_type);
     if (track) {
       have_track = true;
     }
@@ -333,7 +404,8 @@ AudioSDL::PlayerMIDI::music_finished_hook() {
 void
 AudioSDL::PlayerMIDI::music_finished() {
   if (is_enabled()) {
-    Audio::PTrack t = play_track(current_track + 1);
+    //Audio::PTrack t = play_track(current_track + 1);
+    Audio::PTrack t = play_track(current_track + 1, current_source);
   }
 }
 

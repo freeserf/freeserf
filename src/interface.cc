@@ -41,6 +41,8 @@
 #include "src/savegame.h"
 #include "src/lookup.h"
 #include "src/ai.h"
+#include "src/game-options.h"
+
 
 // Interval between automatic save games
 #define AUTOSAVE_INTERVAL  (5*60*TICKS_PER_SEC)
@@ -48,11 +50,13 @@
 Interface::Interface()
   : building_road_valid_dir(0)
   , sfx_queue{0}
-  // these are not used
-  //, water_in_view(false)
-  , trees_in_view(0)  // for bird sounds
+  , trees_in_view(0)   // for bird sounds
+  , water_in_view(0)   // for wave sounds
+  , desert_in_view(0)  // for wind sounds
   , return_pos(0) {
-  is_playing_birdsfx = false;  // for bird sounds
+  is_playing_birdsfx = false;   // for ambient bird sounds near trees
+  is_playing_watersfx = false;  // for ambient wave sounds near water
+  is_playing_desertsfx = false; // for ambient wind sounds near desert
   displayed = true;
 
   game = nullptr;
@@ -106,6 +110,7 @@ Interface::Interface()
 
   GameManager::get_instance().add_handler(this);
   set_game(GameManager::get_instance().get_current_game());
+
 }
 
 Interface::~Interface() {
@@ -142,7 +147,7 @@ Interface::open_popup(int box) {
     add_float(popup, 0, 0);
   }
   layout();
-  if (box == PopupBox::TypeAIPlusOptions || box == PopupBox::TypeEditMapGenerator){
+  if (box == PopupBox::TypeGameOptions || box == PopupBox::TypeGameOptions2 || box == PopupBox::TypeEditMapGenerator){
     // double wide, normal height
     popup->set_size(288, 160);
     // recenter the popup
@@ -212,21 +217,8 @@ Interface::close_game_init() {
   viewport->set_enabled(true);
   layout();
   update_map_cursor_pos(map_cursor_pos);
-  // print AIPlus game options
-  //   there is no way to iterate over a bitfield or an enum so this must be hardcoded
-  //   and it must be updated any time an option is added!
-  Log::Info["interface"] << " AIOption::EnableAutoSave is " << std::to_string(aiplus_options.test(AIPlusOption::EnableAutoSave));
-  Log::Info["interface"] << " AIOption::ImprovedPigFarms is " << std::to_string(aiplus_options.test(AIPlusOption::ImprovedPigFarms));
-  Log::Info["interface"] << " AIOption::CanTransportSerfsInBoats is " << std::to_string(aiplus_options.test(AIPlusOption::CanTransportSerfsInBoats));
-  Log::Info["interface"] << " AIOption::QuickDemoEmptyBuildSites is " << std::to_string(aiplus_options.test(AIPlusOption::QuickDemoEmptyBuildSites));
   // start any AI threads
   initialize_AI();
-}
-
-AIPlusOptions &
-Interface::get_aiplus_options() {
-  static AIPlusOptions aiplus_options;
-  return aiplus_options;
 }
 
 /*
@@ -261,7 +253,7 @@ Interface::initialize_AI() {
       //  the AI thread "takes" the file handle but the main game filehandle still works even though they all
       //    use the same static function???  and the class is a singleton??
       Log::set_file(new std::ofstream("ai_Player" + std::to_string(index) + ".txt"));
-      AI *ai = new AI(game, index, aiplus_options);
+      AI *ai = new AI(game, index);
       game->ai_thread_starting();
       // store AI pointer in game so it can be fetched by other functions (viewport, at least, for AI overlay)
       set_ai_ptr(index, ai);
@@ -549,8 +541,6 @@ Interface::set_game(PGame new_game) {
     viewport = new Viewport(this, game->get_map());
     viewport->set_displayed(true);
     add_float(viewport, 0, 0);
-    // ugly way to pass AIPlusOptions to functions that only have game but not interface
-    game->set_ai_options_ptr(&aiplus_options);
   }
 
   layout();
@@ -915,7 +905,7 @@ Interface::update() {
     }
   }
 
-  if (aiplus_options.test(AIPlusOption::EnableAutoSave)){
+  if (option_EnableAutoSave){
     // auto-save if interval reached
     if (game->get_const_tick() >= AUTOSAVE_INTERVAL + last_autosave_tick){
       Log::Debug["interface"] << "auto-save interval reached, preparing to auto-save game...";

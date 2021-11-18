@@ -1792,7 +1792,7 @@ AI::trace_existing_road(PMap map, MapPos start_pos, Direction dir) {
     road.extend(dir);
     //ai_mark_road->extend(dir);
     pos = map->move(pos, dir);
-    std::this_thread::sleep_for(std::chrono::milliseconds(0));
+    //std::this_thread::sleep_for(std::chrono::milliseconds(0));
     if (map->has_flag(pos) && pos != start_pos) {
       //AILogDebug["util_trace_existing_road"] << name << " flag found at pos " << pos << ", returning road (which has length " << road.get_length() << ")";
       //ai_mark_road->invalidate();
@@ -2012,7 +2012,7 @@ AI::count_objects_near_pos(MapPos center_pos, unsigned int distance, Map::Object
       ++count;
       //AILogDebug["util_count_objects_near_pos"] << name << " AI: found matching object at pos " << pos << ", type " << map->get_obj(pos);
     }
-    std::this_thread::sleep_for(std::chrono::milliseconds(0));
+    //std::this_thread::sleep_for(std::chrono::milliseconds(0));
   }
   //AILogDebug["util_count_objects_near_pos"] << name << " AI: found count " << count << " matching objects of types " << NameObject[res_start_index] << " - " << NameObject[res_end_index];
   return count;
@@ -2308,7 +2308,7 @@ AI::count_stones_near_pos(MapPos center_pos, unsigned int distance) {
       }
       total += value;
     }
-    std::this_thread::sleep_for(std::chrono::milliseconds(0));
+    //std::this_thread::sleep_for(std::chrono::milliseconds(0));
   }
   //AILogDebug["util_count_stones_near_pos"] << name << " AI: found total value " << total << " of objects types " << NameObject[res_start_index] << " - " << NameObject[res_end_index];
   return total;
@@ -2368,9 +2368,9 @@ AI::expand_borders(MapPos center_pos) {
     // should be returning not_built_pos or bad_map pos?? stopbuilding is less appropriate with separate counts set up for huts vs other buildings
     return stopbuilding_pos;
   }
-  // don't expand borders if running out of knights AND already have all 3 mine types
+  // don't expand borders if running low of knights AND already have all 3 mine types
   unsigned int idle_knights = serfs_idle[Serf::TypeKnight0] + serfs_idle[Serf::TypeKnight1] + serfs_idle[Serf::TypeKnight2] + serfs_idle[Serf::TypeKnight3] + serfs_idle[Serf::TypeKnight4];
-  if (idle_knights <= knights_min) {
+  if (idle_knights <= knights_med) {
     AILogDebug["util_expand_borders"] << name << " running low on idle_knights, checking to see if already have all three mine types";
     if (realm_building_count[Building::TypeCoalMine] > 0 &&
         realm_building_count[Building::TypeIronMine] > 0 &&

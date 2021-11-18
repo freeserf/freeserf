@@ -38,8 +38,6 @@
 #include "src/objects.h"
 #include "src/lookup.h"
 
-
-
 #define DEFAULT_GAME_SPEED  2
 
 #define GAME_MAX_PLAYER_COUNT  4
@@ -115,7 +113,6 @@ class Game {
   int knight_morale_counter;
   int inventory_schedule_counter;
 
-  AIPlusOptions *aiplus_options_ptr;
   bool ai_locked;
   bool signal_ai_exit;
   unsigned int ai_threads_remaining;
@@ -126,9 +123,6 @@ class Game {
 
   PMap get_map() { return map; }
 
-  // ugly way to pass AIPlusOptions to functions that only have game but not interface
-  void set_ai_options_ptr(AIPlusOptions *_aiplus_options_ptr) { aiplus_options_ptr = _aiplus_options_ptr; }
-  AIPlusOptions* get_ai_options_ptr() { return aiplus_options_ptr; }
   // tell ai to exit when a game ends
   void stop_ai_threads() { signal_ai_exit = true; }
   // ai checks this every loop and exits if true
@@ -251,6 +245,8 @@ class Game {
   unsigned int get_enemy_score(const Player *player) const;
   void building_captured(Building *building);
   void clear_search_id();
+
+
 
  protected:
   void clear_serf_request_failure();

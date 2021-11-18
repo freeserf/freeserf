@@ -6,12 +6,12 @@
 #include <algorithm>  // to satisfy cpplint
 
 #include "src/ai.h"
+#include "src/game-options.h"
 
-AI::AI(PGame current_game, unsigned int _player_index, AIPlusOptions _aiplus_options) {
+AI::AI(PGame current_game, unsigned int _player_index) {
 
   ai_status = "INITIALIZING";
   player_index = _player_index;
-  aiplus_options = _aiplus_options;
   name = "Player" + std::to_string(player_index);
 
   AILogInfo["init"] << name << " inside AI::AI constructor with player_index: " << player_index;
@@ -83,12 +83,6 @@ AI::AI(PGame current_game, unsigned int _player_index, AIPlusOptions _aiplus_opt
 void
 AI::start() {
   AILogInfo["start"] << name << " AI is starting, thread_id: " << std::this_thread::get_id();
-
-  // the Interface must pass the options bitset to each AI thread when initializing them
-  AILogInfo["start"] << name << " AIOption::EnableAutoSave is " << std::to_string(aiplus_options.test(AIPlusOption::EnableAutoSave));
-  AILogInfo["start"] << name << " AIOption::ImprovedPigFarms is " << std::to_string(aiplus_options.test(AIPlusOption::ImprovedPigFarms));
-  AILogInfo["start"] << name << " AIOption::CanTransportSerfsInBoats is " << std::to_string(aiplus_options.test(AIPlusOption::CanTransportSerfsInBoats));
-  AILogInfo["start"] << name << " AIOption::QuickDemoEmptyBuildSites is " << std::to_string(aiplus_options.test(AIPlusOption::QuickDemoEmptyBuildSites));
 
   while (true) {
     //AILogDebug["start"] << name << " start AI::start while(true)";
@@ -2101,7 +2095,7 @@ AI::do_manage_tool_priorities() {
   player->set_planks_toolmaker(0);
   need_tools = false;
   unsigned int planks_count = realm_inv[Resource::TypePlank];
-  for (int i = 0; i < 27; ++i) {
+  for (int i = 0; i < 20; ++i) {
 
     unsigned int idle = serfs_idle[(Serf::Type)i];
     unsigned int potential = serfs_potential[(Serf::Type)i];
@@ -2436,7 +2430,8 @@ AI::do_place_mines(std::string type, Building::Type building_type, Map::Object l
         if (sign_density >= sign_density_min) {
           AILogVerbose["do_place_mines"] << inventory_pos << " sign density " << sign_density << " is over sign_density_min " << sign_density_min;
         }
-        // don't place a mine if there are already two other mines of the same type nearby, it looks messy
+        // don't place a mine if there are already another mine of the same type nearby, it is inefficient because of
+        //  the way that underground mined resources are depleted, if the first runs out the second will find little or nothing
         int found = 0;
         for (unsigned int i = 0; i < AI::spiral_dist(12); i++) {
           MapPos pos = map->pos_add_extended_spirally(corner_pos, i);
@@ -2444,14 +2439,14 @@ AI::do_place_mines(std::string type, Building::Type building_type, Map::Object l
             Building *building = game->get_building_at_pos(pos);
             if (building != nullptr){
               if (building->get_type() == building_type){
-                AILogVerbose["do_place_mines"] << inventory_pos << " found another mine of type " << NameBuilding[building_type] << " near where looking to place another";
+                AILogVerbose["do_place_mines"] << inventory_pos << " found another mine of type " << NameBuilding[building_type] << " near where looking to place another, not building";
                 found++;
+                break;
               }
             }
           }
-          if (found >= 2){ break; }
         }
-        if (found >= 2){
+        if (found){
           AILogDebug["do_place_mines"] << inventory_pos << " found at least two other mines of same type " << NameBuilding[building_type] << " nearby, not placing another.  Skipping this corner area";
           continue;
         }
@@ -2852,7 +2847,7 @@ AI::do_build_food_buildings_and_3rd_lumberjack() {
   ai_status.assign("MAIN LOOP - food");
   update_building_counts();
   // to avoid placing a Farm right near the castle at the beginning of a game, just don't 
-  //  build any food buildings until at least two occupied huts have been placed
+  //  build any food buildings until at least two occupied huts have been placed and staffed
   unsigned int occupied_huts = realm_occupied_building_count[Building::TypeHut];
   if (occupied_huts < 2){
     AILogDebug["do_build_food_buildings_and_3rd_lumberjack"] << inventory_pos << " not building any food buildings until at least two occupied knight huts in realm, currently have: " << occupied_huts;
@@ -2938,7 +2933,12 @@ AI::do_build_food_buildings_and_3rd_lumberjack() {
       MapPosVector farm_positions;  // pos with existing farm
       // if this is not the first farm, try to build near existing food infrastructure
       //   by locating food buildings and inserting to front of build pos list
-      if (farm_count == 1 || farm_count == 2) {
+      // WAIT this causes a problem when farms are demolished because of excess food
+      //   and then more food is needed later, the new farm should be built near the 
+      //   existing food infrastructure.  So I am forcing this true for now, if there
+      //   are actually no food buildings it can simply fail to insert any new positions
+      if (true){
+      //if (farm_count == 1 || farm_count == 2) {
         MapPos mill_pos = bad_map_pos;
         MapPos farm_pos = bad_map_pos;
         MapPos baker_pos = bad_map_pos;

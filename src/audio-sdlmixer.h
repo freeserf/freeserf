@@ -66,7 +66,8 @@ class AudioSDL : public Audio, public Audio::VolumeController {
     }
 
    protected:
-    virtual Audio::PTrack create_track(int track_id);
+    //virtual Audio::PTrack create_track(int track_id);
+    virtual Audio::PTrack create_track(int track_id, int source_type);
     virtual void stop();
 
    public:
@@ -93,19 +94,22 @@ class AudioSDL : public Audio, public Audio::VolumeController {
                      public std::enable_shared_from_this<PlayerMIDI> {
    protected:
     TypeMidi current_track;
+    int current_source;
 
    public:
     PlayerMIDI();
     virtual ~PlayerMIDI();
 
-    virtual Audio::PTrack play_track(int track_id);
+    //virtual Audio::PTrack play_track(int track_id);
+    virtual Audio::PTrack play_track(int track_id, int source_type);
     virtual void enable(bool enable);
     virtual Audio::PVolumeController get_volume_controller() {
       return shared_from_this();
     }
 
    protected:
-    virtual Audio::PTrack create_track(int track_id);
+    //virtual Audio::PTrack create_track(int track_id);
+    virtual Audio::PTrack create_track(int track_id, int source_type);
     virtual void stop();
 
    public:
