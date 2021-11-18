@@ -12,19 +12,21 @@ Forkserf adds:
   - crash & other issue with food resource delivery
   - serfs become forever stuck on roads and block the road
   - missing ambient sounds
-- new features (mostly as optional checkboxes)
+- new features (all optional checkboxes, off by default)
   - auto-saving
   - enhanced Pig Farms
   - serfs can be transported in Boats!
   - empty building sites don't burn
-- internal game mechanics changes to fix gridlock issues that existed even in the original game
-  - timeout & retry of building resource requests
-  - prioritized transport of resources that can be immediately used
   - faster clearing of Lost serfs
+  - trees reproduce
+  - baby trees take longer to mature, making Ranger/Foresters less effective
+- internal game mechanics changes to fix gridlock issues that existed even in the original game
+  - timeout & retry of building resource requests (hardcoded, needs optional checkbox)
+  - prioritized transport of resources that can be immediately used  (hardcoded, needs optional checkbox)
 - debugging tools
   - mark positions with colored dots
   - mark specific serfs and their state
-  - "boot" specific serfs by setting them to Lost state
+  - able to "boot" specific serfs by setting them to Lost state
   - trace road pathfinding
   - identification & colored highlighting of arterial roads
   - hidden resource overlay (THIS IS CHEATING!)
