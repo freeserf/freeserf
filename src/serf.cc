@@ -34,10 +34,6 @@
 #include "src/savegame.h"
 #include "src/game-options.h"
 
-// TEMPORARY includes for allowing sleeping to debug a few things
-#include <chrono>        //NOLINT (build/c++11) this is a Google Chromium req, not relevant to general C++.  // for thread sleeps
-#include <thread>        //NOLINT (build/c++11) this is a Google Chromium req, not relevant to general C++.  // for AI threads
-
 #define set_state(new_state)  \
   Log::Verbose["serf"] << "serf " << index  \
                        << " (" << Serf::get_type_name(get_type()) << "): " \

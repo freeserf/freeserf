@@ -121,7 +121,7 @@ AI::plot_road(PMap map, unsigned int player_index, MapPos start_pos, MapPos end_
         breadcrumb_solution.extend(reverse_direction(dir));
         //ai_mark_road->extend(reverse_direction(dir));
         //ai_mark_pos.insert(ColorDot(node->pos, "black"));
-        std::this_thread::sleep_for(std::chrono::milliseconds(0));
+        //std::this_thread::sleep_for(std::chrono::milliseconds(0));
         node = node->parent;
       }
       unsigned int new_length = static_cast<unsigned int>(breadcrumb_solution.get_length());
@@ -359,7 +359,7 @@ AI::score_flag(PMap map, unsigned int player_index, RoadBuilder *rb, RoadOptions
           // if not found just let rb->get_score call fail and it wlil use the default bad_scores given.
           AILogDebug["score_flag"] << name << " score_flag returned false for adjacent flag at pos " << adjacent_flag_pos;
           AILogDebug["score_flag"] << name << " for now, leaving default bogus super-high score for adjacent flag";
-          std::this_thread::sleep_for(std::chrono::milliseconds(0));
+          //std::this_thread::sleep_for(std::chrono::milliseconds(0));
         }
       }
       FlagScore score = rb->get_score(adjacent_flag_pos);
@@ -398,7 +398,7 @@ AI::score_flag(PMap map, unsigned int player_index, RoadBuilder *rb, RoadOptions
     AILogDebug["score_flag"] << name << " score_flag, flag_pos *IS* target_pos, setting values 0,0";
     //ai_mark_pos->erase(flag_pos);
     //ai_mark_pos->insert(ColorDot(flag_pos, "coral"));
-    std::this_thread::sleep_for(std::chrono::milliseconds(0));
+    //std::this_thread::sleep_for(std::chrono::milliseconds(0));
     // note that this blindly ignores if castle flag / area part of solution, FIX!
     rb->set_score(flag_pos, 0, 0, false);
     AILogDebug["score_flag"] << name << " score_flag, flag_pos *IS* target_pos, returning true";
@@ -565,7 +565,7 @@ AI::find_flag_and_tile_dist(PMap map, unsigned int player_index, RoadBuilder *rb
 						AILogError["find_flag_and_tile_dist"] << name << " debug: end1 pos " << end1 << " is castle flag AND IT SAYS THERE IS A PATH Up-Left INTO THE CASTLE!!!  why??";
 						ai_mark_pos->erase(end1);
 						ai_mark_pos->insert(ColorDot(end1, "lime"));
-						std::this_thread::sleep_for(std::chrono::milliseconds(10000));
+						//std::this_thread::sleep_for(std::chrono::milliseconds(10000));
 					}
 				}
 			}*/
@@ -641,7 +641,7 @@ AI::find_flag_and_tile_dist(PMap map, unsigned int player_index, RoadBuilder *rb
 					  AILogError["find_flag_and_tile_dist"] << name << " debug2: fnode->pos pos " << fnode->pos << " is castle flag AND IT SAYS THERE IS A PATH Up-Left INTO THE CASTLE!!!  why??";
 					  ai_mark_pos->erase(fnode->pos);
 					  ai_mark_pos->insert(ColorDot(fnode->pos, "lime"));
-					  std::this_thread::sleep_for(std::chrono::milliseconds(10000));
+					  //std::this_thread::sleep_for(std::chrono::milliseconds(10000));
 				  }
 			  }
 		  }*/
