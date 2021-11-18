@@ -168,6 +168,10 @@ class Serf : public GameObject {
   MapPos pos;
   uint16_t tick;
   State state;
+  // tlongstretch, added to support lost serf clearing to non-Inventory buildings
+  // this could be done inside the states union, but that would require passing it along the various
+  //  relevant states, which is annoying
+  bool was_lost;
 
   union s {
     struct {

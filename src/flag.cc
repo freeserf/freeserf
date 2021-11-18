@@ -632,7 +632,6 @@ Flag::find_nearest_inventory_for_res_producer() {
 
 static bool
 flag_search_inventory_search_cb(Flag *flag, void *data) {
-  //Log::Info["flag"] << "debug: inside Flag::flag_search_inventory_search_cb";
   int *dest_index = static_cast<int*>(data);
   if (flag->accepts_serfs()) {
     Building *building = flag->get_building();
@@ -645,7 +644,6 @@ flag_search_inventory_search_cb(Flag *flag, void *data) {
 
 int
 Flag::find_nearest_inventory_for_serf() {
-  //Log::Info["flag"] << "debug: inside Flag::find_nearest_inventory_for_serf";
   int dest_index = -1;
   FlagSearch::single(this, flag_search_inventory_search_cb, true, false,
                      &dest_index);
@@ -655,14 +653,12 @@ Flag::find_nearest_inventory_for_serf() {
 
 static bool
 flag_search_building_for_lost_generic_serf_search_cb(Flag *flag, void *data) {
-  //Log::Info["flag"] << "debug: inside Flag::flag_search_building_for_lost_generic_serf_search_cb";
   int *dest_index = static_cast<int*>(data);
   if (flag->has_building()) {
     Building *building = flag->get_building();
     if (building->is_done() && !building->is_burning() &&
       // disallow mines because they can deadlock when miner runs out of food and holds the pos
        (building->get_type() < Building::TypeStoneMine || building->get_type() > Building::TypeGoldMine)){
-      //Log::Info["flag"] << "debug: inside Flag::flag_search_building_for_lost_generic_serf_search_cb, found a valid complete building at flag pos " << flag->get_position();
       *dest_index = building->get_flag_index();
       return true;
     }
@@ -677,11 +673,9 @@ flag_search_building_for_lost_generic_serf_search_cb(Flag *flag, void *data) {
 //  holds the pos, disallowing serfs entry
 int
 Flag::find_nearest_building_for_lost_generic_serf() {
-  Log::Debug["flag"] << "debug: inside Flag::find_nearest_building_for_lost_generic_serf";
   int dest_index = -1;
   FlagSearch::single(this, flag_search_building_for_lost_generic_serf_search_cb, true, false,
                      &dest_index);
-
   return dest_index;
 }
 

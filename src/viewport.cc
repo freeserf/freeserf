@@ -2159,6 +2159,14 @@ Viewport::draw_active_serf(Serf *serf, MapPos pos, int x_base, int y_base) {
 
         // automatically mark waiting serfs
         bool auto_mark_this_serf = false;
+
+        //
+        // help debug lost serf clearing issue, auto-mark Lost serfs
+        //   Nov 2021
+        if (serf->get_state() == Serf::StateLost){
+          auto_mark_this_serf = true;
+        }
+
         /*
         if (serf->get_state() != Serf::StateIdleInStock) {
                 // direction is unknown until set by serf->is_waiting() in the ptr created here

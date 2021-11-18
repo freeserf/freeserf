@@ -42,7 +42,6 @@
 
 int
 main(int argc, char *argv[]) {
-  bool option_foo1 = true;
 
   // why does simply calling new(Log) make console output work on windows???
   new(Log);

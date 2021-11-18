@@ -868,9 +868,6 @@ Game::update_game_stats() {
 void
 Game::update() {
 
-    // test globals
-  //Log::Info["game"] << "option_foo1 " << option_foo1;
-
   /* Increment tick counters */
   const_tick += 1;
 

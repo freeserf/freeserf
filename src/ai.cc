@@ -82,17 +82,7 @@ AI::AI(PGame current_game, unsigned int _player_index) {
 
 void
 AI::start() {
-  Log::Info["AI"] << "option_foo1 " << option_foo1;
   AILogInfo["start"] << name << " AI is starting, thread_id: " << std::this_thread::get_id();
-
-  /* this works, don't need to print
-  AILogInfo["start"] << name << " option_EnableAutoSave is " << option_EnableAutoSave;
-  AILogInfo["start"] << name << " option_ImprovedPigFarms is " << option_ImprovedPigFarms;
-  AILogInfo["start"] << name << " option_CanTransportSerfsInBoats is " << option_CanTransportSerfsInBoats;
-  AILogInfo["start"] << name << " option_QuickDemoEmptyBuildSites is " << option_QuickDemoEmptyBuildSites;
-  AILogInfo["start"] << name << " option_TreesReproduce is " << option_TreesReproduce;
-  AILogInfo["start"] << name << " option_BabyTreesMatureSlowly is " << option_BabyTreesMatureSlowly;
-  */
 
   while (true) {
     //AILogDebug["start"] << name << " start AI::start while(true)";

@@ -793,7 +793,7 @@ Map::update_environment(MapPos pos, Random *rnd) {
   //  trees will spawn even outside the player viewport window
   //  suggest tuning the %roll chance to adjust the rate of tree spawning, but fix the linear relationship of mature trees to new tree rate
 
-  if (option_BabyTreesMatureSlowly){
+  if (!option_TreesReproduce){
     return;
   }
 
@@ -838,7 +838,7 @@ Map::update_environment(MapPos pos, Random *rnd) {
     //if ( map_types_within(pos, Map::TerrainGrass0, Map::TerrainGrass3) && newtype == Map::ObjectNewTree)
     //  || map_types_within(pos, Map::TerrainGrass0, Map::TerrainGrass3)
     if (types_within(p, Map::TerrainGrass0, Map::TerrainGrass3)){
-      Log::Debug["map"] << "inside Map::update_environment(), random pos " << pos << " trying to place a baby tree of type " << NameObject[newtype] << " near random pos " << pos << ", at pos " << p;
+      //Log::Debug["map"] << "inside Map::update_environment(), random pos " << pos << " trying to place a baby tree of type " << NameObject[newtype] << " near random pos " << pos << ", at pos " << p;
       set_object(p, newtype, 0);
       return;
     }

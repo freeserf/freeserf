@@ -2031,8 +2031,6 @@ PopupBox::draw_game_options_box() {
 
   draw_green_string(3, 105, "Baby Trees Mature Slowly");
   draw_popup_icon(1, 102, option_BabyTreesMatureSlowly ? 288 : 220);
-  //draw_popup_icon(1, 102, option_foo1 ? 288 : 220);
-  Log::Info["popup"] << "option_foo1 " << option_foo1;
   draw_popup_icon(32, 128, 60); /* exit */
 }
 
