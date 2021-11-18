@@ -1625,38 +1625,22 @@ Serf::handle_serf_walking_state() {
       /* Serf has reached a flag.
          Search for a destination if none is known. */
       if (s.walking.dest == 0) {
-
         int flag_index = game->get_map()->get_obj_index(pos);
         Flag *src = game->get_flag(flag_index);
-
         // support allowing Lost serfs to enter any nearby friendly building
         //  EXCEPT mines, as they can deadlock when the miner runs out of food and 
         //  holds the pos, disallowing serfs entry
-        //*****************************
-        // NOTE - I suspect that this function is being called when serfs are not Lost, but simply when they are done the job they
-        //  were dispatched to, and they should return to inventory normally.  Add check for serfs that are in Lost State only?
-        // idea: if the serf is on a path already, let the default "return to inventory" run
-
-        /// UGH - after looking closer, this entire code block only runs if a serf is at a flag, or at least on a path
-        // so this will never apply to truly LOST serfs, check LOST serf logic instead
-        // actually,
-        //*****************************
         int r = -1;
-        if ((get_type() == Serf::TypeTransporter || get_type() == Serf::TypeGeneric || get_type() == Serf::TypeNone)){
-          //if (game->get_map()->has_any_path(pos)){
-          if (was_lost){
-            Log::Debug["serf"] << "inside Serf::handle_walking_state(), a generic serf is looking for an inventory and was_lost recently, using special non-Inventory clearing function";
-            //// unset the was_lost bool so it doesn't stay forever
-            // NOOOO don't do this yet it still needs to be true when serf goes into entering building state, to prevent it from
-            //  going to entering_INVENTORY state!
-            //was_lost = false;
-            r = src->find_nearest_building_for_lost_generic_serf();
-            Log::Debug["serf"] << "inside Serf::handle_walking_state(), done special non-Inventory clearing function, r = dest_index of " << r;
-          }else{
-            Log::Debug["serf"] << "inside Serf::handle_walking_state(), a generic serf is looking for an inventory but was not recently Lost, using normal Inventory clearing function";
-            r = src->find_nearest_inventory_for_serf();
-          }
+        if ( option_LostTransportersClearFaster && was_lost
+          && (get_type() == Serf::TypeTransporter || get_type() == Serf::TypeGeneric || get_type() == Serf::TypeNone) ){
+          Log::Debug["serf"] << "inside Serf::handle_walking_state(), a generic serf is looking for an inventory and was_lost recently, using special non-Inventory clearing function";
+          //// unset the was_lost bool so it doesn't stay forever
+          // NOOOO don't do this yet it still needs to be true when serf goes into entering building state, to prevent it from
+          //  going to entering_INVENTORY state!
+          //was_lost = false;
+          r = src->find_nearest_building_for_lost_generic_serf();
         }else{
+          //Log::Debug["serf"] << "inside Serf::handle_walking_state(), a generic serf is looking for an inventory but was not recently Lost, using normal Inventory clearing function";
           r = src->find_nearest_inventory_for_serf();
         }
         if (r < 0) {
@@ -2048,15 +2032,26 @@ Serf::handle_serf_entering_building_state() {
     PMap map = game->get_map();
 
     // support allowing recently Lost serfs to enter any nearby friendly building
-    if ((get_type() == Serf::TypeTransporter || get_type() == Serf::TypeGeneric || get_type() == Serf::TypeNone) && was_lost){
+    //  EXCEPT MINES, because they can deadlock when the miner paces outside waiting for food
+    //if ( option_LostTransportersClearFaster && was_lost 
+    // I noticed a crash when testing toggling this option mid-game.  I suspect that if this option is on and a serf is
+    //   sent to a non-Inventory destination, disabling the option before they arrive is causing the crash.
+    //   so, I am removing the check for the option here and only using the other reqs so if the option is disabled
+    //   a serf should still clear if it was already on its way (even though it violates the option rule)
+    if ( was_lost
+      && (get_type() == Serf::TypeTransporter || get_type() == Serf::TypeGeneric || get_type() == Serf::TypeNone)){
       PMap map = game->get_map();
       if (map->has_building(pos)){
         Building *building = game->get_building_at_pos(pos);
         if (building->is_done() && !building->is_burning() &&
             building->get_type() != Building::TypeStock && building->get_type() != Building::TypeCastle){
-          Log::Debug["serf"] << "Debug - a generic serf at pos " << pos << " has arrived in a non-inventory building of type " << NameBuilding[building->get_type()] << ", assuming this was a Lost Serf";
+          Log::Debug["serf"] << "a generic serf at pos " << pos << " has arrived in a non-inventory building of type " << NameBuilding[building->get_type()] << ", assuming this was a Lost Serf";
+          //
+          // try to find a way to nullify the serf, as deleting it seems hard.  "teleporting" it back to the castle might work also
+          //
           //game->delete_serf(this);  // this crashes, didn't check why
           //enter_inventory();  // this crashes because it calls get_inventory() on attached building, but it isn't an Inventory
+          //
           // this is needed so the serf stops appearing at the building entrance, but does it affect a serf already
           //  occupying this building???   so far with knight huts it causes no issue
           game->get_map()->set_serf_index(pos, 0);
@@ -3010,7 +3005,7 @@ Serf::handle_serf_free_walking_state_dest_reached() {
             building->get_type() != Building::TypeStock && building->get_type() != Building::TypeCastle &&
             // disallow mines because they can deadlock when miner runs out of food and holds the pos
             (building->get_type() < Building::TypeStoneMine || building->get_type() > Building::TypeGoldMine)){
-          Log::Debug["serf"] << "Debug - a generic serf at pos " << pos << " is about to enter a non-inventory building of type " << NameBuilding[building->get_type()] << " at pos " << upleft_pos << ", assuming this was a Lost Serf";
+          Log::Debug["serf"] << "a generic serf at pos " << pos << " is about to enter a non-inventory building of type " << NameBuilding[building->get_type()] << " at pos " << upleft_pos << ", assuming this was a Lost Serf";
           set_state(StateReadyToEnter);
           s.ready_to_enter.field_B = 0;
           counter = 0;
@@ -3459,32 +3454,6 @@ Serf::handle_free_walking_follow_edge() {
 
 void
 Serf::handle_free_walking_common() {
-
-/* this doesn't work because these serfs are already in Walking state once
-  they reach a road, not FreeWalking!  move this code there
-  // support allowing Lost serfs to enter any nearby friendly building
-  // hack, doing this at the beginning because I can't figure out how the FreeWalking
-  // dest/pathfinding works.  It seems serfs will go to the nearest flag that has a road
-  //  and then start walking to nearest Inventory that accepts serfs.
-  // because I cannot figure out how to route them to a nearby non-Inventory building
-  // I should at least be able to have them try to enter any building they happen across
-  // while walking on paths back to nearest Inventory building
-  if ((get_type() == Serf::TypeTransporter || get_type() == Serf::TypeGeneric || get_type() == Serf::TypeNone)){
-    PMap map = game->get_map();
-    MapPos upleft_pos = map->move_up_left(pos);
-    if (map->has_flag(pos) && map->has_building(upleft_pos) && map->get_owner(pos) == get_owner()){
-      Building *building = game->get_building_at_pos(upleft_pos);
-      //if (building->is_done() && building->get_type() != Building::TypeStock && building->get_type() != Building::TypeCastle){
-      if (building->is_done()){
-        Log::Info["serf"] << "Debug - handle_free_walking_common_hack - a generic serf at pos " << pos << " is about to enter a non-inventory building of type " << NameBuilding[building->get_type()] << " at pos " << upleft_pos << ", assuming this was a Lost Serf";
-        set_state(StateReadyToEnter);
-        s.ready_to_enter.field_B = 0;
-        counter = 0;
-        return;
-      }
-    }
-  }
-  */
 
   const Direction dir_from_offset[] = {
     DirectionUpLeft, DirectionUp,   DirectionNone,
@@ -3980,16 +3949,20 @@ Serf::handle_serf_sawing_state() {
 }
 
 
-// nov 2021 tlongstretch:
 //
+// adding support for option_LostTransportersClearFaster to allow generic (non-knights, non-profressional) serfs to enter
+//  any nearby friendly building (except mines, because the miners often block the entrace when waiting for food)
+//  if they become Lost.  Normally, serfs must return to an Inventory building (i.e. Castle or a Stock)
+//
+// original normal game code:
 // - when a serf becomes Lost, random directions are searched some distance until a flag is found within own territory, 
 //    if one is found, that is set as a pseudo-destination by way of dist_col and dist_row I think, and serf walks one tile in that direction
 // - every time a new tile is reached, game checks spirally around the lost serf for a _nearby_ "suitable flag" destination, 
 //    and seems to further direct the serf to walk towards that "suitable flag" (note that serf is still off-path)
-// - a "suitable flag" destination is a flag with any path, or a flag that the single flag-attached-to-an-Inventory.  My new logic allows 
+// - a "suitable flag" destination is a flag with any path, or a flag that the single flag-attached-to-an-Inventory.  Note that my new logic allows 
 //    flag-attached-to-any-completed-building not just Inventories
-// - once the serf REACHES the suitable target flag, or possibly when they reach any path or any flag, the serf state is changed from Lost to 
-//    FreeWalking state, which will then trigger the find_nearest_inventory call 
+// - once the serf reaches any path(?) the serf state is changed from Lost to FreeWalking state, 
+//    which will then trigger the find_nearest_inventory call 
 // - this means that my idea of an extra attribute that identifies serfs that were Lost is the best way of handling this, because the Inventory
 //    destination is NOT set while serf is Lost, only when Serf reaches a "suitable flag" inside own borders
 
@@ -4050,7 +4023,10 @@ Serf::handle_serf_lost_state() {
           s.free_walking.neg_dist1 = -128;
           s.free_walking.neg_dist2 = -1;
           s.free_walking.flags = 0;
-          was_lost = true;  // store this information so the handle_walking state and onward can allow the serf to clear from non-Inventory buildings
+
+          if (option_LostTransportersClearFaster){
+            was_lost = true;  // store this information so the handle_walking state and onward can allow the serf to clear from non-Inventory buildings
+          }
 
           //*****************************************************************
           // wait, is it really this simple?  just set it here?  adding this

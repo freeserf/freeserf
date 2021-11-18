@@ -669,13 +669,6 @@ Map::set_serf_index(MapPos pos, int index) {
 /* Update public parts of the map data. */
 void
 Map::update_public(MapPos pos, Random *rnd) {
-  Log::Info["map"] << "debug, option_BabyTreesMatureSlowly is " << option_BabyTreesMatureSlowly;
-  Log::Info["map"] << "debug, option_EnableAutoSave is " << option_EnableAutoSave;
-  Log::Info["map"] << "debug, option_ImprovedPigFarms is " << option_ImprovedPigFarms;
-  Log::Info["map"] << "debug, option_QuickDemoEmptyBuildSites is " << option_QuickDemoEmptyBuildSites;
-  Log::Info["map"] << "debug, option_ResourceRequestsTimeOut is " << option_ResourceRequestsTimeOut;
-  Log::Info["map"] << "debug, option_LostTransportersClearFaster is " << option_LostTransportersClearFaster;
-  Log::Info["map"] << "debug, option_CanTransportSerfsInBoats is " << option_CanTransportSerfsInBoats;
 
   /* Update other map objects */
   int r;
@@ -696,16 +689,15 @@ Map::update_public(MapPos pos, Random *rnd) {
   case ObjectNewPine:
     // new trees randomly grow into mature trees
     r = rnd->random();
-    if (option_BabyTreesMatureSlowly) {Log::Info["map"] << "FOOOOOO"; exit;}
     if ((r & 0x300) == 0) {
       if (option_BabyTreesMatureSlowly) {
         // if set, it is half as likely for a tree to grow up
         //  regardless if it was planted or spontaneously grew from TreesReproduce feature
         if ((r % 2 == 0)){ 
-          Log::Info["map"] << "inside Map::update_public, BabyTreesMatureSlowly feature on, r = " << r << ", NOT maturing this tree at pos " << pos;
+          Log::Debug["map"] << "inside Map::update_public, BabyTreesMatureSlowly feature on, r = " << r << ", NOT maturing this Pine at pos " << pos;
           break;
         }
-        Log::Info["map"] << "inside Map::update_public, BabyTreesMatureSlowly feature on, r = " << r << ", maturing this tree at pos " << pos;
+        Log::Debug["map"] << "inside Map::update_public, BabyTreesMatureSlowly feature on, r = " << r << ", maturing this Pine at pos " << pos;
       }
       set_object(pos, (Object)(ObjectPine0 + (r & 7)), -1);
     }
@@ -713,16 +705,15 @@ Map::update_public(MapPos pos, Random *rnd) {
   case ObjectNewTree:
     // new trees randomly grow into mature trees
     r = rnd->random();
-    if (option_BabyTreesMatureSlowly) {Log::Info["map"] << "FOOOOOO"; exit;}
     if ((r & 0x300) == 0) {
       if (option_BabyTreesMatureSlowly) {
         // if set, it is half as likely for a tree to grow up
         //  regardless if it was planted or spontaneously grew from TreesReproduce feature
         if ((r % 2 == 0)){ 
-          Log::Info["map"] << "inside Map::update_public, BabyTreesMatureSlowly feature on, r = " << r << ", NOT maturing this tree at pos " << pos;
+          Log::Debug["map"] << "inside Map::update_public, BabyTreesMatureSlowly feature on, r = " << r << ", NOT maturing this Tree at pos " << pos;
           break;
         }
-        Log::Info["map"] << "inside Map::update_public, BabyTreesMatureSlowly feature on, r = " << r << ", maturing this tree at pos " << pos;
+        Log::Debug["map"] << "inside Map::update_public, BabyTreesMatureSlowly feature on, r = " << r << ", maturing this Tree at pos " << pos;
       }
       set_object(pos, (Object)(ObjectTree0 + (r & 7)), -1);
     }

@@ -50,8 +50,8 @@ bool option_CanTransportSerfsInBoats = false;
 bool option_QuickDemoEmptyBuildSites = false;
 bool option_TreesReproduce = false;
 bool option_BabyTreesMatureSlowly = false;
-bool option_ResourceRequestsTimeOut = true;  // these are forced true to indicate that the code to make them optional isn't added yet
-bool option_LostTransportersClearFaster = true;  // these are forced true to indicate that the code to make them optional isn't added yet
+bool option_ResourceRequestsTimeOut = true;  // this is forced true to indicate that the code to make them optional isn't added yet
+bool option_LostTransportersClearFaster = false;
 
 
 Game::Game()

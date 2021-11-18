@@ -3757,11 +3757,11 @@ PopupBox::handle_action(int action, int x_, int /*y_*/) {
     break;
   // forced true to indicate that the code to make optional isn't added yet
   case ACTION_GAME_OPTIONS_LostTransportersClearFaster:
-    //if (option_LostTransportersClearFaster){
-    //  option_LostTransportersClearFaster = false;
-    //} else{
-    //  option_LostTransportersClearFaster = true;
-    //}
+    if (option_LostTransportersClearFaster){
+      option_LostTransportersClearFaster = false;
+    } else{
+      option_LostTransportersClearFaster = true;
+    }
     break;
   case ACTION_MAPGEN_ADJUST_TREES:
     Log::Info["popup"] << "ACTION_MAPGEN_ADJUST_TREES x_ = " << x_ << ", gui_get_slider_click_value(x_) = " << gui_get_slider_click_value(x_) << ", unint16_t(gui_get_slider_click_value(x_)) = " << uint16_t(gui_get_slider_click_value(x_));
