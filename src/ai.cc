@@ -1045,9 +1045,9 @@ AI::do_fix_stuck_serfs() {
   AILogDebug["do_fix_stuck_serfs"] << name << " SerfWaitTimer after checking timeouts, there are now " << serf_wait_idle_on_road_timers.size() << " TOTAL serf_wait_idle_on_road_timers set";
 
   // look for new waiting serfs and set serf_wait_timers
-  AILogDebug["do_fix_stuck_serfs"] << name << " thread #" << std::this_thread::get_id() << " AI is locking mutex before calling game->get_player_serfs(player) (for serf_wait_timers StateWaitIdleOnPath)";
+  AILogVerbose["do_fix_stuck_serfs"] << name << " thread #" << std::this_thread::get_id() << " AI is locking mutex before calling game->get_player_serfs(player) (for serf_wait_timers StateWaitIdleOnPath)";
   game->get_mutex()->lock();
-  AILogDebug["do_fix_stuck_serfs"] << name << " thread #" << std::this_thread::get_id() << " AI has locked mutex before calling game->get_player_serfs(player) (for serf_wait_timers StateWaitIdleOnPath)";
+  AILogVerbose["do_fix_stuck_serfs"] << name << " thread #" << std::this_thread::get_id() << " AI has locked mutex before calling game->get_player_serfs(player) (for serf_wait_timers StateWaitIdleOnPath)";
   // this returns a copy, so it should be thread-safe
   //  maybe not, beause game->get_player_serfs internally just does for (Serf *serf : serfs)
   for (Serf *serf : game->get_player_serfs(player)) {
@@ -1068,9 +1068,9 @@ AI::do_fix_stuck_serfs() {
       }
     }
   }
-  AILogDebug["do_fix_stuck_serfs"] << name << " thread #" << std::this_thread::get_id() << " AI is unlocking mutex after calling game->get_player_serfs(player) (for serf_wait_timers StateWaitIdleOnPath)";
+  AILogVerbose["do_fix_stuck_serfs"] << name << " thread #" << std::this_thread::get_id() << " AI is unlocking mutex after calling game->get_player_serfs(player) (for serf_wait_timers StateWaitIdleOnPath)";
   game->get_mutex()->unlock();
-  AILogDebug["do_fix_stuck_serfs"] << name << " thread #" << std::this_thread::get_id() << " AI has unlocked mutex after calling game->get_player_serfs(player) (for serf_wait_timers StateWaitIdleOnPath)";
+  AILogVerbose["do_fix_stuck_serfs"] << name << " thread #" << std::this_thread::get_id() << " AI has unlocked mutex after calling game->get_player_serfs(player) (for serf_wait_timers StateWaitIdleOnPath)";
   duration = (std::clock() - start) / static_cast<double>(CLOCKS_PER_SEC);
   AILogDebug["do_fix_stuck_serfs"] << name << " done do_fix_stuck_serfs call took " << duration;
 }

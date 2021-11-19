@@ -1567,10 +1567,22 @@ Serf::handle_serf_walking_state_waiting() {
   PMap map = game->get_map();
   /* Only check for loops once in a while. */
   s.walking.wait_counter += 1;
-  if ((!map->has_flag(pos) && s.walking.wait_counter >= 10) ||
-      s.walking.wait_counter >= 50) {
-    MapPos pos_ = pos;
 
+  // from nicymike:
+  /* The original code does a reverse check:
+    if ((map->has_flag(pos) && s.walking.wait_counter < 10) ||
+      (!map->has_flag(pos) && s.walking.wait_counter < 50)) {
+   ... do nothing here
+  } else{
+   ... check for loop here
+  }
+  Basically if a serf is at a flag just count to 10 to prioritize him because the chance is higher that this will solve the deadlock.
+  If a serf is not at at flag count to 50.
+  */
+  // nicymike fixed if check here:
+  if ((!map->has_flag(pos) || s.walking.wait_counter >= 10) &&
+      (map->has_flag(pos) || s.walking.wait_counter >= 50)) {
+    MapPos pos_ = pos;
     /* Follow the chain of serfs waiting for each other and
        see if there is a loop. */
     for (int i = 0; i < 100; i++) {
@@ -1598,10 +1610,13 @@ Serf::handle_serf_walking_state_waiting() {
 
       dir = (Direction)(other_serf->s.walking.dir + 6);
     }
+    // bugfix from nicymike:
+    /* Wait counter should only be reset inside the if. If not it will never be increased above one. */
+    // it was originally outside the if block, right alongside change_direction below
+    s.walking.wait_counter = 0;
   }
 
   /* Stick to the same direction */
-  s.walking.wait_counter = 0;
   change_direction((Direction)(s.walking.dir + 6), 0);
 }
 
@@ -3948,22 +3963,36 @@ Serf::handle_serf_sawing_state() {
 //
 // adding support for option_LostTransportersClearFaster to allow generic (non-knights, non-profressional) serfs to enter
 //  any nearby friendly building (except mines, because the miners often block the entrace when waiting for food)
-//  if they become Lost.  Normally, serfs must return to an Inventory building (i.e. Castle or a Stock)
+//  if they become Lost.  Normally, serfs must return to an Inventory building (i.e. Castle or a Stock).  If the building
+//  is currently active, the arriving Lost transporter will wait at the flag until the building becomes inactive and then
+//  enter
 //
-// original normal game code:
+//  NOTE - I tried modifying the enter_building code so that a Lost transporter could enter an *active* building,
+//   which would also allow it to enter a mine with a striking worker, but because the game only draws one serf per tile
+//   unless a special hack is put in place to draw multiple serfs in one tile, such as during fights or during my 
+//   CanTransportSerfsInBoats feature, it makes the building-active-serf disappear and resets their animation and overall
+//   looks sloppy.  So I reverted it back to the above described state
+//
+// original freeserf code logic:
 // - when a serf becomes Lost, random directions are searched some distance until a flag is found within own territory, 
 //    if one is found, that is set as a pseudo-destination by way of dist_col and dist_row I think, and serf walks one tile in that direction
 // - every time a new tile is reached, game checks spirally around the lost serf for a _nearby_ "suitable flag" destination, 
 //    and seems to further direct the serf to walk towards that "suitable flag" (note that serf is still off-path)
 // - a "suitable flag" destination is a flag with any path, or a flag that the single flag-attached-to-an-Inventory.  Note that my new logic allows 
 //    flag-attached-to-any-completed-building not just Inventories
-// - once the serf reaches any path(?) the serf state is changed from Lost to FreeWalking state, 
+// - once the serf reaches any land path the serf state is changed from Lost to FreeWalking state, 
 //    which will then trigger the find_nearest_inventory call 
 // - this means that my idea of an extra attribute that identifies serfs that were Lost is the best way of handling this, because the Inventory
 //    destination is NOT set while serf is Lost, only when Serf reaches a "suitable flag" inside own borders
+// - my update is to add a 'was_lost' bool to the Serf class objects, which is set when a serf becomes Lost and is checked
+//    to determine if a serf is directed to a non-Inventory friendly complete building to enter to clear
 
 void
 Serf::handle_serf_lost_state() {
+  //
+  // general note about Lost state, it seems that serfs are only Lost very briefly and then transition to another state such as
+  //  FreeWalking as soon as they reach any adjacent tile while Lost.  They can become lost again, but Lost is a very short lived state
+  // 
   uint16_t delta = game->get_tick() - tick;
   tick = game->get_tick();
   counter -= delta;
@@ -3988,19 +4017,6 @@ Serf::handle_serf_lost_state() {
               map->has_owner(dest) &&
               map->get_owner(dest) == get_owner()) {
                 */
-            // tlongstretch - allow generic serfs to enter ANY completed friendly building
-            //  just to get them off the map.  For now, simply delete them on arrival,
-            //  could also be possible to "teleport" them to the nearest Inventory
-            // generic serfs go to nearest building
-            ///
-            /// UGH - it seems that the destination is not handled how you would expect
-            ///   Rather, the serf enters FreeWalking state here, and FreeWalking state
-            ///   does not go by a MapPos dest, but instead uses a "dist from col/row" 
-            ///   that it constantly updates using bit-math.  Cannot simply set a serf.dest
-            ///   because FreeWalking state ignores it
-            ///  MAYBE... is it possible to simply get the col/row of the MapPos dest we 
-            ///   desire?  Or is it relative to the serf's current position???
-            /// 
             ((type == Serf::TypeGeneric || type == Serf::TypeTransporter || type == Serf::TypeNone) && flag->has_building() && flag->get_building()->is_done()) || 
             // non-generic serfs still have to go to nearest Inventory, we can't afford to delete them 
             //  and teleporting them doesn't seem fair
@@ -5725,7 +5741,7 @@ Serf::handle_serf_idle_on_path_state() {
     //if (get_type() == Serf::TypeSailor){
        //Log::Info["serf"] << "debug: inside handle_serf_idle_on_path_state, sailor end 5";
     //}
-    //Log::Info["serf"] << "debug: inside handle_serf_idle_on_path_state, a serf of type " << NameSerf[get_type()] << " at pos " << get_pos() << " is about to be set to StateWaitIdleOnPath !";
+    Log::Info["serf"] << "debug: inside handle_serf_idle_on_path_state, a serf of type " << NameSerf[get_type()] << " at pos " << get_pos() << " is about to be set to StateWaitIdleOnPath !";
     set_state(StateWaitIdleOnPath);
   }
 }
@@ -5818,7 +5834,7 @@ Serf::handle_serf_wake_at_flag_state() {
 
 void
 Serf::handle_serf_wake_on_path_state() {
-  //Log::Info["serf"] << "debug: inside handle_serf_wake_on_path_state, a serf of type " << NameSerf[get_type()] << " at pos " << get_pos() << " is about to be set to StateWaitIdleOnPath !";
+  Log::Info["serf"] << "debug: inside handle_serf_wake_on_path_state, a serf of type " << NameSerf[get_type()] << " at pos " << get_pos() << " is about to be set to StateWaitIdleOnPath !";
   set_state(StateWaitIdleOnPath);
 
   for (Direction d : cycle_directions_ccw()) {
