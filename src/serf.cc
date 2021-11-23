@@ -34,6 +34,15 @@
 #include "src/savegame.h"
 #include "src/game-options.h"
 
+/* tlongstretch note
+ pyrdacor's freeserf.net has added a bunch of nullptr checks, and converted
+ the serf drop_resource function from void to bool, returning true is succesful
+ and false if the flag serf is dropping to became a nullptr.  I do not think I 
+ have ever seen these bugs myself, so not adding them but worth noting
+ see details here: 
+https://github.com/Pyrdacor/freeserf.net/commit/101de41d3933664a4db83f7858a0fa1b9f50f61a#diff-5c6a168729c704f96b9cad040fb9d1b3d1911ce244a61a9ccb9f0d4e926a0c6c
+*/
+
 #define set_state(new_state)  \
   Log::Verbose["serf"] << "serf " << index  \
                        << " (" << Serf::get_type_name(get_type()) << "): " \
@@ -1385,6 +1394,11 @@ Serf::transporter_move_to_flag(Flag *flag) {
       /* Pick up resource. */
       flag->pick_up_resource(res_index, &s.transporting.res,
                              &s.transporting.dest);
+      // NOTE - pyrdacor's Freeserf.NET seems to check the result of the flag->pick_up_resource call
+      //  and if it returns false, it sets the equivalent of s.transporting.res to TypeNone again (if that matters)
+      //   and also sets the equivalent of s.transporting.dest to '0u' which I'm sure has some binary meaning
+      // I am not sure if this is to work around a bug in Freeserf's logic (which Freeserf.NET is based on) or if
+      //  it is a fix to something unique to Freeserf.NET (which uses s.Walking instead of s.transporting for this work)
     } else {
       /* Switch resources and destination. */
       Resource::Type temp_res = s.transporting.res;
@@ -2944,6 +2958,33 @@ Serf::handle_serf_ready_to_leave_inventory_state() {
     animation = 82;
     counter = 0;
     return;
+  }
+  
+  // additional check based on pyrdacor's freeserf.net:
+  // "// Check if there is a serf that waits to approach the flag.
+  //  // If so, we wait inside."
+  Flag *inv_flag = game->get_flag_at_pos(map->move_down(pos));
+  if (inv_flag != nullptr){
+    for (Direction i : cycle_directions_cw()) {
+      MapPos other_pos = map->move(inv_flag->get_position(), i);
+      if (map->has_serf(other_pos)) {
+        Serf *other_serf = game->get_serf_at_pos(other_pos);
+        Direction other_dir = DirectionNone;
+        if ( (other_serf->get_state() == Serf::StateWalking || other_serf->get_state() == Serf::StateTransporting || other_serf->get_state() == Serf::StateKnightEngagingBuilding) 
+               && other_serf->is_waiting(&other_dir) ){
+          if (! (other_serf->get_state() != Serf::StateTransporting
+                 && other_serf->get_walking_dest() == inv_flag->get_position()
+                 && other_serf->get_walking_dir() == reverse_direction(i))) {
+            Log::Debug["serf"] << "inside handle_serf_ready_to_leave_inventory_state(), pyrdacor check found a serf at pos " << other_pos << " waiting to approach this Inventory flag at pos " << inv_flag->get_position() << ", exiting serf must wait";
+            animation = 82;
+            counter = 0;
+            return;
+          }
+        }
+      }
+    }
+  } else {
+    Log::Warn["serf"] << "inside handle_serf_ready_to_leave_inventory_state(), got nullptr when looking for inventory Flag down-right from pos " << pos << ", this might be a crash bug";
   }
 
   // mode appears to be the Dir that the flagsearch directs the serf to exit the Inventory Flag in,
@@ -5235,6 +5276,9 @@ Serf::handle_knight_attacking() {
           animation = 168;
           counter = 0;
 
+          // pyrdacor's Freeserf.NET has an extra variable here s.AttackingVictoryFree.DefenderIndex
+          //  which is set to the index of the Defender who dies, I assume to properly clear the defender?
+          //  this is reported to be a crash bug, investigate further how this action works and copy his solution
           s.attacking_victory_free.move = def_serf->s.defending_free.field_D;
           s.attacking_victory_free.dist_col =
                                       def_serf->s.defending_free.other_dist_col;
@@ -5724,6 +5768,11 @@ Serf::handle_serf_idle_on_path_state() {
     // no I think this is causing issues, need to put a check in place to flag when these two values diff
     s.idle_on_path.field_E = (tick & 0xff) + 6;
     //s.idle_on_path.field_E = rev_dir;
+  } else if (flag == nullptr){
+    // adding this section based on pyrdacor's Freeserf.NET commit doing same, maybe it fixes some bug?  I don't think I've seen it though
+    Log::Warn["serf"] << "inside handle_serf_idle_on_path_state, flag is nullptr!  setting serf to StateLost!  based on pyrdacor FreeSerf.NET check";
+    set_lost_state();
+    return;
   } else if (flag->is_scheduled(rev_dir)) {
    //Log::Info["serf"] << "debug: serf inside handle_serf_idle_on_path_state, this flag is scheduled";
     s.idle_on_path.field_E = (tick & 0xff) + 6;
