@@ -511,12 +511,12 @@ AI::find_flag_and_tile_dist(PMap map, unsigned int player_index, RoadBuilder *rb
   bool contains_castle_flag = false;
 
   open.push_back(fnode);
-  AILogVerbose["find_flag_and_tile_dist"] << name << "fsearchnode - starting fnode search for flag_pos " << flag_pos;
+  AILogVerbose["find_flag_and_tile_dist"] << name << " fsearchnode - starting fnode search for flag_pos " << flag_pos;
   while (!open.empty()) {
     std::pop_heap(open.begin(), open.end(), flagsearch_node_less);
     fnode = open.back();
     open.pop_back();
-    AILogVerbose["find_flag_and_tile_dist"] << name << "fsearchnode - inside fnode search for flag_pos " << flag_pos << ", inside while-open-list-not-empty loop";
+    AILogVerbose["find_flag_and_tile_dist"] << name << " fsearchnode - inside fnode search for flag_pos " << flag_pos << ", inside while-open-list-not-empty loop";
     if (fnode->pos == target_pos) {
       //ai_mark_pos->erase(fnode->pos);
       //ai_mark_pos->insert(ColorDot(fnode->pos, "cyan"));
@@ -524,8 +524,8 @@ AI::find_flag_and_tile_dist(PMap map, unsigned int player_index, RoadBuilder *rb
       //
       // target_pos flag reached!
       //
-      AILogVerbose["find_flag_and_tile_dist"] << name << "fsearchnode - fnode->pos " << fnode->pos << " *is now* target_pos " << target_pos;
-      AILogDebug["find_flag_and_tile_dist"] << name << "score_flag: plotted a complete multi-road solution from flag_pos " << flag_pos << " to target_pos " << target_pos;
+      AILogVerbose["find_flag_and_tile_dist"] << name << " fsearchnode - fnode->pos " << fnode->pos << " *is now* target_pos " << target_pos;
+      AILogDebug["find_flag_and_tile_dist"] << name << " score_flag: plotted a complete multi-road solution from flag_pos " << flag_pos << " to target_pos " << target_pos;
       // record the solution
       //
       //  wait, don't I already have the solution?? the score... is all that matters.
@@ -601,12 +601,12 @@ AI::find_flag_and_tile_dist(PMap map, unsigned int player_index, RoadBuilder *rb
         // should be able to use the last node's flag_dist and get same result... maybe compare both as sanity check
         flag_dist++;
         tile_dist += existing_road_length;
-        AILogDebug["find_flag_and_tile_dist"] << name << "score_flag: existing road segment with end1 " << end1 << ", end2 " << end2 << " has length " << existing_road_length;
+        AILogDebug["find_flag_and_tile_dist"] << name << " score_flag: existing road segment with end1 " << end1 << ", end2 " << end2 << " has length " << existing_road_length;
         if (end1 == castle_flag_pos){
-          AILogDebug["find_flag_and_tile_dist"] << name << "score_flag: this solution contains the castle flag!";
+          AILogDebug["find_flag_and_tile_dist"] << name << " score_flag: this solution contains the castle flag!";
           contains_castle_flag = true;
         }
-        AILogDebug["find_flag_and_tile_dist"] << name << "score_flag: total so far road from flag_pos " << flag_pos << " to target_pos " << target_pos << " is flag_dist " << flag_dist << ", tile_dist " << tile_dist;
+        AILogDebug["find_flag_and_tile_dist"] << name << " score_flag: total so far road from flag_pos " << flag_pos << " to target_pos " << target_pos << " is flag_dist " << flag_dist << ", tile_dist " << tile_dist;
       } // while fnode->parent / retrace flag-solution
       AILogDebug["find_flag_and_tile_dist"] << name << " score_flag: final total for road from flag_pos " << flag_pos << " to target_pos " << target_pos << " is flag_dist " << flag_dist << ", tile_dist " << tile_dist;
       rb->set_score(flag_pos, flag_dist, tile_dist, contains_castle_flag);

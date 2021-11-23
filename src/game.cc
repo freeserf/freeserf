@@ -621,9 +621,13 @@ Game::send_serf_to_flag_search_cb(Flag *flag, void *d) {
 }
 
 /* Dispatch serf from (nearest?) inventory to flag. */
+// it seems that this function is NOT used for calling transporters to roads, 
+//  if I create a new road I see a transporter sent and arrive but never see this called for it
+// instead, it looks like Inventory->call_transporter is called
 bool
 Game::send_serf_to_flag(Flag *dest, Serf::Type type, Resource::Type res1,
                         Resource::Type res2) {
+  //Log::Debug["game"] << "debug: inside Game::send_serf_to_flag, AA, dest flag is at pos " << dest->get_position();
   //Log::Info["game"] << "debug: inside Game::send_serf_to_flag, serf type " << type << ", res1 " << res1 << ", res2 " << res2;         
   Building *building = NULL;
   if (dest->has_building()) {
@@ -638,6 +642,7 @@ Game::send_serf_to_flag(Flag *dest, Serf::Type type, Resource::Type res1,
   }
 
   //Log::Info["game"] << "debug: inside Game::send_serf_to_flag, B";
+  //Log::Debug["game"] << "debug: inside Game::send_serf_to_flag, B, dest flag is at pos " << dest->get_position();
 
   SendSerfToFlagData data;
   data.inventory = NULL;
@@ -877,6 +882,17 @@ Game::update_game_stats() {
 /* Update game state after tick increment. */
 void
 Game::update() {
+
+/*
+  Log::Info["game"] << "option_EnableAutoSave is " << option_EnableAutoSave;
+  Log::Info["game"] << "option_ImprovedPigFarms is " << option_ImprovedPigFarms;
+  Log::Info["game"] << "option_CanTransportSerfsInBoats is " << option_CanTransportSerfsInBoats;
+  Log::Info["game"] << "option_QuickDemoEmptyBuildSites is " << option_QuickDemoEmptyBuildSites;
+  Log::Info["game"] << "option_TreesReproduce is " << option_TreesReproduce;
+  Log::Info["game"] << "option_BabyTreesMatureSlowly is " << option_BabyTreesMatureSlowly;
+  Log::Info["game"] << "option_ResourceRequestsTimeOut is " << option_ResourceRequestsTimeOut;
+  Log::Info["game"] << "option_LostTransportersClearFaster is " << option_LostTransportersClearFaster;
+  */
 
   /* Increment tick counters */
   const_tick += 1;

@@ -1973,7 +1973,7 @@ AI::count_farmable_land(MapPos center_pos, unsigned int distance, std::string co
 // sort a MapPosSet by value, ascending, and return as sorted vector of the keys (throwing the values away)
 MapPosVector
 AI::sort_by_val_asc(MapPosSet set) {
-  AILogDebug["util_sort_by_val_asc"] << name << " inside AI::sort_by_val_asc";
+  //AILogDebug["util_sort_by_val_asc"] << name << " inside AI::sort_by_val_asc";
   // this is C++14 only?  worked on visual studio 2017 on windows but not VC code w/gcc on linux
   auto cmp = [](const auto &p1, const auto &p2) { return p2.second > p1.second || !(p1.second > p2.second) && p1.first > p2.first; };
   std::set< std::pair<MapPos, unsigned int>, decltype(cmp)> sorted_set(set.begin(), set.end(), cmp);
@@ -1988,7 +1988,7 @@ AI::sort_by_val_asc(MapPosSet set) {
 // sort a MapPosSet by value, descending, and return as sorted vector of the keys (throwing the values away)
 MapPosVector
 AI::sort_by_val_desc(MapPosSet set) {
-  AILogDebug["util_sort_by_val_desc"] << name << " inside AI::sort_by_val_desc";
+  //AILogDebug["util_sort_by_val_desc"] << name << " inside AI::sort_by_val_desc";
   auto cmp = [](const auto &p1, const auto &p2) { return p2.second < p1.second || !(p1.second < p2.second) && p1.first < p2.first; };
   std::set< std::pair<MapPos, unsigned int>, decltype(cmp)> sorted_set(set.begin(), set.end(), cmp);
   MapPosVector sorted_vector;
@@ -2002,7 +2002,7 @@ AI::sort_by_val_desc(MapPosSet set) {
 // return count of individual objects of the specified type range, such as trees or geologist signs
 unsigned int
 AI::count_objects_near_pos(MapPos center_pos, unsigned int distance, Map::Object res_start_index, Map::Object res_end_index, std::string color) {
-  AILogDebug["util_count_objects_near_pos"] << name << " inside AI::count_objects_near_pos";
+  //AILogDebug["util_count_objects_near_pos"] << name << " inside AI::count_objects_near_pos";
   //AILogDebug["util_count_objects_near_pos"] << name << " AI: center_pos " << center_pos << ", distance " << distance << ", res_start_index " << res_start_index << "(" << NameObject[res_start_index] << ")"
   //      << ", res_end_index " << res_end_index << "(" << NameObject[res_end_index] << ")";
   unsigned int count = 0;

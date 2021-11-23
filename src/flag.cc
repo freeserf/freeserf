@@ -1261,25 +1261,37 @@ Flag::update() {
   for (Direction j : cycle_directions_ccw()) {
     if (has_path(j)) {
       if (serf_requested(j)) {
+        //Log::Debug["flag"] << "inside Flag::update, flag at pos " << pos << ", dir " << j << NameDirection[j] << ", serf_requested(j) is true";
         if (BIT_TEST(res_waiting[2], j)) {
+          //Log::Debug["flag"] << "inside Flag::update, flag at pos " << pos << ", dir " << j << NameDirection[j] << ", BIT_TEST(res_waiting[2], j is true";
           if (waiting_count >= 7) {
+            //Log::Debug["flag"] << "inside Flag::update, flag at pos " << pos << ", dir " << j << NameDirection[j] << ", waiting_count of " << waiting_count <<" is >=7";
             transporter &= BIT(j);
           }
         } else if (free_transporter_count(j) != 0) {
+          //Log::Debug["flag"] << "inside Flag::update, flag at pos " << pos << ", dir " << j << NameDirection[j] << ", res_waiting[2] not true, but free_transporter_count(j) is true";
           transporter |= BIT(j);
         }
+        //Log::Debug["flag"] << "inside Flag::update, flag at pos " << pos << ", dir " << j << NameDirection[j] << ", ELSE 1";
       } else if (free_transporter_count(j) == 0 ||
                  BIT_TEST(res_waiting[2], j)) {
+                   //Log::Debug["flag"] << "inside Flag::update, flag at pos " << pos << ", dir " << j << NameDirection[j] << ", serf_requested(j) is false but elseif true";
         int max_tr = max_transporters[length_category(j)];
         if (free_transporter_count(j) < (unsigned int)max_tr &&
             !serf_request_fail()) {
+          //Log::Debug["flag"] << "inside Flag::update, flag at pos " << pos << ", dir " << j << NameDirection[j] << ", about to call_transporter";
           bool r = call_transporter(j, is_water_path(j));
+          //Log::Debug["flag"] << "inside Flag::update, flag at pos " << pos << ", dir " << j << NameDirection[j] << ", done to call_transporter, result was " << r;
           if (!r) transporter |= BIT(7);
         }
+        //Log::Debug["flag"] << "inside Flag::update, flag at pos " << pos << ", dir " << j << NameDirection[j] << ", foo5";
         if (waiting_count >= 7) {
+          //Log::Debug["flag"] << "inside Flag::update, flag at pos " << pos << ", dir " << j << NameDirection[j] << ", foo6";
           transporter &= BIT(j);
         }
+        //Log::Debug["flag"] << "inside Flag::update, flag at pos " << pos << ", dir " << j << NameDirection[j] << ", foo7";
       } else {
+        //Log::Debug["flag"] << "inside Flag::update, flag at pos " << pos << ", dir " << j << NameDirection[j] << ", serf_requested(j) is false, ELSE";
         transporter |= BIT(j);
       }
     }
@@ -1362,6 +1374,9 @@ Flag::call_transporter(Direction dir, bool water) {
     dir = dir_2;
   }
 
+  Log::Debug["flag"] << "inside Flag::call_transporter, about to call serf->go_out_from_inventory to flag at pos " << src->get_position() << " and dir " << dir << " / " << NameDirection[dir] << ", this serf is currently at pos " << get_position();
+
+  // the go_out_from_inventory declaration says arg2 is a MapPos, but src->get_index() returns a Flag index not a Map Pos, wtf??
   serf->go_out_from_inventory(inventory->get_index(), src->get_index(), dir);
 
   return true;

@@ -469,6 +469,7 @@ class Serf : public GameObject {
   unsigned int get_walking_dest() const { return s.walking.dest; }
 
   // Commands
+  // the go_out_from_inventory declaration says arg2 is a MapPos, but src->get_index() returns a Flag index not a Map Pos, wtf??
   void go_out_from_inventory(unsigned int inventory, MapPos dest, int mode);
   void send_off_to_fight(int dist_col, int dist_row);
   void stay_idle_in_stock(unsigned int inventory);

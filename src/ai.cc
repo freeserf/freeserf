@@ -1128,7 +1128,9 @@ AI::do_fix_missing_transporters() {
         //Access violation reading location 0xFFFFFFFFFFFFFFFF.
         // oh... I think I just wasn't checking that this player owns the flag!  adding that
         // now getting some other read access violation after Inventory->have serfs... on Load Game testing though, dunno
-        bool was_called = flag->call_transporter(dir, false);  // hardcoding is_water_path to false because I am seeing weird crash with this checking for Serf::TypeSailor
+        AILogDebug["do_fix_missing_transporters"] << name << " NOT calling out missing new transporterZZZ, trying to debug this now";
+        bool was_called = false;
+        //bool was_called = flag->call_transporter(dir, false);  // hardcoding is_water_path to false because I am seeing weird crash with this checking for Serf::TypeSailor
         AILogDebug["do_fix_missing_transporters"] << name << " thread #" << std::this_thread::get_id() << " AI is unlocking mutex after calling flag->call_transporter, to work around no-transporter issue";
         game->get_mutex()->unlock();
         AILogDebug["do_fix_missing_transporters"] << name << " thread #" << std::this_thread::get_id() << " AI has unlocked mutex after calling flag->call_transporter, to work around no-transporter issue";
@@ -1169,6 +1171,7 @@ AI::do_fix_missing_transporters() {
         continue;
       //
       // check for rare missing transporter bug, where flag lists a transporter in dir, but no serf is actually on the road
+      //  I am starting to think this is caused by previously working transporters somehow disappearing
       //
       if (flag->has_transporter(dir)) {
         bool found_transporter = false;
@@ -1178,6 +1181,7 @@ AI::do_fix_missing_transporters() {
         }
         MapPos pos = flag->get_position();
         Direction tmp_dir = dir;
+        // trace the road until it ends, looking for transporters at each pos
         while (true) {
           // check for idle transporter
           // when transporters are idle on roads, they "disappear" and are set to index 0 with invalid job, etc.  I think this may be
@@ -1209,6 +1213,32 @@ AI::do_fix_missing_transporters() {
           }
         }
         if (found_transporter == false) {
+          //
+          // when trying to debug the missing transporter issue, I noticed that when I loaded an auto-save that is supposed to show the problem,
+          //  the missing serf is now on the road and functional!  this kind of makes sense if the game thinks there is a serf there, so it saves
+          //  that a serf is there, and on game load it fixes the issue preventing the serf from appearing and working?
+          //  NO, it actually looks like the transporter was previously in place and working, then somehow disappeared!  with no apparant change in
+          //  the road or buildings on it.  Maybe the serf was somehow deleted by index due to some infrequent bug with serf management logic??
+          //
+          // 
+          /*
+          I was able to catch this live on a screen recording. What happens is that a functioning transporter enters Lost state and abandons his post. 
+            There is no loss of territory or anything that should cause the serf to become Lost. 
+             In this particular case, what I see in the video (at 2:43) is:
+
+          - transporter (that disappears soon) is idle on road, looking back and forth as idle transporters do. Leading up to this the transporter was normally busy and working fine moving resources back and forth on a busy road
+          - another serf drops a Res at this serf's flag
+          - meanwhile, a Geologist is heading to the same flag, returning to castle
+          - the transporter wakes as soon as the Res is dropped for him, and faces its flag direction
+          - the Geologist approaching the same flag prevents the transporter from getting the Res, so the transporter waits, still facing the Res-flag
+          - once the Geologist reaches the Res-flag, it is travelling in the direction of the transporter
+          - they perform a serf swap, the Geologist passes the transporter heading west, the transporter passes the Geologist heading east to the Res-flag and picks up the Res
+          - the Geologist is blocked from heading further west by another serf in his way (a Lumberjack moving a felled tree in front of him, not actually on the road but right next to it)
+          - the transporter is facing west to transport the Res west as usual and is carring the Res, but is blocked by the Geologist
+          - immediately as the transporter becomes blocked by the geologist (after facing west for a split second), the transporter becomes Lost and the Res he is carrying disappears (though he is still facing west)
+          - the Lost transporter walks off somewhere east, eventually makes is way back to the Castle, and obviously never returns, and no replacement is sent (because this isn't supposed to happen)
+          - the game doesn't realize the transporter is lost, the only way I was detecting it is by walking the road to see that no transporter was actually there despite the Flag having a record of an active transporter there
+          */
           AILogDebug["do_fix_missing_transporters"] << name << " WARNING - found rare type of missing transporter bug!  Flag #" << flag->get_index() << " at pos " << flag->get_position() << " seems to be missing a transporter on road in dir " << NameDirection[dir] << " despite it thinking there is one there!";
           ai_mark_pos.insert(std::make_pair(flag->get_position(), "lt_blue"));
           std::this_thread::sleep_for(std::chrono::milliseconds(5000));
@@ -1219,14 +1249,20 @@ AI::do_fix_missing_transporters() {
           AILogDebug["do_fix_missing_transporters"] << name << " thread #" << std::this_thread::get_id() << " AI is locking mutex before calling flag->call_transporter, to work around RARER no-transporter issue";
           game->get_mutex()->lock();
           AILogDebug["do_fix_missing_transporters"] << name << " thread #" << std::this_thread::get_id() << " AI has locked mutex before calling flag->call_transporter, to work around RARER no-transporter issue";
-          bool was_called = flag->call_transporter(dir, false);  // hardcoding is_water_path to false because I am seeing weird crash with this checking for Serf::TypeSailor
+          
+          AILogDebug["do_fix_missing_transporters"] << name << " NOT calling out missing new transporter, trying to debug this now";
+          bool was_called = false;
+          //bool was_called = flag->call_transporter(dir, false);  // hardcoding is_water_path to false because I am seeing weird crash with this checking for Serf::TypeSailor
+
           AILogDebug["do_fix_missing_transporters"] << name << " thread #" << std::this_thread::get_id() << " AI is unlocking mutex after calling flag->call_transporter, to work around RARER no-transporter issue";
           game->get_mutex()->unlock();
           AILogDebug["do_fix_missing_transporters"] << name << " thread #" << std::this_thread::get_id() << " AI has unlocked mutex after calling flag->call_transporter, to work around RARER no-transporter issue";
+          /*
           if (!was_called) {
             AILogDebug["do_fix_missing_transporters"] << name << " WARNING - flag->call_transporter to " << flag->get_position() << ", dir " << NameDirection[dir] << " - failed while trying to work around RARER no-transporter issue!  I guess let it try again next time";
           }
           std::this_thread::sleep_for(std::chrono::milliseconds(5000));
+          */
           //game->pause();
         }
         else {
@@ -1236,14 +1272,16 @@ AI::do_fix_missing_transporters() {
       }
       //
       // check for common missing transporter bug, where no transporter is assigned at all
+      //  I added some debugging and I see that the leave_building call is made so a serf is dispatched, but not sure if it ever actually
+      //  exits the Inventory (castle/stock) and starts travelling and is lost along the way, or if it never actually starts walking
       //
       if (!flag->has_transporter(dir)) {
-        AILogVerbose["do_fix_missing_transporters"] << name << " flag at pos " << flag->get_position() << " has no transporter on path in dir " << dir << " / " << NameDirection[dir];
+        AILogDebug["do_fix_missing_transporters"] << name << " flag at pos " << flag->get_position() << " has no transporter on path in dir " << dir << " / " << NameDirection[dir];
         // check to see if one was requested
         if (flag->serf_requested(dir)){
-          AILogVerbose["do_fix_missing_transporters"] << name << " flag->serf_requested is true at pos " << flag->get_position() << " in dir " << dir << " / " << NameDirection[dir];
+          AILogDebug["do_fix_missing_transporters"] << name << " flag->serf_requested is true at pos " << flag->get_position() << " in dir " << dir << " / " << NameDirection[dir];
         }else{
-          AILogVerbose["do_fix_missing_transporters"] << name << " flag->serf_requested is FALSE at pos " << flag->get_position() << " in dir " << dir << " / " << NameDirection[dir] << ", marking flag in yellow and dir in dk_yellow";
+          AILogDebug["do_fix_missing_transporters"] << name << " flag->serf_requested is FALSE at pos " << flag->get_position() << " in dir " << dir << " / " << NameDirection[dir] << ", marking flag in yellow and dir in dk_yellow";
           // this happens when flags/roads/buildings were just created, not an issue as far as I have ever seen
           //ai_mark_pos.insert(ColorDot(flag->get_position(), "yellow"));
           //ai_mark_pos.insert(ColorDot(map->move(flag->get_position(), dir), "dk_yellow"));
@@ -1251,20 +1289,34 @@ AI::do_fix_missing_transporters() {
         }
         // maybe check to see if there is a Walking Transporter serf whose dest is this path?
         // see if a timer already set for this flag & dir
-        AILogVerbose["do_fix_missing_transporters"] << name << " there are " << no_transporter_timers.count(std::make_pair(flag_index, dir)) << " no_transporter_timers set for this flag with pos " << flag->get_position() << ", index " << flag_index << ", dir " << dir << " / " << NameDirection[dir];
+        AILogDebug["do_fix_missing_transporters"] << name << " there are " << no_transporter_timers.count(std::make_pair(flag_index, dir)) << " no_transporter_timers set for this flag with pos " << flag->get_position() << ", index " << flag_index << ", dir " << dir << " / " << NameDirection[dir];
         if (no_transporter_timers.count(std::make_pair(flag_index, dir)) == 0) {
-          AILogVerbose["do_fix_missing_transporters"] << name << " setting countdown timer for flag with pos " << flag->get_position() << ", index " << flag_index << ", dir " << dir << " / " << NameDirection[dir];
+          AILogDebug["do_fix_missing_transporters"] << name << " setting countdown timer for flag with pos " << flag->get_position() << ", index " << flag_index << ", dir " << dir << " / " << NameDirection[dir];
           // this is difficult to tune... if too long the entire economy can break down while waiting to clear it
           //    but too soon as it could trigger for a faraway road that the original transporter simply hasn't reached
           //  Maybe make more advanced and check to see if there is an outgoing transporter serf with this destination flag/dir??
           // jan05 2021 - setting this 25x now that I am looking at it closer.  It should be either extremely long timer or
           //    based on the distance from the inventory (warehouse/stock) that is dispatching the serf
           no_transporter_timers.insert(std::make_pair(std::make_pair(flag_index, dir), game->get_tick() + 50000));
-          AILogVerbose["do_fix_missing_transporters"] << name << " there are now " << no_transporter_timers.count(std::make_pair(flag_index, dir)) << " no_transporter_timers set for this flag with pos " << flag->get_position() << ", index " << flag_index << ", dir " << dir << " / " << NameDirection[dir] << ", value is: " << no_transporter_timers.at(std::make_pair(flag_index, dir));
-        }
-        else {
+          AILogDebug["do_fix_missing_transporters"] << name << " there are now " << no_transporter_timers.count(std::make_pair(flag_index, dir)) << " no_transporter_timers set for this flag with pos " << flag->get_position() << ", index " << flag_index << ", dir " << dir << " / " << NameDirection[dir] << ", value is: " << no_transporter_timers.at(std::make_pair(flag_index, dir));
+
+          // try to find a serf that is on way to this Flag-dir
+          AILogVerbose["do_fix_missing_transporters"] << inventory_pos << " thread #" << std::this_thread::get_id() << " AI is locking mutex before calling game->get_player_serfs(player) (for do_fix_missing_transporters)";
+          game->get_mutex()->lock();
+          AILogVerbose["do_fix_missing_transporters"] << inventory_pos << " thread #" << std::this_thread::get_id() << " AI has locked mutex before calling game->get_player_serfs(player) (for do_fix_missing_transporters)";
+          for (Serf *serf : game->get_player_serfs(player)) {
+            if (serf->get_walking_dest() == flag_index){
+              AILogDebug["do_fix_missing_transporters"] << name << " serf at pos " << serf->get_pos() << " with type " << NameSerf[serf->get_type()] << " has dest of this Flag with index " << flag_index << " and pos " << flag->get_position();
+              ai_mark_serf.push_back(serf->get_index());
+            }
+          }
+          AILogVerbose["do_fix_missing_transporters"] << inventory_pos << " thread #" << std::this_thread::get_id() << " AI is unlocking mutex before calling game->get_player_serfs(player) (for do_fix_missing_transporters)";
+          game->get_mutex()->unlock();
+          AILogVerbose["do_fix_missing_transporters"] << inventory_pos << " thread #" << std::this_thread::get_id() << " AI has unlocked mutex before calling game->get_player_serfs(player) (for do_fix_missing_transporters)";
+          
+        } else {
           int trigger_ticks = static_cast<int>(no_transporter_timers.at(std::make_pair(flag_index, dir)) - game->get_tick());
-          AILogVerbose["do_fix_missing_transporters"] << name << " a timer is already set for flag with pos " << flag->get_position() << ", index " << flag_index << ", dir " << dir << " / " << NameDirection[dir] << ", it will trigger in " << trigger_ticks << " ticks";
+          AILogDebug["do_fix_missing_transporters"] << name << " a timer is already set for flag with pos " << flag->get_position() << ", index " << flag_index << ", dir " << dir << " / " << NameDirection[dir] << ", it will trigger in " << trigger_ticks << " ticks";
         }
       }
     }
@@ -2030,6 +2082,7 @@ AI::do_demolish_excess_lumberjacks() {
 
 // burn ALL fisherman huts, wheat farms, pig farms(?) attached to this stock if stock food_max reached, to avoid clogging roads
 //  leave mills, bakers, butcheers
+// NOTE that food sitting at flags near the inventory counts also
 void
 AI::do_demolish_excess_food_buildings() {
   AILogDebug["do_demolish_excess_food_buildings"] << inventory_pos << " inside do_demolish_excess_food_buildings for stock at pos " << inventory_pos;
