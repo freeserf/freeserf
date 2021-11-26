@@ -2153,6 +2153,7 @@ Viewport::draw_active_serf(Serf *serf, MapPos pos, int x_base, int y_base) {
       AI *ai = interface->get_ai_ptr(current_player_index);
       if (ai == NULL) {
         // no AI running for this player, do nothing
+        //  it would be nice if there was a separate view that showed the clicked-on-pos and game speed even if AI is off
       }
       else {
         std::vector<int> ai_mark_serf = *(interface->get_ai_ptr(current_player_index)->get_ai_mark_serf());

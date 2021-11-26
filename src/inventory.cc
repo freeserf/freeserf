@@ -169,7 +169,7 @@ Inventory::apply_supplies_preset(unsigned int supplies) {
 // dispatch a transporter from a stock out to a road to work
 Serf*
 Inventory::call_transporter(bool water) {
-  Log::Debug["inventory"] << "inside Inventory::call_transporter from Inv with pos " << game->get_building(get_building_index())->get_position();
+  //Log::Debug["inventory"] << "inside Inventory::call_transporter from Inv with pos " << game->get_building(get_building_index())->get_position();
   Serf *serf = NULL;
 
   if (water) {

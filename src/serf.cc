@@ -424,29 +424,29 @@ Serf::path_splited(unsigned int flag_1, Direction dir_1,
                    unsigned int flag_2, Direction dir_2,
                    int *select) {
 
-  Log::Debug["serf"] << "inside path_splited for serf with index " << get_index() << " and state " << get_state();
+  //Log::Debug["serf"] << "inside path_splited for serf with index " << get_index() << " and state " << get_state();
   if (state == StateWalking) {
-    Log::Debug["serf"] << "inside path_splited for serf with index " << get_index() << ", fooA";
+    //Log::Debug["serf"] << "inside path_splited for serf with index " << get_index() << ", fooA";
     if (s.walking.dest == flag_1 && s.walking.dir1 == dir_1) {
       *select = 0;
-      Log::Debug["serf"] << "inside path_splited for serf with index " << get_index() << ", fooB";
+      //Log::Debug["serf"] << "inside path_splited for serf with index " << get_index() << ", fooB";
       return true;
     } else if (s.walking.dest == flag_2 && s.walking.dir1 == dir_2) {
       *select = 1;
-      Log::Debug["serf"] << "inside path_splited for serf with index " << get_index() << ", fooC";
+      //Log::Debug["serf"] << "inside path_splited for serf with index " << get_index() << ", fooC";
       return true;
     }
   } else if (state == StateReadyToLeaveInventory) {
-    Log::Debug["serf"] << "inside path_splited for serf with index " << get_index() << ", fooD";
+    //Log::Debug["serf"] << "inside path_splited for serf with index " << get_index() << ", fooD";
     if (s.ready_to_leave_inventory.dest == flag_1 &&
         s.ready_to_leave_inventory.mode == dir_1) {
-          Log::Debug["serf"] << "inside path_splited for serf with index " << get_index() << ", fooE";
+          //Log::Debug["serf"] << "inside path_splited for serf with index " << get_index() << ", fooE";
       *select = 0;
       return true;
     } else if (s.ready_to_leave_inventory.dest == flag_2 &&
                s.ready_to_leave_inventory.mode == dir_2) {
       *select = 1;
-      Log::Debug["serf"] << "inside path_splited for serf with index " << get_index() << ", fooF";
+      //Log::Debug["serf"] << "inside path_splited for serf with index " << get_index() << ", fooF";
       return true;
     }
   } else if ((state == StateReadyToLeave || state == StateLeavingBuilding) &&
@@ -454,16 +454,16 @@ Serf::path_splited(unsigned int flag_1, Direction dir_1,
     if (s.leaving_building.dest == flag_1 &&
         s.leaving_building.field_B == dir_1) {
       *select = 0;
-      Log::Debug["serf"] << "inside path_splited for serf with index " << get_index() << ", fooG";
+      //Log::Debug["serf"] << "inside path_splited for serf with index " << get_index() << ", fooG";
       return true;
     } else if (s.leaving_building.dest == flag_2 &&
                s.leaving_building.field_B == dir_2) {
       *select = 1;
-      Log::Debug["serf"] << "inside path_splited for serf with index " << get_index() << ", fooH";
+      //Log::Debug["serf"] << "inside path_splited for serf with index " << get_index() << ", fooH";
       return true;
     }
   }
-  Log::Debug["serf"] << "inside path_splited for serf with index " << get_index() << ", fooZ";
+  //Log::Debug["serf"] << "inside path_splited for serf with index " << get_index() << ", fooZ";
   return false;
 }
 
@@ -996,7 +996,7 @@ Serf::get_walking_animation(int h_diff, Direction dir, int switch_pos) {
 /* Preconditon: serf is in WALKING or TRANSPORTING state */
 void
 Serf::change_direction(Direction dir, int alt_end) {
-  Log::Info["serf"] << "debug: a serf with index " << get_index() << " inside change_direction, starting pos " << pos << ", dir: " << NameDirection[dir];
+  //Log::Info["serf"] << "debug: a serf with index " << get_index() << " inside change_direction, starting pos " << pos << ", dir: " << NameDirection[dir];
   PMap map = game->get_map();
   MapPos new_pos = map->move(pos, dir);
 
@@ -1312,7 +1312,7 @@ Serf::change_direction(Direction dir, int alt_end) {
     if (map->has_flag(new_pos)) {
       counter = 0;
     } else {
-      Log::Debug["serf"] << "unhandled jump to 31B82.";
+      Log::Warn["serf"] << "unhandled jump to 31B82.";
     }
   }
 }
@@ -1320,7 +1320,7 @@ Serf::change_direction(Direction dir, int alt_end) {
 /* Precondition: serf state is in WALKING or TRANSPORTING state */
 void
 Serf::transporter_move_to_flag(Flag *flag) {
-  Log::Debug["serf"] << "inside Serf::transporter_move_to_flag(), for a serf with index " << get_index();
+  //Log::Debug["serf"] << "inside Serf::transporter_move_to_flag(), for a serf with index " << get_index();
   // is s.transporting.dir the direction that the transporter is travelling?
   //  or, is it the direction that the res at the reached flag is heading (i.e. the reverse dir)?
   //   it seems to be the latter, but that could be faulty logic in sailor transport serf code
@@ -1446,18 +1446,18 @@ Serf::transporter_move_to_flag(Flag *flag) {
 
 bool
 Serf::handle_serf_walking_state_search_cb(Flag *flag, void *data) {
-  Log::Info["serf"] << "debug: inside Serf::handle_serf_walking_state_search_cb with flag at pos " << flag->get_position();
+  //Log::Info["serf"] << "debug: inside Serf::handle_serf_walking_state_search_cb with flag at pos " << flag->get_position();
 
   Serf *serf = static_cast<Serf*>(data);
-  Log::Info["serf"] << "debug: inside Serf::handle_serf_walking_state_search_cb with serf at pos " << serf->get_pos();
+  //Log::Info["serf"] << "debug: inside Serf::handle_serf_walking_state_search_cb with serf at pos " << serf->get_pos();
   Flag *dest = flag->get_game()->get_flag(serf->s.walking.dest);
   if (flag == dest) {
-    Log::Info["serf"] << "debug: inside Serf::handle_serf_walking_state_search_cb, DEST FOUND!";
-    Log::Verbose["serf"] << " dest found: " << dest->get_search_dir();
+    //Log::Info["serf"] << "debug: inside Serf::handle_serf_walking_state_search_cb, DEST FOUND!";
+    //Log::Verbose["serf"] << " dest found: " << dest->get_search_dir();
     serf->change_direction(dest->get_search_dir(), 0);
     return true;
   }
-  Log::Info["serf"] << "debug: inside Serf::handle_serf_walking_state_search_cb, dest NOT found";
+  //Log::Info["serf"] << "debug: inside Serf::handle_serf_walking_state_search_cb, dest NOT found";
 
   return false;
 }
@@ -1532,7 +1532,7 @@ Serf::leave_building(int join_pos) {
 
 void
 Serf::handle_serf_walking_state_dest_reached() {
-  Log::Debug["serf"] << "inside Serf::handle_serf_walking_state_dest_reached(), for a serf with index " << get_index() << ", s.walking.dir1 is " << s.walking.dir1;
+  //Log::Debug["serf"] << "inside Serf::handle_serf_walking_state_dest_reached(), for a serf with index " << get_index() << ", s.walking.dir1 is " << s.walking.dir1;
   /* Destination reached. */
   //Log::Info["serf"] << "debug: inside handle_serf_walking_state_dest_reached, A";
   if (s.walking.dir1 < 0) {
@@ -1578,12 +1578,12 @@ Serf::handle_serf_walking_state_dest_reached() {
      //Log::Info["serf"] << "debug: inside handle_serf_walking_state_dest_reached, non-Sailor has reached destination";
     //}
     //Log::Info["serf"] << "debug: inside handle_serf_walking_state_dest_reached, H";
-    Log::Debug["serf"] << "inside Serf::handle_serf_walking_state_dest_reached(), for a serf with index " << get_index() << ", setting StateTransporting";
+    //Log::Debug["serf"] << "inside Serf::handle_serf_walking_state_dest_reached(), for a serf with index " << get_index() << ", setting StateTransporting";
     set_state(StateTransporting);
     s.transporting.res = Resource::TypeNone;
     s.transporting.dir = dir;
     s.transporting.wait_counter = 0;
-    Log::Debug["serf"] << "inside Serf::handle_serf_walking_state_dest_reached(), for a serf with index " << get_index() << ", already set StateTransporting, about to call transporter_move_to_flag";
+    //Log::Debug["serf"] << "inside Serf::handle_serf_walking_state_dest_reached(), for a serf with index " << get_index() << ", already set StateTransporting, about to call transporter_move_to_flag";
    //Log::Info["serf"] << "debug: at the end of handle_serf_walking_state_dest_reached, about to call transporter_move_to_flag at pos " << flag->get_position();
     transporter_move_to_flag(flag);
    //Log::Info["serf"] << "debug: inside handle_serf_walking_state_dest_reached, I";
@@ -1657,7 +1657,7 @@ Serf::handle_serf_walking_state() {
   tick = game->get_tick();
   counter -= delta;
 
-  Log::Debug["serf"] << "inside handle_serf_walking_state, a serf with index " << get_index() << " has dest s.walking.dest " << s.walking.dest;
+  //Log::Debug["serf"] << "inside handle_serf_walking_state, a serf with index " << get_index() << " has dest s.walking.dest " << s.walking.dest;
   while (counter < 0) {
     if (s.walking.dir < 0) {
       handle_serf_walking_state_waiting();
@@ -1683,7 +1683,7 @@ Serf::handle_serf_walking_state() {
           //was_lost = false;
           r = src->find_nearest_building_for_lost_generic_serf();
         }else{
-          Log::Debug["serf"] << "inside Serf::handle_serf_walking_state(), a generic serf is looking for an inventory but was not recently Lost, using normal Inventory clearing function";
+          //Log::Debug["serf"] << "inside Serf::handle_serf_walking_state(), a generic serf is looking for an inventory but was not recently Lost, using normal Inventory clearing function";
           r = src->find_nearest_inventory_for_serf();
         }
         if (r < 0) {
@@ -1699,7 +1699,7 @@ Serf::handle_serf_walking_state() {
          If not, find out which direction to move in
          to reach the destination. */
       if (s.walking.dest == game->get_map()->get_obj_index(pos)) {
-        Log::Debug["serf"] << "inside Serf::handle_serf_walking_state(), a serf with index " << get_index() << " has reached s.walking.dest " << s.walking.dest << ", about to call handle_serf_walking_state_dest_reached";
+        //Log::Debug["serf"] << "inside Serf::handle_serf_walking_state(), a serf with index " << get_index() << " has reached s.walking.dest " << s.walking.dest << ", about to call handle_serf_walking_state_dest_reached";
         handle_serf_walking_state_dest_reached();
         return;
       } else {
@@ -1832,7 +1832,7 @@ Serf::handle_serf_transporting_state() {
   tick = game->get_tick();
   counter -= delta;
 
-  Log::Debug["serf"] << "a transporting serf with index " << get_index() << " has values: dest " << s.transporting.dest << ", dir" << s.transporting.dir << ", res " << s.transporting.res << ", wait_counter " << s.transporting.wait_counter;
+  //Log::Debug["serf"] << "a transporting serf with index " << get_index() << " has values: dest " << s.transporting.dest << ", dir" << s.transporting.dir << ", res " << s.transporting.res << ", wait_counter " << s.transporting.wait_counter;
 
   //if (type == Serf::TypeSailor){
   // //Log::Info["serf"] << "debug: a sailor is in transporting state 000";
@@ -2049,7 +2049,7 @@ Serf::handle_serf_transporting_state() {
       }
     }
   }
-}
+}      
 
 void
 Serf::enter_inventory() {
@@ -2521,7 +2521,7 @@ Serf::handle_serf_leaving_building_state() {
   tick = game->get_tick();
   counter -= delta;
 
-  Log::Debug["serf"] << "a serf with index " << get_index() << " leaving_building has values: dest " << s.leaving_building.dest << ", dest2 " << s.leaving_building.dest2 << ", field_B " << s.leaving_building.field_B << ", next_state " << s.leaving_building.next_state;
+  //Log::Debug["serf"] << "a serf with index " << get_index() << " leaving_building has values: dest " << s.leaving_building.dest << ", dest2 " << s.leaving_building.dest2 << ", field_B " << s.leaving_building.field_B << ", next_state " << s.leaving_building.next_state;
 
   if (counter < 0) {
     counter = 0;
@@ -2982,7 +2982,7 @@ Serf::handle_serf_ready_to_leave_inventory_state() {
   // additional check based on pyrdacor's freeserf.net:
   // "// Check if there is a serf that waits to approach the flag.
   //  // If so, we wait inside."
-  Flag *inv_flag = game->get_flag_at_pos(map->move_down(pos));
+  Flag *inv_flag = game->get_flag_at_pos(map->move_down_right(pos));
   if (inv_flag != nullptr){
     for (Direction i : cycle_directions_cw()) {
       MapPos other_pos = map->move(inv_flag->get_position(), i);
@@ -2994,7 +2994,8 @@ Serf::handle_serf_ready_to_leave_inventory_state() {
           if (! (other_serf->get_state() != Serf::StateTransporting
                  && other_serf->get_walking_dest() == inv_flag->get_position()
                  && other_serf->get_walking_dir() == reverse_direction(i))) {
-            Log::Debug["serf"] << "inside handle_serf_ready_to_leave_inventory_state(), pyrdacor check found a serf at pos " << other_pos << " waiting to approach this Inventory flag at pos " << inv_flag->get_position() << ", exiting serf must wait";
+            // setting this to Info so I can see if it ever happens
+            //Log::Info["serf"] << "inside handle_serf_ready_to_leave_inventory_state(), pyrdacor check found a serf at pos " << other_pos << " waiting to approach this Inventory flag at pos " << inv_flag->get_position() << ", exiting serf must wait";
             animation = 82;
             counter = 0;
             return;
@@ -3039,7 +3040,7 @@ Serf::handle_serf_ready_to_leave_inventory_state() {
   int mode = s.ready_to_leave_inventory.mode;
   unsigned int dest = s.ready_to_leave_inventory.dest;  // again, this seems to be a Flag index NOT a MapPos
 
-  Log::Debug["serf"] << "inside Serf::handle_serf_ready_to_leave_inventory_state, calling leave_building(0) on this serf, with dest " << dest << " which should be a Flag with MapPos " << game->get_flag(dest)->get_position();
+  //Log::Debug["serf"] << "inside Serf::handle_serf_ready_to_leave_inventory_state, calling leave_building(0) on this serf, with dest " << dest << " which should be a Flag with MapPos " << game->get_flag(dest)->get_position();
   leave_building(0);
   s.leaving_building.next_state = next_state;
   s.leaving_building.field_B = mode;
@@ -5841,7 +5842,7 @@ Serf::handle_serf_idle_on_path_state() {
     //if (get_type() == Serf::TypeSailor){
        //Log::Info["serf"] << "debug: inside handle_serf_idle_on_path_state, sailor end 5";
     //}
-    Log::Info["serf"] << "debug: inside handle_serf_idle_on_path_state, a serf of type " << NameSerf[get_type()] << " at pos " << get_pos() << " is about to be set to StateWaitIdleOnPath !";
+    //Log::Info["serf"] << "debug: inside handle_serf_idle_on_path_state, a serf of type " << NameSerf[get_type()] << " at pos " << get_pos() << " is about to be set to StateWaitIdleOnPath !";
     set_state(StateWaitIdleOnPath);
   }
 }
@@ -5935,7 +5936,7 @@ Serf::handle_serf_wake_at_flag_state() {
 
 void
 Serf::handle_serf_wake_on_path_state() {
-  Log::Info["serf"] << "debug: inside handle_serf_wake_on_path_state, a serf of type " << NameSerf[get_type()] << " at pos " << get_pos() << " is about to be set to StateWaitIdleOnPath !";
+  //Log::Info["serf"] << "debug: inside handle_serf_wake_on_path_state, a serf of type " << NameSerf[get_type()] << " at pos " << get_pos() << " is about to be set to StateWaitIdleOnPath !";
   set_state(StateWaitIdleOnPath);
 
   for (Direction d : cycle_directions_ccw()) {

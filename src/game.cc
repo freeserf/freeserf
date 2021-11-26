@@ -1291,7 +1291,7 @@ Game::build_flag_split_path(MapPos pos) {
       break;
     }
   }
-  Log::Debug["game"] << "inside build_split_flag_path at pos " << pos << ", found path_1 dir of " << path_1_dir << " / " << NameDirection[path_1_dir];
+  //Log::Debug["game"] << "inside build_split_flag_path at pos " << pos << ", found path_1 dir of " << path_1_dir << " / " << NameDirection[path_1_dir];
   // the second path/flag is the next one found
   //   (unless it is UpLeft/4/NorthWest and turns out to be a building - see next check below)
   // because it reuses the same cycle iterator from theprevious cycle_directions_cw,
@@ -1304,12 +1304,12 @@ Game::build_flag_split_path(MapPos pos) {
       break;
     }
   }
-  Log::Debug["game"] << "inside build_split_flag_path at pos " << pos << ", found path_2 dir of " << path_2_dir << " / " << NameDirection[path_2_dir];
+  //Log::Debug["game"] << "inside build_split_flag_path at pos " << pos << ", found path_2 dir of " << path_2_dir << " / " << NameDirection[path_2_dir];
 
   /* If last segment direction is UP LEFT it could
      be to a building and the real path is at UP. */
   if (path_2_dir == DirectionUpLeft && map->has_path(pos, DirectionUp)) {
-    Log::Debug["game"] << "inside build_split_flag_path at pos " << pos << ", special condition, path_2_dir is UpLeft/4/NorthWest but there is also a path Up/5/NorthEast which means the UpLeft/4/NorthWest path should be a building, skiping it and assigning Up/5/NorthEast";
+    //Log::Debug["game"] << "inside build_split_flag_path at pos " << pos << ", special condition, path_2_dir is UpLeft/4/NorthWest but there is also a path Up/5/NorthEast which means the UpLeft/4/NorthWest path should be a building, skiping it and assigning Up/5/NorthEast";
     path_2_dir = DirectionUp;
   }
 
@@ -1336,23 +1336,23 @@ Game::build_flag_split_path(MapPos pos) {
       if (serf->path_splited(path_1_data.flag_index, path_1_data.flag_dir,
                              path_2_data.flag_index, path_2_data.flag_dir,
                              &select)) {
-        Log::Debug["game"] << "inside build_flag_split_path, path_splited checked returned true for serf " << serf->get_index() << ", select is " << select;
+        //Log::Debug["game"] << "inside build_flag_split_path, path_splited checked returned true for serf " << serf->get_index() << ", select is " << select;
         break;
       }
     }
 
-    Log::Debug["game"] << "inside build_flag_split_path, getting read to copy SerfPathInfo, select is " << select;
+    //Log::Debug["game"] << "inside build_flag_split_path, getting read to copy SerfPathInfo, select is " << select;
     SerfPathInfo *path_data;
     if (select == 0) {
-      Log::Debug["game"] << "inside build_flag_split_path, getting read to copy SerfPathInfo, assiging path_2_data";
+      //Log::Debug["game"] << "inside build_flag_split_path, getting read to copy SerfPathInfo, assiging path_2_data";
       path_data = &path_2_data;
     }else{
-      Log::Debug["game"] << "inside build_flag_split_path, getting read to copy SerfPathInfo, assiging path_1_data";
+      //Log::Debug["game"] << "inside build_flag_split_path, getting read to copy SerfPathInfo, assiging path_1_data";
       path_data = &path_1_data;
     }
 
     Flag *selected_flag = flags[path_data->flag_index];
-    Log::Debug["game"] << "inside build_flag_split_path, about to call cancel_serf_request on flag index " << path_data->flag_index << " in dir " << path_data->flag_dir;
+    //Log::Debug["game"] << "inside build_flag_split_path, about to call cancel_serf_request on flag index " << path_data->flag_index << " in dir " << path_data->flag_dir;
     selected_flag->cancel_serf_request(path_data->flag_dir);
   }
 

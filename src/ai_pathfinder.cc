@@ -1317,11 +1317,6 @@ AI::identify_arterial_roads(PMap map){
         unsigned int count = flag_count_pair.second;
         if (count > median){
           AILogDebug["util_identify_arterial_roads"] << name << " MEDIAN                 flag_pos " << flag_pos << " count " << count << " is above median, including";
-          /// key pos/dir -> val ordered list of flags, assume starting at the Inventory
-          //typedef std::map<std::pair<MapPos, Direction>, MapPosVector> FlagDirToFlagPathMap;
-          //ai_mark_arterial_roads->insert(std::make_pair(std::make_pair(inv_pos, dir), {});
-          //ai_mark_arterial_roads->[std::pair<MapPos, Direction>(inv_pos, dir)] = {};
-          //ai_mark_arterial_roads->at(std::make_pair(inv_pos, dir)).push_back(flag_pos);
           art_flags.push_back(flag_pos);
         }
       }

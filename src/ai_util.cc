@@ -141,9 +141,12 @@ AI::update_building_counts() {
   // reset all to zero
   memset(realm_building_count, 0, sizeof(realm_building_count));
   memset(realm_completed_building_count, 0, sizeof(realm_completed_building_count));
+  //memset(realm_connected_building_count, 0, sizeof(realm_connected_building_count));
   //memset(realm_incomplete_building_count, 0, sizeof(incomplete_building_count));
   memset(realm_occupied_building_count, 0, sizeof(realm_occupied_building_count));
-  memset(realm_connected_building_count, 0, sizeof(realm_connected_building_count));
+  realm_occupied_military_pos.clear();
+  realm_res_sitting_at_flags.clear();
+  //realm_inv.clear();  // don't clear this here as it is not additive but explicitly set in each loop to player->inv 
   for (MapPos inventory_pos : stocks_pos) {
     AILogDebug["util_update_building_counts"] << name << " inside AI::update_building_counts, clearing counts for inventory_pos " << inventory_pos;
     memset(stock_buildings.at(inventory_pos).count, 0, sizeof(stock_buildings.at(inventory_pos).count));
@@ -259,7 +262,7 @@ AI::update_building_counts() {
     // the difference between 'buildings' and 'connected_buildings' is now moot because the nearest inventory pos
     //  is now determined by FlagSearch which requires that they be connected already to do the search
     //  Should probably remove the 'building_count' entirely.  See if any of this is even used anymore, I don't think it is
-	  realm_connected_building_count[type]++;
+	  //realm_connected_building_count[type]++;
     stock_buildings.at(inventory_pos).connected_count[type]++;
     if (building->is_done()){
 	    realm_completed_building_count[type]++;
@@ -1382,6 +1385,8 @@ AI::build_best_road(MapPos start_pos, RoadOptions road_options, Building::Type o
     return false;
   }
   AILogDebug["util_build_best_road"] << name << " Done with build_best_road, roads built: " << roads_built << ", out of target_count: " << target_count;
+  // sleep a bit to be more human like
+  std::this_thread::sleep_for(std::chrono::milliseconds(2000));
   return true;
 }
 
@@ -2034,7 +2039,7 @@ AI::build_near_pos(MapPos center_pos, unsigned int distance, Building::Type buil
   double duration;
   start = std::clock();
 
-  AILogDebug["util_build_near_pos"] << name << " inside AI::build_near_pos with building type index " << NameBuilding[building_type] << ", distance " << distance << ", target pos " << center_pos << ", inventory_pos " << inventory_pos;
+  AILogInfo["util_build_near_pos"] << name << " inside AI::build_near_pos with building type index " << NameBuilding[building_type] << ", distance " << distance << ", target pos " << center_pos << ", inventory_pos " << inventory_pos;
 
   // this function is being changed from using the *nearest* Inventory to using the *current*
   //  inventory, does that introduce any problems?
@@ -2115,24 +2120,7 @@ AI::build_near_pos(MapPos center_pos, unsigned int distance, Building::Type buil
     if (map->get_owner(pos) != player_index) {
       continue;
     }
-    // special bug work-around: do not build a Stonecutter down-right from a Stone deposit because the stonecutter cannot use it and stonecutting logic breaks
-    //
-    // THIS SHOULD BE REMOVED - because it isn't just if the stonecutter hut is down-right from the stone pile,
-    //  if ANY building is down-right from the stone pile it cannot be harvested.  So, I believe I now have 
-    //  logic in the stone pile counting that accounts for any building blocking the pile, so it is not counted,
-    //  which means that this check should no longer be needed
-    //
-    /* removing this
-    if (building_type == Building::TypeStonecutter) {
-      // check to see if there are stones up-left from this pos
-      MapPos upleft_pos = map->move_up_left(pos);
-      int obj_type = map->get_obj(upleft_pos);
-      if (obj_type >= Map::ObjectStone0 && obj_type <= Map::ObjectStone7) {
-        AILogDebug["util_build_near_pos"] << name << " SPECIAL BUG WORKAROUND - pos up-left from potential stonecutter at pos " << pos << " is type " << NameObject[obj_type] << ", not building here";
-        continue;
-      }
-    }
-    */
+
     if (game->can_build_building(pos, building_type, player)) {
       AILogDebug["util_build_near_pos"] << name << " inside AI::build_near_pos, can build " << NameBuilding[building_type] << " at pos " << pos;
     }
@@ -2151,10 +2139,35 @@ AI::build_near_pos(MapPos center_pos, unsigned int distance, Building::Type buil
       AILogDebug["util_build_near_pos"] << name << " a knight hut already exists near pos " << pos << ", skipping this pos";
       continue;
     }
-
+    // if this is a wheat Farm, don't build it too close to the castle
+    if (building_type == Building::TypeFarm && get_straightline_tile_dist(map, pos, castle_pos) <= 8){  
+      AILogDebug["util_build_near_pos"] << name << " this is a wheat farm, but center_pos " << pos << " is too close to the castle, skipping this area";
+      continue;
+    }
     // FIRST, try to place a FLAG that results in a good road connection
     AILogDebug["util_build_near_pos"] << name << " trying to place a flag that can connect this building";
     MapPos flag_pos = map->move_down_right(pos);
+
+    // avoid building a warehouse/stock where there are any existing roads or flags adjacent to the potential new stock's flag pos
+    //  which makes it harder to connect the new stock to other nearby flags, as two flags cannot be adjacent to each other'
+    // oh wait, I forgot trees and stones and various other things block flags, instead... just check can_build_flag
+    if (building_type == Building::TypeStock){
+      AILogDebug["util_build_near_pos"] << name << " this is a warehouse/stock, checking for adjacent flags or paths";
+      bool skip = false;
+      for (Direction dir : cycle_directions_cw()) {
+        MapPos adjacent_pos = map->move(flag_pos, dir);
+        if (!game->can_build_flag(adjacent_pos, player)){
+          AILogDebug["util_build_near_pos"] << name << " this is a warehouse/stock, but can_build_flag test against adjacent_pos " << adjacent_pos << " to flag_pos " << flag_pos << " fails, skipping this pos";
+          break;
+          skip = true;
+        }
+      }
+      if (skip){
+        AILogDebug["util_build_near_pos"] << name << " this is a warehouse/stock, but there is at least one obstacle near this pos's potential flag pos, skipping this pos";
+        continue;
+      }
+    }
+
     bool road_built = false;
 
     if (is_mine){
@@ -2254,7 +2267,7 @@ AI::build_near_pos(MapPos center_pos, unsigned int distance, Building::Type buil
       continue;
     }
 
-    AILogDebug["util_build_near_pos"] << name << " successfully built and connected a building of type " << NameBuilding[building_type] << " at pos " << pos;
+    AILogInfo["util_build_near_pos"] << name << " successfully built and connected a building of type " << NameBuilding[building_type] << " at pos " << pos;
 
     // increment unfinished building counts
     if (building_type == Building::TypeHut) {

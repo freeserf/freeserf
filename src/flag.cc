@@ -1374,7 +1374,7 @@ Flag::call_transporter(Direction dir, bool water) {
     dir = dir_2;
   }
 
-  Log::Debug["flag"] << "inside Flag::call_transporter, about to call serf->go_out_from_inventory to flag index " << this->get_index() << " and map pos " << this->get_position() << " which should be " <<  src->get_position() << " and dir " << dir << " / " << NameDirection[dir] << ", this serf is currently at pos " << serf->get_pos();
+  //Log::Debug["flag"] << "inside Flag::call_transporter, about to call serf->go_out_from_inventory to flag index " << this->get_index() << " and map pos " << this->get_position() << " which should be " <<  src->get_position() << " and dir " << dir << " / " << NameDirection[dir] << ", this serf is currently at pos " << serf->get_pos();
 
   // the go_out_from_inventory declaration says arg2 is a MapPos, but src->get_index() returns a Flag index not a Map Pos, wtf??
   serf->go_out_from_inventory(inventory->get_index(), src->get_index(), dir);

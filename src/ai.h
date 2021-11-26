@@ -84,7 +84,7 @@ class AI {
   int realm_completed_building_count[25] = {0};
   //int realm_incomplete_building_count[25] = {0};
   int realm_occupied_building_count[25] = {0};
-  int realm_connected_building_count[25] = {0};
+  //int realm_connected_building_count[25] = {0};
 
   int change_buffer;
   int previous_knight_occupation_level;
