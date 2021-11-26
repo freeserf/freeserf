@@ -1280,6 +1280,8 @@ Game::demolish_road(MapPos pos, Player *player) {
 void
 Game::build_flag_split_path(MapPos pos) {
   /* Find directions of path segments to be split. */
+  // the first path/flag is determined simply by the order of cycled_directions_cw
+  //  around the newly created flag, starting with Right/0/East
   Direction path_1_dir = DirectionNone;
   const auto cycle = cycle_directions_cw();
   auto it = cycle.begin();
@@ -1289,7 +1291,11 @@ Game::build_flag_split_path(MapPos pos) {
       break;
     }
   }
-
+  Log::Debug["game"] << "inside build_split_flag_path at pos " << pos << ", found path_1 dir of " << path_1_dir << " / " << NameDirection[path_1_dir];
+  // the second path/flag is the next one found
+  //   (unless it is UpLeft/4/NorthWest and turns out to be a building - see next check below)
+  // because it reuses the same cycle iterator from theprevious cycle_directions_cw,
+  //  it should continue where the first one left off
   Direction path_2_dir = DirectionNone;
   ++it;
   for (; it != cycle.end(); ++it) {
@@ -1298,10 +1304,12 @@ Game::build_flag_split_path(MapPos pos) {
       break;
     }
   }
+  Log::Debug["game"] << "inside build_split_flag_path at pos " << pos << ", found path_2 dir of " << path_2_dir << " / " << NameDirection[path_2_dir];
 
   /* If last segment direction is UP LEFT it could
      be to a building and the real path is at UP. */
   if (path_2_dir == DirectionUpLeft && map->has_path(pos, DirectionUp)) {
+    Log::Debug["game"] << "inside build_split_flag_path at pos " << pos << ", special condition, path_2_dir is UpLeft/4/NorthWest but there is also a path Up/5/NorthEast which means the UpLeft/4/NorthWest path should be a building, skiping it and assigning Up/5/NorthEast";
     path_2_dir = DirectionUp;
   }
 
@@ -1314,20 +1322,37 @@ Game::build_flag_split_path(MapPos pos) {
   Flag *flag_2 = flags[path_2_data.flag_index];
   Direction dir_2 = path_2_data.flag_dir;
 
+  // if flag_2 (how does it decide which one becomes flag_2?) has
+  //  an outstanding serf_request (transporter?), find the serf that
+  //  appears to be servicing the request (what about long roads that request multiple serfs? 
+  //    do they request more than one at a time??))
+  //  to identify the serf destined for the flag_2, look for a serf whose path data indicates 
+  //   a destination of flag 2 (and other checks done inside path_splitted function)
+  //  the "select" 0/1 appears to indicate which flag's path data to copy from
+  //   ... that is, which of the two ends is the correct one
   int select = -1;
   if (flag_2->serf_requested(dir_2)) {
     for (Serf *serf : serfs) {
       if (serf->path_splited(path_1_data.flag_index, path_1_data.flag_dir,
                              path_2_data.flag_index, path_2_data.flag_dir,
                              &select)) {
+        Log::Debug["game"] << "inside build_flag_split_path, path_splited checked returned true for serf " << serf->get_index() << ", select is " << select;
         break;
       }
     }
 
-    SerfPathInfo *path_data = &path_1_data;
-    if (select == 0) path_data = &path_2_data;
+    Log::Debug["game"] << "inside build_flag_split_path, getting read to copy SerfPathInfo, select is " << select;
+    SerfPathInfo *path_data;
+    if (select == 0) {
+      Log::Debug["game"] << "inside build_flag_split_path, getting read to copy SerfPathInfo, assiging path_2_data";
+      path_data = &path_2_data;
+    }else{
+      Log::Debug["game"] << "inside build_flag_split_path, getting read to copy SerfPathInfo, assiging path_1_data";
+      path_data = &path_1_data;
+    }
 
     Flag *selected_flag = flags[path_data->flag_index];
+    Log::Debug["game"] << "inside build_flag_split_path, about to call cancel_serf_request on flag index " << path_data->flag_index << " in dir " << path_data->flag_dir;
     selected_flag->cancel_serf_request(path_data->flag_dir);
   }
 
