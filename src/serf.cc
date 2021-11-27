@@ -5924,7 +5924,9 @@ Serf::handle_serf_wake_at_flag_state() {
     tick = game->get_tick();
     counter = 0;
 
-    Log::Warn["serf"] << "inside handle_serf_wake_at_flag_state(), a serf at pos " << get_pos() << " is being set to StateLost! because map->has_serf(" << pos << ") says there is no serf here!";
+    // I suspect this is simply the result of a road being deleted, the idle transporter serf is woken 
+    //  and sent home, change this to Debug loglevel if kept
+    //Log::Warn["serf"] << "inside handle_serf_wake_at_flag_state(), a serf at pos " << get_pos() << " is being set to StateLost! because map->has_serf(" << pos << ") says there is no serf here!";
     if (get_type() == TypeSailor) {
       set_state(StateLostSailor);
     } else {

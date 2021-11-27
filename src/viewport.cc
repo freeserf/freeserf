@@ -2730,11 +2730,10 @@ Viewport::draw_ai_grid_overlay() {
   }
   */
 
-/*
   //
   // highlight arterial roads
   //
-  // NOTE - if there are overlapping paths in an arterial branch, right one one "wins" and is drawn over the other
+  // NOTE - if there are overlapping paths in an arterial branch, the right one "wins" and is drawn over the other
   //  it would be nice to check for this and either merge the colors or better yet alternate between them flashing
   // for now, trying random ordering so that it does flash back and forth
   //
@@ -2825,29 +2824,17 @@ Viewport::draw_ai_grid_overlay() {
     } // foreach foo_pos - randomization hack
 
   }
-*/
 
-/*
   //
   // draw spider-web roads
   //
-  //MapPosDirVector ai_mark_spiderweb_road_pairs = *(ai->get_ai_mark_spiderweb_road_pairs());
-  //for (std::pair<MapPos, Direction> pair : ai_mark_spiderweb_road_pairs){
   //Log::Info["viewport"] << " inside draw_ai_grid_overlay, draw spiderweb roads";
-  for (std::pair<MapPos, Direction> pair : *(ai->get_ai_mark_spiderweb_road_pairs())){
-    MapPos start_pos = pair.first;
-    Direction start_dir = pair.second;
-    //Log::Info["viewport"] << " inside draw_ai_grid_overlay, draw spiderweb roads, start_pos " << start_pos << ", start_dir " << start_dir;
-    // trace the tile-path to the next flag
-    //  and highlight each tile-path as we go
-    MapPos pos = start_pos;
-    Direction dir = start_dir;
-    MapPos prev_pos = start_pos;
-    while (true) {
-      if (!map->has_path(pos, dir)){
-        Log::Error["viewport"] << " inside draw_ai_grid_overlay, draw spiderweb roads, start_pos " << start_pos << ", start_dir " << start_dir << ", NO PATH IN DIR " << dir << "!, crashing";
-        throw ExceptionFreeserf("inside draw_ai_grid_overlay, draw spiderweb roads, NO PATH IN DIR");
-      }
+  for (Road road : *(ai->get_ai_mark_spiderweb_roads())){
+    MapPos pos = road.get_source();
+    //Log::Debug["viewport"] << " inside draw_ai_grid_overlay, draw spiderweb roads for road with start pos " << pos;
+    //MapPos prev_pos = bad_map_pos;
+    MapPos prev_pos = pos;
+    for (Direction dir : road.get_dirs()){
       pos = map->move(pos, dir);
       for (Direction new_dir : cycle_directions_cw()) {
         if (map->has_path(pos, new_dir) && new_dir != reverse_direction(dir)) {
@@ -2859,9 +2846,9 @@ Viewport::draw_ai_grid_overlay() {
           screen_pix_from_map_coord(pos, &this_sx, &this_sy);
           // don't draw the line at all if any part is off the frame
           if (prev_sx > width || prev_sy > height || this_sx > width || this_sy > height){
-            // don't draw this line
+            // don't draw line
           }else{
-            //frame->draw_line(prev_sx, prev_sy, this_sx, this_sy, ai->get_mark_color("cyan"));
+            // draw line
             frame->draw_thick_line(prev_sx, prev_sy, this_sx, this_sy, ai->get_mark_color("cyan"));
           }
           prev_pos = pos;
@@ -2869,12 +2856,8 @@ Viewport::draw_ai_grid_overlay() {
           break;
         }
       }
-      if (map->has_flag(pos)) {
-        break;
-      }
     }
   }
-  */
 
   // draw AI status text box
   std::string status = ai->get_ai_status();

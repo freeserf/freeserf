@@ -357,7 +357,7 @@ AI::update_stocks_pos() {
   AILogDebug["util_update_stocks_pos"] << name << " done AI::update_stocks_pos call took " << duration;
 }
 
-
+/*
 // destroy all roads in realm, and all disconnected flags, then reconnect them in priority order
 //   attempt to optimize roads once economy is complete.  not working correctly yet
 //     this is a test/hack and NOT used normally (or ever right now)
@@ -438,7 +438,8 @@ AI::rebuild_all_roads() {
       if (!building->is_done() && building->get_type() >= Building::TypeStoneMine && building->get_type() <= Building::TypeGoldMine)
         continue;
       ai_mark_pos.insert(ColorDot(building->get_position(), "blue"));
-      if (!AI::build_best_road(map->move_down_right(building->get_position()), road_options)) {
+      Road built_road; // not used here
+      if (!AI::build_best_road(map->move_down_right(building->get_position()), road_options, &built_road)) {
         AILogDebug["util_rebuild_all_roads"] << name << " failed to connect high priority building at pos " << building->get_position() << " to affinity building / road network!";
       }
       std::this_thread::sleep_for(std::chrono::milliseconds(1000));
@@ -575,19 +576,29 @@ AI::rebuild_all_roads() {
   //game->get_mutex()->unlock();
   //AILogDebug["util_rebuild_all_roads"] << name << " thread #" << std::this_thread::get_id() << " AI has unlocked mutex for entire rebuild_all_roads function";
 }
+*/
 
 
 // try to build a road from the specified flag pos to the best end flag, return success/failure
+//  ALSO, set the value of the Road completed (if built) to the provided memory location (though most calling functions don't use it)
 //  If any roads already exist from specified flag to each affinity building,
 //    build a better road if one is found.  Do not remove the old one
+//
+// I DON'T LIKE THE WAY THIS built_road Road is passed, it seems like the way I am doing it requires initializing a Road object
+//  that is never used, and only in rare cases it is populated with a copy of a real Road?  Seems like it would be better to
+//  create a nullptr of type Road, and have this function point it at the real Road object.  Or is that what I am already doing???
+//   maybe I just don't need to actually initialize the Road pointer in callers that don't actaully care about it being populated
+//
 bool
-AI::build_best_road(MapPos start_pos, RoadOptions road_options, Building::Type optional_building_type, Building::Type optional_affinity, MapPos optional_target, bool verify_stock) {
+AI::build_best_road(MapPos start_pos, RoadOptions road_options, Road *built_road,
+          Building::Type optional_building_type, Building::Type optional_affinity, MapPos optional_target, bool verify_stock) {
   // time this function for debugging
   std::clock_t start;
   double duration;
   start = std::clock();
 
   AILogDebug["util_build_best_road"] << name << " inside AI::build_best_road with start pos " << start_pos << ", optional_building_type " << NameBuilding[optional_building_type] << ", optional_affinity " << NameBuilding[optional_affinity] << ", optional_target " << optional_target;
+
   // print RoadOptions for debugging
   for (unsigned int i = 0; i < road_options.size(); i++) {
     AILogDebug["util_build_best_road"] << name << " RoadOption: " << NameRoadOption[i] << " = " << bool(road_options.test(i));
@@ -643,70 +654,8 @@ AI::build_best_road(MapPos start_pos, RoadOptions road_options, Building::Type o
     road_options.set(RoadOption::HoldBuildingPos);
   }
 
-  // check BuildingAffinity table to see if the start_pos is attached to a building that should prioritize connection to another existing building type
-  //  if there is no affinity the default target is the player's castle or nearest stock
-
   MapPosVector targets;  // these are flag positions
 
-  //if (optional_affinity != Building::TypeNone) {
-
-    /* this whole section is redundant, isn't it?  because optional_building_type
-    //  is now an option to get_affinity, so it already happens
-
-    // for rebuild all roads (at least), override affinity table and instead use the specified affinity building type
-    AILogDebug["util_build_best_road"] << name << " using optional_affinity " << NameBuilding[optional_affinity] << " specified in build_best_road call";
-    // ************************** **************************
-    // make this a function, also do same inside AI::get_affinity it is repetative copy/paste
-    // ************************** **************************
-    AILogDebug["util_build_best_road"] << name << " looking for nearest connected building of type " << NameBuilding[optional_affinity];
-    Building *building = AI::find_nearest_building(start_pos, CompletionLevel::Connected, optional_affinity, 15);
-    if (building != nullptr) {
-      AILogDebug["util_build_best_road"] << name << " found connected optional_affinity building at pos " << building->get_position();
-      // get the flag position of the building
-      MapPos building_flag_pos = map->move_down_right(building->get_position());
-      AILogDebug["util_build_best_road"] << name << " setting road_to target to building_flag_pos " << building_flag_pos;
-      targets.push_back(building_flag_pos);
-    }
-    else {
-      AILogDebug["util_build_best_road"] << name << " couldn't find any connected optional_affinity building nearby, checking entire realm";
-      bool found = false;
-      AILogDebug["util_build_best_road"] << name << " thread #" << std::this_thread::get_id() << " AI is locking mutex before calling game->get_player_buildings(player) (for optional_affinity)";
-      game->get_mutex()->lock();
-      AILogDebug["util_build_best_road"] << name << " thread #" << std::this_thread::get_id() << " AI has locked mutex before calling game->get_player_buildings(player) (for optional_affinity)";
-      Game::ListBuildings buildings = game->get_player_buildings(player);
-      AILogDebug["util_build_best_road"] << name << " thread #" << std::this_thread::get_id() << " AI is unlocking mutex after calling game->get_player_buildings(player) (for optional_affinity)";
-      game->get_mutex()->unlock();
-      AILogDebug["util_build_best_road"] << name << " thread #" << std::this_thread::get_id() << " AI has unlocked mutex after calling game->get_player_buildings(player) (for optional_affinity)";
-      for (Building *building : buildings) {
-        if (building->get_type() != optional_affinity)
-          continue;
-        if (building->is_burning())
-          continue;
-        MapPos building_flag_pos = map->move_down_right(building->get_position());
-        if (!map->has_flag(building_flag_pos))
-          continue;
-        if (!game->get_flag_at_pos(building_flag_pos)->is_connected())
-          continue;
-        AILogDebug["util_build_best_road"] << name << " found connected one with flag pos " << building_flag_pos;
-        // allow connecting to disconnected flag for optional_affinity, this is so far only used by rebuild_all_buildings
-        //if (!game->get_flag_at_pos(first_building_flag_pos)->is_connected()) {
-        //  AILogDebug["util_build_best_road"] << name << " affinity building flag is not connected!  skipping";
-        //}
-        //else {
-          AILogDebug["util_build_best_road"] << name << " setting road_to target to affinity building_flag_pos " << building_flag_pos;
-          targets.push_back(building_flag_pos);
-          found = true;
-          break;
-        //}
-      }
-      if (!found) {
-        AILogDebug["util_build_best_road"] << name << " could not find any connected building of specified optional_affinity type, returning false!";
-        return false;
-      }
-    }
-  }
-  */
-  //else if (optional_target != bad_map_pos) {
   if (optional_target != bad_map_pos) {
     // only for specific road improvements, target a specific flag or building pos rather than "connect to road system"
     AILogDebug["util_build_best_road"] << name << " using optional_target pos " << optional_target << " specified in build_best_road call";
@@ -826,6 +775,8 @@ AI::build_best_road(MapPos start_pos, RoadOptions road_options, Building::Type o
       if (was_built) {
         AILogDebug["util_build_best_road"] << name << " zzz successfully built direct road directly from flag at " << start_pos << " to flag at " << target_pos;
         //roads_built++;
+        *built_road = *(&proposed_direct_road);
+        //AILogDebug["util_build_best_road"] << name << " spiderweb road debug, stored proposed_direct_road as built_road (which has mem addr " << built_road << "), proposed_direct_road source " << proposed_direct_road.get_source() << " built_road (should be same) source is " << built_road->get_source();
         return true;
       }
       else {
@@ -1301,7 +1252,8 @@ AI::build_best_road(MapPos start_pos, RoadOptions road_options, Building::Type o
         RoadOptions recursive_land_road_options = road_options;
         recursive_land_road_options.reset(RoadOption::AllowWaterRoad);
         // does this return true if an existing (better?) land road already exists?? or only if it creates one?
-        bool land_road_was_built = AI::build_best_road(start_pos, recursive_land_road_options);
+        Road notused; // not used here
+        bool land_road_was_built = AI::build_best_road(start_pos, recursive_land_road_options, &notused);
         if (land_road_was_built) {
           AILogDebug["util_build_best_road"] << name << " successfully built land road, allowing a water road to " << start_pos;
         }
@@ -1352,6 +1304,9 @@ AI::build_best_road(MapPos start_pos, RoadOptions road_options, Building::Type o
         if (was_built) {
           AILogDebug["util_build_best_road"] << name << " successfully built road from " << start_pos << " to " << end_pos << " as specified in PotentialRoad";
           roads_built++;
+          //AILogDebug["util_build_best_road"] << name << " spiderweb road debug, about to store road (which has mem addr " << &road << ") as built_road (which currently has mem addr " << built_road << ")";
+          *built_road = *(&road);
+          //AILogDebug["util_build_best_road"] << name << " spiderweb road debug, stored road (which has mem addr " << &road << ") as built_road (which now has mem addr " << built_road << "), road source " << road.get_source() << " built_road (should be same) source is " << built_road->get_source();
           continue;
         }
         else {
@@ -2192,7 +2147,8 @@ AI::build_near_pos(MapPos center_pos, unsigned int distance, Building::Type buil
         //  this may include a check for nearest inventory and disqualify the build if
         //  the closest Inventory building by flagsearch is not the current one
         //
-        road_built = AI::build_best_road(flag_pos, road_options, building_type, Building::TypeNone, bad_map_pos, verify_stock);
+        Road notused; // not used here
+        road_built = AI::build_best_road(flag_pos, road_options, &notused, building_type, Building::TypeNone, bad_map_pos, verify_stock);
       }else{
         AILogDebug["util_build_near_pos"] << name << " the flag already at flag_pos " << flag_pos << " is already connected to road system.  For potential new building of type " << NameBuilding[building_type] << " at pos " << pos;
         // must do the verify_stock check here on this flag, because normally it is done when placing the road but this

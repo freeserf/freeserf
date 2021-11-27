@@ -1176,7 +1176,7 @@ AI::identify_arterial_roads(PMap map){
               //inv_flag_conn_dir = d;
               // get the actual connection dir on the Inv flag side
               //  by trusting that the Flag->get_other_end_dir works
-              AILogError["util_identify_arterial_roads"] << name << " the 2nd-to-last flag at pos " << fnode->parent->pos << " has path TO inv_flag_pos " << inv_flag_pos << " in dir " << NameDirection[d] << " / " << d;
+              //AILogDebug["util_identify_arterial_roads"] << name << " the 2nd-to-last flag at pos " << fnode->parent->pos << " has path TO inv_flag_pos " << inv_flag_pos << " in dir " << NameDirection[d] << " / " << d;
               inv_flag_conn_dir = game->get_flag_at_pos(fnode->parent->pos)->get_other_end_dir(d);
             }
           }

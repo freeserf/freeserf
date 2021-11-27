@@ -60,7 +60,8 @@ class AI {
   //FlagDirToDirPathMap *ai_mark_arterial_road_paths = (new FlagDirToDirPathMap);    // used to highlight discovered arterial roads for AI overlay for debugging, ordered list of Dirs of entire path
   FlagDirToFlagVectorMap *ai_mark_arterial_road_flags = (new FlagDirToFlagVectorMap);    // used to highlight discovered arterial roads for AI overlay for debugging, unordered(?) list of flags
   FlagDirToFlagDirVectorMap *ai_mark_arterial_road_pairs = (new FlagDirToFlagDirVectorMap);    // used to highlight discovered arterial roads for AI overlay for debugging, unordered list of flag_pos-Dirs pairs
-  MapPosDirVector *ai_mark_spiderweb_road_pairs = (new MapPosDirVector);   // used to highlight spiderweb-built roads for AI overlay for debugging.  
+  //MapPosDirVector *ai_mark_spiderweb_road_pairs = (new MapPosDirVector);   // used to highlight spiderweb-built roads for AI overlay for debugging.  
+  Roads *ai_mark_spiderweb_roads = (new Roads);   // used to highlight spiderweb-built roads for AI overlay for debugging.  
   std::set<std::string> expand_towards;
   std::set<std::string> last_expand_towards;  // quick hack to save a copy for attack scoring
   MapPos stopbuilding_pos;
@@ -115,7 +116,8 @@ class AI {
   FlagDirToFlagDirVectorMap * get_ai_mark_arterial_road_pairs() { return ai_mark_arterial_road_pairs; }
   // the unordered list of arterial flags for each Inventory flag-dir
   FlagDirToFlagVectorMap * get_ai_mark_arterial_road_flags() { return ai_mark_arterial_road_flags; }
-  MapPosDirVector * get_ai_mark_spiderweb_road_pairs() { return ai_mark_spiderweb_road_pairs; }
+  //MapPosDirVector * get_ai_mark_spiderweb_road_pairs() { return ai_mark_spiderweb_road_pairs; }
+  Roads* get_ai_mark_spiderweb_roads() { return ai_mark_spiderweb_roads;}
   Color get_mark_color(std::string color) { return colors.at(color); }
   Color get_random_mark_color() {
     auto it = colors.begin();
@@ -210,12 +212,18 @@ class AI {
   static bool has_terrain_type(PGame, MapPos, Map::Terrain, Map::Terrain);  // why does this need to be static?
   bool place_castle(PGame, MapPos, unsigned int);
   static unsigned int spiral_dist(int);   // why does this need to be static?
-  void rebuild_all_roads();
+  //void rebuild_all_roads();  // no longer need this
   // changing these to support *planning* a road without actually building it, prior to placing a new building
   //bool build_best_road(MapPos, RoadOptions, Building::Type optional_affinity = Building::TypeNone, MapPos optional_target = bad_map_pos);
   //bool build_best_road(MapPos, RoadOptions, Building::Type optional_building_type = Building::TypeNone, Building::Type optional_affinity = Building::TypeNone, MapPos optional_target = bad_map_pos);
   // adding verify_stock checking
-  bool build_best_road(MapPos, RoadOptions, Building::Type optional_building_type = Building::TypeNone, Building::Type optional_affinity = Building::TypeNone, MapPos optional_target = bad_map_pos, bool verify_stock = false);
+  //bool build_best_road(MapPos, RoadOptions, Building::Type optional_building_type = Building::TypeNone, Building::Type optional_affinity = Building::TypeNone, MapPos optional_target = bad_map_pos, bool verify_stock = false);
+  // adding store the built road in a Road pointer
+  bool build_best_road(MapPos, RoadOptions, Road *road_built, 
+        Building::Type optional_building_type = Building::TypeNone, 
+        Building::Type optional_affinity = Building::TypeNone, 
+        MapPos optional_target = bad_map_pos, 
+        bool verify_stock = false);
   //MapPosVector get_affinity(MapPos);
   MapPosVector get_affinity(MapPos, Building::Type optional_building_type = Building::TypeNone);
   /*
@@ -290,8 +298,7 @@ class AI {
   void do_debug_building_triggers();
   void do_promote_serfs_to_knights();
   void do_connect_disconnected_flags();
-  void do_spiderweb_roads1();
-  void do_spiderweb_roads2();
+  void do_spiderweb_roads();
   void do_pollute_castle_area_roads_with_flags();
   void do_build_better_roads_for_important_buildings();
   void do_fix_stuck_serfs();

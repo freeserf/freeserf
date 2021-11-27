@@ -262,8 +262,7 @@ AI::next_loop(){
 
   do_connect_disconnected_flags(); // except unfinished mines
   do_build_better_roads_for_important_buildings();  // is this working?  I still see pretty inefficient roads for important buildings
-  //do_spiderweb_roads1();   // this might be too close to the castle, do some more testing
-  //do_spiderweb_roads2();  // moved to inside warehouse/stock so it does this for each one
+  //do_spiderweb_roads();  // moved to inside warehouse/stock so it does this for each one
   //do_pollute_castle_area_roads_with_flags(); // CHANGE THIS TO USE ARTERIAL ROADS 
   do_fix_stuck_serfs();  // this is definitely still an issue, try to fix root cause
   do_fix_missing_transporters();  // is this still a problem anymore??
@@ -299,7 +298,7 @@ AI::next_loop(){
 	  do_demolish_excess_food_buildings();
     do_send_geologists();
 
-    do_spiderweb_roads2();
+    do_spiderweb_roads();
 
 
     // PLACE MINES EARLY - but do not connect them to roads so they do not actually get built until later
@@ -444,6 +443,7 @@ AI::do_update_clear_reset() {
   ai_mark_arterial_road_pairs->clear();
   ai_mark_arterial_road_flags->clear();
   //ai_mark_spiderweb_road_pairs->clear();
+  //ai_mark_spiderweb_roads->clear();  //don't clear this, let it accumulate to show them all
   last_expand_towards = expand_towards;
   expand_towards.clear();
   road_options.reset(RoadOption::Direct);
@@ -495,6 +495,7 @@ void
 AI::do_debug_building_triggers() {
   AILogDebug["do_debug_building_triggers"] << name << " inside do_debug_building_triggers";
   update_building_counts();
+  /*
   // DEBUG
   //   trigger demolish/rebuild all roads by placing a Pig Farm anywhere in the realm
   if (realm_building_count[Building::TypePigFarm] > 0) {
@@ -529,6 +530,7 @@ AI::do_debug_building_triggers() {
     }
     return;
   }
+  */
 
 
   // DEBUG
@@ -615,7 +617,8 @@ AI::do_connect_disconnected_flags() {
       }
     }
     AILogDebug["do_connect_disconnected_flags"] << name << " flag at pos " << flag->get_position() << " has no connected road, trying to connect it";
-    bool was_built = AI::build_best_road(flag->get_position(), road_options);
+    Road notused; // not used here, can I just pass a zero instead of &notused to build_best_road and skip initialization of a wasted object?
+    bool was_built = AI::build_best_road(flag->get_position(), road_options, &notused);
     if (!was_built) {
       AILogDebug["do_connect_disconnected_flags"] << name << " thread #" << std::this_thread::get_id() << " AI is locking mutex before calling demolish_flag (and maybe attached building)";
       game->get_mutex()->lock();
@@ -642,14 +645,14 @@ AI::do_connect_disconnected_flags() {
 
 
 void
-AI::do_spiderweb_roads2() {
+AI::do_spiderweb_roads() {
   // time this function for debugging
   std::clock_t start;
   double duration;
   start = std::clock();
 
-  AILogDebug["do_spiderweb_roads2"] << inventory_pos << " inside do_spiderweb_roads2";
-  ai_status.assign("HOUSEKEEPING - do_spiderweb_roads2");
+  AILogDebug["do_spiderweb_roads"] << inventory_pos << " inside do_spiderweb_roads";
+  ai_status.assign("HOUSEKEEPING - do_spiderweb_roads");
   // "spider-web" roads - because a "star network" pattern naturally emerges with castle at center, try to
   //   convert it until a "spider-web" shape by attemping build roads between any flags within a band a bit outside
   //    the castle area.  This should end up being 2/3 to 3/3 of the original castle area before any borders expanded
@@ -659,135 +662,120 @@ AI::do_spiderweb_roads2() {
   //  this could be improved by making a "caret" or "flattened hexagon" shape at corners instead of spiral_pos
   //    -  tried doing this, seemed like a waste of time.  Circle is fine
   //
-  AILogDebug["do_spiderweb_roads2"] << inventory_pos << " HouseKeeping: creating spider-web2 roads";
+  AILogDebug["do_spiderweb_roads"] << inventory_pos << " HouseKeeping: creating spider-web roads";
   // only do this every X loops, and only add one new road per run
   update_building_counts();
   unsigned int completed_huts = realm_completed_building_count[Building::TypeHut];
   //if (loop_count % 10 != 0 || completed_huts < 9 || completed_huts > 16) {
     // temporary run ever other loop for debugging
   //if (loop_count % 2 != 0 || completed_huts < 9 || completed_huts > 16) {
-  //AILogDebug["do_spiderweb_roads2"] << inventory_pos << " DEBUG: loop_count " << loop_count << ", desired freq 10, adjusted freq " << ai_loop_freq_adj_for_gamespeed(10) << ", completed_huts " << completed_huts;
-  if (loop_count % ai_loop_freq_adj_for_gamespeed(10) != 0 || completed_huts < 9 || completed_huts > 16) {
-    AILogDebug["do_spiderweb_roads2"] << inventory_pos << " skipping spider-web2 roads, only running this every X loops and >Y, <Z knight huts built";
+  //AILogDebug["do_spiderweb_roads"] << inventory_pos << " DEBUG: loop_count " << loop_count << ", desired freq 10, adjusted freq " << ai_loop_freq_adj_for_gamespeed(10) << ", completed_huts " << completed_huts;
+  //if (loop_count % ai_loop_freq_adj_for_gamespeed(10) != 0) {
+  //  AILogDebug["do_spiderweb_roads"] << inventory_pos << " skipping spider-web roads, only running this every ten loops";
+  //  return;
+  //}
+  //if ( completed_huts < 9 || completed_huts > 16) {
+    //AILogDebug["do_spiderweb_roads"] << inventory_pos << " skipping spider-web roads, knight huts built " << completed_huts << " is <9 or >16";
+  if ( completed_huts < 9 || completed_huts > 25) {
+    AILogDebug["do_spiderweb_roads"] << inventory_pos << " skipping spider-web roads, knight huts built " << completed_huts << " is <9 or >25";
+    return;
   }
-  else {
-    std::set<MapPos> tried_pairs;
-    unsigned int spider_web_roads_built = 0;
-    // build a list of all the flags found in the most recent X area searches
-    MapPosVector flag_lists[9] = { }; //array of vectors
-    for (unsigned int i = AI::spiral_dist(14); i < AI::spiral_dist(15); i++) {
-      MapPos ring_pos = map->pos_add_extended_spirally(inventory_pos, i);
-      //ai_mark_pos.erase(ring_pos);
-      //ai_mark_pos.insert(ColorDot(ring_pos, "dk_coral"));
-      // only every X positions or on last spot in ring
-      if (i % 4 != 0 || i == AI::spiral_dist(15) - 1 )
+
+  std::set<MapPos> tried_pairs;
+  unsigned int spider_web_roads_built = 0;
+  // build a list of all the flags found in the most recent X area searches
+  MapPosVector flag_lists[9] = { }; //array of vectors
+  for (unsigned int i = AI::spiral_dist(14); i < AI::spiral_dist(15); i++) {
+    MapPos ring_pos = map->pos_add_extended_spirally(inventory_pos, i);
+    //ai_mark_pos.erase(ring_pos);
+    //ai_mark_pos.insert(ColorDot(ring_pos, "dk_coral"));
+    // only every X positions or on last spot in ring
+    if (i % 4 != 0 || i == AI::spiral_dist(15) - 1 )
+      continue;
+    //AILogDebug["do_spiderweb_roads"] << inventory_pos << " spiderweb doing stuff";
+    // every X pos in the hexagonal "ring"/perimeter, do an area search for flags
+    MapPosVector flag_list = { };
+    for (unsigned int x = 0; x < AI::spiral_dist(4); x++) {
+      MapPos area_pos = map->pos_add_extended_spirally(ring_pos, x);
+      //ai_mark_pos.erase(area_pos);
+      //ai_mark_pos.insert(ColorDot(area_pos, "lavender"));
+      //std::this_thread::sleep_for(std::chrono::milliseconds(5));
+      if (!map->has_flag(area_pos) || map->get_owner(area_pos) != player_index)
         continue;
-      AILogDebug["do_spiderweb_roads2"] << inventory_pos << " spiderweb2 doing stuff";
-      // every X pos in the hexagonal "ring"/perimeter, do an area search for flags
-      MapPosVector flag_list = { };
-      for (unsigned int x = 0; x < AI::spiral_dist(4); x++) {
-        MapPos area_pos = map->pos_add_extended_spirally(ring_pos, x);
-        //ai_mark_pos.erase(area_pos);
-        //ai_mark_pos.insert(ColorDot(area_pos, "lavender"));
-        //std::this_thread::sleep_for(std::chrono::milliseconds(5));
-        if (!map->has_flag(area_pos) || map->get_owner(area_pos) != player_index)
-          continue;
-        if (!game->get_flag_at_pos(area_pos)->is_connected())
-          continue;
-        //ai_mark_pos.erase(area_pos);
-        //ai_mark_pos.insert(ColorDot(area_pos, "red"));
-        flag_list.push_back(area_pos);
-        //std::this_thread::sleep_for(std::chrono::milliseconds(5));
-      }
-      // shift all the flag_list pointers back, dropping the oldest one
-      for (int y = 1; y < 9; y++) {
-        flag_lists[y - 1] = flag_lists[y];
-      }
-      flag_lists[8] = flag_list;
-      //std::this_thread::sleep_for(std::chrono::milliseconds(15));
+      if (!game->get_flag_at_pos(area_pos)->is_connected())
+        continue;
+      //ai_mark_pos.erase(area_pos);
+      //ai_mark_pos.insert(ColorDot(area_pos, "red"));
+      flag_list.push_back(area_pos);
+      //std::this_thread::sleep_for(std::chrono::milliseconds(5));
+    }
+    // shift all the flag_list pointers back, dropping the oldest one
+    for (int y = 1; y < 9; y++) {
+      flag_lists[y - 1] = flag_lists[y];
+    }
+    flag_lists[8] = flag_list;
+    //std::this_thread::sleep_for(std::chrono::milliseconds(15));
 
-      // insert all the recent vectors into a set (which ensures uniqueness)
-      std::set<MapPos> flag_set;
-      for (MapPosVector vector : flag_lists){
-        //AILogDebug["do_spiderweb_roads2"] << inventory_pos << " flag_list has elements: " << vector.size();
-        for (MapPos flag_pos : vector) {
-          //AILogDebug["do_spiderweb_roads2"] << inventory_pos << " flag_list contains: " << flag_pos;
-          flag_set.insert(flag_pos);
-        }
-      }
-
-
-      // can't shuffle a std::set
-      //AILogDebug["do_spiderweb_roads2"] << name << " shuffling the flag_set so it is in random order";
-      //std::random_shuffle(flag_set.begin(), flag_set.end());
-      // instead convert to vector, shuffling seems important   oct22 2020
-      MapPosVector shuffled_flag_vector(flag_set.begin(), flag_set.end());
-      std::random_shuffle(shuffled_flag_vector.begin(), shuffled_flag_vector.end());
-
-      for (MapPos area_flag_pos : shuffled_flag_vector) {
-        if (spider_web_roads_built > 0) { break; }  // only create one road per run
-        AILogDebug["do_spiderweb_roads2"] << inventory_pos << " considering roads from area_flag_pos " << area_flag_pos;
-        for (MapPos other_area_flag_pos : shuffled_flag_vector) {
-          AILogDebug["do_spiderweb_roads2"] << inventory_pos << " considering roads from area_flag_pos " << area_flag_pos << " to other_area_flag_pos " << other_area_flag_pos;
-          if (area_flag_pos == other_area_flag_pos) { continue; }
-
-          // bitwise operator... to simplify checking for already tried combinations in either order
-          unsigned int pair = area_flag_pos & other_area_flag_pos;
-          if (tried_pairs.count(pair) > 0) { continue; }
-          tried_pairs.insert(pair);
-
-          AILogDebug["do_spiderweb_roads2"] << inventory_pos << " still considering";
-          //ai_mark_pos.clear();
-          //ai_mark_pos.insert(ColorDot(area_flag_pos, "green"));
-          //ai_mark_pos.insert(ColorDot(other_area_flag_pos, "red"));
-          //std::this_thread::sleep_for(std::chrono::milliseconds(200));
-          road_options.set(RoadOption::Improve);
-          AILogDebug["do_spiderweb_roads2"] << inventory_pos << " about to call build_best_road";
-          bool was_built = build_best_road(area_flag_pos, road_options, Building::TypeNone, Building::TypeNone, other_area_flag_pos);
-          road_options.reset(RoadOption::Improve);
-          if (was_built) {
-            AILogDebug["do_spiderweb_roads2"] << inventory_pos << " successfully built spider-web2 road between area_flag_pos " << area_flag_pos << " to other_area_flag_pos " << other_area_flag_pos;
-            // only create one road per run
-            spider_web_roads_built++;
-            /* disable for now, it works great though
-            // find the new road and mark for highlighting on AI Overlay in Viewport
-            // assume the first road found directly between the two flags and NOT having a transporter yet is the new road
-            // CRAP, this doesn't work because it is not a direct road, but could be a split road or indirect connection
-            //  easiest way woul dbe to modify build_best_road to return the actual road built, or at least the Dir
-            //   this requires either passing a ref to a new variable it can set, or modifying the bool return to a Dir 
-            for (Direction d : cycle_directions_rand_cw()){
-              if (!map->has_path(area_flag_pos, d))
-                continue;
-              if (!map->has_flag(area_flag_pos)){
-                AILogWarn["do_spiderweb_roads2"] << inventory_pos << " map says there is no flag at area_flag_pos " << area_flag_pos << ", this is unexpected!";
-                continue;
-              }
-              if (game->get_flag_at_pos(area_flag_pos)->get_other_end_flag(d)->get_position() == other_area_flag_pos){
-                AILogDebug["do_spiderweb_roads2"] << inventory_pos << " found a direct path between area_flag_pos " << area_flag_pos << " and other_area_flag_pos " << other_area_flag_pos << " in dir " << NameDirection[d] << " / " << d;
-                if (game->get_flag_at_pos(area_flag_pos)->has_transporter(d)){
-                  AILogDebug["do_spiderweb_roads2"] << inventory_pos << " the direct path between area_flag_pos " << area_flag_pos << " and other_area_flag_pos " << other_area_flag_pos << " in dir " << NameDirection[d] << " / " << d << " already has a transporter!  this must not be the new road, skipping it";
-                  continue;
-                }
-                AILogDebug["do_spiderweb_roads2"] << inventory_pos << " adding MapPos-Dir pair " << area_flag_pos << ", " << d << " to ai_mark_spiderweb_roads MapDirVector";
-                //typedef std::vector<std::pair<MapPos, Direction>> MapDirVector;
-                ai_mark_spiderweb_road_pairs->push_back(std::make_pair(area_flag_pos, d));
-              }
-            }
-            */
-            break;
-          }
-          else {
-            AILogDebug["do_spiderweb_roads2"] << inventory_pos << " failed to built spider-web2 road between area_flag_pos " << area_flag_pos << " to other_area_flag_pos " << other_area_flag_pos;
-          }
-        }
+    // insert all the recent vectors into a set (which ensures uniqueness)
+    std::set<MapPos> flag_set;
+    for (MapPosVector vector : flag_lists){
+      //AILogDebug["do_spiderweb_roads"] << inventory_pos << " flag_list has elements: " << vector.size();
+      for (MapPos flag_pos : vector) {
+        //AILogDebug["do_spiderweb_roads"] << inventory_pos << " flag_list contains: " << flag_pos;
+        flag_set.insert(flag_pos);
       }
     }
 
-    //AILogDebug["do_spiderweb_roads2"] << name << " sanity check: there were " << tried_pairs.size() << " tried pairs";
-    AILogDebug["do_spiderweb_roads2"] << inventory_pos << " done with building spider-web roads2";
+
+    // can't shuffle a std::set
+    //AILogDebug["do_spiderweb_roads"] << name << " shuffling the flag_set so it is in random order";
+    //std::random_shuffle(flag_set.begin(), flag_set.end());
+    // instead convert to vector, shuffling seems important   oct22 2020
+    MapPosVector shuffled_flag_vector(flag_set.begin(), flag_set.end());
+    std::random_shuffle(shuffled_flag_vector.begin(), shuffled_flag_vector.end());
+
+    for (MapPos area_flag_pos : shuffled_flag_vector) {
+      if (spider_web_roads_built > 0) { break; }  // only create one road per run
+      //AILogDebug["do_spiderweb_roads"] << inventory_pos << " considering roads from area_flag_pos " << area_flag_pos;
+      for (MapPos other_area_flag_pos : shuffled_flag_vector) {
+        if (area_flag_pos == other_area_flag_pos) { continue; }
+        //AILogDebug["do_spiderweb_roads"] << inventory_pos << " considering roads from area_flag_pos " << area_flag_pos << " to other_area_flag_pos " << other_area_flag_pos;
+
+        // bitwise operator... to simplify checking for already tried combinations in either order
+        unsigned int pair = area_flag_pos & other_area_flag_pos;
+        if (tried_pairs.count(pair) > 0) { continue; }
+        tried_pairs.insert(pair);
+
+        //AILogDebug["do_spiderweb_roads"] << inventory_pos << " still considering";
+        ai_mark_pos.clear();
+        ai_mark_pos.insert(ColorDot(area_flag_pos, "green"));
+        ai_mark_pos.insert(ColorDot(other_area_flag_pos, "red"));
+        std::this_thread::sleep_for(std::chrono::milliseconds(200));
+        road_options.set(RoadOption::Improve);
+        //AILogDebug["do_spiderweb_roads"] << inventory_pos << " about to call build_best_road";
+        Road built_road;
+        //AILogDebug["do_spiderweb_roads"] << inventory_pos << " spiderweb debug1 built_road has memory addr " << &ybuilt_road << " and source " << ybuilt_road.get_source();
+        bool was_built = build_best_road(area_flag_pos, road_options, &built_road, Building::TypeNone, Building::TypeNone, other_area_flag_pos);
+        road_options.reset(RoadOption::Improve);
+        if (was_built) {
+          AILogDebug["do_spiderweb_roads"] << inventory_pos << " successfully built spider-web road between area_flag_pos " << area_flag_pos << " to other_area_flag_pos " << other_area_flag_pos;
+          spider_web_roads_built++;
+          //AILogDebug["do_spiderweb_roads"] << inventory_pos << " spiderweb debug2 built_road has memory addr " << &ybuilt_road << " and source " << ybuilt_road.get_source();
+          ai_mark_spiderweb_roads->push_back(built_road);
+          // only create one road per run
+          break;
+        }
+        else {
+          AILogDebug["do_spiderweb_roads"] << inventory_pos << " failed to build spider-web road between area_flag_pos " << area_flag_pos << " to other_area_flag_pos " << other_area_flag_pos;
+        }
+      }
+    }
   }
+
+  AILogDebug["do_spiderweb_roads"] << name << " sanity check: there were " << tried_pairs.size() << " tried pairs";
+  AILogDebug["do_spiderweb_roads"] << inventory_pos << " done with building spider-web roads";
   duration = (std::clock() - start) / static_cast<double>(CLOCKS_PER_SEC);
-  AILogDebug["do_spiderweb_roads2"] << inventory_pos << " done with building spider-web roads2 call took " << duration;
+  AILogDebug["do_spiderweb_roads"] << inventory_pos << " done with building spider-web roads call took " << duration;
 }
 
 // after the game has progressed a bit, add a bunch of flags to the roads immediately surrounding the castle
@@ -827,119 +815,6 @@ AI::do_pollute_castle_area_roads_with_flags() {
 }
 
 
-
-void
-AI::do_spiderweb_roads1() {
-  AILogDebug["do_spiderweb_roads1"] << name << " inside do_spiderweb_roads1";
-  ai_status.assign("HOUSEKEEPING - do_spiderweb_roads1");
-  // "spider-web" roads - because a "star network" pattern naturally emerges with castle at center, try to
-  //   convert it until a "spider-web" shape by attemping build roads between any flags with band a bit outside the castle area
-  //    this should end up being 1/3 to 2/3 of the original castle area before any borders expanded
-  //
-  //  second layer - find the six corners 9 tiles out from castle,
-  //     at each corner draw a size8 circle and connect any flags within it
-  //  this could be improved by making a "caret" or "flattened hexagon" shape at corners instead of spiral_pos
-  //
-  AILogDebug["do_spiderweb_roads1"] << name << " HouseKeeping: creating spider-web1 roads near original castle borders";
-  // only do this every X loops, and only add one new road per run
-  update_building_counts();
-  unsigned int completed_huts = realm_completed_building_count[Building::TypeHut];
-  if (loop_count % 10 != 0 || completed_huts < 6 || completed_huts > 12) {
-    AILogDebug["do_spiderweb_roads1"] << name << " skipping spider-web1 roads, only running this every X loops and >Y, <Z knight huts built";
-  }
-  else {
-    std::set<MapPos> tried_pairs;
-    unsigned int spider_web_roads_built = 0;
-    // build a list of all the flags found in the most recent X area searches
-    MapPosVector flag_lists[6] = { }; //array of vectors
-    for (unsigned int i = AI::spiral_dist(8); i < AI::spiral_dist(9); i++) {
-      MapPos ring_pos = map->pos_add_extended_spirally(castle_pos, i);
-      //ai_mark_pos.erase(ring_pos);
-      //ai_mark_pos.insert(ColorDot(ring_pos, "dk_coral"));
-      // only every X positions or on last spot in ring
-      if (i % 3 != 0 || i == AI::spiral_dist(9) - 1)
-        continue;
-      AILogDebug["do_spiderweb_roads1"] << "spiderweb1 doing stuff";
-      // every X pos in the hexagonal "ring"/perimeter, do an area search for flags
-      MapPosVector flag_list = { };
-      for (unsigned int x = 0; x < AI::spiral_dist(3); x++) {
-        MapPos area_pos = map->pos_add_extended_spirally(ring_pos, x);
-        //ai_mark_pos.erase(area_pos);
-        //ai_mark_pos.insert(ColorDot(area_pos, "white"));
-        //std::this_thread::sleep_for(std::chrono::milliseconds(5));
-        if (!map->has_flag(area_pos) || map->get_owner(area_pos) != player_index)
-          continue;
-        if (!game->get_flag_at_pos(area_pos)->is_connected())
-          continue;
-        //ai_mark_pos.erase(area_pos);
-        //ai_mark_pos.insert(ColorDot(area_pos, "red"));
-        flag_list.push_back(area_pos);
-        //std::this_thread::sleep_for(std::chrono::milliseconds(5));
-      }
-      // shift all the flag_list pointers back, dropping the oldest one
-      for (int y = 1; y < 6; y++) {
-        flag_lists[y - 1] = flag_lists[y];
-      }
-      flag_lists[5] = flag_list;
-      //std::this_thread::sleep_for(std::chrono::milliseconds(15));
-
-      // insert all the recent vectors into a set (which ensures uniqueness)
-      std::set<MapPos> flag_set;
-      for (MapPosVector vector : flag_lists) {
-        //AILogDebug["do_spiderweb_roads1"] << "flag_list has elements: " << vector.size();
-        for (MapPos flag_pos : vector) {
-          //AILogDebug["do_spiderweb_roads1"] << "flag_list contains: " << flag_pos;
-          flag_set.insert(flag_pos);
-        }
-      }
-
-
-      // can't shuffle a std::set
-      //AILogDebug["do_spiderweb_roads1"] << name << " shuffling the flag_set so it is in random order";
-      //std::random_shuffle(flag_set.begin(), flag_set.end());
-      // instead convert to vector, shuffling seems important   oct22 2020
-      MapPosVector shuffled_flag_vector(flag_set.begin(), flag_set.end());
-      std::random_shuffle(shuffled_flag_vector.begin(), shuffled_flag_vector.end());
-
-      for (MapPos area_flag_pos : shuffled_flag_vector) {
-        if (spider_web_roads_built > 0) { break; }  // only create one road per run
-        AILogDebug["do_spiderweb_roads1"] << name << " considering roads from area_flag_pos " << area_flag_pos;
-        for (MapPos other_area_flag_pos : flag_set) {
-          AILogDebug["do_spiderweb_roads1"] << name << " considering roads from area_flag_pos " << area_flag_pos << " to other_area_flag_pos " << other_area_flag_pos;
-          if (area_flag_pos == other_area_flag_pos) { continue; }
-
-          // bitwise operator... to simplify checking for already tried combinations in either order
-          unsigned int pair = area_flag_pos & other_area_flag_pos;
-          if (tried_pairs.count(pair) > 0) { continue; }
-          tried_pairs.insert(pair);
-
-          AILogDebug["do_spiderweb_roads1"] << name << " still considering";
-          //ai_mark_pos.clear();
-          //ai_mark_pos.insert(ColorDot(area_flag_pos, "green"));
-          //ai_mark_pos.insert(ColorDot(other_area_flag_pos, "red"));
-          //std::this_thread::sleep_for(std::chrono::milliseconds(200));
-          road_options.set(RoadOption::Improve);
-          AILogDebug["do_spiderweb_roads1"] << name << " about to call build_best_road";
-          bool was_built = build_best_road(area_flag_pos, road_options, Building::TypeNone, Building::TypeNone, other_area_flag_pos);
-          road_options.reset(RoadOption::Improve);
-          if (was_built) {
-            AILogDebug["do_spiderweb_roads1"] << name << " successfully built spider-web1 road between area_flag_pos " << area_flag_pos << " to other_area_flag_pos " << other_area_flag_pos;
-            // only create one road per run
-            spider_web_roads_built++;
-            break;
-          }
-          else {
-            AILogDebug["do_spiderweb_roads1"] << name << " failed to build spider-web1 road between area_flag_pos " << area_flag_pos << " to other_area_flag_pos " << other_area_flag_pos;
-          }
-        }
-      }
-    }
-
-    //AILogDebug["do_spiderweb_roads1"] << name << " sanity check: there were " << tried_pairs.size() << " tried pairs";
-    AILogDebug["do_spiderweb_roads1"] << name << " done with building spider-web roads1";
-  }
-
-}
 
 void
 AI::do_fix_stuck_serfs() {
@@ -1546,7 +1421,8 @@ AI::do_send_geologists() {
               AILogDebug["do_send_geologists"] << inventory_pos << " built flag at pos " << pos << ", trying to connect it...";
               built_new_flag_for_geologist = true;
             }
-            if (!AI::build_best_road(pos, road_options)) {
+            Road notused; // not used here, can I just pass a zero instead of &notused to build_best_road and skip initialization of a wasted object?
+            if (!AI::build_best_road(pos, road_options, &notused)) {
               AILogDebug["do_send_geologists"] << inventory_pos << " failed to connect new gologist flag to road network!  removing the flag";
               AILogDebug["do_send_geologists"] << inventory_pos << " thread #" << std::this_thread::get_id() << " AI is locking mutex before calling demolish_flag (built for geoligist, couldn't connect)";
               game->get_mutex()->lock();
@@ -1920,7 +1796,8 @@ AI::do_remove_road_stubs() {
         if (map->has_flag(pos) && pos != flag_pos && flag->get_owner() == player_index && flag->is_connected()
          || (game->can_build_flag(pos, player) && map->has_any_path(pos))) {
           AILogDebug["do_remove_road_stubs"] << name << " eligible knight hut stub road ending with flag at pos " << flag_pos << " with one path and suitable length, found nearby flag/pos at " << pos;
-          was_built = AI::build_best_road(flag->get_position(), road_options, Building::TypeNone, Building::TypeNone, pos, false);
+          Road notused; // not used here, can I just pass a zero instead of &notused to build_best_road and skip initialization of a wasted object?
+          was_built = AI::build_best_road(flag->get_position(), road_options, &notused, Building::TypeNone, Building::TypeNone, pos, false);
           if (was_built){
             AILogDebug["do_remove_road_stubs"] << name << " eligible knight hut stub road ending with flag at pos " << flag_pos << ", successfully built replacement road, to flag/pos " << pos;
             break;
@@ -3339,7 +3216,8 @@ AI::do_connect_coal_mines() {
         return;
       }
       AILogDebug["do_connect_coal_mines"] << inventory_pos << " trying to connect unfinished coal mine flag to road system";
-      bool was_built = AI::build_best_road(flag->get_position(), road_options);
+      Road notused; // not used here, can I just pass a zero instead of &notused to build_best_road and skip initialization of a wasted object?
+      bool was_built = AI::build_best_road(flag->get_position(), road_options, &notused);
       if (!was_built) {
         // should the mine be demolished if this happens?
         AILogDebug["do_connect_coal_mines"] << inventory_pos << " failed to connect coal mine to road network! ";
@@ -3423,7 +3301,8 @@ AI::do_connect_iron_mines() {
         return;
       }
       AILogDebug["do_connect_iron_mines"] << inventory_pos << " trying to connect unfinished iron mine flag to road system";
-      bool was_built = AI::build_best_road(flag->get_position(), road_options);
+      Road notused; // not used here, can I just pass a zero instead of &notused to build_best_road and skip initialization of a wasted object?
+      bool was_built = AI::build_best_road(flag->get_position(), road_options, &notused);
       if (!was_built) {
         // should the mine be demolished if this happens?
         AILogDebug["do_connect_iron_mines"] << inventory_pos << " failed to connect iron mine to road network! ";
@@ -3629,7 +3508,8 @@ AI::do_build_gold_smelter_and_connect_gold_mines() {
         continue;
       }
       AILogDebug["do_build_gold_smelter_and_connect_gold_mines"] << inventory_pos << " trying to connect unfinished gold mine flag to road system";
-      bool was_built = AI::build_best_road(flag->get_position(), road_options);
+      Road notused; // not used here, can I just pass a zero instead of &notused to build_best_road and skip initialization of a wasted object?
+      bool was_built = AI::build_best_road(flag->get_position(), road_options, &notused);
       if (!was_built) {
         // should the mine be demolished if this happens?
         AILogDebug["do_build_gold_smelter_and_connect_gold_mines"] << inventory_pos << " failed to connect gold mine to road network! ";
@@ -3755,7 +3635,8 @@ AI::do_build_better_roads_for_important_buildings() {
     AILogDebug["do_build_better_roads_for_important_buildings"] << name << " do_build_better_roads_for_important_buildings found high-priority building of type " << NameBuilding[type] << name << " at pos " << building->get_position();
     road_options.set(RoadOption::Improve);
     MapPos building_flag_pos = map->move_down_right(building->get_position());
-    build_best_road(building_flag_pos, road_options, type);
+    Road notused; // not used here, can I just pass a zero instead of &notused to build_best_road and skip initialization of a wasted object?
+    build_best_road(building_flag_pos, road_options, &notused, type);
     road_options.reset(RoadOption::Improve);
   }
   AILogDebug["do_build_better_roads_for_important_buildings"] << name << " done do_build_better_roads_for_important_buildings";
