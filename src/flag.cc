@@ -132,7 +132,6 @@ FlagSearch::execute(flag_search_func *callback, bool land,
       // if this is a resource being routed... ('transporter = true' suggests it is a resource)
       //  ... but there is no transporter on this flag-path-dir...
       //   NOTE it should be possible to remove the 'transporter == true' check if we are sure that land and transporter bools are exclusive
-      //Log::Info["flag"] << "debug g";
       if (transporter && !flag->has_transporter(i)){
         //Log::Info["flag"] << "debug: inside FlagSearch::execute, checking dir: " << i << ", 'transporter' == true but this flag-dir has no transporter!  skipping this dir";
         // ... skip this dir/flag
@@ -141,8 +140,6 @@ FlagSearch::execute(flag_search_func *callback, bool land,
       
       // if this is the same flag we just checked(?)
       //Log::Info["flag"] << "debug: inside FlagSearch::execute, checking dir: " << i << ", for flag at pos " << flag->get_position() << ", about to check flag->other_endpoint.f[" << i << "]->search_num to see if it matches id " << id;
-	  // got a crash here, access violation for flag->other_endpoint.f[i]
-	  // again
       if (flag->other_endpoint.f[i]->search_num == id) {
         //Log::Info["flag"] << "debug: inside FlagSearch::execute, checking dir: " << i << " flag->other_endpoint.f[" << i << "]->search_num matches id " << id << " (meaning already visited this?), skipping this dir";
         // ... skip this dir/flag

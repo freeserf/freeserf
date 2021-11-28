@@ -64,6 +64,7 @@ AI::AI(PGame current_game, unsigned int _player_index) {
   road_options.reset(RoadOption::ReducedNewLengthPenalty);
   road_options.set(RoadOption::AllowWaterRoad);
   road_options.reset(RoadOption::HoldBuildingPos);
+  road_options.reset(RoadOption::MostlyStraight);
 
   need_tools = false;
 
@@ -135,11 +136,11 @@ AI::next_loop(){
   update_building_counts();
   do_get_inventory(castle_flag_pos);
 
-  //DEBUG
-  if (realm_building_count[Building::TypeHut] > 1){
-    AI::identify_arterial_roads(map);
-    //return;
-  }
+  ////DEBUG
+  //if (realm_building_count[Building::TypeHut] > 1){
+  //  AI::identify_arterial_roads(map);
+  //  //return;
+  //}
 
 /*
   //DEBUG
@@ -451,6 +452,11 @@ AI::do_update_clear_reset() {
   road_options.set(RoadOption::PenalizeNewLength);
   road_options.set(RoadOption::PenalizeCastleFlag);
   road_options.reset(RoadOption::AvoidCastleArea);
+  //road_options.reset(RoadOption::Improve);  // this wasn't here for a long time, did I forget it or was this intentional?
+  //road_options.reset(RoadOption::ReducedNewLengthPenalty);  // this wasn't here for a long time, did I forget it or was this intentional?
+  //road_options.set(RoadOption::AllowWaterRoad);  // this wasn't here for a long time, did I forget it or was this intentional?
+  //road_options.reset(RoadOption::HoldBuildingPos);  // this wasn't here for a long time, did I forget it or was this intentional?
+  road_options.reset(RoadOption::MostlyStraight);
   unfinished_hut_count = 0;
   unfinished_building_count = 0;
   realm_inv = player->get_stats_resources();
@@ -654,10 +660,10 @@ AI::do_spiderweb_roads() {
   AILogDebug["do_spiderweb_roads"] << inventory_pos << " inside do_spiderweb_roads";
   ai_status.assign("HOUSEKEEPING - do_spiderweb_roads");
   // "spider-web" roads - because a "star network" pattern naturally emerges with castle at center, try to
-  //   convert it until a "spider-web" shape by attemping build roads between any flags within a band a bit outside
-  //    the castle area.  This should end up being 2/3 to 3/3 of the original castle area before any borders expanded
+  //   convert it to a "spider-web" shape by attemping build roads between any flags within a band a bit outside
+  //    the castle area
   //
-  //  second layer - find the six corners 18 tiles out from castle,
+  //  find the six corners 18 tiles out from castle,
   //     at each corner draw a size8 circle and connect any flags within it
   //  this could be improved by making a "caret" or "flattened hexagon" shape at corners instead of spiral_pos
   //    -  tried doing this, seemed like a waste of time.  Circle is fine
@@ -676,8 +682,8 @@ AI::do_spiderweb_roads() {
   //}
   //if ( completed_huts < 9 || completed_huts > 16) {
     //AILogDebug["do_spiderweb_roads"] << inventory_pos << " skipping spider-web roads, knight huts built " << completed_huts << " is <9 or >16";
-  if ( completed_huts < 9 || completed_huts > 25) {
-    AILogDebug["do_spiderweb_roads"] << inventory_pos << " skipping spider-web roads, knight huts built " << completed_huts << " is <9 or >25";
+  if ( completed_huts < 11 || completed_huts > 25) {
+    AILogDebug["do_spiderweb_roads"] << inventory_pos << " skipping spider-web roads, knight huts built " << completed_huts << " is <11 or >25";
     return;
   }
 
@@ -746,21 +752,58 @@ AI::do_spiderweb_roads() {
         if (tried_pairs.count(pair) > 0) { continue; }
         tried_pairs.insert(pair);
 
+        // only build if the current best-path between these two flags contains the the currently 
+        //  selected Inventory (castle/stock) flag.  If if it not, there is some other path such
+        //  as a natural or spider-web road that does not bottleneck at the castle/stock and so
+        //  does not need obvious improvement. 
+        //
+        //  IDEA - instead or in addition to above, compare the flag-dist of the current solution and only
+        //   try if it is a certain length, or possibly update build_best_road function to set a minimum 
+        //   improvement threshold or it will not actually build it.
+        //
+
+        MapPosVector flags_found = {};
+        if(find_flag_path_between_flags(map, player->get_index(), area_flag_pos, other_area_flag_pos, &flags_found, &ai_mark_pos)){
+          AILogDebug["do_spiderweb_roads"] << inventory_pos << " flags_found between " << area_flag_pos << " and " << other_area_flag_pos;
+          bool has_inventory_flag = false;
+          for (MapPos pos : flags_found){
+            AILogDebug["do_spiderweb_roads"] << inventory_pos << " flags_found contains: " << pos;
+            if (pos == inventory_pos){
+              AILogDebug["do_spiderweb_roads"] << inventory_pos << " flags_found contains the inventory_pos " << inventory_pos << " = " << pos;
+              has_inventory_flag = true;
+            }
+          }
+          if (!has_inventory_flag){
+            AILogDebug["do_spiderweb_roads"] << inventory_pos << " flags_found does not contain the inventory_pos " << inventory_pos << ", skipping this pair";
+            continue;
+          }
+        }
+
+
         //AILogDebug["do_spiderweb_roads"] << inventory_pos << " still considering";
-        ai_mark_pos.clear();
-        ai_mark_pos.insert(ColorDot(area_flag_pos, "green"));
-        ai_mark_pos.insert(ColorDot(other_area_flag_pos, "red"));
-        std::this_thread::sleep_for(std::chrono::milliseconds(200));
-        road_options.set(RoadOption::Improve);
-        //AILogDebug["do_spiderweb_roads"] << inventory_pos << " about to call build_best_road";
+        //ai_mark_pos.clear();
+        //ai_mark_pos.insert(ColorDot(area_flag_pos, "green"));
+        //ai_mark_pos.insert(ColorDot(other_area_flag_pos, "red"));
+        //std::this_thread::sleep_for(std::chrono::milliseconds(200));
+        //
+        // issue - if Improve is set and Direct off, often stubby useless roads are built that do not
+        //  accomplish the spider-web goal.  I am not exactly sure why but it is probably a result of the "best road" logic
+        //       - if Direct is set and Improve off, often long snakey roads are built parallel to each other
+        //
+        //road_options.set(RoadOption::Improve);
+        road_options.set(RoadOption::Direct);
+        road_options.set(RoadOption::MostlyStraight);
+        AILogDebug["do_spiderweb_roads"] << inventory_pos << " about to call build_best_road";
         Road built_road;
-        //AILogDebug["do_spiderweb_roads"] << inventory_pos << " spiderweb debug1 built_road has memory addr " << &ybuilt_road << " and source " << ybuilt_road.get_source();
+        //AILogDebug["do_spiderweb_roads"] << inventory_pos << " spiderweb debug1 built_road has memory addr " << &built_road << " and source " << built_road.get_source();
         bool was_built = build_best_road(area_flag_pos, road_options, &built_road, Building::TypeNone, Building::TypeNone, other_area_flag_pos);
-        road_options.reset(RoadOption::Improve);
+        //road_options.reset(RoadOption::Improve);
+        road_options.reset(RoadOption::Direct);
+        road_options.reset(RoadOption::MostlyStraight);
         if (was_built) {
           AILogDebug["do_spiderweb_roads"] << inventory_pos << " successfully built spider-web road between area_flag_pos " << area_flag_pos << " to other_area_flag_pos " << other_area_flag_pos;
           spider_web_roads_built++;
-          //AILogDebug["do_spiderweb_roads"] << inventory_pos << " spiderweb debug2 built_road has memory addr " << &ybuilt_road << " and source " << ybuilt_road.get_source();
+          //AILogDebug["do_spiderweb_roads"] << inventory_pos << " spiderweb debug2 built_road has memory addr " << &built_road << " and source " << built_road.get_source();
           ai_mark_spiderweb_roads->push_back(built_road);
           // only create one road per run
           break;

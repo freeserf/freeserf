@@ -765,13 +765,45 @@ AI::build_best_road(MapPos start_pos, RoadOptions road_options, Road *built_road
         }
       }
       Road proposed_direct_road = plot_road(map, player_index, start_pos, target_pos, &split_roads);
-      AILogDebug["util_build_best_road"] << name << " thread #" << std::this_thread::get_id() << " AI is locking mutex before calling game->build_road (direct road)";
-      game->get_mutex()->lock();
-      AILogDebug["util_build_best_road"] << name << " thread #" << std::this_thread::get_id() << " AI has locked mutex before calling game->build_road (direct road)";
-      bool was_built = game->build_road(proposed_direct_road, player);
-      AILogDebug["util_build_best_road"] << name << " thread #" << std::this_thread::get_id() << " AI is unlocking mutex after calling game->build_road (direct road)";
-      game->get_mutex()->unlock();
-      AILogDebug["util_build_best_road"] << name << " thread #" << std::this_thread::get_id() << " AI has unlocked mutex after calling game->build_road (direct road)";
+      bool plotted_succesfully = false;
+      if (proposed_direct_road.get_length() > 0){
+        plotted_succesfully = true;
+      }
+
+      // support covolution enforcement, but *only* if MostlyStraight setting is on
+      // this kind of a hacky undocumented thing, but okay for now. 
+      bool convolution_rejected = false;
+      if (plotted_succesfully && road_options.test(RoadOption::MostlyStraight)){
+        AILogDebug["util_build_best_road"] << name << " RoadOptions::MostlyStraight is on, checking tile_dist from start_pos " << start_pos << " to end_pos " << target_pos << " for an ideal road";
+        int ideal_length = AI::get_straightline_tile_dist(map, start_pos, target_pos);
+        //
+        // EVEN UGLIER HACK HERE - really need to ditch most of RoadOptions and instead allow explicitly setting various limits
+        //
+        if (proposed_direct_road.get_length() > 20){
+          AILogDebug["util_build_best_road"] << name << " RoadOptions::MostlyStraight is on, rejecting this solution because proposed_direct_road length of " << proposed_direct_road.get_length() << " is too long";
+          convolution_rejected = true;  // re-using this because laziness
+        }
+        AILogDebug["util_build_best_road"] << name << " RoadOptions::MostlyStraight is on, flag target_pos at " << target_pos << " has straight-line tile distance " << ideal_length << " from start_pos " << start_pos;
+        AILogDebug["util_build_best_road"] << name << " RoadOptions::MostlyStraight is on, proposed_direct_road from start_pos " << start_pos << " to target_pos " << target_pos << " has length " << proposed_direct_road.get_length();
+        double convolution = static_cast<double>(proposed_direct_road.get_length()) / static_cast<double>(ideal_length);
+        AILogDebug["util_build_best_road"] << name << " RoadOptions::MostlyStraight is on, proposed_direct_road length: " << proposed_direct_road.get_length() << ", ideal length: " << ideal_length << ", convolution ratio: " << convolution;
+        // still reduce max_convolution ratio for MostlyStraight even though the non-adjusted max_convolution value is never tested for RoadOption::Direct roads
+        if (convolution >= max_convolution * 0.50) {
+          AILogDebug["util_build_best_road"] << name << " this proposed_direct_road solution is already too convoluted, adjusted max is " << max_convolution * 0.50;
+          convolution_rejected = true;
+        }
+      }
+
+      bool was_built = false;
+      if (plotted_succesfully && !convolution_rejected){
+        AILogDebug["util_build_best_road"] << name << " thread #" << std::this_thread::get_id() << " AI is locking mutex before calling game->build_road (direct road)";
+        game->get_mutex()->lock();
+        AILogDebug["util_build_best_road"] << name << " thread #" << std::this_thread::get_id() << " AI has locked mutex before calling game->build_road (direct road)";
+        was_built = game->build_road(proposed_direct_road, player);
+        AILogDebug["util_build_best_road"] << name << " thread #" << std::this_thread::get_id() << " AI is unlocking mutex after calling game->build_road (direct road)";
+        game->get_mutex()->unlock();
+        AILogDebug["util_build_best_road"] << name << " thread #" << std::this_thread::get_id() << " AI has unlocked mutex after calling game->build_road (direct road)";
+      }
       if (was_built) {
         AILogDebug["util_build_best_road"] << name << " zzz successfully built direct road directly from flag at " << start_pos << " to flag at " << target_pos;
         //roads_built++;
@@ -978,8 +1010,10 @@ AI::build_best_road(MapPos start_pos, RoadOptions road_options, Road *built_road
     for (MapPos end_pos : nearby_flags) {
       AILogDebug["util_build_best_road"] << name << " preparing to plot road from start_pos " << start_pos << " to nearby_flag pos " << end_pos;
       // it might be faster to have plot_road return the RoadEnds, but it seems messier
+      
       //
       // check for direct road first (store any split-road solutions later)
+      //  note that this is not the same as RoadOption::Direct !  
       //
       Road potential_road = plot_road(map, player_index, start_pos, end_pos, &split_roads, road_options.test(RoadOption::HoldBuildingPos));
       // this while(true) loop looks goofy to me but it was the only clean way to do it without a GOTO statement
@@ -993,6 +1027,10 @@ AI::build_best_road(MapPos start_pos, RoadOptions road_options, Road *built_road
         AILogDebug["util_build_best_road"] << name << " potential DIRECT road NEW length: " << potential_road.get_length() << ", ideal TOTAL length: " << ideal_length << ", convolution ratio: " << convolution;
         if (convolution >= max_convolution) {
           AILogDebug["util_build_best_road"] << name << " this potential DIRECT road solution is already too convoluted from new length alone, max is " << max_convolution;
+          break;
+        }
+        if (road_options.test(RoadOption::MostlyStraight) && convolution >= max_convolution * 0.50) {
+          AILogDebug["util_build_best_road"] << name << " RoadOption::MostlyStraight is set and this potential DIRECT road solution is already too convoluted from new length alone, reduced max is " << max_convolution * 0.50;
           break;
         }
         // if this is "tracked economy building", ensure the end_pos flag is closest to the currently selected Inventory (castle/warehouse)
@@ -1029,6 +1067,10 @@ AI::build_best_road(MapPos start_pos, RoadOptions road_options, Road *built_road
         AILogDebug["util_build_best_road"] << name << " split_road NEW length: " << split_road.get_length() << ", ideal TOTAL length: " << ideal_length << ", convolution ratio: " << convolution;
         if (convolution >= max_convolution) {
           AILogDebug["util_build_best_road"] << name << " this split_road solution is already too convoluted from new length alone, max is " << max_convolution;
+          continue;
+        }
+        if (road_options.test(RoadOption::MostlyStraight) && convolution >= max_convolution * 0.50) {
+          AILogDebug["util_build_best_road"] << name << " RoadOption::MostlyStraight is set and this split_road solution is already too convoluted from new length alone, reduced max is " << max_convolution * 0.50;
           continue;
         }
         // if this is "tracked economy building", ensure the end_pos flag is closest to the currently selected Inventory (castle/warehouse)

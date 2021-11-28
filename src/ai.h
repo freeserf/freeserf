@@ -234,8 +234,6 @@ class AI {
   */
   Building* find_nearest_building(MapPos, CompletionLevel, Building::Type, unsigned int max_dist = -1);
   Road trace_existing_road(PMap, MapPos, Direction);
-  void identify_arterial_roads(PMap);
-  void arterial_road_depth_first_recursive_flagsearch(MapPos, std::pair<MapPos,Direction>, MapPosVector *, int *);
   MapPosVector get_corners(MapPos);
   MapPosVector get_corners(MapPos, unsigned int distance);
   Direction get_dir_from_corner(MapPos center_pos, MapPos corner_pos);
@@ -343,12 +341,15 @@ class AI {
   int get_straightline_tile_dist(PMap map, MapPos start_pos, MapPos end_pos);
   bool score_flag(PMap map, unsigned int player_index, RoadBuilder *rb, RoadOptions road_options, MapPos flag_pos, MapPos castle_flag_pos, ColorDotMap *ai_mark_pos);
   bool find_flag_and_tile_dist(PMap map, unsigned int player_index, RoadBuilder *rb, MapPos flag_pos, MapPos castle_flag_pos, ColorDotMap *ai_mark_pos);
+  bool find_flag_path_between_flags(PMap map, unsigned int player_index, MapPos end1, MapPos end2, MapPosVector *flags_found, ColorDotMap *ai_mark_pos);
   MapPos find_nearest_inventory(PMap map, unsigned int player_index, MapPos flag_pos, DistType dist_type, ColorDotMap *ai_mark_pos);
   MapPos find_nearest_inventory_by_straightline(PMap map, unsigned int player_index, MapPos flag_pos, ColorDotMap *ai_mark_pos);
   MapPos find_nearest_inventory_by_flag(PMap map, unsigned int player_index, MapPos flag_pos, ColorDotMap *ai_mark_pos);
   MapPosVector find_nearest_inventories_to_military_building(MapPos pos);
   RoadEnds get_roadends(PMap map, Road road);
   Road reverse_road(PMap map, Road road);
+  void identify_arterial_roads(PMap);
+  void arterial_road_depth_first_recursive_flagsearch(MapPos, std::pair<MapPos,Direction>, MapPosVector *, int *);
 };
 
 //
