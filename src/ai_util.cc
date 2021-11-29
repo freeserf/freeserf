@@ -1784,7 +1784,11 @@ AI::trace_existing_road(PMap map, MapPos start_pos, Direction dir) {
   //AILogDebug["util_trace_existing_road"] << name << " inside trace_existing_road, start_pos " << start_pos << ", dir: " << NameDirection[dir];
   Road road;
   if (!map->has_path(start_pos, dir)) {
-    AILogDebug["util_trace_existing_road"] << name << " no path found at " << start_pos << " in direction " << NameDirection[dir] << "!  FIND OUT WHY";
+    AILogWarn["util_trace_existing_road"] << "A no path found";
+    AILogWarn["util_trace_existing_road"] << name << "B no path found";
+    AILogWarn["util_trace_existing_road"] << name << "C no path found at " << start_pos;
+    AILogWarn["util_trace_existing_road"] << name << "D no path found at " << start_pos << " in direction " << dir;
+    AILogWarn["util_trace_existing_road"] << name << " no path found at " << start_pos << " in direction " << NameDirection[dir] << "!  FIND OUT WHY";
     return road;
   }
   road.start(start_pos);

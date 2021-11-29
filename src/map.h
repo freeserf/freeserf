@@ -391,6 +391,8 @@ class Map {
   /* Extractors for map data. */
   unsigned int paths(MapPos pos) const {
     return (game_tiles[pos].paths & 0x3f); }
+  // this has_path function has a bug (or feature) of returning true if the Castle is up-left, probably also Stock
+  //  I saw some other code mention this, I think it is intentional but not sure why
   bool has_path(MapPos pos, Direction dir) const {
     return (BIT_TEST(game_tiles[pos].paths, dir) != 0); }
   bool has_any_path(MapPos pos) {

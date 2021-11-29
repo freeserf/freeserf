@@ -136,7 +136,8 @@ AI::next_loop(){
   update_building_counts();
   do_get_inventory(castle_flag_pos);
 
-  ////DEBUG
+  // this is broken since messing with flagsearch, see details here:  https://github.com/forkserf/forkserf/issues/70
+  //DEBUG
   //if (realm_building_count[Building::TypeHut] > 1){
   //  AI::identify_arterial_roads(map);
   //  //return;

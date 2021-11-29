@@ -528,7 +528,7 @@ AI::find_flag_and_tile_dist(PMap map, unsigned int player_index, RoadBuilder *rb
       // target_pos flag reached!
       //
       AILogVerbose["find_flag_and_tile_dist"] << name << " fsearchnode - fnode->pos " << fnode->pos << " *is now* target_pos " << target_pos;
-      AILogDebug["find_flag_and_tile_dist"] << name << " score_flag: plotted a complete multi-road solution from flag_pos " << flag_pos << " to target_pos " << target_pos;
+      AILogDebug["find_flag_and_tile_dist"] << name << " plotted a complete multi-road solution from flag_pos " << flag_pos << " to target_pos " << target_pos;
       // record the solution
       //
       //  wait, don't I already have the solution?? the score... is all that matters.
@@ -547,6 +547,14 @@ AI::find_flag_and_tile_dist(PMap map, unsigned int player_index, RoadBuilder *rb
         //MapPos end2 = fnode->pos;
         MapPos end2 = bad_map_pos;
         Direction dir1 = fnode->parent->dir;
+        // not sure why this is happening, since reversing the flagsearch_node_less started seeing dir1 being invalid occasionally
+        if (dir1 < 0 || dir1 > 5){
+          AILogError["find_flag_and_tile_dist"] << name << " score_flag: end1 " << end1 << "'s dir1 " << dir1 << " is an invalid direction!  sleeping 120sec then crashing";
+          ai_mark_pos->erase(end1);
+          ai_mark_pos->insert(ColorDot(end1, "yellow"));
+          std::this_thread::sleep_for(std::chrono::milliseconds(120000));
+          throw ExceptionFreeserf("find_flag_and_tile_dist, end1 has invalid direction for dir1");
+        }
         // Direction dir2 =  complicated: see below...
         Direction dir2 = DirectionNone;
 
@@ -558,103 +566,89 @@ AI::find_flag_and_tile_dist(PMap map, unsigned int player_index, RoadBuilder *rb
         }
         else {
           // trace the road to get the tile-path (we already have the flag-path in the FlagSearch object
-			/* this seems to happen any time a split road tries to connect to castle flag road, especially if from north of the castle
-		  // TRY TO FIGURE OUR RARE ISSUE WHERE castle flag says there is a path up-left , INTO the castle!
-			if (map->has_building(map->move_up_left(end1))) {
-				Building *foo = game->get_building_at_pos(map->move_up_left(end1));
-				if (foo->get_type() == Building::TypeCastle) {
-					AILogInfo["find_flag_and_tile_dist"] << name << " debug: end1 pos " << end1 << " is castle flag";
-					if (map->has_path(end1, DirectionUpLeft)) {
-						AILogError["find_flag_and_tile_dist"] << name << " debug: end1 pos " << end1 << " is castle flag AND IT SAYS THERE IS A PATH Up-Left INTO THE CASTLE!!!  why??";
-						ai_mark_pos->erase(end1);
-						ai_mark_pos->insert(ColorDot(end1, "lime"));
-						//std::this_thread::sleep_for(std::chrono::milliseconds(10000));
-					}
-				}
-			}*/
           existing_road = trace_existing_road(map, end1, dir1);
-          //after tracing complex bug it seems like end2 should not be fnode->pos but instead
-          //  should be determined by the result of the trace_existing_road call??
-          // I think I am getting bogus end2 results in some cases (maybe all?)
-          // instead, now getting end2 from traced existing road
-          end2 = existing_road.get_end(map.get());
 
-          //// old junk:
-          // store information about the road
-          //    ??
-          //  is eroad actually needed?  can I just get the road.last and invert it?  ???
-          //   ??
-          // dir2, the dir of the path leading back to the parent flag-node, is the inverse of the last dir in the Road that was just traced!
+          // trying to avoid a bug where trace_existing_road can't find a path in the specified dir
+          // and so it returns a basically null road.  Not sure why it happens
+          if (existing_road.get_source() == bad_map_pos){
+            AILogWarn["find_flag_and_tile_dist"] << name << " trace_existing_road for end1 " << end1 << " and dir1 " << dir1 << " returned null Road!";
+          }else{
+            //after tracing complex bug it seems like end2 should not be fnode->pos but instead
+            //  should be determined by the result of the trace_existing_road call??
+            // I think I am getting bogus end2 results in some cases (maybe all?)
+            // instead, now getting end2 from traced existing road
+            end2 = existing_road.get_end(map.get());
 
-          //dir2 = reverse_direction(existing_road.get_last());
+            //// old junk:
+            // store information about the road
+            //    ??
+            //  is eroad actually needed?  can I just get the road.last and invert it?  ???
+            //   ??
+            // dir2, the dir of the path leading back to the parent flag-node, is the inverse of the last dir in the Road that was just traced!
 
-          //rb->new_eroad(end1, dir1, end2, dir2, existing_road);
-          //
-          // why not just have new_eroad run get_roadends itself??
-          //   and I guess new_proad also
-          //
-          // ??? actually, could have new_eroad also trace_existing_road???
-          //
-          RoadEnds ends = get_roadends(map, existing_road);
-          rb->new_eroad(ends, existing_road);
+            //dir2 = reverse_direction(existing_road.get_last());
 
+            //rb->new_eroad(end1, dir1, end2, dir2, existing_road);
+            //
+            // why not just have new_eroad run get_roadends itself??
+            //   and I guess new_proad also
+            //
+            // ??? actually, could have new_eroad also trace_existing_road???
+            //
+            RoadEnds ends = get_roadends(map, existing_road);
+            rb->new_eroad(ends, existing_road);
+          } // if traced road failed
         }
         unsigned int existing_road_length = static_cast<unsigned int>(existing_road.get_length());
         fnode = fnode->parent;
         // should be able to use the last node's flag_dist and get same result... maybe compare both as sanity check
         flag_dist++;
         tile_dist += existing_road_length;
-        AILogDebug["find_flag_and_tile_dist"] << name << " score_flag: existing road segment with end1 " << end1 << ", end2 " << end2 << " has length " << existing_road_length;
+        AILogDebug["find_flag_and_tile_dist"] << name << " existing road segment with end1 " << end1 << ", end2 " << end2 << " has length " << existing_road_length;
         if (end1 == castle_flag_pos){
-          AILogDebug["find_flag_and_tile_dist"] << name << " score_flag: this solution contains the castle flag!";
+          AILogDebug["find_flag_and_tile_dist"] << name << " this solution contains the castle flag!";
           contains_castle_flag = true;
         }
-        AILogDebug["find_flag_and_tile_dist"] << name << " score_flag: total so far road from flag_pos " << flag_pos << " to target_pos " << target_pos << " is flag_dist " << flag_dist << ", tile_dist " << tile_dist;
+        AILogDebug["find_flag_and_tile_dist"] << name << " total so far road from flag_pos " << flag_pos << " to target_pos " << target_pos << " is flag_dist " << flag_dist << ", tile_dist " << tile_dist;
       } // while fnode->parent / retrace flag-solution
-      AILogDebug["find_flag_and_tile_dist"] << name << " score_flag: final total for road from flag_pos " << flag_pos << " to target_pos " << target_pos << " is flag_dist " << flag_dist << ", tile_dist " << tile_dist;
+      AILogDebug["find_flag_and_tile_dist"] << name << " final total for road from flag_pos " << flag_pos << " to target_pos " << target_pos << " is flag_dist " << flag_dist << ", tile_dist " << tile_dist;
       rb->set_score(flag_pos, flag_dist, tile_dist, contains_castle_flag);
-      AILogDebug["find_flag_and_tile_dist"] << name << " done score_road, found solution, returning true";
+      AILogDebug["find_flag_and_tile_dist"] << name << " found solution, returning true";
       //return std::make_tuple(flag_dist, tile_dist, contains_castle_flag);
       return true;
     } // if found solution
 
-    AILogVerbose["find_flag_and_tile_dist"] << name << " fsearchnode - node->pos is not target_pos " << target_pos << " yet";
+    AILogDebug["find_flag_and_tile_dist"] << name << " fsearchnode - node->pos is not target_pos " << target_pos << " yet";
     closed.push_front(fnode);
     // for each direction that has a path, trace the path until a flag is reached
     for (Direction d : cycle_directions_cw()) {
-	  // attempt to work around the issue with castle flag appearing to have a path UpLeft from its flag into
-	  //  the castle, which breaks pathfinding
-	  //  is this an issue for Warehouses/Stocks, too??  should instead check for "is Inventory" or similar??
-	  if (fnode->pos == castle_flag_pos && d == DirectionUpLeft) {
-		AILogDebug["find_flag_and_tile_dist"] << name << " skipping UpLeft dir because fnode->pos == castle_flag_pos, to avoid what appears to be a bug";
-	    continue;
-	  }
+      // attempt to fix bug, setting fnode->dir to d much earlier in the loop because it should be set in all cases, right?
+      //  and if the loop exits before reaching here it is never set??? i dunno
+      // this seems to be fixing it, actually
+      fnode->dir = d;
+
+      // attempt to work around the issue with castle flag appearing to have a path UpLeft from its flag into
+      //  the castle, which breaks pathfinding
+      //  is this an issue for Warehouses/Stocks, too??  should instead check for "is Inventory" or similar??
+      if (fnode->pos == castle_flag_pos && d == DirectionUpLeft) {
+      AILogDebug["find_flag_and_tile_dist"] << name << " skipping UpLeft dir because fnode->pos == castle_flag_pos, to avoid what appears to be a bug";
+        continue;
+      }
       if (map->has_path(fnode->pos, d)) {
         //ai_mark_pos->erase(map->move(fnode->pos, d));
         //ai_mark_pos->insert(ColorDot(map->move(fnode->pos, d), "gray"));
         //std::this_thread::sleep_for(std::chrono::milliseconds(0));
+
         // NOTE - if the solution is found here... can't we just quit and return it rather than continuing with this node?  there can't be a better one, right?
-		  /* this seems to happen any time a split road tries to connect to castle flag road, especially if from north of the castle
-		  // TRY TO FIGURE OUR RARE ISSUE WHERE castle flag says there is a path up-left , INTO the castle!
-		  if (map->has_building(map->move_up_left(fnode->pos))) {
-			  Building *foo = game->get_building_at_pos(map->move_up_left(fnode->pos));
-			  if (foo->get_type() == Building::TypeCastle) {
-				  AILogInfo["find_flag_and_tile_dist"] << name << " debug2: fnode->pos pos " << fnode->pos << " is castle flag";
-				  if (map->has_path(fnode->pos, DirectionUpLeft)) {
-					  AILogError["find_flag_and_tile_dist"] << name << " debug2: fnode->pos pos " << fnode->pos << " is castle flag AND IT SAYS THERE IS A PATH Up-Left INTO THE CASTLE!!!  why??";
-					  ai_mark_pos->erase(fnode->pos);
-					  ai_mark_pos->insert(ColorDot(fnode->pos, "lime"));
-					  //std::this_thread::sleep_for(std::chrono::milliseconds(10000));
-				  }
-			  }
-		  }*/
+
+        AILogDebug["find_flag_and_tile_dist"] << name << " about to call trace_existing_road for fnode->pos " << fnode->pos << ", dir " << d;
         Road fsearch_road = trace_existing_road(map, fnode->pos, d);
         MapPos new_pos = fsearch_road.get_end(map.get());
         //ai_mark_pos->erase(new_pos);
         //ai_mark_pos->insert(ColorDot(new_pos, "dk_gray"));
         //std::this_thread::sleep_for(std::chrono::milliseconds(0));
         //Direction end_dir = reverse_direction(fsearch_road.get_last());
-        AILogVerbose["find_flag_and_tile_dist"] << name << "fsearchnode - fsearch from fnode->pos " << fnode->pos << " and dir " << NameDirection[d] << name << " found flag at pos " << new_pos << " with return dir " << reverse_direction(fsearch_road.get_last());
+        AILogDebug["find_flag_and_tile_dist"] << name << "fsearchnode - fsearch from fnode->pos " << fnode->pos << " and dir " << NameDirection[d] << name << " found flag at pos " << new_pos << " with return dir " << reverse_direction(fsearch_road.get_last());
 
         // break early if this is the target_flag, run the usual new-node code here that would otherwise be run after in_closed and in_open checks
         //   wait, why duplicate this and break?  it should find that it is NOT in_closed and NOT in_open, move on to creating a new node and complete
@@ -662,7 +656,7 @@ AI::find_flag_and_tile_dist(PMap map, unsigned int player_index, RoadBuilder *rb
         //   YES this fixes a huge bug!  leaving it this way
         if (new_pos == target_pos) {
           //AILogVerbose["find_flag_and_tile_dist"] << name << "fsearchnode - fnode at new_pos " << new_pos << " *IS* target_pos " << target_pos << ", breaking early";
-          AILogVerbose["find_flag_and_tile_dist"] << name << "fsearchnode - fnode at new_pos " << new_pos << " *IS* target_pos " << target_pos << ", FYI only, NOT breaking early (debug)";
+          AILogDebug["find_flag_and_tile_dist"] << name << "fsearchnode - fnode at new_pos " << new_pos << " *IS* target_pos " << target_pos << ", FYI only, NOT breaking early (debug)";
           //ai_mark_pos->erase(new_pos);
           //ai_mark_pos->insert(ColorDot(new_pos, "green"));
           //std::this_thread::sleep_for(std::chrono::milliseconds(0));
@@ -685,7 +679,7 @@ AI::find_flag_and_tile_dist(PMap map, unsigned int player_index, RoadBuilder *rb
         for (PFlagSearchNode closed_node : closed) {
           if (closed_node->pos == new_pos) {
             in_closed = true;
-            AILogVerbose["find_flag_and_tile_dist"] << name << "fsearchnode - fnode at new_pos " << new_pos << ", breaking because in fnode already in_closed";
+            AILogDebug["find_flag_and_tile_dist"] << name << "fsearchnode - fnode at new_pos " << new_pos << ", breaking because in fnode already in_closed";
             //ai_mark_pos->erase(new_pos);
             //ai_mark_pos->insert(ColorDot(flag_pos, "dk_red"));
             //std::this_thread::sleep_for(std::chrono::milliseconds(0));
@@ -694,7 +688,7 @@ AI::find_flag_and_tile_dist(PMap map, unsigned int player_index, RoadBuilder *rb
         }
         if (in_closed) continue;
 
-        AILogVerbose["find_flag_and_tile_dist"] << name << "fsearchnode - fnode at new_pos " << new_pos << ", continuing because fnode NOT already in_closed";
+        AILogDebug["find_flag_and_tile_dist"] << name << "fsearchnode - fnode at new_pos " << new_pos << ", continuing because fnode NOT already in_closed";
 
         // check if this flag is already in open list
         bool in_open = false;
@@ -703,9 +697,9 @@ AI::find_flag_and_tile_dist(PMap map, unsigned int player_index, RoadBuilder *rb
           PFlagSearchNode n = *it;
           if (n->pos == new_pos) {
             in_open = true;
-            AILogVerbose["find_flag_and_tile_dist"] << name << "fnodesearch - fnode at new_pos " << new_pos << " is already in_open ";
+            AILogDebug["find_flag_and_tile_dist"] << name << "fnodesearch - fnode at new_pos " << new_pos << " is already in_open ";
             if (n->flag_dist >= fnode->flag_dist + 1) {
-              AILogVerbose["find_flag_and_tile_dist"] << name << "fnodesearch - doing some flag dist compare I don't understand, sorting by flag_dist??";
+              AILogDebug["find_flag_and_tile_dist"] << name << "fnodesearch - doing some flag dist compare I don't understand, sorting by flag_dist??";
               n->flag_dist += 1;
               n->parent = fnode;
               iter_swap(it, open.rbegin());
@@ -717,9 +711,9 @@ AI::find_flag_and_tile_dist(PMap map, unsigned int player_index, RoadBuilder *rb
             break;  // should this be continue like if (in_closed) ???  NO, because it means we've checked every direction ... right?
           }
         }
-        // this pos is known known yet, create a new fnode for it
+        // this pos is not known yet, create a new fnode for it
         if (!in_open) {
-          AILogVerbose["find_flag_and_tile_dist"] << name << "fnodesearch - fnode at new_pos " << new_pos << " is NOT already in_open, creating a new fnode ";
+          AILogDebug["find_flag_and_tile_dist"] << name << "fnodesearch - fnode at new_pos " << new_pos << " is NOT already in_open, creating a new fnode ";
           //ai_mark_pos->erase(new_pos);
           //ai_mark_pos->insert(ColorDot(new_pos, "lt_green"));
           //std::this_thread::sleep_for(std::chrono::milliseconds(0));
@@ -730,18 +724,21 @@ AI::find_flag_and_tile_dist(PMap map, unsigned int player_index, RoadBuilder *rb
           // when doing a flag search, the parent node's direction *cannot* be inferred by reversing its child node dir
           //   like when doing tile pathfinding, so it must be set explicitly set. it will be reused and reset into each explored direction
           //   but that should be okay because once an end solution is found the other directions no longer matter
-          fnode->dir = d;
+          AILogError["find_flag_and_tile_dist"] << name << " debugging BLEG1, creating new node, current fnode->pos " << fnode->pos << " fnode->dir was " << fnode->dir << ", new_fnode->pos " << new_fnode->pos << " setting fnode->dir to d " << d;
+          // attempt to fix bug, setting fnode->dir to d much earlier in the loop because it should be set in all cases, right?
+          //  and if the loop exits before reaching here it is never set??? i dunno
+          //fnode->dir = d;
           open.push_back(new_fnode);
           std::push_heap(open.begin(), open.end(), flagsearch_node_less);
-          AILogVerbose["find_flag_and_tile_dist"] << name << "fnodesearch - fnode at new_pos " << new_pos << " is NOT already in_open, DONE CREATING new fnode ";
+          AILogDebug["find_flag_and_tile_dist"] << name << "fnodesearch - fnode at new_pos " << new_pos << " is NOT already in_open, DONE CREATING new fnode ";
         } // if !in_open
-        AILogVerbose["find_flag_and_tile_dist"] << name << "fnodesearch end of if(map->has_path)";
+        AILogDebug["find_flag_and_tile_dist"] << name << "fnodesearch end of if(map->has_path)";
       } // if map->has_path(node->pos, d)
-      AILogVerbose["find_flag_and_tile_dist"] << name << "fnodesearch end of if dir has path Direction - did I find it??";
+      AILogDebug["find_flag_and_tile_dist"] << name << "fnodesearch end of if dir has path Direction - did I find it??";
     } // foreach direction
-    AILogVerbose["find_flag_and_tile_dist"] << name << "fnodesearch end of foreach Direction cycle_dirs";
+    AILogDebug["find_flag_and_tile_dist"] << name << "fnodesearch end of foreach Direction cycle_dirs";
   } // while open flag-nodes remain to be checked
-  AILogVerbose["find_flag_and_tile_dist"] << name << "fnodesearch end of while open flag-nodes remain";
+  AILogDebug["find_flag_and_tile_dist"] << name << "fnodesearch end of while open flag-nodes remain";
 
   AILogDebug["find_flag_and_tile_dist"] << name << " no flag-path solution found from flag_pos " << flag_pos << " to target_pos " << target_pos << ".  returning false";
   //return std::make_tuple(bad_score, bad_score, false);
@@ -1098,6 +1095,10 @@ AI::identify_arterial_roads(PMap map){
 
   Once this is solved... go back and see if this bug exists on the existing code I wrote
 
+  nov 2021 - might have fixed this when doing two things, 1) reversed the flagsearch_node_less
+    and 2) added assigning fnode->dir = d earlier in those functions in case it quits early 
+    there won't be child nodes whose parent dir is -1 DirectionNone (i.e. null default)
+
   */
 
   AILogDebug["util_identify_arterial_roads"] << name << " inside AI::identify_arterial_roads";
@@ -1188,6 +1189,9 @@ AI::identify_arterial_roads(PMap map){
           //  where I reversed the ordering so it does breadth-frist instead of depth-first
           //  there is probably a bug in this code, or in the flagsearch logic, but because I am not actually using
           //  arterial roads for anything yet I will simply disable it for now and figure the bug out later
+          // MIGHT BE FIXED NOW - renabled and testing
+          // nope still broken, trying same fix as used elsewhere, setting fnode->dir = d earlier
+          // wait that isn't even done here, this function is written differently.  look into why, one of them is probably wrong
           //
           if (inv_flag_conn_dir == DirectionNone){
             AILogError["util_identify_arterial_roads"] << name << " could not find the Dir from fnode->parent->pos " << fnode->parent->pos << " to child fnode->pos " << fnode->pos << "! throwing exception";
@@ -1215,6 +1219,10 @@ AI::identify_arterial_roads(PMap map){
       // for each direction that has a path, trace the path until a flag is reached
       for (Direction d : cycle_directions_cw()) {
         if (map->has_path(fnode->pos, d)) {
+          // NOTE!!!!
+          // does this need teh "castle appears to have a path" fix?
+          //
+
           // couldn't this use the internal flag->other_end_dir stuff instead of tracing it?
           // maybe...  try that after this is stable
           Road fsearch_road = trace_existing_road(map, fnode->pos, d);
@@ -1262,7 +1270,7 @@ AI::identify_arterial_roads(PMap map){
             new_fnode->flag_dist = new_fnode->parent->flag_dist + 1;
             // when doing a flag search, the parent node's direction *cannot* be inferred by reversing its child node dir
             //   like when doing tile pathfinding, so it must be set explicitly set by associating the parent node Dir with the child node pos
-            fnode->child_dir[d] = new_pos;
+            fnode->child_dir[d] = new_pos; // wait WHY IS THIS DONE DIFFERENTLY THAN IN MY OTHER SEARCHES?  one is likely wrong!
             open.push_back(new_fnode);
             std::push_heap(open.begin(), open.end(), flagsearch_node_less);
           } // if !in_open
@@ -1499,6 +1507,11 @@ AI::find_flag_path_between_flags(PMap map, unsigned int player_index, MapPos end
     closed.push_front(fnode);
 
     for (Direction d : cycle_directions_cw()) {
+      // attempt to fix bug, setting fnode->dir to d much earlier in the loop because it should be set in all cases, right?
+      //  and if the loop exits before reaching here it is never set??? i dunno
+      // this seems to be fixing it, actually
+      fnode->dir = d;
+
       // attempt to work around the issue with castle flag appearing to have a path UpLeft from its flag into
       //  the castle, which breaks pathfinding
       //  is this an issue for Warehouses/Stocks, too??  should instead check for "is Inventory" or similar??
