@@ -549,10 +549,10 @@ AI::find_flag_and_tile_dist(PMap map, unsigned int player_index, RoadBuilder *rb
         Direction dir1 = fnode->parent->dir;
         // not sure why this is happening, since reversing the flagsearch_node_less started seeing dir1 being invalid occasionally
         if (dir1 < 0 || dir1 > 5){
-          AILogError["find_flag_and_tile_dist"] << name << " score_flag: end1 " << end1 << "'s dir1 " << dir1 << " is an invalid direction!  sleeping 120sec then crashing";
+          AILogError["find_flag_and_tile_dist"] << name << " score_flag: end1 " << end1 << "'s dir1 " << dir1 << " is an invalid direction!  sleeping 10sec then crashing";
           ai_mark_pos->erase(end1);
           ai_mark_pos->insert(ColorDot(end1, "yellow"));
-          std::this_thread::sleep_for(std::chrono::milliseconds(120000));
+          std::this_thread::sleep_for(std::chrono::milliseconds(10000));
           throw ExceptionFreeserf("find_flag_and_tile_dist, end1 has invalid direction for dir1");
         }
         // Direction dir2 =  complicated: see below...

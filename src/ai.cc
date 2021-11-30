@@ -1807,6 +1807,9 @@ AI::do_remove_road_stubs() {
       if (!flag->get_building()->has_knight())
         continue;
       MapPos flag_pos = flag->get_position();
+      // store the Road found for later checking to prevent self-connection
+      //  and also for length checking
+      Road existing_road;
       // see if it has only one path
       unsigned int paths = 0;
       Direction road_dir = DirectionNone;
@@ -1819,8 +1822,9 @@ AI::do_remove_road_stubs() {
           break;
         }
         // only consider removing if its road is over a certain length
-        Road tmp_road = trace_existing_road(map, flag_pos, dir);
-        if (tmp_road.get_length() < 6){
+        //  and also store the Road found for later checking to prevent self-connection
+        existing_road = trace_existing_road(map, flag_pos, dir);
+        if (existing_road.get_length() < 6){
           AILogDebug["do_remove_road_stubs"] << name << " eligible knight hut stub road ending with flag at pos " << flag_pos << " is too short to bother with, not removing road";
           break;
         }else{
@@ -1840,6 +1844,10 @@ AI::do_remove_road_stubs() {
         if (map->has_flag(pos) && pos != flag_pos && flag->get_owner() == player_index && flag->is_connected()
          || (game->can_build_flag(pos, player) && map->has_any_path(pos))) {
           AILogDebug["do_remove_road_stubs"] << name << " eligible knight hut stub road ending with flag at pos " << flag_pos << " with one path and suitable length, found nearby flag/pos at " << pos;
+          if (existing_road.has_pos(map.get(), pos)){
+            AILogDebug["do_remove_road_stubs"] << name << " eligible knight hut stub road ending with flag at pos " << flag_pos << " skipping pos " << pos << " as it is part of the existing road";
+            continue;
+          }
           Road notused; // not used here, can I just pass a zero instead of &notused to build_best_road and skip initialization of a wasted object?
           was_built = AI::build_best_road(flag->get_position(), road_options, &notused, Building::TypeNone, Building::TypeNone, pos, false);
           if (was_built){
@@ -1856,6 +1864,8 @@ AI::do_remove_road_stubs() {
         AILogDebug["do_remove_road_stubs"] << name << " eligible knight hut stub road ending with flag at pos " << flag_pos << " had replacement road built, destroying old road in dir " << NameDirection[road_dir] << " / " << road_dir;
         game->demolish_road(map->move(flag_pos, road_dir), player);
         roads_removed++;
+        // sleep a bit to be more human like
+        std::this_thread::sleep_for(std::chrono::milliseconds(2000));
       }
     }
   } // if only do knight stub removal every x loops
