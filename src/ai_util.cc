@@ -777,7 +777,8 @@ AI::build_best_road(MapPos start_pos, RoadOptions road_options, Road *built_road
         AILogDebug["util_build_best_road"] << name << " RoadOptions::MostlyStraight is on, checking tile_dist from start_pos " << start_pos << " to end_pos " << target_pos << " for an ideal road";
         int ideal_length = AI::get_straightline_tile_dist(map, start_pos, target_pos);
         //
-        // EVEN UGLIER HACK HERE - really need to ditch most of RoadOptions and instead allow explicitly setting various limits
+        // EVEN UGLIER HACK HERE because this is specific to spiderweb roads
+        ///  - really need to ditch most of RoadOptions and instead allow explicitly setting various limits
         //
         if (proposed_direct_road.get_length() > 20){
           AILogDebug["util_build_best_road"] << name << " RoadOptions::MostlyStraight is on, rejecting this solution because proposed_direct_road length of " << proposed_direct_road.get_length() << " is too long";
@@ -1145,6 +1146,11 @@ AI::build_best_road(MapPos start_pos, RoadOptions road_options, Road *built_road
         // no new length for an existing road, this means it will be preferred over a similiar
         //   potential new road after new_length penalty applied.  A new road must be significantly better to be built
         unsigned int new_length = 0;
+        //
+        // MAJOR BUG?? I noticed when looking at logs (with PenalizeNewLength turned off but not sure if that is related)
+        //   where the "tile_dist" showed up as the score of the potential new flag's tile-dist to the target flag
+        //  and did NOT include the new length that all, which I assume it shuold?
+        //
         AILogDebug["util_build_best_road"] << name << " BEFORE applying any penalties, potential road from start_pos " << start_pos << " in dir " << NameDirection[start_dir] << " to nearby_eroad_flag_pos " << nearby_eroad_flag_pos <<
           " has tile_dist " << tile_dist << ", flag_dist " << flag_dist << ", new_length " << new_length << " to target_pos " << target_pos;
         //----------------------------------------------------------------------------------------------
@@ -1781,14 +1787,12 @@ AI::find_halfway_pos_between_buildings(Building::Type first, Building::Type seco
 //    until another flag is found.  The start pos doesn't have to be a real flag
 Road
 AI::trace_existing_road(PMap map, MapPos start_pos, Direction dir) {
-  //AILogDebug["util_trace_existing_road"] << name << " inside trace_existing_road, start_pos " << start_pos << ", dir: " << NameDirection[dir];
+  AILogDebug["util_trace_existing_road"] << name << " inside trace_existing_road, start_pos " << start_pos << ", dir: " << NameDirection[dir];
   Road road;
   if (!map->has_path(start_pos, dir)) {
-    AILogWarn["util_trace_existing_road"] << "A no path found";
-    AILogWarn["util_trace_existing_road"] << name << "B no path found";
-    AILogWarn["util_trace_existing_road"] << name << "C no path found at " << start_pos;
-    AILogWarn["util_trace_existing_road"] << name << "D no path found at " << start_pos << " in direction " << dir;
     AILogWarn["util_trace_existing_road"] << name << " no path found at " << start_pos << " in direction " << NameDirection[dir] << "!  FIND OUT WHY";
+    ai_mark_pos.insert(ColorDot(start_pos, "white"));
+    std::this_thread::sleep_for(std::chrono::milliseconds(100000));
     return road;
   }
   road.start(start_pos);

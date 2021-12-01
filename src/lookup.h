@@ -596,7 +596,7 @@ const Building::Type BuildingAffinity[25][2] = {
 typedef enum RoadOption {
   Direct = 0,         // connect directly to target building's flag, [not?] any potential routes via other flags, no splitting roads, ignores Improve flag (will build regardless)
   SplitRoads,         // allow creating new flags (splitting roads) when optimal
-  PenalizeNewLength,  // disfavor creating new roads, prefer connecting to existing paths when optimal
+  PenalizeNewLength,  // disfavor creating new road length, prefer connecting to existing paths when optimal
   AvoidCastleArea,    // disfavor any pos surrounding the castle, to avoid congesting that area
   PenalizeCastleFlag, // disfavor any flag-path that includes the castle flag, for resources that route directly to consumers
   Improve,            // allow creating new roads even if start_pos already has any existing path (otherwise disallow it)

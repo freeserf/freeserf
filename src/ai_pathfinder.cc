@@ -46,11 +46,14 @@ static bool
 flagsearch_node_less(const PFlagSearchNode &left, const PFlagSearchNode &right) {
   // A search node is considered less than the other if
   // it has a *lower* flag distance.  This means that in the max-heap
-// the shorter distance will go to the top
+  // the shorter distance will go to the top
   //return left->flag_dist < right->flag_dist;
   // testing reversing this to see if it fixes depth-first issue
   // YES I think it does... so using above seems to do depth-first and using this below does breadth first
   return right->flag_dist < left->flag_dist;
+  // hmm it seems flipping this breaks the iter_swap stuff in the find_flag_and_tile_dist code
+  //  which rusults in a lot of problems.  I am reverting this and need to investigate if 
+  //  find_flag_and_tile_dist are doing depth first or if it is only a problem with the new find_flag_path_between_flags
 }
 
 
@@ -541,18 +544,31 @@ AI::find_flag_and_tile_dist(PMap map, unsigned int player_index, RoadBuilder *rb
         //    and tracing the path forwards to the flag that we just came from
         //    ??   is this even true with new fake-flag solution of just checking the adjacent flags??
         MapPos end1 = fnode->parent->pos;
+        //ai_mark_pos->erase(end1);
+        //ai_mark_pos->insert(ColorDot(end1, "gray"));
+        //std::this_thread::sleep_for(std::chrono::milliseconds(200));
         // wait a minute... after tracing complex bug it seems like end2 should not be fnode->pos but instead
         //  should be determined by the result of the trace_existing_road call??
         // I think I am getting bogus end2 results in some cases (maybe all?)
         //MapPos end2 = fnode->pos;
         MapPos end2 = bad_map_pos;
-        Direction dir1 = fnode->parent->dir;
+        //Direction dir1 = fnode->parent->dir;  // this dir association BREAKS because of iter swapping during heap sort!!!
+        Direction dir1 = DirectionNone;
+        for (Direction d : cycle_directions_cw()){
+          if (fnode->parent->child_dir[d] == fnode->pos){
+            AILogError["find_flag_and_tile_dist"] << name << " child_dir from parent->pos " << fnode->parent->pos << " to fnode->pos is " << d << " / " << NameDirection[d];
+            dir1 = d;
+            break;
+          }
+        }
         // not sure why this is happening, since reversing the flagsearch_node_less started seeing dir1 being invalid occasionally
         if (dir1 < 0 || dir1 > 5){
-          AILogError["find_flag_and_tile_dist"] << name << " score_flag: end1 " << end1 << "'s dir1 " << dir1 << " is an invalid direction!  sleeping 10sec then crashing";
+          AILogError["find_flag_and_tile_dist"] << name << " score_flag: end1 " << end1 << "'s dir1 " << dir1 << " is an invalid direction!  marked in yellow, sleeping 10sec then crashing";
+          AILogError["find_flag_and_tile_dist"] << name << " note: fnode->parent->pos is " << fnode->parent->pos << " and fnode->pos is " << fnode->pos; 
           ai_mark_pos->erase(end1);
           ai_mark_pos->insert(ColorDot(end1, "yellow"));
-          std::this_thread::sleep_for(std::chrono::milliseconds(10000));
+          std::this_thread::sleep_for(std::chrono::milliseconds(120000));
+
           throw ExceptionFreeserf("find_flag_and_tile_dist, end1 has invalid direction for dir1");
         }
         // Direction dir2 =  complicated: see below...
@@ -625,7 +641,9 @@ AI::find_flag_and_tile_dist(PMap map, unsigned int player_index, RoadBuilder *rb
       // attempt to fix bug, setting fnode->dir to d much earlier in the loop because it should be set in all cases, right?
       //  and if the loop exits before reaching here it is never set??? i dunno
       // this seems to be fixing it, actually
-      fnode->dir = d;
+      //  NO THIS FORCES THE DIR TO BE THE LAST DIR, 5, if not properly set
+      //  which causes other issues as all functions will assume there is a path in dir 5!
+      //fnode->dir = d;
 
       // attempt to work around the issue with castle flag appearing to have a path UpLeft from its flag into
       //  the castle, which breaks pathfinding
@@ -648,7 +666,7 @@ AI::find_flag_and_tile_dist(PMap map, unsigned int player_index, RoadBuilder *rb
         //ai_mark_pos->insert(ColorDot(new_pos, "dk_gray"));
         //std::this_thread::sleep_for(std::chrono::milliseconds(0));
         //Direction end_dir = reverse_direction(fsearch_road.get_last());
-        AILogDebug["find_flag_and_tile_dist"] << name << "fsearchnode - fsearch from fnode->pos " << fnode->pos << " and dir " << NameDirection[d] << name << " found flag at pos " << new_pos << " with return dir " << reverse_direction(fsearch_road.get_last());
+        AILogDebug["find_flag_and_tile_dist"] << name << "fsearchnode - fsearch from fnode->pos " << fnode->pos << " and dir " << NameDirection[d] << " found flag at pos " << new_pos << " with return dir " << reverse_direction(fsearch_road.get_last());
 
         // break early if this is the target_flag, run the usual new-node code here that would otherwise be run after in_closed and in_open checks
         //   wait, why duplicate this and break?  it should find that it is NOT in_closed and NOT in_open, move on to creating a new node and complete
@@ -722,12 +740,9 @@ AI::find_flag_and_tile_dist(PMap map, unsigned int player_index, RoadBuilder *rb
           new_fnode->parent = fnode;
           new_fnode->flag_dist = new_fnode->parent->flag_dist + 1;
           // when doing a flag search, the parent node's direction *cannot* be inferred by reversing its child node dir
-          //   like when doing tile pathfinding, so it must be set explicitly set. it will be reused and reset into each explored direction
-          //   but that should be okay because once an end solution is found the other directions no longer matter
+          //   like when doing tile pathfinding, so it must be set explicitly set
           AILogError["find_flag_and_tile_dist"] << name << " debugging BLEG1, creating new node, current fnode->pos " << fnode->pos << " fnode->dir was " << fnode->dir << ", new_fnode->pos " << new_fnode->pos << " setting fnode->dir to d " << d;
-          // attempt to fix bug, setting fnode->dir to d much earlier in the loop because it should be set in all cases, right?
-          //  and if the loop exits before reaching here it is never set??? i dunno
-          //fnode->dir = d;
+          fnode->child_dir[d] = new_pos;
           open.push_back(new_fnode);
           std::push_heap(open.begin(), open.end(), flagsearch_node_less);
           AILogDebug["find_flag_and_tile_dist"] << name << "fnodesearch - fnode at new_pos " << new_pos << " is NOT already in_open, DONE CREATING new fnode ";
@@ -972,7 +987,7 @@ AI::find_nearest_inventory_by_flag(PMap map, unsigned int player_index, MapPos f
         //while (fnode->parent) {
           //MapPos end1 = fnode->parent->pos;
           //MapPos end2 = bad_map_pos;
-          //Direction dir1 = fnode->parent->dir;
+          //Direction dir1 = fnode->parent->dir;  // DONT USE ->dir, instead use child_dir[d] !!!
           //Direction dir2 = DirectionNone;
           // is this needed?
           //existing_road = trace_existing_road(map, end1, dir1);
@@ -1042,7 +1057,8 @@ AI::find_nearest_inventory_by_flag(PMap map, unsigned int player_index, MapPos f
 					// when doing a flag search, the parent node's direction *cannot* be inferred by reversing its child node dir
 					//   like when doing tile pathfinding, so it must be set explicitly set. it will be reused and reset into each explored direction
 					//   but that should be okay because once an end solution is found the other directions no longer matter
-					fnode->dir = d;
+					//fnode->dir = d;
+          fnode->child_dir[d] = new_pos;
 					open.push_back(new_fnode);
 					std::push_heap(open.begin(), open.end(), flagsearch_node_less);
 					//AILogVerbose["find_nearest_inventory_by_flag"] << name << " fnodesearch - fnode at new_pos " << new_pos << " is NOT already in_open, DONE CREATING new fnode ";
@@ -1195,7 +1211,7 @@ AI::identify_arterial_roads(PMap map){
           //
           if (inv_flag_conn_dir == DirectionNone){
             AILogError["util_identify_arterial_roads"] << name << " could not find the Dir from fnode->parent->pos " << fnode->parent->pos << " to child fnode->pos " << fnode->pos << "! throwing exception";
-            //std::this_thread::sleep_for(std::chrono::milliseconds(120000));
+            std::this_thread::sleep_for(std::chrono::milliseconds(120000));
             throw ExceptionFreeserf("in AI::util_identify_arterial_roads, could not find the Dir from fnode->parent->pos to child !fnode->pos!  it should be known");
           }
           // actually, I take it back, tracking it the entire way is fine
@@ -1269,7 +1285,7 @@ AI::identify_arterial_roads(PMap map){
             new_fnode->parent = fnode;
             new_fnode->flag_dist = new_fnode->parent->flag_dist + 1;
             // when doing a flag search, the parent node's direction *cannot* be inferred by reversing its child node dir
-            //   like when doing tile pathfinding, so it must be set explicitly set by associating the parent node Dir with the child node pos
+            //   like when doing tile pathfinding, so it must be set explicitly set
             fnode->child_dir[d] = new_pos; // wait WHY IS THIS DONE DIFFERENTLY THAN IN MY OTHER SEARCHES?  one is likely wrong!
             open.push_back(new_fnode);
             std::push_heap(open.begin(), open.end(), flagsearch_node_less);
@@ -1507,10 +1523,6 @@ AI::find_flag_path_between_flags(PMap map, unsigned int player_index, MapPos end
     closed.push_front(fnode);
 
     for (Direction d : cycle_directions_cw()) {
-      // attempt to fix bug, setting fnode->dir to d much earlier in the loop because it should be set in all cases, right?
-      //  and if the loop exits before reaching here it is never set??? i dunno
-      // this seems to be fixing it, actually
-      fnode->dir = d;
 
       // attempt to work around the issue with castle flag appearing to have a path UpLeft from its flag into
       //  the castle, which breaks pathfinding
@@ -1595,9 +1607,9 @@ AI::find_flag_path_between_flags(PMap map, unsigned int player_index, MapPos end
           new_fnode->parent = fnode;
           new_fnode->flag_dist = new_fnode->parent->flag_dist + 1;
           // when doing a flag search, the parent node's direction *cannot* be inferred by reversing its child node dir
-          //   like when doing tile pathfinding, so it must be set explicitly set. it will be reused and reset into each explored direction
-          //   but that should be okay because once an end solution is found the other directions no longer matter
-          fnode->dir = d;
+          //   like when doing tile pathfinding, so it must be set explicitly set
+          fnode->child_dir[d] = new_pos;
+
           open.push_back(new_fnode);
           std::push_heap(open.begin(), open.end(), flagsearch_node_less);
           AILogDebug["find_flag_path_between_flags"] << name << " fnodesearch - fnode at new_pos " << new_pos << " is NOT already in_open, DONE CREATING new fnode ";
@@ -1614,3 +1626,181 @@ AI::find_flag_path_between_flags(PMap map, unsigned int player_index, MapPos end
   //return std::make_tuple(bad_score, bad_score, false);
   return false;
 }
+
+
+
+
+// perform breadth-first FlagSearch to find best flag-path from start_pos 
+//  to target_pos and determine tile path along the way.
+// return true if solution found, false if not
+//  this function will NOT work for fake flags / splitting flags
+//
+// this function is NOT optimal and is written for understanding and visualizing
+//  the search.  A typical search adds nodes to open before checking them
+//  but when visualizing a search it appears that the search is going past the
+//  target.  Instead, this search checks every new node as it is first found
+//  so that it can quit and return solution immediately
+//
+// also, note that this is not a A* search like the Pathfinder.cc, there is no node comparisons
+//  because flags all have equal priority aside from their distance from start_pos,
+//  and the distance from start pas is effectively handled in correct priority order
+//  because it does breadth-first and if(closed) checking should prevent looping
+//
+bool
+AI::NEW_find_flag_and_tile_dist(PMap map, unsigned int player_index, MapPos start_pos, MapPos target_pos, MapPosVector *solution_flags, ColorDotMap *ai_mark_pos){
+  AILogDebug["NEW_find_flag_and_tile_dist"] << name << "  start_pos " << start_pos << ", target_pos " << target_pos;
+  ai_mark_pos->clear();
+
+  // sanity check - this excludes fake flag solution starts (could change that later though)
+  if (!map->has_flag(start_pos)){
+    AILogError["NEW_find_flag_and_tile_dist"] << name << " expecting that start_pos " << start_pos << " provided to this function is a flag pos, throwing exception";
+    throw ExceptionFreeserf("expecting that start_pos provided to this function is a flag pos");
+  }
+
+  // handle start=end
+  if (start_pos == target_pos){
+    AILogWarn["NEW_find_flag_and_tile_dist"] << name << " start_pos " << start_pos << " IS target_pos " << target_pos << ", why even make this call?";
+    return true;
+  }
+
+  ai_mark_pos->erase(start_pos);
+  ai_mark_pos->insert(ColorDot(start_pos, "green"));
+
+  ai_mark_pos->erase(target_pos);
+  ai_mark_pos->insert(ColorDot(target_pos, "red"));
+  std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+
+  std::list<PFlagSearchNode> open;   // flags discovered but not checked for adjacent flags.  List is of Nodes instead of MapPos because needs parent, dist, etc.
+  std::list<MapPos> closed;          // flags already checked in all Dirs (by MapPos).  List of MapPos is fine because it only exists to avoid re-checking
+  
+  // set the first node of the search to the start_pos
+  //  and put it in the open list
+  PFlagSearchNode fnode(new FlagSearchNode);
+  fnode->pos = start_pos;
+  open.push_back(fnode);
+
+  while (!open.empty()) {
+    AILogInfo["NEW_find_flag_and_tile_dist"] << " start of while(!open.empty), open list contains " << open.size() << " elements";
+
+    fnode = open.front(); // read the first element
+    open.pop_front(); // remove the first element that was just read and put into fnode
+
+    AILogInfo["NEW_find_flag_and_tile_dist"] << " fnode->pos is " << fnode->pos;
+
+    ai_mark_pos->erase(fnode->pos);
+    ai_mark_pos->insert(ColorDot(fnode->pos, "blue"));
+    std::this_thread::sleep_for(std::chrono::milliseconds(100));
+
+    // get this Flag
+    Flag *flag = game->get_flag_at_pos(fnode->pos);
+    if (flag == nullptr){
+      AILogWarn["NEW_find_flag_and_tile_dist"] << " got nullptr for game->get_flag_at_pos " << fnode->pos << " skipping this dir";
+      throw ExceptionFreeserf("got nullptr for game->get_flag_at_pos");
+      continue;
+    }
+    
+    // find adjacent flags to check
+    for (Direction dir : cycle_directions_cw()){
+      //ai_mark_pos->erase(map->move(fnode->pos, dir));
+      //ai_mark_pos->insert(ColorDot(map->move(fnode->pos, dir), "gray"));
+      //std::this_thread::sleep_for(std::chrono::milliseconds(100));
+      // skip dir if no path
+      if (!map->has_path(fnode->pos, dir)){
+        //ai_mark_pos->erase(map->move(fnode->pos, dir));
+        //ai_mark_pos->insert(ColorDot(map->move(fnode->pos, dir), "black"));
+        //std::this_thread::sleep_for(std::chrono::milliseconds(100));
+        continue;
+      }
+
+      // avoid "building that acccepts resources appears to have a path UpLeft" issue
+      if (dir == DirectionUpLeft && flag->has_building()){
+        AILogInfo["NEW_find_flag_and_tile_dist"] << " skipping UpLeft of pos " << fnode->pos << " because there is a building and map->has_path lies";
+        continue;
+      }
+      //ai_mark_pos->erase(map->move(fnode->pos, dir));
+      //ai_mark_pos->insert(ColorDot(map->move(fnode->pos, dir), "white"));
+      //std::this_thread::sleep_for(std::chrono::milliseconds(100));
+
+      // get the other Flag in this dir
+      Flag *other_end_flag = flag->get_other_end_flag(dir);
+      if (other_end_flag == nullptr){
+        // this could be the castle UpLeft path issue?
+        AILogWarn["NEW_find_flag_and_tile_dist"] << name << " got nullptr for game->get_other_end_flag(" << NameDirection[dir] << ") from flag at pos " << fnode->pos << " skipping this dir";
+        ai_mark_pos->erase(map->move(fnode->pos, dir));
+        ai_mark_pos->insert(ColorDot(map->move(fnode->pos, dir), "coral"));
+        std::this_thread::sleep_for(std::chrono::milliseconds(10000));
+        throw ExceptionFreeserf("got nullptr for game->get_other_end_flag");
+        continue;
+      }
+      MapPos other_end_flag_pos = other_end_flag->get_position();
+      AILogDebug["NEW_find_flag_and_tile_dist"] << name << " other_end_flag_pos is " << other_end_flag_pos;
+
+      ai_mark_pos->erase(other_end_flag_pos);
+      ai_mark_pos->insert(ColorDot(other_end_flag_pos, "lt_yellow"));
+      std::this_thread::sleep_for(std::chrono::milliseconds(100));
+
+      // skip dir if adjacent flag pos is already in the closed list
+      if (std::find(closed.begin(), closed.end(), other_end_flag_pos) != closed.end()){
+        ai_mark_pos->erase(other_end_flag_pos);
+        ai_mark_pos->insert(ColorDot(other_end_flag_pos, "brown"));
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+        continue;
+      }
+
+      // skip dir if adjacent flag pos is already in the open list
+      bool already_in_open = false;
+      for (PFlagSearchNode tmp_fnode : open){
+        if (tmp_fnode->pos == other_end_flag_pos){
+          ai_mark_pos->erase(other_end_flag_pos);
+          ai_mark_pos->insert(ColorDot(other_end_flag_pos, "dk_yellow"));
+          std::this_thread::sleep_for(std::chrono::milliseconds(100));
+          already_in_open = true;
+          break;
+        }
+      }
+      if (already_in_open){
+        continue;
+      }
+
+      // this flag pos is not yet known, create a new node
+      PFlagSearchNode new_fnode(new FlagSearchNode);
+      new_fnode->pos = other_end_flag_pos;
+      new_fnode->parent = fnode;
+      new_fnode->dir = dir;  // this is the dir from the PARENT to the child fnode
+
+      // stop here to check if the new pos is the target_pos
+      //  and if so retrace it and record the solution
+      if (new_fnode->pos == target_pos){
+        ai_mark_pos->erase(new_fnode->pos);
+        ai_mark_pos->insert(ColorDot(new_fnode->pos, "dk_red"));
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+        PFlagSearchNode solution_node = new_fnode;
+        while(solution_node->parent){
+          solution_flags->push_back(solution_node->pos);
+          ai_mark_pos->erase(solution_node->pos);
+          ai_mark_pos->insert(ColorDot(solution_node->pos, "cyan"));
+          std::this_thread::sleep_for(std::chrono::milliseconds(100));
+          solution_node = solution_node->parent;
+        }
+        // push the last one on also
+        solution_flags->push_back(solution_node->pos);
+        std::this_thread::sleep_for(std::chrono::milliseconds(2000));
+        return true;
+      }
+
+      // this new node is not the target_pos, add to open list
+      //  to continue the search
+      open.push_back(new_fnode);
+      ai_mark_pos->erase(new_fnode->pos);
+      ai_mark_pos->insert(ColorDot(new_fnode->pos, "dk_yellow"));
+      std::this_thread::sleep_for(std::chrono::milliseconds(100));
+
+    } //end foreach Direction
+
+    // all dirs checked for this node, put this pos on closed list
+    ai_mark_pos->erase(fnode->pos);
+    ai_mark_pos->insert(ColorDot(fnode->pos, "brown"));
+    closed.push_back(fnode->pos);
+
+  } //end while(!open.empty)
+} //end function
