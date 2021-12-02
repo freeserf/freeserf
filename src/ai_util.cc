@@ -1804,7 +1804,7 @@ AI::trace_existing_road(PMap map, MapPos start_pos, Direction dir) {
     pos = map->move(pos, dir);
     //std::this_thread::sleep_for(std::chrono::milliseconds(0));
     if (map->has_flag(pos) && pos != start_pos) {
-      //AILogDebug["util_trace_existing_road"] << name << " flag found at pos " << pos << ", returning road (which has length " << road.get_length() << ")";
+      AILogDebug["util_trace_existing_road"] << name << " flag found at pos " << pos << ", returning road (which has length " << road.get_length() << ")";
       //ai_mark_road->invalidate();
       return road;
     }
