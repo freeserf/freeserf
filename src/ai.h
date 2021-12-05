@@ -65,7 +65,8 @@ class AI {
   Roads *ai_mark_build_better_roads = (new Roads);   // used to highlight build_better-built roads for AI overlay for debugging.  
   std::set<std::string> expand_towards;
   std::set<std::string> last_expand_towards;  // quick hack to save a copy for attack scoring
-  MapPos stopbuilding_pos;
+  //MapPos stopbuilding_pos;
+  //bool stop_building;
   MapPos castle_pos;
   MapPos castle_flag_pos;
   FlagDirTimer no_transporter_timers;
@@ -334,6 +335,8 @@ class AI {
   void do_build_gold_smelter_and_connect_gold_mines();
   void do_build_warehouse();
   void do_count_resources_sitting_at_flags(MapPos);
+  bool do_can_build_knight_huts();
+  bool do_can_build_other();
 
   //
   // ai_pathfinder.cc
