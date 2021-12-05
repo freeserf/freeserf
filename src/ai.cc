@@ -143,116 +143,7 @@ AI::next_loop(){
   //  //return;
   //}
 
-/*
-  //DEBUG
-  MapPosVector corners = AI::get_corners(castle_pos);
-  std::map<int,MapPosVector> spots;
-  int dir = -1;
-  for (MapPos corner_pos : corners) {
-    dir++;
-    spots[dir] = {};
-    for (unsigned int i = 0; i < AI::spiral_dist(4); i++) {
-      MapPos spot_pos = map->pos_add_extended_spirally(corner_pos, i);
-      ai_mark_pos.insert(ColorDot(spot_pos, "black"));
-      std::this_thread::sleep_for(std::chrono::milliseconds(5));
-      spots.at(dir).push_back(spot_pos);
-    }
-  }
-  MapPosVector bigspiral = {};
-  std::map<int,MapPosVector> matches;
-  for (unsigned int i = AI::spiral_dist(8) - 1; i > 0; i--) {
-    //MapPos ring_pos = map->pos_add_extended_reverse_spirally(inventory_pos, i);
-    MapPos ring_pos = map->pos_add_extended_spirally(castle_pos, i);
-    ai_mark_pos.erase(ring_pos);
-    ai_mark_pos.insert(ColorDot(ring_pos, "lt_orange"));
-    bigspiral.push_back(ring_pos);
-    for (Direction dir : cycle_directions_cw()){
-      if (std::find(spots[dir].begin(),spots[dir].end(),ring_pos) != spots[dir].end()){
-        matches[dir].push_back(ring_pos);
-        ai_mark_pos.erase(ring_pos);
-        ai_mark_pos.insert(ColorDot(ring_pos, get_dir_color_name(dir)));
-      }
-      std::this_thread::sleep_for(std::chrono::milliseconds(5));
-    }
-  }
-  ai_mark_pos.clear();
-  for (Direction dir : cycle_directions_cw()){
-    for (MapPos pos : matches[dir]){
-      ai_mark_pos.erase(pos);
-      ai_mark_pos.insert(ColorDot(pos, get_dir_color_name(dir)));
-      std::this_thread::sleep_for(std::chrono::milliseconds(15));
-    }
-    ai_mark_pos.clear();
-  }
-
-  //======= copied from map.h =====================
-  //// Extract col and row from MapPos
-  //int pos_col(MapPos pos) const { return geom_.pos_col(pos); }
-  //int pos_row(MapPos pos) const { return geom_.pos_row(pos); }
-  //
-  //// Translate col, row coordinate to MapPos value.
-  //MapPos pos(int x, int y) const { return geom_.pos(x, y); }
-  ================================================= 
-
-  // make this a nested map that includes not just each direction
-  //  but also each corner distance from center.  
-  // Right now it is hardcoded to 4 pos away (it uses get_corners)
-  std::map<int,MapPosVector> directional_fill;
-  ai_mark_pos.clear();
-  dir = -1;
-  for (MapPos corner_pos : corners) {
-    dir++;
-    AILogInfo["spiral"] << " corner_pos " << corner_pos << " is in dir " << NameDirection[dir] << " / " << dir;
-    int corner_col = map->pos_col(corner_pos);
-    int corner_row = map->pos_row(corner_pos);
-    //for (unsigned int i = 0; i < AI::spiral_dist(4); i++) {
-    for (MapPos pos : matches.at(dir)){
-      //MapPos pos = map->pos_add_extended_spirally(corner_pos, i);
-      int col_offset = corner_col - map->pos_col(pos);
-      int row_offset = corner_row - map->pos_row(pos);
-      AILogInfo["spiral"] << " pos " << pos << " has offset " << col_offset << ", " << row_offset << " from corner_pos " << corner_pos;
-      directional_fill[dir].push_back(col_offset);
-      directional_fill[dir].push_back(row_offset);
-    }
-  }
-  */
-
-/* this works
-  MapPosVector corners = AI::get_corners(castle_pos);
-  //int dir = 2;
-  int dir = -1;
-  for (MapPos corner_pos : corners) {
-    dir++;
-    //if (dir == 6){
-    //  dir = 0;
-    //}
-    //int *foo = map->get_directional_fill_pattern();
-    //for (int i = 0; i < 104; i++){
-      //int dir_offset = 104 * dir;
-      //int x = foo[dir_offset + i];
-      //int y = foo[dir_offset + i + 1];
-      //int x = foo[i];
-      //int y = foo[i+1];
-      //i++;
-      //AILogInfo["spiral"] << "x,y = " << x << ", " << y;
-      //MapPos pos = map->pos_add(corner_pos,x,y);
-      // I don't understand why the -9 is required, I had it working okay when I wasn't
-      //  using pos_add_directional_fill but was instead directly calculating the offsets
-      // from the fill pattern.  I guess either leave it this way, figure out why, or
-      //  just use the fill pattern directly instead of the pos_pattern
-    //for (unsigned int i = 0; i < (AI::spiral_dist(4) - 9); i++) {
-    for (unsigned int i = 0; i < DIRECTIONAL_FILL_POS_MAX; i++) {
-      MapPos pos = map->pos_add_directional_fill(corner_pos, i, dir);
-      ai_mark_pos.erase(pos);
-      ai_mark_pos.insert(ColorDot(pos, get_dir_color_name(Direction(dir))));
-      std::this_thread::sleep_for(std::chrono::milliseconds(75));
-    }
-  }
-  return;
-  */
-  //DEBUG
-
-  do_get_serfs();
+  do_get_serfs();  // is this actually needed?
   //do_debug_building_triggers();   // not using these right now
 
   //-----------------------------------------------------------
@@ -341,13 +232,12 @@ AI::next_loop(){
     do_build_gold_smelter_and_connect_gold_mines();
 
     AILogDebug["next_loop"] << name << " Done with economy loop for stock at pos " << inventory_pos;
-    std::this_thread::sleep_for(std::chrono::milliseconds(2000));
+    std::this_thread::sleep_for(std::chrono::milliseconds(3000));
   }
 
   // create parallel infrastructure!
-  do_build_warehouse();  // disabling this for now to debug core economy issues
+  do_build_warehouse();
 
-  //ai_mark_pos.clear();
   AILogInfo["next_loop"] << name << " Done AI Loop #" << loop_count;
   ai_status.assign("END OF LOOP");
   AILogDebug["next_loop"] << name << " loop complete, sleeping 2sec";
@@ -381,6 +271,7 @@ AI::do_place_castle() {
     //   maybe start doing random wait instead?  meh
     AILogDebug["do_place_castle"] << name << " sleeping " << player_index << "sec so each AI player thread gets different seed for random map pos";
     std::this_thread::sleep_for(std::chrono::milliseconds(1000 * player_index));
+    // I think this needs to get the existing game Random rnd, NOT creating a new one
     Random rnd;
     int tries = 250; // I saw 200 tries reached once, not sure if it was a particular map or what
     int x = 0;
@@ -625,7 +516,7 @@ AI::do_connect_disconnected_flags() {
     }
     AILogDebug["do_connect_disconnected_flags"] << name << " flag at pos " << flag->get_position() << " has no connected road, trying to connect it";
     Road notused; // not used here, can I just pass a zero instead of &notused to build_best_road and skip initialization of a wasted object?
-    bool was_built = AI::build_best_road(flag->get_position(), road_options, &notused);
+    bool was_built = AI::build_best_road(flag->get_position(), road_options, &notused, "do_connect_disconnected_flags");
     if (!was_built) {
       AILogDebug["do_connect_disconnected_flags"] << name << " thread #" << std::this_thread::get_id() << " AI is locking mutex before calling demolish_flag (and maybe attached building)";
       game->get_mutex()->lock();
@@ -634,9 +525,11 @@ AI::do_connect_disconnected_flags() {
       // yes!  let's try that
       if (flag->has_building()) {
         AILogDebug["do_connect_disconnected_flags"] << name << " failed to connect disconnected flag to road network!  BURNING ATTACHED BUILDING!";
-		// how did this ever work before??
+		    // how did this ever work before??
         //game->demolish_building(flag->get_position(), player);
-		game->demolish_building(map->move_up_left(flag->get_position()), player);
+        game->demolish_building(map->move_up_left(flag->get_position()), player);
+        // sleep to appear more human
+        std::this_thread::sleep_for(std::chrono::milliseconds(3000));
       }
       AILogDebug["do_connect_disconnected_flags"] << name << " failed to connect disconnected flag to road network!  removing it";
       game->demolish_flag(flag->get_position(), player);
@@ -703,8 +596,21 @@ AI::do_spiderweb_roads() {
   //   to be used, it would result in more distant connections, and if unlimited would 
   //   result in connections straight across the center pos.  If a smaller arc were used
   //   it would not succeed in making as many new spiderweb connections as desired 
+  //
   MapPosVector flag_lists[9] = { }; //array of vectors
-  for (unsigned int i = AI::spiral_dist(14); i < AI::spiral_dist(15); i++) {
+
+  //for (unsigned int i = AI::spiral_dist(14); i < AI::spiral_dist(15); i++) {
+  // because the ring uses spiral function which only goes counter-clockwise starting
+  //  from down-right, randomize the start of the ring to be a random pos between
+  //  spiral(13.5) and spiral(14.5)
+  unsigned int ring_start = AI::spiral_dist(14);
+  unsigned int ring_end = AI::spiral_dist(15);
+  unsigned int ring_length = ring_end - ring_start;
+  unsigned int half_ring_length = ring_length * 0.5;
+  unsigned int upper = ring_start + half_ring_length;
+  unsigned int lower = ring_start - half_ring_length;
+  unsigned int adjusted_ring_start = (rand() % (upper - lower + 1)) + lower;
+  for (unsigned int i = adjusted_ring_start; i < adjusted_ring_start + ring_length; i++){
     MapPos ring_pos = map->pos_add_extended_spirally(inventory_pos, i);
     //ai_mark_pos.erase(ring_pos);
     //ai_mark_pos.insert(ColorDot(ring_pos, "dk_coral"));
@@ -716,7 +622,9 @@ AI::do_spiderweb_roads() {
 
     // every X pos in the hexagonal "ring"/perimeter, do an area search for flags
     MapPosVector flag_list = { };
-    for (unsigned int x = 0; x < AI::spiral_dist(4); x++) {
+    //for (unsigned int x = 0; x < AI::spiral_dist(4); x++) {
+    // trying a bit bigger
+    for (unsigned int x = 0; x < AI::spiral_dist(5); x++) {
       MapPos area_pos = map->pos_add_extended_spirally(ring_pos, x);
       //ai_mark_pos.erase(area_pos);
       //ai_mark_pos.insert(ColorDot(area_pos, "lavender"));
@@ -761,7 +669,7 @@ AI::do_spiderweb_roads() {
     //  and consider building a road between them, and if they look good, do so
     //
     for (MapPos area_flag_pos : shuffled_flag_vector) {
-      if (spider_web_roads_built > 0) { break; }  // only create one road per run
+      //if (spider_web_roads_built > 0) { break; }  // only create one road per run
       AILogDebug["do_spiderweb_roads"] << inventory_pos << " considering roads from area_flag_pos " << area_flag_pos;
       for (MapPos other_area_flag_pos : shuffled_flag_vector) {
         if (area_flag_pos == other_area_flag_pos) { continue; }
@@ -779,7 +687,7 @@ AI::do_spiderweb_roads() {
         // ALSO, accept the pair if the current tile_dist between roads is very long
 
         MapPosVector flags_found = {};
-        unsigned int tile_dist = 0; // not used here, TRY USING IT!
+        unsigned int tile_dist = 0;
         bool acceptable = false;
         if(find_flag_path_and_tile_dist_between_flags(map, area_flag_pos, other_area_flag_pos, &flags_found, &tile_dist, &ai_mark_pos)){
           AILogDebug["do_spiderweb_roads"] << inventory_pos << " flags_found between " << area_flag_pos << " and " << other_area_flag_pos << " with solution flag count " << flags_found.size() << " and solution tile_dist " << tile_dist;
@@ -792,8 +700,8 @@ AI::do_spiderweb_roads() {
               //break;  // could break here for efficiency, but for now I like to have it dump the entire flags_found list
             }
           }
-          if (tile_dist > 25){
-            AILogDebug["do_spiderweb_roads"] << inventory_pos << " tile_dist is >25, acceptable pair";
+          if (tile_dist > 15){
+            AILogDebug["do_spiderweb_roads"] << inventory_pos << " tile_dist is >15, acceptable pair";
             acceptable = true;
           }
           if (!acceptable){
@@ -811,37 +719,38 @@ AI::do_spiderweb_roads() {
         // try to build the spiderweb road
         //
         
+
         //
         // issue - if Improve is set and Direct off, often stubby useless roads are built that do not
         //  accomplish the spider-web goal.  I am not exactly sure why but it is probably a result of the "best road" logic
         //       - if Direct is set and Improve off, often long snakey roads are built parallel to each other
         // UPDATE - now if I turn of Direct and turn on Improve it doesn't build anything ever, not sure why
         // UPDATE - mostly fixed now but needs review
+        // UPDATE - I still see some dumb roads being made, try going back to Direct...
         //
         road_options.set(RoadOption::Improve);
-        road_options.reset(RoadOption::PenalizeNewLength);
+        //road_options.reset(RoadOption::PenalizeNewLength);
         //road_options.set(RoadOption::Direct);
-        road_options.set(RoadOption::MostlyStraight);
+        //road_options.set(RoadOption::MostlyStraight);
+        road_options.reset(RoadOption::SplitRoads);
         AILogDebug["do_spiderweb_roads"] << inventory_pos << " about to call build_best_road";
         Road built_road;
-        //AILogDebug["do_spiderweb_roads"] << inventory_pos << " spiderweb debug1 built_road has memory addr " << &built_road << " and source " << built_road.get_source();
-        bool was_built = build_best_road(area_flag_pos, road_options, &built_road, Building::TypeNone, Building::TypeNone, other_area_flag_pos);
+        bool was_built = build_best_road(area_flag_pos, road_options, &built_road, "do_spiderweb_roads", Building::TypeNone, Building::TypeNone, other_area_flag_pos);
         road_options.reset(RoadOption::Improve);
-        road_options.set(RoadOption::PenalizeNewLength);
+        //road_options.set(RoadOption::PenalizeNewLength);
         //road_options.reset(RoadOption::Direct);
-        road_options.reset(RoadOption::MostlyStraight);
+        //road_options.reset(RoadOption::MostlyStraight);
+        road_options.set(RoadOption::SplitRoads);
         if (was_built) {
           AILogDebug["do_spiderweb_roads"] << inventory_pos << " successfully built spider-web road between area_flag_pos " << area_flag_pos << " to other_area_flag_pos " << other_area_flag_pos;
           spider_web_roads_built++;
-          //AILogDebug["do_spiderweb_roads"] << inventory_pos << " spiderweb debug2 built_road has memory addr " << &built_road << " and source " << built_road.get_source();
           ai_mark_spiderweb_roads->push_back(built_road);
-          std::this_thread::sleep_for(std::chrono::milliseconds(2000));
+          std::this_thread::sleep_for(std::chrono::milliseconds(3000));
           // only create one road per run
           break;  // this is wrong and doesn't work!!  needs to 'return', or better needs to skip to end for proper waiitng and run timing
         }
         else {
           AILogDebug["do_spiderweb_roads"] << inventory_pos << " failed to build spider-web road between area_flag_pos " << area_flag_pos << " to other_area_flag_pos " << other_area_flag_pos;
-          std::this_thread::sleep_for(std::chrono::milliseconds(2000));
         }
       }
     }
@@ -928,15 +837,17 @@ AI::do_fix_stuck_serfs() {
     }
     else {
       if (game->get_tick() > trigger_tick) {
-        AILogDebug["do_fix_stuck_serfs"] << name << " SerfWaitTimer triggering serf_wait_idle_on_road_timer for serf " << serf->get_index() << " at pos " << serf->get_pos();
+        AILogDebug["do_fix_stuck_serfs"] << name << " SerfWaitTimer triggering serf_wait_idle_on_road_timer for serf " << serf->get_index() << " and serf type " << NameSerf[serf->get_type()] << " at pos " << serf->get_pos();
 
         AILogDebug["do_fix_stuck_serfs"] << name << " SerfWaitTimer detected WAIT_IDLE_ON_PATH STUCK SERF at pos " << serf->get_pos() << ", marking its current pos in lt_purple";
         ai_mark_pos.insert(ColorDot(serf->get_pos(), "lt_purple"));
         // I THINK I FIXED THIS ISSUE FOR GOOD - see https://github.com/freeserf/freeserf/issues/492
         //  changing this to a crash exception in case I am wrong about the fix being 100% effective
-        std::this_thread::sleep_for(std::chrono::milliseconds(10000));
+        std::this_thread::sleep_for(std::chrono::milliseconds(120000));
         AILogDebug["do_fix_stuck_serfs"] << name << " SerfWaitTimer detected WAIT_IDLE_ON_PATH STUCK SERF at pos " << serf->get_pos() << " of type " << NameSerf[serf->get_type()] << ", I THOUGHT I FIXED THIS! crashing.  check to see";
         // still seeing this happen for Transporter serfs... but rare... keep an eye on it
+        AILogDebug["do_fix_stuck_serfs"] << name << " pausing game for debugging";
+        game->pause();
         //throw ExceptionFreeserf("SerfWaitTimer detected WAIT_IDLE_ON_PATH STUCK SERF at pos - I THOUGHT I FIXED THIS");
         // don't erase timer if problem isn't fixed yet, keep checking each AI loop
         AILogDebug["do_fix_stuck_serfs"] << name << " SerfWaitTimer attempting to set serf to lost state, updating marking to purple";
@@ -1114,7 +1025,7 @@ AI::do_fix_missing_transporters() {
       continue;
     flag_index = flag->get_index();
     for (Direction dir : cycle_directions_cw()) {
-      if (!map->has_path(flag->get_position(), dir))
+      if (!map->has_path_IMPROVED(flag->get_position(), dir))
         continue;
       if (map->road_segment_in_water(flag->get_position(), dir))
         continue;
@@ -1128,7 +1039,7 @@ AI::do_fix_missing_transporters() {
       if (flag->has_transporter(dir)) {
         bool found_transporter = false;
         Road road;
-        if (!map->has_path(flag->get_position(), dir)) {
+        if (!map->has_path_IMPROVED(flag->get_position(), dir)) {
           AILogVerbose["do_fix_missing_transporters"] << name << " no path found for flag with pos " << flag->get_position() << ", index " << flag_index << ", dir " << dir << " / " << NameDirection[dir] << " during no_transporter check!  FIND OUT WHY";
         }
         MapPos pos = flag->get_position();
@@ -1158,7 +1069,7 @@ AI::do_fix_missing_transporters() {
           }
           pos = map->move(pos, tmp_dir);
           for (Direction new_dir : cycle_directions_cw()) {
-            if (map->has_path(pos, new_dir) && new_dir != reverse_direction(tmp_dir)) {
+            if (map->has_path_IMPROVED(pos, new_dir) && new_dir != reverse_direction(tmp_dir)) {
               tmp_dir = new_dir;
               break;
             }
@@ -1350,8 +1261,6 @@ AI::do_send_geologists() {
   AILogDebug["do_send_geologists"] << inventory_pos << " thread #" << std::this_thread::get_id() << " AI is locking mutex before calling game->get_player_serfs(player) (for serf_wait_timers is_waiting)";
   game->get_mutex()->lock();
   AILogDebug["do_send_geologists"] << inventory_pos << " thread #" << std::this_thread::get_id() << " AI has locked mutex before calling game->get_player_serfs(player) (for serf_wait_timers is_waiting)";
-  // this returns a copy, so it should be thread-safe
-  //  maybe not, beause game->get_player_serfs internally just does for (Serf *serf : serfs)
   for (Serf *serf : game->get_player_serfs(player)) {
     if (serf->get_type() == Serf::TypeGeologist) {
       MapPos pos = bad_map_pos;
@@ -1384,8 +1293,8 @@ AI::do_send_geologists() {
           AILogDebug["do_send_geologists"] << inventory_pos << " geo flag is nullptr!  why?  skipping";
         }
         else {
-          MapPos pos = flag->get_position();
-          AILogDebug["do_send_geologists"] << inventory_pos << " a geologist has walking_dest of flag at pos " << pos;
+          AILogDebug["do_send_geologists"] << inventory_pos << " a geologist has walking_dest of flag at pos " << flag->get_position();
+          pos = flag->get_position();
         }
         break;
       case Serf::StateLookingForGeoSpot:
@@ -1398,7 +1307,11 @@ AI::do_send_geologists() {
         break;
       }
       if (pos != bad_map_pos && pos != castle_flag_pos) {
+        AILogDebug["do_send_geologists"] << inventory_pos << " marking a geologists_positions at pos " << pos;
         geologist_positions.push_back(pos);
+        for (MapPos geo_pos : geologist_positions){
+          AILogDebug["do_send_geologists"] << inventory_pos << " geologists_positions contains a geo at pos " << geo_pos;
+        }
       }
     }
   }
@@ -1447,7 +1360,7 @@ AI::do_send_geologists() {
         MapPos pos = map->pos_add_extended_spirally(corner_pos, i);
         unsigned int geologists_pos = static_cast<unsigned int>(std::count(geologist_positions.begin(), geologist_positions.end(), pos));
         if (geologists_pos > 0) {
-          //AILogDebug["do_send_geologists"] << inventory_pos << " there are " << geologists_pos << " geologists operating at pos " << pos;
+          AILogDebug["do_send_geologists"] << inventory_pos << " there are " << geologists_pos << " geologists operating at pos " << pos;
           geologists_corner += geologists_pos;
         }
       }
@@ -1497,7 +1410,7 @@ AI::do_send_geologists() {
               built_new_flag_for_geologist = true;
             }
             Road notused; // not used here, can I just pass a zero instead of &notused to build_best_road and skip initialization of a wasted object?
-            if (!AI::build_best_road(pos, road_options, &notused)) {
+            if (!AI::build_best_road(pos, road_options, &notused, "do_send_geologists")) {
               AILogDebug["do_send_geologists"] << inventory_pos << " failed to connect new gologist flag to road network!  removing the flag";
               AILogDebug["do_send_geologists"] << inventory_pos << " thread #" << std::this_thread::get_id() << " AI is locking mutex before calling demolish_flag (built for geoligist, couldn't connect)";
               game->get_mutex()->lock();
@@ -1679,6 +1592,8 @@ AI::do_demolish_unproductive_3rd_lumberjacks() {
         AILogDebug["do_demolish_unproductive_3rd_lumberjacks"] << name << " thread #" << std::this_thread::get_id() << " AI is unlocking mutex after calling game->demolish_building";
         game->get_mutex()->unlock();
         AILogDebug["do_demolish_unproductive_3rd_lumberjacks"] << name << " thread #" << std::this_thread::get_id() << " AI has unlocked mutex after calling game->demolish_building";
+        // sleep to appear more human
+        std::this_thread::sleep_for(std::chrono::milliseconds(3000));
         break;
       }
     }
@@ -1721,7 +1636,7 @@ AI::do_remove_road_stubs() {
     unsigned int paths = 0;
     Direction road_dir;
     for (Direction dir : cycle_directions_cw()) {
-      if (!map->has_path(flag_pos, dir)) { continue; }
+      if (!map->has_path_IMPROVED(flag_pos, dir)) { continue; }
       paths++;
       if (paths > 1) {
         AILogDebug["do_remove_road_stubs"] << name << " occupied ranger at pos " << pos << "'s flag has more than one path, not removing road";
@@ -1770,7 +1685,7 @@ AI::do_remove_road_stubs() {
     unsigned int paths = 0;
     Direction road_dir;
     for (Direction dir : cycle_directions_cw()) {
-      if (!map->has_path(flag_pos, dir)) { continue; }
+      if (!map->has_path_IMPROVED(flag_pos, dir)) { continue; }
       paths++;
       if (paths > 1) {
         AILogDebug["do_remove_road_stubs"] << name << " eligible geologist road ending with flag at pos " << flag_pos << " has more than one path, not removing road";
@@ -1800,7 +1715,7 @@ AI::do_remove_road_stubs() {
     unsigned int paths = 0;
     Direction road_dir;
     for (Direction dir : cycle_directions_cw()) {
-      if (!map->has_path(flag_pos, dir)) { continue; }
+      if (!map->has_path_IMPROVED(flag_pos, dir)) { continue; }
       paths++;
       if (paths > 1) {
         //AILogDebug["do_remove_road_stubs"] << name << " eligible non-mountain road ending with flag at pos " << flag_pos << " has more than one path, not removing road";
@@ -1845,7 +1760,7 @@ AI::do_remove_road_stubs() {
       unsigned int paths = 0;
       Direction road_dir = DirectionNone;
       for (Direction dir : cycle_directions_cw()) {
-        if (!map->has_path(flag_pos, dir)) { continue; }
+        if (!map->has_path_IMPROVED(flag_pos, dir)) { continue; }
 
         paths++;
         if (paths > 1) {
@@ -1880,7 +1795,7 @@ AI::do_remove_road_stubs() {
             continue;
           }
           Road notused; // not used here, can I just pass a zero instead of &notused to build_best_road and skip initialization of a wasted object?
-          was_built = AI::build_best_road(flag->get_position(), road_options, &notused, Building::TypeNone, Building::TypeNone, pos, false);
+          was_built = AI::build_best_road(flag->get_position(), road_options, &notused, "do_remove_road_stubs", Building::TypeNone, Building::TypeNone, pos, false);
           if (was_built){
             AILogDebug["do_remove_road_stubs"] << name << " eligible knight hut stub road ending with flag at pos " << flag_pos << ", successfully built replacement road, to flag/pos " << pos;
             break;
@@ -1896,7 +1811,7 @@ AI::do_remove_road_stubs() {
         game->demolish_road(map->move(flag_pos, road_dir), player);
         roads_removed++;
         // sleep a bit to be more human like
-        std::this_thread::sleep_for(std::chrono::milliseconds(2000));
+        std::this_thread::sleep_for(std::chrono::milliseconds(3000));
       }
     }
   } // if only do knight stub removal every x loops
@@ -1930,6 +1845,8 @@ AI::do_demolish_unproductive_stonecutters() {
       game->demolish_building(pos, player);
       // mark as bad pos, because there should be no reason it could ever become valid again (stone piles cannot regrow)
       bad_building_pos.insert(std::make_pair(pos, Building::TypeStonecutter));
+      // sleep to appear more human
+      std::this_thread::sleep_for(std::chrono::milliseconds(3000));
     }
   }
   AILogDebug["do_demolish_unproductive_stonecutters"] << name << " done do_demolish_unproductive_stonecutters";
@@ -1993,6 +1910,8 @@ AI::do_demolish_unproductive_mines() {
       AILogDebug["do_demolish_unproductive_mines"] << name << " thread #" << std::this_thread::get_id() << " AI has unlocked mutex after calling game->demolish_building (for demolish unproductive mines)";
       // mark as bad pos, because rebuilding same mine type seems pointless if it is actually out of resources
       bad_building_pos.insert(std::make_pair(building_pos, building_type));
+      // sleep to appear more human
+      std::this_thread::sleep_for(std::chrono::milliseconds(3000));
     }
   }
   AILogDebug["do_demolish_unproductive_mines"] << name << " done do_demolish_unproductive_mines";
@@ -2038,6 +1957,8 @@ AI::do_demolish_excess_lumberjacks() {
           AILogDebug["do_demolish_excess_lumberjacks"] << inventory_pos << " thread #" << std::this_thread::get_id() << " AI has unlocked mutex after calling game->get_player_buildings(player)";
           // do NOT mark as bad pos
           //bad_building_pos.AI::do_demolish_excess_lumberjacks() {
+          // sleep to appear more human
+          std::this_thread::sleep_for(std::chrono::milliseconds(3000));
         }
       }
     }
@@ -2118,6 +2039,8 @@ AI::do_demolish_excess_food_buildings() {
         AILogDebug["do_demolish_excess_food_buildings"] << inventory_pos << " thread #" << std::this_thread::get_id() << " AI is unlocking mutex after calling game->get_player_buildings(player)";
         game->get_mutex()->unlock();
         AILogDebug["do_demolish_excess_food_buildings"] << inventory_pos << " thread #" << std::this_thread::get_id() << " AI has unlocked mutex after calling game->get_player_buildings(player)";
+        // sleep to appear more human
+        std::this_thread::sleep_for(std::chrono::milliseconds(3000));
       }
     }
   }
@@ -2648,7 +2571,7 @@ AI::do_build_sawmill_lumberjacks() {
     if (sawmill_count < 1 || lumberjack_count < 2) {
       AILogDebug["do_build_sawmill_lumberjacks"] << inventory_pos << " couldn't place all of 1 sawmill and 2 lumberjacks!  expands towards some trees";
       expand_towards.insert("trees");
-      AI::expand_borders(castle_pos);
+      AI::expand_borders();
     }
   }
   else {
@@ -2791,7 +2714,7 @@ AI::do_build_stonecutter() {
     if (stonecutter_count < 1) {
       AILogDebug["do_build_stonecutter"] << inventory_pos << " couldn't place stonecutter,  expand towards some stones";
       expand_towards.insert("stones");
-      AI::expand_borders(castle_pos);
+      AI::expand_borders();
     }
   }
   else {
@@ -2808,7 +2731,7 @@ AI::do_create_defensive_buffer() {
   expand_towards.insert("create_buffer");
   unsigned int idle_knights = serfs_idle[Serf::TypeKnight0] + serfs_idle[Serf::TypeKnight1] + serfs_idle[Serf::TypeKnight2] + serfs_idle[Serf::TypeKnight3] + serfs_idle[Serf::TypeKnight4];
   if (idle_knights >= knights_min) {
-    AI::expand_borders(castle_pos);
+    AI::expand_borders();
   }
   else {
     AILogDebug["do_create_defensive_buffer"] << inventory_pos << " not enough knights to expand borders for defensive buffer, knights = " << idle_knights << ", knights_min = " << knights_min;
@@ -3092,7 +3015,7 @@ AI::do_build_food_buildings_and_3rd_lumberjack() {
     if (farm_count < 1) {
       AILogDebug["do_build_food_buildings_and_3rd_lumberjack"] << inventory_pos << " couldn't place first wheat farm,  expand towards some fields or water";
       expand_towards.insert("foods");
-      AI::expand_borders(castle_pos);
+      AI::expand_borders();
     }
   } // if food < max
   //
@@ -3251,7 +3174,7 @@ AI::do_connect_coal_mines() {
       AILogDebug["do_connect_coal_mines"] << inventory_pos << " coalmine_count " << coalmine_count << " is less than max_coalmines " << max_coalmines << ", expand towards hills & coal flags";
       expand_towards.insert("hills");
       expand_towards.insert("coal");
-      AI::expand_borders(castle_pos);
+      AI::expand_borders();
     }else{
       AILogDebug["do_connect_coal_mines"] << inventory_pos << " coalmine_count " << coalmine_count << " is >= max_coalmines " << max_coalmines << ", max_coalmines reached, not connecting more";
       return;
@@ -3302,7 +3225,7 @@ AI::do_connect_coal_mines() {
       }
       AILogDebug["do_connect_coal_mines"] << inventory_pos << " trying to connect unfinished coal mine flag to road system";
       Road notused; // not used here, can I just pass a zero instead of &notused to build_best_road and skip initialization of a wasted object?
-      bool was_built = AI::build_best_road(flag->get_position(), road_options, &notused);
+      bool was_built = AI::build_best_road(flag->get_position(), road_options, &notused, "do_connect_coal_mines");
       if (!was_built) {
         // should the mine be demolished if this happens?
         AILogDebug["do_connect_coal_mines"] << inventory_pos << " failed to connect coal mine to road network! ";
@@ -3318,6 +3241,8 @@ AI::do_connect_coal_mines() {
         game->get_mutex()->unlock();
         AILogDebug["do_connect_coal_mines"] << inventory_pos << " thread #" << std::this_thread::get_id() << " AI has unlocked mutex after calling demolish flag&building (failed to connect coal mine)";
         update_building_counts();
+        // sleep to appear more human
+        std::this_thread::sleep_for(std::chrono::milliseconds(3000));
       }
       else {
         AILogDebug["do_connect_coal_mines"] << inventory_pos << " successfully connected unfinished coal mine to road network";
@@ -3348,7 +3273,7 @@ AI::do_connect_iron_mines() {
       AILogDebug["do_connect_iron_mines"] << inventory_pos << " ironmine_count " << ironmine_count << " is less than max_ironmines " << max_ironmines << ", expand towards hills & iron flags";
       expand_towards.insert("hills");
       expand_towards.insert("iron_ore");
-      AI::expand_borders(castle_pos);
+      AI::expand_borders();
     }else{
       AILogDebug["do_connect_iron_mines"] << inventory_pos << " ironmine_count " << ironmine_count << " is >= max_ironmines " << max_ironmines << ", max_ironmines reached, not connecting more";
       return;
@@ -3387,7 +3312,7 @@ AI::do_connect_iron_mines() {
       }
       AILogDebug["do_connect_iron_mines"] << inventory_pos << " trying to connect unfinished iron mine flag to road system";
       Road notused; // not used here, can I just pass a zero instead of &notused to build_best_road and skip initialization of a wasted object?
-      bool was_built = AI::build_best_road(flag->get_position(), road_options, &notused);
+      bool was_built = AI::build_best_road(flag->get_position(), road_options, &notused, "do_connect_iron_mines");
       if (!was_built) {
         // should the mine be demolished if this happens?
         AILogDebug["do_connect_iron_mines"] << inventory_pos << " failed to connect iron mine to road network! ";
@@ -3403,6 +3328,8 @@ AI::do_connect_iron_mines() {
         game->get_mutex()->unlock();
         AILogDebug["do_connect_iron_mines"] << inventory_pos << " thread #" << std::this_thread::get_id() << " AI has unlocked mutex after calling demolish flag&building (failed to connect iron mine)";
         update_building_counts();
+        // sleep to appear more human
+        std::this_thread::sleep_for(std::chrono::milliseconds(3000));
       }
       else {
         AILogDebug["do_connect_iron_mines"] << inventory_pos << " successfully connected unfinished iron mine to road network";
@@ -3565,7 +3492,7 @@ AI::do_build_gold_smelter_and_connect_gold_mines() {
       AILogDebug["do_build_gold_smelter_and_connect_gold_mines"] << inventory_pos << " has no gold mine, expand towards hills & gold flags";
       expand_towards.insert("hills");
       expand_towards.insert("gold_ore");
-      AI::expand_borders(castle_pos);
+      AI::expand_borders();
     }
     //  if low on miners/pickaxes, don't build a gold mine unless already having
     //   at least one occupied coal and iron mine to avoid depleting pickaxes/miners
@@ -3594,7 +3521,7 @@ AI::do_build_gold_smelter_and_connect_gold_mines() {
       }
       AILogDebug["do_build_gold_smelter_and_connect_gold_mines"] << inventory_pos << " trying to connect unfinished gold mine flag to road system";
       Road notused; // not used here, can I just pass a zero instead of &notused to build_best_road and skip initialization of a wasted object?
-      bool was_built = AI::build_best_road(flag->get_position(), road_options, &notused);
+      bool was_built = AI::build_best_road(flag->get_position(), road_options, &notused, "do_connect_gold_mines");
       if (!was_built) {
         // should the mine be demolished if this happens?
         AILogDebug["do_build_gold_smelter_and_connect_gold_mines"] << inventory_pos << " failed to connect gold mine to road network! ";
@@ -3609,6 +3536,8 @@ AI::do_build_gold_smelter_and_connect_gold_mines() {
         AILogDebug["do_build_gold_smelter_and_connect_gold_mines"] << inventory_pos << " thread #" << std::this_thread::get_id() << " AI is unlocking mutex after calling demolish flag&building (failed to connect gold mine)";
         game->get_mutex()->unlock();
         AILogDebug["do_build_gold_smelter_and_connect_gold_mines"] << inventory_pos << " thread #" << std::this_thread::get_id() << " AI has unlocked mutex after calling demolish flag&building (failed to connect gold mine)";
+        // sleep to appear more human
+        std::this_thread::sleep_for(std::chrono::milliseconds(3000));
       }
       else {
         AILogDebug["do_build_gold_smelter_and_connect_gold_mines"] << inventory_pos << " successfully connected unfinished gold mine to road network";
@@ -3698,13 +3627,13 @@ AI::do_build_better_roads_for_important_buildings() {
     return;
   }
   ai_status.assign("HOUSEKEEPING - build better roads");
-  AILogDebug["do_build_better_roads_for_important_buildings"] << name << " thread #" << std::this_thread::get_id() << " AI is locking mutex before calling game->get_player_buildings(player) (for finding positions of military buildings)";
+  AILogVerbose["do_build_better_roads_for_important_buildings"] << name << " thread #" << std::this_thread::get_id() << " AI is locking mutex before calling game->get_player_buildings(player) (for finding positions of military buildings)";
   game->get_mutex()->lock();
-  AILogDebug["do_build_better_roads_for_important_buildings"] << name << " thread #" << std::this_thread::get_id() << " AI has locked mutex before calling game->get_player_buildings(player) (for finding positions of military buildings)";
+  AILogVerbose["do_build_better_roads_for_important_buildings"] << name << " thread #" << std::this_thread::get_id() << " AI has locked mutex before calling game->get_player_buildings(player) (for finding positions of military buildings)";
   Game::ListBuildings buildings = game->get_player_buildings(player);
-  AILogDebug["do_build_better_roads_for_important_buildings"] << name << " thread #" << std::this_thread::get_id() << " AI is unlocking mutex after calling game->get_player_buildings(player) (for finding positions of military buildings)";
+  AILogVerbose["do_build_better_roads_for_important_buildings"] << name << " thread #" << std::this_thread::get_id() << " AI is unlocking mutex after calling game->get_player_buildings(player) (for finding positions of military buildings)";
   game->get_mutex()->unlock();
-  AILogDebug["do_build_better_roads_for_important_buildings"] << name << " thread #" << std::this_thread::get_id() << " AI has unlocked mutex after calling game->get_player_buildings(player) (for finding positions of military buildings)";
+  AILogVerbose["do_build_better_roads_for_important_buildings"] << name << " thread #" << std::this_thread::get_id() << " AI has unlocked mutex after calling game->get_player_buildings(player) (for finding positions of military buildings)";
   for (Building *building : buildings) {
     if (building == nullptr)
       continue;
@@ -3712,6 +3641,7 @@ AI::do_build_better_roads_for_important_buildings() {
     if (!building->is_done() || building->is_burning())
       continue;
     // only consider these building types for road improvement
+    //    why not Baker? is that handled elsewhere?  Or does considering Mines handle food?
     if (type != Building::TypeWeaponSmith && type != Building::TypeSteelSmelter
       && type != Building::TypeGoldSmelter && type != Building::TypeCoalMine
       && type != Building::TypeIronMine && type != Building::TypeGoldMine) {
@@ -3720,8 +3650,8 @@ AI::do_build_better_roads_for_important_buildings() {
     AILogDebug["do_build_better_roads_for_important_buildings"] << name << " do_build_better_roads_for_important_buildings found high-priority building of type " << NameBuilding[type] << name << " at pos " << building->get_position();
     road_options.set(RoadOption::Improve);
     MapPos building_flag_pos = map->move_down_right(building->get_position());
-    Road notused; // not used here, can I just pass a zero instead of &notused to build_best_road and skip initialization of a wasted object?
-    build_best_road(building_flag_pos, road_options, &notused, type);
+    Road road_built;
+    build_best_road(building_flag_pos, road_options, &road_built, "do_build_better_roads", type);
     road_options.reset(RoadOption::Improve);
   }
   AILogDebug["do_build_better_roads_for_important_buildings"] << name << " done do_build_better_roads_for_important_buildings";
@@ -3753,11 +3683,6 @@ AI::do_build_warehouse() {
   if (planks_count < planks_min + ( 4 * warehouse_count) || stones_count < stones_min + ( 2 * warehouse_count)) {
     AILogDebug["do_build_warehouse"] << name << " not building warehouse, not enough planks or stones in realm";
     return;
-  }
-  // DEBUG - I think I see teh realm_occupied_military_pos list repeating a lot
-  // dump it to verify
-  for (MapPos center_pos : realm_occupied_military_pos) {
-    AILogError["do_build_warehouse"] << name << " DEBUG - dumping realm_occupied_military_pos, found: " << center_pos;
   }
 
   for (MapPos center_pos : realm_occupied_military_pos) {

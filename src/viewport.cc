@@ -2792,14 +2792,14 @@ Viewport::draw_ai_grid_overlay() {
           while (true) {
 
             //Log::Info["viewport"] << " inside draw_ai_grid_overlay, debug3";
-            if (!map->has_path(pos, dir)){
+            if (!map->has_path_IMPROVED(pos, dir)){
               Log::Error["viewport"] << " inside draw_ai_grid_overlay, NO PATH IN DIR " << dir << "!, crashing";
               throw ExceptionFreeserf("inside draw_ai_grid_overlay, NO PATH IN DIR");
             }
             pos = map->move(pos, dir);
             for (Direction new_dir : cycle_directions_cw()) {
               //Log::Info["viewport"] << " inside draw_ai_grid_overlay, debug4, checking dir " << new_dir;
-              if (map->has_path(pos, new_dir) && new_dir != reverse_direction(dir)) {
+              if (map->has_path_IMPROVED(pos, new_dir) && new_dir != reverse_direction(dir)) {
                 //Log::Info["viewport"] << " inside draw_ai_grid_overlay, debug5, found path in new_dir " << new_dir;
                 int prev_sx = 0;
                 int prev_sy = 0;
@@ -2845,7 +2845,7 @@ Viewport::draw_ai_grid_overlay() {
     for (Direction dir : road.get_dirs()){
       pos = map->move(pos, dir);
       for (Direction new_dir : cycle_directions_cw()) {
-        if (map->has_path(pos, new_dir) && new_dir != reverse_direction(dir)) {
+        if (map->has_path_IMPROVED(pos, new_dir) && new_dir != reverse_direction(dir)) {
           int prev_sx = 0;
           int prev_sy = 0;
           screen_pix_from_map_coord(prev_pos, &prev_sx, &prev_sy);
@@ -2866,6 +2866,41 @@ Viewport::draw_ai_grid_overlay() {
       }
     }
   }
+
+  //
+  // draw build_better_roads
+  //
+  //Log::Info["viewport"] << " inside draw_ai_grid_overlay, draw build_better roads";
+  for (Road road : *(ai->get_ai_mark_build_better_roads())){
+    MapPos pos = road.get_source();
+    //Log::Debug["viewport"] << " inside draw_ai_grid_overlay, draw build_better roads for road with start pos " << pos;
+    //MapPos prev_pos = bad_map_pos;
+    MapPos prev_pos = pos;
+    for (Direction dir : road.get_dirs()){
+      pos = map->move(pos, dir);
+      for (Direction new_dir : cycle_directions_cw()) {
+        if (map->has_path_IMPROVED(pos, new_dir) && new_dir != reverse_direction(dir)) {
+          int prev_sx = 0;
+          int prev_sy = 0;
+          screen_pix_from_map_coord(prev_pos, &prev_sx, &prev_sy);
+          int this_sx = 0;
+          int this_sy = 0;
+          screen_pix_from_map_coord(pos, &this_sx, &this_sy);
+          // don't draw the line at all if any part is off the frame
+          if (prev_sx > width || prev_sy > height || this_sx > width || this_sy > height){
+            // don't draw line
+          }else{
+            // draw line
+            frame->draw_thick_line(prev_sx, prev_sy, this_sx, this_sy, ai->get_mark_color("lt_purple"));
+          }
+          prev_pos = pos;
+          dir = new_dir;
+          break;
+        }
+      }
+    }
+  }
+
 
   // draw AI status text box
   std::string status = ai->get_ai_status();

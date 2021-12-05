@@ -149,11 +149,20 @@ class RoadBuilder {
     return false;
   }
   */
+  /*
   bool has_proad(MapPos end_pos, Direction start_dir, Direction end_dir) {
     if (proads.count(RoadEnds(start_pos, start_dir, end_pos, end_dir))) {
       return true;
     }
     return false;
+  }
+  */
+  bool has_proad(RoadEnds ends){
+    if (proads.count(ends)){
+      return true;
+    }else{
+      return false;
+    }
   }
 
   // because the RoadEnds are never used directly (I think?), rather only xroad->get_ calls,

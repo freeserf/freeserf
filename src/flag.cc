@@ -1041,9 +1041,15 @@ wake_transporter_at_flag(Game *game, MapPos pos) {
 static int
 wake_transporter_on_path(Game *game, MapPos pos) {
  //Log::Info["serf"] << "debug: inside Serf::wake_transporter_on_path, pos " << pos;
+  // this appears to be the only function that sets the state WakeOnPath
   return change_transporter_state_at_pos(game, pos, Serf::StateWakeOnPath);
 }
 
+// when a splitting flag is removed and merge_paths is called,
+// OR when an existing path is split by a newly created flag
+//  to merge the path data, trace the path and note which 
+//  serfs, resources, etc. along the path exist so they can
+//  be added to same pos in the merged/split road[s]
 void
 Flag::fill_path_serf_info(Game *game, MapPos pos, Direction dir,
                           SerfPathInfo *data) {
@@ -1088,8 +1094,9 @@ Flag::fill_path_serf_info(Game *game, MapPos pos, Direction dir,
 
     /* Check if there is a transporter waiting here. */
     if (map->get_idle_serf(pos)) {
-      int index = wake_transporter_on_path(game, pos);
       //Log::Info["flag"] << "debug: calling wake_transporter_on_path for pos " << pos;
+      // this is the only place where a serf can enter into StateWakeOnPath
+      int index = wake_transporter_on_path(game, pos);
       if (index >= 0) data->serfs[serf_count++] = index;
     }
 
@@ -1128,6 +1135,8 @@ Flag::fill_path_serf_info(Game *game, MapPos pos, Direction dir,
   data->flag_dir = reverse_direction(dir);
 }
 
+// when a splitting flag is deleted, the two
+//  adjacent paths must be merged into one
 void
 Flag::merge_paths(MapPos pos_) {
   const int max_transporters[] = { 1, 2, 3, 4, 6, 8, 11, 15 };
@@ -1159,6 +1168,7 @@ Flag::merge_paths(MapPos pos_) {
   SerfPathInfo path_1_data;
   SerfPathInfo path_2_data;
 
+  Log::Debug["flag"] << " inside merge_paths, flag removed from pos " << pos << ", about to call fill_path_serf_info ";
   fill_path_serf_info(game, pos_, path_1_dir, &path_1_data);
   fill_path_serf_info(game, pos_, path_2_dir, &path_2_data);
 

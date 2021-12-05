@@ -131,13 +131,13 @@ AI::update_building_counts() {
   start = std::clock();
 
   AILogDebug["util_update_building_counts"] << name << " inside AI::update_building_counts";
-  AILogDebug["util_update_building_counts"] << name << " thread #" << std::this_thread::get_id() << " AI is locking mutex inside AI::update_building_counts";
+  AILogVerbose["util_update_building_counts"] << name << " thread #" << std::this_thread::get_id() << " AI is locking mutex inside AI::update_building_counts";
   game->get_mutex()->lock();
-  AILogDebug["util_update_building_counts"] << name << " thread #" << std::this_thread::get_id() << " AI has locked mutex inside AI::update_building_counts";
+  AILogVerbose["util_update_building_counts"] << name << " thread #" << std::this_thread::get_id() << " AI has locked mutex inside AI::update_building_counts";
   Game::ListBuildings buildings = game->get_player_buildings(player);
-  AILogDebug["util_update_building_counts"] << name << " thread #" << std::this_thread::get_id() << " AI is unlocking mutex inside AI::update_building_counts";
+  AILogVerbose["util_update_building_counts"] << name << " thread #" << std::this_thread::get_id() << " AI is unlocking mutex inside AI::update_building_counts";
   game->get_mutex()->unlock();
-  AILogDebug["util_update_building_counts"] << name << " thread #" << std::this_thread::get_id() << " AI has unlocked mutex inside AI::update_building_counts";
+  AILogVerbose["util_update_building_counts"] << name << " thread #" << std::this_thread::get_id() << " AI has unlocked mutex inside AI::update_building_counts";
   // reset all to zero
   memset(realm_building_count, 0, sizeof(realm_building_count));
   memset(realm_completed_building_count, 0, sizeof(realm_completed_building_count));
@@ -148,7 +148,7 @@ AI::update_building_counts() {
   realm_res_sitting_at_flags.clear();
   //realm_inv.clear();  // don't clear this here as it is not additive but explicitly set in each loop to player->inv 
   for (MapPos inventory_pos : stocks_pos) {
-    AILogDebug["util_update_building_counts"] << name << " inside AI::update_building_counts, clearing counts for inventory_pos " << inventory_pos;
+    AILogVerbose["util_update_building_counts"] << name << " inside AI::update_building_counts, clearing counts for inventory_pos " << inventory_pos;
     memset(stock_buildings.at(inventory_pos).count, 0, sizeof(stock_buildings.at(inventory_pos).count));
     memset(stock_buildings.at(inventory_pos).completed_count, 0, sizeof(stock_buildings.at(inventory_pos).completed_count));
     memset(stock_buildings.at(inventory_pos).occupied_count, 0, sizeof(stock_buildings.at(inventory_pos).occupied_count));
@@ -156,8 +156,8 @@ AI::update_building_counts() {
     stock_buildings.at(inventory_pos).occupied_military_pos.clear();
     stock_buildings.at(inventory_pos).unfinished_count = 0;
     stock_buildings.at(inventory_pos).unfinished_hut_count = 0;
-    AILogDebug["util_update_building_counts"] << name << " RESET unfinished_hut_count for inventory_pos " << inventory_pos << ", is now: " << stock_buildings.at(inventory_pos).unfinished_hut_count;
-    AILogDebug["util_update_building_counts"] << name << " RESET unfinished_building_count, for inventory_pos " << inventory_pos << ", is now: " << stock_buildings.at(inventory_pos).unfinished_count;
+    AILogVerbose["util_update_building_counts"] << name << " RESET unfinished_hut_count for inventory_pos " << inventory_pos << ", is now: " << stock_buildings.at(inventory_pos).unfinished_hut_count;
+    AILogVerbose["util_update_building_counts"] << name << " RESET unfinished_building_count, for inventory_pos " << inventory_pos << ", is now: " << stock_buildings.at(inventory_pos).unfinished_count;
   }
 
   // now that a flagsearch is being used to find the nearest Inventory rather than straight-line
@@ -174,13 +174,13 @@ AI::update_building_counts() {
     
     Building::Type type = building->get_type();
 	  if (type == Building::TypeNone) {
-		  AILogDebug["util_update_building_counts"] << name << " has a building of TypeNone!  why does this happen??";
+		  //AILogWarn["util_update_building_counts"] << name << " has a building of TypeNone at pos " << building->get_position() << "!  why does this happen??";
 		  continue;
 	  }
 
 	  MapPos pos = building->get_position();
 	  MapPos flag_pos = map->move_down_right(building->get_position());
-	  AILogDebug["util_update_building_counts"] << name << " has a building of type " << NameBuilding[type] << " at pos " << pos << ", with flag_pos " << flag_pos;
+	  AILogVerbose["util_update_building_counts"] << name << " has a building of type " << NameBuilding[type] << " at pos " << pos << ", with flag_pos " << flag_pos;
 
       if (type == Building::TypeCastle) {
         if (!building->is_done()) {
@@ -206,11 +206,11 @@ AI::update_building_counts() {
 	  //  as these are used for general selection of nearby huts when looking for things
 	  //  in a certain area around an Inventory and its borders, duplicates are allowed.
 	  if (building->is_military() && building->is_done() && building->is_active()) {
-		  AILogDebug["util_update_building_counts"] << name << " adding occupied military building at " << pos << " to realm_occupied_military_pos list";
+		  AILogVerbose["util_update_building_counts"] << name << " adding occupied military building at " << pos << " to realm_occupied_military_pos list";
 		  realm_occupied_military_pos.push_back(flag_pos);
-		  AILogDebug["util_update_building_counts"] << name << " about to call find_nearest_inventories_to_military_building for connected building of type " << NameBuilding[type] << " at pos " << pos << ", with flag_pos " << flag_pos;
+		  AILogVerbose["util_update_building_counts"] << name << " about to call find_nearest_inventories_to_military_building for connected building of type " << NameBuilding[type] << " at pos " << pos << ", with flag_pos " << flag_pos;
 		  for (MapPos inv_flag_pos : find_nearest_inventories_to_military_building(flag_pos)) {
-			  AILogDebug["util_update_building_counts"] << name << " adding occupied military building at " << pos << " to stock_buildings.at(" << inv_flag_pos << ")";
+			  AILogVerbose["util_update_building_counts"] << name << " adding occupied military building at " << pos << " to stock_buildings.at(" << inv_flag_pos << ")";
 			  stock_buildings.at(inv_flag_pos).occupied_military_pos.push_back(flag_pos);
 		  }
 		  // don't quit here, we still want to try to do a FlagSearch for military buildings so
@@ -222,34 +222,34 @@ AI::update_building_counts() {
 
 	  // skip disconnected buildings, they cannot complete a FlagSearch to find nearest Inventory
 	  if (!game->get_flag_at_pos(flag_pos)->is_connected()) {
-		  AILogDebug["util_update_building_counts"] << name << " building of type " << NameBuilding[type] << " at pos " << pos << ", with flag_pos " << flag_pos << " has no paths, cannot do FlagSearch, skipping";
+		  AILogVerbose["util_update_building_counts"] << name << " building of type " << NameBuilding[type] << " at pos " << pos << ", with flag_pos " << flag_pos << " has no paths, cannot do FlagSearch, skipping";
 		  continue;
 	  }
 
 	  // do the FlagSearch
-	  AILogDebug["util_update_building_counts"] << name << " about to call find_nearest_inventory for connected building of type " << NameBuilding[type] << " at pos " << pos << ", with flag_pos " << flag_pos;
+	  AILogVerbose["util_update_building_counts"] << name << " about to call find_nearest_inventory for connected building of type " << NameBuilding[type] << " at pos " << pos << ", with flag_pos " << flag_pos;
 	  MapPos inventory_pos = find_nearest_inventory(map, player_index, building->get_position(), DistType::FlagOnly, &ai_mark_pos);
 	  if (inventory_pos == bad_map_pos) {
-		  AILogDebug["util_update_building_counts"] << name << " find_nearest_inventory call for building at pos " << pos << ", with flag_pos " << flag_pos << " returned bad_map_pos, skipping this building";
+		  AILogVerbose["util_update_building_counts"] << name << " find_nearest_inventory call for building at pos " << pos << ", with flag_pos " << flag_pos << " returned bad_map_pos, skipping this building";
 		  continue;
 	  }
-	  AILogDebug["util_update_building_counts"] << name << " nearest Inventory (by flagsearch) to this connected building is " << inventory_pos;
+	  AILogVerbose["util_update_building_counts"] << name << " nearest Inventory (by flagsearch) to this connected building is " << inventory_pos;
 
 	  // count incomplete buildings (so AI can limit the number of outstanding unfinished buildings)
     if (!building->is_done()) {
       if (type == Building::TypeHut) {
         stock_buildings.at(inventory_pos).unfinished_hut_count++;
-        AILogDebug["util_update_building_counts"] << name << " incrementing unfinished_hut_count for inventory_pos " << inventory_pos << ", is now: " << stock_buildings.at(inventory_pos).unfinished_hut_count;
+        AILogVerbose["util_update_building_counts"] << name << " incrementing unfinished_hut_count for inventory_pos " << inventory_pos << ", is now: " << stock_buildings.at(inventory_pos).unfinished_hut_count;
       }
       else if (building->get_type() == Building::TypeCoalMine
         || building->get_type() == Building::TypeIronMine
         || building->get_type() == Building::TypeGoldMine
         || building->get_type() == Building::TypeStoneMine) {
-        AILogDebug["util_update_building_counts"] << name << " unfinished building is a Mine, not incrementing unfinished_building_count";
+        AILogVerbose["util_update_building_counts"] << name << " unfinished building is a Mine, not incrementing unfinished_building_count";
       }
       else {
         stock_buildings.at(inventory_pos).unfinished_count++;
-        AILogDebug["util_update_building_counts"] << name << " found unfinished building of type " << NameBuilding[type] << ", incrementing unfinished_building_count for inventory_pos " << inventory_pos << ", is now: " << stock_buildings.at(inventory_pos).unfinished_count;
+        AILogVerbose["util_update_building_counts"] << name << " found unfinished building of type " << NameBuilding[type] << ", incrementing unfinished_building_count for inventory_pos " << inventory_pos << ", is now: " << stock_buildings.at(inventory_pos).unfinished_count;
       }
     }
     
@@ -282,11 +282,11 @@ AI::update_building_counts() {
   // debug, dump all inventory-to-building counts
   for (MapPos inventory_pos : stocks_pos) {
     // this skips 'connected', which is moot anyway
-    AILogDebug["util_update_building_counts"] << name << " Inventory at pos " << inventory_pos << " has all/completed/occupied buildings: ";
+    AILogVerbose["util_update_building_counts"] << name << " Inventory at pos " << inventory_pos << " has all/completed/occupied buildings: ";
     int type = 0;
     // why is this using realm_building_count instead of ... Types 0-25?
     for (int count : realm_building_count) {
-      AILogDebug["util_update_building_counts"] << name << " type " << type << " / " << NameBuilding[type] << ": " << stock_buildings.at(inventory_pos).count[type]
+      AILogVerbose["util_update_building_counts"] << name << " type " << type << " / " << NameBuilding[type] << ": " << stock_buildings.at(inventory_pos).count[type]
         << "/" << stock_buildings.at(inventory_pos).completed_count[type] << "/" << stock_buildings.at(inventory_pos).occupied_count[type];
       type++;
     }
@@ -381,7 +381,7 @@ AI::rebuild_all_roads() {
     if (flag == nullptr || flag->get_owner() != player_index)
       continue;
     for (Direction dir : cycle_directions_cw()) {
-      if (map->has_path(flag->get_position(), dir))
+      if (map->has_path_IMPROVED(flag->get_position(), dir))
         game->demolish_road(map->move(flag->get_position(), dir), player);
     }
     flag_positions.push_back(flag->get_position());
@@ -578,49 +578,53 @@ AI::rebuild_all_roads() {
 }
 */
 
-
-// try to build a road from the specified flag pos to the best end flag, return success/failure
+//
+// try to build a road from the specified flag pos to the "best" end flag (determined by various logic), return success/failure
 //  ALSO, set the value of the Road completed (if built) to the provided memory location (though most calling functions don't use it)
 //  If any roads already exist from specified flag to each affinity building,
 //    build a better road if one is found.  Do not remove the old one
 //
-// I DON'T LIKE THE WAY THIS built_road Road is passed, it seems like the way I am doing it requires initializing a Road object
-//  that is never used, and only in rare cases it is populated with a copy of a real Road?  Seems like it would be better to
-//  create a nullptr of type Road, and have this function point it at the real Road object.  Or is that what I am already doing???
-//   maybe I just don't need to actually initialize the Road pointer in callers that don't actaully care about it being populated
+//  POSSIBLE MAJOR IMPROVEMENT - before finding flags based on nearby/halfway, 
+//   first do a "flood" A* pathfinding tile search
+//    exclude any flags that //   and record every flag that is reachable within some reasonable distance
+//    THEN when searching for nearby flags exclude
+//   any that aren't actually reachable!    or something like this.  could eval them along the way
+//
+//
 //
 bool
-AI::build_best_road(MapPos start_pos, RoadOptions road_options, Road *built_road,
-          Building::Type optional_building_type, Building::Type optional_affinity, MapPos optional_target, bool verify_stock) {
+AI::build_best_road(MapPos start_pos, RoadOptions road_options, Road *built_road, std::string calling_function, 
+          Building::Type optional_affinity_building_type, Building::Type optional_affinity, MapPos optional_target, bool verify_stock) {
   // time this function for debugging
   std::clock_t start;
   double duration;
   start = std::clock();
 
-  AILogDebug["util_build_best_road"] << name << " inside AI::build_best_road with start pos " << start_pos << ", optional_building_type " << NameBuilding[optional_building_type] << ", optional_affinity " << NameBuilding[optional_affinity] << ", optional_target " << optional_target;
+  AILogDebug["util_build_best_road"] << " " << calling_function << " start pos " << start_pos << ", optional_affinity_building_type " << NameBuilding[optional_affinity_building_type] << ", optional_affinity " << NameBuilding[optional_affinity] << ", optional_target " << optional_target;
 
   // print RoadOptions for debugging
   for (unsigned int i = 0; i < road_options.size(); i++) {
-    AILogDebug["util_build_best_road"] << name << " RoadOption: " << NameRoadOption[i] << " = " << bool(road_options.test(i));
+    AILogDebug["util_build_best_road"] << " " << calling_function << " RoadOption: " << NameRoadOption[i] << " = " << bool(road_options.test(i));
   }
 
   // sanity check request
   if (map->get_owner(start_pos) != player_index) {
-    AILogDebug["util_build_best_road"] << name << " start_pos " << start_pos << " is not owned by Player" << player_index << "!  returning false";
+    AILogDebug["util_build_best_road"] << " " << calling_function << " start_pos " << start_pos << " is not owned by Player" << player_index << "!  returning false";
     return false;
   }
   
   if (map->has_flag(start_pos)) {
     // check if this start_flag already has any paths
     if (game->get_flag_at_pos(start_pos)->is_connected()) {
-      AILogDebug["util_build_best_road"] << name << " at least one path already exists from flag at start_pos";
+      AILogDebug["util_build_best_road"] << " " << calling_function << " at least one path already exists from flag at start_pos";
       // do not cancel if this condition happens, because it is normal when doing rebuild_all_roads
-      //if (!road_options.test(RoadOption::Improve)) {
-      //  AILogDebug["util_build_best_road"] << name << " a path already exists from start_pos " << start_pos << " but RoadOption::Improve is false!  this is unexpected.  returning false";
-      //  return false;
-      //}
+      //  no longer using rebuild_all_roads, setting this again
+      if (!road_options.test(RoadOption::Improve)) {
+        AILogDebug["util_build_best_road"] << " " << calling_function << " a path already exists from start_pos " << start_pos << " but RoadOption::Improve is false!  this is unexpected.  returning false";
+        return false;
+      }
       if (!road_options.test(RoadOption::Direct)) {
-        AILogDebug["util_build_best_road"] << name << " build_best_road will try to build a better road than the current best one";
+        AILogDebug["util_build_best_road"] << " " << calling_function << " RoadOption::Direct is not set, build_best_road will try to build a better road than the current best one";
       }
       // skip if no more paths can be built from starting flag
       bool can_build_another_path = false;
@@ -633,72 +637,74 @@ AI::build_best_road(MapPos start_pos, RoadOptions road_options, Road *built_road
       if (!can_build_another_path) {
         // hmm.. considering changing this to return true because a path already exists... BUT I think all build_road
         //  calls should be first preceded by a flag->is_connected check first
-        AILogDebug["util_build_best_road"] << name << "no more paths can be build from this building's flag!  returning false";
+        AILogDebug["util_build_best_road"] << " " << calling_function << "no more paths can be build from this building's flag!  returning false";
         return false;
       }
     }
     else {
-      AILogDebug["util_build_best_road"] << name << " start_pos has no paths, will try to connect it to road network";
+      AILogDebug["util_build_best_road"] << " " << calling_function << " start_pos " << start_pos << " has no paths, will try to connect it to road network";
     }
   }else{
     // changing this to support plotting best road BEFORE building a flag & building
-    //AILogDebug["util_build_best_road"] << name << " No flag exists at start_pos " << start_pos << "!  returning false";
+    //AILogDebug["util_build_best_road"] << " " << calling_function << " No flag exists at start_pos " << start_pos << "!  returning false";
     //return false;
-    AILogDebug["util_build_best_road"] << name << " no flag exists at start_pos " << start_pos << ", this must be a pre-building check, continuing";
+    AILogDebug["util_build_best_road"] << " " << calling_function << " no flag exists at start_pos " << start_pos << ", this must be a pre-building check, continuing";
   }
 
-  // if an optional_building_type is set, this must be a pre-building road
+  // if an optional_affinity_building_type is set, this must be a pre-building road
   //  so we must enable HoldBuildingPos to ensure the road doesn't block the planned building
-  if (optional_building_type != Building::TypeNone){
-    AILogDebug["util_build_best_road"] << name << " optional_building_type is set, this must be a pre-building road.  Setting RoadOption::HoldbuildingPos to true";
+  if (optional_affinity_building_type != Building::TypeNone){
+    // NOTE this message and setting of HoldBuildingPos is not always correct, when build_better_roads is called it sets optional_affinity_building_type but is only Improving connection
+    AILogDebug["util_build_best_road"] << " " << calling_function << " optional_affinity_building_type is set, this must be a pre-building road.  Setting RoadOption::HoldbuildingPos to true";
     road_options.set(RoadOption::HoldBuildingPos);
   }
 
-  MapPosVector targets;  // these are flag positions
+  MapPosVector targets = {};  // these are flag positions
 
+  // handle the optional_target arg if set
   if (optional_target != bad_map_pos) {
-    // only for specific road improvements, target a specific flag or building pos rather than "connect to road system"
-    AILogDebug["util_build_best_road"] << name << " using optional_target pos " << optional_target << " specified in build_best_road call";
+    // only for road improvements, target a specific flag or building pos rather than generic "connect to road system"
+    AILogDebug["util_build_best_road"] << " " << calling_function << " using optional_target pos " << optional_target << " specified in build_best_road call";
     // check to if target is a building or a flag
     if (map->has_flag(optional_target)) {
-      AILogDebug["util_build_best_road"] << name << " optional_target pos " << optional_target << " is a flag.  checking to see if it has an attached building";
+      AILogDebug["util_build_best_road"] << " " << calling_function << " optional_target pos " << optional_target << " is a flag.  checking to see if it has an attached building";
       // this is only for debugging
       if (map->has_building(map->move_up_left(optional_target))) {
-        AILogDebug["util_build_best_road"] << name << " flag at optional_target pos " << optional_target << " has an attached building of type " << NameBuilding[game->get_building_at_pos(map->move_up_left(optional_target))->get_type()];
+        AILogDebug["util_build_best_road"] << " " << calling_function << " flag at optional_target pos " << optional_target << " has an attached building of type " << NameBuilding[game->get_building_at_pos(map->move_up_left(optional_target))->get_type()];
       }
-      AILogDebug["util_build_best_road"] << name << " setting optional_target flag pos " << optional_target << " as road_to target";
+      AILogDebug["util_build_best_road"] << " " << calling_function << " setting optional_target flag pos " << optional_target << " as road_to target";
       targets.push_back(optional_target);
     }
     else if (map->has_building(optional_target)) {
-      AILogDebug["util_build_best_road"] << name << " optional_target pos " << optional_target << " is a building of type " << NameBuilding[game->get_building_at_pos(optional_target)->get_type()];
-      AILogDebug["util_build_best_road"] << name << " setting optional_target pos " << optional_target << " building's flag at pos " << map->move_down_right(optional_target) << " as road_to target";
+      AILogDebug["util_build_best_road"] << " " << calling_function << " optional_target pos " << optional_target << " is a building of type " << NameBuilding[game->get_building_at_pos(optional_target)->get_type()];
+      AILogDebug["util_build_best_road"] << " " << calling_function << " setting optional_target pos " << optional_target << " building's flag at pos " << map->move_down_right(optional_target) << " as road_to target";
       targets.push_back(map->move_up_left(optional_target));
     }
     else {
-      //AILogDebug["util_build_best_road"] << name << " optional_target pos has neither a building nor flag!  this is unexpected, returning false";
+      //AILogDebug["util_build_best_road"] << " " << calling_function << " optional_target pos has neither a building nor flag!  this is unexpected, returning false";
       //return false;
-      AILogDebug["util_build_best_road"] << name << " zzz optional_target pos has neither a building nor flag, maybe we are planning to create one";
+      AILogDebug["util_build_best_road"] << " " << calling_function << " zzz optional_target pos has neither a building nor flag, maybe we are planning to create one";
       targets.push_back(optional_target);
     }
   }
   else {
     // most common - use the building affinity table to figure out what to connect to
-    targets = AI::get_affinity(start_pos, optional_building_type);
-    AILogDebug["util_build_best_road"] << name << " targets contains " << targets.size() << " affinity / target buildings";
-    // if no targets found, fall back to nearest or selected inv
+    targets = AI::get_affinity(start_pos, optional_affinity_building_type);
+    AILogDebug["util_build_best_road"] << " " << calling_function << " targets contains " << targets.size() << " affinity / target buildings";
+    // if no affinity-based targets found, fall back to nearest or selected inv
     if (targets.size() == 0){
-      AILogDebug["util_build_best_road"] << name << " no valid target found from get_affinity, trying to find a nearest connected inventory";
+      AILogDebug["util_build_best_road"] << " " << calling_function << " no valid target found from get_affinity, trying to find a nearest connected inventory";
       MapPos fallback_inv_pos = bad_map_pos;
       if (map->has_flag(start_pos) && map->has_building(map->move_up_left(start_pos))){
         MapPos nearest_inv_pos = find_nearest_inventory(map, player_index, start_pos, DistType::FlagAndStraightLine, &ai_mark_pos);
         if (nearest_inv_pos != bad_map_pos){
-          AILogDebug["util_build_best_road"] << name << " no valid target found, setting target to nearest_inv_pos " << nearest_inv_pos;
+          AILogDebug["util_build_best_road"] << " " << calling_function << " no valid target found, setting target to nearest_inv_pos " << nearest_inv_pos;
           fallback_inv_pos = nearest_inv_pos;
         }
       }
       if (fallback_inv_pos == bad_map_pos){
         fallback_inv_pos = inventory_pos;
-        AILogDebug["util_build_best_road"] << name << " no valid target found and could not find nearest_inv_pos, setting target to current inventory_pos " << inventory_pos;
+        AILogDebug["util_build_best_road"] << " " << calling_function << " no valid target found and could not find nearest_inv_pos, setting target to current inventory_pos " << inventory_pos;
       }
       targets.push_back(fallback_inv_pos);
     }
@@ -721,21 +727,21 @@ AI::build_best_road(MapPos start_pos, RoadOptions road_options, Road *built_road
     //
     target_num++;
     if (target_num > 2){
-      AILogDebug["util_build_best_road"] << name << " TEMPORARY -  NOT ALLOWING MORE THAN 2 TARGETS - breaking";
+      AILogDebug["util_build_best_road"] << " " << calling_function << " TEMPORARY -  NOT ALLOWING MORE THAN 2 TARGETS - breaking";
       break;
     }
     if (target_pos == bad_map_pos) {
-      AILogDebug["util_build_best_road"] << name << " no more affinity targets left";
+      AILogDebug["util_build_best_road"] << " " << calling_function << " no more affinity targets left";
       break;
     }
-    AILogDebug["util_build_best_road"] << name << " considering target_pos " << target_pos;
-    AILogDebug["util_build_best_road"] << name << " plotting road to connect flag at pos " << start_pos << " to target_pos " << target_pos << " via road network";
+    AILogDebug["util_build_best_road"] << " " << calling_function << " considering target_pos " << target_pos;
+    AILogDebug["util_build_best_road"] << " " << calling_function << " plotting road to connect flag at pos " << start_pos << " to target_pos " << target_pos << " via road network";
     Roads split_roads;
     //
     // ##   Direct   ## roads are simple A->B connection from start_pos to target_pos of FIRST affinity building, no second roads
     //
     if (road_options.test(RoadOption::Direct)) {
-      AILogDebug["util_build_best_road"] << name << " zzz direct road requested, trying to build direct road from flag at " << start_pos << " to flag at " << target_pos;
+      AILogDebug["util_build_best_road"] << " " << calling_function << " zzz direct road requested, trying to build direct road from flag at " << start_pos << " to flag at " << target_pos;
       // Just build a single direct road
       //   RoadOption::Improve is ignored, any existing road will not be compared.
       // split_roads list is not actually used for direct roads.  It is required/included but ignored
@@ -747,19 +753,19 @@ AI::build_best_road(MapPos start_pos, RoadOptions road_options, Road *built_road
       //  rather than the usual wandering discovery that non-direct roads use
       bool built_flag = false;
       if (!map->has_flag(target_pos)){
-        AILogDebug["util_build_best_road"] << name << " zzz direct road requested, no flag at target_pos, trying to build one";
+        AILogDebug["util_build_best_road"] << " " << calling_function << " zzz direct road requested, no flag at target_pos, trying to build one";
         if (game->can_build_flag(target_pos, player)){
-          AILogDebug["util_build_best_road"] << name << " thread #" << std::this_thread::get_id() << " AI is locking mutex before calling game->build_flag (direct road target_pos has no flag)";
+          AILogDebug["util_build_best_road"] << " " << calling_function << " thread #" << std::this_thread::get_id() << " AI is locking mutex before calling game->build_flag (direct road target_pos has no flag)";
           game->get_mutex()->lock();
-          AILogDebug["util_build_best_road"] << name << " thread #" << std::this_thread::get_id() << " AI has locked mutex before calling game->build_flag (direct road target_pos has no flag)";
+          AILogDebug["util_build_best_road"] << " " << calling_function << " thread #" << std::this_thread::get_id() << " AI has locked mutex before calling game->build_flag (direct road target_pos has no flag)";
           built_flag = game->build_flag(target_pos, player);
-          AILogDebug["util_build_best_road"] << name << " thread #" << std::this_thread::get_id() << " AI is unlocking mutex after calling game->build_flag (direct road target_pos has no flag)";
+          AILogDebug["util_build_best_road"] << " " << calling_function << " thread #" << std::this_thread::get_id() << " AI is unlocking mutex after calling game->build_flag (direct road target_pos has no flag)";
           game->get_mutex()->unlock();
-          AILogDebug["util_build_best_road"] << name << " thread #" << std::this_thread::get_id() << " AI has unlocked mutex after calling game->build_flag (direct road target_pos has no flag)";
+          AILogDebug["util_build_best_road"] << " " << calling_function << " thread #" << std::this_thread::get_id() << " AI has unlocked mutex after calling game->build_flag (direct road target_pos has no flag)";
           if (built_flag){
-            AILogDebug["util_build_best_road"] << name << " zzz direct road requested, built new flag at target_pos";
+            AILogDebug["util_build_best_road"] << " " << calling_function << " zzz direct road requested, built new flag at target_pos";
           }else{
-            AILogDebug["util_build_best_road"] << name << " zzz direct road requested, failed to build flag at target_pos! returning false";
+            AILogDebug["util_build_best_road"] << " " << calling_function << " zzz direct road requested, failed to build flag at target_pos! returning false";
             return false;
           }
         }
@@ -774,56 +780,56 @@ AI::build_best_road(MapPos start_pos, RoadOptions road_options, Road *built_road
       // this kind of a hacky undocumented thing, but okay for now. 
       bool convolution_rejected = false;
       if (plotted_succesfully && road_options.test(RoadOption::MostlyStraight)){
-        AILogDebug["util_build_best_road"] << name << " RoadOptions::MostlyStraight is on, checking tile_dist from start_pos " << start_pos << " to end_pos " << target_pos << " for an ideal road";
+        AILogDebug["util_build_best_road"] << " " << calling_function << " RoadOptions::MostlyStraight is on, checking tile_dist from start_pos " << start_pos << " to end_pos " << target_pos << " for an ideal road";
         int ideal_length = AI::get_straightline_tile_dist(map, start_pos, target_pos);
         //
         // EVEN UGLIER HACK HERE because this is specific to spiderweb roads
         ///  - really need to ditch most of RoadOptions and instead allow explicitly setting various limits
         //
         if (proposed_direct_road.get_length() > 20){
-          AILogDebug["util_build_best_road"] << name << " RoadOptions::MostlyStraight is on, rejecting this solution because proposed_direct_road length of " << proposed_direct_road.get_length() << " is too long";
+          AILogDebug["util_build_best_road"] << " " << calling_function << " RoadOptions::MostlyStraight is on, rejecting this solution because proposed_direct_road length of " << proposed_direct_road.get_length() << " is too long";
           convolution_rejected = true;  // re-using this because laziness
         }
-        AILogDebug["util_build_best_road"] << name << " RoadOptions::MostlyStraight is on, flag target_pos at " << target_pos << " has straight-line tile distance " << ideal_length << " from start_pos " << start_pos;
-        AILogDebug["util_build_best_road"] << name << " RoadOptions::MostlyStraight is on, proposed_direct_road from start_pos " << start_pos << " to target_pos " << target_pos << " has length " << proposed_direct_road.get_length();
+        AILogDebug["util_build_best_road"] << " " << calling_function << " RoadOptions::MostlyStraight is on, flag target_pos at " << target_pos << " has straight-line tile distance " << ideal_length << " from start_pos " << start_pos;
+        AILogDebug["util_build_best_road"] << " " << calling_function << " RoadOptions::MostlyStraight is on, proposed_direct_road from start_pos " << start_pos << " to target_pos " << target_pos << " has length " << proposed_direct_road.get_length();
         double convolution = static_cast<double>(proposed_direct_road.get_length()) / static_cast<double>(ideal_length);
-        AILogDebug["util_build_best_road"] << name << " RoadOptions::MostlyStraight is on, proposed_direct_road length: " << proposed_direct_road.get_length() << ", ideal length: " << ideal_length << ", convolution ratio: " << convolution;
+        AILogDebug["util_build_best_road"] << " " << calling_function << " RoadOptions::MostlyStraight is on, proposed_direct_road length: " << proposed_direct_road.get_length() << ", ideal length: " << ideal_length << ", convolution ratio: " << convolution;
         // still reduce max_convolution ratio for MostlyStraight even though the non-adjusted max_convolution value is never tested for RoadOption::Direct roads
         if (convolution >= max_convolution * 0.50) {
-          AILogDebug["util_build_best_road"] << name << " this proposed_direct_road solution is already too convoluted, adjusted max is " << max_convolution * 0.50;
+          AILogDebug["util_build_best_road"] << " " << calling_function << " this proposed_direct_road solution is already too convoluted, adjusted max is " << max_convolution * 0.50;
           convolution_rejected = true;
         }
       }
 
       bool was_built = false;
       if (plotted_succesfully && !convolution_rejected){
-        AILogDebug["util_build_best_road"] << name << " thread #" << std::this_thread::get_id() << " AI is locking mutex before calling game->build_road (direct road)";
+        AILogVerbose["util_build_best_road"] << " " << calling_function << " thread #" << std::this_thread::get_id() << " AI is locking mutex before calling game->build_road (direct road)";
         game->get_mutex()->lock();
-        AILogDebug["util_build_best_road"] << name << " thread #" << std::this_thread::get_id() << " AI has locked mutex before calling game->build_road (direct road)";
+        AILogVerbose["util_build_best_road"] << " " << calling_function << " thread #" << std::this_thread::get_id() << " AI has locked mutex before calling game->build_road (direct road)";
         was_built = game->build_road(proposed_direct_road, player);
-        AILogDebug["util_build_best_road"] << name << " thread #" << std::this_thread::get_id() << " AI is unlocking mutex after calling game->build_road (direct road)";
+        AILogVerbose["util_build_best_road"] << " " << calling_function << " thread #" << std::this_thread::get_id() << " AI is unlocking mutex after calling game->build_road (direct road)";
         game->get_mutex()->unlock();
-        AILogDebug["util_build_best_road"] << name << " thread #" << std::this_thread::get_id() << " AI has unlocked mutex after calling game->build_road (direct road)";
+        AILogVerbose["util_build_best_road"] << " " << calling_function << " thread #" << std::this_thread::get_id() << " AI has unlocked mutex after calling game->build_road (direct road)";
       }
       if (was_built) {
-        AILogDebug["util_build_best_road"] << name << " zzz successfully built direct road directly from flag at " << start_pos << " to flag at " << target_pos;
+        AILogDebug["util_build_best_road"] << " " << calling_function << " zzz successfully built direct road directly from flag at " << start_pos << " to flag at " << target_pos;
         //roads_built++;
         *built_road = *(&proposed_direct_road);
-        //AILogDebug["util_build_best_road"] << name << " spiderweb road debug, stored proposed_direct_road as built_road (which has mem addr " << built_road << "), proposed_direct_road source " << proposed_direct_road.get_source() << " built_road (should be same) source is " << built_road->get_source();
+        //AILogDebug["util_build_best_road"] << " " << calling_function << " spiderweb road debug, stored proposed_direct_road as built_road (which has mem addr " << built_road << "), proposed_direct_road source " << proposed_direct_road.get_source() << " built_road (should be same) source is " << built_road->get_source();
         return true;
       }
       else {
         // should have a series of fallback plans if a flag cannot be connected?   NO
-        AILogDebug["util_build_best_road"] << name << " zzz failed to connect specified flag to road system! returning false";
+        AILogDebug["util_build_best_road"] << " " << calling_function << " zzz failed to connect specified flag to road system! returning false";
         if (built_flag){
-          AILogDebug["util_build_best_road"] << name << " zzz removing newly built flag that was intended to terminate this failed road";
-          AILogDebug["util_build_best_road"] << name << " thread #" << std::this_thread::get_id() << " AI is locking mutex before calling game->demolish_flag (direct road to new flag failed)";
+          AILogDebug["util_build_best_road"] << " " << calling_function << " zzz removing newly built flag that was intended to terminate this failed road";
+          AILogVerbose["util_build_best_road"] << " " << calling_function << " thread #" << std::this_thread::get_id() << " AI is locking mutex before calling game->demolish_flag (direct road to new flag failed)";
           game->get_mutex()->lock();
-          AILogDebug["util_build_best_road"] << name << " thread #" << std::this_thread::get_id() << " AI has locked mutex before calling game->demolish_flag (direct road to new flag failed)";
+          AILogVerbose["util_build_best_road"] << " " << calling_function << " thread #" << std::this_thread::get_id() << " AI has locked mutex before calling game->demolish_flag (direct road to new flag failed)";
           game->demolish_flag(target_pos, player);
-          AILogDebug["util_build_best_road"] << name << " thread #" << std::this_thread::get_id() << " AI is unlocking mutex after calling game->demolish_flag (direct road to new flag failed)";
+          AILogVerbose["util_build_best_road"] << " " << calling_function << " thread #" << std::this_thread::get_id() << " AI is unlocking mutex after calling game->demolish_flag (direct road to new flag failed)";
           game->get_mutex()->unlock();
-          AILogDebug["util_build_best_road"] << name << " thread #" << std::this_thread::get_id() << " AI has unlocked mutex after calling game->demolish_flag (direct road to new flag failed)";
+          AILogVerbose["util_build_best_road"] << " " << calling_function << " thread #" << std::this_thread::get_id() << " AI has unlocked mutex after calling game->demolish_flag (direct road to new flag failed)";
         }
         return false;
       }
@@ -832,7 +838,7 @@ AI::build_best_road(MapPos start_pos, RoadOptions road_options, Road *built_road
     //
     // ## non-Direct ## roads terminate at best scoring acceptable end_pos flag, which could be a direct route to the target flag or join an existing road
     //
-    AILogDebug["util_build_best_road"] << name << " non-direct road requested, trying to connect flag at pos " << start_pos << " to road network using scoring system";
+    AILogDebug["util_build_best_road"] << " " << calling_function << " non-direct road requested, trying to connect flag at start_pos " << start_pos << " to target_pos " << target_pos << " via road network using scoring system";
     RoadBuilder rb;
     rb.set_start_pos(start_pos);
     rb.set_target_pos(target_pos);
@@ -843,12 +849,12 @@ AI::build_best_road(MapPos start_pos, RoadOptions road_options, Road *built_road
     //     as eroads are traced each time they are considered
     if (map->has_flag(start_pos)){
       if (game->get_flag_at_pos(start_pos)->is_connected() && road_options.test(RoadOption::Improve)) {
-        AILogDebug["util_build_best_road"] << name << " finding existing roads from start_pos " << start_pos << " for potential improvement";
+        AILogDebug["util_build_best_road"] << " " << calling_function << " non-direct road requested, finding existing roads from start_pos " << start_pos << " for potential improvement";
         for (Direction dir : cycle_directions_cw()) {
-          if (!map->has_path(start_pos, dir)) {
+          if (!map->has_path_IMPROVED(start_pos, dir)) {
             continue;
           }
-          AILogDebug["util_build_best_road"] << name << " found path from start_pos " << start_pos << " in dir " << NameDirection[dir];
+          AILogDebug["util_build_best_road"] << " " << calling_function << " non-direct road requested, found path from start_pos " << start_pos << " in dir " << NameDirection[dir];
           Road existing_road = trace_existing_road(map, start_pos, dir);
           RoadEnds ends = get_roadends(map, existing_road);
           rb.new_eroad(ends, existing_road);
@@ -856,16 +862,18 @@ AI::build_best_road(MapPos start_pos, RoadOptions road_options, Road *built_road
           MapPos end_pos = std::get<2>(ends);
           nearby_flags.push_back(end_pos);
         }
-        AILogDebug["util_build_best_road"] << name << " done finding existing roads from start_pos " << start_pos;
+        AILogDebug["util_build_best_road"] << " " << calling_function << " non-direct road requested, done finding existing roads from start_pos " << start_pos << ", nearby_flags currently has " << nearby_flags.size() << " elements";
       }
     }else{
       // should this return, or throw an exception maybe?  It seems wrong to try to Improve a nonexistent road, but I guess it is possible
       //  to set Improve to true for all road builds for other reasons?
-      AILogWarn["util_build_best_road"] << name << " no flag exists at start_pos " << start_pos << " but RoadOption::Improve is set, this must be a pre-building check, continuing";
+      AILogWarn["util_build_best_road"] << " " << calling_function << " non-direct road requested, no flag exists at start_pos " << start_pos << " but RoadOption::Improve is set, this must be a pre-building check, continuing";
     }
 
+    //
     // compile list of potential end flag MapPos to connect to (no Roads yet)
     //   only consider flags in a radius of the source, to avoid trying to connect to faraway flags
+    //
     // IMPROVEMENT - determine the halfway point between the start_pos and target_pos, and center the radius there instead of using start_pos
     //        potential bug, if the target_pos is really far away from the start_pos, it might not find anything... that seems unlikely though.
     //         ...and that should happen even with the original method anyway so this isn't worse
@@ -873,10 +881,12 @@ AI::build_best_road(MapPos start_pos, RoadOptions road_options, Road *built_road
     // ISSUES - yes I think a "tunnel" would be best, seeing issues where long snakey roads are built, I believe because the flags near
     //  to the new building are not considered in the flag search, so it connects to some flag much farther away.
     //   for now, adding a second search of flags around the new building and including all those for consideration
-    AILogDebug["util_build_best_road"] << name << " finding halfway point between start_pos and target_pos to center nearby_flag search";
+    AILogDebug["util_build_best_road"] << " " << calling_function << " non-direct road requested, compiling a list of nearby_flags to evaluate for connection to, nearby_flags already has " << nearby_flags.size() << " elements";
+
+    AILogDebug["util_build_best_road"] << " " << calling_function << " non-direct road requested, finding halfway point between start_pos and target_pos to center nearby_flag search";
     MapPos halfway_pos = get_halfway_pos(start_pos, target_pos);
     // for rebuild_all_roads, and possibly other reasons, always push the target_pos onto the nearby_flags list
-    AILogDebug["util_build_best_road"] << name << " as a fallback, adding target_pos " << target_pos << " to nearby_flags list";
+    AILogDebug["util_build_best_road"] << " " << calling_function << " non-direct road requested, as a fallback, adding target_pos " << target_pos << " to nearby_flags list";
     nearby_flags.push_back(target_pos);
     // because occasionally no flags are found within 6 tiles, will search up to 15 tiles
     //   BUT will quit any time after 6 tiles that at least one flag is found
@@ -889,7 +899,7 @@ AI::build_best_road(MapPos start_pos, RoadOptions road_options, Road *built_road
         continue;
       }
       if (start_pos == pos) {
-        AILogDebug["util_build_best_road"] << name << " nearby flags to halfway_pos - flag at pos " << pos << " is the same as start flag, skipping";
+        //AILogDebug["util_build_best_road"] << " " << calling_function << " non-direct road requested, nearby flags to halfway_pos - flag at pos " << pos << " is the same as start flag, skipping";
         continue;
       }
       // avoid disconnected flags, unless they are the flag of the target building
@@ -897,19 +907,19 @@ AI::build_best_road(MapPos start_pos, RoadOptions road_options, Road *built_road
       //  this is a real bug that will need fixing otherwise disconnected roads will never be rejoined to road network
       /*
       if (!game->get_flag_at_pos(pos)->is_connected() && pos != castle_flag_pos && pos != target_pos) {
-        AILogDebug["util_build_best_road"] << name << " flag at pos " << pos << " is itself disconnected and is neither the castle_flag_pos nor the target_pos, skipping";
+        AILogDebug["util_build_best_road"] << " " << calling_function << " non-direct road requested, flag at pos " << pos << " is itself disconnected and is neither the castle_flag_pos nor the target_pos, skipping";
         continue;
       }*/
       // removing "allow target_pos" exception, it causes problems and is only used for rebuild_all_roads which doesn't work well
       if (!game->get_flag_at_pos(pos)->is_connected() && pos != castle_flag_pos) {
-        AILogDebug["util_build_best_road"] << name << " nearby flags to halfway_pos - flag at pos " << pos << " is itself disconnected and is not the castle_flag_pos, skipping";
+        AILogDebug["util_build_best_road"] << " " << calling_function << " non-direct road requested, nearby flags to halfway_pos - flag at pos " << pos << " is itself disconnected and is not the castle_flag_pos, skipping";
         continue;
       }
 
-      AILogDebug["util_build_best_road"] << name << " found valid nearby_flag at pos " << pos;
+      AILogDebug["util_build_best_road"] << " " << calling_function << " non-direct road requested, nearby flags to halfway_pos - found valid nearby_flag at pos " << pos;
       if (std::find(nearby_flags.begin(), nearby_flags.end(), pos) != nearby_flags.end()) {
         // skip if already in nearby_flags list, which should only happen if it is part of existing road and RoadOption::Improve roads set;
-        AILogDebug["util_build_best_road"] << name << " nearby flags to halfway_pos - this pos is already in nearby_flag list, skipping";
+        //AILogDebug["util_build_best_road"] << " " << calling_function << " non-direct road requested, nearby flags to halfway_pos - pos " << pos << " is already in nearby_flag list, skipping";
         continue;
       }
       nearby_flags.push_back(pos);
@@ -922,16 +932,18 @@ AI::build_best_road(MapPos start_pos, RoadOptions road_options, Road *built_road
       if (i >= AI::spiral_dist(6)) {
         // nearby_flags includes the target_pos flag so it is always at least 1, check for 2+
         if (nearby_flags.size() >= 2) {
-          AILogDebug["util_build_best_road"] << name << " nearby flags to halfway_pos - at least one flag found within 6 tiles of halfway_pos, quitting search";
+          AILogDebug["util_build_best_road"] << " " << calling_function << " non-direct road requested, nearby flags to halfway_pos - at least one flag found within 6 tiles of halfway_pos, quitting search";
           break;
         }
         else {
-          AILogDebug["util_build_best_road"] << name << " nearby flags to halfway_pos - no nearby flag found within 6 tiles of halfway_pos!  continuing expanded search until one found";
+          AILogDebug["util_build_best_road"] << " " << calling_function << " non-direct road requested, nearby flags to halfway_pos - no nearby flag found within 6 tiles of halfway_pos!  continuing expanded search until one found";
         }
       }
     } // foreach pos around halfway_pos
+    AILogDebug["util_build_best_road"] << " " << calling_function << " non-direct road requested, done finding flags near halfway_pos, nearby_flags currently has " << nearby_flags.size() << " elements";
+
     //
-    // to avoid long snakey roads, also include flags around the new building
+    // to avoid long snakey roads, also include flags around the start_pos (often a new building)
     //
     for (unsigned int i = 0; i < AI::spiral_dist(6); i++) {
       MapPos pos = map->pos_add_extended_spirally(start_pos, i);
@@ -942,7 +954,7 @@ AI::build_best_road(MapPos start_pos, RoadOptions road_options, Road *built_road
         continue;
       }
       if (start_pos == pos) {
-        AILogDebug["util_build_best_road"] << name << " nearby flags to start_pos - flag at pos " << pos << " is the same as start flag, skipping";
+        //AILogDebug["util_build_best_road"] << " " << calling_function << " non-direct road requested, nearby flags to start_pos - flag at pos " << pos << " is the same as start flag, skipping";
         continue;
       }
       // avoid disconnected flags, unless they are the flag of the target building
@@ -950,19 +962,19 @@ AI::build_best_road(MapPos start_pos, RoadOptions road_options, Road *built_road
       //  this is a real bug that will need fixing otherwise disconnected roads will never be rejoined to road network
       /*
       if (!game->get_flag_at_pos(pos)->is_connected() && pos != castle_flag_pos && pos != target_pos) {
-        AILogDebug["util_build_best_road"] << name << " nearby flags to start_pos - flag at pos " << pos << " is itself disconnected and is neither the castle_flag_pos nor the target_pos, skipping";
+        AILogDebug["util_build_best_road"] << " " << calling_function << " non-direct road requested, nearby flags to start_pos - flag at pos " << pos << " is itself disconnected and is neither the castle_flag_pos nor the target_pos, skipping";
         continue;
       }*/
       // removing "allow target_pos" exception, it causes problems and is only used for rebuild_all_roads which doesn't work well
       if (!game->get_flag_at_pos(pos)->is_connected() && pos != castle_flag_pos) {
-        AILogDebug["util_build_best_road"] << name << " nearby flags to start_pos - flag at pos " << pos << " is itself disconnected and is not the castle_flag_pos, skipping";
+        AILogDebug["util_build_best_road"] << " " << calling_function << " non-direct road requested, nearby flags to start_pos - flag at pos " << pos << " is itself disconnected and is not the castle_flag_pos, skipping";
         continue;
       }
 
-      AILogDebug["util_build_best_road"] << name << " nearby flags to start_pos - found valid nearby_flag at pos " << pos;
+      AILogDebug["util_build_best_road"] << " " << calling_function << " non-direct road requested, nearby flags to start_pos - found valid nearby_flag at pos " << pos;
       if (std::find(nearby_flags.begin(), nearby_flags.end(), pos) != nearby_flags.end()) {
         // skip if already in nearby_flags list, which should only happen if it is part of existing road and RoadOption::Improve roads set;
-        AILogDebug["util_build_best_road"] << name << " nearby flags to start_pos - this pos is already in nearby_flag list, skipping";
+        AILogDebug["util_build_best_road"] << " " << calling_function << " non-direct road requested, nearby flags to start_pos - this pos is already in nearby_flag list, skipping";
         continue;
       }
       //ai_mark_pos.erase(pos);
@@ -971,11 +983,12 @@ AI::build_best_road(MapPos start_pos, RoadOptions road_options, Road *built_road
       nearby_flags.push_back(pos);
     } // foreach pos around start_pos
     ai_mark_pos.clear();
+    AILogDebug["util_build_best_road"] << " " << calling_function << " non-direct road requested, done finding flags near the start_pos, nearby_flags currently has " << nearby_flags.size() << " elements";
 
-    AILogDebug["util_build_best_road"] << name << " found " << nearby_flags.size() << " nearby_flags";
+    AILogDebug["util_build_best_road"] << " " << calling_function << " non-direct road requested, done finding nearby flags, found " << nearby_flags.size() << " nearby_flags";
     if (nearby_flags.size() < 1) {
-      AILogDebug["util_build_best_road"] << name << " no nearby_flags found!  maybe castle_flag should always be added as a last resort...";
-      AILogDebug["util_build_best_road"] << name << " because no nearby_flags found, no roads can be between start_pos " << start_pos << " and target_pos " << target_pos;
+      AILogDebug["util_build_best_road"] << " " << calling_function << " no nearby_flags found!  maybe castle_flag should always be added as a last resort...";
+      AILogDebug["util_build_best_road"] << " " << calling_function << " because no nearby_flags found, no roads can be between start_pos " << start_pos << " and target_pos " << target_pos;
       // it seems likely that if the first target can't be reached, any second affinity target can't either
       //  likely this flag can't be connected to the road system at all now.  Just quit here
       return false;
@@ -989,9 +1002,9 @@ AI::build_best_road(MapPos start_pos, RoadOptions road_options, Road *built_road
     //        this is used to limit the amount of time spent plotting roads as realm becomes crowded    NOT IMPLEMENTED YET
     //
     // use straight-line-distance to the actual target_pos as the measuring stick to judge how convoluted actual roads are be in comparison
-    AILogDebug["util_build_best_road"] << name << " checking tile_dist from start_pos " << start_pos << " to end_pos " << target_pos << " for an ideal road";
+    AILogDebug["util_build_best_road"] << " " << calling_function << " non-direct road requested, about to plot roads to nearby_flags, checking tile_dist from start_pos " << start_pos << " to end_pos " << target_pos << " for an ideal road";
     int ideal_length = AI::get_straightline_tile_dist(map, start_pos, target_pos);
-    AILogDebug["util_build_best_road"] << name << " flag target_pos at " << target_pos << " has straight-line tile distance " << ideal_length << " from start_pos " << start_pos;
+    AILogDebug["util_build_best_road"] << " " << calling_function << " non-direct road requested, about to plot roads to nearby_flags, flag target_pos at " << target_pos << " has straight-line tile distance " << ideal_length << " from start_pos " << start_pos;
     // for each nearby_flag:
     //   - if this is "tracked economy building", ensure the flag is closest to the currently selected Inventory (castle/warehouse) 
     //      in terms of Flag distance so that any resources produced will be stored there and not some other Inventory where it might 
@@ -1009,69 +1022,88 @@ AI::build_best_road(MapPos start_pos, RoadOptions road_options, Road *built_road
     // NOTE - it seems like it would be cleaner to iterate over the entire list of direct and indirect roads at once instead of having
     //  two sections, but I don't feel like messing with this logic right now 
     for (MapPos end_pos : nearby_flags) {
-      AILogDebug["util_build_best_road"] << name << " preparing to plot road from start_pos " << start_pos << " to nearby_flag pos " << end_pos;
+      AILogDebug["util_build_best_road"] << " " << calling_function << " non-direct road requested, plotting direct roads to nearby_flags, preparing to plot road from start_pos " << start_pos << " to nearby_flag pos " << end_pos;
       // it might be faster to have plot_road return the RoadEnds, but it seems messier
       
       //
-      // check for direct road first (store any split-road solutions later)
-      //  note that this is not the same as RoadOption::Direct !  
+      // first plot a road directly from start_pos to end_pos ( note that this is not the same as RoadOption::Direct ! )
+      //  if a road can be plotted directly, disqualify it if already unacceptable, otherwise include in potential solution list
+      // 
+      // NOTE - the split_roads vector will be filled by this plot_road call with all potential splitting Road solutions! 
       //
       Road potential_road = plot_road(map, player_index, start_pos, end_pos, &split_roads, road_options.test(RoadOption::HoldBuildingPos));
       // this while(true) loop looks goofy to me but it was the only clean way to do it without a GOTO statement
       while (true){
         if (potential_road.get_length() == 0) {
-          AILogDebug["util_build_best_road"] << name << " unable to plot_road a DIRECT road from start_pos " << start_pos << " to nearby_flag pos " << end_pos << ", skipping direct road";
+          AILogDebug["util_build_best_road"] << " " << calling_function << " non-direct road requested, plotting direct roads to nearby_flags, unable to plot_road a DIRECT road from start_pos " << start_pos << " to nearby_flag pos " << end_pos << ", skipping direct road";
           break;
         }
-        AILogDebug["util_build_best_road"] << name << " potential DIRECT road from start_pos " << start_pos << " to nearby_flag pos " << end_pos << " has new segment length " << potential_road.get_length();
+        AILogDebug["util_build_best_road"] << " " << calling_function << " non-direct road requested, plotting direct roads to nearby_flags, potential DIRECT road from start_pos " << start_pos << " to nearby_flag pos " << end_pos << " has new segment length " << potential_road.get_length();
         double convolution = static_cast<double>(potential_road.get_length()) / static_cast<double>(ideal_length);
-        AILogDebug["util_build_best_road"] << name << " potential DIRECT road NEW length: " << potential_road.get_length() << ", ideal TOTAL length: " << ideal_length << ", convolution ratio: " << convolution;
+        AILogDebug["util_build_best_road"] << " " << calling_function << " non-direct road requested, plotting direct roads to nearby_flags, potential DIRECT road NEW length: " << potential_road.get_length() << ", ideal TOTAL length: " << ideal_length << ", convolution ratio: " << convolution;
         if (convolution >= max_convolution) {
-          AILogDebug["util_build_best_road"] << name << " this potential DIRECT road solution is already too convoluted from new length alone, max is " << max_convolution;
+          AILogDebug["util_build_best_road"] << " " << calling_function << " non-direct road requested, plotting direct roads to nearby_flags, this potential DIRECT road solution is already too convoluted from new length alone, max is " << max_convolution;
           break;
         }
         if (road_options.test(RoadOption::MostlyStraight) && convolution >= max_convolution * 0.50) {
-          AILogDebug["util_build_best_road"] << name << " RoadOption::MostlyStraight is set and this potential DIRECT road solution is already too convoluted from new length alone, reduced max is " << max_convolution * 0.50;
+          AILogDebug["util_build_best_road"] << " " << calling_function << " non-direct road requested, plotting direct roads to nearby_flags, RoadOption::MostlyStraight is set and this potential DIRECT road solution is already too convoluted from new length alone, reduced max is " << max_convolution * 0.50;
           break;
         }
         // if this is "tracked economy building", ensure the end_pos flag is closest to the currently selected Inventory (castle/warehouse)
         if (verify_stock == true){
           if (find_nearest_inventory(map, player_index, end_pos, DistType::FlagAndStraightLine, &ai_mark_pos) != inventory_pos){
-            AILogDebug["util_build_best_road"] << name << " verify_stock - DIRECT road - flag at end_pos " << end_pos << " is not closest to current inventory_pos " << inventory_pos << ", skipping";
+            AILogDebug["util_build_best_road"] << " " << calling_function << " non-direct road requested, plotting direct roads to nearby_flags, verify_stock - DIRECT road - flag at end_pos " << end_pos << " is not closest to current inventory_pos " << inventory_pos << ", skipping";
             break;
           }
         }
-        AILogDebug["util_build_best_road"] << name << " this potential DIRECT road solution is acceptable so far in terms of NEW length only, adding to RoadBuilder potential_roads";
+        AILogDebug["util_build_best_road"] << " " << calling_function << " non-direct road requested, plotting direct roads to nearby_flags, this potential DIRECT road solution is acceptable so far in terms of NEW length only, adding to RoadBuilder potential_roads";
         RoadEnds potential_road_ends = get_roadends(map, potential_road);
         rb.new_proad(potential_road_ends, potential_road);
-        AILogDebug["util_build_best_road"] << name << " there are currently " << rb.get_proads().size() << " potential_roads in the list";
+        AILogDebug["util_build_best_road"] << " " << calling_function << " non-direct road requested, plotting direct roads to nearby_flags, there are currently " << rb.get_proads().size() << " potential_roads in the list";
         break;
       } // while true - find direct road
+
       //
-      // now do the same thing for any potential_roads found (flag-splitting), could make this a recursive function call instead...
+      // now check the list of splitting flag solutions that were likely found by the plot_road call directly
+      //  preceeding this, disqualify any that are already unacceptable, and include the rest as potential solutions
+      //                                      maybe make this a recursive call instead?
+      // IDEA TO POSSIBLY, MAJORLY IMPROVE ROAD SPLITTING:
+      //  instead of evaluating each split individually, when there could be MANY on an existing road
+      //   consider the two end flags of the existing road, if either is unacceptable then don't consider splits
+      //   along this road because the split can only be worse (right?).
+      //  Only consider the splits if the real road ends +2 tiles and +1 flag would be acceptable
+      //
       //
       if (road_options.test(RoadOption::SplitRoads == false)) {
         continue;
       }
-      AILogDebug["util_build_best_road"] << name << " RoadOption SplitRoads is true, preparing to iterate over potential split roads found in previous plot_road call";
-      AILogDebug["util_build_best_road"] << name << " there are " << split_roads.size() << " Road entries in the split_roads list (that was provide by the last plot_roads call to nearby map pos " << end_pos;
+      AILogDebug["util_build_best_road"] << " " << calling_function << " non-direct road requested, split_roads, RoadOption SplitRoads is true, preparing to iterate over potential split roads found in previous plot_road call";
+      AILogDebug["util_build_best_road"] << " " << calling_function << " non-direct road requested, split_roads, there are " << split_roads.size() << " Road entries in the split_roads list (that was provide by the last plot_roads call to nearby map pos " << end_pos;
       for (Road split_road : split_roads) {
+        RoadEnds split_road_ends = get_roadends(map, split_road);
         MapPos split_end_pos = split_road.get_end(map.get());
-        AILogDebug["util_build_best_road"] << name << " a potential split_road has end_pos: " << split_road.get_end(map.get()) << ", for comparison, start_pos is " << start_pos << " and split_road source is " << split_road.get_source();
-        if (split_road.get_length() == 0) {
-          AILogDebug["util_build_best_road"] << name << " road unexpectedly has zero length!  this should not happen, find out why!  skipping";
+
+        //AILogDebug["util_build_best_road"] << " " << calling_function << " non-direct road requested, split_roads, a potential split_road has end_pos: " << split_road.get_end(map.get()) << ", for comparison, start_pos is " << start_pos << " and split_road source is " << split_road.get_source();
+
+        if (rb.has_proad(split_road_ends)){
+          //AILogDebug["util_build_best_road"] << " " << calling_function << " non-direct road requested, split_roads, this road is already on the proads list, skipping";
           continue;
         }
 
-        AILogDebug["util_build_best_road"] << name << " split_road from start_pos " << start_pos << " to new-flag pos " << split_end_pos << " (on way to nearby_flag pos " << end_pos << ") has new segment length " << split_road.get_length();
+        if (split_road.get_length() == 0) {
+          AILogWarn["util_build_best_road"] << " " << calling_function << " non-direct road requested, split_roads, road unexpectedly has zero length!  this should not happen, find out why!  skipping";
+          continue;
+        }
+
+        //AILogDebug["util_build_best_road"] << " " << calling_function << " non-direct road requested, split_roads, split_road from start_pos " << start_pos << " to new-flag pos " << split_end_pos << " (on way to nearby_flag pos " << end_pos << ") has new segment length " << split_road.get_length();
         double convolution = static_cast<double>(split_road.get_length()) / static_cast<double>(ideal_length);
-        AILogDebug["util_build_best_road"] << name << " split_road NEW length: " << split_road.get_length() << ", ideal TOTAL length: " << ideal_length << ", convolution ratio: " << convolution;
+        //AILogDebug["util_build_best_road"] << " " << calling_function << " non-direct road requested, split_roads, split_road NEW length: " << split_road.get_length() << ", ideal TOTAL length: " << ideal_length << ", convolution ratio: " << convolution;
         if (convolution >= max_convolution) {
-          AILogDebug["util_build_best_road"] << name << " this split_road solution is already too convoluted from new length alone, max is " << max_convolution;
+          //AILogDebug["util_build_best_road"] << " " << calling_function << " non-direct road requested, split_roads, this split_road solution is already too convoluted from new length alone, max is " << max_convolution;
           continue;
         }
         if (road_options.test(RoadOption::MostlyStraight) && convolution >= max_convolution * 0.50) {
-          AILogDebug["util_build_best_road"] << name << " RoadOption::MostlyStraight is set and this split_road solution is already too convoluted from new length alone, reduced max is " << max_convolution * 0.50;
+          //AILogDebug["util_build_best_road"] << " " << calling_function << " non-direct road requested, split_roads, RoadOption::MostlyStraight is set and this split_road solution is already too convoluted from new length alone, reduced max is " << max_convolution * 0.50;
           continue;
         }
         // if this is "tracked economy building", ensure the end_pos flag is closest to the currently selected Inventory (castle/warehouse)
@@ -1081,36 +1113,46 @@ AI::build_best_road(MapPos start_pos, RoadOptions road_options, Road *built_road
         int disqualified = 0;
         if (verify_stock == true){
           for (Direction dir : cycle_directions_cw()) {
-            AILogVerbose["util_build_best_road"] << name << " verify_stock - looking for a path for splitting flag at split_end_pos " << split_end_pos << " in dir " << NameDirection[dir];
-            if (map->has_path(split_end_pos, dir)) {
+            AILogVerbose["util_build_best_road"] << " " << calling_function << " non-direct road requested, split_roads, verify_stock - looking for a path for splitting flag at split_end_pos " << split_end_pos << " in dir " << NameDirection[dir];
+            if (map->has_path_IMPROVED(split_end_pos, dir)) {
               Road split_road = trace_existing_road(map, split_end_pos, dir);
-              AILogDebug["util_build_best_road"] << name << " verify_stock - found a path for splitting flag at split_end_pos " << split_end_pos << " in dir " << NameDirection[dir];
+              //AILogDebug["util_build_best_road"] << " " << calling_function << " non-direct road requested, split_roads, verify_stock - found a path for splitting flag at split_end_pos " << split_end_pos << " in dir " << NameDirection[dir];
               MapPos adjacent_flag_pos = split_road.get_end(map.get());
-              AILogDebug["util_build_best_road"] << name << " verify_stock - path for splitting flag at split_end_pos " << split_end_pos << " in dir " << NameDirection[dir] << " ends at flag at pos " << adjacent_flag_pos;
+              //AILogDebug["util_build_best_road"] << " " << calling_function << " non-direct road requested, split_roads, verify_stock - path for splitting flag at split_end_pos " << split_end_pos << " in dir " << NameDirection[dir] << " ends at flag at pos " << adjacent_flag_pos;
               if (find_nearest_inventory(map, player_index, adjacent_flag_pos, DistType::FlagAndStraightLine, &ai_mark_pos) != inventory_pos){
-                AILogDebug["util_build_best_road"] << name << " verify_stock - potential split_road flag at split_end_pos " << split_end_pos << " is not closest to current inventory_pos " << inventory_pos << ", skipping";
+                //AILogDebug["util_build_best_road"] << " " << calling_function << " non-direct road requested, split_roads, verify_stock - potential split_road flag at split_end_pos " << split_end_pos << " is not closest to current inventory_pos " << inventory_pos << ", skipping";
                 disqualified++;
               }
             }
           }
         }
         if (disqualified > 0){
-          AILogDebug["util_build_best_road"] << name << " verify_stock - this split_end_pos is disqualified, skipping it";
+          //AILogDebug["util_build_best_road"] << " " << calling_function << " non-direct road requested, split_roads, verify_stock - this split_end_pos is disqualified, skipping it";
           continue;
         }
-        AILogDebug["util_build_best_road"] << name << " this split_road road solution is acceptable so far in terms of NEW length only, adding to RoadBuilder potential_roads";
-        RoadEnds split_road_ends = get_roadends(map, split_road);
+        //AILogDebug["util_build_best_road"] << " " << calling_function << " non-direct road requested, split_roads, this split_road road solution is acceptable so far in terms of NEW length only, adding to RoadBuilder potential_roads";
+        // add it to the proads list
+        AILogDebug["util_build_best_road"] << " " << calling_function << " non-direct road requested, split_roads, found acceptable-so-far split_road with start_pos " << split_road.get_source() << " and end_pos: " << split_road.get_end(map.get()) << ", creating new proad entry for it";
         rb.new_proad(split_road_ends, split_road);
-        AILogDebug["util_build_best_road"] << name << " there are currently " << rb.get_proads().size() << " potential_roads in the list";
+        //AILogDebug["util_build_best_road"] << " " << calling_function << " non-direct road requested, split_roads, there are currently " << rb.get_proads().size() << " potential_roads in the list";
+
       } // foreach split road
+
+      //AILogDebug["util_build_best_road"] << " " << calling_function << " non-direct road requested, split_roads, done checking split_roads for this potential direct road, there are currently " << rb.get_proads().size() << " potential_roads in the list";
+
     } // foreach end_pos nearby flags
+
+    AILogDebug["util_build_best_road"] << " " << calling_function << " non-direct road requested, done checking all direct and split_roads for start_pos " << start_pos << " to target_pos " << target_pos << ", there are currently " << rb.get_proads().size() << " potential_roads in the list";
+
+    // END OF FINDING POTENTIAL END FLAG TO CONNECT TO
+
 
     //=====================================================================================
     // score the potential new roads to nearby_flags in terms of:
     //     tile_dist (from end_flag to target flag)
     //     flag_dist (from end_flag to target flag);
     //     new_length (of the potential road to be built from start_pos to nearby_flag pos
-    AILogDebug["util_build_best_road"] << name << " preparing to score rb.get_proads() list";
+    AILogDebug["util_build_best_road"] << " " << calling_function << " preparing to score rb.get_proads() list";
 
     //
     // FIRST, score any existing roads(eroad) already attached to start_pos for later comparison to potential new
@@ -1120,25 +1162,45 @@ AI::build_best_road(MapPos start_pos, RoadOptions road_options, Road *built_road
     MapPos best_eroad_pos = bad_map_pos;
     unsigned int best_eroad_score = bad_score;
     if (map->has_flag(start_pos) && game->get_flag_at_pos(start_pos)->is_connected() && road_options.test(RoadOption::Improve)) {
-      AILogDebug["util_build_best_road"] << name << " checking eroads because start_pos already has paths and RoadOption::Improve is set";
+      AILogDebug["util_build_best_road"] << " " << calling_function << " scoring_eroads, checking eroads because start_pos already has paths and RoadOption::Improve is set";
       for (std::pair<RoadEnds, RoadBuilderRoad*> er : rb.get_eroads()) {
         RoadEnds ends = er.first;
         MapPos start_pos = er.second->get_end1();
         MapPos start_dir = er.second->get_dir1();
         MapPos nearby_eroad_flag_pos = er.second->get_end2();
-        AILogDebug["util_build_best_road"] << name << " found an existing road from start_pos " << start_pos << " in dir " << NameDirection[start_dir] << " to nearby_flag_pos " << nearby_eroad_flag_pos << ", checking score to target_pos " << target_pos;
-        AILogDebug["util_build_best_road"] << name << " debug - checking score for nearby_eroad_flag_pos " << nearby_eroad_flag_pos << " to target_pos " << target_pos << " BEFORE find_flag_and_tile_dist is called to see if there will be a collision";
-        AILogDebug["util_build_best_road"] << name << " debug - BEFORE score: flag_dist " << rb.get_score(nearby_eroad_flag_pos).get_flag_dist() << ", tile dist " << rb.get_score(nearby_eroad_flag_pos).get_tile_dist();
-        if (!find_flag_and_tile_dist(map, player_index, &rb, nearby_eroad_flag_pos, target_pos, &ai_mark_pos)) {
-          AILogDebug["util_build_best_road"] << name << " eroad: find_flag_and_tile_dist returned false for nearby_eroad_flag_pos " << nearby_eroad_flag_pos << "!";
+        AILogDebug["util_build_best_road"] << " " << calling_function << " scoring_eroads, found an existing road from start_pos " << start_pos << " in dir " << NameDirection[start_dir] << " to nearby_flag_pos " << nearby_eroad_flag_pos << ", checking score to target_pos " << target_pos;
+        AILogDebug["util_build_best_road"] << " " << calling_function << " scoring_eroads, debug - checking score for nearby_eroad_flag_pos " << nearby_eroad_flag_pos << " to target_pos " << target_pos << " BEFORE find_flag_and_tile_dist is called to see if there will be a collision";
+        AILogDebug["util_build_best_road"] << " " << calling_function << " scoring_eroads, debug - BEFORE score: flag_dist " << rb.get_score(nearby_eroad_flag_pos).get_flag_dist() << ", tile dist " << rb.get_score(nearby_eroad_flag_pos).get_tile_dist();
+        
+        // USING NEW FUNCTION
+        //if (!find_flag_and_tile_dist(map, player_index, &rb, nearby_eroad_flag_pos, target_pos, &ai_mark_pos)) {
+        //  AILogDebug["util_build_best_road"] << " " << calling_function << " scoring_eroads, eroad: find_flag_and_tile_dist returned false for nearby_eroad_flag_pos " << nearby_eroad_flag_pos << "!";
+        //  continue;
+        //}
+        MapPosVector found_flags = {};
+        unsigned int xtile_dist = 0;
+        bool xcontains_castle_flag = false;
+        if(find_flag_path_and_tile_dist_between_flags(map, nearby_eroad_flag_pos, target_pos, &found_flags, &xtile_dist, &ai_mark_pos)){
+          AILogDebug["score_flag"] << " " << calling_function << " scoring_eroads, splitting_flag find_flag_path_and_tile_dist_between_flags() returned true from flag_pos " << nearby_eroad_flag_pos << " to target_pos " << target_pos;
+          // manually set rb stuff because the new function doesn't use it
+          unsigned int flag_dist = found_flags.size();
+          for(MapPos flag_pos : found_flags){
+            if (flag_pos == castle_flag_pos){
+              AILogDebug["score_flag"] << " " << calling_function << " scoring_eroads, this solution contains the castle flag!";
+              xcontains_castle_flag = true;
+              break;
+            }
+          }
+          rb.set_score(nearby_eroad_flag_pos, flag_dist, xtile_dist, xcontains_castle_flag);
+        }else{
           continue;
         }
-        AILogDebug["util_build_best_road"] << name << " eroad: find_flag_and_tile_dist returned true for nearby_flag_pos " << nearby_eroad_flag_pos;
+        AILogDebug["util_build_best_road"] << " " << calling_function << " scoring_eroads, eroad: find_flag_path_and_tile_dist_between_flags returned true for nearby_flag_pos " << nearby_eroad_flag_pos;
 
-        AILogDebug["util_build_best_road"] << name << " debug - checking score for nearby_eroad_flag_pos " << nearby_eroad_flag_pos << " to target_pos " << target_pos << " AFTER find_flag_and_tile_dist is called to see if there was a collision";
-        AILogDebug["util_build_best_road"] << name << " debug - AFTER score: flag_dist " << rb.get_score(nearby_eroad_flag_pos).get_flag_dist() << ", tile dist " << rb.get_score(nearby_eroad_flag_pos).get_tile_dist();
+        AILogDebug["util_build_best_road"] << " " << calling_function << " scoring_eroads, scoring_roads, debug - checking score for nearby_eroad_flag_pos " << nearby_eroad_flag_pos << " to target_pos " << target_pos << " AFTER find_flag_and_tile_dist is called to see if there was a collision";
+        AILogDebug["util_build_best_road"] << " " << calling_function << " scoring_eroads, debug - AFTER score: flag_dist " << rb.get_score(nearby_eroad_flag_pos).get_flag_dist() << ", tile dist " << rb.get_score(nearby_eroad_flag_pos).get_tile_dist();
 
-        AILogDebug["util_build_best_road"] << name << " preparing to apply penalties to eroad from start_pos " << start_pos << " in dir " << NameDirection[start_dir] << " to nearby_eroad_flag_pos " << nearby_eroad_flag_pos;
+        AILogDebug["util_build_best_road"] << " " << calling_function << " scoring_eroads, preparing to apply penalties to eroad from start_pos " << start_pos << " in dir " << NameDirection[start_dir] << " to nearby_eroad_flag_pos " << nearby_eroad_flag_pos;
         FlagScore nearby_eroad_flag_score = rb.get_score(nearby_eroad_flag_pos);
         unsigned int tile_dist = nearby_eroad_flag_score.get_tile_dist();
         unsigned int flag_dist = nearby_eroad_flag_score.get_flag_dist();
@@ -1151,7 +1213,7 @@ AI::build_best_road(MapPos start_pos, RoadOptions road_options, Road *built_road
         //   where the "tile_dist" showed up as the score of the potential new flag's tile-dist to the target flag
         //  and did NOT include the new length that all, which I assume it shuold?
         //
-        AILogDebug["util_build_best_road"] << name << " BEFORE applying any penalties, potential road from start_pos " << start_pos << " in dir " << NameDirection[start_dir] << " to nearby_eroad_flag_pos " << nearby_eroad_flag_pos <<
+        AILogDebug["util_build_best_road"] << " " << calling_function << " scoring_eroads, BEFORE applying any penalties, potential road from start_pos " << start_pos << " in dir " << NameDirection[start_dir] << " to nearby_eroad_flag_pos " << nearby_eroad_flag_pos <<
           " has tile_dist " << tile_dist << ", flag_dist " << flag_dist << ", new_length " << new_length << " to target_pos " << target_pos;
         //----------------------------------------------------------------------------------------------
         // RoadOption penalties applied here!   * 1 means no penalty, only in place for easy adjustment
@@ -1159,33 +1221,37 @@ AI::build_best_road(MapPos start_pos, RoadOptions road_options, Road *built_road
         unsigned int adjusted_score = static_cast<unsigned int>(static_cast<double>(tile_dist * 1) + static_cast<double>(flag_dist * 1));
         //----------------------------------------------------------------------------------------------
         if (road_options.test(RoadOption::PenalizeCastleFlag) && contains_castle_flag == true) {
-          adjusted_score += contains_castle_flag_penalty;
-          AILogDebug["pathfinder"] << "applying contains_castle_flag penalty of " << contains_castle_flag_penalty;
+          if (target_pos == castle_flag_pos){
+            AILogDebug["util_build_best_road"] << name << " not applying contains_castle_flag penalty because the target *is* the castle flag pos!";
+          }else{
+            adjusted_score += contains_castle_flag_penalty;
+            AILogDebug["util_build_best_road"] << " " << calling_function << " scoring_eroads, applying contains_castle_flag penalty of " << contains_castle_flag_penalty;
+          }
         }
-        AILogDebug["util_build_best_road"] << name << " AFTER penalties, existing road from start_pos " << start_pos << " in dir " << NameDirection[start_dir] << " to nearby_eroad_flag_pos " << nearby_eroad_flag_pos <<
+        AILogDebug["util_build_best_road"] << " " << calling_function << " scoring_eroads, AFTER penalties, existing road from start_pos " << start_pos << " in dir " << NameDirection[start_dir] << " to nearby_eroad_flag_pos " << nearby_eroad_flag_pos <<
           " has tile_dist " << tile_dist << ", flag_dist " << flag_dist << ", new_length " << new_length << ", adjusted_score " << adjusted_score << " to target_pos " << target_pos;
         if (adjusted_score < best_eroad_score) {
-          AILogDebug["util_build_best_road"] << name << " new best_eroad_score found: " << adjusted_score << " from pos " << nearby_eroad_flag_pos;
+          AILogDebug["util_build_best_road"] << " " << calling_function << " scoring_eroads, new best_eroad_score found: " << adjusted_score << " from pos " << nearby_eroad_flag_pos;
           best_eroad_score = adjusted_score;
           best_eroad_pos = nearby_eroad_flag_pos;
         }
       }
-      AILogDebug["util_build_best_road"] << name << " done finding eroads, best_eroad_score found: " << best_eroad_score << " from pos " << best_eroad_pos;
+      AILogDebug["util_build_best_road"] << " " << calling_function << " scoring_eroads, done finding eroads, best_eroad_score found: " << best_eroad_score << " from pos " << best_eroad_pos;
     }
     else {
-      AILogDebug["util_build_best_road"] << name << " start_pos " << start_pos << " has no flag, no paths, or RoadOption::Improve not set, not checking for eroads";
+      AILogDebug["util_build_best_road"] << " " << calling_function << " scoring_eroads, start_pos " << start_pos << " has no flag, no paths, or RoadOption::Improve not set, not checking for eroads";
     } // if start_pos has any paths/eroads already
 
     // foreach potential new road (proad) to be built to a nearby flag
     //  score the existing road (eroad) that begins at the flag/pos where the proad ends
-    AILogDebug["util_build_best_road"] << name << " preparing to score potential new roads from start_pos to nearby_flag positions";
+    AILogDebug["util_build_best_road"] << " " << calling_function << " scoring_proads, preparing to score potential new roads from start_pos to nearby_flag positions";
     MapPosSet scored_proads;
     for (std::pair<RoadEnds, RoadBuilderRoad*> pr : rb.get_proads()) {
       RoadEnds ends = pr.first;
       RoadBuilderRoad *rbroad = pr.second;
       MapPos start_pos = pr.second->get_end1();
       MapPos nearby_flag_pos = pr.second->get_end2();
-      AILogDebug["util_build_best_road"] << name << " found an potential new road to nearby_flag_pos " << nearby_flag_pos;
+      AILogDebug["util_build_best_road"] << " " << calling_function << " scoring_proads, found an potential new road to nearby_flag_pos " << nearby_flag_pos;
       // why is this scoring route to castle_flag pos?  shouldn't it be to target_pos for affinity building??
       //if (!score_flag(map, player_index, &rb, road_options, nearby_flag_pos, castle_flag_pos, &ai_mark_pos)) {
       // trying this instead - may04 2020
@@ -1193,19 +1259,19 @@ AI::build_best_road(MapPos start_pos, RoadOptions road_options, Road *built_road
       //     it isn't actually using it as the target!  setting it back
       //if (!score_flag(map, player_index, &rb, road_options, nearby_flag_pos, target_pos, &ai_mark_pos)) {
       if (!score_flag(map, player_index, &rb, road_options, nearby_flag_pos, castle_flag_pos, &ai_mark_pos)) {
-        AILogDebug["util_build_best_road"] << name << " proad: score_flag returned false for nearby_flag_pos " << nearby_flag_pos << "!";
+        AILogDebug["util_build_best_road"] << " " << calling_function << " scoring_proads, proad: score_flag returned false for nearby_flag_pos " << nearby_flag_pos << "!";
         continue;
       }
-      AILogDebug["util_build_best_road"] << name << " proad: score_flag returned true for nearby_flag_pos " << nearby_flag_pos;
+      AILogDebug["util_build_best_road"] << " " << calling_function << " scoring_proads, proad: score_flag returned true for nearby_flag_pos " << nearby_flag_pos;
       // then add the score of the new segment and apply any penalties
       //    and insert adjusted_scores into MapPosSet for sorting later
-      AILogDebug["util_build_best_road"] << name << " preparing to apply penalties to proad from start_pos " << start_pos << " to nearby_flag_pos " << nearby_flag_pos;
+      AILogDebug["util_build_best_road"] << " " << calling_function << " scoring_proads, preparing to apply penalties to proad from start_pos " << start_pos << " to nearby_flag_pos " << nearby_flag_pos;
       FlagScore nearby_flag_score = rb.get_score(nearby_flag_pos);
       unsigned int tile_dist = nearby_flag_score.get_tile_dist();
       unsigned int flag_dist = nearby_flag_score.get_flag_dist();
       bool contains_castle_flag = nearby_flag_score.get_contains_castle_flag();
       unsigned int new_length = static_cast<unsigned int>(rbroad->get_road().get_length());
-      AILogDebug["util_build_best_road"] << name << " BEFORE applying any penalties, potential road from start_pos " << start_pos << " to nearby_flag_pos " << nearby_flag_pos <<
+      AILogDebug["util_build_best_road"] << " " << calling_function << " scoring_proads, BEFORE applying any penalties, potential road from start_pos " << start_pos << " to nearby_flag_pos " << nearby_flag_pos <<
         " has tile_dist " << tile_dist << ", flag_dist " << flag_dist << ", new_length " << new_length;
       //----------------------------------------------------------------------------------------------
       // RoadOption penalties applied here!   * 1 means no penalty, only in place for easy adjustment
@@ -1223,78 +1289,86 @@ AI::build_best_road(MapPos start_pos, RoadOptions road_options, Road *built_road
       }
       unsigned int adjusted_score = static_cast<unsigned int>(static_cast<double>(tile_dist * 1) + static_cast<double>(new_length) * new_length_penalty + static_cast<double>(flag_dist * 1));
       if (road_options.test(RoadOption::PenalizeCastleFlag) && contains_castle_flag == true) {
-        adjusted_score += contains_castle_flag_penalty;
-        AILogDebug["util_build_best_road"] << "applying contains_castle_flag penalty of " << contains_castle_flag_penalty;
+        if (target_pos == castle_flag_pos){
+          AILogDebug["util_build_best_road"] << name << " not applying contains_castle_flag penalty because the target *is* the castle flag pos!";
+        }else{
+          adjusted_score += contains_castle_flag_penalty;
+          AILogDebug["util_build_best_road"] << " " << calling_function << " scoring_proads, applying contains_castle_flag penalty of " << contains_castle_flag_penalty;
+        }
       }
-      AILogDebug["util_build_best_road"] << name << " AFTER penalties, potential road from start_pos " << start_pos << " to nearby_flag_pos " << nearby_flag_pos <<
+      AILogDebug["util_build_best_road"] << " " << calling_function << " scoring_proads, AFTER penalties, potential road from start_pos " << start_pos << " to nearby_flag_pos " << nearby_flag_pos <<
         " has tile_dist " << tile_dist << ", flag_dist " << flag_dist << ", new_length " << new_length << ", adjusted_score " << adjusted_score;
       scored_proads.insert(std::make_pair(nearby_flag_pos, adjusted_score));
     }
-    AILogDebug["util_build_best_road"] << name << " done scoring proads";
+    AILogDebug["util_build_best_road"] << " " << calling_function << " scoring_proads, done scoring proads";
 
 
     // sort the potential new roads by their score, best (lowest) score first
-    AILogDebug["util_build_best_road"] << name << " preparing to sort scored_proads into a MapPosVector";
+    AILogDebug["util_build_best_road"] << " " << calling_function << " scoring_proads, preparing to sort scored_proads into a MapPosVector";
     MapPosVector sorted_scored_proads = sort_by_val_asc(scored_proads);
 
     // try to build a road, starting with the best scoring potential_road end flag, until successful
-    AILogDebug["util_build_best_road"] << name << " preparing to iterate over sorted_scored_proads to try to build roads to best nearby_flag";
+    AILogDebug["util_build_best_road"] << " " << calling_function << " sorted_scored_proads, preparing to iterate over sorted_scored_proads to try to build roads to best nearby_flag";
     for (MapPos end_pos : sorted_scored_proads) {
-      AILogDebug["util_build_best_road"] << name << " considering building road from start_pos " << start_pos << " to end_pos " << end_pos;
+      AILogDebug["util_build_best_road"] << " " << calling_function << " sorted_scored_proads, considering building road from start_pos " << start_pos << " to end_pos " << end_pos;
       if (roads_built >= target_count) {
-        AILogDebug["util_build_best_road"] << name << " roads_built " << roads_built << " >= target_count " << target_count << ", done building roads";
+        AILogDebug["util_build_best_road"] << " " << calling_function << " sorted_scored_proads, roads_built " << roads_built << " >= target_count " << target_count << ", done building roads";
         return true;
       }
       RoadBuilderRoad *proad = rb.get_proad(end_pos);
 
+      // check and see if this solution is actually better than the existing best complete
+      //   solution from start_pos to target_pos (eroad score)
+      // if not, skip this target and move on to next target
       if (game->get_flag_at_pos(start_pos)->is_connected() && road_options.test(RoadOption::Improve)) {
-        // check and see if this solution is actually better than the existing best complete
-        //   solution from start_pos to target_pos (eroad score)
         bool skip_target = false;
         for (std::pair<MapPos, unsigned int> ppair : scored_proads) {
           if (ppair.first != end_pos) {
             continue;
           }
-          AILogDebug["util_build_best_road"] << name << " found adjusted_score of " << ppair.second << " for this proad ending at end_pos " << end_pos;
+          AILogDebug["util_build_best_road"] << " " << calling_function << " checking vs existing solution, found adjusted_score of " << ppair.second << " for this proad ending at end_pos " << end_pos;
           // it must be SIGNIFICANTLY better, say 50% + 2?
           double modified_prod_score = static_cast<double>(ppair.second) * static_cast<double>(1.50) + 2;
           //if (best_eroad_score <= ppair.second) {
           if (best_eroad_score <= modified_prod_score) {
-            AILogDebug["util_build_best_road"] << name << " proad from start_pos " << start_pos << " to end_pos " << end_pos << " has +50%+2 score " << modified_prod_score << " which is not significantly better than best_eroad_score " << best_eroad_score << ", skipping this target";
+            AILogDebug["util_build_best_road"] << " " << calling_function << " checking vs existing solution, proad from start_pos " << start_pos << " to end_pos " << end_pos << " has +50%+2 score " << modified_prod_score << " which is not significantly better than best_eroad_score " << best_eroad_score << ", skipping this target";
             skip_target = true;
             break;
           }
           else {
-            AILogDebug["util_build_best_road"] << name << " proad from start_pos " << start_pos << " to end_pos " << end_pos << " has +50%+2 score " << modified_prod_score << " which is significantly better than best_eroad_score " << best_eroad_score << ", will build new road";
+            AILogDebug["util_build_best_road"] << " " << calling_function << " checking vs existing solution, proad from start_pos " << start_pos << " to end_pos " << end_pos << " has +50%+2 score " << modified_prod_score << " which is significantly better than best_eroad_score " << best_eroad_score << ", will build new road";
             break;
           }
         }
         if (skip_target == true) {
-          AILogDebug["util_build_best_road"] << name << " skip_target is true, breaking from foreach sorted_scored_proads - not building road to this target";
+          AILogDebug["util_build_best_road"] << " " << calling_function << " checking vs existing solution, skip_target is true, breaking from foreach sorted_scored_proads - not building road to this target";
           break;
         }
       }
       else {
-        AILogDebug["util_build_best_road"] << name << " start_pos " << start_pos << " has no paths, or RoadOption::Improve not set, not comparing this solution to any best_eroad_score";
-      } // if start_pos has any paths/eroads already
+        AILogDebug["util_build_best_road"] << " " << calling_function << " sorted_scored_proads, start_pos " << start_pos << " has no paths, or RoadOption::Improve not set, not comparing this solution to any best_eroad_score";
+      } // is potential new solution better than existing solution?
+
+
 
       Road road = proad->get_road();
-      AILogDebug["util_build_best_road"] << name << " trying to build road from " << start_pos << " to " << end_pos << " as specified in proad";
+      AILogDebug["util_build_best_road"] << " " << calling_function << " preparing to build road, trying to build road from " << start_pos << " to " << end_pos << " as specified in proad";
+
 
       // check to see if this is a water road about to be built
       //  it should only be possible for BOTH ends to be in water, but checking both just to be sure
       bool water_road = false;
       if (map->road_segment_in_water(end_pos, reverse_direction(road.get_last()))){
-        AILogDebug["util_build_best_road"] << name << " end_pos is in water!";
+        AILogDebug["util_build_best_road"] << " " << calling_function << " preparing to build road, end_pos is in water!";
         water_road = true;
       }
       if (map->road_segment_in_water(start_pos, road.get_first())){
-        AILogDebug["util_build_best_road"] << name << " start_pos is in water!";
+        AILogDebug["util_build_best_road"] << " " << calling_function << " preparing to build road, start_pos is in water!";
         water_road = true;
       }
       if (water_road) {
         if (!road_options.test(RoadOption::AllowWaterRoad)) {
-          AILogDebug["util_build_best_road"] << name << " this solution is a water road, but AllowWaterRoad RoadOption is not set, skipping";
+          AILogDebug["util_build_best_road"] << " " << calling_function << " preparing to build road, this solution is a water road, but AllowWaterRoad RoadOption is not set, skipping";
           continue;
         }
         RoadOptions recursive_land_road_options = road_options;
@@ -1303,91 +1377,92 @@ AI::build_best_road(MapPos start_pos, RoadOptions road_options, Road *built_road
         Road notused; // not used here
         bool land_road_was_built = AI::build_best_road(start_pos, recursive_land_road_options, &notused);
         if (land_road_was_built) {
-          AILogDebug["util_build_best_road"] << name << " successfully built land road, allowing a water road to " << start_pos;
+          AILogDebug["util_build_best_road"] << " " << calling_function << " preparing to build road, successfully built land road, allowing a water road to " << start_pos;
         }
         else {
-          AILogDebug["util_build_best_road"] << name << " failed to build land road, NOT allowing a water road to " << start_pos;
+          AILogDebug["util_build_best_road"] << " " << calling_function << " preparing to build road, failed to build land road, NOT allowing a water road to " << start_pos;
           continue;
         }
       }
 
 
+      // build a new flag if this solution ends with no flag (i.e. a split road solution)
       bool created_new_flag = false;
       if (game->get_flag_at_pos(end_pos) == nullptr) {
-        AILogDebug["util_build_best_road"] << name << " end_pos " << end_pos << " has no flag, must be fake flag/split road, trying to create a real flag";
-        AILogDebug["util_build_best_road"] << name << " thread #" << std::this_thread::get_id() << " AI is locking mutex before calling game->build_flag (split road)";
+        AILogDebug["util_build_best_road"] << " " << calling_function << " end_pos " << end_pos << " has no flag, must be fake flag/split road, trying to create a real flag";
+        AILogVerbose["util_build_best_road"] << " " << calling_function << " thread #" << std::this_thread::get_id() << " AI is locking mutex before calling game->build_flag (split road)";
         game->get_mutex()->lock();
-        AILogDebug["util_build_best_road"] << name << " thread #" << std::this_thread::get_id() << " AI has locked mutex before calling game->build_flag (split road)";
+        AILogVerbose["util_build_best_road"] << " " << calling_function << " thread #" << std::this_thread::get_id() << " AI has locked mutex before calling game->build_flag (split road)";
         bool was_built = game->build_flag(end_pos, player);
-        AILogDebug["util_build_best_road"] << name << " thread #" << std::this_thread::get_id() << " AI is unlocking mutex after calling game->build_flag (split road)";
+        AILogVerbose["util_build_best_road"] << " " << calling_function << " thread #" << std::this_thread::get_id() << " AI is unlocking mutex after calling game->build_flag (split road)";
         game->get_mutex()->unlock();
-        AILogDebug["util_build_best_road"] << name << " thread #" << std::this_thread::get_id() << " AI has unlocked mutex after calling game->build_flag (split road)";
+        AILogVerbose["util_build_best_road"] << " " << calling_function << " thread #" << std::this_thread::get_id() << " AI has unlocked mutex after calling game->build_flag (split road)";
         if (was_built) {
-          AILogDebug["util_build_best_road"] << name << " successfully built new flag at end_pos " << end_pos << ", splitting the road";
+          AILogDebug["util_build_best_road"] << " " << calling_function << " successfully built new flag at end_pos " << end_pos << ", splitting the road";
           created_new_flag = true;
         }
         else {
-          AILogDebug["util_build_best_road"] << name << " failed to build flag at end_pos " << end_pos << ", FIND OUT WHY!  not trying to build this road.  marking pos in blue";
+          AILogDebug["util_build_best_road"] << " " << calling_function << " failed to build flag at end_pos " << end_pos << ", FIND OUT WHY!  not trying to build this road.  marking pos in blue";
           ai_mark_pos.insert(ColorDot(end_pos, "blue"));
-          std::this_thread::sleep_for(std::chrono::milliseconds(5000));
+          //std::this_thread::sleep_for(std::chrono::milliseconds(5000));
           continue;
         }
       }
-      //
-      // insert code here to check if the second road is actually better than the first road built (if one was built) !!
+
+      // TODO insert code here to check if the second road is actually better than the first road built (if one was built) !!
       //   otherwise, don't build. 
-      //
-      if (true) {
-        if (roads_built >= 1) {
-          AILogDebug["util_build_best_road"] << name << " TODO - check to see if this road is better than the first one built!";
-        }
-        AILogDebug["util_build_best_road"] << name << " about to build road, dumping some road stats.  source=" << road.get_source() << ", end=" << road.get_end(game->get_map().get());
-        AILogDebug["util_build_best_road"] << name << " thread #" << std::this_thread::get_id() << " AI is locking mutex before calling game->build_road (non-direct road)";
-        game->get_mutex()->lock();
-        AILogDebug["util_build_best_road"] << name << " thread #" << std::this_thread::get_id() << " AI has locked mutex before calling game->build_road (non-direct road)";
-        bool was_built = game->build_road(road, game->get_player(player_index));
-        AILogDebug["util_build_best_road"] << name << " thread #" << std::this_thread::get_id() << " AI is unlocking mutex after calling game->build_road (non-direct road)";
-        game->get_mutex()->unlock();
-        AILogDebug["util_build_best_road"] << name << " thread #" << std::this_thread::get_id() << " AI has unlocked mutex after calling game->build_road (non-direct road)";
-        if (was_built) {
-          AILogDebug["util_build_best_road"] << name << " successfully built road from " << start_pos << " to " << end_pos << " as specified in PotentialRoad";
-          roads_built++;
-          //AILogDebug["util_build_best_road"] << name << " spiderweb road debug, about to store road (which has mem addr " << &road << ") as built_road (which currently has mem addr " << built_road << ")";
-          *built_road = *(&road);
-          //AILogDebug["util_build_best_road"] << name << " spiderweb road debug, stored road (which has mem addr " << &road << ") as built_road (which now has mem addr " << built_road << "), road source " << road.get_source() << " built_road (should be same) source is " << built_road->get_source();
-          continue;
-        }
-        else {
-          AILogDebug["util_build_best_road"] << name << " ERROR - failed to build road from " << start_pos << " to " << end_pos << ", FIND OUT WHY!   trying next best solution...";
-        }
+
+      // build the road!
+      AILogDebug["util_build_best_road"] << " " << calling_function << " about to build road with source=" << road.get_source() << ", end=" << road.get_end(game->get_map().get());
+      AILogVerbose["util_build_best_road"] << " " << calling_function << " thread #" << std::this_thread::get_id() << " AI is locking mutex before calling game->build_road (non-direct road)";
+      game->get_mutex()->lock();
+      AILogVerbose["util_build_best_road"] << " " << calling_function << " thread #" << std::this_thread::get_id() << " AI has locked mutex before calling game->build_road (non-direct road)";
+      bool was_built = game->build_road(road, game->get_player(player_index));
+      AILogVerbose["util_build_best_road"] << " " << calling_function << " thread #" << std::this_thread::get_id() << " AI is unlocking mutex after calling game->build_road (non-direct road)";
+      game->get_mutex()->unlock();
+      AILogVerbose["util_build_best_road"] << " " << calling_function << " thread #" << std::this_thread::get_id() << " AI has unlocked mutex after calling game->build_road (non-direct road)";
+      if (was_built) {
+        AILogDebug["util_build_best_road"] << " " << calling_function << " successfully built road from " << start_pos << " to " << end_pos << " as specified in PotentialRoad";
+        roads_built++;
+        // set this so the calling function can tell the exact Road built if it needs it
+        *built_road = *(&road);
+        continue;
       }
       else {
-        AILogDebug["util_build_best_road"] << name << " last road built is better than this proposed one, not building second road (should only happy for dual-affinity buildings)";
+        AILogWarn["util_build_best_road"] << " " << calling_function << " ERROR - failed to build road from " << start_pos << " to " << end_pos << ", FIND OUT WHY!  marking pos in blue, trying next best solution...";
+        ai_mark_pos.insert(ColorDot(end_pos, "blue"));
+        //std::this_thread::sleep_for(std::chrono::milliseconds(5000));
       }
+
+      // if a new flag was built but the road creation failed, destroy the newly built flag
       if (created_new_flag) {
-        AILogDebug["util_build_best_road"] << name << " removing the newly created flag at end_pos so it doesn't screw up the rest of the road solutions";
-        AILogDebug["util_build_best_road"] << name << " thread #" << std::this_thread::get_id() << " AI is locking mutex before calling game->demolish_flag (couldn't connect new flag)";
+        AILogDebug["util_build_best_road"] << " " << calling_function << " removing the newly created flag at end_pos so it doesn't screw up the rest of the road solutions";
+        AILogVerbose["util_build_best_road"] << " " << calling_function << " thread #" << std::this_thread::get_id() << " AI is locking mutex before calling game->demolish_flag (couldn't connect new flag)";
         game->get_mutex()->lock();
-        AILogDebug["util_build_best_road"] << name << " thread #" << std::this_thread::get_id() << " AI has locked mutex before calling game->demolish_flag (couldn't connect new flag)";
+        AILogVerbose["util_build_best_road"] << " " << calling_function << " thread #" << std::this_thread::get_id() << " AI has locked mutex before calling game->demolish_flag (couldn't connect new flag)";
         game->demolish_flag(end_pos, game->get_player(player_index));
-        AILogDebug["util_build_best_road"] << name << " thread #" << std::this_thread::get_id() << " AI is unlocking mutex after calling game->demolish_flag (couldn't connect new flag)";
+        AILogVerbose["util_build_best_road"] << " " << calling_function << " thread #" << std::this_thread::get_id() << " AI is unlocking mutex after calling game->demolish_flag (couldn't connect new flag)";
         game->get_mutex()->unlock();
-        AILogDebug["util_build_best_road"] << name << " thread #" << std::this_thread::get_id() << " AI has unlocked mutex after calling game->demolish_flag (couldn't connect new flag)";
+        AILogVerbose["util_build_best_road"] << " " << calling_function << " thread #" << std::this_thread::get_id() << " AI has unlocked mutex after calling game->demolish_flag (couldn't connect new flag)";
       }
-      AILogDebug["util_build_best_road"] << name << " done trying to build road from " << start_pos << " to " << end_pos;
-    } // end foreach end_pos
-    AILogDebug["util_build_best_road"] << name << " done building roads to target_pos " << target_pos;
+      AILogDebug["util_build_best_road"] << " " << calling_function << " done trying to build road from " << start_pos << " to " << end_pos;
+
+    } // end foreach end_pos (of sorted_scored_road solutions)
+
+    AILogDebug["util_build_best_road"] << " " << calling_function << " done building roads from start_pos " << start_pos << " to target_pos " << target_pos;
+
   } //foreach target
+
   // return success if at least one road built, even if two targets found
 
   duration = (std::clock() - start) / static_cast<double>(CLOCKS_PER_SEC);
-  AILogDebug["util_build_best_road"] << name << " build_best_road call took " << duration;
+  AILogDebug["util_build_best_road"] << " " << calling_function << " build_best_road call took " << duration;
 
   if (roads_built < 1) {
-    AILogDebug["util_build_best_road"] << name << " build_best_road: Failed to connect specified flag to road system!";
+    AILogDebug["util_build_best_road"] << " " << calling_function << " failed to connect specified flag to road system!";
     return false;
   }
-  AILogDebug["util_build_best_road"] << name << " Done with build_best_road, roads built: " << roads_built << ", out of target_count: " << target_count;
+  AILogDebug["util_build_best_road"] << " " << calling_function << " done with build_best_road, roads built: " << roads_built << ", out of target_count: " << target_count;
   // sleep a bit to be more human like
   std::this_thread::sleep_for(std::chrono::milliseconds(2000));
   return true;
@@ -1399,7 +1474,7 @@ MapPosVector
 // THIS FUNCTION SHOULD EITHER RETURN TWO FIXED ITEMS OR TWO LISTS OF POTENTIAL TARGET BUILDINGS IN ORDER OF DIST/BUILD PROGRESS!
 //((((((((((((((((((()))))))))))))))))))
 //
-AI::get_affinity(MapPos flag_pos, Building::Type optional_building_type){
+AI::get_affinity(MapPos flag_pos, Building::Type optional_affinity_building_type){
   AILogDebug["util_get_affinity"] << name << " inside AI::get_affinity for flag_pos " << flag_pos;
 
   // time this function for debugging
@@ -1429,9 +1504,9 @@ AI::get_affinity(MapPos flag_pos, Building::Type optional_building_type){
 
   // find out what kind of building we are getting affinity for
   Building::Type request_type = Building::TypeNone;
-  if (optional_building_type != Building::TypeNone){
-    request_type = optional_building_type;
-    AILogDebug["util_get_affinity"] << name << " using specified optional_building_type " << NameBuilding[request_type];
+  if (optional_affinity_building_type != Building::TypeNone){
+    request_type = optional_affinity_building_type;
+    AILogDebug["util_get_affinity"] << name << " using specified optional_affinity_building_type " << NameBuilding[request_type];
   }else{
     if (!map->has_flag(flag_pos)){
       AILogDebug["util_get_affinity"] << name << " no flag at flag_pos " << flag_pos << " and no optional_affinity building specified, returning empty vector";
@@ -1787,12 +1862,12 @@ AI::find_halfway_pos_between_buildings(Building::Type first, Building::Type seco
 //    until another flag is found.  The start pos doesn't have to be a real flag
 Road
 AI::trace_existing_road(PMap map, MapPos start_pos, Direction dir) {
-  AILogDebug["util_trace_existing_road"] << name << " inside trace_existing_road, start_pos " << start_pos << ", dir: " << NameDirection[dir];
+  //AILogDebug["util_trace_existing_road"] << name << " inside trace_existing_road, start_pos " << start_pos << ", dir: " << NameDirection[dir];
   Road road;
-  if (!map->has_path(start_pos, dir)) {
+  if (!map->has_path_IMPROVED(start_pos, dir)) {
     AILogWarn["util_trace_existing_road"] << name << " no path found at " << start_pos << " in direction " << NameDirection[dir] << "!  FIND OUT WHY";
     ai_mark_pos.insert(ColorDot(start_pos, "white"));
-    std::this_thread::sleep_for(std::chrono::milliseconds(100000));
+    //std::this_thread::sleep_for(std::chrono::milliseconds(100000));
     return road;
   }
   road.start(start_pos);
@@ -1804,13 +1879,13 @@ AI::trace_existing_road(PMap map, MapPos start_pos, Direction dir) {
     pos = map->move(pos, dir);
     //std::this_thread::sleep_for(std::chrono::milliseconds(0));
     if (map->has_flag(pos) && pos != start_pos) {
-      AILogDebug["util_trace_existing_road"] << name << " flag found at pos " << pos << ", returning road (which has length " << road.get_length() << ")";
+      //AILogDebug["util_trace_existing_road"] << name << " flag found at pos " << pos << ", returning road (which has length " << road.get_length() << ")";
       //ai_mark_road->invalidate();
       return road;
     }
     for (Direction new_dir : cycle_directions_cw()) {
       //AILogDebug["util_trace_existing_road"] << name << " looking for path from pos " << pos << " in dir " << NameDirection[new_dir];
-      if (map->has_path(pos, new_dir) && new_dir != reverse_direction(dir)) {
+      if (map->has_path_IMPROVED(pos, new_dir) && new_dir != reverse_direction(dir)) {
         //AILogDebug["util_trace_existing_road"] << name << " found path from pos " << pos << " in dir " << NameDirection[new_dir];
         dir = new_dir;
         break;
@@ -1955,6 +2030,10 @@ AI::count_farmable_land(MapPos center_pos, unsigned int distance, std::string co
   for (unsigned int i = 0; i < distance; i++) {
     MapPos pos = map->pos_add_extended_spirally(center_pos, i);
     //AILogDebug["util_count_farmable_land"] << name << " AI: terrain at pos " << pos << " has type " << terrain;
+    // sometimes I am seeing farms built in bad areas, such as near mountains
+    //  I am thinking that because has_terrain_type returns true if ANY touching tile is the desired type
+    //  it ends up returning true a lot for mountains that touch grass.  Maybe write a special function
+    //  to do "ALL terrain matches" instead of any.  For now, trying to simply increase minimum lands
     if (AI::has_terrain_type(game, pos, res_start_index, res_end_index)) {
       Map::Object obj_type = map->get_obj(pos);
       // exclude tiles with blocking objects (anything not on this list)
@@ -2198,7 +2277,7 @@ AI::build_near_pos(MapPos center_pos, unsigned int distance, Building::Type buil
         //  the closest Inventory building by flagsearch is not the current one
         //
         Road notused; // not used here
-        road_built = AI::build_best_road(flag_pos, road_options, &notused, building_type, Building::TypeNone, bad_map_pos, verify_stock);
+        road_built = AI::build_best_road(flag_pos, road_options, &notused, "build_near_pos", building_type, Building::TypeNone, bad_map_pos, verify_stock);
       }else{
         AILogDebug["util_build_near_pos"] << name << " the flag already at flag_pos " << flag_pos << " is already connected to road system.  For potential new building of type " << NameBuilding[building_type] << " at pos " << pos;
         // must do the verify_stock check here on this flag, because normally it is done when placing the road but this
@@ -2269,7 +2348,7 @@ AI::build_near_pos(MapPos center_pos, unsigned int distance, Building::Type buil
       AILogDebug["util_build_near_pos"] << name << " failed to build building of type " << NameBuilding[building_type] << " despite can_build being true!  WAITING 10sec - look at the pos in coral!";
       ai_mark_pos.erase(pos);
       ai_mark_pos.insert(std::make_pair(pos, "coral"));
-      std::this_thread::sleep_for(std::chrono::milliseconds(10000));
+      //std::this_thread::sleep_for(std::chrono::milliseconds(10000));
       continue;
     }
 
@@ -2368,8 +2447,8 @@ AI::count_knights_affected_by_occupation_level_change(unsigned int current_level
 
 // this is only considering expanding the borders of the military buildings associated with this stock
 //   should it be done this way per-stock, or once globally using realm_occupied_military_buildings ?
-MapPos
-AI::expand_borders(MapPos center_pos) {
+void
+AI::expand_borders() {
   // time this function for debugging
   std::clock_t start;
   double duration;
@@ -2379,13 +2458,11 @@ AI::expand_borders(MapPos center_pos) {
 
   if (stock_buildings.at(inventory_pos).unfinished_hut_count >= max_unfinished_buildings) {
     AILogDebug["util_expand_borders"] << name << " max unfinished huts limit " << max_unfinished_huts << " reached, not building";
-    // should be returning not_built_pos or bad_map pos?? stopbuilding is less appropriate with separate counts set up for huts vs other buildings
-    return stopbuilding_pos;
+    return;
   }
   if (cannot_expand_borders_this_loop) {
     AILogDebug["util_expand_borders"] << name << " cannot_expand_borders_this_loop is true, not trying again until next loop";
-    // should be returning not_built_pos or bad_map pos?? stopbuilding is less appropriate with separate counts set up for huts vs other buildings
-    return stopbuilding_pos;
+    return;
   }
   // don't expand borders if running low of knights AND already have all 3 mine types
   unsigned int idle_knights = serfs_idle[Serf::TypeKnight0] + serfs_idle[Serf::TypeKnight1] + serfs_idle[Serf::TypeKnight2] + serfs_idle[Serf::TypeKnight3] + serfs_idle[Serf::TypeKnight4];
@@ -2395,7 +2472,7 @@ AI::expand_borders(MapPos center_pos) {
         realm_building_count[Building::TypeIronMine] > 0 &&
         realm_building_count[Building::TypeGoldMine] > 0){
       AILogDebug["util_expand_borders"] << name << " running low on idle_knights and have at least one of each mine type, not expanding borders";
-      return stopbuilding_pos;
+      return;
     }
   }
 
@@ -2449,7 +2526,7 @@ AI::expand_borders(MapPos center_pos) {
       duration = (std::clock() - start) / static_cast<double>(CLOCKS_PER_SEC);
       AILogDebug["util_expand_borders"] << name << " done util_expand_borders call took " << duration;
 
-      return stopbuilding_pos;
+      return;
     }
     
   }
@@ -2459,10 +2536,11 @@ AI::expand_borders(MapPos center_pos) {
   if (built_pos == bad_map_pos || built_pos == notplaced_pos || built_pos == stopbuilding_pos) {
     AILogDebug["util_expand_borders"] << name << " couldn't place knight hut";
     cannot_expand_borders_this_loop = true;
-    return notplaced_pos;
+    return;
   }
 
-  return built_pos;
+  // this function used to accept and return a MapPos, but no longer does so just return
+  return;
 }
 
 
@@ -2906,6 +2984,7 @@ AI::set_serf_lost() {
       continue;
     }
     Log::Info["set_serf_lost"] << "setting lost state for ai_mark_serf with index " << serf_index << " at pos " << serf->get_pos();
+    
     serf->set_lost_state();
     Log::Info["set_serf_lost"] << "debug - done setting lost state for ai_mark_serf with index " << serf_index << " at pos " << serf->get_pos();
   }

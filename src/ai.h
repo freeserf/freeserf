@@ -62,6 +62,7 @@ class AI {
   FlagDirToFlagDirVectorMap *ai_mark_arterial_road_pairs = (new FlagDirToFlagDirVectorMap);    // used to highlight discovered arterial roads for AI overlay for debugging, unordered list of flag_pos-Dirs pairs
   //MapPosDirVector *ai_mark_spiderweb_road_pairs = (new MapPosDirVector);   // used to highlight spiderweb-built roads for AI overlay for debugging.  
   Roads *ai_mark_spiderweb_roads = (new Roads);   // used to highlight spiderweb-built roads for AI overlay for debugging.  
+  Roads *ai_mark_build_better_roads = (new Roads);   // used to highlight build_better-built roads for AI overlay for debugging.  
   std::set<std::string> expand_towards;
   std::set<std::string> last_expand_towards;  // quick hack to save a copy for attack scoring
   MapPos stopbuilding_pos;
@@ -118,6 +119,7 @@ class AI {
   FlagDirToFlagVectorMap * get_ai_mark_arterial_road_flags() { return ai_mark_arterial_road_flags; }
   //MapPosDirVector * get_ai_mark_spiderweb_road_pairs() { return ai_mark_spiderweb_road_pairs; }
   Roads* get_ai_mark_spiderweb_roads() { return ai_mark_spiderweb_roads;}
+  Roads* get_ai_mark_build_better_roads() { return ai_mark_build_better_roads;}
   Color get_mark_color(std::string color) { return colors.at(color); }
   Color get_random_mark_color() {
     auto it = colors.begin();
@@ -215,17 +217,18 @@ class AI {
   //void rebuild_all_roads();  // no longer need this
   // changing these to support *planning* a road without actually building it, prior to placing a new building
   //bool build_best_road(MapPos, RoadOptions, Building::Type optional_affinity = Building::TypeNone, MapPos optional_target = bad_map_pos);
-  //bool build_best_road(MapPos, RoadOptions, Building::Type optional_building_type = Building::TypeNone, Building::Type optional_affinity = Building::TypeNone, MapPos optional_target = bad_map_pos);
+  //bool build_best_road(MapPos, RoadOptions, Building::Type optional_affinity_building_type = Building::TypeNone, Building::Type optional_affinity = Building::TypeNone, MapPos optional_target = bad_map_pos);
   // adding verify_stock checking
-  //bool build_best_road(MapPos, RoadOptions, Building::Type optional_building_type = Building::TypeNone, Building::Type optional_affinity = Building::TypeNone, MapPos optional_target = bad_map_pos, bool verify_stock = false);
+  //bool build_best_road(MapPos, RoadOptions, Building::Type optional_affinity_building_type = Building::TypeNone, Building::Type optional_affinity = Building::TypeNone, MapPos optional_target = bad_map_pos, bool verify_stock = false);
   // adding store the built road in a Road pointer
   bool build_best_road(MapPos, RoadOptions, Road *road_built, 
-        Building::Type optional_building_type = Building::TypeNone, 
+        std::string calling_function = "",
+        Building::Type optional_affinity_building_type = Building::TypeNone,
         Building::Type optional_affinity = Building::TypeNone, 
         MapPos optional_target = bad_map_pos, 
         bool verify_stock = false);
   //MapPosVector get_affinity(MapPos);
-  MapPosVector get_affinity(MapPos, Building::Type optional_building_type = Building::TypeNone);
+  MapPosVector get_affinity(MapPos, Building::Type optional_affinity_building_type = Building::TypeNone);
   /*
   // make these wrappers aroud a single function?  or single function with args?
   Building* find_nearest_building(MapPos, unsigned int, Building::Type);
@@ -250,7 +253,7 @@ class AI {
   //MapPos find_halfway_pos_between_buildings(Building::Type, Building::Type);
   unsigned int count_stones_near_pos(MapPos, unsigned int);
   unsigned int count_knights_affected_by_occupation_level_change(unsigned int, unsigned int);
-  MapPos expand_borders(MapPos);
+  void expand_borders();
   unsigned int score_area(MapPos, unsigned int);  
   bool is_bad_building_pos(MapPos, Building::Type);
   void update_building_counts();
@@ -340,7 +343,6 @@ class AI {
   Road plot_road(PMap map, unsigned int player_index, MapPos start, MapPos end, Roads * const &potential_roads, bool hold_building_pos = false);
   int get_straightline_tile_dist(PMap map, MapPos start_pos, MapPos end_pos);
   bool score_flag(PMap map, unsigned int player_index, RoadBuilder *rb, RoadOptions road_options, MapPos flag_pos, MapPos castle_flag_pos, ColorDotMap *ai_mark_pos);
-  bool find_flag_and_tile_dist(PMap map, unsigned int player_index, RoadBuilder *rb, MapPos flag_pos, MapPos castle_flag_pos, ColorDotMap *ai_mark_pos);
   bool find_flag_path_and_tile_dist_between_flags(PMap map, MapPos start_pos, MapPos target_pos, MapPosVector *solution_flags, unsigned int *tile_dist, ColorDotMap *ai_mark_pos);
   MapPos find_nearest_inventory(PMap map, unsigned int player_index, MapPos flag_pos, DistType dist_type, ColorDotMap *ai_mark_pos);
   MapPos find_nearest_inventory_by_straightline(PMap map, unsigned int player_index, MapPos flag_pos, ColorDotMap *ai_mark_pos);
@@ -385,7 +387,9 @@ static const unsigned int stones_min = 10;
 static const unsigned int stones_max = 25;
 static const unsigned int near_stones_min = 5;  // don't place castle unless sufficient stones, considers pile size
 static const unsigned int food_max = 35;  // demolish all food buildings if stored food over this amount
-static const unsigned int min_openspace_farm = 25; // min open tiles in area to build farm (existing fields count favorably, though). FYI: there are 60 tiles in spiral_dist(4)
+//static const unsigned int min_openspace_farm = 25; // min open tiles in area to build farm (existing fields count favorably, though). FYI: there are 60 tiles in spiral_dist(4)
+// I am still seeing bad farm spots, setting this much higher to see what happens
+static const unsigned int min_openspace_farm = 45;
 static const unsigned int near_fields_min = 3; // don't build mill and baker until a farm has this man fields already sown
 static const unsigned int coal_min = 12;   // don't build blacksmith if under this value and no coal mine.  Also, de-prioritize coal miner's food supply if over this value
 static const unsigned int coal_max = 60;   // don't build coal mine if over this value, don't give food to mine over this value

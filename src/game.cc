@@ -1131,16 +1131,24 @@ Game::build_road(const Road &road, const Player *player) {
   MapPos dest = 0;
   bool water_path = false;
   if (!can_build_road(road, player, &dest, &water_path)) {
+    Log::Warn["game"] << "inside build_road, failed because can_build_road returned false!";
     return false;
   }
-  if (!map->has_flag(dest)) return false;
+  if (!map->has_flag(dest)){
+    Log::Warn["game"] << "inside build_road, failed because dest " << dest << " found by can_build_road does not have a flag!";
+    return false;
+  }
+
 
   Road::Dirs dirs = road.get_dirs();
   Direction out_dir = dirs.front();
   Direction in_dir = reverse_direction(dirs.back());
 
   /* Actually place road segments */
-  if (!map->place_road_segments(road)) return false;
+  if (!map->place_road_segments(road)){
+    Log::Warn["game"] << "inside build_road, failed because place_road_segments failed!";
+    return false;
+  }
 
   /* Connect flags */
   Flag *src_flag = get_flag_at_pos(road.get_source());
@@ -1316,8 +1324,10 @@ Game::build_flag_split_path(MapPos pos) {
   SerfPathInfo path_1_data;
   SerfPathInfo path_2_data;
 
+  Log::Info["game"] << "inside build_flag_split_path, about to call fill_path_serf_info for new splitting flag at pos " << pos;
   Flag::fill_path_serf_info(this, pos, path_1_dir, &path_1_data);
   Flag::fill_path_serf_info(this, pos, path_2_dir, &path_2_data);
+  
 
   Flag *flag_2 = flags[path_2_data.flag_index];
   Direction dir_2 = path_2_data.flag_dir;
@@ -2939,6 +2949,29 @@ operator >> (SaveReaderText &reader, Game &game) {
 
     if (serf->get_state() == Serf::StateIdleOnPath ||
         serf->get_state() == Serf::StateWaitIdleOnPath) {
+      
+      /* doing this is no better than the usual stuck serf detector logic (though it works outside of AI)
+      //  and still has the side effect of the booted serf never arriving to do his job, which is generally
+      //  either acting as a transporter (so would need that missing transporter detection also) or a building
+      //  occupier and the building will never be filled
+      // debug WaitIdleOnPath
+      if (serf->get_state() == Serf::StateWaitIdleOnPath) {
+        Log::Warn["game"] << " StateWaitIdleOnPath check, a serf with state " << serf->get_state() << " at pos " << serf->get_pos() << " with type " << serf->get_type() << " is being set_idle_serf";
+        if (serf->debug_get_idle_on_path_flag() == 1){
+          Log::Error["game"] << " StateWaitIdleOnPath check, a serf with state " << serf->get_state() << " at pos " << serf->get_pos() << " with type " << serf->get_type() << " is being set_idle_serf and has s.idle_on_path.flag index of " << serf->debug_get_idle_on_path_flag();
+          // try "disappearing" this serf
+          //serf->set_serf_state(Serf::StateNull);
+          //delete_serf(serf);
+          //game.delete_serf(serf);
+          //serf->debug_set_pos(bad_map_pos);
+          //Log::Error["game"] << " StateWaitIdleOnPath check, set serf to bad_map_pos";
+          serf->set_lost_state();
+          continue;
+        }
+      }
+      // end debug WaitIdleOnPath
+      */
+
       game.map->set_idle_serf(serf->get_pos());
     }
   }
