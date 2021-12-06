@@ -203,7 +203,7 @@ class AI {
         return freq*.2;
     }
   }
-  //std::set<std::string> get_ai_expansion_goals() { return expand_towards; }
+  std::set<std::string> get_ai_expansion_goals() { return expand_towards; }
   void set_serf_lost();
   
  protected:
@@ -277,16 +277,23 @@ class AI {
   // I do not think this is needed anymore now that multiple economies
   //  implemented??
   //
-  struct StockBuildings {
+  struct StockBuilding {
     int count[25] = { 0 };
     int connected_count[25] = { 0 };
     int completed_count[25] = { 0 };
     int occupied_count[25] = { 0 };
     int unfinished_count;
     int unfinished_hut_count;
+    bool needs_wood = false;
+    bool needs_stone = false;
+    bool needs_foods = false;
+    bool needs_steel = false;
+    bool needs_coal = false;
+    bool needs_iron_ore = false;
+    bool needs_gold_ore = false;
     MapPosVector occupied_military_pos;
   };
-  std::map<MapPos, StockBuildings> stock_buildings;
+  std::map<MapPos, StockBuilding> stock_buildings;
   std::map<MapPos, ResourceMap> stock_res_sitting_at_flags;
   ResourceMap realm_res_sitting_at_flags;
 
@@ -337,6 +344,7 @@ class AI {
   void do_count_resources_sitting_at_flags(MapPos);
   bool do_can_build_knight_huts();
   bool do_can_build_other();
+  void do_check_resource_needs();
 
   //
   // ai_pathfinder.cc
@@ -373,6 +381,9 @@ static const int serfs_min = 5;  // don't convert serfs to knights below this va
  //  no changes made if res count 25 - 35
  //  resource production buildings will be destroyed if res > 35
  //  if stored res count drops below 25 again it will build res buildings
+
+// the anti_flapping_buffer is added to the xxxx_max value when "destroy excess producer buildings" calls are made
+//  so that there is a period where new res producer buildings are not created, but existing ones are not destroyed
 static const unsigned int anti_flapping_buffer = 5;
 static const unsigned int knights_min = 3;
 static const unsigned int knights_med = 18;
@@ -382,8 +393,7 @@ static const unsigned int near_building_sites_min = 250;   // don't place castle
 static const unsigned int gold_bars_max = 50;  // does this do anything?  maybe use to deprioritize food to gold mines over this amount?
 static const unsigned int steel_min = 8;   // don't build blacksmith if under this value, unless sufficient iron or an iron mine
 static const unsigned int steel_max = 60;  // don't build iron foundry if over this value
-static const unsigned int planks_crit = 5; // don't build anything other than wood buildings if under this value
-static const unsigned int planks_min = 24; // if planks below this value, don't build any other buildings until sawmill and lumberjacks done.  Also, don't build warehouse/stocks if below this
+static const unsigned int planks_min = 8; // if planks below this value, don't build any other buildings until sawmill and lumberjacks done.  Also, don't build warehouse/stocks if below this
 static const unsigned int planks_max = 40; // build a sawmill & lumberjack if planks count goes below this value, destroy all but one lumberjack (per stock) if over this number
 static const unsigned int near_trees_min = 4; // only place sawmills near at least this many trees; place rangers near sawmills with fewer than this many trees.  Also for castle placement (WEIGHTED 4x)
 static const unsigned int stones_min = 10;

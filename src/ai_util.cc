@@ -2356,16 +2356,6 @@ AI::build_near_pos(MapPos center_pos, unsigned int distance, Building::Type buil
 
     AILogInfo["util_build_near_pos"] << name << " successfully built and connected a building of type " << NameBuilding[building_type] << " at pos " << pos;
 
-    // increment unfinished building counts
-    if (building_type == Building::TypeHut) {
-      stock_buildings.at(inventory_pos).unfinished_hut_count++;
-      AILogDebug["util_build_near_pos"] << name << " incrementing unfinished_hut_count, is now: " << stock_buildings.at(inventory_pos).unfinished_hut_count;
-    }
-    else {
-      stock_buildings.at(inventory_pos).unfinished_count++;
-      AILogDebug["util_build_near_pos"] << name << " found unfinished " << NameBuilding[building_type] << ", incrementing unfinished_building_count, is now: " << stock_buildings.at(inventory_pos).unfinished_count;
-    }
-
     duration = (std::clock() - start) / static_cast<double>(CLOCKS_PER_SEC);
     AILogDebug["util_build_near_pos"] << name << " successful util_build_near_pos, built building of type " << NameBuilding[building_type] << " at pos " << pos << ", call took " << duration;
 
@@ -2458,14 +2448,6 @@ AI::expand_borders() {
   AILogDebug["util_expand_borders"] << name << " inside AI::expand_borders for inventory_pos " << inventory_pos;
   ai_status.assign("EXPANDING BORDERS");
 
-  if (stock_buildings.at(inventory_pos).unfinished_hut_count >= max_unfinished_huts) {
-    AILogDebug["util_expand_borders"] << name << " max unfinished huts limit " << max_unfinished_huts << " reached, not building";
-    return;
-  }
-  if (cannot_expand_borders_this_loop) {
-    AILogDebug["util_expand_borders"] << name << " cannot_expand_borders_this_loop is true, not trying again until next loop";
-    return;
-  }
   // don't expand borders if running low of knights AND already have all 3 mine types
   unsigned int idle_knights = serfs_idle[Serf::TypeKnight0] + serfs_idle[Serf::TypeKnight1] + serfs_idle[Serf::TypeKnight2] + serfs_idle[Serf::TypeKnight3] + serfs_idle[Serf::TypeKnight4];
   if (idle_knights <= knights_med) {
@@ -2516,31 +2498,25 @@ AI::expand_borders() {
   MapPosVector search_positions = AI::sort_by_val_desc(count_by_corner);
   duration = (std::clock() - start) / static_cast<double>(CLOCKS_PER_SEC);
   for (MapPos corner_pos : search_positions) {
+    // ensure Inventory unfinished_knight_huts below limit
+    if (stock_buildings.at(inventory_pos).unfinished_hut_count >= max_unfinished_huts) {
+      AILogDebug["util_expand_borders"] << inventory_pos << " Inventory unfinished_huts_count limit " << max_unfinished_huts << " reached, cannot build knight huts for this Inventory";
+      break;
+    }
     AILogDebug["util_expand_borders"] << name << " try to build knight hut near pos " << corner_pos;
 
     duration = (std::clock() - start) / static_cast<double>(CLOCKS_PER_SEC);
     AILogDebug["util_expand_borders"] << name << " SO FAR util_expand_borders call took " << duration;
 
     built_pos = AI::build_near_pos(corner_pos, AI::spiral_dist(4), Building::TypeHut);
-    /*
-    if (built_pos == stopbuilding_pos) {
-      cannot_expand_borders_this_loop = true;
-
-      duration = (std::clock() - start) / static_cast<double>(CLOCKS_PER_SEC);
-      AILogDebug["util_expand_borders"] << name << " done util_expand_borders call took " << duration;
-
-      return;
+    if (built_pos != bad_map_pos && built_pos != notplaced_pos){
+      AILogDebug["util_expand_borders"] << name << " built a knight hut at pos " << built_pos;
+      stock_buildings.at(inventory_pos).unfinished_hut_count++;
     }
-    */
   }
 
   duration = (std::clock() - start) / static_cast<double>(CLOCKS_PER_SEC);
   AILogDebug["util_expand_borders"] << name << " done util_expand_borders call took " << duration;
-  if (built_pos == bad_map_pos || built_pos == notplaced_pos) {
-    AILogDebug["util_expand_borders"] << name << " couldn't place knight hut";
-    cannot_expand_borders_this_loop = true;
-    return;
-  }
 
   // this function used to accept and return a MapPos, but no longer does so just return
   return;
@@ -2689,7 +2665,7 @@ AI::score_area(MapPos center_pos, unsigned int distance) {
 
 bool
 AI::is_bad_building_pos(MapPos pos, Building::Type building_type) {
-  AILogDebug["util_is_bad_building_pos"] << name << " inside AI::is_bad_building_pos";
+  //AILogDebug["util_is_bad_building_pos"] << name << " inside AI::is_bad_building_pos";
   if (bad_building_pos.find(std::make_pair(pos, building_type)) != bad_building_pos.end()) {
     return true;
   }
