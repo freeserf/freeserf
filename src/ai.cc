@@ -52,7 +52,7 @@ AI::AI(PGame current_game, unsigned int _player_index) {
   realm_res_sitting_at_flags = {};
   scoring_attack = false;
   scoring_warehouse = false;
-  cannot_expand_borders_this_loop = false;
+  //cannot_expand_borders_this_loop = false;
   change_buffer = 0;
   previous_knight_occupation_level = -1;
 
@@ -156,13 +156,10 @@ AI::next_loop(){
 
   do_connect_disconnected_flags(); // except unfinished mines
   do_build_better_roads_for_important_buildings();  // is this working?  I still see pretty inefficient roads for important buildings
-  //do_spiderweb_roads();  // moved to inside warehouse/stock so it does this for each one
-  //do_pollute_castle_area_roads_with_flags(); // CHANGE THIS TO USE ARTERIAL ROADS 
+  do_pollute_castle_area_roads_with_flags(); // CHANGE THIS TO USE ARTERIAL ROADS  (nah, it works well enough as it is, do that later)
   do_fix_stuck_serfs();  // this is definitely still an issue, try to fix root cause
   do_fix_missing_transporters();  // is this still a problem anymore??
-  //do_send_geologists();  move this to inside warehouse / stock loop only because it uses occupied_building_count which uses inventory_pos
-  do_promote_serfs_to_knights();
-
+  
   // MOVE BUILD RANGERS TO INSIDE per-Inventory function and include can_build checks?
   do_build_rangers(); std::this_thread::sleep_for(std::chrono::milliseconds(1000));
 
@@ -192,6 +189,7 @@ AI::next_loop(){
     }
 
     do_get_inventory(inventory_pos);
+    do_promote_serfs_to_knights();  // this is actually done per-stock in AI, not per-realm like the button does
     do_count_resources_sitting_at_flags(inventory_pos);
     do_check_resource_needs();
 
@@ -247,9 +245,7 @@ AI::next_loop(){
     do_send_geologists(); std::this_thread::sleep_for(std::chrono::milliseconds(1000));
     do_spiderweb_roads(); std::this_thread::sleep_for(std::chrono::milliseconds(1000));
 
-
     AILogDebug["next_loop"] << name << " Done with economy loop for Inventory at pos " << inventory_pos;
-    std::this_thread::sleep_for(std::chrono::milliseconds(3000));
   }
 
   // create parallel infrastructure!
@@ -371,7 +367,7 @@ AI::do_update_clear_reset() {
   realm_inv = player->get_stats_resources();
   scoring_attack = false;
   scoring_warehouse = false;  // this is deprecated right now
-  cannot_expand_borders_this_loop = false;
+  //cannot_expand_borders_this_loop = false;
   //stop_building = false;
 
   // does this belong here?  this whole update_clear thing needs re-work
@@ -460,6 +456,13 @@ AI::do_debug_building_triggers() {
 // to be 100% "fair" this should use the global "promote all possible serfs to knights"
 //  function that human players can click on, but because there is no advantage gained
 //  by doing it per-stock I will leave this as it is for now.
+//
+// NOTE - I think there is some kind of rate limiting happening here when making this call
+//   that either doesn't exist or isn't obvious in the original game, if I watch the count
+//   of knights in a Stock that has tons of available serfs, and the number of weapons, it
+//   seems that only a few knights are created at a time not all at once.  Not sure why,
+//   but it doesn't really matter as they are all converted soon enough
+//
 void
 AI::do_promote_serfs_to_knights() {
   AILogDebug["do_promote_serfs_to_knights"] << name << " inside do_promote_serfs_to_knights";
@@ -478,8 +481,6 @@ AI::do_promote_serfs_to_knights() {
   AILogVerbose["do_promote_serfs_to_knights"] << name << " thread #" << std::this_thread::get_id() << " AI is locking mutex before calling game->get_player_serfs(player) (for do_manage_knight_occupation_levels is_waiting)";
   game->get_mutex()->lock();
   AILogVerbose["do_promote_serfs_to_knights"] << name << " thread #" << std::this_thread::get_id() << " AI has locked mutex before calling game->get_player_serfs(player) (for do_manage_knight_occupation_levels is_waiting)";
-  // this returns a copy, so it should be thread-safe
-  //  maybe not, beause game->get_player_serfs internally just does for (Serf *serf : serfs)
   for (Serf *serf : game->get_player_serfs(player)) {
     if (promotable < 1) { break; }
     if (serf->get_state() == Serf::StateIdleInStock &&
@@ -569,7 +570,7 @@ AI::do_spiderweb_roads() {
   start = std::clock();
 
   AILogDebug["do_spiderweb_roads"] << inventory_pos << " inside do_spiderweb_roads";
-  ai_status.assign("HOUSEKEEPING - do_spiderweb_roads");
+  ai_status.assign("do_spiderweb_roads");
   // "spider-web" roads - because a "star network" pattern naturally emerges with castle at center, try to
   //   convert it to a "spider-web" shape by attemping build roads between any flags within a band a bit outside
   //    the castle area
@@ -582,18 +583,8 @@ AI::do_spiderweb_roads() {
   AILogDebug["do_spiderweb_roads"] << inventory_pos << " HouseKeeping: creating spider-web roads";
   // only do this every X loops, and only add one new road per run
   unsigned int completed_huts = realm_completed_building_count[Building::TypeHut];
-  //if (loop_count % 10 != 0 || completed_huts < 9 || completed_huts > 16) {
-    // temporary run ever other loop for debugging
-  //if (loop_count % 2 != 0 || completed_huts < 9 || completed_huts > 16) {
-  //AILogDebug["do_spiderweb_roads"] << inventory_pos << " DEBUG: loop_count " << loop_count << ", desired freq 10, adjusted freq " << ai_loop_freq_adj_for_gamespeed(10) << ", completed_huts " << completed_huts;
-  //if (loop_count % ai_loop_freq_adj_for_gamespeed(10) != 0) {
-  //  AILogDebug["do_spiderweb_roads"] << inventory_pos << " skipping spider-web roads, only running this every ten loops";
-  //  return;
-  //}
-  //if ( completed_huts < 9 || completed_huts > 16) {
-    //AILogDebug["do_spiderweb_roads"] << inventory_pos << " skipping spider-web roads, knight huts built " << completed_huts << " is <9 or >16";
-  if ( completed_huts < 11 || completed_huts > 25) {
-    AILogDebug["do_spiderweb_roads"] << inventory_pos << " skipping spider-web roads, knight huts built " << completed_huts << " is <11 or >25";
+  if ( loop_count % 10 != 0 || completed_huts < 9 || completed_huts > 25) {
+    AILogDebug["do_spiderweb_roads"] << inventory_pos << " skipping spider-web roads, only running every ten loops and knight huts built " << completed_huts << " is <9 or >25";
     return;
   }
 
@@ -1122,7 +1113,7 @@ AI::do_fix_missing_transporters() {
           std::this_thread::sleep_for(std::chrono::milliseconds(5000));
           ai_mark_pos.clear();
           AILogDebug["do_fix_missing_transporters"] << name << " detected BUG FOUND - RARER NO TRANSPORTER on road at pos " << game->get_flag(flag_index)->get_position() << ", marking in white";
-          ai_mark_pos.insert(ColorDot(flag->get_position(), "white"));
+          ai_mark_pos.insert(ColorDot(game->get_flag(flag_index)->get_position() , "white"));
           AILogDebug["do_fix_missing_transporters"] << name << " trying to immediately force call a transporter";
           AILogVerbose["do_fix_missing_transporters"] << name << " thread #" << std::this_thread::get_id() << " AI is locking mutex before calling flag->call_transporter, to work around RARER no-transporter issue";
           game->get_mutex()->lock();
@@ -1205,7 +1196,11 @@ AI::do_fix_missing_transporters() {
   AILogDebug["do_fix_missing_transporters"] << name << " done do_fix_missing_transporters call took " << duration;
 }
 
-
+//
+// NEED TO MODIFY THIS TO ALLOW MORE GEOLOGISTS -  X PER WAREHOUSE
+//  not enough res flags placed as game progresses
+//
+//
 void
 AI::do_send_geologists() {
   //
@@ -1620,6 +1615,7 @@ AI::do_demolish_unproductive_3rd_lumberjacks() {
 // remove roads that lead to:
 //  - an occupied ranger building, if no other paths from ranger flag
 //  - a mountain/geologist road, if sign density > max
+//  - a non-mountain road that dead-ends with no building (likely because building was demolished)
 // also:  fully-constructed, occupied huts that have another connected 
 //  flag nearby that can be successfully connected to instead (and do so)
 void
@@ -2028,7 +2024,7 @@ AI::do_demolish_excess_food_buildings() {
     // not capped
     adjusted_food_count += food_at_flags + potential_food_count;
   }
-  AILogDebug["do_demolish_excess_food_buildings"] << inventory_pos << " DEBUG: stored_food_count " << stored_food_count << ", potential_food_count " << potential_food_count << ", food_at_flags " << food_at_flags << ", adjusted_food_count " << adjusted_food_count << ", food_max " << food_max;
+  AILogDebug["do_demolish_excess_food_buildings"] << inventory_pos << " debug: stored_food_count " << stored_food_count << ", potential_food_count " << potential_food_count << ", food_at_flags " << food_at_flags << ", adjusted_food_count " << adjusted_food_count << ", food_max " << food_max;
   AILogDebug["do_demolish_excess_food_buildings"] << inventory_pos << " adjusted food_count at inventory_pos " << inventory_pos << ": " << adjusted_food_count;
   if (adjusted_food_count > (food_max + anti_flapping_buffer)) {
     AILogDebug["do_demolish_excess_food_buildings"] << inventory_pos << " food_max reached at inventory_pos " << inventory_pos << ", burning all food buildings attached to this stock";
@@ -2551,7 +2547,7 @@ AI::do_build_sawmill_lumberjacks() {
         //  push the location of the sawmill (built_pos) to the front of the search path to help keep lumberjacks close
         search_positions.insert(search_positions.begin(), built_pos);
         for (MapPos search_pos : search_positions) {
-          AILogDebug["do_build_sawmill_lumberjacks"] << inventory_pos << " DEBUG checking search_pos " << search_pos;
+          AILogDebug["do_build_sawmill_lumberjacks"] << inventory_pos << " debug checking search_pos " << search_pos;
           // try to build two
           for (int x = 0; x < 2; x++) {
             if (stock_buildings.at(inventory_pos).count[Building::TypeLumberjack] >= 2) {
@@ -2572,13 +2568,6 @@ AI::do_build_sawmill_lumberjacks() {
         }
       } //end if have sawmill
     } // foreach military building
-
-    lumberjack_count = stock_buildings.at(inventory_pos).count[Building::TypeLumberjack];
-    if (sawmill_count < 1 || lumberjack_count < 2) {
-      AILogDebug["do_build_sawmill_lumberjacks"] << inventory_pos << " couldn't place all of 1 sawmill and 2 lumberjacks!  expands towards some trees";
-      expand_towards.insert("trees");
-      AI::expand_borders();
-    }
   }
   else {
     AILogDebug["do_build_sawmill_lumberjacks"] << inventory_pos << " have sufficient planks, skipping";
@@ -2849,6 +2838,14 @@ AI::do_build_food_buildings_and_3rd_lumberjack() {
             built_pos = AI::build_near_pos(corner_pos, AI::spiral_dist(4), Building::TypeFisher);
             if (built_pos != bad_map_pos && built_pos != notplaced_pos) {
               AILogInfo["do_build_food_buildings_and_3rd_lumberjack"] << inventory_pos << " built fisherman at pos " << built_pos;
+              // BUG NOTICE:
+              // fishermen do not count because they are not "attached" to Stocks for most calculations
+              // because they are effectively unlimited, so it should be okay to ignore them for the 
+              // purpose of unfinished building checks, at least at this level (update_building_counts will fix it)
+              // so there is no guarantee that the Inventory they are being associated with here is actually the one
+              // they will be associated with when the Flagsearch is done.  However, it probably doesn't matter.  It
+              // seems like a good idea to include them in unfinished_count for this inventory_pos now to limit runaway
+              // building for this Inv, even if on next update_buildings call they end up being associated with another Inv.
               stock_buildings.at(inventory_pos).count[Building::TypeFisher]++;
               stock_buildings.at(inventory_pos).unfinished_count++;
               break;
@@ -3031,7 +3028,7 @@ AI::do_build_food_buildings_and_3rd_lumberjack() {
   unsigned int farm_count = stock_buildings.at(inventory_pos).count[Building::TypeFarm];
   unsigned int lumberjack_count = stock_buildings.at(inventory_pos).count[Building::TypeLumberjack];
   unsigned int planks_count = stock_inv->get_count_of(Resource::TypePlank);
-  AILogDebug["do_build_food_buildings_and_3rd_lumberjack"] << inventory_pos << " DEBUG current lumberjack count: " << lumberjack_count << ", sawmill_count: " << sawmill_count << ", farm_count: " << farm_count << ", planks_count: " << planks_count << ", planks_max: " << planks_max;
+  AILogDebug["do_build_food_buildings_and_3rd_lumberjack"] << inventory_pos << " debug current lumberjack count: " << lumberjack_count << ", sawmill_count: " << sawmill_count << ", farm_count: " << farm_count << ", planks_count: " << planks_count << ", planks_max: " << planks_max;
   if (sawmill_count > 0 && farm_count > 0 && planks_count <= planks_max && lumberjack_count < 3) {
     AILogDebug["do_build_food_buildings_and_3rd_lumberjack"] << inventory_pos << " this Inventory needs_wood and  < 3 lumberjacks, build a third";
     // count trees near military buildings,
@@ -3202,7 +3199,9 @@ AI::do_connect_coal_mines() {
       AILogDebug["do_connect_coal_mines"] << inventory_pos << " disconnected coal mine found with flag pos " << flag->get_position();
       AILogDebug["do_connect_coal_mines"] << inventory_pos << " trying to connect unfinished coal mine flag to road system";
       Road notused; // not used here, can I just pass a zero instead of &notused to build_best_road and skip initialization of a wasted object?
-      bool was_built = AI::build_best_road(flag->get_position(), road_options, &notused, "do_connect_coal_mines");
+      //bool was_built = AI::build_best_road(flag->get_position(), road_options, &notused, "do_connect_coal_mines");
+      // updated with verify_stock = true
+      bool was_built = AI::build_best_road(flag->get_position(), road_options, &notused, "do_connect_coal_mines", Building::TypeNone, Building::TypeNone, bad_map_pos, true);
       if (!was_built) {
         // should the mine be demolished if this happens?
         AILogDebug["do_connect_coal_mines"] << inventory_pos << " failed to connect coal mine to road network! ";
@@ -3258,7 +3257,9 @@ AI::do_connect_iron_mines() {
       AILogDebug["do_connect_iron_mines"] << inventory_pos << " disconnected iron mine found with flag pos " << flag->get_position();
       AILogDebug["do_connect_iron_mines"] << inventory_pos << " trying to connect unfinished iron mine flag to road system";
       Road notused; // not used here, can I just pass a zero instead of &notused to build_best_road and skip initialization of a wasted object?
-      bool was_built = AI::build_best_road(flag->get_position(), road_options, &notused, "do_connect_iron_mines");
+      //bool was_built = AI::build_best_road(flag->get_position(), road_options, &notused, "do_connect_iron_mines");
+      // updated with verify_stock = true
+      bool was_built = AI::build_best_road(flag->get_position(), road_options, &notused, "do_connect_iron_mines", Building::TypeNone, Building::TypeNone, bad_map_pos, true);
       if (!was_built) {
         // should the mine be demolished if this happens?
         AILogDebug["do_connect_iron_mines"] << inventory_pos << " failed to connect iron mine to road network! ";
@@ -3451,7 +3452,9 @@ AI::do_build_gold_smelter_and_connect_gold_mines() {
       AILogDebug["do_build_gold_smelter_and_connect_gold_mines"] << inventory_pos << " disconnected gold mine found with flag pos " << flag->get_position();
       AILogDebug["do_build_gold_smelter_and_connect_gold_mines"] << inventory_pos << " trying to connect unfinished gold mine flag to road system";
       Road notused; // not used here, can I just pass a zero instead of &notused to build_best_road and skip initialization of a wasted object?
-      bool was_built = AI::build_best_road(flag->get_position(), road_options, &notused, "do_connect_gold_mines");
+      //bool was_built = AI::build_best_road(flag->get_position(), road_options, &notused, "do_connect_gold_mines");
+      // updated with verify_stock = true
+      bool was_built = AI::build_best_road(flag->get_position(), road_options, &notused, "do_connect_gold_mines", Building::TypeNone, Building::TypeNone, bad_map_pos, true);
       if (!was_built) {
         // should the mine be demolished if this happens?
         AILogDebug["do_build_gold_smelter_and_connect_gold_mines"] << inventory_pos << " failed to connect gold mine to road network! ";
@@ -3581,7 +3584,7 @@ AI::do_build_better_roads_for_important_buildings() {
     AILogDebug["do_build_better_roads_for_important_buildings"] << name << " do_build_better_roads_for_important_buildings found high-priority building of type " << NameBuilding[type] << name << " at pos " << building->get_position();
     ai_mark_pos.erase(building->get_position());
     ai_mark_pos.insert(ColorDot(building->get_position(), "dk_coral"));
-    std::this_thread::sleep_for(std::chrono::milliseconds(3000));
+    //std::this_thread::sleep_for(std::chrono::milliseconds(3000));
     road_options.set(RoadOption::Improve);
     MapPos building_flag_pos = map->move_down_right(building->get_position());
     Road road_built;
@@ -3656,7 +3659,6 @@ AI::do_get_inventory(MapPos inventory_pos) {
   // this gets a ResourceMap for AGGREGATE INVENTORY of all player stocks including castle
   //ResourceMap resources = interface->get_player()->get_stats_resources();
   AILogDebug["do_get_inventory"] << name << " inside do_get_inventory for pos " << inventory_pos;
-  AILogDebug["do_get_inventory"] << name << " DEBUG inside do_get_inventory, inventory_pos=" << inventory_pos << ", castle_flag_pos=" << castle_flag_pos;
   if (inventory_pos == castle_flag_pos) {
     AILogDebug["do_get_inventory"] << name << " this stock is the castle ";
   }
@@ -3761,6 +3763,13 @@ AI::do_count_resources_sitting_at_flags(MapPos inv_pos) {
 //   but that should be okay??  
 bool
 AI::do_can_build_knight_huts() {
+  //
+  // NOTE!!!!! because verify_stock is not the norm, it is likely that buildings are being marked as "Attached" to 
+  //  an Inv that they are not closest to once the first non-castle Inv is built.  This will mess up these checks
+  //  to prove this theory, for now I am turning back on running of update_buildings every run here
+  //
+  //update_building_counts();  // this did't fix it, removing again
+
   //AILogDebug["do_can_build_knight_huts"] << inventory_pos << " inside do_can_build_knight_huts";
   // ensure REALM planks above crit
   unsigned int realm_planks_count = realm_inv[Resource::TypePlank];
@@ -3796,6 +3805,13 @@ AI::do_can_build_knight_huts() {
 //   which is already mostly happening, rather than re-checking everything constantly
 bool
 AI::do_can_build_other() {
+  //
+  // NOTE!!!!! because verify_stock is not the norm, it is likely that buildings are being marked as "Attached" to 
+  //  an Inv that they are not closest to once the first non-castle Inv is built.  This will mess up these checks
+  //  to prove this theory, for now I am turning back on running of update_buildings every run here
+  //
+  //update_building_counts();  // this did't fix it, removing again
+
   //AILogDebug["do_can_build_other"] << inventory_pos << " inside do_can_build_other";
   // ensure REALM planks above crit
   unsigned int realm_planks_count = realm_inv[Resource::TypePlank];
@@ -3820,7 +3836,7 @@ AI::do_can_build_other() {
 //  Inventory has already maxed out
 void
 AI::do_check_resource_needs(){
-  AILogInfo["do_check_resource_needs"] << inventory_pos << " inside do_check_resource_needs";
+  AILogDebug["do_check_resource_needs"] << inventory_pos << " inside do_check_resource_needs";
 
   // IN GENERAL:
   //  if res > max, do not need res, do not bother to check for res buildings
@@ -3865,8 +3881,10 @@ AI::do_check_resource_needs(){
     for (unsigned int x = 0; x < AI::spiral_dist(12); x++) {
       MapPos pos = map->pos_add_extended_spirally(castle_flag_pos, x);
       if (map->get_owner(pos) == -1){
-        AILogDebug["do_check_resource_needs"] << inventory_pos << " there is unowned land near the castle, adding castle_buffer to expansion goals";
-        expand_towards.insert("castle_buffer");
+        if(expand_towards.count("castle_buffer") == 0){
+          AILogDebug["do_check_resource_needs"] << inventory_pos << " there is unowned land near the castle, adding castle_buffer to expansion goals";
+          expand_towards.insert("castle_buffer");
+        }
       }
     }
   }
@@ -3911,7 +3929,7 @@ AI::do_check_resource_needs(){
     // not capped
     adjusted_food_count += food_at_flags + potential_food_count;
   }
-  //AILogDebug["do_check_resource_needs"] << inventory_pos << " DEBUG: stored_food_count " << stored_food_count << ", potential_food_count " << potential_food_count << ", food_at_flags " << food_at_flags << ", adjusted_food_count " << adjusted_food_count << ", food_max " << food_max;
+  //AILogDebug["do_check_resource_needs"] << inventory_pos << " debug: stored_food_count " << stored_food_count << ", potential_food_count " << potential_food_count << ", food_at_flags " << food_at_flags << ", adjusted_food_count " << adjusted_food_count << ", food_max " << food_max;
   //AILogDebug["do_check_resource_needs"] << inventory_pos << " adjusted food_count at inventory_pos " << inventory_pos << ": " << adjusted_food_count;
   if (adjusted_food_count < food_max) {
     AILogDebug["do_check_resource_needs"] << inventory_pos << " desire more food";

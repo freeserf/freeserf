@@ -269,7 +269,7 @@ class AI {
   //MapPos find_nearest_inventory(PMap map, unsigned int player_index, MapPos pos, ColorDotMap *ai_mark_pos);
   bool scoring_attack;
   bool scoring_warehouse;
-  bool cannot_expand_borders_this_loop;
+  //bool cannot_expand_borders_this_loop;
   void score_enemy_targets(MapPosSet*);
   void attack_nearest_target(MapPosSet*);
 
@@ -384,7 +384,7 @@ static const int serfs_min = 5;  // don't convert serfs to knights below this va
 
 // the anti_flapping_buffer is added to the xxxx_max value when "destroy excess producer buildings" calls are made
 //  so that there is a period where new res producer buildings are not created, but existing ones are not destroyed
-static const unsigned int anti_flapping_buffer = 5;
+static const unsigned int anti_flapping_buffer = 8;
 static const unsigned int knights_min = 3;
 static const unsigned int knights_med = 18;
 static const unsigned int knights_max = 50;
@@ -395,12 +395,12 @@ static const unsigned int steel_min = 8;   // don't build blacksmith if under th
 static const unsigned int steel_max = 60;  // don't build iron foundry if over this value
 static const unsigned int planks_min = 8; // if planks below this value, don't build any other buildings until sawmill and lumberjacks done.  Also, don't build warehouse/stocks if below this
 static const unsigned int planks_max = 40; // build a sawmill & lumberjack if planks count goes below this value, destroy all but one lumberjack (per stock) if over this number
-static const unsigned int near_trees_min = 4; // only place sawmills near at least this many trees; place rangers near sawmills with fewer than this many trees.  Also for castle placement (WEIGHTED 4x)
+static const unsigned int near_trees_min = 5; // only place sawmills near at least this many trees; place rangers near sawmills with fewer than this many trees.  Also for castle placement (WEIGHTED 4x)
 static const unsigned int stones_min = 10;
 static const unsigned int stones_max = 25;
 static const unsigned int near_stones_min = 5;  // don't place castle unless sufficient stones, considers pile size
-static const unsigned int food_max = 35;  // demolish all food buildings if stored food over this amount
-static const unsigned int min_openspace_farm = 35; // min open tiles in area to build farm (existing fields count favorably, though). FYI: there are 60 tiles in spiral_dist(4)
+static const unsigned int food_max = 35;  // demolish all food buildings if stored food over this amount (includes food at flags and unprocessed food up to a certain cap)
+static const unsigned int min_openspace_farm = 45; // min open tiles in area to build farm (existing fields count favorably, though). FYI: there are 60 tiles in spiral_dist(4)
 static const unsigned int near_fields_min = 3; // don't build mill and baker until a farm has this man fields already sown
 static const unsigned int coal_min = 12;   // don't build blacksmith if under this value and no coal mine.  Also, de-prioritize coal miner's food supply if over this value
 static const unsigned int coal_max = 60;   // don't build coal mine if over this value, don't give food to mine over this value
@@ -411,7 +411,7 @@ static const unsigned int gold_ore_max = 40;  // don't build gold mine over this
 static const unsigned int hills_min = 9;   // don't send geologists unless substantial hills
 static const unsigned int waters_min = 24;  // don't build fisherman unless substantial waters
 static const unsigned int hammers_min = 6; // don't create geologists unless this many hammers in reserve
-static const unsigned int geologists_max = 4; // try not to create more geologists if have this many, hard to tell if they are out working
+static const unsigned int geologists_max = 4; // NEEDS TO BE PER WAREHOUSE! try not to create more geologists if have this many, hard to tell if they are out working
 
 // deprioritize sending geologists to area where signs density is over this amount (prefer send geologists to unevaluated areas)
 static constexpr double geologist_sign_density_deprio = 0.40;

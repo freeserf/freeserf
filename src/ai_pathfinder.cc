@@ -81,11 +81,11 @@ AI::plot_road(PMap map, unsigned int player_index, MapPos start_pos, MapPos end_
   PSearchNode node(new SearchNode);
 
   if (hold_building_pos == true){
-    AILogDebug["plot_road"] << name << " DEBUG - hold_building_pos is TRUE!";
+    //AILogDebug["plot_road"] << name << " debug - hold_building_pos is TRUE!";
     PSearchNode hold_building_pos_node(new SearchNode);
     hold_building_pos_node->pos = map->move_up_left(start_pos);
     closed.push_front(hold_building_pos_node);
-    AILogDebug["plot_road"] << name << " DEBUG - hold_building_pos is TRUE, added hold_building_pos " << hold_building_pos_node->pos << " which is up-left of start_pos " << start_pos;
+    //AILogDebug["plot_road"] << name << " debug - hold_building_pos is TRUE, added hold_building_pos " << hold_building_pos_node->pos << " which is up-left of start_pos " << start_pos;
   }
 
   // time this function for debugging

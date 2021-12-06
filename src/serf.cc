@@ -600,9 +600,9 @@ Serf::flag_deleted(MapPos flag_pos) {
 
         //debug
         if (game->get_flag(recent_dest) != nullptr){
-          Log::Debug["serf"] << "inside flag_deleted, serf being set to Lost, dest when it exited Inventory was flag# " << recent_dest << " which has pos " << game->get_flag(recent_dest)->get_position();
+          Log::Debug["serf"] << "inside flag_deleted, serf of type " << NameSerf[type] << " being set to Lost, dest when it exited Inventory was flag# " << recent_dest << " which has pos " << game->get_flag(recent_dest)->get_position();
         }else{
-          Log::Debug["serf"] << "inside flag_deleted, serf being set to Lost, dest when it exited Inventory was flag# " << recent_dest << " which is a nullptr";
+          Log::Debug["serf"] << "inside flag_deleted, serf of type " << NameSerf[type] << " being set to Lost, dest when it exited Inventory was flag# " << recent_dest << " which is a nullptr";
         }
 
         set_state(StateLost);
@@ -860,9 +860,9 @@ Serf::set_lost_state() {
 
     //debug
     if (game->get_flag(recent_dest) != nullptr){
-      Log::Debug["serf"] << "inside set_lost_state A, serf being set to Lost, dest when it exited Inventory was flag# " << recent_dest << " which has pos " << game->get_flag(recent_dest)->get_position();
+      Log::Debug["serf"] << "inside set_lost_state A, serf of type " << NameSerf[type] << " being set to Lost, dest when it exited Inventory was flag# " << recent_dest << " which has pos " << game->get_flag(recent_dest)->get_position();
     }else{
-      Log::Debug["serf"] << "inside set_lost_state A, serf being set to Lost, dest when it exited Inventory was flag# " << recent_dest << " which is a nullptr";
+      Log::Debug["serf"] << "inside set_lost_state A, serf of type " << NameSerf[type] << " being set to Lost, dest when it exited Inventory was flag# " << recent_dest << " which is a nullptr";
     }
 
     set_state(StateLost);
@@ -880,9 +880,9 @@ Serf::set_lost_state() {
 
       //debug
       if (game->get_flag(recent_dest) != nullptr){
-        Log::Debug["serf"] << "inside set_lost_state, B serf being set to Lost, dest when it exited Inventory was flag# " << recent_dest << " which has pos " << game->get_flag(recent_dest)->get_position();
+        Log::Debug["serf"] << "inside set_lost_state, B serf of type " << NameSerf[type] << " being set to Lost, dest when it exited Inventory was flag# " << recent_dest << " which has pos " << game->get_flag(recent_dest)->get_position();
       }else{
-        Log::Debug["serf"] << "inside set_lost_state, B serf being set to Lost, dest when it exited Inventory was flag# " << recent_dest << " which is a nullptr";
+        Log::Debug["serf"] << "inside set_lost_state, B serf of type " << NameSerf[type] << " being set to Lost, dest when it exited Inventory was flag# " << recent_dest << " which is a nullptr";
       }
 
       set_state(StateLost);
@@ -894,9 +894,9 @@ Serf::set_lost_state() {
 
     //debug
     if (game->get_flag(recent_dest) != nullptr){
-      Log::Debug["serf"] << "inside set_lost_state C, serf being set to Lost, dest when it exited Inventory was flag# " << recent_dest << " which has pos " << game->get_flag(recent_dest)->get_position();
+      Log::Debug["serf"] << "inside set_lost_state C, serf of type " << NameSerf[type] << " being set to Lost, dest when it exited Inventory was flag# " << recent_dest << " which has pos " << game->get_flag(recent_dest)->get_position();
     }else{
-      Log::Debug["serf"] << "inside set_lost_state C, serf being set to Lost, dest when it exited Inventory was flag# " << recent_dest << " which is a nullptr";
+      Log::Debug["serf"] << "inside set_lost_state C, serf of type " << NameSerf[type] << " being set to Lost, dest when it exited Inventory was flag# " << recent_dest << " which is a nullptr";
     }
 
     set_state(StateLost);
@@ -1736,9 +1736,9 @@ Serf::handle_serf_walking_state() {
 
           //debug
           if (game->get_flag(recent_dest) != nullptr){
-            Log::Debug["serf"] << "inside handle_serf_walking_state A, serf being set to Lost, dest when it exited Inventory was flag# " << recent_dest << " which has pos " << game->get_flag(recent_dest)->get_position();
+            Log::Debug["serf"] << "inside handle_serf_walking_state A, serf of type " << NameSerf[type] << " being set to Lost, dest when it exited Inventory was flag# " << recent_dest << " which has pos " << game->get_flag(recent_dest)->get_position();
           }else{
-            Log::Debug["serf"] << "inside handle_serf_walking_state A, serf being set to Lost, dest when it exited Inventory was flag# " << recent_dest << " which is a nullptr";
+            Log::Debug["serf"] << "inside handle_serf_walking_state A, serf of type " << NameSerf[type] << " being set to Lost, dest when it exited Inventory was flag# " << recent_dest << " which is a nullptr";
           }
 
           set_state(StateLost);
@@ -1859,9 +1859,9 @@ Serf::handle_serf_walking_state() {
 
         //debug
         if (game->get_flag(recent_dest) != nullptr){
-          Log::Debug["serf"] << "inside serf_walking_state B, serf being set to Lost, dest when it exited Inventory was flag# " << recent_dest << " which has pos " << game->get_flag(recent_dest)->get_position();
+          Log::Debug["serf"] << "inside serf_walking_state B, serf of type " << NameSerf[type] << " being set to Lost, dest when it exited Inventory was flag# " << recent_dest << " which has pos " << game->get_flag(recent_dest)->get_position();
         }else{
-          Log::Debug["serf"] << "inside serf_walking_state B, serf being set to Lost, dest when it exited Inventory was flag# " << recent_dest << " which is a nullptr";
+          Log::Debug["serf"] << "inside serf_walking_state B, serf of type " << NameSerf[type] << " being set to Lost, dest when it exited Inventory was flag# " << recent_dest << " which is a nullptr";
         }
 
         set_state(StateLost);
@@ -1991,9 +1991,9 @@ Serf::handle_serf_transporting_state() {
 
         //debug
         if (game->get_flag(recent_dest) != nullptr){
-          Log::Debug["serf"] << "inside handle_serf_transporting_state, serf being set to Lost, dest when it exited Inventory was flag# " << recent_dest << " which has pos " << game->get_flag(recent_dest)->get_position();
+          Log::Debug["serf"] << "inside handle_serf_transporting_state, serf of type " << NameSerf[type] << " being set to Lost, dest when it exited Inventory was flag# " << recent_dest << " which has pos " << game->get_flag(recent_dest)->get_position();
         }else{
-          Log::Debug["serf"] << "inside handle_serf_transporting_state, serf being set to Lost, dest when it exited Inventory was flag# " << recent_dest << " which is a nullptr";
+          Log::Debug["serf"] << "inside handle_serf_transporting_state, serf of type " << NameSerf[type] << " being set to Lost, dest when it exited Inventory was flag# " << recent_dest << " which is a nullptr";
         }
 
         set_state(StateLost);
@@ -3170,9 +3170,9 @@ Serf::find_inventory() {
 
   //debug
   if (game->get_flag(recent_dest) != nullptr){
-    Log::Debug["serf"] << "inside find_inventory, serf being set to Lost, dest when it exited Inventory was flag# " << recent_dest << " which has pos " << game->get_flag(recent_dest)->get_position();
+    Log::Debug["serf"] << "inside find_inventory, serf of type " << NameSerf[type] << " being set to Lost, dest when it exited Inventory was flag# " << recent_dest << " which has pos " << game->get_flag(recent_dest)->get_position();
   }else{
-    Log::Debug["serf"] << "inside find_inventory, serf being set to Lost, dest when it exited Inventory was flag# " << recent_dest << " which is a nullptr";
+    Log::Debug["serf"] << "inside find_inventory, serf of type " << NameSerf[type] << " being set to Lost, dest when it exited Inventory was flag# " << recent_dest << " which is a nullptr";
   }
 
   set_state(StateLost);
@@ -3590,9 +3590,9 @@ Serf::handle_free_walking_follow_edge() {
 
         //debug
         if (game->get_flag(recent_dest) != nullptr){
-          Log::Debug["serf"] << "inside handle_free_walking_state_follow_edge, serf being set to Lost, dest when it exited Inventory was flag# " << recent_dest << " which has pos " << game->get_flag(recent_dest)->get_position();
+          Log::Debug["serf"] << "inside handle_free_walking_state_follow_edge, serf of type " << NameSerf[type] << " being set to Lost, dest when it exited Inventory was flag# " << recent_dest << " which has pos " << game->get_flag(recent_dest)->get_position();
         }else{
-          Log::Debug["serf"] << "inside handle_free_walking_state_follow_edge, serf being set to Lost, dest when it exited Inventory was flag# " << recent_dest << " which is a nullptr";
+          Log::Debug["serf"] << "inside handle_free_walking_state_follow_edge, serf of type " << NameSerf[type] << " being set to Lost, dest when it exited Inventory was flag# " << recent_dest << " which is a nullptr";
         }
 
         set_state(StateLost);
@@ -5888,9 +5888,9 @@ Serf::handle_serf_idle_on_path_state() {
 
     //debug
     if (game->get_flag(recent_dest) != nullptr){
-      Log::Debug["serf"] << "inside handle_serf_idle_on_path_state, serf being set to Lost, dest when it exited Inventory was flag# " << recent_dest << " which has pos " << game->get_flag(recent_dest)->get_position();
+      Log::Debug["serf"] << "inside handle_serf_idle_on_path_state, serf of type " << NameSerf[type] << " being set to Lost, dest when it exited Inventory was flag# " << recent_dest << " which has pos " << game->get_flag(recent_dest)->get_position();
     }else{
-      Log::Debug["serf"] << "inside handle_serf_idle_on_path_state, serf being set to Lost, dest when it exited Inventory was flag# " << recent_dest << " which is a nullptr";
+      Log::Debug["serf"] << "inside handle_serf_idle_on_path_state, serf of type " << NameSerf[type] << " being set to Lost, dest when it exited Inventory was flag# " << recent_dest << " which is a nullptr";
     }
 
     set_state(StateLost);
@@ -6052,9 +6052,9 @@ Serf::handle_serf_wake_at_flag_state() {
       //debug
       //  not logging this here because it appears to happen to transporters working roads that have just been deleted, which is common
       //if (game->get_flag(recent_dest) != nullptr){
-      //  Log::Debug["serf"] << "inside handle_serf_wake_at_flag_state, serf being set to Lost, dest when it exited Inventory was flag# " << recent_dest << " which has pos " << game->get_flag(recent_dest)->get_position();
+      //  Log::Debug["serf"] << "inside handle_serf_wake_at_flag_state, serf of type " << NameSerf[type] << " being set to Lost, dest when it exited Inventory was flag# " << recent_dest << " which has pos " << game->get_flag(recent_dest)->get_position();
       //}else{
-      //  Log::Debug["serf"] << "inside handle_serf_take_at_flag_state, serf being set to Lost, dest when it exited Inventory was flag# " << recent_dest << " which is a nullptr";
+      //  Log::Debug["serf"] << "inside handle_serf_take_at_flag_state, serf of type " << NameSerf[type] << " being set to Lost, dest when it exited Inventory was flag# " << recent_dest << " which is a nullptr";
       //}
 
       set_state(StateLost);

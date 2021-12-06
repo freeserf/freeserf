@@ -1212,6 +1212,7 @@ Game::remove_road_forwards(MapPos pos, Direction dir) {
       Serf *serf = get_serf_at_pos(pos);
       if (!map->has_flag(pos)) {
         serf->set_lost_state();
+        Log::Debug["game"] << " about to call set_lost_state on serf at pos " << pos << " case1, map says no flag here";;
       } else {
         /* Handle serf close to flag, where
            it should only be lost if walking
@@ -1219,6 +1220,7 @@ Game::remove_road_forwards(MapPos pos, Direction dir) {
         int d = serf->get_walking_dir();
         if (d < 0) d += 6;
         if (d == reverse_direction(dir)) {
+          Log::Debug["game"] << " about to call set_lost_state on serf at pos " << pos << " case2, maps says flag here but note says serf is walking in the 'wrong direction'";
           serf->set_lost_state();
         }
       }

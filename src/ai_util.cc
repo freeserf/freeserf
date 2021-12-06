@@ -53,6 +53,11 @@ AI::spiral_dist(int distance) {
 }
 
 // return true if *any* of the four points contain the requested terrain type
+//
+// NOTE - it is useful when searching for MapPos with a particular terrain type, to instead
+//   search for that "does not have the wrong/other tpyes" rather than "has the desired type"
+//   Should probably create a "has_ONLY_THESE_terrain_types" function!
+//
 bool
 AI::has_terrain_type(PGame game, MapPos pos, Map::Terrain res_start_index, Map::Terrain res_end_index) {
   Log::Verbose["util_has_terrain_type"] << " inside AI::has_terrain_type";
@@ -182,25 +187,25 @@ AI::update_building_counts() {
 	  MapPos flag_pos = map->move_down_right(building->get_position());
 	  AILogVerbose["util_update_building_counts"] << name << " has a building of type " << NameBuilding[type] << " at pos " << pos << ", with flag_pos " << flag_pos;
 
-      if (type == Building::TypeCastle) {
-        if (!building->is_done()) {
-          AILogDebug["util_update_building_counts"] << name << "'s castle isn't finished building yet";
-          while (!building->is_done()) {
-            AILogDebug["util_update_building_counts"] << name << "'s castle isn't finished building yet.  Sleeping a bit";
-            std::this_thread::sleep_for(std::chrono::milliseconds(1000));
-          }
-          AILogDebug["util_update_building_counts"] << name << "'s castle is now built, updating stocks";
-          // does the stocks_pos logic rely on the Castle always being the first building?  does it matter?
-          update_stocks_pos();
+    if (type == Building::TypeCastle) {
+      if (!building->is_done()) {
+        AILogDebug["util_update_building_counts"] << name << "'s castle isn't finished building yet";
+        while (!building->is_done()) {
+          AILogDebug["util_update_building_counts"] << name << "'s castle isn't finished building yet.  Sleeping a bit";
+          std::this_thread::sleep_for(std::chrono::milliseconds(1000));
         }
-        realm_occupied_military_pos.push_back(flag_pos);
-        stock_buildings.at(flag_pos).occupied_military_pos.push_back(flag_pos);
-        continue;
+        AILogDebug["util_update_building_counts"] << name << "'s castle is now built, updating stocks";
+        // does the stocks_pos logic rely on the Castle always being the first building?  does it matter?
+        update_stocks_pos();
       }
-    
-      // skip completed Stocks, they are tracked elsewhere
-      if (type == Building::TypeStock && building->is_done())
-        continue;
+      realm_occupied_military_pos.push_back(flag_pos);
+      stock_buildings.at(flag_pos).occupied_military_pos.push_back(flag_pos);
+      continue;
+    }
+  
+    // skip completed Stocks, they are tracked elsewhere
+    if (type == Building::TypeStock && building->is_done())
+      continue;
 
 	  // for military buildings, track the nearest Inventory by straight-line distance
 	  //  as these are used for general selection of nearby huts when looking for things
@@ -228,18 +233,24 @@ AI::update_building_counts() {
 
 	  // do the FlagSearch
 	  AILogVerbose["util_update_building_counts"] << name << " about to call find_nearest_inventory for connected building of type " << NameBuilding[type] << " at pos " << pos << ", with flag_pos " << flag_pos;
-	  MapPos inventory_pos = find_nearest_inventory(map, player_index, building->get_position(), DistType::FlagOnly, &ai_mark_pos);
-	  if (inventory_pos == bad_map_pos) {
+	  MapPos nearest_inventory_pos = find_nearest_inventory(map, player_index, building->get_position(), DistType::FlagOnly, &ai_mark_pos);
+	  if (nearest_inventory_pos == bad_map_pos) {
 		  AILogVerbose["util_update_building_counts"] << name << " find_nearest_inventory call for building at pos " << pos << ", with flag_pos " << flag_pos << " returned bad_map_pos, skipping this building";
 		  continue;
 	  }
-	  AILogVerbose["util_update_building_counts"] << name << " nearest Inventory (by flagsearch) to this connected building is " << inventory_pos;
+	  /* i think this is wrong
+    AILogVerbose["util_update_building_counts"] << name << " nearest Inventory (by flagsearch) to this connected building is " << nearest_inventory_pos;
+    if (nearest_inventory_pos != inventory_pos) {
+		  AILogVerbose["util_update_building_counts"] << name << " this building's nearest_inventory_pos " << nearest_inventory_pos << " is not the currently selected inventory_pos " << inventory_pos << ", skipping it";
+		  continue;
+	  }
+    */
 
 	  // count incomplete buildings (so AI can limit the number of outstanding unfinished buildings)
     if (!building->is_done()) {
       if (type == Building::TypeHut) {
-        stock_buildings.at(inventory_pos).unfinished_hut_count++;
-        AILogVerbose["util_update_building_counts"] << name << " incrementing unfinished_hut_count for inventory_pos " << inventory_pos << ", is now: " << stock_buildings.at(inventory_pos).unfinished_hut_count;
+        stock_buildings.at(nearest_inventory_pos).unfinished_hut_count++;
+        AILogVerbose["util_update_building_counts"] << name << " incrementing unfinished_hut_count for nearest_inventory_pos " << nearest_inventory_pos << ", is now: " << stock_buildings.at(nearest_inventory_pos).unfinished_hut_count;
       }
       else if (building->get_type() == Building::TypeCoalMine
         || building->get_type() == Building::TypeIronMine
@@ -248,8 +259,8 @@ AI::update_building_counts() {
         AILogVerbose["util_update_building_counts"] << name << " unfinished building is a Mine, not incrementing unfinished_building_count";
       }
       else {
-        stock_buildings.at(inventory_pos).unfinished_count++;
-        AILogVerbose["util_update_building_counts"] << name << " found unfinished building of type " << NameBuilding[type] << ", incrementing unfinished_building_count for inventory_pos " << inventory_pos << ", is now: " << stock_buildings.at(inventory_pos).unfinished_count;
+        stock_buildings.at(nearest_inventory_pos).unfinished_count++;
+        AILogDebug["util_update_building_counts"] << name << " found unfinished building of type " << NameBuilding[type] << " at pos " << building->get_position() << ", incrementing unfinished_building_count for nearest_inventory_pos " << nearest_inventory_pos << ", is now: " << stock_buildings.at(nearest_inventory_pos).unfinished_count;
       }
     }
     
@@ -258,15 +269,15 @@ AI::update_building_counts() {
     //  is based on FlagSearch dist, NOT straight-line dist as
     //  is used for OCCUPIED_military_buildings counts
 	  realm_building_count[type]++;   // move this to before the FlagSearch so it has a chance to include buildings that are not connected?  nah, leave as-is for now
-    stock_buildings.at(inventory_pos).count[type]++;
+    stock_buildings.at(nearest_inventory_pos).count[type]++;
     // the difference between 'buildings' and 'connected_buildings' is now moot because the nearest inventory pos
     //  is now determined by FlagSearch which requires that they be connected already to do the search
     //  Should probably remove the 'building_count' entirely.  See if any of this is even used anymore, I don't think it is
 	  //realm_connected_building_count[type]++;
-    stock_buildings.at(inventory_pos).connected_count[type]++;
+    stock_buildings.at(nearest_inventory_pos).connected_count[type]++;
     if (building->is_done()){
 	    realm_completed_building_count[type]++;
-      stock_buildings.at(inventory_pos).completed_count[type]++;
+      stock_buildings.at(nearest_inventory_pos).completed_count[type]++;
       // has_serf is not a good enough test alone to see if occupied, as it seems to be true when a builder is constructing the building!
       //  so moved this check to inside building->is_done because if building is done the only serf there should be the professional (I think)
       if (building->has_serf()) {
@@ -274,20 +285,20 @@ AI::update_building_counts() {
         //  however, again the counts may not match the occupied_military_building counts
         //  which are determined by straight-line distance only
 	      realm_occupied_building_count[type]++;
-        stock_buildings.at(inventory_pos).occupied_count[type]++;
+        stock_buildings.at(nearest_inventory_pos).occupied_count[type]++;
       }
     }
   } // foreach Building : get_player_buildings
 
   // debug, dump all inventory-to-building counts
-  for (MapPos inventory_pos : stocks_pos) {
+  for (MapPos an_inventory_pos : stocks_pos) {
     // this skips 'connected', which is moot anyway
-    AILogVerbose["util_update_building_counts"] << name << " Inventory at pos " << inventory_pos << " has all/completed/occupied buildings: ";
+    AILogVerbose["util_update_building_counts"] << name << " Inventory at pos " << an_inventory_pos << " has all/completed/occupied buildings: ";
     int type = 0;
     // why is this using realm_building_count instead of ... Types 0-25?
     for (int count : realm_building_count) {
-      AILogVerbose["util_update_building_counts"] << name << " type " << type << " / " << NameBuilding[type] << ": " << stock_buildings.at(inventory_pos).count[type]
-        << "/" << stock_buildings.at(inventory_pos).completed_count[type] << "/" << stock_buildings.at(inventory_pos).occupied_count[type];
+      AILogVerbose["util_update_building_counts"] << name << " type " << type << " / " << NameBuilding[type] << ": " << stock_buildings.at(an_inventory_pos).count[type]
+        << "/" << stock_buildings.at(an_inventory_pos).completed_count[type] << "/" << stock_buildings.at(an_inventory_pos).occupied_count[type];
       type++;
     }
   }
@@ -619,10 +630,12 @@ AI::build_best_road(MapPos start_pos, RoadOptions road_options, Road *built_road
       AILogDebug["util_build_best_road"] << " " << calling_function << " at least one path already exists from flag at start_pos";
       // do not cancel if this condition happens, because it is normal when doing rebuild_all_roads
       //  no longer using rebuild_all_roads, setting this again
-      if (!road_options.test(RoadOption::Improve)) {
-        AILogDebug["util_build_best_road"] << " " << calling_function << " a path already exists from start_pos " << start_pos << " but RoadOption::Improve is false!  this is unexpected.  returning false";
-        return false;
-      }
+      // oh wait, road_stub removal is blocked by this also, as it tries to connect a new path for Knight Huts but cannot if this stops it
+      //  removing it again
+      //if (!road_options.test(RoadOption::Improve)) {
+      //  AILogDebug["util_build_best_road"] << " " << calling_function << " a path already exists from start_pos " << start_pos << " but RoadOption::Improve is false!  this is unexpected.  returning false";
+      //  return false;
+      //}
       if (!road_options.test(RoadOption::Direct)) {
         AILogDebug["util_build_best_road"] << " " << calling_function << " RoadOption::Direct is not set, build_best_road will try to build a better road than the current best one";
       }
@@ -2023,6 +2036,7 @@ AI::count_empty_terrain_near_pos(MapPos center_pos, unsigned int distance, Map::
 // UPDATE dec 2021, changing this from "has grass" to "doesn't have water/desert/tundra/snow"
 //  because I keep seeing farms built in crappy spots around mountains despite a really high
 //  min_openspace_farm setting
+//    this works way better!
 
 unsigned int
 AI::count_farmable_land(MapPos center_pos, unsigned int distance, std::string color) {
@@ -2053,9 +2067,6 @@ AI::count_farmable_land(MapPos center_pos, unsigned int distance, std::string co
   for (unsigned int i = 0; i < distance; i++) {
     MapPos pos = map->pos_add_extended_spirally(center_pos, i);
     //AILogDebug["util_count_farmable_land"] << name << " AI: terrain at pos " << pos << " has type " << terrain;
-    ai_mark_pos.erase(pos);
-    ai_mark_pos.insert(ColorDot(pos, "gray"));
-    std::this_thread::sleep_for(std::chrono::milliseconds(50));
     if (AI::has_terrain_type(game, pos, Map::TerrainWater0, Map::TerrainWater3)
             || AI::has_terrain_type(game, pos, Map::TerrainDesert0, Map::TerrainSnow1)) {
       // this tile touches non-Grass, exclude it
@@ -2080,9 +2091,6 @@ AI::count_farmable_land(MapPos center_pos, unsigned int distance, std::string co
 
       ++count;
     }
-    ai_mark_pos.erase(pos);
-    ai_mark_pos.insert(ColorDot(pos, "yellow"));
-    std::this_thread::sleep_for(std::chrono::milliseconds(50));
   }
   //AILogDebug["util_count_farmable_land"] << name << " AI: found count " << count << " matching terrain of types " << NameTerrain[res_start_index] << " - " << NameTerrain[res_end_index];
   AILogDebug["util_count_farmable_land"] << name << " done count_farmable_land, returning count " << count;
@@ -2637,30 +2645,38 @@ AI::score_area(MapPos center_pos, unsigned int distance) {
     }
     // I think scoring_warehouse is deprecated for now, could bring it back if it really helps
     if (!scoring_warehouse) {
-      /* changing create_buffer to be simply a buffer around the castle, with no
-         consideration for enemy borders.  However, I want to add another function 
-         that DOES consider enemy borders, especially enemy borders near our important buildings?
-      //
-      // defense - build knight huts to buffer borders
-      //    prioritizing areas with own civ buildings, or any place that enemy territory found
-      //
+      
+      // oppose_enemy - any place that enemy territory found
+      //    this has the effect of tending to encircle the enemy, which is a good thing
+      if (map->get_owner(pos) != player_index && map->get_owner(pos) != -1) {
+        if (expand_towards.count("oppose_enemy") == 0){
+          expand_towards.insert("oppose_enemy");
+          AILogDebug["util_score_area"] << name << " found enemy territory near our borders, adding oppose_enemy expansion goal for informative purpose";
+        }
+        pos_value += expand_towards.count("oppose_enemy") * 1;
+        AILogDebug["util_score_area"] << name << " adding oppose_enemy value for enemy territory";
+      }
+
+      // protect_economy - value areas where own civilian buildings are near our borders
+      //    to ensure they are protected
+      //  TODO: are mines Large or Small?  Should they get extra protection? 
+      //    or even moreso... check to see if they are the only mine of that type
+      //    we have and if so score highly?
       if (map->get_owner(pos) == player_index) {
+        // "auto-add" this expansion goal for AI Overlay visualization
+        if (expand_towards.count("protect_economy") == 0){
+          expand_towards.insert("protect_economy");
+          AILogDebug["util_score_area"] << name << " found one of our civilian buildings near our borders, adding protect_economy expansion goal for informative purpose";
+        }
         if (obj == Map::ObjectLargeBuilding && !game->get_building_at_pos(pos)->is_military()) {
-          pos_value += expand_towards.count("create_buffer") * 3;
-          AILogDebug["util_score_area"] << name << " adding defensive_buffer building value x3 for large civilian building of type " << NameBuilding[game->get_building_at_pos(pos)->get_type()] << " at pos " << pos;
+          pos_value += expand_towards.count("protect_economy") * 3;
+          AILogDebug["util_score_area"] << name << " adding protect_economy building value x3 for large civilian building of type " << NameBuilding[game->get_building_at_pos(pos)->get_type()] << " at pos " << pos;
         }
         if (obj == Map::ObjectSmallBuilding && !game->get_building_at_pos(pos)->is_military()) {
-          pos_value += expand_towards.count("create_buffer") * 1;
-          AILogDebug["util_score_area"] << name << " adding defensive_buffer building value x1 for small civilian building of type " << NameBuilding[game->get_building_at_pos(pos)->get_type()] << " at pos " << pos;
+          pos_value += expand_towards.count("protect_economy") * 1;
+          AILogDebug["util_score_area"] << name << " adding protect_economy building value x1 for small civilian building of type " << NameBuilding[game->get_building_at_pos(pos)->get_type()] << " at pos " << pos;
         }
       }
-      // does -1 mean unowned?   need to check
-      //  this code does seem to work so that must be the case
-      if (map->get_owner(pos) != player_index && map->get_owner(pos) != -1) {
-        pos_value += expand_towards.count("create_buffer") * 1;
-        AILogDebug["util_score_area"] << name << " adding defensive_buffer value for enemy territory";
-      }
-      */
 
       // castle_buffer
       //  tiles owned by nobody, outside our borders, where the center_pos
