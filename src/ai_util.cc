@@ -2020,29 +2020,57 @@ AI::count_empty_terrain_near_pos(MapPos center_pos, unsigned int distance, Map::
 
 // count farmable land  - count the number of grass tiles, with no paths,
 //     and no obstacles (other than existing wheat fields)
+// UPDATE dec 2021, changing this from "has grass" to "doesn't have water/desert/tundra/snow"
+//  because I keep seeing farms built in crappy spots around mountains despite a really high
+//  min_openspace_farm setting
+
 unsigned int
 AI::count_farmable_land(MapPos center_pos, unsigned int distance, std::string color) {
-  Map::Terrain res_start_index = Map::TerrainGrass0;
-  Map::Terrain res_end_index = Map::TerrainGrass3;
+  /*
+  typedef enum {
+    TerrainWater0 = 0,
+    TerrainWater1,
+    TerrainWater2,
+    TerrainWater3,
+    TerrainGrass0,  // 4
+    TerrainGrass1,
+    TerrainGrass2,
+    TerrainGrass3,
+    TerrainDesert0,  // 8
+    TerrainDesert1,
+    TerrainDesert2,
+    TerrainTundra0,  // 11
+    TerrainTundra1,
+    TerrainTundra2,
+    TerrainSnow0,  // 14
+    TerrainSnow1
+  } Terrain;
+  */
+
   AILogDebug["util_count_farmable_land"] << name << " inside AI::count_farmable_land";
   //AILogDebug["util_count_farmable_land"] << name << " center_pos " << center_pos << ", distance " << distance << ", res_start_index " << NameTerrain[res_start_index] << ", res_end_index " << NameTerrain[res_end_index];
   unsigned int count = 0;
   for (unsigned int i = 0; i < distance; i++) {
     MapPos pos = map->pos_add_extended_spirally(center_pos, i);
     //AILogDebug["util_count_farmable_land"] << name << " AI: terrain at pos " << pos << " has type " << terrain;
-    // sometimes I am seeing farms built in bad areas, such as near mountains
-    //  I am thinking that because has_terrain_type returns true if ANY touching tile is the desired type
-    //  it ends up returning true a lot for mountains that touch grass.  Maybe write a special function
-    //  to do "ALL terrain matches" instead of any.  For now, trying to simply increase minimum lands
-    if (AI::has_terrain_type(game, pos, res_start_index, res_end_index)) {
+    ai_mark_pos.erase(pos);
+    ai_mark_pos.insert(ColorDot(pos, "gray"));
+    std::this_thread::sleep_for(std::chrono::milliseconds(50));
+    if (AI::has_terrain_type(game, pos, Map::TerrainWater0, Map::TerrainWater3)
+            || AI::has_terrain_type(game, pos, Map::TerrainDesert0, Map::TerrainSnow1)) {
+      // this tile touches non-Grass, exclude it
+      continue;
+    }else{
+      // this tile touches ONLY GRASS
       Map::Object obj_type = map->get_obj(pos);
-      // exclude tiles with blocking objects (anything not on this list)
+      // allow tiles that have existing fields or felled trees
       if (obj_type == Map::ObjectNone
         || (obj_type >= Map::ObjectSeeds0 && obj_type <= Map::ObjectFieldExpired)
         || (obj_type >= Map::ObjectField0 && obj_type <= Map::ObjectField5)
         || (obj_type >= Map::ObjectFelledPine0 && obj_type <= Map::ObjectFelledTree4) ) {
       }
       else {
+        // exclude tiles with blocking objects (anything not on this list)
         continue;
       }
       // exclude tiles with paths
@@ -2052,6 +2080,9 @@ AI::count_farmable_land(MapPos center_pos, unsigned int distance, std::string co
 
       ++count;
     }
+    ai_mark_pos.erase(pos);
+    ai_mark_pos.insert(ColorDot(pos, "yellow"));
+    std::this_thread::sleep_for(std::chrono::milliseconds(50));
   }
   //AILogDebug["util_count_farmable_land"] << name << " AI: found count " << count << " matching terrain of types " << NameTerrain[res_start_index] << " - " << NameTerrain[res_end_index];
   AILogDebug["util_count_farmable_land"] << name << " done count_farmable_land, returning count " << count;
@@ -2534,9 +2565,16 @@ AI::score_area(MapPos center_pos, unsigned int distance) {
   start = std::clock();
   AILogDebug["util_score_area"] << name << " inside AI::score_area, center_pos " << center_pos << ", distance " << distance;
   unsigned int total_value = 0;
+  //ai_mark_pos.erase(center_pos);
+  //ai_mark_pos.insert(ColorDot(center_pos, "white"));
+  //std::this_thread::sleep_for(std::chrono::milliseconds(100));
   for (unsigned int i = 0; i < distance; i++) {
     MapPos pos = map->pos_add_extended_spirally(center_pos, i);
     Map::Object obj = map->get_obj(pos);
+    ////ai_mark_pos.erase(pos);
+    //ai_mark_pos.insert(ColorDot(pos, "gray"));
+    //std::this_thread::sleep_for(std::chrono::milliseconds(100));
+      
     //AILogDebug["util_score_area"] << name << " at pos " << pos << " with object type " << NameObject[obj];
     size_t pos_value = 0;  // easier to make this size_t than static_cast all the .size values
     //
@@ -2599,6 +2637,9 @@ AI::score_area(MapPos center_pos, unsigned int distance) {
     }
     // I think scoring_warehouse is deprecated for now, could bring it back if it really helps
     if (!scoring_warehouse) {
+      /* changing create_buffer to be simply a buffer around the castle, with no
+         consideration for enemy borders.  However, I want to add another function 
+         that DOES consider enemy borders, especially enemy borders near our important buildings?
       //
       // defense - build knight huts to buffer borders
       //    prioritizing areas with own civ buildings, or any place that enemy territory found
@@ -2618,6 +2659,20 @@ AI::score_area(MapPos center_pos, unsigned int distance) {
       if (map->get_owner(pos) != player_index && map->get_owner(pos) != -1) {
         pos_value += expand_towards.count("create_buffer") * 1;
         AILogDebug["util_score_area"] << name << " adding defensive_buffer value for enemy territory";
+      }
+      */
+
+      // castle_buffer
+      //  tiles owned by nobody, outside our borders, where the center_pos
+      //   is near the castle, are valued to encourage building huts the castle
+      if (get_straightline_tile_dist(map, center_pos, castle_flag_pos) < 12){
+        if (map->get_owner(pos) == -1) {
+          pos_value += expand_towards.count("castle_buffer") * 1;
+          //AILogDebug["util_score_area"] << name << " adding castle_buffer value for unclaimed territory near our castle";
+          //ai_mark_pos.erase(pos);
+          //ai_mark_pos.insert(ColorDot(pos, "black"));
+          //std::this_thread::sleep_for(std::chrono::milliseconds(100));
+        }
       }
     }
     //

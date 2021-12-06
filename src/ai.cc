@@ -156,7 +156,6 @@ AI::next_loop(){
 
   do_connect_disconnected_flags(); // except unfinished mines
   do_build_better_roads_for_important_buildings();  // is this working?  I still see pretty inefficient roads for important buildings
-  return;
   //do_spiderweb_roads();  // moved to inside warehouse/stock so it does this for each one
   //do_pollute_castle_area_roads_with_flags(); // CHANGE THIS TO USE ARTERIAL ROADS 
   do_fix_stuck_serfs();  // this is definitely still an issue, try to fix root cause
@@ -192,9 +191,9 @@ AI::next_loop(){
         << "/" << stock_buildings.at(inventory_pos).completed_count[x] << "/" << stock_buildings.at(inventory_pos).occupied_count[x];
     }
 
-    do_check_resource_needs();
     do_get_inventory(inventory_pos);
     do_count_resources_sitting_at_flags(inventory_pos);
+    do_check_resource_needs();
 
     do_build_sawmill_lumberjacks(); std::this_thread::sleep_for(std::chrono::milliseconds(1000));
 
@@ -2720,6 +2719,7 @@ AI::do_build_stonecutter() {
 }
 
 
+/* this no longer needs to be a standalone function it is part of expand_borders logic
 // expand borders to create defensive buffer
 void
 AI::do_create_defensive_buffer() {
@@ -2734,6 +2734,7 @@ AI::do_create_defensive_buffer() {
   }
   AILogDebug["do_create_defensive_buffer"] << inventory_pos << " done do_create_defensive_buffer";
 }
+*/
 
 
 // build a toolmaker, and a steel smelter if enough coal and iron ore
@@ -3302,7 +3303,7 @@ AI::do_build_steelsmelter() {
     AILogDebug["do_build_steelsmelter"] << inventory_pos << " have steel smelter or sufficient steel, skipping";
     return;
   }
-  AILogInfo["do_build_steelsmelter"] << inventory_pos << " desire more steel, trying to build steel smelter";
+  AILogInfo["do_build_steelsmelter"] << inventory_pos << " trying to build steel smelter";
   // if we got to this point we should already have iron & coal stored or mines connected
   //&& iron_ore_count > 0 && coal_count > 0)) {
   // try to place steel smelter halfway between a coal mine and iron mine if both exist, preferring active ones
@@ -3819,6 +3820,7 @@ AI::do_can_build_other() {
 //  Inventory has already maxed out
 void
 AI::do_check_resource_needs(){
+  AILogInfo["do_check_resource_needs"] << inventory_pos << " inside do_check_resource_needs";
 
   // IN GENERAL:
   //  if res > max, do not need res, do not bother to check for res buildings
@@ -3832,9 +3834,9 @@ AI::do_check_resource_needs(){
   //   include raw logs that will be processed into planks at SawMill
   wood_count += stock_inv->get_count_of(Resource::TypeLumber) + stock_res_sitting_at_flags.at(inventory_pos)[Resource::TypeLumber];
   if (wood_count < planks_max) {
-    AILogInfo["do_check_resource_needs"] << inventory_pos << "desire more wood";
+    AILogDebug["do_check_resource_needs"] << inventory_pos << "  wood";
     if (stock_buildings.at(inventory_pos).count[Building::TypeSawmill] < 1 || stock_buildings.at(inventory_pos).count[Building::TypeLumberjack] < 2) {
-      AILogInfo["do_check_resource_needs"] << inventory_pos << "desire more wood buildings";
+      AILogDebug["do_check_resource_needs"] << inventory_pos << "desire more wood buildings";
       stock_buildings.at(inventory_pos).needs_wood = true;
       expand_towards.insert("trees");
     }
@@ -3857,14 +3859,17 @@ AI::do_check_resource_needs(){
   //
   // defensive buffer
   //
-  // this isn't really fleshed out yet
-  // also, right now I don't have a an inventory-specific serfs count
-  // so disable this for now
-  //unsigned int idle_knights = serfs_idle[Serf::TypeKnight0] + serfs_idle[Serf::TypeKnight1] + serfs_idle[Serf::TypeKnight2] + serfs_idle[Serf::TypeKnight3] + serfs_idle[Serf::TypeKnight4];
-  //if (idle_knights >= knights_min) {
-  //  expand_towards.insert("create_buffer");
-  //}
-
+  // if there is any unowned land near the castle, encourage claiming it to
+  //  create a buffer around the castle
+  if (inventory_pos == castle_flag_pos){
+    for (unsigned int x = 0; x < AI::spiral_dist(12); x++) {
+      MapPos pos = map->pos_add_extended_spirally(castle_flag_pos, x);
+      if (map->get_owner(pos) == -1){
+        AILogDebug["do_check_resource_needs"] << inventory_pos << " there is unowned land near the castle, adding castle_buffer to expansion goals";
+        expand_towards.insert("castle_buffer");
+      }
+    }
+  }
 
   //
   // foods
