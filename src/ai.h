@@ -470,7 +470,7 @@ static constexpr double min_knight_ratio_attack = 2.00;
 // TODO add some kind of factor that reduces the required attack ratio as own morale increases
 
 // fixed penalty for a non-direct road that contains the castle flag (but doesn't start/end there)
-static const unsigned int contains_castle_flag_penalty = 10;
+static const unsigned int contains_castle_flag_penalty = 20;  //increased this from 10 to 20 on dec04 2021
 
 
 #endif // SRC_AI_H_

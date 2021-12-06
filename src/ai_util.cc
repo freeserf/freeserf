@@ -1328,15 +1328,16 @@ AI::build_best_road(MapPos start_pos, RoadOptions road_options, Road *built_road
           }
           AILogDebug["util_build_best_road"] << " " << calling_function << " checking vs existing solution, found adjusted_score of " << ppair.second << " for this proad ending at end_pos " << end_pos;
           // it must be SIGNIFICANTLY better, say 50% + 2?
-          double modified_prod_score = static_cast<double>(ppair.second) * static_cast<double>(1.50) + 2;
+          // reducing from 50% to 20% + 2 on dec04 2021
+          double modified_prod_score = static_cast<double>(ppair.second) * static_cast<double>(1.20) + 2;
           //if (best_eroad_score <= ppair.second) {
           if (best_eroad_score <= modified_prod_score) {
-            AILogDebug["util_build_best_road"] << " " << calling_function << " checking vs existing solution, proad from start_pos " << start_pos << " to end_pos " << end_pos << " has +50%+2 score " << modified_prod_score << " which is not significantly better than best_eroad_score " << best_eroad_score << ", skipping this target";
+            AILogDebug["util_build_best_road"] << " " << calling_function << " checking vs existing solution, proad from start_pos " << start_pos << " to end_pos " << end_pos << " has +20%+2 score " << modified_prod_score << " which is not significantly better than best_eroad_score " << best_eroad_score << ", skipping this target";
             skip_target = true;
             break;
           }
           else {
-            AILogDebug["util_build_best_road"] << " " << calling_function << " checking vs existing solution, proad from start_pos " << start_pos << " to end_pos " << end_pos << " has +50%+2 score " << modified_prod_score << " which is significantly better than best_eroad_score " << best_eroad_score << ", will build new road";
+            AILogDebug["util_build_best_road"] << " " << calling_function << " checking vs existing solution, proad from start_pos " << start_pos << " to end_pos " << end_pos << " has +20%+2 score " << modified_prod_score << " which is significantly better than best_eroad_score " << best_eroad_score << ", will build new road";
             break;
           }
         }

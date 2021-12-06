@@ -156,6 +156,7 @@ AI::next_loop(){
 
   do_connect_disconnected_flags(); // except unfinished mines
   do_build_better_roads_for_important_buildings();  // is this working?  I still see pretty inefficient roads for important buildings
+  return;
   //do_spiderweb_roads();  // moved to inside warehouse/stock so it does this for each one
   //do_pollute_castle_area_roads_with_flags(); // CHANGE THIS TO USE ARTERIAL ROADS 
   do_fix_stuck_serfs();  // this is definitely still an issue, try to fix root cause
@@ -2429,7 +2430,7 @@ AI::do_place_mines(std::string type, Building::Type building_type, Map::Object l
           }
         }
         if (found){
-          AILogDebug["do_place_mines"] << inventory_pos << " found at least two other mines of same type " << NameBuilding[building_type] << " nearby, not placing another.  Skipping this corner area";
+          AILogDebug["do_place_mines"] << inventory_pos << " found at least one other mine of same type " << NameBuilding[building_type] << " nearby, not placing another.  Skipping this corner area";
           continue;
         }
         // try to build a mine on a Large resource sign if found,
@@ -3030,7 +3031,7 @@ AI::do_build_food_buildings_and_3rd_lumberjack() {
   unsigned int lumberjack_count = stock_buildings.at(inventory_pos).count[Building::TypeLumberjack];
   unsigned int planks_count = stock_inv->get_count_of(Resource::TypePlank);
   AILogDebug["do_build_food_buildings_and_3rd_lumberjack"] << inventory_pos << " DEBUG current lumberjack count: " << lumberjack_count << ", sawmill_count: " << sawmill_count << ", farm_count: " << farm_count << ", planks_count: " << planks_count << ", planks_max: " << planks_max;
-  if (sawmill_count > 0 && farm_count > 0 && stock_buildings.at(inventory_pos).needs_wood && lumberjack_count < 3) {
+  if (sawmill_count > 0 && farm_count > 0 && planks_count <= planks_max && lumberjack_count < 3) {
     AILogDebug["do_build_food_buildings_and_3rd_lumberjack"] << inventory_pos << " this Inventory needs_wood and  < 3 lumberjacks, build a third";
     // count trees near military buildings,
     //   the third lumberjack doesn't need to be near sawmill, if there is a spot with many trees that is fine
@@ -3220,6 +3221,7 @@ AI::do_connect_coal_mines() {
       }
       else {
         AILogDebug["do_connect_coal_mines"] << inventory_pos << " successfully connected unfinished coal mine to road network";
+        stock_buildings.at(inventory_pos).count[Building::TypeCoalMine]++;
         stock_buildings.at(inventory_pos).unfinished_count++;
         break;
       }
@@ -3275,6 +3277,7 @@ AI::do_connect_iron_mines() {
       }
       else {
         AILogDebug["do_connect_iron_mines"] << inventory_pos << " successfully connected unfinished iron mine to road network";
+        stock_buildings.at(inventory_pos).count[Building::TypeIronMine]++;
         stock_buildings.at(inventory_pos).unfinished_count++;
         break;
       }
@@ -3467,6 +3470,7 @@ AI::do_build_gold_smelter_and_connect_gold_mines() {
       }
       else {
         AILogDebug["do_build_gold_smelter_and_connect_gold_mines"] << inventory_pos << " successfully connected unfinished gold mine to road network";
+        stock_buildings.at(inventory_pos).count[Building::TypeGoldMine]++;
         stock_buildings.at(inventory_pos).unfinished_count++;
         break;
       }
@@ -3574,10 +3578,16 @@ AI::do_build_better_roads_for_important_buildings() {
       continue;
     }
     AILogDebug["do_build_better_roads_for_important_buildings"] << name << " do_build_better_roads_for_important_buildings found high-priority building of type " << NameBuilding[type] << name << " at pos " << building->get_position();
+    ai_mark_pos.erase(building->get_position());
+    ai_mark_pos.insert(ColorDot(building->get_position(), "dk_coral"));
+    std::this_thread::sleep_for(std::chrono::milliseconds(3000));
     road_options.set(RoadOption::Improve);
     MapPos building_flag_pos = map->move_down_right(building->get_position());
     Road road_built;
-    build_best_road(building_flag_pos, road_options, &road_built, "do_build_better_roads", type);
+    if(build_best_road(building_flag_pos, road_options, &road_built, "do_build_better_roads", type)){
+      AILogDebug["do_build_better_roads_for_important_buildings"] << name << " successfully built an improved road connection for building of type " << NameBuilding[type] << name << " at pos " << building->get_position() << " to its affinity building (whatever that may be - check build_best_road result)";
+      ai_mark_build_better_roads->push_back(road_built);
+    }
     road_options.reset(RoadOption::Improve);
   }
   AILogDebug["do_build_better_roads_for_important_buildings"] << name << " done do_build_better_roads_for_important_buildings";
