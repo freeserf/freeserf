@@ -721,9 +721,10 @@ AI::build_best_road(MapPos start_pos, RoadOptions road_options, Road *built_road
     AILogDebug["util_build_best_road"] << " " << calling_function << " targets contains " << targets.size() << " affinity / target buildings";
     // if no affinity-based targets found, fall back to nearest or selected inv
     if (targets.size() == 0){
-      AILogDebug["util_build_best_road"] << " " << calling_function << " no valid target found from get_affinity, trying to find a nearest connected inventory";
+      AILogDebug["util_build_best_road"] << " " << calling_function << " get_affinity found no valid target, trying to find a nearest connected inventory";
       MapPos fallback_inv_pos = bad_map_pos;
-      if (map->has_flag(start_pos) && map->has_building(map->move_up_left(start_pos))){
+      // not requiring a flag or building, it should be find to connect disconnected flags to nearest straight-line inventory
+      //if (map->has_flag(start_pos) && map->has_building(map->move_up_left(start_pos))){
         // this should NOT use Flag dist at all because if there is no affinity, and likely no road at all,
         //  then there is no way to complete a flag search, instead use the closest by STRAIGHT LINE DIST
         //MapPos nearest_inv_pos = find_nearest_inventory(map, player_index, start_pos, DistType::FlagAndStraightLine, &ai_mark_pos);
@@ -731,11 +732,16 @@ AI::build_best_road(MapPos start_pos, RoadOptions road_options, Road *built_road
         if (nearest_inv_pos != bad_map_pos){
           AILogDebug["util_build_best_road"] << " " << calling_function << " no valid target found, setting target to nearest_inv_pos (by straight line) " << nearest_inv_pos;
           fallback_inv_pos = nearest_inv_pos;
+        }else{
+          AILogDebug["util_build_best_road"] << " " << calling_function << " find_nearest_inventory by StraightLineOnly found nearest_inv_pos " << nearest_inv_pos;
         }
-      }
+      //}
       if (fallback_inv_pos == bad_map_pos){
         fallback_inv_pos = inventory_pos;
-        AILogDebug["util_build_best_road"] << " " << calling_function << " no valid target found and could not find nearest_inv_pos, setting target to current inventory_pos " << inventory_pos;
+        //AILogDebug["util_build_best_road"] << " " << calling_function << " no valid target found and could not find nearest_inv_pos, setting target to current inventory_pos " << inventory_pos;
+        AILogWarn["util_build_best_road"] << " " << calling_function << " no valid target found and could not find nearest_inv_pos BY STRAIGHTLINE DIST - WHY???, setting target to current inventory_pos " << inventory_pos;
+        // could change the fallback to simply be nearest flag, but I don't think this should never happen if using StraightLineOnly
+        throw ExceptionFreeserf("failed to find inventory by StraightLine, this should always work");
       }
       targets.push_back(fallback_inv_pos);
     }
@@ -1082,7 +1088,9 @@ AI::build_best_road(MapPos start_pos, RoadOptions road_options, Road *built_road
         }
         // if this is "tracked economy building", ensure the end_pos flag is closest to the currently selected Inventory (castle/warehouse)
         if (verify_stock == true){
-          if (find_nearest_inventory(map, player_index, end_pos, DistType::FlagAndStraightLine, &ai_mark_pos) != inventory_pos){
+          // this should use FLAG ONLY
+          //if (find_nearest_inventory(map, player_index, end_pos, DistType::FlagAndStraightLine, &ai_mark_pos) != inventory_pos){
+          if (find_nearest_inventory(map, player_index, end_pos, DistType::FlagOnly, &ai_mark_pos) != inventory_pos){
             AILogDebug["util_build_best_road"] << " " << calling_function << " non-direct road requested, plotting direct roads to nearby_flags, verify_stock - DIRECT road - flag at end_pos " << end_pos << " is not closest to current inventory_pos " << inventory_pos << ", skipping";
             break;
           }
@@ -1150,7 +1158,9 @@ AI::build_best_road(MapPos start_pos, RoadOptions road_options, Road *built_road
               //AILogDebug["util_build_best_road"] << " " << calling_function << " non-direct road requested, split_roads, verify_stock - found a path for splitting flag at split_end_pos " << split_end_pos << " in dir " << NameDirection[dir];
               MapPos adjacent_flag_pos = split_road.get_end(map.get());
               //AILogDebug["util_build_best_road"] << " " << calling_function << " non-direct road requested, split_roads, verify_stock - path for splitting flag at split_end_pos " << split_end_pos << " in dir " << NameDirection[dir] << " ends at flag at pos " << adjacent_flag_pos;
-              if (find_nearest_inventory(map, player_index, adjacent_flag_pos, DistType::FlagAndStraightLine, &ai_mark_pos) != inventory_pos){
+              // changing to FlagOnly
+              //if (find_nearest_inventory(map, player_index, adjacent_flag_pos, DistType::FlagAndStraightLine, &ai_mark_pos) != inventory_pos){
+              if (find_nearest_inventory(map, player_index, adjacent_flag_pos, DistType::FlagOnly, &ai_mark_pos) != inventory_pos){
                 //AILogDebug["util_build_best_road"] << " " << calling_function << " non-direct road requested, split_roads, verify_stock - potential split_road flag at split_end_pos " << split_end_pos << " is not closest to current inventory_pos " << inventory_pos << ", skipping";
                 disqualified++;
               }
@@ -1310,10 +1320,10 @@ AI::build_best_road(MapPos start_pos, RoadOptions road_options, Road *built_road
       // apr13 2020 increased new_length penalty from 2.0 to 2.5
       double new_length_penalty;
       if (road_options.test(RoadOption::PenalizeNewLength)) {
-        new_length_penalty = 2.5;
+        new_length_penalty = 2.50;
       }
       else {
-        new_length_penalty = 1.0; // no penalty
+        new_length_penalty = 1.00; // no penalty
       }
       if (road_options.test(RoadOption::ReducedNewLengthPenalty)) {
         new_length_penalty = 1.75;
@@ -1636,7 +1646,9 @@ AI::find_nearest_building(MapPos pos, CompletionLevel level, Building::Type buil
         AILogDebug["util_find_nearest_building"] << name << " not performing flagsearch because this is a Stock";
       }else{
         AILogDebug["util_find_nearest_building"] << name << " performing flagsearch to find nearest inventory to this building of type " << NameBuilding[building_type] << " found at " << building_flag_pos;
-        int nearest_inventory = find_nearest_inventory(map, player_index, building_flag_pos, DistType::FlagAndStraightLine, &ai_mark_pos);
+        // this needs to be a FLAG ONLY search 
+        //int nearest_inventory = find_nearest_inventory(map, player_index, building_flag_pos, DistType::FlagAndStraightLine, &ai_mark_pos);
+        int nearest_inventory = find_nearest_inventory(map, player_index, building_flag_pos, DistType::FlagOnly, &ai_mark_pos);
         if (nearest_inventory < 0){
           AILogDebug["util_find_nearest_building"] << name << " inventory not found for flag at building_flag_pos " << building_flag_pos << ", maybe this flag isn't part of the road system??";
           continue;
@@ -2343,7 +2355,9 @@ AI::build_near_pos(MapPos center_pos, unsigned int distance, Building::Type buil
         // must do the verify_stock check here on this flag, because normally it is done when placing the road but this
         //  flag/road already exists
         if (verify_stock == true){
-          if (find_nearest_inventory(map, player_index, flag_pos, DistType::FlagAndStraightLine, &ai_mark_pos) != inventory_pos){
+          // this needs to be FLAG ONLY
+          //if (find_nearest_inventory(map, player_index, flag_pos, DistType::FlagAndStraightLine, &ai_mark_pos) != inventory_pos){
+          if (find_nearest_inventory(map, player_index, flag_pos, DistType::FlagOnly, &ai_mark_pos) != inventory_pos){
             AILogDebug["util_build_best_road"] << name << " verify_stock for existing flag - flag at flag_pos " << flag_pos << " is not closest to current inventory_pos " << inventory_pos << ", skipping";
             // if a new flag was built, remove it
             if (built_new_flag){

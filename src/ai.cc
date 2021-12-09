@@ -133,7 +133,6 @@ AI::next_loop(){
   do_place_castle();
   do_update_clear_reset();
   update_stocks_pos();
-  AILogDebug["next_loop"] << " foo1";
   inventory_pos = castle_flag_pos;  // need to set this so various functions work on the very first AI loop, before the loop over Inventories starts
   update_building_counts();
   do_get_inventory(castle_flag_pos);
@@ -159,11 +158,7 @@ AI::next_loop(){
   do_build_better_roads_for_important_buildings();  // is this working?  I still see pretty inefficient roads for important buildings
   do_pollute_castle_area_roads_with_flags(); // CHANGE THIS TO USE ARTERIAL ROADS  (nah, it works well enough as it is, do that later)
   do_fix_stuck_serfs();  // this is definitely still an issue, try to fix root cause
-  do_fix_missing_transporters();  // is this still a problem anymore??
-  
-  // MOVE BUILD RANGERS TO INSIDE per-Inventory function and include can_build checks?
-  do_build_rangers(); std::this_thread::sleep_for(std::chrono::milliseconds(1000));
-
+  do_fix_missing_transporters();  // is this still a problem anymore??  YES
   do_remove_road_stubs();
   do_demolish_unproductive_3rd_lumberjacks();
   do_demolish_unproductive_stonecutters();
@@ -174,10 +169,8 @@ AI::next_loop(){
   do_attack();
   do_manage_knight_occupation_levels();
 
-
   // rename this to Inventories instead of Stocks
   update_stocks_pos();
-  AILogDebug["next_loop"] << " foo2";
 
   for (MapPos this_inventory_pos : stocks_pos) {
     inventory_pos = this_inventory_pos;
@@ -185,25 +178,23 @@ AI::next_loop(){
     update_building_counts();
 
     // debug, log buildings
-    AILogDebug["next_loop"] << name << " stock at pos " << inventory_pos << " has all/completed/occupied buildings: ";
-    for (int x = 0; x < 25; x++) {
-      AILogDebug["next_loop"] << name << " type " << x << " / " << NameBuilding[x] << ": " << stock_buildings.at(inventory_pos).count[x]
-        << "/" << stock_buildings.at(inventory_pos).completed_count[x] << "/" << stock_buildings.at(inventory_pos).occupied_count[x];
-    }
+    //AILogDebug["next_loop"] << name << " stock at pos " << inventory_pos << " has all/completed/occupied buildings: ";
+    //for (int x = 0; x < 25; x++) {
+    //  AILogDebug["next_loop"] << name << " type " << x << " / " << NameBuilding[x] << ": " << stock_buildings.at(inventory_pos).count[x]
+    //    << "/" << stock_buildings.at(inventory_pos).completed_count[x] << "/" << stock_buildings.at(inventory_pos).occupied_count[x];
+    //}
 
     do_get_inventory(inventory_pos);
     do_promote_serfs_to_knights();  // this is actually done per-stock in AI, not per-realm like the button does
     do_count_resources_sitting_at_flags(inventory_pos);
     do_check_resource_needs();
 
-    //do_create_star_roads_for_new_warehouse();
-    //continue;
+    do_create_star_roads_for_new_warehouses();
 
     do_build_sawmill_lumberjacks(); std::this_thread::sleep_for(std::chrono::milliseconds(1000));
 
     if(do_can_build_knight_huts())
       expand_borders(); std::this_thread::sleep_for(std::chrono::milliseconds(1000));
-
 
     // PLACE MINES EARLY - but do not connect them to roads so they do not actually get built until later
     //   this is to secure good placement when resources are found, before the signs fade
@@ -216,13 +207,7 @@ AI::next_loop(){
         break;
 
     do_build_stonecutter(); std::this_thread::sleep_for(std::chrono::milliseconds(1000));
-
-    /*
-    // is this the right place for this?  ... yes I think so..
-    //  but it should be limited to buffer around CASTLE only to avoid enemy encroaching critical castle roads area
-    //   and another defensive buffer scoring should be kept to defend the rest of the territory/buildings
-    do_create_defensive_buffer();
-    */
+    do_build_rangers(); std::this_thread::sleep_for(std::chrono::milliseconds(1000));
 
     if(do_can_build_other())
       do_build_toolmaker_steelsmelter(); std::this_thread::sleep_for(std::chrono::milliseconds(1000));
@@ -2997,6 +2982,7 @@ AI::do_build_food_buildings_and_3rd_lumberjack() {
           if (building->get_type() == Building::TypeMill ||
               building->get_type() == Building::TypeFarm ||
               building->get_type() == Building::TypeBaker){
+            // keeping this as FlagAndStraightLine because it should keep the building placement near the Inv
             if (find_nearest_inventory(map, player_index, building->get_position(), DistType::FlagAndStraightLine, &ai_mark_pos) != inventory_pos)
               continue;
           }
@@ -3165,6 +3151,7 @@ AI::do_build_food_buildings_and_3rd_lumberjack() {
           continue;
         if (!building->is_done())
           continue;
+        // keeping this as FlagAndStraightLine because it should keep the building placement near the Inv
         if (find_nearest_inventory(map, player_index, building->get_position(), DistType::FlagAndStraightLine, &ai_mark_pos) != inventory_pos)
           continue;
         MapPos farm_pos = building->get_position();
@@ -3761,18 +3748,9 @@ AI::do_get_inventory(MapPos inventory_pos) {
     AILogDebug["do_get_inventory"] << name << "'s stock at pos " << inventory_pos << " has " << NameResource[i] << ": " << stock_inv->get_count_of(Resource::Type(i));
   }
 
-  //AILogDebug["do_get_inventory"] << name << "foo0";
-  //stock_res_sitting_at_flags[inventory_pos] = {};
-  //AILogDebug["do_get_inventory"] << name << "foo1";
-  //ResourceMap flag_res_map = stock_res_sitting_at_flags.at(inventory_pos);
-  //do_count_resources_sitting_at_flags();
   for (int i = 0; i < 26; i++) {
-    //AILogDebug["do_get_inventory"] << name << "fooi" << i;
-    //flag_res_map.at(Resource::Type(i)) = 0;
-    //stock_res_sitting_at_flags.at(inventory_pos)[i] = 0;
     stock_res_sitting_at_flags[inventory_pos][Resource::Type(i)] = 0;
   }
-  //AILogDebug["do_get_inventory"] << name << "foo2";
 
   AILogDebug["do_get_inventory"] << name << " done get_inventory";
 }
@@ -4096,7 +4074,7 @@ AI::do_check_resource_needs(){
 //  reconnect all nearby non-tracked buildings to it
 // and possible tracked buildings if conditions met?
 void
-AI::do_create_star_roads_for_new_warehouse(){
+AI::do_create_star_roads_for_new_warehouses(){
   if (new_stocks.size() == 0){
     AILogInfo["do_create_star_roads_for_new_warehouse"] << inventory_pos << " new_stocks has no entries, nothing to do";
     return;

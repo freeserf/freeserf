@@ -661,6 +661,16 @@ AI::find_nearest_inventory(PMap map, unsigned int player_index, MapPos pos, Dist
     return by_flag_dist;
   }
 
+  // what purpose does this have???  I can no longer remember why this combination is important
+  // maybe it was to try to avoid buildings being "stolen" or moved between inventory "owners" 
+  // because of straight-line stuff and/or road changes?  
+  // I changed some places that used this to FlagOnly, see if any remain and reconsider if
+  // this is really needed, I might be making a mistake by not using it now
+  //
+  // so the only place this seems appropriate is for helping ensure buildings being placed
+  //  are located near their Inv so they are less likely to be "stolen" by other Invs.  I only
+  //  see this being used by the food buildings function, not sure if it is redundant or if
+  //  the other do_build functions should be using it too
   if (dist_type == DistType::FlagAndStraightLine){
     if (by_flag_dist != by_straightline_dist){
       AILogDebug["util_find_nearest_inventory"] << name << " nearest Inventory to flag_pos " << flag_pos << " by_flag_dist is " << by_flag_dist << ", but by_straightline_dist is " << by_straightline_dist << ", returning bad_map_pos";
