@@ -192,7 +192,7 @@ AI::update_building_counts() {
         AILogDebug["util_update_building_counts"] << name << "'s castle isn't finished building yet";
         while (!building->is_done()) {
           AILogDebug["util_update_building_counts"] << name << "'s castle isn't finished building yet.  Sleeping a bit";
-          std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+          sleep_speed_adjusted(1000);
         }
         AILogDebug["util_update_building_counts"] << name << "'s castle is now built, updating stocks";
         // does the stocks_pos logic rely on the Castle always being the first building?  does it matter?
@@ -423,7 +423,7 @@ AI::rebuild_all_roads() {
   AILogVerbose["util_rebuild_all_roads"] << name << " thread #" << std::this_thread::get_id() << " AI has unlocked mutex for entire rebuild_all_roads function after destroying all roads";
 
   AILogDebug["util_rebuild_all_roads"] << name << "sleeping to see roads destroyed before starting rebuild";
-  std::this_thread::sleep_for(std::chrono::milliseconds(2000));
+  sleep_speed_adjusted(2000);
 
   //road_options.reset(RoadOption::PenalizeNewLength);
   road_options.set(RoadOption::ReducedNewLengthPenalty);
@@ -468,7 +468,7 @@ AI::rebuild_all_roads() {
       if (!AI::build_best_road(map->move_down_right(building->get_position()), road_options, &built_road)) {
         AILogDebug["util_rebuild_all_roads"] << name << " failed to connect high priority building at pos " << building->get_position() << " to affinity building / road network!";
       }
-      std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+      sleep_speed_adjusted(1000);
       //ai_mark_pos.clear();
       ai_mark_pos.erase(building->get_position());
 
@@ -476,7 +476,7 @@ AI::rebuild_all_roads() {
   }
 
   //game->get_mutex()->unlock();
-  //std::this_thread::sleep_for(std::chrono::milliseconds(5000));
+  //sleep_speed_adjusted(5000);
   //game->get_mutex()->lock();
   AILogVerbose["util_rebuild_all_roads"] << name << " trying to connect bakers to mines";
   for (Building *building : game->get_player_buildings(player)) {
@@ -492,17 +492,17 @@ AI::rebuild_all_roads() {
     if (!AI::build_best_road(map->move_down_right(building->get_position()), road_options, Building::TypeCoalMine)) {
       AILogDebug["util_rebuild_all_roads"] << name << " failed to connect baker at pos " << building->get_position() << " to coal mine / road network!";
     }
-    std::this_thread::sleep_for(std::chrono::milliseconds(500));
+    sleep_speed_adjusted(500);
     ai_mark_pos.clear();
     if (!AI::build_best_road(map->move_down_right(building->get_position()), road_options, Building::TypeIronMine)) {
       AILogDebug["util_rebuild_all_roads"] << name << " failed to connect baker at pos " << building->get_position() << " to iron mine / road network!";
     }
-    std::this_thread::sleep_for(std::chrono::milliseconds(500));
+    sleep_speed_adjusted(500);
     ai_mark_pos.clear();
     if (!AI::build_best_road(map->move_down_right(building->get_position()), road_options, Building::TypeGoldMine)) {
       AILogDebug["util_rebuild_all_roads"] << name << " failed to connect baker at pos " << building->get_position() << " to gold mine / road network!";
     }
-    std::this_thread::sleep_for(std::chrono::milliseconds(500));
+    sleep_speed_adjusted(500);
     ai_mark_pos.clear();
   }
 
@@ -539,7 +539,7 @@ AI::rebuild_all_roads() {
       if (!AI::build_best_road(map->move_down_right(building->get_position()), road_options)) {
         AILogDebug["util_rebuild_all_roads"] << name << " failed to connect high priority building at pos " << building->get_position() << " to affinity building / road network!";
       }
-      std::this_thread::sleep_for(std::chrono::milliseconds(500));
+      sleep_speed_adjusted(500);
       //ai_mark_pos.clear();
       ai_mark_pos.erase(building->get_position());
 
@@ -548,7 +548,7 @@ AI::rebuild_all_roads() {
 
 
   //game->get_mutex()->unlock();
-  //std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+  //sleep_speed_adjusted(1000);
   //game->get_mutex()->lock();
   //AILogVerbose["util_rebuild_all_roads"] << name << " breaking early to debug";
   //return;
@@ -576,12 +576,12 @@ AI::rebuild_all_roads() {
     if (!AI::build_best_road(map->move_down_right(building->get_position()), road_options)) {
       AILogDebug["util_rebuild_all_roads"] << name << " failed to connect civilian building at pos " << building->get_position() << " to road network!";
     }
-    std::this_thread::sleep_for(std::chrono::milliseconds(50));
+    sleep_speed_adjusted(50);
     //ai_mark_pos.clear();
     //ai_mark_pos.erase(building->get_position());
   }
   //game->get_mutex()->unlock();
-  //std::this_thread::sleep_for(std::chrono::milliseconds(5000));
+  //sleep_speed_adjusted(5000);
   //game->get_mutex()->lock();
   AILogVerbose["util_rebuild_all_roads"] << name << " trying to connect military buildings";
   for (Building *building : game->get_player_buildings(player)) {
@@ -594,7 +594,7 @@ AI::rebuild_all_roads() {
       if (!AI::build_best_road(map->move_down_right(building->get_position()), road_options)) {
         AILogDebug["util_rebuild_all_roads"] << name << " failed to connect military building at pos " << building->get_position() << " to road network!";
       }
-      std::this_thread::sleep_for(std::chrono::milliseconds(50));
+      sleep_speed_adjusted(50);
       //ai_mark_pos.clear();
     }
   }
@@ -930,7 +930,7 @@ AI::build_best_road(MapPos start_pos, RoadOptions road_options, Road *built_road
     for (unsigned int i = 0; i < AI::spiral_dist(15); i++) {
       MapPos pos = map->pos_add_extended_spirally(halfway_pos, i);
       //ai_mark_pos.insert(std::make_pair(pos, "dk_brown"));
-      //std::this_thread::sleep_for(std::chrono::milliseconds(5));
+      //sleep_speed_adjusted(5));
       // skip if no flag, or pos not owned by this player
       if (!map->has_flag(pos) || map->get_owner(pos) != player_index) {
         continue;
@@ -962,7 +962,7 @@ AI::build_best_road(MapPos start_pos, RoadOptions road_options, Road *built_road
       nearby_flags.push_back(pos);
       //ai_mark_pos.erase(pos);
       //ai_mark_pos.insert(std::make_pair(pos, "orange"));
-      //std::this_thread::sleep_for(std::chrono::milliseconds(10));
+      //sleep_speed_adjusted(10);
 
       // quit search after spiral_dist(6) tiles if at least one flag found
       //  this allows reaching a faraway flag, but avoids finding too many flags
@@ -985,7 +985,7 @@ AI::build_best_road(MapPos start_pos, RoadOptions road_options, Road *built_road
     for (unsigned int i = 0; i < AI::spiral_dist(6); i++) {
       MapPos pos = map->pos_add_extended_spirally(start_pos, i);
       //ai_mark_pos.insert(std::make_pair(pos, "dk_cyan"));
-      //std::this_thread::sleep_for(std::chrono::milliseconds(5));
+      //sleep_speed_adjusted(5));
       // skip if no flag, or pos not owned by this player
       if (!map->has_flag(pos) || map->get_owner(pos) != player_index) {
         continue;
@@ -1016,7 +1016,7 @@ AI::build_best_road(MapPos start_pos, RoadOptions road_options, Road *built_road
       }
       //ai_mark_pos.erase(pos);
       //ai_mark_pos.insert(std::make_pair(pos, "cyan"));
-      //std::this_thread::sleep_for(std::chrono::milliseconds(10));
+      //sleep_speed_adjusted(10);
       nearby_flags.push_back(pos);
     } // foreach pos around start_pos
     ai_mark_pos.clear();
@@ -1446,7 +1446,7 @@ AI::build_best_road(MapPos start_pos, RoadOptions road_options, Road *built_road
         else {
           AILogDebug["util_build_best_road"] << " " << calling_function << " failed to build flag at end_pos " << end_pos << ", FIND OUT WHY!  not trying to build this road.  marking pos in blue";
           ai_mark_pos.insert(ColorDot(end_pos, "blue"));
-          //std::this_thread::sleep_for(std::chrono::milliseconds(5000));
+          //sleep_speed_adjusted(5000);
           continue;
         }
       }
@@ -1473,7 +1473,7 @@ AI::build_best_road(MapPos start_pos, RoadOptions road_options, Road *built_road
       else {
         AILogWarn["util_build_best_road"] << " " << calling_function << " ERROR - failed to build road from " << start_pos << " to " << end_pos << ", FIND OUT WHY!  marking pos in blue, trying next best solution...";
         ai_mark_pos.insert(ColorDot(end_pos, "blue"));
-        //std::this_thread::sleep_for(std::chrono::milliseconds(5000));
+        //sleep_speed_adjusted(5000);
       }
 
       // if a new flag was built but the road creation failed, destroy the newly built flag
@@ -1506,7 +1506,7 @@ AI::build_best_road(MapPos start_pos, RoadOptions road_options, Road *built_road
   }
   AILogDebug["util_build_best_road"] << " " << calling_function << " done with build_best_road, roads built: " << roads_built << ", out of target_count: " << target_count;
   // sleep a bit to be more human like
-  std::this_thread::sleep_for(std::chrono::milliseconds(2000));
+  sleep_speed_adjusted(2000);
   return true;
 }
 
@@ -1805,7 +1805,7 @@ AI::find_halfway_pos_between_buildings(Building::Type first, Building::Type seco
     if (stock_buildings.at(inventory_pos).occupied_count[type[x]] >= 1) {
       AILogDebug["util_find_halfway_pos_between_buildings"] << name << " searching for an OCCUPIED building of type" << x << " " << NameBuilding[type[x]];
       for (MapPos center_pos : stock_buildings.at(inventory_pos).occupied_military_pos) {
-        for (unsigned int i = 0; i < spiral_dist(9); i++) {
+        for (unsigned int i = 0; i < spiral_dist(0); i++) {
           MapPos pos = map->pos_add_extended_spirally(center_pos, i);
           if (!map->has_building(pos))
             continue;
@@ -1831,7 +1831,7 @@ AI::find_halfway_pos_between_buildings(Building::Type first, Building::Type seco
     else if (realm_completed_building_count[type[x]] >= 1) {
       AILogDebug["util_find_halfway_pos_between_buildings"] << name << " searching for a COMPLETED building of type" << x << " " << NameBuilding[type[x]];
       for (MapPos center_pos : stock_buildings.at(inventory_pos).occupied_military_pos) {
-        for (unsigned int i = 0; i < spiral_dist(9); i++) {
+        for (unsigned int i = 0; i < spiral_dist(0); i++) {
           MapPos pos = map->pos_add_extended_spirally(center_pos, i);
           if (!map->has_building(pos))
             continue;
@@ -1858,7 +1858,7 @@ AI::find_halfway_pos_between_buildings(Building::Type first, Building::Type seco
       AILogDebug["util_find_halfway_pos_between_buildings"] << name << " searching for ANY building of type" << x << " " << NameBuilding[type[x]];
       for (MapPos center_pos : stock_buildings.at(inventory_pos).occupied_military_pos) {
         AILogDebug["util_find_halfway_pos_between_buildings"] << name << " searching around center_pos " << center_pos;
-        for (unsigned int i = 0; i < spiral_dist(9); i++) {
+        for (unsigned int i = 0; i < spiral_dist(0); i++) {
           MapPos pos = map->pos_add_extended_spirally(center_pos, i);
           if (!map->has_building(pos))
             continue;
@@ -1911,7 +1911,7 @@ AI::trace_existing_road(PMap map, MapPos start_pos, Direction dir) {
   if (!map->has_path_IMPROVED(start_pos, dir)) {
     AILogWarn["util_trace_existing_road"] << name << " no path found at " << start_pos << " in direction " << NameDirection[dir] << "!  FIND OUT WHY";
     ai_mark_pos.insert(ColorDot(start_pos, "white"));
-    //std::this_thread::sleep_for(std::chrono::milliseconds(100000));
+    //sleep_speed_adjusted(100000);
     return road;
   }
   road.start(start_pos);
@@ -1921,7 +1921,7 @@ AI::trace_existing_road(PMap map, MapPos start_pos, Direction dir) {
     road.extend(dir);
     //ai_mark_road->extend(dir);
     pos = map->move(pos, dir);
-    //std::this_thread::sleep_for(std::chrono::milliseconds(0));
+    //sleep_speed_adjusted(0);
     if (map->has_flag(pos) && pos != start_pos) {
       //AILogDebug["util_trace_existing_road"] << name << " flag found at pos " << pos << ", returning road (which has length " << road.get_length() << ")";
       //ai_mark_road->invalidate();
@@ -2009,7 +2009,7 @@ AI::get_dir_from_corner(MapPos center_pos, MapPos corner_pos) {
   //ai_mark_pos.insert(ColorDot(center_pos, "green"));
   //ai_mark_pos.insert(ColorDot(corner_pos, "red"));
   //ai_status.assign("LOOK AT green RED POS ERROR");
-  //std::this_thread::sleep_for(std::chrono::milliseconds(300000));
+  //sleep_speed_adjusted(300000);
   //throw ExceptionFreeserf("util_get_dir_from_corner failed to find the Direction from center_pos to corner_pos!  This should never happen");
   return DirectionNone;
 }
@@ -2170,7 +2170,7 @@ AI::count_objects_near_pos(MapPos center_pos, unsigned int distance, Map::Object
       ++count;
       //AILogDebug["util_count_objects_near_pos"] << name << " AI: found matching object at pos " << pos << ", type " << map->get_obj(pos);
     }
-    //std::this_thread::sleep_for(std::chrono::milliseconds(0));
+    //sleep_speed_adjusted(0);
   }
   //AILogDebug["util_count_objects_near_pos"] << name << " AI: found count " << count << " matching objects of types " << NameObject[res_start_index] << " - " << NameObject[res_end_index];
   return count;
@@ -2382,7 +2382,7 @@ AI::build_near_pos(MapPos center_pos, unsigned int distance, Building::Type buil
         //AILogDebug["util_build_near_pos"] << name << " LOOK AT BUILDING AT POS " << pos << ", MARKED IN CYAN";
         //ai_mark_pos.erase(pos);
         //ai_mark_pos.insert(std::make_pair(pos, "cyan"));
-        //std::this_thread::sleep_for(std::chrono::milliseconds(5000));
+        //sleep_speed_adjusted(5000);
         AILogVerbose["util_build_near_pos"] << name << " thread #" << std::this_thread::get_id() << " AI is locking mutex before calling game->demolish_flag (build_near_pos failed to connect)";
         game->get_mutex()->lock();
         AILogVerbose["util_build_near_pos"] << name << " thread #" << std::this_thread::get_id() << " AI has locked mutex before calling game->demolish_flag (build_near_pos failed to connect)";
@@ -2422,7 +2422,7 @@ AI::build_near_pos(MapPos center_pos, unsigned int distance, Building::Type buil
       AILogDebug["util_build_near_pos"] << name << " failed to build building of type " << NameBuilding[building_type] << " despite can_build being true!  WAITING 10sec - look at the pos in coral!";
       ai_mark_pos.erase(pos);
       ai_mark_pos.insert(std::make_pair(pos, "coral"));
-      //std::this_thread::sleep_for(std::chrono::milliseconds(10000));
+      //sleep_speed_adjusted(10000);
       continue;
     }
 
@@ -2432,7 +2432,7 @@ AI::build_near_pos(MapPos center_pos, unsigned int distance, Building::Type buil
     AILogDebug["util_build_near_pos"] << name << " successful util_build_near_pos, built building of type " << NameBuilding[building_type] << " at pos " << pos << ", call took " << duration;
 
     // sleep a bit to be more human-like
-    std::this_thread::sleep_for(std::chrono::milliseconds(2000));
+    sleep_speed_adjusted(2000);
     return pos;
   }
 
@@ -2470,7 +2470,7 @@ AI::count_stones_near_pos(MapPos center_pos, unsigned int distance) {
       }
       total += value;
     }
-    //std::this_thread::sleep_for(std::chrono::milliseconds(0));
+    //sleep_speed_adjusted(0);
   }
   //AILogDebug["util_count_stones_near_pos"] << name << " AI: found total value " << total << " of objects types " << NameObject[res_start_index] << " - " << NameObject[res_end_index];
   return total;
@@ -2607,13 +2607,13 @@ AI::score_area(MapPos center_pos, unsigned int distance) {
   unsigned int total_value = 0;
   //ai_mark_pos.erase(center_pos);
   //ai_mark_pos.insert(ColorDot(center_pos, "white"));
-  //std::this_thread::sleep_for(std::chrono::milliseconds(100));
+  //sleep_speed_adjusted(100);
   for (unsigned int i = 0; i < distance; i++) {
     MapPos pos = map->pos_add_extended_spirally(center_pos, i);
     Map::Object obj = map->get_obj(pos);
     ////ai_mark_pos.erase(pos);
     //ai_mark_pos.insert(ColorDot(pos, "gray"));
-    //std::this_thread::sleep_for(std::chrono::milliseconds(100));
+    //sleep_speed_adjusted(100);
       
     //AILogDebug["util_score_area"] << name << " at pos " << pos << " with object type " << NameObject[obj];
     size_t pos_value = 0;  // easier to make this size_t than static_cast all the .size values
@@ -2719,7 +2719,7 @@ AI::score_area(MapPos center_pos, unsigned int distance) {
           //AILogDebug["util_score_area"] << name << " adding castle_buffer value for unclaimed territory near our castle";
           //ai_mark_pos.erase(pos);
           //ai_mark_pos.insert(ColorDot(pos, "black"));
-          //std::this_thread::sleep_for(std::chrono::milliseconds(100));
+          //sleep_speed_adjusted(100);
         }
       }
     }

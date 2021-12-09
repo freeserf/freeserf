@@ -2902,10 +2902,12 @@ Viewport::draw_ai_grid_overlay() {
   }
 
 
+  // draw player number/color text box
+  frame->draw_string(1, 1, "Player" + std::to_string(current_player_index), interface->get_player_color(current_player_index));
+
   // draw AI status text box
   std::string status = ai->get_ai_status();
-  //frame->draw_string(50, 50, "FOO\n", game->get_mark_color("white"));
-  frame->draw_string(1, 1, "Player" + std::to_string(current_player_index) + " " + status, ai->get_mark_color("white"));
+  frame->draw_string(65, 1, status, ai->get_mark_color("white"));
 
   // draw AI expansion goals text box
   int row = 1;   // text rows are 10 pixels apart, start at row 1 (2nd row, after ai_status row)
@@ -2915,9 +2917,12 @@ Viewport::draw_ai_grid_overlay() {
     frame->draw_string(1, row * 10, "   " + goal, ai->get_mark_color("white"));
   }
 
+  // draw Inventory pos
+  frame->draw_string(450, 1, "Inv " + std::to_string(ai->get_ai_inventory_pos()), ai->get_mark_color("white"));
+
   // draw cursor map click position
   if (ai_overlay_clicked_pos != bad_map_pos) {
-    frame->draw_string(500, 1, "clicked on " + std::to_string(ai_overlay_clicked_pos), colors.at("white"));
+    frame->draw_string(600, 1, "clicked on " + std::to_string(ai_overlay_clicked_pos), colors.at("white"));
   }
 
   // draw current game speed
@@ -3105,13 +3110,13 @@ Viewport::internal_draw() {
   if (layers & LayerPaths) {
     draw_paths_and_borders();
   }
+  draw_game_objects(layers);
   if (layers & LayerAI) {
     draw_ai_grid_overlay();
   }
   if (layers & LayerHiddenResources) {
     draw_hidden_res_overlay();
   }
-  draw_game_objects(layers);
   if (layers & LayerCursor) {
     draw_map_cursor();
   }

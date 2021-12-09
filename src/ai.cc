@@ -101,11 +101,11 @@ AI::start() {
         logged_paused = true;
       }
       ai_status.assign("AI_PAUSED");
-      std::this_thread::sleep_for(std::chrono::milliseconds(100));
+      sleep_speed_adjusted(100);
     }
     else if (game->is_ai_locked()) {
       AILogDebug["start"] << name << " AI is still locked, sleeping until game->unlock_ai called (when game init_box is closed)";
-      std::this_thread::sleep_for(std::chrono::milliseconds(100));
+      sleep_speed_adjusted(100);
     }
     else {
       next_loop();
@@ -122,7 +122,7 @@ AI::next_loop(){
 
   ai_status.assign("SLEEPING_AT_START");
   AILogDebug["next_loop"] << name << " sleeping 6sec at start of new loop";
-  std::this_thread::sleep_for(std::chrono::milliseconds(6000));
+  sleep_speed_adjusted(6000);
 
   AILogInfo["next_loop"] << name << " starting AI loop #" << loop_count;
   // time entire loop
@@ -191,63 +191,63 @@ AI::next_loop(){
 
     do_create_star_roads_for_new_warehouses();
 
-    do_build_sawmill_lumberjacks(); std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+    do_build_sawmill_lumberjacks(); sleep_speed_adjusted(1000);
 
     if(do_can_build_knight_huts())
-      expand_borders(); std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+      expand_borders(); sleep_speed_adjusted(1000);
 
     // PLACE MINES EARLY - but do not connect them to roads so they do not actually get built until later
     //   this is to secure good placement when resources are found, before the signs fade
-    do_place_coal_mines(); std::this_thread::sleep_for(std::chrono::milliseconds(1000));
-    do_place_iron_mines(); std::this_thread::sleep_for(std::chrono::milliseconds(1000));
-    do_place_gold_mines(); std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+    do_place_coal_mines(); sleep_speed_adjusted(1000);
+    do_place_iron_mines(); sleep_speed_adjusted(1000);
+    do_place_gold_mines(); sleep_speed_adjusted(1000);
 
     // if this is the Castle, don't place any other buildings until these have their materials
     if (inventory_pos == castle_flag_pos && do_wait_until_sawmill_lumberjacks_built() == false)
         break;
 
-    do_build_stonecutter(); std::this_thread::sleep_for(std::chrono::milliseconds(1000));
-    do_build_rangers(); std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+    do_build_stonecutter(); sleep_speed_adjusted(1000);
+    do_build_rangers(); sleep_speed_adjusted(1000);
 
     if(do_can_build_other())
-      do_build_toolmaker_steelsmelter(); std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+      {do_build_toolmaker_steelsmelter(); sleep_speed_adjusted(1000);}
 
     if(do_can_build_other())
-      do_build_food_buildings_and_3rd_lumberjack(); std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+      {do_build_food_buildings_and_3rd_lumberjack(); sleep_speed_adjusted(1000);}
 
     if(do_can_build_other())
-      do_connect_coal_mines(); std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+      {do_connect_coal_mines(); sleep_speed_adjusted(1000);}
 
     if(do_can_build_other())
-      do_connect_iron_mines(); std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+      {do_connect_iron_mines(); sleep_speed_adjusted(1000);}
 
     if(do_can_build_other())
-      do_build_steelsmelter(); std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+      {do_build_steelsmelter(); sleep_speed_adjusted(1000);}
 
     if(do_can_build_other())
-      do_build_blacksmith(); std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+      {do_build_blacksmith(); sleep_speed_adjusted(1000);}
 
     if(do_can_build_other())
-      do_build_gold_smelter_and_connect_gold_mines(); std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+      {do_build_gold_smelter_and_connect_gold_mines(); sleep_speed_adjusted(1000);}
     
 
     do_demolish_excess_lumberjacks();
 	  do_demolish_excess_food_buildings();
-    do_send_geologists(); std::this_thread::sleep_for(std::chrono::milliseconds(1000));
-    do_spiderweb_roads(); std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+    do_send_geologists(); sleep_speed_adjusted(1000);
+    do_spiderweb_roads(); sleep_speed_adjusted(1000);
 
     AILogDebug["next_loop"] << name << " Done with economy loop for Inventory at pos " << inventory_pos;
   }
 
   // create parallel infrastructure!
-  do_build_warehouse(); std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+  do_build_warehouse(); sleep_speed_adjusted(1000);
 
   AILogInfo["next_loop"] << name << " Done AI Loop #" << loop_count;
   ai_status.assign("END OF LOOP");
   AILogDebug["next_loop"] << name << " loop complete, sleeping 2sec";
   loop_clock_duration = (std::clock() - loop_clock_start) / static_cast<double>(CLOCKS_PER_SEC);
   AILogDebug["next_loop"] << name << " done next_loop, call took " << loop_clock_duration;
-  std::this_thread::sleep_for(std::chrono::milliseconds(2000));
+  sleep_speed_adjusted(2000);
 }
 
 
@@ -274,7 +274,7 @@ AI::do_place_castle() {
     // changed this to mutex.lock() instead, but keeping this because... I dunno it seems nicer when they don't all start at exactly the same time
     //   maybe start doing random wait instead?  meh
     AILogDebug["do_place_castle"] << name << " sleeping " << player_index << "sec so each AI player thread gets different seed for random map pos";
-    std::this_thread::sleep_for(std::chrono::milliseconds(1000 * player_index));
+    sleep_speed_adjusted(1000 * player_index);
     // I think this needs to get the existing game Random rnd, NOT creating a new one
     Random rnd;
     int tries = 250; // I saw 200 tries reached once, not sure if it was a particular map or what
@@ -417,7 +417,7 @@ AI::do_debug_building_triggers() {
     // don't resume AI until most serfs have made it back into the castle
     AILogDebug["do_debug_building_triggers"] << name << " done rebuild_all_roads, waiting for lost serfs to clear out";
     for (int x = 0; x < 50; x++) {
-      std::this_thread::sleep_for(std::chrono::milliseconds(15000));
+      sleep_speed_adjusted(15000);
       unsigned int lost_serfs = 0;
       for (Serf *serf : game->get_player_serfs(player)) {
         if (serf->get_state() == Serf::StateFreeWalking) {
@@ -544,7 +544,7 @@ AI::do_connect_disconnected_flags() {
         //game->demolish_building(flag->get_position(), player);
         game->demolish_building(map->move_up_left(flag->get_position()), player);
         // sleep to appear more human
-        std::this_thread::sleep_for(std::chrono::milliseconds(3000));
+        sleep_speed_adjusted(3000);
       }
       AILogDebug["do_connect_disconnected_flags"] << name << " failed to connect disconnected flag to road network!  removing it";
       game->demolish_flag(flag->get_position(), player);
@@ -618,7 +618,7 @@ AI::do_spiderweb_roads() {
     MapPos ring_pos = map->pos_add_extended_spirally(inventory_pos, i);
     //ai_mark_pos.erase(ring_pos);
     //ai_mark_pos.insert(ColorDot(ring_pos, "dk_coral"));
-    //std::this_thread::sleep_for(std::chrono::milliseconds(150));
+    //sleep_speed_adjusted(150);
     // only every X positions or on last spot in ring
     if (i % 4 != 0 || i == AI::spiral_dist(15) - 1 )
       continue;
@@ -632,14 +632,14 @@ AI::do_spiderweb_roads() {
       MapPos area_pos = map->pos_add_extended_spirally(ring_pos, x);
       //ai_mark_pos.erase(area_pos);
       //ai_mark_pos.insert(ColorDot(area_pos, "lavender"));
-      //std::this_thread::sleep_for(std::chrono::milliseconds(11));
+      //sleep_speed_adjusted(11));
       if (!map->has_flag(area_pos) || map->get_owner(area_pos) != player_index)
         continue;
       if (!game->get_flag_at_pos(area_pos)->is_connected())
         continue;
       //ai_mark_pos.erase(area_pos);
       //ai_mark_pos.insert(ColorDot(area_pos, "red"));
-      //std::this_thread::sleep_for(std::chrono::milliseconds(11));
+      //sleep_speed_adjusted(11));
       flag_list.push_back(area_pos);
     }
     // shift all the flag_list vectors back, dropping the oldest one
@@ -717,7 +717,7 @@ AI::do_spiderweb_roads() {
         //ai_mark_pos.clear();
         //ai_mark_pos.insert(ColorDot(area_flag_pos, "green"));
         //ai_mark_pos.insert(ColorDot(other_area_flag_pos, "red"));
-        //std::this_thread::sleep_for(std::chrono::milliseconds(2000));
+        //sleep_speed_adjusted(2000);
 
         //
         // try to build the spiderweb road
@@ -749,7 +749,7 @@ AI::do_spiderweb_roads() {
           AILogDebug["do_spiderweb_roads"] << inventory_pos << " successfully built spider-web road between area_flag_pos " << area_flag_pos << " to other_area_flag_pos " << other_area_flag_pos;
           spider_web_roads_built++;
           ai_mark_spiderweb_roads->push_back(built_road);
-          std::this_thread::sleep_for(std::chrono::milliseconds(3000));
+          sleep_speed_adjusted(3000);
           // only create one road per run
           break;  // this is wrong and doesn't work!!  needs to 'return', or better needs to skip to end for proper waiitng and run timing
         }
@@ -846,7 +846,7 @@ AI::do_fix_stuck_serfs() {
         ai_mark_pos.insert(ColorDot(serf->get_pos(), "lt_purple"));
         // I THINK I FIXED THIS ISSUE FOR GOOD - see https://github.com/freeserf/freeserf/issues/492
         //  changing this to a crash exception in case I am wrong about the fix being 100% effective
-        std::this_thread::sleep_for(std::chrono::milliseconds(120000));
+        sleep_speed_adjusted(120000);
         AILogDebug["do_fix_stuck_serfs"] << name << " SerfWaitTimer detected WAIT_IDLE_ON_PATH STUCK SERF at pos " << serf->get_pos() << " of type " << NameSerf[serf->get_type()] << ", I THOUGHT I FIXED THIS! crashing.  check to see";
         // still seeing this happen for Transporter serfs... but rare... keep an eye on it
         AILogDebug["do_fix_stuck_serfs"] << name << " pausing game for debugging";
@@ -879,11 +879,11 @@ AI::do_fix_stuck_serfs() {
         if (serf_job != Serf::TypeTransporter && serf_job != Serf::TypeGeologist && serf_job != Serf::TypeDigger && serf_job != Serf::TypeBuilder
           && serf_job != Serf::TypeKnight0 && serf_job != Serf::TypeKnight1 && serf_job != Serf::TypeKnight2 && serf_job != Serf::TypeKnight3 && serf_job != Serf::TypeKnight4) {
           AILogDebug["do_fix_stuck_serfs"] << name << " WARNING - a building-occupying professional serf was booted, see if this causes building with flag pos " << serf_dest_flag_pos << " to stay forever unoccupied!";
-          //std::this_thread::sleep_for(std::chrono::milliseconds(6000));
+          //sleep_speed_adjusted(6000);
         }
         if (serf_job == Serf::TypeKnight0 || serf_job == Serf::TypeKnight1 || serf_job == Serf::TypeKnight2 || serf_job == Serf::TypeKnight3 || serf_job == Serf::TypeKnight4) {
           AILogDebug["do_fix_stuck_serfs"] << name << " WARNING - a knight was booted, see if this causes military building with flag pos " << serf_dest_flag_pos << " to have a forever empty slot!";
-          //::this_thread::sleep_for(std::chrono::milliseconds(6000));
+          //::this_thread::sleep_for(std::chrono::milliseconds(6000);
         }
         */
        /* DONT ACTUALLY SET THEM TO LOST - just observere for now, as I think I fixed the bug
@@ -921,7 +921,7 @@ AI::do_fix_stuck_serfs() {
         serf_wait_idle_on_road_timers.insert(std::make_pair(serf->get_index(), game->get_tick() + 10000));
         AILogDebug["do_fix_stuck_serfs"] << name << " SerfWaitTimer WAIT_IDLE_ON_PATH DETECTED marking serf on AI overlay";
         ai_mark_serf.push_back(serf->get_index());
-        //std::this_thread::sleep_for(std::chrono::milliseconds(12000));
+        //sleep_speed_adjusted(12000);
       }
       else {
         int trigger_ticks = static_cast<int>(serf_wait_idle_on_road_timers.at(serf->get_index()) - game->get_tick());
@@ -979,7 +979,7 @@ AI::do_fix_missing_transporters() {
         AILogDebug["do_fix_missing_transporters"] << name << " timer detected BUG FOUND - NO TRANSPORTER on road at pos " << game->get_flag(flag_index)->get_position() << " in dir " << NameDirection[dir] << ", marking flag in cyan and dir in dk_cyan";
         ai_mark_pos.insert(ColorDot(flag->get_position(), "cyan"));
         ai_mark_pos.insert(ColorDot(map->move(flag->get_position(), dir), "dk_cyan"));
-        std::this_thread::sleep_for(std::chrono::milliseconds(5000));
+        sleep_speed_adjusted(5000);
         //game->pause();
         AILogDebug["do_fix_missing_transporters"] << name << " timer trying to force call a transporter";
         AILogVerbose["do_fix_missing_transporters"] << name << " thread #" << std::this_thread::get_id() << " AI is locking mutex before calling flag->call_transporter, to work around no-transporter issue";
@@ -1107,7 +1107,7 @@ AI::do_fix_missing_transporters() {
           */
           AILogDebug["do_fix_missing_transporters"] << name << " WARNING - found rare type of missing transporter bug!  Flag #" << flag->get_index() << " at pos " << flag->get_position() << " seems to be missing a transporter on road in dir " << NameDirection[dir] << " despite it thinking there is one there!";
           ai_mark_pos.insert(std::make_pair(flag->get_position(), "lt_blue"));
-          std::this_thread::sleep_for(std::chrono::milliseconds(5000));
+          sleep_speed_adjusted(5000);
           ai_mark_pos.clear();
           AILogDebug["do_fix_missing_transporters"] << name << " detected BUG FOUND - RARER NO TRANSPORTER on road at pos " << game->get_flag(flag_index)->get_position() << ", marking in white";
           ai_mark_pos.insert(ColorDot(game->get_flag(flag_index)->get_position() , "white"));
@@ -1127,7 +1127,7 @@ AI::do_fix_missing_transporters() {
           if (!was_called) {
             AILogDebug["do_fix_missing_transporters"] << name << " WARNING - flag->call_transporter to " << flag->get_position() << ", dir " << NameDirection[dir] << " - failed while trying to work around RARER no-transporter issue!  I guess let it try again next time";
           }
-          std::this_thread::sleep_for(std::chrono::milliseconds(5000));
+          sleep_speed_adjusted(5000);
           */
           //game->pause();
         }
@@ -1152,7 +1152,7 @@ AI::do_fix_missing_transporters() {
           // this happens when flags/roads/buildings were just created, not an issue as far as I have ever seen
           //ai_mark_pos.insert(ColorDot(flag->get_position(), "yellow"));
           //ai_mark_pos.insert(ColorDot(map->move(flag->get_position(), dir), "dk_yellow"));
-          //std::this_thread::sleep_for(std::chrono::milliseconds(3000));
+          //sleep_speed_adjusted(3000);
         }
         // maybe check to see if there is a Walking Transporter serf whose dest is this path?
         // see if a timer already set for this flag & dir
@@ -1164,7 +1164,7 @@ AI::do_fix_missing_transporters() {
           //  Maybe make more advanced and check to see if there is an outgoing transporter serf with this destination flag/dir??
           // jan05 2021 - setting this 25x now that I am looking at it closer.  It should be either extremely long timer or
           //    based on the distance from the inventory (warehouse/stock) that is dispatching the serf
-          no_transporter_timers.insert(std::make_pair(std::make_pair(flag_index, dir), game->get_tick() + 50000));
+          no_transporter_timers.insert(std::make_pair(std::make_pair(flag_index, dir), game->get_tick() + 50000);
           AILogDebug["do_fix_missing_transporters"] << name << " there are now " << no_transporter_timers.count(std::make_pair(flag_index, dir)) << " no_transporter_timers set for this flag with pos " << flag->get_position() << ", index " << flag_index << ", dir " << dir << " / " << NameDirection[dir] << ", value is: " << no_transporter_timers.at(std::make_pair(flag_index, dir));
 
           // try to find a serf that is on way to this Flag-dir
@@ -1502,6 +1502,7 @@ AI::do_send_geologists() {
             AILogDebug["do_send_geologists"] << inventory_pos << " sent an geologist to pos " << pos << ", moving on to next corner";
             idle_geologists--;
             if (created_new){total_geologists++;}
+            /* back to only allowing one per run since improving sleep speeds to be gamespeed adjusted
             // only allow up to two geos sent per run
             sent_this_run++;
             if (sent_this_run > 1){
@@ -1509,14 +1510,15 @@ AI::do_send_geologists() {
               return;
             }
             break;
-            //AILogDebug["do_send_geologists"] << inventory_pos << " sent a geologist to pos " << pos << ", not sending any more geologists until next call of this function";
+            */
             // because of incredibly frustrating "too many geologists" / idle_geologists issue, only send one geologist per call of this function.
             //   and even THIS will probably not work right for warehouse/stocks
-            //return;
+            AILogDebug["do_send_geologists"] << inventory_pos << " sent a geologist to pos " << pos << ", not sending any more geologists until next call of this function";
+            return;
           }
           else {
             AILogDebug["do_send_geologists"] << inventory_pos << " failed to send geologist to pos " << pos << ".  This happens sometimes but appears benign.  Sleeping 1sec";
-            std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+            sleep_speed_adjusted(1000);
             // I stil cannot tell what is causing this to happen so often, maybe sending geologists is rate-limited per flag?
             //   my debug logs are showing that it is failing because the flag search failed...but why??
             ///    "inside Game::send_serf_to_flag, send_serf_to_flag_search returned false"
@@ -1623,7 +1625,7 @@ AI::do_demolish_unproductive_3rd_lumberjacks() {
         game->get_mutex()->unlock();
         AILogVerbose["do_demolish_unproductive_3rd_lumberjacks"] << name << " thread #" << std::this_thread::get_id() << " AI has unlocked mutex after calling game->demolish_building";
         // sleep to appear more human
-        std::this_thread::sleep_for(std::chrono::milliseconds(3000));
+        sleep_speed_adjusted(3000);
         break;
       }
     }
@@ -1686,7 +1688,7 @@ AI::do_remove_road_stubs() {
       AILogVerbose["do_remove_road_stubs"] << name << " thread #" << std::this_thread::get_id() << " AI has unlocked mutex after calling game->demolish_road() (for do_remove_road_stubs) for ranger";
       roads_removed++;
       // sleep a bit to be more human like
-      std::this_thread::sleep_for(std::chrono::milliseconds(3000));
+      sleep_speed_adjusted(3000);
     }
   }
   //
@@ -1745,7 +1747,7 @@ AI::do_remove_road_stubs() {
       AILogVerbose["do_remove_road_stubs"] << name << " thread #" << std::this_thread::get_id() << " AI has unlocked mutex after calling game->demolish_road() and flag (for do_remove_road_stubs) for geologist flag";
       roads_removed++;
       // sleep a bit to be more human like
-      std::this_thread::sleep_for(std::chrono::milliseconds(3000));
+      sleep_speed_adjusted(3000);
     }
   }
   //
@@ -1783,7 +1785,7 @@ AI::do_remove_road_stubs() {
       AILogVerbose["do_remove_road_stubs"] << name << " thread #" << std::this_thread::get_id() << " AI has unlocked mutex after calling game->demolish_road() and flag (for do_remove_road_stubs) for non-mountain flag";
       roads_removed++;
       // sleep a bit to be more human like
-      std::this_thread::sleep_for(std::chrono::milliseconds(3000));
+      sleep_speed_adjusted(3000);
     }
   }
   //
@@ -1875,7 +1877,7 @@ AI::do_remove_road_stubs() {
         roads_removed++;
 
         // sleep a bit to be more human like
-        std::this_thread::sleep_for(std::chrono::milliseconds(3000));
+        sleep_speed_adjusted(3000);
       }
     }
   } // if only do knight stub removal every x loops
@@ -1916,7 +1918,7 @@ AI::do_demolish_unproductive_stonecutters() {
       // mark as bad pos, because there should be no reason it could ever become valid again (stone piles cannot regrow)
       bad_building_pos.insert(std::make_pair(pos, Building::TypeStonecutter));
       // sleep to appear more human
-      std::this_thread::sleep_for(std::chrono::milliseconds(3000));
+      sleep_speed_adjusted(3000);
     }
   }
   AILogDebug["do_demolish_unproductive_stonecutters"] << name << " done do_demolish_unproductive_stonecutters";
@@ -1981,7 +1983,7 @@ AI::do_demolish_unproductive_mines() {
       // mark as bad pos, because rebuilding same mine type seems pointless if it is actually out of resources
       bad_building_pos.insert(std::make_pair(building_pos, building_type));
       // sleep to appear more human
-      std::this_thread::sleep_for(std::chrono::milliseconds(3000));
+      sleep_speed_adjusted(3000);
     }
   }
   AILogDebug["do_demolish_unproductive_mines"] << name << " done do_demolish_unproductive_mines";
@@ -2027,7 +2029,7 @@ AI::do_demolish_excess_lumberjacks() {
           // do NOT mark as bad pos
           //bad_building_pos.AI::do_demolish_excess_lumberjacks() {
           // sleep to appear more human
-          std::this_thread::sleep_for(std::chrono::milliseconds(3000));
+          sleep_speed_adjusted(3000);
         }
       }
     }
@@ -2109,7 +2111,7 @@ AI::do_demolish_excess_food_buildings() {
         game->get_mutex()->unlock();
         AILogVerbose["do_demolish_excess_food_buildings"] << inventory_pos << " thread #" << std::this_thread::get_id() << " AI has unlocked mutex after calling game->get_player_buildings(player)";
         // sleep to appear more human
-        std::this_thread::sleep_for(std::chrono::milliseconds(3000));
+        sleep_speed_adjusted(3000);
       }
     }
   }
@@ -3278,7 +3280,7 @@ AI::do_connect_coal_mines() {
         game->get_mutex()->unlock();
         AILogVerbose["do_connect_coal_mines"] << inventory_pos << " thread #" << std::this_thread::get_id() << " AI has unlocked mutex after calling demolish flag&building (failed to connect coal mine)";
         // sleep to appear more human
-        std::this_thread::sleep_for(std::chrono::milliseconds(3000));
+        sleep_speed_adjusted(3000);
       }
       else {
         AILogDebug["do_connect_coal_mines"] << inventory_pos << " successfully connected unfinished coal mine to road network";
@@ -3336,7 +3338,7 @@ AI::do_connect_iron_mines() {
         game->get_mutex()->unlock();
         AILogVerbose["do_connect_iron_mines"] << inventory_pos << " thread #" << std::this_thread::get_id() << " AI has unlocked mutex after calling demolish flag&building (failed to connect iron mine)";
         // sleep to appear more human
-        std::this_thread::sleep_for(std::chrono::milliseconds(3000));
+        sleep_speed_adjusted(3000);
       }
       else {
         AILogDebug["do_connect_iron_mines"] << inventory_pos << " successfully connected unfinished iron mine to road network";
@@ -3531,7 +3533,7 @@ AI::do_build_gold_smelter_and_connect_gold_mines() {
         game->get_mutex()->unlock();
         AILogVerbose["do_build_gold_smelter_and_connect_gold_mines"] << inventory_pos << " thread #" << std::this_thread::get_id() << " AI has unlocked mutex after calling demolish flag&building (failed to connect gold mine)";
         // sleep to appear more human
-        std::this_thread::sleep_for(std::chrono::milliseconds(3000));
+        sleep_speed_adjusted(3000);
       }
       else {
         AILogDebug["do_build_gold_smelter_and_connect_gold_mines"] << inventory_pos << " successfully connected unfinished gold mine to road network";
@@ -3646,7 +3648,7 @@ AI::do_build_better_roads_for_important_buildings() {
     AILogDebug["do_build_better_roads_for_important_buildings"] << name << " do_build_better_roads_for_important_buildings found high-priority building of type " << NameBuilding[type] << name << " at pos " << building->get_position();
     ai_mark_pos.erase(building->get_position());
     ai_mark_pos.insert(ColorDot(building->get_position(), "dk_coral"));
-    //std::this_thread::sleep_for(std::chrono::milliseconds(3000));
+    //sleep_speed_adjusted(3000);
     road_options.set(RoadOption::Improve);
     MapPos building_flag_pos = map->move_down_right(building->get_position());
     Road road_built;
@@ -4215,7 +4217,7 @@ AI::do_create_star_roads_for_new_warehouses(){
         // any time a road is removed, force retrying the entire set in case new possibilities open up
         repeat = true;
         // sleep a bit to be more human like
-        std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+        sleep_speed_adjusted(1000);
       }
 
       // retry the whole list if any roads removed, it opens new possibilities

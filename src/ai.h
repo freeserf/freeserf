@@ -203,7 +203,20 @@ class AI {
         return freq*.2;
     }
   }
+  void sleep_speed_adjusted(int msec){
+    // sleep for specified millisec if speed is normal '2'
+    // adjust sleep speed to be less as game speed increases
+    int speed = game->get_game_speed();
+    double msec_ = msec;
+    if (speed > 2){
+      msec_ = msec_ * 1/(speed - 1);
+    }
+    //AILogDebug["sleep_speed_adjusted"] << "msec: " << msec << ", game speed: " << speed << ", adjusted msec: " << int(msec_);
+    msec = msec_;
+    std::this_thread::sleep_for(std::chrono::milliseconds(msec));
+  }
   std::set<std::string> get_ai_expansion_goals() { return expand_towards; }
+  MapPos get_ai_inventory_pos() { return inventory_pos; }
   void set_serf_lost();
   
  protected:
