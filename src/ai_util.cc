@@ -335,6 +335,22 @@ AI::update_stocks_pos() {
     Building::Type type = building->get_type();
     if (type != Building::TypeCastle && type != Building::TypeStock)
       continue;
+    MapPos stock_flag_pos = map->move_down_right(building->get_position());
+    AILogDebug["util_update_stocks_pos"] << " found a building of type " << NameBuilding[type] << " stock flag: " << stock_flag_pos;
+    
+    // special - to detect when a new Stock first becomes occupied (to run various functions only once on it)
+    //   we need to note any incomplete or unoccupied stocks and include in this new_stocks list, but do NOT put in stocks_list which should only have occupied stocks
+    if (type == Building::TypeStock){
+      if (!building->is_done()){
+        AILogDebug["util_update_stocks_pos"] << " found an incomplete stock at pos " << building->get_position() << " with stock_flag_pos " << stock_flag_pos << ", adding it to incomplete stocks list";
+        new_stocks.insert(stock_flag_pos);
+      }
+      if (!building->has_serf()){
+        AILogDebug["util_update_stocks_pos"] << " found a complete but unoccupied stock at pos " << building->get_position() << " with stock_flag_pos " << stock_flag_pos << ", adding it to incomplete stocks list";
+        new_stocks.insert(stock_flag_pos);
+      }
+    }
+    
     if (type == Building::TypeStock){
       if (!building->is_done())
         continue;
@@ -343,7 +359,6 @@ AI::update_stocks_pos() {
       if (!game->get_flag(building->get_flag_index())->is_connected())
         continue;
     }
-    MapPos stock_flag_pos = map->move_down_right(building->get_position());
     if (type == Building::TypeCastle) {
       AILogDebug["util_update_stocks_pos"] << name << " the castle was found at pos " << building->get_position() << ", with its flag at pos " << stock_flag_pos;
     }else {
@@ -709,9 +724,12 @@ AI::build_best_road(MapPos start_pos, RoadOptions road_options, Road *built_road
       AILogDebug["util_build_best_road"] << " " << calling_function << " no valid target found from get_affinity, trying to find a nearest connected inventory";
       MapPos fallback_inv_pos = bad_map_pos;
       if (map->has_flag(start_pos) && map->has_building(map->move_up_left(start_pos))){
-        MapPos nearest_inv_pos = find_nearest_inventory(map, player_index, start_pos, DistType::FlagAndStraightLine, &ai_mark_pos);
+        // this should NOT use Flag dist at all because if there is no affinity, and likely no road at all,
+        //  then there is no way to complete a flag search, instead use the closest by STRAIGHT LINE DIST
+        //MapPos nearest_inv_pos = find_nearest_inventory(map, player_index, start_pos, DistType::FlagAndStraightLine, &ai_mark_pos);
+        MapPos nearest_inv_pos = find_nearest_inventory(map, player_index, start_pos, DistType::StraightLineOnly, &ai_mark_pos);
         if (nearest_inv_pos != bad_map_pos){
-          AILogDebug["util_build_best_road"] << " " << calling_function << " no valid target found, setting target to nearest_inv_pos " << nearest_inv_pos;
+          AILogDebug["util_build_best_road"] << " " << calling_function << " no valid target found, setting target to nearest_inv_pos (by straight line) " << nearest_inv_pos;
           fallback_inv_pos = nearest_inv_pos;
         }
       }
@@ -2645,7 +2663,7 @@ AI::score_area(MapPos center_pos, unsigned int distance) {
     }
     // I think scoring_warehouse is deprecated for now, could bring it back if it really helps
     if (!scoring_warehouse) {
-      
+
       // oppose_enemy - any place that enemy territory found
       //    this has the effect of tending to encircle the enemy, which is a good thing
       if (map->get_owner(pos) != player_index && map->get_owner(pos) != -1) {

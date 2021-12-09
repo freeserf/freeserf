@@ -80,7 +80,7 @@ class AI {
   Serf::SerfMap serfs_potential;
   int *serfs_total;
   bool need_tools;
-
+  std::set<MapPos> new_stocks = {};  // AI STATEFULNESS WARNING - this is used to detect when a stock transitions from completed-but-not-occupied to occupied, and will not trigger if game saved/loaded between
   // Now that multiple economies implemented I think the entire XXX_building_counts are worthless
   //   remove the entire concept and instead just search for nearby buildings
   int realm_building_count[25] = {0};
@@ -345,6 +345,7 @@ class AI {
   bool do_can_build_knight_huts();
   bool do_can_build_other();
   void do_check_resource_needs();
+  void do_create_star_roads_for_new_warehouse();
 
   //
   // ai_pathfinder.cc
@@ -411,7 +412,7 @@ static const unsigned int gold_ore_max = 40;  // don't build gold mine over this
 static const unsigned int hills_min = 9;   // don't send geologists unless substantial hills
 static const unsigned int waters_min = 24;  // don't build fisherman unless substantial waters
 static const unsigned int hammers_min = 6; // don't create geologists unless this many hammers in reserve
-static const unsigned int geologists_max = 4; // NEEDS TO BE PER WAREHOUSE! try not to create more geologists if have this many, hard to tell if they are out working
+static const unsigned int geologists_max = 2; // UPDATE this is now not a fixed value at all, it is now: 2+(geologists_max*number of Inventories (castle/stock))
 
 // deprioritize sending geologists to area where signs density is over this amount (prefer send geologists to unevaluated areas)
 static constexpr double geologist_sign_density_deprio = 0.40;

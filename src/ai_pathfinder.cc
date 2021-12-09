@@ -949,7 +949,7 @@ AI::identify_arterial_roads(PMap map){
             break;
           }
           MapPos inv_flag_pos = fnode->pos;
-          //AILogDebug["util_identify_arterial_roads"] << name << " DEBUG:::::::::   inv_flag_pos = " << inv_flag_pos << " when recording flag dirs with paths from inv";
+          //AILogDebug["util_identify_arterial_roads"] << name << " debug:::::::::   inv_flag_pos = " << inv_flag_pos << " when recording flag dirs with paths from inv";
           /* wait, this doesn't even matter
             at this point we don't actually need to track the dirs between flags
             as we can just check the dir between the last two nodes

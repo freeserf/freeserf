@@ -207,7 +207,7 @@ Game::update_inventories_cb(Flag *flag, void *d) {
     if (bld_prio > data->max_prio[inv]) {
       data->max_prio[inv] = bld_prio;
       data->flags[inv] = flag;
-      //Log::Info["game"] << "DEBUG: setting data->dists_so_far[" << inv << "] = " << data->dist_so_far;
+      //Log::Info["game"] << "debug: setting data->dists_so_far[" << inv << "] = " << data->dist_so_far;
       data->dists_from_inv[inv] = data->dist_so_far;
     }
   }
@@ -258,7 +258,7 @@ Game::update_inventories_cb(Flag *flag, void *d) {
           //Log::Info["game"] << "debug: it seems get_road_length can be zero, using +1 for dist_from_inv addition";
           data->dist_so_far += 1;
         }else{
-          //Log::Info["game"] << "DEBUG: data->prev_flag->get_road_length((Direction)" << d << ") = " << data->prev_flag->get_road_length((Direction)d) << "... which is then divided by 16 then multiplied by 3 to get " << (data->prev_flag->get_road_length((Direction)d) / 16) * 3;
+          //Log::Info["game"] << "debug: data->prev_flag->get_road_length((Direction)" << d << ") = " << data->prev_flag->get_road_length((Direction)d) << "... which is then divided by 16 then multiplied by 3 to get " << (data->prev_flag->get_road_length((Direction)d) / 16) * 3;
           data->dist_so_far += (data->prev_flag->get_road_length((Direction)d) / 16) * 3;
         }
         found = true;
@@ -1221,7 +1221,8 @@ Game::remove_road_forwards(MapPos pos, Direction dir) {
         if (d < 0) d += 6;
         if (d == reverse_direction(dir)) {
           Log::Debug["game"] << " about to call set_lost_state on serf at pos " << pos << " case2, maps says flag here but note says serf is walking in the 'wrong direction'";
-          serf->set_lost_state();
+          Log::Error["game"] << " ATTEMPTING TO WORK AROUND BUG BY NOT SETTING THIS SERF TO LOST, instead doing... nothing";
+          //serf->set_lost_state();
         }
       }
     }

@@ -133,6 +133,7 @@ AI::next_loop(){
   do_place_castle();
   do_update_clear_reset();
   update_stocks_pos();
+  AILogDebug["next_loop"] << " foo1";
   inventory_pos = castle_flag_pos;  // need to set this so various functions work on the very first AI loop, before the loop over Inventories starts
   update_building_counts();
   do_get_inventory(castle_flag_pos);
@@ -176,6 +177,8 @@ AI::next_loop(){
 
   // rename this to Inventories instead of Stocks
   update_stocks_pos();
+  AILogDebug["next_loop"] << " foo2";
+
   for (MapPos this_inventory_pos : stocks_pos) {
     inventory_pos = this_inventory_pos;
     AILogDebug["next_loop"] << name << " Starting economy loop for Inventory at pos " << inventory_pos;
@@ -192,6 +195,9 @@ AI::next_loop(){
     do_promote_serfs_to_knights();  // this is actually done per-stock in AI, not per-realm like the button does
     do_count_resources_sitting_at_flags(inventory_pos);
     do_check_resource_needs();
+
+    //do_create_star_roads_for_new_warehouse();
+    //continue;
 
     do_build_sawmill_lumberjacks(); std::this_thread::sleep_for(std::chrono::milliseconds(1000));
 
@@ -332,8 +338,8 @@ AI::do_place_castle() {
     for (Building *building : buildings) {
       if (building->get_type() == Building::TypeCastle) {
         castle_pos = building->get_position();
-        AILogDebug["do_place_castle"] << name << "'s castle was found at pos " << castle_pos;
         castle_flag_pos = map->move_down_right(castle_pos);
+        AILogDebug["do_place_castle"] << name << " found existing castle, has position " << castle_pos << ", with castle_flag_pos " << castle_flag_pos;
       }
     }
   }
@@ -367,8 +373,7 @@ AI::do_update_clear_reset() {
   realm_inv = player->get_stats_resources();
   scoring_attack = false;
   scoring_warehouse = false;  // this is deprecated right now
-  //cannot_expand_borders_this_loop = false;
-  //stop_building = false;
+  //new_stocks.clear();  DO NOT CLEAR THIS IT NEEDS TO PERSIST THROUGH LOOPS
 
   // does this belong here?  this whole update_clear thing needs re-work
   for (int i = 0; i < 26; i++) {
@@ -498,6 +503,13 @@ AI::do_promote_serfs_to_knights() {
 
 }
 
+//
+// THIS NEEDS IMPROVEMENT because of multiple economies - when connecting a disconnected
+//  flag that is attached to a building (likely that became detached from territory loss)
+//  it should try to attach to an Inventory that has no building of this type rather than
+//  ... whatever the default logic is... "affinity building" I guess
+//  or is this an over optimization???
+//
 void
 AI::do_connect_disconnected_flags() {
   // time this function for debugging
@@ -1248,8 +1260,10 @@ AI::do_send_geologists() {
     << ", hammers_count " << hammers_count << ", reserve_hammers " << reserve_hammers << ", excess_hammers " << excess_hammers;
   if (excess_hammers > 0) {
     // its possible to accidently create > geologists_max, so if this happens avoid going negative
-    if (total_geologists >= geologists_max) {
-      AILogDebug["do_send_geologists"] << inventory_pos << " geologists_max " << geologists_max << " hit, have total_geologists " << total_geologists;
+    //   initial max is 4, adds 2 for each Stock built
+    unsigned int adjusted_geologists_max = 2 + (geologists_max * stock_buildings.size());
+    if (total_geologists >= adjusted_geologists_max) {
+      AILogDebug["do_send_geologists"] << inventory_pos << " adjusted_geologists_max " << adjusted_geologists_max << " hit, have total_geologists " << total_geologists;
       potential_geologists = 0;
       // it seems there is an issue where idle_geologists is appearing greater than it really is, resulting in more geologists being created
       //  even after geologists_max hit.  As a work-around to hopefully avoid this, never allow idle_geologists to be >1 once geologists_max hit
@@ -1328,11 +1342,26 @@ AI::do_send_geologists() {
   game->get_mutex()->unlock();
   AILogVerbose["do_send_geologists"] << inventory_pos << " thread #" << std::this_thread::get_id() << " AI has unlocked mutex after calling game->get_player_serfs(player) (for serf_wait_timers is_waiting)";
   AILogDebug["do_send_geologists"] << inventory_pos << " active geologists found: " << geologist_positions.size();
-  // count hills (Tundra0-2, Snow0, NOT Snow1 because can't build mines there)
+  
   // for mined resouce finding,  reverse the occupied_military_buildings order
   //   so the newest military building is searched first,
   //    instead of castle first then outward
   MapPosVector foo = stock_buildings.at(inventory_pos).occupied_military_pos;
+
+  // UPDATE - originally the occupied_militar_pos was iterated over in reverse order,
+  //  resulting in geologists being sent to the NEWEST knight huts in the realm.  This is 
+  //  good in some ways, but some spots are missed because new huts are built faster than
+  //  geologists can be sent/created/work.  To balance this without totally losing the 
+  //  preference for evaluating new positions, have a chance of shuffling the positions
+  // 50% chance of shuffle
+  if (rand() > RAND_MAX / 2){
+    AILogDebug["do_send_geologists"] << inventory_pos << " using shuffled occupied_military_pos list for sending geologists";
+    std::random_shuffle(foo.begin(), foo.end());
+  }else{
+    AILogDebug["do_send_geologists"] << inventory_pos << " using newest-first occupied_military_pos list for sending geologists";
+  }
+
+  int sent_this_run = 0;
   // for some reason after switching to parallel stocks/warehouse support, cannot use stock_buildings.at(inventory_pos).occupied_military_pos iterator directly
   //  must copy it to another MapPosVector and iterate over that.  I'm sure there is a cleaner way
   //for (MapPosVector::reverse_iterator it = stock_buildings.at(inventory_pos).occupied_military_pos.rbegin(); it != stock_buildings.at(inventory_pos).occupied_military_pos.rend(); ++it) {
@@ -1449,14 +1478,13 @@ AI::do_send_geologists() {
             AILogDebug["do_send_geologists"] << inventory_pos << " sign density " << sign_density << " is over geologist_sign_density_max " << geologist_sign_density_max << ", not sending geologist to this flag";
             continue;
           }
+          bool created_new = false;
           if (idle_geologists >= 1) {
             AILogDebug["do_send_geologists"] << inventory_pos << " sending an idle geologist to pos " << pos;
-            idle_geologists--;
           }
           else if (potential_geologists >= 1 && specialists_max[Serf::TypeGeologist] > total_geologists) {
             AILogDebug["do_send_geologists"] << inventory_pos << " creating a new geologist and sending to pos " << pos;
-            potential_geologists--;
-            total_geologists++;
+            created_new = true;
           }
           else {
             AILogDebug["do_send_geologists"] << inventory_pos << " no idle or potential geologists available, returning";
@@ -1486,12 +1514,20 @@ AI::do_send_geologists() {
           game->get_mutex()->unlock();
           AILogVerbose["do_send_geologists"] << inventory_pos << " thread #" << std::this_thread::get_id() << " AI has unlocked mutex after calling game->send_geologist(flag)";
           if (was_sent) {
-            //AILogDebug["do_send_geologists"] << inventory_pos << " sent an geologist to pos " << pos << ", moving on to next corner";
-            //break;
-            AILogDebug["do_send_geologists"] << inventory_pos << " sent a geologist to pos " << pos << ", not sending any more geologists until next call of this function";
-            // because of incredibly frusterating "too many geologists" / idle_geologists issue, only send one geologist per call of this function.
+            AILogDebug["do_send_geologists"] << inventory_pos << " sent an geologist to pos " << pos << ", moving on to next corner";
+            idle_geologists--;
+            if (created_new){total_geologists++;}
+            // only allow up to two geos sent per run
+            sent_this_run++;
+            if (sent_this_run > 1){
+              AILogDebug["do_send_geologists"] << inventory_pos << " sent " << sent_this_run << " geologists this run, stopping";
+              return;
+            }
+            break;
+            //AILogDebug["do_send_geologists"] << inventory_pos << " sent a geologist to pos " << pos << ", not sending any more geologists until next call of this function";
+            // because of incredibly frustrating "too many geologists" / idle_geologists issue, only send one geologist per call of this function.
             //   and even THIS will probably not work right for warehouse/stocks
-            return;
+            //return;
           }
           else {
             AILogDebug["do_send_geologists"] << inventory_pos << " failed to send geologist to pos " << pos << ".  This happens sometimes but appears benign.  Sleeping 1sec";
@@ -1520,7 +1556,7 @@ AI::do_build_rangers() {
   AILogDebug["do_build_rangers"] << name << " inside do_build_rangers";
   //
   // build ranger near lumberjacks that have few trees and no ranger nearby
-  //
+   //
   AILogDebug["do_build_rangers"] << name << " HouseKeeping: build rangers near lumberjacks that have few trees and no ranger nearby";
   ai_status.assign("HOUSEKEEPING - build rangers");
   AILogVerbose["do_build_rangers"] << name << " thread #" << std::this_thread::get_id() << " AI is locking mutex before calling game->get_player_buildings(player) (for do_build_rangers)";
@@ -1656,8 +1692,16 @@ AI::do_remove_road_stubs() {
     }
     if (paths == 1) {
       AILogDebug["do_remove_road_stubs"] << name << " occupied ranger at pos " << pos << "'s flag has only one path, removing the stub road";
+      AILogVerbose["do_remove_road_stubs"] << name << " thread #" << std::this_thread::get_id() << " AI is locking mutex before calling game->demolish_road() (for do_remove_road_stubs) for ranger";
+      game->get_mutex()->lock();
+      AILogVerbose["do_remove_road_stubs"] << name << " thread #" << std::this_thread::get_id() << " AI has locked mutex before calling game->demolish_road() (for do_remove_road_stubs) for ranger";
       game->demolish_road(map->move(flag_pos, road_dir), player);
+      AILogVerbose["do_remove_road_stubs"] << name << " thread #" << std::this_thread::get_id() << " AI is unlocking mutex after calling game->demolish_road() (for do_remove_road_stubs) for ranger";
+      game->get_mutex()->unlock();
+      AILogVerbose["do_remove_road_stubs"] << name << " thread #" << std::this_thread::get_id() << " AI has unlocked mutex after calling game->demolish_road() (for do_remove_road_stubs) for ranger";
       roads_removed++;
+      // sleep a bit to be more human like
+      std::this_thread::sleep_for(std::chrono::milliseconds(3000));
     }
   }
   //
@@ -1706,9 +1750,17 @@ AI::do_remove_road_stubs() {
     }
     if (paths == 1) {
       AILogDebug["do_remove_road_stubs"] << name << " eligible geologist road ending with flag at pos " << flag_pos << " has only one path, removing the stub road and its end flag";
+      AILogVerbose["do_remove_road_stubs"] << name << " thread #" << std::this_thread::get_id() << " AI is locking mutex before calling game->demolish_road() and flag (for do_remove_road_stubs) for geologist flag";
+      game->get_mutex()->lock();
+      AILogVerbose["do_remove_road_stubs"] << name << " thread #" << std::this_thread::get_id() << " AI has locked mutex before calling game->demolish_road() and flag (for do_remove_road_stubs) for geologist flag";
       game->demolish_road(map->move(flag_pos, road_dir), player);
-      roads_removed++;
       game->demolish_flag(flag_pos, player);
+      AILogVerbose["do_remove_road_stubs"] << name << " thread #" << std::this_thread::get_id() << " AI is unlocking mutex after calling game->demolish_road() and flag (for do_remove_road_stubs) for geologist flag";
+      game->get_mutex()->unlock();
+      AILogVerbose["do_remove_road_stubs"] << name << " thread #" << std::this_thread::get_id() << " AI has unlocked mutex after calling game->demolish_road() and flag (for do_remove_road_stubs) for geologist flag";
+      roads_removed++;
+      // sleep a bit to be more human like
+      std::this_thread::sleep_for(std::chrono::milliseconds(3000));
     }
   }
   //
@@ -1736,9 +1788,17 @@ AI::do_remove_road_stubs() {
     }
     if (paths == 1) {
       AILogDebug["do_remove_road_stubs"] << name << " eligible non-mountain road ending with flag at pos " << flag_pos << " has only one path, removing the stub road and its end flag";
+      AILogVerbose["do_remove_road_stubs"] << name << " thread #" << std::this_thread::get_id() << " AI is locking mutex before calling game->demolish_road() and flag (for do_remove_road_stubs) for non-mountain flag";
+      game->get_mutex()->lock();
+      AILogVerbose["do_remove_road_stubs"] << name << " thread #" << std::this_thread::get_id() << " AI has locked mutex before calling game->demolish_road() and flag (for do_remove_road_stubs) for non-mountain flag";
       game->demolish_road(map->move(flag_pos, road_dir), player);
-      roads_removed++;
       game->demolish_flag(flag_pos, player);
+      AILogVerbose["do_remove_road_stubs"] << name << " thread #" << std::this_thread::get_id() << " AI is unlocking mutex after calling game->demolish_road() and flag (for do_remove_road_stubs) for non-mountain flag";
+      game->get_mutex()->unlock();
+      AILogVerbose["do_remove_road_stubs"] << name << " thread #" << std::this_thread::get_id() << " AI has unlocked mutex after calling game->demolish_road() and flag (for do_remove_road_stubs) for non-mountain flag";
+      roads_removed++;
+      // sleep a bit to be more human like
+      std::this_thread::sleep_for(std::chrono::milliseconds(3000));
     }
   }
   //
@@ -1819,8 +1879,16 @@ AI::do_remove_road_stubs() {
 
       if (was_built){
         AILogDebug["do_remove_road_stubs"] << name << " eligible knight hut stub road ending with flag at pos " << flag_pos << " had replacement road built, destroying old road in dir " << NameDirection[road_dir] << " / " << road_dir;
+
+        AILogVerbose["do_remove_road_stubs"] << name << " thread #" << std::this_thread::get_id() << " AI is locking mutex before calling game->demolish_road() (for do_remove_road_stubs) for knight hut road";
+        game->get_mutex()->lock();
+        AILogVerbose["do_remove_road_stubs"] << name << " thread #" << std::this_thread::get_id() << " AI has locked mutex before calling game->demolish_road( (for do_remove_road_stubs) for knight hut road";
         game->demolish_road(map->move(flag_pos, road_dir), player);
+        AILogVerbose["do_remove_road_stubs"] << name << " thread #" << std::this_thread::get_id() << " AI is unlocking mutex after calling game->demolish_road() (for do_remove_road_stubs) for knight hut road";
+        game->get_mutex()->unlock();
+        AILogVerbose["do_remove_road_stubs"] << name << " thread #" << std::this_thread::get_id() << " AI has unlocked mutex after calling game->demolish_road() (for do_remove_road_stubs) for knight hut road";
         roads_removed++;
+
         // sleep a bit to be more human like
         std::this_thread::sleep_for(std::chrono::milliseconds(3000));
       }
@@ -1853,7 +1921,13 @@ AI::do_demolish_unproductive_stonecutters() {
     int stones_check = AI::count_stones_near_pos(pos, AI::spiral_dist(4));
     if (stones_check < 1) {
       AILogDebug["do_demolish_unproductive_stonecutters"] << name << " stonecutter at pos " << pos << " has no more stones nearby!  burning it";
+      AILogVerbose["do_demolish_unproductive_stonecutters"] << name << " thread #" << std::this_thread::get_id() << " AI is locking mutex before calling game->demolish_building()";
+      game->get_mutex()->lock();
+      AILogVerbose["do_demolish_unproductive_stonecutters"] << name << " thread #" << std::this_thread::get_id() << " AI has locked mutex before calling game->demolish_building()";
       game->demolish_building(pos, player);
+      AILogVerbose["do_demolish_unproductive_stonecutters"] << name << " thread #" << std::this_thread::get_id() << " AI is unlocking mutex after calling game->demolish_building()";
+      game->get_mutex()->unlock();
+      AILogVerbose["do_demolish_unproductive_stonecutters"] << name << " thread #" << std::this_thread::get_id() << " AI has unlocked mutex after calling game->demolish_building()";
       // mark as bad pos, because there should be no reason it could ever become valid again (stone piles cannot regrow)
       bad_building_pos.insert(std::make_pair(pos, Building::TypeStonecutter));
       // sleep to appear more human
@@ -3555,9 +3629,10 @@ AI::do_build_better_roads_for_important_buildings() {
   double duration;
   start = std::clock();
   AILogDebug["do_build_better_roads_for_important_buildings"] << name << " inside do_build_better_roads_for_important_buildings";
-  // only do this every X loops
-  if (loop_count % 10 != 0) {
-    AILogDebug["do_build_better_roads_for_important_buildings"] << name << " skipping build_better_roads roads, only running this every X loops";
+  // only do this every X loops and once X knight huts built
+  unsigned int completed_huts = realm_completed_building_count[Building::TypeHut];
+  if (loop_count % 10 != 0 || completed_huts < 14) {
+    AILogDebug["do_build_better_roads_for_important_buildings"] << name << " running until a significant number of huts completed, and only every X loops";
     return;
   }
   ai_status.assign("HOUSEKEEPING - build better roads");
@@ -3601,6 +3676,13 @@ AI::do_build_better_roads_for_important_buildings() {
 
 
 // once all necessary buildings built for castle, build a warehouse and parallel infrastructure
+//
+// BIG IDEA - once warehouse is built (and occupied?)  look for all nearby un-tracked buildings
+//   such as knight huts, fisherman, demolish their roads and re-create roads to this new Inventory
+//   ALSO, for any tracked buildings... possibly take these also if certain conditions are met,
+//    such as calculating if the "stolen-from" Inventory could place a new one, 
+//
+//
 void
 AI::do_build_warehouse() {
   AILogDebug["do_build_warehouse"] << name << " inside do_build_warehouse";
@@ -3803,6 +3885,14 @@ AI::do_can_build_knight_huts() {
 // NOTE this function relies on potentially stale Inventory, Serf, and building count data
 //   but the best solution I think is to improve the quality of the data by updating it as it changes
 //   which is already mostly happening, rather than re-checking everything constantly
+//
+// MAJOR IMPROVEMENT - instead of wait until completed, only wait until all construction materials + builder arrive
+//   and if so do not mark as unfinished.  To do this need to see simple it is to check completion status for each
+//   building and see how many materials required for each... possible to check the flag requests?  rather than
+//   completion status?  see how the Sawmill check one I wrote is doing it
+//
+//
+
 bool
 AI::do_can_build_other() {
   //
@@ -4000,3 +4090,165 @@ AI::do_check_resource_needs(){
   }
 
 }
+
+
+// when a new warehouse is first built and occupied,
+//  reconnect all nearby non-tracked buildings to it
+// and possible tracked buildings if conditions met?
+void
+AI::do_create_star_roads_for_new_warehouse(){
+  if (new_stocks.size() == 0){
+    AILogInfo["do_create_star_roads_for_new_warehouse"] << inventory_pos << " new_stocks has no entries, nothing to do";
+    return;
+  }
+
+  for (MapPos new_stock_flag_pos : new_stocks){
+    // this is really the only check that matters, skip the others
+    if (new_stock_flag_pos != inventory_pos){
+      AILogInfo["do_create_star_roads_for_new_warehouse"] << inventory_pos << " new_stocks contains a stock with flag pos " << new_stock_flag_pos << ", but it is not the currently selected inventory_pos, skipping";
+      continue;
+    }
+    /*
+    AILogInfo["do_create_star_roads_for_new_warehouse"] << inventory_pos << " new_stocks contains a stock with flag pos " << new_stock_flag_pos << ", checking to see if it has become occupied";
+    Flag *new_stock_flag = game->get_flag_at_pos(new_stock_flag_pos);
+    if (new_stock_flag == nullptr){
+      AILogWarn["do_create_star_roads_for_new_warehouse"] << inventory_pos << " new_stocks contains a stock with flag pos " << new_stock_flag_pos << ", but get_flag_at_pos returns nullptr!  removing this from new_stocks list";
+      new_stocks.erase(new_stock_flag_pos);
+      continue;
+    }
+    Building *new_stock_building = new_stock_flag->get_building();
+    if (new_stock_building == nullptr){
+      AILogWarn["do_create_star_roads_for_new_warehouse"] << inventory_pos << " new_stocks contains a stock with flag pos " << new_stock_flag_pos << ", but flag->get_building returns nullptr!  removing this from new_stocks list";
+      new_stocks.erase(new_stock_flag_pos);
+      continue; 
+    }
+    if (!new_stock_building->is_done()){
+      AILogInfo["do_create_star_roads_for_new_warehouse"] << inventory_pos << " new_stocks contains a stock with flag pos " << new_stock_flag_pos << ", this stock is not completed yet, try again later";
+      continue;
+    }
+    if (!new_stock_building->has_serf()){
+      AILogInfo["do_create_star_roads_for_new_warehouse"] << inventory_pos << " new_stocks contains a stock with flag pos " << new_stock_flag_pos << ", this stock is not occupied yet, try again later";
+      continue;
+    }
+    if (!new_stock_flag->accepts_resources()){
+      // I think this is essentially the same check as building->has_serf for a Stock, but double-check to be sure
+      AILogWarn["do_create_star_roads_for_new_warehouse"] << inventory_pos << " new_stocks contains a stock with flag pos " << new_stock_flag_pos << ", building->serf_serf is true but building flag->accepts_resources is false!  this is unexpected!  try again later";
+      continue;
+    }
+    */
+
+    // NEWLY-OCCUPIED LIVE STOCK DETECTED, DO THE FUNCTION
+    AILogInfo["do_create_star_roads_for_new_warehouse"] << inventory_pos << " new_stocks contains a stock with flag pos " << new_stock_flag_pos << ", this stock WAS JUST COMPLETED, doing things";
+    // remove it from the new_stocks list to avoid infinite loop
+    new_stocks.erase(new_stock_flag_pos);
+
+    // check for around the Inventory for standalone flags,
+    //  or flags connected to non-tracked buildings (knight huts and fisherman, basically)
+    MapPosVector eligible_flags = {};
+    for (unsigned int x = 0; x < AI::spiral_dist(14); x++) {
+      MapPos pos = map->pos_add_extended_spirally(inventory_pos, x);
+      if (!map->has_flag(pos))
+        continue;  // skip if no flag
+      Flag *flag = game->get_flag_at_pos(pos);
+      if (flag == nullptr)
+        continue;  // skip if flag not found
+      //if (!flag->has_building())
+      //  continue;  // skip if no building
+      if (flag->has_building()){
+        Building *building = flag->get_building();
+        if (building == nullptr)
+          continue;  // skip if building not found
+        if (!building->is_done())
+          continue;  // skip buildings under construction
+        Building::Type type = building->get_type();
+        if (type == Building::TypeFisher || type == Building::TypeHut || type == Building::TypeTower || type == Building::TypeFortress){
+          AILogDebug["do_create_star_roads_for_new_warehouse"] << inventory_pos << " found a non-tracked building of type " << NameBuilding[type] << " at pos " << pos;
+        }else{
+          // skip if building is a tracked type (only non-tracked are eligible for now)
+          AILogDebug["do_create_star_roads_for_new_warehouse"] << inventory_pos << " skipping tracked building of type " << NameBuilding[type] << " at pos " << pos;
+          continue; 
+        }
+        MapPos building_inv_pos = find_nearest_inventory(map, player_index, pos, DistType::FlagOnly, &ai_mark_pos);
+        if (building_inv_pos == bad_map_pos)
+          continue;  // skip if current inv not found
+        //if (building_inv_pos == inventory_pos)
+        //  continue;  // skip if THIS is the current inv ?  maybe still consider for rebuild in case it results in better connect?
+        //AILogDebug["do_create_star_roads_for_new_warehouse"] << inventory_pos << " building of type " << NameBuilding[type] << " at pos " << pos << " has closest-by-flag Inventory of " << building_inv_pos;
+        //int distance_to_current_inv = get_straightline_tile_dist(map, pos, building_inv_pos);
+        //int distance_to_this_inv = get_straightline_tile_dist(map, pos, inventory_pos);
+        //if (distance_to_this_inv < distance_to_current_inv){
+        //  AILogDebug["do_create_star_roads_for_new_warehouse"] << inventory_pos << " building of type " << NameBuilding[type] << " at pos " << pos << " straightline dist " << distance_to_this_inv << " to this new Inv is less than dist " << distance_to_current_inv << " to its current Inv pos " << building_inv_pos;
+        //  eligible_buildings.push_back(pos);
+        //}
+        AILogDebug["do_create_star_roads_for_new_warehouse"] << inventory_pos << " adding eligible_flag attached to building of type " << NameBuilding[type] << " at pos " << pos;
+      }else{
+        AILogDebug["do_create_star_roads_for_new_warehouse"] << inventory_pos << " found a flag with no attached building at pos " << pos;
+      }
+      // add flag to eligible list
+      eligible_flags.push_back(pos);
+    }
+    AILogDebug["do_create_star_roads_for_new_warehouse"] << inventory_pos << " found " << eligible_flags.size() << " eligible_flags to consider";
+
+
+    // do a big spiral search around the new Inventory, note any buildings that are straight-line distance closer
+    //  to this Inventory than their current one
+    bool repeat = false;
+    int loops = 0;
+    int roads_removed = 0;
+    Direction only_dir = DirectionNone;
+    while (true){
+      repeat = false;
+      loops++;
+      for (MapPos flag_pos : eligible_flags){
+
+        if (!map->has_flag(flag_pos))
+          continue;  // skip if no flag
+        Flag *flag = game->get_flag_at_pos(flag_pos);
+        if (flag == nullptr)
+          continue;  // skip if flag not found
+        if (!flag->is_connected())
+          continue;  // skip if no path (possibly it was deleted in a prior loop)
+        int paths = 0;
+        for (Direction dir : cycle_directions_cw()){
+          if (map->has_path_IMPROVED(flag_pos, dir)){
+            paths++;
+            only_dir = dir;
+            if (paths > 1){break;}
+          }
+        }
+        if (paths > 1){
+          AILogDebug["do_create_star_roads_for_new_warehouse"] << inventory_pos << " rejecting flag at flag_pos " << flag_pos << ", it has more than one path"; 
+          continue;
+        }
+        // SHOULD WE CHECK FOR VALUABLE RESOURCES CURRENTLY BEING TRANSPORTED ALONG THE ROAD??
+        //  ESPECIALLY SERFS AND RESUORCES DESTINED FOR BUILDINGS, might never arrive?
+        //  depends on how well the resource lost stuff works
+        //not now... first see how well it works
+
+        AILogDebug["do_create_star_roads_for_new_warehouse"] << inventory_pos << " destoying road for flag_pos " << flag_pos << " in dir " << only_dir << " / " << NameDirection[only_dir];
+        AILogVerbose["do_create_star_roads_for_new_warehouse"] << name << " thread #" << std::this_thread::get_id() << " AI is locking mutex before calling game->demolish_road()";
+        game->get_mutex()->lock();
+        AILogVerbose["do_create_star_roads_for_new_warehouse"] << name << " thread #" << std::this_thread::get_id() << " AI has locked mutex before calling game->demolish_road()";
+        game->demolish_road(map->move(flag_pos, only_dir), player);
+        AILogVerbose["do_create_star_roads_for_new_warehouse"] << name << " thread #" << std::this_thread::get_id() << " AI is unlocking mutex after calling game->demolish_road()";
+        game->get_mutex()->unlock();
+        AILogVerbose["do_create_star_roads_for_new_warehouse"] << name << " thread #" << std::this_thread::get_id() << " AI has unlocked mutex after calling game->demolish_road()";
+        roads_removed++;
+        // any time a road is removed, force retrying the entire set in case new possibilities open up
+        repeat = true;
+        // sleep a bit to be more human like
+        std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+      }
+
+      // retry the whole list if any roads removed, it opens new possibilities
+      if (repeat){
+        AILogDebug["do_create_star_roads_for_new_warehouse"] << inventory_pos << " at least one road was removed, re-evaluating the entire list again to see if more possibilities opened.  loops: " << loops;
+      }else{
+        AILogDebug["do_create_star_roads_for_new_warehouse"] << inventory_pos << " done, loops performed: " << loops << ", roads removed: " << roads_removed;
+        return;
+      }
+
+    } // while true / keep re-checking Flag list until no more paths can be removed
+
+  } // foreach new_stocks, check if completed
+} // end do_create_star_roads_for_new_warehouse
