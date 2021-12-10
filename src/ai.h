@@ -359,6 +359,7 @@ class AI {
   bool do_can_build_other();
   void do_check_resource_needs();
   void do_create_star_roads_for_new_warehouses();
+  void do_connect_disconnected_road_networks();
 
   //
   // ai_pathfinder.cc

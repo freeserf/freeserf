@@ -155,6 +155,7 @@ AI::next_loop(){
   //-----------------------------------------------------------
 
   do_connect_disconnected_flags(); // except unfinished mines
+  do_connect_disconnected_road_networks();
   do_build_better_roads_for_important_buildings();  // is this working?  I still see pretty inefficient roads for important buildings
   do_pollute_castle_area_roads_with_flags(); // CHANGE THIS TO USE ARTERIAL ROADS  (nah, it works well enough as it is, do that later)
   do_fix_stuck_serfs();  // this is definitely still an issue, try to fix root cause
@@ -488,13 +489,7 @@ AI::do_promote_serfs_to_knights() {
 
 }
 
-//
-// THIS NEEDS IMPROVEMENT because of multiple economies - when connecting a disconnected
-//  flag that is attached to a building (likely that became detached from territory loss)
-//  it should try to attach to an Inventory that has no building of this type rather than
-//  ... whatever the default logic is... "affinity building" I guess
-//  or is this an over optimization???
-//
+
 void
 AI::do_connect_disconnected_flags() {
   // time this function for debugging
@@ -504,9 +499,7 @@ AI::do_connect_disconnected_flags() {
   AILogDebug["do_connect_disconnected_flags"] << name << " inside do_connect_disconnected_flags";
   AILogDebug["do_connect_disconnected_flags"] << name << " HouseKeeping: connect any disconnected flags";
   ai_status.assign("HOUSEKEEPING - connect any disconnected flags");
-  flags_static_copy = *(game->get_flags());
-  flags = &flags_static_copy;
-  for (Flag *flag : *flags) {
+  for (Flag *flag : *(game->get_flags())) {
     if (flag->get_owner() != player_index)
       continue;
     if (flag->get_position() == castle_flag_pos)
@@ -4232,3 +4225,101 @@ AI::do_create_star_roads_for_new_warehouses(){
 
   } // foreach new_stocks, check if completed
 } // end do_create_star_roads_for_new_warehouse
+
+
+//
+// for every flag owned by this player, record every other flag this flag connects to
+//  and identify groups of flags that are not connected to each ohter
+//
+void
+AI::do_connect_disconnected_road_networks(){
+  AILogInfo["do_connect_disconnected_road_networks"] << " starting";
+  ai_status.assign("do_connect_disconnected_road_networks");
+
+  std::vector<std::set<unsigned int>> network = {};
+
+  for (Flag *flag : *(game->get_flags())) {
+
+
+    if (flag == nullptr)
+      continue;
+    if (flag->get_owner() != player_index)
+      continue;
+
+    AILogInfo["do_connect_disconnected_road_networks"] << " global flag " << flag->get_index();
+
+    // create a list containing this flag and its neighbors
+    std::set<unsigned int> these_flags = { flag->get_index() };
+    for (Direction dir : cycle_directions_cw()){
+      Flag *other_end_flag = flag->get_other_end_flag(dir);
+      bool rejected = false;
+      // I am seeing other_end_flag giving a valid flag, but one that isn't actaully connected to this flag!! why???
+      //  adding a backup check, and throwing a warning if they do not both agree
+      if (!map->has_path_IMPROVED(flag->get_position(), dir)){
+        //AILogDebug["do_connect_disconnected_road_networks"] << " map has no path in dir " << dir << " / " << NameDirection[dir] << "! rejecting";
+        rejected = true;
+      }else if (other_end_flag == nullptr){
+        AILogWarn["do_connect_disconnected_road_networks"] << " RARE sanity check failed! other_end_flag in dir " << dir << " / " << NameDirection[dir] << " is nullptr, but map has path in dir! is this Dir4/UpLeft?  is there a building here?";
+        game->pause();
+      }
+
+      if (rejected)
+        continue;
+      unsigned int other_end_flag_index = other_end_flag->get_index();
+      AILogDebug["do_connect_disconnected_road_networks"] << " global flag has partner in dir " << dir << " / " << NameDirection[dir] << " with index " << other_end_flag_index;
+      these_flags.insert(other_end_flag_index);
+    }
+
+    for (unsigned int flag_index : these_flags){
+      AILogDebug["do_connect_disconnected_road_networks"] << " these_flags contains " << flag_index;
+    }
+
+    int found = -1; // the first matching group, if any match found
+    for (unsigned int flag_index : these_flags){
+      found = -1;
+      for (int i = 0; i < network.size(); i++){
+        if (network[i].count(flag_index)){
+          AILogDebug["do_connect_disconnected_road_networks"] << " found " << flag_index << " in group #" << i;
+          if (found == -1){
+            // this is first group found with a matching flag, insert all these_flags into group
+            found = i;
+            AILogDebug["do_connect_disconnected_road_networks"] << " first group found, inserting these_flags into network[" << i << "]";
+            network[i].insert(these_flags.begin(), these_flags.end());
+          }else{
+            AILogDebug["do_connect_disconnected_road_networks"] << " another found, merging this group #" << i << " into first found group #" << found;
+            // this is another matching group, merge it into the first group found, they must be one network
+            network[found].insert(network[i].begin(), network[i].end());
+            // erase the group that was merged into earlier group
+            //  by swapping it to the end of the vector and then popping it off
+            AILogDebug["do_connect_disconnected_road_networks"] << " removing group #" << i;
+            std::swap(network[i], network.back());
+            network.pop_back();
+          }
+        }
+      }
+    }
+    if (found == -1){
+      AILogDebug["do_connect_disconnected_road_networks"] << " no match, creating new group containing these_flags";
+      network.push_back(these_flags);
+    }
+
+  } // foreach Flag in entire game
+
+  AILogDebug["do_connect_disconnected_road_networks"] << " done search, found " << network.size() << " separate flag_groups";
+  for (int i = 0; i < network.size(); i++){
+    AILogDebug["do_connect_disconnected_road_networks"] << " network[" << i << "] contains " << network[i].size() << " elements";
+    bool disconnected = false;
+    if (i > 0 && network[i].size() > 1){
+      AILogInfo["do_connect_disconnected_road_networks"] << " DISCONNECTED ROAD SYSTEM: network[" << i << "] contains " << network[i].size() << " elements";
+      disconnected = true;
+    }
+    for (unsigned int flag_index : network[i]){
+      AILogDebug["do_connect_disconnected_road_networks"] << " network[" << i << "] contains flag_index " << flag_index;
+      if (disconnected){
+        // re-use get_dir_color function with indexes and hope <6 disconnected sections!
+        ai_mark_pos.insert(ColorDot(game->get_flag(flag_index)->get_position(), get_dir_color_name(Direction(i))));
+      }
+    }
+  }
+
+}

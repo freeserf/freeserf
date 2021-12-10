@@ -94,6 +94,8 @@ class Flag : public GameObject {
   //  SerfCity... but is that even supported?  And do we really care about it?  Why would
   //   anybody bother doing this?
 
+  // I suspect that get_other_end_flag cannot be trusted!  it seems to return true for 
+  /// building UpLeft/DirUp/Dir in the same way that buildings that accept resources do???
   union other_endpoint {
     Building *b[6];
     Flag *f[6];
@@ -188,6 +190,8 @@ class Flag : public GameObject {
   /* The direction from the other endpoint leading back to this flag. */
   Direction get_other_end_dir(Direction dir) const {
     return (Direction)((other_end_dir[dir] >> 3) & 7); }
+  // it seems this function can NOT be trusted!  it returns something other than
+  //  nullptr... a valid flag i think, if there is a building UpLeft/Dir4!!!!
   Flag *get_other_end_flag(Direction dir) const {
     return other_endpoint.f[dir]; }
   /* Whether the given direction has a resource pickup scheduled. */
