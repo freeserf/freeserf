@@ -1838,8 +1838,17 @@ AI::do_remove_road_stubs() {
       bool was_built = false;
       for (unsigned int i = 0; i < AI::spiral_dist(4); i++) {
         MapPos pos = map->pos_add_extended_spirally(flag->get_building()->get_position(), i);
+        // this seems to be building to disconnected flags (mines), try to find out why
         if (map->has_flag(pos) && pos != flag_pos && flag->get_owner() == player_index && flag->is_connected()
          || (game->can_build_flag(pos, player) && map->has_any_path(pos))) {
+          //DEBUG
+          if (map->has_flag(pos) && pos != flag_pos && flag->get_owner() == player_index && flag->is_connected())
+            AILogDebug["do_remove_road_stubs"] << " debug - suitable connected flag found at pos " << pos;
+          //DEBUG
+          if (game->can_build_flag(pos, player) && map->has_any_path(pos))
+            AILogDebug["do_remove_road_stubs"] << " debug - can build new flag at sutable pos " << pos;
+
+
           AILogDebug["do_remove_road_stubs"] << name << " eligible knight hut stub road ending with flag at pos " << flag_pos << " with one path and suitable length, found nearby flag/pos at " << pos;
           if (existing_road.has_pos(map.get(), pos)){
             AILogDebug["do_remove_road_stubs"] << name << " eligible knight hut stub road ending with flag at pos " << flag_pos << " skipping pos " << pos << " as it is part of the existing road";
@@ -4246,7 +4255,7 @@ AI::do_connect_disconnected_road_networks(){
     if (flag->get_owner() != player_index)
       continue;
 
-    AILogInfo["do_connect_disconnected_road_networks"] << " global flag " << flag->get_index();
+    AILogDebug["do_connect_disconnected_road_networks"] << " global flag " << flag->get_index();
 
     // create a list containing this flag and its neighbors
     std::set<unsigned int> these_flags = { flag->get_index() };

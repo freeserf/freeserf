@@ -1006,12 +1006,15 @@ Flag::can_demolish() const {
   return false;
 }
 
-/* Return true if a flag has any roads connected to it. */
+// Return true if a flag has any roads connected to it
+//  this properly excludes fake-path for a building UpLeft/Dir4
 bool
 Flag::is_connected() const {
   for (Direction d : cycle_directions_cw()) {
-    if (has_path(d))
+    if (has_path(d)) {
+      if (d == DirectionUpLeft && has_building()){ continue; }
       return true;
+    }
   }
   return false;
 }

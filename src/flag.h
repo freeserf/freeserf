@@ -120,6 +120,7 @@ class Flag : public GameObject {
   void add_path(Direction dir, bool water);
   void del_path(Direction dir);
   /* Whether a path exists in a given direction. */
+  // this CANNOT BE TRUSTED because of the UpLeft/Dir4 building issue
   bool has_path(Direction dir) const {
     return ((path_con & (1 << (dir))) != 0); }
 
