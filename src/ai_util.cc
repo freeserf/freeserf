@@ -2239,7 +2239,8 @@ AI::build_near_pos(MapPos center_pos, unsigned int distance, Building::Type buil
   bool verify_stock = false;
   if (building_type != Building::TypeFisher && building_type != Building::TypeStock && 
       building_type != Building::TypeHut && building_type != Building::TypeTower && 
-      building_type != Building::TypeFortress && building_type != Building::TypeCastle){
+      building_type != Building::TypeFortress && building_type != Building::TypeCastle &&
+      building_type != Building::TypeForester){
     AILogDebug["util_build_near_pos"] << name << " this is a tracked economy building of type " << NameBuilding[building_type] << ", setting verify_stock to true";
     verify_stock = true;
   }
