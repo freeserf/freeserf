@@ -1050,16 +1050,25 @@ Interface::handle_key_pressed(char key, int modifier) {
     }
 
     case 'j': {
-    unsigned int current_index = player->get_index();
-    unsigned int next_index = game->get_next_player(player)->get_index();
-    if (current_index == next_index) {
-      //Log::Debug["interface"] << "next player index is current player index - i.e. there is only one player, not switching";
-      play_sound(Audio::TypeSfxNotAccepted);
-    }
-    else {
-      set_player(next_index);
-      Log::Info["interface"] << "Switched to player #" << next_index;
-    }
+      // switch to next player and center view on their castle
+      //  if only one player, play error noise but stll center view on castle
+      unsigned int current_index = player->get_index();
+      unsigned int next_index = game->get_next_player(player)->get_index();
+      if (current_index == next_index) {
+        //Log::Debug["interface"] << "next player index is current player index - i.e. there is only one player, not switching";
+        play_sound(Audio::TypeSfxNotAccepted);
+        // but also center on this player's castle at least
+        for (Building *building : game->get_player_buildings(player)) {
+          if (building->get_type() == Building::TypeCastle) {
+            //update_map_cursor_pos(building->get_position());
+            viewport->move_to_map_pos(building->get_position());
+          }
+        }
+      }
+      else {
+        set_player(next_index);
+        Log::Info["interface"] << "Switched to player #" << next_index;
+      }
       break;
     }
     case 'z':

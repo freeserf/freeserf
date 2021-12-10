@@ -338,7 +338,7 @@ class AI {
   void do_balance_sword_shield_priorities();
   void do_attack();
   void do_manage_knight_occupation_levels();
-  void do_place_mines(std::string, Building::Type, Map::Object, Map::Object, int, double);
+  void do_place_mines(std::string, Building::Type, Map::Object, Map::Object, double sign_density_min);
   void do_place_coal_mines(); //wrapper around do_place_mines
   void do_place_iron_mines(); //wrapper around do_place_mines
   void do_place_gold_mines(); //wrapper around do_place_mines
@@ -462,19 +462,12 @@ static const unsigned int gold_ore_weight = 5;
 static const unsigned int max_unfinished_buildings = 2;
 static const unsigned int max_unfinished_huts = 2;
 
-/* temporarily increasing these to effectively eliminate cap
-  hoping that mines will be placed in all good spots, but not connected
-  until actually needed
 // don't send geologists (or maybe reduce rate) if this many mines already placed
 //   also don't expand borders for mines if >= max?
-// Feb 2021 - reducing these to reduce clutter, they never all get used to their potential anyway 
-static const unsigned int max_coalmines = 2;   // was 3
-static const unsigned int max_ironmines = 1;   // was 2
+// don't *connect* new mines to an Inv if this many reached, no limits on placing them though
+static const unsigned int max_coalmines = 2;
+static const unsigned int max_ironmines = 1;
 static const unsigned int max_goldmines = 1;
-*/
-static const unsigned int max_coalmines = 99;
-static const unsigned int max_ironmines = 99;
-static const unsigned int max_goldmines = 99;
 
 // max ratio of actual road length compared to ideal straight-line length to determine if road is acceptably short
 //   example, 3.00 means a road of up to 3x the length of a perfectly straight road is acceptable

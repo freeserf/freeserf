@@ -842,7 +842,7 @@ AI::do_fix_stuck_serfs() {
         sleep_speed_adjusted(120000);
         AILogDebug["do_fix_stuck_serfs"] << name << " SerfWaitTimer detected WAIT_IDLE_ON_PATH STUCK SERF at pos " << serf->get_pos() << " of type " << NameSerf[serf->get_type()] << ", I THOUGHT I FIXED THIS! crashing.  check to see";
         // still seeing this happen for Transporter serfs... but rare... keep an eye on it
-        AILogDebug["do_fix_stuck_serfs"] << name << " pausing game for debugging";
+        AILogError["do_fix_stuck_serfs"] << name << " pausing game for debugging";
         game->pause();
         //throw ExceptionFreeserf("SerfWaitTimer detected WAIT_IDLE_ON_PATH STUCK SERF at pos - I THOUGHT I FIXED THIS");
         // don't erase timer if problem isn't fixed yet, keep checking each AI loop
@@ -1789,12 +1789,14 @@ AI::do_remove_road_stubs() {
   //  try connecting the other road first
   //  if successful, destroy the original road
   //
+  //  BUG - saw (only once) a "flapping" road being rebuilt every run between
+  //  two equally near flags, add check to esnure the new road is actually better
+  //    DID THIS (added length check) - does it work?
+  //
   if (loop_count % ai_loop_freq_adj_for_gamespeed(6) != 0) {
     AILogDebug["do_remove_road_stubs"] << " skipping eligible knight hut stub roads, only running this every X loops";
   }else{
-    flags_static_copy = *(game->get_flags());
-    flags = &flags_static_copy;
-    for (Flag *flag : *flags) {
+    for (Flag *flag : *(game->get_flags())) {
       if (flag == nullptr || flag->get_owner() != player_index || !flag->is_connected() || !flag->has_building())
         continue;
       if (flag->get_building()->get_type() != Building::TypeHut)
@@ -1810,6 +1812,7 @@ AI::do_remove_road_stubs() {
       // see if it has only one path
       unsigned int paths = 0;
       Direction road_dir = DirectionNone;
+      size_t current_road_length = 0;
       for (Direction dir : cycle_directions_cw()) {
         if (!map->has_path_IMPROVED(flag_pos, dir)) { continue; }
 
@@ -1821,7 +1824,8 @@ AI::do_remove_road_stubs() {
         // only consider removing if its road is over a certain length
         //  and also store the Road found for later checking to prevent self-connection
         existing_road = trace_existing_road(map, flag_pos, dir);
-        if (existing_road.get_length() < 6){
+        current_road_length = existing_road.get_length();
+        if (current_road_length < 6){
           AILogDebug["do_remove_road_stubs"] << name << " eligible knight hut stub road ending with flag at pos " << flag_pos << " is too short to bother with, not removing road";
           break;
         }else{
@@ -1842,8 +1846,16 @@ AI::do_remove_road_stubs() {
         if (map->has_flag(pos) && pos != flag_pos && flag->get_owner() == player_index && flag->is_connected()
          || (game->can_build_flag(pos, player) && map->has_any_path(pos))) {
           //DEBUG
-          if (map->has_flag(pos) && pos != flag_pos && flag->get_owner() == player_index && flag->is_connected())
+          if (map->has_flag(pos) && pos != flag_pos && flag->get_owner() == player_index && flag->is_connected()){
             AILogDebug["do_remove_road_stubs"] << " debug - suitable connected flag found at pos " << pos;
+            // dump the dirs, this is still lying
+            for (Direction wtf_dir : cycle_directions_cw()){
+              if (map->has_path_IMPROVED(pos, wtf_dir)){
+                AILogDebug["do_remove_road_stubs"] << " debugmore - suitable connected flag found at pos " << pos << " has a path in dir " << wtf_dir << " / " << NameDirection[wtf_dir];
+              }
+            }
+          }
+
           //DEBUG
           if (game->can_build_flag(pos, player) && map->has_any_path(pos))
             AILogDebug["do_remove_road_stubs"] << " debug - can build new flag at sutable pos " << pos;
@@ -1854,8 +1866,31 @@ AI::do_remove_road_stubs() {
             AILogDebug["do_remove_road_stubs"] << name << " eligible knight hut stub road ending with flag at pos " << flag_pos << " skipping pos " << pos << " as it is part of the existing road";
             continue;
           }
-          Road notused; // not used here, can I just pass a zero instead of &notused to build_best_road and skip initialization of a wasted object?
-          was_built = AI::build_best_road(flag->get_position(), road_options, &notused, "do_remove_road_stubs", Building::TypeNone, Building::TypeNone, pos, false);
+          // replacing build_best_road with direct road plot, to allow comparing length
+          //    might be able to use Improve roads function but I don't trust it enough
+          //Road not_used;
+          //was_built = AI::build_best_road(flag->get_position(), road_options, &not_used, "do_remove_road_stubs", Building::TypeNone, Building::TypeNone, pos, false);
+          Roads notused;  // not used here
+          Road proposed_direct_road = plot_road(map, player_index, flag->get_position(), pos, &notused);
+          bool plotted_succesfully = false;
+          size_t new_road_length = proposed_direct_road.get_length();
+          if (new_road_length = 0){
+            AILogDebug["do_remove_road_stubs"] << name << " eligible knight hut stub road ending with flag at pos " << flag_pos << ", failed to plot replacement road to flag/pos " << pos << ", will keep trying";
+            continue;
+          }
+          if (current_road_length <= new_road_length){
+            AILogDebug["do_remove_road_stubs"] << name << " eligible knight hut stub road ending with flag at pos " << flag_pos << ", proposed new direct road length " << new_road_length << " is not shorter than current road length " << current_road_length << ", skipping, will keep trying";
+            continue;
+          }
+          AILogDebug["do_remove_road_stubs"] << name << " trying to build replacement road for knight hut stub road ending with flag at pos " << flag_pos;
+          AILogVerbose["do_remove_road_stubs"] << name << " thread #" << std::this_thread::get_id() << " AI is locking mutex before calling game->build_road() for knight hut stub";
+          game->get_mutex()->lock();
+          AILogVerbose["do_remove_road_stubs"] << name << " thread #" << std::this_thread::get_id() << " AI has locked mutex before calling game->build_road() for knight hut stub";
+          was_built = game->build_road(proposed_direct_road, player);
+          AILogVerbose["do_remove_road_stubs"] << name << " thread #" << std::this_thread::get_id() << " AI is unlocking mutex after calling game->build_road() for knight hut stub";
+          game->get_mutex()->unlock();
+          AILogVerbose["do_remove_road_stubs"] << name << " thread #" << std::this_thread::get_id() << " AI has unlocked mutex after calling game->build_road() for knight hut stub";
+          roads_removed++;
           if (was_built){
             AILogDebug["do_remove_road_stubs"] << name << " eligible knight hut stub road ending with flag at pos " << flag_pos << ", successfully built replacement road, to flag/pos " << pos;
             break;
@@ -2439,94 +2474,86 @@ AI::do_manage_knight_occupation_levels() {
 
 
 void
-AI::do_place_mines(std::string type, Building::Type building_type, Map::Object large_sign, Map::Object small_sign, int max_mines, double sign_density_min) {
+AI::do_place_mines(std::string type, Building::Type building_type, Map::Object large_sign, Map::Object small_sign, double sign_density_min) {
   // time this function for debugging
   std::clock_t start;
   double duration;
   start = std::clock();
   ai_status.assign("MAIN LOOP - early mine placement - " + type);
   AILogDebug["do_place_mines"] << inventory_pos << " inside do_place_mines() with type " << type << ", building_type " << NameBuilding[building_type] <<
-    ", large_sign " << NameObject[large_sign] << ", small_sign " << NameObject[small_sign] << ", max_mines " << max_mines << ", sign_density_min " << sign_density_min;
-  int mine_count = stock_buildings.at(inventory_pos).count[building_type];
-  if (mine_count < max_mines) {
-    MapPosSet count_by_corner;
-    // for mined resouce finding,  reverse the occupied_military_buildings order
-    //   so the newest military building is searched first,  instead of castle first
-    MapPosVector foo = stock_buildings.at(inventory_pos).occupied_military_pos;
-    // for some reason after switching to parallel stocks/warehouse support, cannot use stock_buildings.at(inventory_pos).occupied_militar_pos iterator directly
-    //  must copy it to another MapPosVector and iterate over that.  I'm sure there is a cleaner way
-    //for (MapPosVector::reverse_iterator it = stock_buildings.at(inventory_pos).occupied_military_pos.rbegin(); it != stock_buildings.at(inventory_pos).occupied_military_pos.rend(); ++it) {
-    for (MapPosVector::reverse_iterator it = foo.rbegin(); it != foo.rend(); ++it) {
-      MapPos center_pos = *it;
-      MapPosVector corners = AI::get_corners(center_pos);
-      for (MapPos corner_pos : corners) {
-        // count the number of signs of any type
-        double signs_count = AI::count_objects_near_pos(corner_pos, AI::spiral_dist(4), Map::ObjectSignLargeGold, Map::ObjectSignSmallStone, "dk_orange");
-        // count the number of empty hills (no blocking objects)
-        double empty_hills_count = AI::count_empty_terrain_near_pos(corner_pos, AI::spiral_dist(4), Map::TerrainTundra0, Map::TerrainSnow0, "orange");
-        if (signs_count < 1 || empty_hills_count < 1)
-          continue;
-        double sign_density = signs_count / empty_hills_count;
-        AILogVerbose["do_place_mines"] << inventory_pos << " " << type << " mine: corner with center pos " << corner_pos << " has signs_count: " << signs_count << ", empty_hills_count: " << empty_hills_count << ", sign_density: " << sign_density << ", min is " << sign_density_min;
-        if (sign_density >= sign_density_min) {
-          AILogVerbose["do_place_mines"] << inventory_pos << " sign density " << sign_density << " is over sign_density_min " << sign_density_min;
-        }
-        // don't place a mine if there are already another mine of the same type nearby, it is inefficient because of
-        //  the way that underground mined resources are depleted, if the first runs out the second will find little or nothing
-        int found = 0;
-        for (unsigned int i = 0; i < AI::spiral_dist(12); i++) {
-          MapPos pos = map->pos_add_extended_spirally(corner_pos, i);
-          if (map->has_building(pos) && map->get_owner(pos) == player_index){
-            Building *building = game->get_building_at_pos(pos);
-            if (building != nullptr){
-              if (building->get_type() == building_type){
-                AILogVerbose["do_place_mines"] << inventory_pos << " found another mine of type " << NameBuilding[building_type] << " near where looking to place another, not building";
-                found++;
-                break;
-              }
-            }
-          }
-        }
-        if (found){
-          AILogDebug["do_place_mines"] << inventory_pos << " found at least one other mine of same type " << NameBuilding[building_type] << " nearby, not placing another.  Skipping this corner area";
-          continue;
-        }
-        // try to build a mine on a Large resource sign if found,
-        //    or if a Small resource find and sign_ratio is high enough
-        // note - because we are checking even if blank signs found, this is sub-optimal.
-        //   could improve by calculating sign_density in a way that lets us ignore blank
-        //    signs when determining if trying to place mine
-        AILogVerbose["do_place_mines"] << inventory_pos << " " << type << " mine: looking for a place to build a " << type << " mine near corner " << corner_pos;
-        for (unsigned int i = 0; i < AI::spiral_dist(4); i++) {
-          MapPos pos = map->pos_add_extended_spirally(corner_pos, i);
-          if (!game->can_build_mine(pos)) {
-            continue;
-          }
-          if (map->get_owner(pos) != player_index) {
-            continue;
-          }
-          Map::Object obj = map->get_obj(pos);
-          if (obj == large_sign || (obj == small_sign && sign_density >= sign_density_min)) {
-            AILogInfo["do_place_mines"] << inventory_pos << " trying to build " << type << " mine at pos " << pos;
-            MapPos built_pos = bad_map_pos;
-            // note that distance = 1 means ONLY THIS SPOT
-            built_pos = AI::build_near_pos(pos, 1, building_type);
-            if (built_pos != bad_map_pos && built_pos != notplaced_pos) {
-              AILogInfo["do_place_mines"] << inventory_pos << " built " << type << " mine at pos " << built_pos;
-              stock_buildings.at(inventory_pos).count[building_type]++;
-              //stock_buildings.at(inventory_pos).unfinished_count++;  // do NOT include placed-but-not-connected mines in unfinished_count!
+    ", large_sign " << NameObject[large_sign] << ", small_sign " << NameObject[small_sign] << ", sign_density_min " << sign_density_min;
+  MapPosSet count_by_corner;
+  // for mined resouce finding,  reverse the occupied_military_buildings order
+  //   so the newest military building is searched first,  instead of castle first
+  MapPosVector foo = stock_buildings.at(inventory_pos).occupied_military_pos;
+  // for some reason after switching to parallel stocks/warehouse support, cannot use stock_buildings.at(inventory_pos).occupied_militar_pos iterator directly
+  //  must copy it to another MapPosVector and iterate over that.  I'm sure there is a cleaner way
+  //for (MapPosVector::reverse_iterator it = stock_buildings.at(inventory_pos).occupied_military_pos.rbegin(); it != stock_buildings.at(inventory_pos).occupied_military_pos.rend(); ++it) {
+  for (MapPosVector::reverse_iterator it = foo.rbegin(); it != foo.rend(); ++it) {
+    MapPos center_pos = *it;
+    MapPosVector corners = AI::get_corners(center_pos);
+    for (MapPos corner_pos : corners) {
+      // count the number of signs of any type
+      double signs_count = AI::count_objects_near_pos(corner_pos, AI::spiral_dist(4), Map::ObjectSignLargeGold, Map::ObjectSignSmallStone, "dk_orange");
+      // count the number of empty hills (no blocking objects)
+      double empty_hills_count = AI::count_empty_terrain_near_pos(corner_pos, AI::spiral_dist(4), Map::TerrainTundra0, Map::TerrainSnow0, "orange");
+      if (signs_count < 1 || empty_hills_count < 1)
+        continue;
+      double sign_density = signs_count / empty_hills_count;
+      AILogVerbose["do_place_mines"] << inventory_pos << " " << type << " mine: corner with center pos " << corner_pos << " has signs_count: " << signs_count << ", empty_hills_count: " << empty_hills_count << ", sign_density: " << sign_density << ", min is " << sign_density_min;
+      if (sign_density >= sign_density_min) {
+        AILogVerbose["do_place_mines"] << inventory_pos << " sign density " << sign_density << " is over sign_density_min " << sign_density_min;
+      }
+      // don't place a mine if there are already another mine of the same type nearby, it is inefficient because of
+      //  the way that underground mined resources are depleted, if the first runs out the second will find little or nothing
+      int found = 0;
+      for (unsigned int i = 0; i < AI::spiral_dist(12); i++) {
+        MapPos pos = map->pos_add_extended_spirally(corner_pos, i);
+        if (map->has_building(pos) && map->get_owner(pos) == player_index){
+          Building *building = game->get_building_at_pos(pos);
+          if (building != nullptr){
+            if (building->get_type() == building_type){
+              AILogVerbose["do_place_mines"] << inventory_pos << " found another mine of type " << NameBuilding[building_type] << " near where looking to place another, not building";
+              found++;
               break;
             }
           }
-        } // foreach hills pos spirally
-        mine_count = stock_buildings.at(inventory_pos).count[building_type];
-        if (mine_count >= max_mines) {
-          AILogDebug["do_place_mines"] << inventory_pos << " Already placed " << type << " mine, not building more";
-          return;
         }
-      } // foreach corner
-    } // foreach military building
-  } // if < max_mines
+      }
+      if (found){
+        AILogDebug["do_place_mines"] << inventory_pos << " found at least one other mine of same type " << NameBuilding[building_type] << " nearby, not placing another.  Skipping this corner area";
+        continue;
+      }
+      // try to build a mine on a Large resource sign if found,
+      //    or if a Small resource find and sign_ratio is high enough
+      // note - because we are checking even if blank signs found, this is sub-optimal.
+      //   could improve by calculating sign_density in a way that lets us ignore blank
+      //    signs when determining if trying to place mine
+      AILogVerbose["do_place_mines"] << inventory_pos << " " << type << " mine: looking for a place to build a " << type << " mine near corner " << corner_pos;
+      for (unsigned int i = 0; i < AI::spiral_dist(4); i++) {
+        MapPos pos = map->pos_add_extended_spirally(corner_pos, i);
+        if (!game->can_build_mine(pos)) {
+          continue;
+        }
+        if (map->get_owner(pos) != player_index) {
+          continue;
+        }
+        Map::Object obj = map->get_obj(pos);
+        if (obj == large_sign || (obj == small_sign && sign_density >= sign_density_min)) {
+          AILogInfo["do_place_mines"] << inventory_pos << " trying to build " << type << " mine at pos " << pos;
+          MapPos built_pos = bad_map_pos;
+          // note that distance = 1 means ONLY THIS SPOT
+          built_pos = AI::build_near_pos(pos, 1, building_type);
+          if (built_pos != bad_map_pos && built_pos != notplaced_pos) {
+            AILogInfo["do_place_mines"] << inventory_pos << " built " << type << " mine at pos " << built_pos;
+            stock_buildings.at(inventory_pos).count[building_type]++;
+            //stock_buildings.at(inventory_pos).unfinished_count++;  // do NOT include placed-but-not-connected mines in unfinished_count!
+            break;
+          }
+        }
+      } // foreach hills pos spirally
+    } // foreach corner
+  } // foreach military building
   duration = (std::clock() - start) / static_cast<double>(CLOCKS_PER_SEC);
   AILogDebug["do_place_mines"] << inventory_pos << " plot do_place_mines call took " << duration;
 }
@@ -2535,19 +2562,19 @@ AI::do_place_mines(std::string type, Building::Type building_type, Map::Object l
 void
 AI::do_place_coal_mines() {
   AILogDebug["do_place_coal_mines"] << name << " inside do_place_coal_mines()";
-  do_place_mines("coal", Building::TypeCoalMine, Map::ObjectSignLargeCoal, Map::ObjectSignSmallCoal, max_coalmines, coal_sign_density_min);
+  do_place_mines("coal", Building::TypeCoalMine, Map::ObjectSignLargeCoal, Map::ObjectSignSmallCoal, coal_sign_density_min);
 }
 
 void
 AI::do_place_iron_mines() {
   AILogDebug["do_place_iron_mines"] << name << " inside do_place_iron_mines()";
-  do_place_mines("iron", Building::TypeIronMine, Map::ObjectSignLargeIron, Map::ObjectSignSmallIron, max_ironmines, iron_sign_density_min);
+  do_place_mines("iron", Building::TypeIronMine, Map::ObjectSignLargeIron, Map::ObjectSignSmallIron, iron_sign_density_min);
 }
 
 void
 AI::do_place_gold_mines(){
   AILogDebug["do_place_gold_mines"] << name << " inside do_place_gold_mines()";
-  do_place_mines("gold", Building::TypeGoldMine, Map::ObjectSignLargeGold, Map::ObjectSignSmallGold, max_goldmines, gold_sign_density_min);
+  do_place_mines("gold", Building::TypeGoldMine, Map::ObjectSignLargeGold, Map::ObjectSignSmallGold, gold_sign_density_min);
 }
 
 
@@ -3276,6 +3303,7 @@ AI::do_connect_coal_mines() {
         game->get_mutex()->lock();
         AILogVerbose["do_connect_coal_mines"] << inventory_pos << " thread #" << std::this_thread::get_id() << " AI has locked mutex before calling demolish flag&building (failed to connect coal mine)";
         game->demolish_building(flag->get_building()->get_position(), player);
+        sleep_speed_adjusted(1000);
         AILogDebug["do_connect_coal_mines"] << inventory_pos << " demolishing flag for coal mine that could not be connected to road network";
         game->demolish_flag(flag->get_position(), player);
         AILogVerbose["do_connect_coal_mines"] << inventory_pos << " thread #" << std::this_thread::get_id() << " AI is unlocking mutex after calling demolish flag&building (failed to connect coal mine)";
@@ -3334,6 +3362,7 @@ AI::do_connect_iron_mines() {
         game->get_mutex()->lock();
         AILogVerbose["do_connect_iron_mines"] << inventory_pos << " thread #" << std::this_thread::get_id() << " AI has locked mutex before calling demolish flag&building (failed to connect iron mine)";
         game->demolish_building(flag->get_building()->get_position(), player);
+        sleep_speed_adjusted(1000);
         AILogDebug["do_connect_iron_mines"] << inventory_pos << " demolishing flag for iron mine that could not be connected to road network";
         game->demolish_flag(flag->get_position(), player);
         AILogVerbose["do_connect_iron_mines"] << inventory_pos << " thread #" << std::this_thread::get_id() << " AI is unlocking mutex after calling demolish flag&building (failed to connect iron mine)";
@@ -3529,6 +3558,7 @@ AI::do_build_gold_smelter_and_connect_gold_mines() {
         game->get_mutex()->lock();
         AILogVerbose["do_build_gold_smelter_and_connect_gold_mines"] << inventory_pos << " thread #" << std::this_thread::get_id() << " AI has locked mutex before calling demolish flag&building (failed to connect gold mine)";
         game->demolish_building(flag->get_building()->get_position(), player);
+        sleep_speed_adjusted(1000);
         AILogDebug["do_build_gold_smelter_and_connect_gold_mines"] << inventory_pos << " demolishing flag for gold mine that could not be connected to road network";
         game->demolish_flag(flag->get_position(), player);
         AILogVerbose["do_build_gold_smelter_and_connect_gold_mines"] << inventory_pos << " thread #" << std::this_thread::get_id() << " AI is unlocking mutex after calling demolish flag&building (failed to connect gold mine)";
@@ -4269,6 +4299,7 @@ AI::do_connect_disconnected_road_networks(){
         rejected = true;
       }else if (other_end_flag == nullptr){
         AILogWarn["do_connect_disconnected_road_networks"] << " RARE sanity check failed! other_end_flag in dir " << dir << " / " << NameDirection[dir] << " is nullptr, but map has path in dir! is this Dir4/UpLeft?  is there a building here?";
+        AILogError["do_connect_disconnected_road_networks"] << " pausing for debugging";
         game->pause();
       }
 

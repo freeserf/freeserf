@@ -1222,6 +1222,7 @@ Game::remove_road_forwards(MapPos pos, Direction dir) {
         if (d == reverse_direction(dir)) {
           Log::Debug["game"] << " about to call set_lost_state on serf at pos " << pos << " case2, maps says flag here but note says serf is walking in the 'wrong direction'";
           Log::Error["game"] << " ATTEMPTING TO WORK AROUND BUG BY NOT SETTING THIS SERF TO LOST, instead doing... nothing";
+          // dec10 2021 saw this trigger once and it seems to work with no obvious side effects, it triggered for flag adjacent to castle flag
           //serf->set_lost_state();
         }
       }
