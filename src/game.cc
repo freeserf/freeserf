@@ -1896,10 +1896,10 @@ Game::can_demolish_flag(MapPos pos, const Player *player) const {
 
 bool
 Game::demolish_flag_(MapPos pos) {
-  /* Handle any serf at pos. */
 
-  //  actually, nevermind.  It should not be possible to delete a flag that is at the end of a water path
-  //   unless first deleting the water path itself
+  Log::Debug["game"] << " inside demolish_flag_ for flag at pos " << pos;
+
+  /* Handle any serf at pos. */
   if (map->has_serf(pos)) {
     Serf *serf = get_serf_at_pos(pos);
     serf->flag_deleted(pos);
@@ -1910,22 +1910,34 @@ Game::demolish_flag_(MapPos pos) {
     throw ExceptionFreeserf("Failed to demolish flag with building.");
   }
 
+  Log::Debug["game"] << " inside demolish_flag_ for flag at pos " << pos << " A";
+
   flag_remove_player_refs(flag);
+
+  Log::Debug["game"] << " inside demolish_flag_ for flag at pos " << pos << " B";
 
   /* Handle connected flag. */
   flag->merge_paths(pos);
 
+  Log::Debug["game"] << " inside demolish_flag_ for flag at pos " << pos << " C";
+
   /* Update serfs with reference to this flag. */
   for (Serf *serf : serfs) {
+    Log::Debug["game"] << " inside demolish_flag_ for flag at pos " << pos << " Ca";
     serf->path_merged(flag);
+    Log::Debug["game"] << " inside demolish_flag_ for flag at pos " << pos << " Cb";
   }
+  Log::Debug["game"] << " inside demolish_flag_ for flag at pos " << pos << " D";
 
   map->set_object(pos, Map::ObjectNone, 0);
+  Log::Debug["game"] << " inside demolish_flag_ for flag at pos " << pos << " E";
 
   /* Remove resources from flag. */
   flag->remove_all_resources();
+  Log::Debug["game"] << " inside demolish_flag_ for flag at pos " << pos << " F";
 
   flags.erase(flag->get_index());
+  Log::Debug["game"] << " inside demolish_flag_ for flag at pos " << pos << " G";
 
   return true;
 }

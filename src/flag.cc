@@ -1012,13 +1012,11 @@ bool
 Flag::is_connected() const {
   for (Direction d : cycle_directions_cw()) {
     if (has_path(d)) {
-      if (d == DirectionUpLeft){
-        Log::Debug["flag"] << "inside is_connected, has_path(DirectionUpLeft) returned true";
-      }
       if (d == DirectionUpLeft && has_building()){ 
-        Log::Debug["flag"] << "inside is_connected, has_path(DirectionUpLeft), has_building is true for this flag";
+        //Log::Debug["flag"] << "inside is_connected, has_path(DirectionUpLeft), has_building is true for this flag";
         continue;
       }
+      /*
       // is has_building never returning true for incomplete disconnected buildings??
       // if (map->has_building(map->move_up_left(optional_target))) {  this call in build_best_road finds the building...
       if (d == DirectionUpLeft && game->get_map()->has_building(game->get_map()->move_up_left(this->get_position()))){
@@ -1026,6 +1024,7 @@ Flag::is_connected() const {
         game->pause();
         continue;
       }
+      */
       return true;
     }
   }

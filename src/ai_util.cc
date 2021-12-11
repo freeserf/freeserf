@@ -1088,9 +1088,9 @@ AI::build_best_road(MapPos start_pos, RoadOptions road_options, Road *built_road
         }
         // if this is "tracked economy building", ensure the end_pos flag is closest to the currently selected Inventory (castle/warehouse)
         if (verify_stock == true){
-          // this should use FLAG ONLY
-          //if (find_nearest_inventory(map, player_index, end_pos, DistType::FlagAndStraightLine, &ai_mark_pos) != inventory_pos){
-          if (find_nearest_inventory(map, player_index, end_pos, DistType::FlagOnly, &ai_mark_pos) != inventory_pos){
+          // this should use FLAG ONLY  (wait no, FlagAndStraightLine is more restrictive and good for placing new buildings
+          if (find_nearest_inventory(map, player_index, end_pos, DistType::FlagAndStraightLine, &ai_mark_pos) != inventory_pos){
+          //if (find_nearest_inventory(map, player_index, end_pos, DistType::FlagOnly, &ai_mark_pos) != inventory_pos){
             AILogDebug["util_build_best_road"] << " " << calling_function << " non-direct road requested, plotting direct roads to nearby_flags, verify_stock - DIRECT road - flag at end_pos " << end_pos << " is not closest to current inventory_pos " << inventory_pos << ", skipping";
             break;
           }
@@ -1158,9 +1158,9 @@ AI::build_best_road(MapPos start_pos, RoadOptions road_options, Road *built_road
               //AILogDebug["util_build_best_road"] << " " << calling_function << " non-direct road requested, split_roads, verify_stock - found a path for splitting flag at split_end_pos " << split_end_pos << " in dir " << NameDirection[dir];
               MapPos adjacent_flag_pos = split_road.get_end(map.get());
               //AILogDebug["util_build_best_road"] << " " << calling_function << " non-direct road requested, split_roads, verify_stock - path for splitting flag at split_end_pos " << split_end_pos << " in dir " << NameDirection[dir] << " ends at flag at pos " << adjacent_flag_pos;
-              // changing to FlagOnly
-              //if (find_nearest_inventory(map, player_index, adjacent_flag_pos, DistType::FlagAndStraightLine, &ai_mark_pos) != inventory_pos){
-              if (find_nearest_inventory(map, player_index, adjacent_flag_pos, DistType::FlagOnly, &ai_mark_pos) != inventory_pos){
+              // this should use FLAG ONLY  (wait no, FlagAndStraightLine is more restrictive and good for placing new buildings
+              if (find_nearest_inventory(map, player_index, adjacent_flag_pos, DistType::FlagAndStraightLine, &ai_mark_pos) != inventory_pos){
+              //if (find_nearest_inventory(map, player_index, adjacent_flag_pos, DistType::FlagOnly, &ai_mark_pos) != inventory_pos){
                 //AILogDebug["util_build_best_road"] << " " << calling_function << " non-direct road requested, split_roads, verify_stock - potential split_road flag at split_end_pos " << split_end_pos << " is not closest to current inventory_pos " << inventory_pos << ", skipping";
                 disqualified++;
               }
@@ -2357,8 +2357,9 @@ AI::build_near_pos(MapPos center_pos, unsigned int distance, Building::Type buil
         //  flag/road already exists
         if (verify_stock == true){
           // this needs to be FLAG ONLY
-          //if (find_nearest_inventory(map, player_index, flag_pos, DistType::FlagAndStraightLine, &ai_mark_pos) != inventory_pos){
-          if (find_nearest_inventory(map, player_index, flag_pos, DistType::FlagOnly, &ai_mark_pos) != inventory_pos){
+          // wait, no why would it be Flag only, FlagAndStraightLine is *more* restrictive, which is generall good
+          //if (find_nearest_inventory(map, player_index, flag_pos, DistType::FlagOnly, &ai_mark_pos) != inventory_pos){
+          if (find_nearest_inventory(map, player_index, flag_pos, DistType::FlagAndStraightLine, &ai_mark_pos) != inventory_pos){
             AILogDebug["util_build_best_road"] << name << " verify_stock for existing flag - flag at flag_pos " << flag_pos << " is not closest to current inventory_pos " << inventory_pos << ", skipping";
             // if a new flag was built, remove it
             if (built_new_flag){

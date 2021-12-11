@@ -835,16 +835,14 @@ AI::do_fix_stuck_serfs() {
       if (game->get_tick() > trigger_tick) {
         AILogDebug["do_fix_stuck_serfs"] << name << " SerfWaitTimer triggering serf_wait_idle_on_road_timer for serf " << serf->get_index() << " and serf type " << NameSerf[serf->get_type()] << " at pos " << serf->get_pos();
 
-        AILogDebug["do_fix_stuck_serfs"] << name << " SerfWaitTimer detected WAIT_IDLE_ON_PATH STUCK SERF at pos " << serf->get_pos() << ", marking its current pos in lt_purple";
+        AILogDebug["do_fix_stuck_serfs"] << name << " SerfWaitTimer detected WAIT_IDLE_ON_PATH STUCK SERF at pos " << serf->get_pos() << " of type " << NameSerf[serf->get_type()] << ", marking its current pos in lt_purple";
         ai_mark_pos.insert(ColorDot(serf->get_pos(), "lt_purple"));
         // I THINK I FIXED THIS ISSUE FOR GOOD - see https://github.com/freeserf/freeserf/issues/492
         //  changing this to a crash exception in case I am wrong about the fix being 100% effective
+        //  nope it sitll happens just less often, I might be wrong about the root cause
         sleep_speed_adjusted(120000);
-        AILogDebug["do_fix_stuck_serfs"] << name << " SerfWaitTimer detected WAIT_IDLE_ON_PATH STUCK SERF at pos " << serf->get_pos() << " of type " << NameSerf[serf->get_type()] << ", I THOUGHT I FIXED THIS! crashing.  check to see";
-        // still seeing this happen for Transporter serfs... but rare... keep an eye on it
-        AILogError["do_fix_stuck_serfs"] << name << " pausing game for debugging";
-        game->pause();
         //throw ExceptionFreeserf("SerfWaitTimer detected WAIT_IDLE_ON_PATH STUCK SERF at pos - I THOUGHT I FIXED THIS");
+
         // don't erase timer if problem isn't fixed yet, keep checking each AI loop
         AILogDebug["do_fix_stuck_serfs"] << name << " SerfWaitTimer attempting to set serf to lost state, updating marking to purple";
         ai_mark_pos.erase(serf->get_pos());
@@ -865,7 +863,6 @@ AI::do_fix_stuck_serfs() {
         //   in the realm and not a place where a Digger was even needed.  Maybe a bad pointer somewhere is causing the walking_dest to be set to someplace invalid and this is
         //     the cause of the stuck serf WAIT_IDLE_ON_PATH issue???
         AILogDebug["do_fix_stuck_serfs"] << name << " about to boot serf with job type: " << serf->get_type() << " " << NameSerf[serf->get_type()] << " with walking_dest/flag_pos " << serf_dest_flag_pos;
-        /*
         if (serf_job == Serf::TypeTransporter) {
           AILogDebug["do_fix_stuck_serfs"] << name << " WARNING - a transporter was booted, see if this causes flag at map_pos " << serf_dest_flag_pos << " to be without a transporter!";
         }
@@ -878,20 +875,19 @@ AI::do_fix_stuck_serfs() {
           AILogDebug["do_fix_stuck_serfs"] << name << " WARNING - a knight was booted, see if this causes military building with flag pos " << serf_dest_flag_pos << " to have a forever empty slot!";
           //::this_thread::sleep_for(std::chrono::milliseconds(6000);
         }
-        */
-       /* DONT ACTUALLY SET THEM TO LOST - just observere for now, as I think I fixed the bug
         AILogDebug["do_fix_stuck_serfs"] << name << " thread #" << std::this_thread::get_id() << " AI is locking mutex before calling serf->set_lost_state (for bug workaround stuck serfs)";
         game->get_mutex()->lock();
         AILogDebug["do_fix_stuck_serfs"] << name << " thread #" << std::this_thread::get_id() << " AI has locked mutex before calling serf->set_lost_state (for bug workaround stuck serfs)";
-        // feb09 2021, try setting them to Walking state instead...
-        //   nope, that doesn't work.  find out why Walking crashes.  Back to Lost
         serf->set_lost_state();
-        //serf->set_serf_state(Serf::StateWalking);  // this crashes
         AILogDebug["do_fix_stuck_serfs"] << name << " thread #" << std::this_thread::get_id() << " AI is unlocking mutex after after serf->set_lost_state (for bug workaround stuck serfs)";
         game->get_mutex()->unlock();
         AILogDebug["do_fix_stuck_serfs"] << name << " thread #" << std::this_thread::get_id() << " AI has unlocked mutex after after serf->set_lost_state (for bug workaround stuck serfs)";
-        //game->pause();
-        */
+        // still seeing this happen for Transporter serfs... but rare... keep an eye on it
+        //  the first time I watched this closely since tracking serf dests I saw a transporter on way to a flag
+        //  to become a transporter, and whent it was made lost a replacement seems to have been sent, which is good
+        AILogError["do_fix_stuck_serfs"] << name << " pausing game for debugging";
+        sleep_speed_adjusted(1000);
+        game->pause();
       }
       ++serf_wait_idle_on_road_timer;
     }
@@ -1843,20 +1839,12 @@ AI::do_remove_road_stubs() {
       for (unsigned int i = 0; i < AI::spiral_dist(4); i++) {
         MapPos pos = map->pos_add_extended_spirally(flag->get_building()->get_position(), i);
         // this seems to be building to disconnected flags (mines), try to find out why
-        if (map->has_flag(pos) && pos != flag_pos && flag->get_owner() == player_index && flag->is_connected()
+        if (map->has_flag(pos) && pos != flag_pos && game->get_flag_at_pos(pos)->get_owner() == player_index && game->get_flag_at_pos(pos)->is_connected()
          || (game->can_build_flag(pos, player) && map->has_any_path(pos))) {
-          //DEBUG
+
           if (map->has_flag(pos) && pos != flag_pos && flag->get_owner() == player_index && flag->is_connected()){
             AILogDebug["do_remove_road_stubs"] << " debug - suitable connected flag found at pos " << pos;
-            // dump the dirs, this is still lying
-            for (Direction wtf_dir : cycle_directions_cw()){
-              if (map->has_path_IMPROVED(pos, wtf_dir)){
-                AILogDebug["do_remove_road_stubs"] << " debugmore - suitable connected flag found at pos " << pos << " has a path in dir " << wtf_dir << " / " << NameDirection[wtf_dir];
-              }
-            }
           }
-
-          //DEBUG
           if (game->can_build_flag(pos, player) && map->has_any_path(pos))
             AILogDebug["do_remove_road_stubs"] << " debug - can build new flag at sutable pos " << pos;
 
@@ -3303,9 +3291,14 @@ AI::do_connect_coal_mines() {
         game->get_mutex()->lock();
         AILogVerbose["do_connect_coal_mines"] << inventory_pos << " thread #" << std::this_thread::get_id() << " AI has locked mutex before calling demolish flag&building (failed to connect coal mine)";
         game->demolish_building(flag->get_building()->get_position(), player);
-        sleep_speed_adjusted(1000);
         AILogDebug["do_connect_coal_mines"] << inventory_pos << " demolishing flag for coal mine that could not be connected to road network";
-        game->demolish_flag(flag->get_position(), player);
+        // getting crashes here, try checking for flag is nullptr
+        if (flag == nullptr){
+          AILogWarn["do_connect_coal_mines"] << inventory_pos << " debug flag is now nullptr, not running demolish_flag";
+        }else{
+          AILogWarn["do_connect_coal_mines"] << inventory_pos << " debug about to call demolish_flag";
+          game->demolish_flag(flag->get_position(), player);
+        }
         AILogVerbose["do_connect_coal_mines"] << inventory_pos << " thread #" << std::this_thread::get_id() << " AI is unlocking mutex after calling demolish flag&building (failed to connect coal mine)";
         game->get_mutex()->unlock();
         AILogVerbose["do_connect_coal_mines"] << inventory_pos << " thread #" << std::this_thread::get_id() << " AI has unlocked mutex after calling demolish flag&building (failed to connect coal mine)";
@@ -3362,9 +3355,14 @@ AI::do_connect_iron_mines() {
         game->get_mutex()->lock();
         AILogVerbose["do_connect_iron_mines"] << inventory_pos << " thread #" << std::this_thread::get_id() << " AI has locked mutex before calling demolish flag&building (failed to connect iron mine)";
         game->demolish_building(flag->get_building()->get_position(), player);
-        sleep_speed_adjusted(1000);
         AILogDebug["do_connect_iron_mines"] << inventory_pos << " demolishing flag for iron mine that could not be connected to road network";
-        game->demolish_flag(flag->get_position(), player);
+        // getting crashes here, try checking for flag is nullptr
+        if (flag == nullptr){
+          AILogWarn["do_connect_iron_mines"] << inventory_pos << " debug flag is now nullptr, not running demolish_flag";
+        }else{
+          AILogWarn["do_connect_iron_mines"] << inventory_pos << " debug about to call demolish_flag";
+          game->demolish_flag(flag->get_position(), player);
+        }
         AILogVerbose["do_connect_iron_mines"] << inventory_pos << " thread #" << std::this_thread::get_id() << " AI is unlocking mutex after calling demolish flag&building (failed to connect iron mine)";
         game->get_mutex()->unlock();
         AILogVerbose["do_connect_iron_mines"] << inventory_pos << " thread #" << std::this_thread::get_id() << " AI has unlocked mutex after calling demolish flag&building (failed to connect iron mine)";
@@ -3558,9 +3556,14 @@ AI::do_build_gold_smelter_and_connect_gold_mines() {
         game->get_mutex()->lock();
         AILogVerbose["do_build_gold_smelter_and_connect_gold_mines"] << inventory_pos << " thread #" << std::this_thread::get_id() << " AI has locked mutex before calling demolish flag&building (failed to connect gold mine)";
         game->demolish_building(flag->get_building()->get_position(), player);
-        sleep_speed_adjusted(1000);
         AILogDebug["do_build_gold_smelter_and_connect_gold_mines"] << inventory_pos << " demolishing flag for gold mine that could not be connected to road network";
-        game->demolish_flag(flag->get_position(), player);
+        // getting crashes here, try checking for flag is nullptr
+        if (flag == nullptr){
+          AILogWarn["do_build_gold_smelter_and_connect_gold_mines"] << inventory_pos << " debug flag is now nullptr, not running demolish_flag";
+        }else{
+          AILogWarn["do_build_gold_smelter_and_connect_gold_mines"] << inventory_pos << " debug about to call demolish_flag";
+          game->demolish_flag(flag->get_position(), player);
+        }
         AILogVerbose["do_build_gold_smelter_and_connect_gold_mines"] << inventory_pos << " thread #" << std::this_thread::get_id() << " AI is unlocking mutex after calling demolish flag&building (failed to connect gold mine)";
         game->get_mutex()->unlock();
         AILogVerbose["do_build_gold_smelter_and_connect_gold_mines"] << inventory_pos << " thread #" << std::this_thread::get_id() << " AI has unlocked mutex after calling demolish flag&building (failed to connect gold mine)";

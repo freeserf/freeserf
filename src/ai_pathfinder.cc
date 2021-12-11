@@ -652,12 +652,12 @@ AI::find_nearest_inventory(PMap map, unsigned int player_index, MapPos pos, Dist
   }
 
   if (dist_type == DistType::StraightLineOnly){
-    AILogDebug["util_find_nearest_inventory"] << name << " returning by_straightline_dist " << by_straightline_dist;
+    AILogDebug["util_find_nearest_inventory"] << name << " returning nearest Inventory pos by_straightline_dist: " << by_straightline_dist;
     return by_straightline_dist;
   }
 
   if (dist_type == DistType::FlagOnly){
-    AILogDebug["util_find_nearest_inventory"] << name << " returning by_flag_dist " << by_flag_dist;
+    AILogDebug["util_find_nearest_inventory"] << name << " returning nearest Inventory pos by_flag_dist: " << by_flag_dist;
     return by_flag_dist;
   }
 

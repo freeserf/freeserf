@@ -146,6 +146,7 @@ class Flag : public GameObject {
   /* Whether a building is connected to this flag. If so, the pointer to
    the other endpoint is a valid building pointer.
    (Always at UP LEFT direction). */
+  // WHY IS THIS RETURNING FALSE FOR UNBUILT MINES THAT HAVE NO CONNECTIONS???
   bool has_building() const { return (endpoint >> 6) & 1; }
 
   /* Whether resources exist that are not yet scheduled. */
