@@ -136,6 +136,10 @@ Game::clear_serf_request_failure() {
     building->clear_serf_request_failure();
   }
 
+  // dec10 2021 got vector iterators incompatible at for(Flag *flag : flags)
+  // again same day
+  // this is very likely because AI is invaliding game->Flags, added some extra mutex and
+  //  copying of Flags when iterating so avoid this, see if it fixes it
   for (Flag *flag : flags) {
     flag->serf_request_clear();
   }
@@ -281,7 +285,7 @@ Game::update_inventories_cb(Flag *flag, void *d) {
    resources that are needed outside of the inventory into the out queue. */
 void
 Game::update_inventories() {
-	//Log::Debug["game"] << " debug: inside Game::update_inventories(), start of function";
+	//Log::Debug["game"] << "debug: inside Game::update_inventories(), start of function";
   const Resource::Type arr_1[] = {
     Resource::TypePlank,
     Resource::TypeStone,
@@ -473,10 +477,10 @@ Game::update_inventories() {
         // if max_prio >0 that means there is a building at this
         //  flag which can request resources
         if (max_prio[i] > 0) {
-          //Log::Verbose["game"] << " dest for inventory " << i << "found";
+          //Log::Verbose["game"] << "dest for inventory " << i << "found";
           Resource::Type res = (Resource::Type)arr[0];
 		  
-		  //Log::Info["game"] << " debug: inside update_inventories, i == " << i << ", expecting it to be way under 256";
+		  //Log::Info["game"] << "debug: inside update_inventories, i == " << i << ", expecting it to be way under 256";
 
           Building *dest_bld = flags_[i]->get_building();
           //Log::Info["flag"] << "inside Game::update_inventories, about to call add_requested_resource for dest_bld of type " << NameBuilding[dest_bld->get_type()];
@@ -1212,7 +1216,7 @@ Game::remove_road_forwards(MapPos pos, Direction dir) {
       Serf *serf = get_serf_at_pos(pos);
       if (!map->has_flag(pos)) {
         serf->set_lost_state();
-        Log::Debug["game"] << " about to call set_lost_state on serf at pos " << pos << " case1, map says no flag here";;
+        Log::Debug["game"] << "about to call set_lost_state on serf at pos " << pos << " case1, map says no flag here";;
       } else {
         /* Handle serf close to flag, where
            it should only be lost if walking
@@ -1220,8 +1224,8 @@ Game::remove_road_forwards(MapPos pos, Direction dir) {
         int d = serf->get_walking_dir();
         if (d < 0) d += 6;
         if (d == reverse_direction(dir)) {
-          Log::Debug["game"] << " about to call set_lost_state on serf at pos " << pos << " case2, maps says flag here but note says serf is walking in the 'wrong direction'";
-          Log::Error["game"] << " ATTEMPTING TO WORK AROUND BUG BY NOT SETTING THIS SERF TO LOST, instead doing... nothing";
+          Log::Debug["game"] << "about to call set_lost_state on serf at pos " << pos << " case2, maps says flag here but note says serf is walking in the 'wrong direction'";
+          Log::Error["game"] << "ATTEMPTING TO WORK AROUND BUG BY NOT SETTING THIS SERF TO LOST, instead doing... nothing";
           // dec10 2021 saw this trigger once and it seems to work with no obvious side effects, it triggered for flag adjacent to castle flag
           //serf->set_lost_state();
         }
@@ -1897,7 +1901,7 @@ Game::can_demolish_flag(MapPos pos, const Player *player) const {
 bool
 Game::demolish_flag_(MapPos pos) {
 
-  Log::Debug["game"] << " inside demolish_flag_ for flag at pos " << pos;
+  Log::Debug["game"] << "inside demolish_flag_ for flag at pos " << pos;
 
   /* Handle any serf at pos. */
   if (map->has_serf(pos)) {
@@ -1910,34 +1914,34 @@ Game::demolish_flag_(MapPos pos) {
     throw ExceptionFreeserf("Failed to demolish flag with building.");
   }
 
-  Log::Debug["game"] << " inside demolish_flag_ for flag at pos " << pos << " A";
+  Log::Debug["game"] << "inside demolish_flag_ for flag at pos " << pos << " A";
 
   flag_remove_player_refs(flag);
 
-  Log::Debug["game"] << " inside demolish_flag_ for flag at pos " << pos << " B";
+  Log::Debug["game"] << "inside demolish_flag_ for flag at pos " << pos << " B";
 
   /* Handle connected flag. */
   flag->merge_paths(pos);
 
-  Log::Debug["game"] << " inside demolish_flag_ for flag at pos " << pos << " C";
+  Log::Debug["game"] << "inside demolish_flag_ for flag at pos " << pos << " C";
 
   /* Update serfs with reference to this flag. */
   for (Serf *serf : serfs) {
-    Log::Debug["game"] << " inside demolish_flag_ for flag at pos " << pos << " Ca";
+    Log::Debug["game"] << "inside demolish_flag_ for flag at pos " << pos << " Ca";
     serf->path_merged(flag);
-    Log::Debug["game"] << " inside demolish_flag_ for flag at pos " << pos << " Cb";
+    Log::Debug["game"] << "inside demolish_flag_ for flag at pos " << pos << " Cb";
   }
-  Log::Debug["game"] << " inside demolish_flag_ for flag at pos " << pos << " D";
+  Log::Debug["game"] << "inside demolish_flag_ for flag at pos " << pos << " D";
 
   map->set_object(pos, Map::ObjectNone, 0);
-  Log::Debug["game"] << " inside demolish_flag_ for flag at pos " << pos << " E";
+  Log::Debug["game"] << "inside demolish_flag_ for flag at pos " << pos << " E";
 
   /* Remove resources from flag. */
   flag->remove_all_resources();
-  Log::Debug["game"] << " inside demolish_flag_ for flag at pos " << pos << " F";
+  Log::Debug["game"] << "inside demolish_flag_ for flag at pos " << pos << " F";
 
   flags.erase(flag->get_index());
-  Log::Debug["game"] << " inside demolish_flag_ for flag at pos " << pos << " G";
+  Log::Debug["game"] << "inside demolish_flag_ for flag at pos " << pos << " G";
 
   return true;
 }
@@ -2972,15 +2976,15 @@ operator >> (SaveReaderText &reader, Game &game) {
       //  occupier and the building will never be filled
       // debug WaitIdleOnPath
       if (serf->get_state() == Serf::StateWaitIdleOnPath) {
-        Log::Warn["game"] << " StateWaitIdleOnPath check, a serf with state " << serf->get_state() << " at pos " << serf->get_pos() << " with type " << serf->get_type() << " is being set_idle_serf";
+        Log::Warn["game"] << "StateWaitIdleOnPath check, a serf with state " << serf->get_state() << " at pos " << serf->get_pos() << " with type " << serf->get_type() << " is being set_idle_serf";
         if (serf->debug_get_idle_on_path_flag() == 1){
-          Log::Error["game"] << " StateWaitIdleOnPath check, a serf with state " << serf->get_state() << " at pos " << serf->get_pos() << " with type " << serf->get_type() << " is being set_idle_serf and has s.idle_on_path.flag index of " << serf->debug_get_idle_on_path_flag();
+          Log::Error["game"] << "StateWaitIdleOnPath check, a serf with state " << serf->get_state() << " at pos " << serf->get_pos() << " with type " << serf->get_type() << " is being set_idle_serf and has s.idle_on_path.flag index of " << serf->debug_get_idle_on_path_flag();
           // try "disappearing" this serf
           //serf->set_serf_state(Serf::StateNull);
           //delete_serf(serf);
           //game.delete_serf(serf);
           //serf->debug_set_pos(bad_map_pos);
-          //Log::Error["game"] << " StateWaitIdleOnPath check, set serf to bad_map_pos";
+          //Log::Error["game"] << "StateWaitIdleOnPath check, set serf to bad_map_pos";
           serf->set_lost_state();
           continue;
         }

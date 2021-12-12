@@ -30,7 +30,7 @@ RoadBuilderRoad::RoadBuilderRoad(MapPos e1, Direction d1, MapPos e2, Direction d
 
 RoadBuilderRoad::RoadBuilderRoad(RoadEnds ends, Road r) {
   // need to make these able to log to AILogs
-  //Log::Debug["roadbuilder_init"] << " inside RoadBuilderRoad::RoadBuilderRoad";
+  //Log::Debug["roadbuilder_init"] << "inside RoadBuilderRoad::RoadBuilderRoad";
   end1 = std::get<0>(ends);
   dir1 = std::get<1>(ends);
   end2 = std::get<2>(ends);

@@ -477,6 +477,7 @@ class Serf : public GameObject {
 
   // AI addition to help debug lack of serf transporter issue/bug
   unsigned int get_walking_dest() const { return s.walking.dest; }
+  unsigned int get_recent_dest() const { return recent_dest; } // flag index of the most recent dest flag when serf last left an Inv
 
   // Commands
   // the go_out_from_inventory declaration says arg2 is a MapPos, but src->get_index() returns a Flag index not a Map Pos, wtf??

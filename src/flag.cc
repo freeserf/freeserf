@@ -1183,7 +1183,7 @@ Flag::merge_paths(MapPos pos_) {
   SerfPathInfo path_1_data;
   SerfPathInfo path_2_data;
 
-  Log::Debug["flag"] << " inside merge_paths, flag removed from pos " << pos << ", about to call fill_path_serf_info ";
+  Log::Debug["flag"] << "inside merge_paths, flag removed from pos " << pos << ", about to call fill_path_serf_info ";
   fill_path_serf_info(game, pos_, path_1_dir, &path_1_data);
   fill_path_serf_info(game, pos_, path_2_dir, &path_2_data);
 
@@ -1365,7 +1365,7 @@ Flag::call_transporter(Direction dir, bool water) {
   // got a write access violation here, src_2 was nullptr
   //  I think this is an AI- specific issue related to the missing transporter work-around
   if (src_2 == nullptr) {
-    Log::Warn["flag"] << " Flag::call_transporter - nullptr found when doing Flag *src_2 = other_endpoint.f[dir], returning false  FIND OUT WHY!";
+    Log::Warn["flag"] << "Flag::call_transporter - nullptr found when doing Flag *src_2 = other_endpoint.f[dir], returning false  FIND OUT WHY!";
     return false;
   }
   src_2->search_dir = DirectionDownRight;

@@ -14,12 +14,12 @@ AI::AI(PGame current_game, unsigned int _player_index) {
   player_index = _player_index;
   name = "Player" + std::to_string(player_index);
 
-  AILogInfo["init"] << name << " inside AI::AI constructor with player_index: " << player_index;
-  AILogVerbose["init"] << name << " AI log level is at least verbose";
-  AILogDebug["init"] << name << " AI log level is at least debug";
-  AILogInfo["init"] << name << " AI log level is at least info";
-  AILogWarn["init"] << name << " AI log level is at least warn";
-  AILogError["init"] << name << " AI log level is at least error";
+  AILogInfo["init"] << "inside AI::AI constructor with player_index: " << player_index;
+  AILogVerbose["init"] << "AI log level is at least verbose";
+  AILogDebug["init"] << "AI log level is at least debug";
+  AILogInfo["init"] << "AI log level is at least info";
+  AILogWarn["init"] << "AI log level is at least warn";
+  AILogError["init"] << "AI log level is at least error";
 
   game = current_game;
   map = game->get_map();
@@ -70,7 +70,7 @@ AI::AI(PGame current_game, unsigned int _player_index) {
   need_tools = false;
 
   // this seems to result in bogus value - 32??
-  AILogDebug["init"] << name << " setting initial knight garrison levels to minimum";
+  AILogDebug["init"] << "setting initial knight garrison levels to minimum";
   // change this to only happen on NEW game!  not on save game load
   player->change_knight_occupation(0, 0, -5);
   player->change_knight_occupation(0, 1, -5);
@@ -84,47 +84,47 @@ AI::AI(PGame current_game, unsigned int _player_index) {
 
 void
 AI::start() {
-  AILogInfo["start"] << name << " AI is starting, thread_id: " << std::this_thread::get_id();
+  AILogInfo["start"] << "AI is starting, thread_id: " << std::this_thread::get_id();
 
   while (true) {
-    //AILogDebug["start"] << name << " start AI::start while(true)";
+    //AILogDebug["start"] << "start AI::start while(true)";
     bool logged_paused = false;
     if (game->should_ai_stop() == true) {
-      AILogInfo["start"] << name << " received stop_ai_threads signal, exiting!";
+      AILogInfo["start"] << "received stop_ai_threads signal, exiting!";
       game->ai_thread_exiting();
       return;
     }
     else if (game->get_game_speed() == 0) {
       // avoid repeat log messages when paused
       if (!logged_paused){
-        AILogDebug["start"] << name << " game is paused, not running AI loops until unpaused";
+        AILogDebug["start"] << "game is paused, not running AI loops until unpaused";
         logged_paused = true;
       }
       ai_status.assign("AI_PAUSED");
       sleep_speed_adjusted(100);
     }
     else if (game->is_ai_locked()) {
-      AILogDebug["start"] << name << " AI is still locked, sleeping until game->unlock_ai called (when game init_box is closed)";
+      AILogDebug["start"] << "AI is still locked, sleeping until game->unlock_ai called (when game init_box is closed)";
       sleep_speed_adjusted(100);
     }
     else {
       next_loop();
-      //AILogDebug["start"] << name << " done next_loop()";
+      //AILogDebug["start"] << "done next_loop()";
     }
-    //AILogDebug["start"] << name << " end AI::start while(true)";
+    //AILogDebug["start"] << "end AI::start while(true)";
   }
 }
 
 void
 AI::next_loop(){
-  AILogDebug["next_loop"] << name << " inside AI::next_loop()";
+  AILogDebug["next_loop"] << "inside AI::next_loop()";
   loop_count++;
 
   ai_status.assign("SLEEPING_AT_START");
-  AILogDebug["next_loop"] << name << " sleeping 6sec at start of new loop";
+  AILogDebug["next_loop"] << "sleeping 6sec at start of new loop";
   sleep_speed_adjusted(6000);
 
-  AILogInfo["next_loop"] << name << " starting AI loop #" << loop_count;
+  AILogInfo["next_loop"] << "starting AI loop #" << loop_count;
   // time entire loop
   std::clock_t loop_clock_start;
   double loop_clock_duration;
@@ -175,13 +175,13 @@ AI::next_loop(){
 
   for (MapPos this_inventory_pos : stocks_pos) {
     inventory_pos = this_inventory_pos;
-    AILogDebug["next_loop"] << name << " Starting economy loop for Inventory at pos " << inventory_pos;
+    AILogDebug["next_loop"] << "Starting economy loop for Inventory at pos " << inventory_pos;
     update_building_counts();
 
     // debug, log buildings
-    //AILogDebug["next_loop"] << name << " stock at pos " << inventory_pos << " has all/completed/occupied buildings: ";
+    //AILogDebug["next_loop"] << "stock at pos " << inventory_pos << " has all/completed/occupied buildings: ";
     //for (int x = 0; x < 25; x++) {
-    //  AILogDebug["next_loop"] << name << " type " << x << " / " << NameBuilding[x] << ": " << stock_buildings.at(inventory_pos).count[x]
+    //  AILogDebug["next_loop"] << "type " << x << " / " << NameBuilding[x] << ": " << stock_buildings.at(inventory_pos).count[x]
     //    << "/" << stock_buildings.at(inventory_pos).completed_count[x] << "/" << stock_buildings.at(inventory_pos).occupied_count[x];
     //}
 
@@ -237,17 +237,17 @@ AI::next_loop(){
     do_send_geologists(); sleep_speed_adjusted(1000);
     do_spiderweb_roads(); sleep_speed_adjusted(1000);
 
-    AILogDebug["next_loop"] << name << " Done with economy loop for Inventory at pos " << inventory_pos;
+    AILogDebug["next_loop"] << "Done with economy loop for Inventory at pos " << inventory_pos;
   }
 
   // create parallel infrastructure!
   do_build_warehouse(); sleep_speed_adjusted(1000);
 
-  AILogInfo["next_loop"] << name << " Done AI Loop #" << loop_count;
+  AILogInfo["next_loop"] << "Done AI Loop #" << loop_count;
   ai_status.assign("END OF LOOP");
-  AILogDebug["next_loop"] << name << " loop complete, sleeping 2sec";
+  AILogDebug["next_loop"] << "loop complete, sleeping 2sec";
   loop_clock_duration = (std::clock() - loop_clock_start) / static_cast<double>(CLOCKS_PER_SEC);
-  AILogDebug["next_loop"] << name << " done next_loop, call took " << loop_clock_duration;
+  AILogDebug["next_loop"] << "done next_loop, call took " << loop_clock_duration;
   sleep_speed_adjusted(2000);
 }
 
@@ -259,10 +259,10 @@ AI::next_loop(){
 
 void
 AI::do_place_castle() {
-  AILogDebug["do_place_castle"] << name << " inside do_place_castle()";
+  AILogDebug["do_place_castle"] << "inside do_place_castle()";
   ai_status.assign("HAS_CASTLE_CHECK");
   if (!player->has_castle()) {
-    AILogDebug["do_place_castle"] << name << " does not yet have a castle";
+    AILogDebug["do_place_castle"] << "does not yet have a castle";
     // place castle
     //   improve this so that it is more intelligent about other resources than trees/stones/building_sites
     //    but have the minimum scores reduced a bit for each area scored so it eventually settles on something
@@ -274,58 +274,60 @@ AI::do_place_castle() {
     //      the time that is fed to seed the random function gets a different time-seed for each player
     // changed this to mutex.lock() instead, but keeping this because... I dunno it seems nicer when they don't all start at exactly the same time
     //   maybe start doing random wait instead?  meh
-    AILogDebug["do_place_castle"] << name << " sleeping " << player_index << "sec so each AI player thread gets different seed for random map pos";
-    sleep_speed_adjusted(1000 * player_index);
+    AILogDebug["do_place_castle"] << "sleeping " << player_index << "sec so each AI player thread gets different seed for random map pos";
+    std::this_thread::sleep_for(std::chrono::milliseconds(1500));
     // I think this needs to get the existing game Random rnd, NOT creating a new one
-    Random rnd;
+    // yes, added Game::get_rand function, trying using it instead of this
+    //Random rnd;  
     int tries = 250; // I saw 200 tries reached once, not sure if it was a particular map or what
     int x = 0;
     while (true) {
       x++;
       if (x > tries) {
-        AILogDebug["do_place_castle"] << name << " unable to place castle after " << x << " tries!";
+        AILogDebug["do_place_castle"] << "unable to place castle after " << x << " tries!";
         exit(1);
       }
-      MapPos pos = map->get_rnd_coord(NULL, NULL, &rnd);
-      AILogDebug["do_place_castle"] << name << ": considering placing castle at random pos " << pos;
+      //MapPos pos = map->get_rnd_coord(NULL, NULL, &rnd);
+      MapPos pos = map->get_rnd_coord(NULL, NULL, game->get_rand());
+      AILogDebug["do_place_castle"] << ": considering placing castle at random pos " << pos;
       if (!game->can_build_castle(pos, player)) {
-        AILogDebug["do_place_castle"] << name << " cannot build a castle at pos " << pos;
+        AILogDebug["do_place_castle"] << "cannot build a castle at pos " << pos;
         continue;
       }
       if (place_castle(game, pos, spiral_dist(8))) {
-        AILogDebug["do_place_castle"] << name << " found acceptable place to build castle, at pos: " << pos;
-        AILogVerbose["do_place_castle"] << name << " thread #" << std::this_thread::get_id() << " AI is locking mutex before calling game->build_castle";
+        AILogDebug["do_place_castle"] << "found acceptable place to build castle, at pos: " << pos;
+        AILogVerbose["do_place_castle"] << "thread #" << std::this_thread::get_id() << " AI is locking mutex before calling game->build_castle";
         game->get_mutex()->lock();
-        AILogVerbose["do_place_castle"] << name << " thread #" << std::this_thread::get_id() << " AI has locked mutex before calling game->build_castle";
+        AILogVerbose["do_place_castle"] << "thread #" << std::this_thread::get_id() << " AI has locked mutex before calling game->build_castle";
         bool was_built = game->build_castle(pos, player);
-        AILogVerbose["do_place_castle"] << name << " thread #" << std::this_thread::get_id() << " AI is unlocking mutex after calling game->build_castle";
+        AILogVerbose["do_place_castle"] << "thread #" << std::this_thread::get_id() << " AI is unlocking mutex after calling game->build_castle";
         game->get_mutex()->unlock();
-        AILogVerbose["do_place_castle"] << name << " thread #" << std::this_thread::get_id() << " AI has unlocked mutex after calling game->build_castle";
+        AILogVerbose["do_place_castle"] << "thread #" << std::this_thread::get_id() << " AI has unlocked mutex after calling game->build_castle";
         if (was_built) {
-          AILogDebug["do_place_castle"] << name << ": built castle at pos: " << pos << " after " << x << " tries";
+          AILogDebug["do_place_castle"] << ": built castle at pos: " << pos << " after " << x << " tries";
           castle_pos = pos;
           castle_flag_pos = map->move_down_right(castle_pos);
-          AILogDebug["do_place_castle"] << name << " castle has position " << castle_pos << ", with castle_flag_pos " << castle_flag_pos;
+          AILogDebug["do_place_castle"] << "castle has position " << castle_pos << ", with castle_flag_pos " << castle_flag_pos;
           return;
         }
-        AILogDebug["do_place_castle"] << name << " failed to build castle at pos: " << pos << ", will keep trying";
+        AILogDebug["do_place_castle"] << "failed to build castle at pos: " << pos << ", will keep trying";
       }
     }
   }
   // on game load, castle_pos is unknown even though castle exists, need to find it
   if (castle_pos == bad_map_pos) {
-    AILogVerbose["do_place_castle"] << name << " thread #" << std::this_thread::get_id() << " AI is locking mutex before calling game->get_player_buildings(player) (for finding castle on game load)";
+    AILogVerbose["do_place_castle"] << "thread #" << std::this_thread::get_id() << " AI is locking mutex before calling game->get_player_buildings(player) (for finding castle on game load)";
     game->get_mutex()->lock();
-    AILogVerbose["do_place_castle"] << name << " thread #" << std::this_thread::get_id() << " AI has locked mutex before calling game->get_player_buildings(player) (for finding castle on game load)";
+    AILogVerbose["do_place_castle"] << "thread #" << std::this_thread::get_id() << " AI has locked mutex before calling game->get_player_buildings(player) (for finding castle on game load)";
     Game::ListBuildings buildings = game->get_player_buildings(player);
-    AILogVerbose["do_place_castle"] << name << " thread #" << std::this_thread::get_id() << " AI is unlocking mutex after calling game->get_player_buildings(player) (for finding castle on game load)";
+    AILogVerbose["do_place_castle"] << "thread #" << std::this_thread::get_id() << " AI is unlocking mutex after calling game->get_player_buildings(player) (for finding castle on game load)";
     game->get_mutex()->unlock();
-    AILogVerbose["do_place_castle"] << name << " thread #" << std::this_thread::get_id() << " AI has unlocked mutex after calling game->get_player_buildings(player) (for finding castle on game load)";
+    AILogVerbose["do_place_castle"] << "thread #" << std::this_thread::get_id() << " AI has unlocked mutex after calling game->get_player_buildings(player) (for finding castle on game load)";
     for (Building *building : buildings) {
       if (building->get_type() == Building::TypeCastle) {
         castle_pos = building->get_position();
         castle_flag_pos = map->move_down_right(castle_pos);
-        AILogDebug["do_place_castle"] << name << " found existing castle, has position " << castle_pos << ", with castle_flag_pos " << castle_flag_pos;
+        AILogDebug["do_place_castle"] << "found existing castle, has position " << castle_pos << ", with castle_flag_pos " << castle_flag_pos;
       }
     }
   }
@@ -334,7 +336,7 @@ AI::do_place_castle() {
 
 void
 AI::do_update_clear_reset() {
-  AILogDebug["do_update_clear_reset"] << name << " inside do_update_clear_reset";
+  AILogDebug["do_update_clear_reset"] << "inside do_update_clear_reset";
   ai_status.assign("CLEARING_AND_RESETTING");
   ai_mark_pos.clear();
   ai_mark_serf.clear();
@@ -375,19 +377,19 @@ AI::do_get_serfs() {
   double duration;
   start = std::clock();
 
-  AILogDebug["do_get_serfs"] << name << " inside do_get_serfs";
-  AILogDebug["do_get_serfs"] << name << " getting serfs";
-  AILogVerbose["do_get_serfs"] << name << " thread #" << std::this_thread::get_id() << " AI is locking mutex before getting serfs at AI loop start";
+  AILogDebug["do_get_serfs"] << "inside do_get_serfs";
+  AILogDebug["do_get_serfs"] << "getting serfs";
+  AILogVerbose["do_get_serfs"] << "thread #" << std::this_thread::get_id() << " AI is locking mutex before getting serfs at AI loop start";
   game->get_mutex()->lock();
-  AILogVerbose["do_get_serfs"] << name << " thread #" << std::this_thread::get_id() << " AI has locked mutex before getting serfs at AI loop start";
+  AILogVerbose["do_get_serfs"] << "thread #" << std::this_thread::get_id() << " AI has locked mutex before getting serfs at AI loop start";
   serfs_idle = player->get_stats_serfs_idle();
   serfs_potential = player->get_stats_serfs_potential();
   serfs_total = player->get_serfs();
-  AILogVerbose["do_get_serfs"] << name << " thread #" << std::this_thread::get_id() << " AI is unlocking mutex after getting serfs at AI loop start";
+  AILogVerbose["do_get_serfs"] << "thread #" << std::this_thread::get_id() << " AI is unlocking mutex after getting serfs at AI loop start";
   game->get_mutex()->unlock();
-  AILogVerbose["do_get_serfs"] << name << " thread #" << std::this_thread::get_id() << " AI has unlocked mutex after getting serfs at AI loop start";
+  AILogVerbose["do_get_serfs"] << "thread #" << std::this_thread::get_id() << " AI has unlocked mutex after getting serfs at AI loop start";
   duration = (std::clock() - start) / static_cast<double>(CLOCKS_PER_SEC);
-  AILogDebug["do_get_serfs"] << name << " done do_get_serfs call took " << duration;
+  AILogDebug["do_get_serfs"] << "done do_get_serfs call took " << duration;
 }
 
 
@@ -396,27 +398,27 @@ AI::do_get_serfs() {
 //  building certain buildings manually triggers some function
 void
 AI::do_debug_building_triggers() {
-  AILogDebug["do_debug_building_triggers"] << name << " inside do_debug_building_triggers";
+  AILogDebug["do_debug_building_triggers"] << "inside do_debug_building_triggers";
   /*
   // DEBUG
   //   trigger demolish/rebuild all roads by placing a Pig Farm anywhere in the realm
   if (realm_building_count[Building::TypePigFarm] > 0) {
-    AILogDebug["do_debug_building_triggers"] << name << " PigFarm found, running rebuild_all_roads";
+    AILogDebug["do_debug_building_triggers"] << "PigFarm found, running rebuild_all_roads";
     rebuild_all_roads();
     // then destroy the pig farm so it doesn't keep rebuilding forever
-    AILogDebug["do_debug_building_triggers"] << name << " thread #" << std::this_thread::get_id() << " AI is locking mutex before demolishing pig farm";
+    AILogDebug["do_debug_building_triggers"] << "thread #" << std::this_thread::get_id() << " AI is locking mutex before demolishing pig farm";
     game->get_mutex()->lock();
-    AILogDebug["do_debug_building_triggers"] << name << " thread #" << std::this_thread::get_id() << " AI has locked mutex before demolishing pig farm";
+    AILogDebug["do_debug_building_triggers"] << "thread #" << std::this_thread::get_id() << " AI has locked mutex before demolishing pig farm";
     Game::ListBuildings buildings = game->get_player_buildings(player);
     for (Building *building : buildings) {
       if (building->get_type() == Building::TypePigFarm)
         game->demolish_building(building->get_position(), player);
     }
-    AILogDebug["do_debug_building_triggers"] << name << " thread #" << std::this_thread::get_id() << " AI is unlocking mutex after demolishing pig farm";
+    AILogDebug["do_debug_building_triggers"] << "thread #" << std::this_thread::get_id() << " AI is unlocking mutex after demolishing pig farm";
     game->get_mutex()->unlock();
-    AILogDebug["do_debug_building_triggers"] << name << " thread #" << std::this_thread::get_id() << " AI has unlocked mutex after demolishing pig farm";
+    AILogDebug["do_debug_building_triggers"] << "thread #" << std::this_thread::get_id() << " AI has unlocked mutex after demolishing pig farm";
     // don't resume AI until most serfs have made it back into the castle
-    AILogDebug["do_debug_building_triggers"] << name << " done rebuild_all_roads, waiting for lost serfs to clear out";
+    AILogDebug["do_debug_building_triggers"] << "done rebuild_all_roads, waiting for lost serfs to clear out";
     for (int x = 0; x < 50; x++) {
       sleep_speed_adjusted(15000);
       unsigned int lost_serfs = 0;
@@ -428,7 +430,7 @@ AI::do_debug_building_triggers() {
       if (lost_serfs <= 5) {
         break;
       }
-      AILogDebug["do_debug_building_triggers"] << name << " there are " << lost_serfs << " lost serfs in FreeWalking state, waiting longer";
+      AILogDebug["do_debug_building_triggers"] << "there are " << lost_serfs << " lost serfs in FreeWalking state, waiting longer";
     }
     return;
   }
@@ -438,7 +440,7 @@ AI::do_debug_building_triggers() {
   // DEBUG
   //   tell AI to quit by placing a BoatBuilder anywhere in the realm
   if (realm_building_count[Building::TypeBoatbuilder] > 0) {
-    AILogDebug["do_debug_building_triggers"] << name << " BoatBuilder found, locking all AIs";
+    AILogDebug["do_debug_building_triggers"] << "BoatBuilder found, locking all AIs";
     game->lock_ai();
     return;
   }
@@ -456,7 +458,7 @@ AI::do_debug_building_triggers() {
 //
 void
 AI::do_promote_serfs_to_knights() {
-  AILogDebug["do_promote_serfs_to_knights"] << name << " inside do_promote_serfs_to_knights";
+  AILogDebug["do_promote_serfs_to_knights"] << "inside do_promote_serfs_to_knights";
   ai_status.assign("HOUSEKEEPING - promote serfs to knights");
   unsigned int idle_serfs = static_cast<unsigned int>(stock_inv->free_serf_count());
   unsigned int swords_count = stock_inv->get_count_of(Resource::TypeSword);
@@ -464,14 +466,14 @@ AI::do_promote_serfs_to_knights() {
   unsigned int idle_knights = serfs_idle[Serf::TypeKnight0] + serfs_idle[Serf::TypeKnight1] + serfs_idle[Serf::TypeKnight2] + serfs_idle[Serf::TypeKnight3] + serfs_idle[Serf::TypeKnight4];
   unsigned int excess_serfs = idle_serfs < serfs_min ? 0 : idle_serfs - serfs_min;
   unsigned int promotable = std::min(excess_serfs, std::min(swords_count, shields_count));
-  AILogDebug["do_promote_serfs_to_knights"] << name << " idle_knights: " << idle_knights << ", idle_serfs: " << idle_serfs << ", serfs_min: " << serfs_min << ", excess serfs: " << excess_serfs << ", swords: " << swords_count << ", shields: " << shields_count << ", promotable: " << promotable;
-  AILogDebug["do_promote_serfs_to_knights"] << name << " promoting serfs to knights: " << promotable;
+  AILogDebug["do_promote_serfs_to_knights"] << "idle_knights: " << idle_knights << ", idle_serfs: " << idle_serfs << ", serfs_min: " << serfs_min << ", excess serfs: " << excess_serfs << ", swords: " << swords_count << ", shields: " << shields_count << ", promotable: " << promotable;
+  AILogDebug["do_promote_serfs_to_knights"] << "promoting serfs to knights: " << promotable;
   // this 'promotable' function doesn't seem to work right, it doesn't limit the number promoted to the specified integer like it suggests
   //int promoted = player->promote_serfs_to_knights(promotable);
   int promoted = 0;
-  AILogVerbose["do_promote_serfs_to_knights"] << name << " thread #" << std::this_thread::get_id() << " AI is locking mutex before calling game->get_player_serfs(player) (for do_manage_knight_occupation_levels is_waiting)";
+  AILogVerbose["do_promote_serfs_to_knights"] << "thread #" << std::this_thread::get_id() << " AI is locking mutex before calling game->get_player_serfs(player) (for do_manage_knight_occupation_levels is_waiting)";
   game->get_mutex()->lock();
-  AILogVerbose["do_promote_serfs_to_knights"] << name << " thread #" << std::this_thread::get_id() << " AI has locked mutex before calling game->get_player_serfs(player) (for do_manage_knight_occupation_levels is_waiting)";
+  AILogVerbose["do_promote_serfs_to_knights"] << "thread #" << std::this_thread::get_id() << " AI has locked mutex before calling game->get_player_serfs(player) (for do_manage_knight_occupation_levels is_waiting)";
   for (Serf *serf : game->get_player_serfs(player)) {
     if (promotable < 1) { break; }
     if (serf->get_state() == Serf::StateIdleInStock &&
@@ -483,9 +485,9 @@ AI::do_promote_serfs_to_knights() {
       }
     }
   }
-  AILogVerbose["do_promote_serfs_to_knights"] << name << " thread #" << std::this_thread::get_id() << " AI is unlocking mutex after calling game->get_player_serfs(player) (for do_manage_knight_occupation_levels is_waiting)";
+  AILogVerbose["do_promote_serfs_to_knights"] << "thread #" << std::this_thread::get_id() << " AI is unlocking mutex after calling game->get_player_serfs(player) (for do_manage_knight_occupation_levels is_waiting)";
   game->get_mutex()->unlock();
-  AILogVerbose["do_promote_serfs_to_knights"] << name << " thread #" << std::this_thread::get_id() << " AI has unlocked mutex after calling game->get_player_serfs(player) (for do_manage_knight_occupation_levels is_waiting)";
+  AILogVerbose["do_promote_serfs_to_knights"] << "thread #" << std::this_thread::get_id() << " AI has unlocked mutex after calling game->get_player_serfs(player) (for do_manage_knight_occupation_levels is_waiting)";
 
 }
 
@@ -496,10 +498,13 @@ AI::do_connect_disconnected_flags() {
   std::clock_t start;
   double duration;
   start = std::clock();
-  AILogDebug["do_connect_disconnected_flags"] << name << " inside do_connect_disconnected_flags";
-  AILogDebug["do_connect_disconnected_flags"] << name << " HouseKeeping: connect any disconnected flags";
+  AILogDebug["do_connect_disconnected_flags"] << "inside do_connect_disconnected_flags";
+  AILogDebug["do_connect_disconnected_flags"] << "HouseKeeping: connect any disconnected flags";
   ai_status.assign("HOUSEKEEPING - connect any disconnected flags");
-  for (Flag *flag : *(game->get_flags())) {
+  Flags flags_copy = *(game->get_flags());  // create a copy so we don't conflict with the game thread, and don't want to mutex lock for a long function
+  for (Flag *flag : flags_copy) {
+    if (flag == nullptr)
+      continue;
     if (flag->get_owner() != player_index)
       continue;
     if (flag->get_position() == castle_flag_pos)
@@ -507,48 +512,48 @@ AI::do_connect_disconnected_flags() {
     if (flag->is_connected())
       continue;
     if (flag->has_building()) {
-      AILogDebug["do_connect_disconnected_flags"] << name << " flag at pos " << flag->get_position() << " has an attached building of type " << NameBuilding[flag->get_building()->get_type()];
+      AILogDebug["do_connect_disconnected_flags"] << "flag at pos " << flag->get_position() << " has an attached building of type " << NameBuilding[flag->get_building()->get_type()];
       if ((flag->get_building()->get_type() == Building::TypeCoalMine
         || flag->get_building()->get_type() == Building::TypeIronMine
         || flag->get_building()->get_type() == Building::TypeGoldMine
         || flag->get_building()->get_type() == Building::TypeStoneMine)
         && !flag->get_building()->is_done()) {
-        AILogDebug["do_connect_disconnected_flags"] << name << " disconnected flag at pos " << flag->get_position() << " is attached to an incomplete Mine, skipping - it will be dealt with later";
+        AILogDebug["do_connect_disconnected_flags"] << "disconnected flag at pos " << flag->get_position() << " is attached to an incomplete Mine, skipping - it will be dealt with later";
         continue;
       }
       if (flag->get_building()->get_type() == Building::TypeForester &&
         flag->get_building()->is_done() && flag->get_building()->has_serf()){
-        AILogDebug["do_connect_disconnected_flags"] << name << " disconnected flag at pos " << flag->get_position() << " is attached to an occupied ranger, skipping";
+        AILogDebug["do_connect_disconnected_flags"] << "disconnected flag at pos " << flag->get_position() << " is attached to an occupied ranger, skipping";
         continue;
       }
     }
-    AILogDebug["do_connect_disconnected_flags"] << name << " flag at pos " << flag->get_position() << " has no connected road, trying to connect it";
+    AILogDebug["do_connect_disconnected_flags"] << "flag at pos " << flag->get_position() << " has no connected road, trying to connect it";
     Road notused; // not used here, can I just pass a zero instead of &notused to build_best_road and skip initialization of a wasted object?
     bool was_built = AI::build_best_road(flag->get_position(), road_options, &notused, "do_connect_disconnected_flags");
     if (!was_built) {
-      AILogVerbose["do_connect_disconnected_flags"] << name << " thread #" << std::this_thread::get_id() << " AI is locking mutex before calling demolish_flag (and maybe attached building)";
+      AILogVerbose["do_connect_disconnected_flags"] << "thread #" << std::this_thread::get_id() << " AI is locking mutex before calling demolish_flag (and maybe attached building)";
       game->get_mutex()->lock();
-      AILogVerbose["do_connect_disconnected_flags"] << name << " thread #" << std::this_thread::get_id() << " AI has locked mutex before calling demolish_flag (and maybe attached building)";
+      AILogVerbose["do_connect_disconnected_flags"] << "thread #" << std::this_thread::get_id() << " AI has locked mutex before calling demolish_flag (and maybe attached building)";
       // should I look for an attached building an burn it?
       // yes!  let's try that
       if (flag->has_building()) {
-        AILogDebug["do_connect_disconnected_flags"] << name << " failed to connect disconnected flag to road network!  BURNING ATTACHED BUILDING!";
+        AILogDebug["do_connect_disconnected_flags"] << "failed to connect disconnected flag to road network!  BURNING ATTACHED BUILDING!";
 		    // how did this ever work before??
         //game->demolish_building(flag->get_position(), player);
         game->demolish_building(map->move_up_left(flag->get_position()), player);
         // sleep to appear more human
         sleep_speed_adjusted(3000);
       }
-      AILogDebug["do_connect_disconnected_flags"] << name << " failed to connect disconnected flag to road network!  removing it";
+      AILogDebug["do_connect_disconnected_flags"] << "failed to connect disconnected flag to road network!  removing it";
       game->demolish_flag(flag->get_position(), player);
-      AILogVerbose["do_connect_disconnected_flags"] << name << " thread #" << std::this_thread::get_id() << " AI is unlocking mutex after calling demolish_flag (and maybe attached building)";
+      AILogVerbose["do_connect_disconnected_flags"] << "thread #" << std::this_thread::get_id() << " AI is unlocking mutex after calling demolish_flag (and maybe attached building)";
       game->get_mutex()->unlock();
-      AILogVerbose["do_connect_disconnected_flags"] << name << " thread #" << std::this_thread::get_id() << " AI has unlocked mutex after calling demolish_flag (and maybe attached building)";
+      AILogVerbose["do_connect_disconnected_flags"] << "thread #" << std::this_thread::get_id() << " AI has unlocked mutex after calling demolish_flag (and maybe attached building)";
     }
   }
 
   duration = (std::clock() - start) / static_cast<double>(CLOCKS_PER_SEC);
-  AILogDebug["do_connect_disconnected_flags"] << name << " done do_connect_disconnected_flags call took " << duration;
+  AILogDebug["do_connect_disconnected_flags"] << "done do_connect_disconnected_flags call took " << duration;
 }
 
 
@@ -573,6 +578,7 @@ AI::do_spiderweb_roads() {
   AILogDebug["do_spiderweb_roads"] << inventory_pos << " HouseKeeping: creating spider-web roads";
   // only do this every X loops, and only add one new road per run
   unsigned int completed_huts = realm_completed_building_count[Building::TypeHut];
+  // shouldn't this be INVENTORY building count as it does per Inventory?  
   if ( loop_count % 10 != 0 || completed_huts < 9 || completed_huts > 25) {
     AILogDebug["do_spiderweb_roads"] << inventory_pos << " skipping spider-web roads, only running every ten loops and knight huts built " << completed_huts << " is <9 or >25";
     return;
@@ -607,6 +613,7 @@ AI::do_spiderweb_roads() {
   unsigned int upper = ring_start + half_ring_length;
   unsigned int lower = ring_start - half_ring_length;
   unsigned int adjusted_ring_start = (rand() % (upper - lower + 1)) + lower;
+  bool was_built = false;
   for (unsigned int i = adjusted_ring_start; i < adjusted_ring_start + ring_length; i++){
     MapPos ring_pos = map->pos_add_extended_spirally(inventory_pos, i);
     //ai_mark_pos.erase(ring_pos);
@@ -628,7 +635,7 @@ AI::do_spiderweb_roads() {
       //sleep_speed_adjusted(11));
       if (!map->has_flag(area_pos) || map->get_owner(area_pos) != player_index)
         continue;
-      if (!game->get_flag_at_pos(area_pos)->is_connected())
+      if (game->get_flag_at_pos(area_pos) != nullptr && !game->get_flag_at_pos(area_pos)->is_connected())
         continue;
       //ai_mark_pos.erase(area_pos);
       //ai_mark_pos.insert(ColorDot(area_pos, "red"));
@@ -655,7 +662,7 @@ AI::do_spiderweb_roads() {
     // shuffle the ordering of the flags
 
     //  can't shuffle a std::set
-    //AILogDebug["do_spiderweb_roads"] << name << " shuffling the flag_set so it is in random order";
+    //AILogDebug["do_spiderweb_roads"] << "shuffling the flag_set so it is in random order";
     //std::random_shuffle(flag_set.begin(), flag_set.end());
     // instead convert to vector, shuffling seems important   oct22 2020
     MapPosVector shuffled_flag_vector(flag_set.begin(), flag_set.end());
@@ -692,9 +699,9 @@ AI::do_spiderweb_roads() {
           for (MapPos pos : flags_found){
             AILogDebug["do_spiderweb_roads"] << inventory_pos << " flags_found contains: " << pos;
             if (pos == inventory_pos){
-              AILogDebug["do_spiderweb_roads"] << inventory_pos << " existing flag-path from flags_found contains the inventory_pos " << inventory_pos << " = " << pos << ", acceptable pair";
+              //AILogDebug["do_spiderweb_roads"] << inventory_pos << " existing flag-path from flags_found contains the inventory_pos " << inventory_pos << " = " << pos << ", acceptable pair";
               acceptable = true;
-              //break;  // could break here for efficiency, but for now I like to have it dump the entire flags_found list
+              break;  // could break here for efficiency, but for now I like to have it dump the entire flags_found list
             }
           }
           if (tile_dist > 15){
@@ -732,7 +739,7 @@ AI::do_spiderweb_roads() {
         road_options.reset(RoadOption::SplitRoads);
         AILogDebug["do_spiderweb_roads"] << inventory_pos << " about to call build_best_road";
         Road built_road;
-        bool was_built = build_best_road(area_flag_pos, road_options, &built_road, "do_spiderweb_roads", Building::TypeNone, Building::TypeNone, other_area_flag_pos);
+        was_built = build_best_road(area_flag_pos, road_options, &built_road, "do_spiderweb_roads", Building::TypeNone, Building::TypeNone, other_area_flag_pos);
         road_options.reset(RoadOption::Improve);
         //road_options.set(RoadOption::PenalizeNewLength);
         //road_options.reset(RoadOption::Direct);
@@ -744,16 +751,18 @@ AI::do_spiderweb_roads() {
           ai_mark_spiderweb_roads->push_back(built_road);
           sleep_speed_adjusted(3000);
           // only create one road per run
-          break;  // this is wrong and doesn't work!!  needs to 'return', or better needs to skip to end for proper waiitng and run timing
+          break;
         }
         else {
           AILogDebug["do_spiderweb_roads"] << inventory_pos << " failed to build spider-web road between area_flag_pos " << area_flag_pos << " to other_area_flag_pos " << other_area_flag_pos;
         }
       }
+      if (was_built){ break; }
     }
+    if (was_built){ break; }
   }
 
-  AILogDebug["do_spiderweb_roads"] << name << " sanity check: there were " << tried_pairs.size() << " tried pairs";
+  AILogDebug["do_spiderweb_roads"] << "sanity check: there were " << tried_pairs.size() << " tried pairs";
   AILogDebug["do_spiderweb_roads"] << inventory_pos << " done with building spider-web roads";
   duration = (std::clock() - start) / static_cast<double>(CLOCKS_PER_SEC);
   AILogDebug["do_spiderweb_roads"] << inventory_pos << " done with building spider-web roads call took " << duration;
@@ -763,13 +772,13 @@ AI::do_spiderweb_roads() {
 //  to disfavor transport paths that would otherwise route through the castle, encouraging alternate routes
 void
 AI::do_pollute_castle_area_roads_with_flags() {
-  AILogDebug["do_pollute_castle_area_roads_with_flags"] << name << " inside do_pollute_castle_area_roads_with_flags";
+  AILogDebug["do_pollute_castle_area_roads_with_flags"] << "inside do_pollute_castle_area_roads_with_flags";
   ai_status.assign("HOUSEKEEPING - do_pollute_castle_area_roads_with_flags");
   // only do this every X loops, and only once a certain number of huts have been built
   //  and don't do it again after a few more huts built, because it only ever needs to be done once
   unsigned int completed_huts = realm_completed_building_count[Building::TypeHut];
   if (loop_count % 5 != 0 || completed_huts < 15 || completed_huts >19) {
-    AILogDebug["do_pollute_castle_area_roads_with_flags"] << name << " skipping do_pollute_castle_area_roads_with_flags roads, only running this every X loops, and if >Y and <Z knight huts built";
+    AILogDebug["do_pollute_castle_area_roads_with_flags"] << "skipping do_pollute_castle_area_roads_with_flags roads, only running this every X loops, and if >Y and <Z knight huts built";
     return;
   }
 
@@ -778,20 +787,20 @@ AI::do_pollute_castle_area_roads_with_flags() {
     MapPos pos = map->pos_add_extended_spirally(castle_flag_pos, x);
     if (map->has_any_path(pos)){
       if (game->can_build_flag(pos, player)) {
-        AILogDebug["do_pollute_castle_area_roads_with_flags"] << name << " building a pollution flag at pos " << pos;
-        AILogVerbose["do_pollute_castle_area_roads_with_flags"] << name << " thread #" << std::this_thread::get_id() << " AI is locking mutex before calling game->build_flag";
+        AILogDebug["do_pollute_castle_area_roads_with_flags"] << "building a pollution flag at pos " << pos;
+        AILogVerbose["do_pollute_castle_area_roads_with_flags"] << "thread #" << std::this_thread::get_id() << " AI is locking mutex before calling game->build_flag";
         game->get_mutex()->lock();
-        AILogVerbose["do_pollute_castle_area_roads_with_flags"] << name << " thread #" << std::this_thread::get_id() << " AI has locking mutex before calling game->build_flag";
+        AILogVerbose["do_pollute_castle_area_roads_with_flags"] << "thread #" << std::this_thread::get_id() << " AI has locking mutex before calling game->build_flag";
         if (game->build_flag(pos, player)) {
           created_flags++;
         }
-        AILogVerbose["do_pollute_castle_area_roads_with_flags"] << name << " thread #" << std::this_thread::get_id() << " AI is unlocking mutex after calling game->build_flag";
+        AILogVerbose["do_pollute_castle_area_roads_with_flags"] << "thread #" << std::this_thread::get_id() << " AI is unlocking mutex after calling game->build_flag";
         game->get_mutex()->unlock();
-        AILogVerbose["do_pollute_castle_area_roads_with_flags"] << name << " thread #" << std::this_thread::get_id() << " AI has unlocked mutex after calling game->build_flag";
+        AILogVerbose["do_pollute_castle_area_roads_with_flags"] << "thread #" << std::this_thread::get_id() << " AI has unlocked mutex after calling game->build_flag";
       }
     }
   }
-  AILogDebug["do_pollute_castle_area_roads_with_flags"] << name << " done do_pollute_castle_area_roads_with_flags, created " << created_flags << " new flags";
+  AILogDebug["do_pollute_castle_area_roads_with_flags"] << "done do_pollute_castle_area_roads_with_flags, created " << created_flags << " new flags";
 }
 
 
@@ -803,7 +812,7 @@ AI::do_fix_stuck_serfs() {
   double duration;
   start = std::clock();
 
-  AILogDebug["do_fix_stuck_serfs"] << name << " inside do_fix_stuck_serfs";
+  AILogDebug["do_fix_stuck_serfs"] << "inside do_fix_stuck_serfs";
   //
   // bug workaround - check for stuck serfs on roads
   //    for unknown reasons, sometimes serfs become forever stuck in WAIT_IDLE_ON_PATH state
@@ -826,16 +835,16 @@ AI::do_fix_stuck_serfs() {
     }
     unsigned int trigger_tick = serf_wait_idle_on_road_timer->second;
     if (serf->get_state() != Serf::StateWaitIdleOnPath) {
-      AILogDebug["do_fix_stuck_serfs"] << name << " SerfWaitTimer serf is no longer stuck, skipping";
-      AILogDebug["do_fix_stuck_serfs"] << name << " SerfWaitTimer erasing serf_wait_idle_on_road_timer for serf " << serf->get_index() << " at pos " << serf->get_pos();
+      AILogDebug["do_fix_stuck_serfs"] << "SerfWaitTimer serf is no longer stuck, skipping";
+      AILogDebug["do_fix_stuck_serfs"] << "SerfWaitTimer erasing serf_wait_idle_on_road_timer for serf " << serf->get_index() << " at pos " << serf->get_pos();
       // found in C++ example... iterator is set by the result of the erase call on the current iterator pos (which is serf_index)
       serf_wait_idle_on_road_timer = serf_wait_idle_on_road_timers.erase(serf_wait_idle_on_road_timer);
     }
     else {
       if (game->get_tick() > trigger_tick) {
-        AILogDebug["do_fix_stuck_serfs"] << name << " SerfWaitTimer triggering serf_wait_idle_on_road_timer for serf " << serf->get_index() << " and serf type " << NameSerf[serf->get_type()] << " at pos " << serf->get_pos();
+        AILogDebug["do_fix_stuck_serfs"] << "SerfWaitTimer triggering serf_wait_idle_on_road_timer for serf " << serf->get_index() << " and serf type " << NameSerf[serf->get_type()] << " at pos " << serf->get_pos();
 
-        AILogDebug["do_fix_stuck_serfs"] << name << " SerfWaitTimer detected WAIT_IDLE_ON_PATH STUCK SERF at pos " << serf->get_pos() << " of type " << NameSerf[serf->get_type()] << ", marking its current pos in lt_purple";
+        AILogInfo["do_fix_stuck_serfs"] << "SerfWaitTimer detected WAIT_IDLE_ON_PATH STUCK SERF at pos " << serf->get_pos() << " of type " << NameSerf[serf->get_type()] << ", marking its current pos in lt_purple";
         ai_mark_pos.insert(ColorDot(serf->get_pos(), "lt_purple"));
         // I THINK I FIXED THIS ISSUE FOR GOOD - see https://github.com/freeserf/freeserf/issues/492
         //  changing this to a crash exception in case I am wrong about the fix being 100% effective
@@ -844,7 +853,7 @@ AI::do_fix_stuck_serfs() {
         //throw ExceptionFreeserf("SerfWaitTimer detected WAIT_IDLE_ON_PATH STUCK SERF at pos - I THOUGHT I FIXED THIS");
 
         // don't erase timer if problem isn't fixed yet, keep checking each AI loop
-        AILogDebug["do_fix_stuck_serfs"] << name << " SerfWaitTimer attempting to set serf to lost state, updating marking to purple";
+        AILogWarn["do_fix_stuck_serfs"] << "WARNING - SerfWaitTimer attempting to set serf to lost state, updating marking to purple";
         ai_mark_pos.erase(serf->get_pos());
         ai_mark_pos.insert(ColorDot(serf->get_pos(), "purple"));
         Serf::Type serf_job = serf->get_type();
@@ -854,7 +863,7 @@ AI::do_fix_stuck_serfs() {
         MapPos serf_dest_flag_pos = bad_map_pos;
         Flag *serf_dest_flag = game->get_flag(serf->get_walking_dest());
         if (serf_dest_flag == nullptr) {
-          AILogDebug["do_fix_stuck_serfs"] << name << " the flag that is the walking dest of serf about to be booted is nullptr!  serf_dest_flag_pos will remain bad_map_pos";
+          AILogWarn["do_fix_stuck_serfs"] << "WARNING - the flag that is the walking dest of serf about to be booted is nullptr!  serf_dest_flag_pos will remain bad_map_pos";
         }
         else {
           serf_dest_flag_pos = serf_dest_flag->get_position();
@@ -862,42 +871,49 @@ AI::do_fix_stuck_serfs() {
         // more info, saw case of a stuck Digger (leveller) that was on way to a construction site, but when stuck his walking_dest flag was a flag somewhere totally different
         //   in the realm and not a place where a Digger was even needed.  Maybe a bad pointer somewhere is causing the walking_dest to be set to someplace invalid and this is
         //     the cause of the stuck serf WAIT_IDLE_ON_PATH issue???
-        AILogDebug["do_fix_stuck_serfs"] << name << " about to boot serf with job type: " << serf->get_type() << " " << NameSerf[serf->get_type()] << " with walking_dest/flag_pos " << serf_dest_flag_pos;
+        //debug
+        if (game->get_flag(serf->get_recent_dest()) != nullptr){
+          AILogWarn["do_fix_stuck_serfs"] << "WARNING - serf of type " << NameSerf[serf_job] << " being set to Lost, dest when it exited Inventory was flag# " << serf->get_recent_dest() << " which has pos " << game->get_flag(serf->get_recent_dest())->get_position();
+        }else{
+          AILogWarn["do_fix_stuck_serfs"] << "WARNING - serf of type " << NameSerf[serf_job] << " being set to Lost, dest when it exited Inventory was flag# " << serf->get_recent_dest() << " which is a nullptr";
+        }
+        AILogWarn["do_fix_stuck_serfs"] << "WARNING - about to boot serf with job type: " << serf->get_type() << " " << NameSerf[serf->get_type()] << " with current walking_dest/flag_pos " << serf_dest_flag_pos << " and original dest-when-leaving-Inv flag index of " << serf->get_recent_dest();
         if (serf_job == Serf::TypeTransporter) {
-          AILogDebug["do_fix_stuck_serfs"] << name << " WARNING - a transporter was booted, see if this causes flag at map_pos " << serf_dest_flag_pos << " to be without a transporter!";
+          AILogWarn["do_fix_stuck_serfs"] << "WARNING - a transporter was booted, see if this causes flag at map_pos " << serf_dest_flag_pos << " to be without a transporter!";
         }
         if (serf_job != Serf::TypeTransporter && serf_job != Serf::TypeGeologist && serf_job != Serf::TypeDigger && serf_job != Serf::TypeBuilder
           && serf_job != Serf::TypeKnight0 && serf_job != Serf::TypeKnight1 && serf_job != Serf::TypeKnight2 && serf_job != Serf::TypeKnight3 && serf_job != Serf::TypeKnight4) {
-          AILogDebug["do_fix_stuck_serfs"] << name << " WARNING - a building-occupying professional serf was booted, see if this causes building with flag pos " << serf_dest_flag_pos << " to stay forever unoccupied!";
-          //sleep_speed_adjusted(6000);
+          AILogWarn["do_fix_stuck_serfs"] << "WARNING - a building-occupying professional serf was booted, see if this causes building with flag pos " << serf_dest_flag_pos << " to stay forever unoccupied!";
         }
         if (serf_job == Serf::TypeKnight0 || serf_job == Serf::TypeKnight1 || serf_job == Serf::TypeKnight2 || serf_job == Serf::TypeKnight3 || serf_job == Serf::TypeKnight4) {
-          AILogDebug["do_fix_stuck_serfs"] << name << " WARNING - a knight was booted, see if this causes military building with flag pos " << serf_dest_flag_pos << " to have a forever empty slot!";
-          //::this_thread::sleep_for(std::chrono::milliseconds(6000);
+          AILogWarn["do_fix_stuck_serfs"] << "WARNING - a knight was booted, see if this causes military building with flag pos " << serf_dest_flag_pos << " to have a forever empty slot!";
         }
-        AILogDebug["do_fix_stuck_serfs"] << name << " thread #" << std::this_thread::get_id() << " AI is locking mutex before calling serf->set_lost_state (for bug workaround stuck serfs)";
+        AILogDebug["do_fix_stuck_serfs"] << "thread #" << std::this_thread::get_id() << " AI is locking mutex before calling serf->set_lost_state (for bug workaround stuck serfs)";
         game->get_mutex()->lock();
-        AILogDebug["do_fix_stuck_serfs"] << name << " thread #" << std::this_thread::get_id() << " AI has locked mutex before calling serf->set_lost_state (for bug workaround stuck serfs)";
+        AILogDebug["do_fix_stuck_serfs"] << "thread #" << std::this_thread::get_id() << " AI has locked mutex before calling serf->set_lost_state (for bug workaround stuck serfs)";
         serf->set_lost_state();
-        AILogDebug["do_fix_stuck_serfs"] << name << " thread #" << std::this_thread::get_id() << " AI is unlocking mutex after after serf->set_lost_state (for bug workaround stuck serfs)";
+        AILogDebug["do_fix_stuck_serfs"] << "thread #" << std::this_thread::get_id() << " AI is unlocking mutex after after serf->set_lost_state (for bug workaround stuck serfs)";
         game->get_mutex()->unlock();
-        AILogDebug["do_fix_stuck_serfs"] << name << " thread #" << std::this_thread::get_id() << " AI has unlocked mutex after after serf->set_lost_state (for bug workaround stuck serfs)";
+        AILogDebug["do_fix_stuck_serfs"] << "thread #" << std::this_thread::get_id() << " AI has unlocked mutex after after serf->set_lost_state (for bug workaround stuck serfs)";
         // still seeing this happen for Transporter serfs... but rare... keep an eye on it
-        //  the first time I watched this closely since tracking serf dests I saw a transporter on way to a flag
+        // - the first time I watched this closely since tracking serf dests I saw a transporter on way to a flag
         //  to become a transporter, and whent it was made lost a replacement seems to have been sent, which is good
-        AILogError["do_fix_stuck_serfs"] << name << " pausing game for debugging";
-        sleep_speed_adjusted(1000);
-        game->pause();
+        // - second time, same, transporter booted, another eventually came to replace him and solved the problem
+        // - third time, same, no issue
+        // - fourth, same.  disabling this pausing
+        //AILogError["do_fix_stuck_serfs"] << "pausing game for debugging stuck serf booting";
+        //sleep_speed_adjusted(5000);
+        //game->pause();
       }
       ++serf_wait_idle_on_road_timer;
     }
   }
-  AILogDebug["do_fix_stuck_serfs"] << name << " SerfWaitTimer after checking timeouts, there are now " << serf_wait_idle_on_road_timers.size() << " TOTAL serf_wait_idle_on_road_timers set";
+  AILogDebug["do_fix_stuck_serfs"] << "SerfWaitTimer after checking timeouts, there are now " << serf_wait_idle_on_road_timers.size() << " TOTAL serf_wait_idle_on_road_timers set";
 
   // look for new waiting serfs and set serf_wait_timers
-  AILogVerbose["do_fix_stuck_serfs"] << name << " thread #" << std::this_thread::get_id() << " AI is locking mutex before calling game->get_player_serfs(player) (for serf_wait_timers StateWaitIdleOnPath)";
+  AILogVerbose["do_fix_stuck_serfs"] << "thread #" << std::this_thread::get_id() << " AI is locking mutex before calling game->get_player_serfs(player) (for serf_wait_timers StateWaitIdleOnPath)";
   game->get_mutex()->lock();
-  AILogVerbose["do_fix_stuck_serfs"] << name << " thread #" << std::this_thread::get_id() << " AI has locked mutex before calling game->get_player_serfs(player) (for serf_wait_timers StateWaitIdleOnPath)";
+  AILogVerbose["do_fix_stuck_serfs"] << "thread #" << std::this_thread::get_id() << " AI has locked mutex before calling game->get_player_serfs(player) (for serf_wait_timers StateWaitIdleOnPath)";
   // this returns a copy, so it should be thread-safe
   //  maybe not, beause game->get_player_serfs internally just does for (Serf *serf : serfs)
   for (Serf *serf : game->get_player_serfs(player)) {
@@ -906,23 +922,23 @@ AI::do_fix_stuck_serfs() {
     if (serf->get_state() == Serf::StateWaitIdleOnPath) {
       // see if a serf_wait_timer already set for this flag & dir
       if (serf_wait_idle_on_road_timers.count(serf->get_index()) == 0) {
-        AILogDebug["do_fix_stuck_serfs"] << name << " SerfWaitTimer WAIT_IDLE_ON_PATH DETECTED setting countdown serf_wait_idle_on_road_timer for serf with index " << serf->get_index();
+        AILogDebug["do_fix_stuck_serfs"] << "SerfWaitTimer WAIT_IDLE_ON_PATH DETECTED setting countdown serf_wait_idle_on_road_timer for serf with index " << serf->get_index();
         serf_wait_idle_on_road_timers.insert(std::make_pair(serf->get_index(), game->get_tick() + 10000));
-        AILogDebug["do_fix_stuck_serfs"] << name << " SerfWaitTimer WAIT_IDLE_ON_PATH DETECTED marking serf on AI overlay";
+        AILogDebug["do_fix_stuck_serfs"] << "SerfWaitTimer WAIT_IDLE_ON_PATH DETECTED marking serf on AI overlay";
         ai_mark_serf.push_back(serf->get_index());
         //sleep_speed_adjusted(12000);
       }
       else {
         int trigger_ticks = static_cast<int>(serf_wait_idle_on_road_timers.at(serf->get_index()) - game->get_tick());
-        AILogDebug["do_fix_stuck_serfs"] << name << " SerfWaitTimer WAIT_IDLE_ON_PATH a serf_wait_idle_on_road_timer is already set for this serf, it will trigger in " << trigger_ticks << " ticks";
+        AILogDebug["do_fix_stuck_serfs"] << "SerfWaitTimer WAIT_IDLE_ON_PATH a serf_wait_idle_on_road_timer is already set for this serf, it will trigger in " << trigger_ticks << " ticks";
       }
     }
   }
-  AILogVerbose["do_fix_stuck_serfs"] << name << " thread #" << std::this_thread::get_id() << " AI is unlocking mutex after calling game->get_player_serfs(player) (for serf_wait_timers StateWaitIdleOnPath)";
+  AILogVerbose["do_fix_stuck_serfs"] << "thread #" << std::this_thread::get_id() << " AI is unlocking mutex after calling game->get_player_serfs(player) (for serf_wait_timers StateWaitIdleOnPath)";
   game->get_mutex()->unlock();
-  AILogVerbose["do_fix_stuck_serfs"] << name << " thread #" << std::this_thread::get_id() << " AI has unlocked mutex after calling game->get_player_serfs(player) (for serf_wait_timers StateWaitIdleOnPath)";
+  AILogVerbose["do_fix_stuck_serfs"] << "thread #" << std::this_thread::get_id() << " AI has unlocked mutex after calling game->get_player_serfs(player) (for serf_wait_timers StateWaitIdleOnPath)";
   duration = (std::clock() - start) / static_cast<double>(CLOCKS_PER_SEC);
-  AILogDebug["do_fix_stuck_serfs"] << name << " done do_fix_stuck_serfs call took " << duration;
+  AILogDebug["do_fix_stuck_serfs"] << "done do_fix_stuck_serfs call took " << duration;
 }
 
 // bug workaround - send transporters to paths where they are missing
@@ -934,12 +950,12 @@ AI::do_fix_missing_transporters() {
   std::clock_t start;
   double duration;
   start = std::clock();
-  AILogDebug["do_fix_missing_transporters"] << name << " inside do_fix_missing_transporters";
+  AILogDebug["do_fix_missing_transporters"] << "inside do_fix_missing_transporters";
   ai_status.assign("HOUSEKEEPING - send transporters");
   //
   // first, check any timers already set
   //
-  AILogDebug["do_fix_missing_transporters"] << name << " there are " << no_transporter_timers.size() << " TOTAL no_transporter_timers set";
+  AILogDebug["do_fix_missing_transporters"] << "there are " << no_transporter_timers.size() << " TOTAL no_transporter_timers set";
   FlagDirTimer::iterator no_transporter_timer;
   for (no_transporter_timer = no_transporter_timers.begin(); no_transporter_timer != no_transporter_timers.end(); ) {
     std::pair<unsigned int, Direction> flag_dir = no_transporter_timer->first;
@@ -952,40 +968,40 @@ AI::do_fix_missing_transporters() {
         ++no_transporter_timer;
         continue;
       }
-      AILogDebug["do_fix_missing_transporters"] << name << " triggering timer for flag with pos " << flag->get_position() << ", index " << flag_index << ", dir " << dir << " / " << NameDirection[dir];
+      AILogDebug["do_fix_missing_transporters"] << "triggering timer for flag with pos " << flag->get_position() << ", index " << flag_index << ", dir " << dir << " / " << NameDirection[dir];
       
       if (!flag->has_path(dir)){
-        AILogVerbose["do_fix_missing_transporters"] << name << " a path no longer exists for flag with pos " << flag->get_position() << ", index " << flag_index << ", dir " << dir << " / " << NameDirection[dir] << ", erasing timer";
+        AILogVerbose["do_fix_missing_transporters"] << "a path no longer exists for flag with pos " << flag->get_position() << ", index " << flag_index << ", dir " << dir << " / " << NameDirection[dir] << ", erasing timer";
         no_transporter_timer = no_transporter_timers.erase(no_transporter_timer);
       }
       else if (flag->has_transporter(dir)) {
-        AILogVerbose["do_fix_missing_transporters"] << name << " looks like a transporter finally arrived, not calling another";
-        AILogVerbose["do_fix_missing_transporters"] << name << " erasing timer for flag-dir " << flag_index << "-" << dir << " / " << NameDirection[dir];
+        AILogVerbose["do_fix_missing_transporters"] << "looks like a transporter finally arrived, not calling another";
+        AILogVerbose["do_fix_missing_transporters"] << "erasing timer for flag-dir " << flag_index << "-" << dir << " / " << NameDirection[dir];
         // found in C++ example... iterator is set by the result of the erase call on the current iterator pos (which is serf_index)
         no_transporter_timer = no_transporter_timers.erase(no_transporter_timer);
       }
       else {
-        AILogDebug["do_fix_missing_transporters"] << name << " timer detected BUG FOUND - NO TRANSPORTER on road at pos " << game->get_flag(flag_index)->get_position() << " in dir " << NameDirection[dir] << ", marking flag in cyan and dir in dk_cyan";
+        AILogDebug["do_fix_missing_transporters"] << "timer detected BUG FOUND - NO TRANSPORTER on road at pos " << flag->get_position() << " in dir " << NameDirection[dir] << ", marking flag in cyan and dir in dk_cyan";
         ai_mark_pos.insert(ColorDot(flag->get_position(), "cyan"));
         ai_mark_pos.insert(ColorDot(map->move(flag->get_position(), dir), "dk_cyan"));
         sleep_speed_adjusted(5000);
         //game->pause();
-        AILogDebug["do_fix_missing_transporters"] << name << " timer trying to force call a transporter";
-        AILogVerbose["do_fix_missing_transporters"] << name << " thread #" << std::this_thread::get_id() << " AI is locking mutex before calling flag->call_transporter, to work around no-transporter issue";
+        AILogDebug["do_fix_missing_transporters"] << "timer trying to force call a transporter";
+        AILogVerbose["do_fix_missing_transporters"] << "thread #" << std::this_thread::get_id() << " AI is locking mutex before calling flag->call_transporter, to work around no-transporter issue";
         game->get_mutex()->lock();
-        AILogVerbose["do_fix_missing_transporters"] << name << " thread #" << std::this_thread::get_id() << " AI has locked mutex before calling flag->call_transporter, to work around no-transporter issue";
+        AILogVerbose["do_fix_missing_transporters"] << "thread #" << std::this_thread::get_id() << " AI has locked mutex before calling flag->call_transporter, to work around no-transporter issue";
         // got access violation w/ 2x AIs, even with mutex, look for a foreach loop being invalidated elsewhere
         //Access violation reading location 0xFFFFFFFFFFFFFFFF.
         // oh... I think I just wasn't checking that this player owns the flag!  adding that
         // now getting some other read access violation after Inventory->have serfs... on Load Game testing though, dunno
-        AILogDebug["do_fix_missing_transporters"] << name << " NOT calling out missing new transporterZZZ, trying to debug this now";
+        AILogDebug["do_fix_missing_transporters"] << "NOT calling out missing new transporterZZZ, trying to debug this now";
         bool was_called = false;
         //bool was_called = flag->call_transporter(dir, false);  // hardcoding is_water_path to false because I am seeing weird crash with this checking for Serf::TypeSailor
-        AILogVerbose["do_fix_missing_transporters"] << name << " thread #" << std::this_thread::get_id() << " AI is unlocking mutex after calling flag->call_transporter, to work around no-transporter issue";
+        AILogVerbose["do_fix_missing_transporters"] << "thread #" << std::this_thread::get_id() << " AI is unlocking mutex after calling flag->call_transporter, to work around no-transporter issue";
         game->get_mutex()->unlock();
-        AILogVerbose["do_fix_missing_transporters"] << name << " thread #" << std::this_thread::get_id() << " AI has unlocked mutex after calling flag->call_transporter, to work around no-transporter issue";
+        AILogVerbose["do_fix_missing_transporters"] << "thread #" << std::this_thread::get_id() << " AI has unlocked mutex after calling flag->call_transporter, to work around no-transporter issue";
         if (!was_called) {
-          AILogDebug["do_fix_missing_transporters"] << name << " WARNING - flag->call_transporter failed while trying to work around no-transporter issue!  I guess let it try again next time";
+          AILogDebug["do_fix_missing_transporters"] << "WARNING - flag->call_transporter failed while trying to work around no-transporter issue!  I guess let it try again next time";
         }
         // don't erase if it isn't fixed yet, keep checking each AI loop
         //++no_transporter_timer;
@@ -998,15 +1014,14 @@ AI::do_fix_missing_transporters() {
       ++no_transporter_timer;
     }
   }
-  //AILogDebug["do_fix_missing_transporters"] << name << " aftebuild warer checking timeouts, there are now " << no_transporter_timers.size() << " TOTAL no_transporter_timers set";
+  //AILogDebug["do_fix_missing_transporters"] << "aftebuild warer checking timeouts, there are now " << no_transporter_timers.size() << " TOTAL no_transporter_timers set";
 
   //
   // look for missing transporters and if found set timers for them
   //
   unsigned int flag_index = 0;
-  flags_static_copy = *(game->get_flags());
-  flags = &flags_static_copy;
-  for (Flag *flag : *flags) {
+  Flags flags_copy = *(game->get_flags());  // create a copy so we don't conflict with the game thread, and don't want to mutex lock for a long function
+  for (Flag *flag : flags_copy) {
     if (flag == nullptr || flag->get_owner() != player_index || !flag->is_connected())
       continue;
     // it seems the castle shows as having a path Up-Left into it...
@@ -1032,7 +1047,7 @@ AI::do_fix_missing_transporters() {
         bool found_transporter = false;
         Road road;
         if (!map->has_path_IMPROVED(flag->get_position(), dir)) {
-          AILogVerbose["do_fix_missing_transporters"] << name << " no path found for flag with pos " << flag->get_position() << ", index " << flag_index << ", dir " << dir << " / " << NameDirection[dir] << " during no_transporter check!  FIND OUT WHY";
+          AILogVerbose["do_fix_missing_transporters"] << "no path found for flag with pos " << flag->get_position() << ", index " << flag_index << ", dir " << dir << " / " << NameDirection[dir] << " during no_transporter check!  FIND OUT WHY";
         }
         MapPos pos = flag->get_position();
         Direction tmp_dir = dir;
@@ -1094,34 +1109,34 @@ AI::do_fix_missing_transporters() {
           - the Lost transporter walks off somewhere east, eventually makes is way back to the Castle, and obviously never returns, and no replacement is sent (because this isn't supposed to happen)
           - the game doesn't realize the transporter is lost, the only way I was detecting it is by walking the road to see that no transporter was actually there despite the Flag having a record of an active transporter there
           */
-          AILogDebug["do_fix_missing_transporters"] << name << " WARNING - found rare type of missing transporter bug!  Flag #" << flag->get_index() << " at pos " << flag->get_position() << " seems to be missing a transporter on road in dir " << NameDirection[dir] << " despite it thinking there is one there!";
+          AILogDebug["do_fix_missing_transporters"] << "WARNING - found rare type of missing transporter bug!  Flag #" << flag->get_index() << " at pos " << flag->get_position() << " seems to be missing a transporter on road in dir " << NameDirection[dir] << " despite it thinking there is one there!";
           ai_mark_pos.insert(std::make_pair(flag->get_position(), "lt_blue"));
           sleep_speed_adjusted(5000);
           ai_mark_pos.clear();
-          AILogDebug["do_fix_missing_transporters"] << name << " detected BUG FOUND - RARER NO TRANSPORTER on road at pos " << game->get_flag(flag_index)->get_position() << ", marking in white";
-          ai_mark_pos.insert(ColorDot(game->get_flag(flag_index)->get_position() , "white"));
-          AILogDebug["do_fix_missing_transporters"] << name << " trying to immediately force call a transporter";
-          AILogVerbose["do_fix_missing_transporters"] << name << " thread #" << std::this_thread::get_id() << " AI is locking mutex before calling flag->call_transporter, to work around RARER no-transporter issue";
-          game->get_mutex()->lock();
-          AILogVerbose["do_fix_missing_transporters"] << name << " thread #" << std::this_thread::get_id() << " AI has locked mutex before calling flag->call_transporter, to work around RARER no-transporter issue";
+          AILogDebug["do_fix_missing_transporters"] << "detected BUG FOUND - RARER NO TRANSPORTER on road at pos " << flag->get_position() << ", marking in white";
+          ai_mark_pos.insert(ColorDot(flag->get_position() , "white"));
+          //AILogDebug["do_fix_missing_transporters"] << "trying to immediately force call a transporter";
+          //AILogVerbose["do_fix_missing_transporters"] << "thread #" << std::this_thread::get_id() << " AI is locking mutex before calling flag->call_transporter, to work around RARER no-transporter issue";
+          //game->get_mutex()->lock();
+          //AILogVerbose["do_fix_missing_transporters"] << "thread #" << std::this_thread::get_id() << " AI has locked mutex before calling flag->call_transporter, to work around RARER no-transporter issue";
           
-          AILogDebug["do_fix_missing_transporters"] << name << " NOT calling out missing new transporter, trying to debug this now";
+          AILogDebug["do_fix_missing_transporters"] << "NOT calling out missing new transporter, trying to debug this now";
           bool was_called = false;
           //bool was_called = flag->call_transporter(dir, false);  // hardcoding is_water_path to false because I am seeing weird crash with this checking for Serf::TypeSailor
 
-          AILogVerbose["do_fix_missing_transporters"] << name << " thread #" << std::this_thread::get_id() << " AI is unlocking mutex after calling flag->call_transporter, to work around RARER no-transporter issue";
-          game->get_mutex()->unlock();
-          AILogVerbose["do_fix_missing_transporters"] << name << " thread #" << std::this_thread::get_id() << " AI has unlocked mutex after calling flag->call_transporter, to work around RARER no-transporter issue";
+          //AILogVerbose["do_fix_missing_transporters"] << "thread #" << std::this_thread::get_id() << " AI is unlocking mutex after calling flag->call_transporter, to work around RARER no-transporter issue";
+          //game->get_mutex()->unlock();
+          //AILogVerbose["do_fix_missing_transporters"] << "thread #" << std::this_thread::get_id() << " AI has unlocked mutex after calling flag->call_transporter, to work around RARER no-transporter issue";
           /*
           if (!was_called) {
-            AILogDebug["do_fix_missing_transporters"] << name << " WARNING - flag->call_transporter to " << flag->get_position() << ", dir " << NameDirection[dir] << " - failed while trying to work around RARER no-transporter issue!  I guess let it try again next time";
+            AILogDebug["do_fix_missing_transporters"] << "WARNING - flag->call_transporter to " << flag->get_position() << ", dir " << NameDirection[dir] << " - failed while trying to work around RARER no-transporter issue!  I guess let it try again next time";
           }
           sleep_speed_adjusted(5000);
           */
           //game->pause();
         }
         else {
-          AILogVerbose["do_fix_missing_transporters"] << name << " found expected transporter with Flag #" << flag->get_index() << " at pos " << flag->get_position() << " on road in dir " << NameDirection[dir];
+          AILogVerbose["do_fix_missing_transporters"] << "found expected transporter with Flag #" << flag->get_index() << " at pos " << flag->get_position() << " on road in dir " << NameDirection[dir];
         }
 
       }
@@ -1132,12 +1147,12 @@ AI::do_fix_missing_transporters() {
       //  exits the Inventory (castle/stock) and starts travelling and is lost along the way, or if it never actually starts walking
       //
       if (!flag->has_transporter(dir)) {
-        AILogDebug["do_fix_missing_transporters"] << name << " flag at pos " << flag->get_position() << " has no transporter on path in dir " << dir << " / " << NameDirection[dir];
+        AILogDebug["do_fix_missing_transporters"] << "flag at pos " << flag->get_position() << " has no transporter on path in dir " << dir << " / " << NameDirection[dir];
         // check to see if one was requested
         if (flag->serf_requested(dir)){
-          AILogDebug["do_fix_missing_transporters"] << name << " flag->serf_requested is true at pos " << flag->get_position() << " in dir " << dir << " / " << NameDirection[dir];
+          AILogDebug["do_fix_missing_transporters"] << "flag->serf_requested is true at pos " << flag->get_position() << " in dir " << dir << " / " << NameDirection[dir];
         }else{
-          AILogDebug["do_fix_missing_transporters"] << name << " flag->serf_requested is FALSE at pos " << flag->get_position() << " in dir " << dir << " / " << NameDirection[dir] << ", marking flag in yellow and dir in dk_yellow";
+          AILogDebug["do_fix_missing_transporters"] << "flag->serf_requested is FALSE at pos " << flag->get_position() << " in dir " << dir << " / " << NameDirection[dir] << ", marking flag in yellow and dir in dk_yellow";
           // this happens when flags/roads/buildings were just created, not an issue as far as I have ever seen
           //ai_mark_pos.insert(ColorDot(flag->get_position(), "yellow"));
           //ai_mark_pos.insert(ColorDot(map->move(flag->get_position(), dir), "dk_yellow"));
@@ -1145,16 +1160,16 @@ AI::do_fix_missing_transporters() {
         }
         // maybe check to see if there is a Walking Transporter serf whose dest is this path?
         // see if a timer already set for this flag & dir
-        AILogDebug["do_fix_missing_transporters"] << name << " there are " << no_transporter_timers.count(std::make_pair(flag_index, dir)) << " no_transporter_timers set for this flag with pos " << flag->get_position() << ", index " << flag_index << ", dir " << dir << " / " << NameDirection[dir];
+        AILogDebug["do_fix_missing_transporters"] << "there are " << no_transporter_timers.count(std::make_pair(flag_index, dir)) << " no_transporter_timers set for this flag with pos " << flag->get_position() << ", index " << flag_index << ", dir " << dir << " / " << NameDirection[dir];
         if (no_transporter_timers.count(std::make_pair(flag_index, dir)) == 0) {
-          AILogDebug["do_fix_missing_transporters"] << name << " setting countdown timer for flag with pos " << flag->get_position() << ", index " << flag_index << ", dir " << dir << " / " << NameDirection[dir];
+          AILogDebug["do_fix_missing_transporters"] << "setting countdown timer for flag with pos " << flag->get_position() << ", index " << flag_index << ", dir " << dir << " / " << NameDirection[dir];
           // this is difficult to tune... if too long the entire economy can break down while waiting to clear it
           //    but too soon as it could trigger for a faraway road that the original transporter simply hasn't reached
           //  Maybe make more advanced and check to see if there is an outgoing transporter serf with this destination flag/dir??
           // jan05 2021 - setting this 25x now that I am looking at it closer.  It should be either extremely long timer or
           //    based on the distance from the inventory (warehouse/stock) that is dispatching the serf
           no_transporter_timers.insert(std::make_pair(std::make_pair(flag_index, dir), game->get_tick() + 50000);
-          AILogDebug["do_fix_missing_transporters"] << name << " there are now " << no_transporter_timers.count(std::make_pair(flag_index, dir)) << " no_transporter_timers set for this flag with pos " << flag->get_position() << ", index " << flag_index << ", dir " << dir << " / " << NameDirection[dir] << ", value is: " << no_transporter_timers.at(std::make_pair(flag_index, dir));
+          AILogDebug["do_fix_missing_transporters"] << "there are now " << no_transporter_timers.count(std::make_pair(flag_index, dir)) << " no_transporter_timers set for this flag with pos " << flag->get_position() << ", index " << flag_index << ", dir " << dir << " / " << NameDirection[dir] << ", value is: " << no_transporter_timers.at(std::make_pair(flag_index, dir));
 
           // try to find a serf that is on way to this Flag-dir
           AILogVerbose["do_fix_missing_transporters"] << inventory_pos << " thread #" << std::this_thread::get_id() << " AI is locking mutex before calling game->get_player_serfs(player) (for do_fix_missing_transporters)";
@@ -1162,7 +1177,7 @@ AI::do_fix_missing_transporters() {
           AILogVerbose["do_fix_missing_transporters"] << inventory_pos << " thread #" << std::this_thread::get_id() << " AI has locked mutex before calling game->get_player_serfs(player) (for do_fix_missing_transporters)";
           for (Serf *serf : game->get_player_serfs(player)) {
             if (serf->get_walking_dest() == flag_index){
-              AILogDebug["do_fix_missing_transporters"] << name << " serf at pos " << serf->get_pos() << " with type " << NameSerf[serf->get_type()] << " has dest of this Flag with index " << flag_index << " and pos " << flag->get_position();
+              AILogDebug["do_fix_missing_transporters"] << "serf at pos " << serf->get_pos() << " with type " << NameSerf[serf->get_type()] << " has dest of this Flag with index " << flag_index << " and pos " << flag->get_position();
               ai_mark_serf.push_back(serf->get_index());
             }
           }
@@ -1172,21 +1187,16 @@ AI::do_fix_missing_transporters() {
           
         } else {
           int trigger_ticks = static_cast<int>(no_transporter_timers.at(std::make_pair(flag_index, dir)) - game->get_tick());
-          AILogDebug["do_fix_missing_transporters"] << name << " a timer is already set for flag with pos " << flag->get_position() << ", index " << flag_index << ", dir " << dir << " / " << NameDirection[dir] << ", it will trigger in " << trigger_ticks << " ticks";
+          AILogDebug["do_fix_missing_transporters"] << "a timer is already set for flag with pos " << flag->get_position() << ", index " << flag_index << ", dir " << dir << " / " << NameDirection[dir] << ", it will trigger in " << trigger_ticks << " ticks";
         }
       }
       */
     }
   }
   duration = (std::clock() - start) / static_cast<double>(CLOCKS_PER_SEC);
-  AILogDebug["do_fix_missing_transporters"] << name << " done do_fix_missing_transporters call took " << duration;
+  AILogDebug["do_fix_missing_transporters"] << "done do_fix_missing_transporters call took " << duration;
 }
 
-//
-// NEED TO MODIFY THIS TO ALLOW MORE GEOLOGISTS -  X PER WAREHOUSE
-//  not enough res flags placed as game progresses
-//
-//
 void
 AI::do_send_geologists() {
   //
@@ -1200,6 +1210,7 @@ AI::do_send_geologists() {
   ai_status.assign("HOUSEKEEPING - send geologists");
   MapPosSet count_by_corner;
   MapPosVector geologist_positions;
+  /* don't stop sending geologists
   // don't send geologists if already have enough mines for this Inventory pos
   int completed_coalmine_count = stock_buildings.at(inventory_pos).completed_count[Building::TypeCoalMine];
   int completed_ironmine_count = stock_buildings.at(inventory_pos).completed_count[Building::TypeIronMine];
@@ -1214,6 +1225,7 @@ AI::do_send_geologists() {
     AILogDebug["do_send_geologists"] << inventory_pos << " enough mines placed, not sending anymore geologists";
     return;
   }
+  */
   // figure out if we should be creating more geologists by counting the number
   //   of excess hammers (not reserved for future builders or blacksmiths)
   //   If max number of builders & blacksmiths reached, no longer need to reserve hammers
@@ -1232,10 +1244,21 @@ AI::do_send_geologists() {
   AILogDebug["do_send_geologists"] << inventory_pos << " total_geologists " << total_geologists << ", idle_geologists " << idle_geologists << ", geologists_max "
     << geologists_max << ", total_builders " << total_builders << ", total_blacksmiths " << total_blacksmiths
     << ", hammers_count " << hammers_count << ", reserve_hammers " << reserve_hammers << ", excess_hammers " << excess_hammers;
+  unsigned int adjusted_geologists_max = 2 + (geologists_max * stock_buildings.size());
+  
+
+  // another way to try to limit creation of excess geologists
+  int working_geologists = total_geologists - idle_geologists;
+  if (working_geologists >= adjusted_geologists_max){
+    AILogDebug["do_send_geologists"] << inventory_pos << " working_geologists " << working_geologists << " has reached adjusted_geologists_max " << adjusted_geologists_max << ", not sending any geologists until some return";
+    return;
+  }
+
+  // only create new geologists is sufficient hammers
   if (excess_hammers > 0) {
     // its possible to accidently create > geologists_max, so if this happens avoid going negative
     //   initial max is 4, adds 2 for each Stock built
-    unsigned int adjusted_geologists_max = 2 + (geologists_max * stock_buildings.size());
+    AILogDebug["do_send_geologists"] << inventory_pos << " debug - adjusted_geologists_max is " << adjusted_geologists_max;
     if (total_geologists >= adjusted_geologists_max) {
       AILogDebug["do_send_geologists"] << inventory_pos << " adjusted_geologists_max " << adjusted_geologists_max << " hit, have total_geologists " << total_geologists;
       potential_geologists = 0;
@@ -1254,6 +1277,12 @@ AI::do_send_geologists() {
   else {
     AILogDebug["do_send_geologists"] << inventory_pos << " hammers_count <= hammers_reserve, potential_geologists set to zero.  Existing geologists: " << total_geologists;
   }
+
+  if (idle_geologists < 1 && potential_geologists < 1){
+    AILogDebug["do_send_geologists"] << inventory_pos << " no idle or potential geologists available, returning";
+    return;
+  }
+
   // determine where any geologists are currently operating (to later avoid sending too many to one area)
   AILogVerbose["do_send_geologists"] << inventory_pos << " thread #" << std::this_thread::get_id() << " AI is locking mutex before calling game->get_player_serfs(player) (for serf_wait_timers is_waiting)";
   game->get_mutex()->lock();
@@ -1439,7 +1468,7 @@ AI::do_send_geologists() {
           }
         }
         // send geologist
-        if (map->has_flag(pos) && map->get_owner(pos) == player_index && game->get_flag_at_pos(pos)->is_connected()) {
+        if (map->has_flag(pos) && map->get_owner(pos) == player_index && game->get_flag_at_pos(pos) != nullptr && game->get_flag_at_pos(pos)->is_connected()) {
           AILogDebug["do_send_geologists"] << inventory_pos << " found connected flag on hills for geologist at pos " << pos;
           Flag *flag = game->get_flag_at_pos(pos);
           if (flag == nullptr)
@@ -1529,48 +1558,48 @@ AI::do_send_geologists() {
 
 void
 AI::do_build_rangers() {
-  AILogDebug["do_build_rangers"] << name << " inside do_build_rangers";
+  AILogDebug["do_build_rangers"] << "inside do_build_rangers";
   //
   // build ranger near lumberjacks that have few trees and no ranger nearby
    //
-  AILogDebug["do_build_rangers"] << name << " HouseKeeping: build rangers near lumberjacks that have few trees and no ranger nearby";
+  AILogDebug["do_build_rangers"] << "HouseKeeping: build rangers near lumberjacks that have few trees and no ranger nearby";
   ai_status.assign("HOUSEKEEPING - build rangers");
-  AILogVerbose["do_build_rangers"] << name << " thread #" << std::this_thread::get_id() << " AI is locking mutex before calling game->get_player_buildings(player) (for do_build_rangers)";
+  AILogVerbose["do_build_rangers"] << "thread #" << std::this_thread::get_id() << " AI is locking mutex before calling game->get_player_buildings(player) (for do_build_rangers)";
   game->get_mutex()->lock();
-  AILogVerbose["do_build_rangers"] << name << " thread #" << std::this_thread::get_id() << " AI has locked mutex before calling game->get_player_buildings(player) (for do_build_rangers)";
+  AILogVerbose["do_build_rangers"] << "thread #" << std::this_thread::get_id() << " AI has locked mutex before calling game->get_player_buildings(player) (for do_build_rangers)";
   Game::ListBuildings buildings = game->get_player_buildings(player);
-  AILogVerbose["do_build_rangers"] << name << " thread #" << std::this_thread::get_id() << " AI is unlocking mutex after calling game->get_player_buildings(player) (for do_build_rangers)";
+  AILogVerbose["do_build_rangers"] << "thread #" << std::this_thread::get_id() << " AI is unlocking mutex after calling game->get_player_buildings(player) (for do_build_rangers)";
   game->get_mutex()->unlock();
-  AILogVerbose["do_build_rangers"] << name << " thread #" << std::this_thread::get_id() << " AI has unlocked mutex after calling game->get_player_buildings(player) (for do_build_rangers)";
+  AILogVerbose["do_build_rangers"] << "thread #" << std::this_thread::get_id() << " AI has unlocked mutex after calling game->get_player_buildings(player) (for do_build_rangers)";
   for (Building *building : buildings) {
     if (building->get_type() != Building::TypeLumberjack)
       continue;
     MapPos pos = building->get_position();
     unsigned int count = AI::count_objects_near_pos(pos, AI::spiral_dist(4), Map::ObjectTree0, Map::ObjectPine7, "lt_green");
-    AILogDebug["do_build_rangers"] << name << " lumberjack trees nearby count: " << count << ", min acceptable is " << near_trees_min;
+    AILogDebug["do_build_rangers"] << "lumberjack trees nearby count: " << count << ", min acceptable is " << near_trees_min;
     if (count >= near_trees_min)
       continue;
     if (AI::building_exists_near_pos(pos, AI::spiral_dist(6), Building::TypeForester))
       continue;
-    AILogDebug["do_build_rangers"] << name << " lumberjack at " << pos << " has < min trees and no ranger nearby, trying to place ranger";
+    AILogDebug["do_build_rangers"] << "lumberjack at " << pos << " has < min trees and no ranger nearby, trying to place ranger";
     MapPos built_pos = AI::build_near_pos(pos, AI::spiral_dist(6), Building::TypeForester);
     if (built_pos != bad_map_pos && built_pos != notplaced_pos)
-      AILogDebug["do_build_rangers"] << name << " built ranger at pos " << built_pos;
+      AILogDebug["do_build_rangers"] << "built ranger at pos " << built_pos;
   }
-  AILogDebug["do_build_rangers"] << name << " done do_build_rangers";
+  AILogDebug["do_build_rangers"] << "done do_build_rangers";
 }
 
 void
 AI::do_demolish_unproductive_3rd_lumberjacks() {
-  AILogDebug["do_demolish_unproductive_3rd_lumberjacks"] << name << " inside do_demolish_unproductive_3rd_lumberjacks";
+  AILogDebug["do_demolish_unproductive_3rd_lumberjacks"] << "inside do_demolish_unproductive_3rd_lumberjacks";
   ai_status.assign("HOUSEKEEPING - burn unproductive 3rd lumberjacks");
-  AILogVerbose["do_demolish_unproductive_3rd_lumberjacks"] << name << " thread #" << std::this_thread::get_id() << " AI is locking mutex before calling game->get_player_buildings(player)";
+  AILogVerbose["do_demolish_unproductive_3rd_lumberjacks"] << "thread #" << std::this_thread::get_id() << " AI is locking mutex before calling game->get_player_buildings(player)";
   game->get_mutex()->lock();
-  AILogVerbose["do_demolish_unproductive_3rd_lumberjacks"] << name << " thread #" << std::this_thread::get_id() << " AI has locked mutex before calling game->get_player_buildings(player)";
+  AILogVerbose["do_demolish_unproductive_3rd_lumberjacks"] << "thread #" << std::this_thread::get_id() << " AI has locked mutex before calling game->get_player_buildings(player)";
   Game::ListBuildings buildings = game->get_player_buildings(player);
-  AILogVerbose["do_demolish_unproductive_3rd_lumberjacks"] << name << " thread #" << std::this_thread::get_id() << " AI is unlocking mutex after calling game->get_player_buildings(player)";
+  AILogVerbose["do_demolish_unproductive_3rd_lumberjacks"] << "thread #" << std::this_thread::get_id() << " AI is unlocking mutex after calling game->get_player_buildings(player)";
   game->get_mutex()->unlock();
-  AILogVerbose["do_demolish_unproductive_3rd_lumberjacks"] << name << " thread #" << std::this_thread::get_id() << " AI has unlocked mutex after calling game->get_player_buildings(player)";
+  AILogVerbose["do_demolish_unproductive_3rd_lumberjacks"] << "thread #" << std::this_thread::get_id() << " AI has unlocked mutex after calling game->get_player_buildings(player)";
   // find all sawmills in the realm, and check the area around each one
   // if three completed lumberjacks and a ranger are nearby, but still not many trees,
   //   then burn one lumberjack to allow it to be replaced elsewhere by the do_food_buildings_and_3rd_lumberjack function
@@ -1605,21 +1634,21 @@ AI::do_demolish_unproductive_3rd_lumberjacks() {
           ++mature_tree_count;
       }
       if (ranger_count > 0 && mature_tree_count < near_trees_min) {
-        AILogDebug["do_demolish_unproductive_3rd_lumberjacks"] << name << " 3rd lumberjack at pos " << lumberjack_pos << " has a nearby ranger yet still only has " << mature_tree_count << ", less than near_trees_min " << near_trees_min << ".  Burning it so it can be replaced in a better spot";
-        AILogVerbose["do_demolish_unproductive_3rd_lumberjacks"] << name << " thread #" << std::this_thread::get_id() << " AI is locking mutex before calling game->demolish_building";
+        AILogDebug["do_demolish_unproductive_3rd_lumberjacks"] << "3rd lumberjack at pos " << lumberjack_pos << " has a nearby ranger yet still only has " << mature_tree_count << ", less than near_trees_min " << near_trees_min << ".  Burning it so it can be replaced in a better spot";
+        AILogVerbose["do_demolish_unproductive_3rd_lumberjacks"] << "thread #" << std::this_thread::get_id() << " AI is locking mutex before calling game->demolish_building";
         game->get_mutex()->lock();
-        AILogVerbose["do_demolish_unproductive_3rd_lumberjacks"] << name << " thread #" << std::this_thread::get_id() << " AI has locked mutex before calling game->demolish_building";
+        AILogVerbose["do_demolish_unproductive_3rd_lumberjacks"] << "thread #" << std::this_thread::get_id() << " AI has locked mutex before calling game->demolish_building";
         game->demolish_building(lumberjack_pos, player);
-        AILogVerbose["do_demolish_unproductive_3rd_lumberjacks"] << name << " thread #" << std::this_thread::get_id() << " AI is unlocking mutex after calling game->demolish_building";
+        AILogVerbose["do_demolish_unproductive_3rd_lumberjacks"] << "thread #" << std::this_thread::get_id() << " AI is unlocking mutex after calling game->demolish_building";
         game->get_mutex()->unlock();
-        AILogVerbose["do_demolish_unproductive_3rd_lumberjacks"] << name << " thread #" << std::this_thread::get_id() << " AI has unlocked mutex after calling game->demolish_building";
+        AILogVerbose["do_demolish_unproductive_3rd_lumberjacks"] << "thread #" << std::this_thread::get_id() << " AI has unlocked mutex after calling game->demolish_building";
         // sleep to appear more human
         sleep_speed_adjusted(3000);
         break;
       }
     }
   }
-  AILogDebug["do_demolish_unproductive_3rd_lumberjacks"] << name << " done do_demolish_unproductive_3rd_lumberjacks";
+  AILogDebug["do_demolish_unproductive_3rd_lumberjacks"] << "done do_demolish_unproductive_3rd_lumberjacks";
 }
 
 
@@ -1632,7 +1661,7 @@ AI::do_demolish_unproductive_3rd_lumberjacks() {
 //  flag nearby that can be successfully connected to instead (and do so)
 void
 AI::do_remove_road_stubs() {
-  AILogDebug["do_remove_road_stubs"] << name << " inside do_remove_road_stubs";
+  AILogDebug["do_remove_road_stubs"] << "inside do_remove_road_stubs";
   // time this function for debugging
   std::clock_t start;
   double duration;
@@ -1641,13 +1670,13 @@ AI::do_remove_road_stubs() {
   //
   // ...an occupied ranger building, if no other paths from ranger flag
   //
-  AILogVerbose["do_remove_road_stubs"] << name << " thread #" << std::this_thread::get_id() << " AI is locking mutex before calling game->get_player_buildings(player) (for do_remove_road_stubs)";
+  AILogVerbose["do_remove_road_stubs"] << "thread #" << std::this_thread::get_id() << " AI is locking mutex before calling game->get_player_buildings(player) (for do_remove_road_stubs)";
   game->get_mutex()->lock();
-  AILogVerbose["do_remove_road_stubs"] << name << " thread #" << std::this_thread::get_id() << " AI has locked mutex before calling game->get_player_buildings(player) (for do_remove_road_stubs)";
+  AILogVerbose["do_remove_road_stubs"] << "thread #" << std::this_thread::get_id() << " AI has locked mutex before calling game->get_player_buildings(player) (for do_remove_road_stubs)";
   Game::ListBuildings buildings = game->get_player_buildings(player);
-  AILogVerbose["do_remove_road_stubs"] << name << " thread #" << std::this_thread::get_id() << " AI is unlocking mutex after calling game->get_player_buildings(player) (for do_remove_road_stubs)";
+  AILogVerbose["do_remove_road_stubs"] << "thread #" << std::this_thread::get_id() << " AI is unlocking mutex after calling game->get_player_buildings(player) (for do_remove_road_stubs)";
   game->get_mutex()->unlock();
-  AILogVerbose["do_remove_road_stubs"] << name << " thread #" << std::this_thread::get_id() << " AI has unlocked mutex after calling game->get_player_buildings(player) (for do_remove_road_stubs)";
+  AILogVerbose["do_remove_road_stubs"] << "thread #" << std::this_thread::get_id() << " AI has unlocked mutex after calling game->get_player_buildings(player) (for do_remove_road_stubs)";
   for (Building *building : buildings) {
     if (building->get_type() != Building::TypeForester)
       continue;
@@ -1661,20 +1690,20 @@ AI::do_remove_road_stubs() {
       if (!map->has_path_IMPROVED(flag_pos, dir)) { continue; }
       paths++;
       if (paths > 1) {
-        AILogDebug["do_remove_road_stubs"] << name << " occupied ranger at pos " << pos << "'s flag has more than one path, not removing road";
+        AILogDebug["do_remove_road_stubs"] << "occupied ranger at pos " << pos << "'s flag has more than one path, not removing road";
         break;
       }
       road_dir = dir;
     }
     if (paths == 1) {
-      AILogDebug["do_remove_road_stubs"] << name << " occupied ranger at pos " << pos << "'s flag has only one path, removing the stub road";
-      AILogVerbose["do_remove_road_stubs"] << name << " thread #" << std::this_thread::get_id() << " AI is locking mutex before calling game->demolish_road() (for do_remove_road_stubs) for ranger";
+      AILogDebug["do_remove_road_stubs"] << "occupied ranger at pos " << pos << "'s flag has only one path, removing the stub road";
+      AILogVerbose["do_remove_road_stubs"] << "thread #" << std::this_thread::get_id() << " AI is locking mutex before calling game->demolish_road() (for do_remove_road_stubs) for ranger";
       game->get_mutex()->lock();
-      AILogVerbose["do_remove_road_stubs"] << name << " thread #" << std::this_thread::get_id() << " AI has locked mutex before calling game->demolish_road() (for do_remove_road_stubs) for ranger";
+      AILogVerbose["do_remove_road_stubs"] << "thread #" << std::this_thread::get_id() << " AI has locked mutex before calling game->demolish_road() (for do_remove_road_stubs) for ranger";
       game->demolish_road(map->move(flag_pos, road_dir), player);
-      AILogVerbose["do_remove_road_stubs"] << name << " thread #" << std::this_thread::get_id() << " AI is unlocking mutex after calling game->demolish_road() (for do_remove_road_stubs) for ranger";
+      AILogVerbose["do_remove_road_stubs"] << "thread #" << std::this_thread::get_id() << " AI is unlocking mutex after calling game->demolish_road() (for do_remove_road_stubs) for ranger";
       game->get_mutex()->unlock();
-      AILogVerbose["do_remove_road_stubs"] << name << " thread #" << std::this_thread::get_id() << " AI has unlocked mutex after calling game->demolish_road() (for do_remove_road_stubs) for ranger";
+      AILogVerbose["do_remove_road_stubs"] << "thread #" << std::this_thread::get_id() << " AI has unlocked mutex after calling game->demolish_road() (for do_remove_road_stubs) for ranger";
       roads_removed++;
       // sleep a bit to be more human like
       sleep_speed_adjusted(3000);
@@ -1683,9 +1712,8 @@ AI::do_remove_road_stubs() {
   //
   // a mountain/geologist road, if sign density > max
   //
-  flags_static_copy = *(game->get_flags());
-  flags = &flags_static_copy;
-  for (Flag *flag : *flags) {
+  Flags flags_copy = *(game->get_flags());  // create a copy so we don't conflict with the game thread, and don't want to mutex lock for a long function
+  for (Flag *flag : flags_copy) {
     if (flag == nullptr || flag->get_owner() != player_index || !flag->is_connected() || flag->has_building())
       continue;
     MapPos flag_pos = flag->get_position();
@@ -1696,16 +1724,16 @@ AI::do_remove_road_stubs() {
     //  - if another flag on a mountain tile is very close
     bool eligible = false;
     if (AI::count_geologist_sign_density(flag_pos, AI::spiral_dist(4)) > geologist_sign_density_max){
-      AILogDebug["do_remove_road_stubs"] << name << " flag at pos " << flag_pos << " is eligible because sign_density > max";
+      AILogDebug["do_remove_road_stubs"] << "flag at pos " << flag_pos << " is eligible because sign_density > max";
       eligible = true;
     }
     else {
       for (unsigned int i = 1; i < AI::spiral_dist(2); i++) {
         MapPos pos = map->pos_add_extended_spirally(flag_pos, i);
-        if (map->has_flag(pos) && map->get_owner(pos) == player_index && game->get_flag_at_pos(pos)->is_connected()
+        if (map->has_flag(pos) && map->get_owner(pos) == player_index && game->get_flag_at_pos(pos) != nullptr && game->get_flag_at_pos(pos)->is_connected()
             && has_terrain_type(game, flag_pos, Map::TerrainTundra0, Map::TerrainSnow1)) {
           eligible = true;
-          AILogDebug["do_remove_road_stubs"] << name << " flag at pos " << flag_pos << " is eligible because another connected flag on a mountain tile, at pos " << pos << ",  is very close";
+          AILogDebug["do_remove_road_stubs"] << "flag at pos " << flag_pos << " is eligible because another connected flag on a mountain tile, at pos " << pos << ",  is very close";
           break;
         }
       }
@@ -1719,21 +1747,21 @@ AI::do_remove_road_stubs() {
       if (!map->has_path_IMPROVED(flag_pos, dir)) { continue; }
       paths++;
       if (paths > 1) {
-        AILogDebug["do_remove_road_stubs"] << name << " eligible geologist road ending with flag at pos " << flag_pos << " has more than one path, not removing road";
+        AILogDebug["do_remove_road_stubs"] << "eligible geologist road ending with flag at pos " << flag_pos << " has more than one path, not removing road";
         break;
       }
       road_dir = dir;
     }
     if (paths == 1) {
-      AILogDebug["do_remove_road_stubs"] << name << " eligible geologist road ending with flag at pos " << flag_pos << " has only one path, removing the stub road and its end flag";
-      AILogVerbose["do_remove_road_stubs"] << name << " thread #" << std::this_thread::get_id() << " AI is locking mutex before calling game->demolish_road() and flag (for do_remove_road_stubs) for geologist flag";
+      AILogDebug["do_remove_road_stubs"] << "eligible geologist road ending with flag at pos " << flag_pos << " has only one path, removing the stub road and its end flag";
+      AILogVerbose["do_remove_road_stubs"] << "thread #" << std::this_thread::get_id() << " AI is locking mutex before calling game->demolish_road() and flag (for do_remove_road_stubs) for geologist flag";
       game->get_mutex()->lock();
-      AILogVerbose["do_remove_road_stubs"] << name << " thread #" << std::this_thread::get_id() << " AI has locked mutex before calling game->demolish_road() and flag (for do_remove_road_stubs) for geologist flag";
+      AILogVerbose["do_remove_road_stubs"] << "thread #" << std::this_thread::get_id() << " AI has locked mutex before calling game->demolish_road() and flag (for do_remove_road_stubs) for geologist flag";
       game->demolish_road(map->move(flag_pos, road_dir), player);
       game->demolish_flag(flag_pos, player);
-      AILogVerbose["do_remove_road_stubs"] << name << " thread #" << std::this_thread::get_id() << " AI is unlocking mutex after calling game->demolish_road() and flag (for do_remove_road_stubs) for geologist flag";
+      AILogVerbose["do_remove_road_stubs"] << "thread #" << std::this_thread::get_id() << " AI is unlocking mutex after calling game->demolish_road() and flag (for do_remove_road_stubs) for geologist flag";
       game->get_mutex()->unlock();
-      AILogVerbose["do_remove_road_stubs"] << name << " thread #" << std::this_thread::get_id() << " AI has unlocked mutex after calling game->demolish_road() and flag (for do_remove_road_stubs) for geologist flag";
+      AILogVerbose["do_remove_road_stubs"] << "thread #" << std::this_thread::get_id() << " AI has unlocked mutex after calling game->demolish_road() and flag (for do_remove_road_stubs) for geologist flag";
       roads_removed++;
       // sleep a bit to be more human like
       sleep_speed_adjusted(3000);
@@ -1742,9 +1770,8 @@ AI::do_remove_road_stubs() {
   //
   // any non-mountain road that dead-ends and has no building attached
   //
-  flags_static_copy = *(game->get_flags());
-  flags = &flags_static_copy;
-  for (Flag *flag : *flags) {
+  flags_copy = *(game->get_flags());  // refresh the a copy
+  for (Flag *flag : flags_copy) {
     if (flag == nullptr || flag->get_owner() != player_index || !flag->is_connected() || flag->has_building())
       continue;
     MapPos flag_pos = flag->get_position();
@@ -1757,21 +1784,21 @@ AI::do_remove_road_stubs() {
       if (!map->has_path_IMPROVED(flag_pos, dir)) { continue; }
       paths++;
       if (paths > 1) {
-        //AILogDebug["do_remove_road_stubs"] << name << " eligible non-mountain road ending with flag at pos " << flag_pos << " has more than one path, not removing road";
+        //AILogDebug["do_remove_road_stubs"] << "eligible non-mountain road ending with flag at pos " << flag_pos << " has more than one path, not removing road";
         break;
       }
       road_dir = dir;
     }
     if (paths == 1) {
-      AILogDebug["do_remove_road_stubs"] << name << " eligible non-mountain road ending with flag at pos " << flag_pos << " has only one path, removing the stub road and its end flag";
-      AILogVerbose["do_remove_road_stubs"] << name << " thread #" << std::this_thread::get_id() << " AI is locking mutex before calling game->demolish_road() and flag (for do_remove_road_stubs) for non-mountain flag";
+      AILogDebug["do_remove_road_stubs"] << "eligible non-mountain road ending with flag at pos " << flag_pos << " has only one path, removing the stub road and its end flag";
+      AILogVerbose["do_remove_road_stubs"] << "thread #" << std::this_thread::get_id() << " AI is locking mutex before calling game->demolish_road() and flag (for do_remove_road_stubs) for non-mountain flag";
       game->get_mutex()->lock();
-      AILogVerbose["do_remove_road_stubs"] << name << " thread #" << std::this_thread::get_id() << " AI has locked mutex before calling game->demolish_road() and flag (for do_remove_road_stubs) for non-mountain flag";
+      AILogVerbose["do_remove_road_stubs"] << "thread #" << std::this_thread::get_id() << " AI has locked mutex before calling game->demolish_road() and flag (for do_remove_road_stubs) for non-mountain flag";
       game->demolish_road(map->move(flag_pos, road_dir), player);
       game->demolish_flag(flag_pos, player);
-      AILogVerbose["do_remove_road_stubs"] << name << " thread #" << std::this_thread::get_id() << " AI is unlocking mutex after calling game->demolish_road() and flag (for do_remove_road_stubs) for non-mountain flag";
+      AILogVerbose["do_remove_road_stubs"] << "thread #" << std::this_thread::get_id() << " AI is unlocking mutex after calling game->demolish_road() and flag (for do_remove_road_stubs) for non-mountain flag";
       game->get_mutex()->unlock();
-      AILogVerbose["do_remove_road_stubs"] << name << " thread #" << std::this_thread::get_id() << " AI has unlocked mutex after calling game->demolish_road() and flag (for do_remove_road_stubs) for non-mountain flag";
+      AILogVerbose["do_remove_road_stubs"] << "thread #" << std::this_thread::get_id() << " AI has unlocked mutex after calling game->demolish_road() and flag (for do_remove_road_stubs) for non-mountain flag";
       roads_removed++;
       // sleep a bit to be more human like
       sleep_speed_adjusted(3000);
@@ -1790,9 +1817,10 @@ AI::do_remove_road_stubs() {
   //    DID THIS (added length check) - does it work?
   //
   if (loop_count % ai_loop_freq_adj_for_gamespeed(6) != 0) {
-    AILogDebug["do_remove_road_stubs"] << " skipping eligible knight hut stub roads, only running this every X loops";
+    AILogDebug["do_remove_road_stubs"] << "skipping eligible knight hut stub roads, only running this every X loops";
   }else{
-    for (Flag *flag : *(game->get_flags())) {
+    flags_copy = *(game->get_flags());  // refresh the copy again
+    for (Flag *flag : flags_copy) {
       if (flag == nullptr || flag->get_owner() != player_index || !flag->is_connected() || !flag->has_building())
         continue;
       if (flag->get_building()->get_type() != Building::TypeHut)
@@ -1814,7 +1842,7 @@ AI::do_remove_road_stubs() {
 
         paths++;
         if (paths > 1) {
-          //AILogDebug["do_remove_road_stubs"] << name << " eligible knight hut stub road ending with flag at pos " << flag_pos << " has more than one path, not removing road";
+          //AILogDebug["do_remove_road_stubs"] << "eligible knight hut stub road ending with flag at pos " << flag_pos << " has more than one path, not removing road";
           break;
         }
         // only consider removing if its road is over a certain length
@@ -1822,7 +1850,7 @@ AI::do_remove_road_stubs() {
         existing_road = trace_existing_road(map, flag_pos, dir);
         current_road_length = existing_road.get_length();
         if (current_road_length < 6){
-          AILogDebug["do_remove_road_stubs"] << name << " eligible knight hut stub road ending with flag at pos " << flag_pos << " is too short to bother with, not removing road";
+          AILogDebug["do_remove_road_stubs"] << "eligible knight hut stub road ending with flag at pos " << flag_pos << " is too short to bother with, not removing road";
           break;
         }else{
           road_dir = dir;
@@ -1839,19 +1867,19 @@ AI::do_remove_road_stubs() {
       for (unsigned int i = 0; i < AI::spiral_dist(4); i++) {
         MapPos pos = map->pos_add_extended_spirally(flag->get_building()->get_position(), i);
         // this seems to be building to disconnected flags (mines), try to find out why
-        if (map->has_flag(pos) && pos != flag_pos && game->get_flag_at_pos(pos)->get_owner() == player_index && game->get_flag_at_pos(pos)->is_connected()
+        if (map->has_flag(pos) && pos != flag_pos && game->get_flag_at_pos(pos)->get_owner() == player_index && game->get_flag_at_pos(pos) != nullptr && game->get_flag_at_pos(pos)->is_connected()
          || (game->can_build_flag(pos, player) && map->has_any_path(pos))) {
 
           if (map->has_flag(pos) && pos != flag_pos && flag->get_owner() == player_index && flag->is_connected()){
-            AILogDebug["do_remove_road_stubs"] << " debug - suitable connected flag found at pos " << pos;
+            AILogDebug["do_remove_road_stubs"] << "debug - suitable connected flag found at pos " << pos;
           }
           if (game->can_build_flag(pos, player) && map->has_any_path(pos))
-            AILogDebug["do_remove_road_stubs"] << " debug - can build new flag at sutable pos " << pos;
+            AILogDebug["do_remove_road_stubs"] << "debug - can build new flag at sutable pos " << pos;
 
 
-          AILogDebug["do_remove_road_stubs"] << name << " eligible knight hut stub road ending with flag at pos " << flag_pos << " with one path and suitable length, found nearby flag/pos at " << pos;
+          AILogDebug["do_remove_road_stubs"] << "eligible knight hut stub road ending with flag at pos " << flag_pos << " with one path and suitable length, found nearby flag/pos at " << pos;
           if (existing_road.has_pos(map.get(), pos)){
-            AILogDebug["do_remove_road_stubs"] << name << " eligible knight hut stub road ending with flag at pos " << flag_pos << " skipping pos " << pos << " as it is part of the existing road";
+            AILogDebug["do_remove_road_stubs"] << "eligible knight hut stub road ending with flag at pos " << flag_pos << " skipping pos " << pos << " as it is part of the existing road";
             continue;
           }
           // replacing build_best_road with direct road plot, to allow comparing length
@@ -1863,42 +1891,42 @@ AI::do_remove_road_stubs() {
           bool plotted_succesfully = false;
           size_t new_road_length = proposed_direct_road.get_length();
           if (new_road_length = 0){
-            AILogDebug["do_remove_road_stubs"] << name << " eligible knight hut stub road ending with flag at pos " << flag_pos << ", failed to plot replacement road to flag/pos " << pos << ", will keep trying";
+            AILogDebug["do_remove_road_stubs"] << "eligible knight hut stub road ending with flag at pos " << flag_pos << ", failed to plot replacement road to flag/pos " << pos << ", will keep trying";
             continue;
           }
           if (current_road_length <= new_road_length){
-            AILogDebug["do_remove_road_stubs"] << name << " eligible knight hut stub road ending with flag at pos " << flag_pos << ", proposed new direct road length " << new_road_length << " is not shorter than current road length " << current_road_length << ", skipping, will keep trying";
+            AILogDebug["do_remove_road_stubs"] << "eligible knight hut stub road ending with flag at pos " << flag_pos << ", proposed new direct road length " << new_road_length << " is not shorter than current road length " << current_road_length << ", skipping, will keep trying";
             continue;
           }
-          AILogDebug["do_remove_road_stubs"] << name << " trying to build replacement road for knight hut stub road ending with flag at pos " << flag_pos;
-          AILogVerbose["do_remove_road_stubs"] << name << " thread #" << std::this_thread::get_id() << " AI is locking mutex before calling game->build_road() for knight hut stub";
+          AILogDebug["do_remove_road_stubs"] << "trying to build replacement road for knight hut stub road ending with flag at pos " << flag_pos;
+          AILogVerbose["do_remove_road_stubs"] << "thread #" << std::this_thread::get_id() << " AI is locking mutex before calling game->build_road() for knight hut stub";
           game->get_mutex()->lock();
-          AILogVerbose["do_remove_road_stubs"] << name << " thread #" << std::this_thread::get_id() << " AI has locked mutex before calling game->build_road() for knight hut stub";
+          AILogVerbose["do_remove_road_stubs"] << "thread #" << std::this_thread::get_id() << " AI has locked mutex before calling game->build_road() for knight hut stub";
           was_built = game->build_road(proposed_direct_road, player);
-          AILogVerbose["do_remove_road_stubs"] << name << " thread #" << std::this_thread::get_id() << " AI is unlocking mutex after calling game->build_road() for knight hut stub";
+          AILogVerbose["do_remove_road_stubs"] << "thread #" << std::this_thread::get_id() << " AI is unlocking mutex after calling game->build_road() for knight hut stub";
           game->get_mutex()->unlock();
-          AILogVerbose["do_remove_road_stubs"] << name << " thread #" << std::this_thread::get_id() << " AI has unlocked mutex after calling game->build_road() for knight hut stub";
+          AILogVerbose["do_remove_road_stubs"] << "thread #" << std::this_thread::get_id() << " AI has unlocked mutex after calling game->build_road() for knight hut stub";
           roads_removed++;
           if (was_built){
-            AILogDebug["do_remove_road_stubs"] << name << " eligible knight hut stub road ending with flag at pos " << flag_pos << ", successfully built replacement road, to flag/pos " << pos;
+            AILogDebug["do_remove_road_stubs"] << "eligible knight hut stub road ending with flag at pos " << flag_pos << ", successfully built replacement road, to flag/pos " << pos;
             break;
           }else{
-            AILogDebug["do_remove_road_stubs"] << name << " eligible knight hut stub road ending with flag at pos " << flag_pos << ", failed to build replacement road to flag/pos " << pos << ", will keep trying";
+            AILogDebug["do_remove_road_stubs"] << "eligible knight hut stub road ending with flag at pos " << flag_pos << ", failed to build replacement road to flag/pos " << pos << ", will keep trying";
           }
         }
       }
       road_options.reset(RoadOption::Direct);
 
       if (was_built){
-        AILogDebug["do_remove_road_stubs"] << name << " eligible knight hut stub road ending with flag at pos " << flag_pos << " had replacement road built, destroying old road in dir " << NameDirection[road_dir] << " / " << road_dir;
+        AILogDebug["do_remove_road_stubs"] << "eligible knight hut stub road ending with flag at pos " << flag_pos << " had replacement road built, destroying old road in dir " << NameDirection[road_dir] << " / " << road_dir;
 
-        AILogVerbose["do_remove_road_stubs"] << name << " thread #" << std::this_thread::get_id() << " AI is locking mutex before calling game->demolish_road() (for do_remove_road_stubs) for knight hut road";
+        AILogVerbose["do_remove_road_stubs"] << "thread #" << std::this_thread::get_id() << " AI is locking mutex before calling game->demolish_road() (for do_remove_road_stubs) for knight hut road";
         game->get_mutex()->lock();
-        AILogVerbose["do_remove_road_stubs"] << name << " thread #" << std::this_thread::get_id() << " AI has locked mutex before calling game->demolish_road( (for do_remove_road_stubs) for knight hut road";
+        AILogVerbose["do_remove_road_stubs"] << "thread #" << std::this_thread::get_id() << " AI has locked mutex before calling game->demolish_road( (for do_remove_road_stubs) for knight hut road";
         game->demolish_road(map->move(flag_pos, road_dir), player);
-        AILogVerbose["do_remove_road_stubs"] << name << " thread #" << std::this_thread::get_id() << " AI is unlocking mutex after calling game->demolish_road() (for do_remove_road_stubs) for knight hut road";
+        AILogVerbose["do_remove_road_stubs"] << "thread #" << std::this_thread::get_id() << " AI is unlocking mutex after calling game->demolish_road() (for do_remove_road_stubs) for knight hut road";
         game->get_mutex()->unlock();
-        AILogVerbose["do_remove_road_stubs"] << name << " thread #" << std::this_thread::get_id() << " AI has unlocked mutex after calling game->demolish_road() (for do_remove_road_stubs) for knight hut road";
+        AILogVerbose["do_remove_road_stubs"] << "thread #" << std::this_thread::get_id() << " AI has unlocked mutex after calling game->demolish_road() (for do_remove_road_stubs) for knight hut road";
         roads_removed++;
 
         // sleep a bit to be more human like
@@ -1908,8 +1936,8 @@ AI::do_remove_road_stubs() {
   } // if only do knight stub removal every x loops
 
   duration = (std::clock() - start) / static_cast<double>(CLOCKS_PER_SEC);
-  AILogDebug["do_remove_road_stubs"] << name << " call took " << duration;
-  AILogDebug["do_remove_road_stubs"] << name << " done do_remove_road_stubs, removed " << roads_removed << " roads";
+  AILogDebug["do_remove_road_stubs"] << "call took " << duration;
+  AILogDebug["do_remove_road_stubs"] << "done do_remove_road_stubs, removed " << roads_removed << " roads";
 
 }
 
@@ -1917,51 +1945,51 @@ AI::do_remove_road_stubs() {
 // demolish any stonecutters with no stones nearby
 void
 AI::do_demolish_unproductive_stonecutters() {
-  AILogDebug["do_demolish_unproductive_stonecutters"] << name << " inside do_demolish_unproductive_stonecutters";
+  AILogDebug["do_demolish_unproductive_stonecutters"] << "inside do_demolish_unproductive_stonecutters";
   ai_status.assign("HOUSEKEEPING - demolish stonecutters");
-  AILogVerbose["do_demolish_unproductive_stonecutters"] << name << " thread #" << std::this_thread::get_id() << " AI is locking mutex before calling game->get_player_buildings(player) (for demolish stonecutters)";
+  AILogVerbose["do_demolish_unproductive_stonecutters"] << "thread #" << std::this_thread::get_id() << " AI is locking mutex before calling game->get_player_buildings(player) (for demolish stonecutters)";
   game->get_mutex()->lock();
-  AILogVerbose["do_demolish_unproductive_stonecutters"] << name << " thread #" << std::this_thread::get_id() << " AI has locked mutex before calling game->get_player_buildings(player) (for demolish stonecutters)";
+  AILogVerbose["do_demolish_unproductive_stonecutters"] << "thread #" << std::this_thread::get_id() << " AI has locked mutex before calling game->get_player_buildings(player) (for demolish stonecutters)";
   Game::ListBuildings buildings = game->get_player_buildings(player);
-  AILogVerbose["do_demolish_unproductive_stonecutters"] << name << " thread #" << std::this_thread::get_id() << " AI is unlocking mutex after calling game->get_player_buildings(player) (for demolish stonecutters)";
+  AILogVerbose["do_demolish_unproductive_stonecutters"] << "thread #" << std::this_thread::get_id() << " AI is unlocking mutex after calling game->get_player_buildings(player) (for demolish stonecutters)";
   game->get_mutex()->unlock();
-  AILogVerbose["do_demolish_unproductive_stonecutters"] << name << " thread #" << std::this_thread::get_id() << " AI has unlocked mutex after calling game->get_player_buildings(player) (for demolish stonecutters)";
+  AILogVerbose["do_demolish_unproductive_stonecutters"] << "thread #" << std::this_thread::get_id() << " AI has unlocked mutex after calling game->get_player_buildings(player) (for demolish stonecutters)";
   for (Building *building : buildings) {
     if (building->get_type() != Building::TypeStonecutter)
       continue;
     MapPos pos = building->get_position();
     int stones_check = AI::count_stones_near_pos(pos, AI::spiral_dist(4));
     if (stones_check < 1) {
-      AILogDebug["do_demolish_unproductive_stonecutters"] << name << " stonecutter at pos " << pos << " has no more stones nearby!  burning it";
-      AILogVerbose["do_demolish_unproductive_stonecutters"] << name << " thread #" << std::this_thread::get_id() << " AI is locking mutex before calling game->demolish_building()";
+      AILogDebug["do_demolish_unproductive_stonecutters"] << "stonecutter at pos " << pos << " has no more stones nearby!  burning it";
+      AILogVerbose["do_demolish_unproductive_stonecutters"] << "thread #" << std::this_thread::get_id() << " AI is locking mutex before calling game->demolish_building()";
       game->get_mutex()->lock();
-      AILogVerbose["do_demolish_unproductive_stonecutters"] << name << " thread #" << std::this_thread::get_id() << " AI has locked mutex before calling game->demolish_building()";
+      AILogVerbose["do_demolish_unproductive_stonecutters"] << "thread #" << std::this_thread::get_id() << " AI has locked mutex before calling game->demolish_building()";
       game->demolish_building(pos, player);
-      AILogVerbose["do_demolish_unproductive_stonecutters"] << name << " thread #" << std::this_thread::get_id() << " AI is unlocking mutex after calling game->demolish_building()";
+      AILogVerbose["do_demolish_unproductive_stonecutters"] << "thread #" << std::this_thread::get_id() << " AI is unlocking mutex after calling game->demolish_building()";
       game->get_mutex()->unlock();
-      AILogVerbose["do_demolish_unproductive_stonecutters"] << name << " thread #" << std::this_thread::get_id() << " AI has unlocked mutex after calling game->demolish_building()";
+      AILogVerbose["do_demolish_unproductive_stonecutters"] << "thread #" << std::this_thread::get_id() << " AI has unlocked mutex after calling game->demolish_building()";
       // mark as bad pos, because there should be no reason it could ever become valid again (stone piles cannot regrow)
       bad_building_pos.insert(std::make_pair(pos, Building::TypeStonecutter));
       // sleep to appear more human
       sleep_speed_adjusted(3000);
     }
   }
-  AILogDebug["do_demolish_unproductive_stonecutters"] << name << " done do_demolish_unproductive_stonecutters";
+  AILogDebug["do_demolish_unproductive_stonecutters"] << "done do_demolish_unproductive_stonecutters";
 }
 
 
 // demolish any completed mines that have food stored but are not productive
 void
 AI::do_demolish_unproductive_mines() {
-  AILogDebug["do_demolish_unproductive_mines"] << name << " inside do_demolish_unproductive_mines";
+  AILogDebug["do_demolish_unproductive_mines"] << "inside do_demolish_unproductive_mines";
   ai_status.assign("HOUSEKEEPING - demolish unproductive mines");
-  AILogVerbose["do_demolish_unproductive_mines"] << name << " thread #" << std::this_thread::get_id() << " AI is locking mutex before calling game->get_player_buildings(player) (for demolish unproductive mines)";
+  AILogVerbose["do_demolish_unproductive_mines"] << "thread #" << std::this_thread::get_id() << " AI is locking mutex before calling game->get_player_buildings(player) (for demolish unproductive mines)";
   game->get_mutex()->lock();
-  AILogVerbose["do_demolish_unproductive_mines"] << name << " thread #" << std::this_thread::get_id() << " AI has locked mutex before calling game->get_player_buildings(player) (for demolish unproductive mines)";
+  AILogVerbose["do_demolish_unproductive_mines"] << "thread #" << std::this_thread::get_id() << " AI has locked mutex before calling game->get_player_buildings(player) (for demolish unproductive mines)";
   Game::ListBuildings buildings = game->get_player_buildings(player);
-  AILogVerbose["do_demolish_unproductive_mines"] << name << " thread #" << std::this_thread::get_id() << " AI is unlocking mutex after calling game->get_player_buildings(player) (for demolish unproductive mines)";
+  AILogVerbose["do_demolish_unproductive_mines"] << "thread #" << std::this_thread::get_id() << " AI is unlocking mutex after calling game->get_player_buildings(player) (for demolish unproductive mines)";
   game->get_mutex()->unlock();
-  AILogVerbose["do_demolish_unproductive_mines"] << name << " thread #" << std::this_thread::get_id() << " AI has unlocked mutex after calling game->get_player_buildings(player) (for demolish unproductive mines)";
+  AILogVerbose["do_demolish_unproductive_mines"] << "thread #" << std::this_thread::get_id() << " AI has unlocked mutex after calling game->get_player_buildings(player) (for demolish unproductive mines)";
   for (Building *building : buildings) {
     if (!building->is_done())
       continue;
@@ -1977,7 +2005,7 @@ AI::do_demolish_unproductive_mines() {
       output += !!BIT_TEST(building->get_progress(), i) * output_weight[i];
     }
     MapPos building_pos = building->get_position();
-    AILogDebug["do_demolish_unproductive_mines"] << name << " mine of type " << NameBuilding[building_type] << " at pos " << building_pos << " has output % " << output;
+    AILogDebug["do_demolish_unproductive_mines"] << "mine of type " << NameBuilding[building_type] << " at pos " << building_pos << " has output % " << output;
     // need to avoid flagging newly built mines that haven't yet received food as they start with 0% productivity!
     //   here is how to game handles it, but I don't understand... do mines always expire after a certain progression (ticks?)
     //     or is this just a lazy catch that assumes any mine will become unproductive after a certain period, but could catch
@@ -1993,25 +2021,25 @@ AI::do_demolish_unproductive_mines() {
     // my way is to check the output and burn if unproductive but still having food (to avoid burning new mines)
     //  it seems that once a mine gets food it should become 10% active (unless it doesn't find anything then??)
     //if (building->is_active()) {
-    //      AILogDebug["do_demolish_unproductive_mines"] << name << " mine at " << building_pos << " is active";
+    //      AILogDebug["do_demolish_unproductive_mines"] << "mine at " << building_pos << " is active";
     //}
-    AILogDebug["do_demolish_unproductive_mines"] << name << " mine at " << building_pos << " has " << building->get_res_count_in_stock(0) << " food stored";
+    AILogDebug["do_demolish_unproductive_mines"] << "mine at " << building_pos << " has " << building->get_res_count_in_stock(0) << " food stored";
     if (output < mine_output_min && building->get_res_count_in_stock(0) > 0) {
-      AILogDebug["do_demolish_unproductive_mines"] << name << " burning unproductive mine of type " << NameBuilding[building_type] << name << " at pos " << building_pos;
-      AILogVerbose["do_demolish_unproductive_mines"] << name << " thread #" << std::this_thread::get_id() << " AI is locking mutex before calling game->demolish_building (for demolish unproductive mines)";
+      AILogDebug["do_demolish_unproductive_mines"] << "burning unproductive mine of type " << NameBuilding[building_type] << " at pos " << building_pos;
+      AILogVerbose["do_demolish_unproductive_mines"] << "thread #" << std::this_thread::get_id() << " AI is locking mutex before calling game->demolish_building (for demolish unproductive mines)";
       game->get_mutex()->lock();
-      AILogVerbose["do_demolish_unproductive_mines"] << name << " thread #" << std::this_thread::get_id() << " AI has locked mutex before calling game->demolish_building (for demolish unproductive mines)";
+      AILogVerbose["do_demolish_unproductive_mines"] << "thread #" << std::this_thread::get_id() << " AI has locked mutex before calling game->demolish_building (for demolish unproductive mines)";
       game->demolish_building(building_pos, player);
-      AILogVerbose["do_demolish_unproductive_mines"] << name << " thread #" << std::this_thread::get_id() << " AI is unlocking mutex after calling game->demolish_building (for demolish unproductive mines)";
+      AILogVerbose["do_demolish_unproductive_mines"] << "thread #" << std::this_thread::get_id() << " AI is unlocking mutex after calling game->demolish_building (for demolish unproductive mines)";
       game->get_mutex()->unlock();
-      AILogVerbose["do_demolish_unproductive_mines"] << name << " thread #" << std::this_thread::get_id() << " AI has unlocked mutex after calling game->demolish_building (for demolish unproductive mines)";
+      AILogVerbose["do_demolish_unproductive_mines"] << "thread #" << std::this_thread::get_id() << " AI has unlocked mutex after calling game->demolish_building (for demolish unproductive mines)";
       // mark as bad pos, because rebuilding same mine type seems pointless if it is actually out of resources
       bad_building_pos.insert(std::make_pair(building_pos, building_type));
       // sleep to appear more human
       sleep_speed_adjusted(3000);
     }
   }
-  AILogDebug["do_demolish_unproductive_mines"] << name << " done do_demolish_unproductive_mines";
+  AILogDebug["do_demolish_unproductive_mines"] << "done do_demolish_unproductive_mines";
 }
 
 
@@ -2150,11 +2178,11 @@ AI::do_demolish_excess_food_buildings() {
 // adjust tool priorities to match needed tools, reset unneccessary tools to default
 void
 AI::do_manage_tool_priorities() {
-  AILogDebug["do_manage_tool_priorities"] << name << " inside manage_tool_priorities";
-  AILogDebug["do_manage_tool_priorities"] << name << " HouseKeeping: ensure sufficient tools";
+  AILogDebug["do_manage_tool_priorities"] << "inside manage_tool_priorities";
+  AILogDebug["do_manage_tool_priorities"] << "HouseKeeping: ensure sufficient tools";
   ai_status.assign("HOUSEKEEPING - manage tools");
   // allow default priorities to determine which tool to make if more than one type is needed
-  AILogDebug["do_manage_tool_priorities"] << name << " resetting plank/steel priorities to default";
+  AILogDebug["do_manage_tool_priorities"] << "resetting plank/steel priorities to default";
   player->reset_tool_priority();
   player->set_steel_toolmaker(0);
   player->set_steel_weaponsmith(65500);
@@ -2170,20 +2198,20 @@ AI::do_manage_tool_priorities() {
     unsigned int total = serfs_total[i];
     unsigned int min = specialists_reserve[Serf::Type(i)];
     unsigned int max = specialists_max[Serf::Type(i)];
-    AILogDebug["do_manage_tool_priorities"] << name << " serf job " << NameSerf[i] << " idle: " << idle << ", potential: " << potential << ", available: " << available
+    AILogDebug["do_manage_tool_priorities"] << "serf job " << NameSerf[i] << " idle: " << idle << ", potential: " << potential << ", available: " << available
           << ", total: " << total << ", min: " << min << ", max: " << max;
     //if (total >= max && max > 0) {
-    //      AILogDebug["do_manage_tool_priorities"] << name << " maximum serfs with job type " << NameSerf[i] << name << " reached";
+    //      AILogDebug["do_manage_tool_priorities"] << "maximum serfs with job type " << NameSerf[i] << " reached";
     //}
     // this caps the total number of tools & serfs with each job type to a fixed number
     //  that was good with single economy centered aroud castle, but fails with multiple economies w/ warehouses
     //   disabling this, going back to simple "ensure > 0"
     //if (total < max && available < min) {
-    //  AILogDebug["do_manage_tool_priorities"] << name << " need more available serfs of job type " << NameSerf[i];
+    //  AILogDebug["do_manage_tool_priorities"] << "need more available serfs of job type " << NameSerf[i];
     //  need_tools = true;
     //}
     if (available < 1) {
-      AILogDebug["do_manage_tool_priorities"] << name << " need more available serfs of job type " << NameSerf[i];
+      AILogDebug["do_manage_tool_priorities"] << "need more available serfs of job type " << NameSerf[i];
       // boats (Serf::TypeSailor) are *not* made by toolmaker
       if (i == Serf::TypeSailor)
         continue;
@@ -2192,40 +2220,40 @@ AI::do_manage_tool_priorities() {
   }
   // this is one toolmaker in entire REALM, but that is okay
   if (realm_building_count[Building::TypeToolMaker] < 1) {
-    AILogDebug["do_manage_tool_priorities"] << name << " no toolmaker exists yet!";
+    AILogDebug["do_manage_tool_priorities"] << "no toolmaker exists yet!";
   }
   else if (need_tools) {
     for (int i = 0; i < 9; ++i) {
       // tools Resource::Types are and 15-24
       int tool_index = 15 + i;
       int tool_count = realm_inv[Resource::Type(tool_index)];
-      AILogDebug["do_manage_tool_priorities"] << name << " castle has " << tool_count << " of tool " << NameTool[i];
+      AILogDebug["do_manage_tool_priorities"] << "castle has " << tool_count << " of tool " << NameTool[i];
       if (tool_count >= 1) {
         // don't need this tool, set to zero prior
         player->set_tool_prio(i, 0);
         continue;
       }
-      AILogDebug["do_manage_tool_priorities"] << name << " need to make tool: " << NameTool[i];
+      AILogDebug["do_manage_tool_priorities"] << "need to make tool: " << NameTool[i];
       // this shouldn't even be necessary as all tools have nonzero starting priority
       //player->set_tool_prio(i, 65500);
     }
 
     // shortcut to ensure farmer scythe tool is created first on very low resource starts
     if (serfs_potential[Serf::TypeFarmer] + player->get_serf_count(Serf::TypeFarmer) < 1) {
-      AILogDebug["do_manage_tool_priorities"] << name << " No farmer and no scythe!  Setting scythe to priority and others to zero";
+      AILogDebug["do_manage_tool_priorities"] << "No farmer and no scythe!  Setting scythe to priority and others to zero";
       for (int i = 0; i < 9; ++i) {
         player->set_tool_prio(i, 0);
       }
       // scythe is tool #4 (fifth item in list - see NameTool lookup table)
       player->set_tool_prio(4, 65500);
     }
-    AILogVerbose["do_manage_tool_priorities"] << name << " thread #" << std::this_thread::get_id() << " AI is locking mutex before calling game->get_player_buildings(player) (for manage toolmaker)";
+    AILogVerbose["do_manage_tool_priorities"] << "thread #" << std::this_thread::get_id() << " AI is locking mutex before calling game->get_player_buildings(player) (for manage toolmaker)";
     game->get_mutex()->lock();
-    AILogVerbose["do_manage_tool_priorities"] << name << " thread #" << std::this_thread::get_id() << " AI has locked mutex before calling game->get_player_buildings(player) (for manage toolmaker)";
+    AILogVerbose["do_manage_tool_priorities"] << "thread #" << std::this_thread::get_id() << " AI has locked mutex before calling game->get_player_buildings(player) (for manage toolmaker)";
     Game::ListBuildings buildings = game->get_player_buildings(player);
-    AILogVerbose["do_manage_tool_priorities"] << name << " thread #" << std::this_thread::get_id() << " AI is unlocking mutex after calling game->get_player_buildings(player) (for manage toolmaker)";
+    AILogVerbose["do_manage_tool_priorities"] << "thread #" << std::this_thread::get_id() << " AI is unlocking mutex after calling game->get_player_buildings(player) (for manage toolmaker)";
     game->get_mutex()->unlock();
-    AILogVerbose["do_manage_tool_priorities"] << name << " thread #" << std::this_thread::get_id() << " AI has unlocked mutex after calling game->get_player_buildings(player) (for manage toolmaker)";
+    AILogVerbose["do_manage_tool_priorities"] << "thread #" << std::this_thread::get_id() << " AI has unlocked mutex after calling game->get_player_buildings(player) (for manage toolmaker)";
     for (Building *building : buildings) {
       if (building->get_type() != Building::TypeToolMaker)
         continue;
@@ -2233,27 +2261,27 @@ AI::do_manage_tool_priorities() {
       MapPos pos = building->get_position();
       unsigned int planks = building->get_res_count_in_stock(0);
       if (planks <= 1 && planks_count >= planks_min) {
-        AILogDebug["do_manage_tool_priorities"] << name << " toolmaker at pos " << pos << " has only " << planks << " planks, setting priority to max and reducing construction priority";
+        AILogDebug["do_manage_tool_priorities"] << "toolmaker at pos " << pos << " has only " << planks << " planks, setting priority to max and reducing construction priority";
         player->set_planks_toolmaker(65500);
         player->set_planks_construction(32750);
       }
       unsigned int steel = building->get_res_count_in_stock(1);
       if (steel <= 1) {
-        AILogDebug["do_manage_tool_priorities"] << name << " toolmaker at pos " << pos << " has only " << steel << " steel, setting priority to max and zeroing blacksmith priority";
+        AILogDebug["do_manage_tool_priorities"] << "toolmaker at pos " << pos << " has only " << steel << " steel, setting priority to max and zeroing blacksmith priority";
         player->set_steel_toolmaker(65500);
         player->set_steel_weaponsmith(0);
       }
     }
   }
   else {
-    AILogDebug["do_manage_tool_priorities"] << name << " have toolmaker but don't need any tools yet";
+    AILogDebug["do_manage_tool_priorities"] << "have toolmaker but don't need any tools yet";
   }
 }
 
 
 void
 AI::do_manage_mine_food_priorities() {
-  AILogDebug["do_manage_mine_food_priorities"] << name << " inside do_manage_mine_food_priorities";
+  AILogDebug["do_manage_mine_food_priorities"] << "inside do_manage_mine_food_priorities";
   ai_status.assign("HOUSEKEEPING - manage mine food");
   // if sufficient gold/ore is stored, divert food to other resource miners
   player->reset_food_priority();
@@ -2268,26 +2296,26 @@ AI::do_manage_mine_food_priorities() {
   //food_goldmine = 65500;
   // coal
   if (coal_count > coal_max) {
-    AILogDebug["do_manage_mine_food_priorities"] << name << " coal_count " << coal_count << " is greater than coal_max " << coal_min << ", setting coal mine food priority to zero";
+    AILogDebug["do_manage_mine_food_priorities"] << "coal_count " << coal_count << " is greater than coal_max " << coal_min << ", setting coal mine food priority to zero";
     player->set_food_coalmine(0);
   }else if (coal_count > coal_min) {
-    AILogDebug["do_manage_mine_food_priorities"] << name << " coal_count " << coal_count << " is greater than coal_min " << coal_min << ", greatly reducing food priority to coal mines";
+    AILogDebug["do_manage_mine_food_priorities"] << "coal_count " << coal_count << " is greater than coal_min " << coal_min << ", greatly reducing food priority to coal mines";
     player->set_food_coalmine(6550);
   }
   // iron
   if (iron_ore_count > iron_ore_max) {
-    AILogDebug["do_manage_mine_food_priorities"] << name << " iron_ore_count " << iron_ore_count << " is greater than iron_ore_max " << iron_ore_max << ", setting iron mine food priority to zero";
+    AILogDebug["do_manage_mine_food_priorities"] << "iron_ore_count " << iron_ore_count << " is greater than iron_ore_max " << iron_ore_max << ", setting iron mine food priority to zero";
     player->set_food_ironmine(0);
   }else if (iron_ore_count > iron_ore_min) {
-    AILogDebug["do_manage_mine_food_priorities"] << name << " iron_ore_count " << iron_ore_count << " is greater than iron_ore_min " << iron_ore_min << ", greatly reducing food priority to iron mines";
+    AILogDebug["do_manage_mine_food_priorities"] << "iron_ore_count " << iron_ore_count << " is greater than iron_ore_min " << iron_ore_min << ", greatly reducing food priority to iron mines";
     player->set_food_ironmine(6550);
   }
   // gold
   if (gold_ore_count > gold_ore_max) {
-    AILogDebug["do_manage_mine_food_priorities"] << name << " gold_ore_count " << gold_ore_count << " is greater than gold_ore_max " << gold_ore_max << ", setting gold mine food priority to zero";
+    AILogDebug["do_manage_mine_food_priorities"] << "gold_ore_count " << gold_ore_count << " is greater than gold_ore_max " << gold_ore_max << ", setting gold mine food priority to zero";
     player->set_food_goldmine(0);
   } else if (gold_ore_count > gold_ore_min) {
-    AILogDebug["do_manage_mine_food_priorities"] << name << " gold_ore_count " << gold_ore_count << " is greater than gold_ore_min " << gold_ore_min << ", greatly reducing food priority to gold mines";
+    AILogDebug["do_manage_mine_food_priorities"] << "gold_ore_count " << gold_ore_count << " is greater than gold_ore_min " << gold_ore_min << ", greatly reducing food priority to gold mines";
     player->set_food_goldmine(6550);
   }
   // avoid issue where all food goes to gold mining while running out of knights
@@ -2306,7 +2334,7 @@ AI::do_manage_mine_food_priorities() {
 //    where the sword/shield icon is mising.  However I am quite sure that the function still works properly
 void
 AI::do_balance_sword_shield_priorities() {
-  AILogDebug["do_balance_sword_shield_priorities"] << name << " inside do_balance_sword_shield_priorities";
+  AILogDebug["do_balance_sword_shield_priorities"] << "inside do_balance_sword_shield_priorities";
   ai_status.assign("HOUSEKEEPING - balance swords/shields");
   player->reset_flag_priority();
   int *prio = nullptr;
@@ -2317,43 +2345,43 @@ AI::do_balance_sword_shield_priorities() {
   //flag_prio[Resource::TypeSword] = 17;
   unsigned int swords_count = realm_inv[Resource::TypeSword];
   unsigned int shields_count = realm_inv[Resource::TypeShield];
-  AILogDebug["do_balance_sword_shield_priorities"] << name << " there are " << swords_count << " swords and " << shields_count << " shields stored";
+  AILogDebug["do_balance_sword_shield_priorities"] << "there are " << swords_count << " swords and " << shields_count << " shields stored";
   // actually, rather than worry about the overall ordering, just swap the two values
   if (swords_count >= shields_count + 2) {
-    AILogDebug["do_balance_sword_shield_priorities"] << name << " more swords than shields stored";
+    AILogDebug["do_balance_sword_shield_priorities"] << "more swords than shields stored";
     if (prio[Resource::TypeSword] > prio[Resource::TypeShield]) {
       int temp = prio[Resource::TypeSword];
       prio[Resource::TypeShield] = prio[Resource::TypeSword];
       prio[Resource::TypeSword] = temp;
-      AILogDebug["do_balance_sword_shield_priorities"] << name << " sword priority swapped with shield priority, sword priority is now " << prio[Resource::TypeSword] << ", shield priority is now " << prio[Resource::TypeShield];
+      AILogDebug["do_balance_sword_shield_priorities"] << "sword priority swapped with shield priority, sword priority is now " << prio[Resource::TypeSword] << ", shield priority is now " << prio[Resource::TypeShield];
     }
     else {
-      AILogDebug["do_balance_sword_shield_priorities"] << name << " sword priority " << prio[Resource::TypeSword] << " is already higher than shield priority " << prio[Resource::TypeShield] << ", no change needed";
+      AILogDebug["do_balance_sword_shield_priorities"] << "sword priority " << prio[Resource::TypeSword] << " is already higher than shield priority " << prio[Resource::TypeShield] << ", no change needed";
     }
   }
   else if (shields_count >= swords_count + 2) {
-    AILogDebug["do_balance_sword_shield_priorities"] << name << " more shields than swords stored";
+    AILogDebug["do_balance_sword_shield_priorities"] << "more shields than swords stored";
     if (prio[Resource::TypeShield] > prio[Resource::TypeSword]) {
       int temp = prio[Resource::TypeShield];
       prio[Resource::TypeSword] = prio[Resource::TypeShield];
       prio[Resource::TypeShield] = temp;
-      AILogDebug["do_balance_sword_shield_priorities"] << name << " shield priority swapped with sword priority, sword priority is now " << prio[Resource::TypeSword] << ", shield priority is now " << prio[Resource::TypeShield];
+      AILogDebug["do_balance_sword_shield_priorities"] << "shield priority swapped with sword priority, sword priority is now " << prio[Resource::TypeSword] << ", shield priority is now " << prio[Resource::TypeShield];
     }
     else {
-      AILogDebug["do_balance_sword_shield_priorities"] << name << " shield priority " << prio[Resource::TypeShield] << " is already higher than sword priority " << prio[Resource::TypeSword] << ", no change needed";
+      AILogDebug["do_balance_sword_shield_priorities"] << "shield priority " << prio[Resource::TypeShield] << " is already higher than sword priority " << prio[Resource::TypeSword] << ", no change needed";
     }
   }
   else {
-    AILogDebug["do_balance_sword_shield_priorities"] << name << " swords and shields are sufficiently balanced, leaving sword priority at " << prio[Resource::TypeSword] << " and shield priority at " << prio[Resource::TypeShield];
+    AILogDebug["do_balance_sword_shield_priorities"] << "swords and shields are sufficiently balanced, leaving sword priority at " << prio[Resource::TypeSword] << " and shield priority at " << prio[Resource::TypeShield];
   }
 }
 
 
 void
 AI::do_manage_knight_occupation_levels() {
-  AILogDebug["do_manage_knight_occupation_levels"] << name << " inside do_manage_knight_occupation_levels";
+  AILogDebug["do_manage_knight_occupation_levels"] << "inside do_manage_knight_occupation_levels";
   if (player->cycling_knight()) {
-    AILogDebug["do_manage_knight_occupation_levels"] << name << " is currently cycling_knights!  waiting until this is complete";
+    AILogDebug["do_manage_knight_occupation_levels"] << "is currently cycling_knights!  waiting until this is complete";
     return;
   }
   // adjust military building occupation levels
@@ -2385,25 +2413,25 @@ AI::do_manage_knight_occupation_levels() {
   // get_knight_occupation returns a value that must be bit-shifted
   //   here's how to get the correct 0-4 value we work with using player->change_knight_occupation
   int current_level = (player->get_knight_occupation(3) >> 4) & 0xf;
-  AILogDebug["do_manage_knight_occupation_levels"] << name << " current knight occupation level: " << current_level;
+  AILogDebug["do_manage_knight_occupation_levels"] << "current knight occupation level: " << current_level;
   // to avoid flapping...
   //  ...if this is not the very first occupation level change...
   if (previous_knight_occupation_level > 0) {
     // ...and we last LOWERED the level
     if (previous_knight_occupation_level > current_level) {
       change_buffer = static_cast<int>(knight_occupation_change_buffer) * -1;
-      AILogDebug["do_manage_knight_occupation_levels"] << name << " knight occupation level last DECREASED from " << previous_knight_occupation_level << " to "
+      AILogDebug["do_manage_knight_occupation_levels"] << "knight occupation level last DECREASED from " << previous_knight_occupation_level << " to "
         << current_level << ", setting a change buffer of " << change_buffer;
     }
     // ...and we last RAISED the occupation level
     if (previous_knight_occupation_level < current_level) {
       change_buffer = static_cast<int>(knight_occupation_change_buffer);
-      AILogDebug["do_manage_knight_occupation_levels"] << name << " knight occupation level last INCREASED from " << previous_knight_occupation_level << " to "
+      AILogDebug["do_manage_knight_occupation_levels"] << "knight occupation level last INCREASED from " << previous_knight_occupation_level << " to "
         << current_level << ", setting a change buffer of " << change_buffer;
     }
   }
   previous_knight_occupation_level = current_level;
-  AILogDebug["do_manage_knight_occupation_levels"] << name << " knight occupation change_buffer is currently set to " << change_buffer;
+  AILogDebug["do_manage_knight_occupation_levels"] << "knight occupation change_buffer is currently set to " << change_buffer;
   //
   // NEED TO CHANGE THIS WHOLE FUNCTION
   //   make it determine current desired level without changing it
@@ -2418,44 +2446,44 @@ AI::do_manage_knight_occupation_levels() {
   //unsigned int idle_knights = serfs_idle[Serf::TypeKnight0] + serfs_idle[Serf::TypeKnight1] + serfs_idle[Serf::TypeKnight2] + serfs_idle[Serf::TypeKnight3] + serfs_idle[Serf::TypeKnight4];
   // instead use this function I wrote elsewhere
   unsigned int idle_knights = 0;
-  AILogVerbose["do_manage_knight_occupation_levels"] << name << " thread #" << std::this_thread::get_id() << " AI is locking mutex before calling game->get_player_serfs(player) (for do_manage_knight_occupation_levels is_waiting)";
+  AILogVerbose["do_manage_knight_occupation_levels"] << "thread #" << std::this_thread::get_id() << " AI is locking mutex before calling game->get_player_serfs(player) (for do_manage_knight_occupation_levels is_waiting)";
   game->get_mutex()->lock();
-  AILogVerbose["do_manage_knight_occupation_levels"] << name << " thread #" << std::this_thread::get_id() << " AI has locked mutex before calling game->get_player_serfs(player) (for do_manage_knight_occupation_levels is_waiting)";
+  AILogVerbose["do_manage_knight_occupation_levels"] << "thread #" << std::this_thread::get_id() << " AI has locked mutex before calling game->get_player_serfs(player) (for do_manage_knight_occupation_levels is_waiting)";
   for (Serf *serf : game->get_player_serfs(player)) {
     if (serf->get_state() == Serf::StateIdleInStock && serf->get_type() >= Serf::TypeKnight0 && serf->get_type() <= Serf::TypeKnight4) {
       idle_knights++;
     }
   }
-  AILogVerbose["do_manage_knight_occupation_levels"] << name << " thread #" << std::this_thread::get_id() << " AI is unlocking mutex after calling game->get_player_serfs(player) (for do_manage_knight_occupation_levels is_waiting)";
+  AILogVerbose["do_manage_knight_occupation_levels"] << "thread #" << std::this_thread::get_id() << " AI is unlocking mutex after calling game->get_player_serfs(player) (for do_manage_knight_occupation_levels is_waiting)";
   game->get_mutex()->unlock();
-  AILogVerbose["do_manage_knight_occupation_levels"] << name << " thread #" << std::this_thread::get_id() << " AI has unlocked mutex after calling game->get_player_serfs(player) (for do_manage_knight_occupation_levels is_waiting)";
-  AILogDebug["do_manage_knight_occupation_levels"] << name << " found in stocks idle_knights: " << idle_knights;
+  AILogVerbose["do_manage_knight_occupation_levels"] << "thread #" << std::this_thread::get_id() << " AI has unlocked mutex after calling game->get_player_serfs(player) (for do_manage_knight_occupation_levels is_waiting)";
+  AILogDebug["do_manage_knight_occupation_levels"] << "found in stocks idle_knights: " << idle_knights;
   player->change_knight_occupation(3, 0, -5);   // reset lower bound to 'min'
   player->change_knight_occupation(3, 1, -5);   // reset upper bound to 'min'
   // must evaluate idle_knights as signed integer to avoid calculating negative values returning opposite result
   if      ((signed)idle_knights - (signed)AI::count_knights_affected_by_occupation_level_change(current_level, 4) + (signed)change_buffer >= (signed)knights_max) {
-    //AILogDebug["do_manage_knight_occupation_levels"] << name << " debug4: " << (signed)idle_knights << " - " << (signed)AI::count_knights_affected_by_occupation_level_change(current_level, 4) << " + " << change_buffer
+    //AILogDebug["do_manage_knight_occupation_levels"] << "debug4: " << (signed)idle_knights << " - " << (signed)AI::count_knights_affected_by_occupation_level_change(current_level, 4) << " + " << change_buffer
     //  << " = " << (signed)idle_knights - (signed)AI::count_knights_affected_by_occupation_level_change(current_level, 4) + change_buffer << " ?? " << knights_max;
-    AILogDebug["do_manage_knight_occupation_levels"] << name << " setting knight level to med/full";
+    AILogDebug["do_manage_knight_occupation_levels"] << "setting knight level to med/full";
     player->change_knight_occupation(3, 1, +4);   // increase upper bound to 'full'
     player->change_knight_occupation(3, 0, +2);   // increase lower bound to 'med'
   }
   else if ((signed)idle_knights - (signed)AI::count_knights_affected_by_occupation_level_change(current_level, 3) + (signed)change_buffer >= (signed)knights_med) {
-    //AILogDebug["do_manage_knight_occupation_levels"] << name << " debug3: " << (signed)idle_knights << " - " << (signed)AI::count_knights_affected_by_occupation_level_change(current_level, 3) << " + " << change_buffer
+    //AILogDebug["do_manage_knight_occupation_levels"] << "debug3: " << (signed)idle_knights << " - " << (signed)AI::count_knights_affected_by_occupation_level_change(current_level, 3) << " + " << change_buffer
     //  << " = " << (signed)idle_knights - (signed)AI::count_knights_affected_by_occupation_level_change(current_level, 3) + change_buffer << " ?? " << knights_med;
-    AILogDebug["do_manage_knight_occupation_levels"] << name << " setting knight level to weak/good";
+    AILogDebug["do_manage_knight_occupation_levels"] << "setting knight level to weak/good";
     player->change_knight_occupation(3, 1, +3);   // increase upper bound to 'good'
     player->change_knight_occupation(3, 0, +1);   // increase lower bound to 'weak'
   }
   else if ((signed)idle_knights - (signed)AI::count_knights_affected_by_occupation_level_change(current_level, 2) + (signed)change_buffer >= (signed)knights_min) {
-    //AILogDebug["do_manage_knight_occupation_levels"] << name << " debug2: " << (signed)idle_knights << " - " << (signed)AI::count_knights_affected_by_occupation_level_change(current_level, 2) << " + " << change_buffer
+    //AILogDebug["do_manage_knight_occupation_levels"] << "debug2: " << (signed)idle_knights << " - " << (signed)AI::count_knights_affected_by_occupation_level_change(current_level, 2) << " + " << change_buffer
     //  << " = " << (signed)idle_knights - (signed)AI::count_knights_affected_by_occupation_level_change(current_level, 2) + change_buffer << " ?? " << knights_min;
-    AILogDebug["do_manage_knight_occupation_levels"] << name << " setting knight level to min/med";
+    AILogDebug["do_manage_knight_occupation_levels"] << "setting knight level to min/med";
     player->change_knight_occupation(3, 1, +2);   // increase upper bound to 'med'
     // leave lower bound at 'min'
   }
   else {
-    AILogDebug["do_manage_knight_occupation_levels"] << name << " setting knight level to min/min";
+    AILogDebug["do_manage_knight_occupation_levels"] << "setting knight level to min/min";
     // leave both at 'min'
   }
 }
@@ -2549,19 +2577,19 @@ AI::do_place_mines(std::string type, Building::Type building_type, Map::Object l
 
 void
 AI::do_place_coal_mines() {
-  AILogDebug["do_place_coal_mines"] << name << " inside do_place_coal_mines()";
+  AILogDebug["do_place_coal_mines"] << "inside do_place_coal_mines()";
   do_place_mines("coal", Building::TypeCoalMine, Map::ObjectSignLargeCoal, Map::ObjectSignSmallCoal, coal_sign_density_min);
 }
 
 void
 AI::do_place_iron_mines() {
-  AILogDebug["do_place_iron_mines"] << name << " inside do_place_iron_mines()";
+  AILogDebug["do_place_iron_mines"] << "inside do_place_iron_mines()";
   do_place_mines("iron", Building::TypeIronMine, Map::ObjectSignLargeIron, Map::ObjectSignSmallIron, iron_sign_density_min);
 }
 
 void
 AI::do_place_gold_mines(){
-  AILogDebug["do_place_gold_mines"] << name << " inside do_place_gold_mines()";
+  AILogDebug["do_place_gold_mines"] << "inside do_place_gold_mines()";
   do_place_mines("gold", Building::TypeGoldMine, Map::ObjectSignLargeGold, Map::ObjectSignSmallGold, gold_sign_density_min);
 }
 
@@ -2821,8 +2849,8 @@ AI::do_build_toolmaker_steelsmelter() {
   int toolmaker_count = realm_building_count[Building::TypeToolMaker];
   if (toolmaker_count < 1) {
     if (need_tools) {
-      AILogInfo["do_build_toolmaker_steelsmelter"] << inventory_pos << " need tools but have no toolmaker, trying to build one near castle";
-      MapPos built_pos = AI::build_near_pos(castle_flag_pos, AI::spiral_dist(14), Building::TypeToolMaker);
+      AILogInfo["do_build_toolmaker_steelsmelter"] << inventory_pos << " need tools but have no toolmaker, trying to build one near castle or current inventory";
+      MapPos built_pos = AI::build_near_pos(inventory_pos, AI::spiral_dist(24), Building::TypeToolMaker);
       if (built_pos != bad_map_pos && built_pos != notplaced_pos) {
         AILogInfo["do_build_toolmaker_steelsmelter"] << inventory_pos << " built toolmaker at pos " << built_pos;
         stock_buildings.at(inventory_pos).count[Building::TypeToolMaker]++;
@@ -3240,38 +3268,17 @@ AI::do_connect_coal_mines() {
   ai_status.assign("do_connect_coal_mines");
   AILogDebug["do_connect_coal_mines"] << inventory_pos << " inside do_connect_coal_mines()";
   if (stock_buildings.at(inventory_pos).needs_coal) {
-    // ADDING - don't connect a second coalmine until have at least one iron mine
-    // REMOVED - don't connect a second coalmine until have at least two non-coal mines
-    // REMOVED - don't connect a third coalmine until have at least three non-coal mines
-    if (stock_buildings.at(inventory_pos).count[Building::TypeCoalMine] > 0){
-      if (stock_buildings.at(inventory_pos).connected_count[Building::TypeIronMine] < 1){
-        AILogDebug["do_connect_coal_mines"] << inventory_pos << " already have a connected coal mine and do not yet have a connected iron mine, not connecting another coal mine yet";
+    //  to avoid depleting pickaxes/miners, if low on miners/pickaxes:
+    //   if REALM has at least one occupied coal mine, don't build another unless already have occupied iron mine
+    if (serfs_idle[Serf::TypeMiner] + serfs_potential[Serf::TypeMiner] < 3){
+      if (realm_occupied_building_count[Building::TypeCoalMine] >= 1 && realm_occupied_building_count[Building::TypeIronMine] == 0) {
+        AILogDebug["do_connect_coal_mines"] << inventory_pos << " has <3 miners+pickaxes remaining, but this Inventory does not yet both an occupied iron mine.  Not connecting this coal mine to avoid running out of steel/tools deadlock";
         return;
       }
-      /*
-      int other_mine_count = stock_buildings.at(inventory_pos).connected_count[Building::TypeIronMine] + stock_buildings.at(inventory_pos).connected_count[Building::TypeGoldMine];
-      if (other_mine_count < 2){
-        AILogDebug["do_connect_coal_mines"] << inventory_pos << " already have a connected coal mine and do not yet have two other non-coal mines, not connecting another coal mine yet";
-        return;
-      }
-      */
-      /*
-      if (other_mine_count < 3 && coalmine_count > 2){
-        AILogDebug["do_connect_coal_mines"] << inventory_pos << " already have two connected coal mines and do not yet have three other non-coal mines, not connecting another coal mine yet";
-        return;
-      }
-      */
-    }
-    //  if low on miners/pickaxes, don't build a second/third coal mine unless already having
-    //   at least one occupied iron and gold mine to avoid depleting pickaxes/miners
-    if (serfs_idle[Serf::TypeMiner] + serfs_potential[Serf::TypeMiner] < 3
-       && stock_buildings.at(inventory_pos).connected_count[Building::TypeCoalMine] >= 1
-       && (stock_buildings.at(inventory_pos).occupied_count[Building::TypeIronMine] == 0 || stock_buildings.at(inventory_pos).occupied_count[Building::TypeGoldMine] == 0)) {
-      AILogDebug["do_connect_coal_mines"] << inventory_pos << " has <3 miners+pickaxes remaining, but not yet both an occupied iron mine and an occupied gold mine.  Not connecting this coal mine";
-      return;
     }
     // connect a disconnected coal mine that was placed if conditions are right
-    for (Flag *flag : *(game->get_flags())) {
+    Flags flags_copy = *(game->get_flags());  // create a copy so we don't conflict with the game thread, and don't want to mutex lock for a long function
+    for (Flag *flag : flags_copy) {
       if (flag == nullptr || flag->get_owner() != player_index || flag->is_connected() || !flag->has_building())
         continue;
       if (flag->get_building()->get_type() != Building::TypeCoalMine)
@@ -3326,16 +3333,17 @@ AI::do_connect_iron_mines() {
   ai_status.assign("do_connect_iron_mines");
   AILogDebug["do_connect_iron_mines"] << inventory_pos << " inside do_connect_iron_mines()";
   if (stock_buildings.at(inventory_pos).needs_iron_ore) {
-    //  if low on miners/pickaxes, don't build a second iron mine unless already having
-    //   at least one occupied coal and gold mine to avoid depleting pickaxes/miners
-    if (serfs_idle[Serf::TypeMiner] + serfs_potential[Serf::TypeMiner] < 3
-      && stock_buildings.at(inventory_pos).connected_count[Building::TypeIronMine] >= 1
-      && (stock_buildings.at(inventory_pos).occupied_count[Building::TypeCoalMine] == 0 || stock_buildings.at(inventory_pos).occupied_count[Building::TypeGoldMine] == 0)) {
-      AILogDebug["do_connect_iron_mines"] << inventory_pos << " has <3 miners+pickaxes remaining, but not yet connecting this iron mine";
-      return;
+    //  to avoid depleting pickaxes/miners, if low on miners/pickaxes:
+    //   if REALM has at least one occupied coal mine, don't build another unless already have occupied iron mine
+    if (serfs_idle[Serf::TypeMiner] + serfs_potential[Serf::TypeMiner] < 3){
+      if (realm_occupied_building_count[Building::TypeIronMine] >= 1 && realm_occupied_building_count[Building::TypeCoalMine] == 0) {
+        AILogDebug["do_connect_iron_mines"] << inventory_pos << " has <3 miners+pickaxes remaining, but this Inventory does not yet both an occupied coal mine.  Not connecting this iron mine to avoid running out of steel/tools deadlock";
+        return;
+      }
     }
     // connect any disconnected iron mine that was placed if conditions are right
-    for (Flag *flag : *(game->get_flags())) {
+    Flags flags_copy = *(game->get_flags());  // create a copy so we don't conflict with the game thread, and don't want to mutex lock for a long function
+    for (Flag *flag : flags_copy) {
       if (flag == nullptr || flag->get_owner() != player_index || flag->is_connected() || !flag->has_building())
         continue;
       if (flag->get_building()->get_type() != Building::TypeIronMine)
@@ -3536,7 +3544,8 @@ AI::do_build_gold_smelter_and_connect_gold_mines() {
   //
   if (stock_buildings.at(inventory_pos).needs_gold_ore){
     AILogDebug["do_build_gold_smelter_and_connect_gold_mines"] << inventory_pos << " looking for a disconnected gold mine to connect to road system";
-    for (Flag *flag : *(game->get_flags())) {
+    Flags flags_copy = *(game->get_flags());  // create a copy so we don't conflict with the game thread, and don't want to mutex lock for a long function
+    for (Flag *flag : flags_copy) {
       if (flag == nullptr || flag->get_owner() != player_index || flag->is_connected() || !flag->has_building())
         continue;
       if (flag->get_building()->get_type() != Building::TypeGoldMine)
@@ -3591,52 +3600,52 @@ AI::do_build_gold_smelter_and_connect_gold_mines() {
 void
 AI::do_attack() {
   MapPosSet scored_targets = {};
-  AILogDebug["do_attack"] << name << " calling score_enemy_targets...";
+  AILogDebug["do_attack"] << "calling score_enemy_targets...";
   score_enemy_targets(&scored_targets);
-  AILogDebug["do_attack"] << name << " score_enemy_targets call found " << scored_targets.size() << " targets";
+  AILogDebug["do_attack"] << "score_enemy_targets call found " << scored_targets.size() << " targets";
 
   // TEMPORARY
   int morale = 0;
   int morale_max = 99999;
 
-  //AILogDebug["do_attack"] << name << " getting serfs again";
-  AILogVerbose["do_attack"] << name << " thread #" << std::this_thread::get_id() << " AI is locking mutex before calling player->get_stats_serfs_idle()";
+  //AILogDebug["do_attack"] << "getting serfs again";
+  AILogVerbose["do_attack"] << "thread #" << std::this_thread::get_id() << " AI is locking mutex before calling player->get_stats_serfs_idle()";
   game->get_mutex()->lock();
-  AILogVerbose["do_attack"] << name << " thread #" << std::this_thread::get_id() << " AI has locked mutex before calling player->get_stats_serfs_idle()";
+  AILogVerbose["do_attack"] << "thread #" << std::this_thread::get_id() << " AI has locked mutex before calling player->get_stats_serfs_idle()";
   serfs_idle = player->get_stats_serfs_idle();
-  AILogVerbose["do_attack"] << name << " thread #" << std::this_thread::get_id() << " AI is unlocking mutex after calling player->get_stats_serfs_idle()";
+  AILogVerbose["do_attack"] << "thread #" << std::this_thread::get_id() << " AI is unlocking mutex after calling player->get_stats_serfs_idle()";
   game->get_mutex()->unlock();
-  AILogVerbose["do_attack"] << name << " thread #" << std::this_thread::get_id() << " AI has unlocked mutex after calling player->get_stats_serfs_idle()";
+  AILogVerbose["do_attack"] << "thread #" << std::this_thread::get_id() << " AI has unlocked mutex after calling player->get_stats_serfs_idle()";
   //Serf::SerfMap serfs_potential = player->get_stats_serfs_potential();
   unsigned int idle_knights = serfs_idle[Serf::TypeKnight0] + serfs_idle[Serf::TypeKnight1] + serfs_idle[Serf::TypeKnight2] + serfs_idle[Serf::TypeKnight3] + serfs_idle[Serf::TypeKnight4];
-  AILogDebug["do_attack"] << name << " idle_knights: " << idle_knights << ", morale_count: " << morale;
+  AILogDebug["do_attack"] << "idle_knights: " << idle_knights << ", morale_count: " << morale;
 
   if (idle_knights >= knights_max && morale >= morale_max) {
-    AILogDebug["do_attack"] << name << " idle_knights & morale counts are above max, beeline for enemy castle";
+    AILogDebug["do_attack"] << "idle_knights & morale counts are above max, beeline for enemy castle";
     // insert attack logic here
     AI::attack_nearest_target(&scored_targets);
   }
   else if (idle_knights >= knights_max) {
-    AILogDebug["do_attack"] << name << " idle_knights " << idle_knights << " is above max, focus on gold/morale, attack only high value targets";
+    AILogDebug["do_attack"] << "idle_knights " << idle_knights << " is above max, focus on gold/morale, attack only high value targets";
     // insert attack logic here
     // temp to get started
     AI::attack_nearest_target(&scored_targets);
   }
   else if (idle_knights >= knights_med) {
-    AILogDebug["do_attack"] << name << " idle_knights " << idle_knights << " is above med, build economy, attack only high value targets";
+    AILogDebug["do_attack"] << "idle_knights " << idle_knights << " is above med, build economy, attack only high value targets";
     // insert attack logic here
   }
   else if (idle_knights >= knights_min) {
-    AILogDebug["do_attack"] << name << " idle_knights " << idle_knights << " is above min, build economy, attack only very high value targets";
+    AILogDebug["do_attack"] << "idle_knights " << idle_knights << " is above min, build economy, attack only very high value targets";
     // insert attack logic here
   }
   else if (idle_knights < knights_min) {
-    AILogDebug["do_attack"] << name << " idle_knights " << idle_knights << " is below minimum, conserve knights";
+    AILogDebug["do_attack"] << "idle_knights " << idle_knights << " is below minimum, conserve knights";
     // do not attack.  Also, cannot attack at this level of occupation (min/min)
   }
-  AILogDebug["do_attack"] << name << " done do_attack";
+  AILogDebug["do_attack"] << "done do_attack";
   // TEMP TEST
-  AILogDebug["do_attack"] << name << " TEMP SHORTCUT FORCE ATTACK do_attack";
+  AILogDebug["do_attack"] << "TEMP SHORTCUT FORCE ATTACK do_attack";
   AI::attack_nearest_target(&scored_targets);
 }
 
@@ -3652,21 +3661,21 @@ AI::do_build_better_roads_for_important_buildings() {
   std::clock_t start;
   double duration;
   start = std::clock();
-  AILogDebug["do_build_better_roads_for_important_buildings"] << name << " inside do_build_better_roads_for_important_buildings";
+  AILogDebug["do_build_better_roads_for_important_buildings"] << "inside do_build_better_roads_for_important_buildings";
   // only do this every X loops and once X knight huts built
   unsigned int completed_huts = realm_completed_building_count[Building::TypeHut];
   if (loop_count % 10 != 0 || completed_huts < 14) {
-    AILogDebug["do_build_better_roads_for_important_buildings"] << name << " running until a significant number of huts completed, and only every X loops";
+    AILogDebug["do_build_better_roads_for_important_buildings"] << "running until a significant number of huts completed, and only every X loops";
     return;
   }
   ai_status.assign("HOUSEKEEPING - build better roads");
-  AILogVerbose["do_build_better_roads_for_important_buildings"] << name << " thread #" << std::this_thread::get_id() << " AI is locking mutex before calling game->get_player_buildings(player) (for finding positions of military buildings)";
+  AILogVerbose["do_build_better_roads_for_important_buildings"] << "thread #" << std::this_thread::get_id() << " AI is locking mutex before calling game->get_player_buildings(player) (for finding positions of military buildings)";
   game->get_mutex()->lock();
-  AILogVerbose["do_build_better_roads_for_important_buildings"] << name << " thread #" << std::this_thread::get_id() << " AI has locked mutex before calling game->get_player_buildings(player) (for finding positions of military buildings)";
+  AILogVerbose["do_build_better_roads_for_important_buildings"] << "thread #" << std::this_thread::get_id() << " AI has locked mutex before calling game->get_player_buildings(player) (for finding positions of military buildings)";
   Game::ListBuildings buildings = game->get_player_buildings(player);
-  AILogVerbose["do_build_better_roads_for_important_buildings"] << name << " thread #" << std::this_thread::get_id() << " AI is unlocking mutex after calling game->get_player_buildings(player) (for finding positions of military buildings)";
+  AILogVerbose["do_build_better_roads_for_important_buildings"] << "thread #" << std::this_thread::get_id() << " AI is unlocking mutex after calling game->get_player_buildings(player) (for finding positions of military buildings)";
   game->get_mutex()->unlock();
-  AILogVerbose["do_build_better_roads_for_important_buildings"] << name << " thread #" << std::this_thread::get_id() << " AI has unlocked mutex after calling game->get_player_buildings(player) (for finding positions of military buildings)";
+  AILogVerbose["do_build_better_roads_for_important_buildings"] << "thread #" << std::this_thread::get_id() << " AI has unlocked mutex after calling game->get_player_buildings(player) (for finding positions of military buildings)";
   for (Building *building : buildings) {
     if (building == nullptr)
       continue;
@@ -3680,7 +3689,7 @@ AI::do_build_better_roads_for_important_buildings() {
       && type != Building::TypeIronMine && type != Building::TypeGoldMine) {
       continue;
     }
-    AILogDebug["do_build_better_roads_for_important_buildings"] << name << " do_build_better_roads_for_important_buildings found high-priority building of type " << NameBuilding[type] << name << " at pos " << building->get_position();
+    AILogDebug["do_build_better_roads_for_important_buildings"] << "do_build_better_roads_for_important_buildings found high-priority building of type " << NameBuilding[type] << " at pos " << building->get_position();
     ai_mark_pos.erase(building->get_position());
     ai_mark_pos.insert(ColorDot(building->get_position(), "dk_coral"));
     //sleep_speed_adjusted(3000);
@@ -3688,14 +3697,14 @@ AI::do_build_better_roads_for_important_buildings() {
     MapPos building_flag_pos = map->move_down_right(building->get_position());
     Road road_built;
     if(build_best_road(building_flag_pos, road_options, &road_built, "do_build_better_roads", type)){
-      AILogDebug["do_build_better_roads_for_important_buildings"] << name << " successfully built an improved road connection for building of type " << NameBuilding[type] << name << " at pos " << building->get_position() << " to its affinity building (whatever that may be - check build_best_road result)";
+      AILogDebug["do_build_better_roads_for_important_buildings"] << "successfully built an improved road connection for building of type " << NameBuilding[type] << " at pos " << building->get_position() << " to its affinity building (whatever that may be - check build_best_road result)";
       ai_mark_build_better_roads->push_back(road_built);
     }
     road_options.reset(RoadOption::Improve);
   }
-  AILogDebug["do_build_better_roads_for_important_buildings"] << name << " done do_build_better_roads_for_important_buildings";
+  AILogDebug["do_build_better_roads_for_important_buildings"] << "done do_build_better_roads_for_important_buildings";
   duration = (std::clock() - start) / static_cast<double>(CLOCKS_PER_SEC);
-  AILogDebug["do_build_better_roads_for_important_buildings"] << name << " done do_build_better_roads_for_important_buildings call took " << duration;
+  AILogDebug["do_build_better_roads_for_important_buildings"] << "done do_build_better_roads_for_important_buildings call took " << duration;
 }
 
 
@@ -3709,49 +3718,49 @@ AI::do_build_better_roads_for_important_buildings() {
 //
 void
 AI::do_build_warehouse() {
-  AILogDebug["do_build_warehouse"] << name << " inside do_build_warehouse";
+  AILogDebug["do_build_warehouse"] << "inside do_build_warehouse";
   // don't build warehouses until territory reaches a certain size
   unsigned int completed_huts = realm_completed_building_count[Building::TypeHut];
   if (loop_count % 10 != 0 || completed_huts < 12) {
-    AILogDebug["do_build_warehouse"] << name << " not considering building warehouses (stocks) until a significant number of huts completed, and only every X loops";
+    AILogDebug["do_build_warehouse"] << "not considering building warehouses (stocks) until a significant number of huts completed, and only every X loops";
     return;
   }
   int warehouse_count = realm_building_count[Building::TypeStock];
   int completed_warehouse_count = realm_completed_building_count[Building::TypeStock];
   if (warehouse_count > completed_warehouse_count) {
-    AILogDebug["do_build_warehouse"] << name << " already placed a new warehouse (stock), not building another until previous one is built";
+    AILogDebug["do_build_warehouse"] << "already placed a new warehouse (stock), not building another until previous one is built";
     return;
   }
   unsigned int planks_count = realm_inv[Resource::TypePlank];
   unsigned int stones_count = realm_inv[Resource::TypeStone];
   // increase the requirements a bit for each warehouse because it is realm-wide check
   if (planks_count < planks_min + ( 4 * warehouse_count) || stones_count < stones_min + ( 2 * warehouse_count)) {
-    AILogDebug["do_build_warehouse"] << name << " not building warehouse, not enough planks or stones in realm";
+    AILogDebug["do_build_warehouse"] << "not building warehouse, not enough planks or stones in realm";
     return;
   }
 
   for (MapPos center_pos : realm_occupied_military_pos) {
-    AILogDebug["do_build_warehouse"] << name << " considering building warehouse near corners around realm_occupied_military_pos " << center_pos;
+    AILogDebug["do_build_warehouse"] << "considering building warehouse near corners around realm_occupied_military_pos " << center_pos;
     MapPosVector corners = AI::get_corners(center_pos);
     for (MapPos corner_pos : corners) {
-      if (get_straightline_tile_dist(map, corner_pos, castle_pos) <= 32){  
-        AILogDebug["do_build_warehouse"] << name << " corner_pos " << corner_pos << " is too close to the castle, skipping this area";
+      if (get_straightline_tile_dist(map, corner_pos, castle_pos) <= 40){  
+        AILogDebug["do_build_warehouse"] << "corner_pos " << corner_pos << " is too close to the castle, skipping this area";
         continue;
       }
-      if (find_nearest_building(corner_pos, CompletionLevel::Unfinished, Building::TypeStock, 32) != nullptr) {
-        AILogDebug["do_build_warehouse"] << name << " there is already a stock near corner_pos " << corner_pos << ", skipping this area";
+      if (find_nearest_building(corner_pos, CompletionLevel::Unfinished, Building::TypeStock, 40) != nullptr) {
+        AILogDebug["do_build_warehouse"] << "there is already a stock near corner_pos " << corner_pos << ", skipping this area";
         continue;
       }
-      AILogDebug["do_build_warehouse"] << name << " try to build warehouse near pos " << corner_pos;
+      AILogDebug["do_build_warehouse"] << "try to build warehouse near pos " << corner_pos;
       MapPos built_pos = bad_map_pos;
       built_pos = AI::build_near_pos(corner_pos, AI::spiral_dist(5), Building::TypeStock);
       if (built_pos != bad_map_pos && built_pos != notplaced_pos) {
-        AILogDebug["do_build_warehouse"] << name << " built warehouse (stock) at pos " << built_pos;
+        AILogDebug["do_build_warehouse"] << "built warehouse (stock) at pos " << built_pos;
         return;
       }
     }
   }
-  AILogDebug["do_build_warehouse"] << name << " done do_build_warehouse";
+  AILogDebug["do_build_warehouse"] << "done do_build_warehouse";
 }
 
 
@@ -3764,32 +3773,32 @@ AI::do_get_inventory(MapPos inventory_pos) {
   //ResourceMap get_all_resources() { return resources; }
   // this gets a ResourceMap for AGGREGATE INVENTORY of all player stocks including castle
   //ResourceMap resources = interface->get_player()->get_stats_resources();
-  AILogDebug["do_get_inventory"] << name << " inside do_get_inventory for pos " << inventory_pos;
+  AILogDebug["do_get_inventory"] << "inside do_get_inventory for pos " << inventory_pos;
   if (inventory_pos == castle_flag_pos) {
-    AILogDebug["do_get_inventory"] << name << " this stock is the castle ";
+    AILogDebug["do_get_inventory"] << "this stock is the castle ";
   }
-  AILogDebug["do_get_inventory"] << name << " getting player's stock inventory for stock at pos " << inventory_pos;
+  AILogDebug["do_get_inventory"] << "getting player's stock inventory for stock at pos " << inventory_pos;
   Building *this_stock = game->get_building_at_pos(map->move_up_left(inventory_pos));
   if (this_stock == nullptr) {
-    AILogDebug["do_get_inventory"] << name << " got nullptr for stock at pos " << inventory_pos << "!";
+    AILogDebug["do_get_inventory"] << "got nullptr for stock at pos " << inventory_pos << "!";
     return;
   }
   Inventory *this_stock_inv = this_stock->get_inventory();
   if (this_stock_inv == nullptr) {
-    AILogDebug["do_get_inventory"] << name << " got nullptr for stock_inv at pos " << inventory_pos << "!";
+    AILogDebug["do_get_inventory"] << "got nullptr for stock_inv at pos " << inventory_pos << "!";
     return;
   }
   stock_inv = this_stock_inv;
   // dump stock inventory every loop for debugging
   for (int i = 0; i < 26; i++) {
-    AILogDebug["do_get_inventory"] << name << "'s stock at pos " << inventory_pos << " has " << NameResource[i] << ": " << stock_inv->get_count_of(Resource::Type(i));
+    AILogDebug["do_get_inventory"] << "'s stock at pos " << inventory_pos << " has " << NameResource[i] << ": " << stock_inv->get_count_of(Resource::Type(i));
   }
 
   for (int i = 0; i < 26; i++) {
     stock_res_sitting_at_flags[inventory_pos][Resource::Type(i)] = 0;
   }
 
-  AILogDebug["do_get_inventory"] << name << " done get_inventory";
+  AILogDebug["do_get_inventory"] << "done get_inventory";
 }
 
 
@@ -3811,9 +3820,10 @@ AI::do_count_resources_sitting_at_flags(MapPos inv_pos) {
   AILogDebug["do_count_resources_sitting_at_flags"] << inv_pos << " HouseKeeping: count resources sitting at flag";
   ai_status.assign("HOUSEKEEPING - count resources sitting at flags");
   ResourceMap res_at_flags;
-  flags_static_copy = *(game->get_flags());
-  flags = &flags_static_copy;
-  for (Flag *flag : *flags) {
+  Flags flags_copy = *(game->get_flags());  // create a copy so we don't conflict with the game thread, and don't want to mutex lock for a long function
+  for (Flag *flag : flags_copy) {
+    if (flag == nullptr)
+      continue;
     if (flag->get_owner() != player_index)
       continue;
     if (!flag->is_connected())
@@ -3833,7 +3843,7 @@ AI::do_count_resources_sitting_at_flags(MapPos inv_pos) {
     for (int i = 0; i < FLAG_MAX_RES_COUNT; i++) {
       Resource::Type type = flag->get_resource_at_slot(i);
       if (type != Resource::TypeNone){
-        //AILogDebug["do_count_resources_sitting_at_flags"] << name << " flag at pos " << flag->get_position() << " has a resource of type " << NameResource[type] << " at slot " << i;
+        //AILogDebug["do_count_resources_sitting_at_flags"] << "flag at pos " << flag->get_position() << " has a resource of type " << NameResource[type] << " at slot " << i;
         stock_res_sitting_at_flags[inv_pos][type]++;
         realm_res_sitting_at_flags[type]++;
       }
@@ -3976,7 +3986,6 @@ AI::do_check_resource_needs(){
     }
   }
 
-
   //
   // defensive buffer
   //
@@ -4034,8 +4043,8 @@ AI::do_check_resource_needs(){
     // not capped
     adjusted_food_count += food_at_flags + potential_food_count;
   }
-  //AILogDebug["do_check_resource_needs"] << inventory_pos << " debug: stored_food_count " << stored_food_count << ", potential_food_count " << potential_food_count << ", food_at_flags " << food_at_flags << ", adjusted_food_count " << adjusted_food_count << ", food_max " << food_max;
-  //AILogDebug["do_check_resource_needs"] << inventory_pos << " adjusted food_count at inventory_pos " << inventory_pos << ": " << adjusted_food_count;
+  AILogDebug["do_check_resource_needs"] << inventory_pos << " debug: stored_food_count " << stored_food_count << ", potential_food_count " << potential_food_count << ", food_at_flags " << food_at_flags << ", adjusted_food_count " << adjusted_food_count << ", food_max " << food_max;
+  AILogDebug["do_check_resource_needs"] << inventory_pos << " adjusted food_count at inventory_pos " << inventory_pos << ": " << adjusted_food_count;
   if (adjusted_food_count < food_max) {
     AILogDebug["do_check_resource_needs"] << inventory_pos << " desire more food";
     // don't check for food buildings because the do_food_buildings function does, and the checks are too complex to move into here
@@ -4241,13 +4250,13 @@ AI::do_create_star_roads_for_new_warehouses(){
         //not now... first see how well it works
 
         AILogDebug["do_create_star_roads_for_new_warehouse"] << inventory_pos << " destoying road for flag_pos " << flag_pos << " in dir " << only_dir << " / " << NameDirection[only_dir];
-        AILogVerbose["do_create_star_roads_for_new_warehouse"] << name << " thread #" << std::this_thread::get_id() << " AI is locking mutex before calling game->demolish_road()";
+        AILogVerbose["do_create_star_roads_for_new_warehouse"] << "thread #" << std::this_thread::get_id() << " AI is locking mutex before calling game->demolish_road()";
         game->get_mutex()->lock();
-        AILogVerbose["do_create_star_roads_for_new_warehouse"] << name << " thread #" << std::this_thread::get_id() << " AI has locked mutex before calling game->demolish_road()";
+        AILogVerbose["do_create_star_roads_for_new_warehouse"] << "thread #" << std::this_thread::get_id() << " AI has locked mutex before calling game->demolish_road()";
         game->demolish_road(map->move(flag_pos, only_dir), player);
-        AILogVerbose["do_create_star_roads_for_new_warehouse"] << name << " thread #" << std::this_thread::get_id() << " AI is unlocking mutex after calling game->demolish_road()";
+        AILogVerbose["do_create_star_roads_for_new_warehouse"] << "thread #" << std::this_thread::get_id() << " AI is unlocking mutex after calling game->demolish_road()";
         game->get_mutex()->unlock();
-        AILogVerbose["do_create_star_roads_for_new_warehouse"] << name << " thread #" << std::this_thread::get_id() << " AI has unlocked mutex after calling game->demolish_road()";
+        AILogVerbose["do_create_star_roads_for_new_warehouse"] << "thread #" << std::this_thread::get_id() << " AI has unlocked mutex after calling game->demolish_road()";
         roads_removed++;
         // any time a road is removed, force retrying the entire set in case new possibilities open up
         repeat = true;
@@ -4275,20 +4284,20 @@ AI::do_create_star_roads_for_new_warehouses(){
 //
 void
 AI::do_connect_disconnected_road_networks(){
-  AILogInfo["do_connect_disconnected_road_networks"] << " starting";
+  AILogInfo["do_connect_disconnected_road_networks"] << "starting";
   ai_status.assign("do_connect_disconnected_road_networks");
 
   std::vector<std::set<unsigned int>> network = {};
 
-  for (Flag *flag : *(game->get_flags())) {
-
+  Flags flags_copy = *(game->get_flags());  // create a copy so we don't conflict with the game thread, and don't want to mutex lock for a long function
+  for (Flag *flag : flags_copy) {
 
     if (flag == nullptr)
       continue;
     if (flag->get_owner() != player_index)
       continue;
 
-    AILogDebug["do_connect_disconnected_road_networks"] << " global flag " << flag->get_index();
+    AILogDebug["do_connect_disconnected_road_networks"] << "global flag " << flag->get_index();
 
     // create a list containing this flag and its neighbors
     std::set<unsigned int> these_flags = { flag->get_index() };
@@ -4298,23 +4307,23 @@ AI::do_connect_disconnected_road_networks(){
       // I am seeing other_end_flag giving a valid flag, but one that isn't actaully connected to this flag!! why???
       //  adding a backup check, and throwing a warning if they do not both agree
       if (!map->has_path_IMPROVED(flag->get_position(), dir)){
-        //AILogDebug["do_connect_disconnected_road_networks"] << " map has no path in dir " << dir << " / " << NameDirection[dir] << "! rejecting";
+        //AILogDebug["do_connect_disconnected_road_networks"] << "map has no path in dir " << dir << " / " << NameDirection[dir] << "! rejecting";
         rejected = true;
       }else if (other_end_flag == nullptr){
-        AILogWarn["do_connect_disconnected_road_networks"] << " RARE sanity check failed! other_end_flag in dir " << dir << " / " << NameDirection[dir] << " is nullptr, but map has path in dir! is this Dir4/UpLeft?  is there a building here?";
-        AILogError["do_connect_disconnected_road_networks"] << " pausing for debugging";
+        AILogWarn["do_connect_disconnected_road_networks"] << "RARE sanity check failed! other_end_flag in dir " << dir << " / " << NameDirection[dir] << " is nullptr, but map has path in dir! is this Dir4/UpLeft?  is there a building here?";
+        AILogError["do_connect_disconnected_road_networks"] << "pausing game for debugging RARE sanity checked failed other_end_flag in dir";
         game->pause();
       }
 
       if (rejected)
         continue;
       unsigned int other_end_flag_index = other_end_flag->get_index();
-      AILogDebug["do_connect_disconnected_road_networks"] << " global flag has partner in dir " << dir << " / " << NameDirection[dir] << " with index " << other_end_flag_index;
+      AILogDebug["do_connect_disconnected_road_networks"] << "global flag has partner in dir " << dir << " / " << NameDirection[dir] << " with index " << other_end_flag_index;
       these_flags.insert(other_end_flag_index);
     }
 
     for (unsigned int flag_index : these_flags){
-      AILogDebug["do_connect_disconnected_road_networks"] << " these_flags contains " << flag_index;
+      AILogDebug["do_connect_disconnected_road_networks"] << "these_flags contains " << flag_index;
     }
 
     int found = -1; // the first matching group, if any match found
@@ -4322,19 +4331,19 @@ AI::do_connect_disconnected_road_networks(){
       found = -1;
       for (int i = 0; i < network.size(); i++){
         if (network[i].count(flag_index)){
-          AILogDebug["do_connect_disconnected_road_networks"] << " found " << flag_index << " in group #" << i;
+          AILogDebug["do_connect_disconnected_road_networks"] << "found " << flag_index << " in group #" << i;
           if (found == -1){
             // this is first group found with a matching flag, insert all these_flags into group
             found = i;
-            AILogDebug["do_connect_disconnected_road_networks"] << " first group found, inserting these_flags into network[" << i << "]";
+            AILogDebug["do_connect_disconnected_road_networks"] << "first group found, inserting these_flags into network[" << i << "]";
             network[i].insert(these_flags.begin(), these_flags.end());
           }else{
-            AILogDebug["do_connect_disconnected_road_networks"] << " another found, merging this group #" << i << " into first found group #" << found;
+            AILogDebug["do_connect_disconnected_road_networks"] << "another found, merging this group #" << i << " into first found group #" << found;
             // this is another matching group, merge it into the first group found, they must be one network
             network[found].insert(network[i].begin(), network[i].end());
             // erase the group that was merged into earlier group
             //  by swapping it to the end of the vector and then popping it off
-            AILogDebug["do_connect_disconnected_road_networks"] << " removing group #" << i;
+            AILogDebug["do_connect_disconnected_road_networks"] << "removing group #" << i;
             std::swap(network[i], network.back());
             network.pop_back();
           }
@@ -4342,23 +4351,23 @@ AI::do_connect_disconnected_road_networks(){
       }
     }
     if (found == -1){
-      AILogDebug["do_connect_disconnected_road_networks"] << " no match, creating new group containing these_flags";
+      AILogDebug["do_connect_disconnected_road_networks"] << "no match, creating new group containing these_flags";
       network.push_back(these_flags);
     }
 
   } // foreach Flag in entire game
 
-  AILogDebug["do_connect_disconnected_road_networks"] << " done search, found " << network.size() << " separate flag_groups";
+  AILogDebug["do_connect_disconnected_road_networks"] << "done search, found " << network.size() << " separate flag_groups";
   for (int i = 0; i < network.size(); i++){
-    AILogDebug["do_connect_disconnected_road_networks"] << " network[" << i << "] contains " << network[i].size() << " elements";
+    AILogDebug["do_connect_disconnected_road_networks"] << "network[" << i << "] contains " << network[i].size() << " elements";
     bool disconnected = false;
     if (i > 0 && network[i].size() > 1){
-      AILogInfo["do_connect_disconnected_road_networks"] << " DISCONNECTED ROAD SYSTEM: network[" << i << "] contains " << network[i].size() << " elements";
+      AILogInfo["do_connect_disconnected_road_networks"] << "DISCONNECTED ROAD SYSTEM: network[" << i << "] contains " << network[i].size() << " elements";
       disconnected = true;
     }
     for (unsigned int flag_index : network[i]){
-      AILogDebug["do_connect_disconnected_road_networks"] << " network[" << i << "] contains flag_index " << flag_index;
-      if (disconnected){
+      AILogDebug["do_connect_disconnected_road_networks"] << "network[" << i << "] contains flag_index " << flag_index;
+      if (disconnected && game->get_flag(flag_index) != nullptr){
         // re-use get_dir_color function with indexes and hope <6 disconnected sections!
         ai_mark_pos.insert(ColorDot(game->get_flag(flag_index)->get_position(), get_dir_color_name(Direction(i))));
       }

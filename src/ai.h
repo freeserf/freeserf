@@ -187,11 +187,12 @@ class AI {
   // stupid way to pass game speed and AI loop count to viewport for AI overlay
   unsigned int get_game_speed() { return game->get_game_speed(); }
   unsigned int get_loop_count() { return loop_count; }
-  unsigned int ai_loop_freq_adj_for_gamespeed(unsigned int freq) { 
+  unsigned int ai_loop_freq_adj_for_gamespeed(unsigned int freq) {
     // because certain AI functions only run every X loops,
     //  they do occur at the right frequency when the game
     //  speed is increased.  To handle this, take the "every X loops"
     //  and reduce it as game speed is increased, return the adjusted number
+    /* visual studio doesn't support this format with ellipses
     switch (game->get_game_speed()) {
       case 0 ... 5:
         return freq;
@@ -202,6 +203,14 @@ class AI {
       default:
         return freq*.2;
     }
+    */
+    if (game->get_game_speed() < 6)
+      return freq;
+    if (game->get_game_speed() < 16)
+      return freq;
+    //if (game->get_game_speed() < 40)
+    //  return freq*0.2;
+    return freq * 0.2;
   }
   void sleep_speed_adjusted(int msec){
     // sleep for specified millisec if speed is normal '2'
@@ -286,10 +295,6 @@ class AI {
   void score_enemy_targets(MapPosSet*);
   void attack_nearest_target(MapPosSet*);
 
-  //
-  // I do not think this is needed anymore now that multiple economies
-  //  implemented??
-  //
   struct StockBuilding {
     int count[25] = { 0 };
     int connected_count[25] = { 0 };
@@ -364,8 +369,6 @@ class AI {
   //
   // ai_pathfinder.cc
   //
-  // adding support for HoldBuildingPos
-  //Road plot_road(PMap map, unsigned int player_index, MapPos start, MapPos end, Roads * const &potential_roads);
   Road plot_road(PMap map, unsigned int player_index, MapPos start, MapPos end, Roads * const &potential_roads, bool hold_building_pos = false);
   int get_straightline_tile_dist(PMap map, MapPos start_pos, MapPos end_pos);
   bool score_flag(PMap map, unsigned int player_index, RoadBuilder *rb, RoadOptions road_options, MapPos flag_pos, MapPos castle_flag_pos, ColorDotMap *ai_mark_pos);
@@ -404,8 +407,8 @@ static const unsigned int knights_min = 3;
 static const unsigned int knights_med = 18;
 static const unsigned int knights_max = 50;
 static const unsigned int knight_occupation_change_buffer = 4; // to avoid repeatedly cycling knights, increase/lower bar to change levels again by this amount
-static const unsigned int near_building_sites_min = 250;   // don't place castle unless this many sites available.  small += 1, large += 3
-static const unsigned int gold_bars_max = 50;  // does this do anything?  maybe use to deprioritize food to gold mines over this amount?
+static const unsigned int near_building_sites_min = 450;   // don't place castle unless this many sites available.  small += 1, large += 3
+//static const unsigned int gold_bars_max = 50;  // I don't think this is actually used
 static const unsigned int steel_min = 8;   // don't build blacksmith if under this value, unless sufficient iron or an iron mine
 static const unsigned int steel_max = 60;  // don't build iron foundry if over this value
 static const unsigned int planks_min = 8; // if planks below this value, don't build any other buildings until sawmill and lumberjacks done.  Also, don't build warehouse/stocks if below this
@@ -435,9 +438,11 @@ static constexpr double geologist_sign_density_max = 0.65;
 
 // don't build mines on Small resource signs until this ratio of potential resource signs are placed.
 //    until this % of signs placed, only build if you find a Large resource sign
-static constexpr double coal_sign_density_min = 0.50;
-static constexpr double iron_sign_density_min = 0.50;
-static constexpr double gold_sign_density_min = 0.30;  // lower min for gold mines because even a small flag is usually enough gold, and gold is rare
+// LARGE SIGNS MATTER MUCH LESS THAN I THOUGHT, because the large signs just help find the center of the deposit
+//  ultimately a small sign or a large sign doesn't matter much as long as the mine is near the deposit
+static constexpr double coal_sign_density_min = 0.30;
+static constexpr double iron_sign_density_min = 0.30;
+static constexpr double gold_sign_density_min = 0.15;  // lower min for gold mines because even a small flag is usually enough gold, and gold is rare
 
 //  because new mines start at zero productivity, but any mine that is active and/or has food stored is not *brand new* and can be tested
 static const unsigned int mine_output_min = 8; // burn if below this % production
@@ -462,8 +467,6 @@ static const unsigned int gold_ore_weight = 5;
 static const unsigned int max_unfinished_buildings = 2;
 static const unsigned int max_unfinished_huts = 2;
 
-// don't send geologists (or maybe reduce rate) if this many mines already placed
-//   also don't expand borders for mines if >= max?
 // don't *connect* new mines to an Inv if this many reached, no limits on placing them though
 static const unsigned int max_coalmines = 2;
 static const unsigned int max_ironmines = 1;

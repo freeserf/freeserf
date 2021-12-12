@@ -123,6 +123,9 @@ class Game {
 
   PMap get_map() { return map; }
 
+  // for AI to use random functions
+  Random * get_rand() { return &rnd; }
+
   // tell ai to exit when a game ends
   void stop_ai_threads() { signal_ai_exit = true; }
   // ai checks this every loop and exits if true

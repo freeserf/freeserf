@@ -2080,9 +2080,9 @@ PopupBox::draw_edit_map_generator_box() {
   //    Add either tree or pine.
   // combine these four variables into one be simply averaging them
   //  when GETing and using same value for all when SETing
-  Log::Info["popup"] << " inside draw_edit_map_generator_box ";
+  Log::Info["popup"] << "inside draw_edit_map_generator_box ";
   for (int x = 0; x < 23; x++){
-    Log::Info["popup"] << " inside draw_edit_map_generator_box, opt" << x << " = " << generator_options.opt[x];
+    Log::Info["popup"] << "inside draw_edit_map_generator_box, opt" << x << " = " << generator_options.opt[x];
   }
 
   // uint16_t slider_double_to_uint16(double val){ return uint16_t(val * 32750); }

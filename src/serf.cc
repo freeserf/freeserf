@@ -1498,7 +1498,7 @@ Serf::handle_serf_walking_state_search_cb(Flag *flag, void *data) {
   Flag *dest = flag->get_game()->get_flag(serf->s.walking.dest);
   if (flag == dest) {
     //Log::Info["serf"] << "debug: inside Serf::handle_serf_walking_state_search_cb, DEST FOUND!";
-    //Log::Verbose["serf"] << " dest found: " << dest->get_search_dir();
+    //Log::Verbose["serf"] << "dest found: " << dest->get_search_dir();
     serf->change_direction(dest->get_search_dir(), 0);
     return true;
   }
@@ -1562,7 +1562,7 @@ Serf::leave_building(int join_pos) {
   Building *building = game->get_building_at_pos(pos);
   int slope;
   if (building == nullptr){
-    Log::Warn["serf"] << " got nullptr for building at pos " << pos << " inside Serf::leave_building, trying a safe default slope value";
+    Log::Warn["serf"] << "got nullptr for building at pos " << pos << " inside Serf::leave_building, trying a safe default slope value";
     slope = 30;
   }else{
     slope = 31 - road_building_slope[building->get_type()];
@@ -2788,7 +2788,7 @@ Serf::handle_serf_digging_state() {
               s.digging.dig_pos -= 1;
               continue;
             }
-            Log::Verbose["serf"] << "  found at: " << s.digging.dig_pos << ".";
+            Log::Verbose["serf"] << " found at: " << s.digging.dig_pos << ".";
             /* Digging spot found */
             if (map->has_serf(new_pos)) {
               /* Occupied by other serf, wait */
