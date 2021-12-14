@@ -217,6 +217,9 @@ AI::next_loop(){
       {do_build_food_buildings(); sleep_speed_adjusted(1000);}
 
     if(do_can_build_other())
+      {do_build_3rd_lumberjack(); sleep_speed_adjusted(1000);}
+
+    if(do_can_build_other())
       {do_connect_coal_mines(); sleep_speed_adjusted(1000);}
 
     if(do_can_build_other())
@@ -1197,6 +1200,12 @@ AI::do_fix_missing_transporters() {
   AILogDebug["do_fix_missing_transporters"] << "done do_fix_missing_transporters call took " << duration;
 }
 
+
+// after fixing the idle_serfs issue by adding a call to get_serfs
+//  I still see a few extra geologists being created, I think this may be
+//  when excess hammers exist that are consumed by new builders, etc. at the
+//  same time that geologists are consuming them as the AI may build 6 or 7
+//  buildings in parallel if conditions are right during the early game
 void
 AI::do_send_geologists() {
   //
@@ -1226,25 +1235,22 @@ AI::do_send_geologists() {
     return;
   }
   */
+
+  // IMPORTANT - refresh serfs or idle counts will be wrong 
+  //  especially once Stocks
+  do_get_serfs();
+
   // figure out if we should be creating more geologists by counting the number
   //   of excess hammers (not reserved for future builders or blacksmiths)
-  //   If max number of builders & blacksmiths reached, no longer need to reserve hammers
   unsigned int total_geologists = player->get_serf_count(Serf::TypeGeologist);
   unsigned int idle_geologists = serfs_idle[Serf::TypeGeologist];
   unsigned int potential_geologists = 0;
   unsigned int hammers_count = realm_inv[Resource::TypeHammer];
-  unsigned int total_builders = player->get_serf_count(Serf::TypeBuilder);
-  unsigned int total_blacksmiths = player->get_serf_count(Serf::TypeWeaponSmith);
-  int reserve_builders = static_cast<int>(specialists_max[Serf::TypeBuilder] - total_builders);
-  if (reserve_builders < 0) { reserve_builders = 0; }
-  int reserve_blacksmiths = static_cast<int>(specialists_max[Serf::TypeWeaponSmith] - total_blacksmiths);
-  if (reserve_blacksmiths < 0) { reserve_blacksmiths = 0; }
-  int reserve_hammers = reserve_builders + reserve_blacksmiths;
+  int reserve_hammers = 2;
   int excess_hammers = static_cast<int>(hammers_count - reserve_hammers);
+  unsigned int adjusted_geologists_max = 1 + (geologists_max * stock_buildings.size());
   AILogDebug["do_send_geologists"] << inventory_pos << " total_geologists " << total_geologists << ", idle_geologists " << idle_geologists << ", geologists_max "
-    << geologists_max << ", total_builders " << total_builders << ", total_blacksmiths " << total_blacksmiths
-    << ", hammers_count " << hammers_count << ", reserve_hammers " << reserve_hammers << ", excess_hammers " << excess_hammers;
-  unsigned int adjusted_geologists_max = 2 + (geologists_max * stock_buildings.size());
+    << geologists_max << ", hammers_count " << hammers_count << ", reserve_hammers " << reserve_hammers << ", excess_hammers " << excess_hammers << ", adjusted_geologists_max " << adjusted_geologists_max;
   
 
   // another way to try to limit creation of excess geologists
@@ -1345,6 +1351,12 @@ AI::do_send_geologists() {
   game->get_mutex()->unlock();
   AILogVerbose["do_send_geologists"] << inventory_pos << " thread #" << std::this_thread::get_id() << " AI has unlocked mutex after calling game->get_player_serfs(player) (for serf_wait_timers is_waiting)";
   AILogDebug["do_send_geologists"] << inventory_pos << " active geologists found: " << geologist_positions.size();
+
+  // yet another attempt at limiting excess geologists
+  if (geologist_positions.size() >= adjusted_geologists_max){
+    AILogDebug["do_send_geologists"] << inventory_pos << " there are more active_geologists than max_geologists!  not sending more";
+    return;
+  }
   
   // for mined resouce finding,  reverse the occupied_military_buildings order
   //   so the newest military building is searched first,
@@ -1372,7 +1384,7 @@ AI::do_send_geologists() {
     MapPos center_pos = *it;
     MapPosVector corners = AI::get_corners(center_pos);
     for (MapPos corner_pos : corners) {
-      AILogDebug["do_send_geologists"] << inventory_pos << " considering corner_pos " << corner_pos;
+      //AILogDebug["do_send_geologists"] << inventory_pos << " considering corner_pos " << corner_pos;
       // i'm not sure why Snow0 is valid for mining, it seems to be the edge where hill meets snow
       unsigned int count = AI::count_empty_terrain_near_pos(corner_pos, AI::spiral_dist(4), Map::TerrainTundra0, Map::TerrainSnow0, "orange");
       //AILogDebug["do_send_geologists"] << inventory_pos << " corner has hills count: " << count << ", min acceptable is " << hills_min;
@@ -1390,11 +1402,11 @@ AI::do_send_geologists() {
       }
     }
     // try to place a flag on hills anywhere no flag is nearby
-    AILogDebug["do_send_geologists"] << inventory_pos << " trying to find a good place to send geologists";
+    //AILogDebug["do_send_geologists"] << inventory_pos << " trying to find a good place to send geologists";
     MapPosVector search_positions = AI::sort_by_val_desc(count_by_corner);
     MapPos built_pos = bad_map_pos;
     for (MapPos corner_pos : search_positions) {
-      AILogDebug["do_send_geologists"] << inventory_pos << " considering sending geologists to the vicinity of pos " << corner_pos;
+      //AILogDebug["do_send_geologists"] << inventory_pos << " considering sending geologists to the vicinity of pos " << corner_pos;
       // if two or more geologists are already operating in this area, skip this corner
       int geologists_corner = 0;
       for (unsigned int i = 0; i < AI::spiral_dist(6); i++) {
@@ -1439,10 +1451,11 @@ AI::do_send_geologists() {
             AILogVerbose["do_send_geologists"] << inventory_pos << " thread #" << std::this_thread::get_id() << " AI is locking mutex before calling game->build_flag, for geologist";
             game->get_mutex()->lock();
             AILogVerbose["do_send_geologists"] << inventory_pos << " thread #" << std::this_thread::get_id() << " AI has locking mutex before calling game->build_flag, for geologist";
-            built_pos = game->build_flag(pos, player);
+            bool was_built = game->build_flag(pos, player);
             AILogVerbose["do_send_geologists"] << inventory_pos << " thread #" << std::this_thread::get_id() << " AI is unlocking mutex after calling game->build_flag, for geologist";
             game->get_mutex()->unlock();
             AILogVerbose["do_send_geologists"] << inventory_pos << " thread #" << std::this_thread::get_id() << " AI has unlocked mutex after calling game->build_flag, for geologist";
+            sleep_speed_adjusted(2000);
             if (!map->has_flag(pos)) {
               AILogDebug["do_send_geologists"] << inventory_pos << " failed to build flag at pos " << pos << "!!! why??";
             }
@@ -1450,6 +1463,7 @@ AI::do_send_geologists() {
               AILogDebug["do_send_geologists"] << inventory_pos << " built flag at pos " << pos << ", trying to connect it...";
               built_new_flag_for_geologist = true;
             }
+            
             Road notused; // not used here, can I just pass a zero instead of &notused to build_best_road and skip initialization of a wasted object?
             if (!AI::build_best_road(pos, road_options, &notused, "do_send_geologists")) {
               AILogDebug["do_send_geologists"] << inventory_pos << " failed to connect new gologist flag to road network!  removing the flag";
@@ -1460,6 +1474,7 @@ AI::do_send_geologists() {
               AILogVerbose["do_send_geologists"] << inventory_pos << " thread #" << std::this_thread::get_id() << " AI is unlocking mutex after calling demolish_flag (built for geoligist, couldn't connect)";
               game->get_mutex()->unlock();
               AILogVerbose["do_send_geologists"] << inventory_pos << " thread #" << std::this_thread::get_id() << " AI has unlocked mutex after calling demolish_flag (built for geoligist, couldn't connect)";
+              sleep_speed_adjusted(2000);
               AILogDebug["do_send_geologists"] << inventory_pos << " adding this flag pos " << pos << " to bad_building_pos list";
               // because there is no Building::Type for a plain flag, use Building::TypeNone for now.
               //  alternatively, could create a new type, or use some number that has no type
@@ -1485,7 +1500,7 @@ AI::do_send_geologists() {
           if (idle_geologists >= 1) {
             AILogDebug["do_send_geologists"] << inventory_pos << " sending an idle geologist to pos " << pos;
           }
-          else if (potential_geologists >= 1 && specialists_max[Serf::TypeGeologist] > total_geologists) {
+          else if (potential_geologists >= 1) {
             AILogDebug["do_send_geologists"] << inventory_pos << " creating a new geologist and sending to pos " << pos;
             created_new = true;
           }
@@ -1496,22 +1511,6 @@ AI::do_send_geologists() {
           AILogVerbose["do_send_geologists"] << inventory_pos << " thread #" << std::this_thread::get_id() << " AI is locking mutex before calling game->send_geologist(flag)";
           game->get_mutex()->lock();
           AILogVerbose["do_send_geologists"] << inventory_pos << " thread #" << std::this_thread::get_id() << " AI has locked mutex before calling game->send_geologist(flag)";
-          /*
-          // even with this extra check it still will likely break once warehouse/stocks come into play
-          //   also, it doesn't make sense that theis check would even be required, clearly something else is wrong
-          ///  this STILL results in sending more geologists over max.  WTF.
-          if (total_geologists >= geologists_max) {
-            if (sending_idle_geologist == true) {
-              AILogDebug["do_send_geologists"] << inventory_pos << " about to send an idle_geologists, double-checking to see if one is really idle...";
-              serfs_idle = player->get_stats_serfs_idle();
-              idle_geologists = serfs_idle[Serf::TypeGeologist];
-              AILogDebug["do_send_geologists"] << inventory_pos << " after re-checking, found idle_geologists: " << idle_geologists;
-              if (idle_geologists < 1) {
-                AILogDebug["do_send_geologists"] << inventory_pos << " NO IDLE GEOLOGIST after re-check, returning early and not sending any geologists out";
-              }
-            }
-          }
-          */
           bool was_sent = game->send_geologist(flag);
           AILogVerbose["do_send_geologists"] << inventory_pos << " thread #" << std::this_thread::get_id() << " AI is unlocking mutex after calling game->send_geologist(flag)";
           game->get_mutex()->unlock();
@@ -1519,7 +1518,10 @@ AI::do_send_geologists() {
           if (was_sent) {
             AILogDebug["do_send_geologists"] << inventory_pos << " sent an geologist to pos " << pos << ", moving on to next corner";
             idle_geologists--;
-            if (created_new){total_geologists++;}
+            if (created_new){
+              total_geologists++;
+              potential_geologists--;
+            }
             /* back to only allowing one per run since improving sleep speeds to be gamespeed adjusted
             // only allow up to two geos sent per run
             sent_this_run++;
@@ -1537,16 +1539,11 @@ AI::do_send_geologists() {
           }
           else {
             AILogDebug["do_send_geologists"] << inventory_pos << " failed to send geologist to pos " << pos << ".  This happens sometimes but appears benign.  Sleeping 1sec";
-            sleep_speed_adjusted(1000);
-            // I stil cannot tell what is causing this to happen so often, maybe sending geologists is rate-limited per flag?
-            //   my debug logs are showing that it is failing because the flag search failed...but why??
-            ///    "inside Game::send_serf_to_flag, send_serf_to_flag_search returned false"
-
-            // playing sound causes occasional write access violation, probably needs to be made thread-safe.  Simply disabling for now.
-            //Audio &audio = Audio::get_instance();
-            //Audio::PPlayer player = audio.get_sound_player();
-            //if (player) { player->play_track(Audio::TypeSfxNotAccepted); }
+            //AILogDebug["do_send_geologists"] << inventory_pos << " game CLAIMS a geologist failed to send, but I suspect something funny going on, assuming it was actually sent to avoid too many geos";
+            // actually, if this happens quit the function
+            return;
           }
+          sleep_speed_adjusted(2000);
         } // if flag is acceptable for geologist
       } // foreach hills pos spirally
     } // foreach corner
@@ -2276,10 +2273,10 @@ AI::do_manage_tool_priorities() {
     unsigned int available = idle + potential;
     //unsigned int total = serfs_total[(Serf::Type)i];
     unsigned int total = serfs_total[i];
-    unsigned int min = specialists_reserve[Serf::Type(i)];
-    unsigned int max = specialists_max[Serf::Type(i)];
-    AILogDebug["do_manage_tool_priorities"] << "serf job " << NameSerf[i] << " idle: " << idle << ", potential: " << potential << ", available: " << available
-          << ", total: " << total << ", min: " << min << ", max: " << max;
+    //unsigned int min = specialists_reserve[Serf::Type(i)];
+    //unsigned int max = specialists_max[Serf::Type(i)];
+    //AILogDebug["do_manage_tool_priorities"] << "serf job " << NameSerf[i] << " idle: " << idle << ", potential: " << potential << ", available: " << available
+    //      << ", total: " << total << ", min: " << min << ", max: " << max;
     //if (total >= max && max > 0) {
     //      AILogDebug["do_manage_tool_priorities"] << "maximum serfs with job type " << NameSerf[i] << " reached";
     //}
@@ -3058,7 +3055,7 @@ AI::do_build_food_buildings() {
   //
   // build wheat farm if none (or if needing another)
   //
-  bool need_farm = true;
+  bool need_farm = false;
   int farm_count = stock_buildings.at(inventory_pos).count[Building::TypeFarm];
   if (farm_count == 0) {
     AILogDebug["do_build_food_buildings"] << inventory_pos << " has zero farms, need to build one";
@@ -3074,7 +3071,7 @@ AI::do_build_food_buildings() {
     int mill_count = stock_buildings.at(inventory_pos).count[Building::TypeMill];
     int baker_count = stock_buildings.at(inventory_pos).count[Building::TypeBaker];
     if (mine_count >= 3) {
-      if (farm_count == 1 && mill_count == 1 && baker_count >= 1) {
+      if (farm_count == 1 && mill_count >= 1 && baker_count >= 1) {
         AILogDebug["do_build_food_buildings"] << inventory_pos << " three completed mines, a mill, and a baker exist.  Need a second wheat farm";
         need_farm = true;
       }
@@ -3089,7 +3086,7 @@ AI::do_build_food_buildings() {
   // create list of existing farm building locations so additional ones can
   //   be built near them
   //
-  MapPosVector farm_buildings;  // pos with existing wheat-farm, mill, or baker
+  MapPosVector farm_buildings ={};  // pos with existing wheat-farm, mill, or baker
   MapPos mill_pos = bad_map_pos;
   MapPos farm_pos = bad_map_pos;
   MapPos baker_pos = bad_map_pos;
@@ -3130,36 +3127,35 @@ AI::do_build_food_buildings() {
     farm_buildings.push_back(mill_pos);
   }
   if (farm_pos != bad_map_pos) {
-    farm_buildings.push_back(farm_pos);
     AILogDebug["do_build_food_buildings"] << inventory_pos << " inserting farm_pos " << farm_pos << " into 2nd/3rd farm build_positions list";
+    farm_buildings.push_back(farm_pos);
   }
   if (baker_pos != bad_map_pos) {
-    farm_buildings.push_back(baker_pos);
     AILogDebug["do_build_food_buildings"] << inventory_pos << " inserting baker_pos " << baker_pos << " into 2nd/3rd farm build_positions list";
+    farm_buildings.push_back(baker_pos);
   }
 
   if (need_farm){
-    //
     // if this is not the first farm, try to build near existing food infrastructure
     //
-    // If this is a second farm it will first try to build near other farm buildings if it enough farmable land
-    //    if it is the first farm, or the unlikely event no other farm buildings found, it will try to build near fields
+    // if it is the first farm, or the unlikely event no other farm buildings found, it will try to build near fields
     if (farm_buildings.size() > 0){
       MapPosSet count_near_existing_farm_building;
       for (MapPos existing_farm_building_pos : farm_buildings){
         AILogDebug["do_build_food_buildings"] << inventory_pos << " debug, considering existing_farm_building_pos" << existing_farm_building_pos << " for placing wheat farm";
         int count = count_farmable_land(existing_farm_building_pos, spiral_dist(4), "dk_yellow");
-        // tolerate less available farm land than normal if it means building near existing farm buildings
-        if (count >= min_openspace_farm - 150) {
-          AILogVerbose["do_build_food_buildings"] << inventory_pos << " existing_farm_building_pos " << existing_farm_building_pos << " has enough (reduced req for existing food buildings near) open grass tiles to build a farm, adding to list";
+        AILogDebug["do_build_food_buildings"] << inventory_pos << " existing_farm_building_pos " << existing_farm_building_pos << " has open_space/fields count: " << count << ", min_openspace_farm is " << min_openspace_farm;
+        //// tolerate less available farm land than normal if it means building near existing farm buildings
+        //if (count >= min_openspace_farm / 2) {
+        //  AILogDebug["do_build_food_buildings"] << inventory_pos << " existing_farm_building_pos " << existing_farm_building_pos << " has enough (reduced req for existing food buildings near) open grass tiles to build a farm, adding to list";
           count_near_existing_farm_building.insert(std::make_pair(existing_farm_building_pos, count));
-        }
-        else {
-          AILogVerbose["do_build_food_buildings"] << inventory_pos << " existing_farm_building_pos " << existing_farm_building_pos << " does not have enough (reduced req for existing food buildings near) open grass tiles to build a farm here";
-        }
+        //}
+        //else {
+        //  AILogDebug["do_build_food_buildings"] << inventory_pos << " existing_farm_building_pos " << existing_farm_building_pos << " does not have enough (reduced req for existing food buildings near) open grass tiles to build a farm here";
+        //}
       }
       // build wheat farm near existing farm_building with most open grass
-      MapPosVector search_positions = AI::sort_by_val_desc(count_by_corner);
+      MapPosVector search_positions = AI::sort_by_val_desc(count_near_existing_farm_building);
       MapPos built_pos = bad_map_pos;
       for (MapPos potential_build_pos : search_positions) {
         AILogInfo["do_build_food_buildings"] << inventory_pos << " trying to build wheat farm near pos " << potential_build_pos;
@@ -3168,6 +3164,7 @@ AI::do_build_food_buildings() {
           AILogInfo["do_build_food_buildings"] << inventory_pos << " built wheat farm at pos " << built_pos << ", near existing farm building at pos " << potential_build_pos;
           stock_buildings.at(inventory_pos).count[Building::TypeFarm]++;
           stock_buildings.at(inventory_pos).unfinished_count++;
+          farm_buildings.push_back(farm_pos); // add this so the call to place mills and baker finds it
           need_farm = false;
           break;
         }
@@ -3191,21 +3188,17 @@ AI::do_build_food_buildings() {
     MapPosSet count_by_corner;
     for (MapPos center_pos : farm_centers) {
       AILogDebug["do_build_food_buildings"] << inventory_pos << " debug, considering center_pos " << center_pos << " for placing wheat farm near open fields near Inventory";
-      if (need_farm == false) {
-        break;
-      }
-
       // count farmable land in this area
       MapPosVector corners = AI::get_corners(center_pos);
       for (MapPos corner_pos : corners) {
         int count = count_farmable_land(corner_pos, spiral_dist(4), "dk_yellow");
-        AILogVerbose["do_build_food_buildings"] << inventory_pos << " corner_pos " << corner_pos << " has open_space/fields count: " << count << ", min_openspace_farm is " << min_openspace_farm;
+        AILogDebug["do_build_food_buildings"] << inventory_pos << " corner_pos " << corner_pos << " has open_space/fields count: " << count << ", min_openspace_farm is " << min_openspace_farm;
         if (count >= min_openspace_farm) {
-          AILogVerbose["do_build_food_buildings"] << inventory_pos << " corner_pos " << corner_pos << " has enough open grass tiles to build a farm, adding to list";
+          AILogDebug["do_build_food_buildings"] << inventory_pos << " corner_pos " << corner_pos << " has enough open grass tiles to build a farm, adding to list";
           count_by_corner.insert(std::make_pair(corner_pos, count));
         }
         else {
-          AILogVerbose["do_build_food_buildings"] << inventory_pos << " corner_pos " << corner_pos << "does not have enough open grass tiles to build a farm here";
+          AILogDebug["do_build_food_buildings"] << inventory_pos << " corner_pos " << corner_pos << " does not have enough open grass tiles to build a farm here";
         }
       }
     } // foreach military building
@@ -3237,7 +3230,6 @@ AI::do_build_food_buildings() {
   // UPDATE - build any placed wheat farm solely because the delay
   //   in waiting for wheat fields results in unacceptable road congestion and poor
   //   road connections between the mill/baker and wheat farm sometimes
-  farm_count = stock_buildings.at(inventory_pos).count[Building::TypeFarm];
   if (farm_count >= 1) {
     for (MapPos farm_building_pos : farm_buildings){
       // build grain mill

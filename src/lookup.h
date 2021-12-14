@@ -516,6 +516,7 @@ const unsigned int specialists_reserve[] = {
     0,    // TypeDead
 };
 
+/*
 //
 //  these max values are only appropriate PER INVENTORY, once warehouses are built
 //   these should be evaluated per warehouse... or at least multiplied * number of warehouses
@@ -552,6 +553,7 @@ const unsigned int specialists_max[] = {
     0,    // TypeKnight4,         // promoted from Knight3
     0,    // TypeDead
 };
+*/
 
 // when building roads, try to connect a road to each type
 const Building::Type BuildingAffinity[25][2] = {

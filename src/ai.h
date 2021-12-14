@@ -219,9 +219,13 @@ class AI {
     int speed = game->get_game_speed();
     double msec_ = msec;
     if (speed > 2){
+      // scale AI speed linearly with game speed
       msec_ = msec_ * 1/(speed - 1);
+
+      // less increase in AI speed as game speed increases, capped around 9x
+      //msec_ = msec_ * 1/((speed - 1) / 4);  // this works pretty well, at game speed 40 ai pause time is about 9% of game speed 2
     }
-    //AILogDebug["sleep_speed_adjusted"] << "msec: " << msec << ", game speed: " << speed << ", adjusted msec: " << int(msec_);
+    AILogDebug["sleep_speed_adjusted"] << "msec: " << msec << ", game speed: " << speed << ", adjusted msec: " << int(msec_);
     msec = msec_;
     std::this_thread::sleep_for(std::chrono::milliseconds(msec));
   }
@@ -419,7 +423,7 @@ static const unsigned int near_trees_min = 5; // only place sawmills near at lea
 static const unsigned int stones_min = 10;
 static const unsigned int stones_max = 25;
 static const unsigned int near_stones_min = 5;  // don't place castle unless sufficient stones, considers pile size
-static const unsigned int food_max = 35;  // demolish all food buildings if stored food over this amount (includes food at flags and unprocessed food up to a certain cap)
+static const unsigned int food_max = 45;  // demolish all food buildings if stored food over this amount (includes food at flags and unprocessed food up to a certain cap)
 static const unsigned int min_openspace_farm = 45; // min open tiles in area to build farm (existing fields count favorably, though). FYI: there are 60 tiles in spiral_dist(4)
 static const unsigned int near_fields_min = 3; // don't build mill and baker until a farm has this man fields already sown
 static const unsigned int coal_min = 12;   // don't build blacksmith if under this value and no coal mine.  Also, de-prioritize coal miner's food supply if over this value

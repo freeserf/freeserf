@@ -661,8 +661,10 @@ Game::send_serf_to_flag(Flag *dest, Serf::Type type, Resource::Type res1,
                               &data);
 
   if (!r) {
+    if (type == Serf::TypeGeologist) {Log::Info["game"] << "inside send_serf_to_flag, serf type " << NameSerf[type] << ", FAILED because flagsearch failed!";}
     return false;
   } else if (data.inventory != NULL) {
+    if (type == Serf::TypeGeologist) {Log::Info["game"] << "inside send_serf_to_flag, serf type " << NameSerf[type] << ", data.inventory != null";}
     Inventory *inventory = data.inventory;
     Serf *serf = inventory->call_out_serf(Serf::TypeGeneric);
     if ((type < 0) && (building != NULL)) {
@@ -676,6 +678,8 @@ Game::send_serf_to_flag(Flag *dest, Serf::Type type, Resource::Type res1,
       inventory->pop_resource(Resource::TypeSword);
       inventory->pop_resource(Resource::TypeShield);
     } else {
+      if (type == Serf::TypeGeologist) {Log::Info["game"] << "inside send_serf_to_flag, serf type " << NameSerf[type] << ", else";}
+
       serf->set_type((Serf::Type)type);
 
       int mode = 0;
@@ -692,6 +696,7 @@ Game::send_serf_to_flag(Flag *dest, Serf::Type type, Resource::Type res1,
 
       serf->go_out_from_inventory(inventory->get_index(), dest->get_index(),
                                   mode);
+      if (type == Serf::TypeGeologist) {Log::Info["game"] << "inside send_serf_to_flag, serf type " << NameSerf[type] << ", a new Professional was created, deducting 1st tool " << NameResource[res1];}
       if (res1 != Resource::TypeNone) inventory->pop_resource(res1);
       if (res2 != Resource::TypeNone) inventory->pop_resource(res2);
     }
@@ -1901,8 +1906,6 @@ Game::can_demolish_flag(MapPos pos, const Player *player) const {
 bool
 Game::demolish_flag_(MapPos pos) {
 
-  Log::Debug["game"] << "inside demolish_flag_ for flag at pos " << pos;
-
   /* Handle any serf at pos. */
   if (map->has_serf(pos)) {
     Serf *serf = get_serf_at_pos(pos);
@@ -1914,34 +1917,22 @@ Game::demolish_flag_(MapPos pos) {
     throw ExceptionFreeserf("Failed to demolish flag with building.");
   }
 
-  Log::Debug["game"] << "inside demolish_flag_ for flag at pos " << pos << " A";
-
   flag_remove_player_refs(flag);
-
-  Log::Debug["game"] << "inside demolish_flag_ for flag at pos " << pos << " B";
 
   /* Handle connected flag. */
   flag->merge_paths(pos);
 
-  Log::Debug["game"] << "inside demolish_flag_ for flag at pos " << pos << " C";
-
   /* Update serfs with reference to this flag. */
   for (Serf *serf : serfs) {
-    Log::Debug["game"] << "inside demolish_flag_ for flag at pos " << pos << " Ca";
     serf->path_merged(flag);
-    Log::Debug["game"] << "inside demolish_flag_ for flag at pos " << pos << " Cb";
   }
-  Log::Debug["game"] << "inside demolish_flag_ for flag at pos " << pos << " D";
 
   map->set_object(pos, Map::ObjectNone, 0);
-  Log::Debug["game"] << "inside demolish_flag_ for flag at pos " << pos << " E";
 
   /* Remove resources from flag. */
   flag->remove_all_resources();
-  Log::Debug["game"] << "inside demolish_flag_ for flag at pos " << pos << " F";
 
   flags.erase(flag->get_index());
-  Log::Debug["game"] << "inside demolish_flag_ for flag at pos " << pos << " G";
 
   return true;
 }
