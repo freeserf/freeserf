@@ -688,11 +688,20 @@ Player::building_demolished(Building *building_) {
 Serf*
 Player::spawn_serf_generic() {
   Serf *serf = game->create_serf();
-  if (serf == NULL) return NULL;
+  //if (serf == NULL) return NULL;
+  if (serf == NULL){
+    Log::Warn["player"] << "inside spawn_serf_generic, game->create_serf was null!";
+    return NULL;
+  }
 
   serf->set_owner(index);
 
-  serf_count[Serf::TypeGeneric] += 1;
+  // I have been trying to track down issue where Generic serfs show up
+  //  twice in realm/player stats, checking to see if this is the cause...
+  // YES this fixes it, numbers look correct now.  I believe these new Generic
+  //  serfs area alread being accounted for in a increase_serf_count call and this
+  //  is doubling it
+  //serf_count[Serf::TypeGeneric] += 1;
 
   return serf;
 }
@@ -736,6 +745,7 @@ Player::spawn_serf(Serf **serf, Inventory **inventory, bool want_knight) {
 
   Serf *s = inv->spawn_serf_generic();
   if (s == nullptr) {
+    Log::Warn["player"] << "inside spawn_serf, inv->create_serf_generic s was null!";
     return false;
   }
 
@@ -794,6 +804,7 @@ Player::create_initial_castle_serfs(Building *castle) {
   Inventory *inventory = castle->get_inventory();
   Serf *serf = inventory->spawn_serf_generic();
   if (serf == nullptr) {
+    Log::Warn["player"] << "inside create_initial_castle_serfs, inventory->spawn_serf_generic serf was null!";
     return;
   }
   inventory->specialize_serf(serf, Serf::TypeTransporterInventory);

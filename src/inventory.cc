@@ -196,6 +196,7 @@ Inventory::call_transporter(bool water) {
       if (serfs[Serf::TypeGeneric] != 0) {
         serf = game->get_serf(serfs[Serf::TypeGeneric]);
         serfs[Serf::TypeGeneric] = 0;
+        Log::Debug["inventory"] << "inside call_transporter, about to call set_type";
         serf->set_type(Serf::TypeTransporter);
         generic_count -= 1;
       } else {
@@ -276,6 +277,7 @@ Inventory::promote_serf_to_knight(Serf *serf) {
   generic_count--;
   serfs[Serf::TypeGeneric] = 0;
 
+  Log::Debug["inventory"] << "inside promote_serf_to_knight, about to call set_type";
   serf->set_type(Serf::TypeKnight0);
 
   return true;
@@ -359,6 +361,7 @@ Inventory::specialize_serf(Serf *serf, Serf::Type type) {
     resources[res_needed[type*2+1]]--;
   }
 
+  //Log::Debug["inventory"] << "inside specialize_serf, type " << NameSerf[type];
   serf->set_type(type);
 
   serfs[type] = serf->get_index();

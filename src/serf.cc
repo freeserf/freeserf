@@ -324,15 +324,19 @@ Serf::set_type(Serf::Type new_type) {
   Serf::Type old_type = type;
   type = new_type;
 
+  //Log::Debug["serf"] << "inside set_type, old_type " << old_type << ", new_type " << new_type;
+
   /* Register this type as transporter */
   if (new_type == TypeTransporterInventory) new_type = TypeTransporter;
   if (old_type == TypeTransporterInventory) old_type = TypeTransporter;
 
   Player *player = game->get_player(get_owner());
   if (old_type != Serf::TypeNone && old_type != Serf::TypeDead) {
+    //Log::Debug["serf"] << "inside set_type, calling decrease_serf_count for old_type " << old_type;
     player->decrease_serf_count(old_type);
   }
   if (type != TypeDead) {
+    //Log::Debug["serf"] << "inside set_type, calling increase_serf_count for new_type " << new_type;
     player->increase_serf_count(new_type);
   }
 
@@ -370,6 +374,7 @@ Serf::add_to_defending_queue(unsigned int next_knight_index, bool pause) {
 
 void
 Serf::init_generic(Inventory *inventory) {
+  Log::Debug["serf"] << "inside init_generic, about to call set_type";
   set_type(TypeGeneric);
   set_owner(inventory->get_owner());
   Building *building = game->get_building(inventory->get_building_index());
@@ -985,6 +990,7 @@ Serf::train_knight(int p) {
     if (game->random_int() < p) {
       /* Level up */
       Serf::Type old_type = get_type();
+      Log::Debug["serf"] << "inside train_knight, about to call_set_type";
       set_type((Serf::Type)(old_type + 1));
       counter = 6000;
       return 0;
@@ -2218,6 +2224,7 @@ Serf::handle_serf_entering_building_state() {
 
           set_state(StateWaitForResourceOut);
           counter = 63;
+          Log::Debug["serf"] << "inside handle_serf_entering_building_state, about to call set_type";
           set_type(TypeTransporterInventory);
         }
         break;

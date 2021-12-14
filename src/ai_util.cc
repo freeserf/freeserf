@@ -136,13 +136,13 @@ AI::update_building_counts() {
   start = std::clock();
 
   AILogDebug["util_update_building_counts"] << "inside AI::update_building_counts";
-  AILogVerbose["util_update_building_counts"] << "thread #" << std::this_thread::get_id() << " AI is locking mutex inside AI::update_building_counts";
-  game->get_mutex()->lock();
-  AILogVerbose["util_update_building_counts"] << "thread #" << std::this_thread::get_id() << " AI has locked mutex inside AI::update_building_counts";
+  //AILogVerbose["util_update_building_counts"] << "thread #" << std::this_thread::get_id() << " AI is locking mutex inside AI::update_building_counts";
+  //game->get_mutex()->lock();
+  //AILogVerbose["util_update_building_counts"] << "thread #" << std::this_thread::get_id() << " AI has locked mutex inside AI::update_building_counts";
   Game::ListBuildings buildings = game->get_player_buildings(player);
-  AILogVerbose["util_update_building_counts"] << "thread #" << std::this_thread::get_id() << " AI is unlocking mutex inside AI::update_building_counts";
-  game->get_mutex()->unlock();
-  AILogVerbose["util_update_building_counts"] << "thread #" << std::this_thread::get_id() << " AI has unlocked mutex inside AI::update_building_counts";
+  //AILogVerbose["util_update_building_counts"] << "thread #" << std::this_thread::get_id() << " AI is unlocking mutex inside AI::update_building_counts";
+  //game->get_mutex()->unlock();
+  //AILogVerbose["util_update_building_counts"] << "thread #" << std::this_thread::get_id() << " AI has unlocked mutex inside AI::update_building_counts";
   // reset all to zero
   memset(realm_building_count, 0, sizeof(realm_building_count));
   memset(realm_completed_building_count, 0, sizeof(realm_completed_building_count));
@@ -335,13 +335,13 @@ AI::update_stocks_pos() {
   start = std::clock();
 
   AILogDebug["util_update_stocks_pos"] << "inside AI::update_stocks_pos";
-  AILogVerbose["util_update_stocks_pos"] << "thread #" << std::this_thread::get_id() << " AI is locking mutex inside AI::update_stocks_pos";
-  game->get_mutex()->lock();
-  AILogVerbose["util_update_stocks_pos"] << "thread #" << std::this_thread::get_id() << " AI has locked mutex inside AI::update_stocks_pos";
+  //AILogVerbose["util_update_stocks_pos"] << "thread #" << std::this_thread::get_id() << " AI is locking mutex inside AI::update_stocks_pos";
+  //game->get_mutex()->lock();
+  //AILogVerbose["util_update_stocks_pos"] << "thread #" << std::this_thread::get_id() << " AI has locked mutex inside AI::update_stocks_pos";
   Game::ListBuildings buildings = game->get_player_buildings(player);
-  AILogVerbose["util_update_stocks_pos"] << "thread #" << std::this_thread::get_id() << " AI is unlocking mutex inside AI::update_stocks_pos";
-  game->get_mutex()->unlock();
-  AILogVerbose["util_update_stocks_pos"] << "thread #" << std::this_thread::get_id() << " AI has unlocked mutex inside AI::update_stocks_pos";
+  //AILogVerbose["util_update_stocks_pos"] << "thread #" << std::this_thread::get_id() << " AI is unlocking mutex inside AI::update_stocks_pos";
+  //game->get_mutex()->unlock();
+  //AILogVerbose["util_update_stocks_pos"] << "thread #" << std::this_thread::get_id() << " AI has unlocked mutex inside AI::update_stocks_pos";
   stocks_pos = {};
   for (Building *building : buildings) {
     if (building == nullptr)
@@ -1637,13 +1637,13 @@ AI::find_nearest_building(MapPos pos, CompletionLevel level, Building::Type buil
   AILogDebug["util_find_nearest_building"] << "inside find_nearest_building of type " << NameBuilding[building_type] << ", completion_level " << NameCompletionLevel[level] << ", max_dist " << (signed)max_dist << ", and pos " << pos;
   unsigned int shortest_dist = bad_score;
   Building *closest_building = nullptr;
-  AILogVerbose["util_find_nearest_building"] << "thread #" << std::this_thread::get_id() << " AI is locking mutex before calling game->get_player_buildings";
-  game->get_mutex()->lock();
-  AILogVerbose["util_find_nearest_building"] << "thread #" << std::this_thread::get_id() << " AI has locked mutex before calling game->get_player_buildings";
+  //AILogVerbose["util_find_nearest_building"] << "thread #" << std::this_thread::get_id() << " AI is locking mutex before calling game->get_player_buildings";
+  //game->get_mutex()->lock();
+  //AILogVerbose["util_find_nearest_building"] << "thread #" << std::this_thread::get_id() << " AI has locked mutex before calling game->get_player_buildings";
   Game::ListBuildings buildings = game->get_player_buildings(player);
-  AILogVerbose["util_find_nearest_building"] << "thread #" << std::this_thread::get_id() << " AI is unlocking mutex after calling game->get_player_buildings";
-  game->get_mutex()->unlock();
-  AILogVerbose["util_find_nearest_building"] << "thread #" << std::this_thread::get_id() << " AI has unlocked mutex after calling game->get_player_buildings";
+  //AILogVerbose["util_find_nearest_building"] << "thread #" << std::this_thread::get_id() << " AI is unlocking mutex after calling game->get_player_buildings";
+  //game->get_mutex()->unlock();
+  //AILogVerbose["util_find_nearest_building"] << "thread #" << std::this_thread::get_id() << " AI has unlocked mutex after calling game->get_player_buildings";
   for (Building *building : buildings) {
     if (building == nullptr)
       continue;
@@ -2982,15 +2982,17 @@ AI::score_enemy_targets(MapPosSet *scored_targets) {
   //    foreach enemy hut within range of attack
   //      score
   // on game load, castle_pos is unknown even though castle exists, need to find it
-  AILogVerbose["util_score_enemy_targets"] << "thread #" << std::this_thread::get_id() << " AI is locking mutex before calling game->get_player_buildings(player) (for score_enemy_targets)";
-  game->get_mutex()->lock();
-  AILogVerbose["util_score_enemy_targets"] << "thread #" << std::this_thread::get_id() << " AI has locked mutex before calling game->get_player_buildings(player) (for score_enemy_targets)";
+  //AILogVerbose["util_score_enemy_targets"] << "thread #" << std::this_thread::get_id() << " AI is locking mutex before calling game->get_player_buildings(player) (for score_enemy_targets)";
+  //game->get_mutex()->lock();
+  //AILogVerbose["util_score_enemy_targets"] << "thread #" << std::this_thread::get_id() << " AI has locked mutex before calling game->get_player_buildings(player) (for score_enemy_targets)";
   Game::ListBuildings buildings = game->get_player_buildings(player);
-  AILogVerbose["util_score_enemy_targets"] << "thread #" << std::this_thread::get_id() << " AI is unlocking mutex before calling game->get_player_buildings(player) (for score_enemy_targets)";
-  game->get_mutex()->unlock();
-  AILogVerbose["util_score_enemy_targets"] << "thread #" << std::this_thread::get_id() << " AI has unlocked mutex before calling game->get_player_buildings(player) (for score_enemy_targets)";
+  //AILogVerbose["util_score_enemy_targets"] << "thread #" << std::this_thread::get_id() << " AI is unlocking mutex before calling game->get_player_buildings(player) (for score_enemy_targets)";
+  //game->get_mutex()->unlock();
+  //AILogVerbose["util_score_enemy_targets"] << "thread #" << std::this_thread::get_id() << " AI has unlocked mutex before calling game->get_player_buildings(player) (for score_enemy_targets)";
   std::set<MapPos> unique_enemy_targets;
   for (Building *building : buildings) {
+    if (building == nullptr)
+      continue;
     if (!building->is_done() ||
       !building->is_military() ||
       !building->is_active() ||

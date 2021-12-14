@@ -678,7 +678,6 @@ Game::send_serf_to_flag(Flag *dest, Serf::Type type, Resource::Type res1,
       inventory->pop_resource(Resource::TypeSword);
       inventory->pop_resource(Resource::TypeShield);
     } else {
-      if (type == Serf::TypeGeologist) {Log::Info["game"] << "inside send_serf_to_flag, serf type " << NameSerf[type] << ", else";}
 
       serf->set_type((Serf::Type)type);
 
@@ -696,7 +695,6 @@ Game::send_serf_to_flag(Flag *dest, Serf::Type type, Resource::Type res1,
 
       serf->go_out_from_inventory(inventory->get_index(), dest->get_index(),
                                   mode);
-      if (type == Serf::TypeGeologist) {Log::Info["game"] << "inside send_serf_to_flag, serf type " << NameSerf[type] << ", a new Professional was created, deducting 1st tool " << NameResource[res1];}
       if (res1 != Resource::TypeNone) inventory->pop_resource(res1);
       if (res2 != Resource::TypeNone) inventory->pop_resource(res2);
     }
@@ -2471,11 +2469,16 @@ Game::ListSerfs
 Game::get_player_serfs(Player *player) {
   ListSerfs player_serfs;
 
+  // debug -  count how many serfs actually appear here
+  //  does it include unused serfs??
+  // it DOES include them as Serf objects, isn't that really inefficient??? can be 10k 
+  //Log::Debug["game"] << "inside get_player_serfs, game Serfs has " << serfs.size() << " items";
   for (Serf *serf : serfs) {
     if (serf->get_owner() == player->get_index()) {
       player_serfs.push_back(serf);
     }
   }
+  //Log::Debug["game"] << "inside get_player_serfs, player" << player->get_index() << " player_serfs has " << player_serfs.size() << " items";
 
   return player_serfs;
 }

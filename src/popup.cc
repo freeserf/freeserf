@@ -808,6 +808,8 @@ PopupBox::draw_stat_select_box() {
   draw_custom_icon_box(layout);
 }
 
+// this shows all resources available
+//  in all Inventories owned by this player
 void
 PopupBox::draw_stat_4_box() {
   draw_box_background(PatternStripedGreen);
@@ -820,6 +822,8 @@ PopupBox::draw_stat_4_box() {
   draw_popup_icon(14, 128, 60); /* exit */
 }
 
+// this shows all Buildings owned
+//  by this player.  I think it lies!  
 void
 PopupBox::draw_building_count(int x_, int y_, int type) {
   Player *player = interface->get_player();
@@ -1260,6 +1264,8 @@ calculate_gauge_values(Player *player,
   }
 }
 
+// this is the box showing a flow chart with meters
+//  of food items to miners.  Not very useful
 void
 PopupBox::draw_stat_1_box() {
   const int layout[] = {
@@ -1340,6 +1346,8 @@ PopupBox::draw_stat_1_box() {
                   values[Building::TypeStoneMine][0][1]);
 }
 
+// this is the box showing a flow chart with meters
+//  of ores, logs, stone to their conuming serfs.  Not very useful
 void
 PopupBox::draw_stat_2_box() {
   const int layout[] = {
@@ -1435,13 +1443,16 @@ PopupBox::draw_stat_2_box() {
   draw_gauge_full(12, 128, values[0][1][0], values[0][1][1]);
 }
 
+// this shows all Serfs of each occupation 
+// I assume it shows all serfs in inventories, on roads, and in occupied buildings?
 void
 PopupBox::draw_stat_6_box() {
   draw_box_background(PatternStripedGreen);
 
   int total = 0;
   for (int i = 0; i < 27; i++) {
-    if (i != Serf::TypeTransporterInventory) {
+    //if (i != Serf::TypeTransporterInventory) {
+      if (i != Serf::TypeTransporterInventory && i != Serf::TypeGeneric) {
       total += interface->get_player()->get_serf_count(i);
     }
   }
@@ -1474,6 +1485,7 @@ PopupBox::draw_stat_3_meter(int lx, int ly, int value) {
   draw_popup_icon(lx, ly, sprite);
 }
 
+// this is the box with the meters showing red/yellow/green for each serf job
 void
 PopupBox::draw_stat_3_box() {
   draw_box_background(PatternStripedGreen);
@@ -1481,6 +1493,7 @@ PopupBox::draw_stat_3_box() {
   Serf::SerfMap serfs = interface->get_player()->get_stats_serfs_idle();
   Serf::SerfMap serfs_potential =
                            interface->get_player()->get_stats_serfs_potential();
+
   for (int i = 0; i < 27; ++i) {
     serfs[(Serf::Type)i] += serfs_potential[(Serf::Type)i];
   }
