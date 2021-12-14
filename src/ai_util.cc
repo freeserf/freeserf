@@ -187,6 +187,15 @@ AI::update_building_counts() {
 	  MapPos flag_pos = map->move_down_right(building->get_position());
     // saw a weird exception where building 'type' was... 10117???  if this keeps happening start dumping building type before it crashes
     // again, same deal.  adding debugging
+    // debugging confirms seeing buildings with weird high invalid types >1024, maybe bitmath explanation??? look at any place in code
+    //  that 'type' is modified to find out
+    // I can't find anywhere in the original code that building type is modified... I think this is a bug and it is pointing
+    //  to a wrong object?? that is worrying
+    // first time logging enabled, the building with invalid type used to have a flag at same pos, which was attached a building of TypeHut up-left one pos
+    // second time, was a Hut again
+    // third time, never seen before, totally invalid map pos.  this is very likely a wrong pointer
+    // fourth time, just like 1st and 2nd, knight hut
+    // 5th, knight hut stub road, had a spiderweb road built to it
     AILogDebug["util_update_building_counts"] << "debug has a building of type " << type << " at pos " << pos << ", with flag_pos " << flag_pos;
 	  AILogVerbose["util_update_building_counts"] << "has a building of type " << NameBuilding[type] << " at pos " << pos << ", with flag_pos " << flag_pos;
 
@@ -1438,7 +1447,7 @@ AI::build_best_road(MapPos start_pos, RoadOptions road_options, Road *built_road
 
       // build a new flag if this solution ends with no flag (i.e. a split road solution)
       bool created_new_flag = false;
-      if (game->get_flag_at_pos(end_pos) != nullptr && game->get_flag_at_pos(end_pos) == nullptr) {
+      if (!map->has_flag(end_pos)) {
         AILogDebug["util_build_best_road"] << "" << calling_function << " end_pos " << end_pos << " has no flag, must be fake flag/split road, trying to create a real flag";
         AILogVerbose["util_build_best_road"] << "" << calling_function << " thread #" << std::this_thread::get_id() << " AI is locking mutex before calling game->build_flag (split road)";
         game->get_mutex()->lock();
@@ -1479,8 +1488,8 @@ AI::build_best_road(MapPos start_pos, RoadOptions road_options, Road *built_road
         continue;
       }
       else {
-        AILogWarn["util_build_best_road"] << "" << calling_function << " ERROR - failed to build road from " << start_pos << " to " << end_pos << ", FIND OUT WHY!  marking pos in blue, trying next best solution...";
-        ai_mark_pos.insert(ColorDot(end_pos, "blue"));
+        AILogWarn["util_build_best_road"] << "" << calling_function << " ERROR - failed to build road from " << start_pos << " to " << end_pos << ", FIND OUT WHY!  marking pos in dk_green, trying next best solution...";
+        ai_mark_pos.insert(ColorDot(end_pos, "dk_green"));
         //sleep_speed_adjusted(5000);
       }
 
@@ -2362,7 +2371,7 @@ AI::build_near_pos(MapPos center_pos, unsigned int distance, Building::Type buil
       //  encroaching, but also to help ensure that knight huts are already established around it so 
       //  that when the "rebuild nearby roads" happens
       // note if enemy borders are near
-      for (unsigned int i = 0; i < AI::spiral_dist(8); i++) {
+      for (unsigned int i = 0; i < AI::spiral_dist(12); i++) {
         MapPos pos = map->pos_add_extended_spirally(center_pos, i);
         if (map->get_owner(pos) == -1) {
           AILogDebug["util_build_near_pos"] << "unclaimed territory found near this center_pos, not building warehouse in this corner";

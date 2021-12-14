@@ -94,6 +94,7 @@ class AI {
   // list of bad building positions (where buildings had to be demolished for certain reasons)
   // AI STATEFULNESS WARNING - this bad_building_pos list is lost on save/load or if AI thread terminated
   MapPosSet bad_building_pos;
+  std::map<MapPos, unsigned int> active_mines; // track when mines first seen active so we can see if they become depleted.  Also AI statefulness warning, not persisted.
   std::vector<MapPos> stocks_pos; // positions of stocks - CASTLE and warehouses
   Log::Logger AILogVerbose{ Log::LevelVerbose, "Verbose" };
   Log::Logger AILogDebug{ Log::LevelDebug, "Debug" };
@@ -348,11 +349,12 @@ class AI {
   void do_place_iron_mines(); //wrapper around do_place_mines
   void do_place_gold_mines(); //wrapper around do_place_mines
   void do_build_sawmill_lumberjacks();
+  void do_build_3rd_lumberjack();
   bool do_wait_until_sawmill_lumberjacks_built();
   void do_build_stonecutter();
   void do_create_defensive_buffer();
   void do_build_toolmaker_steelsmelter();
-  void do_build_food_buildings_and_3rd_lumberjack();
+  void do_build_food_buildings();
   void do_connect_coal_mines();
   void do_connect_iron_mines();
   void do_build_steelsmelter();
@@ -407,7 +409,7 @@ static const unsigned int knights_min = 3;
 static const unsigned int knights_med = 18;
 static const unsigned int knights_max = 50;
 static const unsigned int knight_occupation_change_buffer = 4; // to avoid repeatedly cycling knights, increase/lower bar to change levels again by this amount
-static const unsigned int near_building_sites_min = 450;   // don't place castle unless this many sites available.  small += 1, large += 3
+static const unsigned int near_building_sites_min = 375;   // don't place castle unless this many sites available.  small += 1, large += 3
 //static const unsigned int gold_bars_max = 50;  // I don't think this is actually used
 static const unsigned int steel_min = 8;   // don't build blacksmith if under this value, unless sufficient iron or an iron mine
 static const unsigned int steel_max = 60;  // don't build iron foundry if over this value

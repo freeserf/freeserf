@@ -165,6 +165,27 @@ Building::build_progress() {
   return true;
 }
 
+//
+// explanation of mining progress indicator:
+//  I believe that the 'progress' integer is used as an array of bits
+//  and the bits represent whether or not a resource was found during
+//  the last miner activity.  When the mine becomes active, the bit-array
+//  is shifted left, dropping the oldest result.  If a resource is found, 
+//  the least significant bit is set to 1 by the if (res){progress++} code
+//  if a resource is not found, the bit is left at 0.  
+//  These 1s or 0s represent the last XX results
+//  and are also used to calculate the mine percentage efficiency
+//  progress of 0x8000/32768 is represented in binary as 1000000000000000
+//  which means a long string of failed efforts, meaning the resource
+//  sought is likely depleted
+//  new mines start at progress 0, which is 0000000000000000
+//  they cannot be marked as depleted until they reach 1000000000000000
+//  which means they have been active at least 16 times
+//
+//  to detect depletion EARLIER, could test to see if the leftmost digits
+//  contain any 1s (to show the mine is not brand new) and also if the 
+//  rightmost digits contain a string of zeros
+//
 void
 Building::increase_mining(int res) {
   active = true;

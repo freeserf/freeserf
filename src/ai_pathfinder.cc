@@ -88,6 +88,18 @@ AI::plot_road(PMap map, unsigned int player_index, MapPos start_pos, MapPos end_
     //AILogDebug["plot_road"] << "debug - hold_building_pos is TRUE, added hold_building_pos " << hold_building_pos_node->pos << " which is up-left of start_pos " << start_pos;
   }
 
+  // allow pathfinding to *potential* new flags outside of the fake_flags process
+  // if the specified end_pos has no flag
+  //  oh wait this is already allowed, keep the sanity check and FYI note anyway though
+  if (!map->has_flag(end_pos)){
+    AILogDebug["plot_road"] << "the specified end_pos has no flag, allowing a Direct Road plot to this endpoint as if it had one";
+    if (!game->can_build_flag(end_pos, player)){
+      AILogWarn["plot_road"] << "sanity check failed!  plot_road was requested to non-flag end_pos " << end_pos << ", but a flag cannot even be built there!  returning bad road";
+      Road failed_road;
+      return failed_road;
+    }
+  }
+
   // time this function for debugging
   std::clock_t start;
   double duration;
@@ -704,6 +716,8 @@ AI::find_nearest_inventory_by_straightline(PMap map, unsigned int player_index, 
     if (building->get_type() != Building::TypeCastle && building->get_type() != Building::TypeStock)
       continue;
     Flag *building_flag = game->get_flag(building->get_flag_index());
+    if (building_flag == nullptr)
+      continue;
     if (!building_flag->accepts_resources())
       continue;
     MapPos building_flag_pos = building_flag->get_position();
