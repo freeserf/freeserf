@@ -132,7 +132,6 @@ FlagSearch::execute(flag_search_func *callback, bool land,
       // if this is a resource being routed... ('transporter = true' suggests it is a resource)
       //  ... but there is no transporter on this flag-path-dir...
       //   NOTE it should be possible to remove the 'transporter == true' check if we are sure that land and transporter bools are exclusive
-      //Log::Info["flag"] << "debug g";
       if (transporter && !flag->has_transporter(i)){
         //Log::Info["flag"] << "debug: inside FlagSearch::execute, checking dir: " << i << ", 'transporter' == true but this flag-dir has no transporter!  skipping this dir";
         // ... skip this dir/flag
@@ -141,8 +140,6 @@ FlagSearch::execute(flag_search_func *callback, bool land,
       
       // if this is the same flag we just checked(?)
       //Log::Info["flag"] << "debug: inside FlagSearch::execute, checking dir: " << i << ", for flag at pos " << flag->get_position() << ", about to check flag->other_endpoint.f[" << i << "]->search_num to see if it matches id " << id;
-	  // got a crash here, access violation for flag->other_endpoint.f[i]
-	  // again
       if (flag->other_endpoint.f[i]->search_num == id) {
         //Log::Info["flag"] << "debug: inside FlagSearch::execute, checking dir: " << i << " flag->other_endpoint.f[" << i << "]->search_num matches id " << id << " (meaning already visited this?), skipping this dir";
         // ... skip this dir/flag
@@ -657,8 +654,12 @@ flag_search_building_for_lost_generic_serf_search_cb(Flag *flag, void *data) {
   if (flag->has_building()) {
     Building *building = flag->get_building();
     if (building->is_done() && !building->is_burning() &&
+
+      /* try allowing mines now since adding code to ignore active serf at building when Lost transporter arrives
       // disallow mines because they can deadlock when miner runs out of food and holds the pos
        (building->get_type() < Building::TypeStoneMine || building->get_type() > Building::TypeGoldMine)){
+         */
+        true ){
       *dest_index = building->get_flag_index();
       return true;
     }
@@ -1005,12 +1006,27 @@ Flag::can_demolish() const {
   return false;
 }
 
-/* Return true if a flag has any roads connected to it. */
+// Return true if a flag has any roads connected to it
+//  this properly excludes fake-path for a building UpLeft/Dir4
 bool
 Flag::is_connected() const {
   for (Direction d : cycle_directions_cw()) {
-    if (has_path(d))
+    if (has_path(d)) {
+      if (d == DirectionUpLeft && has_building()){ 
+        //Log::Debug["flag"] << "inside is_connected, has_path(DirectionUpLeft), has_building is true for this flag";
+        continue;
+      }
+      /*
+      // is has_building never returning true for incomplete disconnected buildings??
+      // if (map->has_building(map->move_up_left(optional_target))) {  this call in build_best_road finds the building...
+      if (d == DirectionUpLeft && game->get_map()->has_building(game->get_map()->move_up_left(this->get_position()))){
+        Log::Error["flag"] << "WTF - flag->has_building is false but game says building UpLeft from here!  flag at pos " << this->get_position();
+        game->pause();
+        continue;
+      }
+      */
       return true;
+    }
   }
   return false;
 }
@@ -1040,9 +1056,15 @@ wake_transporter_at_flag(Game *game, MapPos pos) {
 static int
 wake_transporter_on_path(Game *game, MapPos pos) {
  //Log::Info["serf"] << "debug: inside Serf::wake_transporter_on_path, pos " << pos;
+  // this appears to be the only function that sets the state WakeOnPath
   return change_transporter_state_at_pos(game, pos, Serf::StateWakeOnPath);
 }
 
+// when a splitting flag is removed and merge_paths is called,
+// OR when an existing path is split by a newly created flag
+//  to merge the path data, trace the path and note which 
+//  serfs, resources, etc. along the path exist so they can
+//  be added to same pos in the merged/split road[s]
 void
 Flag::fill_path_serf_info(Game *game, MapPos pos, Direction dir,
                           SerfPathInfo *data) {
@@ -1087,8 +1109,9 @@ Flag::fill_path_serf_info(Game *game, MapPos pos, Direction dir,
 
     /* Check if there is a transporter waiting here. */
     if (map->get_idle_serf(pos)) {
-      int index = wake_transporter_on_path(game, pos);
       //Log::Info["flag"] << "debug: calling wake_transporter_on_path for pos " << pos;
+      // this is the only place where a serf can enter into StateWakeOnPath
+      int index = wake_transporter_on_path(game, pos);
       if (index >= 0) data->serfs[serf_count++] = index;
     }
 
@@ -1127,6 +1150,8 @@ Flag::fill_path_serf_info(Game *game, MapPos pos, Direction dir,
   data->flag_dir = reverse_direction(dir);
 }
 
+// when a splitting flag is deleted, the two
+//  adjacent paths must be merged into one
 void
 Flag::merge_paths(MapPos pos_) {
   const int max_transporters[] = { 1, 2, 3, 4, 6, 8, 11, 15 };
@@ -1158,6 +1183,7 @@ Flag::merge_paths(MapPos pos_) {
   SerfPathInfo path_1_data;
   SerfPathInfo path_2_data;
 
+  Log::Debug["flag"] << "inside merge_paths, flag removed from pos " << pos << ", about to call fill_path_serf_info ";
   fill_path_serf_info(game, pos_, path_1_dir, &path_1_data);
   fill_path_serf_info(game, pos_, path_2_dir, &path_2_data);
 
@@ -1257,25 +1283,37 @@ Flag::update() {
   for (Direction j : cycle_directions_ccw()) {
     if (has_path(j)) {
       if (serf_requested(j)) {
+        //Log::Debug["flag"] << "inside Flag::update, flag at pos " << pos << ", dir " << j << NameDirection[j] << ", serf_requested(j) is true";
         if (BIT_TEST(res_waiting[2], j)) {
+          //Log::Debug["flag"] << "inside Flag::update, flag at pos " << pos << ", dir " << j << NameDirection[j] << ", BIT_TEST(res_waiting[2], j is true";
           if (waiting_count >= 7) {
+            //Log::Debug["flag"] << "inside Flag::update, flag at pos " << pos << ", dir " << j << NameDirection[j] << ", waiting_count of " << waiting_count <<" is >=7";
             transporter &= BIT(j);
           }
         } else if (free_transporter_count(j) != 0) {
+          //Log::Debug["flag"] << "inside Flag::update, flag at pos " << pos << ", dir " << j << NameDirection[j] << ", res_waiting[2] not true, but free_transporter_count(j) is true";
           transporter |= BIT(j);
         }
+        //Log::Debug["flag"] << "inside Flag::update, flag at pos " << pos << ", dir " << j << NameDirection[j] << ", ELSE 1";
       } else if (free_transporter_count(j) == 0 ||
                  BIT_TEST(res_waiting[2], j)) {
+                   //Log::Debug["flag"] << "inside Flag::update, flag at pos " << pos << ", dir " << j << NameDirection[j] << ", serf_requested(j) is false but elseif true";
         int max_tr = max_transporters[length_category(j)];
         if (free_transporter_count(j) < (unsigned int)max_tr &&
             !serf_request_fail()) {
+          //Log::Debug["flag"] << "inside Flag::update, flag at pos " << pos << ", dir " << j << NameDirection[j] << ", about to call_transporter";
           bool r = call_transporter(j, is_water_path(j));
+          //Log::Debug["flag"] << "inside Flag::update, flag at pos " << pos << ", dir " << j << NameDirection[j] << ", done to call_transporter, result was " << r;
           if (!r) transporter |= BIT(7);
         }
+        //Log::Debug["flag"] << "inside Flag::update, flag at pos " << pos << ", dir " << j << NameDirection[j] << ", foo5";
         if (waiting_count >= 7) {
+          //Log::Debug["flag"] << "inside Flag::update, flag at pos " << pos << ", dir " << j << NameDirection[j] << ", foo6";
           transporter &= BIT(j);
         }
+        //Log::Debug["flag"] << "inside Flag::update, flag at pos " << pos << ", dir " << j << NameDirection[j] << ", foo7";
       } else {
+        //Log::Debug["flag"] << "inside Flag::update, flag at pos " << pos << ", dir " << j << NameDirection[j] << ", serf_requested(j) is false, ELSE";
         transporter |= BIT(j);
       }
     }
@@ -1327,7 +1365,7 @@ Flag::call_transporter(Direction dir, bool water) {
   // got a write access violation here, src_2 was nullptr
   //  I think this is an AI- specific issue related to the missing transporter work-around
   if (src_2 == nullptr) {
-    Log::Warn["flag"] << " Flag::call_transporter - nullptr found when doing Flag *src_2 = other_endpoint.f[dir], returning false  FIND OUT WHY!";
+    Log::Warn["flag"] << "Flag::call_transporter - nullptr found when doing Flag *src_2 = other_endpoint.f[dir], returning false  FIND OUT WHY!";
     return false;
   }
   src_2->search_dir = DirectionDownRight;
@@ -1358,6 +1396,9 @@ Flag::call_transporter(Direction dir, bool water) {
     dir = dir_2;
   }
 
+  //Log::Debug["flag"] << "inside Flag::call_transporter, about to call serf->go_out_from_inventory to flag index " << this->get_index() << " and map pos " << this->get_position() << " which should be " <<  src->get_position() << " and dir " << dir << " / " << NameDirection[dir] << ", this serf is currently at pos " << serf->get_pos();
+
+  // the go_out_from_inventory declaration says arg2 is a MapPos, but src->get_index() returns a Flag index not a Map Pos, wtf??
   serf->go_out_from_inventory(inventory->get_index(), src->get_index(), dir);
 
   return true;

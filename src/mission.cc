@@ -25,35 +25,35 @@
 Character characters[] = {
   { 0, "ERROR", "ERROR"},
   { 1, "Lady Amalie",
-    "An inoffensive lady, reserved, who goes about her work peacefully."},
+    "An inoffensive lady, reserved, who goes about her work peacefully."},    // doesn't attack, otherwise normal.  Maybe nerfed somehow?  No pigs
   { 2, "Kumpy Onefinger",
-    "A very hostile character, who loves gold above all else."},
+    "A very hostile character, who loves gold above all else."},  // aggressive, attack-scores gold highly.  No pigs
   { 3, "Balduin, a former monk",
-    "A very discrete character, who worries chiefly about the protection of his"
+    "A very discrete character, who worries chiefly about the protection of his"  // defensive, builds towers, citadels to defend.  Pigs
     " lands and his important buildings."},
   { 4, "Frollin",
-    "His unpredictable behaviour will always take you by surprise. "
+    "His unpredictable behaviour will always take you by surprise. "  // expands as much as knights can support, otherwise normal.  Pigs and bakers
     "He will \"pilfer\" away lands that are not occupied."},
   { 5, "Kallina",
-    "She is a fighter who attempts to block the enemy’s food supply by using "
+    "She is a fighter who attempts to block the enemy’s food supply by using "  // aggressive, attack-scores non-gold economy buildings highly.  Pigs and bakers
     "strategic tactics."},
   { 6, "Rasparuk the druid",
-    "His tactics consist in amassing large stocks of raw materials. "
+    "His tactics consist in amassing large stocks of raw materials. "  // normal, doubled max_XXXX values?  No Pigs
     "But he attacks slyly."},
   { 7, "Count Aldaba",
-    "Protect your warehouses well, because he is aggressive and knows exactly "
+    "Protect your warehouses well, because he is aggressive and knows exactly " // aggressive, attack-scores Stocks highly. Pigs
     "where he must attack."},
   { 8, "The King Rolph VII",
-    "He is a prudent ruler, without any particular weakness. He will try to "
+    "He is a prudent ruler, without any particular weakness. He will try to " // normal "best AI", ignore the construction materials thing that is useless.  No pigs
     "check the supply of construction materials of his adversaries."},
   { 9, "Homen Doublehorn",
-    "He is the most aggressive enemy. Watch your buildings carefully, "
+    "He is the most aggressive enemy. Watch your buildings carefully, "   // aggressive, otherwise normal.  No pigs
     "otherwise he might take you by surprise."},
   {10, "Sollok the Joker",
-    "A sly and repugnant adversary, he will try to stop the supply of raw "
+    "A sly and repugnant adversary, he will try to stop the supply of raw "   // randomly choose one of other personalities, ignore the other thing it is too unpredictable
     "materials of his enemies right from the beginning of the game."},
   {11, "Enemy",
-    "Last enemy."},
+    "Last enemy."},   // normal "best AI", but with some extra enhancements??  No pigs
   {12, "You",
     "You."},
   {13, "Friend",

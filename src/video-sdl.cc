@@ -358,7 +358,7 @@ VideoSDL::draw_thick_line(int x, int y, int x1, int y1, const Video::Color color
   float fy = y;
   float fy1 = y1;
   float slope = (fy1 - fy) / (fx1 - fx); 
-  Log::Info["video-sdl"] << " slope of x " << fx << ", x1 " << fx1 << " to y " << fy << ", y1 " << fy1 << " = " << std::to_string(slope);
+  Log::Info["video-sdl"] << "slope of x " << fx << ", x1 " << fx1 << " to y " << fy << ", y1 " << fy1 << " = " << std::to_string(slope);
 
 */
 

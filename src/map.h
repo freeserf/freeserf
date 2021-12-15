@@ -391,10 +391,26 @@ class Map {
   /* Extractors for map data. */
   unsigned int paths(MapPos pos) const {
     return (game_tiles[pos].paths & 0x3f); }
+  // this function is very misleading!  it appears to return true for Direction UpLeft (4)
+  //  if there is a building there that accepts_resources.  To check for only real paths
+  //   you must also check for building in dir UpLeft and if so skip that Dir when pathfinding
   bool has_path(MapPos pos, Direction dir) const {
     return (BIT_TEST(game_tiles[pos].paths, dir) != 0); }
+  // improved function used only for new/AI functions that includes the UpLeft building check
+  bool has_path_IMPROVED(MapPos pos, Direction dir) const {
+    if (dir == DirectionUpLeft && has_building(move_up_left(pos))){
+      return false;
+    }else if(has_path(pos, dir)){
+      return true;
+    }
+    return false;
+  }
   bool has_any_path(MapPos pos) {
     for (Direction d : cycle_directions_cw()) {
+      // must check for building because has_path returns true
+      //  for UpLeft if there is a building there that accepts resources!
+      if (has_building(move_up_left(pos)) && d == DirectionUpLeft)
+        continue;
       if (has_path(pos, d))
         return true;
     }

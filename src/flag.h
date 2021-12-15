@@ -94,6 +94,8 @@ class Flag : public GameObject {
   //  SerfCity... but is that even supported?  And do we really care about it?  Why would
   //   anybody bother doing this?
 
+  // I suspect that get_other_end_flag cannot be trusted!  it seems to return true for 
+  /// building UpLeft/DirUp/Dir in the same way that buildings that accept resources do???
   union other_endpoint {
     Building *b[6];
     Flag *f[6];
@@ -118,6 +120,7 @@ class Flag : public GameObject {
   void add_path(Direction dir, bool water);
   void del_path(Direction dir);
   /* Whether a path exists in a given direction. */
+  // this CANNOT BE TRUSTED because of the UpLeft/Dir4 building issue
   bool has_path(Direction dir) const {
     return ((path_con & (1 << (dir))) != 0); }
 
@@ -143,6 +146,7 @@ class Flag : public GameObject {
   /* Whether a building is connected to this flag. If so, the pointer to
    the other endpoint is a valid building pointer.
    (Always at UP LEFT direction). */
+  // WHY IS THIS RETURNING FALSE FOR UNBUILT MINES THAT HAVE NO CONNECTIONS???
   bool has_building() const { return (endpoint >> 6) & 1; }
 
   /* Whether resources exist that are not yet scheduled. */
@@ -188,6 +192,8 @@ class Flag : public GameObject {
   /* The direction from the other endpoint leading back to this flag. */
   Direction get_other_end_dir(Direction dir) const {
     return (Direction)((other_end_dir[dir] >> 3) & 7); }
+  // it seems this function can NOT be trusted!  it returns something other than
+  //  nullptr... a valid flag i think, if there is a building UpLeft/Dir4!!!!
   Flag *get_other_end_flag(Direction dir) const {
     return other_endpoint.f[dir]; }
   /* Whether the given direction has a resource pickup scheduled. */

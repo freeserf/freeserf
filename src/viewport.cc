@@ -2153,6 +2153,7 @@ Viewport::draw_active_serf(Serf *serf, MapPos pos, int x_base, int y_base) {
       AI *ai = interface->get_ai_ptr(current_player_index);
       if (ai == NULL) {
         // no AI running for this player, do nothing
+        //  it would be nice if there was a separate view that showed the clicked-on-pos and game speed even if AI is off
       }
       else {
         std::vector<int> ai_mark_serf = *(interface->get_ai_ptr(current_player_index)->get_ai_mark_serf());
@@ -2682,8 +2683,14 @@ Viewport::draw_ai_grid_overlay() {
 
       if (ai_mark_pos.count(pos) > 0) {
         if (pos != map->pos(0, 0)) {
-          frame->fill_rect(lx - 2, ly + 0, 5, 5, ai->get_mark_color(ai_mark_pos.at(pos)));
-          frame->fill_rect(lx - 3, ly + 1, 7, 3, ai->get_mark_color(ai_mark_pos.at(pos)));
+          // first two args are x/y offset, if made bigger start more negatively
+          // second two args are x/y coord of corners, increase to make bigger
+          // small-medium dots
+          //frame->fill_rect(lx - 2, ly + 0, 5, 5, ai->get_mark_color(ai_mark_pos.at(pos)));
+          //frame->fill_rect(lx - 3, ly + 1, 7, 3, ai->get_mark_color(ai_mark_pos.at(pos)));
+          // large dots
+          frame->fill_rect(lx - 7, ly + 0, 16, 16, ai->get_mark_color(ai_mark_pos.at(pos)));
+          frame->fill_rect(lx - 9, ly + 1, 20, 14, ai->get_mark_color(ai_mark_pos.at(pos)));
         }
       }
 
@@ -2729,15 +2736,15 @@ Viewport::draw_ai_grid_overlay() {
   }
   */
 
-/*
+  /*
   //
   // highlight arterial roads
   //
-  // NOTE - if there are overlapping paths in an arterial branch, right one one "wins" and is drawn over the other
+  // NOTE - if there are overlapping paths in an arterial branch, the right one "wins" and is drawn over the other
   //  it would be nice to check for this and either merge the colors or better yet alternate between them flashing
   // for now, trying random ordering so that it does flash back and forth
   //
-  //Log::Info["viewport"] << " inside draw_ai_grid_overlay, debug0";
+  //Log::Info["viewport"] << "inside draw_ai_grid_overlay, debug0";
   //FlagDirToFlagDirVectorMap ai_mark_arterial_road_pairs = *(interface->get_ai_ptr(current_player_index)->get_ai_mark_arterial_road_pairs());
   FlagDirToFlagDirVectorMap ai_mark_arterial_road_pairs = *(ai->get_ai_mark_arterial_road_pairs());
 
@@ -2755,14 +2762,14 @@ Viewport::draw_ai_grid_overlay() {
   for (MapPos inv_flag_pos : inv_flag_pos_v){
     for (Direction inv_flag_dir : cycle_directions_rand_cw()) {
       if (ai_mark_arterial_road_pairs.count(std::make_pair(inv_flag_pos, inv_flag_dir)) > 0){
-        //Log::Info["viewport"] << " inside draw_ai_grid_overlay, debug1";
+        //Log::Info["viewport"] << "inside draw_ai_grid_overlay, debug1";
 
         // non-hack way
         //std::pair<MapPos, Direction> inv_key = record.first;
         //MapPos inv_flag_pos = inv_key.first;
         //Direction inv_flag_dir = inv_key.second;
 
-        //Log::Info["viewport"] << " inside draw_ai_grid_overlay, debug1b inv_flag_pos " << inv_flag_pos << ", inv_flag_dir " << inv_flag_dir;
+        //Log::Info["viewport"] << "inside draw_ai_grid_overlay, debug1b inv_flag_pos " << inv_flag_pos << ", inv_flag_dir " << inv_flag_dir;
         // iterate over the provided list of flag->dir pairs and walk
         //  the tile-path along each, and highlight it
         //Color rand_color = interface->get_ai_ptr(current_player_index)->get_random_mark_color();
@@ -2773,27 +2780,27 @@ Viewport::draw_ai_grid_overlay() {
         //for (std::pair<MapPos,Direction> art_key : record.second) {
         
         for (std::pair<MapPos,Direction> art_key : ai_mark_arterial_road_pairs.at(std::make_pair(inv_flag_pos, inv_flag_dir))){
-          //Log::Info["viewport"] << " inside draw_ai_grid_overlay, debug2";
+          //Log::Info["viewport"] << "inside draw_ai_grid_overlay, debug2";
           // trace the tile-path to the next flag
           //  and highlight each tile-path as we go
           MapPos art_pos = art_key.first;
           Direction art_dir = art_key.second;
-          //Log::Info["viewport"] << " inside draw_ai_grid_overlay, debug2b, art_pos " << art_pos << ", art_dir " << art_dir;
+          //Log::Info["viewport"] << "inside draw_ai_grid_overlay, debug2b, art_pos " << art_pos << ", art_dir " << art_dir;
           MapPos pos = art_pos;
           Direction dir = art_dir;
           MapPos prev_pos = art_pos;
           while (true) {
 
-            //Log::Info["viewport"] << " inside draw_ai_grid_overlay, debug3";
-            if (!map->has_path(pos, dir)){
-              Log::Error["viewport"] << " inside draw_ai_grid_overlay, NO PATH IN DIR " << dir << "!, crashing";
+            //Log::Info["viewport"] << "inside draw_ai_grid_overlay, debug3";
+            if (!map->has_path_IMPROVED(pos, dir)){
+              Log::Error["viewport"] << "inside draw_ai_grid_overlay, NO PATH IN DIR " << dir << "!, crashing";
               throw ExceptionFreeserf("inside draw_ai_grid_overlay, NO PATH IN DIR");
             }
             pos = map->move(pos, dir);
             for (Direction new_dir : cycle_directions_cw()) {
-              //Log::Info["viewport"] << " inside draw_ai_grid_overlay, debug4, checking dir " << new_dir;
-              if (map->has_path(pos, new_dir) && new_dir != reverse_direction(dir)) {
-                //Log::Info["viewport"] << " inside draw_ai_grid_overlay, debug5, found path in new_dir " << new_dir;
+              //Log::Info["viewport"] << "inside draw_ai_grid_overlay, debug4, checking dir " << new_dir;
+              if (map->has_path_IMPROVED(pos, new_dir) && new_dir != reverse_direction(dir)) {
+                //Log::Info["viewport"] << "inside draw_ai_grid_overlay, debug5, found path in new_dir " << new_dir;
                 int prev_sx = 0;
                 int prev_sy = 0;
                 screen_pix_from_map_coord(prev_pos, &prev_sx, &prev_sy);
@@ -2813,7 +2820,7 @@ Viewport::draw_ai_grid_overlay() {
               }
             }
 
-            //Log::Info["viewport"] << " inside draw_ai_grid_overlay, debugZ";
+            //Log::Info["viewport"] << "inside draw_ai_grid_overlay, debugZ";
             if (map->has_flag(pos)) {
               break;
             }
@@ -2824,32 +2831,21 @@ Viewport::draw_ai_grid_overlay() {
     } // foreach foo_pos - randomization hack
 
   }
-*/
+  */ //end highlight arterial roads
 
-/*
   //
   // draw spider-web roads
   //
-  //MapPosDirVector ai_mark_spiderweb_road_pairs = *(ai->get_ai_mark_spiderweb_road_pairs());
-  //for (std::pair<MapPos, Direction> pair : ai_mark_spiderweb_road_pairs){
-  //Log::Info["viewport"] << " inside draw_ai_grid_overlay, draw spiderweb roads";
-  for (std::pair<MapPos, Direction> pair : *(ai->get_ai_mark_spiderweb_road_pairs())){
-    MapPos start_pos = pair.first;
-    Direction start_dir = pair.second;
-    //Log::Info["viewport"] << " inside draw_ai_grid_overlay, draw spiderweb roads, start_pos " << start_pos << ", start_dir " << start_dir;
-    // trace the tile-path to the next flag
-    //  and highlight each tile-path as we go
-    MapPos pos = start_pos;
-    Direction dir = start_dir;
-    MapPos prev_pos = start_pos;
-    while (true) {
-      if (!map->has_path(pos, dir)){
-        Log::Error["viewport"] << " inside draw_ai_grid_overlay, draw spiderweb roads, start_pos " << start_pos << ", start_dir " << start_dir << ", NO PATH IN DIR " << dir << "!, crashing";
-        throw ExceptionFreeserf("inside draw_ai_grid_overlay, draw spiderweb roads, NO PATH IN DIR");
-      }
+  //Log::Info["viewport"] << "inside draw_ai_grid_overlay, draw spiderweb roads";
+  for (Road road : *(ai->get_ai_mark_spiderweb_roads())){
+    MapPos pos = road.get_source();
+    //Log::Debug["viewport"] << "inside draw_ai_grid_overlay, draw spiderweb roads for road with start pos " << pos;
+    //MapPos prev_pos = bad_map_pos;
+    MapPos prev_pos = pos;
+    for (Direction dir : road.get_dirs()){
       pos = map->move(pos, dir);
       for (Direction new_dir : cycle_directions_cw()) {
-        if (map->has_path(pos, new_dir) && new_dir != reverse_direction(dir)) {
+        if (map->has_path_IMPROVED(pos, new_dir) && new_dir != reverse_direction(dir)) {
           int prev_sx = 0;
           int prev_sy = 0;
           screen_pix_from_map_coord(prev_pos, &prev_sx, &prev_sy);
@@ -2858,9 +2854,9 @@ Viewport::draw_ai_grid_overlay() {
           screen_pix_from_map_coord(pos, &this_sx, &this_sy);
           // don't draw the line at all if any part is off the frame
           if (prev_sx > width || prev_sy > height || this_sx > width || this_sy > height){
-            // don't draw this line
+            // don't draw line
           }else{
-            //frame->draw_line(prev_sx, prev_sy, this_sx, this_sy, ai->get_mark_color("cyan"));
+            // draw line
             frame->draw_thick_line(prev_sx, prev_sy, this_sx, this_sy, ai->get_mark_color("cyan"));
           }
           prev_pos = pos;
@@ -2868,19 +2864,51 @@ Viewport::draw_ai_grid_overlay() {
           break;
         }
       }
-      if (map->has_flag(pos)) {
-        break;
+    }
+  }
+
+  //
+  // draw build_better_roads
+  //
+  //Log::Info["viewport"] << "inside draw_ai_grid_overlay, draw build_better roads";
+  for (Road road : *(ai->get_ai_mark_build_better_roads())){
+    MapPos pos = road.get_source();
+    //Log::Debug["viewport"] << "inside draw_ai_grid_overlay, draw build_better roads for road with start pos " << pos;
+    //MapPos prev_pos = bad_map_pos;
+    MapPos prev_pos = pos;
+    for (Direction dir : road.get_dirs()){
+      pos = map->move(pos, dir);
+      for (Direction new_dir : cycle_directions_cw()) {
+        if (map->has_path_IMPROVED(pos, new_dir) && new_dir != reverse_direction(dir)) {
+          int prev_sx = 0;
+          int prev_sy = 0;
+          screen_pix_from_map_coord(prev_pos, &prev_sx, &prev_sy);
+          int this_sx = 0;
+          int this_sy = 0;
+          screen_pix_from_map_coord(pos, &this_sx, &this_sy);
+          // don't draw the line at all if any part is off the frame
+          if (prev_sx > width || prev_sy > height || this_sx > width || this_sy > height){
+            // don't draw line
+          }else{
+            // draw line
+            frame->draw_thick_line(prev_sx, prev_sy, this_sx, this_sy, ai->get_mark_color("lt_purple"));
+          }
+          prev_pos = pos;
+          dir = new_dir;
+          break;
+        }
       }
     }
   }
-  */
+
+
+  // draw player number/color text box
+  frame->draw_string(1, 1, "Player" + std::to_string(current_player_index), interface->get_player_color(current_player_index));
 
   // draw AI status text box
   std::string status = ai->get_ai_status();
-  //frame->draw_string(50, 50, "FOO\n", game->get_mark_color("white"));
-  frame->draw_string(1, 1, "Player" + std::to_string(current_player_index) + " " + status, ai->get_mark_color("white"));
+  frame->draw_string(65, 1, status, ai->get_mark_color("white"));
 
-  /*
   // draw AI expansion goals text box
   int row = 1;   // text rows are 10 pixels apart, start at row 1 (2nd row, after ai_status row)
   frame->draw_string(1, row * 10, "expansion_goals:", ai->get_mark_color("white"));
@@ -2888,11 +2916,13 @@ Viewport::draw_ai_grid_overlay() {
     row++;
     frame->draw_string(1, row * 10, "   " + goal, ai->get_mark_color("white"));
   }
-  */
+
+  // draw Inventory pos
+  frame->draw_string(450, 1, "Inv " + std::to_string(ai->get_ai_inventory_pos()), ai->get_mark_color("white"));
 
   // draw cursor map click position
   if (ai_overlay_clicked_pos != bad_map_pos) {
-    frame->draw_string(500, 1, "clicked on " + std::to_string(ai_overlay_clicked_pos), colors.at("white"));
+    frame->draw_string(600, 1, "clicked on " + std::to_string(ai_overlay_clicked_pos), colors.at("white"));
   }
 
   // draw current game speed
@@ -3080,13 +3110,13 @@ Viewport::internal_draw() {
   if (layers & LayerPaths) {
     draw_paths_and_borders();
   }
+  draw_game_objects(layers);
   if (layers & LayerAI) {
     draw_ai_grid_overlay();
   }
   if (layers & LayerHiddenResources) {
     draw_hidden_res_overlay();
   }
-  draw_game_objects(layers);
   if (layers & LayerCursor) {
     draw_map_cursor();
   }

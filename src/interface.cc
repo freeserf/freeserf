@@ -45,7 +45,8 @@
 
 
 // Interval between automatic save games
-#define AUTOSAVE_INTERVAL  (5*60*TICKS_PER_SEC)
+//#define AUTOSAVE_INTERVAL  (5*60*TICKS_PER_SEC)  // this is reasonable for normal play
+#define AUTOSAVE_INTERVAL  (1*60*TICKS_PER_SEC)  // much higher frequency, for debugging
 
 Interface::Interface()
   : building_road_valid_dir(0)
@@ -231,9 +232,9 @@ Interface::get_custom_map_generator_options() {
 
 CustomMapGeneratorOptions
 Interface::get_custom_map_generator_options() {
-  //Log::Info["interface.cc"] << " inside get_custom_map_generator_options";
+  //Log::Info["interface.cc"] << "inside get_custom_map_generator_options";
   //  for (int x = 0; x < 23; x++){
-  //  Log::Info["map-generator"] << " inside get_custom_map_generator_options, opt" << x << " = " << custom_map_generator_options.opt[x];
+  //  Log::Info["map-generator"] << "inside get_custom_map_generator_options, opt" << x << " = " << custom_map_generator_options.opt[x];
   //}
   return custom_map_generator_options;
 }
@@ -452,6 +453,19 @@ Interface::determine_map_cursor_type_road() {
 /* Set the appropriate sprites for the panel buttons and the map cursor. */
 void
 Interface::update_interface() {
+
+/*
+  Log::Info["interface"] << "option_EnableAutoSave is " << option_EnableAutoSave;
+  Log::Info["interface"] << "option_ImprovedPigFarms is " << option_ImprovedPigFarms;
+  Log::Info["interface"] << "option_CanTransportSerfsInBoats is " << option_CanTransportSerfsInBoats;
+  Log::Info["interface"] << "option_QuickDemoEmptyBuildSites is " << option_QuickDemoEmptyBuildSites;
+  Log::Info["interface"] << "option_TreesReproduce is " << option_TreesReproduce;
+  Log::Info["interface"] << "option_BabyTreesMatureSlowly is " << option_BabyTreesMatureSlowly;
+  Log::Info["interface"] << "option_ResourceRequestsTimeOut is " << option_ResourceRequestsTimeOut;
+  Log::Info["interface"] << "option_LostTransportersClearFaster is " << option_LostTransportersClearFaster;
+  */
+
+
   if (!building_road.is_valid()) {
     switch (map_cursor_type) {
     case CursorTypeNone:
@@ -909,19 +923,19 @@ Interface::update() {
     // auto-save if interval reached
     if (game->get_const_tick() >= AUTOSAVE_INTERVAL + last_autosave_tick){
       Log::Debug["interface"] << "auto-save interval reached, preparing to auto-save game...";
-      Log::Debug["interface"] << "thread #" << std::this_thread::get_id() << " is locking mutex before auto-saving game";
+      Log::Verbose["interface"] << "thread #" << std::this_thread::get_id() << " is locking mutex before auto-saving game";
       game->get_mutex()->lock();
-      Log::Debug["interface"] << "thread #" << std::this_thread::get_id() << " has locked mutex before auto-saving game";
+      Log::Verbose["interface"] << "thread #" << std::this_thread::get_id() << " has locked mutex before auto-saving game";
       std::string savename = "AUTOSAVE.save";
-      Log::Debug["interface"] << "savegame name is '" << savename << " '";
+      Log::Verbose["interface"] << "savegame name is '" << savename << " '";
       if (GameStore::get_instance().quick_save("autosave", game.get())){
         Log::Info["interface"] << "successfully auto-saved game";
       } else {
         Log::Warn["interface"] << "FAILED TO SAVE GAME!";
       }
-      Log::Debug["interface"] << "thread #" << std::this_thread::get_id() << " is unlocking mutex after auto-saving game";
+      Log::Verbose["interface"] << "thread #" << std::this_thread::get_id() << " is unlocking mutex after auto-saving game";
       game->get_mutex()->unlock();
-      Log::Debug["interface"] << "thread #" << std::this_thread::get_id() << " has unlocked mutex after auto-saving game";
+      Log::Verbose["interface"] << "thread #" << std::this_thread::get_id() << " has unlocked mutex after auto-saving game";
 
       last_autosave_tick = game->get_const_tick();
     }
@@ -1036,16 +1050,25 @@ Interface::handle_key_pressed(char key, int modifier) {
     }
 
     case 'j': {
-    unsigned int current_index = player->get_index();
-    unsigned int next_index = game->get_next_player(player)->get_index();
-    if (current_index == next_index) {
-      //Log::Debug["interface"] << "next player index is current player index - i.e. there is only one player, not switching";
-      play_sound(Audio::TypeSfxNotAccepted);
-    }
-    else {
-      set_player(next_index);
-      Log::Info["interface"] << "Switched to player #" << next_index;
-    }
+      // switch to next player and center view on their castle
+      //  if only one player, play error noise but stll center view on castle
+      unsigned int current_index = player->get_index();
+      unsigned int next_index = game->get_next_player(player)->get_index();
+      if (current_index == next_index) {
+        //Log::Debug["interface"] << "next player index is current player index - i.e. there is only one player, not switching";
+        play_sound(Audio::TypeSfxNotAccepted);
+        // but also center on this player's castle at least
+        for (Building *building : game->get_player_buildings(player)) {
+          if (building->get_type() == Building::TypeCastle) {
+            //update_map_cursor_pos(building->get_position());
+            viewport->move_to_map_pos(building->get_position());
+          }
+        }
+      }
+      else {
+        set_player(next_index);
+        Log::Info["interface"] << "Switched to player #" << next_index;
+      }
       break;
     }
     case 'z':

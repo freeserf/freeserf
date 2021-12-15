@@ -873,7 +873,7 @@ ClassicMapGenerator::create_random_object_clusters(
     int num_clusters, int objs_in_cluster, int pos_mask, Map::Terrain type_min,
     Map::Terrain type_max, int obj_base, int obj_mask) {
 
-  //Log::Info["map-generator.cc"] << " inside ClassicMapGenerator::create_random_object_clusters, num_clusters " << num_clusters << ", objs_in_cluster " << objs_in_cluster << ", obj_base " << NameObject[obj_base];
+  //Log::Info["map-generator.cc"] << "inside ClassicMapGenerator::create_random_object_clusters, num_clusters " << num_clusters << ", objs_in_cluster " << objs_in_cluster << ", obj_base " << NameObject[obj_base];
   
   for (int i = 0; i < num_clusters; i++) {
     for (int try_ = 0; try_ < 100; try_++) {
@@ -1055,7 +1055,7 @@ CustomMapGenerator::CustomMapGenerator(
   const Map& map, const Random &rnd) : ClassicMapGenerator(map, rnd) {}
 
 void CustomMapGenerator::generate() {
-  //Log::Info["map-generator"] << " inside CustomMapGenerator::generate()";
+  //Log::Info["map-generator"] << "inside CustomMapGenerator::generate()";
 
   rnd ^= Random(0x5a5a, 0xa5a5, 0xc3c3);
 
@@ -1112,10 +1112,10 @@ CustomMapGenerator::create_deserts() {
   //Log::Info["map-generator"] << "inside map-generator.cc CustomMapGenerator::create_deserts, desert frequency is " << custom_map_generator_options.opt[CustomMapGeneratorOption::DesertFrequency];
   // DEBUG
   //for (int x = 0; x < 23; x++){
-    //Log::Info["map-generator"] << " inside CustomMapGenerator::create_deserts, opt" << x << " = " << custom_map_generator_options.opt[x];
+    //Log::Info["map-generator"] << "inside CustomMapGenerator::create_deserts, opt" << x << " = " << custom_map_generator_options.opt[x];
   //}
   if (custom_map_generator_options.opt[CustomMapGeneratorOption::DesertFrequency] == 0.00){
-    //Log::Info["map-generator"] << " inside CustomMapGenerator::create_deserts, desert frequency is zero, quitting now";
+    //Log::Info["map-generator"] << "inside CustomMapGenerator::create_deserts, desert frequency is zero, quitting now";
     return;
   }
   // Initialize random areas of desert based on spiral pattern.
@@ -1200,7 +1200,7 @@ CustomMapGenerator::create_objects() {
 
   // DEBUG
   //for (int x = 0; x < 23; x++){
-    //Log::Info["map-generator.cc"] << " inside CustomMapGenerator::create_objects, opt" << x << " = " << custom_map_generator_options.opt[x];
+    //Log::Info["map-generator.cc"] << "inside CustomMapGenerator::create_objects, opt" << x << " = " << custom_map_generator_options.opt[x];
   //}
 
   create_crosses();
@@ -1253,7 +1253,7 @@ CustomMapGenerator::create_mineral_deposits() {
   //Log::Info["map-generator"] << "inside map-generator.cc CustomMapGenerator::create_mineral_deposits";
   // DEBUG
   //for (int x = 0; x < 23; x++){
-    //Log::Info["map-generator"] << " inside CustomMapGenerator::create_mineral_deposits, opt" << x << " = " << custom_map_generator_options.opt[x];
+    //Log::Info["map-generator"] << "inside CustomMapGenerator::create_mineral_deposits, opt" << x << " = " << custom_map_generator_options.opt[x];
   //}
 
   typedef struct Deposit {

@@ -313,6 +313,7 @@ const std::string NameDirection[]{
   "NorthEast / Up"           // 5
 };
 
+
 const std::string NamePlayerFace[]{
   "InvalidFace0",
   "Lady Amelie",
@@ -330,6 +331,7 @@ const std::string NamePlayerFace[]{
   "Friend"
 };
 
+// road_options Road::Options Road::Option bitset
 const std::string NameRoadOption[] = {
   "Direct",
   "SplitRoads",
@@ -339,7 +341,9 @@ const std::string NameRoadOption[] = {
   "Improve",
   "ReducedNewLengthPenalty",
   "AllowWaterRoad",
-  "HoldBuildingPos"
+  "HoldBuildingPos",
+  "MostlyStraight",
+  "PlotOnlyNoBuild",
 };
 
 const std::string NameMinerals[] = {
@@ -515,6 +519,7 @@ const unsigned int specialists_reserve[] = {
     0,    // TypeDead
 };
 
+/*
 //
 //  these max values are only appropriate PER INVENTORY, once warehouses are built
 //   these should be evaluated per warehouse... or at least multiplied * number of warehouses
@@ -551,6 +556,7 @@ const unsigned int specialists_max[] = {
     0,    // TypeKnight4,         // promoted from Knight3
     0,    // TypeDead
 };
+*/
 
 // when building roads, try to connect a road to each type
 const Building::Type BuildingAffinity[25][2] = {
@@ -560,9 +566,9 @@ const Building::Type BuildingAffinity[25][2] = {
     { Building::TypeNone, Building::TypeNone},      //              "Building::TypeBoatbuilder",
     { Building::TypeNone, Building::TypeNone},      //              "Building::TypeStonecutter",
     { Building::TypeNone, Building::TypeNone},      //              "Building::TypeStoneMine",
-    { Building::TypeNone, Building::TypeNone},      //              "Building::TypeCoalMine",
-    { Building::TypeNone, Building::TypeNone},      //              "Building::TypeIronMine",
-    { Building::TypeNone, Building::TypeNone},      //              "Building::TypeGoldMine",
+    { Building::TypeBaker, Building::TypeNone},     //              "Building::TypeCoalMine",
+    { Building::TypeBaker, Building::TypeNone},     //              "Building::TypeIronMine",
+    { Building::TypeBaker, Building::TypeNone},     //              "Building::TypeGoldMine",
     { Building::TypeNone, Building::TypeNone},      //              "Building::TypeForester",
     { Building::TypeNone, Building::TypeNone},      //              "Building::TypeStock",
     { Building::TypeNone, Building::TypeNone},      //              "Building::TypeHut",
@@ -580,11 +586,24 @@ const Building::Type BuildingAffinity[25][2] = {
     { Building::TypeGoldMine, Building::TypeCoalMine},      //      "Building::TypeGoldSmelter",
     { Building::TypeNone, Building::TypeNone},      //              "Building::TypeCastle"
 };
+/*defaults:
+  road_options.reset(RoadOption::Direct);
+  road_options.set(RoadOption::SplitRoads);
+  road_options.set(RoadOption::PenalizeNewLength);
+  road_options.set(RoadOption::PenalizeCastleFlag);
+  road_options.reset(RoadOption::AvoidCastleArea);
+  road_options.reset(RoadOption::Improve);
+  road_options.reset(RoadOption::ReducedNewLengthPenalty);
+  road_options.set(RoadOption::AllowWaterRoad);
+  road_options.reset(RoadOption::HoldBuildingPos);
+  road_options.reset(RoadOption::MostlyStraight);
+  road_options.reset(RoadOption::PlotOnlyNoBuild);
+  */
 
 typedef enum RoadOption {
-  Direct = 0,         // connect directly to target building's flag, any potential routes via other flags, no splitting roads, ignores Improve flag (will build regardless)
+  Direct = 0,         // connect directly to target building's flag, [not?] any potential routes via other flags, no splitting roads, ignores Improve flag (will build regardless)
   SplitRoads,         // allow creating new flags (splitting roads) when optimal
-  PenalizeNewLength,  // disfavor creating new roads, prefer connecting to existing paths when optimal
+  PenalizeNewLength,  // disfavor creating new road length, prefer connecting to existing paths when optimal
   AvoidCastleArea,    // disfavor any pos surrounding the castle, to avoid congesting that area
   PenalizeCastleFlag, // disfavor any flag-path that includes the castle flag, for resources that route directly to consumers
   Improve,            // allow creating new roads even if start_pos already has any existing path (otherwise disallow it)
@@ -592,9 +611,11 @@ typedef enum RoadOption {
   AllowWaterRoad,     // allow creating water roads, this is on by default but if a water road is about to be built the build_best_road function will
                       //   make a recursive call to itself with AllowWater disabled to ensure that a land route is also available, to avoid issue where
                       //   serfs cannot reach the construction site/building because serfs cannot travel in boats (which is dumb)
-  HoldBuildingPos     // when plotting a road, do not allow the road to pass through the pos UpLeft from the dest, so it does not prevent a building there
+  HoldBuildingPos,    // when plotting a road, do not allow the road to pass through the pos UpLeft from the dest, so it does not prevent a building there
+  MostlyStraight,     // reduce the amount of tolerated road convulation before rejecting a solution.  Effect is to reduce the max_convolution ratio
+  PlotOnlyNoBuild    // do not actually build the road, but return a Road object of the best solution found
 } RoadOption;
-typedef std::bitset<9> RoadOptions;
+typedef std::bitset<11> RoadOptions;
 typedef std::vector<Road> Roads;
 
 

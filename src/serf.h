@@ -172,6 +172,11 @@ class Serf : public GameObject {
   // this could be done inside the states union, but that would require passing it along the various
   //  relevant states, which is annoying
   bool was_lost;
+  //
+  // DEBUG stuck serf WaitIdleOnPath issues
+  //
+  //bool split_merge_tainted;    // note if serf has ever been involved in a fill_path_data call from a merged/split road
+  unsigned int recent_dest;  // store the most recent destination for each serf, in case they become Lost, try to send another serf.  Flag index
 
   union s {
     struct {
@@ -403,6 +408,11 @@ class Serf : public GameObject {
   void stop_playing_sfx() { sound = false; }
 
   State get_state() const { return state; }
+
+  //DEBUG stuck serfs issue, provide the associated Flag index the serf is supposedly at
+  int debug_get_idle_on_path_flag() const { return s.idle_on_path.flag; }
+  void debug_set_pos(MapPos new_pos) { pos = new_pos; }
+
   int get_animation() const { return animation; }
   int get_counter() const { return counter; }
 
@@ -467,8 +477,10 @@ class Serf : public GameObject {
 
   // AI addition to help debug lack of serf transporter issue/bug
   unsigned int get_walking_dest() const { return s.walking.dest; }
+  unsigned int get_recent_dest() const { return recent_dest; } // flag index of the most recent dest flag when serf last left an Inv
 
   // Commands
+  // the go_out_from_inventory declaration says arg2 is a MapPos, but src->get_index() returns a Flag index not a Map Pos, wtf??
   void go_out_from_inventory(unsigned int inventory, MapPos dest, int mode);
   void send_off_to_fight(int dist_col, int dist_row);
   void stay_idle_in_stock(unsigned int inventory);

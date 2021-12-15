@@ -136,6 +136,10 @@ Game::clear_serf_request_failure() {
     building->clear_serf_request_failure();
   }
 
+  // dec10 2021 got vector iterators incompatible at for(Flag *flag : flags)
+  // again same day
+  // this is very likely because AI is invaliding game->Flags, added some extra mutex and
+  //  copying of Flags when iterating so avoid this, see if it fixes it
   for (Flag *flag : flags) {
     flag->serf_request_clear();
   }
@@ -207,7 +211,7 @@ Game::update_inventories_cb(Flag *flag, void *d) {
     if (bld_prio > data->max_prio[inv]) {
       data->max_prio[inv] = bld_prio;
       data->flags[inv] = flag;
-      //Log::Info["game"] << "DEBUG: setting data->dists_so_far[" << inv << "] = " << data->dist_so_far;
+      //Log::Info["game"] << "debug: setting data->dists_so_far[" << inv << "] = " << data->dist_so_far;
       data->dists_from_inv[inv] = data->dist_so_far;
     }
   }
@@ -258,7 +262,7 @@ Game::update_inventories_cb(Flag *flag, void *d) {
           //Log::Info["game"] << "debug: it seems get_road_length can be zero, using +1 for dist_from_inv addition";
           data->dist_so_far += 1;
         }else{
-          //Log::Info["game"] << "DEBUG: data->prev_flag->get_road_length((Direction)" << d << ") = " << data->prev_flag->get_road_length((Direction)d) << "... which is then divided by 16 then multiplied by 3 to get " << (data->prev_flag->get_road_length((Direction)d) / 16) * 3;
+          //Log::Info["game"] << "debug: data->prev_flag->get_road_length((Direction)" << d << ") = " << data->prev_flag->get_road_length((Direction)d) << "... which is then divided by 16 then multiplied by 3 to get " << (data->prev_flag->get_road_length((Direction)d) / 16) * 3;
           data->dist_so_far += (data->prev_flag->get_road_length((Direction)d) / 16) * 3;
         }
         found = true;
@@ -281,7 +285,7 @@ Game::update_inventories_cb(Flag *flag, void *d) {
    resources that are needed outside of the inventory into the out queue. */
 void
 Game::update_inventories() {
-	//Log::Debug["game"] << " debug: inside Game::update_inventories(), start of function";
+	//Log::Debug["game"] << "debug: inside Game::update_inventories(), start of function";
   const Resource::Type arr_1[] = {
     Resource::TypePlank,
     Resource::TypeStone,
@@ -473,10 +477,10 @@ Game::update_inventories() {
         // if max_prio >0 that means there is a building at this
         //  flag which can request resources
         if (max_prio[i] > 0) {
-          //Log::Verbose["game"] << " dest for inventory " << i << "found";
+          //Log::Verbose["game"] << "dest for inventory " << i << "found";
           Resource::Type res = (Resource::Type)arr[0];
 		  
-		  //Log::Info["game"] << " debug: inside update_inventories, i == " << i << ", expecting it to be way under 256";
+		  //Log::Info["game"] << "debug: inside update_inventories, i == " << i << ", expecting it to be way under 256";
 
           Building *dest_bld = flags_[i]->get_building();
           //Log::Info["flag"] << "inside Game::update_inventories, about to call add_requested_resource for dest_bld of type " << NameBuilding[dest_bld->get_type()];
@@ -621,9 +625,13 @@ Game::send_serf_to_flag_search_cb(Flag *flag, void *d) {
 }
 
 /* Dispatch serf from (nearest?) inventory to flag. */
+// it seems that this function is NOT used for calling transporters to roads, 
+//  if I create a new road I see a transporter sent and arrive but never see this called for it
+// instead, it looks like Inventory->call_transporter is called
 bool
 Game::send_serf_to_flag(Flag *dest, Serf::Type type, Resource::Type res1,
                         Resource::Type res2) {
+  //Log::Debug["game"] << "debug: inside Game::send_serf_to_flag, AA, dest flag is at pos " << dest->get_position();
   //Log::Info["game"] << "debug: inside Game::send_serf_to_flag, serf type " << type << ", res1 " << res1 << ", res2 " << res2;         
   Building *building = NULL;
   if (dest->has_building()) {
@@ -638,6 +646,7 @@ Game::send_serf_to_flag(Flag *dest, Serf::Type type, Resource::Type res1,
   }
 
   //Log::Info["game"] << "debug: inside Game::send_serf_to_flag, B";
+  //Log::Debug["game"] << "debug: inside Game::send_serf_to_flag, B, dest flag is at pos " << dest->get_position();
 
   SendSerfToFlagData data;
   data.inventory = NULL;
@@ -652,8 +661,10 @@ Game::send_serf_to_flag(Flag *dest, Serf::Type type, Resource::Type res1,
                               &data);
 
   if (!r) {
+    if (type == Serf::TypeGeologist) {Log::Info["game"] << "inside send_serf_to_flag, serf type " << NameSerf[type] << ", FAILED because flagsearch failed!";}
     return false;
   } else if (data.inventory != NULL) {
+    if (type == Serf::TypeGeologist) {Log::Info["game"] << "inside send_serf_to_flag, serf type " << NameSerf[type] << ", data.inventory != null";}
     Inventory *inventory = data.inventory;
     Serf *serf = inventory->call_out_serf(Serf::TypeGeneric);
     if ((type < 0) && (building != NULL)) {
@@ -667,6 +678,7 @@ Game::send_serf_to_flag(Flag *dest, Serf::Type type, Resource::Type res1,
       inventory->pop_resource(Resource::TypeSword);
       inventory->pop_resource(Resource::TypeShield);
     } else {
+
       serf->set_type((Serf::Type)type);
 
       int mode = 0;
@@ -877,6 +889,17 @@ Game::update_game_stats() {
 /* Update game state after tick increment. */
 void
 Game::update() {
+
+/*
+  Log::Info["game"] << "option_EnableAutoSave is " << option_EnableAutoSave;
+  Log::Info["game"] << "option_ImprovedPigFarms is " << option_ImprovedPigFarms;
+  Log::Info["game"] << "option_CanTransportSerfsInBoats is " << option_CanTransportSerfsInBoats;
+  Log::Info["game"] << "option_QuickDemoEmptyBuildSites is " << option_QuickDemoEmptyBuildSites;
+  Log::Info["game"] << "option_TreesReproduce is " << option_TreesReproduce;
+  Log::Info["game"] << "option_BabyTreesMatureSlowly is " << option_BabyTreesMatureSlowly;
+  Log::Info["game"] << "option_ResourceRequestsTimeOut is " << option_ResourceRequestsTimeOut;
+  Log::Info["game"] << "option_LostTransportersClearFaster is " << option_LostTransportersClearFaster;
+  */
 
   /* Increment tick counters */
   const_tick += 1;
@@ -1115,16 +1138,24 @@ Game::build_road(const Road &road, const Player *player) {
   MapPos dest = 0;
   bool water_path = false;
   if (!can_build_road(road, player, &dest, &water_path)) {
+    Log::Warn["game"] << "inside build_road, failed because can_build_road returned false!";
     return false;
   }
-  if (!map->has_flag(dest)) return false;
+  if (!map->has_flag(dest)){
+    Log::Warn["game"] << "inside build_road, failed because dest " << dest << " found by can_build_road does not have a flag!";
+    return false;
+  }
+
 
   Road::Dirs dirs = road.get_dirs();
   Direction out_dir = dirs.front();
   Direction in_dir = reverse_direction(dirs.back());
 
   /* Actually place road segments */
-  if (!map->place_road_segments(road)) return false;
+  if (!map->place_road_segments(road)){
+    Log::Warn["game"] << "inside build_road, failed because place_road_segments failed!";
+    return false;
+  }
 
   /* Connect flags */
   Flag *src_flag = get_flag_at_pos(road.get_source());
@@ -1188,6 +1219,7 @@ Game::remove_road_forwards(MapPos pos, Direction dir) {
       Serf *serf = get_serf_at_pos(pos);
       if (!map->has_flag(pos)) {
         serf->set_lost_state();
+        Log::Debug["game"] << "about to call set_lost_state on serf at pos " << pos << " case1, map says no flag here";;
       } else {
         /* Handle serf close to flag, where
            it should only be lost if walking
@@ -1195,7 +1227,10 @@ Game::remove_road_forwards(MapPos pos, Direction dir) {
         int d = serf->get_walking_dir();
         if (d < 0) d += 6;
         if (d == reverse_direction(dir)) {
-          serf->set_lost_state();
+          Log::Debug["game"] << "about to call set_lost_state on serf at pos " << pos << " case2, maps says flag here but note says serf is walking in the 'wrong direction'";
+          Log::Error["game"] << "ATTEMPTING TO WORK AROUND BUG BY NOT SETTING THIS SERF TO LOST, instead doing... nothing";
+          // dec10 2021 saw this trigger once and it seems to work with no obvious side effects, it triggered for flag adjacent to castle flag
+          //serf->set_lost_state();
         }
       }
     }
@@ -1264,6 +1299,8 @@ Game::demolish_road(MapPos pos, Player *player) {
 void
 Game::build_flag_split_path(MapPos pos) {
   /* Find directions of path segments to be split. */
+  // the first path/flag is determined simply by the order of cycled_directions_cw
+  //  around the newly created flag, starting with Right/0/East
   Direction path_1_dir = DirectionNone;
   const auto cycle = cycle_directions_cw();
   auto it = cycle.begin();
@@ -1273,7 +1310,11 @@ Game::build_flag_split_path(MapPos pos) {
       break;
     }
   }
-
+  //Log::Debug["game"] << "inside build_split_flag_path at pos " << pos << ", found path_1 dir of " << path_1_dir << " / " << NameDirection[path_1_dir];
+  // the second path/flag is the next one found
+  //   (unless it is UpLeft/4/NorthWest and turns out to be a building - see next check below)
+  // because it reuses the same cycle iterator from theprevious cycle_directions_cw,
+  //  it should continue where the first one left off
   Direction path_2_dir = DirectionNone;
   ++it;
   for (; it != cycle.end(); ++it) {
@@ -1282,36 +1323,57 @@ Game::build_flag_split_path(MapPos pos) {
       break;
     }
   }
+  //Log::Debug["game"] << "inside build_split_flag_path at pos " << pos << ", found path_2 dir of " << path_2_dir << " / " << NameDirection[path_2_dir];
 
   /* If last segment direction is UP LEFT it could
      be to a building and the real path is at UP. */
   if (path_2_dir == DirectionUpLeft && map->has_path(pos, DirectionUp)) {
+    //Log::Debug["game"] << "inside build_split_flag_path at pos " << pos << ", special condition, path_2_dir is UpLeft/4/NorthWest but there is also a path Up/5/NorthEast which means the UpLeft/4/NorthWest path should be a building, skiping it and assigning Up/5/NorthEast";
     path_2_dir = DirectionUp;
   }
 
   SerfPathInfo path_1_data;
   SerfPathInfo path_2_data;
 
+  Log::Info["game"] << "inside build_flag_split_path, about to call fill_path_serf_info for new splitting flag at pos " << pos;
   Flag::fill_path_serf_info(this, pos, path_1_dir, &path_1_data);
   Flag::fill_path_serf_info(this, pos, path_2_dir, &path_2_data);
+  
 
   Flag *flag_2 = flags[path_2_data.flag_index];
   Direction dir_2 = path_2_data.flag_dir;
 
+  // if flag_2 (how does it decide which one becomes flag_2?) has
+  //  an outstanding serf_request (transporter?), find the serf that
+  //  appears to be servicing the request (what about long roads that request multiple serfs? 
+  //    do they request more than one at a time??))
+  //  to identify the serf destined for the flag_2, look for a serf whose path data indicates 
+  //   a destination of flag 2 (and other checks done inside path_splitted function)
+  //  the "select" 0/1 appears to indicate which flag's path data to copy from
+  //   ... that is, which of the two ends is the correct one
   int select = -1;
   if (flag_2->serf_requested(dir_2)) {
     for (Serf *serf : serfs) {
       if (serf->path_splited(path_1_data.flag_index, path_1_data.flag_dir,
                              path_2_data.flag_index, path_2_data.flag_dir,
                              &select)) {
+        //Log::Debug["game"] << "inside build_flag_split_path, path_splited checked returned true for serf " << serf->get_index() << ", select is " << select;
         break;
       }
     }
 
-    SerfPathInfo *path_data = &path_1_data;
-    if (select == 0) path_data = &path_2_data;
+    //Log::Debug["game"] << "inside build_flag_split_path, getting read to copy SerfPathInfo, select is " << select;
+    SerfPathInfo *path_data;
+    if (select == 0) {
+      //Log::Debug["game"] << "inside build_flag_split_path, getting read to copy SerfPathInfo, assiging path_2_data";
+      path_data = &path_2_data;
+    }else{
+      //Log::Debug["game"] << "inside build_flag_split_path, getting read to copy SerfPathInfo, assiging path_1_data";
+      path_data = &path_1_data;
+    }
 
     Flag *selected_flag = flags[path_data->flag_index];
+    //Log::Debug["game"] << "inside build_flag_split_path, about to call cancel_serf_request on flag index " << path_data->flag_index << " in dir " << path_data->flag_dir;
     selected_flag->cancel_serf_request(path_data->flag_dir);
   }
 
@@ -1841,10 +1903,8 @@ Game::can_demolish_flag(MapPos pos, const Player *player) const {
 
 bool
 Game::demolish_flag_(MapPos pos) {
-  /* Handle any serf at pos. */
 
-  //  actually, nevermind.  It should not be possible to delete a flag that is at the end of a water path
-  //   unless first deleting the water path itself
+  /* Handle any serf at pos. */
   if (map->has_serf(pos)) {
     Serf *serf = get_serf_at_pos(pos);
     serf->flag_deleted(pos);
@@ -2409,11 +2469,16 @@ Game::ListSerfs
 Game::get_player_serfs(Player *player) {
   ListSerfs player_serfs;
 
+  // debug -  count how many serfs actually appear here
+  //  does it include unused serfs??
+  // it DOES include them as Serf objects, isn't that really inefficient??? can be 10k 
+  //Log::Debug["game"] << "inside get_player_serfs, game Serfs has " << serfs.size() << " items";
   for (Serf *serf : serfs) {
     if (serf->get_owner() == player->get_index()) {
       player_serfs.push_back(serf);
     }
   }
+  //Log::Debug["game"] << "inside get_player_serfs, player" << player->get_index() << " player_serfs has " << player_serfs.size() << " items";
 
   return player_serfs;
 }
@@ -2898,6 +2963,29 @@ operator >> (SaveReaderText &reader, Game &game) {
 
     if (serf->get_state() == Serf::StateIdleOnPath ||
         serf->get_state() == Serf::StateWaitIdleOnPath) {
+      
+      /* doing this is no better than the usual stuck serf detector logic (though it works outside of AI)
+      //  and still has the side effect of the booted serf never arriving to do his job, which is generally
+      //  either acting as a transporter (so would need that missing transporter detection also) or a building
+      //  occupier and the building will never be filled
+      // debug WaitIdleOnPath
+      if (serf->get_state() == Serf::StateWaitIdleOnPath) {
+        Log::Warn["game"] << "StateWaitIdleOnPath check, a serf with state " << serf->get_state() << " at pos " << serf->get_pos() << " with type " << serf->get_type() << " is being set_idle_serf";
+        if (serf->debug_get_idle_on_path_flag() == 1){
+          Log::Error["game"] << "StateWaitIdleOnPath check, a serf with state " << serf->get_state() << " at pos " << serf->get_pos() << " with type " << serf->get_type() << " is being set_idle_serf and has s.idle_on_path.flag index of " << serf->debug_get_idle_on_path_flag();
+          // try "disappearing" this serf
+          //serf->set_serf_state(Serf::StateNull);
+          //delete_serf(serf);
+          //game.delete_serf(serf);
+          //serf->debug_set_pos(bad_map_pos);
+          //Log::Error["game"] << "StateWaitIdleOnPath check, set serf to bad_map_pos";
+          serf->set_lost_state();
+          continue;
+        }
+      }
+      // end debug WaitIdleOnPath
+      */
+
       game.map->set_idle_serf(serf->get_pos());
     }
   }

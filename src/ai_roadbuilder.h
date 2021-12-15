@@ -149,11 +149,20 @@ class RoadBuilder {
     return false;
   }
   */
+  /*
   bool has_proad(MapPos end_pos, Direction start_dir, Direction end_dir) {
     if (proads.count(RoadEnds(start_pos, start_dir, end_pos, end_dir))) {
       return true;
     }
     return false;
+  }
+  */
+  bool has_proad(RoadEnds ends){
+    if (proads.count(ends)){
+      return true;
+    }else{
+      return false;
+    }
   }
 
   // because the RoadEnds are never used directly (I think?), rather only xroad->get_ calls,
@@ -242,7 +251,7 @@ class RoadBuilder {
 
   /*
   void new_eroad(MapPos end1, Direction dir1, MapPos end2, Direction dir2, Road road) {
-    Log::Info["ai_roadbuilder"] << " inside new_eroad with end1 " << end1 << ", end2 " << end2 << ", dir1 " << dir1 << ", dir2 " << dir2;
+    Log::Info["ai_roadbuilder"] << "inside new_eroad with end1 " << end1 << ", end2 " << end2 << ", dir1 " << dir1 << ", dir2 " << dir2;
     //ERoadEnds ends = ERoadEnds(end1, dir1, end2, dir2);
     RoadEnds ends = RoadEnds(end1, dir1, end2, dir2);
     RoadBuilderRoad *rb_road = new RoadBuilderRoad(end1, dir1, end2, dir2);
@@ -251,12 +260,12 @@ class RoadBuilder {
   }
   */
   void new_eroad(RoadEnds ends, Road road) {
-    //Log::Debug["ai_roadbuilder"] << " inside new_eroad";
+    //Log::Debug["ai_roadbuilder"] << "inside new_eroad";
     MapPos end1 = std::get<0>(ends);
     Direction dir1 = std::get<1>(ends);
     MapPos end2 = std::get<2>(ends);
     Direction dir2 = std::get<3>(ends);
-    //Log::Debug["ai_roadbuilder"] << " inside new_eroad with end1 " << end1 << ", dir1 " << NameDirection[dir1] << ", end2 " << end2 << ", dir2 " << NameDirection[dir2];
+    //Log::Debug["ai_roadbuilder"] << "inside new_eroad with end1 " << end1 << ", dir1 " << NameDirection[dir1] << ", end2 " << end2 << ", dir2 " << NameDirection[dir2];
     //RoadBuilderRoad *rb_road = new RoadBuilderRoad(end1, dir1, end2, dir2);
     RoadBuilderRoad *rb_road = new RoadBuilderRoad(ends, road);
     //rb_road->set_road(road);
@@ -265,12 +274,12 @@ class RoadBuilder {
 
   //void new_proad(MapPos end1, Direction dir1, MapPos end2, Direction dir2, Road road) {
   void new_proad(RoadEnds ends, Road road) {
-    //Log::Debug["ai_roadbuilder"] << " inside new_proad";
+    //Log::Debug["ai_roadbuilder"] << "inside new_proad";
     MapPos start_pos = std::get<0>(ends);
     Direction start_dir = std::get<1>(ends);
     MapPos end_pos = std::get<2>(ends);
     Direction end_dir = std::get<3>(ends);
-    //Log::Debug["ai_roadbuilder"] << " inside new_proad with start_pos " << start_pos << ", start_dir " << NameDirection[start_dir] << ", end_pos " << end_pos << ", end_dir " << NameDirection[end_dir];
+    //Log::Debug["ai_roadbuilder"] << "inside new_proad with start_pos " << start_pos << ", start_dir " << NameDirection[start_dir] << ", end_pos " << end_pos << ", end_dir " << NameDirection[end_dir];
     //RoadBuilderRoad *rb_road = new RoadBuilderRoad(end1, dir1, end2, dir2);
     RoadBuilderRoad *rb_road = new RoadBuilderRoad(ends, road);
     //rb_road->set_road(road);

@@ -91,6 +91,7 @@ actual_cost(Map *map, MapPos pos, Direction dir) {
    the walking time for a serf walking in any direction of the path
    should be minimized. Returns a malloc'ed array of directions and
    the size of this array in length. */
+   //https://en.wikipedia.org/wiki/A*_search_algorithm
 Road
 pathfinder_map(Map *map, MapPos start, MapPos end, const Road *building_road) {
   // Unfortunately the STL priority_queue cannot be used since we
