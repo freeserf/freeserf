@@ -802,28 +802,38 @@ AI::build_best_road(MapPos start_pos, RoadOptions road_options, Road *built_road
       // nearest stock check is ignored also
       // HoldBuildingPos ignored
       
+
+      
       // enhancement - if there is no flag at the target_pos, create one
       //  this allows the calling function to suggest termination points
       //  rather than the usual wandering discovery that non-direct roads use
       bool built_flag = false;
-      if (!map->has_flag(target_pos)){
-        AILogDebug["util_build_best_road"] << "" << calling_function << " zzz direct road requested, no flag at target_pos, trying to build one";
-        if (game->can_build_flag(target_pos, player)){
-          AILogVerbose["util_build_best_road"] << "" << calling_function << " thread #" << std::this_thread::get_id() << " AI is locking mutex before calling game->build_flag (direct road target_pos has no flag)";
-          game->get_mutex()->lock();
-          AILogVerbose["util_build_best_road"] << "" << calling_function << " thread #" << std::this_thread::get_id() << " AI has locked mutex before calling game->build_flag (direct road target_pos has no flag)";
-          built_flag = game->build_flag(target_pos, player);
-          AILogVerbose["util_build_best_road"] << "" << calling_function << " thread #" << std::this_thread::get_id() << " AI is unlocking mutex after calling game->build_flag (direct road target_pos has no flag)";
-          game->get_mutex()->unlock();
-          AILogVerbose["util_build_best_road"] << "" << calling_function << " thread #" << std::this_thread::get_id() << " AI has unlocked mutex after calling game->build_flag (direct road target_pos has no flag)";
-          if (built_flag){
-            AILogDebug["util_build_best_road"] << "" << calling_function << " zzz direct road requested, built new flag at target_pos";
-          }else{
-            AILogDebug["util_build_best_road"] << "" << calling_function << " zzz direct road requested, failed to build flag at target_pos! returning false";
-            return false;
+
+      // add support for RoadOption::PlotOnlyNoBuild
+      if (road_options.test(RoadOption::PlotOnlyNoBuild)){
+        AILogDebug["util_build_best_road"] << "" << calling_function << " RoadOption::PlotOnlyNoBuild is set, not actually building a flag for Direct road.  returning Road object containing it";
+      }else{
+        
+        if (!map->has_flag(target_pos)){
+          AILogDebug["util_build_best_road"] << "" << calling_function << " zzz direct road requested, no flag at target_pos, trying to build one";
+          if (game->can_build_flag(target_pos, player)){
+            AILogVerbose["util_build_best_road"] << "" << calling_function << " thread #" << std::this_thread::get_id() << " AI is locking mutex before calling game->build_flag (direct road target_pos has no flag)";
+            game->get_mutex()->lock();
+            AILogVerbose["util_build_best_road"] << "" << calling_function << " thread #" << std::this_thread::get_id() << " AI has locked mutex before calling game->build_flag (direct road target_pos has no flag)";
+            built_flag = game->build_flag(target_pos, player);
+            AILogVerbose["util_build_best_road"] << "" << calling_function << " thread #" << std::this_thread::get_id() << " AI is unlocking mutex after calling game->build_flag (direct road target_pos has no flag)";
+            game->get_mutex()->unlock();
+            AILogVerbose["util_build_best_road"] << "" << calling_function << " thread #" << std::this_thread::get_id() << " AI has unlocked mutex after calling game->build_flag (direct road target_pos has no flag)";
+            if (built_flag){
+              AILogDebug["util_build_best_road"] << "" << calling_function << " zzz direct road requested, built new flag at target_pos";
+            }else{
+              AILogDebug["util_build_best_road"] << "" << calling_function << " zzz direct road requested, failed to build flag at target_pos! returning false";
+              return false;
+            }
           }
         }
       }
+
       Road proposed_direct_road = plot_road(map, player_index, start_pos, target_pos, &split_roads);
       bool plotted_succesfully = false;
       if (proposed_direct_road.get_length() > 0){
@@ -854,6 +864,13 @@ AI::build_best_road(MapPos start_pos, RoadOptions road_options, Road *built_road
           convolution_rejected = true;
         }
       }
+
+      // add support for RoadOption::PlotOnlyNoBuild
+      if (road_options.test(RoadOption::PlotOnlyNoBuild)){
+        AILogDebug["util_build_best_road"] << "" << calling_function << " RoadOption::PlotOnlyNoBuild is set, not actually building the Direct road.  returning Road object containing it";
+        *built_road = *(&proposed_direct_road);
+        return true;
+      } 
 
       bool was_built = false;
       if (plotted_succesfully && !convolution_rejected){
@@ -1036,7 +1053,7 @@ AI::build_best_road(MapPos start_pos, RoadOptions road_options, Road *built_road
       //sleep_speed_adjusted(10);
       nearby_flags.push_back(pos);
     } // foreach pos around start_pos
-    ai_mark_pos.clear();
+    //ai_mark_pos.clear();
     AILogDebug["util_build_best_road"] << "" << calling_function << " non-direct road requested, done finding flags near the start_pos, nearby_flags currently has " << nearby_flags.size() << " elements";
 
     AILogDebug["util_build_best_road"] << "" << calling_function << " non-direct road requested, done finding nearby flags, found " << nearby_flags.size() << " nearby_flags";
@@ -1444,6 +1461,17 @@ AI::build_best_road(MapPos start_pos, RoadOptions road_options, Road *built_road
         }
       }
 
+      //
+      // TODO insert code here to check if the second road is actually better than the first road built (if one was built) !!
+      //   otherwise, don't build. 
+      //
+
+      // add support for RoadOption::PlotOnlyNoBuild
+      if (road_options.test(RoadOption::PlotOnlyNoBuild)){
+        AILogDebug["util_build_best_road"] << "" << calling_function << " RoadOption::PlotOnlyNoBuild is set, not actually building the road.  returning Road object containing it";
+        *built_road = *(&road);
+        return true;
+      } 
 
       // build a new flag if this solution ends with no flag (i.e. a split road solution)
       bool created_new_flag = false;
@@ -1467,10 +1495,7 @@ AI::build_best_road(MapPos start_pos, RoadOptions road_options, Road *built_road
           continue;
         }
       }
-
-      // TODO insert code here to check if the second road is actually better than the first road built (if one was built) !!
-      //   otherwise, don't build. 
-
+        
       // build the road!
       AILogDebug["util_build_best_road"] << "" << calling_function << " about to build road with source=" << road.get_source() << ", end=" << road.get_end(game->get_map().get());
       AILogVerbose["util_build_best_road"] << "" << calling_function << " thread #" << std::this_thread::get_id() << " AI is locking mutex before calling game->build_road (non-direct road)";

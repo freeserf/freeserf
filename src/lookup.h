@@ -330,6 +330,7 @@ const std::string NamePlayerFace[]{
   "Friend"
 };
 
+// road_options Road::Options Road::Option bitset
 const std::string NameRoadOption[] = {
   "Direct",
   "SplitRoads",
@@ -340,7 +341,8 @@ const std::string NameRoadOption[] = {
   "ReducedNewLengthPenalty",
   "AllowWaterRoad",
   "HoldBuildingPos",
-  "MostlyStraight"
+  "MostlyStraight",
+  "PlotOnlyNoBuild",
 };
 
 const std::string NameMinerals[] = {
@@ -593,7 +595,9 @@ const Building::Type BuildingAffinity[25][2] = {
   road_options.reset(RoadOption::ReducedNewLengthPenalty);
   road_options.set(RoadOption::AllowWaterRoad);
   road_options.reset(RoadOption::HoldBuildingPos);
-  road_options.reset(RoadOption::MostlyStraight);*/
+  road_options.reset(RoadOption::MostlyStraight);
+  road_options.reset(RoadOption::PlotOnlyNoBuild);
+  */
 
 typedef enum RoadOption {
   Direct = 0,         // connect directly to target building's flag, [not?] any potential routes via other flags, no splitting roads, ignores Improve flag (will build regardless)
@@ -607,9 +611,10 @@ typedef enum RoadOption {
                       //   make a recursive call to itself with AllowWater disabled to ensure that a land route is also available, to avoid issue where
                       //   serfs cannot reach the construction site/building because serfs cannot travel in boats (which is dumb)
   HoldBuildingPos,    // when plotting a road, do not allow the road to pass through the pos UpLeft from the dest, so it does not prevent a building there
-  MostlyStraight      // reduce the amount of tolerated road convulation before rejecting a solution.  Effect is to reduce the max_convolution ratio
+  MostlyStraight,     // reduce the amount of tolerated road convulation before rejecting a solution.  Effect is to reduce the max_convolution ratio
+  PlotOnlyNoBuild    // do not actually build the road, but return a Road object of the best solution found
 } RoadOption;
-typedef std::bitset<10> RoadOptions;
+typedef std::bitset<11> RoadOptions;
 typedef std::vector<Road> Roads;
 
 
