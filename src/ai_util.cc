@@ -2727,49 +2727,49 @@ AI::score_area(MapPos center_pos, unsigned int distance) {
       obj >= Map::ObjectSeeds0 && obj <= Map::ObjectFieldExpired ||
       obj >= Map::ObjectField0 && obj <= Map::ObjectField5) {
       pos_value += expand_towards.count("foods") * foods_weight;
-      AILogDebug["util_score_area"] << "adding foods count 1 with value " << expand_towards.count("foods") * foods_weight;
+      //AILogDebug["util_score_area"] << "adding foods count 1 with value " << expand_towards.count("foods") * foods_weight;
     }
     if (obj >= Map::ObjectTree0 && obj <= Map::ObjectPine7) {
       pos_value += expand_towards.count("trees") * trees_weight;
-      AILogDebug["util_score_area"] << "adding trees count 1 with value " << expand_towards.count("trees") * trees_weight;
+      //AILogDebug["util_score_area"] << "adding trees count 1 with value " << expand_towards.count("trees") * trees_weight;
     }
     if (obj >= Map::ObjectStone0 && obj <= Map::ObjectStone7) {
       int stonepile_value = 1 + (-1 * (obj - Map::ObjectStone7));
       pos_value += expand_towards.count("stones") * stones_weight * stonepile_value;
-      AILogDebug["util_score_area"] << "adding stones count " << stonepile_value << " with value " << expand_towards.count("stones") * stones_weight;
+      //AILogDebug["util_score_area"] << "adding stones count " << stonepile_value << " with value " << expand_towards.count("stones") * stones_weight;
     }
     if (AI::has_terrain_type(game, pos, Map::TerrainTundra0, Map::TerrainSnow0)) {
       if (obj >= Map::ObjectSignEmpty && obj <= Map::ObjectSignSmallStone) {
-        AILogDebug["util_score_area"] << "found a sign (of type " << NameObject[obj] << "), not counting this hill";
+        //AILogDebug["util_score_area"] << "found a sign (of type " << NameObject[obj] << "), not counting this hill";
       }
       else {
         pos_value += expand_towards.count("hills") * hills_weight;
-        AILogDebug["util_score_area"] << "adding hills count 1 with value " << expand_towards.count("hills") * hills_weight;
+        //AILogDebug["util_score_area"] << "adding hills count 1 with value " << expand_towards.count("hills") * hills_weight;
       }
     }
     if (obj == Map::ObjectSignLargeGold) { gold_signs += 3; }
     if (obj == Map::ObjectSignSmallGold) { gold_signs += 1; }
     if (obj == Map::ObjectSignSmallGold || obj == Map::ObjectSignLargeGold) {
       pos_value += expand_towards.count("gold_ore") * gold_ore_weight * gold_signs;
-      AILogDebug["util_score_area"] << "adding gold_ore count " << gold_signs << " with value " << expand_towards.count("gold_ore") * gold_ore_weight * gold_signs;
+      //AILogDebug["util_score_area"] << "adding gold_ore count " << gold_signs << " with value " << expand_towards.count("gold_ore") * gold_ore_weight * gold_signs;
     }
     if (obj == Map::ObjectSignLargeIron) { iron_signs += 3; }
     if (obj == Map::ObjectSignSmallIron) { iron_signs += 1; }
     if (obj == Map::ObjectSignSmallIron || obj == Map::ObjectSignLargeIron) {
       pos_value += expand_towards.count("iron_ore") * iron_ore_weight * iron_signs;
-      AILogDebug["util_score_area"] << "adding iron_ore count " << iron_signs << " with value " << expand_towards.count("iron_ore") * iron_ore_weight * iron_signs;
+      //AILogDebug["util_score_area"] << "adding iron_ore count " << iron_signs << " with value " << expand_towards.count("iron_ore") * iron_ore_weight * iron_signs;
     }
     if (obj == Map::ObjectSignLargeCoal) { coal_signs += 3; }
     if (obj == Map::ObjectSignSmallCoal) { coal_signs += 1; }
     if (obj == Map::ObjectSignSmallCoal || obj == Map::ObjectSignLargeCoal) {
       pos_value += expand_towards.count("coal")      * coal_weight * coal_signs;
-      AILogDebug["util_score_area"] << "adding coal count " << coal_signs << " with value " << expand_towards.count("coal_ore") * coal_weight * coal_signs;
+      //AILogDebug["util_score_area"] << "adding coal count " << coal_signs << " with value " << expand_towards.count("coal_ore") * coal_weight * coal_signs;
     }
     if (obj == Map::ObjectSignLargeStone) { stone_signs += 3; }
     if (obj == Map::ObjectSignSmallStone) { stone_signs += 1; }
     if (obj == Map::ObjectSignSmallStone || obj == Map::ObjectSignLargeStone) {
       pos_value += expand_towards.count("stones") * stone_signs_weight * stone_signs;
-      AILogDebug["util_score_area"] << "adding stones count " << stone_signs << " with value " << expand_towards.count("stones") * stone_signs_weight * stone_signs;
+      //AILogDebug["util_score_area"] << "adding stones count " << stone_signs << " with value " << expand_towards.count("stones") * stone_signs_weight * stone_signs;
     }
     // I think scoring_warehouse is deprecated for now, could bring it back if it really helps
     if (!scoring_warehouse) {
@@ -2782,7 +2782,7 @@ AI::score_area(MapPos center_pos, unsigned int distance) {
           AILogDebug["util_score_area"] << "found enemy territory near our borders, adding oppose_enemy expansion goal for informative purpose";
         }
         pos_value += expand_towards.count("oppose_enemy") * 1;
-        AILogDebug["util_score_area"] << "adding oppose_enemy value for enemy territory";
+        //AILogDebug["util_score_area"] << "adding oppose_enemy value for enemy territory";
       }
 
       // protect_economy - value areas where own civilian buildings are near our borders
@@ -2798,11 +2798,11 @@ AI::score_area(MapPos center_pos, unsigned int distance) {
         }
         if (obj == Map::ObjectLargeBuilding && !game->get_building_at_pos(pos)->is_military()) {
           pos_value += expand_towards.count("protect_economy") * 3;
-          AILogDebug["util_score_area"] << "adding protect_economy building value x3 for large civilian building of type " << NameBuilding[game->get_building_at_pos(pos)->get_type()] << " at pos " << pos;
+          //AILogDebug["util_score_area"] << "adding protect_economy building value x3 for large civilian building of type " << NameBuilding[game->get_building_at_pos(pos)->get_type()] << " at pos " << pos;
         }
         if (obj == Map::ObjectSmallBuilding && !game->get_building_at_pos(pos)->is_military()) {
           pos_value += expand_towards.count("protect_economy") * 1;
-          AILogDebug["util_score_area"] << "adding protect_economy building value x1 for small civilian building of type " << NameBuilding[game->get_building_at_pos(pos)->get_type()] << " at pos " << pos;
+          //AILogDebug["util_score_area"] << "adding protect_economy building value x1 for small civilian building of type " << NameBuilding[game->get_building_at_pos(pos)->get_type()] << " at pos " << pos;
         }
       }
 
@@ -2812,7 +2812,7 @@ AI::score_area(MapPos center_pos, unsigned int distance) {
       if (get_straightline_tile_dist(map, center_pos, castle_flag_pos) < 12){
         if (map->get_owner(pos) == -1) {
           pos_value += expand_towards.count("castle_buffer") * 1;
-          //AILogDebug["util_score_area"] << "adding castle_buffer value for unclaimed territory near our castle";
+          AILogDebug["util_score_area"] << "adding castle_buffer value for unclaimed territory near our castle";
           //ai_mark_pos.erase(pos);
           //ai_mark_pos.insert(ColorDot(pos, "black"));
           //sleep_speed_adjusted(100);

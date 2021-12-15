@@ -80,6 +80,7 @@ class AI {
   Serf::SerfMap serfs_potential;
   int *serfs_total;
   bool need_tools;
+  unsigned int last_sent_geologist_tick = 0;  // used to throttle sending geologists
   std::set<MapPos> new_stocks = {};  // AI STATEFULNESS WARNING - this is used to detect when a stock transitions from completed-but-not-occupied to occupied, and will not trigger if game saved/loaded between
   // Now that multiple economies implemented I think the entire XXX_building_counts are worthless
   //   remove the entire concept and instead just search for nearby buildings
@@ -436,6 +437,8 @@ static const unsigned int hills_min = 9;   // don't send geologists unless subst
 static const unsigned int waters_min = 24;  // don't build fisherman unless substantial waters
 static const unsigned int hammers_min = 6; // don't create geologists unless this many hammers in reserve
 static const unsigned int geologists_max = 2; // UPDATE this is now not a fixed value at all, it is now: 2+(geologists_max*number of Inventories (castle/stock))
+static const unsigned int builders_max = 6; // if this many builders in realm, don't create new hammers (unless a new blacksmith building needs a blacksmith)
+static const unsigned int blacksmiths_max = 1; // if this many blacksmith serfs in realm, don't create new hammers (unless a new blacksmith building needs a blacksmith)
 
 // deprioritize sending geologists to area where signs density is over this amount (prefer send geologists to unevaluated areas)
 static constexpr double geologist_sign_density_deprio = 0.40;

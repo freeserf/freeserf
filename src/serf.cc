@@ -990,7 +990,7 @@ Serf::train_knight(int p) {
     if (game->random_int() < p) {
       /* Level up */
       Serf::Type old_type = get_type();
-      Log::Debug["serf"] << "inside train_knight, about to call_set_type";
+      //Log::Debug["serf"] << "inside train_knight, about to call set_type";
       set_type((Serf::Type)(old_type + 1));
       counter = 6000;
       return 0;

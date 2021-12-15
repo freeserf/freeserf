@@ -55,6 +55,7 @@ AI::AI(PGame current_game, unsigned int _player_index) {
   //cannot_expand_borders_this_loop = false;
   change_buffer = 0;
   previous_knight_occupation_level = -1;
+  last_sent_geologist_tick = 0;  // used to throttle sending geologists
 
   road_options.reset(RoadOption::Direct);
   road_options.set(RoadOption::SplitRoads);
@@ -168,7 +169,7 @@ AI::next_loop(){
   do_manage_tool_priorities();
   do_manage_mine_food_priorities();
   do_balance_sword_shield_priorities();
-  do_attack();
+  //do_attack();
   do_manage_knight_occupation_levels();
 
   // rename this to Inventories instead of Stocks
@@ -279,7 +280,7 @@ AI::do_place_castle() {
     // changed this to mutex.lock() instead, but keeping this because... I dunno it seems nicer when they don't all start at exactly the same time
     //   maybe start doing random wait instead?  meh
     AILogDebug["do_place_castle"] << "sleeping " << player_index << "sec so each AI player thread gets different seed for random map pos";
-    std::this_thread::sleep_for(std::chrono::milliseconds(1500));
+    std::this_thread::sleep_for(std::chrono::milliseconds(2000 * player_index));
     // I think this needs to get the existing game Random rnd, NOT creating a new one
     // yes, added Game::get_rand function, trying using it instead of this
     //Random rnd;  
@@ -1226,6 +1227,11 @@ AI::do_fix_missing_transporters() {
 //  when excess hammers exist that are consumed by new builders, etc. at the
 //  same time that geologists are consuming them as the AI may build 6 or 7
 //  buildings in parallel if conditions are right during the early game
+//
+// another idea to limit excess geologists - don't build hammers once a certain
+//  number of builders reached, UNLESS a new unoccupied blacksmith exists and
+//  no blacksmith/hammers available to fill it
+//
 void
 AI::do_send_geologists() {
   //
@@ -1237,6 +1243,16 @@ AI::do_send_geologists() {
   start = std::clock();
   AILogDebug["do_send_geologists"] << inventory_pos << " starting";
   ai_status.assign("do_send_geologists");
+
+  // throttle sending geologists after game progresses a bit
+  int occupied_huts = realm_occupied_building_count[Building::TypeHut];
+  if (occupied_huts >= 6){
+    if (last_sent_geologist_tick + 10000 > game->get_tick()){
+      AILogInfo["do_send_geologists"] << "it has been less than 10000 ticks since a geologist was last sent, not sending any now.  last_sent_geologist_tick " << last_sent_geologist_tick << ", current tick " << game->get_tick();
+      return;
+    }
+  }
+
   MapPosSet count_by_corner;
   MapPosVector geologist_positions;
   /* don't stop sending geologists
@@ -1282,7 +1298,7 @@ AI::do_send_geologists() {
 
   // only create new geologists is sufficient hammers
   if (excess_hammers > 0) {
-    // its possible to accidently create > geologists_max, so if this happens avoid going negative
+    // its possible to accidentally create > geologists_max, so if this happens avoid going negative
     //   initial max is 4, adds 2 for each Stock built
     AILogDebug["do_send_geologists"] << inventory_pos << " debug - adjusted_geologists_max is " << adjusted_geologists_max;
     if (total_geologists >= adjusted_geologists_max) {
@@ -1554,8 +1570,11 @@ AI::do_send_geologists() {
             // because of incredibly frustrating "too many geologists" / idle_geologists issue, only send one geologist per call of this function.
             //   and even THIS will probably not work right for warehouse/stocks
             //AILogDebug["do_send_geologists"] << inventory_pos << " sent a geologist to pos " << pos << ", not sending any more geologists until next call of this function";
-            //return;
-            AILogDebug["do_send_geologists"] << inventory_pos << " sent a geologist to pos " << pos;
+
+            // ugh still to many no matter what I do
+            last_sent_geologist_tick = game->get_tick();
+            return;
+            //AILogDebug["do_send_geologists"] << inventory_pos << " sent a geologist to pos " << pos;
           }
           else {
             AILogDebug["do_send_geologists"] << inventory_pos << " failed to send geologist to pos " << pos << ".  This happens sometimes but appears benign.  Sleeping 1sec";
@@ -2290,6 +2309,7 @@ AI::do_manage_tool_priorities() {
   AILogDebug["do_manage_tool_priorities"] << "inside manage_tool_priorities";
   AILogDebug["do_manage_tool_priorities"] << "HouseKeeping: ensure sufficient tools";
   ai_status.assign("do_manage_tool_priorities");
+
   // allow default priorities to determine which tool to make if more than one type is needed
   // UPDATE - no longer using default priorities see later in this function
   AILogDebug["do_manage_tool_priorities"] << "resetting plank/steel priorities to default";
@@ -2300,6 +2320,43 @@ AI::do_manage_tool_priorities() {
   player->set_coal_steelsmelter(32750);
   player->set_coal_goldsmelter(65500);
   player->set_coal_weaponsmith(52400);
+
+  //AILogVerbose["do_manage_tool_priorities"] << "thread #" << std::this_thread::get_id() << " AI is locking mutex before calling game->get_player_buildings(player) (for manage toolmaker)";
+  //game->get_mutex()->lock();
+  //AILogVerbose["do_manage_tool_priorities"] << "thread #" << std::this_thread::get_id() << " AI has locked mutex before calling game->get_player_buildings(player) (for manage toolmaker)";
+  Game::ListBuildings buildings = game->get_player_buildings(player);
+  //AILogVerbose["do_manage_tool_priorities"] << "thread #" << std::this_thread::get_id() << " AI is unlocking mutex after calling game->get_player_buildings(player) (for manage toolmaker)";
+  //game->get_mutex()->unlock();
+  //AILogVerbose["do_manage_tool_priorities"] << "thread #" << std::this_thread::get_id() << " AI has unlocked mutex after calling game->get_player_buildings(player) (for manage toolmaker)";
+
+
+  // WORKAROUND - limit hammer creation to help to avoid accidentally creating excess geologists:
+  //  stop creating hammers once minimum number of geologists and builders and blacksmiths reached
+  //  IF there is not currently a completed blacksmith building waiting for a new blacksmith serf
+  bool forbid_hammers = false;
+  unsigned int adjusted_geologists_max = 1 + (geologists_max * stock_buildings.size());
+  if (serfs_total[Serf::TypeBuilder] >= builders_max && serfs_total[Serf::TypeGeologist] >= adjusted_geologists_max && serfs_total[Serf::TypeWeaponSmith] >= blacksmiths_max){
+    forbid_hammers = true;
+    AILogDebug["do_manage_tool_priorities"] << "have sufficient builders, geologists, and blacksmiths, checking to see if any built, unoccupied WeaponSmith buildings";
+    for (Building *building : buildings) {
+      if (building == nullptr)
+        continue;
+      if (building->get_type() != Building::TypeWeaponSmith)
+        continue;
+      if (!building->is_done())
+        continue;
+      if (building->has_serf())
+        continue;
+      AILogDebug["do_manage_tool_priorities"] << "a completed blacksmith building requiring a serf was found at pos " << building->get_position() << ", allowing new hammers to be created";
+      forbid_hammers = false;
+    }
+  }
+  if (forbid_hammers){
+    AILogDebug["do_manage_tool_priorities"] << "have sufficient builders, geologists, and blacksmiths, and no new blacksmith buildings needing Serf.  Not allowing new hammers to be created";
+  }
+
+
+
   need_tools = false;
   unsigned int planks_count = realm_inv[Resource::TypePlank];
   for (int i = 0; i < 20; ++i) {
@@ -2323,6 +2380,14 @@ AI::do_manage_tool_priorities() {
     //  AILogDebug["do_manage_tool_priorities"] << "need more available serfs of job type " << NameSerf[i];
     //  need_tools = true;
     //}
+    
+    if (i == Serf::TypeBuilder || i == Serf::TypeGeologist || i == Serf::TypeWeaponSmith){
+      if (forbid_hammers){
+        AILogDebug["do_manage_tool_priorities"] << "forbid_hammers is true, not considering needs_tools for hammer-requiring profession " << NameSerf[i];
+        continue;
+      }
+    }
+
     //if (available < 1) {
     if (available < 2) {
       AILogDebug["do_manage_tool_priorities"] << "need more available serfs of job type " << NameSerf[i];
@@ -2332,6 +2397,7 @@ AI::do_manage_tool_priorities() {
       need_tools = true;
     }
   }
+  
   // this is one toolmaker in entire REALM, but that is okay
   if (realm_building_count[Building::TypeToolMaker] < 1) {
     AILogDebug["do_manage_tool_priorities"] << "no toolmaker exists yet!";
@@ -2347,6 +2413,14 @@ AI::do_manage_tool_priorities() {
         player->set_tool_prio(i, 0);
         continue;
       }
+
+      // hammer is tool #1 (second item in list - see NameTool lookup table)
+      if (i == 1 && forbid_hammers){
+        AILogDebug["do_manage_tool_priorities"] << "forbid_hammers is true, not setting hammer priority";
+        player->set_tool_prio(i, 0);
+        continue;
+      }
+
       if (tool_count == 1) {
         // have one, want one more, set medium priority
         player->set_tool_prio(i, 32750);
@@ -2366,13 +2440,9 @@ AI::do_manage_tool_priorities() {
       // scythe is tool #4 (fifth item in list - see NameTool lookup table)
       player->set_tool_prio(4, 65500);
     }
-    //AILogVerbose["do_manage_tool_priorities"] << "thread #" << std::this_thread::get_id() << " AI is locking mutex before calling game->get_player_buildings(player) (for manage toolmaker)";
-    //game->get_mutex()->lock();
-    //AILogVerbose["do_manage_tool_priorities"] << "thread #" << std::this_thread::get_id() << " AI has locked mutex before calling game->get_player_buildings(player) (for manage toolmaker)";
-    Game::ListBuildings buildings = game->get_player_buildings(player);
-    //AILogVerbose["do_manage_tool_priorities"] << "thread #" << std::this_thread::get_id() << " AI is unlocking mutex after calling game->get_player_buildings(player) (for manage toolmaker)";
-    //game->get_mutex()->unlock();
-    //AILogVerbose["do_manage_tool_priorities"] << "thread #" << std::this_thread::get_id() << " AI has unlocked mutex after calling game->get_player_buildings(player) (for manage toolmaker)";
+
+
+    // manage ToolMaker
     for (Building *building : buildings) {
       if (building == nullptr)
         continue;
@@ -2400,7 +2470,7 @@ AI::do_manage_tool_priorities() {
     }
   }
   else {
-    AILogDebug["do_manage_tool_priorities"] << "have toolmaker but don't need any tools yet";
+    AILogDebug["do_manage_tool_priorities"] << "have toolmaker but don't need any tools now";
   }
 }
 
@@ -2804,7 +2874,7 @@ AI::do_build_sawmill_lumberjacks() {
     } // foreach military building
   }
   else {
-    AILogDebug["do_build_sawmill_lumberjacks"] << inventory_pos << " have sufficient planks, skipping";
+    AILogDebug["do_build_sawmill_lumberjacks"] << inventory_pos << " have sufficient planks and/or wood buildings, skipping";
   }
   AILogDebug["do_build_sawmill_lumberjacks"] << inventory_pos << " done do_build_sawmill_lumberjacks";
   duration = (std::clock() - start) / static_cast<double>(CLOCKS_PER_SEC);
@@ -2934,13 +3004,15 @@ AI::do_build_stonecutter() {
             stock_buildings.at(inventory_pos).unfinished_count++;
             break;
           }
+          // if couldn't build, add to bad_building_pos list so it doesn't keep trying every loop
+          bad_building_pos.insert(std::make_pair(pos, Building::TypeStonecutter));
         }
         if (built_pos != bad_map_pos && built_pos != notplaced_pos) { break; }
       }
     } // foreach military building
   }
   else {
-    AILogDebug["do_build_stonecutter"] << inventory_pos << " have sufficient stones, skipping";
+    AILogDebug["do_build_stonecutter"] << inventory_pos << " have sufficient stone and/or stonecutters, skipping";
   }
   AILogDebug["do_build_stonecutter"] << inventory_pos << " done do_build_stonecutter";
 }
@@ -3367,7 +3439,7 @@ AI::do_connect_coal_mines() {
     } // foreach flag
   }
   else {
-    AILogDebug["do_connect_coal_mines"] << inventory_pos << " have sufficient coal, skipping";
+    AILogDebug["do_connect_coal_mines"] << inventory_pos << " have sufficient coal and/or coal buildings, skipping";
   }
   AILogDebug["do_connect_coal_mines"] << inventory_pos << " done do_connect_coal_mines";
 }
@@ -3432,7 +3504,7 @@ AI::do_connect_iron_mines() {
     }
   }
   else {
-    AILogDebug["do_connect_iron_mines"] << inventory_pos << " have sufficient iron, skipping";
+    AILogDebug["do_connect_iron_mines"] << inventory_pos << " have sufficient iron and/or iron buildings, skipping";
   }
   AILogDebug["do_connect_iron_mines"] << inventory_pos << " done do_connect_iron_mines";
 }
@@ -3641,7 +3713,7 @@ AI::do_build_gold_smelter_and_connect_gold_mines() {
   } else {
     // is it ever possible to have enough gold?  Is morale derived from this player's gold compared to each opponents gold??  Or total of everyone else's gold??
     //  it seems to be the player's ratio of refined gold compared to the opponents and the total amount of all gold ore originally in mountains on the map
-    AILogDebug["do_build_gold_smelter_and_connect_gold_mines"] << inventory_pos << " have sufficient gold, skipping";
+    AILogDebug["do_build_gold_smelter_and_connect_gold_mines"] << inventory_pos << " have sufficient gold and/or gold buildings, skipping";
   }
   AILogDebug["do_build_gold_smelter_and_connect_gold_mines"] << inventory_pos << " done do_build_gold_smelter_and_connect_gold_mines";
 }
@@ -3742,15 +3814,15 @@ AI::do_build_better_roads_for_important_buildings() {
       continue;
     }
     AILogDebug["do_build_better_roads_for_important_buildings"] << "do_build_better_roads_for_important_buildings found high-priority building of type " << NameBuilding[type] << " at pos " << building->get_position();
-    ai_mark_pos.erase(building->get_position());
-    ai_mark_pos.insert(ColorDot(building->get_position(), "dk_coral"));
+    //ai_mark_pos.erase(building->get_position());
+    //ai_mark_pos.insert(ColorDot(building->get_position(), "dk_coral"));
     //sleep_speed_adjusted(3000);
     road_options.set(RoadOption::Improve);
     MapPos building_flag_pos = map->move_down_right(building->get_position());
     Road road_built;
     if(build_best_road(building_flag_pos, road_options, &road_built, "do_build_better_roads", type)){
       AILogDebug["do_build_better_roads_for_important_buildings"] << "successfully built an improved road connection for building of type " << NameBuilding[type] << " at pos " << building->get_position() << " to its affinity building (whatever that may be - check build_best_road result)";
-      ai_mark_build_better_roads->push_back(road_built);
+      //ai_mark_build_better_roads->push_back(road_built);
     }
     road_options.reset(RoadOption::Improve);
   }
