@@ -467,6 +467,8 @@ void
 AI::do_promote_serfs_to_knights() {
   AILogDebug["do_promote_serfs_to_knights"] << "inside do_promote_serfs_to_knights";
   ai_status.assign("HOUSEKEEPING - promote serfs to knights");
+  if(stock_inv == nullptr)
+    return;
   unsigned int idle_serfs = static_cast<unsigned int>(stock_inv->free_serf_count());
   unsigned int swords_count = stock_inv->get_count_of(Resource::TypeSword);
   unsigned int shields_count = stock_inv->get_count_of(Resource::TypeShield);
@@ -2148,6 +2150,8 @@ AI::do_demolish_excess_lumberjacks() {
   AILogDebug["do_demolish_excess_lumberjacks"] << inventory_pos << " inside do_demolish_excess_lumberjacks";
   ai_status.assign("do_demolish_excess_lumberjacks");
   int lumberjack_count = stock_buildings.at(inventory_pos).count[Building::TypeLumberjack];
+  if(stock_inv == nullptr)
+    return;
   unsigned int wood_count = stock_inv->get_count_of(Resource::TypePlank) + stock_res_sitting_at_flags.at(inventory_pos)[Resource::TypePlank];
   wood_count += stock_inv->get_count_of(Resource::TypeLumber) + stock_res_sitting_at_flags.at(inventory_pos)[Resource::TypeLumber];
   if (wood_count >= (planks_max + anti_flapping_buffer) && lumberjack_count > 1) {
@@ -2203,6 +2207,8 @@ AI::do_demolish_excess_food_buildings() {
   ai_status.assign("do_demolish_excess_food_buildings");
   unsigned int stored_food_count = 0;
   // most important are read-to-use food items stored in Inventory
+  if(stock_inv == nullptr)
+    return;
   stored_food_count += stock_inv->get_count_of(Resource::TypeBread) + stock_res_sitting_at_flags.at(inventory_pos)[Resource::TypeBread];
   stored_food_count += stock_inv->get_count_of(Resource::TypeMeat) + stock_res_sitting_at_flags.at(inventory_pos)[Resource::TypeMeat];
   stored_food_count += stock_inv->get_count_of(Resource::TypeFish) + stock_res_sitting_at_flags.at(inventory_pos)[Resource::TypeFish];
@@ -2724,6 +2730,8 @@ AI::do_build_sawmill_lumberjacks() {
   start = std::clock();
   AILogDebug["do_build_sawmill_lumberjacks"] << inventory_pos << " inside do_build_sawmill_lumberjacks";
   ai_status.assign("do_build_sawmill_lumberjacks");
+  if(stock_inv == nullptr)
+    return;
   unsigned int wood_count = stock_inv->get_count_of(Resource::TypePlank) + stock_res_sitting_at_flags.at(inventory_pos)[Resource::TypePlank];
   // include raw logs as they will become planks
   wood_count += stock_inv->get_count_of(Resource::TypeLumber) + stock_res_sitting_at_flags.at(inventory_pos)[Resource::TypeLumber];
@@ -2810,6 +2818,8 @@ AI::do_build_sawmill_lumberjacks() {
 bool
 AI::do_wait_until_sawmill_lumberjacks_built() {
   AILogDebug["do_wait_until_sawmill_lumberjacks_built"] << inventory_pos << " inside do_wait_until_sawmill_lumberjacks_built";
+  if(stock_inv == nullptr)
+    return false;
   unsigned int planks_count = stock_inv->get_count_of(Resource::TypePlank);
   if (planks_count >= planks_min) {
     AILogDebug["do_wait_until_sawmill_lumberjacks_built"] << inventory_pos << " have enough planks - no need to wait, continuing";
@@ -2989,6 +2999,8 @@ AI::do_build_toolmaker_steelsmelter() {
 
   // if no steel, but have iron & coal, build steelsmelter to produce steel for toolmaker
   //   do this even if no toolmaker exists and tools not needed yet, they might be needed soon
+  if(stock_inv == nullptr)
+    return;
   unsigned int steel_count = stock_inv->get_count_of(Resource::TypeSteel);
   unsigned int iron_ore_count = stock_inv->get_count_of(Resource::TypeIronOre);
   unsigned int coal_count = stock_inv->get_count_of(Resource::TypeCoal);
@@ -3431,6 +3443,8 @@ void
 AI::do_build_steelsmelter() {
   ai_status.assign("do_build_steelsmelter");
   AILogDebug["do_build_steelsmelter"] << inventory_pos << " inside do_build_steelsmelter()";
+  if(stock_inv == nullptr)
+    return;
   unsigned int steel_count = stock_inv->get_count_of(Resource::TypeSteel);
   int steelsmelter_count = stock_buildings.at(inventory_pos).count[Building::TypeSteelSmelter];
   MapPos built_pos = bad_map_pos;
@@ -3485,6 +3499,8 @@ AI::do_build_blacksmith() {
   MapPos built_pos = bad_map_pos;
   if (stock_buildings.at(inventory_pos).count[Building::TypeWeaponSmith] < 1) {
     // don't build unless sufficient coal, and iron or steel
+    if(stock_inv == nullptr)
+      return;
     unsigned int coal_count = stock_inv->get_count_of(Resource::TypeCoal);
     unsigned int iron_ore_count = stock_inv->get_count_of(Resource::TypeIronOre);
     unsigned int steel_count = stock_inv->get_count_of(Resource::TypeSteel);
@@ -3538,6 +3554,8 @@ AI::do_build_gold_smelter_and_connect_gold_mines() {
   //   if enough unprocessed gold ore is stored
   //   OR if already have a gold mine
   //
+  if(stock_inv == nullptr)
+    return;
   unsigned int gold_ore_count = stock_inv->get_count_of(Resource::TypeGoldOre) + stock_res_sitting_at_flags.at(inventory_pos)[Resource::TypeGoldOre];
   if ((gold_ore_count >= gold_ore_min || stock_buildings.at(inventory_pos).completed_count[Building::TypeGoldMine] > 0)
          && stock_buildings.at(inventory_pos).count[Building::TypeGoldSmelter] < 1) {
@@ -3995,6 +4013,8 @@ AI::do_check_resource_needs(){
   //
   // wood planks
   //
+  if(stock_inv == nullptr)
+    return;
   unsigned int wood_count = stock_inv->get_count_of(Resource::TypePlank) + stock_res_sitting_at_flags.at(inventory_pos)[Resource::TypePlank];
   //   include raw logs that will be processed into planks at SawMill
   wood_count += stock_inv->get_count_of(Resource::TypeLumber) + stock_res_sitting_at_flags.at(inventory_pos)[Resource::TypeLumber];
@@ -4042,6 +4062,8 @@ AI::do_check_resource_needs(){
   //
   unsigned int stored_food_count = 0;
   // most important are ready-to-use food items stored in this Inventory
+  if(stock_inv == nullptr)
+    return;
   stored_food_count += stock_inv->get_count_of(Resource::TypeBread) + stock_res_sitting_at_flags.at(inventory_pos)[Resource::TypeBread];
   stored_food_count += stock_inv->get_count_of(Resource::TypeMeat) + stock_res_sitting_at_flags.at(inventory_pos)[Resource::TypeMeat];
   stored_food_count += stock_inv->get_count_of(Resource::TypeFish) + stock_res_sitting_at_flags.at(inventory_pos)[Resource::TypeFish];
@@ -4093,6 +4115,8 @@ AI::do_check_resource_needs(){
   //
   // coal
   //
+  if(stock_inv == nullptr)
+    return;
   unsigned int coal_count = stock_inv->get_count_of(Resource::TypeCoal) + stock_res_sitting_at_flags.at(inventory_pos)[Resource::TypeCoal];
   if (coal_count < coal_max) {
     AILogDebug["do_check_resource_needs"] << inventory_pos << " desire more coal";
@@ -4109,6 +4133,8 @@ AI::do_check_resource_needs(){
   // iron & steel
   //  if steel > max, ignore steel buildings, iron ore, iron buildings
   //
+  if(stock_inv == nullptr)
+    return;
   unsigned int steel_count = stock_inv->get_count_of(Resource::TypeSteel) + stock_res_sitting_at_flags.at(inventory_pos)[Resource::TypeSteel];
   if (steel_count < steel_max){
     AILogDebug["do_check_resource_needs"] << inventory_pos << " desire more steel";
@@ -4136,6 +4162,8 @@ AI::do_check_resource_needs(){
   //  AILogDebug["do_check_resource_needs"] << inventory_pos << " desire a gold smelter";
   //  e
   //}
+  if(stock_inv == nullptr)
+    return;
   unsigned int gold_ore_count = stock_inv->get_count_of(Resource::TypeGoldOre) + stock_res_sitting_at_flags.at(inventory_pos)[Resource::TypeGoldOre];
   if (gold_ore_count < gold_ore_max) {
     AILogDebug["do_check_resource_needs"] << inventory_pos << " desire more gold ore";
@@ -4462,6 +4490,8 @@ void
 AI::do_build_3rd_lumberjack() { 
   unsigned int sawmill_count = stock_buildings.at(inventory_pos).count[Building::TypeSawmill];
   unsigned int lumberjack_count = stock_buildings.at(inventory_pos).count[Building::TypeLumberjack];
+  if(stock_inv == nullptr)
+    return;
   unsigned int planks_count = stock_inv->get_count_of(Resource::TypePlank);
   AILogDebug["do_build_3rd_lumberjack"] << inventory_pos << " debug current lumberjack count: " << lumberjack_count << ", sawmill_count: " << sawmill_count << ", planks_count: " << planks_count << ", planks_max: " << planks_max;
   if (stock_buildings.at(inventory_pos).needs_wood && sawmill_count > 0 && planks_count <= planks_max && lumberjack_count < 3) {

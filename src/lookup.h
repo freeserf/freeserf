@@ -313,6 +313,7 @@ const std::string NameDirection[]{
   "NorthEast / Up"           // 5
 };
 
+
 const std::string NamePlayerFace[]{
   "InvalidFace0",
   "Lady Amelie",

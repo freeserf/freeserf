@@ -196,8 +196,15 @@ AI::update_building_counts() {
     // third time, never seen before, totally invalid map pos.  this is very likely a wrong pointer
     // fourth time, just like 1st and 2nd, knight hut
     // 5th, knight hut stub road, had a spiderweb road built to it
+    // 6th, can't tell.  
+    // bypassing this error for now
     AILogDebug["util_update_building_counts"] << "debug has a building of type " << type << " at pos " << pos << ", with flag_pos " << flag_pos;
-	  AILogVerbose["util_update_building_counts"] << "has a building of type " << NameBuilding[type] << " at pos " << pos << ", with flag_pos " << flag_pos;
+    if (type > Building::TypeCastle){
+      AILogError["util_update_building_counts"] << "RECURRING BUG! has a building of invalid type " << type << " at pos " << pos << ", with flag_pos " << flag_pos << "! bypassing error";
+      continue;
+    }
+
+	  //AILogVerbose["util_update_building_counts"] << "has a building of type " << NameBuilding[type] << " at pos " << pos << ", with flag_pos " << flag_pos;
 
     if (type == Building::TypeCastle) {
       if (!building->is_done()) {
@@ -803,7 +810,7 @@ AI::build_best_road(MapPos start_pos, RoadOptions road_options, Road *built_road
       // HoldBuildingPos ignored
       
 
-      
+
       // enhancement - if there is no flag at the target_pos, create one
       //  this allows the calling function to suggest termination points
       //  rather than the usual wandering discovery that non-direct roads use
