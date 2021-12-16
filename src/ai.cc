@@ -273,6 +273,9 @@ AI::do_place_castle() {
     //    but have the minimum scores reduced a bit for each area scored so it eventually settles on something
     //
     // pick random spots on the map until an acceptable area found, and try building there
+    ///===========================================================================================================
+    //  IMPROVEMENT NEEDED - after X tries fail, reduce requirements so that castle can still be placed!!!
+    ///===========================================================================================================
     //
     // IMPORTANT - with multiple AI threads all starting at the same time, they are trying to build castle at the same time,
     //    this Random rnd will actually be IDENTICAL across all threads!  To mix them up, sleep a bit so that
@@ -601,15 +604,11 @@ AI::do_spiderweb_roads() {
   //
   AILogDebug["do_spiderweb_roads"] << inventory_pos << " HouseKeeping: creating spider-web roads";
   // only do this every X loops, and only add one new road per run
-  //unsigned int completed_huts = realm_completed_building_count[Building::TypeHut];
-  // shouldn't this be INVENTORY building count as it does per Inventory?  
-  //if ( loop_count % 20 != 0 || completed_huts < 9 || completed_huts > 25) {
   unsigned int completed_huts = stock_buildings.at(inventory_pos).completed_count[Building::TypeHut];
-
   if (inventory_pos == castle_flag_pos){
     // castle gets more spiderweb roads
-    if ( loop_count % 24 != 0 || completed_huts < 8 || completed_huts > 20) {
-      AILogDebug["do_spiderweb_roads"] << inventory_pos << " skipping spider-web roads for castle, only running every twenty loops and completed knight huts " << completed_huts << " is >8 or <19";
+    if ( loop_count % 24 != 0 || completed_huts < 8 || completed_huts > 22) {
+      AILogDebug["do_spiderweb_roads"] << inventory_pos << " skipping spider-web roads for castle, only running every twenty loops and completed knight huts " << completed_huts << " is >8 or <22";
       return;
     }
   }else{
@@ -4583,10 +4582,10 @@ AI::do_build_3rd_lumberjack() {
   if(stock_inv == nullptr)
     return;
   unsigned int planks_count = stock_inv->get_count_of(Resource::TypePlank);
-  AILogDebug["do_build_3rd_lumberjack"] << inventory_pos << " debug current lumberjack count: " << lumberjack_count << ", sawmill_count: " << sawmill_count << ", planks_count: " << planks_count << ", planks_max: " << planks_max;
   unsigned int wood_count = stock_inv->get_count_of(Resource::TypePlank) + stock_res_sitting_at_flags.at(inventory_pos)[Resource::TypePlank];
   //   include raw logs that will be processed into planks at SawMill
   wood_count += stock_inv->get_count_of(Resource::TypeLumber) + stock_res_sitting_at_flags.at(inventory_pos)[Resource::TypeLumber];
+  AILogDebug["do_build_3rd_lumberjack"] << inventory_pos << " debug current lumberjack count: " << lumberjack_count << ", sawmill_count: " << sawmill_count << ", planks_count: " << planks_count << ", planks_max: " << planks_max << " adjusted wood_count: " << wood_count;
   if (wood_count < planks_max && sawmill_count > 0 && planks_count <= planks_max && lumberjack_count < 3) {
     AILogDebug["do_build_3rd_lumberjack"] << inventory_pos << " wood not maxed, have sawmill, and have few than three lumberjacks, build a third";
     // count trees near military buildings,
@@ -4619,4 +4618,5 @@ AI::do_build_3rd_lumberjack() {
     }
   } else{
     AILogDebug["do_build_3rd_lumberjack"] << inventory_pos << " have sufficient wood or wood buildings";
+  }
 } // 3rd lumberjack
