@@ -1322,6 +1322,7 @@ Road::extend(Direction dir) {
     return false;
   }
 
+  // dec15 2021 got map::at out of range
   dirs.push_back(dir);
 
   return true;

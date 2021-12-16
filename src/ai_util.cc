@@ -222,9 +222,14 @@ AI::update_building_counts() {
       continue;
     }
   
-    // skip completed Stocks, they are tracked elsewhere
-    if (type == Building::TypeStock && building->is_done())
+    // make completed stocks the first item in that stock's occupied_military pos, even
+    //  though it isn't really military it is a good first place to build buildings that
+    //  have no affinity
+    if (type == Building::TypeStock && building->is_done()){
+      AILogVerbose["util_update_building_counts"] << "adding occupied Stock building at " << pos << " to stock's occupied_military_pos list, even though it isn't really military";
+      stock_buildings.at(flag_pos).occupied_military_pos.push_back(flag_pos);
       continue;
+    }
 
 	  // for military buildings, track the nearest Inventory by straight-line distance
 	  //  as these are used for general selection of nearby huts when looking for things
@@ -713,6 +718,10 @@ AI::build_best_road(MapPos start_pos, RoadOptions road_options, Road *built_road
 
   MapPosVector targets = {};  // these are flag positions
 
+  //double sofarduration = (std::clock() - start) / static_cast<double>(CLOCKS_PER_SEC);
+  //AILogDebug["util_build_best_road"] << "A. " << calling_function << " SO FAR call took " << sofarduration;
+
+
   // handle the optional_target arg if set
   if (optional_target != bad_map_pos) {
     // only for road improvements, target a specific flag or building pos rather than generic "connect to road system"
@@ -771,6 +780,9 @@ AI::build_best_road(MapPos start_pos, RoadOptions road_options, Road *built_road
     }
   }
 
+  //sofarduration = (std::clock() - start) / static_cast<double>(CLOCKS_PER_SEC);
+  //AILogDebug["util_build_best_road"] << "B. " << calling_function << " SO FAR call took " << sofarduration;
+
   unsigned int roads_built = 0;
   unsigned int target_count = static_cast<unsigned int>(targets.size());
   //
@@ -783,6 +795,8 @@ AI::build_best_road(MapPos start_pos, RoadOptions road_options, Road *built_road
 
   int target_num = 0;  // TEMP UNTIL REVAMP
   for (MapPos target_pos : targets) {
+    //sofarduration = (std::clock() - start) / static_cast<double>(CLOCKS_PER_SEC);
+    //AILogDebug["util_build_best_road"] << "C. " << calling_function << " SO FAR call took " << sofarduration;
     //
     // TEMP UNTIL REVAMP
     //
@@ -797,7 +811,7 @@ AI::build_best_road(MapPos start_pos, RoadOptions road_options, Road *built_road
     }
     AILogDebug["util_build_best_road"] << "" << calling_function << " considering target_pos " << target_pos;
     AILogDebug["util_build_best_road"] << "" << calling_function << " plotting road to connect flag at pos " << start_pos << " to target_pos " << target_pos << " via road network";
-    Roads split_roads;
+    // Roads split_roads; moving this to INSIDE loop so it isn't accumulating ALL split_roads from ALL real flags
     //
     // ##   Direct   ## roads are simple A->B connection from start_pos to target_pos of FIRST affinity building, no second roads
     //
@@ -841,6 +855,7 @@ AI::build_best_road(MapPos start_pos, RoadOptions road_options, Road *built_road
         }
       }
 
+      Roads split_roads;  // moving this here inside loop so it isn't accumulating ALL split_roads from ALL real flags
       Road proposed_direct_road = plot_road(map, player_index, start_pos, target_pos, &split_roads);
       bool plotted_succesfully = false;
       if (proposed_direct_road.get_length() > 0){
@@ -913,6 +928,8 @@ AI::build_best_road(MapPos start_pos, RoadOptions road_options, Road *built_road
       }
     }
 
+    //sofarduration = (std::clock() - start) / static_cast<double>(CLOCKS_PER_SEC);
+    //AILogDebug["util_build_best_road"] << "D. " << calling_function << " SO FAR call took " << sofarduration;
     //
     // ## non-Direct ## roads terminate at best scoring acceptable end_pos flag, which could be a direct route to the target flag or join an existing road
     //
@@ -1020,6 +1037,8 @@ AI::build_best_road(MapPos start_pos, RoadOptions road_options, Road *built_road
     } // foreach pos around halfway_pos
     AILogDebug["util_build_best_road"] << "" << calling_function << " non-direct road requested, done finding flags near halfway_pos, nearby_flags currently has " << nearby_flags.size() << " elements";
 
+    //sofarduration = (std::clock() - start) / static_cast<double>(CLOCKS_PER_SEC);
+    //AILogDebug["util_build_best_road"] << "E. " << calling_function << " SO FAR call took " << sofarduration;
     //
     // to avoid long snakey roads, also include flags around the start_pos (often a new building)
     //
@@ -1072,6 +1091,8 @@ AI::build_best_road(MapPos start_pos, RoadOptions road_options, Road *built_road
       return false;
     }
 
+    //sofarduration = (std::clock() - start) / static_cast<double>(CLOCKS_PER_SEC);
+    //AILogDebug["util_build_best_road"] << "F. " << calling_function << " SO FAR call took " << sofarduration;
     //
     // plot Roads to the found nearby flags ends and score them in terms of NEW LENGTH
     //    store any that are "good enough" (under the max_convolution limit)
@@ -1083,6 +1104,8 @@ AI::build_best_road(MapPos start_pos, RoadOptions road_options, Road *built_road
     AILogDebug["util_build_best_road"] << "" << calling_function << " non-direct road requested, about to plot roads to nearby_flags, checking tile_dist from start_pos " << start_pos << " to end_pos " << target_pos << " for an ideal road";
     int ideal_length = AI::get_straightline_tile_dist(map, start_pos, target_pos);
     AILogDebug["util_build_best_road"] << "" << calling_function << " non-direct road requested, about to plot roads to nearby_flags, flag target_pos at " << target_pos << " has straight-line tile distance " << ideal_length << " from start_pos " << start_pos;
+    //sofarduration = (std::clock() - start) / static_cast<double>(CLOCKS_PER_SEC);
+    //AILogDebug["util_build_best_road"] << "F1. " << calling_function << " SO FAR call took " << sofarduration;
     // for each nearby_flag:
     //   - if this is "tracked economy building", ensure the flag is closest to the currently selected Inventory (castle/warehouse) 
     //      in terms of Flag distance so that any resources produced will be stored there and not some other Inventory where it might 
@@ -1109,6 +1132,7 @@ AI::build_best_road(MapPos start_pos, RoadOptions road_options, Road *built_road
       // 
       // NOTE - the split_roads vector will be filled by this plot_road call with all potential splitting Road solutions! 
       //
+      Roads split_roads;  // moving this here inside loop so it isn't accumulating ALL split_roads from ALL real flags
       Road potential_road = plot_road(map, player_index, start_pos, end_pos, &split_roads, road_options.test(RoadOption::HoldBuildingPos));
       // this while(true) loop looks goofy to me but it was the only clean way to do it without a GOTO statement
       while (true){
@@ -1143,6 +1167,9 @@ AI::build_best_road(MapPos start_pos, RoadOptions road_options, Road *built_road
         break;
       } // while true - find direct road
 
+      //sofarduration = (std::clock() - start) / static_cast<double>(CLOCKS_PER_SEC);
+     //AILogDebug["util_build_best_road"] << "F2. " << calling_function << " SO FAR call took " << sofarduration;
+
       //
       // now check the list of splitting flag solutions that were likely found by the plot_road call directly
       //  preceeding this, disqualify any that are already unacceptable, and include the rest as potential solutions
@@ -1154,12 +1181,14 @@ AI::build_best_road(MapPos start_pos, RoadOptions road_options, Road *built_road
       //  Only consider the splits if the real road ends +2 tiles and +1 flag would be acceptable
       //
       //
-      if (road_options.test(RoadOption::SplitRoads == false)) {
+      if (road_options.test(RoadOption::SplitRoads) == false) {
         continue;
       }
       AILogDebug["util_build_best_road"] << "" << calling_function << " non-direct road requested, split_roads, RoadOption SplitRoads is true, preparing to iterate over potential split roads found in previous plot_road call";
       AILogDebug["util_build_best_road"] << "" << calling_function << " non-direct road requested, split_roads, there are " << split_roads.size() << " Road entries in the split_roads list (that was provide by the last plot_roads call to nearby map pos " << end_pos;
       for (Road split_road : split_roads) {
+        //sofarduration = (std::clock() - start) / static_cast<double>(CLOCKS_PER_SEC);
+        //AILogDebug["util_build_best_road"] << "F3. " << calling_function << " SO FAR call took " << sofarduration;
         RoadEnds split_road_ends = get_roadends(map, split_road);
         MapPos split_end_pos = split_road.get_end(map.get());
 
@@ -1220,6 +1249,9 @@ AI::build_best_road(MapPos start_pos, RoadOptions road_options, Road *built_road
 
       } // foreach split road
 
+      //sofarduration = (std::clock() - start) / static_cast<double>(CLOCKS_PER_SEC);
+      //AILogDebug["util_build_best_road"] << "F4. " << calling_function << " SO FAR call took " << sofarduration;
+
       //AILogDebug["util_build_best_road"] << "" << calling_function << " non-direct road requested, split_roads, done checking split_roads for this potential direct road, there are currently " << rb.get_proads().size() << " potential_roads in the list";
 
     } // foreach end_pos nearby flags
@@ -1227,7 +1259,8 @@ AI::build_best_road(MapPos start_pos, RoadOptions road_options, Road *built_road
     AILogDebug["util_build_best_road"] << "" << calling_function << " non-direct road requested, done checking all direct and split_roads for start_pos " << start_pos << " to target_pos " << target_pos << ", there are currently " << rb.get_proads().size() << " potential_roads in the list";
 
     // END OF FINDING POTENTIAL END FLAG TO CONNECT TO
-
+    //sofarduration = (std::clock() - start) / static_cast<double>(CLOCKS_PER_SEC);
+    //AILogDebug["util_build_best_road"] << "G  .  " << calling_function << " SO FAR call took " << sofarduration;
 
     //=====================================================================================
     // score the potential new roads to nearby_flags in terms of:
@@ -1324,6 +1357,8 @@ AI::build_best_road(MapPos start_pos, RoadOptions road_options, Road *built_road
       AILogDebug["util_build_best_road"] << "" << calling_function << " scoring_eroads, start_pos " << start_pos << " has no flag, no paths, or RoadOption::Improve not set, not checking for eroads";
     } // if start_pos has any paths/eroads already
 
+    //sofarduration = (std::clock() - start) / static_cast<double>(CLOCKS_PER_SEC);
+    //AILogDebug["util_build_best_road"] << "H. " << calling_function << " SO FAR call took " << sofarduration;
     // foreach potential new road (proad) to be built to a nearby flag
     //  score the existing road (eroad) that begins at the flag/pos where the proad ends
     AILogDebug["util_build_best_road"] << "" << calling_function << " scoring_proads, preparing to score potential new roads from start_pos to nearby_flag positions";
@@ -1389,6 +1424,8 @@ AI::build_best_road(MapPos start_pos, RoadOptions road_options, Road *built_road
     AILogDebug["util_build_best_road"] << "" << calling_function << " scoring_proads, preparing to sort scored_proads into a MapPosVector";
     MapPosVector sorted_scored_proads = sort_by_val_asc(scored_proads);
 
+    //sofarduration = (std::clock() - start) / static_cast<double>(CLOCKS_PER_SEC);
+    //AILogDebug["util_build_best_road"] << "I. " << calling_function << " SO FAR call took " << sofarduration;
     // try to build a road, starting with the best scoring potential_road end flag, until successful
     AILogDebug["util_build_best_road"] << "" << calling_function << " sorted_scored_proads, preparing to iterate over sorted_scored_proads to try to build roads to best nearby_flag";
     for (MapPos end_pos : sorted_scored_proads) {
@@ -2781,7 +2818,7 @@ AI::score_area(MapPos center_pos, unsigned int distance) {
           expand_towards.insert("oppose_enemy");
           AILogDebug["util_score_area"] << "found enemy territory near our borders, adding oppose_enemy expansion goal for informative purpose";
         }
-        pos_value += expand_towards.count("oppose_enemy") * 1;
+        pos_value += expand_towards.count("oppose_enemy") * 2;
         //AILogDebug["util_score_area"] << "adding oppose_enemy value for enemy territory";
       }
 
@@ -2811,7 +2848,7 @@ AI::score_area(MapPos center_pos, unsigned int distance) {
       //   is near the castle, are valued to encourage building huts the castle
       if (get_straightline_tile_dist(map, center_pos, castle_flag_pos) < 12){
         if (map->get_owner(pos) == -1) {
-          pos_value += expand_towards.count("castle_buffer") * 1;
+          pos_value += expand_towards.count("castle_buffer") * 2;
           AILogDebug["util_score_area"] << "adding castle_buffer value for unclaimed territory near our castle";
           //ai_mark_pos.erase(pos);
           //ai_mark_pos.insert(ColorDot(pos, "black"));
@@ -3031,7 +3068,7 @@ AI::score_enemy_targets(MapPosSet *scored_targets) {
       !(building->get_threat_level() == 3)) {
       continue;
     }
-    ai_mark_pos.clear();
+    //ai_mark_pos.clear();
     AILogDebug["util_score_enemy_targets"] << "looking for enemy buildings to attack near to my building of " << NameBuilding[building->get_type()] << " at pos " << building->get_position();
     MapPos attacker_pos = building->get_position();
     // score each enemy building in attackable radius (which is?? NEED TO FIND OUT)

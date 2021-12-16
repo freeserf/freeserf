@@ -228,7 +228,7 @@ class AI {
     }
     AILogDebug["sleep_speed_adjusted"] << "msec: " << msec << ", game speed: " << speed << ", adjusted msec: " << int(msec_);
     msec = msec_;
-    std::this_thread::sleep_for(std::chrono::milliseconds(msec));
+    std::this_thread::sleep_for(std::chrono::milliseconds(msec + 1));
   }
   std::set<std::string> get_ai_expansion_goals() { return expand_towards; }
   MapPos get_ai_inventory_pos() { return inventory_pos; }
@@ -434,7 +434,7 @@ static const unsigned int iron_ore_max = 30; // don't build iron mine if over th
 static const unsigned int gold_ore_min = 8;    // don't build gold smelter if under this value and no gold min.  Also, de-prioritize gold miner's food supply if over this value
 static const unsigned int gold_ore_max = 40;  // don't build gold mine over this value (is this implemented?),   don't give food to mine over this value
 static const unsigned int hills_min = 9;   // don't send geologists unless substantial hills
-static const unsigned int waters_min = 24;  // don't build fisherman unless substantial waters
+static const unsigned int waters_min = 12;  // don't build fisherman unless substantial waters
 static const unsigned int hammers_min = 6; // don't create geologists unless this many hammers in reserve
 static const unsigned int geologists_max = 2; // UPDATE this is now not a fixed value at all, it is now: 2+(geologists_max*number of Inventories (castle/stock))
 static const unsigned int builders_max = 6; // if this many builders in realm, don't create new hammers (unless a new blacksmith building needs a blacksmith)

@@ -2164,9 +2164,9 @@ Viewport::draw_active_serf(Serf *serf, MapPos pos, int x_base, int y_base) {
         //
         // help debug lost serf clearing issues, auto-mark Lost serfs
         //   Nov 2021
-        if (serf->get_state() == Serf::StateLost){
-          auto_mark_this_serf = true;
-        }
+        //if (serf->get_state() == Serf::StateLost){
+        //  auto_mark_this_serf = true;
+        //}
 
         /*
         if (serf->get_state() != Serf::StateIdleInStock) {

@@ -284,13 +284,13 @@ AI::do_place_castle() {
     // I think this needs to get the existing game Random rnd, NOT creating a new one
     // yes, added Game::get_rand function, trying using it instead of this
     //Random rnd;  
-    int tries = 250; // I saw 200 tries reached once, not sure if it was a particular map or what
+    int tries = 300; // I saw 200 tries reached once, not sure if it was a particular map or what
     int x = 0;
     while (true) {
       x++;
       if (x > tries) {
         AILogDebug["do_place_castle"] << "unable to place castle after " << x << " tries!";
-        exit(1);
+        throw ExceptionFreeserf("unable to place castle for player after exhausting all tries!");
       }
       //MapPos pos = map->get_rnd_coord(NULL, NULL, &rnd);
       MapPos pos = map->get_rnd_coord(NULL, NULL, game->get_rand());
@@ -601,11 +601,23 @@ AI::do_spiderweb_roads() {
   //
   AILogDebug["do_spiderweb_roads"] << inventory_pos << " HouseKeeping: creating spider-web roads";
   // only do this every X loops, and only add one new road per run
-  unsigned int completed_huts = realm_completed_building_count[Building::TypeHut];
+  //unsigned int completed_huts = realm_completed_building_count[Building::TypeHut];
   // shouldn't this be INVENTORY building count as it does per Inventory?  
-  if ( loop_count % 10 != 0 || completed_huts < 9 || completed_huts > 25) {
-    AILogDebug["do_spiderweb_roads"] << inventory_pos << " skipping spider-web roads, only running every ten loops and knight huts built " << completed_huts << " is <9 or >25";
-    return;
+  //if ( loop_count % 20 != 0 || completed_huts < 9 || completed_huts > 25) {
+  unsigned int completed_huts = stock_buildings.at(inventory_pos).completed_count[Building::TypeHut];
+
+  if (inventory_pos == castle_flag_pos){
+    // castle gets more spiderweb roads
+    if ( loop_count % 24 != 0 || completed_huts < 8 || completed_huts > 20) {
+      AILogDebug["do_spiderweb_roads"] << inventory_pos << " skipping spider-web roads for castle, only running every twenty loops and completed knight huts " << completed_huts << " is >8 or <19";
+      return;
+    }
+  }else{
+    // Stocks get less
+    if ( loop_count % 24 != 0 || completed_huts < 8 || completed_huts > 12) {
+      AILogDebug["do_spiderweb_roads"] << inventory_pos << " skipping spider-web roads for this Stock, only running every twenty loops and completed knight huts " << completed_huts << " is >8 or <12";
+      return;
+    }
   }
 
   std::set<MapPos> tried_pairs;
@@ -692,6 +704,8 @@ AI::do_spiderweb_roads() {
     MapPosVector shuffled_flag_vector(flag_set.begin(), flag_set.end());
     std::random_shuffle(shuffled_flag_vector.begin(), shuffled_flag_vector.end());
 
+    AILogDebug["do_spiderweb_roads"] << inventory_pos << " shuffled_flag_vector contains " << shuffled_flag_vector.size() << " elements";
+
     //
     // loop over random pairs of flags (that were found in the last 8 sectors)
     //  and consider building a road between them, and if they look good, do so
@@ -703,7 +717,7 @@ AI::do_spiderweb_roads() {
         if (area_flag_pos == other_area_flag_pos) { continue; }
         AILogDebug["do_spiderweb_roads"] << inventory_pos << " considering roads from area_flag_pos " << area_flag_pos << " to other_area_flag_pos " << other_area_flag_pos;
 
-        // bitwise operator... to simplify checking for already tried combinations in either order
+        // bitwise operator... to simplify checking for already tried combinations in either order  VERIFIED THIS DETECTS DUPES
         unsigned int pair = area_flag_pos & other_area_flag_pos;
         if (tried_pairs.count(pair) > 0) { continue; }
         tried_pairs.insert(pair);
@@ -748,27 +762,31 @@ AI::do_spiderweb_roads() {
         //
         
 
+        // Improve works well now, but is slow sometimes, taking up to 20sec to run in rare cases.  
+        //    ahh it was because SplitRoads toggle wasn't working and it was still calculating split road solutions 
+        //    now that I have SplitRoads-off working it is faster and seems okay still
+        //    ehh... its still slow occasionally and seems to produce worse results than allow SplitRoads did.. not sure yet
+        // Direct seems much faster, but results are worse (snakey roads)
         //
-        // issue - if Improve is set and Direct off, often stubby useless roads are built that do not
-        //  accomplish the spider-web goal.  I am not exactly sure why but it is probably a result of the "best road" logic
-        //       - if Direct is set and Improve off, often long snakey roads are built parallel to each other
-        // UPDATE - now if I turn of Direct and turn on Improve it doesn't build anything ever, not sure why
-        // UPDATE - mostly fixed now but needs review
-        // UPDATE - I still see some dumb roads being made, try going back to Direct...
-        //
+        // NOTE - the slowness is noticeable when testing at 40x speed, but probably not noticeable at reasonable game speeds
+        //  trying to optimize this might be a waste of time
+        // yes... using SplitRoads and Improve gives MUCH better results than forcing direct, the perf penalty is acceptable
+        // definitely do not use Direct, the high-effort method gives fantastic results!
         road_options.set(RoadOption::Improve);
         //road_options.reset(RoadOption::PenalizeNewLength);
+        road_options.reset(RoadOption::ReducedNewLengthPenalty);
         //road_options.set(RoadOption::Direct);
         //road_options.set(RoadOption::MostlyStraight);
-        road_options.reset(RoadOption::SplitRoads);
+        //road_options.reset(RoadOption::SplitRoads);
         AILogDebug["do_spiderweb_roads"] << inventory_pos << " about to call build_best_road";
         Road built_road;
         was_built = build_best_road(area_flag_pos, road_options, &built_road, "do_spiderweb_roads", Building::TypeNone, Building::TypeNone, other_area_flag_pos);
         road_options.reset(RoadOption::Improve);
         //road_options.set(RoadOption::PenalizeNewLength);
+        road_options.set(RoadOption::ReducedNewLengthPenalty);
         //road_options.reset(RoadOption::Direct);
         //road_options.reset(RoadOption::MostlyStraight);
-        road_options.set(RoadOption::SplitRoads);
+        //road_options.set(RoadOption::SplitRoads);
         if (was_built) {
           AILogDebug["do_spiderweb_roads"] << inventory_pos << " successfully built spider-web road between area_flag_pos " << area_flag_pos << " to other_area_flag_pos " << other_area_flag_pos;
           spider_web_roads_built++;
@@ -4566,8 +4584,11 @@ AI::do_build_3rd_lumberjack() {
     return;
   unsigned int planks_count = stock_inv->get_count_of(Resource::TypePlank);
   AILogDebug["do_build_3rd_lumberjack"] << inventory_pos << " debug current lumberjack count: " << lumberjack_count << ", sawmill_count: " << sawmill_count << ", planks_count: " << planks_count << ", planks_max: " << planks_max;
-  if (stock_buildings.at(inventory_pos).needs_wood && sawmill_count > 0 && planks_count <= planks_max && lumberjack_count < 3) {
-    AILogDebug["do_build_3rd_lumberjack"] << inventory_pos << " needs_wood true and have few than three lumberjacks, build a third";
+  unsigned int wood_count = stock_inv->get_count_of(Resource::TypePlank) + stock_res_sitting_at_flags.at(inventory_pos)[Resource::TypePlank];
+  //   include raw logs that will be processed into planks at SawMill
+  wood_count += stock_inv->get_count_of(Resource::TypeLumber) + stock_res_sitting_at_flags.at(inventory_pos)[Resource::TypeLumber];
+  if (wood_count < planks_max && sawmill_count > 0 && planks_count <= planks_max && lumberjack_count < 3) {
+    AILogDebug["do_build_3rd_lumberjack"] << inventory_pos << " wood not maxed, have sawmill, and have few than three lumberjacks, build a third";
     // count trees near military buildings,
     //   the third lumberjack doesn't need to be near sawmill, if there is a spot with many trees that is fine
     MapPosSet count_by_corner;
@@ -4596,5 +4617,6 @@ AI::do_build_3rd_lumberjack() {
     if (built_pos == bad_map_pos || built_pos == notplaced_pos) {
       AILogDebug["do_build_3rd_lumberjack"] << inventory_pos << " couldn't place 3rd lumberjack";
     }
-  } // 3rd lumberjack
-}
+  } else{
+    AILogDebug["do_build_3rd_lumberjack"] << inventory_pos << " have sufficient wood or wood buildings";
+} // 3rd lumberjack
