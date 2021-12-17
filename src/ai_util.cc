@@ -99,12 +99,11 @@ AI::place_castle(PGame game, MapPos center_pos, unsigned int distance) {
       //AILogDebug["util_place_castle"] << "adding stones count " << stonepile_value;
     }
     if (game->can_build_large(pos)) {
-      //building_sites += 3;
-      building_sites += 2;  // reducing this, are Large building sites really 3x as valuable when it comes to castle placement?
+      building_sites += 3;  // large building sites worth 50% more than small ones, but can't use 1.5 and 1.0 because integer
       //AILogDebug["util_place_castle"] << "adding large building value 3";
     }
     else if (game->can_build_small(pos)) {
-      building_sites += 1;
+      building_sites += 2;
       //AILogDebug["util_place_castle"] << "adding small building value 1";
     }
   }
@@ -130,20 +129,20 @@ AI::place_castle(PGame game, MapPos center_pos, unsigned int distance) {
 
 // update current AI player's inventory of buildings of all types for lookup by various functions
 void
-AI::update_building_counts() {
+AI::update_buildings() {
   // time this function for debugging
   std::clock_t start;
   double duration;
   start = std::clock();
 
-  AILogDebug["util_update_building_counts"] << "inside AI::update_building_counts";
-  //AILogVerbose["util_update_building_counts"] << "thread #" << std::this_thread::get_id() << " AI is locking mutex inside AI::update_building_counts";
+  AILogDebug["util_update_buildings"] << "start";
+  //AILogVerbose["util_update_buildings"] << "thread #" << std::this_thread::get_id() << " AI is locking mutex inside AI::update_buildings";
   //game->get_mutex()->lock();
-  //AILogVerbose["util_update_building_counts"] << "thread #" << std::this_thread::get_id() << " AI has locked mutex inside AI::update_building_counts";
+  //AILogVerbose["util_update_buildings"] << "thread #" << std::this_thread::get_id() << " AI has locked mutex inside AI::update_buildings";
   Game::ListBuildings buildings = game->get_player_buildings(player);
-  //AILogVerbose["util_update_building_counts"] << "thread #" << std::this_thread::get_id() << " AI is unlocking mutex inside AI::update_building_counts";
+  //AILogVerbose["util_update_buildings"] << "thread #" << std::this_thread::get_id() << " AI is unlocking mutex inside AI::update_buildings";
   //game->get_mutex()->unlock();
-  //AILogVerbose["util_update_building_counts"] << "thread #" << std::this_thread::get_id() << " AI has unlocked mutex inside AI::update_building_counts";
+  //AILogVerbose["util_update_buildings"] << "thread #" << std::this_thread::get_id() << " AI has unlocked mutex inside AI::update_buildings";
   // reset all to zero
   memset(realm_building_count, 0, sizeof(realm_building_count));
   memset(realm_completed_building_count, 0, sizeof(realm_completed_building_count));
@@ -154,23 +153,21 @@ AI::update_building_counts() {
   realm_res_sitting_at_flags.clear();
   //realm_inv.clear();  // don't clear this here as it is not additive but explicitly set in each loop to player->inv 
   for (MapPos inventory_pos : stocks_pos) {
-    AILogVerbose["util_update_building_counts"] << "inside AI::update_building_counts, clearing counts for inventory_pos " << inventory_pos;
-    memset(stock_buildings.at(inventory_pos).count, 0, sizeof(stock_buildings.at(inventory_pos).count));
-    memset(stock_buildings.at(inventory_pos).completed_count, 0, sizeof(stock_buildings.at(inventory_pos).completed_count));
-    memset(stock_buildings.at(inventory_pos).occupied_count, 0, sizeof(stock_buildings.at(inventory_pos).occupied_count));
-    memset(stock_buildings.at(inventory_pos).connected_count, 0, sizeof(stock_buildings.at(inventory_pos).connected_count));
-    stock_buildings.at(inventory_pos).occupied_military_pos.clear();
-    stock_buildings.at(inventory_pos).unfinished_count = 0;
-    stock_buildings.at(inventory_pos).unfinished_hut_count = 0;
-    AILogVerbose["util_update_building_counts"] << "RESET unfinished_hut_count for inventory_pos " << inventory_pos << ", is now: " << stock_buildings.at(inventory_pos).unfinished_hut_count;
-    AILogVerbose["util_update_building_counts"] << "RESET unfinished_building_count, for inventory_pos " << inventory_pos << ", is now: " << stock_buildings.at(inventory_pos).unfinished_count;
+    AILogVerbose["util_update_buildings"] << "inside AI::update_buildings, clearing counts for inventory_pos " << inventory_pos;
+    memset(stock_building_counts.at(inventory_pos).count, 0, sizeof(stock_building_counts.at(inventory_pos).count));
+    memset(stock_building_counts.at(inventory_pos).completed_count, 0, sizeof(stock_building_counts.at(inventory_pos).completed_count));
+    memset(stock_building_counts.at(inventory_pos).occupied_count, 0, sizeof(stock_building_counts.at(inventory_pos).occupied_count));
+    memset(stock_building_counts.at(inventory_pos).connected_count, 0, sizeof(stock_building_counts.at(inventory_pos).connected_count));
+    stock_building_counts.at(inventory_pos).occupied_military_pos.clear();
+    stock_building_counts.at(inventory_pos).unfinished_count = 0;
+    stock_building_counts.at(inventory_pos).unfinished_hut_count = 0;
+    stock_attached_buildings.at(inventory_pos).clear();
   }
 
   // now that a flagsearch is being used to find the nearest Inventory rather than straight-line
   //  distance, it might be possible to optimize this process by searching outward from each
   //  inventory once?  or caching results or something like that?  
   //  only bother if this function is taking a significant amount of time
-  //  it does get called a lot, though
   for (Building *building : buildings) {
 
     if (building == nullptr)
@@ -180,7 +177,7 @@ AI::update_building_counts() {
     
     Building::Type type = building->get_type();
 	  if (type == Building::TypeNone) {
-		  //AILogWarn["util_update_building_counts"] << "has a building of TypeNone at pos " << building->get_position() << "!  why does this happen??";
+		  //AILogWarn["util_update_buildings"] << "has a building of TypeNone at pos " << building->get_position() << "!  why does this happen??";
 		  continue;
 	  }
 
@@ -199,36 +196,36 @@ AI::update_building_counts() {
     // 5th, knight hut stub road, had a spiderweb road built to it
     // 6th, can't tell.  
     // bypassing this error for now
-    AILogDebug["util_update_building_counts"] << "debug has a building of type " << type << " at pos " << pos << ", with flag_pos " << flag_pos;
+    AILogDebug["util_update_buildings"] << "debug has a building of type " << type << " at pos " << pos << ", with flag_pos " << flag_pos;
     if (type > Building::TypeCastle){
-      AILogError["util_update_building_counts"] << "RECURRING BUG! has a building of invalid type " << type << " at pos " << pos << ", with flag_pos " << flag_pos << "! bypassing error";
+      AILogError["util_update_buildings"] << "RECURRING BUG! has a building of invalid type " << type << " at pos " << pos << ", with flag_pos " << flag_pos << "! bypassing error";
       continue;
     }
 
-	  //AILogVerbose["util_update_building_counts"] << "has a building of type " << NameBuilding[type] << " at pos " << pos << ", with flag_pos " << flag_pos;
+	  //AILogVerbose["util_update_buildings"] << "has a building of type " << NameBuilding[type] << " at pos " << pos << ", with flag_pos " << flag_pos;
 
     if (type == Building::TypeCastle) {
       if (!building->is_done()) {
-        AILogDebug["util_update_building_counts"] << "'s castle isn't finished building yet";
+        AILogDebug["util_update_buildings"] << "player's castle isn't finished building yet";
         while (!building->is_done()) {
-          AILogDebug["util_update_building_counts"] << "'s castle isn't finished building yet.  Sleeping a bit";
+          AILogDebug["util_update_buildings"] << "player's castle isn't finished building yet.  Sleeping a bit";
           sleep_speed_adjusted(1000);
         }
-        AILogDebug["util_update_building_counts"] << "'s castle is now built, updating stocks";
+        AILogDebug["util_update_buildings"] << "player's castle is now built, updating stocks";
         // does the stocks_pos logic rely on the Castle always being the first building?  does it matter?
         update_stocks_pos();
       }
       realm_occupied_military_pos.push_back(flag_pos);
-      stock_buildings.at(flag_pos).occupied_military_pos.push_back(flag_pos);
+      stock_building_counts.at(flag_pos).occupied_military_pos.push_back(flag_pos);
       continue;
     }
   
     // make completed stocks the first item in that stock's occupied_military pos, even
     //  though it isn't really military it is a good first place to build buildings that
     //  have no affinity
-    if (type == Building::TypeStock && stock_buildings.count(flag_pos)){
-      AILogVerbose["util_update_building_counts"] << "adding occupied Stock building at " << pos << " to stock's occupied_military_pos list, even though it isn't really military";
-      stock_buildings.at(flag_pos).occupied_military_pos.push_back(flag_pos);
+    if (type == Building::TypeStock && stock_building_counts.count(flag_pos)){
+      AILogVerbose["util_update_buildings"] << "adding occupied Stock building at " << pos << " to stock's occupied_military_pos list, even though it isn't really military";
+      stock_building_counts.at(flag_pos).occupied_military_pos.push_back(flag_pos);
       continue;
     }
 
@@ -236,12 +233,12 @@ AI::update_building_counts() {
 	  //  as these are used for general selection of nearby huts when looking for things
 	  //  in a certain area around an Inventory and its borders, duplicates are allowed.
 	  if (building->is_military() && building->is_done() && building->is_active()) {
-		  AILogVerbose["util_update_building_counts"] << "adding occupied military building at " << pos << " to realm_occupied_military_pos list";
+		  AILogVerbose["util_update_buildings"] << "adding occupied military building at " << pos << " to realm_occupied_military_pos list";
 		  realm_occupied_military_pos.push_back(flag_pos);
-		  AILogVerbose["util_update_building_counts"] << "about to call find_nearest_inventories_to_military_building for connected building of type " << NameBuilding[type] << " at pos " << pos << ", with flag_pos " << flag_pos;
+		  AILogVerbose["util_update_buildings"] << "about to call find_nearest_inventories_to_military_building for connected building of type " << NameBuilding[type] << " at pos " << pos << ", with flag_pos " << flag_pos;
 		  for (MapPos inv_flag_pos : find_nearest_inventories_to_military_building(flag_pos)) {
-			  AILogVerbose["util_update_building_counts"] << "adding occupied military building at " << pos << " to stock_buildings.at(" << inv_flag_pos << ")";
-			  stock_buildings.at(inv_flag_pos).occupied_military_pos.push_back(flag_pos);
+			  AILogVerbose["util_update_buildings"] << "adding occupied military building at " << pos << " to stock_building_counts.at(" << inv_flag_pos << ")";
+			  stock_building_counts.at(inv_flag_pos).occupied_military_pos.push_back(flag_pos);
 		  }
 		  // don't quit here, we still want to try to do a FlagSearch for military buildings so
 		  //  if they are incomplete, we can associate the unfinished building to an Inventory
@@ -252,44 +249,47 @@ AI::update_building_counts() {
 
 	  // skip disconnected buildings, they cannot complete a FlagSearch to find nearest Inventory
     if (game->get_flag_at_pos(flag_pos) == nullptr){
-      AILogVerbose["util_update_building_counts"] << "building of type " << NameBuilding[type] << " at pos " << pos << ", got nullptr on get_flag_at_pos, skipping";
+      AILogVerbose["util_update_buildings"] << "building of type " << NameBuilding[type] << " at pos " << pos << ", got nullptr on get_flag_at_pos, skipping";
       continue;
     }
 	  if (!game->get_flag_at_pos(flag_pos)->is_connected()) {
-		  AILogVerbose["util_update_building_counts"] << "building of type " << NameBuilding[type] << " at pos " << pos << ", with flag_pos " << flag_pos << " has no paths, cannot do FlagSearch, skipping";
+		  AILogVerbose["util_update_buildings"] << "building of type " << NameBuilding[type] << " at pos " << pos << ", with flag_pos " << flag_pos << " has no paths, cannot do FlagSearch, skipping";
 		  continue;
 	  }
 
 	  // do the FlagSearch
-	  AILogVerbose["util_update_building_counts"] << "about to call find_nearest_inventory for connected building of type " << NameBuilding[type] << " at pos " << pos << ", with flag_pos " << flag_pos;
+	  AILogVerbose["util_update_buildings"] << "about to call find_nearest_inventory for connected building of type " << NameBuilding[type] << " at pos " << pos << ", with flag_pos " << flag_pos;
 	  MapPos nearest_inventory_pos = find_nearest_inventory(map, player_index, building->get_position(), DistType::FlagOnly, &ai_mark_pos);
 	  if (nearest_inventory_pos == bad_map_pos) {
-		  AILogVerbose["util_update_building_counts"] << "find_nearest_inventory call for building at pos " << pos << ", with flag_pos " << flag_pos << " returned bad_map_pos, skipping this building";
+		  AILogVerbose["util_update_buildings"] << "find_nearest_inventory call for building at pos " << pos << ", with flag_pos " << flag_pos << " returned bad_map_pos, skipping this building";
 		  continue;
 	  }
 	  /* i think this is wrong
-    AILogVerbose["util_update_building_counts"] << "nearest Inventory (by flagsearch) to this connected building is " << nearest_inventory_pos;
+    AILogVerbose["util_update_buildings"] << "nearest Inventory (by flagsearch) to this connected building is " << nearest_inventory_pos;
     if (nearest_inventory_pos != inventory_pos) {
-		  AILogVerbose["util_update_building_counts"] << "this building's nearest_inventory_pos " << nearest_inventory_pos << " is not the currently selected inventory_pos " << inventory_pos << ", skipping it";
+		  AILogVerbose["util_update_buildings"] << "this building's nearest_inventory_pos " << nearest_inventory_pos << " is not the currently selected inventory_pos " << inventory_pos << ", skipping it";
 		  continue;
 	  }
     */
 
+    // track the Building
+    stock_attached_buildings.at(nearest_inventory_pos).push_back(building);
+
 	  // count incomplete buildings (so AI can limit the number of outstanding unfinished buildings)
     if (!building->is_done()) {
       if (type == Building::TypeHut) {
-        stock_buildings.at(nearest_inventory_pos).unfinished_hut_count++;
-        AILogVerbose["util_update_building_counts"] << "incrementing unfinished_hut_count for nearest_inventory_pos " << nearest_inventory_pos << ", is now: " << stock_buildings.at(nearest_inventory_pos).unfinished_hut_count;
+        stock_building_counts.at(nearest_inventory_pos).unfinished_hut_count++;
+        AILogVerbose["util_update_buildings"] << "incrementing unfinished_hut_count for nearest_inventory_pos " << nearest_inventory_pos << ", is now: " << stock_building_counts.at(nearest_inventory_pos).unfinished_hut_count;
       }
       else if (building->get_type() == Building::TypeCoalMine
         || building->get_type() == Building::TypeIronMine
         || building->get_type() == Building::TypeGoldMine
         || building->get_type() == Building::TypeStoneMine) {
-        AILogVerbose["util_update_building_counts"] << "unfinished building is a Mine, not incrementing unfinished_building_count";
+        AILogVerbose["util_update_buildings"] << "unfinished building is a Mine, not incrementing unfinished_building_count";
       }
       else {
-        stock_buildings.at(nearest_inventory_pos).unfinished_count++;
-        AILogDebug["util_update_building_counts"] << "found unfinished building of type " << NameBuilding[type] << " at pos " << building->get_position() << ", incrementing unfinished_building_count for nearest_inventory_pos " << nearest_inventory_pos << ", is now: " << stock_buildings.at(nearest_inventory_pos).unfinished_count;
+        stock_building_counts.at(nearest_inventory_pos).unfinished_count++;
+        AILogDebug["util_update_buildings"] << "found unfinished building of type " << NameBuilding[type] << " at pos " << building->get_position() << ", incrementing unfinished_building_count for nearest_inventory_pos " << nearest_inventory_pos << ", is now: " << stock_building_counts.at(nearest_inventory_pos).unfinished_count;
       }
     }
     
@@ -298,15 +298,15 @@ AI::update_building_counts() {
     //  is based on FlagSearch dist, NOT straight-line dist as
     //  is used for OCCUPIED_military_buildings counts
 	  realm_building_count[type]++;   // move this to before the FlagSearch so it has a chance to include buildings that are not connected?  nah, leave as-is for now
-    stock_buildings.at(nearest_inventory_pos).count[type]++;
+    stock_building_counts.at(nearest_inventory_pos).count[type]++;
     // the difference between 'buildings' and 'connected_buildings' is now moot because the nearest inventory pos
     //  is now determined by FlagSearch which requires that they be connected already to do the search
     //  Should probably remove the 'building_count' entirely.  See if any of this is even used anymore, I don't think it is
 	  //realm_connected_building_count[type]++;
-    stock_buildings.at(nearest_inventory_pos).connected_count[type]++;
+    stock_building_counts.at(nearest_inventory_pos).connected_count[type]++;
     if (building->is_done()){
 	    realm_completed_building_count[type]++;
-      stock_buildings.at(nearest_inventory_pos).completed_count[type]++;
+      stock_building_counts.at(nearest_inventory_pos).completed_count[type]++;
       // has_serf is not a good enough test alone to see if occupied, as it seems to be true when a builder is constructing the building!
       //  so moved this check to inside building->is_done because if building is done the only serf there should be the professional (I think)
       if (building->has_serf()) {
@@ -314,7 +314,7 @@ AI::update_building_counts() {
         //  however, again the counts may not match the occupied_military_building counts
         //  which are determined by straight-line distance only
 	      realm_occupied_building_count[type]++;
-        stock_buildings.at(nearest_inventory_pos).occupied_count[type]++;
+        stock_building_counts.at(nearest_inventory_pos).occupied_count[type]++;
       }
     }
   } // foreach Building : get_player_buildings
@@ -322,19 +322,19 @@ AI::update_building_counts() {
   // debug, dump all inventory-to-building counts
   for (MapPos an_inventory_pos : stocks_pos) {
     // this skips 'connected', which is moot anyway
-    AILogVerbose["util_update_building_counts"] << "Inventory at pos " << an_inventory_pos << " has all/completed/occupied buildings: ";
+    AILogVerbose["util_update_buildings"] << "Inventory at pos " << an_inventory_pos << " has all/completed/occupied buildings: ";
     int type = 0;
     // why is this using realm_building_count instead of ... Types 0-25?
     for (int count : realm_building_count) {
-      AILogVerbose["util_update_building_counts"] << "type " << type << " / " << NameBuilding[type] << ": " << stock_buildings.at(an_inventory_pos).count[type]
-        << "/" << stock_buildings.at(an_inventory_pos).completed_count[type] << "/" << stock_buildings.at(an_inventory_pos).occupied_count[type];
+      AILogVerbose["util_update_buildings"] << "type " << type << " / " << NameBuilding[type] << ": " << stock_building_counts.at(an_inventory_pos).count[type]
+        << "/" << stock_building_counts.at(an_inventory_pos).completed_count[type] << "/" << stock_building_counts.at(an_inventory_pos).occupied_count[type];
       type++;
     }
   }
 
-  //AILogDebug["util_update_building_counts"] << "done AI::update_building_counts";
+  //AILogDebug["util_update_buildings"] << "done AI::update_buildings";
   duration = (std::clock() - start) / static_cast<double>(CLOCKS_PER_SEC);
-  AILogDebug["util_update_building_counts"] << "done AI::update_building_counts call took " << duration;
+  AILogDebug["util_update_buildings"] << "done AI::update_buildings call took " << duration;
 }
 
 
@@ -396,7 +396,7 @@ AI::update_stocks_pos() {
       AILogDebug["util_update_stocks_pos"] << "a completed, connected, serf-occupied warehouse/stock was found at pos " << building->get_position() << ", with its flag at pos " << stock_flag_pos;
     }
     stocks_pos.push_back(stock_flag_pos);
-    //stock_buildings[stock_flag_pos];
+    //stock_building_counts[stock_flag_pos];
     /*
     struct StockBuildings {
       int count[25] = { 0 };
@@ -407,7 +407,8 @@ AI::update_stocks_pos() {
       int unfinished_hut_count;
       MapPosVector occupied_military_pos;
     };*/
-    stock_buildings[stock_flag_pos] = { {0},{0},{0},{0},0,0,{} };
+    stock_building_counts[stock_flag_pos] = { {0},{0},{0},{0},0,0,{} };
+    stock_attached_buildings[stock_flag_pos] = {};
   }
   AILogDebug["util_update_stocks_pos"] << "done AI::update_stocks_pos";
   duration = (std::clock() - start) / static_cast<double>(CLOCKS_PER_SEC);
@@ -1878,13 +1879,13 @@ AI::building_exists_near_pos(MapPos center_pos, unsigned int distance, Building:
 MapPos
 AI::find_halfway_pos_between_buildings(Building::Type first, Building::Type second) {
   AILogDebug["util_find_halfway_pos_between_buildings"] << "inside get_halfway_pos_between_buildings, type1 " << NameBuilding[first] << " type2 " << NameBuilding[second] << " for inventory_pos " << inventory_pos;
-  update_building_counts();
+  update_buildings();
   Building::Type type[2] = { first, second };
   MapPos found_pos[2] = { bad_map_pos, bad_map_pos };
   for (int x = 0; x < 2; x++) {
     AILogDebug["util_find_halfway_pos_between_buildings"] << "searching this stock area for a building of type" << x << " " << NameBuilding[type[x]];
     // change to connected_count?  should be same since flagsearch added
-    if (stock_buildings.at(inventory_pos).count[type[x]] >= 1) {
+    if (stock_building_counts.at(inventory_pos).count[type[x]] >= 1) {
       AILogDebug["util_find_halfway_pos_between_buildings"] << "stock has at least one connected building of type" << x << " " << NameBuilding[type[x]];
       find_nearest_building()
 
@@ -1896,14 +1897,14 @@ AI::find_halfway_pos_between_buildings(Building::Type first, Building::Type seco
 MapPos
 AI::find_halfway_pos_between_buildings(Building::Type first, Building::Type second) {
   AILogDebug["util_find_halfway_pos_between_buildings"] << "inside get_halfway_pos_between_buildings, type1 " << NameBuilding[first] << " type2 " << NameBuilding[second] << " for inventory_pos " << inventory_pos;
-  update_building_counts();
+  update_buildings();
   Building::Type type[2] = { first, second };
   MapPos found_pos[2] = { bad_map_pos, bad_map_pos };
   for (int x = 0; x < 2; x++) {
     AILogDebug["util_find_halfway_pos_between_buildings"] << "searching this stock area for a building of type" << x << " " << NameBuilding[type[x]];
-    if (stock_buildings.at(inventory_pos).occupied_count[type[x]] >= 1) {
+    if (stock_building_counts.at(inventory_pos).occupied_count[type[x]] >= 1) {
       AILogDebug["util_find_halfway_pos_between_buildings"] << "searching for an OCCUPIED building of type" << x << " " << NameBuilding[type[x]];
-      for (MapPos center_pos : stock_buildings.at(inventory_pos).occupied_military_pos) {
+      for (MapPos center_pos : stock_building_counts.at(inventory_pos).occupied_military_pos) {
         for (unsigned int i = 0; i < spiral_dist(0); i++) {
           MapPos pos = map->pos_add_extended_spirally(center_pos, i);
           if (!map->has_building(pos))
@@ -1929,7 +1930,7 @@ AI::find_halfway_pos_between_buildings(Building::Type first, Building::Type seco
     }
     else if (realm_completed_building_count[type[x]] >= 1) {
       AILogDebug["util_find_halfway_pos_between_buildings"] << "searching for a COMPLETED building of type" << x << " " << NameBuilding[type[x]];
-      for (MapPos center_pos : stock_buildings.at(inventory_pos).occupied_military_pos) {
+      for (MapPos center_pos : stock_building_counts.at(inventory_pos).occupied_military_pos) {
         for (unsigned int i = 0; i < spiral_dist(0); i++) {
           MapPos pos = map->pos_add_extended_spirally(center_pos, i);
           if (!map->has_building(pos))
@@ -1955,7 +1956,7 @@ AI::find_halfway_pos_between_buildings(Building::Type first, Building::Type seco
     }
     else if (realm_building_count[type[x]] >= 1) {
       AILogDebug["util_find_halfway_pos_between_buildings"] << "searching for ANY building of type" << x << " " << NameBuilding[type[x]];
-      for (MapPos center_pos : stock_buildings.at(inventory_pos).occupied_military_pos) {
+      for (MapPos center_pos : stock_building_counts.at(inventory_pos).occupied_military_pos) {
         AILogDebug["util_find_halfway_pos_between_buildings"] << "searching around center_pos " << center_pos;
         for (unsigned int i = 0; i < spiral_dist(0); i++) {
           MapPos pos = map->pos_add_extended_spirally(center_pos, i);
@@ -1984,7 +1985,7 @@ AI::find_halfway_pos_between_buildings(Building::Type first, Building::Type seco
       AILogDebug["util_find_halfway_pos_between_buildings"] << "no buildings of type" << x << " " << NameBuilding[type[x]] << " known in realm, returning bad_map_pos";
       return bad_map_pos;
     }
-    // this shouldn't happen if update_building_counts() is accurate unless building was destroyed while searching
+    // this shouldn't happen if update_buildings() is accurate unless building was destroyed while searching
     if (found_pos[x] == bad_map_pos) {
       AILogDebug["util_find_halfway_pos_between_buildings"] << "could not find expected building of type" << x << " " << NameBuilding[type[x]] << " in realm despite being known! returning bad_map_pos";
       return bad_map_pos;
@@ -2298,7 +2299,7 @@ AI::build_near_pos(MapPos center_pos, unsigned int distance, Building::Type buil
   // this function is being changed from using the *nearest* Inventory to using the *current*
   //  inventory, does that introduce any problems?
   if (building_type == Building::TypeHut) {
-    if (stock_buildings.at(inventory_pos).unfinished_hut_count >= max_unfinished_huts) {
+    if (stock_building_counts.at(inventory_pos).unfinished_hut_count >= max_unfinished_huts) {
       AILogDebug["util_build_near_pos"] << "max unfinished huts limit " << max_unfinished_huts << " reached, not building";
       // should be returning not_built_pos or bad_map pos?? stopbuilding is less appropriate with separate counts set up for huts vs other buildings
       return stopbuilding_pos;
@@ -2307,7 +2308,7 @@ AI::build_near_pos(MapPos center_pos, unsigned int distance, Building::Type buil
 
   // always be willing to build wood/stone buildings and knight huts or everything can grind to a halt
   //   also Mines, but don't connect these to the road network yet
-  if (stock_buildings.at(inventory_pos).unfinished_count >= max_unfinished_buildings && building_type != Building::TypeSawmill
+  if (stock_building_counts.at(inventory_pos).unfinished_count >= max_unfinished_buildings && building_type != Building::TypeSawmill
   //if (unfinished_building_count >= max_unfinished_buildings && building_type != Building::TypeSawmill
     && building_type != Building::TypeLumberjack && building_type != Building::TypeStonecutter
     && building_type != Building::TypeHut && building_type != Building::TypeCoalMine
@@ -2539,11 +2540,11 @@ AI::build_near_pos(MapPos center_pos, unsigned int distance, Building::Type buil
       }else{
         AILogDebug["util_build_near_pos"] << "successfully connected flag at flag_pos " << flag_pos << " to road network.  For potential new building of type " << NameBuilding[building_type];
         //if (building_type == Building::TypeHut) {
-        //  stock_buildings.at(inventory_pos).unfinished_hut_count++;
+        //  stock_building_counts.at(inventory_pos).unfinished_hut_count++;
         //  AILogDebug["util_build_near_pos"] << "incrementing unfinished_hut_count, is now: " << unfinished_hut_count;
         //}
         //else {
-        //  stock_buildings.at(inventory_pos).unfinished_count++;
+        //  stock_building_counts.at(inventory_pos).unfinished_count++;
         //  AILogDebug["util_build_near_pos"] << "found unfinished " << NameBuilding[building_type] << ", incrementing unfinished_building_count, is now: " << unfinished_building_count;
         //}
         //duration = (std::clock() - start) / static_cast<double>(CLOCKS_PER_SEC);
@@ -2623,10 +2624,10 @@ AI::count_stones_near_pos(MapPos center_pos, unsigned int distance) {
 unsigned int
 AI::count_knights_affected_by_occupation_level_change(unsigned int current_level, unsigned int new_level) {
   AILogDebug["util_count_knights_affected_by_occupation_level_change"] << "inside count_knights_affected_by_occupation_level_change, level " << current_level << " -> " << new_level;
-  // calling update_building_counts here is too slow because of mutex locking and causes do_manage_knight_occupation_levels to leave things at zero
+  // calling update_buildings here is too slow because of mutex locking and causes do_manage_knight_occupation_levels to leave things at zero
   //   for long enough that the game update actually starts moving knights around.  Having a super accurate count is not critical here, it should
   //   be able to use whatever values were found during the most recent update, which I believe is happening at the start of each AI loop anyway
-  //update_building_counts();
+  //update_buildings();
   // note this includes incomplete buildings? I think.  I doubt it matters much, though
   unsigned int hut_count = realm_building_count[Building::TypeHut];
   unsigned int tower_count = realm_building_count[Building::TypeTower];
@@ -2683,7 +2684,7 @@ AI::expand_borders() {
 
   // search outward from each military building until border pos reached
   //  then score that area
-  for (MapPos center_pos : stock_buildings.at(inventory_pos).occupied_military_pos) {
+  for (MapPos center_pos : stock_building_counts.at(inventory_pos).occupied_military_pos) {
     duration = (std::clock() - start) / static_cast<double>(CLOCKS_PER_SEC);
     AILogDebug["util_expand_borders"] << "about to check around pos " << center_pos << ", SO FAR util_expand_borders call took " << duration;
     // find territory edge in each direction
@@ -2713,7 +2714,7 @@ AI::expand_borders() {
   duration = (std::clock() - start) / static_cast<double>(CLOCKS_PER_SEC);
   for (MapPos corner_pos : search_positions) {
     // ensure Inventory unfinished_knight_huts below limit
-    if (stock_buildings.at(inventory_pos).unfinished_hut_count >= max_unfinished_huts) {
+    if (stock_building_counts.at(inventory_pos).unfinished_hut_count >= max_unfinished_huts) {
       AILogDebug["util_expand_borders"] << inventory_pos << " Inventory unfinished_huts_count limit " << max_unfinished_huts << " reached, cannot build knight huts for this Inventory";
       break;
     }
@@ -2725,7 +2726,7 @@ AI::expand_borders() {
     built_pos = AI::build_near_pos(corner_pos, AI::spiral_dist(4), Building::TypeHut);
     if (built_pos != bad_map_pos && built_pos != notplaced_pos){
       AILogDebug["util_expand_borders"] << "built a knight hut at pos " << built_pos;
-      stock_buildings.at(inventory_pos).unfinished_hut_count++;
+      stock_building_counts.at(inventory_pos).unfinished_hut_count++;
     }
   }
 
@@ -3055,7 +3056,7 @@ AI::score_enemy_targets(MapPosSet *scored_targets) {
   //      be taken, ONLY at enemy buildings.  Does it make sense to persist expansion goals between AI loops?  Or move attacks to the end of the loop?
   //  temp fix -  stupid hack to work-around it
   expand_towards = last_expand_towards;
-  update_building_counts();
+  update_buildings();
   // foreach my hut in range of attacking enemy
   //    foreach enemy hut within range of attack
   //      score

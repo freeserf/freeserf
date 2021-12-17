@@ -1280,6 +1280,8 @@ Flag::update() {
   }
 
   /* Update transporter flags, decide if serf needs to be sent to road */
+  // I THINK THERE IS A BUG - multiple sailors being sent to a busy water road
+  // attempting fix, adding !is_water_path test
   for (Direction j : cycle_directions_ccw()) {
     if (has_path(j)) {
       if (serf_requested(j)) {
@@ -1299,6 +1301,12 @@ Flag::update() {
                  BIT_TEST(res_waiting[2], j)) {
                    //Log::Debug["flag"] << "inside Flag::update, flag at pos " << pos << ", dir " << j << NameDirection[j] << ", serf_requested(j) is false but elseif true";
         int max_tr = max_transporters[length_category(j)];
+
+        // attempting to work-around multiple-sailors-sent-to-water-road bug
+        if (is_water_path(j)) {
+          max_tr = 1;
+        }
+
         if (free_transporter_count(j) < (unsigned int)max_tr &&
             !serf_request_fail()) {
           //Log::Debug["flag"] << "inside Flag::update, flag at pos " << pos << ", dir " << j << NameDirection[j] << ", about to call_transporter";

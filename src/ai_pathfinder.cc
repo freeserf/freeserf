@@ -766,7 +766,7 @@ AI::find_nearest_inventory_by_flag(PMap map, unsigned int player_index, MapPos f
 		if (game->get_flag_at_pos(fnode->pos)->accepts_resources()) {
       // to avoid crashes, handle discovering a newly built warehouse that just now became active
       //  after the most recent update_stocks run, and doesn't exist in stocks_pos yet
-      if (stock_buildings.count(fnode->pos) == 0){
+      if (stock_building_counts.count(fnode->pos) == 0){
         //update_stocks_pos();
         // hmm this seems like a bad place to put this.. for now just skip this Inventory
         //  and let the next AI loop find it
@@ -962,7 +962,7 @@ AI::identify_arterial_roads(PMap map){
       if (game->get_flag_at_pos(fnode->pos)->accepts_resources()) {
         // to avoid crashes, handle discovering a newly built warehouse that just now became active
         //  after the most recent update_stocks run, and doesn't exist in stocks_pos yet
-        if (stock_buildings.count(fnode->pos) == 0){
+        if (stock_building_counts.count(fnode->pos) == 0){
           //update_stocks_pos();
           // hmm this seems like a bad place to put this.. for now just skip this Inventory
           //  and let the next AI loop find it
