@@ -99,7 +99,8 @@ AI::place_castle(PGame game, MapPos center_pos, unsigned int distance) {
       //AILogDebug["util_place_castle"] << "adding stones count " << stonepile_value;
     }
     if (game->can_build_large(pos)) {
-      building_sites += 3;
+      //building_sites += 3;
+      building_sites += 2;  // reducing this, are Large building sites really 3x as valuable when it comes to castle placement?
       //AILogDebug["util_place_castle"] << "adding large building value 3";
     }
     else if (game->can_build_small(pos)) {

@@ -231,6 +231,7 @@ class Game {
 
   Serf *get_serf(unsigned int index) { return serfs[index]; }
   Flag *get_flag(unsigned int index) { return flags[index]; }
+  // got a segfault during flags_copy = game->get_flags... need to mutex wrap all AI game->get_flags calls?
   Flags *get_flags() { return &flags; }
   Inventory *get_inventory(unsigned int index) { return inventories[index]; }
   Building *get_building(unsigned int index) { return buildings[index]; }

@@ -287,7 +287,7 @@ AI::do_place_castle() {
     // I think this needs to get the existing game Random rnd, NOT creating a new one
     // yes, added Game::get_rand function, trying using it instead of this
     //Random rnd;  
-    int tries = 300; // I saw 200 tries reached once, not sure if it was a particular map or what
+    int tries = 300;
     int x = 0;
     while (true) {
       x++;
@@ -514,6 +514,7 @@ AI::do_connect_disconnected_flags() {
   AILogDebug["do_connect_disconnected_flags"] << "inside do_connect_disconnected_flags";
   AILogDebug["do_connect_disconnected_flags"] << "HouseKeeping: connect any disconnected flags";
   ai_status.assign("HOUSEKEEPING - connect any disconnected flags");
+  // got a segfault during flags_copy = game->get_flags... need to mutex wrap all AI game->get_flags calls?
   Flags flags_copy = *(game->get_flags());  // create a copy so we don't conflict with the game thread, and don't want to mutex lock for a long function
   for (Flag *flag : flags_copy) {
     if (flag == nullptr)
@@ -539,6 +540,7 @@ AI::do_connect_disconnected_flags() {
         AILogDebug["do_connect_disconnected_flags"] << "disconnected flag at pos " << flag->get_position() << " is attached to an occupied ranger, skipping";
         continue;
       }
+      /*
       if ((flag->get_building()->get_type() == Building::TypeHut
        || flag->get_building()->get_type() == Building::TypeTower
        || flag->get_building()->get_type() == Building::TypeFortress)
@@ -546,6 +548,7 @@ AI::do_connect_disconnected_flags() {
         AILogDebug["do_connect_disconnected_flags"] << "disconnected flag at pos " << flag->get_position() << " is attached to an occupied military building, skipping";
         continue;
       }
+      */
     }
     AILogDebug["do_connect_disconnected_flags"] << "flag at pos " << flag->get_position() << " has no connected road, trying to connect it";
     Road notused; // not used here, can I just pass a zero instead of &notused to build_best_road and skip initialization of a wasted object?
@@ -3192,6 +3195,7 @@ AI::do_build_food_buildings() {
   //
   bool need_farm = false;
   int farm_count = stock_buildings.at(inventory_pos).count[Building::TypeFarm];
+  AILogDebug["do_build_food_buildings"] << inventory_pos << " debug - has " << farm_count << " farms near this inventory";
   if (farm_count == 0) {
     AILogDebug["do_build_food_buildings"] << inventory_pos << " has zero farms, need to build one";
     need_farm = true;
@@ -3209,6 +3213,8 @@ AI::do_build_food_buildings() {
       if (farm_count == 1 && mill_count >= 1 && baker_count >= 1) {
         AILogDebug["do_build_food_buildings"] << inventory_pos << " three completed mines, a mill, and a baker exist.  Need a second wheat farm";
         need_farm = true;
+      }else{
+        AILogDebug["do_build_food_buildings"] << inventory_pos << " three completed mines, but do not have both mill and baker, not building another wheat farm yet";
       }
     }
     else {
@@ -3270,6 +3276,8 @@ AI::do_build_food_buildings() {
     farm_buildings.push_back(baker_pos);
   }
 
+  AILogDebug["do_build_food_buildings"] << inventory_pos << " debug, here need_farm is " << need_farm;
+
   if (need_farm){
     MapPos built_pos = bad_map_pos;
     // if this is not the first farm, try to build near existing food infrastructure
@@ -3316,7 +3324,7 @@ AI::do_build_food_buildings() {
       //   check centers in usual order this should result in a farm being built near the first knight hut expansion,
       //    or one of the first few.  THIS WAS WRITTEN PRIOR TO MULTIPLE ECONOMIES - needs work?
       MapPosVector farm_centers = stock_buildings.at(inventory_pos).occupied_military_pos;
-      // remove first element, which is always castle_pos  (NOT castle_flag_pos, which might make more sense)
+      // remove first element, which is always inv-flag/castle_pos  (NOT castle_flag_pos, which might make more sense)
       farm_centers.erase(farm_centers.begin(), farm_centers.begin() + 1);
       // add current inventory_pos back to the end
       farm_centers.push_back(inventory_pos);

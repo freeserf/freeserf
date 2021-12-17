@@ -106,7 +106,7 @@ class SaveWriterTextSection : public SaveWriterText {
  protected:
   bool save(ConfigFile *file) {
     std::stringstream str;
-    str << " " << number;
+    str << name << " " << number;
 
     for (auto value : values) {
       file->set_value(str.str(), value.first, value.second.get_value());

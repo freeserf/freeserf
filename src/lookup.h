@@ -559,22 +559,24 @@ const unsigned int specialists_max[] = {
 */
 
 // when building roads, try to connect a road to each type
+//  if none or one type not-None, will build one road
+//  if both types non-None, will try to build road to each
 const Building::Type BuildingAffinity[25][2] = {
     { Building::TypeNone, Building::TypeNone},      //              "Building::TypeNone",
     { Building::TypeNone, Building::TypeNone},      //              "Building::TypeFisher",
     { Building::TypeSawmill, Building::TypeNone},   //              "Building::TypeLumberjack",
     { Building::TypeNone, Building::TypeNone},      //              "Building::TypeBoatbuilder",
     { Building::TypeNone, Building::TypeNone},      //              "Building::TypeStonecutter",
-    { Building::TypeNone, Building::TypeNone},      //              "Building::TypeStoneMine",
+    { Building::TypeBaker, Building::TypeNone},     //              "Building::TypeStoneMine",
     { Building::TypeBaker, Building::TypeNone},     //              "Building::TypeCoalMine",
     { Building::TypeBaker, Building::TypeNone},     //              "Building::TypeIronMine",
     { Building::TypeBaker, Building::TypeNone},     //              "Building::TypeGoldMine",
     { Building::TypeNone, Building::TypeNone},      //              "Building::TypeForester",
     { Building::TypeNone, Building::TypeNone},      //              "Building::TypeStock",
     { Building::TypeNone, Building::TypeNone},      //              "Building::TypeHut",
-    { Building::TypeNone, Building::TypeNone},      //              "Building::TypeFarm",
-    { Building::TypeNone, Building::TypeNone},      //              "Building::TypeButcher",
-    { Building::TypeNone, Building::TypeNone},      //              "Building::TypePigFarm",
+    { Building::TypeMill, Building::TypeNone},      //              "Building::TypeFarm",
+    { Building::TypePigFarm, Building::TypeNone},   //              "Building::TypeButcher",
+    { Building::TypeButcher, Building::TypeNone},   //              "Building::TypePigFarm",
     { Building::TypeFarm, Building::TypeNone},      //              "Building::TypeMill",
     { Building::TypeMill, Building::TypeNone},      //              "Building::TypeBaker",
     { Building::TypeNone, Building::TypeNone},      //              "Building::TypeSawmill",
