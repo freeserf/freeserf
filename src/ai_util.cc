@@ -1531,6 +1531,14 @@ AI::build_best_road(MapPos start_pos, RoadOptions road_options, Road *built_road
         if (was_built) {
           AILogDebug["util_build_best_road"] << "" << calling_function << " successfully built new flag at end_pos " << end_pos << ", splitting the road";
           created_new_flag = true;
+          // IMPROVEMENT/hack 
+          //  because split-road solutions do not "heapify, the last segment of the road is not sorted by "score", and often dog-legs for no good reason when a straight
+          //  segment is possible.  It isn't obvious to me how to re-heapify the splitting path when it is being made, so instead, re-plot the road as a direct road so it
+          //  gets the actual best path.  This means the road actually built should be at least as good as the originally scored splitting road, but could be 1 tile better!
+          //  the HoldBuildingPos feature must be passed also to be sure replotted road can't interfere
+          AILogDebug["util_build_best_road"] << "" << calling_function << " because this is a splitting flag solution, REPLOT THE ROAD so the last segment can't dogleg";
+          Roads notused;  // this already a splitting road, no additional split roads considered
+          Road road = plot_road(map, player_index, start_pos, end_pos, &notused, road_options.test(RoadOption::HoldBuildingPos));
         }
         else {
           AILogDebug["util_build_best_road"] << "" << calling_function << " failed to build flag at end_pos " << end_pos << ", FIND OUT WHY!  not trying to build this road.  marking pos in blue";

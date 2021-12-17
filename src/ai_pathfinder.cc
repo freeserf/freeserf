@@ -76,10 +76,14 @@ Road
 AI::plot_road(PMap map, unsigned int player_index, MapPos start_pos, MapPos end_pos, Roads * const &potential_roads, bool hold_building_pos) {
   AILogDebug["plot_road"] << "inside plot_road for Player" << player_index << " with start " << start_pos << ", end " << end_pos;
   
+  //ai_mark_pos.clear();
+  //ai_mark_road->start(end_pos);  //this doesn't actually work here
+
   std::vector<PSearchNode> open;
   std::list<PSearchNode> closed;
   PSearchNode node(new SearchNode);
 
+  // prevent path in the potential building spot be inserting into the closed list!
   if (hold_building_pos == true){
     //AILogDebug["plot_road"] << "debug - hold_building_pos is TRUE!";
     PSearchNode hold_building_pos_node(new SearchNode);
@@ -139,7 +143,7 @@ AI::plot_road(PMap map, unsigned int player_index, MapPos start_pos, MapPos end_
         breadcrumb_solution.extend(reverse_direction(dir));
         //ai_mark_road->extend(reverse_direction(dir));
         //ai_mark_pos.insert(ColorDot(node->pos, "black"));
-        //std::this_thread::sleep_for(std::chrono::milliseconds(0));
+        //sleep_speed_adjusted(100);
         node = node->parent;
       }
       unsigned int new_length = static_cast<unsigned int>(breadcrumb_solution.get_length());
@@ -165,7 +169,7 @@ AI::plot_road(PMap map, unsigned int player_index, MapPos start_pos, MapPos end_
       unsigned int cost = actual_cost(map.get(), node->pos, d);
       //ai_mark_road->extend(d);
       //ai_mark_pos.insert(ColorDot(new_pos, "blue"));
-      //std::this_thread::sleep_for(std::chrono::milliseconds(10));
+      //sleep_speed_adjusted(100);
       // Check if neighbour is valid
       if (!map->is_road_segment_valid(node->pos, d) ||
         (map->get_obj(new_pos) == Map::ObjectFlag && new_pos != end_pos)) {
@@ -212,7 +216,7 @@ AI::plot_road(PMap map, unsigned int player_index, MapPos start_pos, MapPos end_
             split_flag_breadcrumb_solution.extend(reverse_direction(dir));
             //ai_mark_road->extend(reverse_direction(dir));
             //ai_mark_pos.insert(ColorDot(node->pos, "black"));
-            //std::this_thread::sleep_for(std::chrono::milliseconds(0));
+            //sleep_speed_adjusted(100);
             split_flag_node = split_flag_node->parent;
           }
           // restore original node so search can resume
@@ -246,13 +250,13 @@ AI::plot_road(PMap map, unsigned int player_index, MapPos start_pos, MapPos end_
           in_closed = true;
           //ai_mark_pos.erase(new_pos);
           //ai_mark_pos.insert(ColorDot(new_pos, "magenta"));
-          //std::this_thread::sleep_for(std::chrono::milliseconds(0));
+          //sleep_speed_adjusted(100);
           break;
         }
       }
       //ai_mark_pos.erase(new_pos);
       //ai_mark_pos.insert(ColorDot(new_pos, "green"));
-      //std::this_thread::sleep_for(std::chrono::milliseconds(0));
+      //sleep_speed_adjusted(100);
 
       if (in_closed) continue;
 
@@ -265,6 +269,7 @@ AI::plot_road(PMap map, unsigned int player_index, MapPos start_pos, MapPos end_
           in_open = true;
           //ai_mark_pos.erase(new_pos);
           //ai_mark_pos.insert(ColorDot(new_pos, "seafoam"));
+          //sleep_speed_adjusted(100);
           if (n->g_score >= node->g_score + cost) {
             n->g_score = node->g_score + cost;
             n->f_score = n->g_score + heuristic_cost(map.get(), new_pos, end_pos);

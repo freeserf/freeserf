@@ -2686,11 +2686,11 @@ Viewport::draw_ai_grid_overlay() {
           // first two args are x/y offset, if made bigger start more negatively
           // second two args are x/y coord of corners, increase to make bigger
           // small-medium dots
-          //frame->fill_rect(lx - 2, ly + 0, 5, 5, ai->get_mark_color(ai_mark_pos.at(pos)));
-          //frame->fill_rect(lx - 3, ly + 1, 7, 3, ai->get_mark_color(ai_mark_pos.at(pos)));
+          frame->fill_rect(lx - 2, ly + 0, 5, 5, ai->get_mark_color(ai_mark_pos.at(pos)));
+          frame->fill_rect(lx - 3, ly + 1, 7, 3, ai->get_mark_color(ai_mark_pos.at(pos)));
           // large dots
-          frame->fill_rect(lx - 7, ly + 0, 16, 16, ai->get_mark_color(ai_mark_pos.at(pos)));
-          frame->fill_rect(lx - 9, ly + 1, 20, 14, ai->get_mark_color(ai_mark_pos.at(pos)));
+          //frame->fill_rect(lx - 7, ly + 0, 16, 16, ai->get_mark_color(ai_mark_pos.at(pos)));
+          //frame->fill_rect(lx - 9, ly + 1, 20, 14, ai->get_mark_color(ai_mark_pos.at(pos)));
         }
       }
 
@@ -2714,10 +2714,8 @@ Viewport::draw_ai_grid_overlay() {
   
   /*
   // draw road pathfinding
-  //Road *p_mark_road = game->get_ai_mark_road();
-  MapPos prevpos = p_mark_road->get_source();
-  //for (Direction dir : p_mark_road->get_dirs()) {
-  for (const auto &dir : p_mark_road->get_dirs()) {
+  MapPos prevpos = ai->get_ai_mark_road()->get_source();
+  for (const auto &dir : ai->get_ai_mark_road()->get_dirs()) {
           MapPos thispos = map->move(prevpos, dir);
           int prev_sx = 0;
           int prev_sy = 0;
@@ -2731,7 +2729,7 @@ Viewport::draw_ai_grid_overlay() {
           screen_pix_from_map_coord(thispos, &this_sx, &this_sy);
           //Log::Info["viewport"] << "called screen_pix_from_map_coord with TO MapPos " << thispos << ", got x,y " << this_sx << "," << this_sy;
 
-          frame->draw_line(prev_sx, prev_sy, this_sx, this_sy, game->get_mark_color("white"));
+          frame->draw_line(prev_sx, prev_sy, this_sx, this_sy, ai->get_mark_color("white"));
           prevpos = thispos;
   }
   */
