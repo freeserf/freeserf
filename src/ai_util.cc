@@ -225,7 +225,7 @@ AI::update_building_counts() {
     // make completed stocks the first item in that stock's occupied_military pos, even
     //  though it isn't really military it is a good first place to build buildings that
     //  have no affinity
-    if (type == Building::TypeStock && building->is_done()){
+    if (type == Building::TypeStock && stock_buildings.count(flag_pos)){
       AILogVerbose["util_update_building_counts"] << "adding occupied Stock building at " << pos << " to stock's occupied_military_pos list, even though it isn't really military";
       stock_buildings.at(flag_pos).occupied_military_pos.push_back(flag_pos);
       continue;

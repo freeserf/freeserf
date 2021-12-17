@@ -1791,7 +1791,7 @@ AI::do_remove_road_stubs() {
       for (unsigned int i = 1; i < AI::spiral_dist(2); i++) {
         MapPos pos = map->pos_add_extended_spirally(flag_pos, i);
         if (map->has_flag(pos) && map->get_owner(pos) == player_index && game->get_flag_at_pos(pos) != nullptr && game->get_flag_at_pos(pos)->is_connected()
-            && has_terrain_type(game, flag_pos, Map::TerrainTundra0, Map::TerrainSnow1)) {
+            && has_terrain_type(game, pos, Map::TerrainTundra0, Map::TerrainSnow1)) {
           eligible = true;
           AILogDebug["do_remove_road_stubs"] << "flag at pos " << flag_pos << " is eligible because another connected flag on a mountain tile, at pos " << pos << ",  is very close";
           break;
