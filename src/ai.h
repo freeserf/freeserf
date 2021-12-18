@@ -420,7 +420,7 @@ static const unsigned int knights_min = 3;
 static const unsigned int knights_med = 18;
 static const unsigned int knights_max = 50;
 static const unsigned int knight_occupation_change_buffer = 4; // to avoid repeatedly cycling knights, increase/lower bar to change levels again by this amount
-static const unsigned int near_building_sites_min = 500;   // don't place castle unless this many sites available.  small += 2, large += 3 (meant as small=1, large=1.5)
+static const unsigned int near_building_sites_min = 450;   // don't place castle unless this many sites available.  small += 2, large += 3 (meant as small=1, large=1.5)
 //static const unsigned int gold_bars_max = 50;  // I don't think this is actually used
 static const unsigned int steel_min = 8;   // don't build blacksmith if under this value, unless sufficient iron or an iron mine
 static const unsigned int steel_max = 60;  // don't build iron foundry if over this value

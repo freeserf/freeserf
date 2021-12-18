@@ -415,226 +415,6 @@ AI::update_stocks_pos() {
   AILogDebug["util_update_stocks_pos"] << "done AI::update_stocks_pos call took " << duration;
 }
 
-/*
-// destroy all roads in realm, and all disconnected flags, then reconnect them in priority order
-//   attempt to optimize roads once economy is complete.  not working correctly yet
-//     this is a test/hack and NOT used normally (or ever right now)
-void
-AI::rebuild_all_roads() {
-  AILogDebug["util_rebuild_all_roads"] << "inside AI::rebuild_all_roads";
-  MapPosVector flag_positions;
-  AILogDebug["util_rebuild_all_roads"] << "destroying all paths";
-  AILogVerbose["util_rebuild_all_roads"] << "thread #" << std::this_thread::get_id() << " AI is locking mutex for entire rebuild_all_roads function before destroying all roads";
-  game->get_mutex()->lock();
-  AILogVerbose["util_rebuild_all_roads"] << "thread #" << std::this_thread::get_id() << " AI has locked mutex for entire rebuild_all_roads function before destroying all roads";
-  Flags flags_copy = *(game->get_flags());  // create a copy so we don't conflict with the game thread, and don't want to mutex lock for a long function
-  for (Flag *flag : flags_copy) {
-    //// exclude flags connected to knight huts, keep these because they tend to be at the ends of resource chains?
-    //if (!flag->has_building() || flag->get_building()->get_type() != Building::TypeHut) {
-    //}
-    //
-    // only include roads with some distance from the castle??
-    //
-    if (flag == nullptr || flag->get_owner() != player_index)
-      continue;
-    for (Direction dir : cycle_directions_cw()) {
-      if (map->has_path_IMPROVED(flag->get_position(), dir))
-        game->demolish_road(map->move(flag->get_position(), dir), player);
-    }
-    flag_positions.push_back(flag->get_position());
-  }
-  AILogDebug["util_rebuild_all_roads"] << "destroying all unattached flags";
-  for (MapPos flag_pos : flag_positions) {
-    if (map->has_flag(flag_pos))
-      game->demolish_flag(flag_pos, player);
-  }
-
-  AILogVerbose["util_rebuild_all_roads"] << "thread #" << std::this_thread::get_id() << " AI is unlocking mutex for entire rebuild_all_roads function after destroying all roads";
-  game->get_mutex()->unlock();
-  AILogVerbose["util_rebuild_all_roads"] << "thread #" << std::this_thread::get_id() << " AI has unlocked mutex for entire rebuild_all_roads function after destroying all roads";
-
-  AILogDebug["util_rebuild_all_roads"] << "sleeping to see roads destroyed before starting rebuild";
-  sleep_speed_adjusted(2000);
-
-  //road_options.reset(RoadOption::PenalizeNewLength);
-  road_options.set(RoadOption::ReducedNewLengthPenalty);
-
-  std::vector<Building::Type> rebuild_order = {
-      Building::TypeSawmill,
-      Building::TypeLumberjack,
-      Building::TypeWeaponSmith,
-      Building::TypeSteelSmelter,
-      Building::TypeGoldSmelter,
-      Building::TypeFarm,
-      Building::TypeMill,
-      //Building::TypeBaker,
-      //Building::TypeCoalMine,
-      //Building::TypeIronMine,
-      //Building::TypeGoldMine
-  };
-
-  // IDEAS...
-  //  connect bakers to ALL mines
-  //  connect warehouse/stocks to ALL very-nearby flags (until all paths full)
-
-  AILogDebug["util_rebuild_all_roads"] << "trying to connect high priority buildings first";
-  //AILogVerbose["util_rebuild_all_roads"] << "thread #" << std::this_thread::get_id() << " AI is locking mutex for entire rebuild_all_roads function before rebuilding high-priority building roads";
-  //game->get_mutex()->lock();
-  //AILogVerbose["util_rebuild_all_roads"] << "thread #" << std::this_thread::get_id() << " AI has locked mutex for entire rebuild_all_roads function before rebuilding high-priority building roads";
-  for (Building::Type type : rebuild_order) {
-    AILogDebug["util_rebuild_all_roads"] << "trying to connect buildings of type " << NameBuilding[type];
-    for (Building *building : game->get_player_buildings(player)) {
-      if (building->get_type() != type) {
-        continue;
-      }
-      if (building->is_burning()) {
-        AILogDebug["util_rebuild_all_roads"] << "this building is on fire!  skipping";
-        continue;
-      }
-      // skip mines that aren't yet built
-      if (!building->is_done() && building->get_type() >= Building::TypeStoneMine && building->get_type() <= Building::TypeGoldMine)
-        continue;
-      ai_mark_pos.insert(ColorDot(building->get_position(), "blue"));
-      Road built_road; // not used here
-      if (!AI::build_best_road(map->move_down_right(building->get_position()), road_options, &built_road)) {
-        AILogDebug["util_rebuild_all_roads"] << "failed to connect high priority building at pos " << building->get_position() << " to affinity building / road network!";
-      }
-      sleep_speed_adjusted(1000);
-      //ai_mark_pos.clear();
-      ai_mark_pos.erase(building->get_position());
-
-    }
-  }
-
-  //game->get_mutex()->unlock();
-  //sleep_speed_adjusted(5000);
-  //game->get_mutex()->lock();
-  AILogVerbose["util_rebuild_all_roads"] << "trying to connect bakers to mines";
-  for (Building *building : game->get_player_buildings(player)) {
-    if (building->get_type() != Building::TypeBaker) {
-      continue;
-    }
-    if (building->is_burning()) {
-      AILogDebug["util_rebuild_all_roads"] << "this building is on fire!  skipping";
-      continue;
-    }
-    AILogDebug["util_rebuild_all_roads"] << "found a baker at pos " << map->move_down_right(building->get_position());
-    ai_mark_pos.insert(ColorDot(building->get_position(), "orange"));
-    if (!AI::build_best_road(map->move_down_right(building->get_position()), road_options, Building::TypeCoalMine)) {
-      AILogDebug["util_rebuild_all_roads"] << "failed to connect baker at pos " << building->get_position() << " to coal mine / road network!";
-    }
-    sleep_speed_adjusted(500);
-    ai_mark_pos.clear();
-    if (!AI::build_best_road(map->move_down_right(building->get_position()), road_options, Building::TypeIronMine)) {
-      AILogDebug["util_rebuild_all_roads"] << "failed to connect baker at pos " << building->get_position() << " to iron mine / road network!";
-    }
-    sleep_speed_adjusted(500);
-    ai_mark_pos.clear();
-    if (!AI::build_best_road(map->move_down_right(building->get_position()), road_options, Building::TypeGoldMine)) {
-      AILogDebug["util_rebuild_all_roads"] << "failed to connect baker at pos " << building->get_position() << " to gold mine / road network!";
-    }
-    sleep_speed_adjusted(500);
-    ai_mark_pos.clear();
-  }
-
-  //
-  // second run, try mines again
-  //
-  //road_options.reset(RoadOption::PenalizeNewLength);
-  road_options.set(RoadOption::ReducedNewLengthPenalty);
-
-  std::vector<Building::Type> rebuild_order2 = {
-      Building::TypeCoalMine,
-      Building::TypeIronMine,
-      Building::TypeGoldMine
-  };
-
-  AILogDebug["util_rebuild_all_roads"] << "trying to connect 2nd run high priority buildings";
-  //AILogVerbose["util_rebuild_all_roads"] << "thread #" << std::this_thread::get_id() << " AI is locking mutex for entire rebuild_all_roads function before rebuilding high-priority building roads";
-  //game->get_mutex()->lock();
-  //AILogVerbose["util_rebuild_all_roads"] << "thread #" << std::this_thread::get_id() << " AI has locked mutex for entire rebuild_all_roads function before rebuilding high-priority building roads";
-  for (Building::Type type : rebuild_order2) {
-    AILogDebug["util_rebuild_all_roads"] << "trying to connect buildings of type " << NameBuilding[type];
-    for (Building *building : game->get_player_buildings(player)) {
-      if (building->get_type() != type) {
-        continue;
-      }
-      if (building->is_burning()) {
-        AILogDebug["util_rebuild_all_roads"] << "this building is on fire!  skipping";
-        continue;
-      }
-      // skip mines that aren't yet built
-      if (!building->is_done() && building->get_type() >= Building::TypeStoneMine && building->get_type() <= Building::TypeGoldMine)
-        continue;
-      ai_mark_pos.insert(ColorDot(building->get_position(), "purple"));
-      if (!AI::build_best_road(map->move_down_right(building->get_position()), road_options)) {
-        AILogDebug["util_rebuild_all_roads"] << "failed to connect high priority building at pos " << building->get_position() << " to affinity building / road network!";
-      }
-      sleep_speed_adjusted(500);
-      //ai_mark_pos.clear();
-      ai_mark_pos.erase(building->get_position());
-
-    }
-  }
-
-
-  //game->get_mutex()->unlock();
-  //sleep_speed_adjusted(1000);
-  //game->get_mutex()->lock();
-  //AILogVerbose["util_rebuild_all_roads"] << "breaking early to debug";
-  //return;
-
-  road_options.set(RoadOption::PenalizeNewLength);
-  road_options.reset(RoadOption::ReducedNewLengthPenalty);
-
-  AILogDebug["util_rebuild_all_roads"] << "trying to connect remaining civilian buildings (except rangers and incomplete mines)";
-  for (Building *building : game->get_player_buildings(player)) {
-    if (building->is_military())
-      continue;
-    if (building->get_type() == Building::TypeForester && building->is_done())
-      continue;
-    if (building->is_burning()) {
-      AILogDebug["util_rebuild_all_roads"] << "this civilian building is on fire!  skipping";
-      continue;
-    }
-    // skip mines that aren't yet built
-    if (!building->is_done() && building->get_type() >= Building::TypeStoneMine && building->get_type() <= Building::TypeGoldMine)
-      continue;
-    // skip buildings that already have paths (from earlier high priority buildings connections)
-    if (game->get_flag(building->get_flag_index())->is_connected())
-      continue;
-    //ai_mark_pos.insert(ColorDot(building->get_position(), "green"));
-    if (!AI::build_best_road(map->move_down_right(building->get_position()), road_options)) {
-      AILogDebug["util_rebuild_all_roads"] << "failed to connect civilian building at pos " << building->get_position() << " to road network!";
-    }
-    sleep_speed_adjusted(50);
-    //ai_mark_pos.clear();
-    //ai_mark_pos.erase(building->get_position());
-  }
-  //game->get_mutex()->unlock();
-  //sleep_speed_adjusted(5000);
-  //game->get_mutex()->lock();
-  AILogVerbose["util_rebuild_all_roads"] << "trying to connect military buildings";
-  for (Building *building : game->get_player_buildings(player)) {
-    if (building->is_military()) {
-      if (building->is_burning()) {
-        AILogDebug["util_rebuild_all_roads"] << "this military building is on fire!  skipping";
-        continue;
-      }
-      ai_mark_pos.insert(ColorDot(building->get_position(), "coral"));
-      if (!AI::build_best_road(map->move_down_right(building->get_position()), road_options)) {
-        AILogDebug["util_rebuild_all_roads"] << "failed to connect military building at pos " << building->get_position() << " to road network!";
-      }
-      sleep_speed_adjusted(50);
-      //ai_mark_pos.clear();
-    }
-  }
-  //AILogVerbose["util_rebuild_all_roads"] << "thread #" << std::this_thread::get_id() << " AI is unlocking mutex for entire rebuild_all_roads function";
-  //game->get_mutex()->unlock();
-  //AILogVerbose["util_rebuild_all_roads"] << "thread #" << std::this_thread::get_id() << " AI has unlocked mutex for entire rebuild_all_roads function";
-}
-*/
-
 //
 // try to build a road from the specified flag pos to the "best" end flag (determined by various logic), return success/failure
 //  ALSO, set the value of the Road completed (if built) to the provided memory location (though most calling functions don't use it)
@@ -834,9 +614,8 @@ AI::build_best_road(MapPos start_pos, RoadOptions road_options, Road *built_road
 
       // add support for RoadOption::PlotOnlyNoBuild
       if (road_options.test(RoadOption::PlotOnlyNoBuild)){
-        AILogDebug["util_build_best_road"] << "" << calling_function << " RoadOption::PlotOnlyNoBuild is set, not actually building a flag for Direct road.  returning Road object containing it";
+        AILogDebug["util_build_best_road"] << "" << calling_function << " RoadOption::PlotOnlyNoBuild is set, not actually building a flag for Direct road.";
       }else{
-        
         if (!map->has_flag(target_pos)){
           AILogDebug["util_build_best_road"] << "" << calling_function << " zzz direct road requested, no flag at target_pos, trying to build one";
           if (game->can_build_flag(target_pos, player)){
@@ -890,7 +669,7 @@ AI::build_best_road(MapPos start_pos, RoadOptions road_options, Road *built_road
       }
 
       // add support for RoadOption::PlotOnlyNoBuild
-      if (road_options.test(RoadOption::PlotOnlyNoBuild)){
+      if (plotted_succesfully && road_options.test(RoadOption::PlotOnlyNoBuild)){
         AILogDebug["util_build_best_road"] << "" << calling_function << " RoadOption::PlotOnlyNoBuild is set, not actually building the Direct road.  returning Road object containing it";
         *built_road = *(&proposed_direct_road);
         return true;
@@ -1019,6 +798,18 @@ AI::build_best_road(MapPos start_pos, RoadOptions road_options, Road *built_road
         //AILogDebug["util_build_best_road"] << "" << calling_function << " non-direct road requested, nearby flags to halfway_pos - pos " << pos << " is already in nearby_flag list, skipping";
         continue;
       }
+
+      // adding support for RoadOption::ReconnectNetwork
+      if (road_options.test(RoadOption::ReconnectNetwork)){
+        AILogDebug["util_build_best_road"] << "" << calling_function << " non-direct road requested, RoadOption::ReconnectNetwork is true, checking to see if this pos is part of same road network";
+        MapPosVector notused;
+        unsigned int notused2;
+        if (find_flag_path_and_tile_dist_between_flags(map, start_pos, pos, &notused, &notused2, &ai_mark_pos)){
+          AILogDebug["util_build_best_road"] << "" << calling_function << " non-direct road requested, RoadOption::ReconnectNetwork is true, flag at pos " << pos << " is on the same network, not including it";
+          continue;
+        }
+      }
+
       nearby_flags.push_back(pos);
       //ai_mark_pos.erase(pos);
       //ai_mark_pos.insert(std::make_pair(pos, "orange"));
@@ -1438,38 +1229,42 @@ AI::build_best_road(MapPos start_pos, RoadOptions road_options, Road *built_road
       }
       RoadBuilderRoad *proad = rb.get_proad(end_pos);
 
-      // check and see if this solution is actually better than the existing best complete
-      //   solution from start_pos to target_pos (eroad score)
-      // if not, skip this target and move on to next target
-      if (game->get_flag_at_pos(start_pos) != nullptr && game->get_flag_at_pos(start_pos)->is_connected() && road_options.test(RoadOption::Improve)) {
-        bool skip_target = false;
-        for (std::pair<MapPos, unsigned int> ppair : scored_proads) {
-          if (ppair.first != end_pos) {
-            continue;
+      if (road_options.test(RoadOption::ReconnectNetwork)){
+        AILogDebug["util_build_best_road"] << "" << calling_function << " RoadOption::ReconnectNetwork set, NOT checking vs existing (ineffective) solutions";
+      }else{
+        // check and see if this solution is actually better than the existing best complete
+        //   solution from start_pos to target_pos (eroad score)
+        // if not, skip this target and move on to next target
+        if (game->get_flag_at_pos(start_pos) != nullptr && game->get_flag_at_pos(start_pos)->is_connected() && road_options.test(RoadOption::Improve)) {
+          bool skip_target = false;
+          for (std::pair<MapPos, unsigned int> ppair : scored_proads) {
+            if (ppair.first != end_pos) {
+              continue;
+            }
+            AILogDebug["util_build_best_road"] << "" << calling_function << " checking vs existing solution, found adjusted_score of " << ppair.second << " for this proad ending at end_pos " << end_pos;
+            // it must be SIGNIFICANTLY better, say 50% + 2?
+            // reducing from 50% to 20% + 2 on dec04 2021
+            double modified_prod_score = static_cast<double>(ppair.second) * static_cast<double>(1.20) + 2;
+            //if (best_eroad_score <= ppair.second) {
+            if (best_eroad_score <= modified_prod_score) {
+              AILogDebug["util_build_best_road"] << "" << calling_function << " checking vs existing solution, proad from start_pos " << start_pos << " to end_pos " << end_pos << " has +20%+2 score " << modified_prod_score << " which is not significantly better than best_eroad_score " << best_eroad_score << ", skipping this target";
+              skip_target = true;
+              break;
+            }
+            else {
+              AILogDebug["util_build_best_road"] << "" << calling_function << " checking vs existing solution, proad from start_pos " << start_pos << " to end_pos " << end_pos << " has +20%+2 score " << modified_prod_score << " which is significantly better than best_eroad_score " << best_eroad_score << ", will build new road";
+              break;
+            }
           }
-          AILogDebug["util_build_best_road"] << "" << calling_function << " checking vs existing solution, found adjusted_score of " << ppair.second << " for this proad ending at end_pos " << end_pos;
-          // it must be SIGNIFICANTLY better, say 50% + 2?
-          // reducing from 50% to 20% + 2 on dec04 2021
-          double modified_prod_score = static_cast<double>(ppair.second) * static_cast<double>(1.20) + 2;
-          //if (best_eroad_score <= ppair.second) {
-          if (best_eroad_score <= modified_prod_score) {
-            AILogDebug["util_build_best_road"] << "" << calling_function << " checking vs existing solution, proad from start_pos " << start_pos << " to end_pos " << end_pos << " has +20%+2 score " << modified_prod_score << " which is not significantly better than best_eroad_score " << best_eroad_score << ", skipping this target";
-            skip_target = true;
-            break;
-          }
-          else {
-            AILogDebug["util_build_best_road"] << "" << calling_function << " checking vs existing solution, proad from start_pos " << start_pos << " to end_pos " << end_pos << " has +20%+2 score " << modified_prod_score << " which is significantly better than best_eroad_score " << best_eroad_score << ", will build new road";
+          if (skip_target == true) {
+            AILogDebug["util_build_best_road"] << "" << calling_function << " checking vs existing solution, skip_target is true, breaking from foreach sorted_scored_proads - not building road to this target";
             break;
           }
         }
-        if (skip_target == true) {
-          AILogDebug["util_build_best_road"] << "" << calling_function << " checking vs existing solution, skip_target is true, breaking from foreach sorted_scored_proads - not building road to this target";
-          break;
-        }
-      }
-      else {
-        AILogDebug["util_build_best_road"] << "" << calling_function << " sorted_scored_proads, start_pos " << start_pos << " has no paths, or RoadOption::Improve not set, not comparing this solution to any best_eroad_score";
-      } // is potential new solution better than existing solution?
+        else {
+          AILogDebug["util_build_best_road"] << "" << calling_function << " sorted_scored_proads, start_pos " << start_pos << " has no paths, or RoadOption::Improve not set, not comparing this solution to any best_eroad_score";
+        } // is potential new solution better than existing solution?
+      } // if RoadOption::ReconnectNetworks
 
 
 
@@ -2010,7 +1805,7 @@ AI::trace_existing_road(PMap map, MapPos start_pos, Direction dir) {
   Road road;
   if (!map->has_path_IMPROVED(start_pos, dir)) {
     AILogWarn["util_trace_existing_road"] << "no path found at " << start_pos << " in direction " << NameDirection[dir] << "!  FIND OUT WHY";
-    ai_mark_pos.insert(ColorDot(start_pos, "white"));
+    //ai_mark_pos.insert(ColorDot(start_pos, "white"));
     //sleep_speed_adjusted(100000);
     return road;
   }
@@ -2421,6 +2216,15 @@ AI::build_near_pos(MapPos center_pos, unsigned int distance, Building::Type buil
       continue;
     }
 
+    // don't build two of various buildings too close to each other, they become redundant
+    if (building_type == Building::TypeMill || building_type == Building::TypeBaker ||
+        building_type == Building::TypeSawmill || building_type == Building::TypeButcher){
+      if (AI::building_exists_near_pos(pos, AI::spiral_dist(10), building_type)) {
+        AILogDebug["util_build_near_pos"] << "there is already another building of same type " << NameBuilding[building_type] << " within 10 tiles, not building here";
+        continue;
+      }
+    }
+
 
     //
     // FIRST, try to place a FLAG that results in a good road connection
@@ -2563,8 +2367,7 @@ AI::build_near_pos(MapPos center_pos, unsigned int distance, Building::Type buil
     AILogVerbose["util_build_near_pos"] << "thread #" << std::this_thread::get_id() << " AI has unlocked mutex after calling game->build_building (build_near_pos) of type " << NameBuilding[building_type];
     if (!was_built) {
       AILogDebug["util_build_near_pos"] << "failed to build building of type " << NameBuilding[building_type] << " despite can_build being true!  WAITING 10sec - look at the pos in coral!";
-      ai_mark_pos.erase(pos);
-      ai_mark_pos.insert(std::make_pair(pos, "coral"));
+      ai_mark_pos.insert(ColorDot(pos, "coral"));
       //sleep_speed_adjusted(10000);
       continue;
     }

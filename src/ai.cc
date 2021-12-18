@@ -68,9 +68,11 @@ AI::AI(PGame current_game, unsigned int _player_index) {
   road_options.reset(RoadOption::HoldBuildingPos);
   road_options.reset(RoadOption::MostlyStraight);
   road_options.reset(RoadOption::PlotOnlyNoBuild);
+  road_options.reset(RoadOption::ReconnectNetwork);
 
   need_tools = false;
 
+  /* not setting this here, it causes issues on game load
   // this seems to result in bogus value - 32??
   AILogDebug["init"] << "setting initial knight garrison levels to minimum";
   // change this to only happen on NEW game!  not on save game load
@@ -82,6 +84,14 @@ AI::AI(PGame current_game, unsigned int _player_index) {
   player->change_knight_occupation(2, 1, -5);
   player->change_knight_occupation(3, 0, -5);
   player->change_knight_occupation(3, 1, -5);
+  */
+  // instead only set the less-risk levels to minimum as those are always minimum
+  player->change_knight_occupation(0, 0, -5);
+  player->change_knight_occupation(0, 1, -5);
+  player->change_knight_occupation(1, 0, -5);
+  player->change_knight_occupation(1, 1, -5);
+  player->change_knight_occupation(2, 0, -5);
+  player->change_knight_occupation(2, 1, -5);
 }
 
 void
@@ -169,7 +179,7 @@ AI::next_loop(){
   do_manage_tool_priorities();
   do_manage_mine_food_priorities();
   do_balance_sword_shield_priorities();
-  //do_attack();
+  do_attack();
   do_manage_knight_occupation_levels();
 
   // rename this to Inventories instead of Stocks
@@ -367,6 +377,7 @@ AI::do_update_clear_reset() {
   //road_options.reset(RoadOption::HoldBuildingPos);  // this wasn't here for a long time, did I forget it or was this intentional?
   road_options.reset(RoadOption::MostlyStraight);
   road_options.reset(RoadOption::PlotOnlyNoBuild);
+  road_options.reset(RoadOption::ReconnectNetwork);
   //unfinished_hut_count = 0;
   //unfinished_building_count = 0;
   realm_inv = player->get_stats_resources();
@@ -1156,9 +1167,6 @@ AI::do_fix_missing_transporters() {
           AILogDebug["do_fix_missing_transporters"] << "WARNING - found rare type of missing transporter bug!  Flag #" << flag->get_index() << " at pos " << flag->get_position() << " seems to be missing a transporter on road in dir " << NameDirection[dir] << " despite it thinking there is one there!";
           ai_mark_pos.insert(std::make_pair(flag->get_position(), "lt_blue"));
           sleep_speed_adjusted(5000);
-          ai_mark_pos.clear();
-          AILogDebug["do_fix_missing_transporters"] << "detected BUG FOUND - RARER NO TRANSPORTER on road at pos " << flag->get_position() << ", marking in white";
-          ai_mark_pos.insert(ColorDot(flag->get_position() , "white"));
           //AILogDebug["do_fix_missing_transporters"] << "trying to immediately force call a transporter";
           //AILogVerbose["do_fix_missing_transporters"] << "thread #" << std::this_thread::get_id() << " AI is locking mutex before calling flag->call_transporter, to work around RARER no-transporter issue";
           //game->get_mutex()->lock();
@@ -3792,6 +3800,7 @@ AI::do_attack() {
 
   // TEMPORARY
   int morale = 0;
+  //int morale_max = 99999;
   int morale_max = 99999;
 
   //AILogDebug["do_attack"] << "getting serfs again";
@@ -3831,8 +3840,8 @@ AI::do_attack() {
   }
   AILogDebug["do_attack"] << "done do_attack";
   // TEMP TEST
-  AILogDebug["do_attack"] << "TEMP SHORTCUT FORCE ATTACK do_attack";
-  AI::attack_nearest_target(&scored_targets);
+  //AILogDebug["do_attack"] << "TEMP SHORTCUT FORCE ATTACK do_attack";
+  //AI::attack_nearest_target(&scored_targets);
 }
 
 
@@ -4558,13 +4567,13 @@ AI::do_connect_disconnected_road_networks(){
     //AILogDebug["do_connect_disconnected_road_networks"] << "network[" << i << "] contains " << network[i].size() << " elements";
     if (i > 0 && network[i].size() > 1){
       AILogInfo["do_connect_disconnected_road_networks"] << "DISCONNECTED ROAD SYSTEM: network[" << i << "] contains " << network[i].size() << " elements";
-      Road shortest_road;
+      Roads possible_roads = {};
       for (unsigned int flag_index : network[i]){
         Flag *flag = game->get_flag(flag_index);
         if (flag == nullptr)
           continue;
         MapPos flag_pos = flag->get_position();
-        //AILogDebug["do_connect_disconnected_road_networks"] << "network[" << i << "] contains flag_index " << flag_index << " with pos " << flag_pos;
+        AILogDebug["do_connect_disconnected_road_networks"] << "network[" << i << "] contains flag_index " << flag_index << " with pos " << flag_pos;
 
         // mark it for AI overlay
         // re-use get_dir_color function with indexes and hope <6 disconnected sections! (actually it has a failsafe of 'white')
@@ -4576,49 +4585,60 @@ AI::do_connect_disconnected_road_networks(){
         // first, check all flags in the disconnected road network, plot best road but do not actually build it
         // then compare the solutions and try building the shortest one
         //
-        Road road_solution;
+        Road road_solution = {};
         road_options.set(RoadOption::Improve);  // this is required I think, because these flags already have connections to each other
         // Improve is causing issues, possibly create a new option that forces a new road even if it isn't "better" because the current solution is disconnected??
         // try Direct for now
-        road_options.set(RoadOption::Direct);
+        //road_options.set(RoadOption::Direct);  // CANNOT USE DIRECT!  it tries connect directly to the INVENTORY FLAG ONLY and usually fail because that is the default affinity if no target set
         road_options.set(RoadOption::PlotOnlyNoBuild);
+        road_options.set(RoadOption::ReconnectNetwork);
         bool was_built = AI::build_best_road(flag_pos, road_options, &road_solution, "do_connect_disconnected_road_networks");
         if (was_built && road_solution.get_length() > 0){
           MapPos end_pos = road_solution.get_end(map.get());
-          //AILogInfo["do_connect_disconnected_road_networks"] << "DISCONNECTED ROAD SYSTEM: network[" << i << "], was able to plot a road from flag at pos " << flag_pos << " to end_pos " << end_pos << " with new length " << road_solution.get_length();
-          if (shortest_road.get_length() == 0 || road_solution.get_length() < shortest_road.get_length()){
-            //AILogInfo["do_connect_disconnected_road_networks"] << "DISCONNECTED ROAD SYSTEM: network[" << i << "], this road from flag_pos " << flag_pos << " to end_pos " << end_pos << " is new best solution";
-            shortest_road = road_solution;
+          AILogInfo["do_connect_disconnected_road_networks"] << "DISCONNECTED ROAD SYSTEM: network[" << i << "], was able to plot a road from flag at pos " << flag_pos << " to end_pos " << end_pos << " with new length " << road_solution.get_length();
+          if (possible_roads.size() == 0 || road_solution.get_length() < possible_roads.front().get_length()) {
+            AILogInfo["do_connect_disconnected_road_networks"] << "DISCONNECTED ROAD SYSTEM: network[" << i << "], this road from flag_pos " << flag_pos << " to end_pos " << end_pos << " is new best solution";
+            // insert into front of list
+            possible_roads.insert(possible_roads.begin(), road_solution);
+          }else{
+            // push to back of list
+            possible_roads.push_back(road_solution);
           }
+        }else{
+          AILogInfo["do_connect_disconnected_road_networks"] << "DISCONNECTED ROAD SYSTEM: network[" << i << "], was NOT able to plot a road from flag at pos " << flag_pos << " to existing road network";
         }
         road_options.reset(RoadOption::Improve);
-        road_options.reset(RoadOption::Direct);
+        //road_options.reset(RoadOption::Direct);
         road_options.reset(RoadOption::PlotOnlyNoBuild);
+        road_options.reset(RoadOption::ReconnectNetwork);
 
       }
-      AILogInfo["do_connect_disconnected_road_networks"] << "DISCONNECTED ROAD SYSTEM: network[" << i << "], the shortest road solution for network[" << i << "] is from " << shortest_road.get_source() << " to " << shortest_road.get_end(map.get()) << " with length " << shortest_road.get_length();
-      // try to build it (what about fallback plans?  should have a vector of roads to try
-      if (shortest_road.get_length() > 0) {
-        AILogDebug["do_connect_disconnected_road_networks"] << "attempting to build road to connect this road_network (using build_best_road which shuold connect to nearest inventory?)";
+      AILogInfo["do_connect_disconnected_road_networks"] << "DISCONNECTED ROAD SYSTEM: network[" << i << "], found " << possible_roads.size() << " possible_solutions to connect network";
+      bool was_built = false;
+      for (Road road : possible_roads){
+        AILogDebug["do_connect_disconnected_road_networks"] << "DISCONNECTED ROAD SYSTEM: network[" << i << "], attempting to build road to connect this road_network (using build_best_road which shuold connect to nearest inventory?)";
         AILogVerbose["do_connect_disconnected_road_networks"] << "thread #" << std::this_thread::get_id() << " AI is locking mutex before calling game->build_road";
         game->get_mutex()->lock();
         AILogVerbose["do_connect_disconnected_road_networks"] << "thread #" << std::this_thread::get_id() << " AI has locked mutex before calling game->build_road";
-        bool was_built = game->build_road(shortest_road, player);
+        was_built = game->build_road(road, player);
         AILogVerbose["do_connect_disconnected_road_networks"] << "thread #" << std::this_thread::get_id() << " AI is unlocking mutex after calling game->build_road";
         game->get_mutex()->unlock();
         AILogVerbose["do_connect_disconnected_road_networks"] << "thread #" << std::this_thread::get_id() << " AI has unlocked mutex after calling game->build_road";
         if (was_built) {
-          AILogDebug["do_connect_disconnected_road_networks"] << "successfully built road to connect this road_network";
+          AILogDebug["do_connect_disconnected_road_networks"] << "DISCONNECTED ROAD SYSTEM: network[" << i << "], successfully built road to connect this road_network, from " << road.get_source() << " to " << road.get_end(map.get());
           sleep_speed_adjusted(3000);
+          break;
         }
-        AILogDebug["do_connect_disconnected_road_networks"] << "failed to build road!  no fallback plan!";
+        AILogDebug["do_connect_disconnected_road_networks"] << "DISCONNECTED ROAD SYSTEM: network[" << i << "], failed to build road! from " << road.get_source() << " to " << road.get_end(map.get()) <<", will try next one in list";
+      }
+      if (!was_built) {
+        AILogDebug["do_connect_disconnected_road_networks"] << "DISCONNECTED ROAD SYSTEM: network[" << i << "], exhausted all solutions, failed to connect network[" << i << "]!";
       }
     }
   }
-
   AILogInfo["do_connect_disconnected_road_networks"] << "done";
-
 }
+
 
 void
 AI::do_build_3rd_lumberjack() { 

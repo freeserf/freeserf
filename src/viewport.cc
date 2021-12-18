@@ -2686,11 +2686,11 @@ Viewport::draw_ai_grid_overlay() {
           // first two args are x/y offset, if made bigger start more negatively
           // second two args are x/y coord of corners, increase to make bigger
           // small-medium dots
-          frame->fill_rect(lx - 2, ly + 0, 5, 5, ai->get_mark_color(ai_mark_pos.at(pos)));
-          frame->fill_rect(lx - 3, ly + 1, 7, 3, ai->get_mark_color(ai_mark_pos.at(pos)));
+          //frame->fill_rect(lx - 2, ly + 0, 5, 5, ai->get_mark_color(ai_mark_pos.at(pos)));
+          //frame->fill_rect(lx - 3, ly + 1, 7, 3, ai->get_mark_color(ai_mark_pos.at(pos)));
           // large dots
-          //frame->fill_rect(lx - 7, ly + 0, 16, 16, ai->get_mark_color(ai_mark_pos.at(pos)));
-          //frame->fill_rect(lx - 9, ly + 1, 20, 14, ai->get_mark_color(ai_mark_pos.at(pos)));
+          frame->fill_rect(lx - 7, ly + 0, 16, 16, ai->get_mark_color(ai_mark_pos.at(pos)));
+          frame->fill_rect(lx - 9, ly + 1, 20, 14, ai->get_mark_color(ai_mark_pos.at(pos)));
         }
       }
 

@@ -387,6 +387,7 @@ AI::score_flag(PMap map, unsigned int player_index, RoadBuilder *rb, RoadOptions
               break;
             }
           }
+          AILogDebug["score_flag"] << "score_flag, splitting_flag's adjacent_flag_pos " << adjacent_flag_pos << " has flag_dist " << flag_dist << ", tile_dist " << tile_dist << ".  setting this score in rb";
           rb->set_score(adjacent_flag_pos, flag_dist, tile_dist, contains_castle_flag);
         }
         else{
@@ -439,6 +440,7 @@ AI::score_flag(PMap map, unsigned int player_index, RoadBuilder *rb, RoadOptions
     //ai_mark_pos->insert(ColorDot(flag_pos, "coral"));
     //std::this_thread::sleep_for(std::chrono::milliseconds(0));
     // note that this blindly ignores if castle flag / area part of solution, FIX!
+    AILogDebug["score_flag"] << "inserting perfect score 0,0 for target_pos flag at " << flag_pos << " into rb";
     rb->set_score(flag_pos, 0, 0, false);
     AILogDebug["score_flag"] << "score_flag, flag_pos *IS* target_pos, returning true";
     return true;
@@ -464,6 +466,7 @@ AI::score_flag(PMap map, unsigned int player_index, RoadBuilder *rb, RoadOptions
         break;
       }
     }
+    AILogDebug["score_flag"] << "score_flag, setting score for flag_pos " << flag_pos << " to flag_dist " << flag_dist << ", tile_dist " << tile_dist;
     rb->set_score(flag_pos, flag_dist, tile_dist, contains_castle_flag);
   }else{
     AILogDebug["score_flag"] << "score_flag, find_flag_path_and_tile_dist_between_flags() returned false, cannot find flag-path solution from flag_pos " << flag_pos << " to target_pos " << target_pos << ".  Returning false";
