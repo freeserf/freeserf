@@ -670,7 +670,6 @@ typedef enum CustomMapGeneratorOption {
   MountainCoal,
   MountainStone,
   DesertFrequency,
-  LakesMaxSize,
   LakesWaterLevel,
   JunkGrassDeadTrees,
   JunkGrassSandStone,

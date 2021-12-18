@@ -202,8 +202,7 @@ class Interface : public GuiObject, public GameManager::Handler {
   double get_custom_map_generator_mountain_coal(){ return slider_double_to_uint16(custom_map_generator_options.opt[CustomMapGeneratorOption::MountainCoal]); }
   double get_custom_map_generator_mountain_stone(){ return slider_double_to_uint16(custom_map_generator_options.opt[CustomMapGeneratorOption::MountainStone]); }
   double get_custom_map_generator_desert_frequency(){ return slider_double_to_uint16(custom_map_generator_options.opt[CustomMapGeneratorOption::DesertFrequency]); }
-  double get_custom_map_generator_lakes_size(){ return slider_double_to_uint16(custom_map_generator_options.opt[CustomMapGeneratorOption::LakesMaxSize]); }
-  double get_custom_map_generator_lakes_water_level(){ return slider_double_to_uint16(custom_map_generator_options.opt[CustomMapGeneratorOption::LakesWaterLevel]); }
+  double get_custom_map_generator_lakes_water_level(){ return uint16_t(8188 * custom_map_generator_options.opt[CustomMapGeneratorOption::LakesWaterLevel]); }
   double get_custom_map_generator_junk_grass_dead_trees(){ return slider_double_to_uint16(custom_map_generator_options.opt[CustomMapGeneratorOption::JunkGrassDeadTrees]); }
   double get_custom_map_generator_junk_grass_sandstone(){ return slider_double_to_uint16(custom_map_generator_options.opt[CustomMapGeneratorOption::JunkGrassSandStone]); }
   double get_custom_map_generator_junk_grass_stub_trees(){ return slider_double_to_uint16(custom_map_generator_options.opt[CustomMapGeneratorOption::JunkGrassStubTrees]); }
@@ -227,8 +226,14 @@ class Interface : public GuiObject, public GameManager::Handler {
   void set_custom_map_generator_mountain_coal(uint16_t val){ custom_map_generator_options.opt[CustomMapGeneratorOption::MountainCoal] = slider_mineral_uint16_to_int_to_double(val); }
   void set_custom_map_generator_mountain_stone(uint16_t val){ custom_map_generator_options.opt[CustomMapGeneratorOption::MountainStone] = slider_mineral_uint16_to_int_to_double(val); }
   void set_custom_map_generator_desert_frequency(uint16_t val){ custom_map_generator_options.opt[CustomMapGeneratorOption::DesertFrequency] = slider_uint16_to_double(val); }
-  void set_custom_map_generator_lakes_size(uint16_t val){ custom_map_generator_options.opt[CustomMapGeneratorOption::LakesMaxSize] = slider_uint16_to_double(val); }
-  void set_custom_map_generator_lakes_water_level(uint16_t val){ custom_map_generator_options.opt[CustomMapGeneratorOption::LakesWaterLevel] = slider_uint16_to_double(val); }
+  void set_custom_map_generator_lakes_water_level(uint16_t val){
+    // default is 20, values as high as 150 seem okay, resulting in islands surrounded by water
+    // these island maps are not very playable, and AI won't be able to place a castle, but leaving
+    // this available for experimentation.  A set of game rules adjustments need to be made to
+    // create island maps with beaches and some way of being able to place knight huts far away
+    // so other islands can be colonized
+    custom_map_generator_options.opt[CustomMapGeneratorOption::LakesWaterLevel] = double(val) / double(8188);
+  }
   void set_custom_map_generator_junk_grass_sandstone(uint16_t val){ custom_map_generator_options.opt[CustomMapGeneratorOption::JunkGrassSandStone] = slider_uint16_to_double(val); }
   void set_custom_map_generator_junk_grass_stub_trees(uint16_t val){ custom_map_generator_options.opt[CustomMapGeneratorOption::JunkGrassStubTrees] = slider_uint16_to_double(val); }
   void set_custom_map_generator_junk_grass_small_boulders(uint16_t val){ custom_map_generator_options.opt[CustomMapGeneratorOption::JunkGrassSmallBoulders] = slider_uint16_to_double(val); }

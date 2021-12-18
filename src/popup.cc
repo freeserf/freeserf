@@ -2144,17 +2144,20 @@ PopupBox::draw_edit_map_generator_box() {
   draw_green_string(10, 65, "Deserts");
 
   // Lakes
-  //draw_green_string(10, 79, "Lakes");
-  // describe how this currently works rather than how I wanted it to work
-  // the water level part is disabled for now as it doesn't work right
-  draw_green_string(10, 79, "Lake Cohesion");
-  double lakes_mean = (generator_options.opt[CustomMapGeneratorOption::LakesMaxSize] 
-                     + generator_options.opt[CustomMapGeneratorOption::LakesWaterLevel]) / 2;
-  draw_colored_slide_bar(1, 79, slider_double_to_uint16(lakes_mean), Color::blue);
+  draw_green_string(10, 79, "Lakes");
+  // reasonable values for are 0.00-8.00, so divide max slider 65500 by 4 to get 8187.5 (round to 8188) and let 1.00 == 8188
+  draw_colored_slide_bar(1, 79, generator_options.opt[CustomMapGeneratorOption::LakesWaterLevel] * 8188, Color::blue);
+
 
   // Junk Objects
+  //
   //  should these be auto-scaled to water/desert frequency/size?
+  //
   // the water junk object adjustment doesn't seem to work at all, others do
+  // I think there is a original Settlers/Serf City bug in the water objects generation
+  // it seems that if any submerged tree exists it is always top-left on the lake and only one
+  // and I don't think I've ever seen a submerged boulder appear?
+
   draw_green_string(4, 100, "Terrain Junk Objects");
   int junk_y = 92;
   //  "grass junk"
@@ -3688,7 +3691,7 @@ PopupBox::handle_action(int action, int x_, int /*y_*/) {
     interface->set_custom_map_generator_mountain_coal(slider_mineral_double_to_uint16(9.00));   // 9
     interface->set_custom_map_generator_mountain_stone(slider_mineral_double_to_uint16(2.00));  // 2
     interface->set_custom_map_generator_desert_frequency(slider_double_to_uint16(1.00)); 
-    interface->set_custom_map_generator_lakes_size(slider_double_to_uint16(1.00)); 
+    //interface->set_custom_map_generator_lakes_size(slider_double_to_uint16(1.00)); 
     interface->set_custom_map_generator_lakes_water_level(slider_double_to_uint16(1.00)); 
     interface->set_custom_map_generator_junk_grass_sandstone(slider_double_to_uint16(1.00)); 
     interface->set_custom_map_generator_junk_grass_small_boulders(slider_double_to_uint16(1.00)); 
@@ -3811,7 +3814,7 @@ PopupBox::handle_action(int action, int x_, int /*y_*/) {
     break;
   case ACTION_MAPGEN_ADJUST_LAKES:
     Log::Info["popup"] << "ACTION_MAPGEN_ADJUST_LAKES x_ = " << x_ << ", gui_get_slider_click_value(x_) = " << gui_get_slider_click_value(x_) << ", unint16_t(gui_get_slider_click_value(x_)) = " << uint16_t(gui_get_slider_click_value(x_));
-    interface->set_custom_map_generator_lakes_size(gui_get_slider_click_value(x_));
+    //interface->set_custom_map_generator_lakes_size(gui_get_slider_click_value(x_));
     interface->set_custom_map_generator_lakes_water_level(gui_get_slider_click_value(x_));
     break;
   case ACTION_MAPGEN_ADJUST_JUNK_OBJ_GRASS:
