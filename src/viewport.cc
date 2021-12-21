@@ -150,6 +150,14 @@ Viewport::draw_triangle_down(int lx, int ly, int m, int left, int right,
 }
 
 /* Draw a column (vertical) of tiles, starting at an up pointing tile. */
+// NOTE - the visual lighting effect where tiles on the left/west side of
+//  a terrain peak are lighter while tiles on right/east side are darker
+//  appears to be based on the height difference between tiles... I think
+//  that if the tile to the left has higher height than tile to the right
+//  the right tile will be drawn darker (by using a darker sprite)
+//  the data files contain different sprites for each lighting level
+//  that are identically except for the brightness (for DOS, Amiga is dif)
+// 
 void
 Viewport::draw_up_tile_col(MapPos pos, int x_base, int y_base, int max_y,
                            Frame *tile) {

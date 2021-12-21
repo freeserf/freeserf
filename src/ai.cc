@@ -1312,7 +1312,7 @@ AI::do_send_geologists() {
   unsigned int hammers_count = realm_inv[Resource::TypeHammer];
   int reserve_hammers = 2;
   int excess_hammers = static_cast<int>(hammers_count - reserve_hammers);
-  unsigned int adjusted_geologists_max = 1 + (geologists_max * stock_building_counts.size());
+  unsigned int adjusted_geologists_max = 3 + (geologists_max * stock_building_counts.size());
   AILogDebug["do_send_geologists"] << inventory_pos << " total_geologists " << total_geologists << ", idle_geologists " << idle_geologists << ", geologists_max "
     << geologists_max << ", hammers_count " << hammers_count << ", reserve_hammers " << reserve_hammers << ", excess_hammers " << excess_hammers << ", adjusted_geologists_max " << adjusted_geologists_max;
   

@@ -231,6 +231,7 @@ DataSourceDOS::get_sprite_parts(Data::Resource res, size_t index) {
   Resource &dos_res = dos_resources[res];
 
   ColorDOS *palette = get_dos_palette(dos_res.dos_palette);
+  
   if (palette == nullptr) {
     return std::make_tuple(nullptr, nullptr);
   }
@@ -283,6 +284,11 @@ DataSourceDOS::get_sprite_parts(Data::Resource res, size_t index) {
                            nullptr);
   }
 
+  // messing with weather/seasons/palette changes
+  // terrain tiles are AssetMapGround
+  if (res == Data::AssetMapGround){
+  }
+
   PBuffer data = get_object(dos_res.index + index);
   if (!data) {
     return std::make_tuple(nullptr, nullptr);
@@ -291,7 +297,8 @@ DataSourceDOS::get_sprite_parts(Data::Resource res, size_t index) {
   Data::PSprite sprite;
   switch (dos_res.sprite_type) {
     case SpriteTypeSolid: {
-      sprite = std::make_shared<SpriteDosSolid>(data, palette);
+      //sprite = std::make_shared<SpriteDosSolid>(data, palette);
+      sprite = std::make_shared<SpriteDosSolid>(data, palette, res);
       break;
     }
     case SpriteTypeTransparent: {
@@ -313,7 +320,10 @@ DataSourceDOS::get_sprite_parts(Data::Resource res, size_t index) {
   return std::make_tuple(nullptr, sprite);
 }
 
-DataSourceDOS::SpriteDosSolid::SpriteDosSolid(PBuffer _data, ColorDOS *palette)
+//DataSourceDOS::SpriteDosSolid::SpriteDosSolid(PBuffer _data, ColorDOS *palette)
+//  : SpriteBaseDOS(_data) {
+// added passing of resource type to assist with weather/seasons/palette messing
+DataSourceDOS::SpriteDosSolid::SpriteDosSolid(PBuffer _data, ColorDOS *palette, Data::Resource res)
   : SpriteBaseDOS(_data) {
   size_t size = _data->get_size();
   if (size != (width * height + 10)) {
@@ -322,16 +332,94 @@ DataSourceDOS::SpriteDosSolid::SpriteDosSolid(PBuffer _data, ColorDOS *palette)
 
   PMutableBuffer result = std::make_shared<MutableBuffer>(Buffer::EndianessBig);
 
+  // find the average brightness so the brightest/highlight pixels
+  //  can be identified
+  // don't really need to check the whole sprite, a small sample
+  // should be representative for map tiles
+  int avg_brightness = 0;
+  if (res == Data::AssetMapGround){
+    //while (_data->readable()) {
+    for (int i=0; i < 30; i++){
+
+      ColorDOS color = palette[_data->pop<uint8_t>()];
+      avg_brightness += color.r + color.g + color.b;
+      //Log::Info["data-source-dos"] << "this pixel has brightness " << (color.r + color.g + color.b) / 3;
+    }
+
+    // because I do not know how to make a copy of this data, and
+    //  the pop function increments this read counter to track its
+    //  place in the buffer, I added this reset_read function to try
+    //  resetting to zero to hope that it will allow normal iteration
+    //  over it again from the usual pixel loading function below
+    _data->reset_read();
+    // now advance past the metadata at the beginning
+    //  which is a total of ten 8-bit segments (8,8,16,16,16,16)
+    /*delta_x = _data->pop<int8_t>();
+    delta_y = _data->pop<int8_t>();
+    width = _data->pop<uint16_t>();
+    height = _data->pop<uint16_t>();
+    offset_x = _data->pop<int16_t>();
+    offset_y = _data->pop<int16_t>();*/
+    for (int i=0; i < 10; i++){
+      _data->pop<int8_t>();
+    }
+
+    avg_brightness = avg_brightness / 90; // 30 samples x3 colors each
+    //Log::Info["data-source-dos"] << "the avg_brightness of this map tile is " << avg_brightness;
+  }
+  
+
   while (_data->readable()) {
     ColorDOS color = palette[_data->pop<uint8_t>()];
+
+    if (res == Data::AssetMapGround){
     //Log::Info["data-source-dos"] << "ColorDOS old color.b " << std::to_string(color.b) << ", color.g " << std::to_string(color.g) << ", color.r " << std::to_string(color.r);
+
     // shift colors cooler
     //if (color.g > 50){color.g -= 30;}
     //if (color.r > 50){color.r -= 30;}
     // shift colors warmer
     //if (color.b > 50){color.b -= 30;}
     //if (color.g > 50){color.g -= 30;}
+
+    /*
+    // FALL reduce saturation of greens and shift yellow
+    if (color.g > color.r && color.g > color.b  // is green
+        && ((color.r + color.g + color.b) / 3 > avg_brightness + 2)) {    // is bright
+      color.g -= 0;
+      color.r += 85;
+      color.b += 15;
+    }
+    */
+
+    /*
+    // WINTER reduce saturation of everything
+    // slightly reduce reds saturation
+    if (color.r > color.g && color.r > color.b    // is red
+          && color.r > 50){
+      color.r -= 5;
+      color.g += 10;
+      color.b += 10;
+    }
+    // reduce greens saturation and shift blue slightly
+    else if (color.g > color.r && color.g > color.b    // is green
+          && color.g > 60){
+      color.g -= 35;
+      color.r += 30;
+      color.b += 45;
+    }
+    // slightly reduce blue saturation
+    else if (color.b > color.r && color.b > color.g    // is blue
+          && color.b > 60){
+      color.b -= 40;
+      color.g += 10;
+      color.r += 10;
+    }
+    */
+
     //Log::Info["data-source-dos"] << "ColorDOS new color.b " << std::to_string(color.b) << ", color.g " << std::to_string(color.g) << ", color.r " << std::to_string(color.r);
+    }
+
     result->push<uint8_t>(color.b);  // Blue
     result->push<uint8_t>(color.g);  // Green
     result->push<uint8_t>(color.r);  // Red

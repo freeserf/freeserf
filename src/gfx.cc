@@ -171,6 +171,7 @@ Frame::draw_sprite(int x, int y, Data::Resource res, unsigned int index) {
   draw_sprite(x, y, res, index, false, Color::transparent, 1.f);
 }
 
+// this function only seems to affect text as far as I can tell
 void
 Frame::draw_sprite(int x, int y, Data::Resource res, unsigned int index,
                    bool use_off, const Color &color, float progress) {
@@ -178,6 +179,7 @@ Frame::draw_sprite(int x, int y, Data::Resource res, unsigned int index,
                             color.get_green(),
                             color.get_red(),
                             color.get_alpha()};
+
   uint64_t id = Data::Sprite::create_id(res, index, 0, 0, pc);
   Image *image = Image::get_cached_image(id);
   if (image == nullptr) {
@@ -214,6 +216,7 @@ Frame::draw_sprite(int x, int y, Data::Resource res, unsigned int index,
   draw_sprite(x, y, res, index, use_off, Color::transparent, progress);
 }
 
+// this only seems to affect text
 void
 Frame::draw_sprite(int x, int y, Data::Resource res, unsigned int index,
                    bool use_off, const Color &color) {
@@ -250,6 +253,7 @@ Frame::draw_masked_sprite(int x, int y, Data::Resource mask_res,
   Image *image = Image::get_cached_image(id);
   if (image == nullptr) {
     Data::PSprite s = data_source->get_sprite(res, index, {0, 0, 0, 0});
+    
     if (!s) {
       Log::Warn["graphics"] << "Failed to decode sprite #"
                             << Data::get_resource_name(res) << ":" << index;

@@ -61,6 +61,12 @@ class Buffer : public std::enable_shared_from_this<Buffer> {
 
   size_t get_size() const { return size; }
   void *get_data() const { return data; }
+
+  //void reset_read() { *(read) = 0; }  // adding to support messing with weather/seasons/palette
+  void reset_read() {
+    read = reinterpret_cast<uint8_t*>(data);
+  }
+
   void *unfix();
   void set_endianess(EndianessMode _endianess) { endianess = _endianess; }
 
