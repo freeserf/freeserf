@@ -335,7 +335,6 @@ DataSourceBase::get_sprite(Data::Resource res, size_t index,
   if (index >= Data::get_resource_count(res)) {
     return nullptr;
   }
-
   Data::MaskImage ms = get_sprite_parts(res, index);
   Data::PSprite mask = std::get<0>(ms);
   Data::PSprite image = std::get<1>(ms);
@@ -348,7 +347,6 @@ DataSourceBase::get_sprite(Data::Resource res, size_t index,
     }
     return mask;
   }
-
   return image;
 }
 

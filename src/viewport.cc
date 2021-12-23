@@ -668,13 +668,26 @@ Viewport::draw_serf(int lx, int ly, const Color &color, int head, int body) {
 void
 Viewport::draw_shadow_and_building_sprite(int lx, int ly, int index,
                                           const Color &color) {
-  frame->draw_sprite(lx, ly, Data::AssetMapShadow, index, true);
-  frame->draw_sprite(lx, ly, Data::AssetMapObject, index, true, color);
+  // this says shadow and building but it seems to include ANY map object sprite such as trees, stones
+  Log::Info["viewport"] << "inside Viewport::draw_shadow_and_building_sprite for sprite index " << index;
+  frame->draw_sprite(lx, ly, Data::AssetMapShadow, index, true);  // call Frame::draw_sprite#3
+  frame->draw_sprite(lx, ly, Data::AssetMapObject, index, true, color);  // call Frame::draw_sprite#5
 }
+
+// new function to try messing with weather/seasons/palette
+void
+Viewport::draw_map_sprite_special(int lx, int ly, int index, unsigned int pos, unsigned int obj, const Color &color) {
+  // this is only used by draw_map_objects_row, added passing of pos and object type to support sprite replacement
+  Log::Info["viewport"] << "inside Viewport::draw_map_sprite_special for sprite index " << index;
+  frame->draw_sprite_special1(lx, ly, Data::AssetMapShadow, index, true, pos, obj);  // call Frame::draw_sprite#3
+  frame->draw_sprite_special2(lx, ly, Data::AssetMapObject, index, true, color, pos, obj);  // call Frame::draw_sprite#5
+}
+
 
 void
 Viewport::draw_shadow_and_building_unfinished(int lx, int ly, int index,
                                               int progress) {
+  Log::Info["viewport"] << "inside Viewport::draw_shadow_and_building_unfinished for sprite index " << index;
   float p = static_cast<float>(progress) / static_cast<float>(0xFFFF);
   frame->draw_sprite(lx, ly, Data::AssetMapShadow, index, true, p);
   frame->draw_sprite(lx, ly, Data::AssetMapObject, index, true, p);
@@ -1308,17 +1321,40 @@ Viewport::draw_map_objects_row(MapPos pos, int y_base, int cols, int x_base) {
           //Log::Info["viewport.cc"] << "water junk objects in view: " << interface->water_in_view;
         }
 
-        /* Adding sprite number to animation ensures
-           that the tree animation won't be synchronized
-           for all trees on the map. */
+        /*
+        // Adding sprite number to animation ensures
+        //   that the tree animation won't be synchronized
+        //   for all trees on the map. 
+        //
+        // NOTE  -  this is where the wind-waving Tree animation effect happens for ObjectTree0 through ObjectPine7
+        //
         int tree_anim = (interface->get_game()->get_tick() + sprite) >> 4;
         if (sprite < 16) {
           sprite = (sprite & ~7) + (tree_anim & 7);
         } else {
           sprite = (sprite & ~3) + (tree_anim & 3);
         }
+        */
+
+        // messing with weather/seasons/palette tiles for trees
+        // do NOT shift the deciduous tree sprites, keep winter ones static
+        // but still shift the pines as they still have needles
+        int tree_anim = (interface->get_game()->get_tick() + sprite) >> 4;
+        if (sprite < 8){
+          // these are deciduous trees, do NOT shift
+        }else if (sprite >= 8 && sprite < 16) {
+          // these are pine trees, shift
+          sprite = (sprite & ~7) + (tree_anim & 7);
+        }else {
+          // these are ... palm and submerged trees?  shift, but they have fewer animations available
+          sprite = (sprite & ~3) + (tree_anim & 3);
+        }
+        
       }
-      draw_shadow_and_building_sprite(x_base, ly, sprite);
+      // this says shadow and building but it seems to include ANY map object sprite such as trees, stones
+      //draw_shadow_and_building_sprite(x_base, ly, sprite);
+      // try messing with weather/seasons/palette, created new function for only this draw_map_objects call
+      draw_map_sprite_special(x_base, ly, sprite, pos, map->get_obj(pos));
     }
   }
 

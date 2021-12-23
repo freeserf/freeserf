@@ -23,14 +23,18 @@
 
 #include <SDL_image.h>
 
+// NOTE - if SDL2_image is not included in the build these sprites will fail to load!
+
 SpriteFile::SpriteFile() {
   IMG_Init(IMG_INIT_JPG | IMG_INIT_PNG | IMG_INIT_TIF);
 }
 
 bool
 SpriteFile::load(const std::string &path) {
+  Log::Info["sprite-file-sdl"] << "inside SpriteFile::load with path " << path;
   SDL_Surface *image = IMG_Load(path.c_str());
   if (image == nullptr) {
+    Log::Info["sprite-file-sdl"] << "inside SpriteFile::load with path " << path << ", got nullptr for IMG_Load !";
     return false;
   }
   SDL_Surface *surf = SDL_ConvertSurfaceFormat(image,

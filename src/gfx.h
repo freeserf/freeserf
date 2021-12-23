@@ -137,13 +137,15 @@ class Frame {
   virtual ~Frame();
 
   /* Sprite functions */
-  void draw_sprite(int x, int y, Data::Resource res, unsigned int index);
-  void draw_sprite(int x, int y, Data::Resource res, unsigned int index,
-                   bool use_off);
-  void draw_sprite(int x, int y, Data::Resource res, unsigned int index,
-                   bool use_off, float progress);
-  void draw_sprite(int x, int y, Data::Resource res, unsigned int index,
-                   bool use_off, const Color &color);
+  void draw_sprite(int x, int y, Data::Resource res, unsigned int index); //#1
+  ///////////////////////////////////////////////////////////////////////// the #2 draw_sprite is down under 'protected' section
+  void draw_sprite(int x, int y, Data::Resource res, unsigned int index, bool use_off);  //#3
+  // added to support messing with weather/seasons/palette tiles, copy of #3
+  void draw_sprite_special1(int x, int y, Data::Resource res, unsigned int index, bool use_off, unsigned int pos, unsigned int obj);
+  void draw_sprite(int x, int y, Data::Resource res, unsigned int index, bool use_off, float progress);  //#4
+  void draw_sprite(int x, int y, Data::Resource res, unsigned int index, bool use_off, const Color &color);  //#5
+  // added to support messing with weather/seasons/palette tiles, copy of #5
+  void draw_sprite_special2(int x, int y, Data::Resource res, unsigned int index, bool use_off, const Color &color, unsigned int pos, unsigned int obj);
   void draw_sprite_relatively(int x, int y, Data::Resource res,
                               unsigned int index,
                               Data::Resource relative_to_res,
@@ -173,8 +175,9 @@ class Frame {
  protected:
   void draw_char_sprite(int x, int y, unsigned char c, const Color &color,
                         const Color &shadow);
-  void draw_sprite(int x, int y, Data::Resource res, unsigned int index,
-                   bool use_off, const Color &color, float progress);
+  void draw_sprite(int x, int y, Data::Resource res, unsigned int index, bool use_off, const Color &color, float progress);  //#2
+  // added to support messing with weather/seasons/palette tiles, copy of #2
+  void draw_sprite_special3(int x, int y, Data::Resource res, unsigned int index, bool use_off, const Color &color, float progress, unsigned int pos, unsigned int obj);
 };
 
 class Graphics {

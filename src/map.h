@@ -432,6 +432,34 @@ class Map {
 
   Terrain type_up(MapPos pos) const { return landscape_tiles[pos].type_up; }
   Terrain type_down(MapPos pos) const { return landscape_tiles[pos].type_down; }
+  /*
+  // messing with weather/seasons/palette
+  // WINTER
+  // make snow cover a bit more of mountains by changing the *appearance*
+  // of Tundra0/1/2 to Snow, but it still functions as normal Tundra in game
+  // WAIT!!!!! this likely affects the game, I see a lot of functions that call
+  //  map->type_xx.  INSTEAD, create a separate function and change viewport to 
+  //  use it when drawing terrain, or find the function that does the drawing
+  //  and change it only there instead of here
+  Terrain type_up(MapPos pos) const {
+    Terrain type = landscape_tiles[pos].type_up;
+    if (type >= Terrain::TerrainTundra2){  // a bit more snow on mountains
+    //if (type >= Terrain::TerrainGrass0){  // all non water-tiles become snow
+      return Terrain::TerrainSnow0;
+    }else{
+      return type;
+    }
+  }
+  Terrain type_down(MapPos pos) const {
+    Terrain type = landscape_tiles[pos].type_down;
+    if (type >= Terrain::TerrainTundra2){  // a bit more snow on mountains
+    //if (type >= Terrain::TerrainGrass0){  // all non water-tiles become snow
+      return Terrain::TerrainSnow0;
+    }else{
+      return type;
+    }
+  }
+  */
   bool types_within(MapPos pos, Terrain low, Terrain high);
 
   Object get_obj(MapPos pos) const { return landscape_tiles[pos].obj; }

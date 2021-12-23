@@ -168,13 +168,14 @@ Graphics::get_instance() {
    sprite at x, y in dest frame. */
 void
 Frame::draw_sprite(int x, int y, Data::Resource res, unsigned int index) {
+  Log::Info["gfx"] << "inside Frame::draw_sprite#1  with res " << res << " and index " << index;
   draw_sprite(x, y, res, index, false, Color::transparent, 1.f);
 }
 
-// this function only seems to affect text as far as I can tell
 void
 Frame::draw_sprite(int x, int y, Data::Resource res, unsigned int index,
                    bool use_off, const Color &color, float progress) {
+  Log::Info["gfx"] << "inside Frame::draw_sprite#2  with res " << res << " and index " << index;
   Data::Sprite::Color pc = {color.get_blue(),
                             color.get_green(),
                             color.get_red(),
@@ -184,6 +185,70 @@ Frame::draw_sprite(int x, int y, Data::Resource res, unsigned int index,
   Image *image = Image::get_cached_image(id);
   if (image == nullptr) {
     Data::PSprite s = data_source->get_sprite(res, index, pc);
+    if (!s) {
+      Log::Warn["graphics"] << "Failed to decode sprite #"
+                            << Data::get_resource_name(res) << ":" << index;
+      return;
+    }
+    image = new Image(video, s);
+    Image::cache_image(id, image);
+  }
+
+  if (use_off) {
+    x += image->get_offset_x();
+    y += image->get_offset_y();
+  }
+  int y_off = image->get_height() - static_cast<int>(image->get_height() *
+                                                     progress);
+  video->draw_image(image->get_video_image(), x, y, y_off, video_frame);
+}
+
+// added to support messing with weather/seasons/palette tiles, copy of protected Frame::draw_sprite#2
+void
+Frame::draw_sprite_special3(int x, int y, Data::Resource res, unsigned int index, bool use_off, const Color &color, float progress, unsigned int pos, unsigned int obj) {
+  Log::Info["gfx"] << "inside Frame::draw_sprite_special3  with res " << res << ", index " << index << ", pos " << pos << ", obj " << obj;
+  Data::Sprite::Color pc = {color.get_blue(),
+                            color.get_green(),
+                            color.get_red(),
+                            color.get_alpha()};
+
+  uint64_t id = Data::Sprite::create_id(res, index, 0, 0, pc);
+  Image *image = Image::get_cached_image(id);
+  if (image == nullptr) {
+    // messing with weather/seasons/palette
+    Data::PSprite s;
+    //if (false){
+    // deciduous trees are map_objects 000 through 007
+    if ((res == Data::AssetMapObject || res == Data::AssetMapShadow)
+          && index >= 0 && index <= 7){
+      Log::Info["gfx"] << "inside Frame::draw_sprite_special3, trying to load Custom MapObject graphic with index " << index;
+      Data &data = Data::get_instance();
+      //data_source = data.get_data_source_Custom();
+      if (data.get_data_source_Custom() == nullptr){
+        Log::Error["gfx"] << "inside Frame::draw_sprite_special3, data_source (custom) is nullptr!";
+      }
+
+      /*
+      // use map pos to "randomly" determine which tree to draw
+      unsigned int tree = 0;
+      if (pos % 2 == 0)
+        tree = 1;
+      if (pos % 3 == 0)
+        tree = 2;
+      if (pos % 7 == 0)
+        tree = 3;
+      //if (pos % 11 == 0)
+      //  tree = 4;
+      Log::Info["gfx"] << "inside Frame::draw_sprite_special3  with res " << res << ", index " << index << ", pos " << pos << ", obj " << obj << ".  using tree " << tree;
+      */
+      //s = data.get_data_source_Custom()->get_sprite(res, index, pc);  // winter
+      s = data.get_data_source_Custom()->get_sprite(res, index + 100, pc);  // spring
+      //s = data.get_data_source_Custom()->get_sprite(res, tree, pc);  // force sprite file ${tree}.png for all tree animation frame-tiles 000 through 007
+    }else{
+      s = data_source->get_sprite(res, index, pc);
+    }
+
+    //Data::PSprite s = data_source->get_sprite(res, index, pc);
     if (!s) {
       Log::Warn["graphics"] << "Failed to decode sprite #"
                             << Data::get_resource_name(res) << ":" << index;
@@ -207,20 +272,37 @@ Frame::draw_sprite(int x, int y, Data::Resource res, unsigned int index,
 void
 Frame::draw_sprite(int x, int y, Data::Resource res, unsigned int index,
                    bool use_off) {
-  draw_sprite(x, y, res, index, use_off, Color::transparent, 1.f);
+  Log::Info["gfx"] << "inside Frame::draw_sprite#3, calling draw_sprite#2 with res " << res << ", index " << index;
+  draw_sprite(x, y, res, index, use_off, Color::transparent, 1.f);  // this is Frame::draw_sprite#2
+}
+
+// copy of Frame::draw_sprite#3 but with passing of pos and object type to support messing with weather/seasons/palette tiles
+void
+Frame::draw_sprite_special1(int x, int y, Data::Resource res, unsigned int index, bool use_off, unsigned int pos, unsigned int obj) {
+  Log::Info["gfx"] << "inside Frame::draw_sprite_special1, calling Frame::draw_sprite_special3 with res " << res << ", index " << index;
+  draw_sprite_special3(x, y, res, index, use_off, Color::transparent, 1.f, pos, obj);  // this is Frame::draw_sprite#2
 }
 
 void
 Frame::draw_sprite(int x, int y, Data::Resource res, unsigned int index,
                    bool use_off, float progress) {
-  draw_sprite(x, y, res, index, use_off, Color::transparent, progress);
+  Log::Info["gfx"] << "inside Frame::draw_sprite#4, calling draw_sprite#2 with res " << res << ", index " << index;
+  draw_sprite(x, y, res, index, use_off, Color::transparent, progress);  // this is Frame::draw_sprite#2
 }
 
-// this only seems to affect text
 void
 Frame::draw_sprite(int x, int y, Data::Resource res, unsigned int index,
                    bool use_off, const Color &color) {
+  Log::Info["gfx"] << "inside Frame::draw_sprite#5  with res " << res << " and index " << index;
   draw_sprite(x, y, res, index, use_off, color, 1.f);
+}
+
+// copy of Frame::draw_sprite#5 but with passing of pos and object type to support messing with weather/seasons/palette tiles
+void
+Frame::draw_sprite_special2(int x, int y, Data::Resource res, unsigned int index,
+                   bool use_off, const Color &color, unsigned int pos, unsigned int obj) {
+  Log::Info["gfx"] << "inside Frame::draw_sprite_special2 calling Frame::draw_sprite_special3 with res " << res << " and index " << index;
+  draw_sprite_special3(x, y, res, index, use_off, color, 1.f, pos, obj);
 }
 
 void
@@ -230,6 +312,7 @@ Frame::draw_sprite_relatively(int x, int y, Data::Resource res,
                               unsigned int relative_to_index) {
   Data::PSprite s = data_source->get_sprite(relative_to_res, relative_to_index,
                                             {0, 0, 0, 0});
+  Log::Info["gfx"] << "inside Frame::draw_sprite_relatively  with res " << res << " and index " << index;
   if (s == nullptr) {
     Log::Warn["graphics"] << "Failed to decode sprite #"
                           << Data::get_resource_name(res) << ":" << index;
@@ -242,6 +325,9 @@ Frame::draw_sprite_relatively(int x, int y, Data::Resource res,
   draw_sprite(x, y, res, index, true, Color::transparent, 1.f);
 }
 
+//
+// this function only seems to load MapGround type sprites - Terrain
+//
 /* Draw the masked sprite with given mask and sprite
    indices at x, y in dest frame. */
 void
@@ -250,6 +336,7 @@ Frame::draw_masked_sprite(int x, int y, Data::Resource mask_res,
                           unsigned int index) {
   uint64_t id = Data::Sprite::create_id(res, index, mask_res, mask_index,
                                         {0, 0, 0, 0});
+  //Log::Info["gfx"] << "inside Frame::draw_masked_sprite  with res " << res;
   Image *image = Image::get_cached_image(id);
   if (image == nullptr) {
     Data::PSprite s = data_source->get_sprite(res, index, {0, 0, 0, 0});

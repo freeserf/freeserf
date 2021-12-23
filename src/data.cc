@@ -138,18 +138,30 @@ Data::load(const std::string &path) {
     if (source_type == 2)
       source_name = "Custom";
     for (const std::string &path : search_paths) {
+      Log::Info["data"] << "checking for game data in search_path " << path;
       Data::PSource source = factory(path);
       if (source->check()) {
         Log::Info["data"] << "Game data of type " << source_name << " found in '" << source->get_path()
                           << "'...";
         if (source->load()) {
-          if (source_type == 0)
+          if (source_type == 0){
             data_source_Amiga = source;
-          if (source_type == 1)
+            Log::Info["data"] << "loaded Amiga data source";
+            data_source = std::move(source);
+          }
+          if (source_type == 1){
             data_source_DOS = source;
-          if (source_type == 2)
+            Log::Info["data"] << "loaded DOS data source";
+            data_source = std::move(source);
+
+          }
+          if (source_type == 2){
             data_source_Custom = source;
-          data_source = std::move(source);
+              // NOTE: Custom datasource requires SDL2 libs to be included when building or data will fail to load!
+            Log::Info["data"] << "loaded Custom data source.  REMEMBER TO INCLUDE SDL2 LIBRARIES IN BUILD OR CUSTOM DATA WILL FAIL TO LOAD!";
+            //data_source = std::move(source);  // don't use this as the main data source, only for explicit custom datasource calls
+          }
+          //data_source = std::move(source);
           break;
         }
       }

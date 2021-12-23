@@ -61,13 +61,15 @@ DataSourceCustom::load() {
   return loaded;
 }
 
+// using DataSourceCustom graphics requires SDL2_Image included in build or it will fail!
 Data::MaskImage
 DataSourceCustom::get_sprite_parts(Data::Resource res, size_t index) {
+  Log::Info["data-source-custom"] << "inside DataSourceCustom::get_sprite_parts with res " << res << ", index " << index;
   ResInfo *info = get_info(res);
   if (info == nullptr) {
+    Log::Warn["data-source-custom"] << "inside DataSourceCustom::get_sprite_parts with res " << res << ", index " << index << " get_info returned nullptr";
     return std::make_tuple(nullptr, nullptr);
   }
-
   std::stringstream stream;
   stream << std::setfill('0') << std::setw(3) << index;
   std::string section = stream.str();
