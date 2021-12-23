@@ -332,9 +332,12 @@ Data::Sprite::create_id(uint64_t resource, uint64_t index,
 Data::PSprite
 DataSourceBase::get_sprite(Data::Resource res, size_t index,
                            const Data::Sprite::Color &color) {
+  /* disabling this check to allow Custom graphics with indexes outside the normal range (>200)
   if (index >= Data::get_resource_count(res)) {
+    Log::Warn["data-source"] << " get_sprite index " << index << " is beyond the Data::get_resource_count max, suggesting index out of bounds, returning nullptr!";
     return nullptr;
   }
+  */
   Data::MaskImage ms = get_sprite_parts(res, index);
   Data::PSprite mask = std::get<0>(ms);
   Data::PSprite image = std::get<1>(ms);

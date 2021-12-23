@@ -699,6 +699,7 @@ Map::update_public(MapPos pos, Random *rnd) {
         }
         Log::Debug["map"] << "inside Map::update_public, BabyTreesMatureSlowly feature on, r = " << r << ", maturing this Pine at pos " << pos;
       }
+      // I believe this r & 7 sets a random "animation-state" subtype of Pine0 through Pine7
       set_object(pos, (Object)(ObjectPine0 + (r & 7)), -1);
     }
     break;
@@ -715,6 +716,7 @@ Map::update_public(MapPos pos, Random *rnd) {
         }
         Log::Debug["map"] << "inside Map::update_public, BabyTreesMatureSlowly feature on, r = " << r << ", maturing this Tree at pos " << pos;
       }
+      // I believe this r & 7 sets a random "animation-state" subtype of Tree0 through Tree7
       set_object(pos, (Object)(ObjectTree0 + (r & 7)), -1);
     }
     break;
@@ -724,12 +726,15 @@ Map::update_public(MapPos pos, Random *rnd) {
   case ObjectField0: case ObjectField1:
   case ObjectField2: case ObjectField3:
   case ObjectField4:
+    // update progression of wheat fields from seeds to mature fields
     set_object(pos, (Object)(get_obj(pos) + 1), -1);
     break;
   case ObjectSeeds5:
+    // Seeds5 becomees Field0
     set_object(pos, ObjectField0, -1);
     break;
   case ObjectFieldExpired:
+    // spent fields disappear entirely, they do not go back Seeds0
     set_object(pos, ObjectNone, -1);
     break;
   case ObjectSignLargeGold: case ObjectSignSmallGold:
@@ -742,6 +747,7 @@ Map::update_public(MapPos pos, Random *rnd) {
     }
     break;
   case ObjectField5:
+    // spent fields disappear entirely, they do not go back Seeds0
     set_object(pos, ObjectFieldExpired, -1);
     break;
   default:

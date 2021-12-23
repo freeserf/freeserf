@@ -679,7 +679,19 @@ void
 Viewport::draw_map_sprite_special(int lx, int ly, int index, unsigned int pos, unsigned int obj, const Color &color) {
   // this is only used by draw_map_objects_row, added passing of pos and object type to support sprite replacement
   Log::Info["viewport"] << "inside Viewport::draw_map_sprite_special for sprite index " << index;
-  frame->draw_sprite_special1(lx, ly, Data::AssetMapShadow, index, true, pos, obj);  // call Frame::draw_sprite#3
+  // I am thinking that the transparency effect on shadows doens't work right for Custom datasource,
+  //  maybe because PNG settings aren't right?  try testing without all these custom graphics using a vanilla
+  //  copy of Freeserf and export from FSStudio
+  //frame->draw_sprite_special1(lx, ly, Data::AssetMapShadow, index, true, pos, obj);  // call Frame::draw_sprite#3
+  // instead, try this hack to use the right shadow
+  if (index >= 200 && index <= 203){
+    // use "full" deciduous tree shadow for Tree0
+    frame->draw_sprite(lx, ly, Data::AssetMapShadow, 0, true);  // call Frame::draw_sprite#3  
+  }else{
+    // use "bare" tree shadow from dead tree index 084
+    frame->draw_sprite(lx, ly, Data::AssetMapShadow, 84, true);  // call Frame::draw_sprite#3  
+  }
+
   frame->draw_sprite_special2(lx, ly, Data::AssetMapObject, index, true, color, pos, obj);  // call Frame::draw_sprite#5
 }
 
@@ -1298,6 +1310,7 @@ Viewport::draw_map_objects_row(MapPos pos, int y_base, int cols, int x_base) {
       }
     } else {
       int sprite = map->get_obj(pos) - Map::ObjectTree0;
+      bool use_custom_set = false;  // messing with weather/seasons/palette tiles
       if (sprite < 24) {
         /* Trees */
         // only allow bird chirps from Tree and Pine (not palm or submerged, cactus, etc.)
@@ -1337,24 +1350,75 @@ Viewport::draw_map_objects_row(MapPos pos, int y_base, int cols, int x_base) {
         */
 
         // messing with weather/seasons/palette tiles for trees
-        // do NOT shift the deciduous tree sprites, keep winter ones static
-        // but still shift the pines as they still have needles
         int tree_anim = (interface->get_game()->get_tick() + sprite) >> 4;
+        
+        /* Spring
         if (sprite < 8){
-          // these are deciduous trees, do NOT shift
+          // for Tree custom sprites with 4 frames of "crammed" animation
+          // 2.. is spring
+          // .#. is Tree# 0 through 4
+          // ..# is Frame# 0 through 3 for that Tree
+
+          int season = 200;
+          int tree = 10*sprite;
+          if (tree >= 50){
+            // only have 5 trees now (0 through 4), so repeat those for tree5/6/7
+            tree -= 50;
+          }
+          int frame = (sprite & ~3) + (tree_anim & 3);
+          if (frame >= 4){
+            // only have 4 frames of animation for spring, repeat those for frame4/5/6/7
+            frame -= 4;
+          }
+          sprite = season + tree + frame;
+          use_custom_set = true;
         }else if (sprite >= 8 && sprite < 16) {
-          // these are pine trees, shift
+          // these are pine trees, shift.  8 frames of animation
           sprite = (sprite & ~7) + (tree_anim & 7);
         }else {
-          // these are ... palm and submerged trees?  shift, but they have fewer animations available
+          // these are ... palm and submerged trees.  4 frames of animation each
+          sprite = (sprite & ~3) + (tree_anim & 3);
+        }
+        */
+
+        if (sprite < 8){
+          // for Tree custom sprites with 4 frames of "crammed" animation
+          // 3.. is winter
+          // .#. is Tree# 0 through 4
+          // ..# is Frame# 0 through 3 for that Tree
+
+          int season = 300;
+          int tree = 10*sprite;
+          if (tree >= 50){
+            // only have 5 trees now (0 through 4), so repeat those for tree5/6/7
+            tree -= 50;
+          }
+          /*
+          int frame = (sprite & ~3) + (tree_anim & 3);
+          if (frame >= 4){
+            // only have 4 frames of animation for spring, repeat those for frame4/5/6/7
+            frame -= 4;
+          }
+          */
+          int frame = 0;
+          sprite = season + tree + frame;
+          use_custom_set = true;
+        }else if (sprite >= 8 && sprite < 16) {
+          // these are pine trees, shift.  8 frames of animation
+          sprite = (sprite & ~7) + (tree_anim & 7);
+        }else {
+          // these are ... palm and submerged trees.  4 frames of animation each
           sprite = (sprite & ~3) + (tree_anim & 3);
         }
         
+        
+      }
+      // try messing with weather/seasons/palette, created new function for only this draw_map_objects call
+      if (use_custom_set){
+        draw_map_sprite_special(x_base, ly, sprite, pos, map->get_obj(pos));
       }
       // this says shadow and building but it seems to include ANY map object sprite such as trees, stones
-      //draw_shadow_and_building_sprite(x_base, ly, sprite);
-      // try messing with weather/seasons/palette, created new function for only this draw_map_objects call
-      draw_map_sprite_special(x_base, ly, sprite, pos, map->get_obj(pos));
+      draw_shadow_and_building_sprite(x_base, ly, sprite);
     }
   }
 

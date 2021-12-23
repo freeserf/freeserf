@@ -397,7 +397,6 @@ DataSourceDOS::SpriteDosSolid::SpriteDosSolid(PBuffer _data, ColorDOS *palette, 
       }
       */
 
-      /*
       // WINTER
       // slightly reduce reds saturation
       if (color.r > color.g && color.r > color.b    // is red
@@ -420,7 +419,6 @@ DataSourceDOS::SpriteDosSolid::SpriteDosSolid(PBuffer _data, ColorDOS *palette, 
         color.g += 10;
         color.r += 10;
       }
-      */
     }
     //Log::Info["data-source-dos"] << "ColorDOS new color.b " << std::to_string(color.b) << ", color.g " << std::to_string(color.g) << ", color.r " << std::to_string(color.r);
     

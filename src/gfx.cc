@@ -217,32 +217,23 @@ Frame::draw_sprite_special3(int x, int y, Data::Resource res, unsigned int index
   if (image == nullptr) {
     // messing with weather/seasons/palette
     Data::PSprite s;
+    int frame = index % 10;
+    int tree = (index - 200 - frame) / 10;
+    Log::Info["gfx"] << "inside Frame::draw_sprite_special3, found Tree#" << tree << " and frame# " << frame;
+
     //if (false){
     // deciduous trees are map_objects 000 through 007
-    if ((res == Data::AssetMapObject || res == Data::AssetMapShadow)
-          && index >= 0 && index <= 7){
+    if ((res == Data::AssetMapObject || res == Data::AssetMapShadow)){
+          //&& index >= 0 && index <= 7){
       Log::Info["gfx"] << "inside Frame::draw_sprite_special3, trying to load Custom MapObject graphic with index " << index;
       Data &data = Data::get_instance();
       //data_source = data.get_data_source_Custom();
       if (data.get_data_source_Custom() == nullptr){
         Log::Error["gfx"] << "inside Frame::draw_sprite_special3, data_source (custom) is nullptr!";
       }
-
-      /*
-      // use map pos to "randomly" determine which tree to draw
-      unsigned int tree = 0;
-      if (pos % 2 == 0)
-        tree = 1;
-      if (pos % 3 == 0)
-        tree = 2;
-      if (pos % 7 == 0)
-        tree = 3;
-      //if (pos % 11 == 0)
-      //  tree = 4;
-      Log::Info["gfx"] << "inside Frame::draw_sprite_special3  with res " << res << ", index " << index << ", pos " << pos << ", obj " << obj << ".  using tree " << tree;
-      */
       //s = data.get_data_source_Custom()->get_sprite(res, index, pc);  // winter
-      s = data.get_data_source_Custom()->get_sprite(res, index + 100, pc);  // spring
+      //s = data.get_data_source_Custom()->get_sprite(res, index + 200, pc);  // spring
+      s = data.get_data_source_Custom()->get_sprite(res, index, pc); // spring with crammed animation
       //s = data.get_data_source_Custom()->get_sprite(res, tree, pc);  // force sprite file ${tree}.png for all tree animation frame-tiles 000 through 007
     }else{
       s = data_source->get_sprite(res, index, pc);
