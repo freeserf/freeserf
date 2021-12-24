@@ -53,7 +53,7 @@ bool option_BabyTreesMatureSlowly = false;
 bool option_ResourceRequestsTimeOut = true;  // this is forced true to indicate that the code to make them optional isn't added yet
 bool option_LostTransportersClearFaster = false;
 bool option_FourSeasons = false;
-int season = 1;  // default to Summer, normal graphics
+int season = 1;  // default to Summer
 typedef enum Season {
   SeasonSpring = 0,
   SeasonSummer = 1,

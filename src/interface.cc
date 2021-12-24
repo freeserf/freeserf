@@ -1075,11 +1075,14 @@ Interface::handle_key_pressed(char key, int modifier) {
     case 'w':
       if (option_FourSeasons){
         option_FourSeasons = false;
-        Log::Info["interface"] << "Disabling FourSeasons of Weather";
+        Log::Info["interface"] << "Disabling FourSeasons of Weather and clearing image cache";
       }else{
         option_FourSeasons = true;
-        Log::Info["interface"] << "Enabling FourSeasons of Weather";
+        Log::Info["interface"] << "Enabling FourSeasons of Weather and clearing image cache";
       }
+      Image::clear_cache();
+      // something about opening a panel popup refreshes the screen and updates some graphical stuff that fixes things
+      layout();  // THIS IS IT - this is the "fix viewport" function
       break;
     case 'q':
       if (season < 3){
@@ -1089,6 +1092,8 @@ Interface::handle_key_pressed(char key, int modifier) {
       }
       Log::Info["interface"] << "Changing Season to " << NameSeason[season] << " and clearing image cache";
       Image::clear_cache();
+      // something about opening a panel popup refreshes the screen and updates some graphical stuff that fixes things
+      layout();  // THIS IS IT - this is the "fix viewport" function
       break;
     case 'z':
       if (modifier & 1) {

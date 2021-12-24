@@ -98,6 +98,23 @@ Viewport::draw_triangle_up(int lx, int ly, int m, int left, int right,
   }
 
   Map::Terrain type = map->type_up(map->move_up(pos));
+
+  // messing with weather/seasons/palette
+  // WINTER
+  // make snow cover a bit more of mountains by changing the *appearance*
+  // of Tundra0/1/2 to Snow, but it still functions as normal Tundra in game
+  if (option_FourSeasons && season == 3){
+    if (type >= Map::TerrainTundra2){  // a bit more snow on mountains in winter
+      type = Map::TerrainSnow0;
+    }
+  }
+  // SUMMER - a bit less snow on mountains
+  if (option_FourSeasons && season == 1){
+    if (type == Map::TerrainSnow0){  // a bit less snow on mountains in summer
+      type = Map::TerrainTundra2;
+    }
+  }
+
   int index = (type << 3) | tri_mask[mask];
   if (index >= 128) {
     throw ExceptionFreeserf("Failed to draw triangle up (4).");
@@ -137,6 +154,23 @@ Viewport::draw_triangle_down(int lx, int ly, int m, int left, int right,
   }
 
   int type = map->type_down(map->move_up_left(pos));
+
+  // messing with weather/seasons/palette
+  // WINTER
+  // make snow cover a bit more of mountains by changing the *appearance*
+  // of Tundra0/1/2 to Snow, but it still functions as normal Tundra in game
+  if (option_FourSeasons && season == 3){
+    if (type >= Map::TerrainTundra2){  // a bit more snow on mountains in winter
+      type = Map::TerrainSnow0;
+    }
+  }
+  // SUMMER - a bit less snow on mountains
+  if (option_FourSeasons && season == 1){
+    if (type == Map::TerrainSnow0){  // a bit less snow on mountains in summer
+      type = Map::TerrainTundra2;
+    }
+  }
+
   int index = (type << 3) | tri_mask[mask];
   if (index >= 128) {
     throw ExceptionFreeserf("Failed to draw triangle down (4).");
@@ -1337,126 +1371,137 @@ Viewport::draw_map_objects_row(MapPos pos, int y_base, int cols, int x_base) {
           //Log::Info["viewport.cc"] << "water junk objects in view: " << interface->water_in_view;
         }
 
-        /*
         // Adding sprite number to animation ensures
         //   that the tree animation won't be synchronized
-        //   for all trees on the map. 
+        //   for all trees on the map.  
+        //  WAIT A MINUTE - IT SURE SEEMS LIKE ALL TREES *ARE* SYNCED ON THE MAP, IS THIS A MISTAKE?
+        //  COMPARE TO ORIGINAL GAME.   Serflings is synched too.  I think the comment is wrong.  However, I don't
+        //  feel like re-generating all the FALL sprites again, so leaving it
         //
         // NOTE  -  this is where the wind-waving Tree animation effect happens for ObjectTree0 through ObjectPine7
         //
         int tree_anim = (interface->get_game()->get_tick() + sprite) >> 4;
-        if (sprite < 16) {
-          sprite = (sprite & ~7) + (tree_anim & 7);
-        } else {
-          sprite = (sprite & ~3) + (tree_anim & 3);
-        }
-        */
 
-        // messing with weather/seasons/palette tiles for trees
-        int tree_anim = (interface->get_game()->get_tick() + sprite) >> 4;
-        
-        // SPRING
-        if (season == 0){
-          if (sprite < 8){
-            // for Tree custom sprites with 4 frames of "crammed" animation
-            // 2.. is spring
-            // .#. is Tree# 0 through 4
-            // ..# is Frame# 0 through 3 for that Tree
+        if (option_FourSeasons){
+          // SPRING
+          if (season == 0){
+            if (sprite < 8){
+              // for Tree custom sprites with 4 frames of "crammed" animation
+              // 2.. is spring
+              // .#. is Tree# 0 through 4
+              // ..# is Frame# 0 through 3 for that Tree
 
-            //int season = 200;
-            int tree = 10*sprite;
-            if (tree >= 50){
-              // only have 5 trees now (0 through 4), so repeat those for tree5/6/7
-              tree -= 50;
+              //int season = 200;
+              int tree = 10*sprite;
+              if (tree >= 50){
+                // only have 5 trees now (0 through 4), so repeat those for tree5/6/7
+                tree -= 50;
+              }
+              int frame = (sprite & ~3) + (tree_anim & 3);
+              if (frame >= 4){
+                // only have 4 frames of animation for spring, repeat those for frame4/5/6/7
+                frame -= 4;
+              }
+              sprite = season_offset[season] + tree + frame;
+              use_custom_set = true;
+            }else if (sprite >= 8 && sprite < 16) {
+              // these are pine trees, shift.  8 frames of animation
+              sprite = (sprite & ~7) + (tree_anim & 7);
+            }else {
+              // these are ... palm and submerged trees.  4 frames of animation each
+              sprite = (sprite & ~3) + (tree_anim & 3);
             }
-            int frame = (sprite & ~3) + (tree_anim & 3);
-            if (frame >= 4){
-              // only have 4 frames of animation for spring, repeat those for frame4/5/6/7
-              frame -= 4;
+          } // if SPRING
+
+          // SUMMER
+          if (season == 1){
+            // no changes
+            // NORMAL - pasted here, same as if FourSeasons is turned off
+            //  but still needed so the SUMMER trees wave
+            if (sprite < 16) {
+              sprite = (sprite & ~7) + (tree_anim & 7);
+            } else {
+              sprite = (sprite & ~3) + (tree_anim & 3);
             }
-            sprite = season_offset[season] + tree + frame;
-            use_custom_set = true;
-          }else if (sprite >= 8 && sprite < 16) {
-            // these are pine trees, shift.  8 frames of animation
+          }
+
+          // FALL
+          if (season == 2){
+            if (sprite < 8){
+              // for Tree custom sprites with 8 frames of "crammed" animation
+              // 4.. is fall
+              // .#. is Tree# 0 through 7
+              // ..# is Frame# 0 through 7 for that Tree
+              // each Tree# represents a color, and it has all 8 usual frames
+              //  of animation for that color.  Note that the first frame of
+              //  each set is correctly staggered so that they don't all have
+              //  the same synced/starting frame - just like the usual green does
+              // WAIT - it seems the normal trees ARE synched... and my change breaks this
+              //    which is better?
+              //int season = 400;
+              int tree = 10*sprite;
+              int frame = (sprite & ~3) + (tree_anim & 3);
+              sprite = season_offset[season] + tree + frame;
+              use_custom_set = true;
+            }else if (sprite >= 8 && sprite < 16) {
+              // these are pine trees, shift.  8 frames of animation
+              sprite = (sprite & ~7) + (tree_anim & 7);
+            }else {
+              // these are ... palm and submerged trees.  4 frames of animation each
+              sprite = (sprite & ~3) + (tree_anim & 3);
+            }
+          } // if FALL
+
+          // WINTER
+          if (season == 3){
+            if (sprite < 8){
+              // for Tree custom sprites with 4 frames of "crammed" animation
+              // 3.. is winter
+              // .#. is Tree# 0 through 4
+              // ..# is Frame# 0 through 3 for that Tree
+
+              //int season = 300;
+              int tree = 10*sprite;
+              if (tree >= 50){
+                // only have 5 trees now (0 through 4), so repeat those for tree5/6/7
+                tree -= 50;
+              }
+              //int frame = (sprite & ~3) + (tree_anim & 3);
+              //if (frame >= 4){
+              //  // only have 4 frames of animation for spring, repeat those for frame4/5/6/7
+              //  frame -= 4;
+              //}
+              int frame = 0;
+              sprite = season_offset[season] + tree + frame;
+              use_custom_set = true;
+            }else if (sprite >= 8 && sprite < 16) {
+              // these are pine trees, shift.  8 frames of animation
+              sprite = (sprite & ~7) + (tree_anim & 7);
+            }else {
+              // these are ... palm and submerged trees.  4 frames of animation each
+              sprite = (sprite & ~3) + (tree_anim & 3);
+            }
+          } // if WINTER
+        } else{ 
+          // NORMAL - weather/FourSeasons turned off
+          if (sprite < 16) {
             sprite = (sprite & ~7) + (tree_anim & 7);
-          }else {
-            // these are ... palm and submerged trees.  4 frames of animation each
+          } else {
             sprite = (sprite & ~3) + (tree_anim & 3);
           }
+        } // if option_FourSeasons
+
+        if (use_custom_set){
+          draw_map_sprite_special(x_base, ly, sprite, pos, map->get_obj(pos));
+        }else{
+          // this says shadow and building but it seems to include ANY map object sprite such as trees, stones
+          draw_shadow_and_building_sprite(x_base, ly, sprite);
         }
 
-        // SUMMER
-        if (season == 1){
-          // no changes
-        }
-
-        // FALL
-        if (season == 2){
-          if (sprite < 8){
-            // for Tree custom sprites with 8 frames of "crammed" animation
-            // 4.. is fall
-            // .#. is Tree# 0 through 7
-            // ..# is Frame# 0 through 7 for that Tree
-            // each Tree# represents a color, and it has all 8 usual frames
-            //  of animation for that color.  Note that the first frame of
-            //  each set is correctly staggered so that they don't all have
-            //  the same synced/starting frame - just like the usual green does
-            //int season = 400;
-            int tree = 10*sprite;
-            int frame = (sprite & ~3) + (tree_anim & 3);
-            sprite = season_offset[season] + tree + frame;
-            use_custom_set = true;
-          }else if (sprite >= 8 && sprite < 16) {
-            // these are pine trees, shift.  8 frames of animation
-            sprite = (sprite & ~7) + (tree_anim & 7);
-          }else {
-            // these are ... palm and submerged trees.  4 frames of animation each
-            sprite = (sprite & ~3) + (tree_anim & 3);
-          }
-        }
-
-        // WINTER
-        if (season == 3){
-          if (sprite < 8){
-            // for Tree custom sprites with 4 frames of "crammed" animation
-            // 3.. is winter
-            // .#. is Tree# 0 through 4
-            // ..# is Frame# 0 through 3 for that Tree
-
-            //int season = 300;
-            int tree = 10*sprite;
-            if (tree >= 50){
-              // only have 5 trees now (0 through 4), so repeat those for tree5/6/7
-              tree -= 50;
-            }
-            //int frame = (sprite & ~3) + (tree_anim & 3);
-            //if (frame >= 4){
-            //  // only have 4 frames of animation for spring, repeat those for frame4/5/6/7
-            //  frame -= 4;
-            //}
-            int frame = 0;
-            sprite = season_offset[season] + tree + frame;
-            use_custom_set = true;
-          }else if (sprite >= 8 && sprite < 16) {
-            // these are pine trees, shift.  8 frames of animation
-            sprite = (sprite & ~7) + (tree_anim & 7);
-          }else {
-            // these are ... palm and submerged trees.  4 frames of animation each
-            sprite = (sprite & ~3) + (tree_anim & 3);
-          }
-        }
-
-      }
-      // try messing with weather/seasons/palette, created new function for only this draw_map_objects call
-      if (use_custom_set){
-        draw_map_sprite_special(x_base, ly, sprite, pos, map->get_obj(pos));
-      }
-      // this says shadow and building but it seems to include ANY map object sprite such as trees, stones
-      draw_shadow_and_building_sprite(x_base, ly, sprite);
-    }
-  }
-
-}
+      } // if sprite < 24 (trees and junk objects)
+    } // if not a Tree or junk object
+  } // foreach column in this row
+} // end Viewport::draw_map_objects_row
 
 /* Draw one individual serf in the row. */
 void

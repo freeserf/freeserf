@@ -33,6 +33,7 @@
 #include "src/data.h"
 #include "src/sfx2wav.h"
 #include "src/xmi2mid.h"
+#include "src/game-options.h" // for seasons
 
 #define DATA_SERF_ANIMATION_TABLE  2
 #define DATA_SERF_ARMS             1850  // 3, dos_sprite_type_transparent
@@ -387,38 +388,51 @@ DataSourceDOS::SpriteDosSolid::SpriteDosSolid(PBuffer _data, ColorDOS *palette, 
       //if (color.b > 50){color.b -= 30;}
       //if (color.g > 50){color.g -= 30;}
 
-      // FALL reduce saturation of greens and shift yellow
-      if (color.g > color.r && color.g > color.b  // is green
-          && ((color.r + color.g + color.b) / 3 > avg_brightness + 2)) {    // is bright
-        color.g -= 0;
-        color.r += 85;
-        color.b += 15;
-      }
+      if (option_FourSeasons){
+        if (season == 0){
+          // SPRING do nothing
+        }
 
-      /*
-      // WINTER
-      // slightly reduce reds saturation
-      if (color.r > color.g && color.r > color.b    // is red
-            && color.r > 50){
-        color.r -= 5;
-        color.g += 10;
-        color.b += 10;
-      }
-      // reduce greens saturation and shift blue slightly
-      else if (color.g > color.r && color.g > color.b    // is green
-            && color.g > 60){
-        color.g -= 35;
-        color.r += 30;
-        color.b += 45;
-      }
-      // slightly reduce blues saturation
-      else if (color.b > color.r && color.b > color.g    // is blue
-            && color.b > 60){
-        color.b -= 40;
-        color.g += 10;
-        color.r += 10;
-      }
-      */
+        if (season == 1){
+          // SUMMER do nothing
+        }
+
+        if (season == 2){
+          // FALL reduce saturation of greens and shift yellow
+          if (color.g > color.r && color.g > color.b  // is green
+              && ((color.r + color.g + color.b) / 3 > avg_brightness + 2)) {    // is bright
+            color.g -= 0;
+            color.r += 85;
+            color.b += 15;
+          }
+        }
+
+        if (season == 3){
+          // WINTER
+          // slightly reduce reds saturation
+          if (color.r > color.g && color.r > color.b    // is red
+                && color.r > 50){
+            color.r -= 5;
+            color.g += 10;
+            color.b += 10;
+          }
+          // reduce greens saturation and shift blue slightly
+          else if (color.g > color.r && color.g > color.b    // is green
+                && color.g > 60){
+            color.g -= 25;
+            color.r += 20;
+            color.b += 25;
+          }
+          // slightly reduce blues saturation
+          else if (color.b > color.r && color.b > color.g    // is blue
+                && color.b > 60){
+            color.b -= 40;
+            color.g += 10;
+            color.r += 10;
+          }
+        }
+      } // if option_FourSeasons
+     
     }
     //Log::Info["data-source-dos"] << "ColorDOS new color.b " << std::to_string(color.b) << ", color.g " << std::to_string(color.g) << ", color.r " << std::to_string(color.r);
     
