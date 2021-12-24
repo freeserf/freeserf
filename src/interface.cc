@@ -1095,6 +1095,17 @@ Interface::handle_key_pressed(char key, int modifier) {
       // something about opening a panel popup refreshes the screen and updates some graphical stuff that fixes things
       layout();  // THIS IS IT - this is the "fix viewport" function
       break;
+    case 'e':
+      if (subseason < 8){  // allow subseason to go to be  "tree + 1" so that it can have a 0 state with no change yet
+        subseason++;
+      }else{
+        subseason = 0;
+      }
+      Log::Info["interface"] << "Changing Sub-Season to #" << subseason << " and clearing image cache";
+      Image::clear_cache();
+      // something about opening a panel popup refreshes the screen and updates some graphical stuff that fixes things
+      layout();  // THIS IS IT - this is the "fix viewport" function
+      break;
     case 'z':
       if (modifier & 1) {
         GameStore::get_instance().quick_save("quicksave", game.get());

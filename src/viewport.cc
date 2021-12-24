@@ -1382,114 +1382,84 @@ Viewport::draw_map_objects_row(MapPos pos, int y_base, int cols, int x_base) {
         //
         int tree_anim = (interface->get_game()->get_tick() + sprite) >> 4;
 
-        if (option_FourSeasons){
-          // SPRING
-          if (season == 0){
-            if (sprite < 8){
-              // for Tree custom sprites with 4 frames of "crammed" animation
-              // 2.. is spring
-              // .#. is Tree# 0 through 4
-              // ..# is Frame# 0 through 3 for that Tree
+        // to support custom sprites and "crammed" animation, a numbering system is used
+        // where each season has a set of trees, each with their own animation set
+        //
+        // NORMALLY, the game has Tree (and Pine, and Palm and SubmergedTree) numbers as map objects
+        //  and to animate them the spite drawn is an offset of the base '0' object for that set
+        //  and only that one set of animation exists for each tree type (it cycles through the sprites as frames)
+        //
+        // for FourSeasons, the number of unique trees of each type (Tree/Pine/etc)is limited to the
+        //  number of the original type/frames (8xTree,8xPine,4xPalm,4xSubmergedTree), however the 
+        //  animation frames for each is unlimited.  For now I have used a numbering system that limits 
+        //  frame count to <=9 but the numbering system could be changed to allow any number of frames per tree type.  
+        //
+        // #.. is season_offset (NOT same as 'season' because they are out of order, offset are
+        //    Spring = 200, Summer = 000 (none), Fall = 400, Winter = 300
+        // .#. is Tree#, 0-3 for some, 0-7 for others
+        // ..# is Frame#, 0-3 for some, 0-7 for others
+        // so for example, Fall Tree#5 with 8 frames of animation is index 450 through 457
 
-              //int season = 200;
-              int tree = 10*sprite;
-              if (tree >= 50){
-                // only have 5 trees now (0 through 4), so repeat those for tree5/6/7
-                tree -= 50;
+        int tree = 10*sprite;
+        int frame = 0;
+        if (sprite < 8){
+          // these are deciduous trees, apply special FourSeasons rules
+          if (option_FourSeasons){
+            switch (season) {
+            case 0:  // SPRING
+              if (subseason*10 > tree){  // if subseason is 0, no tree changes yet
+                // use spring coloration for this Tree#
+                frame = (sprite & ~7) + (tree_anim & 3);  // spring trees have 8 types, each with 4 frames of animation
+                sprite = season_offset[season] + tree + frame;
+              }else{
+                // use previous (winter) coloration for this Tree#
+                frame = (sprite & ~7) + (tree_anim & 3);  // winter trees have 8 types, each with 4 frames of animation
+                sprite = season_offset[3] + tree + frame;
               }
-              int frame = (sprite & ~3) + (tree_anim & 3);
-              if (frame >= 4){
-                // only have 4 frames of animation for spring, repeat those for frame4/5/6/7
-                frame -= 4;
+              use_custom_set = true;  // spring always uses custom_set, for spring and winter trees shown
+              break;
+            case 1:  // SUMMER
+              // continue using normal/summer green shifting method, no custom_set
+              sprite = (sprite & ~7) + (tree_anim & 7);  // 8 frames of animation
+              break;
+            case 2:  // FALL
+              frame = (sprite & ~7) + (tree_anim & 7);  // 8 frames of animation
+              if (subseason*10 > tree){  // if subseason is 0, no tree changes yet
+                // use fall coloration for this Tree#
+                sprite = season_offset[season] + tree + frame;
+                use_custom_set = true;
+              }else{
+                // continue using normal/summer green for this Tree#, no custom_set
+                sprite = (sprite & ~7) + (tree_anim & 7);  // 8 frames of animation
               }
-              sprite = season_offset[season] + tree + frame;
-              use_custom_set = true;
-            }else if (sprite >= 8 && sprite < 16) {
-              // these are pine trees, shift.  8 frames of animation
-              sprite = (sprite & ~7) + (tree_anim & 7);
-            }else {
-              // these are ... palm and submerged trees.  4 frames of animation each
-              sprite = (sprite & ~3) + (tree_anim & 3);
-            }
-          } // if SPRING
-
-          // SUMMER
-          if (season == 1){
-            // no changes
-            // NORMAL - pasted here, same as if FourSeasons is turned off
-            //  but still needed so the SUMMER trees wave
-            if (sprite < 16) {
-              sprite = (sprite & ~7) + (tree_anim & 7);
-            } else {
-              sprite = (sprite & ~3) + (tree_anim & 3);
-            }
-          }
-
-          // FALL
-          if (season == 2){
-            if (sprite < 8){
-              // for Tree custom sprites with 8 frames of "crammed" animation
-              // 4.. is fall
-              // .#. is Tree# 0 through 7
-              // ..# is Frame# 0 through 7 for that Tree
-              // each Tree# represents a color, and it has all 8 usual frames
-              //  of animation for that color.  Note that the first frame of
-              //  each set is correctly staggered so that they don't all have
-              //  the same synced/starting frame - just like the usual green does
-              // WAIT - it seems the normal trees ARE synched... and my change breaks this
-              //    which is better?
-              //int season = 400;
-              int tree = 10*sprite;
-              int frame = (sprite & ~3) + (tree_anim & 3);
-              sprite = season_offset[season] + tree + frame;
-              use_custom_set = true;
-            }else if (sprite >= 8 && sprite < 16) {
-              // these are pine trees, shift.  8 frames of animation
-              sprite = (sprite & ~7) + (tree_anim & 7);
-            }else {
-              // these are ... palm and submerged trees.  4 frames of animation each
-              sprite = (sprite & ~3) + (tree_anim & 3);
-            }
-          } // if FALL
-
-          // WINTER
-          if (season == 3){
-            if (sprite < 8){
-              // for Tree custom sprites with 4 frames of "crammed" animation
-              // 3.. is winter
-              // .#. is Tree# 0 through 4
-              // ..# is Frame# 0 through 3 for that Tree
-
-              //int season = 300;
-              int tree = 10*sprite;
-              if (tree >= 50){
-                // only have 5 trees now (0 through 4), so repeat those for tree5/6/7
-                tree -= 50;
+              break;
+            case 3:  // WINTER
+              if (subseason*10 > tree){  // if subseason is 0, no tree changes yet
+                // use winter coloration for this Tree#
+                frame = (sprite & ~7) + (tree_anim & 3);  // winter trees have 8 types, each with 4 frames of animation
+                sprite = season_offset[season] + tree + frame;
+              }else{
+                // use previous (fall) coloration for this Tree#
+                frame = (sprite & ~7) + (tree_anim & 7);  // fall trees have 8 types, each with 8 frames of animation
+                sprite = season_offset[2] + tree + frame;
               }
-              //int frame = (sprite & ~3) + (tree_anim & 3);
-              //if (frame >= 4){
-              //  // only have 4 frames of animation for spring, repeat those for frame4/5/6/7
-              //  frame -= 4;
-              //}
-              int frame = 0;
-              sprite = season_offset[season] + tree + frame;
-              use_custom_set = true;
-            }else if (sprite >= 8 && sprite < 16) {
-              // these are pine trees, shift.  8 frames of animation
-              sprite = (sprite & ~7) + (tree_anim & 7);
-            }else {
-              // these are ... palm and submerged trees.  4 frames of animation each
-              sprite = (sprite & ~3) + (tree_anim & 3);
-            }
-          } // if WINTER
-        } else{ 
-          // NORMAL - weather/FourSeasons turned off
-          if (sprite < 16) {
+              use_custom_set = true;  // winter always uses custom_set, for winter and fall trees shown
+              break;
+            default:
+              NOT_REACHED();
+              break;
+            } // end case-switch (season)
+          }else{  // if option_FourSeasons
+            // if option_FourSeasons is NOT on, apply normal shift rules
             sprite = (sprite & ~7) + (tree_anim & 7);
-          } else {
-            sprite = (sprite & ~3) + (tree_anim & 3);
           }
-        } // if option_FourSeasons
+        }else if (sprite >= 8 && sprite < 16) {
+          // these are pine trees, shift.  8 frames of animation
+          sprite = (sprite & ~7) + (tree_anim & 7);
+        }else if (sprite >=16){
+          // these are ... palm and submerged trees.  4 frames of animation per type
+          sprite = (sprite & ~3) + (tree_anim & 3);
+        }
 
         if (use_custom_set){
           draw_map_sprite_special(x_base, ly, sprite, pos, map->get_obj(pos));

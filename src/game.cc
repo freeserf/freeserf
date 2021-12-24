@@ -54,6 +54,7 @@ bool option_ResourceRequestsTimeOut = true;  // this is forced true to indicate 
 bool option_LostTransportersClearFaster = false;
 bool option_FourSeasons = false;
 int season = 1;  // default to Summer
+int subseason = 0;  // for tree progression
 typedef enum Season {
   SeasonSpring = 0,
   SeasonSummer = 1,

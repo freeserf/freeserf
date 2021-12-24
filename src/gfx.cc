@@ -219,10 +219,10 @@ Frame::draw_sprite_special3(int x, int y, Data::Resource res, unsigned int index
   if (image == nullptr) {
     // messing with weather/seasons/palette
     Data::PSprite s;
-    int frame = index % 10;
-    int offset = season_offset[season];
-    int tree = (index - offset - frame) / 10;
-    Log::Info["gfx"] << "inside Frame::draw_sprite_special3, found season_offset[" << season << "] of " << offset << ", Tree#" << tree << " and frame# " << frame;
+    //int frame = index % 10;
+    //int offset = season_offset[season]; // THIS DOESN'T WORK FOR CROSS-SEASONAL SPRITES AS subseason CHANGES!
+    //int tree = (index - offset - frame) / 10;
+    //Log::Info["gfx"] << "inside Frame::draw_sprite_special3, found season_offset[" << season << "] of " << offset << ", Tree#" << tree << " and frame# " << frame;
 
     if (res == Data::AssetMapObject || res == Data::AssetMapShadow){
     //if (res == Data::AssetMapObject){  // why is it still looking up MapShadows?  I thought I told it to use another function
