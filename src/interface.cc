@@ -463,6 +463,7 @@ Interface::update_interface() {
   Log::Info["interface"] << "option_BabyTreesMatureSlowly is " << option_BabyTreesMatureSlowly;
   Log::Info["interface"] << "option_ResourceRequestsTimeOut is " << option_ResourceRequestsTimeOut;
   Log::Info["interface"] << "option_LostTransportersClearFaster is " << option_LostTransportersClearFaster;
+  Log::Info["interface"] << "option_FourSeasons is " << option_FourSeasons;
   */
 
 
@@ -1071,6 +1072,24 @@ Interface::handle_key_pressed(char key, int modifier) {
       }
       break;
     }
+    case 'w':
+      if (option_FourSeasons){
+        option_FourSeasons = false;
+        Log::Info["interface"] << "Disabling FourSeasons of Weather";
+      }else{
+        option_FourSeasons = true;
+        Log::Info["interface"] << "Enabling FourSeasons of Weather";
+      }
+      break;
+    case 'q':
+      if (season < 3){
+        season++;
+      }else{
+        season = 0;
+      }
+      Log::Info["interface"] << "Changing Season to " << NameSeason[season] << " and clearing image cache";
+      Image::clear_cache();
+      break;
     case 'z':
       if (modifier & 1) {
         GameStore::get_instance().quick_save("quicksave", game.get());

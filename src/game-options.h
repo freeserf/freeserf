@@ -13,5 +13,8 @@ extern bool option_TreesReproduce;
 extern bool option_BabyTreesMatureSlowly;
 extern bool option_ResourceRequestsTimeOut;
 extern bool option_LostTransportersClearFaster;
+extern bool option_FourSeasons;
+extern int season;
+extern int season_offset[4];
 
 #endif  // SRC_GAME_OPTIONS_H_

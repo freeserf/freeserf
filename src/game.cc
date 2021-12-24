@@ -52,6 +52,21 @@ bool option_TreesReproduce = false;
 bool option_BabyTreesMatureSlowly = false;
 bool option_ResourceRequestsTimeOut = true;  // this is forced true to indicate that the code to make them optional isn't added yet
 bool option_LostTransportersClearFaster = false;
+bool option_FourSeasons = false;
+int season = 1;  // default to Summer, normal graphics
+typedef enum Season {
+  SeasonSpring = 0,
+  SeasonSummer = 1,
+  SeasonFall = 2,
+  SeasonWinter = 3,
+} Season;
+// the Custom data map_objects offset for tree sprites
+int season_offset[4] = {
+  200, // Spring
+    0, // Summer
+  400, // Fall
+  300, // Winter
+};
 
 
 Game::Game()
@@ -899,6 +914,7 @@ Game::update() {
   Log::Info["game"] << "option_BabyTreesMatureSlowly is " << option_BabyTreesMatureSlowly;
   Log::Info["game"] << "option_ResourceRequestsTimeOut is " << option_ResourceRequestsTimeOut;
   Log::Info["game"] << "option_LostTransportersClearFaster is " << option_LostTransportersClearFaster;
+  Log::Info["game"] << "option_FourSeasons is " << option_FourSeasons;
   */
 
   /* Increment tick counters */

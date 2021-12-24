@@ -302,6 +302,7 @@ typedef enum Action {
   ACTION_GAME_OPTIONS_BABY_TREES_MATURE_SLOWLY,
   ACTION_GAME_OPTIONS_ResourceRequestsTimeOut,
   ACTION_GAME_OPTIONS_LostTransportersClearFaster,
+  ACTION_GAME_OPTIONS_FourSeasons,
   ACTION_MAPGEN_ADJUST_TREES,
   ACTION_MAPGEN_ADJUST_STONEPILES,
   ACTION_MAPGEN_ADJUST_FISH,
@@ -2062,8 +2063,8 @@ PopupBox::draw_game_options2_box() {
   draw_green_string(3, 29, "Lost Transporters Clear Faster");
   draw_popup_icon(1, 26, option_LostTransportersClearFaster ? 288 : 220);
 
-  //draw_green_string(3, 48, "PlaceHolder1");
-  //draw_popup_icon(1, 45, option_PlaceHolder1 ? 288 : 220);
+  draw_green_string(3, 48, "Four Seasons of Weather");
+  draw_popup_icon(1, 45, option_FourSeasons ? 288 : 220);
 
   //draw_green_string(3, 67, "PlaceHolder2");
   //draw_popup_icon(1, 64, option_PlaceHolder2 ? 288 : 220);
@@ -3771,12 +3772,18 @@ PopupBox::handle_action(int action, int x_, int /*y_*/) {
     //  option_ResourceRequestsTimeOut = true;
     //}
     break;
-  // forced true to indicate that the code to make optional isn't added yet
   case ACTION_GAME_OPTIONS_LostTransportersClearFaster:
     if (option_LostTransportersClearFaster){
       option_LostTransportersClearFaster = false;
     } else{
       option_LostTransportersClearFaster = true;
+    }
+    break;
+  case ACTION_GAME_OPTIONS_FourSeasons:
+    if (option_FourSeasons){
+      option_FourSeasons = false;
+    }else{
+      option_FourSeasons = true;
     }
     break;
   case ACTION_MAPGEN_ADJUST_TREES:
@@ -4157,7 +4164,7 @@ PopupBox::handle_box_game_options2_clk(int cx, int cy) {
   const int clkmap[] = {
     ACTION_GAME_OPTIONS_ResourceRequestsTimeOut, 7, 7, 150, 16,
     ACTION_GAME_OPTIONS_LostTransportersClearFaster, 7, 26, 150, 16,
-    //ACTION_GAME_OPTIONS_Placeholder1, 7, 45, 150, 16,
+    ACTION_GAME_OPTIONS_FourSeasons, 7, 45, 150, 16,
     //ACTION_GAME_OPTIONS_Placeholder2, 7, 64, 150, 16,
     //ACTION_GAME_OPTIONS_Placeholder3, 7, 83, 150, 16,
     //ACTION_GAME_OPTIONS_Placeholder4, 7, 102, 150, 16,

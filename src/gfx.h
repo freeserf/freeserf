@@ -29,6 +29,7 @@
 #include "src/data.h"
 #include "src/debug.h"
 #include "src/video.h"
+#include "src/game-options.h"
 
 class ExceptionGFX : public ExceptionFreeserf {
  public:
