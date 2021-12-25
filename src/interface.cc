@@ -1096,7 +1096,7 @@ Interface::handle_key_pressed(char key, int modifier) {
       layout();  // THIS IS IT - this is the "fix viewport" function
       break;
     case 'e':
-      if (subseason < 8){  // allow subseason to go to be  "tree + 1" so that it can have a 0 state with no change yet
+      if (subseason < 16){  // allow subseason to go to be  "tree + 1" so that it can have a 0 state with no change yet
         subseason++;
       }else{
         subseason = 0;

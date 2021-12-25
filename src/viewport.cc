@@ -718,8 +718,8 @@ Viewport::draw_map_sprite_special(int lx, int ly, int index, unsigned int pos, u
   //  copy of Freeserf and export from FSStudio
   //frame->draw_sprite_special1(lx, ly, Data::AssetMapShadow, index, true, pos, obj);  // call Frame::draw_sprite#3
   // instead, try this hack to use the right shadow
-  if (index >= 200 && index <= 203){
-    // use "full" deciduous tree shadow for SPRING Tree0
+  if (index >= 220 && index <= 223){
+    // use "full" deciduous tree shadow for SPRING Tree2 (the white flowered tree)
     frame->draw_sprite(lx, ly, Data::AssetMapShadow, 0, true);  // call Frame::draw_sprite#3  
   }else if (index >= 400 && index <= 499){
     // FALL trees all have full shadows
@@ -1402,21 +1402,70 @@ Viewport::draw_map_objects_row(MapPos pos, int y_base, int cols, int x_base) {
 
         int tree = 10*sprite;
         int frame = 0;
+        // spring 2nd transition (to summer/full foliage) order
+              // 1whiteflower
+              // 2pinkflower
+              // 0tree
+              // 3tree
+              // 4tree
+              // .. and so on
+        // THIS WILL NOT WORK THIS WAY!! NEED TO REORDER ACTUAL SPRITES
+        // NEED TO RENAME both spring AND winter TREES SO THAT
+        //  1whiteflower and 2pinkflower are tree5+ 
+        // and then somehow get them to become full-summer-leaves in reverse order??
+        //  maybe inverse the subseason >7 so 8 affects tree7, 9 affects tree6, and so on
+        //int spring_2nd_order[8] = { 10, 20, 0, 30, 40, 50, 60, 70};
+        // fall transition pattern:
+              // 0green->7greenyellow
+              // 7greenyellow->1yellow
+              // 1yellow->3orangered
+              // 2orangered->4red
+              // 3orangered->5magenta
+              // 1yellow->6brown
+              // 7greenyellow->3orangered
+              // 4red->4red
+        //
+        // NEED TO FIX THIS WITH WINTER - THIS WORKS GREAT FOR FALL
+        //  BUT NEED TO ENSURE THAT THE 2ND TRANSITION IS THE SAME
+        //  AS THE WINTER COLOR FOR EACH TREE OR THEY CHANGE SUDDENLY!
+        //
+        // maybe just ditch all this renumbering and change the actual
+        // sprite files to match the intended patterns!!!!!!!!!!!!!!
+        // ************  YES!  and rename the sprite files from their number to a 
+        // description of what they actually look like
+        //****************************************************************
+        int fall_colors[16] = { 0, 70, 10, 20, 30, 10, 70, 40,
+                               70, 10, 30, 40, 50, 60, 30, 40};
         if (sprite < 8){
           // these are deciduous trees, apply special FourSeasons rules
           if (option_FourSeasons){
             switch (season) {
             case 0:  // SPRING
-              if (subseason*10 > tree){  // if subseason is 0, no tree changes yet
-                // use spring coloration for this Tree#
-                frame = (sprite & ~7) + (tree_anim & 3);  // spring trees have 8 types, each with 4 frames of animation
+              /* no I hate the late-spring graphics I created, instead - switch to normal summer graphics at some point?
+              if (subseason*10 > tree){
+                // use late-spring coloration for this Tree#
+                frame = 4 + (sprite & ~7) + (tree_anim & 3);  // spring trees have 8 types, two sets per type, each with 4 frames of animation
                 sprite = season_offset[season] + tree + frame;
+              }else{
+                // use early-spring coloration for this Tree#
+                frame = (sprite & ~7) + (tree_anim & 3);  // spring trees have 8 types, two sets per type, each with 4 frames of animation
+                sprite = season_offset[season] + tree + frame;
+              }*/
+
+              if (subseason*10 > tree + 80){
+                // use summer/normal coloration for this Tree#
+                sprite = (sprite & ~7) + (tree_anim & 7);  // 8 frames of animation
+              }else if (subseason*10 > tree){
+                // use early-spring coloration for this Tree#
+                frame = (sprite & ~7) + (tree_anim & 3);  // spring trees have 8 types, two sets per type, each with 4 frames of animation
+                sprite = season_offset[season] + tree + frame;
+                use_custom_set = true;
               }else{
                 // use previous (winter) coloration for this Tree#
                 frame = (sprite & ~7) + (tree_anim & 3);  // winter trees have 8 types, each with 4 frames of animation
                 sprite = season_offset[3] + tree + frame;
+                use_custom_set = true;
               }
-              use_custom_set = true;  // spring always uses custom_set, for spring and winter trees shown
               break;
             case 1:  // SUMMER
               // continue using normal/summer green shifting method, no custom_set
@@ -1424,8 +1473,15 @@ Viewport::draw_map_objects_row(MapPos pos, int y_base, int cols, int x_base) {
               break;
             case 2:  // FALL
               frame = (sprite & ~7) + (tree_anim & 7);  // 8 frames of animation
-              if (subseason*10 > tree){  // if subseason is 0, no tree changes yet
-                // use fall coloration for this Tree#
+              
+              if (subseason*10 > tree + 80){
+                // use second fall color
+                tree = fall_colors[(tree/10) + 8];
+                sprite = season_offset[season] + tree + frame;
+                use_custom_set = true;
+              }else if (subseason*10 > tree){  // if subseason is 0, no tree changes yet
+                // use first fall color
+                tree = fall_colors[tree/10];
                 sprite = season_offset[season] + tree + frame;
                 use_custom_set = true;
               }else{
@@ -1434,7 +1490,7 @@ Viewport::draw_map_objects_row(MapPos pos, int y_base, int cols, int x_base) {
               }
               break;
             case 3:  // WINTER
-              if (subseason*10 > tree){  // if subseason is 0, no tree changes yet
+              if (subseason*10 > tree){  // if subseason is 0, no tree changes yet.  trees all lose leaves in first half of 16 subseasons
                 // use winter coloration for this Tree#
                 frame = (sprite & ~7) + (tree_anim & 3);  // winter trees have 8 types, each with 4 frames of animation
                 sprite = season_offset[season] + tree + frame;
