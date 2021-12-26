@@ -1375,12 +1375,18 @@ Viewport::draw_map_objects_row(MapPos pos, int y_base, int cols, int x_base) {
         //   that the tree animation won't be synchronized
         //   for all trees on the map.  
         //  WAIT A MINUTE - IT SURE SEEMS LIKE ALL TREES *ARE* SYNCED ON THE MAP, IS THIS A MISTAKE?
-        //  COMPARE TO ORIGINAL GAME.   Serflings is synched too.  I think the comment is wrong.  However, I don't
-        //  feel like re-generating all the FALL sprites again, so leaving it
+        //  COMPARE TO ORIGINAL GAME.   Serflings is synched too.  I think the Freeserf comment is wrong.  
         //
         // NOTE  -  this is where the wind-waving Tree animation effect happens for ObjectTree0 through ObjectPine7
         //
+        // tree_anim is basically just a slower version of game tick, the bit shift right effectively reduces the rate of increment
+        // This is done because if the animation moved as fast as the tick rate it would be way too fast.  
+        // This means that something like >>5 should result in a slower rate, which is just what I need for winter trees!
         int tree_anim = (interface->get_game()->get_tick() + sprite) >> 4;
+        //Log::Info["viewport"] << "bitmath debug, sprite " << sprite << ", tick " << interface->get_game()->get_tick() << ", tree_anim " << tree_anim;
+        int slow_tree_anim = (interface->get_game()->get_tick() + sprite) >> 5;  // YES this works perfectly!  it advances at about 40% of the >>4 rate
+        //Log::Info["viewport"] << "bitmath debug, sprite " << sprite << ", tick " << interface->get_game()->get_tick() << ", tree_anim " << tree_anim << ", slow_tree_anim " << slow_tree_anim;
+        // IDEA - could vary the wind speed by changing the shift rate!
 
         // to support custom sprites and "crammed" animation, a numbering system is used
         // where each season has a set of trees, each with their own animation set
@@ -1415,54 +1421,43 @@ Viewport::draw_map_objects_row(MapPos pos, int y_base, int cols, int x_base) {
         // and then somehow get them to become full-summer-leaves in reverse order??
         //  maybe inverse the subseason >7 so 8 affects tree7, 9 affects tree6, and so on
         //int spring_2nd_order[8] = { 10, 20, 0, 30, 40, 50, 60, 70};
+        // fall tree# colors:
+              // Tree 0 greenyellow
+              // Tree10 yellow
+              // Tree20 orangeyellow
+              // Tree30 orangered
+              // Tree40 redbright
+              // Tree50 reddull
+              // Tree60 magenta
+              // Tree70 brown
         // fall transition pattern:
-              // 0green->7greenyellow
-              // 7greenyellow->1yellow
-              // 1yellow->3orangered
-              // 2orangered->4red
-              // 3orangered->5magenta
-              // 1yellow->6brown
-              // 7greenyellow->3orangered
-              // 4red->4red
-        //
-        // NEED TO FIX THIS WITH WINTER - THIS WORKS GREAT FOR FALL
-        //  BUT NEED TO ENSURE THAT THE 2ND TRANSITION IS THE SAME
-        //  AS THE WINTER COLOR FOR EACH TREE OR THEY CHANGE SUDDENLY!
-        //
-        // maybe just ditch all this renumbering and change the actual
-        // sprite files to match the intended patterns!!!!!!!!!!!!!!
-        // ************  YES!  and rename the sprite files from their number to a 
-        // description of what they actually look like
-        //****************************************************************
-        int fall_colors[16] = { 0, 70, 10, 20, 30, 10, 70, 40,
-                               70, 10, 30, 40, 50, 60, 30, 40};
+              ///summer -> fall 1st -> fall 2nd
+              // green->0greenyellow->2orangeyellow
+              // green->1yellow->3orangered
+              // green->2orangeyellow->5reddull
+              // green->6magenta->2orangeyellow
+              // green->1yellow->7brown
+              // green->0greenyellow->3orangered
+              // green->5reddull->7brown
+              // green->4redbright->5reddull
+        int fall_1st_colors[8] = {  0, 10, 20, 60, 10,  0, 50, 40};              
+        int fall_2nd_colors[8] = { 20, 30, 50, 20, 70, 30, 70, 50};              
         if (sprite < 8){
           // these are deciduous trees, apply special FourSeasons rules
           if (option_FourSeasons){
             switch (season) {
             case 0:  // SPRING
-              /* no I hate the late-spring graphics I created, instead - switch to normal summer graphics at some point?
-              if (subseason*10 > tree){
-                // use late-spring coloration for this Tree#
-                frame = 4 + (sprite & ~7) + (tree_anim & 3);  // spring trees have 8 types, two sets per type, each with 4 frames of animation
-                sprite = season_offset[season] + tree + frame;
-              }else{
-                // use early-spring coloration for this Tree#
-                frame = (sprite & ~7) + (tree_anim & 3);  // spring trees have 8 types, two sets per type, each with 4 frames of animation
-                sprite = season_offset[season] + tree + frame;
-              }*/
-
               if (subseason*10 > tree + 80){
                 // use summer/normal coloration for this Tree#
                 sprite = (sprite & ~7) + (tree_anim & 7);  // 8 frames of animation
               }else if (subseason*10 > tree){
                 // use early-spring coloration for this Tree#
-                frame = (sprite & ~7) + (tree_anim & 3);  // spring trees have 8 types, two sets per type, each with 4 frames of animation
+                frame = (sprite & ~7) + (slow_tree_anim & 3);  // spring trees have 8 types, two sets per type, each with 4 frames of animation
                 sprite = season_offset[season] + tree + frame;
                 use_custom_set = true;
               }else{
-                // use previous (winter) coloration for this Tree#
-                frame = (sprite & ~7) + (tree_anim & 3);  // winter trees have 8 types, each with 4 frames of animation
+                // use previous (winter) coloration for this Tree#.  It is important that the Tree#s are synced between winter & spring because the trunks need to match!!
+                frame = (sprite & ~7) + (slow_tree_anim & 3);  // winter trees have 8 types, each with 4 frames of animation
                 sprite = season_offset[3] + tree + frame;
                 use_custom_set = true;
               }
@@ -1476,12 +1471,12 @@ Viewport::draw_map_objects_row(MapPos pos, int y_base, int cols, int x_base) {
               
               if (subseason*10 > tree + 80){
                 // use second fall color
-                tree = fall_colors[(tree/10) + 8];
+                tree = fall_2nd_colors[tree/10];
                 sprite = season_offset[season] + tree + frame;
                 use_custom_set = true;
               }else if (subseason*10 > tree){  // if subseason is 0, no tree changes yet
                 // use first fall color
-                tree = fall_colors[tree/10];
+                tree = fall_1st_colors[tree/10];
                 sprite = season_offset[season] + tree + frame;
                 use_custom_set = true;
               }else{
@@ -1490,12 +1485,14 @@ Viewport::draw_map_objects_row(MapPos pos, int y_base, int cols, int x_base) {
               }
               break;
             case 3:  // WINTER
+              // FIGURE OUT HOW TO SLOW DOWN THE WINTER TREE ANIMATIONS 2-3x
               if (subseason*10 > tree){  // if subseason is 0, no tree changes yet.  trees all lose leaves in first half of 16 subseasons
                 // use winter coloration for this Tree#
-                frame = (sprite & ~7) + (tree_anim & 3);  // winter trees have 8 types, each with 4 frames of animation
+                frame = (sprite & ~7) + (slow_tree_anim & 3);  // winter trees have 8 types, each with 4 frames of animation
                 sprite = season_offset[season] + tree + frame;
               }else{
-                // use previous (fall) coloration for this Tree#
+                // use previous (fall 2nd set) coloration for this Tree#.  Because the fall trunks are not visible, it doesn't matter if the tree#s are swapped here
+                tree = fall_2nd_colors[tree/10];
                 frame = (sprite & ~7) + (tree_anim & 7);  // fall trees have 8 types, each with 8 frames of animation
                 sprite = season_offset[2] + tree + frame;
               }
