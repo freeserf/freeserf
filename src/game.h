@@ -181,6 +181,7 @@ class Game {
   bool can_build_castle(MapPos pos, const Player *player) const;
   bool can_build_flag(MapPos pos, const Player *player) const;
   bool can_player_build(MapPos pos, const Player *player) const;
+  bool can_build_field(MapPos pos) const;  // added to shorten FourSeasons/AdvancedFarming code
 
   int can_build_road(const Road &road, const Player *player,
                      MapPos *dest, bool *water) const;

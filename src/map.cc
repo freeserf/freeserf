@@ -757,7 +757,6 @@ Map::update_public(MapPos pos, Random *rnd) {
   case ObjectField2: case ObjectField3:
   case ObjectField4:
     if (option_FourSeasons && (season >= 3 || (season >=2 && subseason >= 8))){
-      // HOW TO PREVENT THIS FROM HAPPENING WHILE A FARMER IS HARVESTING IT!??!!
       Log::Info["map"] << "option_FourSeasons and option_AdvancedFarming on, and it is past mid-Fall, this Field at pos " << pos << " is now being destroyed";
       set_object(pos, ObjectFieldExpired, -1);
     }else{

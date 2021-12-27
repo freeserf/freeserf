@@ -2430,6 +2430,19 @@ Serf::handle_serf_entering_building_state() {
         }
         break;
       case TypeFarmer:
+        /*  debug example of new farmer state
+        Verbose: [serf] serf 56 (FARMER): state WALKING -> ENTERING BUILDING (enter_building:1551)
+        Verbose: [serf] serf 56 (FARMER): state ENTERING BUILDING -> PLANNING FARMING (handle_serf_entering_building_state:2437)
+        Verbose: [serf] serf 56 (FARMER): state PLANNING FARMING -> READY TO LEAVE (handle_serf_planning_farming_state:4716)
+        Verbose: [serf] planning farming: field spot found, dist -3, 4294967293.
+        Verbose: [serf] serf 56 (FARMER): state READY TO LEAVE -> LEAVING BUILDING (leave_building:1581)
+        Verbose: [serf] serf 56 (FARMER): state LEAVING BUILDING -> FREE WALKING (handle_serf_leaving_building_state:2621)
+        Verbose: [serf] serf 56: free walking: dest -3, -3, move 0, -1
+        Verbose: [serf] serf 56: free walking: dest -3, -2, move -1, -1
+        Verbose: [serf] serf 56: free walking: dest -2, -1, move -1, 0
+        Verbose: [serf] serf 56: free walking: dest -1, -1, move -1, -1
+        Verbose: [serf] serf 56 (FARMER): state FREE WALKING -> FARMING (handle_serf_free_walking_state_dest_reached:3412)
+        */
         if (s.entering_building.field_B == -2) {
           enter_inventory();
         } else {
@@ -3188,7 +3201,7 @@ Serf::find_inventory() {
 }
 
 void
-Serf::handle_serf_free_walking_state_dest_reached() {
+Serf::  handle_serf_free_walking_state_dest_reached() {
   if (s.free_walking.neg_dist1 == -128 &&
       s.free_walking.neg_dist2 < 0) {
     //Log::Info["serf"] << "debug : Serf::handle_serf_free_walking_state_dest_reached s.free_walking.neg_dist1: " << s.free_walking.neg_dist1 << ", s.free_walking.neg_dist2: " << s.free_walking.neg_dist2;
@@ -4677,42 +4690,55 @@ Serf::handle_serf_planning_farming_state() {
   uint16_t delta = game->get_tick() - tick;
   tick = game->get_tick();
   counter -= delta;
-  if (counter > 0) {
-    return;
+
+  // in normal farming, farmer only becomes active every
+  //  65500 ticks, and remains active until no more work
+  //  can be done, then goes back into inactive state for 65500 ticks
+  // with AdvancedFarming, farmer must always be active
+  //  but will only sow/harvest during appropriate seasons
+  if (option_FourSeasons){
+    // keep working
+  }else{
+    // take rest until 65500 speed-adjusted game ticks have passed?
+    if (counter > 0) {
+      return;
+    }
   }
 
+  // try random pos around the Farm and check
+  // if any are suitable for new fields, or if
+  // they have mature fields that can be harvested
+  // and if either is true, send the farmer out
   PMap map = game->get_map();
   while (true) {
     int dist = ((game->random_int() >> 2) & 0x1f) + 7;
     MapPos dest = map->pos_add_spirally(pos, dist);
 
-    /* If destination doesn't have an object it must be
-       of the correct type and the surrounding spaces
-       must not be occupied by large buildings.
-       If it _has_ an object it must be an existing field. */
-    if ((map->get_obj(dest) == Map::ObjectNone &&
-         (map->type_up(dest) == Map::TerrainGrass1 &&
-          map->type_down(dest) == Map::TerrainGrass1 &&
-          map->paths(dest) == 0 &&
-          map->get_obj(map->move_right(dest)) != Map::ObjectLargeBuilding &&
-          map->get_obj(map->move_right(dest)) != Map::ObjectCastle &&
-         map->get_obj(map->move_down_right(dest)) != Map::ObjectLargeBuilding &&
-          map->get_obj(map->move_down_right(dest)) != Map::ObjectCastle &&
-          map->get_obj(map->move_down(dest)) != Map::ObjectLargeBuilding &&
-          map->get_obj(map->move_down(dest)) != Map::ObjectCastle &&
-          map->type_down(map->move_left(dest)) == Map::TerrainGrass1 &&
-          map->get_obj(map->move_left(dest)) != Map::ObjectLargeBuilding &&
-          map->get_obj(map->move_left(dest)) != Map::ObjectCastle &&
-          map->type_up(map->move_up_left(dest)) == Map::TerrainGrass1 &&
-          map->type_down(map->move_up_left(dest)) == Map::TerrainGrass1 &&
-          map->get_obj(map->move_up_left(dest)) != Map::ObjectLargeBuilding &&
-          map->get_obj(map->move_up_left(dest)) != Map::ObjectCastle &&
-          map->type_up(map->move_up(dest)) == Map::TerrainGrass1 &&
-          map->get_obj(map->move_up(dest)) != Map::ObjectLargeBuilding &&
-          map->get_obj(map->move_up(dest)) != Map::ObjectCastle)) ||
-        map->get_obj(dest) == Map::ObjectSeeds5 ||
-        (map->get_obj(dest) >= Map::ObjectField0 &&
-         map->get_obj(dest) <= Map::ObjectField5)) {
+    bool send_farmer_out = false;
+    if (option_FourSeasons) {
+              // advanced farming logic - prefer harvesting, only sow during appropriate seasons
+
+      //Log::Debug["serf"] << "inside handle_serf_planning_farming_state, season " << season << ", subseason " << subseason << ", counter " << counter;
+
+      // if this is a mature field
+      if (map->get_obj(dest) == Map::ObjectSeeds5 ||
+          (map->get_obj(dest) >= Map::ObjectField0 && map->get_obj(dest) <= Map::ObjectField5)) {
+        send_farmer_out = true;   
+      } else if (counter > 32750 && game->can_build_field(dest) &&  // prioritize harvesting by only allowing sowing during the second half of the 131 possible checks
+          season != 1 && season != 3 && !(season == 0 && subseason >= 12)) { // don't sow in summer or winter or late spring
+          //Log::Debug["serf"] << "inside handle_serf_planning_farming_state, season " << season << ", subseason " << subseason << ", counter " << counter << ", TEST PASSED";
+        send_farmer_out = true;
+      }
+    }else{    // original farming logic - no preference for harvesting vs sowing
+      if (game->can_build_field(dest) ||
+          map->get_obj(dest) == Map::ObjectSeeds5 ||
+          (map->get_obj(dest) >= Map::ObjectField0 &&
+          map->get_obj(dest) <= Map::ObjectField5)) {
+        send_farmer_out = true;
+      }
+    }
+
+    if (send_farmer_out){
       set_state(StateReadyToLeave);
       s.leaving_building.field_B = Map::get_spiral_pattern()[2 * dist] - 1;
       s.leaving_building.dest = Map::get_spiral_pattern()[2 * dist + 1] - 1;
@@ -4720,12 +4746,17 @@ Serf::handle_serf_planning_farming_state() {
       s.leaving_building.dir = -Map::get_spiral_pattern()[2 * dist + 1] + 1;
       s.leaving_building.next_state = StateFreeWalking;
       Log::Verbose["serf"] << "planning farming: field spot found, dist "
-                           << s.leaving_building.field_B << ", "
-                           << s.leaving_building.dest << ".";
+                          << s.leaving_building.field_B << ", "
+                          << s.leaving_building.dest << ".";
       return;
     }
 
-    counter += 500;
+    // avoid incrementing the counter BEYOND 65500 when AdvancedFarming is on, in case it is turned back off (or overflows?)
+    if (option_FourSeasons && counter >= 65500){
+      // do not increment
+    }else{
+      counter += 500;
+    }
     if (counter >= 65500) {
       return;
     }
@@ -4742,15 +4773,6 @@ Serf::handle_serf_farming_state() {
   Map::Object object = map->get_obj(pos);
 
   if (counter >= 0) return;
-  /* i think this is wrong, add it later in this func
-  if (option_FourSeasons && counter >= 0 && animation == 136 &&  // animation 136 is harvesting
-     (object == Map::ObjectSeeds5 || object == Map::ObjectFieldExpired || (object >= Map::ObjectField0 && object <= Map::ObjectField5) )){
-    // immediately Expire a field when harvested when AdvancedFarming on
-    map->set_object(pos, Map::ObjectFieldExpired, -1);
-    return;
-  }else if (counter >= 0){
-    return;
-  }*/
 
   if (s.free_walking.neg_dist1 == 0) {
     // Sowing
@@ -4766,7 +4788,8 @@ Serf::handle_serf_farming_state() {
       // yes I think that is it
       //object = Map::ObjectField0;
       // try setting a later field so it expires sooner instead of resetting so far back
-      object = Map::ObjectField4;
+      //object = Map::ObjectField4;  // Field4 works fine, try Field5
+      object = Map::ObjectField5;  // I expect this will leave plenty of time for the farmer to finish reaping.
     } else if (object == Map::ObjectSignLargeGold || object == Map::Object127) {
       // WTF is this???
       object = Map::ObjectFieldExpired;

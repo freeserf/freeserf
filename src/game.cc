@@ -1672,6 +1672,38 @@ Game::can_player_build(MapPos pos, const Player *player) const {
   return true;
 }
 
+// checks whether a farmer can sow a new what farm field here
+// note that there is no Player or land ownership check, any 
+// player's farmer can so in any valid pos even outside own
+// borders or within enemy borders
+bool
+Game::can_build_field(MapPos pos) const {
+  if (map->get_obj(pos) == Map::ObjectNone &&
+      map->type_up(pos) == Map::TerrainGrass1 &&
+      map->type_down(pos) == Map::TerrainGrass1 &&
+      map->paths(pos) == 0 &&
+      map->get_obj(map->move_right(pos)) != Map::ObjectLargeBuilding &&
+      map->get_obj(map->move_right(pos)) != Map::ObjectCastle &&
+      map->get_obj(map->move_down_right(pos)) != Map::ObjectLargeBuilding &&
+      map->get_obj(map->move_down_right(pos)) != Map::ObjectCastle &&
+      map->get_obj(map->move_down(pos)) != Map::ObjectLargeBuilding &&
+      map->get_obj(map->move_down(pos)) != Map::ObjectCastle &&
+      map->type_down(map->move_left(pos)) == Map::TerrainGrass1 &&
+      map->get_obj(map->move_left(pos)) != Map::ObjectLargeBuilding &&
+      map->get_obj(map->move_left(pos)) != Map::ObjectCastle &&
+      map->type_up(map->move_up_left(pos)) == Map::TerrainGrass1 &&
+      map->type_down(map->move_up_left(pos)) == Map::TerrainGrass1 &&
+      map->get_obj(map->move_up_left(pos)) != Map::ObjectLargeBuilding &&
+      map->get_obj(map->move_up_left(pos)) != Map::ObjectCastle &&
+      map->type_up(map->move_up(pos)) == Map::TerrainGrass1 &&
+      map->get_obj(map->move_up(pos)) != Map::ObjectLargeBuilding &&
+      map->get_obj(map->move_up(pos)) != Map::ObjectCastle) {
+    //Log::Debug["game"] << "inside can_build_field, this pos " << pos << " is suitable for a new field";
+    return true;
+  }
+  return false;
+}
+
 /* Checks whether a building of the specified type is possible at
    position. */
 bool

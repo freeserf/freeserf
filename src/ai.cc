@@ -3,6 +3,13 @@
  *   Copyright 2019-2021 tlongstretch
  */
 
+
+// NOTE - could use the game's "serf planning xxx" random-spiral-pos code to randomly choose within spirals when building
+//  instead of always doing center-first
+//      int dist = ((game->random_int() >> 2) & 0x1f) + 7;
+//      MapPos dest = map->pos_add_spirally(pos, dist);
+
+
 #include <algorithm>  // to satisfy cpplint
 
 #include "src/ai.h"
