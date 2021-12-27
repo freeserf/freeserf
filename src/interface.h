@@ -89,6 +89,7 @@ class Interface : public GuiObject, public GameManager::Handler {
 
   unsigned int last_const_tick;
   unsigned int last_autosave_tick;
+  unsigned int last_subseason_tick;  // messing with weather/seasons/palette
 
   Road building_road;
   int building_road_valid_dir;

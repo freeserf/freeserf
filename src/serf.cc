@@ -3357,27 +3357,57 @@ Serf::handle_serf_free_walking_state_dest_reached() {
         s.free_walking.dist_col = s.free_walking.neg_dist1;
         s.free_walking.dist_row = s.free_walking.neg_dist2;
 
-        if (map->get_obj(pos) == Map::ObjectSeeds5 ||
-            (map->get_obj(pos) >= Map::ObjectField0 &&
-             map->get_obj(pos) <= Map::ObjectField5)) {
-          /* Existing field. */
-          animation = 136;
-          s.free_walking.neg_dist1 = 1;
-          counter = counter_from_animation[animation];
-        } else if (map->get_obj(pos) == Map::ObjectNone &&
-                   map->paths(pos) == 0) {
-          /* Empty space. */
-          animation = 135;
-          s.free_walking.neg_dist1 = 0;
-          counter = counter_from_animation[animation];
-        } else {
-          /* Space not available after all. */
-          s.free_walking.neg_dist1 = -128;
-          s.free_walking.neg_dist2 = 0;
-          s.free_walking.flags = 0;
-          counter = 0;
-          break;
-        }
+        if (option_FourSeasons){
+                // advanced farming
+          if (season != 3 &&  // don't even try harvesting in winter
+              map->get_obj(pos) == Map::ObjectSeeds5 ||
+              (map->get_obj(pos) >= Map::ObjectField0 &&
+              map->get_obj(pos) <= Map::ObjectField5)) {
+            /* Existing field. */
+            // harvest the field
+            animation = 136;
+            s.free_walking.neg_dist1 = 1;
+            counter = counter_from_animation[animation];
+          } else if (season != 1 && season != 3 && !(season == 0 && subseason >= 12) && // don't sow in summer or winter or late spring
+                    map->get_obj(pos) == Map::ObjectNone &&
+                    map->paths(pos) == 0) {
+            /* Empty space. */
+            // sow a new field
+            animation = 135;
+            s.free_walking.neg_dist1 = 0;
+            counter = counter_from_animation[animation];
+          } else {
+            /* Space not available after all. */
+            s.free_walking.neg_dist1 = -128;
+            s.free_walking.neg_dist2 = 0;
+            s.free_walking.flags = 0;
+            counter = 0;
+            break;
+          }
+        }else{  
+                // normal farming
+          if (map->get_obj(pos) == Map::ObjectSeeds5 ||
+              (map->get_obj(pos) >= Map::ObjectField0 &&
+              map->get_obj(pos) <= Map::ObjectField5)) {
+            /* Existing field. */
+            animation = 136;
+            s.free_walking.neg_dist1 = 1;
+            counter = counter_from_animation[animation];
+          } else if (map->get_obj(pos) == Map::ObjectNone &&
+                    map->paths(pos) == 0) {
+            /* Empty space. */
+            animation = 135;
+            s.free_walking.neg_dist1 = 0;
+            counter = counter_from_animation[animation];
+          } else {
+            /* Space not available after all. */
+            s.free_walking.neg_dist1 = -128;
+            s.free_walking.neg_dist2 = 0;
+            s.free_walking.flags = 0;
+            counter = 0;
+            break;
+          }
+        } //if option_FourSeasons
 
         set_state(StateFarming);
         s.free_walking.neg_dist2 = 0;
@@ -4708,10 +4738,20 @@ Serf::handle_serf_farming_state() {
   tick = game->get_tick();
   counter -= delta;
 
-  if (counter >= 0) return;
-
   PMap map = game->get_map();
   Map::Object object = map->get_obj(pos);
+
+  if (counter >= 0) return;
+  /* i think this is wrong, add it later in this func
+  if (option_FourSeasons && counter >= 0 && animation == 136 &&  // animation 136 is harvesting
+     (object == Map::ObjectSeeds5 || object == Map::ObjectFieldExpired || (object >= Map::ObjectField0 && object <= Map::ObjectField5) )){
+    // immediately Expire a field when harvested when AdvancedFarming on
+    map->set_object(pos, Map::ObjectFieldExpired, -1);
+    return;
+  }else if (counter >= 0){
+    return;
+  }*/
+
   if (s.free_walking.neg_dist1 == 0) {
     // Sowing
     if (object == Map::ObjectNone && map->paths(pos) == 0) {
@@ -4722,8 +4762,17 @@ Serf::handle_serf_farming_state() {
     s.free_walking.neg_dist2 = 1;
     object = static_cast<Map::Object>(static_cast<int>(object) + 1);
     if (object == Map::ObjectFieldExpired) {
-      object = Map::ObjectField0;
+      // why would this reset to Field0???  is this to prevent serf from farming an expiring field?
+      // yes I think that is it
+      //object = Map::ObjectField0;
+      // try setting a later field so it expires sooner instead of resetting so far back
+      object = Map::ObjectField4;
     } else if (object == Map::ObjectSignLargeGold || object == Map::Object127) {
+      // WTF is this???
+      object = Map::ObjectFieldExpired;
+    //}
+    }else if (option_FourSeasons){
+      // immediately Expire a field when harvested when AdvancedFarming on
       object = Map::ObjectFieldExpired;
     }
     map->set_object(pos, object, -1);

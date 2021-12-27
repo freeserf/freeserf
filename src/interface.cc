@@ -86,6 +86,7 @@ Interface::Interface()
 
   last_const_tick = 0;
   last_autosave_tick = 0;
+  last_subseason_tick = 0;  // messing with weather/seasons/palette
 
   viewport = nullptr;
   panel = nullptr;
@@ -878,6 +879,37 @@ Interface::update() {
   int tick_diff = game->get_const_tick() - last_const_tick;
   last_const_tick = game->get_const_tick();
 
+  // messing with weather/seasons/palette - increase subseason
+  // in the game, it takes 100k ticks for a sown field to become harvestable (Seed5,Field0+)
+  // and the field remains harvestable for 100k ticks until after Field5 it becomse FieldExpired
+  // in real life, spring wheat is planted at start of spring and
+  // harvested mid to late summer, at the latest right before fall starts, and crop declines soon after
+  // so it should be 100k ticks from Seed0 to Seed5
+  // so 100k ticks should be around 1.6 seasons
+  // so one season should be about 62500 ticks
+  // so one subseason (1/16th season) should be 3906.25
+  if (game->get_tick() > 3906 + last_subseason_tick){
+    Log::Debug["interface"] << "inside Interface::update, incrementing subseason, subseason is now " << subseason << ", last_subseason_tick " << last_subseason_tick << ", game tick " << game->get_tick();
+    last_subseason_tick = game->get_tick();
+    if (subseason < 16){
+      subseason++;
+    }else{
+      Log::Debug["interface"] << "inside Interface::update, incrementing season, resetting subseason, tick " << game->get_tick();
+      subseason = 0;
+      if (season < 3){
+        season++;
+      }else{
+        season = 0;
+      }
+      Log::Info["interface"] << "Changing Season to " << NameSeason[season] << " and clearing image cache";
+    }
+    // INSTEAD OF CLEARING THE WHOLE CACHE, FIND A WAY TO CLEAR ONLY THE CHANGED IMAGES!!!
+    Image::clear_cache();
+    // something about opening a panel popup refreshes the screen and updates some graphical stuff that fixes things
+    layout();
+  }
+
+
   /* Clear return arrow after a timeout */
   if (return_timeout < tick_diff) {
     msg_flags |= BIT(4);
@@ -1083,6 +1115,7 @@ Interface::handle_key_pressed(char key, int modifier) {
       Image::clear_cache();
       // something about opening a panel popup refreshes the screen and updates some graphical stuff that fixes things
       layout();  // THIS IS IT - this is the "fix viewport" function
+      //set_redraw(); // this is not enough!
       break;
     case 'q':
       if (season < 3){
@@ -1091,9 +1124,11 @@ Interface::handle_key_pressed(char key, int modifier) {
         season = 0;
       }
       Log::Info["interface"] << "Changing Season to " << NameSeason[season] << " and clearing image cache";
+      // INSTEAD OF CLEARING THE WHOLE CACHE, FIND A WAY TO CLEAR ONLY THE CHANGED IMAGES!!!
       Image::clear_cache();
       // something about opening a panel popup refreshes the screen and updates some graphical stuff that fixes things
       layout();  // THIS IS IT - this is the "fix viewport" function
+      //set_redraw(); // this is not enough!
       break;
     case 'e':
       if (subseason < 16){  // allow subseason to go to be  "tree + 1" so that it can have a 0 state with no change yet
@@ -1105,6 +1140,7 @@ Interface::handle_key_pressed(char key, int modifier) {
       Image::clear_cache();
       // something about opening a panel popup refreshes the screen and updates some graphical stuff that fixes things
       layout();  // THIS IS IT - this is the "fix viewport" function
+      //set_redraw(); // this is not enough!
       break;
     case 'z':
       if (modifier & 1) {

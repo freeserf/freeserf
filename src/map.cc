@@ -632,6 +632,7 @@ void
 Map::set_object(MapPos pos, Object obj, int index) {
   landscape_tiles[pos].obj = obj;
   if (index >= 0) game_tiles[pos].obj_index = index;
+  Log::Debug["map"] << "inside set_object, setting pos " << pos << " to object " << obj << ", index " << index;
 
   /* Notify about object change */
   for (Direction d : cycle_directions_cw()) {
@@ -667,6 +668,8 @@ Map::set_serf_index(MapPos pos, int index) {
 }
 
 /* Update public parts of the map data. */
+// any individual pos is only updated about every 20k ticks
+// every 20 ticks a new pos is updated (i.e. this function is called)
 void
 Map::update_public(MapPos pos, Random *rnd) {
 
@@ -720,21 +723,56 @@ Map::update_public(MapPos pos, Random *rnd) {
       set_object(pos, (Object)(ObjectTree0 + (r & 7)), -1);
     }
     break;
+  // at 20k ticks per update, it should take 200k ticks
+  // for a freshly sown field Seed0 to mature and expire
+  // at FieldExpired
+  // in real life, spring wheat takes about 1.5 seasons to mature
+  // and so about 1.6 seasons from planting to harvest or 125k ticks
+  // I have adjusted the season length for FourSeasons to be 125k ticks
+  // I am thinking for AdvancedFarming that only simple rules are needed:
+  // - Seeds do not progress in winter, but they survive and resume in spring
+  // - Fields die by mid-fall even if not harvested, from cold
+  // - very young Seeds0-1 die in summer from heat
+  // Farmer logic changes required:
+  // - Farmer should not sow in late spring nor summer, nor winter
+  // - Farmer should only sow in early-mid spring, and anytime in fall
+  // - Harvested fields are destroyed immediately?
   case ObjectSeeds0: case ObjectSeeds1:
+    if (option_FourSeasons && season == 1){
+      Log::Info["map"] << "option_FourSeasons and option_AdvancedFarming on, and it is Summer, this young Seed-field at pos " << pos << " is now being destroyed (too hot for immature seedlings)";
+      set_object(pos, ObjectFieldExpired, -1);
+    }else{
+      set_object(pos, (Object)(get_obj(pos) + 1), -1);
+    }
+    break;
   case ObjectSeeds2: case ObjectSeeds3:
   case ObjectSeeds4:
+    if (option_FourSeasons && season == 3){
+      Log::Info["map"] << "option_FourSeasons and option_AdvancedFarming on, and it is Winter, this Seed-field at pos " << pos << " is not advancing this update (too cold for seeds to grow)";
+    }else{
+      set_object(pos, (Object)(get_obj(pos) + 1), -1);
+    }
+    break;
   case ObjectField0: case ObjectField1:
   case ObjectField2: case ObjectField3:
   case ObjectField4:
-    // update progression of wheat fields from seeds to mature fields
-    set_object(pos, (Object)(get_obj(pos) + 1), -1);
+    if (option_FourSeasons && (season >= 3 || (season >=2 && subseason >= 8))){
+      // HOW TO PREVENT THIS FROM HAPPENING WHILE A FARMER IS HARVESTING IT!??!!
+      Log::Info["map"] << "option_FourSeasons and option_AdvancedFarming on, and it is past mid-Fall, this Field at pos " << pos << " is now being destroyed";
+      set_object(pos, ObjectFieldExpired, -1);
+    }else{
+      set_object(pos, (Object)(get_obj(pos) + 1), -1);
+    }
     break;
   case ObjectSeeds5:
-    // Seeds5 becomees Field0
-    set_object(pos, ObjectField0, -1);
+    if (option_FourSeasons && (season >= 3 || (season >=2 && subseason >= 8))){
+      Log::Info["map"] << "option_FourSeasons and option_AdvancedFarming on, and it is past mid-Fall, this Seeds5-field at pos " << pos << " is now being destroyed instead of progressing to Field0";
+      set_object(pos, ObjectFieldExpired, -1);
+    }else{
+      set_object(pos, ObjectField0, -1);
+    }
     break;
   case ObjectFieldExpired:
-    // spent fields disappear entirely, they do not go back Seeds0
     set_object(pos, ObjectNone, -1);
     break;
   case ObjectSignLargeGold: case ObjectSignSmallGold:
@@ -747,7 +785,6 @@ Map::update_public(MapPos pos, Random *rnd) {
     }
     break;
   case ObjectField5:
-    // spent fields disappear entirely, they do not go back Seeds0
     set_object(pos, ObjectFieldExpired, -1);
     break;
   default:
@@ -854,6 +891,17 @@ Map::update_environment(MapPos pos, Random *rnd) {
 }
 
 /* Update map data as part of the game progression. */
+// it seems that the map is updated one pos at a time, and not very often
+// for example, one update is the time it takes for a felled tree to change
+// into a stump, and one update for each incremental transition of farm fields
+//
+// pos are not strictly updated in serial, it seems to do every 92 tiles? 
+//
+// one pos is updated every 20 ticks on map size 3, I think it scales with map size
+// game->update runs every tick (2 ticks at Normal speed 2, 40 ticks at 40x...)
+//
+// it takes ~20480 ticks for same pos to update!  on map size 3
+
 void
 Map::update(unsigned int tick, Random *rnd) {
   uint16_t delta = tick - update_state.last_tick;
@@ -881,6 +929,8 @@ Map::update(unsigned int tick, Random *rnd) {
       pos = move_right_n(pos, 23);
       pos = move_down(pos);
     }
+
+    //Log::Debug["map"] << "inside Map::update, about to call update_xxxx on pos " << pos << ", tick " << tick;
 
     /* Update map at position. */
     update_hidden(pos, rnd);

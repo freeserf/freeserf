@@ -398,7 +398,7 @@ DataSourceDOS::SpriteDosSolid::SpriteDosSolid(PBuffer _data, ColorDOS *palette, 
         }
 
         if (season == 2){
-          // FALL reduce saturation of greens and shift yellow
+          // FALL reduce saturation of greens and shift highlights yellow to look like long grass
           if (color.g > color.r && color.g > color.b  // is green
               && ((color.r + color.g + color.b) / 3 > avg_brightness + 2)) {    // is bright
             color.g -= 0;
@@ -417,11 +417,17 @@ DataSourceDOS::SpriteDosSolid::SpriteDosSolid(PBuffer _data, ColorDOS *palette, 
             color.b += 10;
           }
           // reduce greens saturation and shift blue slightly
-          else if (color.g > color.r && color.g > color.b    // is green
-                && color.g > 60){
-            color.g -= 25;
-            color.r += 20;
-            color.b += 25;
+          else if (color.g > color.r && color.g > color.b) {   // is green
+            if ((color.r + color.g + color.b) / 3 > avg_brightness + 2) {    // is bright
+              color.g -= 30;
+              color.r += 10;
+              color.b += 25;
+            }else{
+              // is not bright
+              color.g -= 20;
+              color.r += 30;
+              color.b += 35;
+            }
           }
           // slightly reduce blues saturation
           else if (color.b > color.r && color.b > color.g    // is blue

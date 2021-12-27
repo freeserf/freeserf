@@ -1508,20 +1508,21 @@ Viewport::draw_map_objects_row(MapPos pos, int y_base, int cols, int x_base) {
           }
         }else if (sprite >= 8 && sprite < 16) {
           // these are pine trees, shift.  8 frames of animation
-          sprite = (sprite & ~7) + (tree_anim & 7);
+          sprite = (sprite & ~7) + (tree_anim & 7); 
         }else if (sprite >=16){
           // these are ... palm and submerged trees.  4 frames of animation per type
           sprite = (sprite & ~3) + (tree_anim & 3);
         }
 
-        if (use_custom_set){
-          draw_map_sprite_special(x_base, ly, sprite, pos, map->get_obj(pos));
-        }else{
-          // this says shadow and building but it seems to include ANY map object sprite such as trees, stones
-          draw_shadow_and_building_sprite(x_base, ly, sprite);
-        }
-
       } // if sprite < 24 (trees and junk objects)
+
+      if (use_custom_set){
+        draw_map_sprite_special(x_base, ly, sprite, pos, map->get_obj(pos));
+      }else{
+        // this says shadow and building but it seems to include ANY map object sprite such as trees, stones
+        draw_shadow_and_building_sprite(x_base, ly, sprite);
+      }
+
     } // if not a Tree or junk object
   } // foreach column in this row
 } // end Viewport::draw_map_objects_row
@@ -3162,6 +3163,11 @@ Viewport::draw_hidden_res_overlay() {
       if (ly >= height) break;
 
       if (map->get_res_amount(pos) > 0){
+        //farm fields seeds debugging
+      //if (map->get_res_amount(pos) > 0 || 
+        //(map->get_obj(pos) >= Map::ObjectSeeds0 && map->get_obj(pos) <= Map::ObjectFieldExpired) ||
+        //(map->get_obj(pos) >= Map::ObjectField0 && map->get_obj(pos) <= Map::ObjectField5)){
+
         // with default map generator, seems like highest amount possible is 16
         //  seeing ranges from 1 to 16.  
         //  Fish amount 1-7, mined resource amount 4+
@@ -3195,6 +3201,24 @@ Viewport::draw_hidden_res_overlay() {
           case Map::Minerals::MineralsStone:
             res_color = Color::lt_gray;
             break;
+            /*
+          case Map::ObjectSeeds0:
+          case Map::ObjectSeeds1:
+          case Map::ObjectSeeds2:
+          case Map::ObjectSeeds3:
+          case Map::ObjectSeeds4:
+          case Map::ObjectSeeds5:
+          case Map::ObjectField0:
+          case Map::ObjectField1:
+          case Map::ObjectField2:
+          case Map::ObjectField3:
+          case Map::ObjectField4:
+          case Map::ObjectField5:
+          case Map::ObjectFieldExpired:
+            // farming debugging, highlight fields
+            res_color = Color::white;
+            break;
+            */
         }
         //frame->fill_rect(lx - 2, ly + 0, 5, 5, res_color);
         frame->fill_rect(lx - 2, ly + 0, size, size, res_color);
