@@ -2400,7 +2400,7 @@ Serf::handle_serf_entering_building_state() {
             }
 
             flag->clear_flags();
-            // resource #0 is the wheat that pigs consume (though it is bugged)
+            // resource #0 is the wheat that pigs consume (though it is bugged?)
             building->stock_init(0, Resource::TypeWheat, 8);
 
             set_state(StatePigFarming);
@@ -3381,7 +3381,7 @@ Serf::  handle_serf_free_walking_state_dest_reached() {
             animation = 136;
             s.free_walking.neg_dist1 = 1;
             counter = counter_from_animation[animation];
-          } else if (season != 1 && season != 3 && !(season == 0 && subseason >= 12) && // don't sow in summer or winter or late spring
+          } else if (season != 1 && !(season == 3 && subseason >= 6) && !(season == 0 && subseason >= 12) && // don't sow in summer or mid/late winter or late spring
                     map->get_obj(pos) == Map::ObjectNone &&
                     map->paths(pos) == 0) {
             /* Empty space. */
@@ -4717,16 +4717,12 @@ Serf::handle_serf_planning_farming_state() {
     bool send_farmer_out = false;
     if (option_FourSeasons) {
               // advanced farming logic - prefer harvesting, only sow during appropriate seasons
-
-      //Log::Debug["serf"] << "inside handle_serf_planning_farming_state, season " << season << ", subseason " << subseason << ", counter " << counter;
-
       // if this is a mature field
       if (map->get_obj(dest) == Map::ObjectSeeds5 ||
           (map->get_obj(dest) >= Map::ObjectField0 && map->get_obj(dest) <= Map::ObjectField5)) {
         send_farmer_out = true;   
       } else if (counter > 32750 && game->can_build_field(dest) &&  // prioritize harvesting by only allowing sowing during the second half of the 131 possible checks
-          season != 1 && season != 3 && !(season == 0 && subseason >= 12)) { // don't sow in summer or winter or late spring
-          //Log::Debug["serf"] << "inside handle_serf_planning_farming_state, season " << season << ", subseason " << subseason << ", counter " << counter << ", TEST PASSED";
+          season != 1 && !(season == 3 && subseason >= 6) && !(season == 0 && subseason >= 12)) { // don't sow in summer or mid/late winter or late spring
         send_farmer_out = true;
       }
     }else{    // original farming logic - no preference for harvesting vs sowing
@@ -4898,12 +4894,16 @@ Serf::handle_serf_pigfarming_state() {
   /* When the serf is present there is also at least one
      pig present and at most eight. */
   // NOTE - the original settlers1/serfcity game is bugged
-  //  In it, pig farms only ever use a single wheat resource, 
-  //  yet they will store up to four (or eight?) forever.
-  //  Freeserf replicates this bug.
-  const int breeding_prob[] = {
-    6000, 8000, 10000, 11000, 12000, 13000, 14000, 0
-  };
+  //  In it, pig farms only ever use a single wheat resource (I think, is this actually true??) 
+  //  yet they will store up to eight units of wheat forever.
+  //  Freeserf replicates this bug(?)
+  //const int breeding_prob[] = { 6000, 8000, 10000, 11000, 12000, 13000, 14000, 0 };
+  
+  const int normal_breeding_prob[]  = { 6000, 8000, 10000, 11000, 12000, 13000, 14000, 0 };
+  // AdvancedFarming - reduce pig breeding rate to keep wheat farm's advantage (when space available)
+  //   INSTEAD, HOW ABOUT SEASONAL PIG BREEDING/SLAUGHTERING??  
+  //    maybe have pigs rapidly born in spring, then nearly all slaughtered in late fall, early winter
+  const int reduced_breeding_prob[] = { 4000, 6000,  6666,  7333,  8000,  8666,  9333, 0 };  // these values seem to result in pig production 2/3 the rate of wheat, which is reasonable 
 
   Building *building = game->get_building_at_pos(pos);
   if (s.pigfarming.mode == 0) {
@@ -4952,8 +4952,16 @@ Serf::handle_serf_pigfarming_state() {
         return;
       } else {
         game->get_map()->set_serf_index(pos, 0);
+
+        // AdvancedFarming - reduce pig breeding rate to keep wheat farm's advantage (when space available)
+        int breeding_prob_val = 0;
+        if (option_FourSeasons){
+          breeding_prob_val = reduced_breeding_prob[building->pigs_count()-1];      
+        }else{
+          breeding_prob_val = normal_breeding_prob[building->pigs_count()-1];  
+        }
         if (building->pigs_count() < 8 &&
-            game->random_int() < breeding_prob[building->pigs_count()-1]) {
+            game->random_int() < breeding_prob_val) {
           building->place_new_pig();
         }
         counter += 2048;

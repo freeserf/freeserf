@@ -792,24 +792,25 @@ AI::build_best_road(MapPos start_pos, RoadOptions road_options, Road *built_road
         continue;
       }
 
-      AILogDebug["util_build_best_road"] << "" << calling_function << " non-direct road requested, nearby flags to halfway_pos - found valid nearby_flag at pos " << pos;
+      // skip if already in nearby_flags list, which should only happen if it is part of existing road and RoadOption::Improve roads set;
       if (std::find(nearby_flags.begin(), nearby_flags.end(), pos) != nearby_flags.end()) {
-        // skip if already in nearby_flags list, which should only happen if it is part of existing road and RoadOption::Improve roads set;
         //AILogDebug["util_build_best_road"] << "" << calling_function << " non-direct road requested, nearby flags to halfway_pos - pos " << pos << " is already in nearby_flag list, skipping";
         continue;
       }
 
       // adding support for RoadOption::ReconnectNetwork
-      if (road_options.test(RoadOption::ReconnectNetwork)){
-        AILogDebug["util_build_best_road"] << "" << calling_function << " non-direct road requested, RoadOption::ReconnectNetwork is true, checking to see if this pos is part of same road network";
+      //  CONSIDER REMOVING THIS CHECK AND ONLY CHECKING INSIDE THE for (end_pos : nearby_flags) loop!
+      //   but then it will use up the "nearby flags" check with invalid options!
+      if (road_options.test(RoadOption::ReconnectNetwork)){   
         MapPosVector notused;
         unsigned int notused2;
         if (find_flag_path_and_tile_dist_between_flags(map, start_pos, pos, &notused, &notused2, &ai_mark_pos)){
-          AILogDebug["util_build_best_road"] << "" << calling_function << " non-direct road requested, RoadOption::ReconnectNetwork is true, flag at pos " << pos << " is on the same network, not including it";
+          AILogDebug["util_build_best_road"] << "" << calling_function << " non-direct road requested, nearby flags to halfway_pos - RoadOption::ReconnectNetwork is true, flag at pos " << pos << " is on the same network, not including it";
           continue;
         }
       }
 
+      AILogDebug["util_build_best_road"] << "" << calling_function << " non-direct road requested, nearby flags to halfway_pos - found valid nearby_flag at pos " << pos;
       nearby_flags.push_back(pos);
       //ai_mark_pos.erase(pos);
       //ai_mark_pos.insert(std::make_pair(pos, "orange"));
@@ -855,21 +856,34 @@ AI::build_best_road(MapPos start_pos, RoadOptions road_options, Road *built_road
         AILogDebug["util_build_best_road"] << "" << calling_function << " non-direct road requested, nearby flags to start_pos - flag at pos " << pos << " is itself disconnected and is neither the castle_flag_pos nor the target_pos, skipping";
         continue;
       }*/
+
+      // skip if already in nearby_flags list, which should only happen if it is part of existing road and RoadOption::Improve roads set;
+      if (std::find(nearby_flags.begin(), nearby_flags.end(), pos) != nearby_flags.end()) {
+        //AILogDebug["util_build_best_road"] << "" << calling_function << " non-direct road requested, nearby flags to start_pos - this pos is already in nearby_flag list, skipping";
+        continue;
+      }
+
+      // adding support for RoadOption::ReconnectNetwork
+      //  CONSIDER REMOVING THIS CHECK AND ONLY CHECKING INSIDE THE for (end_pos : nearby_flags) loop!
+      if (road_options.test(RoadOption::ReconnectNetwork)){   
+        MapPosVector notused;
+        unsigned int notused2;
+        if (find_flag_path_and_tile_dist_between_flags(map, start_pos, pos, &notused, &notused2, &ai_mark_pos)){
+          AILogDebug["util_build_best_road"] << "" << calling_function << " non-direct road requested, nearby flags to start_pos - RoadOption::ReconnectNetwork is true, flag at pos " << pos << " is on the same network, not including it";
+          continue;
+        }
+      }
+
       // removing "allow target_pos" exception, it causes problems and is only used for rebuild_all_roads which doesn't work well
       if (game->get_flag_at_pos(pos) != nullptr && !game->get_flag_at_pos(pos)->is_connected() && pos != castle_flag_pos) {
         AILogDebug["util_build_best_road"] << "" << calling_function << " non-direct road requested, nearby flags to start_pos - flag at pos " << pos << " is itself disconnected and is not the castle_flag_pos, skipping";
         continue;
       }
 
-      AILogDebug["util_build_best_road"] << "" << calling_function << " non-direct road requested, nearby flags to start_pos - found valid nearby_flag at pos " << pos;
-      if (std::find(nearby_flags.begin(), nearby_flags.end(), pos) != nearby_flags.end()) {
-        // skip if already in nearby_flags list, which should only happen if it is part of existing road and RoadOption::Improve roads set;
-        AILogDebug["util_build_best_road"] << "" << calling_function << " non-direct road requested, nearby flags to start_pos - this pos is already in nearby_flag list, skipping";
-        continue;
-      }
       //ai_mark_pos.erase(pos);
       //ai_mark_pos.insert(std::make_pair(pos, "cyan"));
       //sleep_speed_adjusted(10);
+      AILogDebug["util_build_best_road"] << "" << calling_function << " non-direct road requested, nearby flags to start_pos - found valid nearby_flag at pos " << pos;
       nearby_flags.push_back(pos);
     } // foreach pos around start_pos
     //ai_mark_pos.clear();
@@ -944,6 +958,19 @@ AI::build_best_road(MapPos start_pos, RoadOptions road_options, Road *built_road
           AILogDebug["util_build_best_road"] << "" << calling_function << " non-direct road requested, plotting direct roads to nearby_flags, RoadOption::MostlyStraight is set and this potential DIRECT road solution is already too convoluted from new length alone, reduced max is " << max_convolution * 0.50;
           break;
         }
+
+        // adding support for RoadOption::ReconnectNetwork
+        //  WOULD IT MAKE MORE SENSE TO HAVE THIS BE THE ONLY ReconnectNetwork CHECK AND DITCH ALL THE EARLIER ONES?
+        //
+        if (road_options.test(RoadOption::ReconnectNetwork)){   
+          MapPosVector notused;
+          unsigned int notused2;
+          if (find_flag_path_and_tile_dist_between_flags(map, start_pos, end_pos, &notused, &notused2, &ai_mark_pos)){
+            AILogDebug["util_build_best_road"] << "" << calling_function << " non-direct road requested, plotting direct roads to nearby_flags, - RoadOption::ReconnectNetwork is true, flag at pos " << end_pos << " is on the same network, not including it";
+            break;
+          }
+        }
+
         // if this is "tracked economy building", ensure the end_pos flag is closest to the currently selected Inventory (castle/warehouse)
         if (verify_stock == true){
           // this should use FLAG ONLY  (wait no, FlagAndStraightLine is more restrictive and good for placing new buildings
@@ -1008,11 +1035,38 @@ AI::build_best_road(MapPos start_pos, RoadOptions road_options, Road *built_road
           //AILogDebug["util_build_best_road"] << "" << calling_function << " non-direct road requested, split_roads, RoadOption::MostlyStraight is set and this split_road solution is already too convoluted from new length alone, reduced max is " << max_convolution * 0.50;
           continue;
         }
+
+        // various reasons below to disqualify a flag
+        int disqualified = 0;
+
+        // adding support for RoadOption::ReconnectNetwork
+        //  this could code likely be combined with if verify_stock code below for performance
+        //  but for now keeping them separate for simplicity
+        //  CONSIDER REMOVING THIS CHECK AND ONLY CHECKING INSIDE THE for (end_pos : nearby_flags) loop!
+        //  CONSIDER REMOVING THIS CHECK AND ONLY CHECKING INSIDE THE for (end_pos : nearby_flags) loop!
+        if (road_options.test(RoadOption::ReconnectNetwork)){   
+          AILogDebug["util_build_best_road"] << "" << calling_function << " non-direct road requested, split_roads, RoadOption::ReconnectNetwork is true, no flag here, checking to see if adjacent flags are part of same road network";
+          // because new-splitting/fake-flag solutions may be allowed when doing ReconnectNetwork, we must check for this and use either adjacent flag to do to search
+          //  as the find_flag_path_and_tile_dist_between_flags function won't work for fake flags.
+          for (Direction dir : cycle_directions_cw()) {
+            if (map->has_path_IMPROVED(split_end_pos, dir)) {
+              Road split_road = trace_existing_road(map, split_end_pos, dir);
+              MapPos adjacent_flag_pos = split_road.get_end(map.get());
+              MapPosVector notused;
+              unsigned int notused2;
+              if (find_flag_path_and_tile_dist_between_flags(map, start_pos, adjacent_flag_pos, &notused, &notused2, &ai_mark_pos)){
+                AILogDebug["util_build_best_road"] << "" << calling_function << " non-direct road requested, split_roads, RoadOption::ReconnectNetwork is true, splitting-flag at pos " << split_end_pos << " is on the same network, not including it";
+                disqualified++;
+                break;
+              }
+            }
+          }          
+        }
+
         // if this is "tracked economy building", ensure the end_pos flag is closest to the currently selected Inventory (castle/warehouse)
         // because this is a split_flag solution, the flag doesn't exist yet.  Instead, check to ensure that BOTH of its adjacent flags
         // are closest to the current Inventory.  I am not sure what happens if two Inventories are equal flag distance apart, but I suspect
         // whichever is first in terms of path-Direction (0-5) wins
-        int disqualified = 0;
         if (verify_stock == true){
           for (Direction dir : cycle_directions_cw()) {
             AILogVerbose["util_build_best_road"] << "" << calling_function << " non-direct road requested, split_roads, verify_stock - looking for a path for splitting flag at split_end_pos " << split_end_pos << " in dir " << NameDirection[dir];
@@ -1026,6 +1080,7 @@ AI::build_best_road(MapPos start_pos, RoadOptions road_options, Road *built_road
               //if (find_nearest_inventory(map, player_index, adjacent_flag_pos, DistType::FlagOnly, &ai_mark_pos) != inventory_pos){
                 //AILogDebug["util_build_best_road"] << "" << calling_function << " non-direct road requested, split_roads, verify_stock - potential split_road flag at split_end_pos " << split_end_pos << " is not closest to current inventory_pos " << inventory_pos << ", skipping";
                 disqualified++;
+                break;
               }
             }
           }
@@ -2904,8 +2959,11 @@ AI::score_enemy_targets(MapPosSet *scored_targets) {
       MapPos target_pos = pos;
       Building::Type target_building_type = building->get_type();
       size_t target_player_index = map->get_owner(pos);
-      const std::string target_player_face = NamePlayerFace[game->get_player(map->get_owner(pos))->get_face()];
-      AILogDebug["util_score_enemy_targets"] << "found attackable building of type " << NameBuilding[target_building_type] << " at pos " << target_pos << " belonging to player " << target_player_index << " / " << target_player_face;
+      // getting segfault here on loaded game after changing AI to human
+      //  to debug something, for now simply don't use this
+      //  const std::string target_player_face = NamePlayerFace[game->get_player(map->get_owner(pos))->get_face()];
+      //AILogDebug["util_score_enemy_targets"] << "found attackable building of type " << NameBuilding[target_building_type] << " at pos " << target_pos << " belonging to player " << target_player_index << " / " << target_player_face;
+      AILogDebug["util_score_enemy_targets"] << "found attackable building of type " << NameBuilding[target_building_type] << " at pos " << target_pos << " belonging to player " << target_player_index;
       // does this belong here?
       int max_knights = 0;
       // limit attacking knights count based on building type?  What purpose?  is this attacking or defending knights?
@@ -2919,8 +2977,10 @@ AI::score_enemy_targets(MapPosSet *scored_targets) {
       }
       int attacking_knights = player->knights_available_for_attack(target_pos);
       attacking_knights = std::min(attacking_knights, max_knights);
+      //AILogDebug["util_score_enemy_targets"] << "send up to " << attacking_knights << " knights to attack enemy building of type " << NameBuilding[target_building_type]
+      //  << " at pos " << target_pos << " belonging to player " << target_player_index << " / " << target_player_face;
       AILogDebug["util_score_enemy_targets"] << "send up to " << attacking_knights << " knights to attack enemy building of type " << NameBuilding[target_building_type]
-        << " at pos " << target_pos << " belonging to player " << target_player_index << " / " << target_player_face;
+        << " at pos " << target_pos << " belonging to player " << target_player_index;
       if (attacking_knights == 0) {
         AILogDebug["util_score_enemy_targets"] << "cannot send any knights, not marking target for scoring";
         continue;

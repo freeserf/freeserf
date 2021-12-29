@@ -4599,8 +4599,9 @@ AI::do_connect_disconnected_road_networks(){
         //road_options.set(RoadOption::Direct);  // CANNOT USE DIRECT!  it tries connect directly to the INVENTORY FLAG ONLY and usually fail because that is the default affinity if no target set
         road_options.set(RoadOption::PlotOnlyNoBuild);
         road_options.set(RoadOption::ReconnectNetwork);
-        bool was_built = AI::build_best_road(flag_pos, road_options, &road_solution, "do_connect_disconnected_road_networks");
-        if (was_built && road_solution.get_length() > 0){
+        // BUG - seeing a road attempt to be "reconnected" to a new-splitting-flag part of SAME NETWORK
+        bool was_plotted = AI::build_best_road(flag_pos, road_options, &road_solution, "do_connect_disconnected_road_networks");
+        if (was_plotted && road_solution.get_length() > 0){
           MapPos end_pos = road_solution.get_end(map.get());
           AILogInfo["do_connect_disconnected_road_networks"] << "DISCONNECTED ROAD SYSTEM: network[" << i << "], was able to plot a road from flag at pos " << flag_pos << " to end_pos " << end_pos << " with new length " << road_solution.get_length();
           if (possible_roads.size() == 0 || road_solution.get_length() < possible_roads.front().get_length()) {

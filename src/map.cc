@@ -741,6 +741,8 @@ Map::update_public(MapPos pos, Random *rnd) {
     if (option_FourSeasons && season == 1){
       Log::Info["map"] << "option_FourSeasons and option_AdvancedFarming on, and it is Summer, this young Seed-field at pos " << pos << " is now being destroyed (too hot for immature seedlings)";
       set_object(pos, ObjectFieldExpired, -1);
+    }else if (option_FourSeasons && season == 3){
+      Log::Info["map"] << "option_FourSeasons and option_AdvancedFarming on, and it is Winter, this Seed-field at pos " << pos << " is not advancing this update (too cold for seeds to grow)";
     }else{
       set_object(pos, (Object)(get_obj(pos) + 1), -1);
     }

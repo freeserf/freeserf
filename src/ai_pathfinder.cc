@@ -1279,29 +1279,34 @@ AI::arterial_road_depth_first_recursive_flagsearch(MapPos flag_pos, std::pair<Ma
 //  goal does not matter, only flag dist.  The distance from start pas is effectively handled in
 //  correct priority order because it does breadth-first and if(closed) checking should prevent looping
 //
+//
+// OPTIMIZATION - because this call is repeated many times in quick succession for a single
+//  build_best_road call, especially for ReconnectNetworks, it makes sense to cache
+//  the results for the some duration?
+//
 bool
 AI::find_flag_path_and_tile_dist_between_flags(PMap map, MapPos start_pos, MapPos target_pos, 
               MapPosVector *solution_flags, unsigned int *tile_dist, ColorDotMap *ai_mark_pos){
 
-  AILogDebug["find_flag_path_between_flags"] << "start_pos " << start_pos << ", target_pos " << target_pos;
+  AILogDebug["find_flag_path_and_tile_dist_between_flags"] << "start_pos " << start_pos << ", target_pos " << target_pos;
 
   // sanity check - this excludes fake flag solution starts (could change that later though)
   if (!map->has_flag(start_pos)){
     /*
-    AILogError["find_flag_path_between_flags"] << "expecting that start_pos " << start_pos << " provided to this function is a flag pos, marking start_pos blue and throwing exception";
+    AILogError["find_flag_path_and_tile_dist_between_flags"] << "expecting that start_pos " << start_pos << " provided to this function is a flag pos, marking start_pos blue and throwing exception";
     ai_mark_pos->erase(start_pos);
     ai_mark_pos->insert(ColorDot(start_pos, "blue"));
     std::this_thread::sleep_for(std::chrono::milliseconds(10000));
     throw ExceptionFreeserf("expecting that start_pos provided to this function is a flag pos");
     */
     // I think this could simply be a result of lost territory, not an exception.  Only started seeing it with multiple players
-    AILogWarn["find_flag_path_between_flags"] << "expecting that start_pos " << start_pos << " provided to this function is a flag pos, maybe it was removed?  returng bad_score";
-    return bad_score;
+    AILogWarn["find_flag_path_and_tile_dist_between_flags"] << "expecting that start_pos " << start_pos << " provided to this function is a flag pos, maybe it was removed?  returng bad_score";
+    return false;
   }
 
   // handle start=end
   if (start_pos == target_pos){
-    AILogWarn["find_flag_path_between_flags"] << "start_pos " << start_pos << " IS target_pos " << target_pos << ", why even make this call?";
+    AILogWarn["find_flag_path_and_tile_dist_between_flags"] << "start_pos " << start_pos << " IS target_pos " << target_pos << ", why even make this call?";
     return true;
   }
 
@@ -1322,7 +1327,7 @@ AI::find_flag_path_and_tile_dist_between_flags(PMap map, MapPos start_pos, MapPo
     // get this Flag
     Flag *flag = game->get_flag_at_pos(fnode->pos);
     if (flag == nullptr){
-      AILogWarn["find_flag_path_between_flags"] << "got nullptr for game->get_flag_at_pos " << fnode->pos << " skipping this dir";
+      AILogWarn["find_flag_path_and_tile_dist_between_flags"] << "got nullptr for game->get_flag_at_pos " << fnode->pos << " skipping this dir";
       throw ExceptionFreeserf("got nullptr for game->get_flag_at_pos");
       continue;
     }
@@ -1342,14 +1347,14 @@ AI::find_flag_path_and_tile_dist_between_flags(PMap map, MapPos start_pos, MapPo
       // get the other Flag in this dir
       Flag *other_end_flag = flag->get_other_end_flag(dir);
       if (other_end_flag == nullptr){
-        AILogError["find_flag_path_between_flags"] << "got nullptr for game->get_other_end_flag(" << NameDirection[dir] << ") from flag at pos " << fnode->pos << ", marking in coral and throwing exception";
+        AILogError["find_flag_path_and_tile_dist_between_flags"] << "got nullptr for game->get_other_end_flag(" << NameDirection[dir] << ") from flag at pos " << fnode->pos << ", marking in coral and throwing exception";
         ai_mark_pos->erase(map->move(fnode->pos, dir));
         ai_mark_pos->insert(ColorDot(map->move(fnode->pos, dir), "coral"));
         std::this_thread::sleep_for(std::chrono::milliseconds(30000));
         throw ExceptionFreeserf("got nullptr for game->get_other_end_flag");
       }
       MapPos other_end_flag_pos = other_end_flag->get_position();
-      AILogDebug["find_flag_path_between_flags"] << "other_end_flag_pos is " << other_end_flag_pos;
+      AILogDebug["find_flag_path_and_tile_dist_between_flags"] << "other_end_flag_pos is " << other_end_flag_pos;
 
       // skip dir if adjacent flag pos is already in the closed list
       if (std::find(closed.begin(), closed.end(), other_end_flag_pos) != closed.end())
@@ -1381,8 +1386,10 @@ AI::find_flag_path_and_tile_dist_between_flags(PMap map, MapPos start_pos, MapPo
       // stop here to check if the new pos is the target_pos
       //  and if so retrace it and record the solution
       if (new_fnode->pos == target_pos){
+        AILogDebug["find_flag_path_and_tile_dist_between_flags"] << "found solution, reached " << target_pos;
         PFlagSearchNode solution_node = new_fnode;
         while(solution_node->parent){
+          AILogDebug["find_flag_path_and_tile_dist_between_flags"] << "solution contains " << solution_node->pos;
           solution_flags->push_back(solution_node->pos);
 
           // also trace the road to determine length in tiles of the solution
@@ -1393,6 +1400,7 @@ AI::find_flag_path_and_tile_dist_between_flags(PMap map, MapPos start_pos, MapPo
           
         }
         // push the last node too, and return
+        AILogDebug["find_flag_path_and_tile_dist_between_flags"] << "solution last node " << solution_node->pos;
         solution_flags->push_back(solution_node->pos);
         return true;
       }
@@ -1407,4 +1415,7 @@ AI::find_flag_path_and_tile_dist_between_flags(PMap map, MapPos start_pos, MapPo
     closed.push_back(fnode->pos);
 
   } //end while(!open.empty)
+
+  AILogDebug["find_flag_path_and_tile_dist_between_flags"] << "search completed with no solution found, returning false";
+  return false;
 } //end function
