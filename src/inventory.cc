@@ -333,19 +333,29 @@ Resource::Type res_needed[] = {
 bool
 Inventory::specialize_serf(Serf *serf, Serf::Type type) {
   if (serf->get_type() != Serf::TypeGeneric) {
+    Log::Debug["inventory"] << "inside specialize_serf, failure0";
     return false;
   }
 
-  if (serfs[type] != 0) {
+  // BUG!  this looks to be responsible for why new knights are
+  //  often not being spawned despite having sword+shield and appropriate
+  //  setting.  If any Knight0 already exists in the Inventory, it won't
+  //  create a new one!
+  // must exclude Knights from this check!
+  //if (serfs[type] != 0) {
+  if (serfs[type] != 0 && !(type >= Serf::TypeKnight0 && type <= Serf::TypeKnight4)) {
+    Log::Debug["inventory"] << "inside specialize_serf, failure1";
     return false;
   }
 
   if ((res_needed[type*2] != Resource::TypeNone)
       && (resources[res_needed[type*2]] == 0)) {
+    Log::Debug["inventory"] << "inside specialize_serf, failure2";
     return false;
   }
   if ((res_needed[type*2+1] != Resource::TypeNone)
       && (resources[res_needed[type*2+1]] == 0)) {
+    Log::Debug["inventory"] << "inside specialize_serf, failure3";
     return false;
   }
 

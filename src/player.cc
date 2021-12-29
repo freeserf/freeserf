@@ -711,8 +711,10 @@ Player::spawn_serf_generic() {
 bool
 Player::spawn_serf(Serf **serf, Inventory **inventory, bool want_knight) {
   if (!can_spawn()) {
+    Log::Debug["player"] << "inside spawn_serf for player " << index << ", can_spawn is false!";
     return false;
   }
+  Log::Debug["player"] << "inside spawn_serf for player " << index << ", can_spawn is true";
 
   Game::ListInventories inventories = game->get_player_inventories(this);
   if (inventories.size() < 1) {
@@ -737,6 +739,7 @@ Player::spawn_serf(Serf **serf, Inventory **inventory, bool want_knight) {
 
   if (inv == nullptr) {
     if (want_knight) {
+      Log::Debug["player"] << "inside spawn_serf for player " << index << ", want_knight is true! calling spawn_serf again recursively";
       return spawn_serf(serf, inventory, false);
     } else {
       return false;
@@ -745,7 +748,7 @@ Player::spawn_serf(Serf **serf, Inventory **inventory, bool want_knight) {
 
   Serf *s = inv->spawn_serf_generic();
   if (s == nullptr) {
-    Log::Warn["player"] << "inside spawn_serf, inv->create_serf_generic s was null!";
+    Log::Warn["player"] << "inside spawn_serf for player " << index << ", inv->create_serf_generic s was null!";
     return false;
   }
 
@@ -756,6 +759,7 @@ Player::spawn_serf(Serf **serf, Inventory **inventory, bool want_knight) {
     *inventory = inv;
   }
 
+  Log::Debug["player"] << "inside spawn_serf for player " << index << ", returning true - a serf was spawned"; 
   return true;
 }
 
@@ -907,8 +911,11 @@ Player::update() {
     reproduction_counter -= delta;
 
     while (reproduction_counter < 0) {
+      Log::Debug["player"] << "inside player->update for player " << index << ", reproduction_counter is < 0... is " << reproduction_counter;
       serf_to_knight_counter += serf_to_knight_rate;
+      Log::Debug["player"] << "inside player->update for player " << index << ", serf_to_knight_counter is " << serf_to_knight_counter << ", serf_to_knight_rate is " << serf_to_knight_rate;
       if (serf_to_knight_counter < serf_to_knight_rate) {
+        Log::Debug["player"] << "inside player->update for player " << index << ", check true, knights_to_spawn is now " << knights_to_spawn;
         knights_to_spawn += 1;
         if (knights_to_spawn > 2) knights_to_spawn = 2;
       }
@@ -916,18 +923,28 @@ Player::update() {
     Log::Verbose["game"] << "thread #" << std::this_thread::get_id() << " is locking mutex for Player::update before spawn_serf";
     game->get_mutex()->lock();
     Log::Verbose["game"] << "thread #" << std::this_thread::get_id() << " has locked mutex for Player::update before spawn_serf";
+    Log::Debug["player"] << "inside player->update for player " << index << ", 2nd check, knights_to_spawn is now " << knights_to_spawn;
       if (knights_to_spawn == 0) {
+        Log::Debug["player"] << "inside player->update for player " << index << ", creating normal serf";
         // Create unassigned serf
         spawn_serf(nullptr, nullptr, false);
       } else {
+        Log::Debug["player"] << "inside player->update for player " << index << ", creating knight";
         // Create knight serf
         Serf *serf = nullptr;
         Inventory *inventory = nullptr;
         if (spawn_serf(&serf, &inventory, true)) {
+          Log::Debug["player"] << "inside player->update for player " << index << ", creating knight, succesfully spawned knight-to-be serf";
           if (inventory->get_count_of(Resource::TypeSword) != 0 &&
               inventory->get_count_of(Resource::TypeShield) != 0) {
+            Log::Debug["player"] << "inside player->update for player " << index << ", creating knight, have sword and shield, calling specialize_serf";
             knights_to_spawn -= 1;
-            inventory->specialize_serf(serf, Serf::TypeKnight0);
+            //inventory->specialize_serf(serf, Serf::TypeKnight0);
+            if (inventory->specialize_serf(serf, Serf::TypeKnight0)){
+              Log::Debug["player"] << "inside player->update for player " << index << ", creating knight, successful return from specialize_serf";
+            }else{
+              Log::Debug["player"] << "inside player->update for player " << index << ", creating knight, FAILURE from specialize_serf";
+            }
           }
         }
       }
