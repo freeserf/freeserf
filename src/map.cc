@@ -798,28 +798,34 @@ Map::update_public(MapPos pos, Random *rnd) {
 // modified this to happen far less often
 //  so on a size 3 map with default mapgen and average amount of water
 //  about one fish will spawn per minute
+// UPDATE this still results in too many fish, reducing further
+// UPDATE - wait, the amount of fish looks okay but the fishman are never 
+//   catching any... I think their success chance may be very slow unless
+//   there are a lot of fish... trying pushing this back up...
+//  yes, there needs to be a good amount of fish for fisherman to have
+//   reasonable chance of success, changing approach to allow spawning 
+//   much more fish initially as part of mapgen, adding option_FishSpawnSlowly
+//   to make this optional
 void
 Map::update_hidden(MapPos pos, Random *rnd) {
   /* Update fish resources in water */
   if (is_in_water(pos) && landscape_tiles[pos].resource_amount > 0) {
 
-    // limit the rate of fish spawning and moving, it was far too often
+    int r = rnd->random();
+
+    // adding support for option_FishSpawnSlowly 
+    //  limit the rate of new fish *spawning* (they still move often)
     double doubrand = double(rnd->random());
     double roll = 100.00 * doubrand / double(UINT16_MAX);
-    if (roll < 97.50) {
-      // do nothing most of the time
-      return;
-    }
-
-    int r = rnd->random();
-    if (landscape_tiles[pos].resource_amount < 10 && (r & 0x3f00)) {
-      /* Spawn more fish. */
-      // I think this is happening too often, seas quickly become full of fish
-      //  with far more than the map started with despite fishing
-      // yes... on a new game with map size 3 and default mapgen and moderate
-      // water bodies, I see more than one new fish being created per second!
-      //Log::Debug["map"] << "inside update_hidden, spawning a new fish";
-      landscape_tiles[pos].resource_amount += 1;
+    if (option_FishSpawnSlowly && roll < 98.50) {  // ~1fish every 2min on map3
+      // don't even consider spawning
+    }else{
+      // execute normal spawn chance roll
+      if (landscape_tiles[pos].resource_amount < 10 && (r & 0x3f00)) {
+        /* Spawn more fish. */
+        Log::Debug["map"] << "inside update_hidden, spawning a new fish";
+        landscape_tiles[pos].resource_amount += 1;
+      }
     }
 
     /* Move in a random direction of: right, down right, left, up left */

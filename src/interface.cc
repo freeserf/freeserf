@@ -465,6 +465,7 @@ Interface::update_interface() {
   Log::Info["interface"] << "option_ResourceRequestsTimeOut is " << option_ResourceRequestsTimeOut;
   Log::Info["interface"] << "option_LostTransportersClearFaster is " << option_LostTransportersClearFaster;
   Log::Info["interface"] << "option_FourSeasons is " << option_FourSeasons;
+  Log::Info["interface"] << "option_FishSpawnSlowly is " << option_FishSpawnSlowly;
   */
 
 
@@ -906,7 +907,7 @@ Interface::update() {
     // INSTEAD OF CLEARING THE WHOLE CACHE, FIND A WAY TO CLEAR ONLY THE CHANGED IMAGES!!!
     Image::clear_cache();
     // something about opening a panel popup refreshes the screen and updates some graphical stuff that fixes things
-    layout();
+    layout();  // THIS IS CAUSING ISSUES WITH POPUP MENUS BEING CORRUPTED WHEN IT RUNS!
   }
 
 
@@ -1114,7 +1115,7 @@ Interface::handle_key_pressed(char key, int modifier) {
       }
       Image::clear_cache();
       // something about opening a panel popup refreshes the screen and updates some graphical stuff that fixes things
-      layout();  // THIS IS IT - this is the "fix viewport" function
+      layout();  // THIS IS IT - this is the "fix viewport" function   // THIS IS CAUSING ISSUES WITH POPUP MENUS BEING CORRUPTED WHEN IT RUNS!
       //set_redraw(); // this is not enough!
       break;
     case 'q':
@@ -1127,7 +1128,7 @@ Interface::handle_key_pressed(char key, int modifier) {
       // INSTEAD OF CLEARING THE WHOLE CACHE, FIND A WAY TO CLEAR ONLY THE CHANGED IMAGES!!!
       Image::clear_cache();
       // something about opening a panel popup refreshes the screen and updates some graphical stuff that fixes things
-      layout();  // THIS IS IT - this is the "fix viewport" function
+      layout();  // THIS IS IT - this is the "fix viewport" function   // THIS IS CAUSING ISSUES WITH POPUP MENUS BEING CORRUPTED WHEN IT RUNS!
       //set_redraw(); // this is not enough!
       break;
     case 'e':

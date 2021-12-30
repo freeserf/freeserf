@@ -197,7 +197,7 @@ class Interface : public GuiObject, public GameManager::Handler {
   double get_custom_map_generator_trees(){ return uint16_t(16375 * custom_map_generator_options.opt[CustomMapGeneratorOption::Trees]); }
   double get_custom_map_generator_stonepile_dense(){ return slider_double_to_uint16(custom_map_generator_options.opt[CustomMapGeneratorOption::StonepileDense]); }
   double get_custom_map_generator_stonepile_sparse(){ return slider_double_to_uint16(custom_map_generator_options.opt[CustomMapGeneratorOption::StonepileSparse]); }
-  double get_custom_map_generator_fish(){ return slider_double_to_uint16(custom_map_generator_options.opt[CustomMapGeneratorOption::Fish]); }
+  double get_custom_map_generator_fish(){ return uint16_t(16375 * custom_map_generator_options.opt[CustomMapGeneratorOption::Fish]); }
   double get_custom_map_generator_mountain_gold(){ return slider_double_to_uint16(custom_map_generator_options.opt[CustomMapGeneratorOption::MountainGold]); }
   double get_custom_map_generator_mountain_iron(){ return slider_double_to_uint16(custom_map_generator_options.opt[CustomMapGeneratorOption::MountainIron]); }
   double get_custom_map_generator_mountain_coal(){ return slider_double_to_uint16(custom_map_generator_options.opt[CustomMapGeneratorOption::MountainCoal]); }
@@ -215,13 +215,16 @@ class Interface : public GuiObject, public GameManager::Handler {
   double get_custom_map_generator_junk_desert_palm_trees(){ return slider_double_to_uint16(custom_map_generator_options.opt[CustomMapGeneratorOption::JunkDesertPalmTrees]); }
 
   void set_custom_map_generator_trees(uint16_t val){
-    //double slider_uint16_to_double(uint16_t val){ return double(double(val) / double(32750)); }
     // reasonable values for trees are 0.00-4.00, so divide max slider 65500 by 4 to get 16375 and let 1.00 == 16375
     custom_map_generator_options.opt[CustomMapGeneratorOption::Trees] = double(val) / double(16375);
   }
   void set_custom_map_generator_stonepile_dense(uint16_t val){ custom_map_generator_options.opt[CustomMapGeneratorOption::StonepileDense] = slider_uint16_to_double(val); }
   void set_custom_map_generator_stonepile_sparse(uint16_t val){ custom_map_generator_options.opt[CustomMapGeneratorOption::StonepileSparse] = slider_uint16_to_double(val); }
-  void set_custom_map_generator_fish(uint16_t val){ custom_map_generator_options.opt[CustomMapGeneratorOption::Fish] = slider_uint16_to_double(val); }
+  //void set_custom_map_generator_fish(uint16_t val){ custom_map_generator_options.opt[CustomMapGeneratorOption::Fish] = slider_uint16_to_double(val); }
+  void set_custom_map_generator_fish(uint16_t val){
+    // reasonable values for fish are 0.00-4.00, so divide max slider 65500 by 4 to get 16375 and let 1.00 == 16375
+    custom_map_generator_options.opt[CustomMapGeneratorOption::Fish] = double(val) / double(16375);
+  }
   void set_custom_map_generator_mountain_gold(uint16_t val){ custom_map_generator_options.opt[CustomMapGeneratorOption::MountainGold] = slider_mineral_uint16_to_int_to_double(val); }
   void set_custom_map_generator_mountain_iron(uint16_t val){ custom_map_generator_options.opt[CustomMapGeneratorOption::MountainIron] = slider_mineral_uint16_to_int_to_double(val); }
   void set_custom_map_generator_mountain_coal(uint16_t val){ custom_map_generator_options.opt[CustomMapGeneratorOption::MountainCoal] = slider_mineral_uint16_to_int_to_double(val); }

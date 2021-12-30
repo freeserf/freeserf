@@ -303,6 +303,7 @@ typedef enum Action {
   ACTION_GAME_OPTIONS_ResourceRequestsTimeOut,
   ACTION_GAME_OPTIONS_LostTransportersClearFaster,
   ACTION_GAME_OPTIONS_FourSeasons,
+  ACTION_GAME_OPTIONS_FishSpawnSlowly,
   ACTION_MAPGEN_ADJUST_TREES,
   ACTION_MAPGEN_ADJUST_STONEPILES,
   ACTION_MAPGEN_ADJUST_FISH,
@@ -2066,8 +2067,8 @@ PopupBox::draw_game_options2_box() {
   draw_green_string(3, 48, "Four Seasons of Weather");
   draw_popup_icon(1, 45, option_FourSeasons ? 288 : 220);
 
-  //draw_green_string(3, 67, "PlaceHolder2");
-  //draw_popup_icon(1, 64, option_PlaceHolder2 ? 288 : 220);
+  draw_green_string(3, 67, "Fish Spawn Very Slowly");
+  draw_popup_icon(1, 64, option_FishSpawnSlowly ? 288 : 220);
 
   //draw_green_string(3, 86, "PlaceHolder3");
   //draw_popup_icon(1, 83, option_PlaceHolder3 ? 288 : 220);
@@ -2116,7 +2117,8 @@ PopupBox::draw_edit_map_generator_box() {
 
   draw_green_string(2, 43, "Resources in mountains");
   draw_green_string(27, 2, "Fish");
-  draw_colored_slide_bar(25, 11, slider_double_to_uint16(generator_options.opt[CustomMapGeneratorOption::Fish]), Color::green);
+  // reasonable values for fish are 0.00-4.00, so divide max slider 65500 by 4 to get 16375 and let 1.00 == 16375
+  draw_colored_slide_bar(25, 11, generator_options.opt[CustomMapGeneratorOption::Fish] * 16375, Color::green);
 
   //draw_green_string(26, 24, "Ratio");
   /* here is the original game ratio for mined resources (copied from ClassicMapGenerator)
@@ -3681,12 +3683,13 @@ PopupBox::handle_action(int action, int x_, int /*y_*/) {
     interface->open_popup(TypeOptions);
     break;
   case ACTION_RESET_MAPGEN_DEFAULTS:
-    //uint16_t slider_double_to_uint16(double val){ return uint16_t(val * 32750); }
     // reasonable values for trees are 0.00-4.00, so divide max slider 65500 by 4 to get 16375 and let 1.00 == 16375
     interface->set_custom_map_generator_trees(uint16_t(16375 * 1.00));
     interface->set_custom_map_generator_stonepile_dense(slider_double_to_uint16(1.00)); 
     interface->set_custom_map_generator_stonepile_sparse(slider_double_to_uint16(1.00)); 
-    interface->set_custom_map_generator_fish(slider_double_to_uint16(1.00)); 
+    //interface->set_custom_map_generator_fish(slider_double_to_uint16(1.00)); 
+    // reasonable values for fish are 0.00-4.00, so divide max slider 65500 by 4 to get 16375 and let 1.00 == 16375
+    interface->set_custom_map_generator_fish(uint16_t(16375 * 1.00));
     interface->set_custom_map_generator_mountain_gold(slider_mineral_double_to_uint16(2.00));   // 2
     interface->set_custom_map_generator_mountain_iron(slider_mineral_double_to_uint16(4.00));   // 4
     interface->set_custom_map_generator_mountain_coal(slider_mineral_double_to_uint16(9.00));   // 9
@@ -3784,6 +3787,13 @@ PopupBox::handle_action(int action, int x_, int /*y_*/) {
       option_FourSeasons = false;
     }else{
       option_FourSeasons = true;
+    }
+    break;
+  case ACTION_GAME_OPTIONS_FishSpawnSlowly:
+    if (option_FishSpawnSlowly){
+      option_FishSpawnSlowly = false;
+    }else{
+      option_FishSpawnSlowly = true;
     }
     break;
   case ACTION_MAPGEN_ADJUST_TREES:

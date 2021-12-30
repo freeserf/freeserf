@@ -3116,6 +3116,7 @@ Viewport::draw_ai_grid_overlay() {
 
   // draw AI status text box
   std::string status = ai->get_ai_status();
+  //    got a segfault drawing this string once, I think the status string changed while iterating over its chars?
   frame->draw_string(65, 1, status, ai->get_mark_color("white"));
 
   // draw AI expansion goals text box

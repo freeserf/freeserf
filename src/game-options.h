@@ -14,6 +14,7 @@ extern bool option_BabyTreesMatureSlowly;
 extern bool option_ResourceRequestsTimeOut;
 extern bool option_LostTransportersClearFaster;
 extern bool option_FourSeasons;
+extern bool option_FishSpawnSlowly;
 extern int season;
 extern int subseason;
 extern int season_offset[4];

@@ -1473,7 +1473,14 @@ CustomMapGenerator::create_water_bodies() {
         //tiles[pos_].height = water_level - 1;
         tiles[pos_].height = water_level * custom_map_generator_options.opt[CustomMapGeneratorOption::LakesWaterLevel] - 1;
         tiles[pos_].mineral = Map::MineralsNone;
-        tiles[pos_].resource_amount = (random_int() & 7) * custom_map_generator_options.opt[CustomMapGeneratorOption::Fish]; /* Fish */
+        // if the Fish slider is maxed out, simply set all to maximum 16.  Otherwise, use the random chance (slider-adjusted)
+        // NOTE - it seems that when a submerged-palm appears (always up-left in lake), it also results in a large circle of
+        //  no fish in the same general area.  Odd
+        if (custom_map_generator_options.opt[CustomMapGeneratorOption::Fish] >= 4.00){
+          tiles[pos_].resource_amount = 16;
+        }else{
+          tiles[pos_].resource_amount = (random_int() & 7) * custom_map_generator_options.opt[CustomMapGeneratorOption::Fish]; /* Fish */
+        }
         break;
     }
   }
