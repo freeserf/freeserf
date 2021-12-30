@@ -3163,11 +3163,6 @@ Viewport::draw_hidden_res_overlay() {
       if (ly >= height) break;
 
       if (map->get_res_amount(pos) > 0){
-        //farm fields seeds debugging
-      //if (map->get_res_amount(pos) > 0 || 
-        //(map->get_obj(pos) >= Map::ObjectSeeds0 && map->get_obj(pos) <= Map::ObjectFieldExpired) ||
-        //(map->get_obj(pos) >= Map::ObjectField0 && map->get_obj(pos) <= Map::ObjectField5)){
-
         // with default map generator, seems like highest amount possible is 16
         //  seeing ranges from 1 to 16.  
         //  Fish amount 1-7, mined resource amount 4+

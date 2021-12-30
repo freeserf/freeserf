@@ -226,7 +226,7 @@ class AI {
       // less increase in AI speed as game speed increases, capped around 9x
       //msec_ = msec_ * 1/((speed - 1) / 4);  // this works pretty well, at game speed 40 ai pause time is about 9% of game speed 2
     }
-    AILogDebug["sleep_speed_adjusted"] << "msec: " << msec << ", game speed: " << speed << ", adjusted msec: " << int(msec_);
+    //AILogDebug["sleep_speed_adjusted"] << "msec: " << msec << ", game speed: " << speed << ", adjusted msec: " << int(msec_);
     msec = msec_;
     std::this_thread::sleep_for(std::chrono::milliseconds(msec + 1));
   }
