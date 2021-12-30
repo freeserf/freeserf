@@ -904,12 +904,9 @@ Interface::update() {
       }
       Log::Info["interface"] << "Changing Season to " << NameSeason[season] << " and clearing image cache.   FIND A WAY TO PURGE ONLY SPECIFIC TILES!!!";
     }
-    // INSTEAD OF CLEARING THE WHOLE CACHE, FIND A WAY TO CLEAR ONLY THE CHANGED IMAGES!!!
-    Image::clear_cache();
-    // something about opening a panel popup refreshes the screen and updates some graphical stuff that fixes things
-    layout();  // THIS IS CAUSING ISSUES WITH POPUP MENUS BEING CORRUPTED WHEN IT RUNS!
+    clear_custom_graphics_cache();
+    viewport->set_size(width, height);  // this does the magic refresh without affecting popups (as Interface->layout() does)
   }
-
 
   /* Clear return arrow after a timeout */
   if (return_timeout < tick_diff) {
@@ -982,6 +979,7 @@ Interface::update() {
 
 bool
 Interface::handle_key_pressed(char key, int modifier) {
+
   switch (key) {
     /* Interface control */
 
@@ -1113,10 +1111,8 @@ Interface::handle_key_pressed(char key, int modifier) {
         option_FourSeasons = true;
         Log::Info["interface"] << "Enabling FourSeasons of Weather and clearing image cache";
       }
-      Image::clear_cache();
-      // something about opening a panel popup refreshes the screen and updates some graphical stuff that fixes things
-      layout();  // THIS IS IT - this is the "fix viewport" function   // THIS IS CAUSING ISSUES WITH POPUP MENUS BEING CORRUPTED WHEN IT RUNS!
-      //set_redraw(); // this is not enough!
+      clear_custom_graphics_cache();
+      viewport->set_size(width, height);  // this does the magic refresh without affecting popups (as Interface->layout() does)
       break;
     case 'q':
       if (season < 3){
@@ -1125,11 +1121,8 @@ Interface::handle_key_pressed(char key, int modifier) {
         season = 0;
       }
       Log::Info["interface"] << "Changing Season to " << NameSeason[season] << " and clearing image cache";
-      // INSTEAD OF CLEARING THE WHOLE CACHE, FIND A WAY TO CLEAR ONLY THE CHANGED IMAGES!!!
-      Image::clear_cache();
-      // something about opening a panel popup refreshes the screen and updates some graphical stuff that fixes things
-      layout();  // THIS IS IT - this is the "fix viewport" function   // THIS IS CAUSING ISSUES WITH POPUP MENUS BEING CORRUPTED WHEN IT RUNS!
-      //set_redraw(); // this is not enough!
+      clear_custom_graphics_cache();
+      viewport->set_size(width, height);  // this does the magic refresh without affecting popups (as Interface->layout() does)
       break;
     case 'e':
       if (subseason < 16){  // allow subseason to go to be  "tree + 1" so that it can have a 0 state with no change yet
@@ -1138,10 +1131,9 @@ Interface::handle_key_pressed(char key, int modifier) {
         subseason = 0;
       }
       Log::Info["interface"] << "Changing Sub-Season to #" << subseason << " and clearing image cache";
-      Image::clear_cache();
-      // something about opening a panel popup refreshes the screen and updates some graphical stuff that fixes things
-      layout();  // THIS IS IT - this is the "fix viewport" function
-      //set_redraw(); // this is not enough!
+      // subseason does not require purging of tile cache because only ground tiles seem to be cached
+      //  and sub-seasons only affect map_objects (trees)
+      viewport->set_size(width, height);  // this does the magic refresh without affecting popups (as Interface->layout() does)
       break;
     case 'z':
       if (modifier & 1) {
@@ -1203,4 +1195,56 @@ void
 Interface::tell_gameinit_regen_map(){
   init_box->generate_map_preview();
   init_box->set_redraw();
+}
+
+
+// added to support messing with weather/seasons/palette
+//  to allow clearing only the ground tile cache as the other 
+//  images don't appear to actually be cached
+void
+Interface::clear_custom_graphics_cache() {
+  //Image::clear_cache();  // this clears the entire cache
+
+  std::set<uint64_t> to_purge = {};
+
+  //uint64_t id = Data::Sprite::create_id(res, index, 0, 0, pc);
+  // Data::Resource res, unsigned int index,
+  // Data::AssetMapObject || res == Data::AssetMapShadow
+  //std::set<uint64_t> to_purge = {};
+
+  /*
+  // this doesn't appear to actually be necessary!  it seems that map_object data is not cached
+  //  for some reason.  Removing purge of this doesn't prevent trees graphics from changing with
+  //  the seasons.
+  for (int season_offset : {200,300,400}){
+    for (int tree_offset : {0,10,20,30,40,50,60,70}){
+      for (int i=0; i<7; i++){
+        to_purge.insert( Data::Sprite::create_id(Data::AssetMapObject, i + season_offset + tree_offset, 0, 0, {0,0,0,0}) );
+      }
+    }
+  }
+  // custom shadows not being used yet because the transparency isn't working, add those to purge list once that is fixed
+  // for (xxx)
+  //   to_purge.insert( Data::Sprite::create_id(Data::AssetMapShadow, i + xxx, 0, 0, {0,0,0,0}) );
+  //
+  */
+  // purging terrain tiles IS necessary, though
+  // Data::AssetMapGround , values 0 through 32
+  // there are two mask types, each with 80 elements
+  // Data::AssetMapMaskUp and Data::AssetMapMaskDown
+  for (int mask_index=0; mask_index<81; mask_index++){
+    for (int map_ground_index=0; map_ground_index<33; map_ground_index++){
+      to_purge.insert( Data::Sprite::create_id(Data::AssetMapGround, map_ground_index, Data::AssetMapMaskUp, mask_index, {0,0,0,0}) );
+      to_purge.insert( Data::Sprite::create_id(Data::AssetMapGround, map_ground_index, Data::AssetMapMaskDown, mask_index, {0,0,0,0}) );
+    }
+  }
+    
+  for (uint64_t id : to_purge){
+    Log::Debug["interface"] << "to_purge contains id " << id;
+  }
+  Image::clear_cache_items(to_purge);
+
+  //layout();  // THIS IS IT - this is the "fix viewport" function   // THIS IS CAUSING ISSUES WITH POPUP MENUS BEING CORRUPTED WHEN IT RUNS!
+  //viewport->set_size(width, height);  // this does the magic refresh without affecting popups (as Interface->layout() does)
+  //set_redraw(); // this is not enough!
 }

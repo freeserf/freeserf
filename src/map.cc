@@ -823,7 +823,7 @@ Map::update_hidden(MapPos pos, Random *rnd) {
       // execute normal spawn chance roll
       if (landscape_tiles[pos].resource_amount < 10 && (r & 0x3f00)) {
         /* Spawn more fish. */
-        Log::Debug["map"] << "inside update_hidden, spawning a new fish";
+        //Log::Debug["map"] << "inside update_hidden, spawning a new fish";
         landscape_tiles[pos].resource_amount += 1;
       }
     }

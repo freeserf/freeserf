@@ -25,6 +25,7 @@
 #include <map>
 #include <string>
 #include <memory>
+#include <set>  // for clear_cache_items
 
 #include "src/data.h"
 #include "src/debug.h"
@@ -119,6 +120,7 @@ class Image {
   static void cache_image(uint64_t id, Image *image);
   static Image *get_cached_image(uint64_t id);
   static void clear_cache();
+  static void clear_cache_items(std::set<uint64_t> image_ids_to_purge);  // added to support messing with weather/seasons/palette
 
   Video::Image *get_video_image() const { return video_image; }
 };

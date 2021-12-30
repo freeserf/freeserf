@@ -285,11 +285,6 @@ DataSourceDOS::get_sprite_parts(Data::Resource res, size_t index) {
                            nullptr);
   }
 
-  // messing with weather/seasons/palette changes
-  // terrain tiles are AssetMapGround
-  if (res == Data::AssetMapGround){
-  }
-
   PBuffer data = get_object(dos_res.index + index);
   if (!data) {
     return std::make_tuple(nullptr, nullptr);

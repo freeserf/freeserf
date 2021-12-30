@@ -132,6 +132,16 @@ Image::clear_cache() {
   }
 }
 
+// added to support messing with weather/seasons/palette
+//uint64_t id = Data::Sprite::create_id(res, index, 0, 0, pc);
+void
+Image::clear_cache_items(std::set<uint64_t> image_ids_to_purge) {
+  for (uint64_t id : image_ids_to_purge){
+    //Log::Debug["gfx"] << "inside Image::clear_cache_items, erasing id " << id;
+    image_cache.erase(id);
+  }
+}
+
 Graphics *Graphics::instance = nullptr;
 
 Graphics::Graphics() {
