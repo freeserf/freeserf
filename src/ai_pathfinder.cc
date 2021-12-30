@@ -314,7 +314,7 @@ AI::plot_road(PMap map, unsigned int player_index, MapPos start_pos, MapPos end_
 // count how many tiles apart two MapPos are
 int
 AI::get_straightline_tile_dist(PMap map, MapPos start_pos, MapPos end_pos) {
-  AILogDebug["get_straightline_tile_dist"] << "inside Pathfinder::tile_dist with start_pos " << start_pos << ", end_pos " << end_pos;
+  //AILogDebug["get_straightline_tile_dist"] << "inside Pathfinder::tile_dist with start_pos " << start_pos << ", end_pos " << end_pos;
   // function copied from heuristic_cost but ignores height diff and walking_cost
   int dist_col = map->dist_x(start_pos, end_pos);
   int dist_row = map->dist_y(start_pos, end_pos);
@@ -325,7 +325,7 @@ AI::get_straightline_tile_dist(PMap map, MapPos start_pos, MapPos end_pos) {
   else {
     tile_dist = abs(dist_col) + abs(dist_row);
   }
-  AILogDebug["get_straightline_tile_dist"] << "returning tile_dist: " << tile_dist;
+  //AILogDebug["get_straightline_tile_dist"] << "returning tile_dist: " << tile_dist;
   return tile_dist;
 }
 

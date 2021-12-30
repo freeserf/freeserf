@@ -4625,19 +4625,30 @@ AI::do_connect_disconnected_road_networks(){
       bool was_built = false;
       for (Road road : possible_roads){
         AILogDebug["do_connect_disconnected_road_networks"] << "DISCONNECTED ROAD SYSTEM: network[" << i << "], attempting to build road to connect this road_network (using build_best_road which shuold connect to nearest inventory?)";
+        bool built_flag = false;
         AILogVerbose["do_connect_disconnected_road_networks"] << "thread #" << std::this_thread::get_id() << " AI is locking mutex before calling game->build_road";
         game->get_mutex()->lock();
         AILogVerbose["do_connect_disconnected_road_networks"] << "thread #" << std::this_thread::get_id() << " AI has locked mutex before calling game->build_road";
+        if (!map->has_flag(road.get_end(map.get()))){
+          built_flag = game->build_flag(road.get_end(map.get()), player);
+        }
         was_built = game->build_road(road, player);
+        if (was_built) {
+          AILogDebug["do_connect_disconnected_road_networks"] << "DISCONNECTED ROAD SYSTEM: network[" << i << "], successfully built road to connect this road_network, from " << road.get_source() << " to " << road.get_end(map.get());
+        }else{
+          AILogDebug["do_connect_disconnected_road_networks"] << "DISCONNECTED ROAD SYSTEM: network[" << i << "], failed to build road! from " << road.get_source() << " to " << road.get_end(map.get()) << ", will try next one in list";
+          if (built_flag){
+            AILogDebug["do_connect_disconnected_road_networks"] << "DISCONNECTED ROAD SYSTEM: network[" << i << "], failed to build road! from " << road.get_source() << " to " << road.get_end(map.get()) << ", demolishing flag built for this splitting road";
+            game->demolish_flag(road.get_end(map.get()), player);
+          }
+        }
         AILogVerbose["do_connect_disconnected_road_networks"] << "thread #" << std::this_thread::get_id() << " AI is unlocking mutex after calling game->build_road";
         game->get_mutex()->unlock();
         AILogVerbose["do_connect_disconnected_road_networks"] << "thread #" << std::this_thread::get_id() << " AI has unlocked mutex after calling game->build_road";
-        if (was_built) {
-          AILogDebug["do_connect_disconnected_road_networks"] << "DISCONNECTED ROAD SYSTEM: network[" << i << "], successfully built road to connect this road_network, from " << road.get_source() << " to " << road.get_end(map.get());
-          sleep_speed_adjusted(3000);
+        if (was_built){
+          sleep_speed_adjusted(3000); 
           break;
         }
-        AILogDebug["do_connect_disconnected_road_networks"] << "DISCONNECTED ROAD SYSTEM: network[" << i << "], failed to build road! from " << road.get_source() << " to " << road.get_end(map.get()) <<", will try next one in list";
       }
       if (!was_built) {
         AILogDebug["do_connect_disconnected_road_networks"] << "DISCONNECTED ROAD SYSTEM: network[" << i << "], exhausted all solutions, failed to connect network[" << i << "]!";

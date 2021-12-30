@@ -901,7 +901,7 @@ Interface::update() {
       }else{
         season = 0;
       }
-      Log::Info["interface"] << "Changing Season to " << NameSeason[season] << " and clearing image cache";
+      Log::Info["interface"] << "Changing Season to " << NameSeason[season] << " and clearing image cache.   FIND A WAY TO PURGE ONLY SPECIFIC TILES!!!";
     }
     // INSTEAD OF CLEARING THE WHOLE CACHE, FIND A WAY TO CLEAR ONLY THE CHANGED IMAGES!!!
     Image::clear_cache();
