@@ -5667,7 +5667,8 @@ Serf::handle_state_knight_free_walking() {
 
               Flag *dest = game->get_flag(other->s.walking.dest);
               Building *building = dest->get_building();
-              if (!building->has_inventory()) {
+              // got exception here, adding nullptr check
+              if (building == nullptr || !building->has_inventory()) {
                 building->requested_knight_attacking_on_walk();
               }
 

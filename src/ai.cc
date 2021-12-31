@@ -581,7 +581,8 @@ AI::do_connect_disconnected_flags() {
         sleep_speed_adjusted(3000);
       }
       AILogDebug["do_connect_disconnected_flags"] << "failed to connect disconnected flag to road network!  removing it";
-      game->demolish_flag(flag->get_position(), player);
+      // got exception here, adding nullptr check
+      if (flag != nullptr){ game->demolish_flag(flag->get_position(), player); }
       AILogVerbose["do_connect_disconnected_flags"] << "thread #" << std::this_thread::get_id() << " AI is unlocking mutex after calling demolish_flag (and maybe attached building)";
       game->get_mutex()->unlock();
       AILogVerbose["do_connect_disconnected_flags"] << "thread #" << std::this_thread::get_id() << " AI has unlocked mutex after calling demolish_flag (and maybe attached building)";
@@ -3222,7 +3223,7 @@ AI::do_build_food_buildings() {
     if (building == nullptr)
       continue;
     Building::Type type = building->get_type();
-    AILogDebug["do_build_food_buildings"] << inventory_pos << " this stock has an attached building of type " << NameBuilding[type] << " at pos " << building->get_position();
+    //AILogDebug["do_build_food_buildings"] << inventory_pos << " this stock has an attached building of type " << NameBuilding[type] << " at pos " << building->get_position();
 
     if (type == Building::TypeCoalMine || type == Building::TypeIronMine || type == Building::TypeGoldMine)
       mine_count++;
@@ -4465,24 +4466,30 @@ AI::do_create_star_roads_for_new_warehouses(){
         //  depends on how well the resource lost stuff works
         //not now... first see how well it works
 
-        AILogDebug["do_create_star_roads_for_new_warehouse"] << inventory_pos << " destoying road for flag_pos " << flag_pos << " in dir " << only_dir << " / " << NameDirection[only_dir];
+        AILogDebug["do_create_star_roads_for_new_warehouse"] << inventory_pos << " destroying road for flag_pos " << flag_pos << " in dir " << only_dir << " / " << NameDirection[only_dir];
         AILogVerbose["do_create_star_roads_for_new_warehouse"] << "thread #" << std::this_thread::get_id() << " AI is locking mutex before calling game->demolish_road()";
         game->get_mutex()->lock();
         AILogVerbose["do_create_star_roads_for_new_warehouse"] << "thread #" << std::this_thread::get_id() << " AI has locked mutex before calling game->demolish_road()";
-        game->demolish_road(map->move(flag_pos, only_dir), player);
+        bool was_destroyed = game->demolish_road(map->move(flag_pos, only_dir), player);
         AILogVerbose["do_create_star_roads_for_new_warehouse"] << "thread #" << std::this_thread::get_id() << " AI is unlocking mutex after calling game->demolish_road()";
         game->get_mutex()->unlock();
         AILogVerbose["do_create_star_roads_for_new_warehouse"] << "thread #" << std::this_thread::get_id() << " AI has unlocked mutex after calling game->demolish_road()";
-        roads_removed++;
-        // any time a road is removed, force retrying the entire set in case new possibilities open up
-        repeat = true;
-        // sleep a bit to be more human like
-        sleep_speed_adjusted(1000);
+        if (was_destroyed){
+          roads_removed++;
+          // any time a road is removed, force retrying the entire set in case new possibilities open up
+          repeat = true;
+          // sleep a bit to be more human like
+          sleep_speed_adjusted(1000);
+        }
       }
 
       // retry the whole list if any roads removed, it opens new possibilities
       if (repeat){
         AILogDebug["do_create_star_roads_for_new_warehouse"] << inventory_pos << " at least one road was removed, re-evaluating the entire list again to see if more possibilities opened.  loops: " << loops;
+        if (loops > 50){
+          AILogWarn["do_create_star_roads_for_new_warehouse"] << inventory_pos << " maximum loops hit!  this is probably a bug, returning now";
+          return;
+        }
       }else{
         AILogDebug["do_create_star_roads_for_new_warehouse"] << inventory_pos << " done, loops performed: " << loops << ", roads removed: " << roads_removed;
         return;
