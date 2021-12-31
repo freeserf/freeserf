@@ -256,14 +256,7 @@ class AI {
         Building::Type optional_affinity = Building::TypeNone, 
         MapPos optional_target = bad_map_pos, 
         bool verify_stock = false);
-  //MapPosVector get_affinity(MapPos);
   MapPosVector get_affinity(MapPos, Building::Type optional_affinity_building_type = Building::TypeNone);
-  /*
-  // make these wrappers aroud a single function?  or single function with args?
-  Building* find_nearest_building(MapPos, unsigned int, Building::Type);
-  Building* find_nearest_connected_building(MapPos, unsigned int, Building::Type);
-  Building* find_nearest_completed_building(MapPos, unsigned int, Building::Type);
-  */
   Building* find_nearest_building(MapPos, CompletionLevel, Building::Type, unsigned int max_dist = -1);
   Road trace_existing_road(PMap, MapPos, Direction);
   MapPosVector get_corners(MapPos);
@@ -283,23 +276,17 @@ class AI {
   unsigned int count_stones_near_pos(MapPos, unsigned int);
   unsigned int count_knights_affected_by_occupation_level_change(unsigned int, unsigned int);
   void expand_borders();
-  unsigned int score_area(MapPos, unsigned int);  
+  unsigned int score_area(MapPos, unsigned int);
+  unsigned int score_enemy_area(MapPos, unsigned int);
   bool is_bad_building_pos(MapPos, Building::Type);
   void update_buildings();
   void update_stocks_pos();
   MapPos get_halfway_pos(MapPos, MapPos);
   ResourceMap realm_inv;
   MapPos inventory_pos;
-  // MapPos find_nearest_inventory(MapPos);   // deprecating this and replacing with find_nearest_inventory_for_res_producer()
-  //MapPos find_nearest_inventory(MapPos);  // nevermind, rewriting it but keeping same function name and input/output type
-  // moving this to ai_pathfinder.cc and totally changing it to use the ai_pathfinder pyrdacor style FlagSearch that does not 
-  //  require the use of flag->search_xxx vars that are not threadsafe
-  //MapPos find_nearest_inventory(PMap map, unsigned int player_index, MapPos pos, ColorDotMap *ai_mark_pos);
-  bool scoring_attack;
-  bool scoring_warehouse;
-  //bool cannot_expand_borders_this_loop;
   void score_enemy_targets(MapPosSet*);
-  void attack_nearest_target(MapPosSet*);
+  //void attack_nearest_target(MapPosSet*);
+  void attack_nearest_target(MapPosSet*, unsigned int min_score, double min_ratio);
 
   struct StockBuilding {
     int count[25] = { 0 };
@@ -416,6 +403,11 @@ static const int serfs_min = 5;  // don't convert serfs to knights below this va
 // the anti_flapping_buffer is added to the xxxx_max value when "destroy excess producer buildings" calls are made
 //  so that there is a period where new res producer buildings are not created, but existing ones are not destroyed
 static const unsigned int anti_flapping_buffer = 16;  //doubled dec15 2021
+
+static const unsigned int morale_max = 65;  // if morale over this value, attack regardless of target score and defender ratio
+static const unsigned int morale_min = 35;  // if morale over this value, attack if other requirements met.  If below this value, only attack extremely valuable targets
+static constexpr double min_knight_ratio_attack = 2.00;  // only attack if knights sent is at least this many times the defending knights, of other conditions met
+
 static const unsigned int knights_min = 3;
 static const unsigned int knights_med = 18;
 static const unsigned int knights_max = 50;
@@ -466,14 +458,14 @@ static const unsigned int mine_output_min = 8; // burn if below this % productio
 //    because once a few signs are found to indicate a cluster, the true value doesn't change
 //    but the AI function valuation will increase as more signs are found for the known mineral cluster
 //       maybe only add valuation if no adjacent signs for same mineral?
-static const unsigned int foods_weight = 2;
+static const unsigned int foods_weight = 1;
 static const unsigned int trees_weight = 2;
 static const unsigned int stones_weight = 2;
 static const unsigned int stone_signs_weight = 1;
-static const unsigned int hills_weight = 2;
+static const unsigned int hills_weight = 1;
 static const unsigned int iron_ore_weight = 3;
 static const unsigned int coal_weight = 2;
-static const unsigned int gold_ore_weight = 5;
+static const unsigned int gold_ore_weight = 6;
 
 // don't build anything new if at max.
 //     TODO: need to be 100% sure unfinished buildings don't get stuck and halt AI progress
@@ -492,13 +484,6 @@ static const unsigned int max_goldmines = 1;
 //   this length INCLUDES ANY PENALTIES (for flags encountered, AvoidCastle, PenalizeCastleFlag, etc.),
 //     whereas the ideal_length has no penalties
 static constexpr double max_convolution = 3.00;
-
-// attack if own knight_morale is at least this high (starting morale is 1024?)
-static const unsigned int min_knight_morale_attack = 1400;
-// attack if knights sent is at least this many times the defending knights
-//  ex. if enemy hut has 2 defenders, and this is set to 4.00, only attack if 8 knights can be sent
-static constexpr double min_knight_ratio_attack = 2.00;
-// TODO add some kind of factor that reduces the required attack ratio as own morale increases
 
 // fixed penalty for a non-direct road that contains the castle flag (but doesn't start/end there)
 static const unsigned int contains_castle_flag_penalty = 20;  //increased this from 10 to 20 on dec04 2021

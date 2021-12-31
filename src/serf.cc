@@ -2392,12 +2392,14 @@ Serf::handle_serf_entering_building_state() {
             // resource #1 is the pigs themselves
             // start with two pigs if option_ImprovedPigFarms is set
             //   how else could they reproduce?
-            if (option_ImprovedPigFarms) {
-              building->set_initial_res_in_stock(1, 2);
-            } else {
+            // NO LONGER STARTING WITH TWO PIGS since moving towards
+            //  advanced farming which tweaks pig breeding rate
+            //if (option_ImprovedPigFarms) {
+            //  building->set_initial_res_in_stock(1, 2);
+            //} else {
               // game default
               building->set_initial_res_in_stock(1, 1);
-            }
+            //}
 
             flag->clear_flags();
             // resource #0 is the wheat that pigs consume (though it is bugged?)

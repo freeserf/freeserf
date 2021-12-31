@@ -756,6 +756,9 @@ Game::update_serfs() {
   while (i != serfs.end()) {
     Serf *serf = *i;
     ++i;
+    if (serf == nullptr){  // saw a crash here dec 2021, is this a reasonable response?
+      continue;
+    }
     if (serf->get_index() != 0) {
       serf->update();
     }

@@ -2596,15 +2596,15 @@ AI::expand_borders() {
 }
 
 
-
-
+// score area for placement of new military buildings
+//  to expand borders
 unsigned int
 AI::score_area(MapPos center_pos, unsigned int distance) {
   // time this function for debugging
   std::clock_t start;
   double duration;
   start = std::clock();
-  AILogDebug["util_score_area"] << "inside AI::score_area, center_pos " << center_pos << ", distance " << distance;
+  //AILogDebug["util_score_area"] << "inside AI::score_area, center_pos " << center_pos << ", distance " << distance;
   unsigned int total_value = 0;
   //ai_mark_pos.erase(center_pos);
   //ai_mark_pos.insert(ColorDot(center_pos, "white"));
@@ -2618,6 +2618,7 @@ AI::score_area(MapPos center_pos, unsigned int distance) {
       
     //AILogDebug["util_score_area"] << "at pos " << pos << " with object type " << NameObject[obj];
     size_t pos_value = 0;  // easier to make this size_t than static_cast all the .size values
+
     //
     // terrain and resources
     //
@@ -2625,14 +2626,13 @@ AI::score_area(MapPos center_pos, unsigned int distance) {
     unsigned int iron_signs = 0;
     unsigned int coal_signs = 0;
     unsigned int stone_signs = 0;
-    // if grass or water with obstacles, or already having a field...
-    if (obj == Map::ObjectNone &&
+    if (obj == Map::ObjectNone &&  // if has a field, or can build a field here
       (AI::has_terrain_type(game, pos, Map::TerrainGrass0, Map::TerrainGrass3) ||
         AI::has_terrain_type(game, pos, Map::TerrainWater0, Map::TerrainWater3)) ||
       obj >= Map::ObjectSeeds0 && obj <= Map::ObjectFieldExpired ||
       obj >= Map::ObjectField0 && obj <= Map::ObjectField5) {
       pos_value += expand_towards.count("foods") * foods_weight;
-      //AILogDebug["util_score_area"] << "adding foods count 1 with value " << expand_towards.count("foods") * foods_weight;
+      //AILogDebug["util_score_area"] << "adding potential & existing fields count 1 with value " << expand_towards.count("foods") * foods_weight;
     }
     if (obj >= Map::ObjectTree0 && obj <= Map::ObjectPine7) {
       pos_value += expand_towards.count("trees") * trees_weight;
@@ -2652,118 +2652,191 @@ AI::score_area(MapPos center_pos, unsigned int distance) {
         //AILogDebug["util_score_area"] << "adding hills count 1 with value " << expand_towards.count("hills") * hills_weight;
       }
     }
-    if (obj == Map::ObjectSignLargeGold) { gold_signs += 3; }
+    if (obj == Map::ObjectSignLargeGold) { gold_signs += 2; }
     if (obj == Map::ObjectSignSmallGold) { gold_signs += 1; }
     if (obj == Map::ObjectSignSmallGold || obj == Map::ObjectSignLargeGold) {
       pos_value += expand_towards.count("gold_ore") * gold_ore_weight * gold_signs;
       //AILogDebug["util_score_area"] << "adding gold_ore count " << gold_signs << " with value " << expand_towards.count("gold_ore") * gold_ore_weight * gold_signs;
     }
-    if (obj == Map::ObjectSignLargeIron) { iron_signs += 3; }
+    if (obj == Map::ObjectSignLargeIron) { iron_signs += 2; }
     if (obj == Map::ObjectSignSmallIron) { iron_signs += 1; }
     if (obj == Map::ObjectSignSmallIron || obj == Map::ObjectSignLargeIron) {
       pos_value += expand_towards.count("iron_ore") * iron_ore_weight * iron_signs;
       //AILogDebug["util_score_area"] << "adding iron_ore count " << iron_signs << " with value " << expand_towards.count("iron_ore") * iron_ore_weight * iron_signs;
     }
-    if (obj == Map::ObjectSignLargeCoal) { coal_signs += 3; }
+    if (obj == Map::ObjectSignLargeCoal) { coal_signs += 2; }
     if (obj == Map::ObjectSignSmallCoal) { coal_signs += 1; }
     if (obj == Map::ObjectSignSmallCoal || obj == Map::ObjectSignLargeCoal) {
       pos_value += expand_towards.count("coal")      * coal_weight * coal_signs;
       //AILogDebug["util_score_area"] << "adding coal count " << coal_signs << " with value " << expand_towards.count("coal_ore") * coal_weight * coal_signs;
     }
-    if (obj == Map::ObjectSignLargeStone) { stone_signs += 3; }
+    if (obj == Map::ObjectSignLargeStone) { stone_signs += 2; }
     if (obj == Map::ObjectSignSmallStone) { stone_signs += 1; }
     if (obj == Map::ObjectSignSmallStone || obj == Map::ObjectSignLargeStone) {
       pos_value += expand_towards.count("stones") * stone_signs_weight * stone_signs;
       //AILogDebug["util_score_area"] << "adding stones count " << stone_signs << " with value " << expand_towards.count("stones") * stone_signs_weight * stone_signs;
     }
-    // I think scoring_warehouse is deprecated for now, could bring it back if it really helps
-    if (!scoring_warehouse) {
 
-      // oppose_enemy - any place that enemy territory found
-      //    this has the effect of tending to encircle the enemy, which is a good thing
-      if (map->get_owner(pos) != player_index && map->get_owner(pos) != -1) {
-        if (expand_towards.count("oppose_enemy") == 0){
-          expand_towards.insert("oppose_enemy");
-          AILogDebug["util_score_area"] << "found enemy territory near our borders, adding oppose_enemy expansion goal for informative purpose";
-        }
-        pos_value += expand_towards.count("oppose_enemy") * 2;
-        //AILogDebug["util_score_area"] << "adding oppose_enemy value for enemy territory";
+    // oppose_enemy - any place that enemy territory found
+    //    this has the effect of tending to encircle the enemy, which is a good thing
+    if (map->get_owner(pos) != player_index && map->get_owner(pos) != -1) {
+      if (expand_towards.count("oppose_enemy") == 0){
+        expand_towards.insert("oppose_enemy");
+        //AILogDebug["util_score_area"] << "found enemy territory near our borders, adding oppose_enemy expansion goal for informative purpose";
       }
-
-      // protect_economy - value areas where own civilian buildings are near our borders
-      //    to ensure they are protected
-      //  TODO: are mines Large or Small?  Should they get extra protection? 
-      //    or even moreso... check to see if they are the only mine of that type
-      //    we have and if so score highly?
-      if (map->get_owner(pos) == player_index) {
-        // "auto-add" this expansion goal for AI Overlay visualization
-        if (expand_towards.count("protect_economy") == 0){
-          expand_towards.insert("protect_economy");
-          AILogDebug["util_score_area"] << "found one of our civilian buildings near our borders, adding protect_economy expansion goal for informative purpose";
-        }
-        if (obj == Map::ObjectLargeBuilding && !game->get_building_at_pos(pos)->is_military()) {
-          pos_value += expand_towards.count("protect_economy") * 3;
-          //AILogDebug["util_score_area"] << "adding protect_economy building value x3 for large civilian building of type " << NameBuilding[game->get_building_at_pos(pos)->get_type()] << " at pos " << pos;
-        }
-        if (obj == Map::ObjectSmallBuilding && !game->get_building_at_pos(pos)->is_military()) {
-          pos_value += expand_towards.count("protect_economy") * 1;
-          //AILogDebug["util_score_area"] << "adding protect_economy building value x1 for small civilian building of type " << NameBuilding[game->get_building_at_pos(pos)->get_type()] << " at pos " << pos;
-        }
-      }
-
-      // castle_buffer
-      //  tiles owned by nobody, outside our borders, where the center_pos
-      //   is near the castle, are valued to encourage building huts the castle
-      if (get_straightline_tile_dist(map, center_pos, castle_flag_pos) < 12){
-        if (map->get_owner(pos) == -1) {
-          pos_value += expand_towards.count("castle_buffer") * 2;
-          AILogDebug["util_score_area"] << "adding castle_buffer value for unclaimed territory near our castle";
-          //ai_mark_pos.erase(pos);
-          //ai_mark_pos.insert(ColorDot(pos, "black"));
-          //sleep_speed_adjusted(100);
-        }
-      }
+      pos_value += expand_towards.count("oppose_enemy") * 2;
+      //AILogDebug["util_score_area"] << "adding oppose_enemy value for enemy territory";
     }
+
     //
-    // offense
+    // protect_economy - value areas where own civilian buildings are near our borders
+    //    to ensure they are protected
     //
-    if (scoring_attack
-      && map->get_owner(pos) != player_index
-      && map->get_owner(pos) != -1
-      && map->has_building(pos)
-      ) {
-      //AILogDebug["util_score_area"] << "potential attack object is " << NameObject[obj] << " with building type " << NameBuilding[game->get_building_at_pos(pos)->get_type()];
+    //  TODO: are mines Large or Small?  Should they get extra protection? 
+    //    or even moreso... check to see if they are the only mine of that type
+    //    we have and if so score highly?
+    if (map->get_owner(pos) == player_index) {
+      // "auto-add" this expansion goal for AI Overlay visualization
+      if (expand_towards.count("protect_economy") == 0){
+        expand_towards.insert("protect_economy");
+        //AILogDebug["util_score_area"] << "found one of our civilian buildings near our borders, adding protect_economy expansion goal for informative purpose";
+      }
       if (obj == Map::ObjectLargeBuilding && !game->get_building_at_pos(pos)->is_military()) {
-        pos_value += 3;
-        AILogDebug["util_score_area"] << "adding attack value x3 for large civilian building of type " << NameBuilding[game->get_building_at_pos(pos)->get_type()] << " at pos " << pos;
-      }
-      if (obj == Map::ObjectSmallBuilding && game->get_building_at_pos(pos)->get_type() == Building::TypeCoalMine){
-        pos_value += 2;
-        AILogDebug["util_score_area"] << "adding additional attack value x2 for building of type " << NameBuilding[game->get_building_at_pos(pos)->get_type()] << " at pos " << pos;
-      }
-      if (obj == Map::ObjectSmallBuilding && game->get_building_at_pos(pos)->get_type() == Building::TypeIronMine) {
-        pos_value += 4;
-        AILogDebug["util_score_area"] << "adding additional attack value x4 for building of type " << NameBuilding[game->get_building_at_pos(pos)->get_type()] << " at pos " << pos;
-      }
-      if (obj == Map::ObjectSmallBuilding && game->get_building_at_pos(pos)->get_type() == Building::TypeGoldMine) {
-        pos_value += 6;
-        AILogDebug["util_score_area"] << "adding additional attack value x6 for building of type " << NameBuilding[game->get_building_at_pos(pos)->get_type()] << " at pos " << pos;
+        pos_value += expand_towards.count("protect_economy") * 3;
+        //AILogDebug["util_score_area"] << "adding protect_economy building value x3 for large civilian building of type " << NameBuilding[game->get_building_at_pos(pos)->get_type()] << " at pos " << pos;
       }
       if (obj == Map::ObjectSmallBuilding && !game->get_building_at_pos(pos)->is_military()) {
-        pos_value += 1;
-        AILogDebug["util_score_area"] << "adding attack value x1 for small civilian building of type " << NameBuilding[game->get_building_at_pos(pos)->get_type()] << " at pos " << pos;
+        pos_value += expand_towards.count("protect_economy") * 1;
+        //AILogDebug["util_score_area"] << "adding protect_economy building value x1 for small civilian building of type " << NameBuilding[game->get_building_at_pos(pos)->get_type()] << " at pos " << pos;
       }
     }
+
+    //
+    // castle_buffer
+    //
+    //  tiles owned by nobody, outside our borders, where the center_pos
+    //   is near the castle, are valued to encourage building huts the castle
+    if (get_straightline_tile_dist(map, center_pos, castle_flag_pos) < 12){
+      if (map->get_owner(pos) == -1) {
+        pos_value += expand_towards.count("castle_buffer") * 2;
+        //AILogDebug["util_score_area"] << "adding castle_buffer value for unclaimed territory near our castle";
+        //ai_mark_pos.erase(pos);
+        //ai_mark_pos.insert(ColorDot(pos, "black"));
+        //sleep_speed_adjusted(100);
+      }
+    }
+
     //
     // total it up
     //
     total_value += static_cast<unsigned int>(pos_value);
-    AILogDebug["util_score_area"] << "score total so far: " << total_value;
+    //AILogDebug["util_score_area"] << "score total so far: " << total_value;
 
   }
   AILogDebug["util_score_area"] << "found total score_area value " << total_value << " of terrain & objects in area " << center_pos;
   duration = (std::clock() - start) / static_cast<double>(CLOCKS_PER_SEC);
   AILogDebug["util_score_area"] << "done util_score_area call took " << duration;
+  return total_value;
+}
+
+
+// score enemy area for attack
+unsigned int
+AI::score_enemy_area(MapPos center_pos, unsigned int distance) {
+  // time this function for debugging
+  std::clock_t start;
+  double duration;
+  start = std::clock();
+  //AILogDebug["util_score_enemy_area"] << "inside AI::score_enemy_area, center_pos " << center_pos << ", distance " << distance;
+  unsigned int total_value = 0;
+  //ai_mark_pos.erase(center_pos);
+  //ai_mark_pos.insert(ColorDot(center_pos, "white"));
+  //sleep_speed_adjusted(100);
+  for (unsigned int i = 0; i < distance; i++) {
+    MapPos pos = map->pos_add_extended_spirally(center_pos, i);
+    Map::Object obj = map->get_obj(pos);
+    ////ai_mark_pos.erase(pos);
+    //ai_mark_pos.insert(ColorDot(pos, "gray"));
+    //sleep_speed_adjusted(100);
+      
+    //AILogDebug["util_score_enemy_area"] << "at pos " << pos << " with object type " << NameObject[obj];
+    size_t pos_value = 0;  // easier to make this size_t than static_cast all the .size values
+
+    //
+    // mined resources
+    //
+    unsigned int gold_signs = 0;
+    unsigned int iron_signs = 0;
+    unsigned int coal_signs = 0;
+    if (obj == Map::ObjectSignLargeGold) { gold_signs += 2; }
+    if (obj == Map::ObjectSignSmallGold) { gold_signs += 1; }
+    if (obj == Map::ObjectSignSmallGold || obj == Map::ObjectSignLargeGold) {
+      pos_value += expand_towards.count("gold_ore") * gold_ore_weight * gold_signs;
+      //AILogDebug["util_score_enemy_area"] << "adding gold_ore count " << gold_signs << " with value " << expand_towards.count("gold_ore") * gold_ore_weight * gold_signs;
+    }
+    if (obj == Map::ObjectSignLargeIron) { iron_signs += 2; }
+    if (obj == Map::ObjectSignSmallIron) { iron_signs += 1; }
+    if (obj == Map::ObjectSignSmallIron || obj == Map::ObjectSignLargeIron) {
+      pos_value += expand_towards.count("iron_ore") * iron_ore_weight * iron_signs;
+      //AILogDebug["util_score_enemy_area"] << "adding iron_ore count " << iron_signs << " with value " << expand_towards.count("iron_ore") * iron_ore_weight * iron_signs;
+    }
+    if (obj == Map::ObjectSignLargeCoal) { coal_signs += 2; }
+    if (obj == Map::ObjectSignSmallCoal) { coal_signs += 1; }
+    if (obj == Map::ObjectSignSmallCoal || obj == Map::ObjectSignLargeCoal) {
+      pos_value += expand_towards.count("coal")      * coal_weight * coal_signs;
+      //AILogDebug["util_score_enemy_area"] << "adding coal count " << coal_signs << " with value " << expand_towards.count("coal_ore") * coal_weight * coal_signs;
+    }
+
+    //  NEED TO ADD LOGIC TO "BEELINE" TO ENEMY CASTLE
+    //   perhaps by checking the straight-line dist from this enemy building
+    //   to enemy castle, and scoring based on that only
+    //
+
+    //
+    // enemy buildings
+    //
+    if (map->get_owner(pos) != player_index && map->get_owner(pos) != -1 && map->has_building(pos)){
+      AILogDebug["util_score_enemy_area"] << "potential attack object is " << NameObject[obj] << " with building type " << NameBuilding[game->get_building_at_pos(pos)->get_type()];
+      if (obj == Map::ObjectCastle){
+        pos_value += 20;
+        //AILogDebug["util_score_enemy_area"] << "adding attack value 20 for enemy castle at pos " << pos;
+      }
+      if (obj == Map::ObjectLargeBuilding && game->get_building_at_pos(pos)->get_type() == Building::TypeStock){
+        pos_value += 12;
+        //AILogDebug["util_score_enemy_area"] << "adding additional attack value 12 for enemy stock/warehouse at pos " << pos;
+      }
+      if (obj == Map::ObjectLargeBuilding && !game->get_building_at_pos(pos)->is_military()) {
+        pos_value += 9;
+        //AILogDebug["util_score_enemy_area"] << "adding attack value 9 for large civilian building of type " << NameBuilding[game->get_building_at_pos(pos)->get_type()] << " at pos " << pos;
+      }
+      if (obj == Map::ObjectSmallBuilding && game->get_building_at_pos(pos)->get_type() == Building::TypeCoalMine){
+        pos_value += 6;
+        //AILogDebug["util_score_enemy_area"] << "adding additional attack value 6 for building of type " << NameBuilding[game->get_building_at_pos(pos)->get_type()] << " at pos " << pos;
+      }
+      if (obj == Map::ObjectSmallBuilding && game->get_building_at_pos(pos)->get_type() == Building::TypeIronMine) {
+        pos_value += 12;
+        //AILogDebug["util_score_enemy_area"] << "adding additional attack value 12 for building of type " << NameBuilding[game->get_building_at_pos(pos)->get_type()] << " at pos " << pos;
+      }
+      if (obj == Map::ObjectSmallBuilding && game->get_building_at_pos(pos)->get_type() == Building::TypeGoldMine) {
+        pos_value += 18;
+        //AILogDebug["util_score_enemy_area"] << "adding additional attack value 18 for building of type " << NameBuilding[game->get_building_at_pos(pos)->get_type()] << " at pos " << pos;
+      }
+      if (obj == Map::ObjectSmallBuilding && !game->get_building_at_pos(pos)->is_military()) {
+        pos_value += 3;
+        //AILogDebug["util_score_enemy_area"] << "adding attack value 3 for small civilian building of type " << NameBuilding[game->get_building_at_pos(pos)->get_type()] << " at pos " << pos;
+      }
+    }
+
+    //
+    // total it up
+    //
+    total_value += static_cast<unsigned int>(pos_value);
+    //AILogDebug["util_score_enemy_area"] << "score total so far: " << total_value;
+
+  }
+  AILogDebug["util_score_enemy_area"] << "found total score_enemy_area value " << total_value << " of terrain & objects in area " << center_pos;
+  duration = (std::clock() - start) / static_cast<double>(CLOCKS_PER_SEC);
+  AILogDebug["util_score_enemy_area"] << "done util_score_enemy_area call took " << duration;
   return total_value;
 }
 
@@ -2803,105 +2876,6 @@ AI::get_halfway_pos(MapPos start_pos, MapPos end_pos) {
   return halfway_pos;
 }
 
-
-/* deprecating this and replacing it with an "internal game style" FlagSearch of the new
-//   type find_nearest_inventory_for_res_producer()
-//
-// return the MapPos of the stock nearest to the specified MapPos, including castle
-//   if not found, default to castle_pos?
-MapPos
-AI::find_nearest_inventory(MapPos pos) {
-  AILogDebug["util_find_nearest_inventory"] << "inside find_nearest_inventory to pos " << pos;
-  // try searching by straightline pos instead of spirally
-  unsigned int best_dist = bad_score;
-  MapPos closest_stock = bad_map_pos;
-  for (MapPos inventory_pos : stocks_pos) {
-    AILogDebug["util_find_nearest_inventory"] << "considering inventory_pos " << inventory_pos;
-    unsigned int dist = AI::get_straightline_tile_dist(map, pos, inventory_pos);
-    AILogDebug["util_find_nearest_inventory"] << "straightline tile dist from pos " << pos << " to inventory_pos " << inventory_pos << " is " << dist;
-    if (dist < best_dist) {
-      AILogDebug["util_find_nearest_inventory"] << "stock at inventory_pos " << inventory_pos << " is the closest so far to pos " << pos << ", with dist " << dist;
-      best_dist = dist;
-      closest_stock = inventory_pos;
-    }
-  }
-  if (closest_stock == bad_map_pos || best_dist == bad_score) {
-    AILogDebug["util_find_nearest_inventory"] << "not found??  closest_stock: " << closest_stock << ", best_dist: " << best_dist;
-  }
-  AILogDebug["util_find_nearest_inventory"] << "done find_nearest_inventory to pos " << pos << ", closest stock is " << closest_stock << " with straightline dist " << best_dist;
-  return closest_stock;
-}
-*/
-
-/* moving this to ai_pathfinder.cc
-// nevermind, for now replacing this with a function that has the same input/output of MapPos
-//  instead of having to change all the calling code to use Flag* type or having all of the ugly
-//  conversion code being done in the calling code
-//
-// return the MapPos of the Flag* of the Inventory (castle, stock/warehouse) that is the shortest
-//  number of Flags away from the MapPos of the requested Flag or Building
-//
-//  this function accepts EITHER a Flag pos, OR a Building pos (for which it will check the flag)
-//
-//  - the Inventory must be accepting Resources
-//  - no consideration for if the Inventory is accepting Serfs
-//  - no consideration of tile/straightline distance, only Flag distance matters
-//  - no check to see if transporters/sailors are already in place along the path
-//
-// the intention of this function is to help "pair" most buildings in the AI player's realm to a
-// given Inventory so that each Inventory can have accurate counts and limits of the buildings
-// "paired" with that Inventory. The reason that straightline distance cannot be used (as it 
-//  originally was) is that only Flag distance determines which Inventory a resource-producing
-//  -building will send non-directly-routable resources to (i.e. ones piling up in storage)
-//  If straightline-dist is used when determining nearest Inventory, but flag distance is used when
-//   serfs transport resources to Inventories, the Inventory that receives the resouce may not be 
-//   the Inventory "paired" with the building, and so the "stop XXX when resource limit reached"
-//   checks would never be triggered because the check is running against one Inventory while
-//   some other Inventory is actually piling up resources and may have already passed its limit.
-//
-//  the AI does not currently change these stock accept/reject/purge resource/serf settings so
-//   I do not think these should introduce any issues, unless a human player modifies the settings
-//    of an AI player's game?  Not sure if it matters much
-//
-//
-// this will return bad_map_pos if there is no Flag at the requested pos
-//  AND no Building at the requested pos
-MapPos
-AI::find_nearest_inventory(MapPos pos) {
-  AILogDebug["util_find_nearest_inventory"] << "inside find_nearest_inventory to pos " << pos;
-  if (!map->has_flag(pos) && !map->has_building(pos)){
-    AILogWarn["util_find_nearest_inventory"] << "no flag or building found at pos " << pos << " as expected!  Cannot run search, returning bad_map_pos";
-    return bad_map_pos;
-  }
-  MapPos flag_pos = bad_map_pos;
-  if (map->has_building(pos)){
-	flag_pos = map->move_down_right(pos);
-    AILogDebug["util_find_nearest_inventory"] << "request pos " << pos << " is a building pos, using its flag pos " << flag_pos << " instead";
-  }else{
-    flag_pos = pos;
-  }
-  Flag *flag = game->get_flag_at_pos(flag_pos);
-  if (flag == nullptr){
-    AILogWarn["util_find_nearest_inventory"] << "got nullptr for Flag at flag_pos " << flag_pos << "!  Cannot run search, returning bad_map_pos";
-    return bad_map_pos;
-  }
-  int inv_flag_index = flag->find_nearest_inventory_for_res_producer();
-  if (inv_flag_index < 0){
-    AILogDebug["util_find_nearest_inventory"] << "find_nearest_inventory_for_res_producer returned invalid result (flag index " << inv_flag_index << ") for flag_pos " << flag_pos << "!  maybe this flag isn't part of the road system??";
-    return bad_map_pos;
-  }
-  Flag *inv_flag = game->get_flag(inv_flag_index);
-  if (inv_flag == nullptr){
-    AILogWarn["util_find_nearest_inventory"] << "got nullptr for Inventory Flag with index " << inv_flag_index << " found by flagsearch starting at flag_pos " << flag_pos << "!  returning bad_map_pos";
-    return bad_map_pos;
-  }
-  MapPos inv_flag_pos = inv_flag->get_position();
-  AILogDebug["util_find_nearest_inventory"] << "successful find_nearest_inventory_for_res_producer search for flag_pos " << flag_pos << ", returning Inventory flag pos " << inv_flag_pos;
-  return inv_flag_pos;
-}
-*/
-
-
 void
 AI::score_enemy_targets(MapPosSet *scored_targets) {
   // time this function for debugging
@@ -2912,13 +2886,11 @@ AI::score_enemy_targets(MapPosSet *scored_targets) {
   //
   // MAJOR BUG - this is running before expansion goals are set (later in the AI loop), so it is not looking at resources that could
   //      be taken, ONLY at enemy buildings.  Does it make sense to persist expansion goals between AI loops?  Or move attacks to the end of the loop?
+
   //  temp fix -  stupid hack to work-around it
   expand_towards = last_expand_towards;
+
   update_buildings();
-  // foreach my hut in range of attacking enemy
-  //    foreach enemy hut within range of attack
-  //      score
-  // on game load, castle_pos is unknown even though castle exists, need to find it
   //AILogVerbose["util_score_enemy_targets"] << "thread #" << std::this_thread::get_id() << " AI is locking mutex before calling game->get_player_buildings(player) (for score_enemy_targets)";
   //game->get_mutex()->lock();
   //AILogVerbose["util_score_enemy_targets"] << "thread #" << std::this_thread::get_id() << " AI has locked mutex before calling game->get_player_buildings(player) (for score_enemy_targets)";
@@ -2927,6 +2899,9 @@ AI::score_enemy_targets(MapPosSet *scored_targets) {
   //game->get_mutex()->unlock();
   //AILogVerbose["util_score_enemy_targets"] << "thread #" << std::this_thread::get_id() << " AI has unlocked mutex before calling game->get_player_buildings(player) (for score_enemy_targets)";
   std::set<MapPos> unique_enemy_targets;
+  // foreach my hut in range of attacking enemy
+  //    foreach enemy hut within range of attack
+  //      score
   for (Building *building : buildings) {
     if (building == nullptr)
       continue;
@@ -2937,11 +2912,12 @@ AI::score_enemy_targets(MapPosSet *scored_targets) {
       continue;
     }
     //ai_mark_pos.clear();
-    AILogDebug["util_score_enemy_targets"] << "looking for enemy buildings to attack near to my building of " << NameBuilding[building->get_type()] << " at pos " << building->get_position();
+    AILogDebug["util_score_enemy_targets"] << "looking for enemy buildings to attack near to my building of type " << NameBuilding[building->get_type()] << " at pos " << building->get_position();
     MapPos attacker_pos = building->get_position();
-    // score each enemy building in attackable radius (which is?? NEED TO FIND OUT)
+    // compile a list for scoring of each enemy building in attackable radius (which is?? NEED TO FIND OUT)
     //  at 14, seeing some unattackable targets, lowering to 13
-    //  13 seems right so far
+    //  trying 12, was seeing unreachable buildings at 13
+    //  12 looks good NO I see REACHable buildings that aren't showing as within 12, going back to 13
     for (unsigned int i = 0; i < AI::spiral_dist(13); i++) {
       MapPos pos = map->pos_add_extended_spirally(attacker_pos, i);
       if (!map->has_building(pos) ||
@@ -2964,10 +2940,7 @@ AI::score_enemy_targets(MapPosSet *scored_targets) {
       //  const std::string target_player_face = NamePlayerFace[game->get_player(map->get_owner(pos))->get_face()];
       //AILogDebug["util_score_enemy_targets"] << "found attackable building of type " << NameBuilding[target_building_type] << " at pos " << target_pos << " belonging to player " << target_player_index << " / " << target_player_face;
       AILogDebug["util_score_enemy_targets"] << "found attackable building of type " << NameBuilding[target_building_type] << " at pos " << target_pos << " belonging to player " << target_player_index;
-      // does this belong here?
       int max_knights = 0;
-      // limit attacking knights count based on building type?  What purpose?  is this attacking or defending knights?
-      //   is this copy & paste from original freeserf code?  Is this actually used by AI???
       switch (target_building_type) {
       case Building::TypeHut: max_knights = 3; break;
       case Building::TypeTower: max_knights = 6; break;
@@ -2981,33 +2954,63 @@ AI::score_enemy_targets(MapPosSet *scored_targets) {
       //  << " at pos " << target_pos << " belonging to player " << target_player_index << " / " << target_player_face;
       AILogDebug["util_score_enemy_targets"] << "send up to " << attacking_knights << " knights to attack enemy building of type " << NameBuilding[target_building_type]
         << " at pos " << target_pos << " belonging to player " << target_player_index;
-      if (attacking_knights == 0) {
+      /* TEMP DISABLING THIS FOR SCORE TESTING!!!!
+      //
+      // !!!!!!!
+      if (attacking_knights <= 0) {
         AILogDebug["util_score_enemy_targets"] << "cannot send any knights, not marking target for scoring";
         continue;
       }
-      AILogDebug["util_score_enemy_targets"] << "adding target_pos " << target_pos << " to unique_enemy_targets set to score";
-      unique_enemy_targets.insert(target_pos);
+      //
+      // !!!!!!!
+      // */
 
+      if (target_building_type == Building::TypeCastle){
+        //
+        // DO SOMETHING HERE IF TARGET IS ENEMY CASTLE - EITHER NEVER ATTACK IT OR ALWAYS ATTACK IT
+        //  IF IT IS REACHABLE, BASED ON OWN MORALE AND KNIGHT COUNT?
+        //
+        // for now, just do not attack castle
+        AILogDebug["util_score_enemy_targets"] << "enemy castle is attackable!  At target_pos " << target_pos << ".  not attacking - needs additional logic";
+      }else{
+        AILogDebug["util_score_enemy_targets"] << "adding target_pos " << target_pos << " to unique_enemy_targets set to score";
+        ai_mark_pos.insert(ColorDot(target_pos, "black"));
+        unique_enemy_targets.insert(target_pos);
+      }
     }
   }
-  scoring_attack = true;
+
+  // score the targets found
   for (MapPos target_pos : unique_enemy_targets){
     AILogDebug["util_score_enemy_targets"] << "scoring attackable building at pos " << target_pos;
+
+    /*
     // debug
-    AILogDebug["util_score_enemy_targets"] << "dumping attackable debug expand_towards";
+    AILogDebug["util_score_enemy_targets"] << "debug dumping attackable debug expand_towards";
     for (std::string goal : last_expand_towards) {
-      AILogDebug["util_score_enemy_targets"] << "attackable ATTACKING (last_) last_expand_towards goal list includes item: " << goal;
+      AILogDebug["util_score_enemy_targets"] << "debug attackable last_expand_towards goal list includes item: " << goal;
     }
     for (std::string goal : expand_towards) {
-      AILogDebug["util_score_enemy_targets"] << "attackable ATTACKING (last_) expand_towards goal list includes item: " << goal;
+      AILogDebug["util_score_enemy_targets"] << "debug attackable expand_towards goal list includes item: " << goal;
     }
-    unsigned int score = AI::score_area(target_pos, AI::spiral_dist(8));
+    */
+
+    //unsigned int score = AI::score_enemy_area(target_pos, AI::spiral_dist(8));
+    unsigned int score = AI::score_enemy_area(target_pos, AI::spiral_dist(10)); // try scoring a bit wider
     AILogDebug["util_score_enemy_targets"] << "attackable enemy target at pos " << target_pos << " has score " << score;
     scored_targets->insert(std::make_pair(target_pos, score));
+    if (score >  12){ ai_mark_pos.erase(target_pos); ai_mark_pos.insert(ColorDot(target_pos, "dk_gray"));}
+    if (score >  25){ ai_mark_pos.erase(target_pos); ai_mark_pos.insert(ColorDot(target_pos, "gray"));}
+    if (score >  37){ ai_mark_pos.erase(target_pos); ai_mark_pos.insert(ColorDot(target_pos, "yellow"));}
+    if (score >  50){ ai_mark_pos.erase(target_pos); ai_mark_pos.insert(ColorDot(target_pos, "orange"));}
+    if (score >  75){ ai_mark_pos.erase(target_pos); ai_mark_pos.insert(ColorDot(target_pos, "red"));}
+    if (score > 100){ ai_mark_pos.erase(target_pos); ai_mark_pos.insert(ColorDot(target_pos, "magenta"));}
+    if (score > 125){ ai_mark_pos.erase(target_pos); ai_mark_pos.insert(ColorDot(target_pos, "cyan"));}
   }
-  scoring_attack = false;
+
   // second part of stupid hack to work-around it
   expand_towards.clear();
+
   AILogDebug["util_score_enemy_targets"] << "done score_enemy_targets";
   duration = (std::clock() - start) / static_cast<double>(CLOCKS_PER_SEC);
   AILogDebug["util_score_enemy_targets"] << "done score_enemy_targets call took " << duration;
@@ -3016,35 +3019,35 @@ AI::score_enemy_targets(MapPosSet *scored_targets) {
 
 
 void
-AI::attack_nearest_target(MapPosSet *scored_targets) {
-  AILogDebug["util_attack_nearest_target"] << "inside AI::attack_nearest_target";
+//AI::attack_nearest_target(MapPosSet *scored_targets) {
+AI::attack_nearest_target(MapPosSet *scored_targets, unsigned int min_score, double min_ratio) {
+  AILogDebug["util_attack_nearest_target"] << "inside AI::attack_nearest_target with min_score " << min_score << " and min attack ratio " << min_ratio;
   for (std::pair<MapPos, unsigned int> target : *(scored_targets)) {
     MapPos target_pos = target.first;
     unsigned int target_score = target.second;
-    AILogDebug["util_attack_nearest_target"] << "inside AI::attack_nearest_target, found target with target_pos " << target_pos << " and score " << target_score;
+    AILogDebug["util_attack_nearest_target"] << "found target with target_pos " << target_pos << " and score " << target_score;
+    if (target_score < min_score){
+      AILogDebug["util_attack_nearest_target"] << "target with target_pos " << target_pos << " has a score too low for attack, skipping";
+      continue;
+    }
     int attacking_knights = player->knights_available_for_attack(target_pos);
-    //AILogDebug["util_attack_nearest_target"] << "debug send up to " << attacking_knights << " knights to attack before max_knights";
-    //int max_knights = 0;  // what is this?
-    //attacking_knights = std::min(attacking_knights, max_knights);
-    AILogDebug["util_attack_nearest_target"] << "send up to " << attacking_knights << " knights to attack enemy building at pos " << target_pos;
-    AILogDebug["util_attack_nearest_target"] << "my military_score = " << player->get_military_score() << ", knight_morale = " << player->get_knight_morale();
+    AILogDebug["util_attack_nearest_target"] << "can send up to " << attacking_knights << " knights to attack enemy building at pos " << target_pos;
     //AILogDebug["util_attack_nearest_target"] << "ENEMY military_score = " << game->get_player(target_player_index)->get_military_score() << ",  ENEMY knight_morale = " << game->get_player(target_player_index)->get_knight_morale();
-    AILogDebug["util_attack_nearest_target"] << "my morale is " << player->get_knight_morale() << ", min_knight_morale_attack is " << min_knight_morale_attack;
-   //// TEMPORARILY DISABLING THIS to debug fighting bugs
-   //if (true){
-   if (player->get_knight_morale() > min_knight_morale_attack) {
-      AILogDebug["util_attack_nearest_target"] << "my morale " << player->get_knight_morale() << " is at least min_knight_morale_attack of " << min_knight_morale_attack;
-      int defending_knights = 2;  // TEMP hardcoded
-      double attack_ratio = static_cast<double>(attacking_knights) / static_cast<double>(defending_knights);
-      AILogDebug["util_attack_nearest_target"] << "attacking_knights=" << attacking_knights << ", defending_knights=" << defending_knights << ", attack_ratio=" << attack_ratio;
-      if (attack_ratio >= min_knight_ratio_attack) {
-        AILogDebug["util_attack_nearest_target"] << "attack_ratio " << attack_ratio << " is >= to min_knight_ratio_attack " << min_knight_ratio_attack << ", PROCEEDING WITH THE ATTACK!";
-        player->building_attacked = game->get_building_at_pos(target_pos)->get_index();
-        player->attacking_building_count = attacking_knights;
-        AILogDebug["util_attack_nearest_target"] << "calling player->start_attack()";
-        player->start_attack();
-        AILogDebug["util_attack_nearest_target"] << "DONE calling player->start_attack()";
-      }
+    // enemy knight morale does NOT MATTER when attacking because it is always 100% for defenders (even if their attack morale is higher!)
+    Building *target_building = game->get_building_at_pos(target_pos);
+    if (target_building == nullptr){
+      continue;
+    }
+    unsigned int defending_knights = target_building->get_knight_count();  // this function says it returns waiting_planks but it might just be stock[0] is knights for a military building?? need to check
+    double attack_ratio = static_cast<double>(attacking_knights) / static_cast<double>(defending_knights);
+    AILogDebug["util_attack_nearest_target"] << "attacking_knights=" << attacking_knights << ", defending_knights=" << defending_knights << ", attack_ratio=" << attack_ratio;
+    if (attack_ratio >= min_ratio) {
+      AILogDebug["util_attack_nearest_target"] << "attack_ratio " << attack_ratio << " is >= to min_ratio " << min_ratio << ", PROCEEDING WITH THE ATTACK!";
+      player->building_attacked = game->get_building_at_pos(target_pos)->get_index();
+      player->attacking_building_count = attacking_knights;
+      AILogDebug["util_attack_nearest_target"] << "calling player->start_attack()";
+      player->start_attack();
+      AILogDebug["util_attack_nearest_target"] << "DONE calling player->start_attack()";
     }
   }
   AILogDebug["util_attack_nearest_target"] << "done AI::attack_nearest_target";

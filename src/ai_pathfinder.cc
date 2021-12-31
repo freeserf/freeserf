@@ -635,6 +635,10 @@ AI::find_nearest_inventories_to_military_building(MapPos pos) {
 MapPos
 AI::find_nearest_inventory(PMap map, unsigned int player_index, MapPos pos, DistType dist_type, ColorDotMap *ai_mark_pos) {
   AILogDebug["util_find_nearest_inventory"] << "inside find_nearest_inventory to pos " << pos << " with dist_type " << NameDistType[dist_type];
+  if (pos == bad_map_pos){
+    AILogWarn["util_find_nearest_inventory"] << "the called pos is a bad_map_pos!  returning bad_map_pos";
+    return bad_map_pos;
+  }
   if (!map->has_flag(pos) && !map->has_building(pos)) {
 		AILogWarn["util_find_nearest_inventory"] << "no flag or building found at pos " << pos << " as expected!  Cannot run search, returning bad_map_pos";
 		return bad_map_pos;

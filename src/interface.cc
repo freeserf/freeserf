@@ -1239,9 +1239,9 @@ Interface::clear_custom_graphics_cache() {
     }
   }
     
-  for (uint64_t id : to_purge){
-    Log::Debug["interface"] << "to_purge contains id " << id;
-  }
+  //for (uint64_t id : to_purge){
+  //  Log::Debug["interface"] << "to_purge contains id " << id;
+  //}
   Image::clear_cache_items(to_purge);
 
   //layout();  // THIS IS IT - this is the "fix viewport" function   // THIS IS CAUSING ISSUES WITH POPUP MENUS BEING CORRUPTED WHEN IT RUNS!

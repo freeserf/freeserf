@@ -57,9 +57,6 @@ AI::AI(PGame current_game, unsigned int _player_index) {
   stock_building_counts = {};
   stock_res_sitting_at_flags = {};
   realm_res_sitting_at_flags = {};
-  scoring_attack = false;
-  scoring_warehouse = false;
-  //cannot_expand_borders_this_loop = false;
   change_buffer = 0;
   previous_knight_occupation_level = -1;
   last_sent_geologist_tick = 0;  // used to throttle sending geologists
@@ -388,8 +385,6 @@ AI::do_update_clear_reset() {
   //unfinished_hut_count = 0;
   //unfinished_building_count = 0;
   realm_inv = player->get_stats_resources();
-  scoring_attack = false;
-  scoring_warehouse = false;  // this is deprecated right now
   //new_stocks.clear();  DO NOT CLEAR THIS IT NEEDS TO PERSIST THROUGH LOOPS
 
   // does this belong here?  this whole update_clear thing needs re-work
@@ -3227,7 +3222,7 @@ AI::do_build_food_buildings() {
     if (building == nullptr)
       continue;
     Building::Type type = building->get_type();
-    AILogDebug["do_build_food_buildings"] << inventory_pos << "this stock has an attached building of type " << NameBuilding[type] << " at pos " << building->get_position();
+    AILogDebug["do_build_food_buildings"] << inventory_pos << " this stock has an attached building of type " << NameBuilding[type] << " at pos " << building->get_position();
 
     if (type == Building::TypeCoalMine || type == Building::TypeIronMine || type == Building::TypeGoldMine)
       mine_count++;
@@ -3805,12 +3800,9 @@ AI::do_attack() {
   score_enemy_targets(&scored_targets);
   AILogDebug["do_attack"] << "score_enemy_targets call found " << scored_targets.size() << " targets";
 
-  // TEMPORARY
-  int morale = 0;
-  //int morale_max = 99999;
-  int morale_max = 99999;
-
-  //AILogDebug["do_attack"] << "getting serfs again";
+  // this is the %morale drawn in the sett8 popup
+  //draw_green_number(6, 63, (100*player->get_knight_morale())/0x1000);
+  int morale = (100*player->get_knight_morale())/0x1000;  // this should be % morale, not the integer that defaults to 4096
   AILogVerbose["do_attack"] << "thread #" << std::this_thread::get_id() << " AI is locking mutex before calling player->get_stats_serfs_idle()";
   game->get_mutex()->lock();
   AILogVerbose["do_attack"] << "thread #" << std::this_thread::get_id() << " AI has locked mutex before calling player->get_stats_serfs_idle()";
@@ -3818,32 +3810,44 @@ AI::do_attack() {
   AILogVerbose["do_attack"] << "thread #" << std::this_thread::get_id() << " AI is unlocking mutex after calling player->get_stats_serfs_idle()";
   game->get_mutex()->unlock();
   AILogVerbose["do_attack"] << "thread #" << std::this_thread::get_id() << " AI has unlocked mutex after calling player->get_stats_serfs_idle()";
-  //Serf::SerfMap serfs_potential = player->get_stats_serfs_potential();
   unsigned int idle_knights = serfs_idle[Serf::TypeKnight0] + serfs_idle[Serf::TypeKnight1] + serfs_idle[Serf::TypeKnight2] + serfs_idle[Serf::TypeKnight3] + serfs_idle[Serf::TypeKnight4];
-  AILogDebug["do_attack"] << "idle_knights: " << idle_knights << ", morale_count: " << morale;
+  AILogDebug["do_attack"] << "idle_knights: " << idle_knights << ", morale%: " << morale;
 
   if (idle_knights >= knights_max && morale >= morale_max) {
-    AILogDebug["do_attack"] << "idle_knights & morale counts are above max, beeline for enemy castle";
-    // insert attack logic here
-    AI::attack_nearest_target(&scored_targets);
+    AILogDebug["do_attack"] << "idle_knights and morale both maxed! beeline for enemy castle";
+    AI::attack_nearest_target(&scored_targets, 0,  0);  // attack the best scoring target found, regardless of morale, defender ratio
+    // NEEDS LOGIC TO BEELINE TO CASTLE!!!
   }
-  else if (idle_knights >= knights_max) {
-    AILogDebug["do_attack"] << "idle_knights " << idle_knights << " is above max, focus on gold/morale, attack only high value targets";
-    // insert attack logic here
-    // temp to get started
-    AI::attack_nearest_target(&scored_targets);
+  else if (idle_knights >= 2*knights_max) {
+    AILogDebug["do_attack"] << "idle_knights is DOUBLE max value, but morale may be low, attack anything";
+    AI::attack_nearest_target(&scored_targets, 0,  0);  // attack the best scoring target found, regardless of morale, defender ratio
   }
-  else if (idle_knights >= knights_med) {
-    AILogDebug["do_attack"] << "idle_knights " << idle_knights << " is above med, build economy, attack only high value targets";
-    // insert attack logic here
+  else if ((idle_knights >= knights_max && morale >= morale_min) || (morale >= morale_max && idle_knights >= knights_med) ) {
+    AILogDebug["do_attack"] << "(idle_knights > max && morale > min ) OR (morale > max && idle_knights > med), attack liberally";
+    AI::attack_nearest_target(&scored_targets, 25, 1.00);  // attack medium-high scoring targets, if at least even attacker-defender ratio
+  }
+  else if (idle_knights >= knights_max || (morale >= morale_min && idle_knights >= knights_med)) {
+    AILogDebug["do_attack"] << "idle_knights " << idle_knights << " is above max OR (morale " << morale << " is above min && idle_knights above med), attack only high value targets";
+    AI::attack_nearest_target(&scored_targets, 50, min_knight_ratio_attack); // attack high scoring targets, and only if attackers > defender ratio
+  }
+  else if (idle_knights >= knights_med || morale >= morale_min) {
+    AILogDebug["do_attack"] << "idle_knights " << idle_knights << " is above med OR morale " << morale << " is above min, attack only very high value targets";
+    AI::attack_nearest_target(&scored_targets, 75, min_knight_ratio_attack); // attack very high scoring targets, and only if attackers > defender ratio
+  }
+  else if (idle_knights >= knights_min && morale >= morale_min) {
+    AILogDebug["do_attack"] << "idle_knights " << idle_knights << " is above min, attack only in extremely desperate situations (NONE YET DO NOT ATTACK)";
+    // insert attack logic here... maybe only attack if unable to expand and missing a resource?
   }
   else if (idle_knights >= knights_min) {
-    AILogDebug["do_attack"] << "idle_knights " << idle_knights << " is above min, build economy, attack only very high value targets";
-    // insert attack logic here
+    AILogDebug["do_attack"] << "idle_knights " << idle_knights << " is above min, but morale is below min, do not attack";
+    // insert attack logic here... maybe only attack if unable to expand and missing a resource?
   }
   else if (idle_knights < knights_min) {
-    AILogDebug["do_attack"] << "idle_knights " << idle_knights << " is below minimum, conserve knights";
+    AILogDebug["do_attack"] << "idle_knights " << idle_knights << " is below minimum, DO NOT ATTACK";
     // do not attack.  Also, cannot attack at this level of occupation (min/min)
+  }
+  else{
+    AILogWarn["do_attack"] << "no do_attack conditions were true!  this is actually unexpected";
   }
   AILogDebug["do_attack"] << "done do_attack";
   // TEMP TEST
