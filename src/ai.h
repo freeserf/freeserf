@@ -448,8 +448,7 @@ static const unsigned int max_goldmines = 1;
 
 // max ratio of actual road length compared to ideal straight-line length to determine if road is acceptably short
 //   example, 3.00 means a road of up to 3x the length of a perfectly straight road is acceptable
-//   this length INCLUDES ANY PENALTIES (for flags encountered, AvoidCastle, PenalizeCastleFlag, etc.),
-//     whereas the ideal_length has no penalties
+// this does NOT factor in any penalties, it only looks at the actual Road.get_length() in tiles for convolution checks
 static constexpr double max_convolution = 3.00;
 
 // fixed penalty for a non-direct road that contains the castle flag (but doesn't start/end there)

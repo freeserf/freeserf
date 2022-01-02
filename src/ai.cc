@@ -614,14 +614,14 @@ AI::do_spiderweb_roads() {
   //   convert it to a "spider-web" shape by attemping build roads between any flags within a band a bit outside
   //    the castle area
   //
-  //  trace a hex-circle 18 tiles out from castle,
+  //  trace a hex-circle 18 tiles out from the Inventory building (castle or stock/warehouse),
   //     at each corner draw a size8 circle and connect any flags within it
   //  this could be improved by making a "caret" or "flattened hexagon" shape at corners instead of spiral_pos
   //    -  tried doing this, seemed like a waste of time.  Circle is fine
   //
-  AILogDebug["do_spiderweb_roads"] << inventory_pos << " HouseKeeping: creating spider-web roads";
   // only do this every X loops, and only add one new road per run
   unsigned int completed_huts = stock_building_counts.at(inventory_pos).completed_count[Building::TypeHut];
+  /* now I'm not seeing stocks getting any spiderweb roads, disabling this for now...
   if (inventory_pos == castle_flag_pos){
     // castle gets more spiderweb roads
     if ( loop_count % 24 != 0 || completed_huts < 8 || completed_huts > 22) {
@@ -630,10 +630,15 @@ AI::do_spiderweb_roads() {
     }
   }else{
     // Stocks get less
-    if ( loop_count % 24 != 0 || completed_huts < 8 || completed_huts > 12) {
+    if ( loop_count % 24 != 0 || completed_huts < 8 || completed_huts > 16) {
       AILogDebug["do_spiderweb_roads"] << inventory_pos << " skipping spider-web roads for this Stock, only running every twenty loops and completed knight huts " << completed_huts << " is >8 or <12";
       return;
     }
+  }
+  */
+  if ( loop_count % 24 != 0 || completed_huts < 8 || completed_huts > 22) {
+    AILogDebug["do_spiderweb_roads"] << inventory_pos << " skipping spider-web roads for Inventory, only running every twenty loops and completed knight huts " << completed_huts << " is >8 or <22";
+    return;
   }
 
   std::set<MapPos> tried_pairs;
@@ -3581,7 +3586,7 @@ AI::do_build_steelsmelter() {
     AILogDebug["do_build_steelsmelter"] << inventory_pos << " because this is not the castle area, using find_halfway_pos function for steelsmelter placement";
     halfway_pos = find_halfway_pos_between_buildings(inventory_pos, Building::TypeCoalMine, Building::TypeIronMine);
   }
-  MapPosVector steelsmelter_pos;
+  MapPosVector steelsmelter_pos = {};
   if (halfway_pos != bad_map_pos) {
     AILogDebug["do_build_steelsmelter"] << inventory_pos << " adding pos halfway between a coal mine and an iron mine to first build_near center";
     steelsmelter_pos.push_back(halfway_pos);
