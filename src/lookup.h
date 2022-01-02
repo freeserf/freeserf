@@ -306,6 +306,8 @@ const std::string NameResource[] = {
 
 
 const std::string NameDirection[]{
+  // NOTE THAT THIS WILL RESULT IN ARRAY INDEX OUT OF BOUNDS EXCEPTION
+  //  IF DirectionNone  -1 is given as it cannot be defined as an array element!
   "East / Right",            // 0
   "SouthEast / DownRight",   // 1
   "SouthWest / Down",        // 2

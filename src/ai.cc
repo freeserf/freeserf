@@ -1731,6 +1731,8 @@ AI::do_demolish_unproductive_3rd_lumberjacks() {
 //  - a non-mountain road that dead-ends with no building (likely because building was demolished)
 // also:  fully-constructed, occupied huts that have another connected 
 //  flag nearby that can be successfully connected to instead (and do so)
+// UPDATE - adding logic to avoid destroying roads/flags that have resources!
+//  either sitting at flags, or being carried by transporters on the road
 void
 AI::do_remove_road_stubs() {
   AILogDebug["do_remove_road_stubs"] << "inside do_remove_road_stubs";
@@ -1758,19 +1760,9 @@ AI::do_remove_road_stubs() {
       continue;
     MapPos pos = building->get_position();
     MapPos flag_pos = map->move_down_right(pos);
-    unsigned int paths = 0;
-    Direction road_dir;
-    for (Direction dir : cycle_directions_cw()) {
-      if (!map->has_path_IMPROVED(flag_pos, dir)) { continue; }
-      paths++;
-      if (paths > 1) {
-        AILogDebug["do_remove_road_stubs"] << "occupied ranger at pos " << pos << "'s flag has more than one path, not removing road";
-        break;
-      }
-      road_dir = dir;
-    }
-    if (paths == 1) {
-      AILogDebug["do_remove_road_stubs"] << "occupied ranger at pos " << pos << "'s flag has only one path, removing the stub road";
+    Direction road_dir = DirectionNone;
+    if (flag_and_road_suitable_for_removal(game, map, flag_pos, &road_dir)) {
+      AILogDebug["do_remove_road_stubs"] << "occupied ranger at pos " << pos << "'s flag has only one path and no resources, removing the stub road";
       AILogVerbose["do_remove_road_stubs"] << "thread #" << std::this_thread::get_id() << " AI is locking mutex before calling game->demolish_road() (for do_remove_road_stubs) for ranger";
       game->get_mutex()->lock();
       AILogVerbose["do_remove_road_stubs"] << "thread #" << std::this_thread::get_id() << " AI has locked mutex before calling game->demolish_road() (for do_remove_road_stubs) for ranger";
@@ -1807,27 +1799,16 @@ AI::do_remove_road_stubs() {
         if (map->has_flag(pos) && map->get_owner(pos) == player_index && game->get_flag_at_pos(pos) != nullptr && game->get_flag_at_pos(pos)->is_connected()
             && has_terrain_type(game, pos, Map::TerrainTundra0, Map::TerrainSnow1)) {
           eligible = true;
-          AILogDebug["do_remove_road_stubs"] << "flag at pos " << flag_pos << " is eligible because another connected flag on a mountain tile, at pos " << pos << ",  is very close";
+          //AILogDebug["do_remove_road_stubs"] << "flag at pos " << flag_pos << " is eligible because another connected flag on a mountain tile, at pos " << pos << ", is very close";
           break;
         }
       }
     }
     if (!eligible)
       continue;
-    // see if it has only one path
-    unsigned int paths = 0;
-    Direction road_dir;
-    for (Direction dir : cycle_directions_cw()) {
-      if (!map->has_path_IMPROVED(flag_pos, dir)) { continue; }
-      paths++;
-      if (paths > 1) {
-        AILogDebug["do_remove_road_stubs"] << "eligible geologist road ending with flag at pos " << flag_pos << " has more than one path, not removing road";
-        break;
-      }
-      road_dir = dir;
-    }
-    if (paths == 1) {
-      AILogDebug["do_remove_road_stubs"] << "eligible geologist road ending with flag at pos " << flag_pos << " has only one path, removing the stub road and its end flag";
+    Direction road_dir = DirectionNone;
+    if (flag_and_road_suitable_for_removal(game, map, flag_pos, &road_dir)) {
+      AILogDebug["do_remove_road_stubs"] << "eligible geologist road ending with flag at pos " << flag_pos << " has only one path and no resources, removing the stub road and its end flag";
       AILogVerbose["do_remove_road_stubs"] << "thread #" << std::this_thread::get_id() << " AI is locking mutex before calling game->demolish_road() and flag (for do_remove_road_stubs) for geologist flag";
       game->get_mutex()->lock();
       AILogVerbose["do_remove_road_stubs"] << "thread #" << std::this_thread::get_id() << " AI has locked mutex before calling game->demolish_road() and flag (for do_remove_road_stubs) for geologist flag";
@@ -1851,20 +1832,9 @@ AI::do_remove_road_stubs() {
     MapPos flag_pos = flag->get_position();
     if (AI::has_terrain_type(game, flag_pos, Map::TerrainTundra0, Map::TerrainSnow1))
       continue;
-    // see if it has only one path
-    unsigned int paths = 0;
-    Direction road_dir;
-    for (Direction dir : cycle_directions_cw()) {
-      if (!map->has_path_IMPROVED(flag_pos, dir)) { continue; }
-      paths++;
-      if (paths > 1) {
-        //AILogDebug["do_remove_road_stubs"] << "eligible non-mountain road ending with flag at pos " << flag_pos << " has more than one path, not removing road";
-        break;
-      }
-      road_dir = dir;
-    }
-    if (paths == 1) {
-      AILogDebug["do_remove_road_stubs"] << "eligible non-mountain road ending with flag at pos " << flag_pos << " has only one path, removing the stub road and its end flag";
+    Direction road_dir = DirectionNone;
+    if (flag_and_road_suitable_for_removal(game, map, flag_pos, &road_dir)) {
+      AILogDebug["do_remove_road_stubs"] << "eligible non-mountain road ending with flag at pos " << flag_pos << " has only one path and no resources, removing the stub road and its end flag";
       AILogVerbose["do_remove_road_stubs"] << "thread #" << std::this_thread::get_id() << " AI is locking mutex before calling game->demolish_road() and flag (for do_remove_road_stubs) for non-mountain flag";
       game->get_mutex()->lock();
       AILogVerbose["do_remove_road_stubs"] << "thread #" << std::this_thread::get_id() << " AI has locked mutex before calling game->demolish_road() and flag (for do_remove_road_stubs) for non-mountain flag";
@@ -1890,7 +1860,7 @@ AI::do_remove_road_stubs() {
   //  two equally near flags, add check to esnure the new road is actually better
   //    DID THIS (added length check) - does it work?     NO I SAW FLAPPING AGAIN WHEN ONE ROAD WAS CLEARLY LONGER
   //
-  if (loop_count % ai_loop_freq_adj_for_gamespeed(6) != 0) {
+  if (loop_count % 6 != 0) {
     AILogDebug["do_remove_road_stubs"] << "skipping eligible knight hut stub roads, only running this every X loops";
   }else{
     flags_copy = *(game->get_flags());  // refresh the copy again
@@ -1911,9 +1881,12 @@ AI::do_remove_road_stubs() {
       unsigned int paths = 0;
       Direction road_dir = DirectionNone;
       size_t current_road_length = 0;
+      // NOTE - not using flag_and_road_suitable_for_removal function here because knight roads are
+      //  unlikely to have transporters carrying resources AND have only one path, and because
+      //  the path will be re-created another way there is no concern about losing resources at flag
+      //  and we have to check paths here anyway to get the Road object and the length
       for (Direction dir : cycle_directions_cw()) {
         if (!map->has_path_IMPROVED(flag_pos, dir)) { continue; }
-
         paths++;
         if (paths > 1) {
           //AILogDebug["do_remove_road_stubs"] << "eligible knight hut stub road ending with flag at pos " << flag_pos << " has more than one path, not removing road";
@@ -1924,7 +1897,7 @@ AI::do_remove_road_stubs() {
         existing_road = trace_existing_road(map, flag_pos, dir);
         current_road_length = existing_road.get_length();
         if (current_road_length < 6){
-          AILogDebug["do_remove_road_stubs"] << "eligible knight hut stub road ending with flag at pos " << flag_pos << " is too short to bother with, not removing road";
+          //AILogDebug["do_remove_road_stubs"] << "eligible knight hut stub road ending with flag at pos " << flag_pos << " is too short to bother with, not removing road";
           break;
         }else{
           road_dir = dir;
@@ -1944,20 +1917,23 @@ AI::do_remove_road_stubs() {
         if (map->has_flag(pos) && pos != flag_pos && game->get_flag_at_pos(pos)->get_owner() == player_index && game->get_flag_at_pos(pos) != nullptr && game->get_flag_at_pos(pos)->is_connected()
          || (game->can_build_flag(pos, player) && map->has_any_path(pos))) {
 
-          if (map->has_flag(pos) && pos != flag_pos && flag->get_owner() == player_index && flag->is_connected()){
-            AILogDebug["do_remove_road_stubs"] << "debug - suitable connected flag found at pos " << pos;
-          }
+          //if (map->has_flag(pos) && pos != flag_pos && flag->get_owner() == player_index && flag->is_connected()){
+          //  AILogDebug["do_remove_road_stubs"] << "debug - suitable connected flag found at pos " << pos;
+          //}
+
+          // if this is a new splitting flag, make sure it isn't part of the same stub road we want to remove
           bool needs_flag = false;
           if (!map->has_flag(pos)){
-            AILogDebug["do_remove_road_stubs"] << "debug - need to build new flag at pos " << pos;
+            //AILogDebug["do_remove_road_stubs"] << "debug - need to build new flag at pos " << pos;
             needs_flag = true;
+          }
+          if (existing_road.has_pos(map.get(), pos)){
+            //AILogDebug["do_remove_road_stubs"] << "eligible knight hut stub road ending with flag at pos " << flag_pos << " skipping pos " << pos << " as it is part of the existing road";
+            continue;
           }
 
           AILogDebug["do_remove_road_stubs"] << "eligible knight hut stub road ending with flag at pos " << flag_pos << " with one path and suitable length, found nearby flag/pos at " << pos;
-          if (existing_road.has_pos(map.get(), pos)){
-            AILogDebug["do_remove_road_stubs"] << "eligible knight hut stub road ending with flag at pos " << flag_pos << " skipping pos " << pos << " as it is part of the existing road";
-            continue;
-          }
+
           // replacing build_best_road with direct road plot, to allow comparing length
           //    might be able to use Improve roads function but I don't trust it enough
           //Road not_used;
@@ -2020,13 +1996,13 @@ AI::do_remove_road_stubs() {
       if (was_built){
         AILogDebug["do_remove_road_stubs"] << "eligible knight hut stub road ending with flag at pos " << flag_pos << " had replacement road built, destroying old road in dir " << NameDirection[road_dir] << " / " << road_dir;
 
-        AILogVerbose["do_remove_road_stubs"] << "thread #" << std::this_thread::get_id() << " AI is locking mutex before calling game->demolish_road() (for do_remove_road_stubs) for knight hut road";
+        AILogVerbose["do_remove_road_stubs"] << "thread #" << std::this_thread::get_id() << " AI is locking mutex before calling game->demolish_road() for knight hut road";
         game->get_mutex()->lock();
-        AILogVerbose["do_remove_road_stubs"] << "thread #" << std::this_thread::get_id() << " AI has locked mutex before calling game->demolish_road( (for do_remove_road_stubs) for knight hut road";
+        AILogVerbose["do_remove_road_stubs"] << "thread #" << std::this_thread::get_id() << " AI has locked mutex before calling game->demolish_road() for knight hut road";
         game->demolish_road(map->move(flag_pos, road_dir), player);
-        AILogVerbose["do_remove_road_stubs"] << "thread #" << std::this_thread::get_id() << " AI is unlocking mutex after calling game->demolish_road() (for do_remove_road_stubs) for knight hut road";
+        AILogVerbose["do_remove_road_stubs"] << "thread #" << std::this_thread::get_id() << " AI is unlocking mutex after calling game->demolish_road() for knight hut road";
         game->get_mutex()->unlock();
-        AILogVerbose["do_remove_road_stubs"] << "thread #" << std::this_thread::get_id() << " AI has unlocked mutex after calling game->demolish_road() (for do_remove_road_stubs) for knight hut road";
+        AILogVerbose["do_remove_road_stubs"] << "thread #" << std::this_thread::get_id() << " AI has unlocked mutex after calling game->demolish_road() for knight hut road";
         roads_removed++;
 
         // sleep a bit to be more human like
@@ -3598,21 +3574,33 @@ AI::do_build_steelsmelter() {
     return;
   }
   AILogInfo["do_build_steelsmelter"] << inventory_pos << " trying to build steel smelter";
-  // if we got to this point we should already have iron & coal stored or mines connected
-  //&& iron_ore_count > 0 && coal_count > 0)) {
   // try to place steel smelter halfway between a coal mine and iron mine if both exist, preferring active ones
-  // NOTE - there isn't much point to this until second/third+ steel smelters built, because one will almost certainly
-  //   have already been built to fuel toolmaker.   This does seem to work correctly though if tested in a contrived way
-  //      actually Because there is only ever one toolmaker, and it is near castle, this function should be helpful for non-castle stocks
-  // DISABLING THIS FOR NOW  - jan19 2021
-  //MapPos halfway_pos = find_halfway_pos_between_buildings(Building::TypeCoalMine, Building::TypeIronMine);
-  MapPos halfway_pos = bad_map_pos;  // intended to fail and run fallback condition code
+  // re-enabling halfway_pos checking again, but only for non-castle stocks - jan01 2022
+  MapPos halfway_pos = bad_map_pos;
+  if (inventory_pos != castle_flag_pos){
+    AILogDebug["do_build_steelsmelter"] << inventory_pos << " because this is not the castle area, using find_halfway_pos function for steelsmelter placement";
+    halfway_pos = find_halfway_pos_between_buildings(inventory_pos, Building::TypeCoalMine, Building::TypeIronMine);
+  }
   MapPosVector steelsmelter_pos;
   if (halfway_pos != bad_map_pos) {
     AILogDebug["do_build_steelsmelter"] << inventory_pos << " adding pos halfway between a coal mine and an iron mine to first build_near center";
     steelsmelter_pos.push_back(halfway_pos);
   }
-  steelsmelter_pos.insert(steelsmelter_pos.end(), stock_building_counts.at(inventory_pos).occupied_military_pos.begin(), stock_building_counts.at(inventory_pos).occupied_military_pos.end());
+  // score areas by most open space, simply to avoid crowding and allow good road connections
+  MapPosSet open_space_counts = {};
+  AILogInfo["do_build_steelsmelter"] << inventory_pos << " trying to build steelsmelter near any area with most open space";
+  for (MapPos center_pos : stock_building_counts.at(inventory_pos).occupied_military_pos) {
+    MapPosVector corners = AI::get_corners(center_pos);
+    for (MapPos corner_pos : corners) {
+      int count = count_open_space(game, corner_pos, spiral_dist(4), "gray");
+      open_space_counts.insert(std::make_pair(corner_pos, count));
+    }
+  }
+  // sort areas by most open space
+  MapPosVector search_positions = AI::sort_by_val_desc(open_space_counts);
+  // add the sorted-by-space positions AFTER the halfway pos (if found)
+  steelsmelter_pos.insert(steelsmelter_pos.end(), search_positions.begin(), search_positions.end());
+  // try to build steelsmelter
   for (MapPos center_pos : steelsmelter_pos) {
     int steelsmelter_count = stock_building_counts.at(inventory_pos).count[Building::TypeSteelSmelter];
     if (steelsmelter_count >= 1) {
@@ -3627,11 +3615,11 @@ AI::do_build_steelsmelter() {
         AILogDebug["do_build_steelsmelter"] << inventory_pos << " built steel smelter at pos " << built_pos;
         stock_building_counts.at(inventory_pos).count[Building::TypeSteelSmelter];
         stock_building_counts.at(inventory_pos).unfinished_count++;        
-        return;
+        break;
       }
     }
     if (built_pos != bad_map_pos && built_pos != notplaced_pos) { break; }
-  } //foreach military building
+  }
   AILogDebug["do_build_steelsmelter"] << inventory_pos << " done do_build_steelsmelter";
 }
 
@@ -3652,25 +3640,31 @@ AI::do_build_blacksmith() {
     if ((coal_count >= coal_min || stock_building_counts.at(inventory_pos).completed_count[Building::TypeCoalMine] > 0)
       && (iron_ore_count >= iron_ore_min || (stock_building_counts.at(inventory_pos).completed_count[Building::TypeIronMine] > 0 && stock_building_counts.at(inventory_pos).completed_count[Building::TypeSteelSmelter] > 0))
       || steel_count >= steel_min) {
-      AILogInfo["do_build_blacksmith"] << inventory_pos << " trying to build blacksmith";
+
+      // score areas by most open space, simply to avoid crowding and allow good road connections
+      // HAH, I saw this result in blacksmith being built right next to farm, which is a bad spot!
+      MapPosSet open_space_counts = {};
+      AILogInfo["do_build_blacksmith"] << inventory_pos << " trying to build blacksmith near any area with most open space";
       for (MapPos center_pos : stock_building_counts.at(inventory_pos).occupied_military_pos) {
-        if (stock_building_counts.at(inventory_pos).count[Building::TypeWeaponSmith] >= 1) {
-          AILogDebug["do_build_blacksmith"] << inventory_pos << " Already placed blacksmith, not building more";
-          break;
-        }
         MapPosVector corners = AI::get_corners(center_pos);
         for (MapPos corner_pos : corners) {
-          built_pos = bad_map_pos;
-          built_pos = AI::build_near_pos(corner_pos, AI::spiral_dist(6), Building::TypeWeaponSmith);
-          if (built_pos != bad_map_pos && built_pos != notplaced_pos) {
-            AILogInfo["do_build_blacksmith"] << inventory_pos << " built blacksmith at pos " << built_pos;
-            stock_building_counts.at(inventory_pos).count[Building::TypeWeaponSmith]++;
-            stock_building_counts.at(inventory_pos).unfinished_count++;
-            break;
-          }
-        } // for each corner
-        if (built_pos != bad_map_pos && built_pos != notplaced_pos) { break; }
-      } // for each military building
+          int count = count_open_space(game, corner_pos, spiral_dist(4), "black");
+          open_space_counts.insert(std::make_pair(corner_pos, count));
+        }
+      }
+      // build blacksmith in area with most open space
+      MapPosVector search_positions = AI::sort_by_val_desc(open_space_counts);
+      for (MapPos potential_build_pos : search_positions) {
+        built_pos = bad_map_pos;
+        built_pos = AI::build_near_pos(potential_build_pos, AI::spiral_dist(6), Building::TypeWeaponSmith);
+        if (built_pos != bad_map_pos && built_pos != notplaced_pos) {
+          AILogInfo["do_build_blacksmith"] << inventory_pos << " built blacksmith at pos " << built_pos;
+          stock_building_counts.at(inventory_pos).count[Building::TypeWeaponSmith]++;
+          stock_building_counts.at(inventory_pos).unfinished_count++;
+          break;
+        }
+      }
+
     } // if have sufficient coal, iron, steel
     else {
       AILogDebug["do_build_blacksmith"] << inventory_pos << " not enough coal, or iron/steel to build blacksmith";
@@ -3694,20 +3688,42 @@ void
 AI::do_build_gold_smelter_and_connect_gold_mines() {
   ai_status.assign("do_build_gold_smelter_and_connect_gold_mines");
   AILogDebug["do_build_gold_smelter_and_connect_gold_mines"] << inventory_pos << " inside do_build_gold_smelter_and_connect_gold_mines()";
-  //
   // build a gold smelter
   //   if enough unprocessed gold ore is stored
   //   OR if already have a gold mine
-  //
   if(stock_inv == nullptr)
     return;
   unsigned int gold_ore_count = stock_inv->get_count_of(Resource::TypeGoldOre) + stock_res_sitting_at_flags.at(inventory_pos)[Resource::TypeGoldOre];
   if ((gold_ore_count >= gold_ore_min || stock_building_counts.at(inventory_pos).completed_count[Building::TypeGoldMine] > 0)
          && stock_building_counts.at(inventory_pos).count[Building::TypeGoldSmelter] < 1) {
     AILogInfo["do_build_gold_smelter_and_connect_gold_mines"] << inventory_pos << " trying to build gold smelter";
-    MapPos built_pos = bad_map_pos;
+    // try to place gold smelter halfway between a coal mine and gold mine if both exist, preferring active ones
+    MapPos halfway_pos = bad_map_pos;
+    halfway_pos = find_halfway_pos_between_buildings(inventory_pos, Building::TypeCoalMine, Building::TypeIronMine);
+    MapPosVector goldsmelter_pos;
+    if (halfway_pos != bad_map_pos) {
+      AILogDebug["do_build_gold_smelter_and_connect_gold_mines"] << inventory_pos << " adding pos halfway between a coal mine and an gold mine to first build_near center";
+      goldsmelter_pos.push_back(halfway_pos);
+    }
+    // score areas by most open space, simply to avoid crowding and allow good road connections
+    MapPosSet open_space_counts = {};
+    AILogInfo["do_build_gold_smelter_and_connect_gold_mines"] << inventory_pos << " trying to build goldsmelter near any area with most open space";
     for (MapPos center_pos : stock_building_counts.at(inventory_pos).occupied_military_pos) {
-      if (stock_building_counts.at(inventory_pos).count[Building::TypeGoldSmelter] >= 1) {
+      MapPosVector corners = AI::get_corners(center_pos);
+      for (MapPos corner_pos : corners) {
+        int count = count_open_space(game, corner_pos, spiral_dist(4), "dk_yellow");
+        open_space_counts.insert(std::make_pair(corner_pos, count));
+      }
+    }
+    // sort areas by most open space
+    MapPosVector search_positions = AI::sort_by_val_desc(open_space_counts);
+    // add the sorted-by-space positions AFTER the halfway pos (if found)
+    goldsmelter_pos.insert(goldsmelter_pos.end(), search_positions.begin(), search_positions.end());
+    // try to build goldsmelter
+    MapPos built_pos = bad_map_pos;
+    for (MapPos center_pos : goldsmelter_pos) {
+      int goldsmelter_count = stock_building_counts.at(inventory_pos).count[Building::TypeGoldSmelter];
+      if (goldsmelter_count >= 1) {
         AILogDebug["do_build_gold_smelter_and_connect_gold_mines"] << inventory_pos << " Already placed gold smelter, not building more";
         break;
       }
@@ -3716,17 +3732,15 @@ AI::do_build_gold_smelter_and_connect_gold_mines() {
         built_pos = bad_map_pos;
         built_pos = AI::build_near_pos(corner_pos, AI::spiral_dist(6), Building::TypeGoldSmelter);
         if (built_pos != bad_map_pos && built_pos != notplaced_pos) {
-          AILogInfo["do_build_gold_smelter_and_connect_gold_mines"] << inventory_pos << " built gold smelter at pos " << built_pos;
-          stock_building_counts.at(inventory_pos).count[Building::TypeGoldSmelter]++;
-          stock_building_counts.at(inventory_pos).unfinished_count++;
+          AILogDebug["do_build_gold_smelter_and_connect_gold_mines"] << inventory_pos << " built gold smelter at pos " << built_pos;
+          stock_building_counts.at(inventory_pos).count[Building::TypeGoldSmelter];
+          stock_building_counts.at(inventory_pos).unfinished_count++;        
           break;
         }
       }
       if (built_pos != bad_map_pos && built_pos != notplaced_pos) { break; }
-    } // foreach military pos
+    }
   }
-
-
 
   //  if low on miners/pickaxes, don't connect a gold mine unless already having
   //   at least one occupied coal and iron mine to avoid depleting pickaxes/miners

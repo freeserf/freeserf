@@ -162,58 +162,27 @@ class AI {
     switch (dir) {
       case DirectionNone:           // undef, should we throw error?
         return "black";
-
       case DirectionRight:          // 0 / East
         return "red";
-
       case DirectionDownRight:      // 1 / SouthEast
         return "yellow";
-
       case DirectionDown:           // 2 / SouthWest
         return "blue";
-
       case DirectionLeft:           // 3 / West
         return "orange";
-
       case DirectionUpLeft:         // 4 / NorthWest
         return "purple";
-
       case DirectionUp:             // 5 / NorthEast
         return "green";
-        
       default:                      // some bad dir, should we throw error?
         return "white";
     }
   }
+  // got a segfault here too, try debugging in visual studio on windows 
   std::string get_ai_status() { return ai_status; }
   // stupid way to pass game speed and AI loop count to viewport for AI overlay
   unsigned int get_game_speed() { return game->get_game_speed(); }
   unsigned int get_loop_count() { return loop_count; }
-  unsigned int ai_loop_freq_adj_for_gamespeed(unsigned int freq) {
-    // because certain AI functions only run every X loops,
-    //  they do occur at the right frequency when the game
-    //  speed is increased.  To handle this, take the "every X loops"
-    //  and reduce it as game speed is increased, return the adjusted number
-    /* visual studio doesn't support this format with ellipses
-    switch (game->get_game_speed()) {
-      case 0 ... 5:
-        return freq;
-      case 6 ... 15:
-        return freq*.5;
-      case 16 ... 40:
-        return freq*.2;
-      default:
-        return freq*.2;
-    }
-    */
-    if (game->get_game_speed() < 6)
-      return freq;
-    if (game->get_game_speed() < 16)
-      return freq;
-    //if (game->get_game_speed() < 40)
-    //  return freq*0.2;
-    return freq * 0.2;
-  }
   void sleep_speed_adjusted(int msec){
     // sleep for specified millisec if speed is normal '2'
     // adjust sleep speed to be less as game speed increases
@@ -222,7 +191,6 @@ class AI {
     if (speed > 2){
       // scale AI speed linearly with game speed
       msec_ = msec_ * 1/(speed - 1);
-
       // less increase in AI speed as game speed increases, capped around 9x
       //msec_ = msec_ * 1/((speed - 1) / 4);  // this works pretty well, at game speed 40 ai pause time is about 9% of game speed 2
     }
@@ -265,6 +233,7 @@ class AI {
   unsigned int count_terrain_near_pos(MapPos, unsigned int, Map::Terrain, Map::Terrain, std::string);
   unsigned int count_empty_terrain_near_pos(MapPos, unsigned int, Map::Terrain, Map::Terrain, std::string);
   unsigned int count_farmable_land(MapPos, unsigned int, std::string);
+  unsigned int count_open_space(PGame, MapPos, unsigned int, std::string);  // same as above but excludes existing fields and avoids farms
   unsigned int count_objects_near_pos(MapPos, unsigned int, Map::Object, Map::Object, std::string);
   double count_geologist_sign_density(MapPos, unsigned int);
   MapPosVector sort_by_val_asc(MapPosSet);
@@ -272,7 +241,7 @@ class AI {
   //MapPos build_near_pos(MapPos, unsigned int, Building::Type);
   MapPos build_near_pos(MapPos, unsigned int, Building::Type, Direction optional_fill_dir = DirectionNone);
   bool building_exists_near_pos(MapPos, unsigned int, Building::Type);
-  //MapPos find_halfway_pos_between_buildings(Building::Type, Building::Type);
+  MapPos find_halfway_pos_between_buildings(MapPos inventory_pos, Building::Type, Building::Type);
   unsigned int count_stones_near_pos(MapPos, unsigned int);
   unsigned int count_knights_affected_by_occupation_level_change(unsigned int, unsigned int);
   void expand_borders();
@@ -287,6 +256,7 @@ class AI {
   void score_enemy_targets(MapPosSet*);
   //void attack_nearest_target(MapPosSet*);
   void attack_nearest_target(MapPosSet*, unsigned int min_score, double min_ratio);
+  bool flag_and_road_suitable_for_removal(PGame game, PMap map, MapPos flag_pos, Direction *road_dir);
 
   struct StockBuilding {
     int count[25] = { 0 };
@@ -423,7 +393,7 @@ static const unsigned int stones_min = 10;
 static const unsigned int stones_max = 25;
 static const unsigned int near_stones_min = 5;  // don't place castle unless sufficient stones, considers pile size
 static const unsigned int food_max = 70;  // demolish all food buildings if stored food over this amount (includes food at flags and unprocessed food up to a certain cap)
-static const unsigned int min_openspace_farm = 45; // min open tiles in area to build farm (existing fields count favorably, though). FYI: there are 60 tiles in spiral_dist(4)
+static const unsigned int min_openspace_farm = 50; // min open tiles in area to build farm (existing fields count favorably, though). FYI: there are 60 tiles in spiral_dist(4)
 //static const unsigned int near_fields_min = 3; // don't build mill and baker until a farm has this man fields already sown  // this is no longer used because the delay results in bad roads
 static const unsigned int coal_min = 12;   // don't build blacksmith if under this value and no coal mine.  Also, de-prioritize coal miner's food supply if over this value
 static const unsigned int coal_max = 60;   // don't build coal mine if over this value, don't give food to mine over this value

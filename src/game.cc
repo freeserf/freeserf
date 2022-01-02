@@ -2471,6 +2471,7 @@ Game::cancel_transported_resource(Resource::Type res, unsigned int dest) {
 
   Flag *flag = flags[dest];
   if (!flag->has_building()) {
+    // got exception here for the first time ever jan01 2022, wonder why
     throw ExceptionFreeserf("Failed to cancel transported resource.");
   }
   Building *building = flag->get_building();

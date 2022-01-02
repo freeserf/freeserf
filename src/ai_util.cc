@@ -1717,37 +1717,14 @@ AI::building_exists_near_pos(MapPos center_pos, unsigned int distance, Building:
 }
 
 
-/*
 // find the "best" of two building types, in preference order: occupied->completed->any
 //   and find the halfway point between those two and return it
 // for trying to build between two buildings, such as building a SteelSmelter halfway between CoalMine and IronMine
 //   currently this is ONLY used for placing a steelsmelter between coal and iron mines
-
-// CHANGING THIS SIGNIFICANTLY jan19 2021
-// actaully... I am going to eliminate this for now.  Since moving to flagsearch checks
-//  it isn't likely to accomplish much
 MapPos
-AI::find_halfway_pos_between_buildings(Building::Type first, Building::Type second) {
-  AILogDebug["util_find_halfway_pos_between_buildings"] << "inside get_halfway_pos_between_buildings, type1 " << NameBuilding[first] << " type2 " << NameBuilding[second] << " for inventory_pos " << inventory_pos;
-  update_buildings();
-  Building::Type type[2] = { first, second };
-  MapPos found_pos[2] = { bad_map_pos, bad_map_pos };
-  for (int x = 0; x < 2; x++) {
-    AILogDebug["util_find_halfway_pos_between_buildings"] << "searching this stock area for a building of type" << x << " " << NameBuilding[type[x]];
-    // change to connected_count?  should be same since flagsearch added
-    if (stock_building_counts.at(inventory_pos).count[type[x]] >= 1) {
-      AILogDebug["util_find_halfway_pos_between_buildings"] << "stock has at least one connected building of type" << x << " " << NameBuilding[type[x]];
-      find_nearest_building()
-
-
-//  since enabling multiple economies, this function only considers buildings attached to the current inventory_pos
-
-// ***** THIS NEEDS TO BE CHANGED TO FIND NEAREST STOCK WITH A FLAG SEARCH!!  ******
-
-MapPos
-AI::find_halfway_pos_between_buildings(Building::Type first, Building::Type second) {
-  AILogDebug["util_find_halfway_pos_between_buildings"] << "inside get_halfway_pos_between_buildings, type1 " << NameBuilding[first] << " type2 " << NameBuilding[second] << " for inventory_pos " << inventory_pos;
-  update_buildings();
+AI::find_halfway_pos_between_buildings(MapPos inventory_pos, Building::Type first, Building::Type second) {
+  AILogDebug["util_find_halfway_pos_between_buildings"] << "inside get_halfway_pos_between_buildings, inventory_pos " << inventory_pos << ", type1 " << NameBuilding[first] << " type2 " << NameBuilding[second] << " for inventory_pos " << inventory_pos;
+  //update_buildings();
   Building::Type type[2] = { first, second };
   MapPos found_pos[2] = { bad_map_pos, bad_map_pos };
   for (int x = 0; x < 2; x++) {
@@ -1755,7 +1732,7 @@ AI::find_halfway_pos_between_buildings(Building::Type first, Building::Type seco
     if (stock_building_counts.at(inventory_pos).occupied_count[type[x]] >= 1) {
       AILogDebug["util_find_halfway_pos_between_buildings"] << "searching for an OCCUPIED building of type" << x << " " << NameBuilding[type[x]];
       for (MapPos center_pos : stock_building_counts.at(inventory_pos).occupied_military_pos) {
-        for (unsigned int i = 0; i < spiral_dist(0); i++) {
+        for (unsigned int i = 0; i < spiral_dist(23); i++) {
           MapPos pos = map->pos_add_extended_spirally(center_pos, i);
           if (!map->has_building(pos))
             continue;
@@ -1769,11 +1746,15 @@ AI::find_halfway_pos_between_buildings(Building::Type first, Building::Type seco
             continue;
           }
           AILogDebug["util_find_halfway_pos_between_buildings"] << "building at pos " << pos << " of type " << NameBuilding[building->get_type()] << " is the right type, checking its status";
-          if (building->is_done() && building->has_serf()) {
-            found_pos[x] = building->get_position();
-            AILogDebug["util_find_halfway_pos_between_buildings"] << "found an acceptable OCCUPIED building of type" << x << " " << NameBuilding[type[x]] << " at pos " << found_pos[x];
-            break;
-          }
+          if (!building->is_done())
+            continue;
+          if (!building->has_serf())
+            continue;
+          if (find_nearest_inventory(map, player_index, building->get_position(), DistType::FlagOnly, &ai_mark_pos) != inventory_pos)
+            continue;
+          found_pos[x] = building->get_position();
+          AILogDebug["util_find_halfway_pos_between_buildings"] << "found an acceptable OCCUPIED building of type" << x << " " << NameBuilding[type[x]] << " at pos " << found_pos[x];
+          break;
         }
 
       }
@@ -1795,13 +1776,14 @@ AI::find_halfway_pos_between_buildings(Building::Type first, Building::Type seco
             continue;
           }
           AILogDebug["util_find_halfway_pos_between_buildings"] << "building at pos " << pos << " of type " << NameBuilding[building->get_type()] << " is the right type, checking its status";
-          if (building->is_done()) {
-            found_pos[x] = building->get_position();
-            AILogDebug["util_find_halfway_pos_between_buildings"] << "found an acceptable COMPLETED building of type" << x << " " << NameBuilding[type[x]] << " at pos " << found_pos[x];
-            break;
-          }
+          if (!building->is_done())
+            continue;
+          if (find_nearest_inventory(map, player_index, building->get_position(), DistType::FlagOnly, &ai_mark_pos) != inventory_pos)
+            continue;
+          found_pos[x] = building->get_position();
+          AILogDebug["util_find_halfway_pos_between_buildings"] << "found an acceptable COMPLETED building of type" << x << " " << NameBuilding[type[x]] << " at pos " << found_pos[x];
+          break;
         }
-
       }
     }
     else if (realm_building_count[type[x]] >= 1) {
@@ -1822,11 +1804,13 @@ AI::find_halfway_pos_between_buildings(Building::Type first, Building::Type seco
             continue;
           }
           AILogDebug["util_find_halfway_pos_between_buildings"] << "building at pos " << pos << " of type " << NameBuilding[building->get_type()] << " is the right type, checking its status";
-          if (building->has_serf()) {
-            found_pos[x] = building->get_position();
-            AILogDebug["util_find_halfway_pos_between_buildings"] << "found an acceptable ANY building of type" << x << " " << NameBuilding[type[x]] << " at pos " << found_pos[x];
-            break;
-          }
+          //if (!building->has_serf())  // why was this check here before?
+          //  continue;
+          if (find_nearest_inventory(map, player_index, building->get_position(), DistType::FlagOnly, &ai_mark_pos) != inventory_pos)
+            continue;
+          found_pos[x] = building->get_position();
+          AILogDebug["util_find_halfway_pos_between_buildings"] << "found an acceptable ANY building of type" << x << " " << NameBuilding[type[x]] << " at pos " << found_pos[x];
+          break;
         }
 
       }
@@ -1848,7 +1832,6 @@ AI::find_halfway_pos_between_buildings(Building::Type first, Building::Type seco
   AILogDebug["util_find_halfway_pos_between_buildings"] << "done get_halfway_pos_between_buildings, returning halfway_pos " << halfway_pos;
   return halfway_pos;
 }
-*/
 
 
 //
@@ -2065,7 +2048,7 @@ AI::count_farmable_land(MapPos center_pos, unsigned int distance, std::string co
         continue;
       }
       // exclude tiles with paths
-      if (map->paths(pos)) {
+      if (map->has_any_path(pos)) {
         continue;
       }
 
@@ -2074,6 +2057,53 @@ AI::count_farmable_land(MapPos center_pos, unsigned int distance, std::string co
   }
   //AILogDebug["util_count_farmable_land"] << "AI: found count " << count << " matching terrain of types " << NameTerrain[res_start_index] << " - " << NameTerrain[res_end_index];
   AILogDebug["util_count_farmable_land"] << "done count_farmable_land, returning count " << count;
+  return count;
+}
+
+// count the number of grass tiles, with no paths, and no obstacles
+// this is identical to count_farmable_lands but it doesn't include existing fields
+//  intended for placing buildings that are not location specific such as blacksmiths
+// NOTE - updating this to specifically avoid Farms because they will quickly
+//  consume space even if they have not yet.  Seeing too many blacksmiths placed near farms
+unsigned int
+AI::count_open_space(PGame game, MapPos center_pos, unsigned int distance, std::string color) {
+  AILogDebug["count_open_space"] << "inside AI::count_open_space";
+  //AILogDebug["util_count_farmable_land"] << "center_pos " << center_pos << ", distance " << distance << ", res_start_index " << NameTerrain[res_start_index] << ", res_end_index " << NameTerrain[res_end_index];
+  unsigned int count = 0;
+  for (unsigned int i = 0; i < distance; i++) {
+    MapPos pos = map->pos_add_extended_spirally(center_pos, i);
+    //AILogDebug["count_open_space"] << "AI: terrain at pos " << pos << " has type " << terrain;
+    if (map->has_building(pos) && game->get_building_at_pos(pos)->get_type() == Building::TypeFarm){
+      AILogDebug["count_open_space"] << "inside count_open_space, found a Farm at pos " << pos << "!  greatly reducing score of this area";
+      if (count < 25){
+        count = 0;
+      }else{
+        count = count - 25;
+      }
+    }
+    if (AI::has_terrain_type(game, pos, Map::TerrainWater0, Map::TerrainWater3)
+            || AI::has_terrain_type(game, pos, Map::TerrainDesert0, Map::TerrainSnow1)) {
+      // this tile touches non-Grass, exclude it
+      continue;
+    }else{
+      // this tile touches ONLY GRASS
+      Map::Object obj_type = map->get_obj(pos);
+      // allow tiles that have felled trees
+      if (obj_type == Map::ObjectNone
+        || (obj_type >= Map::ObjectFelledPine0 && obj_type <= Map::ObjectFelledTree4) ) {
+      }
+      else {
+        // exclude tiles with blocking objects (anything not on this list)
+        continue;
+      }
+      // exclude tiles with paths
+      if (map->has_any_path(pos))
+        continue;
+      ++count;
+    }
+  }
+  //AILogDebug["count_open_space"] << "AI: found count " << count << " matching terrain of types " << NameTerrain[res_start_index] << " - " << NameTerrain[res_end_index];
+  AILogDebug["count_open_space"] << "done count_open_space, returning count " << count;
   return count;
 }
 
@@ -3083,4 +3113,78 @@ AI::set_serf_lost() {
     Log::Info["set_serf_lost"] << "debug - done setting lost state for ai_mark_serf with index " << serf_index << " at pos " << serf->get_pos();
   }
   Log::Info["set_serf_lost"] << "debug - done setting lost state for ai_mark_serf list";
+}
+
+
+// check a given flag return true if:
+// - the flag has no resources sitting
+// - the flag has only one road
+// - the road has no transporters that are carrying resources
+// ALSO, populate the Direction of the road in the provided reference
+//
+// this is intended for use by remove_road_stubs function
+//  with various extra checks
+//
+bool
+AI::flag_and_road_suitable_for_removal(PGame game, PMap map, MapPos flag_pos, Direction *road_dir){
+  AILogDebug["util_flag_and_road_suitable_for_removal"] << "inside AI::flag_and_road_suitable_for_removal for flag at pos " << flag_pos;
+
+  // check for paths in each Direction
+  unsigned int paths = 0;
+  for (Direction dir : cycle_directions_cw()) {
+    if (!map->has_path_IMPROVED(flag_pos, dir)) { continue; }
+    paths++;
+    // reject if multiple paths
+    if (paths > 1) {
+      //AILogDebug["util_flag_and_road_suitable_for_removal"] << "flag at pos " << flag_pos << " has more than one path, not eligible for removal";
+      return false;
+    }
+    // this variable is provided to the calling function by reference
+    *(road_dir) = dir;
+  }
+
+  // reject if no path found
+  if (paths == 0 || *(road_dir) == DirectionNone){
+    //AILogDebug["util_flag_and_road_suitable_for_removal"] << "flag at pos " << flag_pos << " has no paths!  this might be eligible for *flag* removal but returning false because path cannot be found to destroy a road";
+    return false;
+  }
+
+  // reject if flag has resources sitting
+  Flag *flag = game->get_flag_at_pos(flag_pos);
+  if (flag != nullptr && flag->has_resources()){
+    AILogDebug["util_flag_and_road_suitable_for_removal"] << "flag at pos " << flag_pos << " has resources waiting, not eligible for removal (yet)";
+    return false;
+  }
+
+  // reject if the road has any transporters carrying resources
+  Direction tmp_dir = *(road_dir);
+  MapPos pos = flag_pos;
+  while (true) {
+    // trace the road until it ends, looking for active
+    //  transporters at each pos, and see if they have a resource
+    Serf *serf_on_path = game->get_serf_at_pos(pos);
+    if (serf_on_path != nullptr) {
+      if (serf_on_path->get_type() == Serf::TypeTransporter) {
+        if (serf_on_path->get_delivery() > Resource::TypeNone){
+          AILogDebug["util_flag_and_road_suitable_for_removal"] << "flag at pos " << flag_pos << " has a transporting serf at pos " << pos << " carrying a resource, not eligible for removal (yet)";
+          return false;
+        }
+      }
+    }
+    // if end of the road reached, break
+    if (map->has_flag(pos) && pos != flag->get_position())
+      break;  
+    // otherwise continue to next pos along the road
+    pos = map->move(pos, tmp_dir);
+    for (Direction new_dir : cycle_directions_cw()) {
+      if (map->has_path_IMPROVED(pos, new_dir) && new_dir != reverse_direction(tmp_dir)) {
+        tmp_dir = new_dir;
+        break;
+      }
+    }
+  }
+
+  // flag must be eligible if this point reached
+  AILogDebug["util_flag_and_road_suitable_for_removal"] << "flag at pos " << flag_pos << " is eligible for removal, road dir is " << *(road_dir) << " / " << NameDirection[*(road_dir)] << ", returning true";
+  return true;
 }
