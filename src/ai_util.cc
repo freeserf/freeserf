@@ -1242,9 +1242,10 @@ AI::build_best_road(MapPos start_pos, RoadOptions road_options, Road *built_road
       // RoadOption penalties applied here!   * 1 means no penalty, only in place for easy adjustment
       //----------------------------------------------------------------------------------------------
       // apr13 2020 increased new_length penalty from 2.0 to 2.5
+      // jan02 2022 increased new_length penalty from 2.50 to 2.75
       double new_length_penalty;
       if (road_options.test(RoadOption::PenalizeNewLength)) {
-        new_length_penalty = 2.50;
+        new_length_penalty = 2.75;
       }
       else {
         new_length_penalty = 1.00; // no penalty
