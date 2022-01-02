@@ -468,7 +468,7 @@ AI::build_best_road(MapPos start_pos, RoadOptions road_options, Road *built_road
       // skip if no more paths can be built from starting flag
       bool can_build_another_path = false;
       for (Direction dir : cycle_directions_ccw()) {
-        if (game->get_flag_at_pos(start_pos) != nullptr && !game->get_flag_at_pos(start_pos)->has_path(dir) && map->is_road_segment_valid(start_pos, dir)) {
+        if (game->get_flag_at_pos(start_pos) != nullptr && !game->get_flag_at_pos(start_pos)->has_path_IMPROVED(dir) && map->is_road_segment_valid(start_pos, dir)) {
           can_build_another_path = true;
           break;
         }

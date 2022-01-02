@@ -268,6 +268,7 @@ const std::string NameResource[] = {
       "Resource::TypePincer",
       "Resource::TypeSword",
       "Resource::TypeShield",
+      "Resource::GroupFood",
       "Resource::TypeSerf"
 };
 

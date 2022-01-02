@@ -372,6 +372,13 @@ schedule_unknown_dest_cb(Flag *flag, void *data) {
     Building *building = flag->get_building();
     //Log::Info["flag"] << "debug: inside schedule_unknown_dest_cb with flag index " << flag->get_index() << ", pos " << flag->get_position() << ", search_dir " << flag->get_search_dir() << ". Flag has building of type " << NameBuilding[building->get_type()];
 
+    //
+    // NOTE - unlike the update_inventories_cb which has a minimum prio of 16
+    //  this callback has no minimum and so it allows a processing building to
+    //  become fully stocked, whereas it will never become fully stocked from
+    //  Inventories because the stock[x].prio quickly drops below 16 as resources
+    //  are requested+stored
+    //
     int bld_prio = building->get_max_priority_for_resource(dest_data->resource);
     if (bld_prio > dest_data->max_prio) {
       //Log::Info["flag"] << "debug: inside schedule_unknown_dest_cb with flag index " << flag->get_index() << ", pos " << flag->get_position() << ", search_dir " << flag->get_search_dir() << ". acceptable prio";
@@ -386,7 +393,8 @@ schedule_unknown_dest_cb(Flag *flag, void *data) {
       // quick hack to avoid 0 result
       bool found = false;
       for (Direction d : cycle_directions_ccw()) {
-        if (dest_data->flag != nullptr && dest_data->flag->has_path(d) && dest_data->flag->get_other_end_flag(d)->get_index() == flag->get_index()) {
+        if (dest_data->flag != nullptr && dest_data->flag->has_path_IMPROVED(d)
+            && dest_data->flag->get_other_end_flag(d)->get_index() == flag->get_index()) {
           // could also use flag->get_other_end_flag(d)? but this reads better
           /* the flag->length[dir] values are calculated by taking the true length of the path
           // and then bastardizing it by first feeding it into this get_road_length_value() 
@@ -410,7 +418,7 @@ schedule_unknown_dest_cb(Flag *flag, void *data) {
           //  and set a minimum added value of 1 because it can actually be zero if flags are close?
             */
           if(dest_data->flag->get_road_length((Direction)d) == 0){
-            Log::Info["flag"] << "debug: it get_road_length can be zero, using +1 for dist_from_inv addition";
+            //Log::Info["flag"] << "debug: inside schedule_unknown_dest_cb, it get_road_length can be zero, using +1 for dist_from_inv addition";
             dest_data->dist_from_inv += 1;
           }else{
             dest_data->dist_from_inv += (dest_data->flag->get_road_length((Direction)d) / 16) * 3;
@@ -420,7 +428,7 @@ schedule_unknown_dest_cb(Flag *flag, void *data) {
         }
       }
       if (!found){
-        //Log::Info["game"] << "debug: no prev_flag/dir found, using +1 for dist_from_inv addition";
+        //Log::Info["game"] << "debug: inside schedule_unknown_dest_cb, no prev_flag/dir found, using +1 for dist_from_inv addition";
         dest_data->dist_from_inv += 1;
       }
       // NOW we can update this
@@ -428,7 +436,8 @@ schedule_unknown_dest_cb(Flag *flag, void *data) {
     }
 
     if (dest_data->max_prio > 204){
-      //Log::Info["flag"] << "debug: inside schedule_unknown_dest_cb with flag index " << flag->get_index() << ", pos " << flag->get_position() << ", search_dir " << flag->get_search_dir() << ". max_prio >204, returning true";
+      // what is this?  this is part of Freeserf code but has no explanation about meaning
+      Log::Info["flag"] << "debug: inside schedule_unknown_dest_cb with flag index " << flag->get_index() << ", pos " << flag->get_position() << ", search_dir " << flag->get_search_dir() << ". max_prio >204, returning true";
       return true;
     }
 
@@ -701,8 +710,12 @@ schedule_known_dest_cb(Flag *flag, void *data) {
 
 bool
 Flag::schedule_known_dest_cb_(Flag *src, Flag *dest, int _slot) {
+  //
   // I think this is one of the few (only?) functions where the
-  //  flag->search_dir is actually used the way you would expect
+  //  flag->search_dir is actually used the way you would expect,
+  //  as a Direction, instead of being used as the index of the
+  //  Inventory providing the resource
+  //
   //Log::Info["flag"] << "debug: inside Flag::schedule_known_dest_cb_";
   if (this == dest) {
     //Log::Info["flag"] << "debug: inside Flag::schedule_known_dest_cb_, destination found";
@@ -1008,6 +1021,7 @@ Flag::can_demolish() const {
 
 // Return true if a flag has any roads connected to it
 //  this properly excludes fake-path for a building UpLeft/Dir4
+// UPDATE - could now use has_path_IMPROVED instead
 bool
 Flag::is_connected() const {
   for (Direction d : cycle_directions_cw()) {

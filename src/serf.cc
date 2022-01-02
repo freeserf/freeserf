@@ -3041,6 +3041,9 @@ Serf::handle_serf_delivering_state() {
   tick = game->get_tick();
   counter -= delta;
 
+  // adding this to support sending back excess resources (which is needed because of resource timeouts)
+  bool attempted_delivery = false;
+
   while (counter < 0) {
     if (s.transporting.wait_counter != 0) {
       set_state(StateTransporting);
@@ -3050,6 +3053,7 @@ Serf::handle_serf_delivering_state() {
       return;
     }
 
+    /* original logic, before I started messing with "send back excess unrequested resources"
     if (s.transporting.res != Resource::TypeNone) {
       Resource::Type res = s.transporting.res;
       s.transporting.res = Resource::TypeNone;
@@ -3059,6 +3063,21 @@ Serf::handle_serf_delivering_state() {
         Log::Warn["serf.cc"] << "inside handle_serf_delivering_state, building is nullptr";
       }else{
         building->requested_resource_delivered(res);
+      }
+    }
+    */
+
+    // new logic that sends back excess resources
+    //  it actually results in the serf dropping the excess res at the building flag
+    //  which looks a bit odd but may actually make sense if there are more important
+    //  resources to be transported?
+    if (s.transporting.res != Resource::TypeNone) {
+      Resource::Type res = s.transporting.res;
+      Building *building = game->get_building_at_pos(game->get_map()->move_up_left(pos));
+      if (building->requested_resource_delivered(res)){
+        s.transporting.res = Resource::TypeNone;
+      }else{
+        Log::Debug["serf.cc"] << " serf's attempted delivery of resource type " << NameResource[res] << " was rejected, dropping it at flag and/or sending it back";
       }
     }
 
@@ -5668,7 +5687,11 @@ Serf::handle_state_knight_free_walking() {
               Flag *dest = game->get_flag(other->s.walking.dest);
               Building *building = dest->get_building();
               // got exception here, adding nullptr check
-              if (building == nullptr || !building->has_inventory()) {
+              if (building == nullptr){
+                Log::Error["serf"] << "inside handle_state_knight_free_walking, building is nullptr when trying to call building->has_inventory and possibly building->requested_knight_attacking_on_walk ! crashing";
+                throw ExceptionFreeserf("inside handle_state_knight_free_walking, building is nullptr!");
+              }
+              if(!building->has_inventory()) {
                 building->requested_knight_attacking_on_walk();
               }
 

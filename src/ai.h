@@ -422,9 +422,9 @@ static const unsigned int near_trees_min = 5; // only place sawmills near at lea
 static const unsigned int stones_min = 10;
 static const unsigned int stones_max = 25;
 static const unsigned int near_stones_min = 5;  // don't place castle unless sufficient stones, considers pile size
-static const unsigned int food_max = 50;  // demolish all food buildings if stored food over this amount (includes food at flags and unprocessed food up to a certain cap)
+static const unsigned int food_max = 70;  // demolish all food buildings if stored food over this amount (includes food at flags and unprocessed food up to a certain cap)
 static const unsigned int min_openspace_farm = 45; // min open tiles in area to build farm (existing fields count favorably, though). FYI: there are 60 tiles in spiral_dist(4)
-static const unsigned int near_fields_min = 3; // don't build mill and baker until a farm has this man fields already sown
+//static const unsigned int near_fields_min = 3; // don't build mill and baker until a farm has this man fields already sown  // this is no longer used because the delay results in bad roads
 static const unsigned int coal_min = 12;   // don't build blacksmith if under this value and no coal mine.  Also, de-prioritize coal miner's food supply if over this value
 static const unsigned int coal_max = 60;   // don't build coal mine if over this value, don't give food to mine over this value
 static const unsigned int iron_ore_min = 8; // don't build blacksmith if under this value and no iron mine, OR sufficient steel.  Also, de-prioritize iron miner's food supply if over this value
@@ -450,9 +450,6 @@ static constexpr double geologist_sign_density_max = 0.65;
 static constexpr double coal_sign_density_min = 0.30;
 static constexpr double iron_sign_density_min = 0.30;
 static constexpr double gold_sign_density_min = 0.15;  // lower min for gold mines because even a small flag is usually enough gold, and gold is rare
-
-//  because new mines start at zero productivity, but any mine that is active and/or has food stored is not *brand new* and can be tested
-static const unsigned int mine_output_min = 8; // burn if below this % production
 
 // may need to do something to account for the fact that minerals come in clusters
 //    because once a few signs are found to indicate a cluster, the true value doesn't change

@@ -49,7 +49,13 @@
 //  instead of going to the mines, after some time suddenly sent out a ton of food
 //  to the mines.  I think the timeout did work on game load anyway, not sure
 //   why it wasn't working up to that point??
-#define TIMEOUT_SECS_PER_TILE  18
+// UPDATE no longer using const_ticks, now using game ticks which is
+//  scaled with game speed.  To compensate, now multiplying this by game_speed
+//  and halving it here from previous value 18 because default game speed is 2
+//#define TIMEOUT_SECS_PER_TILE  9    // seeing many timeouts
+//#define TIMEOUT_SECS_PER_TILE  18   // only seeing a few timeouts, with GroupFood to mines
+#define TIMEOUT_SECS_PER_TILE  20  // still seeing mines timing out for GroupFood sometimes, is this a logic bug or real delay?
+//#define TIMEOUT_SECS_PER_TILE  100 // this seems to eliminate GroupFood timeouts for miners, so it must be legit, go back to the lower number
 // also copying these here from freeserf.h as it is not included but is needed for
 //  the request resource timeouts
 /* The length between game updates in miliseconds. */
@@ -104,7 +110,6 @@ class Building : public GameObject {
     int requested;
     int maximum;
     // adding support for resource request timeouts
-    int requested_tick[8];
     int req_timeout_tick[8];
   } Stock;
 
@@ -254,7 +259,8 @@ class Building : public GameObject {
     stock[stock_num].prio = priority; }
   void set_initial_res_in_stock(int stock_num, int count) {
     stock[stock_num].available = count; }
-  void requested_resource_delivered(Resource::Type resource);
+  //void requested_resource_delivered(Resource::Type resource);
+  bool requested_resource_delivered(Resource::Type resource);  // adding bool return to indicate if res should be sent back, for resource req timeouts
   void plank_used_for_build() {
     stock[0].available -= 1; stock[0].maximum -= 1; }
   void stone_used_for_build() {

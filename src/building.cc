@@ -52,6 +52,10 @@ Building::Building(Game *game, unsigned int index)
     stock[j].available = 0;
     stock[j].requested = 0;
     stock[j].maximum = 0;
+    // adding support for resource request timeouts
+    for (int i = 0; i < 8; i++){
+      stock[j].req_timeout_tick[i] = 0;
+    }
   }
 
   first_knight = 0;
@@ -115,6 +119,11 @@ Building::start_building(Building::Type _type) {
     stock[1].type = Resource::TypeStone;
     stock[1].prio = 0;
     stock[1].maximum = const_info[type].stones;
+    // adding support for resource request timeouts
+    for (int i = 0; i < 8; i++){
+      stock[0].req_timeout_tick[i] = 0;
+      stock[1].req_timeout_tick[i] = 0;
+    }
   }
 
   return map_obj;
@@ -308,7 +317,7 @@ Building::cancel_transported_resource(Resource::Type res) {
     }
   }
   if ((in_stock < 0) && (res == Resource::TypeFish || res == Resource::TypeMeat || res == Resource::TypeBread)) {
-    //Log::Debug["building"] << "inside Building::cancel_transported_resource fixing food " << res;
+    //Log::Debug["building"] << "inside cancel_transported_resource fixing food " << res;
     for (int i = 0; i < kMaxStock; i++) {
       if ((stock[i].type == Resource::TypeFish && stock[i].requested > 0) ||
           (stock[i].type == Resource::TypeMeat && stock[i].requested > 0) ||
@@ -320,8 +329,11 @@ Building::cancel_transported_resource(Resource::Type res) {
   }
   if (in_stock >= 0) {
     if (stock[in_stock].requested > 0) {
-      Log::Verbose["building"] << "inside Building::cancel_transported_resource, building type " << NameBuilding[type] << " at pos " << get_position() << ", succesfully cancelled requested resource, decrementing stock["<< in_stock << "].requested";
+      Log::Verbose["building"] << "inside cancel_transported_resource, building type " << NameBuilding[type] << " at pos " << get_position() << ", succesfully cancelled requested resource, decrementing stock["<< in_stock << "].requested";
+
+      //
       // add support for requested resource timeouts
+      //
       // Because there is no way of tracking which particular resource is associated with a building request "slot"
       //  the best logic I can come up with is to close the 
       // "request with the LATEST timeout, of the requests made PRIOR TO the most recent outstanding request"
@@ -347,34 +359,46 @@ Building::cancel_transported_resource(Resource::Type res) {
       //   request_tick.  Of the remaining 7 slots, the one with the earliest req_timeout_tick is removed
       //  ??????
       //
-      //
       // WAIT - should the timeout even be cancelled for cancel_transported_resource?
       //  or only when a resource is successfully delivered?
       // for now, commenting this out and only doing it for successful deliveries
-      /*
+      //
+      // UPDATE - adding this back in after revamping request timeouts a bit
+      // adding support for requested resource timeouts
       // going with "when a resource arrives, remove the request timeout with the soonest (lowest) expiry"
       int earliest = bad_score;
       int earliest_index = -1;
       // find the timeout with the soonest expiry
-      for (int i = 0; i < stock[in_stock]..maximum; i++) {
-        if (stock[in_stock].req_timeout_tick[i] > 0 && stock[in_stock].req_timeout_tick[i] < earliest){
-          earliest = stock[in_stock].req_timeout_tick[i];
-          earliest_index = i;
+      for (int x = 0; x < stock[in_stock].maximum; x++) {
+        if (stock[in_stock].req_timeout_tick[x] > 0 && stock[in_stock].req_timeout_tick[x] < earliest){
+          earliest = stock[in_stock].req_timeout_tick[x];
+          earliest_index = x;
         }
       }
       if (earliest_index > -1){
         // delete the timeout
-        Log::Info["building"] << "debug: inside Building::cancel_transported_resource, building type " << NameBuilding[type] << " at pos " << get_position() << ", deleting req_timeout_tick with expiry " << stock[in_stock].req_timeout_tick[earliest_index];
+        Log::Info["building"] << "debug: inside cancel_transported_resource, building type " << NameBuilding[type] << " at pos " << get_position() << ", deleting req_timeout_tick with expiry " << stock[in_stock].req_timeout_tick[earliest_index];
         stock[in_stock].req_timeout_tick[earliest_index] = 0;
+
+        // shift any unset timeouts upwards
+        for (int x = 0; x < stock[in_stock].maximum; x++) {
+          if (stock[in_stock].req_timeout_tick[x] == 0){
+            for (int y = x; y < stock[in_stock].maximum - 1; y++){  // this is - 1 because we are copying from +1 and don't want to go out of bounds at the end
+              stock[in_stock].req_timeout_tick[y] = stock[in_stock].req_timeout_tick[y + 1];
+            }
+            stock[in_stock].req_timeout_tick[stock[in_stock].maximum - 1] = 0;  // must use maximum - 1 because maximum is the item count but array index starts at 0
+          }
+        }
       }else{
-        Log::Warn["building"] << "inside Building::cancel_transported_resource, building type " << NameBuilding[type] << " at pos " << get_position() << ", could not find any request to cancel for stock[" << in_stock << "], res type " << NameResource[res];
+        Log::Warn["building"] << "inside cancel_transported_resource, building type " << NameBuilding[type] << " at pos " << get_position() << ", could not find any req_timeout_tick for stock[" << in_stock << "], res type " << NameResource[res];
       }
-      */
+      // end of resource request timeout code
+      
       // decrement the requested count
       stock[in_stock].requested -= 1;
     }
     if (stock[in_stock].requested < 0) {
-      Log::Error["building"] << "inside Building::cancel_transported_resource, building type " << NameBuilding[type] << " at pos " << get_position() << ", failed to cancel unrequested resource delivery!";
+      Log::Error["building"] << "inside cancel_transported_resource, building type " << NameBuilding[type] << " at pos " << get_position() << ", failed to cancel unrequested resource delivery!";
       throw ExceptionFreeserf("Failed to cancel unrequested resource delivery.");
     }
   }
@@ -384,6 +408,7 @@ bool
 // adding support for requested resource timeouts
 //Building::add_requested_resource(Resource::Type res, bool fix_priority) {
 Building::add_requested_resource(Resource::Type res, bool fix_priority, int dist_from_inv) {
+  Log::Info["building"] << "debug: inside add_requested_resource, res type " << NameResource[res] << ", dist_from_inv " << dist_from_inv;
   for (int j = 0; j < kMaxStock; j++) {
     if (stock[j].type == res) {
       if (fix_priority) {
@@ -393,21 +418,22 @@ Building::add_requested_resource(Resource::Type res, bool fix_priority, int dist
       } else {
         stock[j].prio = 0;
       }
-      // moving this to after ticks set
-      //stock[j].requested += 1;
       // adding support for requested resource timeouts
       //  use the 'requested' count as the index of the tick arrays
-      // set request tick
-      stock[j].requested_tick[stock[j].requested] = game->get_const_tick();
       // don't let dist_from_inv be zero (it seems to happen on game start, new buildings? dunno)
-      if (dist_from_inv < 1){ dist_from_inv = 1; }
-      // set expiration tick
-      //stock[j].req_timeout_tick[stock[j].requested] = game->get_const_tick() + (dist_from_inv * TIMEOUT_SECS_PER_TILE * TICKS_PER_SEC);
-      // add a minimum tick timeout padding so short roads don't timeout so easily
-      stock[j].req_timeout_tick[stock[j].requested] = game->get_const_tick() + ((dist_from_inv + 10) * TIMEOUT_SECS_PER_TILE * TICKS_PER_SEC);
-      //Log::Info["building"] << "debug: successfully requested resource for building of type " << NameBuilding[type] << ", at pos " << get_position() << ", with dist_from_inv " << dist_from_inv;
-      //Log::Info["building"] << "debug: inside add_requested_resource, requested_tick: " << stock[j].requested_tick[stock[j].requested] << ", req_timeout_tick: " << stock[j].req_timeout_tick[stock[j].requested]; 
+      if (dist_from_inv < 1){ 
+        Log::Warn["building"] << "dist_from_inv " << dist_from_inv << " is less than 1!  that should not happen, setting it to 1";
+        dist_from_inv = 1;
+      }
+      // set expiration tick, add a minimum tick timeout padding so short roads don't timeout so easily
+      stock[j].req_timeout_tick[stock[j].requested] = game->get_tick() + ((dist_from_inv + 10) * game->get_game_speed() * TIMEOUT_SECS_PER_TILE * TICKS_PER_SEC);
+      Log::Info["building"] << "debug: successfully requested resource of type " << NameResource[res] << " for building of type " << NameBuilding[type] << ", at pos " << get_position() << ", with dist_from_inv " << dist_from_inv << ", current tick " << game->get_tick() << ", req_timeout_tick: " << stock[j].req_timeout_tick[stock[j].requested];
       stock[j].requested += 1;
+      // debug timeouts
+      for (int s = 0; s < stock[j].maximum; s++){
+        // I still don't understand what is going on, keep digging
+        Log::Info["building"] << "debug: stock[" << j << "] res " << NameResource[res] << " slot[" << s << "] has timeout: " << stock[j].req_timeout_tick[s];
+      }
       return true;
     }
   }
@@ -423,82 +449,121 @@ Building::stock_init(unsigned int stock_num, Resource::Type res_type,
   stock[stock_num].maximum = maximum;
 }
 
-void
+// returns true if resource accepted, false if resource rejected
+//  if rejected the transporting serf will (hopefully) send it
+//  back
+bool
 Building::requested_resource_delivered(Resource::Type resource) {
   if (burning) {
-    return;
+    return false;
   }
   if (has_inventory()) {
     inventory->push_resource(resource);
-  } else {
-    // p1plp1 resource fix
-    /* Add to building stock */
-    for (int i = 0; i < kMaxStock; i++) {
-      if ((stock[i].type == Resource::GroupFood) && (resource == Resource::TypeFish ||
-        resource == Resource::TypeMeat || resource == Resource::TypeBread)) {
-         stock[i].available += 1;
-         stock[i].requested -= 1;
-         if (stock[i].requested < 0) {
-           stock[i].requested = 0;
-           //Log::Debug["building"] << "inside Building::requested_resource_delivered, building of type " << NameBuilding[type] << " at pos " << get_position() << ", Fixing req res delivered FOOD type requested below zero.";
-         }
-         //Log::Debug["building"] << "inside Building::requested_resource_delivered, building of type " << NameBuilding[type] << " at pos " << get_position() << ", Fixing req res delivered FOOD type.";
-         return;
-      }
-      if (stock[i].type == resource) {
-        if (stock[i].requested > 0) {
-          stock[i].available += 1;
-          // for now, only set a timeout if the building has a holder (professional serf occupying it)
-          //  this means that resourece timeouts will NOT be set for construction building materials
-          //  called to build this building
-          // actually, I think holder may be true if a builder is there, so check for is_done
-          if (is_done() && holder){
-            // adding support for requested resource timeouts
-            // going with "when a resource arrives, remove the request timeout with the soonest (lowest) expiry"
-            int earliest = bad_score;
-            int earliest_index = -1;
-            // find the timeout with the soonest expiry
-            for (int x = 0; x < stock[i].maximum; x++) {
-              if (stock[i].req_timeout_tick[x] > 0 && stock[i].req_timeout_tick[x] < earliest){
-                earliest = stock[i].req_timeout_tick[x];
-                earliest_index = x;
+    return true;
+  }
+  /* Add to building stock */
+  for (int i = 0; i < kMaxStock; i++) {
+
+    // p1plp1 resource fix for food group
+    if ((stock[i].type == Resource::GroupFood) && (resource == Resource::TypeFish ||
+      resource == Resource::TypeMeat || resource == Resource::TypeBread)) {   
+        stock[i].available += 1;
+        stock[i].requested -= 1;
+        if (stock[i].requested < 0) {
+          stock[i].requested = 0;
+          Log::Debug["building"] << "inside requested_resource_delivered, res type " << NameResource[resource] << ", building of type " << NameBuilding[type] << " at pos " << get_position() << ", Fixing req res delivered FOOD type requested below zero.";
+        }
+        Log::Debug["building"] << "inside requested_resource_delivered, res type " << NameResource[resource] << ", building of type " << NameBuilding[type] << " at pos " << get_position() << ", Fixing req res delivered FOOD type.";
+        return true;
+    }
+
+    if (stock[i].type == resource) {
+      //
+      // requested resources
+      //
+      if (stock[i].requested > 0) {
+        stock[i].available += 1;
+
+        // adding support for requested resource timeouts
+        // going with "when a resource arrives, remove the request timeout with the soonest (lo west) expiry"
+        int earliest = bad_score;
+        int earliest_index = -1;
+        // find the timeout with the soonest expiry
+        for (int x = 0; x < stock[i].maximum; x++) {
+          if (stock[i].req_timeout_tick[x] > 0 && stock[i].req_timeout_tick[x] < earliest){
+            earliest = stock[i].req_timeout_tick[x];
+            earliest_index = x;
+          }
+        }
+        if (earliest_index > -1){
+          // delete the timeout
+          Log::Info["building"] << "debug: inside requested_resource_delivered, res type " << NameResource[resource] << ", building type " << NameBuilding[type] << " at pos " << get_position() << ", deleting req_timeout_tick with expiry " << stock[i].req_timeout_tick[earliest_index];
+          stock[i].req_timeout_tick[earliest_index] = 0;
+
+          /*// debug timeouts
+          for (int s = 0; s < stock[i].maximum; s++){
+            Log::Info["building"] << "debug BEFORE SHIFT: stock[" << i << "] of res " << NameResource[resource] << " slot[" << s << "] has timeout: " << stock[i].req_timeout_tick[s];
+          }*/
+          // shift any unset timeouts upwards
+          for (int x = 0; x < stock[i].maximum; x++) {
+            if (stock[i].req_timeout_tick[x] == 0){
+              for (int y = x; y < stock[i].maximum - 1; y++){  // this is - 1 because we are copying from +1 and don't want to go out of bounds at the end
+                stock[i].req_timeout_tick[y] = stock[i].req_timeout_tick[y + 1];
               }
-            }
-            if (earliest_index > -1){
-              // delete the timeout
-              //Log::Info["building"] << "debug: inside Building::requested_resource_delivered, building type " << NameBuilding[type] << " at pos " << get_position() << ", deleting req_timeout_tick with expiry " << stock[i].req_timeout_tick[earliest_index];
-              stock[i].req_timeout_tick[earliest_index] = 0;
-            }else{
-              Log::Warn["building"] << "inside Building::requested_resource_delivered, building type " << NameBuilding[type] << " at pos " << get_position() << ", could not find any req_timeout_tick for stock[" << i << "], res type " << NameResource[resource];
+              stock[i].req_timeout_tick[stock[i].maximum - 1] = 0;  // must use maximum - 1 because maximum is the item count but array index starts at 0
             }
           }
-          // decrement the requested count
-          stock[i].requested -= 1;
-        } else {
-          // this isn't unexpected now that res req timeouts/retry in place
-          //Log::Warn["building"] << "inside Building::requested_resource_delivered, building of type " << NameBuilding[type] << " at pos " << get_position() << ", Delivered more resources than requested: " << stock[i].requested << " available: "<< stock[i].available << " of type: " << resource;
-          return;
+          // IT SEEMS THAT THE MAXIMUM IS DECREASED AS THE RESOURCES ARRIVE!  FOR CONSTRUCTION
+          /* example showing this, from building.h
+          void plank_used_for_build() { stock[0].available -= 1; stock[0].maximum -= 1; }
+          void stone_used_for_build() { stock[1].available -= 1; stock[1].maximum -= 1; }
+          */
+          /*Log::Info["building"] << "debug         AFTER stock[" << i << "].maximum is " << stock[i].maximum;
+          // debug timeouts
+          for (int s = 0; s < stock[i].maximum; s++){
+            Log::Info["building"] << "debug         AFTER SHIFT: stock[" << i << "] of res " << NameResource[resource] << " slot[" << s << "] has timeout: " << stock[i].req_timeout_tick[s];
+          }*/
+        }else{
+          Log::Warn["building"] << "inside Building::requested_resource_delivered, res type " << NameResource[resource] << ", building type " << NameBuilding[type] << " at pos " << get_position() << ", could not find any req_timeout_tick for stock[" << i << "], res type " << NameResource[resource];
         }
-        return;
+        // decrement the requested count
+        stock[i].requested -= 1;
+        return true;
+      }
+      //
+      // unrequested resources, this isn't unexpected now that res req timeouts/retry in place
+      //
+      if (constructing){
+        Log::Info["building"] << "inside requested_resource_delivered, building of type " << NameBuilding[type] << " at pos " << get_position() << ", excess resource delivered of type " << NameResource[resource] << " to unfinished building site, rejecting delivery";
+        return false;
+      }
+      if (stock[i].available < stock[i].maximum){
+        Log::Info["building"] << "inside requested_resource_delivered, building of type " << NameBuilding[type] << " at pos " << get_position() << ", resource delivered of type " << NameResource[resource] << " to for which no request found, but can be used anyway, accepting delivery";
+        return true;
+      }else{
+        Log::Info["building"] << "inside requested_resource_delivered, building of type " << NameBuilding[type] << " at pos " << get_position() << ", resource delivered of type " << NameResource[resource] << " to for which no request found, but building is at maximum for this res! rejecting delivery";
+        return false;
       }
     }
-    // since adding resource request timeouts, I saw this exception trigger for a plank
-    //  being delivered to a Hut, suggesting that a construction plank deliver request timed out
-    //  and was re-requested, but then the original came through, and when the re-requested one came also
-    //  it triggered this error.
-    // How to deal? 
-    // 1) increase the timeouts a bit?
-    // 2) turn of req res timeouts for construction materials? this seems like a bad idea, 
-    //     and I thought I had actually already done so??
-    // 3) quietly ignore unexpected resource deliveries for construction material?  maybe if it seems like a rare problem
-    //
-    // jan17 2021
-    // still seeing this happen occasionally, Planks being delivered to already built buildings.  For now quietly ignore it
-    //  but it could become an issue if planks are regularly being sent to already completed buildings and clogging up roads
-    //
-    Log::Error["building"] << "inside Building::requested_resource_delivered, building of type " << NameBuilding[type] << " at pos " << get_position() << ", Delivered unexpected resource: " << NameResource[resource];
+  }
+
+  // if this point reached, no stock type matches this resource!
+  
+  // since adding resource request timeouts, I saw this exception trigger for a plank
+  //  being delivered to a Hut, suggesting that a construction plank deliver request timed out
+  //  and was re-requested, but then the building completed and the plank was no longer
+  //  the correct type.  changing this to debug only if this is a plank or stone
+  //  In any case, reject delivery.  I guess it is possible that a building could be replaced
+  //  with another building at same pos with different type, and it could be possible for
+  //  a non-building material res to be sent to new building of wrong type, so do not throw
+  //  except simply log a warning for now
+  if (resource == Resource::TypePlank || resource == Resource::TypeStone){
+    Log::Debug["building"] << "inside requested_resource_delivered, building of type " << NameBuilding[type] << " at pos " << get_position() << ", delivered building material " << NameResource[resource] << " but this building is already complete, rejecting it";
+  }else{
+    Log::Warn["building"] << "inside requested_resource_delivered, building of type " << NameBuilding[type] << " at pos " << get_position() << ", delivered unexpected resource of type " << NameResource[resource] << " for which this building has no inventory! rejecting it";
     //throw ExceptionFreeserf("Delivered unexpected resource.");
   }
+  return false;
 }
 
 void
@@ -751,6 +816,10 @@ Building::remove_stock() {
   stock[1].requested = 0;
 }
 
+// return the building stock[x].prio
+//  value of the higher-priority res
+//  type IF OVER SPECIFIED MINIMUM
+// returns -1 if not found or not over min
 int
 Building::get_max_priority_for_resource(
     Resource::Type resource, int minimum) const {
@@ -833,6 +902,131 @@ Building::request_serf_if_needed() {
 
 void
 Building::update() {
+  /* moving this to after resource timeout checks so res timeout checks
+  //  can be applied to buildings under construction
+  if (!constructing) {
+    //
+    // this request_serf_if_needed function looks like a good place to handle 
+    //  timeout/retry of missing professionals?  Especially if the stuck serf
+    //   timer boots one
+    //
+    request_serf_if_needed();
+    */
+
+  //
+  // adding support for requested resource timeouts
+  //
+  // NOTE - the stock[x].maximum for incomplete buildings that represents [0]Planks and [1]Stones
+  //  is decremented as the builder uses them in construction!  So the .maximum is not static
+  //  during construction.  Keep this in mind when managing resource timeouts for building materials
+  //
+  // NOTE - when a resource is "requested" it is really more "confirmed being fulfilled by a specific source"
+  //  rather than simply "building desires resource".  The "building desires resource" is controlled
+  //  by the building .prio variable, I forget exactly how the requesting works, need to investigate
+  //
+  // NOTE - it seems that a building does not request all resources at once (at least for production
+  //  buildings that endlessly consume) but only requests half at any given them??  why?  and how?
+  //
+  // NOTE - this if(holder) check means the building must already have a professional serf (I think?)
+  //  so it means that construction material requests will never time out.  It would probably be better
+  //  to allow construction material requests to time out also.  In fact, I am seeing warnings during other
+  //  parts of this timeout process complaining that no request was found associated with a plank delivery
+  //  when trying to clear a timeout
+  //
+  // ALSO, because timeouts are not saved/loaded with games, I think it makes sense to create a timeout for
+  //  every request on game load (or really, if there is any outstanding request with no timeout set) and 
+  //  set the longest possible timeout (i.e. the one associated with a road over 27(?) tiles which is
+  //  road length category 7)
+  //
+  // NOTE - I think this affects military buildings request knights, as they use the same mechanism
+  //  is it okay to timeout/retry these also?  I assume if an extra knight arrives they just go back
+  //  to Inventory as soon as they arrive - same as if knight staffing levels changed, right?
+  //
+  // actually, I think holder may be true if a builder is there, so check for is_done
+  // testing - dec31 2021
+  //if (is_done() && holder){
+  //if (holder){
+    // foreach each stock-res type (stock[0], stock[1])
+    for (int j = 0; j < kMaxStock; j++) {
+      if (stock[j].requested > 0) {
+        int count = 0;  // unexpired timeouts
+        // for each request slot...
+        for (int x = 0; x < stock[j].maximum; x++) {  // I think this could be shortened to only check up to stock[j].requested now that timers are sorted
+          if (stock[j].req_timeout_tick[x] <= 0){
+            continue;
+          }
+          // find any expired timeouts
+          if (stock[j].req_timeout_tick[x] < (signed)game->get_tick()){
+            Log::Info["building"] << "debug: inside Building::update(), building type " << NameBuilding[type] << " at pos " << get_position() << ", res type " << NameResource[stock[j].type] << ", resource request timeout triggered! req_timeout_tick = " << stock[j].req_timeout_tick[x] << ", current tick = " << game->get_tick();
+            // decrement the requested count so another can be requested
+            stock[j].requested -= 1;
+            // delete the timer
+            stock[j].req_timeout_tick[x] = 0;
+
+            /*// debug timeouts
+            for (int s = 0; s < stock[j].maximum; s++){
+              Log::Info["building"] << "debug BEFORE SHIFT: stock[" << j << "] of res " << NameResource[stock[j].type] << " slot[" << s << "] has timeout: " << stock[j].req_timeout_tick[s];
+            }*/
+            // shift any unset timeouts upwards
+            for (int x = 0; x < stock[j].maximum; x++) {
+              if (stock[j].req_timeout_tick[x] == 0){
+                for (int y = x; y < stock[j].maximum - 1; y++){  // this is - 1 because we are copying from +1 and don't want to go out of bounds at the end
+                  stock[j].req_timeout_tick[y] = stock[j].req_timeout_tick[y+1];
+                }
+                stock[j].req_timeout_tick[stock[j].maximum - 1] = 0;  // must use maximum - 1 because maximum is the item count but array index starts at 0
+              }
+            }
+            /*// debug timeouts
+            for (int s = 0; s < stock[j].maximum; s++){
+              Log::Info["building"] << "debug        AFTER SHIFT: stock[" << j << "] of res " << NameResource[stock[j].type] << " slot[" << s << "] has timeout: " << stock[j].req_timeout_tick[s];
+            }*/
+
+          }else{
+            count++;
+          }
+        }
+        /* no longer doing this, see explanation below
+        // set timeouts for any open reqs that do not have timeouts set (such as on game load)
+        int missing = stock[j].requested - count;
+        for (int x = 0; x < stock[j].maximum; x++){
+          if (count >= missing){
+            break;
+          }
+          if (stock[j].req_timeout_tick[x] <= 0){
+            // assign highest possible timeout (associated with road >24 tiles...get_road_length_value 7)
+            //  which ends up being 21 because it is road_length_value (7) * 3 for length timeout estimation
+            //
+            // ISSUE - I am seeing this trigger sometimes during normal game, not only on loadgame when I would expect it
+            //  that means resources are being requested without a req timeout being set on completed buildings, why?
+            //   TODO - check for other places that resources are rerequested and add timeout setting there
+            //
+            // EXPLANATION - because the stock[x].prio of a building's "desire" decreases as the sent/requested + stored
+            //  supply increases, and Inventories (castle/warehouse) have a minimum prio of 16, the stock[x].maximum for
+            //  a proccessing building will never become "fully requested" if the only suppliers are Inventories.
+            //  however, producer buildings (ex Lumberjack, Farmer) do not have any min priority as they use the
+            //  schedule_unknown search which has no limit, and so they can fill a processing building's stock entirely
+            //
+            // WHAT THIS MEANS - do not set resource timeouts for "un-requested" resources!  it will result in more
+            //  being sent from Inventories than should be.  If existing timeouts are lost on game load that is not
+            //  a big deal
+            //
+            stock[j].req_timeout_tick[x] = game->get_tick() + (21 * TIMEOUT_SECS_PER_TILE * TICKS_PER_SEC);
+            count++;
+            Log::Debug["building"] << "debug: inside Building::update(), building type " << NameBuilding[type] << " at pos " << get_position() << ", no req_timeout_tick set for this requested slot of type " << NameResource[stock[j].type] << ", setting to highest timeout";
+          }
+        }
+        */
+      }
+      if (stock[j].requested < 0) {
+        // changing this from Warn to Debug, as this is not so unexpected if resource timeouts are in place
+        Log::Debug["building"] << "debug: inside Building::update(), building type " << NameBuilding[type] << " at pos " << get_position() << ", after requested resource count is below zero!  stock[" << j << "].requested = " << stock[j].requested << ", resetting it to zero";
+        stock[j].requested = 0;
+      }
+    }
+  //} if holder
+  // end of resource request timeout code
+
+
   if (!constructing) {
     //
     // this request_serf_if_needed function looks like a good place to handle 
@@ -842,77 +1036,18 @@ Building::update() {
     request_serf_if_needed();
 
     //
-    // adding support for requested resource timeouts
+    // NOTE that the building stock0/1 resource priority drops as the stored+in-flight resource count increases
+    //  as seen in the bit-shift-right >> x based on total resource stored+requested here
     //
-    //
-    // NOTE - this if(holder) check means the building must already have a professional serf (I think?)
-    //  so it means that construction material requests will never time out.  It would probably be better
-    //  to allow construction material requests to time out also.  In fact, I am seeing warnings during other
-    //  parts of this timeout process complaining that no request was found associated with a plank delivery
-    //  when trying to clear a timeout
-    //
-    // ALSO, because timeouts are not saved/loaded with games, I think it makes sense to create a timeout for
-    //  every request on game load (or really, if there is any outstanding request with no timeout set) and 
-    //  set the longest possible timeout (i.e. the one associated with a road over 27(?) tiles which is
-    //  road length category 7)
-    //
-    // actually, I think holder may be true if a builder is there, so check for is_done
-    if (is_done() && holder){
-      // foreach each stock-res type (stock[0], stock[1])
-      for (int j = 0; j < kMaxStock; j++) {
-        if (stock[j].requested > 0) {
-          int count = 0;
-          // for each request slot...
-          for (int x = 0; x < stock[j].maximum; x++) {
-            if (stock[j].req_timeout_tick[x] <= 0){
-              continue;
-            }
-            count++;
-            // find any expired timeouts
-            if (stock[j].req_timeout_tick[x] < (signed)game->get_const_tick()){
-              Log::Debug["building"] << "debug: inside Building::update(), building type " << NameBuilding[type] << " at pos " << get_position() << ", res type " << stock[j].type << ", resource request timeout triggered! req_timeout_tick = " << stock[j].req_timeout_tick[x] << ", current tick = " << game->get_const_tick();
-              // decrement the requested count so another can be requested
-              stock[j].requested -= 1;
-              // delete the timeout
-              stock[j].req_timeout_tick[x] = 0;
-            }
-          }
-          // set timeouts for any open reqs that do not have timeouts set (such as on game load)
-          int missing = stock[j].requested - count;
-          for (int x = 0; x < stock[j].maximum; x++){
-            if (count >= missing){
-              break;
-            }
-            if (stock[j].req_timeout_tick[x] <= 0){
-              // assign highest possible timeout (associated with road >24 tiles...get_road_length_value 7)
-              //  which ends up being 21 because it is road_length_value (7) * 3 for length timeout estimation
-              //
-              // ISSUE - I am seeing this trigger sometimes during normal game, not only on loadgame when I would expect it
-              //  that means resources are being requested without a req timeout being set on completed buildings, why?
-              //   TODO - check for other places that resources are rerequested and add timeout setting there
-              stock[j].req_timeout_tick[x] = game->get_const_tick() + (21 * TIMEOUT_SECS_PER_TILE * TICKS_PER_SEC);
-              count++;
-              Log::Debug["building"] << "debug: inside Building::update(), building type " << NameBuilding[type] << " at pos " << get_position() << ", no req_timeout_tick set for this requested slot of type " << stock[j].type << ", setting to highest timeout";
-            }
-          }
-        }
-        if (stock[j].requested < 0) {
-          // changing this from Warn to Debug, as this is not so unexpected if resource timeouts are in place
-          Log::Debug["building"] << "debug: inside Building::update(), building type " << NameBuilding[type] << " at pos " << get_position() << ", after requested resource count is below zero!  stock[" << j << "].requested = " << stock[j].requested << ", resetting it to zero";
-          stock[j].requested = 0;
-        }
-      }
-    }
 
     switch (get_type()) {
       case TypeBoatbuilder:
         if (holder) {
-          // this says 'tree' but boatbuilders use planks, maybe fix typo?
           Player *player = game->get_player(get_owner());
-          int total_tree = stock[0].requested + stock[0].available;
-          if (total_tree < stock[0].maximum) {
+          int total_plank = stock[0].requested + stock[0].available;
+          if (total_plank < stock[0].maximum) {
             stock[0].prio =
-              player->get_planks_boatbuilder() >> (8 + total_tree);
+              player->get_planks_boatbuilder() >> (8 + total_plank);
           } else {
             stock[0].prio = 0;
           }

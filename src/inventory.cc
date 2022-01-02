@@ -73,6 +73,8 @@ Inventory::get_resource_from_queue(Resource::Type *res, int *dest) {
   out_queue[1].dest = 0;
 }
 
+// note that the out queue for resources only has two slots!
+//  it is almost always full
 void
 Inventory::add_to_queue(Resource::Type type, unsigned int dest) {
   if (type == Resource::GroupFood) {

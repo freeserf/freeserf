@@ -884,6 +884,7 @@ Viewport::draw_unharmed_building(Building *building, int lx, int ly) {
         // it seems ticks are always even!
         //uint16_t tick_rand = (random.random() * interface->get_game()->get_const_tick()) & 0x7f;
         //uint16_t semiconst_rand = (random.random() & 0x7f);  // this is NOT always even
+        // SHOULD THIS BE TICK OR CONST TICK ?
         uint16_t tick_rand = (random.random() + interface->get_game()->get_const_tick()) & 0x7f;
         uint16_t limit_tick = interface->get_game()->get_const_tick() & 0x7f;
         //Log::Info["viewport.cc"] << "pig debug: pigs_count " << pigs_count << ", limit_tick " << limit_tick << ", const tick " << interface->get_game()->get_const_tick() << ", semiconst_rand " << semiconst_rand << ", tick_rand " << tick_rand;

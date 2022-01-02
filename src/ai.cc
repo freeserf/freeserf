@@ -1028,7 +1028,7 @@ AI::do_fix_missing_transporters() {
       }
       AILogDebug["do_fix_missing_transporters"] << "triggering timer for flag with pos " << flag->get_position() << ", index " << flag_index << ", dir " << dir << " / " << NameDirection[dir];
       
-      if (!flag->has_path(dir)){
+      if (!flag->has_path_IMPROVED(dir)){
         AILogVerbose["do_fix_missing_transporters"] << "a path no longer exists for flag with pos " << flag->get_position() << ", index " << flag_index << ", dir " << dir << " / " << NameDirection[dir] << ", erasing timer";
         no_transporter_timer = no_transporter_timers.erase(no_transporter_timer);
       }
@@ -1315,7 +1315,7 @@ AI::do_send_geologists() {
   unsigned int hammers_count = realm_inv[Resource::TypeHammer];
   int reserve_hammers = 2;
   int excess_hammers = static_cast<int>(hammers_count - reserve_hammers);
-  unsigned int adjusted_geologists_max = 3 + (geologists_max * stock_building_counts.size());
+  unsigned int adjusted_geologists_max = 2 + (geologists_max * stock_building_counts.size());
   AILogDebug["do_send_geologists"] << inventory_pos << " total_geologists " << total_geologists << ", idle_geologists " << idle_geologists << ", geologists_max "
     << geologists_max << ", hammers_count " << hammers_count << ", reserve_hammers " << reserve_hammers << ", excess_hammers " << excess_hammers << ", adjusted_geologists_max " << adjusted_geologists_max;
   
@@ -3871,11 +3871,11 @@ AI::do_build_better_roads_for_important_buildings() {
   AILogDebug["do_build_better_roads_for_important_buildings"] << "inside do_build_better_roads_for_important_buildings";
   // only do this every X loops and once X knight huts built
   unsigned int completed_huts = realm_completed_building_count[Building::TypeHut];
-  if (loop_count % 10 != 0 || completed_huts < 14) {
+  if (loop_count % (10 + 5*stocks_pos.size()) != 0 || completed_huts < 14) {  // reduce the frequency of this running with each warehouse built
     AILogDebug["do_build_better_roads_for_important_buildings"] << "running until a significant number of huts completed, and only every X loops";
     return;
   }
-  ai_status.assign("HOUSEKEEPING - build better roads");
+  ai_status.assign("do_build_better_roads_for_important_buildings");
   //AILogVerbose["do_build_better_roads_for_important_buildings"] << "thread #" << std::this_thread::get_id() << " AI is locking mutex before calling game->get_player_buildings(player) (for finding positions of military buildings)";
   //game->get_mutex()->lock();
   //AILogVerbose["do_build_better_roads_for_important_buildings"] << "thread #" << std::this_thread::get_id() << " AI has locked mutex before calling game->get_player_buildings(player) (for finding positions of military buildings)";
@@ -3905,7 +3905,7 @@ AI::do_build_better_roads_for_important_buildings() {
     Road road_built;
     if(build_best_road(building_flag_pos, road_options, &road_built, "do_build_better_roads", type)){
       AILogDebug["do_build_better_roads_for_important_buildings"] << "successfully built an improved road connection for building of type " << NameBuilding[type] << " at pos " << building->get_position() << " to its affinity building (whatever that may be - check build_best_road result)";
-      //ai_mark_build_better_roads->push_back(road_built);
+      ai_mark_build_better_roads->push_back(road_built);
     }
     road_options.reset(RoadOption::Improve);
   }
