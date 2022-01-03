@@ -172,6 +172,7 @@ AI::next_loop(){
 
   do_connect_disconnected_flags(); // except unfinished mines
   do_connect_disconnected_road_networks();
+  return;
   do_build_better_roads_for_important_buildings();  // is this working?  I still see pretty inefficient roads for important buildings
   do_pollute_castle_area_roads_with_flags(); // CHANGE THIS TO USE ARTERIAL ROADS  (nah, it works well enough as it is, do that later)
   do_fix_stuck_serfs();  // this is definitely still an issue, try to fix root cause
@@ -525,8 +526,7 @@ AI::do_connect_disconnected_flags() {
   double duration;
   start = std::clock();
   AILogDebug["do_connect_disconnected_flags"] << "inside do_connect_disconnected_flags";
-  AILogDebug["do_connect_disconnected_flags"] << "HouseKeeping: connect any disconnected flags";
-  ai_status.assign("HOUSEKEEPING - connect any disconnected flags");
+  ai_status.assign("do_connect_disconnected_flags");
   // got a segfault during flags_copy = game->get_flags... need to mutex wrap all AI game->get_flags calls?
   Flags flags_copy = *(game->get_flags());  // create a copy so we don't conflict with the game thread, and don't want to mutex lock for a long function
   for (Flag *flag : flags_copy) {
@@ -4017,7 +4017,7 @@ AI::do_get_inventory(MapPos inventory_pos) {
   stock_inv = this_stock_inv;
   // dump stock inventory every loop for debugging
   for (int i = 0; i < 26; i++) {
-    AILogDebug["do_get_inventory"] << "'s stock at pos " << inventory_pos << " has " << NameResource[i] << ": " << stock_inv->get_count_of(Resource::Type(i));
+    AILogDebug["do_get_inventory"] << "stock at pos " << inventory_pos << " has " << NameResource[i] << ": " << stock_inv->get_count_of(Resource::Type(i));
   }
 
   for (int i = 0; i < 26; i++) {

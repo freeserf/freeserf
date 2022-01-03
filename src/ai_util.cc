@@ -545,7 +545,7 @@ AI::build_best_road(MapPos start_pos, RoadOptions road_options, Road *built_road
         //MapPos nearest_inv_pos = find_nearest_inventory(map, player_index, start_pos, DistType::FlagAndStraightLine, &ai_mark_pos);
         MapPos nearest_inv_pos = find_nearest_inventory(map, player_index, start_pos, DistType::StraightLineOnly, &ai_mark_pos);
         if (nearest_inv_pos != bad_map_pos){
-          AILogDebug["util_build_best_road"] << "" << calling_function << " no valid target found, setting target to nearest_inv_pos (by straight line) " << nearest_inv_pos;
+          AILogDebug["util_build_best_road"] << "" << calling_function << " no affinity target found, setting target to nearest_inv_pos (by straight line) " << nearest_inv_pos;
           fallback_inv_pos = nearest_inv_pos;
         }else{
           AILogDebug["util_build_best_road"] << "" << calling_function << " find_nearest_inventory by StraightLineOnly found nearest_inv_pos " << nearest_inv_pos;
@@ -553,8 +553,8 @@ AI::build_best_road(MapPos start_pos, RoadOptions road_options, Road *built_road
       //}
       if (fallback_inv_pos == bad_map_pos){
         fallback_inv_pos = inventory_pos;
-        //AILogDebug["util_build_best_road"] << "" << calling_function << " no valid target found and could not find nearest_inv_pos, setting target to current inventory_pos " << inventory_pos;
-        AILogWarn["util_build_best_road"] << "" << calling_function << " no valid target found and could not find nearest_inv_pos BY STRAIGHTLINE DIST - WHY???, setting target to current inventory_pos " << inventory_pos;
+        //AILogDebug["util_build_best_road"] << "" << calling_function << " no affinity target found and could not find nearest_inv_pos, setting target to current inventory_pos " << inventory_pos;
+        AILogWarn["util_build_best_road"] << "" << calling_function << " no affinity target found and could not find nearest_inv_pos BY STRAIGHTLINE DIST - WHY???, setting target to current inventory_pos " << inventory_pos;
         // could change the fallback to simply be nearest flag, but I don't think this should never happen if using StraightLineOnly
         throw ExceptionFreeserf("failed to find inventory by StraightLine, this should always work");
       }

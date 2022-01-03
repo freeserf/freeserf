@@ -171,21 +171,23 @@ AI::plot_road(PMap map, unsigned int player_index, MapPos start_pos, MapPos end_
       //ai_mark_pos.insert(ColorDot(new_pos, "blue"));
       //sleep_speed_adjusted(100);
       // Check if neighbour is valid
-      if (!map->is_road_segment_valid(node->pos, d) ||
-        (map->get_obj(new_pos) == Map::ObjectFlag && new_pos != end_pos)) {
+      if (!map->is_road_segment_valid(node->pos, d) ||   // if cannot build a road here because path is blocked...
+        (map->get_obj(new_pos) == Map::ObjectFlag && new_pos != end_pos)) {   // OR a flag is here but not the destination flag...
         //(avoid_castle && AI::is_near_castle(game, new_pos))) {
         //
         // if the pathfinder hits an existing road point where a flag could be built,
         //   create a "fake flag" solution and include it as a potential road
         //
-        if (fake_flags_count > max_fake_flags) {
-          AILogDebug["plot_road"] << "reached max_fake_flags count " << max_fake_flags << ", not considering any more fake flag solutions";
+        if (fake_flags_count > max_fake_flags) {  // this should be changed to 'found_flags_count' instead of 'fake_flags_count'
+                                                  //  now that it can include real flags found along the way
+          AILogDebug["plot_road"] << "reached max_fake_flags count " << max_fake_flags << ", not considering any more found or fake flag solutions";
           continue;
         }
         // split road found if can build a flag, and that flag is already part of a road (meaning it has at least one path)
-        if (game->can_build_flag(new_pos, player) && map->has_any_path(new_pos)){
+        if ( (game->can_build_flag(new_pos, player) && map->has_any_path(new_pos) )  // if can build a new flag on existing path...
+          || (map->get_obj(new_pos) == Map::ObjectFlag && new_pos != end_pos)     ){ // or there is already a real flag here
           fake_flags_count++;
-          AILogDebug["plot_road"] << "plot_road: alternate/split_road solution found while pathfinding to " << end_pos << ", a new flag could be built at pos " << new_pos;
+          AILogDebug["plot_road"] << "plot_road: alternate found or split_road solution found while pathfinding to " << end_pos << ", a non-target flag exists or a new flag could be built at pos " << new_pos;
           // retrace the "bread crumb trail" tile by tile from end to start
           //   this creates a Road with 'source' of end_pos and 'last' of start_pos
           //     which is backwards from the direction the pathfinding ran
