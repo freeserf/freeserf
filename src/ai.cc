@@ -65,7 +65,7 @@ AI::AI(PGame current_game, unsigned int _player_index) {
   road_options.set(RoadOption::SplitRoads);
   road_options.set(RoadOption::PenalizeNewLength);
   road_options.set(RoadOption::PenalizeCastleFlag);
-  road_options.reset(RoadOption::AvoidCastleArea);
+  road_options.reset(RoadOption::AvoidCastleArea);  // this currently does nothing! needs coding
   road_options.reset(RoadOption::Improve);
   road_options.reset(RoadOption::ReducedNewLengthPenalty);
   road_options.reset(RoadOption::AllowWaterRoad);
@@ -374,7 +374,7 @@ AI::do_update_clear_reset() {
   road_options.set(RoadOption::SplitRoads);
   road_options.set(RoadOption::PenalizeNewLength);
   road_options.set(RoadOption::PenalizeCastleFlag);
-  road_options.reset(RoadOption::AvoidCastleArea);
+  road_options.reset(RoadOption::AvoidCastleArea);    // this currently does nothing! needs coding
   //road_options.reset(RoadOption::Improve);  // this wasn't here for a long time, did I forget it or was this intentional?
   //road_options.reset(RoadOption::ReducedNewLengthPenalty);  // this wasn't here for a long time, did I forget it or was this intentional?
   road_options.reset(RoadOption::AllowWaterRoad);  // this wasn't here for a long time, did I forget it or was this intentional?
@@ -594,7 +594,8 @@ AI::do_connect_disconnected_flags() {
 
 
 //
-// NOTE - potential improvement  (make separate function?)
+// CONSIDER COMPLETELY REPLACING SPIDERWEB ROADS WITH THE FOLLOWING LOGIC:
+//     (make separate function?)
 //  instead of just around Inventories, randomly choose flags and look
 //  where a relatively straight road could be built to another random flag
 //  that would greatly improve the flag-dist between them, this should help
@@ -620,24 +621,18 @@ AI::do_spiderweb_roads() {
   //
   // only do this every X loops, and only add one new road per run
   unsigned int completed_huts = stock_building_counts.at(inventory_pos).completed_count[Building::TypeHut];
-  /* now I'm not seeing stocks getting any spiderweb roads, disabling this for now...
   if (inventory_pos == castle_flag_pos){
-    // castle gets more spiderweb roads
-    if ( loop_count % 24 != 0 || completed_huts < 8 || completed_huts > 22) {
+    if ( loop_count % 30 != 0 || completed_huts < 8 || completed_huts > 22) {
       AILogDebug["do_spiderweb_roads"] << inventory_pos << " skipping spider-web roads for castle, only running every twenty loops and completed knight huts " << completed_huts << " is >8 or <22";
       return;
     }
   }else{
-    // Stocks get less
-    if ( loop_count % 24 != 0 || completed_huts < 8 || completed_huts > 16) {
+    // Stocks get a longer spiderweb range because they tend to "steal" large numbers of huts as soon
+    //  as they are built, resulting in zero spiderweb roads if using same rules as castle
+    if ( loop_count % 30 != 0 || completed_huts < 16 || completed_huts > 32) {
       AILogDebug["do_spiderweb_roads"] << inventory_pos << " skipping spider-web roads for this Stock, only running every twenty loops and completed knight huts " << completed_huts << " is >8 or <12";
       return;
     }
-  }
-  */
-  if ( loop_count % 30 != 0 || completed_huts < 8 || completed_huts > 22) {
-    AILogDebug["do_spiderweb_roads"] << inventory_pos << " skipping spider-web roads for Inventory, only running every thirty loops and completed knight huts " << completed_huts << " is >8 or <22";
-    return;
   }
 
   std::set<MapPos> tried_pairs;
@@ -3095,8 +3090,8 @@ AI::do_build_toolmaker_steelsmelter() {
   //  huts have been built to expand borders when it is placed.  To avoid this, don't allow
   //  placing a steelsmelter *in this function* until at least a few knight huts occupied
   unsigned int occupied_huts = realm_occupied_building_count[Building::TypeHut];
-  if (occupied_huts < 4){
-    AILogInfo["do_build_toolmaker_steelsmelter"] << inventory_pos << " not considering steelsmelter for toolmaker until at least 4 huts occupied, to avoid placement right near castle";
+  if (occupied_huts < 6){
+    AILogInfo["do_build_toolmaker_steelsmelter"] << inventory_pos << " not considering steelsmelter for toolmaker until at least 6 huts occupied, to avoid placement right near castle";
     return;
   }
 

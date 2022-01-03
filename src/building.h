@@ -37,7 +37,7 @@
 //   for a serf to travel one tile up a road of the steepest (red) category
 // timeouts from 100-1000 might be reasonable, the higher end mainly to account
 //  for serf and resource traffic on roads, terrain probably matters less
-#define TIMEOUT_SECS_PER_TILE  300
+#define TIMEOUT_SECS_PER_TILE  350
 // also copying these here from freeserf.h as it is not included but is needed for
 //  the request resource timeouts
 /* The length between game updates in miliseconds. */

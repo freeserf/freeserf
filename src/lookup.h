@@ -339,7 +339,7 @@ const std::string NameRoadOption[] = {
   "Direct",
   "SplitRoads",
   "PenalizeNewLength",
-  "AvoidCastleArea",
+  "AvoidCastleArea",    // this currently does nothing! needs coding
   "PenalizeCastleFlag",
   "Improve",
   "ReducedNewLengthPenalty",
@@ -597,7 +597,7 @@ const Building::Type BuildingAffinity[25][2] = {
   road_options.set(RoadOption::SplitRoads);
   road_options.set(RoadOption::PenalizeNewLength);
   road_options.set(RoadOption::PenalizeCastleFlag);
-  road_options.reset(RoadOption::AvoidCastleArea);
+  road_options.reset(RoadOption::AvoidCastleArea);    // this currently does nothing! needs coding
   road_options.reset(RoadOption::Improve);
   road_options.reset(RoadOption::ReducedNewLengthPenalty);
   road_options.reset(RoadOption::AllowWaterRoad);
@@ -611,7 +611,7 @@ typedef enum RoadOption {
   Direct = 0,         // connect directly to target building's flag, [not?] any potential routes via other flags, no splitting roads, ignores Improve flag (will build regardless)
   SplitRoads,         // allow creating new flags (splitting roads) when optimal
   PenalizeNewLength,  // disfavor creating new road length, prefer connecting to existing paths when optimal
-  AvoidCastleArea,    // disfavor any pos surrounding the castle, to avoid congesting that area
+  AvoidCastleArea,      // this currently does nothing! needs coding      // disfavor any pos surrounding the castle, to avoid congesting that area
   PenalizeCastleFlag, // disfavor any flag-path that includes the castle flag, for resources that route directly to consumers
   Improve,            // allow creating new roads even if start_pos already has any existing path (otherwise disallow it)
   ReducedNewLengthPenalty, // reduced penalty, experimental, probably should just change overall new_length_penalty to penalize longer roads less
