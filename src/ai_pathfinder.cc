@@ -1331,8 +1331,9 @@ AI::find_flag_path_and_tile_dist_between_flags(PMap map, MapPos start_pos, MapPo
     // get this Flag
     Flag *flag = game->get_flag_at_pos(fnode->pos);
     if (flag == nullptr){
-      AILogWarn["find_flag_path_and_tile_dist_between_flags"] << "got nullptr for game->get_flag_at_pos " << fnode->pos << " skipping this dir";
-      throw ExceptionFreeserf("got nullptr for game->get_flag_at_pos");
+      AILogWarn["find_flag_path_and_tile_dist_between_flags"] << "got nullptr for game->get_flag_at_pos " << fnode->pos << " skipping this Flag (what happens next?)";
+      // saw this trigger once, jan02 2022.  Single AI player
+      //throw ExceptionFreeserf("got nullptr for game->get_flag_at_pos");
       continue;
     }
     
@@ -1358,7 +1359,7 @@ AI::find_flag_path_and_tile_dist_between_flags(PMap map, MapPos start_pos, MapPo
         throw ExceptionFreeserf("got nullptr for game->get_other_end_flag");
       }
       MapPos other_end_flag_pos = other_end_flag->get_position();
-      AILogDebug["find_flag_path_and_tile_dist_between_flags"] << "other_end_flag_pos is " << other_end_flag_pos;
+      //AILogDebug["find_flag_path_and_tile_dist_between_flags"] << "other_end_flag_pos is " << other_end_flag_pos;
 
       // skip dir if adjacent flag pos is already in the closed list
       if (std::find(closed.begin(), closed.end(), other_end_flag_pos) != closed.end())

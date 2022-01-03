@@ -33,34 +33,19 @@
 //  this number represents the number of seconds to allow for a requested
 //   resource to travel one game tile at default game speed (2)
 //   It needs to account for steepness and reasonable traffic
-//  A quick test shows that it takes about nine seconds for a serf
-//   to travel one tile up a road of the steepest category
-// originally tested this at 15, kept increasing as I saw timeouts triggering
-//  even setting it at 600 I still see a few timeouts.  Find a happy balance.
-//  it is probably safe to keep it relatively low as re-requesting resources
-//   should not be a big deal, but waiting forever for resources is.
-//   at 600, that is TEN MINUTES PER TILE if the TICKS_PER_SEC def is accurate
-//    that seems far too long to tolerate
-// NOT ONLY THIS.... it still seems like it isn't working!!!
-// I still see a 4x AI long running game where the castle has hundreds of bread
-//  and there's a baker right near a gold mine, and the gold mine has highest food
-//   priority, but the gold mine is still not getting and food!  it all gets stored
-// ACTUALLY I think it does work.  the warehouse where the food was being stored
-//  instead of going to the mines, after some time suddenly sent out a ton of food
-//  to the mines.  I think the timeout did work on game load anyway, not sure
-//   why it wasn't working up to that point??
-// UPDATE no longer using const_ticks, now using game ticks which is
-//  scaled with game speed.  To compensate, now multiplying this by game_speed
-//  and halving it here from previous value 18 because default game speed is 2
-//#define TIMEOUT_SECS_PER_TILE  9    // seeing many timeouts
-//#define TIMEOUT_SECS_PER_TILE  18   // only seeing a few timeouts, with GroupFood to mines
-#define TIMEOUT_SECS_PER_TILE  20  // still seeing mines timing out for GroupFood sometimes, is this a logic bug or real delay?
-//#define TIMEOUT_SECS_PER_TILE  100 // this seems to eliminate GroupFood timeouts for miners, so it must be legit, go back to the lower number
+//  A quick test shows that it takes about nine seconds and about 1000 ticks
+//   for a serf to travel one tile up a road of the steepest (red) category
+// timeouts from 100-1000 might be reasonable, the higher end mainly to account
+//  for serf and resource traffic on roads, terrain probably matters less
+#define TIMEOUT_SECS_PER_TILE  300
 // also copying these here from freeserf.h as it is not included but is needed for
 //  the request resource timeouts
 /* The length between game updates in miliseconds. */
 #define TICK_LENGTH  20
+// 1000/20 is 50, but it seems the actual timing is about 100 per second at game speed 2
+//  maybe it is intended for game speed 1?
 #define TICKS_PER_SEC  (1000/TICK_LENGTH)
+
 
 class Inventory;
 class Serf;

@@ -1171,11 +1171,6 @@ AI::build_best_road(MapPos start_pos, RoadOptions road_options, Road *built_road
         // no new length for an existing road, this means it will be preferred over a similiar
         //   potential new road after new_length penalty applied.  A new road must be significantly better to be built
         unsigned int new_length = 0;
-        //
-        // MAJOR BUG?? I noticed when looking at logs (with PenalizeNewLength turned off but not sure if that is related)
-        //   where the "tile_dist" showed up as the score of the potential new flag's tile-dist to the target flag
-        //  and did NOT include the new length that all, which I assume it shuold?
-        //
         AILogDebug["util_build_best_road"] << "" << calling_function << " scoring_eroads, BEFORE applying any penalties, potential road from start_pos " << start_pos << " in dir " << NameDirection[start_dir] << " to nearby_eroad_flag_pos " << nearby_eroad_flag_pos <<
           " has tile_dist " << tile_dist << ", flag_dist " << flag_dist << ", new_length " << new_length << " to target_pos " << target_pos;
         //----------------------------------------------------------------------------------------------
@@ -1253,6 +1248,7 @@ AI::build_best_road(MapPos start_pos, RoadOptions road_options, Road *built_road
       if (road_options.test(RoadOption::ReducedNewLengthPenalty)) {
         new_length_penalty = 1.75;
       }
+      AILogDebug["util_build_best_road"] << " using new_length_penalty of " << new_length_penalty << "x for this scoring, based on RoadOptions";
       unsigned int adjusted_score = static_cast<unsigned int>(static_cast<double>(tile_dist * 1) + static_cast<double>(new_length) * new_length_penalty + static_cast<double>(flag_dist * 1));
       if (road_options.test(RoadOption::PenalizeCastleFlag) && contains_castle_flag == true) {
         if (target_pos == castle_flag_pos){
@@ -2340,7 +2336,7 @@ AI::build_near_pos(MapPos center_pos, unsigned int distance, Building::Type buil
       //  encroaching, but also to help ensure that knight huts are already established around it so 
       //  that when the "rebuild nearby roads" happens
       // note if enemy borders are near
-      for (unsigned int i = 0; i < AI::spiral_dist(12); i++) {
+      for (unsigned int i = 0; i < AI::spiral_dist(10); i++) {
         MapPos pos = map->pos_add_extended_spirally(center_pos, i);
         if (map->get_owner(pos) == -1) {
           AILogDebug["util_build_near_pos"] << "unclaimed territory found near this center_pos, not building warehouse in this corner";

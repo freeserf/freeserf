@@ -795,7 +795,7 @@ AI::do_spiderweb_roads() {
         // definitely do not use Direct, the high-effort method gives fantastic results!
         road_options.set(RoadOption::Improve);
         //road_options.reset(RoadOption::PenalizeNewLength);
-        road_options.reset(RoadOption::ReducedNewLengthPenalty);
+        road_options.set(RoadOption::ReducedNewLengthPenalty);
         //road_options.set(RoadOption::Direct);
         //road_options.set(RoadOption::MostlyStraight);
         //road_options.reset(RoadOption::SplitRoads);
@@ -804,7 +804,7 @@ AI::do_spiderweb_roads() {
         was_built = build_best_road(area_flag_pos, road_options, &built_road, "do_spiderweb_roads", Building::TypeNone, Building::TypeNone, other_area_flag_pos);
         road_options.reset(RoadOption::Improve);
         //road_options.set(RoadOption::PenalizeNewLength);
-        road_options.set(RoadOption::ReducedNewLengthPenalty);
+        road_options.reset(RoadOption::ReducedNewLengthPenalty);
         //road_options.reset(RoadOption::Direct);
         //road_options.reset(RoadOption::MostlyStraight);
         //road_options.set(RoadOption::SplitRoads);
@@ -840,7 +840,7 @@ AI::do_pollute_castle_area_roads_with_flags() {
   // only do this every X loops, and only once a certain number of huts have been built
   //  and don't do it again after a few more huts built, because it only ever needs to be done once
   unsigned int completed_huts = realm_completed_building_count[Building::TypeHut];
-  if (loop_count % 5 != 0 || completed_huts < 15 || completed_huts >19) {
+  if (loop_count % 20 != 0 || completed_huts < 15 || completed_huts >25) {
     AILogDebug["do_pollute_castle_area_roads_with_flags"] << "skipping do_pollute_castle_area_roads_with_flags roads, only running this every X loops, and if >Y and <Z knight huts built";
     return;
   }
@@ -3093,27 +3093,31 @@ AI::do_build_toolmaker_steelsmelter() {
   unsigned int iron_ore_count = stock_inv->get_count_of(Resource::TypeIronOre);
   unsigned int coal_count = stock_inv->get_count_of(Resource::TypeCoal);
   if (stock_building_counts.at(inventory_pos).count[Building::TypeSteelSmelter] < 1
-    && (steel_count < 1 && iron_ore_count > 0 && coal_count > 0)) {
+       && (steel_count < 1 && iron_ore_count > 0 && coal_count > 0)) {
     AILogInfo["do_build_toolmaker_steelsmelter"] << inventory_pos << " no steel, but have iron & coal, trying to build steelsmelter";
+    // score areas by most open space, simply to avoid crowding and allow good road connections
+    MapPosSet open_space_counts = {};
+    AILogInfo["do_build_toolmaker_steelsmelter"] << inventory_pos << " trying to build steelsmelter near any area with most open space";
     for (MapPos center_pos : stock_building_counts.at(inventory_pos).occupied_military_pos) {
-      int steelsmelter_count = stock_building_counts.at(inventory_pos).count[Building::TypeSteelSmelter];
-      if (steelsmelter_count >= 1) {
-        AILogDebug["do_build_toolmaker_steelsmelter"] << inventory_pos << " Already placed steelsmelter, not building more";
+      MapPosVector corners = AI::get_corners(center_pos);
+      for (MapPos corner_pos : corners) {
+        int count = count_open_space(game, corner_pos, spiral_dist(4), "gray");
+        open_space_counts.insert(std::make_pair(corner_pos, count));
+      }
+    }
+    // sort areas by most open space
+    MapPosVector search_positions = AI::sort_by_val_desc(open_space_counts);
+    MapPos built_pos = bad_map_pos;
+    // try to build near area with most open space
+    for (MapPos corner_pos : search_positions) {
+      built_pos = AI::build_near_pos(corner_pos, AI::spiral_dist(6), Building::TypeSteelSmelter);
+      if (built_pos != bad_map_pos && built_pos != notplaced_pos) {
+        AILogInfo["do_build_toolmaker_steelsmelter"] << inventory_pos << " built steelsmelter at pos " << built_pos;
+        stock_building_counts.at(inventory_pos).count[Building::TypeSteelSmelter]++;
+        stock_building_counts.at(inventory_pos).unfinished_count++;
         break;
       }
-      MapPosVector corners = AI::get_corners(center_pos);
-      MapPos built_pos = bad_map_pos;
-      for (MapPos corner_pos : corners) {
-        built_pos = AI::build_near_pos(corner_pos, AI::spiral_dist(6), Building::TypeSteelSmelter);
-        if (built_pos != bad_map_pos && built_pos != notplaced_pos) {
-          AILogInfo["do_build_toolmaker_steelsmelter"] << inventory_pos << " built steelsmelter at pos " << built_pos;
-          stock_building_counts.at(inventory_pos).count[Building::TypeSteelSmelter]++;
-          stock_building_counts.at(inventory_pos).unfinished_count++;
-          break;
-        }
-      }
-      if (built_pos != bad_map_pos && built_pos != notplaced_pos) { break; }
-    } // for each military building
+    }
   }
   else {
     AILogDebug["do_build_toolmaker_steelsmelter"] << inventory_pos << " not building steelsmelter, either already placed one or have no iron / coal";
@@ -3582,10 +3586,6 @@ AI::do_build_steelsmelter() {
   // try to place steel smelter halfway between a coal mine and iron mine if both exist, preferring active ones
   // re-enabling halfway_pos checking again, but only for non-castle stocks - jan01 2022
   MapPos halfway_pos = bad_map_pos;
-  if (inventory_pos != castle_flag_pos){
-    AILogDebug["do_build_steelsmelter"] << inventory_pos << " because this is not the castle area, using find_halfway_pos function for steelsmelter placement";
-    halfway_pos = find_halfway_pos_between_buildings(inventory_pos, Building::TypeCoalMine, Building::TypeIronMine);
-  }
   MapPosVector steelsmelter_pos = {};
   if (halfway_pos != bad_map_pos) {
     AILogDebug["do_build_steelsmelter"] << inventory_pos << " adding pos halfway between a coal mine and an iron mine to first build_near center";
@@ -3947,7 +3947,7 @@ AI::do_build_warehouse() {
   AILogDebug["do_build_warehouse"] << "inside do_build_warehouse";
   // don't build warehouses until territory reaches a certain size
   unsigned int completed_huts = realm_completed_building_count[Building::TypeHut];
-  if (loop_count % 10 != 0 || completed_huts < 12) {
+  if (loop_count % 10 != 0 || completed_huts < 16) {
     AILogDebug["do_build_warehouse"] << "not considering building warehouses (stocks) until a significant number of huts completed, and only every X loops";
     return;
   }

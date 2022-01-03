@@ -426,12 +426,11 @@ Building::add_requested_resource(Resource::Type res, bool fix_priority, int dist
         dist_from_inv = 1;
       }
       // set expiration tick, add a minimum tick timeout padding so short roads don't timeout so easily
-      stock[j].req_timeout_tick[stock[j].requested] = game->get_tick() + ((dist_from_inv + 10) * game->get_game_speed() * TIMEOUT_SECS_PER_TILE * TICKS_PER_SEC);
+      stock[j].req_timeout_tick[stock[j].requested] = game->get_tick() + ((dist_from_inv + 10) * TIMEOUT_SECS_PER_TILE * TICKS_PER_SEC);
       Log::Info["building"] << "debug: successfully requested resource of type " << NameResource[res] << " for building of type " << NameBuilding[type] << ", at pos " << get_position() << ", with dist_from_inv " << dist_from_inv << ", current tick " << game->get_tick() << ", req_timeout_tick: " << stock[j].req_timeout_tick[stock[j].requested];
       stock[j].requested += 1;
       // debug timeouts
       for (int s = 0; s < stock[j].maximum; s++){
-        // I still don't understand what is going on, keep digging
         Log::Info["building"] << "debug: stock[" << j << "] res " << NameResource[res] << " slot[" << s << "] has timeout: " << stock[j].req_timeout_tick[s];
       }
       return true;

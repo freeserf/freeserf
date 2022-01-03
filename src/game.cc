@@ -969,6 +969,8 @@ Game::update() {
   tick += game_speed;
   tick_diff = tick - last_tick;
 
+  //Log::Info["game"] << "current speed-adjusted tick: " << tick;
+
   clear_serf_request_failure();
   map->update(tick, &init_map_rnd);
 

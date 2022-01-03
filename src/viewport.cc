@@ -875,7 +875,7 @@ Viewport::draw_unharmed_building(Building *building, int lx, int ly) {
 
         //
         // THE PROBLEM is that there is no state that allows keeping track of how many times
-        //  this building has been "visited" this "random tick" beacuse the random value only
+        //  this building has been "visited" this "random tick" because the random value only
         //   updates every so many loops (5-12 or so at normal game speed) and so there is no
         //   way to keep track of how many oinks have been played this cycle
         //  need to add some kind of "last updated" or "last tick" or "oinks played" value for
@@ -884,7 +884,6 @@ Viewport::draw_unharmed_building(Building *building, int lx, int ly) {
         // it seems ticks are always even!
         //uint16_t tick_rand = (random.random() * interface->get_game()->get_const_tick()) & 0x7f;
         //uint16_t semiconst_rand = (random.random() & 0x7f);  // this is NOT always even
-        // SHOULD THIS BE TICK OR CONST TICK ?
         uint16_t tick_rand = (random.random() + interface->get_game()->get_const_tick()) & 0x7f;
         uint16_t limit_tick = interface->get_game()->get_const_tick() & 0x7f;
         //Log::Info["viewport.cc"] << "pig debug: pigs_count " << pigs_count << ", limit_tick " << limit_tick << ", const tick " << interface->get_game()->get_const_tick() << ", semiconst_rand " << semiconst_rand << ", tick_rand " << tick_rand;
@@ -894,12 +893,12 @@ Viewport::draw_unharmed_building(Building *building, int lx, int ly) {
             play_sound(Audio::TypeSfxPigOink);
           }
           // allow up to a few oinks if >1 pig in stock
-          if (pigs_count == 1 || limit_tick % 6 == 0){
+          if (pigs_count == 1 || limit_tick % 4 == 0){
             building->stop_playing_sfx();
           }
         }else{
           // begin a period of oinking, chance of oinking period increases with pigs in stock
-          if (tick_rand > 0 && tick_rand < (pigs_count / 2 + 2) * 1){
+          if (tick_rand > 0 && tick_rand < (pigs_count / 2 + 2) * 2){
             building->start_playing_sfx();
           }
         }
@@ -3119,29 +3118,31 @@ Viewport::draw_ai_grid_overlay() {
   std::string status = ai->get_ai_status();
   //    got a segfault drawing this string once, I think the status string changed while iterating over its chars?
   //  got it again same day, trying questionable work-around
-  if (status == ""){ status = "unknown"; }
-  frame->draw_string(65, 1, status, ai->get_mark_color("white"));
+  //  still getting it, work-around not fixing, check Visual Studio on windows debugger
+  frame->draw_string(65, 1, status, Color::white);
+
+
 
   // draw AI expansion goals text box
   int row = 1;   // text rows are 10 pixels apart, start at row 1 (2nd row, after ai_status row)
-  frame->draw_string(1, row * 10, "expansion_goals:", ai->get_mark_color("white"));
+  frame->draw_string(1, row * 10, "expansion_goals:", Color::white);
   for (std::string goal : ai->get_ai_expansion_goals()) {
     row++;
-    frame->draw_string(1, row * 10, "   " + goal, ai->get_mark_color("white"));
+    frame->draw_string(1, row * 10, "   " + goal, Color::white);
   }
 
   // draw Inventory pos
-  frame->draw_string(450, 1, "Inv " + std::to_string(ai->get_ai_inventory_pos()), ai->get_mark_color("white"));
+  frame->draw_string(450, 1, "Inv " + std::to_string(ai->get_ai_inventory_pos()), Color::white);
 
   // draw cursor map click position
   if (ai_overlay_clicked_pos != bad_map_pos) {
-    frame->draw_string(600, 1, "clicked on " + std::to_string(ai_overlay_clicked_pos), colors.at("white"));
+    frame->draw_string(600, 1, "clicked on " + std::to_string(ai_overlay_clicked_pos), Color::white);
   }
 
   // draw current game speed
-  frame->draw_string(800, 1, "game speed: " + std::to_string(ai->get_game_speed()), colors.at("white"));
+  frame->draw_string(800, 1, "game speed: " + std::to_string(ai->get_game_speed()), Color::white);
   // draw current loop count
-  frame->draw_string(800, 10, "AI loop: " + std::to_string(ai->get_loop_count()), colors.at("white"));
+  frame->draw_string(800, 10, "AI loop: " + std::to_string(ai->get_loop_count()), Color::white);
 
 }
 
