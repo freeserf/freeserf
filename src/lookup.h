@@ -572,17 +572,17 @@ const Building::Type BuildingAffinity[25][2] = {
     { Building::TypeNone, Building::TypeNone},      //              "Building::TypeBoatbuilder",
     { Building::TypeNone, Building::TypeNone},      //              "Building::TypeStonecutter",
     { Building::TypeBaker, Building::TypeNone},     //              "Building::TypeStoneMine",
-    { Building::TypeBaker, Building::TypeNone},     //              "Building::TypeCoalMine",
-    { Building::TypeBaker, Building::TypeNone},     //              "Building::TypeIronMine",
-    { Building::TypeBaker, Building::TypeNone},     //              "Building::TypeGoldMine",
+    { Building::TypeWeaponSmith, Building::TypeSteelSmelter}, //    "Building::TypeCoalMine",
+    { Building::TypeBaker, Building::TypeSteelSmelter},     //      "Building::TypeIronMine",
+    { Building::TypeBaker, Building::TypeGoldSmelter},      //      "Building::TypeGoldMine",
     { Building::TypeNone, Building::TypeNone},      //              "Building::TypeForester",
     { Building::TypeNone, Building::TypeNone},      //              "Building::TypeStock",
     { Building::TypeNone, Building::TypeNone},      //              "Building::TypeHut",
     { Building::TypeMill, Building::TypeNone},      //              "Building::TypeFarm",
-    { Building::TypePigFarm, Building::TypeNone},   //              "Building::TypeButcher",
-    { Building::TypeButcher, Building::TypeNone},   //              "Building::TypePigFarm",
+    { Building::TypeGoldMine, Building::TypeIronMine},      //      "Building::TypeButcher",
+    { Building::TypeButcher, Building::TypeCoalMine},       //      "Building::TypePigFarm",
     { Building::TypeFarm, Building::TypeNone},      //              "Building::TypeMill",
-    { Building::TypeMill, Building::TypeNone},      //              "Building::TypeBaker",
+    { Building::TypeMill, Building::TypeCoalMine},          //      "Building::TypeBaker",
     { Building::TypeNone, Building::TypeNone},      //              "Building::TypeSawmill",
     { Building::TypeIronMine, Building::TypeCoalMine},      //      "Building::TypeSteelSmelter",
     { Building::TypeNone, Building::TypeNone},      //              "Building::TypeToolMaker",
@@ -600,7 +600,7 @@ const Building::Type BuildingAffinity[25][2] = {
   road_options.reset(RoadOption::AvoidCastleArea);
   road_options.reset(RoadOption::Improve);
   road_options.reset(RoadOption::ReducedNewLengthPenalty);
-  road_options.set(RoadOption::AllowWaterRoad);
+  road_options.reset(RoadOption::AllowWaterRoad);
   road_options.reset(RoadOption::HoldBuildingPos);
   road_options.reset(RoadOption::MostlyStraight);
   road_options.reset(RoadOption::PlotOnlyNoBuild);
@@ -615,9 +615,10 @@ typedef enum RoadOption {
   PenalizeCastleFlag, // disfavor any flag-path that includes the castle flag, for resources that route directly to consumers
   Improve,            // allow creating new roads even if start_pos already has any existing path (otherwise disallow it)
   ReducedNewLengthPenalty, // reduced penalty, experimental, probably should just change overall new_length_penalty to penalize longer roads less
-  AllowWaterRoad,     // allow creating water roads, this is on by default but if a water road is about to be built the build_best_road function will
+  AllowWaterRoad,     // allow creating water roads, this is on (OFF NOW) by default but if a water road is about to be built the build_best_road function will
                       //   make a recursive call to itself with AllowWater disabled to ensure that a land route is also available, to avoid issue where
                       //   serfs cannot reach the construction site/building because serfs cannot travel in boats (which is dumb)
+                      //  UPDATE jan02 2022, turning off AllowWater roads, they don't get good use by AI and are buggy right now
   HoldBuildingPos,    // when plotting a road, do not allow the road to pass through the pos UpLeft from the dest, so it does not prevent a building there
   MostlyStraight,     // reduce the amount of tolerated road convulation before rejecting a solution.  Effect is to reduce the max_convolution ratio
   PlotOnlyNoBuild,    // do not actually build the road, but return a Road object of the best solution found

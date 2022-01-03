@@ -1238,15 +1238,20 @@ AI::build_best_road(MapPos start_pos, RoadOptions road_options, Road *built_road
       //----------------------------------------------------------------------------------------------
       // apr13 2020 increased new_length penalty from 2.0 to 2.5
       // jan02 2022 increased new_length penalty from 2.50 to 2.75, then to 3.00
+      // jan02 2022 found solution to what I thought was caused by new length penalty, but was in fact caused by real flags
+      //             not being considered in "fake flag" solutions when discovered a long the way but not the original target
+      //             so connections were being made to new splitting flags instead of appropriate existing flags because the
+      //             existing flag was not the target of the plot_road call (because it only considers halfway point first, then others)
+      //             and so existing flag was ignored in favor of nearby fake-flag.  changing this back to 2.0 to re-evaluate!
       double new_length_penalty;
       if (road_options.test(RoadOption::PenalizeNewLength)) {
-        new_length_penalty = 3.00;
+        new_length_penalty = 2.00;
       }
       else {
         new_length_penalty = 1.00; // no penalty
       }
       if (road_options.test(RoadOption::ReducedNewLengthPenalty)) {
-        new_length_penalty = 1.75;
+        new_length_penalty = 1.50;
       }
       AILogDebug["util_build_best_road"] << " using new_length_penalty of " << new_length_penalty << "x for this scoring, based on RoadOptions";
       unsigned int adjusted_score = static_cast<unsigned int>(static_cast<double>(tile_dist * 1) + static_cast<double>(new_length) * new_length_penalty + static_cast<double>(flag_dist * 1));

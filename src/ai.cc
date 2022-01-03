@@ -68,7 +68,7 @@ AI::AI(PGame current_game, unsigned int _player_index) {
   road_options.reset(RoadOption::AvoidCastleArea);
   road_options.reset(RoadOption::Improve);
   road_options.reset(RoadOption::ReducedNewLengthPenalty);
-  road_options.set(RoadOption::AllowWaterRoad);
+  road_options.reset(RoadOption::AllowWaterRoad);
   road_options.reset(RoadOption::HoldBuildingPos);
   road_options.reset(RoadOption::MostlyStraight);
   road_options.reset(RoadOption::PlotOnlyNoBuild);
@@ -172,7 +172,6 @@ AI::next_loop(){
 
   do_connect_disconnected_flags(); // except unfinished mines
   do_connect_disconnected_road_networks();
-  return;
   do_build_better_roads_for_important_buildings();  // is this working?  I still see pretty inefficient roads for important buildings
   do_pollute_castle_area_roads_with_flags(); // CHANGE THIS TO USE ARTERIAL ROADS  (nah, it works well enough as it is, do that later)
   do_fix_stuck_serfs();  // this is definitely still an issue, try to fix root cause
@@ -378,7 +377,7 @@ AI::do_update_clear_reset() {
   road_options.reset(RoadOption::AvoidCastleArea);
   //road_options.reset(RoadOption::Improve);  // this wasn't here for a long time, did I forget it or was this intentional?
   //road_options.reset(RoadOption::ReducedNewLengthPenalty);  // this wasn't here for a long time, did I forget it or was this intentional?
-  //road_options.set(RoadOption::AllowWaterRoad);  // this wasn't here for a long time, did I forget it or was this intentional?
+  road_options.reset(RoadOption::AllowWaterRoad);  // this wasn't here for a long time, did I forget it or was this intentional?
   //road_options.reset(RoadOption::HoldBuildingPos);  // this wasn't here for a long time, did I forget it or was this intentional?
   road_options.reset(RoadOption::MostlyStraight);
   road_options.reset(RoadOption::PlotOnlyNoBuild);
@@ -636,8 +635,8 @@ AI::do_spiderweb_roads() {
     }
   }
   */
-  if ( loop_count % 24 != 0 || completed_huts < 8 || completed_huts > 22) {
-    AILogDebug["do_spiderweb_roads"] << inventory_pos << " skipping spider-web roads for Inventory, only running every twenty loops and completed knight huts " << completed_huts << " is >8 or <22";
+  if ( loop_count % 30 != 0 || completed_huts < 8 || completed_huts > 22) {
+    AILogDebug["do_spiderweb_roads"] << inventory_pos << " skipping spider-web roads for Inventory, only running every thirty loops and completed knight huts " << completed_huts << " is >8 or <22";
     return;
   }
 
@@ -656,8 +655,11 @@ AI::do_spiderweb_roads() {
   //   to be used, it would result in more distant connections, and if unlimited would 
   //   result in connections straight across the center pos.  If a smaller arc were used
   //   it would not succeed in making as many new spiderweb connections as desired 
+  //  UPDATE jan02 2022 - reducing the arc by one sector to 8, saw a long snakey road
+  //   built that covered almost 180degrees of castle area and blocked a lot of stuff
   //
-  MapPosVector flag_lists[9] = { }; //array of vectors
+  //MapPosVector flag_lists[9] = { }; //array of vectors
+  MapPosVector flag_lists[8] = { }; //array of vectors
 
   //for (unsigned int i = AI::spiral_dist(14); i < AI::spiral_dist(15); i++) {
   // because the ring uses spiral function which only goes counter-clockwise starting
@@ -701,10 +703,12 @@ AI::do_spiderweb_roads() {
     }
     // shift all the flag_list vectors back, dropping the oldest one
     //  and push the newest one to the front of the array
-    for (int y = 1; y < 9; y++) {
+    //for (int y = 1; y < 9; y++) {
+    for (int y = 1; y < 8; y++) {  // jan02 2022 reducing to 8 sectors
       flag_lists[y - 1] = flag_lists[y];
     }
-    flag_lists[8] = flag_list;
+    //flag_lists[8] = flag_list;
+    flag_lists[7] = flag_list;  // jan02 2022 reducing to 8 sectors
 
     // insert all the recent vectors into a set, to remove duplicates
     std::set<MapPos> flag_set;
@@ -728,7 +732,7 @@ AI::do_spiderweb_roads() {
     AILogDebug["do_spiderweb_roads"] << inventory_pos << " shuffled_flag_vector contains " << shuffled_flag_vector.size() << " elements";
 
     //
-    // loop over random pairs of flags (that were found in the last 8 sectors)
+    // loop over random pairs of flags (that were found in the last 8 sectors)    // jan02 2022 reducing to 8 sectors so last 7 sectors here
     //  and consider building a road between them, and if they look good, do so
     //
     for (MapPos area_flag_pos : shuffled_flag_vector) {
@@ -1901,7 +1905,8 @@ AI::do_remove_road_stubs() {
         //  and also store the Road found for later checking to prevent self-connection
         existing_road = trace_existing_road(map, flag_pos, dir);
         current_road_length = existing_road.get_length();
-        if (current_road_length < 6){
+        //if (current_road_length < 6){
+        if (current_road_length < 4){  // jan02 2022 reducing this from 6 to 4
           //AILogDebug["do_remove_road_stubs"] << "eligible knight hut stub road ending with flag at pos " << flag_pos << " is too short to bother with, not removing road";
           break;
         }else{
@@ -3085,6 +3090,16 @@ AI::do_build_toolmaker_steelsmelter() {
     AILogDebug["do_build_toolmaker_steelsmelter"] << inventory_pos << " Already placed toolmaker, not building another";
   }
 
+  // because steelsmelter is often built early in the game to supply tool steel it
+  //  ends up right next to castle despite "most open space" logic because no/few knight
+  //  huts have been built to expand borders when it is placed.  To avoid this, don't allow
+  //  placing a steelsmelter *in this function* until at least a few knight huts occupied
+  unsigned int occupied_huts = realm_occupied_building_count[Building::TypeHut];
+  if (occupied_huts < 4){
+    AILogInfo["do_build_toolmaker_steelsmelter"] << inventory_pos << " not considering steelsmelter for toolmaker until at least 4 huts occupied, to avoid placement right near castle";
+    return;
+  }
+
   // if no steel, but have iron & coal, build steelsmelter to produce steel for toolmaker
   //   do this even if no toolmaker exists and tools not needed yet, they might be needed soon
   if(stock_inv == nullptr)
@@ -3909,10 +3924,10 @@ AI::do_build_better_roads_for_important_buildings() {
     if (!building->is_done() || building->is_burning())
       continue;
     // only consider these building types for road improvement
-    //    why not Baker? is that handled elsewhere?  Or does considering Mines handle food?
     if (type != Building::TypeWeaponSmith && type != Building::TypeSteelSmelter
       && type != Building::TypeGoldSmelter && type != Building::TypeCoalMine
-      && type != Building::TypeIronMine && type != Building::TypeGoldMine) {
+      && type != Building::TypeIronMine && type != Building::TypeGoldMine
+      && type != Building::TypeBaker && type != Building::TypeButcher) {
       continue;
     }
     AILogDebug["do_build_better_roads_for_important_buildings"] << "do_build_better_roads_for_important_buildings found high-priority building of type " << NameBuilding[type] << " at pos " << building->get_position();
