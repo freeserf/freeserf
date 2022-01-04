@@ -170,13 +170,16 @@ AI::next_loop(){
   //      rather it should be done after first few buildings/roads placed
   //-----------------------------------------------------------
 
+/*
   do_connect_disconnected_flags(); // except unfinished mines
   do_connect_disconnected_road_networks();
   do_build_better_roads_for_important_buildings();  // is this working?  I still see pretty inefficient roads for important buildings
   do_pollute_castle_area_roads_with_flags(); // CHANGE THIS TO USE ARTERIAL ROADS  (nah, it works well enough as it is, do that later)
   do_fix_stuck_serfs();  // this is definitely still an issue, try to fix root cause
   do_fix_missing_transporters();  // is this still a problem anymore??  YES
+  */
   do_remove_road_stubs();
+  return;
   do_demolish_unproductive_3rd_lumberjacks();
   do_demolish_unproductive_stonecutters();
   do_demolish_unproductive_mines();
@@ -2230,7 +2233,7 @@ AI::do_demolish_excess_lumberjacks() {
 
 
 // burn ALL fisherman huts, wheat farms, pig farms(?) attached to this stock if stock food_max reached, to avoid clogging roads
-//  leave grain mills, bakers, butchees
+//  leave grain mills, bakers, butchers
 // NOTE that food sitting at flags near the inventory counts also, but its contribution is capped
 void
 AI::do_demolish_excess_food_buildings() {
@@ -4277,14 +4280,14 @@ AI::do_check_resource_needs(){
   unsigned int adjusted_food_count = stored_food_count;
   if (food_at_flags + potential_food_count > ((food_max + 1) / 3)*2 ){
     // the COMBINED contribution of potential food and food-at-flags can't be more than 75% of food_max
-    AILogDebug["do_check_resource_needs"] << inventory_pos << " capping combined contribution of potential_food_count and food_at_flags to 66% of food_max";
+    //AILogDebug["do_check_resource_needs"] << inventory_pos << " capping combined contribution of potential_food_count and food_at_flags to 66% of food_max";
     adjusted_food_count += ((food_max + 1) / 3)*2;
   }else{
     // not capped
     adjusted_food_count += food_at_flags + potential_food_count;
   }
-  AILogDebug["do_check_resource_needs"] << inventory_pos << " debug: stored_food_count " << stored_food_count << ", potential_food_count " << potential_food_count << ", food_at_flags " << food_at_flags << ", adjusted_food_count " << adjusted_food_count << ", food_max " << food_max;
-  AILogDebug["do_check_resource_needs"] << inventory_pos << " adjusted food_count at inventory_pos " << inventory_pos << ": " << adjusted_food_count;
+  //AILogDebug["do_check_resource_needs"] << inventory_pos << " debug: stored_food_count " << stored_food_count << ", potential_food_count " << potential_food_count << ", food_at_flags " << food_at_flags << ", adjusted_food_count " << adjusted_food_count << ", food_max " << food_max;
+  //AILogDebug["do_check_resource_needs"] << inventory_pos << " adjusted food_count at inventory_pos " << inventory_pos << ": " << adjusted_food_count;
   if (adjusted_food_count < food_max) {
     AILogDebug["do_check_resource_needs"] << inventory_pos << " desire more food";
     // don't check for food buildings because the do_food_buildings function does, and the checks are too complex to move into here

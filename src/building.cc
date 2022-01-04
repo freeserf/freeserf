@@ -825,6 +825,7 @@ Building::get_max_priority_for_resource(
   int max_prio = -1;
 
   for (int i = 0; i < kMaxStock; i++) {
+    // got segfault here for first time jan03 2022, try VisualStudio on windows to debug
     if (stock[i].type == resource &&
         stock[i].prio >= minimum &&
         stock[i].prio > max_prio) {

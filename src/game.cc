@@ -2472,9 +2472,15 @@ Game::cancel_transported_resource(Resource::Type res, unsigned int dest) {
   }
 
   Flag *flag = flags[dest];
+
   if (!flag->has_building()) {
     // got exception here for the first time ever jan01 2022, wonder why
-    throw ExceptionFreeserf("Failed to cancel transported resource.");
+    //  again jan03 2022, adding nullptr check above
+    // it isn't flag that has nullptr, but that flag does not have building I guess
+    // changing this to Warn for now
+    //throw ExceptionFreeserf("Failed to cancel transported resource.");
+    Log::Warn["game.cc"] << "inside cancel_transported_resource, flag->has_building call returned false!  building was expected, returning without cancelling request";
+    return;
   }
   Building *building = flag->get_building();
   building->cancel_transported_resource(res);

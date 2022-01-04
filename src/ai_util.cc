@@ -1243,9 +1243,16 @@ AI::build_best_road(MapPos start_pos, RoadOptions road_options, Road *built_road
       //             so connections were being made to new splitting flags instead of appropriate existing flags because the
       //             existing flag was not the target of the plot_road call (because it only considers halfway point first, then others)
       //             and so existing flag was ignored in favor of nearby fake-flag.  changing this back to 2.0 to re-evaluate!
+      // jan03 2022 ANOTHER UPDATE - setting this very high for stock/warehouse, attempt to reduce road clutter around them
       double new_length_penalty;
       if (road_options.test(RoadOption::PenalizeNewLength)) {
-        new_length_penalty = 2.00;
+        if (inventory_pos != castle_flag_pos){
+          // stock/warehouse area
+          new_length_penalty = 5.00;
+        }else{
+          // castle area
+          new_length_penalty = 2.00;
+        }
       }
       else {
         new_length_penalty = 1.00; // no penalty
@@ -2239,8 +2246,22 @@ AI::build_near_pos(MapPos center_pos, unsigned int distance, Building::Type buil
     || building_type == Building::TypeIronMine
     || building_type == Building::TypeGoldMine
     || building_type == Building::TypeStoneMine) {
-    AILogDebug["util_build_near_pos"] << "this is a Mine, setting is_mine to true";
+    AILogDebug["util_build_near_pos"] << "this is a Mine of type " << NameBuilding[building_type] << ", setting is_mine to true";
     is_mine = true;
+  }
+
+  // if this is a tracked-economy building, but not a mine (because we have less control
+  //  over placement of mines), and the current Inventory is a stock (not castle)
+  //  then also ensure the straight-line distance is fairly close to the stock
+  //  Otherwise, buildings tend to be built far away from it even if they are still closest
+  //  by verify_stock checks
+  // NOTE - this goes by center_pos not actual pos so it is a bit more sensitive than it seems
+  if (!is_mine && verify_stock && inventory_pos != castle_flag_pos){
+    AILogDebug["util_build_near_pos"] << "this is a non-mine tracked economy building of type " << NameBuilding[building_type] << " and this is not the castle area, doing straightline-dist-to-Stock check";
+    if (get_straightline_tile_dist(map, center_pos, inventory_pos) > 30){
+      AILogDebug["util_build_near_pos"] << "this is a non-mine tracked economy building of type " << NameBuilding[building_type] << " and this is not the castle area, rejecting center_pos because too far from Stock";
+      return bad_map_pos;
+    }
   }
 
   MapPos built_pos = bad_map_pos;
@@ -2748,10 +2769,10 @@ AI::score_area(MapPos center_pos, unsigned int distance) {
     //
     //  tiles owned by nobody, outside our borders, where the center_pos
     //   is near the castle, are valued to encourage building huts the castle
-    if (get_straightline_tile_dist(map, center_pos, castle_flag_pos) < 12){
+    if (get_straightline_tile_dist(map, center_pos, castle_flag_pos) < 18){
       if (map->get_owner(pos) == -1) {
-        pos_value += expand_towards.count("castle_buffer") * 2;
-        //AILogDebug["util_score_area"] << "adding castle_buffer value for unclaimed territory near our castle";
+        pos_value += expand_towards.count("castle_buffer") * 1;
+        //AILogDebug["util_score_area"] << "adding castle_buffer value for unclaimed territory near our castle with value of " << expand_towards.count("castle_buffer") * 2;
         //ai_mark_pos.erase(pos);
         //ai_mark_pos.insert(ColorDot(pos, "black"));
         //sleep_speed_adjusted(100);

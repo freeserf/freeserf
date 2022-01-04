@@ -171,7 +171,13 @@ AI::plot_road(PMap map, unsigned int player_index, MapPos start_pos, MapPos end_
       //ai_mark_pos.insert(ColorDot(new_pos, "blue"));
       //sleep_speed_adjusted(100);
       // Check if neighbour is valid
-      if (!map->is_road_segment_valid(node->pos, d) ||   // if cannot build a road here because path is blocked...
+      if (new_pos == end_pos && !map->is_road_segment_valid(node->pos, d) && game->can_build_flag(new_pos, player)){
+        // solution found but the end_pos does not have a flag because this is a specifically-requested
+        //  split-road solution.  Do nothing here, but this if block avoids the 'continue' so a new node
+        //  can be created and the normal completion logic handled
+        AILogDebug["plot_road"] << "reached end_pos " << end_pos << " of requested road to non-existent new splitting flag";
+      }
+      else if (!map->is_road_segment_valid(node->pos, d) ||   // if cannot build a road here because path is blocked...
         (map->get_obj(new_pos) == Map::ObjectFlag && new_pos != end_pos)) {   // OR a flag is here but not the destination flag...
         //(avoid_castle && AI::is_near_castle(game, new_pos))) {
         //
@@ -185,7 +191,7 @@ AI::plot_road(PMap map, unsigned int player_index, MapPos start_pos, MapPos end_
         }
         // split road found if can build a flag, and that flag is already part of a road (meaning it has at least one path)
         if ( (game->can_build_flag(new_pos, player) && map->has_any_path(new_pos) )  // if can build a new flag on existing path...
-          || (map->get_obj(new_pos) == Map::ObjectFlag && new_pos != end_pos)     ){ // or there is already a real flag here
+          || (map->get_obj(new_pos) == Map::ObjectFlag && new_pos != end_pos && new_pos != start_pos)){ // or there is already a real flag here
           fake_flags_count++;
           AILogDebug["plot_road"] << "plot_road: alternate found or split_road solution found while pathfinding to " << end_pos << ", a non-target flag exists or a new flag could be built at pos " << new_pos;
           // retrace the "bread crumb trail" tile by tile from end to start
