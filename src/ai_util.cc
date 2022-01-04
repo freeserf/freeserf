@@ -576,6 +576,8 @@ AI::build_best_road(MapPos start_pos, RoadOptions road_options, Road *built_road
   //
 
   int target_num = 0;  // TEMP UNTIL REVAMP
+  //unsigned int first_target_road_score = bad_score;  // for comparing 2nd to 1st if multiple targets found
+  MapPos first_target_road_end = bad_map_pos;  // for comparing 2nd to 1st if multiple targets found
   for (MapPos target_pos : targets) {
     //sofarduration = (std::clock() - start) / static_cast<double>(CLOCKS_PER_SEC);
     //AILogDebug["util_build_best_road"] << "C. " << calling_function << " SO FAR call took " << sofarduration;
@@ -1260,11 +1262,11 @@ AI::build_best_road(MapPos start_pos, RoadOptions road_options, Road *built_road
       if (road_options.test(RoadOption::ReducedNewLengthPenalty)) {
         new_length_penalty = 1.50;
       }
-      AILogDebug["util_build_best_road"] << " using new_length_penalty of " << new_length_penalty << "x for this scoring, based on RoadOptions";
+      AILogDebug["util_build_best_road"] << "" << calling_function << " using new_length_penalty of " << new_length_penalty << "x for this scoring, based on RoadOptions";
       unsigned int adjusted_score = static_cast<unsigned int>(static_cast<double>(tile_dist * 1) + static_cast<double>(new_length) * new_length_penalty + static_cast<double>(flag_dist * 1));
       if (road_options.test(RoadOption::PenalizeCastleFlag) && contains_castle_flag == true) {
         if (target_pos == castle_flag_pos){
-          AILogDebug["util_build_best_road"] << "not applying contains_castle_flag penalty because the target *is* the castle flag pos!";
+          AILogDebug["util_build_best_road"] << "" << calling_function << " not applying contains_castle_flag penalty because the target *is* the castle flag pos!";
         }else{
           adjusted_score += contains_castle_flag_penalty;
           AILogDebug["util_build_best_road"] << "" << calling_function << " scoring_proads, applying contains_castle_flag penalty of " << contains_castle_flag_penalty;
@@ -1366,10 +1368,65 @@ AI::build_best_road(MapPos start_pos, RoadOptions road_options, Road *built_road
         }
       }
 
-      //
-      // TODO insert code here to check if the second road is actually better than the first road built (if one was built) !!
-      //   otherwise, don't build. 
-      //
+      /* figured out how to get actual adjusted score
+      // if there are two targets to connect to check if the second road is actually better 
+      //  than the first road built (if one was built)  otherwise, don't build. 
+      // for now only checking flag score, I am not sure how to get the adjusted score at this point
+      if (targets.size() > 1){
+        if (roads_built){
+          if (rb.get_score(end_pos).get_flag_dist() < first_target_road_score){
+            AILogDebug["util_build_best_road"] << "" << calling_function << " this is the second of " << targets.size() << " targets, and this flag-score of " << rb.get_score(end_pos).get_flag_dist() << " is better than the other road's score of " << first_target_road_score << " will try to create the road";
+          }else{
+            AILogDebug["util_build_best_road"] << "" << calling_function << " this is the second of " << targets.size() << " targets, and this flag-score of " << rb.get_score(end_pos).get_flag_dist() << " is NOT better than the other road's score of " << first_target_road_score << ", not building this road";
+            continue;
+          }
+        }else{
+          // seeing bad_score here sometimes, try excluding it
+          //  possibly because it is a fake flag?  maybe need to do the adjacent-flag check??
+          if (rb.get_score(end_pos).get_flag_dist() != bad_score){
+            // store the score of this road so it can be compared for the next one
+            first_target_road_score = rb.get_score(end_pos).get_flag_dist();
+            AILogDebug["util_build_best_road"] << "" << calling_function << " this is the first of " << targets.size() << " targets, saving flag-score of " << first_target_road_score << " for next target road to compare to";
+          }
+        }
+      }*/
+      // if there are two targets to connect to check if the second road is actually better 
+      //  than the first road built (if one was built) even though the target is different
+      // If it is not better, do not build.  Often the targets are in the same general
+      //  direction and there is no benefit to a second road
+      // NOTE - this should be comparing the adjusted proad score of the first road
+      //  to the first target, TO the score of the first road to the SECOND target
+      if (targets.size() > 1){
+        if (roads_built == 0){
+          // this is the first road
+          // store the end_pos of this road so it can be compared for the next one
+          first_target_road_end = end_pos;
+          AILogDebug["util_build_best_road"] << "" << calling_function << " this is the first of " << targets.size() << " targets, saving first_target_road_end of " << first_target_road_end << " for next target road to compare to";
+        }else{
+          // this is the 2nd+ road
+          // find the adjusted score of the first road to the first target
+          // to the adjusted score of the *first road* to the *second target*
+          // by using the scored_proads from the *second target* (does it share one scored_proad set?)
+          unsigned int this_target_score = bad_score;
+          unsigned int first_target_score = bad_score;
+          for (std::pair<MapPos, unsigned int> pair : scored_proads){
+            if (pair.first == end_pos){ this_target_score = pair.second; }
+            if (pair.first == first_target_road_end){ first_target_score = pair.second; }
+          }
+          if (this_target_score == bad_score || first_target_score == bad_score){
+            AILogWarn["util_build_best_road"] << "" << calling_function << " this is the second of " << targets.size() << " targets, one of the two scores is bad_score!  not comparing! continueing... is that okay?  this_target_score " << this_target_score << ", first_target_score " << first_target_score;
+            continue;
+          }
+          if (this_target_score + 10 < first_target_score){  // it must be significantly better
+            AILogDebug["util_build_best_road"] << "" << calling_function << " this is the second of " << targets.size() << " targets, and this adjusted proad score of " << this_target_score << " is better than the other road's score of " << first_target_score << " will try to create the road";
+          }else{
+            // don't try additional positions because they all have worse scores than the first, because they are sorted by score
+            AILogDebug["util_build_best_road"] << "" << calling_function << " this is the second of " << targets.size() << " targets, and this adjusted proad score of " << this_target_score << " is NOT better than the other road's score of " << first_target_score << ", not building a second road for this building";
+            // return true because the first road was successful
+            return true;
+          }
+        }
+      }
 
       // add support for RoadOption::PlotOnlyNoBuild
       if (road_options.test(RoadOption::PlotOnlyNoBuild)){
@@ -1419,8 +1476,8 @@ AI::build_best_road(MapPos start_pos, RoadOptions road_options, Road *built_road
       game->get_mutex()->unlock();
       AILogVerbose["util_build_best_road"] << "" << calling_function << " thread #" << std::this_thread::get_id() << " AI has unlocked mutex after calling game->build_road (non-direct road)";
       if (was_built) {
-        AILogDebug["util_build_best_road"] << "" << calling_function << " successfully built road from " << start_pos << " to " << end_pos << " as specified in PotentialRoad";
         roads_built++;
+        AILogDebug["util_build_best_road"] << "" << calling_function << " successfully built road from " << start_pos << " to " << end_pos << " as specified in PotentialRoad, roads_built: " << roads_built;
         // set this so the calling function can tell the exact Road built if it needs it
         *built_road = *(&road);
         continue;
@@ -2403,7 +2460,7 @@ AI::build_near_pos(MapPos center_pos, unsigned int distance, Building::Type buil
         //  the closest Inventory building by flagsearch is not the current one
         //
         Road notused; // not used here
-        road_built = AI::build_best_road(flag_pos, road_options, &notused, "build_near_pos", building_type, Building::TypeNone, bad_map_pos, verify_stock);
+        road_built = AI::build_best_road(flag_pos, road_options, &notused, "build_near_pos:"+NameBuilding[building_type]+"@"+std::to_string(flag_pos), building_type, Building::TypeNone, bad_map_pos, verify_stock);
       }else{
         AILogDebug["util_build_near_pos"] << "the flag already at flag_pos " << flag_pos << " is already connected to road system.  For potential new building of type " << NameBuilding[building_type] << " at pos " << pos;
         // must do the verify_stock check here on this flag, because normally it is done when placing the road but this

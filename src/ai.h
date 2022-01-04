@@ -179,6 +179,7 @@ class AI {
     }
   }
   // got a segfault here too, try debugging in visual studio on windows 
+  // got again jan03 2022
   std::string get_ai_status() { return ai_status; }
   // stupid way to pass game speed and AI loop count to viewport for AI overlay
   unsigned int get_game_speed() { return game->get_game_speed(); }
