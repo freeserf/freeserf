@@ -623,14 +623,14 @@ AI::do_spiderweb_roads() {
   unsigned int completed_huts = stock_building_counts.at(inventory_pos).completed_count[Building::TypeHut];
   if (inventory_pos == castle_flag_pos){
     if ( loop_count % 30 != 0 || completed_huts < 8 || completed_huts > 20) {
-      AILogDebug["do_spiderweb_roads"] << inventory_pos << " skipping spider-web roads for castle, only running every twenty loops and completed knight huts " << completed_huts << " is >8 or <22";
+      AILogDebug["do_spiderweb_roads"] << inventory_pos << " skipping spider-web roads for castle, only running every 30 loops and completed knight huts " << completed_huts << " is >8 or <20";
       return;
     }
   }else{
     // Stocks get a longer spiderweb range because they tend to "steal" large numbers of huts as soon
     //  as they are built, resulting in zero spiderweb roads if using same rules as castle
-    if ( loop_count % 30 != 0 || completed_huts < 16 || completed_huts > 32) {
-      AILogDebug["do_spiderweb_roads"] << inventory_pos << " skipping spider-web roads for this Stock, only running every twenty loops and completed knight huts " << completed_huts << " is >8 or <12";
+    if ( loop_count % 30 != 0 || completed_huts < 16 || completed_huts > 36) {
+      AILogDebug["do_spiderweb_roads"] << inventory_pos << " skipping spider-web roads for this Stock, only running every 30 loops and completed knight huts " << completed_huts << " is >16 or <36";
       return;
     }
   }
@@ -3593,13 +3593,16 @@ AI::do_build_steelsmelter() {
   }
   AILogInfo["do_build_steelsmelter"] << inventory_pos << " trying to build steel smelter";
   // try to place steel smelter halfway between a coal mine and iron mine if both exist, preferring active ones
-  // re-enabling halfway_pos checking again, but only for non-castle stocks - jan01 2022
+  // re-enabling halfway_pos checking again
+  //  ehh I still think this is never going to be used effectively
+  //  and even if it were able to, the build_better_road and normal
+  //  two-target affinity should cover it anyway, disabling again
   MapPos halfway_pos = bad_map_pos;
   MapPosVector steelsmelter_pos = {};
-  if (halfway_pos != bad_map_pos) {
-    AILogDebug["do_build_steelsmelter"] << inventory_pos << " adding pos halfway between a coal mine and an iron mine to first build_near center";
-    steelsmelter_pos.push_back(halfway_pos);
-  }
+  //if (halfway_pos != bad_map_pos) {
+  //  AILogDebug["do_build_steelsmelter"] << inventory_pos << " adding pos halfway between a coal mine and an iron mine to first build_near center";
+  //  steelsmelter_pos.push_back(halfway_pos);
+  //}
   // score areas by most open space, simply to avoid crowding and allow good road connections
   MapPosSet open_space_counts = {};
   AILogInfo["do_build_steelsmelter"] << inventory_pos << " trying to build steelsmelter near any area with most open space";
@@ -3712,13 +3715,16 @@ AI::do_build_gold_smelter_and_connect_gold_mines() {
          && stock_building_counts.at(inventory_pos).count[Building::TypeGoldSmelter] < 1) {
     AILogInfo["do_build_gold_smelter_and_connect_gold_mines"] << inventory_pos << " trying to build gold smelter";
     // try to place gold smelter halfway between a coal mine and gold mine if both exist, preferring active ones
+    //  ehh I still think this is never going to be used effectively
+    //  and even if it were able to, the build_better_road and normal
+    //  two-target affinity should cover it anyway, disabling again
     MapPos halfway_pos = bad_map_pos;
-    halfway_pos = find_halfway_pos_between_buildings(inventory_pos, Building::TypeCoalMine, Building::TypeIronMine);
+    //halfway_pos = find_halfway_pos_between_buildings(inventory_pos, Building::TypeCoalMine, Building::TypeIronMine);
     MapPosVector goldsmelter_pos;
-    if (halfway_pos != bad_map_pos) {
-      AILogDebug["do_build_gold_smelter_and_connect_gold_mines"] << inventory_pos << " adding pos halfway between a coal mine and an gold mine to first build_near center";
-      goldsmelter_pos.push_back(halfway_pos);
-    }
+    //if (halfway_pos != bad_map_pos) {
+    //  AILogDebug["do_build_gold_smelter_and_connect_gold_mines"] << inventory_pos << " adding pos halfway between a coal mine and an gold mine to first build_near center";
+    //  goldsmelter_pos.push_back(halfway_pos);
+    //}
     // score areas by most open space, simply to avoid crowding and allow good road connections
     MapPosSet open_space_counts = {};
     AILogInfo["do_build_gold_smelter_and_connect_gold_mines"] << inventory_pos << " trying to build goldsmelter near any area with most open space";

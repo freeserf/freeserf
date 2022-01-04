@@ -645,6 +645,12 @@ AI::build_best_road(MapPos start_pos, RoadOptions road_options, Road *built_road
         plotted_succesfully = true;
       }
 
+      // avoid creation extremely long roads
+      if (proposed_direct_road.get_length() > 30){
+        AILogDebug["util_build_best_road"] << "" << calling_function << " proposed_direct_road is over 30 tiles long!  not building this road";
+        continue;
+      }
+
       // support covolution enforcement, but *only* if MostlyStraight setting is on
       // this kind of a hacky undocumented thing, but okay for now. 
       bool convolution_rejected = false;
@@ -1250,7 +1256,8 @@ AI::build_best_road(MapPos start_pos, RoadOptions road_options, Road *built_road
       if (road_options.test(RoadOption::PenalizeNewLength)) {
         if (inventory_pos != castle_flag_pos){
           // stock/warehouse area
-          new_length_penalty = 5.00;
+          //new_length_penalty = 5.00;  // this might be too high
+          new_length_penalty = 3.50;  // this might be too high
         }else{
           // castle area
           new_length_penalty = 2.00;
@@ -1418,14 +1425,20 @@ AI::build_best_road(MapPos start_pos, RoadOptions road_options, Road *built_road
             continue;
           }
           if (this_target_score + 10 < first_target_score){  // it must be significantly better
-            AILogDebug["util_build_best_road"] << "" << calling_function << " this is the second of " << targets.size() << " targets, and this adjusted proad score of " << this_target_score << " is better than the other road's score of " << first_target_score << " will try to create the road";
+            AILogDebug["util_build_best_road"] << "" << calling_function << " this is the second of " << targets.size() << " targets, and this adjusted proad score of " << this_target_score << " is significantly better than the other road's score of " << first_target_score << " will try to create the road";
           }else{
             // don't try additional positions because they all have worse scores than the first, because they are sorted by score
-            AILogDebug["util_build_best_road"] << "" << calling_function << " this is the second of " << targets.size() << " targets, and this adjusted proad score of " << this_target_score << " is NOT better than the other road's score of " << first_target_score << ", not building a second road for this building";
+            AILogDebug["util_build_best_road"] << "" << calling_function << " this is the second of " << targets.size() << " targets, and this adjusted proad score of " << this_target_score << " is NOT significantly better than the other road's score of " << first_target_score << ", not building a second road for this building";
             // return true because the first road was successful
             return true;
           }
         }
+      }
+
+      // avoid creation extremely long roads
+      if (road.get_length() > 30){
+        AILogDebug["util_build_best_road"] << "" << calling_function << " road is over 30 tiles long!  not building this road";
+        continue;
       }
 
       // add support for RoadOption::PlotOnlyNoBuild
@@ -1782,7 +1795,7 @@ AI::building_exists_near_pos(MapPos center_pos, unsigned int distance, Building:
   return false;
 }
 
-
+/* I still don't think this is useful
 // find the "best" of two building types, in preference order: occupied->completed->any
 //   and find the halfway point between those two and return it
 // for trying to build between two buildings, such as building a SteelSmelter halfway between CoalMine and IronMine
@@ -1898,6 +1911,7 @@ AI::find_halfway_pos_between_buildings(MapPos inventory_pos, Building::Type firs
   AILogDebug["util_find_halfway_pos_between_buildings"] << "done get_halfway_pos_between_buildings, returning halfway_pos " << halfway_pos;
   return halfway_pos;
 }
+*/
 
 
 //
@@ -2315,7 +2329,7 @@ AI::build_near_pos(MapPos center_pos, unsigned int distance, Building::Type buil
   // NOTE - this goes by center_pos not actual pos so it is a bit more sensitive than it seems
   if (!is_mine && verify_stock && inventory_pos != castle_flag_pos){
     AILogDebug["util_build_near_pos"] << "this is a non-mine tracked economy building of type " << NameBuilding[building_type] << " and this is not the castle area, doing straightline-dist-to-Stock check";
-    if (get_straightline_tile_dist(map, center_pos, inventory_pos) > 30){
+    if (get_straightline_tile_dist(map, center_pos, inventory_pos) > 25){
       AILogDebug["util_build_near_pos"] << "this is a non-mine tracked economy building of type " << NameBuilding[building_type] << " and this is not the castle area, rejecting center_pos because too far from Stock";
       return bad_map_pos;
     }

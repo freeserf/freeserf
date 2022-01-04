@@ -377,7 +377,7 @@ Building::cancel_transported_resource(Resource::Type res) {
       }
       if (earliest_index > -1){
         // delete the timeout
-        Log::Info["building"] << "debug: inside cancel_transported_resource, building type " << NameBuilding[type] << " at pos " << get_position() << ", deleting req_timeout_tick with expiry " << stock[in_stock].req_timeout_tick[earliest_index];
+        //Log::Info["building"] << "debug: inside cancel_transported_resource, building type " << NameBuilding[type] << " at pos " << get_position() << ", deleting req_timeout_tick with expiry " << stock[in_stock].req_timeout_tick[earliest_index];
         stock[in_stock].req_timeout_tick[earliest_index] = 0;
 
         // shift any unset timeouts upwards
@@ -422,7 +422,9 @@ Building::add_requested_resource(Resource::Type res, bool fix_priority, int dist
       //  use the 'requested' count as the index of the tick arrays
       // don't let dist_from_inv be zero (it seems to happen on game start, new buildings? dunno)
       if (dist_from_inv < 1){ 
-        Log::Warn["building"] << "dist_from_inv " << dist_from_inv << " is less than 1!  that should not happen, setting it to 1";
+        // this actually seems normal, I think 0 is a valid length as determined by road.get_length() call for a very
+        //  short road, and is often seen for schedule_unknown resources from lumberjack->sawmill, farm->miller, etc.
+        //Log::Warn["building"] << "dist_from_inv " << dist_from_inv << " is less than 1!  that should not happen, setting it to 1";
         dist_from_inv = 1;
       }
       // set expiration tick, add a minimum tick timeout padding so short roads don't timeout so easily
@@ -496,7 +498,7 @@ Building::requested_resource_delivered(Resource::Type resource) {
         }
         if (earliest_index > -1){
           // delete the timeout
-          Log::Info["building"] << "debug: inside requested_resource_delivered, res type " << NameResource[resource] << ", building type " << NameBuilding[type] << " at pos " << get_position() << ", deleting req_timeout_tick with expiry " << stock[i].req_timeout_tick[earliest_index];
+          //Log::Info["building"] << "debug: inside requested_resource_delivered, res type " << NameResource[resource] << ", building type " << NameBuilding[type] << " at pos " << get_position() << ", deleting req_timeout_tick with expiry " << stock[i].req_timeout_tick[earliest_index];
           stock[i].req_timeout_tick[earliest_index] = 0;
 
           /*// debug timeouts
@@ -957,7 +959,7 @@ Building::update() {
           }
           // find any expired timeouts
           if (stock[j].req_timeout_tick[x] < (signed)game->get_tick()){
-            Log::Info["building"] << "debug: inside Building::update(), building type " << NameBuilding[type] << " at pos " << get_position() << ", res type " << NameResource[stock[j].type] << ", resource request timeout triggered! req_timeout_tick = " << stock[j].req_timeout_tick[x] << ", current tick = " << game->get_tick();
+            Log::Debug["building"] << "debug: inside Building::update(), building type " << NameBuilding[type] << " at pos " << get_position() << ", res type " << NameResource[stock[j].type] << ", resource request timeout triggered! req_timeout_tick = " << stock[j].req_timeout_tick[x] << ", current tick = " << game->get_tick();
             // decrement the requested count so another can be requested
             stock[j].requested -= 1;
             // delete the timer
@@ -1019,7 +1021,7 @@ Building::update() {
       }
       if (stock[j].requested < 0) {
         // changing this from Warn to Debug, as this is not so unexpected if resource timeouts are in place
-        Log::Debug["building"] << "debug: inside Building::update(), building type " << NameBuilding[type] << " at pos " << get_position() << ", after requested resource count is below zero!  stock[" << j << "].requested = " << stock[j].requested << ", resetting it to zero";
+        //Log::Debug["building"] << "debug: inside Building::update(), building type " << NameBuilding[type] << " at pos " << get_position() << ", after requested resource count is below zero!  stock[" << j << "].requested = " << stock[j].requested << ", resetting it to zero";
         stock[j].requested = 0;
       }
     }

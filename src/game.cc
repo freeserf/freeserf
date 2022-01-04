@@ -541,6 +541,7 @@ Game::update_inventories() {
           // adding support for requested resource timeouts
           //if (!dest_bld->add_requested_resource(res, false)) {
           int dist_from_inv = dists_from_inv[i];
+          Log::Info["flag"] << "inside Game::update_inventories, about to call dest_bld->add_requested_resource(" << NameResource[res] << ", false, " << dist_from_inv << ") for dest_bld of type " << NameBuilding[dest_bld->get_type()];
           if (!dest_bld->add_requested_resource(res, false, dist_from_inv)) {
             throw ExceptionFreeserf("Failed to request resource.");
           }

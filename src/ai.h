@@ -180,6 +180,7 @@ class AI {
   }
   // got a segfault here too, try debugging in visual studio on windows 
   // got again jan03 2022
+  // again jan04 2022
   std::string get_ai_status() { return ai_status; }
   // stupid way to pass game speed and AI loop count to viewport for AI overlay
   unsigned int get_game_speed() { return game->get_game_speed(); }
@@ -242,7 +243,7 @@ class AI {
   //MapPos build_near_pos(MapPos, unsigned int, Building::Type);
   MapPos build_near_pos(MapPos, unsigned int, Building::Type, Direction optional_fill_dir = DirectionNone);
   bool building_exists_near_pos(MapPos, unsigned int, Building::Type);
-  MapPos find_halfway_pos_between_buildings(MapPos inventory_pos, Building::Type, Building::Type);
+  //MapPos find_halfway_pos_between_buildings(MapPos inventory_pos, Building::Type, Building::Type);  // not using this now
   unsigned int count_stones_near_pos(MapPos, unsigned int);
   unsigned int count_knights_affected_by_occupation_level_change(unsigned int, unsigned int);
   void expand_borders();
