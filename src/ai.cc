@@ -170,16 +170,13 @@ AI::next_loop(){
   //      rather it should be done after first few buildings/roads placed
   //-----------------------------------------------------------
 
-/*
   do_connect_disconnected_flags(); // except unfinished mines
   do_connect_disconnected_road_networks();
   do_build_better_roads_for_important_buildings();  // is this working?  I still see pretty inefficient roads for important buildings
   do_pollute_castle_area_roads_with_flags(); // CHANGE THIS TO USE ARTERIAL ROADS  (nah, it works well enough as it is, do that later)
   do_fix_stuck_serfs();  // this is definitely still an issue, try to fix root cause
   do_fix_missing_transporters();  // is this still a problem anymore??  YES
-  */
   do_remove_road_stubs();
-  return;
   do_demolish_unproductive_3rd_lumberjacks();
   do_demolish_unproductive_stonecutters();
   do_demolish_unproductive_mines();
@@ -765,8 +762,8 @@ AI::do_spiderweb_roads() {
               break;  // could break here for efficiency, but for now I like to have it dump the entire flags_found list
             }
           }
-          if (tile_dist > 15){
-            AILogDebug["do_spiderweb_roads"] << inventory_pos << " tile_dist is >15, acceptable pair";
+          if (tile_dist > 30){
+            AILogDebug["do_spiderweb_roads"] << inventory_pos << " tile_dist is >30, acceptable pair";
             acceptable = true;
           }
           if (!acceptable){
