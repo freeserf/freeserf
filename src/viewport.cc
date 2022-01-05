@@ -2871,6 +2871,7 @@ Viewport::draw_ai_grid_overlay() {
     return;
   }
   //Log::Debug["viewport"] << "Player" << current_player_index << " is an AI, enabling AI overlay";
+  // got exception here for first time jan04 2022
   ColorDotMap ai_mark_pos = *(ai->get_ai_mark_pos());
   Road *ai_mark_road = ai->get_ai_mark_road();
 
@@ -3123,6 +3124,7 @@ Viewport::draw_ai_grid_overlay() {
 
 
 
+/*  this is causing exceptions frequently, not sure why, disabling for now
   // draw AI expansion goals text box
   int row = 1;   // text rows are 10 pixels apart, start at row 1 (2nd row, after ai_status row)
   frame->draw_string(1, row * 10, "expansion_goals:", Color::white);
@@ -3130,6 +3132,7 @@ Viewport::draw_ai_grid_overlay() {
     row++;
     frame->draw_string(1, row * 10, "   " + goal, Color::white);
   }
+  */
 
   // draw Inventory pos
   frame->draw_string(450, 1, "Inv " + std::to_string(ai->get_ai_inventory_pos()), Color::white);

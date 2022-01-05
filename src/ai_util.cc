@@ -2148,18 +2148,13 @@ AI::count_farmable_land(MapPos center_pos, unsigned int distance, std::string co
 unsigned int
 AI::count_open_space(PGame game, MapPos center_pos, unsigned int distance, std::string color) {
   AILogDebug["count_open_space"] << "inside AI::count_open_space";
-  //AILogDebug["util_count_farmable_land"] << "center_pos " << center_pos << ", distance " << distance << ", res_start_index " << NameTerrain[res_start_index] << ", res_end_index " << NameTerrain[res_end_index];
   unsigned int count = 0;
+  bool farm_penalty = false;
   for (unsigned int i = 0; i < distance; i++) {
     MapPos pos = map->pos_add_extended_spirally(center_pos, i);
     //AILogDebug["count_open_space"] << "AI: terrain at pos " << pos << " has type " << terrain;
     if (map->has_building(pos) && game->get_building_at_pos(pos)->get_type() == Building::TypeFarm){
-      AILogDebug["count_open_space"] << "inside count_open_space, found a Farm at pos " << pos << "!  greatly reducing score of this area";
-      if (count < 25){
-        count = 0;
-      }else{
-        count = count - 25;
-      }
+      farm_penalty = true;
     }
     if (AI::has_terrain_type(game, pos, Map::TerrainWater0, Map::TerrainWater3)
             || AI::has_terrain_type(game, pos, Map::TerrainDesert0, Map::TerrainSnow1)) {
@@ -2182,7 +2177,10 @@ AI::count_open_space(PGame game, MapPos center_pos, unsigned int distance, std::
       ++count;
     }
   }
-  //AILogDebug["count_open_space"] << "AI: found count " << count << " matching terrain of types " << NameTerrain[res_start_index] << " - " << NameTerrain[res_end_index];
+  if (farm_penalty){
+    AILogDebug["count_open_space"] << "inside count_open_space, applying farm penalty for this area";
+    if (count < 25){ count = 0; }else{ count -= 25; }
+  }
   AILogDebug["count_open_space"] << "done count_open_space, returning count " << count;
   return count;
 }

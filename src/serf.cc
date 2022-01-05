@@ -5687,12 +5687,21 @@ Serf::handle_state_knight_free_walking() {
               Flag *dest = game->get_flag(other->s.walking.dest);
               Building *building = dest->get_building();
               // got exception here, adding nullptr check
+              //  it is definitely a nullptr issue, seeing this triggered
+              // it seems reasonable that the building could be destroyed while the
+              //  attacking knight is still out.  Unless this is supposed to be handled
+              //  by the building being destroyed finding knights attacking it and somehow
+              //  updating them... it seems okay to simply skip this error
+              //  and see what happens to the attacking knight next
               if (building == nullptr){
-                Log::Error["serf"] << "inside handle_state_knight_free_walking, building is nullptr when trying to call building->has_inventory and possibly building->requested_knight_attacking_on_walk ! crashing";
-                throw ExceptionFreeserf("inside handle_state_knight_free_walking, building is nullptr!");
-              }
-              if(!building->has_inventory()) {
-                building->requested_knight_attacking_on_walk();
+                //Log::Error["serf"] << "inside handle_state_knight_free_walking, building is nullptr when trying to call building->has_inventory and possibly building->requested_knight_attacking_on_walk ! crashing";
+                //throw ExceptionFreeserf("inside handle_state_knight_free_walking, building is nullptr!");
+                Log::Warn["serf.cc"] << "inside handle_state_knight_free_walking, building is nullptr when trying to call building->has_inventory and possibly building->requested_knight_attacking_on_walk.  Ignore that call for now, will fight enemy knight here";
+              }else{
+                if(!building->has_inventory()) {
+                  // all this does is set stock[0].requested -= 1; on the attacking knight's dest building
+                  building->requested_knight_attacking_on_walk();
+                }
               }
 
               set_other_state(other, StateKnightEngageAttackingFree);

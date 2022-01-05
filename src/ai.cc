@@ -652,9 +652,10 @@ AI::do_spiderweb_roads() {
   //   it would not succeed in making as many new spiderweb connections as desired 
   //  UPDATE jan02 2022 - reducing the arc by one sector to 8, saw a long snakey road
   //   built that covered almost 180degrees of castle area and blocked a lot of stuff
+  //  UPDATE jan04 2022 - reducing again, same reason though not as extreme
   //
   //MapPosVector flag_lists[9] = { }; //array of vectors
-  MapPosVector flag_lists[8] = { }; //array of vectors
+  MapPosVector flag_lists[7] = { }; //array of vectors
 
   //for (unsigned int i = AI::spiral_dist(14); i < AI::spiral_dist(15); i++) {
   // because the ring uses spiral function which only goes counter-clockwise starting
@@ -699,11 +700,11 @@ AI::do_spiderweb_roads() {
     // shift all the flag_list vectors back, dropping the oldest one
     //  and push the newest one to the front of the array
     //for (int y = 1; y < 9; y++) {
-    for (int y = 1; y < 8; y++) {  // jan02 2022 reducing to 8 sectors
+    for (int y = 1; y < 7; y++) {  // jan04 2022 reducing to 7 sectors
       flag_lists[y - 1] = flag_lists[y];
     }
     //flag_lists[8] = flag_list;
-    flag_lists[7] = flag_list;  // jan02 2022 reducing to 8 sectors
+    flag_lists[6] = flag_list;  // jan04 2022 reducing to 7 sectors
 
     // insert all the recent vectors into a set, to remove duplicates
     std::set<MapPos> flag_set;
@@ -839,7 +840,7 @@ AI::do_pollute_castle_area_roads_with_flags() {
   // only do this every X loops, and only once a certain number of huts have been built
   //  and don't do it again after a few more huts built, because it only ever needs to be done once
   unsigned int completed_huts = realm_completed_building_count[Building::TypeHut];
-  if (loop_count % 20 != 0 || completed_huts < 15 || completed_huts >25) {
+  if (loop_count % 30 != 0 || completed_huts < 15 || completed_huts >35) {
     AILogDebug["do_pollute_castle_area_roads_with_flags"] << "skipping do_pollute_castle_area_roads_with_flags roads, only running this every X loops, and if >Y and <Z knight huts built";
     return;
   }
@@ -3056,9 +3057,6 @@ AI::do_create_defensive_buffer() {
 //  allow it to check and consider it for every Inventory in case of some very rare case
 //  where one can't be placed near castle, or more likely if it (or entire castle) destroyed
 //
-// also, for non-Castle Inventories, it is very unlikely this check will actually build anything 
-//  before Mines are connected, but I see no harm in leaving it in this order
-//
 // in medieval times, a steel smelter was probably called a Bloomery
 void
 AI::do_build_toolmaker_steelsmelter() {
@@ -3084,16 +3082,6 @@ AI::do_build_toolmaker_steelsmelter() {
     AILogDebug["do_build_toolmaker_steelsmelter"] << inventory_pos << " Already placed toolmaker, not building another";
   }
 
-  // because steelsmelter is often built early in the game to supply tool steel it
-  //  ends up right next to castle despite "most open space" logic because no/few knight
-  //  huts have been built to expand borders when it is placed.  To avoid this, don't allow
-  //  placing a steelsmelter *in this function* until at least a few knight huts occupied
-  unsigned int occupied_huts = realm_occupied_building_count[Building::TypeHut];
-  if (occupied_huts < 6){
-    AILogInfo["do_build_toolmaker_steelsmelter"] << inventory_pos << " not considering steelsmelter for toolmaker until at least 6 huts occupied, to avoid placement right near castle";
-    return;
-  }
-
   // if no steel, but have iron & coal, build steelsmelter to produce steel for toolmaker
   //   do this even if no toolmaker exists and tools not needed yet, they might be needed soon
   if(stock_inv == nullptr)
@@ -3104,29 +3092,7 @@ AI::do_build_toolmaker_steelsmelter() {
   if (stock_building_counts.at(inventory_pos).count[Building::TypeSteelSmelter] < 1
        && (steel_count < 1 && iron_ore_count > 0 && coal_count > 0)) {
     AILogInfo["do_build_toolmaker_steelsmelter"] << inventory_pos << " no steel, but have iron & coal, trying to build steelsmelter";
-    // score areas by most open space, simply to avoid crowding and allow good road connections
-    MapPosSet open_space_counts = {};
-    AILogInfo["do_build_toolmaker_steelsmelter"] << inventory_pos << " trying to build steelsmelter near any area with most open space";
-    for (MapPos center_pos : stock_building_counts.at(inventory_pos).occupied_military_pos) {
-      MapPosVector corners = AI::get_corners(center_pos);
-      for (MapPos corner_pos : corners) {
-        int count = count_open_space(game, corner_pos, spiral_dist(4), "gray");
-        open_space_counts.insert(std::make_pair(corner_pos, count));
-      }
-    }
-    // sort areas by most open space
-    MapPosVector search_positions = AI::sort_by_val_desc(open_space_counts);
-    MapPos built_pos = bad_map_pos;
-    // try to build near area with most open space
-    for (MapPos corner_pos : search_positions) {
-      built_pos = AI::build_near_pos(corner_pos, AI::spiral_dist(6), Building::TypeSteelSmelter);
-      if (built_pos != bad_map_pos && built_pos != notplaced_pos) {
-        AILogInfo["do_build_toolmaker_steelsmelter"] << inventory_pos << " built steelsmelter at pos " << built_pos;
-        stock_building_counts.at(inventory_pos).count[Building::TypeSteelSmelter]++;
-        stock_building_counts.at(inventory_pos).unfinished_count++;
-        break;
-      }
-    }
+    do_build_steelsmelter();
   }
   else {
     AILogDebug["do_build_toolmaker_steelsmelter"] << inventory_pos << " not building steelsmelter, either already placed one or have no iron / coal";
@@ -3576,7 +3542,6 @@ AI::do_connect_iron_mines() {
   AILogDebug["do_connect_iron_mines"] << inventory_pos << " done do_connect_iron_mines";
 }
 
-
 // build a steel smelter if one wasn't already created earlier to support toolmaker
 void
 AI::do_build_steelsmelter() {
@@ -3591,6 +3556,13 @@ AI::do_build_steelsmelter() {
     AILogDebug["do_build_steelsmelter"] << inventory_pos << " have steel smelter or sufficient steel, skipping";
     return;
   }
+
+  // for first steel smelter (realm), wait until borders have expanded a bit
+  if (realm_occupied_building_count[Building::TypeHut] < 4) {
+    AILogDebug["do_build_steelsmelter"] << inventory_pos << " waiting until more knight huts occupied in realm to reduce chance of placement near castle";
+    return;
+  }
+
   AILogInfo["do_build_steelsmelter"] << inventory_pos << " trying to build steel smelter";
   // try to place steel smelter halfway between a coal mine and iron mine if both exist, preferring active ones
   // re-enabling halfway_pos checking again
@@ -3610,6 +3582,13 @@ AI::do_build_steelsmelter() {
     MapPosVector corners = AI::get_corners(center_pos);
     for (MapPos corner_pos : corners) {
       int count = count_open_space(game, corner_pos, spiral_dist(4), "gray");
+      // strongly disfavor area right near castle
+      if (inventory_pos == castle_flag_pos){
+        if (get_straightline_tile_dist(map, castle_pos, corner_pos) < 9){
+          AILogDebug["do_build_steelsmelter"] << inventory_pos << " this corner_pos is very close to castle, adding large penalty to placement score";
+          if (count <= 20){ count = 0; } else { count -= 20; }
+        }
+      }
       open_space_counts.insert(std::make_pair(corner_pos, count));
     }
   }
@@ -3648,18 +3627,19 @@ AI::do_build_blacksmith() {
   AILogDebug["do_build_blacksmith"] << inventory_pos << " inside do_build_blacksmith()";
   MapPos built_pos = bad_map_pos;
   if (stock_building_counts.at(inventory_pos).count[Building::TypeWeaponSmith] < 1) {
+
     // don't build unless sufficient coal, and iron or steel
     if(stock_inv == nullptr)
       return;
     unsigned int coal_count = stock_inv->get_count_of(Resource::TypeCoal);
     unsigned int iron_ore_count = stock_inv->get_count_of(Resource::TypeIronOre);
     unsigned int steel_count = stock_inv->get_count_of(Resource::TypeSteel);
+
     if ((coal_count >= coal_min || stock_building_counts.at(inventory_pos).completed_count[Building::TypeCoalMine] > 0)
-      && (iron_ore_count >= iron_ore_min || (stock_building_counts.at(inventory_pos).completed_count[Building::TypeIronMine] > 0 && stock_building_counts.at(inventory_pos).completed_count[Building::TypeSteelSmelter] > 0))
+      && (iron_ore_count >= iron_ore_min || (stock_building_counts.at(inventory_pos).completed_count[Building::TypeIronMine] > 0) && stock_building_counts.at(inventory_pos).completed_count[Building::TypeSteelSmelter] > 0)
       || steel_count >= steel_min) {
 
       // score areas by most open space, simply to avoid crowding and allow good road connections
-      // HAH, I saw this result in blacksmith being built right next to farm, which is a bad spot!
       MapPosSet open_space_counts = {};
       AILogInfo["do_build_blacksmith"] << inventory_pos << " trying to build blacksmith near any area with most open space";
       for (MapPos center_pos : stock_building_counts.at(inventory_pos).occupied_military_pos) {

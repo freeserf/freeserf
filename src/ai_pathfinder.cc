@@ -778,7 +778,12 @@ AI::find_nearest_inventory_by_flag(PMap map, unsigned int player_index, MapPos f
 		open.pop_back();
     //AILogDebug["find_nearest_inventory_by_flag"] << "fsearchnode - inside fnode search for flag_pos " << flag_pos << ", inside while-open-list-not-empty loop";
 
-		if (game->get_flag_at_pos(fnode->pos)->accepts_resources()) {
+    if (game->get_flag_at_pos(fnode->pos) == nullptr){
+      AILogWarn["find_nearest_inventory_by_flag"] << "fnode's flag at fnode->pos is nullptr!  skipping";
+      continue;
+    }
+    // got a segfault here for the first time jan04 2022, adding nullptr check (above)
+    if (game->get_flag_at_pos(fnode->pos)->accepts_resources()) {
       // to avoid crashes, handle discovering a newly built warehouse that just now became active
       //  after the most recent update_stocks run, and doesn't exist in stocks_pos yet
       if (stock_building_counts.count(fnode->pos) == 0){
