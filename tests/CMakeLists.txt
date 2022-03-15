@@ -4,7 +4,7 @@ find_package(Threads REQUIRED)
 
 include(ExternalProject)
 ExternalProject_Add(googletest
-                    URL https://github.com/google/googletest/archive/release-1.10.0.tar.gz
+                    URL https://github.com/google/googletest/archive/release-1.11.0.tar.gz
                     CMAKE_ARGS -Dgtest_force_shared_crt=ON
                                -DBUILD_GTEST=ON
                                -DBUILD_GMOCK=OFF
