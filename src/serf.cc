@@ -4454,10 +4454,43 @@ Serf::handle_serf_mining_state() {
     Log::Verbose["serf"] << "mining substate: " << s.mining.substate << ".";
     switch (s.mining.substate) {
       case 0: {
+
+        // WARNING - this is a huge deal, see: https://github.com/freeserf/freeserf/commit/9d0b353215ab8a011259e77e56bd2327435c67a5
+        //   and here: https://github.com/forkserf/forkserf/issues/86
+
+        // ************ VERY IMPORTANT *************
+        //  jonls intentionally flipped this from 1/8 chance of
+        // consuming food (as in original game) to 1/8 chance of
+        // NOT consuming food, greatly increasing the food consumption
+        // of miners.
+        //https://github.com/freeserf/freeserf/commit/9d0b353215ab8a011259e77e56bd2327435c67a5
+        // this seems like too big of change from expectations to allow 
+        // as a default.  Instead, I am thinking of changing it back to original 7/8 consumption
+        // and instead making a higher food consumption a checkbox (initially)
+        // but eventually part of a sliding game difficulty/handicap option
+        // for human vs AI players
+        // Given that 7/8 is arbitrary, a lower value is probably appropriate
+        // as with this rate of consumption it is very difficult to stock the
+        // mine fully with food, as it is consumed quickly and even if sufficient
+        // food items are available, serfs generally cannot transport it quickly
+        // enough to the mine even with an efficient road system
+        // perhaps if ALL item consumptions are "1" instead of chances (such
+        // as pig farmer having tiny chance of consuming wheat?) then 
+        // other methods can be used to rebalance the game
+        //
+        // nicymike confirms this, and I think (I forget now) I was able to confirm original behavior
+        // in original game on DosBox
+        //
+
         /* There is a small chance that the miner will
            not require food and skip to state 2. */
         int r = game->random_int();
-        if ((r & 7) == 0) {
+        // this is the original SerfCity/Settlers1 value, where 1/8th chance of requiring food (i.e. rarely consuming food)
+        //   per nicymike this is the accurate original value
+        if ((r & 7) != 0) {  
+        // this is the jonls-freeserf "enhanced food consumption" change, where 7/8th chance of NOT requiring food (i.e. almost always consuming food)
+        //    freeserf commit   https://github.com/freeserf/freeserf/commit/9d0b353215ab8a011259e77e56bd2327435c67a5
+        //if ((r & 7) == 0) {   
           s.mining.substate = 2;
         } else {
           s.mining.substate = 1;
