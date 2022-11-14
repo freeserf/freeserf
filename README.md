@@ -1,34 +1,45 @@
 Forkserf
 ========
 
-A continuation of Freeserf, a SerfCity/Settlers1 clone in C/C++.  Freeserf was created by jonls and wdigger
+A continuation of Freeserf, a SerfCity/Settlers1 clone in C/C++.  Freeserf was created by jonls and wdigger.  It seems they have abandoned it so I am moving forward with it in my own way.  My vision is an authentic version of the original game but with an outstanding AI instead of the terrible one in the original, plus many *optional* features to tweak things that interest me.  I am only interested in random single player vs AI games at this time, I am not playtesting the single-player Missions nor working on multiplayer.  If you are looking for a very accurate SerfCity/Settlers1 experience with original AI, missions, and multiplayer I suggest trying Serflings by nicymike or playing the original game with DosBox
+
+One unique thing about Freeserf (and remains in Forkserf) is that you can play with the original Amiga graphics, sounds, and music if you like.  The default is to prefer DOS graphics and a mix of Amiga & DOS audio if both are supplied.
 
 Forkserf adds:
-- advanced AI for non-human players with greatly improved road building logic
+- advanced AI for non-human players
+  - greatly improved building placement logic
+  - greatly improved road building logic
+  - builds stocks intelligently, with parallel economies around them
+  - note that all AI characters use same logic for now, I will add "flavors" back in at some point
 - fixes for Freeserf bugs
-  - major crash bugs from iterator invalidation during normal gameplay
+  - major crash bugs during normal gameplay fixed
   - crash & other bugs related to combat
   - some minor visual & audio issues
   - crash & other issue with food resource delivery
   - serfs become forever stuck on roads and block the road
-  - missing ambient sounds
+  - missing ambient sounds added
 - new features (mostly as optional checkboxes)
-  - auto-saving
-  - enhanced Pig Farms
-  - serfs can be transported in Boats!
-  - empty building sites don't burn
-- internal game mechanics changes to fix gridlock issues that existed even in the original game
-  - timeout & retry of building resource requests
-  - prioritized transport of resources that can be immediately used
-  - faster clearing of Lost serfs
+  - auto-saving, see https://github.com/forkserf/forkserf/wiki/auto-saving
+  - uses both DOS *and* Amiga sounds if both available, see https://github.com/forkserf/forkserf/wiki/using-both-DOS-*and*-Amiga-sounds
+  - custom map generator, see https://github.com/forkserf/forkserf/wiki/Custom-Map-Generator
+  - seasonal progression with unique graphics for winter/spring/summer/fall, see wiki https://github.com/forkserf/forkserf/wiki/Four-Seasons
+  - advanced wheat farming,  see https://github.com/forkserf/forkserf/wiki/Advanced-Wheat-Farming
+  - serfs can be transported in Boats!  see https://github.com/forkserf/forkserf/wiki/serfs-can-be-transported-in-Boats!
+  - empty building sites don't require any burn wait, see https://github.com/forkserf/forkserf/wiki/empty-building-sites-don't-burn
+  - baby trees mature slowly, nerfs forester/ranger,  see https://github.com/forkserf/forkserf/wiki/Baby-Trees-Mature-Slowly
+  - trees spawn spontaneously, allows forests to grow on their own, see https://github.com/forkserf/forkserf/wiki/Trees-Reproduce
+- internal game mechanics changes to reduce gridlock issues that exist even in the original game
+  - timeout & retry of building resource requests, see https://github.com/forkserf/forkserf/wiki/timeout-&-retry-of-building-resource-requests
+  - prioritized transport of resources that can be immediately used, see https://github.com/forkserf/forkserf/wiki/prioritized-transport-of-resources-that-can-be-immediately-used
+  - faster clearing of Lost serfs, see https://github.com/forkserf/forkserf/wiki/faster-clearing-of-Lost-serfs
 - debugging tools
-  - mark positions with colored dots
+  - mark positions with colored dots, see https://github.com/forkserf/forkserf/wiki/mark-positions-with-colored-dots
   - mark specific serfs and their state
-  - "boot" specific serfs by setting them to Lost state
-  - trace road pathfinding
-  - identification & colored highlighting of arterial roads
+  - manually "boot" specific serfs by setting them to Lost state
+  - trace road pathfinding, see https://github.com/forkserf/forkserf/wiki/trace-road-pathfinding
+  - identification & colored highlighting of arterial roads, see https://github.com/forkserf/forkserf/wiki/identification-&-colored-highlighting-of-arterial-roads
   - hidden resource overlay (THIS IS CHEATING!)
-- no multiplayer yet, sorry
+- no multiplayer yet, sorry.  No plans for this anytime soon
 
 Details about all of the above are on the wiki: https://github.com/forkserf/forkserf/wiki
 
