@@ -4482,10 +4482,11 @@ Serf::handle_serf_mining_state() {
         // in original game on DosBox
         //
 
-        /* There is a small chance that the miner will
+        /* There is a (????) chance that the miner will
            not require food and skip to state 2. */
-        int r = game->random_int();
+
         // this is the original SerfCity/Settlers1 value, where 1/8th chance of requiring food (i.e. rarely consuming food)
+        int r = game->random_int();
         //   per nicymike this is the accurate original value
         if ((r & 7) != 0) {  
         // this is the jonls-freeserf "enhanced food consumption" change, where 7/8th chance of NOT requiring food (i.e. almost always consuming food)
