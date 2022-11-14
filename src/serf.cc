@@ -4486,8 +4486,8 @@ Serf::handle_serf_mining_state() {
            not require food and skip to state 2. */
 
         // this is the original SerfCity/Settlers1 value, where 1/8th chance of requiring food (i.e. rarely consuming food)
-        int r = game->random_int();
         //   per nicymike this is the accurate original value
+        int r = game->random_int();
         if ((r & 7) != 0) {  
         // this is the jonls-freeserf "enhanced food consumption" change, where 7/8th chance of NOT requiring food (i.e. almost always consuming food)
         //    freeserf commit   https://github.com/freeserf/freeserf/commit/9d0b353215ab8a011259e77e56bd2327435c67a5
