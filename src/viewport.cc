@@ -717,7 +717,14 @@ Viewport::draw_map_sprite_special(int lx, int ly, int index, unsigned int pos, u
   //  maybe because PNG settings aren't right?  try testing without all these custom graphics using a vanilla
   //  copy of Freeserf and export from FSStudio
   //frame->draw_sprite_special1(lx, ly, Data::AssetMapShadow, index, true, pos, obj);  // call Frame::draw_sprite#3
+
   // instead, try this hack to use the right shadow
+  // NOTE - if FourSeasons is on but the custom tree sprites are missing, this will result in the wrong shadow type for these trees
+  //   however it should at least avoid crashing because I put a fallback in the tree-sprite function to draw the original tree
+  //   if the custom one is mising, but I am not sure how to fall back to the original shadow here, would need to figure out how to
+  //   test for the existence of the custom data source here.  It might be easy, but this seems like an edge case.  Better to 
+  //   simply force disable FourSeasons if the custom tree sprites are missing, OR allow a version that changes the terrain only
+  //   to still allow AdvancedFarming?
   if (index >= 220 && index <= 223){
     // use "full" deciduous tree shadow for SPRING Tree2 (the white flowered tree)
     frame->draw_sprite(lx, ly, Data::AssetMapShadow, 0, true);  // call Frame::draw_sprite#3  
@@ -2426,7 +2433,7 @@ Viewport::draw_active_serf(Serf *serf, MapPos pos, int x_base, int y_base) {
           // make text increasingly red as wait increases
           int red = 150 + (25 * wait_counter);
           if (red > 255) {
-              red = 255;
+              red = 255'y';
           }
           int green_blue = 150 - (25 * wait_counter);
           if (green_blue < 0) {

@@ -2394,7 +2394,7 @@ Serf::handle_serf_entering_building_state() {
             //   how else could they reproduce?
             // NO LONGER STARTING WITH TWO PIGS since moving towards
             //  advanced farming which tweaks pig breeding rate
-            //if (option_ImprovedPigFarms) {
+            //if (option_ImprovedPigFarms) {    //removing this as it turns out the default behavior for pig farms is to require almost no grain
             //  building->set_initial_res_in_stock(1, 2);
             //} else {
               // game default
@@ -4918,24 +4918,32 @@ Serf::handle_serf_pigfarming_state() {
   //  In it, pig farms only ever use a single wheat resource (I think, is this actually true??) 
   //  yet they will store up to eight units of wheat forever.
   //  Freeserf replicates this bug(?)
+  //
+  //  ACTUALLY, nicymike says that this is intentional part of the original game code, and that
+  //   the chance of consuming a unit of grain increases over time, so it does use more than the
+  //   first unit of grain.  HOWEVER, my experience when I tested the original DOS game (only once)
+  //   was that it didn't seem to ever use more than one, at least for as long as I was waiting
+  //   not sure, I will trust he is right on this for now
+  //
   //const int breeding_prob[] = { 6000, 8000, 10000, 11000, 12000, 13000, 14000, 0 };
   
   const int normal_breeding_prob[]  = { 6000, 8000, 10000, 11000, 12000, 13000, 14000, 0 };
   // AdvancedFarming - reduce pig breeding rate to keep wheat farm's advantage (when space available)
   //   INSTEAD, HOW ABOUT SEASONAL PIG BREEDING/SLAUGHTERING??  
   //    maybe have pigs rapidly born in spring, then nearly all slaughtered in late fall, early winter
+  //    working on this as part of pannage effort, for now just reduce breeding rate
   const int reduced_breeding_prob[] = { 4000, 6000,  6666,  7333,  8000,  8666,  9333, 0 };  // these values seem to result in pig production 2/3 the rate of wheat, which is reasonable 
 
   Building *building = game->get_building_at_pos(pos);
   if (s.pigfarming.mode == 0) {
+    //if (option_ImprovedPigFarms || building->use_resource_in_stock(0)) {   // removing this as it turns out the default behavior for pig farms is to require almost no grain
+    if (building->use_resource_in_stock(0)) {
+      s.pigfarming.mode = 1;
+      animation = 139;
+      counter = counter_from_animation[animation];
+      tick = game->get_tick();
 
-    if (option_ImprovedPigFarms || building->use_resource_in_stock(0)) {
-        s.pigfarming.mode = 1;
-        animation = 139;
-        counter = counter_from_animation[animation];
-        tick = game->get_tick();
-
-        game->get_map()->set_serf_index(pos, index);
+      game->get_map()->set_serf_index(pos, index);
     }
   } else {
     uint16_t delta = game->get_tick() - tick;

@@ -295,7 +295,7 @@ typedef enum Action {
   ACTION_GAME_OPTIONS_PREV_PAGE,
   ACTION_GAME_OPTIONS_RETURN_TO_OPTIONS,
   ACTION_GAME_OPTIONS_ENABLE_AUTOSAVE,
-  ACTION_GAME_OPTIONS_IMPROVED_PIG_FARMS,
+//  ACTION_GAME_OPTIONS_IMPROVED_PIG_FARMS, // removing this as it turns out the default behavior for pig farms is to require almost no grain
   ACTION_GAME_OPTIONS_CAN_TRANSPORT_SERFS_IN_BOATS,
   ACTION_GAME_OPTIONS_QUICK_DEMO_EMPTY_BUILD_SITES,
   ACTION_GAME_OPTIONS_TREES_REPRODUCE,
@@ -2036,8 +2036,8 @@ PopupBox::draw_game_options_box() {
   draw_green_string(3, 10, "Auto Save Game");
   draw_popup_icon(1, 7, option_EnableAutoSave ? 288 : 220);
 
-  draw_green_string(3, 29, "Pigs Require No Wheat");
-  draw_popup_icon(1, 26, option_ImprovedPigFarms ? 288 : 220);
+  //draw_green_string(3, 29, "Pigs Require No Wheat");
+  //draw_popup_icon(1, 26, option_ImprovedPigFarms ? 288 : 220);  // removing this as it turns out the default behavior for pig farms is to require almost no grain
 
   draw_green_string(3, 48, "Can Transport Serfs In Boats");
   draw_popup_icon(1, 45, option_CanTransportSerfsInBoats ? 288 : 220);
@@ -3732,13 +3732,15 @@ PopupBox::handle_action(int action, int x_, int /*y_*/) {
       option_EnableAutoSave = true;
     }
     break;
-  case ACTION_GAME_OPTIONS_IMPROVED_PIG_FARMS:
+  // removing this as it turns out the default behavior for pig farms is to require almost no grain
+  /*case ACTION_GAME_OPTIONS_IMPROVED_PIG_FARMS:
     if (option_ImprovedPigFarms){
       option_ImprovedPigFarms = false;
     } else{
       option_ImprovedPigFarms = true;
     }
     break;
+    */
   case ACTION_GAME_OPTIONS_CAN_TRANSPORT_SERFS_IN_BOATS:
     if (option_CanTransportSerfsInBoats){
       option_CanTransportSerfsInBoats = false;
@@ -4156,7 +4158,7 @@ PopupBox::handle_box_game_options_clk(int cx, int cy) {
   //all options need to be defined here for the checkboxes to work,
   const int clkmap[] = {
     ACTION_GAME_OPTIONS_ENABLE_AUTOSAVE, 7, 7, 150, 16,
-    ACTION_GAME_OPTIONS_IMPROVED_PIG_FARMS, 7, 26, 150, 16,
+    //ACTION_GAME_OPTIONS_IMPROVED_PIG_FARMS, 7, 26, 150, 16,   // removing this as it turns out the default behavior for pig farms is to require almost no grain
     ACTION_GAME_OPTIONS_CAN_TRANSPORT_SERFS_IN_BOATS, 7, 45, 150, 16,
     ACTION_GAME_OPTIONS_QUICK_DEMO_EMPTY_BUILD_SITES, 7, 64, 150, 16,
     ACTION_GAME_OPTIONS_TREES_REPRODUCE, 7, 83, 150, 16,

@@ -6,7 +6,7 @@
 // these variables are deFINEd (and initialized?) in game.cc (for now) which is an arbitrary 
 //  choice because it could be done in any file that includes this header, I think.
 extern bool option_EnableAutoSave;
-extern bool option_ImprovedPigFarms;
+//extern bool option_ImprovedPigFarms;  // removing this as it turns out the default behavior for pig farms is to require almost no grain
 extern bool option_CanTransportSerfsInBoats;
 extern bool option_QuickDemoEmptyBuildSites;
 extern bool option_TreesReproduce;

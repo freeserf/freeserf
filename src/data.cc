@@ -143,6 +143,9 @@ Data::load(const std::string &path) {
       if (source->check()) {
         Log::Info["data"] << "Game data of type " << source_name << " found in '" << source->get_path()
                           << "'...";
+        if (source_type == 2){
+          Log::Info["data"] << "found a Custom data source.  REMEMBER TO INCLUDE SDL2 LIBRARIES IN YOUR Forkserf BUILD OR CUSTOM DATA WILL FAIL TO LOAD/WORK!";
+        }
         if (source->load()) {
           if (source_type == 0){
             data_source_Amiga = source;
@@ -157,11 +160,9 @@ Data::load(const std::string &path) {
           }
           if (source_type == 2){
             data_source_Custom = source;
-              // NOTE: Custom datasource requires SDL2 libs to be included when building or data will fail to load!
-            Log::Info["data"] << "loaded Custom data source.  REMEMBER TO INCLUDE SDL2 LIBRARIES IN BUILD OR CUSTOM DATA WILL FAIL TO LOAD!";
+            Log::Info["data"] << "loaded Custom data source.  Note that this could be a partial or incomplete datasource, only the existence of the top-level meta.ini is confirmed";
             //data_source = std::move(source);  // don't use this as the main data source, only for explicit custom datasource calls
           }
-          //data_source = std::move(source);
           break;
         }
       }

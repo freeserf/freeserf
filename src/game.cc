@@ -45,7 +45,7 @@
 
 // deFINE the global game option bools that were deCLARED in game-options.h
 bool option_EnableAutoSave = false;
-bool option_ImprovedPigFarms = false;
+//bool option_ImprovedPigFarms = false;  // removing this as it turns out the default behavior for pig farms is to require almost no grain
 bool option_CanTransportSerfsInBoats = false;
 bool option_QuickDemoEmptyBuildSites = false;
 bool option_TreesReproduce = false;
@@ -951,7 +951,7 @@ Game::update() {
 
 /*
   Log::Info["game"] << "option_EnableAutoSave is " << option_EnableAutoSave;
-  Log::Info["game"] << "option_ImprovedPigFarms is " << option_ImprovedPigFarms;
+  Log::Info["game"] << "option_ImprovedPigFarms is " << option_ImprovedPigFarms;   // removing this as it turns out the default behavior for pig farms is to require almost no grain
   Log::Info["game"] << "option_CanTransportSerfsInBoats is " << option_CanTransportSerfsInBoats;
   Log::Info["game"] << "option_QuickDemoEmptyBuildSites is " << option_QuickDemoEmptyBuildSites;
   Log::Info["game"] << "option_TreesReproduce is " << option_TreesReproduce;

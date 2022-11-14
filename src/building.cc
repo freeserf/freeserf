@@ -1165,9 +1165,9 @@ Building::update() {
         break;
       case TypePigFarm:
         if (holder) {
-          if (option_ImprovedPigFarms){
-            Log::Debug["building"] << "option_ImprovedPigFarms set - not requesting grain for pig farm";
-          }else{
+          //if (option_ImprovedPigFarms){
+          //  Log::Debug["building"] << "option_ImprovedPigFarms set - not requesting grain for pig farm";
+          //}else{
             // Request more wheat.
             int total_stock = stock[0].requested + stock[0].available;
             if (total_stock < stock[0].maximum) {
@@ -1176,7 +1176,7 @@ Building::update() {
             } else {
               stock[0].prio = 0;
             }
-          }
+          //}
         }
         break;
       case TypeMill:
