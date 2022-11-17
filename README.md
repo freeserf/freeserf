@@ -34,7 +34,7 @@ Forkserf adds:
   - faster clearing of Lost serfs, see https://github.com/forkserf/forkserf/wiki/faster-clearing-of-Lost-serfs
 - debugging tools
   - mark positions with colored dots, see https://github.com/forkserf/forkserf/wiki/mark-positions-with-colored-dots
-  - mark specific serfs and their state
+  - mark specific serfs and their state, see https://github.com/forkserf/forkserf/wiki/mark-specific-serfs-and-their-state
   - manually "boot" specific serfs by setting them to Lost state
   - trace road pathfinding, see https://github.com/forkserf/forkserf/wiki/trace-road-pathfinding
   - identification & colored highlighting of arterial roads, see https://github.com/forkserf/forkserf/wiki/identification-&-colored-highlighting-of-arterial-roads
@@ -45,12 +45,12 @@ Details about all of the above are on the wiki: https://github.com/forkserf/fork
 
 Build status
 ------------
-coming soon
+coming eventually
 
 Last build downloads
 --------------------
 
-coming soon, check https://github.com/tlongstretch/freeserf-with-AI-plus-binaries for the moment
+coming soon
 
 Play
 ------
