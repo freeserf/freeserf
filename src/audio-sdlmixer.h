@@ -69,6 +69,7 @@ class AudioSDL : public Audio, public Audio::VolumeController {
     //virtual Audio::PTrack create_track(int track_id);
     virtual Audio::PTrack create_track(int track_id, int source_type);
     virtual void stop();
+    virtual void start();
 
    public:
     virtual float get_volume();
@@ -111,6 +112,7 @@ class AudioSDL : public Audio, public Audio::VolumeController {
     //virtual Audio::PTrack create_track(int track_id);
     virtual Audio::PTrack create_track(int track_id, int source_type);
     virtual void stop();
+    virtual void start();
 
    public:
     virtual float get_volume();

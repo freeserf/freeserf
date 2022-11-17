@@ -3776,6 +3776,7 @@ PopupBox::handle_action(int action, int x_, int /*y_*/) {
     //} else{
     //  option_ResourceRequestsTimeOut = true;
     //}
+    play_sound(Audio::TypeSfxNotAccepted);  // play sound to indicate this can't be disabled
     break;
   case ACTION_GAME_OPTIONS_LostTransportersClearFaster:
     if (option_LostTransportersClearFaster){
@@ -4177,7 +4178,7 @@ PopupBox::handle_box_game_options2_clk(int cx, int cy) {
     ACTION_GAME_OPTIONS_ResourceRequestsTimeOut, 7, 7, 150, 16,
     ACTION_GAME_OPTIONS_LostTransportersClearFaster, 7, 26, 150, 16,
     ACTION_GAME_OPTIONS_FourSeasons, 7, 45, 150, 16,
-    //ACTION_GAME_OPTIONS_Placeholder2, 7, 64, 150, 16,
+    ACTION_GAME_OPTIONS_FishSpawnSlowly, 7, 64, 150, 16,
     //ACTION_GAME_OPTIONS_Placeholder3, 7, 83, 150, 16,
     //ACTION_GAME_OPTIONS_Placeholder4, 7, 102, 150, 16,
     ACTION_GAME_OPTIONS_PREV_PAGE, 239, 126, 16, 16,  // flip button

@@ -211,7 +211,7 @@ class AI {
   // ai_util.cc
   //
   static bool has_terrain_type(PGame, MapPos, Map::Terrain, Map::Terrain);  // why does this need to be static?
-  bool place_castle(PGame, MapPos, unsigned int);
+  bool place_castle(PGame, MapPos, unsigned int, unsigned int);
   static unsigned int spiral_dist(int);   // why does this need to be static?
   //void rebuild_all_roads();  // no longer need this
   // changing these to support *planning* a road without actually building it, prior to placing a new building

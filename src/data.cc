@@ -138,7 +138,7 @@ Data::load(const std::string &path) {
     if (source_type == 2)
       source_name = "Custom";
     for (const std::string &path : search_paths) {
-      Log::Info["data"] << "checking for game data in search_path " << path;
+      Log::Info["data"] << "checking for game data in search_path '" << path << "'";
       Data::PSource source = factory(path);
       if (source->check()) {
         Log::Info["data"] << "Game data of type " << source_name << " found in '" << source->get_path()

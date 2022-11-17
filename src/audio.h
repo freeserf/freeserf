@@ -133,6 +133,7 @@ class Audio {
     //virtual PTrack create_track(int track_id) = 0;
     virtual PTrack create_track(int track_id, int source_type) = 0;
     virtual void stop() = 0;
+    virtual void start() = 0;
   };
   typedef std::shared_ptr<Player> PPlayer;
 

@@ -1434,7 +1434,7 @@ CustomMapGenerator::expand_water_body(MapPos pos) {
   }
 }
 
-// Create water bodies on the map.
+// Create water bodies on the map (and fish)
 //
 // Try to expand every position that is at or below the water level into a
 // body of water. After expanding bodies of water, the height of the positions
