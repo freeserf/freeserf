@@ -288,9 +288,6 @@ AI::do_place_castle() {
     //
     // pick random spots on the map until an acceptable area found, and try building there
     ///===========================================================================================================
-    //  IMPROVEMENT NEEDED - after X tries fail, reduce requirements so that castle can still be placed!!!
-    ///===========================================================================================================
-    //
     // IMPORTANT - with multiple AI threads all starting at the same time, they are trying to build castle at the same time,
     //    this Random rnd will actually be IDENTICAL across all threads!  To mix them up, sleep a bit so that
     //      the time that is fed to seed the random function gets a different time-seed for each player
@@ -298,25 +295,29 @@ AI::do_place_castle() {
     //   maybe start doing random wait instead?  meh
     AILogDebug["do_place_castle"] << "sleeping " << player_index << "sec so each AI player thread gets different seed for random map pos";
     std::this_thread::sleep_for(std::chrono::milliseconds(2000 * player_index));
-    // I think this needs to get the existing game Random rnd, NOT creating a new one
-    // yes, added Game::get_rand function, trying using it instead of this
-    //Random rnd;  
-    int tries = 300;
-    int x = 0;
+    int maxtries = 500;  // crash if failed to place castle after this many tries, regardless of desperation
+    int lower_standards_tries = 75;  // reduce standards after this many tries (can happen repeatedly)
+    int desperation = 0;  // current level of lowered standards
+    int x = 0;  // current try
     while (true) {
       x++;
-      if (x > tries) {
-        AILogDebug["do_place_castle"] << "unable to place castle after " << x << " tries!";
-        throw ExceptionFreeserf("unable to place castle for player after exhausting all tries!");
+      if (x > maxtries) {
+        AILogDebug["do_place_castle"] << "unable to place castle after " << x << " tries, maxtries reached!";
+        throw ExceptionFreeserf("unable to place castle for an AI player after exhausting all tries!");
       }
-      //MapPos pos = map->get_rnd_coord(NULL, NULL, &rnd);
+      if (x > lower_standards_tries * (desperation + 1)){
+        desperation++;
+        AILogDebug["do_place_castle"] << "unable to place castle after " << x << " tries, lowering standards to desperation level " << desperation;
+      }
       MapPos pos = map->get_rnd_coord(NULL, NULL, game->get_rand());
-      AILogDebug["do_place_castle"] << ": considering placing castle at random pos " << pos;
+      AILogDebug["do_place_castle"] << " considering placing castle at random pos " << pos;
+      // first see if it is even possible to build large building here
       if (!game->can_build_castle(pos, player)) {
         AILogDebug["do_place_castle"] << "cannot build a castle at pos " << pos;
         continue;
       }
-      if (place_castle(game, pos, spiral_dist(8))) {
+      // check if area has acceptable resources + building pos, and if so build there
+      if (place_castle(game, pos, spiral_dist(8), desperation)) {
         AILogDebug["do_place_castle"] << "found acceptable place to build castle, at pos: " << pos;
         AILogVerbose["do_place_castle"] << "thread #" << std::this_thread::get_id() << " AI is locking mutex before calling game->build_castle";
         game->get_mutex()->lock();

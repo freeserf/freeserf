@@ -246,6 +246,15 @@ else()
 endif()
 include(CPack)
 
+# tlongstretch, copy custom graphics into build dir on successful build
+add_custom_command(TARGET FreeSerf POST_BUILD
+                   COMMAND ${CMAKE_COMMAND} -E copy
+                       ${CMAKE_SOURCE_DIR}/custom_graphics/meta.ini $<TARGET_FILE_DIR:FreeSerf>)
+add_custom_command(TARGET FreeSerf POST_BUILD
+                   COMMAND ${CMAKE_COMMAND} -E copy_directory
+                       ${CMAKE_SOURCE_DIR}/custom_graphics/map_object $<TARGET_FILE_DIR:FreeSerf>/map_object)
+
+
 # Profiler executable
 
 set(PROFILER_SOURCES profiler.cc

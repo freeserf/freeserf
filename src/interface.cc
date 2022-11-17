@@ -1039,6 +1039,7 @@ Interface::handle_key_pressed(char key, int modifier) {
       Audio &audio = Audio::get_instance();
       Audio::PPlayer splayer = audio.get_music_player();
       if (splayer) {
+        Log::Debug["interface.cc"] << "audio splayer exists, state is " << splayer->is_enabled();
         splayer->enable(!splayer->is_enabled());
       }
       break;

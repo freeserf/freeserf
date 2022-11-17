@@ -79,15 +79,23 @@ AI::has_terrain_type(PGame game, MapPos pos, Map::Terrain res_start_index, Map::
 // score specified area in terms of castle placement
 //   initially this is just ensuring enough wood, stones, and building sites
 //   long term it should also care about resources in the surrounding areas!  including mountains, fishable waters, etc.
+//  desperation is a multiplier
 bool
-AI::place_castle(PGame game, MapPos center_pos, unsigned int distance) {
-  AILogDebug["util_place_castle"] << "inside AI::place_castle, center_pos " << center_pos << ", distance " << distance;
+AI::place_castle(PGame game, MapPos center_pos, unsigned int distance, unsigned int desperation) {
+  AILogDebug["util_place_castle"] << "inside AI::place_castle, center_pos " << center_pos << ", distance " << distance << ", desperation " << desperation;
   PMap map = game->get_map();
   unsigned int trees = 0;
   unsigned int stones = 0;
   unsigned int building_sites = 0;
   for (unsigned int i = 0; i < distance; i++) {
     MapPos pos = map->pos_add_extended_spirally(center_pos, i);
+
+    // don't count resouces that are inside enemy territory
+    if (map->get_owner(pos) != player_index && map->get_owner(pos) != -1) {
+      AILogDebug["util_place_castle"] << "enemy territory at pos " << pos << ", not counting these resouces towards requirements";
+      continue;
+    }
+
     Map::Object obj = map->get_obj(pos);
     if (obj >= Map::ObjectTree0 && obj <= Map::ObjectPine7) {
       trees += 1;
@@ -108,20 +116,22 @@ AI::place_castle(PGame game, MapPos center_pos, unsigned int distance) {
     }
   }
 
-  AILogDebug["util_place_castle"] << "found trees: " << trees << ", stones: " << stones << ", building_sites: " << building_sites << " in area " << center_pos;
-  if (trees < (near_trees_min * 4)) {
-    AILogDebug["util_place_castle"] << "not enough trees, min is " << near_trees_min * 4 << ", returning false";
+  AILogDebug["util_place_castle"] << "found trees: " << trees << ", stones: " << stones << ", building_sites: " << building_sites << " in area " << center_pos << ". Desperation is " << desperation;
+
+  // if good place for castle cannot be found, lower standards by faking an increased amount of resources
+  if (trees + desperation*4 < near_trees_min * 4) {
+    AILogDebug["util_place_castle"] << "not enough trees, min is " << near_trees_min * 4 << ", returning false.  Desperation is " << desperation;
     return false;
   }
-  if (stones < near_stones_min) {
-    AILogDebug["util_place_castle"] << "not enough stones, min is " << near_stones_min << ", returning false";
+  if (stones + desperation < near_stones_min) {
+    AILogDebug["util_place_castle"] << "not enough stones, min is " << near_stones_min << ", returning false.  Desperation is " << desperation;
     return false;
   }
-  if (building_sites < near_building_sites_min) {
-    AILogDebug["util_place_castle"] << "not enough building_sites, min is " << near_building_sites_min << ", returning false";
+  if (building_sites + desperation*90 < near_building_sites_min) {
+    AILogDebug["util_place_castle"] << "not enough building_sites, min is " << near_building_sites_min << ", returning false.  Desperation is " << desperation;
     return false;
   }
-  AILogDebug["util_place_castle"] << "center_pos: " << center_pos << " is an acceptable building site for a castle";
+  AILogDebug["util_place_castle"] << "center_pos: " << center_pos << " is an acceptable building site for a castle.  Desperation is " << desperation;
   AILogDebug["util_place_castle"] << "done AI::place_castle";
   return true;
 }

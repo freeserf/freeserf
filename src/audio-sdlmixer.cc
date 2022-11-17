@@ -201,12 +201,20 @@ AudioSDL::PlayerSFX::enable(bool enable) {
   enabled = enable;
   if (!enabled) {
     stop();
+  }else{
+    start();
   }
 }
 
 void
 AudioSDL::PlayerSFX::stop() {
-  Mix_HaltChannel(-1);
+  //Mix_HaltChannel(-1);
+  Mix_Pause(-1);
+}
+
+void
+AudioSDL::PlayerSFX::start() {
+  Mix_Resume(-1);
 }
 
 float
@@ -357,12 +365,20 @@ AudioSDL::PlayerMIDI::enable(bool enable) {
   enabled = enable;
   if (!enabled) {
     stop();
+  }else{
+    start();
   }
 }
 
 void
 AudioSDL::PlayerMIDI::stop() {
-  Mix_HaltMusic();
+  //Mix_HaltMusic();
+  Mix_PauseMusic();
+}
+
+void
+AudioSDL::PlayerMIDI::start() {
+  Mix_ResumeMusic();
 }
 
 float
