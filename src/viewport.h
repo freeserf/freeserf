@@ -114,7 +114,10 @@ class Viewport : public GuiObject, public Map::Handler {
   void draw_water_waves(MapPos pos, int x, int y);
   void draw_water_waves_row(MapPos pos, int y_base, int cols, int x_base);
   void draw_flag_and_res(MapPos pos, int x, int y);
-  void draw_map_objects_row(MapPos pos, int y_base, int cols, int x_base);
+  //void draw_map_objects_row(MapPos pos, int y_base, int cols, int x_base);
+  // add passing ly to this function to allow determination of y/row location
+  //  inside the viewport so that a focus area can be selected for ambient sounds
+  void draw_map_objects_row(MapPos pos, int y_base, int cols, int x_base, int ly);
   void draw_row_serf(int x, int y, bool shadow, const Color &color, int body);
   int serf_get_body(Serf *serf);
   void draw_active_serf(Serf *serf, MapPos pos, int x_base, int y_base);

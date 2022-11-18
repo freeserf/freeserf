@@ -1340,12 +1340,36 @@ Viewport::draw_flag_and_res(MapPos pos, int lx, int ly) {
 }
 
 void
-Viewport::draw_map_objects_row(MapPos pos, int y_base, int cols, int x_base) {
+//Viewport::draw_map_objects_row(MapPos pos, int y_base, int cols, int x_base) {
+Viewport::draw_map_objects_row(MapPos pos, int y_base, int cols, int x_base, int ly) {
+  // for determining "in view" objects for ambient sound generation,
+  //  only consider a roughly 640x480px area in the center of the 
+  //  viewport, otherwise there are too many ambient sounds and for
+  //  things such as deserts, water, that are near edges of viewport
+  // note that X is in cols, and Y is in pixels, because it is easier to code this way
+  int focus_cols = 18;
+  int center_col = cols / 2;
+  int leftmost_focus_col = center_col - (focus_cols / 2);
+  int rightmost_focus_col = center_col + (focus_cols / 2);
+  int focus_y_pixels = 480;
+  int center_y = height / 2;
+  int topmost_focus_y = center_y - (focus_y_pixels / 2);
+  int lowest_focus_y = center_y + (focus_y_pixels / 2);
+  //Log::Debug["viewport.cc"] << "inside draw_map_objects, pos " << pos << ", cols: " << cols << ", focus_cols: " << focus_cols << ", center_col: " << center_col << ", left: " << leftmost_focus_col << ", right: " << rightmost_focus_col;
+  //Log::Debug["viewport.cc"] << "inside draw_map_objects, pos " << pos << ", map height: " << height << ", ly: " << ly << ", center_y: " << center_y << ", top: " << topmost_focus_y << ", bottom: " << lowest_focus_y;
   for (int i = 0; i < cols;
        i++, x_base += MAP_TILE_WIDTH, pos = map->move_right(pos)) {
-    if (map->get_obj(pos) == Map::ObjectNone) continue;
-
+    if (map->get_obj(pos) == Map::ObjectNone) continue;  // comment this out if trying to draw red dot overlay to show focus area
     int ly = y_base - 4 * map->get_height(pos);
+    bool in_ambient_focus = false;
+    if (i >= leftmost_focus_col && i <= rightmost_focus_col && ly >= topmost_focus_y && ly <= lowest_focus_y){
+      // debug - show area in focus for ambient sounds with red dots
+      //   note for this to show a full rectangle the "continue if ObjectNone" must be moved to BELOW this if statement
+      //frame->fill_rect(x_base - 7, ly + 0, 6, 6, colors.at("red"));
+      //frame->fill_rect(x_base - 9, ly + 1, 12, 12, colors.at("red"));
+      in_ambient_focus = true;
+    }
+    //if (map->get_obj(pos) == Map::ObjectNone) continue;  // uncomment this if trying to draw red dot overlay to show focus area
     if (map->get_obj(pos) < Map::ObjectTree0) {
       if (map->get_obj(pos) == Map::ObjectFlag) {
         draw_flag_and_res(pos, x_base, ly);
@@ -1356,26 +1380,30 @@ Viewport::draw_map_objects_row(MapPos pos, int y_base, int cols, int x_base) {
       int sprite = map->get_obj(pos) - Map::ObjectTree0;
       bool use_custom_set = false;  // messing with weather/seasons/palette tiles
       if (sprite < 24) {
-        /* Trees */
-        // only allow bird chirps from Tree and Pine (not palm or submerged, cactus, etc.)
-        if (map->get_obj(pos) >= Map::ObjectTree0 && map->get_obj(pos) <= Map::ObjectPine7) {
-          interface->trees_in_view += 1;
-          //Log::Info["viewport.cc"] << "trees in view: " << interface->trees_in_view;
-        }
-        // use junk objects that only appear in deserts to trigger desert wind sounds
-        //  cannot use desert terrain in view because landscape is not constantly redrawn
-        if (map->get_obj(pos) == Map::ObjectCactus0   || map->get_obj(pos) == Map::ObjectCactus1
-         || map->get_obj(pos) == Map::ObjectCadaver0  || map->get_obj(pos) == Map::ObjectCadaver1
-         || (map->get_obj(pos) >= Map::ObjectPalm0 && map->get_obj(pos) <= Map::ObjectPalm3)) {
-          interface->desert_in_view += 1;
-          //Log::Info["viewport.cc"] << "desert junk objects in view: " << interface->desert_in_view;
-        }
-        // there's a bug with water tile map generation, seems only one water tree is rendered
-        //  and always top row, top left??  include all anyway in case I eventually fix that
-        if ((map->get_obj(pos) >= Map::ObjectWaterTree0 && map->get_obj(pos) <= Map::ObjectWaterTree3)
-          || map->get_obj(pos) >= Map::ObjectWaterStone0 || map->get_obj(pos) >= Map::ObjectWaterStone1) {
-          interface->water_in_view += 1;
-          //Log::Info["viewport.cc"] << "water junk objects in view: " << interface->water_in_view;
+
+        // ambient sound triggers, only consider objects that are in the focus area
+        if (in_ambient_focus){
+          /* Trees */
+          // only allow bird chirps from Tree and Pine (not palm or submerged, cactus, etc.)
+          if (map->get_obj(pos) >= Map::ObjectTree0 && map->get_obj(pos) <= Map::ObjectPine7) {
+            interface->trees_in_view += 1;
+            //Log::Info["viewport.cc"] << "trees in view: " << interface->trees_in_view;
+          }
+          // use junk objects that only appear in deserts to trigger desert wind sounds
+          //  cannot use desert terrain in view because landscape is not constantly redrawn
+          if (map->get_obj(pos) == Map::ObjectCactus0   || map->get_obj(pos) == Map::ObjectCactus1
+          || map->get_obj(pos) == Map::ObjectCadaver0  || map->get_obj(pos) == Map::ObjectCadaver1
+          || (map->get_obj(pos) >= Map::ObjectPalm0 && map->get_obj(pos) <= Map::ObjectPalm3)) {
+            interface->desert_in_view += 1;
+            //Log::Info["viewport.cc"] << "desert junk objects in view: " << interface->desert_in_view;
+          }
+          // there's a bug with water tile map generation, seems only one water tree is rendered
+          //  and always top row, top left??  include all anyway in case I eventually fix that
+          if ((map->get_obj(pos) >= Map::ObjectWaterTree0 && map->get_obj(pos) <= Map::ObjectWaterTree3)
+            || map->get_obj(pos) >= Map::ObjectWaterStone0 || map->get_obj(pos) >= Map::ObjectWaterStone1) {
+            interface->water_in_view += 1;
+            //Log::Info["viewport.cc"] << "water junk objects in view: " << interface->water_in_view;
+          }
         }
 
         // Adding sprite number to animation ensures
@@ -2659,7 +2687,8 @@ Viewport::draw_game_objects(int layers_) {
       draw_serf_row_behind(pos, ly, short_row_len, lx);
     }
     if (draw_objects) {
-      draw_map_objects_row(pos, ly, short_row_len, lx);
+      //draw_map_objects_row(pos, ly, short_row_len, lx);
+      draw_map_objects_row(pos, ly, short_row_len, lx, ly);
     }
     if (draw_serfs) {
       draw_serf_row(pos, ly, short_row_len, lx);
@@ -2678,7 +2707,8 @@ Viewport::draw_game_objects(int layers_) {
       draw_serf_row_behind(pos, ly, long_row_len, lx - 16);
     }
     if (draw_objects) {
-      draw_map_objects_row(pos, ly, long_row_len, lx - 16);
+      //draw_map_objects_row(pos, ly, long_row_len, lx - 16);
+      draw_map_objects_row(pos, ly, long_row_len, lx - 16, ly);
     }
     if (draw_serfs) {
       draw_serf_row(pos, ly, long_row_len, lx - 16);
@@ -2689,6 +2719,7 @@ Viewport::draw_game_objects(int layers_) {
 
     pos = map->move_down_right(pos);
   }
+  Log::Debug["viewport.cc"] << "debug: 'height' is " << height << " at end of draw_game_objects loop";
   //
   // ambient sounds - birds near trees, waves near water (palms)
   //  wind near deserts 
