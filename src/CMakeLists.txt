@@ -246,13 +246,19 @@ else()
 endif()
 include(CPack)
 
-# tlongstretch, copy custom graphics into build dir on successful build
+#     tlongstretch, copy custom graphics into build dir on successful build
+# top level metadata file, remember to uncomment each dir/section as new types added
 add_custom_command(TARGET FreeSerf POST_BUILD
                    COMMAND ${CMAKE_COMMAND} -E copy
                        ${CMAKE_SOURCE_DIR}/custom_graphics/meta.ini $<TARGET_FILE_DIR:FreeSerf>)
+# custom tree graphics for spring, fall, winter
 add_custom_command(TARGET FreeSerf POST_BUILD
                    COMMAND ${CMAKE_COMMAND} -E copy_directory
                        ${CMAKE_SOURCE_DIR}/custom_graphics/map_object $<TARGET_FILE_DIR:FreeSerf>/map_object)
+# custom panel bar / frame_bottom graphics for season dial display
+add_custom_command(TARGET FreeSerf POST_BUILD
+                   COMMAND ${CMAKE_COMMAND} -E copy_directory
+                       ${CMAKE_SOURCE_DIR}/custom_graphics/frame_bottom $<TARGET_FILE_DIR:FreeSerf>/frame_bottom)
 
 
 # Profiler executable

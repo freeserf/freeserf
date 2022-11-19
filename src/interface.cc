@@ -890,6 +890,23 @@ Interface::update() {
     // so 100k ticks should be around 1.6 seasons
     // so one season should be about 62500 ticks
     // so one subseason (1/16th season) should be 3906.25
+    // and one year of ticks is 250000
+
+    // to make seasons persistent when game is saved/loaded, without modifying savegame format
+    //  have the current season be an offset from starting tick
+
+    int year = game->get_tick() / 250000;
+    int year_offset = game->get_tick() % 250000;
+    season = 1 + year_offset / 62500;  // increment by 1 to default to Summer
+    if (season > 3){season = 0;} // ... but wrap back around as there is no fifth season
+    int season_offset = year_offset % 62500;
+    subseason = season_offset / 3906;
+    int subseason_offset = season_offset % 3906;
+    Log::Debug["interface.cc"] << "FourSeasons calendar:  tick " << game->get_tick() << ", year " << year << ", year_offset " << year_offset << ", season " << season << ", season_offset " << season_offset << ", subseason " << subseason << ", subseason_offset " << subseason_offset;
+
+    // IN THE FUTURE, ALLOW IT TO BE RANDOMIZED BY starting tick + random-seed offset up to 1yr
+
+    /*
     if (game->get_tick() > 3906 + last_subseason_tick){
       Log::Debug["interface"] << "inside Interface::update, incrementing subseason, subseason is now " << subseason << ", last_subseason_tick " << last_subseason_tick << ", game tick " << game->get_tick();
       last_subseason_tick = game->get_tick();
@@ -908,6 +925,19 @@ Interface::update() {
       clear_custom_graphics_cache();
       viewport->set_size(width, height);  // this does the magic refresh without affecting popups (as Interface->layout() does)
     }
+    */
+
+    if (last_subseason != subseason){
+      if (last_season != season){
+        Log::Info["interface.cc"] << "FourSeasons: changing season to " << NameSeason[season];
+        last_season = season;
+      }
+      Log::Debug["interface.cc"] << "FourSeasons: changing subseason to " << subseason << " and clearing image cache";
+      last_subseason = subseason;
+      clear_custom_graphics_cache();
+      viewport->set_size(width, height);  // this does the magic refresh without affecting popups (as Interface->layout() does)
+    }
+
   }
 
   /* Clear return arrow after a timeout */
@@ -1118,6 +1148,9 @@ Interface::handle_key_pressed(char key, int modifier) {
       viewport->set_size(width, height);  // this does the magic refresh without affecting popups (as Interface->layout() does)
       break;
     case 'q':
+      //disabled for now, season is now tied to tick so it works with save/load game
+      play_sound(Audio::TypeSfxNotAccepted);
+      /*
       if (season < 3){
         season++;
       }else{
@@ -1126,8 +1159,12 @@ Interface::handle_key_pressed(char key, int modifier) {
       Log::Info["interface"] << "Changing Season to " << NameSeason[season] << " and clearing image cache";
       clear_custom_graphics_cache();
       viewport->set_size(width, height);  // this does the magic refresh without affecting popups (as Interface->layout() does)
+      */
       break;
     case 'e':
+      //disabled for now, season is now tied to tick so it works with save/load game
+      play_sound(Audio::TypeSfxNotAccepted);
+      /*
       if (subseason < 16){  // allow subseason to go to be  "tree + 1" so that it can have a 0 state with no change yet
         subseason++;
       }else{
@@ -1137,6 +1174,7 @@ Interface::handle_key_pressed(char key, int modifier) {
       // subseason does not require purging of tile cache because only ground tiles seem to be cached
       //  and sub-seasons only affect map_objects (trees)
       viewport->set_size(width, height);  // this does the magic refresh without affecting popups (as Interface->layout() does)
+      */
       break;
     case 'z':
       if (modifier & 1) {

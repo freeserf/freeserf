@@ -55,7 +55,9 @@ bool option_LostTransportersClearFaster = false;
 bool option_FourSeasons = false;
 bool option_FishSpawnSlowly = false;
 int season = 1;  // default to Summer
+int last_season = 1;
 int subseason = 0;  // for tree progression
+int last_subseason = 0;
 typedef enum Season {
   SeasonSpring = 0,
   SeasonSummer = 1,

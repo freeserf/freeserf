@@ -59,6 +59,7 @@ void
 PanelBar::draw_panel_frame() {
   const int bottom_svga_layout[] = {
     6, 0, 0,
+//    100, 0, 0,  // testing custom frame_bottom graphics for season_dial, uses AssetFrameBottom
     0, 40, 0,
     20, 48, 0,
 
@@ -93,8 +94,15 @@ PanelBar::draw_panel_frame() {
 
   /* Draw layout */
   for (int i = 0; layout[i] != -1; i += 3) {
-    frame->draw_sprite(layout[i+1], layout[i+2], Data::AssetFrameBottom,
-                       layout[i]);
+    // draw the season dial to display current season, if FourSeasons is turned on
+    if (option_FourSeasons && i == 0){ // if first item in array, which is the desired sprite 006 which is the leftmost shield sprite in the panel bottom
+      int custom_sprite_index = 100*season + subseason + 100;  // +100 because the custom graphics START AT 100, 100=spring(0),200=summer(1),300=fall(2),400=winter(3) 
+      Log::Debug["panel.cc"] << "inside PanelBar::draw_panel_frame, custom_sprite_index is " << custom_sprite_index << ", season " << season << ", subseason " << subseason;
+      frame->draw_sprite_special0(layout[i+1], layout[i+2], Data::AssetFrameBottom, custom_sprite_index);
+    }else{
+      // use normal function
+      frame->draw_sprite(layout[i+1], layout[i+2], Data::AssetFrameBottom, layout[i]);
+    }
   }
 }
 

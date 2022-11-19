@@ -184,6 +184,14 @@ Frame::draw_sprite(int x, int y, Data::Resource res, unsigned int index) {
   draw_sprite(x, y, res, index, false, Color::transparent, 1.f);
 }
 
+// copy of draw_sprite #! but allowing custom datasource (for frame_bottom weather dial graphics)
+void
+Frame::draw_sprite_special0(int x, int y, Data::Resource res, unsigned int index) {
+  Log::Info["gfx.cc"] << "inside Frame::draw_sprite_special0  with res " << res << " and index " << index;
+  draw_sprite_special0x(x, y, res, index, false, Color::transparent, 1.f);
+}
+
+// #2
 void
 Frame::draw_sprite(int x, int y, Data::Resource res, unsigned int index,
                    bool use_off, const Color &color, float progress) {
@@ -199,6 +207,58 @@ Frame::draw_sprite(int x, int y, Data::Resource res, unsigned int index,
     Data::PSprite s = data_source->get_sprite(res, index, pc);
     if (!s) {
       Log::Warn["graphics"] << "Failed to decode sprite #"
+                            << Data::get_resource_name(res) << ":" << index;
+      return;
+    }
+    image = new Image(video, s);
+    Image::cache_image(id, image);
+  }
+
+  if (use_off) {
+    x += image->get_offset_x();
+    y += image->get_offset_y();
+  }
+  int y_off = image->get_height() - static_cast<int>(image->get_height() *
+                                                     progress);
+  video->draw_image(image->get_video_image(), x, y, y_off, video_frame);
+}
+
+// for custom frame_bottom graphics for season_dial, copy of #2
+void
+Frame::draw_sprite_special0x(int x, int y, Data::Resource res, unsigned int index,
+                   bool use_off, const Color &color, float progress) {
+  Log::Info["gfx.cc"] << "inside Frame::draw_sprite_special0x  with res " << res << " and index " << index;
+  Data::Sprite::Color pc = {color.get_blue(),
+                            color.get_green(),
+                            color.get_red(),
+                            color.get_alpha()};
+
+  uint64_t id = Data::Sprite::create_id(res, index, 0, 0, pc);
+  Image *image = Image::get_cached_image(id);
+  if (image == nullptr) {
+    Data::PSprite s;
+    if (res == Data::AssetFrameBottom){
+      Log::Info["gfx.cc"] << "inside Frame::draw_sprite_special0x, trying to load custom FrameBottom graphic with index " << index;
+      Data &data = Data::get_instance();
+      if (data.get_data_source_Custom() == nullptr){
+        Log::Error["gfx.cc"] << "inside Frame::draw_sprite_special0x, index " << index << ", data_source (custom) is nullptr!, are the custom data files missing?";
+        // need to get the original 00x sprite number instead of the 2xx/3xx/4xx set used for FourSeasons
+        //  mod 10 essentially "strips the first two digits" which works because the original Tree values are 0 through 9
+        // note that this assumes it is a Tree because nothing else should be using this draw_sprite_special3 function, but if it does it will likely break!
+        unsigned int orig_index = index % 100;
+        Log::Warn["gfx.cc"] << "inside Frame::draw_sprite_special0x, custom datasource not found for sprite index " << index <<", trying to fall back to default datasource for this sprite, using " << orig_index;
+        s = data_source->get_sprite(res, orig_index, pc);
+      }else{
+        // load the custom sprite
+        s = data.get_data_source_Custom()->get_sprite(res, index, pc); // FourSeasons, with crammed animation
+      }
+    }else{
+      s = data_source->get_sprite(res, index, pc);
+    }
+
+    //Data::PSprite s = data_source->get_sprite(res, index, pc);
+    if (!s) {
+      Log::Warn["gfx.cc"] << "Failed to decode sprite #"
                             << Data::get_resource_name(res) << ":" << index;
       return;
     }

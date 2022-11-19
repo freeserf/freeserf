@@ -2719,7 +2719,7 @@ Viewport::draw_game_objects(int layers_) {
 
     pos = map->move_down_right(pos);
   }
-  Log::Debug["viewport.cc"] << "debug: 'height' is " << height << " at end of draw_game_objects loop";
+
   //
   // ambient sounds - birds near trees, waves near water (palms)
   //  wind near deserts 
