@@ -239,7 +239,9 @@ GameInitBox::internal_draw() {
   }
 
   // Display program name and version in caption
-  draw_box_string(0, 212, FREESERF_VERSION);
+  //draw_box_string(0, 212, FREESERF_VERSION);
+  draw_box_string(0, 222, "FORKSERF");
+  draw_box_string(9, 222, FORKSERF_VERSION);
 
    if (game_type == GameCustom) {
      /*   figure this out later, it looks ugly

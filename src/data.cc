@@ -206,9 +206,12 @@ Data::get_standard_search_paths() const {
   paths.push_back(".");
 
   // Look in data directories under the home directory
-  add_env_path(std::getenv("XDG_DATA_HOME"), "freeserf");
-  add_env_path(std::getenv("HOME"), ".local/share/freeserf");
-  add_env_path(std::getenv("HOME"), ".local/share/freeserf/custom");
+  //add_env_path(std::getenv("XDG_DATA_HOME"), "freeserf");
+  //add_env_path(std::getenv("HOME"), ".local/share/freeserf");
+  //add_env_path(std::getenv("HOME"), ".local/share/freeserf/custom");
+  add_env_path(std::getenv("XDG_DATA_HOME"), "forkserf");
+  add_env_path(std::getenv("HOME"), ".local/share/forkserf");
+  add_env_path(std::getenv("HOME"), ".local/share/forkserf/custom");
 
 #ifdef _WIN32
   // Look in the same directory as the freeserf.exe app.
@@ -217,8 +220,10 @@ Data::get_standard_search_paths() const {
   add_env_path(app_path, "../");
 
   // Look in windows XDG_DATA_HOME equivalents.
-  add_env_path(std::getenv("userprofile"), ".local/share/freeserf");
-  add_env_path(std::getenv("LOCALAPPDATA"), "freeserf");
+  //add_env_path(std::getenv("userprofile"), ".local/share/freeserf");
+  //add_env_path(std::getenv("LOCALAPPDATA"), "freeserf");
+  add_env_path(std::getenv("userprofile"), ".local/share/forkserf");
+  add_env_path(std::getenv("LOCALAPPDATA"), "forkserf");
 #endif
 
   // Search in global directories.
@@ -236,13 +241,20 @@ Data::get_standard_search_paths() const {
     size_t pos = dirs.find(PATH_SEPERATING_CHAR, next_path);
     std::string dir = dirs.substr(next_path, pos);
     next_path = (pos != std::string::npos) ? pos + 1 : pos;
-    add_env_path(dir.c_str(), "freeserf");
+    //add_env_path(dir.c_str(), "freeserf");
+    add_env_path(dir.c_str(), "forkserf");
   }
 
+//#ifndef _WIN32
+//  paths.push_back("/usr/local/share/freeserf");
+//  paths.push_back("/usr/share/freeserf");
+//#endif
+
 #ifndef _WIN32
-  paths.push_back("/usr/local/share/freeserf");
-  paths.push_back("/usr/share/freeserf");
+  paths.push_back("/usr/local/share/forkserf");
+  paths.push_back("/usr/share/forkserf");
 #endif
+
 
   return paths;
 }

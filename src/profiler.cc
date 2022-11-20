@@ -48,7 +48,8 @@ main(int argc, char *argv[]) {
     return EXIT_FAILURE;
   }
 
-  Log::Info["profiler"] << "starts " << FREESERF_VERSION;
+  //Log::Info["profiler"] << "starts " << FREESERF_VERSION;
+  Log::Info["profiler.cc"] << "starts " << FORKSERF_VERSION;
 
   GameManager &game_manager = GameManager::get_instance();
 

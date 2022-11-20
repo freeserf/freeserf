@@ -22,4 +22,5 @@
 #include "src/version.h"
 #include "src/version-vcs.h"
 
-const char FREESERF_VERSION[] = VERSION_VCS;
+//const char FREESERF_VERSION[] = VERSION_VCS;
+const char FORKSERF_VERSION[] = VERSION_VCS;

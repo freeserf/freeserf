@@ -3,11 +3,11 @@ os: Visual Studio 2015
 version: '{build}'
 
 platform:
-  - x86
+#  - x86
   - x64
 
 configuration:
-  - Debug
+#  - Debug
   - Release
 
 cache:
@@ -34,7 +34,7 @@ install:
 build_script:
   - cmd: cd %APPVEYOR_BUILD_FOLDER%
   - cmd: cmake -DCMAKE_TOOLCHAIN_FILE=c:/tools/vcpkg/scripts/buildsystems/vcpkg.cmake -G "NMake Makefiles" -DCMAKE_BUILD_TYPE=%configuration% .
-  - cmd: nmake check_style
+#  - cmd: nmake check_style
   - cmd: nmake
   - cmd: nmake package
 
@@ -50,5 +50,5 @@ after_test:
       }
 
 artifacts:
-  - path: FreeSerf-$(PLATFORM)-$(CONFIGURATION).exe
+  - path: forkserf-$(PLATFORM)-$(CONFIGURATION).exe
     name: installer

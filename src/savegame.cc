@@ -495,7 +495,8 @@ GameStore::GameStore() {
   folder_path += '/';
 #endif
 
-  folder_path += "freeserf";
+  //folder_path += "freeserf";
+  folder_path += "forkserf";
   if (!is_folder_exists(folder_path)) {
     if (!create_folder(folder_path)) {
       throw ExceptionFreeserf("Failed to create folder");

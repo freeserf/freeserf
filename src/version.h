@@ -22,6 +22,7 @@
 #ifndef SRC_VERSION_H_
 #define SRC_VERSION_H_
 
-extern const char FREESERF_VERSION[];
+//extern const char FREESERF_VERSION[];
+extern const char FORKSERF_VERSION[];
 
 #endif  // SRC_VERSION_H_

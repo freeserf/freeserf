@@ -95,7 +95,8 @@ main(int argc, char *argv[]) {
     return EXIT_FAILURE;
   }
 
-  Log::Info["main"] << "freeserf " << FREESERF_VERSION;
+  //Log::Info["main"] << "freeserf " << FREESERF_VERSION;
+  Log::Info["freeserf.cc"] << "forksrf " << FORKSERF_VERSION;
 
   Data &data = Data::get_instance();
   if (!data.load(data_dir)) {
