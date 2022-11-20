@@ -517,7 +517,7 @@ Flag::schedule_slot_to_unknown_dest(int slot_num) {
                            << " found: flag " << data.flag->get_index();
       Building *dest_bld = data.flag->other_endpoint.b[DirectionUpLeft];
       // adding support for requested resource timeouts
-      Log::Info["flag"] << "inside Flag::schedule_slot_to_unknown_dest, about to call dest_bld->add_requested_resource(" << NameResource[res] << ", true, " << data.dist_from_inv << ") for dest_bld of type " << NameBuilding[dest_bld->get_type()];
+      //Log::Debug["flag"] << "inside Flag::schedule_slot_to_unknown_dest, about to call dest_bld->add_requested_resource(" << NameResource[res] << ", true, " << data.dist_from_inv << ") for dest_bld of type " << NameBuilding[dest_bld->get_type()];
       //if (!dest_bld->add_requested_resource(res, true)) {
       if (!dest_bld->add_requested_resource(res, true, data.dist_from_inv)) {
         Log::Error["flag"] << "inside Flag::schedule_slot_to_unknown_dest, add_requested_resource returned false, resource: " << NameResource[res] << ", building type " << NameBuilding[dest_bld->get_type()];

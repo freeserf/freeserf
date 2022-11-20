@@ -335,7 +335,7 @@ Resource::Type res_needed[] = {
 bool
 Inventory::specialize_serf(Serf *serf, Serf::Type type) {
   if (serf->get_type() != Serf::TypeGeneric) {
-    Log::Debug["inventory"] << "inside specialize_serf, failure0";
+    Log::Debug["inventory"] << "inside specialize_serf to type " << NameSerf[type] << ", failure0";
     return false;
   }
 
@@ -346,18 +346,18 @@ Inventory::specialize_serf(Serf *serf, Serf::Type type) {
   // must exclude Knights from this check!
   //if (serfs[type] != 0) {
   if (serfs[type] != 0 && !(type >= Serf::TypeKnight0 && type <= Serf::TypeKnight4)) {
-    Log::Debug["inventory"] << "inside specialize_serf, failure because serf of this type already exists in Inventory, and this is not a Knight";
+    Log::Debug["inventory"] << "inside specialize_serf to type " << NameSerf[type] << ", failure because serf of this type already exists in Inventory, and this is not a Knight";
     return false;
   }
 
   if ((res_needed[type*2] != Resource::TypeNone)
       && (resources[res_needed[type*2]] == 0)) {
-    Log::Debug["inventory"] << "inside specialize_serf, failure because no tool of first type available";
+    Log::Debug["inventory"] << "inside specialize_serf to type " << NameSerf[type] << ", failure because no tool of first type available";
     return false;
   }
   if ((res_needed[type*2+1] != Resource::TypeNone)
       && (resources[res_needed[type*2+1]] == 0)) {
-    Log::Debug["inventory"] << "inside specialize_serf, failure because no tool of second type available";
+    Log::Debug["inventory"] << "inside specialize_serf to type " << NameSerf[type] << ", failure because no tool of second type available";
     return false;
   }
 

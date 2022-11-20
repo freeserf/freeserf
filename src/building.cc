@@ -472,9 +472,8 @@ Building::requested_resource_delivered(Resource::Type resource) {
         stock[i].requested -= 1;
         if (stock[i].requested < 0) {
           stock[i].requested = 0;
-          Log::Debug["building"] << "inside requested_resource_delivered, res type " << NameResource[resource] << ", building of type " << NameBuilding[type] << " at pos " << get_position() << ", Fixing req res delivered FOOD type requested below zero.";
+          Log::Debug["building"] << "inside requested_resource_delivered, res type " << NameResource[resource] << ", building of type " << NameBuilding[type] << " at pos " << get_position() << ", delivered unrequested food";
         }
-        Log::Debug["building"] << "inside requested_resource_delivered, res type " << NameResource[resource] << ", building of type " << NameBuilding[type] << " at pos " << get_position() << ", Fixing req res delivered FOOD type.";
         return true;
     }
 
@@ -959,7 +958,7 @@ Building::update() {
           }
           // find any expired timeouts
           if (stock[j].req_timeout_tick[x] < (signed)game->get_tick()){
-            Log::Debug["building"] << "debug: inside Building::update(), building type " << NameBuilding[type] << " at pos " << get_position() << ", res type " << NameResource[stock[j].type] << ", resource request timeout triggered! req_timeout_tick = " << stock[j].req_timeout_tick[x] << ", current tick = " << game->get_tick();
+            Log::Debug["building"] << "inside Building::update(), building type " << NameBuilding[type] << " at pos " << get_position() << ", res type " << NameResource[stock[j].type] << ", resource request timeout triggered! req_timeout_tick = " << stock[j].req_timeout_tick[x] << ", current tick = " << game->get_tick();
             // decrement the requested count so another can be requested
             stock[j].requested -= 1;
             // delete the timer
@@ -1021,7 +1020,7 @@ Building::update() {
       }
       if (stock[j].requested < 0) {
         // changing this from Warn to Debug, as this is not so unexpected if resource timeouts are in place
-        //Log::Debug["building"] << "debug: inside Building::update(), building type " << NameBuilding[type] << " at pos " << get_position() << ", after requested resource count is below zero!  stock[" << j << "].requested = " << stock[j].requested << ", resetting it to zero";
+        //Log::Debug["building"] << "inside Building::update(), building type " << NameBuilding[type] << " at pos " << get_position() << ", after requested resource count is below zero!  stock[" << j << "].requested = " << stock[j].requested << ", resetting it to zero";
         stock[j].requested = 0;
       }
     }

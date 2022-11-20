@@ -1400,7 +1400,7 @@ Game::build_flag_split_path(MapPos pos) {
   SerfPathInfo path_1_data;
   SerfPathInfo path_2_data;
 
-  Log::Info["game"] << "inside build_flag_split_path, about to call fill_path_serf_info for new splitting flag at pos " << pos;
+  //Log::Debug["game"] << "inside build_flag_split_path, about to call fill_path_serf_info for new splitting flag at pos " << pos;
   Flag::fill_path_serf_info(this, pos, path_1_dir, &path_1_data);
   Flag::fill_path_serf_info(this, pos, path_2_dir, &path_2_data);
   

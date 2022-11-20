@@ -739,10 +739,10 @@ Map::update_public(MapPos pos, Random *rnd) {
   // - Harvested fields are destroyed immediately?
   case ObjectSeeds0: case ObjectSeeds1:
     if (option_FourSeasons && season == 1){
-      Log::Info["map"] << "option_FourSeasons and option_AdvancedFarming on, and it is Summer, this young Seed-field at pos " << pos << " is now being destroyed (too hot for immature seedlings)";
+      Log::Debug["map"] << "option_FourSeasons and option_AdvancedFarming on, and it is Summer, this young Seed-field at pos " << pos << " is now being destroyed (too hot for immature seedlings)";
       set_object(pos, ObjectFieldExpired, -1);
     }else if (option_FourSeasons && season == 3){
-      Log::Info["map"] << "option_FourSeasons and option_AdvancedFarming on, and it is Winter, this Seed-field at pos " << pos << " is not advancing this update (too cold for seeds to grow)";
+      Log::Debug["map"] << "option_FourSeasons and option_AdvancedFarming on, and it is Winter, this Seed-field at pos " << pos << " is not advancing this update (too cold for seeds to grow)";
     }else{
       set_object(pos, (Object)(get_obj(pos) + 1), -1);
     }
@@ -750,7 +750,7 @@ Map::update_public(MapPos pos, Random *rnd) {
   case ObjectSeeds2: case ObjectSeeds3:
   case ObjectSeeds4:
     if (option_FourSeasons && season == 3){
-      Log::Info["map"] << "option_FourSeasons and option_AdvancedFarming on, and it is Winter, this Seed-field at pos " << pos << " is not advancing this update (too cold for seeds to grow)";
+      Log::Debug["map"] << "option_FourSeasons and option_AdvancedFarming on, and it is Winter, this Seed-field at pos " << pos << " is not advancing this update (too cold for seeds to grow)";
     }else{
       set_object(pos, (Object)(get_obj(pos) + 1), -1);
     }
@@ -759,7 +759,7 @@ Map::update_public(MapPos pos, Random *rnd) {
   case ObjectField2: case ObjectField3:
   case ObjectField4:
     if (option_FourSeasons && (season >= 3 || (season >=2 && subseason >= 8))){
-      Log::Info["map"] << "option_FourSeasons and option_AdvancedFarming on, and it is past mid-Fall, this Field at pos " << pos << " is now being destroyed";
+      Log::Debug["map"] << "option_FourSeasons and option_AdvancedFarming on, and it is past mid-Fall, this Field at pos " << pos << " is now being destroyed";
       set_object(pos, ObjectFieldExpired, -1);
     }else{
       set_object(pos, (Object)(get_obj(pos) + 1), -1);
@@ -767,7 +767,7 @@ Map::update_public(MapPos pos, Random *rnd) {
     break;
   case ObjectSeeds5:
     if (option_FourSeasons && (season >= 3 || (season >=2 && subseason >= 8))){
-      Log::Info["map"] << "option_FourSeasons and option_AdvancedFarming on, and it is past mid-Fall, this Seeds5-field at pos " << pos << " is now being destroyed instead of progressing to Field0";
+      Log::Debug["map"] << "option_FourSeasons and option_AdvancedFarming on, and it is past mid-Fall, this Seeds5-field at pos " << pos << " is now being destroyed instead of progressing to Field0";
       set_object(pos, ObjectFieldExpired, -1);
     }else{
       set_object(pos, ObjectField0, -1);

@@ -2726,7 +2726,8 @@ Viewport::draw_game_objects(int layers_) {
   // the timing of these isn't well planned, just fiddled around with the numbers until it
   //  gave acceptable results.  could be improved
   // ALSO... would the wind sounds be better for mountains rather than deserts??
-  //
+  // NOTE ambient sounds are triggered by trees & junk objects in view, so if junk objects off
+  //   and on lakes with no submerged tree (because its bugged) these sounds will not trigger
   // play bird sounds if enough trees in view
   //Log::Info["viewport.cc"] << "trees in view: " << interface->trees_in_view;
   if (interface->trees_in_view > 0){

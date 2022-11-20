@@ -457,7 +457,7 @@ Interface::update_interface() {
 
 /*
   Log::Info["interface"] << "option_EnableAutoSave is " << option_EnableAutoSave;
-  Log::Info["interface"] << "option_ImprovedPigFarms is " << option_ImprovedPigFarms;  // removing this as it turns out the default behavior for pig farms is to require almost no grain
+  //Log::Info["interface"] << "option_ImprovedPigFarms is " << option_ImprovedPigFarms;  // removing this as it turns out the default behavior for pig farms is to require almost no grain
   Log::Info["interface"] << "option_CanTransportSerfsInBoats is " << option_CanTransportSerfsInBoats;
   Log::Info["interface"] << "option_QuickDemoEmptyBuildSites is " << option_QuickDemoEmptyBuildSites;
   Log::Info["interface"] << "option_TreesReproduce is " << option_TreesReproduce;

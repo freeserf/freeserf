@@ -251,9 +251,13 @@ GuiObject::play_sound(int sound) {
   Audio &audio = Audio::get_instance();
   Audio::PPlayer player = audio.get_sound_player();
   if (player) {
-    //Audio::PTrack t = player->play_track(sound);
-    Audio::PTrack t = player->play_track(sound, DataSourceType::DOS);  // default to DOS
-    //Audio::PTrack t = player->play_track(sound, DataSourceType::Amiga);  // default to Amiga
+    Data &data = Data::get_instance();
+    if (data.get_data_source_DOS() != nullptr){
+      Audio::PTrack t = player->play_track(sound, DataSourceType::DOS);  // default to DOS
+    }else{
+      // if no DOS resources available, try Amiga sound
+      Audio::PTrack t = player->play_track(sound, DataSourceType::Amiga);  // fall back to Amiga
+    }
   }
 }
 
@@ -263,7 +267,15 @@ GuiObject::play_sound(int sound, int source_type) {
   Audio &audio = Audio::get_instance();
   Audio::PPlayer player = audio.get_sound_player();
   if (player) {
-    //Audio::PTrack t = player->play_track(sound);
+    Data &data = Data::get_instance();
+    if (data.get_data_source_DOS() == nullptr){
+      // if no DOS resources available, force Amiga sounds only (which hopefully exist, or game likely won't start... unless using Custom stuff which isn't supported yet
+      source_type = DataSourceType::Amiga;
+    }
+    if (data.get_data_source_Amiga() == nullptr){
+      // if no Amiga resources available, force DOS sounds only (which hopefully exist, or game likely won't start... unless using Custom stuff which isn't supported yet
+      source_type = DataSourceType::DOS;
+    }
     Audio::PTrack t = player->play_track(sound, source_type);
   }
 }

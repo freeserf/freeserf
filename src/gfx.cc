@@ -187,7 +187,7 @@ Frame::draw_sprite(int x, int y, Data::Resource res, unsigned int index) {
 // copy of draw_sprite #! but allowing custom datasource (for frame_bottom weather dial graphics)
 void
 Frame::draw_sprite_special0(int x, int y, Data::Resource res, unsigned int index) {
-  Log::Info["gfx.cc"] << "inside Frame::draw_sprite_special0  with res " << res << " and index " << index;
+  //Log::Info["gfx.cc"] << "inside Frame::draw_sprite_special0  with res " << res << " and index " << index;
   draw_sprite_special0x(x, y, res, index, false, Color::transparent, 1.f);
 }
 
@@ -227,7 +227,7 @@ Frame::draw_sprite(int x, int y, Data::Resource res, unsigned int index,
 void
 Frame::draw_sprite_special0x(int x, int y, Data::Resource res, unsigned int index,
                    bool use_off, const Color &color, float progress) {
-  Log::Info["gfx.cc"] << "inside Frame::draw_sprite_special0x  with res " << res << " and index " << index;
+  //Log::Info["gfx.cc"] << "inside Frame::draw_sprite_special0x  with res " << res << " and index " << index;
   Data::Sprite::Color pc = {color.get_blue(),
                             color.get_green(),
                             color.get_red(),
@@ -238,7 +238,7 @@ Frame::draw_sprite_special0x(int x, int y, Data::Resource res, unsigned int inde
   if (image == nullptr) {
     Data::PSprite s;
     if (res == Data::AssetFrameBottom){
-      Log::Info["gfx.cc"] << "inside Frame::draw_sprite_special0x, trying to load custom FrameBottom graphic with index " << index;
+      //Log::Info["gfx.cc"] << "inside Frame::draw_sprite_special0x, trying to load custom FrameBottom graphic with index " << index;
       Data &data = Data::get_instance();
       if (data.get_data_source_Custom() == nullptr){
         Log::Error["gfx.cc"] << "inside Frame::draw_sprite_special0x, index " << index << ", data_source (custom) is nullptr!, are the custom data files missing?";

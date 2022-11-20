@@ -208,7 +208,7 @@ AI::next_loop(){
 
     do_create_star_roads_for_new_warehouses();
 
-    do_build_sawmill_lumberjacks(); sleep_speed_adjusted(1000);
+    do_build_sawmill_lumberjacks(); sleep_speed_adjusted(1000);  // crash here?  after do_build_sawmill_lumberjacks returned, bad malloc error
 
     if(do_can_build_knight_huts())
       expand_borders(); sleep_speed_adjusted(1000);
