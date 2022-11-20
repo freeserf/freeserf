@@ -9,7 +9,7 @@ Forkserf adds:
 - advanced AI for non-human players
   - greatly improved building placement logic
   - greatly improved road building logic
-  - builds stocks intelligently, with parallel economies around them
+  - builds stocks (warehouses) intelligently, with parallel economies around them
   - note that all AI characters use same logic for now, I will add "flavors" back in at some point
 - fixes for Freeserf bugs
   - major crash bugs during normal gameplay fixed
